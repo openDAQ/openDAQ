@@ -680,17 +680,17 @@ TEST_F(PropertyObjectTest, ListSelectionStringPropertySetGet)
     // Set by index
     propObj.setPropertyValue("Mode", "Medium");
     ASSERT_EQ(propObj.getPropertyValue("Mode"), "Medium");
-    ASSERT_THROW(propObj.getPropertySelectionValue("Mode"), daq::InvalidPropertyException);
+    ASSERT_EQ(propObj.getPropertySelectionValue("Mode"), "Medium");
 
     propObj.setPropertyValue("Mode", "High");
     ASSERT_EQ(propObj.getPropertyValue("Mode"), "High");
 
     // Set by value
-    ASSERT_THROW(propObj.setPropertySelectionValue("Mode", "Low"), daq::InvalidPropertyException);
-    ASSERT_EQ(propObj.getPropertyValue("Mode"), "High");
+    ASSERT_NO_THROW(propObj.setPropertySelectionValue("Mode", "Low"));
+    ASSERT_EQ(propObj.getPropertyValue("Mode"), "Low");
 
-    ASSERT_THROW(propObj.setPropertySelectionValue("Mode", "Medium"), daq::InvalidPropertyException);
-    ASSERT_EQ(propObj.getPropertyValue("Mode"), "High");
+    ASSERT_NO_THROW(propObj.setPropertySelectionValue("Mode", "Medium"));
+    ASSERT_EQ(propObj.getPropertyValue("Mode"), "Medium");
 }
 
 // List selection float: property built with builder (ctFloat + selection values), set/get by index and by value
@@ -707,18 +707,18 @@ TEST_F(PropertyObjectTest, ListSelectionFloatPropertySetGet)
 
     // Set by index
     propObj.setPropertyValue("Range", 2.5f);
-    ASSERT_EQ(propObj.getPropertyValue("Range"), 2.5f);
-    ASSERT_THROW(propObj.getPropertySelectionValue("Range"), daq::InvalidPropertyException);
+    ASSERT_DOUBLE_EQ(propObj.getPropertyValue("Range"), 2.5f);
+    ASSERT_DOUBLE_EQ(propObj.getPropertySelectionValue("Range"), 2.5f);
 
     propObj.setPropertyValue("Range", 10.0f);
-    ASSERT_EQ(propObj.getPropertyValue("Range"), 10.0f);
+    ASSERT_DOUBLE_EQ(propObj.getPropertyValue("Range"), 10.0f);
 
     // Set by value
-    ASSERT_THROW(propObj.setPropertySelectionValue("Range", 1.0f), daq::InvalidPropertyException);
-    ASSERT_EQ(propObj.getPropertyValue("Range"), 10.0f);
+    ASSERT_NO_THROW(propObj.setPropertySelectionValue("Range", 1.0f));
+    ASSERT_DOUBLE_EQ(propObj.getPropertyValue("Range"), 1.0f);
 
-    ASSERT_THROW(propObj.setPropertySelectionValue("Range", 2.5f), daq::InvalidPropertyException);
-    ASSERT_EQ(propObj.getPropertyValue("Range"), 10.0f);
+    ASSERT_NO_THROW(propObj.setPropertySelectionValue("Range", 2.5f));
+    ASSERT_DOUBLE_EQ(propObj.getPropertyValue("Range"), 2.5f);
 }
 
 // List selection string with default value as string (not index)
@@ -733,7 +733,7 @@ TEST_F(PropertyObjectTest, ListSelectionStringPropertyDefaultValue)
     propObj.addProperty(stringSelectionProp);
 
     ASSERT_EQ(propObj.getPropertyValue("Mode"), "Medium");
-    ASSERT_THROW(propObj.getPropertySelectionValue("Mode"), daq::InvalidPropertyException);
+    ASSERT_EQ(propObj.getPropertySelectionValue("Mode"), "Medium");
 }
 
 // List selection float with default value as float (not index)
@@ -747,8 +747,8 @@ TEST_F(PropertyObjectTest, ListSelectionFloatPropertyDefaultValue)
     auto propObj = PropertyObject();
     propObj.addProperty(floatSelectionProp);
 
-    ASSERT_EQ(propObj.getPropertyValue("Range"), 2.5f);
-    ASSERT_THROW(propObj.getPropertySelectionValue("Range"), daq::InvalidPropertyException);
+    ASSERT_DOUBLE_EQ(propObj.getPropertyValue("Range"), 2.5f);
+    ASSERT_DOUBLE_EQ(propObj.getPropertySelectionValue("Range"), 2.5f);
 }
 
 TEST_F(PropertyObjectTest, ListSelectionStringPropertySetInvalidValue)

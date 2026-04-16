@@ -175,7 +175,7 @@ set(SRC_PrivateHeaders_Component
     PARENT_SCOPE
 )
 
-set(SRC_Cpp_Component 
+set(SRC_Cpp_Component
     component_impl.cpp
     component_type_impl.cpp
     folder_impl.cpp

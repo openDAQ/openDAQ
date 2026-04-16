@@ -28,6 +28,7 @@ public:
 
     daq::DictPtr<daq::IString, daq::IFunctionBlockType> onGetAvailableFunctionBlockTypes() override;
     daq::FunctionBlockPtr onAddFunctionBlock(const daq::StringPtr& typeId, const daq::PropertyObjectPtr& config) override;
+    void onRemoveFunctionBlock(const daq::FunctionBlockPtr& functionBlock) override;
 
 protected:
     void createFunctionBlocks();

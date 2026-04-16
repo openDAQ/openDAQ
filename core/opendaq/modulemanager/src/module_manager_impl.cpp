@@ -22,6 +22,7 @@
 #include <coreobjects/property_factory.h>
 #include <opendaq/mirrored_signal_config_ptr.h>
 #include <map>
+#include <opendaq/version.h>
 #include <opendaq/logger_factory.h>
 #include <opendaq/device_info_factory.h>
 #include <opendaq/address_info_private_ptr.h>
@@ -35,6 +36,7 @@
 #include <opendaq/component_type_private_ptr.h>
 
 #include <opendaq/thread_name.h>
+#include <opendaq/module_manager_check_dependencies.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
@@ -45,9 +47,9 @@ static OrphanedModules orphanedModules;
 static constexpr std::chrono::milliseconds DefaultrescanTimer = 5000ms;
 static constexpr char createModuleFactory[] = "createModule";
 static constexpr char checkDependenciesFunc[] = "checkDependencies";
-
+static constexpr char getCoreVersionMetadataFunc[] = "getCoreVersionMetadata";
 static void GetModulesPath(std::vector<fs::path>& modulesPath, const LoggerComponentPtr& loggerComponent, std::string searchFolder);
-static ModuleLibrary loadModuleInternal(const LoggerComponentPtr& loggerComponent, const fs::path& path, IContext* context);
+static ModuleLibrary loadModuleInternal(const LoggerComponentPtr& loggerComponent, const fs::path& path, IContext* context, Bool safeLoadingMode);
 
 ModuleManagerImpl::ModuleManagerImpl(const BaseObjectPtr& path)
     : authenticatedModulesOnly(false)
@@ -56,6 +58,7 @@ ModuleManagerImpl::ModuleManagerImpl(const BaseObjectPtr& path)
     , modulesLoaded(false)
     , work(ioContext.get_executor())
     , rescanTimer(DefaultrescanTimer)
+    , safeLoadingMode(False)
 {
     if (const StringPtr pathStr = path.asPtrOrNull<IString>(true); pathStr.assigned())
     {
@@ -173,6 +176,10 @@ ErrCode ModuleManagerImpl::loadModules(IContext* context)
             {
                 this->rescanTimer = std::chrono::milliseconds(static_cast<int>(inner.get("AddDeviceRescanTimer")));
             }
+            if (inner.hasKey("SafeLoadingMode"))
+            {
+                this->safeLoadingMode = static_cast<bool>(inner.get("SafeLoadingMode"));
+            }
         }
 
         loggerComponent = this->logger.getOrAddComponent("ModuleManager");
@@ -181,6 +188,15 @@ ErrCode ModuleManagerImpl::loadModules(IContext* context)
     {
         return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDPARAMETER, "Context cannot be changed after loading modules");
     }
+
+    std::string sdkVersionMetadataAsString =
+        fmt::format(R"([[ 'major': '{}'; 'minor': '{}'; 'patch': '{}'; 'branch': '{}'; 'sha': '{}'; ]])",
+                    OPENDAQ_OPENDAQ_MAJOR_VERSION,
+                    OPENDAQ_OPENDAQ_MINOR_VERSION,
+                    OPENDAQ_OPENDAQ_PATCH_VERSION,
+                    OPENDAQ_OPENDAQ_BRANCH_NAME,
+                    OPENDAQ_OPENDAQ_REVISION_HASH);
+    LOG_I("Loading modules ... the running SDK core version: \"{}\"", sdkVersionMetadataAsString);
 
     std::vector<std::string> paths;
     auto envPath = std::getenv("OPENDAQ_MODULES_PATH");
@@ -341,7 +357,7 @@ ErrCode ModuleManagerImpl::tryLoadAndAddModule(const StringPtr& path, IModule** 
             }
         }
 
-        auto moduleLibrary = loadModuleInternal(loggerComponent, fileSystemPath, context);
+        auto moduleLibrary = loadModuleInternal(loggerComponent, fileSystemPath, context, safeLoadingMode);
         const auto loadedModule = moduleLibrary.module;
         const StringPtr moduleId = loadedModule.getModuleInfo().getId();
 
@@ -2034,12 +2050,12 @@ static std::string GetMessageFromLibraryErrCode(std::error_code libraryErrCode)
 #endif
 }
 
-ModuleLibrary loadModuleInternal(const LoggerComponentPtr& loggerComponent, const fs::path& path, IContext* context)
+ModuleLibrary loadModuleInternal(const LoggerComponentPtr& loggerComponent, const fs::path& path, IContext* context, Bool safeLoadingMode)
 {
     LOG_T("Loading module \"{}\".", path.string());
 
     std::error_code libraryErrCode;
-    boost::dll::shared_library moduleLibrary(path, libraryErrCode, boost::dll::load_mode::rtld_now);
+    boost::dll::shared_library moduleLibrary(path, libraryErrCode, safeLoadingMode ? boost::dll::load_mode::rtld_now : boost::dll::load_mode::default_mode);
 
     if (libraryErrCode)
     {
@@ -2051,20 +2067,82 @@ ModuleLibrary loadModuleInternal(const LoggerComponentPtr& loggerComponent, cons
         );
     }
 
+    if (moduleLibrary.has(getCoreVersionMetadataFunc))
+    {
+        using GetCoreVersionMetadataFunc = ErrCode (*)(unsigned int*, unsigned int*, unsigned int*, IString**, IString**, IString**);
+        GetCoreVersionMetadataFunc getMetadata = moduleLibrary.get<ErrCode(unsigned int*, unsigned int*, unsigned int*, IString**, IString**, IString**)>(getCoreVersionMetadataFunc);
+
+        unsigned int major, minor, patch;
+        StringPtr branch, sha;
+
+        ErrCode errCode = getMetadata(&major, &minor, &patch, &branch, &sha, nullptr);
+
+        if (OPENDAQ_SUCCEEDED(errCode))
+        {
+            std::string inModuleMetadataAsString =
+                fmt::format(R"([[ 'major': '{}'; 'minor': '{}'; 'patch': '{}'; 'branch': '{}'; 'sha': '{}'; ]])",
+                            major,
+                            minor,
+                            patch,
+                            branch,
+                            sha);
+
+            StringPtr logMsg;
+            errCode = checkModuleVersionCompatibility(major, minor, patch, branch, sha, nullptr, &logMsg);
+            if (OPENDAQ_FAILED(errCode))
+            {
+                DAQ_EXTEND_ERROR_INFO(
+                    errCode,
+                    OPENDAQ_ERR_MODULE_INCOMPATIBLE_DEPENDENCIES,
+                    fmt::format(R"(Module "{}" failed dependencies check via version metadata: {})",
+                                path.string(),
+                                logMsg.assigned() ? logMsg : ""
+                    )
+                );
+                checkErrorInfo(OPENDAQ_ERR_MODULE_INCOMPATIBLE_DEPENDENCIES);
+            }
+            else if (errCode == OPENDAQ_PARTIAL_SUCCESS && logMsg.assigned())
+            {
+                LOG_W("Module \'{}\' SDK core version metadata checking result: {}", path.string(), logMsg);
+            }
+            LOG_I("Loaded module \'{}\' was built with SDK version: \"{}\"", path.string(), inModuleMetadataAsString);
+        }
+        else
+        {
+            LOG_W("Module \'{}\' failed to get SDK core version metadata: {}", path.string(), getErrorInfoMessage(errCode));
+            daqClearErrorInfo();
+        }
+    }
+    else
+    {
+        LOG_W("Module \"{}\" does not provide SDK core version metadata", path.string());
+    }
+
     if (moduleLibrary.has(checkDependenciesFunc))
     {
         using CheckDependenciesFunc = ErrCode (*)(IString**);
         CheckDependenciesFunc checkDeps = moduleLibrary.get<ErrCode(IString**)>(checkDependenciesFunc);
 
-        LOG_T("Checking dependencies of \"{}\".", path.string());
+        LOG_T("Checking dependencies of \"{}\" via \"{}\" ", path.string(), checkDependenciesFunc);
 
-        StringPtr errMsg;
-        const ErrCode errCode = checkDeps(&errMsg);
+        StringPtr logMsg;
+        const ErrCode errCode = checkDeps(&logMsg);
         if (OPENDAQ_FAILED(errCode))
         {
-            LOG_T("Failed to check dependencies for \"{}\"", relativePath);
-            DAQ_EXTEND_ERROR_INFO(errCode, OPENDAQ_ERR_MODULE_INCOMPATIBLE_DEPENDENCIES, fmt::format(R"(Module "{}" failed dependencies check: {})", path.string(), errMsg));
+            DAQ_EXTEND_ERROR_INFO(
+                errCode,
+                OPENDAQ_ERR_MODULE_INCOMPATIBLE_DEPENDENCIES,
+                fmt::format(R"(Module "{}" failed dependencies check via "{}": {})",
+                            path.string(),
+                            checkDependenciesFunc,
+                            logMsg.assigned() ? logMsg : ""
+                )
+            );
             checkErrorInfo(OPENDAQ_ERR_MODULE_INCOMPATIBLE_DEPENDENCIES);
+        }
+        else if (errCode == OPENDAQ_PARTIAL_SUCCESS && logMsg.assigned())
+        {
+            LOG_W("Module \"{}\" check dependencies warning: {}", path.string(), logMsg);
         }
     }
 

@@ -44,6 +44,9 @@ public:
     ErrCode INTERFACE_FUNC updateOperationMode(OperationModeType modeType) override;
     ErrCode INTERFACE_FUNC getComponentConfig(IPropertyObject** config) override;
 
+    // IComponentPrivate overrides
+    ErrCode INTERFACE_FUNC setParentActive(Bool parentActive) override;
+
     static ErrCode Deserialize(ISerializedObject* serialized, IBaseObject* context, IFunction* factoryCallback, IBaseObject** obj);
 protected:
     template <class Interface, class Implementation>
@@ -82,6 +85,25 @@ ErrCode ConfigClientComponentBaseImpl<Impl>::setActive(Bool active)
         this->clientComm->setAttributeValue(this->remoteGlobalId, "Active", active); 
     });
     OPENDAQ_RETURN_IF_FAILED(errCode);
+    return errCode;
+}
+
+template <class Impl>
+ErrCode ConfigClientComponentBaseImpl<Impl>::setParentActive(Bool parentActive)
+{
+    ErrCode errCode = Impl::setParentActive(parentActive);
+    OPENDAQ_RETURN_IF_FAILED(errCode);
+    if (this->clientComm->getProtocolVersion() > 21)
+        return errCode;
+
+    const bool muted = this->coreEventMuted;
+    if (!muted)
+        Impl::disableCoreEventTrigger();
+
+    errCode = Impl::setActive(parentActive);
+
+    if (!muted)
+        Impl::enableCoreEventTrigger();
     return errCode;
 }
 
@@ -253,7 +275,8 @@ void ConfigClientComponentBaseImpl<Impl>::onRemoteUpdate(const SerializedObjectP
     ConfigClientPropertyObjectBaseImpl<Impl>::onRemoteUpdate(serialized);
 
     if (serialized.hasKey("active"))
-        this->active = serialized.readBool("active");
+        this->localActive = serialized.readBool("active");
+    this->active = this->parentActive && this->localActive;
 
     if (serialized.hasKey("visible"))
         this->visible = serialized.readBool("visible");

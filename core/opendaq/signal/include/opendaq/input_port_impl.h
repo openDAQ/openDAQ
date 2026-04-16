@@ -63,6 +63,7 @@ public:
                                   bool gapChecking = false);
 
     ErrCode INTERFACE_FUNC acceptsSignal(ISignal* signal, Bool* accepts) override;
+    ErrCode INTERFACE_FUNC acceptsSignals(IList* signals, IList** accepts) override;
     ErrCode INTERFACE_FUNC connect(ISignal* signal) override;
     ErrCode INTERFACE_FUNC disconnect() override;
     ErrCode INTERFACE_FUNC getSignal(ISignal** signal) override;
@@ -116,7 +117,7 @@ protected:
     void removed() override;
     void removedNoLock() override;
     virtual SignalPtr getSignalNoLock();
-    
+
     StringPtr serializedSignalId;
 
     ErrCode lockAllAttributesInternal() override;
@@ -191,6 +192,29 @@ ErrCode GenericInputPortImpl<TInterface, Interfaces...>::acceptsSignal(ISignal* 
     }
 
     *accepts = true;
+    return OPENDAQ_SUCCESS;
+}
+
+template <typename TInterface, typename...  Interfaces>
+ErrCode GenericInputPortImpl<TInterface, Interfaces...>::acceptsSignals(IList* signals, IList** accepts)
+{
+    OPENDAQ_PARAM_NOT_NULL(accepts);
+    OPENDAQ_PARAM_NOT_NULL(signals);
+
+    *accepts = nullptr;
+    auto acceptanceList = List<IBoolean>();
+
+    auto signalList = ListPtr<ISignal>::Borrow(signals);
+    for (const auto& signal : signalList)
+    {
+        Bool allowed = False;
+        const auto err = acceptsSignal(signal, &allowed);
+        OPENDAQ_RETURN_IF_FAILED(err);
+
+        acceptanceList.pushBack(allowed);
+    }
+
+    *accepts = acceptanceList.detach();
     return OPENDAQ_SUCCESS;
 }
 
@@ -567,7 +591,7 @@ void GenericInputPortImpl<TInterface, Interfaces...>::removedNoLock()
         connection = getConnectionNoLock();
         connectionRef.release();
     }
-    
+
     // remove is meant to be called from listener, so don't notify it
     disconnectSignalInternal(std::move(connection), false, true, false);
 }
@@ -705,6 +729,9 @@ void GenericInputPortImpl<TInterface, Interfaces...>::serializeCustomObjectValue
 {
     Super::serializeCustomObjectValues(serializer, forUpdate);
 
+    serializer.key("public");
+    serializer.writeBool(isPublic);
+
     auto signal = getSignalNoLock();
 
     if (signal.assigned())
@@ -776,6 +803,9 @@ void GenericInputPortImpl<TInterface, Interfaces...>::deserializeCustomObjectVal
                                                          const FunctionPtr& factoryCallback)
 {
     Super::deserializeCustomObjectValues(serializedObject, context, factoryCallback);
+
+    if (serializedObject.hasKey("public"))
+        isPublic = serializedObject.readBool("public");
 
     if (serializedObject.hasKey("signalId"))
     {

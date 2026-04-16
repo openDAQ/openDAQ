@@ -85,9 +85,9 @@ class InputPortRowView(ttk.Frame):
             # Keep the first mapping in case of duplicate display text.
             if display not in self._signal_display_to_signal:
                 self._signal_display_to_signal[display] = signal
+                display_values.append(display)
             if name_text not in self._signal_name_to_signal:
                 self._signal_name_to_signal[name_text] = signal
-                display_values.append(display)
         signals = ['none'] + display_values
 
         self._all_signals = signals

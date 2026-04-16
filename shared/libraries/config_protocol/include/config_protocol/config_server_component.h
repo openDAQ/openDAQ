@@ -35,6 +35,7 @@ public:
     static BaseObjectPtr getPropertyValue(const RpcContext& context, const PropertyObjectPtr& component, const ParamsDictPtr& params);
     static BaseObjectPtr setPropertyValue(const RpcContext& context, const PropertyObjectPtr& component, const ParamsDictPtr& params);
     static BaseObjectPtr setProtectedPropertyValue(const RpcContext& context, const PropertyObjectPtr& component, const ParamsDictPtr& params);
+    static BaseObjectPtr setPropertySelectionValue(const RpcContext& context, const PropertyObjectPtr& component, const ParamsDictPtr& params);
     static BaseObjectPtr clearPropertyValue(const RpcContext& context, const PropertyObjectPtr& component, const ParamsDictPtr& params);
     static BaseObjectPtr clearProtectedPropertyValue(const RpcContext& context, const PropertyObjectPtr& component, const ParamsDictPtr& params);
     static BaseObjectPtr getSuggestedValues(const RpcContext& context, const PropertyObjectPtr& component, const ParamsDictPtr& params);
@@ -112,6 +113,27 @@ inline BaseObjectPtr ConfigServerComponent::setProtectedPropertyValue(const RpcC
     ConfigServerAccessControl::protectObject(propertyParent, context.user, {Permission::Read, Permission::Write});
 
     targetComponent.asPtr<IPropertyObjectProtected>(true).setProtectedPropertyValue(propertyName, propertyValue);
+
+    return nullptr;
+}
+
+inline BaseObjectPtr ConfigServerComponent::setPropertySelectionValue(const RpcContext& context,
+                                                                      const PropertyObjectPtr& component,
+                                                                      const ParamsDictPtr& params)
+{
+    ConfigServerAccessControl::protectLockedComponent(component);
+    ConfigServerAccessControl::protectViewOnlyConnection(context.connectionType);
+
+    const auto propertyValue = params["PropertyValue"];
+    auto propertyName = static_cast<std::string>(params["PropertyName"]);
+    PropertyObjectPtr targetComponent = component;
+    parseAndGetDeviceInfo(targetComponent, propertyName);
+
+    const auto propertyParent = ConfigServerAccessControl::getFirstPropertyParent(targetComponent, propertyName);
+
+    ConfigServerAccessControl::protectObject(propertyParent, context.user, {Permission::Read, Permission::Write});
+
+    targetComponent.setPropertySelectionValue(propertyName, propertyValue);
 
     return nullptr;
 }

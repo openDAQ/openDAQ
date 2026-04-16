@@ -42,7 +42,7 @@ bool isCompatibleVersion(const std::string& dependency,
     uint32_t linkedPatch{};
 
     getDependencyVersion(&linkedMajor, &linkedMinor, &linkedPatch);
-    if (compiledVersion.major == linkedMajor)
+    if (compiledVersion.major == linkedMajor && compiledVersion.minor == linkedMinor)
     {
         return true;
     }

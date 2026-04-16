@@ -358,3 +358,38 @@ def update_properties(target: daq.IPropertyObject, source: daq.IPropertyObject):
             update_properties(target_prop.value, source_prop.value)
         else:
             target.set_property_value(prop_name, source_prop.value)
+
+def make_banner(parent, text):
+    """Shared section-header banner used across signal, input, and recorder views."""
+    _banner_bg = '#afafaf'
+    _banner_fg = 'white'
+    bar = tk.Frame(parent, bg=_banner_bg, bd=0, highlightthickness=0)
+    bar.pack(fill=tk.X, pady=(0, 8))
+    tk.Label(bar, text=text, bg=_banner_bg, fg=_banner_fg,
+             font=('TkDefaultFont', 10, 'bold')).pack(
+        side=tk.LEFT, padx=6, pady=2)
+    return bar
+
+
+def poll_signal_rows(widget, rows, interval_ms=200, _job_attr='_signal_refresh_job'):
+    """Schedules a recurring refresh of OutputSignalRow widgets.
+    
+    Stores the after-job ID on `widget` under `_job_attr` so callers can
+    cancel it on destroy.  Automatically stops when the widget is gone.
+    """
+    setattr(widget, _job_attr, None)
+
+    def _tick():
+        setattr(widget, _job_attr, None)
+        if not widget.winfo_exists():
+            return
+        if widget.winfo_ismapped():
+            for row in list(rows):
+                try:
+                    if row.winfo_exists():
+                        row.refresh()
+                except Exception:
+                    pass
+        setattr(widget, _job_attr, widget.after(interval_ms, _tick))
+
+    setattr(widget, _job_attr, widget.after(interval_ms, _tick))

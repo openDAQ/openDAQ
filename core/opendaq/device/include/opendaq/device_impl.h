@@ -226,7 +226,6 @@ protected:
                                        const FunctionPtr& factoryCallback) override;
 
     void updateObject(const SerializedObjectPtr& obj, const BaseObjectPtr& context) override;
-    bool clearFunctionBlocksOnUpdate() override;
 
     void setDeviceDomainNoCoreEvent(const DeviceDomainPtr& domain);
 
@@ -2438,12 +2437,6 @@ ErrCode GenericDevice<TInterface, Interfaces...>::disableCoreEventTrigger()
     }
 
     return errCode;
-}
-
-template <typename TInterface, typename... Interfaces>
-bool GenericDevice<TInterface, Interfaces...>::clearFunctionBlocksOnUpdate()
-{
-    return true;
 }
 
 template <typename TInterface, typename ... Interfaces>

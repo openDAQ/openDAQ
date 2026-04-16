@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.7.0) on 05.03.2026 11:32:42.
+//     RTGen (CGenerator v0.7.0).
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -60,4 +60,9 @@ daqErrCode daqInputPort_getPublic(daqInputPort* self, daqBool* isPublic)
 daqErrCode daqInputPort_setPublic(daqInputPort* self, daqBool isPublic)
 {
     return reinterpret_cast<daq::IInputPort*>(self)->setPublic(isPublic);
+}
+
+daqErrCode daqInputPort_acceptsSignals(daqInputPort* self, daqList* signals, daqList** accepts)
+{
+    return reinterpret_cast<daq::IInputPort*>(self)->acceptsSignals(reinterpret_cast<daq::IList*>(signals), reinterpret_cast<daq::IList**>(accepts));
 }

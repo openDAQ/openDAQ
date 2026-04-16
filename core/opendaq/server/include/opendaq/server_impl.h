@@ -60,6 +60,7 @@ public:
     {
         if (serverId == nullptr)
             return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDPARAMETER);
+
         *serverId = id.addRefAndReturn();
         return OPENDAQ_SUCCESS;
     }
@@ -70,22 +71,20 @@ public:
         {
             DeviceInfoPtr rootDeviceInfo = rootDevice.getInfo();
             for (const auto& [_, discoveryServer] : context.getDiscoveryServers())
-            {
-                discoveryServer.template asPtr<IDiscoveryServer>().registerService(id, getDiscoveryConfig(), rootDeviceInfo);
-            }
+                discoveryServer.template asPtr<IDiscoveryServer>(true).registerService(id, getDiscoveryConfig(), rootDeviceInfo);
         }
+        return OPENDAQ_SUCCESS;
+    }
+
+    ErrCode INTERFACE_FUNC disableDiscovery() override
+    {
+        disableDiscoveryInternal();
         return OPENDAQ_SUCCESS;
     }
 
     ErrCode INTERFACE_FUNC stop() override
     {
-        if (context != nullptr)
-        {
-            for (const auto& [_, discoveryServer] : context.getDiscoveryServers())
-            {
-                discoveryServer.template asPtr<IDiscoveryServer>().unregisterService(id);
-            }
-        }
+        disableDiscoveryInternal();
         const ErrCode errCode = wrapHandler(this, &Self::onStopServer);
         OPENDAQ_RETURN_IF_FAILED(errCode, "Failed to stop server");
         return errCode;
@@ -111,6 +110,7 @@ public:
 
         StreamingPtr streamingPtr;
         const ErrCode errCode = wrapHandlerReturn(this, &Self::onGetStreaming, streamingPtr);
+        OPENDAQ_RETURN_IF_FAILED(errCode);
 
         *streaming = streamingPtr.detach();
 
@@ -200,6 +200,15 @@ protected:
         serializer.writeString(id);
 
         Super::serializeCustomObjectValues(serializer, forUpdate);
+    }
+
+    void disableDiscoveryInternal()
+    {
+        if (context.assigned())
+        {
+            for (const auto& [_, discoveryServer] : context.getDiscoveryServers())
+                discoveryServer.template asPtr<IDiscoveryServer>(true).unregisterService(id);
+        }
     }
 
     StringPtr id;

@@ -7,6 +7,7 @@
 #include <coreobjects/authentication_provider_factory.h>
 
 BEGIN_NAMESPACE_OPENDAQ
+
 DictPtr<IString, IBaseObject> InstanceBuilderImpl::GetDefaultOptions()
 {
     return Dict<IString, IBaseObject>(
@@ -14,7 +15,8 @@ DictPtr<IString, IBaseObject> InstanceBuilderImpl::GetDefaultOptions()
         {"ModuleManager", Dict<IString, IBaseObject>(
         {
             {"ModulesPaths", List<IString>("")},
-            {"AddDeviceRescanTimer", 5000}
+            {"AddDeviceRescanTimer", 5000},
+            {"SafeLoadingMode", False},
         })},
         {"Scheduler", Dict<IString, IBaseObject>(
         {

@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.7.0) on 18.08.2025 07:22:54.
+//     RTGen (CGenerator v0.7.0).
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -16,6 +16,11 @@
 #include <copendaq_private.h>
 
 const daqIntfID DAQ_MIRRORED_INPUT_PORT_CONFIG_INTF_ID = { daq::IMirroredInputPortConfig::Id.Data1, daq::IMirroredInputPortConfig::Id.Data2, daq::IMirroredInputPortConfig::Id.Data3, daq::IMirroredInputPortConfig::Id.Data4_UInt64 };
+
+void daqMirroredInputPortConfig_getInterfaceId(daqIntfID* intfId)
+{
+    *intfId = DAQ_MIRRORED_INPUT_PORT_CONFIG_INTF_ID;
+}
 
 daqErrCode daqMirroredInputPortConfig_getRemoteId(daqMirroredInputPortConfig* self, daqString** id)
 {

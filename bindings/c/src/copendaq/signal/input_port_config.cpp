@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.7.0) on 03.06.2025 22:07:46.
+//     RTGen (CGenerator v0.7.0).
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -17,9 +17,19 @@
 
 const daqIntfID DAQ_INPUT_PORT_CONFIG_INTF_ID = { daq::IInputPortConfig::Id.Data1, daq::IInputPortConfig::Id.Data2, daq::IInputPortConfig::Id.Data3, daq::IInputPortConfig::Id.Data4_UInt64 };
 
+void daqInputPortConfig_getInterfaceId(daqIntfID* intfId)
+{
+    *intfId = DAQ_INPUT_PORT_CONFIG_INTF_ID;
+}
+
 daqErrCode daqInputPortConfig_setNotificationMethod(daqInputPortConfig* self, daqPacketReadyNotification method)
 {
     return reinterpret_cast<daq::IInputPortConfig*>(self)->setNotificationMethod(static_cast<daq::PacketReadyNotification>(method));
+}
+
+daqErrCode daqInputPortConfig_getNotificationMethod(daqInputPortConfig* self, daqPacketReadyNotification* method)
+{
+    return reinterpret_cast<daq::IInputPortConfig*>(self)->getNotificationMethod(reinterpret_cast<daq::PacketReadyNotification*>(method));
 }
 
 daqErrCode daqInputPortConfig_notifyPacketEnqueued(daqInputPortConfig* self, daqBool queueWasEmpty)
@@ -55,6 +65,16 @@ daqErrCode daqInputPortConfig_setRequiresSignal(daqInputPortConfig* self, daqBoo
 daqErrCode daqInputPortConfig_getGapCheckingEnabled(daqInputPortConfig* self, daqBool* gapCheckingEnabled)
 {
     return reinterpret_cast<daq::IInputPortConfig*>(self)->getGapCheckingEnabled(gapCheckingEnabled);
+}
+
+daqErrCode daqInputPortConfig_notifyPacketEnqueuedWithScheduler(daqInputPortConfig* self)
+{
+    return reinterpret_cast<daq::IInputPortConfig*>(self)->notifyPacketEnqueuedWithScheduler();
+}
+
+daqErrCode daqInputPortConfig_getListener(daqInputPortConfig* self, daqInputPortNotifications** port)
+{
+    return reinterpret_cast<daq::IInputPortConfig*>(self)->getListener(reinterpret_cast<daq::IInputPortNotifications**>(port));
 }
 
 daqErrCode daqInputPortConfig_createInputPort(daqInputPortConfig** obj, daqContext* context, daqComponent* parent, daqString* localId, daqBool gapChecking)

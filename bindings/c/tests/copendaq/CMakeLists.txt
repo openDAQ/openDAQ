@@ -82,7 +82,7 @@ set_target_properties(test_copendaq_synchronization PROPERTIES DEBUG_POSTFIX _de
 target_link_libraries(test_copendaq_component PRIVATE daq::copendaq daq::test_utils daq::opendaq_mocks daq::opendaq)
 target_link_libraries(test_copendaq_context PRIVATE daq::copendaq daq::test_utils daq::opendaq_mocks daq::opendaq)
 target_link_libraries(test_copendaq_device PRIVATE daq::copendaq daq::test_utils daq::opendaq_mocks daq::opendaq)
-target_link_libraries(test_copendaq_functionblock PRIVATE daq::copendaq daq::test_utils daq::opendaq_mocks daq::opendaq)
+target_link_libraries(test_copendaq_functionblock PRIVATE daq::copendaq daq::test_utils daq::opendaq_mocks daq::opendaq_gmocks daq::opendaq)
 target_link_libraries(test_copendaq_logger PRIVATE daq::copendaq daq::test_utils daq::opendaq_mocks daq::opendaq)
 target_link_libraries(test_copendaq_modulemanager PRIVATE daq::copendaq daq::test_utils daq::opendaq_mocks daq::opendaq)
 target_link_libraries(test_copendaq_opendaq PRIVATE daq::copendaq daq::test_utils daq::opendaq_mocks daq::opendaq)

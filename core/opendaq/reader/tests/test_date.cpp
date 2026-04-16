@@ -45,7 +45,7 @@ TEST_F(DateTest, ParseUtc)
     std::istringstream epochString(iso8601);
 
     system_clock::time_point timePoint{};
-    epochString >> date::parse("%FT%T%z", timePoint);
+    date::from_stream(epochString, "%FT%T%z", timePoint);
 
     DateTime dateTime(timePoint);
     ASSERT_EQ(2022_y / 9 / 27, dateTime.date);
@@ -63,7 +63,7 @@ TEST_F(DateTest, ParseTimeZone)
     std::istringstream epochString(iso8601);
 
     system_clock::time_point timePoint{};
-    epochString >> date::parse("%FT%T%z", timePoint);
+    date::from_stream(epochString, "%FT%T%z", timePoint);
 
     DateTime dateTime(timePoint);
     ASSERT_EQ(2022_y / 9 / 26, dateTime.date);
@@ -81,7 +81,7 @@ TEST_F(DateTest, ParseZulu)
     std::istringstream epochString(iso8601);
 
     system_clock::time_point timePoint{};
-    epochString >> date::parse("%FT%T%z", timePoint);
+    date::from_stream(epochString, "%FT%T%z", timePoint);
 
     DateTime dateTime(timePoint);
     ASSERT_EQ(2022_y / 9 / 27, dateTime.date);
@@ -99,7 +99,7 @@ TEST_F(DateTest, ParseNoTimeZone)
     std::istringstream epochString(iso8601);
 
     system_clock::time_point timePoint{};
-    epochString >> date::parse("%FT%T%z", timePoint);
+    date::from_stream(epochString, "%FT%T%z", timePoint);
 
     DateTime dateTime(timePoint);
     ASSERT_EQ(2022_y / 9 / 27, dateTime.date);
@@ -117,7 +117,7 @@ TEST_F(DateTest, ParseOnlyDate)
     std::istringstream epochString(iso8601);
 
     system_clock::time_point timePoint{};
-    epochString >> date::parse("%FT%T%z", timePoint);
+    date::from_stream(epochString, "%FT%T%z", timePoint);
 
     DateTime dateTime(timePoint);
     ASSERT_EQ(2022_y / 9 / 27, dateTime.date);

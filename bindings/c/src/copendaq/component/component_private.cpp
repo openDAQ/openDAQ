@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.7.0) on 03.06.2025 22:06:52.
+//     RTGen (CGenerator v0.7.0).
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -16,6 +16,11 @@
 #include <copendaq_private.h>
 
 const daqIntfID DAQ_COMPONENT_PRIVATE_INTF_ID = { daq::IComponentPrivate::Id.Data1, daq::IComponentPrivate::Id.Data2, daq::IComponentPrivate::Id.Data3, daq::IComponentPrivate::Id.Data4_UInt64 };
+
+void daqComponentPrivate_getInterfaceId(daqIntfID* intfId)
+{
+    *intfId = DAQ_COMPONENT_PRIVATE_INTF_ID;
+}
 
 daqErrCode daqComponentPrivate_lockAttributes(daqComponentPrivate* self, daqList* attributes)
 {
@@ -55,4 +60,9 @@ daqErrCode daqComponentPrivate_setComponentConfig(daqComponentPrivate* self, daq
 daqErrCode daqComponentPrivate_getComponentConfig(daqComponentPrivate* self, daqPropertyObject** config)
 {
     return reinterpret_cast<daq::IComponentPrivate*>(self)->getComponentConfig(reinterpret_cast<daq::IPropertyObject**>(config));
+}
+
+daqErrCode daqComponentPrivate_setParentActive(daqComponentPrivate* self, daqBool parentActive)
+{
+    return reinterpret_cast<daq::IComponentPrivate*>(self)->setParentActive(parentActive);
 }

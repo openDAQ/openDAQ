@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.7.0) on 03.06.2025 22:07:09.
+//     RTGen (CGenerator v0.7.0).
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -16,6 +16,11 @@
 #include <copendaq_private.h>
 
 const daqIntfID DAQ_LOG_FILE_INFO_INTF_ID = { daq::ILogFileInfo::Id.Data1, daq::ILogFileInfo::Id.Data2, daq::ILogFileInfo::Id.Data3, daq::ILogFileInfo::Id.Data4_UInt64 };
+
+void daqLogFileInfo_getInterfaceId(daqIntfID* intfId)
+{
+    *intfId = DAQ_LOG_FILE_INFO_INTF_ID;
+}
 
 daqErrCode daqLogFileInfo_getId(daqLogFileInfo* self, daqString** id)
 {

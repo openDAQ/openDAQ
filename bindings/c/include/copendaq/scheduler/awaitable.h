@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.7.0) on 03.06.2025 22:07:31.
+//     RTGen (CGenerator v0.7.0).
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -37,6 +37,7 @@ extern "C"
     typedef struct daqAwaitable daqAwaitable;
 
     EXPORTED extern const daqIntfID DAQ_AWAITABLE_INTF_ID;
+    void EXPORTED daqAwaitable_getInterfaceId(daqIntfID* intfId);
 
     daqErrCode EXPORTED daqAwaitable_cancel(daqAwaitable* self, daqBool* canceled);
     daqErrCode EXPORTED daqAwaitable_wait(daqAwaitable* self);

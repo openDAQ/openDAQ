@@ -186,6 +186,7 @@ public:
     virtual ErrCode Property_SetValue(IBaseObject* value)  = 0;
     virtual ErrCode Property_GetOnSuggestedValuesRead(IEvent** event)  = 0;
     virtual ErrCode Property_GetOnSelectionValuesRead(IEvent** event)  = 0;
+    virtual ErrCode Property_GetPropertyType(PropertyType* propertyType)  = 0;
 
     ErrCode INTERFACE_FUNC getValueType(CoreType* type) override
     {
@@ -312,6 +313,10 @@ public:
         return Property_GetOnSelectionValuesRead(event);
     }
 
+    ErrCode INTERFACE_FUNC getPropertyType(PropertyType* propertyType) override
+    {
+        return Property_GetPropertyType(propertyType);
+    }
 };
 
 END_NAMESPACE_OPENDAQ

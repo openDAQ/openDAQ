@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.7.0) on 18.08.2025 07:22:50.
+//     RTGen (CGenerator v0.7.0).
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -17,6 +17,11 @@
 
 const daqIntfID DAQ_MIRRORED_DEVICE_INTF_ID = { daq::IMirroredDevice::Id.Data1, daq::IMirroredDevice::Id.Data2, daq::IMirroredDevice::Id.Data3, daq::IMirroredDevice::Id.Data4_UInt64 };
 
+void daqMirroredDevice_getInterfaceId(daqIntfID* intfId)
+{
+    *intfId = DAQ_MIRRORED_DEVICE_INTF_ID;
+}
+
 daqErrCode daqMirroredDevice_getStreamingSources(daqMirroredDevice* self, daqList** streamingSources)
 {
     return reinterpret_cast<daq::IMirroredDevice*>(self)->getStreamingSources(reinterpret_cast<daq::IList**>(streamingSources));
@@ -25,4 +30,9 @@ daqErrCode daqMirroredDevice_getStreamingSources(daqMirroredDevice* self, daqLis
 daqErrCode daqMirroredDevice_getRemoteId(daqMirroredDevice* self, daqString** id)
 {
     return reinterpret_cast<daq::IMirroredDevice*>(self)->getRemoteId(reinterpret_cast<daq::IString**>(id));
+}
+
+daqErrCode daqMirroredDevice_getMirroredDeviceType(daqMirroredDevice* self, daqDeviceType** type)
+{
+    return reinterpret_cast<daq::IMirroredDevice*>(self)->getMirroredDeviceType(reinterpret_cast<daq::IDeviceType**>(type));
 }

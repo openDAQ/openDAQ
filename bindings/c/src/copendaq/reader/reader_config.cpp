@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.7.0) on 03.06.2025 22:07:27.
+//     RTGen (CGenerator v0.7.0).
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -16,6 +16,11 @@
 #include <copendaq_private.h>
 
 const daqIntfID DAQ_READER_CONFIG_INTF_ID = { daq::IReaderConfig::Id.Data1, daq::IReaderConfig::Id.Data2, daq::IReaderConfig::Id.Data3, daq::IReaderConfig::Id.Data4_UInt64 };
+
+void daqReaderConfig_getInterfaceId(daqIntfID* intfId)
+{
+    *intfId = DAQ_READER_CONFIG_INTF_ID;
+}
 
 daqErrCode daqReaderConfig_getValueTransformFunction(daqReaderConfig* self, daqFunction** transform)
 {
@@ -40,4 +45,9 @@ daqErrCode daqReaderConfig_getReadTimeoutType(daqReaderConfig* self, daqReadTime
 daqErrCode daqReaderConfig_markAsInvalid(daqReaderConfig* self)
 {
     return reinterpret_cast<daq::IReaderConfig*>(self)->markAsInvalid();
+}
+
+daqErrCode daqReaderConfig_getIsValid(daqReaderConfig* self, daqBool* isValid)
+{
+    return reinterpret_cast<daq::IReaderConfig*>(self)->getIsValid(isValid);
 }

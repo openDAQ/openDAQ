@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.7.0) on 03.06.2025 22:07:24.
+//     RTGen (CGenerator v0.7.0).
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -17,6 +17,11 @@
 
 const daqIntfID DAQ_MULTI_READER_BUILDER_INTF_ID = { daq::IMultiReaderBuilder::Id.Data1, daq::IMultiReaderBuilder::Id.Data2, daq::IMultiReaderBuilder::Id.Data3, daq::IMultiReaderBuilder::Id.Data4_UInt64 };
 
+void daqMultiReaderBuilder_getInterfaceId(daqIntfID* intfId)
+{
+    *intfId = DAQ_MULTI_READER_BUILDER_INTF_ID;
+}
+
 daqErrCode daqMultiReaderBuilder_build(daqMultiReaderBuilder* self, daqMultiReader** multiReader)
 {
     return reinterpret_cast<daq::IMultiReaderBuilder*>(self)->build(reinterpret_cast<daq::IMultiReader**>(multiReader));
@@ -27,14 +32,24 @@ daqErrCode daqMultiReaderBuilder_addSignal(daqMultiReaderBuilder* self, daqSigna
     return reinterpret_cast<daq::IMultiReaderBuilder*>(self)->addSignal(reinterpret_cast<daq::ISignal*>(signal));
 }
 
+daqErrCode daqMultiReaderBuilder_addSignals(daqMultiReaderBuilder* self, daqList* signals)
+{
+    return reinterpret_cast<daq::IMultiReaderBuilder*>(self)->addSignals(reinterpret_cast<daq::IList*>(signals));
+}
+
 daqErrCode daqMultiReaderBuilder_addInputPort(daqMultiReaderBuilder* self, daqInputPort* port)
 {
     return reinterpret_cast<daq::IMultiReaderBuilder*>(self)->addInputPort(reinterpret_cast<daq::IInputPort*>(port));
 }
 
-daqErrCode daqMultiReaderBuilder_getSourceComponents(daqMultiReaderBuilder* self, daqList** ports)
+daqErrCode daqMultiReaderBuilder_addInputPorts(daqMultiReaderBuilder* self, daqList* ports)
 {
-    return reinterpret_cast<daq::IMultiReaderBuilder*>(self)->getSourceComponents(reinterpret_cast<daq::IList**>(ports));
+    return reinterpret_cast<daq::IMultiReaderBuilder*>(self)->addInputPorts(reinterpret_cast<daq::IList*>(ports));
+}
+
+daqErrCode daqMultiReaderBuilder_getSourceComponents(daqMultiReaderBuilder* self, daqList** components)
+{
+    return reinterpret_cast<daq::IMultiReaderBuilder*>(self)->getSourceComponents(reinterpret_cast<daq::IList**>(components));
 }
 
 daqErrCode daqMultiReaderBuilder_setValueReadType(daqMultiReaderBuilder* self, daqSampleType type)
@@ -115,6 +130,36 @@ daqErrCode daqMultiReaderBuilder_setTickOffsetTolerance(daqMultiReaderBuilder* s
 daqErrCode daqMultiReaderBuilder_getTickOffsetTolerance(daqMultiReaderBuilder* self, daqRatio** offsetTolerance)
 {
     return reinterpret_cast<daq::IMultiReaderBuilder*>(self)->getTickOffsetTolerance(reinterpret_cast<daq::IRatio**>(offsetTolerance));
+}
+
+daqErrCode daqMultiReaderBuilder_setAllowDifferentSamplingRates(daqMultiReaderBuilder* self, daqBool allowDifferentRates)
+{
+    return reinterpret_cast<daq::IMultiReaderBuilder*>(self)->setAllowDifferentSamplingRates(allowDifferentRates);
+}
+
+daqErrCode daqMultiReaderBuilder_getAllowDifferentSamplingRates(daqMultiReaderBuilder* self, daqBool* allowDifferentRates)
+{
+    return reinterpret_cast<daq::IMultiReaderBuilder*>(self)->getAllowDifferentSamplingRates(allowDifferentRates);
+}
+
+daqErrCode daqMultiReaderBuilder_setInputPortNotificationMethod(daqMultiReaderBuilder* self, daqPacketReadyNotification notificationMethod)
+{
+    return reinterpret_cast<daq::IMultiReaderBuilder*>(self)->setInputPortNotificationMethod(static_cast<daq::PacketReadyNotification>(notificationMethod));
+}
+
+daqErrCode daqMultiReaderBuilder_getInputPortNotificationMethod(daqMultiReaderBuilder* self, daqPacketReadyNotification* notificationMethod)
+{
+    return reinterpret_cast<daq::IMultiReaderBuilder*>(self)->getInputPortNotificationMethod(reinterpret_cast<daq::PacketReadyNotification*>(notificationMethod));
+}
+
+daqErrCode daqMultiReaderBuilder_setInputPortNotificationMethods(daqMultiReaderBuilder* self, daqList* notificationMethods)
+{
+    return reinterpret_cast<daq::IMultiReaderBuilder*>(self)->setInputPortNotificationMethods(reinterpret_cast<daq::IList*>(notificationMethods));
+}
+
+daqErrCode daqMultiReaderBuilder_getInputPortNotificationMethods(daqMultiReaderBuilder* self, daqList** notificationMethods)
+{
+    return reinterpret_cast<daq::IMultiReaderBuilder*>(self)->getInputPortNotificationMethods(reinterpret_cast<daq::IList**>(notificationMethods));
 }
 
 daqErrCode daqMultiReaderBuilder_createMultiReaderBuilder(daqMultiReaderBuilder** obj)

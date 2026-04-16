@@ -38,15 +38,14 @@ public:
                                   const Args& ... args);
 
     // Component overrides
-    ErrCode INTERFACE_FUNC getActive(Bool* active) override;
     ErrCode INTERFACE_FUNC setActive(Bool active) override;
-    ErrCode INTERFACE_FUNC getTags(ITags** tags) override;
-    ErrCode INTERFACE_FUNC getName(IString** name) override;
     ErrCode INTERFACE_FUNC setName(IString* name) override;
-    ErrCode INTERFACE_FUNC getDescription(IString** description) override;
     ErrCode INTERFACE_FUNC setDescription(IString* description) override;
     ErrCode INTERFACE_FUNC updateOperationMode(OperationModeType modeType) override;
     ErrCode INTERFACE_FUNC getComponentConfig(IPropertyObject** config) override;
+
+    // IComponentPrivate overrides
+    ErrCode INTERFACE_FUNC setParentActive(Bool parentActive) override;
 
     static ErrCode Deserialize(ISerializedObject* serialized, IBaseObject* context, IFunction* factoryCallback, IBaseObject** obj);
 protected:
@@ -76,16 +75,10 @@ ConfigClientComponentBaseImpl<Impl>::ConfigClientComponentBaseImpl(const ConfigP
 }
 
 template <class Impl>
-ErrCode ConfigClientComponentBaseImpl<Impl>::getActive(Bool* active)
-{
-    return Impl::getActive(active);
-}
-
-template <class Impl>
 ErrCode ConfigClientComponentBaseImpl<Impl>::setActive(Bool active)
 {
-    if (this->coreEventMuted)
-        return Impl::setActive(active);
+    if (this->localActive == (bool) active)
+        return OPENDAQ_IGNORED;
 
     const ErrCode errCode = daqTry([this, &active]
     {
@@ -96,20 +89,34 @@ ErrCode ConfigClientComponentBaseImpl<Impl>::setActive(Bool active)
 }
 
 template <class Impl>
-ErrCode ConfigClientComponentBaseImpl<Impl>::getTags(ITags** tags)
+ErrCode ConfigClientComponentBaseImpl<Impl>::setParentActive(Bool parentActive)
 {
-    return Impl::getTags(tags);
-}
+    ErrCode errCode = Impl::setParentActive(parentActive);
+    OPENDAQ_RETURN_IF_FAILED(errCode);
+    if (this->clientComm->getProtocolVersion() > 21)
+        return errCode;
 
-template <class Impl>
-ErrCode ConfigClientComponentBaseImpl<Impl>::getName(IString** name)
-{
-    return Impl::getName(name);
+    const bool muted = this->coreEventMuted;
+    if (!muted)
+        Impl::disableCoreEventTrigger();
+
+    errCode = Impl::setActive(parentActive);
+
+    if (!muted)
+        Impl::enableCoreEventTrigger();
+    return errCode;
 }
 
 template <class Impl>
 ErrCode ConfigClientComponentBaseImpl<Impl>::setName(IString* name)
 {
+    OPENDAQ_PARAM_NOT_NULL(name);
+
+    auto nameStr = StringPtr::Borrow(name);
+
+    if (this->name == nameStr)
+        return OPENDAQ_IGNORED;
+
     const ErrCode errCode = daqTry([this, &name]
     {
         this->clientComm->setAttributeValue(this->remoteGlobalId, "Name", name); 
@@ -119,14 +126,15 @@ ErrCode ConfigClientComponentBaseImpl<Impl>::setName(IString* name)
 }
 
 template <class Impl>
-ErrCode ConfigClientComponentBaseImpl<Impl>::getDescription(IString** description)
-{
-    return Impl::getDescription(description);
-}
-
-template <class Impl>
 ErrCode ConfigClientComponentBaseImpl<Impl>::setDescription(IString* description)
 {
+    OPENDAQ_PARAM_NOT_NULL(description);
+
+    auto descriptionStr = StringPtr::Borrow(description);
+
+    if (this->description == descriptionStr)
+        return OPENDAQ_IGNORED;
+
     const ErrCode errCode = daqTry([this, &description]
     {
         this->clientComm->setAttributeValue(this->remoteGlobalId, "Description", description); 
@@ -267,7 +275,8 @@ void ConfigClientComponentBaseImpl<Impl>::onRemoteUpdate(const SerializedObjectP
     ConfigClientPropertyObjectBaseImpl<Impl>::onRemoteUpdate(serialized);
 
     if (serialized.hasKey("active"))
-        this->active = serialized.readBool("active");
+        this->localActive = serialized.readBool("active");
+    this->active = this->parentActive && this->localActive;
 
     if (serialized.hasKey("visible"))
         this->visible = serialized.readBool("visible");
@@ -321,8 +330,19 @@ void ConfigClientComponentBaseImpl<Impl>::attributeChanged(const CoreEventArgsPt
 
     if (attrName == "Active")
     {
-        const Bool active = args.getParameters().get("Active");
-        checkErrorInfo(Impl::setActive(active));
+        const auto parameters = args.getParameters();
+        if (parameters.hasKey("LocalActive"))
+        {
+            // new style
+            const Bool localActive = parameters.get("LocalActive");
+            checkErrorInfo(Impl::setActive(localActive));
+        }
+        else
+        {
+            // old style, kept for compatibility with older protocol versions
+            const Bool active = parameters.get("Active");
+            checkErrorInfo(Impl::setActive(active));
+        }
     }
     else if (attrName == "Name")
     {

@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.7.0) on 03.06.2025 17:17:54.
+//     RTGen (CGenerator v0.7.0).
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -37,6 +37,7 @@ extern "C"
     typedef struct daqIterator daqIterator;
 
     EXPORTED extern const daqIntfID DAQ_ITERATOR_INTF_ID;
+    void EXPORTED daqIterator_getInterfaceId(daqIntfID* intfId);
 
     daqErrCode EXPORTED daqIterator_moveNext(daqIterator* self);
     daqErrCode EXPORTED daqIterator_getCurrent(daqIterator* self, daqBaseObject** obj);

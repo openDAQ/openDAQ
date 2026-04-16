@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.7.0) on 03.06.2025 22:07:01.
+//     RTGen (CGenerator v0.7.0).
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -39,6 +39,7 @@ extern "C"
     typedef struct daqAddressInfoBuilder daqAddressInfoBuilder;
 
     EXPORTED extern const daqIntfID DAQ_ADDRESS_INFO_INTF_ID;
+    void EXPORTED daqAddressInfo_getInterfaceId(daqIntfID* intfId);
 
     daqErrCode EXPORTED daqAddressInfo_getAddress(daqAddressInfo* self, daqString** address);
     daqErrCode EXPORTED daqAddressInfo_getConnectionString(daqAddressInfo* self, daqString** connectionString);

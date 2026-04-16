@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.7.0) on 03.06.2025 22:07:46.
+//     RTGen (CGenerator v0.7.0).
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -16,6 +16,11 @@
 #include <copendaq_private.h>
 
 const daqIntfID DAQ_INPUT_PORT_INTF_ID = { daq::IInputPort::Id.Data1, daq::IInputPort::Id.Data2, daq::IInputPort::Id.Data3, daq::IInputPort::Id.Data4_UInt64 };
+
+void daqInputPort_getInterfaceId(daqIntfID* intfId)
+{
+    *intfId = DAQ_INPUT_PORT_INTF_ID;
+}
 
 daqErrCode daqInputPort_acceptsSignal(daqInputPort* self, daqSignal* signal, daqBool* accepts)
 {
@@ -45,4 +50,19 @@ daqErrCode daqInputPort_getRequiresSignal(daqInputPort* self, daqBool* requiresS
 daqErrCode daqInputPort_getConnection(daqInputPort* self, daqConnection** connection)
 {
     return reinterpret_cast<daq::IInputPort*>(self)->getConnection(reinterpret_cast<daq::IConnection**>(connection));
+}
+
+daqErrCode daqInputPort_getPublic(daqInputPort* self, daqBool* isPublic)
+{
+    return reinterpret_cast<daq::IInputPort*>(self)->getPublic(isPublic);
+}
+
+daqErrCode daqInputPort_setPublic(daqInputPort* self, daqBool isPublic)
+{
+    return reinterpret_cast<daq::IInputPort*>(self)->setPublic(isPublic);
+}
+
+daqErrCode daqInputPort_acceptsSignals(daqInputPort* self, daqList* signals, daqList** accepts)
+{
+    return reinterpret_cast<daq::IInputPort*>(self)->acceptsSignals(reinterpret_cast<daq::IList*>(signals), reinterpret_cast<daq::IList**>(accepts));
 }

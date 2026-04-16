@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.7.0) on 03.06.2025 22:07:30.
+//     RTGen (CGenerator v0.7.0).
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -16,6 +16,11 @@
 #include <copendaq_private.h>
 
 const daqIntfID DAQ_TAIL_READER_INTF_ID = { daq::ITailReader::Id.Data1, daq::ITailReader::Id.Data2, daq::ITailReader::Id.Data3, daq::ITailReader::Id.Data4_UInt64 };
+
+void daqTailReader_getInterfaceId(daqIntfID* intfId)
+{
+    *intfId = DAQ_TAIL_READER_INTF_ID;
+}
 
 daqErrCode daqTailReader_read(daqTailReader* self, void* values, daqSizeT* count, daqTailReaderStatus** status)
 {

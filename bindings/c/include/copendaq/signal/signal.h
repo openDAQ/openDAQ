@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.7.0) on 03.06.2025 22:07:54.
+//     RTGen (CGenerator v0.7.0).
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -39,6 +39,7 @@ extern "C"
     typedef struct daqList daqList;
 
     EXPORTED extern const daqIntfID DAQ_SIGNAL_INTF_ID;
+    void EXPORTED daqSignal_getInterfaceId(daqIntfID* intfId);
 
     daqErrCode EXPORTED daqSignal_getPublic(daqSignal* self, daqBool* isPublic);
     daqErrCode EXPORTED daqSignal_setPublic(daqSignal* self, daqBool isPublic);

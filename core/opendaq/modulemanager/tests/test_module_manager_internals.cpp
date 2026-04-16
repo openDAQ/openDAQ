@@ -85,7 +85,7 @@ TEST_F(ModuleManagerInternalsTest, LoadEmptyDll)
     ASSERT_THROW_MSG(
         auto module = manager.loadModule(modulePath.string()),
         ModuleNoEntryPointException,
-        fmt::format("Module \"{}\" has no exported module factory.", fs::relative(modulePath).string())
+        fmt::format("Module \"{}\" has no exported module factory.", modulePath.string())
     );
 }
 
@@ -97,7 +97,7 @@ TEST_F(ModuleManagerInternalsTest, LoadCrashingDll)
     ASSERT_THROW_MSG(
         auto module = manager.loadModule(modulePath.string()),
         ModuleEntryPointFailedException,
-        fmt::format("Library \"{}\" failed to create a Module.", fs::relative(modulePath).string())
+        fmt::format("Library \"{}\" failed to create a Module.", modulePath.string())
     );
 }
 
@@ -110,10 +110,8 @@ TEST_F(ModuleManagerInternalsTest, ModuleDependenciesCheckFailed)
         auto module = manager.loadModule(modulePath.string()),
         ModuleIncompatibleDependenciesException,
         fmt::format(
-            "Module \"{}\" failed dependencies check.",
-            fs::relative(modulePath).string(),
-            OPENDAQ_ERR_GENERALERROR,
-            "Mock failure"
+            "Module \"{}\" failed dependencies check",
+            modulePath.string()
         )
     );
 }
@@ -128,11 +126,38 @@ TEST_F(ModuleManagerInternalsTest, ModuleDependenciesCheckSucceed)
         module = manager.loadModule(modulePath.string())
     );
     ASSERT_EQ(module.getModuleInfo().getName(), "MockModule");
+    ASSERT_EQ(module.getModuleInfo().getId(), "mock_dep");
+}
+
+TEST_F(ModuleManagerInternalsTest, NullStringIdModule)
+{
+    fs::path modulePath = GetMockModulePath(NULL_STRING_ID_MODULE_NAME);
+    LOG_I("Load module: \"{}\"", modulePath.string());
+
+    ModulePtr module;
+    ASSERT_NO_THROW(
+        module = manager.loadModule(modulePath.string())
+    );
+    ASSERT_EQ(module.getModuleInfo().getName(), "MockModule");
+    ASSERT_EQ(module.getModuleInfo().getId(), nullptr);
+}
+
+TEST_F(ModuleManagerInternalsTest, EmptyStringIdModule)
+{
+    fs::path modulePath = GetMockModulePath(EMPTY_STRING_ID_MODULE_NAME);
+    LOG_I("Load module: \"{}\"", modulePath.string());
+
+    ModulePtr module;
+    ASSERT_NO_THROW(
+        module = manager.loadModule(modulePath.string())
+    );
+    ASSERT_EQ(module.getModuleInfo().getName(), "MockModule");
+    ASSERT_EQ(module.getModuleInfo().getId(), "");
 }
 
 TEST_F(ModuleManagerInternalsTest, LoadSingleModuleTwice1)
 {
-    fs::path modulePath = GetMockModulePath(DEPENDENCIES_SUCCEEDED_MODULE_NAME);
+    fs::path modulePath = GetMockModulePath(NULL_STRING_ID_MODULE_NAME);
     LOG_I("Load module: \"{}\"", modulePath.string());
 
     manager.loadModule(modulePath.string());
@@ -140,6 +165,7 @@ TEST_F(ModuleManagerInternalsTest, LoadSingleModuleTwice1)
     ModulePtr module;
     ASSERT_EQ(manager->loadModule(String(modulePath.string()), &module), OPENDAQ_IGNORED);
     ASSERT_EQ(module.getModuleInfo().getName(), "MockModule");
+    ASSERT_EQ(module.getModuleInfo().getId(), nullptr);
 }
 
 TEST_F(ModuleManagerInternalsTest, LoadSingleModuleTwice2)
@@ -148,12 +174,13 @@ TEST_F(ModuleManagerInternalsTest, LoadSingleModuleTwice2)
     auto manager = ModuleManager(modulesPath.string());
     manager.loadModules(NullContext());
 
-    fs::path modulePath = GetMockModulePath(DEPENDENCIES_SUCCEEDED_MODULE_NAME);
+    fs::path modulePath = GetMockModulePath(EMPTY_STRING_ID_MODULE_NAME);
     LOG_I("Load module: \"{}\"", modulePath.string());
 
     ModulePtr module;
     ASSERT_EQ(manager->loadModule(String(modulePath.string()), &module), OPENDAQ_IGNORED);
     ASSERT_EQ(module.getModuleInfo().getName(), "MockModule");
+    ASSERT_EQ(module.getModuleInfo().getId(), "");
 }
 
 TEST_F(ModuleManagerInternalsTest, LoadAllModulesTwice)
@@ -176,12 +203,12 @@ TEST_F(ModuleManagerInternalsTest, LoadAllModulesTwice)
     ASSERT_GT(manager.getModules().getCount(), 0u);
 }
 
-TEST_F(ModuleManagerInternalsTest, LoadModuleAfterAddedFromMemory)
+TEST_F(ModuleManagerInternalsTest, LoadModuleWithIdAfterAddedFromMemory)
 {
     auto manager = ModuleManager("[[none]]");
     manager.loadModules(NullContext());
 
-    auto mock = createWithImplementation<IModule, MockModuleImpl>();
+    auto mock = createWithImplementation<IModule, MockModuleImpl>("mock_dep");
     ASSERT_NO_THROW(manager.addModule(mock));
     ASSERT_EQ(manager.getModules().getCount(), 1u);
     ASSERT_EQ(manager.getModules()[0], mock);
@@ -189,10 +216,66 @@ TEST_F(ModuleManagerInternalsTest, LoadModuleAfterAddedFromMemory)
     fs::path modulePath = GetMockModulePath(DEPENDENCIES_SUCCEEDED_MODULE_NAME);
     LOG_I("Load module: \"{}\"", modulePath.string());
 
+    ASSERT_THROW_MSG(
+        auto module = manager.loadModule(modulePath.string()),
+        AlreadyExistsException,
+        fmt::format(
+            "Module with id \"mock_dep\" was already loaded from memory. Reject loading module from path \"{}\"",
+            modulePath.string()
+        )
+    );
+    ASSERT_EQ(manager.getModules().getCount(), 1u);
+}
+
+TEST_F(ModuleManagerInternalsTest, LoadModuleCopyWithId)
+{
+    auto manager = ModuleManager("[[none]]");
+    manager.loadModules(NullContext());
+
+    fs::path modulePath = GetMockModulePath(DEPENDENCIES_SUCCEEDED_MODULE_NAME);
+    LOG_I("Load module: \"{}\"", modulePath.string());
     ModulePtr module;
-    ASSERT_NO_THROW(module = manager.loadModule(modulePath.string()));
+    ASSERT_NO_THROW(
+        module = manager.loadModule(modulePath.string())
+    );
+    ASSERT_EQ(manager.getModules().getCount(), 1u);
+
+    fs::path modulePathCopy = GetMockModulePath(COPY_DEPENDENCIES_SUCCEEDED_MODULE_NAME);
+    LOG_I("Load module: \"{}\"", modulePathCopy.string());
+    ModulePtr moduleCopy;
+    ASSERT_THROW_MSG(
+        moduleCopy = manager.loadModule(modulePathCopy.string()),
+        AlreadyExistsException,
+        fmt::format(
+            "Module with id \"mock_dep\" was already loaded and added from path \"{}\". Reject loading module from \"{}\"",
+            modulePath.string(),
+            modulePathCopy.string()
+        )
+    );
+    ASSERT_EQ(manager.getModules().getCount(), 1u);
+}
+
+TEST_F(ModuleManagerInternalsTest, LoadModuleWithNullOrEmptyIdAfterAddedFromMemory)
+{
+    auto manager = ModuleManager("[[none]]");
+    ModulePtr module;
+    manager.loadModules(NullContext());
+
+    ASSERT_NO_THROW(manager.addModule(createWithImplementation<IModule, MockModuleImpl>(nullptr)));
+    ASSERT_EQ(manager.getModules().getCount(), 1u);
+
+    ASSERT_NO_THROW(manager.addModule(createWithImplementation<IModule, MockModuleImpl>("")));
     ASSERT_EQ(manager.getModules().getCount(), 2u);
-    ASSERT_EQ(manager.getModules()[1], module);
+
+    fs::path nullStringIdModulePath = GetMockModulePath(NULL_STRING_ID_MODULE_NAME);
+    LOG_I("Load module: \"{}\"", nullStringIdModulePath.string());
+    ASSERT_EQ(manager->loadModule(String(nullStringIdModulePath.string()), &module), OPENDAQ_SUCCESS);
+    ASSERT_EQ(manager.getModules().getCount(), 3u);
+
+    fs::path emptyStringIdModulePath = GetMockModulePath(EMPTY_STRING_ID_MODULE_NAME);
+    LOG_I("Load module: \"{}\"", emptyStringIdModulePath.string());
+    ASSERT_EQ(manager->loadModule(String(emptyStringIdModulePath.string()), &module), OPENDAQ_SUCCESS);
+    ASSERT_EQ(manager.getModules().getCount(), 4u);
 }
 
 TEST_F(ModuleManagerInternalsTest, TestAuthenticator)

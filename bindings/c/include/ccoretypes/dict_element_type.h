@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.7.0) on 03.06.2025 17:17:47.
+//     RTGen (CGenerator v0.7.0).
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -37,6 +37,7 @@ extern "C"
     typedef struct daqDictElementType daqDictElementType;
 
     EXPORTED extern const daqIntfID DAQ_DICT_ELEMENT_TYPE_INTF_ID;
+    void EXPORTED daqDictElementType_getInterfaceId(daqIntfID* intfId);
 
     daqErrCode EXPORTED daqDictElementType_getKeyInterfaceId(daqDictElementType* self, daqIntfID* id);
     daqErrCode EXPORTED daqDictElementType_getValueInterfaceId(daqDictElementType* self, daqIntfID* id);

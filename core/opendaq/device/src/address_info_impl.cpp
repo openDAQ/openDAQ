@@ -20,9 +20,17 @@ typename InterfaceToSmartPtr<T>::SmartPtr AddressInfoImpl::getTypedProperty(cons
 AddressInfoImpl::AddressInfoImpl()
     : Super()
 {
+    const auto reachabilityStatusOptions = Dict<IInteger, IString>(
+        {
+            {static_cast<int>(AddressReachabilityStatus::Unknown), "Unknown"},
+            {static_cast<int>(AddressReachabilityStatus::Reachable), "Reachable"},
+            {static_cast<int>(AddressReachabilityStatus::Unreachable), "Unreachable"},
+        }
+    );
+
     Super::addProperty(StringProperty(Address, ""));
     Super::addProperty(StringProperty(Type, ""));
-    Super::addProperty(SelectionProperty(ReachabilityStatus, List<IString>("Unknown", "Reachable", "Unreachable"), static_cast<int>(AddressReachabilityStatus::Unknown)));
+    Super::addProperty(SparseSelectionProperty(ReachabilityStatus,reachabilityStatusOptions, static_cast<int>(AddressReachabilityStatus::Unknown)));
     Super::addProperty(StringProperty(ConnectionString, ""));
 }
 
@@ -77,10 +85,15 @@ ErrCode AddressInfoImpl::getReachabilityStatus(AddressReachabilityStatus* addres
 
 ErrCode AddressInfoImpl::setReachabilityStatusPrivate(AddressReachabilityStatus addressReachability)
 {
-    const bool frozenCache = this->frozen;
-    this->frozen = false;
-    const ErrCode err = Super::setPropertyValue(String(ReachabilityStatus), Integer(static_cast<Int>(addressReachability)));
-    this->frozen = frozenCache;
+    const bool frozenCache = isFrozen();
+    if (frozenCache)
+        unfreeze();
+
+    ErrCode err = Super::setPropertyValue(String(ReachabilityStatus), Integer(static_cast<Int>(addressReachability)));
+
+    if (frozenCache)
+        freeze();
+
     return err;
 }
 
@@ -143,15 +156,8 @@ ErrCode AddressInfoImpl::clone(IPropertyObject** cloned)
 
     return daqTry([this, &obj, &cloned]()
     {
-        auto implPtr = static_cast<AddressInfoImpl*>(obj.getObject());
-        implPtr->configureClonedMembers(valueWriteEvents,
-                                        valueReadEvents,
-                                        endUpdateEvent,
-                                        triggerCoreEvent,
-                                        localProperties,
-                                        propValues,
-                                        customOrder,
-                                        permissionManager);
+        auto implPtr = dynamic_cast<AddressInfoImpl*>(obj.getObject());
+        implPtr->configureClonedMembers(getCloneParameters());
 
         *cloned = obj.detach();
         return OPENDAQ_SUCCESS;

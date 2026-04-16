@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.7.0) on 03.06.2025 17:17:43.
+//     RTGen (CGenerator v0.7.0).
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -16,6 +16,11 @@
 #include <copendaq_private.h>
 
 const daqIntfID DAQ_BINARY_DATA_INTF_ID = { daq::IBinaryData::Id.Data1, daq::IBinaryData::Id.Data2, daq::IBinaryData::Id.Data3, daq::IBinaryData::Id.Data4_UInt64 };
+
+void daqBinaryData_getInterfaceId(daqIntfID* intfId)
+{
+    *intfId = DAQ_BINARY_DATA_INTF_ID;
+}
 
 daqErrCode daqBinaryData_getAddress(daqBinaryData* self, void** data)
 {

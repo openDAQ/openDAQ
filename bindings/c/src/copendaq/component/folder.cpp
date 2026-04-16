@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.7.0) on 03.06.2025 22:06:57.
+//     RTGen (CGenerator v0.7.0).
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -16,6 +16,11 @@
 #include <copendaq_private.h>
 
 const daqIntfID DAQ_FOLDER_INTF_ID = { daq::IFolder::Id.Data1, daq::IFolder::Id.Data2, daq::IFolder::Id.Data3, daq::IFolder::Id.Data4_UInt64 };
+
+void daqFolder_getInterfaceId(daqIntfID* intfId)
+{
+    *intfId = DAQ_FOLDER_INTF_ID;
+}
 
 daqErrCode daqFolder_getItems(daqFolder* self, daqList** items, daqSearchFilter* searchFilter)
 {

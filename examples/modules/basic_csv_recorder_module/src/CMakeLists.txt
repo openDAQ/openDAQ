@@ -20,7 +20,7 @@ set(SRC_Srcs module_dll.cpp
              basic_csv_recorder_thread.cpp
 )
 
-prepend_include(${TARGET_FOLDER_NAME} SRC_Include)
+opendaq_prepend_include(${TARGET_FOLDER_NAME} SRC_Include)
 
 source_group("module" FILES ${MODULE_HEADERS_DIR}/basic_csv_recorder_module_impl.h
                             ${MODULE_HEADERS_DIR}/module_dll.h
@@ -37,7 +37,7 @@ if (MSVC)
     target_compile_options(${LIB_NAME} PRIVATE /bigobj)
 endif()
 
-target_link_libraries(${LIB_NAME} PRIVATE Boost::algorithm PUBLIC daq::opendaq
+target_link_libraries(${LIB_NAME} PRIVATE Boost::algorithm $<BUILD_INTERFACE:std::filesystem> PUBLIC daq::opendaq
 )
 
 target_include_directories(${LIB_NAME} PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/../include>
@@ -46,5 +46,4 @@ target_include_directories(${LIB_NAME} PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_
 )
 
 opendaq_set_module_properties(${LIB_NAME} ${PROJECT_VERSION_MAJOR})
-create_version_header(${LIB_NAME})
-
+opendaq_generate_version_header(${LIB_NAME})

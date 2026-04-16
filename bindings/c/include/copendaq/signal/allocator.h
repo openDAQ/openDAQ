@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.7.0) on 03.06.2025 22:07:36.
+//     RTGen (CGenerator v0.7.0).
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -39,6 +39,7 @@ extern "C"
     typedef struct daqDeleter daqDeleter;
 
     EXPORTED extern const daqIntfID DAQ_ALLOCATOR_INTF_ID;
+    void EXPORTED daqAllocator_getInterfaceId(daqIntfID* intfId);
 
     daqErrCode EXPORTED daqAllocator_allocate(daqAllocator* self, daqDataDescriptor* descriptor, daqSizeT bytes, daqSizeT align, void** address);
     daqErrCode EXPORTED daqAllocator_free(daqAllocator* self, void* address);

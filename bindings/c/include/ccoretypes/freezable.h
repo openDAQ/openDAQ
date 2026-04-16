@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.7.0) on 03.06.2025 17:17:52.
+//     RTGen (CGenerator v0.7.0).
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -37,6 +37,7 @@ extern "C"
     typedef struct daqFreezable daqFreezable;
 
     EXPORTED extern const daqIntfID DAQ_FREEZABLE_INTF_ID;
+    void EXPORTED daqFreezable_getInterfaceId(daqIntfID* intfId);
 
     daqErrCode EXPORTED daqFreezable_freeze(daqFreezable* self);
     daqErrCode EXPORTED daqFreezable_isFrozen(daqFreezable* self, daqBool* isFrozen);

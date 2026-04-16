@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.7.0) on 18.08.2025 07:22:54.
+//     RTGen (CGenerator v0.7.0).
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -39,6 +39,7 @@ extern "C"
     typedef struct daqList daqList;
 
     EXPORTED extern const daqIntfID DAQ_MIRRORED_INPUT_PORT_CONFIG_INTF_ID;
+    void EXPORTED daqMirroredInputPortConfig_getInterfaceId(daqIntfID* intfId);
 
     daqErrCode EXPORTED daqMirroredInputPortConfig_getRemoteId(daqMirroredInputPortConfig* self, daqString** id);
     daqErrCode EXPORTED daqMirroredInputPortConfig_getStreamingSources(daqMirroredInputPortConfig* self, daqList** streamingConnectionStrings);

@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.7.0) on 03.06.2025 22:07:47.
+//     RTGen (CGenerator v0.7.0).
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -35,10 +35,13 @@ extern "C"
 #include <ccommon.h>
 
     typedef struct daqInputPortPrivate daqInputPortPrivate;
+    typedef struct daqSignal daqSignal;
 
     EXPORTED extern const daqIntfID DAQ_INPUT_PORT_PRIVATE_INTF_ID;
+    void EXPORTED daqInputPortPrivate_getInterfaceId(daqIntfID* intfId);
 
     daqErrCode EXPORTED daqInputPortPrivate_disconnectWithoutSignalNotification(daqInputPortPrivate* self);
+    daqErrCode EXPORTED daqInputPortPrivate_connectSignalSchedulerNotification(daqInputPortPrivate* self, daqSignal* signal);
 
 #ifdef __cplusplus
 }

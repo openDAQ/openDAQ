@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.7.0) on 03.06.2025 22:07:42.
+//     RTGen (CGenerator v0.7.0).
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -16,6 +16,11 @@
 #include <copendaq_private.h>
 
 const daqIntfID DAQ_DELETER_INTF_ID = { daq::IDeleter::Id.Data1, daq::IDeleter::Id.Data2, daq::IDeleter::Id.Data3, daq::IDeleter::Id.Data4_UInt64 };
+
+void daqDeleter_getInterfaceId(daqIntfID* intfId)
+{
+    *intfId = DAQ_DELETER_INTF_ID;
+}
 
 daqErrCode daqDeleter_deleteMemory(daqDeleter* self, void* address)
 {

@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.7.0) on 03.06.2025 22:07:20.
+//     RTGen (CGenerator v0.7.0).
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -16,6 +16,11 @@
 #include <copendaq_private.h>
 
 const daqIntfID DAQ_CONFIG_PROVIDER_INTF_ID = { daq::IConfigProvider::Id.Data1, daq::IConfigProvider::Id.Data2, daq::IConfigProvider::Id.Data3, daq::IConfigProvider::Id.Data4_UInt64 };
+
+void daqConfigProvider_getInterfaceId(daqIntfID* intfId)
+{
+    *intfId = DAQ_CONFIG_PROVIDER_INTF_ID;
+}
 
 daqErrCode daqConfigProvider_populateOptions(daqConfigProvider* self, daqDict* options)
 {

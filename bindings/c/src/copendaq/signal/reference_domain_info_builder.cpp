@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.7.0) on 03.06.2025 22:07:50.
+//     RTGen (CGenerator v0.7.0).
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -16,6 +16,11 @@
 #include <copendaq_private.h>
 
 const daqIntfID DAQ_REFERENCE_DOMAIN_INFO_BUILDER_INTF_ID = { daq::IReferenceDomainInfoBuilder::Id.Data1, daq::IReferenceDomainInfoBuilder::Id.Data2, daq::IReferenceDomainInfoBuilder::Id.Data3, daq::IReferenceDomainInfoBuilder::Id.Data4_UInt64 };
+
+void daqReferenceDomainInfoBuilder_getInterfaceId(daqIntfID* intfId)
+{
+    *intfId = DAQ_REFERENCE_DOMAIN_INFO_BUILDER_INTF_ID;
+}
 
 daqErrCode daqReferenceDomainInfoBuilder_build(daqReferenceDomainInfoBuilder* self, daqReferenceDomainInfo** referenceDomainInfo)
 {

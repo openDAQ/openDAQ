@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.7.0) on 03.06.2025 22:07:48.
+//     RTGen (CGenerator v0.7.0).
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -38,6 +38,7 @@ extern "C"
     typedef struct daqPacketDestructCallback daqPacketDestructCallback;
 
     EXPORTED extern const daqIntfID DAQ_PACKET_INTF_ID;
+    void EXPORTED daqPacket_getInterfaceId(daqIntfID* intfId);
 
     daqErrCode EXPORTED daqPacket_getType(daqPacket* self, daqPacketType* type);
     daqErrCode EXPORTED daqPacket_subscribeForDestructNotification(daqPacket* self, daqPacketDestructCallback* packetDestructCallback);

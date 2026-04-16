@@ -36,6 +36,16 @@
 #include "opendaq/errors.h"
 
 BEGIN_NAMESPACE_OPENDAQ
+
+// https://developercommunity.visualstudio.com/t/inline-static-destructors-are-called-multiple-time/1157794
+#ifdef _MSC_VER
+#if _MSC_VER <= 1927
+#define WORKAROUND_MEMBER_INLINE_VARIABLE
+#endif
+#endif
+
+#define INPUT_PORT_AVAILABLE_ATTRIBUTES {"Public"}
+
 template <typename TInterface, typename...  Interfaces>
 class GenericInputPortImpl;
 
@@ -53,11 +63,14 @@ public:
                                   bool gapChecking = false);
 
     ErrCode INTERFACE_FUNC acceptsSignal(ISignal* signal, Bool* accepts) override;
+    ErrCode INTERFACE_FUNC acceptsSignals(IList* signals, IList** accepts) override;
     ErrCode INTERFACE_FUNC connect(ISignal* signal) override;
     ErrCode INTERFACE_FUNC disconnect() override;
     ErrCode INTERFACE_FUNC getSignal(ISignal** signal) override;
     ErrCode INTERFACE_FUNC getConnection(IConnection** connection) override;
     ErrCode INTERFACE_FUNC getRequiresSignal(Bool* requiresSignal) override;
+    ErrCode INTERFACE_FUNC getPublic(Bool* isPublic) override;
+    ErrCode INTERFACE_FUNC setPublic(Bool isPublic) override;
 
     ErrCode INTERFACE_FUNC setNotificationMethod(PacketReadyNotification method) override;
     ErrCode INTERFACE_FUNC getNotificationMethod(PacketReadyNotification* method) override;
@@ -79,9 +92,6 @@ public:
 
     // IOwnable
     ErrCode INTERFACE_FUNC setOwner(IPropertyObject* owner) override;
-
-    // IComponent
-    ErrCode INTERFACE_FUNC getActive(Bool* active) override;
 
     // ISerializable
     ErrCode INTERFACE_FUNC getSerializeId(ConstCharPtr* id) const override;
@@ -105,11 +115,22 @@ protected:
     virtual ConnectionPtr createConnection(const SignalPtr& signal);
     ConnectionPtr getConnectionNoLock();
     void removed() override;
-    
+    void removedNoLock() override;
+    virtual SignalPtr getSignalNoLock();
+
     StringPtr serializedSignalId;
+
+    ErrCode lockAllAttributesInternal() override;
+
+#ifdef WORKAROUND_MEMBER_INLINE_VARIABLE
+    static std::unordered_set<std::string> inputPortAvailableAttributes;
+#else
+    inline static std::unordered_set<std::string> inputPortAvailableAttributes = INPUT_PORT_AVAILABLE_ATTRIBUTES;
+#endif
 
 private:
     Bool requiresSignal;
+    Bool isPublic;
     const bool gapCheckingEnabled;
     BaseObjectPtr customData;
     PacketReadyNotification notifyMethod{};
@@ -129,8 +150,12 @@ private:
     void notifyPacketEnqueuedScheduler();
     void finishUpdate();
 
-    SignalPtr getSignalNoLock();
 };
+
+#ifdef WORKAROUND_MEMBER_INLINE_VARIABLE
+template <typename TInterface, typename... Interfaces>
+std::unordered_set<std::string> SignalBase<TInterface, Interfaces...>::inputPortAvailableAttributes = INPUT_PORT_AVAILABLE_ATTRIBUTES;
+#endif
 
 template <typename TInterface, typename...  Interfaces>
 GenericInputPortImpl<TInterface, Interfaces...>::GenericInputPortImpl(const ContextPtr& context,
@@ -139,6 +164,7 @@ GenericInputPortImpl<TInterface, Interfaces...>::GenericInputPortImpl(const Cont
                                                                       bool gapCheckingEnabled)
     : Super(context, parent, localId)
     , requiresSignal(true)
+    , isPublic(true)
     , gapCheckingEnabled(gapCheckingEnabled)
     , notifyMethod(PacketReadyNotification::None)
     , listenerRef(nullptr)
@@ -166,6 +192,29 @@ ErrCode GenericInputPortImpl<TInterface, Interfaces...>::acceptsSignal(ISignal* 
     }
 
     *accepts = true;
+    return OPENDAQ_SUCCESS;
+}
+
+template <typename TInterface, typename...  Interfaces>
+ErrCode GenericInputPortImpl<TInterface, Interfaces...>::acceptsSignals(IList* signals, IList** accepts)
+{
+    OPENDAQ_PARAM_NOT_NULL(accepts);
+    OPENDAQ_PARAM_NOT_NULL(signals);
+
+    *accepts = nullptr;
+    auto acceptanceList = List<IBoolean>();
+
+    auto signalList = ListPtr<ISignal>::Borrow(signals);
+    for (const auto& signal : signalList)
+    {
+        Bool allowed = False;
+        const auto err = acceptsSignal(signal, &allowed);
+        OPENDAQ_RETURN_IF_FAILED(err);
+
+        acceptanceList.pushBack(allowed);
+    }
+
+    *accepts = acceptanceList.detach();
     return OPENDAQ_SUCCESS;
 }
 
@@ -531,36 +580,33 @@ void GenericInputPortImpl<TInterface, Interfaces...>::removed()
         if (customDataRemovable.assigned())
             customDataRemovable.remove();
     }
+}
 
-    ConnectionPtr connection = getConnectionNoLock();
-    connectionRef.release();
+template <typename TInterface, typename ... Interfaces>
+void GenericInputPortImpl<TInterface, Interfaces...>::removedNoLock()
+{
+    ConnectionPtr connection;
+    {
+        auto lock = this->getRecursiveConfigLock2();
+        connection = getConnectionNoLock();
+        connectionRef.release();
+    }
 
     // remove is meant to be called from listener, so don't notify it
-    disconnectSignalInternal(std::move(connection), false, true, true);
+    disconnectSignalInternal(std::move(connection), false, true, false);
 }
 
 template <typename TInterface, typename...  Interfaces>
 ErrCode INTERFACE_FUNC GenericInputPortImpl<TInterface, Interfaces...>::setOwner(IPropertyObject* owner)
 {
-    if (this->owner.assigned())
+    auto ownerPtr = this->getOwner();
+    if (ownerPtr.assigned())
     {
-        auto ref = this->owner.getRef();
+        auto ref = ownerPtr.getRef();
         if (ref != nullptr && ref != owner)
             return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_ALREADYEXISTS, "Owner is already assigned.");
     }
-    this->owner = owner;
-    return OPENDAQ_SUCCESS;
-}
-
-template <typename TInterface, typename...  Interfaces>
-ErrCode GenericInputPortImpl<TInterface, Interfaces...>::getActive(Bool* active)
-{
-    OPENDAQ_PARAM_NOT_NULL(active);
-
-    auto lock = this->getAcquisitionLock2();
-
-    *active = this->active;
-    return OPENDAQ_SUCCESS;
+    return Super::setOwner(owner);
 }
 
 template <typename TInterface, typename...  Interfaces>
@@ -683,6 +729,9 @@ void GenericInputPortImpl<TInterface, Interfaces...>::serializeCustomObjectValue
 {
     Super::serializeCustomObjectValues(serializer, forUpdate);
 
+    serializer.key("public");
+    serializer.writeBool(isPublic);
+
     auto signal = getSignalNoLock();
 
     if (signal.assigned())
@@ -755,6 +804,9 @@ void GenericInputPortImpl<TInterface, Interfaces...>::deserializeCustomObjectVal
 {
     Super::deserializeCustomObjectValues(serializedObject, context, factoryCallback);
 
+    if (serializedObject.hasKey("public"))
+        isPublic = serializedObject.readBool("public");
+
     if (serializedObject.hasKey("signalId"))
     {
         serializedSignalId = serializedObject.readString("signalId");
@@ -794,6 +846,61 @@ ErrCode GenericInputPortImpl<TInterface, Interfaces...>::setRequiresSignal(Bool 
     auto lock = this->getRecursiveConfigLock2();
 
     this->requiresSignal = requiresSignal;
+    return OPENDAQ_SUCCESS;
+}
+
+template <typename TInterface, typename... Interfaces>
+ErrCode GenericInputPortImpl<TInterface, Interfaces...>::lockAllAttributesInternal()
+{
+    for (const auto& str : this->inputPortAvailableAttributes)
+        this->lockedAttributes.insert(str);
+
+    return Super::lockAllAttributesInternal();
+}
+
+template <typename TInterface, typename... Interfaces>
+ErrCode GenericInputPortImpl<TInterface, Interfaces...>::getPublic(Bool* isPublic)
+{
+    OPENDAQ_PARAM_NOT_NULL(isPublic);
+
+    auto lock = this->getRecursiveConfigLock2();
+
+    *isPublic = this->isPublic;
+    return OPENDAQ_SUCCESS;
+}
+
+template <typename TInterface, typename... Interfaces>
+ErrCode GenericInputPortImpl<TInterface, Interfaces...>::setPublic(Bool isPublic)
+{
+    if (this->isFrozen())
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_FROZEN);
+
+    {
+        auto lock = this->getRecursiveConfigLock2();
+
+        if (this->lockedAttributes.count("Public"))
+        {
+            if (this->context.assigned() && this->context.getLogger().assigned())
+            {
+                const auto loggerComponent = this->context.getLogger().getOrAddComponent("Component");
+                StringPtr descObj;
+                this->getName(&descObj);
+                LOG_I("'Public' attribute of {} is locked", descObj);
+            }
+
+            return OPENDAQ_IGNORED;
+        }
+
+        this->isPublic = isPublic;
+    }
+
+    if (!this->coreEventMuted && this->coreEvent.assigned())
+    {
+        const auto args = createWithImplementation<ICoreEventArgs, CoreEventArgsImpl>(
+            CoreEventId::AttributeChanged, Dict<IString, IBaseObject>({{"AttributeName", "Public"}, {"Public", this->isPublic}}));
+
+        this->triggerCoreEvent(args);
+    }
     return OPENDAQ_SUCCESS;
 }
 

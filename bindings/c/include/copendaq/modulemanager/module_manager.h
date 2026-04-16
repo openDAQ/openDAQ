@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.7.0) on 05.06.2025 17:28:23.
+//     RTGen (CGenerator v0.7.0).
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -39,13 +39,19 @@ extern "C"
     typedef struct daqModule daqModule;
     typedef struct daqContext daqContext;
     typedef struct daqString daqString;
+    typedef struct daqModuleAuthenticator daqModuleAuthenticator;
+    typedef struct daqDict daqDict;
 
     EXPORTED extern const daqIntfID DAQ_MODULE_MANAGER_INTF_ID;
+    void EXPORTED daqModuleManager_getInterfaceId(daqIntfID* intfId);
 
     daqErrCode EXPORTED daqModuleManager_getModules(daqModuleManager* self, daqList** modules);
     daqErrCode EXPORTED daqModuleManager_addModule(daqModuleManager* self, daqModule* module);
     daqErrCode EXPORTED daqModuleManager_loadModules(daqModuleManager* self, daqContext* context);
     daqErrCode EXPORTED daqModuleManager_loadModule(daqModuleManager* self, daqString* path, daqModule** module);
+    daqErrCode EXPORTED daqModuleManager_setAuthenticatedOnly(daqModuleManager* self, daqBool authenticatedOnly);
+    daqErrCode EXPORTED daqModuleManager_setModuleAuthenticator(daqModuleManager* self, daqModuleAuthenticator* authenticator);
+    daqErrCode EXPORTED daqModuleManager_getVendorKeys(daqModuleManager* self, daqDict** vendorKeys);
     daqErrCode EXPORTED daqModuleManager_createModuleManager(daqModuleManager** obj, daqString* path);
     daqErrCode EXPORTED daqModuleManager_createModuleManagerMultiplePaths(daqModuleManager** obj, daqList* paths);
 

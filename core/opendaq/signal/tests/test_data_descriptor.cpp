@@ -141,6 +141,25 @@ TEST_F(DataDescriptorTest, ScalingTypeMismatch)
     ASSERT_NO_THROW(desc.build());
 }
 
+TEST_F(DataDescriptorTest, DimensionsScalingInteraction)
+{
+    auto explicitRule = ExplicitDataRule();
+    auto linearScaling = LinearScaling(10, 10);
+    auto vectorDimensions = List<IDimension>();
+    vectorDimensions.pushBack(Dimension(LinearDimensionRule(10, 10, 10)));
+    auto scalarDimensions = List<IDimension>();
+
+    auto builder = DataDescriptorBuilder()
+                       .setDimensions(vectorDimensions)
+                       .setSampleType(SampleType::Float64)
+                       .setRule(explicitRule)
+                       .setPostScaling(linearScaling);
+    ASSERT_THROW(builder.build(), InvalidStateException);
+
+    builder.setDimensions(scalarDimensions);
+    ASSERT_NO_THROW(builder.build());
+}
+
 TEST_F(DataDescriptorTest, SerializeDeserialize)
 {
     auto dimensions = List<IDimension>();

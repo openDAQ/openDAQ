@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.7.0) on 03.06.2025 22:07:47.
+//     RTGen (CGenerator v0.7.0).
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -16,6 +16,11 @@
 #include <copendaq_private.h>
 
 const daqIntfID DAQ_INPUT_PORT_NOTIFICATIONS_INTF_ID = { daq::IInputPortNotifications::Id.Data1, daq::IInputPortNotifications::Id.Data2, daq::IInputPortNotifications::Id.Data3, daq::IInputPortNotifications::Id.Data4_UInt64 };
+
+void daqInputPortNotifications_getInterfaceId(daqIntfID* intfId)
+{
+    *intfId = DAQ_INPUT_PORT_NOTIFICATIONS_INTF_ID;
+}
 
 daqErrCode daqInputPortNotifications_acceptsSignal(daqInputPortNotifications* self, daqInputPort* port, daqSignal* signal, daqBool* accept)
 {

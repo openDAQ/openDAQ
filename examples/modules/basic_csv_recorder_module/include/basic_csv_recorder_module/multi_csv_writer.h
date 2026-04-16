@@ -42,7 +42,7 @@ public:
         std::int64_t referenceDomainOffset;
         TimeProtocol referenceDomainTimeProtocol;
 
-        bool operator==(const DomainMetadata& rhs);
+        bool operator==(const DomainMetadata& rhs) const;
     };
 
     MultiCsvWriter(const fs::path& file);

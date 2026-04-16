@@ -90,6 +90,49 @@ TEST_F(ModuleManagerTest, AddModule)
     {
         if (module == mock)
         {
+            ASSERT_EQ(module.getModuleInfo().getId(), "mock");
+            added = true;
+        }
+    }
+
+    ASSERT_TRUE(added);
+}
+
+TEST_F(ModuleManagerTest, AddModuleNullStringId)
+{
+    auto manager = ModuleManager(SearchDir);
+    manager.loadModules(NullContext());
+    auto mock = createWithImplementation<IModule, MockModuleImpl>(nullptr);
+
+    ASSERT_NO_THROW(manager.addModule(mock));
+
+    bool added = false;
+    for (const auto& module : manager.getModules())
+    {
+        if (module == mock)
+        {
+            ASSERT_EQ(module.getModuleInfo().getId(), nullptr);
+            added = true;
+        }
+    }
+
+    ASSERT_TRUE(added);
+}
+
+TEST_F(ModuleManagerTest, AddModuleEmptyStringId)
+{
+    auto manager = ModuleManager(SearchDir);
+    manager.loadModules(NullContext());
+    auto mock = createWithImplementation<IModule, MockModuleImpl>("");
+
+    ASSERT_NO_THROW(manager.addModule(mock));
+
+    bool added = false;
+    for (const auto& module : manager.getModules())
+    {
+        if (module == mock)
+        {
+            ASSERT_EQ(module.getModuleInfo().getId(), "");
             added = true;
         }
     }
@@ -115,7 +158,7 @@ TEST_F(ModuleManagerTest, EnumDriver)
     ListPtr<IModule> moduleDrivers = moduleManager.getModules();
     auto count = moduleDrivers.getCount();
 
-    ASSERT_EQ(count, 1u);
+    ASSERT_EQ(count, 3u);
 
     std::cout << "Module driver count: " << count << std::endl;
 

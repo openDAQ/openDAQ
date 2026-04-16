@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.7.0) on 03.06.2025 22:06:56.
+//     RTGen (CGenerator v0.7.0).
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -40,6 +40,7 @@ extern "C"
     typedef struct daqString daqString;
 
     EXPORTED extern const daqIntfID DAQ_DESERIALIZE_COMPONENT_INTF_ID;
+    void EXPORTED daqDeserializeComponent_getInterfaceId(daqIntfID* intfId);
 
     daqErrCode EXPORTED daqDeserializeComponent_deserializeValues(daqDeserializeComponent* self, daqSerializedObject* serializedObject, daqBaseObject* context, daqFunction* callbackFactory);
     daqErrCode EXPORTED daqDeserializeComponent_complete(daqDeserializeComponent* self);

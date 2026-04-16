@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.7.0) on 03.06.2025 22:07:58.
+//     RTGen (CGenerator v0.7.0).
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -42,6 +42,7 @@ extern "C"
     typedef struct daqMirroredSignalConfig daqMirroredSignalConfig;
 
     EXPORTED extern const daqIntfID DAQ_MIRRORED_SIGNAL_PRIVATE_INTF_ID;
+    void EXPORTED daqMirroredSignalPrivate_getInterfaceId(daqIntfID* intfId);
 
     daqErrCode EXPORTED daqMirroredSignalPrivate_triggerEvent(daqMirroredSignalPrivate* self, daqEventPacket* eventPacket, daqBool* forward);
     daqErrCode EXPORTED daqMirroredSignalPrivate_addStreamingSource(daqMirroredSignalPrivate* self, daqStreaming* streaming);

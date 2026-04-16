@@ -155,6 +155,8 @@ class AttributesTreeview(ttk.Treeview):
         if daq.IInputPort.can_cast_from(node):
             input_port = daq.IInputPort.cast_from(node)
 
+            self.attributes['Public'] = {'Value': bool(
+                input_port.public), 'Locked': False, 'Attribute': 'public'}
             self.attributes['Signal ID'] = {
                 'Value': input_port.signal.global_id if input_port.signal else '', 'Locked': True,
                 'Attribute': 'signal'}

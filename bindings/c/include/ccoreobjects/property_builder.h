@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.7.0) on 03.06.2025 22:05:16.
+//     RTGen (CGenerator v0.7.0).
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -55,6 +55,7 @@ extern "C"
     typedef struct daqEnumeration daqEnumeration;
 
     EXPORTED extern const daqIntfID DAQ_PROPERTY_BUILDER_INTF_ID;
+    void EXPORTED daqPropertyBuilder_getInterfaceId(daqIntfID* intfId);
 
     daqErrCode EXPORTED daqPropertyBuilder_build(daqPropertyBuilder* self, daqProperty** property);
     daqErrCode EXPORTED daqPropertyBuilder_setValueType(daqPropertyBuilder* self, daqCoreType type);
@@ -91,6 +92,12 @@ extern "C"
     daqErrCode EXPORTED daqPropertyBuilder_getOnPropertyValueWrite(daqPropertyBuilder* self, daqEvent** event);
     daqErrCode EXPORTED daqPropertyBuilder_setOnPropertyValueRead(daqPropertyBuilder* self, daqEvent* event);
     daqErrCode EXPORTED daqPropertyBuilder_getOnPropertyValueRead(daqPropertyBuilder* self, daqEvent** event);
+    daqErrCode EXPORTED daqPropertyBuilder_setOnSuggestedValuesRead(daqPropertyBuilder* self, daqEvent* event);
+    daqErrCode EXPORTED daqPropertyBuilder_getOnSuggestedValuesRead(daqPropertyBuilder* self, daqEvent** event);
+    daqErrCode EXPORTED daqPropertyBuilder_setOnSelectionValuesRead(daqPropertyBuilder* self, daqEvent* event);
+    daqErrCode EXPORTED daqPropertyBuilder_getOnSelectionValuesRead(daqPropertyBuilder* self, daqEvent** event);
+    daqErrCode EXPORTED daqPropertyBuilder_setIsIntegerValueSelection(daqPropertyBuilder* self, daqBool isIntegerValueSelection);
+    daqErrCode EXPORTED daqPropertyBuilder_getIsIntegerValueSelection(daqPropertyBuilder* self, daqBool* isIntegerValueSelection);
     daqErrCode EXPORTED daqPropertyBuilder_createPropertyBuilder(daqPropertyBuilder** obj, daqString* name);
     daqErrCode EXPORTED daqPropertyBuilder_createBoolPropertyBuilder(daqPropertyBuilder** obj, daqString* name, daqBoolean* defaultValue);
     daqErrCode EXPORTED daqPropertyBuilder_createIntPropertyBuilder(daqPropertyBuilder** obj, daqString* name, daqInteger* defaultValue);

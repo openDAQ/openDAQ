@@ -1,4 +1,4 @@
-set_cmake_folder_context(TARGET_FOLDER_NAME)
+opendaq_set_cmake_folder_context(TARGET_FOLDER_NAME)
 
 set(EXTERNAL_LIB bcrypt)
 project(${EXTERNAL_LIB} VERSION 1.0.0)

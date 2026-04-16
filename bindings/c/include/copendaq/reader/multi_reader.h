@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.7.0) on 03.06.2025 22:07:23.
+//     RTGen (CGenerator v0.7.0).
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -38,9 +38,11 @@ extern "C"
     typedef struct daqMultiReaderStatus daqMultiReaderStatus;
     typedef struct daqRatio daqRatio;
     typedef struct daqString daqString;
+    typedef struct daqComponent daqComponent;
     typedef struct daqList daqList;
 
     EXPORTED extern const daqIntfID DAQ_MULTI_READER_INTF_ID;
+    void EXPORTED daqMultiReader_getInterfaceId(daqIntfID* intfId);
 
     daqErrCode EXPORTED daqMultiReader_read(daqMultiReader* self, void* samples, daqSizeT* count, daqSizeT timeoutMs, daqMultiReaderStatus** status);
     daqErrCode EXPORTED daqMultiReader_readWithDomain(daqMultiReader* self, void* samples, void* domain, daqSizeT* count, daqSizeT timeoutMs, daqMultiReaderStatus** status);
@@ -52,6 +54,10 @@ extern "C"
     daqErrCode EXPORTED daqMultiReader_getCommonSampleRate(daqMultiReader* self, daqInt* commonSampleRate);
     daqErrCode EXPORTED daqMultiReader_setActive(daqMultiReader* self, daqBool isActive);
     daqErrCode EXPORTED daqMultiReader_getActive(daqMultiReader* self, daqBool* isActive);
+    daqErrCode EXPORTED daqMultiReader_addInput(daqMultiReader* self, daqComponent* input);
+    daqErrCode EXPORTED daqMultiReader_removeInput(daqMultiReader* self, daqString* id);
+    daqErrCode EXPORTED daqMultiReader_setInputUsed(daqMultiReader* self, daqString* id, daqBool isUsed);
+    daqErrCode EXPORTED daqMultiReader_getInputUsed(daqMultiReader* self, daqString* id, daqBool* isUsed);
     daqErrCode EXPORTED daqMultiReader_createMultiReader(daqMultiReader** obj, daqList* signals, daqSampleType valueReadType, daqSampleType domainReadType, daqReadMode mode, daqReadTimeoutType timeoutType);
     daqErrCode EXPORTED daqMultiReader_createMultiReaderEx(daqMultiReader** obj, daqList* signals, daqSampleType valueReadType, daqSampleType domainReadType, daqReadMode mode, daqReadTimeoutType timeoutType, daqInt requiredCommonSampleRate, daqBool startOnFullUnitOfDomain, daqSizeT minReadCount);
     daqErrCode EXPORTED daqMultiReader_createMultiReaderFromExisting(daqMultiReader** obj, daqMultiReader* invalidatedReader, daqSampleType valueReadType, daqSampleType domainReadType);

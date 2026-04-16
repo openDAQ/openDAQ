@@ -354,6 +354,9 @@ set(SRC_PublicHeaders_Component
     packet_destruct_callback_impl.h
     packet_destruct_callback_factory.h
     signal_impl.h
+    input_port_impl.h
+    connection_internal.h
+    input_port_private.h
     reference_domain_info_factory.h
     reference_domain_offset_adder.h
     scaling_calc_private.h
@@ -372,7 +375,6 @@ set(SRC_PrivateHeaders_Component
     range_impl.h
     data_descriptor_impl.h
     data_descriptor_builder_impl.h
-    input_port_impl.h
     wrapped_data_packet_impl.h
     event_packet_impl.h
     scaling_impl.h

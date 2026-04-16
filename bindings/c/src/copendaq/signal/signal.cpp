@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.7.0) on 03.06.2025 22:07:54.
+//     RTGen (CGenerator v0.7.0).
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -16,6 +16,11 @@
 #include <copendaq_private.h>
 
 const daqIntfID DAQ_SIGNAL_INTF_ID = { daq::ISignal::Id.Data1, daq::ISignal::Id.Data2, daq::ISignal::Id.Data3, daq::ISignal::Id.Data4_UInt64 };
+
+void daqSignal_getInterfaceId(daqIntfID* intfId)
+{
+    *intfId = DAQ_SIGNAL_INTF_ID;
+}
 
 daqErrCode daqSignal_getPublic(daqSignal* self, daqBool* isPublic)
 {

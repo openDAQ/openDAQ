@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.7.0) on 03.06.2025 22:05:08.
+//     RTGen (CGenerator v0.7.0).
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -38,10 +38,15 @@ extern "C"
     typedef struct daqString daqString;
 
     EXPORTED extern const daqIntfID DAQ_ARGUMENT_INFO_INTF_ID;
+    void EXPORTED daqArgumentInfo_getInterfaceId(daqIntfID* intfId);
 
     daqErrCode EXPORTED daqArgumentInfo_getName(daqArgumentInfo* self, daqString** name);
     daqErrCode EXPORTED daqArgumentInfo_getType(daqArgumentInfo* self, daqCoreType* type);
+    daqErrCode EXPORTED daqArgumentInfo_getItemType(daqArgumentInfo* self, daqCoreType* itemType);
+    daqErrCode EXPORTED daqArgumentInfo_getKeyType(daqArgumentInfo* self, daqCoreType* keyType);
     daqErrCode EXPORTED daqArgumentInfo_createArgumentInfo(daqArgumentInfo** obj, daqString* name, daqCoreType type);
+    daqErrCode EXPORTED daqArgumentInfo_createListArgumentInfo(daqArgumentInfo** obj, daqString* name, daqCoreType itemType);
+    daqErrCode EXPORTED daqArgumentInfo_createDictArgumentInfo(daqArgumentInfo** obj, daqString* name, daqCoreType keyType, daqCoreType itemType);
 
 #ifdef __cplusplus
 }

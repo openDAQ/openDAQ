@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.7.0) on 03.06.2025 17:17:47.
+//     RTGen (CGenerator v0.7.0).
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -16,6 +16,11 @@
 #include <copendaq_private.h>
 
 const daqIntfID DAQ_DICT_ELEMENT_TYPE_INTF_ID = { daq::IDictElementType::Id.Data1, daq::IDictElementType::Id.Data2, daq::IDictElementType::Id.Data3, daq::IDictElementType::Id.Data4_UInt64 };
+
+void daqDictElementType_getInterfaceId(daqIntfID* intfId)
+{
+    *intfId = DAQ_DICT_ELEMENT_TYPE_INTF_ID;
+}
 
 daqErrCode daqDictElementType_getKeyInterfaceId(daqDictElementType* self, daqIntfID* id)
 {

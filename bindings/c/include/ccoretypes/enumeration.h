@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.7.0) on 03.06.2025 17:17:48.
+//     RTGen (CGenerator v0.7.0).
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -41,6 +41,7 @@ extern "C"
     typedef struct daqInteger daqInteger;
 
     EXPORTED extern const daqIntfID DAQ_ENUMERATION_INTF_ID;
+    void EXPORTED daqEnumeration_getInterfaceId(daqIntfID* intfId);
 
     daqErrCode EXPORTED daqEnumeration_getEnumerationType(daqEnumeration* self, daqEnumerationType** type);
     daqErrCode EXPORTED daqEnumeration_getValue(daqEnumeration* self, daqString** value);

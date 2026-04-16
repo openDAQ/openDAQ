@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.7.0) on 03.06.2025 17:17:42.
+//     RTGen (CGenerator v0.7.0).
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -37,6 +37,7 @@ extern "C"
     typedef struct daqBinaryData daqBinaryData;
 
     EXPORTED extern const daqIntfID DAQ_BINARY_DATA_INTF_ID;
+    void EXPORTED daqBinaryData_getInterfaceId(daqIntfID* intfId);
 
     daqErrCode EXPORTED daqBinaryData_getAddress(daqBinaryData* self, void** data);
     daqErrCode EXPORTED daqBinaryData_getSize(daqBinaryData* self, daqSizeT* size);

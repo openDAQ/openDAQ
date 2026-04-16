@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.7.0) on 06.06.2025 19:05:52.
+//     RTGen (CGenerator v0.7.0).
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -16,5 +16,10 @@
 #include <copendaq_private.h>
 
 const daqIntfID DAQ_LOCK_GUARD_INTF_ID = { daq::ILockGuard::Id.Data1, daq::ILockGuard::Id.Data2, daq::ILockGuard::Id.Data3, daq::ILockGuard::Id.Data4_UInt64 };
+
+void daqLockGuard_getInterfaceId(daqIntfID* intfId)
+{
+    *intfId = DAQ_LOCK_GUARD_INTF_ID;
+}
 
 

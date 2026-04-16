@@ -4,14 +4,14 @@ set(SRC_CommonHeaders daq_memcheck_listener.h
                       ut_logging.h
                       test_comparators.h
 )
-prepend_include(testutils SRC_CommonHeaders)
+opendaq_prepend_include(testutils SRC_CommonHeaders)
 
 set(LIB_NAME test_utils)
 
 set(SRC_Cpp base_test_listener.cpp)
 
 set(SRC_InternalHeaders base_test_listener.h)
-prepend_include(internal/testutils SRC_InternalHeaders)
+opendaq_prepend_include(internal/testutils SRC_InternalHeaders)
 
 add_library(${LIB_NAME} STATIC ${SRC_CommonHeaders}
                                ${SRC_InternalHeaders}
@@ -39,7 +39,7 @@ set(INSTALLED_NAME ${SDK_TARGET_NAME}_${LIB_NAME})
 
 set(SRC_InstalledHeaders base_test_listener.h
 )
-prepend_include(installed/testutils SRC_InstalledHeaders)
+opendaq_prepend_include(installed/testutils SRC_InstalledHeaders)
 
 add_library(${INSTALLED_NAME} INTERFACE)
 add_library(${SDK_TARGET_NAMESPACE}::${INSTALLED_NAME} ALIAS ${INSTALLED_NAME})

@@ -94,6 +94,12 @@ void ConfigProtocolClientComm::setProtectedPropertyValue(const std::string& glob
     parseRpcOrRejectReply(setProtectedPropertyValueRpcReplyPacketBuffer.parseRpcRequestOrReply());
 }
 
+void ConfigProtocolClientComm::setPropertySelectionValue(const std::string& globalId, const std::string& propertyName, const BaseObjectPtr& propertyValue)
+{
+    auto params = Dict<IString, IBaseObject>({{"PropertyName", propertyName}, {"PropertyValue", propertyValue}});
+    sendComponentCommand(globalId, ClientCommand("SetPropertySelectionValue", 23), params);    
+}
+
 BaseObjectPtr ConfigProtocolClientComm::getPropertyValue(const std::string& globalId, const std::string& propertyName)
 {
     auto dict = Dict<IString, IBaseObject>();
@@ -160,17 +166,19 @@ void ConfigProtocolClientComm::clearProtectedPropertyValue(const std::string& gl
     parseRpcOrRejectReply(clearPropertyValueRpcReplyPacketBuffer.parseRpcRequestOrReply());
 }
 
-void ConfigProtocolClientComm::update(const std::string& globalId, const std::string& serialized, const std::string& path)
+ComponentUpdateContextPtr ConfigProtocolClientComm::update(const std::string& globalId, const std::string& serialized, const std::string& path, const ComponentUpdateContextPtr& context)
 {
     auto dict = Dict<IString, IBaseObject>();
     dict.set("ComponentGlobalId", String(globalId));
     dict.set("Serialized", String(serialized));
     dict.set("Path", String(path));
+    if (context.assigned())
+        dict.set("UpdateContext", context);
     auto updateRpcRequestPacketBuffer = createRpcRequestPacketBuffer(generateId(), "Update", dict);
     const auto updateRpcReplyPacketBuffer = sendRequestCallback(updateRpcRequestPacketBuffer );
 
     // ReSharper disable once CppExpressionWithoutSideEffects
-    parseRpcOrRejectReply(updateRpcReplyPacketBuffer.parseRpcRequestOrReply());
+    return parseRpcOrRejectReply(updateRpcReplyPacketBuffer.parseRpcRequestOrReply());
 }
 
 BaseObjectPtr ConfigProtocolClientComm::callProperty(const std::string& globalId,
@@ -231,6 +239,15 @@ void ConfigProtocolClientComm::endUpdate(const std::string& globalId, const std:
 
     // ReSharper disable once CppExpressionWithoutSideEffects
     parseRpcOrRejectReply(setPropertyValueRpcReplyPacketBuffer.parseRpcRequestOrReply());
+}
+
+void ConfigProtocolClientComm::clearPropertyValues(const std::string& globalId, const std::string& path)
+{
+    auto params = Dict<IString, IBaseObject>();
+    if (!path.empty())
+        params.set("Path", String(path));
+
+    sendComponentCommand(globalId, ClientCommand("ClearPropertyValues", 22), params);    
 }
 
 DictPtr<IString, IFunctionBlockType> ConfigProtocolClientComm::getAvailableFunctionBlockTypes(const std::string& globalId, bool isFb)
@@ -294,7 +311,8 @@ DictPtr<IString, IComponentHolder> ConfigProtocolClientComm::addDevices(const st
 }
 
 void ConfigProtocolClientComm::removeDevice(const std::string& globalId, const StringPtr& deviceLocalId)
-{    auto params = Dict<IString, IBaseObject>({{"LocalId", deviceLocalId}});
+{
+    auto params = Dict<IString, IBaseObject>({{"LocalId", deviceLocalId}});
     sendComponentCommand(globalId, ClientCommand("RemoveDevice", 4), params);
 }
 
@@ -313,6 +331,13 @@ BooleanPtr ConfigProtocolClientComm::acceptsSignal(const std::string& globalId, 
 {
     auto params = ParamsDict({{"SignalId", globaSignallId}});
     return sendComponentCommand(globalId, ClientCommand("AcceptsSignal"), params, nullptr);
+}
+
+ListPtr<IBoolean> ConfigProtocolClientComm::acceptsSignals(const std::string& globalId,
+                                                           const ListPtr<IString>& globalSignalIdList)
+{
+    auto params = ParamsDict({{"SignalIdList", globalSignalIdList}});
+    return sendComponentCommand(globalId, ClientCommand("AcceptsSignals"), params, nullptr);
 }
 
 DeviceInfoPtr ConfigProtocolClientComm::getInfo(const std::string& globalId)
@@ -363,6 +388,13 @@ PropertyObjectPtr ConfigProtocolClientComm::getComponentConfig(const std::string
     return sendComponentCommand(globalId, ClientCommand("GetComponentConfig", 13));
 }
 
+PropertyObjectPtr ConfigProtocolClientComm::getDefaultAddDeviceConfig(const std::string& globalId)
+{
+    if (getProtocolVersion() < 19)
+        return PropertyObject();
+    return sendComponentCommand(globalId, ClientCommand("GetDefaultAddDeviceConfig", 19));
+}
+
 void ConfigProtocolClientComm::startRecording(const std::string& globalId)
 {
     sendComponentCommand(globalId, ClientCommand("StartRecording", 14));
@@ -376,6 +408,16 @@ void ConfigProtocolClientComm::stopRecording(const std::string& globalId)
 BooleanPtr ConfigProtocolClientComm::getIsRecording(const std::string& globalId)
 {
     return sendComponentCommand(globalId, ClientCommand("GetIsRecording", 14));
+}
+
+void ConfigProtocolClientComm::enableDiscovery(const std::string& globalId)
+{
+    sendComponentCommand(globalId, ClientCommand("EnableDiscovery", 24));
+}
+
+void ConfigProtocolClientComm::disableDiscovery(const std::string& globalId)
+{
+    sendComponentCommand(globalId, ClientCommand("DisableDiscovery", 24));
 }
 
 BaseObjectPtr ConfigProtocolClientComm::getLastValue(const std::string& globalId)

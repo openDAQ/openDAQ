@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.7.0) on 03.06.2025 22:07:33.
+//     RTGen (CGenerator v0.7.0).
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -42,6 +42,7 @@ extern "C"
     typedef struct daqLogger daqLogger;
 
     EXPORTED extern const daqIntfID DAQ_SCHEDULER_INTF_ID;
+    void EXPORTED daqScheduler_getInterfaceId(daqIntfID* intfId);
 
     daqErrCode EXPORTED daqScheduler_scheduleFunction(daqScheduler* self, daqFunction* function, daqAwaitable** awaitable);
     daqErrCode EXPORTED daqScheduler_scheduleWork(daqScheduler* self, daqWork* work);
@@ -49,7 +50,13 @@ extern "C"
     daqErrCode EXPORTED daqScheduler_stop(daqScheduler* self);
     daqErrCode EXPORTED daqScheduler_waitAll(daqScheduler* self);
     daqErrCode EXPORTED daqScheduler_isMultiThreaded(daqScheduler* self, daqBool* multiThreaded);
+    daqErrCode EXPORTED daqScheduler_runMainLoop(daqScheduler* self, daqSizeT loopTime);
+    daqErrCode EXPORTED daqScheduler_isMainLoopSet(daqScheduler* self, daqBool* isSet);
+    daqErrCode EXPORTED daqScheduler_stopMainLoop(daqScheduler* self);
+    daqErrCode EXPORTED daqScheduler_runMainLoopIteration(daqScheduler* self);
+    daqErrCode EXPORTED daqScheduler_scheduleWorkOnMainLoop(daqScheduler* self, daqWork* work);
     daqErrCode EXPORTED daqScheduler_createScheduler(daqScheduler** obj, daqLogger* logger, daqSizeT numWorkers);
+    daqErrCode EXPORTED daqScheduler_createSchedulerWithMainLoop(daqScheduler** obj, daqLogger* logger, daqSizeT numWorkers, daqBool useMainLoop);
 
 #ifdef __cplusplus
 }

@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.7.0) on 03.06.2025 22:07:27.
+//     RTGen (CGenerator v0.7.0).
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -39,12 +39,14 @@ extern "C"
     typedef struct daqList daqList;
 
     EXPORTED extern const daqIntfID DAQ_READER_CONFIG_INTF_ID;
+    void EXPORTED daqReaderConfig_getInterfaceId(daqIntfID* intfId);
 
     daqErrCode EXPORTED daqReaderConfig_getValueTransformFunction(daqReaderConfig* self, daqFunction** transform);
     daqErrCode EXPORTED daqReaderConfig_getDomainTransformFunction(daqReaderConfig* self, daqFunction** transform);
     daqErrCode EXPORTED daqReaderConfig_getInputPorts(daqReaderConfig* self, daqList** ports);
     daqErrCode EXPORTED daqReaderConfig_getReadTimeoutType(daqReaderConfig* self, daqReadTimeoutType* timeoutType);
     daqErrCode EXPORTED daqReaderConfig_markAsInvalid(daqReaderConfig* self);
+    daqErrCode EXPORTED daqReaderConfig_getIsValid(daqReaderConfig* self, daqBool* isValid);
 
 #ifdef __cplusplus
 }

@@ -4,6 +4,10 @@ export RTGEN="$PWD/../../shared/tools/RTGen/bin/rtgen.exe"
 export CORE_DIR="$PWD/../../core"
 export BINDINGS_DIR="$PWD"
 
+if command -v mono &>/dev/null; then
+    export RTGEN="mono ${RTGEN}"
+fi
+
 function run_rtgen {
     lib_name=$1
     lib_dir1=$2
@@ -23,9 +27,9 @@ function run_rtgen {
 
     echo "------------------------------------------"
     echo "$command_h"
-    $command_h
+    eval "$command_h"
     echo "$command_cpp"
-    $command_cpp
+    eval "$command_cpp"
 }
 
 run_rtgen ccoretypes coretypes coretypes binarydata binarydata
@@ -154,7 +158,7 @@ run_rtgen copendaq/component opendaq/component opendaq component_update_context 
 run_rtgen copendaq/component opendaq/component opendaq deserialize_component deserialize_component
 run_rtgen copendaq/component opendaq/component opendaq folder folder
 run_rtgen copendaq/component opendaq/component opendaq folder_config folder_config
-run_rtgen copendaq/component opendaq/component opendaq recursive_search recursive_search
+run_rtgen copendaq/component opendaq/component opendaq recursive_search recursive_search # not found
 run_rtgen copendaq/component opendaq/component opendaq removable removable
 run_rtgen copendaq/component opendaq/component opendaq search_filter search_filter #pass by reference
 run_rtgen copendaq/component opendaq/component opendaq tags tags
@@ -197,7 +201,7 @@ run_rtgen copendaq/functionblock opendaq/functionblock opendaq channel channel
 run_rtgen copendaq/functionblock opendaq/functionblock opendaq function_block function_block
 # run_rtgen copendaq/functionblock opendaq/functionblock opendaq function_block_errors function_block_errors #contains error codes
 run_rtgen copendaq/functionblock opendaq/functionblock opendaq function_block_type function_block_type
-run_rtgen copendaq/functionblock opendaq/functionblock opendaq function_block_wrapper function_block_wrapper
+run_rtgen copendaq/functionblock opendaq/functionblock opendaq function_block_wrapper function_block_wrapper # not found
 
 run_rtgen copendaq/functionblock opendaq/functionblock opendaq recorder recorder
 
@@ -364,6 +368,8 @@ run_rtgen copendaq/streaming opendaq/streaming opendaq mirrored_input_port_confi
 
 run_rtgen copendaq/synchronization opendaq/synchronization opendaq sync_component sync_component
 run_rtgen copendaq/synchronization opendaq/synchronization opendaq sync_component_private sync_component_private
+
+run_rtgen copendaq/utility opendaq/utility opendaq device_update_options device_update_options
 
 # opendaq utility
 

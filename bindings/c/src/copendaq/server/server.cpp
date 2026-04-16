@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.7.0) on 18.08.2025 07:22:30.
+//     RTGen (CGenerator v0.7.0).
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -16,6 +16,11 @@
 #include <copendaq_private.h>
 
 const daqIntfID DAQ_SERVER_INTF_ID = { daq::IServer::Id.Data1, daq::IServer::Id.Data2, daq::IServer::Id.Data3, daq::IServer::Id.Data4_UInt64 };
+
+void daqServer_getInterfaceId(daqIntfID* intfId)
+{
+    *intfId = DAQ_SERVER_INTF_ID;
+}
 
 daqErrCode daqServer_stop(daqServer* self)
 {
@@ -40,4 +45,9 @@ daqErrCode daqServer_getSignals(daqServer* self, daqList** signals, daqSearchFil
 daqErrCode daqServer_getStreaming(daqServer* self, daqStreaming** streaming)
 {
     return reinterpret_cast<daq::IServer*>(self)->getStreaming(reinterpret_cast<daq::IStreaming**>(streaming));
+}
+
+daqErrCode daqServer_disableDiscovery(daqServer* self)
+{
+    return reinterpret_cast<daq::IServer*>(self)->disableDiscovery();
 }

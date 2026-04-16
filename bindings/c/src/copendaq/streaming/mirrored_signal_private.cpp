@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.7.0) on 03.06.2025 22:07:58.
+//     RTGen (CGenerator v0.7.0).
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -16,6 +16,11 @@
 #include <copendaq_private.h>
 
 const daqIntfID DAQ_MIRRORED_SIGNAL_PRIVATE_INTF_ID = { daq::IMirroredSignalPrivate::Id.Data1, daq::IMirroredSignalPrivate::Id.Data2, daq::IMirroredSignalPrivate::Id.Data3, daq::IMirroredSignalPrivate::Id.Data4_UInt64 };
+
+void daqMirroredSignalPrivate_getInterfaceId(daqIntfID* intfId)
+{
+    *intfId = DAQ_MIRRORED_SIGNAL_PRIVATE_INTF_ID;
+}
 
 daqErrCode daqMirroredSignalPrivate_triggerEvent(daqMirroredSignalPrivate* self, daqEventPacket* eventPacket, daqBool* forward)
 {

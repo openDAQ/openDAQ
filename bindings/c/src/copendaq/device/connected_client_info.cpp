@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.7.0) on 06.06.2025 19:06:25.
+//     RTGen (CGenerator v0.7.0).
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -16,6 +16,11 @@
 #include <copendaq_private.h>
 
 const daqIntfID DAQ_CONNECTED_CLIENT_INFO_INTF_ID = { daq::IConnectedClientInfo::Id.Data1, daq::IConnectedClientInfo::Id.Data2, daq::IConnectedClientInfo::Id.Data3, daq::IConnectedClientInfo::Id.Data4_UInt64 };
+
+void daqConnectedClientInfo_getInterfaceId(daqIntfID* intfId)
+{
+    *intfId = DAQ_CONNECTED_CLIENT_INFO_INTF_ID;
+}
 
 daqErrCode daqConnectedClientInfo_getAddress(daqConnectedClientInfo* self, daqString** address)
 {

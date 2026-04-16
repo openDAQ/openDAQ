@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.7.0) on 03.06.2025 22:07:33.
+//     RTGen (CGenerator v0.7.0).
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -16,6 +16,11 @@
 #include <copendaq_private.h>
 
 const daqIntfID DAQ_SCHEDULER_INTF_ID = { daq::IScheduler::Id.Data1, daq::IScheduler::Id.Data2, daq::IScheduler::Id.Data3, daq::IScheduler::Id.Data4_UInt64 };
+
+void daqScheduler_getInterfaceId(daqIntfID* intfId)
+{
+    *intfId = DAQ_SCHEDULER_INTF_ID;
+}
 
 daqErrCode daqScheduler_scheduleFunction(daqScheduler* self, daqFunction* function, daqAwaitable** awaitable)
 {
@@ -47,10 +52,43 @@ daqErrCode daqScheduler_isMultiThreaded(daqScheduler* self, daqBool* multiThread
     return reinterpret_cast<daq::IScheduler*>(self)->isMultiThreaded(multiThreaded);
 }
 
+daqErrCode daqScheduler_runMainLoop(daqScheduler* self, daqSizeT loopTime)
+{
+    return reinterpret_cast<daq::IScheduler*>(self)->runMainLoop(loopTime);
+}
+
+daqErrCode daqScheduler_isMainLoopSet(daqScheduler* self, daqBool* isSet)
+{
+    return reinterpret_cast<daq::IScheduler*>(self)->isMainLoopSet(isSet);
+}
+
+daqErrCode daqScheduler_stopMainLoop(daqScheduler* self)
+{
+    return reinterpret_cast<daq::IScheduler*>(self)->stopMainLoop();
+}
+
+daqErrCode daqScheduler_runMainLoopIteration(daqScheduler* self)
+{
+    return reinterpret_cast<daq::IScheduler*>(self)->runMainLoopIteration();
+}
+
+daqErrCode daqScheduler_scheduleWorkOnMainLoop(daqScheduler* self, daqWork* work)
+{
+    return reinterpret_cast<daq::IScheduler*>(self)->scheduleWorkOnMainLoop(reinterpret_cast<daq::IWork*>(work));
+}
+
 daqErrCode daqScheduler_createScheduler(daqScheduler** obj, daqLogger* logger, daqSizeT numWorkers)
 {
     daq::IScheduler* ptr = nullptr;
     daqErrCode err = daq::createScheduler(&ptr, reinterpret_cast<daq::ILogger*>(logger), numWorkers);
+    *obj = reinterpret_cast<daqScheduler*>(ptr);
+    return err;
+}
+
+daqErrCode daqScheduler_createSchedulerWithMainLoop(daqScheduler** obj, daqLogger* logger, daqSizeT numWorkers, daqBool useMainLoop)
+{
+    daq::IScheduler* ptr = nullptr;
+    daqErrCode err = daq::createSchedulerWithMainLoop(&ptr, reinterpret_cast<daq::ILogger*>(logger), numWorkers, useMainLoop);
     *obj = reinterpret_cast<daqScheduler*>(ptr);
     return err;
 }

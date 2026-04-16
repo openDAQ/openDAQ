@@ -71,6 +71,8 @@ public:
     ErrCode INTERFACE_FUNC setOperationModeRecursive(OperationModeType modeType) override;
     ErrCode INTERFACE_FUNC getOperationMode(OperationModeType* modeType) override;
 
+    ErrCode INTERFACE_FUNC setParentActive(Bool parentActive) override;
+
     template <class Implementation>
     static ErrCode Deserialize(ISerializedObject* serialized, IBaseObject* context, IFunction* factoryCallback, IBaseObject** obj);
 
@@ -260,7 +262,7 @@ void GenericConfigClientDeviceImpl<TDeviceBase>::onRemoveDevice(const DevicePtr&
 template <class TDeviceBase>
 PropertyObjectPtr GenericConfigClientDeviceImpl<TDeviceBase>::onCreateDefaultAddDeviceConfig()
 {
-    return PropertyObject();
+    return this->clientComm->getDefaultAddDeviceConfig(this->remoteGlobalId);
 }
 
 template <class TDeviceBase>
@@ -344,6 +346,9 @@ inline ErrCode GenericConfigClientDeviceImpl<TDeviceBase>::getAvailableOperation
 template <class TDeviceBase>
 inline ErrCode GenericConfigClientDeviceImpl<TDeviceBase>::setOperationMode(OperationModeType modeType)
 {
+    if (Super::getOperationMode() == modeType)
+        return OPENDAQ_IGNORED;
+
     const ErrCode errCode = daqTry([this, modeType] 
     {
         this->clientComm->setOperationMode(this->remoteGlobalId, OperationModeTypeToString(modeType));
@@ -377,6 +382,14 @@ inline ErrCode GenericConfigClientDeviceImpl<TDeviceBase>::getOperationMode(Oper
     });
     OPENDAQ_RETURN_IF_FAILED(errCode);
     return errCode;
+}
+
+template <class TDeviceBase>
+inline ErrCode GenericConfigClientDeviceImpl<TDeviceBase>::setParentActive(Bool parentActive)
+{
+    if (this->isRootDevice)
+        return OPENDAQ_IGNORED;
+    return Super::setParentActive(parentActive);
 }
 
 template <class TDeviceBase>

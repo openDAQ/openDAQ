@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.7.0) on 06.06.2025 19:05:57.
+//     RTGen (CGenerator v0.7.0).
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -16,6 +16,11 @@
 #include <copendaq_private.h>
 
 const daqIntfID DAQ_USER_INTERNAL_INTF_ID = { daq::IUserInternal::Id.Data1, daq::IUserInternal::Id.Data2, daq::IUserInternal::Id.Data3, daq::IUserInternal::Id.Data4_UInt64 };
+
+void daqUserInternal_getInterfaceId(daqIntfID* intfId)
+{
+    *intfId = DAQ_USER_INTERNAL_INTF_ID;
+}
 
 daqErrCode daqUserInternal_getPasswordHash(daqUserInternal* self, daqString** passwordHash)
 {

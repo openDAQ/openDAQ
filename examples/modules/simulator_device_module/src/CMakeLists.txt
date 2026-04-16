@@ -17,7 +17,7 @@ set(SRC_Srcs module_dll.cpp
              signal_generator.cpp
 )
 
-prepend_include(${TARGET_FOLDER_NAME} SRC_Include)
+opendaq_prepend_include(${TARGET_FOLDER_NAME} SRC_Include)
 
 source_group("module" FILES ${MODULE_HEADERS_DIR}/simulator_device_module_common.h
                             ${MODULE_HEADERS_DIR}/simulator_device_module_impl.h
@@ -48,6 +48,7 @@ target_link_libraries(${LIB_NAME} PUBLIC daq::opendaq
 )
 
 target_link_libraries(${LIB_NAME} PRIVATE $<BUILD_INTERFACE:Boost::asio>
+                                          $<BUILD_INTERFACE:std::filesystem>
 )
 
 if (MINGW)
@@ -60,4 +61,4 @@ target_include_directories(${LIB_NAME} PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_
 )
 
 opendaq_set_module_properties(${LIB_NAME} ${PROJECT_VERSION_MAJOR})
-create_version_header(${LIB_NAME})
+opendaq_generate_version_header(${LIB_NAME})

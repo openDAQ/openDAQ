@@ -1,4 +1,4 @@
-set_cmake_folder_context(TARGET_FOLDER_NAME)
+opendaq_set_cmake_folder_context(TARGET_FOLDER_NAME)
 
 get_target_property(LIB_MAJOR_VERSION ${SDK_TARGET_NAMESPACE}::coretypes LIB_MAJOR_VERSION)
 

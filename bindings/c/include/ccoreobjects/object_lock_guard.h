@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.7.0) on 06.06.2025 19:05:52.
+//     RTGen (CGenerator v0.7.0).
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -36,6 +36,7 @@ extern "C"
 
 
     EXPORTED extern const daqIntfID DAQ_LOCK_GUARD_INTF_ID;
+    void EXPORTED daqLockGuard_getInterfaceId(daqIntfID* intfId);
 
 
 

@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.7.0) on 03.06.2025 22:07:28.
+//     RTGen (CGenerator v0.7.0).
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -38,6 +38,7 @@ extern "C"
     typedef struct daqFunction daqFunction;
 
     EXPORTED extern const daqIntfID DAQ_SAMPLE_READER_INTF_ID;
+    void EXPORTED daqSampleReader_getInterfaceId(daqIntfID* intfId);
 
     daqErrCode EXPORTED daqSampleReader_getValueReadType(daqSampleReader* self, daqSampleType* sampleType);
     daqErrCode EXPORTED daqSampleReader_getDomainReadType(daqSampleReader* self, daqSampleType* sampleType);

@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.7.0) on 03.06.2025 22:07:55.
+//     RTGen (CGenerator v0.7.0).
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -16,6 +16,11 @@
 #include <copendaq_private.h>
 
 const daqIntfID DAQ_SIGNAL_EVENTS_INTF_ID = { daq::ISignalEvents::Id.Data1, daq::ISignalEvents::Id.Data2, daq::ISignalEvents::Id.Data3, daq::ISignalEvents::Id.Data4_UInt64 };
+
+void daqSignalEvents_getInterfaceId(daqIntfID* intfId)
+{
+    *intfId = DAQ_SIGNAL_EVENTS_INTF_ID;
+}
 
 daqErrCode daqSignalEvents_listenerConnected(daqSignalEvents* self, daqConnection* connection)
 {
@@ -35,4 +40,9 @@ daqErrCode daqSignalEvents_domainSignalReferenceSet(daqSignalEvents* self, daqSi
 daqErrCode daqSignalEvents_domainSignalReferenceRemoved(daqSignalEvents* self, daqSignal* signal)
 {
     return reinterpret_cast<daq::ISignalEvents*>(self)->domainSignalReferenceRemoved(reinterpret_cast<daq::ISignal*>(signal));
+}
+
+daqErrCode daqSignalEvents_listenerConnectedScheduled(daqSignalEvents* self, daqConnection* connection)
+{
+    return reinterpret_cast<daq::ISignalEvents*>(self)->listenerConnectedScheduled(reinterpret_cast<daq::IConnection*>(connection));
 }

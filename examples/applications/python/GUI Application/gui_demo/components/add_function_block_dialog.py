@@ -18,7 +18,8 @@ class AddFunctionBlockDialog(Dialog):
         self.parent_component = selected_component
 
         self.geometry('{}x{}'.format(
-            900 * self.context.ui_scaling_factor, 400 * self.context.ui_scaling_factor))
+            int(900 * self.context.ui_scaling_factor * self.context.dpi_factor),
+            int(400 * self.context.ui_scaling_factor * self.context.dpi_factor)))
 
         # parent
 
@@ -31,10 +32,10 @@ class AddFunctionBlockDialog(Dialog):
             yscrollcommand=parent_device_scroll_bar.set)
         parent_device_scroll_bar.pack(side=tk.RIGHT, fill=tk.Y)
 
-        parent_device_tree.heading('#0', text='Parent device', anchor=tk.W)
+        parent_device_tree.heading('#0', text='Parent', anchor=tk.W)
 
         parent_device_tree.column(
-            '#0', anchor=tk.W, minwidth=200, stretch=True)
+            '#0', anchor=tk.W, minwidth=int(200 * self.context.dpi_factor), stretch=True)
 
         parent_device_tree.bind('<<TreeviewSelect>>',
                                 self.handle_parent_device_selected)
@@ -53,18 +54,20 @@ class AddFunctionBlockDialog(Dialog):
         scroll_bar.pack(side=tk.RIGHT, fill=tk.Y)
 
         # define headings
-        tree.heading('id', text='TypeId', anchor=tk.W)
-        tree.heading('name', text='Name', anchor=tk.W)
+        tree.heading('id', text='Name', anchor=tk.W)
+        tree.heading('name', text='Description', anchor=tk.W)
 
         # layout
         tree.column('#0', width=0, stretch=tk.NO)
-        tree.column('id', anchor=tk.W, minwidth=200, width=300 *
-                    self.context.ui_scaling_factor, stretch=tk.NO)
-        tree.column('name', anchor=tk.W, minwidth=200, width=300 *
-                    self.context.ui_scaling_factor)
+        dpi = self.context.dpi_factor
+        tree.column('id', anchor=tk.W, minwidth=int(200 * dpi), width=int(300 *
+                    self.context.ui_scaling_factor * dpi), stretch=tk.NO)
+        tree.column('name', anchor=tk.W, minwidth=int(200 * dpi), width=int(300 *
+                    self.context.ui_scaling_factor * dpi))
 
-        # bind double-click to editing
+        # bind double-click and right-click
         tree.bind('<Double-1>', self.handle_fb_tree_double_click)
+        tree.bind('<Button-3>', self.handle_right_click)
         tree.bind('<<TreeviewSelect>>', self.handle_fb_type_selected)
 
         tree.pack(fill=tk.BOTH, expand=True)
@@ -79,10 +82,16 @@ class AddFunctionBlockDialog(Dialog):
         self.grid_columnconfigure(1, weight=2)
         self.grid_columnconfigure((0, 1), uniform='uniform')
 
-        self.add_with_config_button = ttk.Button(tree_frame, text='Add with config', command=lambda: self.handle_button(True))
-        self.add_with_config_button.pack(side=tk.RIGHT)
-        self.quick_add_button = ttk.Button(tree_frame, text='Quick add', command=lambda: self.handle_button(False))
-        self.quick_add_button.pack(side=tk.RIGHT)
+        actions_row = ttk.Frame(tree_frame)
+        self._keep_open_var = tk.BooleanVar(value=False)
+        ttk.Checkbutton(actions_row, text='Keep open after adding',
+                        variable=self._keep_open_var).pack(side=tk.LEFT)
+        self._fb_config_btn = ttk.Button(actions_row, text='Add with config\u2026',
+                                         command=lambda: self.handle_button(True), state=tk.DISABLED)
+        self._fb_config_btn.pack(side=tk.RIGHT, padx=(5, 0))
+        ttk.Button(actions_row, text='Add',
+                   command=lambda: self.handle_button(False)).pack(side=tk.RIGHT)
+        actions_row.pack(fill=tk.X, pady=(4, 0))
 
     def initial_update(self):
         self.update_dialog()
@@ -148,31 +157,60 @@ class AddFunctionBlockDialog(Dialog):
                 self.update_function_blocks()
 
     def handle_fb_type_selected(self, e=None):
-        selected_item = utils.treeview_get_first_selection(self.fb_tree)
-        if selected_item is None:
-            return
+        can_config = False
+        selected = utils.treeview_get_first_selection(self.fb_tree)
+        if selected and self.parent_component:
+            try:
+                fb_id = self.fb_tree.item(selected)['values'][0]
+                fb_type = self.parent_component.available_function_block_types[fb_id]
+                cfg = daq.IComponentType.cast_from(fb_type).create_default_config()
+                can_config = len(cfg.all_properties) > 0
+            except Exception:
+                pass
+        self._fb_config_btn.configure(state=tk.NORMAL if can_config else tk.DISABLED)
 
-        item = self.fb_tree.item(selected_item)
-        function_block_id = item['values'][0]
+    def handle_right_click(self, event):
+        utils.treeview_select_item(self.fb_tree, event)
 
-        if not function_block_id:
-            return
+        can_config = False
+        selected = utils.treeview_get_first_selection(self.fb_tree)
+        if selected and self.parent_component:
+            try:
+                fb_id = self.fb_tree.item(selected)['values'][0]
+                fb_type = self.parent_component.available_function_block_types[fb_id]
+                cfg = daq.IComponentType.cast_from(fb_type).create_default_config()
+                can_config = len(cfg.all_properties) > 0
+            except Exception:
+                pass
 
-        fb_type = self.parent_component.available_function_block_types[function_block_id]
-        component_type = daq.IComponentType.cast_from(fb_type)
-        configuration = component_type.create_default_config()
+        menu = tk.Menu(self, tearoff=0)
+        menu.add_command(label='Add', command=lambda: self.handle_button(False))
+        menu.add_command(label='Add with config',
+                         command=lambda: self.handle_button(True),
+                         state=tk.NORMAL if can_config else tk.DISABLED)
+        menu.tk_popup(event.x_root, event.y_root)
 
-        if len(configuration.all_properties) == 0:
-            self.add_with_config_button.config(state="disabled")
-        else:
-            self.add_with_config_button.config(state="!disabled")
+    def handle_button(self, config: bool):
+        parent_top = self.parent.winfo_toplevel()
+        self.configure(cursor='watch')
+        parent_top.configure(cursor='watch')
+        # Defer work so Tkinter finishes the current event (repaint cursor) before blocking
+        self.after(0, lambda: self._run_handle_button(config, parent_top))
 
-    def handle_button(self, config : bool):
+    def _run_handle_button(self, config: bool, parent_top):
         self.add_fb(config)
+        # Restore cursor if dialog is still open (error, config window opened, or cancel)
+        try:
+            self.configure(cursor='')
+        except tk.TclError:
+            pass
+        try:
+            parent_top.configure(cursor='')
+        except tk.TclError:
+            pass
 
     def handle_fb_tree_double_click(self, dummy):
-        self.add_fb(False)
-
+        self.handle_button(False)
 
     def add_fb(self, open_config_dialog: bool):
         selected_item = utils.treeview_get_first_selection(self.fb_tree)
@@ -196,27 +234,54 @@ class AddFunctionBlockDialog(Dialog):
 
         # Open configuration editor window
         win = tk.Toplevel(self)
+        win.withdraw()  # hide until centered
         win.title('Function Block configuration')
-        win.geometry("600x400")
         win.attributes("-topmost", True)
+        win.transient(self)
 
         frame = tk.Frame(win)
         frame.pack(fill=tk.BOTH, expand=True)
 
         def apply():
-            self.execute_add_fb(function_block_id, configuration)
+            parent_top = self.parent.winfo_toplevel()
             win.destroy()
+            self.configure(cursor='watch')
+            parent_top.configure(cursor='watch')
+            self.after(0, lambda: self.execute_add_fb(function_block_id, configuration))
 
         tree = PropertiesView(frame, configuration, self.context)
         tree.pack(fill=tk.BOTH, expand=True)
 
-        ttk.Button(win, text="Add", command=apply).pack(side=tk.BOTTOM)
+        ttk.Button(win, text="Add", command=apply).pack(side=tk.BOTTOM, anchor=tk.E, padx=5, pady=5)
+
+        # Center over the main window
+        win.update_idletasks()
+        dpi = self.context.dpi_factor
+        w, h = int(600 * dpi), int(400 * dpi)
+        main = self.parent.winfo_toplevel()
+        x = main.winfo_rootx() + main.winfo_width() // 2 - w // 2
+        y = main.winfo_rooty() + main.winfo_height() // 2 - h // 2
+        win.geometry(f'{w}x{h}+{x}+{y}')
+        win.deiconify()
 
     def execute_add_fb(self, fb_id, config=None):
+        parent_top = self.parent.winfo_toplevel()
+        self.configure(cursor='watch')
+        parent_top.configure(cursor='watch')
+        self.update_idletasks()
+        new_fb = None
         try:
-            self.parent_component.add_function_block(fb_id, config)
-            self.event_port.emit()
-            self.update_dialog()
+            new_fb = self.parent_component.add_function_block(fb_id, config)
         except Exception as e:
+            self.configure(cursor='')
+            parent_top.configure(cursor='')
             utils.show_error('Error adding function block', f'{fb_id}: {str(e)}', self)
             return
+        parent_top.configure(cursor='')
+        self.context.selected_node = new_fb
+        self.event_port.emit()
+        if self._keep_open_var.get():
+            self.update_dialog()
+            self.update_function_blocks()
+        else:
+            self.close()

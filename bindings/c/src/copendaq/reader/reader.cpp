@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.7.0) on 03.06.2025 22:07:26.
+//     RTGen (CGenerator v0.7.0).
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -17,6 +17,11 @@
 
 const daqIntfID DAQ_READER_INTF_ID = { daq::IReader::Id.Data1, daq::IReader::Id.Data2, daq::IReader::Id.Data3, daq::IReader::Id.Data4_UInt64 };
 
+void daqReader_getInterfaceId(daqIntfID* intfId)
+{
+    *intfId = DAQ_READER_INTF_ID;
+}
+
 daqErrCode daqReader_getAvailableCount(daqReader* self, daqSizeT* count)
 {
     return reinterpret_cast<daq::IReader*>(self)->getAvailableCount(count);
@@ -25,6 +30,11 @@ daqErrCode daqReader_getAvailableCount(daqReader* self, daqSizeT* count)
 daqErrCode daqReader_setOnDataAvailable(daqReader* self, daqProcedure* callback)
 {
     return reinterpret_cast<daq::IReader*>(self)->setOnDataAvailable(reinterpret_cast<daq::IProcedure*>(callback));
+}
+
+daqErrCode daqReader_setExternalListener(daqReader* self, daqInputPortNotifications* listener)
+{
+    return reinterpret_cast<daq::IReader*>(self)->setExternalListener(reinterpret_cast<daq::IInputPortNotifications*>(listener));
 }
 
 daqErrCode daqReader_getEmpty(daqReader* self, daqBool* empty)

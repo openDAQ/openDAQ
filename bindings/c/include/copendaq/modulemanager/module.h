@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.7.0) on 03.06.2025 22:07:17.
+//     RTGen (CGenerator v0.7.0).
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -49,6 +49,7 @@ extern "C"
     typedef struct daqServerCapabilityConfig daqServerCapabilityConfig;
 
     EXPORTED extern const daqIntfID DAQ_MODULE_INTF_ID;
+    void EXPORTED daqModule_getInterfaceId(daqIntfID* intfId);
 
     daqErrCode EXPORTED daqModule_getModuleInfo(daqModule* self, daqModuleInfo** info);
     daqErrCode EXPORTED daqModule_getAvailableDevices(daqModule* self, daqList** availableDevices);
@@ -61,6 +62,9 @@ extern "C"
     daqErrCode EXPORTED daqModule_createStreaming(daqModule* self, daqStreaming** streaming, daqString* connectionString, daqPropertyObject* config);
     daqErrCode EXPORTED daqModule_completeServerCapability(daqModule* self, daqBool* succeeded, daqServerCapability* source, daqServerCapabilityConfig* target);
     daqErrCode EXPORTED daqModule_getAvailableStreamingTypes(daqModule* self, daqDict** streamingTypes);
+    daqErrCode EXPORTED daqModule_loadLicense(daqModule* self, daqBool* succeeded, daqDict* licenseConfig);
+    daqErrCode EXPORTED daqModule_getLicenseConfig(daqModule* self, daqDict** licenseConfig);
+    daqErrCode EXPORTED daqModule_licenseLoaded(daqModule* self, daqBool* loaded);
 
 #ifdef __cplusplus
 }

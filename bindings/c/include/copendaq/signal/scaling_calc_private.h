@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.7.0) on 05.06.2025 21:37:50.
+//     RTGen (CGenerator v0.7.0).
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -37,6 +37,7 @@ extern "C"
     typedef struct daqScalingCalcPrivate daqScalingCalcPrivate;
 
     EXPORTED extern const daqIntfID DAQ_SCALING_CALC_PRIVATE_INTF_ID;
+    void EXPORTED daqScalingCalcPrivate_getInterfaceId(daqIntfID* intfId);
 
     void EXPORTED daqScalingCalcPrivate_scaleData(daqScalingCalcPrivate* self, void* data, daqSizeT sampleCount);
     void EXPORTED daqScalingCalcPrivate_scaleDataOutput(daqScalingCalcPrivate* self, void* data, daqSizeT sampleCount, void** output);

@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.7.0) on 03.06.2025 17:17:50.
+//     RTGen (CGenerator v0.7.0).
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -38,6 +38,7 @@ extern "C"
     typedef struct daqEventArgs daqEventArgs;
 
     EXPORTED extern const daqIntfID DAQ_EVENT_HANDLER_INTF_ID;
+    void EXPORTED daqEventHandler_getInterfaceId(daqIntfID* intfId);
 
     daqErrCode EXPORTED daqEventHandler_handleEvent(daqEventHandler* self, daqBaseObject* sender, daqEventArgs* eventArgs);
 

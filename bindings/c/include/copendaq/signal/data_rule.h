@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.7.0) on 03.06.2025 22:07:40.
+//     RTGen (CGenerator v0.7.0).
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -40,6 +40,7 @@ extern "C"
     typedef struct daqDataRuleBuilder daqDataRuleBuilder;
 
     EXPORTED extern const daqIntfID DAQ_DATA_RULE_INTF_ID;
+    void EXPORTED daqDataRule_getInterfaceId(daqIntfID* intfId);
 
     daqErrCode EXPORTED daqDataRule_getType(daqDataRule* self, daqDataRuleType* type);
     daqErrCode EXPORTED daqDataRule_getParameters(daqDataRule* self, daqDict** parameters);

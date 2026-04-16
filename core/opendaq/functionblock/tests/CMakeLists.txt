@@ -1,4 +1,4 @@
-set_cmake_folder_context(TARGET_FOLDER_NAME)
+opendaq_set_cmake_folder_context(TARGET_FOLDER_NAME)
 set(MODULE_NAME function_block)
 
 set(TEST_HEADERS
@@ -26,7 +26,7 @@ target_link_libraries(${TEST_APP}
     PRIVATE
         daq::coreobjects
         daq::coretypes
-        daq::opendaq_mocks
+        daq::opendaq_gmocks
 )
 
 if (MSVC)

@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.7.0) on 03.06.2025 17:17:58.
+//     RTGen (CGenerator v0.7.0).
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -16,6 +16,11 @@
 #include <copendaq_private.h>
 
 const daqIntfID DAQ_SERIALIZABLE_INTF_ID = { daq::ISerializable::Id.Data1, daq::ISerializable::Id.Data2, daq::ISerializable::Id.Data3, daq::ISerializable::Id.Data4_UInt64 };
+
+void daqSerializable_getInterfaceId(daqIntfID* intfId)
+{
+    *intfId = DAQ_SERIALIZABLE_INTF_ID;
+}
 
 daqErrCode daqSerializable_serialize(daqSerializable* self, daqSerializer* serializer)
 {

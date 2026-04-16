@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.7.0) on 03.06.2025 22:07:12.
+//     RTGen (CGenerator v0.7.0).
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -16,6 +16,11 @@
 #include <copendaq_private.h>
 
 const daqIntfID DAQ_USER_LOCK_INTF_ID = { daq::IUserLock::Id.Data1, daq::IUserLock::Id.Data2, daq::IUserLock::Id.Data3, daq::IUserLock::Id.Data4_UInt64 };
+
+void daqUserLock_getInterfaceId(daqIntfID* intfId)
+{
+    *intfId = DAQ_USER_LOCK_INTF_ID;
+}
 
 daqErrCode daqUserLock_lock(daqUserLock* self, daqUser* user)
 {

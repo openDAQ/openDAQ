@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.7.0) on 06.06.2025 19:05:55.
+//     RTGen (CGenerator v0.7.0).
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -16,6 +16,11 @@
 #include <copendaq_private.h>
 
 const daqIntfID DAQ_PROPERTY_OBJECT_CLASS_INTERNAL_INTF_ID = { daq::IPropertyObjectClassInternal::Id.Data1, daq::IPropertyObjectClassInternal::Id.Data2, daq::IPropertyObjectClassInternal::Id.Data3, daq::IPropertyObjectClassInternal::Id.Data4_UInt64 };
+
+void daqPropertyObjectClassInternal_getInterfaceId(daqIntfID* intfId)
+{
+    *intfId = DAQ_PROPERTY_OBJECT_CLASS_INTERNAL_INTF_ID;
+}
 
 daqErrCode daqPropertyObjectClassInternal_clone(daqPropertyObjectClassInternal* self, daqPropertyObjectClass** cloned, daqTypeManager* typeManager)
 {

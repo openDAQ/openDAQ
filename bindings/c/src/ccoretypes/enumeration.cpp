@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.7.0) on 03.06.2025 17:17:48.
+//     RTGen (CGenerator v0.7.0).
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -16,6 +16,11 @@
 #include <copendaq_private.h>
 
 const daqIntfID DAQ_ENUMERATION_INTF_ID = { daq::IEnumeration::Id.Data1, daq::IEnumeration::Id.Data2, daq::IEnumeration::Id.Data3, daq::IEnumeration::Id.Data4_UInt64 };
+
+void daqEnumeration_getInterfaceId(daqIntfID* intfId)
+{
+    *intfId = DAQ_ENUMERATION_INTF_ID;
+}
 
 daqErrCode daqEnumeration_getEnumerationType(daqEnumeration* self, daqEnumerationType** type)
 {

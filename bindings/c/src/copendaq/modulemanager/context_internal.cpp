@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.7.0) on 03.06.2025 22:07:16.
+//     RTGen (CGenerator v0.7.0).
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -16,6 +16,11 @@
 #include <copendaq_private.h>
 
 const daqIntfID DAQ_CONTEXT_INTERNAL_INTF_ID = { daq::IContextInternal::Id.Data1, daq::IContextInternal::Id.Data2, daq::IContextInternal::Id.Data3, daq::IContextInternal::Id.Data4_UInt64 };
+
+void daqContextInternal_getInterfaceId(daqIntfID* intfId)
+{
+    *intfId = DAQ_CONTEXT_INTERNAL_INTF_ID;
+}
 
 daqErrCode daqContextInternal_moveModuleManager(daqContextInternal* self, daqModuleManager** manager)
 {

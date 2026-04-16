@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.7.0) on 06.06.2025 19:05:35.
+//     RTGen (CGenerator v0.7.0).
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -16,5 +16,10 @@
 #include <copendaq_private.h>
 
 const daqIntfID DAQ_RECURSIVE_SEARCH_INTF_ID = { daq::IRecursiveSearch::Id.Data1, daq::IRecursiveSearch::Id.Data2, daq::IRecursiveSearch::Id.Data3, daq::IRecursiveSearch::Id.Data4_UInt64 };
+
+void daqRecursiveSearch_getInterfaceId(daqIntfID* intfId)
+{
+    *intfId = DAQ_RECURSIVE_SEARCH_INTF_ID;
+}
 
 

@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.7.0) on 18.08.2025 07:22:30.
+//     RTGen (CGenerator v0.7.0).
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -41,12 +41,14 @@ extern "C"
     typedef struct daqStreaming daqStreaming;
 
     EXPORTED extern const daqIntfID DAQ_SERVER_INTF_ID;
+    void EXPORTED daqServer_getInterfaceId(daqIntfID* intfId);
 
     daqErrCode EXPORTED daqServer_stop(daqServer* self);
     daqErrCode EXPORTED daqServer_getId(daqServer* self, daqString** serverId);
     daqErrCode EXPORTED daqServer_enableDiscovery(daqServer* self);
     daqErrCode EXPORTED daqServer_getSignals(daqServer* self, daqList** signals, daqSearchFilter* searchFilter);
     daqErrCode EXPORTED daqServer_getStreaming(daqServer* self, daqStreaming** streaming);
+    daqErrCode EXPORTED daqServer_disableDiscovery(daqServer* self);
 
 #ifdef __cplusplus
 }

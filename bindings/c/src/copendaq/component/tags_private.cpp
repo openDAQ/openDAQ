@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.7.0) on 03.06.2025 22:06:59.
+//     RTGen (CGenerator v0.7.0).
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -16,6 +16,11 @@
 #include <copendaq_private.h>
 
 const daqIntfID DAQ_TAGS_PRIVATE_INTF_ID = { daq::ITagsPrivate::Id.Data1, daq::ITagsPrivate::Id.Data2, daq::ITagsPrivate::Id.Data3, daq::ITagsPrivate::Id.Data4_UInt64 };
+
+void daqTagsPrivate_getInterfaceId(daqIntfID* intfId)
+{
+    *intfId = DAQ_TAGS_PRIVATE_INTF_ID;
+}
 
 daqErrCode daqTagsPrivate_add(daqTagsPrivate* self, daqString* name)
 {

@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.7.0) on 06.06.2025 19:05:54.
+//     RTGen (CGenerator v0.7.0).
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -16,6 +16,11 @@
 #include <copendaq_private.h>
 
 const daqIntfID DAQ_PROPERTY_INTERNAL_INTF_ID = { daq::IPropertyInternal::Id.Data1, daq::IPropertyInternal::Id.Data2, daq::IPropertyInternal::Id.Data3, daq::IPropertyInternal::Id.Data4_UInt64 };
+
+void daqPropertyInternal_getInterfaceId(daqIntfID* intfId)
+{
+    *intfId = DAQ_PROPERTY_INTERNAL_INTF_ID;
+}
 
 daqErrCode daqPropertyInternal_clone(daqPropertyInternal* self, daqProperty** clonedProperty)
 {
@@ -190,4 +195,19 @@ daqErrCode daqPropertyInternal_overrideDefaultValue(daqPropertyInternal* self, d
 daqErrCode daqPropertyInternal_setValueProtected(daqPropertyInternal* self, daqBaseObject* newValue)
 {
     return reinterpret_cast<daq::IPropertyInternal*>(self)->setValueProtected(reinterpret_cast<daq::IBaseObject*>(newValue));
+}
+
+daqErrCode daqPropertyInternal_getHasOnReadListeners(daqPropertyInternal* self, daqBool* hasListeners)
+{
+    return reinterpret_cast<daq::IPropertyInternal*>(self)->getHasOnReadListeners(hasListeners);
+}
+
+daqErrCode daqPropertyInternal_getHasOnGetSuggestedValuesListeners(daqPropertyInternal* self, daqBool* hasListeners)
+{
+    return reinterpret_cast<daq::IPropertyInternal*>(self)->getHasOnGetSuggestedValuesListeners(hasListeners);
+}
+
+daqErrCode daqPropertyInternal_getHasOnGetSelectionValuesListeners(daqPropertyInternal* self, daqBool* hasListeners)
+{
+    return reinterpret_cast<daq::IPropertyInternal*>(self)->getHasOnGetSelectionValuesListeners(hasListeners);
 }

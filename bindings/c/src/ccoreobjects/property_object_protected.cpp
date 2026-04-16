@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.7.0) on 03.06.2025 22:05:18.
+//     RTGen (CGenerator v0.7.0).
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -17,6 +17,11 @@
 
 const daqIntfID DAQ_PROPERTY_OBJECT_PROTECTED_INTF_ID = { daq::IPropertyObjectProtected::Id.Data1, daq::IPropertyObjectProtected::Id.Data2, daq::IPropertyObjectProtected::Id.Data3, daq::IPropertyObjectProtected::Id.Data4_UInt64 };
 
+void daqPropertyObjectProtected_getInterfaceId(daqIntfID* intfId)
+{
+    *intfId = DAQ_PROPERTY_OBJECT_PROTECTED_INTF_ID;
+}
+
 daqErrCode daqPropertyObjectProtected_setProtectedPropertyValue(daqPropertyObjectProtected* self, daqString* propertyName, daqBaseObject* value)
 {
     return reinterpret_cast<daq::IPropertyObjectProtected*>(self)->setProtectedPropertyValue(reinterpret_cast<daq::IString*>(propertyName), reinterpret_cast<daq::IBaseObject*>(value));
@@ -25,4 +30,14 @@ daqErrCode daqPropertyObjectProtected_setProtectedPropertyValue(daqPropertyObjec
 daqErrCode daqPropertyObjectProtected_clearProtectedPropertyValue(daqPropertyObjectProtected* self, daqString* propertyName)
 {
     return reinterpret_cast<daq::IPropertyObjectProtected*>(self)->clearProtectedPropertyValue(reinterpret_cast<daq::IString*>(propertyName));
+}
+
+daqErrCode daqPropertyObjectProtected_setProtectedPropertySelectionValue(daqPropertyObjectProtected* self, daqString* propertyName, daqBaseObject* value)
+{
+    return reinterpret_cast<daq::IPropertyObjectProtected*>(self)->setProtectedPropertySelectionValue(reinterpret_cast<daq::IString*>(propertyName), reinterpret_cast<daq::IBaseObject*>(value));
+}
+
+daqErrCode daqPropertyObjectProtected_clearProtectedPropertyValues(daqPropertyObjectProtected* self)
+{
+    return reinterpret_cast<daq::IPropertyObjectProtected*>(self)->clearProtectedPropertyValues();
 }

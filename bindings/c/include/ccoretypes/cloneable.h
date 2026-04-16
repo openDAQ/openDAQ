@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.7.0) on 03.06.2025 17:17:44.
+//     RTGen (CGenerator v0.7.0).
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -37,6 +37,7 @@ extern "C"
     typedef struct daqCloneable daqCloneable;
 
     EXPORTED extern const daqIntfID DAQ_CLONEABLE_INTF_ID;
+    void EXPORTED daqCloneable_getInterfaceId(daqIntfID* intfId);
 
     daqErrCode EXPORTED daqCloneable_clone(daqCloneable* self, daqBaseObject** cloned);
 

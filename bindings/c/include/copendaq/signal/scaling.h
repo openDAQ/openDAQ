@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.7.0) on 03.06.2025 22:07:52.
+//     RTGen (CGenerator v0.7.0).
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -40,6 +40,7 @@ extern "C"
     typedef struct daqScalingBuilder daqScalingBuilder;
 
     EXPORTED extern const daqIntfID DAQ_SCALING_INTF_ID;
+    void EXPORTED daqScaling_getInterfaceId(daqIntfID* intfId);
 
     daqErrCode EXPORTED daqScaling_getInputSampleType(daqScaling* self, daqSampleType* type);
     daqErrCode EXPORTED daqScaling_getOutputSampleType(daqScaling* self, daqScaledSampleType* type);

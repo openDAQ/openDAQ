@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.7.0) on 03.06.2025 22:07:11.
+//     RTGen (CGenerator v0.7.0).
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -38,6 +38,7 @@ extern "C"
     typedef struct daqUser daqUser;
 
     EXPORTED extern const daqIntfID DAQ_USER_LOCK_INTF_ID;
+    void EXPORTED daqUserLock_getInterfaceId(daqIntfID* intfId);
 
     daqErrCode EXPORTED daqUserLock_lock(daqUserLock* self, daqUser* user);
     daqErrCode EXPORTED daqUserLock_unlock(daqUserLock* self, daqUser* user);

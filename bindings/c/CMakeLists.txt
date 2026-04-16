@@ -1,5 +1,5 @@
 set(LIB_NAME copendaq)
-set_cmake_folder_context(TARGET_FOLDER_NAME copendaq)
+opendaq_set_cmake_folder_context(TARGET_FOLDER_NAME copendaq)
 
 set(SRC_CoreTypes_Headers
     include/copendaq.h
@@ -324,6 +324,8 @@ set(SRC_OpenDAQ_Headers
     include/copendaq/synchronization/common.h
     include/copendaq/synchronization/sync_component_private.h
     include/copendaq/synchronization/sync_component.h
+	
+    include/copendaq/utility/device_update_options.h
 )
 
 set(SRC_OpenDAQ_Cpp
@@ -443,6 +445,8 @@ set(SRC_OpenDAQ_Cpp
 
     src/copendaq/synchronization/sync_component_private.cpp
     src/copendaq/synchronization/sync_component.cpp
+	
+    src/copendaq/utility/device_update_options.cpp
 )
 
 add_library(${LIB_NAME} SHARED ${SRC_CoreTypes_Headers} ${SRC_CoreTypes_Cpp} ${SRC_Private_Headers} ${SRC_Private_Cpp} ${SRC_CoreObjects_Headers} ${SRC_CoreObjects_Cpp} ${SRC_OpenDAQ_Headers} ${SRC_OpenDAQ_Cpp})

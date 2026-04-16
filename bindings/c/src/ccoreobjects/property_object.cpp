@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.7.0) on 05.06.2025 21:36:42.
+//     RTGen (CGenerator v0.7.0).
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -16,6 +16,11 @@
 #include <copendaq_private.h>
 
 const daqIntfID DAQ_PROPERTY_OBJECT_INTF_ID = { daq::IPropertyObject::Id.Data1, daq::IPropertyObject::Id.Data2, daq::IPropertyObject::Id.Data3, daq::IPropertyObject::Id.Data4_UInt64 };
+
+void daqPropertyObject_getInterfaceId(daqIntfID* intfId)
+{
+    *intfId = DAQ_PROPERTY_OBJECT_INTF_ID;
+}
 
 daqErrCode daqPropertyObject_getClassName(daqPropertyObject* self, daqString** className)
 {
@@ -125,6 +130,16 @@ daqErrCode daqPropertyObject_getPermissionManager(daqPropertyObject* self, daqPe
 daqErrCode daqPropertyObject_findProperties(daqPropertyObject* self, daqList** properties, daqSearchFilter* propertyFilter, daqSearchFilter* componentFilter)
 {
     return reinterpret_cast<daq::IPropertyObject*>(self)->findProperties(reinterpret_cast<daq::IList**>(properties), reinterpret_cast<daq::ISearchFilter*>(propertyFilter), reinterpret_cast<daq::ISearchFilter*>(componentFilter));
+}
+
+daqErrCode daqPropertyObject_setPropertySelectionValue(daqPropertyObject* self, daqString* propertyName, daqBaseObject* value)
+{
+    return reinterpret_cast<daq::IPropertyObject*>(self)->setPropertySelectionValue(reinterpret_cast<daq::IString*>(propertyName), reinterpret_cast<daq::IBaseObject*>(value));
+}
+
+daqErrCode daqPropertyObject_clearPropertyValues(daqPropertyObject* self)
+{
+    return reinterpret_cast<daq::IPropertyObject*>(self)->clearPropertyValues();
 }
 
 daqErrCode daqPropertyObject_createPropertyObject(daqPropertyObject** obj)

@@ -42,11 +42,11 @@ set(SRC_PublicHeaders_Component
     sync_component.h
     sync_component_private.h
     sync_component_factory.h
+    sync_component_impl.h
     PARENT_SCOPE
 )
 
 set(SRC_PrivateHeaders_Component 
-    sync_component_impl.h
     PARENT_SCOPE
 )
 

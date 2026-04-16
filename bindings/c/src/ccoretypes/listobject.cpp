@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.7.0) on 03.06.2025 17:18:07.
+//     RTGen (CGenerator v0.7.0).
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -16,6 +16,11 @@
 #include <copendaq_private.h>
 
 const daqIntfID DAQ_LIST_INTF_ID = { daq::IList::Id.Data1, daq::IList::Id.Data2, daq::IList::Id.Data3, daq::IList::Id.Data4_UInt64 };
+
+void daqList_getInterfaceId(daqIntfID* intfId)
+{
+    *intfId = DAQ_LIST_INTF_ID;
+}
 
 daqErrCode daqList_getItemAt(daqList* self, daqSizeT index, daqBaseObject** obj)
 {

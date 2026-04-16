@@ -9,8 +9,12 @@
 
 BEGIN_NAMESPACE_OPENDAQ
 
-SignalReader::SignalReader(
-    const InputPortConfigPtr& port, SampleType valueReadType, SampleType domainReadType, ReadMode mode, const LoggerComponentPtr& logger)
+SignalReader::SignalReader(const InputPortConfigPtr& port,
+                           SampleType valueReadType,
+                           SampleType domainReadType,
+                           ReadMode mode,
+                           const LoggerComponentPtr& logger,
+                           bool globalIdFromSignal)
     : loggerComponent(logger)
     , valueReader(createReaderForType(mode == ReadMode::RawValue ? SampleType::Undefined : valueReadType, nullptr))
     , domainReader(createReaderForType(domainReadType, nullptr))
@@ -20,6 +24,7 @@ SignalReader::SignalReader(
     , domainInfo(logger)
     , sampleRate(-1)
     , commonSampleRate(-1)
+    , globalIdFromSignal(globalIdFromSignal)
 {
 }
 
@@ -37,29 +42,11 @@ SignalReader::SignalReader(const SignalReader& old,
     , domainInfo(loggerComponent)
     , sampleRate(-1)
     , commonSampleRate(-1)
+    , unused(old.unused)
+    , globalIdFromSignal(old.globalIdFromSignal)
 {
     info = old.info;
 
-    port.setListener(listener);
-    if (connection.assigned())
-        readDescriptorFromPort();
-}
-
-SignalReader::SignalReader(const SignalInfo& old,
-                           const InputPortNotificationsPtr& listener,
-                           SampleType valueReadType,
-                           SampleType domainReadType)
-    : loggerComponent(old.loggerComponent)
-    , valueReader(
-          createReaderForType(old.readMode == ReadMode::RawValue ? SampleType::Undefined : valueReadType, old.valueTransformFunction))
-    , domainReader(createReaderForType(domainReadType, old.domainTransformFunction))
-    , port(old.port)
-    , connection(port.getConnection())
-    , readMode(old.readMode)
-    , domainInfo(loggerComponent)
-    , sampleRate(-1)
-    , commonSampleRate(-1)
-{
     port.setListener(listener);
     if (connection.assigned())
         readDescriptorFromPort();
@@ -517,6 +504,9 @@ ErrCode SignalReader::handlePacket(const PacketPtr& packet, bool& firstData)
 
 ErrCode SignalReader::readPackets()
 {
+    if (unused)
+        return OPENDAQ_SUCCESS;
+
     bool firstData = false;
     ErrCode errCode = OPENDAQ_SUCCESS;
 
@@ -556,6 +546,18 @@ void* SignalReader::getValuePacketData(const DataPacketPtr& packet) const
 bool SignalReader::isSynced() const
 {
     return synced == SyncStatus::Synchronized;
+}
+
+StringPtr SignalReader::getComponentGlobalId() const
+{
+    if (globalIdFromSignal)
+        return port.getSignal().getGlobalId();
+    return port.getGlobalId();
+}
+
+bool SignalReader::isConnected() const
+{
+    return port.getConnection().assigned();
 }
 
 ErrCode SignalReader::readPacketData()

@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.7.0) on 03.06.2025 22:05:09.
+//     RTGen (CGenerator v0.7.0).
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -16,6 +16,11 @@
 #include <copendaq_private.h>
 
 const daqIntfID DAQ_AUTHENTICATION_PROVIDER_INTF_ID = { daq::IAuthenticationProvider::Id.Data1, daq::IAuthenticationProvider::Id.Data2, daq::IAuthenticationProvider::Id.Data3, daq::IAuthenticationProvider::Id.Data4_UInt64 };
+
+void daqAuthenticationProvider_getInterfaceId(daqIntfID* intfId)
+{
+    *intfId = DAQ_AUTHENTICATION_PROVIDER_INTF_ID;
+}
 
 daqErrCode daqAuthenticationProvider_authenticate(daqAuthenticationProvider* self, daqString* username, daqString* password, daqUser** userOut)
 {

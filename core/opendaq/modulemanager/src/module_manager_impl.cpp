@@ -22,6 +22,7 @@
 #include <coreobjects/property_factory.h>
 #include <opendaq/mirrored_signal_config_ptr.h>
 #include <map>
+#include <opendaq/version.h>
 #include <opendaq/logger_factory.h>
 #include <opendaq/device_info_factory.h>
 #include <opendaq/address_info_private_ptr.h>
@@ -35,6 +36,7 @@
 #include <opendaq/component_type_private_ptr.h>
 
 #include <opendaq/thread_name.h>
+#include <opendaq/module_manager_check_dependencies.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
@@ -45,10 +47,9 @@ static OrphanedModules orphanedModules;
 static constexpr std::chrono::milliseconds DefaultrescanTimer = 5000ms;
 static constexpr char createModuleFactory[] = "createModule";
 static constexpr char checkDependenciesFunc[] = "checkDependencies";
-
+static constexpr char getCoreVersionMetadataFunc[] = "getCoreVersionMetadata";
 static void GetModulesPath(std::vector<fs::path>& modulesPath, const LoggerComponentPtr& loggerComponent, std::string searchFolder);
-static ModulePtr getModuleIfAdded(const fs::path& fsPath, const std::vector<ModuleLibrary>& libraries);
-static ModuleLibrary loadModuleInternal(const LoggerComponentPtr& loggerComponent, const fs::path& path, IContext* context);
+static ModuleLibrary loadModuleInternal(const LoggerComponentPtr& loggerComponent, const fs::path& path, IContext* context, Bool safeLoadingMode);
 
 ModuleManagerImpl::ModuleManagerImpl(const BaseObjectPtr& path)
     : authenticatedModulesOnly(false)
@@ -57,6 +58,7 @@ ModuleManagerImpl::ModuleManagerImpl(const BaseObjectPtr& path)
     , modulesLoaded(false)
     , work(ioContext.get_executor())
     , rescanTimer(DefaultrescanTimer)
+    , safeLoadingMode(False)
 {
     if (const StringPtr pathStr = path.asPtrOrNull<IString>(true); pathStr.assigned())
     {
@@ -73,7 +75,7 @@ ModuleManagerImpl::ModuleManagerImpl(const BaseObjectPtr& path)
 
     std::size_t numThreads = 2;
     pool.reserve(numThreads);
-    
+
     for (std::size_t i = 0; i < numThreads; ++i)
     {
         pool.emplace_back([this]
@@ -113,7 +115,7 @@ ModuleManagerImpl::~ModuleManagerImpl()
 ErrCode ModuleManagerImpl::getModules(IList** availableModules)
 {
     OPENDAQ_PARAM_NOT_NULL(availableModules);
-    
+
     auto list = List<IModule>();
     for (auto& library : libraries)
     {
@@ -146,7 +148,7 @@ ErrCode ModuleManagerImpl::addModule(IModule* module)
 
     if (found == libraries.cend())
     {
-        libraries.emplace_back(ModuleLibrary{{}, module});
+        libraries.emplace_back(ModuleLibrary{{}, module, nullptr});
         return OPENDAQ_SUCCESS;
     }
     return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_DUPLICATEITEM);
@@ -154,12 +156,9 @@ ErrCode ModuleManagerImpl::addModule(IModule* module)
 
 ErrCode ModuleManagerImpl::loadModules(IContext* context)
 {
-    if (authenticatedModulesOnly)
+    if (authenticatedModulesOnly && !moduleAuthenticator.assigned())
     {
-        if (moduleAuthenticator == nullptr)
-        {
-            return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALID_OPERATION, "ModuleAuthenticator missing, cannot load modules!");
-        }
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALID_OPERATION, "ModuleAuthenticator missing, cannot load modules!");
     }
 
     if (!modulesLoaded)
@@ -177,6 +176,10 @@ ErrCode ModuleManagerImpl::loadModules(IContext* context)
             {
                 this->rescanTimer = std::chrono::milliseconds(static_cast<int>(inner.get("AddDeviceRescanTimer")));
             }
+            if (inner.hasKey("SafeLoadingMode"))
+            {
+                this->safeLoadingMode = static_cast<bool>(inner.get("SafeLoadingMode"));
+            }
         }
 
         loggerComponent = this->logger.getOrAddComponent("ModuleManager");
@@ -185,6 +188,15 @@ ErrCode ModuleManagerImpl::loadModules(IContext* context)
     {
         return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDPARAMETER, "Context cannot be changed after loading modules");
     }
+
+    std::string sdkVersionMetadataAsString =
+        fmt::format(R"([[ 'major': '{}'; 'minor': '{}'; 'patch': '{}'; 'branch': '{}'; 'sha': '{}'; ]])",
+                    OPENDAQ_OPENDAQ_MAJOR_VERSION,
+                    OPENDAQ_OPENDAQ_MINOR_VERSION,
+                    OPENDAQ_OPENDAQ_PATCH_VERSION,
+                    OPENDAQ_OPENDAQ_BRANCH_NAME,
+                    OPENDAQ_OPENDAQ_REVISION_HASH);
+    LOG_I("Loading modules ... the running SDK core version: \"{}\"", sdkVersionMetadataAsString);
 
     std::vector<std::string> paths;
     auto envPath = std::getenv("OPENDAQ_MODULES_PATH");
@@ -237,41 +249,23 @@ ErrCode ModuleManagerImpl::loadModules(IContext* context)
     bool newModulesAdded = false;
     for (const auto& modulePath: modulesPath)
     {
-        if (getModuleIfAdded(modulePath, libraries).assigned())
-            continue;
+        auto path = String(modulePath.string());
+        auto errCode = tryLoadAndAddModule(path, nullptr);
+        if (OPENDAQ_FAILED(errCode))
+        {
+            ObjectPtr<IErrorInfo> errorInfo;
+            daqGetErrorInfo(&errorInfo);
+            daqClearErrorInfo();
 
-        try
-        {
-            Bool validBinary = false;
-            StringPtr moduleKey("");
-            if (moduleAuthenticator != nullptr)
+            StringPtr message;
+            errorInfo->getMessage(&message);
+            if (message.assigned())
             {
-                moduleAuthenticator->authenticateModuleBinary(&validBinary, &moduleKey, StringPtr(modulePath.string()));
-            }
-
-            if (validBinary || !authenticatedModulesOnly)
-            {
-                libraries.push_back(loadModuleInternal(loggerComponent, modulePath, context));
-                moduleKeys.set(libraries.back().module.getModuleInfo().getId(), moduleKey);
-                
-                newModulesAdded = true;
-            }
-            else {
-                LOG_W("Cannot not load module {}, failed to authenticate!", modulePath.string());
+                LOG_W("{}", message);
             }
         }
-        catch (const daq::DaqException& e)
-        {
-            LOG_W(R"(Error loading module "{}": {} [{:#x}])", modulePath.string(), e.what(), e.getErrCode())
-        }
-        catch (const std::exception& e)
-        {
-            LOG_W(R"(Error loading module "{}": {})", modulePath.string(), e.what())
-        }
-        catch (...)
-        {
-            LOG_W(R"(Unknown error occured loading module "{}")", modulePath.string())
-        }
+        if (errCode == OPENDAQ_SUCCESS)
+            newModulesAdded = true;
     }
 
     modulesLoaded = true;
@@ -282,100 +276,161 @@ ErrCode ModuleManagerImpl::loadModules(IContext* context)
         return OPENDAQ_IGNORED;
 }
 
-ModulePtr getModuleIfAdded(const fs::path& fsPath, const std::vector<ModuleLibrary>& libraries)
-{
-    auto iter = std::find_if(
-        libraries.begin(),
-        libraries.end(),
-        [&fsPath](const ModuleLibrary& lib)
-        {
-            return lib.handle.is_loaded() && lib.handle.location() == fsPath;
-        }
-    );
-    if (iter != libraries.end())
-        return iter->module;
-    else
-        return nullptr;
-}
-
 ErrCode ModuleManagerImpl::loadModule(IString* path, IModule** module)
 {
     OPENDAQ_PARAM_NOT_NULL(path);
     OPENDAQ_PARAM_NOT_NULL(module);
 
-    auto pathString = StringPtr::Borrow(path).toStdString();
+    auto pathString = StringPtr::Borrow(path);
 
-    if (pathString.empty())
+    if (pathString.getLength() == 0)
+    {
         return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDPARAMETER, "Specified module path is empty");
+    }
 
-    if (!boost::algorithm::ends_with(pathString, OPENDAQ_MODULE_SUFFIX))
+    if (!boost::algorithm::ends_with(pathString.toStdString(), OPENDAQ_MODULE_SUFFIX))
+    {
         return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDPARAMETER,
                                    fmt::format(R"(The openDAQ module file must have an extention "{}")", OPENDAQ_MODULE_SUFFIX));
+    }
 
     if (!modulesLoaded)
-        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDSTATE, "ModuleManager in not initialized. Call loadModules(IContext*) first.");
-
-    std::error_code errCode;
-    fs::path fileSystemPath(pathString);
-
-    if (!fs::exists(fileSystemPath, errCode))
-        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDPARAMETER, fmt::format(R"(Specified module path "{}" does not exist)", pathString));
-
-    if (!is_regular_file(fileSystemPath, errCode))
-        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDPARAMETER, fmt::format(R"(Specified module path "{}" is not a file)", pathString));
-
-    if (const auto addedModule = getModuleIfAdded(fileSystemPath, libraries); addedModule.assigned())
     {
-        LOG_W(R"(Module at a given path "{}" is already loaded and added)", pathString)
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDSTATE, "ModuleManager in not initialized. Call loadModules(IContext*) first.");
+    }
 
-        *module = addedModule.addRefAndReturn();
-        return OPENDAQ_IGNORED;
+    if (authenticatedModulesOnly && !moduleAuthenticator.assigned())
+    {
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALID_OPERATION, "ModuleAuthenticator missing, cannot load modules!");
     }
 
     orphanedModules.tryUnload();
+
+    return tryLoadAndAddModule(pathString, module);
+}
+
+ErrCode ModuleManagerImpl::tryLoadAndAddModule(const StringPtr& path, IModule** module)
+{
+    std::error_code errCode;
+    fs::path fileSystemPath(path.toStdString());
+
+    if (!fs::exists(fileSystemPath, errCode))
+    {
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDPARAMETER, fmt::format(R"(Specified module path "{}" does not exist)", path));
+    }
+
+    if (!fs::is_regular_file(fileSystemPath, errCode))
+    {
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDPARAMETER, fmt::format(R"(Specified module path "{}" is not a file)", path));
+    }
+
+    {
+        auto iter = std::find_if(
+            libraries.begin(),
+            libraries.end(),
+            [&path](const ModuleLibrary& lib)
+            {
+                return lib.path.assigned() &&
+                       lib.path == path;
+            }
+        );
+        if (iter != libraries.end())
+        {
+            LOG_W(R"(Module was already loaded and added from the same path: "{}".)",  path);
+            if (module != nullptr)
+                *module = iter->module.addRefAndReturn();
+            return OPENDAQ_IGNORED;
+        }
+    }
 
     try
     {
         StringPtr moduleKey;
         if (authenticatedModulesOnly)
         {
-            if (moduleAuthenticator == nullptr)
-            {
-                return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALID_OPERATION, "ModuleAuthenticator missing, cannot load modules!");
-            }
-
             Bool valid;
             moduleAuthenticator->authenticateModuleBinary(&valid, &moduleKey, path);
 
             if (!valid)
             {
-                return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_ACCESSDENIED, "Module ({}) authentication failed!", path);
+                return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_ACCESSDENIED, fmt::format(R"(Module ({}) authentication failed!)", path));
             }
         }
 
-        libraries.push_back(loadModuleInternal(loggerComponent, fileSystemPath, context));
+        auto moduleLibrary = loadModuleInternal(loggerComponent, fileSystemPath, context, safeLoadingMode);
+        const auto loadedModule = moduleLibrary.module;
+        const StringPtr moduleId = loadedModule.getModuleInfo().getId();
 
-        if (authenticatedModulesOnly)
+        if (moduleId.assigned() && moduleId.getLength() > 0)
         {
-            moduleKeys.set(libraries.back().module.getModuleInfo().getId(), moduleKey);
+            auto iter = std::find_if(
+                libraries.begin(),
+                libraries.end(),
+                [&moduleId](const ModuleLibrary& lib)
+                {
+                    const StringPtr addedModuleId = lib.module.getModuleInfo().getId();
+                    return addedModuleId.assigned() &&
+                           addedModuleId.getLength() > 0 &&
+                           addedModuleId == moduleId;
+                }
+            );
+            if (iter != libraries.end())
+            {
+                if (const auto existingPath = iter->path; existingPath.assigned())
+                {
+                    if (existingPath != path)
+                    {
+                        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_ALREADYEXISTS,
+                                                   fmt::format(R"(Module with id "{}" was already loaded and added from path "{}". Reject loading module from "{}")", moduleId, existingPath, path));
+                    }
+                }
+                else
+                {
+                    return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_ALREADYEXISTS,
+                                               fmt::format(R"(Module with id "{}" was already loaded from memory. Reject loading module from path "{}")", moduleId, path));
+                }
+            }
+            if (authenticatedModulesOnly)
+            {
+                moduleKeys.set(moduleId, moduleKey);
+            }
         }
 
-        *module = libraries.back().module.addRefAndReturn();
+        if (module != nullptr)
+            *module = moduleLibrary.module.addRefAndReturn();
+
+        if (auto version = loadedModule.getModuleInfo().getVersionInfo(); version.assigned())
+        {
+            LOG_I("Loaded & added module [v{}.{}.{} \"{}\"] from \"{}\".",
+                  version.getMajor(),
+                  version.getMinor(),
+                  version.getPatch(),
+                  loadedModule.getModuleInfo().getName(),
+                  path);
+        }
+        else
+        {
+            LOG_W("Loaded & added module UNKNOWN VERSION of \"{}\" from \"{}\".", loadedModule.getModuleInfo().getName(), path);
+        }
+        if (!moduleId.assigned() || moduleId.getLength() == 0)
+        {
+            LOG_W("Empty or missing module id of \"{}\" from \"{}\".", loadedModule.getModuleInfo().getName(), path);
+        }
+        printAvailableTypes(loadedModule);
+
+        libraries.push_back(std::move(moduleLibrary));
     }
     catch (const daq::DaqException& e)
     {
-        LOG_W(R"(Error loading module "{}": {} [{:#x}])", pathString, e.what(), e.getErrCode())
-        return errorFromException(e);
+        return DAQ_MAKE_ERROR_INFO(e.getErrCode(), fmt::format(R"(Error loading module "{}": {} [{:#x}])", path, e.what(), e.getErrCode()));
     }
     catch (const std::exception& e)
     {
-        LOG_W(R"(Error loading module "{}": {})", pathString, e.what())
-        return OPENDAQ_ERR_GENERALERROR;
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_GENERALERROR, fmt::format(R"(Error loading module "{}": {})", path, e.what()));
     }
     catch (...)
     {
-        LOG_W(R"(Unknown error occurred loading module "{}")", pathString)
-        return OPENDAQ_ERR_GENERALERROR;
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_GENERALERROR, fmt::format(R"(Unknown error occurred loading module "{}")", path));
     }
 
     return OPENDAQ_SUCCESS;
@@ -405,17 +460,11 @@ ErrCode ModuleManagerImpl::getVendorKeys(IDict** vendorKeys)
     return OPENDAQ_SUCCESS;
 }
 
-struct DevicePing
-{
-    std::string address;
-    std::shared_ptr<IcmpPing> ping;
-};
-
 void ModuleManagerImpl::checkNetworkSettings(ListPtr<IDeviceInfo>& list)
 {
-    std::vector<DevicePing> statuses;
-    std::map<std::string, bool> ipv4Addresses;
-    std::map<std::string, bool> ipv6Addresses;
+    std::vector<boost::asio::ip::address_v4> ipv4Addresses;
+    std::map<std::string, bool> ipv4AddressesMap;
+    std::map<std::string, bool> ipv6AddressesMap;
 
     for (auto deviceInfo : list)
     {
@@ -427,47 +476,42 @@ void ModuleManagerImpl::checkNetworkSettings(ListPtr<IDeviceInfo>& list)
             const auto addressInfos = cap.getAddressInfo();
             for (const auto& info : addressInfos)
             {
-                const auto address = info.getAddress();
+                const auto address = info.getAddress().toStdString();
                 const auto addressType = info.getType();
+
                 if (addressType == "IPv4")
-                    ipv4Addresses.emplace(address.toStdString(), false);
+                {
+                    auto [_,inserted] = ipv4AddressesMap.try_emplace(address, false);
+                    if (inserted)
+                        ipv4Addresses.emplace_back(boost::asio::ip::make_address_v4(address));
+                }
                 else if (addressType == "IPv6")
-                    ipv6Addresses.emplace(address.toStdString(), false);
+                {
+                    ipv6AddressesMap.emplace(address, false);
+                }
             }
         }
     }
 
-    for (auto& address : ipv4Addresses)
     {
         const auto icmp = IcmpPing::Create(ioContext, logger);
-        IcmpPing& ping = *icmp;
+        icmp->setMaxHops(1);
+        icmp->start(ipv4Addresses);
+        icmp->waitSendAndReply();
 
-        ping.setMaxHops(1);
-        ping.start(boost::asio::ip::make_address_v4(address.first));
-        if (ping.waitSend())
+        auto replies = icmp->getReplyAddresses();
+
+        for (auto& ipv4 : ipv4AddressesMap)
         {
-            address.second = true;
-            continue;
+            if (replies.find(ipv4.first) != replies.cend())
+            {
+                ipv4.second = true;
+            }
         }
-
-        statuses.push_back({address.first, icmp});
-    }
-
-    if (!statuses.empty())
-    {
-        LOG_T("Missing ping replies: waiting 1s\n");
-        std::this_thread::sleep_for(1s);
-
-        for (const auto& [address, ping] : statuses)
-        {
-            ping->stop();
-            ipv4Addresses[address] = ping->getNumReplies() > 0;
-        }
-        statuses.clear();
     }
     
     // TODO: Ping IPv6 addresses as well
-    setAddressesReachable(ipv4Addresses, list);
+    setAddressesReachable(ipv4AddressesMap, list);
 }
 
 static bool ipv6Available(boost::asio::io_context& io)
@@ -645,7 +689,7 @@ ErrCode ModuleManagerImpl::getAvailableDevices(IList** availableDevices)
 
     try
     {
-        checkNetworkSettings(availableDevicesPtr);        
+        checkNetworkSettings(availableDevicesPtr);
     }
     catch(const std::exception& e)
     {
@@ -680,7 +724,7 @@ ErrCode ModuleManagerImpl::getAvailableDevices(IList** availableDevices)
 ErrCode ModuleManagerImpl::getAvailableDeviceTypes(IDict** deviceTypes)
 {
     OPENDAQ_PARAM_NOT_NULL(deviceTypes);
-    
+
     auto availableTypes = Dict<IString, IDeviceType>();
 
     for (const auto& library : libraries)
@@ -723,7 +767,7 @@ ErrCode ModuleManagerImpl::createDevice(IDevice** device, IString* connectionStr
     const ErrCode errCode = daqTry([&]()
     {
         PropertyObjectPtr addDeviceConfig;
-        const bool inputIsDefaultAddDeviceConfig = isDefaultAddDeviceConfig(inputConfig);
+        const bool inputIsDefaultAddDeviceConfig = IsDefaultAddDeviceConfig(inputConfig);
 
         if (inputIsDefaultAddDeviceConfig)
             OPENDAQ_RETURN_IF_FAILED(inputConfig.asPtr<IPropertyObjectInternal>(true)->clone(&addDeviceConfig));
@@ -733,12 +777,12 @@ ErrCode ModuleManagerImpl::createDevice(IDevice** device, IString* connectionStr
         PropertyObjectPtr generalConfig =
             inputIsDefaultAddDeviceConfig
                 ? addDeviceConfig.getPropertyValue("General").asPtr<IPropertyObject>()
-                : populateGeneralConfig(addDeviceConfig, inputConfig); // copy general properties from input config
+                : PopulateGeneralConfig(addDeviceConfig, inputConfig); // copy general properties from input config
 
         // populate any general props which are duplicated in device & streaming type configs
-        copyCommonGeneralPropValues(addDeviceConfig);
+        CopyCommonGeneralPropValues(addDeviceConfig);
 
-        const auto [pureConnectionString, connectionStringOptions] = splitConnectionStringAndOptions(StringPtr::Borrow(connectionString));
+        const auto [pureConnectionString, connectionStringOptions] = SplitConnectionStringAndOptions(StringPtr::Borrow(connectionString));
         auto connectionStringPtr = String(pureConnectionString);
 
         if (!connectionStringPtr.assigned() || connectionStringPtr.getLength() == 0)
@@ -767,13 +811,13 @@ ErrCode ModuleManagerImpl::createDevice(IDevice** device, IString* connectionStr
         for (const auto& library : libraries)
         {
             const auto deviceType = getDeviceTypeFromConnectionString(connectionStringPtr, library.module);
-            
+
             // Check if module can create device with given connection string
             if (!deviceType.assigned())
                 continue;
 
             // copy props from input config and connection string to device type config
-            const auto deviceTypeConfig = populateDeviceTypeConfig(addDeviceConfig, inputConfig, deviceType, connectionStringOptions);
+            const auto deviceTypeConfig = PopulateDeviceTypeConfig(addDeviceConfig, inputConfig, deviceType, connectionStringOptions);
             auto err = library.module->createDevice(device, connectionStringPtr, parent, deviceTypeConfig);
             OPENDAQ_RETURN_IF_FAILED(err);
 
@@ -908,7 +952,7 @@ ErrCode ModuleManagerImpl::getAvailableFunctionBlockTypes(IDict** functionBlockT
     for (const auto& library : libraries)
     {
         const auto module = library.module;
-        
+
         DictPtr<IString, IFunctionBlockType> types;
         try
         {
@@ -934,7 +978,7 @@ ErrCode ModuleManagerImpl::getAvailableFunctionBlockTypes(IDict** functionBlockT
     return OPENDAQ_SUCCESS;
 }
 
-StringPtr ModuleManagerImpl::convertIfOldIdFB(const StringPtr& id)
+StringPtr ModuleManagerImpl::ConvertIfOldIdFB(const StringPtr& id)
 {
     if (id == "ref_fb_module_classifier")
         return "RefFBModuleClassifier";
@@ -955,7 +999,7 @@ StringPtr ModuleManagerImpl::convertIfOldIdFB(const StringPtr& id)
     return id;
 }
 
-StringPtr ModuleManagerImpl::convertIfOldIdProtocol(const StringPtr& id)
+StringPtr ModuleManagerImpl::ConvertIfOldIdProtocol(const StringPtr& id)
 {
     if (id == "opendaq_native_config")
         return "OpenDAQNativeConfiguration";
@@ -974,7 +1018,7 @@ StringPtr ModuleManagerImpl::convertIfOldIdProtocol(const StringPtr& id)
     return id;
 }
 
-void ModuleManagerImpl::populateDeviceTypeConfigFromConnStrOptions(
+void ModuleManagerImpl::PopulateDeviceTypeConfigFromConnStrOptions(
     PropertyObjectPtr& deviceTypeConfig,
     const tsl::ordered_map<std::string, ObjectPtr<IBaseObject>>& options)
 {
@@ -985,23 +1029,23 @@ void ModuleManagerImpl::populateDeviceTypeConfigFromConnStrOptions(
     }
 }
 
-PropertyObjectPtr ModuleManagerImpl::populateDeviceTypeConfig(PropertyObjectPtr& addDeviceConfig,
+PropertyObjectPtr ModuleManagerImpl::PopulateDeviceTypeConfig(PropertyObjectPtr& addDeviceConfig,
                                                               const PropertyObjectPtr& inputConfig,
                                                               const DeviceTypePtr& deviceType,
                                                               const tsl::ordered_map<std::string, ObjectPtr<IBaseObject>>& connStrOptions)
 {
-    assert(isDefaultAddDeviceConfig(addDeviceConfig));
+    assert(IsDefaultAddDeviceConfig(addDeviceConfig));
 
     const StringPtr deviceTypeId = deviceType.getId();
     PropertyObjectPtr deviceTypeConfigurations = addDeviceConfig.getPropertyValue("Device");
 
     PropertyObjectPtr deviceTypeConfig = deviceTypeConfigurations.getPropertyValue(deviceTypeId);
 
-    if (inputConfig.assigned() && !isDefaultAddDeviceConfig(inputConfig))
-        overrideConfigProperties(deviceTypeConfig, inputConfig);
+    if (inputConfig.assigned() && !IsDefaultAddDeviceConfig(inputConfig))
+        OverrideConfigProperties(deviceTypeConfig, inputConfig);
 
     if (!connStrOptions.empty())
-        populateDeviceTypeConfigFromConnStrOptions(deviceTypeConfig, connStrOptions);
+        PopulateDeviceTypeConfigFromConnStrOptions(deviceTypeConfig, connStrOptions);
 
     deviceTypeConfigurations.asPtr<IPropertyObjectProtected>().setProtectedPropertyValue(deviceTypeId, deviceTypeConfig);
     addDeviceConfig.asPtr<IPropertyObjectProtected>().setProtectedPropertyValue("Device", deviceTypeConfigurations);
@@ -1014,12 +1058,12 @@ ErrCode ModuleManagerImpl::createFunctionBlock(IFunctionBlock** functionBlock, I
     OPENDAQ_PARAM_NOT_NULL(functionBlock);
     OPENDAQ_PARAM_NOT_NULL(id);
 
-    const StringPtr typeId = convertIfOldIdFB(StringPtr::Borrow(id));
+    const StringPtr typeId = ConvertIfOldIdFB(StringPtr::Borrow(id));
 
     for (const auto& library : libraries)
     {
         const auto module = library.module;
-        
+
         DictPtr<IString, IFunctionBlockType> types;
         try
         {
@@ -1036,7 +1080,7 @@ ErrCode ModuleManagerImpl::createFunctionBlock(IFunctionBlock** functionBlock, I
 
         if (!types.assigned())
             continue;
-        
+
         if (!types.hasKey(typeId))
             continue;
 
@@ -1045,7 +1089,7 @@ ErrCode ModuleManagerImpl::createFunctionBlock(IFunctionBlock** functionBlock, I
         if (localId)
         {
             const auto idPtr = StringPtr::Borrow(localId);
-            localIdStr = static_cast<std::string>(idPtr); 
+            localIdStr = static_cast<std::string>(idPtr);
         }
         else if (configPtr.assigned() && configPtr.hasProperty("LocalId"))
         {
@@ -1127,7 +1171,7 @@ ErrCode ModuleManagerImpl::getAvailableStreamingTypes(IDict** streamingTypes)
     for (const auto& library : libraries)
     {
         const auto module = library.module;
-        
+
         DictPtr<IString, IStreamingType> types;
         try
         {
@@ -1160,26 +1204,26 @@ ErrCode ModuleManagerImpl::createDefaultAddDeviceConfig(IPropertyObject** defaul
     DictPtr<IString, IDeviceType> deviceTypes;
     ErrCode err = getAvailableDeviceTypes(&deviceTypes);
     OPENDAQ_RETURN_IF_FAILED(err);
-    
+
     DictPtr<IString, IStreamingType> streamingTypes;
     err = getAvailableStreamingTypes(&streamingTypes);
     OPENDAQ_RETURN_IF_FAILED(err);
 
     auto config = PropertyObject();
-    
+
     auto deviceConfig = PropertyObject();
     auto streamingConfig = PropertyObject();
     auto generalConfig = PropertyObject();
 
     for (auto const& [key, typeObj] : deviceTypes)
         deviceConfig.addProperty(ObjectProperty(key, typeObj.createDefaultConfig()));
-    
+
     for (auto const& [key, typeObj] : streamingTypes)
         streamingConfig.addProperty(ObjectProperty(key, typeObj.createDefaultConfig()));
 
     config.addProperty(ObjectProperty("Device", deviceConfig.detach()));
     config.addProperty(ObjectProperty("Streaming", streamingConfig.detach()));
-    config.addProperty(ObjectProperty("General", createGeneralConfig().detach()));
+    config.addProperty(ObjectProperty("General", CreateGeneralConfig().detach()));
 
     *defaultConfig = config.detach();
     return OPENDAQ_SUCCESS;
@@ -1191,7 +1235,7 @@ ErrCode ModuleManagerImpl::createServer(IServer** server, IString* serverTypeId,
     OPENDAQ_PARAM_NOT_NULL(server);
     OPENDAQ_PARAM_NOT_NULL(rootDevice);
 
-    auto typeId = convertIfOldIdProtocol(StringPtr::Borrow(serverTypeId));
+    auto typeId = ConvertIfOldIdProtocol(StringPtr::Borrow(serverTypeId));
 
     for (const auto& library : libraries)
     {
@@ -1278,7 +1322,7 @@ ErrCode ModuleManagerImpl::getDiscoveryInfo(IDeviceInfo** deviceInfo, IString* m
     return OPENDAQ_NOTFOUND;
 }
 
-uint16_t ModuleManagerImpl::getServerCapabilityPriority(const ServerCapabilityPtr& cap)
+uint16_t ModuleManagerImpl::GetServerCapabilityPriority(const ServerCapabilityPtr& cap)
 {
     const std::string nativeId = "OpenDAQNativeConfiguration";
     if (cap.getProtocolId() == nativeId)
@@ -1316,15 +1360,15 @@ DeviceInfoPtr ModuleManagerImpl::getDiscoveredDeviceInfo(const DeviceInfoPtr& de
 
     if (!serialNumber.getLength() || !manufacturer.getLength())
         return nullptr;
-    
-    DeviceInfoPtr localInfo; 
+
+    DeviceInfoPtr localInfo;
     for (const auto & [_, info] : availableDevicesGroup)
     {
         if (manufacturer == info.getManufacturer() && serialNumber == info.getSerialNumber())
         {
             if (info.getServerCapabilities().getCount())
                 return info;
-            
+
             localInfo = info;
         }
     }
@@ -1386,11 +1430,11 @@ StringPtr ModuleManagerImpl::resolveSmartConnectionString(const StringPtr& input
         DAQ_THROW_EXCEPTION(NotFoundException, "Device with connection string \"{}\" has no available server capabilities", inputConnectionString);
 
     ServerCapabilityPtr selectedCapability = capabilities[0];
-    auto selectedPriority = getServerCapabilityPriority(selectedCapability);
+    auto selectedPriority = GetServerCapabilityPriority(selectedCapability);
 
     for (const auto & capability : capabilities)
     {
-        const auto priority = getServerCapabilityPriority(capability);
+        const auto priority = GetServerCapabilityPriority(capability);
         if (priority  > selectedPriority)
         {
             selectedCapability = capability;
@@ -1449,15 +1493,15 @@ DeviceTypePtr ModuleManagerImpl::getDeviceTypeFromConnectionString(const StringP
 }
 
 // copies value of any General property present in inputConfig to correspoding General property
-PropertyObjectPtr ModuleManagerImpl::populateGeneralConfig(PropertyObjectPtr& addDeviceConfig, const PropertyObjectPtr& inputConfig)
+PropertyObjectPtr ModuleManagerImpl::PopulateGeneralConfig(PropertyObjectPtr& addDeviceConfig, const PropertyObjectPtr& inputConfig)
 {
-    assert(isDefaultAddDeviceConfig(addDeviceConfig));
-    assert(!isDefaultAddDeviceConfig(inputConfig));
+    assert(IsDefaultAddDeviceConfig(addDeviceConfig));
+    assert(!IsDefaultAddDeviceConfig(inputConfig));
 
     PropertyObjectPtr generalConfig = addDeviceConfig.getPropertyValue("General");
     if (inputConfig.assigned())
     {
-        overrideConfigProperties(generalConfig, inputConfig);
+        OverrideConfigProperties(generalConfig, inputConfig);
         addDeviceConfig.asPtr<IPropertyObjectProtected>().setProtectedPropertyValue("General", generalConfig);
     }
 
@@ -1474,7 +1518,7 @@ StreamingPtr ModuleManagerImpl::onCreateStreaming(const StringPtr& connectionStr
     for (const auto& library : libraries)
     {
         const auto module = library.module;
-    
+
         const std::string prefix = getPrefixFromConnectionString(connectionString);
         DictPtr<IString, IStreamingType> types;
         const ErrCode errCode = module->getAvailableStreamingTypes(&types);
@@ -1497,9 +1541,9 @@ StreamingPtr ModuleManagerImpl::onCreateStreaming(const StringPtr& connectionStr
             continue;
 
         PropertyObjectPtr streamingTypeConfig;
-        if (isDefaultAddDeviceConfig(inputConfig))
+        if (IsDefaultAddDeviceConfig(inputConfig))
         {
-            copyCommonGeneralPropValues(inputConfig);
+            CopyCommonGeneralPropValues(inputConfig);
             PropertyObjectPtr streamingTypesConfig = inputConfig.getPropertyValue("Streaming");
             if (streamingTypesConfig.hasProperty(streamingTypeId))
                 streamingTypeConfig = streamingTypesConfig.getPropertyValue(streamingTypeId);
@@ -1572,7 +1616,7 @@ void ModuleManagerImpl::completeServerCapabilities(const DevicePtr& device) cons
         const auto targetAddressInfo = target.getAddressInfo();
         if (!targetAddressInfo.assigned() || !targetAddressInfo.getCount())
             continue;
-        
+
         for (const auto& info : targetAddressInfo)
         {
             if (address == info.getAddress() && addressType == info.getType())
@@ -1587,7 +1631,7 @@ void ModuleManagerImpl::completeServerCapabilities(const DevicePtr& device) cons
 }
 
 
-PropertyObjectPtr ModuleManagerImpl::createGeneralConfig()
+PropertyObjectPtr ModuleManagerImpl::CreateGeneralConfig()
 {
     auto obj = PropertyObject();
 
@@ -1622,7 +1666,7 @@ PropertyObjectPtr ModuleManagerImpl::createGeneralConfig()
     return obj.detach();
 }
 
-void ModuleManagerImpl::overrideConfigProperties(PropertyObjectPtr& targetConfig, const PropertyObjectPtr& sourceConfig)
+void ModuleManagerImpl::OverrideConfigProperties(PropertyObjectPtr& targetConfig, const PropertyObjectPtr& sourceConfig)
 {
     for (const auto& prop : targetConfig.getAllProperties())
     {
@@ -1633,7 +1677,8 @@ void ModuleManagerImpl::overrideConfigProperties(PropertyObjectPtr& targetConfig
             auto property = targetConfig.getProperty(name);
             if (targetConfig.getPropertyValue(name) != sourcePropValue)
             {
-                if (property.getValueType() == ctObject)
+                auto valueType = property.getValueType();
+                if (valueType == ctObject || valueType == ctFunc || valueType == ctProc)
                 {
                     targetConfig.asPtr<IPropertyObjectProtected>().setProtectedPropertyValue(name, sourcePropValue);
                 }
@@ -1697,7 +1742,7 @@ std::pair<StringPtr, DeviceInfoPtr> ModuleManagerImpl::populateDiscoveredDevice(
 
 void ModuleManagerImpl::onCompleteCapabilities(const DevicePtr& device, const DeviceInfoPtr& discoveredDeviceInfo)
 {
-    replaceSubDeviceOldProtocolIds(device);
+    ReplaceSubDeviceOldProtocolIds(device);
     mergeDiscoveryAndDeviceCapabilities(device,
                                         discoveredDeviceInfo.assigned()
                                             ? discoveredDeviceInfo
@@ -1719,7 +1764,7 @@ std::string ModuleManagerImpl::getPrefixFromConnectionString(std::string connect
     return "";
 }
 
-std::pair<std::string, tsl::ordered_map<std::string, BaseObjectPtr>> ModuleManagerImpl::splitConnectionStringAndOptions(
+std::pair<std::string, tsl::ordered_map<std::string, BaseObjectPtr>> ModuleManagerImpl::SplitConnectionStringAndOptions(
     const std::string& connectionString)
 {
     std::vector<std::string> strs1;
@@ -1749,7 +1794,7 @@ std::pair<std::string, tsl::ordered_map<std::string, BaseObjectPtr>> ModuleManag
     return std::make_pair(strs1[0], optionsMap);
 }
 
-void ModuleManagerImpl::replaceSubDeviceOldProtocolIds(const DevicePtr& device)
+void ModuleManagerImpl::ReplaceSubDeviceOldProtocolIds(const DevicePtr& device)
 {
     using namespace search;
     auto devices = device.getDevices(Recursive(Any()));
@@ -1762,17 +1807,17 @@ void ModuleManagerImpl::replaceSubDeviceOldProtocolIds(const DevicePtr& device)
 
         for (const auto& cap : devInfo.getServerCapabilities())
         {
-            const auto newCap = replaceOldProtocolIds(cap);
+            const auto newCap = ReplaceOldProtocolIds(cap);
             devInfoInternal.removeServerCapability(cap.getProtocolId());
             devInfoInternal.addServerCapability(newCap);
         }
     }
 }
 
-ServerCapabilityPtr ModuleManagerImpl::replaceOldProtocolIds(const ServerCapabilityPtr& cap)
+ServerCapabilityPtr ModuleManagerImpl::ReplaceOldProtocolIds(const ServerCapabilityPtr& cap)
 {
     const auto oldProtocolId = cap.getProtocolId();
-    const auto newProtocolId = convertIfOldIdProtocol(oldProtocolId);
+    const auto newProtocolId = ConvertIfOldIdProtocol(oldProtocolId);
 
     if (oldProtocolId == newProtocolId)
         return cap;
@@ -1802,7 +1847,7 @@ ServerCapabilityPtr ModuleManagerImpl::replaceOldProtocolIds(const ServerCapabil
     return newCap.detach();
 }
 
-ServerCapabilityPtr ModuleManagerImpl::mergeDiscoveryAndDeviceCapability(const ServerCapabilityPtr& discoveryCap,
+ServerCapabilityPtr ModuleManagerImpl::MergeDiscoveryAndDeviceCapability(const ServerCapabilityPtr& discoveryCap,
                                                                          const ServerCapabilityPtr& deviceCap)
 {
     ServerCapabilityConfigPtr merged = deviceCap.asPtr<IPropertyObjectInternal>(true).clone();
@@ -1845,7 +1890,7 @@ void ModuleManagerImpl::mergeDiscoveryAndDeviceCapabilities(const DevicePtr& dev
             {
                 try
                 {
-                    capPtr = mergeDiscoveryAndDeviceCapability(capability, connectedDeviceInfo.getServerCapability(capId));
+                    capPtr = MergeDiscoveryAndDeviceCapability(capability, connectedDeviceInfo.getServerCapability(capId));
                 }
                 catch ([[maybe_unused]] const std::exception& e)
                 {
@@ -1862,9 +1907,9 @@ void ModuleManagerImpl::mergeDiscoveryAndDeviceCapabilities(const DevicePtr& dev
 }
 
 // copies at least username & password from general to device and streaming type configs
-void ModuleManagerImpl::copyCommonGeneralPropValues(PropertyObjectPtr& addDeviceConfig)
+void ModuleManagerImpl::CopyCommonGeneralPropValues(PropertyObjectPtr& addDeviceConfig)
 {
-    assert(isDefaultAddDeviceConfig(addDeviceConfig));
+    assert(IsDefaultAddDeviceConfig(addDeviceConfig));
 
     const PropertyObjectPtr generalConfig = addDeviceConfig.getPropertyValue("General");
     const PropertyObjectPtr deviceTypesConfig = addDeviceConfig.getPropertyValue("Device");
@@ -1905,7 +1950,7 @@ void ModuleManagerImpl::copyCommonGeneralPropValues(PropertyObjectPtr& addDevice
     }
 }
 
-bool ModuleManagerImpl::isDefaultAddDeviceConfig(const PropertyObjectPtr& config)
+bool ModuleManagerImpl::IsDefaultAddDeviceConfig(const PropertyObjectPtr& config)
 {
     if (!config.assigned())
         return false;
@@ -1960,14 +2005,14 @@ void GetModulesPath(std::vector<fs::path>& modulesPath, const LoggerComponentPtr
 
 
 template <typename Functor>
-static void printComponentTypes(Functor func, const std::string& kind, const LoggerComponentPtr& loggerComponent)
+void ModuleManagerImpl::printComponentTypes(Functor func, const std::string& kind)
 {
     try
     {
         DictPtr<IString, IComponentType> componentTypes = func();
         if (componentTypes.getCount() > 0)
         {
-            for (auto [id, type] : componentTypes)
+            for (const auto& [id, type] : componentTypes)
             {
                 LOG_I("\t{0:<3} [{1}] {2}: \"{3}\"",
                       kind,
@@ -1988,11 +2033,11 @@ static void printComponentTypes(Functor func, const std::string& kind, const Log
     }
 }
 
-static void printAvailableTypes(const ModulePtr& module, const LoggerComponentPtr& loggerComponent)
+void ModuleManagerImpl::printAvailableTypes(const ModulePtr& module)
 {
-    printComponentTypes([&module]{ return module.getAvailableDeviceTypes(); }, "DEV", loggerComponent);
-    printComponentTypes([&module]{ return module.getAvailableFunctionBlockTypes(); }, "FB", loggerComponent);
-    printComponentTypes([&module]{ return module.getAvailableServerTypes(); }, "SRV", loggerComponent);
+    printComponentTypes([&module]{ return module.getAvailableDeviceTypes(); }, "DEV");
+    printComponentTypes([&module]{ return module.getAvailableFunctionBlockTypes(); }, "FB");
+    printComponentTypes([&module]{ return module.getAvailableServerTypes(); }, "SRV");
 }
 
 static std::string GetMessageFromLibraryErrCode(std::error_code libraryErrCode)
@@ -2005,23 +2050,72 @@ static std::string GetMessageFromLibraryErrCode(std::error_code libraryErrCode)
 #endif
 }
 
-ModuleLibrary loadModuleInternal(const LoggerComponentPtr& loggerComponent, const fs::path& path, IContext* context)
+ModuleLibrary loadModuleInternal(const LoggerComponentPtr& loggerComponent, const fs::path& path, IContext* context, Bool safeLoadingMode)
 {
-    auto currDir = fs::current_path();
-    auto relativePath = fs::proximate(path).string();
-    LOG_T("Loading module \"{}\".", relativePath);
+    LOG_T("Loading module \"{}\".", path.string());
 
     std::error_code libraryErrCode;
-    boost::dll::shared_library moduleLibrary(path, libraryErrCode);
+    boost::dll::shared_library moduleLibrary(path, libraryErrCode, safeLoadingMode ? boost::dll::load_mode::rtld_now : boost::dll::load_mode::default_mode);
 
     if (libraryErrCode)
     {
         DAQ_THROW_EXCEPTION(ModuleLoadFailedException,
                             "Module \"{}\" failed to load. Error: {} [{}]",
-                            relativePath,
+                            path.string(),
                             libraryErrCode.value(),
                             GetMessageFromLibraryErrCode(libraryErrCode)
         );
+    }
+
+    if (moduleLibrary.has(getCoreVersionMetadataFunc))
+    {
+        using GetCoreVersionMetadataFunc = ErrCode (*)(unsigned int*, unsigned int*, unsigned int*, IString**, IString**, IString**);
+        GetCoreVersionMetadataFunc getMetadata = moduleLibrary.get<ErrCode(unsigned int*, unsigned int*, unsigned int*, IString**, IString**, IString**)>(getCoreVersionMetadataFunc);
+
+        unsigned int major, minor, patch;
+        StringPtr branch, sha;
+
+        ErrCode errCode = getMetadata(&major, &minor, &patch, &branch, &sha, nullptr);
+
+        if (OPENDAQ_SUCCEEDED(errCode))
+        {
+            std::string inModuleMetadataAsString =
+                fmt::format(R"([[ 'major': '{}'; 'minor': '{}'; 'patch': '{}'; 'branch': '{}'; 'sha': '{}'; ]])",
+                            major,
+                            minor,
+                            patch,
+                            branch,
+                            sha);
+
+            StringPtr logMsg;
+            errCode = checkModuleVersionCompatibility(major, minor, patch, branch, sha, nullptr, &logMsg);
+            if (OPENDAQ_FAILED(errCode))
+            {
+                DAQ_EXTEND_ERROR_INFO(
+                    errCode,
+                    OPENDAQ_ERR_MODULE_INCOMPATIBLE_DEPENDENCIES,
+                    fmt::format(R"(Module "{}" failed dependencies check via version metadata: {})",
+                                path.string(),
+                                logMsg.assigned() ? logMsg : ""
+                    )
+                );
+                checkErrorInfo(OPENDAQ_ERR_MODULE_INCOMPATIBLE_DEPENDENCIES);
+            }
+            else if (errCode == OPENDAQ_PARTIAL_SUCCESS && logMsg.assigned())
+            {
+                LOG_W("Module \'{}\' SDK core version metadata checking result: {}", path.string(), logMsg);
+            }
+            LOG_I("Loaded module \'{}\' was built with SDK version: \"{}\"", path.string(), inModuleMetadataAsString);
+        }
+        else
+        {
+            LOG_W("Module \'{}\' failed to get SDK core version metadata: {}", path.string(), getErrorInfoMessage(errCode));
+            daqClearErrorInfo();
+        }
+    }
+    else
+    {
+        LOG_W("Module \"{}\" does not provide SDK core version metadata", path.string());
     }
 
     if (moduleLibrary.has(checkDependenciesFunc))
@@ -2029,57 +2123,50 @@ ModuleLibrary loadModuleInternal(const LoggerComponentPtr& loggerComponent, cons
         using CheckDependenciesFunc = ErrCode (*)(IString**);
         CheckDependenciesFunc checkDeps = moduleLibrary.get<ErrCode(IString**)>(checkDependenciesFunc);
 
-        LOG_T("Checking dependencies of \"{}\".", relativePath);
+        LOG_T("Checking dependencies of \"{}\" via \"{}\" ", path.string(), checkDependenciesFunc);
 
-        StringPtr errMsg;
-        const ErrCode errCode = checkDeps(&errMsg);
+        StringPtr logMsg;
+        const ErrCode errCode = checkDeps(&logMsg);
         if (OPENDAQ_FAILED(errCode))
         {
-            LOG_T("Failed to check dependencies for \"{}\"", relativePath);
-            DAQ_EXTEND_ERROR_INFO(errCode, OPENDAQ_ERR_MODULE_INCOMPATIBLE_DEPENDENCIES, fmt::format("Module \"{}\" failed dependencies check.", relativePath));
+            DAQ_EXTEND_ERROR_INFO(
+                errCode,
+                OPENDAQ_ERR_MODULE_INCOMPATIBLE_DEPENDENCIES,
+                fmt::format(R"(Module "{}" failed dependencies check via "{}": {})",
+                            path.string(),
+                            checkDependenciesFunc,
+                            logMsg.assigned() ? logMsg : ""
+                )
+            );
             checkErrorInfo(OPENDAQ_ERR_MODULE_INCOMPATIBLE_DEPENDENCIES);
+        }
+        else if (errCode == OPENDAQ_PARTIAL_SUCCESS && logMsg.assigned())
+        {
+            LOG_W("Module \"{}\" check dependencies warning: {}", path.string(), logMsg);
         }
     }
 
     if (!moduleLibrary.has(createModuleFactory))
     {
-        LOG_T("Module \"{}\" has no exported module factory.", relativePath);
-
-        DAQ_THROW_EXCEPTION(ModuleNoEntryPointException, "Module \"{}\" has no exported module factory.", relativePath);
+        LOG_T("Module \"{}\" has no exported module factory.", path.string());
+        DAQ_THROW_EXCEPTION(ModuleNoEntryPointException, fmt::format(R"(Module "{}" has no exported module factory.)", path.string()));
     }
 
     using ModuleFactory = ErrCode(IModule**, IContext*);
     ModuleFactory* factory = moduleLibrary.get<ModuleFactory>(createModuleFactory);
 
-    LOG_T("Creating module from \"{}\".", relativePath);
+    LOG_T("Creating module from \"{}\".", path.string());
 
     ModulePtr module;
     const ErrCode errCode = factory(&module, context);
     if (OPENDAQ_FAILED(errCode))
     {
-        LOG_T("Failed creating module from \"{}\"", relativePath);
-        DAQ_EXTEND_ERROR_INFO(errCode, OPENDAQ_ERR_MODULE_ENTRY_POINT_FAILED, fmt::format("Library \"{}\" failed to create a Module.", relativePath));
+        LOG_T("Failed creating module from \"{}\"", path.string());
+        DAQ_EXTEND_ERROR_INFO(errCode, OPENDAQ_ERR_MODULE_ENTRY_POINT_FAILED, fmt::format(R"(Library "{}" failed to create a Module.)", path.string()));
         checkErrorInfo(OPENDAQ_ERR_MODULE_ENTRY_POINT_FAILED);
     }
 
-    if (auto version = module.getModuleInfo().getVersionInfo(); version.assigned())
-    {
-        LOG_I("Loaded module [v{}.{}.{} {}] from \"{}\".",
-              version.getMajor(),
-              version.getMinor(),
-              version.getPatch(),
-              module.getModuleInfo().getName(),
-              relativePath);
-    }
-    else
-    {
-        LOG_I("Loaded module UNKNOWN VERSION of {} from \"{}\".", module.getModuleInfo().getName(), relativePath);
-    }
-
-
-    printAvailableTypes(module, loggerComponent);
-
-    return { std::move(moduleLibrary), module };
+    return { std::move(moduleLibrary), module, String(path.string()) };
 }
 
 OPENDAQ_DEFINE_CLASS_FACTORY(LIBRARY_FACTORY, ModuleManager,

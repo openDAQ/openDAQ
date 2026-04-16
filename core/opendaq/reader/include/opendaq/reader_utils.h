@@ -15,6 +15,7 @@
  */
 #pragma once
 #include <coretypes/formatter.h>
+#include <opendaq/data_descriptor_ptr.h>
 #include <opendaq/sample_type_traits.h>
 
 #include <date/date.h>
@@ -87,7 +88,7 @@ namespace reader
         std::chrono::system_clock::time_point epoch;
 
         std::istringstream epochString(fixupIso8601(origin));
-        epochString >> date::parse("%FT%T%z", epoch);
+        date::from_stream(epochString, "%FT%T%z", epoch);
 
         return epoch;
     }

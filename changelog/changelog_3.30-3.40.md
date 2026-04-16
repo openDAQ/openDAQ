@@ -2,14 +2,24 @@
 
 ## Features
 
-- [#1056](https://github.com/openDAQ/openDAQ/pull/1056) implement attempting to reconnect with all available addresses#1056
 - [#914](https://github.com/openDAQ/openDAQ/pull/914) Implementing time delay function block. Fix overflow while calculating timestamp in renderer
 - [#886](https://github.com/openDAQ/openDAQ/pull/886) Adds simulator device module.
 - [#975](https://github.com/openDAQ/openDAQ/pull/975) Add `DevelopmentVersionInfo` for more detailed version information (tweak, branch and hash).
+- [#981](https://github.com/openDAQ/openDAQ/pull/981) Component active state now considers parent's active state. `getActive()` returns `active && parentActive`. Add posibility to generate c and python bindings on MacOs
 - [#1000](https://github.com/openDAQ/openDAQ/pull/1000) Added a mode to the CSV recorder that allows data from multiple same-rate signals to be written to a single file.
 - [#1018](https://github.com/openDAQ/openDAQ/pull/1018) Optimized multireader synchronization for linear data rule domain signals by avoiding iteration through timestamps.
 - [#1034](https://github.com/openDAQ/openDAQ/pull/1034) Add string support for data packets and signals
+- [#1036](https://github.com/openDAQ/openDAQ/pull/1036) Allow creation of empty multi reader, add/remove inputs dyinamically. Mark inputs as invalid to ignore sync failures from specific ports.
 - [#1037](https://github.com/openDAQ/openDAQ/pull/1037) Function blocks and devices of which type is not in their parent's `getAvailableFunctionBlock/DeviceTypes` output can no longer be removed.
+- [#1074](https://github.com/openDAQ/openDAQ/pull/1074) Add public attribute to input port. Non-public input ports are not available one client side.
+- [#1079](https://github.com/openDAQ/openDAQ/pull/1079) Add support for parallel RPC calls in native configuration protocol server
+- [#1081](https://github.com/openDAQ/openDAQ/pull/1081) Pre-parsing of a JSON setup that allows users to select from a set of actions to be performed when loading devices (load, remove, remap...)
+- [#1088](https://github.com/openDAQ/openDAQ/pull/1088) Enable bundling of sent core events within the native configuration protocol
+- [#1097](https://github.com/openDAQ/openDAQ/pull/1097) Implement value based selection list
+- [#1124](https://github.com/openDAQ/openDAQ/pull/1124) Implement clearPropertyValues() for property objects
+- [#1137](https://github.com/openDAQ/openDAQ/pull/1137) Add `IInputPort::acceptsSignals` to check multiple signals at once, using a single RPC call via native protocol.
+- [#1056](https://github.com/openDAQ/openDAQ/pull/1056) implement attempting to reconnect with all available addresses#1056
+- [#1153](https://github.com/openDAQ/openDAQ/pull/1153) Enable and disable discovery for openDAQ Server via native.
 
 ## Python
 
@@ -19,14 +29,41 @@
 - [#991](https://github.com/openDAQ/openDAQ/pull/991) Add Function Block configuration to Python GUI demo app
 - [#1007](https://github.com/openDAQ/openDAQ/pull/1007) Add a missing error popup when adding a Function Block fails in Python GUI demo app.
 - [#1029](https://github.com/openDAQ/openDAQ/pull/1029) Fix python binding for iterators to enable list comprehensions.
+- [#1035](https://github.com/openDAQ/openDAQ/pull/1035) Fix showing description metadata of properties in Python GUI app
+- [#1081](https://github.com/openDAQ/openDAQ/pull/1081) Adds device load options to the Python GUI.
 
 ## Bug fixes
 
+- [#1158](https://github.com/openDAQ/openDAQ/pull/1158) Skip logging for identical component statuses.
+- [#1150](https://github.com/openDAQ/openDAQ/pull/1150) Serialize public flag for input ports
+- [#1149](https://github.com/openDAQ/openDAQ/pull/1149) Return error code instead of throwing exceptions from module info.
+- [#1146](https://github.com/openDAQ/openDAQ/pull/1146) Use sender addresses if device does not provide A or AAAA records
+- [#1143] (https://github.com/openDAQ/openDAQ/pull/1143) Fix uncaught exception when closing renderer window
+- [#1130](https://github.com/openDAQ/openDAQ/pull/1130) Fix active rework issue with older devices
+- [#1122](https://github.com/openDAQ/openDAQ/pull/1122) Revert endUpdate nested property application order back to bottom-up; Batch update values on target child object when using dot notation
+- [#1116](https://github.com/openDAQ/openDAQ/pull/1116) Fix set/get for dynamically added object properties via Native Client
+- [#1093](https://github.com/openDAQ/openDAQ/pull/1093) Device info - serialize only editable properties
+- [#1108](https://github.com/openDAQ/openDAQ/pull/1108) Add a patch for pybind11 to avoid leaking in python bindings.
+- [#1104](https://github.com/openDAQ/openDAQ/pull/1104) Fix path configuration option getting ignored by Parquet and CSV recorders in some cases.
+- [#1103](https://github.com/openDAQ/openDAQ/pull/1103) Reject loading of duplicating modules by Id and path
+- [#1098](https://github.com/openDAQ/openDAQ/pull/1098) Fix setting active streaming source for InputPort
+- [#1095](https://github.com/openDAQ/openDAQ/pull/1095) Update imported delegate.hpp and fix cpp 20 build incompatibilities
+- [#1086](https://github.com/openDAQ/openDAQ/pull/1086) Mirrored device type is not serialised for native usage
+- [#1062](https://github.com/openDAQ/openDAQ/pull/1062) Fix nested PropertyObject update order in beginUpdate/endUpdate
+- [#1054](https://github.com/openDAQ/openDAQ/pull/1054) Add validation default value items type for List And Dict Property
+- [#1077](https://github.com/openDAQ/openDAQ/pull/1077) Transfer default add-device config from server to client via Native protocol
 - [#1015](https://github.com/openDAQ/openDAQ/pull/1015) IPropertyObject::hasProperty returns false instead of throwing not found error if the parent property does not exists
 - [#1046](https://github.com/openDAQ/openDAQ/pull/1046) Prevent updating locked attributes during the update process
+- [#1052](https://github.com/openDAQ/openDAQ/pull/1052) Renderer FB labels take into account reference domain offset from ReferenceDomainInfo.
+- [#1054](https://github.com/openDAQ/openDAQ/pull/1054) Add validation default value items type for List And Dict Property
+- [#1059](https://github.com/openDAQ/openDAQ/pull/1059) Prevent post scaling in descriptors with vector/matrix dimensions.
 
 ## Misc
 
+- [#1125](https://github.com/openDAQ/openDAQ/pull/1125) Removing all function blocks before load 
+- [#1109](https://github.com/openDAQ/openDAQ/pull/1109) New check version dependencies mechanism for modules
+- [#1090](https://github.com/openDAQ/openDAQ/pull/1090) Reduce unnecessary RPC calls and signal updates
+- [#1049](https://github.com/openDAQ/openDAQ/pull/1049) Extract LT and OpcUa modules to remote repos
 - [#1051](https://github.com/openDAQ/openDAQ/pull/1051) Removes the FB wrapper implementation as it was never used.
 - [#979](https://github.com/openDAQ/openDAQ/pull/979) Relocate and install dependency management cmake helpers, install daq::test_utils and rename "bb" to "daq" in testultils/daq_memcheck_listener.h
 - [#974](https://github.com/openDAQ/openDAQ/pull/974) Reorganizes the audio device implementation for greater clarity. Adds automatic device/FB version info setting.
@@ -51,6 +88,10 @@
 ### [#1051](https://github.com/openDAQ/openDAQ/pull/1051) Removed function block wrapper
 
 The IFunctionBlockWrapper interface was removed as it was never used. Similarly, the base implementation headers were removed. The wrapper objects should no longer be used.
+
+### [#1125](https://github.com/openDAQ/openDAQ/pull/1125) Removing all function blocks before load
+
+On load configuration, all non-static function blocks will be removed and recreated if they are in the load config
 
 ## Required module changes
 

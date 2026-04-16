@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.7.0) on 03.06.2025 22:07:21.
+//     RTGen (CGenerator v0.7.0).
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -48,8 +48,10 @@ extern "C"
     typedef struct daqScheduler daqScheduler;
     typedef struct daqPropertyObject daqPropertyObject;
     typedef struct daqDeviceInfo daqDeviceInfo;
+    typedef struct daqModuleAuthenticator daqModuleAuthenticator;
 
     EXPORTED extern const daqIntfID DAQ_INSTANCE_BUILDER_INTF_ID;
+    void EXPORTED daqInstanceBuilder_getInterfaceId(daqIntfID* intfId);
 
     daqErrCode EXPORTED daqInstanceBuilder_build(daqInstanceBuilder* self, daqInstance** instance);
     daqErrCode EXPORTED daqInstanceBuilder_addConfigProvider(daqInstanceBuilder* self, daqConfigProvider* configProvider);
@@ -87,6 +89,12 @@ extern "C"
     daqErrCode EXPORTED daqInstanceBuilder_enableStandardProviders(daqInstanceBuilder* self, daqBool flag);
     daqErrCode EXPORTED daqInstanceBuilder_getDiscoveryServers(daqInstanceBuilder* self, daqList** serverNames);
     daqErrCode EXPORTED daqInstanceBuilder_addDiscoveryServer(daqInstanceBuilder* self, daqString* serverName);
+    daqErrCode EXPORTED daqInstanceBuilder_setUsingSchedulerMainLoop(daqInstanceBuilder* self, daqBool useMainLoop);
+    daqErrCode EXPORTED daqInstanceBuilder_getUsingSchedulerMainLoop(daqInstanceBuilder* self, daqBool* useMainLoop);
+    daqErrCode EXPORTED daqInstanceBuilder_setModuleAuthenticator(daqInstanceBuilder* self, daqModuleAuthenticator* authenticator);
+    daqErrCode EXPORTED daqInstanceBuilder_getModuleAuthenticator(daqInstanceBuilder* self, daqModuleAuthenticator** authenticator);
+    daqErrCode EXPORTED daqInstanceBuilder_setLoadAuthenticatedModulesOnly(daqInstanceBuilder* self, daqBool authOnly);
+    daqErrCode EXPORTED daqInstanceBuilder_getLoadAuthenticatedModulesOnly(daqInstanceBuilder* self, daqBool* authOnly);
     daqErrCode EXPORTED daqInstanceBuilder_createInstanceBuilder(daqInstanceBuilder** obj);
 
 #ifdef __cplusplus

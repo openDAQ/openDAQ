@@ -11,7 +11,7 @@ set(SRC_CPPS packet_streaming.cpp
              packet_streaming_client.cpp
 )
 
-prepend_include(packet_streaming SRC_HEADERS)
+opendaq_prepend_include(packet_streaming SRC_HEADERS)
 
 add_library(${MODULE_NAME} STATIC ${SRC_HEADERS} ${SRC_CPPS})
 add_library(${SDK_TARGET_NAMESPACE}::${BASE_NAME} ALIAS ${MODULE_NAME})

@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.7.0) on 03.06.2025 22:07:51.
+//     RTGen (CGenerator v0.7.0).
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -40,6 +40,7 @@ extern "C"
     typedef struct daqDataPacket daqDataPacket;
 
     EXPORTED extern const daqIntfID DAQ_REUSABLE_DATA_PACKET_INTF_ID;
+    void EXPORTED daqReusableDataPacket_getInterfaceId(daqIntfID* intfId);
 
     daqErrCode EXPORTED daqReusableDataPacket_reuse(daqReusableDataPacket* self, daqDataDescriptor* newDescriptor, daqSizeT newSampleCount, daqNumber* newOffset, daqDataPacket* newDomainPacket, daqBool canReallocMemory, daqBool* success);
 

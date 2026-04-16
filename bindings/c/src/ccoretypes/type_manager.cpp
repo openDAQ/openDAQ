@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.7.0) on 03.06.2025 17:18:04.
+//     RTGen (CGenerator v0.7.0).
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -16,6 +16,11 @@
 #include <copendaq_private.h>
 
 const daqIntfID DAQ_TYPE_MANAGER_INTF_ID = { daq::ITypeManager::Id.Data1, daq::ITypeManager::Id.Data2, daq::ITypeManager::Id.Data3, daq::ITypeManager::Id.Data4_UInt64 };
+
+void daqTypeManager_getInterfaceId(daqIntfID* intfId)
+{
+    *intfId = DAQ_TYPE_MANAGER_INTF_ID;
+}
 
 daqErrCode daqTypeManager_addType(daqTypeManager* self, daqType* type)
 {

@@ -169,11 +169,11 @@ TEST_F(COpendaqSignalTest, Allocator)
     void* address = nullptr;
     daqErrCode err = daqAllocator_allocate(allocator, valueDescriptor, 32, 4, &address);
 
-    ASSERT_EQ(err, 0);
+    ASSERT_EQ(err, 0u);
     ASSERT_NE(address, nullptr);
 
     err = daqAllocator_free(allocator, address);
-    ASSERT_EQ(err, 0);
+    ASSERT_EQ(err, 0u);
 
     daqBaseObject_releaseRef(allocator);
     daqBaseObject_releaseRef(valueDescriptor);
@@ -218,7 +218,7 @@ TEST_F(COpendaqSignalTest, DataPacket)
     daqBaseObject_queryInterface(offset, DAQ_NUMBER_INTF_ID, (void**) &offsetNum);
     daqBaseObject_releaseRef(offset);
 
-    daqSizeT sampleCount = 10;
+    daqSizeT sampleCount = 10u;
     daqDataPacket_createDataPacket(&packet, valueDescriptor, sampleCount, offsetNum);
     daqBaseObject_releaseRef(offsetNum);
 

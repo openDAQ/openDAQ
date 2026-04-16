@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.7.0) on 03.06.2025 22:05:12.
+//     RTGen (CGenerator v0.7.0).
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -38,6 +38,7 @@ extern "C"
     typedef struct daqPropertyObject daqPropertyObject;
 
     EXPORTED extern const daqIntfID DAQ_OWNABLE_INTF_ID;
+    void EXPORTED daqOwnable_getInterfaceId(daqIntfID* intfId);
 
     daqErrCode EXPORTED daqOwnable_setOwner(daqOwnable* self, daqPropertyObject* owner);
 

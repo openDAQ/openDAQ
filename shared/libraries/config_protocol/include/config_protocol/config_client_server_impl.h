@@ -35,6 +35,7 @@ public:
 
     // IServer
     ErrCode INTERFACE_FUNC enableDiscovery() override;
+    ErrCode INTERFACE_FUNC disableDiscovery() override;
     ErrCode INTERFACE_FUNC stop() override;
 
     static ErrCode Deserialize(ISerializedObject* serialized, IBaseObject* context, IFunction* factoryCallback, IBaseObject** obj);
@@ -56,12 +57,21 @@ inline ConfigClientServerImpl::ConfigClientServerImpl(
 
 inline ErrCode ConfigClientServerImpl::enableDiscovery()
 {
-    return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOTIMPLEMENTED);
+    const ErrCode errCode = daqTry([this] { this->clientComm->enableDiscovery(this->remoteGlobalId); });
+    OPENDAQ_RETURN_IF_FAILED(errCode);
+    return errCode;
+}
+
+inline ErrCode ConfigClientServerImpl::disableDiscovery()
+{
+    const ErrCode errCode = daqTry([this] { this->clientComm->disableDiscovery(this->remoteGlobalId); });
+    OPENDAQ_RETURN_IF_FAILED(errCode);
+    return errCode;
 }
 
 inline ErrCode ConfigClientServerImpl::stop()
 {
-    return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOTIMPLEMENTED);
+    return OPENDAQ_IGNORED;
 }
 
 inline ErrCode ConfigClientServerImpl::Deserialize(ISerializedObject* serialized,

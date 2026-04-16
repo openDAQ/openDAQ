@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.7.0) on 03.06.2025 22:05:11.
+//     RTGen (CGenerator v0.7.0).
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -16,6 +16,11 @@
 #include <copendaq_private.h>
 
 const daqIntfID DAQ_END_UPDATE_EVENT_ARGS_INTF_ID = { daq::IEndUpdateEventArgs::Id.Data1, daq::IEndUpdateEventArgs::Id.Data2, daq::IEndUpdateEventArgs::Id.Data3, daq::IEndUpdateEventArgs::Id.Data4_UInt64 };
+
+void daqEndUpdateEventArgs_getInterfaceId(daqIntfID* intfId)
+{
+    *intfId = DAQ_END_UPDATE_EVENT_ARGS_INTF_ID;
+}
 
 daqErrCode daqEndUpdateEventArgs_getProperties(daqEndUpdateEventArgs* self, daqList** properties)
 {

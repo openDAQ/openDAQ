@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.7.0) on 03.06.2025 22:07:14.
+//     RTGen (CGenerator v0.7.0).
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -40,6 +40,7 @@ extern "C"
     typedef struct daqList daqList;
 
     EXPORTED extern const daqIntfID DAQ_LOGGER_INTF_ID;
+    void EXPORTED daqLogger_getInterfaceId(daqIntfID* intfId);
 
     daqErrCode EXPORTED daqLogger_setLevel(daqLogger* self, daqLogLevel level);
     daqErrCode EXPORTED daqLogger_getLevel(daqLogger* self, daqLogLevel* level);

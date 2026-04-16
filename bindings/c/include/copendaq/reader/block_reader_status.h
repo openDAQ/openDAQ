@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.7.0) on 03.06.2025 22:07:23.
+//     RTGen (CGenerator v0.7.0).
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -39,6 +39,7 @@ extern "C"
     typedef struct daqNumber daqNumber;
 
     EXPORTED extern const daqIntfID DAQ_BLOCK_READER_STATUS_INTF_ID;
+    void EXPORTED daqBlockReaderStatus_getInterfaceId(daqIntfID* intfId);
 
     daqErrCode EXPORTED daqBlockReaderStatus_getReadSamples(daqBlockReaderStatus* self, daqSizeT* readSamples);
     daqErrCode EXPORTED daqBlockReaderStatus_createBlockReaderStatus(daqBlockReaderStatus** obj, daqEventPacket* eventPacket, daqBool valid, daqNumber* offset, daqSizeT readSamples);

@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.7.0) on 03.06.2025 22:07:23.
+//     RTGen (CGenerator v0.7.0).
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -16,6 +16,11 @@
 #include <copendaq_private.h>
 
 const daqIntfID DAQ_BLOCK_READER_BUILDER_INTF_ID = { daq::IBlockReaderBuilder::Id.Data1, daq::IBlockReaderBuilder::Id.Data2, daq::IBlockReaderBuilder::Id.Data3, daq::IBlockReaderBuilder::Id.Data4_UInt64 };
+
+void daqBlockReaderBuilder_getInterfaceId(daqIntfID* intfId)
+{
+    *intfId = DAQ_BLOCK_READER_BUILDER_INTF_ID;
+}
 
 daqErrCode daqBlockReaderBuilder_build(daqBlockReaderBuilder* self, daqBlockReader** blockReader)
 {

@@ -1,0 +1,273 @@
+ include/SFML/Graphics/Color.inl     | 18 +++++++--------
+ include/SFML/Graphics/Transform.inl |  2 +-
+ include/SFML/System/Angle.inl       |  2 +-
+ include/SFML/System/Time.hpp        |  2 ++
+ include/SFML/System/Time.inl        |  2 +-
+ src/SFML/Graphics/CMakeLists.txt    |  1 +
+ src/SFML/Graphics/Color.cpp         | 46 +++++++++++++++++++++++++++++++++++++
+ src/SFML/Graphics/Transform.cpp     |  2 ++
+ src/SFML/System/Angle.cpp           | 38 ++++++++++++++++++++++++++++++
+ src/SFML/System/CMakeLists.txt      |  2 ++
+ src/SFML/System/Time.cpp            | 38 ++++++++++++++++++++++++++++++
+ 11 files changed, 141 insertions(+), 12 deletions(-)
+
+diff --git a/include/SFML/Graphics/Color.inl b/include/SFML/Graphics/Color.inl
+index 1b5f3a1..dea2cea 100644
+--- a/include/SFML/Graphics/Color.inl
++++ b/include/SFML/Graphics/Color.inl
+@@ -143,14 +143,14 @@ constexpr Color& operator*=(Color& left, Color right)
+ 
+ // Note: the 'inline' keyword here is technically not required, but VS2019 fails
+ // to compile with a bogus "multiple definition" error if not explicitly used.
+-inline constexpr Color Color::Black(0, 0, 0);
+-inline constexpr Color Color::White(255, 255, 255);
+-inline constexpr Color Color::Red(255, 0, 0);
+-inline constexpr Color Color::Green(0, 255, 0);
+-inline constexpr Color Color::Blue(0, 0, 255);
+-inline constexpr Color Color::Yellow(255, 255, 0);
+-inline constexpr Color Color::Magenta(255, 0, 255);
+-inline constexpr Color Color::Cyan(0, 255, 255);
+-inline constexpr Color Color::Transparent(0, 0, 0, 0);
++// constexpr Color Color::Black(0, 0, 0);
++// constexpr Color Color::White(255, 255, 255);
++// constexpr Color Color::Red(255, 0, 0);
++// constexpr Color Color::Green(0, 255, 0);
++// constexpr Color Color::Blue(0, 0, 255);
++// constexpr Color Color::Yellow(255, 255, 0);
++// constexpr Color Color::Magenta(255, 0, 255);
++// constexpr Color Color::Cyan(0, 255, 255);
++// constexpr Color Color::Transparent(0, 0, 0, 0);
+ 
+ } // namespace sf
+diff --git a/include/SFML/Graphics/Transform.inl b/include/SFML/Graphics/Transform.inl
+index 6d05aac..1c29088 100644
+--- a/include/SFML/Graphics/Transform.inl
++++ b/include/SFML/Graphics/Transform.inl
+@@ -231,6 +231,6 @@ constexpr bool operator!=(const Transform& left, const Transform& right)
+ 
+ // Note: the 'inline' keyword here is technically not required, but VS2019 fails
+ // to compile with a bogus "multiple definition" error if not explicitly used.
+-inline constexpr Transform Transform::Identity;
++// constexpr Transform Transform::Identity;
+ 
+ } // namespace sf
+diff --git a/include/SFML/System/Angle.inl b/include/SFML/System/Angle.inl
+index a894c8e..b8b7af3 100644
+--- a/include/SFML/System/Angle.inl
++++ b/include/SFML/System/Angle.inl
+@@ -269,6 +269,6 @@ constexpr Angle operator""_rad(unsigned long long angle)
+ 
+ // Note: the 'inline' keyword here is technically not required, but VS2019 fails
+ // to compile with a bogus "multiple definition" error if not explicitly used.
+-inline constexpr Angle Angle::Zero;
++// constexpr Angle Angle::Zero;
+ 
+ } // namespace sf
+diff --git a/include/SFML/System/Time.hpp b/include/SFML/System/Time.hpp
+index ce1df1f..4caef50 100644
+--- a/include/SFML/System/Time.hpp
++++ b/include/SFML/System/Time.hpp
+@@ -116,6 +116,8 @@ private:
+     std::chrono::microseconds m_microseconds{}; //!< Time value stored as microseconds
+ };
+ 
++// constexpr Time Time::Zero{};
++
+ ////////////////////////////////////////////////////////////
+ /// \relates Time
+ /// \brief Construct a time value from a number of seconds
+diff --git a/include/SFML/System/Time.inl b/include/SFML/System/Time.inl
+index ffdaff1..9c67f8a 100644
+--- a/include/SFML/System/Time.inl
++++ b/include/SFML/System/Time.inl
+@@ -279,6 +279,6 @@ constexpr Time& operator%=(Time& left, Time right)
+ 
+ // Note: the 'inline' keyword here is technically not required, but VS2019 fails
+ // to compile with a bogus "multiple definition" error if not explicitly used.
+-inline constexpr Time Time::Zero;
++//constexpr Time Time::Zero;
+ 
+ } // namespace sf
+diff --git a/src/SFML/Graphics/CMakeLists.txt b/src/SFML/Graphics/CMakeLists.txt
+index 4886ac7..a97251c 100644
+--- a/src/SFML/Graphics/CMakeLists.txt
++++ b/src/SFML/Graphics/CMakeLists.txt
+@@ -5,6 +5,7 @@ set(SRCROOT ${PROJECT_SOURCE_DIR}/src/SFML/Graphics)
+ set(SRC
+     ${SRCROOT}/BlendMode.cpp
+     ${INCROOT}/BlendMode.hpp
++    ${SRCROOT}/Color.cpp
+     ${INCROOT}/Color.hpp
+     ${INCROOT}/Color.inl
+     ${INCROOT}/CoordinateType.hpp
+diff --git a/src/SFML/Graphics/Color.cpp b/src/SFML/Graphics/Color.cpp
+new file mode 100644
+index 0000000..09970eb
+--- /dev/null
++++ b/src/SFML/Graphics/Color.cpp
+@@ -0,0 +1,46 @@
++////////////////////////////////////////////////////////////
++//
++// SFML - Simple and Fast Multimedia Library
++// Copyright (C) 2007-2022 Laurent Gomila (laurent@sfml-dev.org)
++//
++// This software is provided 'as-is', without any express or implied warranty.
++// In no event will the authors be held liable for any damages arising from the use of this software.
++//
++// Permission is granted to anyone to use this software for any purpose,
++// including commercial applications, and to alter it and redistribute it freely,
++// subject to the following restrictions:
++//
++// 1. The origin of this software must not be misrepresented;
++//    you must not claim that you wrote the original software.
++//    If you use this software in a product, an acknowledgment
++//    in the product documentation would be appreciated but is not required.
++//
++// 2. Altered source versions must be plainly marked as such,
++//    and must not be misrepresented as being the original software.
++//
++// 3. This notice may not be removed or altered from any source distribution.
++//
++////////////////////////////////////////////////////////////
++
++////////////////////////////////////////////////////////////
++// Headers
++////////////////////////////////////////////////////////////
++#include <SFML/Graphics/Color.hpp>
++
++
++namespace sf
++{
++////////////////////////////////////////////////////////////
++// Static member data
++////////////////////////////////////////////////////////////
++const Color Color::Black(0, 0, 0);
++const Color Color::White(255, 255, 255);
++const Color Color::Red(255, 0, 0);
++const Color Color::Green(0, 255, 0);
++const Color Color::Blue(0, 0, 255);
++const Color Color::Yellow(255, 255, 0);
++const Color Color::Magenta(255, 0, 255);
++const Color Color::Cyan(0, 255, 255);
++const Color Color::Transparent(0, 0, 0, 0);
++
++} // namespace sf
+diff --git a/src/SFML/Graphics/Transform.cpp b/src/SFML/Graphics/Transform.cpp
+index 4328798..bd4afe4 100644
+--- a/src/SFML/Graphics/Transform.cpp
++++ b/src/SFML/Graphics/Transform.cpp
+@@ -67,4 +67,6 @@ Transform& Transform::rotate(Angle angle, Vector2f center)
+     return combine(rotation);
+ }
+ 
++const Transform Transform::Identity{};
++
+ } // namespace sf
+diff --git a/src/SFML/System/Angle.cpp b/src/SFML/System/Angle.cpp
+new file mode 100644
+index 0000000..d2cab9a
+--- /dev/null
++++ b/src/SFML/System/Angle.cpp
+@@ -0,0 +1,38 @@
++////////////////////////////////////////////////////////////
++//
++// SFML - Simple and Fast Multimedia Library
++// Copyright (C) 2007-2022 Laurent Gomila (laurent@sfml-dev.org)
++//
++// This software is provided 'as-is', without any express or implied warranty.
++// In no event will the authors be held liable for any damages arising from the use of this software.
++//
++// Permission is granted to anyone to use this software for any purpose,
++// including commercial applications, and to alter it and redistribute it freely,
++// subject to the following restrictions:
++//
++// 1. The origin of this software must not be misrepresented;
++//    you must not claim that you wrote the original software.
++//    If you use this software in a product, an acknowledgment
++//    in the product documentation would be appreciated but is not required.
++//
++// 2. Altered source versions must be plainly marked as such,
++//    and must not be misrepresented as being the original software.
++//
++// 3. This notice may not be removed or altered from any source distribution.
++//
++////////////////////////////////////////////////////////////
++
++////////////////////////////////////////////////////////////
++// Headers
++////////////////////////////////////////////////////////////
++#include <SFML/System/Angle.hpp>
++
++
++namespace sf
++{
++////////////////////////////////////////////////////////////
++// Static member data
++////////////////////////////////////////////////////////////
++const Angle Angle::Zero{};
++
++} // namespace sf
+diff --git a/src/SFML/System/CMakeLists.txt b/src/SFML/System/CMakeLists.txt
+index 3b7543a..ae292a4 100644
+--- a/src/SFML/System/CMakeLists.txt
++++ b/src/SFML/System/CMakeLists.txt
+@@ -3,6 +3,7 @@ set(SRCROOT ${PROJECT_SOURCE_DIR}/src/SFML/System)
+ 
+ # all source files
+ set(SRC
++    ${SRCROOT}/Angle.cpp
+     ${INCROOT}/Angle.hpp
+     ${INCROOT}/Angle.inl
+     ${SRCROOT}/Clock.cpp
+@@ -19,6 +20,7 @@ set(SRC
+     ${SRCROOT}/String.cpp
+     ${INCROOT}/String.hpp
+     ${INCROOT}/String.inl
++    ${SRCROOT}/Time.cpp
+     ${INCROOT}/Time.hpp
+     ${INCROOT}/Time.inl
+     ${INCROOT}/Utf.hpp
+diff --git a/src/SFML/System/Time.cpp b/src/SFML/System/Time.cpp
+new file mode 100644
+index 0000000..75221c2
+--- /dev/null
++++ b/src/SFML/System/Time.cpp
+@@ -0,0 +1,38 @@
++////////////////////////////////////////////////////////////
++//
++// SFML - Simple and Fast Multimedia Library
++// Copyright (C) 2007-2022 Laurent Gomila (laurent@sfml-dev.org)
++//
++// This software is provided 'as-is', without any express or implied warranty.
++// In no event will the authors be held liable for any damages arising from the use of this software.
++//
++// Permission is granted to anyone to use this software for any purpose,
++// including commercial applications, and to alter it and redistribute it freely,
++// subject to the following restrictions:
++//
++// 1. The origin of this software must not be misrepresented;
++//    you must not claim that you wrote the original software.
++//    If you use this software in a product, an acknowledgment
++//    in the product documentation would be appreciated but is not required.
++//
++// 2. Altered source versions must be plainly marked as such,
++//    and must not be misrepresented as being the original software.
++//
++// 3. This notice may not be removed or altered from any source distribution.
++//
++////////////////////////////////////////////////////////////
++
++////////////////////////////////////////////////////////////
++// Headers
++////////////////////////////////////////////////////////////
++#include <SFML/System/Time.hpp>
++
++
++namespace sf
++{
++////////////////////////////////////////////////////////////
++// Static member data
++////////////////////////////////////////////////////////////
++const Time Time::Zero{};
++
++} // namespace sf

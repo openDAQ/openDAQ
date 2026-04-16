@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.7.0) on 03.06.2025 22:07:58.
+//     RTGen (CGenerator v0.7.0).
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -16,6 +16,11 @@
 #include <copendaq_private.h>
 
 const daqIntfID DAQ_MIRRORED_SIGNAL_CONFIG_INTF_ID = { daq::IMirroredSignalConfig::Id.Data1, daq::IMirroredSignalConfig::Id.Data2, daq::IMirroredSignalConfig::Id.Data3, daq::IMirroredSignalConfig::Id.Data4_UInt64 };
+
+void daqMirroredSignalConfig_getInterfaceId(daqIntfID* intfId)
+{
+    *intfId = DAQ_MIRRORED_SIGNAL_CONFIG_INTF_ID;
+}
 
 daqErrCode daqMirroredSignalConfig_getRemoteId(daqMirroredSignalConfig* self, daqString** id)
 {

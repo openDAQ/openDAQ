@@ -11,6 +11,7 @@
 #include <opendaq/custom_log.h>
 #include <config_protocol/config_server_recorder.h>
 #include <config_protocol/config_mirrored_ext_sig_impl.h>
+#include <config_protocol/config_server_server.h>
 
 namespace daq::config_protocol
 {
@@ -81,17 +82,16 @@ ConfigProtocolServer::ConfigProtocolServer(DevicePtr rootDevice,
     , daqContext(this->rootDevice.getContext())
     , notificationReadyCallback(std::move(notificationReadyCallback))
     , deserializer(JsonDeserializer())
-    , serializer(JsonSerializer())
     , notificationSerializer(JsonSerializer())
     , componentFinder(std::make_unique<ComponentFinderRootDevice>(this->rootDevice))
     , user(user)
     , connectionType(connectionType)
     , protocolVersion(0)
-    , supportedServerVersions(std::set<uint16_t>({17, 18}))
+    , supportedServerVersions(std::set<uint16_t>({17, 18, 19, 20, 21, 22, 23, 24}))
     , streamingConsumer(this->daqContext, externalSignalsFolder)
+    , packedCoreEvents(List<IBaseObject>())
 {
     assert(user.assigned());
-    serializer.setUser(user);
     notificationSerializer.setUser(user);
 
     buildRpcDispatchStructure();
@@ -141,6 +141,7 @@ void ConfigProtocolServer::buildRpcDispatchStructure()
     addHandler<ComponentPtr>("SetPropertyValue", &ConfigServerComponent::setPropertyValue);
     addHandler<ComponentPtr>("GetPropertyValue", &ConfigServerComponent::getPropertyValue);
     addHandler<ComponentPtr>("SetProtectedPropertyValue", &ConfigServerComponent::setProtectedPropertyValue);
+    addHandler<ComponentPtr>("SetPropertySelectionValue", &ConfigServerComponent::setPropertySelectionValue);
     addHandler<ComponentPtr>("ClearPropertyValue", &ConfigServerComponent::clearPropertyValue);
     addHandler<ComponentPtr>("ClearProtectedPropertyValue", &ConfigServerComponent::clearProtectedPropertyValue);
     addHandler<ComponentPtr>("GetSuggestedValues", &ConfigServerComponent::getSuggestedValues);
@@ -150,6 +151,7 @@ void ConfigProtocolServer::buildRpcDispatchStructure()
     addHandler<ComponentPtr>("EndUpdate", &ConfigServerComponent::endUpdate);
     addHandler<ComponentPtr>("SetAttributeValue", &ConfigServerComponent::setAttributeValue);
     addHandler<ComponentPtr>("Update", &ConfigServerComponent::update);
+    addHandler<ComponentPtr>("ClearPropertyValues", &ConfigServerComponent::clearPropertyValues);
     
     addHandler<ComponentPtr>("GetAvailableFunctionBlockTypes", &ConfigServerComponent::getAvailableFunctionBlockTypes);
     addHandler<ComponentPtr>("AddFunctionBlock", &ConfigServerComponent::addFunctionBlock);
@@ -174,6 +176,7 @@ void ConfigProtocolServer::buildRpcDispatchStructure()
     addHandler<DevicePtr>("SetOperationMode", &ConfigServerDevice::setOperationMode);
     addHandler<DevicePtr>("SetOperationModeRecursive", &ConfigServerDevice::setOperationModeRecursive);
     addHandler<DevicePtr>("GetOperationMode", &ConfigServerDevice::getOperationMode);
+    addHandler<DevicePtr>("GetDefaultAddDeviceConfig", &ConfigServerDevice::getDefaultAddDeviceConfig);
 
     addHandler<SignalPtr>("GetLastValue", &ConfigServerSignal::getLastValue);
 
@@ -182,11 +185,14 @@ void ConfigProtocolServer::buildRpcDispatchStructure()
     addHandler<InputPortPtr>("ChangeInputPortStreamingSource", std::bind(&ConfigProtocolServer::changeInputPortStreamingSource, this, _1, _2, _3));
     addHandler<InputPortPtr>("DisconnectSignal", &ConfigServerInputPort::disconnect);
     addHandler<InputPortPtr>("AcceptsSignal", std::bind(&ConfigProtocolServer::acceptsSignal, this, _1, _2, _3));
+    addHandler<InputPortPtr>("AcceptsSignals", std::bind(&ConfigProtocolServer::acceptsSignals, this, _1, _2, _3));
 
     addHandler<RecorderPtr>("StartRecording", &ConfigServerRecorder::startRecording);
     addHandler<RecorderPtr>("StopRecording", &ConfigServerRecorder::stopRecording);
     addHandler<RecorderPtr>("GetIsRecording", &ConfigServerRecorder::getIsRecording);
 
+    addHandler<ServerPtr>("EnableDiscovery", &ConfigServerServer::enableDiscovery);
+    addHandler<ServerPtr>("DisableDiscovery", &ConfigServerServer::disableDiscovery);
 }
 
 PacketBuffer ConfigProtocolServer::processRequestAndGetReply(const PacketBuffer& packetBuffer)
@@ -236,6 +242,7 @@ void ConfigProtocolServer::sendNotification(const char* json, const size_t jsonS
 void ConfigProtocolServer::sendNotification(const BaseObjectPtr& obj)
 {
     StringPtr jsonStr;
+    try
     {
         std::scoped_lock lock(notificationSerializerLock);
         notificationSerializer.reset();
@@ -243,8 +250,14 @@ void ConfigProtocolServer::sendNotification(const BaseObjectPtr& obj)
 
         jsonStr = notificationSerializer.getOutput();
     }
+    catch (const std::exception& e)
+    {
+        auto loggerComponent = daqContext.getLogger().getOrAddComponent("ConfigProtocolServer");
+        LOG_W("Notification object serialization failed: {}", e.what());
+    }
 
-    sendNotification(jsonStr.getCharPtr(), jsonStr.getLength());
+    if (jsonStr.assigned())
+        sendNotification(jsonStr.getCharPtr(), jsonStr.getLength());
 }
 
 void ConfigProtocolServer::setComponentFinder(std::unique_ptr<IComponentFinder>& componentFinder)
@@ -293,7 +306,8 @@ PacketBuffer ConfigProtocolServer::processPacketAndGetReply(const PacketBuffer& 
                 }
                 catch (const std::exception& e)
                 {
-                    const auto errorReply = prepareErrorResponse(OPENDAQ_ERR_GENERALERROR, e.what(), this->serializer);
+                    auto serializer = createSerializer();
+                    const auto errorReply = prepareErrorResponse(OPENDAQ_ERR_GENERALERROR, e.what(), serializer);
                     return PacketBuffer::createRpcRequestOrReply(requestId, errorReply.getCharPtr(), errorReply.getLength());
                 }
             }
@@ -311,6 +325,8 @@ void ConfigProtocolServer::processNoReplyPacket(const PacketBuffer& packetBuffer
 
 StringPtr ConfigProtocolServer::processRpcAndGetReply(const StringPtr& jsonStr)
 {
+    auto serializer = createSerializer();
+
     try
     {
         auto retObj = Dict<IString, IBaseObject>();
@@ -327,20 +343,19 @@ StringPtr ConfigProtocolServer::processRpcAndGetReply(const StringPtr& jsonStr)
         if (retValue.assigned())
             retObj.set("ReturnValue", retValue);
 
-        serializer.reset();
         retObj.serialize(serializer);
         return serializer.getOutput();
     }
     catch (const daq::DaqException& e)
     {
-        return prepareErrorResponse(e.getErrCode(), e.what(), this->serializer);
+        return prepareErrorResponse(e.getErrCode(), e.what(), serializer);
     }
     catch (const std::exception& e)
     {
-        return prepareErrorResponse(OPENDAQ_ERR_GENERALERROR, e.what(), this->serializer);
+        return prepareErrorResponse(OPENDAQ_ERR_GENERALERROR, e.what(), serializer);
     }
 
-    return prepareErrorResponse(OPENDAQ_ERR_GENERALERROR, "General error during serialization", this->serializer);
+    return prepareErrorResponse(OPENDAQ_ERR_GENERALERROR, "General error during serialization", serializer);
 }
 
 StringPtr ConfigProtocolServer::prepareErrorResponse(Int errorCode, const StringPtr& message, const SerializerPtr& serializer)
@@ -380,6 +395,10 @@ BaseObjectPtr ConfigProtocolServer::callRpc(const StringPtr& name, const ParamsD
     if (it == rpcDispatch.end())
         throw ConfigProtocolException(fmt::format("Invalid function call: {}", name));
 
+    if (protocolVersion < 20)
+        return it->second(params);
+
+    RpcScopeTracker rpcScopeTracker(*this);
     return it->second(params);
 }
 
@@ -409,7 +428,7 @@ BaseObjectPtr ConfigProtocolServer::getSerializedRootDevice(const ParamsDictPtr&
 {
     ConfigServerAccessControl::protectObject(rootDevice, user, Permission::Read);
 
-    serializer.reset();
+    auto serializer = createSerializer();
     rootDevice.serialize(serializer);
 
     return serializer.getOutput();
@@ -485,7 +504,8 @@ BaseObjectPtr ConfigProtocolServer::changeInputPortStreamingSource(const RpcCont
                                                                    const ParamsDictPtr& params)
 {
     auto externalSignal = inputPort.getSignal();
-    if (externalSignal.assigned() && externalSignal.supportsInterface<IMirroredExternalSignalPrivate>())
+
+    if (!externalSignal.assigned() || !externalSignal.supportsInterface<IMirroredExternalSignalPrivate>())
         return nullptr;
 
     const StringPtr activeStreamingProtocolId = params.get("ActiveStreamingProtocolId");
@@ -522,12 +542,25 @@ BaseObjectPtr ConfigProtocolServer::acceptsSignal(const RpcContext& context, con
     return ConfigServerInputPort::accepts(context, inputPort, signal, user);
 }
 
+BaseObjectPtr ConfigProtocolServer::acceptsSignals(const RpcContext& context, const InputPortPtr& inputPort, const ParamsDictPtr& params)
+{
+    const ListPtr<IString> signalIdList = params.get("SignalIdList");
+    auto acceptanceList = List<IBoolean>();
+    for (const StringPtr& id : signalIdList)
+    {
+        const SignalPtr signal = findComponent(id);
+        acceptanceList.pushBack(ConfigServerInputPort::accepts(context, inputPort, signal, user));
+    }
+    return acceptanceList;
+}
+
 void ConfigProtocolServer::coreEventCallback(ComponentPtr& component, CoreEventArgsPtr& eventArgs)
 {
     if (isForwardedCoreEvent(component, eventArgs))
     {
-        const auto packed = packCoreEvent(component, eventArgs);
-        sendNotification(packed);
+        packCoreEvent(component, eventArgs);
+        if (protocolVersion < 20 || activeRpcCounter.load(std::memory_order_acquire) == 0)
+            SendOutCoreEvents();
     }
 }
 
@@ -551,10 +584,10 @@ bool ConfigProtocolServer::isForwardedCoreEvent(ComponentPtr& component, CoreEve
     return streamingConsumer.isForwardedCoreEvent(component, eventArgs);
 }
 
-ListPtr<IBaseObject> ConfigProtocolServer::packCoreEvent(const ComponentPtr& component, const CoreEventArgsPtr& args)
+void ConfigProtocolServer::packCoreEvent(const ComponentPtr& component, const CoreEventArgsPtr& args)
 {
     const auto globalId = component.assigned() ? component.getGlobalId() : "";
-    auto packedEvent = List<IBaseObject>(globalId);
+    CoreEventArgsPtr packedArgs;
 
     switch (static_cast<CoreEventId>(args.getEventId()))
     {
@@ -565,12 +598,16 @@ ListPtr<IBaseObject> ConfigProtocolServer::packCoreEvent(const ComponentPtr& com
         case CoreEventId::PropertyRemoved:
         case CoreEventId::SignalConnected:
         case CoreEventId::ComponentAdded:
-        case CoreEventId::AttributeChanged:
         case CoreEventId::PropertyOrderChanged:
-            packedEvent.pushBack(processCoreEventArgs(args));
+            packedArgs = processCoreEventArgs(args);
             break;
         case CoreEventId::ComponentUpdateEnd:
-            packedEvent.pushBack(processUpdateEndCoreEvent(component, args));
+            packedArgs = processUpdateEndCoreEvent(component, args);
+            break;
+        case CoreEventId::AttributeChanged:
+            packedArgs = processAttributeChangedCoreEvent(args);
+            if (!packedArgs.assigned())
+                return;
             break;
         case CoreEventId::ComponentRemoved:
         case CoreEventId::SignalDisconnected:
@@ -582,10 +619,23 @@ ListPtr<IBaseObject> ConfigProtocolServer::packCoreEvent(const ComponentPtr& com
         case CoreEventId::DeviceLockStateChanged:
         case CoreEventId::ConnectionStatusChanged:
         default:
-            packedEvent.pushBack(args);
+            packedArgs = args;
+    }
+
+    for (const auto& [parameterKey, parameterValue] : packedArgs.getParameters())
+    {
+        if (parameterValue.assigned() && !parameterValue.supportsInterface<ISerializable>())
+        {
+            // Some core events are not serializable e.g. one containing function/procedure property as argument payload, exclude them now so they will not affect other - serializable ones - later
+            auto loggerComponent = daqContext.getLogger().getOrAddComponent("ConfigProtocolServer");
+            LOG_W("Component \"{}\" core event \"{}\" was excluded because parameter \"{}\" cannot be serialized", globalId, packedArgs.getEventName(), parameterKey);
+            return;
+        }
     }
     
-    return packedEvent;
+    std::scoped_lock lock(coreEventsLock);
+    packedCoreEvents.pushBack(globalId);
+    packedCoreEvents.pushBack(packedArgs);
 }
 
 CoreEventArgsPtr ConfigProtocolServer::processCoreEventArgs(const CoreEventArgsPtr& args)
@@ -639,6 +689,21 @@ CoreEventArgsPtr ConfigProtocolServer::processUpdateEndCoreEvent(const Component
     return CoreEventArgs(static_cast<CoreEventId>(args.getEventId()), args.getEventName(), dict);
 }
 
+CoreEventArgsPtr ConfigProtocolServer::processAttributeChangedCoreEvent(const CoreEventArgsPtr& args)
+{
+    auto processedArgs = processCoreEventArgs(args);
+    auto params = processedArgs.getParameters();
+    assert(params.hasKey("AttributeName"));
+    if (params.get("AttributeName") == "Active")
+    {
+        assert(params.hasKey("Active"));
+        if (protocolVersion > 21 && !params.hasKey("LocalActive"))
+            return nullptr;
+    }
+
+    return processedArgs;
+}
+
 BaseObjectPtr ConfigProtocolServer::getTypeManager(const ParamsDictPtr& params) const
 {
     ConfigServerAccessControl::protectObject(rootDevice, user, Permission::Read);
@@ -664,11 +729,40 @@ void ConfigProtocolServer::setProtocolVersion(uint16_t protocolVersion)
     // downgrade serializers
     if (protocolVersion < 11)
     {
-        serializer = JsonSerializerWithVersion(2);
-        notificationSerializer = JsonSerializerWithVersion(2);
-        serializer.setUser(user);
-        notificationSerializer.setUser(user);
+        notificationSerializer = createSerializer();
     }
+}
+
+void ConfigProtocolServer::SendOutCoreEvents()
+{
+    std::scoped_lock lock(coreEventsLock);
+    if (packedCoreEvents.getCount() > 0)
+    {
+        // sendNotification may throw an exception within the tests bcs client code called directly there, so first reset list of accumulated events before sending
+        ListPtr<IBaseObject> packedCoreEventsTmp = packedCoreEvents;
+        packedCoreEvents = List<IBaseObject>();
+        sendNotification(packedCoreEventsTmp);
+    }
+}
+
+ConfigProtocolServer::RpcScopeTracker::RpcScopeTracker(ConfigProtocolServer& configServerRef)
+    : configServerRef(configServerRef)
+{
+    this->configServerRef.activeRpcCounter.fetch_add(1, std::memory_order_acq_rel);
+}
+
+ConfigProtocolServer::RpcScopeTracker::~RpcScopeTracker()
+{
+    this->configServerRef.activeRpcCounter.fetch_sub(1, std::memory_order_acq_rel);
+    this->configServerRef.SendOutCoreEvents();
+}
+
+SerializerPtr ConfigProtocolServer::createSerializer()
+{
+    // if version is not yet known i.e. protocolVersion == 0 just create a default serilizer - needed for tests
+    SerializerPtr serializer = (0 < protocolVersion && protocolVersion < 11) ? JsonSerializerWithVersion(2) : JsonSerializer();
+    serializer.setUser(user);
+    return serializer;
 }
 
 }

@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.7.0) on 03.06.2025 22:07:35.
+//     RTGen (CGenerator v0.7.0).
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -16,6 +16,11 @@
 #include <copendaq_private.h>
 
 const daqIntfID DAQ_WORK_INTF_ID = { daq::IWork::Id.Data1, daq::IWork::Id.Data2, daq::IWork::Id.Data3, daq::IWork::Id.Data4_UInt64 };
+
+void daqWork_getInterfaceId(daqIntfID* intfId)
+{
+    *intfId = DAQ_WORK_INTF_ID;
+}
 
 daqErrCode daqWork_execute(daqWork* self)
 {

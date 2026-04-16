@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.7.0) on 03.06.2025 22:07:55.
+//     RTGen (CGenerator v0.7.0).
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -36,13 +36,16 @@ extern "C"
 
     typedef struct daqSignalPrivate daqSignalPrivate;
     typedef struct daqString daqString;
+    typedef struct daqPacket daqPacket;
 
     EXPORTED extern const daqIntfID DAQ_SIGNAL_PRIVATE_INTF_ID;
+    void EXPORTED daqSignalPrivate_getInterfaceId(daqIntfID* intfId);
 
     daqErrCode EXPORTED daqSignalPrivate_clearDomainSignalWithoutNotification(daqSignalPrivate* self);
     daqErrCode EXPORTED daqSignalPrivate_enableKeepLastValue(daqSignalPrivate* self, daqBool enabled);
     daqErrCode EXPORTED daqSignalPrivate_getSignalSerializeId(daqSignalPrivate* self, daqString** serializeId);
     daqErrCode EXPORTED daqSignalPrivate_getKeepLastValue(daqSignalPrivate* self, daqBool* keepLastValue);
+    daqErrCode EXPORTED daqSignalPrivate_sendPacketRecursiveLock(daqSignalPrivate* self, daqPacket* packet);
 
 #ifdef __cplusplus
 }

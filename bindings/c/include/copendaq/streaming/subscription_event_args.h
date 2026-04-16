@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.7.0) on 03.06.2025 22:08:00.
+//     RTGen (CGenerator v0.7.0).
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -38,6 +38,7 @@ extern "C"
     typedef struct daqString daqString;
 
     EXPORTED extern const daqIntfID DAQ_SUBSCRIPTION_EVENT_ARGS_INTF_ID;
+    void EXPORTED daqSubscriptionEventArgs_getInterfaceId(daqIntfID* intfId);
 
     daqErrCode EXPORTED daqSubscriptionEventArgs_getStreamingConnectionString(daqSubscriptionEventArgs* self, daqString** streamingConnectionString);
     daqErrCode EXPORTED daqSubscriptionEventArgs_getSubscriptionEventType(daqSubscriptionEventArgs* self, daqSubscriptionEventType* type);

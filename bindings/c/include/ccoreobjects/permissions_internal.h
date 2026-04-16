@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.7.0) on 06.06.2025 19:05:53.
+//     RTGen (CGenerator v0.7.0).
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -38,6 +38,7 @@ extern "C"
     typedef struct daqDict daqDict;
 
     EXPORTED extern const daqIntfID DAQ_PERMISSIONS_INTERNAL_INTF_ID;
+    void EXPORTED daqPermissionsInternal_getInterfaceId(daqIntfID* intfId);
 
     daqErrCode EXPORTED daqPermissionsInternal_getAssigned(daqPermissionsInternal* self, daqDict** permissions);
 

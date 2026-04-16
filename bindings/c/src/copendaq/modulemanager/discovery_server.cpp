@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.7.0) on 03.06.2025 22:07:17.
+//     RTGen (CGenerator v0.7.0).
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -16,6 +16,11 @@
 #include <copendaq_private.h>
 
 const daqIntfID DAQ_DISCOVERY_SERVER_INTF_ID = { daq::IDiscoveryServer::Id.Data1, daq::IDiscoveryServer::Id.Data2, daq::IDiscoveryServer::Id.Data3, daq::IDiscoveryServer::Id.Data4_UInt64 };
+
+void daqDiscoveryServer_getInterfaceId(daqIntfID* intfId)
+{
+    *intfId = DAQ_DISCOVERY_SERVER_INTF_ID;
+}
 
 daqErrCode daqDiscoveryServer_registerService(daqDiscoveryServer* self, daqString* id, daqPropertyObject* config, daqDeviceInfo* deviceInfo)
 {

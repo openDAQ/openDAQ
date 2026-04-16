@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.7.0) on 03.06.2025 22:07:03.
+//     RTGen (CGenerator v0.7.0).
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -40,6 +40,7 @@ extern "C"
     typedef struct daqStreaming daqStreaming;
 
     EXPORTED extern const daqIntfID DAQ_CONNECTION_STATUS_CONTAINER_PRIVATE_INTF_ID;
+    void EXPORTED daqConnectionStatusContainerPrivate_getInterfaceId(daqIntfID* intfId);
 
     daqErrCode EXPORTED daqConnectionStatusContainerPrivate_addConfigurationConnectionStatus(daqConnectionStatusContainerPrivate* self, daqString* connectionString, daqEnumeration* initialValue);
     daqErrCode EXPORTED daqConnectionStatusContainerPrivate_addStreamingConnectionStatus(daqConnectionStatusContainerPrivate* self, daqString* connectionString, daqEnumeration* initialValue, daqStreaming* streamingObject);

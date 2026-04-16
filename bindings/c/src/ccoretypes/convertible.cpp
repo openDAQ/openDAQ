@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.7.0) on 03.06.2025 17:17:46.
+//     RTGen (CGenerator v0.7.0).
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -16,6 +16,11 @@
 #include <copendaq_private.h>
 
 const daqIntfID DAQ_CONVERTIBLE_INTF_ID = { daq::IConvertible::Id.Data1, daq::IConvertible::Id.Data2, daq::IConvertible::Id.Data3, daq::IConvertible::Id.Data4_UInt64 };
+
+void daqConvertible_getInterfaceId(daqIntfID* intfId)
+{
+    *intfId = DAQ_CONVERTIBLE_INTF_ID;
+}
 
 daqErrCode daqConvertible_toFloat(daqConvertible* self, daqFloat* val)
 {

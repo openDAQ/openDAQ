@@ -83,17 +83,30 @@ public:
 
     uint16_t getProtocolVersion() const;
     void setProtocolVersion(uint16_t protocolVersion);
+    SerializerPtr createSerializer();
 
 private:
     using DispatchFunction = std::function<BaseObjectPtr(const ParamsDictPtr&)>;
     template <typename T>
     using RpcHandlerFunction = std::function<BaseObjectPtr(const RpcContext& context, const T& component, const ParamsDictPtr& params)>;
 
+    class RpcScopeTracker
+    {
+    public:
+        explicit RpcScopeTracker(ConfigProtocolServer& configServerRef);
+        ~RpcScopeTracker();
+
+        RpcScopeTracker(const RpcScopeTracker&) = delete;
+        RpcScopeTracker& operator=(const RpcScopeTracker&) = delete;
+
+    private:
+        ConfigProtocolServer& configServerRef;
+    };
+
     DevicePtr rootDevice;
     ContextPtr daqContext;
     NotificationReadyCallback notificationReadyCallback;
     DeserializerPtr deserializer;
-    SerializerPtr serializer;
     SerializerPtr notificationSerializer;
     std::unordered_map<std::string, DispatchFunction> rpcDispatch;
     std::mutex notificationSerializerLock;
@@ -103,6 +116,9 @@ private:
     uint16_t protocolVersion;
     const std::set<uint16_t> supportedServerVersions;
     ConfigProtocolStreamingConsumer streamingConsumer;
+    std::atomic<uint64_t> activeRpcCounter{0};
+    ListPtr<IBaseObject> packedCoreEvents;
+    std::mutex coreEventsLock;
 
     PacketBuffer processPacketAndGetReply(const PacketBuffer& packetBuffer);
     void processNoReplyPacket(const PacketBuffer& packetBuffer);
@@ -121,6 +137,7 @@ private:
     BaseObjectPtr changeInputPortStreamingSource(const RpcContext& context, const InputPortPtr& inputPort, const ParamsDictPtr& params);
     BaseObjectPtr removeExternalSignals(const ParamsDictPtr& params);
     BaseObjectPtr acceptsSignal(const RpcContext& context, const InputPortPtr& inputPort, const ParamsDictPtr& params);
+    BaseObjectPtr acceptsSignals(const RpcContext& context, const InputPortPtr& inputPort, const ParamsDictPtr& params);
 
     template <class SmartPtr>
     void addHandler(const std::string& name, const RpcHandlerFunction<SmartPtr>& handler);
@@ -128,9 +145,11 @@ private:
     void coreEventCallback(ComponentPtr& component, CoreEventArgsPtr& eventArgs);
     bool isForwardedCoreEvent(ComponentPtr& component, CoreEventArgsPtr& eventArgs);
     
-    ListPtr<IBaseObject> packCoreEvent(const ComponentPtr& component, const CoreEventArgsPtr& args);
+    void packCoreEvent(const ComponentPtr& component, const CoreEventArgsPtr& args);
     CoreEventArgsPtr processCoreEventArgs(const CoreEventArgsPtr& args);
     CoreEventArgsPtr processUpdateEndCoreEvent(const ComponentPtr& component, const CoreEventArgsPtr& args);
+    CoreEventArgsPtr processAttributeChangedCoreEvent(const CoreEventArgsPtr& args);
+    void SendOutCoreEvents();
 };
 
 }

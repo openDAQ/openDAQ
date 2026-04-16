@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.7.0) on 03.06.2025 22:07:43.
+//     RTGen (CGenerator v0.7.0).
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -16,6 +16,11 @@
 #include <copendaq_private.h>
 
 const daqIntfID DAQ_DIMENSION_INTF_ID = { daq::IDimension::Id.Data1, daq::IDimension::Id.Data2, daq::IDimension::Id.Data3, daq::IDimension::Id.Data4_UInt64 };
+
+void daqDimension_getInterfaceId(daqIntfID* intfId)
+{
+    *intfId = DAQ_DIMENSION_INTF_ID;
+}
 
 daqErrCode daqDimension_getName(daqDimension* self, daqString** name)
 {

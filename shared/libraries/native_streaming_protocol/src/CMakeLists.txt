@@ -21,7 +21,7 @@ set(SRC_PublicHeaders native_streaming_protocol.h
 )
 
 set(INCLUDE_DIR ../include/native_streaming_protocol)
-prepend_include(${INCLUDE_DIR} SRC_PublicHeaders)
+opendaq_prepend_include(${INCLUDE_DIR} SRC_PublicHeaders)
 
 
 set(SRC_PrivateHeaders )

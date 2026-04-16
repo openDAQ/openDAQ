@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.7.0) on 03.06.2025 17:17:59.
+//     RTGen (CGenerator v0.7.0).
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -16,6 +16,11 @@
 #include <copendaq_private.h>
 
 const daqIntfID DAQ_SERIALIZED_OBJECT_INTF_ID = { daq::ISerializedObject::Id.Data1, daq::ISerializedObject::Id.Data2, daq::ISerializedObject::Id.Data3, daq::ISerializedObject::Id.Data4_UInt64 };
+
+void daqSerializedObject_getInterfaceId(daqIntfID* intfId)
+{
+    *intfId = DAQ_SERIALIZED_OBJECT_INTF_ID;
+}
 
 daqErrCode daqSerializedObject_readSerializedObject(daqSerializedObject* self, daqString* key, daqSerializedObject** plainObj)
 {

@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.7.0) on 03.06.2025 22:07:16.
+//     RTGen (CGenerator v0.7.0).
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -38,6 +38,7 @@ extern "C"
     typedef struct daqString daqString;
 
     EXPORTED extern const daqIntfID DAQ_LAST_MESSAGE_LOGGER_SINK_PRIVATE_INTF_ID;
+    void EXPORTED daqLastMessageLoggerSinkPrivate_getInterfaceId(daqIntfID* intfId);
 
     daqErrCode EXPORTED daqLastMessageLoggerSinkPrivate_getLastMessage(daqLastMessageLoggerSinkPrivate* self, daqString** lastMessage);
     daqErrCode EXPORTED daqLastMessageLoggerSinkPrivate_waitForMessage(daqLastMessageLoggerSinkPrivate* self, daqSizeT timeoutMs, daqBool* success);

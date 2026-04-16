@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.7.0) on 03.06.2025 22:05:08.
+//     RTGen (CGenerator v0.7.0).
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -17,6 +17,11 @@
 
 const daqIntfID DAQ_ARGUMENT_INFO_INTF_ID = { daq::IArgumentInfo::Id.Data1, daq::IArgumentInfo::Id.Data2, daq::IArgumentInfo::Id.Data3, daq::IArgumentInfo::Id.Data4_UInt64 };
 
+void daqArgumentInfo_getInterfaceId(daqIntfID* intfId)
+{
+    *intfId = DAQ_ARGUMENT_INFO_INTF_ID;
+}
+
 daqErrCode daqArgumentInfo_getName(daqArgumentInfo* self, daqString** name)
 {
     return reinterpret_cast<daq::IArgumentInfo*>(self)->getName(reinterpret_cast<daq::IString**>(name));
@@ -27,10 +32,36 @@ daqErrCode daqArgumentInfo_getType(daqArgumentInfo* self, daqCoreType* type)
     return reinterpret_cast<daq::IArgumentInfo*>(self)->getType(reinterpret_cast<daq::CoreType*>(type));
 }
 
+daqErrCode daqArgumentInfo_getItemType(daqArgumentInfo* self, daqCoreType* itemType)
+{
+    return reinterpret_cast<daq::IArgumentInfo*>(self)->getItemType(reinterpret_cast<daq::CoreType*>(itemType));
+}
+
+daqErrCode daqArgumentInfo_getKeyType(daqArgumentInfo* self, daqCoreType* keyType)
+{
+    return reinterpret_cast<daq::IArgumentInfo*>(self)->getKeyType(reinterpret_cast<daq::CoreType*>(keyType));
+}
+
 daqErrCode daqArgumentInfo_createArgumentInfo(daqArgumentInfo** obj, daqString* name, daqCoreType type)
 {
     daq::IArgumentInfo* ptr = nullptr;
     daqErrCode err = daq::createArgumentInfo(&ptr, reinterpret_cast<daq::IString*>(name), static_cast<daq::CoreType>(type));
+    *obj = reinterpret_cast<daqArgumentInfo*>(ptr);
+    return err;
+}
+
+daqErrCode daqArgumentInfo_createListArgumentInfo(daqArgumentInfo** obj, daqString* name, daqCoreType itemType)
+{
+    daq::IArgumentInfo* ptr = nullptr;
+    daqErrCode err = daq::createListArgumentInfo(&ptr, reinterpret_cast<daq::IString*>(name), static_cast<daq::CoreType>(itemType));
+    *obj = reinterpret_cast<daqArgumentInfo*>(ptr);
+    return err;
+}
+
+daqErrCode daqArgumentInfo_createDictArgumentInfo(daqArgumentInfo** obj, daqString* name, daqCoreType keyType, daqCoreType itemType)
+{
+    daq::IArgumentInfo* ptr = nullptr;
+    daqErrCode err = daq::createDictArgumentInfo(&ptr, reinterpret_cast<daq::IString*>(name), static_cast<daq::CoreType>(keyType), static_cast<daq::CoreType>(itemType));
     *obj = reinterpret_cast<daqArgumentInfo*>(ptr);
     return err;
 }

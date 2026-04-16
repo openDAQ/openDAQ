@@ -44,6 +44,7 @@ set(SRC_PublicHeaders config_protocol.h
                       errors.h
                       config_server_recorder.h
                       config_client_property.h
+                      config_server_server.h
 )
 
 set(SRC_PrivateHeaders config_protocol_deserialize_context_impl.h
@@ -64,8 +65,8 @@ set(SRC_Cpp config_protocol.cpp
             config_protocol_streaming_consumer.cpp
 )
 
-prepend_include(${BASE_NAME} SRC_PublicHeaders)
-prepend_include(${BASE_NAME} SRC_PrivateHeaders)
+opendaq_prepend_include(${BASE_NAME} SRC_PublicHeaders)
+opendaq_prepend_include(${BASE_NAME} SRC_PrivateHeaders)
 
 list(APPEND SRC_PublicHeaders ${SRC_ConfigClientObject_PublicHeaders}
 )

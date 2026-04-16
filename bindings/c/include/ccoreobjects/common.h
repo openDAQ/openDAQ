@@ -42,6 +42,7 @@ extern "C"
         daqCoreEventIdDeviceLockStateChanged = 160,
         daqCoreEventIdConnectionStatusChanged = 170,
         daqCoreEventIdDeviceOperationModeChanged = 180,
+        daqCoreEventIdPropertyOrderChanged = 190,
     } daqCoreEventId;
 
     typedef enum daqPermission
@@ -58,6 +59,29 @@ extern "C"
         daqPropertyEventTypeEventTypeClear,
         daqPropertyEventTypeEventTypeRead
     } daqPropertyEventType;
+
+    typedef enum daqPropertyType
+    {
+        daqPropertyTypeBool = 0,
+        daqPropertyTypeInt = 1,
+        daqPropertyTypeFloat = 2,
+        daqPropertyTypeString = 3,
+        daqPropertyTypeList = 4,
+        daqPropertyTypeDict = 5,
+        daqPropertyTypeRatio = 6,
+        daqPropertyTypeProcedure = 7,
+        daqPropertyTypeObject = 8,
+        daqPropertyTypeFunction = 10,
+        daqPropertyTypeStruct = 12,
+        daqPropertyTypeEnumeration = 13,
+
+        daqPropertyTypeReference = 0x1000,
+        daqPropertyTypeIndexSelection = 0x1001,
+        daqPropertyTypeSelection = 0x1002,
+        daqPropertyTypeSparseSelection = 0x1003,
+
+        daqPropertyTypeUndefined = 0xFFFF, 
+    } daqPropertyType;
 
 #ifdef __cplusplus
 }

@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.7.0) on 03.06.2025 22:06:53.
+//     RTGen (CGenerator v0.7.0).
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -16,6 +16,11 @@
 #include <copendaq_private.h>
 
 const daqIntfID DAQ_COMPONENT_STATUS_CONTAINER_PRIVATE_INTF_ID = { daq::IComponentStatusContainerPrivate::Id.Data1, daq::IComponentStatusContainerPrivate::Id.Data2, daq::IComponentStatusContainerPrivate::Id.Data3, daq::IComponentStatusContainerPrivate::Id.Data4_UInt64 };
+
+void daqComponentStatusContainerPrivate_getInterfaceId(daqIntfID* intfId)
+{
+    *intfId = DAQ_COMPONENT_STATUS_CONTAINER_PRIVATE_INTF_ID;
+}
 
 daqErrCode daqComponentStatusContainerPrivate_addStatus(daqComponentStatusContainerPrivate* self, daqString* name, daqEnumeration* initialValue)
 {

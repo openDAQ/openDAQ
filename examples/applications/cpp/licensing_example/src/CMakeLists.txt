@@ -16,7 +16,7 @@ set(SRC_Cpp main.cpp
             ${MODULE_AUTHENTICATOR_SOURCE}
 )
 
-prepend_include(${TARGET_FOLDER_NAME} SRC_Headers)
+opendaq_prepend_include(${TARGET_FOLDER_NAME} SRC_Headers)
 add_executable(${LIC_EXAMPLE} ${SRC_Headers}
                               ${SRC_Cpp}
 )
@@ -51,6 +51,7 @@ target_include_directories(${LIC_EXAMPLE} PUBLIC $<BUILD_INTERFACE:${PROJECT_SOU
 )
 
 target_link_libraries(${LIC_EXAMPLE} PRIVATE daq::opendaq
+                                             $<BUILD_INTERFACE:std::filesystem>
 )
 
 add_dependencies(${LIC_EXAMPLE} daq::licensing_module

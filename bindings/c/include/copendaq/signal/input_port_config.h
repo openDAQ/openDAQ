@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.7.0) on 03.06.2025 22:07:46.
+//     RTGen (CGenerator v0.7.0).
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -41,8 +41,10 @@ extern "C"
     typedef struct daqString daqString;
 
     EXPORTED extern const daqIntfID DAQ_INPUT_PORT_CONFIG_INTF_ID;
+    void EXPORTED daqInputPortConfig_getInterfaceId(daqIntfID* intfId);
 
     daqErrCode EXPORTED daqInputPortConfig_setNotificationMethod(daqInputPortConfig* self, daqPacketReadyNotification method);
+    daqErrCode EXPORTED daqInputPortConfig_getNotificationMethod(daqInputPortConfig* self, daqPacketReadyNotification* method);
     daqErrCode EXPORTED daqInputPortConfig_notifyPacketEnqueued(daqInputPortConfig* self, daqBool queueWasEmpty);
     daqErrCode EXPORTED daqInputPortConfig_notifyPacketEnqueuedOnThisThread(daqInputPortConfig* self);
     daqErrCode EXPORTED daqInputPortConfig_setListener(daqInputPortConfig* self, daqInputPortNotifications* port);
@@ -50,6 +52,8 @@ extern "C"
     daqErrCode EXPORTED daqInputPortConfig_setCustomData(daqInputPortConfig* self, daqBaseObject* customData);
     daqErrCode EXPORTED daqInputPortConfig_setRequiresSignal(daqInputPortConfig* self, daqBool requiresSignal);
     daqErrCode EXPORTED daqInputPortConfig_getGapCheckingEnabled(daqInputPortConfig* self, daqBool* gapCheckingEnabled);
+    daqErrCode EXPORTED daqInputPortConfig_notifyPacketEnqueuedWithScheduler(daqInputPortConfig* self);
+    daqErrCode EXPORTED daqInputPortConfig_getListener(daqInputPortConfig* self, daqInputPortNotifications** port);
     daqErrCode EXPORTED daqInputPortConfig_createInputPort(daqInputPortConfig** obj, daqContext* context, daqComponent* parent, daqString* localId, daqBool gapChecking);
 
 #ifdef __cplusplus

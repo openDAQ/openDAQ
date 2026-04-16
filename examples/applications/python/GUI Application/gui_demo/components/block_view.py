@@ -11,7 +11,6 @@ from .output_signals_view import OutputSignalsView
 from .properties_view import PropertiesView
 from .recorder_view import RecorderView
 from .attributes_dialog import AttributesDialog
-from .output_signal_row import OutputSignalRow
 
 class BlockView(ttk.Frame):
 
@@ -149,7 +148,6 @@ class BlockView(ttk.Frame):
 
                 for mode in available_op_modes:
                     op_mode_menu.add_command(label=mode, command=make_select(mode))
-
 
                 self._bind_mousewheel_recursive(self.right_stack)
             

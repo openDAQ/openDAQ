@@ -178,9 +178,12 @@ class PropertiesTreeview(ttk.Treeview):
             else:
                 property_value = printed_value(
                     property_info.value_type, node.get_property_value(property_info.name))
+            
+            unit_symbol = utils.prettify_unit(property_info.unit)
+            if unit_symbol and property_value != '':
+                property_value = f'{property_value} {unit_symbol}'
 
             meta_fields = [None] * len(self._metadata_fields)
-
             try:
                 for i, field in enumerate(self._metadata_fields):
                     metadata_value = getattr(property_info, field)
@@ -199,9 +202,14 @@ class PropertiesTreeview(ttk.Treeview):
                 values=(property_value, *meta_fields))
 
             container_types = (daq.CoreType.ctObject, daq.CoreType.ctStruct, daq.CoreType.ctList, daq.CoreType.ctDict)
-            if (property_info.read_only or self.read_only) and property_info.value_type not in (daq.CoreType.ctFunc, daq.CoreType.ctProc):
+            is_single_value_selection = (
+                property_info.selection_values is not None
+                and len(property_info.selection_values) == 1
+            )
+            if property_info.value_type not in (daq.CoreType.ctFunc, daq.CoreType.ctProc):
                 if property_info.value_type not in container_types:
-                    self.item(iid, tags=('readonly',))
+                    if property_info.read_only or self.read_only or is_single_value_selection:
+                        self.item(iid, tags=('readonly',))
 
             if property_info.value_type == daq.CoreType.ctObject:
                 hidden_children = [s.removeprefix(f"{property_info.name}.") for s in hidden if s.startswith(f"{property_info.name}.")]
@@ -501,7 +509,7 @@ class PropertiesTreeview(ttk.Treeview):
                     self._overlay_items[iid] = prop
                 elif not prop.read_only:
                     if (prop.value_type == daq.CoreType.ctBool
-                            or (prop.selection_values is not None and len(prop.selection_values) > 0)
+                            or (prop.selection_values is not None and len(prop.selection_values) > 1)
                             or prop.value_type == daq.CoreType.ctEnumeration
                             or (prop.value_type in (daq.CoreType.ctString, daq.CoreType.ctFloat, daq.CoreType.ctInt)
                                 and prop.suggested_values is not None and len(prop.suggested_values) > 0)):
@@ -698,8 +706,6 @@ class PropertiesTreeview(ttk.Treeview):
     def _place_selection_combobox(self, iid, prop):
         labels, indices = self._get_selection_options(prop.selection_values)
         if not labels:
-            return
-        if len(labels) == 1:
             return
         if prop.item_type != daq.CoreType.ctUndefined:
             current_idx = prop.value

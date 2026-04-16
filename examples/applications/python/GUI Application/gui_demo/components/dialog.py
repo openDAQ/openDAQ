@@ -13,7 +13,7 @@ class Dialog(tk.Toplevel):
         self.context = context
 
         self.configure(padx=10, pady=5)
-        self.attributes('-topmost', True)
+        self.attributes('-topmost', False)
         self.transient(parent)
         
         # Bind Escape key to close the dialog

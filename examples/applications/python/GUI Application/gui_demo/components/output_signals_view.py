@@ -3,6 +3,7 @@ from tkinter import ttk
 
 import opendaq as daq
 from .. import utils
+from datetime import timedelta
 
 from .output_signal_row import OutputSignalRow
 
@@ -35,6 +36,7 @@ class OutputSignalsView(ttk.Frame):
             node = daq.IDevice.cast_from(self.node)
             signals = node.get_signals(daq.AnySearchFilter() if self.context.view_hidden_components else None)
             self.make_output_signal_section(signals, 'Output signals')
+            self.make_device_domain_section(node)
         elif daq.IFunctionBlock.can_cast_from(self.node):
             node = daq.IFunctionBlock.cast_from(self.node)
             signals = node.get_signals(daq.AnySearchFilter() if self.context.view_hidden_components else None)
@@ -67,3 +69,54 @@ class OutputSignalsView(ttk.Frame):
             except Exception:
                 pass
             self._refresh_job = None
+
+
+    def make_device_domain_section(self, device_node):
+        if not hasattr(device_node, 'domain') or device_node.domain is None:
+            return
+
+        device_domain = device_node.domain
+        utils.make_banner(self, 'Device domain')
+
+        row = ttk.Frame(self, padding=(10, 5))
+        row.pack(fill=tk.X)
+        
+        unit = device_domain.unit
+        if unit and unit.quantity:
+            label_text = unit.quantity.capitalize()
+        else:
+            label_text = f"{device_node.name} Domain"
+            
+        ttk.Label(row, text=label_text).pack(side=tk.LEFT)
+        
+        value_label = ttk.Label(row, text='N/A')
+        value_label.pack(side=tk.RIGHT, padx=(4, 0))
+
+        res = device_domain.tick_resolution
+        origin = device_domain.origin
+        origin_dt = None
+
+        if res is not None and origin is not None and str(origin) != '':
+            origin_str = str(origin)
+            origin_dt = utils.parse_origin(origin_str)
+
+        res_num = res.numerator if res is not None else None
+        res_den = res.denominator if res is not None else None
+
+        def _refresh():
+            if not hasattr(device_node, 'ticks_since_origin'):
+                return
+            ticks = device_node.ticks_since_origin
+            if ticks is None:
+                return
+            if origin_dt is not None and res_num is not None and res_den is not None:
+                seconds = ticks * res_num / res_den
+                ts = origin_dt + timedelta(seconds=seconds)
+                value_label.config(
+                    text=ts.strftime('%Y-%m-%d %H:%M:%S.%f')
+                    .rstrip('0').rstrip('.'))
+            else:
+                value_label.config(text=f'Ticks: {ticks}')
+
+        row.refresh = _refresh
+        self._rows.append(row)

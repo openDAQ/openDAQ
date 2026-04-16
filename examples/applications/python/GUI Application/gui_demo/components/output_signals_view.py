@@ -80,11 +80,18 @@ class OutputSignalsView(ttk.Frame):
 
         row = ttk.Frame(self, padding=(10, 5))
         row.pack(fill=tk.X)
-        ttk.Label(row, text='Last value:').pack(side=tk.LEFT)
+        
+        unit = device_domain.unit
+        if unit and unit.quantity:
+            label_text = unit.quantity.capitalize()
+        else:
+            label_text = f"{device_node.name} Domain"
+            
+        ttk.Label(row, text=label_text).pack(side=tk.LEFT)
+        
         value_label = ttk.Label(row, text='N/A')
         value_label.pack(side=tk.RIGHT, padx=(4, 0))
 
-        # Resolve static domain metadata once; _refresh only reads the tick count.
         res = device_domain.tick_resolution
         origin = device_domain.origin
         origin_dt = None

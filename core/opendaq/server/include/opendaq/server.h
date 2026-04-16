@@ -83,6 +83,11 @@ DECLARE_OPENDAQ_INTERFACE(IServer, IFolder)
      * their data sent from the client to the device.
      */
     virtual ErrCode INTERFACE_FUNC getStreaming(IStreaming** streaming) = 0;
+
+    /*!
+     * @brief Disables the server to be discovered by the clients.
+     */
+    virtual ErrCode INTERFACE_FUNC disableDiscovery() = 0;
 };
 /*!@}*/
 

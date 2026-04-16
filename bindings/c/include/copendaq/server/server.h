@@ -48,6 +48,7 @@ extern "C"
     daqErrCode EXPORTED daqServer_enableDiscovery(daqServer* self);
     daqErrCode EXPORTED daqServer_getSignals(daqServer* self, daqList** signals, daqSearchFilter* searchFilter);
     daqErrCode EXPORTED daqServer_getStreaming(daqServer* self, daqStreaming** streaming);
+    daqErrCode EXPORTED daqServer_disableDiscovery(daqServer* self);
 
 #ifdef __cplusplus
 }

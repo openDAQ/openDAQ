@@ -11,6 +11,7 @@
 #include <opendaq/custom_log.h>
 #include <config_protocol/config_server_recorder.h>
 #include <config_protocol/config_mirrored_ext_sig_impl.h>
+#include <config_protocol/config_server_server.h>
 
 namespace daq::config_protocol
 {
@@ -86,7 +87,7 @@ ConfigProtocolServer::ConfigProtocolServer(DevicePtr rootDevice,
     , user(user)
     , connectionType(connectionType)
     , protocolVersion(0)
-    , supportedServerVersions(std::set<uint16_t>({17, 18, 19, 20, 21, 22, 23}))
+    , supportedServerVersions(std::set<uint16_t>({17, 18, 19, 20, 21, 22, 23, 24}))
     , streamingConsumer(this->daqContext, externalSignalsFolder)
     , packedCoreEvents(List<IBaseObject>())
 {
@@ -189,6 +190,9 @@ void ConfigProtocolServer::buildRpcDispatchStructure()
     addHandler<RecorderPtr>("StartRecording", &ConfigServerRecorder::startRecording);
     addHandler<RecorderPtr>("StopRecording", &ConfigServerRecorder::stopRecording);
     addHandler<RecorderPtr>("GetIsRecording", &ConfigServerRecorder::getIsRecording);
+
+    addHandler<ServerPtr>("EnableDiscovery", &ConfigServerServer::enableDiscovery);
+    addHandler<ServerPtr>("DisableDiscovery", &ConfigServerServer::disableDiscovery);
 }
 
 PacketBuffer ConfigProtocolServer::processRequestAndGetReply(const PacketBuffer& packetBuffer)

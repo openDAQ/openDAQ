@@ -584,3 +584,28 @@ TEST_F(ConfigProtocolAccessControlTest, AddDevices)
         ASSERT_THROW(clientSubDevice.addDevice("unknown://unknown"), AccessDeniedException);
     }
 }
+
+TEST_F(ConfigProtocolAccessControlTest, Server)
+{
+    auto device = createDevice();
+
+    setupServerAndClient(device, UserRegular);
+
+    {
+        const ServerPtr serverPtr = clientDevice.getServers()[0];
+        ASSERT_TRUE(serverPtr.assigned());
+
+        ASSERT_THROW(serverPtr.enableDiscovery(), AccessDeniedException);
+        ASSERT_THROW(serverPtr.disableDiscovery(), AccessDeniedException);
+    }
+
+    setupServerAndClient(device, UserAdmin);
+
+    {
+        const ServerPtr serverPtr = clientDevice.getServers()[0];
+        ASSERT_TRUE(serverPtr.assigned());
+
+        ASSERT_NO_THROW(serverPtr.enableDiscovery());
+        ASSERT_NO_THROW(serverPtr.disableDiscovery());
+    }
+}

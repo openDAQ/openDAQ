@@ -410,6 +410,16 @@ BooleanPtr ConfigProtocolClientComm::getIsRecording(const std::string& globalId)
     return sendComponentCommand(globalId, ClientCommand("GetIsRecording", 14));
 }
 
+void ConfigProtocolClientComm::enableDiscovery(const std::string& globalId)
+{
+    sendComponentCommand(globalId, ClientCommand("EnableDiscovery", 24));
+}
+
+void ConfigProtocolClientComm::disableDiscovery(const std::string& globalId)
+{
+    sendComponentCommand(globalId, ClientCommand("DisableDiscovery", 24));
+}
+
 BaseObjectPtr ConfigProtocolClientComm::getLastValue(const std::string& globalId)
 {
     auto dict = Dict<IString, IBaseObject>();

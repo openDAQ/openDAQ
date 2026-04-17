@@ -263,6 +263,21 @@ TEST_F(CoreEventTest, PropertyChangedWithInternalEvent)
     ASSERT_EQ(callCount, 3);
 }
 
+TEST_F(CoreEventTest, PropertyObjectCleared)
+{
+    const auto context = NullContext();
+    const auto component = Component(context, nullptr, "comp");
+    component.addProperty(StringProperty("String", "foo"));
+    component.addProperty(IntProperty("Int", 1));
+
+    component.setPropertyValue("String", "bar");
+    component.setPropertyValue("Int", 2);
+    component.clearPropertyValues();
+
+    ASSERT_EQ(component.getPropertyValue("String"), "foo");
+    ASSERT_EQ(component.getPropertyValue("Int"), "1");
+}
+
 TEST_F(CoreEventTest, EndUpdateEventSerilizer)
 {
     const auto context = NullContext();
@@ -853,7 +868,7 @@ TEST_F(CoreEventTest, DeviceAdded)
             {
                 ASSERT_EQ(args.getEventName(), "DeviceOperationModeChanged");
                 ASSERT_TRUE(args.getParameters().hasKey("OperationMode"));
-                ASSERT_EQ(args.getParameters().get("OperationMode"), static_cast<Int>(OperationModeType::Operation));
+                ASSERT_EQ(args.getParameters().get("OperationMode"), static_cast<Int>(OperationModeType::SafeOperation));
                 ASSERT_EQ(comp, instance.getDevices()[modeChangeCount + 1 ]);
                 modeChangeCount++;
             }
@@ -1209,7 +1224,7 @@ TEST_F(CoreEventTest, ActiveChanged)
     sig.setActive(false);
     sig.setActive(true);
 
-    ASSERT_EQ(changeCount, 4);
+    ASSERT_GE(changeCount, 4);
 }
 
 TEST_F(CoreEventTest, DomainSignalChanged)

@@ -11,6 +11,7 @@
 #include <opendaq/custom_log.h>
 #include <config_protocol/config_server_recorder.h>
 #include <config_protocol/config_mirrored_ext_sig_impl.h>
+#include <config_protocol/config_server_server.h>
 
 namespace daq::config_protocol
 {
@@ -86,7 +87,7 @@ ConfigProtocolServer::ConfigProtocolServer(DevicePtr rootDevice,
     , user(user)
     , connectionType(connectionType)
     , protocolVersion(0)
-    , supportedServerVersions(std::set<uint16_t>({17, 18, 19, 20}))
+    , supportedServerVersions(std::set<uint16_t>({17, 18, 19, 20, 21, 22, 23, 24}))
     , streamingConsumer(this->daqContext, externalSignalsFolder)
     , packedCoreEvents(List<IBaseObject>())
 {
@@ -140,6 +141,7 @@ void ConfigProtocolServer::buildRpcDispatchStructure()
     addHandler<ComponentPtr>("SetPropertyValue", &ConfigServerComponent::setPropertyValue);
     addHandler<ComponentPtr>("GetPropertyValue", &ConfigServerComponent::getPropertyValue);
     addHandler<ComponentPtr>("SetProtectedPropertyValue", &ConfigServerComponent::setProtectedPropertyValue);
+    addHandler<ComponentPtr>("SetPropertySelectionValue", &ConfigServerComponent::setPropertySelectionValue);
     addHandler<ComponentPtr>("ClearPropertyValue", &ConfigServerComponent::clearPropertyValue);
     addHandler<ComponentPtr>("ClearProtectedPropertyValue", &ConfigServerComponent::clearProtectedPropertyValue);
     addHandler<ComponentPtr>("GetSuggestedValues", &ConfigServerComponent::getSuggestedValues);
@@ -149,6 +151,7 @@ void ConfigProtocolServer::buildRpcDispatchStructure()
     addHandler<ComponentPtr>("EndUpdate", &ConfigServerComponent::endUpdate);
     addHandler<ComponentPtr>("SetAttributeValue", &ConfigServerComponent::setAttributeValue);
     addHandler<ComponentPtr>("Update", &ConfigServerComponent::update);
+    addHandler<ComponentPtr>("ClearPropertyValues", &ConfigServerComponent::clearPropertyValues);
     
     addHandler<ComponentPtr>("GetAvailableFunctionBlockTypes", &ConfigServerComponent::getAvailableFunctionBlockTypes);
     addHandler<ComponentPtr>("AddFunctionBlock", &ConfigServerComponent::addFunctionBlock);
@@ -182,11 +185,14 @@ void ConfigProtocolServer::buildRpcDispatchStructure()
     addHandler<InputPortPtr>("ChangeInputPortStreamingSource", std::bind(&ConfigProtocolServer::changeInputPortStreamingSource, this, _1, _2, _3));
     addHandler<InputPortPtr>("DisconnectSignal", &ConfigServerInputPort::disconnect);
     addHandler<InputPortPtr>("AcceptsSignal", std::bind(&ConfigProtocolServer::acceptsSignal, this, _1, _2, _3));
+    addHandler<InputPortPtr>("AcceptsSignals", std::bind(&ConfigProtocolServer::acceptsSignals, this, _1, _2, _3));
 
     addHandler<RecorderPtr>("StartRecording", &ConfigServerRecorder::startRecording);
     addHandler<RecorderPtr>("StopRecording", &ConfigServerRecorder::stopRecording);
     addHandler<RecorderPtr>("GetIsRecording", &ConfigServerRecorder::getIsRecording);
 
+    addHandler<ServerPtr>("EnableDiscovery", &ConfigServerServer::enableDiscovery);
+    addHandler<ServerPtr>("DisableDiscovery", &ConfigServerServer::disableDiscovery);
 }
 
 PacketBuffer ConfigProtocolServer::processRequestAndGetReply(const PacketBuffer& packetBuffer)
@@ -536,6 +542,18 @@ BaseObjectPtr ConfigProtocolServer::acceptsSignal(const RpcContext& context, con
     return ConfigServerInputPort::accepts(context, inputPort, signal, user);
 }
 
+BaseObjectPtr ConfigProtocolServer::acceptsSignals(const RpcContext& context, const InputPortPtr& inputPort, const ParamsDictPtr& params)
+{
+    const ListPtr<IString> signalIdList = params.get("SignalIdList");
+    auto acceptanceList = List<IBoolean>();
+    for (const StringPtr& id : signalIdList)
+    {
+        const SignalPtr signal = findComponent(id);
+        acceptanceList.pushBack(ConfigServerInputPort::accepts(context, inputPort, signal, user));
+    }
+    return acceptanceList;
+}
+
 void ConfigProtocolServer::coreEventCallback(ComponentPtr& component, CoreEventArgsPtr& eventArgs)
 {
     if (isForwardedCoreEvent(component, eventArgs))
@@ -580,12 +598,16 @@ void ConfigProtocolServer::packCoreEvent(const ComponentPtr& component, const Co
         case CoreEventId::PropertyRemoved:
         case CoreEventId::SignalConnected:
         case CoreEventId::ComponentAdded:
-        case CoreEventId::AttributeChanged:
         case CoreEventId::PropertyOrderChanged:
             packedArgs = processCoreEventArgs(args);
             break;
         case CoreEventId::ComponentUpdateEnd:
             packedArgs = processUpdateEndCoreEvent(component, args);
+            break;
+        case CoreEventId::AttributeChanged:
+            packedArgs = processAttributeChangedCoreEvent(args);
+            if (!packedArgs.assigned())
+                return;
             break;
         case CoreEventId::ComponentRemoved:
         case CoreEventId::SignalDisconnected:
@@ -665,6 +687,21 @@ CoreEventArgsPtr ConfigProtocolServer::processUpdateEndCoreEvent(const Component
     dict.set("SerializedComponent", notificationSerializer.getOutput());
 
     return CoreEventArgs(static_cast<CoreEventId>(args.getEventId()), args.getEventName(), dict);
+}
+
+CoreEventArgsPtr ConfigProtocolServer::processAttributeChangedCoreEvent(const CoreEventArgsPtr& args)
+{
+    auto processedArgs = processCoreEventArgs(args);
+    auto params = processedArgs.getParameters();
+    assert(params.hasKey("AttributeName"));
+    if (params.get("AttributeName") == "Active")
+    {
+        assert(params.hasKey("Active"));
+        if (protocolVersion > 21 && !params.hasKey("LocalActive"))
+            return nullptr;
+    }
+
+    return processedArgs;
 }
 
 BaseObjectPtr ConfigProtocolServer::getTypeManager(const ParamsDictPtr& params) const

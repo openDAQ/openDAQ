@@ -22,6 +22,7 @@
 #include <coreobjects/property_factory.h>
 #include <opendaq/mirrored_signal_config_ptr.h>
 #include <map>
+#include <opendaq/version.h>
 #include <opendaq/logger_factory.h>
 #include <opendaq/device_info_factory.h>
 #include <opendaq/address_info_private_ptr.h>
@@ -35,6 +36,7 @@
 #include <opendaq/component_type_private_ptr.h>
 
 #include <opendaq/thread_name.h>
+#include <opendaq/module_manager_check_dependencies.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
@@ -45,10 +47,9 @@ static OrphanedModules orphanedModules;
 static constexpr std::chrono::milliseconds DefaultrescanTimer = 5000ms;
 static constexpr char createModuleFactory[] = "createModule";
 static constexpr char checkDependenciesFunc[] = "checkDependencies";
-
+static constexpr char getCoreVersionMetadataFunc[] = "getCoreVersionMetadata";
 static void GetModulesPath(std::vector<fs::path>& modulesPath, const LoggerComponentPtr& loggerComponent, std::string searchFolder);
-static ModulePtr getModuleIfAdded(const fs::path& fsPath, const std::vector<ModuleLibrary>& libraries);
-static ModuleLibrary loadModuleInternal(const LoggerComponentPtr& loggerComponent, const fs::path& path, IContext* context);
+static ModuleLibrary loadModuleInternal(const LoggerComponentPtr& loggerComponent, const fs::path& path, IContext* context, Bool safeLoadingMode);
 
 ModuleManagerImpl::ModuleManagerImpl(const BaseObjectPtr& path)
     : authenticatedModulesOnly(false)
@@ -57,6 +58,7 @@ ModuleManagerImpl::ModuleManagerImpl(const BaseObjectPtr& path)
     , modulesLoaded(false)
     , work(ioContext.get_executor())
     , rescanTimer(DefaultrescanTimer)
+    , safeLoadingMode(False)
 {
     if (const StringPtr pathStr = path.asPtrOrNull<IString>(true); pathStr.assigned())
     {
@@ -146,7 +148,7 @@ ErrCode ModuleManagerImpl::addModule(IModule* module)
 
     if (found == libraries.cend())
     {
-        libraries.emplace_back(ModuleLibrary{{}, module});
+        libraries.emplace_back(ModuleLibrary{{}, module, nullptr});
         return OPENDAQ_SUCCESS;
     }
     return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_DUPLICATEITEM);
@@ -154,12 +156,9 @@ ErrCode ModuleManagerImpl::addModule(IModule* module)
 
 ErrCode ModuleManagerImpl::loadModules(IContext* context)
 {
-    if (authenticatedModulesOnly)
+    if (authenticatedModulesOnly && !moduleAuthenticator.assigned())
     {
-        if (moduleAuthenticator == nullptr)
-        {
-            return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALID_OPERATION, "ModuleAuthenticator missing, cannot load modules!");
-        }
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALID_OPERATION, "ModuleAuthenticator missing, cannot load modules!");
     }
 
     if (!modulesLoaded)
@@ -177,6 +176,10 @@ ErrCode ModuleManagerImpl::loadModules(IContext* context)
             {
                 this->rescanTimer = std::chrono::milliseconds(static_cast<int>(inner.get("AddDeviceRescanTimer")));
             }
+            if (inner.hasKey("SafeLoadingMode"))
+            {
+                this->safeLoadingMode = static_cast<bool>(inner.get("SafeLoadingMode"));
+            }
         }
 
         loggerComponent = this->logger.getOrAddComponent("ModuleManager");
@@ -185,6 +188,15 @@ ErrCode ModuleManagerImpl::loadModules(IContext* context)
     {
         return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDPARAMETER, "Context cannot be changed after loading modules");
     }
+
+    std::string sdkVersionMetadataAsString =
+        fmt::format(R"([[ 'major': '{}'; 'minor': '{}'; 'patch': '{}'; 'branch': '{}'; 'sha': '{}'; ]])",
+                    OPENDAQ_OPENDAQ_MAJOR_VERSION,
+                    OPENDAQ_OPENDAQ_MINOR_VERSION,
+                    OPENDAQ_OPENDAQ_PATCH_VERSION,
+                    OPENDAQ_OPENDAQ_BRANCH_NAME,
+                    OPENDAQ_OPENDAQ_REVISION_HASH);
+    LOG_I("Loading modules ... the running SDK core version: \"{}\"", sdkVersionMetadataAsString);
 
     std::vector<std::string> paths;
     auto envPath = std::getenv("OPENDAQ_MODULES_PATH");
@@ -237,41 +249,23 @@ ErrCode ModuleManagerImpl::loadModules(IContext* context)
     bool newModulesAdded = false;
     for (const auto& modulePath: modulesPath)
     {
-        if (getModuleIfAdded(modulePath, libraries).assigned())
-            continue;
+        auto path = String(modulePath.string());
+        auto errCode = tryLoadAndAddModule(path, nullptr);
+        if (OPENDAQ_FAILED(errCode))
+        {
+            ObjectPtr<IErrorInfo> errorInfo;
+            daqGetErrorInfo(&errorInfo);
+            daqClearErrorInfo();
 
-        try
-        {
-            Bool validBinary = false;
-            StringPtr moduleKey("");
-            if (moduleAuthenticator != nullptr)
+            StringPtr message;
+            errorInfo->getMessage(&message);
+            if (message.assigned())
             {
-                moduleAuthenticator->authenticateModuleBinary(&validBinary, &moduleKey, StringPtr(modulePath.string()));
-            }
-
-            if (validBinary || !authenticatedModulesOnly)
-            {
-                libraries.push_back(loadModuleInternal(loggerComponent, modulePath, context));
-                moduleKeys.set(libraries.back().module.getModuleInfo().getId(), moduleKey);
-                
-                newModulesAdded = true;
-            }
-            else {
-                LOG_W("Cannot not load module {}, failed to authenticate!", modulePath.string());
+                LOG_W("{}", message);
             }
         }
-        catch (const daq::DaqException& e)
-        {
-            LOG_W(R"(Error loading module "{}": {} [{:#x}])", modulePath.string(), e.what(), e.getErrCode())
-        }
-        catch (const std::exception& e)
-        {
-            LOG_W(R"(Error loading module "{}": {})", modulePath.string(), e.what())
-        }
-        catch (...)
-        {
-            LOG_W(R"(Unknown error occured loading module "{}")", modulePath.string())
-        }
+        if (errCode == OPENDAQ_SUCCESS)
+            newModulesAdded = true;
     }
 
     modulesLoaded = true;
@@ -282,100 +276,161 @@ ErrCode ModuleManagerImpl::loadModules(IContext* context)
         return OPENDAQ_IGNORED;
 }
 
-ModulePtr getModuleIfAdded(const fs::path& fsPath, const std::vector<ModuleLibrary>& libraries)
-{
-    auto iter = std::find_if(
-        libraries.begin(),
-        libraries.end(),
-        [&fsPath](const ModuleLibrary& lib)
-        {
-            return lib.handle.is_loaded() && lib.handle.location() == fsPath;
-        }
-    );
-    if (iter != libraries.end())
-        return iter->module;
-    else
-        return nullptr;
-}
-
 ErrCode ModuleManagerImpl::loadModule(IString* path, IModule** module)
 {
     OPENDAQ_PARAM_NOT_NULL(path);
     OPENDAQ_PARAM_NOT_NULL(module);
 
-    auto pathString = StringPtr::Borrow(path).toStdString();
+    auto pathString = StringPtr::Borrow(path);
 
-    if (pathString.empty())
+    if (pathString.getLength() == 0)
+    {
         return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDPARAMETER, "Specified module path is empty");
+    }
 
-    if (!boost::algorithm::ends_with(pathString, OPENDAQ_MODULE_SUFFIX))
+    if (!boost::algorithm::ends_with(pathString.toStdString(), OPENDAQ_MODULE_SUFFIX))
+    {
         return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDPARAMETER,
                                    fmt::format(R"(The openDAQ module file must have an extention "{}")", OPENDAQ_MODULE_SUFFIX));
+    }
 
     if (!modulesLoaded)
-        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDSTATE, "ModuleManager in not initialized. Call loadModules(IContext*) first.");
-
-    std::error_code errCode;
-    fs::path fileSystemPath(pathString);
-
-    if (!fs::exists(fileSystemPath, errCode))
-        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDPARAMETER, fmt::format(R"(Specified module path "{}" does not exist)", pathString));
-
-    if (!is_regular_file(fileSystemPath, errCode))
-        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDPARAMETER, fmt::format(R"(Specified module path "{}" is not a file)", pathString));
-
-    if (const auto addedModule = getModuleIfAdded(fileSystemPath, libraries); addedModule.assigned())
     {
-        LOG_W(R"(Module at a given path "{}" is already loaded and added)", pathString)
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDSTATE, "ModuleManager in not initialized. Call loadModules(IContext*) first.");
+    }
 
-        *module = addedModule.addRefAndReturn();
-        return OPENDAQ_IGNORED;
+    if (authenticatedModulesOnly && !moduleAuthenticator.assigned())
+    {
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALID_OPERATION, "ModuleAuthenticator missing, cannot load modules!");
     }
 
     orphanedModules.tryUnload();
+
+    return tryLoadAndAddModule(pathString, module);
+}
+
+ErrCode ModuleManagerImpl::tryLoadAndAddModule(const StringPtr& path, IModule** module)
+{
+    std::error_code errCode;
+    fs::path fileSystemPath(path.toStdString());
+
+    if (!fs::exists(fileSystemPath, errCode))
+    {
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDPARAMETER, fmt::format(R"(Specified module path "{}" does not exist)", path));
+    }
+
+    if (!fs::is_regular_file(fileSystemPath, errCode))
+    {
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDPARAMETER, fmt::format(R"(Specified module path "{}" is not a file)", path));
+    }
+
+    {
+        auto iter = std::find_if(
+            libraries.begin(),
+            libraries.end(),
+            [&path](const ModuleLibrary& lib)
+            {
+                return lib.path.assigned() &&
+                       lib.path == path;
+            }
+        );
+        if (iter != libraries.end())
+        {
+            LOG_W(R"(Module was already loaded and added from the same path: "{}".)",  path);
+            if (module != nullptr)
+                *module = iter->module.addRefAndReturn();
+            return OPENDAQ_IGNORED;
+        }
+    }
 
     try
     {
         StringPtr moduleKey;
         if (authenticatedModulesOnly)
         {
-            if (moduleAuthenticator == nullptr)
-            {
-                return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALID_OPERATION, "ModuleAuthenticator missing, cannot load modules!");
-            }
-
             Bool valid;
             moduleAuthenticator->authenticateModuleBinary(&valid, &moduleKey, path);
 
             if (!valid)
             {
-                return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_ACCESSDENIED, "Module ({}) authentication failed!", path);
+                return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_ACCESSDENIED, fmt::format(R"(Module ({}) authentication failed!)", path));
             }
         }
 
-        libraries.push_back(loadModuleInternal(loggerComponent, fileSystemPath, context));
+        auto moduleLibrary = loadModuleInternal(loggerComponent, fileSystemPath, context, safeLoadingMode);
+        const auto loadedModule = moduleLibrary.module;
+        const StringPtr moduleId = loadedModule.getModuleInfo().getId();
 
-        if (authenticatedModulesOnly)
+        if (moduleId.assigned() && moduleId.getLength() > 0)
         {
-            moduleKeys.set(libraries.back().module.getModuleInfo().getId(), moduleKey);
+            auto iter = std::find_if(
+                libraries.begin(),
+                libraries.end(),
+                [&moduleId](const ModuleLibrary& lib)
+                {
+                    const StringPtr addedModuleId = lib.module.getModuleInfo().getId();
+                    return addedModuleId.assigned() &&
+                           addedModuleId.getLength() > 0 &&
+                           addedModuleId == moduleId;
+                }
+            );
+            if (iter != libraries.end())
+            {
+                if (const auto existingPath = iter->path; existingPath.assigned())
+                {
+                    if (existingPath != path)
+                    {
+                        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_ALREADYEXISTS,
+                                                   fmt::format(R"(Module with id "{}" was already loaded and added from path "{}". Reject loading module from "{}")", moduleId, existingPath, path));
+                    }
+                }
+                else
+                {
+                    return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_ALREADYEXISTS,
+                                               fmt::format(R"(Module with id "{}" was already loaded from memory. Reject loading module from path "{}")", moduleId, path));
+                }
+            }
+            if (authenticatedModulesOnly)
+            {
+                moduleKeys.set(moduleId, moduleKey);
+            }
         }
 
-        *module = libraries.back().module.addRefAndReturn();
+        if (module != nullptr)
+            *module = moduleLibrary.module.addRefAndReturn();
+
+        if (auto version = loadedModule.getModuleInfo().getVersionInfo(); version.assigned())
+        {
+            LOG_I("Loaded & added module [v{}.{}.{} \"{}\"] from \"{}\".",
+                  version.getMajor(),
+                  version.getMinor(),
+                  version.getPatch(),
+                  loadedModule.getModuleInfo().getName(),
+                  path);
+        }
+        else
+        {
+            LOG_W("Loaded & added module UNKNOWN VERSION of \"{}\" from \"{}\".", loadedModule.getModuleInfo().getName(), path);
+        }
+        if (!moduleId.assigned() || moduleId.getLength() == 0)
+        {
+            LOG_W("Empty or missing module id of \"{}\" from \"{}\".", loadedModule.getModuleInfo().getName(), path);
+        }
+        printAvailableTypes(loadedModule);
+
+        libraries.push_back(std::move(moduleLibrary));
     }
     catch (const daq::DaqException& e)
     {
-        LOG_W(R"(Error loading module "{}": {} [{:#x}])", pathString, e.what(), e.getErrCode())
-        return errorFromException(e);
+        return DAQ_MAKE_ERROR_INFO(e.getErrCode(), fmt::format(R"(Error loading module "{}": {} [{:#x}])", path, e.what(), e.getErrCode()));
     }
     catch (const std::exception& e)
     {
-        LOG_W(R"(Error loading module "{}": {})", pathString, e.what())
-        return OPENDAQ_ERR_GENERALERROR;
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_GENERALERROR, fmt::format(R"(Error loading module "{}": {})", path, e.what()));
     }
     catch (...)
     {
-        LOG_W(R"(Unknown error occurred loading module "{}")", pathString)
-        return OPENDAQ_ERR_GENERALERROR;
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_GENERALERROR, fmt::format(R"(Unknown error occurred loading module "{}")", path));
     }
 
     return OPENDAQ_SUCCESS;
@@ -1950,14 +2005,14 @@ void GetModulesPath(std::vector<fs::path>& modulesPath, const LoggerComponentPtr
 
 
 template <typename Functor>
-static void printComponentTypes(Functor func, const std::string& kind, const LoggerComponentPtr& loggerComponent)
+void ModuleManagerImpl::printComponentTypes(Functor func, const std::string& kind)
 {
     try
     {
         DictPtr<IString, IComponentType> componentTypes = func();
         if (componentTypes.getCount() > 0)
         {
-            for (auto [id, type] : componentTypes)
+            for (const auto& [id, type] : componentTypes)
             {
                 LOG_I("\t{0:<3} [{1}] {2}: \"{3}\"",
                       kind,
@@ -1978,11 +2033,11 @@ static void printComponentTypes(Functor func, const std::string& kind, const Log
     }
 }
 
-static void printAvailableTypes(const ModulePtr& module, const LoggerComponentPtr& loggerComponent)
+void ModuleManagerImpl::printAvailableTypes(const ModulePtr& module)
 {
-    printComponentTypes([&module]{ return module.getAvailableDeviceTypes(); }, "DEV", loggerComponent);
-    printComponentTypes([&module]{ return module.getAvailableFunctionBlockTypes(); }, "FB", loggerComponent);
-    printComponentTypes([&module]{ return module.getAvailableServerTypes(); }, "SRV", loggerComponent);
+    printComponentTypes([&module]{ return module.getAvailableDeviceTypes(); }, "DEV");
+    printComponentTypes([&module]{ return module.getAvailableFunctionBlockTypes(); }, "FB");
+    printComponentTypes([&module]{ return module.getAvailableServerTypes(); }, "SRV");
 }
 
 static std::string GetMessageFromLibraryErrCode(std::error_code libraryErrCode)
@@ -1995,23 +2050,72 @@ static std::string GetMessageFromLibraryErrCode(std::error_code libraryErrCode)
 #endif
 }
 
-ModuleLibrary loadModuleInternal(const LoggerComponentPtr& loggerComponent, const fs::path& path, IContext* context)
+ModuleLibrary loadModuleInternal(const LoggerComponentPtr& loggerComponent, const fs::path& path, IContext* context, Bool safeLoadingMode)
 {
-    auto currDir = fs::current_path();
-    auto relativePath = fs::proximate(path).string();
-    LOG_T("Loading module \"{}\".", relativePath);
+    LOG_T("Loading module \"{}\".", path.string());
 
     std::error_code libraryErrCode;
-    boost::dll::shared_library moduleLibrary(path, libraryErrCode);
+    boost::dll::shared_library moduleLibrary(path, libraryErrCode, safeLoadingMode ? boost::dll::load_mode::rtld_now : boost::dll::load_mode::default_mode);
 
     if (libraryErrCode)
     {
         DAQ_THROW_EXCEPTION(ModuleLoadFailedException,
                             "Module \"{}\" failed to load. Error: {} [{}]",
-                            relativePath,
+                            path.string(),
                             libraryErrCode.value(),
                             GetMessageFromLibraryErrCode(libraryErrCode)
         );
+    }
+
+    if (moduleLibrary.has(getCoreVersionMetadataFunc))
+    {
+        using GetCoreVersionMetadataFunc = ErrCode (*)(unsigned int*, unsigned int*, unsigned int*, IString**, IString**, IString**);
+        GetCoreVersionMetadataFunc getMetadata = moduleLibrary.get<ErrCode(unsigned int*, unsigned int*, unsigned int*, IString**, IString**, IString**)>(getCoreVersionMetadataFunc);
+
+        unsigned int major, minor, patch;
+        StringPtr branch, sha;
+
+        ErrCode errCode = getMetadata(&major, &minor, &patch, &branch, &sha, nullptr);
+
+        if (OPENDAQ_SUCCEEDED(errCode))
+        {
+            std::string inModuleMetadataAsString =
+                fmt::format(R"([[ 'major': '{}'; 'minor': '{}'; 'patch': '{}'; 'branch': '{}'; 'sha': '{}'; ]])",
+                            major,
+                            minor,
+                            patch,
+                            branch,
+                            sha);
+
+            StringPtr logMsg;
+            errCode = checkModuleVersionCompatibility(major, minor, patch, branch, sha, nullptr, &logMsg);
+            if (OPENDAQ_FAILED(errCode))
+            {
+                DAQ_EXTEND_ERROR_INFO(
+                    errCode,
+                    OPENDAQ_ERR_MODULE_INCOMPATIBLE_DEPENDENCIES,
+                    fmt::format(R"(Module "{}" failed dependencies check via version metadata: {})",
+                                path.string(),
+                                logMsg.assigned() ? logMsg : ""
+                    )
+                );
+                checkErrorInfo(OPENDAQ_ERR_MODULE_INCOMPATIBLE_DEPENDENCIES);
+            }
+            else if (errCode == OPENDAQ_PARTIAL_SUCCESS && logMsg.assigned())
+            {
+                LOG_W("Module \'{}\' SDK core version metadata checking result: {}", path.string(), logMsg);
+            }
+            LOG_I("Loaded module \'{}\' was built with SDK version: \"{}\"", path.string(), inModuleMetadataAsString);
+        }
+        else
+        {
+            LOG_W("Module \'{}\' failed to get SDK core version metadata: {}", path.string(), getErrorInfoMessage(errCode));
+            daqClearErrorInfo();
+        }
+    }
+    else
+    {
+        LOG_W("Module \"{}\" does not provide SDK core version metadata", path.string());
     }
 
     if (moduleLibrary.has(checkDependenciesFunc))
@@ -2019,57 +2123,50 @@ ModuleLibrary loadModuleInternal(const LoggerComponentPtr& loggerComponent, cons
         using CheckDependenciesFunc = ErrCode (*)(IString**);
         CheckDependenciesFunc checkDeps = moduleLibrary.get<ErrCode(IString**)>(checkDependenciesFunc);
 
-        LOG_T("Checking dependencies of \"{}\".", relativePath);
+        LOG_T("Checking dependencies of \"{}\" via \"{}\" ", path.string(), checkDependenciesFunc);
 
-        StringPtr errMsg;
-        const ErrCode errCode = checkDeps(&errMsg);
+        StringPtr logMsg;
+        const ErrCode errCode = checkDeps(&logMsg);
         if (OPENDAQ_FAILED(errCode))
         {
-            LOG_T("Failed to check dependencies for \"{}\"", relativePath);
-            DAQ_EXTEND_ERROR_INFO(errCode, OPENDAQ_ERR_MODULE_INCOMPATIBLE_DEPENDENCIES, fmt::format("Module \"{}\" failed dependencies check.", relativePath));
+            DAQ_EXTEND_ERROR_INFO(
+                errCode,
+                OPENDAQ_ERR_MODULE_INCOMPATIBLE_DEPENDENCIES,
+                fmt::format(R"(Module "{}" failed dependencies check via "{}": {})",
+                            path.string(),
+                            checkDependenciesFunc,
+                            logMsg.assigned() ? logMsg : ""
+                )
+            );
             checkErrorInfo(OPENDAQ_ERR_MODULE_INCOMPATIBLE_DEPENDENCIES);
+        }
+        else if (errCode == OPENDAQ_PARTIAL_SUCCESS && logMsg.assigned())
+        {
+            LOG_W("Module \"{}\" check dependencies warning: {}", path.string(), logMsg);
         }
     }
 
     if (!moduleLibrary.has(createModuleFactory))
     {
-        LOG_T("Module \"{}\" has no exported module factory.", relativePath);
-
-        DAQ_THROW_EXCEPTION(ModuleNoEntryPointException, "Module \"{}\" has no exported module factory.", relativePath);
+        LOG_T("Module \"{}\" has no exported module factory.", path.string());
+        DAQ_THROW_EXCEPTION(ModuleNoEntryPointException, fmt::format(R"(Module "{}" has no exported module factory.)", path.string()));
     }
 
     using ModuleFactory = ErrCode(IModule**, IContext*);
     ModuleFactory* factory = moduleLibrary.get<ModuleFactory>(createModuleFactory);
 
-    LOG_T("Creating module from \"{}\".", relativePath);
+    LOG_T("Creating module from \"{}\".", path.string());
 
     ModulePtr module;
     const ErrCode errCode = factory(&module, context);
     if (OPENDAQ_FAILED(errCode))
     {
-        LOG_T("Failed creating module from \"{}\"", relativePath);
-        DAQ_EXTEND_ERROR_INFO(errCode, OPENDAQ_ERR_MODULE_ENTRY_POINT_FAILED, fmt::format("Library \"{}\" failed to create a Module.", relativePath));
+        LOG_T("Failed creating module from \"{}\"", path.string());
+        DAQ_EXTEND_ERROR_INFO(errCode, OPENDAQ_ERR_MODULE_ENTRY_POINT_FAILED, fmt::format(R"(Library "{}" failed to create a Module.)", path.string()));
         checkErrorInfo(OPENDAQ_ERR_MODULE_ENTRY_POINT_FAILED);
     }
 
-    if (auto version = module.getModuleInfo().getVersionInfo(); version.assigned())
-    {
-        LOG_I("Loaded module [v{}.{}.{} {}] from \"{}\".",
-              version.getMajor(),
-              version.getMinor(),
-              version.getPatch(),
-              module.getModuleInfo().getName(),
-              relativePath);
-    }
-    else
-    {
-        LOG_I("Loaded module UNKNOWN VERSION of {} from \"{}\".", module.getModuleInfo().getName(), relativePath);
-    }
-
-
-    printAvailableTypes(module, loggerComponent);
-
-    return { std::move(moduleLibrary), module };
+    return { std::move(moduleLibrary), module, String(path.string()) };
 }
 
 OPENDAQ_DEFINE_CLASS_FACTORY(LIBRARY_FACTORY, ModuleManager,

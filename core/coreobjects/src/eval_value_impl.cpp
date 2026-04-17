@@ -3,6 +3,7 @@
 #include <functional>
 #include <coreobjects/eval_value_ptr.h>
 #include <coreobjects/property_object_internal_ptr.h>
+#include <coretypes/dict_ptr.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
@@ -467,9 +468,13 @@ ErrCode EvalValueImpl::getCount(SizeT* size)
     auto err = checkParseAndResolve(false);
     OPENDAQ_RETURN_IF_FAILED(err);
 
-    ListPtr<IBaseObject> list = node->getResult();
-
-    *size = list.getCount();
+    BaseObjectPtr res = node->getResult();
+    if (const auto list = res.asPtrOrNull<IList>(true); list.assigned())
+        *size = list.getCount();
+    else if (const auto dict = res.asPtrOrNull<IDict>(true); dict.assigned())
+        *size = dict.getCount();
+    else
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDPARAMETER, "Result of evaluation is not a list or dictionary.");
 
     return OPENDAQ_SUCCESS;
 }
@@ -694,6 +699,11 @@ ErrCode EvalValueImpl::Property_GetOnSelectionValuesRead(IEvent** /*event*/)
     return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_ACCESSDENIED);
 }
 
+ErrCode EvalValueImpl::Property_GetPropertyType(PropertyType* /*propertyType*/)
+{
+    return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_ACCESSDENIED);
+}
+
 ErrCode EvalValueImpl::UnitObject_GetId(Int* id)
 {
     OPENDAQ_PARAM_NOT_NULL(id);
@@ -792,6 +802,121 @@ ErrCode EvalValueImpl::StructObject_getAsDictionary(IDict** /*dictionary*/)
     return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOTIMPLEMENTED);
 }
 
+// IDict
+
+ErrCode EvalValueImpl::get(IBaseObject* key, IBaseObject** value)
+{
+    OPENDAQ_PARAM_NOT_NULL(key);
+    OPENDAQ_PARAM_NOT_NULL(value);
+
+    auto err = checkParseAndResolve(false);
+    OPENDAQ_RETURN_IF_FAILED(err);
+
+    BaseObjectPtr res = node->getResult();
+    auto dict = res.asPtrOrNull<IDict>(true);
+    if (!dict.assigned())
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDPARAMETER, "Result of evaluation is not a dictionary.");
+
+    OPENDAQ_RETURN_IF_FAILED(dict->get(key, value));
+    return OPENDAQ_SUCCESS;
+}
+
+ErrCode EvalValueImpl::set(IBaseObject* /*key*/, IBaseObject* /*value*/)
+{
+    return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_ACCESSDENIED);
+}
+
+ErrCode EvalValueImpl::remove(IBaseObject* /*key*/, IBaseObject** /*value*/)
+{
+    return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_ACCESSDENIED);
+}
+
+ErrCode EvalValueImpl::deleteItem(IBaseObject* /*key*/)
+{
+    return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_ACCESSDENIED);
+}
+
+ErrCode EvalValueImpl::hasKey(IBaseObject* key, Bool* hasKey)
+{
+    OPENDAQ_PARAM_NOT_NULL(key);
+    OPENDAQ_PARAM_NOT_NULL(hasKey);
+
+    auto err = checkParseAndResolve(false);
+    OPENDAQ_RETURN_IF_FAILED(err);
+
+    BaseObjectPtr res = node->getResult();
+    auto dict = res.asPtrOrNull<IDict>(true);
+    if (!dict.assigned())
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDPARAMETER, "Result of evaluation is not a dictionary.");
+
+    OPENDAQ_RETURN_IF_FAILED(dict->hasKey(key, hasKey));
+    return OPENDAQ_SUCCESS;
+}
+
+ErrCode EvalValueImpl::getKeyList(IList** keys)
+{
+    OPENDAQ_PARAM_NOT_NULL(keys);
+
+    auto err = checkParseAndResolve(false);
+    OPENDAQ_RETURN_IF_FAILED(err);
+
+    BaseObjectPtr res = node->getResult();
+    auto dict = res.asPtrOrNull<IDict>(true);
+    if (!dict.assigned())
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDPARAMETER, "Result of evaluation is not a dictionary.");
+
+    OPENDAQ_RETURN_IF_FAILED(dict->getKeyList(keys));
+    return OPENDAQ_SUCCESS;
+}
+
+ErrCode EvalValueImpl::getValueList(IList** values)
+{
+    OPENDAQ_PARAM_NOT_NULL(values);
+
+    auto err = checkParseAndResolve(false);
+    OPENDAQ_RETURN_IF_FAILED(err);
+
+    BaseObjectPtr res = node->getResult();
+    auto dict = res.asPtrOrNull<IDict>(true);
+    if (!dict.assigned())
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDPARAMETER, "Result of evaluation is not a dictionary.");
+
+    OPENDAQ_RETURN_IF_FAILED(dict->getValueList(values));
+    return OPENDAQ_SUCCESS;
+}
+
+ErrCode EvalValueImpl::getKeys(IIterable** iterable)
+{
+    OPENDAQ_PARAM_NOT_NULL(iterable);
+
+    auto err = checkParseAndResolve(false);
+    OPENDAQ_RETURN_IF_FAILED(err);
+
+    BaseObjectPtr res = node->getResult();
+    auto dict = res.asPtrOrNull<IDict>(true);
+    if (!dict.assigned())
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDPARAMETER, "Result of evaluation is not a dictionary.");
+
+    OPENDAQ_RETURN_IF_FAILED(dict->getKeys(iterable));
+    return OPENDAQ_SUCCESS;
+}
+
+ErrCode EvalValueImpl::getValues(IIterable** iterable)
+{
+    OPENDAQ_PARAM_NOT_NULL(iterable);
+
+    auto err = checkParseAndResolve(false);
+    OPENDAQ_RETURN_IF_FAILED(err);
+
+    BaseObjectPtr res = node->getResult();
+    auto dict = res.asPtrOrNull<IDict>(true);
+    if (!dict.assigned())
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDPARAMETER, "Result of evaluation is not a dictionary.");
+
+    OPENDAQ_RETURN_IF_FAILED(dict->getValues(iterable));
+    return OPENDAQ_SUCCESS;
+}
+
 // static
 ConstCharPtr EvalValueImpl::SerializeId()
 {
@@ -871,7 +996,6 @@ ErrCode EvalValueImpl::getParseErrorCode()
 
     return OPENDAQ_SUCCESS;
 }
-
 
 ErrCode EvalValueImpl::getPropertyReferences(IList** propertyReferences)
 {

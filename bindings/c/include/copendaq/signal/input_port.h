@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.7.0) on 05.03.2026 11:32:42.
+//     RTGen (CGenerator v0.7.0).
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -37,6 +37,7 @@ extern "C"
     typedef struct daqInputPort daqInputPort;
     typedef struct daqSignal daqSignal;
     typedef struct daqConnection daqConnection;
+    typedef struct daqList daqList;
 
     EXPORTED extern const daqIntfID DAQ_INPUT_PORT_INTF_ID;
     void EXPORTED daqInputPort_getInterfaceId(daqIntfID* intfId);
@@ -49,6 +50,7 @@ extern "C"
     daqErrCode EXPORTED daqInputPort_getConnection(daqInputPort* self, daqConnection** connection);
     daqErrCode EXPORTED daqInputPort_getPublic(daqInputPort* self, daqBool* isPublic);
     daqErrCode EXPORTED daqInputPort_setPublic(daqInputPort* self, daqBool isPublic);
+    daqErrCode EXPORTED daqInputPort_acceptsSignals(daqInputPort* self, daqList* signals, daqList** accepts);
 
 #ifdef __cplusplus
 }

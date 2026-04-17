@@ -3,6 +3,7 @@
  */
 
 #include <opendaq/opendaq.h>
+#include <thread>
 
 using namespace daq;
 

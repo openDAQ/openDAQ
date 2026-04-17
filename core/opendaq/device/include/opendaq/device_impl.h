@@ -169,6 +169,7 @@ public:
 
     // IComponentPrivate
     ErrCode INTERFACE_FUNC updateOperationMode(OperationModeType modeType) override;
+    ErrCode INTERFACE_FUNC setParentActive(Bool parentActive) override;
 
     // IPropertyObjectInternal
     ErrCode INTERFACE_FUNC enableCoreEventTrigger() override;
@@ -225,7 +226,6 @@ protected:
                                        const FunctionPtr& factoryCallback) override;
 
     void updateObject(const SerializedObjectPtr& obj, const BaseObjectPtr& context) override;
-    bool clearFunctionBlocksOnUpdate() override;
 
     void setDeviceDomainNoCoreEvent(const DeviceDomainPtr& domain);
 
@@ -242,6 +242,7 @@ protected:
     virtual ListPtr<IString> onGetNetworkInterfaceNames();
 
     virtual std::set<OperationModeType> onGetAvailableOperationModes();
+    virtual OperationModeType onGetDefaultOperationMode();
 
     ListPtr<ILockGuard> getTreeLockGuard();
     ErrCode updateOperationModeNoCoreEvent(OperationModeType modeType);
@@ -260,10 +261,13 @@ private:
     ErrCode unlockInternal(IUser* user);
     ErrCode forceUnlockInternal();
     ErrCode revertLockedDevices(ListPtr<IDevice> devices, const std::vector<bool>& targetLockStatuses, size_t deviceCount, IUser* user, bool doLock);
+    DeviceTypePtr getDeviceTypeFromPrefixOrNull(const StringPtr& prefix);
+    StringPtr getDevicePrefixOrEmpty(const DevicePtr& device);
     ModuleInfoPtr getModuleInfoFromDeviceType();
+    void removeDeviceIfNotStatic(const StringPtr& deviceId);
 
     DeviceDomainPtr deviceDomain;
-    OperationModeType operationMode {OperationModeType::Idle};
+    OperationModeType operationMode {OperationModeType::Unknown};
     ListPtr<IInteger> availableOperationModes;
 };
 
@@ -361,7 +365,7 @@ ErrCode GenericDevice<TInterface, Interfaces...>::setAsRoot()
     auto lock = this->getRecursiveConfigLock2();
 
     this->isRootDevice = true;
-    this->updateOperationMode(OperationModeType::Unknown);
+    this->updateOperationModeInternal(this->onGetDefaultOperationMode());
     return OPENDAQ_SUCCESS;
 }
 
@@ -497,6 +501,7 @@ ErrCode GenericDevice<TInterface, Interfaces...>::submitNetworkConfiguration(ISt
     const auto ifaceNamePtr = StringPtr::Borrow(ifaceName);
     const auto configPtr = PropertyObjectPtr::Borrow(config);
     const ErrCode errCode = wrapHandler(this, &Self::onSubmitNetworkConfiguration, ifaceNamePtr, configPtr);
+    OPENDAQ_RETURN_IF_FAILED(errCode);
 
     return errCode;
 }
@@ -1136,7 +1141,13 @@ ListPtr<ILockGuard> GenericDevice<TInterface, Interfaces...>::getTreeLockGuard()
 template <typename TInterface, typename... Interfaces>
 std::set<OperationModeType> GenericDevice<TInterface, Interfaces...>::onGetAvailableOperationModes()
 {
-    return {OperationModeType::Operation};
+    return {OperationModeType::SafeOperation};
+}
+
+template <typename TInterface, typename... Interfaces>
+OperationModeType GenericDevice<TInterface, Interfaces...>::onGetDefaultOperationMode()
+{
+    return OperationModeType::SafeOperation;
 }
 
 template <typename TInterface, typename... Interfaces>
@@ -1182,9 +1193,19 @@ ErrCode GenericDevice<TInterface, Interfaces...>::updateOperationModeInternal(Op
 }
 
 template <typename TInterface, typename... Interfaces>
-ErrCode GenericDevice<TInterface, Interfaces...>::updateOperationMode(OperationModeType /* modeType */)
+ErrCode GenericDevice<TInterface, Interfaces...>::updateOperationMode(OperationModeType /*modeType*/)
 {
-    return this->updateOperationModeInternal(OperationModeType::Operation);
+    // This method gets called when a device is added to the IFolder. Device ignores its parent's operation mode and
+    // enters default operation mode.
+    return this->updateOperationModeInternal(this->onGetDefaultOperationMode());
+}
+
+template <typename TInterface, typename... Interfaces>
+ErrCode GenericDevice<TInterface, Interfaces...>::setParentActive(Bool parentActive)
+{
+    if (this->isRootDevice)
+        return OPENDAQ_IGNORED;
+    return Super::setParentActive(parentActive);
 }
 
 template <typename TInterface, typename... Interfaces>
@@ -1430,6 +1451,7 @@ ErrCode GenericDevice<TInterface, Interfaces...>::removeDevice(IDevice* device)
 
     const auto devicePtr = DevicePtr::Borrow(device);
     const ErrCode errCode = wrapHandler(this, &Self::onRemoveDevice, devicePtr);
+    OPENDAQ_RETURN_IF_FAILED(errCode);
 
     return errCode;
 }
@@ -1679,6 +1701,48 @@ ErrCode GenericDevice<TInterface, Interfaces...>::revertLockedDevices(
 }
 
 template <typename TInterface, typename ... Interfaces>
+DeviceTypePtr GenericDevice<TInterface, Interfaces...>::getDeviceTypeFromPrefixOrNull(const StringPtr& prefix)
+{
+    if (!prefix.assigned() || prefix == "")
+        return nullptr;
+
+    for (const auto& [_, type]: onGetAvailableDeviceTypes())
+    {
+        StringPtr typePrefix = type.getConnectionStringPrefix();
+        if (prefix == typePrefix)
+            return type;
+    }
+        
+    return nullptr;
+}
+
+template <typename TInterface, typename ... Interfaces>
+StringPtr GenericDevice<TInterface, Interfaces...>::getDevicePrefixOrEmpty(const DevicePtr& device)
+{
+    if (!device.assigned())
+        return "";
+
+    DeviceTypePtr type;
+    if (auto mirroredDev = device.asPtrOrNull<IMirroredDevice>(); mirroredDev.assigned())
+    {
+        type = mirroredDev.getMirroredDeviceType();
+    }
+    else
+    {
+        auto info = device.getInfo();
+        if (!info.assigned())
+            return "";
+
+        type = info.getDeviceType();
+    }
+
+    if (!type.assigned())
+        return "";
+
+    return type.getConnectionStringPrefix();
+}
+
+template <typename TInterface, typename ... Interfaces>
 ModuleInfoPtr GenericDevice<TInterface, Interfaces...>::getModuleInfoFromDeviceType()
 {
     if (deviceInfo.assigned())
@@ -1689,6 +1753,23 @@ ModuleInfoPtr GenericDevice<TInterface, Interfaces...>::getModuleInfoFromDeviceT
     }
 
     return nullptr;
+}
+
+template <typename TInterface, typename ... Interfaces>
+void GenericDevice<TInterface, Interfaces...>::removeDeviceIfNotStatic(const StringPtr& deviceId)
+{
+    DevicePtr device = devices.getItem(deviceId);
+
+    auto prefix = getDevicePrefixOrEmpty(device);
+    auto type = getDeviceTypeFromPrefixOrNull(prefix);
+    if (!type.assigned())
+    {
+        LOG_E("Failed to remove device with ID {} from device with ID {}. "
+              "Devices without a registered type can not be removed", deviceId, this->localId);
+        return;
+    }
+    
+    checkErrorInfo(this->removeDevice(device));
 }
 
 template <typename TInterface, typename... Interfaces>
@@ -1869,6 +1950,12 @@ void GenericDevice<TInterface, Interfaces...>::serializeCustomObjectValues(const
         version.serialize(serializer);
     }
 
+    if (isRootDevice)
+    {
+        serializer.key("isRootDevice");
+        serializer.writeBool(isRootDevice);
+    }
+
     Super::serializeCustomObjectValues(serializer, forUpdate);
 
     this->serializeFolder(serializer, ioFolder, "IO", forUpdate);
@@ -1935,9 +2022,8 @@ void GenericDevice<TInterface, Interfaces...>::serializeCustomObjectValues(const
 
             auto manufacturer = deviceInfo.getManufacturer();
             auto serialNumber = deviceInfo.getSerialNumber();
-            bool isRemote = deviceInfo.getServerCapabilities().getCount();
 
-            if (isRemote && manufacturer.getLength() != 0 && serialNumber.getLength() != 0)
+            if (manufacturer.getLength() != 0 && serialNumber.getLength() != 0)
             {
                 serializer.key("manufacturer");
                 serializer.writeString(manufacturer);
@@ -1989,16 +2075,50 @@ void GenericDevice<TInterface, Interfaces...>::updateDevice(const std::string& d
     try
     {
         ComponentUpdateContextPtr contextPtr = ComponentUpdateContextPtr::Borrow(context);
-
-        if (!contextPtr.getReAddDevicesEnabled() && devices.hasItem(deviceId))
-        {
-            LOG_D("Device {} already exists and re-add is not enabled", deviceId)
-            auto device = devices.getItem(deviceId);
-            const auto updatableDevice = device.template asPtr<IUpdatable>(true);
-            updatableDevice.updateInternal(serializedDevice, context);
+        auto options = contextPtr.getDeviceUpdateOptionsWithLocalIdOrNull(deviceId);
+        
+        DeviceUpdateMode mode = DeviceUpdateMode::Load;
+        if (options.assigned())
+            mode = options.getUpdateMode();
+        
+        if (mode == DeviceUpdateMode::Skip)
             return;
-        }
 
+        const bool deviceExists = devices.hasItem(deviceId);
+        if (!deviceExists)
+        {
+            switch (mode)
+            {
+                case DeviceUpdateMode::UpdateOnly:
+                case DeviceUpdateMode::Remove:
+                    return;
+                default:
+                    break;
+            }
+        }
+        else
+        {
+            switch (mode)
+            {
+                case DeviceUpdateMode::Remap:
+                    removeDeviceIfNotStatic(deviceId);
+                    break;  // Remove, but continue with adding the remapped device.
+                case DeviceUpdateMode::Remove:
+                    removeDeviceIfNotStatic(deviceId);
+                    return;  // Early return since device is removed and should not be updated
+                case DeviceUpdateMode::Load:
+                case DeviceUpdateMode::UpdateOnly:
+                {
+                    DevicePtr device = devices.getItem(deviceId);
+                    const auto updatableDevice = device.template asPtr<IUpdatable>(true);
+                    updatableDevice.updateInternal(serializedDevice, context);
+                    return;
+                }
+                default:
+                    break;
+            }
+        }
+        
         PropertyObjectPtr deviceConfig;
         DeviceInfoPtr discoveredDeviceInfo;
 
@@ -2006,12 +2126,24 @@ void GenericDevice<TInterface, Interfaces...>::updateDevice(const std::string& d
             deviceConfig = serializedDevice.readObject("deviceConfig");
         else if (serializedDevice.hasKey("ComponentConfig"))
             deviceConfig = serializedDevice.readObject("ComponentConfig");
+                
+        StringPtr manufacturer;
+        StringPtr serialNumber;
+        StringPtr connectionString;
 
-        if (serializedDevice.hasKey("manufacturer") && serializedDevice.hasKey("serialNumber"))
+        if (mode == DeviceUpdateMode::Remap)
         {
-            StringPtr manufacturer = serializedDevice.readString("manufacturer");
-            StringPtr serialNumber = serializedDevice.readString("serialNumber");
+            manufacturer = options.getNewManufacturer();
+            serialNumber = options.getNewSerialNumber();
+        }
+        else if (serializedDevice.hasKey("manufacturer") && serializedDevice.hasKey("serialNumber"))
+        {
+            manufacturer = serializedDevice.readString("manufacturer");
+            serialNumber = serializedDevice.readString("serialNumber");
+        }
 
+        if (manufacturer.assigned() && manufacturer != "" && serialNumber.assigned() && serialNumber != "")
+        {
             for (const auto& availableDevice : onGetAvailableDevices())
             {
                 const auto capabilities = availableDevice.getServerCapabilities();
@@ -2032,55 +2164,35 @@ void GenericDevice<TInterface, Interfaces...>::updateDevice(const std::string& d
             }
         }
 
-        StringPtr connectionString;
         if (discoveredDeviceInfo.assigned())
-        {
             connectionString = discoveredDeviceInfo.getConnectionString();
-        }
+        else if (mode == DeviceUpdateMode::Remap)
+            connectionString = options.getNewConnectionString();
         else if (serializedDevice.hasKey("connectionString"))
-        {
             connectionString = serializedDevice.readString("connectionString");
-        }
-        else
-        {
-            LOG_W("No connection string found for device {}", deviceId);
-            return;
-        }
-        
-        std::string connectionStringStr = connectionString;
-        auto pos = connectionStringStr.find("://");
-        std::string prefix = pos == std::string::npos ? "" : connectionStringStr.substr(0,pos);
-        DevicePtr device;
 
-        if (!prefix.empty())
+        if (connectionString == "")
         {
-            for (const auto& [_, type]: onGetAvailableDeviceTypes())
+            if (mode == DeviceUpdateMode::Remap)
             {
-                std::string typePrefix = type.getConnectionStringPrefix();
-                if (prefix == typePrefix)
-                {
-                    if (devices.hasItem(deviceId))
-                    {
-                        device = devices.getItem(deviceId);
-                        checkErrorInfo(this->removeDevice(device));
-                    }
-
-                    device = onAddDevice(connectionString, deviceConfig);
-                    break;
-                }
+                LOG_E("Unable to remap device with ID {}.", deviceId);
             }
-        }
-
-        if (!device.assigned())
-        {
-            if (devices.hasItem(deviceId))
-                device = devices.getItem(deviceId);
             else
             {
-                LOG_W("Failed to add missing Device with ID {} while updating parent Device with ID {}", deviceId, this->localId)
-                return;
+                LOG_E("No connection string found for device {} when loading setup", deviceId);
             }
+            return;
         }
+      
+        DevicePtr device = onAddDevice(connectionString, deviceConfig);
+        if (!device.assigned())
+        {
+            LOG_E("Failed to add missing Device with ID {} while updating parent Device with ID {}", deviceId, this->localId)
+            return;
+        }
+
+        if (mode == DeviceUpdateMode::Remap)
+            contextPtr.addDeviceRemapping(deviceId, device.getLocalId());
 
         const auto updatableDevice = device.template asPtr<IUpdatable>(true);
         updatableDevice.updateInternal(serializedDevice, context);
@@ -2163,6 +2275,9 @@ void GenericDevice<TInterface, Interfaces...>::deserializeCustomObjectValues(con
                                                                              const FunctionPtr& factoryCallback)
 {
     Super::deserializeCustomObjectValues(serializedObject, context, factoryCallback);
+
+    if (serializedObject.hasKey("isRootDevice"))
+        isRootDevice = serializedObject.readBool("isRootDevice");
 
     if (serializedObject.hasKey("deviceInfo"))
     {
@@ -2308,7 +2423,11 @@ ErrCode GenericDevice<TInterface, Interfaces...>::enableCoreEventTrigger()
     OPENDAQ_RETURN_IF_FAILED(errCode);
 
     if (deviceInfo.assigned())
-        return deviceInfo.asPtr<IPropertyObjectInternal>(true)->enableCoreEventTrigger();
+    {
+        const ErrCode err = deviceInfo.asPtr<IPropertyObjectInternal>(true)->enableCoreEventTrigger();
+        OPENDAQ_RETURN_IF_FAILED(err);
+        return err;
+    }
 
     return errCode;
 }
@@ -2320,15 +2439,13 @@ ErrCode GenericDevice<TInterface, Interfaces...>::disableCoreEventTrigger()
     OPENDAQ_RETURN_IF_FAILED(errCode);
 
     if (this->deviceInfo.assigned())
-        return deviceInfo.asPtr<IPropertyObjectInternal>(true)->disableCoreEventTrigger();
+    {
+        const ErrCode err = deviceInfo.asPtr<IPropertyObjectInternal>(true)->disableCoreEventTrigger();
+        OPENDAQ_RETURN_IF_FAILED(err);
+        return err;
+    }
 
     return errCode;
-}
-
-template <typename TInterface, typename... Interfaces>
-bool GenericDevice<TInterface, Interfaces...>::clearFunctionBlocksOnUpdate()
-{
-    return true;
 }
 
 template <typename TInterface, typename ... Interfaces>

@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.7.0) on 05.03.2026 11:32:08.
+//     RTGen (CGenerator v0.7.0).
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -22,14 +22,14 @@ void daqUpdateParameters_getInterfaceId(daqIntfID* intfId)
     *intfId = DAQ_UPDATE_PARAMETERS_INTF_ID;
 }
 
-daqErrCode daqUpdateParameters_getReAddDevicesEnabled(daqUpdateParameters* self, daqBool* enabled)
+daqErrCode daqUpdateParameters_getDeviceUpdateOptions(daqUpdateParameters* self, daqDeviceUpdateOptions** options)
 {
-    return reinterpret_cast<daq::IUpdateParameters*>(self)->getReAddDevicesEnabled(enabled);
+    return reinterpret_cast<daq::IUpdateParameters*>(self)->getDeviceUpdateOptions(reinterpret_cast<daq::IDeviceUpdateOptions**>(options));
 }
 
-daqErrCode daqUpdateParameters_setReAddDevicesEnabled(daqUpdateParameters* self, daqBool enabled)
+daqErrCode daqUpdateParameters_setDeviceUpdateOptions(daqUpdateParameters* self, daqDeviceUpdateOptions* options)
 {
-    return reinterpret_cast<daq::IUpdateParameters*>(self)->setReAddDevicesEnabled(enabled);
+    return reinterpret_cast<daq::IUpdateParameters*>(self)->setDeviceUpdateOptions(reinterpret_cast<daq::IDeviceUpdateOptions*>(options));
 }
 
 daqErrCode daqUpdateParameters_createUpdateParameters(daqUpdateParameters** obj)

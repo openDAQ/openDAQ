@@ -23,6 +23,7 @@
 
 #include <opendaq/component_holder_factory.h>
 #include <opendaq/search_filter_factory.h>
+#include <opendaq/component_update_context_ptr.h>
 
 namespace daq::config_protocol
 {
@@ -34,11 +35,13 @@ public:
     static BaseObjectPtr getPropertyValue(const RpcContext& context, const PropertyObjectPtr& component, const ParamsDictPtr& params);
     static BaseObjectPtr setPropertyValue(const RpcContext& context, const PropertyObjectPtr& component, const ParamsDictPtr& params);
     static BaseObjectPtr setProtectedPropertyValue(const RpcContext& context, const PropertyObjectPtr& component, const ParamsDictPtr& params);
+    static BaseObjectPtr setPropertySelectionValue(const RpcContext& context, const PropertyObjectPtr& component, const ParamsDictPtr& params);
     static BaseObjectPtr clearPropertyValue(const RpcContext& context, const PropertyObjectPtr& component, const ParamsDictPtr& params);
     static BaseObjectPtr clearProtectedPropertyValue(const RpcContext& context, const PropertyObjectPtr& component, const ParamsDictPtr& params);
     static BaseObjectPtr getSuggestedValues(const RpcContext& context, const PropertyObjectPtr& component, const ParamsDictPtr& params);
     static BaseObjectPtr getSelectionValues(const RpcContext& context, const PropertyObjectPtr& component, const ParamsDictPtr& params);
     static BaseObjectPtr callProperty(const RpcContext& context, const PropertyObjectPtr& component, const ParamsDictPtr& params);
+    static BaseObjectPtr clearPropertyValues(const RpcContext& context, const PropertyObjectPtr& component, const ParamsDictPtr& params);
 
     // Component methods
     static BaseObjectPtr beginUpdate(const RpcContext& context, const ComponentPtr& component, const ParamsDictPtr& params);
@@ -110,6 +113,27 @@ inline BaseObjectPtr ConfigServerComponent::setProtectedPropertyValue(const RpcC
     ConfigServerAccessControl::protectObject(propertyParent, context.user, {Permission::Read, Permission::Write});
 
     targetComponent.asPtr<IPropertyObjectProtected>(true).setProtectedPropertyValue(propertyName, propertyValue);
+
+    return nullptr;
+}
+
+inline BaseObjectPtr ConfigServerComponent::setPropertySelectionValue(const RpcContext& context,
+                                                                      const PropertyObjectPtr& component,
+                                                                      const ParamsDictPtr& params)
+{
+    ConfigServerAccessControl::protectLockedComponent(component);
+    ConfigServerAccessControl::protectViewOnlyConnection(context.connectionType);
+
+    const auto propertyValue = params["PropertyValue"];
+    auto propertyName = static_cast<std::string>(params["PropertyName"]);
+    PropertyObjectPtr targetComponent = component;
+    parseAndGetDeviceInfo(targetComponent, propertyName);
+
+    const auto propertyParent = ConfigServerAccessControl::getFirstPropertyParent(targetComponent, propertyName);
+
+    ConfigServerAccessControl::protectObject(propertyParent, context.user, {Permission::Read, Permission::Write});
+
+    targetComponent.setPropertySelectionValue(propertyName, propertyValue);
 
     return nullptr;
 }
@@ -228,6 +252,22 @@ inline BaseObjectPtr ConfigServerComponent::callProperty(const RpcContext& conte
     return nullptr;
 }
 
+inline BaseObjectPtr ConfigServerComponent::clearPropertyValues(const RpcContext& context, const PropertyObjectPtr& component, const ParamsDictPtr& params)
+{
+    ConfigServerAccessControl::protectLockedComponent(component);
+    ConfigServerAccessControl::protectObject(component, context.user, {Permission::Read, Permission::Write});
+    ConfigServerAccessControl::protectViewOnlyConnection(context.connectionType);
+
+    PropertyObjectPtr obj;
+    if (params.hasKey("Path"))
+        obj = component.getPropertyValue(params.get("Path"));
+    else
+        obj = component;
+
+    obj.clearPropertyValues();
+    return nullptr;
+}
+
 inline BaseObjectPtr ConfigServerComponent::beginUpdate(const RpcContext& context,
                                                         const ComponentPtr& component,
                                                         const ParamsDictPtr& params)
@@ -236,13 +276,13 @@ inline BaseObjectPtr ConfigServerComponent::beginUpdate(const RpcContext& contex
     ConfigServerAccessControl::protectObject(component, context.user, {Permission::Read, Permission::Write});
     ConfigServerAccessControl::protectViewOnlyConnection(context.connectionType);
 
+    PropertyObjectPtr obj;
     if (params.hasKey("Path"))
-    {
-        const PropertyObjectPtr obj = component.getPropertyValue(params.get("Path"));
-        obj.beginUpdate();
-    }
+        obj = component.getPropertyValue(params.get("Path"));
     else
-        component.beginUpdate();
+        obj = component;
+
+    obj.beginUpdate();
     return nullptr;
 }
 
@@ -254,9 +294,7 @@ inline BaseObjectPtr ConfigServerComponent::endUpdate(const RpcContext& context,
 
     PropertyObjectPtr obj;
     if (params.hasKey("Path"))
-    {
         obj = component.getPropertyValue(params.get("Path"));
-    }
     else
         obj = component;
 
@@ -304,6 +342,22 @@ inline BaseObjectPtr ConfigServerComponent::update(const RpcContext& context, co
 
     const auto serializedString = static_cast<std::string>(params["Serialized"]);
     const auto path = static_cast<std::string>(params["Path"]);
+    BaseObjectPtr updateParamsOrContext;
+
+    if (params.hasKey("UpdateContext"))
+    {
+        ComponentUpdateContextPtr updateContext = params["UpdateContext"];
+        updateContext.setRootComponent(component);
+        auto updateParameters = updateContext.getUpdateParameters();
+        updateParameters.setPropertyValue("RemoteUpdate", true);
+        updateParamsOrContext = updateContext.detach();
+    }
+    else
+    {
+        auto updateParameters = UpdateParameters();
+        updateParameters.setPropertyValue("RemoteUpdate", true);
+        updateParamsOrContext = updateParameters.detach();
+    }
 
     UpdatablePtr updatable;
     if (!path.empty())
@@ -312,9 +366,11 @@ inline BaseObjectPtr ConfigServerComponent::update(const RpcContext& context, co
         updatable = component;
 
     const auto deserializer = JsonDeserializer();
-    const auto updateParams = UpdateParameters();
-    updateParams.setPropertyValue("RemoteUpdate", true);
-    deserializer.update(updatable, serializedString, updateParams);
+
+    deserializer.update(updatable, serializedString, updateParamsOrContext);
+
+    if (updateParamsOrContext.assigned() && updateParamsOrContext.supportsInterface<IComponentUpdateContext>())
+        return updateParamsOrContext;
 
     return nullptr;
 }

@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.7.0) on 05.03.2026 11:32:34.
+//     RTGen (CGenerator v0.7.0).
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -48,6 +48,7 @@ extern "C"
     daqErrCode EXPORTED daqServer_enableDiscovery(daqServer* self);
     daqErrCode EXPORTED daqServer_getSignals(daqServer* self, daqList** signals, daqSearchFilter* searchFilter);
     daqErrCode EXPORTED daqServer_getStreaming(daqServer* self, daqStreaming** streaming);
+    daqErrCode EXPORTED daqServer_disableDiscovery(daqServer* self);
 
 #ifdef __cplusplus
 }

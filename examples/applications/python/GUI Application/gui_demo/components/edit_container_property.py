@@ -19,7 +19,9 @@ class EditContainerPropertyDialog(Dialog):
         self.event_port = EventPort(parent)
 
         self.geometry('{}x{}'.format(
-            800 * self.context.ui_scaling_factor, 600 * self.context.ui_scaling_factor))
+            int(800 * self.context.ui_scaling_factor * self.context.dpi_factor), 
+            int(600 * self.context.ui_scaling_factor * self.context.dpi_factor)
+            ))
 
         item_types = []
         if isinstance(self.data, daq.IDict):

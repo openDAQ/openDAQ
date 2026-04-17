@@ -371,4 +371,18 @@ void defineIPropertyBuilder(pybind11::module_ m, PyDaqIntf<daq::IPropertyBuilder
         nullptr,
         py::return_value_policy::take_ownership,
         "Gets a custom on-selection-values-read event. Used mostly when cloning properties. / Sets a custom on-selection-values-read event. Used mostly when cloning properties.");
+    cls.def_property("is_integer_value_selection",
+        [](daq::IPropertyBuilder *object)
+        {
+            py::gil_scoped_release release;
+            const auto objectPtr = daq::PropertyBuilderPtr::Borrow(object);
+            return objectPtr.getIsIntegerValueSelection();
+        },
+        [](daq::IPropertyBuilder *object, const bool isIntegerValueSelection)
+        {
+            py::gil_scoped_release release;
+            const auto objectPtr = daq::PropertyBuilderPtr::Borrow(object);
+            objectPtr.setIsIntegerValueSelection(isIntegerValueSelection);
+        },
+        "Gets the integer value selection flag for selection properties with valueType == ctInt. / Sets the integer value selection flag for selection properties with valueType == ctInt.");
 }

@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.7.0) on 05.03.2026 11:32:35.
+//     RTGen (CGenerator v0.7.0).
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -45,4 +45,9 @@ daqErrCode daqServer_getSignals(daqServer* self, daqList** signals, daqSearchFil
 daqErrCode daqServer_getStreaming(daqServer* self, daqStreaming** streaming)
 {
     return reinterpret_cast<daq::IServer*>(self)->getStreaming(reinterpret_cast<daq::IStreaming**>(streaming));
+}
+
+daqErrCode daqServer_disableDiscovery(daqServer* self)
+{
+    return reinterpret_cast<daq::IServer*>(self)->disableDiscovery();
 }

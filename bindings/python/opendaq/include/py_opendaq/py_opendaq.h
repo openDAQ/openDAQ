@@ -122,8 +122,7 @@ PyDaqIntf<daq::ILogFileInfo, daq::IBaseObject> declareILogFileInfo(pybind11::mod
 PyDaqIntf<daq::ILogFileInfoBuilder, daq::IBaseObject> declareILogFileInfoBuilder(pybind11::module_ m);
 PyDaqIntf<daq::IModuleInfo, daq::IBaseObject> declareIModuleInfo(pybind11::module_ m);
 PyDaqIntf<daq::IComponentType, daq::IBaseObject> declareIComponentType(pybind11::module_ m);
-
-
+PyDaqIntf<daq::IDeviceUpdateOptions, daq::IBaseObject> declareIDeviceUpdateOptions(pybind11::module_ m);
 
 py::class_<daq::TimeReader<daq::StreamReaderPtr>> declareTimeStreamReader(pybind11::module_ m);
 py::class_<daq::TimeReader<daq::TailReaderPtr>> declareTimeTailReader(pybind11::module_ m);
@@ -131,8 +130,6 @@ py::class_<daq::TimeReader<daq::BlockReaderPtr>> declareTimeBlockReader(pybind11
 py::class_<daq::TimeReader<daq::MultiReaderPtr>> declareTimeMultiReader(pybind11::module_ m);
 
 py::class_<daq::MockSignal> declareMockSignal(py::module_ m);
-
-
 
 void defineIInstance(pybind11::module_ m, PyDaqIntf<daq::IInstance, daq::IDevice> cls);
 void defineIInstanceBuilder(pybind11::module_ m, PyDaqIntf<daq::IInstanceBuilder, daq::IBaseObject> cls);
@@ -238,6 +235,7 @@ void defineILogFileInfo(pybind11::module_ m, PyDaqIntf<daq::ILogFileInfo, daq::I
 void defineILogFileInfoBuilder(pybind11::module_ m, PyDaqIntf<daq::ILogFileInfoBuilder, daq::IBaseObject> cls);
 void defineIModuleInfo(pybind11::module_ m, PyDaqIntf<daq::IModuleInfo, daq::IBaseObject> cls);
 void defineIComponentType(pybind11::module_ m, PyDaqIntf<daq::IComponentType, daq::IBaseObject> cls);
+void defineIDeviceUpdateOptions(pybind11::module_ m, PyDaqIntf<daq::IDeviceUpdateOptions, daq::IBaseObject> cls);
 
 void defineComponentSearchFilterFactories(pybind11::module_ m);
 void addPythonModuleToManager(daq::IModuleManager* manager, daq::IContext* context, pybind11::object pyModule);

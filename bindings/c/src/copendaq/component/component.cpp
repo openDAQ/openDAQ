@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.7.0) on 05.03.2026 11:32:01.
+//     RTGen (CGenerator v0.7.0).
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -110,6 +110,16 @@ daqErrCode daqComponent_findComponent(daqComponent* self, daqString* id, daqComp
 daqErrCode daqComponent_getOperationMode(daqComponent* self, daqOperationModeType* modeType)
 {
     return reinterpret_cast<daq::IComponent*>(self)->getOperationMode(reinterpret_cast<daq::OperationModeType*>(modeType));
+}
+
+daqErrCode daqComponent_getLocalActive(daqComponent* self, daqBool* localActive)
+{
+    return reinterpret_cast<daq::IComponent*>(self)->getLocalActive(localActive);
+}
+
+daqErrCode daqComponent_getParentActive(daqComponent* self, daqBool* parentActive)
+{
+    return reinterpret_cast<daq::IComponent*>(self)->getParentActive(parentActive);
 }
 
 daqErrCode daqComponent_createComponent(daqComponent** obj, daqContext* context, daqComponent* parent, daqString* localId, daqString* className)

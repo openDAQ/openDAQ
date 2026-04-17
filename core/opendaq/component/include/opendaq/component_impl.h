@@ -78,11 +78,13 @@ public:
     ErrCode INTERFACE_FUNC getLocalId(IString** localId) override;
     ErrCode INTERFACE_FUNC getGlobalId(IString** globalId) override;
     ErrCode INTERFACE_FUNC getActive(Bool* active) override;
+    ErrCode INTERFACE_FUNC getLocalActive(Bool* localActive) override;
+    ErrCode INTERFACE_FUNC getParentActive(Bool* parentActive) override;
     ErrCode INTERFACE_FUNC setActive(Bool active) override;
     ErrCode INTERFACE_FUNC getContext(IContext** context) override;
     ErrCode INTERFACE_FUNC getParent(IComponent** parent) override;
     ErrCode INTERFACE_FUNC getName(IString** name) override;
-    ErrCode INTERFACE_FUNC setName(IString* name) override;
+    virtual ErrCode INTERFACE_FUNC setName(IString* name) override;
     ErrCode INTERFACE_FUNC getDescription(IString** description) override;
     ErrCode INTERFACE_FUNC setDescription(IString* description) override;
     ErrCode INTERFACE_FUNC getTags(ITags** tags) override;
@@ -104,6 +106,7 @@ public:
     ErrCode INTERFACE_FUNC updateOperationMode(OperationModeType modeType) override;
     ErrCode INTERFACE_FUNC setComponentConfig(IPropertyObject* config) override;
     ErrCode INTERFACE_FUNC getComponentConfig(IPropertyObject** config) override;
+    ErrCode INTERFACE_FUNC setParentActive(Bool parentActive) override;
 
     // IRemovable
     ErrCode INTERFACE_FUNC remove() override;
@@ -131,8 +134,14 @@ protected:
     virtual void removedNoLock();
     virtual ErrCode lockAllAttributesInternal();
     ListPtr<IComponent> searchItems(const SearchFilterPtr& searchFilter, const std::vector<ComponentPtr>& items);
-    void setActiveRecursive(const std::vector<ComponentPtr>& items, Bool active);
 
+    void notifyItemsActiveChanged(const std::vector<ComponentPtr>& items);
+    virtual void notifyActiveChanged();
+
+private:
+    bool updateActive();
+
+protected:
     ContextPtr context;
 
     bool isComponentRemoved;
@@ -150,7 +159,9 @@ protected:
 
     std::unordered_set<std::string> lockedAttributes;
     bool visible;
-    bool active;
+    bool active;       // computed: localActive && parentActive
+    bool parentActive;
+    bool localActive;
     StringPtr name;
     StringPtr description;
     ComponentStatusContainerPtr statusContainer;
@@ -222,6 +233,8 @@ ComponentImpl<Intf, Intfs...>::ComponentImpl(
           }))
       , visible(true)
       , active(true)
+      , parentActive(true)
+      , localActive(true)
       , name(name.assigned() && name != "" ? name : localId)
       , description("")
       , statusContainer(createWithImplementation<IComponentStatusContainer, ComponentStatusContainerImpl>(
@@ -242,7 +255,8 @@ ComponentImpl<Intf, Intfs...>::ComponentImpl(
     if (!context.assigned())
         DAQ_THROW_EXCEPTION(InvalidParameterException, "Context must be assigned on component creation");
 
-    if (context.getLogger().assigned()) {
+    if (context.getLogger().assigned())
+    {
         const auto loggerComponent = context.getLogger().getOrAddComponent("Component");
         const auto localIdString = localId.toStdString();
         if (!validateComponentId(localIdString))
@@ -259,6 +273,8 @@ ComponentImpl<Intf, Intfs...>::ComponentImpl(
         permissionManagerPtr.setPermissions(PermissionsBuilder().inherit(true).build());
         const auto parentManager = parent.getPermissionManager();
         permissionManagerPtr.asPtr<IPermissionManagerInternal>(true).setParent(parentManager);
+        this->parentActive = parent.getActive();
+        this->active = this->localActive && this->parentActive;
     }
 }
 
@@ -308,7 +324,29 @@ ErrCode ComponentImpl<Intf, Intfs ...>::getActive(Bool* active)
     return OPENDAQ_SUCCESS;
 }
 
+template <class Intf, class... Intfs>
+ErrCode ComponentImpl<Intf, Intfs...>::getLocalActive(Bool* localActive)
+{
+    OPENDAQ_PARAM_NOT_NULL(localActive);
+
+    auto lock = this->getRecursiveConfigLock2();
+
+    *localActive = this->localActive;
+    return OPENDAQ_SUCCESS;
+}
+
 template <class Intf, class ... Intfs>
+ErrCode ComponentImpl<Intf, Intfs...>::getParentActive(Bool* parentActive)
+{
+    OPENDAQ_PARAM_NOT_NULL(parentActive);
+
+    auto lock = this->getRecursiveConfigLock2();
+
+    *parentActive = this->parentActive;
+    return OPENDAQ_SUCCESS;
+}
+
+template <class Intf, class... Intfs>
 ErrCode ComponentImpl<Intf, Intfs...>::setActive(Bool active)
 {
     if (this->isFrozen())
@@ -320,7 +358,7 @@ ErrCode ComponentImpl<Intf, Intfs...>::setActive(Bool active)
         if (this->isComponentRemoved)
             return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_COMPONENT_REMOVED);
 
-        if (static_cast<bool>(active) == this->active)
+        if (static_cast<bool>(active) == this->localActive)
             return OPENDAQ_IGNORED;
 
         if (lockedAttributes.count("Active"))
@@ -339,18 +377,82 @@ ErrCode ComponentImpl<Intf, Intfs...>::setActive(Bool active)
         if (active && isComponentRemoved)
             return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDSTATE);
 
-        this->active = active;
-        activeChanged();
+        this->localActive = active;
+        if (!updateActive())
+            return OPENDAQ_IGNORED;
     }
 
     if (!this->coreEventMuted && this->coreEvent.assigned())
     {
         const CoreEventArgsPtr args = createWithImplementation<ICoreEventArgs, CoreEventArgsImpl>(
-            CoreEventId::AttributeChanged, Dict<IString, IBaseObject>({{"AttributeName", "Active"}, {"Active", this->active}}));
+            CoreEventId::AttributeChanged,
+            Dict<IString, IBaseObject>({{"AttributeName", "Active"}, {"Active", this->active}, {"LocalActive", this->localActive}}));
         triggerCoreEvent(args);
     }
 
+    auto errCode = daqTry([this] { notifyActiveChanged(); });
+    OPENDAQ_RETURN_IF_FAILED(errCode);
+
     return OPENDAQ_SUCCESS;
+}
+
+template <class Intf, class... Intfs>
+void ComponentImpl<Intf, Intfs...>::notifyItemsActiveChanged(const std::vector<ComponentPtr>& items)
+{
+    for (const auto& item : items)
+    {
+        item.asPtr<IComponentPrivate>(true).setParentActive(this->active);
+    }
+}
+
+template <class Intf, class... Intfs>
+void ComponentImpl<Intf, Intfs...>::notifyActiveChanged()
+{
+}
+
+template <class Intf, class... Intfs>
+ErrCode ComponentImpl<Intf, Intfs...>::setParentActive(Bool parentActive)
+{
+    {
+        auto lock = this->getRecursiveConfigLock2();
+
+        if (this->isComponentRemoved)
+            return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_COMPONENT_REMOVED);
+
+        if (static_cast<bool>(parentActive) == this->parentActive)
+            return OPENDAQ_IGNORED;
+
+        this->parentActive = parentActive;
+        if (!updateActive())
+            return OPENDAQ_IGNORED;
+    }
+
+    if (!this->coreEventMuted && this->coreEvent.assigned())
+    {
+        const CoreEventArgsPtr args = createWithImplementation<ICoreEventArgs, CoreEventArgsImpl>(
+            CoreEventId::AttributeChanged,
+            Dict<IString, IBaseObject>({{"AttributeName", "Active"}, {"Active", this->active}, {"ParentActive", this->parentActive}}));
+        triggerCoreEvent(args);
+    }
+
+    auto errCode = daqTry([this] { notifyActiveChanged(); });
+    OPENDAQ_RETURN_IF_FAILED(errCode);
+
+    return OPENDAQ_SUCCESS;
+}
+
+template <class Intf, class... Intfs>
+bool ComponentImpl<Intf, Intfs...>::updateActive()
+{
+    auto oldActive = active;
+    active = parentActive && localActive;
+
+    const auto hasActiveChanged = oldActive != active;
+
+    if (hasActiveChanged)
+        activeChanged();
+
+    return hasActiveChanged;
 }
 
 template <class Intf, class ... Intfs>
@@ -809,8 +911,8 @@ ErrCode ComponentImpl<Intf, Intfs ...>::remove()
 
         if (active)
         {
-            active = false;
-            activeChanged();
+            localActive = false;
+            updateActive();
         }
 
         this->disableCoreEventTrigger();
@@ -856,10 +958,11 @@ template <class Intf, class... Intfs>
 ErrCode INTERFACE_FUNC ComponentImpl<Intf, Intfs...>::update(ISerializedObject* obj, IBaseObject* config)
 {
     auto configPtr = BaseObjectPtr::Borrow(config);
-    if (configPtr.assigned() && !configPtr.supportsInterface<IUpdateParameters>())
-    {
-        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDPARAMETER, "Update parameters is not IUpdateParameters interface");
-    }
+
+    // Config object can be either the update parameters provided by the user
+    // or the constructed context when propagated from a native configuration client.
+    if (configPtr.assigned() && !configPtr.supportsInterface<IUpdateParameters>() && !configPtr.supportsInterface<IComponentUpdateContext>())
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDPARAMETER, "Update config must support either IUpdateParameters or IComponentUpdateContext");
 
     const bool muted = this->coreEventMuted;
     const auto thisPtr = this->template borrowPtr<ComponentPtr>();
@@ -867,10 +970,18 @@ ErrCode INTERFACE_FUNC ComponentImpl<Intf, Intfs...>::update(ISerializedObject* 
     if (!muted)
         propInternalPtr.disableCoreEventTrigger();
 
-    BaseObjectPtr context(createWithImplementation<IComponentUpdateContext, ComponentUpdateContextImpl>(this->template borrowPtr<ComponentPtr>(), config));
+    BaseObjectPtr context;
+    if (configPtr.supportsInterface<IComponentUpdateContext>())
+        context = configPtr;
+    else
+        context = createWithImplementation<IComponentUpdateContext, ComponentUpdateContextImpl>(this->template borrowPtr<ComponentPtr>(), config);
+
     ErrCode errCode = updateInternal(obj, context);
     if (OPENDAQ_SUCCEEDED(errCode))
+    {
+        OPENDAQ_RETURN_IF_FAILED(context.asPtr<IComponentUpdateContext>()->remapInputPortConnections());
         errCode = this->updateEnded(context);
+    }
     else
         errCode = DAQ_EXTEND_ERROR_INFO(errCode, "Component update failed");
 
@@ -880,6 +991,7 @@ ErrCode INTERFACE_FUNC ComponentImpl<Intf, Intfs...>::update(ISerializedObject* 
         triggerCoreEvent(args);
         propInternalPtr.enableCoreEventTrigger();
     }
+    OPENDAQ_RETURN_IF_FAILED(errCode);
     return errCode;
 }
 
@@ -1050,21 +1162,6 @@ ListPtr<IComponent> ComponentImpl<Intf, Intfs...>::searchItems(const SearchFilte
     return childList.detach();
 }
 
-template <class Intf, class ... Intfs>
-void ComponentImpl<Intf, Intfs...>::setActiveRecursive(const std::vector<ComponentPtr>& items, Bool active)
-{
-    const bool muted = this->coreEventMuted;
-    const auto propInternalPtr = this->template borrowPtr<PropertyObjectInternalPtr>();
-    if (!muted)
-        propInternalPtr.disableCoreEventTrigger();
-
-    for (const auto& item : items)
-        item.setActive(active);
-
-    if (!muted)
-        propInternalPtr.enableCoreEventTrigger();
-}
-
 template <class Intf, class... Intfs>
 ErrCode ComponentImpl<Intf, Intfs...>::serializeCustomValues(ISerializer* serializer, bool forUpdate)
 {
@@ -1107,7 +1204,10 @@ template <class Intf, class... Intfs>
 void ComponentImpl<Intf, Intfs...>::updateObject(const SerializedObjectPtr& obj, const BaseObjectPtr& /* context */)
 {
     if (obj.hasKey("active") && !lockedAttributes.count("Active"))
-        active = obj.readBool("active");
+    {
+        localActive = obj.readBool("active");
+        active = parentActive && localActive;
+    }
 
     if (obj.hasKey("visible") && !lockedAttributes.count("Visible"))
         visible = obj.readBool("visible");
@@ -1122,10 +1222,10 @@ void ComponentImpl<Intf, Intfs...>::updateObject(const SerializedObjectPtr& obj,
 template <class Intf, class... Intfs>
 void ComponentImpl<Intf, Intfs...>::serializeCustomObjectValues(const SerializerPtr& serializer, bool forUpdate)
 {
-    if (!active)
+    if (!localActive)
     {
         serializer.key("active");
-        serializer.writeBool(active);
+        serializer.writeBool(localActive);
     }
 
     if (!visible)
@@ -1238,8 +1338,14 @@ void ComponentImpl<Intf, Intfs...>::deserializeCustomObjectValues(const Serializ
                                                                   const BaseObjectPtr& context,
                                                                   const FunctionPtr& /*factoryCallback*/)
 {
+    const auto deserializeContext = context.asPtr<IComponentDeserializeContext>(true);
+    const auto deserializeParent = deserializeContext.getParent();
+
+    if (deserializeParent.assigned())
+        parentActive = deserializeParent.getActive();
     if (serializedObject.hasKey("active"))
-        active = serializedObject.readBool("active");
+        localActive = serializedObject.readBool("active");
+    active = parentActive && localActive;
 
     if (serializedObject.hasKey("visible"))
         visible = serializedObject.readBool("visible");
@@ -1250,14 +1356,13 @@ void ComponentImpl<Intf, Intfs...>::deserializeCustomObjectValues(const Serializ
     if (serializedObject.hasKey("name"))
         name = serializedObject.readString("name");
 
-    const auto deserializeContext = context.asPtr<IComponentDeserializeContext>(true);
     auto intfID = deserializeContext.getIntfID();
     const auto triggerCoreEvent = [this](const CoreEventArgsPtr& args)
     {
         if (!this->coreEventMuted)
             this->triggerCoreEvent(args);
     };
-    const auto clonedDeserializeContext = deserializeContext.clone(deserializeContext.getParent(),
+    const auto clonedDeserializeContext = deserializeContext.clone(deserializeParent,
                                                                    deserializeContext.getLocalId(),
                                                                    &intfID,
                                                                    triggerCoreEvent);
@@ -1312,8 +1417,8 @@ void ComponentImpl<Intf, Intfs...>::setComponentStatusWithMessage(const Componen
             "ComponentStatus has not been added to statusContainer. initComponentStatus needs to be called before setComponentStatus.");
     }
 
-    // Check if status and message are the same as before, and also Ok and empty string, and if so, return
-    if (status == oldStatus && status == ComponentStatus::Ok && message == oldMessage && message == "")
+    // Skip the update and logging if the component status is identical to old one
+    if (status == oldStatus && message == oldMessage)
         return;
 
     // Set status if initialized

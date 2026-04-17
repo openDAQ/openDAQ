@@ -30,6 +30,7 @@
     <Expand>
       <Item Name="handle">handle</Item>
       <Item Name="module">module</Item>
+      <Item Name="path">path</Item>
     </Expand>
   </Type>
 </AutoVisualizer>

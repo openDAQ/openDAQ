@@ -14,7 +14,7 @@ class DeviceInfoDialog(Dialog):
     def __init__(self, parent, node: daq.IDeviceInfo, context: AppContext, title='', **kwargs):
         super().__init__(parent, f'Device {node.name} info', context, **kwargs)
         self.context = context
-        self.geometry(f'{600}x{800}')
+        self.geometry(f'{int(600 * context.dpi_factor)}x{int(800 * context.dpi_factor)}')
 
         header_frame = ttk.Frame(self)
 

@@ -26,6 +26,7 @@ struct IConnection;
  * [interfaceSmartPtr(IComponent, GenericComponentPtr, "<opendaq/component_ptr.h>")]
  * [templated(defaultAliasName: InputPortPtr)]
  * [interfaceSmartPtr(IInputPort, GenericInputPortPtr)]
+ * [interfaceSmartPtr(IBoolean, BoolPtr, "<coretypes/boolean_factory.h>")]
  */
 
 /*!
@@ -95,13 +96,22 @@ DECLARE_OPENDAQ_INTERFACE(IInputPort, IComponent)
      * @brief Returns true if the port is public; false otherwise.
      * @param[out] isPublic True if the port is public; false otherwise.
      */
-    virtual ErrCode INTERFACE_FUNC getPublic(Bool * isPublic) = 0;
+    virtual ErrCode INTERFACE_FUNC getPublic(Bool* isPublic) = 0;
 
     /*!
      * @brief Sets the port to be either public or private.
      * @param isPublic If false, the port is set to private; if true, the port is set to be public.
      */
     virtual ErrCode INTERFACE_FUNC setPublic(Bool isPublic) = 0;
+
+    // [elementType(signals, ISignal), elementType(accepts, IBoolean)]
+    /*!
+     * @brief Checks whether the given signals can be connected to the input port.
+     * @param signals The signals to check.
+     * @param[out] accepts Output list of boolean values matching @p signals by index. A value of `true`
+     * indicates that the corresponding signal can be connected; `false` otherwise.
+     */
+    virtual ErrCode INTERFACE_FUNC acceptsSignals(IList* signals, IList** accepts) = 0;
 };
 /*!@}*/
 

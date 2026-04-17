@@ -121,6 +121,7 @@ DeviceTypePtr RefDeviceImpl::CreateType(const ModuleInfoPtr& moduleInfo)
     defaultConfig.addProperty(BoolProperty("EnableLogging", False));
     defaultConfig.addProperty(StringProperty("LoggingPath", "ref_device_simulator.log"));
     defaultConfig.addProperty(StringProperty("Name", ""));
+    defaultConfig.addProperty(StringProperty("LocalId", ""));
     defaultConfig.addProperty(BoolProperty("UsePacketBuffer", False));
 
     auto deviceType = DeviceType("daqref",
@@ -546,7 +547,7 @@ ListPtr<ILogFileInfo> RefDeviceImpl::onGetLogFileInfos()
                                            .setEncoding("utf-8")
                                            .setLastModified(lastModified)
                                            .build();
-    
+
     return List<ILogFileInfo>(logFileInfo);
 }
 
@@ -592,8 +593,7 @@ std::set<OperationModeType> RefDeviceImpl::onGetAvailableOperationModes()
 void RefDeviceImpl::onOperationModeChanged(OperationModeType modeType)
 {
     bool active = modeType != OperationModeType::Idle;
-    for (const auto& ch : this->channels)
-        ch.setActive(active);
+    this->setActive(active);
 }
 
 void RefDeviceImpl::createSignals()

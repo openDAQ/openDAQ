@@ -10,6 +10,7 @@ PropertyBuilderImpl::PropertyBuilderImpl()
     : valueType(ctUndefined)
     , visible(true)
     , readOnly(false)
+    , isIntegerValueSelection(false)
 {
     if (valueType == ctBinaryData)
     {
@@ -84,7 +85,6 @@ PropertyBuilderImpl::PropertyBuilderImpl(const StringPtr& name, IPropertyObject*
     : PropertyBuilderImpl(name, BaseObjectPtr(defaultValue))
 {
     this->valueType = ctObject;
-    this->readOnly = true;
     if (defaultValue == nullptr)
         this->defaultValue = PropertyObject().detach();
 }
@@ -454,6 +454,20 @@ ErrCode PropertyBuilderImpl::getOnSelectionValuesRead(IEvent** event)
     OPENDAQ_PARAM_NOT_NULL(event);
     
     *event = this->onSelectionValuesRead.addRefAndReturn();
+    return OPENDAQ_SUCCESS;
+}
+
+ErrCode PropertyBuilderImpl::setIsIntegerValueSelection(Bool isIntegerValueSelection)
+{
+    this->isIntegerValueSelection = isIntegerValueSelection;
+    return OPENDAQ_SUCCESS;
+}
+
+ErrCode PropertyBuilderImpl::getIsIntegerValueSelection(Bool* isIntegerValueSelection)
+{
+    OPENDAQ_PARAM_NOT_NULL(isIntegerValueSelection);
+
+    *isIntegerValueSelection = this->isIntegerValueSelection;
     return OPENDAQ_SUCCESS;
 }
 

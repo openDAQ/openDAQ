@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.7.0) on 05.03.2026 11:31:53.
+//     RTGen (CGenerator v0.7.0).
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -215,6 +215,16 @@ daqErrCode daqPropertyBuilder_setOnSelectionValuesRead(daqPropertyBuilder* self,
 daqErrCode daqPropertyBuilder_getOnSelectionValuesRead(daqPropertyBuilder* self, daqEvent** event)
 {
     return reinterpret_cast<daq::IPropertyBuilder*>(self)->getOnSelectionValuesRead(reinterpret_cast<daq::IEvent**>(event));
+}
+
+daqErrCode daqPropertyBuilder_setIsIntegerValueSelection(daqPropertyBuilder* self, daqBool isIntegerValueSelection)
+{
+    return reinterpret_cast<daq::IPropertyBuilder*>(self)->setIsIntegerValueSelection(isIntegerValueSelection);
+}
+
+daqErrCode daqPropertyBuilder_getIsIntegerValueSelection(daqPropertyBuilder* self, daqBool* isIntegerValueSelection)
+{
+    return reinterpret_cast<daq::IPropertyBuilder*>(self)->getIsIntegerValueSelection(isIntegerValueSelection);
 }
 
 daqErrCode daqPropertyBuilder_createPropertyBuilder(daqPropertyBuilder** obj, daqString* name)

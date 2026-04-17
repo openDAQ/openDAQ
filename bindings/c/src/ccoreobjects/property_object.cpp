@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.7.0) on 05.03.2026 11:31:53.
+//     RTGen (CGenerator v0.7.0).
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -130,6 +130,16 @@ daqErrCode daqPropertyObject_getPermissionManager(daqPropertyObject* self, daqPe
 daqErrCode daqPropertyObject_findProperties(daqPropertyObject* self, daqList** properties, daqSearchFilter* propertyFilter, daqSearchFilter* componentFilter)
 {
     return reinterpret_cast<daq::IPropertyObject*>(self)->findProperties(reinterpret_cast<daq::IList**>(properties), reinterpret_cast<daq::ISearchFilter*>(propertyFilter), reinterpret_cast<daq::ISearchFilter*>(componentFilter));
+}
+
+daqErrCode daqPropertyObject_setPropertySelectionValue(daqPropertyObject* self, daqString* propertyName, daqBaseObject* value)
+{
+    return reinterpret_cast<daq::IPropertyObject*>(self)->setPropertySelectionValue(reinterpret_cast<daq::IString*>(propertyName), reinterpret_cast<daq::IBaseObject*>(value));
+}
+
+daqErrCode daqPropertyObject_clearPropertyValues(daqPropertyObject* self)
+{
+    return reinterpret_cast<daq::IPropertyObject*>(self)->clearPropertyValues();
 }
 
 daqErrCode daqPropertyObject_createPropertyObject(daqPropertyObject** obj)

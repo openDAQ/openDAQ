@@ -115,6 +115,11 @@ private:
     std::pair<StringPtr, DeviceInfoPtr> populateDiscoveredDevice(const discovery::MdnsDiscoveredDevice& discoveredDevice);
     void onCompleteCapabilities(const DevicePtr& device, const DeviceInfoPtr& discoveredDeviceInfo);
 
+    ErrCode tryLoadAndAddModule(const StringPtr& path, IModule** module);
+    template <typename Functor>
+    void printComponentTypes(Functor func, const std::string& kind);
+    void printAvailableTypes(const ModulePtr& module);
+
     bool authenticatedModulesOnly;
     ModuleAuthenticatorPtr moduleAuthenticator;
     DictPtr<IString, IString> moduleKeys;
@@ -139,6 +144,7 @@ private:
 
     std::chrono::time_point<std::chrono::steady_clock> lastScanTime;
     std::chrono::milliseconds rescanTimer;
+    Bool safeLoadingMode;
 };
 
 END_NAMESPACE_OPENDAQ

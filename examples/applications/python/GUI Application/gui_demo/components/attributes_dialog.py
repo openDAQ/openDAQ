@@ -13,7 +13,7 @@ class AttributesDialog(Dialog):
     def __init__(self, parent, title, node, context: AppContext, **kwargs):
         Dialog.__init__(self, parent, title, context, **kwargs)
 
-        self.geometry(f'{600}x{800}')
+        self.geometry(f'{int(600 * context.dpi_factor)}x{int(800 * context.dpi_factor)}')
         tree_frame = ttk.Frame(self)
         tree_frame.pack(fill=tk.BOTH, expand=True)
 
@@ -41,6 +41,28 @@ class AttributesDialog(Dialog):
 
 
             elif daq.IDevice.can_cast_from(node):
-                ttk.Label(additional_tree_frame, text='Device Info').pack(anchor=tk.W, pady=5)
-                PropertiesTreeview(additional_tree_frame, daq.IDevice.cast_from(node).info, context)
+                device = daq.IDevice.cast_from(node)
 
+                notebook = ttk.Notebook(additional_tree_frame)
+                notebook.pack(fill=tk.BOTH, expand=True)
+
+                info_frame = ttk.Frame(notebook)
+                info_frame.pack(fill=tk.BOTH, expand=True)
+                notebook.add(info_frame, text='Device Info')
+                PropertiesTreeview(info_frame, device.info, context)
+
+                domain_frame = ttk.Frame(notebook)
+                domain_frame.pack(fill=tk.BOTH, expand=True)
+                notebook.add(domain_frame, text='Device Domain')
+
+                try:
+                    device_domain = device.domain
+                except RuntimeError:
+                    device_domain = None
+
+                if device_domain is not None:
+                    DataDescriptorTreeview(domain_frame, device_domain, context)
+                else:
+                    ttk.Label(domain_frame,
+                              text='No device domain available',
+                              padding=(10, 10)).pack(anchor=tk.W)

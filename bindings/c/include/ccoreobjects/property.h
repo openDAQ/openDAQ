@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (CGenerator v0.7.0) on 05.03.2026 11:31:52.
+//     RTGen (CGenerator v0.7.0).
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -82,6 +82,7 @@ extern "C"
     daqErrCode EXPORTED daqProperty_setValue(daqProperty* self, daqBaseObject* value);
     daqErrCode EXPORTED daqProperty_getOnSuggestedValuesRead(daqProperty* self, daqEvent** event);
     daqErrCode EXPORTED daqProperty_getOnSelectionValuesRead(daqProperty* self, daqEvent** event);
+    daqErrCode EXPORTED daqProperty_getPropertyType(daqProperty* self, daqPropertyType* type);
     daqErrCode EXPORTED daqProperty_createBoolProperty(daqProperty** obj, daqString* name, daqBoolean* defaultValue, daqBoolean* visible);
     daqErrCode EXPORTED daqProperty_createIntProperty(daqProperty** obj, daqString* name, daqInteger* defaultValue, daqBoolean* visible);
     daqErrCode EXPORTED daqProperty_createFloatProperty(daqProperty** obj, daqString* name, daqFloatObject* defaultValue, daqBoolean* visible);

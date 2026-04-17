@@ -741,6 +741,28 @@ TEST_F(ConfigProtocolIntegrationTest, AcceptsSignal)
     ASSERT_TRUE(clientAcceptsServerSignal);
 }
 
+TEST_F(ConfigProtocolIntegrationTest, AcceptsSignals)
+{
+    auto clientSignal = clientDevice.getSignals()[0];
+    auto parentlessSignal = Signal(clientSignal.getContext(), nullptr, "test");
+    // such connection likely creates unsafe loopback with undefined behavior, but signal is still accepted
+    auto serverSignal = serverDevice.getSignals()[0];
+
+    auto signalList = List<ISignal>();
+    signalList.pushBack(clientSignal);
+    signalList.pushBack(parentlessSignal);
+    signalList.pushBack(serverSignal);
+
+    daq::ListPtr<daq::IBoolean> acceptanceList = nullptr;
+    ASSERT_NO_THROW(acceptanceList =
+                        clientDevice.getDevices()[0].getFunctionBlocks()[0].getInputPorts()[0].acceptsSignals(signalList));
+    ASSERT_TRUE(acceptanceList.assigned());
+    ASSERT_TRUE(acceptanceList.getCount() == 3);
+    ASSERT_TRUE(acceptanceList[0]);
+    ASSERT_TRUE(acceptanceList[1]);
+    ASSERT_TRUE(acceptanceList[2]);
+}
+
 TEST_F(ConfigProtocolIntegrationTest, GetAvailableDevices)
 {
     auto availableDevicesServer = serverDevice.getAvailableDevices();
@@ -1021,4 +1043,13 @@ TEST_F(ConfigProtocolIntegrationTest, BeginEndUpdateNestedPropertyObjectOrder)
     ASSERT_EQ(state, State::ComponentEnded);
     ASSERT_EQ(clientMockChild.getPropertyValue("NestedStringProperty"), "NewValue");
     ASSERT_EQ(serverMockChild.getPropertyValue("NestedStringProperty"), "NewValue");
+}
+
+TEST_F(ConfigProtocolIntegrationTest, GetServers)
+{
+    ASSERT_GT(serverDevice.getServers().getCount(), 0u);
+
+    ListPtr<IServer> servers;
+    ASSERT_NO_THROW(servers = clientDevice.getServers());
+    ASSERT_EQ(servers.getCount(), serverDevice.getServers().getCount());
 }

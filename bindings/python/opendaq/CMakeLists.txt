@@ -112,6 +112,7 @@ set(SRC_Cpp
     generated/synchronization/py_sync_component_private.cpp
     generated/modulemanager/py_module_info.cpp
     generated/component/py_component_type.cpp
+    generated/utility/py_device_update_options.cpp
 )
 
 add_library(${LIB_NAME} STATIC ${SRC_Headers} ${SRC_Cpp})

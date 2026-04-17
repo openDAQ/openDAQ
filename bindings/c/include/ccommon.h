@@ -100,6 +100,7 @@ extern "C"
 #include <copendaq/signal/common.h>
 #include <copendaq/streaming/common.h>
 #include <copendaq/synchronization/common.h>
+#include <copendaq/utility/common.h>
 
 #ifdef __cplusplus
 }

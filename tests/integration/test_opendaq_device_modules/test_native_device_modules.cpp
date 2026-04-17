@@ -29,7 +29,7 @@ using NativeDeviceModulesTest = testing::Test;
 
 using namespace daq;
 
-const uint16_t LATEST_CONFIG_PROTOCOL_VERSION = 20;
+const uint16_t LATEST_CONFIG_PROTOCOL_VERSION = 24;
 
 static InstancePtr CreateCustomServerInstance(AuthenticationProviderPtr authenticationProvider)
 {
@@ -917,6 +917,100 @@ TEST_F(NativeDeviceModulesTest, RemoveServer)
                 bool isRemovedServer = test_helpers::isSufix(capability.getConnectionString(), path);
                 bool isNewServer = test_helpers::isSufix(capability.getConnectionString(), path2);
                 if (!isRemovedServer && !isNewServer)
+                    break;
+
+                if (capability.getProtocolName() == "OpenDAQNativeConfiguration")
+                {
+                    deviceFound += 1;
+                }
+            }
+        }
+        ASSERT_EQ(deviceFound, 1u);
+    }
+}
+
+TEST_F(NativeDeviceModulesTest, ServerEnableDisableDiscovery)
+{
+    auto serverInstance = InstanceBuilder()
+    .setModulePath("[[none]]")
+        .addDiscoveryServer("mdns")
+        .setDefaultRootDeviceLocalId("local")
+        .build();
+
+    addRefDeviceModule(serverInstance);
+    serverInstance.addDevice("daqref://device1");
+
+    addNativeServerModule(serverInstance);
+    auto serverConfig = serverInstance.getAvailableServerTypes().get("OpenDAQNativeStreaming").createDefaultConfig();
+    auto path = "/test/native_configuration/enableDisableDiscovery/";
+    serverConfig.setPropertyValue("Path", path);
+    auto nativeServer = serverInstance.addServer("OpenDAQNativeStreaming", serverConfig);
+
+    auto connectedClient = Instance("[[none]]");
+    addNativeClientModule(connectedClient);
+    auto device = connectedClient.addDevice("daq.nd://127.0.0.1");
+    ASSERT_GT(device.getServers().getCount(), 0u);
+    auto mirroredServer = device.getServers()[0];
+
+    // enable discovery from client and check that server is discoverable
+    mirroredServer.enableDiscovery();
+    {
+        auto client = Instance("[[none]]");
+        addNativeClientModule(client);
+
+        size_t deviceFound = 0;
+        for (const auto& deviceInfo : client.getAvailableDevices())
+        {
+            for (const auto& capability : deviceInfo.getServerCapabilities())
+            {
+                if (!test_helpers::isSufix(capability.getConnectionString(), path))
+                    break;
+
+                if (capability.getProtocolName() == "OpenDAQNativeConfiguration")
+                {
+                    deviceFound += 1;
+                }
+            }
+        }
+        ASSERT_EQ(deviceFound, 1u);
+    }
+
+    // disable discovery from client and check that server now is not discoverable
+    mirroredServer.disableDiscovery();
+    std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+    {
+        auto client = Instance("[[none]]");
+        addNativeClientModule(client);
+
+        size_t deviceFound = 0;
+        for (const auto& deviceInfo : client.getAvailableDevices())
+        {
+            for (const auto& capability : deviceInfo.getServerCapabilities())
+            {
+                if (!test_helpers::isSufix(capability.getConnectionString(), path))
+                    break;
+
+                if (capability.getProtocolName() == "OpenDAQNativeConfiguration")
+                {
+                    deviceFound += 1;
+                }
+            }
+        }
+        ASSERT_EQ(deviceFound, 0u);
+    }
+
+    // enable discovery from client again and check that server is discoverable
+    mirroredServer.enableDiscovery();
+    {
+        auto client = Instance("[[none]]");
+        addNativeClientModule(client);
+
+        size_t deviceFound = 0;
+        for (const auto& deviceInfo : client.getAvailableDevices())
+        {
+            for (const auto& capability : deviceInfo.getServerCapabilities())
+            {
+                if (!test_helpers::isSufix(capability.getConnectionString(), path))
                     break;
 
                 if (capability.getProtocolName() == "OpenDAQNativeConfiguration")
@@ -3240,13 +3334,9 @@ TEST_F(NativeDeviceModulesTest, SaveLoadDeviceInfo)
     ASSERT_EQ(deviceInfo.getPropertyValue("userName"), "testUser");
     ASSERT_EQ(deviceInfo.getPropertyValue("location"), "testLocation");
 
-    ASSERT_TRUE(deviceInfo.hasProperty("ServerCustomProperty"));
-    ASSERT_EQ(deviceInfo.getProperty("ServerCustomProperty").getDefaultValue(), "defaultValue");
-    ASSERT_EQ(deviceInfo.getPropertyValue("ServerCustomProperty"), "newValue");
+    ASSERT_FALSE(deviceInfo.hasProperty("ServerCustomProperty"));
 
-    ASSERT_TRUE(deviceInfo.hasProperty("ClientCustomProperty"));
-    ASSERT_EQ(deviceInfo.getProperty("ClientCustomProperty").getDefaultValue(), "defaultValue");
-    ASSERT_EQ(deviceInfo.getPropertyValue("ClientCustomProperty"), "newValue");
+    ASSERT_FALSE(deviceInfo.hasProperty("ClientCustomProperty"));
 }
 
 StringPtr getFileLastModifiedTime(const std::string& path)
@@ -3363,9 +3453,9 @@ TEST_F(NativeDeviceModulesTest, SettingOperationMode)
 {
     auto server = CreateServerInstance();
     auto client = CreateClientInstance();
-    test_helpers::checkDeviceOperationMode(server, daq::OperationModeType::Operation);
-    test_helpers::checkDeviceOperationMode(server.getDevices()[0], daq::OperationModeType::Operation);
-    test_helpers::checkDeviceOperationMode(client.getRootDevice(), daq::OperationModeType::Operation);
+    test_helpers::checkDeviceOperationMode(server, daq::OperationModeType::SafeOperation);
+    test_helpers::checkDeviceOperationMode(server.getDevices()[0], daq::OperationModeType::SafeOperation);
+    test_helpers::checkDeviceOperationMode(client.getRootDevice(), daq::OperationModeType::SafeOperation);
 
     ASSERT_EQ(server.getAvailableOperationModes(), client.getDevices()[0].getAvailableOperationModes());
     ASSERT_EQ(server.getDevices()[0].getAvailableOperationModes(), client.getDevices()[0].getDevices()[0].getAvailableOperationModes());
@@ -3376,39 +3466,39 @@ TEST_F(NativeDeviceModulesTest, SettingOperationMode)
     test_helpers::checkDeviceOperationMode(server.getRootDevice(), daq::OperationModeType::Idle, true);
     test_helpers::checkDeviceOperationMode(server.getDevices()[0], daq::OperationModeType::Idle, true);
 
-    test_helpers::checkDeviceOperationMode(client.getRootDevice(), daq::OperationModeType::Operation);
+    test_helpers::checkDeviceOperationMode(client.getRootDevice(), daq::OperationModeType::SafeOperation);
     test_helpers::checkDeviceOperationMode(client.getDevices()[0], daq::OperationModeType::Idle);
     test_helpers::checkDeviceOperationMode(client.getDevices()[0].getDevices()[0], daq::OperationModeType::Idle);
 
     // setting the operation mode for server sub device
-    ASSERT_NO_THROW(server.getDevices()[0].setOperationModeRecursive(daq::OperationModeType::SafeOperation));
+    ASSERT_NO_THROW(server.getDevices()[0].setOperationModeRecursive(daq::OperationModeType::Operation));
+    std::this_thread::sleep_for(std::chrono::milliseconds(100));
+    test_helpers::checkDeviceOperationMode(server.getRootDevice(), daq::OperationModeType::Idle, true);
+    test_helpers::checkDeviceOperationMode(server.getDevices()[0], daq::OperationModeType::Operation, true);
+
+    test_helpers::checkDeviceOperationMode(client.getRootDevice(), daq::OperationModeType::SafeOperation);
+    test_helpers::checkDeviceOperationMode(client.getDevices()[0], daq::OperationModeType::Idle);
+    test_helpers::checkDeviceOperationMode(client.getDevices()[0].getDevices()[0], daq::OperationModeType::Operation);
+
+    // setting the operation mode for client sub device
+    ASSERT_NO_THROW(client.getDevices()[0].getDevices()[0].setOperationModeRecursive(daq::OperationModeType::SafeOperation));
     std::this_thread::sleep_for(std::chrono::milliseconds(100));
     test_helpers::checkDeviceOperationMode(server.getRootDevice(), daq::OperationModeType::Idle, true);
     test_helpers::checkDeviceOperationMode(server.getDevices()[0], daq::OperationModeType::SafeOperation, true);
 
-    test_helpers::checkDeviceOperationMode(client.getRootDevice(), daq::OperationModeType::Operation);
+    test_helpers::checkDeviceOperationMode(client.getRootDevice(), daq::OperationModeType::SafeOperation);
     test_helpers::checkDeviceOperationMode(client.getDevices()[0], daq::OperationModeType::Idle);
     test_helpers::checkDeviceOperationMode(client.getDevices()[0].getDevices()[0], daq::OperationModeType::SafeOperation);
 
-    // setting the operation mode for client sub device
-    ASSERT_NO_THROW(client.getDevices()[0].getDevices()[0].setOperationModeRecursive(daq::OperationModeType::Operation));
-    std::this_thread::sleep_for(std::chrono::milliseconds(100));
-    test_helpers::checkDeviceOperationMode(server.getRootDevice(), daq::OperationModeType::Idle, true);
-    test_helpers::checkDeviceOperationMode(server.getDevices()[0], daq::OperationModeType::Operation, true);
-
-    test_helpers::checkDeviceOperationMode(client.getRootDevice(), daq::OperationModeType::Operation);
-    test_helpers::checkDeviceOperationMode(client.getDevices()[0], daq::OperationModeType::Idle);
-    test_helpers::checkDeviceOperationMode(client.getDevices()[0].getDevices()[0], daq::OperationModeType::Operation);
-
     // setting the operation mode for client device not recursively
-    ASSERT_NO_THROW(client.getDevices()[0].setOperationMode(daq::OperationModeType::SafeOperation));
+    ASSERT_NO_THROW(client.getDevices()[0].setOperationMode(daq::OperationModeType::Operation));
     std::this_thread::sleep_for(std::chrono::milliseconds(100));
-    test_helpers::checkDeviceOperationMode(server.getRootDevice(), daq::OperationModeType::SafeOperation, true);
-    test_helpers::checkDeviceOperationMode(server.getDevices()[0], daq::OperationModeType::Operation, true);
+    test_helpers::checkDeviceOperationMode(server.getRootDevice(), daq::OperationModeType::Operation, true);
+    test_helpers::checkDeviceOperationMode(server.getDevices()[0], daq::OperationModeType::SafeOperation, true);
 
-    test_helpers::checkDeviceOperationMode(client.getRootDevice(), daq::OperationModeType::Operation);
-    test_helpers::checkDeviceOperationMode(client.getDevices()[0], daq::OperationModeType::SafeOperation);
-    test_helpers::checkDeviceOperationMode(client.getDevices()[0].getDevices()[0], daq::OperationModeType::Operation);
+    test_helpers::checkDeviceOperationMode(client.getRootDevice(), daq::OperationModeType::SafeOperation);
+    test_helpers::checkDeviceOperationMode(client.getDevices()[0], daq::OperationModeType::Operation);
+    test_helpers::checkDeviceOperationMode(client.getDevices()[0].getDevices()[0], daq::OperationModeType::SafeOperation);
 
     // setting the operation mode for client device
     ASSERT_NO_THROW(client.setOperationModeRecursive(daq::OperationModeType::Idle));
@@ -4418,4 +4508,190 @@ TEST_F(NativeDeviceModulesTest, ParallelRpcCallsDefault)
     ASSERT_EQ(propertyWriteHistory.size(), 2u);
     ASSERT_EQ(propertyWriteHistory[0], 500);
     ASSERT_EQ(propertyWriteHistory[1], 100);
+}
+
+TEST_F(NativeDeviceModulesTest, CreateDynamicProperty1AndSetManufacturer)
+{
+    // SKIP_TEST_MAC_CI;
+    auto server = CreateServerInstance();
+    auto serverRoot = server.getRootDevice();
+
+    size_t propertyWriteHistory = 0;
+    auto propertyWriteCallback = [&propertyWriteHistory](PropertyObjectPtr& obj, PropertyValueEventArgsPtr& args)
+    {
+        propertyWriteHistory += 1;
+    };
+
+    // Register dynamic property on server
+    {
+        const auto procBuilder = FunctionPropertyBuilder("CreateDynamicProperty", FunctionInfo(CoreType::ctBool));
+        serverRoot.addProperty(procBuilder.build());
+        serverRoot.asPtr<IPropertyObjectProtected>(true).setProtectedPropertyValue(
+            "CreateDynamicProperty",
+            Function(
+                [&](IBaseObject* input, IBaseObject** output)
+                {
+                    auto group = PropertyObject();
+
+                    group.addProperty(StringPropertyBuilder("Manufacturer", "").build());
+                    group.getOnPropertyValueWrite("Manufacturer") += propertyWriteCallback;
+
+                    serverRoot.addProperty(ObjectPropertyBuilder("Test1Obj", group).build());
+
+                    *output = Boolean(true).detach();
+                    return OPENDAQ_SUCCESS;
+                }));
+    }
+
+
+    auto client = CreateClientInstance();
+    auto clientRoot = client.getDevices()[0];
+
+    ASSERT_TRUE(clientRoot.hasProperty("CreateDynamicProperty"));
+    FunctionPtr fn = clientRoot.getPropertyValue("CreateDynamicProperty");
+    fn();
+
+    ASSERT_TRUE(server.hasProperty("Test1Obj"));
+    const auto serverTest1Obj = server.getPropertyValue("Test1Obj").asPtr<IPropertyObject>();
+    ASSERT_TRUE(serverTest1Obj.hasProperty("Manufacturer"));
+    ASSERT_EQ(serverTest1Obj.getPropertyValue("Manufacturer"), "");
+
+    const auto clientTest1Obj = clientRoot.getPropertyValue("Test1Obj").asPtr<IPropertyObject>();
+    ASSERT_TRUE(clientTest1Obj.hasProperty("Manufacturer"));
+    clientTest1Obj.setPropertyValue("Manufacturer", "TestManufacturer1");
+    ASSERT_EQ(propertyWriteHistory, 1u);
+
+    ASSERT_EQ(serverTest1Obj.getPropertyValue("Manufacturer"), "TestManufacturer1");
+    ASSERT_EQ(clientTest1Obj.getPropertyValue("Manufacturer"), "TestManufacturer1");
+}
+
+TEST_F(NativeDeviceModulesTest, CreateDynamicProperty2AndSetManufacturer)
+{
+    // SKIP_TEST_MAC_CI;
+    auto server = CreateServerInstance();
+    auto serverRoot = server.getRootDevice();
+
+    int propertyWriteHistory = 0;
+    auto propertyWriteCallback = [&propertyWriteHistory](PropertyObjectPtr& obj, PropertyValueEventArgsPtr& args)
+    {
+        propertyWriteHistory += 1;
+    };
+
+    // Register dynamic property on server
+    {
+        const auto procBuilder = FunctionPropertyBuilder("CreateDynamicProperty", FunctionInfo(CoreType::ctBool));
+        serverRoot.addProperty(procBuilder.build());
+        serverRoot.asPtr<IPropertyObjectProtected>(true).setProtectedPropertyValue(
+            "CreateDynamicProperty",
+            Function(
+                [&](IBaseObject* input, IBaseObject** output)
+                {
+                    auto group = PropertyObject();
+                    serverRoot.addProperty(ObjectPropertyBuilder("Test2Obj", group).build());
+
+                    group.addProperty(StringPropertyBuilder("Manufacturer", "").build());
+                    group.getOnPropertyValueWrite("Manufacturer") += propertyWriteCallback;
+
+                    *output = Boolean(true).detach();
+                    return OPENDAQ_SUCCESS;
+                }));
+    }
+
+    auto client = CreateClientInstance();
+    auto clientRoot = client.getDevices()[0];
+
+    ASSERT_TRUE(clientRoot.hasProperty("CreateDynamicProperty"));
+    FunctionPtr fn = clientRoot.getPropertyValue("CreateDynamicProperty");
+    fn();
+
+    ASSERT_TRUE(server.hasProperty("Test2Obj"));
+    const auto serverTest2Obj = server.getPropertyValue("Test2Obj").asPtr<IPropertyObject>();
+    ASSERT_TRUE(serverTest2Obj.hasProperty("Manufacturer"));
+    ASSERT_EQ(serverTest2Obj.getPropertyValue("Manufacturer"), "");
+
+    const auto clientTest2Obj = clientRoot.getPropertyValue("Test2Obj").asPtr<IPropertyObject>();
+    ASSERT_TRUE(clientTest2Obj.hasProperty("Manufacturer"));
+    clientTest2Obj.setPropertyValue("Manufacturer", "TestManufacturer2");
+
+    ASSERT_EQ(propertyWriteHistory, 1u);
+    ASSERT_EQ(serverTest2Obj.getPropertyValue("Manufacturer"), "TestManufacturer2");
+    ASSERT_EQ(clientTest2Obj.getPropertyValue("Manufacturer"), "TestManufacturer2");
+}
+
+TEST_F(NativeDeviceModulesTest, ComponentActiveChangedRecursive)
+{
+    // SKIP_TEST_MAC_CI;
+    auto server = CreateServerInstance();
+    auto client = CreateClientInstance();
+
+    // Get the client's mirror of server device
+    auto clientDevice = client.getDevices()[0];
+
+    // Get all components in clientDevice subtree
+    auto clientDeviceComponents = clientDevice.getItems(search::Recursive(search::Any()));
+
+    // Set client (Instance) active to false
+    client.setActive(false);
+
+    // client itself should be inactive
+    ASSERT_FALSE(client.getActive()) << "client should be inactive";
+
+    // clientDevice should still be active (it's a root device, doesn't receive parentActive)
+    ASSERT_TRUE(clientDevice.getActive()) << "clientDevice should remain active as it's a root device";
+
+    // All clientDevice subtree components should still be active
+    for (const auto& comp : clientDeviceComponents)
+        ASSERT_TRUE(comp.getActive()) << "Component should be active: " << comp.getGlobalId();
+}
+
+TEST_F(NativeDeviceModulesTest, ComponentActiveChangedRecursiveGateway)
+{
+    // SKIP_TEST_MAC_CI;
+
+    // Create leaf server
+    auto leaf = InstanceBuilder().setRootDevice("daqref://device0").build();
+    leaf.addServer("OpenDAQNativeStreaming", nullptr);
+
+    // Create gateway that connects to leaf
+    auto gateway = Instance();
+    auto gatewayServerConfig = gateway.getAvailableServerTypes().get("OpenDAQNativeStreaming").createDefaultConfig();
+    gatewayServerConfig.setPropertyValue("NativeStreamingPort", 7421);
+    gateway.addDevice("daq.nd://127.0.0.1");
+    gateway.addServer("OpenDAQNativeStreaming", gatewayServerConfig);
+
+    // Create client that connects to gateway
+    auto client = Instance();
+    auto clientGatewayDevice = client.addDevice("daq.nd://127.0.0.1:7421");
+
+    // Get the leaf device through gateway
+    auto clientLeafDevice = clientGatewayDevice.getDevices()[0];
+
+    // Get all components in clientGatewayDevice subtree
+    auto gatewayComponents = clientGatewayDevice.getItems(search::Recursive(search::Any()));
+
+    // Set clientGatewayDevice active to false (from client side)
+    clientGatewayDevice.setActive(false);
+
+    // clientGatewayDevice itself should be inactive
+    ASSERT_FALSE(clientGatewayDevice.getLocalActive()) << "clientGatewayDevice should be local inactive";
+    ASSERT_TRUE(clientGatewayDevice.getParentActive()) << "clientGatewayDevice parent should be active";
+    ASSERT_FALSE(clientGatewayDevice.getActive()) << "clientGatewayDevice should be inactive";
+
+    // All direct children of clientGatewayDevice (except sub-devices) should be inactive
+    for (const auto& comp : clientGatewayDevice.getItems(search::Any()))
+    {
+        if (comp.getLocalId() != "Dev")
+        {
+            ASSERT_TRUE(comp.getLocalActive()) << "Component should be local active: " << comp.getGlobalId();
+            ASSERT_FALSE(comp.getParentActive()) << "Component parent should be inactive: " << comp.getGlobalId();
+            ASSERT_FALSE(comp.getActive()) << "Component should be inactive: " << comp.getGlobalId();
+        }
+    }
+
+    // clientLeafDevice should still be active (it's a root device)
+    ASSERT_TRUE(clientLeafDevice.getActive()) << "clientLeafDevice should remain active as it's a root device";
+
+    // All clientLeafDevice subtree components should still be active
+    for (const auto& comp : clientLeafDevice.getItems(search::Recursive(search::Any())))
+        ASSERT_TRUE(comp.getActive()) << "Leaf component should be active: " << comp.getGlobalId();
 }

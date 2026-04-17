@@ -19,6 +19,7 @@
 - [#1124](https://github.com/openDAQ/openDAQ/pull/1124) Implement clearPropertyValues() for property objects
 - [#1137](https://github.com/openDAQ/openDAQ/pull/1137) Add `IInputPort::acceptsSignals` to check multiple signals at once, using a single RPC call via native protocol.
 - [#1056](https://github.com/openDAQ/openDAQ/pull/1056) implement attempting to reconnect with all available addresses#1056
+- [#1157](https://github.com/openDAQ/openDAQ/pull/1157) Devices default to `OperationModeType::SafeOperation` when added to folder or set as root. Add virtual method to make it customizable.
 - [#1153](https://github.com/openDAQ/openDAQ/pull/1153) Enable and disable discovery for openDAQ Server via native.
 
 ## Python

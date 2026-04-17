@@ -11,7 +11,6 @@ class RecorderView(ttk.Frame):
     def __init__(self, parent: ttk.Frame, node=None, context: AppContext = None, **kwargs):
         ttk.Frame.__init__(self, parent, **kwargs)
         self.context = context
-        self.configure(padding=(10, 5))
 
         self.node = daq.IRecorder.cast_from(node)
 
@@ -19,9 +18,10 @@ class RecorderView(ttk.Frame):
 
         utils.make_banner(header_frame, 'Recording')
         self.pb = ttk.Progressbar(header_frame, mode='indeterminate', style="Striped.Horizontal.TProgressbar",maximum=10, value=0)
-        self.pb.pack(side=tk.LEFT, anchor=tk.CENTER)
+        self.pb.pack(side=tk.LEFT, anchor=tk.CENTER, padx=(10,0), pady=(10))
+        
         self.startstop = ttk.Button(header_frame, text='Start/Stop',command=self.toggleRecording)
-        self.startstop.pack(side=tk.RIGHT, anchor=tk.E)
+        self.startstop.pack(side=tk.RIGHT, anchor=tk.E, padx=(0,10),pady=(10))
 
 
         header_frame.pack(fill=tk.X)

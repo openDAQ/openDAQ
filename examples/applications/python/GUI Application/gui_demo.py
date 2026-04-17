@@ -268,7 +268,6 @@ class App(tk.Tk):
         tree.bind('<<TreeviewSelect>>', self.handle_tree_select)
         tree.bind('<ButtonRelease-3>', self.handle_tree_right_button_release)
         tree.bind('<Button-3>', self.handle_tree_right_button)
-        #tree.bind('<Double-1>', lambda e: 'break')
         tree.bind('<Button-1>', self.handle_tree_click)
 
         # add a scrollbar

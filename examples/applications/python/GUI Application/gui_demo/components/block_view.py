@@ -211,7 +211,6 @@ class BlockView(ttk.Frame):
                 self.rows = [0]
 
                 self._bind_mousewheel_recursive(self.right_stack)
-
             elif daq.IComponent.can_cast_from(self.node):
                 self.node = daq.IComponent.cast_from(self.node)
                 self.properties = PropertiesView(

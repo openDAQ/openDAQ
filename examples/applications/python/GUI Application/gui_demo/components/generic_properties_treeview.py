@@ -705,6 +705,9 @@ class PropertiesTreeview(ttk.Treeview):
 
     def _place_selection_combobox(self, iid, prop):
         labels, indices = self._get_selection_options(prop.selection_values)
+        unit_symbol = utils.prettify_unit(prop.unit)
+        if unit_symbol:
+            labels = [f'{l} {unit_symbol}' for l in labels]
         if not labels:
             return
         if prop.item_type != daq.CoreType.ctUndefined:
@@ -767,16 +770,21 @@ class PropertiesTreeview(ttk.Treeview):
         if not suggestions:
             return
 
-        cb = self._make_combobox(iid, suggestions, self._format_value(prop.value), editable=True)
+        unit_symbol = utils.prettify_unit(prop.unit)
+        current_display = self._format_value(prop.value)
+        if unit_symbol:
+            suggestions = [f'{s} {unit_symbol}' for s in suggestions]
+            current_display = f'{current_display} {unit_symbol}'
+
+        cb = self._make_combobox(iid, suggestions, current_display, editable=True)
         if cb is None:
             return
 
-        def save(_cb=cb, _prop=prop):
-            try:
-                _prop.value = utils.value_to_coretype(_cb.get(), _prop.value_type)
-            except Exception as e:
-                print("Failed to set suggested value:", e)
-                return
+        def save(_cb=cb, _prop=prop, _unit=unit_symbol):
+            raw = _cb.get()
+            if _unit:
+                raw = raw.removesuffix(f' {_unit}').strip()
+            _prop.value = utils.value_to_coretype(raw, _prop.value_type)
             self.refresh()
 
         cb.bind('<Return>', lambda e: save())

@@ -39,9 +39,9 @@ class AppContext(object):
         try:
             daq.OPENDAQ_MODULES_DIR
         except:
-            builder.add_module_path('.')
+            builder.module_path = '.'
         else:
-            builder.add_module_path(daq.OPENDAQ_MODULES_DIR)
+            builder.module_path = daq.OPENDAQ_MODULES_DIR
 
         if params.module_path != None:
             builder.add_module_path(params.module_path)

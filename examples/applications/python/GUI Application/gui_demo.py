@@ -96,7 +96,6 @@ class App(tk.Tk):
             context_params.discovery_servers = []
 
         self.context = AppContext(context_params)
-        self.context.on_needs_refresh = lambda: self.on_refresh_event(None)
         self.event_port = EventPort(self, event_callback=self.on_refresh_event)
 
         self.context.ui_scaling_factor = int(args.scale)
@@ -213,8 +212,12 @@ class App(tk.Tk):
         except Exception as e:
             print("Scheduler processing error:", e)
 
+        if self.context.needs_refresh:
+            self.on_refresh_event(None)
+            self.context.needs_refresh = False
+
         # Re-schedule after 50 ms
-        self.after(20, self.poll_opendaq_events)
+        self.after(50, self.poll_opendaq_events)
 
     def init_opendaq(self):
 

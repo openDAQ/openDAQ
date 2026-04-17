@@ -18,7 +18,7 @@ class AddFunctionBlockDialog(Dialog):
         self.parent_component = selected_component
 
         self.geometry('{}x{}'.format(
-            int(900 * self.context.ui_scaling_factor * self.context.dpi_factor),
+            int(1400 * self.context.ui_scaling_factor * self.context.dpi_factor),
             int(400 * self.context.ui_scaling_factor * self.context.dpi_factor)))
 
         # parent
@@ -63,7 +63,7 @@ class AddFunctionBlockDialog(Dialog):
         dpi = self.context.dpi_factor
         tree.column('name', anchor=tk.W, minwidth=int(200 * dpi), width=int(300 *
                     self.context.ui_scaling_factor * dpi), stretch=tk.NO)
-        tree.column('description', anchor=tk.W, minwidth=int(200 * dpi), width=int(300 *
+        tree.column('description', anchor=tk.W, minwidth=int(400 * dpi), width=int(300 *
                     self.context.ui_scaling_factor * dpi))
         tree.column('id', anchor=tk.W, minwidth=int(200 * dpi), width=int(300 *
                     self.context.ui_scaling_factor * dpi))
@@ -118,14 +118,14 @@ class AddFunctionBlockDialog(Dialog):
 
             if daq.IDevice.can_cast_from(component):
                 device = daq.IDevice.cast_from(component)
-                tree.insert(parent_id, tk.END, text=device.description,
+                tree.insert(parent_id, tk.END, text=device.name,
                             iid=device.global_id, open=tk.TRUE)
                 parent_id = device.global_id
 
             if daq.IFunctionBlock.can_cast_from(component):
                 function_block = daq.IFunctionBlock.cast_from(component)
                 if function_block.available_function_block_types:
-                    tree.insert(parent_id, tk.END, text=function_block.description,
+                    tree.insert(parent_id, tk.END, text=function_block.name,
                                 iid=function_block.global_id, open=tk.TRUE)
                     parent_id = function_block.global_id
 

@@ -38,9 +38,9 @@ class AddServerDialog(Dialog):
 
         tree.column('#0', width=0, stretch=tk.NO)
         dpi = self.context.dpi_factor
-        tree.column('name', anchor=tk.W, minwidth=int(200 * dpi), width=int(300 *
+        tree.column('name', anchor=tk.W, minwidth=int(150 * dpi), width=int(200 *
                     self.context.ui_scaling_factor * dpi), stretch=tk.NO)
-        tree.column('description', anchor=tk.W, minwidth=int(200 * dpi), width=int(300 *
+        tree.column('description', anchor=tk.W, minwidth=int(400 * dpi), width=int(350 *
                     self.context.ui_scaling_factor * dpi))
         tree.column('id', anchor=tk.W, minwidth=int(200 * dpi), width=int(300 *
                     self.context.ui_scaling_factor * dpi), stretch=tk.NO)

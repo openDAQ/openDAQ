@@ -643,6 +643,7 @@ class App(tk.Tk):
 
         popup.add_command(label='Begin update', command=self.handle_begin_update)
         popup.add_command(label='End update', command=self.handle_end_update)
+        popup.add_command(label='Clear property values', command=lambda: self.handle_tree_clear_property_values(node))
 
         return popup
 
@@ -954,6 +955,13 @@ class App(tk.Tk):
         self.context.remove_device(node)
 
         self.context.selected_node = parent
+        self.tree_update(self.context.selected_node)
+
+    def handle_tree_clear_property_values(self, node):
+        if node is None or not daq.IPropertyObject.can_cast_from(node):
+            return
+        prop_obj = daq.IPropertyObject.cast_from(node)
+        prop_obj.clear_property_values()
         self.tree_update(self.context.selected_node)
 
     # MARK: - Other

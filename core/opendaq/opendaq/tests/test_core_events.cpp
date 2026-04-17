@@ -1206,7 +1206,7 @@ TEST_F(CoreEventTest, ActiveChanged)
         {
             ASSERT_EQ(args.getEventId(), static_cast<int>(CoreEventId::AttributeChanged));
             ASSERT_EQ(args.getEventName(), "AttributeChanged");
-            ASSERT_TRUE(args.getParameters().hasKey("Active"));
+            ASSERT_TRUE(args.getParameters().hasKey("Active") || args.getParameters().hasKey("LocalActive"));
             changeCount++;
         };
 

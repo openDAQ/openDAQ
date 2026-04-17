@@ -4695,3 +4695,13 @@ TEST_F(NativeDeviceModulesTest, ComponentActiveChangedRecursiveGateway)
     for (const auto& comp : clientLeafDevice.getItems(search::Recursive(search::Any())))
         ASSERT_TRUE(comp.getActive()) << "Leaf component should be active: " << comp.getGlobalId();
 }
+
+TEST_F(NativeDeviceModulesTest, NonDefaultOpMode)
+{
+    auto server = CreateServerSimulator("NonDefaultOpMode");
+    server.setOperationMode(OperationModeType::Idle);
+    auto client = CreateClientConnectedToSimulator("NonDefaultOpMode");
+
+    ASSERT_EQ(server.getOperationMode(), OperationModeType::Idle);
+    ASSERT_EQ(client.getDevices()[0].getOperationMode(), OperationModeType::Idle);
+}

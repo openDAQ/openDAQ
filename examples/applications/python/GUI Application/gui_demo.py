@@ -1082,6 +1082,8 @@ class App(tk.Tk):
 
     def _set_node_update_status_recursive(self, node):
         node_obj = utils.find_component(node, self.context.instance)
+        if node_obj is None:
+            return
         if node_obj.updating:
             self.add_tag_and_configure(node, 'selected', 'red')
         else:

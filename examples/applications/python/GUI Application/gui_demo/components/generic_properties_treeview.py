@@ -72,11 +72,13 @@ class PropertiesTreeview(ttk.Treeview):
         if not self.read_only:
             self.bind('<Double-1>', lambda event: self.edit_value())
         self.bind('<Button-3>', lambda event: self.show_menu(event))
-        self.bind('<MouseWheel>', lambda e: self.after_idle(self._sync_overlays))
-        self.bind('<ButtonRelease-1>', lambda e: self.after(10, self._sync_overlays), add='+')
+        self.bind('<MouseWheel>', lambda e=None: self.after_idle(self._sync_overlays))
+        self.bind('<ButtonRelease-1>', lambda e=None: self.after(10, self._sync_overlays), add='+')
         self.bind('<Configure>', self._on_configure)
-        self.bind('<Map>', lambda e: self.after_idle(self._sync_overlays) if e.widget is self else None)
-        self.winfo_toplevel().bind('<<DialogReady>>', lambda e: self._sync_overlays(), add='+')
+        self.bind('<Map>', lambda e=None: self.after_idle(self._sync_overlays) if e.widget is self else None)
+        self._toplevel_bind_id = self.winfo_toplevel().bind(
+            '<<DialogReady>>', lambda e=None: self._sync_overlays(), add='+')
+        self.bind('<Destroy>', self._on_destroy)
 
         self.refresh()
 
@@ -877,6 +879,13 @@ class PropertiesTreeview(ttk.Treeview):
             if prop.suggested_values is not None and len(prop.suggested_values) > 0:
                 return  # handled by overlay combobox
             self.edit_simple_property(selected_item_id, prop.value, path)
+
+    def _on_destroy(self, event):
+        if event.widget is self:
+            try:
+                self.winfo_toplevel().unbind('<<DialogReady>>', self._toplevel_bind_id)
+            except Exception:
+                pass
 
     @staticmethod
     def _format_value(value):

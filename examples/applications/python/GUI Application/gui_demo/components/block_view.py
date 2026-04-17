@@ -445,3 +445,24 @@ class BlockView(ttk.Frame):
             self.active_var.set(ctx.active)
             self.event_port.emit()
     
+    def handle_active_toggle(self):
+        if daq.IComponent.can_cast_from(self.node):
+            ctx = daq.IComponent.cast_from(self.node)
+            ctx.active = not ctx.active
+            self.active_var.set(ctx.active)
+            self.event_port.emit()
+
+    def _handle_enable_discovery(self):
+        try:
+            self.node.enable_discovery()
+        except Exception as e:
+            print(f'Enable discovery failed: {e}')
+            utils.show_error('Enable discovery failed', str(e), self)
+
+    def _handle_disable_discovery(self):
+        try:
+            self.node.disable_discovery()
+        except Exception as e:
+            print(f'Disable discovery failed: {e}')
+            utils.show_error('Disable discovery failed', str(e), self)
+    

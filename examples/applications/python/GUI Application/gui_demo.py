@@ -686,6 +686,26 @@ class App(tk.Tk):
             )
 
         return popup
+    
+    def create_server_menu(self, node):
+        popup = self.create_property_object_menu(node)
+
+        popup.add_command(label='Enable discovery',
+                          command=lambda: self.handle_enable_discovery(node))
+        popup.add_command(label='Disable discovery',
+                          command=lambda: self.handle_disable_discovery(node))
+
+        return popup
+
+    def handle_enable_discovery(self, node):
+        if node is None:
+            return
+        node.enable_discovery()
+
+    def handle_disable_discovery(self, node):
+        if node is None:
+            return
+        node.disable_discovery()
 
     def handle_tree_right_button_release(self, event):
         iid = utils.treeview_get_first_selection(self.tree)
@@ -700,6 +720,8 @@ class App(tk.Tk):
                 popup = self.create_function_block_menu(daq.IFunctionBlock.cast_from(node))
             elif daq.IDevice.can_cast_from(node):
                 popup = self.create_device_menu(daq.IDevice.cast_from(node))
+            elif daq.IServer.can_cast_from(node):
+                popup = self.create_server_menu(daq.IServer.cast_from(node))
 
         if popup is None:
             popup = self.create_property_object_menu(node)
@@ -718,6 +740,8 @@ class App(tk.Tk):
             return daq.IFunctionBlock.cast_from(node)
         elif daq.IDevice.can_cast_from(node):
             return daq.IDevice.cast_from(node)
+        elif daq.IServer.can_cast_from(node):
+            return daq.IServer.cast_from(node)
         elif daq.ISyncComponent.can_cast_from(node):
             return daq.ISyncComponent.cast_from(node)
         elif daq.IFolder.can_cast_from(node):
@@ -917,7 +941,8 @@ class App(tk.Tk):
         node = self.context.nodes[node_unique_id]
         if (daq.IFolder.can_cast_from(node)
                 and not daq.IDevice.can_cast_from(node)
-                and not daq.IFunctionBlock.can_cast_from(node)):
+                and not daq.IFunctionBlock.can_cast_from(node)
+                and not daq.IServer.can_cast_from(node)):
             self.tree.item(selected_iid, open=not self.tree.item(selected_iid, 'open'))
             self.tree.selection_set('')
             return

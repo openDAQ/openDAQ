@@ -2349,8 +2349,6 @@ void GenericDevice<TInterface, Interfaces...>::updateObject(const SerializedObje
         const auto devicesFolder = obj.readSerializedObject("Dev");
         devicesFolder.checkObjectType("Folder");
 
-        ComponentUpdateContextPtr contextPtr = ComponentUpdateContextPtr::Borrow(context);
-        ConfigurationLoadMode configLoadMode = contextPtr.getUpdateParameters().getConfigurationLoadMode();
         std::set<std::string> toRemove = {};
         for (const auto &d : devices.getItems()){
             toRemove.insert(d.getLocalId().toStdString());
@@ -2364,6 +2362,9 @@ void GenericDevice<TInterface, Interfaces...>::updateObject(const SerializedObje
                                 updateDevice(localId, obj, context);
                                 toRemove.erase(localId);
                             });
+
+        ComponentUpdateContextPtr contextPtr = ComponentUpdateContextPtr::Borrow(context);
+        ConfigurationLoadMode configLoadMode = contextPtr.getUpdateParameters().getConfigurationLoadMode();
         if (configLoadMode == ConfigurationLoadMode::Exact){
             for (const auto &id : toRemove){
                 this->removeDeviceIfNotStatic(id);

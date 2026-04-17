@@ -8,6 +8,24 @@
 import opendaq as daq
 
 
+class MyFunctionBlock(daq.FunctionBlock):
+    TYPE_ID = "py_fb_example_uid"
+
+    @staticmethod
+    def create_function_block_type() -> daq.IFunctionBlockType:
+        default_config = daq.PropertyObject()
+        return daq.FunctionBlockType(MyFunctionBlock.TYPE_ID, "py_fb_example", "Python function block example", default_config)
+
+    def on_connected(self, port: daq.IInputPort):
+        print("MyFunctionBlock connected:", port)
+
+    def on_disconnected(self, port: daq.IInputPort):
+        print("MyFunctionBlock disconnected:", port)
+
+    def on_packet_received(self, port: daq.IInputPort):
+        print("MyFunctionBlock packet received:", port)
+
+
 class MyModule(daq.Module):
     """Minimal Python module: no function block types, on_create_function_block returns None."""
 
@@ -20,13 +38,18 @@ class MyModule(daq.Module):
         )
 
     def on_get_available_function_block_types(self):
-        return {}
+        fb_type = MyFunctionBlock.create_function_block_type()
+        return {MyFunctionBlock.TYPE_ID: fb_type}
 
     def on_create_function_block(self, id, parent, local_id, config):
-        return None
+        if id != MyFunctionBlock.TYPE_ID:
+            return None
+
+        # Return Python object; C++ wrapper will turn it into a real IFunctionBlock.
+        return MyFunctionBlock(self.context, parent, local_id)
 
 
-if __name__ == "__main__":
+def main() -> int:
     builder = daq.InstanceBuilder()
     builder.module_path = "[[none]]"
     instance = builder.build()
@@ -41,3 +64,21 @@ if __name__ == "__main__":
             break
     else:
         print("MyPythonModule not found in loaded modules")
+        return 1
+
+    for id, type in instance.available_function_block_types.items():
+        if id == MyFunctionBlock.TYPE_ID:
+            print("MyFunctionBlock type found:", id)
+            break
+    else:
+        print("MyFunctionBlock type not found")
+        return 1
+
+    # Add the function block
+    print("Adding function block:", MyFunctionBlock.TYPE_ID)
+    instance.add_function_block(MyFunctionBlock.TYPE_ID)
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

@@ -242,6 +242,7 @@ void wrapDaqComponentOpenDaq(pybind11::module_ m)
 
     defineComponentSearchFilterFactories(m);
     definePythonModuleSupport(m, classIModuleManager);
+    definePythonFunctionBlockSupport(m, classIFunctionBlock);
 
     m.def("Instance", []() { return daq::Instance(".").detach(); });
     m.def("NullContext", []() { return daq::NullContext().detach(); });

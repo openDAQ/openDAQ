@@ -241,3 +241,5 @@ void defineComponentSearchFilterFactories(pybind11::module_ m);
 void addPythonModuleToManager(daq::IModuleManager* manager, daq::IContext* context, pybind11::object pyModule);
 template <typename ModuleManagerClass>
 void definePythonModuleSupport(pybind11::module_ m, ModuleManagerClass moduleManagerClass);
+template <typename FunctionBlockClass>
+void definePythonFunctionBlockSupport(pybind11::module_ m, FunctionBlockClass functionBlockClass);

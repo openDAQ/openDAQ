@@ -25,7 +25,7 @@
 #include <coretypes/objectptr.h>
 
 #include "py_opendaq/py_opendaq.h"
-#include "py_core_objects/py_variant_extractor.h"
+#include "py_opendaq/py_python_function_block.h"
 
 namespace py = pybind11;
 
@@ -34,12 +34,8 @@ BEGIN_NAMESPACE_OPENDAQ
 class PythonModuleImpl : public Module
 {
 public:
-    PythonModuleImpl(const ContextPtr& context,
-                     const StringPtr& name,
-                     const VersionInfoPtr& version,
-                     const StringPtr& id,
-                     py::object pyModule)
-        : Module(name, version, context, id)
+    PythonModuleImpl(const ContextPtr& context, py::object pyModule)
+        : Module(extractName(pyModule), extractVersion(pyModule), context, extractId(pyModule))
         , pyModule(std::move(pyModule))
     {
     }
@@ -67,8 +63,7 @@ public:
                 auto* fbType = valObj.cast<daq::IFunctionBlockType*>();
                 if (fbType)
                 {
-                    fbType->addRef();
-                    dict.set(key, FunctionBlockTypePtr::Borrow(fbType));
+                    dict.set(key, fbType);
                 }
             }
             catch (const py::cast_error&)
@@ -84,36 +79,78 @@ public:
                                            const StringPtr& localId,
                                            const PropertyObjectPtr& config) override
     {
+        const auto types = onGetAvailableFunctionBlockTypes();
+        if (!types.hasKey(id))
+            DAQ_THROW_EXCEPTION(NotFoundException, "Function block type not found: {}", id);
+
         py::gil_scoped_acquire acquire;
         if (!py::hasattr(pyModule, "on_create_function_block"))
-            return nullptr;
+            DAQ_THROW_EXCEPTION(NotFoundException, "Module does not implement on_create_function_block");
+
+        // Python API: use plain strings + raw interface pointers (pybind can't convert SmartPtr wrappers).
+        auto* rawParent = parent.assigned() ? parent.addRefAndReturn() : nullptr;
+
+        py::object configArg = py::none();
+        if (config.assigned())
+        {
+            auto* rawConfig = config.addRefAndReturn();
+            configArg = py::cast(rawConfig, py::return_value_policy::reference);
+        }
 
         py::object result = pyModule.attr("on_create_function_block")(
-            py::cast(id),
-            py::cast(parent, py::return_value_policy::reference),
-            py::cast(localId),
-            config.assigned() ? py::cast(config, py::return_value_policy::reference) : py::none());
+            py::cast(static_cast<std::string>(id)),
+            rawParent ? py::cast(rawParent, py::return_value_policy::reference) : py::none(),
+            py::cast(static_cast<std::string>(localId)),
+            configArg);
 
         if (result.is_none())
-            DAQ_THROW_EXCEPTION(NotFoundException);
+            DAQ_THROW_EXCEPTION(NotFoundException, "Function block type not found: {}", id);
 
-        try
-        {
-            auto* raw = result.cast<daq::IFunctionBlock*>();
-            if (raw)
-            {
-                raw->addRef();
-                return FunctionBlockPtr::Borrow(raw);
-            }
-        }
-        catch (const py::cast_error&)
-        {
-            return nullptr;
-        }
-        return nullptr;
+        const auto type = types.get(id);
+        checkErrorInfo(type.asPtr<IComponentTypePrivate>(true)->setModuleInfo(moduleInfo));
+
+        return createPythonFunctionBlock(type, context, parent, localId, config, result);
     }
 
 private:
+    static py::object requireAttr(const py::object& module, const char* name)
+    {
+        py::gil_scoped_acquire acquire;
+        if (!py::hasattr(module, name))
+            throw std::invalid_argument(std::string("Python module must have attribute '") + name + "'");
+        return module.attr(name);
+    }
+
+    static StringPtr extractName(const py::object& module)
+    {
+        py::object nameObj = requireAttr(module, "name");
+        return String(nameObj.cast<std::string>());
+    }
+
+    static StringPtr extractId(const py::object& module)
+    {
+        py::object idObj = requireAttr(module, "id");
+        return String(idObj.cast<std::string>());
+    }
+
+    static VersionInfoPtr extractVersion(const py::object& module)
+    {
+        py::object versionObj = requireAttr(module, "version");
+
+        if (py::isinstance<daq::IVersionInfo>(versionObj))
+            return versionObj.cast<daq::IVersionInfo*>();
+
+        py::tuple t = versionObj.cast<py::tuple>();
+        if (t.size() >= 3)
+        {
+            return daq::VersionInfo(
+                t[0].cast<daq::SizeT>(),
+                t[1].cast<daq::SizeT>(),
+                t[2].cast<daq::SizeT>());
+        }
+        return daq::VersionInfo(1, 0, 0);
+    }
+
     py::object pyModule;
 };
 
@@ -126,39 +163,8 @@ void addPythonModuleToManager(daq::IModuleManager* manager,
     if (!context || !manager)
         throw std::invalid_argument("module_manager and context must not be null");
 
-    py::object nameObj = pyModule.attr("name");
-    py::object versionObj = pyModule.attr("version");
-    py::object idObj = pyModule.attr("id");
-
-    std::string name = nameObj.cast<std::string>();
-    std::string idStr = idObj.cast<std::string>();
-
-    daq::VersionInfoPtr version;
-    if (py::isinstance<daq::IVersionInfo>(versionObj))
-    {
-        version = versionObj.cast<daq::IVersionInfo*>();
-    }
-    else
-    {
-        py::tuple t = versionObj.cast<py::tuple>();
-        if (t.size() >= 3)
-        {
-            version = daq::VersionInfo(
-                t[0].cast<daq::SizeT>(),
-                t[1].cast<daq::SizeT>(),
-                t[2].cast<daq::SizeT>());
-        }
-        else
-        {
-            version = daq::VersionInfo(1, 0, 0);
-        }
-    }
-
     auto modulePtr = daq::createWithImplementation<daq::IModule, daq::PythonModuleImpl>(
         daq::ContextPtr::Borrow(context),
-        daq::String(name),
-        version,
-        daq::String(idStr),
         std::move(pyModule));
 
     // Module manager's addModule() does not addRef – it only stores the pointer. We must addRef

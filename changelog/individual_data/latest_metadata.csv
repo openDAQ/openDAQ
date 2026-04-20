@@ -1,0 +1,221 @@
+component,interface,name,parent,file_path
+coreobjects,IArgumentInfo,createArgumentInfo; createDictArgumentInfo; createListArgumentInfo,IBaseObject,coreobjects\include\coreobjects\argument_info.h
+coreobjects,IAuthenticationProvider,createAuthenticationProvider; createJsonFileAuthenticationProvider; createJsonStringAuthenticationProvider; createStaticAuthenticationProvider,IBaseObject,coreobjects\include\coreobjects\authentication_provider.h
+coreobjects,ICallableInfo,createCallableInfo,IBaseObject,coreobjects\include\coreobjects\callable_info.h
+coreobjects,ICoercer,createCoercer,IBaseObject,coreobjects\include\coreobjects\coercer.h
+coreobjects,ICoreEventArgs,createCoreEventArgs; createCoreEventArgsAttributeChanged; createCoreEventArgsComponentAdded; createCoreEventArgsComponentRemoved; createCoreEventArgsComponentUpdateEnd; createCoreEventArgsDataDescriptorChanged; createCoreEventArgsDeviceDomainChanged; createCoreEventArgsDeviceLockStateChanged; createCoreEventArgsDeviceOperationModeChanged; createCoreEventArgsPropertyAdded; createCoreEventArgsPropertyObjectUpdateEnd; createCoreEventArgsPropertyOrderChanged; createCoreEventArgsPropertyRemoved; createCoreEventArgsPropertyValueChanged; createCoreEventArgsSignalConnected; createCoreEventArgsSignalDisconnected; createCoreEventArgsTagsChanged; createCoreEventArgsTypeAdded; createCoreEventArgsTypeRemoved,IEventArgs,coreobjects\include\coreobjects\core_event_args.h
+coreobjects,IEndUpdateEventArgs,createEndUpdateEventArgs,IEventArgs,coreobjects\include\coreobjects\end_update_event_args.h
+coreobjects,IEvalValue,createEvalValue; createEvalValueArgs; createEvalValueFunc,IBaseObject,coreobjects\include\coreobjects\eval_value.h
+coreobjects,ILockGuard,,IBaseObject,coreobjects\include\coreobjects\object_lock_guard.h
+coreobjects,IMutex,createMutex,IBaseObject,coreobjects\include\coreobjects\mutex.h
+coreobjects,IOwnable,,IBaseObject,coreobjects\include\coreobjects\ownable.h
+coreobjects,IPermissionManager,createPermissionManager,IBaseObject,coreobjects\include\coreobjects\permission_manager.h
+coreobjects,IPermissionManagerInternal,,IBaseObject,coreobjects\include\coreobjects\permission_manager_internal.h
+coreobjects,IPermissionMaskBuilder,createPermissionMaskBuilder; createPermissionMaskBuilderFromMask,IBaseObject,coreobjects\include\coreobjects\permission_mask_builder.h
+coreobjects,IPermissions,,IBaseObject,coreobjects\include\coreobjects\permissions.h
+coreobjects,IPermissionsBuilder,createPermissionsBuilder,IBaseObject,coreobjects\include\coreobjects\permissions_builder.h
+coreobjects,IPermissionsInternal,,IBaseObject,coreobjects\include\coreobjects\permissions_internal.h
+coreobjects,IProperty,createBoolProperty; createDictProperty; createEnumerationProperty; createFloatProperty; createFunctionProperty; createIntProperty; createListProperty; createObjectProperty; createPropertyFromBuilder; createRatioProperty; createReferenceProperty; createSelectionProperty; createSparseSelectionProperty; createStringProperty; createStructProperty,IBaseObject,coreobjects\include\coreobjects\property.h
+coreobjects,IPropertyBuilder,createBoolPropertyBuilder; createDictPropertyBuilder; createEnumerationPropertyBuilder; createFloatPropertyBuilder; createFunctionPropertyBuilder; createIntPropertyBuilder; createListPropertyBuilder; createObjectPropertyBuilder; createPropertyBuilder; createRatioPropertyBuilder; createReferencePropertyBuilder; createSelectionPropertyBuilder; createSparseSelectionPropertyBuilder; createStringPropertyBuilder; createStructPropertyBuilder,IBaseObject,coreobjects\include\coreobjects\property_builder.h
+coreobjects,IPropertyInternal,,IBaseObject,coreobjects\include\coreobjects\property_internal.h
+coreobjects,IPropertyMetadataReadArgs,createPropertyMetadataReadArgs,IEventArgs,coreobjects\include\coreobjects\property_metadata_read_args.h
+coreobjects,IPropertyObject,createPropertyObject; createPropertyObjectWithClassAndManager,IBaseObject,coreobjects\include\coreobjects\property_object.h
+coreobjects,IPropertyObjectClass,createPropertyObjectClassFromBuilder,IType,coreobjects\include\coreobjects\property_object_class.h
+coreobjects,IPropertyObjectClassBuilder,createPropertyObjectClassBuilder; createPropertyObjectClassBuilderWithManager,IBaseObject,coreobjects\include\coreobjects\property_object_class_builder.h
+coreobjects,IPropertyObjectClassInternal,,IBaseObject,coreobjects\include\coreobjects\property_object_class_internal.h
+coreobjects,IPropertyObjectCore,createPropertyObjectCore,IBaseObject,coreobjects\include\coreobjects\property_object_core.h
+coreobjects,IPropertyObjectInternal,,IBaseObject,coreobjects\include\coreobjects\property_object_internal.h
+coreobjects,IPropertyObjectProtected,,IBaseObject,coreobjects\include\coreobjects\property_object_protected.h
+coreobjects,IPropertyValueEventArgs,createPropertyValueEventArgs,IEventArgs,coreobjects\include\coreobjects\property_value_event_args.h
+coreobjects,IUnit,createUnit; createUnitFromBuilder,IBaseObject,coreobjects\include\coreobjects\unit.h
+coreobjects,IUnitBuilder,createUnitBuilder; createUnitBuilderFromExisting,IBaseObject,coreobjects\include\coreobjects\unit_builder.h
+coreobjects,IUser,createUser,IBaseObject,coreobjects\include\coreobjects\user.h
+coreobjects,IUserInternal,,IBaseObject,coreobjects\include\coreobjects\user_internal.h
+coreobjects,IValidator,createValidator,IBaseObject,coreobjects\include\coreobjects\validator.h
+coretypes,I##ObjName,create##ObjName,,coretypes\include\coretypes\factory.h
+coretypes,IBaseObject,createBaseObject,,coretypes\include\coretypes\baseobject.h
+coretypes,IBinaryData,createBinaryData,IBaseObject,coretypes\include\coretypes\binarydata.h
+coretypes,IBoolean,createBoolean,IBaseObject,coretypes\include\coretypes\boolean.h
+coretypes,ICloneable,,IBaseObject,coretypes\include\coretypes\cloneable.h
+coretypes,IComparable,,IBaseObject,coretypes\include\coretypes\comparable.h
+coretypes,IComplexNumber,createComplexNumber,IBaseObject,coretypes\include\coretypes\complex_number.h
+coretypes,IConvertible,,IBaseObject,coretypes\include\coretypes\convertible.h
+coretypes,ICoreType,,IBaseObject,coretypes\include\coretypes\coretype.h
+coretypes,IDeserializer,createJsonDeserializer,IBaseObject,coretypes\include\coretypes\deserializer.h
+coretypes,IDevelopmentVersionInfo,createDevelopmentVersionInfo,IBaseObject,coretypes\include\coretypes\development_version_info.h
+coretypes,IDict,createDict; createDictWithExpectedTypes; createOwningDict,IBaseObject,corecontainers\include\coretypes\dictobject.h
+coretypes,IDictElementType,,IBaseObject,coretypes\include\coretypes\dict_element_type.h
+coretypes,IEnumeration,createEnumeration; createEnumerationWithIntValue; createEnumerationWithIntValueAndType; createEnumerationWithType,IBaseObject,coretypes\include\coretypes\enumeration.h
+coretypes,IEnumerationType,createEnumerationType; createEnumerationTypeWithValues,IType,coretypes\include\coretypes\enumeration_type.h
+coretypes,IErrorGuard,createErrorGuard,IBaseObject,coretypes\include\coretypes\error_guard.h
+coretypes,IErrorInfo,createErrorInfo,IBaseObject,coretypes\include\coretypes\errorinfo.h
+coretypes,IEvent,createEvent,IBaseObject,coretypes\include\coretypes\event.h
+coretypes,IEventArgs,createEventArgs,IBaseObject,coretypes\include\coretypes\event_args.h
+coretypes,IEventHandler,,IBaseObject,coretypes\include\coretypes\event_handler.h
+coretypes,IFloat,createFloat,IBaseObject,coretypes\include\coretypes\float.h
+coretypes,IFreezable,,IBaseObject,coretypes\include\coretypes\freezable.h
+coretypes,IFunction,createFunction,IBaseObject,coretypes\include\coretypes\function.h
+coretypes,IInspectable,,IBaseObject,coretypes\include\coretypes\inspectable.h
+coretypes,IInteger,createInteger,IBaseObject,coretypes\include\coretypes\integer.h
+coretypes,IIterable,,IBaseObject,coretypes\include\coretypes\iterable.h
+coretypes,IIterator,,IBaseObject,coretypes\include\coretypes\iterator.h
+coretypes,IList,createList; createListWithElementType; createOwningList,IBaseObject,corecontainers\include\coretypes\listobject.h
+coretypes,IListElementType,,IBaseObject,coretypes\include\coretypes\list_element_type.h
+coretypes,INumber,,IBaseObject,coretypes\include\coretypes\number.h
+coretypes,IObjName,createObjName,,coretypes\include\coretypes\factory.h
+coretypes,IProcedure,createProcedure,IBaseObject,coretypes\include\coretypes\procedure.h
+coretypes,IRatio,createRatio,IBaseObject,coretypes\include\coretypes\ratio.h
+coretypes,IRecursiveSearch,,IBaseObject,coretypes\include\coretypes\recursive_search.h
+coretypes,ISearchFilter,createAndSearchFilter; createAnySearchFilter; createCustomSearchFilter; createExcludedTagsSearchFilter; createInterfaceIdSearchFilter; createLocalIdSearchFilter; createNamePropertyFilter; createNotSearchFilter; createOrSearchFilter; createReadOnlyPropertyFilter; createRecursiveSearchFilter; createRequiredTagsSearchFilter; createVisiblePropertyFilter; createVisibleSearchFilter,IBaseObject,coretypes\include\coretypes\search_filter.h
+coretypes,ISerializable,,IBaseObject,coretypes\include\coretypes\serializable.h
+coretypes,ISerializedList,,IBaseObject,coretypes\include\coretypes\serialized_list.h
+coretypes,ISerializedObject,,IBaseObject,coretypes\include\coretypes\serialized_object.h
+coretypes,ISerializer,,IBaseObject,coretypes\include\coretypes\serializer.h
+coretypes,ISimpleType,createSimpleType,IType,coretypes\include\coretypes\simple_type.h
+coretypes,IString,createString; createStringN,IBaseObject,coretypes\include\coretypes\stringobject.h
+coretypes,IStruct,createStruct; createStructFromBuilder,IBaseObject,coretypes\include\coretypes\struct.h
+coretypes,IStructBuilder,createStructBuilder; createStructBuilderFromStruct,IBaseObject,coretypes\include\coretypes\struct_builder.h
+coretypes,IStructType,createStructType; createStructTypeNoDefaults,IType,coretypes\include\coretypes\struct_type.h
+coretypes,ISupportsWeakRef,,IBaseObject,coretypes\include\coretypes\weakref.h
+coretypes,IType,,IBaseObject,coretypes\include\coretypes\type.h
+coretypes,ITypeManager,createTypeManager,IBaseObject,coretypes\include\coretypes\type_manager.h
+coretypes,ITypeManagerPrivate,,IBaseObject,coretypes\include\coretypes\type_manager_private.h
+coretypes,IUpdatable,,IBaseObject,coretypes\include\coretypes\updatable.h
+coretypes,IVersionInfo,createVersionInfo,IBaseObject,coretypes\include\coretypes\version_info.h
+coretypes,IWeakRef,,IBaseObject,coretypes\include\coretypes\weakref.h
+coretypes,IntfName,CreateFunc; create##ObjName; createObjName,,coretypes\include\coretypes\factory.h
+coretypes,interfaceName,,baseInterface,coretypes\include\coretypes\common.h
+opendaq,IAddressInfo,createAddressInfo; createAddressInfoFromBuilder,IPropertyObject,opendaq\device\include\opendaq\address_info.h
+opendaq,IAddressInfoBuilder,createAddressInfoBuilder,IBaseObject,opendaq\device\include\opendaq\address_info_builder.h
+opendaq,IAddressInfoPrivate,,IBaseObject,opendaq\device\include\opendaq\address_info_private.h
+opendaq,IAllocator,createExternalAllocator; createMallocAllocator; createMiMallocAllocator,IBaseObject,opendaq\signal\include\opendaq\allocator.h
+opendaq,IAwaitable,,IBaseObject,opendaq\scheduler\include\opendaq\awaitable.h
+opendaq,IBlockReader,createBlockReader; createBlockReaderFromBuilder; createBlockReaderFromExisting; createBlockReaderFromPort,ISampleReader,opendaq\reader\include\opendaq\block_reader.h
+opendaq,IBlockReaderBuilder,createBlockReaderBuilder,IBaseObject,opendaq\reader\include\opendaq\block_reader_builder.h
+opendaq,IBlockReaderStatus,createBlockReaderStatus,IReaderStatus,opendaq\reader\include\opendaq\block_reader_status.h
+opendaq,IChannel,,IFunctionBlock,opendaq\functionblock\include\opendaq\channel.h
+opendaq,IComponent,createComponent,IPropertyObject,opendaq\component\include\opendaq\component.h
+opendaq,IComponentDeserializeContext,createComponentDeserializeContext,IBaseObject,opendaq\component\include\opendaq\component_deserialize_context.h
+opendaq,IComponentHolder,createComponentHolder; createComponentHolderWithIds,IBaseObject,opendaq\component\include\opendaq\component_holder.h
+opendaq,IComponentPrivate,,IBaseObject,opendaq\component\include\opendaq\component_private.h
+opendaq,IComponentStatusContainer,createComponentStatusContainer,IBaseObject,opendaq\component\include\opendaq\component_status_container.h
+opendaq,IComponentStatusContainerPrivate,,IBaseObject,opendaq\component\include\opendaq\component_status_container_private.h
+opendaq,IComponentType,,IBaseObject,opendaq\component\include\opendaq\component_type.h
+opendaq,IComponentTypeBuilder,createComponentTypeBuilder; createDeviceTypeBuilder; createFunctionBlockTypeBuilder; createServerTypeBuilder; createStreamingTypeBuilder,IBaseObject,opendaq\component\include\opendaq\component_type_builder.h
+opendaq,IComponentTypePrivate,,IBaseObject,opendaq\component\include\opendaq\component_type_private.h
+opendaq,IComponentUpdateContext,,IBaseObject,opendaq\component\include\opendaq\component_update_context.h
+opendaq,IConfigProvider,createCmdLineArgsConfigProvider; createEnvConfigProvider; createJsonConfigProvider,IBaseObject,opendaq\opendaq\include\opendaq\config_provider.h
+opendaq,IConnectedClientInfo,createConnectedClientInfo; createConnectedClientInfoWithParams,IPropertyObject,opendaq\device\include\opendaq\connected_client_info.h
+opendaq,IConnection,createConnection,IBaseObject,opendaq\signal\include\opendaq\connection.h
+opendaq,IConnectionInternal,,IBaseObject,opendaq\signal\include\opendaq\connection_internal.h
+opendaq,IConnectionStatusContainerPrivate,,IBaseObject,opendaq\device\include\opendaq\connection_status_container_private.h
+opendaq,IContext,createContext,IBaseObject,opendaq\context\include\opendaq\context.h
+opendaq,IContextInternal,,IBaseObject,opendaq\modulemanager\include\opendaq\context_internal.h
+opendaq,IDataDescriptor,createDataDescriptorFromBuilder,IBaseObject,opendaq\signal\include\opendaq\data_descriptor.h
+opendaq,IDataDescriptorBuilder,createDataDescriptorBuilder; createDataDescriptorBuilderFromExisting,IBaseObject,opendaq\signal\include\opendaq\data_descriptor_builder.h
+opendaq,IDataPacket,createBinaryDataPacket; createBinaryDataPacketWithExternalMemory; createConstantDataPacketWithDomain; createDataPacket; createDataPacketWithDomain; createDataPacketWithExternalMemory; createWrappedDataPacket,IPacket,opendaq\signal\include\opendaq\data_packet.h
+opendaq,IDataRule,createConstantDataRule; createDataRule; createDataRuleFromBuilder; createExplicitDataRule; createExplicitDomainDataRule; createLinearDataRule,IBaseObject,opendaq\signal\include\opendaq\data_rule.h
+opendaq,IDataRuleBuilder,createDataRuleBuilder; createDataRuleBuilderFromExisting,IBaseObject,opendaq\signal\include\opendaq\data_rule_builder.h
+opendaq,IDataRuleCalcPrivate,,IBaseObject,opendaq\signal\include\opendaq\data_rule_calc_private.h
+opendaq,IDeleter,,IBaseObject,opendaq\signal\include\opendaq\deleter.h
+opendaq,IDeserializeComponent,,IBaseObject,opendaq\component\include\opendaq\deserialize_component.h
+opendaq,IDevice,createClient,IFolder,opendaq\device\include\opendaq\device.h
+opendaq,IDeviceDomain,createDeviceDomain; createDeviceDomainWithReferenceDomainInfo,IBaseObject,opendaq\device\include\opendaq\device_domain.h
+opendaq,IDeviceInfo,,IPropertyObject,opendaq\device\include\opendaq\device_info.h
+opendaq,IDeviceInfoConfig,createDeviceInfoConfig; createDeviceInfoConfigWithChanegableFields; createDeviceInfoConfigWithCustomSdkVersion,IDeviceInfo,opendaq\device\include\opendaq\device_info_config.h
+opendaq,IDeviceInfoInternal,,IBaseObject,opendaq\device\include\opendaq\device_info_internal.h
+opendaq,IDeviceNetworkConfig,,IBaseObject,opendaq\device\include\opendaq\device_network_config.h
+opendaq,IDevicePrivate,,IBaseObject,opendaq\device\include\opendaq\device_private.h
+opendaq,IDeviceType,createDeviceType,IComponentType,opendaq\device\include\opendaq\device_type.h
+opendaq,IDeviceUpdateOptions,createDeviceUpdateOptions,IBaseObject,opendaq\utility\include\opendaq\device_update_options.h
+opendaq,IDimension,createDimension; createDimensionFromBuilder,IBaseObject,opendaq\signal\include\opendaq\dimension.h
+opendaq,IDimensionBuilder,createDimensionBuilder; createDimensionBuilderFromExisting,IBaseObject,opendaq\signal\include\opendaq\dimension_builder.h
+opendaq,IDimensionRule,createDimensionRule; createDimensionRuleFromBuilder; createLinearDimensionRule; createListDimensionRule; createLogarithmicDimensionRule,IBaseObject,opendaq\signal\include\opendaq\dimension_rule.h
+opendaq,IDimensionRuleBuilder,createDimensionRuleBuilder; createDimensionRuleBuilderFromExisting,IBaseObject,opendaq\signal\include\opendaq\dimension_rule_builder.h
+opendaq,IDiscoveryServer,createMdnsDiscoveryServer,IBaseObject,opendaq\modulemanager\include\opendaq\discovery_server.h
+opendaq,IEventPacket,createDataDescriptorChangedEventPacket; createEventPacket; createImplicitDomainGapDetectedEventPacket,IPacket,opendaq\signal\include\opendaq\event_packet.h
+opendaq,IFolder,,IComponent,opendaq\component\include\opendaq\folder.h
+opendaq,IFolderConfig,createFolder; createFolderWithItemType; createIoFolder,IFolder,opendaq\component\include\opendaq\folder_config.h
+opendaq,IFunctionBlock,,IFolder,opendaq\functionblock\include\opendaq\function_block.h
+opendaq,IFunctionBlockType,createFunctionBlockType,IComponentType,opendaq\functionblock\include\opendaq\function_block_type.h
+opendaq,IGraphVisualization,,IBaseObject,opendaq\scheduler\include\opendaq\graph_visualization.h
+opendaq,IInputPort,,IComponent,opendaq\signal\include\opendaq\input_port.h
+opendaq,IInputPortConfig,createInputPort,IInputPort,opendaq\signal\include\opendaq\input_port_config.h
+opendaq,IInputPortNotifications,,IBaseObject,opendaq\signal\include\opendaq\input_port_notifications.h
+opendaq,IInputPortPrivate,,IBaseObject,opendaq\signal\include\opendaq\input_port_private.h
+opendaq,IInstance,createInstance; createInstanceFromBuilder,IDevice,opendaq\opendaq\include\opendaq\instance.h
+opendaq,IInstanceBuilder,createInstanceBuilder,IBaseObject,opendaq\opendaq\include\opendaq\instance_builder.h
+opendaq,IIoFolderConfig,,IFolderConfig,opendaq\device\include\opendaq\io_folder_config.h
+opendaq,ILastMessageLoggerSinkPrivate,,IBaseObject,opendaq\logger\include\opendaq\logger_sink_last_message_private.h
+opendaq,ILogFileInfo,createLogFileInfoFromBuilder,IBaseObject,opendaq\device\include\opendaq\log_file_info.h
+opendaq,ILogFileInfoBuilder,createLogFileInfoBuilder,IBaseObject,opendaq\device\include\opendaq\log_file_info_builder.h
+opendaq,ILogger,createLogger,IBaseObject,opendaq\logger\include\opendaq\logger.h
+opendaq,ILoggerComponent,createLoggerComponent,IBaseObject,opendaq\logger\include\opendaq\logger_component.h
+opendaq,ILoggerSink,createBasicFileLoggerSink; createLastMessageLoggerSink; createRotatingFileLoggerSink; createStdErrLoggerSink; createStdOutLoggerSink; createWinDebugLoggerSink,IBaseObject,opendaq\logger\include\opendaq\logger_sink.h
+opendaq,ILoggerSinkBasePrivate,,IBaseObject,opendaq\logger\include\opendaq\logger_sink_base_private.h
+opendaq,ILoggerThreadPool,createLoggerThreadPool,IBaseObject,opendaq\logger\include\opendaq\logger_thread_pool.h
+opendaq,ILoggerThreadPoolPrivate,,IBaseObject,opendaq\logger\include\opendaq\logger_thread_pool_private.h
+opendaq,IMirroredDevice,,IDevice,opendaq\streaming\include\opendaq\mirrored_device.h
+opendaq,IMirroredDeviceConfig,,IMirroredDevice,opendaq\streaming\include\opendaq\mirrored_device_config.h
+opendaq,IMirroredInputPortConfig,,IInputPortConfig,opendaq\streaming\include\opendaq\mirrored_input_port_config.h
+opendaq,IMirroredInputPortPrivate,,IBaseObject,opendaq\streaming\include\opendaq\mirrored_input_port_private.h
+opendaq,IMirroredSignalConfig,,ISignalConfig,opendaq\streaming\include\opendaq\mirrored_signal_config.h
+opendaq,IMirroredSignalPrivate,,IBaseObject,opendaq\streaming\include\opendaq\mirrored_signal_private.h
+opendaq,IModule,,IBaseObject,opendaq\modulemanager\include\opendaq\module.h
+opendaq,IModuleAuthenticator,,IBaseObject,opendaq\opendaq\include\opendaq\module_authenticator.h
+opendaq,IModuleInfo,createModuleInfo,IBaseObject,opendaq\modulemanager\include\opendaq\module_info.h
+opendaq,IModuleManager,createModuleManager; createModuleManagerMultiplePaths,IBaseObject,opendaq\modulemanager\include\opendaq\module_manager.h
+opendaq,IModuleManagerUtils,,IBaseObject,opendaq\modulemanager\include\opendaq\module_manager_utils.h
+opendaq,IMultiReader,createMultiReader; createMultiReaderEx; createMultiReaderFromBuilder; createMultiReaderFromExisting,ISampleReader,opendaq\reader\include\opendaq\multi_reader.h
+opendaq,IMultiReaderBuilder,createMultiReaderBuilder,IBaseObject,opendaq\reader\include\opendaq\multi_reader_builder.h
+opendaq,IMultiReaderStatus,createMultiReaderStatus,IReaderStatus,opendaq\reader\include\opendaq\multi_reader_status.h
+opendaq,INetworkInterface,createNetworkInterface,IBaseObject,opendaq\device\include\opendaq\network_interface.h
+opendaq,IPacket,,IBaseObject,opendaq\signal\include\opendaq\packet.h
+opendaq,IPacketBuffer,createPacketBuffer,IBaseObject,opendaq\utility\include\opendaq\packet_buffer.h
+opendaq,IPacketBufferBuilder,createPacketBufferBuilder,IBaseObject,opendaq\utility\include\opendaq\packet_buffer_builder.h
+opendaq,IPacketDestructCallback,,IBaseObject,opendaq\signal\include\opendaq\packet_destruct_callback.h
+opendaq,IPacketReader,createPacketReader; createPacketReaderFromPort,IReader,opendaq\reader\include\opendaq\packet_reader.h
+opendaq,IRange,createRange,IBaseObject,opendaq\signal\include\opendaq\range.h
+opendaq,IReader,,IBaseObject,opendaq\reader\include\opendaq\reader.h
+opendaq,IReaderConfig,,IBaseObject,opendaq\reader\include\opendaq\reader_config.h
+opendaq,IReaderStatus,createReaderStatus,IBaseObject,opendaq\reader\include\opendaq\reader_status.h
+opendaq,IRecorder,,IBaseObject,opendaq\functionblock\include\opendaq\recorder.h
+opendaq,IReferenceDomainInfo,createReferenceDomainInfoFromBuilder,IBaseObject,opendaq\signal\include\opendaq\reference_domain_info.h
+opendaq,IReferenceDomainInfoBuilder,createReferenceDomainInfoBuilder; createReferenceDomainInfoBuilderFromExisting,IBaseObject,opendaq\signal\include\opendaq\reference_domain_info_builder.h
+opendaq,IRemovable,,IBaseObject,opendaq\component\include\opendaq\removable.h
+opendaq,IReusableDataPacket,,IBaseObject,opendaq\signal\include\opendaq\reusable_data_packet.h
+opendaq,IRulePrivate,,IBaseObject,opendaq\signal\include\opendaq\rule_private.h
+opendaq,ISampleReader,,IReader,opendaq\reader\include\opendaq\sample_reader.h
+opendaq,IScaling,createLinearScaling; createScaling; createScalingFromBuilder,IBaseObject,opendaq\signal\include\opendaq\scaling.h
+opendaq,IScalingBuilder,createScalingBuilder; createScalingBuilderFromExisting,IBaseObject,opendaq\signal\include\opendaq\scaling_builder.h
+opendaq,IScalingCalcPrivate,,IBaseObject,opendaq\signal\include\opendaq\scaling_calc_private.h
+opendaq,IScheduler,createScheduler; createSchedulerWithMainLoop,IBaseObject,opendaq\scheduler\include\opendaq\scheduler.h
+opendaq,IServer,,IFolder,opendaq\server\include\opendaq\server.h
+opendaq,IServerCapability,,IPropertyObject,opendaq\device\include\opendaq\server_capability.h
+opendaq,IServerCapabilityConfig,createServerCapability,IServerCapability,opendaq\device\include\opendaq\server_capability_config.h
+opendaq,IServerType,createServerType,IComponentType,opendaq\server\include\opendaq\server_type.h
+opendaq,ISignal,,IComponent,opendaq\signal\include\opendaq\signal.h
+opendaq,ISignalConfig,createSignal; createSignalWithDescriptor,ISignal,opendaq\signal\include\opendaq\signal_config.h
+opendaq,ISignalEvents,,IBaseObject,opendaq\signal\include\opendaq\signal_events.h
+opendaq,ISignalPrivate,,IBaseObject,opendaq\signal\include\opendaq\signal_private.h
+opendaq,IStreamReader,createStreamReader; createStreamReaderFromBuilder; createStreamReaderFromExisting; createStreamReaderFromPort,ISampleReader,opendaq\reader\include\opendaq\stream_reader.h
+opendaq,IStreamReaderBuilder,createStreamReaderBuilder,IBaseObject,opendaq\reader\include\opendaq\stream_reader_builder.h
+opendaq,IStreaming,,IBaseObject,opendaq\streaming\include\opendaq\streaming.h
+opendaq,IStreamingPrivate,,IBaseObject,opendaq\streaming\include\opendaq\streaming_private.h
+opendaq,IStreamingType,createStreamingType,IComponentType,opendaq\streaming\include\opendaq\streaming_type.h
+opendaq,ISubscriptionEventArgs,createSubscriptionEventArgs,IEventArgs,opendaq\streaming\include\opendaq\subscription_event_args.h
+opendaq,ISyncComponent,createSyncComponent,IComponent,opendaq\synchronization\include\opendaq\sync_component.h
+opendaq,ISyncComponentPrivate,,IBaseObject,opendaq\synchronization\include\opendaq\sync_component_private.h
+opendaq,ITags,createTags,IBaseObject,opendaq\component\include\opendaq\tags.h
+opendaq,ITagsPrivate,,IBaseObject,opendaq\component\include\opendaq\tags_private.h
+opendaq,ITailReader,createTailReader; createTailReaderFromBuilder; createTailReaderFromExisting; createTailReaderFromPort,ISampleReader,opendaq\reader\include\opendaq\tail_reader.h
+opendaq,ITailReaderBuilder,createTailReaderBuilder,IBaseObject,opendaq\reader\include\opendaq\tail_reader_builder.h
+opendaq,ITailReaderStatus,createTailReaderStatus,IReaderStatus,opendaq\reader\include\opendaq\tail_reader_status.h
+opendaq,ITask,createTask,IBaseObject,opendaq\scheduler\include\opendaq\task.h
+opendaq,ITaskGraph,createTaskGraph,ITask,opendaq\scheduler\include\opendaq\task_graph.h
+opendaq,ITaskInternal,,IBaseObject,opendaq\scheduler\include\opendaq\task_internal.h
+opendaq,IUpdateParameters,createUpdateParameters,IPropertyObject,opendaq\component\include\opendaq\update_parameters.h
+opendaq,IUserLock,createUserLock,IBaseObject,opendaq\device\include\opendaq\user_lock.h
+opendaq,IWork,,IBaseObject,opendaq\scheduler\include\opendaq\work.h
+opendaq,IWorkRepetitive,,IBaseObject,opendaq\scheduler\include\opendaq\work_repetitive.h
+opendaq,IWrappedDataPacket,,IBaseObject,opendaq\signal\include\opendaq\wrapped_data_packet.h

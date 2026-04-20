@@ -15,6 +15,7 @@
  */
 
 #pragma once
+#include <arpa/inet.h>
 #include <mdns.h>
 #include <string>
 #include <map>
@@ -176,7 +177,7 @@ private:
                                    const discovery_common::TxtProperties& props,
                                    std::vector<mdns_record_t>& records);
     void setupDiscoveryQuery();
-    void openClientSockets(bool openIPv4MdnsPortSockets);
+    void openClientSockets(bool openMdnsPortSockets);
     void closeClientSockets();
     std::vector<MdnsDiscoveredDevice> createDevices();
     void sendDiscoveryQuery();
@@ -493,7 +494,7 @@ inline void MDNSDiscoveryClient::setupDiscoveryQuery()
     }
 }
 
-inline void MDNSDiscoveryClient::openClientSockets(bool openIPv4MdnsPortSockets)
+inline void MDNSDiscoveryClient::openClientSockets(bool openMdnsPortSockets)
 {
 #ifdef _WIN32
     IP_ADAPTER_ADDRESSES* adapterAddress = nullptr;
@@ -545,7 +546,7 @@ inline void MDNSDiscoveryClient::openClientSockets(bool openIPv4MdnsPortSockets)
                         socketToIfIpv6Index[sock] = 0; // do not save index for sockets opened on IPv4 family interfaces
                     }
 
-                    if (openIPv4MdnsPortSockets)
+                    if (openMdnsPortSockets)
                     {
                         saddr->sin_port = htons(MDNS_PORT);
                         sock = mdns_socket_open_ipv4(saddr);
@@ -571,6 +572,22 @@ inline void MDNSDiscoveryClient::openClientSockets(bool openIPv4MdnsPortSockets)
                     if (sock >= 0)
                     {
                         socketToIfIpv6Index[sock] = ifindex;
+                    }
+
+                    if (openMdnsPortSockets)
+                    {
+                        saddr->sin6_port = htons(MDNS_PORT);
+                        sock = mdns_socket_open_ipv6(saddr, ifindex);
+                        if (sock >= 0)
+                        {
+                            socketToIfIpv6Index[sock] = ifindex;
+
+                            struct ipv6_mreq mreq;
+                            memset(&mreq, 0, sizeof(mreq));
+                            inet_pton(AF_INET6, "ff02::fb", &mreq.ipv6mr_multiaddr);
+                            mreq.ipv6mr_interface = ifindex;
+                            setsockopt(sock, IPPROTO_IPV6, IPV6_JOIN_GROUP, (char*)&mreq, sizeof(mreq));
+                        }
                     }
                 }
             }
@@ -606,7 +623,7 @@ inline void MDNSDiscoveryClient::openClientSockets(bool openIPv4MdnsPortSockets)
                     socketToIfIpv6Index[sock] = 0; // do not save index for sockets opened on IPv4 family interfaces
                 }
 
-                if (openIPv4MdnsPortSockets)
+                if (openMdnsPortSockets)
                 {
                     saddr->sin_port = htons(MDNS_PORT);
                     sock = mdns_socket_open_ipv4(saddr);
@@ -629,6 +646,22 @@ inline void MDNSDiscoveryClient::openClientSockets(bool openIPv4MdnsPortSockets)
                 int sock = mdns_socket_open_ipv6(saddr, ifindex);
                 if (sock >= 0)
                     socketToIfIpv6Index[sock] = ifindex;
+
+                if (openMdnsPortSockets)
+                {
+                    saddr->sin6_port = htons(MDNS_PORT);
+                    sock = mdns_socket_open_ipv6(saddr, ifindex);
+                    if (sock >= 0)
+                    {
+                        socketToIfIpv6Index[sock] = ifindex;
+
+                        struct ipv6_mreq mreq;
+                        memset(&mreq, 0, sizeof(mreq));
+                        inet_pton(AF_INET6, "ff02::fb", &mreq.ipv6mr_multiaddr);
+                        mreq.ipv6mr_interface = ifindex;
+                        setsockopt(sock, IPPROTO_IPV6, IPV6_JOIN_GROUP, &mreq, sizeof(mreq));
+                    }
+                }
             }
         }
     }

@@ -656,7 +656,11 @@ class App(tk.Tk):
     def create_function_block_menu(self, node):
         popup = self.create_property_object_menu(node)
 
-        if node.available_function_block_types:
+        try:
+            has_fb_types = bool(node.available_function_block_types)
+        except RuntimeError:
+            has_fb_types = False
+        if has_fb_types:
             popup.add_command(
                 label='Add Function block',
                 command=lambda: self.add_function_block_dialog_show(node)
@@ -675,12 +679,15 @@ class App(tk.Tk):
         popup.add_command(label='Lock', command=self.handle_lock)
         popup.add_command(label='Unlock', command=self.handle_unlock)
 
-        if node.available_function_block_types:
+        try:
+            has_fb_types = bool(node.available_function_block_types)
+        except RuntimeError:
+            has_fb_types = False
+        if has_fb_types:
             popup.add_command(
                 label='Add Function block',
                 command=lambda: self.add_function_block_dialog_show(node)
             )
-
 
         if node.global_id != self.context.instance.global_id:
             popup.add_command(

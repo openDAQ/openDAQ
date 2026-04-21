@@ -14,7 +14,6 @@
  * limitations under the License.
  */
 
-#include <pybind11/gil.h>
 #include <pybind11/pybind11.h>
 
 #include "py_opendaq/py_python_function_block.h"
@@ -34,7 +33,10 @@ void definePythonFunctionBlockSupport(pybind11::module_ /*m*/, FunctionBlockClas
              bool requestGapPackets,
              daq::IPermissions* permissions)
           {
-              py::gil_scoped_release release;
+              // IMPORTANT: do not release the GIL here.
+              // This method is invoked from Python (via opendaq/function_block.py) while the interpreter
+              // is still unwinding temporary argument objects. Releasing the GIL in the middle of the
+              // call can cause pybind refcounting (dec_ref) to run without the GIL and abort the process.
               return daq::pythonFunctionBlockCreateAndAddInputPort(fb,
                                                                   localId,
                                                                   notificationMethod,
@@ -57,7 +59,6 @@ void definePythonFunctionBlockSupport(pybind11::module_ /*m*/, FunctionBlockClas
              bool isPublic,
              daq::IPermissions* permissions)
           {
-              py::gil_scoped_release release;
               return daq::pythonFunctionBlockCreateAndAddSignal(fb,
                                                                localId,
                                                                daq::DataDescriptorPtr::Borrow(descriptor),
@@ -75,7 +76,6 @@ void definePythonFunctionBlockSupport(pybind11::module_ /*m*/, FunctionBlockClas
     functionBlockClass.def("_remove_input_port",
           [](daq::IFunctionBlock* fb, daq::IInputPortConfig* port)
           {
-              py::gil_scoped_release release;
               daq::pythonFunctionBlockRemoveInputPort(fb, port);
           },
           py::arg("port"));
@@ -83,7 +83,6 @@ void definePythonFunctionBlockSupport(pybind11::module_ /*m*/, FunctionBlockClas
     functionBlockClass.def("_remove_signal",
           [](daq::IFunctionBlock* fb, daq::ISignalConfig* signal)
           {
-              py::gil_scoped_release release;
               daq::pythonFunctionBlockRemoveSignal(fb, signal);
           },
           py::arg("signal"));
@@ -93,4 +92,3 @@ void definePythonFunctionBlockSupport(pybind11::module_ /*m*/, FunctionBlockClas
 template void definePythonFunctionBlockSupport<PyDaqIntf<daq::IFunctionBlock, daq::IFolder>>(
     pybind11::module_ /*m*/,
     PyDaqIntf<daq::IFunctionBlock, daq::IFolder> /*functionBlockClass*/);
-

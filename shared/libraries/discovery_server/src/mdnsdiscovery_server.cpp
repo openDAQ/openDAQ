@@ -1075,7 +1075,7 @@ void MDNSDiscoveryServer::sendMdnsMutlicastResponses()
 
             std::vector<char>sendBuffer(1024);
             const std::vector<mdns_record_t>& records{};
-            for (const auto& [_, adapter_] : adapters)
+            for (const auto& [__, adapter_] : adapters)
             {
                 if (adapter_.ipv4Sock >= 0)
                     mdns_query_answer_multicast(adapter_.ipv4Sock, sendBuffer.data(), sendBuffer.size(), answer, 0, 0, records.data(), records.size(), 0);
@@ -1089,7 +1089,7 @@ void MDNSDiscoveryServer::sendMdnsMutlicastResponses()
             mdns_record_t answer = createPtrRecord(service);
             auto propsCount = service.updateConnectedClientsAndGetPropsCount();
 
-            for (const auto& [_, adapter_] : adapters)
+            for (const auto& [__, adapter_] : adapters)
             {
                 if (adapter_.ipv4Sock >= 0)
                 {

@@ -1,4 +1,4 @@
-name: Nightly build and run unstable tests
+name: Nightly build and run unstable tests (legacy)
 
 on:
   schedule:
@@ -8,7 +8,7 @@ on:
 jobs:
   run-ci-jobs:
     if: ${{ github.event_name == 'workflow_dispatch' || github.ref == 'refs/heads/main' }}
-    uses: ./.github/workflows/ci.yml
+    uses: ./.github/workflows/ci-legacy.yml
     with:
       cmake_preset: unstable_tests_ci
       ctest_preset: run_unstable_test_repeatedly

@@ -47,7 +47,7 @@ inputs:
     required: false
     default: 'ci'
   cpack-generator:
-    description: 'CPack generator (NSIS, DEB, RPM, ZIP, TGZ). If set, Build Installer step will run'
+    description: 'CPack generator (NSIS, DEB, RPM, ZIP, TGZ, TXZ, productbuild for .pkg). If set, Build Installer step will run'
     required: false
     default: ''
   generate-python-bindings:
@@ -353,15 +353,17 @@ runs:
           NSIS) PACKAGE_EXT="exe" ;;
           ZIP) PACKAGE_EXT="zip" ;;
           TGZ) PACKAGE_EXT="tar.gz" ;;
+          TXZ) PACKAGE_EXT="tar.xz" ;;
           DEB) PACKAGE_EXT="deb" ;;
           RPM) PACKAGE_EXT="rpm" ;;
+          productbuild) PACKAGE_EXT="pkg" ;;
           *) echo "Unknown generator: ${{ inputs.cpack-generator }}" && exit 1 ;;
         esac
 
         PACKAGE_PATH="$CMAKE_BUILD_PATH/_packages"
 
         echo "::group::CPack"
-        cpack --config "$CMAKE_BUILD_PATH/CPackConfig.cmake" -B "$PACKAGE_PATH" -C "$CMAKE_BUILD_TYPE" -G ${{ inputs.cpack-generator }}
+        cpack --config "$CMAKE_BUILD_PATH/CPackConfig.cmake" -B "$PACKAGE_PATH" -C "$CMAKE_BUILD_TYPE" -G "${{ inputs.cpack-generator }}"
         echo "::endgroup::"
 
         PACKAGE_FILE_PATH="$PACKAGE_PATH/$PACKAGE_NAME.$PACKAGE_EXT"

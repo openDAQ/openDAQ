@@ -1,0 +1,49 @@
+name: Build and Test openDAQ
+
+on:
+  workflow_dispatch:
+  pull_request:
+    types: [opened, reopened, synchronize, ready_for_review]
+
+jobs:
+  ci:
+    if: ${{ ! github.event.pull_request.draft }}
+    name: openDAQ
+    uses: openDAQ/openDAQ-CI/.github/workflows/reusable.yml@jira/TBBAS-3212-support-opendaq-ci
+    with:
+      timeout: '[{"timeout-minutes": 270}]'
+      packages: >
+        [
+          {
+            "match-jobs": ["ubuntu-*"],
+            "apt-install": ["lld", "libx11-dev", "libxi-dev", "libxcursor-dev", "libxrandr-dev", "libgl-dev", "libudev-dev", "libfreetype6-dev"]
+          },
+          {
+            "pip-install": ["numpy"],
+            "use-python-version": "3.14"
+          },
+          {
+            "match-jobs": ["ubuntu-20.04-*-gcc-7-*", "ubuntu-20.04-*-clang-9-*"],
+            "use-python-version": "3.8"
+          }
+        ]
+      cmake-presets: >
+        [
+          {
+            "configure-preset": "ci",
+            "test-preset": "run_tests"
+          },
+          {
+            "match-jobs": ["windows-*-msvs-*"],
+            "configure-preset": "ci-msvc"
+          },
+          {
+            "match-jobs": ["ubuntu-20.04-*-gcc-7-*", "ubuntu-20.04-*-clang-9-*"],
+            "configure-preset": "ci-legacy-compiler"
+          },
+          {
+            "match-jobs": ["macos-*"],
+            "configure-preset": "ci-macos",
+            "run-tests-priv": true
+          }
+        ]

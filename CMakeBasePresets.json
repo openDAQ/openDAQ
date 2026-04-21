@@ -182,23 +182,13 @@
                 "OPENDAQ_GENERATE_PYTHON_BINDINGS": true,
                 "OPENDAQ_GENERATE_CSHARP_BINDINGS": true,
                 "OPENDAQ_GENERATE_C_BINDINGS": true,
+                "OPENDAQ_PYTHON_VERSION": "3.14",
                 "APP_ENABLE_AUDIO_APP": true,
                 "APP_ENABLE_EXAMPLE_APPS": true,
                 "DAQSIMULATOR_ENABLE_SIMULATOR_APP": true,
                 "OPENDAQ_ENABLE_UNSTABLE_TEST_LABELS": true,
                 "OPENDAQ_SKIP_UNSTABLE_TESTS": true,
                 "DAQMODULES_LT_LEGACY_MODULES": true
-            }
-        },
-        {
-            "name": "unstable_tests_ci",
-            "hidden": false,
-            "inherits": [
-                "ci"
-            ],
-            "cacheVariables": {
-                "OPENDAQ_ENABLE_UNSTABLE_TEST_LABELS": true,
-                "OPENDAQ_SKIP_UNSTABLE_TESTS": false
             }
         },
         {
@@ -326,6 +316,38 @@
                 "intel-llvm",
                 "ninja"
             ]
+        },
+        {
+            "name": "ci-msvc",
+            "hidden": true,
+            "inherits": [
+                "ci"
+            ],
+            "cacheVariables": {
+                "OPENDAQ_MSVC_SINGLE_PROCESS_BUILD": true
+            }
+        },
+        {
+            "name": "ci-macos",
+            "hidden": true,
+            "inherits": [
+                "ci"
+            ],
+            "cacheVariables": {
+                "CMAKE_OSX_DEPLOYMENT_TARGET": "10.15"
+            }
+        },
+        {
+            "name": "ci-legacy-compiler",
+            "hidden": true,
+            "inherits": [
+                "ci"
+            ],
+            "cacheVariables": {
+                "DAQMODULES_REF_FB_MODULE_ENABLE_RENDERER": false,
+                "DAQMODULES_BASIC_CSV_RECORDER_MODULE": false,
+                "OPENDAQ_PYTHON_VERSION": "3.8"
+            }
         }
     ],
     "testPresets": [
@@ -335,23 +357,6 @@
             "configurePreset": "ci",
             "output": {
                 "outputOnFailure": true
-            }
-        },
-        {
-            "name": "run_unstable_test_repeatedly",
-            "description": "Run only unstable tests multiple times",
-            "configurePreset": "unstable_tests_ci",
-            "output": {
-                "outputOnFailure": true
-            },
-            "environment": {
-                "GTEST_FILTER": "*.UNSTABLE_SKIPPED_*",
-                "GTEST_REPEAT": "30"
-            },
-            "filter": {
-                "exclude": {
-                    "name": "test_py_opendaq"
-                }
             }
         }
     ]

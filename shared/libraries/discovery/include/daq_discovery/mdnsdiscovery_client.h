@@ -15,7 +15,6 @@
  */
 
 #pragma once
-#include <arpa/inet.h>
 #include <mdns.h>
 #include <string>
 #include <map>
@@ -44,6 +43,7 @@
 #include <iphlpapi.h>
 #include <WinSock2.h>
 #else
+#include <arpa/inet.h>
 #include <ifaddrs.h>
 #include <net/if.h>
 #include <netdb.h>

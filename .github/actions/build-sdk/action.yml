@@ -361,8 +361,14 @@ runs:
 
         PACKAGE_PATH="$CMAKE_BUILD_PATH/_packages"
 
+        # PKG is an alias for the macOS productbuild generator
+        CPACK_GENERATOR="${{ inputs.cpack-generator }}"
+        if [ "$CPACK_GENERATOR" == "PKG" ]; then
+          CPACK_GENERATOR="productbuild"
+        fi
+
         echo "::group::CPack"
-        cpack --config "$CMAKE_BUILD_PATH/CPackConfig.cmake" -B "$PACKAGE_PATH" -C "$CMAKE_BUILD_TYPE" -G "${{ inputs.cpack-generator }}"
+        cpack --config "$CMAKE_BUILD_PATH/CPackConfig.cmake" -B "$PACKAGE_PATH" -C "$CMAKE_BUILD_TYPE" -G "$CPACK_GENERATOR"
         echo "::endgroup::"
 
         PACKAGE_FILE_PATH="$PACKAGE_PATH/$PACKAGE_NAME.$PACKAGE_EXT"

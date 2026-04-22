@@ -58,11 +58,7 @@ DevicePtr NativeDeviceHelper::connectAndGetDevice(const ComponentPtr& parent, ui
     auto device = configProtocolClient->connect(parent, protocolVersion);
     protocolVersion = configProtocolClient->getProtocolVersion();
     startAcceptNotificationPackets();
-    deviceRef = device;
-    
-    // Set up callback to get alternative addresses from device info for reconnection
-    setupAlternativeAddressesCallback();
-    
+    deviceRef = device;    
     return device;
 }
 
@@ -308,59 +304,6 @@ void NativeDeviceHelper::setupProtocolClients(const ContextPtr& context)
                                               transportConnectionStatusChangedCb);
 }
 
-void NativeDeviceHelper::setupAlternativeAddressesCallback()
-{
-    if (!transportClientHandler)
-        return;
-
-    opendaq_native_streaming_protocol::GetAlternativeAddressesCallback callback =
-        [deviceHelperWeak = weak_from_this()]() -> ListPtr<IString>
-    {
-        if (auto deviceHelperSelf = deviceHelperWeak.lock())
-        {
-            auto deviceSelf = deviceHelperSelf->deviceRef.assigned() ? deviceHelperSelf->deviceRef.getRef() : nullptr;
-            if (!deviceSelf.assigned())
-                return List<IString>();
-
-            try
-            {
-                // Get protocol ID from configuration connection info
-                auto protocolId = deviceSelf.getInfo().getConfigurationConnectionInfo().getProtocolId();
-                
-                // Get server capability for this protocol
-                auto capability = deviceSelf.getInfo().getServerCapability(protocolId);
-                if (!capability.assigned())
-                    return List<IString>();
-
-                // Get all address info entries
-                auto addressInfos = capability.getAddressInfo();
-                if (!addressInfos.assigned() || addressInfos.getCount() == 0)
-                    return List<IString>();
-
-                // Return only addresses (port and path are the same for all addresses of the same device)
-                ListPtr<IString> addresses = List<IString>();
-                for (const auto& addressInfo : addressInfos)
-                {
-                    auto address = addressInfo.getAddress();
-                    if (address.assigned())
-                        addresses.pushBack(address);
-                }
-
-                return addresses;
-            }
-            catch (const std::exception& e)
-            {
-                auto loggerComponent = deviceHelperSelf->loggerComponent;
-                LOG_W("Failed to get alternative addresses from device info: {}", e.what());
-                return List<IString>();
-            }
-        }
-        return List<IString>();
-    };
-
-    transportClientHandler->setAlternativeAddressesCallback(callback);
-}
-
 PacketBuffer NativeDeviceHelper::doConfigRequestAndGetReply(const PacketBuffer& reqPacket)
 {
     auto reqId = reqPacket.getId();
@@ -524,6 +467,60 @@ void NativeDeviceImpl::removed()
     Super::removed();
 }
 
+ErrCode NativeDeviceImpl::setComponentConfig(IPropertyObject* config)
+{
+    OPENDAQ_RETURN_IF_FAILED(Super::setComponentConfig(config));
+
+    StringPtr primaryAddressType;
+    if (config != nullptr)
+    {
+        const auto configPtr = PropertyObjectPtr::Borrow(config);
+
+        if (configPtr.hasProperty("General"))
+        {
+            const PropertyObjectPtr generalConfig = configPtr.getPropertyValue("General");
+            if (generalConfig.hasProperty("PrimaryAddressType"))
+            {
+                const StringPtr primaryAddressTypeCandidate = generalConfig.getPropertyValue("PrimaryAddressType");
+                if (primaryAddressTypeCandidate.getLength())
+                    primaryAddressType = primaryAddressTypeCandidate;
+            }
+        }
+    }
+
+    DeviceInfoPtr deviceInfo;
+    OPENDAQ_RETURN_IF_FAILED(getInfo(&deviceInfo));
+
+    if (deviceInfo == nullptr)
+       return OPENDAQ_IGNORED;
+
+    const auto streamingCapability = deviceInfo.getServerCapability("OpenDAQNativeConfiguration");
+    if (!streamingCapability.assigned())
+        return OPENDAQ_IGNORED;
+
+    auto addressInfos = streamingCapability.getAddressInfo();
+    if (!addressInfos.assigned() || addressInfos.getCount() == 0)
+        return OPENDAQ_IGNORED;
+
+    auto alternativeAddresses = List<IString>();
+    for (const auto& addressInfo : addressInfos)
+    {
+        if (primaryAddressType.assigned() && addressInfo.getType() != primaryAddressType)
+            continue;
+
+        if (addressInfo.getReachabilityStatus() == AddressReachabilityStatus::Unreachable)
+            continue;
+
+        alternativeAddresses.pushBack(addressInfo.getAddress());
+    }
+
+    if (!deviceHelper)
+        return OPENDAQ_IGNORED;
+
+    deviceHelper->getTransportClientHandler()->setAlternativeAddresses(alternativeAddresses);
+    return OPENDAQ_SUCCESS;
+}
+
 // retrieves the local configuration object without triggering an RPC call
 ErrCode NativeDeviceImpl::getComponentConfig(IPropertyObject** config)
 {
@@ -541,6 +538,11 @@ bool NativeDeviceImpl::isAddedToLocalComponentTree()
 void NativeDeviceImpl::attachDeviceHelper(std::shared_ptr<NativeDeviceHelper> deviceHelper)
 {
     this->deviceHelper = deviceHelper;
+}
+
+NativeStreamingClientHandlerPtr NativeDeviceHelper::getTransportClientHandler() const
+{
+    return transportClientHandler;
 }
 
 void NativeDeviceImpl::disconnectAndCleanUp()

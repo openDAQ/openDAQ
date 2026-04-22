@@ -27,6 +27,7 @@ NativeStreamingDeviceImpl::NativeStreamingDeviceImpl(const ContextPtr& ctx,
   , connectionString(connectionString)
   , connectionStatus(Enumeration("ConnectionStatusType", "Connected", this->context.getTypeManager()))
   , deviceType(type)
+  , transportProtocolClient(transportProtocolClient)
 {
     if (!this->connectionString.assigned())
         DAQ_THROW_EXCEPTION(ArgumentNullException, "connectionString cannot be null");
@@ -38,142 +39,57 @@ NativeStreamingDeviceImpl::NativeStreamingDeviceImpl(const ContextPtr& ctx,
     activateStreaming();
     this->connectionStatusContainer.addStreamingConnectionStatus(connectionString, connectionStatus, nativeStreaming);
     this->statusContainer.asPtr<IComponentStatusContainerPrivate>().addStatus("ConnectionStatus", connectionStatus);
-    
-    // Set up callback to get alternative addresses from device info for reconnection
-    setupAlternativeAddressesCallback(transportProtocolClient);
 }
 
-void NativeStreamingDeviceImpl::setupAlternativeAddressesCallback(opendaq_native_streaming_protocol::NativeStreamingClientHandlerPtr transportProtocolClient)
+ErrCode NativeStreamingDeviceImpl::setComponentConfig(IPropertyObject* config)
 {
-    if (!transportProtocolClient)
-        return;
+    OPENDAQ_RETURN_IF_FAILED(Super::setComponentConfig(config));
 
-    auto loggerComponent =  this->context.getLogger().getOrAddComponent("NativeStreamingDevice");
-
-    WeakRefPtr<IDevice> deviceWeak = this->template borrowPtr<DevicePtr>();
-    opendaq_native_streaming_protocol::GetAlternativeAddressesCallback callback =
-        [deviceWeak, loggerComponent]() -> ListPtr<IString>
+    StringPtr primaryAddressType;
+    if (config != nullptr)
     {
-        DevicePtr deviceSelf = deviceWeak.assigned() ? deviceWeak.getRef() : nullptr;
-        if (!deviceSelf.assigned())
+        const auto configPtr = PropertyObjectPtr::Borrow(config);
+
+        if (configPtr.hasProperty("General"))
         {
-            LOG_D("Streaming device weak reference is not assigned");
-            return List<IString>();
+            const PropertyObjectPtr generalConfig = configPtr.getPropertyValue("General");
+            if (generalConfig.hasProperty("PrimaryAddressType"))
+            {
+                const StringPtr primaryAddressTypeCandidate = generalConfig.getPropertyValue("PrimaryAddressType");
+                if (primaryAddressTypeCandidate.getLength())
+                    primaryAddressType = primaryAddressTypeCandidate;
+            }
         }
+    }
 
-        try
-        {
-            // First try to get addresses from parent device (real device) if available
-            auto parent = deviceSelf.getParent();
-            if (parent.assigned())
-            {
-                auto parentDevice = parent.asPtrOrNull<IDevice>();
-                if (parentDevice.assigned())
-                {
-                    auto parentDeviceInfo = parentDevice.getInfo();
-                    if (parentDeviceInfo.assigned())
-                    {
-                        // Try to get streaming capability from parent device first
-                        auto streamingCapability = parentDeviceInfo.getServerCapability("OpenDAQNativeStreaming");
-                        if (streamingCapability.assigned())
-                        {
-                            auto addressInfos = streamingCapability.getAddressInfo();
-                            if (addressInfos.assigned() && addressInfos.getCount() > 0)
-                            {
-                                // Return only addresses (port and path are the same for all addresses of the same device)
-                                ListPtr<IString> addresses = List<IString>();
-                                for (const auto& addressInfo : addressInfos)
-                                {
-                                    auto address = addressInfo.getAddress();
-                                    if (address.assigned())
-                                        addresses.pushBack(address);
-                                }
-                                if (addresses.getCount() > 0)
-                                {
-                                    LOG_D("Streaming: Found {} alternative addresses from parent device streaming capability", addresses.getCount());
-                                    return addresses;
-                                }
-                            }
-                        }
-                        
-                        // Fallback: use config protocol addresses (same transport layer)
-                        auto configCapability = parentDeviceInfo.getServerCapability("OpenDAQNativeConfiguration");
-                        if (configCapability.assigned())
-                        {
-                            auto addressInfos = configCapability.getAddressInfo();
-                            if (addressInfos.assigned() && addressInfos.getCount() > 0)
-                            {
-                                // Return only addresses (port and path are the same for all addresses of the same device)
-                                ListPtr<IString> addresses = List<IString>();
-                                for (const auto& addressInfo : addressInfos)
-                                {
-                                    auto address = addressInfo.getAddress();
-                                    if (address.assigned())
-                                        addresses.pushBack(address);
-                                }
-                                if (addresses.getCount() > 0)
-                                {
-                                    LOG_D("Streaming: Found {} alternative addresses from parent device config capability", addresses.getCount());
-                                    return addresses;
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-            else
-            {
-                LOG_D("Streaming device has no parent device");
-            }
+    DeviceInfoPtr deviceInfo;
+    OPENDAQ_RETURN_IF_FAILED(getInfo(&deviceInfo));
 
-            // Fallback to streaming device's own info
-            auto deviceInfo = deviceSelf.getInfo();
-            if (!deviceInfo.assigned())
-            {
-                LOG_D("Streaming device info is not assigned");
-                return List<IString>();
-            }
+    if (deviceInfo == nullptr)
+       return OPENDAQ_IGNORED;
 
-            // Get streaming capability (OpenDAQNativeStreaming)
-            auto capability = deviceInfo.getServerCapability("OpenDAQNativeStreaming");
-            if (!capability.assigned())
-            {
-                LOG_D("Streaming capability not found in device info");
-                return List<IString>();
-            }
+    const auto streamingCapability = deviceInfo.getServerCapability("OpenDAQNativeStreaming");
+    if (!streamingCapability.assigned())
+        return OPENDAQ_IGNORED;
 
-            // Get all address info entries
-            auto addressInfos = capability.getAddressInfo();
-            if (!addressInfos.assigned() || addressInfos.getCount() == 0)
-            {
-                LOG_D("Streaming capability has {} address info entries", addressInfos.assigned() ? addressInfos.getCount() : 0);
-                return List<IString>();
-            }
+    auto addressInfos = streamingCapability.getAddressInfo();
+    if (!addressInfos.assigned() || addressInfos.getCount() == 0)
+        return OPENDAQ_IGNORED;
 
-            // Return only addresses (port and path are the same for all addresses of the same device)
-            ListPtr<IString> addresses = List<IString>();
-            for (const auto& addressInfo : addressInfos)
-            {
-                auto address = addressInfo.getAddress();
-                if (address.assigned())
-                    addresses.pushBack(address);
-            }
+    auto alternativeAddresses = List<IString>();
+    for (const auto& addressInfo : addressInfos)
+    {
+        if (primaryAddressType.assigned() && addressInfo.getType() != primaryAddressType)
+            continue;
 
-            if (addresses.getCount() > 0)
-            {
-                LOG_D("Streaming: Found {} alternative addresses from own device info", addresses.getCount());
-            }
+        if (addressInfo.getReachabilityStatus() == AddressReachabilityStatus::Unreachable)
+            continue;
 
-            return addresses;
-        }
-        catch (const std::exception& e)
-        {
-            LOG_W("Exception while getting alternative connection strings: {}", e.what());
-            return List<IString>();
-        }
-    };
+        alternativeAddresses.pushBack(addressInfo.getAddress());
+    }
 
-    transportProtocolClient->setAlternativeAddressesCallback(callback);
+    transportProtocolClient->setAlternativeAddresses(alternativeAddresses);
+    return OPENDAQ_SUCCESS;
 }
 
 void NativeStreamingDeviceImpl::removed()

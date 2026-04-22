@@ -277,34 +277,28 @@ void NativeStreamingClientImpl::tryReconnect()
     reconnectionTimer->async_wait(std::bind(&NativeStreamingClientImpl::checkReconnectionResult, this, std::placeholders::_1));
 
     // Try alternative addresses if callback is available
-    if (getAlternativeAddressesCallback)
+    if (alternativeAddresses.assigned() && alternativeAddresses.getCount() > 1)
     {
         try
         {
-            auto alternativeAddresses = getAlternativeAddressesCallback();
-            LOG_D("Alternative addresses callback returned {} addresses", 
-                  alternativeAddresses.assigned() ? alternativeAddresses.getCount() : 0);
-            if (alternativeAddresses.assigned() && alternativeAddresses.getCount() > 0)
-            {
-                // Try next address in the list, cycling through all addresses
-                if (currentAddressIndex >= alternativeAddresses.getCount())
-                    currentAddressIndex = 0;
+            // Try next address in the list, cycling through all addresses
+            if (currentAddressIndex >= alternativeAddresses.getCount())
+                currentAddressIndex = 0;
 
-                StringPtr address = alternativeAddresses[currentAddressIndex];
-                LOG_I("Trying to reconnect using alternative address {}/{}: {}:{}", 
-                      currentAddressIndex + 1, alternativeAddresses.getCount(), address, currentPort);
+            StringPtr address = alternativeAddresses[currentAddressIndex];
+            LOG_I("Trying to reconnect using alternative address {}/{}: {}:{}", 
+                    currentAddressIndex + 1, alternativeAddresses.getCount(), address, currentPort);
 
-                // Use address with current port and path (port and path are the same for all addresses of the same device)
-                currentHost = address.toStdString();
+            // Use address with current port and path (port and path are the same for all addresses of the same device)
+            currentHost = address.toStdString();
 
-                // Initialize client with new address
-                initClient(currentHost, currentPort, currentPath);
-                client->connect(connectionTimeout);
+            // Initialize client with new address
+            initClient(currentHost, currentPort, currentPath);
+            client->connect(connectionTimeout);
 
-                // Move to next address for next reconnection attempt
-                currentAddressIndex++;
-                return;
-            }
+            // Move to next address for next reconnection attempt
+            currentAddressIndex++;
+            return;
         }
         catch (const std::exception& e)
         {
@@ -609,9 +603,9 @@ void NativeStreamingClientImpl::onConnectionFailed(const std::string& errorMessa
     connectedPromise.set_value(result);
 }
 
-void NativeStreamingClientImpl::setAlternativeAddressesCallback(const GetAlternativeAddressesCallback& callback)
+void NativeStreamingClientImpl::setAlternativeAddresses(const ListPtr<IString>& alternativeAddresses)
 {
-    getAlternativeAddressesCallback = callback;
+    this->alternativeAddresses = alternativeAddresses;
 }
 
 void NativeStreamingClientImpl::initClient(std::string host,
@@ -832,9 +826,9 @@ bool NativeStreamingClientHandler::supportsToDeviceStreaming()
    return toDeviceStreamingEnabled;
 }
 
-void NativeStreamingClientHandler::setAlternativeAddressesCallback(const GetAlternativeAddressesCallback& callback)
+void NativeStreamingClientHandler::setAlternativeAddresses(const ListPtr<IString>& alternativeAddresses)
 {
-    clientHandlerPtr->setAlternativeAddressesCallback(callback);
+    clientHandlerPtr->setAlternativeAddresses(alternativeAddresses);
 }
 
 void NativeStreamingClientHandler::startTransportOperations()

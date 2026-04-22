@@ -58,6 +58,8 @@ public:
 
     void closeConnectionOnRemoval();
 
+    opendaq_native_streaming_protocol::NativeStreamingClientHandlerPtr getTransportClientHandler() const;
+
 private:
     void transportConnectionStatusChangedHandler(const EnumerationPtr& status, const StringPtr& statusMessage);
     config_protocol::PacketBuffer doConfigRequestAndGetReply(const config_protocol::PacketBuffer& reqPacket);
@@ -73,7 +75,6 @@ private:
     void tryConfigProtocolReconnect();
     void startAcceptNotificationPackets();
     void stopAcceptNotificationPackets();
-    void setupAlternativeAddressesCallback();
 
     std::shared_ptr<boost::asio::io_context> processingIOContextPtr;
     std::shared_ptr<boost::asio::io_context> reconnectionProcessingIOContextPtr;
@@ -123,6 +124,7 @@ public:
     void INTERFACE_FUNC updateDeviceInfo(const StringPtr& connectionString) override;
 
     // IComponentPrivate
+    ErrCode INTERFACE_FUNC setComponentConfig(IPropertyObject* config) override;
     ErrCode INTERFACE_FUNC getComponentConfig(IPropertyObject** config) override;
 
 protected:

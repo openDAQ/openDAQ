@@ -11,6 +11,7 @@ from .output_signals_view import OutputSignalsView
 from .properties_view import PropertiesView
 from .recorder_view import RecorderView
 from .attributes_dialog import AttributesDialog
+from .signal_preview_panel import SignalPreviewPanel
 
 class BlockView(ttk.Frame):
 
@@ -173,6 +174,19 @@ class BlockView(ttk.Frame):
                     self.recoder.pack(fill=tk.X)
                 
                 self.label_icon.config(image=self.function_block_img)
+                
+                self._signal_preview = None
+                if daq.IChannel.can_cast_from(self.node):
+                    self._signal_preview = SignalPreviewPanel(
+                        self._right_container, self.node, self.context)
+                    self._signal_preview.place(
+                        relx=0, rely=1.0, relwidth=1.0,
+                        anchor='sw')
+                    
+                self.cols = [0, 1]
+                self.rows = [0]
+                
+                self._bind_mousewheel_recursive(self.right_stack)
 
                 self.cols = [0, 1]
                 self.rows = [0]

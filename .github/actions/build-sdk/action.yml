@@ -47,7 +47,7 @@ inputs:
     required: false
     default: 'ci'
   cpack-generator:
-    description: 'CPack generator (NSIS, DEB, RPM, ZIP, TGZ, TXZ, PKG). If set, Build Installer step will run'
+    description: 'CPack generator (NSIS, DEB, RPM, ZIP, TGZ, productbuild). If set, Build Installer step will run'
     required: false
     default: ''
   generate-python-bindings:
@@ -355,20 +355,14 @@ runs:
           TGZ) PACKAGE_EXT="tar.gz" ;;
           DEB) PACKAGE_EXT="deb" ;;
           RPM) PACKAGE_EXT="rpm" ;;
-          PKG) PACKAGE_EXT="pkg" ;;
+          productbuild) PACKAGE_EXT="pkg" ;;
           *) echo "Unknown generator: ${{ inputs.cpack-generator }}" && exit 1 ;;
         esac
 
         PACKAGE_PATH="$CMAKE_BUILD_PATH/_packages"
 
-        # PKG is an alias for the macOS productbuild generator
-        CPACK_GENERATOR="${{ inputs.cpack-generator }}"
-        if [ "$CPACK_GENERATOR" == "PKG" ]; then
-          CPACK_GENERATOR="productbuild"
-        fi
-
         echo "::group::CPack"
-        cpack --config "$CMAKE_BUILD_PATH/CPackConfig.cmake" -B "$PACKAGE_PATH" -C "$CMAKE_BUILD_TYPE" -G "$CPACK_GENERATOR"
+        cpack --config "$CMAKE_BUILD_PATH/CPackConfig.cmake" -B "$PACKAGE_PATH" -C "$CMAKE_BUILD_TYPE" -G "${{ inputs.cpack-generator }}"
         echo "::endgroup::"
 
         PACKAGE_FILE_PATH="$PACKAGE_PATH/$PACKAGE_NAME.$PACKAGE_EXT"

@@ -269,6 +269,7 @@ jobs:
             cmake-defines: >-
               -DDAQMODULES_PARQUET_RECORDER_MODULE=ON
               -DCMAKE_OSX_DEPLOYMENT_TARGET=10.15
+            cpack-generator: PKG
           - name: macOS ARM64 Clang Release
             runner: macos-latest
             cmake-generator: Ninja
@@ -276,6 +277,7 @@ jobs:
             cmake-defines: >-
               -DDAQMODULES_PARQUET_RECORDER_MODULE=ON
               -DCMAKE_OSX_DEPLOYMENT_TARGET=10.15
+            cpack-generator: PKG
 
     env:
       CC: /usr/bin/clang

@@ -494,6 +494,9 @@ ErrCode NativeDeviceImpl::setComponentConfig(IPropertyObject* config)
     if (deviceInfo == nullptr)
        return OPENDAQ_IGNORED;
 
+    if (!deviceInfo.hasServerCapability("OpenDAQNativeConfiguration"))
+        return OPENDAQ_IGNORED;
+
     const auto streamingCapability = deviceInfo.getServerCapability("OpenDAQNativeConfiguration");
     if (!streamingCapability.assigned())
         return OPENDAQ_IGNORED;

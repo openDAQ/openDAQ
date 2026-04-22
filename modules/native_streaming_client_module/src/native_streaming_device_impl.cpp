@@ -68,6 +68,9 @@ ErrCode NativeStreamingDeviceImpl::setComponentConfig(IPropertyObject* config)
     if (deviceInfo == nullptr)
        return OPENDAQ_IGNORED;
 
+    if (!deviceInfo.hasServerCapability("OpenDAQNativeStreaming"))
+        return OPENDAQ_IGNORED;
+
     const auto streamingCapability = deviceInfo.getServerCapability("OpenDAQNativeStreaming");
     if (!streamingCapability.assigned())
         return OPENDAQ_IGNORED;

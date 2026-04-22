@@ -49,6 +49,14 @@ class MyModule(daq.Module):
         return MyFunctionBlock(self.context, parent, local_id)
 
 
+def create_module(context: daq.IContext) -> daq.Module:
+    """
+    Entry-point used by the GUI demo Python plugin loader.
+    Returns a module instance to be added to `instance.module_manager`.
+    """
+    return MyModule(context)
+
+
 def main() -> int:
     builder = daq.InstanceBuilder()
     builder.module_path = "[[none]]"

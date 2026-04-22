@@ -358,6 +358,14 @@ class PlotModule(daq.Module):
         return PlotSignalFunctionBlock(self.context, parent, local_id)
 
 
+def create_module(context: daq.IContext) -> daq.Module:
+    """
+    Entry-point used by the GUI demo Python plugin loader.
+    Returns a module instance to be added to `instance.module_manager`.
+    """
+    return PlotModule(context)
+
+
 def main() -> int:
     # Note: if you want to use the default openDAQ module discovery, remove module_path override.
     builder = daq.InstanceBuilder()
@@ -387,7 +395,6 @@ def main() -> int:
             plt.pause(0.01)
     except Exception:
         print("Error in main loop:", traceback.format_exc())
-
 
     return 0
 

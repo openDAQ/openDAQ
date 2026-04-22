@@ -5,6 +5,8 @@ import os
 import enum
 import sys
 import platform
+import hashlib
+import importlib.util
 
 import tkinter as tk
 from tkinter import ttk
@@ -110,6 +112,7 @@ class App(tk.Tk):
             self.context.connection_string = None
 
         self.modules_map = {}
+        self.python_plugin_modules = []
 
         self.title('openDAQ demo')
         self.geometry('{}x{}'.format(
@@ -238,6 +241,8 @@ class App(tk.Tk):
                               command=self.handle_save_config_button_clicked)
         file_menu.add_command(label='Load module',
                               command=self.handle_load_modules_button_clicked)
+        file_menu.add_command(label='Load Python module',
+                              command=self.handle_load_python_module_button_clicked)
         file_menu.add_separator()
         file_menu.add_command(label='Exit', command=self.quit)
 
@@ -612,6 +617,73 @@ class App(tk.Tk):
         except Exception as e:
             print('Load module failed:', e, file=sys.stderr)
             utils.show_error('Load module failed', str(e), self)
+
+    def _load_python_plugin_module_from_path(self, file_path: str):
+        file_path = os.path.abspath(file_path)
+        base_name = os.path.splitext(os.path.basename(file_path))[0]
+        digest = hashlib.sha256(file_path.encode("utf-8")).hexdigest()[:12]
+        module_name = f"opendaq_gui_plugin_{base_name}_{digest}"
+
+        spec = importlib.util.spec_from_file_location(module_name, file_path)
+        if spec is None or spec.loader is None:
+            raise RuntimeError(f"Could not load python module from '{file_path}'")
+
+        module = importlib.util.module_from_spec(spec)
+
+        plugin_dir = os.path.dirname(file_path)
+        sys_path_had_dir = plugin_dir in sys.path
+        if not sys_path_had_dir:
+            sys.path.insert(0, plugin_dir)
+
+        try:
+            spec.loader.exec_module(module)
+        finally:
+            if not sys_path_had_dir:
+                try:
+                    sys.path.remove(plugin_dir)
+                except ValueError:
+                    pass
+
+        self.python_plugin_modules.append(module)
+        return module
+
+    def _call_python_plugin_entrypoint(self, module):
+        if hasattr(module, "create_module"):
+            mod_obj = module.create_module(self.context.instance.context)
+            if mod_obj is None:
+                raise RuntimeError("create_module() returned None")
+            self.context.instance.module_manager.add_module(mod_obj)
+            return mod_obj
+
+        if hasattr(module, "MODULE"):
+            mod_obj = getattr(module, "MODULE")
+            if mod_obj is None:
+                raise RuntimeError("MODULE is None")
+            self.context.instance.module_manager.add_module(mod_obj)
+            return mod_obj
+
+        raise RuntimeError(
+            "Python plugin must define create_module(context) or MODULE"
+        )
+
+    def handle_load_python_module_button_clicked(self):
+        file_path = askopenfilename(
+            parent=self,
+            title='Load Python module',
+            defaultextension='.py',
+            filetypes=[('Python file', '*.py'), ('All Files', '*.*')]
+        )
+
+        if not file_path:
+            return
+
+        try:
+            module = self._load_python_plugin_module_from_path(file_path)
+            self._call_python_plugin_entrypoint(module)
+            self.tree_update()
+        except Exception as e:
+            print('Load Python module failed:', e, file=sys.stderr)
+            utils.show_error('Load Python module failed', str(e), self)
 
     def handle_refresh_button_clicked(self):
         self.tree_update(self.context.selected_node)

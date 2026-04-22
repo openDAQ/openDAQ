@@ -10,6 +10,8 @@
 #include <opendaq/signal_config_ptr.h>
 #include <coreobjects/property_object_ptr.h>
 
+#include <py_opendaq/python_function_block.h>
+
 BEGIN_NAMESPACE_OPENDAQ
 
 FunctionBlockPtr createPythonFunctionBlock(const FunctionBlockTypePtr& type,
@@ -18,23 +20,6 @@ FunctionBlockPtr createPythonFunctionBlock(const FunctionBlockTypePtr& type,
                                            const StringPtr& localId,
                                            const PropertyObjectPtr& config,
                                            pybind11::object pyFunctionBlock);
-
-InputPortConfigPtr pythonFunctionBlockCreateAndAddInputPort(IFunctionBlock* fb,
-                                                            const std::string& localId,
-                                                            PacketReadyNotification notificationMethod,
-                                                            const BaseObjectPtr& customData,
-                                                            bool requestGapPackets,
-                                                            const PermissionsPtr& permissions);
-
-SignalConfigPtr pythonFunctionBlockCreateAndAddSignal(IFunctionBlock* fb,
-                                                      const std::string& localId,
-                                                      const DataDescriptorPtr& descriptor,
-                                                      bool visible,
-                                                      bool isPublic,
-                                                      const PermissionsPtr& permissions);
-
-void pythonFunctionBlockRemoveInputPort(IFunctionBlock* fb, IInputPortConfig* port);
-void pythonFunctionBlockRemoveSignal(IFunctionBlock* fb, ISignalConfig* signal);
 
 END_NAMESPACE_OPENDAQ
 

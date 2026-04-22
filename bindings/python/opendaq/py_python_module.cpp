@@ -34,10 +34,22 @@ BEGIN_NAMESPACE_OPENDAQ
 class PythonModuleImpl : public Module
 {
 public:
-    PythonModuleImpl(const ContextPtr& context, py::object pyModule)
-        : Module(extractName(pyModule), extractVersion(pyModule), context, extractId(pyModule))
+    PythonModuleImpl(py::object pyModule)
+        : Module(extractName(pyModule), extractVersion(pyModule), extractContext(pyModule), extractId(pyModule))
         , pyModule(std::move(pyModule))
     {
+    }
+
+    ~PythonModuleImpl() override
+    {
+        // This object can be destroyed on a non-Python thread. Ensure any pybind refcount
+        // operations happen while holding the GIL.
+        if (!Py_IsInitialized())
+            return;
+
+        PyGILState_STATE gilState = PyGILState_Ensure();
+        pyModule = py::none();
+        PyGILState_Release(gilState);
     }
 
     DictPtr<IString, IFunctionBlockType> onGetAvailableFunctionBlockTypes() override
@@ -133,6 +145,16 @@ private:
         return String(idObj.cast<std::string>());
     }
 
+    static ContextPtr extractContext(const py::object& module)
+    {
+        py::object ctxObj = requireAttr(module, "context");
+        // Store as lvalue so ObjectPtr(T*&) is chosen, which calls addRef().
+        // The rvalue overload ObjectPtr(T*&&) does NOT addRef, causing an
+        // over-release crash when Module::~Module() later releases the ContextPtr.
+        auto* raw = ctxObj.cast<daq::IContext*>();
+        return ContextPtr(raw);
+    }
+
     static VersionInfoPtr extractVersion(const py::object& module)
     {
         py::object versionObj = requireAttr(module, "version");
@@ -156,21 +178,7 @@ private:
 
 END_NAMESPACE_OPENDAQ
 
-void addPythonModuleToManager(daq::IModuleManager* manager,
-                                     daq::IContext* context,
-                                     py::object pyModule)
+daq::ModulePtr createPythonModule(py::object pyModule)
 {
-    if (!context || !manager)
-        throw std::invalid_argument("module_manager and context must not be null");
-
-    auto modulePtr = daq::createWithImplementation<daq::IModule, daq::PythonModuleImpl>(
-        daq::ContextPtr::Borrow(context),
-        std::move(pyModule));
-
-    // Module manager's addModule() does not addRef – it only stores the pointer. We must addRef
-    // so the module outlives this function; the manager and any list returned by getModules() hold it.
-    (*modulePtr)->addRef();
-
-    py::gil_scoped_release release;
-    daq::ModuleManagerPtr::Borrow(manager).addModule(*modulePtr);
+    return daq::createWithImplementation<daq::IModule, daq::PythonModuleImpl>(std::move(pyModule));
 }

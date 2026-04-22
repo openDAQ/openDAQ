@@ -20,6 +20,7 @@
 #include <opendaq/opendaq.h>
 #include <py_core_types/py_opendaq_daq.h>
 #include <py_opendaq/py_mock_signal.h>
+#include <py_opendaq/python_function_block.h>
 
 void wrapDaqComponentOpenDaq(pybind11::module_ m);
 
@@ -44,6 +45,8 @@ PyDaqIntf<daq::IConnectedClientInfo, daq::IPropertyObject> declareIConnectedClie
 PyDaqIntf<daq::IDeviceType, daq::IComponentType> declareIDeviceType(pybind11::module_ m);
 PyDaqIntf<daq::IChannel, daq::IFunctionBlock> declareIChannel(pybind11::module_ m);
 PyDaqIntf<daq::IFunctionBlock, daq::IFolder> declareIFunctionBlock(pybind11::module_ m);
+PyDaqIntf<daq::IPythonFunctionBlock, daq::IFunctionBlock> declareIPythonFunctionBlock(pybind11::module_ m);
+void defineIPythonFunctionBlock(pybind11::module_ m, PyDaqIntf<daq::IPythonFunctionBlock, daq::IFunctionBlock> cls);
 PyDaqIntf<daq::IFunctionBlockType, daq::IComponentType> declareIFunctionBlockType(pybind11::module_ m);
 PyDaqIntf<daq::IRecorder, daq::IBaseObject> declareIRecorder(pybind11::module_ m);
 PyDaqIntf<daq::ILogger, daq::IBaseObject> declareILogger(pybind11::module_ m);
@@ -238,8 +241,7 @@ void defineIComponentType(pybind11::module_ m, PyDaqIntf<daq::IComponentType, da
 void defineIDeviceUpdateOptions(pybind11::module_ m, PyDaqIntf<daq::IDeviceUpdateOptions, daq::IBaseObject> cls);
 
 void defineComponentSearchFilterFactories(pybind11::module_ m);
-void addPythonModuleToManager(daq::IModuleManager* manager, daq::IContext* context, pybind11::object pyModule);
 template <typename ModuleManagerClass>
 void definePythonModuleSupport(pybind11::module_ m, ModuleManagerClass moduleManagerClass);
-template <typename FunctionBlockClass>
-void definePythonFunctionBlockSupport(pybind11::module_ m, FunctionBlockClass functionBlockClass);
+template <typename PythonFunctionBlockClass>
+void definePythonFunctionBlock(pybind11::module_ m, PythonFunctionBlockClass functionBlockClass);

@@ -18,6 +18,7 @@
 #include <pybind11/gil.h>
 
 #include "py_opendaq/py_opendaq.h"
+#include "py_opendaq/py_python_module.h"
 
 namespace py = pybind11;
 
@@ -26,13 +27,13 @@ void definePythonModuleSupport(pybind11::module_ m, ModuleManagerClass moduleMan
 {
     using namespace daq;
 
-    m.def("add_python_module",
-          [](daq::IModuleManager* manager, daq::IContext* context, py::object pyModule)
+    moduleManagerClass.def("add_python_module",
+          [](daq::IModuleManager* manager, py::object arg)
           {
-              addPythonModuleToManager(manager, context, std::move(pyModule));
+              auto module = createPythonModule(std::move(arg));
+              py::gil_scoped_release release;
+              daq::ModuleManagerPtr::Borrow(manager).addModule(module);
           },
-          py::arg("module_manager"),
-          py::arg("context"),
           py::arg("module"),
           R"doc(
 Register a Python-defined module with the module manager.
@@ -42,35 +43,6 @@ Override these methods to customize behavior:
   - on_get_available_function_block_types() -> dict[str, IFunctionBlockType]
   - on_create_function_block(id, parent, local_id, config) -> IFunctionBlock or None
 )doc");
-
-    // Overload add_module to accept Python module (with .context): instance.module_manager.add_module(MyModule(instance.context))
-    moduleManagerClass.def("add_module",
-            [](daq::IModuleManager* manager, py::object arg)
-            {
-                try
-                {
-                    auto* asModule = arg.cast<daq::IModule*>();
-                    if (asModule)
-                    {
-                        py::gil_scoped_release release;
-                        ModuleManagerPtr::Borrow(manager).addModule(asModule);
-                        return;
-                    }
-                }
-                catch (const py::cast_error&)
-                {
-                }
-                // Python module: must have .context set (e.g. MyModule(instance.context))
-                if (!py::hasattr(arg, "context"))
-                    throw std::invalid_argument("Python module must have 'context' attribute (e.g. MyModule(instance.context))");
-                py::object contextObj = arg.attr("context");
-                if (contextObj.is_none())
-                    throw std::invalid_argument("Python module context must not be None");
-                daq::IContext* context = contextObj.cast<daq::IContext*>();
-                addPythonModuleToManager(manager, context, std::move(arg));
-            },
-            py::arg("module"),
-            "Add a module. Accepts IModule (native) or Python Module with .context set (e.g. MyModule(instance.context)).");
 }
 
 template void definePythonModuleSupport<PyDaqIntf<daq::IModuleManager, daq::IBaseObject>>(

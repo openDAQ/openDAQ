@@ -652,18 +652,11 @@ class App(tk.Tk):
             mod_obj = module.create_module(self.context.instance.context)
             if mod_obj is None:
                 raise RuntimeError("create_module() returned None")
-            self.context.instance.module_manager.add_module(mod_obj)
-            return mod_obj
-
-        if hasattr(module, "MODULE"):
-            mod_obj = getattr(module, "MODULE")
-            if mod_obj is None:
-                raise RuntimeError("MODULE is None")
-            self.context.instance.module_manager.add_module(mod_obj)
+            self.context.instance.module_manager.add_python_module(mod_obj)
             return mod_obj
 
         raise RuntimeError(
-            "Python plugin must define create_module(context) or MODULE"
+            "Python plugin must define create_module(context)"
         )
 
     def handle_load_python_module_button_clicked(self):

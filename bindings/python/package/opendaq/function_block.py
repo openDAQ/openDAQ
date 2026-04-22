@@ -5,12 +5,22 @@ class FunctionBlock:
     """
     Base class for defining openDAQ function blocks in Python.
     Subclass and override the on_* methods to provide function block behavior.
+
+    Lifecycle
+    ---------
+    1. ``__init__`` is called (by ``on_create_function_block``).
+       ``_cpp_fb`` is **not** available yet.
+    2. C++ sets ``_cpp_fb`` pointing to the backing ``IPythonFunctionBlock``.
+    3. ``on_init()`` is called — use this method to add properties,
+       create ports/signals, and do any other initialisation that
+       requires ``_cpp_fb``.
     """
 
     def __init__(self, context: opendaq.IContext = None, parent: opendaq.IComponent = None, local_id: str = None):
         self.context = context
         self.parent = parent
         self.local_id = local_id
+        self._cpp_fb = None
 
     @staticmethod
     def create_function_block_type() -> opendaq.IFunctionBlockType:
@@ -50,4 +60,3 @@ class FunctionBlock:
 
     def remove_signal(self, signal: opendaq.ISignalConfig):
         self._cpp_fb._remove_signal(signal)
-

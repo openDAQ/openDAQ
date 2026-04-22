@@ -11,7 +11,6 @@ from datetime import datetime, timezone
 from typing import Deque
 
 import opendaq as daq
-import time
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.dates as mdates
@@ -185,6 +184,8 @@ class PlotSignalFunctionBlock(daq.FunctionBlock):
             local_id="in",
             notification_method=daq.PacketReadyNotification.SameThread,
         )
+
+        self._cpp_fb.add_property(daq.StringProperty("DummyProperty", "Dummy value", True))
 
     def on_connected(self, port: daq.IInputPort):
         signal = port.signal
@@ -371,7 +372,7 @@ def main() -> int:
     builder = daq.InstanceBuilder()
     instance = builder.build()
 
-    instance.module_manager.add_module(PlotModule(instance.context))
+    instance.module_manager.add_python_module(PlotModule(instance.context))
 
     print("Adding function block:", PlotSignalFunctionBlock.TYPE_ID)
     fb = instance.add_function_block(PlotSignalFunctionBlock.TYPE_ID)

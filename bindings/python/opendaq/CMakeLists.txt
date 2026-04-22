@@ -3,13 +3,15 @@ set(LIB_NAME py_opendaq)
 set(SRC_Headers
     include/py_opendaq/py_opendaq.h
     include/py_opendaq/py_packet_buffer.h
+    include/py_opendaq/py_python_module.h
+    include/py_opendaq/python_function_block.h
 )
 
 set(SRC_Cpp
     py_opendaq.cpp
     py_python_module.cpp
+    python_function_block_impl.cpp
     py_python_function_block.cpp
-    py_python_function_block_bindings.cpp
     py_module_manager.cpp
     generated/opendaq/py_instance.cpp
     generated/opendaq/py_instance_builder.cpp

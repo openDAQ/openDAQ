@@ -8,7 +8,11 @@ class Module:
     Register with: instance.module_manager.add_module(MyModule(instance.context))
     """
 
-    def __init__(self, context: opendaq.IContext = None, name=None, version=None, id=None):
+    def __init__(self, 
+                 context: opendaq.IContext,
+                 name:str = None, 
+                 version = None, 
+                 id:str = None):
         """
         Args:
             context: Instance context (IContext). Required when using add_module(MyModule(instance.context)).

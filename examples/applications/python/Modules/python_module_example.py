@@ -63,7 +63,7 @@ def main() -> int:
     instance = builder.build()
 
     # Register the Python module: pass context so add_module can use it
-    instance.module_manager.add_module(MyModule(instance.context))
+    instance.module_manager.add_python_module(MyModule(instance.context))
 
     # Verify the module is loaded
     for module in instance.module_manager.modules:

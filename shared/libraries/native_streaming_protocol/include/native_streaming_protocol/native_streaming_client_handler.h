@@ -166,9 +166,9 @@ protected:
     std::chrono::milliseconds reconnectionPeriod;
 
     // Connection parameters for reconnection
-    std::string currentHost;
-    std::string currentPort;
-    std::string currentPath;
+    std::string primaryHost;
+    std::string primaryPort;
+    std::string primaryPath;
     ListPtr<IString> alternativeAddresses;
     size_t currentAddressIndex{0};
 

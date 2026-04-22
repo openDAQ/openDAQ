@@ -287,13 +287,10 @@ void NativeStreamingClientImpl::tryReconnect()
 
             StringPtr address = alternativeAddresses[currentAddressIndex];
             LOG_I("Trying to reconnect using alternative address {}/{}: {}:{}", 
-                    currentAddressIndex + 1, alternativeAddresses.getCount(), address, currentPort);
-
-            // Use address with current port and path (port and path are the same for all addresses of the same device)
-            currentHost = address.toStdString();
+                    currentAddressIndex + 1, alternativeAddresses.getCount(), address, primaryPort);
 
             // Initialize client with new address
-            initClient(currentHost, currentPort, currentPath);
+            initClient(address.toStdString(), primaryPort, primaryPath);
             client->connect(connectionTimeout);
 
             // Move to next address for next reconnection attempt
@@ -311,9 +308,9 @@ void NativeStreamingClientImpl::tryReconnect()
     }
 
     // Fallback to original connection parameters
-    if (!currentHost.empty() && !currentPort.empty())
+    if (!primaryHost.empty() && !primaryPort.empty())
     {
-        initClient(currentHost, currentPort, currentPath);
+        initClient(primaryHost, primaryPort, primaryPath);
         client->connect(connectionTimeout);
     }
     else
@@ -613,9 +610,9 @@ void NativeStreamingClientImpl::initClient(std::string host,
                                            std::string path)
 {
     // Store current connection parameters for reconnection
-    currentHost = host;
-    currentPort = port;
-    currentPath = path;
+    primaryHost = host;
+    primaryPort = port;
+    primaryPath = path;
 
     const auto clientAuth = initClientAuthenticationObject(authenticationObject);
 

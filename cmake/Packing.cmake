@@ -39,7 +39,26 @@ set(CPACK_THREADS 0)
 ## Package-specific settings
 ##
 
-set(CPACK_GENERATOR ZIP TXZ DEB NSIS)
+if(APPLE)
+    # productbuild = native .pkg only (ZIP/TXZ are used on Linux/Windows CI).
+    set(CPACK_GENERATOR productbuild)
+    set(CPACK_PRODUCTBUILD_IDENTIFIER "io.opendaq.sdk" CACHE STRING "Bundle id for productbuild (.pkg)")
+    # productbuild only accepts .txt, .rtf, .html, .rtfd for license/readme/welcome (not LICENSE or README.md).
+    set(_CPACK_APPLE_STAGED "${CMAKE_BINARY_DIR}/CPack_apple_resources")
+    file(MAKE_DIRECTORY "${_CPACK_APPLE_STAGED}")
+    configure_file("${CMAKE_SOURCE_DIR}/LICENSE" "${_CPACK_APPLE_STAGED}/LICENSE.txt" COPYONLY)
+    configure_file("${CMAKE_SOURCE_DIR}/README.md" "${_CPACK_APPLE_STAGED}/README.txt" COPYONLY)
+    file(WRITE "${_CPACK_APPLE_STAGED}/WELCOME.txt" "openDAQ SDK\n")
+    set(CPACK_RESOURCE_FILE_LICENSE "${_CPACK_APPLE_STAGED}/LICENSE.txt")
+    set(CPACK_RESOURCE_FILE_README "${_CPACK_APPLE_STAGED}/README.txt")
+    set(CPACK_RESOURCE_FILE_WELCOME "${_CPACK_APPLE_STAGED}/WELCOME.txt")
+elseif(WIN32)
+    set(CPACK_GENERATOR ZIP TXZ NSIS)
+elseif(UNIX)
+    set(CPACK_GENERATOR ZIP TXZ DEB)
+else()
+    set(CPACK_GENERATOR ZIP TXZ)
+endif()
 
 ## Archive
 

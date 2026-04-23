@@ -54,7 +54,7 @@ void definePythonFunctionBlock(pybind11::module_ /*m*/, PythonFunctionBlockClass
                                                             customData,
                                                             requestGapPackets,
                                                             permissions));
-              return port;
+              return port.detach();
           },
           py::arg("local_id"),
           py::arg("notification_method"),
@@ -77,7 +77,7 @@ void definePythonFunctionBlock(pybind11::module_ /*m*/, PythonFunctionBlockClass
                                                          visible,
                                                          isPublic,
                                                          permissions));
-              return signal;
+              return signal.detach();
           },
           py::arg("local_id"),
           py::arg("descriptor") = nullptr,

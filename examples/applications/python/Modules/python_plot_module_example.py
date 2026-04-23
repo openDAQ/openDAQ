@@ -377,6 +377,10 @@ def main() -> int:
     print("Adding function block:", PlotSignalFunctionBlock.TYPE_ID)
     fb = instance.add_function_block(PlotSignalFunctionBlock.TYPE_ID)
 
+    assert(fb is not None)
+    assert(fb.has_property("DummyProperty"))
+    assert(fb.get_property_value("DummyProperty") == "Dummy value")
+
     # Connect a reference device signal to our input port (so the plot starts moving).
     device = instance.add_device("daqref://device0")
     signal = device.channels_recursive[0].signals[0]

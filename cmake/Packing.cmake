@@ -141,17 +141,19 @@ if(NOT MSVC)
     string(REGEX REPLACE "^([0-9]+).*" "\\1" _PACKING_COMPILER_VER "${CMAKE_CXX_COMPILER_VERSION}")
 endif()
 
-# Build type (lowercase). Empty on multi-config generators when CMAKE_BUILD_TYPE
-# is not set at configure time; fall back to "release".
+# Build type (lowercase). If not set (multi-config generators) fall back to "release".
 if(CMAKE_BUILD_TYPE)
     string(TOLOWER "${CMAKE_BUILD_TYPE}" _PACKING_BUILD_TYPE)
 else()
     set(_PACKING_BUILD_TYPE "release")
 endif()
 
-# Version comes from opendaq_version as-is (keeps dev/rc suffix). SHA is
-# appended for non-release builds to disambiguate commits of the same version.
-set(_PACKING_VERSION "${package_version}")
+# Version is the clean major.minor.patch, extended with an optional 4th tweak component.
+# For non-release builds, a short SHA is appended to disambiguate commits.
+set(_PACKING_VERSION "${OPENDAQ_PACKAGE_VERSION}")
+if(package_version MATCHES "^[0-9]+\\.[0-9]+\\.[0-9]+\\.([0-9]+)")
+    string(APPEND _PACKING_VERSION ".${CMAKE_MATCH_1}")
+endif()
 if(NOT OPENDAQ_IS_RELEASE_VERSION AND OPENDAQ_WC_REVISION_HASH)
     string(SUBSTRING "${OPENDAQ_WC_REVISION_HASH}" 0 7 _PACKING_SHORT_SHA)
     string(APPEND _PACKING_VERSION "-${_PACKING_SHORT_SHA}")

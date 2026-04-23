@@ -5,7 +5,7 @@ BEGIN_NAMESPACE_OPENDAQ
 
 UpdateParametersImpl::UpdateParametersImpl()
     : Super()
-    , configLoadMode(ConfigurationLoadMode::Exact)
+    , configLoadMode(ConfigurationLoadMode::Merge)
 {
     Super::addProperty(BoolProperty("RemoteUpdate", false));
 }

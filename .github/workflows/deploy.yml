@@ -194,13 +194,13 @@ jobs:
 
           # SDK packages
           aws s3 rm "${DST_URI}/${SDK_DIR}/" --recursive --exclude '*' \
-            --include 'opendaq-*_win_*.exe' \
-            --include 'opendaq-*_win_*.zip' \
-            --include 'opendaq-*_linux_*.deb' \
-            --include 'opendaq-*_linux_*.zip' \
+            --include 'opendaq-*-windows-*.exe' \
+            --include 'opendaq-*-windows-*.zip' \
+            --include 'opendaq-*-linux-*.deb' \
+            --include 'opendaq-*-linux-*.zip' \
             --include 'opendaq-*-examples.zip'
-          for f in "${SRC}"/opendaq-*_win_*/*.exe \
-                   "${SRC}"/opendaq-*_linux_*/*.deb \
+          for f in "${SRC}"/opendaq-*-windows-*/*.exe \
+                   "${SRC}"/opendaq-*-linux-*/*.deb \
                    "${SRC}"/opendaq-*-examples*.zip; do
             aws s3 cp "$f" "${DST_URI}/${SDK_DIR}/"
           done

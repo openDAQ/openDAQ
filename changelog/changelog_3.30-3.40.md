@@ -18,6 +18,7 @@
 - [#1097](https://github.com/openDAQ/openDAQ/pull/1097) Implement value based selection list
 - [#1124](https://github.com/openDAQ/openDAQ/pull/1124) Implement clearPropertyValues() for property objects
 - [#1137](https://github.com/openDAQ/openDAQ/pull/1137) Add `IInputPort::acceptsSignals` to check multiple signals at once, using a single RPC call via native protocol.
+- [#1166](https://github.com/openDAQ/openDAQ/pull/1166) Add `IUpdateParameters::setConfigurationLoadMode` to optionally remove devices not specified in the loaded configuration.
 
 ## Python
 

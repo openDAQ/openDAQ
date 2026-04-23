@@ -868,7 +868,7 @@ TEST_F(CoreEventTest, DeviceAdded)
             {
                 ASSERT_EQ(args.getEventName(), "DeviceOperationModeChanged");
                 ASSERT_TRUE(args.getParameters().hasKey("OperationMode"));
-                ASSERT_EQ(args.getParameters().get("OperationMode"), static_cast<Int>(OperationModeType::Operation));
+                ASSERT_EQ(args.getParameters().get("OperationMode"), static_cast<Int>(OperationModeType::SafeOperation));
                 ASSERT_EQ(comp, instance.getDevices()[modeChangeCount + 1 ]);
                 modeChangeCount++;
             }
@@ -1206,7 +1206,7 @@ TEST_F(CoreEventTest, ActiveChanged)
         {
             ASSERT_EQ(args.getEventId(), static_cast<int>(CoreEventId::AttributeChanged));
             ASSERT_EQ(args.getEventName(), "AttributeChanged");
-            ASSERT_TRUE(args.getParameters().hasKey("Active"));
+            ASSERT_TRUE(args.getParameters().hasKey("Active") || args.getParameters().hasKey("LocalActive"));
             changeCount++;
         };
 

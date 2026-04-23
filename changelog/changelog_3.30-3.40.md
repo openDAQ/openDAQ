@@ -18,6 +18,8 @@
 - [#1097](https://github.com/openDAQ/openDAQ/pull/1097) Implement value based selection list
 - [#1124](https://github.com/openDAQ/openDAQ/pull/1124) Implement clearPropertyValues() for property objects
 - [#1137](https://github.com/openDAQ/openDAQ/pull/1137) Add `IInputPort::acceptsSignals` to check multiple signals at once, using a single RPC call via native protocol.
+- [#1157](https://github.com/openDAQ/openDAQ/pull/1157) Devices default to `OperationModeType::SafeOperation` when added to folder or set as root. Add virtual method to make it customizable.
+- [#1153](https://github.com/openDAQ/openDAQ/pull/1153) Enable and disable discovery for openDAQ Server via native.
 - [#1166](https://github.com/openDAQ/openDAQ/pull/1166) Add `IUpdateParameters::setConfigurationLoadMode` to optionally remove devices not specified in the loaded configuration.
 
 ## Python
@@ -59,7 +61,8 @@
 
 ## Misc
 
-- [#1125](https://github.com/openDAQ/openDAQ/pull/1125) Removing all function blocks before load
+- [#1125](https://github.com/openDAQ/openDAQ/pull/1125) Removing all function blocks before load 
+- [#1109](https://github.com/openDAQ/openDAQ/pull/1109) New check version dependencies mechanism for modules
 - [#1090](https://github.com/openDAQ/openDAQ/pull/1090) Reduce unnecessary RPC calls and signal updates
 - [#1049](https://github.com/openDAQ/openDAQ/pull/1049) Extract LT and OpcUa modules to remote repos
 - [#1051](https://github.com/openDAQ/openDAQ/pull/1051) Removes the FB wrapper implementation as it was never used.

@@ -1664,9 +1664,9 @@ TEST_F(OpcuaDeviceModulesTest, SettingOperationMode)
     auto server = CreateServerInstance();
     auto client = CreateClientInstance();
 
-    test_helpers::checkDeviceOperationMode(server, daq::OperationModeType::Operation);
-    test_helpers::checkDeviceOperationMode(server.getDevices()[0], daq::OperationModeType::Operation);
-    test_helpers::checkDeviceOperationMode(client.getRootDevice(), daq::OperationModeType::Operation);
+    test_helpers::checkDeviceOperationMode(server, daq::OperationModeType::SafeOperation);
+    test_helpers::checkDeviceOperationMode(server.getDevices()[0], daq::OperationModeType::SafeOperation);
+    test_helpers::checkDeviceOperationMode(client.getRootDevice(), daq::OperationModeType::SafeOperation);
 
     ASSERT_EQ(server.getAvailableOperationModes(), client.getDevices()[0].getAvailableOperationModes());
     ASSERT_EQ(server.getDevices()[0].getAvailableOperationModes(), client.getDevices()[0].getDevices()[0].getAvailableOperationModes());
@@ -1676,36 +1676,36 @@ TEST_F(OpcuaDeviceModulesTest, SettingOperationMode)
     test_helpers::checkDeviceOperationMode(server.getRootDevice(), daq::OperationModeType::Idle, true);
     test_helpers::checkDeviceOperationMode(server.getDevices()[0], daq::OperationModeType::Idle, true);
 
-    test_helpers::checkDeviceOperationMode(client.getRootDevice(), daq::OperationModeType::Operation);
+    test_helpers::checkDeviceOperationMode(client.getRootDevice(), daq::OperationModeType::SafeOperation);
     test_helpers::checkDeviceOperationMode(client.getDevices()[0], daq::OperationModeType::Idle);
     test_helpers::checkDeviceOperationMode(client.getDevices()[0].getDevices()[0], daq::OperationModeType::Idle);
 
     // setting the operation mode for server sub device
-    ASSERT_NO_THROW(server.getDevices()[0].setOperationModeRecursive(daq::OperationModeType::SafeOperation));
+    ASSERT_NO_THROW(server.getDevices()[0].setOperationModeRecursive(daq::OperationModeType::Operation));
+    test_helpers::checkDeviceOperationMode(server.getRootDevice(), daq::OperationModeType::Idle, true);
+    test_helpers::checkDeviceOperationMode(server.getDevices()[0], daq::OperationModeType::Operation, true);
+
+    test_helpers::checkDeviceOperationMode(client.getRootDevice(), daq::OperationModeType::SafeOperation);
+    test_helpers::checkDeviceOperationMode(client.getDevices()[0], daq::OperationModeType::Idle);
+    test_helpers::checkDeviceOperationMode(client.getDevices()[0].getDevices()[0], daq::OperationModeType::Operation);
+
+    // setting the operation mode for client sub device
+    ASSERT_NO_THROW(client.getDevices()[0].getDevices()[0].setOperationModeRecursive(daq::OperationModeType::SafeOperation));
     test_helpers::checkDeviceOperationMode(server.getRootDevice(), daq::OperationModeType::Idle, true);
     test_helpers::checkDeviceOperationMode(server.getDevices()[0], daq::OperationModeType::SafeOperation, true);
 
-    test_helpers::checkDeviceOperationMode(client.getRootDevice(), daq::OperationModeType::Operation);
+    test_helpers::checkDeviceOperationMode(client.getRootDevice(), daq::OperationModeType::SafeOperation);
     test_helpers::checkDeviceOperationMode(client.getDevices()[0], daq::OperationModeType::Idle);
     test_helpers::checkDeviceOperationMode(client.getDevices()[0].getDevices()[0], daq::OperationModeType::SafeOperation);
 
-    // setting the operation mode for client sub device
-    ASSERT_NO_THROW(client.getDevices()[0].getDevices()[0].setOperationModeRecursive(daq::OperationModeType::Operation));
-    test_helpers::checkDeviceOperationMode(server.getRootDevice(), daq::OperationModeType::Idle, true);
-    test_helpers::checkDeviceOperationMode(server.getDevices()[0], daq::OperationModeType::Operation, true);
-
-    test_helpers::checkDeviceOperationMode(client.getRootDevice(), daq::OperationModeType::Operation);
-    test_helpers::checkDeviceOperationMode(client.getDevices()[0], daq::OperationModeType::Idle);
-    test_helpers::checkDeviceOperationMode(client.getDevices()[0].getDevices()[0], daq::OperationModeType::Operation);
-
     // setting the operation mode for client device not recursively
-    ASSERT_NO_THROW(client.getDevices()[0].setOperationMode(daq::OperationModeType::SafeOperation));
-    test_helpers::checkDeviceOperationMode(server.getRootDevice(), daq::OperationModeType::SafeOperation, true);
-    test_helpers::checkDeviceOperationMode(server.getDevices()[0], daq::OperationModeType::Operation, true);
+    ASSERT_NO_THROW(client.getDevices()[0].setOperationMode(daq::OperationModeType::Operation));
+    test_helpers::checkDeviceOperationMode(server.getRootDevice(), daq::OperationModeType::Operation, true);
+    test_helpers::checkDeviceOperationMode(server.getDevices()[0], daq::OperationModeType::SafeOperation, true);
 
-    test_helpers::checkDeviceOperationMode(client.getRootDevice(), daq::OperationModeType::Operation);
-    test_helpers::checkDeviceOperationMode(client.getDevices()[0], daq::OperationModeType::SafeOperation);
-    test_helpers::checkDeviceOperationMode(client.getDevices()[0].getDevices()[0], daq::OperationModeType::Operation);
+    test_helpers::checkDeviceOperationMode(client.getRootDevice(), daq::OperationModeType::SafeOperation);
+    test_helpers::checkDeviceOperationMode(client.getDevices()[0], daq::OperationModeType::Operation);
+    test_helpers::checkDeviceOperationMode(client.getDevices()[0].getDevices()[0], daq::OperationModeType::SafeOperation);
 
     // setting the operation mode for client device
     ASSERT_NO_THROW(client.setOperationModeRecursive(daq::OperationModeType::Idle));

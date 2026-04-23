@@ -547,7 +547,7 @@ ListPtr<ILogFileInfo> RefDeviceImpl::onGetLogFileInfos()
                                            .setEncoding("utf-8")
                                            .setLastModified(lastModified)
                                            .build();
-    
+
     return List<ILogFileInfo>(logFileInfo);
 }
 

@@ -36,10 +36,7 @@ class InputPortRowView(ttk.Frame):
         self.dropdown.bind('<Return>', self.handle_dropdown_enter)
         self.dropdown.bind('<FocusOut>', self.handle_dropdown_focus_out)
         self.dropdown.bind('<Down>', self.handle_dropdown_down)
-
-        self.dropdown.bind('<MouseWheel>', lambda e: 'break')
-        self.dropdown.bind('<Button-4>', lambda e: 'break')
-        self.dropdown.bind('<Button-5>', lambda e: 'break')
+        self.dropdown.bind('<Escape>', self.handle_dropdown_escape)
 
         self.edit_icon = context.icons['settings'] if context and context.icons and 'settings' in context.icons else None
 
@@ -139,6 +136,18 @@ class InputPortRowView(ttk.Frame):
             self.selection = candidates[0]
             self.hide_suggestions()
             self.handle_connect_clicked()
+            
+    def handle_dropdown_escape(self, event):
+        self.hide_suggestions()
+        if self.input_port is not None and self.input_port.signal is not None:
+            connected_name = self._name_text_for_signal(self.input_port.signal)
+            self.input_var.set(connected_name)
+        else:
+            self.input_var.set('')
+        self.selection = ''
+        self._filtered_signals = self._all_signals
+        self.dropdown['values'] = self._all_signals
+        return 'break'
 
     def handle_dropdown_focus_out(self, event):
         self.after(50, self._hide_suggestions_if_focus_lost)
@@ -164,6 +173,14 @@ class InputPortRowView(ttk.Frame):
         except Exception:
             pass
         self.hide_suggestions()
+        if self.input_port is not None and self.input_port.signal is not None:
+            connected_name = self._name_text_for_signal(self.input_port.signal)
+            self.input_var.set(connected_name)
+        else:
+            self.input_var.set('')
+        self.selection = ''
+        self._filtered_signals = self._all_signals
+        self.dropdown['values'] = self._all_signals
 
     def show_suggestions(self, values):
         if not values:
@@ -176,15 +193,21 @@ class InputPortRowView(ttk.Frame):
             self._suggestions_popup.overrideredirect(True)
             self._suggestions_popup.transient(self.winfo_toplevel())
 
-            self._suggestions_list = tk.Listbox(self._suggestions_popup, exportselection=False)
-            self._suggestions_list.pack(fill=tk.BOTH, expand=True)
+            list_frame = ttk.Frame(self._suggestions_popup)
+            list_frame.pack(fill=tk.BOTH, expand=True)
+
+            scrollbar = ttk.Scrollbar(list_frame, orient=tk.VERTICAL)
+            self._suggestions_list = tk.Listbox(
+                list_frame, exportselection=False,
+                yscrollcommand=scrollbar.set)
+            scrollbar.config(command=self._suggestions_list.yview)
+
+            self._suggestions_list.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
+            scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
             self._suggestions_list.bind('<ButtonRelease-1>', self.handle_suggestion_pick)
             self._suggestions_list.bind('<Return>', self.handle_suggestion_pick)
+            self._suggestions_list.bind('<Motion>', self._handle_suggestion_hover)
             self._suggestions_list.bind('<FocusOut>', lambda e: self.after(50, self._hide_suggestions_if_focus_lost))
-
-            self._suggestions_list.bind('<MouseWheel>', lambda e: 'break')
-            self._suggestions_list.bind('<Button-4>', lambda e: 'break')  # Linux scroll up
-            self._suggestions_list.bind('<Button-5>', lambda e: 'break')  # Linux scroll down
 
         self._suggestions_list.delete(0, tk.END)
         for item in values:
@@ -215,6 +238,13 @@ class InputPortRowView(ttk.Frame):
         self.dropdown.focus_set()
         self.dropdown.icursor(tk.END)
         self.handle_connect_clicked()
+
+    def _handle_suggestion_hover(self, event):
+        index = self._suggestions_list.nearest(event.y)
+        if index >= 0:
+            self._suggestions_list.selection_clear(0, tk.END)
+            self._suggestions_list.selection_set(index)
+            self._suggestions_list.activate(index)
 
     def handle_edit_clicked(self):
         if self.input_port is not None:

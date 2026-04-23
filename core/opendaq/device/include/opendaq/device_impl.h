@@ -242,6 +242,7 @@ protected:
     virtual ListPtr<IString> onGetNetworkInterfaceNames();
 
     virtual std::set<OperationModeType> onGetAvailableOperationModes();
+    virtual OperationModeType onGetDefaultOperationMode();
 
     ListPtr<ILockGuard> getTreeLockGuard();
     ErrCode updateOperationModeNoCoreEvent(OperationModeType modeType);
@@ -266,7 +267,7 @@ private:
     void removeDeviceIfNotStatic(const StringPtr& deviceId);
 
     DeviceDomainPtr deviceDomain;
-    OperationModeType operationMode {OperationModeType::Idle};
+    OperationModeType operationMode {OperationModeType::Unknown};
     ListPtr<IInteger> availableOperationModes;
 };
 
@@ -364,7 +365,7 @@ ErrCode GenericDevice<TInterface, Interfaces...>::setAsRoot()
     auto lock = this->getRecursiveConfigLock2();
 
     this->isRootDevice = true;
-    this->updateOperationMode(OperationModeType::Unknown);
+    this->updateOperationModeInternal(this->onGetDefaultOperationMode());
     return OPENDAQ_SUCCESS;
 }
 
@@ -1140,7 +1141,13 @@ ListPtr<ILockGuard> GenericDevice<TInterface, Interfaces...>::getTreeLockGuard()
 template <typename TInterface, typename... Interfaces>
 std::set<OperationModeType> GenericDevice<TInterface, Interfaces...>::onGetAvailableOperationModes()
 {
-    return {OperationModeType::Operation};
+    return {OperationModeType::SafeOperation};
+}
+
+template <typename TInterface, typename... Interfaces>
+OperationModeType GenericDevice<TInterface, Interfaces...>::onGetDefaultOperationMode()
+{
+    return OperationModeType::SafeOperation;
 }
 
 template <typename TInterface, typename... Interfaces>
@@ -1186,9 +1193,11 @@ ErrCode GenericDevice<TInterface, Interfaces...>::updateOperationModeInternal(Op
 }
 
 template <typename TInterface, typename... Interfaces>
-ErrCode GenericDevice<TInterface, Interfaces...>::updateOperationMode(OperationModeType /* modeType */)
+ErrCode GenericDevice<TInterface, Interfaces...>::updateOperationMode(OperationModeType /*modeType*/)
 {
-    return this->updateOperationModeInternal(OperationModeType::Operation);
+    // This method gets called when a device is added to the IFolder. Device ignores its parent's operation mode and
+    // enters default operation mode.
+    return this->updateOperationModeInternal(this->onGetDefaultOperationMode());
 }
 
 template <typename TInterface, typename... Interfaces>

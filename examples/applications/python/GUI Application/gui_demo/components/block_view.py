@@ -11,7 +11,6 @@ from .output_signals_view import OutputSignalsView
 from .properties_view import PropertiesView
 from .recorder_view import RecorderView
 from .attributes_dialog import AttributesDialog
-from .output_signal_row import OutputSignalRow
 
 class BlockView(ttk.Frame):
 
@@ -68,7 +67,7 @@ class BlockView(ttk.Frame):
         self.label.pack(side=tk.LEFT)
         self.edit_button = tk.Button(self.header_frame, text='Edit', image=self.edit_image, borderwidth=0, 
                                      command=lambda: AttributesDialog(self, 'Attributes', self.node, self.context).show())
-        self.edit_button.pack(side=tk.RIGHT, padx=(6, 14))
+        self.edit_button.pack(side=tk.RIGHT, padx=(6, 10))
         self.active_var = tk.IntVar(self, value=self.active)
         checkbox_state = tk.NORMAL if self.parent_active else tk.DISABLED
         self.checkbox = ttk.Checkbutton(
@@ -150,7 +149,6 @@ class BlockView(ttk.Frame):
                 for mode in available_op_modes:
                     op_mode_menu.add_command(label=mode, command=make_select(mode))
 
-
                 self._bind_mousewheel_recursive(self.right_stack)
             
             elif daq.IFunctionBlock.can_cast_from(self.node):
@@ -213,7 +211,6 @@ class BlockView(ttk.Frame):
                 self.rows = [0]
 
                 self._bind_mousewheel_recursive(self.right_stack)
-
             elif daq.IComponent.can_cast_from(self.node):
                 self.node = daq.IComponent.cast_from(self.node)
                 self.properties = PropertiesView(
@@ -409,22 +406,29 @@ class BlockView(ttk.Frame):
         self.status_square.config(bg=color)
 
     def layout_view(self):
-        self.expanded_frame.pack(fill=tk.BOTH, expand=True)
-        self.expanded_frame.grid_columnconfigure(
-            self.cols, weight=1, minsize=int(200 * self.context.dpi_factor), uniform='column')
-        self.expanded_frame.grid_rowconfigure(self.rows, weight=1, minsize=int(350 * self.context.dpi_factor) if self.input_ports and self.output_signals or daq.IFolder.can_cast_from(self.node) and not daq.IDevice.can_cast_from(self.node) else int(600 * self.context.dpi_factor))
-        if self.properties:
-            self.properties.grid(
-                row=0, column=0, sticky=tk.NSEW)
-        if hasattr(self, '_right_container'):
-            self._right_container.grid(row=0, column=1, sticky=tk.NSEW)
-        elif self.input_ports:
-            self.input_ports.grid(row=0, column=1, sticky=tk.NSEW)
-        elif self.output_signals:
-            self.output_signals.grid(row=0, column=1, sticky=tk.NSEW)
+            self.expanded_frame.pack(fill=tk.BOTH, expand=True)
 
-        if self.recoder and not hasattr(self, 'right_stack'):
-            self.recoder.grid(row=1, column=1, sticky=tk.NSEW)
+            # Determine the right-side widget (if any)
+            right_widget = None
+            if hasattr(self, '_right_container'):
+                right_widget = self._right_container
+            elif self.input_ports:
+                right_widget = self.input_ports
+            elif self.output_signals:
+                right_widget = self.output_signals
+
+            if self.properties and right_widget:
+                self.properties.place(
+                    relx=0, rely=0, relwidth=0.55, relheight=1.0)
+                right_widget.place(
+                    relx=0.55, rely=0, relwidth=0.45, relheight=1.0)
+            elif self.properties:
+                self.properties.place(
+                    relx=0, rely=0, relwidth=1.0, relheight=1.0)
+
+            if self.recoder and not hasattr(self, 'right_stack'):
+                self.recoder.place(
+                    relx=0.55, rely=0, relwidth=0.45, relheight=1.0)
 
     def refresh(self, event):
         pass
@@ -440,4 +444,25 @@ class BlockView(ttk.Frame):
             ctx.active = not ctx.active
             self.active_var.set(ctx.active)
             self.event_port.emit()
+    
+    def handle_active_toggle(self):
+        if daq.IComponent.can_cast_from(self.node):
+            ctx = daq.IComponent.cast_from(self.node)
+            ctx.active = not ctx.active
+            self.active_var.set(ctx.active)
+            self.event_port.emit()
+
+    def _handle_enable_discovery(self):
+        try:
+            self.node.enable_discovery()
+        except Exception as e:
+            print(f'Enable discovery failed: {e}')
+            utils.show_error('Enable discovery failed', str(e), self)
+
+    def _handle_disable_discovery(self):
+        try:
+            self.node.disable_discovery()
+        except Exception as e:
+            print(f'Disable discovery failed: {e}')
+            utils.show_error('Disable discovery failed', str(e), self)
     

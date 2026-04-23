@@ -1044,3 +1044,12 @@ TEST_F(ConfigProtocolIntegrationTest, BeginEndUpdateNestedPropertyObjectOrder)
     ASSERT_EQ(clientMockChild.getPropertyValue("NestedStringProperty"), "NewValue");
     ASSERT_EQ(serverMockChild.getPropertyValue("NestedStringProperty"), "NewValue");
 }
+
+TEST_F(ConfigProtocolIntegrationTest, GetServers)
+{
+    ASSERT_GT(serverDevice.getServers().getCount(), 0u);
+
+    ListPtr<IServer> servers;
+    ASSERT_NO_THROW(servers = clientDevice.getServers());
+    ASSERT_EQ(servers.getCount(), serverDevice.getServers().getCount());
+}

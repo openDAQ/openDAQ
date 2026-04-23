@@ -96,7 +96,6 @@ class App(tk.Tk):
             context_params.discovery_servers = []
 
         self.context = AppContext(context_params)
-        self.context.on_needs_refresh = lambda: self.on_refresh_event(None)
         self.event_port = EventPort(self, event_callback=self.on_refresh_event)
 
         self.context.ui_scaling_factor = int(args.scale)
@@ -213,8 +212,12 @@ class App(tk.Tk):
         except Exception as e:
             print("Scheduler processing error:", e)
 
+        if self.context.needs_refresh:
+            self.on_refresh_event(None)
+            self.context.needs_refresh = False
+
         # Re-schedule after 50 ms
-        self.after(20, self.poll_opendaq_events)
+        self.after(50, self.poll_opendaq_events)
 
     def init_opendaq(self):
 
@@ -268,7 +271,6 @@ class App(tk.Tk):
         tree.bind('<<TreeviewSelect>>', self.handle_tree_select)
         tree.bind('<ButtonRelease-3>', self.handle_tree_right_button_release)
         tree.bind('<Button-3>', self.handle_tree_right_button)
-        #tree.bind('<Double-1>', lambda e: 'break')
         tree.bind('<Button-1>', self.handle_tree_click)
 
         # add a scrollbar
@@ -644,6 +646,7 @@ class App(tk.Tk):
 
         popup.add_command(label='Begin update', command=self.handle_begin_update)
         popup.add_command(label='End update', command=self.handle_end_update)
+        popup.add_command(label='Clear property values', command=lambda: self.handle_tree_clear_property_values(node))
 
         return popup
 
@@ -686,6 +689,26 @@ class App(tk.Tk):
             )
 
         return popup
+    
+    def create_server_menu(self, node):
+        popup = self.create_property_object_menu(node)
+
+        popup.add_command(label='Enable discovery',
+                          command=lambda: self.handle_enable_discovery(node))
+        popup.add_command(label='Disable discovery',
+                          command=lambda: self.handle_disable_discovery(node))
+
+        return popup
+
+    def handle_enable_discovery(self, node):
+        if node is None:
+            return
+        node.enable_discovery()
+
+    def handle_disable_discovery(self, node):
+        if node is None:
+            return
+        node.disable_discovery()
 
     def handle_tree_right_button_release(self, event):
         iid = utils.treeview_get_first_selection(self.tree)
@@ -700,6 +723,8 @@ class App(tk.Tk):
                 popup = self.create_function_block_menu(daq.IFunctionBlock.cast_from(node))
             elif daq.IDevice.can_cast_from(node):
                 popup = self.create_device_menu(daq.IDevice.cast_from(node))
+            elif daq.IServer.can_cast_from(node):
+                popup = self.create_server_menu(daq.IServer.cast_from(node))
 
         if popup is None:
             popup = self.create_property_object_menu(node)
@@ -718,6 +743,8 @@ class App(tk.Tk):
             return daq.IFunctionBlock.cast_from(node)
         elif daq.IDevice.can_cast_from(node):
             return daq.IDevice.cast_from(node)
+        elif daq.IServer.can_cast_from(node):
+            return daq.IServer.cast_from(node)
         elif daq.ISyncComponent.can_cast_from(node):
             return daq.ISyncComponent.cast_from(node)
         elif daq.IFolder.can_cast_from(node):
@@ -917,7 +944,8 @@ class App(tk.Tk):
         node = self.context.nodes[node_unique_id]
         if (daq.IFolder.can_cast_from(node)
                 and not daq.IDevice.can_cast_from(node)
-                and not daq.IFunctionBlock.can_cast_from(node)):
+                and not daq.IFunctionBlock.can_cast_from(node)
+                and not daq.IServer.can_cast_from(node)):
             self.tree.item(selected_iid, open=not self.tree.item(selected_iid, 'open'))
             self.tree.selection_set('')
             return
@@ -955,6 +983,13 @@ class App(tk.Tk):
         self.context.remove_device(node)
 
         self.context.selected_node = parent
+        self.tree_update(self.context.selected_node)
+
+    def handle_tree_clear_property_values(self, node):
+        if node is None or not daq.IPropertyObject.can_cast_from(node):
+            return
+        prop_obj = daq.IPropertyObject.cast_from(node)
+        prop_obj.clear_property_values()
         self.tree_update(self.context.selected_node)
 
     # MARK: - Other
@@ -1050,6 +1085,8 @@ class App(tk.Tk):
 
     def _set_node_update_status_recursive(self, node):
         node_obj = utils.find_component(node, self.context.instance)
+        if node_obj is None:
+            return
         if node_obj.updating:
             self.add_tag_and_configure(node, 'selected', 'red')
         else:

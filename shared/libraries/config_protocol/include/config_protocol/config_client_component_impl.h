@@ -330,6 +330,7 @@ void ConfigClientComponentBaseImpl<Impl>::attributeChanged(const CoreEventArgsPt
 
     if (attrName == "Active")
     {
+        // keep this for backwards compatibility with older protocol versions, but prefer "LocalActive" if available
         const auto parameters = args.getParameters();
         if (parameters.hasKey("LocalActive"))
         {
@@ -343,6 +344,12 @@ void ConfigClientComponentBaseImpl<Impl>::attributeChanged(const CoreEventArgsPt
             const Bool active = parameters.get("Active");
             checkErrorInfo(Impl::setActive(active));
         }
+    }
+    else if (attrName == "LocalActive")
+    {
+        const auto parameters = args.getParameters();
+        const Bool localActive = parameters.get("LocalActive");
+        checkErrorInfo(Impl::setActive(localActive));
     }
     else if (attrName == "Name")
     {

@@ -449,6 +449,7 @@ MockDevice2Impl::MockDevice2Impl(const ContextPtr& ctx, const ComponentPtr& pare
 MockSrvImpl::MockSrvImpl(const ContextPtr& ctx, const DevicePtr& rootDev, const StringPtr& id)
     : Server(id, nullptr, rootDev, ctx)
 {
+    objPtr.addProperty(StringPropertyBuilder("StrProp", "DefaultValue").build());
 }
 
 MockRecorderFb1Impl::MockRecorderFb1Impl(const ContextPtr& ctx, const ComponentPtr& parent, const StringPtr& localId)

@@ -16,6 +16,10 @@
 
 #pragma once
 #include <coretypes/common.h>
+#include <coretypes/stringobject.h>
 
 extern "C"
 void PUBLIC_EXPORT daqOpenDaqGetVersion(unsigned int* major, unsigned int* minor, unsigned int* revision);
+
+extern "C"
+daq::ErrCode PUBLIC_EXPORT getSdkCoreVersionMetadata(unsigned int* major, unsigned int* minor, unsigned int* patch, daq::IString** branch, daq::IString** sha, daq::IString** fork);

@@ -2363,7 +2363,6 @@ void GenericDevice<TInterface, Interfaces...>::updateObject(const SerializedObje
                                 toRemove.erase(localId);
                             });
 
-        ComponentUpdateContextPtr contextPtr = ComponentUpdateContextPtr::Borrow(context);
         ConfigurationLoadMode configLoadMode = contextPtr.getUpdateParameters().getConfigurationLoadMode();
         if (configLoadMode == ConfigurationLoadMode::Exact){
             for (const auto &id : toRemove){

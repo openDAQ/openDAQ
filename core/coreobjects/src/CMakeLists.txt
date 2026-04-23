@@ -211,6 +211,7 @@ source_group("mutex" FILES ${SDK_HEADERS_DIR}/mutex.h
 )
 
 set(SRC_Cpp version.cpp
+            property_object_helpers.cpp
             eval_value_impl.cpp
             eval_value_lexer.cpp
             eval_value_parser.cpp

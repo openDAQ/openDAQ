@@ -53,7 +53,7 @@ function(create_component_source_groups_${BASE_NAME})
 	${SDK_SRC_DIR}/device_update_options_impl.cpp
     )
     
-    
+
     source_group("utility" FILES 
         ${SDK_HEADERS_DIR}/thread_name.h
         ${SDK_SRC_DIR}/thread_name.cpp

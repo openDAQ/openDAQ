@@ -54,6 +54,11 @@
 #include <coreobjects/mutex_impl.h>
 #include <coreobjects/property_object_utils.h>
 
+extern "C" PUBLIC_EXPORT daq::ErrCode daqSerializePropertyValue(daq::IString* name,
+                                                                daq::IBaseObject* value,
+                                                                daq::ISerializer* serializer,
+                                                                daq::Bool forUpdate);
+
 BEGIN_NAMESPACE_OPENDAQ
 
 using PropertyOrderedMap = tsl::ordered_map<StringPtr, PropertyPtr, StringHash, StringEqualTo>;
@@ -3148,35 +3153,9 @@ template <class PropObjInterface, class... Interfaces>
 ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::serializePropertyValue(const StringPtr& name,
                                                                                            const ObjectPtr<IBaseObject>& value,
                                                                                            ISerializer* serializer,
-                                                                                           bool /*forUpdate*/)
+                                                                                           bool forUpdate)
 {
-    if (value.assigned())
-    {
-        ISerializable* serializableValue;
-        ErrCode errCode = value->borrowInterface(ISerializable::Id, reinterpret_cast<void**>(&serializableValue));
-        if (OPENDAQ_FAILED(errCode))
-        {
-            if (errCode == OPENDAQ_ERR_NOINTERFACE)
-                return OPENDAQ_SUCCESS;
-            return DAQ_EXTEND_ERROR_INFO(errCode);
-        }
-
-        errCode = serializer->keyStr(name);
-        OPENDAQ_RETURN_IF_FAILED(errCode);
-
-        errCode = serializableValue->serialize(serializer);
-        OPENDAQ_RETURN_IF_FAILED(errCode);
-    }
-    else
-    {
-        ErrCode errCode = serializer->keyStr(name);
-        OPENDAQ_RETURN_IF_FAILED(errCode);
-
-        errCode = serializer->writeNull();
-        OPENDAQ_RETURN_IF_FAILED(errCode);
-    }
-
-    return OPENDAQ_SUCCESS;
+    return daqSerializePropertyValue(name, value, serializer, forUpdate);
 }
 
 template <class PropObjInterface, class... Interfaces>

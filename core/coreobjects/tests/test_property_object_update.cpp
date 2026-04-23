@@ -111,6 +111,32 @@ TEST_F(UpdateObjectTest, UpdateObj)
     ASSERT_EQ(parentObj1.getPropertyValue("child1.child1_2.child1_2_1.ReadOnlyString"), "new_string");
 }
 
+TEST_F(UpdateObjectTest, UpdateObjWithSerializeForUpdate)
+{
+    parentObj2.setPropertyValue("child1.child1_2.child1_2_1.String", "new_string");
+    parentObj2.setPropertyValue("child1.child1_1.Float", 2.1);
+    parentObj2.setPropertyValue("child1.child1_2.Int", 2);
+    parentObj2.setPropertyValue("child1.child1_2.List", List<IString>("foo1", "bar1"));
+    parentObj2.setPropertyValue("child2.child2_1.Ratio", Ratio(1, 5));
+    parentObj2.setPropertyValue("child2.child2_1.Dict", Dict<IInteger, IString>({{10, "bar"}, {20, "foo"}}));
+    parentObj2.asPtr<IPropertyObjectProtected>().setProtectedPropertyValue("child1.child1_2.child1_2_1.ReadOnlyString", "new_string");
+
+    const auto serializer = JsonSerializer();
+    parentObj2.asPtr<IUpdatable>(true).serializeForUpdate(serializer);
+
+    const auto deserializer = JsonDeserializer();
+    deserializer.update(parentObj1, serializer.getOutput());
+
+    const auto dict = Dict<IInteger, IString>({{10, "bar"}, {20, "foo"}});
+    ASSERT_EQ(parentObj1.getPropertyValue("child1.child1_2.child1_2_1.String"), "new_string");
+    ASSERT_EQ(parentObj1.getPropertyValue("child1.child1_1.Float"), 2.1);
+    ASSERT_EQ(parentObj1.getPropertyValue("child1.child1_2.Int"), 2);
+    ASSERT_EQ(parentObj1.getPropertyValue("child1.child1_2.List"), List<IString>("foo1", "bar1"));
+    ASSERT_EQ(parentObj1.getPropertyValue("child2.child2_1.Ratio"), Ratio(1, 5));
+    ASSERT_EQ(parentObj1.getPropertyValue("child2.child2_1.Dict"), dict);
+    ASSERT_EQ(parentObj1.getPropertyValue("child1.child1_2.child1_2_1.ReadOnlyString"), "new_string");
+}
+
 TEST_F(UpdateObjectTest, UpdateClassObj)
 {
     objWithClass1.setPropertyValue("child1.child1_2.child1_2_1.String", "new_string");

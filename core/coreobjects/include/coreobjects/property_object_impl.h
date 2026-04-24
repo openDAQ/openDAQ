@@ -3619,7 +3619,7 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::setPropertyF
             if (const auto updatable = obj.asPtrOrNull<IUpdatable>(true); updatable.assigned())
             {
                 const auto serializedNestedObj = serialized.readSerializedObject(propName);
-                return updatable->update(serializedNestedObj, typeManager);
+                return updatable->updateInternal(serializedNestedObj, typeManager);
             }
 
             propValue = serialized.readObject(propName, typeManager);

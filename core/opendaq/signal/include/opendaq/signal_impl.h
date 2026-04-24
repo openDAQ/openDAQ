@@ -1160,6 +1160,7 @@ void SignalBase<TInterface, Interfaces...>::updateObject(const SerializedObjectP
             isPublic = obj.readBool("public");
         else
             isPublic = true;
+        setKeepLastPacket();
     }
 
     Super::updateObject(obj, context);

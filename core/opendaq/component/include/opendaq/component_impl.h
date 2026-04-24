@@ -1230,7 +1230,7 @@ void ComponentImpl<Intf, Intfs...>::updateObject(const SerializedObjectPtr& obj,
             visible = true;
     }
 
-   if (!lockedAttributes.count("Description"))
+    if (!lockedAttributes.count("Description"))
     {
         if (obj.hasKey("description"))
             description = obj.readString("description");

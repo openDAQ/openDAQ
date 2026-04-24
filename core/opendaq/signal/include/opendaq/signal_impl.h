@@ -1156,7 +1156,7 @@ void SignalBase<TInterface, Interfaces...>::updateObject(const SerializedObjectP
 {
     if (!this->lockedAttributes.count("Public"))
     {
-        if (obj.hasKey("public"))   
+        if (obj.hasKey("public"))
             isPublic = obj.readBool("public");
         else
             isPublic = true;

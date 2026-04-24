@@ -3619,7 +3619,7 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::setPropertyF
             if (const auto updatable = obj.asPtrOrNull<IUpdatable>(true); updatable.assigned())
             {
                 const auto serializedNestedObj = serialized.readSerializedObject(propName);
-                return updatable->update(serializedNestedObj, typeManager);
+                return updatable->updateInternal(serializedNestedObj, typeManager);
             }
 
             propValue = serialized.readObject(propName, typeManager);
@@ -3674,9 +3674,6 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::updateObject
 
     if (serialized.hasKey("propValues"))
         serializedProps = serialized.readSerializedObject("propValues");
-
-    beginUpdate();
-    Finally finally([this]() { endUpdate(); });
 
     for (const auto& prop : props)
     {
@@ -3753,7 +3750,22 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::updateIntern
 template <class PropObjInterface, typename... Interfaces>
 ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::update(ISerializedObject* obj, IBaseObject* /* config */)
 {
-    return updateInternal(obj, nullptr);
+    if (frozen)
+        return OPENDAQ_IGNORED;
+
+    OPENDAQ_RETURN_IF_FAILED(beginUpdate());
+
+    const ErrCode errCode = updateInternal(obj, nullptr);
+
+    const ErrCode endUpdateErrCode = endUpdate();
+    if (OPENDAQ_FAILED(endUpdateErrCode))
+    {
+        if (OPENDAQ_FAILED(errCode))
+            daqClearErrorInfo();
+        else
+            OPENDAQ_RETURN_IF_FAILED(endUpdateErrCode);
+    }
+    return errCode;
 }
 
 template <typename PropObjInterface, typename... Interfaces>

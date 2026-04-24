@@ -19,6 +19,7 @@
 #include <discovery_common/daq_discovery_common.h>
 #include <stdexcept>
 #include <opendaq/utils/thread_name.h>
+#include <fmt/chrono.h>
 
 #ifdef _WIN32
     #define _CRT_SECURE_NO_WARNINGS 1
@@ -532,6 +533,7 @@ void MDNSDiscoveryServer::serviceLoop()
             break;
         }
         if (ret == 0) {
+            checkResponseTimer();
             // timeout, nothing ready
             continue;
         }
@@ -544,6 +546,22 @@ void MDNSDiscoveryServer::serviceLoop()
             if (adapter.ipv6Sock >= 0 && FD_ISSET(adapter.ipv6Sock, &readfs))
                 mdns_socket_listen(adapter.ipv6Sock, buffer.data(), buffer.size(), callbackWrapper, &callback);
         }
+        checkResponseTimer();
+    }
+}
+
+void MDNSDiscoveryServer::checkResponseTimer()
+{
+    std::lock_guard lock(mx);
+    if (!responseScheduled)
+        return;
+
+    auto now = std::chrono::steady_clock::now();
+
+    if (now >= responseScheduledTime)
+    {
+        sendMdnsMutlicastResponses();
+        responseScheduled = false;
     }
 }
 
@@ -826,7 +844,7 @@ void send_mdns_query_answer(bool unicast, int sock, const sockaddr* from, sockle
                             std::vector<char>& buffer, uint16_t query_id, uint16_t rtype, 
                             const std::string& name, mdns_record_t answer, const std::vector<mdns_record_t>& records, AdapterInfo& adapter) 
 {
-    if (unicast) 
+    if (unicast)
     {
         mdns_query_answer_unicast(sock, from, addrlen, buffer.data(), buffer.size(),
                                   query_id, mdns_record_type(rtype), name.c_str(), name.size(), answer, 0, 0, records.data(), records.size());
@@ -987,33 +1005,148 @@ int MDNSDiscoveryServer::discoveryCallback(
         return 0;
 
     std::lock_guard lock(mx);
+    if (!responseScheduled && shouldRespondToMdnsQuery(sock, from, addrlen, query_id, rtype, name, adapter))
+    {
+        responseScheduled = true;
+        auto nowSteadyClock = std::chrono::steady_clock::now();
+        // TODO get delay value from instance config
+        responseScheduledTime = nowSteadyClock + std::chrono::milliseconds(200);
+
+        // auto nowSystemClock = std::chrono::system_clock::now();
+        // fmt::print("\nschedule response time for {:%Y-%m-%d %H:%M:%S}\n",  nowSystemClock + (responseScheduledTime - nowSteadyClock));
+    }
+    return 0;
+
+    // TODO fallback to immediate unicats reponses if rate-limiting is disabled within instance config
+    // return directDiscoveryReply(sock, from, addrlen, query_id, rtype, rclass & MDNS_UNICAST_RESPONSE, name, adapter);
+}
+
+bool MDNSDiscoveryServer::shouldRespondToMdnsQuery(int sock, const sockaddr* from, size_t addrlen, uint16_t query_id, uint16_t rtype, const std::string& queryRecordName, AdapterInfo& adapter)
+{
+    if (queryRecordName == "_services._dns-sd._udp.local." && (rtype == MDNS_RECORDTYPE_PTR || rtype == MDNS_RECORDTYPE_ANY))
+        return true;
+
+    return
+        std::any_of(
+            services.begin(),
+            services.end(),
+            [&queryRecordName, &rtype, &adapter, &from/*, &sock*/] (const std::pair<std::string, MdnsDiscoveredService>& item)
+            {
+                const auto& service = item.second;
+
+                bool res = queryRecordName == service.serviceName && (rtype == MDNS_RECORDTYPE_PTR) || (rtype == MDNS_RECORDTYPE_ANY) ||
+                       queryRecordName == service.serviceInstance && (rtype == MDNS_RECORDTYPE_SRV) || (rtype == MDNS_RECORDTYPE_ANY) ||
+                       queryRecordName == service.serviceQualified && (rtype == MDNS_RECORDTYPE_A || rtype == MDNS_RECORDTYPE_ANY) && adapter.ipv4Sock >= 0 && from->sa_family == AF_INET ||
+                       queryRecordName == service.serviceQualified && (rtype == MDNS_RECORDTYPE_AAAA || rtype == MDNS_RECORDTYPE_ANY) && adapter.ipv6Sock >= 0;
+
+                // if (res)
+                // {
+                //     fmt::print("\n{:%Y-%m-%d %H:%M:%S} ||| shouldRespondToMdnsQuery socket {} match in {} | {} | {} - for {}\n",
+                //                std::chrono::system_clock::now(), sock, service.serviceName,  service.serviceInstance,  service.serviceQualified, queryRecordName);
+                // }
+
+                return res;
+            }
+        );
+}
+
+void MDNSDiscoveryServer::sendMdnsMutlicastResponses()
+{
+    if (services.empty())
+    {
+        running = false;
+        return;
+    }
+
+    //auto now = std::chrono::system_clock::now();
+
+    for (const auto& [_, service]: services)
+    {
+        auto serviceName = service.serviceName;
+        // fmt::print("\n{:%Y-%m-%d %H:%M:%S} ||| sendMdnsMutlicastResponses: {}\n", now, serviceName);
+
+        // dns sd
+        {
+            std::string dns_sd = "_services._dns-sd._udp.local.";
+            mdns_record_t answer;
+            answer.name = {dns_sd.c_str(), dns_sd.size()},
+                answer.type = MDNS_RECORDTYPE_PTR,
+                answer.data.ptr.name = {serviceName.c_str(), serviceName.size()};
+
+            std::vector<char>sendBuffer(1024);
+            const std::vector<mdns_record_t>& records{};
+            for (const auto& [__, adapter_] : adapters)
+            {
+                if (adapter_.ipv4Sock >= 0)
+                    mdns_query_answer_multicast(adapter_.ipv4Sock, sendBuffer.data(), sendBuffer.size(), answer, 0, 0, records.data(), records.size(), 0);
+                if (adapter_.ipv6Sock >= 0)
+                    mdns_query_answer_multicast(adapter_.ipv6Sock, sendBuffer.data(), sendBuffer.size(), answer, 0, 0, records.data(), records.size(), adapter_.ipv6ifindex);
+            }
+        }
+
+        // ptr + srv + A/AAAA records
+        {
+            mdns_record_t answer = createPtrRecord(service);
+            auto propsCount = service.updateConnectedClientsAndGetPropsCount();
+
+            for (const auto& [__, adapter_] : adapters)
+            {
+                if (adapter_.ipv4Sock >= 0)
+                {
+                    std::vector<mdns_record_t> records;
+                    records.reserve(propsCount + 3);
+                    records.push_back(createSrvRecord(service));
+                    records.push_back(createARecord(service, adapter_));
+                    //fmt::print("{:%Y-%m-%d %H:%M:%S} ||| sendMdnsMutlicastResponses: {}; IPv4 sock {}; iface name {}\n", now, serviceName, adapter_.ipv4Sock, adapter_.name);
+                    service.populateRecords(records);
+                    std::vector<char>sendBuffer(service.recordSize);
+                    mdns_query_answer_multicast(adapter_.ipv4Sock, sendBuffer.data(), sendBuffer.size(), answer, 0, 0, records.data(), records.size(), 0);
+                }
+                if (adapter_.ipv6Sock >= 0)
+                {
+                    std::vector<mdns_record_t> records;
+                    records.reserve(propsCount + 3);
+                    records.push_back(createSrvRecord(service));
+                    records.push_back(createAaaaRecord(service, adapter_));
+                    //fmt::print("{:%Y-%m-%d %H:%M:%S} ||| sendMdnsMutlicastResponses: {}; IPv6 sock {}; iface name {} index {}\n", now, serviceName, adapter_.ipv6Sock, adapter_.name,adapter_.ipv6ifindex);
+                    service.populateRecords(records);
+                    std::vector<char>sendBuffer(service.recordSize);
+                    mdns_query_answer_multicast(adapter_.ipv6Sock, sendBuffer.data(), sendBuffer.size(), answer, 0, 0, records.data(), records.size(), adapter_.ipv6ifindex);
+                }
+            }
+        }
+    }
+}
+
+int MDNSDiscoveryServer::directDiscoveryReply(int sock, const sockaddr* from, size_t addrlen, uint16_t query_id, uint16_t rtype, uint16_t unicast, const std::string& queryRecordName, AdapterInfo& adapter)
+{
     if (services.empty())
     {
         running = false;
         return 0;
     }
 
-    uint16_t unicast = (rclass & MDNS_UNICAST_RESPONSE);
+    std::string dns_sd = "_services._dns-sd._udp.local.";
 
     for (const auto& [_, service]: services)
     {
         auto serviceName = service.serviceName;
-        if (name == dns_sd) 
+        if (queryRecordName == dns_sd)
         {
-            if ((rtype == MDNS_RECORDTYPE_PTR) || (rtype == MDNS_RECORDTYPE_ANY)) 
+            if ((rtype == MDNS_RECORDTYPE_PTR) || (rtype == MDNS_RECORDTYPE_ANY))
             {
                 mdns_record_t answer;
-                answer.name = {name.c_str(), name.size()}, 
-                answer.type = MDNS_RECORDTYPE_PTR, 
-                answer.data.ptr.name = {serviceName.c_str(), serviceName.size()};
+                answer.name = {queryRecordName.c_str(), queryRecordName.size()},
+                    answer.type = MDNS_RECORDTYPE_PTR,
+                    answer.data.ptr.name = {serviceName.c_str(), serviceName.size()};
 
                 std::vector<char>sendBuffer(1024);
-                send_mdns_query_answer(unicast, sock, from, addrlen, sendBuffer, query_id, rtype, name, answer, {}, adapter);
+                send_mdns_query_answer(unicast, sock, from, addrlen, sendBuffer, query_id, rtype, queryRecordName, answer, {}, adapter);
             }
-        } 
-        else if (name == serviceName) 
+        }
+        else if (queryRecordName == serviceName)
         {
-            if ((rtype == MDNS_RECORDTYPE_PTR) || (rtype == MDNS_RECORDTYPE_ANY)) 
+            if ((rtype == MDNS_RECORDTYPE_PTR) || (rtype == MDNS_RECORDTYPE_ANY))
             {
                 mdns_record_t answer = createPtrRecord(service);
 
@@ -1028,12 +1161,12 @@ int MDNSDiscoveryServer::discoveryCallback(
                 service.populateRecords(records);
 
                 std::vector<char>sendBuffer(service.recordSize);
-                send_mdns_query_answer(unicast, sock, from, addrlen, sendBuffer, query_id, rtype, name, answer, records, adapter);
+                send_mdns_query_answer(unicast, sock, from, addrlen, sendBuffer, query_id, rtype, queryRecordName, answer, records, adapter);
             }
-        } 
-        else if (name == service.serviceInstance)
+        }
+        else if (queryRecordName == service.serviceInstance)
         {
-            if ((rtype == MDNS_RECORDTYPE_SRV) || (rtype == MDNS_RECORDTYPE_ANY)) 
+            if ((rtype == MDNS_RECORDTYPE_SRV) || (rtype == MDNS_RECORDTYPE_ANY))
             {
                 mdns_record_t answer = createSrvRecord(service);
 
@@ -1047,10 +1180,10 @@ int MDNSDiscoveryServer::discoveryCallback(
                 service.populateRecords(records);
 
                 std::vector<char>sendBuffer(service.recordSize);
-                send_mdns_query_answer(unicast, sock, from, addrlen, sendBuffer, query_id, rtype, name, answer, records, adapter);
+                send_mdns_query_answer(unicast, sock, from, addrlen, sendBuffer, query_id, rtype, queryRecordName, answer, records, adapter);
             }
-        } 
-        else if (name == service.serviceQualified)
+        }
+        else if (queryRecordName == service.serviceQualified)
         {
             if ((rtype == MDNS_RECORDTYPE_A || rtype == MDNS_RECORDTYPE_ANY) && adapter.ipv4Sock >= 0 && from->sa_family == AF_INET)
             {
@@ -1063,8 +1196,8 @@ int MDNSDiscoveryServer::discoveryCallback(
                 service.populateRecords(records);
 
                 std::vector<char>sendBuffer(service.recordSize);
-                send_mdns_query_answer(unicast, sock, from, addrlen, sendBuffer, query_id, rtype, name, answer, records, adapter);
-            } 
+                send_mdns_query_answer(unicast, sock, from, addrlen, sendBuffer, query_id, rtype, queryRecordName, answer, records, adapter);
+            }
             else if ((rtype == MDNS_RECORDTYPE_AAAA || rtype == MDNS_RECORDTYPE_ANY) && adapter.ipv6Sock >= 0)
             {
                 mdns_record_t answer = createAaaaRecord(service, adapter);
@@ -1076,12 +1209,11 @@ int MDNSDiscoveryServer::discoveryCallback(
                 service.populateRecords(records);
 
                 std::vector<char>sendBuffer(service.recordSize);
-                send_mdns_query_answer(unicast, sock, from, addrlen, sendBuffer, query_id, rtype, name, answer, records, adapter);
+                send_mdns_query_answer(unicast, sock, from, addrlen, sendBuffer, query_id, rtype, queryRecordName, answer, records, adapter);
             }
         }
     }
     return 0;
 }
-
 
 END_NAMESPACE_DISCOVERY_SERVICE

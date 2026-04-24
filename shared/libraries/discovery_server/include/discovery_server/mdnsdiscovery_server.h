@@ -105,6 +105,7 @@ private:
     void start();
     void stop();
     void serviceLoop();
+    void checkResponseTimer();
 
     void goodbyeMulticast(const MdnsDiscoveredService& service) const;
 
@@ -127,6 +128,10 @@ private:
         uint16_t query_id, uint16_t rtype, uint16_t rclass, const void* buffer,
         size_t size, size_t name_offset, size_t name_length, size_t rdata_offset,
         size_t rdata_length, void* user_data);
+
+    int directDiscoveryReply(int sock, const sockaddr* from, size_t addrlen, uint16_t query_id, uint16_t rtype, uint16_t unicast, const std::string& queryRecordName, AdapterInfo& adapter);
+    void sendMdnsMutlicastResponses();
+    bool shouldRespondToMdnsQuery(int sock, const sockaddr* from, size_t addrlen, uint16_t query_id, uint16_t rtype, const std::string& queryRecordName, AdapterInfo& adapter);
 
     bool getAdapter(int sock, AdapterInfo& adapter);
     mdns_record_t createPtrRecord(const MdnsDiscoveredService& service) const;
@@ -158,6 +163,9 @@ private:
     ModifyIpConfigCallback modifyIpConfigCallback{nullptr};
     RetrieveIpConfigCallback retrieveIpConfigCallback{nullptr};
     std::unordered_set<std::string> processedIpConfigReqIds;
+
+    bool responseScheduled{false};
+    std::chrono::steady_clock::time_point responseScheduledTime{};
 };
 
 END_NAMESPACE_DISCOVERY_SERVICE

@@ -1,0 +1,194 @@
+name: Build and Test openDAQ (legacy)
+
+on:
+  workflow_dispatch:
+  pull_request:
+    types: [opened, reopened, synchronize, ready_for_review]
+
+  workflow_call:
+    inputs:
+      cmake_preset:
+        required: false
+        type: string
+      ctest_preset:
+        required: false
+        type: string
+
+env:
+  cmake_preset: ${{ inputs.cmake_preset != '' && inputs.cmake_preset || 'ci' }}
+  ctest_preset: ${{ inputs.ctest_preset != '' && inputs.ctest_preset || 'run_tests' }}
+  OPENDAQ_SINK_CONSOLE_LOG_LEVEL: 1
+
+jobs:
+  build_windows:
+    runs-on: windows-latest
+    name: ${{ matrix.name }}
+    if: ${{ ! github.event.pull_request.draft }}
+
+    concurrency:
+      group: ${{ github.workflow }}-${{ github.head_ref }}-${{ matrix.name }}
+      cancel-in-progress: true
+    timeout-minutes: 270
+    env:
+      CC: ${{ matrix.cc }}
+      CXX: ${{ matrix.cxx }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: Windows Clang Release
+            cc: clang
+            cxx: clang++
+            cmake-build-type: Release
+            cmake-defines:
+            cmake-generator: Ninja
+            enable-tests: true
+          - name: Windows Intel-LLVM Release
+            cc: icx
+            cxx: icx
+            cmake-build-type: Release
+            cmake-defines: >-
+              -DOPENDAQ_GENERATE_PYTHON_BINDINGS=OFF
+              -DOPENDAQ_GENERATE_CSHARP_BINDINGS=OFF
+            cmake-generator: Ninja
+            enable-tests: true
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Build and Test
+        id: build-and-test
+        uses: ./.github/actions/build-sdk
+        with:
+          cmake-build-type: ${{ matrix.cmake-build-type }}
+          cmake-config-preset: ${{ env.cmake_preset }}
+          cmake-config-args: ${{ matrix.cmake-defines }}
+          cmake-generator: ${{ matrix.cmake-generator }}
+          enable-tests: ${{ matrix.enable-tests == true }}
+          ctest-preset: ${{ env.ctest_preset }}
+
+      - name: Upload test results
+        if: ${{ always() && matrix.enable-tests == true }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: Unit Test Results (${{ matrix.name }})
+          path: ${{ steps.build-and-test.outputs.gtest-xml-path }}
+
+  build_linux:
+    runs-on: ubuntu-latest
+    name: ${{ matrix.name }}
+    if: ${{ ! github.event.pull_request.draft }}
+
+    concurrency:
+      group: ${{ github.workflow }}-${{ github.head_ref }}-${{ matrix.name }}
+      cancel-in-progress: true
+    timeout-minutes: 180
+    env:
+      CC: ${{ matrix.cc }}
+      CXX: ${{ matrix.cxx }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: Ubuntu Latest gcc x86_32 Release
+            cc: gcc
+            cxx: g++
+            additional-packages:
+            cmake-generator: Ninja
+            cmake-build-type: Release
+            cmake-defines: >-
+              -DOPENDAQ_GENERATE_PYTHON_BINDINGS=OFF
+              -DOPENDAQ_GENERATE_CSHARP_BINDINGS=OFF
+            enable-32bit: true
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Build and Test
+        id: build-and-test
+        uses: ./.github/actions/build-sdk
+        with:
+          additional-dependencies: ${{ matrix.additional-packages }}
+          cmake-build-type: ${{ matrix.cmake-build-type }}
+          cmake-config-preset: ${{ env.cmake_preset }}
+          cmake-config-args: ${{ matrix.cmake-defines }}
+          cmake-generator: ${{ matrix.cmake-generator }}
+          enable-32bit: ${{ matrix.enable-32bit == true }}
+          enable-tests: true
+          ctest-preset: ${{ env.ctest_preset }}
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: Unit Test Results (${{ matrix.name }})
+          path: ${{ steps.build-and-test.outputs.gtest-xml-path }}
+
+  # build_android:
+  #   runs-on: ubuntu-latest-8-cores
+  #   # ${{ }} expression syntax because of leading '!'
+  #   if: ${{ ! github.event.pull_request.draft }}
+  #
+  #   concurrency:
+  #     group: ${{ github.workflow }}-${{ github.head_ref }}-${{ matrix.abi }}
+  #     cancel-in-progress: true
+  #   strategy:
+  #     fail-fast: true
+  #     matrix:
+  #       android_abi: [arm64-v8a]
+  #       # android_abi: [arm64-v8a, armeabi-v7a, x86_64]
+  #       android_version: [24]
+  #       cmake_build_type: [Debug]
+  #   env:
+  #     android_ndk_version: r25c
+  #     android_ndk_path: ${{ github.workspace }}/android-ndk-r25c
+  #     android_ndk_zip: ${{ github.workspace }}/android-ndk-r25c-linux.zip
+  #     android_ndk_url: https://dl.google.com/android/repository/android-ndk-r25c-linux.zip
+  #
+  #   steps:
+  #
+  #     - uses: actions/checkout@v4
+  #     - name: Checkout
+  #       uses: actions/checkout@v4
+  #
+  #     - name: Install build dependencies
+  #       run: |
+  #         sudo apt-get install -y --no-install-recommends ninja-build
+  #     - name: Cache Android NDK
+  #       id: cache-ndk
+  #       uses: actions/cache@v3
+  #       with:
+  #         path: ${{ env.android_ndk_zip }}
+  #         key: ${{ runner.os }}-android-ndk
+  #
+  #     - name: Download Android NDK
+  #       if: steps.cache-ndk.outputs.cache-hit != 'true'
+  #       run: wget ${{ env.android_ndk_url }}
+  #
+  #     - name: Extract Android NDK
+  #       run: unzip ${{ env.android_ndk_zip }}
+  #
+  #     - name: Configure
+  #       run: |
+  #         mkdir build
+  #         cd build
+  #         cmake -G Ninja --preset ${{ env.cmake_preset }} \
+  #           -DOPENDAQ_USE_SOURCE_BOOST=ON \
+  #           -DOPENDAQ_GENERATE_PYTHON_BINDINGS=OFF \
+  #           -DOPENDAQ_ENABLE_TESTS=OFF \
+  #           -DCMAKE_TOOLCHAIN_FILE=${{ env.android_ndk_path }}/build/cmake/android.toolchain.cmake \
+  #           -DCMAKE_ANDROID_NDK=${{ env.android_ndk_path }} \
+  #           -DCMAKE_BUILD_TYPE=${{ matrix.cmake_build_type }} \
+  #           -DCMAKE_SYSTEM_NAME=Android \
+  #           -DCMAKE_SYSTEM_VERSION=${{ matrix.android_version }} \
+  #           -DCMAKE_EXPORT_COMPILE_COMMANDS=ON \
+  #           -DANDROID_ABI=${{ matrix.android_abi }} \
+  #           -DANDROID_NDK=${{ env.android_ndk_path }} \
+  #           -DANDROID_PLATFORM=android-${{ matrix.android_version }} \
+  #           -DCI_GIT_BRANCH=${{ github.head_ref }} \
+  #           ..
+  #     - name: Build
+  #       working-directory: ./build
+  #       run: cmake --build .

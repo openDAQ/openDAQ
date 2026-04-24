@@ -370,6 +370,11 @@ if (OPENDAQ_ENABLE_WEBSOCKET_STREAMING AND (DAQMODULES_OPENDAQ_CLIENT_MODULE OR 
 endif()
 
 opendaq_setup_compiler_flags(${SDK_OPTION_PREFIX})
+
+if (CMAKE_CXX_COMPILER_ID MATCHES "Clang|AppleClang" AND CMAKE_CXX_COMPILER_VERSION VERSION_LESS 10)
+    add_compile_options(-Wno-unknown-warning-option)
+endif()
+
 add_subdirectory(external_modules)
 
 include("${PROJ_DIR}/external/boost/Boost.cmake")

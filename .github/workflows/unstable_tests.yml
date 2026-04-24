@@ -6,9 +6,44 @@ on:
   workflow_dispatch:
 
 jobs:
-  run-ci-jobs:
+  ci:
     if: ${{ github.event_name == 'workflow_dispatch' || github.ref == 'refs/heads/main' }}
-    uses: ./.github/workflows/ci.yml
+    name: openDAQ (unstable)
+    uses: openDAQ/openDAQ-CI/.github/workflows/reusable.yml@jira/TBBAS-3212-support-opendaq-ci
     with:
-      cmake_preset: unstable_tests_ci
-      ctest_preset: run_unstable_test_repeatedly
+      timeout: '[{"timeout-minutes": 270}]'
+      packages: >
+        [
+          {
+            "match-jobs": ["ubuntu-*"],
+            "apt-install": ["lld", "libx11-dev", "libxi-dev", "libxcursor-dev", "libxrandr-dev", "libgl-dev", "libudev-dev", "libfreetype6-dev"]
+          },
+          {
+            "pip-install": ["numpy"],
+            "use-python-version": "3.14"
+          },
+          {
+            "match-jobs": ["ubuntu-20.04-*-gcc-7-*", "ubuntu-20.04-*-clang-9-*"],
+            "use-python-version": "3.8"
+          }
+        ]
+      cmake-presets: >
+        [
+          {
+            "configure-preset": "unstable_tests_ci",
+            "test-preset": "run_unstable_test_repeatedly"
+          },
+          {
+            "match-jobs": ["windows-*-msvs-*"],
+            "configure-preset": "unstable_tests_ci-msvc"
+          },
+          {
+            "match-jobs": ["ubuntu-20.04-*-gcc-7-*", "ubuntu-20.04-*-clang-9-*"],
+            "configure-preset": "unstable_tests_ci-legacy-compiler"
+          },
+          {
+            "match-jobs": ["macos-*"],
+            "configure-preset": "unstable_tests_ci-macos",
+            "run-tests-priv": true
+          }
+        ]

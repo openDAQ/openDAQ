@@ -53,7 +53,6 @@
 #include <coreobjects/mutex_factory.h>
 #include <coreobjects/mutex_impl.h>
 #include <coreobjects/property_object_utils.h>
-#include <iostream>
 
 BEGIN_NAMESPACE_OPENDAQ
 
@@ -1102,6 +1101,12 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::setPropertyV
             return OPENDAQ_SUCCESS;
         }
 
+        StringPtr subName;
+        if (isChildProp)
+        {
+            splitOnFirstDot(propName, propName, subName);
+        }
+
         PropertyPtr prop = getUnboundProperty(propName);
         prop = checkForRefPropAndGetBoundProp(prop, objPtr);
 
@@ -1109,11 +1114,9 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::setPropertyV
             return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOTFOUND, fmt::format(R"(Property "{}" not found.)", propName));
 
         propName = prop.getName();
+
         if (isChildProp)
         {
-            StringPtr subName;
-            splitOnFirstDot(propName, propName, subName);
-
             BaseObjectPtr childProp;
             const ErrCode err = getPropertyValueInternal(propName, &childProp);
             OPENDAQ_RETURN_IF_FAILED(err);
@@ -3387,14 +3390,7 @@ void GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::DeserializeProp
     for (const auto& key : keys)
     {
         const auto propValue = propValues.readObject(key, context, factoryCallback);
-        if (propObjPtr.hasProperty(key))
-        {
-            protectedPropObjPtr.setProtectedPropertyValue(key, propValue);
-        }
-        else
-        {
-            std::cout << "Property " << key << " not found" << std::endl;
-        }
+        protectedPropObjPtr.setProtectedPropertyValue(key, propValue);
     }
 }
 

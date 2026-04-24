@@ -845,7 +845,7 @@ void GenericSignalContainerImpl<Intf, Intfs...>::updateFunctionBlock(const std::
     if (serializedFunctionBlock.hasKey("ComponentConfig"))
     {
         const auto updatetableFunctionConfig = functionConfig.template asPtr<IUpdatable>(true);
-        updatetableFunctionConfig.updateInternal(serializedFunctionBlock.readObject("ComponentConfig"), context);
+        updatetableFunctionConfig.updateInternal(serializedFunctionBlock.readSerializedObject("ComponentConfig"), context);
     }
 
     if (!functionConfig.hasProperty("LocalId"))

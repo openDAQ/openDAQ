@@ -32,6 +32,16 @@ daqErrCode daqUpdateParameters_setDeviceUpdateOptions(daqUpdateParameters* self,
     return reinterpret_cast<daq::IUpdateParameters*>(self)->setDeviceUpdateOptions(reinterpret_cast<daq::IDeviceUpdateOptions*>(options));
 }
 
+daqErrCode daqUpdateParameters_getConfigurationLoadMode(daqUpdateParameters* self, daqConfigurationLoadMode* mode)
+{
+    return reinterpret_cast<daq::IUpdateParameters*>(self)->getConfigurationLoadMode(reinterpret_cast<daq::ConfigurationLoadMode*>(mode));
+}
+
+daqErrCode daqUpdateParameters_setConfigurationLoadMode(daqUpdateParameters* self, daqConfigurationLoadMode mode)
+{
+    return reinterpret_cast<daq::IUpdateParameters*>(self)->setConfigurationLoadMode(static_cast<daq::ConfigurationLoadMode>(mode));
+}
+
 daqErrCode daqUpdateParameters_createUpdateParameters(daqUpdateParameters** obj)
 {
     daq::IUpdateParameters* ptr = nullptr;

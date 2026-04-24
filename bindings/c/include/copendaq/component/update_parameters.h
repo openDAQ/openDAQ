@@ -42,6 +42,8 @@ extern "C"
 
     daqErrCode EXPORTED daqUpdateParameters_getDeviceUpdateOptions(daqUpdateParameters* self, daqDeviceUpdateOptions** options);
     daqErrCode EXPORTED daqUpdateParameters_setDeviceUpdateOptions(daqUpdateParameters* self, daqDeviceUpdateOptions* options);
+    daqErrCode EXPORTED daqUpdateParameters_getConfigurationLoadMode(daqUpdateParameters* self, daqConfigurationLoadMode* mode);
+    daqErrCode EXPORTED daqUpdateParameters_setConfigurationLoadMode(daqUpdateParameters* self, daqConfigurationLoadMode mode);
     daqErrCode EXPORTED daqUpdateParameters_createUpdateParameters(daqUpdateParameters** obj);
 
 #ifdef __cplusplus

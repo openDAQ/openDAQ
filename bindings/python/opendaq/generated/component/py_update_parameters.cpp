@@ -33,6 +33,10 @@
 
 PyDaqIntf<daq::IUpdateParameters, daq::IPropertyObject> declareIUpdateParameters(pybind11::module_ m)
 {
+    py::enum_<daq::ConfigurationLoadMode>(m, "ConfigurationLoadMode")
+        .value("Exact", daq::ConfigurationLoadMode::Exact)
+        .value("Merge", daq::ConfigurationLoadMode::Merge);
+
     return wrapInterface<daq::IUpdateParameters, daq::IPropertyObject>(m, "IUpdateParameters");
 }
 
@@ -57,4 +61,18 @@ void defineIUpdateParameters(pybind11::module_ m, PyDaqIntf<daq::IUpdateParamete
         },
         py::return_value_policy::take_ownership,
         "Gets the device update options object that allows for specifying how a device and its subdevices are to be updated. / Sets the device update options object that allows for specifying how a device and its subdevices are to be updated.");
+    cls.def_property("configuration_load_mode",
+        [](daq::IUpdateParameters *object)
+        {
+            py::gil_scoped_release release;
+            const auto objectPtr = daq::UpdateParametersPtr::Borrow(object);
+            return objectPtr.getConfigurationLoadMode();
+        },
+        [](daq::IUpdateParameters *object, daq::ConfigurationLoadMode mode)
+        {
+            py::gil_scoped_release release;
+            const auto objectPtr = daq::UpdateParametersPtr::Borrow(object);
+            objectPtr.setConfigurationLoadMode(mode);
+        },
+        "Gets the strategy with which the configuration will be loaded. / Sets the strategy with which the configuration will be loaded.");
 }

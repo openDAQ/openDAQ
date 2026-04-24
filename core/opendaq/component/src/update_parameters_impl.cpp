@@ -5,6 +5,7 @@ BEGIN_NAMESPACE_OPENDAQ
 
 UpdateParametersImpl::UpdateParametersImpl()
     : Super()
+    , configLoadMode(ConfigurationLoadMode::Merge)
 {
     Super::addProperty(BoolProperty("RemoteUpdate", false));
 }
@@ -29,6 +30,20 @@ ErrCode UpdateParametersImpl::setDeviceUpdateOptions(IDeviceUpdateOptions* optio
     return OPENDAQ_SUCCESS;
 }
 
+ErrCode INTERFACE_FUNC UpdateParametersImpl::getConfigurationLoadMode(ConfigurationLoadMode* mode)
+{
+    OPENDAQ_PARAM_NOT_NULL(mode);
+
+    *mode = configLoadMode;
+    return OPENDAQ_SUCCESS;
+}
+
+ErrCode INTERFACE_FUNC UpdateParametersImpl::setConfigurationLoadMode(ConfigurationLoadMode mode)
+{
+    configLoadMode = mode;
+    return OPENDAQ_SUCCESS;
+}
+
 ErrCode UpdateParametersImpl::serializeCustomValues(ISerializer* serializer, bool)
 {
     if (deviceOptions.assigned())
@@ -39,6 +54,7 @@ ErrCode UpdateParametersImpl::serializeCustomValues(ISerializer* serializer, boo
 
     return OPENDAQ_SUCCESS;
 }
+
 ErrCode UpdateParametersImpl::getSerializeId(ConstCharPtr* id) const
 {
     OPENDAQ_PARAM_NOT_NULL(id);

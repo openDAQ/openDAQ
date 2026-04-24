@@ -287,6 +287,10 @@ protected:
     virtual ErrCode serializePropertyValue(const StringPtr& name, const ObjectPtr<IBaseObject>& value, ISerializer* serializer, bool forUpdate = false);
     virtual ErrCode serializeProperty(const PropertyPtr& property, ISerializer* serializer);
 
+    ErrCode serializePropertyValueAsUpdatable(const StringPtr& name, const ObjectPtr<IBaseObject>& value, ISerializer* serializer);
+    ErrCode serializePropertyValueAsSerializable(const StringPtr& name, const ObjectPtr<IBaseObject>& value, ISerializer* serializer);
+    ErrCode serializePropertyValueAsNull(const StringPtr& name, ISerializer* serializer);
+
     // Update
     virtual void endApplyUpdate();
     virtual void beginApplyUpdate();
@@ -3145,38 +3149,81 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::serializeCus
 }
 
 template <class PropObjInterface, class... Interfaces>
-ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::serializePropertyValue(const StringPtr& name,
-                                                                                           const ObjectPtr<IBaseObject>& value,
-                                                                                           ISerializer* serializer,
-                                                                                           bool /*forUpdate*/)
+ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::serializePropertyValueAsUpdatable(const StringPtr& name,
+                                                                                                      const ObjectPtr<IBaseObject>& value,
+                                                                                                      ISerializer* serializer)
 {
-    if (value.assigned())
+    IUpdatable* updatableValue;
+    ErrCode errCode = value->borrowInterface(IUpdatable::Id, reinterpret_cast<void**>(&updatableValue));
+    if (OPENDAQ_SUCCEEDED(errCode))
     {
-        ISerializable* serializableValue;
-        ErrCode errCode = value->borrowInterface(ISerializable::Id, reinterpret_cast<void**>(&serializableValue));
-        if (OPENDAQ_FAILED(errCode))
-        {
-            if (errCode == OPENDAQ_ERR_NOINTERFACE)
-                return OPENDAQ_SUCCESS;
-            return DAQ_EXTEND_ERROR_INFO(errCode);
-        }
-
         errCode = serializer->keyStr(name);
         OPENDAQ_RETURN_IF_FAILED(errCode);
 
-        errCode = serializableValue->serialize(serializer);
-        OPENDAQ_RETURN_IF_FAILED(errCode);
-    }
-    else
-    {
-        ErrCode errCode = serializer->keyStr(name);
+        errCode = updatableValue->serializeForUpdate(serializer);
         OPENDAQ_RETURN_IF_FAILED(errCode);
 
-        errCode = serializer->writeNull();
-        OPENDAQ_RETURN_IF_FAILED(errCode);
+        return OPENDAQ_SUCCESS;
     }
+    if (errCode != OPENDAQ_ERR_NOINTERFACE)
+        return DAQ_EXTEND_ERROR_INFO(errCode);
+
+    return OPENDAQ_ERR_NOINTERFACE;
+}
+
+template <class PropObjInterface, class... Interfaces>
+ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::serializePropertyValueAsSerializable(const StringPtr& name,
+                                                                                                         const ObjectPtr<IBaseObject>& value,
+                                                                                                         ISerializer* serializer)
+{
+    ISerializable* serializableValue;
+    ErrCode errCode = value->borrowInterface(ISerializable::Id, reinterpret_cast<void**>(&serializableValue));
+    if (OPENDAQ_FAILED(errCode))
+    {
+        if (errCode == OPENDAQ_ERR_NOINTERFACE)
+            return OPENDAQ_SUCCESS;
+        return DAQ_EXTEND_ERROR_INFO(errCode);
+    }
+
+    errCode = serializer->keyStr(name);
+    OPENDAQ_RETURN_IF_FAILED(errCode);
+
+    errCode = serializableValue->serialize(serializer);
+    OPENDAQ_RETURN_IF_FAILED(errCode);
 
     return OPENDAQ_SUCCESS;
+}
+
+template <class PropObjInterface, class... Interfaces>
+ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::serializePropertyValueAsNull(const StringPtr& name,
+                                                                                                 ISerializer* serializer)
+{
+    ErrCode errCode = serializer->keyStr(name);
+    OPENDAQ_RETURN_IF_FAILED(errCode);
+
+    errCode = serializer->writeNull();
+    OPENDAQ_RETURN_IF_FAILED(errCode);
+
+    return OPENDAQ_SUCCESS;
+}
+
+template <class PropObjInterface, class... Interfaces>
+ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::serializePropertyValue(const StringPtr& name,
+                                                                                           const ObjectPtr<IBaseObject>& value,
+                                                                                           ISerializer* serializer,
+                                                                                           bool forUpdate)
+{
+    if (!value.assigned())
+        return serializePropertyValueAsNull(name, serializer);
+
+    if (forUpdate)
+    {
+        const ErrCode errCode = serializePropertyValueAsUpdatable(name, value, serializer);
+        if (errCode != OPENDAQ_ERR_NOINTERFACE)
+            return errCode;
+    }
+
+    return serializePropertyValueAsSerializable(name, value, serializer);
 }
 
 template <class PropObjInterface, class... Interfaces>

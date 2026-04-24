@@ -456,8 +456,8 @@ private:
                                    const SerializedObjectPtr& serialized,
                                    const ListPtr<IProperty>& props);
 
-    ErrCode beginUpdateInternal(bool deep);
-    ErrCode endUpdateInternal(bool deep);
+                                   ErrCode beginUpdateInternal(bool deep);
+                                   ErrCode endUpdateInternal(bool deep);
     ErrCode getUpdatingInternal(Bool* updating);
 
     static bool hasUserReadAccess(const BaseObjectPtr& userContext, const BaseObjectPtr& obj);
@@ -3675,9 +3675,6 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::updateObject
     if (serialized.hasKey("propValues"))
         serializedProps = serialized.readSerializedObject("propValues");
 
-    beginUpdate();
-    Finally finally([this]() { endUpdate(); });
-
     for (const auto& prop : props)
     {
         const auto propName = prop.getName();
@@ -3753,7 +3750,22 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::updateIntern
 template <class PropObjInterface, typename... Interfaces>
 ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::update(ISerializedObject* obj, IBaseObject* /* config */)
 {
-    return updateInternal(obj, nullptr);
+    if (frozen)
+        return OPENDAQ_IGNORED;
+
+    OPENDAQ_RETURN_IF_FAILED(beginUpdate());
+
+    const ErrCode errCode = updateInternal(obj, nullptr);
+
+    const ErrCode endUpdateErrCode = endUpdate();
+    if (OPENDAQ_FAILED(endUpdateErrCode))
+    {
+        if (OPENDAQ_FAILED(errCode))
+            daqClearErrorInfo();
+        else
+            OPENDAQ_RETURN_IF_FAILED(endUpdateErrCode);
+    }
+    return errCode;
 }
 
 template <typename PropObjInterface, typename... Interfaces>

@@ -10,8 +10,7 @@
 #include <coretypes/function_factory.h>
 
 #include <coreobjects/property_object_protected_ptr.h>
-
-#include <regex>
+#include <opendaq/custom_log.h>
 
 BEGIN_NAMESPACE_OPENDAQ_NATIVE_STREAMING_CLIENT_MODULE
 using namespace opendaq_native_streaming_protocol;
@@ -28,6 +27,7 @@ NativeStreamingDeviceImpl::NativeStreamingDeviceImpl(const ContextPtr& ctx,
   , connectionString(connectionString)
   , connectionStatus(Enumeration("ConnectionStatusType", "Connected", this->context.getTypeManager()))
   , deviceType(type)
+  , transportProtocolClient(transportProtocolClient)
 {
     if (!this->connectionString.assigned())
         DAQ_THROW_EXCEPTION(ArgumentNullException, "connectionString cannot be null");
@@ -39,6 +39,60 @@ NativeStreamingDeviceImpl::NativeStreamingDeviceImpl(const ContextPtr& ctx,
     activateStreaming();
     this->connectionStatusContainer.addStreamingConnectionStatus(connectionString, connectionStatus, nativeStreaming);
     this->statusContainer.asPtr<IComponentStatusContainerPrivate>().addStatus("ConnectionStatus", connectionStatus);
+}
+
+ErrCode NativeStreamingDeviceImpl::setComponentConfig(IPropertyObject* config)
+{
+    OPENDAQ_RETURN_IF_FAILED(Super::setComponentConfig(config));
+
+    StringPtr primaryAddressType;
+    if (config != nullptr)
+    {
+        const auto configPtr = PropertyObjectPtr::Borrow(config);
+
+        if (configPtr.hasProperty("General"))
+        {
+            const PropertyObjectPtr generalConfig = configPtr.getPropertyValue("General");
+            if (generalConfig.hasProperty("PrimaryAddressType"))
+            {
+                const StringPtr primaryAddressTypeCandidate = generalConfig.getPropertyValue("PrimaryAddressType");
+                if (primaryAddressTypeCandidate.getLength())
+                    primaryAddressType = primaryAddressTypeCandidate;
+            }
+        }
+    }
+
+    DeviceInfoPtr deviceInfo;
+    OPENDAQ_RETURN_IF_FAILED(getInfo(&deviceInfo));
+
+    if (deviceInfo == nullptr)
+       return OPENDAQ_IGNORED;
+
+    if (!deviceInfo.hasServerCapability("OpenDAQNativeStreaming"))
+        return OPENDAQ_IGNORED;
+
+    const auto streamingCapability = deviceInfo.getServerCapability("OpenDAQNativeStreaming");
+    if (!streamingCapability.assigned())
+        return OPENDAQ_IGNORED;
+
+    auto addressInfos = streamingCapability.getAddressInfo();
+    if (!addressInfos.assigned() || addressInfos.getCount() == 0)
+        return OPENDAQ_IGNORED;
+
+    auto alternativeAddresses = List<IString>();
+    for (const auto& addressInfo : addressInfos)
+    {
+        if (primaryAddressType.assigned() && addressInfo.getType() != primaryAddressType)
+            continue;
+
+        if (addressInfo.getReachabilityStatus() == AddressReachabilityStatus::Unreachable)
+            continue;
+
+        alternativeAddresses.pushBack(addressInfo.getAddress());
+    }
+
+    transportProtocolClient->setAlternativeAddresses(alternativeAddresses);
+    return OPENDAQ_SUCCESS;
 }
 
 void NativeStreamingDeviceImpl::removed()

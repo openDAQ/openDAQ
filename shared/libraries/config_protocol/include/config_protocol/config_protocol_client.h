@@ -472,7 +472,7 @@ DevicePtr ConfigProtocolClient<TRootDeviceImpl>::connect(const ComponentPtr& par
 
     const ComponentHolderPtr deviceHolder = clientComm->requestRootDevice(parent);
     auto device = deviceHolder.getComponent();
-    device.asPtr<IComponentPrivate>().setComponentConfig(nullptr);
+    device.asPtr<IComponentPrivate>(true).setComponentConfig(nullptr);
 
     clientComm->setRootDevice(device);
     clientComm->connectDomainSignals(device);

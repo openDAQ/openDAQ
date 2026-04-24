@@ -456,8 +456,8 @@ private:
                                    const SerializedObjectPtr& serialized,
                                    const ListPtr<IProperty>& props);
 
-                                   ErrCode beginUpdateInternal(bool deep);
-                                   ErrCode endUpdateInternal(bool deep);
+    ErrCode beginUpdateInternal(bool deep);
+    ErrCode endUpdateInternal(bool deep);
     ErrCode getUpdatingInternal(Bool* updating);
 
     static bool hasUserReadAccess(const BaseObjectPtr& userContext, const BaseObjectPtr& obj);

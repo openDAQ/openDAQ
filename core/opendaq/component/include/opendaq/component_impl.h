@@ -1216,15 +1216,10 @@ void ComponentImpl<Intf, Intfs...>::updateObject(const SerializedObjectPtr& obj,
     if (!lockedAttributes.count("Active"))
     {
         if (obj.hasKey("active"))
-        {
             localActive = obj.readBool("active");
-            active = parentActive && localActive;
-        }
         else
-        {
             localActive = true;
-            active = parentActive && localActive;
-        }
+        active = parentActive && localActive;
     }
 
     if (!lockedAttributes.count("Visible"))

@@ -3320,7 +3320,7 @@ TEST_F(NativeDeviceModulesTest, SaveLoadDeviceConfig)
         addRefDeviceModule(client);
 
         auto deviceConfig = client.createDefaultAddDeviceConfig();
-        deviceConfig.addProperty(StringProperty("TestKey", "TestValue"));
+        deviceConfig.setPropertyValue("Device.daqref.NumberOfChannels", 1);
         client.getDevices()[0].addDevice("daqref://device1", deviceConfig);
         config = client.saveConfiguration();
     }
@@ -3335,9 +3335,7 @@ TEST_F(NativeDeviceModulesTest, SaveLoadDeviceConfig)
     ASSERT_EQ(devices.getCount(), 1u);
 
     auto deviceConfig = devices[0].asPtr<IComponentPrivate>(true).getComponentConfig();
-    ASSERT_TRUE(deviceConfig.assigned());
-    ASSERT_TRUE(deviceConfig.hasProperty("TestKey"));
-    ASSERT_EQ(deviceConfig.getPropertyValue("TestKey"), "TestValue");
+    ASSERT_EQ(deviceConfig.getPropertyValue("Device.daqref.NumberOfChannels"), 1);
 }
 
 TEST_F(NativeDeviceModulesTest, SaveLoadFunctionBlockConfig)
@@ -3349,7 +3347,8 @@ TEST_F(NativeDeviceModulesTest, SaveLoadFunctionBlockConfig)
         auto clientRoot = client.getDevices()[0];
 
         auto fbConfig = PropertyObject();
-        fbConfig.addProperty(BoolProperty("UseMultiThreadedScheduler", false));
+        fbConfig.addProperty(BoolProperty("UseMultiThreadedScheduler", true));
+        fbConfig.setPropertyValue("UseMultiThreadedScheduler", false);
 
         auto fb = clientRoot.addFunctionBlock("RefFBModuleStatistics", fbConfig);
         config = client.saveConfiguration();

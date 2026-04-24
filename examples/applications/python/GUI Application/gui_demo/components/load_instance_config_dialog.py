@@ -24,7 +24,7 @@ class LoadInstanceConfigDialog(Dialog):
 
         self.update_params = daq.UpdateParameters()
         self.update_params.device_update_options = daq.DeviceUpdateOptions(self.config_string)
-
+        
         # item_id -> metadata describing what this row edits
         self.item_meta = {}
 
@@ -310,9 +310,21 @@ class LoadInstanceConfigDialog(Dialog):
         device_title = options.local_id or '<device>'
         node_id = self.tree.insert(parent_node, tk.END, text=device_title, open=True)
 
-        # LocalId - read only
-        self.tree.insert(
-            node_id, tk.END, text='LocalId', values=(self._safe_str(options.local_id), ''))
+        # LocalID -> NewLocalId
+        item_id = self.tree.insert(
+            node_id, tk.END,
+            text='LocalID',
+            values=(
+                self._safe_str(options.local_id),
+                self._safe_str(options.new_local_id)
+            )
+        )
+        self.item_meta[item_id] = {
+            'kind': 'device_option',
+            'option_path': list(option_path),
+            'field': 'new_local_id',
+            'editable_column': '#2'
+        }
 
         # Manufacturer -> NewManufacturer
         item_id = self.tree.insert(
@@ -436,6 +448,8 @@ class LoadInstanceConfigDialog(Dialog):
             option.new_serial_number = new_value
         elif field == 'new_connection_string':
             option.new_connection_string = new_value
+        elif field == 'new_local_id':
+            option.new_local_id = new_value
         else: # Update mode is edited via dropdown
             raise ValueError(f'Unsupported device option field: {field}')
 

@@ -12,6 +12,7 @@ DeviceUpdateOptionsImpl::DeviceUpdateOptionsImpl()
     , newManufacturer("")
     , newSerialNumber("")
     , newConnectionString("")
+    , newLocalId("")
     , mode(DeviceUpdateMode::Load)
     , children(List<IDeviceUpdateOptions>())
 {
@@ -95,7 +96,7 @@ ErrCode DeviceUpdateOptionsImpl::getConnectionString(IString** connectionString)
 ErrCode DeviceUpdateOptionsImpl::setNewManufacturer(IString* manufacturer)
 {
     if (isRoot)
-        return makeErrorInfo(OPENDAQ_ERR_ACCESSDENIED, "Root device setup options can not be modified.");
+        return makeErrorInfo(OPENDAQ_ERR_ACCESSDENIED, "Failed to set new manufacturer: Root device setup options can not be modified.");
 
     this->newManufacturer = manufacturer;
     return OPENDAQ_SUCCESS;
@@ -112,7 +113,7 @@ ErrCode DeviceUpdateOptionsImpl::getNewManufacturer(IString** manufacturer)
 ErrCode DeviceUpdateOptionsImpl::setNewSerialNumber(IString* serialNumber)
 {
     if (isRoot)
-        return makeErrorInfo(OPENDAQ_ERR_ACCESSDENIED, "Root device setup options can not be modified.");
+        return makeErrorInfo(OPENDAQ_ERR_ACCESSDENIED, "Failed to set new serial number: Root device setup options can not be modified.");
 
     this->newSerialNumber = serialNumber;
     return OPENDAQ_SUCCESS;
@@ -129,7 +130,7 @@ ErrCode DeviceUpdateOptionsImpl::getNewSerialNumber(IString** serialNumber)
 ErrCode DeviceUpdateOptionsImpl::setNewConnectionString(IString* connectionString)
 {
     if (isRoot)
-        return makeErrorInfo(OPENDAQ_ERR_ACCESSDENIED, "Root device setup options can not be modified.");
+        return makeErrorInfo(OPENDAQ_ERR_ACCESSDENIED, "Failed to set new connection string: Root device setup options can not be modified.");
 
     this->newConnectionString = connectionString;
     return OPENDAQ_SUCCESS;
@@ -140,6 +141,23 @@ ErrCode DeviceUpdateOptionsImpl::getNewConnectionString(IString** connectionStri
     OPENDAQ_PARAM_NOT_NULL(connectionString);
     
     *connectionString = this->newConnectionString.addRefAndReturn();
+    return OPENDAQ_SUCCESS;
+}
+
+ErrCode DeviceUpdateOptionsImpl::setNewLocalId(IString* localId)
+{
+    if (isRoot)
+        return makeErrorInfo(OPENDAQ_ERR_ACCESSDENIED, "Failed to set new local ID: Root device setup options can not be modified.");
+
+    this->newLocalId = localId;
+    return OPENDAQ_SUCCESS;
+}
+
+ErrCode DeviceUpdateOptionsImpl::getNewLocalId(IString** localId)
+{
+    OPENDAQ_PARAM_NOT_NULL(localId);
+    
+    *localId = this->newLocalId.addRefAndReturn();
     return OPENDAQ_SUCCESS;
 }
 
@@ -183,6 +201,7 @@ ErrCode DeviceUpdateOptionsImpl::equals(IBaseObject* other, Bool* equals) const
         otherOptions.getNewManufacturer() != newManufacturer ||
         otherOptions.getNewSerialNumber() != newSerialNumber ||
         otherOptions.getNewConnectionString() != newConnectionString||
+        otherOptions.getNewLocalId() != newLocalId ||
         otherOptions.getUpdateMode() != mode ||
         otherOptions.getChildDeviceOptions() != children)
     {
@@ -239,6 +258,11 @@ ErrCode DeviceUpdateOptionsImpl::serialize(ISerializer* serializer)
         {
             serializer->key("NewConnectionString");
             serializer->writeString(newConnectionString.getCharPtr(), newConnectionString.getLength());
+        }
+        if (newLocalId != "")
+        {
+            serializer->key("NewLocalId");
+            serializer->writeString(newLocalId.getCharPtr(), newLocalId.getLength());
         }
         if (mode != DeviceUpdateMode::Load)
         {
@@ -307,6 +331,8 @@ ErrCode DeviceUpdateOptionsImpl::Deserialize(ISerializedObject* serialized, IBas
         impl->newSerialNumber = serializedPtr.readString("NewSerialNumber");
     if (serializedPtr.hasKey("NewConnectionString"))
         impl->newConnectionString = serializedPtr.readString("NewConnectionString");
+    if (serializedPtr.hasKey("NewLocalId"))
+        impl->newLocalId = serializedPtr.readString("NewLocalId");
     if (serializedPtr.hasKey("UpdateMode"))
         impl->mode = static_cast<DeviceUpdateMode>(serializedPtr.readInt("UpdateMode"));
     if (serializedPtr.hasKey("IsRoot"))

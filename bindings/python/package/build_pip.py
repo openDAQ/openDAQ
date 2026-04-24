@@ -192,6 +192,10 @@ shutil.copy(os.path.join(path_build_pip_source_dir, 'opendaq', '__init__.py'), p
 replace_opendaq_version_stub(os.path.join(path_stage_package, '__init__.py'))
 os.makedirs(os.path.join(path_stage_package, 'opendaq'))
 
+# copy pure-python helpers shipped with the package
+for py_file in ['module.py', 'function_block.py']:
+    shutil.copy(os.path.join(path_build_pip_source_dir, 'opendaq', py_file), path_stage_package)
+
 
 def generate_stubs(use_cache):
     stubs_cache_path = os.path.join(build_dir, '..', 'stubs')

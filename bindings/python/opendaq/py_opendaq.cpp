@@ -50,6 +50,7 @@ void wrapDaqComponentOpenDaq(pybind11::module_ m)
     auto classIConnectedClientInfo = declareIConnectedClientInfo(m);
     auto classIDeviceType = declareIDeviceType(m);
     auto classIFunctionBlock = declareIFunctionBlock(m);
+    auto classIPythonFunctionBlock = declareIPythonFunctionBlock(m);
     auto classIChannel = declareIChannel(m);
     auto classIFunctionBlockType = declareIFunctionBlockType(m);
     auto classIRecorder = declareIRecorder(m);
@@ -156,6 +157,7 @@ void wrapDaqComponentOpenDaq(pybind11::module_ m)
     defineIConnectedClientInfo(m, classIConnectedClientInfo);
     defineIDeviceType(m, classIDeviceType);
     defineIFunctionBlock(m, classIFunctionBlock);
+    defineIPythonFunctionBlock(m, classIPythonFunctionBlock);
     defineIChannel(m, classIChannel);
     defineIFunctionBlockType(m, classIFunctionBlockType);
     defineIRecorder(m, classIRecorder);
@@ -241,6 +243,8 @@ void wrapDaqComponentOpenDaq(pybind11::module_ m)
     defineIDeviceUpdateOptions(m, classIDeviceUpdateOptions);
 
     defineComponentSearchFilterFactories(m);
+    definePythonModuleSupport(m, classIModuleManager);
+    definePythonFunctionBlock(m, classIPythonFunctionBlock);
 
     m.def("Instance", []() { return daq::Instance(".").detach(); });
     m.def("NullContext", []() { return daq::NullContext().detach(); });

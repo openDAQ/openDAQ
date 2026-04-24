@@ -31,6 +31,10 @@ public:
     static std::weak_ptr<PyEventQueue> GetWeak();
 
     void enqueueEvent(daq::IPythonQueuedEventHandler* eventHandler, daq::IBaseObject* sender, daq::IEventArgs* eventArgs);
+    // Enqueue an arbitrary callback to be executed on the Python thread via `process_events()`.
+    // This mirrors the threading model used by `PyQueuedEventHandlerImpl`, but without requiring
+    // `IEventArgs` plumbing.
+    void enqueue(std::function<void()> callback);
     void processEvents();
     void clearQueue();
 

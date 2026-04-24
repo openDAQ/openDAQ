@@ -45,6 +45,15 @@ void PyEventQueue::enqueueEvent(daq::IPythonQueuedEventHandler* eventHandler, da
     });
 }
 
+void PyEventQueue::enqueue(std::function<void()> callback)
+{
+    if (!callback)
+        return;
+
+    std::lock_guard<std::mutex> lock(callbackQueueMutex);
+    callbackQueue.push(std::move(callback));
+}
+
 void PyEventQueue::processEvents()
 {
     std::queue<std::function<void()>> localQueue;

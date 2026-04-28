@@ -1,3 +1,5 @@
+import math
+import time
 import tkinter as tk
 from tkinter import ttk
 from collections import deque
@@ -9,17 +11,18 @@ from .. import utils
 
 class SignalPreviewPanel(ttk.Frame):
     WINDOW_SECONDS = 5.0
-    MAX_BUFFER_SIZE = 10_000
+    MAX_BUFFER_SIZE = 100_000
     POLL_MS = 33          # drain the reader this often
+    _TARGET_PPS = 2000
     DRAW_MS = 66         # repaint the chart this often
     CANVAS_HEIGHT = 160
 
-    _BG      = '#1e1e2e'
-    _LINE    = '#89b4fa'
-    _GRID    = '#313244'
-    _TEXT    = '#cdd6f4'
-    _AXIS    = '#585b70'
-    _FILL    = '#252942'
+    _BG      = '#ffffff'
+    _LINE    = '#1a6dcc'
+    _GRID    = '#e4e4e4'
+    _TEXT    = '#444444'
+    _AXIS    = '#999999'
+    _FILL    = '#dceafa'
 
     _AXIS_FONT = ('TkFixedFont', 7)
     _VAL_FONT  = ('TkFixedFont', 10, 'bold')
@@ -29,7 +32,7 @@ class SignalPreviewPanel(ttk.Frame):
         self.node = node
         self.context = context
 
-        self._collapsed = True
+        self._collapsed = False
         self._reader = None
         self._selected_signal = None
         self._poll_job = None
@@ -45,21 +48,26 @@ class SignalPreviewPanel(ttk.Frame):
 
         # name -> ISignal for chartable signals
         self._eligible = {}
+        self._unit_str = ''
+        self._last_data_time = None
+        self._STALE_TIMEOUT = 2.0
         self._needs_redraw = True
         self._chart_ready = False
+        self._px_ml = 65
 
         # Build widgets
         self._build_toggle_bar()
         self._build_content()
+        self._content_frame.pack(
+            fill=tk.BOTH, expand=True, after=self._toggle_frame)
         self._populate_dropdown()
 
         self._schedule_poll()
         self._schedule_draw()
         self.bind('<Destroy>', self._on_destroy)
-        self._update_placement()
 
     def _build_toggle_bar(self):
-        self._toggle_frame = utils.make_banner(self, '\u25B2 Signal Preview')
+        self._toggle_frame = utils.make_banner(self, '\u25BC Signal Preview')
         self._toggle_frame.configure(cursor='hand2')
 
         self._arrow_label = self._toggle_frame.winfo_children()[0]
@@ -90,6 +98,12 @@ class SignalPreviewPanel(ttk.Frame):
         dur_cb.pack(side=tk.LEFT, padx=(4, 0))
         dur_cb.bind('<<ComboboxSelected>>', self._on_duration_selected)
 
+        self._log_var = tk.BooleanVar(value=False)
+        log_cb = ttk.Checkbutton(
+            dd_row, text='Log', variable=self._log_var,
+            command=self._on_log_toggled)
+        log_cb.pack(side=tk.LEFT, padx=(4, 0))
+
         # Chart canvas
         self._chart = tk.Canvas(
             self._content_frame, bg=self._BG,
@@ -101,7 +115,7 @@ class SignalPreviewPanel(ttk.Frame):
 
     def _block_mousewheel_recursive(self, widget):
         for event in ('<MouseWheel>', '<Button-4>', '<Button-5>'):
-            widget.bind(event, lambda _e: 'break')
+            widget.bind(event, lambda _e=None: 'break')
         for child in widget.winfo_children():
             self._block_mousewheel_recursive(child)
 
@@ -113,12 +127,18 @@ class SignalPreviewPanel(ttk.Frame):
             return
 
         signals = []
-        if daq.IFunctionBlock.can_cast_from(self.node):
+        search_filter = (
+            daq.AnySearchFilter()
+            if self.context and self.context.view_hidden_components
+            else None)
+
+        if daq.ISignal.can_cast_from(self.node):
+            signals = [daq.ISignal.cast_from(self.node)]
+        elif daq.IDevice.can_cast_from(self.node):
+            device = daq.IDevice.cast_from(self.node)
+            signals = device.get_signals(search_filter)
+        elif daq.IFunctionBlock.can_cast_from(self.node):
             fb = daq.IFunctionBlock.cast_from(self.node)
-            search_filter = (
-                daq.AnySearchFilter()
-                if self.context and self.context.view_hidden_components
-                else None)
             signals = fb.get_signals(search_filter)
 
         for sig in signals:
@@ -129,11 +149,22 @@ class SignalPreviewPanel(ttk.Frame):
                 continue
 
             name = signal.name if signal.name else signal.global_id
+
             display = name
-            counter = 1
-            while display in self._eligible:
-                counter += 1
-                display = f'{name} ({counter})'
+            if display in self._eligible:
+                try:
+                    local_id = signal.local_id
+                except (RuntimeError, AttributeError):
+                    local_id = signal.global_id
+                display = f'{name} ({local_id})'
+
+                first_signal = self._eligible.pop(name)
+                try:
+                    first_local = first_signal.local_id
+                except (RuntimeError, AttributeError):
+                    first_local = first_signal.global_id
+                self._eligible[f'{name} ({first_local})'] = first_signal
+
             self._eligible[display] = signal
 
         names = list(self._eligible.keys())
@@ -150,10 +181,29 @@ class SignalPreviewPanel(ttk.Frame):
             if desc is None:
                 return False
 
-            st_name = desc.sample_type.name if hasattr(desc.sample_type, 'name') else str(desc.sample_type)
+            # Must be a numeric sample type (float or integer variant)
+            st_name = (desc.sample_type.name
+                       if hasattr(desc.sample_type, 'name')
+                       else str(desc.sample_type))
             numeric_prefixes = ('Float', 'Int', 'UInt', 'float', 'int', 'uint')
             if not any(st_name.startswith(p) for p in numeric_prefixes):
                 return False
+
+            # Scalar only -- dimensions list must be empty
+            try:
+                dims = desc.dimensions
+                if dims is not None and len(dims) > 0:
+                    return False
+            except RuntimeError:
+                pass
+
+            # No struct fields -- rejects CAN frames, complex structs
+            try:
+                fields = desc.struct_fields
+                if fields is not None and len(fields) > 0:
+                    return False
+            except RuntimeError:
+                pass
 
             domain_sig = signal.domain_signal
             if domain_sig is None:
@@ -162,12 +212,15 @@ class SignalPreviewPanel(ttk.Frame):
             if domain_desc is None:
                 return False
 
+            # Domain unit symbol must be "s" (time domain)
             unit = domain_desc.unit
-            if unit is None or unit.quantity is None:
+            if unit is None:
                 return False
-            if unit.quantity.casefold() != 'time':
+            symbol = unit.symbol if hasattr(unit, 'symbol') else None
+            if symbol is None or str(symbol) != 's':
                 return False
 
+            # Domain must have tick_resolution for tick-to-seconds conversion
             if domain_desc.tick_resolution is None:
                 return False
 
@@ -189,6 +242,14 @@ class SignalPreviewPanel(ttk.Frame):
         self._first_tick = None
         self._needs_redraw = True
 
+        self._unit_str = ''
+        try:
+            unit = signal.descriptor.unit
+            if unit is not None and unit.symbol is not None:
+                self._unit_str = str(unit.symbol)
+        except RuntimeError:
+            pass
+
         # Cache tick resolution for tick -> seconds conversion.
         domain_desc = signal.domain_signal.descriptor
         res = domain_desc.tick_resolution
@@ -203,6 +264,7 @@ class SignalPreviewPanel(ttk.Frame):
 
         try:
             self._reader = daq.StreamReader(signal)
+            self._last_data_time = time.monotonic()
         except RuntimeError as e:
             print(f'[SignalPreview] Failed to create StreamReader: {e}')
             self._reader = None
@@ -223,6 +285,30 @@ class SignalPreviewPanel(ttk.Frame):
         # Vertical grid lines are created once for the initial WINDOW_SECONDS.
         self._chart_ready = False
 
+    def _recreate_reader(self):
+        self._reader = None
+        if self._selected_signal is None:
+            return
+        if not self._is_chartable(self._selected_signal):
+            return
+        try:
+            domain_desc = self._selected_signal.domain_signal.descriptor
+            res = domain_desc.tick_resolution
+            self._tick_res_num = res.numerator
+            self._tick_res_den = res.denominator
+
+            self._reader = daq.StreamReader(self._selected_signal)
+            self._first_tick = None
+            self._data.clear()
+            self._last_data_time = time.monotonic()
+            self._needs_redraw = True
+        except RuntimeError as e:
+            print(f'[SignalPreview] Recreate failed: {e}')
+            self._reader = None
+
+    def _on_log_toggled(self):
+        self._needs_redraw = True
+
     def _schedule_poll(self):
         self._poll_job = self.after(self.POLL_MS, self._poll_tick)
 
@@ -235,16 +321,18 @@ class SignalPreviewPanel(ttk.Frame):
             try:
                 available = self._reader.available_count
                 if available > 0:
-                    # Cap each read so the UI thread isn't blocked for too long
-                    # on very high sample-rate signals.
-                    count = min(available, 8000)
-                    values, domain_ticks = self._reader.read_with_domain(count)
+                    values, domain_ticks = self._reader.read_with_domain(available)
                     self._ingest(values, domain_ticks)
+                    self._last_data_time = time.monotonic()
             except RuntimeError as e:
-                # The reader can become invalid when the signal is disconnected
-                # or its descriptor changes.
-                print(f'[SignalPreview] Read error (reader invalidated): {e}')
-                self._reader = None
+                print(f'[SignalPreview] Reader invalidated, recreating: {e}')
+                self._recreate_reader()
+
+        if (self._reader is not None
+                and self._last_data_time is not None
+                and time.monotonic() - self._last_data_time > self._STALE_TIMEOUT):
+            print('[SignalPreview] Reader stale, recreating')
+            self._recreate_reader()
 
         self._poll_job = self.after(self.POLL_MS, self._poll_tick)
 
@@ -263,9 +351,64 @@ class SignalPreviewPanel(ttk.Frame):
         base = self._first_tick
         buf = self._data
 
-        for i in range(n):
-            elapsed = (int(domain_ticks[i]) - base) * ratio
-            buf.append((elapsed, float(values[i])))
+        try:
+            import numpy as np
+            t_arr = (domain_ticks.astype(np.float64) - base) * ratio
+            v_arr = values.astype(np.float64)
+        except (ImportError, AttributeError):
+            t_arr = None
+
+        if t_arr is not None:
+            target = max(self._TARGET_PPS, int(10_000 / max(self.WINDOW_SECONDS, 0.5)))
+
+            stride = 1
+            if n > 2:
+                dt = t_arr[-1] - t_arr[0]
+                if dt > 0:
+                    actual_rate = n / dt
+                    if actual_rate > target:
+                        stride = max(1, int(actual_rate / target))
+
+            if stride <= 1:
+                # Fast path: extend buffer with all points
+                for i in range(n):
+                    buf.append((t_arr[i], v_arr[i]))
+            else:
+                usable = (n // stride) * stride
+                if usable > 0:
+                    t_chunk = t_arr[:usable].reshape(-1, stride)
+                    v_chunk = v_arr[:usable].reshape(-1, stride)
+
+                    mn_idx = v_chunk.argmin(axis=1)
+                    mx_idx = v_chunk.argmax(axis=1)
+
+                    for ci in range(len(v_chunk)):
+                        mni = mn_idx[ci]
+                        mxi = mx_idx[ci]
+                        if mni == mxi:
+                            buf.append((t_chunk[ci, mni], v_chunk[ci, mni]))
+                        elif mni < mxi:
+                            buf.append((t_chunk[ci, mni], v_chunk[ci, mni]))
+                            buf.append((t_chunk[ci, mxi], v_chunk[ci, mxi]))
+                        else:
+                            buf.append((t_chunk[ci, mxi], v_chunk[ci, mxi]))
+                            buf.append((t_chunk[ci, mni], v_chunk[ci, mni]))
+
+                # Handle leftover samples after the last full chunk
+                for i in range(usable, n):
+                    buf.append((t_arr[i], v_arr[i]))
+        else:
+            stride = 1
+            if n > 2:
+                dt = (int(domain_ticks[-1]) - int(domain_ticks[0])) * ratio
+                if dt > 0:
+                    actual_rate = n / dt
+                    target_fb = max(self._TARGET_PPS, int(10_000 / max(self.WINDOW_SECONDS, 0.5)))
+                    if actual_rate > target_fb:
+                        stride = max(1, int(actual_rate / target_fb))
+            for i in range(0, n, stride):
+                elapsed = (int(domain_ticks[i]) - base) * ratio
+                buf.append((elapsed, float(values[i])))
 
         self._needs_redraw = True
 
@@ -294,11 +437,9 @@ class SignalPreviewPanel(ttk.Frame):
             self._hgrid_ids.append(gid)
             self._hgrid_label_ids.append(lid)
 
-        # Vertical grid (1-second intervals inside the window)
-        n_vsecs = max(int(self.WINDOW_SECONDS) - 1, 0)
         self._vgrid_ids = []
         self._vgrid_label_ids = []
-        for _ in range(n_vsecs):
+        for _ in range(10):
             vid = c.create_line(0, 0, 0, 0, fill=self._GRID, dash=(2, 6))
             vlid = c.create_text(
                 0, 0, text='', fill=self._TEXT, anchor=tk.N, font=self._AXIS_FONT)
@@ -317,8 +458,11 @@ class SignalPreviewPanel(ttk.Frame):
         self._line_id = c.create_line(
             0, 0, 0, 0, fill=self._LINE, width=1, smooth=False)
 
+        self._badge_bg_id = c.create_rectangle(
+            0, 0, 0, 0, fill=self._BG, outline=self._GRID, width=1,
+            state='hidden')
         self._badge_id = c.create_text(
-            0, 0, text='', fill=self._LINE, anchor=tk.NE, font=self._VAL_FONT)
+            0, 0, text='', fill='#111111', anchor=tk.NE, font=self._VAL_FONT)
 
         self._nodata_id = c.create_text(
             0, 0, text='', fill=self._TEXT, font=('TkDefaultFont', 10),
@@ -350,7 +494,7 @@ class SignalPreviewPanel(ttk.Frame):
         if w < 20 or h < 20:
             return
 
-        ml, mr, mt, mb = 55, 12, 10, 22
+        ml, mr, mt, mb = 65, 12, 10, 22
         pw = w - ml - mr
         ph = h - mt - mb
         if pw < 10 or ph < 10:
@@ -365,6 +509,7 @@ class SignalPreviewPanel(ttk.Frame):
             c.itemconfig(self._line_id, state='hidden')
             c.itemconfig(self._fill_id, state='hidden')
             c.itemconfig(self._badge_id, state='hidden')
+            c.itemconfig(self._badge_bg_id, state='hidden')
             return
 
         c.itemconfig(self._nodata_id, state='hidden')
@@ -381,18 +526,41 @@ class SignalPreviewPanel(ttk.Frame):
             c.itemconfig(self._line_id, state='hidden')
             c.itemconfig(self._fill_id, state='hidden')
             c.itemconfig(self._badge_id, state='hidden')
+            c.itemconfig(self._badge_bg_id, state='hidden')
             return
 
         # Y range with breathing room
         vals = [v for _, v in visible]
         v_lo, v_hi = min(vals), max(vals)
-        if v_lo == v_hi:
-            v_lo -= 1.0
-            v_hi += 1.0
+
+        use_log = self._log_var.get()
+
+        if use_log:
+            abs_max = max(abs(v) for v in vals)
+            symlog_thresh = max(abs_max * 0.01, 1e-10)
+
+            def symlog(v):
+                return math.copysign(math.log10(1.0 + abs(v) / symlog_thresh), v)
+
+            symlog_vals = [symlog(v) for v in vals]
+            sl_lo = min(symlog_vals)
+            sl_hi = max(symlog_vals)
+            if sl_lo == sl_hi:
+                sl_lo -= 1.0
+                sl_hi += 1.0
+            else:
+                pad = (sl_hi - sl_lo) * 0.05
+                sl_lo -= pad
+                sl_hi += pad
+            sl_span = sl_hi - sl_lo
         else:
-            pad = (v_hi - v_lo) * 0.08
-            v_lo -= pad
-            v_hi += pad
+            if v_lo == v_hi:
+                v_lo -= 1.0
+                v_hi += 1.0
+            else:
+                pad = (v_hi - v_lo) * 0.08
+                v_lo -= pad
+                v_hi += pad
 
         t_span = self.WINDOW_SECONDS
         v_span = v_hi - v_lo
@@ -400,26 +568,56 @@ class SignalPreviewPanel(ttk.Frame):
         def xpx(t):
             return ml + (t - t_earliest) / t_span * pw
 
-        def ypx(v):
-            return mt + (1.0 - (v - v_lo) / v_span) * ph
+        if use_log:
+            def ypx(v):
+                return mt + (1.0 - (symlog(v) - sl_lo) / sl_span) * ph
+        else:
+            def ypx(v):
+                return mt + (1.0 - (v - v_lo) / v_span) * ph
 
         # Horizontal grid + Y labels
+        unit_suffix = f' {self._unit_str}' if self._unit_str else ''
         for i in range(5):
             gy = mt + ph * i / 4
             c.coords(self._hgrid_ids[i], ml, gy, ml + pw, gy)
-            gv = v_hi - v_span * i / 4
+            if use_log:
+                sl_val = sl_hi - (sl_hi - sl_lo) * i / 4
+                gv = math.copysign(
+                    symlog_thresh * (10.0 ** abs(sl_val) - 1.0), sl_val)
+            else:
+                gv = v_hi - v_span * i / 4
             c.coords(self._hgrid_label_ids[i], ml - 4, gy)
-            c.itemconfig(self._hgrid_label_ids[i], text=self._fmt(gv))
+            c.itemconfig(self._hgrid_label_ids[i],
+                         text=self._fmt(gv) + unit_suffix)
 
-        # Vertical grid at 1-second marks
-        for i, vid in enumerate(self._vgrid_ids):
-            # i=0 -> -4s, i=1 -> -3s, ... i=3 -> -1s  (for 5s window)
-            secs_ago = int(self.WINDOW_SECONDS) - 1 - i
-            t_mark = t_latest - secs_ago
+        _nice = [0.1, 0.2, 0.5, 1, 2, 5, 10, 15, 30, 60]
+        grid_interval = _nice[-1]
+        for ni in _nice:
+            if self.WINDOW_SECONDS / ni <= 7:
+                grid_interval = ni
+                break
+
+        first_mark = math.ceil(t_earliest / grid_interval) * grid_interval
+        slot = 0
+        t_mark = first_mark
+        
+        while t_mark < t_latest and slot < len(self._vgrid_ids):
             vx = xpx(t_mark)
-            c.coords(vid, vx, mt, vx, mt + ph)
-            c.coords(self._vgrid_label_ids[i], vx, mt + ph + 3)
-            c.itemconfig(self._vgrid_label_ids[i], text=f'-{secs_ago}s')
+            c.coords(self._vgrid_ids[slot], vx, mt, vx, mt + ph)
+            secs_ago = t_latest - t_mark
+            if grid_interval >= 1:
+                label = f'-{secs_ago:.0f}s'
+            else:
+                label = f'-{secs_ago:.1f}s'
+            c.coords(self._vgrid_label_ids[slot], vx, mt + ph + 3)
+            c.itemconfig(self._vgrid_label_ids[slot], text=label, state='normal')
+            slot += 1
+            t_mark += grid_interval
+
+        # Hide unused grid slots
+        for i in range(slot, len(self._vgrid_ids)):
+            c.itemconfig(self._vgrid_ids[i], state='hidden')
+            c.itemconfig(self._vgrid_label_ids[i], state='hidden')
 
         # Axes
         c.coords(self._yaxis_id, ml, mt, ml, mt + ph)
@@ -494,10 +692,18 @@ class SignalPreviewPanel(ttk.Frame):
             c.coords(self._line_id, px, py, px + 1, py)
             c.itemconfig(self._line_id, state='normal')
 
-        # Current value badge
-        c.coords(self._badge_id, ml + pw - 4, mt + 4)
-        c.itemconfig(
-            self._badge_id, text=self._fmt(visible[-1][1]), state='normal')
+        badge_text = self._fmt(visible[-1][1])
+        if self._unit_str:
+            badge_text += f' {self._unit_str}'
+        bx = ml + pw - 4
+        by = mt + 4
+        c.coords(self._badge_id, bx, by)
+        c.itemconfig(self._badge_id, text=badge_text, state='normal')
+        c.update_idletasks()
+        bb = c.bbox(self._badge_id)
+        if bb:
+            c.coords(self._badge_bg_id, bb[0] - 3, bb[1] - 1, bb[2] + 3, bb[3] + 1)
+            c.itemconfig(self._badge_bg_id, state='normal')
 
     @staticmethod
     def _fmt(v):
@@ -519,14 +725,7 @@ class SignalPreviewPanel(ttk.Frame):
                 fill=tk.BOTH, expand=True, after=self._toggle_frame)
             self._arrow_label.config(text='\u25BC Signal Preview')
             self._needs_redraw = True
-
-        self.update_idletasks()
-        self._update_placement()
-
-    def _update_placement(self):
-        self.update_idletasks()
-        self.place_configure(height=self.winfo_reqheight())
-
+            
     def _on_destroy(self, event):
         if event.widget is not self:
             return
@@ -538,4 +737,11 @@ class SignalPreviewPanel(ttk.Frame):
                 except Exception:
                     pass
                 setattr(self, job_attr, None)
+
+        try:
+            self._chart.delete('all')
+        except tk.TclError:
+            pass
+        self._chart_ready = False
+
         self._reader = None

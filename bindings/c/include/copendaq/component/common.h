@@ -38,12 +38,6 @@ extern "C"
         daqComponentTypeSortStreaming
     } daqComponentTypeSort;
 
-    typedef enum daqConfigurationLoadMode
-    {
-        daqConfigurationLoadModeExact = 0,
-        daqConfigurationLoadModeMerge,
-    } daqConfigurationLoadMode;
-
 #ifdef __cplusplus
 }
 #endif

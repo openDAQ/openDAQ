@@ -5,7 +5,7 @@ BEGIN_NAMESPACE_OPENDAQ
 
 UpdateParametersImpl::UpdateParametersImpl()
     : Super()
-    , configLoadMode(ConfigurationLoadMode::Merge)
+    , removeOldDevices(False)
 {
     Super::addProperty(BoolProperty("RemoteUpdate", false));
 }
@@ -30,17 +30,17 @@ ErrCode UpdateParametersImpl::setDeviceUpdateOptions(IDeviceUpdateOptions* optio
     return OPENDAQ_SUCCESS;
 }
 
-ErrCode INTERFACE_FUNC UpdateParametersImpl::getConfigurationLoadMode(ConfigurationLoadMode* mode)
+ErrCode INTERFACE_FUNC UpdateParametersImpl::getRemoveOldDevices(Bool* remove)
 {
-    OPENDAQ_PARAM_NOT_NULL(mode);
+    OPENDAQ_PARAM_NOT_NULL(remove);
 
-    *mode = configLoadMode;
+    *remove = removeOldDevices;
     return OPENDAQ_SUCCESS;
 }
 
-ErrCode INTERFACE_FUNC UpdateParametersImpl::setConfigurationLoadMode(ConfigurationLoadMode mode)
+ErrCode INTERFACE_FUNC UpdateParametersImpl::setRemoveOldDevices(Bool remove)
 {
-    configLoadMode = mode;
+    removeOldDevices = remove;
     return OPENDAQ_SUCCESS;
 }
 

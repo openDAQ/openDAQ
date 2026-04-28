@@ -33,10 +33,6 @@
 
 PyDaqIntf<daq::IUpdateParameters, daq::IPropertyObject> declareIUpdateParameters(pybind11::module_ m)
 {
-    py::enum_<daq::ConfigurationLoadMode>(m, "ConfigurationLoadMode")
-        .value("Exact", daq::ConfigurationLoadMode::Exact)
-        .value("Merge", daq::ConfigurationLoadMode::Merge);
-
     return wrapInterface<daq::IUpdateParameters, daq::IPropertyObject>(m, "IUpdateParameters");
 }
 
@@ -61,18 +57,18 @@ void defineIUpdateParameters(pybind11::module_ m, PyDaqIntf<daq::IUpdateParamete
         },
         py::return_value_policy::take_ownership,
         "Gets the device update options object that allows for specifying how a device and its subdevices are to be updated. / Sets the device update options object that allows for specifying how a device and its subdevices are to be updated.");
-    cls.def_property("configuration_load_mode",
+    cls.def_property("remove_old_devices",
         [](daq::IUpdateParameters *object)
         {
             py::gil_scoped_release release;
             const auto objectPtr = daq::UpdateParametersPtr::Borrow(object);
-            return objectPtr.getConfigurationLoadMode();
+            return objectPtr.getRemoveOldDevices();
         },
-        [](daq::IUpdateParameters *object, daq::ConfigurationLoadMode mode)
+        [](daq::IUpdateParameters *object, const bool remove)
         {
             py::gil_scoped_release release;
             const auto objectPtr = daq::UpdateParametersPtr::Borrow(object);
-            objectPtr.setConfigurationLoadMode(mode);
+            objectPtr.setRemoveOldDevices(remove);
         },
-        "Gets the strategy with which the configuration will be loaded. / Sets the strategy with which the configuration will be loaded.");
+        "Gets the removeOldDevices flag. When true, connected devices not mentioned in the loading config will be removed. / Sets the removeOldDevices flag. When set to true, connected devices not mentioned in the loading config will be removed.");
 }

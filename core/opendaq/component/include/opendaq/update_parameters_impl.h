@@ -30,8 +30,8 @@ public:
 
     ErrCode INTERFACE_FUNC getDeviceUpdateOptions(IDeviceUpdateOptions** options) override;
     ErrCode INTERFACE_FUNC setDeviceUpdateOptions(IDeviceUpdateOptions* options) override;
-    ErrCode INTERFACE_FUNC getConfigurationLoadMode(ConfigurationLoadMode* mode) override;
-    ErrCode INTERFACE_FUNC setConfigurationLoadMode(ConfigurationLoadMode mode) override;
+    ErrCode INTERFACE_FUNC getRemoveOldDevices(Bool* remove) override;
+    ErrCode INTERFACE_FUNC setRemoveOldDevices(Bool remove) override;
 
     ErrCode INTERFACE_FUNC getSerializeId(ConstCharPtr* id) const override;
     static ConstCharPtr SerializeId();
@@ -43,7 +43,7 @@ protected:
     ErrCode serializeCustomValues(ISerializer* serializer, bool /*forUpdate*/) override;
 
     DeviceUpdateOptionsPtr deviceOptions;
-    ConfigurationLoadMode configLoadMode;
+    Bool removeOldDevices;
 };
 
 OPENDAQ_REGISTER_DESERIALIZE_FACTORY(UpdateParametersImpl)

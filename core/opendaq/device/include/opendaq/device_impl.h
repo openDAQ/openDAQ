@@ -2372,8 +2372,8 @@ void GenericDevice<TInterface, Interfaces...>::updateObject(const SerializedObje
                                 toRemove.erase(localId);
                             });
 
-        ConfigurationLoadMode configLoadMode = contextPtr.getUpdateParameters().getConfigurationLoadMode();
-        if (configLoadMode == ConfigurationLoadMode::Exact){
+        Bool removeOldDevices = contextPtr.getUpdateParameters().getRemoveOldDevices();
+        if (removeOldDevices){
             for (const auto &id : toRemove){
                 this->removeDeviceIfNotStatic(id);
             }

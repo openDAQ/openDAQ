@@ -32,14 +32,14 @@ daqErrCode daqUpdateParameters_setDeviceUpdateOptions(daqUpdateParameters* self,
     return reinterpret_cast<daq::IUpdateParameters*>(self)->setDeviceUpdateOptions(reinterpret_cast<daq::IDeviceUpdateOptions*>(options));
 }
 
-daqErrCode daqUpdateParameters_getConfigurationLoadMode(daqUpdateParameters* self, daqConfigurationLoadMode* mode)
+daqErrCode daqUpdateParameters_getRemoveOldDevices(daqUpdateParameters* self, daqBool* remove)
 {
-    return reinterpret_cast<daq::IUpdateParameters*>(self)->getConfigurationLoadMode(reinterpret_cast<daq::ConfigurationLoadMode*>(mode));
+    return reinterpret_cast<daq::IUpdateParameters*>(self)->getRemoveOldDevices(remove);
 }
 
-daqErrCode daqUpdateParameters_setConfigurationLoadMode(daqUpdateParameters* self, daqConfigurationLoadMode mode)
+daqErrCode daqUpdateParameters_setRemoveOldDevices(daqUpdateParameters* self, daqBool remove)
 {
-    return reinterpret_cast<daq::IUpdateParameters*>(self)->setConfigurationLoadMode(static_cast<daq::ConfigurationLoadMode>(mode));
+    return reinterpret_cast<daq::IUpdateParameters*>(self)->setRemoveOldDevices(remove);
 }
 
 daqErrCode daqUpdateParameters_createUpdateParameters(daqUpdateParameters** obj)

@@ -555,7 +555,7 @@ TEST_F(DeviceUpdateOptionsTest, MergeKeepsExistingDeviceNotInConfiguration)
 
     auto params = UpdateParameters();
     params.setDeviceUpdateOptions(options);
-    params.setConfigurationLoadMode(ConfigurationLoadMode::Merge);
+    params.setRemoveOldDevices(False);
 
     instance.loadConfiguration(str, params);
 
@@ -583,7 +583,7 @@ TEST_F(DeviceUpdateOptionsTest, ExactRemovesExistingDeviceNotInConfiguration)
 
     auto params = UpdateParameters();
     params.setDeviceUpdateOptions(options);
-    params.setConfigurationLoadMode(ConfigurationLoadMode::Exact);
+    params.setRemoveOldDevices(True);
 
     instance.loadConfiguration(str, params);
 

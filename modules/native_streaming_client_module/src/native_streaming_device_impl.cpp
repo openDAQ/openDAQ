@@ -50,7 +50,7 @@ ErrCode NativeStreamingDeviceImpl::setComponentConfig(IPropertyObject* config)
     OPENDAQ_RETURN_IF_FAILED(getInfo(&deviceInfo));
 
     ListPtr<IString> alternativeAddresses;
-    const ErrCode errCode = collectAlternativeAddresses(PropertyObjectPtr::Borrow(config), 
+    const ErrCode errCode = collectAlternativeAddresses(componentConfig, 
                                                         deviceInfo,
                                                         NativeStreamingDeviceTypeId, 
                                                         alternativeAddresses);

@@ -350,7 +350,7 @@
             }
         },
         {
-            "name": "ci-intel",
+            "name": "ci-no-bindings",
             "hidden": true,
             "inherits": [
                 "ci"

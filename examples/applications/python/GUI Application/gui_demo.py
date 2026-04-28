@@ -109,6 +109,7 @@ class App(tk.Tk):
             self.context.connection_string = None
 
         self.modules_map = {}
+        self._indicator_click = False
 
         self.title('openDAQ demo')
         self.geometry('{}x{}'.format(
@@ -272,6 +273,7 @@ class App(tk.Tk):
         tree.bind('<ButtonRelease-3>', self.handle_tree_right_button_release)
         tree.bind('<Button-3>', self.handle_tree_right_button)
         tree.bind('<Button-1>', self.handle_tree_click)
+        tree.bind('<Double-1>', self._block_indicator_double_click)
 
         # add a scrollbar
         scroll_bar = ttk.Scrollbar(
@@ -630,16 +632,22 @@ class App(tk.Tk):
         else:
             event.widget.selection_set()
             
+    def _block_indicator_double_click(self, event):
+        if self.tree.identify_element(event.x, event.y) == 'indicator':
+            return 'break'
+
     def handle_tree_click(self, event):
         iid = self.tree.identify_row(event.y)
         element = self.tree.identify_element(event.x, event.y)
 
         if element == 'indicator':
-            return
+            if iid:
+                self.tree.item(iid, open=not self.tree.item(iid, 'open'))
+            return 'break'
 
         if iid and iid == utils.treeview_get_first_selection(self.tree):
             self.tree.item(iid, open=not self.tree.item(iid, 'open'))
-            return 'break'  # prevent <<TreeviewSelect>> from refiring unnecessarily
+            return 'break'
 
     def create_property_object_menu(self, node):
         popup = tk.Menu(self.tree, tearoff=0)
@@ -932,7 +940,6 @@ class App(tk.Tk):
     # MARK: - Tree view handlers
 
     def handle_tree_select(self, event):
-
         selected_iid = utils.treeview_get_first_selection(self.tree)
         if selected_iid is None:
             self.context.selected_node = None

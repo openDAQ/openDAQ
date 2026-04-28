@@ -208,14 +208,14 @@ class App(tk.Tk):
         except Exception as e:
             print("Callback processing error:", e)
 
+        if self.context.needs_refresh:
+            self.on_refresh_event(None)
+            self.context.needs_refresh = False
+
         try:
             self.context.instance.context.scheduler.run_main_loop_iteration()
         except Exception as e:
             print("Scheduler processing error:", e)
-
-        if self.context.needs_refresh:
-            self.on_refresh_event(None)
-            self.context.needs_refresh = False
 
         # Re-schedule after 50 ms
         self.after(50, self.poll_opendaq_events)

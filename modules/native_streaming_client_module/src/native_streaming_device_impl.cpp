@@ -67,6 +67,7 @@ void NativeStreamingDeviceImpl::removed()
 {
     this->connectionStatusContainer.removeStreamingConnectionStatus(connectionString);
     nativeStreaming.release();
+    transportProtocolClient.reset();
     Device::removed();
 }
 

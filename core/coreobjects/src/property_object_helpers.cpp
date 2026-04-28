@@ -17,6 +17,7 @@
 #include <coretypes/updatable.h>
 #include <coretypes/serializable.h>
 #include <coretypes/ctutils.h>
+#include <coretypes/validation.h>
 
 static daq::ErrCode serializePropertyValueAsNull(daq::IString* name, daq::ISerializer* serializer)
 {
@@ -86,6 +87,9 @@ extern "C" PUBLIC_EXPORT daq::ErrCode daqSerializePropertyValue(daq::IString* na
                                                                 daq::ISerializer* serializer,
                                                                 daq::Bool forUpdate)
 {
+    OPENDAQ_PARAM_NOT_NULL(name);
+    OPENDAQ_PARAM_NOT_NULL(serializer);
+
     if (value == nullptr)
         return serializePropertyValueAsNull(name, serializer);
 

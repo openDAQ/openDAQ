@@ -1,5 +1,6 @@
 #include <native_streaming_client_module/native_device_impl.h>
 #include <native_streaming_client_module/native_streaming_impl.h>
+#include <native_streaming_client_module/native_device_utils.h>
 
 #include <opendaq/custom_log.h>
 #include <opendaq/device_info_internal_ptr.h>
@@ -471,56 +472,22 @@ ErrCode NativeDeviceImpl::setComponentConfig(IPropertyObject* config)
 {
     OPENDAQ_RETURN_IF_FAILED(Super::setComponentConfig(config));
 
-    StringPtr primaryAddressType;
-    if (config != nullptr)
-    {
-        const auto configPtr = PropertyObjectPtr::Borrow(config);
-
-        if (configPtr.hasProperty("General"))
-        {
-            const PropertyObjectPtr generalConfig = configPtr.getPropertyValue("General");
-            if (generalConfig.hasProperty("PrimaryAddressType"))
-            {
-                const StringPtr primaryAddressTypeCandidate = generalConfig.getPropertyValue("PrimaryAddressType");
-                if (primaryAddressTypeCandidate.getLength())
-                    primaryAddressType = primaryAddressTypeCandidate;
-            }
-        }
-    }
+    if (!deviceHelper)
+        return OPENDAQ_IGNORED;
 
     DeviceInfoPtr deviceInfo;
     OPENDAQ_RETURN_IF_FAILED(getInfo(&deviceInfo));
 
-    if (deviceInfo == nullptr)
-       return OPENDAQ_IGNORED;
+    ListPtr<IString> alternativeAddresses;
+    const ErrCode errCode = collectAlternativeAddresses(PropertyObjectPtr::Borrow(config), 
+                                                        deviceInfo,
+                                                        NativeConfigurationDeviceTypeId, 
+                                                        alternativeAddresses);
+    OPENDAQ_RETURN_IF_FAILED(errCode);
 
-    if (!deviceInfo.hasServerCapability("OpenDAQNativeConfiguration"))
-        return OPENDAQ_IGNORED;
+    if (errCode == OPENDAQ_SUCCESS)
+        deviceHelper->getTransportClientHandler()->setAlternativeAddresses(alternativeAddresses);
 
-    const auto streamingCapability = deviceInfo.getServerCapability("OpenDAQNativeConfiguration");
-    if (!streamingCapability.assigned())
-        return OPENDAQ_IGNORED;
-
-    auto addressInfos = streamingCapability.getAddressInfo();
-    if (!addressInfos.assigned() || addressInfos.getCount() == 0)
-        return OPENDAQ_IGNORED;
-
-    auto alternativeAddresses = List<IString>();
-    for (const auto& addressInfo : addressInfos)
-    {
-        if (primaryAddressType.assigned() && addressInfo.getType() != primaryAddressType)
-            continue;
-
-        if (addressInfo.getReachabilityStatus() == AddressReachabilityStatus::Unreachable)
-            continue;
-
-        alternativeAddresses.pushBack(addressInfo.getAddress());
-    }
-
-    if (!deviceHelper)
-        return OPENDAQ_IGNORED;
-
-    deviceHelper->getTransportClientHandler()->setAlternativeAddresses(alternativeAddresses);
     return OPENDAQ_SUCCESS;
 }
 

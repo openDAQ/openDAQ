@@ -7,7 +7,6 @@ from datetime import timedelta
 
 from .output_signal_row import OutputSignalRow
 
-
 class OutputSignalsView(ttk.Frame):
     def __init__(self, parent, node=None, context=None, **kwargs):
         ttk.Frame.__init__(self, parent, **kwargs)
@@ -31,7 +30,9 @@ class OutputSignalsView(ttk.Frame):
             node = daq.ISignal.cast_from(self.node)
             self.make_output_signal_section([node], 'Signal info')
             self.make_output_signal_section([node.domain_signal], 'Domain signal')
-            self.make_output_signal_section(node.related_signals, 'Related signals')
+            related = node.related_signals
+            self.make_output_signal_section(
+                related if related is not None else [], 'Related signals')
         elif daq.IDevice.can_cast_from(self.node):
             node = daq.IDevice.cast_from(self.node)
             signals = node.get_signals(daq.AnySearchFilter() if self.context.view_hidden_components else None)
@@ -93,11 +94,15 @@ class OutputSignalsView(ttk.Frame):
         value_label.pack(side=tk.RIGHT, padx=(4, 0))
 
         res = device_domain.tick_resolution
-        origin = device_domain.origin
         origin_dt = None
 
-        if res is not None and origin is not None and str(origin) != '':
-            origin_str = str(origin)
+        try:
+            origin = device_domain.origin
+            origin_str = str(origin) if origin is not None else ''
+        except RuntimeError:
+            origin_str = ''
+
+        if res is not None and origin_str.strip():
             origin_dt = utils.parse_origin(origin_str)
 
         res_num = res.numerator if res is not None else None

@@ -757,7 +757,7 @@ TEST_F(ConfigCoreEventTest, ComponentAttributeChanged)
                 ASSERT_EQ(args.getEventName(), "AttributeChanged");
 
                 auto attrName = args.getParameters().get("AttributeName");
-                if (attrName == "Active")
+                if (attrName == "LocalActive" || attrName == "Active")
                    activeChangeCount++;
                 else
                    otherChangeCount++;
@@ -1798,4 +1798,23 @@ TEST_F(ConfigCoreEventTest, ReconnectComponentUpdateEndDeviceInfo)
 
     ASSERT_EQ(clientDevice.getInfo().getSerialNumber(), "test");
     ASSERT_EQ(clientDevice.getInfo().getManufacturer(), "test");
+}
+
+TEST_F(ConfigCoreEventTest, ComponentSetActiveWithParentNonActive)
+{
+    serverDevice.asPtr<IComponentPrivate>().unlockAllAttributes();
+
+    const auto subDev = clientDevice.getDevices(search::Recursive(search::LocalId("mock_phys_dev")))[0];
+    const auto sig = subDev.getSignalsRecursive(search::LocalId("devicetimesig"))[0];
+
+    ASSERT_TRUE(subDev.getActive());
+    ASSERT_TRUE(sig.getActive());
+
+    sig.setActive(false);
+    subDev.setActive(false);
+
+    sig.setActive(true);
+    subDev.setActive(true);
+
+    ASSERT_TRUE(sig.getActive());
 }

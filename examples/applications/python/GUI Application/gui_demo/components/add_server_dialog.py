@@ -24,23 +24,26 @@ class AddServerDialog(Dialog):
         # child
 
         tree_frame = ttk.Frame(self)
-        tree = ttk.Treeview(tree_frame, columns=('id', 'name'), displaycolumns=(
-            'id', 'name'), show='tree headings', selectmode=tk.BROWSE)
+        tree = ttk.Treeview(tree_frame, columns=('name', 'description','id'), displaycolumns=(
+            'name', 'description','id'), show='tree headings', selectmode=tk.BROWSE)
         scroll_bar = ttk.Scrollbar(
             tree_frame, orient=tk.VERTICAL, command=tree.yview)
         tree.configure(yscrollcommand=scroll_bar.set)
         scroll_bar.pack(side=tk.RIGHT, fill=tk.Y)
 
         # define headings
-        tree.heading('id', text='Name', anchor=tk.W)
-        tree.heading('name', text='Description', anchor=tk.W)
+        tree.heading('name', text='Name', anchor=tk.W)
+        tree.heading('description', text='Description', anchor=tk.W)
+        tree.heading('id', text='Id', anchor=tk.W)
 
         tree.column('#0', width=0, stretch=tk.NO)
         dpi = self.context.dpi_factor
-        tree.column('id', anchor=tk.W, minwidth=int(300 * dpi), width=int(400 *
+        tree.column('name', anchor=tk.W, minwidth=int(150 * dpi), width=int(200 *
                     self.context.ui_scaling_factor * dpi), stretch=tk.NO)
-        tree.column('name', anchor=tk.W, minwidth=int(300 * dpi), width=int(400 *
+        tree.column('description', anchor=tk.W, minwidth=int(400 * dpi), width=int(350 *
                     self.context.ui_scaling_factor * dpi))
+        tree.column('id', anchor=tk.W, minwidth=int(200 * dpi), width=int(300 *
+                    self.context.ui_scaling_factor * dpi), stretch=tk.NO)
 
         # bind double-click and right-click
         tree.bind('<Double-1>', self.handle_server_tree_double_click)
@@ -78,15 +81,16 @@ class AddServerDialog(Dialog):
 
             available_server_types = self.context.instance.available_server_types
             for server_type_id in available_server_types:
-                self.server_tree.insert('', tk.END, iid=server_type_id, 
-                                        values=(server_type_id, daq.IServerType.cast_from(available_server_types[server_type_id]).name))
+                server_type = daq.IServerType.cast_from(available_server_types[server_type_id])
+                self.server_tree.insert('', tk.END, iid=server_type_id,
+                                        values=(server_type.name, server_type.description, server_type_id))
 
     def handle_server_type_selected(self, e=None):
         can_config = False
         selected = utils.treeview_get_first_selection(self.server_tree)
 
         if selected:
-            server_id = self.server_tree.item(selected)['values'][0]
+            server_id = self.server_tree.item(selected)['values'][2]
             can_config = self._is_server_configurable(server_id)
 
         self._server_config_btn.configure(state=tk.NORMAL if can_config else tk.DISABLED)
@@ -97,7 +101,7 @@ class AddServerDialog(Dialog):
         can_config = False
         selected = utils.treeview_get_first_selection(self.server_tree)
         if selected:
-            server_id = self.server_tree.item(selected)['values'][0]
+            server_id = self.server_tree.item(selected)['values'][2]
             can_config = self._is_server_configurable(server_id)
 
         menu = tk.Menu(self, tearoff=0)
@@ -149,7 +153,7 @@ class AddServerDialog(Dialog):
             return
 
         item = self.server_tree.item(selected_item)
-        server_type_id = item['values'][0]
+        server_type_id = item['values'][2]
 
         if not open_config_dialog:
             self.execute_add_server(server_type_id)

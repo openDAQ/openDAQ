@@ -285,12 +285,13 @@ namespace test_helpers
 
 
     [[maybe_unused]]
-    inline void checkDeviceOperationMode(const daq::DevicePtr& device, OperationModeType expected, bool isServer = false)
+    inline void checkDeviceOperationMode(const daq::DevicePtr& device, OperationModeType expected, bool isServer = false, bool skipChannelAndSignalCheck = false)
     {
         ASSERT_EQ(device.getOperationMode(), expected);
         bool active = expected != OperationModeType::Idle;
         std::string messagePrefix = isServer ? "Server: " : "Client: ";
-
+        if (skipChannelAndSignalCheck)
+            return;
         for (const auto& ch: device.getChannels())
         {
             ASSERT_EQ(ch.getActive(), active) << messagePrefix << "Checking ch " << ch.getGlobalId() << " for mode " << static_cast<int>(expected);

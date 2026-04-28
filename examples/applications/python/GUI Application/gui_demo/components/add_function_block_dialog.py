@@ -18,7 +18,7 @@ class AddFunctionBlockDialog(Dialog):
         self.parent_component = selected_component
 
         self.geometry('{}x{}'.format(
-            int(900 * self.context.ui_scaling_factor * self.context.dpi_factor),
+            int(1400 * self.context.ui_scaling_factor * self.context.dpi_factor),
             int(400 * self.context.ui_scaling_factor * self.context.dpi_factor)))
 
         # parent
@@ -46,23 +46,26 @@ class AddFunctionBlockDialog(Dialog):
         # child
 
         tree_frame = ttk.Frame(self)
-        tree = ttk.Treeview(tree_frame, columns=('id', 'name'), displaycolumns=(
-            'id', 'name'), show='tree headings', selectmode=tk.BROWSE)
+        tree = ttk.Treeview(tree_frame, columns=('name', 'description', 'id'), displaycolumns=(
+            'name', 'description', 'id'), show='tree headings', selectmode=tk.BROWSE)
         scroll_bar = ttk.Scrollbar(
             tree_frame, orient=tk.VERTICAL, command=tree.yview)
         tree.configure(yscrollcommand=scroll_bar.set)
         scroll_bar.pack(side=tk.RIGHT, fill=tk.Y)
 
         # define headings
-        tree.heading('id', text='Name', anchor=tk.W)
-        tree.heading('name', text='Description', anchor=tk.W)
+        tree.heading('name', text='Name', anchor=tk.W)
+        tree.heading('description', text='Description', anchor=tk.W)
+        tree.heading('id', text='Id', anchor=tk.W)
 
         # layout
         tree.column('#0', width=0, stretch=tk.NO)
         dpi = self.context.dpi_factor
-        tree.column('id', anchor=tk.W, minwidth=int(200 * dpi), width=int(300 *
-                    self.context.ui_scaling_factor * dpi), stretch=tk.NO)
         tree.column('name', anchor=tk.W, minwidth=int(200 * dpi), width=int(300 *
+                    self.context.ui_scaling_factor * dpi), stretch=tk.NO)
+        tree.column('description', anchor=tk.W, minwidth=int(400 * dpi), width=int(300 *
+                    self.context.ui_scaling_factor * dpi))
+        tree.column('id', anchor=tk.W, minwidth=int(200 * dpi), width=int(300 *
                     self.context.ui_scaling_factor * dpi))
 
         # bind double-click and right-click
@@ -138,9 +141,9 @@ class AddFunctionBlockDialog(Dialog):
 
         available_function_block_types = self.parent_component.available_function_block_types
         for function_block_id in available_function_block_types:
+            fb_type = daq.IFunctionBlockType.cast_from(available_function_block_types[function_block_id])
             self.fb_tree.insert('', tk.END, iid=function_block_id, values=(
-                function_block_id,
-                daq.IFunctionBlockType.cast_from(available_function_block_types[function_block_id]).name))
+                fb_type.name, fb_type.description, function_block_id))
 
     def handle_parent_device_selected(self, event):
         selected_item = utils.treeview_get_first_selection(
@@ -161,7 +164,7 @@ class AddFunctionBlockDialog(Dialog):
         selected = utils.treeview_get_first_selection(self.fb_tree)
         if selected and self.parent_component:
             try:
-                fb_id = self.fb_tree.item(selected)['values'][0]
+                fb_id = self.fb_tree.item(selected)['values'][2]
                 fb_type = self.parent_component.available_function_block_types[fb_id]
                 cfg = daq.IComponentType.cast_from(fb_type).create_default_config()
                 can_config = len(cfg.all_properties) > 0
@@ -176,7 +179,7 @@ class AddFunctionBlockDialog(Dialog):
         selected = utils.treeview_get_first_selection(self.fb_tree)
         if selected and self.parent_component:
             try:
-                fb_id = self.fb_tree.item(selected)['values'][0]
+                fb_id = self.fb_tree.item(selected)['values'][2]
                 fb_type = self.parent_component.available_function_block_types[fb_id]
                 cfg = daq.IComponentType.cast_from(fb_type).create_default_config()
                 can_config = len(cfg.all_properties) > 0
@@ -218,7 +221,7 @@ class AddFunctionBlockDialog(Dialog):
             return
 
         item = self.fb_tree.item(selected_item)
-        function_block_id = item['values'][0]
+        function_block_id = item['values'][2]
 
         if not open_config_dialog:
             self.execute_add_fb(function_block_id)

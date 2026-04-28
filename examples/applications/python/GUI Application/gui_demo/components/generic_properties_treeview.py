@@ -196,11 +196,16 @@ class PropertiesTreeview(ttk.Treeview):
                 print(e)
 
             # Insert a treeview entry widget for the property
+            if property_info.value_type in (daq.CoreType.ctFunc, daq.CoreType.ctProc):
+                display_name = '          ' + property_info.name
+            else:
+                display_name = property_info.name
+
             iid = self.insert(
                 '' if not parent_iid else parent_iid,
                 tk.END,
                 open=True,
-                text=property_info.name,
+                text=display_name,
                 values=(property_value, *meta_fields))
 
             container_types = (daq.CoreType.ctObject, daq.CoreType.ctStruct, daq.CoreType.ctList, daq.CoreType.ctDict)

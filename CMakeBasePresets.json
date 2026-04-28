@@ -348,6 +348,17 @@
                 "DAQMODULES_BASIC_CSV_RECORDER_MODULE": false,
                 "OPENDAQ_PYTHON_VERSION": "3.8"
             }
+        },
+        {
+            "name": "ci-intel",
+            "hidden": true,
+            "inherits": [
+                "ci"
+            ],
+            "cacheVariables": {
+                "OPENDAQ_GENERATE_PYTHON_BINDINGS": false,
+                "OPENDAQ_GENERATE_CSHARP_BINDINGS": false
+            }
         }
     ],
     "testPresets": [

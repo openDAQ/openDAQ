@@ -209,6 +209,11 @@ endif()
 
 opendaq_common_compile_targets_settings()
 
+message(STATUS "CMAKE_CXX_COMPILER_ID = ${CMAKE_CXX_COMPILER_ID}")
+message(STATUS "CMAKE_CXX_SIMULATE_ID = ${CMAKE_CXX_SIMULATE_ID}")
+message(STATUS "CMAKE_CXX_COMPILER_FRONTEND_VARIANT = ${CMAKE_CXX_COMPILER_FRONTEND_VARIANT}")
+message(STATUS "MSVC = ${MSVC}")
+
 if (OPENDAQ_ENABLE_TESTS)
     message(STATUS "Unit tests are ENABLED")
     enable_testing()

@@ -3,6 +3,7 @@ import time
 import tkinter as tk
 from tkinter import ttk
 from collections import deque
+import numpy as np
 
 import opendaq as daq
 
@@ -152,17 +153,15 @@ class SignalPreviewPanel(ttk.Frame):
 
             display = name
             if display in self._eligible:
-                try:
-                    local_id = signal.local_id
-                except (RuntimeError, AttributeError):
-                    local_id = signal.global_id
+                local_id = getattr(signal, 'local_id', signal.global_id)
                 display = f'{name} ({local_id})'
 
                 first_signal = self._eligible.pop(name)
-                try:
+                if first_signal.local_id is not None:
                     first_local = first_signal.local_id
-                except (RuntimeError, AttributeError):
+                else:
                     first_local = first_signal.global_id
+                    
                 self._eligible[f'{name} ({first_local})'] = first_signal
 
             self._eligible[display] = signal
@@ -176,57 +175,44 @@ class SignalPreviewPanel(ttk.Frame):
 
     @staticmethod
     def _is_chartable(signal):
-        try:
-            desc = signal.descriptor
-            if desc is None:
-                return False
-
-            # Must be a numeric sample type (float or integer variant)
-            st_name = (desc.sample_type.name
-                       if hasattr(desc.sample_type, 'name')
-                       else str(desc.sample_type))
-            numeric_prefixes = ('Float', 'Int', 'UInt', 'float', 'int', 'uint')
-            if not any(st_name.startswith(p) for p in numeric_prefixes):
-                return False
-
-            # Scalar only -- dimensions list must be empty
-            try:
-                dims = desc.dimensions
-                if dims is not None and len(dims) > 0:
-                    return False
-            except RuntimeError:
-                pass
-
-            # No struct fields -- rejects CAN frames, complex structs
-            try:
-                fields = desc.struct_fields
-                if fields is not None and len(fields) > 0:
-                    return False
-            except RuntimeError:
-                pass
-
-            domain_sig = signal.domain_signal
-            if domain_sig is None:
-                return False
-            domain_desc = domain_sig.descriptor
-            if domain_desc is None:
-                return False
-
-            # Domain unit symbol must be "s" (time domain)
-            unit = domain_desc.unit
-            if unit is None:
-                return False
-            symbol = unit.symbol if hasattr(unit, 'symbol') else None
-            if symbol is None or str(symbol) != 's':
-                return False
-
-            # Domain must have tick_resolution for tick-to-seconds conversion
-            if domain_desc.tick_resolution is None:
-                return False
-
-            return True
-        except (RuntimeError, AttributeError):
+        desc = getattr(signal, 'descriptor', None)
+        if desc is None:
             return False
+
+        sample_type = getattr(desc, 'sample_type', None)
+        if not sample_type:
+            return False
+
+        st_name = getattr(sample_type, 'name', str(sample_type))
+        numeric_prefixes = ('Float', 'Int', 'UInt', 'float', 'int', 'uint')
+        if not any(st_name.startswith(p) for p in numeric_prefixes):
+            return False
+
+        dims = getattr(desc, 'dimensions', None)
+        if dims and len(dims) > 0:
+            return False
+
+        fields = getattr(desc, 'struct_fields', None)
+        if fields and len(fields) > 0:
+            return False
+
+        domain_sig = getattr(signal, 'domain_signal', None)
+        if domain_sig is None:
+            return False
+
+        domain_desc = getattr(domain_sig, 'descriptor', None)
+        if domain_desc is None:
+            return False
+
+        unit = getattr(domain_desc, 'unit', None)
+        symbol = getattr(unit, 'symbol', None)
+        if str(symbol) != 's':
+            return False
+
+        if getattr(domain_desc, 'tick_resolution', None) is None:
+            return False
+
+        return True
 
     # MARK: Signal selection
 
@@ -243,12 +229,10 @@ class SignalPreviewPanel(ttk.Frame):
         self._needs_redraw = True
 
         self._unit_str = ''
-        try:
+        if signal.descriptor.unit is not None:
             unit = signal.descriptor.unit
             if unit is not None and unit.symbol is not None:
                 self._unit_str = str(unit.symbol)
-        except RuntimeError:
-            pass
 
         # Cache tick resolution for tick -> seconds conversion.
         domain_desc = signal.domain_signal.descriptor
@@ -262,20 +246,16 @@ class SignalPreviewPanel(ttk.Frame):
         else:
             self._origin_epoch = None
 
-        try:
-            self._reader = daq.StreamReader(signal)
-            self._last_data_time = time.monotonic()
-        except RuntimeError as e:
-            print(f'[SignalPreview] Failed to create StreamReader: {e}')
-            self._reader = None
+        self._reader = daq.StreamReader(signal)
+        self._last_data_time = time.monotonic()
 
     # MARK: Polling
 
     def _on_duration_selected(self, _event=None):
         raw = self._duration_var.get().rstrip('s')
-        try:
+        if float(raw) is not None:
             seconds = float(raw)
-        except ValueError:
+        else:
             return
         if seconds <= 0:
             return
@@ -291,20 +271,23 @@ class SignalPreviewPanel(ttk.Frame):
             return
         if not self._is_chartable(self._selected_signal):
             return
-        try:
-            domain_desc = self._selected_signal.domain_signal.descriptor
-            res = domain_desc.tick_resolution
-            self._tick_res_num = res.numerator
-            self._tick_res_den = res.denominator
 
-            self._reader = daq.StreamReader(self._selected_signal)
-            self._first_tick = None
-            self._data.clear()
-            self._last_data_time = time.monotonic()
-            self._needs_redraw = True
-        except RuntimeError as e:
-            print(f'[SignalPreview] Recreate failed: {e}')
-            self._reader = None
+        domain_desc = getattr(
+            getattr(self._selected_signal, 'domain_signal', None),
+            'descriptor', None)
+        if domain_desc is None:
+            return
+        res = getattr(domain_desc, 'tick_resolution', None)
+        if res is None:
+            return
+
+        self._tick_res_num = res.numerator
+        self._tick_res_den = res.denominator
+        self._reader = daq.StreamReader(self._selected_signal)
+        self._first_tick = None
+        self._data.clear()
+        self._last_data_time = time.monotonic()
+        self._needs_redraw = True
 
     def _on_log_toggled(self):
         self._needs_redraw = True
@@ -351,12 +334,8 @@ class SignalPreviewPanel(ttk.Frame):
         base = self._first_tick
         buf = self._data
 
-        try:
-            import numpy as np
-            t_arr = (domain_ticks.astype(np.float64) - base) * ratio
-            v_arr = values.astype(np.float64)
-        except (ImportError, AttributeError):
-            t_arr = None
+        t_arr = (domain_ticks.astype(np.float64) - base) * ratio
+        v_arr = values.astype(np.float64)
 
         if t_arr is not None:
             target = max(self._TARGET_PPS, int(10_000 / max(self.WINDOW_SECONDS, 0.5)))
@@ -729,19 +708,15 @@ class SignalPreviewPanel(ttk.Frame):
     def _on_destroy(self, event):
         if event.widget is not self:
             return
+
         for job_attr in ('_poll_job', '_draw_job'):
-            job = getattr(self, job_attr, None)
-            if job is not None:
-                try:
-                    self.after_cancel(job)
-                except Exception:
-                    pass
+            job_id = getattr(self, job_attr, None)
+            if job_id:
+                self.after_cancel(job_id)
                 setattr(self, job_attr, None)
 
-        try:
+        if self._chart.winfo_exists():
             self._chart.delete('all')
-        except tk.TclError:
-            pass
-        self._chart_ready = False
 
+        self._chart_ready = False
         self._reader = None

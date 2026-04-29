@@ -665,3 +665,61 @@ TEST_F(DeviceUpdateOptionsTest, RemoveOldInteractionWithRemap)
     ASSERT_EQ(instance.getDevices()[0].getDevices().getCount(), 1u);
     ASSERT_EQ(instance.getDevices()[0].getDevices()[0].getLocalId(), "Man3_Ser3");
 }
+
+TEST_F(DeviceUpdateOptionsTest, NotRemoveOldInteractionWithRemap)
+{
+    auto childDevice2 = instance.getDevices()[1];
+    childDevice2.removeDevice(childDevice2.getDevices()[1]);  // Remove Man4_Ser4
+    ASSERT_EQ(childDevice2.getDevices().getCount(), 1u);
+    ASSERT_EQ(childDevice2.getDevices()[0].getLocalId(), "Man3_Ser3");
+
+    // Man0
+    // - Man1
+    // - Man2
+    //   - Man3
+    // This config is saved
+    auto serializer = JsonSerializer();
+    instance.asPtr<IUpdatable>().serializeForUpdate(serializer);
+    auto str = serializer.getOutput();
+    auto options = DeviceUpdateOptions(str);
+
+    // Add an extra device after the configuration was saved.
+    auto extraDevice = childDevice2.addDevice("daqtest://Man4_Ser4");
+    ASSERT_EQ(extraDevice.getLocalId(), "Man4_Ser4");
+    ASSERT_EQ(instance.getDevices().getCount(), 2u);
+    ASSERT_EQ(childDevice2.getDevices().getCount(), 2u);
+    // Man0
+    // - Man1
+    // - Man2
+    //   - Man3
+    //   - Man4
+    // This is the "dirty state we start from"
+
+    // References to device options
+    auto rootChildOptions = options.getChildDeviceOptions();
+    auto child1Options = rootChildOptions[0];
+    child1Options.setUpdateMode(DeviceUpdateMode::Remap);
+    child1Options.setNewManufacturer("Man4");
+    child1Options.setNewSerialNumber("Ser4");
+    // We request remap Man1 -> Man4
+
+    auto params = UpdateParameters();
+    params.setDeviceUpdateOptions(options);
+    params.setRemoveOldDevices(False);  // Do not remove devices not in config
+    // The expected result is
+    // Man0
+    // - Man2
+    //   - Man3
+    //   - Man4
+    // - Man4 (Remapped from Man1)
+    instance.loadConfiguration(str, params);
+
+    ASSERT_EQ(instance.getDevices().getCount(), 2u);
+    ASSERT_EQ(instance.getDevices()[0].getLocalId(), "Man2_Ser2");
+    ASSERT_EQ(instance.getDevices()[1].getLocalId(), "Man4_Ser4");
+
+    // Removed the Man4 since it was not in the original config
+    ASSERT_EQ(instance.getDevices()[0].getDevices().getCount(), 2u);
+    ASSERT_EQ(instance.getDevices()[0].getDevices()[0].getLocalId(), "Man3_Ser3");
+    ASSERT_EQ(instance.getDevices()[0].getDevices()[1].getLocalId(), "Man4_Ser4");
+}

@@ -1213,20 +1213,38 @@ std::vector<std::pair<std::string, SerializedObjectPtr>> ComponentImpl<Intf, Int
 template <class Intf, class... Intfs>
 void ComponentImpl<Intf, Intfs...>::updateObject(const SerializedObjectPtr& obj, const BaseObjectPtr& /* context */)
 {
-    if (obj.hasKey("active") && !lockedAttributes.count("Active"))
+    if (!lockedAttributes.count("Active"))
     {
-        localActive = obj.readBool("active");
+        if (obj.hasKey("active"))
+            localActive = obj.readBool("active");
+        else
+            localActive = true;
         active = parentActive && localActive;
     }
 
-    if (obj.hasKey("visible") && !lockedAttributes.count("Visible"))
-        visible = obj.readBool("visible");
+    if (!lockedAttributes.count("Visible"))
+    {
+        if (obj.hasKey("visible"))
+            visible = obj.readBool("visible");
+        else
+            visible = true;
+    }
 
-    if (obj.hasKey("description") && !lockedAttributes.count("Description"))
-        description = obj.readString("description");
+    if (!lockedAttributes.count("Description"))
+    {
+        if (obj.hasKey("description"))
+            description = obj.readString("description");
+        else
+            description = "";
+    }
 
-    if (obj.hasKey("name") && !lockedAttributes.count("Name"))
-        name = obj.readString("name");
+    if (!lockedAttributes.count("Name"))
+    {
+        if (obj.hasKey("name"))
+            name = obj.readString("name");
+        else
+            name = "";
+    }
 }
 
 template <class Intf, class... Intfs>

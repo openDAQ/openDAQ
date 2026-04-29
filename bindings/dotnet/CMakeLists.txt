@@ -43,8 +43,14 @@ set(nuget_config --configfile "./.nuget/NuGet.Config" --ignore-failed-sources) #
 set(dotnet_config --configuration $<CONFIG>_Build)
 # suppress warnings:
 # > CS1591: Missing XML comment for publicly visible type or member 'xyz'.
-# > NU1801: The local source 'path' doesn't exist.
-set(msbuild_parameters -p:NoWarn="CS1591,NU1801" -p:Platform=${platform} -p:CMAKE_RUNTIME_OUTPUT_DIRECTORY=${CMAKE_RUNTIME_OUTPUT_DIRECTORY} -p:OPENDAQ_PACKAGE_VERSION=${OPENDAQ_PACKAGE_VERSION})
+
+set(dotnet_frameworks "${OPENDAQ_DOTNET_TARGET_FRAMEWORKS}")
+if(dotnet_frameworks STREQUAL "all")
+    set(dotnet_frameworks "net7.0\;net8.0\;net9.0")
+endif()
+message(STATUS "Target .NET framework(s): ${dotnet_frameworks}")
+
+set(msbuild_parameters -p:NoWarn="CS1591,NU1801" -p:Platform=${platform} -p:CMAKE_RUNTIME_OUTPUT_DIRECTORY=${CMAKE_RUNTIME_OUTPUT_DIRECTORY} -p:OPENDAQ_PACKAGE_VERSION=${OPENDAQ_PACKAGE_VERSION} -p:OpenDaqNetVersion=${dotnet_frameworks})
 set(dotnet_cmd_args ${projectFileName} ${dotnet_config} --verbosity minimal ${nuget_config} ${msbuild_parameters})
 set(dotnet_test_args ${projectFileName} --no-build ${dotnet_config} -p:Platform=${platform} --logger """junit\\\;LogFilePath=${test_path}/test_${targetName}.xml""")
 #set(dotnet_pack_args ${projectFileName} --no-build ${dotnet_config} ${msbuild_parameters})

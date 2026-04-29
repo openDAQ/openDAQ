@@ -1280,7 +1280,8 @@ void ComponentImpl<Intf, Intfs...>::serializeCustomObjectValues(const Serializer
         tags.serialize(serializer);
     }
 
-    if(!forUpdate) {
+    if (!forUpdate)
+    {
         if (statusContainer.getStatuses().getCount() > 0)
         {
             serializer.key("statuses");
@@ -1291,7 +1292,10 @@ void ComponentImpl<Intf, Intfs...>::serializeCustomObjectValues(const Serializer
     if (componentConfig.assigned())
     {
         serializer.key("ComponentConfig");
-        componentConfig.serialize(serializer);
+        if (forUpdate)
+            componentConfig.template asPtr<IUpdatable>(true).serializeForUpdate(serializer);
+        else
+            componentConfig.serialize(serializer);
     }
 }
 

@@ -841,18 +841,20 @@ void GenericSignalContainerImpl<Intf, Intfs...>::updateFunctionBlock(const std::
         return;
     }
 
-    PropertyObjectPtr config;
+    PropertyObjectPtr functionConfig = availableTypes.get(typeId).createDefaultConfig();
+
     if (serializedFunctionBlock.hasKey("ComponentConfig"))
-        config = serializedFunctionBlock.readObject("ComponentConfig");
-    else
-        config = PropertyObject();
+    {
+        const auto updatetableFunctionConfig = functionConfig.template asPtr<IUpdatable>(true);
+        updatetableFunctionConfig.updateInternal(serializedFunctionBlock.readSerializedObject("ComponentConfig"), context);
+    }
 
-    if (!config.hasProperty("LocalId"))
-        config.addProperty(StringProperty("LocalId", fbId));
+    if (!functionConfig.hasProperty("LocalId"))
+        functionConfig.addProperty(StringProperty("LocalId", fbId));
     else
-        config.setPropertyValue("LocalId", fbId);
+        functionConfig.setPropertyValue("LocalId", fbId);
 
-    auto fb = onAddFunctionBlock(typeId, config);
+    auto fb = onAddFunctionBlock(typeId, functionConfig);
 
     const UpdatablePtr updatableFb = fb.template asPtr<IUpdatable>(true);
     updatableFb.updateInternal(serializedFunctionBlock, context);    

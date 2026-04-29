@@ -99,10 +99,11 @@ inline ErrCode PtpSyncInterfaceBaseImpl::setAsSource(Bool isSource)
         setModeOptions(List<IString>("Input", "Auto"));
         setMode("Input");
     }
-    else if (this->objPtr.getPropertyValue(PtpPropertyNames::Mode) != "Off")
+    else
     {
         setModeOptions(List<IString>("Output", "Off"));
-        setMode("Output");
+        if (this->objPtr.getPropertyValue(PtpPropertyNames::Mode) != "Off")
+            setMode("Output");
     }
 
     return OPENDAQ_SUCCESS;

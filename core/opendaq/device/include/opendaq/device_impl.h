@@ -2365,53 +2365,48 @@ void GenericDevice<TInterface, Interfaces...>::updateObject(const SerializedObje
 
         devicesFolder.checkObjectType("Folder");
 
-        auto devicesToRemove = List<IString>();
+        std::set<std::string> devicesToRemove;
 
         Bool removeOldDevices = contextPtr.getUpdateParameters().getRemoveOldDevices();
         if (removeOldDevices)
         {
-            const DictPtr<IString, IString> remapping = contextPtr.getInternalState().get("DeviceMapping");
-
-            const auto configDevices = devicesFolder.readSerializedObject("items").getKeys();
-
+            
+            std::cout << " {\n";
             for (const auto device: devices.getItems())
             {
-                if (remapping.hasKey(device.getLocalId()))
-                {
-                    std::cout << "Don't remove " << device.getLocalId() << " since it is remapped to " << remapping.get(device.getLocalId()) << std::endl;
-                    continue;
-                }
-                else
-                {
-                    bool foundInConfig = false;
-                    for (const auto& configDeviceId : configDevices)
-                    {
-                        if (configDeviceId == device.getLocalId())
-                        {
-                            std::cout << "Don't remove " << device.getLocalId() << " since it is mentioned in the update config" << std::endl;
-                            foundInConfig = true;
-                            break;
-                        }
-                    }
-                    if (foundInConfig)
-                        continue;
-                }
-                std::cout << "Mark for removal: " << device.getLocalId() << std::endl;
-                devicesToRemove.pushBack(device.getLocalId());
+                std::cout << " - " << device.getLocalId() << std::endl;
+                devicesToRemove.insert(device.getLocalId().toStdString());
             }
-
-            for (const auto& deviceId : devicesToRemove)
-                this->removeDeviceIfNotStatic(deviceId);
-
+            std::cout << "}" << std::endl;
         }
+
+        auto remapping = contextPtr.getInternalState().get("DeviceMapping").asPtrOrNull<IDict, DictPtr<IString, IString>>();
 
         this->updateFolder(devicesFolder,
                            "Folder",
                            "Device",
-                           [this, &context](const std::string& localId, const SerializedObjectPtr& obj)
+                           [this, &context, &devicesToRemove, &remapping](const std::string& localId, const SerializedObjectPtr& obj)
                            {
                                updateDevice(localId, obj, context);
+                               std::cout << "Don't remove " << localId << " (directly mentioned)" << std::endl;
+                               devicesToRemove.erase(localId);
+
+                               if (remapping.hasKey(localId))
+                               {
+                                   std::string remappedId = remapping.get(localId);
+                                   devicesToRemove.erase(remappedId);
+                                   std::cout << "Don't remove " << remappedId << " (remapped to)" << std::endl;
+                               }
                            });
+
+        if (removeOldDevices)
+        {
+            for (const auto& deviceId : devicesToRemove)
+            {
+                std::cout << "Removing: " << deviceId << std::endl;
+                this->removeDeviceIfNotStatic(deviceId);
+            }
+        }
     }
 
     if (obj.hasKey("IO"))

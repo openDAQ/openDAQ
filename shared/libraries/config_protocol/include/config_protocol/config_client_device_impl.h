@@ -72,6 +72,7 @@ public:
     ErrCode INTERFACE_FUNC getOperationMode(OperationModeType* modeType) override;
 
     ErrCode INTERFACE_FUNC setParentActive(Bool parentActive) override;
+    ErrCode INTERFACE_FUNC setAsRoot() override;
 
     template <class Implementation>
     static ErrCode Deserialize(ISerializedObject* serialized, IBaseObject* context, IFunction* factoryCallback, IBaseObject** obj);
@@ -390,6 +391,18 @@ inline ErrCode GenericConfigClientDeviceImpl<TDeviceBase>::setParentActive(Bool 
     if (this->isRootDevice)
         return OPENDAQ_IGNORED;
     return Super::setParentActive(parentActive);
+}
+
+template <class TDeviceBase>
+ErrCode GenericConfigClientDeviceImpl<TDeviceBase>::setAsRoot()
+{
+    if (this->isComponentRemoved)
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_COMPONENT_REMOVED);
+
+    auto lock = this->getRecursiveConfigLock2();
+
+    this->isRootDevice = true;
+    return OPENDAQ_SUCCESS;
 }
 
 template <class TDeviceBase>

@@ -378,7 +378,17 @@ ErrCode ComponentImpl<Intf, Intfs...>::setActive(Bool active)
             return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDSTATE);
 
         this->localActive = active;
-        if (!updateActive())
+        bool updated = updateActive();
+        if (!this->coreEventMuted && this->coreEvent.assigned())
+        {
+            const CoreEventArgsPtr args = createWithImplementation<ICoreEventArgs, CoreEventArgsImpl>(
+                CoreEventId::AttributeChanged,
+                Dict<IString, IBaseObject>({{"AttributeName", "LocalActive"}, {"LocalActive", this->localActive}}));
+
+            triggerCoreEvent(args);
+        }
+
+        if (!updated)
             return OPENDAQ_IGNORED;
     }
 

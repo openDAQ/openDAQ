@@ -83,7 +83,9 @@ class LoadInstanceConfigDialog(Dialog):
         self.tree.bind('<MouseWheel>', lambda e: self.tree.after_idle(self._sync_overlays))
         self.tree.bind('<ButtonRelease-1>', lambda e: self.tree.after(10, self._sync_overlays), add='+')
         self.tree.bind('<Configure>', lambda e: self.tree.after_idle(self._sync_overlays))
-        self.tree.winfo_toplevel().bind('<<DialogReady>>', lambda e: self._sync_overlays(), add='+')
+        self._toplevel_bind_id = self.winfo_toplevel().bind(
+            '<<DialogReady>>', lambda e=None: self._sync_overlays(), add='+')
+        self.bind('<Destroy>', self._on_destroy)
 
         self.on_refresh_event(None)
 
@@ -102,6 +104,13 @@ class LoadInstanceConfigDialog(Dialog):
         if value is None:
             return ''
         return str(value)
+
+    def _on_destroy(self, event):
+        if event.widget is self:
+            try:
+                self.winfo_toplevel().unbind('<<DialogReady>>', self._toplevel_bind_id)
+            except Exception:
+                pass
 
     def _place_bool_checkbox(self, iid, prop, meta):
         bbox = self.tree.bbox(iid, meta['editable_column'])

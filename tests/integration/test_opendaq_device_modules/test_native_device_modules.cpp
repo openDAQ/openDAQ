@@ -64,6 +64,50 @@ static InstancePtr CreateCustomServerInstance(AuthenticationProviderPtr authenti
     return instance;
 }
 
+static InstancePtr CreateCustomServerInstanceWithPermissions(AuthenticationProviderPtr authenticationProvider, PermissionsPtr permissions, bool protectOnlyNestedDevice = false)
+{
+    auto logger = Logger();
+    auto scheduler = Scheduler(logger);
+    auto moduleManager = ModuleManager("[[none]]");
+    auto typeManager = TypeManager();
+    auto context = Context(scheduler, logger, typeManager, moduleManager, authenticationProvider);
+
+    auto instance = InstanceCustom(context, "serverLocal");
+    {
+        addNativeServerModule(instance);
+        addRefDeviceModule(instance);
+        addRefDeviceModule(instance);
+        addRefFBModule(instance);
+
+        addLtServerModule(instance);
+    }
+
+    const auto statistics = instance.addFunctionBlock("RefFBModuleStatistics");
+    const auto refDevice = instance.addDevice("daqref://device0");
+
+    if (!protectOnlyNestedDevice)
+    {
+        instance.getPermissionManager().setPermissions(permissions);
+        statistics.getPermissionManager().setPermissions(permissions);
+        refDevice.getPermissionManager().setPermissions(permissions);
+    }
+
+    refDevice.addProperty(IntProperty("CustomProp", 0));
+    statistics.getInputPorts()[0].connect(refDevice.getSignals(search::Recursive(search::Visible()))[0]);
+    statistics.getInputPorts()[0].connect(Signal(context, nullptr, "foo"));
+
+    const auto refDeviceInternal = refDevice.addDevice("daqref://device1");
+    refDeviceInternal.getPermissionManager().setPermissions(permissions);
+
+    const auto statusType = EnumerationType("StatusType", List<IString>("Off", "On"));
+    typeManager.addType(statusType);
+    const auto statusValue = Enumeration("StatusType", "On", typeManager);
+
+    instance.getStatusContainer().asPtr<IComponentStatusContainerPrivate>().addStatus("TestStatus", statusValue);
+
+    return instance;
+}
+
 static InstancePtr CreateDefaultServerInstance()
 {
     auto authenticationProvider = AuthenticationProvider();
@@ -135,6 +179,39 @@ static InstancePtr CreateClientInstance(uint16_t nativeConfigProtocolVersion = s
 
     PropertyObjectPtr general = config.getPropertyValue("General");
     general.setPropertyValue("PrioritizedStreamingProtocols", List<IString>("OpenDAQNativeStreaming"));
+
+    auto refDevice = instance.addDevice("daq.nd://127.0.0.1", config);
+    return instance;
+}
+
+static InstancePtr CreateClientInstanceForUser(const std::string& user, const std::string& password)
+{
+    auto logger = Logger();
+    auto scheduler = Scheduler(logger);
+    auto moduleManager = ModuleManager("[[none]]");
+    auto typeManager = TypeManager();
+    auto authenticationProvider = AuthenticationProvider();
+    auto context = Context(scheduler, logger, typeManager, moduleManager, authenticationProvider);
+
+    const ModulePtr deviceModule(MockDeviceModule_Create(context));
+    moduleManager.addModule(deviceModule);
+
+    auto instance = InstanceCustom(context, "clientLocal");
+    addNativeClientModule(instance);
+    addRefDeviceModule(instance);
+
+    auto config = instance.createDefaultAddDeviceConfig();
+
+    PropertyObjectPtr deviceConfig = config.getPropertyValue("Device");
+    PropertyObjectPtr nativeDeviceConfig = deviceConfig.getPropertyValue("OpenDAQNativeConfiguration");
+
+
+    nativeDeviceConfig.setPropertyValue("RestoreClientConfigOnReconnect", False);
+
+    PropertyObjectPtr general = config.getPropertyValue("General");
+    general.setPropertyValue("PrioritizedStreamingProtocols", List<IString>("OpenDAQNativeStreaming"));
+    general.setPropertyValue("Username", user);
+    general.setPropertyValue("Password", password);
 
     auto refDevice = instance.addDevice("daq.nd://127.0.0.1", config);
     return instance;
@@ -3453,9 +3530,9 @@ TEST_F(NativeDeviceModulesTest, SettingOperationMode)
 {
     auto server = CreateServerInstance();
     auto client = CreateClientInstance();
-    test_helpers::checkDeviceOperationMode(server, daq::OperationModeType::Operation);
-    test_helpers::checkDeviceOperationMode(server.getDevices()[0], daq::OperationModeType::Operation);
-    test_helpers::checkDeviceOperationMode(client.getRootDevice(), daq::OperationModeType::Operation);
+    test_helpers::checkDeviceOperationMode(server, daq::OperationModeType::SafeOperation);
+    test_helpers::checkDeviceOperationMode(server.getDevices()[0], daq::OperationModeType::SafeOperation);
+    test_helpers::checkDeviceOperationMode(client.getRootDevice(), daq::OperationModeType::SafeOperation);
 
     ASSERT_EQ(server.getAvailableOperationModes(), client.getDevices()[0].getAvailableOperationModes());
     ASSERT_EQ(server.getDevices()[0].getAvailableOperationModes(), client.getDevices()[0].getDevices()[0].getAvailableOperationModes());
@@ -3466,39 +3543,39 @@ TEST_F(NativeDeviceModulesTest, SettingOperationMode)
     test_helpers::checkDeviceOperationMode(server.getRootDevice(), daq::OperationModeType::Idle, true);
     test_helpers::checkDeviceOperationMode(server.getDevices()[0], daq::OperationModeType::Idle, true);
 
-    test_helpers::checkDeviceOperationMode(client.getRootDevice(), daq::OperationModeType::Operation);
+    test_helpers::checkDeviceOperationMode(client.getRootDevice(), daq::OperationModeType::SafeOperation);
     test_helpers::checkDeviceOperationMode(client.getDevices()[0], daq::OperationModeType::Idle);
     test_helpers::checkDeviceOperationMode(client.getDevices()[0].getDevices()[0], daq::OperationModeType::Idle);
 
     // setting the operation mode for server sub device
-    ASSERT_NO_THROW(server.getDevices()[0].setOperationModeRecursive(daq::OperationModeType::SafeOperation));
+    ASSERT_NO_THROW(server.getDevices()[0].setOperationModeRecursive(daq::OperationModeType::Operation));
+    std::this_thread::sleep_for(std::chrono::milliseconds(100));
+    test_helpers::checkDeviceOperationMode(server.getRootDevice(), daq::OperationModeType::Idle, true);
+    test_helpers::checkDeviceOperationMode(server.getDevices()[0], daq::OperationModeType::Operation, true);
+
+    test_helpers::checkDeviceOperationMode(client.getRootDevice(), daq::OperationModeType::SafeOperation);
+    test_helpers::checkDeviceOperationMode(client.getDevices()[0], daq::OperationModeType::Idle);
+    test_helpers::checkDeviceOperationMode(client.getDevices()[0].getDevices()[0], daq::OperationModeType::Operation);
+
+    // setting the operation mode for client sub device
+    ASSERT_NO_THROW(client.getDevices()[0].getDevices()[0].setOperationModeRecursive(daq::OperationModeType::SafeOperation));
     std::this_thread::sleep_for(std::chrono::milliseconds(100));
     test_helpers::checkDeviceOperationMode(server.getRootDevice(), daq::OperationModeType::Idle, true);
     test_helpers::checkDeviceOperationMode(server.getDevices()[0], daq::OperationModeType::SafeOperation, true);
 
-    test_helpers::checkDeviceOperationMode(client.getRootDevice(), daq::OperationModeType::Operation);
+    test_helpers::checkDeviceOperationMode(client.getRootDevice(), daq::OperationModeType::SafeOperation);
     test_helpers::checkDeviceOperationMode(client.getDevices()[0], daq::OperationModeType::Idle);
     test_helpers::checkDeviceOperationMode(client.getDevices()[0].getDevices()[0], daq::OperationModeType::SafeOperation);
 
-    // setting the operation mode for client sub device
-    ASSERT_NO_THROW(client.getDevices()[0].getDevices()[0].setOperationModeRecursive(daq::OperationModeType::Operation));
-    std::this_thread::sleep_for(std::chrono::milliseconds(100));
-    test_helpers::checkDeviceOperationMode(server.getRootDevice(), daq::OperationModeType::Idle, true);
-    test_helpers::checkDeviceOperationMode(server.getDevices()[0], daq::OperationModeType::Operation, true);
-
-    test_helpers::checkDeviceOperationMode(client.getRootDevice(), daq::OperationModeType::Operation);
-    test_helpers::checkDeviceOperationMode(client.getDevices()[0], daq::OperationModeType::Idle);
-    test_helpers::checkDeviceOperationMode(client.getDevices()[0].getDevices()[0], daq::OperationModeType::Operation);
-
     // setting the operation mode for client device not recursively
-    ASSERT_NO_THROW(client.getDevices()[0].setOperationMode(daq::OperationModeType::SafeOperation));
+    ASSERT_NO_THROW(client.getDevices()[0].setOperationMode(daq::OperationModeType::Operation));
     std::this_thread::sleep_for(std::chrono::milliseconds(100));
-    test_helpers::checkDeviceOperationMode(server.getRootDevice(), daq::OperationModeType::SafeOperation, true);
-    test_helpers::checkDeviceOperationMode(server.getDevices()[0], daq::OperationModeType::Operation, true);
+    test_helpers::checkDeviceOperationMode(server.getRootDevice(), daq::OperationModeType::Operation, true);
+    test_helpers::checkDeviceOperationMode(server.getDevices()[0], daq::OperationModeType::SafeOperation, true);
 
-    test_helpers::checkDeviceOperationMode(client.getRootDevice(), daq::OperationModeType::Operation);
-    test_helpers::checkDeviceOperationMode(client.getDevices()[0], daq::OperationModeType::SafeOperation);
-    test_helpers::checkDeviceOperationMode(client.getDevices()[0].getDevices()[0], daq::OperationModeType::Operation);
+    test_helpers::checkDeviceOperationMode(client.getRootDevice(), daq::OperationModeType::SafeOperation);
+    test_helpers::checkDeviceOperationMode(client.getDevices()[0], daq::OperationModeType::Operation);
+    test_helpers::checkDeviceOperationMode(client.getDevices()[0].getDevices()[0], daq::OperationModeType::SafeOperation);
 
     // setting the operation mode for client device
     ASSERT_NO_THROW(client.setOperationModeRecursive(daq::OperationModeType::Idle));
@@ -3509,6 +3586,337 @@ TEST_F(NativeDeviceModulesTest, SettingOperationMode)
     test_helpers::checkDeviceOperationMode(client.getRootDevice(), daq::OperationModeType::Idle);
     test_helpers::checkDeviceOperationMode(client.getDevices()[0], daq::OperationModeType::Idle);
     test_helpers::checkDeviceOperationMode(client.getDevices()[0].getDevices()[0], daq::OperationModeType::Idle);
+}
+
+TEST_F(NativeDeviceModulesTest, SettingOperationModeWithoutPermissions)
+{
+    auto CreateUsers = []()
+    {
+        auto users = List<IUser>();
+        const std::vector<std::pair<std::string, std::string>> templateForUser = {{"reader", "reader"}, {"admin", "admin"}};
+        for (const auto& [user, group] : templateForUser)
+            users.pushBack(User(user + "User", user + "UserPass", group.empty() ? nullptr : ListPtr<IString>{group}));
+
+        return users;
+    };
+
+    auto CreatePermissionsBuilder = []() -> daq::PermissionsBuilderPtr
+    {
+        using namespace daq;
+        return PermissionsBuilder()
+            .inherit(false)
+            .assign("everyone", PermissionMaskBuilder())
+            .assign("reader", PermissionMaskBuilder().read())
+            .assign("admin", PermissionMaskBuilder().read().write().execute());
+    };
+
+    const auto permissions = CreatePermissionsBuilder().build();
+
+    const auto authenticationProvider = StaticAuthenticationProvider(true, CreateUsers());
+
+    InstancePtr server;
+    InstancePtr client;
+    using OMT = daq::OperationModeType;
+    {
+        // create server and client isntances
+        server = CreateServerInstance(CreateCustomServerInstanceWithPermissions(authenticationProvider, permissions));
+        // client doesn't have permissions to change operation mode for all server devices, but can read the operation mode
+        client = CreateClientInstanceForUser("readerUser", "readerUserPass");
+    }
+
+    {
+        // reset all devices to Operation for the following tests
+        ASSERT_NO_THROW(server.setOperationModeRecursive(OMT::Operation));
+        std::this_thread::sleep_for(std::chrono::milliseconds(100));
+        test_helpers::checkDeviceOperationMode(server, OMT::Operation, true);
+        test_helpers::checkDeviceOperationMode(server.getDevices()[0], OMT::Operation, true);
+        test_helpers::checkDeviceOperationMode(server.getDevices()[0].getDevices()[0], OMT::Operation, true);
+
+        ASSERT_NO_THROW(client.setOperationMode(OMT::Operation));
+        test_helpers::checkDeviceOperationMode(client.getRootDevice(), OMT::Operation);
+    }
+
+    {
+        // setting the operation mode for server root device recurcively
+        // check the operation mode for all server and client devices, which should be changed to Idle
+        ASSERT_NO_THROW(server.setOperationModeRecursive(OMT::Idle));
+        std::this_thread::sleep_for(std::chrono::milliseconds(100));
+        test_helpers::checkDeviceOperationMode(server.getRootDevice(), OMT::Idle, true);
+        test_helpers::checkDeviceOperationMode(server.getDevices()[0], OMT::Idle, true);
+        test_helpers::checkDeviceOperationMode(server.getDevices()[0].getDevices()[0], OMT::Idle, true);
+
+        test_helpers::checkDeviceOperationMode(client.getRootDevice(), OMT::Operation);
+        test_helpers::checkDeviceOperationMode(client.getDevices()[0], OMT::Idle);
+        test_helpers::checkDeviceOperationMode(client.getDevices()[0].getDevices()[0], OMT::Idle);
+        test_helpers::checkDeviceOperationMode(client.getDevices()[0].getDevices()[0].getDevices()[0], OMT::Idle);
+    }
+
+    {
+        // setting the operation mode for server sub device
+        ASSERT_NO_THROW(server.getDevices()[0].setOperationModeRecursive(OMT::SafeOperation));
+        std::this_thread::sleep_for(std::chrono::milliseconds(100));
+        test_helpers::checkDeviceOperationMode(server.getRootDevice(), OMT::Idle, true);
+        test_helpers::checkDeviceOperationMode(server.getDevices()[0], OMT::SafeOperation, true);
+        test_helpers::checkDeviceOperationMode(server.getDevices()[0].getDevices()[0], OMT::SafeOperation, true);
+
+        test_helpers::checkDeviceOperationMode(client.getRootDevice(), OMT::Operation);
+        test_helpers::checkDeviceOperationMode(client.getDevices()[0], OMT::Idle);
+        test_helpers::checkDeviceOperationMode(client.getDevices()[0].getDevices()[0], OMT::SafeOperation);
+        test_helpers::checkDeviceOperationMode(client.getDevices()[0].getDevices()[0].getDevices()[0], OMT::SafeOperation);
+    }
+
+    {
+        // setting the operation mode for client sub device
+        // client doesn't have permissions to change operation mode for server devices, so it should throw exception, and the operation mode
+        // for all devices should remain unchanged
+        ASSERT_THROW(client.getDevices()[0].getDevices()[0].setOperationModeRecursive(OMT::Operation), daq::AccessDeniedException);
+        std::this_thread::sleep_for(std::chrono::milliseconds(100));
+        test_helpers::checkDeviceOperationMode(server.getRootDevice(), OMT::Idle, true);
+        test_helpers::checkDeviceOperationMode(server.getDevices()[0], OMT::SafeOperation, true);
+        test_helpers::checkDeviceOperationMode(server.getDevices()[0].getDevices()[0], OMT::SafeOperation, true);
+
+        test_helpers::checkDeviceOperationMode(client.getRootDevice(), OMT::Operation);
+        test_helpers::checkDeviceOperationMode(client.getDevices()[0], OMT::Idle);
+        test_helpers::checkDeviceOperationMode(client.getDevices()[0].getDevices()[0], OMT::SafeOperation);
+        test_helpers::checkDeviceOperationMode(client.getDevices()[0].getDevices()[0].getDevices()[0], OMT::SafeOperation);
+    }
+
+    {
+        // setting the operation mode for client device not recursively
+        // client doesn't have permissions to change operation mode for server devices, so it should throw exception, and the operation mode
+        // for all devices should remain unchanged
+        ASSERT_THROW(client.getDevices()[0].setOperationMode(OMT::Operation), daq::AccessDeniedException);
+        std::this_thread::sleep_for(std::chrono::milliseconds(100));
+        test_helpers::checkDeviceOperationMode(server.getRootDevice(), OMT::Idle, true);
+        test_helpers::checkDeviceOperationMode(server.getDevices()[0], OMT::SafeOperation, true);
+        test_helpers::checkDeviceOperationMode(server.getDevices()[0].getDevices()[0], OMT::SafeOperation, true);
+
+        test_helpers::checkDeviceOperationMode(client.getRootDevice(), OMT::Operation);
+        test_helpers::checkDeviceOperationMode(client.getDevices()[0], OMT::Idle);
+        test_helpers::checkDeviceOperationMode(client.getDevices()[0].getDevices()[0], OMT::SafeOperation);
+        test_helpers::checkDeviceOperationMode(client.getDevices()[0].getDevices()[0].getDevices()[0], OMT::SafeOperation);
+    }
+
+    {
+        // reset all devices to SafeOperation for the following tests
+        ASSERT_NO_THROW(server.setOperationModeRecursive(OMT::SafeOperation));
+        std::this_thread::sleep_for(std::chrono::milliseconds(100));
+        test_helpers::checkDeviceOperationMode(server, OMT::SafeOperation, true);
+        test_helpers::checkDeviceOperationMode(server.getDevices()[0], OMT::SafeOperation, true);
+        test_helpers::checkDeviceOperationMode(server.getDevices()[0].getDevices()[0], OMT::SafeOperation, true);
+    }
+
+    {
+        // setting the operation mode for client device
+        ASSERT_THROW(client.setOperationModeRecursive(OMT::Idle), daq::AccessDeniedException);
+        std::this_thread::sleep_for(std::chrono::milliseconds(100));
+        test_helpers::checkDeviceOperationMode(server.getRootDevice(), OMT::SafeOperation, true);
+        test_helpers::checkDeviceOperationMode(server.getDevices()[0], OMT::SafeOperation, true);
+        test_helpers::checkDeviceOperationMode(server.getDevices()[0].getDevices()[0], OMT::SafeOperation, true);
+
+        // there is no garantee that the operation mode for the client root device won't be changed before throwing exception,
+        // so we will check only that the operation mode is not changed to Idle for all nested devices
+        test_helpers::checkDeviceOperationMode(client.getDevices()[0], OMT::SafeOperation);
+        test_helpers::checkDeviceOperationMode(client.getDevices()[0].getDevices()[0], OMT::SafeOperation);
+        test_helpers::checkDeviceOperationMode(client.getDevices()[0].getDevices()[0].getDevices()[0], OMT::SafeOperation);
+    }
+}
+
+TEST_F(NativeDeviceModulesTest, SettingOperationModeWithPermissions)
+{
+    auto CreateUsers = []()
+    {
+        auto users = List<IUser>();
+        const std::vector<std::pair<std::string, std::string>> templateForUser = {{"reader", "reader"}, {"admin", "admin"}};
+        for (const auto& [user, group] : templateForUser)
+            users.pushBack(User(user + "User", user + "UserPass", group.empty() ? nullptr : ListPtr<IString>{group}));
+
+        return users;
+    };
+
+    auto CreatePermissionsBuilder = []() -> daq::PermissionsBuilderPtr
+    {
+        using namespace daq;
+        return PermissionsBuilder()
+            .inherit(false)
+            .assign("everyone", PermissionMaskBuilder())
+            .assign("reader", PermissionMaskBuilder().read())
+            .assign("admin", PermissionMaskBuilder().read().write().execute());
+    };
+
+    const auto permissions = CreatePermissionsBuilder().build();
+
+    const auto authenticationProvider = StaticAuthenticationProvider(true, CreateUsers());
+
+    InstancePtr server;
+    InstancePtr client;
+    using OMT = daq::OperationModeType;
+    {
+        // create server and client isntances
+        server = CreateServerInstance(CreateCustomServerInstanceWithPermissions(authenticationProvider, permissions));
+        // client has all permissions to change operation mode for all server devices
+        client = CreateClientInstanceForUser("adminUser", "adminUserPass");
+    }
+
+    {
+        // reset all devices to Operation for the following tests
+        ASSERT_NO_THROW(server.setOperationModeRecursive(OMT::Operation));
+        std::this_thread::sleep_for(std::chrono::milliseconds(100));
+        test_helpers::checkDeviceOperationMode(server, OMT::Operation, true);
+        test_helpers::checkDeviceOperationMode(server.getDevices()[0], OMT::Operation, true);
+        test_helpers::checkDeviceOperationMode(server.getDevices()[0].getDevices()[0], OMT::Operation, true);
+
+        ASSERT_NO_THROW(client.setOperationMode(OMT::Operation));
+        test_helpers::checkDeviceOperationMode(client.getRootDevice(), OMT::Operation);
+    }
+
+    {
+        // check initial operation mode for server and client devices
+        test_helpers::checkDeviceOperationMode(server, OMT::Operation, true);
+        test_helpers::checkDeviceOperationMode(server.getDevices()[0], OMT::Operation, true);
+        test_helpers::checkDeviceOperationMode(server.getDevices()[0].getDevices()[0], OMT::Operation, true);
+
+        test_helpers::checkDeviceOperationMode(client, OMT::Operation);
+        test_helpers::checkDeviceOperationMode(client.getDevices()[0], OMT::Operation);
+        test_helpers::checkDeviceOperationMode(client.getDevices()[0].getDevices()[0], OMT::Operation);
+        test_helpers::checkDeviceOperationMode(client.getDevices()[0].getDevices()[0].getDevices()[0], OMT::Operation);
+    }
+
+    {
+        ASSERT_NO_THROW(client.setOperationModeRecursive(OMT::Idle));
+        std::this_thread::sleep_for(std::chrono::milliseconds(100));
+        test_helpers::checkDeviceOperationMode(server.getRootDevice(), OMT::Idle, true);
+        test_helpers::checkDeviceOperationMode(server.getDevices()[0], OMT::Idle, true);
+        test_helpers::checkDeviceOperationMode(server.getDevices()[0].getDevices()[0], OMT::Idle, true);
+
+        test_helpers::checkDeviceOperationMode(client.getRootDevice(), OMT::Idle);
+        test_helpers::checkDeviceOperationMode(client.getDevices()[0], OMT::Idle);
+        test_helpers::checkDeviceOperationMode(client.getDevices()[0].getDevices()[0], OMT::Idle);
+        test_helpers::checkDeviceOperationMode(client.getDevices()[0].getDevices()[0].getDevices()[0], OMT::Idle);
+    }
+}
+
+TEST_F(NativeDeviceModulesTest, SettingOperationModeWithPermissionsNestedDevice)
+{
+    auto CreateUsers = []()
+    {
+        auto users = List<IUser>();
+        const std::vector<std::pair<std::string, std::string>> templateForUser = {{"reader", "reader"}, {"admin", "admin"}};
+        for (const auto& [user, group] : templateForUser)
+            users.pushBack(User(user + "User", user + "UserPass", group.empty() ? nullptr : ListPtr<IString>{group}));
+
+        return users;
+    };
+
+    auto CreatePermissionsBuilder = []() -> daq::PermissionsBuilderPtr
+    {
+        using namespace daq;
+        return PermissionsBuilder()
+            .inherit(false)
+            .assign("everyone", PermissionMaskBuilder())
+            .assign("reader", PermissionMaskBuilder().read())
+            .assign("admin", PermissionMaskBuilder().read().write().execute());
+    };
+
+    const auto permissions = CreatePermissionsBuilder().build();
+
+    const auto authenticationProvider = StaticAuthenticationProvider(true, CreateUsers());
+
+    InstancePtr server;
+    InstancePtr client;
+    using OMT = daq::OperationModeType;
+    {
+        // create server and client isntances
+        server = CreateServerInstance(CreateCustomServerInstanceWithPermissions(authenticationProvider, permissions, true));
+        // client has permissions to change operation mode for all server devices except the most nested sub device
+        client = CreateClientInstanceForUser("readerUser", "readerUserPass");
+    }
+
+    {
+        // reset all devices to Operation for the following tests
+        ASSERT_NO_THROW(server.setOperationModeRecursive(OMT::Operation));
+        std::this_thread::sleep_for(std::chrono::milliseconds(100));
+        test_helpers::checkDeviceOperationMode(server, OMT::Operation, true);
+        test_helpers::checkDeviceOperationMode(server.getDevices()[0], OMT::Operation, true);
+        test_helpers::checkDeviceOperationMode(server.getDevices()[0].getDevices()[0], OMT::Operation, true);
+
+        ASSERT_NO_THROW(client.setOperationMode(OMT::Operation));
+        test_helpers::checkDeviceOperationMode(client.getRootDevice(), OMT::Operation);
+    }
+
+    {
+        // setting the operation mode for server root device recurcively
+        // check the operation mode for all server and client devices, which should be changed to SafeOperation
+        ASSERT_NO_THROW(server.setOperationModeRecursive(OMT::SafeOperation));
+        std::this_thread::sleep_for(std::chrono::milliseconds(100));
+        test_helpers::checkDeviceOperationMode(server.getRootDevice(), OMT::SafeOperation, true);
+        test_helpers::checkDeviceOperationMode(server.getDevices()[0], OMT::SafeOperation, true);
+        test_helpers::checkDeviceOperationMode(server.getDevices()[0].getDevices()[0], OMT::SafeOperation, true);
+
+        test_helpers::checkDeviceOperationMode(client, OMT::Operation);
+        test_helpers::checkDeviceOperationMode(client.getDevices()[0], OMT::SafeOperation);
+        test_helpers::checkDeviceOperationMode(client.getDevices()[0].getDevices()[0], OMT::SafeOperation);
+        test_helpers::checkDeviceOperationMode(client.getDevices()[0].getDevices()[0].getDevices()[0], OMT::SafeOperation);
+    }
+
+    {
+        // setting the operation mode for client devices: root device and first level sub device
+        // it should affect the operation mode of server root device but not the sub devices
+        ASSERT_NO_THROW(client.setOperationMode(OMT::Idle));
+        ASSERT_NO_THROW(client.getDevices()[0].setOperationMode(OMT::Idle));
+        std::this_thread::sleep_for(std::chrono::milliseconds(100));
+        test_helpers::checkDeviceOperationMode(server.getRootDevice(), OMT::Idle, true);
+        test_helpers::checkDeviceOperationMode(server.getDevices()[0], OMT::SafeOperation, true);
+        test_helpers::checkDeviceOperationMode(server.getDevices()[0].getDevices()[0], OMT::SafeOperation, true);
+
+        test_helpers::checkDeviceOperationMode(client.getRootDevice(), OMT::Idle);
+        test_helpers::checkDeviceOperationMode(client.getDevices()[0], OMT::Idle);
+        test_helpers::checkDeviceOperationMode(client.getDevices()[0].getDevices()[0], OMT::SafeOperation);
+        test_helpers::checkDeviceOperationMode(client.getDevices()[0].getDevices()[0].getDevices()[0], OMT::SafeOperation);
+    }
+
+    {
+        // reset all devices to SafeOperation for the following tests
+        ASSERT_NO_THROW(server.setOperationModeRecursive(OMT::SafeOperation));
+        std::this_thread::sleep_for(std::chrono::milliseconds(100));
+        test_helpers::checkDeviceOperationMode(server, OMT::SafeOperation, true);
+        test_helpers::checkDeviceOperationMode(server.getDevices()[0], OMT::SafeOperation, true);
+        test_helpers::checkDeviceOperationMode(server.getDevices()[0].getDevices()[0], OMT::SafeOperation, true);
+    }
+
+    {
+        // setting the operation mode for client sub device without recursively, which should only affect the operation mode of itself but not the parent device and child devices
+        ASSERT_NO_THROW(client.getDevices()[0].getDevices()[0].setOperationMode(OMT::Idle));
+        std::this_thread::sleep_for(std::chrono::milliseconds(100));
+        test_helpers::checkDeviceOperationMode(client.getDevices()[0], OMT::SafeOperation);
+        test_helpers::checkDeviceOperationMode(server, OMT::SafeOperation, true);
+
+        test_helpers::checkDeviceOperationMode(client.getDevices()[0].getDevices()[0], OMT::Idle);
+        test_helpers::checkDeviceOperationMode(server.getDevices()[0], OMT::Idle, true);
+
+        test_helpers::checkDeviceOperationMode(client.getDevices()[0].getDevices()[0].getDevices()[0], OMT::SafeOperation, false, true);
+        test_helpers::checkDeviceOperationMode(server.getDevices()[0].getDevices()[0], OMT::SafeOperation, true, true);
+    }
+
+    {
+        // reset all devices to SafeOperation for the following tests
+        ASSERT_NO_THROW(server.setOperationModeRecursive(OMT::SafeOperation));
+        std::this_thread::sleep_for(std::chrono::milliseconds(100));
+        test_helpers::checkDeviceOperationMode(server, OMT::SafeOperation, true);
+        test_helpers::checkDeviceOperationMode(server.getDevices()[0], OMT::SafeOperation, true);
+        test_helpers::checkDeviceOperationMode(server.getDevices()[0].getDevices()[0], OMT::SafeOperation, true);
+    }
+
+    {
+        // setting the operation mode for client device recursively
+        // An exception should be thrown as the client user doesn't have permission to change the operation mode for one of server devices
+        ASSERT_THROW(client.setOperationModeRecursive(daq::OperationModeType::Idle), daq::AccessDeniedException);
+        std::this_thread::sleep_for(std::chrono::milliseconds(100));
+        // there is no garantee that the operation mode for the client devices won't be changed before throwing exception,
+        // so we will check only that the operation mode is not changed to Idle for the most nested device which doesn't have permission
+        test_helpers::checkDeviceOperationMode(server.getDevices()[0].getDevices()[0], daq::OperationModeType::SafeOperation, true, true);
+        test_helpers::checkDeviceOperationMode(client.getDevices()[0].getDevices()[0].getDevices()[0], daq::OperationModeType::SafeOperation, false, true);
+    }
 }
 
 TEST_F(NativeDeviceModulesTest, UpdateEditableFiledsDeviceInfo)
@@ -4694,4 +5102,14 @@ TEST_F(NativeDeviceModulesTest, ComponentActiveChangedRecursiveGateway)
     // All clientLeafDevice subtree components should still be active
     for (const auto& comp : clientLeafDevice.getItems(search::Recursive(search::Any())))
         ASSERT_TRUE(comp.getActive()) << "Leaf component should be active: " << comp.getGlobalId();
+}
+
+TEST_F(NativeDeviceModulesTest, NonDefaultOpMode)
+{
+    auto server = CreateServerSimulator("NonDefaultOpMode");
+    server.setOperationMode(OperationModeType::Idle);
+    auto client = CreateClientConnectedToSimulator("NonDefaultOpMode");
+
+    ASSERT_EQ(server.getOperationMode(), OperationModeType::Idle);
+    ASSERT_EQ(client.getDevices()[0].getOperationMode(), OperationModeType::Idle);
 }

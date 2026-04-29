@@ -699,6 +699,9 @@ CoreEventArgsPtr ConfigProtocolServer::processAttributeChangedCoreEvent(const Co
         assert(params.hasKey("Active"));
         if (protocolVersion > 21 && !params.hasKey("LocalActive"))
             return nullptr;
+
+        if (protocolVersion > 23)
+            return nullptr;
     }
 
     return processedArgs;

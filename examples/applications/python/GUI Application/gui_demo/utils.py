@@ -200,10 +200,15 @@ def get_last_value_for_signal(output_signal):
             if origin_str is not None:
                 try:
                     origin = datetime.fromisoformat(origin_str)
-                except ValueError as e:
+                except ValueError:
                     origin = parse_iso_string(origin_str)
                 if last_value is not None:
-                    last_value_in_seconds = int(last_value) * desc.tick_resolution.numerator / desc.tick_resolution.denominator
+                    tick_value = int(last_value)
+                    last_value_in_seconds = (
+                        tick_value
+                        * desc.tick_resolution.numerator
+                        / desc.tick_resolution.denominator
+                    )
                     last_value = origin + timedelta(seconds=last_value_in_seconds)
 
             if isinstance(last_value, float):
@@ -364,7 +369,7 @@ def make_banner(parent, text):
     _banner_bg = '#afafaf'
     _banner_fg = 'white'
     bar = tk.Frame(parent, bg=_banner_bg, bd=0, highlightthickness=0)
-    bar.pack(fill=tk.X, pady=(0, 8))
+    bar.pack(fill=tk.X, pady=(8))
     tk.Label(bar, text=text, bg=_banner_bg, fg=_banner_fg,
              font=('TkDefaultFont', 10, 'bold')).pack(
         side=tk.LEFT, padx=6, pady=2)
@@ -393,3 +398,20 @@ def poll_signal_rows(widget, rows, interval_ms=200, _job_attr='_signal_refresh_j
         setattr(widget, _job_attr, widget.after(interval_ms, _tick))
 
     setattr(widget, _job_attr, widget.after(interval_ms, _tick))
+    
+def parse_origin(origin_str):
+    """Try fromisoformat first, fall back to strptime for the trailing Z format.
+    Returns None if the string can't be parsed at all."""
+    if not origin_str:
+        return None
+    dt = None
+    try:
+        dt = datetime.fromisoformat(origin_str)
+    except ValueError:
+        pass
+    if dt is None:
+        try:
+            dt = datetime.strptime(origin_str, '%Y-%m-%dT%H:%M:%S%z')
+        except ValueError:
+            pass
+    return dt

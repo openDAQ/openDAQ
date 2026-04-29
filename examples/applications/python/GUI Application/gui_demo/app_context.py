@@ -26,7 +26,7 @@ class AppContext(object):
         self.selected_node = None
         self.include_reference_devices = False
         self.view_hidden_components = False
-        self.metadata_fields = ['unit']
+        self.metadata_fields = []
         # gui
         self.ui_scaling_factor = 1.0
         self.dpi_factor = self._detect_dpi_factor()
@@ -39,9 +39,9 @@ class AppContext(object):
         try:
             daq.OPENDAQ_MODULES_DIR
         except:
-            builder.add_module_path('.')
+            builder.module_path = '.'
         else:
-            builder.add_module_path(daq.OPENDAQ_MODULES_DIR)
+            builder.module_path = daq.OPENDAQ_MODULES_DIR
 
         if params.module_path != None:
             builder.add_module_path(params.module_path)
@@ -53,7 +53,7 @@ class AppContext(object):
         self.instance.context.on_core_event + daq.QueuedEventHandler(self.on_core_event)
         self.connection_string = ''
         self.signals = {}
-        self.on_needs_refresh: Optional[Callable[[], None]] = None
+        self.needs_refresh = False
 
     def _detect_dpi_factor(self) -> float:
         """Detect system DPI scaling factor (1.0 = 96 DPI). Used to scale UI elements on high-DPI displays."""
@@ -188,12 +188,12 @@ class AppContext(object):
             return []
 
     def on_core_event(self, sender: Optional[daq.IComponent], args: daq.IEventArgs):
-        if sender is None or self.on_needs_refresh is None:
+        if sender is None or args is None:
             return
         if daq.IDevice.can_cast_from(sender) and args.event_name == "StatusChanged":
             core_event_args: daq.ICoreEventArgs = daq.ICoreEventArgs.cast_from(args)
             if "ConnectionStatus" in core_event_args.parameters.keys():
-                self.on_needs_refresh()
+                self.needs_refresh = True
             return
         if args.event_name in ("ComponentAdded", "ComponentRemoved"):
-            self.on_needs_refresh()
+            self.needs_refresh = True

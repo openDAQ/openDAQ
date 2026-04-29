@@ -2748,8 +2748,9 @@ void GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::beginApplyUpdat
 template <typename PropObjInterface, typename... Interfaces>
 void GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::endApplyUpdate()
 {
+    UpdatingActions localUpdates = std::move(updatingPropsAndValues);
     auto ignoredProps = List<IString>();
-    for (auto& [propName, action] : updatingPropsAndValues)
+    for (auto& [propName, action] : localUpdates)
     {
         StringPtr name = propName;
         ErrCode err;
@@ -2777,18 +2778,17 @@ void GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::endApplyUpdate(
 
     for (const auto& propName : ignoredProps)
     {
-        auto it = std::find_if(updatingPropsAndValues.begin(),
-                               updatingPropsAndValues.end(),
+        auto it = std::find_if(localUpdates.begin(),
+                               localUpdates.end(),
                                [propName](const std::pair<std::string, UpdatingAction>& val)
                                {
                                    return propName == val.first;
                                });
-        if (it != updatingPropsAndValues.end())
-            updatingPropsAndValues.erase(it);
+        if (it != localUpdates.end())
+            localUpdates.erase(it);
     }
 
-    endApplyProperties(updatingPropsAndValues, isParentUpdating());
-    updatingPropsAndValues.clear();
+    endApplyProperties(localUpdates, isParentUpdating());
 }
 
 template <typename PropObjInterface, typename... Interfaces>

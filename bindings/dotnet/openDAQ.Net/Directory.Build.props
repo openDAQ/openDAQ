@@ -1,0 +1,12 @@
+<Project>
+  <PropertyGroup>
+    <!-- Central .NET version control.
+         When building via CMake, this is overridden by -p:OpenDaqNetVersion=<value>.
+         When building standalone from VS/Rider, falls back to net8.0. -->
+    <OpenDaqNetVersion Condition="'$(OpenDaqNetVersion)' == ''">net8.0</OpenDaqNetVersion>
+
+    <!-- Windows-suffixed variant for WinForms/WPF projects.
+         Constructed by appending '-windows' to every framework in the list. -->
+    <OpenDaqNetVersionWindows>$([System.Text.RegularExpressions.Regex]::Replace('$(OpenDaqNetVersion)', '([^;]+)', '$1-windows'))</OpenDaqNetVersionWindows>
+  </PropertyGroup>
+</Project>

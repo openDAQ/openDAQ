@@ -2,10 +2,10 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
+    <TargetFrameworks>$(OpenDaqNetVersion)</TargetFrameworks>
     <OutputType>Library</OutputType>
     <!-- using function pointers (C# 9) and file scoped namespaces (C# 10) so netstandard2.0 not possible (C# 7.3) -->
     <!--<TargetFramework>netstandard2.0</TargetFramework>-->
-    <TargetFrameworks>net8.0</TargetFrameworks>
     <RuntimeIdentifiers>win-x64;win-x86;linux-x64;osx-x64</RuntimeIdentifiers>
     <Platforms>x64;x86</Platforms>
     <ImplicitUsings>enable</ImplicitUsings>
@@ -28,21 +28,31 @@
     <!-- the <VersionSuffix> is normally set externally but we use a PowerShell environment variable $ENV:SHORT_SHA (when set) -->
     <VersionSuffix Condition="'$(Configuration)' != 'Release'">beta-VS</VersionSuffix>
     <VersionSuffix Condition="'$(SHORT_SHA)' != ''">$(SHORT_SHA)</VersionSuffix>
-    <AssemblyVersion>9.9.9.9</AssemblyVersion>
+    <AssemblyVersion Condition="'$(OPENDAQ_PACKAGE_VERSION)' != ''">$(OPENDAQ_PACKAGE_VERSION)</AssemblyVersion>
     <FileVersion>$(OPENDAQ_PACKAGE_VERSION).$(_BuildNumber)</FileVersion>
-    <!--<RepositoryUrl>https://github.com/openDAQ/openDAQ.git</RepositoryUrl>-->
-    <RepositoryUrl Condition="'$(REPOSITORY_URL)' != ''">$(REPOSITORY_URL)</RepositoryUrl>
-    <RepositoryType Condition="'$(REPOSITORY_URL)' != ''">git</RepositoryType>
+    <RepositoryUrl>https://github.com/openDAQ/openDAQ.git</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
     <RepositoryBranch Condition="'$(BRANCH_NAME)' != ''">$(BRANCH_NAME)</RepositoryBranch>
     <RepositoryCommit Condition="'$(COMMIT_SHA)' != ''">$(COMMIT_SHA)</RepositoryCommit>
     <PackageProjectUrl>https://opendaq.com/</PackageProjectUrl>
-    <PackageTags>open;daq;sdk;bindings;blueberry</PackageTags>
+    <PackageTags>open;daq;sdk;bindings</PackageTags>
     <!-- for local test-purposes only, in CI == 'Release_Build' -->
     <GeneratePackageOnBuild Condition="'$(Configuration)' == 'Release'">True</GeneratePackageOnBuild>
     <PackageIcon>openDAQ-logo-orange-blue-rgb64x18.png</PackageIcon>
     <PackageReadmeFile>README.md</PackageReadmeFile>
     <PackageLicenseExpression>Apache-2.0</PackageLicenseExpression>
     <GenerateDocumentationFile>True</GenerateDocumentationFile>
+    <!-- SourceLink: enables source stepping for consumers debugging against this package -->
+    <PublishRepositoryUrl>true</PublishRepositoryUrl>
+    <EmbedUntrackedSources>true</EmbedUntrackedSources>
+    <!-- Symbol packages: pushes PDBs to nuget.org symbol server -->
+    <IncludeSymbols>true</IncludeSymbols>
+    <SymbolPackageFormat>snupkg</SymbolPackageFormat>
+    <!-- Reproducible builds: byte-identical output regardless of build machine -->
+    <Deterministic>true</Deterministic>
+    <ContinuousIntegrationBuild Condition="'$(CI)' == 'true'">true</ContinuousIntegrationBuild>
+    <!-- Catches accidental public API breaks between package versions -->
+    <!-- <EnablePackageValidation>true</EnablePackageValidation> -->
   </PropertyGroup>
 
   <PropertyGroup>
@@ -61,12 +71,12 @@
     <_IsLinux Condition="'$([System.Runtime.InteropServices.RuntimeInformation]::IsOSPlatform($([System.Runtime.InteropServices.OSPlatform]::Linux)))' == 'true'">true</_IsLinux>
     <_RuntimeIdentifier>win-$(Platform)</_RuntimeIdentifier>
     <_RuntimeIdentifier Condition="'$(_IsOSX)' == 'true'">osx-$(Platform)</_RuntimeIdentifier>
-    <_RuntimeIdentifier Condition="'$(_IsLinunx)' == 'true'">linux-$(Platform)</_RuntimeIdentifier>
+    <_RuntimeIdentifier Condition="'$(_IsLinux)' == 'true'">linux-$(Platform)</_RuntimeIdentifier>
     <_PackageRuntimesPath>runtimes\$(_RuntimeIdentifier)\native</_PackageRuntimesPath>
     <_ciPackageRuntimesPathWinx64>runtimes\win-x64\native</_ciPackageRuntimesPathWinx64>
     <_ciPackageRuntimesPathWinx86>runtimes\win-x86\native</_ciPackageRuntimesPathWinx86>
     <_ciPackageRuntimesPathLinx64>runtimes\linux-x64\native</_ciPackageRuntimesPathLinx64>
-    <_ciPackageLib>lib\net6.0</_ciPackageLib>
+    <_ciPackageLib>lib\$(OpenDaqNetVersion.Split(';')[0])</_ciPackageLib>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(Platform)' == 'x64'">
@@ -77,7 +87,7 @@
   </PropertyGroup>
 
   <PropertyGroup>
-    <AppendTargetFrameworkToOutputPath>False</AppendTargetFrameworkToOutputPath>
+    <AppendTargetFrameworkToOutputPath>True</AppendTargetFrameworkToOutputPath>
     <BaseOutputPath>$(_RTGenOutputPath)\bin\</BaseOutputPath>
     <!--<BaseIntermediateOutputPath>obj\</BaseIntermediateOutputPath>-->
     <!-- see  https://github.com/dotnet/msbuild/issues/1603 -->
@@ -115,6 +125,12 @@
       <Pack>True</Pack>
       <PackagePath>\</PackagePath>
     </EmbeddedResource>
+  </ItemGroup>
+
+  <!-- Build-time tooling: none of these ship in the final package -->
+  <ItemGroup>
+    <PackageReference Include="Microsoft.SourceLink.GitHub" Version="8.*" PrivateAssets="All" />
+    <!-- <PackageReference Include="Microsoft.DotNet.PackageValidation" Version="1.0.0-preview.*" PrivateAssets="All" />-->
   </ItemGroup>
 
   <!-- SDK binaries (local build) -->

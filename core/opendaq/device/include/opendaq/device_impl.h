@@ -52,6 +52,8 @@
 #include <opendaq/component_type_private.h>
 #include <opendaq/mirrored_device_ptr.h>
 
+#include <iostream>
+
 BEGIN_NAMESPACE_OPENDAQ
 template <typename TInterface = IDevice, typename... Interfaces>
 class GenericDevice;
@@ -2072,6 +2074,7 @@ void GenericDevice<TInterface, Interfaces...>::updateDevice(const std::string& d
                                                             const SerializedObjectPtr& serializedDevice,
                                                             const BaseObjectPtr& context)
 {
+    std::cout << "Update subdevice: " << deviceId << std::endl;
     try
     {
         ComponentUpdateContextPtr contextPtr = ComponentUpdateContextPtr::Borrow(context);
@@ -2192,7 +2195,10 @@ void GenericDevice<TInterface, Interfaces...>::updateDevice(const std::string& d
         }
 
         if (mode == DeviceUpdateMode::Remap)
+        {
             contextPtr.addDeviceRemapping(deviceId, device.getLocalId());
+            std::cout << "  Add remap: " << deviceId << " -> " << device.getLocalId() << std::endl;
+        }
 
         const auto updatableDevice = device.template asPtr<IUpdatable>(true);
         updatableDevice.updateInternal(serializedDevice, context);
@@ -2368,13 +2374,24 @@ void GenericDevice<TInterface, Interfaces...>::updateObject(const SerializedObje
                            "Device",
                            [this, &context, &toRemove](const std::string& localId, const SerializedObjectPtr& obj)
                            {
-                                updateDevice(localId, obj, context);
-                                toRemove.erase(localId);
-                            });
+                               updateDevice(localId, obj, context);
+                               toRemove.erase(localId);
+                               std::cout << "Don't remove " << localId << std::endl;
+                           });
 
         Bool removeOldDevices = contextPtr.getUpdateParameters().getRemoveOldDevices();
         if (removeOldDevices){
+            auto remapping = contextPtr.getInternalState().get("DeviceMapping").asPtrOrNull<IDict, DictPtr<IString, IString>>();
+
+            for (const auto& [oldId, newId] : remapping)
+            {
+                // Devices referred to in the config via the remapping rule should not be removed.
+                toRemove.erase(newId);
+                std::cout << "Found in remapping: " << newId << std::endl;
+            }
+
             for (const auto &id : toRemove){
+                std::cout << "Remove unmentioned: " << id << std::endl;
                 this->removeDeviceIfNotStatic(id);
             }
         }

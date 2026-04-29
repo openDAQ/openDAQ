@@ -649,19 +649,19 @@ TEST_F(DeviceUpdateOptionsTest, RemoveOldInteractionWithRemap)
     auto params = UpdateParameters();
     params.setDeviceUpdateOptions(options);
     params.setRemoveOldDevices(True); // Remove devices not in config
-    // The expected result would be
+    // The expected result is
     // Man0
-    // - Man4 (Remapped from Man1)
     // - Man2
     //   - Man3
-    //   (x Man4 removed due to not being present in the loaded config)
-
+    //  (x Man4 removed due to not being present in the loaded config)
+    // - Man4 (Remapped from Man1)
     instance.loadConfiguration(str, params);
 
     ASSERT_EQ(instance.getDevices().getCount(), 2u);
     ASSERT_EQ(instance.getDevices()[0].getLocalId(), "Man2_Ser2");
+    ASSERT_EQ(instance.getDevices()[1].getLocalId(), "Man4_Ser4");
+
+    // Removed the Man4 since it was not in the original config
     ASSERT_EQ(instance.getDevices()[0].getDevices().getCount(), 1u);
     ASSERT_EQ(instance.getDevices()[0].getDevices()[0].getLocalId(), "Man3_Ser3");
-
-    ASSERT_EQ(instance.getDevices()[1].getLocalId(), "Man4_Ser4");
 }

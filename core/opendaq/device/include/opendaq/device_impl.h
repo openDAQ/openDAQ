@@ -52,8 +52,6 @@
 #include <opendaq/component_type_private.h>
 #include <opendaq/mirrored_device_ptr.h>
 
-#include <iostream>
-
 BEGIN_NAMESPACE_OPENDAQ
 template <typename TInterface = IDevice, typename... Interfaces>
 class GenericDevice;
@@ -2074,7 +2072,6 @@ void GenericDevice<TInterface, Interfaces...>::updateDevice(const std::string& d
                                                             const SerializedObjectPtr& serializedDevice,
                                                             const BaseObjectPtr& context)
 {
-    std::cout << "Update subdevice: " << deviceId << std::endl;
     try
     {
         ComponentUpdateContextPtr contextPtr = ComponentUpdateContextPtr::Borrow(context);
@@ -2195,10 +2192,7 @@ void GenericDevice<TInterface, Interfaces...>::updateDevice(const std::string& d
         }
 
         if (mode == DeviceUpdateMode::Remap)
-        {
             contextPtr.addDeviceRemapping(deviceId, device.getLocalId());
-            std::cout << "  Add remap: " << deviceId << " -> " << device.getLocalId() << std::endl;
-        }
 
         const auto updatableDevice = device.template asPtr<IUpdatable>(true);
         updatableDevice.updateInternal(serializedDevice, context);
@@ -2365,47 +2359,33 @@ void GenericDevice<TInterface, Interfaces...>::updateObject(const SerializedObje
 
         devicesFolder.checkObjectType("Folder");
 
-        std::set<std::string> devicesToRemove;
-
-        Bool removeOldDevices = contextPtr.getUpdateParameters().getRemoveOldDevices();
-        if (removeOldDevices)
-        {
-            
-            std::cout << " {\n";
-            for (const auto device: devices.getItems())
-            {
-                std::cout << " - " << device.getLocalId() << std::endl;
-                devicesToRemove.insert(device.getLocalId().toStdString());
-            }
-            std::cout << "}" << std::endl;
-        }
+        // Assume none of the currently connected devices are referenced by the serialized configuration
+        std::set<std::string> devicesWithoutReference;
+        for (const auto device: devices.getItems())
+            devicesWithoutReference.insert(device.getLocalId().toStdString());
 
         auto remapping = contextPtr.getInternalState().get("DeviceMapping").asPtrOrNull<IDict, DictPtr<IString, IString>>();
 
         this->updateFolder(devicesFolder,
                            "Folder",
                            "Device",
-                           [this, &context, &devicesToRemove, &remapping](const std::string& localId, const SerializedObjectPtr& obj)
+                           [this, &context, &devicesWithoutReference, &remapping](const std::string& localId, const SerializedObjectPtr& obj)
                            {
                                updateDevice(localId, obj, context);
-                               std::cout << "Don't remove " << localId << " (directly mentioned)" << std::endl;
-                               devicesToRemove.erase(localId);
 
+                               // Device is referenced directly (has its own configuration)
+                               devicesWithoutReference.erase(localId);
+
+                               // Another device replaced the one with localId via remapping
                                if (remapping.hasKey(localId))
-                               {
-                                   std::string remappedId = remapping.get(localId);
-                                   devicesToRemove.erase(remappedId);
-                                   std::cout << "Don't remove " << remappedId << " (remapped to)" << std::endl;
-                               }
+                                   devicesWithoutReference.erase(remapping.get(localId));
                            });
 
-        if (removeOldDevices)
+        Bool removeOldDevices = contextPtr.getUpdateParameters().getRemoveOldDevices();
+        if (removeOldDevices == True)
         {
-            for (const auto& deviceId : devicesToRemove)
-            {
-                std::cout << "Removing: " << deviceId << std::endl;
+            for (const auto& deviceId : devicesWithoutReference)
                 this->removeDeviceIfNotStatic(deviceId);
-            }
         }
     }
 

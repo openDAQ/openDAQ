@@ -21,6 +21,8 @@
 - [#1157](https://github.com/openDAQ/openDAQ/pull/1157) Devices default to `OperationModeType::SafeOperation` when added to folder or set as root. Add virtual method to make it customizable.
 - [#1153](https://github.com/openDAQ/openDAQ/pull/1153) Enable and disable discovery for openDAQ Server via native.
 - [#1178](https://github.com/openDAQ/openDAQ/pull/1178) Calling begin/end update only on the root component while save/load
+- [#1179](https://github.com/openDAQ/openDAQ/pull/1179) Reduce component config size
+
 ## Python
 
 - [#980](https://github.com/openDAQ/openDAQ/pull/980) Update add device with configuration dialog in Python GUI demo app.

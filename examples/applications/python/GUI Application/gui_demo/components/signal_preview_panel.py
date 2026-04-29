@@ -1,5 +1,4 @@
 import math
-import time
 import tkinter as tk
 from tkinter import ttk
 from collections import deque
@@ -50,8 +49,12 @@ class SignalPreviewPanel(ttk.Frame):
         # name -> ISignal for chartable signals
         self._eligible = {}
         self._unit_str = ''
-        self._last_data_time = None
-        self._STALE_TIMEOUT = 2.0
+        self._last_descriptor_hash = None
+        self._signal_event_handler = None
+        self._signal_event_component = None
+        self._parent_event_handler = None
+        self._parent_event_component = None
+        self._reader_dirty = False
         self._needs_redraw = True
         self._chart_ready = False
         self._px_ml = 65
@@ -101,7 +104,7 @@ class SignalPreviewPanel(ttk.Frame):
 
         self._log_var = tk.BooleanVar(value=False)
         log_cb = ttk.Checkbutton(
-            dd_row, text='Log', variable=self._log_var,
+            dd_row, text='Logarithm', variable=self._log_var,
             command=self._on_log_toggled)
         log_cb.pack(side=tk.LEFT, padx=(4, 0))
 
@@ -247,9 +250,48 @@ class SignalPreviewPanel(ttk.Frame):
             self._origin_epoch = None
 
         self._reader = daq.StreamReader(signal)
-        self._last_data_time = time.monotonic()
+        self._last_descriptor_hash = self._descriptor_fingerprint(signal)
+
+        self._unsubscribe_core_events()
+
+        if daq.IComponent.can_cast_from(signal):
+            self._signal_event_component = signal
+            self._signal_event_handler = daq.QueuedEventHandler(self._on_core_event)
+            comp = daq.IComponent.cast_from(signal)
+            comp.on_component_core_event + self._signal_event_handler
+
+        ancestor = getattr(signal, 'parent', None)
+        while ancestor is not None:
+            if (daq.IFunctionBlock.can_cast_from(ancestor)
+                    or daq.IDevice.can_cast_from(ancestor)):
+                break
+            ancestor = getattr(ancestor, 'parent', None)
+
+        if ancestor is not None and daq.IComponent.can_cast_from(ancestor):
+            self._parent_event_component = ancestor
+            self._parent_event_handler = daq.QueuedEventHandler(self._on_core_event)
+            comp = daq.IComponent.cast_from(ancestor)
+            comp.on_component_core_event + self._parent_event_handler
 
     # MARK: Polling
+
+    def _unsubscribe_core_events(self):
+        for handler_attr, comp_attr in (
+            ('_signal_event_handler', '_signal_event_component'),
+            ('_parent_event_handler', '_parent_event_component'),
+        ):
+            handler = getattr(self, handler_attr, None)
+            comp = getattr(self, comp_attr, None)
+            if handler is not None and comp is not None:
+                if daq.IComponent.can_cast_from(comp):
+                    component = daq.IComponent.cast_from(comp)
+                    component.on_component_core_event - handler
+            setattr(self, handler_attr, None)
+            setattr(self, comp_attr, None)
+
+    def _on_core_event(self, sender, args):
+        if args.event_name in ('DescriptorChanged', 'PropertyValueChanged', 'ComponentUpdateEnd'):
+            self._reader_dirty = True
 
     def _on_duration_selected(self, _event=None):
         raw = self._duration_var.get().rstrip('s')
@@ -286,8 +328,33 @@ class SignalPreviewPanel(ttk.Frame):
         self._reader = daq.StreamReader(self._selected_signal)
         self._first_tick = None
         self._data.clear()
-        self._last_data_time = time.monotonic()
+        self._last_descriptor_hash = self._descriptor_fingerprint(self._selected_signal)
         self._needs_redraw = True
+
+    @staticmethod
+    def _descriptor_fingerprint(signal):
+        desc = getattr(signal, 'descriptor', None)
+        if desc is None:
+            return None
+        d_desc = getattr(getattr(signal, 'domain_signal', None), 'descriptor', None)
+
+        st = getattr(getattr(desc, 'sample_type', None), 'name', None)
+        rule = getattr(getattr(desc, 'data_rule', None), 'type', None)
+        rule_name = getattr(rule, 'name', str(rule)) if rule else None
+
+        d_rule = getattr(getattr(d_desc, 'data_rule', None), 'type', None) if d_desc else None
+        d_rule_name = getattr(d_rule, 'name', str(d_rule)) if d_rule else None
+
+        # For linear domain rules, the delta parameter encodes the sample rate.
+        # A change here means the rate changed even if everything else looks the same.
+        d_rule_params = None
+        if d_desc is not None:
+            dr = getattr(d_desc, 'data_rule', None)
+            if dr is not None:
+                params = getattr(dr, 'parameters', None)
+                d_rule_params = str(params) if params is not None else None
+
+        return (st, rule_name, d_rule_name, d_rule_params)
 
     def _on_log_toggled(self):
         self._needs_redraw = True
@@ -306,15 +373,20 @@ class SignalPreviewPanel(ttk.Frame):
                 if available > 0:
                     values, domain_ticks = self._reader.read_with_domain(available)
                     self._ingest(values, domain_ticks)
-                    self._last_data_time = time.monotonic()
             except RuntimeError as e:
                 print(f'[SignalPreview] Reader invalidated, recreating: {e}')
                 self._recreate_reader()
 
-        if (self._reader is not None
-                and self._last_data_time is not None
-                and time.monotonic() - self._last_data_time > self._STALE_TIMEOUT):
-            print('[SignalPreview] Reader stale, recreating')
+        if self._reader is not None and self._selected_signal is not None:
+            current = self._descriptor_fingerprint(self._selected_signal)
+            if current != self._last_descriptor_hash:
+                print('[SignalPreview] Descriptor changed, recreating reader')
+                self._recreate_reader()
+                self._last_descriptor_hash = current
+
+        if self._reader_dirty:
+            self._reader_dirty = False
+            print('[SignalPreview] Property changed, recreating reader')
             self._recreate_reader()
 
         self._poll_job = self.after(self.POLL_MS, self._poll_tick)
@@ -719,4 +791,5 @@ class SignalPreviewPanel(ttk.Frame):
             self._chart.delete('all')
 
         self._chart_ready = False
+        self._unsubscribe_core_events()
         self._reader = None

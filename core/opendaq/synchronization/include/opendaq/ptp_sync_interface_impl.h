@@ -136,6 +136,8 @@ inline void PtpSyncInterfaceBaseImpl::createGeneralProperties()
         configuration.addProperty(IntPropertyBuilder      (PtpPropertyNames::PtpConfigPriority2,          128).setMinValue(0).setMaxValue(255).build());
         configuration.addProperty(ListPropertyBuilder     (PtpPropertyNames::PtpConfigTransportProtocolOptions, transportProtocolOptions).setReadOnly(true).setVisible(false).build());
         configuration.addProperty(StringPropertyBuilder   (PtpPropertyNames::PtpConfigTransportProtocol, "IEEE802_3").setSelectionValues(EvalValue("$TransportProtocolOptions")).build());
+
+        configuration.setPropertyOrder(List<IString>(PtpPropertyNames::PtpConfigProfileOptions, PtpPropertyNames::PtpConfigTransportProtocolOptions));
     }
 
     {
@@ -166,6 +168,8 @@ inline void PtpSyncInterfaceBaseImpl::createPortProporties(const StringPtr& port
         portConfiguration.addProperty(ListPropertyBuilder   (PtpPropertyNames::PortConfigDelayMechanismOptions, delayMechanismOptions).setReadOnly(true).setVisible(false).build());
         portConfiguration.addProperty(StringPropertyBuilder (PtpPropertyNames::PortConfigDelayMechanism,    "E2E").setSelectionValues(EvalValue("$DelayMechanismOptions")).build());
         portConfiguration.addProperty(IntProperty           (PtpPropertyNames::PortConfigLogSyncInterval,   0));
+
+        portConfiguration.setPropertyOrder(List<IString>(PtpPropertyNames::PortConfigModeOptions, PtpPropertyNames::PortConfigDelayMechanismOptions));
 
         portsConfiguration.addProperty(ObjectProperty(portName, portConfiguration));
     }

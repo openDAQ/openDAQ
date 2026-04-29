@@ -106,6 +106,7 @@ void SyncComponent2Impl<Intf, Intfs...>::init(bool registerEvents)
                                                         .setSelectionValues(EvalValue("%Interfaces:PropertyNames"))
                                                         .build();
     Super::addProperty(souceProperty);
+    this->objPtr.setPropertyOrder(List<IString>("Interfaces"));
 
     if (registerEvents)
     {

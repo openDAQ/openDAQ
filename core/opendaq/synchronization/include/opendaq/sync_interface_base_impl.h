@@ -74,6 +74,7 @@ SyncInterfaceBaseImpl<TInterface, Interfaces...>::SyncInterfaceBaseImpl()
     this->objPtr.addProperty(StringPropertyBuilder("Name", "SyncInterfaceBase").setReadOnly(true).build());
     this->objPtr.addProperty(ListPropertyBuilder("ModeOptions", modeOptions).setReadOnly(true).setVisible(false).build());
     this->objPtr.addProperty(StringPropertyBuilder("Mode", "Off").setSelectionValues(EvalValue("$ModeOptions")).build());
+    this->objPtr.setPropertyOrder(List<IString>("ModeOptions"));
 
     auto statusProperty = PropertyObject();
     statusProperty.addProperty(BoolPropertyBuilder("Synchronized", False).setReadOnly(true).build());

@@ -51,6 +51,8 @@ extern "C"
     daqErrCode EXPORTED daqDeviceUpdateOptions_getNewSerialNumber(daqDeviceUpdateOptions* self, daqString** serialNumber);
     daqErrCode EXPORTED daqDeviceUpdateOptions_setNewConnectionString(daqDeviceUpdateOptions* self, daqString* connectionString);
     daqErrCode EXPORTED daqDeviceUpdateOptions_getNewConnectionString(daqDeviceUpdateOptions* self, daqString** connectionString);
+    daqErrCode EXPORTED daqDeviceUpdateOptions_setNewLocalId(daqDeviceUpdateOptions* self, daqString* localId);
+    daqErrCode EXPORTED daqDeviceUpdateOptions_getNewLocalId(daqDeviceUpdateOptions* self, daqString** localId);
     daqErrCode EXPORTED daqDeviceUpdateOptions_getUpdateMode(daqDeviceUpdateOptions* self, daqDeviceUpdateMode* mode);
     daqErrCode EXPORTED daqDeviceUpdateOptions_setUpdateMode(daqDeviceUpdateOptions* self, daqDeviceUpdateMode mode);
     daqErrCode EXPORTED daqDeviceUpdateOptions_getChildDeviceOptions(daqDeviceUpdateOptions* self, daqList** childDeviceOptions);

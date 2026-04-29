@@ -72,6 +72,16 @@ daqErrCode daqDeviceUpdateOptions_getNewConnectionString(daqDeviceUpdateOptions*
     return reinterpret_cast<daq::IDeviceUpdateOptions*>(self)->getNewConnectionString(reinterpret_cast<daq::IString**>(connectionString));
 }
 
+daqErrCode daqDeviceUpdateOptions_setNewLocalId(daqDeviceUpdateOptions* self, daqString* localId)
+{
+    return reinterpret_cast<daq::IDeviceUpdateOptions*>(self)->setNewLocalId(reinterpret_cast<daq::IString*>(localId));
+}
+
+daqErrCode daqDeviceUpdateOptions_getNewLocalId(daqDeviceUpdateOptions* self, daqString** localId)
+{
+    return reinterpret_cast<daq::IDeviceUpdateOptions*>(self)->getNewLocalId(reinterpret_cast<daq::IString**>(localId));
+}
+
 daqErrCode daqDeviceUpdateOptions_getUpdateMode(daqDeviceUpdateOptions* self, daqDeviceUpdateMode* mode)
 {
     return reinterpret_cast<daq::IDeviceUpdateOptions*>(self)->getUpdateMode(reinterpret_cast<daq::DeviceUpdateMode*>(mode));

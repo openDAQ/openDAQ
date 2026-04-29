@@ -20,7 +20,7 @@ public:
         this->objPtr.addProperty(StringProperty("Test", "Unchanged"));
         createAndAddSignal("TestSig");
 
-        auto fb = createWithImplementation<IFunctionBlock, FunctionBlock>(FunctionBlockType("test", "", ""), ctx, this->functionBlocks, "TestFB");
+        auto fb = createWithImplementation<IFunctionBlock, FunctionBlock>(FunctionBlockType("test", "test", ""), ctx, this->functionBlocks, "TestFB");
         FolderConfigPtr ips = fb.getItem("IP");
         auto ip = InputPort(ctx, ips, "TestIP");
 
@@ -39,6 +39,11 @@ private:
     }
 
     bool allowAddDevicesFromModules() override
+    {
+        return true;
+    }
+
+    bool allowAddFunctionBlocksFromModules() override
     {
         return true;
     }
@@ -82,10 +87,26 @@ public:
 
         return result;
     }
+    
+    DictPtr<IString, IFunctionBlockType> onGetAvailableFunctionBlockTypes() override
+    {
+        auto fbType = FunctionBlockType("test", "test", "");
+        return Dict<IString, IFunctionBlockType>({{fbType.getId(), fbType}});
+    }
 
     DevicePtr onCreateDevice(const StringPtr& connectionString, const ComponentPtr& parent, const PropertyObjectPtr&) override
     {
         return createWithImplementation<IDevice, UpdateOptionsTestDevice>(this->context, parent, getIdFromConnectionString(connectionString));
+    }
+
+    FunctionBlockPtr onCreateFunctionBlock(const StringPtr& id, const ComponentPtr& parent, const StringPtr& localId, const PropertyObjectPtr&) override
+    {
+        auto fb = createWithImplementation<IFunctionBlock, FunctionBlock>(FunctionBlockType("test", "test", ""), this->context, parent, localId);
+        FolderConfigPtr ips = fb.getItem("IP");
+        auto ip = InputPort(this->context, ips, "TestIP");
+
+        ips.addItem(ip);
+        return fb;
     }
 
     static std::string getIdFromConnectionString(const std::string& connectionString)
@@ -539,4 +560,56 @@ TEST_F(DeviceUpdateOptionsTest, SerializeDeserialize)
     DeviceUpdateOptionsPtr optionsDeserialized = deserializer.deserialize(serializer2.getOutput());
 
     ASSERT_EQ(options, optionsDeserialized);
+}
+
+TEST_F(DeviceUpdateOptionsTest, Retarget)
+{
+    auto child1 = instance.getDevices()[0];
+    auto child2 = instance.getDevices()[1];
+    auto child2_1 = child2.getDevices()[0];
+    auto child2_2 = child2.getDevices()[1];
+
+    child1.setPropertyValue("Test", "Changed1");
+    child2.setPropertyValue("Test", "Changed2");
+    child2_1.setPropertyValue("Test", "Changed3");
+    child2_2.setPropertyValue("Test", "Changed4");
+
+    auto serializer = JsonSerializer();
+    instance.asPtr<IUpdatable>().serializeForUpdate(serializer);
+    auto str = serializer.getOutput();
+
+    auto options = DeviceUpdateOptions(str);
+    auto rootChildOptions = options.getChildDeviceOptions();
+    auto child1Options = rootChildOptions[0];
+    auto child2Options = rootChildOptions[1];
+    auto child2ChildOptions = child2Options.getChildDeviceOptions();
+
+    child1Options.setUpdateMode(DeviceUpdateMode::Retarget);
+    child1Options.setNewLocalId("Man2_Ser2");
+
+    child2Options.setUpdateMode(DeviceUpdateMode::Retarget);
+    child2Options.setNewLocalId("Man1_Ser1");
+    
+    child2ChildOptions[0].setUpdateMode(DeviceUpdateMode::Skip);
+    child2ChildOptions[1].setUpdateMode(DeviceUpdateMode::Skip);
+
+    auto params = UpdateParameters();
+    params.setDeviceUpdateOptions(options);
+    instance.loadConfiguration(str, params);
+
+    // Local IDs are preserved
+    ASSERT_EQ(child1.getLocalId(), "Man1_Ser1");
+    ASSERT_EQ(child2.getLocalId(), "Man2_Ser2");
+
+    ASSERT_EQ(child1.getPropertyValue("Test"), "Changed2");
+    ASSERT_EQ(child2.getPropertyValue("Test"), "Changed1");
+    ASSERT_EQ(child2_1.getPropertyValue("Test"), "Changed3");
+    ASSERT_EQ(child2_2.getPropertyValue("Test"), "Changed4");
+
+    // child2 connection is switched to child 1:
+    // child1.sig -> child2_1.ip
+    // child2_2.sig -> child2.ip
+    ASSERT_EQ(child2_1.getFunctionBlocks()[0].getInputPorts()[0].getConnection().getSignal(), child1.getSignals()[0]);
+    ASSERT_EQ(child1.getFunctionBlocks()[0].getInputPorts()[0].getSignal(), child2_2.getSignals()[0]);
+    ASSERT_NE(child2.getFunctionBlocks()[0].getInputPorts()[0].getSignal(), child2_2.getSignals()[0]);
 }

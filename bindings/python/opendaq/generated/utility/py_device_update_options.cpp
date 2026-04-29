@@ -38,7 +38,8 @@ PyDaqIntf<daq::IDeviceUpdateOptions, daq::IBaseObject> declareIDeviceUpdateOptio
         .value("UpdateOnly", daq::DeviceUpdateMode::UpdateOnly)
         .value("Skip", daq::DeviceUpdateMode::Skip)
         .value("Remove", daq::DeviceUpdateMode::Remove)
-        .value("Remap", daq::DeviceUpdateMode::Remap);
+        .value("Remap", daq::DeviceUpdateMode::Remap)
+        .value("Retarget", daq::DeviceUpdateMode::Retarget);
 
     return wrapInterface<daq::IDeviceUpdateOptions, daq::IBaseObject>(m, "IDeviceUpdateOptions");
 }
@@ -126,6 +127,20 @@ void defineIDeviceUpdateOptions(pybind11::module_ m, PyDaqIntf<daq::IDeviceUpdat
             objectPtr.setNewConnectionString(getVariantValue<daq::IString*>(connectionString));
         },
         "Gets the new connection string of the device to be used for remapping. / Sets the new connection string of the device to be used for remapping.");
+    cls.def_property("new_local_id",
+        [](daq::IDeviceUpdateOptions *object)
+        {
+            py::gil_scoped_release release;
+            const auto objectPtr = daq::DeviceUpdateOptionsPtr::Borrow(object);
+            return objectPtr.getNewLocalId().toStdString();
+        },
+        [](daq::IDeviceUpdateOptions *object, std::variant<daq::IString*, py::str, daq::IEvalValue*>& localId)
+        {
+            py::gil_scoped_release release;
+            const auto objectPtr = daq::DeviceUpdateOptionsPtr::Borrow(object);
+            objectPtr.setNewLocalId(getVariantValue<daq::IString*>(localId));
+        },
+        "Gets the new local ID of the device to be used for remapping when the update mode is set to Switch. / Sets the new local ID of the device to be used for remapping when the update mode is set to Switch.");
     cls.def_property("update_mode",
         [](daq::IDeviceUpdateOptions *object)
         {

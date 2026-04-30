@@ -2223,7 +2223,7 @@ DevicePtr GenericDevice<TInterface, Interfaces...>::findConnectedDeviceForRemap(
                                                                                 const StringPtr& serialNumber,
                                                                                 const StringPtr& connectionString)
 {
-    for (const auto& [_, device] : devices.getItems())
+    for (const DevicePtr& device : devices.getItems())
     {
         const auto info = device.getInfo();
         if (!info.assigned())
@@ -2261,6 +2261,7 @@ DevicePtr GenericDevice<TInterface, Interfaces...>::findConnectedDeviceForRemap(
         }
 
     }
+    return nullptr;
 }
 
 template <typename TInterface, typename... Interfaces>
@@ -2411,20 +2412,24 @@ template <typename TInterface, typename... Interfaces>
 void GenericDevice<TInterface, Interfaces...>::removeRemappedDevices(const SerializedObjectPtr& devicesFolder, const BaseObjectPtr& context)
 {
     devicesFolder.checkObjectType("Folder");
+    ComponentUpdateContextPtr contextPtr = ComponentUpdateContextPtr::Borrow(context);
 
     auto serializedItems = this->getSerializedItems(devicesFolder);
     for (const auto& item : serializedItems)
     {
         item.second.checkObjectType("Device");
-        if (!item.second.hasKey("UpdateMode"))
+
+        auto options = contextPtr.getDeviceUpdateOptionsWithLocalIdOrNull(item.first);
+        if (!options.assigned())
             continue;
 
-        const DeviceUpdateMode updateMode = static_cast<DeviceUpdateMode>(item.second.readInt("UpdateMode"));
-        if (updateMode != DeviceUpdateMode::Remap)
+        DeviceUpdateMode mode = options.getUpdateMode();
+        if (mode != DeviceUpdateMode::Remap)
             continue;
 
         // Remove device that will be remapped to sth else
-        this->removeDeviceIfNotStatic(item.first);
+        if (devices.hasItem(item.first))
+            this->removeDeviceIfNotStatic(item.first);
     }
 }
 

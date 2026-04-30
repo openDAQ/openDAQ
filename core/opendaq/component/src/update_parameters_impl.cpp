@@ -5,6 +5,7 @@ BEGIN_NAMESPACE_OPENDAQ
 
 UpdateParametersImpl::UpdateParametersImpl()
     : Super()
+    , removeOldDevices(False)
 {
     Super::addProperty(BoolProperty("RemoteUpdate", false));
 }
@@ -29,6 +30,20 @@ ErrCode UpdateParametersImpl::setDeviceUpdateOptions(IDeviceUpdateOptions* optio
     return OPENDAQ_SUCCESS;
 }
 
+ErrCode INTERFACE_FUNC UpdateParametersImpl::getRemoveOldDevices(Bool* remove)
+{
+    OPENDAQ_PARAM_NOT_NULL(remove);
+
+    *remove = removeOldDevices;
+    return OPENDAQ_SUCCESS;
+}
+
+ErrCode INTERFACE_FUNC UpdateParametersImpl::setRemoveOldDevices(Bool remove)
+{
+    removeOldDevices = remove;
+    return OPENDAQ_SUCCESS;
+}
+
 ErrCode UpdateParametersImpl::serializeCustomValues(ISerializer* serializer, bool)
 {
     if (deviceOptions.assigned())
@@ -39,6 +54,7 @@ ErrCode UpdateParametersImpl::serializeCustomValues(ISerializer* serializer, boo
 
     return OPENDAQ_SUCCESS;
 }
+
 ErrCode UpdateParametersImpl::getSerializeId(ConstCharPtr* id) const
 {
     OPENDAQ_PARAM_NOT_NULL(id);

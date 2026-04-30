@@ -265,6 +265,7 @@ private:
     StringPtr getDevicePrefixOrEmpty(const DevicePtr& device);
     ModuleInfoPtr getModuleInfoFromDeviceType();
     void removeDeviceIfNotStatic(const StringPtr& deviceId);
+    void removeRemappedDevices(const SerializedObjectPtr& obj, const BaseObjectPtr& context);
 
     DeviceDomainPtr deviceDomain;
     OperationModeType operationMode {OperationModeType::Unknown};
@@ -815,7 +816,7 @@ FunctionBlockPtr GenericDevice<TInterface, Interfaces...>::onAddFunctionBlock(co
 {
     if (!this->isRootDevice && !allowAddFunctionBlocksFromModules())
         DAQ_THROW_EXCEPTION(NotSupportedException, "Device does not support adding nested function blocks.");
-    
+
     auto lock = this->getRecursiveConfigLock2();
     const ModuleManagerUtilsPtr managerUtils = this->context.getModuleManager().template asPtr<IModuleManagerUtils>();
     FunctionBlockPtr fb = managerUtils.createFunctionBlock(typeId, this->functionBlocks, config);
@@ -840,7 +841,7 @@ void GenericDevice<TInterface, Interfaces...>::onRemoveFunctionBlock(const Funct
     auto typeId = functionBlock.getFunctionBlockType().getId();
     if (!types.hasKey(typeId))
         DAQ_THROW_EXCEPTION(InvalidOperationException, "Function block being removed is a static-type. Its type is not in the list of available function block types.");
-    
+
     auto lock = this->getRecursiveConfigLock2();
     this->functionBlocks.removeItem(functionBlock);
 }
@@ -1305,7 +1306,7 @@ template <typename TInterface, typename... Interfaces>
 ErrCode GenericDevice<TInterface, Interfaces...>::getAvailableDeviceTypes(IDict** deviceTypes)
 {
     OPENDAQ_PARAM_NOT_NULL(deviceTypes);
-    
+
     if (this->isComponentRemoved)
         return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_COMPONENT_REMOVED);
 
@@ -1322,7 +1323,7 @@ DictPtr<IString, IDeviceType> GenericDevice<TInterface, Interfaces...>::onGetAva
 {
     if (!allowAddDevicesFromModules())
         return Dict<IString, IDeviceType>();
-    
+
     auto lock = this->getRecursiveConfigLock2();
     const ModuleManagerUtilsPtr managerUtils = this->context.getModuleManager().template asPtr<IModuleManagerUtils>();
     return managerUtils.getAvailableDeviceTypes();
@@ -1474,7 +1475,7 @@ void GenericDevice<TInterface, Interfaces...>::onRemoveDevice(const DevicePtr& d
 
         removedDeviceType = info.getDeviceType();
     }
-    
+
     if (removedDeviceType.assigned())
     {
         auto types = onGetAvailableDeviceTypes();
@@ -1482,7 +1483,7 @@ void GenericDevice<TInterface, Interfaces...>::onRemoveDevice(const DevicePtr& d
         if (!types.hasKey(typeId))
             DAQ_THROW_EXCEPTION(InvalidOperationException, "Device being removed is a static-type. Its type is not in the list of available device types.");
     }
-    
+
     this->devices.removeItem(device);
 }
 
@@ -1712,7 +1713,7 @@ DeviceTypePtr GenericDevice<TInterface, Interfaces...>::getDeviceTypeFromPrefixO
         if (prefix == typePrefix)
             return type;
     }
-        
+
     return nullptr;
 }
 
@@ -1768,7 +1769,7 @@ void GenericDevice<TInterface, Interfaces...>::removeDeviceIfNotStatic(const Str
               "Devices without a registered type can not be removed", deviceId, this->localId);
         return;
     }
-    
+
     checkErrorInfo(this->removeDevice(device));
 }
 
@@ -2076,11 +2077,11 @@ void GenericDevice<TInterface, Interfaces...>::updateDevice(const std::string& d
     {
         ComponentUpdateContextPtr contextPtr = ComponentUpdateContextPtr::Borrow(context);
         auto options = contextPtr.getDeviceUpdateOptionsWithLocalIdOrNull(deviceId);
-        
+
         DeviceUpdateMode mode = DeviceUpdateMode::Load;
         if (options.assigned())
             mode = options.getUpdateMode();
-        
+
         if (mode == DeviceUpdateMode::Skip)
             return;
 
@@ -2101,6 +2102,7 @@ void GenericDevice<TInterface, Interfaces...>::updateDevice(const std::string& d
             switch (mode)
             {
                 case DeviceUpdateMode::Remap:
+                    LOG_E("Remapped device not pre-removed {}.", deviceId);
                     removeDeviceIfNotStatic(deviceId);
                     break;  // Remove, but continue with adding the remapped device.
                 case DeviceUpdateMode::Remove:
@@ -2118,7 +2120,7 @@ void GenericDevice<TInterface, Interfaces...>::updateDevice(const std::string& d
                     break;
             }
         }
-        
+
         PropertyObjectPtr deviceConfig;
         DeviceInfoPtr discoveredDeviceInfo;
 
@@ -2126,7 +2128,7 @@ void GenericDevice<TInterface, Interfaces...>::updateDevice(const std::string& d
             deviceConfig = serializedDevice.readObject("deviceConfig");
         else if (serializedDevice.hasKey("ComponentConfig"))
             deviceConfig = serializedDevice.readObject("ComponentConfig");
-                
+
         StringPtr manufacturer;
         StringPtr serialNumber;
         StringPtr connectionString;
@@ -2183,7 +2185,7 @@ void GenericDevice<TInterface, Interfaces...>::updateDevice(const std::string& d
             }
             return;
         }
-      
+
         DevicePtr device = onAddDevice(connectionString, deviceConfig);
         if (!device.assigned())
         {
@@ -2348,6 +2350,27 @@ void GenericDevice<TInterface, Interfaces...>::deserializeCustomObjectValues(con
 }
 
 template <typename TInterface, typename... Interfaces>
+void GenericDevice<TInterface, Interfaces...>::removeRemappedDevices(const SerializedObjectPtr& devicesFolder, const BaseObjectPtr& context)
+{
+    devicesFolder.checkObjectType("Folder");
+
+    auto serializedItems = this->getSerializedItems(devicesFolder);
+    for (const auto& item : serializedItems)
+    {
+        item.second.checkObjectType("Device");
+        if (!item.second.hasKey("UpdateMode"))
+            continue;
+
+        const DeviceUpdateMode updateMode = static_cast<DeviceUpdateMode>(item.second.readInt("UpdateMode"));
+        if (updateMode != DeviceUpdateMode::Remap)
+            continue;
+
+        // Remove device that will be remapped to sth else
+        this->removeDeviceIfNotStatic(item.first);
+    }
+}
+
+template <typename TInterface, typename... Interfaces>
 void GenericDevice<TInterface, Interfaces...>::updateObject(const SerializedObjectPtr& obj, const BaseObjectPtr& context)
 {
     Super::updateObject(obj, context);
@@ -2356,13 +2379,39 @@ void GenericDevice<TInterface, Interfaces...>::updateObject(const SerializedObje
     if (obj.hasKey("Dev"))
     {
         const auto devicesFolder = obj.readSerializedObject("Dev");
+
         devicesFolder.checkObjectType("Folder");
+
+        this->removeRemappedDevices(devicesFolder, context);
+
+        // Assume none of the currently connected devices are referenced by the serialized configuration
+        std::set<std::string> devicesWithoutReference;
+        for (const auto device: devices.getItems())
+            devicesWithoutReference.insert(device.getLocalId().toStdString());
+
+        auto remapping = contextPtr.getInternalState().get("DeviceMapping").asPtr<IDict, DictPtr<IString, IString>>();
 
         this->updateFolder(devicesFolder,
                            "Folder",
                            "Device",
-                           [this, &context](const std::string& localId, const SerializedObjectPtr& obj)
-                           { updateDevice(localId, obj, context); });
+                           [this, &context, &devicesWithoutReference, &remapping](const std::string& localId, const SerializedObjectPtr& obj)
+                           {
+                               updateDevice(localId, obj, context);
+
+                               // Device is referenced directly (has its own configuration)
+                               devicesWithoutReference.erase(localId);
+
+                               // Another device replaced the one with localId via remapping
+                               if (remapping.hasKey(localId))
+                                   devicesWithoutReference.erase(remapping.get(localId));
+                           });
+
+        Bool removeOldDevices = contextPtr.getUpdateParameters().getRemoveOldDevices();
+        if (removeOldDevices == True)
+        {
+            for (const auto& deviceId : devicesWithoutReference)
+                this->removeDeviceIfNotStatic(deviceId);
+        }
     }
 
     if (obj.hasKey("IO"))

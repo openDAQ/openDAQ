@@ -2102,6 +2102,7 @@ void GenericDevice<TInterface, Interfaces...>::updateDevice(const std::string& d
             switch (mode)
             {
                 case DeviceUpdateMode::Remap:
+                    LOG_E("Remapped device not pre-removed {}.", deviceId);
                     removeDeviceIfNotStatic(deviceId);
                     break;  // Remove, but continue with adding the remapped device.
                 case DeviceUpdateMode::Remove:

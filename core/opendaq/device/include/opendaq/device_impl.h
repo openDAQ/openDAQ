@@ -266,6 +266,7 @@ private:
     ModuleInfoPtr getModuleInfoFromDeviceType();
     void removeDeviceIfNotStatic(const StringPtr& deviceId);
     void removeRemappedDevices(const SerializedObjectPtr& obj, const BaseObjectPtr& context);
+    DevicePtr findConnectedDeviceForRemap(const StringPtr& manufacturer, const StringPtr& serialNumber, const StringPtr& connectionString);
 
     DeviceDomainPtr deviceDomain;
     OperationModeType operationMode {OperationModeType::Unknown};
@@ -2186,7 +2187,19 @@ void GenericDevice<TInterface, Interfaces...>::updateDevice(const std::string& d
             return;
         }
 
-        DevicePtr device = onAddDevice(connectionString, deviceConfig);
+        DevicePtr device;
+        if (mode == DeviceUpdateMode::Remap)
+        {
+            device = findConnectedDeviceForRemap(manufacturer, serialNumber, connectionString);
+
+            if (!device.assigned())
+                device = onAddDevice(connectionString, deviceConfig);
+        }
+        else
+        {
+            device = onAddDevice(connectionString, deviceConfig);
+        }
+
         if (!device.assigned())
         {
             LOG_E("Failed to add missing Device with ID {} while updating parent Device with ID {}", deviceId, this->localId)
@@ -2202,6 +2215,51 @@ void GenericDevice<TInterface, Interfaces...>::updateDevice(const std::string& d
     catch (const std::exception& e)
     {
         LOG_W("Failed to update device: {}", e.what());
+    }
+}
+
+template <typename TInterface, typename... Interfaces>
+DevicePtr GenericDevice<TInterface, Interfaces...>::findConnectedDeviceForRemap(const StringPtr& manufacturer,
+                                                                                const StringPtr& serialNumber,
+                                                                                const StringPtr& connectionString)
+{
+    for (const auto& [_, device] : devices.getItems())
+    {
+        const auto info = device.getInfo();
+        if (!info.assigned())
+            continue;
+
+        if (manufacturer.assigned() && manufacturer != "" && serialNumber.assigned() && serialNumber != "")
+        {
+            const auto deviceManufacturer = info.getManufacturer();
+            const auto deviceSerialNumber = info.getSerialNumber();
+
+            if (deviceManufacturer.assigned() && deviceSerialNumber.assigned())
+            {
+                Bool manufacturerMatch = False;
+                deviceManufacturer->equals(manufacturer, &manufacturerMatch);
+
+                Bool serialMatch = False;
+                deviceSerialNumber->equals(serialNumber, &serialMatch);
+
+                if (manufacturerMatch && serialMatch)
+                    return device;
+            }
+        }
+
+        if (connectionString.assigned() && connectionString != "")
+        {
+            const auto deviceConnectionString = info.getConnectionString();
+
+            if (deviceConnectionString.assigned())
+            {
+                Bool connStringMatch = False;
+                deviceConnectionString->equals(connectionString, &connStringMatch);
+                if (connStringMatch)
+                    return device;
+            }
+        }
+
     }
 }
 

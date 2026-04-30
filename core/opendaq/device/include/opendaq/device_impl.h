@@ -265,6 +265,7 @@ private:
     StringPtr getDevicePrefixOrEmpty(const DevicePtr& device);
     ModuleInfoPtr getModuleInfoFromDeviceType();
     void removeDeviceIfNotStatic(const StringPtr& deviceId);
+    void removeRemappedDevices(const SerializedObjectPtr& obj, const BaseObjectPtr& context);
 
     DeviceDomainPtr deviceDomain;
     OperationModeType operationMode {OperationModeType::Unknown};
@@ -2348,6 +2349,27 @@ void GenericDevice<TInterface, Interfaces...>::deserializeCustomObjectValues(con
 }
 
 template <typename TInterface, typename... Interfaces>
+void GenericDevice<TInterface, Interfaces...>::removeRemappedDevices(const SerializedObjectPtr& devicesFolder, const BaseObjectPtr& context)
+{
+    devicesFolder.checkObjectType("Folder");
+
+    auto serializedItems = this->getSerializedItems(devicesFolder);
+    for (const auto& item : serializedItems)
+    {
+        item.second.checkObjectType("Device");
+        if (!item.second.hasKey("UpdateMode"))
+            continue;
+
+        const DeviceUpdateMode updateMode = static_cast<DeviceUpdateMode>(item.second.readInt("UpdateMode"));
+        if (updateMode != DeviceUpdateMode::Remap)
+            continue;
+
+        // Remove device that will be remapped to sth else
+        this->removeDeviceIfNotStatic(item.first);
+    }
+}
+
+template <typename TInterface, typename... Interfaces>
 void GenericDevice<TInterface, Interfaces...>::updateObject(const SerializedObjectPtr& obj, const BaseObjectPtr& context)
 {
     Super::updateObject(obj, context);
@@ -2359,12 +2381,14 @@ void GenericDevice<TInterface, Interfaces...>::updateObject(const SerializedObje
 
         devicesFolder.checkObjectType("Folder");
 
+        this->removeRemappedDevices(devicesFolder, context);
+
         // Assume none of the currently connected devices are referenced by the serialized configuration
         std::set<std::string> devicesWithoutReference;
         for (const auto device: devices.getItems())
             devicesWithoutReference.insert(device.getLocalId().toStdString());
 
-        auto remapping = contextPtr.getInternalState().get("DeviceMapping").asPtrOrNull<IDict, DictPtr<IString, IString>>();
+        auto remapping = contextPtr.getInternalState().get("DeviceMapping").asPtr<IDict, DictPtr<IString, IString>>();
 
         this->updateFolder(devicesFolder,
                            "Folder",

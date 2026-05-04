@@ -1,4 +1,5 @@
 import math
+import re
 import tkinter as tk
 from tkinter import ttk
 from collections import deque
@@ -10,7 +11,7 @@ from .. import utils
 
 
 class SignalPreviewPanel(ttk.Frame):
-    WINDOW_SECONDS = 5.0
+    WINDOW_SECONDS = 1.0
     MAX_BUFFER_SIZE = 100_000
     POLL_MS = 33          # drain the reader this often
     _TARGET_PPS = 2000
@@ -25,6 +26,7 @@ class SignalPreviewPanel(ttk.Frame):
 
     _AXIS_FONT = ('TkFixedFont', 7)
     _VAL_FONT  = ('TkFixedFont', 10, 'bold')
+    _DURATION_RE = re.compile(r'^\s*(\d+(?:\.\d+)?|\.\d+)\s*s?\s*$', re.IGNORECASE)
 
     def __init__(self, parent, node, context=None, **kwargs):
         super().__init__(parent, **kwargs)
@@ -86,13 +88,15 @@ class SignalPreviewPanel(ttk.Frame):
         self._dropdown.bind('<<ComboboxSelected>>', self._on_signal_selected)
 
         # Duration selector
-        self._duration_presets = [1, 2, 5, 10, 30, 60]
-        self._duration_var = tk.StringVar(value='5s')
+        self._duration_presets = [0.1, 0.2, 0.5, 1]
+        self._duration_var = tk.StringVar(value='1s')
         dur_cb = ttk.Combobox(
-            dd_row, textvariable=self._duration_var, state='readonly',
-            values=[f'{d}s' for d in self._duration_presets], width=5)
+            dd_row, textvariable=self._duration_var,
+            values=[f'{d}s' for d in self._duration_presets], width=6)
         dur_cb.pack(side=tk.LEFT, padx=(4, 0))
-        dur_cb.bind('<<ComboboxSelected>>', self._on_duration_selected)
+        dur_cb.bind('<<ComboboxSelected>>', self._on_duration_committed)
+        dur_cb.bind('<Return>', self._on_duration_committed)
+        dur_cb.bind('<FocusOut>', self._on_duration_committed)
 
         self._log_var = tk.BooleanVar(value=False)
         log_cb = ttk.Checkbutton(
@@ -285,18 +289,21 @@ class SignalPreviewPanel(ttk.Frame):
         if args.event_name in ('DescriptorChanged', 'PropertyValueChanged', 'ComponentUpdateEnd'):
             self._reader_dirty = True
 
-    def _on_duration_selected(self, _event=None):
-        raw = self._duration_var.get().rstrip('s')
-        if float(raw) is not None:
-            seconds = float(raw)
-        else:
+    def _on_duration_committed(self, _event=None):
+        text = self._duration_var.get()
+        match = self._DURATION_RE.match(text)
+        if match is None:
+            self._duration_var.set(f'{self.WINDOW_SECONDS:g}s')
             return
-        if seconds <= 0:
+
+        seconds = float(match.group(1))
+        seconds = max(0.1, min(10.0, seconds))
+        self._duration_var.set(f'{seconds:g}s')
+        if seconds == self.WINDOW_SECONDS:
             return
+
         self.WINDOW_SECONDS = seconds
         self._needs_redraw = True
-
-        # Vertical grid lines are created once for the initial WINDOW_SECONDS.
         self._chart_ready = False
 
     def _recreate_reader(self):
@@ -518,7 +525,7 @@ class SignalPreviewPanel(ttk.Frame):
         if not self.winfo_exists():
             return
 
-        if not self._collapsed and self._needs_redraw:
+        if self._needs_redraw:
             self._draw_chart()
             self._needs_redraw = False
 
@@ -628,6 +635,10 @@ class SignalPreviewPanel(ttk.Frame):
             c.itemconfig(self._hgrid_label_ids[i],
                          text=self._fmt(gv) + unit_suffix)
 
+        # Axes
+        c.coords(self._yaxis_id, ml, mt, ml, mt + ph)
+        c.coords(self._xaxis_id, ml, mt + ph, ml + pw, mt + ph)
+
         _nice = [0.1, 0.2, 0.5, 1, 2, 5, 10, 15, 30, 60]
         grid_interval = _nice[-1]
         for ni in _nice:
@@ -635,38 +646,40 @@ class SignalPreviewPanel(ttk.Frame):
                 grid_interval = ni
                 break
 
-        first_mark = math.ceil(t_earliest / grid_interval) * grid_interval
+        if grid_interval >= 1:
+            label_fmt = '-{:.0f}s'
+        elif grid_interval >= 0.1:
+            label_fmt = '-{:.1f}s'
+        elif grid_interval >= 0.01:
+            label_fmt = '-{:.2f}s'
+        else:
+            label_fmt = '-{:.3f}s'
+
         slot = 0
-        t_mark = first_mark
-        
-        while t_mark < t_latest and slot < len(self._vgrid_ids):
-            vx = xpx(t_mark)
+        k = 1
+        while (k * grid_interval) < self.WINDOW_SECONDS - 1e-9 \
+                and slot < len(self._vgrid_ids):
+            secs_ago = k * grid_interval
+            vx = ml + pw - (secs_ago / self.WINDOW_SECONDS) * pw
             c.coords(self._vgrid_ids[slot], vx, mt, vx, mt + ph)
-            secs_ago = t_latest - t_mark
-            if grid_interval >= 1:
-                label = f'-{secs_ago:.0f}s'
-            else:
-                label = f'-{secs_ago:.1f}s'
+            c.itemconfig(self._vgrid_ids[slot], state='normal')
             c.coords(self._vgrid_label_ids[slot], vx, mt + ph + 3)
-            c.itemconfig(self._vgrid_label_ids[slot], text=label, state='normal')
+            c.itemconfig(self._vgrid_label_ids[slot],
+                         text=label_fmt.format(secs_ago), state='normal')
             slot += 1
-            t_mark += grid_interval
+            k += 1
 
         # Hide unused grid slots
         for i in range(slot, len(self._vgrid_ids)):
             c.itemconfig(self._vgrid_ids[i], state='hidden')
             c.itemconfig(self._vgrid_label_ids[i], state='hidden')
 
-        # Axes
-        c.coords(self._yaxis_id, ml, mt, ml, mt + ph)
-        c.coords(self._xaxis_id, ml, mt + ph, ml + pw, mt + ph)
-
         c.coords(self._xlabel_l, ml, h - 2)
-        c.itemconfig(self._xlabel_l, text=f'-{self.WINDOW_SECONDS:.0f}s')
+        c.itemconfig(self._xlabel_l,
+                     text=label_fmt.format(self.WINDOW_SECONDS))
         c.coords(self._xlabel_r, ml + pw, h - 2)
-        c.itemconfig(self._xlabel_r, text='now')
+        c.itemconfig(self._xlabel_r, text='0s')
 
-        # Min/max envelope downsampl
         if len(visible) > pw * 3:
             n_buckets = max(pw, 4)
             bucket_w = t_span / n_buckets

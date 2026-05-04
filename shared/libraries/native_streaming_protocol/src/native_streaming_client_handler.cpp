@@ -276,6 +276,36 @@ void NativeStreamingClientImpl::tryReconnect()
     reconnectionTimer->expires_from_now(reconnectionPeriod);
     reconnectionTimer->async_wait(std::bind(&NativeStreamingClientImpl::checkReconnectionResult, this, std::placeholders::_1));
 
+    // Try alternative addresses if callback is available
+    bool clientWasReinitialized = false;
+    if (alternativeAddresses.assigned() && alternativeAddresses.getCount() > 1)
+    {
+        try
+        {
+            // Try next address in the list, cycling through all addresses
+            if (currentAddressIndex >= alternativeAddresses.getCount())
+                currentAddressIndex = 0;
+
+            StringPtr address = alternativeAddresses[currentAddressIndex++];
+            LOG_I("Trying to reconnect using alternative address {}/{}: {}:{}", 
+                    currentAddressIndex, alternativeAddresses.getCount(), address, primaryPort);
+
+            // Initialize client with new address
+            clientWasReinitialized = true;
+            initClient(address.toStdString(), primaryPort, primaryPath);
+            client->connect(connectionTimeout);
+
+            return;
+        }
+        catch (const std::exception& e)
+        {
+            LOG_W("Failed to get alternative addresses: {}", e.what());
+        }
+    }
+
+    if (clientWasReinitialized)
+        initClient(primaryHost, primaryPort, primaryPath);
+
     client->connect(connectionTimeout);
 }
 
@@ -438,6 +468,9 @@ void NativeStreamingClientImpl::onPacketBufferReceived(const packet_streaming::P
 void NativeStreamingClientImpl::initClientSessionHandler(SessionPtr session)
 {
     LOG_I("Client connected to server endpoint: {}:{}", session->getEndpointAddress(), session->getEndpointPortNumber());
+    
+    // Reset address index on successful connection so we start from the beginning next time
+    currentAddressIndex = 0;
 
     OnSessionErrorCallback errorHandler =
         [thisWeakPtr = this->weak_from_this()](const std::string& errorMessage, SessionPtr session)
@@ -556,10 +589,23 @@ void NativeStreamingClientImpl::onConnectionFailed(const std::string& errorMessa
     connectedPromise.set_value(result);
 }
 
-void NativeStreamingClientImpl::initClient(std::string host,
-                                              std::string port,
-                                              std::string path)
+void NativeStreamingClientImpl::setAlternativeAddresses(const ListPtr<IString>& alternativeAddresses)
 {
+    this->alternativeAddresses = alternativeAddresses;
+}
+
+void NativeStreamingClientImpl::initClient(std::string host,
+                                           std::string port,
+                                           std::string path)
+{
+    // Store current connection parameters for reconnection
+    if (primaryHost.empty())
+    {
+        primaryHost = host;
+        primaryPort = port;
+        primaryPath = path;
+    }
+
     const auto clientAuth = initClientAuthenticationObject(authenticationObject);
 
     OnNewSessionCallback onNewSessionCallback =
@@ -767,6 +813,11 @@ void NativeStreamingClientHandler::setStreamingToDeviceHandlers(const OnSignalSu
 bool NativeStreamingClientHandler::supportsToDeviceStreaming()
 {
    return toDeviceStreamingEnabled;
+}
+
+void NativeStreamingClientHandler::setAlternativeAddresses(const ListPtr<IString>& alternativeAddresses)
+{
+    clientHandlerPtr->setAlternativeAddresses(alternativeAddresses);
 }
 
 void NativeStreamingClientHandler::startTransportOperations()

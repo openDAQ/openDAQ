@@ -5,44 +5,43 @@
     ],
     "configurePresets": [
         {
+            "name": "_unstable_tests_overlay",
+            "hidden": true,
+            "cacheVariables": {
+                "OPENDAQ_SKIP_UNSTABLE_TESTS": false
+            }
+        },
+        {
             "name": "unstable_tests_ci",
             "hidden": false,
             "inherits": [
+                "_unstable_tests_overlay",
                 "ci"
-            ],
-            "cacheVariables": {
-                "OPENDAQ_SKIP_UNSTABLE_TESTS": false
-            }
-        },
-        {
-            "name": "unstable_tests_ci-msvc",
-            "hidden": true,
-            "inherits": [
-                "ci-msvc"
-            ],
-            "cacheVariables": {
-                "OPENDAQ_SKIP_UNSTABLE_TESTS": false
-            }
-        },
-        {
-            "name": "unstable_tests_ci-macos",
-            "hidden": true,
-            "inherits": [
-                "ci-macos"
-            ],
-            "cacheVariables": {
-                "OPENDAQ_SKIP_UNSTABLE_TESTS": false
-            }
+            ]
         },
         {
             "name": "unstable_tests_ci-legacy-compiler",
             "hidden": true,
             "inherits": [
+                "_unstable_tests_overlay",
                 "ci-legacy-compiler"
-            ],
-            "cacheVariables": {
-                "OPENDAQ_SKIP_UNSTABLE_TESTS": false
-            }
+            ]
+        },
+        {
+            "name": "unstable_tests_ci-legacy-compiler-x86",
+            "hidden": true,
+            "inherits": [
+                "_unstable_tests_overlay",
+                "ci-legacy-compiler-x86"
+            ]
+        },
+        {
+            "name": "unstable_tests_ci-no-bindings",
+            "hidden": true,
+            "inherits": [
+                "_unstable_tests_overlay",
+                "ci-no-bindings"
+            ]
         }
     ],
     "testPresets": [

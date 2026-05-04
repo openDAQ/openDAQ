@@ -22,7 +22,7 @@ jobs:
           "windows-2025-x86-msvs-v143-release",
           "windows-2025-x86_64-ninja-clang-release",
           "windows-2025-x86_64-ninja-intel-cc-release",
-          "ubuntu-20.04-x86_64-ninja-gcc-7-release",
+          "ubuntu-20.04-x86-ninja-gcc-7-release",
           "ubuntu-20.04-x86_64-ninja-clang-9-release",
           "ubuntu-24.04-x86_64-ninja-gcc-14-debug",
           "ubuntu-24.04-x86_64-ninja-gcc-14-release",
@@ -34,15 +34,20 @@ jobs:
       packages: >
         [
           {
-            "match-jobs": ["ubuntu-*"],
+            "match-jobs": ["ubuntu-*-x86_64-*"],
             "apt-install": ["lld", "libx11-dev", "libxi-dev", "libxcursor-dev", "libxrandr-dev", "libgl-dev", "libudev-dev", "libfreetype6-dev"]
           },
           {
+            "match-jobs": ["ubuntu-*-x86-*"],
+            "apt-install": ["lld", "libx11-dev:i386", "libxi-dev:i386", "libxcursor-dev:i386", "libxrandr-dev:i386", "libgl-dev:i386", "libudev-dev:i386", "libfreetype6-dev:i386"]
+          },
+          {
+            "match-jobs": ["windows-*", "*-x86_64-*", "macos-*"],
             "pip-install": ["numpy"],
             "use-python-version": "3.14"
           },
           {
-            "match-jobs": ["ubuntu-20.04-*-gcc-7-*", "ubuntu-20.04-*-clang-9-*"],
+            "match-jobs": ["ubuntu-20.04-*-clang-9-*"],
             "use-python-version": "3.8"
           }
         ]
@@ -53,17 +58,16 @@ jobs:
             "test-preset": "run_tests"
           },
           {
-            "match-jobs": ["windows-*-msvs-*"],
-            "configure-preset": "ci-msvc"
-          },
-          {
-            "match-jobs": ["ubuntu-20.04-*-gcc-7-*", "ubuntu-20.04-*-clang-9-*"],
-            "configure-preset": "ci-legacy-compiler"
-          },
-          {
             "match-jobs": ["macos-*"],
-            "configure-preset": "ci-macos",
             "run-tests-priv": true
+          },
+          {
+            "match-jobs": ["ubuntu-20.04-x86-*"],
+            "configure-preset": "ci-legacy-compiler-x86"
+          },
+          {
+            "match-jobs": ["ubuntu-20.04-*-clang-9-*"],
+            "configure-preset": "ci-legacy-compiler"
           },
           {
             "match-jobs": ["*-intel-cc-*"],

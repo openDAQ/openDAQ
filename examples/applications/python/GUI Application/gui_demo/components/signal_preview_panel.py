@@ -22,7 +22,6 @@ class SignalPreviewPanel(ttk.Frame):
     _GRID    = '#e4e4e4'
     _TEXT    = '#444444'
     _AXIS    = '#999999'
-    _FILL    = '#dceafa'
 
     _AXIS_FONT = ('TkFixedFont', 7)
     _VAL_FONT  = ('TkFixedFont', 10, 'bold')
@@ -466,10 +465,7 @@ class SignalPreviewPanel(ttk.Frame):
         c = self._chart
         c.delete('all')
 
-        # Z-order: fill -> grid -> axes -> line -> labels
-
-        self._fill_id = c.create_polygon(
-            0, 0, 0, 0, 0, 0, fill=self._FILL, outline='', state='hidden')
+        # Z-order: grid -> axes -> line -> labels
 
         # Horizontal grid
         self._hgrid_ids = []
@@ -549,9 +545,8 @@ class SignalPreviewPanel(ttk.Frame):
 
         if not has_data:
             c.coords(self._nodata_id, w // 2, h // 2)
-            c.itemconfig(self._nodata_id, text='No data', state='normal')
+            c.itemconfig(self._nodata_id, text='None', state='normal')
             c.itemconfig(self._line_id, state='hidden')
-            c.itemconfig(self._fill_id, state='hidden')
             c.itemconfig(self._badge_id, state='hidden')
             c.itemconfig(self._badge_bg_id, state='hidden')
             return
@@ -568,7 +563,6 @@ class SignalPreviewPanel(ttk.Frame):
             c.coords(self._nodata_id, w // 2, h // 2)
             c.itemconfig(self._nodata_id, text='Waiting...', state='normal')
             c.itemconfig(self._line_id, state='hidden')
-            c.itemconfig(self._fill_id, state='hidden')
             c.itemconfig(self._badge_id, state='hidden')
             c.itemconfig(self._badge_bg_id, state='hidden')
             return

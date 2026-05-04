@@ -359,6 +359,19 @@
                 "OPENDAQ_GENERATE_PYTHON_BINDINGS": false,
                 "OPENDAQ_GENERATE_CSHARP_BINDINGS": false
             }
+        },
+        {
+            "name": "ci-legacy-compiler-x86",
+            "hidden": true,
+            "inherits": [
+                "ci-legacy-compiler"
+            ],
+            "cacheVariables": {
+                "OPENDAQ_FORCE_COMPILE_32BIT": true,
+                "OPENDAQ_GENERATE_PYTHON_BINDINGS": false,
+                "OPENDAQ_GENERATE_CSHARP_BINDINGS": false,
+                "CMAKE_CXX_FLAGS": "-Wno-error=shift-count-overflow"
+            }
         }
     ],
     "testPresets": [

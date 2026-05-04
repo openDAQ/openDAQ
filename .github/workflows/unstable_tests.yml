@@ -6,9 +6,67 @@ on:
   workflow_dispatch:
 
 jobs:
-  run-ci-jobs:
+  ci:
     if: ${{ github.event_name == 'workflow_dispatch' || github.ref == 'refs/heads/main' }}
-    uses: ./.github/workflows/ci.yml
+    name: openDAQ (unstable)
+    uses: openDAQ/openDAQ-CI/.github/workflows/reusable.yml@jira/TBBAS-3212-support-opendaq-ci
     with:
-      cmake_preset: unstable_tests_ci
-      ctest_preset: run_unstable_test_repeatedly
+      timeout: '[{"timeout-minutes": 270}]'
+      include-jobs: >
+        [
+          "windows-2025-x86_64-msvs-v143-debug",
+          "windows-2025-x86-msvs-v143-release",
+          "windows-2025-x86_64-ninja-clang-release",
+          "windows-2025-x86_64-ninja-intel-cc-release",
+          "ubuntu-20.04-x86-ninja-gcc-7-release",
+          "ubuntu-20.04-x86_64-ninja-clang-9-release",
+          "ubuntu-24.04-x86_64-ninja-gcc-14-debug",
+          "ubuntu-24.04-x86_64-ninja-gcc-14-release",
+          "ubuntu-24.04-x86_64-ninja-clang-18-release",
+          "macos-26-x86_64-ninja-appleclang-debug",
+          "macos-26-armv8-ninja-appleclang-release",
+          "macos-15-x86_64-ninja-appleclang-release"
+        ]
+      packages: >
+        [
+          {
+            "match-jobs": ["ubuntu-*-x86_64-*"],
+            "apt-install": ["lld", "libx11-dev", "libxi-dev", "libxcursor-dev", "libxrandr-dev", "libgl-dev", "libudev-dev", "libfreetype6-dev"]
+          },
+          {
+            "match-jobs": ["ubuntu-*-x86-*"],
+            "apt-install": ["lld", "libx11-dev:i386", "libxi-dev:i386", "libxcursor-dev:i386", "libxrandr-dev:i386", "libgl-dev:i386", "libudev-dev:i386", "libfreetype6-dev:i386"]
+          },
+          {
+            "match-jobs": ["windows-*", "*-x86_64-*", "macos-*"],
+            "pip-install": ["numpy"],
+            "use-python-version": "3.14"
+          },
+          {
+            "match-jobs": ["ubuntu-20.04-*-gcc-7-*", "ubuntu-20.04-*-clang-9-*"],
+            "use-python-version": "3.8"
+          }
+        ]
+      cmake-presets: >
+        [
+          {
+            "configure-preset": "unstable_tests_ci",
+            "test-preset": "run_unstable_test_repeatedly"
+          },
+          {
+            "match-jobs": ["ubuntu-20.04-*-gcc-7-*", "ubuntu-20.04-*-clang-9-*"],
+            "configure-preset": "unstable_tests_ci-legacy-compiler"
+          },
+          {
+            "match-jobs": ["macos-*"],
+            "run-tests-priv": true
+          },
+          {
+            "match-jobs": ["*-intel-cc-*"],
+            "configure-preset": "unstable_tests_ci-no-bindings"
+          },
+          {
+            "match-jobs": ["ubuntu-20.04-x86-*"],
+            "configure-preset": "unstable_tests_ci-legacy-compiler-x86"
+          }
+        ]

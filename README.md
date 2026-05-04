@@ -41,92 +41,31 @@ documentation can be built with Antora by following the guide found in [docs/Ant
 
 #### Supported compilers and platforms:
 
-<table>
-  <tr>
-   <td><strong>OS</strong></td>
-   <td><strong>Platform</strong></td>
-   <td><strong>GCC 7+</strong></td>
-   <td><strong>Clang 5+</strong></td>
-   <td><strong>VC++ (v14.1+)</strong></td>
-  </tr>
-  <tr>
-   <td rowspan="2">Windows <br>(Visual Studio)</td>
-   <td>x86, x64</td>
-   <td rowspan="2">/</td>
-   <td>✅</td>
-   <td>✅</td>
-  </tr>
-  <tr>
-   <td>arm64</td>
-   <td>⚠️🛠️</td>
-   <td>⚠️🛠️</td>
-  </tr>
-  <tr>
-   <td rowspan="1">Windows <br>(MinGW)</td>
-   <td>x86, x64</td>
-   <td>☑️</td>
-   <td>☑️</td>
-   <td rowspan="10">/
-   </td>
-  </tr>
-  <tr>
-   <td rowspan="2">Linux</td>
-   <td>x86, x64</td>
-   <td>✅</td>
-   <td>✅</td>
-  </tr>
-  <tr>
-   <td>armhfv7, aarch64</td>
-   <td>☑️</td>
-   <td>☑️</td>
-  </tr>
-  <tr>
-   <td rowspan="2">MacOS <br>(>= 10.15)</td>
-   <td>x64</td>
-   <td>☑️</td>
-   <td>✅</td>
-  </tr>
-  <tr>
-   <td>arm64</td>
-   <td>☑️</td>
-   <td>☑️</td>
-  </tr>
-  <tr>
-   <td>iOS</td>
-   <td>arm64</td>
-   <td>🛠️</td>
-   <td>🛠️</td>
-  </tr>
-  <tr>
-   <td>Android</td>
-   <td>aarch64</td>
-   <td>🛠️</td>
-   <td>🛠️</td>
-  </tr>
-</table>
+| OS           | Arch   | Generator | Compiler    | Build type |
+|--------------|--------|-----------|-------------|------------|
+| windows-2025 | x86_64 | msvs v143 | VC++        | Debug      |
+| windows-2025 | x86    | msvs v143 | VC++        | Release    |
+| windows-2025 | x86_64 | ninja     | clang       | Release    |
+| windows-2025 | x86_64 | ninja     | intel-cc ²  | Release    |
+| ubuntu-20.04 | x86_64 | ninja     | gcc-7 ¹     | Release    |
+| ubuntu-20.04 | x86_64 | ninja     | clang-9 ¹   | Release    |
+| ubuntu-24.04 | x86_64 | ninja     | gcc-14      | Debug      |
+| ubuntu-24.04 | x86_64 | ninja     | gcc-14      | Release    |
+| ubuntu-24.04 | x86_64 | ninja     | clang-18    | Release    |
+| macos-15     | x86_64 | ninja     | appleclang  | Release    |
+| macos-26     | x86_64 | ninja     | appleclang  | Debug      |
+| macos-26     | armv8  | ninja     | appleclang  | Release    |
 
-<table>
-  <tr>
-   <td>✅</td>
-   <td>Actively supported (checked with CI)</td>
-  </tr>
-  <tr>
-   <td>☑️</td>
-   <td>Actively supported (no CI)</td>
-  </tr>
-  <tr>
-   <td>⚠️</td>
-   <td>Not actively supported</td>
-  </tr>
-  <tr>
-   <td>🛠️</td>
-   <td>Requires some manual changes or special configuration</td>
-  </tr>
-</table>
+¹ On legacy compilers (gcc-7, clang-9) the `ci-legacy-compiler` preset disables:
+- `DAQMODULES_REF_FB_MODULE_ENABLE_RENDERER` — SFML 3.0 requires full C++17 support
+- `DAQMODULES_BASIC_CSV_RECORDER_MODULE` — Arrow/Parquet requires a modern compiler
+- `OPENDAQ_PYTHON_VERSION=3.8` — newer Python is not available on ubuntu-20.04 out of the box
 
-> **Note:** When building with GCC < 8, the renderer module must be disabled
-> (`-DDAQMODULES_REF_FB_MODULE_ENABLE_RENDERER=OFF`), as it depends on SFML 3.0 which requires
-> full C++17 support not available in earlier compiler versions.
+² On Intel oneAPI DPC++/C++ Compiler (`icx`) the `ci-no-bindings` preset disables:
+- `OPENDAQ_GENERATE_PYTHON_BINDINGS`
+- `OPENDAQ_GENERATE_CSHARP_BINDINGS`
+
+The CI matrix is provided by [openDAQ-CI](https://github.com/openDAQ/openDAQ-CI)'s reusable workflow.
 
 ### Required tools before building
 

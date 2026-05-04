@@ -5,329 +5,72 @@ on:
   pull_request:
     types: [opened, reopened, synchronize, ready_for_review]
 
-  workflow_call:
-    inputs:
-      cmake_preset:
-        required: false
-        type: string
-      ctest_preset:
-        required: false
-        type: string
-
-env:
-  cmake_preset: ${{ inputs.cmake_preset != '' && inputs.cmake_preset || 'ci' }}
-  ctest_preset: ${{ inputs.ctest_preset != '' && inputs.ctest_preset || 'run_tests' }}
-  OPENDAQ_SINK_CONSOLE_LOG_LEVEL: 1
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
-  build_windows:
-    runs-on: windows-latest
-    name: ${{ matrix.name }}
+  ci:
     if: ${{ ! github.event.pull_request.draft }}
-
-    concurrency:
-      group: ${{ github.workflow }}-${{ github.head_ref }}-${{ matrix.name }}
-      cancel-in-progress: true
-    timeout-minutes: 270
-    env:
-      CC: ${{ matrix.cc }}
-      CXX: ${{ matrix.cxx }}
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - name: Windows VS 2022 x64 Release
-            cmake-build-type: Release
-            cmake-defines:
-            cmake-generator: "Visual Studio 17 2022"
-            enable-tests: true
-          - name: Windows VS 2022 x64 Debug
-            cmake-build-type: Debug
-            cmake-defines:
-            cmake-generator: "Visual Studio 17 2022"
-            enable-tests: true
-          - name: Windows VS 2022 Win32 Release
-            cmake-build-type: Release
-            cmake-defines:
-            cmake-generator: "Visual Studio 17 2022"
-            enable-32bit: true
-            enable-tests: true
-          - name: Windows Clang Release
-            cc: clang
-            cxx: clang++
-            cmake-build-type: Release
-            cmake-defines:
-            cmake-generator: Ninja
-            enable-tests: true
-          - name: Windows GCC Release
-            cc: gcc
-            cxx: g++
-            cmake-build-type: Release
-            cmake-defines: >-
-              "-DCMAKE_CXX_FLAGS=-Wa,-mbig-obj -Wno-deprecated-declarations -Wno-error=conversion-null"
-              "-DCMAKE_C_FLAGS=-Wa,-mbig-obj"
-            cmake-generator: Ninja
-            # Tests are disabled due to:
-            # - test_device_modules memory corruption
-            # - Python tests module resolution issues
-            enable-tests: false
-          - name: Windows Intel-LLVM Release
-            cc: icx
-            cxx: icx
-            cmake-build-type: Release
-            cmake-defines: >-
-              -DOPENDAQ_GENERATE_PYTHON_BINDINGS=OFF
-              -DOPENDAQ_GENERATE_CSHARP_BINDINGS=OFF
-            cmake-generator: Ninja
-            enable-tests: true
-
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Build and Test
-        id: build-and-test
-        uses: ./.github/actions/build-sdk
-        with:
-          cmake-build-type: ${{ matrix.cmake-build-type }}
-          cmake-config-preset: ${{ env.cmake_preset }}
-          cmake-config-args: ${{ matrix.cmake-defines }}
-          cmake-generator: ${{ matrix.cmake-generator }}
-          enable-32bit: ${{ matrix.enable-32bit == true }}
-          enable-tests: ${{ matrix.enable-tests == true }}
-          ctest-preset: ${{ env.ctest_preset }}
-
-      - name: Upload test results
-        if: ${{ always() && matrix.enable-tests == true }}        
-        uses: actions/upload-artifact@v4
-        with:
-          name: Unit Test Results (${{ matrix.name }})
-          path: ${{ steps.build-and-test.outputs.gtest-xml-path }}
-
-  build_linux:
-    runs-on: ubuntu-latest
-    name: ${{ matrix.name }}
-    if: ${{ ! github.event.pull_request.draft }}
-
-    concurrency:
-      group: ${{ github.workflow }}-${{ github.head_ref }}-${{ matrix.name }}
-      cancel-in-progress: true
-    timeout-minutes: 180
-    env:
-      CC: ${{ matrix.cc }}
-      CXX: ${{ matrix.cxx }}
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - name: Ubuntu Latest gcc-9 Release
-            cc: gcc-9
-            cxx: g++-9
-            additional-packages: g++-9
-            cmake-generator: Ninja
-            cmake-build-type: Release
-            cmake-defines:
-          - name: Ubuntu Latest gcc-14 Release
-            cc: gcc-14
-            cxx: g++-14
-            additional-packages: g++-14
-            cmake-generator: Ninja
-            cmake-build-type: Release
-            cmake-defines:
-          - name: Ubuntu Latest clang-14 Release
-            cc: clang-14
-            cxx: clang++-14
-            additional-packages: clang-14
-            cmake-generator: Ninja
-            cmake-build-type: Release
-            cmake-defines:
-          - name: Ubuntu Latest clang-16 Release
-            cc: clang-16
-            cxx: clang++-16
-            additional-packages: clang-16
-            cmake-generator: Ninja
-            cmake-build-type: Release
-            cmake-defines:
-          - name: Ubuntu Latest gcc x86_32 Release
-            cc: gcc
-            cxx: g++
-            additional-packages:
-            cmake-generator: Ninja
-            cmake-build-type: Release
-            cmake-defines: >-
-              -DOPENDAQ_GENERATE_PYTHON_BINDINGS=OFF 
-              -DOPENDAQ_GENERATE_CSHARP_BINDINGS=OFF
-            enable-32bit: true
-          # The Debug configurations are disabled until the problem with test_py_opendaq is resolved.
-          # - name: Ubuntu Latest gcc-9 Debug
-          #   cc: gcc-9
-          #   cxx: g++-9
-          #   additional-packages: g++-9
-          #   cmake-generator: Ninja
-          #   cmake-build-type: Debug
-          #   cmake-defines:
-          # - name: Ubuntu Latest gcc-14 Debug
-          #   cc: gcc-14
-          #   cxx: g++-14
-          #   additional-packages: g++-14
-          #   cmake-generator: Ninja
-          #   cmake-build-type: Debug
-          #   cmake-defines:
-          # - name: Ubuntu Latest clang-14 Debug
-          #   cc: clang-14
-          #   cxx: clang++-14
-          #   additional-packages: clang-14
-          #   cmake-generator: Ninja
-          #   cmake-build-type: Debug
-          #   cmake-defines:
-          # - name: Ubuntu Latest clang-16 Debug
-          #   cc: clang-16
-          #   cxx: clang++-16
-          #   additional-packages: clang-16
-          #   cmake-generator: Ninja
-          #   cmake-build-type: Debug
-          #   cmake-defines:
-
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Build and Test
-        id: build-and-test
-        uses: ./.github/actions/build-sdk
-        with:
-          additional-dependencies: ${{ matrix.additional-packages }}
-          cmake-build-type: ${{ matrix.cmake-build-type }}
-          cmake-config-preset: ${{ env.cmake_preset }}
-          cmake-config-args: ${{ matrix.cmake-defines }}
-          cmake-generator: ${{ matrix.cmake-generator }}
-          enable-32bit: ${{ matrix.enable-32bit == true }}
-          enable-tests: true
-          ctest-preset: ${{ env.ctest_preset }}
-
-      - name: Upload test results
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: Unit Test Results (${{ matrix.name }})
-          path: ${{ steps.build-and-test.outputs.gtest-xml-path }}
-
-  build_macos:
-    name: ${{ matrix.name }}
-    runs-on: ${{ matrix.runner }}
-    if: ${{ ! github.event.pull_request.draft }}
-
-    concurrency:
-      group: ${{ github.workflow }}-${{ github.head_ref }}-${{ matrix.name }}
-      cancel-in-progress: true
-    timeout-minutes: 240
-    env:
-      CC: ${{ matrix.cc }}
-      CXX: ${{ matrix.cxx }}
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - name: MacOS Latest Clang Release
-            cc: /usr/bin/clang
-            cxx: clang++
-            cmake-generator: Ninja
-            cmake-build-type: Release
-            cmake-defines: -DCMAKE_OSX_DEPLOYMENT_TARGET=10.15
-            runner: macos-latest
-          - name: MacOS 15 Intel Clang Release
-            cc: /usr/bin/clang
-            cxx: /usr/bin/clang++
-            cmake-generator: Ninja
-            cmake-build-type: Release
-            cmake-defines: -DCMAKE_OSX_DEPLOYMENT_TARGET=10.15
-            runner: macos-15-intel
-
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Build and Test
-        id: build-and-test
-        uses: ./.github/actions/build-sdk
-        with:
-          cmake-build-type: ${{ matrix.cmake-build-type }}
-          cmake-config-preset: ${{ env.cmake_preset }}
-          cmake-config-args: ${{ matrix.cmake-defines }}
-          cmake-generator: ${{ matrix.cmake-generator }}
-          enable-tests: true
-          ctest-preset: ${{ env.ctest_preset }}
-
-      - name: Upload test results
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: Unit Test Results (${{ matrix.name }})
-          path: ${{ steps.build-and-test.outputs.gtest-xml-path }}
-
-  # build_android:
-  #   runs-on: ubuntu-latest-8-cores
-  #   # ${{ }} expression syntax because of leading '!'
-  #   if: ${{ ! github.event.pull_request.draft }}
-  #
-  #   concurrency:
-  #     group: ${{ github.workflow }}-${{ github.head_ref }}-${{ matrix.abi }}
-  #     cancel-in-progress: true
-  #   strategy:
-  #     fail-fast: true
-  #     matrix:
-  #       android_abi: [arm64-v8a]
-  #       # android_abi: [arm64-v8a, armeabi-v7a, x86_64]
-  #       android_version: [24]
-  #       cmake_build_type: [Debug]
-  #   env:
-  #     android_ndk_version: r25c
-  #     android_ndk_path: ${{ github.workspace }}/android-ndk-r25c
-  #     android_ndk_zip: ${{ github.workspace }}/android-ndk-r25c-linux.zip
-  #     android_ndk_url: https://dl.google.com/android/repository/android-ndk-r25c-linux.zip
-  #
-  #   steps:
-  #
-  #     - uses: actions/checkout@v4
-  #     - name: Checkout
-  #       uses: actions/checkout@v4
-  #
-  #     - name: Install build dependencies
-  #       run: |
-  #         sudo apt-get install -y --no-install-recommends ninja-build
-  #     - name: Cache Android NDK
-  #       id: cache-ndk
-  #       uses: actions/cache@v3
-  #       with:
-  #         path: ${{ env.android_ndk_zip }}
-  #         key: ${{ runner.os }}-android-ndk
-  #
-  #     - name: Download Android NDK
-  #       if: steps.cache-ndk.outputs.cache-hit != 'true'
-  #       run: wget ${{ env.android_ndk_url }}
-  #
-  #     - name: Extract Android NDK
-  #       run: unzip ${{ env.android_ndk_zip }}
-  #
-  #     - name: Configure
-  #       run: |
-  #         mkdir build
-  #         cd build
-  #         cmake -G Ninja --preset ${{ env.cmake_preset }} \
-  #           -DOPENDAQ_USE_SOURCE_BOOST=ON \
-  #           -DOPENDAQ_GENERATE_PYTHON_BINDINGS=OFF \
-  #           -DOPENDAQ_ENABLE_TESTS=OFF \
-  #           -DCMAKE_TOOLCHAIN_FILE=${{ env.android_ndk_path }}/build/cmake/android.toolchain.cmake \
-  #           -DCMAKE_ANDROID_NDK=${{ env.android_ndk_path }} \
-  #           -DCMAKE_BUILD_TYPE=${{ matrix.cmake_build_type }} \
-  #           -DCMAKE_SYSTEM_NAME=Android \
-  #           -DCMAKE_SYSTEM_VERSION=${{ matrix.android_version }} \
-  #           -DCMAKE_EXPORT_COMPILE_COMMANDS=ON \
-  #           -DANDROID_ABI=${{ matrix.android_abi }} \
-  #           -DANDROID_NDK=${{ env.android_ndk_path }} \
-  #           -DANDROID_PLATFORM=android-${{ matrix.android_version }} \
-  #           -DCI_GIT_BRANCH=${{ github.head_ref }} \
-  #           ..
-  #     - name: Build
-  #       working-directory: ./build
-  #       run: cmake --build .
+    name: openDAQ
+    uses: openDAQ/openDAQ-CI/.github/workflows/reusable.yml@jira/TBBAS-3212-support-opendaq-ci
+    with:
+      timeout: '[{"timeout-minutes": 270}]'
+      include-jobs: >
+        [
+          "windows-2025-x86_64-msvs-v143-debug",
+          "windows-2025-x86-msvs-v143-release",
+          "windows-2025-x86_64-ninja-clang-release",
+          "windows-2025-x86_64-ninja-intel-cc-release",
+          "ubuntu-20.04-x86-ninja-gcc-7-release",
+          "ubuntu-20.04-x86_64-ninja-clang-9-release",
+          "ubuntu-24.04-x86_64-ninja-gcc-14-debug",
+          "ubuntu-24.04-x86_64-ninja-gcc-14-release",
+          "ubuntu-24.04-x86_64-ninja-clang-18-release",
+          "macos-26-x86_64-ninja-appleclang-debug",
+          "macos-26-armv8-ninja-appleclang-release",
+          "macos-15-x86_64-ninja-appleclang-release"
+        ]
+      packages: >
+        [
+          {
+            "match-jobs": ["ubuntu-*-x86_64-*"],
+            "apt-install": ["lld", "libx11-dev", "libxi-dev", "libxcursor-dev", "libxrandr-dev", "libgl-dev", "libudev-dev", "libfreetype6-dev"]
+          },
+          {
+            "match-jobs": ["ubuntu-*-x86-*"],
+            "apt-install": ["lld", "libx11-dev:i386", "libxi-dev:i386", "libxcursor-dev:i386", "libxrandr-dev:i386", "libgl-dev:i386", "libudev-dev:i386", "libfreetype6-dev:i386"]
+          },
+          {
+            "match-jobs": ["windows-*", "*-x86_64-*", "macos-*"],
+            "pip-install": ["numpy"],
+            "use-python-version": "3.14"
+          },
+          {
+            "match-jobs": ["ubuntu-20.04-*-clang-9-*"],
+            "use-python-version": "3.8"
+          }
+        ]
+      cmake-presets: >
+        [
+          {
+            "configure-preset": "ci",
+            "test-preset": "run_tests"
+          },
+          {
+            "match-jobs": ["macos-*"],
+            "run-tests-priv": true
+          },
+          {
+            "match-jobs": ["ubuntu-20.04-x86-*"],
+            "configure-preset": "ci-legacy-compiler-x86"
+          },
+          {
+            "match-jobs": ["ubuntu-20.04-*-clang-9-*"],
+            "configure-preset": "ci-legacy-compiler"
+          },
+          {
+            "match-jobs": ["*-intel-cc-*"],
+            "configure-preset": "ci-no-bindings"
+          }
+        ]

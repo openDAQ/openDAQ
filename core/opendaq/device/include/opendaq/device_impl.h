@@ -2445,6 +2445,7 @@ void GenericDevice<TInterface, Interfaces...>::updateObject(const SerializedObje
 
         devicesFolder.checkObjectType("Folder");
 
+        // Remove devices with Remap update mode in advance (enables A->B and B->A case)
         this->removeRemappedDevices(devicesFolder, context);
 
         // Assume none of the currently connected devices are referenced by the serialized configuration
@@ -2469,6 +2470,8 @@ void GenericDevice<TInterface, Interfaces...>::updateObject(const SerializedObje
                                    devicesWithoutReference.erase(remapping.get(localId));
                            });
 
+        // Remove devices that are not in the setup and are not targets of remapping.
+        // Removing after folder update allows us to remap to existing device without first removing it (A->B with B already connected case).
         Bool removeOldDevices = contextPtr.getUpdateParameters().getRemoveOldDevices();
         if (removeOldDevices == True)
         {

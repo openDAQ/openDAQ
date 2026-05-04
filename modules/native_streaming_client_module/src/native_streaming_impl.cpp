@@ -67,19 +67,22 @@ ErrCode NativeStreamingImpl::setOwnerDevice(const DevicePtr& device)
 {
     OPENDAQ_RETURN_IF_FAILED(Super::setOwnerDevice(device));
 
-    const PropertyObjectPtr componentConfig = device.asPtr<IComponentPrivate>(true).getComponentConfig();
-    const DeviceInfoPtr deviceInfo = device.getInfo();
+    if (device.assigned())
+    {
+        const PropertyObjectPtr componentConfig = device.asPtr<IComponentPrivate>(true).getComponentConfig();
+        const DeviceInfoPtr deviceInfo = device.getInfo();
 
-    ListPtr<IString> alternativeAddresses;
-    const ErrCode errCode = collectAlternativeAddresses(componentConfig, 
-                                                        deviceInfo,
-                                                        "OpenDAQNativeStreaming", 
-                                                        alternativeAddresses);
+        ListPtr<IString> alternativeAddresses;
+        const ErrCode errCode = collectAlternativeAddresses(componentConfig, 
+                                                            deviceInfo,
+                                                            "OpenDAQNativeStreaming", 
+                                                            alternativeAddresses);
 
-    OPENDAQ_RETURN_IF_FAILED(errCode);
-    
-    if (errCode == OPENDAQ_SUCCESS)
-        transportClientHandler->setAlternativeAddresses(alternativeAddresses);
+        OPENDAQ_RETURN_IF_FAILED(errCode);
+        
+        if (errCode == OPENDAQ_SUCCESS)
+            transportClientHandler->setAlternativeAddresses(alternativeAddresses);
+    }
 
     return OPENDAQ_SUCCESS;
 }

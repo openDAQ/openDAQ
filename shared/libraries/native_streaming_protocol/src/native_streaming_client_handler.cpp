@@ -277,6 +277,7 @@ void NativeStreamingClientImpl::tryReconnect()
     reconnectionTimer->async_wait(std::bind(&NativeStreamingClientImpl::checkReconnectionResult, this, std::placeholders::_1));
 
     // Try alternative addresses if callback is available
+    bool clientWasReinitialized = false;
     if (alternativeAddresses.assigned() && alternativeAddresses.getCount() > 1)
     {
         try
@@ -285,16 +286,15 @@ void NativeStreamingClientImpl::tryReconnect()
             if (currentAddressIndex >= alternativeAddresses.getCount())
                 currentAddressIndex = 0;
 
-            StringPtr address = alternativeAddresses[currentAddressIndex];
+            StringPtr address = alternativeAddresses[currentAddressIndex++];
             LOG_I("Trying to reconnect using alternative address {}/{}: {}:{}", 
-                    currentAddressIndex + 1, alternativeAddresses.getCount(), address, primaryPort);
+                    currentAddressIndex, alternativeAddresses.getCount(), address, primaryPort);
 
             // Initialize client with new address
+            clientWasReinitialized = true;
             initClient(address.toStdString(), primaryPort, primaryPath);
             client->connect(connectionTimeout);
 
-            // Move to next address for next reconnection attempt
-            currentAddressIndex++;
             return;
         }
         catch (const std::exception& e)
@@ -302,22 +302,11 @@ void NativeStreamingClientImpl::tryReconnect()
             LOG_W("Failed to get alternative addresses: {}", e.what());
         }
     }
-    else
-    {
-        LOG_D("No alternative addresses callback set for reconnection");
-    }
 
-    // Fallback to original connection parameters
-    if (!primaryHost.empty() && !primaryPort.empty())
-    {
+    if (clientWasReinitialized)
         initClient(primaryHost, primaryPort, primaryPath);
-        client->connect(connectionTimeout);
-    }
-    else
-    {
-        LOG_W("No connection parameters available for reconnection");
-        onConnectionFailed("No connection parameters available", ConnectionResult::ServerUnreachable);
-    }
+
+    client->connect(connectionTimeout);
 }
 
 void NativeStreamingClientImpl::connectionStatusChanged(const EnumerationPtr& status, const StringPtr& statusMessage)
@@ -610,9 +599,12 @@ void NativeStreamingClientImpl::initClient(std::string host,
                                            std::string path)
 {
     // Store current connection parameters for reconnection
-    primaryHost = host;
-    primaryPort = port;
-    primaryPath = path;
+    if (primaryHost.empty())
+    {
+        primaryHost = host;
+        primaryPort = port;
+        primaryPath = path;
+    }
 
     const auto clientAuth = initClientAuthenticationObject(authenticationObject);
 

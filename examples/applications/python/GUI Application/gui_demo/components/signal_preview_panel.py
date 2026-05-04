@@ -9,14 +9,13 @@ import opendaq as daq
 
 from .. import utils
 
-
 class SignalPreviewPanel(ttk.Frame):
     WINDOW_SECONDS = 1.0
     MAX_BUFFER_SIZE = 100_000
     POLL_MS = 33          # drain the reader this often
     _TARGET_PPS = 2000
     DRAW_MS = 66         # repaint the chart this often
-    CANVAS_HEIGHT = 160
+    CANVAS_HEIGHT = 180
 
     _BG      = '#ffffff'
     _LINE    = '#1a6dcc'
@@ -65,7 +64,6 @@ class SignalPreviewPanel(ttk.Frame):
         self._content_frame.pack(
             fill=tk.BOTH, expand=True, after=self._toggle_frame)
         self._populate_dropdown()
-
         self._schedule_poll()
         self._schedule_draw()
         self.bind('<Destroy>', self._on_destroy)
@@ -76,39 +74,66 @@ class SignalPreviewPanel(ttk.Frame):
 
     def _build_content(self):
         self._content_frame = ttk.Frame(self)
-        dd_row = ttk.Frame(self._content_frame)
-        dd_row.pack(fill=tk.X, padx=(4,17), pady=(4, 2))
 
-        ttk.Label(dd_row, text='Signal:').pack(side=tk.LEFT, padx=(0, 4))
+        controls = ttk.Frame(self._content_frame)
+        controls.pack(fill=tk.X, padx=(12, 29), pady=(4, 2))
 
+        # Headers
+        ttk.Label(controls, text='Signal').grid(
+            row=0, column=0, sticky=tk.W)
+        ttk.Label(controls, text='Duration').grid(
+            row=0, column=1, sticky=tk.W, padx=(8, 0))
+        
+        # Scale
+        self._scale_header = ttk.Label(
+            controls, text='Scale')
+        self._scale_header.grid(row=0, column=2, sticky=tk.W, padx=(8, 0))
+        ttk.Label(controls, text='Last value').grid(
+            row=0, column=3, sticky=tk.W, padx=(8, 0))
+
+        # Signal dropdown
         self._signal_var = tk.StringVar()
         self._dropdown = ttk.Combobox(
-            dd_row, textvariable=self._signal_var, state='readonly')
-        self._dropdown.pack(side=tk.LEFT, fill=tk.X, expand=True)
+            controls, textvariable=self._signal_var, state='readonly')
+        self._dropdown.grid(row=1, column=0, sticky=tk.EW)
         self._dropdown.bind('<<ComboboxSelected>>', self._on_signal_selected)
 
-        # Duration selector
+        # Duration combobox
         self._duration_presets = [0.1, 0.2, 0.5, 1]
         self._duration_var = tk.StringVar(value='1s')
         dur_cb = ttk.Combobox(
-            dd_row, textvariable=self._duration_var,
+            controls, textvariable=self._duration_var,
             values=[f'{d}s' for d in self._duration_presets], width=6)
-        dur_cb.pack(side=tk.LEFT, padx=(4, 0))
+        dur_cb.grid(row=1, column=1, sticky=tk.W, padx=(8, 0))
         dur_cb.bind('<<ComboboxSelected>>', self._on_duration_committed)
         dur_cb.bind('<Return>', self._on_duration_committed)
         dur_cb.bind('<FocusOut>', self._on_duration_committed)
 
-        self._log_var = tk.BooleanVar(value=False)
-        log_cb = ttk.Checkbutton(
-            dd_row, text='Logarithm', variable=self._log_var,
-            command=self._on_log_toggled)
-        log_cb.pack(side=tk.LEFT, padx=(4, 0))
+        # Scale
+        self._scale_var = tk.StringVar(value='Linear')
+        self._scale_cb = ttk.Combobox(
+            controls, textvariable=self._scale_var, state='readonly',
+            values=['Linear', 'Log'], width=7)
+        self._scale_cb.grid(row=1, column=2, sticky=tk.W, padx=(8, 0))
+        self._scale_cb.bind('<<ComboboxSelected>>', self._on_scale_changed)
+
+        # Last-value toggle
+        self._show_badge_var = tk.BooleanVar(value=True)
+        ttk.Checkbutton(
+            controls, variable=self._show_badge_var,
+            command=self._on_badge_toggled
+        ).grid(row=1, column=3, sticky=tk.W, padx=(8,12))
+
+        controls.grid_columnconfigure(0, weight=1)
+
+        # Hide Scale until a signal that supports it is selected.
+        self._set_scale_visible(False)
 
         # Chart canvas
         self._chart = tk.Canvas(
             self._content_frame, bg=self._BG,
             height=self.CANVAS_HEIGHT, highlightthickness=0)
-        self._chart.pack(fill=tk.BOTH, expand=True, padx=(4,17), pady=(2, 4))
+        self._chart.pack(fill=tk.BOTH, expand=True, padx=(12,29), pady=(16, 21))
 
         self._chart.bind('<Configure>', lambda _e: self._invalidate_chart())
         self._block_mousewheel_recursive(self)
@@ -227,6 +252,8 @@ class SignalPreviewPanel(ttk.Frame):
         self._first_tick = None
         self._needs_redraw = True
 
+        self._set_scale_visible(self._is_2d_vector_signal(signal))
+
         self._unit_str = ''
         if signal.descriptor.unit is not None:
             unit = signal.descriptor.unit
@@ -289,7 +316,7 @@ class SignalPreviewPanel(ttk.Frame):
         if args.event_name in ('DescriptorChanged', 'PropertyValueChanged', 'ComponentUpdateEnd'):
             self._reader_dirty = True
 
-    def _on_duration_committed(self, _event=None):
+    def _on_duration_committed(self, event=None):
         text = self._duration_var.get()
         match = self._DURATION_RE.match(text)
         if match is None:
@@ -299,6 +326,10 @@ class SignalPreviewPanel(ttk.Frame):
         seconds = float(match.group(1))
         seconds = max(0.1, min(10.0, seconds))
         self._duration_var.set(f'{seconds:g}s')
+
+        if event is not None and event.type != tk.EventType.FocusOut:
+            self._chart.focus_set()
+
         if seconds == self.WINDOW_SECONDS:
             return
 
@@ -355,9 +386,30 @@ class SignalPreviewPanel(ttk.Frame):
 
         return (st, rule_name, d_rule_name, d_rule_params)
 
-    def _on_log_toggled(self):
+    def _set_scale_visible(self, visible):
+        if visible:
+            self._scale_header.grid()
+            self._scale_cb.grid()
+        else:
+            self._scale_header.grid_remove()
+            self._scale_cb.grid_remove()
+
+    @staticmethod
+    def _is_2d_vector_signal(signal):
+        desc = getattr(signal, 'descriptor', None)
+        dims = getattr(desc, 'dimensions', None) if desc else None
+        if not dims or len(dims) != 1:
+            return False
+        size = getattr(dims[0], 'size', None)
+        return size == 2
+
+    def _on_badge_toggled(self):
         self._needs_redraw = True
 
+    def _on_scale_changed(self, _event=None):
+        self._needs_redraw = True
+        self._chart.focus_set()
+        
     def _schedule_poll(self):
         self._poll_job = self.after(self.POLL_MS, self._poll_tick)
 
@@ -541,7 +593,7 @@ class SignalPreviewPanel(ttk.Frame):
         if w < 20 or h < 20:
             return
 
-        ml, mr, mt, mb = 65, 12, 10, 22
+        ml, mr, mt, mb = 38, 12, 10, 22
         pw = w - ml - mr
         ph = h - mt - mb
         if pw < 10 or ph < 10:
@@ -578,7 +630,7 @@ class SignalPreviewPanel(ttk.Frame):
         vals = [v for _, v in visible]
         v_lo, v_hi = min(vals), max(vals)
 
-        use_log = self._log_var.get()
+        use_log = self._scale_var.get() == 'Log'
 
         if use_log:
             abs_max = max(abs(v) for v in vals)
@@ -731,18 +783,22 @@ class SignalPreviewPanel(ttk.Frame):
             c.coords(self._line_id, px, py, px + 1, py)
             c.itemconfig(self._line_id, state='normal')
 
-        badge_text = self._fmt(visible[-1][1])
-        if self._unit_str:
-            badge_text += f' {self._unit_str}'
-        bx = ml + pw - 4
-        by = mt + 4
-        c.coords(self._badge_id, bx, by)
-        c.itemconfig(self._badge_id, text=badge_text, state='normal')
-        c.update_idletasks()
-        bb = c.bbox(self._badge_id)
-        if bb:
-            c.coords(self._badge_bg_id, bb[0] - 3, bb[1] - 1, bb[2] + 3, bb[3] + 1)
-            c.itemconfig(self._badge_bg_id, state='normal')
+        if self._show_badge_var.get():
+            badge_text = self._fmt(visible[-1][1])
+            if self._unit_str:
+                badge_text += f' {self._unit_str}'
+            bx = ml + pw - 4
+            by = mt + 4
+            c.coords(self._badge_id, bx, by)
+            c.itemconfig(self._badge_id, text=badge_text, state='normal')
+            c.update_idletasks()
+            bb = c.bbox(self._badge_id)
+            if bb:
+                c.coords(self._badge_bg_id, bb[0] - 3, bb[1] - 1, bb[2] + 3, bb[3] + 1)
+                c.itemconfig(self._badge_bg_id, state='normal')
+        else:
+            c.itemconfig(self._badge_id, state='hidden')
+            c.itemconfig(self._badge_bg_id, state='hidden')
 
     @staticmethod
     def _fmt(v):

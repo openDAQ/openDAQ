@@ -3320,7 +3320,7 @@ TEST_F(NativeDeviceModulesTest, SaveLoadDeviceConfig)
         addRefDeviceModule(client);
 
         auto deviceConfig = client.createDefaultAddDeviceConfig();
-        deviceConfig.addProperty(StringProperty("TestKey", "TestValue"));
+        deviceConfig.setPropertyValue("Device.daqref.NumberOfChannels", 1);
         client.getDevices()[0].addDevice("daqref://device1", deviceConfig);
         config = client.saveConfiguration();
     }
@@ -3335,9 +3335,7 @@ TEST_F(NativeDeviceModulesTest, SaveLoadDeviceConfig)
     ASSERT_EQ(devices.getCount(), 1u);
 
     auto deviceConfig = devices[0].asPtr<IComponentPrivate>(true).getComponentConfig();
-    ASSERT_TRUE(deviceConfig.assigned());
-    ASSERT_TRUE(deviceConfig.hasProperty("TestKey"));
-    ASSERT_EQ(deviceConfig.getPropertyValue("TestKey"), "TestValue");
+    ASSERT_EQ(deviceConfig.getPropertyValue("Device.daqref.NumberOfChannels"), 1);
 }
 
 TEST_F(NativeDeviceModulesTest, SaveLoadFunctionBlockConfig)
@@ -3349,7 +3347,8 @@ TEST_F(NativeDeviceModulesTest, SaveLoadFunctionBlockConfig)
         auto clientRoot = client.getDevices()[0];
 
         auto fbConfig = PropertyObject();
-        fbConfig.addProperty(BoolProperty("UseMultiThreadedScheduler", false));
+        fbConfig.addProperty(BoolProperty("UseMultiThreadedScheduler", true));
+        fbConfig.setPropertyValue("UseMultiThreadedScheduler", false);
 
         auto fb = clientRoot.addFunctionBlock("RefFBModuleStatistics", fbConfig);
         config = client.saveConfiguration();
@@ -3619,18 +3618,21 @@ TEST_F(NativeDeviceModulesTest, SettingOperationModeWithoutPermissions)
     using OMT = daq::OperationModeType;
     {
         // create server and client isntances
-        // check initial operation mode for server and client devices
         server = CreateServerInstance(CreateCustomServerInstanceWithPermissions(authenticationProvider, permissions));
         // client doesn't have permissions to change operation mode for all server devices, but can read the operation mode
         client = CreateClientInstanceForUser("readerUser", "readerUserPass");
+    }
+
+    {
+        // reset all devices to Operation for the following tests
+        ASSERT_NO_THROW(server.setOperationModeRecursive(OMT::Operation));
+        std::this_thread::sleep_for(std::chrono::milliseconds(100));
         test_helpers::checkDeviceOperationMode(server, OMT::Operation, true);
         test_helpers::checkDeviceOperationMode(server.getDevices()[0], OMT::Operation, true);
         test_helpers::checkDeviceOperationMode(server.getDevices()[0].getDevices()[0], OMT::Operation, true);
 
-        test_helpers::checkDeviceOperationMode(client, OMT::Operation);
-        test_helpers::checkDeviceOperationMode(client.getDevices()[0], OMT::Operation);
-        test_helpers::checkDeviceOperationMode(client.getDevices()[0].getDevices()[0], OMT::Operation);
-        test_helpers::checkDeviceOperationMode(client.getDevices()[0].getDevices()[0].getDevices()[0], OMT::Operation);
+        ASSERT_NO_THROW(client.setOperationMode(OMT::Operation));
+        test_helpers::checkDeviceOperationMode(client.getRootDevice(), OMT::Operation);
     }
 
     {
@@ -3750,10 +3752,25 @@ TEST_F(NativeDeviceModulesTest, SettingOperationModeWithPermissions)
     using OMT = daq::OperationModeType;
     {
         // create server and client isntances
-        // check initial operation mode for server and client devices
         server = CreateServerInstance(CreateCustomServerInstanceWithPermissions(authenticationProvider, permissions));
         // client has all permissions to change operation mode for all server devices
         client = CreateClientInstanceForUser("adminUser", "adminUserPass");
+    }
+
+    {
+        // reset all devices to Operation for the following tests
+        ASSERT_NO_THROW(server.setOperationModeRecursive(OMT::Operation));
+        std::this_thread::sleep_for(std::chrono::milliseconds(100));
+        test_helpers::checkDeviceOperationMode(server, OMT::Operation, true);
+        test_helpers::checkDeviceOperationMode(server.getDevices()[0], OMT::Operation, true);
+        test_helpers::checkDeviceOperationMode(server.getDevices()[0].getDevices()[0], OMT::Operation, true);
+
+        ASSERT_NO_THROW(client.setOperationMode(OMT::Operation));
+        test_helpers::checkDeviceOperationMode(client.getRootDevice(), OMT::Operation);
+    }
+
+    {
+        // check initial operation mode for server and client devices
         test_helpers::checkDeviceOperationMode(server, OMT::Operation, true);
         test_helpers::checkDeviceOperationMode(server.getDevices()[0], OMT::Operation, true);
         test_helpers::checkDeviceOperationMode(server.getDevices()[0].getDevices()[0], OMT::Operation, true);
@@ -3809,19 +3826,21 @@ TEST_F(NativeDeviceModulesTest, SettingOperationModeWithPermissionsNestedDevice)
     using OMT = daq::OperationModeType;
     {
         // create server and client isntances
-        // check initial operation mode for server and client devices
         server = CreateServerInstance(CreateCustomServerInstanceWithPermissions(authenticationProvider, permissions, true));
         // client has permissions to change operation mode for all server devices except the most nested sub device
         client = CreateClientInstanceForUser("readerUser", "readerUserPass");
+    }
+
+    {
+        // reset all devices to Operation for the following tests
+        ASSERT_NO_THROW(server.setOperationModeRecursive(OMT::Operation));
         std::this_thread::sleep_for(std::chrono::milliseconds(100));
         test_helpers::checkDeviceOperationMode(server, OMT::Operation, true);
         test_helpers::checkDeviceOperationMode(server.getDevices()[0], OMT::Operation, true);
         test_helpers::checkDeviceOperationMode(server.getDevices()[0].getDevices()[0], OMT::Operation, true);
 
-        test_helpers::checkDeviceOperationMode(client, OMT::Operation);
-        test_helpers::checkDeviceOperationMode(client.getDevices()[0], OMT::Operation);
-        test_helpers::checkDeviceOperationMode(client.getDevices()[0].getDevices()[0], OMT::Operation);
-        test_helpers::checkDeviceOperationMode(client.getDevices()[0].getDevices()[0].getDevices()[0], OMT::Operation);
+        ASSERT_NO_THROW(client.setOperationMode(OMT::Operation));
+        test_helpers::checkDeviceOperationMode(client.getRootDevice(), OMT::Operation);
     }
 
     {

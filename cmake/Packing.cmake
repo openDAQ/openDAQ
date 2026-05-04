@@ -95,57 +95,73 @@ endif()
 ##
 ## Package filename customization
 ##
+## Format: opendaq-<version>[-<sha>]-<arch>-<os>-<compiler>-<compiler-version>-<build-type>
+## Field ordering follows GNU triplet convention (<arch>-<os>-…), values follow
+## Conan settings vocabulary (arch, os, compiler). SHA is appended to the
+## version for non-release builds to disambiguate dev/rc commits.
+##
 
-# OS name
+# OS name (Conan settings.os, lowercase)
 string(TOLOWER "${CMAKE_SYSTEM_NAME}" _PACKING_OS_NAME)
 if(_PACKING_OS_NAME STREQUAL "darwin")
     set(_PACKING_OS_NAME "macos")
-elseif(_PACKING_OS_NAME STREQUAL "windows")
-    set(_PACKING_OS_NAME "win")
 endif()
 
-# Architecture
+# Architecture (Conan settings.arch)
 if(CMAKE_SIZEOF_VOID_P EQUAL 8)
     if(CMAKE_SYSTEM_PROCESSOR MATCHES "aarch64|arm64|ARM64")
-        set(_PACKING_ARCH_NAME "ARM_64")
+        set(_PACKING_ARCH_NAME "armv8")
     else()
         set(_PACKING_ARCH_NAME "x86_64")
     endif()
 else()
-    set(_PACKING_ARCH_NAME "x86_32")
-endif()
-
-# Compiler
-if(MSVC AND CMAKE_VS_VERSION_BUILD_NUMBER)
-    set(_PACKING_COMPILER_VER "${CMAKE_VS_VERSION_BUILD_NUMBER}")
-    set(_PACKING_COMPILER_ID "msvc")
-else()
-    set(_PACKING_COMPILER_VER "${CMAKE_CXX_COMPILER_VERSION}")
-    string(TOLOWER "${CMAKE_CXX_COMPILER_ID}" _PACKING_COMPILER_ID)
-    # Rename GNU to gcc
-    if(_PACKING_COMPILER_ID STREQUAL "gnu")
-        set(_PACKING_COMPILER_ID "gcc")
+    if(CMAKE_SYSTEM_PROCESSOR MATCHES "arm|ARM")
+        set(_PACKING_ARCH_NAME "armv7")
+    else()
+        set(_PACKING_ARCH_NAME "x86")
     endif()
 endif()
 
-# Assemble version string with optional tweak (4th component)
+# Compiler (Conan settings.compiler) and major version
+if(MSVC)
+    set(_PACKING_COMPILER_ID "msvc")
+    set(_PACKING_COMPILER_VER "${MSVC_TOOLSET_VERSION}")
+elseif(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
+    set(_PACKING_COMPILER_ID "gcc")
+elseif(CMAKE_CXX_COMPILER_ID STREQUAL "AppleClang")
+    set(_PACKING_COMPILER_ID "apple-clang")
+elseif(CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
+    set(_PACKING_COMPILER_ID "clang")
+elseif(CMAKE_CXX_COMPILER_ID STREQUAL "Intel" OR CMAKE_CXX_COMPILER_ID STREQUAL "IntelLLVM")
+    set(_PACKING_COMPILER_ID "intel-cc")
+else()
+    string(TOLOWER "${CMAKE_CXX_COMPILER_ID}" _PACKING_COMPILER_ID)
+endif()
+if(NOT MSVC)
+    string(REGEX REPLACE "^([0-9]+).*" "\\1" _PACKING_COMPILER_VER "${CMAKE_CXX_COMPILER_VERSION}")
+endif()
+
+# Build type (lowercase). If not set (multi-config generators) fall back to "release".
+if(CMAKE_BUILD_TYPE)
+    string(TOLOWER "${CMAKE_BUILD_TYPE}" _PACKING_BUILD_TYPE)
+else()
+    set(_PACKING_BUILD_TYPE "release")
+endif()
+
+# Version is the clean major.minor.patch, extended with an optional 4th tweak component.
+# For non-release builds, a short SHA is appended to disambiguate commits.
 set(_PACKING_VERSION "${OPENDAQ_PACKAGE_VERSION}")
-string(REGEX MATCH "^[0-9]+\\.[0-9]+\\.[0-9]+\\.([0-9]+)" _PACKING_TWEAK_MATCH "${package_version}")
-if(_PACKING_TWEAK_MATCH)
-    string(REGEX REPLACE "^[0-9]+\\.[0-9]+\\.[0-9]+\\.([0-9]+).*" "\\1" _PACKING_TWEAK "${package_version}")
-    string(APPEND _PACKING_VERSION ".${_PACKING_TWEAK}")
+if(package_version MATCHES "^[0-9]+\\.[0-9]+\\.[0-9]+\\.([0-9]+)")
+    string(APPEND _PACKING_VERSION ".${CMAKE_MATCH_1}")
 endif()
-
-# Assemble filename: opendaq-VERSION[-SHA]_OS_ARCH_COMPILER
-# Add SHA only for dev versions (version ends with "dev")
-set(_PACKING_FILENAME "opendaq-${_PACKING_VERSION}")
-if(package_version MATCHES "dev$" AND OPENDAQ_WC_REVISION_HASH)
+if(NOT OPENDAQ_IS_RELEASE_VERSION AND OPENDAQ_WC_REVISION_HASH)
     string(SUBSTRING "${OPENDAQ_WC_REVISION_HASH}" 0 7 _PACKING_SHORT_SHA)
-    string(APPEND _PACKING_FILENAME "-${_PACKING_SHORT_SHA}")
+    string(APPEND _PACKING_VERSION "-${_PACKING_SHORT_SHA}")
 endif()
-string(APPEND _PACKING_FILENAME "_${_PACKING_OS_NAME}_${_PACKING_ARCH_NAME}_${_PACKING_COMPILER_ID}${_PACKING_COMPILER_VER}")
 
-set(CPACK_PACKAGE_FILE_NAME "${_PACKING_FILENAME}")
+set(CPACK_PACKAGE_FILE_NAME
+    "opendaq-${_PACKING_VERSION}-${_PACKING_ARCH_NAME}-${_PACKING_OS_NAME}-${_PACKING_COMPILER_ID}-${_PACKING_COMPILER_VER}-${_PACKING_BUILD_TYPE}"
+)
 
 ##
 ## Finally ...

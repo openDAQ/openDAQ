@@ -32,7 +32,6 @@ class SignalPreviewPanel(ttk.Frame):
         self.node = node
         self.context = context
 
-        self._collapsed = False
         self._reader = None
         self._selected_signal = None
         self._poll_job = None
@@ -71,19 +70,13 @@ class SignalPreviewPanel(ttk.Frame):
         self.bind('<Destroy>', self._on_destroy)
 
     def _build_toggle_bar(self):
-        self._toggle_frame = utils.make_banner(self, '\u25BC Signal Preview')
-        self._toggle_frame.configure(cursor='hand2')
-
-        self._arrow_label = self._toggle_frame.winfo_children()[0]
-        self._arrow_label.configure(cursor='hand2')
-
-        for w in (self._toggle_frame, self._arrow_label):
-            w.bind('<Button-1>', lambda _e: self._toggle())
+        self._toggle_frame = utils.make_banner(self, 'Signal Preview')
+        self._toggle_frame.pack_configure(padx=(0, 17))
 
     def _build_content(self):
         self._content_frame = ttk.Frame(self)
         dd_row = ttk.Frame(self._content_frame)
-        dd_row.pack(fill=tk.X, padx=4, pady=(4, 2))
+        dd_row.pack(fill=tk.X, padx=(4,17), pady=(4, 2))
 
         ttk.Label(dd_row, text='Signal:').pack(side=tk.LEFT, padx=(0, 4))
 
@@ -112,7 +105,7 @@ class SignalPreviewPanel(ttk.Frame):
         self._chart = tk.Canvas(
             self._content_frame, bg=self._BG,
             height=self.CANVAS_HEIGHT, highlightthickness=0)
-        self._chart.pack(fill=tk.BOTH, expand=True, padx=4, pady=(2, 4))
+        self._chart.pack(fill=tk.BOTH, expand=True, padx=(4,17), pady=(2, 4))
 
         self._chart.bind('<Configure>', lambda _e: self._invalidate_chart())
         self._block_mousewheel_recursive(self)
@@ -719,18 +712,6 @@ class SignalPreviewPanel(ttk.Frame):
                         envelope.append(b_min)
             visible = envelope
 
-        # Filled area under curve
-        bottom_y = mt + ph
-        if len(visible) >= 2:
-            fill_coords = [xpx(visible[0][0]), bottom_y]
-            for t, v in visible:
-                fill_coords.extend([xpx(t), ypx(v)])
-            fill_coords.extend([xpx(visible[-1][0]), bottom_y])
-            c.coords(self._fill_id, *fill_coords)
-            c.itemconfig(self._fill_id, state='normal')
-        else:
-            c.itemconfig(self._fill_id, state='hidden')
-
         # Data line (1 px, no smoothing)
         if len(visible) >= 2:
             line_coords = []
@@ -765,17 +746,6 @@ class SignalPreviewPanel(ttk.Frame):
         if v == int(v):
             return str(int(v))
         return f'{v:.4g}'
-
-    def _toggle(self):
-        self._collapsed = not self._collapsed
-        if self._collapsed:
-            self._content_frame.pack_forget()
-            self._arrow_label.config(text='\u25B2 Signal Preview')
-        else:
-            self._content_frame.pack(
-                fill=tk.BOTH, expand=True, after=self._toggle_frame)
-            self._arrow_label.config(text='\u25BC Signal Preview')
-            self._needs_redraw = True
             
     def _on_destroy(self, event):
         if event.widget is not self:

@@ -1,7 +1,9 @@
 #include <native_streaming_client_module/native_streaming_impl.h>
+#include <native_streaming_client_module/native_device_utils.h>
 
 #include <opendaq/signal_config_ptr.h>
 #include <opendaq/custom_log.h>
+#include <opendaq/component_private_ptr.h>
 
 #include <opendaq/mirrored_signal_private_ptr.h>
 #include <opendaq/subscription_event_args_factory.h>
@@ -60,6 +62,28 @@ void NativeStreamingImpl::upgradeToSafeProcessingCallbacks()
 {
     upgradeClientHandlerCallbacks();
 }
+
+ErrCode NativeStreamingImpl::setOwnerDevice(const DevicePtr& device)
+{
+    OPENDAQ_RETURN_IF_FAILED(Super::setOwnerDevice(device));
+
+    const PropertyObjectPtr componentConfig = device.asPtr<IComponentPrivate>(true).getComponentConfig();
+    const DeviceInfoPtr deviceInfo = device.getInfo();
+
+    ListPtr<IString> alternativeAddresses;
+    const ErrCode errCode = collectAlternativeAddresses(componentConfig, 
+                                                        deviceInfo,
+                                                        "OpenDAQNativeStreaming", 
+                                                        alternativeAddresses);
+
+    OPENDAQ_RETURN_IF_FAILED(errCode);
+    
+    if (errCode == OPENDAQ_SUCCESS)
+        transportClientHandler->setAlternativeAddresses(alternativeAddresses);
+
+    return OPENDAQ_SUCCESS;
+}
+
 
 void NativeStreamingImpl::stopProcessingOperations()
 {

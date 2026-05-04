@@ -2231,16 +2231,13 @@ DevicePtr GenericDevice<TInterface, Interfaces...>::findConnectedDeviceForRemap(
 
         if (manufacturer.assigned() && manufacturer != "" && serialNumber.assigned() && serialNumber != "")
         {
-            const auto deviceManufacturer = info.getManufacturer();
-            const auto deviceSerialNumber = info.getSerialNumber();
+            const StringPtr deviceManufacturer = info.getManufacturer();
+            const StringPtr deviceSerialNumber = info.getSerialNumber();
 
             if (deviceManufacturer.assigned() && deviceSerialNumber.assigned())
             {
-                Bool manufacturerMatch = False;
-                deviceManufacturer->equals(manufacturer, &manufacturerMatch);
-
-                Bool serialMatch = False;
-                deviceSerialNumber->equals(serialNumber, &serialMatch);
+                Bool manufacturerMatch = deviceManufacturer.equals(manufacturer);
+                Bool serialMatch = deviceSerialNumber.equals(serialNumber);
 
                 if (manufacturerMatch && serialMatch)
                     return device;
@@ -2249,17 +2246,25 @@ DevicePtr GenericDevice<TInterface, Interfaces...>::findConnectedDeviceForRemap(
 
         if (connectionString.assigned() && connectionString != "")
         {
-            const auto deviceConnectionString = info.getConnectionString();
+            // Try to match to the primary connection string of the existing device
+            StringPtr deviceConnectionString = nullptr;
+            ServerCapabilityPtr configConnectionInfo = info.getConfigurationConnectionInfo();
+            if (configConnectionInfo.assigned() && configConnectionInfo.getConnectionString() != "")
+            {
+                deviceConnectionString = configConnectionInfo.getConnectionString();
+            }
+            else
+            {
+                deviceConnectionString = info.getConnectionString();
+            }
 
             if (deviceConnectionString.assigned())
             {
-                Bool connStringMatch = False;
-                deviceConnectionString->equals(connectionString, &connStringMatch);
+                Bool connStringMatch = deviceConnectionString.equals(connectionString);
                 if (connStringMatch)
                     return device;
             }
         }
-
     }
     return nullptr;
 }

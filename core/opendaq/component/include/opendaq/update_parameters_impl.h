@@ -43,7 +43,6 @@ protected:
     ErrCode serializeCustomValues(ISerializer* serializer, bool /*forUpdate*/) override;
 
     DeviceUpdateOptionsPtr deviceOptions;
-    Bool removeOldDevices;
 };
 
 OPENDAQ_REGISTER_DESERIALIZE_FACTORY(UpdateParametersImpl)

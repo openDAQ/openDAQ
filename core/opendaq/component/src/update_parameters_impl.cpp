@@ -5,9 +5,9 @@ BEGIN_NAMESPACE_OPENDAQ
 
 UpdateParametersImpl::UpdateParametersImpl()
     : Super()
-    , removeOldDevices(False)
 {
     Super::addProperty(BoolProperty("RemoteUpdate", false));
+    Super::addProperty(BoolProperty("RemoveOldDevices", false));
 }
 
 template <typename T>
@@ -34,13 +34,13 @@ ErrCode INTERFACE_FUNC UpdateParametersImpl::getRemoveOldDevices(Bool* remove)
 {
     OPENDAQ_PARAM_NOT_NULL(remove);
 
-    *remove = removeOldDevices;
+    *remove = getTypedProperty<IBoolean>("RemoveOldDevices");
     return OPENDAQ_SUCCESS;
 }
 
 ErrCode INTERFACE_FUNC UpdateParametersImpl::setRemoveOldDevices(Bool remove)
 {
-    removeOldDevices = remove;
+    OPENDAQ_RETURN_IF_FAILED(setPropertyValue(String("RemoveOldDevices"), Boolean(remove)));
     return OPENDAQ_SUCCESS;
 }
 

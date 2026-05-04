@@ -543,9 +543,7 @@ TEST_F(DeviceUpdateOptionsTest, SerializeDeserialize)
 
 TEST_F(DeviceUpdateOptionsTest, KeepExistingDeviceNotInConfiguration)
 {
-    auto serializer = JsonSerializer();
-    instance.asPtr<IUpdatable>().serializeForUpdate(serializer);
-    auto str = serializer.getOutput();
+    auto str = instance.saveConfiguration();
     auto options = DeviceUpdateOptions(str);
 
     // Add an extra device after the configuration was saved.
@@ -571,9 +569,7 @@ TEST_F(DeviceUpdateOptionsTest, KeepExistingDeviceNotInConfiguration)
 
 TEST_F(DeviceUpdateOptionsTest, RemoveExistingDeviceNotInConfiguration)
 {
-    auto serializer = JsonSerializer();
-    instance.asPtr<IUpdatable>().serializeForUpdate(serializer);
-    auto str = serializer.getOutput();
+    auto str = instance.saveConfiguration();
     auto options = DeviceUpdateOptions(str);
 
     // Add an extra device after the configuration was saved.
@@ -621,9 +617,7 @@ TEST_F(DeviceUpdateOptionsTest, RemoveOldInteractionWithRemap)
     // - Man2
     //   - Man3
     // This config is saved
-    auto serializer = JsonSerializer();
-    instance.asPtr<IUpdatable>().serializeForUpdate(serializer);
-    auto str = serializer.getOutput();
+    auto str = instance.saveConfiguration();
     auto options = DeviceUpdateOptions(str);
 
     // Add an extra device after the configuration was saved.
@@ -678,9 +672,7 @@ TEST_F(DeviceUpdateOptionsTest, NotRemoveOldInteractionWithRemap)
     // - Man2
     //   - Man3
     // This config is saved
-    auto serializer = JsonSerializer();
-    instance.asPtr<IUpdatable>().serializeForUpdate(serializer);
-    auto str = serializer.getOutput();
+    auto str = instance.saveConfiguration();
     auto options = DeviceUpdateOptions(str);
 
     // Add an extra device after the configuration was saved.
@@ -736,9 +728,7 @@ TEST_F(DeviceUpdateOptionsTest, RemapToExistingSibling)
     // - Man2
     //   - Man3
     // This config is saved
-    auto serializer = JsonSerializer();
-    instance.asPtr<IUpdatable>().serializeForUpdate(serializer);
-    auto str = serializer.getOutput();
+    auto str = instance.saveConfiguration();
     auto options = DeviceUpdateOptions(str);
 
     // Add an extra device after the configuration was saved.

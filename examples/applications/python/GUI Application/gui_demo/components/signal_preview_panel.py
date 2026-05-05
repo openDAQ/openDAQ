@@ -93,7 +93,7 @@ class SignalPreviewPanel(ttk.Frame):
         self._dropdown.bind('<<ComboboxSelected>>', self._on_signal_selected)
 
         # Duration combobox
-        self._duration_presets = [0.1, 0.2, 0.5, 1]
+        self._duration_presets = [0.01, 0.05, 0.1, 0.2, 0.5, 1]
         self._duration_var = tk.StringVar(value='0.2s')
         dur_cb = ttk.Combobox(
             controls, textvariable=self._duration_var,
@@ -262,7 +262,7 @@ class SignalPreviewPanel(ttk.Frame):
             return
 
         seconds = float(match.group(1))
-        seconds = max(0.1, min(10.0, seconds))
+        seconds = max(0.01, min(10.0, seconds))
         self._duration_var.set(f'{seconds:g}s')
 
         if event is not None and event.type != tk.EventType.FocusOut:
@@ -655,7 +655,8 @@ class SignalPreviewPanel(ttk.Frame):
         c.coords(self._yaxis_id, ml, mt, ml, mt + ph)
         c.coords(self._xaxis_id, ml, mt + ph, ml + pw, mt + ph)
 
-        _nice = [0.1, 0.2, 0.5, 1, 2, 5, 10, 15, 30, 60]
+        _nice = [0.001, 0.002, 0.005, 0.01, 0.02, 0.05, 0.1, 0.2, 0.5,
+                 1, 2, 5, 10, 15, 30, 60]
         grid_interval = _nice[-1]
         for ni in _nice:
             if self.WINDOW_SECONDS / ni <= 7:

@@ -269,6 +269,7 @@ jobs:
             cmake-defines: >-
               -DDAQMODULES_PARQUET_RECORDER_MODULE=ON
               -DCMAKE_OSX_DEPLOYMENT_TARGET=10.15
+            cpack-generator: productbuild
           - name: macOS ARM64 Clang Release
             runner: macos-latest
             cmake-generator: Ninja
@@ -276,6 +277,7 @@ jobs:
             cmake-defines: >-
               -DDAQMODULES_PARQUET_RECORDER_MODULE=ON
               -DCMAKE_OSX_DEPLOYMENT_TARGET=10.15
+            cpack-generator: productbuild
 
     env:
       CC: /usr/bin/clang
@@ -289,13 +291,14 @@ jobs:
         id: build-sdk
         uses: ./.github/actions/build-sdk
         with:
-          additional-dependencies: nsis
           cmake-generator: ${{ matrix.cmake-generator }}
           cmake-config-preset: ${{ env.cmake_preset }}
           cmake-config-args: ${{ matrix.cmake-defines }}
           cmake-build-type: ${{ matrix.cmake-build-type }}
+          cpack-generator: ${{ matrix.cpack-generator }}
           generate-csharp-bindings: false
           generate-python-bindings: false
+          upload-artifact: true
 
       - name: Package Python Bindings
         uses: ./.github/actions/package-bindings-python

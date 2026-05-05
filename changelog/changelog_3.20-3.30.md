@@ -28,6 +28,7 @@
 
 ## Bug fixes
 
+- [#1186](https://github.com/openDAQ/openDAQ/pull/1186) Add device discovery fixes and workarounds, including: device address discovering when no A / AAAA records provided, excluding malformed IPv6 addresses, thread-safer collecting of connected clients info.
 - [#1144](https://github.com/openDAQ/openDAQ/pull/1144) Return error code instead of throwing exceptions from module info.
 - [#1133](https://github.com/openDAQ/openDAQ/pull/1133) Backport LLVM and cpp20 build fixes
 - [#1113](https://github.com/openDAQ/openDAQ/pull/1113) Reset last value calc values on unsubscribe completion

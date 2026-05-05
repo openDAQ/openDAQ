@@ -47,7 +47,7 @@ BEGIN_NAMESPACE_DISCOVERY_SERVICE
 struct MdnsDiscoveredService
 {
     MdnsDiscoveredService(const std::string& serviceName,
-                          uint32_t servicePort,
+                          uint16_t servicePort,
                           const std::unordered_map<std::string, std::string>& properties,
                           const daq::PropertyObjectPtr& deviceInfo);
 
@@ -72,6 +72,16 @@ private:
     std::string serviceQualified;
 };
 
+struct AdapterInfo
+{
+    sockaddr_in ipv4Address;
+    sockaddr_in6 ipv6Address;
+    unsigned int ipv6ifindex;
+    int ipv4Sock = -1;
+    int ipv6Sock = -1;
+    std::string name;
+};
+
 using ModifyIpConfigCallback = std::function<discovery_common::TxtProperties(const std::string& ifaceName, const discovery_common::TxtProperties& properties)>;
 using RetrieveIpConfigCallback = std::function<discovery_common::TxtProperties(const std::string& ifaceName)>;
 
@@ -81,6 +91,7 @@ public:
 	explicit MDNSDiscoveryServer();
     ~MDNSDiscoveryServer();
 
+    void announceService(const MdnsDiscoveredService& service, bool goodbye) const;
     bool registerService(const std::string& id, MdnsDiscoveredService& service);
     bool unregisterService(const std::string& id);
 
@@ -95,12 +106,12 @@ private:
     void stop();
     void serviceLoop();
 
-    void goodbyeMulticast(const MdnsDiscoveredService& service);
+    void goodbyeMulticast(const MdnsDiscoveredService& service) const;
 
     std::string getHostname();
     
-    void openClientSockets();
-    void openServerSockets(std::vector<int>& sockets);
+    void openServerSockets();
+    bool getAdapter(int sock, AdapterInfo& info) const;
 
     int serviceCallback(int sock, const struct sockaddr* from, size_t addrlen, mdns_entry_type_t entry,
                  uint16_t query_id, uint16_t rtype, uint16_t rclass, uint32_t ttl, const void* buffer,
@@ -117,10 +128,11 @@ private:
         size_t size, size_t name_offset, size_t name_length, size_t rdata_offset,
         size_t rdata_length, void* user_data);
 
+    bool getAdapter(int sock, AdapterInfo& adapter);
     mdns_record_t createPtrRecord(const MdnsDiscoveredService& service) const;
     mdns_record_t createSrvRecord(const MdnsDiscoveredService& service) const;
-    mdns_record_t createARecord(const MdnsDiscoveredService& service) const;
-    mdns_record_t createAaaaRecord(const MdnsDiscoveredService& service) const;
+    mdns_record_t createARecord(const MdnsDiscoveredService& service, const AdapterInfo& info) const;
+    mdns_record_t createAaaaRecord(const MdnsDiscoveredService& service, const AdapterInfo& info) const;
     void populateTxtRecords(const std::string& recordName, const discovery_common::TxtProperties& props, std::vector<mdns_record_t>& records) const;
 
     void sendIpConfigResponse(int sock,
@@ -133,16 +145,13 @@ private:
                               const std::string& uuid);
 
     std::string hostName;
-    sockaddr_in serviceAddressIpv4;
-    sockaddr_in6 serviceAddressIpv6;
-    
+
     std::mutex mx;
     std::atomic<bool> running {false};
     std::thread serviceThread;
     
     std::map<std::string, MdnsDiscoveredService> services;
-
-    std::vector<int> sockets;
+    std::unordered_map<std::string, AdapterInfo> adapters;
 
     std::string manufacturer;
     std::string serialNumber;

@@ -183,6 +183,42 @@ inline Bool isNearRelative<ComplexFloat32>(const ComplexFloat32& actual, const C
     return isNearRelative<ComplexFloat64>(actual, expected, relativeErr);
 }
 
+[[maybe_unused]]
+inline std::string toLowerCase(std::string& str)
+{
+    const auto& loc = std::locale::classic();
+    const auto& f = std::use_facet<std::ctype<char>>(loc);
+    std::transform(str.begin(), str.end(), str.begin(), [&f](char c){ return f.tolower(c); });
+
+    return str;
+}
+
+[[maybe_unused]]
+inline std::string toUpperCase(std::string& str)
+{
+    const auto& loc = std::locale::classic();
+    const auto& f = std::use_facet<std::ctype<char>>(loc);
+    std::transform(str.begin(), str.end(), str.begin(), [&f](char c){ return f.toupper(c); });
+
+    return str;
+}
+
+[[maybe_unused]]
+inline char toLowerCase(char c)
+{
+    const auto& loc = std::locale::classic();
+    const auto& f = std::use_facet<std::ctype<char>>(loc);
+    return f.tolower(c);
+}
+
+[[maybe_unused]]
+inline char toUpperCase(char c)
+{
+    const auto& loc = std::locale::classic();
+    const auto& f = std::use_facet<std::ctype<char>>(loc);
+    return f.toupper(c);
+}
+
 };  // namespace coretype_utils
 
 END_NAMESPACE_OPENDAQ

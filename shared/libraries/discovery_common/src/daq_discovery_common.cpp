@@ -1,5 +1,6 @@
 #include <discovery_common/daq_discovery_common.h>
 #include <cctype>
+#include <iostream>
 #include <map>
 #include <set>
 #include <coreobjects/property_object_protected_ptr.h>
@@ -124,14 +125,36 @@ TxtProperties DiscoveryUtils::connectedClientsInfoToTxt(const PropertyObjectPtr&
 {
     TxtProperties result;
 
+    PropertyObjectPtr connectedClientsInfoClone;
+    if (const auto propertyObjectInternalPtr = connectedClientsInfo.asPtrOrNull<IPropertyObjectInternal>(); propertyObjectInternalPtr.assigned())
+    {
+        try
+        {
+            connectedClientsInfoClone = propertyObjectInternalPtr.clone();
+        }
+        catch (const std::exception& e)
+        {
+            std::cerr << "DiscoveryUtils::connectedClientsInfoToTxt: clone failed: " << e.what() << "\n";
+        }
+        catch (...)
+        {
+            std::cerr << "DiscoveryUtils::connectedClientsInfoToTxt: clone failed (unknown error)\n";
+        }
+    }
+
+    if (!connectedClientsInfoClone.assigned() || connectedClientsInfoClone.getAllProperties().getCount() == 0)
+    {
+        return result;
+    }
+
     const auto zeroPadNumber =
-        [width = std::to_string(connectedClientsInfo.getAllProperties().getCount() - 1).size()](size_t index)
+        [width = std::to_string(connectedClientsInfoClone.getAllProperties().getCount() - 1).size()](size_t index)
         {
             return std::string(width - std::to_string(index).size(), '0') + std::to_string(index);
         };
 
     size_t index = 0;
-    for (const auto& clientInfoProperty : connectedClientsInfo.getAllProperties())
+    for (const auto& clientInfoProperty : connectedClientsInfoClone.getAllProperties())
     {
         const PropertyObjectPtr connectedClientPropObject = clientInfoProperty.getValue();
 

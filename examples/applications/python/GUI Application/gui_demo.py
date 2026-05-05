@@ -596,6 +596,8 @@ class App(tk.Tk):
     def handle_load_modules_button_clicked(self):
         if platform.system() == 'Windows':
             extension = '.module.dll'
+        elif platform.system() == 'Darwin':
+            extension = '.dylib'
         else:
             extension = '.module.so'
 

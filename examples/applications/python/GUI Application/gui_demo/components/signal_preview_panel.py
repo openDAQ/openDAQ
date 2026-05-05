@@ -48,12 +48,6 @@ class SignalPreviewPanel(ttk.Frame):
         # name -> ISignal for chartable signals
         self._eligible = {}
         self._unit_str = ''
-        self._last_descriptor_hash = None
-        self._signal_event_handler = None
-        self._signal_event_component = None
-        self._parent_event_handler = None
-        self._parent_event_component = None
-        self._reader_dirty = False
         self._needs_redraw = True
         self._chart_ready = False
         self._px_ml = 65
@@ -100,7 +94,7 @@ class SignalPreviewPanel(ttk.Frame):
 
         # Duration combobox
         self._duration_presets = [0.1, 0.2, 0.5, 1]
-        self._duration_var = tk.StringVar(value='1s')
+        self._duration_var = tk.StringVar(value='0.2s')
         dur_cb = ttk.Combobox(
             controls, textvariable=self._duration_var,
             values=[f'{d}s' for d in self._duration_presets], width=6)
@@ -252,69 +246,13 @@ class SignalPreviewPanel(ttk.Frame):
         self._first_tick = None
         self._needs_redraw = True
 
-        self._set_scale_visible(self._is_2d_vector_signal(signal))
-
         self._unit_str = ''
-        if signal.descriptor.unit is not None:
-            unit = signal.descriptor.unit
-            if unit is not None and unit.symbol is not None:
-                self._unit_str = str(unit.symbol)
-
-        # Cache tick resolution for tick -> seconds conversion.
-        domain_desc = signal.domain_signal.descriptor
-        res = domain_desc.tick_resolution
-        self._tick_res_num = res.numerator
-        self._tick_res_den = res.denominator
-
-        origin_str = str(domain_desc.origin) if hasattr(domain_desc, 'origin') else ''
-        if origin_str.strip():
-            self._origin_epoch = utils.parse_origin(origin_str)
-        else:
-            self._origin_epoch = None
-
-        self._reader = daq.StreamReader(signal)
-        self._last_descriptor_hash = self._descriptor_fingerprint(signal)
-
-        self._unsubscribe_core_events()
-
-        if daq.IComponent.can_cast_from(signal):
-            self._signal_event_component = signal
-            self._signal_event_handler = daq.QueuedEventHandler(self._on_core_event)
-            comp = daq.IComponent.cast_from(signal)
-            comp.on_component_core_event + self._signal_event_handler
-
-        ancestor = getattr(signal, 'parent', None)
-        while ancestor is not None:
-            if (daq.IFunctionBlock.can_cast_from(ancestor)
-                    or daq.IDevice.can_cast_from(ancestor)):
-                break
-            ancestor = getattr(ancestor, 'parent', None)
-
-        if ancestor is not None and daq.IComponent.can_cast_from(ancestor):
-            self._parent_event_component = ancestor
-            self._parent_event_handler = daq.QueuedEventHandler(self._on_core_event)
-            comp = daq.IComponent.cast_from(ancestor)
-            comp.on_component_core_event + self._parent_event_handler
+        self._tick_res_num = None
+        self._tick_res_den = None
+        self._origin_epoch = None
+        self._reader = daq.StreamReader(signal, skip_events=False)
 
     # MARK: Polling
-
-    def _unsubscribe_core_events(self):
-        for handler_attr, comp_attr in (
-            ('_signal_event_handler', '_signal_event_component'),
-            ('_parent_event_handler', '_parent_event_component'),
-        ):
-            handler = getattr(self, handler_attr, None)
-            comp = getattr(self, comp_attr, None)
-            if handler is not None and comp is not None:
-                if daq.IComponent.can_cast_from(comp):
-                    component = daq.IComponent.cast_from(comp)
-                    component.on_component_core_event - handler
-            setattr(self, handler_attr, None)
-            setattr(self, comp_attr, None)
-
-    def _on_core_event(self, sender, args):
-        if args.event_name in ('DescriptorChanged', 'PropertyValueChanged', 'ComponentUpdateEnd'):
-            self._reader_dirty = True
 
     def _on_duration_committed(self, event=None):
         text = self._duration_var.get()
@@ -344,48 +282,16 @@ class SignalPreviewPanel(ttk.Frame):
         if not self._is_chartable(self._selected_signal):
             return
 
-        domain_desc = getattr(
-            getattr(self._selected_signal, 'domain_signal', None),
-            'descriptor', None)
-        if domain_desc is None:
-            return
-        res = getattr(domain_desc, 'tick_resolution', None)
-        if res is None:
-            return
+        self._unit_str = ''
+        self._tick_res_num = None
+        self._tick_res_den = None
+        self._origin_epoch = None
 
-        self._tick_res_num = res.numerator
-        self._tick_res_den = res.denominator
-        self._reader = daq.StreamReader(self._selected_signal)
+        self._reader = daq.StreamReader(
+            self._selected_signal, skip_events=False)
         self._first_tick = None
         self._data.clear()
-        self._last_descriptor_hash = self._descriptor_fingerprint(self._selected_signal)
         self._needs_redraw = True
-
-    @staticmethod
-    def _descriptor_fingerprint(signal):
-        desc = getattr(signal, 'descriptor', None)
-        if desc is None:
-            return None
-        d_desc = getattr(getattr(signal, 'domain_signal', None), 'descriptor', None)
-
-        st = getattr(getattr(desc, 'sample_type', None), 'name', None)
-        rule = getattr(getattr(desc, 'data_rule', None), 'type', None)
-        rule_name = getattr(rule, 'name', str(rule)) if rule else None
-
-        d_rule = getattr(getattr(d_desc, 'data_rule', None), 'type', None) if d_desc else None
-        d_rule_name = getattr(d_rule, 'name', str(d_rule)) if d_rule else None
-
-        # For linear domain rules, the delta parameter encodes the sample rate.
-        # A change here means the rate changed even if everything else looks the same.
-        d_rule_params = None
-        if d_desc is not None:
-            dr = getattr(d_desc, 'data_rule', None)
-            if dr is not None:
-                params = getattr(dr, 'parameters', None)
-                d_rule_params = str(params) if params is not None else None
-
-        return (st, rule_name, d_rule_name, d_rule_params)
-
     def _set_scale_visible(self, visible):
         if visible:
             self._scale_header.grid()
@@ -419,28 +325,83 @@ class SignalPreviewPanel(ttk.Frame):
             return
 
         if self._reader is not None:
-            try:
-                available = self._reader.available_count
-                if available > 0:
-                    values, domain_ticks = self._reader.read_with_domain(available)
-                    self._ingest(values, domain_ticks)
-            except RuntimeError as e:
-                print(f'[SignalPreview] Reader invalidated, recreating: {e}')
-                self._recreate_reader()
-
-        if self._reader is not None and self._selected_signal is not None:
-            current = self._descriptor_fingerprint(self._selected_signal)
-            if current != self._last_descriptor_hash:
-                print('[SignalPreview] Descriptor changed, recreating reader')
-                self._recreate_reader()
-                self._last_descriptor_hash = current
-
-        if self._reader_dirty:
-            self._reader_dirty = False
-            print('[SignalPreview] Property changed, recreating reader')
-            self._recreate_reader()
+            self._drain_reader()
 
         self._poll_job = self.after(self.POLL_MS, self._poll_tick)
+
+    def _drain_reader(self):
+        for _ in range(10):
+            try:
+                available = self._reader.available_count
+            except RuntimeError as e:
+                print(f'[SignalPreview] Reader query failed: {e}')
+                self._recreate_reader()
+                return
+
+            read_count = max(available, 1)
+
+            try:
+                values, domain_ticks, status = self._reader.read_with_domain(
+                    read_count, return_status=True)
+            except RuntimeError as e:
+                print(f'[SignalPreview] Read failed: {e}')
+                self._recreate_reader()
+                return
+
+            if status.read_status == daq.ReadStatus.Event:
+                self._handle_event_packet(status.event_packet)
+                continue
+
+            if len(values) > 0:
+                self._ingest(values, domain_ticks)
+
+            return
+            
+    def _apply_descriptors(self, data_descriptor, domain_descriptor):
+        if data_descriptor is not None:
+            unit = getattr(data_descriptor, 'unit', None)
+            symbol = getattr(unit, 'symbol', None) if unit is not None else None
+            self._unit_str = str(symbol) if symbol is not None else ''
+
+        if domain_descriptor is not None:
+            res = getattr(domain_descriptor, 'tick_resolution', None)
+            if res is None:
+                self._tick_res_num = None
+                self._tick_res_den = None
+                self._origin_epoch = None
+            else:
+                self._tick_res_num = res.numerator
+                self._tick_res_den = res.denominator
+                origin_str = (str(domain_descriptor.origin)
+                              if hasattr(domain_descriptor, 'origin') else '')
+                if origin_str.strip():
+                    self._origin_epoch = utils.parse_origin(origin_str)
+                else:
+                    self._origin_epoch = None
+
+    def _handle_event_packet(self, event_packet):
+        event_id = event_packet.event_id
+
+        self._needs_redraw = True
+        if event_id != 'DATA_DESCRIPTOR_CHANGED':
+            return
+        
+        params = event_packet.parameters
+        data_desc = params['DataDescriptor']
+        domain_desc = params['DomainDataDescriptor']
+
+        if (data_desc is not None
+                and daq.IDataDescriptor.can_cast_from(data_desc)):
+            data_desc = daq.IDataDescriptor.cast_from(data_desc)
+        if (domain_desc is not None
+                and daq.IDataDescriptor.can_cast_from(domain_desc)):
+            domain_desc = daq.IDataDescriptor.cast_from(domain_desc)
+
+        self._apply_descriptors(data_desc, domain_desc)
+
+        self._data.clear()
+        self._first_tick = None
+        self._chart_ready = False
 
     def _ingest(self, values, domain_ticks):
         if values is None or domain_ticks is None:
@@ -448,6 +409,9 @@ class SignalPreviewPanel(ttk.Frame):
 
         n = len(values)
         if n == 0:
+            return
+
+        if self._tick_res_num is None or self._tick_res_den is None:
             return
 
         ratio = self._tick_res_num / self._tick_res_den
@@ -824,5 +788,4 @@ class SignalPreviewPanel(ttk.Frame):
             self._chart.delete('all')
 
         self._chart_ready = False
-        self._unsubscribe_core_events()
         self._reader = None

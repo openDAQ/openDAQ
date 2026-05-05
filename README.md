@@ -43,11 +43,11 @@ documentation can be built with Antora by following the guide found in [docs/Ant
 
 | OS           | Arch   | Generator | Compiler    | Build type |
 |--------------|--------|-----------|-------------|------------|
-| windows-2025 | x86_64 | msvs v143 | VC++        | Debug      |
-| windows-2025 | x86    | msvs v143 | VC++        | Release    |
-| windows-2025 | x86_64 | ninja     | clang       | Release    |
-| windows-2025 | x86_64 | ninja     | intel-cc ²  | Release    |
-| ubuntu-20.04 | x86_64 | ninja     | gcc-7 ¹     | Release    |
+| windows-2022 | x86_64 | msvs v143 | VC++        | Debug      |
+| windows-2022 | x86    | msvs v143 | VC++        | Release    |
+| windows-2022 | x86_64 | ninja     | clang       | Release    |
+| windows-2022 | x86_64 | ninja     | intel-cc ²  | Release    |
+| ubuntu-20.04 | x86    | ninja     | gcc-7 ¹ ²   | Release    |
 | ubuntu-20.04 | x86_64 | ninja     | clang-9 ¹   | Release    |
 | ubuntu-24.04 | x86_64 | ninja     | gcc-14      | Debug      |
 | ubuntu-24.04 | x86_64 | ninja     | gcc-14      | Release    |
@@ -56,14 +56,12 @@ documentation can be built with Antora by following the guide found in [docs/Ant
 | macos-26     | x86_64 | ninja     | appleclang  | Debug      |
 | macos-26     | armv8  | ninja     | appleclang  | Release    |
 
-¹ On legacy compilers (gcc-7, clang-9) the `ci-legacy-compiler` preset disables:
+¹ Legacy compilers (gcc-7, clang-9) disable several features via CI `cache-variables`:
 - `DAQMODULES_REF_FB_MODULE_ENABLE_RENDERER` — SFML 3.0 requires full C++17 support
 - `DAQMODULES_BASIC_CSV_RECORDER_MODULE` — Arrow/Parquet requires a modern compiler
 - `OPENDAQ_PYTHON_VERSION=3.8` — newer Python is not available on ubuntu-20.04 out of the box
 
-² On Intel oneAPI DPC++/C++ Compiler (`icx`) the `ci-no-bindings` preset disables:
-- `OPENDAQ_GENERATE_PYTHON_BINDINGS`
-- `OPENDAQ_GENERATE_CSHARP_BINDINGS`
+² Intel oneAPI DPC++/C++ (`icx`) and 32-bit ubuntu-20.04 jobs disable Python and C# binding generation (`OPENDAQ_GENERATE_PYTHON_BINDINGS`, `OPENDAQ_GENERATE_CSHARP_BINDINGS`).
 
 The CI matrix is provided by [openDAQ-CI](https://github.com/openDAQ/openDAQ-CI)'s reusable workflow.
 

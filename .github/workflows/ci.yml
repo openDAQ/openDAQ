@@ -4,6 +4,16 @@ on:
   workflow_dispatch:
   pull_request:
     types: [opened, reopened, synchronize, ready_for_review]
+  workflow_call:
+    inputs:
+      cmake_preset:
+        type: string
+        required: false
+        default: "ci"
+      ctest_preset:
+        type: string
+        required: false
+        default: "run_tests"
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -18,10 +28,10 @@ jobs:
       timeout: '[{"timeout-minutes": 270}]'
       include-jobs: >
         [
-          "windows-2025-x86_64-msvs-v143-debug",
-          "windows-2025-x86-msvs-v143-release",
-          "windows-2025-x86_64-ninja-clang-release",
-          "windows-2025-x86_64-ninja-intel-cc-release",
+          "windows-2022-x86_64-msvs-v143-debug",
+          "windows-2022-x86-msvs-v143-release",
+          "windows-2022-x86_64-ninja-clang-release",
+          "windows-2022-x86_64-ninja-intel-cc-release",
           "ubuntu-20.04-x86-ninja-gcc-7-release",
           "ubuntu-20.04-x86_64-ninja-clang-9-release",
           "ubuntu-24.04-x86_64-ninja-gcc-14-debug",
@@ -54,23 +64,41 @@ jobs:
       cmake-presets: >
         [
           {
-            "configure-preset": "ci",
-            "test-preset": "run_tests"
+            "configure-preset": "${{ inputs.cmake_preset || 'ci' }}",
+            "test-preset": "${{ inputs.ctest_preset || 'run_tests' }}",
+            "cache-variables": {"OPENDAQ_PYTHON_VERSION": "3.14"}
+          },
+          {
+            "match-jobs": ["windows-*-msvs-*"],
+            "cache-variables": {"OPENDAQ_MSVC_SINGLE_PROCESS_BUILD": true}
           },
           {
             "match-jobs": ["macos-*"],
-            "run-tests-priv": true
+            "run-tests-priv": true,
+            "cache-variables": {"CMAKE_OSX_DEPLOYMENT_TARGET": "10.15"}
+          },
+          {
+            "match-jobs": ["ubuntu-20.04-*-gcc-7-*", "ubuntu-20.04-*-clang-9-*"],
+            "cache-variables": {
+              "DAQMODULES_REF_FB_MODULE_ENABLE_RENDERER": false,
+              "DAQMODULES_BASIC_CSV_RECORDER_MODULE": false,
+              "OPENDAQ_PYTHON_VERSION": "3.8"
+            }
           },
           {
             "match-jobs": ["ubuntu-20.04-x86-*"],
-            "configure-preset": "ci-legacy-compiler-x86"
-          },
-          {
-            "match-jobs": ["ubuntu-20.04-*-clang-9-*"],
-            "configure-preset": "ci-legacy-compiler"
+            "cache-variables": {
+              "OPENDAQ_FORCE_COMPILE_32BIT": true,
+              "OPENDAQ_GENERATE_PYTHON_BINDINGS": false,
+              "OPENDAQ_GENERATE_CSHARP_BINDINGS": false,
+              "CMAKE_CXX_FLAGS": "-Wno-error=shift-count-overflow"
+            }
           },
           {
             "match-jobs": ["*-intel-cc-*"],
-            "configure-preset": "ci-no-bindings"
+            "cache-variables": {
+              "OPENDAQ_GENERATE_PYTHON_BINDINGS": false,
+              "OPENDAQ_GENERATE_CSHARP_BINDINGS": false
+            }
           }
         ]

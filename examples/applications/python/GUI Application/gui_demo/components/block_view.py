@@ -91,7 +91,6 @@ class BlockView(ttk.Frame):
 
                 self._create_right_stack()
                 
-                signals = self.node.get_signals(daq.AnySearchFilter() if self.context.view_hidden_components else None)
                 self.output_signals = OutputSignalsView(self.right_stack, self.node, self.context)
                 self.output_signals.pack(fill=tk.X)
                     
@@ -152,7 +151,10 @@ class BlockView(ttk.Frame):
                     op_mode_menu.add_command(label=mode, command=make_select(mode))
 
                 self._bind_mousewheel_recursive(self.right_stack)
-                self._attach_signal_preview()
+                
+                signals = self.node.get_signals(daq.AnySearchFilter() if self.context.view_hidden_components else None)
+                if signals:
+                    self._attach_signal_preview()
             
             elif daq.IFunctionBlock.can_cast_from(self.node):
                 self._create_right_stack()
@@ -166,8 +168,10 @@ class BlockView(ttk.Frame):
                 self.properties = PropertiesView(
                     self.expanded_frame, self.node, self.context)
 
-                self.input_ports = InputPortsView(self.right_stack, self.node, self.context)
-                self.input_ports.pack(fill=tk.BOTH, expand=True)
+                inputs = self.node.get_input_ports()
+                if inputs:
+                    self.input_ports = InputPortsView(self.right_stack, self.node, self.context)
+                    self.input_ports.pack(fill=tk.BOTH, expand=True)
 
                 self.output_signals = OutputSignalsView(self.right_stack, self.node, self.context)
                 self.output_signals.pack(fill=tk.BOTH, expand=True)
@@ -181,7 +185,10 @@ class BlockView(ttk.Frame):
                 self.rows = [0]
                 
                 self._bind_mousewheel_recursive(self.right_stack)
-                self._attach_signal_preview()
+                
+                signals = self.node.get_signals(daq.AnySearchFilter() if self.context.view_hidden_components else None)
+                if signals:
+                    self._attach_signal_preview()
                 
             elif daq.IFolder.can_cast_from(self.node):
                 self.node = daq.IFolder.cast_from(self.node)

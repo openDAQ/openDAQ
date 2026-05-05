@@ -837,6 +837,7 @@ inline std::string MDNSDiscoveryClient::getIpv6NetworkInterfaceFromIndex(unsigne
     return "";
 }
 
+// as some devices do not reply with A nor AAAA records we additionally cache the sender address as a workaround to get the device address
 inline void MDNSDiscoveryClient::cacheFromAddress(int sock, const sockaddr* from, const std::string& serviceInstance)
 {
     if (from->sa_family == AF_INET)

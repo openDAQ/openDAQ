@@ -39,6 +39,7 @@
 
 ## Bug fixes
 
+- [#1187](https://github.com/openDAQ/openDAQ/pull/1187) Add device discovery fixes and workarounds, including: device address discovery when no A / AAAA records provided, excluding malformed IPv6 addresses.
 - [#1112](https://github.com/openDAQ/openDAQ/pull/1112) Reset last value calc values on unsubscribe completion
 - [#1087](https://github.com/openDAQ/openDAQ/pull/1087) Add removedNoLock virtual method to component. Fix deadlock race condition on signal disconnect.
 - [#1072](https://github.com/openDAQ/openDAQ/pull/1072) Reduce unnecessary RPC calls and signal updates by sending values only when the attribute, operation mode, or descriptor has actually changed.

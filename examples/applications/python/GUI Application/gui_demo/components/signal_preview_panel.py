@@ -4,6 +4,7 @@ import tkinter as tk
 from tkinter import ttk
 from collections import deque
 import numpy as np
+from tkinter import font as tkfont
 
 import opendaq as daq
 
@@ -557,10 +558,9 @@ class SignalPreviewPanel(ttk.Frame):
         if w < 20 or h < 20:
             return
 
-        ml, mr, mt, mb = 38, 12, 10, 22
-        pw = w - ml - mr
+        mr, mt, mb = 12, 10, 22
         ph = h - mt - mb
-        if pw < 10 or ph < 10:
+        if ph < 10:
             return
 
         buf = self._data
@@ -625,7 +625,26 @@ class SignalPreviewPanel(ttk.Frame):
 
         t_span = self.WINDOW_SECONDS
         v_span = v_hi - v_lo
-        
+
+        unit_suffix = f' {self._unit_str}' if self._unit_str else ''
+        y_labels = []
+        for i in range(5):
+            if use_log:
+                sl_val = sl_hi - (sl_hi - sl_lo) * i / 4
+                gv = math.copysign(
+                    symlog_thresh * (10.0 ** abs(sl_val) - 1.0), sl_val)
+            else:
+                gv = v_hi - v_span * i / 4
+            y_labels.append(self._fmt(gv) + unit_suffix)
+
+        label_font = tkfont.Font(font=self._AXIS_FONT)
+        max_label_w = max(label_font.measure(t) for t in y_labels)
+        ml = max_label_w + 8
+
+        pw = w - ml - mr
+        if pw < 10:
+            return
+
         def xpx(t):
             return ml + (t - t_earliest) / t_span * pw
 
@@ -637,19 +656,11 @@ class SignalPreviewPanel(ttk.Frame):
                 return mt + (1.0 - (v - v_lo) / v_span) * ph
 
         # Horizontal grid + Y labels
-        unit_suffix = f' {self._unit_str}' if self._unit_str else ''
         for i in range(5):
             gy = mt + ph * i / 4
             c.coords(self._hgrid_ids[i], ml, gy, ml + pw, gy)
-            if use_log:
-                sl_val = sl_hi - (sl_hi - sl_lo) * i / 4
-                gv = math.copysign(
-                    symlog_thresh * (10.0 ** abs(sl_val) - 1.0), sl_val)
-            else:
-                gv = v_hi - v_span * i / 4
             c.coords(self._hgrid_label_ids[i], ml - 4, gy)
-            c.itemconfig(self._hgrid_label_ids[i],
-                         text=self._fmt(gv) + unit_suffix)
+            c.itemconfig(self._hgrid_label_ids[i], text=y_labels[i])
 
         # Axes
         c.coords(self._yaxis_id, ml, mt, ml, mt + ph)

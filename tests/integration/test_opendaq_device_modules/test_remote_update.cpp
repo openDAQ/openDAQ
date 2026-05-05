@@ -523,3 +523,141 @@ TEST_F(RemoteModulesUpdateTest, OptionsSkipNative)
 
 // TODO: Add DeviceUpdateOptions::Remove test
 // TODO: Client-to-device loading is not properly establishing connections.
+
+// TODO: Generates duplicate item warning
+TEST_F(RemoteModulesUpdateTest, RemoveOldKeepDeviceNotInConfiguration)
+{
+    auto gateway = setupBaseInstance();
+    configureNativeClientInstance(gateway);
+    addServers(gateway, 4843, -1);
+
+    auto client = setupBaseInstance();
+    client.setRootDevice("daqref://device0");
+    addDevice(client, ConnectionType::Native, 4843);
+
+    ASSERT_EQ(client.getDevices().getCount(), 1u);
+    ASSERT_EQ(client.getDevices()[0].getDevices().getCount(), 2u);
+
+    auto str = client.saveConfiguration();
+    auto options = DeviceUpdateOptions(str);
+
+    // Add an extra device after the configuration was saved.
+    addDevice(gateway, ConnectionType::Native, 7422); // Connect Test3
+    ASSERT_EQ(gateway.getDevices().getCount(), 3u);
+    ASSERT_EQ(gateway.getDevices()[2].getLocalId(), "openDAQ_Test3");
+
+    auto params = UpdateParameters();
+    params.setDeviceUpdateOptions(options);
+    params.setRemoveOldDevices(False);
+
+    client.loadConfiguration(str, params);
+
+    // No device is removed
+    ASSERT_EQ(client.getDevices()[0].getDevices().getCount(), 3u);
+
+    // The resulting tree includes the extra device.
+    ASSERT_EQ(client.getDevices()[0].getDevices()[0].getLocalId(), "openDAQ_Test1");
+    ASSERT_EQ(client.getDevices()[0].getDevices()[1].getLocalId(), "openDAQ_Test2");
+    ASSERT_EQ(client.getDevices()[0].getDevices()[2].getLocalId(), "openDAQ_Test3");
+}
+
+// TODO: Generates duplicate item warning
+TEST_F(RemoteModulesUpdateTest, RemoveOldRemoveDeviceNotInConfiguration)
+{
+    auto gateway = setupBaseInstance();
+    configureNativeClientInstance(gateway);
+    addServers(gateway, 4843, -1);
+
+    auto client = setupBaseInstance();
+    client.setRootDevice("daqref://device0");
+    addDevice(client, ConnectionType::Native, 4843);
+
+    ASSERT_EQ(client.getDevices().getCount(), 1u);
+    ASSERT_EQ(client.getDevices()[0].getDevices().getCount(), 2u);
+
+    auto str = client.saveConfiguration();
+    auto options = DeviceUpdateOptions(str);
+
+    // Add an extra device after the configuration was saved.
+    addDevice(gateway, ConnectionType::Native, 7422);  // Connect Test3
+    ASSERT_EQ(gateway.getDevices().getCount(), 3u);
+    ASSERT_EQ(gateway.getDevices()[2].getLocalId(), "openDAQ_Test3");
+
+    auto params = UpdateParameters();
+    params.setDeviceUpdateOptions(options);
+    params.setRemoveOldDevices(True);
+
+    client.loadConfiguration(str, params);
+
+    // Exact removes devices that are not mentioned in the loaded configuration.
+    ASSERT_EQ(client.getDevices()[0].getDevices().getCount(), 2u);
+
+    bool foundExtraDevice = false;
+    for (SizeT i = 0; i < client.getDevices()[0].getDevices().getCount(); ++i)
+    {
+        if (client.getDevices()[0].getDevices()[i].getLocalId() == "openDAQ_Test3")
+        {
+            foundExtraDevice = true;
+            break;
+        }
+    }
+    ASSERT_FALSE(foundExtraDevice);
+
+    // The resulting tree matches the saved configuration exactly.
+    ASSERT_EQ(client.getDevices()[0].getDevices()[0].getLocalId(), "openDAQ_Test1");
+    ASSERT_EQ(client.getDevices()[0].getDevices()[1].getLocalId(), "openDAQ_Test2");
+}
+
+// TODO: Generates duplicate item warning
+TEST_F(RemoteModulesUpdateTest, RemoveOldRemapToExistingSibling)
+{
+    auto gateway = setupBaseInstance();
+    addDevice(gateway, ConnectionType::Native, 7420); // Connect Test1
+    addServers(gateway, 4843, -1);
+
+    auto client = setupBaseInstance();
+    client.setRootDevice("daqref://device0");
+    addDevice(client, ConnectionType::Native, 4843);
+
+    ASSERT_EQ(client.getDevices().getCount(), 1u);
+    ASSERT_EQ(client.getDevices()[0].getDevices().getCount(), 1u);
+
+    auto str = client.saveConfiguration();
+    auto options = DeviceUpdateOptions(str);
+
+    // Add an extra device after the configuration was saved.
+    addDevice(gateway, ConnectionType::Native, 7421);  // Connect Test2
+    addDevice(gateway, ConnectionType::Native, 7422);  // Connect Test3
+    ASSERT_EQ(gateway.getDevices().getCount(), 3u);
+    ASSERT_EQ(gateway.getDevices()[0].getLocalId(), "openDAQ_Test1");
+    ASSERT_EQ(gateway.getDevices()[1].getLocalId(), "openDAQ_Test2");
+    ASSERT_EQ(gateway.getDevices()[2].getLocalId(), "openDAQ_Test3");
+    // client:
+    //   - gateway:
+    //       * Test1
+    //       * Test2
+    //       * Test3
+
+    // References to device options
+    auto rootChildOptions = options.getChildDeviceOptions();
+    auto gatewayOptions = rootChildOptions[0];
+    auto gatewayChildOptions = gatewayOptions.getChildDeviceOptions();
+    auto leaf1Options = gatewayChildOptions[0];
+    leaf1Options.setUpdateMode(DeviceUpdateMode::Remap);
+    leaf1Options.setNewManufacturer("openDAQ"); // NOTE
+    leaf1Options.setNewSerialNumber("Test3");
+    // Configuration:
+    // client:
+    //   - gateway:
+    //       * Test1 (remap to Test3)
+
+    auto params = UpdateParameters();
+    params.setDeviceUpdateOptions(options);
+    params.setRemoveOldDevices(True);
+
+    client.loadConfiguration(str, params);
+
+    // Test1 removed as it was remapped. Test2 was not mentioned and Test3 is the only one left (existing remapping target).
+    ASSERT_EQ(client.getDevices()[0].getDevices().getCount(), 1u);
+    ASSERT_EQ(client.getDevices()[0].getDevices()[0].getLocalId(), "openDAQ_Test3");
+}

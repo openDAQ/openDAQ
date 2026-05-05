@@ -331,7 +331,7 @@ class SignalPreviewPanel(ttk.Frame):
         self._poll_job = self.after(self.POLL_MS, self._poll_tick)
 
     def _drain_reader(self):
-        for _ in range(10):
+        while True:
             try:
                 available = self._reader.available_count
             except RuntimeError as e:
@@ -339,7 +339,7 @@ class SignalPreviewPanel(ttk.Frame):
                 self._recreate_reader()
                 return
 
-            read_count = max(available, 1)
+            read_count = min(available, self.MAX_BUFFER_SIZE)
 
             try:
                 values, domain_ticks, status = self._reader.read_with_domain(
@@ -349,36 +349,55 @@ class SignalPreviewPanel(ttk.Frame):
                 self._recreate_reader()
                 return
 
+            if len(values) > 0:
+                self._ingest(values, domain_ticks)
+
             if status.read_status == daq.ReadStatus.Event:
                 self._handle_event_packet(status.event_packet)
                 continue
 
-            if len(values) > 0:
-                self._ingest(values, domain_ticks)
-
-            return
+            if status.read_status == daq.ReadStatus.Ok and len(values) == 0:
+                return
             
+    @staticmethod
+    def _is_null_descriptor(desc):
+        sample_type = getattr(desc, 'sample_type', None)
+        if sample_type is None:
+            return True
+        name = getattr(sample_type, 'name', str(sample_type))
+        return name == 'Null'
+
     def _apply_descriptors(self, data_descriptor, domain_descriptor):
         if data_descriptor is not None:
-            unit = getattr(data_descriptor, 'unit', None)
-            symbol = getattr(unit, 'symbol', None) if unit is not None else None
-            self._unit_str = str(symbol) if symbol is not None else ''
+            if self._is_null_descriptor(data_descriptor):
+                self._unit_str = ''
+            else:
+                unit = getattr(data_descriptor, 'unit', None)
+                symbol = (getattr(unit, 'symbol', None)
+                          if unit is not None else None)
+                self._unit_str = str(symbol) if symbol is not None else ''
 
         if domain_descriptor is not None:
-            res = getattr(domain_descriptor, 'tick_resolution', None)
-            if res is None:
+            if self._is_null_descriptor(domain_descriptor):
                 self._tick_res_num = None
                 self._tick_res_den = None
                 self._origin_epoch = None
             else:
-                self._tick_res_num = res.numerator
-                self._tick_res_den = res.denominator
-                origin_str = (str(domain_descriptor.origin)
-                              if hasattr(domain_descriptor, 'origin') else '')
-                if origin_str.strip():
-                    self._origin_epoch = utils.parse_origin(origin_str)
-                else:
+                res = getattr(domain_descriptor, 'tick_resolution', None)
+                if res is None:
+                    self._tick_res_num = None
+                    self._tick_res_den = None
                     self._origin_epoch = None
+                else:
+                    self._tick_res_num = res.numerator
+                    self._tick_res_den = res.denominator
+                    origin_str = (str(domain_descriptor.origin)
+                                  if hasattr(domain_descriptor, 'origin')
+                                  else '')
+                    if origin_str.strip():
+                        self._origin_epoch = utils.parse_origin(origin_str)
+                    else:
+                        self._origin_epoch = None
 
     def _handle_event_packet(self, event_packet):
         event_id = event_packet.event_id
@@ -535,7 +554,8 @@ class SignalPreviewPanel(ttk.Frame):
         self._chart_ready = True
 
     def _schedule_draw(self):
-        self._draw_job = self.after(self.DRAW_MS, self._draw_tick)
+        draw_interval = max(16, min(self.DRAW_MS, int(self.WINDOW_SECONDS * 500)))
+        self._draw_job = self.after(draw_interval, self._draw_tick)
 
     def _draw_tick(self):
         self._draw_job = None
@@ -590,22 +610,24 @@ class SignalPreviewPanel(ttk.Frame):
             c.itemconfig(self._badge_bg_id, state='hidden')
             return
 
-        # Y range with breathing room
-        vals = [v for _, v in visible]
-        v_lo, v_hi = min(vals), max(vals)
+        # Y range computed from a stabilized window. 
+        range_earliest = t_latest - max(self.WINDOW_SECONDS, 0.5)
+        range_vals = [v for t, v in buf if t >= range_earliest]
+        v_lo, v_hi = min(range_vals), max(range_vals)
 
         use_log = self._scale_var.get() == 'Log'
 
         if use_log:
-            abs_max = max(abs(v) for v in vals)
+            abs_max = max(abs(v) for v in range_vals)
             symlog_thresh = max(abs_max * 0.01, 1e-10)
 
             def symlog(v):
                 return math.copysign(math.log10(1.0 + abs(v) / symlog_thresh), v)
 
-            symlog_vals = [symlog(v) for v in vals]
+            symlog_vals = [symlog(v) for v in range_vals]
             sl_lo = min(symlog_vals)
             sl_hi = max(symlog_vals)
+            ...
             if sl_lo == sl_hi:
                 sl_lo -= 1.0
                 sl_hi += 1.0
@@ -639,7 +661,7 @@ class SignalPreviewPanel(ttk.Frame):
 
         label_font = tkfont.Font(font=self._AXIS_FONT)
         max_label_w = max(label_font.measure(t) for t in y_labels)
-        ml = max_label_w + 8
+        ml = -(-(max_label_w + 8) // 4) * 4
 
         pw = w - ml - mr
         if pw < 10:

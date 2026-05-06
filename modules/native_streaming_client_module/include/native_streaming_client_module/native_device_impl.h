@@ -58,6 +58,8 @@ public:
 
     void closeConnectionOnRemoval();
 
+    opendaq_native_streaming_protocol::NativeStreamingClientHandlerPtr getTransportClientHandler() const;
+
 private:
     void transportConnectionStatusChangedHandler(const EnumerationPtr& status, const StringPtr& statusMessage);
     config_protocol::PacketBuffer doConfigRequestAndGetReply(const config_protocol::PacketBuffer& reqPacket);
@@ -122,6 +124,7 @@ public:
     void INTERFACE_FUNC updateDeviceInfo(const StringPtr& connectionString) override;
 
     // IComponentPrivate
+    ErrCode INTERFACE_FUNC setComponentConfig(IPropertyObject* config) override;
     ErrCode INTERFACE_FUNC getComponentConfig(IPropertyObject** config) override;
 
 protected:

@@ -2,10 +2,10 @@
 
 ## Features
 
-- [#981](https://github.com/openDAQ/openDAQ/pull/981) Component active state now considers parent's active state. `getActive()` returns `active && parentActive`. Add posibility to generate c and python bindings on MacOs
 - [#914](https://github.com/openDAQ/openDAQ/pull/914) Implementing time delay function block. Fix overflow while calculating timestamp in renderer
 - [#886](https://github.com/openDAQ/openDAQ/pull/886) Adds simulator device module.
 - [#975](https://github.com/openDAQ/openDAQ/pull/975) Add `DevelopmentVersionInfo` for more detailed version information (tweak, branch and hash).
+- [#981](https://github.com/openDAQ/openDAQ/pull/981) Component active state now considers parent's active state. `getActive()` returns `active && parentActive`. Add posibility to generate c and python bindings on MacOs
 - [#1000](https://github.com/openDAQ/openDAQ/pull/1000) Added a mode to the CSV recorder that allows data from multiple same-rate signals to be written to a single file.
 - [#1018](https://github.com/openDAQ/openDAQ/pull/1018) Optimized multireader synchronization for linear data rule domain signals by avoiding iteration through timestamps.
 - [#1034](https://github.com/openDAQ/openDAQ/pull/1034) Add string support for data packets and signals
@@ -18,6 +18,7 @@
 - [#1097](https://github.com/openDAQ/openDAQ/pull/1097) Implement value based selection list
 - [#1124](https://github.com/openDAQ/openDAQ/pull/1124) Implement clearPropertyValues() for property objects
 - [#1137](https://github.com/openDAQ/openDAQ/pull/1137) Add `IInputPort::acceptsSignals` to check multiple signals at once, using a single RPC call via native protocol.
+- [#1056](https://github.com/openDAQ/openDAQ/pull/1056) implement attempting to reconnect with all available addresses#1056
 - [#1157](https://github.com/openDAQ/openDAQ/pull/1157) Devices default to `OperationModeType::SafeOperation` when added to folder or set as root. Add virtual method to make it customizable.
 - [#1153](https://github.com/openDAQ/openDAQ/pull/1153) Enable and disable discovery for openDAQ Server via native.
 - [#1178](https://github.com/openDAQ/openDAQ/pull/1178) Calling begin/end update only on the root component while save/load

@@ -51,6 +51,9 @@ public:
     // INativeStreamingPrivate
     void INTERFACE_FUNC upgradeToSafeProcessingCallbacks() override;
 
+    // IStreamingPrivate
+    ErrCode INTERFACE_FUNC setOwnerDevice(const DevicePtr& device) override;
+
 protected:
     void onSetActive(bool active) override;
     void onAddSignal(const MirroredSignalConfigPtr& signal) override;

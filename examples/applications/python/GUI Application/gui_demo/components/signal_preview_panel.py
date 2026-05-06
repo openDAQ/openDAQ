@@ -35,6 +35,10 @@ class SignalPreviewPanel(ttk.Frame):
 
         self._reader = None
         self._selected_signal = None
+        self._selected_descriptor = None
+        self._selected_domain_descriptor = None
+
+        self._can_chart = False
         self._poll_job = None
         self._draw_job = None
 
@@ -43,7 +47,6 @@ class SignalPreviewPanel(ttk.Frame):
 
         self._tick_res_num = None
         self._tick_res_den = None
-        self._origin_epoch = None   # datetime | None
         self._first_tick = None
 
         # name -> ISignal for chartable signals
@@ -165,7 +168,11 @@ class SignalPreviewPanel(ttk.Frame):
             if sig is None or not daq.ISignal.can_cast_from(sig):
                 continue
             signal = daq.ISignal.cast_from(sig)
-            if not self._is_chartable(signal):
+            domain_signal = signal.domain_signal
+            if domain_signal is None:
+                continue
+
+            if not self.check_and_set_is_chartable(signal.descriptor, domain_signal.descriptor):   
                 continue
 
             name = signal.name if signal.name else signal.global_id
@@ -193,11 +200,10 @@ class SignalPreviewPanel(ttk.Frame):
             self._on_signal_selected()
 
     @staticmethod
-    def _is_chartable(signal):
-        desc = getattr(signal, 'descriptor', None)
+    def _is_chartable(desc, domain_desc):
         if desc is None:
             return False
-
+        
         sample_type = getattr(desc, 'sample_type', None)
         if not sample_type:
             return False
@@ -215,14 +221,9 @@ class SignalPreviewPanel(ttk.Frame):
         if fields and len(fields) > 0:
             return False
 
-        domain_sig = getattr(signal, 'domain_signal', None)
-        if domain_sig is None:
-            return False
-
-        domain_desc = getattr(domain_sig, 'descriptor', None)
         if domain_desc is None:
             return False
-
+        
         unit = getattr(domain_desc, 'unit', None)
         symbol = getattr(unit, 'symbol', None)
         if str(symbol) != 's':
@@ -230,8 +231,16 @@ class SignalPreviewPanel(ttk.Frame):
 
         if getattr(domain_desc, 'tick_resolution', None) is None:
             return False
-
+    
         return True
+
+    def check_and_set_is_chartable(self, desc, domain_desc):
+        chartable = self._is_chartable(desc, domain_desc)
+        self._can_chart = chartable
+        if self._reader is not None:
+            self._reader.active = chartable
+
+        return chartable
 
     # MARK: Signal selection
 
@@ -243,6 +252,9 @@ class SignalPreviewPanel(ttk.Frame):
 
         self._reader = None
         self._selected_signal = signal
+        self._selected_descriptor = None
+        self._selected_domain_descriptor = None
+
         self._data.clear()
         self._first_tick = None
         self._needs_redraw = True
@@ -250,7 +262,6 @@ class SignalPreviewPanel(ttk.Frame):
         self._unit_str = ''
         self._tick_res_num = None
         self._tick_res_den = None
-        self._origin_epoch = None
         self._reader = daq.StreamReader(signal, skip_events=False)
 
     # MARK: Polling
@@ -280,19 +291,25 @@ class SignalPreviewPanel(ttk.Frame):
         self._reader = None
         if self._selected_signal is None:
             return
-        if not self._is_chartable(self._selected_signal):
+        
+        domain_signal = self._selected_signal.domain_signal
+        if domain_signal is None:
             return
-
-        self._unit_str = ''
-        self._tick_res_num = None
-        self._tick_res_den = None
-        self._origin_epoch = None
 
         self._reader = daq.StreamReader(
             self._selected_signal, skip_events=False)
+
+        if not self.check_and_set_is_chartable(self._selected_signal.descriptor, domain_signal.descriptor):
+            return
+        
+        self._unit_str = ''
+        self._tick_res_num = None
+        self._tick_res_den = None
+
         self._first_tick = None
         self._data.clear()
         self._needs_redraw = True
+
     def _set_scale_visible(self, visible):
         if visible:
             self._scale_header.grid()
@@ -349,7 +366,7 @@ class SignalPreviewPanel(ttk.Frame):
                 self._recreate_reader()
                 return
 
-            if len(values) > 0:
+            if len(values) > 0 and self._can_chart:
                 self._ingest(values, domain_ticks)
 
             if status.read_status == daq.ReadStatus.Event:
@@ -369,40 +386,37 @@ class SignalPreviewPanel(ttk.Frame):
 
     def _apply_descriptors(self, data_descriptor, domain_descriptor):
         if data_descriptor is not None:
-            if self._is_null_descriptor(data_descriptor):
+            self._selected_descriptor = daq.IDataDescriptor.cast_from(data_descriptor)
+            if self._is_null_descriptor(self._selected_descriptor):
                 self._unit_str = ''
             else:
-                unit = getattr(data_descriptor, 'unit', None)
+                unit = getattr(self._selected_descriptor, 'unit', None)
                 symbol = (getattr(unit, 'symbol', None)
                           if unit is not None else None)
                 self._unit_str = str(symbol) if symbol is not None else ''
 
         if domain_descriptor is not None:
-            if self._is_null_descriptor(domain_descriptor):
+            self._selected_domain_descriptor = daq.IDataDescriptor.cast_from(domain_descriptor)
+            if self._is_null_descriptor(self._selected_domain_descriptor):
                 self._tick_res_num = None
                 self._tick_res_den = None
-                self._origin_epoch = None
             else:
-                res = getattr(domain_descriptor, 'tick_resolution', None)
+                res = getattr(self._selected_domain_descriptor, 'tick_resolution', None)
                 if res is None:
                     self._tick_res_num = None
                     self._tick_res_den = None
-                    self._origin_epoch = None
                 else:
                     self._tick_res_num = res.numerator
                     self._tick_res_den = res.denominator
-                    origin_str = (str(domain_descriptor.origin)
-                                  if hasattr(domain_descriptor, 'origin')
-                                  else '')
-                    if origin_str.strip():
-                        self._origin_epoch = utils.parse_origin(origin_str)
-                    else:
-                        self._origin_epoch = None
 
     def _handle_event_packet(self, event_packet):
         event_id = event_packet.event_id
 
         self._needs_redraw = True
+        self._data.clear()
+        self._first_tick = None
+        self._chart_ready = False
+
         if event_id != 'DATA_DESCRIPTOR_CHANGED':
             return
         
@@ -410,18 +424,8 @@ class SignalPreviewPanel(ttk.Frame):
         data_desc = params['DataDescriptor']
         domain_desc = params['DomainDataDescriptor']
 
-        if (data_desc is not None
-                and daq.IDataDescriptor.can_cast_from(data_desc)):
-            data_desc = daq.IDataDescriptor.cast_from(data_desc)
-        if (domain_desc is not None
-                and daq.IDataDescriptor.can_cast_from(domain_desc)):
-            domain_desc = daq.IDataDescriptor.cast_from(domain_desc)
-
         self._apply_descriptors(data_desc, domain_desc)
-
-        self._data.clear()
-        self._first_tick = None
-        self._chart_ready = False
+        self.check_and_set_is_chartable(self._selected_descriptor, self._selected_domain_descriptor)
 
     def _ingest(self, values, domain_ticks):
         if values is None or domain_ticks is None:
@@ -444,57 +448,44 @@ class SignalPreviewPanel(ttk.Frame):
         t_arr = (domain_ticks.astype(np.float64) - base) * ratio
         v_arr = values.astype(np.float64)
 
-        if t_arr is not None:
-            target = max(self._TARGET_PPS, int(10_000 / max(self.WINDOW_SECONDS, 0.5)))
+        target = max(self._TARGET_PPS, int(10_000 / max(self.WINDOW_SECONDS, 0.5)))
 
-            stride = 1
-            if n > 2:
-                dt = t_arr[-1] - t_arr[0]
-                if dt > 0:
-                    actual_rate = n / dt
-                    if actual_rate > target:
-                        stride = max(1, int(actual_rate / target))
+        stride = 1
+        if n > 2:
+            dt = t_arr[-1] - t_arr[0]
+            if dt > 0:
+                actual_rate = n / dt
+                if actual_rate > target:
+                    stride = max(1, int(actual_rate / target))
 
-            if stride <= 1:
-                # Fast path: extend buffer with all points
-                for i in range(n):
-                    buf.append((t_arr[i], v_arr[i]))
-            else:
-                usable = (n // stride) * stride
-                if usable > 0:
-                    t_chunk = t_arr[:usable].reshape(-1, stride)
-                    v_chunk = v_arr[:usable].reshape(-1, stride)
-
-                    mn_idx = v_chunk.argmin(axis=1)
-                    mx_idx = v_chunk.argmax(axis=1)
-
-                    for ci in range(len(v_chunk)):
-                        mni = mn_idx[ci]
-                        mxi = mx_idx[ci]
-                        if mni == mxi:
-                            buf.append((t_chunk[ci, mni], v_chunk[ci, mni]))
-                        elif mni < mxi:
-                            buf.append((t_chunk[ci, mni], v_chunk[ci, mni]))
-                            buf.append((t_chunk[ci, mxi], v_chunk[ci, mxi]))
-                        else:
-                            buf.append((t_chunk[ci, mxi], v_chunk[ci, mxi]))
-                            buf.append((t_chunk[ci, mni], v_chunk[ci, mni]))
-
-                # Handle leftover samples after the last full chunk
-                for i in range(usable, n):
-                    buf.append((t_arr[i], v_arr[i]))
+        if stride <= 1:
+            # Fast path: extend buffer with all points
+            for i in range(n):
+                buf.append((t_arr[i], v_arr[i]))
         else:
-            stride = 1
-            if n > 2:
-                dt = (int(domain_ticks[-1]) - int(domain_ticks[0])) * ratio
-                if dt > 0:
-                    actual_rate = n / dt
-                    target_fb = max(self._TARGET_PPS, int(10_000 / max(self.WINDOW_SECONDS, 0.5)))
-                    if actual_rate > target_fb:
-                        stride = max(1, int(actual_rate / target_fb))
-            for i in range(0, n, stride):
-                elapsed = (int(domain_ticks[i]) - base) * ratio
-                buf.append((elapsed, float(values[i])))
+            usable = (n // stride) * stride
+            if usable > 0:
+                t_chunk = t_arr[:usable].reshape(-1, stride)
+                v_chunk = v_arr[:usable].reshape(-1, stride)
+
+                mn_idx = v_chunk.argmin(axis=1)
+                mx_idx = v_chunk.argmax(axis=1)
+
+                for ci in range(len(v_chunk)):
+                    mni = mn_idx[ci]
+                    mxi = mx_idx[ci]
+                    if mni == mxi:
+                        buf.append((t_chunk[ci, mni], v_chunk[ci, mni]))
+                    elif mni < mxi:
+                        buf.append((t_chunk[ci, mni], v_chunk[ci, mni]))
+                        buf.append((t_chunk[ci, mxi], v_chunk[ci, mxi]))
+                    else:
+                        buf.append((t_chunk[ci, mxi], v_chunk[ci, mxi]))
+                        buf.append((t_chunk[ci, mni], v_chunk[ci, mni]))
+
+            # Handle leftover samples after the last full chunk
+            for i in range(usable, n):
+                buf.append((t_arr[i], v_arr[i]))
 
         self._needs_redraw = True
 

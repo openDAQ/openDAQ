@@ -818,16 +818,16 @@ void GenericSignalContainerImpl<Intf, Intfs...>::updateFunctionBlock(const std::
                                                                      const BaseObjectPtr& context)
 {
     // we are now removing all existing functions block excluding the static ones
-    // so for the dynamic function blocks we dont need to check if the function block is already exist or not
+    // so for the dynamic function blocks we don't need to check if the function block is already exist or not
     const auto availableTypes = onGetAvailableFunctionBlockTypes();
     const auto typeId = serializedFunctionBlock.readString("typeId");
 
-    // handle the function block which are not availble to add
+    // handle the function block which are not available to add
     if (!availableTypes.hasKey(typeId))
     {
         if (this->functionBlocks.hasItem(fbId))
         {
-            // handaling static function block
+            // handling static function block
             const UpdatablePtr updatableFb = this->functionBlocks.getItem(fbId).template asPtr<IUpdatable>(true);
             updatableFb.updateInternal(serializedFunctionBlock, context);
         }
@@ -837,6 +837,7 @@ void GenericSignalContainerImpl<Intf, Intfs...>::updateFunctionBlock(const std::
             auto loggerComponent = signalContainerLoggerComponent;
             LOG_W("Failed to add missing FB with ID {} while updating parent FB with ID {}", fbId, this->localId)
         }
+
         return;
     }
 

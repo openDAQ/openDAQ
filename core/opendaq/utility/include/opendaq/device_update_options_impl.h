@@ -47,6 +47,8 @@ public:
     ErrCode INTERFACE_FUNC getNewSerialNumber(IString** serialNumber) override;
     ErrCode INTERFACE_FUNC setNewConnectionString(IString* connectionString) override;
     ErrCode INTERFACE_FUNC getNewConnectionString(IString** connectionString) override;
+    ErrCode INTERFACE_FUNC setNewLocalId(IString* localId) override;
+    ErrCode INTERFACE_FUNC getNewLocalId(IString** localId) override;
 
     ErrCode INTERFACE_FUNC getUpdateMode(DeviceUpdateMode* mode) override;
     ErrCode INTERFACE_FUNC setUpdateMode(DeviceUpdateMode mode) override;
@@ -79,6 +81,7 @@ public:
     StringPtr newManufacturer;
     StringPtr newSerialNumber;
     StringPtr newConnectionString;
+    StringPtr newLocalId;
 
     DeviceUpdateMode mode;
     ListPtr<IDeviceUpdateOptions> children;

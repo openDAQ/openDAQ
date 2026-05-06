@@ -251,7 +251,7 @@ class SignalPreviewPanel(ttk.Frame):
 
     # MARK: Signal selection
 
-    def _on_signal_selected(self):
+    def _on_signal_selected(self, _event=None):
         self._reader = None
         self._selected_signal = None
         self._selected_descriptor = None

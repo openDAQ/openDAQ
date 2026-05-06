@@ -11,7 +11,7 @@ import opendaq as daq
 from .. import utils
 
 class SignalPreviewPanel(ttk.Frame):
-    WINDOW_SECONDS = 1.0
+    DEFAULT_WINDOW_SECONDS = 0.2
     MAX_BUFFER_SIZE = 100_000
     POLL_MS = 33          # drain the reader this often
     _TARGET_PPS = 2000
@@ -44,6 +44,7 @@ class SignalPreviewPanel(ttk.Frame):
 
         # Buffer of (elapsed_seconds, value) pairs.
         self._data = deque(maxlen=self.MAX_BUFFER_SIZE)
+        self._window_seconds = self.DEFAULT_WINDOW_SECONDS
 
         self._tick_res_num = None
         self._tick_res_den = None
@@ -98,7 +99,7 @@ class SignalPreviewPanel(ttk.Frame):
 
         # Duration combobox
         self._duration_presets = [0.01, 0.05, 0.1, 0.2, 0.5, 1]
-        self._duration_var = tk.StringVar(value='0.2s')
+        self._duration_var = tk.StringVar(value=f'{self._window_seconds:g}s')
         dur_cb = ttk.Combobox(
             controls, textvariable=self._duration_var,
             values=[f'{d}s' for d in self._duration_presets], width=6)
@@ -274,7 +275,7 @@ class SignalPreviewPanel(ttk.Frame):
         text = self._duration_var.get()
         match = self._DURATION_RE.match(text)
         if match is None:
-            self._duration_var.set(f'{self.WINDOW_SECONDS:g}s')
+            self._duration_var.set(f'{self.DEFAULT_WINDOW_SECONDS:g}s')
             return
 
         seconds = float(match.group(1))
@@ -284,10 +285,10 @@ class SignalPreviewPanel(ttk.Frame):
         if event is not None and event.type != tk.EventType.FocusOut:
             self._chart.focus_set()
 
-        if seconds == self.WINDOW_SECONDS:
+        if seconds == self._window_seconds:
             return
 
-        self.WINDOW_SECONDS = seconds
+        self._window_seconds = seconds
         self._needs_redraw = True
         self._chart_ready = False
 
@@ -549,7 +550,7 @@ class SignalPreviewPanel(ttk.Frame):
         self._chart_ready = True
 
     def _schedule_draw(self):
-        draw_interval = max(16, min(self.DRAW_MS, int(self.WINDOW_SECONDS * 500)))
+        draw_interval = max(16, min(self.DRAW_MS, int(self.DEFAULT_WINDOW_SECONDS * 500)))
         self._draw_job = self.after(draw_interval, self._draw_tick)
 
     def _draw_tick(self):
@@ -593,7 +594,7 @@ class SignalPreviewPanel(ttk.Frame):
 
         # Visible window
         t_latest = buf[-1][0]
-        t_earliest = t_latest - self.WINDOW_SECONDS
+        t_earliest = t_latest - self._window_seconds
 
         visible = [(t, v) for t, v in buf if t >= t_earliest]
         
@@ -605,8 +606,9 @@ class SignalPreviewPanel(ttk.Frame):
             c.itemconfig(self._badge_bg_id, state='hidden')
             return
 
-        # Y range computed from a stabilized window. 
-        range_earliest = t_latest - max(self.WINDOW_SECONDS, 0.5)
+        # Y range from a stabilized window so a brief spike does not
+        # immediately rescale the whole chart.
+        range_earliest = t_latest - max(self._window_seconds, 0.5)
         range_vals = [v for t, v in buf if t >= range_earliest]
         v_lo, v_hi = min(range_vals), max(range_vals)
 
@@ -622,7 +624,6 @@ class SignalPreviewPanel(ttk.Frame):
             symlog_vals = [symlog(v) for v in range_vals]
             sl_lo = min(symlog_vals)
             sl_hi = max(symlog_vals)
-            ...
             if sl_lo == sl_hi:
                 sl_lo -= 1.0
                 sl_hi += 1.0
@@ -640,7 +641,7 @@ class SignalPreviewPanel(ttk.Frame):
                 v_lo -= pad
                 v_hi += pad
 
-        t_span = self.WINDOW_SECONDS
+        t_span = self._window_seconds
         v_span = v_hi - v_lo
 
         unit_suffix = f' {self._unit_str}' if self._unit_str else ''
@@ -687,7 +688,7 @@ class SignalPreviewPanel(ttk.Frame):
                  1, 2, 5, 10, 15, 30, 60]
         grid_interval = _nice[-1]
         for ni in _nice:
-            if self.WINDOW_SECONDS / ni <= 7:
+            if self._window_seconds / ni <= 7:
                 grid_interval = ni
                 break
 
@@ -702,15 +703,16 @@ class SignalPreviewPanel(ttk.Frame):
 
         slot = 0
         k = 1
-        while (k * grid_interval) < self.WINDOW_SECONDS - 1e-9 \
+        while (k * grid_interval) < self._window_seconds - 1e-9 \
                 and slot < len(self._vgrid_ids):
             secs_ago = k * grid_interval
-            vx = ml + pw - (secs_ago / self.WINDOW_SECONDS) * pw
-            c.coords(self._vgrid_ids[slot], vx, mt, vx, mt + ph)
-            c.itemconfig(self._vgrid_ids[slot], state='normal')
-            c.coords(self._vgrid_label_ids[slot], vx, mt + ph + 3)
-            c.itemconfig(self._vgrid_label_ids[slot],
-                         text=label_fmt.format(secs_ago), state='normal')
+            vx = margin_left + plot_width - (secs_ago / self._window_seconds) * plot_width
+            canvas.coords(self._vgrid_ids[slot],
+                        vx, margin_top, vx, margin_top + plot_height)
+            canvas.itemconfig(self._vgrid_ids[slot], state='normal')
+            canvas.coords(self._vgrid_label_ids[slot], vx, label_y)
+            canvas.itemconfig(self._vgrid_label_ids[slot],
+                            text=label_fmt.format(secs_ago), state='normal')
             slot += 1
             k += 1
 
@@ -719,11 +721,11 @@ class SignalPreviewPanel(ttk.Frame):
             c.itemconfig(self._vgrid_ids[i], state='hidden')
             c.itemconfig(self._vgrid_label_ids[i], state='hidden')
 
-        c.coords(self._xlabel_l, ml, h - 2)
-        c.itemconfig(self._xlabel_l,
-                     text=label_fmt.format(self.WINDOW_SECONDS))
-        c.coords(self._xlabel_r, ml + pw, h - 2)
-        c.itemconfig(self._xlabel_r, text='0s')
+        canvas.coords(self._xlabel_l, margin_left, label_y)
+        canvas.itemconfig(self._xlabel_l,
+                        text=label_fmt.format(self._window_seconds))
+        canvas.coords(self._xlabel_r, margin_left + plot_width, label_y)
+        canvas.itemconfig(self._xlabel_r, text='0s')
 
         if len(visible) > pw * 3:
             n_buckets = max(pw, 4)

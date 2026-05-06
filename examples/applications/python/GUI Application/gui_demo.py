@@ -247,13 +247,21 @@ class App(tk.Tk):
 
         view_menu = tk.Menu(menu_bar, tearoff=0)
         menu_bar.add_cascade(label='View', menu=view_menu)
-        view_menu.add_checkbutton(
-            label='Show hidden components', command=self.handle_view_show_hidden_components)
+        view_menu.add_checkbutton(label='Show hidden components',command=self.handle_view_show_hidden_components)
+
+        self._signal_preview_var = tk.BooleanVar(value=self.context.view_signal_preview)
+        view_menu.add_checkbutton(label='Signal preview',variable=self._signal_preview_var,command=self.handle_view_signal_preview_toggled)
 
     def handle_view_show_hidden_components(self):
         self.context.view_hidden_components = not self.context.view_hidden_components
         self.tree_update()
 
+    def handle_view_signal_preview_toggled(self):
+        self.context.view_signal_preview = self._signal_preview_var.get()
+        if self.context.selected_node is not None:
+            self.right_side_panel_clear()
+            self.right_side_panel_draw_node(self.context.selected_node)
+            
     # MARK: - Tree view
     def tree_widget_create(self, parent_frame):
         frame = ttk.Frame(parent_frame)

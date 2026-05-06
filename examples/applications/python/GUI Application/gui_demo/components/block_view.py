@@ -310,6 +310,9 @@ class BlockView(ttk.Frame):
             self._bind_mousewheel_recursive(child)
 
     def _attach_signal_preview(self):
+        if not self.context.view_signal_preview:
+            return
+
         self._signal_preview = SignalPreviewPanel(
             self._right_container, self.node, self.context)
         self._signal_preview.place(

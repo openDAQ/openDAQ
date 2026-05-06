@@ -422,7 +422,6 @@ class SignalPreviewPanel(ttk.Frame):
                 rule = self._selected_domain_descriptor.rule
                 self._dt = rule.parameters['delta']
                 self._sr = self._tick_res_den / self._tick_res_num / self._dt
-                self._data = deque(maxlen=min(self.MAX_BUFFER_SIZE, int((self._window_seconds * 1.5) * self._sr)))
 
     def _handle_event_packet(self, event_packet):
         event_id = event_packet.event_id

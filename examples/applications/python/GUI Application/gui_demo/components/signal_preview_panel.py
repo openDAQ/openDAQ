@@ -12,7 +12,8 @@ from .. import utils
 
 class SignalPreviewPanel(ttk.Frame):
     DEFAULT_WINDOW_SECONDS = 0.2
-    MAX_BUFFER_SIZE = 100_000
+    TARGET_POINTS_PER_FRAME = 50_000
+    MAX_BUFFER_SIZE = int(TARGET_POINTS_PER_FRAME * 1.5)
     POLL_MS = 33          # drain the reader this often
     _TARGET_PPS = 2000
     DRAW_MS = 66         # repaint the chart this often
@@ -38,16 +39,18 @@ class SignalPreviewPanel(ttk.Frame):
         self._selected_descriptor = None
         self._selected_domain_descriptor = None
 
-        self._can_chart = False
         self._poll_job = None
         self._draw_job = None
 
         # Buffer of (elapsed_seconds, value) pairs.
         self._data = deque(maxlen=self.MAX_BUFFER_SIZE)
         self._window_seconds = self.DEFAULT_WINDOW_SECONDS
+        self._window_size_in_samples = None
 
         self._tick_res_num = None
         self._tick_res_den = None
+        self._dt = None
+        self._sr = None
         self._first_tick = None
 
         # name -> ISignal for chartable signals
@@ -173,7 +176,7 @@ class SignalPreviewPanel(ttk.Frame):
             if domain_signal is None:
                 continue
 
-            if not self.check_and_set_is_chartable(signal.descriptor, domain_signal.descriptor):   
+            if not self._is_chartable(signal.descriptor, domain_signal.descriptor):   
                 continue
 
             name = signal.name if signal.name else signal.global_id
@@ -194,11 +197,18 @@ class SignalPreviewPanel(ttk.Frame):
             self._eligible[display] = signal
 
         names = list(self._eligible.keys())
+        names.insert(0, 'None')
         self._dropdown['values'] = names
 
-        if len(names) == 1:
-            self._signal_var.set(names[0])
+        if len(names) > 1:
+            self._signal_var.set(names[1])
             self._on_signal_selected()
+        else:
+            self._deselect_signal()
+        
+    def _deselect_signal(self):
+        self._signal_var.set('None')
+        self._on_signal_selected()
 
     @staticmethod
     def _is_chartable(desc, domain_desc):
@@ -239,24 +249,11 @@ class SignalPreviewPanel(ttk.Frame):
     
         return True
 
-    def check_and_set_is_chartable(self, desc, domain_desc):
-        chartable = self._is_chartable(desc, domain_desc)
-        self._can_chart = chartable
-        if self._reader is not None:
-            self._reader.active = chartable
-
-        return chartable
-
     # MARK: Signal selection
 
-    def _on_signal_selected(self, _event=None):
-        name = self._signal_var.get()
-        signal = self._eligible.get(name)
-        if signal is None:
-            return
-
+    def _on_signal_selected(self):
         self._reader = None
-        self._selected_signal = signal
+        self._selected_signal = None
         self._selected_descriptor = None
         self._selected_domain_descriptor = None
 
@@ -267,6 +264,15 @@ class SignalPreviewPanel(ttk.Frame):
         self._unit_str = ''
         self._tick_res_num = None
         self._tick_res_den = None
+        self._window_size_in_samples = None
+        self._dt = None
+        
+        name = self._signal_var.get()
+        signal = self._eligible.get(name)
+        if signal is None:
+            return
+
+        self._selected_signal = signal
         self._reader = daq.StreamReader(signal, skip_events=False)
 
     # MARK: Polling
@@ -303,13 +309,12 @@ class SignalPreviewPanel(ttk.Frame):
 
         self._reader = daq.StreamReader(
             self._selected_signal, skip_events=False)
-
-        if not self.check_and_set_is_chartable(self._selected_signal.descriptor, domain_signal.descriptor):
-            return
         
         self._unit_str = ''
         self._tick_res_num = None
         self._tick_res_den = None
+        self._window_size_in_samples = None
+        self._dt = None
 
         self._first_tick = None
         self._data.clear()
@@ -371,7 +376,7 @@ class SignalPreviewPanel(ttk.Frame):
                 self._recreate_reader()
                 return
 
-            if len(values) > 0 and self._can_chart:
+            if len(values) > 0:
                 self._ingest(values, domain_ticks)
 
             if status.read_status == daq.ReadStatus.Event:
@@ -402,17 +407,22 @@ class SignalPreviewPanel(ttk.Frame):
 
         if domain_descriptor is not None:
             self._selected_domain_descriptor = daq.IDataDescriptor.cast_from(domain_descriptor)
+            
             if self._is_null_descriptor(self._selected_domain_descriptor):
                 self._tick_res_num = None
                 self._tick_res_den = None
+                self._window_size_in_samples = None
+                self.dt = None
             else:
-                res = getattr(self._selected_domain_descriptor, 'tick_resolution', None)
-                if res is None:
-                    self._tick_res_num = None
-                    self._tick_res_den = None
-                else:
-                    self._tick_res_num = res.numerator
-                    self._tick_res_den = res.denominator
+                res = self._selected_domain_descriptor.tick_resolution
+                self._tick_res_num = res.numerator
+                self._tick_res_den = res.denominator
+
+                # Calculate buffer size based on tick resolution + delta and desired window duration
+                rule = self._selected_domain_descriptor.rule
+                self._dt = rule.parameters['delta']
+                self._sr = self._tick_res_den / self._tick_res_num / self._dt
+                self._data = deque(maxlen=min(self.MAX_BUFFER_SIZE, int((self._window_seconds * 1.5) * self._sr)))
 
     def _handle_event_packet(self, event_packet):
         event_id = event_packet.event_id
@@ -430,7 +440,8 @@ class SignalPreviewPanel(ttk.Frame):
         domain_desc = params['DomainDataDescriptor']
 
         self._apply_descriptors(data_desc, domain_desc)
-        self.check_and_set_is_chartable(self._selected_descriptor, self._selected_domain_descriptor)
+        if not self._is_chartable(self._selected_descriptor, self._selected_domain_descriptor):
+            self._deselect_signal()
 
     def _ingest(self, values, domain_ticks):
         if values is None or domain_ticks is None:
@@ -453,44 +464,14 @@ class SignalPreviewPanel(ttk.Frame):
         t_arr = (domain_ticks.astype(np.float64) - base) * ratio
         v_arr = values.astype(np.float64)
 
-        target = max(self._TARGET_PPS, int(10_000 / max(self.WINDOW_SECONDS, 0.5)))
+        actual_points_per_frame = int(self._window_seconds * self._sr)
 
         stride = 1
-        if n > 2:
-            dt = t_arr[-1] - t_arr[0]
-            if dt > 0:
-                actual_rate = n / dt
-                if actual_rate > target:
-                    stride = max(1, int(actual_rate / target))
+        if actual_points_per_frame > self.TARGET_POINTS_PER_FRAME:
+            stride = math.ceil(actual_points_per_frame / self.TARGET_POINTS_PER_FRAME)
 
-        if stride <= 1:
-            # Fast path: extend buffer with all points
-            for i in range(n):
-                buf.append((t_arr[i], v_arr[i]))
-        else:
-            usable = (n // stride) * stride
-            if usable > 0:
-                t_chunk = t_arr[:usable].reshape(-1, stride)
-                v_chunk = v_arr[:usable].reshape(-1, stride)
-
-                mn_idx = v_chunk.argmin(axis=1)
-                mx_idx = v_chunk.argmax(axis=1)
-
-                for ci in range(len(v_chunk)):
-                    mni = mn_idx[ci]
-                    mxi = mx_idx[ci]
-                    if mni == mxi:
-                        buf.append((t_chunk[ci, mni], v_chunk[ci, mni]))
-                    elif mni < mxi:
-                        buf.append((t_chunk[ci, mni], v_chunk[ci, mni]))
-                        buf.append((t_chunk[ci, mxi], v_chunk[ci, mxi]))
-                    else:
-                        buf.append((t_chunk[ci, mxi], v_chunk[ci, mxi]))
-                        buf.append((t_chunk[ci, mni], v_chunk[ci, mni]))
-
-            # Handle leftover samples after the last full chunk
-            for i in range(usable, n):
-                buf.append((t_arr[i], v_arr[i]))
+        for i in range(0, n, stride):
+            buf.append((t_arr[i], v_arr[i]))
 
         self._needs_redraw = True
 
@@ -703,16 +684,16 @@ class SignalPreviewPanel(ttk.Frame):
 
         slot = 0
         k = 1
+
         while (k * grid_interval) < self._window_seconds - 1e-9 \
                 and slot < len(self._vgrid_ids):
             secs_ago = k * grid_interval
-            vx = margin_left + plot_width - (secs_ago / self._window_seconds) * plot_width
-            canvas.coords(self._vgrid_ids[slot],
-                        vx, margin_top, vx, margin_top + plot_height)
-            canvas.itemconfig(self._vgrid_ids[slot], state='normal')
-            canvas.coords(self._vgrid_label_ids[slot], vx, label_y)
-            canvas.itemconfig(self._vgrid_label_ids[slot],
-                            text=label_fmt.format(secs_ago), state='normal')
+            vx = ml + pw - (secs_ago / self._window_seconds) * pw
+            c.coords(self._vgrid_ids[slot], vx, mt, vx, mt + ph)
+            c.itemconfig(self._vgrid_ids[slot], state='normal')
+            c.coords(self._vgrid_label_ids[slot], vx, mt + ph + 3)
+            c.itemconfig(self._vgrid_label_ids[slot],
+                         text=label_fmt.format(secs_ago), state='normal')
             slot += 1
             k += 1
 
@@ -721,11 +702,11 @@ class SignalPreviewPanel(ttk.Frame):
             c.itemconfig(self._vgrid_ids[i], state='hidden')
             c.itemconfig(self._vgrid_label_ids[i], state='hidden')
 
-        canvas.coords(self._xlabel_l, margin_left, label_y)
-        canvas.itemconfig(self._xlabel_l,
-                        text=label_fmt.format(self._window_seconds))
-        canvas.coords(self._xlabel_r, margin_left + plot_width, label_y)
-        canvas.itemconfig(self._xlabel_r, text='0s')
+        c.coords(self._xlabel_l, ml, h - 2)
+        c.itemconfig(self._xlabel_l,
+                     text=label_fmt.format(self._window_seconds))
+        c.coords(self._xlabel_r, ml + pw, h - 2)
+        c.itemconfig(self._xlabel_r, text='0s')
 
         if len(visible) > pw * 3:
             n_buckets = max(pw, 4)

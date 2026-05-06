@@ -481,8 +481,8 @@ class SignalPreviewPanel(ttk.Frame):
         self._needs_redraw = True
 
     def _ensure_chart_items(self):
-        c = self._chart
-        c.delete('all')
+        canvas = self._chart
+        canvas.delete('all')
 
         # Z-order: grid -> axes -> line -> labels
 
@@ -490,8 +490,8 @@ class SignalPreviewPanel(ttk.Frame):
         self._hgrid_ids = []
         self._hgrid_label_ids = []
         for _ in range(5):
-            gid = c.create_line(0, 0, 0, 0, fill=self._GRID, dash=(2, 6))
-            lid = c.create_text(
+            gid = canvas.create_line(0, 0, 0, 0, fill=self._GRID, dash=(2, 6))
+            lid = canvas.create_text(
                 0, 0, text='', fill=self._TEXT, anchor=tk.E, font=self._AXIS_FONT)
             self._hgrid_ids.append(gid)
             self._hgrid_label_ids.append(lid)
@@ -499,31 +499,31 @@ class SignalPreviewPanel(ttk.Frame):
         self._vgrid_ids = []
         self._vgrid_label_ids = []
         for _ in range(10):
-            vid = c.create_line(0, 0, 0, 0, fill=self._GRID, dash=(2, 6))
-            vlid = c.create_text(
+            vid = canvas.create_line(0, 0, 0, 0, fill=self._GRID, dash=(2, 6))
+            vlid = canvas.create_text(
                 0, 0, text='', fill=self._TEXT, anchor=tk.N, font=self._AXIS_FONT)
             self._vgrid_ids.append(vid)
             self._vgrid_label_ids.append(vlid)
 
-        self._yaxis_id = c.create_line(0, 0, 0, 0, fill=self._AXIS)
-        self._xaxis_id = c.create_line(0, 0, 0, 0, fill=self._AXIS)
+        self._yaxis_id = canvas.create_line(0, 0, 0, 0, fill=self._AXIS)
+        self._xaxis_id = canvas.create_line(0, 0, 0, 0, fill=self._AXIS)
 
         # Grid numbers
-        self._xlabel_l = c.create_text(
-            0, 0, text='', fill=self._TEXT, anchor=tk.SW, font=self._AXIS_FONT)
-        self._xlabel_r = c.create_text(
-            0, 0, text='', fill=self._TEXT, anchor=tk.SE, font=self._AXIS_FONT)
+        self._xlabel_l = canvas.create_text(
+            0, 0, text='', fill=self._TEXT, anchor=tk.NW, font=self._AXIS_FONT)
+        self._xlabel_r = canvas.create_text(
+            0, 0, text='', fill=self._TEXT, anchor=tk.NE, font=self._AXIS_FONT)
 
-        self._line_id = c.create_line(
+        self._line_id = canvas.create_line(
             0, 0, 0, 0, fill=self._LINE, width=1, smooth=False)
 
-        self._badge_bg_id = c.create_rectangle(
+        self._badge_bg_id = canvas.create_rectangle(
             0, 0, 0, 0, fill=self._BG, outline=self._GRID, width=1,
             state='hidden')
-        self._badge_id = c.create_text(
+        self._badge_id = canvas.create_text(
             0, 0, text='', fill='#111111', anchor=tk.NE, font=self._VAL_FONT)
 
-        self._nodata_id = c.create_text(
+        self._nodata_id = canvas.create_text(
             0, 0, text='', fill=self._TEXT, font=('TkDefaultFont', 10),
             state='hidden')
 
@@ -548,42 +548,44 @@ class SignalPreviewPanel(ttk.Frame):
         if not self._chart_ready:
             self._ensure_chart_items()
 
-        c = self._chart
-        w = c.winfo_width()
-        h = c.winfo_height()
-        if w < 20 or h < 20:
+        canvas = self._chart
+        canvas_width = canvas.winfo_width()
+        canvas_height = canvas.winfo_height()
+        if canvas_width < 20 or canvas_height < 20:
             return
 
-        mr, mt, mb = 12, 10, 22
-        ph = h - mt - mb
-        if ph < 10:
+        margin_right = 12
+        margin_top = 10
+        margin_bottom = 22
+        plot_height = canvas_height - margin_top - margin_bottom
+        if plot_height < 10:
             return
 
         buf = self._data
         has_data = len(buf) > 0
 
         if not has_data:
-            c.coords(self._nodata_id, w // 2, h // 2)
-            c.itemconfig(self._nodata_id, text='None', state='normal')
-            c.itemconfig(self._line_id, state='hidden')
-            c.itemconfig(self._badge_id, state='hidden')
-            c.itemconfig(self._badge_bg_id, state='hidden')
+            canvas.coords(self._nodata_id, canvas_width // 2, canvas_height // 2)
+            canvas.itemconfig(self._nodata_id, text='None', state='normal')
+            canvas.itemconfig(self._line_id, state='hidden')
+            canvas.itemconfig(self._badge_id, state='hidden')
+            canvas.itemconfig(self._badge_bg_id, state='hidden')
             return
 
-        c.itemconfig(self._nodata_id, state='hidden')
+        canvas.itemconfig(self._nodata_id, state='hidden')
 
         # Visible window
         t_latest = buf[-1][0]
         t_earliest = t_latest - self._window_seconds
 
         visible = [(t, v) for t, v in buf if t >= t_earliest]
-        
+
         if len(visible) == 0:
-            c.coords(self._nodata_id, w // 2, h // 2)
-            c.itemconfig(self._nodata_id, text='Waiting...', state='normal')
-            c.itemconfig(self._line_id, state='hidden')
-            c.itemconfig(self._badge_id, state='hidden')
-            c.itemconfig(self._badge_bg_id, state='hidden')
+            canvas.coords(self._nodata_id, canvas_width // 2, canvas_height // 2)
+            canvas.itemconfig(self._nodata_id, text='Waiting...', state='normal')
+            canvas.itemconfig(self._line_id, state='hidden')
+            canvas.itemconfig(self._badge_id, state='hidden')
+            canvas.itemconfig(self._badge_bg_id, state='hidden')
             return
 
         # Y range from a stabilized window so a brief spike does not
@@ -637,35 +639,41 @@ class SignalPreviewPanel(ttk.Frame):
 
         label_font = tkfont.Font(font=self._AXIS_FONT)
         max_label_w = max(label_font.measure(t) for t in y_labels)
-        ml = -(-(max_label_w + 8) // 4) * 4
+        # Round left margin up to not nudge
+        margin_left = -(-(max_label_w + 8) // 4) * 4
 
-        pw = w - ml - mr
-        if pw < 10:
+        plot_width = canvas_width - margin_left - margin_right
+        if plot_width < 10:
             return
 
         def xpx(t):
-            return ml + (t - t_earliest) / t_span * pw
+            return margin_left + (t - t_earliest) / t_span * plot_width
 
         if use_log:
             def ypx(v):
-                return mt + (1.0 - (symlog(v) - sl_lo) / sl_span) * ph
+                return margin_top + (1.0 - (symlog(v) - sl_lo) / sl_span) * plot_height
         else:
             def ypx(v):
-                return mt + (1.0 - (v - v_lo) / v_span) * ph
+                return margin_top + (1.0 - (v - v_lo) / v_span) * plot_height
 
         # Horizontal grid + Y labels
         for i in range(5):
-            gy = mt + ph * i / 4
-            c.coords(self._hgrid_ids[i], ml, gy, ml + pw, gy)
-            c.coords(self._hgrid_label_ids[i], ml - 4, gy)
-            c.itemconfig(self._hgrid_label_ids[i], text=y_labels[i])
+            gy = margin_top + plot_height * i / 4
+            canvas.coords(self._hgrid_ids[i],
+                        margin_left, gy, margin_left + plot_width, gy)
+            canvas.coords(self._hgrid_label_ids[i], margin_left - 4, gy)
+            canvas.itemconfig(self._hgrid_label_ids[i], text=y_labels[i])
 
         # Axes
-        c.coords(self._yaxis_id, ml, mt, ml, mt + ph)
-        c.coords(self._xaxis_id, ml, mt + ph, ml + pw, mt + ph)
+        canvas.coords(self._yaxis_id,
+                    margin_left, margin_top,
+                    margin_left, margin_top + plot_height)
+        canvas.coords(self._xaxis_id,
+                    margin_left, margin_top + plot_height,
+                    margin_left + plot_width, margin_top + plot_height)
 
         _nice = [0.001, 0.002, 0.005, 0.01, 0.02, 0.05, 0.1, 0.2, 0.5,
-                 1, 2, 5, 10, 15, 30, 60]
+                1, 2, 5, 10, 15, 30, 60]
         grid_interval = _nice[-1]
         for ni in _nice:
             if self._window_seconds / ni <= 7:
@@ -681,34 +689,40 @@ class SignalPreviewPanel(ttk.Frame):
         else:
             label_fmt = '-{:.3f}s'
 
+        # Single y for every bottom label so the row reads as one axis.
+        label_y = margin_top + plot_height + 3
+
         slot = 0
         k = 1
 
         while (k * grid_interval) < self._window_seconds - 1e-9 \
                 and slot < len(self._vgrid_ids):
             secs_ago = k * grid_interval
-            vx = ml + pw - (secs_ago / self._window_seconds) * pw
-            c.coords(self._vgrid_ids[slot], vx, mt, vx, mt + ph)
-            c.itemconfig(self._vgrid_ids[slot], state='normal')
-            c.coords(self._vgrid_label_ids[slot], vx, mt + ph + 3)
-            c.itemconfig(self._vgrid_label_ids[slot],
+            vx = margin_left + plot_width - (secs_ago / self._window_seconds) * plot_width
+            canvas.coords(self._vgrid_ids[slot], vx, margin_top, vx, margin_top + plot_height)
+            canvas.itemconfig(self._vgrid_ids[slot], state='normal')
+            
+            canvas.coords(self._vgrid_label_ids[slot], vx, label_y)
+            canvas.itemconfig(self._vgrid_label_ids[slot],
                          text=label_fmt.format(secs_ago), state='normal')
             slot += 1
             k += 1
 
         # Hide unused grid slots
         for i in range(slot, len(self._vgrid_ids)):
-            c.itemconfig(self._vgrid_ids[i], state='hidden')
-            c.itemconfig(self._vgrid_label_ids[i], state='hidden')
+            canvas.itemconfig(self._vgrid_ids[i], state='hidden')
+            canvas.itemconfig(self._vgrid_label_ids[i], state='hidden')
 
-        c.coords(self._xlabel_l, ml, h - 2)
-        c.itemconfig(self._xlabel_l,
+        # Bring your missing edge labels back on screen using label_y
+        canvas.coords(self._xlabel_l, margin_left, label_y)
+        canvas.itemconfig(self._xlabel_l,
                      text=label_fmt.format(self._window_seconds))
-        c.coords(self._xlabel_r, ml + pw, h - 2)
-        c.itemconfig(self._xlabel_r, text='0s')
+                     
+        canvas.coords(self._xlabel_r, margin_left + plot_width, label_y)
+        canvas.itemconfig(self._xlabel_r, text='0s')
 
-        if len(visible) > pw * 3:
-            n_buckets = max(pw, 4)
+        if len(visible) > plot_width * 3:
+            n_buckets = max(plot_width, 4)
             bucket_w = t_span / n_buckets
             envelope = []
             bi = 0
@@ -751,29 +765,30 @@ class SignalPreviewPanel(ttk.Frame):
             line_coords = []
             for t, v in visible:
                 line_coords.extend([xpx(t), ypx(v)])
-            c.coords(self._line_id, *line_coords)
-            c.itemconfig(self._line_id, state='normal')
+            canvas.coords(self._line_id, *line_coords)
+            canvas.itemconfig(self._line_id, state='normal')
         elif len(visible) == 1:
             px, py = xpx(visible[0][0]), ypx(visible[0][1])
-            c.coords(self._line_id, px, py, px + 1, py)
-            c.itemconfig(self._line_id, state='normal')
+            canvas.coords(self._line_id, px, py, px + 1, py)
+            canvas.itemconfig(self._line_id, state='normal')
 
         if self._show_badge_var.get():
             badge_text = self._fmt(visible[-1][1])
             if self._unit_str:
                 badge_text += f' {self._unit_str}'
-            bx = ml + pw - 4
-            by = mt + 4
-            c.coords(self._badge_id, bx, by)
-            c.itemconfig(self._badge_id, text=badge_text, state='normal')
-            c.update_idletasks()
-            bb = c.bbox(self._badge_id)
+            bx = margin_left + plot_width - 4
+            by = margin_top + 4
+            canvas.coords(self._badge_id, bx, by)
+            canvas.itemconfig(self._badge_id, text=badge_text, state='normal')
+            canvas.update_idletasks()
+            bb = canvas.bbox(self._badge_id)
             if bb:
-                c.coords(self._badge_bg_id, bb[0] - 3, bb[1] - 1, bb[2] + 3, bb[3] + 1)
-                c.itemconfig(self._badge_bg_id, state='normal')
+                canvas.coords(self._badge_bg_id,
+                            bb[0] - 3, bb[1] - 1, bb[2] + 3, bb[3] + 1)
+                canvas.itemconfig(self._badge_bg_id, state='normal')
         else:
-            c.itemconfig(self._badge_id, state='hidden')
-            c.itemconfig(self._badge_bg_id, state='hidden')
+            canvas.itemconfig(self._badge_id, state='hidden')
+            canvas.itemconfig(self._badge_bg_id, state='hidden')
 
     @staticmethod
     def _fmt(v):

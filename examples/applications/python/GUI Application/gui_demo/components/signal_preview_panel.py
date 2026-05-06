@@ -231,6 +231,10 @@ class SignalPreviewPanel(ttk.Frame):
 
         if getattr(domain_desc, 'tick_resolution', None) is None:
             return False
+        
+        data_rule = getattr(domain_desc, 'rule', None)
+        if data_rule is None or data_rule.type != daq.DataRuleType.Linear:
+            return False
     
         return True
 

@@ -337,8 +337,8 @@ void RefChannelImpl::collectSamples(std::chrono::microseconds curTime)
                     if (!acqActive)
                         return;
 
-                    packets.pushBack(std::move(dataPacket));
-                    domainPackets.pushBack(std::move(domainPacket));
+                    packets.pushFront(std::move(dataPacket));
+                    domainPackets.pushFront(std::move(domainPacket));
                 }
 
                 samplesGenerated += packetSize;

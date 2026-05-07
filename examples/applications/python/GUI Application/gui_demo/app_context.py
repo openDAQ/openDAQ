@@ -26,6 +26,7 @@ class AppContext(object):
         self.selected_node = None
         self.include_reference_devices = False
         self.view_hidden_components = False
+        self.view_signal_preview = True
         self.metadata_fields = []
         # gui
         self.ui_scaling_factor = 1.0

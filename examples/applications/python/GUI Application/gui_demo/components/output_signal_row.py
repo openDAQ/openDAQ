@@ -85,7 +85,12 @@ class OutputSignalRow(ttk.Frame):
         return text
 
     def _read_values(self):
-        last_value = utils.get_last_value_for_signal(self.output_signal)
+        # Both reads can raise RuntimeError when the device can not handle 200ms pings for last value
+        try:
+            last_value = utils.get_last_value_for_signal(self.output_signal)
+        except RuntimeError:
+            last_value = None
+
         raw_value = None
         try:
             if self.output_signal is not None and daq.ISignal.can_cast_from(self.output_signal):

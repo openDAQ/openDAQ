@@ -267,7 +267,7 @@ def value_to_coretype(value, coretype: daq.CoreType):
 def get_item_path(tree, item_id):
     path = []
     while item_id:
-        item_text = tree.item(item_id, 'text')
+        item_text = tree.item(item_id, 'text').strip()
         path.insert(0, item_text)
         item_id = tree.parent(item_id)
     return path

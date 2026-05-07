@@ -84,6 +84,8 @@ public:
     void setStreamingToDeviceHandlers(const OnSignalSubscribedCallback& signalSubscribedHandler,
                                       const OnSignalUnsubscribedCallback& signalUnsubscribedHandler);
 
+    void setAlternativeAddresses(const ListPtr<IString>& alternativeAddresses);
+
 protected:
     void manageTransportLayerProps();
     void initClientSessionHandler(SessionPtr session);
@@ -163,6 +165,13 @@ protected:
     std::chrono::milliseconds connectionTimeout;
     std::chrono::milliseconds reconnectionPeriod;
 
+    // Connection parameters for reconnection
+    std::string primaryHost;
+    std::string primaryPort;
+    std::string primaryPath;
+    ListPtr<IString> alternativeAddresses;
+    size_t currentAddressIndex{0};
+
     struct ClientSignal
     {
         explicit ClientSignal(const std::string& signalStringId, SignalNumericIdType signalNumericId, const SignalPtr& signal)
@@ -225,6 +234,8 @@ public:
                                       const OnSignalUnsubscribedCallback& signalUnsubscribedHandler);
 
     bool supportsToDeviceStreaming();
+
+    void setAlternativeAddresses(const ListPtr<IString>& alternativeAddresses);
 
 protected:
     void startTransportOperations();

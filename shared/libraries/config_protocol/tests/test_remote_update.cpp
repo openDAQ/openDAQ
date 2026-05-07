@@ -195,3 +195,23 @@ TEST_F(ConfigRemoteUpdateTest, TestRemoveStaticComponents)
     auto fb = clientDevice.getFunctionBlocks()[0];
     ASSERT_THROW(clientDevice.removeFunctionBlock(fb), InvalidOperationException);
 }
+
+TEST_F(ConfigRemoteUpdateTest, UpdateChannelActive)
+{
+    auto serverChannel = serverDevice.getChannelsRecursive()[0];
+    auto clientChannel = clientDevice.getChannelsRecursive()[0];
+
+    ASSERT_TRUE(serverChannel.getActive());
+    ASSERT_TRUE(clientChannel.getActive());
+    const auto str = serializeHelper(serverChannel);
+    
+    serverChannel.setActive(false);
+
+    ASSERT_FALSE(serverChannel.getActive());
+    ASSERT_FALSE(clientChannel.getActive());
+
+    updateHelper(serverChannel, str);
+    
+    ASSERT_TRUE(serverChannel.getActive());
+    ASSERT_TRUE(clientChannel.getActive());
+}

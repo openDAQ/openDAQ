@@ -9,6 +9,7 @@ set(MODULE_HEADERS_DIR ../include/${TARGET_FOLDER_NAME})
 set(SRC_Include common.h
                 module_dll.h
                 native_streaming_client_module_impl.h
+                native_device_utils.h
                 native_streaming_device_impl.h
                 native_streaming_signal_impl.h
                 native_streaming_impl.h
@@ -33,6 +34,7 @@ source_group("module" FILES ${MODULE_HEADERS_DIR}/native_streaming_client_module
 
 source_group("device" FILES ${MODULE_HEADERS_DIR}/native_streaming_device_impl.h
                             ${MODULE_HEADERS_DIR}/native_device_impl.h
+                            ${MODULE_HEADERS_DIR}/native_device_utils.h
                             native_streaming_device_impl.cpp
                             native_device_impl.cpp
 )

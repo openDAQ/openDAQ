@@ -276,16 +276,24 @@ void ConfigClientComponentBaseImpl<Impl>::onRemoteUpdate(const SerializedObjectP
 
     if (serialized.hasKey("active"))
         this->localActive = serialized.readBool("active");
+    else
+        this->localActive = true;
     this->active = this->parentActive && this->localActive;
 
     if (serialized.hasKey("visible"))
         this->visible = serialized.readBool("visible");
+    else
+        this->visible = true;
 
     if (serialized.hasKey("description"))
         this->description = serialized.readString("description");
+    else
+        this->description = "";
 
     if (serialized.hasKey("name"))
        this->name = serialized.readString("name");
+    else
+       this->name = "";
 
     if (serialized.hasKey("statuses"))
     {

@@ -2121,15 +2121,16 @@ void GenericDevice<TInterface, Interfaces...>::updateDevice(const std::string& d
                     break;
             }
         }
-
-        PropertyObjectPtr deviceConfig;
-        DeviceInfoPtr discoveredDeviceInfo;
-
+        
+        PropertyObjectPtr deviceConfig = onCreateDefaultAddDeviceConfig();
+        const auto updatetableDeviceConfig = deviceConfig.template asPtr<IUpdatable>(true);
+        
         if (serializedDevice.hasKey("deviceConfig"))
-            deviceConfig = serializedDevice.readObject("deviceConfig");
+            updatetableDeviceConfig.updateInternal(serializedDevice.readSerializedObject("deviceConfig"), context);
         else if (serializedDevice.hasKey("ComponentConfig"))
-            deviceConfig = serializedDevice.readObject("ComponentConfig");
+            updatetableDeviceConfig.updateInternal(serializedDevice.readSerializedObject("ComponentConfig"), context);
 
+        DeviceInfoPtr discoveredDeviceInfo;
         StringPtr manufacturer;
         StringPtr serialNumber;
         StringPtr connectionString;

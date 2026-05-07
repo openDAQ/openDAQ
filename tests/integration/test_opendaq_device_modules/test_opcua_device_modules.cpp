@@ -238,22 +238,116 @@ TEST_F(OpcuaDeviceModulesTest, CheckDeviceInfoPopulatedWithProvider)
     ASSERT_TRUE(false) << "Device not found";
 }
 
+TEST_F(OpcuaDeviceModulesTest, ServerEnableDisableDiscovery)
+{
+    auto serverInstance = InstanceBuilder()
+    .setModulePath("[[none]]")
+        .addDiscoveryServer("mdns")
+        .setDefaultRootDeviceLocalId("local")
+        .build();
+
+    addRefDeviceModule(serverInstance);
+    serverInstance.addDevice("daqref://device1");
+
+    addOpcuaServerModule(serverInstance);
+    addLtServerModule(serverInstance);
+    auto serverConfig = serverInstance.getAvailableServerTypes().get("OpenDAQOPCUA").createDefaultConfig();
+    auto path = "/test/opcua/enableDisableDiscovery/";
+    serverConfig.setPropertyValue("Path", path);
+    serverInstance.addServer("OpenDAQOPCUA", serverConfig);
+
+    auto connectedClient = Instance("[[none]]");
+    addOpcuaClientModule(connectedClient);
+    auto device = connectedClient.addDevice("daq.opcua://127.0.0.1");
+    ASSERT_GT(device.getServers().getCount(), 0u);
+    auto mirroredServer = device.getServers()[0];
+
+    // enable discovery from client and check that server is discoverable
+    mirroredServer.enableDiscovery();
+    {
+        auto client = Instance("[[none]]");
+        addOpcuaClientModule(client);
+
+        size_t deviceFound = 0;
+        for (const auto& deviceInfo : client.getAvailableDevices())
+        {
+            for (const auto& capability : deviceInfo.getServerCapabilities())
+            {
+                if (!test_helpers::isSufix(capability.getConnectionString(), path))
+                    break;
+
+                if (capability.getProtocolName() == "OpenDAQOPCUA")
+                {
+                    deviceFound += 1;
+                }
+            }
+        }
+        ASSERT_EQ(deviceFound, 1u);
+    }
+
+    // disable discovery from client and check that server now is not discoverable
+    mirroredServer.disableDiscovery();
+    std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+    {
+        auto client = Instance("[[none]]");
+        addOpcuaClientModule(client);
+
+        size_t deviceFound = 0;
+        for (const auto& deviceInfo : client.getAvailableDevices())
+        {
+            for (const auto& capability : deviceInfo.getServerCapabilities())
+            {
+                if (!test_helpers::isSufix(capability.getConnectionString(), path))
+                    break;
+
+                if (capability.getProtocolName() == "OpenDAQOPCUA")
+                {
+                    deviceFound += 1;
+                }
+            }
+        }
+        ASSERT_EQ(deviceFound, 0u);
+    }
+
+    // enable discovery from client again and check that server is discoverable
+    mirroredServer.enableDiscovery();
+    {
+        auto client = Instance("[[none]]");
+        addOpcuaClientModule(client);
+
+        size_t deviceFound = 0;
+        for (const auto& deviceInfo : client.getAvailableDevices())
+        {
+            for (const auto& capability : deviceInfo.getServerCapabilities())
+            {
+                if (!test_helpers::isSufix(capability.getConnectionString(), path))
+                    break;
+
+                if (capability.getProtocolName() == "OpenDAQOPCUA")
+                {
+                    deviceFound += 1;
+                }
+            }
+        }
+        ASSERT_EQ(deviceFound, 1u);
+    }
+}
+
 #ifdef _WIN32
 
 TEST_F(OpcuaDeviceModulesTest, TestDiscoveryReachability)
 {
     bool checkIPv6 = !test_helpers::Ipv6IsDisabled();
-    auto path = "/test/native_configurator/discovery_reachability/";
+    auto path = "/test/opcua/discovery_reachability/";
 
     auto instance = InstanceBuilder()
         .setModulePath("[[none]]")
         .addDiscoveryServer("mdns")
         .build();
     {
-        addNativeServerModule(instance);
         addOpcuaServerModule(instance);
 
-        auto serverConfig = instance.getAvailableServerTypes().get("OpenDAQNativeStreaming").createDefaultConfig();
+        auto serverConfig = instance.getAvailableServerTypes().get("OpenDAQOPCUA").createDefaultConfig();
         serverConfig.setPropertyValue("Path", path);
 
         instance.addServer("OpenDAQOPCUA", serverConfig).enableDiscovery();
@@ -521,6 +615,8 @@ TEST_F(OpcuaDeviceModulesTest, GetRemoteDeviceObjects)
     ASSERT_EQ(fbs.getCount(), 1u);
     auto channels = client.getChannels(search::Recursive(search::Any()));
     ASSERT_EQ(channels.getCount(), 2u);
+    auto servers = devices[0].getServers();
+    ASSERT_EQ(servers.getCount(), 1u);
 }
 
 void comparePropertyObjects(const PropertyObjectPtr& obj1, const PropertyObjectPtr& obj2)

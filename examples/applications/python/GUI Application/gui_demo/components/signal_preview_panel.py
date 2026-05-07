@@ -1,38 +1,38 @@
 import math
+import re
 import tkinter as tk
 from tkinter import ttk
 from collections import deque
 import numpy as np
+from tkinter import font as tkfont
 
 import opendaq as daq
 
 from .. import utils
 
-
 class SignalPreviewPanel(ttk.Frame):
-    WINDOW_SECONDS = 5.0
+    WINDOW_SECONDS = 1.0
     MAX_BUFFER_SIZE = 100_000
     POLL_MS = 33          # drain the reader this often
     _TARGET_PPS = 2000
     DRAW_MS = 66         # repaint the chart this often
-    CANVAS_HEIGHT = 160
+    CANVAS_HEIGHT = 180
 
     _BG      = '#ffffff'
     _LINE    = '#1a6dcc'
     _GRID    = '#e4e4e4'
     _TEXT    = '#444444'
     _AXIS    = '#999999'
-    _FILL    = '#dceafa'
 
     _AXIS_FONT = ('TkFixedFont', 7)
     _VAL_FONT  = ('TkFixedFont', 10, 'bold')
+    _DURATION_RE = re.compile(r'^\s*(\d+(?:\.\d+)?|\.\d+)\s*s?\s*$', re.IGNORECASE)
 
     def __init__(self, parent, node, context=None, **kwargs):
         super().__init__(parent, **kwargs)
         self.node = node
         self.context = context
 
-        self._collapsed = False
         self._reader = None
         self._selected_signal = None
         self._poll_job = None
@@ -49,12 +49,6 @@ class SignalPreviewPanel(ttk.Frame):
         # name -> ISignal for chartable signals
         self._eligible = {}
         self._unit_str = ''
-        self._last_descriptor_hash = None
-        self._signal_event_handler = None
-        self._signal_event_component = None
-        self._parent_event_handler = None
-        self._parent_event_component = None
-        self._reader_dirty = False
         self._needs_redraw = True
         self._chart_ready = False
         self._px_ml = 65
@@ -65,54 +59,76 @@ class SignalPreviewPanel(ttk.Frame):
         self._content_frame.pack(
             fill=tk.BOTH, expand=True, after=self._toggle_frame)
         self._populate_dropdown()
-
         self._schedule_poll()
         self._schedule_draw()
         self.bind('<Destroy>', self._on_destroy)
 
     def _build_toggle_bar(self):
-        self._toggle_frame = utils.make_banner(self, '\u25BC Signal Preview')
-        self._toggle_frame.configure(cursor='hand2')
-
-        self._arrow_label = self._toggle_frame.winfo_children()[0]
-        self._arrow_label.configure(cursor='hand2')
-
-        for w in (self._toggle_frame, self._arrow_label):
-            w.bind('<Button-1>', lambda _e: self._toggle())
+        self._toggle_frame = utils.make_banner(self, 'Signal Preview')
+        self._toggle_frame.pack_configure(padx=(0, 17))
 
     def _build_content(self):
         self._content_frame = ttk.Frame(self)
-        dd_row = ttk.Frame(self._content_frame)
-        dd_row.pack(fill=tk.X, padx=4, pady=(4, 2))
 
-        ttk.Label(dd_row, text='Signal:').pack(side=tk.LEFT, padx=(0, 4))
+        controls = ttk.Frame(self._content_frame)
+        controls.pack(fill=tk.X, padx=(12, 29), pady=(4, 2))
 
+        # Headers
+        ttk.Label(controls, text='Signal').grid(
+            row=0, column=0, sticky=tk.W)
+        ttk.Label(controls, text='Duration').grid(
+            row=0, column=1, sticky=tk.W, padx=(8, 0))
+        
+        # Scale
+        self._scale_header = ttk.Label(
+            controls, text='Scale')
+        self._scale_header.grid(row=0, column=2, sticky=tk.W, padx=(8, 0))
+        ttk.Label(controls, text='Last value').grid(
+            row=0, column=3, sticky=tk.W, padx=(8, 0))
+
+        # Signal dropdown
         self._signal_var = tk.StringVar()
         self._dropdown = ttk.Combobox(
-            dd_row, textvariable=self._signal_var, state='readonly')
-        self._dropdown.pack(side=tk.LEFT, fill=tk.X, expand=True)
+            controls, textvariable=self._signal_var, state='readonly')
+        self._dropdown.grid(row=1, column=0, sticky=tk.EW)
         self._dropdown.bind('<<ComboboxSelected>>', self._on_signal_selected)
 
-        # Duration selector
-        self._duration_presets = [1, 2, 5, 10, 30, 60]
-        self._duration_var = tk.StringVar(value='5s')
+        # Duration combobox
+        self._duration_presets = [0.01, 0.05, 0.1, 0.2, 0.5, 1]
+        self._duration_var = tk.StringVar(value='0.2s')
         dur_cb = ttk.Combobox(
-            dd_row, textvariable=self._duration_var, state='readonly',
-            values=[f'{d}s' for d in self._duration_presets], width=5)
-        dur_cb.pack(side=tk.LEFT, padx=(4, 0))
-        dur_cb.bind('<<ComboboxSelected>>', self._on_duration_selected)
+            controls, textvariable=self._duration_var,
+            values=[f'{d}s' for d in self._duration_presets], width=6)
+        dur_cb.grid(row=1, column=1, sticky=tk.W, padx=(8, 0))
+        dur_cb.bind('<<ComboboxSelected>>', self._on_duration_committed)
+        dur_cb.bind('<Return>', self._on_duration_committed)
+        dur_cb.bind('<FocusOut>', self._on_duration_committed)
 
-        self._log_var = tk.BooleanVar(value=False)
-        log_cb = ttk.Checkbutton(
-            dd_row, text='Logarithm', variable=self._log_var,
-            command=self._on_log_toggled)
-        log_cb.pack(side=tk.LEFT, padx=(4, 0))
+        # Scale
+        self._scale_var = tk.StringVar(value='Linear')
+        self._scale_cb = ttk.Combobox(
+            controls, textvariable=self._scale_var, state='readonly',
+            values=['Linear', 'Log'], width=7)
+        self._scale_cb.grid(row=1, column=2, sticky=tk.W, padx=(8, 0))
+        self._scale_cb.bind('<<ComboboxSelected>>', self._on_scale_changed)
+
+        # Last-value toggle
+        self._show_badge_var = tk.BooleanVar(value=True)
+        ttk.Checkbutton(
+            controls, variable=self._show_badge_var,
+            command=self._on_badge_toggled
+        ).grid(row=1, column=3, sticky=tk.W, padx=(8,12))
+
+        controls.grid_columnconfigure(0, weight=1)
+
+        # Hide Scale until a signal that supports it is selected.
+        self._set_scale_visible(False)
 
         # Chart canvas
         self._chart = tk.Canvas(
             self._content_frame, bg=self._BG,
             height=self.CANVAS_HEIGHT, highlightthickness=0)
-        self._chart.pack(fill=tk.BOTH, expand=True, padx=4, pady=(2, 4))
+        self._chart.pack(fill=tk.BOTH, expand=True, padx=(12,29), pady=(16, 21))
 
         self._chart.bind('<Configure>', lambda _e: self._invalidate_chart())
         self._block_mousewheel_recursive(self)
@@ -232,79 +248,32 @@ class SignalPreviewPanel(ttk.Frame):
         self._needs_redraw = True
 
         self._unit_str = ''
-        if signal.descriptor.unit is not None:
-            unit = signal.descriptor.unit
-            if unit is not None and unit.symbol is not None:
-                self._unit_str = str(unit.symbol)
-
-        # Cache tick resolution for tick -> seconds conversion.
-        domain_desc = signal.domain_signal.descriptor
-        res = domain_desc.tick_resolution
-        self._tick_res_num = res.numerator
-        self._tick_res_den = res.denominator
-
-        origin_str = str(domain_desc.origin) if hasattr(domain_desc, 'origin') else ''
-        if origin_str.strip():
-            self._origin_epoch = utils.parse_origin(origin_str)
-        else:
-            self._origin_epoch = None
-
-        self._reader = daq.StreamReader(signal)
-        self._last_descriptor_hash = self._descriptor_fingerprint(signal)
-
-        self._unsubscribe_core_events()
-
-        if daq.IComponent.can_cast_from(signal):
-            self._signal_event_component = signal
-            self._signal_event_handler = daq.QueuedEventHandler(self._on_core_event)
-            comp = daq.IComponent.cast_from(signal)
-            comp.on_component_core_event + self._signal_event_handler
-
-        ancestor = getattr(signal, 'parent', None)
-        while ancestor is not None:
-            if (daq.IFunctionBlock.can_cast_from(ancestor)
-                    or daq.IDevice.can_cast_from(ancestor)):
-                break
-            ancestor = getattr(ancestor, 'parent', None)
-
-        if ancestor is not None and daq.IComponent.can_cast_from(ancestor):
-            self._parent_event_component = ancestor
-            self._parent_event_handler = daq.QueuedEventHandler(self._on_core_event)
-            comp = daq.IComponent.cast_from(ancestor)
-            comp.on_component_core_event + self._parent_event_handler
+        self._tick_res_num = None
+        self._tick_res_den = None
+        self._origin_epoch = None
+        self._reader = daq.StreamReader(signal, skip_events=False)
 
     # MARK: Polling
 
-    def _unsubscribe_core_events(self):
-        for handler_attr, comp_attr in (
-            ('_signal_event_handler', '_signal_event_component'),
-            ('_parent_event_handler', '_parent_event_component'),
-        ):
-            handler = getattr(self, handler_attr, None)
-            comp = getattr(self, comp_attr, None)
-            if handler is not None and comp is not None:
-                if daq.IComponent.can_cast_from(comp):
-                    component = daq.IComponent.cast_from(comp)
-                    component.on_component_core_event - handler
-            setattr(self, handler_attr, None)
-            setattr(self, comp_attr, None)
-
-    def _on_core_event(self, sender, args):
-        if args.event_name in ('DescriptorChanged', 'PropertyValueChanged', 'ComponentUpdateEnd'):
-            self._reader_dirty = True
-
-    def _on_duration_selected(self, _event=None):
-        raw = self._duration_var.get().rstrip('s')
-        if float(raw) is not None:
-            seconds = float(raw)
-        else:
+    def _on_duration_committed(self, event=None):
+        text = self._duration_var.get()
+        match = self._DURATION_RE.match(text)
+        if match is None:
+            self._duration_var.set(f'{self.WINDOW_SECONDS:g}s')
             return
-        if seconds <= 0:
+
+        seconds = float(match.group(1))
+        seconds = max(0.01, min(10.0, seconds))
+        self._duration_var.set(f'{seconds:g}s')
+
+        if event is not None and event.type != tk.EventType.FocusOut:
+            self._chart.focus_set()
+
+        if seconds == self.WINDOW_SECONDS:
             return
+
         self.WINDOW_SECONDS = seconds
         self._needs_redraw = True
-
-        # Vertical grid lines are created once for the initial WINDOW_SECONDS.
         self._chart_ready = False
 
     def _recreate_reader(self):
@@ -314,51 +283,40 @@ class SignalPreviewPanel(ttk.Frame):
         if not self._is_chartable(self._selected_signal):
             return
 
-        domain_desc = getattr(
-            getattr(self._selected_signal, 'domain_signal', None),
-            'descriptor', None)
-        if domain_desc is None:
-            return
-        res = getattr(domain_desc, 'tick_resolution', None)
-        if res is None:
-            return
+        self._unit_str = ''
+        self._tick_res_num = None
+        self._tick_res_den = None
+        self._origin_epoch = None
 
-        self._tick_res_num = res.numerator
-        self._tick_res_den = res.denominator
-        self._reader = daq.StreamReader(self._selected_signal)
+        self._reader = daq.StreamReader(
+            self._selected_signal, skip_events=False)
         self._first_tick = None
         self._data.clear()
-        self._last_descriptor_hash = self._descriptor_fingerprint(self._selected_signal)
         self._needs_redraw = True
+    def _set_scale_visible(self, visible):
+        if visible:
+            self._scale_header.grid()
+            self._scale_cb.grid()
+        else:
+            self._scale_header.grid_remove()
+            self._scale_cb.grid_remove()
 
     @staticmethod
-    def _descriptor_fingerprint(signal):
+    def _is_2d_vector_signal(signal):
         desc = getattr(signal, 'descriptor', None)
-        if desc is None:
-            return None
-        d_desc = getattr(getattr(signal, 'domain_signal', None), 'descriptor', None)
+        dims = getattr(desc, 'dimensions', None) if desc else None
+        if not dims or len(dims) != 1:
+            return False
+        size = getattr(dims[0], 'size', None)
+        return size == 2
 
-        st = getattr(getattr(desc, 'sample_type', None), 'name', None)
-        rule = getattr(getattr(desc, 'data_rule', None), 'type', None)
-        rule_name = getattr(rule, 'name', str(rule)) if rule else None
-
-        d_rule = getattr(getattr(d_desc, 'data_rule', None), 'type', None) if d_desc else None
-        d_rule_name = getattr(d_rule, 'name', str(d_rule)) if d_rule else None
-
-        # For linear domain rules, the delta parameter encodes the sample rate.
-        # A change here means the rate changed even if everything else looks the same.
-        d_rule_params = None
-        if d_desc is not None:
-            dr = getattr(d_desc, 'data_rule', None)
-            if dr is not None:
-                params = getattr(dr, 'parameters', None)
-                d_rule_params = str(params) if params is not None else None
-
-        return (st, rule_name, d_rule_name, d_rule_params)
-
-    def _on_log_toggled(self):
+    def _on_badge_toggled(self):
         self._needs_redraw = True
 
+    def _on_scale_changed(self, _event=None):
+        self._needs_redraw = True
+        self._chart.focus_set()
+        
     def _schedule_poll(self):
         self._poll_job = self.after(self.POLL_MS, self._poll_tick)
 
@@ -368,28 +326,102 @@ class SignalPreviewPanel(ttk.Frame):
             return
 
         if self._reader is not None:
-            try:
-                available = self._reader.available_count
-                if available > 0:
-                    values, domain_ticks = self._reader.read_with_domain(available)
-                    self._ingest(values, domain_ticks)
-            except RuntimeError as e:
-                print(f'[SignalPreview] Reader invalidated, recreating: {e}')
-                self._recreate_reader()
-
-        if self._reader is not None and self._selected_signal is not None:
-            current = self._descriptor_fingerprint(self._selected_signal)
-            if current != self._last_descriptor_hash:
-                print('[SignalPreview] Descriptor changed, recreating reader')
-                self._recreate_reader()
-                self._last_descriptor_hash = current
-
-        if self._reader_dirty:
-            self._reader_dirty = False
-            print('[SignalPreview] Property changed, recreating reader')
-            self._recreate_reader()
+            self._drain_reader()
 
         self._poll_job = self.after(self.POLL_MS, self._poll_tick)
+
+    def _drain_reader(self):
+        while True:
+            try:
+                available = self._reader.available_count
+            except RuntimeError as e:
+                print(f'[SignalPreview] Reader query failed: {e}')
+                self._recreate_reader()
+                return
+
+            read_count = min(available, self.MAX_BUFFER_SIZE)
+
+            try:
+                values, domain_ticks, status = self._reader.read_with_domain(
+                    read_count, return_status=True)
+            except RuntimeError as e:
+                print(f'[SignalPreview] Read failed: {e}')
+                self._recreate_reader()
+                return
+
+            if len(values) > 0:
+                self._ingest(values, domain_ticks)
+
+            if status.read_status == daq.ReadStatus.Event:
+                self._handle_event_packet(status.event_packet)
+                continue
+
+            if status.read_status == daq.ReadStatus.Ok and len(values) == 0:
+                return
+            
+    @staticmethod
+    def _is_null_descriptor(desc):
+        sample_type = getattr(desc, 'sample_type', None)
+        if sample_type is None:
+            return True
+        name = getattr(sample_type, 'name', str(sample_type))
+        return name == 'Null'
+
+    def _apply_descriptors(self, data_descriptor, domain_descriptor):
+        if data_descriptor is not None:
+            if self._is_null_descriptor(data_descriptor):
+                self._unit_str = ''
+            else:
+                unit = getattr(data_descriptor, 'unit', None)
+                symbol = (getattr(unit, 'symbol', None)
+                          if unit is not None else None)
+                self._unit_str = str(symbol) if symbol is not None else ''
+
+        if domain_descriptor is not None:
+            if self._is_null_descriptor(domain_descriptor):
+                self._tick_res_num = None
+                self._tick_res_den = None
+                self._origin_epoch = None
+            else:
+                res = getattr(domain_descriptor, 'tick_resolution', None)
+                if res is None:
+                    self._tick_res_num = None
+                    self._tick_res_den = None
+                    self._origin_epoch = None
+                else:
+                    self._tick_res_num = res.numerator
+                    self._tick_res_den = res.denominator
+                    origin_str = (str(domain_descriptor.origin)
+                                  if hasattr(domain_descriptor, 'origin')
+                                  else '')
+                    if origin_str.strip():
+                        self._origin_epoch = utils.parse_origin(origin_str)
+                    else:
+                        self._origin_epoch = None
+
+    def _handle_event_packet(self, event_packet):
+        event_id = event_packet.event_id
+
+        self._needs_redraw = True
+        if event_id != 'DATA_DESCRIPTOR_CHANGED':
+            return
+        
+        params = event_packet.parameters
+        data_desc = params['DataDescriptor']
+        domain_desc = params['DomainDataDescriptor']
+
+        if (data_desc is not None
+                and daq.IDataDescriptor.can_cast_from(data_desc)):
+            data_desc = daq.IDataDescriptor.cast_from(data_desc)
+        if (domain_desc is not None
+                and daq.IDataDescriptor.can_cast_from(domain_desc)):
+            domain_desc = daq.IDataDescriptor.cast_from(domain_desc)
+
+        self._apply_descriptors(data_desc, domain_desc)
+
+        self._data.clear()
+        self._first_tick = None
+        self._chart_ready = False
 
     def _ingest(self, values, domain_ticks):
         if values is None or domain_ticks is None:
@@ -397,6 +429,9 @@ class SignalPreviewPanel(ttk.Frame):
 
         n = len(values)
         if n == 0:
+            return
+
+        if self._tick_res_num is None or self._tick_res_den is None:
             return
 
         ratio = self._tick_res_num / self._tick_res_den
@@ -473,10 +508,7 @@ class SignalPreviewPanel(ttk.Frame):
         c = self._chart
         c.delete('all')
 
-        # Z-order: fill -> grid -> axes -> line -> labels
-
-        self._fill_id = c.create_polygon(
-            0, 0, 0, 0, 0, 0, fill=self._FILL, outline='', state='hidden')
+        # Z-order: grid -> axes -> line -> labels
 
         # Horizontal grid
         self._hgrid_ids = []
@@ -522,14 +554,15 @@ class SignalPreviewPanel(ttk.Frame):
         self._chart_ready = True
 
     def _schedule_draw(self):
-        self._draw_job = self.after(self.DRAW_MS, self._draw_tick)
+        draw_interval = max(16, min(self.DRAW_MS, int(self.WINDOW_SECONDS * 500)))
+        self._draw_job = self.after(draw_interval, self._draw_tick)
 
     def _draw_tick(self):
         self._draw_job = None
         if not self.winfo_exists():
             return
 
-        if not self._collapsed and self._needs_redraw:
+        if self._needs_redraw:
             self._draw_chart()
             self._needs_redraw = False
 
@@ -545,10 +578,9 @@ class SignalPreviewPanel(ttk.Frame):
         if w < 20 or h < 20:
             return
 
-        ml, mr, mt, mb = 65, 12, 10, 22
-        pw = w - ml - mr
+        mr, mt, mb = 12, 10, 22
         ph = h - mt - mb
-        if pw < 10 or ph < 10:
+        if ph < 10:
             return
 
         buf = self._data
@@ -556,9 +588,8 @@ class SignalPreviewPanel(ttk.Frame):
 
         if not has_data:
             c.coords(self._nodata_id, w // 2, h // 2)
-            c.itemconfig(self._nodata_id, text='No data', state='normal')
+            c.itemconfig(self._nodata_id, text='None', state='normal')
             c.itemconfig(self._line_id, state='hidden')
-            c.itemconfig(self._fill_id, state='hidden')
             c.itemconfig(self._badge_id, state='hidden')
             c.itemconfig(self._badge_bg_id, state='hidden')
             return
@@ -575,27 +606,28 @@ class SignalPreviewPanel(ttk.Frame):
             c.coords(self._nodata_id, w // 2, h // 2)
             c.itemconfig(self._nodata_id, text='Waiting...', state='normal')
             c.itemconfig(self._line_id, state='hidden')
-            c.itemconfig(self._fill_id, state='hidden')
             c.itemconfig(self._badge_id, state='hidden')
             c.itemconfig(self._badge_bg_id, state='hidden')
             return
 
-        # Y range with breathing room
-        vals = [v for _, v in visible]
-        v_lo, v_hi = min(vals), max(vals)
+        # Y range computed from a stabilized window. 
+        range_earliest = t_latest - max(self.WINDOW_SECONDS, 0.5)
+        range_vals = [v for t, v in buf if t >= range_earliest]
+        v_lo, v_hi = min(range_vals), max(range_vals)
 
-        use_log = self._log_var.get()
+        use_log = self._scale_var.get() == 'Log'
 
         if use_log:
-            abs_max = max(abs(v) for v in vals)
+            abs_max = max(abs(v) for v in range_vals)
             symlog_thresh = max(abs_max * 0.01, 1e-10)
 
             def symlog(v):
                 return math.copysign(math.log10(1.0 + abs(v) / symlog_thresh), v)
 
-            symlog_vals = [symlog(v) for v in vals]
+            symlog_vals = [symlog(v) for v in range_vals]
             sl_lo = min(symlog_vals)
             sl_hi = max(symlog_vals)
+            ...
             if sl_lo == sl_hi:
                 sl_lo -= 1.0
                 sl_hi += 1.0
@@ -615,7 +647,26 @@ class SignalPreviewPanel(ttk.Frame):
 
         t_span = self.WINDOW_SECONDS
         v_span = v_hi - v_lo
-        
+
+        unit_suffix = f' {self._unit_str}' if self._unit_str else ''
+        y_labels = []
+        for i in range(5):
+            if use_log:
+                sl_val = sl_hi - (sl_hi - sl_lo) * i / 4
+                gv = math.copysign(
+                    symlog_thresh * (10.0 ** abs(sl_val) - 1.0), sl_val)
+            else:
+                gv = v_hi - v_span * i / 4
+            y_labels.append(self._fmt(gv) + unit_suffix)
+
+        label_font = tkfont.Font(font=self._AXIS_FONT)
+        max_label_w = max(label_font.measure(t) for t in y_labels)
+        ml = -(-(max_label_w + 8) // 4) * 4
+
+        pw = w - ml - mr
+        if pw < 10:
+            return
+
         def xpx(t):
             return ml + (t - t_earliest) / t_span * pw
 
@@ -627,59 +678,58 @@ class SignalPreviewPanel(ttk.Frame):
                 return mt + (1.0 - (v - v_lo) / v_span) * ph
 
         # Horizontal grid + Y labels
-        unit_suffix = f' {self._unit_str}' if self._unit_str else ''
         for i in range(5):
             gy = mt + ph * i / 4
             c.coords(self._hgrid_ids[i], ml, gy, ml + pw, gy)
-            if use_log:
-                sl_val = sl_hi - (sl_hi - sl_lo) * i / 4
-                gv = math.copysign(
-                    symlog_thresh * (10.0 ** abs(sl_val) - 1.0), sl_val)
-            else:
-                gv = v_hi - v_span * i / 4
             c.coords(self._hgrid_label_ids[i], ml - 4, gy)
-            c.itemconfig(self._hgrid_label_ids[i],
-                         text=self._fmt(gv) + unit_suffix)
+            c.itemconfig(self._hgrid_label_ids[i], text=y_labels[i])
 
-        _nice = [0.1, 0.2, 0.5, 1, 2, 5, 10, 15, 30, 60]
+        # Axes
+        c.coords(self._yaxis_id, ml, mt, ml, mt + ph)
+        c.coords(self._xaxis_id, ml, mt + ph, ml + pw, mt + ph)
+
+        _nice = [0.001, 0.002, 0.005, 0.01, 0.02, 0.05, 0.1, 0.2, 0.5,
+                 1, 2, 5, 10, 15, 30, 60]
         grid_interval = _nice[-1]
         for ni in _nice:
             if self.WINDOW_SECONDS / ni <= 7:
                 grid_interval = ni
                 break
 
-        first_mark = math.ceil(t_earliest / grid_interval) * grid_interval
+        if grid_interval >= 1:
+            label_fmt = '-{:.0f}s'
+        elif grid_interval >= 0.1:
+            label_fmt = '-{:.1f}s'
+        elif grid_interval >= 0.01:
+            label_fmt = '-{:.2f}s'
+        else:
+            label_fmt = '-{:.3f}s'
+
         slot = 0
-        t_mark = first_mark
-        
-        while t_mark < t_latest and slot < len(self._vgrid_ids):
-            vx = xpx(t_mark)
+        k = 1
+        while (k * grid_interval) < self.WINDOW_SECONDS - 1e-9 \
+                and slot < len(self._vgrid_ids):
+            secs_ago = k * grid_interval
+            vx = ml + pw - (secs_ago / self.WINDOW_SECONDS) * pw
             c.coords(self._vgrid_ids[slot], vx, mt, vx, mt + ph)
-            secs_ago = t_latest - t_mark
-            if grid_interval >= 1:
-                label = f'-{secs_ago:.0f}s'
-            else:
-                label = f'-{secs_ago:.1f}s'
+            c.itemconfig(self._vgrid_ids[slot], state='normal')
             c.coords(self._vgrid_label_ids[slot], vx, mt + ph + 3)
-            c.itemconfig(self._vgrid_label_ids[slot], text=label, state='normal')
+            c.itemconfig(self._vgrid_label_ids[slot],
+                         text=label_fmt.format(secs_ago), state='normal')
             slot += 1
-            t_mark += grid_interval
+            k += 1
 
         # Hide unused grid slots
         for i in range(slot, len(self._vgrid_ids)):
             c.itemconfig(self._vgrid_ids[i], state='hidden')
             c.itemconfig(self._vgrid_label_ids[i], state='hidden')
 
-        # Axes
-        c.coords(self._yaxis_id, ml, mt, ml, mt + ph)
-        c.coords(self._xaxis_id, ml, mt + ph, ml + pw, mt + ph)
-
         c.coords(self._xlabel_l, ml, h - 2)
-        c.itemconfig(self._xlabel_l, text=f'-{self.WINDOW_SECONDS:.0f}s')
+        c.itemconfig(self._xlabel_l,
+                     text=label_fmt.format(self.WINDOW_SECONDS))
         c.coords(self._xlabel_r, ml + pw, h - 2)
-        c.itemconfig(self._xlabel_r, text='now')
+        c.itemconfig(self._xlabel_r, text='0s')
 
-        # Min/max envelope downsampl
         if len(visible) > pw * 3:
             n_buckets = max(pw, 4)
             bucket_w = t_span / n_buckets
@@ -719,18 +769,6 @@ class SignalPreviewPanel(ttk.Frame):
                         envelope.append(b_min)
             visible = envelope
 
-        # Filled area under curve
-        bottom_y = mt + ph
-        if len(visible) >= 2:
-            fill_coords = [xpx(visible[0][0]), bottom_y]
-            for t, v in visible:
-                fill_coords.extend([xpx(t), ypx(v)])
-            fill_coords.extend([xpx(visible[-1][0]), bottom_y])
-            c.coords(self._fill_id, *fill_coords)
-            c.itemconfig(self._fill_id, state='normal')
-        else:
-            c.itemconfig(self._fill_id, state='hidden')
-
         # Data line (1 px, no smoothing)
         if len(visible) >= 2:
             line_coords = []
@@ -743,18 +781,22 @@ class SignalPreviewPanel(ttk.Frame):
             c.coords(self._line_id, px, py, px + 1, py)
             c.itemconfig(self._line_id, state='normal')
 
-        badge_text = self._fmt(visible[-1][1])
-        if self._unit_str:
-            badge_text += f' {self._unit_str}'
-        bx = ml + pw - 4
-        by = mt + 4
-        c.coords(self._badge_id, bx, by)
-        c.itemconfig(self._badge_id, text=badge_text, state='normal')
-        c.update_idletasks()
-        bb = c.bbox(self._badge_id)
-        if bb:
-            c.coords(self._badge_bg_id, bb[0] - 3, bb[1] - 1, bb[2] + 3, bb[3] + 1)
-            c.itemconfig(self._badge_bg_id, state='normal')
+        if self._show_badge_var.get():
+            badge_text = self._fmt(visible[-1][1])
+            if self._unit_str:
+                badge_text += f' {self._unit_str}'
+            bx = ml + pw - 4
+            by = mt + 4
+            c.coords(self._badge_id, bx, by)
+            c.itemconfig(self._badge_id, text=badge_text, state='normal')
+            c.update_idletasks()
+            bb = c.bbox(self._badge_id)
+            if bb:
+                c.coords(self._badge_bg_id, bb[0] - 3, bb[1] - 1, bb[2] + 3, bb[3] + 1)
+                c.itemconfig(self._badge_bg_id, state='normal')
+        else:
+            c.itemconfig(self._badge_id, state='hidden')
+            c.itemconfig(self._badge_bg_id, state='hidden')
 
     @staticmethod
     def _fmt(v):
@@ -765,17 +807,6 @@ class SignalPreviewPanel(ttk.Frame):
         if v == int(v):
             return str(int(v))
         return f'{v:.4g}'
-
-    def _toggle(self):
-        self._collapsed = not self._collapsed
-        if self._collapsed:
-            self._content_frame.pack_forget()
-            self._arrow_label.config(text='\u25B2 Signal Preview')
-        else:
-            self._content_frame.pack(
-                fill=tk.BOTH, expand=True, after=self._toggle_frame)
-            self._arrow_label.config(text='\u25BC Signal Preview')
-            self._needs_redraw = True
             
     def _on_destroy(self, event):
         if event.widget is not self:
@@ -791,5 +822,4 @@ class SignalPreviewPanel(ttk.Frame):
             self._chart.delete('all')
 
         self._chart_ready = False
-        self._unsubscribe_core_events()
         self._reader = None

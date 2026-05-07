@@ -90,7 +90,7 @@ jobs:
           cmake-config-preset: ${{ env.cmake_preset }}
           cmake-config-args: >-
             ${{ matrix.cmake-defines }}
-            ${{ steps.detect-dotnet.outputs.frameworks != '' && format('-DOPENDAQ_DOTNET_TARGET_FRAMEWORKS={0}', steps.detect-dotnet.outputs.frameworks) || '' }}
+            ${{ steps.detect-dotnet.outputs.frameworks != '' && format('"-DOPENDAQ_DOTNET_TARGET_FRAMEWORKS={0}"', steps.detect-dotnet.outputs.frameworks) || '' }}
           cmake-build-type: ${{ matrix.cmake-build-type }}
           enable-32bit: ${{ matrix.enable-32bit == true }}
           cpack-generator: ${{ matrix.cpack-generator }}
@@ -188,7 +188,7 @@ jobs:
           cmake-config-preset: ${{ env.cmake_preset }}
           cmake-config-args: >-
             ${{ matrix.cmake-defines }}
-            ${{ steps.detect-dotnet.outputs.frameworks != '' && format('-DOPENDAQ_DOTNET_TARGET_FRAMEWORKS={0}', steps.detect-dotnet.outputs.frameworks) || '' }}
+            ${{ steps.detect-dotnet.outputs.frameworks != '' && format('"-DOPENDAQ_DOTNET_TARGET_FRAMEWORKS={0}"', steps.detect-dotnet.outputs.frameworks) || '' }}
           cmake-build-type: ${{ matrix.cmake-build-type }}
           cpack-generator: DEB
           generate-python-bindings: false

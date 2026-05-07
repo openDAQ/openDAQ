@@ -41,29 +41,93 @@ documentation can be built with Antora by following the guide found in [docs/Ant
 
 #### Supported compilers and platforms:
 
-| OS           | Arch   | Generator | Compiler    | Build type |
-|--------------|--------|-----------|-------------|------------|
-| windows-2022 | x86_64 | msvs v143 | VC++        | Debug      |
-| windows-2022 | x86    | msvs v143 | VC++        | Release    |
-| windows-2022 | x86_64 | ninja     | clang       | Release    |
-| windows-2022 | x86_64 | ninja     | intel-cc ²  | Release    |
-| ubuntu-20.04 | x86    | ninja     | gcc-7 ¹ ²   | Release    |
-| ubuntu-20.04 | x86_64 | ninja     | clang-9 ¹   | Release    |
-| ubuntu-24.04 | x86_64 | ninja     | gcc-14      | Debug      |
-| ubuntu-24.04 | x86_64 | ninja     | gcc-14      | Release    |
-| ubuntu-24.04 | x86_64 | ninja     | clang-18    | Release    |
-| macos-15     | x86_64 | ninja     | appleclang  | Release    |
-| macos-26     | x86_64 | ninja     | appleclang  | Debug      |
-| macos-26     | armv8  | ninja     | appleclang  | Release    |
+<table>
+  <tr>
+   <td><strong>OS</strong></td>
+   <td><strong>Platform</strong></td>
+   <td><strong>GCC 7+</strong></td>
+   <td><strong>Clang 9+</strong></td>
+   <td><strong>MSVC 14.20+</strong></td>
+   <td><strong>Intel 2025+</strong></td>
+  </tr>
+  <tr>
+   <td rowspan="2">Windows <br>(Visual Studio)</td>
+   <td>x86, x64</td>
+   <td rowspan="2">/</td>
+   <td>✅</td>
+   <td>✅</td>
+   <td>✅</td>
+  </tr>
+  <tr>
+   <td>arm64</td>
+   <td>⚠️🛠️</td>
+   <td>⚠️🛠️</td>
+   <td rowspan="2">/</td>
+  </tr>
+  <tr>
+   <td rowspan="1">Windows <br>(MinGW)</td>
+   <td>x86, x64</td>
+   <td>☑️</td>
+   <td>☑️</td>
+   <td rowspan="10">/
+   </td>
+  </tr>
+  <tr>
+   <td rowspan="2">Linux</td>
+   <td>x86, x64</td>
+   <td>✅</td>
+   <td>✅</td>
+   <td>☑️</td>
+  </tr>
+  <tr>
+   <td>armhfv7, aarch64</td>
+   <td>☑️</td>
+   <td>☑️</td>
+   <td rowspan="5">/</td>
+  </tr>
+  <tr>
+   <td rowspan="2">MacOS <br>(>= 10.15)</td>
+   <td>x64</td>
+   <td>☑️</td>
+   <td>✅</td>
+  </tr>
+  <tr>
+   <td>arm64</td>
+   <td>☑️</td>
+   <td>☑️</td>
+  </tr>
+  <tr>
+   <td>iOS</td>
+   <td>arm64</td>
+   <td>🛠️</td>
+   <td>🛠️</td>
+  </tr>
+  <tr>
+   <td>Android</td>
+   <td>aarch64</td>
+   <td>🛠️</td>
+   <td>🛠️</td>
+  </tr>
+</table>
 
-¹ Legacy compilers (gcc-7, clang-9) disable several features via CI `cache-variables`:
-- `DAQMODULES_REF_FB_MODULE_ENABLE_RENDERER` — SFML 3.0 requires full C++17 support
-- `DAQMODULES_BASIC_CSV_RECORDER_MODULE` — Arrow/Parquet requires a modern compiler
-- `OPENDAQ_PYTHON_VERSION=3.8` — newer Python is not available on ubuntu-20.04 out of the box
-
-² Intel oneAPI DPC++/C++ (`icx`) and 32-bit ubuntu-20.04 jobs disable Python and C# binding generation (`OPENDAQ_GENERATE_PYTHON_BINDINGS`, `OPENDAQ_GENERATE_CSHARP_BINDINGS`).
-
-The CI matrix is provided by [openDAQ-CI](https://github.com/openDAQ/openDAQ-CI)'s reusable workflow.
+<table>
+  <tr>
+   <td>✅</td>
+   <td>Actively supported (checked with CI)</td>
+  </tr>
+  <tr>
+   <td>☑️</td>
+   <td>Actively supported (no CI)</td>
+  </tr>
+  <tr>
+   <td>⚠️</td>
+   <td>Not actively supported</td>
+  </tr>
+  <tr>
+   <td>🛠️</td>
+   <td>Requires some manual changes or special configuration</td>
+  </tr>
+</table>
 
 ### Required tools before building
 
@@ -77,7 +141,7 @@ The CI matrix is provided by [openDAQ-CI](https://github.com/openDAQ/openDAQ-CI)
 - (optional) Boost C++ Library: https://sourceforge.net/projects/boost/files/boost-binaries/ , http://theboostcpplibraries.com
   - If installed, set CMake option `OPENDAQ_ALWAYS_FETCH_BOOST=OFF` to allow the SDK to use it.
   - See also document [BUILD.md](BUILD.md).
-   
+
 ### Building on Windows
 
 #### 1. Install all required tools / packages.
@@ -95,6 +159,7 @@ cd openDAQ
 
 In the repository root folder execute the following command to list available presets
 then select the one that fits you and generate CMake project:
+
 ```shell
 cmake --list-presets=all
 cmake --preset "x64/msvc-22/full"
@@ -102,6 +167,7 @@ cmake --preset "x64/msvc-22/full"
 
 > ℹ️ If for any reason there is no preset for your compiler (version) you can list the "CMake generators" and
 > specify one to override the closest preset (e.g. to use Visual Studio 2019):
+>
 > ```shell
 > cmake -G
 > cmake --preset "x64/msvc-17/full" -G "Visual Studio 16 2019"
@@ -112,6 +178,7 @@ cmake --preset "x64/msvc-22/full"
 Open and build `build/x64/msvc-22/full/openDAQ.sln` using Visual Studio (if one `msvc` preset had been used above).
 
 Or use command line:
+
 ```shell
 # build from repository root
 cmake --build build/x64/msvc-22/full
@@ -128,6 +195,7 @@ For compilers other than `msvc`, one can add parameter `-j 4` to the build comma
 #### 1. Install all required tools / packages.
 
 For example in Ubuntu
+
 ```shell
 sudo apt-get update
 sudo apt-get install -y git build-essential lld cmake ninja-build mono-complete python3
@@ -144,6 +212,7 @@ cd openDAQ
 
 In the repository root folder execute the following command to list available presets
 then select the one that fits you and generate CMake project:
+
 ```shell
 cmake --list-presets=all
 cmake --preset "x64/gcc/full/debug"

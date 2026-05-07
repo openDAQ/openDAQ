@@ -39,7 +39,7 @@
 
 // MAC CI issue
 #if !defined(SKIP_TEST_MAC_CI)
-#   if defined(__clang__)
+#   if defined(__APPLE__)
 #       define SKIP_TEST_MAC_CI GTEST_SKIP() << "Skipping test on MacOs"
 #   else
 #       define SKIP_TEST_MAC_CI

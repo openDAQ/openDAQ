@@ -85,13 +85,35 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Detect .NET target frameworks
+        id: detect-dotnet
+        shell: bash
+        run: |
+          # Detect installed .NET SDKs so the C# bindings target every
+          # available runtime rather than a hardcoded list in the preset.
+          if ! command -v dotnet &> /dev/null; then
+            echo "frameworks=" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          FRAMEWORKS=$(
+            dotnet --list-sdks \
+              | awk -F'[. ]' '{ print $1"."$2 }' \
+              | sort -t. -k1,1n -k2,2n -u \
+              | awk '($1+0) >= 5 { printf "net%s;", $0 }' \
+              | sed 's/;$//'
+          )
+          echo "Detected .NET target frameworks: $FRAMEWORKS"
+          echo "frameworks=$FRAMEWORKS" >> "$GITHUB_OUTPUT"
+
       - name: Build and Test
         id: build-and-test
         uses: ./.github/actions/build-sdk
         with:
           cmake-build-type: ${{ matrix.cmake-build-type }}
           cmake-config-preset: ${{ env.cmake_preset }}
-          cmake-config-args: ${{ matrix.cmake-defines }}
+          cmake-config-args: >-
+            ${{ matrix.cmake-defines }}
+            ${{ steps.detect-dotnet.outputs.frameworks != '' && format('-DOPENDAQ_DOTNET_TARGET_FRAMEWORKS={0}', steps.detect-dotnet.outputs.frameworks) || '' }}
           cmake-generator: ${{ matrix.cmake-generator }}
           enable-32bit: ${{ matrix.enable-32bit == true }}
           enable-tests: ${{ matrix.enable-tests == true }}
@@ -192,6 +214,24 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Detect .NET target frameworks
+        id: detect-dotnet
+        shell: bash
+        run: |
+          if ! command -v dotnet &> /dev/null; then
+            echo "frameworks=" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          FRAMEWORKS=$(
+            dotnet --list-sdks \
+              | awk -F'[. ]' '{ print $1"."$2 }' \
+              | sort -t. -k1,1n -k2,2n -u \
+              | awk '($1+0) >= 5 { printf "net%s;", $0 }' \
+              | sed 's/;$//'
+          )
+          echo "Detected .NET target frameworks: $FRAMEWORKS"
+          echo "frameworks=$FRAMEWORKS" >> "$GITHUB_OUTPUT"
+
       - name: Build and Test
         id: build-and-test
         uses: ./.github/actions/build-sdk
@@ -199,7 +239,9 @@ jobs:
           additional-dependencies: ${{ matrix.additional-packages }}
           cmake-build-type: ${{ matrix.cmake-build-type }}
           cmake-config-preset: ${{ env.cmake_preset }}
-          cmake-config-args: ${{ matrix.cmake-defines }}
+          cmake-config-args: >-
+            ${{ matrix.cmake-defines }}
+            ${{ steps.detect-dotnet.outputs.frameworks != '' && format('-DOPENDAQ_DOTNET_TARGET_FRAMEWORKS={0}', steps.detect-dotnet.outputs.frameworks) || '' }}
           cmake-generator: ${{ matrix.cmake-generator }}
           enable-32bit: ${{ matrix.enable-32bit == true }}
           enable-tests: true
@@ -247,13 +289,35 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Detect .NET target frameworks
+        id: detect-dotnet
+        shell: bash
+        run: |
+          # Detect installed .NET SDKs so the C# bindings target every
+          # available runtime rather than a hardcoded list in the preset.
+          if ! command -v dotnet &> /dev/null; then
+            echo "frameworks=" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          FRAMEWORKS=$(
+            dotnet --list-sdks \
+              | awk -F'[. ]' '{ print $1"."$2 }' \
+              | sort -t. -k1,1n -k2,2n -u \
+              | awk '($1+0) >= 5 { printf "net%s;", $0 }' \
+              | sed 's/;$//'
+          )
+          echo "Detected .NET target frameworks: $FRAMEWORKS"
+          echo "frameworks=$FRAMEWORKS" >> "$GITHUB_OUTPUT"
+
       - name: Build and Test
         id: build-and-test
         uses: ./.github/actions/build-sdk
         with:
           cmake-build-type: ${{ matrix.cmake-build-type }}
           cmake-config-preset: ${{ env.cmake_preset }}
-          cmake-config-args: ${{ matrix.cmake-defines }}
+          cmake-config-args: >-
+            ${{ matrix.cmake-defines }}
+            ${{ steps.detect-dotnet.outputs.frameworks != '' && format('-DOPENDAQ_DOTNET_TARGET_FRAMEWORKS={0}', steps.detect-dotnet.outputs.frameworks) || '' }}
           cmake-generator: ${{ matrix.cmake-generator }}
           enable-tests: true
           ctest-preset: ${{ env.ctest_preset }}

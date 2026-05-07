@@ -7,7 +7,7 @@ UpdateParametersImpl::UpdateParametersImpl()
     : Super()
 {
     Super::addProperty(BoolProperty("RemoteUpdate", false));
-    Super::addProperty(BoolProperty("RemoveOldDevices", false));
+    Super::addProperty(BoolProperty("RemoveUnusedDevices", false));
 }
 
 template <typename T>
@@ -30,17 +30,17 @@ ErrCode UpdateParametersImpl::setDeviceUpdateOptions(IDeviceUpdateOptions* optio
     return OPENDAQ_SUCCESS;
 }
 
-ErrCode INTERFACE_FUNC UpdateParametersImpl::getRemoveOldDevices(Bool* remove)
+ErrCode INTERFACE_FUNC UpdateParametersImpl::getRemoveUnusedDevices(Bool* remove)
 {
     OPENDAQ_PARAM_NOT_NULL(remove);
 
-    *remove = getTypedProperty<IBoolean>("RemoveOldDevices");
+    *remove = getTypedProperty<IBoolean>("RemoveUnusedDevices");
     return OPENDAQ_SUCCESS;
 }
 
-ErrCode INTERFACE_FUNC UpdateParametersImpl::setRemoveOldDevices(Bool remove)
+ErrCode INTERFACE_FUNC UpdateParametersImpl::setRemoveUnusedDevices(Bool remove)
 {
-    OPENDAQ_RETURN_IF_FAILED(setPropertyValue(String("RemoveOldDevices"), Boolean(remove)));
+    OPENDAQ_RETURN_IF_FAILED(setPropertyValue(String("RemoveUnusedDevices"), Boolean(remove)));
     return OPENDAQ_SUCCESS;
 }
 

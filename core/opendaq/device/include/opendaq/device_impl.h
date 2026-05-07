@@ -2478,8 +2478,8 @@ void GenericDevice<TInterface, Interfaces...>::updateObject(const SerializedObje
 
         // Remove devices that are not in the setup and are not targets of remapping.
         // Removing after folder update allows us to remap to existing device without first removing it (A->B with B already connected case).
-        Bool removeOldDevices = contextPtr.getUpdateParameters().getRemoveOldDevices();
-        if (removeOldDevices == True)
+        Bool removeUnreferencedDevices = contextPtr.getUpdateParameters().getRemoveUnusedDevices();
+        if (removeUnreferencedDevices == True)
         {
             for (const auto& deviceId : devicesWithoutReference)
                 this->removeDeviceIfNotStatic(deviceId);

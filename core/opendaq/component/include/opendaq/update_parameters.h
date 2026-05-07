@@ -52,16 +52,16 @@ DECLARE_OPENDAQ_INTERFACE(IUpdateParameters, IPropertyObject)
     virtual ErrCode INTERFACE_FUNC setDeviceUpdateOptions(IDeviceUpdateOptions* options) = 0;
 
     /*!
-     * @brief Gets the removeOldDevices flag. When true, connected devices not mentioned in the loading config will be removed.
-     * @param remove The current value of the removeOldDevices flag.
+     * @brief Gets the removeUnusedDevices flag. When true, connected devices not mentioned in the loading config will be removed.
+     * @param remove The current value of the removeUnusedDevices flag.
      */
-    virtual ErrCode INTERFACE_FUNC getRemoveOldDevices(Bool* remove) = 0;
+    virtual ErrCode INTERFACE_FUNC getRemoveUnusedDevices(Bool* remove) = 0;
 
     /*!
-     * @brief Sets the removeOldDevices flag. When set to true, connected devices not mentioned in the loading config will be removed.
-     * @param mode The new value for the removeOldDevices flag.
+     * @brief Sets the removeUnusedDevices flag. When set to true, connected devices not mentioned in the loading config will be removed.
+     * @param mode The new value for the removeUnusedDevices flag.
      */
-    virtual ErrCode INTERFACE_FUNC setRemoveOldDevices(Bool remove) = 0;
+    virtual ErrCode INTERFACE_FUNC setRemoveUnusedDevices(Bool remove) = 0;
 };
 /*!@}*/
 

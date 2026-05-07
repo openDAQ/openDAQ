@@ -548,7 +548,7 @@ TEST_F(RemoteModulesUpdateTest, RemoveOldKeepDeviceNotInConfiguration)
 
     auto params = UpdateParameters();
     params.setDeviceUpdateOptions(options);
-    params.setRemoveOldDevices(False);
+    params.setRemoveUnusedDevices(False);
 
     client.loadConfiguration(str, params);
 
@@ -585,7 +585,7 @@ TEST_F(RemoteModulesUpdateTest, RemoveOldRemoveDeviceNotInConfiguration)
 
     auto params = UpdateParameters();
     params.setDeviceUpdateOptions(options);
-    params.setRemoveOldDevices(True);
+    params.setRemoveUnusedDevices(True);
 
     client.loadConfiguration(str, params);
 
@@ -653,7 +653,7 @@ TEST_F(RemoteModulesUpdateTest, RemoveOldRemapToExistingSibling)
 
     auto params = UpdateParameters();
     params.setDeviceUpdateOptions(options);
-    params.setRemoveOldDevices(True);
+    params.setRemoveUnusedDevices(True);
 
     client.loadConfiguration(str, params);
 

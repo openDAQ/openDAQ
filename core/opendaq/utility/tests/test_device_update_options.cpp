@@ -553,7 +553,7 @@ TEST_F(DeviceUpdateOptionsTest, KeepExistingDeviceNotInConfiguration)
 
     auto params = UpdateParameters();
     params.setDeviceUpdateOptions(options);
-    params.setRemoveOldDevices(False);
+    params.setRemoveUnusedDevices(False);
 
     instance.loadConfiguration(str, params);
 
@@ -579,7 +579,7 @@ TEST_F(DeviceUpdateOptionsTest, RemoveExistingDeviceNotInConfiguration)
 
     auto params = UpdateParameters();
     params.setDeviceUpdateOptions(options);
-    params.setRemoveOldDevices(True);
+    params.setRemoveUnusedDevices(True);
 
     instance.loadConfiguration(str, params);
 
@@ -642,7 +642,7 @@ TEST_F(DeviceUpdateOptionsTest, RemoveOldInteractionWithRemap)
 
     auto params = UpdateParameters();
     params.setDeviceUpdateOptions(options);
-    params.setRemoveOldDevices(True); // Remove devices not in config
+    params.setRemoveUnusedDevices(True); // Remove devices not in config
     // The expected result is
     // Man0
     // - Man2
@@ -697,7 +697,7 @@ TEST_F(DeviceUpdateOptionsTest, NotRemoveOldInteractionWithRemap)
 
     auto params = UpdateParameters();
     params.setDeviceUpdateOptions(options);
-    params.setRemoveOldDevices(False);  // Do not remove devices not in config
+    params.setRemoveUnusedDevices(False);  // Do not remove devices not in config
     // The expected result is
     // Man0
     // - Man2
@@ -754,7 +754,7 @@ TEST_F(DeviceUpdateOptionsTest, RemapToExistingSibling)
 
     auto params = UpdateParameters();
     params.setDeviceUpdateOptions(options);
-    params.setRemoveOldDevices(True);  // Remove devices not in config
+    params.setRemoveUnusedDevices(True);  // Remove devices not in config
     // The expected result is
     // Man0
     // - Man1

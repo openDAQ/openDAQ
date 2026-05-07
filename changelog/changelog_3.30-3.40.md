@@ -23,7 +23,7 @@
 - [#1153](https://github.com/openDAQ/openDAQ/pull/1153) Enable and disable discovery for openDAQ Server via native.
 - [#1178](https://github.com/openDAQ/openDAQ/pull/1178) Calling begin/end update only on the root component while save/load
 - [#1179](https://github.com/openDAQ/openDAQ/pull/1179) Reduce component config size
-- [#1166](https://github.com/openDAQ/openDAQ/pull/1166) Add `IUpdateParameters::setRemoveOldDevices` to optionally remove devices not specified in the loaded configuration.
+- [#1166](https://github.com/openDAQ/openDAQ/pull/1166) Add `IUpdateParameters::setRemoveUnusedDevices` to optionally remove devices not specified in the loaded configuration.
 
 ## Python
 

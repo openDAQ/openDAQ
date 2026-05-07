@@ -44,10 +44,9 @@ set(dotnet_config --configuration $<CONFIG>_Build)
 # suppress warnings:
 # > CS1591: Missing XML comment for publicly visible type or member 'xyz'.
 
+set(OPENDAQ_DOTNET_TARGET_FRAMEWORKS "net8.0" CACHE STRING
+    "Semicolon-separated .NET target frameworks (e.g. net8.0;net9.0;net10.0)")
 set(dotnet_frameworks "${OPENDAQ_DOTNET_TARGET_FRAMEWORKS}")
-if(dotnet_frameworks STREQUAL "all")
-    set(dotnet_frameworks "net7.0;net8.0;net9.0")
-endif()
 # Build the -windows suffixed variant for WinForms/WPF projects
 string(REGEX REPLACE "([^;]+)" "\\1-windows" dotnet_frameworks_windows "${dotnet_frameworks}")
 message(STATUS "Target .NET framework(s): ${dotnet_frameworks}")

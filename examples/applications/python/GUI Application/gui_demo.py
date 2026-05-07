@@ -606,6 +606,8 @@ class App(tk.Tk):
     def handle_load_modules_button_clicked(self):
         if platform.system() == 'Windows':
             extension = '.module.dll'
+        elif platform.system() == 'Darwin':
+            extension = '.dylib'
         else:
             extension = '.module.so'
 
@@ -923,10 +925,10 @@ class App(tk.Tk):
 
         info_fields = [("ID", ctype.id)]
         if type_kind == "device" and daq.IDeviceType.can_cast_from(comp_type):
-            prefix = getattr(daq.IDeviceType.cast_from(comp_type), 'prefix', None)
+            prefix = daq.IDeviceType.cast_from(comp_type).connection_string_prefix
             info_fields.append(("Prefix", prefix))  # the label row already handles None -> "N/A"
         elif type_kind == "streaming" and daq.IStreamingType.can_cast_from(comp_type):
-            prefix = getattr(daq.IStreamingType.cast_from(comp_type), 'prefix', None)
+            prefix = daq.IStreamingType.cast_from(comp_type).connection_string_prefix
             info_fields.append(("Prefix", prefix))
 
         for label, value in info_fields:

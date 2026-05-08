@@ -89,8 +89,6 @@ jobs:
         id: detect-dotnet
         shell: bash
         run: |
-          # Detect installed .NET SDKs so the C# bindings target every
-          # available runtime rather than a hardcoded list in the preset.
           if ! command -v dotnet &> /dev/null; then
             echo "frameworks=" >> "$GITHUB_OUTPUT"
             exit 0
@@ -293,8 +291,6 @@ jobs:
         id: detect-dotnet
         shell: bash
         run: |
-          # Detect installed .NET SDKs so the C# bindings target every
-          # available runtime rather than a hardcoded list in the preset.
           if ! command -v dotnet &> /dev/null; then
             echo "frameworks=" >> "$GITHUB_OUTPUT"
             exit 0

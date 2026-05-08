@@ -65,7 +65,7 @@ runs:
           )
           if [ -n "$DOTNET_FRAMEWORKS" ]; then
             echo "Detected .NET target frameworks: $DOTNET_FRAMEWORKS"
-            DOTNET_TFM_ARG="-DOPENDAQ_DOTNET_TARGET_FRAMEWORKS=$DOTNET_FRAMEWORKS"
+            DOTNET_TFM_ARG="\"-DOPENDAQ_DOTNET_TARGET_FRAMEWORKS=$DOTNET_FRAMEWORKS\""
           fi
         fi
 

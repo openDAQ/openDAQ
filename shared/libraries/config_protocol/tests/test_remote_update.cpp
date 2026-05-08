@@ -215,3 +215,23 @@ TEST_F(ConfigRemoteUpdateTest, UpdateChannelActive)
     ASSERT_TRUE(serverChannel.getActive());
     ASSERT_TRUE(clientChannel.getActive());
 }
+
+TEST_F(ConfigRemoteUpdateTest, UpdateHierarchicalActive)
+{
+    auto serverChannel = serverDevice.getChannelsRecursive()[0];
+    auto clientChannel = clientDevice.getChannelsRecursive()[0];
+
+    ASSERT_TRUE(serverChannel.getActive());
+    ASSERT_TRUE(clientChannel.getActive());
+    const auto str = serializeHelper(serverDevice);
+
+    serverDevice.setActive(false);
+
+    ASSERT_FALSE(serverChannel.getActive());
+    ASSERT_FALSE(clientChannel.getActive());
+
+    updateHelper(serverDevice, str);
+
+    ASSERT_TRUE(serverChannel.getActive());
+    ASSERT_TRUE(clientChannel.getActive());
+}

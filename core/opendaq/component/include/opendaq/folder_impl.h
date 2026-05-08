@@ -88,7 +88,7 @@ protected:
     void onUpdatableUpdateEnd(const BaseObjectPtr& context) override;
 
     virtual void syncComponentOperationMode(const ComponentPtr& component);
-    void notifyActiveChanged() override;
+    void notifyActiveChanged(bool onUpdate) override;
 
 private:
     bool removeItemWithLocalIdInternal(const std::string& str);
@@ -212,12 +212,12 @@ void FolderImpl<Intf, Intfs...>::syncComponentOperationMode(const ComponentPtr& 
 }
 
 template <class Intf, class ... Intfs>
-void FolderImpl<Intf, Intfs...>::notifyActiveChanged()
+void FolderImpl<Intf, Intfs...>::notifyActiveChanged(bool onUpdate)
 {
     std::vector<ComponentPtr> itemsVec;
     for (const auto& [_, item] : this->items)
         itemsVec.emplace_back(item);
-    this->notifyItemsActiveChanged(itemsVec);
+    this->notifyItemsActiveChanged(itemsVec, onUpdate);
 }
 
 template <class Intf, class... Intfs>

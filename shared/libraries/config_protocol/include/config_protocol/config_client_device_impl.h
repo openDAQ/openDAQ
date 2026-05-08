@@ -71,7 +71,7 @@ public:
     ErrCode INTERFACE_FUNC setOperationModeRecursive(OperationModeType modeType) override;
     ErrCode INTERFACE_FUNC getOperationMode(OperationModeType* modeType) override;
 
-    ErrCode INTERFACE_FUNC setParentActive(Bool parentActive) override;
+    ErrCode INTERFACE_FUNC setParentActive(Bool parentActive, Bool onUpdate) override;
     ErrCode INTERFACE_FUNC setAsRoot() override;
 
     template <class Implementation>
@@ -386,11 +386,11 @@ inline ErrCode GenericConfigClientDeviceImpl<TDeviceBase>::getOperationMode(Oper
 }
 
 template <class TDeviceBase>
-inline ErrCode GenericConfigClientDeviceImpl<TDeviceBase>::setParentActive(Bool parentActive)
+inline ErrCode GenericConfigClientDeviceImpl<TDeviceBase>::setParentActive(Bool parentActive, Bool onUpdate)
 {
     if (this->isRootDevice)
         return OPENDAQ_IGNORED;
-    return Super::setParentActive(parentActive);
+    return Super::setParentActive(parentActive, onUpdate);
 }
 
 template <class TDeviceBase>

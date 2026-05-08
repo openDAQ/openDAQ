@@ -14,9 +14,12 @@ namespace detail
 {
     static const auto DefaultPermissions = []()
     {
-        daqDisableObjectTracking();
-        auto permissions = PermissionsBuilder().inherit(true).build();
-        daqEnableObjectTracking();
+        static PermissionsPtr permissions;
+        if (!permissions.assigned())
+        {
+            permissions = PermissionsBuilder().inherit(true).build();
+            daqUntrackObject(permissions);
+        }
         return permissions;
     }();
 }

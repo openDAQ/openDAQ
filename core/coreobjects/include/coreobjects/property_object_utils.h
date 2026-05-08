@@ -28,9 +28,12 @@ BEGIN_NAMESPACE_OPENDAQ
 namespace object_utils
 {
     inline const auto UnrestrictedPermissions = []() { 
-        daqDisableObjectTracking();
-        auto permissions = PermissionsBuilder().assign("everyone", PermissionMaskBuilder().read().write().execute()).build();
-        daqEnableObjectTracking();
+        static PermissionsPtr permissions;
+        if (!permissions.assigned())
+        {
+            permissions = PermissionsBuilder().assign("everyone", PermissionMaskBuilder().read().write().execute()).build();
+            daqUntrackObject(permissions);
+        }
         return permissions;
     }();
 }

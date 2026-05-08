@@ -153,8 +153,8 @@ private:
 };
 
 #ifdef WORKAROUND_MEMBER_INLINE_VARIABLE
-template <typename TInterface, typename... Interfaces>
-std::unordered_set<std::string> SignalBase<TInterface, Interfaces...>::inputPortAvailableAttributes = INPUT_PORT_AVAILABLE_ATTRIBUTES;
+template <typename TInterface, typename...  Interfaces>
+std::unordered_set<std::string> GenericInputPortImpl<TInterface, Interfaces...>::inputPortAvailableAttributes = INPUT_PORT_AVAILABLE_ATTRIBUTES;
 #endif
 
 template <typename TInterface, typename...  Interfaces>

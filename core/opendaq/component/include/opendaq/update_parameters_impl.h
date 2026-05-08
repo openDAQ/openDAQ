@@ -30,7 +30,9 @@ public:
 
     ErrCode INTERFACE_FUNC getDeviceUpdateOptions(IDeviceUpdateOptions** options) override;
     ErrCode INTERFACE_FUNC setDeviceUpdateOptions(IDeviceUpdateOptions* options) override;
-    
+    ErrCode INTERFACE_FUNC getRemoveUnusedDevices(Bool* remove) override;
+    ErrCode INTERFACE_FUNC setRemoveUnusedDevices(Bool remove) override;
+
     ErrCode INTERFACE_FUNC getSerializeId(ConstCharPtr* id) const override;
     static ConstCharPtr SerializeId();
     static ErrCode Deserialize(ISerializedObject* serialized, IBaseObject* context, IFunction* factoryCallback, IBaseObject** obj);

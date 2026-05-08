@@ -42,6 +42,8 @@ extern "C"
 
     daqErrCode EXPORTED daqUpdateParameters_getDeviceUpdateOptions(daqUpdateParameters* self, daqDeviceUpdateOptions** options);
     daqErrCode EXPORTED daqUpdateParameters_setDeviceUpdateOptions(daqUpdateParameters* self, daqDeviceUpdateOptions* options);
+    daqErrCode EXPORTED daqUpdateParameters_getRemoveUnusedDevices(daqUpdateParameters* self, daqBool* remove);
+    daqErrCode EXPORTED daqUpdateParameters_setRemoveUnusedDevices(daqUpdateParameters* self, daqBool remove);
     daqErrCode EXPORTED daqUpdateParameters_createUpdateParameters(daqUpdateParameters** obj);
 
 #ifdef __cplusplus

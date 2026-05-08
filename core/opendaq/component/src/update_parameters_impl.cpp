@@ -7,6 +7,7 @@ UpdateParametersImpl::UpdateParametersImpl()
     : Super()
 {
     Super::addProperty(BoolProperty("RemoteUpdate", false));
+    Super::addProperty(BoolProperty("RemoveUnusedDevices", false));
 }
 
 template <typename T>
@@ -29,6 +30,20 @@ ErrCode UpdateParametersImpl::setDeviceUpdateOptions(IDeviceUpdateOptions* optio
     return OPENDAQ_SUCCESS;
 }
 
+ErrCode INTERFACE_FUNC UpdateParametersImpl::getRemoveUnusedDevices(Bool* remove)
+{
+    OPENDAQ_PARAM_NOT_NULL(remove);
+
+    *remove = getTypedProperty<IBoolean>("RemoveUnusedDevices");
+    return OPENDAQ_SUCCESS;
+}
+
+ErrCode INTERFACE_FUNC UpdateParametersImpl::setRemoveUnusedDevices(Bool remove)
+{
+    OPENDAQ_RETURN_IF_FAILED(setPropertyValue(String("RemoveUnusedDevices"), Boolean(remove)));
+    return OPENDAQ_SUCCESS;
+}
+
 ErrCode UpdateParametersImpl::serializeCustomValues(ISerializer* serializer, bool)
 {
     if (deviceOptions.assigned())
@@ -39,6 +54,7 @@ ErrCode UpdateParametersImpl::serializeCustomValues(ISerializer* serializer, boo
 
     return OPENDAQ_SUCCESS;
 }
+
 ErrCode UpdateParametersImpl::getSerializeId(ConstCharPtr* id) const
 {
     OPENDAQ_PARAM_NOT_NULL(id);

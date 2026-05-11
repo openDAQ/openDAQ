@@ -30,9 +30,9 @@ BEGIN_NAMESPACE_OPENDAQ
  * @brief Creates an MDNS-based Discovery Server.
  * @param logger The logger the Discovery Server has access to.
  */
-inline DiscoveryServerPtr MdnsDiscoveryServer(const LoggerPtr& logger)
+inline DiscoveryServerPtr MdnsDiscoveryServer(const LoggerPtr& logger, const DictPtr<IString, IBaseObject>& options)
 {
-    DiscoveryServerPtr obj(MdnsDiscoveryServer_Create(logger));
+    DiscoveryServerPtr obj(MdnsDiscoveryServer_Create(logger, options));
     return obj;
 }
 /*!@}*/

@@ -29,6 +29,7 @@
 #include <functional>
 #include <mdns.h>
 #include <unordered_set>
+#include <optional>
 
 #ifdef _WIN32
     #include <winsock2.h>

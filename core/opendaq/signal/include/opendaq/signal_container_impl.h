@@ -147,7 +147,7 @@ public:
                         const StringPtr& name = nullptr);
     
 protected:
-    void notifyActiveChanged() override;
+    void notifyActiveChanged(bool onUpdate) override;
 
     virtual ErrCode INTERFACE_FUNC getItems(IList** items, ISearchFilter* searchFilter) override;
     ErrCode INTERFACE_FUNC getItem(IString* localId, IComponent** item) override;
@@ -214,9 +214,9 @@ SignalContainerImpl<Intf, Intfs...>::SignalContainerImpl(const ContextPtr& conte
 }
 
 template <class Intf, class ... Intfs>
-void SignalContainerImpl<Intf, Intfs...>::notifyActiveChanged()
+void SignalContainerImpl<Intf, Intfs...>::notifyActiveChanged(bool onUpdate)
 {
-    this->notifyItemsActiveChanged(this->components);
+    this->notifyItemsActiveChanged(this->components, onUpdate);
 }
 
 template <class Intf, class ... Intfs>

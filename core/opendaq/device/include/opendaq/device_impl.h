@@ -169,7 +169,7 @@ public:
 
     // IComponentPrivate
     ErrCode INTERFACE_FUNC updateOperationMode(OperationModeType modeType) override;
-    ErrCode INTERFACE_FUNC setParentActive(Bool parentActive) override;
+    ErrCode INTERFACE_FUNC setParentActive(Bool parentActive, Bool onUpdate) override;
 
     // IPropertyObjectInternal
     ErrCode INTERFACE_FUNC enableCoreEventTrigger() override;
@@ -1203,11 +1203,11 @@ ErrCode GenericDevice<TInterface, Interfaces...>::updateOperationMode(OperationM
 }
 
 template <typename TInterface, typename... Interfaces>
-ErrCode GenericDevice<TInterface, Interfaces...>::setParentActive(Bool parentActive)
+ErrCode GenericDevice<TInterface, Interfaces...>::setParentActive(Bool parentActive, Bool onUpdate)
 {
     if (this->isRootDevice)
         return OPENDAQ_IGNORED;
-    return Super::setParentActive(parentActive);
+    return Super::setParentActive(parentActive, onUpdate);
 }
 
 template <typename TInterface, typename... Interfaces>

@@ -947,6 +947,80 @@ TEST_P(StreamingProtocolTest, AddNotPublicSignalInConstructor)
     }
 }
 
+TEST_P(StreamingProtocolTest, SendStringDataPacketGetLastValue)
+{
+    // Descriptor with sample type string
+    const auto stringDescriptor = DataDescriptorBuilder().setSampleType(SampleType::String).build();
+    auto stringEventPacket = DataDescriptorChangedEventPacket(stringDescriptor, NullDataDescriptor());
+    auto serverSignal = SignalWithDescriptor(serverContext, stringDescriptor, nullptr, "signal");
+
+    startServer(List<ISignal>(serverSignal), stringEventPacket);
+
+    for (auto& client : clients)
+    {
+        client.clientHandler = createClient(client, client.signalAvailableHandler);
+        ASSERT_TRUE(client.clientHandler->connect(SERVER_ADDRESS, NATIVE_STREAMING_LISTENING_PORT));
+
+        client.clientHandler->sendStreamingRequest();
+        ASSERT_EQ(client.streamingInitFuture.wait_for(timeout), std::future_status::ready);
+
+        ASSERT_EQ(client.signalAvailableFuture.wait_for(timeout), std::future_status::ready);
+        auto clientSignalStringId = std::get<0>(client.signalAvailableFuture.get());
+
+        client.clientHandler->subscribeSignal(clientSignalStringId);
+        ASSERT_EQ(client.subscribedAckFuture.wait_for(timeout), std::future_status::ready);
+    }
+
+    ASSERT_EQ(signalSubscribedFuture.wait_for(timeout), std::future_status::ready);
+
+    for (auto& client : clients)
+    {
+        // wait for event packet
+        ASSERT_EQ(client.packetReceivedFuture.wait_for(timeout), std::future_status::ready);
+        auto [signalId, packet] = client.packetReceivedFuture.get();
+        ASSERT_EQ(signalId, serverSignal.getGlobalId());
+        ASSERT_EQ(packet, stringEventPacket);
+        // reset packet future / promise
+        client.packetReceivedPromise = std::promise<std::tuple<StringPtr, PacketPtr>>();
+        client.packetReceivedFuture = client.packetReceivedPromise.get_future();
+    }
+
+    // Recreate the test case from test_data_packet.cpp
+    const std::string expectedString = "abcd";
+
+    auto stringMemory = std::make_unique<char[]>(expectedString.size());
+    std::memcpy(stringMemory.get(), expectedString.data(), expectedString.size());
+
+    auto stringPacket = BinaryDataPacket(nullptr, stringDescriptor, 4);
+    char* data = static_cast<char*>(stringPacket.getData());
+    for (int i = 0; i < 4; ++i)
+        data[i] = expectedString[i];
+
+    {
+        // Check behavior on the server side
+        DataPacketPtr serverSidePacket = stringPacket;
+        StringPtr serverLastValue = serverSidePacket.getLastValue();
+        ASSERT_EQ(serverLastValue.toStdString(), expectedString);
+    }
+
+    serverHandler->sendPacket(serverSignal.getGlobalId().toStdString(), stringPacket);
+
+    for (auto& client : clients)
+    {
+        ASSERT_EQ(client.packetReceivedFuture.wait_for(timeout), std::future_status::ready);
+        auto [signalId, packet] = client.packetReceivedFuture.get();
+
+        ASSERT_EQ(signalId, serverSignal.getGlobalId());
+        ASSERT_EQ(packet.getType(), PacketType::Data);
+
+        DataPacketPtr receivedPacket = packet;
+        ASSERT_EQ(receivedPacket.getSampleCount(), 1u);
+
+        StringPtr lastValue = receivedPacket.getLastValue();
+        ASSERT_EQ(lastValue.toStdString(), expectedString);
+    }
+}
+
 INSTANTIATE_TEST_SUITE_P(
     ProtocolTestGroup,
     StreamingProtocolTest,

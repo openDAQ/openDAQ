@@ -187,9 +187,10 @@ private:
 
     DictPtr<IString, IBaseObject> options;
 
-    const size_t perQuerierBucketLimit;
-    const uint32_t maxQueriers;
-    const size_t maxBurst;
+    const bool discoveryRatelimitEnabled;
+    const size_t singleQuerierRateLimitPerSecond;
+    const uint32_t maxActiveQueriers;
+    const size_t maxQueryCountPerSecond;
     std::vector<std::optional<QuerierBucket>> querierBucketsTable;
     std::mutex rateLimitingSync;
 };

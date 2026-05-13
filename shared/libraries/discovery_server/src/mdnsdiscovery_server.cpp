@@ -180,12 +180,13 @@ std::string MDNSDiscoveryServer::getHostname()
     
 MDNSDiscoveryServer::MDNSDiscoveryServer(const DictPtr<IString, IBaseObject>& options)
     : options(options)
-    , perQuerierBucketLimit(options.hasKey("RateLimitPerQuerier") ? static_cast<size_t>(options.get("RateLimitPerQuerier")) : 10)
-    , maxQueriers(options.hasKey("MaxQueriersLimit") ? static_cast<uint32_t>(options.get("MaxQueriersLimit")) : 100)
-    , maxBurst(std::max(options.hasKey("MaxBurst") ? static_cast<size_t>(options.get("MaxBurst")) : 50, perQuerierBucketLimit))
-    , querierBucketsTable(maxQueriers)
+    , discoveryRatelimitEnabled(options.hasKey("EnableDiscoveryRateLimit") ? static_cast<bool>(options.get("EnableDiscoveryRateLimit")) : true)
+    , singleQuerierRateLimitPerSecond(options.hasKey("SingleQuerierRateLimitPerSecond") ? static_cast<size_t>(options.get("SingleQuerierRateLimitPerSecond")) : 10)
+    , maxActiveQueriers(options.hasKey("MaxActiveQueriers") ? static_cast<uint32_t>(options.get("MaxActiveQueriers")) : 100)
+    , maxQueryCountPerSecond(std::max(options.hasKey("MaxQueryCountPerSecond") ? static_cast<size_t>(options.get("MaxQueryCountPerSecond")) : 50, singleQuerierRateLimitPerSecond))
+    , querierBucketsTable(maxActiveQueriers)
 {
-    fmt::print("MDNSDiscoveryServer ratelimiting params perQuerierBucketLimit {}, maxQueriers {}, maxBurst {}", perQuerierBucketLimit, maxQueriers, maxBurst);
+    fmt::print("MDNSDiscoveryServer ratelimiting ({}) params singleQuerierRateLimitPerSecond {}, maxActiveQueriers {}, maxQueryCountPerSecond {}", discoveryRatelimitEnabled, singleQuerierRateLimitPerSecond, maxActiveQueriers, maxQueryCountPerSecond);
 #ifdef _WIN32
     WORD versionWanted = MAKEWORD(1, 1);
     WSADATA wsaData;
@@ -1026,7 +1027,7 @@ bool MDNSDiscoveryServer::allowQuery(int sock, const sockaddr* from)
     const auto now = std::chrono::steady_clock::now();
 
     const uint32_t hash = xxHash32(querier);
-    const uint32_t bucketIndex = hashToIndex(hash, maxQueriers);
+    const uint32_t bucketIndex = hashToIndex(hash, maxActiveQueriers);
 
     auto lock = std::lock_guard(rateLimitingSync);
     auto& bucketSlot = querierBucketsTable[bucketIndex];
@@ -1037,8 +1038,8 @@ bool MDNSDiscoveryServer::allowQuery(int sock, const sockaddr* from)
         bucketSlot.emplace(
             querier,
             hash,
-            maxBurst,
-            perQuerierBucketLimit,
+            maxQueryCountPerSecond,
+            singleQuerierRateLimitPerSecond,
             now);
 
         //fmt::print("Arrived query from: {} at {}; hash {}, slot index {}", querier, toMs(now), hash, bucketIndex);
@@ -1060,8 +1061,8 @@ bool MDNSDiscoveryServer::allowQuery(int sock, const sockaddr* from)
             bucketSlot.emplace(
                 querier,
                 hash,
-                maxBurst,
-                perQuerierBucketLimit,
+                maxQueryCountPerSecond,
+                singleQuerierRateLimitPerSecond,
                 now);
 
             return true;
@@ -1073,8 +1074,8 @@ bool MDNSDiscoveryServer::allowQuery(int sock, const sockaddr* from)
         bucketSlot.emplace(
             querier,
             hash,
-            maxBurst,
-            perQuerierBucketLimit,
+            maxQueryCountPerSecond,
+            singleQuerierRateLimitPerSecond,
             now);
     }
 
@@ -1103,9 +1104,9 @@ void MDNSDiscoveryServer::refillTokens(QuerierBucket& bucket, std::chrono::stead
     if (elapsedSeconds == 0)
         return;
 
-    const size_t refillAmount = elapsedSeconds * perQuerierBucketLimit;
+    const size_t refillAmount = elapsedSeconds * singleQuerierRateLimitPerSecond;
     const size_t currentTokens = bucket.tokens;
-    const size_t newTokenCount = std::min(currentTokens + refillAmount, maxBurst);
+    const size_t newTokenCount = std::min(currentTokens + refillAmount, maxQueryCountPerSecond);
 
     bucket.tokens = newTokenCount;
     bucket.lastQueried = now;
@@ -1206,7 +1207,7 @@ int MDNSDiscoveryServer::discoveryCallback(
     size_t size, size_t name_offset, size_t name_length, size_t rdata_offset,
     size_t rdata_length, void* user_data)
 {
-    if (!allowQuery(sock, from))
+    if (discoveryRatelimitEnabled && !allowQuery(sock, from))
         return 0;
 
     if (entry != MDNS_ENTRYTYPE_QUESTION)

@@ -40,6 +40,7 @@ extern "C"
     typedef struct daqDeviceInfo daqDeviceInfo;
     typedef struct daqDevice daqDevice;
     typedef struct daqLogger daqLogger;
+    typedef struct daqDict daqDict;
 
     EXPORTED extern const daqIntfID DAQ_DISCOVERY_SERVER_INTF_ID;
     void EXPORTED daqDiscoveryServer_getInterfaceId(daqIntfID* intfId);
@@ -47,7 +48,7 @@ extern "C"
     daqErrCode EXPORTED daqDiscoveryServer_registerService(daqDiscoveryServer* self, daqString* id, daqPropertyObject* config, daqDeviceInfo* deviceInfo);
     daqErrCode EXPORTED daqDiscoveryServer_unregisterService(daqDiscoveryServer* self, daqString* id);
     daqErrCode EXPORTED daqDiscoveryServer_setRootDevice(daqDiscoveryServer* self, daqDevice* device);
-    daqErrCode EXPORTED daqDiscoveryServer_createMdnsDiscoveryServer(daqDiscoveryServer** obj, daqLogger* logger);
+    daqErrCode EXPORTED daqDiscoveryServer_createMdnsDiscoveryServer(daqDiscoveryServer** obj, daqLogger* logger, daqDict* options);
 
 #ifdef __cplusplus
 }

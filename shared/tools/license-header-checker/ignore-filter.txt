@@ -15,3 +15,4 @@ httpresponseparser.h
 request.h
 response.h
 urlparser.h
+install

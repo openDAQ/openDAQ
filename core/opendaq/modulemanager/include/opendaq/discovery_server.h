@@ -42,8 +42,12 @@ DECLARE_OPENDAQ_INTERFACE(IDiscoveryServer, IBaseObject)
 };
 /*!@}*/
 
-OPENDAQ_DECLARE_CLASS_FACTORY_WITH_INTERFACE(LIBRARY_FACTORY, 
+OPENDAQ_DECLARE_CLASS_FACTORY_WITH_INTERFACE(LIBRARY_FACTORY,
     MdnsDiscoveryServer, IDiscoveryServer,
+    ILogger*, logger)
+
+OPENDAQ_DECLARE_CLASS_FACTORY_WITH_INTERFACE(LIBRARY_FACTORY,
+    MdnsDiscoveryServerWithOptions, IDiscoveryServer,
     ILogger*, logger,
     IDict*, options)
 

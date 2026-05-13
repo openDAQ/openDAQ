@@ -23,6 +23,11 @@
 
 BEGIN_NAMESPACE_OPENDAQ
 
+MdnsDiscoveryServerImpl::MdnsDiscoveryServerImpl(const LoggerPtr& logger)
+    : MdnsDiscoveryServerImpl(logger, Dict<IString, IBaseObject>())
+{
+}
+
 MdnsDiscoveryServerImpl::MdnsDiscoveryServerImpl(const LoggerPtr& logger, const DictPtr<IString, IBaseObject>& options)
     : discoveryServer(options)
     , loggerComponent(logger.getOrAddComponent("MdnsDiscoveryServerImpl"))
@@ -242,7 +247,12 @@ void MdnsDiscoveryServerImpl::registerIpModificationService(const DevicePtr& roo
 
 #if !defined(BUILDING_STATIC_LIBRARY)
 
-extern "C" ErrCode PUBLIC_EXPORT createMdnsDiscoveryServer(IDiscoveryServer** objTmp, ILogger* logger, IDict* options)
+extern "C" ErrCode PUBLIC_EXPORT createMdnsDiscoveryServer(IDiscoveryServer** objTmp, ILogger* logger)
+{
+    return daq::createObject<IDiscoveryServer, MdnsDiscoveryServerImpl>(objTmp, logger);
+}
+
+extern "C" ErrCode PUBLIC_EXPORT createMdnsDiscoveryServerWithOptions(IDiscoveryServer** objTmp, ILogger* logger, IDict* options)
 {
     return daq::createObject<IDiscoveryServer, MdnsDiscoveryServerImpl>(objTmp, logger, options);
 }

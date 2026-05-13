@@ -48,7 +48,8 @@ extern "C"
     daqErrCode EXPORTED daqDiscoveryServer_registerService(daqDiscoveryServer* self, daqString* id, daqPropertyObject* config, daqDeviceInfo* deviceInfo);
     daqErrCode EXPORTED daqDiscoveryServer_unregisterService(daqDiscoveryServer* self, daqString* id);
     daqErrCode EXPORTED daqDiscoveryServer_setRootDevice(daqDiscoveryServer* self, daqDevice* device);
-    daqErrCode EXPORTED daqDiscoveryServer_createMdnsDiscoveryServer(daqDiscoveryServer** obj, daqLogger* logger, daqDict* options);
+    daqErrCode EXPORTED daqDiscoveryServer_createMdnsDiscoveryServer(daqDiscoveryServer** obj, daqLogger* logger);
+    daqErrCode EXPORTED daqDiscoveryServer_createMdnsDiscoveryServerWithOptions(daqDiscoveryServer** obj, daqLogger* logger, daqDict* options);
 
 #ifdef __cplusplus
 }

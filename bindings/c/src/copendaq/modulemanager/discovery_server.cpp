@@ -37,10 +37,18 @@ daqErrCode daqDiscoveryServer_setRootDevice(daqDiscoveryServer* self, daqDevice*
     return reinterpret_cast<daq::IDiscoveryServer*>(self)->setRootDevice(reinterpret_cast<daq::IDevice*>(device));
 }
 
-daqErrCode daqDiscoveryServer_createMdnsDiscoveryServer(daqDiscoveryServer** obj, daqLogger* logger, daqDict* options)
+daqErrCode daqDiscoveryServer_createMdnsDiscoveryServer(daqDiscoveryServer** obj, daqLogger* logger)
 {
     daq::IDiscoveryServer* ptr = nullptr;
-    daqErrCode err = daq::createMdnsDiscoveryServer(&ptr, reinterpret_cast<daq::ILogger*>(logger), reinterpret_cast<daq::IDict*>(options));
+    daqErrCode err = daq::createMdnsDiscoveryServer(&ptr, reinterpret_cast<daq::ILogger*>(logger));
+    *obj = reinterpret_cast<daqDiscoveryServer*>(ptr);
+    return err;
+}
+
+daqErrCode daqDiscoveryServer_createMdnsDiscoveryServerWithOptions(daqDiscoveryServer** obj, daqLogger* logger, daqDict* options)
+{
+    daq::IDiscoveryServer* ptr = nullptr;
+    daqErrCode err = daq::createMdnsDiscoveryServerWithOptions(&ptr, reinterpret_cast<daq::ILogger*>(logger), reinterpret_cast<daq::IDict*>(options));
     *obj = reinterpret_cast<daqDiscoveryServer*>(ptr);
     return err;
 }

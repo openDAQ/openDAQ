@@ -90,10 +90,10 @@ static DiscoveryServerPtr createDiscoveryServer(const StringPtr& serviceName, co
 {
     if (serviceName == "mdns")
     {
-        DictPtr<IString, IBaseObject> mdnsOptions = Dict<IString, IBaseObject>();
         if (instanceOptions.hasKey("MdnsDiscoveryServer"))
-            mdnsOptions = instanceOptions.get("MdnsDiscoveryServer");
-        return MdnsDiscoveryServer(logger, mdnsOptions);
+            return MdnsDiscoveryServerWithOptions(logger, instanceOptions.get("MdnsDiscoveryServer"));
+        else
+            return MdnsDiscoveryServer(logger);
     }
     return nullptr;
 }

@@ -273,7 +273,7 @@ runs:
         if [ "$ENABLE_32BIT" == "true" ]; then
           if [ "$IS_VISUAL_STUDIO" == "true" ]; then
             CMAKE_ARGS="$CMAKE_ARGS -A Win32"
-          else
+          elseDOTNET_FRAMEWORKS="${{ steps.detect-dotnet.outputs.frameworks }}"
             CMAKE_ARGS="$CMAKE_ARGS -DOPENDAQ_FORCE_COMPILE_32BIT=ON"
           fi
         fi
@@ -294,12 +294,13 @@ runs:
         # C# bindings
         if [ "${{ inputs.generate-csharp-bindings }}" == "true" ]; then
           CMAKE_ARGS="$CMAKE_ARGS -DOPENDAQ_GENERATE_CSHARP_BINDINGS=ON"
-          DOTNET_FRAMEWORKS="${{ steps.detect-dotnet-frameworks.outputs.frameworks }}"
-          if [ -n "$DOTNET_FRAMEWORKS" ]; then
-            CMAKE_ARGS="$CMAKE_ARGS \"-DOPENDAQ_DOTNET_TARGET_FRAMEWORKS=$DOTNET_FRAMEWORKS\""
-          fi
         elif [ "${{ inputs.generate-csharp-bindings }}" == "false" ]; then
           CMAKE_ARGS="$CMAKE_ARGS -DOPENDAQ_GENERATE_CSHARP_BINDINGS=OFF"
+        fi
+
+        DOTNET_FRAMEWORKS="${{ steps.detect-dotnet.outputs.frameworks }}"
+        if [ -n "$DOTNET_FRAMEWORKS" ]; then
+          CMAKE_ARGS="$CMAKE_ARGS \"-DOPENDAQ_DOTNET_TARGET_FRAMEWORKS=$DOTNET_FRAMEWORKS\""
         fi
 
         echo "::group::CMake Configure"

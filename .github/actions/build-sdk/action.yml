@@ -215,6 +215,26 @@ runs:
         python -m pip install numpy
         echo "Done installing Python dependencies"
 
+    - name: Detect .NET target frameworks
+      id: detect-dotnet
+      shell: bash
+      run: |
+        if ! command -v dotnet &> /dev/null; then
+          echo "frameworks=" >> "$GITHUB_OUTPUT"
+          exit 0
+        fi
+        
+        FRAMEWORKS=$(
+          dotnet --list-sdks \
+            | awk -F'[. ]' '{ print $1"."$2 }' \
+            | sort -t. -k1,1n -k2,2n -u \
+            | awk '($1+0) >= 5 { printf "net%s;", $0 }' \
+            | sed 's/;$//'
+        )
+
+        echo "Detected .NET target frameworks: $FRAMEWORKS"
+        echo "frameworks=$FRAMEWORKS" >> "$GITHUB_OUTPUT"
+
     - name: Configure
       id: cmake-config
       shell: bash
@@ -274,6 +294,10 @@ runs:
         # C# bindings
         if [ "${{ inputs.generate-csharp-bindings }}" == "true" ]; then
           CMAKE_ARGS="$CMAKE_ARGS -DOPENDAQ_GENERATE_CSHARP_BINDINGS=ON"
+          DOTNET_FRAMEWORKS="${{ steps.detect-dotnet-frameworks.outputs.frameworks }}"
+          if [ -n "$DOTNET_FRAMEWORKS" ]; then
+            CMAKE_ARGS="$CMAKE_ARGS \"-DOPENDAQ_DOTNET_TARGET_FRAMEWORKS=$DOTNET_FRAMEWORKS\""
+          fi
         elif [ "${{ inputs.generate-csharp-bindings }}" == "false" ]; then
           CMAKE_ARGS="$CMAKE_ARGS -DOPENDAQ_GENERATE_CSHARP_BINDINGS=OFF"
         fi

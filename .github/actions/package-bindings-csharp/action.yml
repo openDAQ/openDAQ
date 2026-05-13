@@ -54,8 +54,23 @@ runs:
         # Read generator from CMakeCache to ensure proper reconfiguration (especially for Ninja)
         CMAKE_GENERATOR=$(grep "^CMAKE_GENERATOR:" "$CMAKE_BUILD_PATH/CMakeCache.txt" | cut -d'=' -f2)
 
+        DOTNET_TFM_ARG=""
+        if command -v dotnet &> /dev/null; then
+          DOTNET_FRAMEWORKS=$(
+            dotnet --list-sdks \
+              | grep -oP '^\d+\.\d+' \
+              | sort -t. -k1,1n -k2,2n -u \
+              | awk '($1+0) >= 5 { printf "net%s;", $0 }' \
+              | sed 's/;$//'
+          )
+          if [ -n "$DOTNET_FRAMEWORKS" ]; then
+            echo "Detected .NET target frameworks: $DOTNET_FRAMEWORKS"
+            DOTNET_TFM_ARG="\"-DOPENDAQ_DOTNET_TARGET_FRAMEWORKS=$DOTNET_FRAMEWORKS\""
+          fi
+        fi
+
         echo "::group::CMake Configure (enable C# bindings)"
-        cmake -B "$CMAKE_BUILD_PATH" -G "$CMAKE_GENERATOR" -DOPENDAQ_GENERATE_CSHARP_BINDINGS=ON
+        cmake -B "$CMAKE_BUILD_PATH" -G "$CMAKE_GENERATOR" -DOPENDAQ_GENERATE_CSHARP_BINDINGS=ON $DOTNET_TFM_ARG
         echo "::endgroup::"
 
         echo "::group::CMake Build DotNetBindings"

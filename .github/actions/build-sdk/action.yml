@@ -273,7 +273,7 @@ runs:
         if [ "$ENABLE_32BIT" == "true" ]; then
           if [ "$IS_VISUAL_STUDIO" == "true" ]; then
             CMAKE_ARGS="$CMAKE_ARGS -A Win32"
-          elseDOTNET_FRAMEWORKS="${{ steps.detect-dotnet.outputs.frameworks }}"
+          else
             CMAKE_ARGS="$CMAKE_ARGS -DOPENDAQ_FORCE_COMPILE_32BIT=ON"
           fi
         fi

@@ -181,9 +181,9 @@ std::string MDNSDiscoveryServer::getHostname()
 MDNSDiscoveryServer::MDNSDiscoveryServer(const DictPtr<IString, IBaseObject>& options)
     : options(options)
     , discoveryRatelimitEnabled(options.hasKey("EnableDiscoveryRateLimit") ? static_cast<bool>(options.get("EnableDiscoveryRateLimit")) : true)
-    , singleQuerierRateLimitPerSecond(options.hasKey("SingleQuerierRateLimitPerSecond") ? static_cast<size_t>(options.get("SingleQuerierRateLimitPerSecond")) : 10)
-    , maxActiveQueriers(options.hasKey("MaxActiveQueriers") ? static_cast<uint32_t>(options.get("MaxActiveQueriers")) : 100)
-    , maxQueryCountPerSecond(std::max(options.hasKey("MaxQueryCountPerSecond") ? static_cast<size_t>(options.get("MaxQueryCountPerSecond")) : 50, singleQuerierRateLimitPerSecond))
+    , singleQuerierRateLimitPerSecond(options.hasKey("SingleQuerierRateLimitPerSecond") ? static_cast<size_t>(options.get("SingleQuerierRateLimitPerSecond")) : 25)
+    , maxActiveQueriers(options.hasKey("MaxActiveQueriers") ? static_cast<uint32_t>(options.get("MaxActiveQueriers")) : 150)
+    , maxQueryCountPerSecond(std::max(options.hasKey("MaxQueryCountPerSecond") ? static_cast<size_t>(options.get("MaxQueryCountPerSecond")) : 75, singleQuerierRateLimitPerSecond))
     , querierBucketsTable(maxActiveQueriers)
 {
     fmt::print("MDNSDiscoveryServer ratelimiting ({}) params singleQuerierRateLimitPerSecond {}, maxActiveQueriers {}, maxQueryCountPerSecond {}", discoveryRatelimitEnabled, singleQuerierRateLimitPerSecond, maxActiveQueriers, maxQueryCountPerSecond);

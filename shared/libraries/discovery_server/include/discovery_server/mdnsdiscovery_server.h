@@ -86,46 +86,21 @@ struct AdapterInfo
 struct UniqueQuerier
 {
     struct sockaddr_storage addr;
-    int sock;
 
     bool operator==(const UniqueQuerier& other) const noexcept;
 };
 
-struct AtomicSteadyTimePoint
-{
-    using Clock = std::chrono::steady_clock;
-    using TimePointType = Clock::time_point;
-    using Rep = TimePointType::rep;
-
-public:
-    AtomicSteadyTimePoint() = delete;
-    AtomicSteadyTimePoint(const AtomicSteadyTimePoint&) = delete;
-    AtomicSteadyTimePoint& operator=(const AtomicSteadyTimePoint&) = delete;
-
-    AtomicSteadyTimePoint(TimePointType tp);
-    AtomicSteadyTimePoint& operator=(TimePointType tp);
-    operator TimePointType() const;
-
-private:
-    void store(TimePointType tp);
-    TimePointType load() const;
-    static Rep toRep(TimePointType tp);
-    static Clock::time_point fromRep(Rep v);
-
-    std::atomic<Rep> value;
-};
-
 struct QuerierBucket
 {
-    QuerierBucket(const UniqueQuerier& querier, uint32_t hashFingerprint, size_t maxBurst, size_t refillRate, AtomicSteadyTimePoint::TimePointType lastQueried);
+    QuerierBucket(const UniqueQuerier& querier, uint32_t hashFingerprint, size_t maxBurst, size_t refillRate, std::chrono::steady_clock::time_point lastQueried);
 
     const UniqueQuerier primaryQuerier;
     const uint32_t primaryQuerierHash;
 
-    std::atomic_size_t tokens;          // current available capacity
+    size_t tokens;                                  // current available capacity
     const size_t maxBurst;
-    const size_t refillRate;            // tokens per second
-    AtomicSteadyTimePoint lastQueried;
+    const size_t refillRate;                        // tokens per second
+    std::chrono::steady_clock::time_point lastQueried;
 };
 
 using ModifyIpConfigCallback = std::function<discovery_common::TxtProperties(const std::string& ifaceName, const discovery_common::TxtProperties& properties)>;
@@ -191,9 +166,9 @@ private:
                               const std::string& uuid);
 
     bool allowQuery(int sock, const sockaddr* from);
-    bool isStaleBucket(const QuerierBucket& bucket, AtomicSteadyTimePoint::TimePointType now) const;
-    void refillTokens(QuerierBucket& bucket, AtomicSteadyTimePoint::TimePointType now);
-    bool tryConsumeToken(QuerierBucket& bucket, AtomicSteadyTimePoint::TimePointType now);
+    bool isStaleBucket(const QuerierBucket& bucket, std::chrono::steady_clock::time_point now) const;
+    void refillTokens(QuerierBucket& bucket, std::chrono::steady_clock::time_point now);
+    bool tryConsumeToken(QuerierBucket& bucket, std::chrono::steady_clock::time_point now);
 
     std::string hostName;
 
@@ -216,6 +191,7 @@ private:
     const uint32_t maxQueriers;
     const size_t maxBurst;
     std::vector<std::optional<QuerierBucket>> querierBucketsTable;
+    std::mutex rateLimitingSync;
 };
 
 END_NAMESPACE_DISCOVERY_SERVICE

@@ -27,49 +27,40 @@
 #endif
 
 template <>
-struct fmt::formatter<daq::discovery_server::UniqueQuerier> : fmt::formatter<std::string_view>
+struct fmt::formatter<daq::discovery_server::UniqueQuerier>
+    : fmt::formatter<std::string_view>
 {
     template <typename FormatContext>
-    auto format(const daq::discovery_server::UniqueQuerier& q, FormatContext& ctx) const
+    auto format(const daq::discovery_server::UniqueQuerier& q,
+                FormatContext& ctx) const
     {
-        char host[NI_MAXHOST] = {};
-        char service[NI_MAXSERV] = {};
-
+        char host[INET6_ADDRSTRLEN] = {};
         std::string result;
 
         if (q.addr.ss_family == AF_INET)
         {
             const auto* addr = reinterpret_cast<const sockaddr_in*>(&q.addr);
 
-            if (getnameinfo(reinterpret_cast<const sockaddr*>(addr),
-                            sizeof(sockaddr_in),
-                            host,
-                            sizeof(host),
-                            service,
-                            sizeof(service),
-                            NI_NUMERICHOST | NI_NUMERICSERV) == 0)
-            {
-                result = fmt::format("{}:{} (sock={})", host, ntohs(addr->sin_port), q.sock);
-            }
+            inet_ntop(AF_INET, &addr->sin_addr, host, sizeof(host));
+
+            result = fmt::format("address: {}; port: {}",
+                                 host,
+                                 ntohs(addr->sin_port));
         }
         else if (q.addr.ss_family == AF_INET6)
         {
             const auto* addr = reinterpret_cast<const sockaddr_in6*>(&q.addr);
 
-            if (getnameinfo(reinterpret_cast<const sockaddr*>(addr),
-                            sizeof(sockaddr_in6),
-                            host,
-                            sizeof(host),
-                            service,
-                            sizeof(service),
-                            NI_NUMERICHOST | NI_NUMERICSERV) == 0)
-            {
-                result = fmt::format("[{}]:{} (sock={})", host, ntohs(addr->sin6_port), q.sock);
-            }
-        }
+            inet_ntop(AF_INET6, &addr->sin6_addr, host, sizeof(host));
 
-        if (result.empty())
+            result = fmt::format("address: {}; port: {}",
+                                 host,
+                                 ntohs(addr->sin6_port));
+        }
+        else
+        {
             result = "<unknown>";
+        }
 
         return fmt::formatter<std::string_view>::format(result, ctx);
     }
@@ -160,9 +151,9 @@ void MdnsDiscoveredService::populateRecords(std::vector<mdns_record_t>& records)
     }
 }
 
-static size_t toMs(const AtomicSteadyTimePoint::TimePointType& point)
+static size_t toMs(const std::chrono::steady_clock::time_point& point)
 {
-    static auto baseTp = AtomicSteadyTimePoint::Clock::now();
+    static auto baseTp = std::chrono::steady_clock::now();
     return std::chrono::duration_cast<std::chrono::milliseconds>(point - baseTp).count();
 }
 
@@ -194,6 +185,7 @@ MDNSDiscoveryServer::MDNSDiscoveryServer(const DictPtr<IString, IBaseObject>& op
     , maxBurst(std::max(options.hasKey("MaxBurst") ? static_cast<size_t>(options.get("MaxBurst")) : 50, perQuerierBucketLimit))
     , querierBucketsTable(maxQueriers)
 {
+    fmt::print("MDNSDiscoveryServer ratelimiting params perQuerierBucketLimit {}, maxQueriers {}, maxBurst {}", perQuerierBucketLimit, maxQueriers, maxBurst);
 #ifdef _WIN32
     WORD versionWanted = MAKEWORD(1, 1);
     WSADATA wsaData;
@@ -959,30 +951,36 @@ void MDNSDiscoveryServer::sendIpConfigResponse(int sock,
     non_mdns_query_send(sock, sendBuffer.data(), sendBuffer.size(), query_id, opcode, 0x1, 0, 0, txtRecords.data(), txtRecords.size(), 0, 0, 0, 0, unicast ? 0x1 : 0x0, to, addrlen, if_index);
 }
 
-static uint32_t xxHash32(const UniqueQuerier& querier)
+static uint32_t xxHash32(const UniqueQuerier& q)
 {
-    XXH32_state_t* state = XXH32_createState();
-    XXH32_reset(state, 123456789);
+    uint8_t buf[sizeof(q.addr.ss_family) + sizeof(sockaddr_in6)];
+    size_t nBytes = 0;
 
-    XXH32_update(state, &querier.sock, sizeof(querier.sock));
-    XXH32_update(state, &querier.addr.ss_family, sizeof(querier.addr.ss_family));
+    memcpy(buf + nBytes, &q.addr.ss_family, sizeof(q.addr.ss_family));
+    nBytes += sizeof(q.addr.ss_family);
 
-    if (querier.addr.ss_family == AF_INET)
+    if (q.addr.ss_family == AF_INET)
     {
-        auto* addr = reinterpret_cast<const sockaddr_in*>(&querier.addr);
-        XXH32_update(state, &addr->sin_addr, sizeof(addr->sin_addr));
-        XXH32_update(state, &addr->sin_port, sizeof(addr->sin_port));
+        auto* addr = reinterpret_cast<const sockaddr_in*>(&q.addr);
+
+        memcpy(buf + nBytes, &addr->sin_addr, sizeof(addr->sin_addr));
+        nBytes += sizeof(addr->sin_addr);
+
+        memcpy(buf + nBytes, &addr->sin_port, sizeof(addr->sin_port));
+        nBytes += sizeof(addr->sin_port);
     }
-    else if (querier.addr.ss_family == AF_INET6)
+    else if (q.addr.ss_family == AF_INET6)
     {
-        auto* addr = reinterpret_cast<const sockaddr_in6*>(&querier.addr);
-        XXH32_update(state, &addr->sin6_addr, sizeof(addr->sin6_addr));
-        XXH32_update(state, &addr->sin6_port, sizeof(addr->sin6_port));
+        auto* addr = reinterpret_cast<const sockaddr_in6*>(&q.addr);
+
+        memcpy(buf + nBytes, &addr->sin6_addr, sizeof(addr->sin6_addr));
+        nBytes += sizeof(addr->sin6_addr);
+
+        memcpy(buf + nBytes, &addr->sin6_port, sizeof(addr->sin6_port));
+        nBytes += sizeof(addr->sin6_port);
     }
 
-    uint32_t result = XXH32_digest(state);
-    XXH32_freeState(state);
-    return result;
+    return XXH32(buf, nBytes, 123456789);
 }
 
 static inline uint32_t mulHigh32(uint32_t a, uint32_t b)
@@ -1006,6 +1004,7 @@ static inline uint32_t hashToIndex(uint32_t hash, uint32_t indexLimit)
 {
     uint32_t x = hash;
 
+    // extra bit mixing before index reduction
     x ^= x >> 16;
     x *= 0x7feb352d;
     x ^= x >> 15;
@@ -1023,12 +1022,13 @@ bool MDNSDiscoveryServer::allowQuery(int sock, const sockaddr* from)
     else
         std::memcpy(&storage, from, sizeof(sockaddr_in6));
 
-    UniqueQuerier querier{storage, sock};
-    const auto now = AtomicSteadyTimePoint::Clock::now();
+    UniqueQuerier querier{storage};
+    const auto now = std::chrono::steady_clock::now();
 
     const uint32_t hash = xxHash32(querier);
-
     const uint32_t bucketIndex = hashToIndex(hash, maxQueriers);
+
+    auto lock = std::lock_guard(rateLimitingSync);
     auto& bucketSlot = querierBucketsTable[bucketIndex];
 
     // Empty slot
@@ -1042,12 +1042,12 @@ bool MDNSDiscoveryServer::allowQuery(int sock, const sockaddr* from)
             now);
 
         //fmt::print("Arrived query from: {} at {}; hash {}, slot index {}", querier, toMs(now), hash, bucketIndex);
-        //fmt::print("...allowed as completely new querier, tokens {}\n", bucketSlot->tokens.load(std::memory_order_relaxed));
+        //fmt::print("...allowed as completely new querier, tokens {}\n", bucketSlot->tokens);
         return true;
     }
 
     auto& bucket = *bucketSlot;
-    AtomicSteadyTimePoint::TimePointType lastQueried = bucket.lastQueried;
+    std::chrono::steady_clock::time_point lastQueried = bucket.lastQueried;
 
     // Different querier mapped to same slot
     if (!(bucket.primaryQuerierHash == hash && bucket.primaryQuerier == querier))
@@ -1084,19 +1084,19 @@ bool MDNSDiscoveryServer::allowQuery(int sock, const sockaddr* from)
     if (result)
     {
         //fmt::print("Arrived query from: {} at {}; hash {}, slot index {}", querier, toMs(now), hash, bucketIndex);
-        //fmt::print("...allowed bcs tokens available for {} last queried at {}; hash {}, slot index {}, tokens {}\n", bucket.querier, toMs(lastQueried), bucket.hashFingerprint, bucketIndex, bucket.tokens.load(std::memory_order_relaxed));
+        //fmt::print("...allowed bcs tokens available for {} last queried at {}; hash {}, slot index {}, tokens {}\n", bucket.querier, toMs(lastQueried), bucket.hashFingerprint, bucketIndex, bucket.tokens);
     }
     else
     {
         fmt::print("Arrived query from: {} at {}; hash {}, slot index {}", querier, toMs(now), hash, bucketIndex);
-        fmt::print("...rejected bcs tokens are not available for {} last queried at {}; hash {}, slot index {}, tokens {}\n", bucket.primaryQuerier, toMs(lastQueried), bucket.primaryQuerierHash, bucketIndex, bucket.tokens.load(std::memory_order_relaxed));
+        fmt::print("...rejected bcs tokens are not available for {} last queried at {}; hash {}, slot index {}, tokens {}\n", bucket.primaryQuerier, toMs(lastQueried), bucket.primaryQuerierHash, bucketIndex, bucket.tokens);
     }
     return result;
 }
 
-void MDNSDiscoveryServer::refillTokens(QuerierBucket& bucket, AtomicSteadyTimePoint::TimePointType now)
+void MDNSDiscoveryServer::refillTokens(QuerierBucket& bucket, std::chrono::steady_clock::time_point now)
 {
-    const AtomicSteadyTimePoint::TimePointType lastQueried = bucket.lastQueried;
+    const std::chrono::steady_clock::time_point lastQueried = bucket.lastQueried;
     const auto elapsed = now - lastQueried;
     const auto elapsedSeconds = std::chrono::duration_cast<std::chrono::seconds>(elapsed).count();
 
@@ -1104,30 +1104,30 @@ void MDNSDiscoveryServer::refillTokens(QuerierBucket& bucket, AtomicSteadyTimePo
         return;
 
     const size_t refillAmount = elapsedSeconds * perQuerierBucketLimit;
-    const size_t currentTokens = bucket.tokens.load(std::memory_order_relaxed);
+    const size_t currentTokens = bucket.tokens;
     const size_t newTokenCount = std::min(currentTokens + refillAmount, maxBurst);
 
-    bucket.tokens.store(newTokenCount, std::memory_order_relaxed);
+    bucket.tokens = newTokenCount;
     bucket.lastQueried = now;
 }
 
-bool MDNSDiscoveryServer::tryConsumeToken(QuerierBucket& bucket, AtomicSteadyTimePoint::TimePointType now)
+bool MDNSDiscoveryServer::tryConsumeToken(QuerierBucket& bucket, std::chrono::steady_clock::time_point now)
 {
-    auto currentTokens = bucket.tokens.load(std::memory_order_relaxed);
+    auto currentTokens = bucket.tokens;
 
     if (currentTokens == 0)
         return false;
 
-    bucket.tokens.store(currentTokens - 1, std::memory_order_relaxed);
+    bucket.tokens = currentTokens - 1;
     bucket.lastQueried = now;
 
     return true;
 }
 
-bool MDNSDiscoveryServer::isStaleBucket(const QuerierBucket& bucket, AtomicSteadyTimePoint::TimePointType now) const
+bool MDNSDiscoveryServer::isStaleBucket(const QuerierBucket& bucket, std::chrono::steady_clock::time_point now) const
 {
     constexpr auto bucketTimeout = std::chrono::seconds(10);
-    AtomicSteadyTimePoint::TimePointType lastQueried = bucket.lastQueried;
+    std::chrono::steady_clock::time_point lastQueried = bucket.lastQueried;
     const auto inactiveDuration = now - lastQueried;
     return inactiveDuration > bucketTimeout;
 }
@@ -1322,9 +1322,6 @@ int MDNSDiscoveryServer::discoveryCallback(
 
 bool UniqueQuerier::operator==(const UniqueQuerier& other) const noexcept
 {
-    if (sock != other.sock)
-        return false;
-
     if (addr.ss_family != other.addr.ss_family)
         return false;
 
@@ -1349,42 +1346,7 @@ bool UniqueQuerier::operator==(const UniqueQuerier& other) const noexcept
     return false;
 }
 
-AtomicSteadyTimePoint::AtomicSteadyTimePoint(TimePointType tp)
-    : value(toRep(tp))
-{}
-
-AtomicSteadyTimePoint::operator TimePointType() const
-{
-    return fromRep(value.load(std::memory_order_relaxed));
-}
-
-AtomicSteadyTimePoint& AtomicSteadyTimePoint::operator=(TimePointType tp)
-{
-    value.store(toRep(tp), std::memory_order_relaxed);
-    return *this;
-}
-
-AtomicSteadyTimePoint::TimePointType AtomicSteadyTimePoint::fromRep(Rep v)
-{
-    return TimePointType(Clock::duration(v));
-}
-
-AtomicSteadyTimePoint::Rep AtomicSteadyTimePoint::toRep(AtomicSteadyTimePoint::TimePointType tp)
-{
-    return tp.time_since_epoch().count();
-}
-
-void AtomicSteadyTimePoint::store(AtomicSteadyTimePoint::TimePointType tp)
-{
-    value.store(toRep(tp), std::memory_order_relaxed);
-}
-
-AtomicSteadyTimePoint::TimePointType AtomicSteadyTimePoint::load() const
-{
-    return fromRep(value.load(std::memory_order_relaxed));
-}
-
-QuerierBucket::QuerierBucket(const UniqueQuerier& querier, uint32_t hashFingerprint, size_t maxBurst, size_t refillRate, AtomicSteadyTimePoint::TimePointType lastQueried)
+QuerierBucket::QuerierBucket(const UniqueQuerier& querier, uint32_t hashFingerprint, size_t maxBurst, size_t refillRate, std::chrono::steady_clock::time_point lastQueried)
     : primaryQuerier(querier)
     , primaryQuerierHash(hashFingerprint)
     , tokens(maxBurst)

@@ -985,7 +985,6 @@ TEST_P(StreamingProtocolTest, SendStringDataPacketGetLastValue)
         client.packetReceivedFuture = client.packetReceivedPromise.get_future();
     }
 
-    // Recreate the test case from test_data_packet.cpp
     const std::string expectedString = "abcd";
 
     auto stringMemory = std::make_unique<char[]>(expectedString.size());
@@ -1016,6 +1015,7 @@ TEST_P(StreamingProtocolTest, SendStringDataPacketGetLastValue)
         DataPacketPtr receivedPacket = packet;
         ASSERT_EQ(receivedPacket.getSampleCount(), 1u);
 
+        // Check behavior on the client side
         StringPtr lastValue = receivedPacket.getLastValue();
         ASSERT_EQ(lastValue.toStdString(), expectedString);
     }

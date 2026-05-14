@@ -1,0 +1,12 @@
+diff --git a/cpp/cmake_modules/ThirdpartyToolchain.cmake b/cpp/cmake_modules/ThirdpartyToolchain.cmake
+--- a/cpp/cmake_modules/ThirdpartyToolchain.cmake
++++ b/cpp/cmake_modules/ThirdpartyToolchain.cmake
+@@ -365,7 +365,7 @@
+ # ----------------------------------------------------------------------
+ # Thirdparty versions, environment variables, source URLs
+ 
+-set(THIRDPARTY_DIR "${arrow_SOURCE_DIR}/thirdparty")
++set(THIRDPARTY_DIR "${CMAKE_CURRENT_LIST_DIR}/../thirdparty")
+ 
+ add_library(arrow::flatbuffers INTERFACE IMPORTED)
+ target_include_directories(arrow::flatbuffers

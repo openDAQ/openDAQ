@@ -101,6 +101,8 @@ public:
                                           const discovery_common::TxtProperties& reqProps,
                                           discovery_common::TxtProperties& resProps);
 
+    void sendDiscoveryQueryIgnoreReplies();
+
 protected:
     typedef struct
     {
@@ -1248,6 +1250,32 @@ inline void MDNSDiscoveryClient::sendNonDiscoveryQuery(const std::vector<mdns_re
             ++isock;
         }
     };
+
+    closeClientSockets();
+}
+
+inline void MDNSDiscoveryClient::sendDiscoveryQueryIgnoreReplies()
+{
+    // Open client sockets and populate socketToIfIpv6Index map
+    openClientSockets(true);
+    if (socketToIfIpv6Index.empty())
+        throw std::runtime_error("Failed to open sockets");
+
+    {
+        constexpr size_t capacity = 2048;
+        std::vector<char> buffer(capacity);
+        for (const auto& [sockfd, ifindex] : socketToIfIpv6Index)
+        {
+            mdns_multiquery_send(
+                sockfd,
+                discoveryQueries.data(),
+                discoveryQueries.size(),
+                buffer.data(),
+                buffer.size(),
+                0,
+                ifindex);
+        }
+    }
 
     closeClientSockets();
 }

@@ -1,37 +1,9 @@
 {
-    "ModuleManager": 
+    "MdnsDiscoveryServer":
         {
-            "ModulesPath": ""
-        },
-    "Scheduler": 
-        {
-            "WorkersNum": 0
-        },
-    "Logging": 
-        {
-            "GlobalLogLevel": 7
-        },
-    "RootDevice": 
-        {
-            "ConnectionString": "daqref://device1"
-        },
-    "Modules":
-        {
-            "NativeStreamingServer":
-                {
-                    "NativeStreamingPort": 7420,
-                    "Path": "/"
-                },
-            "OpcUaServer":
-                {
-                    "Port": 4840,
-                    "Path": "/"
-                },
-            "ReferenceDevice":
-                {
-                    "LocalId": "falselocalid",
-                    "SerialNumber": "falseserial",
-                    "Name": "Reference device simulator"
-                }
+            "EnableDiscoveryRateLimit": false,
+            "SingleQuerierRateLimitPerSecond": 30,
+            "MaxActiveQueriers": 200,
+            "MaxQueryCountPerSecond": 80
         }
 }

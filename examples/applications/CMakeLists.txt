@@ -104,7 +104,7 @@ if (APP_ENABLE_WEBPAGE_EXAMPLES)
     target_link_libraries(tail_reader_example PRIVATE daq::opendaq)
 
     add_executable(quick_start_empty cpp/quick_start/quick_start_empty.cpp)
-    target_link_libraries(quick_start_empty PRIVATE daq::opendaq)
+    target_link_libraries(quick_start_empty PRIVATE daq::opendaq daq::discovery)
 	
 	# Logger examples
 	

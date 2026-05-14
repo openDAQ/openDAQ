@@ -30,6 +30,7 @@ int main(int /*argc*/, const char* /*argv*/[])
                                                   .setRootDevice("daqref://device1", config)
                                                   .setLogger(Logger(loggerPath))
                                                   .setAuthenticationProvider(authenticationProvider)
+                                                  .addConfigProvider(JsonConfigProvider())
                                                   .build();
 
     auto refDevice = instance.addDevice("daqref://device0");

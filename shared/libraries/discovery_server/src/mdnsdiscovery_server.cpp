@@ -153,7 +153,7 @@ void MdnsDiscoveredService::populateRecords(std::vector<mdns_record_t>& records)
 
 static size_t toMs(const std::chrono::steady_clock::time_point& point)
 {
-    static auto baseTp = std::chrono::steady_clock::now();
+    static auto baseTp = point;
     return std::chrono::duration_cast<std::chrono::milliseconds>(point - baseTp).count();
 }
 
@@ -180,10 +180,10 @@ std::string MDNSDiscoveryServer::getHostname()
     
 MDNSDiscoveryServer::MDNSDiscoveryServer(const DictPtr<IString, IBaseObject>& options)
     : options(options)
-    , discoveryRatelimitEnabled(options.hasKey("EnableDiscoveryRateLimit") ? static_cast<bool>(options.get("EnableDiscoveryRateLimit")) : true)
-    , singleQuerierRateLimitPerSecond(options.hasKey("SingleQuerierRateLimitPerSecond") ? static_cast<size_t>(options.get("SingleQuerierRateLimitPerSecond")) : 25)
-    , maxActiveQueriers(options.hasKey("MaxActiveQueriers") ? static_cast<uint32_t>(options.get("MaxActiveQueriers")) : 150)
-    , maxQueryCountPerSecond(std::max(options.hasKey("MaxQueryCountPerSecond") ? static_cast<size_t>(options.get("MaxQueryCountPerSecond")) : 75, singleQuerierRateLimitPerSecond))
+    , discoveryRatelimitEnabled(static_cast<bool>(options.getOrDefault("EnableDiscoveryRateLimit", true)))
+    , singleQuerierRateLimitPerSecond(static_cast<size_t>(options.getOrDefault("SingleQuerierRateLimitPerSecond", 25)))
+    , maxActiveQueriers(static_cast<uint32_t>(options.getOrDefault("MaxActiveQueriers", 150)))
+    , maxQueryCountPerSecond(std::max(static_cast<size_t>(options.getOrDefault("MaxQueryCountPerSecond", 75)), singleQuerierRateLimitPerSecond))
     , querierBucketsTable(maxActiveQueriers)
 {
     fmt::print("MDNSDiscoveryServer ratelimiting ({}) params singleQuerierRateLimitPerSecond {}, maxActiveQueriers {}, maxQueryCountPerSecond {}", discoveryRatelimitEnabled, singleQuerierRateLimitPerSecond, maxActiveQueriers, maxQueryCountPerSecond);
@@ -1071,12 +1071,6 @@ bool MDNSDiscoveryServer::allowQuery(int sock, const sockaddr* from)
         // Share bucket
         fmt::print("Arrived query from: {} at {}; hash {}, slot index {}", querier, toMs(now), hash, bucketIndex);
         fmt::print("...will share bucket with {} last queried at {}; hash {}, slot index {}\n", bucket.primaryQuerier, toMs(lastQueried), bucket.primaryQuerierHash, bucketIndex);
-        bucketSlot.emplace(
-            querier,
-            hash,
-            maxQueryCountPerSecond,
-            singleQuerierRateLimitPerSecond,
-            now);
     }
 
     refillTokens(bucket, now);
@@ -1085,7 +1079,7 @@ bool MDNSDiscoveryServer::allowQuery(int sock, const sockaddr* from)
     if (result)
     {
         //fmt::print("Arrived query from: {} at {}; hash {}, slot index {}", querier, toMs(now), hash, bucketIndex);
-        //fmt::print("...allowed bcs tokens available for {} last queried at {}; hash {}, slot index {}, tokens {}\n", bucket.querier, toMs(lastQueried), bucket.hashFingerprint, bucketIndex, bucket.tokens);
+        //fmt::print("...allowed bcs tokens available for {} last queried at {}; hash {}, slot index {}, tokens {}\n", bucket.primaryQuerier, toMs(lastQueried), bucket.primaryQuerierHash, bucketIndex, bucket.tokens);
     }
     else
     {

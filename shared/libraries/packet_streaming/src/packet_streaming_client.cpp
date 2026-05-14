@@ -2,6 +2,7 @@
 #include <opendaq/event_packet_ids.h>
 #include <opendaq/event_packet_utils.h>
 #include <opendaq/packet_factory.h>
+#include <opendaq/binary_data_packet_factory.h>
 #include <opendaq/deleter_factory.h>
 #include <opendaq/data_descriptor_factory.h>
 #include <algorithm>
@@ -143,13 +144,27 @@ DataPacketPtr PacketStreamingClient::addDataPacketBuffer(const PacketBufferPtr& 
     }
     else
     {
-        packet = DataPacketWithExternalMemory(domPacket,
-                                              valueDescriptor,
-                                              dataPacketHeader->sampleCount,
-                                              const_cast<void*>(packetBuffer->payload),
-                                              Deleter([packetBuffer = packetBuffer](void*) mutable { packetBuffer.reset(); }),
-                                              offset,
-                                              dataPacketHeader->genericHeader.payloadSize);
+        auto binaryOrString = [](SampleType sampleType) -> bool
+            { return sampleType == SampleType::String || sampleType == SampleType::Binary; };
+
+        if (valueDescriptor.assigned() && binaryOrString(valueDescriptor.getSampleType()))
+        {
+           packet = BinaryDataPacketWithExternalMemory(domPacket,
+                                                       valueDescriptor,
+                                                       dataPacketHeader->genericHeader.payloadSize, // Binary packets rely on payload size rather than sample count
+                                                       const_cast<void*>(packetBuffer->payload),
+                                                       Deleter([packetBuffer = packetBuffer](void*) mutable { packetBuffer.reset(); }));
+        }
+        else
+        {
+           packet = DataPacketWithExternalMemory(domPacket,
+                                                 valueDescriptor,
+                                                 dataPacketHeader->sampleCount,
+                                                 const_cast<void*>(packetBuffer->payload),
+                                                 Deleter([packetBuffer = packetBuffer](void*) mutable { packetBuffer.reset(); }),
+                                                 offset,
+                                                 dataPacketHeader->genericHeader.payloadSize);
+        }
     }
 
     queue.push({signalId, packet});

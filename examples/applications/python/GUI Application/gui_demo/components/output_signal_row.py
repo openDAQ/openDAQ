@@ -20,6 +20,7 @@ class OutputSignalRow(ttk.Frame):
 
         self._expanded = False
         self._preview = None
+        self._show_bottom_sep = True
 
         self.configure(padding=(10, 3))
 
@@ -38,9 +39,10 @@ class OutputSignalRow(ttk.Frame):
             and context is not None
             and getattr(context, 'view_signal_preview', False))
 
-        # Thin gray top border
-        self._top_sep = tk.Frame(self, height=1, bg='#cccccc')
-        self._top_sep.grid(row=0, column=0, columnspan=3, sticky=tk.EW)
+        # Bottom separator between rows.
+        self._bottom_sep = tk.Frame(self, height=1, bg='#cccccc')
+        self._bottom_sep.grid(
+            row=3, column=0, columnspan=3, sticky=tk.EW, pady=(6, 0))
 
         # Column 0: name label
         name_frame = ttk.Frame(self)
@@ -61,6 +63,14 @@ class OutputSignalRow(ttk.Frame):
 
         ttk.Label(name_frame, text=output_signal.name, anchor=tk.W).pack(
             side=tk.LEFT)
+
+        # Duration control
+        self._duration_presets = [0.01, 0.05, 0.1, 0.2, 0.5, 1]
+        self._duration_var = tk.StringVar(value='0.2s')
+        self._dur_label = ttk.Label(name_frame, text='|     Display duration:')
+        self._dur_cb = ttk.Combobox(
+            name_frame, textvariable=self._duration_var,
+            values=[f'{d:g}s' for d in self._duration_presets], width=6)
 
         # Value column with optional View button
         value_frame = ttk.Frame(self)
@@ -115,25 +125,34 @@ class OutputSignalRow(ttk.Frame):
         if self._arrow_label is not None:
             self._arrow_label.config(image=self._arrow_down)
 
-        self._top_sep.grid_remove()
-        self.configure(relief='solid', borderwidth=1)
+        self._dur_label.pack(side=tk.LEFT, padx=(12, 0))
+        self._dur_cb.pack(side=tk.LEFT, padx=(4, 0))
 
         self._preview = OutputSignlGraf(
-            self, self.output_signal, self.context)
+            self, self.output_signal, self.context,
+            duration_var=self._duration_var)
         self._preview.grid(
             row=2, column=0, columnspan=3, sticky=tk.NSEW, pady=(4, 0))
+        
+        self._dur_cb.bind('<<ComboboxSelected>>', self._preview._on_duration_committed)
+        self._dur_cb.bind('<Return>', self._preview._on_duration_committed)
+        self._dur_cb.bind('<FocusOut>', self._preview._on_duration_committed)
 
     def _collapse(self):
         self._expanded = False
         if self._arrow_label is not None:
             self._arrow_label.config(image=self._arrow_right)
 
-        self.configure(relief='flat', borderwidth=0)
-        self._top_sep.grid()
+        self._dur_label.pack_forget()
+        self._dur_cb.pack_forget()
 
         if self._preview is not None:
             self._preview.destroy()
             self._preview = None
+            
+    def hide_bottom_border(self):
+        self._show_bottom_sep = False
+        self._bottom_sep.grid_remove()
 
     def refresh(self):
         last_value, raw_value = self._read_values()

@@ -29,10 +29,11 @@ class OutputSignlGraf(ttk.Frame):
     _VAL_FONT  = ('TkFixedFont', 10, 'bold')
     _DURATION_RE = re.compile(r'^\s*(\d+(?:\.\d+)?|\.\d+)\s*s?\s*$', re.IGNORECASE)
 
-    def __init__(self, parent, node, context=None, **kwargs):
+    def __init__(self, parent, node, context=None, duration_var=None, **kwargs):
         super().__init__(parent, **kwargs)
         self.node = node
         self.context = context
+        self._external_duration_var = duration_var
 
         self._reader = None
         self._selected_signal = None
@@ -72,7 +73,10 @@ class OutputSignlGraf(ttk.Frame):
         self._content_frame = ttk.Frame(self)
 
         self._duration_presets = [0.01, 0.05, 0.1, 0.2, 0.5, 1]
-        self._duration_var = tk.StringVar(value=f'{self._window_seconds:g}s')
+        if self._external_duration_var is not None:
+            self._duration_var = self._external_duration_var
+        else:
+            self._duration_var = tk.StringVar(value=f'{self._window_seconds:g}s')
         self._dur_edit_entry = None
 
         self._scale_var = tk.StringVar(value='Linear')
@@ -98,7 +102,7 @@ class OutputSignlGraf(ttk.Frame):
         self._chart = tk.Canvas(
             self._content_frame, bg=self._BG,
             height=140, highlightthickness=0)
-        self._chart.pack(fill=tk.BOTH, expand=True, padx=(4, 0), pady=(4, 6))
+        self._chart.pack(fill=tk.BOTH, expand=True, padx=(2, 0), pady=(4, 6))
 
         self._chart.bind('<Configure>', lambda _e: self._invalidate_chart())
         self._block_mousewheel_recursive(self)

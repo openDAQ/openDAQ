@@ -48,6 +48,7 @@ class OutputSignalsView(ttk.Frame):
     
     def make_output_signal_section(self, signals, banner_text):
         utils.make_banner(self, banner_text)
+        section_rows = []
         if len(signals) > 0:
             for output_signal in signals:
                 if output_signal is None:
@@ -57,11 +58,15 @@ class OutputSignalsView(ttk.Frame):
                 row.pack(
                     anchor=tk.NW, fill=tk.X)
                 self._rows.append(row)
+                section_rows.append(row)
 
                 # Auto-expand the first chartable signal
                 if not self._auto_expanded and row._chartable and row._arrow_label is not None:
                     row._expand()
                     self._auto_expanded = True
+
+            if section_rows:
+                section_rows[-1].hide_bottom_border()
             return
 
         ttk.Label(self, text='None').pack(

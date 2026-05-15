@@ -7,6 +7,7 @@ from opendaq import IStruct
 from .. import utils
 from .attributes_dialog import AttributesDialog
 from .dialog import Dialog
+from .output_signal_graf import OutputSignlGraf
 
 
 class OutputSignalRow(ttk.Frame):
@@ -17,6 +18,9 @@ class OutputSignalRow(ttk.Frame):
         self.selection = ''
         self.context = context
 
+        self._expanded = False
+        self._preview = None
+
         self.configure(padding=(10, 5))
 
         last_value, raw_value = self._read_values()
@@ -26,12 +30,41 @@ class OutputSignalRow(ttk.Frame):
         if isinstance(raw_value, daq.IBaseObject) and IStruct.can_cast_from(raw_value) or isinstance(raw_value, str):
             is_struct_or_string = True
 
-        ttk.Label(self, text=output_signal.name, anchor=tk.W).grid(
-            row=0, column=0, sticky=tk.W)
+        # Check whether this signal can be charted so we know whether
+        # to show the expand arrow.  Gated on the global toggle too.
+        self._chartable = self._check_chartable()
+        show_expand = (
+            self._chartable
+            and context is not None
+            and getattr(context, 'view_signal_preview', False))
+
+        # Thin gray top border
+        self._top_sep = tk.Frame(self, height=1, bg='#cccccc')
+        self._top_sep.grid(row=0, column=0, columnspan=3, sticky=tk.EW)
+
+        # Column 0: name label
+        name_frame = ttk.Frame(self)
+        name_frame.grid(row=1, column=0, sticky=tk.W)
+
+        self._arrow_label = None
+        if show_expand:
+            self._arrow_right = (
+                context.icons.get('right')
+                if context and context.icons else None)
+            self._arrow_down = (
+                context.icons.get('down')
+                if context and context.icons else None)
+            self._arrow_label = ttk.Label(
+                name_frame, image=self._arrow_right, cursor='hand2')
+            self._arrow_label.pack(side=tk.LEFT, padx=(0, 2))
+            self._arrow_label.bind('<Button-1>', lambda _e: self._toggle_expand())
+
+        ttk.Label(name_frame, text=output_signal.name, anchor=tk.W).pack(
+            side=tk.LEFT)
 
         # Value column with optional View button
         value_frame = ttk.Frame(self)
-        value_frame.grid(row=0, column=1, sticky=tk.EW)
+        value_frame.grid(row=1, column=1, sticky=tk.EW)
 
         self.view_button = None
         
@@ -51,17 +84,56 @@ class OutputSignalRow(ttk.Frame):
             self.value_label = ttk.Label(value_frame, text=display_value, anchor=tk.E, justify=tk.RIGHT)
             self.value_label.pack(side=tk.RIGHT, fill=tk.X, expand=True)
 
-
-
         self.edit_icon = context.icons['settings'] if context and context.icons and 'settings' in context.icons else None
         self.edit_button = tk.Button(
             self, text='Edit', image=self.edit_icon, borderwidth=0, command=self.handle_edit_clicked)
-        self.edit_button.grid(row=0, column=2, sticky=tk.E)
+        self.edit_button.grid(row=1, column=2, sticky=tk.E)
 
         self.grid_columnconfigure(0, weight=10)
         self.grid_columnconfigure(1, weight=10)
         self.grid_columnconfigure(2, weight=1, minsize=40)
         self.grid_columnconfigure((0, 1, 2), uniform='uniform')
+
+    def _check_chartable(self):
+        if not daq.ISignal.can_cast_from(self.output_signal):
+            return False
+        signal = daq.ISignal.cast_from(self.output_signal)
+        domain = signal.domain_signal
+        if domain is None:
+            return False
+        return OutputSignlGraf._is_chartable(
+            signal.descriptor, domain.descriptor)
+
+    def _toggle_expand(self):
+        if self._expanded:
+            self._collapse()
+        else:
+            self._expand()
+
+    def _expand(self):
+        self._expanded = True
+        if self._arrow_label is not None:
+            self._arrow_label.config(image=self._arrow_down)
+
+        self._top_sep.grid_remove()
+        self.configure(relief='solid', borderwidth=1)
+
+        self._preview = OutputSignlGraf(
+            self, self.output_signal, self.context)
+        self._preview.grid(
+            row=2, column=0, columnspan=3, sticky=tk.NSEW, pady=(4, 0))
+
+    def _collapse(self):
+        self._expanded = False
+        if self._arrow_label is not None:
+            self._arrow_label.config(image=self._arrow_right)
+
+        self.configure(relief='flat', borderwidth=0)
+        self._top_sep.grid()
+
+        if self._preview is not None:
+            self._preview.destroy()
+            self._preview = None
 
     def refresh(self):
         last_value, raw_value = self._read_values()

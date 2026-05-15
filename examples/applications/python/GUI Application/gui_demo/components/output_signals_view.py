@@ -15,6 +15,7 @@ class OutputSignalsView(ttk.Frame):
         self.context = context
         self._rows = []
         self._refresh_job = None
+        self._auto_expanded = False
 
         self.configure(padding=(0, 5), borderwidth=0, relief=tk.FLAT)
         self.refresh()
@@ -56,6 +57,11 @@ class OutputSignalsView(ttk.Frame):
                 row.pack(
                     anchor=tk.NW, fill=tk.X)
                 self._rows.append(row)
+
+                # Auto-expand the first chartable signal
+                if not self._auto_expanded and row._chartable and row._arrow_label is not None:
+                    row._expand()
+                    self._auto_expanded = True
             return
 
         ttk.Label(self, text='None').pack(

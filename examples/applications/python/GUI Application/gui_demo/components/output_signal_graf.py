@@ -10,7 +10,7 @@ import opendaq as daq
 
 from .. import utils
 
-class SignalPreviewPanel(ttk.Frame):
+class OutputSignlGraf(ttk.Frame):
     DEFAULT_WINDOW_SECONDS = 0.2
     TARGET_POINTS_PER_FRAME = 50_000
     MAX_BUFFER_SIZE = int(TARGET_POINTS_PER_FRAME * 1.5)
@@ -61,81 +61,44 @@ class SignalPreviewPanel(ttk.Frame):
         self._px_ml = 65
 
         # Build widgets
-        self._build_toggle_bar()
         self._build_content()
-        self._content_frame.pack(
-            fill=tk.BOTH, expand=True, after=self._toggle_frame)
+        self._content_frame.pack(fill=tk.BOTH, expand=True)
         self._populate_dropdown()
         self._schedule_poll()
         self._schedule_draw()
         self.bind('<Destroy>', self._on_destroy)
 
-    def _build_toggle_bar(self):
-        self._toggle_frame = utils.make_banner(self, 'Signal Preview')
-        self._toggle_frame.pack_configure(padx=(0, 17))
-
     def _build_content(self):
         self._content_frame = ttk.Frame(self)
 
-        controls = ttk.Frame(self._content_frame)
-        controls.pack(fill=tk.X, padx=(12, 29), pady=(4, 2))
-
-        # Headers
-        ttk.Label(controls, text='Signal').grid(
-            row=0, column=0, sticky=tk.W)
-        ttk.Label(controls, text='Duration').grid(
-            row=0, column=1, sticky=tk.W, padx=(8, 0))
-        
-        # Scale
-        self._scale_header = ttk.Label(
-            controls, text='Scale')
-        self._scale_header.grid(row=0, column=2, sticky=tk.W, padx=(8, 0))
-        ttk.Label(controls, text='Last value').grid(
-            row=0, column=3, sticky=tk.W, padx=(8, 0))
-
-        # Signal dropdown
-        self._signal_var = tk.StringVar()
-        self._dropdown = ttk.Combobox(
-            controls, textvariable=self._signal_var, state='readonly')
-        self._dropdown.grid(row=1, column=0, sticky=tk.EW)
-        self._dropdown.bind('<<ComboboxSelected>>', self._on_signal_selected)
-
-        # Duration combobox
         self._duration_presets = [0.01, 0.05, 0.1, 0.2, 0.5, 1]
         self._duration_var = tk.StringVar(value=f'{self._window_seconds:g}s')
-        dur_cb = ttk.Combobox(
-            controls, textvariable=self._duration_var,
-            values=[f'{d}s' for d in self._duration_presets], width=6)
-        dur_cb.grid(row=1, column=1, sticky=tk.W, padx=(8, 0))
-        dur_cb.bind('<<ComboboxSelected>>', self._on_duration_committed)
-        dur_cb.bind('<Return>', self._on_duration_committed)
-        dur_cb.bind('<FocusOut>', self._on_duration_committed)
+        self._dur_edit_entry = None
 
-        # Scale
         self._scale_var = tk.StringVar(value='Linear')
+
+        controls = ttk.Frame(self._content_frame)
+        controls.pack(fill=tk.X, padx=(4, 12), pady=(2, 0))
+
+        self._scale_header = ttk.Label(controls, text='Scale')
+        self._scale_header.pack(side=tk.LEFT)
         self._scale_cb = ttk.Combobox(
             controls, textvariable=self._scale_var, state='readonly',
             values=['Linear', 'Log'], width=7)
-        self._scale_cb.grid(row=1, column=2, sticky=tk.W, padx=(8, 0))
+        self._scale_cb.pack(side=tk.LEFT)
         self._scale_cb.bind('<<ComboboxSelected>>', self._on_scale_changed)
 
-        # Last-value toggle
-        self._show_badge_var = tk.BooleanVar(value=True)
-        ttk.Checkbutton(
-            controls, variable=self._show_badge_var,
-            command=self._on_badge_toggled
-        ).grid(row=1, column=3, sticky=tk.W, padx=(8,12))
-
-        controls.grid_columnconfigure(0, weight=1)
-
-        # Hide Scale until a signal that supports it is selected.
+        # Hidden until explicit signals are handled
         self._set_scale_visible(False)
+
+        self._signal_var = tk.StringVar()
+        self._dropdown = None
 
         # Chart canvas
         self._chart = tk.Canvas(
             self._content_frame, bg=self._BG,
-            height=self.CANVAS_HEIGHT, highlightthickness=0)
-        self._chart.pack(fill=tk.BOTH, expand=True, padx=(12,29), pady=(16, 21))
+            height=140, highlightthickness=0)
+        self._chart.pack(fill=tk.BOTH, expand=True, padx=(4, 0), pady=(4, 6))
 
         self._chart.bind('<Configure>', lambda _e: self._invalidate_chart())
         self._block_mousewheel_recursive(self)
@@ -198,7 +161,9 @@ class SignalPreviewPanel(ttk.Frame):
 
         names = list(self._eligible.keys())
         names.insert(0, 'None')
-        self._dropdown['values'] = names
+
+        if self._dropdown is not None:
+            self._dropdown['values'] = names
 
         if len(names) > 1:
             self._signal_var.set(names[1])
@@ -288,15 +253,69 @@ class SignalPreviewPanel(ttk.Frame):
         seconds = max(0.01, min(10.0, seconds))
         self._duration_var.set(f'{seconds:g}s')
 
-        if event is not None and event.type != tk.EventType.FocusOut:
-            self._chart.focus_set()
-
         if seconds == self._window_seconds:
             return
 
         self._window_seconds = seconds
         self._needs_redraw = True
         self._chart_ready = False
+
+    def _begin_duration_edit(self, event=None):
+        if self._dur_edit_entry is not None:
+            return
+
+        canvas = self._chart
+        bb = canvas.bbox(self._xlabel_l)
+        if bb is None:
+            return
+
+        # Position the entry right over the label
+        x, y = bb[0], bb[1]
+        w = max(bb[2] - bb[0] + 16, 50)
+        h = bb[3] - bb[1] + 4
+
+        entry = tk.Entry(canvas, font=self._AXIS_FONT, width=8,
+                         justify=tk.LEFT)
+        # Pre-fill with the raw number (no dash, no 's')
+        entry.insert(0, f'{self._window_seconds:g}')
+        entry.select_range(0, tk.END)
+        entry.place(x=x, y=y, width=w, height=h)
+        entry.focus_set()
+        self._dur_edit_entry = entry
+
+        entry.bind('<Return>', self._commit_duration_edit)
+        entry.bind('<FocusOut>', self._commit_duration_edit)
+        entry.bind('<Escape>', self._cancel_duration_edit)
+        
+    def _on_dur_hover_enter(self, event=None):
+        self._chart.config(cursor='xterm')
+        self._chart.itemconfig(
+            self._xlabel_l,
+            font=(*self._AXIS_FONT, 'underline'),
+            fill='#1a6dcc')
+
+    def _on_dur_hover_leave(self, event=None):
+        self._chart.config(cursor='')
+        self._chart.itemconfig(
+            self._xlabel_l,
+            font=self._AXIS_FONT,
+            fill=self._TEXT)
+
+    def _commit_duration_edit(self, event=None):
+        entry = self._dur_edit_entry
+        if entry is None:
+            return
+        raw = entry.get().strip()
+        entry.destroy()
+        self._dur_edit_entry = None
+
+        self._duration_var.set(raw)
+        self._on_duration_committed()
+
+    def _cancel_duration_edit(self, event=None):
+        if self._dur_edit_entry is not None:
+            self._dur_edit_entry.destroy()
+            self._dur_edit_entry = None
 
     def _recreate_reader(self):
         self._reader = None
@@ -322,11 +341,11 @@ class SignalPreviewPanel(ttk.Frame):
 
     def _set_scale_visible(self, visible):
         if visible:
-            self._scale_header.grid()
-            self._scale_cb.grid()
+            self._scale_header.pack(side=tk.LEFT)
+            self._scale_cb.pack(side=tk.LEFT, padx=(4, 0))
         else:
-            self._scale_header.grid_remove()
-            self._scale_cb.grid_remove()
+            self._scale_header.pack_forget()
+            self._scale_cb.pack_forget()
 
     @staticmethod
     def _is_2d_vector_signal(signal):
@@ -336,9 +355,6 @@ class SignalPreviewPanel(ttk.Frame):
             return False
         size = getattr(dims[0], 'size', None)
         return size == 2
-
-    def _on_badge_toggled(self):
-        self._needs_redraw = True
 
     def _on_scale_changed(self, _event=None):
         self._needs_redraw = True
@@ -510,18 +526,16 @@ class SignalPreviewPanel(ttk.Frame):
 
         # Grid numbers
         self._xlabel_l = canvas.create_text(
-            0, 0, text='', fill=self._TEXT, anchor=tk.NW, font=self._AXIS_FONT)
+            0, 0, text='', fill=self._TEXT, anchor=tk.NW, font=self._AXIS_FONT,
+            tags=('dur_label',))
+        canvas.tag_bind('dur_label', '<Double-1>', self._begin_duration_edit)
+        canvas.tag_bind('dur_label', '<Enter>', self._on_dur_hover_enter)
+        canvas.tag_bind('dur_label', '<Leave>', self._on_dur_hover_leave)
         self._xlabel_r = canvas.create_text(
             0, 0, text='', fill=self._TEXT, anchor=tk.NE, font=self._AXIS_FONT)
 
         self._line_id = canvas.create_line(
             0, 0, 0, 0, fill=self._LINE, width=1, smooth=False)
-
-        self._badge_bg_id = canvas.create_rectangle(
-            0, 0, 0, 0, fill=self._BG, outline=self._GRID, width=1,
-            state='hidden')
-        self._badge_id = canvas.create_text(
-            0, 0, text='', fill='#111111', anchor=tk.NE, font=self._VAL_FONT)
 
         self._nodata_id = canvas.create_text(
             0, 0, text='', fill=self._TEXT, font=('TkDefaultFont', 10),
@@ -568,8 +582,6 @@ class SignalPreviewPanel(ttk.Frame):
             canvas.coords(self._nodata_id, canvas_width // 2, canvas_height // 2)
             canvas.itemconfig(self._nodata_id, text='None', state='normal')
             canvas.itemconfig(self._line_id, state='hidden')
-            canvas.itemconfig(self._badge_id, state='hidden')
-            canvas.itemconfig(self._badge_bg_id, state='hidden')
             return
 
         canvas.itemconfig(self._nodata_id, state='hidden')
@@ -584,8 +596,6 @@ class SignalPreviewPanel(ttk.Frame):
             canvas.coords(self._nodata_id, canvas_width // 2, canvas_height // 2)
             canvas.itemconfig(self._nodata_id, text='Waiting...', state='normal')
             canvas.itemconfig(self._line_id, state='hidden')
-            canvas.itemconfig(self._badge_id, state='hidden')
-            canvas.itemconfig(self._badge_bg_id, state='hidden')
             return
 
         # Y range from a stabilized window so a brief spike does not
@@ -771,24 +781,6 @@ class SignalPreviewPanel(ttk.Frame):
             px, py = xpx(visible[0][0]), ypx(visible[0][1])
             canvas.coords(self._line_id, px, py, px + 1, py)
             canvas.itemconfig(self._line_id, state='normal')
-
-        if self._show_badge_var.get():
-            badge_text = self._fmt(visible[-1][1])
-            if self._unit_str:
-                badge_text += f' {self._unit_str}'
-            bx = margin_left + plot_width - 4
-            by = margin_top + 4
-            canvas.coords(self._badge_id, bx, by)
-            canvas.itemconfig(self._badge_id, text=badge_text, state='normal')
-            canvas.update_idletasks()
-            bb = canvas.bbox(self._badge_id)
-            if bb:
-                canvas.coords(self._badge_bg_id,
-                            bb[0] - 3, bb[1] - 1, bb[2] + 3, bb[3] + 1)
-                canvas.itemconfig(self._badge_bg_id, state='normal')
-        else:
-            canvas.itemconfig(self._badge_id, state='hidden')
-            canvas.itemconfig(self._badge_bg_id, state='hidden')
 
     @staticmethod
     def _fmt(v):

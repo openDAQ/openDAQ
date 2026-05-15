@@ -1,0 +1,20 @@
+#!/bin/bash
+PREFIX="@CPACK_PACKAGING_INSTALL_PREFIX@"
+BUNDLE_ID="@CPACK_PRODUCTBUILD_IDENTIFIER@"
+
+APP_BUNDLE="$(cd "$(dirname "$0")/../../.." && pwd)"
+
+answer=$(osascript -e \
+    "button returned of (display dialog \"Remove openDAQ SDK from ${PREFIX}?\" \
+     buttons {\"Cancel\", \"Uninstall\"} default button \"Cancel\" with icon caution)")
+[ "$answer" = "Uninstall" ] || exit 0
+
+if osascript -e \
+    "do shell script \"rm -rf '${PREFIX}'; pkgutil --forget '${BUNDLE_ID}' 2>/dev/null; rm -rf '${APP_BUNDLE}'; true\" \
+     with administrator privileges"; then
+    osascript -e \
+        'display notification "openDAQ SDK has been uninstalled." with title "openDAQ"'
+else
+    osascript -e \
+        'display alert "Uninstall failed." message "Check Console for details." as critical'
+fi

@@ -52,6 +52,31 @@ if(APPLE)
     set(CPACK_RESOURCE_FILE_LICENSE "${_CPACK_APPLE_STAGED}/LICENSE.txt")
     set(CPACK_RESOURCE_FILE_README "${_CPACK_APPLE_STAGED}/README.txt")
     set(CPACK_RESOURCE_FILE_WELCOME "${_CPACK_APPLE_STAGED}/WELCOME.txt")
+
+    # Uninstaller .app — installed to /Applications so macOS recognises it
+    # as an application that can be managed/removed via System Settings > Storage.
+    set(_CPACK_UNINSTALLER_APP "openDAQ SDK Uninstaller.app")
+    set(_CPACK_UNINSTALLER_STAGED "${CMAKE_BINARY_DIR}/${_CPACK_UNINSTALLER_APP}")
+    file(MAKE_DIRECTORY "${_CPACK_UNINSTALLER_STAGED}/Contents/MacOS")
+    configure_file(
+        "${CMAKE_CURRENT_SOURCE_DIR}/cmake/macos/uninstaller/Info.plist.in"
+        "${_CPACK_UNINSTALLER_STAGED}/Contents/Info.plist"
+        @ONLY
+    )
+    configure_file(
+        "${CMAKE_CURRENT_SOURCE_DIR}/cmake/macos/uninstaller/uninstall.sh.in"
+        "${_CPACK_UNINSTALLER_STAGED}/Contents/MacOS/uninstall"
+        @ONLY
+    )
+    file(CHMOD "${_CPACK_UNINSTALLER_STAGED}/Contents/MacOS/uninstall"
+        PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE
+                    GROUP_READ GROUP_EXECUTE
+                    WORLD_READ WORLD_EXECUTE
+    )
+    install(DIRECTORY "${_CPACK_UNINSTALLER_STAGED}"
+        DESTINATION "/Applications"
+        USE_SOURCE_PERMISSIONS
+    )
 elseif(WIN32)
     set(CPACK_GENERATOR ZIP TXZ NSIS)
 elseif(UNIX)

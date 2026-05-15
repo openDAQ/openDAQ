@@ -45,9 +45,9 @@ class OutputSignalRow(ttk.Frame):
             row=3, column=0, columnspan=3, sticky=tk.EW, pady=(6, 0))
 
         # Column 0: name label
-        name_frame = ttk.Frame(self)
-        name_frame.grid(row=1, column=0, sticky=tk.W)
-
+        self._name_frame = ttk.Frame(self)
+        self._name_frame.grid(row=1, column=0, sticky=tk.W)
+        
         self._arrow_label = None
         if show_expand:
             self._arrow_right = (
@@ -57,20 +57,20 @@ class OutputSignalRow(ttk.Frame):
                 context.icons.get('down')
                 if context and context.icons else None)
             self._arrow_label = ttk.Label(
-                name_frame, image=self._arrow_right, cursor='hand2')
+                self._name_frame, image=self._arrow_right, cursor='hand2')
             self._arrow_label.pack(side=tk.LEFT, padx=(0, 2))
             self._arrow_label.bind('<Button-1>', lambda _e: self._toggle_expand())
 
-        ttk.Label(name_frame, text=output_signal.name, anchor=tk.W).pack(
+        ttk.Label(self._name_frame, text=output_signal.name, anchor=tk.W).pack(
             side=tk.LEFT)
 
         # Duration control
         self._duration_presets = [0.01, 0.05, 0.1, 0.2, 0.5, 1]
         self._duration_var = tk.StringVar(value='0.2s')
-        self._dur_label = ttk.Label(name_frame, text='|     Display duration:')
+        self._dur_label = ttk.Label(self._name_frame, text='|     Display duration:')
         self._dur_cb = ttk.Combobox(
-            name_frame, textvariable=self._duration_var,
-            values=[f'{d:g}s' for d in self._duration_presets], width=6)
+            self._name_frame, textvariable=self._duration_var,
+            values=[f'{d:g}s' for d in self._duration_presets], width=12)
 
         # Value column with optional View button
         value_frame = ttk.Frame(self)
@@ -125,6 +125,11 @@ class OutputSignalRow(ttk.Frame):
         if self._arrow_label is not None:
             self._arrow_label.config(image=self._arrow_down)
 
+        # Give column 0 room for the duration controls
+        self.grid_columnconfigure(0, weight=10, uniform='')
+        self.grid_columnconfigure(1, weight=1, uniform='')
+        self.grid_columnconfigure(2, weight=0, uniform='')
+
         self._dur_label.pack(side=tk.LEFT, padx=(12, 0))
         self._dur_cb.pack(side=tk.LEFT, padx=(4, 0))
 
@@ -145,6 +150,11 @@ class OutputSignalRow(ttk.Frame):
 
         self._dur_label.pack_forget()
         self._dur_cb.pack_forget()
+
+        # Restore the even column layout
+        self.grid_columnconfigure(0, weight=10, uniform='uniform')
+        self.grid_columnconfigure(1, weight=10, uniform='uniform')
+        self.grid_columnconfigure(2, weight=1, uniform='uniform')
 
         if self._preview is not None:
             self._preview.destroy()

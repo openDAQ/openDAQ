@@ -78,7 +78,7 @@ class OutputSignlGraf(ttk.Frame):
         self._scale_var = tk.StringVar(value='Linear')
 
         controls = ttk.Frame(self._content_frame)
-        controls.pack(fill=tk.X, padx=(4, 12), pady=(2, 0))
+        controls.pack(fill=tk.X, padx=(2, 12), pady=(2, 0))
 
         self._scale_header = ttk.Label(controls, text='Scale')
         self._scale_header.pack(side=tk.LEFT)

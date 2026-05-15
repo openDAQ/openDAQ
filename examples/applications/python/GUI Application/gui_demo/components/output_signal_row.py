@@ -21,7 +21,7 @@ class OutputSignalRow(ttk.Frame):
         self._expanded = False
         self._preview = None
 
-        self.configure(padding=(10, 5))
+        self.configure(padding=(10, 3))
 
         last_value, raw_value = self._read_values()
         self._view_value = last_value

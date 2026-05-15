@@ -65,17 +65,17 @@ class BlockView(ttk.Frame):
         self.header_frame.pack(fill=tk.X)
 
         self.label_icon = ttk.Label(self.header_frame)
-        self.label_icon.pack(side=tk.LEFT)
+        self.label_icon.pack(side=tk.LEFT, padx=(7,0))
         self.label = ttk.Label(self.header_frame, text=name)
         self.label.pack(side=tk.LEFT)
         self.edit_button = tk.Button(self.header_frame, text='Edit', image=self.edit_image, borderwidth=0, 
                                      command=lambda: AttributesDialog(self, 'Attributes', self.node, self.context).show())
-        self.edit_button.pack(side=tk.RIGHT, padx=(6, 10))
+        self.edit_button.pack(side=tk.RIGHT, padx=(6, 27))
         self.active_var = tk.IntVar(self, value=self.active)
         checkbox_state = tk.NORMAL if self.parent_active else tk.DISABLED
         self.checkbox = ttk.Checkbutton(
             self.header_frame, text='Active', command=self.handle_active_toggle, variable=self.active_var,
-            state=checkbox_state)
+            state=checkbox_state, padding=(0,0,14,0))
         self.checkbox.pack(side=tk.RIGHT)
 
         self.expanded_frame = ttk.Frame(self)
@@ -97,6 +97,7 @@ class BlockView(ttk.Frame):
                 self.output_signals.pack(fill=tk.X)
                     
                 self.label_icon.config(image=self.device_img)
+                self.edit_button.pack_configure(padx=(6, 19))
                 
                 self.cols = [0, 1]
                 self.rows = [0]
@@ -199,6 +200,7 @@ class BlockView(ttk.Frame):
                 self.properties = PropertiesView(
                     self.expanded_frame, self.node, self.context)
                 self.label_icon.config(image=self.sync_component_img)
+                self.edit_button.pack_configure(padx=(6, 10))
                 self.cols = [0]
                 self.rows = [0]
             elif daq.ISignal.can_cast_from(self.node):

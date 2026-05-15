@@ -445,7 +445,7 @@ ErrCode ModuleManagerImpl::setAuthenticatedOnly(Bool authOnly)
 ErrCode ModuleManagerImpl::setModuleAuthenticator(IModuleAuthenticator* authenticator)
 {
     OPENDAQ_PARAM_NOT_NULL(authenticator);
-    
+
     moduleAuthenticator = authenticator;
     return OPENDAQ_SUCCESS;
 }
@@ -493,6 +493,9 @@ void ModuleManagerImpl::checkNetworkSettings(ListPtr<IDeviceInfo>& list)
         }
     }
 
+#if defined(__linux__)
+    if (geteuid() == 0)
+#endif
     {
         const auto icmp = IcmpPing::Create(ioContext, logger);
         icmp->setMaxHops(1);
@@ -509,7 +512,7 @@ void ModuleManagerImpl::checkNetworkSettings(ListPtr<IDeviceInfo>& list)
             }
         }
     }
-    
+
     // TODO: Ping IPv6 addresses as well
     setAddressesReachable(ipv4AddressesMap, list);
 }
@@ -517,7 +520,7 @@ void ModuleManagerImpl::checkNetworkSettings(ListPtr<IDeviceInfo>& list)
 static bool ipv6Available(boost::asio::io_context& io)
 {
     using boost::asio::ip::tcp;
-    
+
     boost::system::error_code ec;
     tcp::socket sock(io);
 
@@ -773,7 +776,7 @@ ErrCode ModuleManagerImpl::createDevice(IDevice** device, IString* connectionStr
             OPENDAQ_RETURN_IF_FAILED(inputConfig.asPtr<IPropertyObjectInternal>(true)->clone(&addDeviceConfig));
         else
             OPENDAQ_RETURN_IF_FAILED(createDefaultAddDeviceConfig(&addDeviceConfig));
-        
+
         PropertyObjectPtr generalConfig =
             inputIsDefaultAddDeviceConfig
                 ? addDeviceConfig.getPropertyValue("General").asPtr<IPropertyObject>()

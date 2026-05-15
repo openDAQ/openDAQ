@@ -131,6 +131,7 @@ TxtProperties DiscoveryUtils::connectedClientsInfoToTxt(const PropertyObjectPtr&
     {
         try
         {
+            auto lock = propertyObjectInternalPtr.getRecursiveLockGuard();
             connectedClientsInfoClone = propertyObjectInternalPtr.clone();
         }
         catch (const std::exception& e)

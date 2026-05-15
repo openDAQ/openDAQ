@@ -7,6 +7,7 @@ from opendaq import IStruct
 from .. import utils
 from .attributes_dialog import AttributesDialog
 from .dialog import Dialog
+from .output_signal_graf import OutputSignlGraf
 
 
 class OutputSignalRow(ttk.Frame):
@@ -17,7 +18,11 @@ class OutputSignalRow(ttk.Frame):
         self.selection = ''
         self.context = context
 
-        self.configure(padding=(10, 5))
+        self._expanded = False
+        self._preview = None
+        self._show_bottom_sep = True
+
+        self.configure(padding=(10, 3))
 
         last_value, raw_value = self._read_values()
         self._view_value = last_value
@@ -26,12 +31,50 @@ class OutputSignalRow(ttk.Frame):
         if isinstance(raw_value, daq.IBaseObject) and IStruct.can_cast_from(raw_value) or isinstance(raw_value, str):
             is_struct_or_string = True
 
-        ttk.Label(self, text=output_signal.name, anchor=tk.W).grid(
-            row=0, column=0, sticky=tk.W)
+        # Check whether this signal can be charted so we know whether
+        # to show the expand arrow.  Gated on the global toggle too.
+        self._chartable = self._check_chartable()
+        show_expand = (
+            self._chartable
+            and context is not None
+            and getattr(context, 'view_signal_preview', False))
+
+        # Bottom separator between rows.
+        self._bottom_sep = tk.Frame(self, height=1, bg='#cccccc')
+        self._bottom_sep.grid(
+            row=3, column=0, columnspan=3, sticky=tk.EW, pady=(6, 0))
+
+        # Column 0: name label
+        self._name_frame = ttk.Frame(self)
+        self._name_frame.grid(row=1, column=0, sticky=tk.W)
+        
+        self._arrow_label = None
+        if show_expand:
+            self._arrow_right = (
+                context.icons.get('right')
+                if context and context.icons else None)
+            self._arrow_down = (
+                context.icons.get('down')
+                if context and context.icons else None)
+            self._arrow_label = ttk.Label(
+                self._name_frame, image=self._arrow_right, cursor='hand2')
+            self._arrow_label.pack(side=tk.LEFT, padx=(0, 2))
+            self._arrow_label.bind('<Button-1>', lambda _e: self._toggle_expand())
+
+        ttk.Label(self._name_frame, text=output_signal.name, anchor=tk.W).pack(
+            side=tk.LEFT)
+
+        # Duration control
+        self._duration_presets = [0.01, 0.05, 0.1, 0.2, 0.5, 1]
+        self._duration_var = tk.StringVar(value='0.2s')
+        self._dur_label = ttk.Label(self._name_frame, text='|     Display duration:')
+        self._dur_cb = ttk.Combobox(
+            self._name_frame, textvariable=self._duration_var,
+            values=[f'{d:g}s' for d in self._duration_presets], width=12)
 
         # Value column with optional View button
         value_frame = ttk.Frame(self)
-        value_frame.grid(row=0, column=1, sticky=tk.EW)
+        value_frame.grid(row=1, column=1, sticky=tk.EW)
 
         self.view_button = None
         
@@ -51,17 +94,75 @@ class OutputSignalRow(ttk.Frame):
             self.value_label = ttk.Label(value_frame, text=display_value, anchor=tk.E, justify=tk.RIGHT)
             self.value_label.pack(side=tk.RIGHT, fill=tk.X, expand=True)
 
-
-
         self.edit_icon = context.icons['settings'] if context and context.icons and 'settings' in context.icons else None
         self.edit_button = tk.Button(
             self, text='Edit', image=self.edit_icon, borderwidth=0, command=self.handle_edit_clicked)
-        self.edit_button.grid(row=0, column=2, sticky=tk.E)
+        self.edit_button.grid(row=1, column=2, sticky=tk.E)
 
         self.grid_columnconfigure(0, weight=10)
         self.grid_columnconfigure(1, weight=10)
         self.grid_columnconfigure(2, weight=1, minsize=40)
         self.grid_columnconfigure((0, 1, 2), uniform='uniform')
+
+    def _check_chartable(self):
+        if not daq.ISignal.can_cast_from(self.output_signal):
+            return False
+        signal = daq.ISignal.cast_from(self.output_signal)
+        domain = signal.domain_signal
+        if domain is None:
+            return False
+        return OutputSignlGraf._is_chartable(
+            signal.descriptor, domain.descriptor)
+
+    def _toggle_expand(self):
+        if self._expanded:
+            self._collapse()
+        else:
+            self._expand()
+
+    def _expand(self):
+        self._expanded = True
+        if self._arrow_label is not None:
+            self._arrow_label.config(image=self._arrow_down)
+
+        # Give column 0 room for the duration controls
+        self.grid_columnconfigure(0, weight=10, uniform='')
+        self.grid_columnconfigure(1, weight=1, uniform='')
+        self.grid_columnconfigure(2, weight=0, uniform='')
+
+        self._dur_label.pack(side=tk.LEFT, padx=(12, 0))
+        self._dur_cb.pack(side=tk.LEFT, padx=(4, 0))
+
+        self._preview = OutputSignlGraf(
+            self, self.output_signal, self.context,
+            duration_var=self._duration_var)
+        self._preview.grid(
+            row=2, column=0, columnspan=3, sticky=tk.NSEW, pady=(4, 0))
+        
+        self._dur_cb.bind('<<ComboboxSelected>>', self._preview._on_duration_committed)
+        self._dur_cb.bind('<Return>', self._preview._on_duration_committed)
+        self._dur_cb.bind('<FocusOut>', self._preview._on_duration_committed)
+
+    def _collapse(self):
+        self._expanded = False
+        if self._arrow_label is not None:
+            self._arrow_label.config(image=self._arrow_right)
+
+        self._dur_label.pack_forget()
+        self._dur_cb.pack_forget()
+
+        # Restore the even column layout
+        self.grid_columnconfigure(0, weight=10, uniform='uniform')
+        self.grid_columnconfigure(1, weight=10, uniform='uniform')
+        self.grid_columnconfigure(2, weight=1, uniform='uniform')
+
+        if self._preview is not None:
+            self._preview.destroy()
+            self._preview = None
+            
+    def hide_bottom_border(self):
+        self._show_bottom_sep = False
+        self._bottom_sep.grid_remove()
 
     def refresh(self):
         last_value, raw_value = self._read_values()

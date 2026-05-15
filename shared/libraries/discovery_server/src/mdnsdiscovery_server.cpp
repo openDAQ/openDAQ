@@ -26,46 +26,6 @@
 #include <arpa/inet.h>
 #endif
 
-template <>
-struct fmt::formatter<daq::discovery_server::UniqueQuerier>
-    : fmt::formatter<std::string_view>
-{
-    template <typename FormatContext>
-    auto format(const daq::discovery_server::UniqueQuerier& q,
-                FormatContext& ctx) const
-    {
-        char host[INET6_ADDRSTRLEN] = {};
-        std::string result;
-
-        if (q.addr.ss_family == AF_INET)
-        {
-            const auto* addr = reinterpret_cast<const sockaddr_in*>(&q.addr);
-
-            inet_ntop(AF_INET, &addr->sin_addr, host, sizeof(host));
-
-            result = fmt::format("address: {}; port: {}",
-                                 host,
-                                 ntohs(addr->sin_port));
-        }
-        else if (q.addr.ss_family == AF_INET6)
-        {
-            const auto* addr = reinterpret_cast<const sockaddr_in6*>(&q.addr);
-
-            inet_ntop(AF_INET6, &addr->sin6_addr, host, sizeof(host));
-
-            result = fmt::format("address: {}; port: {}",
-                                 host,
-                                 ntohs(addr->sin6_port));
-        }
-        else
-        {
-            result = "<unknown>";
-        }
-
-        return fmt::formatter<std::string_view>::format(result, ctx);
-    }
-};
-
 BEGIN_NAMESPACE_DISCOVERY_SERVICE
 
 MdnsDiscoveredService::MdnsDiscoveredService(const std::string& serviceName,
@@ -151,12 +111,6 @@ void MdnsDiscoveredService::populateRecords(std::vector<mdns_record_t>& records)
     }
 }
 
-static size_t toMs(const std::chrono::steady_clock::time_point& point)
-{
-    static auto baseTp = point;
-    return std::chrono::duration_cast<std::chrono::milliseconds>(point - baseTp).count();
-}
-
 std::string MDNSDiscoveryServer::getHostname() 
 {
     char hostname_buffer[256];
@@ -186,7 +140,6 @@ MDNSDiscoveryServer::MDNSDiscoveryServer(const DictPtr<IString, IBaseObject>& op
     , maxQueryCountPerSecond(std::max(static_cast<size_t>(options.getOrDefault("MaxQueryCountPerSecond", 75)), singleQuerierRateLimitPerSecond))
     , querierBucketsTable(maxActiveQueriers)
 {
-    fmt::print("MDNSDiscoveryServer ratelimiting ({}) params singleQuerierRateLimitPerSecond {}, maxActiveQueriers {}, maxQueryCountPerSecond {}", discoveryRatelimitEnabled, singleQuerierRateLimitPerSecond, maxActiveQueriers, maxQueryCountPerSecond);
 #ifdef _WIN32
     WORD versionWanted = MAKEWORD(1, 1);
     WSADATA wsaData;
@@ -1041,23 +994,16 @@ bool MDNSDiscoveryServer::allowQuery(int sock, const sockaddr* from)
             maxQueryCountPerSecond,
             singleQuerierRateLimitPerSecond,
             now);
-
-        //fmt::print("Arrived query from: {} at {}; hash {}, slot index {}", querier, toMs(now), hash, bucketIndex);
-        //fmt::print("...allowed as completely new querier, tokens {}\n", bucketSlot->tokens);
         return true;
     }
 
     auto& bucket = *bucketSlot;
-    std::chrono::steady_clock::time_point lastQueried = bucket.lastQueried;
-
-    // Different querier mapped to same slot
+    // Different querier mapped to same slot: replace stale bucket or share bucket
     if (!(bucket.primaryQuerierHash == hash && bucket.primaryQuerier == querier))
     {
-        // Replace stale bucket
+        // replace stale bucket
         if (isStaleBucket(bucket, now))
         {
-            fmt::print("Arrived query from: {} at {}; hash {}, slot index {}", querier, toMs(now), hash, bucketIndex);
-            fmt::print("...allowed as replacement querier for {} last queried at {}; hash {}, slot index {}\n", bucket.primaryQuerier, toMs(lastQueried), bucket.primaryQuerierHash, bucketIndex);
             bucketSlot.emplace(
                 querier,
                 hash,
@@ -1067,26 +1013,10 @@ bool MDNSDiscoveryServer::allowQuery(int sock, const sockaddr* from)
 
             return true;
         }
-
-        // Share bucket
-        fmt::print("Arrived query from: {} at {}; hash {}, slot index {}", querier, toMs(now), hash, bucketIndex);
-        fmt::print("...will share bucket with {} last queried at {}; hash {}, slot index {}\n", bucket.primaryQuerier, toMs(lastQueried), bucket.primaryQuerierHash, bucketIndex);
     }
 
     refillTokens(bucket, now);
-
-    bool result = tryConsumeToken(bucket, now);
-    if (result)
-    {
-        //fmt::print("Arrived query from: {} at {}; hash {}, slot index {}", querier, toMs(now), hash, bucketIndex);
-        //fmt::print("...allowed bcs tokens available for {} last queried at {}; hash {}, slot index {}, tokens {}\n", bucket.primaryQuerier, toMs(lastQueried), bucket.primaryQuerierHash, bucketIndex, bucket.tokens);
-    }
-    else
-    {
-        fmt::print("Arrived query from: {} at {}; hash {}, slot index {}", querier, toMs(now), hash, bucketIndex);
-        fmt::print("...rejected bcs tokens are not available for {} last queried at {}; hash {}, slot index {}, tokens {}\n", bucket.primaryQuerier, toMs(lastQueried), bucket.primaryQuerierHash, bucketIndex, bucket.tokens);
-    }
-    return result;
+    return tryConsumeToken(bucket, now);
 }
 
 void MDNSDiscoveryServer::refillTokens(QuerierBucket& bucket, std::chrono::steady_clock::time_point now)

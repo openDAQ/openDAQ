@@ -1,4 +1,5 @@
 #include <coreobjects/permission_manager_impl.h>
+#include <coreobjects/permissions_internal_ptr.h>
 #include <coretypes/impl.h>
 #include <coretypes/string_ptr.h>
 #include <coreobjects/user_ptr.h>
@@ -19,6 +20,15 @@ namespace detail
         {
             permissions = PermissionsBuilder().inherit(true).build();
             daqUntrackObject(permissions);
+            daqUntrackObject(permissions.getAllowed());
+            daqUntrackObject(permissions.getDenied());
+            daqUntrackObject(permissions.asPtr<IPermissionsInternal>(true).getAssigned());
+            for (const auto& [key, _] : permissions.getAllowed())
+                daqUntrackObject(key);
+            for (const auto& [key, _] : permissions.getDenied())
+                daqUntrackObject(key);
+            for (const auto& [key, _] : permissions.asPtr<IPermissionsInternal>(true).getAssigned())
+                daqUntrackObject(key);
         }
         return permissions;
     }();

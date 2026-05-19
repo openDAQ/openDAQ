@@ -1097,7 +1097,7 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::setPropertyV
 
         if (batch && !isChildProp)
         {
-            updatingPropsAndValues.emplace_back(std::make_pair(propName, UpdatingAction{true, protectedAccess, valuePtr}));
+            updatingPropsAndValues.emplace_back(std::make_pair(propName, UpdatingAction{true, protectedAccess, valuePtr.asPtr<IBaseObject>()}));
             return OPENDAQ_SUCCESS;
         }
 

@@ -1333,8 +1333,14 @@ namespace RTGen.CSharp.Generators
         private static bool IsProperty(IMethod method)
         {
             //setter-only properties not handled as .NET property
-            return (HasGetter(method));
-            //return (method.GetSetPair != null);
+            if (!HasGetter(method))
+                return false;
+
+            // If setter has incompatible type with getter, treat as regular method (C# requirement)
+            if (HasSetter(method) && !AreGetterSetterTypesCompatible(method))
+                return false;
+
+            return true;
         }
 
         private static bool HasGetter(IMethod method)
@@ -2851,6 +2857,29 @@ namespace RTGen.CSharp.Generators
 
             implementationProperties.TrimTrailingNewLines();
             return implementationProperties.ToString();
+        }
+
+        private static bool AreGetterSetterTypesCompatible(IMethod method)
+        {
+            var getSetPair = method.GetSetPair;
+            if (getSetPair?.Getter == null || getSetPair?.Setter == null)
+                return true; // If only getter or only setter, no type mismatch
+
+            // Get the return type of getter (last out parameter)
+            var getterReturnArg = getSetPair.Getter.GetLastByRefArgument();
+            if (getterReturnArg == null)
+                return true;
+
+            // Get the first argument type of setter
+            var setterArg = getSetPair.Setter.Arguments.FirstOrDefault();
+            if (setterArg == null)
+                return true;
+
+            // Compare type names
+            string getterTypeName = getterReturnArg.Type.Name;
+            string setterTypeName = setterArg.Type.Name;
+
+            return getterTypeName == setterTypeName;
         }
 
         #endregion ImplementationProperties

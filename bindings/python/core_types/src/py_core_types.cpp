@@ -28,6 +28,7 @@ void wrapDaqComponentCoreTypes(pybind11::module_ m)
     auto classIRatio = declareIRatio(m);
     auto classIComplexNumber = declareIComplexNumber(m);
     auto classINumber = declareINumber(m);
+    auto classIFreezable = declareIFreezable(m);
 
     auto classIIterable = declareIIterable(m);
     auto classIIterator = declareIIterator(m);
@@ -59,6 +60,7 @@ void wrapDaqComponentCoreTypes(pybind11::module_ m)
     defineIRatio(m, classIRatio);
     defineIComplexNumber(m, classIComplexNumber);
     defineINumber(m, classINumber);
+    defineIFreezable(m, classIFreezable);
 
     defineIIterable(m, classIIterable);
     defineIIterator(m, classIIterator);

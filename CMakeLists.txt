@@ -148,6 +148,9 @@ endif()
 # logging start
 include(openDAQLogging)
 
+set(OPENDAQ_DOTNET_TARGET_FRAMEWORKS "net8.0" CACHE STRING
+    "Semicolon-separated .NET target frameworks (e.g. net8.0;net9.0;net10.0)")
+
 set(OPENDAQ_LOG_LEVEL_DEBUG "Debug" CACHE STRING "Compile time logging level for debug builds")
 set_property(CACHE OPENDAQ_LOG_LEVEL_DEBUG PROPERTY STRINGS ${OPENDAQ_LOG_LEVELS})
 opendaq_log_level_str_to_int(${OPENDAQ_LOG_LEVEL_DEBUG} OPENDAQ_LOG_LEVEL_DEBUG_INT)

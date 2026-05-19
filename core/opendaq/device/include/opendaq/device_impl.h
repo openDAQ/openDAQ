@@ -1,5 +1,5 @@
  /*
- * Copyright 2022-2025 openDAQ d.o.o.
+ * Copyright 2022-2026 openDAQ d.o.o.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -169,7 +169,7 @@ public:
 
     // IComponentPrivate
     ErrCode INTERFACE_FUNC updateOperationMode(OperationModeType modeType) override;
-    ErrCode INTERFACE_FUNC setParentActive(Bool parentActive) override;
+    ErrCode INTERFACE_FUNC setParentActive(Bool parentActive, Bool onUpdate) override;
 
     // IPropertyObjectInternal
     ErrCode INTERFACE_FUNC enableCoreEventTrigger() override;
@@ -1203,11 +1203,11 @@ ErrCode GenericDevice<TInterface, Interfaces...>::updateOperationMode(OperationM
 }
 
 template <typename TInterface, typename... Interfaces>
-ErrCode GenericDevice<TInterface, Interfaces...>::setParentActive(Bool parentActive)
+ErrCode GenericDevice<TInterface, Interfaces...>::setParentActive(Bool parentActive, Bool onUpdate)
 {
     if (this->isRootDevice)
         return OPENDAQ_IGNORED;
-    return Super::setParentActive(parentActive);
+    return Super::setParentActive(parentActive, onUpdate);
 }
 
 template <typename TInterface, typename... Interfaces>
@@ -1243,7 +1243,7 @@ ErrCode GenericDevice<TInterface, Interfaces...>::setOperationModeRecursive(Oper
     ErrCode errCode = setOperationMode(modeType);
     OPENDAQ_RETURN_IF_FAILED(errCode);
 
-    for (const DevicePtr & dev: this->devices.getItems())
+    for (const DevicePtr & dev: this->devices.getItems(search::Any()))
     {
         errCode = dev->setOperationModeRecursive(modeType);
         OPENDAQ_RETURN_IF_FAILED(errCode);

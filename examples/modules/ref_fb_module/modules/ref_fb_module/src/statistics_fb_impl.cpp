@@ -264,7 +264,7 @@ void StatisticsFbImpl::copyRemainingCalcBuf(size_t calculatedSampleCount)
     const auto remainingSamples = calcBufSize - calculatedSampleCount;
 
     if (remainingSamples > 0)
-        std::memcpy(calcBuf.get(), calcBuf.get() + calculatedSampleCount * sampleSize, remainingSamples * sampleSize);
+        std::memmove(calcBuf.get(), calcBuf.get() + calculatedSampleCount * sampleSize, remainingSamples * sampleSize);
 
     calcBufSize = remainingSamples;
 }

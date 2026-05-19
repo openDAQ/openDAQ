@@ -35,7 +35,14 @@ DictPtr<IString, IBaseObject> InstanceBuilderImpl::GetDefaultOptions()
             {"SerializePrettyPrint", False}
         })},
         {"Modules", Dict<IString, IBaseObject>(
-        )}
+        )},
+        {"MdnsDiscoveryServer", Dict<IString, IBaseObject>(
+        {
+            {"SingleQuerierRateLimitPerSecond", 25},
+            {"MaxActiveQueriers", 150},
+            {"MaxQueryCountPerSecond", 75},
+            {"EnableDiscoveryRateLimit", True}
+        })},
     });
 }
 

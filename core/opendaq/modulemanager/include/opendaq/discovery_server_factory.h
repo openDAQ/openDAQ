@@ -35,6 +35,17 @@ inline DiscoveryServerPtr MdnsDiscoveryServer(const LoggerPtr& logger)
     DiscoveryServerPtr obj(MdnsDiscoveryServer_Create(logger));
     return obj;
 }
+
+/*!
+ * @brief Creates an MDNS-based Discovery Server with options specified via instance config provider.
+ * @param logger The logger the Discovery Server has access to.
+ * @param options The options dictionary.
+ */
+inline DiscoveryServerPtr MdnsDiscoveryServerWithOptions(const LoggerPtr& logger, const DictPtr<IString, IBaseObject>& options)
+{
+    DiscoveryServerPtr obj(MdnsDiscoveryServerWithOptions_Create(logger, options));
+    return obj;
+}
 /*!@}*/
 
 END_NAMESPACE_OPENDAQ

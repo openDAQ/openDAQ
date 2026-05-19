@@ -39,21 +39,6 @@ ErrCode ConfigClientBaseSyncComponent2Impl<Impl>::getSelectedSource(ISyncInterfa
 }
 
 template <class Impl>
-ErrCode ConfigClientBaseSyncComponent2Impl<Impl>::setSelectedSource(IString* selectedSourceName)
-{
-    OPENDAQ_PARAM_NOT_NULL(selectedSourceName);
-    return daqTry([&]
-    {
-        const StringPtr selectedSourceNamePtr = StringPtr::Borrow(selectedSourceName);
-        PropertyObjectPtr interfaces = this->objPtr.getPropertyValue("Interfaces");
-        if (!interfaces.hasProperty(selectedSourceNamePtr))
-            return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOTFOUND, fmt::format("Interface '{}' not found in interfaces", selectedSourceNamePtr));
-        this->objPtr.setPropertyValue("Source", selectedSourceNamePtr);
-        return OPENDAQ_SUCCESS;
-    });
-}
-
-template <class Impl>
 ErrCode ConfigClientBaseSyncComponent2Impl<Impl>::addInterface(ISyncInterface* syncInterface)
 {
     return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOT_SUPPORTED, "Adding interfaces is not supported on the client side");

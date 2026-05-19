@@ -79,9 +79,9 @@ ErrCode ConfigClientSyncInterfaceImpl::endUpdate()
     return Super::endUpdate();
 }
 
-ErrCode ConfigClientSyncInterfaceImpl::setAsSource(Bool isSource)
+ErrCode ConfigClientSyncInterfaceImpl::deactivateAsSource()
 {
-    return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOT_SUPPORTED, "Setting as source is not supported on client sync interface");
+    return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOT_SUPPORTED, "Deactivating as source is not supported on client sync interface");
 }
 
 ErrCode ConfigClientSyncInterfaceImpl::deserializeValues(ISerializedObject* serializedObject,

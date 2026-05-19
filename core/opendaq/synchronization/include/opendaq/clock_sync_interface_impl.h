@@ -28,21 +28,20 @@ public:
     explicit ClockSyncInterfaceImpl();
 
     // ISyncInterfaceInternal
-    ErrCode INTERFACE_FUNC setAsSource(Bool isSource) override;
+    ErrCode INTERFACE_FUNC deactivateAsSource() override;
 };
 
 inline ClockSyncInterfaceImpl::ClockSyncInterfaceImpl()
     : Super("ClockSyncInterface")
 {
+    setModeOptions(List<IString>("Input", "Off"));
 }
 
-inline ErrCode ClockSyncInterfaceImpl::setAsSource(Bool isSource)
+inline ErrCode ClockSyncInterfaceImpl::deactivateAsSource()
 {
     auto lock = getRecursiveConfigLock2();
-    const StringPtr mode = isSource ? "Input" : "Off";
 
-    setModeOptions(List<IString>(mode));
-    setMode(mode);
+    setMode("Off");
 
     return OPENDAQ_SUCCESS;
 }

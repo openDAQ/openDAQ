@@ -45,6 +45,7 @@ class SyncComponent2Impl : public ComponentImpl<Intf, ISyncComponent2, ISyncComp
 {
 public:
     using Super = ComponentImpl<Intf, ISyncComponent2, ISyncComponent2Internal, Intfs...>;
+    using Self = SyncComponent2Impl<Intf, Intfs...>;
 
     SyncComponent2Impl(const ContextPtr& context,
                       const ComponentPtr& parent,
@@ -55,7 +56,6 @@ public:
 
     // ISyncComponent2
     ErrCode INTERFACE_FUNC getSelectedSource(ISyncInterface** selectedSource) override;
-    ErrCode INTERFACE_FUNC setSelectedSource(IString* selectedSourceName) override;
     ErrCode INTERFACE_FUNC getSourceSynced(Bool* synced) override;
     ErrCode INTERFACE_FUNC getSourceReferenceDomainId(IString** referenceDomainId) override;
     ErrCode INTERFACE_FUNC getInterfaces(IDict** interfaces) override;
@@ -63,8 +63,6 @@ public:
     // ISyncComponent2Internal
     ErrCode INTERFACE_FUNC addInterface(ISyncInterface* syncInterface) override;
 
-    // IDeserializeComponent
-    ErrCode INTERFACE_FUNC complete() override;
 
     // ISerializable
     ErrCode INTERFACE_FUNC getSerializeId(ConstCharPtr* id) const override;
@@ -74,7 +72,8 @@ public:
 
 protected:
     void init(bool registerEvents);
-    void onSelectedSourceChanged(const StringPtr& sourceName);
+    void setSelectedSource(const SyncInterfacePtr& newSource);
+    void onInterfaceModeChanged(const PropertyObjectPtr& objPtr, const PropertyValueEventArgsPtr& eventArgs);
 
     SyncInterfacePtr source;
 };
@@ -96,7 +95,7 @@ template <class Intf, class... Intfs>
 void SyncComponent2Impl<Intf, Intfs...>::init(bool registerEvents)
 {
     source = createWithImplementation<ISyncInterface, ClockSyncInterfaceImpl>();
-    source.asPtr<ISyncInterfaceInternal>(true).setAsSource(true);
+    source.asPtr<IPropertyObject>(true).setPropertyValue("Mode", "Input");
 
     auto interfaces = PropertyObject();
     interfaces.addProperty(ObjectProperty(source.getName(), source));
@@ -104,16 +103,31 @@ void SyncComponent2Impl<Intf, Intfs...>::init(bool registerEvents)
 
     const auto souceProperty = StringPropertyBuilder("Source", source.getName())
                                                         .setSelectionValues(EvalValue("%Interfaces:PropertyNames"))
+                                                        .setReadOnly(true)
                                                         .build();
     Super::addProperty(souceProperty);
     this->objPtr.setPropertyOrder(List<IString>("Interfaces"));
 
     if (registerEvents)
     {
-        this->objPtr.getOnPropertyValueWrite("Source") += [this](const PropertyObjectPtr& objPtr, const PropertyValueEventArgsPtr& eventArgs)
+        source.asPtr<IPropertyObject>(true).getOnPropertyValueWrite("Mode") += [this](const PropertyObjectPtr& objPtr, const PropertyValueEventArgsPtr& eventArgs)
         {
-            auto lock = this->getRecursiveConfigLock();
-            onSelectedSourceChanged(eventArgs.getValue());
+            if (source == objPtr)
+            {
+                const StringPtr mode = eventArgs.getValue();
+                if (mode == "Off")
+                    eventArgs.setValue("Input");
+            }
+            else
+            {
+                const StringPtr mode = eventArgs.getValue();
+                if (mode == "Input")
+                {
+                    const auto oldSource = source;
+                    setSelectedSource(objPtr);
+                    oldSource.template asPtr<ISyncInterfaceInternal>(true).deactivateAsSource();
+                }
+            }
         };
     }
 }
@@ -128,27 +142,35 @@ ErrCode SyncComponent2Impl<Intf, Intfs...>::getSelectedSource(ISyncInterface** s
 }
 
 template <class Intf, class... Intfs>
-void SyncComponent2Impl<Intf, Intfs...>::onSelectedSourceChanged(const StringPtr& sourceName)
+void SyncComponent2Impl<Intf, Intfs...>::setSelectedSource(const SyncInterfacePtr& newSource)
 {
-    if (auto sourceInternal = source.asPtrOrNull<ISyncInterfaceInternal>(true); sourceInternal.assigned())
-        sourceInternal.setAsSource(false);
-
-    const PropertyObjectPtr interfaces = this->objPtr.getPropertyValue("Interfaces");
-    source = interfaces.getPropertyValue(sourceName);
-
-    if (auto sourceInternal = source.asPtrOrNull<ISyncInterfaceInternal>(true); sourceInternal.assigned())
-        sourceInternal.setAsSource(true);
+    this->template borrowPtr<PropertyObjectProtectedPtr>().setProtectedPropertyValue("Source", newSource.getName());
+    source = newSource;
 }
 
 template <class Intf, class... Intfs>
-ErrCode SyncComponent2Impl<Intf, Intfs...>::setSelectedSource(IString* selectedSourceName)
+void SyncComponent2Impl<Intf, Intfs...>::onInterfaceModeChanged(const PropertyObjectPtr& objPtr, const PropertyValueEventArgsPtr& eventArgs)
 {
-    OPENDAQ_PARAM_NOT_NULL(selectedSourceName);
-    auto lock = this->getRecursiveConfigLock();
-
-    const ErrCode errCode = this->setPropertyValue(String("Source"), selectedSourceName);
-    OPENDAQ_RETURN_IF_FAILED(errCode, "Failed to set 'Source' property");
-    return errCode;
+    if (source == objPtr)
+    {
+        const StringPtr mode = eventArgs.getValue();
+        if (mode == "Output" || mode == "Off")
+        {
+            const PropertyObjectPtr interfacesProperty = this->objPtr.getPropertyValue("Interfaces");
+            const PropertyObjectPtr clockSyncInterfaceProperty = interfacesProperty.getPropertyValue("ClockSyncInterface");
+            clockSyncInterfaceProperty.setPropertyValue("Mode", "Input");
+        }
+    }
+    else
+    {
+        const StringPtr mode = eventArgs.getValue();
+        if (mode == "Input" || mode == "Auto")
+        {
+            const auto oldSource = source;
+            setSelectedSource(objPtr);
+            oldSource.template asPtr<ISyncInterfaceInternal>(true).deactivateAsSource();
+        }
+    }
 }
 
 template <class Intf, class... Intfs>
@@ -199,27 +221,18 @@ ErrCode SyncComponent2Impl<Intf, Intfs...>::addInterface(ISyncInterface* syncInt
     return daqTry([&]
     {
         const SyncInterfacePtr interfacePtr = SyncInterfacePtr::Borrow(syncInterface);
+        const PropertyObjectPtr interfaceProperty = interfacePtr;
+
         const PropertyObjectPtr interfacesProperty = this->objPtr.getPropertyValue("Interfaces");
-        interfacesProperty.addProperty(ObjectProperty(interfacePtr.getName(), interfacePtr));
+
+        interfacesProperty.addProperty(ObjectProperty(interfacePtr.getName(), interfaceProperty));
+        interfaceProperty.getOnPropertyValueWrite("Mode") += [this](const PropertyObjectPtr& obj, const PropertyValueEventArgsPtr& args)
+        {
+            onInterfaceModeChanged(obj, args);
+        };
     });
 }
 
-template <class Intf, class... Intfs>
-ErrCode SyncComponent2Impl<Intf, Intfs...>::complete()
-{
-    return daqTry([&]
-    {
-        // Update the source member variable based on the deserialized "Source" property
-        const PropertyObjectPtr interfaces = this->objPtr.getPropertyValue("Interfaces");
-        if (interfaces.assigned() && this->objPtr.hasProperty("Source"))
-        {
-            const StringPtr sourceName = this->objPtr.getPropertyValue("Source");
-            onSelectedSourceChanged(sourceName);
-        }
-        
-        return Super::complete();
-    });
-}
 
 template <class Intf, class... Intfs>
 ErrCode SyncComponent2Impl<Intf, Intfs...>::getSerializeId(ConstCharPtr* id) const
@@ -256,7 +269,7 @@ ErrCode SyncComponent2Impl<Intf, Intfs...>::Deserialize(ISerializedObject* seria
                     deserializeContext.getLocalId(),
                     className,
                     nullptr,
-                    true).detach();
+                    false).detach();
             }).detach();
     });
     OPENDAQ_RETURN_IF_FAILED(errCode);

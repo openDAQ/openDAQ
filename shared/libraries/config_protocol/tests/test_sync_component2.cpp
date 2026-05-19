@@ -166,9 +166,10 @@ TEST_F(ConfigSyncComponent2Test, SetSelectedSourceFromClient)
     auto clientSync = getClientSyncComponent();
 
     // Set selected source from client
-    clientSync.setSelectedSource("TestInterface");
+    clientSync.getInterfaces().get("TestInterface").asPtr<IPropertyObject>(true).setPropertyValue("Mode", "Input");
 
     // Verify server has the new selected source
+    ASSERT_EQ(clientSync.getSelectedSource().getName(), "TestInterface");
     ASSERT_EQ(serverSync.getSelectedSource().getName(), "TestInterface");
 }
 
@@ -239,30 +240,11 @@ TEST_F(ConfigSyncComponent2Test, SyncInterfacePropertyAccess)
     ASSERT_NO_THROW(propObj.getPropertyValue("Status.ReferenceDomainId"));
 }
 
-TEST_F(ConfigSyncComponent2Test, SetSelectedSourceNotFound)
-{
-    auto clientSync = getClientSyncComponent();
-
-    ASSERT_THROW(clientSync.setSelectedSource("NonExistent"), NotFoundException);
-}
-
-TEST_F(ConfigSyncComponent2Test, SetSelectedSourceViaProperty)
-{
-    auto serverSync = getServerSyncComponent();
-    auto clientSync = getClientSyncComponent();
-
-    clientSync.asPtr<IPropertyObject>(true).setPropertyValue("Source", "TestInterface");
-
-    // Verify server has the new selected source
-    ASSERT_EQ(clientSync.getSelectedSource().getName(), "TestInterface");
-    ASSERT_EQ(serverSync.getSelectedSource().getName(), "TestInterface");
-}
-
 TEST_F(ConfigSyncComponent2Test, SetSyncInterfaceModeViaProperty)
 {
     auto serverSync = getServerSyncComponent();
     auto clientSync = getClientSyncComponent();
-    clientSync.setSelectedSource("TestInterface");
+    clientSync.getInterfaces().get("TestInterface").asPtr<IPropertyObject>(true).setPropertyValue("Mode", "Input");
 
     PropertyObjectPtr serverSource = serverSync.getSelectedSource();
     PropertyObjectPtr clientSource = clientSync.getSelectedSource();

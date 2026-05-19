@@ -41,12 +41,6 @@ DECLARE_OPENDAQ_INTERFACE(ISyncComponent2, IBaseObject)
     virtual ErrCode INTERFACE_FUNC getSelectedSource(ISyncInterface** selectedSource) = 0;
 
     /*!
-     * @brief Sets the selected sync source interface by name.
-     * @param selectedSourceName The name of the selected sync source interface.
-     */
-    virtual ErrCode INTERFACE_FUNC setSelectedSource(IString* selectedSourceName) = 0;
-
-    /*!
      * @brief Gets whether the source is synced.
      * @param[out] synced True if the source is synced; false otherwise.
      */

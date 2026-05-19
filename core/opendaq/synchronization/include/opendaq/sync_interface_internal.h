@@ -32,10 +32,9 @@ BEGIN_NAMESPACE_OPENDAQ
 DECLARE_OPENDAQ_INTERFACE(ISyncInterfaceInternal, IBaseObject)
 {
     /*!
-     * @brief Sets whether this interface is used as a source.
-     * @param isSource True if this interface should be used as a source; false otherwise.
+     * @brief Notifies this interface that it is no longer the selected source.
      */
-    virtual ErrCode INTERFACE_FUNC setAsSource(Bool isSource) = 0;
+    virtual ErrCode INTERFACE_FUNC deactivateAsSource() = 0;
 };
 /*!@}*/
 

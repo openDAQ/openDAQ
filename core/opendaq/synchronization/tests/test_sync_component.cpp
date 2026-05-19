@@ -238,17 +238,9 @@ TEST_F(SyncComponent2Test, SetSelectedSource)
     ASSERT_EQ(interfaces.getCount(), 2u);
 
     // Change selected source
-    syncComponent2.setSelectedSource("TestInterface");
+    newInterface.asPtr<IPropertyObject>(true).setPropertyValue("Mode", "Input");
     const auto selectedSource = syncComponent2.getSelectedSource();
     ASSERT_EQ(selectedSource.getName(), "TestInterface");
-}
-
-TEST_F(SyncComponent2Test, SetSelectedSourceNotFound)
-{
-    const auto ctx = NullContext();
-    const auto syncComponent2 = SyncComponent2(ctx, nullptr, "sync");
-
-    ASSERT_THROW(syncComponent2.setSelectedSource("NonExistent"), NotFoundException);
 }
 
 TEST_F(SyncComponent2Test, GetSourceSynced)
@@ -316,7 +308,7 @@ TEST_F(SyncComponent2Test, Serialization)
     syncComponent2Internal.addInterface(newInterface);
 
     // Change selected source
-    syncComponent2.setSelectedSource("TestInterface");
+    newInterface.asPtr<IPropertyObject>(true).setPropertyValue("Mode", "Input");
 
     const auto serializer = JsonSerializer();
     syncComponent2.serialize(serializer);
@@ -330,7 +322,10 @@ TEST_F(SyncComponent2Test, Serialization)
     ASSERT_EQ(deserialized.getInterfaces().getCount(), 2u);
     ASSERT_TRUE(interfaces.hasKey("ClockSyncInterface"));
     ASSERT_TRUE(interfaces.hasKey("TestInterface"));
-    ASSERT_EQ(deserialized.getSelectedSource().getName(), "TestInterface");
+    // ASSERT_EQ(deserialized.getSelectedSource().getName(), "TestInterface"); // This not save load, so we are not restoiring selected source on deserialization
+    ASSERT_EQ(interfaces.get("TestInterface").asPtr<IPropertyObject>(true).getPropertyValue("Mode"), "Input");
+    ASSERT_EQ(interfaces.get("ClockSyncInterface").asPtr<IPropertyObject>(true).getPropertyValue("Mode"), "Off");
+
 }
 
 // =====================================================
@@ -395,39 +390,29 @@ TEST_F(PtpSyncInterfaceTest, DefaultPtpConfigurationProperties)
     ASSERT_EQ(propObj.getPropertyValue("Parameters.PtpConfiguration.TransportProtocol"),  "IEEE802_3");
 }
 
-TEST_F(PtpSyncInterfaceTest, SetAsSourceTrue)
+TEST_F(PtpSyncInterfaceTest, DeactivateAsSourceWhenModeIsOff)
 {
     const auto iface = createWithImplementation<ISyncInterface, PtpSyncInterfaceBaseImpl>();
     const auto ifaceInternal = iface.asPtr<ISyncInterfaceInternal>(true);
     const auto propObj = iface.asPtr<IPropertyObject>(true);
 
-    ASSERT_ERROR_CODE_EQ(ifaceInternal->setAsSource(True), OPENDAQ_SUCCESS);
-    ASSERT_EQ(propObj.getPropertyValue("Mode"), "Input");
-}
-
-TEST_F(PtpSyncInterfaceTest, SetAsSourceFalseWhenModeIsOff)
-{
-    const auto iface = createWithImplementation<ISyncInterface, PtpSyncInterfaceBaseImpl>();
-    const auto ifaceInternal = iface.asPtr<ISyncInterfaceInternal>(true);
-    const auto propObj = iface.asPtr<IPropertyObject>(true);
-
-    // mode is "Off" by default — setAsSource(false) should leave it unchanged
-    ASSERT_ERROR_CODE_EQ(ifaceInternal->setAsSource(False), OPENDAQ_SUCCESS);
+    // mode is "Off" by default — deactivateAsSource should leave it unchanged
+    ASSERT_ERROR_CODE_EQ(ifaceInternal->deactivateAsSource(), OPENDAQ_SUCCESS);
     ASSERT_EQ(propObj.getPropertyValue("Mode"), "Off");
 }
 
-TEST_F(PtpSyncInterfaceTest, SetAsSourceFalseWhenModeIsNotOff)
+TEST_F(PtpSyncInterfaceTest, DeactivateAsSourceWhenModeIsNotOff)
 {
     const auto iface = createWithImplementation<ISyncInterface, PtpSyncInterfaceBaseImpl>();
     const auto ifaceInternal = iface.asPtr<ISyncInterfaceInternal>(true);
     const auto propObj = iface.asPtr<IPropertyObject>(true);
 
     // First make it a source so mode becomes "Input"
-    ASSERT_ERROR_CODE_EQ(ifaceInternal->setAsSource(True), OPENDAQ_SUCCESS);
+    propObj.setPropertyValue("Mode", "Input");
     ASSERT_EQ(propObj.getPropertyValue("Mode"), "Input");
 
-    // Now unset as source — mode should switch to "Output"
-    ASSERT_ERROR_CODE_EQ(ifaceInternal->setAsSource(False), OPENDAQ_SUCCESS);
+    // Now deactivate as source — mode should switch to "Output"
+    ASSERT_ERROR_CODE_EQ(ifaceInternal->deactivateAsSource(), OPENDAQ_SUCCESS);
     ASSERT_EQ(propObj.getPropertyValue("Mode"), "Output");
 }
 
@@ -516,6 +501,54 @@ TEST_F(PtpSyncInterfaceTest, SetPortDelayMechanismOptions)
     const ListPtr<IString> stored = portConfig.getPropertyValue("DelayMechanismOptions");
     ASSERT_EQ(stored.getCount(), 1u);
     ASSERT_EQ(stored[0], "P2P");
+}
+
+TEST_F(PtpSyncInterfaceTest, SaveLoad)
+{
+    // Create SyncComponent2 and add PtpSyncInterface with eth port
+    const auto ctx = NullContext();
+    const auto syncComponent2 = SyncComponent2(ctx, nullptr, "sync");
+    const auto syncComponent2Internal = syncComponent2.asPtr<ISyncComponent2Internal>(true);
+
+    const auto iface = createWithImplementation<ISyncInterface, TestPtpSyncInterface>();
+    const auto updateableIface = iface.asPtr<IUpdatable>(true);
+    const auto ifacePropObj = iface.asPtr<IPropertyObject>(true);
+    auto* impl = dynamic_cast<TestPtpSyncInterface*>(iface.getObject());
+    impl->createPortProporties("eth0");
+
+    ASSERT_NO_THROW(syncComponent2Internal.addInterface(iface));
+
+    // Check default values
+    ASSERT_EQ(syncComponent2.getSelectedSource().getName(), "ClockSyncInterface");
+    ASSERT_EQ(ifacePropObj.getPropertyValue("Mode"), "Off");
+    ASSERT_EQ(ifacePropObj.getPropertyValue("Parameters.PtpConfiguration.TransportProtocol"), "IEEE802_3");
+    ASSERT_EQ(ifacePropObj.getPropertyValue("Parameters.Ports.eth0.DelayMechanism"), "E2E");
+
+    // Do serialize for update
+    auto serializer = JsonSerializer();
+    const ErrCode errCode = updateableIface->serializeForUpdate(serializer);
+    ASSERT_ERROR_CODE_EQ(errCode, OPENDAQ_SUCCESS);
+
+    // Do some changes after serialization to verify that deserialization will restore them
+    ifacePropObj.setPropertyValue("Mode", "Input");
+    ifacePropObj.setPropertyValue("Parameters.PtpConfiguration.TransportProtocol", "UDP_IPV4");
+    ifacePropObj.setPropertyValue("Parameters.Ports.eth0.DelayMechanism", "P2P");
+
+    // Check that changes are applied
+    ASSERT_EQ(syncComponent2.getSelectedSource().getName(), "PtpSyncInterface");
+    ASSERT_EQ(ifacePropObj.getPropertyValue("Mode"), "Input");
+    ASSERT_EQ(ifacePropObj.getPropertyValue("Parameters.PtpConfiguration.TransportProtocol"), "UDP_IPV4");
+    ASSERT_EQ(ifacePropObj.getPropertyValue("Parameters.Ports.eth0.DelayMechanism"), "P2P");
+
+    // Do restore syncronization
+    const auto deserializer = JsonDeserializer();
+    deserializer.update(updateableIface, serializer.getOutput(), nullptr);
+
+    // Verify that values are restored to defaults
+    ASSERT_EQ(syncComponent2.getSelectedSource().getName(), "ClockSyncInterface");
+    ASSERT_EQ(ifacePropObj.getPropertyValue("Mode"), "Off");
+    ASSERT_EQ(ifacePropObj.getPropertyValue("Parameters.PtpConfiguration.TransportProtocol"), "IEEE802_3");
+    ASSERT_EQ(ifacePropObj.getPropertyValue("Parameters.Ports.eth0.DelayMechanism"), "E2E");
 }
 
 END_NAMESPACE_OPENDAQ

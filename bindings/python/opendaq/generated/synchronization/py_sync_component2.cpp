@@ -45,21 +45,14 @@ void defineISyncComponent2(pybind11::module_ m, PyDaqIntf<daq::ISyncComponent2, 
     }, py::arg("context"), py::arg("parent"), py::arg("local_id"), py::arg("class_name"), py::arg("name"), py::arg("register_events"));
 
 
-    cls.def_property("selected_source",
+    cls.def_property_readonly("selected_source",
         [](daq::ISyncComponent2 *object)
         {
             py::gil_scoped_release release;
             const auto objectPtr = daq::SyncComponent2Ptr::Borrow(object);
             return objectPtr.getSelectedSource().detach();
         },
-        [](daq::ISyncComponent2 *object, std::variant<daq::IString*, py::str, daq::IEvalValue*>& selectedSourceName)
-        {
-            py::gil_scoped_release release;
-            const auto objectPtr = daq::SyncComponent2Ptr::Borrow(object);
-            objectPtr.setSelectedSource(getVariantValue<daq::IString*>(selectedSourceName));
-        },
-        py::return_value_policy::take_ownership,
-        "Retrieves the selected sync source interface. / Sets the selected sync source interface by name.");
+        "Retrieves the selected sync source interface.");
     cls.def_property_readonly("source_synced",
         [](daq::ISyncComponent2 *object)
         {

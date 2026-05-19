@@ -50,7 +50,7 @@ public:
     ErrCode INTERFACE_FUNC getReferenceDomainId(IString** referenceDomainId) override;
 
     // ISyncInterfaceInternal
-    ErrCode INTERFACE_FUNC setAsSource(Bool isSource) override;
+    ErrCode INTERFACE_FUNC deactivateAsSource() override;
 
     // ISerializable
     ErrCode INTERFACE_FUNC getSerializeId(ConstCharPtr* id) const override;
@@ -117,7 +117,7 @@ ErrCode SyncInterfaceBaseImpl<TInterface, Interfaces...>::getReferenceDomainId(I
 }
 
 template <typename TInterface, typename... Interfaces>
-ErrCode SyncInterfaceBaseImpl<TInterface, Interfaces...>::setAsSource(Bool isSource)
+ErrCode SyncInterfaceBaseImpl<TInterface, Interfaces...>::deactivateAsSource()
 {
     return OPENDAQ_IGNORED;
 }

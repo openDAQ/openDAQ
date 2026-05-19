@@ -50,8 +50,6 @@ public:
     SyncComponent2Impl(const ContextPtr& context,
                       const ComponentPtr& parent,
                       const StringPtr& localId,
-                      const StringPtr& className = nullptr,
-                      const StringPtr& name = nullptr,
                       Bool registerEvents = False);
 
     // ISyncComponent2
@@ -83,10 +81,8 @@ template <class Intf, class... Intfs>
 SyncComponent2Impl<Intf, Intfs...>::SyncComponent2Impl(const ContextPtr& context,
                                                         const ComponentPtr& parent,
                                                         const StringPtr& localId,
-                                                        const StringPtr& className,
-                                                        const StringPtr& name,
                                                         Bool registerEvents)
-    : Super(context, parent, localId, className, name)
+    : Super(context, parent, localId, nullptr, nullptr)
 {
     this->init(registerEvents == True);
 }
@@ -267,8 +263,6 @@ ErrCode SyncComponent2Impl<Intf, Intfs...>::Deserialize(ISerializedObject* seria
                     deserializeContext.getContext(),
                     deserializeContext.getParent(),
                     deserializeContext.getLocalId(),
-                    className,
-                    nullptr,
                     false).detach();
             }).detach();
     });

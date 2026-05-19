@@ -66,8 +66,6 @@ OPENDAQ_DECLARE_CLASS_FACTORY_WITH_INTERFACE(
     IContext*, context,
     IComponent*, parent,
     IString*, localId,
-    IString*, className,
-    IString*, name,
     Bool, registerEvents
 )
 

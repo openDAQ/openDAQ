@@ -10,8 +10,6 @@ OPENDAQ_DEFINE_CLASS_FACTORY_WITH_INTERFACE_AND_CREATEFUNC_OBJ(
     IContext*, context,
     IComponent*, parent,
     IString*, localId,
-    IString*, className,
-    IString*, name,
     Bool, registerEvents
 )
 

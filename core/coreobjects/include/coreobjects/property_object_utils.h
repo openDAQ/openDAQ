@@ -20,6 +20,7 @@
 #include <coreobjects/object_lock_guard.h>
 #include <map>
 #include <coreobjects/permissions_builder_factory.h>
+#include <coreobjects/permissions_internal_ptr.h>
 #include <coreobjects/permission_mask_builder_factory.h>
 #include <coreobjects/object_lock_guard_ptr.h>
 
@@ -28,9 +29,21 @@ BEGIN_NAMESPACE_OPENDAQ
 namespace object_utils
 {
     inline const auto UnrestrictedPermissions = []() { 
-        daqDisableObjectTracking();
-        auto permissions = PermissionsBuilder().assign("everyone", PermissionMaskBuilder().read().write().execute()).build();
-        daqEnableObjectTracking();
+        static PermissionsPtr permissions;
+        if (!permissions.assigned())
+        {
+            permissions = PermissionsBuilder().assign("everyone", PermissionMaskBuilder().read().write().execute()).build();
+            daqUntrackObject(permissions);
+            daqUntrackObject(permissions.getAllowed());
+            daqUntrackObject(permissions.getDenied());
+            daqUntrackObject(permissions.asPtr<IPermissionsInternal>(true).getAssigned());
+            for (const auto& [key, _] : permissions.getAllowed())
+                daqUntrackObject(key);
+            for (const auto& [key, _] : permissions.getDenied())
+                daqUntrackObject(key);
+            for (const auto& [key, _] : permissions.asPtr<IPermissionsInternal>(true).getAssigned())
+                daqUntrackObject(key);
+        }
         return permissions;
     }();
 }

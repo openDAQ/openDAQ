@@ -84,9 +84,9 @@ public:
         const ErrCode errCode = wrapHandlerReturn(this, &Module::onGetAvailableDeviceTypes, types);
         OPENDAQ_RETURN_IF_FAILED(errCode);
 
-        for (const auto& type : types)
+        for (const auto& type : types.getValues())
         {
-            auto componentTypePrivate = type.second.asPtr<IComponentTypePrivate>();
+            auto componentTypePrivate = type.asPtr<IComponentTypePrivate>();
             componentTypePrivate->setModuleInfo(this->moduleInfo);
         }
 
@@ -148,9 +148,9 @@ public:
         const ErrCode errCode = wrapHandlerReturn(this, &Module::onGetAvailableFunctionBlockTypes, types);
         OPENDAQ_RETURN_IF_FAILED(errCode);
     
-        for (const auto& type : types)
+        for (const auto& type : types.getValues())
         {
-            auto componentTypePrivate = type.second.asPtr<IComponentTypePrivate>();
+            auto componentTypePrivate = type.asPtr<IComponentTypePrivate>();
             componentTypePrivate->setModuleInfo(this->moduleInfo);
         }
 
@@ -203,9 +203,9 @@ public:
         ErrCode errCode = wrapHandlerReturn(this, &Module::onGetAvailableServerTypes, types);
         OPENDAQ_RETURN_IF_FAILED(errCode);
 
-        for (const auto& type : types)
+        for (const auto& type : types.getValues())
         {
-            auto componentTypePrivate = type.second.asPtr<IComponentTypePrivate>();
+            auto componentTypePrivate = type.asPtr<IComponentTypePrivate>();
             componentTypePrivate->setModuleInfo(this->moduleInfo);
         }
 
@@ -300,9 +300,9 @@ public:
         ErrCode errCode = wrapHandlerReturn(this, &Module::onGetAvailableStreamingTypes, types);
         OPENDAQ_RETURN_IF_FAILED(errCode);
 
-        for (const auto& type : types)
+        for (const auto& type : types.getValues())
         {
-            auto componentTypePrivate = type.second.asPtr<IComponentTypePrivate>();
+            auto componentTypePrivate = type.asPtr<IComponentTypePrivate>();
             componentTypePrivate->setModuleInfo(this->moduleInfo);
         }
 

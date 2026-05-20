@@ -34,7 +34,7 @@ jobs:
         # https://docs.github.com/en/actions/using-github-hosted-runners/about-github-hosted-runners
         include:
           - name: Windows VS 2022 x64 Release
-            runner: windows-latest
+            runner: windows-2022
             cmake-generator: "Visual Studio 17 2022"
             cmake-build-type: Release
             cmake-defines: -DDAQMODULES_PARQUET_RECORDER_MODULE=ON
@@ -43,7 +43,7 @@ jobs:
             generate-python-bindings: true
             generate-csharp-bindings: true
           - name: Windows VS 2022 Win32 Release
-            runner: windows-latest
+            runner: windows-2022
             cmake-generator: "Visual Studio 17 2022"
             cmake-build-type: Release
             cmake-defines:

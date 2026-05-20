@@ -102,3 +102,110 @@ On load configuration, all non-static function blocks will be removed and recrea
 
 ### [#1037](https://github.com/openDAQ/openDAQ/pull/1037) Mandatory device types
 To enable static components, devices must include the Device Type in their Device Info objects. Modules set the value within the onGetInfo overriding method by calling IDeviceInfoConfig::setDeviceType().
+
+## API Surface Changes
+
+**3** interfaces added, **1** removed, **17** changed.
+
+### New Interfaces
+
+- `coreobjects::IPropertyObjectCore`
+- `coretypes::IDevelopmentVersionInfo`
+- `opendaq::IDeviceUpdateOptions`
+
+### Removed Interfaces
+
+- `opendaq::IFunctionBlockWrapper`
+
+### Modified Interfaces
+
+#### `coreobjects::IProperty` ([#1094](https://github.com/openDAQ/openDAQ/pull/1094), [#1097](https://github.com/openDAQ/openDAQ/pull/1097), [#1134](https://github.com/openDAQ/openDAQ/pull/1134), [#1199](https://github.com/openDAQ/openDAQ/pull/1199))
+
+- Added: `getPropertyType(PropertyType* type)`
+
+#### `coreobjects::IPropertyBuilder`
+
+- Added: `getIsIntegerValueSelection(Bool* isIntegerValueSelection)`
+- Added: `setIsIntegerValueSelection(Bool isIntegerValueSelection)`
+
+#### `coreobjects::IPropertyObject`
+
+- Added: `clearPropertyValues()`
+- Added: `setPropertySelectionValue(IString* propertyName, IBaseObject* value)`
+
+#### `coreobjects::IPropertyObjectProtected`
+
+- Added: `clearProtectedPropertyValues()`
+- Added: `setProtectedPropertySelectionValue(IString* propertyName, IBaseObject* value)`
+
+#### `opendaq::IComponent` ([#970](https://github.com/openDAQ/openDAQ/pull/970), [#981](https://github.com/openDAQ/openDAQ/pull/981), [#1094](https://github.com/openDAQ/openDAQ/pull/1094), [#1134](https://github.com/openDAQ/openDAQ/pull/1134), [#1199](https://github.com/openDAQ/openDAQ/pull/1199))
+
+- Added: `getLocalActive(Bool* localActive)`
+- Added: `getParentActive(Bool* parentActive)`
+
+#### `opendaq::IComponentPrivate`
+
+- Added: `setParentActive(Bool parentActive, Bool onUpdate)`
+
+#### `opendaq::IComponentUpdateContext`
+
+- Added: `addDeviceRemapping(IString* originalDeviceId, IString* newDeviceId)`
+- Added: `getDeviceUpdateOptionsWithLocalIdOrNull(IString* localId, IDeviceUpdateOptions** options)`
+- Added: `getInternalState(IDict** state)`
+- Added: `getUpdateParameters(IUpdateParameters** updateParameters)`
+- Added: `overrideState(IComponentUpdateContext* updateContext)`
+- Added: `remapInputPortConnections()`
+- Added: `setRootComponent(IComponent* baseComponent)`
+- Removed: `getReAddDevicesEnabled(Bool* enabled)`
+
+#### `opendaq::IFunctionBlock`
+
+- Removed factory: `createFunctionBlockWrapper(IFunctionBlock* functionBlock, Bool includeInputPortsByDefault, Bool includeSignalsByDefault, Bool includePropertiesByDefault, Bool includeFunctionBlocksByDefault) -> IFunctionBlock** obj`
+
+#### `opendaq::IInputPort`
+
+- Added: `acceptsSignals(IList* signals, IList** accepts)`
+- Added: `getPublic(Bool* isPublic)`
+- Added: `setPublic(Bool isPublic)`
+
+#### `opendaq::IInputPortConfig`
+
+- Added: `getListener(IInputPortNotifications** port)`
+
+#### `opendaq::IMirroredDevice`
+
+- Added: `getMirroredDeviceType(IDeviceType** type)`
+
+#### `opendaq::IMirroredDeviceConfig`
+
+- Added: `setMirroredDeviceType(IDeviceType* type)`
+
+#### `opendaq::IModuleAuthenticator`
+
+- Added: `setLogger(ILogger* logger)`
+
+#### `opendaq::IMultiReader`
+
+- Added: `addInput(IComponent* input)`
+- Added: `getInputUsed(IString* id, Bool* isUsed)`
+- Added: `removeInput(IString* id)`
+- Added: `setInputUsed(IString* id, Bool isUsed)`
+
+#### `opendaq::IMultiReaderBuilder`
+
+- Added: `getInputPortNotificationMethods(IList* * notificationMethods)`
+- Removed: `getInputPortNotificationMethods(IList** notificationMethods)`
+
+#### `opendaq::IServer` ([#1153](https://github.com/openDAQ/openDAQ/pull/1153))
+
+- Added: `disableDiscovery()`
+
+#### `opendaq::IUpdateParameters`
+
+- Added: `getDeviceUpdateOptions(IDeviceUpdateOptions** options)`
+- Added: `getRemoveUnusedDevices(Bool* remove)`
+- Added: `setDeviceUpdateOptions(IDeviceUpdateOptions* options)`
+- Added: `setRemoveUnusedDevices(Bool remove)`
+- Removed: `getReAddDevicesEnabled(Bool* enabled)`
+- Removed: `setReAddDevicesEnabled(Bool enabled)`
+

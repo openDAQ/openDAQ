@@ -1717,7 +1717,6 @@ IIterator* ObjectPtr<T>::createStartIteratorInterface() const
     errCode = iterable->createStartIterator(&iterator);
     checkErrorInfo(errCode);
 
-    iterator->moveNext();
     return iterator;
 }
 
@@ -1742,7 +1741,6 @@ IIterator* ObjectPtr<T>::createEndIteratorInterface() const
     errCode = iterable->createEndIterator(&iterator);
     checkErrorInfo(errCode);
 
-    iterator->moveNext();
     return iterator;
 }
 

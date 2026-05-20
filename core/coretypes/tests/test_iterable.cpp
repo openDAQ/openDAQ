@@ -26,6 +26,19 @@ TEST_F(IterableTest, IterateListDirect)
     ASSERT_THAT(list, testing::ElementsAre(1, 2, 3, 4));
 }
 
+TEST_F(IterableTest, IterateListWithNull)
+{
+    auto list = List<Int>(1, 2, nullptr, 4);
+    size_t count = 0;
+    for (const auto& element : list)
+    {
+        (void) element;
+        count++;
+    }
+
+    ASSERT_EQ(count, 4u);
+}
+
 TEST_F(IterableTest, IterateDict)
 {
     auto dict = Dict<IString, IInteger>();

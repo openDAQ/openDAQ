@@ -44,17 +44,25 @@ public:
 
 protected:
     ObjectPtr<IIterator> iterator;
+    bool isEnd {true};
 };
 
 template <class U>
 NativeIterator<U>::NativeIterator(IIterator*&& iterator)
     : iterator(std::move(iterator))
 {
+    if (this->iterator.assigned())
+    {
+        const auto res = this->iterator->moveNext();
+        checkErrorInfo(res);
+        isEnd = res == OPENDAQ_NO_MORE_ITEMS;
+    }
 }
 
 template <class U>
 NativeIterator<U>::NativeIterator(NativeIterator&& it) noexcept
     : iterator(it.iterator)
+    , isEnd(it.isEnd)
 {
     it.iterator = nullptr;
 }
@@ -62,6 +70,7 @@ NativeIterator<U>::NativeIterator(NativeIterator&& it) noexcept
 template <class U>
 NativeIterator<U>::NativeIterator(const NativeIterator& it)
     : iterator(it.iterator)
+    , isEnd(it.isEnd)
 {
 }
 
@@ -71,6 +80,7 @@ NativeIterator<U>& NativeIterator<U>::operator=(const NativeIterator<U>& other)
     if (this != &other)  // not a self-assignment
     {
         iterator = other.iterator;
+        isEnd = other.isEnd;
     }
     return *this;
 }
@@ -80,6 +90,8 @@ NativeIterator<U>& NativeIterator<U>::operator++()
 {
     const auto res = iterator->moveNext();
     checkErrorInfo(res);
+    if (res == OPENDAQ_NO_MORE_ITEMS)
+        isEnd = true;
 
     return *this;
 }
@@ -87,6 +99,12 @@ NativeIterator<U>& NativeIterator<U>::operator++()
 template <class U>
 bool NativeIterator<U>::operator!=(const NativeIterator<U>& other) const
 {
+    if (this->isEnd && other.isEnd)
+        return false;
+
+    if (this->isEnd != other.isEnd)
+        return true;
+
     Bool eq{false};
     const ErrCode errCode = iterator->equals(other.iterator, &eq);
     checkErrorInfo(errCode);

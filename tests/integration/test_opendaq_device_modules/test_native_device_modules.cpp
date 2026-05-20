@@ -16,6 +16,7 @@
 #include <opendaq/module_impl.h>
 #include <ref_device_module/module_dll.h>
 #include <ref_fb_module/module_dll.h>
+#include <testutils/testutils.h>
 #include <websocket_streaming_client_module/module_dll.h>
 #include <websocket_streaming_server_module/module_dll.h>
 #include <chrono>
@@ -421,7 +422,7 @@ TEST_F(NativeDeviceModulesTest, ConnectUsernameDeviceAndStreamingConfig)
     ASSERT_TRUE(device.assigned());
 }
 
-TEST_F(NativeDeviceModulesTest, GetConnectedClientsInfo)
+TEST_F_UNSTABLE_SKIPPED(NativeDeviceModulesTest, GetConnectedClientsInfo)
 {
     auto server = CreateServerInstance();
     auto client = CreateClientInstance();

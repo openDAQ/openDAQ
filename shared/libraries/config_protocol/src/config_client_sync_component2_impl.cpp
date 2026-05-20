@@ -77,8 +77,7 @@ BaseObjectPtr ConfigClientBaseSyncComponent2Impl<Impl>::DeserializeSyncComponent
                                                                      ctx->getRemoteGlobalId(),
                                                                      deserializeContext.getContext(),
                                                                      deserializeContext.getParent(),
-                                                                     deserializeContext.getLocalId(),
-                                                                     className);
+                                                                     deserializeContext.getLocalId());
         });
 }
 

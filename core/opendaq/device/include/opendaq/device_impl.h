@@ -1243,7 +1243,7 @@ ErrCode GenericDevice<TInterface, Interfaces...>::setOperationModeRecursive(Oper
     ErrCode errCode = setOperationMode(modeType);
     OPENDAQ_RETURN_IF_FAILED(errCode);
 
-    for (const DevicePtr & dev: this->devices.getItems())
+    for (const DevicePtr & dev: this->devices.getItems(search::Any()))
     {
         errCode = dev->setOperationModeRecursive(modeType);
         OPENDAQ_RETURN_IF_FAILED(errCode);

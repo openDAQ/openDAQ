@@ -29,6 +29,7 @@ set(SRC_Cpp
     src/py_ratio.cpp
     src/py_complex_number.cpp
     src/py_number.cpp
+    src/py_freezable.cpp
     #
     src/py_iterable.cpp
     src/py_iterator.cpp

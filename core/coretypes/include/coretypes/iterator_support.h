@@ -31,6 +31,7 @@ public:
     using reference = U&;
     using const_reference = const U&;
 
+    NativeIterator();
     NativeIterator(IIterator*&& iterator);
     NativeIterator(NativeIterator&& it) noexcept;
     NativeIterator(const NativeIterator& it);
@@ -46,6 +47,13 @@ protected:
     ObjectPtr<IIterator> iterator;
     bool isEnd {true};
 };
+
+template <class U>
+NativeIterator<U>::NativeIterator()
+    : iterator(nullptr)
+    , isEnd(true)
+{
+}
 
 template <class U>
 NativeIterator<U>::NativeIterator(IIterator*&& iterator)

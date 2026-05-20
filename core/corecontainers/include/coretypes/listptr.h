@@ -485,7 +485,7 @@ NativeIterator<TValuePtr> ListObjectPtr<T, U, TValuePtr>::begin() const
 template <class T, class U, class TValuePtr>
 NativeIterator<TValuePtr> ListObjectPtr<T, U, TValuePtr>::end() const
 {
-    return this->createEndIteratorInterface();
+    return {};
 }
 
 template <class T, class TValueInterface, class TValuePtr>

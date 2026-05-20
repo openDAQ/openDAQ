@@ -549,7 +549,7 @@ NativeIterator<std::pair<KeyPtr, ValuePtr>> DictObjectPtr<T, KeyT, ValueT, KeyPt
 template <class T, class KeyT, class ValueT, class KeyPtr, class ValuePtr>
 NativeIterator<std::pair<KeyPtr, ValuePtr>> DictObjectPtr<T, KeyT, ValueT, KeyPtr, ValuePtr>::end() const
 {
-    return this->createEndIteratorInterface();
+    return {};
 }
 
 END_NAMESPACE_OPENDAQ

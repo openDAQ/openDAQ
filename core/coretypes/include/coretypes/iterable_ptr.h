@@ -92,8 +92,7 @@ NativeIterator<TValuePtr> IterablePtr<U, TValuePtr>::createStartIteratorInterfac
 template <class U, class TValuePtr>
 NativeIterator<TValuePtr> IterablePtr<U, TValuePtr>::createEndIteratorInterface() const
 {
-    IIterator* iterator = ObjectPtr<IIterable>::createEndIteratorInterface();
-    return NativeIterator<TValuePtr>(std::move(iterator));
+    return {};
 }
 
 template <class U, class TValuePtr>

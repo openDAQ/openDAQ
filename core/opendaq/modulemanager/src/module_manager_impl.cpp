@@ -493,7 +493,7 @@ void ModuleManagerImpl::checkNetworkSettings(ListPtr<IDeviceInfo>& list)
         }
     }
 
-#if defined(__linux__)
+#if defined(__linux__) || defined(__APPLE__)
     if (geteuid() == 0)
 #endif
     {
@@ -554,11 +554,14 @@ void ModuleManagerImpl::setAddressesReachable(const std::map<std::string, bool>&
                 const auto addressType = addressInfo.getType();
 
                 // Ping for IPv4 addresses is available, but not for IPv6
-                if (addr.count(address) && addressType == "IPv4")
+                if (addressType == "IPv4")
                 {
-                    AddressReachabilityStatus reachability = addr.at(address)
-                                                                 ? AddressReachabilityStatus::Reachable
-                                                                 : AddressReachabilityStatus::Unreachable;
+                    AddressReachabilityStatus reachability = AddressReachabilityStatus::Unknown;
+                    if (const auto it = addr.find(address.toStdString()); it != addr.end())
+                    {
+                        reachability = it->second ? AddressReachabilityStatus::Reachable 
+                                                        : AddressReachabilityStatus::Unreachable;
+                    }
                     addressInfo.asPtr<IAddressInfoPrivate>().setReachabilityStatusPrivate(reachability);
                 }
                 else if (addressType == "IPv6")

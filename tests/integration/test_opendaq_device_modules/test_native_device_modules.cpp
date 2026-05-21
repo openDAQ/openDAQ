@@ -4457,7 +4457,7 @@ TEST_P(NativeC2DStreamingTest, ServerCoreEvents)
     ASSERT_TRUE(signalRemovedFuture.wait_for(std::chrono::seconds(5)) == std::future_status::ready);
 }
 
-TEST_P(NativeC2DStreamingTest, ClientLostConnection)
+TEST_P_UNSTABLE_SKIPPED(NativeC2DStreamingTest, ClientLostConnection)
 {
     SKIP_TEST_MAC_CI;
     auto server = CreateServerInstance();

@@ -272,6 +272,7 @@ void NativeStreamingServerImpl::stopProcessingOperations()
 
 void NativeStreamingServerImpl::stopServerInternal()
 {
+    stopReading();
     if (serverStopped)
         return;
 
@@ -296,7 +297,6 @@ void NativeStreamingServerImpl::stopServerInternal()
     registeredClientIds.clear();
     disconnectedClientIds.clear();
 
-    stopReading();
     serverHandler->stopServer();
     stopTransportOperations();
     stopProcessingOperations();

@@ -27,6 +27,7 @@ class MdnsDiscoveryServerImpl : public ImplementationOf<IDiscoveryServer>
 {
 public:
     MdnsDiscoveryServerImpl(const LoggerPtr& logger);
+    MdnsDiscoveryServerImpl(const LoggerPtr& logger, const DictPtr<IString, IBaseObject>& options);
 
     ErrCode INTERFACE_FUNC registerService(IString* id, IPropertyObject* config, IDeviceInfo* deviceInfo) override;
     ErrCode INTERFACE_FUNC unregisterService(IString* id) override;

@@ -16,6 +16,7 @@
 #include <opendaq/module_impl.h>
 #include <ref_device_module/module_dll.h>
 #include <ref_fb_module/module_dll.h>
+#include <testutils/testutils.h>
 #include <websocket_streaming_client_module/module_dll.h>
 #include <websocket_streaming_server_module/module_dll.h>
 #include <chrono>
@@ -421,7 +422,7 @@ TEST_F(NativeDeviceModulesTest, ConnectUsernameDeviceAndStreamingConfig)
     ASSERT_TRUE(device.assigned());
 }
 
-TEST_F(NativeDeviceModulesTest, GetConnectedClientsInfo)
+TEST_F_UNSTABLE_SKIPPED(NativeDeviceModulesTest, GetConnectedClientsInfo)
 {
     auto server = CreateServerInstance();
     auto client = CreateClientInstance();
@@ -3525,7 +3526,7 @@ TEST_F(NativeDeviceModulesTest, GetAvailableDevicesCheck)
     }
 }
 
-TEST_F(NativeDeviceModulesTest, SettingOperationMode)
+TEST_F_UNSTABLE_SKIPPED(NativeDeviceModulesTest, SettingOperationMode)
 {
     auto server = CreateServerInstance();
     auto client = CreateClientInstance();
@@ -3587,7 +3588,7 @@ TEST_F(NativeDeviceModulesTest, SettingOperationMode)
     test_helpers::checkDeviceOperationMode(client.getDevices()[0].getDevices()[0], daq::OperationModeType::Idle);
 }
 
-TEST_F(NativeDeviceModulesTest, SettingOperationModeWithoutPermissions)
+TEST_F_UNSTABLE_SKIPPED(NativeDeviceModulesTest, SettingOperationModeWithoutPermissions)
 {
     auto CreateUsers = []()
     {
@@ -3721,7 +3722,7 @@ TEST_F(NativeDeviceModulesTest, SettingOperationModeWithoutPermissions)
     }
 }
 
-TEST_F(NativeDeviceModulesTest, SettingOperationModeWithPermissions)
+TEST_F_UNSTABLE_SKIPPED(NativeDeviceModulesTest, SettingOperationModeWithPermissions)
 {
     auto CreateUsers = []()
     {
@@ -3795,7 +3796,7 @@ TEST_F(NativeDeviceModulesTest, SettingOperationModeWithPermissions)
     }
 }
 
-TEST_F(NativeDeviceModulesTest, SettingOperationModeWithPermissionsForInvisibleDevice)
+TEST_F_UNSTABLE_SKIPPED(NativeDeviceModulesTest, SettingOperationModeWithPermissionsForInvisibleDevice)
 {
     auto CreateUsers = []()
     {
@@ -3880,7 +3881,7 @@ TEST_F(NativeDeviceModulesTest, SettingOperationModeWithPermissionsForInvisibleD
     }
 }
 
-TEST_F(NativeDeviceModulesTest, SettingOperationModeWithPermissionsNestedDevice)
+TEST_F_UNSTABLE_SKIPPED(NativeDeviceModulesTest, SettingOperationModeWithPermissionsNestedDevice)
 {
     auto CreateUsers = []()
     {

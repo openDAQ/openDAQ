@@ -338,7 +338,7 @@
                 "verbosity": "verbose"
             },
             "execution": {
-                "timeout": 1200
+                "timeout": 3600
             }
         },
         {

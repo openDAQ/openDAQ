@@ -164,7 +164,6 @@
                 "DAQMODULES_OPENDAQ_CLIENT_MODULE": true,
                 "DAQMODULES_OPENDAQ_SERVER_MODULE": true,
                 "DAQMODULES_BASIC_CSV_RECORDER_MODULE": true,
-                "DAQMODULES_LT_LEGACY_MODULES": true,
                 "OPENDAQ_ENABLE_OPCUA": true,
                 "OPENDAQ_ENABLE_WEBSOCKET_STREAMING": true,
                 "OPENDAQ_ENABLE_NATIVE_STREAMING": true

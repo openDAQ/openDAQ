@@ -134,6 +134,7 @@ function(create_component_source_groups_${BASE_NAME})
         ${SDK_HEADERS_DIR}/multi_reader_builder_impl.h
         ${SDK_HEADERS_DIR}/multi_reader.h
         ${SDK_HEADERS_DIR}/signal_reader.h
+        ${SDK_HEADERS_DIR}/queue_reader.h
         ${SDK_HEADERS_DIR}/multi_reader_impl.h
         ${SDK_HEADERS_DIR}/multi_typed_reader.h
         ${SDK_HEADERS_DIR}/reader_domain_info.h
@@ -141,6 +142,7 @@ function(create_component_source_groups_${BASE_NAME})
         ${SDK_SRC_DIR}/multi_reader_impl.cpp
         ${SDK_SRC_DIR}/multi_reader_builder_impl.cpp
         ${SDK_SRC_DIR}/signal_reader.cpp
+        ${SDK_SRC_DIR}/queue_reader.cpp
     )
 endfunction()
 
@@ -170,6 +172,7 @@ set(SRC_PrivateHeaders_Component
     multi_reader_builder_impl.h
     multi_typed_reader.h
     signal_reader.h
+    queue_reader.h
     reader_status_impl.h
     reader_impl.h
     PARENT_SCOPE
@@ -190,6 +193,7 @@ set(SRC_Cpp_Component
     multi_reader_impl.cpp
     multi_reader_builder_impl.cpp
     signal_reader.cpp
+    queue_reader.cpp
     reader.natvis
     PARENT_SCOPE
 )

@@ -128,6 +128,9 @@ protected:
 
 TEST_P(StreamingTest, SignalDescriptorEvents)
 {
+    if (std::get<1>(GetParam()).find("daq.lt://") == 0)
+        GTEST_SKIP();
+
     const size_t packetsToGenerate = 5;
     const size_t initialEventPackets = 1;
     const size_t packetsPerChange = 2;  // one triggered by data signal and one triggered by domain signal
@@ -184,6 +187,9 @@ TEST_P(StreamingTest, SignalDescriptorEvents)
 
 TEST_P(StreamingTest, DataPackets)
 {
+    if (std::get<1>(GetParam()).find("daq.lt://") == 0)
+        GTEST_SKIP();
+
     const size_t packetsToGenerate = 10;
 
     // Expect to receive all data packets,
@@ -263,6 +269,9 @@ TEST_P(StreamingTest, LastValue)
 
 TEST_P(StreamingTest, SetNullDescriptor)
 {
+    if (std::get<1>(GetParam()).find("daq.lt://") == 0)
+        GTEST_SKIP();
+
     if (!usingLTPseudoDevice)
     {
         const size_t packetsToRead = 2;
@@ -355,7 +364,8 @@ TEST_P(StreamingTest, SetNullDescriptor)
 
 TEST_P(StreamingTest, ChangedDataDescriptorBeforeSubscribe)
 {
-    if (std::get<1>(GetParam()).find("daq.nd://") == 0)
+    if (std::get<1>(GetParam()).find("daq.nd://") == 0 ||
+        std::get<1>(GetParam()).find("daq.lt://") == 0)
     {
         GTEST_SKIP();
     }

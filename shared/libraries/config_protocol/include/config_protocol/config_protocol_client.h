@@ -86,7 +86,6 @@ public:
     void lock(const std::string& globalId);
     void unlock(const std::string& globalId);
     void forceUnlock(const std::string& globalId);
-    bool isLocked(const std::string& globalId);
     void beginUpdate(const std::string& globalId, const std::string& path = "");
     void endUpdate(const std::string& globalId, const std::string& path = "", const ListPtr<IDict>& props = nullptr);
     void clearPropertyValues(const std::string& globalId, const std::string& path = "");

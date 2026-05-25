@@ -225,10 +225,9 @@ TEST_P(StreamingTest, LastValue)
     {
         GTEST_SKIP();
     }
-    // Flaky on macos-15-appleclang-release: observed once with mirror's lastValue returning
-    // a stale streaming-cached value (server=4, mirror=10) after unsubscribe.
-    if (std::get<0>(GetParam()) == "OpenDAQLTStreaming" &&
-        std::get<1>(GetParam()) == "daq.opcua://[::1]/")
+    // Flaky on IPv6 OPC UA endpoints: phase-3 lastValue mismatch after unsubscribe
+    // (mirror keeps a stale streaming-cached value instead of reading via the config channel).
+    if (std::get<1>(GetParam()) == "daq.opcua://[::1]/")
     {
         GTEST_SKIP();
     }

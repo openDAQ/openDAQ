@@ -68,10 +68,7 @@ size_t MdnsDiscoveredService::updateConnectedClientsAndGetPropsCount() const
     using namespace discovery_common;
 
     const PropertyObjectPtr connectedClientsInfo = deviceInfo.getPropertyValue("activeClientConnections");
-    if (connectedClientsInfo.getAllProperties().getCount() != 0)
-        connectedClientsProperties = DiscoveryUtils::connectedClientsInfoToTxt(connectedClientsInfo);
-    else
-        connectedClientsProperties = TxtProperties();
+    connectedClientsProperties = DiscoveryUtils::connectedClientsInfoToTxt(connectedClientsInfo);
 
     return properties.size() + dynamicProperties.size() + connectedClientsProperties.size();
 }
@@ -135,7 +132,13 @@ std::string MDNSDiscoveryServer::getHostname()
     return hostname;
 }
     
-MDNSDiscoveryServer::MDNSDiscoveryServer(void)
+MDNSDiscoveryServer::MDNSDiscoveryServer(const DictPtr<IString, IBaseObject>& options)
+    : options(options)
+    , discoveryRatelimitEnabled(static_cast<bool>(options.getOrDefault("EnableDiscoveryRateLimit", true)))
+    , singleQuerierRateLimitPerSecond(static_cast<size_t>(options.getOrDefault("SingleQuerierRateLimitPerSecond", 25)))
+    , maxActiveQueriers(static_cast<uint32_t>(options.getOrDefault("MaxActiveQueriers", 150)))
+    , maxQueryCountPerSecond(std::max(static_cast<size_t>(options.getOrDefault("MaxQueryCountPerSecond", 75)), singleQuerierRateLimitPerSecond))
+    , querierBucketsTable(maxActiveQueriers)
 {
 #ifdef _WIN32
     WORD versionWanted = MAKEWORD(1, 1);
@@ -894,8 +897,164 @@ void MDNSDiscoveryServer::sendIpConfigResponse(int sock,
     populateTxtRecords(recordName, resProps, txtRecords);
 
     std::vector<char>sendBuffer(2048);
-    // TODO: Add interface index
-    non_mdns_query_send(sock, sendBuffer.data(), sendBuffer.size(), query_id, opcode, 0x1, 0, 0, txtRecords.data(), txtRecords.size(), 0, 0, 0, 0, unicast ? 0x1 : 0x0, to, addrlen, 0);
+
+    unsigned int if_index = 0;
+    AdapterInfo adapter;
+    if (getAdapter(sock, adapter))
+        if_index = adapter.ipv6ifindex;
+    non_mdns_query_send(sock, sendBuffer.data(), sendBuffer.size(), query_id, opcode, 0x1, 0, 0, txtRecords.data(), txtRecords.size(), 0, 0, 0, 0, unicast ? 0x1 : 0x0, to, addrlen, if_index);
+}
+
+static uint32_t xxHash32(const UniqueQuerier& q)
+{
+    uint8_t buf[sizeof(q.addr.ss_family) + sizeof(sockaddr_in6)];
+    size_t nBytes = 0;
+
+    memcpy(buf + nBytes, &q.addr.ss_family, sizeof(q.addr.ss_family));
+    nBytes += sizeof(q.addr.ss_family);
+
+    if (q.addr.ss_family == AF_INET)
+    {
+        auto* addr = reinterpret_cast<const sockaddr_in*>(&q.addr);
+
+        memcpy(buf + nBytes, &addr->sin_addr, sizeof(addr->sin_addr));
+        nBytes += sizeof(addr->sin_addr);
+
+        memcpy(buf + nBytes, &addr->sin_port, sizeof(addr->sin_port));
+        nBytes += sizeof(addr->sin_port);
+    }
+    else if (q.addr.ss_family == AF_INET6)
+    {
+        auto* addr = reinterpret_cast<const sockaddr_in6*>(&q.addr);
+
+        memcpy(buf + nBytes, &addr->sin6_addr, sizeof(addr->sin6_addr));
+        nBytes += sizeof(addr->sin6_addr);
+
+        memcpy(buf + nBytes, &addr->sin6_port, sizeof(addr->sin6_port));
+        nBytes += sizeof(addr->sin6_port);
+    }
+
+    return XXH32(buf, nBytes, 123456789);
+}
+
+static inline uint32_t mulHigh32(uint32_t a, uint32_t b)
+{
+    uint32_t a_hi = a >> 16;
+    uint32_t a_lo = a & 0xFFFF;
+    uint32_t b_hi = b >> 16;
+    uint32_t b_lo = b & 0xFFFF;
+
+    uint32_t p0 = a_lo * b_lo;
+    uint32_t p1 = a_lo * b_hi;
+    uint32_t p2 = a_hi * b_lo;
+    uint32_t p3 = a_hi * b_hi;
+
+    uint32_t carry = (p0 >> 16) + (p1 & 0xFFFF) + (p2 & 0xFFFF);
+
+    return p3 + (p1 >> 16) + (p2 >> 16) + (carry >> 16);
+}
+
+static inline uint32_t hashToIndex(uint32_t hash, uint32_t indexLimit)
+{
+    uint32_t x = hash;
+
+    // extra bit mixing before index reduction
+    x ^= x >> 16;
+    x *= 0x7feb352d;
+    x ^= x >> 15;
+    x *= 0x846ca68b;
+    x ^= x >> 16;
+
+    return mulHigh32(x, indexLimit);
+}
+
+bool MDNSDiscoveryServer::allowQuery(int sock, const sockaddr* from)
+{
+    sockaddr_storage storage{};
+    if (from->sa_family == AF_INET)
+        std::memcpy(&storage, from, sizeof(sockaddr_in));
+    else
+        std::memcpy(&storage, from, sizeof(sockaddr_in6));
+
+    UniqueQuerier querier{storage};
+    const auto now = std::chrono::steady_clock::now();
+
+    const uint32_t hash = xxHash32(querier);
+    const uint32_t bucketIndex = hashToIndex(hash, maxActiveQueriers);
+
+    auto lock = std::lock_guard(rateLimitingSync);
+    auto& bucketSlot = querierBucketsTable[bucketIndex];
+
+    // Empty slot
+    if (!bucketSlot.has_value())
+    {
+        bucketSlot.emplace(
+            querier,
+            hash,
+            maxQueryCountPerSecond,
+            singleQuerierRateLimitPerSecond,
+            now);
+        return true;
+    }
+
+    auto& bucket = *bucketSlot;
+    // Different querier mapped to same slot: replace stale bucket or share bucket
+    if (!(bucket.primaryQuerierHash == hash && bucket.primaryQuerier == querier))
+    {
+        // replace stale bucket
+        if (isStaleBucket(bucket, now))
+        {
+            bucketSlot.emplace(
+                querier,
+                hash,
+                maxQueryCountPerSecond,
+                singleQuerierRateLimitPerSecond,
+                now);
+
+            return true;
+        }
+    }
+
+    refillTokens(bucket, now);
+    return tryConsumeToken(bucket, now);
+}
+
+void MDNSDiscoveryServer::refillTokens(QuerierBucket& bucket, std::chrono::steady_clock::time_point now)
+{
+    const std::chrono::steady_clock::time_point lastQueried = bucket.lastQueried;
+    const auto elapsed = now - lastQueried;
+    const auto elapsedSeconds = std::chrono::duration_cast<std::chrono::seconds>(elapsed).count();
+
+    if (elapsedSeconds == 0)
+        return;
+
+    const size_t refillAmount = elapsedSeconds * singleQuerierRateLimitPerSecond;
+    const size_t currentTokens = bucket.tokens;
+    const size_t newTokenCount = std::min(currentTokens + refillAmount, maxQueryCountPerSecond);
+
+    bucket.tokens = newTokenCount;
+    bucket.lastQueried = now;
+}
+
+bool MDNSDiscoveryServer::tryConsumeToken(QuerierBucket& bucket, std::chrono::steady_clock::time_point now)
+{
+    auto currentTokens = bucket.tokens;
+
+    if (currentTokens == 0)
+        return false;
+
+    bucket.tokens = currentTokens - 1;
+    bucket.lastQueried = now;
+
+    return true;
+}
+
+bool MDNSDiscoveryServer::isStaleBucket(const QuerierBucket& bucket, std::chrono::steady_clock::time_point now) const
+{
+    constexpr auto bucketTimeout = std::chrono::seconds(10);
+    std::chrono::steady_clock::time_point lastQueried = bucket.lastQueried;
+    const auto inactiveDuration = now - lastQueried;
+    return inactiveDuration > bucketTimeout;
 }
 
 int MDNSDiscoveryServer::nonDiscoveryCallback(
@@ -972,6 +1131,9 @@ int MDNSDiscoveryServer::discoveryCallback(
     size_t size, size_t name_offset, size_t name_length, size_t rdata_offset,
     size_t rdata_length, void* user_data)
 {
+    if (discoveryRatelimitEnabled && !allowQuery(sock, from))
+        return 0;
+
     if (entry != MDNS_ENTRYTYPE_QUESTION)
         return 0;
 
@@ -1083,5 +1245,40 @@ int MDNSDiscoveryServer::discoveryCallback(
     return 0;
 }
 
+bool UniqueQuerier::operator==(const UniqueQuerier& other) const noexcept
+{
+    if (addr.ss_family != other.addr.ss_family)
+        return false;
+
+    if (addr.ss_family == AF_INET)
+    {
+        auto* aIpV4 = reinterpret_cast<const sockaddr_in*>(&addr);
+        auto* bIpV4 = reinterpret_cast<const sockaddr_in*>(&other.addr);
+
+        return aIpV4->sin_port == bIpV4->sin_port &&
+               aIpV4->sin_addr.s_addr == bIpV4->sin_addr.s_addr;
+    }
+
+    if (addr.ss_family == AF_INET6)
+    {
+        auto* aIpV6 = reinterpret_cast<const sockaddr_in6*>(&addr);
+        auto* bIpV6 = reinterpret_cast<const sockaddr_in6*>(&other.addr);
+
+        return aIpV6->sin6_port == bIpV6->sin6_port &&
+               std::memcmp(&aIpV6->sin6_addr, &bIpV6->sin6_addr, sizeof(in6_addr)) == 0;
+    }
+
+    return false;
+}
+
+QuerierBucket::QuerierBucket(const UniqueQuerier& querier, uint32_t hashFingerprint, size_t maxBurst, size_t refillRate, std::chrono::steady_clock::time_point lastQueried)
+    : primaryQuerier(querier)
+    , primaryQuerierHash(hashFingerprint)
+    , tokens(maxBurst)
+    , maxBurst(maxBurst)
+    , refillRate(refillRate)
+    , lastQueried(lastQueried)
+{
+}
 
 END_NAMESPACE_DISCOVERY_SERVICE

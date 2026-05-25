@@ -35,6 +35,7 @@
 - [#1029](https://github.com/openDAQ/openDAQ/pull/1029) Fix python binding for iterators to enable list comprehensions.
 - [#1035](https://github.com/openDAQ/openDAQ/pull/1035) Fix showing description metadata of properties in Python GUI app
 - [#1081](https://github.com/openDAQ/openDAQ/pull/1081) Adds device load options to the Python GUI.
+- [#1142](https://github.com/openDAQ/openDAQ/pull/1142) Improve properties treeview UX in Python GUI demo app: float formatting, method Run buttons and cleaner object display.
 
 ## Bug fixes
 
@@ -62,9 +63,18 @@
 - [#1052](https://github.com/openDAQ/openDAQ/pull/1052) Renderer FB labels take into account reference domain offset from ReferenceDomainInfo.
 - [#1054](https://github.com/openDAQ/openDAQ/pull/1054) Add validation default value items type for List And Dict Property
 - [#1059](https://github.com/openDAQ/openDAQ/pull/1059) Prevent post scaling in descriptors with vector/matrix dimensions.
+- [#1206](https://github.com/openDAQ/openDAQ/pull/1206) Fix setting operation mode recursively to apply to hidden child devices, not only visible ones.
+- [#1197](https://github.com/openDAQ/openDAQ/pull/1197) Propagate parent active state on configuration update.
+- [#1177](https://github.com/openDAQ/openDAQ/pull/1177) Reset missing attributes to their default values during update.
+- [#1169](https://github.com/openDAQ/openDAQ/pull/1169) Fix active not being set via native protocol when parent active is false.
+- [#1160](https://github.com/openDAQ/openDAQ/pull/1160) Align behaviour between the ObjectProperty and ObjectPropertyBuilder factories.
+- [#1111](https://github.com/openDAQ/openDAQ/pull/1111) Reset last value calculation values on unsubscribe completion.
+- [#1040](https://github.com/openDAQ/openDAQ/pull/1040) Check for cyclic references when connecting input ports; cyclic connections are now rejected.
 
 ## Misc
 
+
+- [#1120](https://github.com/openDAQ/openDAQ/pull/1120) Change reachability status to a sparse selection property type.
 - [#1125](https://github.com/openDAQ/openDAQ/pull/1125) Removing all function blocks before load 
 - [#1109](https://github.com/openDAQ/openDAQ/pull/1109) New check version dependencies mechanism for modules
 - [#1090](https://github.com/openDAQ/openDAQ/pull/1090) Reduce unnecessary RPC calls and signal updates
@@ -104,108 +114,157 @@ On load configuration, all non-static function blocks will be removed and recrea
 To enable static components, devices must include the Device Type in their Device Info objects. Modules set the value within the onGetInfo overriding method by calling IDeviceInfoConfig::setDeviceType().
 
 ## API Surface Changes
+**3** added, **1** removed, **17** changed.
 
-**3** interfaces added, **1** removed, **17** changed.
+### Interfaces
+```diff
++ IPropertyObjectCore
++ IDevelopmentVersionInfo
++ IDeviceUpdateOptions
+- IFunctionBlockWrapper
+```
 
 ### New Interfaces
-
-- `coreobjects::IPropertyObjectCore`
-- `coretypes::IDevelopmentVersionInfo`
-- `opendaq::IDeviceUpdateOptions`
+#### `IPropertyObjectCore`
+```diff
++ [factory] createPropertyObjectCore() -> IPropertyObjectCore** obj
++ getRecursiveLockGuard(ILockGuard** lockGuard, IMutex* sync)
++ getLockGuard(ILockGuard** lockGuard, IMutex* sync)
+```
+#### `IDevelopmentVersionInfo`
+```diff
++ [factory] createDevelopmentVersionInfo(SizeT major, SizeT minor, SizeT patch, SizeT tweak, IString* branch, IString* hash) -> IDevelopmentVersionInfo** obj
++ getMajor(SizeT* major)
++ getMinor(SizeT* minor)
++ getPatch(SizeT* patch)
++ getTweak(SizeT* tweak)
++ getBranchName(IString** branchName)
++ getHashDigest(IString** hash)
+```
+#### `IDeviceUpdateOptions`
+```diff
++ [factory] createDeviceUpdateOptions(IString* setupString) -> IDeviceUpdateOptions** obj
++ getLocalId(IString** localId)
++ getManufacturer(IString** manufacturer)
++ getSerialNumber(IString** serialNumber)
++ getConnectionString(IString** connectionString)
++ setNewManufacturer(IString* manufacturer)
++ getNewManufacturer(IString** manufacturer)
++ setNewSerialNumber(IString* serialNumber)
++ getNewSerialNumber(IString** serialNumber)
++ setNewConnectionString(IString* connectionString)
++ getNewConnectionString(IString** connectionString)
++ getUpdateMode(DeviceUpdateMode* mode)
++ setUpdateMode(DeviceUpdateMode mode)
++ getChildDeviceOptions(IList** childDeviceOptions)
+```
 
 ### Removed Interfaces
-
-- `opendaq::IFunctionBlockWrapper`
+#### `IFunctionBlockWrapper`
+```diff
+- includeInputPort(IString* inputPortName)
+- excludeInputPort(IString* inputPortName)
+- includeSignal(IString* signalLocalId)
+- excludeSignal(IString* signalLocalId)
+- includeProperty(IString* propertyName)
+- excludeProperty(IString* propertyName)
+- includeFunctionBlock(IString* functionBlockLocalId)
+- excludeFunctionBlock(IString* functionBlockLocalId)
+- setPropertyCoercer(IString* propertyName, ICoercer* coercer)
+- setPropertyValidator(IString* propertyName, IValidator* validator)
+- setPropertySelectionValues(IString* propertyName, IList* enumValues)
+- getWrappedFunctionBlock(IFunctionBlock** functionBlock)
+```
 
 ### Modified Interfaces
-
-#### `coreobjects::IProperty` ([#1094](https://github.com/openDAQ/openDAQ/pull/1094), [#1097](https://github.com/openDAQ/openDAQ/pull/1097), [#1134](https://github.com/openDAQ/openDAQ/pull/1134), [#1199](https://github.com/openDAQ/openDAQ/pull/1199))
-
-- Added: `getPropertyType(PropertyType* type)`
-
-#### `coreobjects::IPropertyBuilder`
-
-- Added: `getIsIntegerValueSelection(Bool* isIntegerValueSelection)`
-- Added: `setIsIntegerValueSelection(Bool isIntegerValueSelection)`
-
-#### `coreobjects::IPropertyObject`
-
-- Added: `clearPropertyValues()`
-- Added: `setPropertySelectionValue(IString* propertyName, IBaseObject* value)`
-
-#### `coreobjects::IPropertyObjectProtected`
-
-- Added: `clearProtectedPropertyValues()`
-- Added: `setProtectedPropertySelectionValue(IString* propertyName, IBaseObject* value)`
-
-#### `opendaq::IComponent` ([#970](https://github.com/openDAQ/openDAQ/pull/970), [#981](https://github.com/openDAQ/openDAQ/pull/981), [#1094](https://github.com/openDAQ/openDAQ/pull/1094), [#1134](https://github.com/openDAQ/openDAQ/pull/1134), [#1199](https://github.com/openDAQ/openDAQ/pull/1199))
-
-- Added: `getLocalActive(Bool* localActive)`
-- Added: `getParentActive(Bool* parentActive)`
-
-#### `opendaq::IComponentPrivate`
-
-- Added: `setParentActive(Bool parentActive, Bool onUpdate)`
-
-#### `opendaq::IComponentUpdateContext`
-
-- Added: `addDeviceRemapping(IString* originalDeviceId, IString* newDeviceId)`
-- Added: `getDeviceUpdateOptionsWithLocalIdOrNull(IString* localId, IDeviceUpdateOptions** options)`
-- Added: `getInternalState(IDict** state)`
-- Added: `getUpdateParameters(IUpdateParameters** updateParameters)`
-- Added: `overrideState(IComponentUpdateContext* updateContext)`
-- Added: `remapInputPortConnections()`
-- Added: `setRootComponent(IComponent* baseComponent)`
-- Removed: `getReAddDevicesEnabled(Bool* enabled)`
-
-#### `opendaq::IFunctionBlock`
-
-- Removed factory: `createFunctionBlockWrapper(IFunctionBlock* functionBlock, Bool includeInputPortsByDefault, Bool includeSignalsByDefault, Bool includePropertiesByDefault, Bool includeFunctionBlocksByDefault) -> IFunctionBlock** obj`
-
-#### `opendaq::IInputPort`
-
-- Added: `acceptsSignals(IList* signals, IList** accepts)`
-- Added: `getPublic(Bool* isPublic)`
-- Added: `setPublic(Bool isPublic)`
-
-#### `opendaq::IInputPortConfig`
-
-- Added: `getListener(IInputPortNotifications** port)`
-
-#### `opendaq::IMirroredDevice`
-
-- Added: `getMirroredDeviceType(IDeviceType** type)`
-
-#### `opendaq::IMirroredDeviceConfig`
-
-- Added: `setMirroredDeviceType(IDeviceType* type)`
-
-#### `opendaq::IModuleAuthenticator`
-
-- Added: `setLogger(ILogger* logger)`
-
-#### `opendaq::IMultiReader`
-
-- Added: `addInput(IComponent* input)`
-- Added: `getInputUsed(IString* id, Bool* isUsed)`
-- Added: `removeInput(IString* id)`
-- Added: `setInputUsed(IString* id, Bool isUsed)`
-
-#### `opendaq::IMultiReaderBuilder`
-
-- Added: `getInputPortNotificationMethods(IList* * notificationMethods)`
-- Removed: `getInputPortNotificationMethods(IList** notificationMethods)`
-
-#### `opendaq::IServer` ([#1153](https://github.com/openDAQ/openDAQ/pull/1153))
-
-- Added: `disableDiscovery()`
-
-#### `opendaq::IUpdateParameters`
-
-- Added: `getDeviceUpdateOptions(IDeviceUpdateOptions** options)`
-- Added: `getRemoveUnusedDevices(Bool* remove)`
-- Added: `setDeviceUpdateOptions(IDeviceUpdateOptions* options)`
-- Added: `setRemoveUnusedDevices(Bool remove)`
-- Removed: `getReAddDevicesEnabled(Bool* enabled)`
-- Removed: `setReAddDevicesEnabled(Bool enabled)`
+#### `IProperty`
+```diff
++ getPropertyType(PropertyType* type)
+```
+#### `IPropertyBuilder`
+```diff
++ getIsIntegerValueSelection(Bool* isIntegerValueSelection)
++ setIsIntegerValueSelection(Bool isIntegerValueSelection)
+```
+#### `IPropertyObject`
+```diff
++ clearPropertyValues()
++ setPropertySelectionValue(IString* propertyName, IBaseObject* value)
+```
+#### `IPropertyObjectProtected`
+```diff
++ clearProtectedPropertyValues()
++ setProtectedPropertySelectionValue(IString* propertyName, IBaseObject* value)
+```
+#### `IComponent`
+```diff
++ getLocalActive(Bool* localActive)
++ getParentActive(Bool* parentActive)
+```
+#### `IComponentPrivate`
+```diff
++ setParentActive(Bool parentActive, Bool onUpdate)
+```
+#### `IComponentUpdateContext`
+```diff
++ addDeviceRemapping(IString* originalDeviceId, IString* newDeviceId)
++ getDeviceUpdateOptionsWithLocalIdOrNull(IString* localId, IDeviceUpdateOptions** options)
++ getInternalState(IDict** state)
++ getUpdateParameters(IUpdateParameters** updateParameters)
++ overrideState(IComponentUpdateContext* updateContext)
++ remapInputPortConnections()
++ setRootComponent(IComponent* baseComponent)
+- getReAddDevicesEnabled(Bool* enabled)
+```
+#### `IFunctionBlock`
+```diff
+- [factory] createFunctionBlockWrapper(IFunctionBlock* functionBlock, Bool includeInputPortsByDefault, Bool includeSignalsByDefault, Bool includePropertiesByDefault, Bool includeFunctionBlocksByDefault) -> IFunctionBlock** obj
+```
+#### `IInputPort`
+```diff
++ acceptsSignals(IList* signals, IList** accepts)
++ getPublic(Bool* isPublic)
++ setPublic(Bool isPublic)
+```
+#### `IInputPortConfig`
+```diff
++ getListener(IInputPortNotifications** port)
+```
+#### `IMirroredDevice`
+```diff
++ getMirroredDeviceType(IDeviceType** type)
+```
+#### `IMirroredDeviceConfig`
+```diff
++ setMirroredDeviceType(IDeviceType* type)
+```
+#### `IModuleAuthenticator`
+```diff
++ setLogger(ILogger* logger)
+```
+#### `IMultiReader`
+```diff
++ addInput(IComponent* input)
++ getInputUsed(IString* id, Bool* isUsed)
++ removeInput(IString* id)
++ setInputUsed(IString* id, Bool isUsed)
+```
+#### `IMultiReaderBuilder`
+```diff
++ getInputPortNotificationMethods(IList* * notificationMethods)
+- getInputPortNotificationMethods(IList** notificationMethods)
+```
+#### `IServer`
+```diff
++ disableDiscovery()
+```
+#### `IUpdateParameters`
+```diff
++ getDeviceUpdateOptions(IDeviceUpdateOptions** options)
++ getRemoveUnusedDevices(Bool* remove)
++ setDeviceUpdateOptions(IDeviceUpdateOptions* options)
++ setRemoveUnusedDevices(Bool remove)
+- getReAddDevicesEnabled(Bool* enabled)
+- setReAddDevicesEnabled(Bool enabled)
+```
 

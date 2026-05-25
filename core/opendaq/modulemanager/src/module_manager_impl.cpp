@@ -463,8 +463,8 @@ ErrCode ModuleManagerImpl::getVendorKeys(IDict** vendorKeys)
 void ModuleManagerImpl::checkNetworkSettings(ListPtr<IDeviceInfo>& list)
 {
     std::vector<boost::asio::ip::address_v4> ipv4Addresses;
-    std::map<std::string, bool> ipv4AddressesMap;
-    std::map<std::string, bool> ipv6AddressesMap;
+    std::map<std::string, AddressReachabilityStatus> ipv4AddressesMap;
+    // std::map<std::string, AddressReachabilityStatus> ipv6AddressesMap;
 
     for (auto deviceInfo : list)
     {
@@ -481,14 +481,14 @@ void ModuleManagerImpl::checkNetworkSettings(ListPtr<IDeviceInfo>& list)
 
                 if (addressType == "IPv4")
                 {
-                    auto [_,inserted] = ipv4AddressesMap.try_emplace(address, false);
+                    auto [_,inserted] = ipv4AddressesMap.try_emplace(address, AddressReachabilityStatus::Unknown);
                     if (inserted)
                         ipv4Addresses.emplace_back(boost::asio::ip::make_address_v4(address));
                 }
-                else if (addressType == "IPv6")
-                {
-                    ipv6AddressesMap.emplace(address, false);
-                }
+                // else if (addressType == "IPv6")
+                // {
+                //     ipv6AddressesMap.emplace(address, AddressReachabilityStatus::Unknown);
+                // }
             }
         }
     }
@@ -504,12 +504,10 @@ void ModuleManagerImpl::checkNetworkSettings(ListPtr<IDeviceInfo>& list)
 
         auto replies = icmp->getReplyAddresses();
 
-        for (auto& ipv4 : ipv4AddressesMap)
+        for (auto& [address, status] : ipv4AddressesMap)
         {
-            if (replies.find(ipv4.first) != replies.cend())
-            {
-                ipv4.second = true;
-            }
+            status = (replies.find(address) != replies.cend()) ? AddressReachabilityStatus::Reachable 
+                                                                  : AddressReachabilityStatus::Unreachable;
         }
     }
 
@@ -526,7 +524,8 @@ static bool ipv6Available(boost::asio::io_context& io)
 
     // Try to open an IPv6 socket
     sock.open(tcp::v6(), ec);
-    if (ec) {
+    if (ec) 
+    {
         return false;  // couldn't open IPv6 socket
     }
 
@@ -536,7 +535,7 @@ static bool ipv6Available(boost::asio::io_context& io)
     return !ec;
 }
 
-void ModuleManagerImpl::setAddressesReachable(const std::map<std::string, bool>& addr, ListPtr<IDeviceInfo>& info)
+void ModuleManagerImpl::setAddressesReachable(const std::map<std::string, AddressReachabilityStatus>& addr, ListPtr<IDeviceInfo>& info)
 {
     // IPv6 addresses are unknown or unreachable, depending on host machine having IPv6 enabled
     AddressReachabilityStatus ipv6Reachability = ipv6Available(ioContext)
@@ -559,14 +558,13 @@ void ModuleManagerImpl::setAddressesReachable(const std::map<std::string, bool>&
                     AddressReachabilityStatus reachability = AddressReachabilityStatus::Unknown;
                     if (const auto it = addr.find(address.toStdString()); it != addr.end())
                     {
-                        reachability = it->second ? AddressReachabilityStatus::Reachable 
-                                                        : AddressReachabilityStatus::Unreachable;
+                        reachability = it->second;
                     }
-                    addressInfo.asPtr<IAddressInfoPrivate>().setReachabilityStatusPrivate(reachability);
+                    addressInfo.asPtr<IAddressInfoPrivate>(true).setReachabilityStatusPrivate(reachability);
                 }
                 else if (addressType == "IPv6")
                 {
-                    addressInfo.asPtr<IAddressInfoPrivate>().setReachabilityStatusPrivate(ipv6Reachability);
+                    addressInfo.asPtr<IAddressInfoPrivate>(true).setReachabilityStatusPrivate(ipv6Reachability);
                 }
             }
 
@@ -575,11 +573,11 @@ void ModuleManagerImpl::setAddressesReachable(const std::map<std::string, bool>&
                 auto reachability = addressInfo.getReachabilityStatus();
                 if (reachability == AddressReachabilityStatus::Unknown)
                 {
-                    cap.asPtr<IServerCapabilityConfig>().setConnectionString(addressInfo.getConnectionString());
+                    cap.asPtr<IServerCapabilityConfig>(true).setConnectionString(addressInfo.getConnectionString());
                 }
                 else if (reachability == AddressReachabilityStatus::Reachable)
                 {
-                    cap.asPtr<IServerCapabilityConfig>().setConnectionString(addressInfo.getConnectionString());
+                    cap.asPtr<IServerCapabilityConfig>(true).setConnectionString(addressInfo.getConnectionString());
                     break;
                 }
             }

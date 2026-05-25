@@ -334,11 +334,7 @@
             "description": "Run all tests excluding unstable ones",
             "configurePreset": "ci",
             "output": {
-                "outputOnFailure": true,
-                "verbosity": "verbose"
-            },
-            "execution": {
-                "timeout": 3600
+                "outputOnFailure": true
             }
         },
         {

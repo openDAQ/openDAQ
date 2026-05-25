@@ -38,6 +38,7 @@
 
 ## Bug fixes
 
+- [#1210](https://github.com/openDAQ/openDAQ/pull/1210) Fix and optimize comparing with end iterator (C++).
 - [#1200](https://github.com/openDAQ/openDAQ/pull/1200) Recreate binary data packets into `BinaryDataPacketImpl` objects on client side of native streaming protocol.
 - [#1158](https://github.com/openDAQ/openDAQ/pull/1158) Skip logging for identical component statuses.
 - [#1150](https://github.com/openDAQ/openDAQ/pull/1150) Serialize public flag for input ports

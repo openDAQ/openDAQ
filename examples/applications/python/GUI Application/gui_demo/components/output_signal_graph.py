@@ -791,7 +791,7 @@ class OutputSignalGraph(ttk.Frame):
         if v != 0 and abs(v) < 0.001:
             return f'{v:.3e}'
         if abs(v) >= 100_000:
-            return f'{v:.1f}'
+            return f'{v:.3e}'
         if v == int(v):
             return str(int(v))
         return f'{v:.4g}'

@@ -628,6 +628,9 @@ inline void GenericConfigClientDeviceImpl<TDeviceBase>::deviceLockStatusChanged(
 
     if (isLocked)
         this->userLock.lock();
+
+    if (!this->coreEventMuted && this->coreEvent.assigned())
+        this->triggerCoreEvent(CoreEventArgsDeviceLockStateChanged(isLocked));
 }
 
 template <class TDeviceBase>

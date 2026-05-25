@@ -38,6 +38,7 @@
 
 ## Bug fixes
 
+- [#1213](https://github.com/openDAQ/openDAQ/pull/1213) Forward device locked state core event in native client.
 - [#1205](https://github.com/openDAQ/openDAQ/pull/1205) Fix raw socket access exception on Linux/macOS for non-root users
 - [#1200](https://github.com/openDAQ/openDAQ/pull/1200) Recreate binary data packets into `BinaryDataPacketImpl` objects on client side of native streaming protocol.
 - [#1158](https://github.com/openDAQ/openDAQ/pull/1158) Skip logging for identical component statuses.
@@ -66,6 +67,7 @@
 
 ## Misc
 
+- [#1171](https://github.com/openDAQ/openDAQ/pull/1171) MDNS discovery ratelimiting
 - [#1125](https://github.com/openDAQ/openDAQ/pull/1125) Removing all function blocks before load 
 - [#1109](https://github.com/openDAQ/openDAQ/pull/1109) New check version dependencies mechanism for modules
 - [#1090](https://github.com/openDAQ/openDAQ/pull/1090) Reduce unnecessary RPC calls and signal updates

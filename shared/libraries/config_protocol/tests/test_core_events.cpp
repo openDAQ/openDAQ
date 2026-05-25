@@ -1818,3 +1818,40 @@ TEST_F(ConfigCoreEventTest, ComponentSetActiveWithParentNonActive)
 
     ASSERT_TRUE(sig.getActive());
 }
+
+TEST_F(ConfigCoreEventTest, DeviceLockUnlock)
+{
+    int callCount = 0;
+    const auto srvSubDev = serverDevice.getDevices(search::Recursive(search::LocalId("mock_phys_dev")))[0];
+    const auto clSubDev = clientDevice.getDevices(search::Recursive(search::LocalId("mock_phys_dev")))[0];
+
+    clientContext.getOnCoreEvent() +=
+        [&](const ComponentPtr& comp, const CoreEventArgsPtr& args)
+    {
+        ASSERT_EQ(args.getEventId(), static_cast<Int>(CoreEventId::DeviceLockStateChanged));
+        ASSERT_EQ(args.getEventName(), "DeviceLockStateChanged");
+        ASSERT_EQ(comp, clSubDev);
+        ASSERT_TRUE(args.getParameters().hasKey("IsLocked"));
+
+        if (callCount == 0)
+        {
+            ASSERT_EQ(args.getParameters().get("IsLocked"), True);
+        }
+        else
+        {
+            ASSERT_EQ(args.getParameters().get("IsLocked"), False);
+        }
+
+        callCount++;
+    };
+
+    ASSERT_FALSE(clSubDev.isLocked());
+
+    srvSubDev.lock();
+    ASSERT_TRUE(clSubDev.isLocked());
+
+    srvSubDev.unlock();
+    ASSERT_FALSE(clSubDev.isLocked());
+
+    ASSERT_EQ(callCount, 2);
+}

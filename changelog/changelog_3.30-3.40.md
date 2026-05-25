@@ -38,6 +38,7 @@
 
 ## Bug fixes
 
+- [#1213](https://github.com/openDAQ/openDAQ/pull/1213) Forward device locked state core event in native client.
 - [#1200](https://github.com/openDAQ/openDAQ/pull/1200) Recreate binary data packets into `BinaryDataPacketImpl` objects on client side of native streaming protocol.
 - [#1158](https://github.com/openDAQ/openDAQ/pull/1158) Skip logging for identical component statuses.
 - [#1150](https://github.com/openDAQ/openDAQ/pull/1150) Serialize public flag for input ports

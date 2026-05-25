@@ -10,7 +10,7 @@ import opendaq as daq
 
 from .. import utils
 
-class OutputSignlGraf(ttk.Frame):
+class OutputSignalGraph(ttk.Frame):
     DEFAULT_WINDOW_SECONDS = 0.2
     TARGET_POINTS_PER_FRAME = 50_000
     MAX_BUFFER_SIZE = int(TARGET_POINTS_PER_FRAME * 1.5)

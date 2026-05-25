@@ -7,7 +7,7 @@ from opendaq import IStruct
 from .. import utils
 from .attributes_dialog import AttributesDialog
 from .dialog import Dialog
-from .output_signal_graph import OutputSignlGraph
+from .output_signal_graph import OutputSignalGraph
 
 
 class OutputSignalRow(ttk.Frame):
@@ -111,7 +111,7 @@ class OutputSignalRow(ttk.Frame):
         domain = signal.domain_signal
         if domain is None:
             return False
-        return OutputSignlGraph._is_chartable(
+        return OutputSignalGraph._is_chartable(
             signal.descriptor, domain.descriptor)
 
     def _toggle_expand(self):
@@ -133,7 +133,7 @@ class OutputSignalRow(ttk.Frame):
         self._dur_label.pack(side=tk.LEFT, padx=(12, 0))
         self._dur_cb.pack(side=tk.LEFT, padx=(4, 0))
 
-        self._preview = OutputSignlGraph(
+        self._preview = OutputSignalGraph(
             self, self.output_signal, self.context,
             duration_var=self._duration_var)
         self._preview.grid(

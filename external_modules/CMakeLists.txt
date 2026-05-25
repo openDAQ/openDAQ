@@ -68,7 +68,7 @@ if (OPENDAQ_ENABLE_OPCUA AND (DAQMODULES_OPENDAQ_CLIENT_MODULE OR DAQMODULES_OPE
     FetchContent_Declare(
         OpcUaModules
         GIT_REPOSITORY https://github.com/openDAQ/OpcUaModules.git
-        GIT_TAG        fc6af466eede67c4726910b8aa97be46ce697a3b
+        GIT_TAG        5b5c9c1721aed5c452ebbef68f63e67d3d7ff82b
         GIT_PROGRESS   ON
         GIT_SHALLOW    OFF
         SOURCE_SUBDIR  "INVALID"

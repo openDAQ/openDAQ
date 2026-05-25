@@ -1756,6 +1756,8 @@ TEST_F(OpcuaDeviceModulesTest, GetSetNonCheangableUserNameLocation)
     }
 }
 
+// Hangs: setOperationMode / RefDevice::acqLoop lock-order inversion (transport-agnostic;
+// also reproduces in the Native variant of this test).
 TEST_F_UNSTABLE_SKIPPED(OpcuaDeviceModulesTest, SettingOperationMode)
 {
     auto server = CreateServerInstance();

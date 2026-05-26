@@ -1,4 +1,5 @@
 #include <gtest/gtest.h>
+#include <testutils/testutils.h>
 #include <opendaq/opendaq.h>
 
 using HowToAccessControl = testing::Test;
@@ -63,6 +64,11 @@ TEST_F(HowToAccessControl, ConnectWithUsername)
 
     generalConfig.setPropertyValue("Username", "opendaq");
     generalConfig.setPropertyValue("Password", "opendaq123");
+
+    PropertyObjectPtr deviceConfig = config.getPropertyValue("Device");
+    PropertyObjectPtr nativeConfig = deviceConfig.getPropertyValue("OpenDAQNativeConfiguration");
+    PropertyObjectPtr transportConfig = nativeConfig.getPropertyValue("TransportLayerConfig");
+    transportConfig.setPropertyValue("ConnectionTimeout", 5000);
 
     auto device = instance.addDevice("daq.nd://127.0.0.1", config);
     std::cout << "Connected to: " << device.getName() << std::endl;

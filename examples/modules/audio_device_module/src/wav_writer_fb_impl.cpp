@@ -185,7 +185,15 @@ void WAVWriterFbImpl::createInputPort()
 {
     inputPort = createAndAddInputPort("Input", PacketReadyNotification::Scheduler);
     reader = StreamReaderFromPort(inputPort, SampleType::Undefined, SampleType::Undefined);
-    reader.setOnDataAvailable([this] { processInputData();});
+
+    auto thisWeakRef = this->template getWeakRefInternal<IFunctionBlock>();
+    reader.setOnDataAvailable(
+        [this, thisWeakRef = std::move(thisWeakRef)]
+        {
+            const auto thisFb = thisWeakRef.getRef();
+            if (thisFb.assigned())
+                processInputData();
+        });
 }
 
 void WAVWriterFbImpl::processEventPacket(const EventPacketPtr& packet)

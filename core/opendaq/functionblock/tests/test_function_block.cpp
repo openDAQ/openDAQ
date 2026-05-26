@@ -9,6 +9,7 @@
 #include <coreobjects/property_object_class_factory.h>
 #include <opendaq/input_port_private_ptr.h>
 #include <opendaq/scheduler_factory.h>
+#include <testutils/testutils.h>
 
 #include "opendaq/exceptions.h"
 
@@ -219,7 +220,11 @@ public:
     }
 };
 
-TEST_F(FunctionBlockTest, SetDomainDescriptorUnderLock)
+// Hangs on debug: self-deadlock in the debug object-tracking infra — stringifying a tracked
+// EvalValue inside daqPrintTrackedObjects re-enters the same non-recursive mutex via
+// daqTrackObject. Not specific to this test; any test leaving such an object alive at
+// OnTestEnd can trigger it.
+TEST_F_UNSTABLE_SKIPPED(FunctionBlockTest, SetDomainDescriptorUnderLock)
 {
     const auto logger = daq::Logger();
     auto context = daq::Context(daq::Scheduler(logger), logger, daq::TypeManager(), nullptr, nullptr);

@@ -476,9 +476,10 @@ class App(tk.Tk):
         component_name = self.get_standard_folder_name(component.name)
         if daq.IDevice.can_cast_from(component):
             device = daq.IDevice.cast_from(component)
-            mode = self.operation_mode_to_string(device.operation_mode)
-            if mode:
-                component_name = f'{component_name} | {mode}'
+            if device.operation_mode is not None:
+                mode = self.operation_mode_to_string(device.operation_mode)
+                if mode:
+                    component_name = f'{component_name} | {mode}'
         return component_name
 
     def _build_component_state_labels(self, component, tags):

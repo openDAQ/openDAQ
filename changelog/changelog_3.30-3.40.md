@@ -40,6 +40,7 @@
 ## Bug fixes
 
 - [#1200](https://github.com/openDAQ/openDAQ/pull/1200) Recreate binary data packets into `BinaryDataPacketImpl` objects on client side of native streaming protocol.
+- [#1185](https://github.com/openDAQ/openDAQ/pull/1185) Fix re-entrant property update crash in endApplyUpdate
 - [#1158](https://github.com/openDAQ/openDAQ/pull/1158) Skip logging for identical component statuses.
 - [#1150](https://github.com/openDAQ/openDAQ/pull/1150) Serialize public flag for input ports
 - [#1149](https://github.com/openDAQ/openDAQ/pull/1149) Return error code instead of throwing exceptions from module info.

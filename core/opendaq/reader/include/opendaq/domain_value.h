@@ -168,12 +168,53 @@ public:
 
     std::unique_ptr<DomainValue> toCommonDomain(const DomainInfo& commonDomain) override
     {
-        return nullptr;
+        // Offset of current domain in common domain ticks
+        Int epochOffset = domain.epoch.time_since_epoch().count() - commonDomain.epoch.time_since_epoch().count();
+
+        using SysPeriod = std::chrono::system_clock::period;
+        Int scaleNumerator = SysPeriod::num * commonDomain.resolution.getDenominator();
+        Int scaleDenominator = SysPeriod::num * commonDomain.resolution.getNumerator();
+        RangeValue offsetFromCommon = static_cast<RangeValue>(epochOffset * scaleNumerator / scaleDenominator);
+
+        // tick_common = tick * multiplier
+        Int multiplierNumerator = domain.resolution.getNumerator() * commonDomain.resolution.getDenominator();
+        Int multiplierDenominator = domain.resolution.getDenominator() * commonDomain.resolution.getNumerator();
+        RangeValue startScaledToCommon = static_cast<RangeValue>(value.start * multiplierNumerator / static_cast<double>(multiplierDenominator));
+        RangeValue endScaledToCommon = static_cast<RangeValue>(value.end * multiplierNumerator / static_cast<double>(multiplierDenominator));
+	    
+        RangeValue startInCommon = offsetFromCommon + startScaledToCommon;
+        RangeValue endInCommon = value.end == -1
+            ? static_cast<RangeValue>(-1)
+            : offsetFromCommon + endScaledToCommon;
+        
+		return std::make_unique<DomainValueImpl<RangeType64>>(commonDomain, RangeType64{startInCommon, endInCommon});
     }
 
     std::unique_ptr<DomainValue> fromCommonDomain(const DomainInfo& regularDomain) override
     {
-        return nullptr;
+        const auto& commonDomain = this->domain;
+	    const auto& valueInCommon = this->value;
+
+	    // Offset of regularDomain domain in common domain ticks
+        Int epochOffset = regularDomain.epoch.time_since_epoch().count() - commonDomain.epoch.time_since_epoch().count();
+
+        using SysPeriod = std::chrono::system_clock::period;
+        Int scaleNumerator = SysPeriod::num * commonDomain.resolution.getDenominator();
+        Int scaleDenominator = SysPeriod::num * commonDomain.resolution.getNumerator();
+        Int offsetFromCommon = epochOffset * scaleNumerator / scaleDenominator;
+
+	    RangeValue startScaledToCommon = valueInCommon.start - offsetFromCommon;
+	    RangeValue endScaledToCommon = valueInCommon.end - offsetFromCommon;
+
+        // tick_common = tick * multiplier
+        Int multiplierNumerator = regularDomain.resolution.getNumerator() * commonDomain.resolution.getDenominator();
+        Int multiplierDenominator = regularDomain.resolution.getDenominator() * commonDomain.resolution.getNumerator();
+        RangeValue startValue = static_cast<RangeValue>(startScaledToCommon * multiplierDenominator / static_cast<double>(multiplierNumerator));
+        RangeValue endValue = valueInCommon.end == -1
+            ? static_cast<RangeValue>(-1)
+            : static_cast<RangeValue>(endScaledToCommon * multiplierDenominator / static_cast<double>(multiplierNumerator));
+	    
+		return std::make_unique<DomainValueImpl<RangeValue>>(regularDomain, RangeType64{startValue, endValue});
     }
 
     RangeType64 getValue() const
@@ -183,12 +224,26 @@ public:
 
     double getTime() override
 	{
-        return 0.0;
+        using SysPeriod = std::chrono::system_clock::period;
+	    return domain.epoch.time_since_epoch().count() * SysPeriod::num / static_cast<double>(SysPeriod::den)
+            + value.start * domain.resolution.getNumerator() / static_cast<double>(domain.resolution.getDenominator());
 	}
 	
 	int compare(const DomainValue& other) const override
 	{
-	    return 1;
+	    const auto* otherImpl = dynamic_cast<const DomainValueImpl<RangeType64>(&other);
+	    if (otherImpl == nullptr){
+	        DAQ_THROW_EXCEPTION(InvalidParameterException, "Both DomainValue objects must be of the same type!");
+	    }
+	    if (otherImpl->domain != this->domain) // TODO: Implement equality operator
+	        DAQ_THROW_EXCEPTION(InvalidParameterException, "Have to compare DomainValue objects in the same domain!");
+	    
+	    if (this->value.start > otherImpl->value.start)
+	        return 1;
+	    else if (this->value.start == otherImpl->value.start)
+	        return 0;
+	    else // this->value.start < otherImpl->value.start
+	        return -1;
 	}
 
 private:

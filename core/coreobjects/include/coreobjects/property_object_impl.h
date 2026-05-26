@@ -2750,7 +2750,9 @@ template <typename PropObjInterface, typename... Interfaces>
 void GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::endApplyUpdate()
 {
     UpdatingActions localUpdates = std::move(updatingPropsAndValues);
-    auto ignoredProps = List<IString>();
+    UpdatingActions appliedUpdates;
+    appliedUpdates.reserve(localUpdates.size());
+
     for (auto& [propName, action] : localUpdates)
     {
         StringPtr name = propName;
@@ -2766,30 +2768,15 @@ void GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::endApplyUpdate(
             checkErrorInfo(err);
         }
 
-        if (err == OPENDAQ_IGNORED)
-        {
-            ignoredProps.pushBack(name);
-        }
-        else
+        if (err != OPENDAQ_IGNORED)
         {
             PropertyPtr prop;
             getPropertyAndValueInternal(name, action.value, prop);
+            appliedUpdates.emplace_back(name, action);
         }
     }
 
-    for (const auto& propName : ignoredProps)
-    {
-        auto it = std::find_if(localUpdates.begin(),
-                               localUpdates.end(),
-                               [propName](const std::pair<std::string, UpdatingAction>& val)
-                               {
-                                   return propName == val.first;
-                               });
-        if (it != localUpdates.end())
-            localUpdates.erase(it);
-    }
-
-    endApplyProperties(localUpdates, isParentUpdating());
+    endApplyProperties(appliedUpdates, isParentUpdating());
 }
 
 template <typename PropObjInterface, typename... Interfaces>
@@ -3646,10 +3633,10 @@ void GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::endApplyPropert
 {
     auto list = List<IString>();
     auto dict = Dict<IString, IBaseObject>();
-    for (const auto& item : propsAndValues)
+    for (const auto& [propName, action] : propsAndValues)
     {
-        list.pushBack(item.first);
-        dict.set(item.first, item.second.value);
+        list.pushBack(propName);
+        dict.set(propName, action.value);
     }
 
     if (endUpdateEvent.hasListeners())
@@ -3714,15 +3701,11 @@ bool GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::hasUserReadAcce
     if (!obj.assigned())
         return true;
 
-    auto objPtr = obj.asPtrOrNull<IPropertyObject>();
+    auto objPtr = obj.asPtrOrNull<IPropertyObject>(true);
     if (!objPtr.assigned())
         return true;
 
-    auto userContextPtr = BaseObjectPtr::Borrow(userContext);
-    if (!userContextPtr.assigned())
-        return true;
-
-    auto userPtr = userContextPtr.asPtrOrNull<IUser>();
+    auto userPtr = userContext.asPtrOrNull<IUser>(true);
     if (!userPtr.assigned())
         return true;
 

@@ -1,5 +1,5 @@
 /*
- * Copyright 2022-2025 openDAQ d.o.o.
+ * Copyright 2022-2026 openDAQ d.o.o.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -147,7 +147,7 @@ public:
                         const StringPtr& name = nullptr);
     
 protected:
-    void notifyActiveChanged() override;
+    void notifyActiveChanged(bool onUpdate) override;
 
     virtual ErrCode INTERFACE_FUNC getItems(IList** items, ISearchFilter* searchFilter) override;
     ErrCode INTERFACE_FUNC getItem(IString* localId, IComponent** item) override;
@@ -214,9 +214,9 @@ SignalContainerImpl<Intf, Intfs...>::SignalContainerImpl(const ContextPtr& conte
 }
 
 template <class Intf, class ... Intfs>
-void SignalContainerImpl<Intf, Intfs...>::notifyActiveChanged()
+void SignalContainerImpl<Intf, Intfs...>::notifyActiveChanged(bool onUpdate)
 {
-    this->notifyItemsActiveChanged(this->components);
+    this->notifyItemsActiveChanged(this->components, onUpdate);
 }
 
 template <class Intf, class ... Intfs>
@@ -840,18 +840,20 @@ void GenericSignalContainerImpl<Intf, Intfs...>::updateFunctionBlock(const std::
         return;
     }
 
-    PropertyObjectPtr config;
+    PropertyObjectPtr functionConfig = availableTypes.get(typeId).createDefaultConfig();
+
     if (serializedFunctionBlock.hasKey("ComponentConfig"))
-        config = serializedFunctionBlock.readObject("ComponentConfig");
-    else
-        config = PropertyObject();
+    {
+        const auto updatetableFunctionConfig = functionConfig.template asPtr<IUpdatable>(true);
+        updatetableFunctionConfig.updateInternal(serializedFunctionBlock.readSerializedObject("ComponentConfig"), context);
+    }
 
-    if (!config.hasProperty("LocalId"))
-        config.addProperty(StringProperty("LocalId", fbId));
+    if (!functionConfig.hasProperty("LocalId"))
+        functionConfig.addProperty(StringProperty("LocalId", fbId));
     else
-        config.setPropertyValue("LocalId", fbId);
+        functionConfig.setPropertyValue("LocalId", fbId);
 
-    auto fb = onAddFunctionBlock(typeId, config);
+    auto fb = onAddFunctionBlock(typeId, functionConfig);
 
     const UpdatablePtr updatableFb = fb.template asPtr<IUpdatable>(true);
     updatableFb.updateInternal(serializedFunctionBlock, context);    

@@ -1,6 +1,6 @@
 
 /*
- * Copyright 2022-2025 openDAQ d.o.o.
+ * Copyright 2022-2026 openDAQ d.o.o.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -29,6 +29,7 @@
 #include <functional>
 #include <mdns.h>
 #include <unordered_set>
+#include <optional>
 
 #ifdef _WIN32
     #include <winsock2.h>
@@ -82,13 +83,33 @@ struct AdapterInfo
     std::string name;
 };
 
+struct UniqueQuerier
+{
+    struct sockaddr_storage addr;
+
+    bool operator==(const UniqueQuerier& other) const noexcept;
+};
+
+struct QuerierBucket
+{
+    QuerierBucket(const UniqueQuerier& querier, uint32_t hashFingerprint, size_t maxBurst, size_t refillRate, std::chrono::steady_clock::time_point lastQueried);
+
+    const UniqueQuerier primaryQuerier;
+    const uint32_t primaryQuerierHash;
+
+    size_t tokens;                                  // current available capacity
+    const size_t maxBurst;
+    const size_t refillRate;                        // tokens per second
+    std::chrono::steady_clock::time_point lastQueried;
+};
+
 using ModifyIpConfigCallback = std::function<discovery_common::TxtProperties(const std::string& ifaceName, const discovery_common::TxtProperties& properties)>;
 using RetrieveIpConfigCallback = std::function<discovery_common::TxtProperties(const std::string& ifaceName)>;
 
 class MDNSDiscoveryServer
 {
 public:
-	explicit MDNSDiscoveryServer();
+    explicit MDNSDiscoveryServer(const DictPtr<IString, IBaseObject>& options);
     ~MDNSDiscoveryServer();
 
     void announceService(const MdnsDiscoveredService& service, bool goodbye) const;
@@ -144,6 +165,11 @@ private:
                               bool unicast,
                               const std::string& uuid);
 
+    bool allowQuery(int sock, const sockaddr* from);
+    bool isStaleBucket(const QuerierBucket& bucket, std::chrono::steady_clock::time_point now) const;
+    void refillTokens(QuerierBucket& bucket, std::chrono::steady_clock::time_point now);
+    bool tryConsumeToken(QuerierBucket& bucket, std::chrono::steady_clock::time_point now);
+
     std::string hostName;
 
     std::mutex mx;
@@ -158,6 +184,15 @@ private:
     ModifyIpConfigCallback modifyIpConfigCallback{nullptr};
     RetrieveIpConfigCallback retrieveIpConfigCallback{nullptr};
     std::unordered_set<std::string> processedIpConfigReqIds;
+
+    DictPtr<IString, IBaseObject> options;
+
+    const bool discoveryRatelimitEnabled;
+    const size_t singleQuerierRateLimitPerSecond;
+    const uint32_t maxActiveQueriers;
+    const size_t maxQueryCountPerSecond;
+    std::vector<std::optional<QuerierBucket>> querierBucketsTable;
+    std::mutex rateLimitingSync;
 };
 
 END_NAMESPACE_DISCOVERY_SERVICE

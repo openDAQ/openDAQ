@@ -390,3 +390,32 @@ TEST_F(FolderTest, InheritedLocking2)
     ASSERT_EQ(folderInternal, folderInternal1.getMutexOwner());
     ASSERT_EQ(folderInternal, objInternal.getMutexOwner());
 }
+
+TEST_F(FolderTest, HierarchicalUpdate)
+{
+    const auto ctx = daq::NullContext();
+    const auto folder_parent = daq::Folder(ctx, nullptr, "folder_parent");
+    const auto folder_child = daq::Folder(ctx, nullptr, "folder_child");
+    folder_parent.addItem(folder_child);
+
+    const auto component = daq::Component(ctx, nullptr, "component");
+    folder_child.addItem(component);
+    
+    const auto serializer = daq::JsonSerializer(daq::True);
+
+    folder_parent.asPtr<IUpdatable>(true).serializeForUpdate(serializer);
+    const auto str = serializer.getOutput();
+
+    folder_parent.setActive(false);
+
+    ASSERT_FALSE(folder_parent.getActive());
+    ASSERT_FALSE(folder_child.getActive());
+    ASSERT_FALSE(component.getActive());
+
+    const auto deserializer = daq::JsonDeserializer();
+    deserializer.update(folder_parent.asPtr<IUpdatable>(true), str);
+
+    ASSERT_TRUE(folder_parent.getActive());
+    ASSERT_TRUE(folder_child.getActive());
+    ASSERT_TRUE(component.getActive());
+}

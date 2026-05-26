@@ -1,5 +1,5 @@
 /*
- * Copyright 2022-2025 openDAQ d.o.o.
+ * Copyright 2022-2026 openDAQ d.o.o.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -472,7 +472,7 @@ DevicePtr ConfigProtocolClient<TRootDeviceImpl>::connect(const ComponentPtr& par
 
     const ComponentHolderPtr deviceHolder = clientComm->requestRootDevice(parent);
     auto device = deviceHolder.getComponent();
-    device.asPtr<IComponentPrivate>().setComponentConfig(nullptr);
+    device.asPtr<IComponentPrivate>(true).setComponentConfig(nullptr);
 
     clientComm->setRootDevice(device);
     clientComm->connectDomainSignals(device);

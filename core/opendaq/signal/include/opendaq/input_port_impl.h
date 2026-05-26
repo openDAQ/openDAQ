@@ -1,5 +1,5 @@
 /*
- * Copyright 2022-2025 openDAQ d.o.o.
+ * Copyright 2022-2026 openDAQ d.o.o.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -153,8 +153,8 @@ private:
 };
 
 #ifdef WORKAROUND_MEMBER_INLINE_VARIABLE
-template <typename TInterface, typename... Interfaces>
-std::unordered_set<std::string> SignalBase<TInterface, Interfaces...>::inputPortAvailableAttributes = INPUT_PORT_AVAILABLE_ATTRIBUTES;
+template <typename TInterface, typename...  Interfaces>
+std::unordered_set<std::string> GenericInputPortImpl<TInterface, Interfaces...>::inputPortAvailableAttributes = INPUT_PORT_AVAILABLE_ATTRIBUTES;
 #endif
 
 template <typename TInterface, typename...  Interfaces>

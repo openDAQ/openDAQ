@@ -1,5 +1,6 @@
 #include <native_streaming_client_module/native_device_impl.h>
 #include <native_streaming_client_module/native_streaming_impl.h>
+#include <native_streaming_client_module/native_device_utils.h>
 
 #include <opendaq/custom_log.h>
 #include <opendaq/device_info_internal_ptr.h>
@@ -12,6 +13,7 @@
 #include <opendaq/exceptions.h>
 #include <opendaq/mirrored_device_config_ptr.h>
 #include <opendaq/address_info_factory.h>
+#include <native_streaming_protocol/native_streaming_client_handler.h>
 
 BEGIN_NAMESPACE_OPENDAQ_NATIVE_STREAMING_CLIENT_MODULE
 
@@ -57,7 +59,7 @@ DevicePtr NativeDeviceHelper::connectAndGetDevice(const ComponentPtr& parent, ui
     auto device = configProtocolClient->connect(parent, protocolVersion);
     protocolVersion = configProtocolClient->getProtocolVersion();
     startAcceptNotificationPackets();
-    deviceRef = device;
+    deviceRef = device;    
     return device;
 }
 
@@ -466,6 +468,29 @@ void NativeDeviceImpl::removed()
     Super::removed();
 }
 
+ErrCode NativeDeviceImpl::setComponentConfig(IPropertyObject* config)
+{
+    OPENDAQ_RETURN_IF_FAILED(Super::setComponentConfig(config));
+
+    if (!deviceHelper)
+        return OPENDAQ_IGNORED;
+
+    DeviceInfoPtr deviceInfo;
+    OPENDAQ_RETURN_IF_FAILED(getInfo(&deviceInfo));
+
+    ListPtr<IString> alternativeAddresses;
+    const ErrCode errCode = collectAlternativeAddresses(componentConfig, 
+                                                        deviceInfo,
+                                                        NativeConfigurationDeviceTypeId, 
+                                                        alternativeAddresses);
+    OPENDAQ_RETURN_IF_FAILED(errCode);
+
+    if (errCode == OPENDAQ_SUCCESS)
+        deviceHelper->getTransportClientHandler()->setAlternativeAddresses(alternativeAddresses);
+
+    return OPENDAQ_SUCCESS;
+}
+
 // retrieves the local configuration object without triggering an RPC call
 ErrCode NativeDeviceImpl::getComponentConfig(IPropertyObject** config)
 {
@@ -483,6 +508,11 @@ bool NativeDeviceImpl::isAddedToLocalComponentTree()
 void NativeDeviceImpl::attachDeviceHelper(std::shared_ptr<NativeDeviceHelper> deviceHelper)
 {
     this->deviceHelper = deviceHelper;
+}
+
+NativeStreamingClientHandlerPtr NativeDeviceHelper::getTransportClientHandler() const
+{
+    return transportClientHandler;
 }
 
 void NativeDeviceImpl::disconnectAndCleanUp()

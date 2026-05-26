@@ -86,10 +86,15 @@ static StringPtr DefineLocalId(const StringPtr& localId)
     return "openDAQDevice";
 }
 
-static DiscoveryServerPtr createDiscoveryServer(const StringPtr& serviceName, const LoggerPtr& logger)
+static DiscoveryServerPtr createDiscoveryServer(const StringPtr& serviceName, const LoggerPtr& logger, const DictPtr<IString, IBaseObject>& instanceOptions)
 {
     if (serviceName == "mdns")
-        return MdnsDiscoveryServer(logger);
+    {
+        if (instanceOptions.hasKey("MdnsDiscoveryServer"))
+            return MdnsDiscoveryServerWithOptions(logger, instanceOptions.get("MdnsDiscoveryServer"));
+        else
+            return MdnsDiscoveryServer(logger);
+    }
     return nullptr;
 }
 
@@ -153,7 +158,7 @@ static ContextPtr ContextFromInstanceBuilder(IInstanceBuilder* instanceBuilder)
     auto discoveryServers = Dict<IString, IDiscoveryServer>();
     for (const auto& serverName : builderPtr.getDiscoveryServers())
     {
-        auto server = createDiscoveryServer(serverName, logger);
+        auto server = createDiscoveryServer(serverName, logger, options);
         if (server.assigned())
             discoveryServers.set(serverName, server);
     }

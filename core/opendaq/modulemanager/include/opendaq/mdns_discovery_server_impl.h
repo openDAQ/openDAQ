@@ -1,5 +1,5 @@
 /*
- * Copyright 2022-2025 openDAQ d.o.o.
+ * Copyright 2022-2026 openDAQ d.o.o.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -27,6 +27,7 @@ class MdnsDiscoveryServerImpl : public ImplementationOf<IDiscoveryServer>
 {
 public:
     MdnsDiscoveryServerImpl(const LoggerPtr& logger);
+    MdnsDiscoveryServerImpl(const LoggerPtr& logger, const DictPtr<IString, IBaseObject>& options);
 
     ErrCode INTERFACE_FUNC registerService(IString* id, IPropertyObject* config, IDeviceInfo* deviceInfo) override;
     ErrCode INTERFACE_FUNC unregisterService(IString* id) override;

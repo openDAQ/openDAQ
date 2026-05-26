@@ -3320,7 +3320,7 @@ TEST_F(NativeDeviceModulesTest, SaveLoadDeviceConfig)
         addRefDeviceModule(client);
 
         auto deviceConfig = client.createDefaultAddDeviceConfig();
-        deviceConfig.addProperty(StringProperty("TestKey", "TestValue"));
+        deviceConfig.setPropertyValue("Device.daqref.NumberOfChannels", 1);
         client.getDevices()[0].addDevice("daqref://device1", deviceConfig);
         config = client.saveConfiguration();
     }
@@ -3335,9 +3335,7 @@ TEST_F(NativeDeviceModulesTest, SaveLoadDeviceConfig)
     ASSERT_EQ(devices.getCount(), 1u);
 
     auto deviceConfig = devices[0].asPtr<IComponentPrivate>(true).getComponentConfig();
-    ASSERT_TRUE(deviceConfig.assigned());
-    ASSERT_TRUE(deviceConfig.hasProperty("TestKey"));
-    ASSERT_EQ(deviceConfig.getPropertyValue("TestKey"), "TestValue");
+    ASSERT_EQ(deviceConfig.getPropertyValue("Device.daqref.NumberOfChannels"), 1);
 }
 
 TEST_F(NativeDeviceModulesTest, SaveLoadFunctionBlockConfig)
@@ -3349,7 +3347,8 @@ TEST_F(NativeDeviceModulesTest, SaveLoadFunctionBlockConfig)
         auto clientRoot = client.getDevices()[0];
 
         auto fbConfig = PropertyObject();
-        fbConfig.addProperty(BoolProperty("UseMultiThreadedScheduler", false));
+        fbConfig.addProperty(BoolProperty("UseMultiThreadedScheduler", true));
+        fbConfig.setPropertyValue("UseMultiThreadedScheduler", false);
 
         auto fb = clientRoot.addFunctionBlock("RefFBModuleStatistics", fbConfig);
         config = client.saveConfiguration();
@@ -3793,6 +3792,91 @@ TEST_F(NativeDeviceModulesTest, SettingOperationModeWithPermissions)
         test_helpers::checkDeviceOperationMode(client.getDevices()[0], OMT::Idle);
         test_helpers::checkDeviceOperationMode(client.getDevices()[0].getDevices()[0], OMT::Idle);
         test_helpers::checkDeviceOperationMode(client.getDevices()[0].getDevices()[0].getDevices()[0], OMT::Idle);
+    }
+}
+
+TEST_F(NativeDeviceModulesTest, SettingOperationModeWithPermissionsForInvisibleDevice)
+{
+    auto CreateUsers = []()
+    {
+        auto users = List<IUser>();
+        const std::vector<std::pair<std::string, std::string>> templateForUser = {{"reader", "reader"}, {"admin", "admin"}};
+        for (const auto& [user, group] : templateForUser)
+            users.pushBack(User(user + "User", user + "UserPass", group.empty() ? nullptr : ListPtr<IString>{group}));
+
+        return users;
+    };
+
+    auto CreatePermissionsBuilder = []() -> daq::PermissionsBuilderPtr
+    {
+        using namespace daq;
+        return PermissionsBuilder()
+            .inherit(false)
+            .assign("everyone", PermissionMaskBuilder())
+            .assign("reader", PermissionMaskBuilder().read())
+            .assign("admin", PermissionMaskBuilder().read().write().execute());
+    };
+
+    const auto permissions = CreatePermissionsBuilder().build();
+
+    const auto authenticationProvider = StaticAuthenticationProvider(true, CreateUsers());
+
+    InstancePtr server;
+    InstancePtr client;
+    using OMT = daq::OperationModeType;
+    {
+        // create server and client isntances
+        server = CreateServerInstance(CreateCustomServerInstanceWithPermissions(authenticationProvider, permissions));
+        // client has all permissions to change operation mode for all server devices
+        client = CreateClientInstanceForUser("adminUser", "adminUserPass");
+    }
+
+    {
+        auto device0 = server.getDevices()[0];
+        auto device1 = server.getDevices()[0].getDevices()[0];
+        device0.asPtr<IComponentPrivate>().unlockAllAttributes();
+        device1.asPtr<IComponentPrivate>().unlockAllAttributes();
+        device0.setVisible(false);
+        device1.setVisible(false);
+        ASSERT_FALSE(device0.getVisible());
+        ASSERT_FALSE(device1.getVisible());
+    }
+
+    {
+        // reset all devices to Operation for the following tests
+        ASSERT_NO_THROW(server.setOperationModeRecursive(OMT::Operation));
+        std::this_thread::sleep_for(std::chrono::milliseconds(100));
+        test_helpers::checkDeviceOperationMode(server, OMT::Operation, true);
+        test_helpers::checkDeviceOperationMode(server.getDevices(search::Any())[0], OMT::Operation, true);
+        test_helpers::checkDeviceOperationMode(server.getDevices(search::Any())[0].getDevices(search::Any())[0], OMT::Operation, true);
+
+        ASSERT_NO_THROW(client.setOperationMode(OMT::Operation));
+        test_helpers::checkDeviceOperationMode(client.getRootDevice(), OMT::Operation);
+    }
+
+    {
+        // check initial operation mode for server and client devices
+        test_helpers::checkDeviceOperationMode(server, OMT::Operation, true);
+        test_helpers::checkDeviceOperationMode(server.getDevices(search::Any())[0], OMT::Operation, true);
+        test_helpers::checkDeviceOperationMode(server.getDevices(search::Any())[0].getDevices(search::Any())[0], OMT::Operation, true);
+
+        test_helpers::checkDeviceOperationMode(client, OMT::Operation);
+        test_helpers::checkDeviceOperationMode(client.getDevices(search::Any())[0], OMT::Operation);
+        test_helpers::checkDeviceOperationMode(client.getDevices(search::Any())[0].getDevices(search::Any())[0], OMT::Operation);
+        test_helpers::checkDeviceOperationMode(client.getDevices(search::Any())[0].getDevices(search::Any())[0].getDevices(search::Any())[0], OMT::Operation);
+    }
+
+    {
+        ASSERT_NO_THROW(client.setOperationModeRecursive(OMT::Idle));
+        std::this_thread::sleep_for(std::chrono::milliseconds(100));
+        test_helpers::checkDeviceOperationMode(server.getRootDevice(), OMT::Idle, true);
+        test_helpers::checkDeviceOperationMode(server.getDevices(search::Any())[0], OMT::Idle, true);
+        test_helpers::checkDeviceOperationMode(server.getDevices(search::Any())[0].getDevices(search::Any())[0], OMT::Idle, true);
+
+        test_helpers::checkDeviceOperationMode(client.getRootDevice(), OMT::Idle);
+        test_helpers::checkDeviceOperationMode(client.getDevices(search::Any())[0], OMT::Idle);
+        test_helpers::checkDeviceOperationMode(client.getDevices(search::Any())[0].getDevices(search::Any())[0], OMT::Idle);
+        test_helpers::checkDeviceOperationMode(client.getDevices(search::Any())[0].getDevices(search::Any())[0].getDevices(search::Any())[0], OMT::Idle);
     }
 }
 

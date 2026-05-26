@@ -1,6 +1,7 @@
 #include <native_streaming_client_module/native_streaming_device_impl.h>
 #include <native_streaming_client_module/native_streaming_signal_impl.h>
 #include <native_streaming_client_module/native_streaming_impl.h>
+#include <native_streaming_client_module/native_device_utils.h>
 
 #include <opendaq/device_info_factory.h>
 #include <opendaq/component_deserialize_context_factory.h>
@@ -10,8 +11,7 @@
 #include <coretypes/function_factory.h>
 
 #include <coreobjects/property_object_protected_ptr.h>
-
-#include <regex>
+#include <opendaq/custom_log.h>
 
 BEGIN_NAMESPACE_OPENDAQ_NATIVE_STREAMING_CLIENT_MODULE
 using namespace opendaq_native_streaming_protocol;
@@ -28,6 +28,7 @@ NativeStreamingDeviceImpl::NativeStreamingDeviceImpl(const ContextPtr& ctx,
   , connectionString(connectionString)
   , connectionStatus(Enumeration("ConnectionStatusType", "Connected", this->context.getTypeManager()))
   , deviceType(type)
+  , transportProtocolClient(transportProtocolClient)
 {
     if (!this->connectionString.assigned())
         DAQ_THROW_EXCEPTION(ArgumentNullException, "connectionString cannot be null");
@@ -41,10 +42,32 @@ NativeStreamingDeviceImpl::NativeStreamingDeviceImpl(const ContextPtr& ctx,
     this->statusContainer.asPtr<IComponentStatusContainerPrivate>().addStatus("ConnectionStatus", connectionStatus);
 }
 
+ErrCode NativeStreamingDeviceImpl::setComponentConfig(IPropertyObject* config)
+{
+    OPENDAQ_RETURN_IF_FAILED(Super::setComponentConfig(config));
+
+    DeviceInfoPtr deviceInfo;
+    OPENDAQ_RETURN_IF_FAILED(getInfo(&deviceInfo));
+
+    ListPtr<IString> alternativeAddresses;
+    const ErrCode errCode = collectAlternativeAddresses(componentConfig, 
+                                                        deviceInfo,
+                                                        NativeStreamingDeviceTypeId, 
+                                                        alternativeAddresses);
+    
+    OPENDAQ_RETURN_IF_FAILED(errCode);
+    
+    if (errCode == OPENDAQ_SUCCESS)
+        transportProtocolClient->setAlternativeAddresses(alternativeAddresses);
+
+    return OPENDAQ_SUCCESS;
+}
+
 void NativeStreamingDeviceImpl::removed()
 {
     this->connectionStatusContainer.removeStreamingConnectionStatus(connectionString);
     nativeStreaming.release();
+    transportProtocolClient.reset();
     Device::removed();
 }
 

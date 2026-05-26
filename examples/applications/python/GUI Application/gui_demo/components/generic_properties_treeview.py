@@ -70,8 +70,8 @@ class PropertiesTreeview(ttk.Treeview):
 
         # bind double-click to editing (if not read_only)
         if not self.read_only:
-            self.bind('<Double-1>', lambda event: self.edit_value())
-        self.bind('<Button-3>', lambda event: self.show_menu(event))
+            self.bind('<Double-1>', lambda event=None: self.edit_value())
+        self.bind('<Button-3>', lambda event=None: self.show_menu(event))
         self.bind('<MouseWheel>', lambda e=None: self.after_idle(self._sync_overlays))
         self.bind('<ButtonRelease-1>', lambda e=None: self.after(10, self._sync_overlays), add='+')
         self.bind('<Configure>', self._on_configure)
@@ -196,11 +196,16 @@ class PropertiesTreeview(ttk.Treeview):
                 print(e)
 
             # Insert a treeview entry widget for the property
+            if property_info.value_type in (daq.CoreType.ctFunc, daq.CoreType.ctProc):
+                display_name = '          ' + property_info.name
+            else:
+                display_name = property_info.name
+
             iid = self.insert(
                 '' if not parent_iid else parent_iid,
                 tk.END,
                 open=True,
-                text=property_info.name,
+                text=display_name,
                 values=(property_value, *meta_fields))
 
             container_types = (daq.CoreType.ctObject, daq.CoreType.ctStruct, daq.CoreType.ctList, daq.CoreType.ctDict)

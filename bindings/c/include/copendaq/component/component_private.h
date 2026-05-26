@@ -10,7 +10,7 @@
 //------------------------------------------------------------------------------
 
 /*
- * Copyright 2022-2025 openDAQ d.o.o.
+ * Copyright 2022-2026 openDAQ d.o.o.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -50,7 +50,7 @@ extern "C"
     daqErrCode EXPORTED daqComponentPrivate_updateOperationMode(daqComponentPrivate* self, daqOperationModeType modeType);
     daqErrCode EXPORTED daqComponentPrivate_setComponentConfig(daqComponentPrivate* self, daqPropertyObject* config);
     daqErrCode EXPORTED daqComponentPrivate_getComponentConfig(daqComponentPrivate* self, daqPropertyObject** config);
-    daqErrCode EXPORTED daqComponentPrivate_setParentActive(daqComponentPrivate* self, daqBool parentActive);
+    daqErrCode EXPORTED daqComponentPrivate_setParentActive(daqComponentPrivate* self, daqBool parentActive, daqBool onUpdate);
 
 #ifdef __cplusplus
 }

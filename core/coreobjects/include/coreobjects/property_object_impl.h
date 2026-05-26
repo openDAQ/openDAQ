@@ -2290,6 +2290,8 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::addProperty(
     if (frozen)
         return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_FROZEN);
 
+    auto lock = getRecursiveConfigLock2();
+
     const ErrCode errCode = daqTry([&]() -> auto {
         const PropertyPtr propPtr = property;
         StringPtr propName = propPtr.getName();
@@ -2944,6 +2946,8 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::checkForRefe
 template <typename PropObjInterface, typename... Interfaces>
 ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::enableCoreEventTrigger()
 {
+    auto lock = getRecursiveConfigLock2();
+
     coreEventMuted = false;
 
     for (auto& [propName, propValue] : propValues)
@@ -2958,6 +2962,8 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::enableCoreEv
 template <typename PropObjInterface, typename... Interfaces>
 ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::disableCoreEventTrigger()
 {
+    auto lock = getRecursiveConfigLock2();
+
     coreEventMuted = true;
 
     for (auto& item : propValues)

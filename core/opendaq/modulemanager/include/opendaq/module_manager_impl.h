@@ -102,7 +102,7 @@ private:
     void completeServerCapabilities(const DevicePtr& device) const;
 
     void checkNetworkSettings(ListPtr<IDeviceInfo>& list);
-    void setAddressesReachable(const std::map<std::string, bool>& addr, ListPtr<IDeviceInfo>& info);
+    void setAddressesReachable(const std::map<std::string, AddressReachabilityStatus>& addr, ListPtr<IDeviceInfo>& info);
 
     static PropertyObjectPtr PopulateGeneralConfig(PropertyObjectPtr& addDeviceConfig, const PropertyObjectPtr& inputConfig);
 

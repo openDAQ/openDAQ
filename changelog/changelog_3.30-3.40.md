@@ -113,158 +113,158 @@ On load configuration, all non-static function blocks will be removed and recrea
 ### [#1037](https://github.com/openDAQ/openDAQ/pull/1037) Mandatory device types
 To enable static components, devices must include the Device Type in their Device Info objects. Modules set the value within the onGetInfo overriding method by calling IDeviceInfoConfig::setDeviceType().
 
-## API Surface Changes
-**3** added, **1** removed, **17** changed.
+## Interface API changes
+- **2** new interfaces, 
+- **1** interface removed, 
+- **54** functions added.
+- **16** functions removed.
 
-### Interfaces
-```diff
-+ IPropertyObjectCore
-+ IDevelopmentVersionInfo
-+ IDeviceUpdateOptions
-- IFunctionBlockWrapper
-```
+### New interfaces
 
-### New Interfaces
-#### `IPropertyObjectCore`
-```diff
-+ [factory] createPropertyObjectCore() -> IPropertyObjectCore** obj
-+ getRecursiveLockGuard(ILockGuard** lockGuard, IMutex* sync)
-+ getLockGuard(ILockGuard** lockGuard, IMutex* sync)
-```
 #### `IDevelopmentVersionInfo`
 ```diff
-+ [factory] createDevelopmentVersionInfo(SizeT major, SizeT minor, SizeT patch, SizeT tweak, IString* branch, IString* hash) -> IDevelopmentVersionInfo** obj
-+ getMajor(SizeT* major)
-+ getMinor(SizeT* minor)
-+ getPatch(SizeT* patch)
-+ getTweak(SizeT* tweak)
-+ getBranchName(IString** branchName)
-+ getHashDigest(IString** hash)
++ createDevelopmentVersionInfo(IDevelopmentVersionInfo** obj, SizeT major, SizeT minor, SizeT patch, SizeT tweak, IString* branch, IString* hash)
++ IDevelopmentVersionInfo::getMajor(SizeT* major)
++ IDevelopmentVersionInfo::getMinor(SizeT* minor)
++ IDevelopmentVersionInfo::getPatch(SizeT* patch)
++ IDevelopmentVersionInfo::getTweak(SizeT* tweak)
++ IDevelopmentVersionInfo::getBranchName(IString** branchName)
++ IDevelopmentVersionInfo::getHashDigest(IString** hash)
 ```
+
 #### `IDeviceUpdateOptions`
 ```diff
-+ [factory] createDeviceUpdateOptions(IString* setupString) -> IDeviceUpdateOptions** obj
-+ getLocalId(IString** localId)
-+ getManufacturer(IString** manufacturer)
-+ getSerialNumber(IString** serialNumber)
-+ getConnectionString(IString** connectionString)
-+ setNewManufacturer(IString* manufacturer)
-+ getNewManufacturer(IString** manufacturer)
-+ setNewSerialNumber(IString* serialNumber)
-+ getNewSerialNumber(IString** serialNumber)
-+ setNewConnectionString(IString* connectionString)
-+ getNewConnectionString(IString** connectionString)
-+ getUpdateMode(DeviceUpdateMode* mode)
-+ setUpdateMode(DeviceUpdateMode mode)
-+ getChildDeviceOptions(IList** childDeviceOptions)
++ createDeviceUpdateOptions(IDeviceUpdateOptions** obj, IString* setupString)
++ IDeviceUpdateOptions::getLocalId(IString** localId)
++ IDeviceUpdateOptions::getManufacturer(IString** manufacturer)
++ IDeviceUpdateOptions::getSerialNumber(IString** serialNumber)
++ IDeviceUpdateOptions::getConnectionString(IString** connectionString)
++ IDeviceUpdateOptions::setNewManufacturer(IString* manufacturer)
++ IDeviceUpdateOptions::getNewManufacturer(IString** manufacturer)
++ IDeviceUpdateOptions::setNewSerialNumber(IString* serialNumber)
++ IDeviceUpdateOptions::getNewSerialNumber(IString** serialNumber)
++ IDeviceUpdateOptions::setNewConnectionString(IString* connectionString)
++ IDeviceUpdateOptions::getNewConnectionString(IString** connectionString)
++ IDeviceUpdateOptions::getUpdateMode(DeviceUpdateMode* mode)
++ IDeviceUpdateOptions::setUpdateMode(DeviceUpdateMode mode)
++ IDeviceUpdateOptions::getChildDeviceOptions(IList** childDeviceOptions)
 ```
 
-### Removed Interfaces
+### Removed interfaces
+
 #### `IFunctionBlockWrapper`
 ```diff
-- includeInputPort(IString* inputPortName)
-- excludeInputPort(IString* inputPortName)
-- includeSignal(IString* signalLocalId)
-- excludeSignal(IString* signalLocalId)
-- includeProperty(IString* propertyName)
-- excludeProperty(IString* propertyName)
-- includeFunctionBlock(IString* functionBlockLocalId)
-- excludeFunctionBlock(IString* functionBlockLocalId)
-- setPropertyCoercer(IString* propertyName, ICoercer* coercer)
-- setPropertyValidator(IString* propertyName, IValidator* validator)
-- setPropertySelectionValues(IString* propertyName, IList* enumValues)
-- getWrappedFunctionBlock(IFunctionBlock** functionBlock)
+- createFunctionBlockWrapper(IFunctionBlock** obj, IFunctionBlock* functionBlock, Bool includeInputPortsByDefault, Bool includeSignalsByDefault, Bool includePropertiesByDefault, Bool includeFunctionBlocksByDefault)
+- IFunctionBlockWrapper::includeInputPort(IString* inputPortName)
+- IFunctionBlockWrapper::excludeInputPort(IString* inputPortName)
+- IFunctionBlockWrapper::includeSignal(IString* signalLocalId)
+- IFunctionBlockWrapper::excludeSignal(IString* signalLocalId)
+- IFunctionBlockWrapper::includeProperty(IString* propertyName)
+- IFunctionBlockWrapper::excludeProperty(IString* propertyName)
+- IFunctionBlockWrapper::includeFunctionBlock(IString* functionBlockLocalId)
+- IFunctionBlockWrapper::excludeFunctionBlock(IString* functionBlockLocalId)
+- IFunctionBlockWrapper::setPropertyCoercer(IString* propertyName, ICoercer* coercer)
+- IFunctionBlockWrapper::setPropertyValidator(IString* propertyName, IValidator* validator)
+- IFunctionBlockWrapper::setPropertySelectionValues(IString* propertyName, IList* enumValues)
+- IFunctionBlockWrapper::getWrappedFunctionBlock(IFunctionBlock** functionBlock)
 ```
 
-### Modified Interfaces
+### Modified interfaces
+
 #### `IProperty`
 ```diff
-+ getPropertyType(PropertyType* type)
++ IProperty::getPropertyType(PropertyType* type)
 ```
+
 #### `IPropertyBuilder`
 ```diff
-+ getIsIntegerValueSelection(Bool* isIntegerValueSelection)
-+ setIsIntegerValueSelection(Bool isIntegerValueSelection)
++ IPropertyBuilder::getIsIntegerValueSelection(Bool* isIntegerValueSelection)
++ IPropertyBuilder::setIsIntegerValueSelection(Bool isIntegerValueSelection)
 ```
+
 #### `IPropertyObject`
 ```diff
-+ clearPropertyValues()
-+ setPropertySelectionValue(IString* propertyName, IBaseObject* value)
++ IPropertyObject::clearPropertyValues()
++ IPropertyObject::setPropertySelectionValue(IString* propertyName, IBaseObject* value)
 ```
+
 #### `IPropertyObjectProtected`
 ```diff
-+ clearProtectedPropertyValues()
-+ setProtectedPropertySelectionValue(IString* propertyName, IBaseObject* value)
++ IPropertyObjectProtected::clearProtectedPropertyValues()
++ IPropertyObjectProtected::setProtectedPropertySelectionValue(IString* propertyName, IBaseObject* value)
 ```
+
 #### `IComponent`
 ```diff
-+ getLocalActive(Bool* localActive)
-+ getParentActive(Bool* parentActive)
++ IComponent::getLocalActive(Bool* localActive)
++ IComponent::getParentActive(Bool* parentActive)
 ```
+
 #### `IComponentPrivate`
 ```diff
-+ setParentActive(Bool parentActive, Bool onUpdate)
++ IComponentPrivate::setParentActive(Bool parentActive, Bool onUpdate)
 ```
+
 #### `IComponentUpdateContext`
 ```diff
-+ addDeviceRemapping(IString* originalDeviceId, IString* newDeviceId)
-+ getDeviceUpdateOptionsWithLocalIdOrNull(IString* localId, IDeviceUpdateOptions** options)
-+ getInternalState(IDict** state)
-+ getUpdateParameters(IUpdateParameters** updateParameters)
-+ overrideState(IComponentUpdateContext* updateContext)
-+ remapInputPortConnections()
-+ setRootComponent(IComponent* baseComponent)
-- getReAddDevicesEnabled(Bool* enabled)
++ IComponentUpdateContext::addDeviceRemapping(IString* originalDeviceId, IString* newDeviceId)
++ IComponentUpdateContext::getDeviceUpdateOptionsWithLocalIdOrNull(IString* localId, IDeviceUpdateOptions** options)
++ IComponentUpdateContext::getInternalState(IDict** state)
++ IComponentUpdateContext::getUpdateParameters(IUpdateParameters** updateParameters)
++ IComponentUpdateContext::overrideState(IComponentUpdateContext* updateContext)
++ IComponentUpdateContext::remapInputPortConnections()
++ IComponentUpdateContext::setRootComponent(IComponent* baseComponent)
+- IComponentUpdateContext::getReAddDevicesEnabled(Bool* enabled)
 ```
-#### `IFunctionBlock`
-```diff
-- [factory] createFunctionBlockWrapper(IFunctionBlock* functionBlock, Bool includeInputPortsByDefault, Bool includeSignalsByDefault, Bool includePropertiesByDefault, Bool includeFunctionBlocksByDefault) -> IFunctionBlock** obj
-```
+
 #### `IInputPort`
 ```diff
-+ acceptsSignals(IList* signals, IList** accepts)
-+ getPublic(Bool* isPublic)
-+ setPublic(Bool isPublic)
++ IInputPort::acceptsSignals(IList* signals, IList** accepts)
++ IInputPort::getPublic(Bool* isPublic)
++ IInputPort::setPublic(Bool isPublic)
 ```
+
 #### `IInputPortConfig`
 ```diff
-+ getListener(IInputPortNotifications** port)
++ IInputPortConfig::getListener(IInputPortNotifications** port)
 ```
+
 #### `IMirroredDevice`
 ```diff
-+ getMirroredDeviceType(IDeviceType** type)
++ IMirroredDevice::getMirroredDeviceType(IDeviceType** type)
 ```
+
 #### `IMirroredDeviceConfig`
 ```diff
-+ setMirroredDeviceType(IDeviceType* type)
++ IMirroredDeviceConfig::setMirroredDeviceType(IDeviceType* type)
 ```
+
 #### `IModuleAuthenticator`
 ```diff
-+ setLogger(ILogger* logger)
++ IModuleAuthenticator::setLogger(ILogger* logger)
 ```
+
 #### `IMultiReader`
 ```diff
-+ addInput(IComponent* input)
-+ getInputUsed(IString* id, Bool* isUsed)
-+ removeInput(IString* id)
-+ setInputUsed(IString* id, Bool isUsed)
++ IMultiReader::addInput(IComponent* input)
++ IMultiReader::getInputUsed(IString* id, Bool* isUsed)
++ IMultiReader::removeInput(IString* id)
++ IMultiReader::setInputUsed(IString* id, Bool isUsed)
 ```
-#### `IMultiReaderBuilder`
-```diff
-+ getInputPortNotificationMethods(IList* * notificationMethods)
-- getInputPortNotificationMethods(IList** notificationMethods)
-```
+
 #### `IServer`
 ```diff
-+ disableDiscovery()
++ IServer::disableDiscovery()
 ```
+
 #### `IUpdateParameters`
 ```diff
-+ getDeviceUpdateOptions(IDeviceUpdateOptions** options)
-+ getRemoveUnusedDevices(Bool* remove)
-+ setDeviceUpdateOptions(IDeviceUpdateOptions* options)
-+ setRemoveUnusedDevices(Bool remove)
-- getReAddDevicesEnabled(Bool* enabled)
-- setReAddDevicesEnabled(Bool enabled)
++ IUpdateParameters::getDeviceUpdateOptions(IDeviceUpdateOptions** options)
++ IUpdateParameters::getRemoveUnusedDevices(Bool* remove)
++ IUpdateParameters::setDeviceUpdateOptions(IDeviceUpdateOptions* options)
++ IUpdateParameters::setRemoveUnusedDevices(Bool remove)
+- IUpdateParameters::getReAddDevicesEnabled(Bool* enabled)
+- IUpdateParameters::setReAddDevicesEnabled(Bool enabled)
 ```
+
 

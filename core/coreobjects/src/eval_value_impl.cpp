@@ -564,6 +564,62 @@ ErrCode EvalValueImpl::createEndIterator(IIterator** iterator)
     return errCode;
 }
 
+ErrCode EvalValueImpl::getCapacity(SizeT* capacity)
+{
+    OPENDAQ_PARAM_NOT_NULL(capacity);
+
+    auto err = checkParseAndResolve(false);
+    OPENDAQ_RETURN_IF_FAILED(err);
+
+    BaseObjectPtr res = node->getResult();
+    const auto list = res.asPtrOrNull<IList>(true);
+    if (!list.assigned())
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDPARAMETER, "Result of evaluation is not a list.");
+
+    return list->getCapacity(capacity);
+}
+
+ErrCode EvalValueImpl::reserve(SizeT /*capacity*/)
+{
+    return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_ACCESSDENIED);
+}
+
+ErrCode EvalValueImpl::pushBackRange(IList* /*list*/)
+{
+    return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_ACCESSDENIED);
+}
+
+ErrCode EvalValueImpl::moveBackRange(IList* /*list*/)
+{
+    return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_ACCESSDENIED);
+}
+
+ErrCode EvalValueImpl::insertRangeAt(SizeT /*index*/, IList* /*list*/)
+{
+    return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_ACCESSDENIED);
+}
+
+ErrCode EvalValueImpl::moveRangeAt(SizeT /*index*/, IList* /*list*/)
+{
+    return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_ACCESSDENIED);
+}
+
+ErrCode EvalValueImpl::removeRange(SizeT /*index*/, SizeT /*count*/)
+{
+    return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_ACCESSDENIED);
+}
+
+ErrCode EvalValueImpl::getRange(SizeT index, SizeT count, IList** range)
+{
+    OPENDAQ_PARAM_NOT_NULL(range);
+
+    auto err = checkParseAndResolve(false);
+    OPENDAQ_RETURN_IF_FAILED(err);
+
+    ListPtr<IBaseObject> list = node->getResult();
+    return list->getRange(index, count, range);
+}
+
 ErrCode EvalValueImpl::getFloatValue(Float* value)
 {
     return toFloat(value);

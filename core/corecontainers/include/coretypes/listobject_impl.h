@@ -64,6 +64,16 @@ public:
     ErrCode INTERFACE_FUNC createStartIterator(IIterator** iterator) override;
     ErrCode INTERFACE_FUNC createEndIterator(IIterator** iterator) override;
 
+    ErrCode INTERFACE_FUNC getCapacity(SizeT* capacity) override;
+    ErrCode INTERFACE_FUNC reserve(SizeT capacity) override;
+
+    ErrCode INTERFACE_FUNC pushBackRange(IList* list) override;
+    ErrCode INTERFACE_FUNC moveBackRange(IList* list) override;
+    ErrCode INTERFACE_FUNC insertRangeAt(SizeT index, IList* list) override;
+    ErrCode INTERFACE_FUNC moveRangeAt(SizeT index, IList* list) override;
+    ErrCode INTERFACE_FUNC removeRange(SizeT index, SizeT count) override;
+    ErrCode INTERFACE_FUNC getRange(SizeT index, SizeT count, IList** range) override;
+
     // ICoreType
     ErrCode INTERFACE_FUNC getCoreType(CoreType* coreType) override;
 
@@ -104,6 +114,8 @@ private:
     friend ListIteratorImpl;
 
     void releaseRefOnChildren();
+
+    ErrCode insertRangeAtInternal(SizeT index, IList* list, bool moveRefs);
 };
 
 OPENDAQ_REGISTER_DESERIALIZE_FACTORY(ListImpl)

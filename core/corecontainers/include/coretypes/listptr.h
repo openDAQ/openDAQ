@@ -253,6 +253,46 @@ public:
      */
     void clear();
 
+    /*!
+     * @brief Gets the number of elements that the list has allocated space for.
+     */
+    SizeT getCapacity() const;
+
+    /*!
+     * @brief Requests that the list capacity be at least enough to contain the specified number of elements.
+     */
+    void reserve(SizeT capacity);
+
+    /*!
+     * @brief Inserts the elements from another list at the end of this list.
+     */
+    void pushBackRange(const ListObjectPtr<IList, IBaseObject>& list);
+
+    /*!
+     * @brief Inserts the elements from another list at the end of this list without incrementing their reference counts.
+     */
+    void moveBackRange(const ListObjectPtr<IList, IBaseObject>& list);
+
+    /*!
+     * @brief Inserts the elements from another list at a specific position.
+     */
+    void insertRangeAt(size_t index, const ListObjectPtr<IList, IBaseObject>& list);
+
+    /*!
+     * @brief Inserts the elements from another list at a specific position without incrementing their reference counts.
+     */
+    void moveRangeAt(size_t index, const ListObjectPtr<IList, IBaseObject>& list);
+
+    /*!
+     * @brief Removes a range of elements from the list.
+     */
+    void removeRange(size_t index, size_t count);
+
+    /*!
+     * @brief Creates a new list containing a copy of the elements in the specified range.
+     */
+    ListObjectPtr<IList, IBaseObject> getRange(size_t index, size_t count) const;
+
     void unsafePushBack(const TValuePtr& obj);
     void unsafePushBack(TValuePtr&& obj);
 
@@ -450,6 +490,82 @@ void ListObjectPtr<T, U, V>::clear()
         DAQ_THROW_EXCEPTION(InvalidParameterException);
 
     checkErrorInfo(this->object->clear());
+}
+
+template <class T, class U, class V>
+SizeT ListObjectPtr<T, U, V>::getCapacity() const
+{
+    if (!ObjectPtr<T>::object)
+        DAQ_THROW_EXCEPTION(InvalidParameterException);
+
+    SizeT capacity{};
+    checkErrorInfo(this->object->getCapacity(&capacity));
+    return capacity;
+}
+
+template <class T, class U, class V>
+void ListObjectPtr<T, U, V>::reserve(SizeT capacity)
+{
+    if (!ObjectPtr<T>::object)
+        DAQ_THROW_EXCEPTION(InvalidParameterException);
+
+    checkErrorInfo(this->object->reserve(capacity));
+}
+
+template <class T, class U, class V>
+void ListObjectPtr<T, U, V>::pushBackRange(const ListObjectPtr<IList, IBaseObject>& list)
+{
+    if (!ObjectPtr<T>::object)
+        DAQ_THROW_EXCEPTION(InvalidParameterException);
+
+    checkErrorInfo(this->object->pushBackRange(list));
+}
+
+template <class T, class U, class V>
+void ListObjectPtr<T, U, V>::moveBackRange(const ListObjectPtr<IList, IBaseObject>& list)
+{
+    if (!ObjectPtr<T>::object)
+        DAQ_THROW_EXCEPTION(InvalidParameterException);
+
+    checkErrorInfo(this->object->moveBackRange(list));
+}
+
+template <class T, class U, class V>
+void ListObjectPtr<T, U, V>::insertRangeAt(size_t index, const ListObjectPtr<IList, IBaseObject>& list)
+{
+    if (!ObjectPtr<T>::object)
+        DAQ_THROW_EXCEPTION(InvalidParameterException);
+
+    checkErrorInfo(this->object->insertRangeAt(index, list));
+}
+
+template <class T, class U, class V>
+void ListObjectPtr<T, U, V>::moveRangeAt(size_t index, const ListObjectPtr<IList, IBaseObject>& list)
+{
+    if (!ObjectPtr<T>::object)
+        DAQ_THROW_EXCEPTION(InvalidParameterException);
+
+    checkErrorInfo(this->object->moveRangeAt(index, list));
+}
+
+template <class T, class U, class V>
+void ListObjectPtr<T, U, V>::removeRange(size_t index, size_t count)
+{
+    if (!ObjectPtr<T>::object)
+        DAQ_THROW_EXCEPTION(InvalidParameterException);
+
+    checkErrorInfo(this->object->removeRange(index, count));
+}
+
+template <class T, class U, class V>
+ListObjectPtr<IList, IBaseObject> ListObjectPtr<T, U, V>::getRange(size_t index, size_t count) const
+{
+    if (!ObjectPtr<T>::object)
+        DAQ_THROW_EXCEPTION(InvalidParameterException);
+
+    IList* range = nullptr;
+    checkErrorInfo(this->object->getRange(index, count, &range));
+    return ListObjectPtr<IList, IBaseObject>::Adopt(range);
 }
 
 template <class T, class U, class V>

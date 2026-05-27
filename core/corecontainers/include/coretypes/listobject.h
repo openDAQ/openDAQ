@@ -157,6 +157,74 @@ DECLARE_OPENDAQ_INTERFACE(IList, IBaseObject)
      * Use iterators to iterate through the elements.
      */
     virtual ErrCode INTERFACE_FUNC createEndIterator(IIterator** iterator) = 0;
+
+    /*!
+     * @brief Gets the number of elements that the list has allocated space for.
+     * @param[out] capacity The current capacity of the list storage.
+     */
+    virtual ErrCode INTERFACE_FUNC getCapacity(SizeT* capacity) = 0;
+
+    /*!
+     * @brief Requests that the list capacity be at least enough to contain the specified number of elements.
+     * @param capacity The minimum capacity to allocate storage for.
+     *
+     * Does not change the number of elements in the list.
+     */
+    virtual ErrCode INTERFACE_FUNC reserve(SizeT capacity) = 0;
+
+    /*!
+     * @brief Inserts the elements from another list at the end of this list.
+     * @param list The list whose elements are inserted.
+     *
+     * The reference count of each inserted element is incremented.
+     */
+    virtual ErrCode INTERFACE_FUNC pushBackRange(IList* list) = 0;
+
+    /*!
+     * @brief Inserts the elements from another list at the end of this list without incrementing their reference counts.
+     * @param list The list whose elements are moved into this list.
+     *
+     * The reference count of each moved element is not incremented. After the call, @p list is empty.
+     */
+    virtual ErrCode INTERFACE_FUNC moveBackRange(IList* list) = 0;
+
+    /*!
+     * @brief Inserts the elements from another list at a specific position.
+     * @param index The zero-based index at which the range is inserted. Must be less than or equal to the list size.
+     * @param list The list whose elements are inserted.
+     *
+     * The reference count of each inserted element is incremented.
+     */
+    virtual ErrCode INTERFACE_FUNC insertRangeAt(SizeT index, IList* list) = 0;
+
+    /*!
+     * @brief Inserts the elements from another list at a specific position without incrementing their reference counts.
+     * @param index The zero-based index at which the range is inserted. Must be less than or equal to the list size.
+     * @param list The list whose elements are moved into this list.
+     *
+     * The reference count of each moved element is not incremented. After the call, @p list is empty.
+     */
+    virtual ErrCode INTERFACE_FUNC moveRangeAt(SizeT index, IList* list) = 0;
+
+    /*!
+     * @brief Removes a range of elements from the list.
+     * @param index The zero-based index of the first element to remove.
+     * @param count The number of elements to remove.
+     *
+     * The reference count of each removed element is decremented.
+     */
+    virtual ErrCode INTERFACE_FUNC removeRange(SizeT index, SizeT count) = 0;
+
+    /*!
+     * @brief Creates a new list containing a copy of the elements in the specified range.
+     * @param index The zero-based index of the first element in the range.
+     * @param count The number of elements in the range.
+     * @param[out] range A new list containing the elements in the range.
+     *
+     * The reference count of each element in the returned list is incremented. The client is
+     * responsible for calling `releaseRef` on the returned list when it is no longer needed.
+     */
+    virtual ErrCode INTERFACE_FUNC getRange(SizeT index, SizeT count, IList** range) = 0;
 };
 
 /*!@}*/

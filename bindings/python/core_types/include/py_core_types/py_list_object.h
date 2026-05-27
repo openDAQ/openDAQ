@@ -58,6 +58,15 @@ protected:
     daq::ErrCode INTERFACE_FUNC createStartIterator(daq::IIterator** iterator) override;
     daq::ErrCode INTERFACE_FUNC createEndIterator(daq::IIterator** iterator) override;
 
+    daq::ErrCode INTERFACE_FUNC getCapacity(daq::SizeT* capacity) override;
+    daq::ErrCode INTERFACE_FUNC reserve(daq::SizeT capacity) override;
+    daq::ErrCode INTERFACE_FUNC pushBackRange(daq::IList* list) override;
+    daq::ErrCode INTERFACE_FUNC moveBackRange(daq::IList* list) override;
+    daq::ErrCode INTERFACE_FUNC insertRangeAt(daq::SizeT index, daq::IList* list) override;
+    daq::ErrCode INTERFACE_FUNC moveRangeAt(daq::SizeT index, daq::IList* list) override;
+    daq::ErrCode INTERFACE_FUNC removeRange(daq::SizeT index, daq::SizeT count) override;
+    daq::ErrCode INTERFACE_FUNC getRange(daq::SizeT index, daq::SizeT count, daq::IList** range) override;
+
     // ICoreType
     daq::ErrCode INTERFACE_FUNC getCoreType(daq::CoreType* coreType) override;
 };
@@ -218,6 +227,96 @@ template <class F>
 daq::ErrCode PyListImpl<F>::createEndIterator(daq::IIterator** /* iterator */)
 {
     return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOTIMPLEMENTED, "End iterator not implemented");
+}
+
+template <class F>
+daq::ErrCode PyListImpl<F>::getCapacity(daq::SizeT* capacity)
+{
+    OPENDAQ_PARAM_NOT_NULL(capacity);
+    *capacity = pyObject.size();
+    return OPENDAQ_SUCCESS;
+}
+
+template <class F>
+daq::ErrCode PyListImpl<F>::reserve(daq::SizeT /*capacity*/)
+{
+    return OPENDAQ_SUCCESS;
+}
+
+template <class F>
+daq::ErrCode PyListImpl<F>::pushBackRange(daq::IList* list)
+{
+    OPENDAQ_PARAM_NOT_NULL(list);
+
+    daq::SizeT count = 0;
+    OPENDAQ_RETURN_IF_FAILED(list->getCount(&count));
+
+    for (daq::SizeT i = 0; i < count; ++i)
+    {
+        daq::IBaseObject* obj = nullptr;
+        OPENDAQ_RETURN_IF_FAILED(list->getItemAt(i, &obj));
+        OPENDAQ_RETURN_IF_FAILED(pushBack(obj));
+        if (obj)
+            obj->releaseRef();
+    }
+
+    return OPENDAQ_SUCCESS;
+}
+
+template <class F>
+daq::ErrCode PyListImpl<F>::moveBackRange(daq::IList* list)
+{
+    return pushBackRange(list);
+}
+
+template <class F>
+daq::ErrCode PyListImpl<F>::insertRangeAt(daq::SizeT index, daq::IList* list)
+{
+    OPENDAQ_PARAM_NOT_NULL(list);
+
+    daq::SizeT count = 0;
+    OPENDAQ_RETURN_IF_FAILED(list->getCount(&count));
+
+    for (daq::SizeT i = 0; i < count; ++i)
+    {
+        daq::IBaseObject* obj = nullptr;
+        OPENDAQ_RETURN_IF_FAILED(list->getItemAt(i, &obj));
+        OPENDAQ_RETURN_IF_FAILED(insertAt(index + i, obj));
+        if (obj)
+            obj->releaseRef();
+    }
+
+    return OPENDAQ_SUCCESS;
+}
+
+template <class F>
+daq::ErrCode PyListImpl<F>::moveRangeAt(daq::SizeT index, daq::IList* list)
+{
+    return insertRangeAt(index, list);
+}
+
+template <class F>
+daq::ErrCode PyListImpl<F>::removeRange(daq::SizeT index, daq::SizeT count)
+{
+    if (count == 0)
+        return OPENDAQ_SUCCESS;
+
+    pyObject.attr("__delitem__")(pybind11::slice(index, index + count, 1));
+    return OPENDAQ_SUCCESS;
+}
+
+template <class F>
+daq::ErrCode PyListImpl<F>::getRange(daq::SizeT index, daq::SizeT count, daq::IList** range)
+{
+    OPENDAQ_PARAM_NOT_NULL(range);
+
+    if (index + count > pyObject.size())
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_OUTOFRANGE);
+
+    pybind11::list sub = pyObject[pybind11::slice(index, index + count, 1)];
+    *range = new PyListImpl<F>(sub);
+    (*range)->addRef();
+    return OPENDAQ_SUCCESS;
 }
 
 template <class F>

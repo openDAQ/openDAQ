@@ -100,6 +100,15 @@ public:
     ErrCode INTERFACE_FUNC createStartIterator(IIterator** iterator) override;
     ErrCode INTERFACE_FUNC createEndIterator(IIterator** iterator) override;
 
+    ErrCode INTERFACE_FUNC getCapacity(SizeT* capacity) override;
+    ErrCode INTERFACE_FUNC reserve(SizeT capacity) override;
+    ErrCode INTERFACE_FUNC pushBackRange(IList* list) override;
+    ErrCode INTERFACE_FUNC moveBackRange(IList* list) override;
+    ErrCode INTERFACE_FUNC insertRangeAt(SizeT index, IList* list) override;
+    ErrCode INTERFACE_FUNC moveRangeAt(SizeT index, IList* list) override;
+    ErrCode INTERFACE_FUNC removeRange(SizeT index, SizeT count) override;
+    ErrCode INTERFACE_FUNC getRange(SizeT index, SizeT count, IList** range) override;
+
     // INumber
     ErrCode INTERFACE_FUNC getFloatValue(Float* value) override;
     ErrCode INTERFACE_FUNC getIntValue(Int* value) override;

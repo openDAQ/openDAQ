@@ -382,6 +382,134 @@ ErrCode ListImpl::createEndIterator(IIterator** iterator)
     return OPENDAQ_SUCCESS;
 }
 
+ErrCode ListImpl::getCapacity(SizeT* capacity)
+{
+    OPENDAQ_PARAM_NOT_NULL(capacity);
+
+    *capacity = list.capacity();
+    return OPENDAQ_SUCCESS;
+}
+
+ErrCode ListImpl::reserve(SizeT capacity)
+{
+    if (frozen)
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_FROZEN);
+
+    list.reserve(capacity);
+    return OPENDAQ_SUCCESS;
+}
+
+ErrCode ListImpl::insertRangeAtInternal(SizeT index, IList* other, bool moveRefs)
+{
+    if (other == nullptr)
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_ARGUMENT_NULL, "List to insert must not be null");
+
+    if (other == static_cast<IList*>(this))
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDPARAMETER, "Cannot insert a list into itself");
+
+    if (frozen)
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_FROZEN);
+
+    if (index > list.size())
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_OUTOFRANGE, "Index {} is out of range {}", index, list.size());
+
+    SizeT otherCount = 0;
+    ErrCode err = other->getCount(&otherCount);
+    OPENDAQ_RETURN_IF_FAILED(err);
+
+    if (otherCount == 0)
+        return OPENDAQ_SUCCESS;
+
+    auto* otherImpl = static_cast<ListImpl*>(other);
+    const auto insertPos = list.begin() + static_cast<std::ptrdiff_t>(index);
+    list.insert(insertPos, otherImpl->list.begin(), otherImpl->list.end());
+
+    if (moveRefs)
+    {
+        otherImpl->list.clear();
+    }
+    else
+    {
+        for (SizeT i = 0; i < otherCount; ++i)
+        {
+            if (IBaseObject* obj = list[index + i])
+                obj->addRef();
+        }
+    }
+
+    return OPENDAQ_SUCCESS;
+}
+
+ErrCode ListImpl::pushBackRange(IList* other)
+{
+    SizeT size = list.size();
+    return insertRangeAtInternal(size, other, false);
+}
+
+ErrCode ListImpl::moveBackRange(IList* other)
+{
+    SizeT size = list.size();
+    return insertRangeAtInternal(size, other, true);
+}
+
+ErrCode ListImpl::insertRangeAt(SizeT index, IList* other)
+{
+    return insertRangeAtInternal(index, other, false);
+}
+
+ErrCode ListImpl::moveRangeAt(SizeT index, IList* other)
+{
+    return insertRangeAtInternal(index, other, true);
+}
+
+ErrCode ListImpl::removeRange(SizeT index, SizeT count)
+{
+    if (frozen)
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_FROZEN);
+
+    if (count == 0)
+        return OPENDAQ_SUCCESS;
+
+    if (index >= list.size() || count > list.size() - index)
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_OUTOFRANGE);
+
+    const auto beginIt = list.begin() + static_cast<std::ptrdiff_t>(index);
+    const auto endIt = beginIt + static_cast<std::ptrdiff_t>(count);
+
+    for (auto it = beginIt; it != endIt; ++it)
+    {
+        if (*it)
+            (*it)->releaseRef();
+    }
+
+    list.erase(beginIt, endIt);
+    return OPENDAQ_SUCCESS;
+}
+
+ErrCode ListImpl::getRange(SizeT index, SizeT count, IList** range)
+{
+    OPENDAQ_PARAM_NOT_NULL(range);
+
+    if (count > 0 && (index >= list.size() || count > list.size() - index))
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_OUTOFRANGE);
+
+    ListPtr<IBaseObject> rangeList = createWithImplementation<IList, ListImpl>(iid);
+    auto* rangeListImpl = static_cast<ListImpl*>(rangeList.getObject());
+
+    const auto first = list.begin() + static_cast<std::ptrdiff_t>(index);
+    const auto last = first + static_cast<std::ptrdiff_t>(count);
+    rangeListImpl->list.insert(rangeListImpl->list.end(), first, last);
+
+    for (IBaseObject* obj : rangeListImpl->list)
+    {
+        if (obj)
+            obj->addRef();
+    }
+
+    *range = rangeList.detach();
+    return OPENDAQ_SUCCESS;
+}
+
 ErrCode ListImpl::getCoreType(CoreType* coreType)
 {
     OPENDAQ_PARAM_NOT_NULL(coreType);

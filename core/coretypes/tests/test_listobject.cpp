@@ -167,6 +167,10 @@ TEST_F(ListObjectTest, UnassignedList)
     ASSERT_ANY_THROW(list.clear());
     ASSERT_ANY_THROW(list.getItemAt(0));
     ASSERT_ANY_THROW(list.setItemAt(0, BaseObject()));
+    ASSERT_ANY_THROW(list.getCapacity());
+    ASSERT_ANY_THROW(list.reserve(1));
+    ASSERT_ANY_THROW(list.pushBackRange(List<IBaseObject>()));
+    ASSERT_ANY_THROW(list.getRange(0, 1));
 }
 
 TEST_F(ListObjectTest, OutOfRange)
@@ -874,4 +878,109 @@ TEST_F(ListObjectTest, ToVector)
     ASSERT_EQ(obj1Vector[0], 1);
     ASSERT_EQ(obj1Vector[1], 2);
     ASSERT_EQ(obj1Vector[2], 3);
+}
+
+TEST_F(ListObjectTest, Capacity)
+{
+    auto list = List<IBaseObject>();
+    ASSERT_GE(list.getCapacity(), 0u);
+
+    list.reserve(100);
+    ASSERT_GE(list.getCapacity(), 100u);
+    ASSERT_EQ(list.getCount(), 0u);
+
+    list.pushBack(BaseObject());
+    ASSERT_EQ(list.getCount(), 1u);
+}
+
+TEST_F(ListObjectTest, PushBackRange)
+{
+    auto source = List<IInteger>(1, 2, 3);
+    auto dest = List<IInteger>(4);
+
+    dest.pushBackRange(source);
+    ASSERT_EQ(dest.getCount(), 4u);
+    ASSERT_EQ(source.getCount(), 3u);
+    ASSERT_EQ(dest.getItemAt(0), 4);
+    ASSERT_EQ(dest.getItemAt(1), 1);
+    ASSERT_EQ(dest.getItemAt(2), 2);
+    ASSERT_EQ(dest.getItemAt(3), 3);
+}
+
+TEST_F(ListObjectTest, MoveBackRange)
+{
+    auto source = List<IInteger>(1, 2, 3);
+    auto dest = List<IInteger>();
+
+    dest.moveBackRange(source);
+    ASSERT_EQ(dest.getCount(), 3u);
+    ASSERT_EQ(source.getCount(), 0u);
+    ASSERT_EQ(dest.getItemAt(0), 1);
+    ASSERT_EQ(dest.getItemAt(1), 2);
+    ASSERT_EQ(dest.getItemAt(2), 3);
+}
+
+TEST_F(ListObjectTest, InsertRangeAt)
+{
+    auto source = List<IInteger>(10, 20);
+    auto dest = List<IInteger>(1, 2, 3);
+
+    dest.insertRangeAt(1, source);
+    ASSERT_EQ(dest.getCount(), 5u);
+    ASSERT_EQ(dest.getItemAt(0), 1);
+    ASSERT_EQ(dest.getItemAt(1), 10);
+    ASSERT_EQ(dest.getItemAt(2), 20);
+    ASSERT_EQ(dest.getItemAt(3), 2);
+    ASSERT_EQ(dest.getItemAt(4), 3);
+}
+
+TEST_F(ListObjectTest, MoveRangeAt)
+{
+    auto source = List<IInteger>(10, 20);
+    auto dest = List<IInteger>(1, 2, 3);
+
+    dest.moveRangeAt(2, source);
+    ASSERT_EQ(dest.getCount(), 5u);
+    ASSERT_EQ(source.getCount(), 0u);
+    ASSERT_EQ(dest.getItemAt(0), 1);
+    ASSERT_EQ(dest.getItemAt(1), 2);
+    ASSERT_EQ(dest.getItemAt(2), 10);
+    ASSERT_EQ(dest.getItemAt(3), 20);
+    ASSERT_EQ(dest.getItemAt(4), 3);
+}
+
+TEST_F(ListObjectTest, RemoveRange)
+{
+    auto list = List<IInteger>(1, 2, 3, 4, 5);
+
+    list.removeRange(1, 3);
+    ASSERT_EQ(list.getCount(), 2u);
+    ASSERT_EQ(list.getItemAt(0), 1);
+    ASSERT_EQ(list.getItemAt(1), 5);
+}
+
+TEST_F(ListObjectTest, GetRange)
+{
+    auto list = List<IInteger>(1, 2, 3, 4, 5);
+
+    auto range = list.getRange(1, 3);
+    ASSERT_EQ(range.getCount(), 3u);
+    ASSERT_EQ(range.getItemAt(0), 2);
+    ASSERT_EQ(range.getItemAt(1), 3);
+    ASSERT_EQ(range.getItemAt(2), 4);
+    ASSERT_EQ(list.getCount(), 5u);
+}
+
+TEST_F(ListObjectTest, InsertRangeIntoSelf)
+{
+    auto list = List<IInteger>(1, 2, 3);
+    ASSERT_ERROR_CODE_EQ(list->insertRangeAt(0, list), OPENDAQ_ERR_INVALIDPARAMETER);
+}
+
+TEST_F(ListObjectTest, RangeOutOfRange)
+{
+    auto list = List<IInteger>(1, 2, 3);
+    ASSERT_ANY_THROW(list.removeRange(1, 5));
+    ASSERT_ANY_THROW(list.getRange(2, 5));
+    ASSERT_ANY_THROW(list.insertRangeAt(10, List<IInteger>(1)));
 }

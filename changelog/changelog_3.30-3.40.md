@@ -68,6 +68,7 @@
 
 ## Misc
 
+- [#1216](https://github.com/openDAQ/openDAQ/pull/1216) Speeds up comparison between end sentinel when iterating over openDAQ list and dictionary objects
 - [#1171](https://github.com/openDAQ/openDAQ/pull/1171) MDNS discovery ratelimiting
 - [#1125](https://github.com/openDAQ/openDAQ/pull/1125) Removing all function blocks before load 
 - [#1109](https://github.com/openDAQ/openDAQ/pull/1109) New check version dependencies mechanism for modules

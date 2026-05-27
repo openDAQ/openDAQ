@@ -404,7 +404,7 @@ ErrCode ListImpl::insertRangeAtInternal(SizeT index, IList* other, bool moveRefs
     if (other == nullptr)
         return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_ARGUMENT_NULL, "List to insert must not be null");
 
-    if (other == static_cast<IList*>(this))
+    if (other == this->borrowInterface())
         return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDPARAMETER, "Cannot insert a list into itself");
 
     if (frozen)

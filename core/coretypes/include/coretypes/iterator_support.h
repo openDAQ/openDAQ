@@ -96,9 +96,6 @@ bool NativeIterator<U>::operator!=(const NativeIterator<U>& other) const
     if (err1 == OPENDAQ_ERR_NOTASSIGNED || err2 == OPENDAQ_ERR_NOTASSIGNED)
         return true;
 
-    checkErrorInfo(err1);
-    checkErrorInfo(err2);
-
     Bool eq{false};
     const ErrCode errCode = iterator->equals(other.iterator, &eq);
     checkErrorInfo(errCode);

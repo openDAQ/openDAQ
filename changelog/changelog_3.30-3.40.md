@@ -24,6 +24,7 @@
 - [#1178](https://github.com/openDAQ/openDAQ/pull/1178) Calling begin/end update only on the root component while save/load
 - [#1179](https://github.com/openDAQ/openDAQ/pull/1179) Reduce component config size
 - [#1166](https://github.com/openDAQ/openDAQ/pull/1166) Add `IUpdateParameters::setRemoveUnusedDevices` to optionally remove devices not specified in the loaded configuration.
+- [#1217](https://github.com/openDAQ/openDAQ/pull/1217) Extend IList with capacity, bulk insert/move, range remove, and sublist extraction
 
 ## Python
 

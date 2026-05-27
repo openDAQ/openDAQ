@@ -17,6 +17,7 @@
 
 #include <coretypes/ratio_ptr.h>
 #include <opendaq/range_type.h>
+#include <opendaq/reader_utils.h>
 
 #include <chrono>
 #include <iostream>
@@ -31,6 +32,9 @@ struct DomainInfo
 
     friend bool operator==(const DomainInfo& lhs, const DomainInfo& rhs)
     {
+        if (!lhs.resolution.assigned() || !rhs.resolution.assigned())
+            DAQ_THROW_EXCEPTION(InvalidParameterException, "DomainInfo::resolution must be assigned.");
+
         if (!(lhs.epoch == rhs.epoch))
             return false;
         if (!(lhs.resolution.getNumerator() == rhs.resolution.getNumerator()))
@@ -71,7 +75,9 @@ public:
 	virtual std::unique_ptr<DomainValue> toCommonDomain(const DomainInfo& commonDomain) = 0;
 	virtual std::unique_ptr<DomainValue> fromCommonDomain(const DomainInfo& regularDomain) = 0;
 	
-	virtual double getTime() = 0;
+#if !defined(NDEBUG)
+    virtual std::string asTime() const = 0;
+#endif
 	
 	friend bool operator<(const DomainValue& lhs, const DomainValue& rhs)
     {
@@ -103,7 +109,7 @@ public:
 
         using SysPeriod = std::chrono::system_clock::period;
         Int scaleNumerator = SysPeriod::num * commonDomain.resolution.getDenominator();
-        Int scaleDenominator = SysPeriod::num * commonDomain.resolution.getNumerator();
+        Int scaleDenominator = SysPeriod::den * commonDomain.resolution.getNumerator();
         Int offsetFromCommon = epochOffset * scaleNumerator / scaleDenominator;
 
         // tick_common = tick * multiplier
@@ -125,7 +131,7 @@ public:
 
         using SysPeriod = std::chrono::system_clock::period;
         Int scaleNumerator = SysPeriod::num * commonDomain.resolution.getDenominator();
-        Int scaleDenominator = SysPeriod::num * commonDomain.resolution.getNumerator();
+        Int scaleDenominator = SysPeriod::den * commonDomain.resolution.getNumerator();
         Int offsetFromCommon = epochOffset * scaleNumerator / scaleDenominator;
 	    Type valueScaledToCommon = valueInCommon - offsetFromCommon;
 
@@ -142,12 +148,17 @@ public:
 	    return value;
 	}
 	
-	double getTime() override
-	{
-        using SysPeriod = std::chrono::system_clock::period;
-	    return domain.epoch.time_since_epoch().count() * SysPeriod::num / static_cast<double>(SysPeriod::den)
-            + value * domain.resolution.getNumerator() / static_cast<double>(domain.resolution.getDenominator());
-	}
+#if !defined(NDEBUG)
+    virtual std::string asTime() const override
+    {
+        using namespace reader;
+
+        std::stringstream ss;
+        ss << toSysTime(value, domain.epoch, domain.resolution);
+
+        return ss.str();
+    }
+#endif
 	
 	int compare(const DomainValue& other) const override
 	{
@@ -229,7 +240,7 @@ public:
             ? static_cast<RangeValue>(-1)
             : static_cast<RangeValue>(endScaledToCommon * multiplierDenominator / static_cast<double>(multiplierNumerator));
 	    
-		return std::make_unique<DomainValueImpl<RangeValue>>(regularDomain, RangeType64{startValue, endValue});
+		return std::make_unique<DomainValueImpl<RangeType64>>(regularDomain, RangeType64{startValue, endValue});
     }
 
     RangeType64 getValue() const
@@ -237,16 +248,21 @@ public:
 	    return value;
 	}
 
-    double getTime() override
-	{
-        using SysPeriod = std::chrono::system_clock::period;
-	    return domain.epoch.time_since_epoch().count() * SysPeriod::num / static_cast<double>(SysPeriod::den)
-            + value.start * domain.resolution.getNumerator() / static_cast<double>(domain.resolution.getDenominator());
-	}
+#if !defined(NDEBUG)
+    virtual std::string asTime() const override
+    {
+        using namespace reader;
+
+        std::stringstream ss;
+        ss << toSysTime(value.start, domain.epoch, domain.resolution);
+
+        return ss.str();
+    }
+#endif
 	
 	int compare(const DomainValue& other) const override
 	{
-	    const auto* otherImpl = dynamic_cast<const DomainValueImpl<RangeType64>(&other);
+	    const auto* otherImpl = dynamic_cast<const DomainValueImpl<RangeType64>*>(&other);
 	    if (otherImpl == nullptr){
 	        DAQ_THROW_EXCEPTION(InvalidParameterException, "Both DomainValue objects must be of the same type!");
 	    }
@@ -287,10 +303,12 @@ public:
 	    DAQ_THROW_EXCEPTION(NotSupportedException);
 	}
 
-    double getTime() override
-	{
+#if !defined(NDEBUG)
+    virtual std::string asTime() const override
+    {
         DAQ_THROW_EXCEPTION(NotSupportedException);
-	}
+    }
+#endif
 	
 	int compare(const DomainValue& other) const override
 	{
@@ -320,10 +338,12 @@ public:
 	    DAQ_THROW_EXCEPTION(NotSupportedException);
 	}
 
-    double getTime() override
-	{
+#if !defined(NDEBUG)
+    virtual std::string asTime() const override
+    {
         DAQ_THROW_EXCEPTION(NotSupportedException);
-	}
+    }
+#endif
 	
 	int compare(const DomainValue& other) const override
 	{

@@ -400,13 +400,15 @@ void ListObjectPtr<T, U, V>::pushBack(V&& obj)
 template <class T, class U, class V>
 void ListObjectPtr<T, U, V>::unsafePushBack(const V& obj)
 {
-    this->object->pushBack(obj);
+    if (OPENDAQ_FAILED(this->object->pushBack(obj)))
+        daqClearErrorInfo();
 }
 
 template <class T, class U, class V>
 void ListObjectPtr<T, U, V>::unsafePushBack(V&& obj)
 {
-    this->object->moveBack(obj);
+    if (OPENDAQ_FAILED(this->object->moveBack(obj)))
+        daqClearErrorInfo();
     obj.detach();
 }
 

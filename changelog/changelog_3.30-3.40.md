@@ -105,5 +105,11 @@ On load configuration, all non-static function blocks will be removed and recrea
 
 ## Required module changes
 
+### [#1214](https://github.com/openDAQ/openDAQ/pull/1214) Fix packet enqueue order in sendPackets
+
+`ISignalConfig::sendPackets` had an issue where packets were sometimes enqueued front-to-back (first packet in list is enqueued first) and sometimes back-to-front. This inconsistency was addressed to always enqueue packets front-to-back.
+
+Module implementations where `sendPackets` is used should check whether this change in behaviour reversed the order in which packets are enqueued and adjust the packet list order accordingly.
+
 ### [#1037](https://github.com/openDAQ/openDAQ/pull/1037) Mandatory device types
 To enable static components, devices must include the Device Type in their Device Info objects. Modules set the value within the onGetInfo overriding method by calling IDeviceInfoConfig::setDeviceType().

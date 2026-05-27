@@ -21,6 +21,7 @@
 #include <thread>
 #include <coreobjects/property_factory.h>
 #include <opendaq/binary_data_packet_factory.h>
+#include <opendaq/connection_factory.h>
 
 using SignalTest = testing::Test;
 
@@ -613,6 +614,31 @@ TEST_F(SignalTest, SendAndReleasePackets)
 
     ASSERT_EQ(connImpl->packetsEnqueued, 3u);
     ASSERT_TRUE(connImpl->packetEnqueued);
+}
+
+TEST_F(SignalTest, SendPacketsCheckOrder)
+{
+    auto context = NullContext();
+    const auto sig = Signal(context, nullptr, "sig");
+    auto ip = InputPort(context, nullptr, "port");
+
+    ip.connect(sig);
+    auto conn = ip.getConnection();
+
+    auto dataPacket = DataPacket(DataDescriptorBuilder().build(), 0);
+    auto eventPacket = EventPacket("test", Dict<IString, IString>());
+
+    auto packets = List<IPacket>(dataPacket, eventPacket, dataPacket, eventPacket);
+    sig.sendPackets(std::move(packets));
+
+    for (int i = 0; i < 5; ++i)
+    {
+        auto packet = conn.dequeue();
+        if (i % 2 == 0)
+            ASSERT_EQ(packet.getType(), PacketType::Event);
+        else
+            ASSERT_EQ(packet.getType(), PacketType::Data);
+    }
 }
 
 TEST_F(SignalTest, SetDescriptorWithConnection)

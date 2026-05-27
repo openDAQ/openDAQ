@@ -87,6 +87,18 @@ NativeIterator<U>& NativeIterator<U>::operator++()
 template <class U>
 bool NativeIterator<U>::operator!=(const NativeIterator<U>& other) const
 {
+    ErrCode err1 = iterator->getCurrent(nullptr);
+    ErrCode err2 = other.iterator->getCurrent(nullptr);
+    
+    if (err1 == OPENDAQ_ERR_NOTASSIGNED && err2 == OPENDAQ_ERR_NOTASSIGNED)
+        return false;
+    
+    if (err1 == OPENDAQ_ERR_NOTASSIGNED || err2 == OPENDAQ_ERR_NOTASSIGNED)
+        return true;
+
+    checkErrorInfo(err1);
+    checkErrorInfo(err2);
+
     Bool eq{false};
     const ErrCode errCode = iterator->equals(other.iterator, &eq);
     checkErrorInfo(errCode);

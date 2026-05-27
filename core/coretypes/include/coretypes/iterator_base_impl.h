@@ -78,10 +78,10 @@ IteratorBaseImpl<T, E, VS>::~IteratorBaseImpl()
 template <typename T, typename E, typename VS>
 ErrCode IteratorBaseImpl<T, E, VS>::getCurrent(IBaseObject** obj) const
 {
-    OPENDAQ_PARAM_NOT_NULL(obj);
-
     if (it == end)
         return OPENDAQ_ERR_NOTASSIGNED;
+
+    OPENDAQ_PARAM_NOT_NULL(obj);
 
     *obj = valueSelector(*it);
     return OPENDAQ_SUCCESS;

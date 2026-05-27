@@ -11,7 +11,6 @@ from .output_signals_view import OutputSignalsView
 from .properties_view import PropertiesView
 from .recorder_view import RecorderView
 from .attributes_dialog import AttributesDialog
-from .signal_preview_panel import SignalPreviewPanel
 
 class BlockView(ttk.Frame):
 
@@ -37,6 +36,7 @@ class BlockView(ttk.Frame):
         self.edit_image = None
 
         self.device_img = None
+        self.channel_img = None
         self.function_block_img = None
         self.folder_img = None
         self.component_img = None
@@ -50,6 +50,8 @@ class BlockView(ttk.Frame):
                 self.edit_image = context.icons['settings']
             if 'device' in context.icons:
                 self.device_img = context.icons['device']
+            if 'channel' in context.icons:
+                self.channel_img = context.icons['channel']
             if 'function_block' in context.icons:
                 self.function_block_img = context.icons['function_block']
             if 'folder' in context.icons:
@@ -63,17 +65,17 @@ class BlockView(ttk.Frame):
         self.header_frame.pack(fill=tk.X)
 
         self.label_icon = ttk.Label(self.header_frame)
-        self.label_icon.pack(side=tk.LEFT)
+        self.label_icon.pack(side=tk.LEFT, padx=(7,0))
         self.label = ttk.Label(self.header_frame, text=name)
         self.label.pack(side=tk.LEFT)
         self.edit_button = tk.Button(self.header_frame, text='Edit', image=self.edit_image, borderwidth=0, 
                                      command=lambda: AttributesDialog(self, 'Attributes', self.node, self.context).show())
-        self.edit_button.pack(side=tk.RIGHT, padx=(6, 10))
+        self.edit_button.pack(side=tk.RIGHT, padx=(6, 27))
         self.active_var = tk.IntVar(self, value=self.active)
         checkbox_state = tk.NORMAL if self.parent_active else tk.DISABLED
         self.checkbox = ttk.Checkbutton(
             self.header_frame, text='Active', command=self.handle_active_toggle, variable=self.active_var,
-            state=checkbox_state)
+            state=checkbox_state, padding=(0,0,14,0))
         self.checkbox.pack(side=tk.RIGHT)
 
         self.expanded_frame = ttk.Frame(self)
@@ -95,6 +97,7 @@ class BlockView(ttk.Frame):
                 self.output_signals.pack(fill=tk.X)
                     
                 self.label_icon.config(image=self.device_img)
+                self.edit_button.pack_configure(padx=(6, 19))
                 
                 self.cols = [0, 1]
                 self.rows = [0]
@@ -151,10 +154,6 @@ class BlockView(ttk.Frame):
                     op_mode_menu.add_command(label=mode, command=make_select(mode))
 
                 self._bind_mousewheel_recursive(self.right_stack)
-                
-                signals = self.node.get_signals(daq.AnySearchFilter() if self.context.view_hidden_components else None)
-                if signals:
-                    self._attach_signal_preview()
             
             elif daq.IFunctionBlock.can_cast_from(self.node):
                 self._create_right_stack()
@@ -179,16 +178,15 @@ class BlockView(ttk.Frame):
                 if self.recoder:
                     self.recoder.pack(fill=tk.X)
                 
-                self.label_icon.config(image=self.function_block_img)
+                if daq.IChannel.can_cast_from(self.node):
+                    self.label_icon.config(image=self.channel_img)
+                else:
+                    self.label_icon.config(image=self.function_block_img)
 
                 self.cols = [0, 1]
                 self.rows = [0]
                 
                 self._bind_mousewheel_recursive(self.right_stack)
-                
-                signals = self.node.get_signals(daq.AnySearchFilter() if self.context.view_hidden_components else None)
-                if signals:
-                    self._attach_signal_preview()
                 
             elif daq.IFolder.can_cast_from(self.node):
                 self.node = daq.IFolder.cast_from(self.node)
@@ -202,6 +200,7 @@ class BlockView(ttk.Frame):
                 self.properties = PropertiesView(
                     self.expanded_frame, self.node, self.context)
                 self.label_icon.config(image=self.sync_component_img)
+                self.edit_button.pack_configure(padx=(6, 10))
                 self.cols = [0]
                 self.rows = [0]
             elif daq.ISignal.can_cast_from(self.node):
@@ -222,7 +221,6 @@ class BlockView(ttk.Frame):
                 self.rows = [0]
 
                 self._bind_mousewheel_recursive(self.right_stack)
-                self._attach_signal_preview()
             elif daq.IComponent.can_cast_from(self.node):
                 self.node = daq.IComponent.cast_from(self.node)
                 self.properties = PropertiesView(
@@ -308,15 +306,6 @@ class BlockView(ttk.Frame):
         widget.bind('<MouseWheel>', self._on_right_mousewheel)
         for child in widget.winfo_children():
             self._bind_mousewheel_recursive(child)
-
-    def _attach_signal_preview(self):
-        if not self.context.view_signal_preview:
-            return
-
-        self._signal_preview = SignalPreviewPanel(
-            self._right_container, self.node, self.context)
-        self._signal_preview.place(
-            relx=0, rely=1.0, relwidth=1.0, anchor='sw')
 
     def _on_destroy(self, event):
         if hasattr(self, '_signal_refresh_job') and self._signal_refresh_job is not None:

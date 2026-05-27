@@ -39,12 +39,15 @@
 
 ## Bug fixes
 
+- [#1213](https://github.com/openDAQ/openDAQ/pull/1213) Forward device locked state core event in native client.
+- [#1205](https://github.com/openDAQ/openDAQ/pull/1205) Fix raw socket access exception on Linux/macOS for non-root users
 - [#1200](https://github.com/openDAQ/openDAQ/pull/1200) Recreate binary data packets into `BinaryDataPacketImpl` objects on client side of native streaming protocol.
+- [#1185](https://github.com/openDAQ/openDAQ/pull/1185) Fix re-entrant property update crash in endApplyUpdate
 - [#1158](https://github.com/openDAQ/openDAQ/pull/1158) Skip logging for identical component statuses.
 - [#1150](https://github.com/openDAQ/openDAQ/pull/1150) Serialize public flag for input ports
 - [#1149](https://github.com/openDAQ/openDAQ/pull/1149) Return error code instead of throwing exceptions from module info.
 - [#1146](https://github.com/openDAQ/openDAQ/pull/1146) Use sender addresses if device does not provide A or AAAA records
-- [#1143] (https://github.com/openDAQ/openDAQ/pull/1143) Fix uncaught exception when closing renderer window
+- [#1143](https://github.com/openDAQ/openDAQ/pull/1143) Fix uncaught exception when closing renderer window
 - [#1130](https://github.com/openDAQ/openDAQ/pull/1130) Fix active rework issue with older devices
 - [#1122](https://github.com/openDAQ/openDAQ/pull/1122) Revert endUpdate nested property application order back to bottom-up; Batch update values on target child object when using dot notation
 - [#1116](https://github.com/openDAQ/openDAQ/pull/1116) Fix set/get for dynamically added object properties via Native Client
@@ -266,5 +269,3 @@ To enable static components, devices must include the Device Type in their Devic
 - IUpdateParameters::getReAddDevicesEnabled(Bool* enabled)
 - IUpdateParameters::setReAddDevicesEnabled(Bool enabled)
 ```
-
-

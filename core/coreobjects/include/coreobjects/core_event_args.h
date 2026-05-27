@@ -253,6 +253,17 @@ BEGIN_NAMESPACE_OPENDAQ
  *
  * The ID of the event is 150, and the event name is "DeviceDomainChanged".
  *
+ * @subsubsection opendaq_core_event_types_device_lock_state_changed Device locked state changed
+ *
+ * Triggered whenever the device is locked or unlocked.
+ *
+ * The sender of the event is the device of which locked state changed.
+ *
+ * The event contains the following parameters:
+ *  - The new locked state Bool value under the key "IsLocked" (always present).
+ *
+ * The ID of the event is 160, and the event name is "DeviceLockStateChanged".
+ *
  * @subsubsection opendaq_core_event_types_device_connection_status Device connection status changed
  *
  * Triggered whenever connection status of a device changes.

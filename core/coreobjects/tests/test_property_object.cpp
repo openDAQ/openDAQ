@@ -2142,6 +2142,61 @@ TEST_F(PropertyObjectTest, BeginEndUpdate)
     ASSERT_EQ(propObj.getPropertyValue("Prop3"), "-");
 }
 
+
+TEST_F(PropertyObjectTest, BeginEndUpdateNestedFromPropertyValueWrite)
+{
+    const auto propObj = PropertyObject();
+    propObj.addProperty(StringProperty("Property1", "initialValue"));
+    propObj.addProperty(StringProperty("Property2", "initialValue"));
+    propObj.addProperty(StringProperty("Property3", "initialValue"));
+    propObj.addProperty(StringProperty("Property4", "initialValue"));
+
+    int property2WriteCount = 0;
+    int endUpdateCount = 0;
+
+    propObj.getOnPropertyValueWrite("Property2") +=
+        [&propObj, &property2WriteCount](PropertyObjectPtr&, PropertyValueEventArgsPtr& args)
+    {
+        property2WriteCount++;
+        ASSERT_TRUE(args.getIsUpdating());
+        ASSERT_EQ(args.getValue(), "newValue");
+
+        propObj.beginUpdate();
+        propObj.setPropertyValue("Property3", "valuefromprop2");
+        propObj.setPropertyValue("Property4", "valuefromprop2");
+        propObj.endUpdate();
+    };
+
+    propObj.getOnEndUpdate() += [&endUpdateCount](PropertyObjectPtr&, EndUpdateEventArgsPtr& args)
+    {
+        if (endUpdateCount == 0)
+            ASSERT_THAT(args.getProperties(), testing::ElementsAre("Property3", "Property4"));
+        else
+            ASSERT_THAT(args.getProperties(), testing::ElementsAre("Property1", "Property2", "Property3"));
+
+        endUpdateCount++;
+    };
+
+    propObj.beginUpdate();
+    propObj.setPropertyValue("Property1", "newValue");
+    propObj.setPropertyValue("Property2", "newValue");
+    propObj.setPropertyValue("Property3", "newValue");
+
+    ASSERT_EQ(propObj.getPropertyValue("Property1"), "initialValue");
+    ASSERT_EQ(propObj.getPropertyValue("Property2"), "initialValue");
+    ASSERT_EQ(propObj.getPropertyValue("Property3"), "initialValue");
+    ASSERT_EQ(propObj.getPropertyValue("Property4"), "initialValue");
+
+    ASSERT_NO_THROW(propObj.endUpdate());
+
+    ASSERT_EQ(property2WriteCount, 1);
+    ASSERT_EQ(endUpdateCount, 2);
+    ASSERT_EQ(propObj.getPropertyValue("Property1"), "newValue");
+    ASSERT_EQ(propObj.getPropertyValue("Property2"), "newValue");
+    ASSERT_EQ(propObj.getPropertyValue("Property3"), "newValue");
+    ASSERT_EQ(propObj.getPropertyValue("Property4"), "valuefromprop2");
+}
+
 TEST_F(PropertyObjectTest, TestContainerClone)
 {
     const auto propObj = PropertyObject();

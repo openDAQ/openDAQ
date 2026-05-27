@@ -35,6 +35,7 @@
 - [#1029](https://github.com/openDAQ/openDAQ/pull/1029) Fix python binding for iterators to enable list comprehensions.
 - [#1035](https://github.com/openDAQ/openDAQ/pull/1035) Fix showing description metadata of properties in Python GUI app
 - [#1081](https://github.com/openDAQ/openDAQ/pull/1081) Adds device load options to the Python GUI.
+- [#1142](https://github.com/openDAQ/openDAQ/pull/1142) Improve properties treeview UX in Python GUI demo app: float formatting, method Run buttons and cleaner object display.
 
 ## Bug fixes
 
@@ -66,9 +67,17 @@
 - [#1052](https://github.com/openDAQ/openDAQ/pull/1052) Renderer FB labels take into account reference domain offset from ReferenceDomainInfo.
 - [#1054](https://github.com/openDAQ/openDAQ/pull/1054) Add validation default value items type for List And Dict Property
 - [#1059](https://github.com/openDAQ/openDAQ/pull/1059) Prevent post scaling in descriptors with vector/matrix dimensions.
+- [#1206](https://github.com/openDAQ/openDAQ/pull/1206) Fix setting operation mode recursively to apply to hidden child devices, not only visible ones.
+- [#1197](https://github.com/openDAQ/openDAQ/pull/1197) Propagate parent active state on configuration update.
+- [#1177](https://github.com/openDAQ/openDAQ/pull/1177) Reset missing attributes to their default values during update.
+- [#1169](https://github.com/openDAQ/openDAQ/pull/1169) Fix active not being set via native protocol when parent active is false.
+- [#1160](https://github.com/openDAQ/openDAQ/pull/1160) Align behaviour between the ObjectProperty and ObjectPropertyBuilder factories.
+- [#1111](https://github.com/openDAQ/openDAQ/pull/1111) Reset last value calculation values on unsubscribe completion.
+- [#1040](https://github.com/openDAQ/openDAQ/pull/1040) Check for cyclic references when connecting input ports; cyclic connections are now rejected.
 
 ## Misc
 
+- [#1120](https://github.com/openDAQ/openDAQ/pull/1120) Change reachability status to a sparse selection property type.
 - [#1171](https://github.com/openDAQ/openDAQ/pull/1171) MDNS discovery ratelimiting
 - [#1125](https://github.com/openDAQ/openDAQ/pull/1125) Removing all function blocks before load 
 - [#1109](https://github.com/openDAQ/openDAQ/pull/1109) New check version dependencies mechanism for modules
@@ -113,3 +122,157 @@ Module implementations where `sendPackets` is used should check whether this cha
 
 ### [#1037](https://github.com/openDAQ/openDAQ/pull/1037) Mandatory device types
 To enable static components, devices must include the Device Type in their Device Info objects. Modules set the value within the onGetInfo overriding method by calling IDeviceInfoConfig::setDeviceType().
+
+## Interface API changes
+- **2** new interfaces, 
+- **1** interface removed, 
+- **54** functions added.
+- **16** functions removed.
+
+### New interfaces
+
+#### `IDevelopmentVersionInfo`
+```diff
++ createDevelopmentVersionInfo(IDevelopmentVersionInfo** obj, SizeT major, SizeT minor, SizeT patch, SizeT tweak, IString* branch, IString* hash)
++ IDevelopmentVersionInfo::getMajor(SizeT* major)
++ IDevelopmentVersionInfo::getMinor(SizeT* minor)
++ IDevelopmentVersionInfo::getPatch(SizeT* patch)
++ IDevelopmentVersionInfo::getTweak(SizeT* tweak)
++ IDevelopmentVersionInfo::getBranchName(IString** branchName)
++ IDevelopmentVersionInfo::getHashDigest(IString** hash)
+```
+
+#### `IDeviceUpdateOptions`
+```diff
++ createDeviceUpdateOptions(IDeviceUpdateOptions** obj, IString* setupString)
++ IDeviceUpdateOptions::getLocalId(IString** localId)
++ IDeviceUpdateOptions::getManufacturer(IString** manufacturer)
++ IDeviceUpdateOptions::getSerialNumber(IString** serialNumber)
++ IDeviceUpdateOptions::getConnectionString(IString** connectionString)
++ IDeviceUpdateOptions::setNewManufacturer(IString* manufacturer)
++ IDeviceUpdateOptions::getNewManufacturer(IString** manufacturer)
++ IDeviceUpdateOptions::setNewSerialNumber(IString* serialNumber)
++ IDeviceUpdateOptions::getNewSerialNumber(IString** serialNumber)
++ IDeviceUpdateOptions::setNewConnectionString(IString* connectionString)
++ IDeviceUpdateOptions::getNewConnectionString(IString** connectionString)
++ IDeviceUpdateOptions::getUpdateMode(DeviceUpdateMode* mode)
++ IDeviceUpdateOptions::setUpdateMode(DeviceUpdateMode mode)
++ IDeviceUpdateOptions::getChildDeviceOptions(IList** childDeviceOptions)
+```
+
+### Removed interfaces
+
+#### `IFunctionBlockWrapper`
+```diff
+- createFunctionBlockWrapper(IFunctionBlock** obj, IFunctionBlock* functionBlock, Bool includeInputPortsByDefault, Bool includeSignalsByDefault, Bool includePropertiesByDefault, Bool includeFunctionBlocksByDefault)
+- IFunctionBlockWrapper::includeInputPort(IString* inputPortName)
+- IFunctionBlockWrapper::excludeInputPort(IString* inputPortName)
+- IFunctionBlockWrapper::includeSignal(IString* signalLocalId)
+- IFunctionBlockWrapper::excludeSignal(IString* signalLocalId)
+- IFunctionBlockWrapper::includeProperty(IString* propertyName)
+- IFunctionBlockWrapper::excludeProperty(IString* propertyName)
+- IFunctionBlockWrapper::includeFunctionBlock(IString* functionBlockLocalId)
+- IFunctionBlockWrapper::excludeFunctionBlock(IString* functionBlockLocalId)
+- IFunctionBlockWrapper::setPropertyCoercer(IString* propertyName, ICoercer* coercer)
+- IFunctionBlockWrapper::setPropertyValidator(IString* propertyName, IValidator* validator)
+- IFunctionBlockWrapper::setPropertySelectionValues(IString* propertyName, IList* enumValues)
+- IFunctionBlockWrapper::getWrappedFunctionBlock(IFunctionBlock** functionBlock)
+```
+
+### Modified interfaces
+
+#### `IProperty`
+```diff
++ IProperty::getPropertyType(PropertyType* type)
+```
+
+#### `IPropertyBuilder`
+```diff
++ IPropertyBuilder::getIsIntegerValueSelection(Bool* isIntegerValueSelection)
++ IPropertyBuilder::setIsIntegerValueSelection(Bool isIntegerValueSelection)
+```
+
+#### `IPropertyObject`
+```diff
++ IPropertyObject::clearPropertyValues()
++ IPropertyObject::setPropertySelectionValue(IString* propertyName, IBaseObject* value)
+```
+
+#### `IPropertyObjectProtected`
+```diff
++ IPropertyObjectProtected::clearProtectedPropertyValues()
++ IPropertyObjectProtected::setProtectedPropertySelectionValue(IString* propertyName, IBaseObject* value)
+```
+
+#### `IComponent`
+```diff
++ IComponent::getLocalActive(Bool* localActive)
++ IComponent::getParentActive(Bool* parentActive)
+```
+
+#### `IComponentPrivate`
+```diff
++ IComponentPrivate::setParentActive(Bool parentActive, Bool onUpdate)
+```
+
+#### `IComponentUpdateContext`
+```diff
++ IComponentUpdateContext::addDeviceRemapping(IString* originalDeviceId, IString* newDeviceId)
++ IComponentUpdateContext::getDeviceUpdateOptionsWithLocalIdOrNull(IString* localId, IDeviceUpdateOptions** options)
++ IComponentUpdateContext::getInternalState(IDict** state)
++ IComponentUpdateContext::getUpdateParameters(IUpdateParameters** updateParameters)
++ IComponentUpdateContext::overrideState(IComponentUpdateContext* updateContext)
++ IComponentUpdateContext::remapInputPortConnections()
++ IComponentUpdateContext::setRootComponent(IComponent* baseComponent)
+- IComponentUpdateContext::getReAddDevicesEnabled(Bool* enabled)
+```
+
+#### `IInputPort`
+```diff
++ IInputPort::acceptsSignals(IList* signals, IList** accepts)
++ IInputPort::getPublic(Bool* isPublic)
++ IInputPort::setPublic(Bool isPublic)
+```
+
+#### `IInputPortConfig`
+```diff
++ IInputPortConfig::getListener(IInputPortNotifications** port)
+```
+
+#### `IMirroredDevice`
+```diff
++ IMirroredDevice::getMirroredDeviceType(IDeviceType** type)
+```
+
+#### `IMirroredDeviceConfig`
+```diff
++ IMirroredDeviceConfig::setMirroredDeviceType(IDeviceType* type)
+```
+
+#### `IModuleAuthenticator`
+```diff
++ IModuleAuthenticator::setLogger(ILogger* logger)
+```
+
+#### `IMultiReader`
+```diff
++ IMultiReader::addInput(IComponent* input)
++ IMultiReader::getInputUsed(IString* id, Bool* isUsed)
++ IMultiReader::removeInput(IString* id)
++ IMultiReader::setInputUsed(IString* id, Bool isUsed)
+```
+
+#### `IServer`
+```diff
++ IServer::disableDiscovery()
+```
+
+#### `IUpdateParameters`
+```diff
++ IUpdateParameters::getDeviceUpdateOptions(IDeviceUpdateOptions** options)
++ IUpdateParameters::getRemoveUnusedDevices(Bool* remove)
++ IUpdateParameters::setDeviceUpdateOptions(IDeviceUpdateOptions* options)
++ IUpdateParameters::setRemoveUnusedDevices(Bool remove)
+- IUpdateParameters::getReAddDevicesEnabled(Bool* enabled)
+- IUpdateParameters::setReAddDevicesEnabled(Bool enabled)
+```

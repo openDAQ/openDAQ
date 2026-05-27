@@ -1,4 +1,5 @@
 #include <coretypes/listobject_impl.h>
+#include <iterator>
 #include <coretypes/errors.h>
 #include <coretypes/impl.h>
 #include <coretypes/ctutils.h>
@@ -421,7 +422,7 @@ ErrCode ListImpl::insertRangeAtInternal(SizeT index, IList* other, bool moveRefs
         return OPENDAQ_SUCCESS;
 
     auto* otherImpl = static_cast<ListImpl*>(other);
-    const auto insertPos = list.begin() + static_cast<std::ptrdiff_t>(index);
+    const auto insertPos = std::next(list.begin(), index);
     list.insert(insertPos, otherImpl->list.begin(), otherImpl->list.end());
 
     if (moveRefs)
@@ -473,8 +474,8 @@ ErrCode ListImpl::removeRange(SizeT index, SizeT count)
     if (index >= list.size() || count > list.size() - index)
         return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_OUTOFRANGE);
 
-    const auto beginIt = list.begin() + static_cast<std::ptrdiff_t>(index);
-    const auto endIt = beginIt + static_cast<std::ptrdiff_t>(count);
+    const auto beginIt = std::next(list.begin(), index);
+    const auto endIt = std::next(beginIt, count);
 
     for (auto it = beginIt; it != endIt; ++it)
     {
@@ -496,8 +497,8 @@ ErrCode ListImpl::getRange(SizeT index, SizeT count, IList** range)
     ListPtr<IBaseObject> rangeList = createWithImplementation<IList, ListImpl>(iid);
     auto* rangeListImpl = static_cast<ListImpl*>(rangeList.getObject());
 
-    const auto first = list.begin() + static_cast<std::ptrdiff_t>(index);
-    const auto last = first + static_cast<std::ptrdiff_t>(count);
+    const auto first = std::next(list.begin(), index);
+    const auto last = std::next(first, count);
     rangeListImpl->list.insert(rangeListImpl->list.end(), first, last);
 
     for (IBaseObject* obj : rangeListImpl->list)

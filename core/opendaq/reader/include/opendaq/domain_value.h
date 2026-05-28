@@ -95,9 +95,11 @@ class DomainValueImpl : public DomainValue
 {
 public:
 	explicit DomainValueImpl(const DomainInfo& info, Type value) : DomainValue(info), value(value) {
+#if !defined(NDEBUG)
         if constexpr (std::is_integral_v<Type>){
             std::cout << "DomainValueImpl(value=" << value << ", domain=" << info << ")" << std::endl;
         }
+#endif
 	}
 
     ~DomainValueImpl() override = default;
@@ -115,6 +117,7 @@ public:
         // tick_common = tick * multiplier
         Int multiplierNumerator = domain.resolution.getNumerator() * commonDomain.resolution.getDenominator();
         Int multiplierDenominator = domain.resolution.getDenominator() * commonDomain.resolution.getNumerator();
+        // The cast to double follows the legacy implementation, but it's questionable how it impacts potential precision loss
         Type valueScaledToCommon = static_cast<Type>(value * multiplierNumerator / static_cast<double>(multiplierDenominator));
 	    Type valueInCommon = offsetFromCommon + valueScaledToCommon;
         
@@ -135,6 +138,8 @@ public:
         Int offsetFromCommon = epochOffset * scaleNumerator / scaleDenominator;
 	    Type valueScaledToCommon = valueInCommon - offsetFromCommon;
 
+        // TODO: The regular value should probably be +1 here so that when converted back into fine domain
+        // it is true that regularValue >= valueInCommon (reason: domain value searching)
         // tick_common = tick * multiplier
         Int multiplierNumerator = regularDomain.resolution.getNumerator() * commonDomain.resolution.getDenominator();
         Int multiplierDenominator = regularDomain.resolution.getDenominator() * commonDomain.resolution.getNumerator();
@@ -166,7 +171,7 @@ public:
 	    if (otherImpl == nullptr){
 	        DAQ_THROW_EXCEPTION(InvalidParameterException, "Both DomainValue objects must be of the same type!");
 	    }
-	    if (otherImpl->domain != this->domain) // TODO: Implement equality operator
+	    if (otherImpl->domain != this->domain)
 	        DAQ_THROW_EXCEPTION(InvalidParameterException, "Have to compare DomainValue objects in the same domain!");
 	    
 	    if (this->value > otherImpl->value)
@@ -181,7 +186,6 @@ private:
 	Type value;
 };
 
-// TODO: Support RangeType64
 template<>
 class DomainValueImpl<RangeType64> final : public DomainValue
 {
@@ -266,7 +270,7 @@ public:
 	    if (otherImpl == nullptr){
 	        DAQ_THROW_EXCEPTION(InvalidParameterException, "Both DomainValue objects must be of the same type!");
 	    }
-	    if (otherImpl->domain != this->domain) // TODO: Implement equality operator
+	    if (otherImpl->domain != this->domain)
 	        DAQ_THROW_EXCEPTION(InvalidParameterException, "Have to compare DomainValue objects in the same domain!");
 	    
 	    if (this->value.start > otherImpl->value.start)

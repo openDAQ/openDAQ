@@ -64,7 +64,7 @@ InstanceImpl::InstanceImpl(IInstanceBuilder* instanceBuilder)
 
     const auto devicePrivate = rootDevice.asPtrOrNull<IDevicePrivate>();
     if (devicePrivate.assigned())
-        devicePrivate->setAsRoot();
+        checkErrorInfo(devicePrivate->setAsRoot());
 
     for (const auto& [_, discoveryServer] : context.getDiscoveryServers())
         discoveryServer.asPtr<IDiscoveryServer>().setRootDevice(rootDevice);
@@ -145,14 +145,14 @@ static ContextPtr ContextFromInstanceBuilder(IInstanceBuilder* instanceBuilder)
     if (!moduleManager.assigned())
     {
         moduleManager = ModuleManagerMultiplePaths(builderPtr.getModulePathsList());
-        moduleManager->setAuthenticatedOnly(loadAuthenticatedModulesOnly);
-        moduleManager->setModuleAuthenticator(moduleAuthenticator);
+        moduleManager.setAuthenticatedOnly(loadAuthenticatedModulesOnly);
         if (moduleAuthenticator != nullptr)
         {
-            moduleAuthenticator->setLogger(logger);
+            moduleManager.setModuleAuthenticator(moduleAuthenticator);
+            moduleAuthenticator.setLogger(logger);
         }
 
-        builderPtr->setModuleManager(moduleManager);
+        builderPtr.setModuleManager(moduleManager);
     }
 
     auto discoveryServers = Dict<IString, IDiscoveryServer>();

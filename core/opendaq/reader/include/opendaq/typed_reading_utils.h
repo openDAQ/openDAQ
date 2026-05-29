@@ -45,7 +45,7 @@ class TypedReadingUtils
         const DataPacketPtr& domainPacket,
         const DomainValue* target,
         std::chrono::system_clock::rep* firstSampleAbsoluteTime = nullptr);
-    
+
     static ErrCode readData(
         SampleType in,
         SampleType out,

@@ -43,7 +43,7 @@ struct DomainInfo
             return false;
         return true;
     }
-    
+
     friend bool operator!=(const DomainInfo& lhs, const DomainInfo& rhs)
     {
         return !(lhs == rhs);
@@ -74,11 +74,11 @@ public:
 
 	virtual std::unique_ptr<DomainValue> toCommonDomain(const DomainInfo& commonDomain) = 0;
 	virtual std::unique_ptr<DomainValue> fromCommonDomain(const DomainInfo& regularDomain) = 0;
-	
+
 #if !defined(NDEBUG)
     virtual std::string asTime() const = 0;
 #endif
-	
+
 	friend bool operator<(const DomainValue& lhs, const DomainValue& rhs)
     {
         return lhs.compare(rhs) < 0;
@@ -120,10 +120,10 @@ public:
         // The cast to double follows the legacy implementation, but it's questionable how it impacts potential precision loss
         Type valueScaledToCommon = static_cast<Type>(value * multiplierNumerator / static_cast<double>(multiplierDenominator));
 	    Type valueInCommon = offsetFromCommon + valueScaledToCommon;
-        
+
 		return std::make_unique<DomainValueImpl<Type>>(commonDomain, valueInCommon);
 	}
-	
+
 	std::unique_ptr<DomainValue> fromCommonDomain(const DomainInfo& regularDomain) override
 	{
 	    const auto& commonDomain = this->domain;
@@ -144,15 +144,15 @@ public:
         Int multiplierNumerator = regularDomain.resolution.getNumerator() * commonDomain.resolution.getDenominator();
         Int multiplierDenominator = regularDomain.resolution.getDenominator() * commonDomain.resolution.getNumerator();
         Type regularValue = static_cast<Type>(valueScaledToCommon * multiplierDenominator / static_cast<double>(multiplierNumerator));
-	    
+
 		return std::make_unique<DomainValueImpl<Type>>(regularDomain, regularValue);
 	}
-	
+
 	Type getValue() const
 	{
 	    return value;
 	}
-	
+
 #if !defined(NDEBUG)
     virtual std::string asTime() const override
     {
@@ -164,7 +164,7 @@ public:
         return ss.str();
     }
 #endif
-	
+
 	int compare(const DomainValue& other) const override
 	{
 	    const auto* otherImpl = dynamic_cast<const DomainValueImpl<Type>*>(&other);
@@ -173,7 +173,7 @@ public:
 	    }
 	    if (otherImpl->domain != this->domain)
 	        DAQ_THROW_EXCEPTION(InvalidParameterException, "Have to compare DomainValue objects in the same domain!");
-	    
+
 	    if (this->value > otherImpl->value)
 	        return 1;
 	    else if (this->value == otherImpl->value)
@@ -211,12 +211,12 @@ public:
         Int multiplierDenominator = domain.resolution.getDenominator() * commonDomain.resolution.getNumerator();
         RangeValue startScaledToCommon = static_cast<RangeValue>(value.start * multiplierNumerator / static_cast<double>(multiplierDenominator));
         RangeValue endScaledToCommon = static_cast<RangeValue>(value.end * multiplierNumerator / static_cast<double>(multiplierDenominator));
-	    
+
         RangeValue startInCommon = offsetFromCommon + startScaledToCommon;
         RangeValue endInCommon = value.end == -1
             ? static_cast<RangeValue>(-1)
             : offsetFromCommon + endScaledToCommon;
-        
+
 		return std::make_unique<DomainValueImpl<RangeType64>>(commonDomain, RangeType64{startInCommon, endInCommon});
     }
 
@@ -243,7 +243,7 @@ public:
         RangeValue endValue = valueInCommon.end == -1
             ? static_cast<RangeValue>(-1)
             : static_cast<RangeValue>(endScaledToCommon * multiplierDenominator / static_cast<double>(multiplierNumerator));
-	    
+
 		return std::make_unique<DomainValueImpl<RangeType64>>(regularDomain, RangeType64{startValue, endValue});
     }
 
@@ -263,7 +263,7 @@ public:
         return ss.str();
     }
 #endif
-	
+
 	int compare(const DomainValue& other) const override
 	{
 	    const auto* otherImpl = dynamic_cast<const DomainValueImpl<RangeType64>*>(&other);
@@ -272,7 +272,7 @@ public:
 	    }
 	    if (otherImpl->domain != this->domain)
 	        DAQ_THROW_EXCEPTION(InvalidParameterException, "Have to compare DomainValue objects in the same domain!");
-	    
+
 	    if (this->value.start > otherImpl->value.start)
 	        return 1;
 	    else if (this->value.start == otherImpl->value.start)
@@ -313,7 +313,7 @@ public:
         DAQ_THROW_EXCEPTION(NotSupportedException);
     }
 #endif
-	
+
 	int compare(const DomainValue& other) const override
 	{
 	    DAQ_THROW_EXCEPTION(NotSupportedException);
@@ -348,7 +348,7 @@ public:
         DAQ_THROW_EXCEPTION(NotSupportedException);
     }
 #endif
-	
+
 	int compare(const DomainValue& other) const override
 	{
 	    DAQ_THROW_EXCEPTION(NotSupportedException);

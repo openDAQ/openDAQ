@@ -22,7 +22,7 @@ TEST_F(DomainValueTest, DomainInfoComparison)
     // Different resolution denominator
     daq::DomainInfo info4 = {daq::reader::parseEpoch("1970-01-01T00:00:00+00:00"), daq::Ratio(1, 2000)};
     ASSERT_FALSE(info4 == info1);
-    
+
     // Different resolution numerator
     daq::DomainInfo info5 = {daq::reader::parseEpoch("1970-01-01T00:00:00+00:00"), daq::Ratio(4, 1000)};
     ASSERT_FALSE(info5 == info1);
@@ -51,12 +51,12 @@ void checkTypedDomainValue(){
     }
     std::unique_ptr<daq::DomainValue> value = std::make_unique<daq::DomainValueImpl<T>>(domain, tick);
     ASSERT_TRUE(value->getDomain() == domain);
-    
+
     auto* castValue = dynamic_cast<daq::DomainValueImpl<T>*>(value.get());
     ASSERT_TRUE(castValue != nullptr);
-    
+
     ASSERT_EQ(castValue->getValue(), tick);
-    
+
     T greaterTick;
     if constexpr (std::is_same_v<T, daq::RangeType64>){
         greaterTick = {12351, 12360};
@@ -100,14 +100,14 @@ void checkTypedDomainValueComplex()
     T tick = {12.3, 15.4};
     std::unique_ptr<daq::DomainValue> value = std::make_unique<daq::DomainValueImpl<T>>(domain, tick);
     ASSERT_TRUE(value->getDomain() == domain);
-    
+
     auto* castValue = dynamic_cast<daq::DomainValueImpl<T>*>(value.get());
     ASSERT_TRUE(castValue != nullptr);
-    
+
     ASSERT_THROW(castValue->getValue(), daq::NotSupportedException);
-    
+
     T greaterTick = {16.2, 25.3};
-    
+
     std::unique_ptr<daq::DomainValue> greaterValue = std::make_unique<daq::DomainValueImpl<T>>(domain, greaterTick);
     ASSERT_THROW((void)(*value < *greaterValue), daq::NotSupportedException);
     ASSERT_THROW((void)(*greaterValue < *value), daq::NotSupportedException);
@@ -124,7 +124,7 @@ TEST_F(DomainValueTest, Scaling)
     std::string commonEpochString = "2026-01-01T00:00:00+00:00";
     std::chrono::system_clock::time_point commonEpoch = daq::reader::parseEpoch(commonEpochString);
     daq::RatioPtr commonResolution = daq::Ratio(1, 1000000);
-    
+
     daq::DomainInfo commonDomain = {commonEpoch, commonResolution};
 
     daq::RatioPtr resolution1 = daq::Ratio(1, 5000);
@@ -136,7 +136,7 @@ TEST_F(DomainValueTest, Scaling)
     auto value1InCommonDomain = value1->toCommonDomain(commonDomain);
     auto* value1InCommonDomainP = dynamic_cast<daq::DomainValueImpl<daq::Int>*>(value1InCommonDomain.get());
     ASSERT_EQ(value1InCommonDomainP->getValue(), 2000000u);
-    
+
     auto value1BackInRegularDomain = value1InCommonDomain->fromCommonDomain(domain1);
     auto* value1BackInRegularDomainP = dynamic_cast<daq::DomainValueImpl<daq::Int>*>(value1BackInRegularDomain.get());
     ASSERT_EQ(value1BackInRegularDomainP->getValue(), 10000u);
@@ -147,9 +147,9 @@ TEST_F(DomainValueTest, Offset)
     std::string commonEpochString = "1970-01-01T00:00:00+00:00";
     std::chrono::system_clock::time_point commonEpoch = daq::reader::parseEpoch(commonEpochString);
     daq::RatioPtr commonResolution = daq::Ratio(1, 1000);
-    
+
     daq::DomainInfo commonDomain = {commonEpoch, commonResolution};
-    
+
     std::string epochString1 = "1970-01-01T00:00:50+00:00";
     std::chrono::system_clock::time_point epoch1 = daq::reader::parseEpoch(epochString1);
     daq::RatioPtr resolution1 = daq::Ratio(1, 1000);
@@ -162,7 +162,7 @@ TEST_F(DomainValueTest, Offset)
     auto* value1InCommonDomainP = dynamic_cast<daq::DomainValueImpl<daq::Int>*>(value1InCommonDomain.get());
     ASSERT_EQ(value1InCommonDomainP->getValue(), 63000u);
     ASSERT_EQ(value1InCommonDomainP->getDomain(), commonDomain);
-    
+
     auto value1BackInRegularDomain = value1InCommonDomain->fromCommonDomain(domain1);
     auto* value1BackInRegularDomainP = dynamic_cast<daq::DomainValueImpl<daq::Int>*>(value1BackInRegularDomain.get());
     ASSERT_EQ(value1BackInRegularDomainP->getValue(), 13000u);
@@ -174,9 +174,9 @@ TEST_F(DomainValueTest, SameDomainSameType)
     std::string commonEpochString = "1970-01-01T00:00:00+00:00";
     std::chrono::system_clock::time_point commonEpoch = daq::reader::parseEpoch(commonEpochString);
     daq::RatioPtr commonResolution = daq::Ratio(1, 1000);
-    
+
     daq::DomainInfo commonDomain = {commonEpoch, commonResolution};
-    
+
     std::string epochString1 = "1970-01-01T00:00:50+00:00";
     std::chrono::system_clock::time_point epoch1 = daq::reader::parseEpoch(epochString1);
     daq::RatioPtr resolution1 = daq::Ratio(1, 1000);
@@ -185,8 +185,8 @@ TEST_F(DomainValueTest, SameDomainSameType)
     auto value1 = std::make_unique<daq::DomainValueImpl<daq::Int>>(domain1, 13000);
     daq::DomainValue* value1P = value1.get();
     auto value1InCommonDomain = value1->toCommonDomain(commonDomain);
-    auto* value1InCommonDomainP = dynamic_cast<daq::DomainValueImpl<daq::Int>*>(value1InCommonDomain.get());    
-    
+    auto* value1InCommonDomainP = dynamic_cast<daq::DomainValueImpl<daq::Int>*>(value1InCommonDomain.get());
+
     ASSERT_THROW((void)(*value1P < *value1InCommonDomainP), daq::InvalidParameterException);
 
     auto value2 = std::make_unique<daq::DomainValueImpl<daq::UInt>>(domain1, 1213000);
@@ -209,7 +209,7 @@ TEST_F(DomainValueTest, RealisticTimeStamp)
 
     auto value1 = std::make_unique<daq::DomainValueImpl<daq::Int>>(domain1, 50000001);
     auto value1InCommonDomain = value1->toCommonDomain(commonDomain);
-    
+
     auto value1BackInRegularDomain = value1InCommonDomain->fromCommonDomain(domain1);
     auto* value1BackInRegularDomainP = dynamic_cast<daq::DomainValueImpl<daq::Int>*>(value1BackInRegularDomain.get());
     ASSERT_EQ(value1BackInRegularDomainP->getValue(), value1->getValue());
@@ -232,7 +232,7 @@ TEST_F(DomainValueTest, NonRepresentibleConversions)
     // TODO: For the domain value finding it would probably be required that during a lossful conversion fine1->coarse->fine2
     // where coars == fine2 (but in different domains) it also holds that fine2 >= fine1. Because then if we find index that
     // satisfies domain[index] >= coarse we found the correct one. Right now the situation is reversed, lossful conversion
-    // rounds down. 
+    // rounds down.
     ASSERT_FALSE(*valueInFine < *valueBackInFine);
 
 }

@@ -137,10 +137,10 @@ decltype(auto) visitTwoSampleTypes(
 {
     if (!validateInputType(inputType, isDomain))
         DAQ_THROW_EXCEPTION(NotSupportedException, "Input sample type not supported.");
-        
+
     if (!validateOutputType(outputType, isDomain))
         DAQ_THROW_EXCEPTION(NotSupportedException, "Output sample type not supported.");
-    
+
     if (!validateInputOutputType(inputType, outputType, isDomain))
         DAQ_THROW_EXCEPTION(NotSupportedException, "Output sample type not supported.");
 
@@ -313,7 +313,7 @@ std::unique_ptr<DomainValue> readDomainValueLinear(
         const auto parameters = dataRule.getParameters();
         OutputT delta, start;
         getDeltaStart<InputT, OutputT>(parameters, delta, start);
-        
+
         int64_t rdOffset = 0;
         auto refDomainInfo = domainPacket.getDataDescriptor().getReferenceDomainInfo();
         if (refDomainInfo.assigned())
@@ -348,7 +348,7 @@ std::unique_ptr<DomainValue> readDomainValue(
         auto descriptor = domainPacket.getDataDescriptor();
         if (!descriptor.assigned())
             DAQ_THROW_EXCEPTION(InvalidStateException, "Packet should have descriptor assigned.");
-        
+
 
 
         OutputT timestamp{};
@@ -471,7 +471,7 @@ SizeT findDomainValue(
 
     if (!inputBuffer)
         DAQ_THROW_EXCEPTION(ArgumentNullException, "Packet with null data buffer");
-    
+
     if constexpr (std::is_convertible_v<InputT, OutputT> && !std::is_same_v<void*, OutputT> && !std::is_same_v<void*, InputT>)
     {
         InputT* domainBuffer = static_cast<InputT*>(inputBuffer);
@@ -482,7 +482,7 @@ SizeT findDomainValue(
         for (std::size_t i = 0; i < size * readLayout.valuesPerSample; ++i)
         {
             OutputT value = static_cast<OutputT>(domainBuffer[i]); // C4244 - possible data loss due to conversion
-            
+
             bool greaterEqual = false;
             if constexpr (IsTemplateOf<OutputT, daq::RangeType>::value)
             {

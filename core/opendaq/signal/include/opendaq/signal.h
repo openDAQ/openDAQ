@@ -143,6 +143,25 @@ DECLARE_OPENDAQ_INTERFACE(ISignal, IComponent)
      * from the packet data and returns it as an IString object.
      */
     virtual ErrCode INTERFACE_FUNC getLastValue(IBaseObject** value) = 0;
+
+    /*!
+     * @brief Gets the signal last value and its corresponding timestamp.
+     * @param[out] value The IBaseObject value can be a nullptr if there is no value, or if the data type is not supported by the function.
+     * @param[out] timestamp The IBaseObject timestamp corresponding to the returned value. It can be a nullptr if there is no timestamp available.
+     *
+     * If a value is assigned, it can be cast based on the signal description to IFloat if the type is Float32 or Float64,
+     * to IInteger if the type is Int8 through Int64 or UInt8 through UInt64, to IComplexNumber if the type is ComplexFloat32 or ComplexFloat64,
+     * to IRange if the type is RangeInt64, to IString if the type is String, to IStruct if the type is Struct, and to IList of the aforementioned types if there is exactly
+     * one dimension.
+     *
+     * If a timestamp is assigned, it can typically be cast to IInteger and represents the UNIX time since epoch in microseconds
+     * corresponding to the returned signal value.
+     *
+     * For String type signals in binary data packets, the string data must be encoded as UTF-8 strings. The string length is
+     * determined by the sample size, and the string does not need to be null-terminated. The method extracts the string value
+     * from the packet data and returns it as an IString object.
+     */
+    virtual ErrCode INTERFACE_FUNC getLastValueWithTimestamp(IBaseObject** value, IBaseObject** timestamp) = 0;
 };
 
 /*!@}*/

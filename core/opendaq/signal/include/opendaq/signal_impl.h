@@ -83,6 +83,7 @@ public:
     ErrCode INTERFACE_FUNC getStreamed(Bool* streamed) override;
     ErrCode INTERFACE_FUNC setStreamed(Bool streamed) override;
     ErrCode INTERFACE_FUNC getLastValue(IBaseObject** value) override;
+    ErrCode INTERFACE_FUNC getLastValueWithTimestamp(IBaseObject** value, IBaseObject** timestamp) override;
 
     // ISignalConfig
     ErrCode INTERFACE_FUNC setDescriptor(IDataDescriptor* descriptor) override;
@@ -144,10 +145,13 @@ protected:
     DataDescriptorPtr dataDescriptor;
     StringPtr deserializedDomainSignalId;
     BaseObjectPtr lastDataValue;
+    BaseObjectPtr lastTimestamp;
 
-    // variables for calculating last value
-    std::vector<char> lastRawDataValue;
+    // variables for calculating last value and timestamp
+    std::vector<std::byte> lastRawDataValue;
     DataDescriptorPtr lastDataDescriptor;
+    std::vector<std::byte> lastRawTimestamp;
+    DataDescriptorPtr lastDomainDescriptor;
 
 private:
     bool isPublic{};
@@ -185,6 +189,9 @@ private:
     bool keepLastPacketAndEnqueueMultiple(ListOfPackets&& packets);
 
     void setLastValueFromPacket(const DataPacketPtr& packet = nullptr);
+    ErrCode getLastValueImpl(IBaseObject** value);
+    ErrCode getLastTimestampImpl(IBaseObject** timestamp);
+    bool validateDomainDescriptionForTimestamp(const daq::DataDescriptorPtr& domainDescriptor) const;
 };
 
 #ifdef WORKAROUND_MEMBER_INLINE_VARIABLE
@@ -1272,28 +1279,29 @@ ErrCode SignalBase<TInterface, Interfaces...>::getLastValue(IBaseObject** value)
 {
     OPENDAQ_PARAM_NOT_NULL(value);
     auto lock = this->getRecursiveConfigLock2();
+    const ErrCode errCode = getLastValueImpl(value);
 
-    if (lastDataValue.assigned())
-    {
-        *value = lastDataValue.addRefAndReturn();
-        return OPENDAQ_SUCCESS;
-    }
-
-    if (!lastDataDescriptor.assigned())
-        return OPENDAQ_IGNORED;
-
-    const ErrCode errCode = daqTry([&value, this]
-    {
-        auto manager = this->context.getTypeManager();
-        void* rawValue = lastRawDataValue.data();
-        SizeT actualSampleSize = (lastDataDescriptor.getSampleType() == SampleType::Binary || lastDataDescriptor.getSampleType() == SampleType::String)
-                                 ? lastRawDataValue.size()
-                                 : 0;
-        lastDataValue = PacketDetails::buildObjectFromDescriptor(rawValue, lastDataDescriptor, manager, actualSampleSize);
-        *value = lastDataValue.addRefAndReturn();
-    });
     OPENDAQ_RETURN_IF_FAILED(errCode);
     return errCode;
+}
+
+template <typename TInterface, typename... Interfaces>
+ErrCode SignalBase<TInterface, Interfaces...>::getLastValueWithTimestamp(IBaseObject** value, IBaseObject** timestamp)
+{
+    OPENDAQ_PARAM_NOT_NULL(value);
+    OPENDAQ_PARAM_NOT_NULL(timestamp);
+    auto lock = this->getRecursiveConfigLock2();
+    const ErrCode valueErrCode = getLastValueImpl(value);
+
+    OPENDAQ_RETURN_IF_FAILED(valueErrCode);
+
+    const ErrCode tsErrCode = getLastTimestampImpl(timestamp);
+
+    OPENDAQ_RETURN_IF_FAILED(tsErrCode);
+    if (valueErrCode == OPENDAQ_IGNORED || tsErrCode == OPENDAQ_IGNORED)
+        return OPENDAQ_IGNORED;
+
+    return OPENDAQ_SUCCESS;
 }
 
 template <typename TInterface, typename... Interfaces>
@@ -1329,21 +1337,114 @@ template <typename TInterface, typename... Interfaces>
 void SignalBase<TInterface, Interfaces...>::setLastValueFromPacket(const DataPacketPtr& packet)
 {
     lastDataValue = nullptr;
+    lastDataDescriptor = nullptr;
+    lastTimestamp = nullptr;
+    lastDomainDescriptor = nullptr;
+
     if (!packet.assigned())
-    {
-        lastDataDescriptor = nullptr;
         return;
+
+    {
+        // data value
+        lastDataDescriptor = packet.getDataDescriptor();
+        SizeT sampleSize =
+            (lastDataDescriptor.getSampleType() == SampleType::Binary || lastDataDescriptor.getSampleType() == SampleType::String)
+                ? packet.getRawDataSize()
+                : lastDataDescriptor.getSampleSize();
+        lastRawDataValue.resize(sampleSize);
+        void* rawValue = lastRawDataValue.data();
+        const ErrCode errCode = packet->getRawLastValue(&rawValue);
+        if (errCode != OPENDAQ_SUCCESS)
+            lastDataDescriptor = nullptr;
     }
 
-    lastDataDescriptor = packet.getDataDescriptor();
-    SizeT sampleSize = (lastDataDescriptor.getSampleType() == SampleType::Binary || lastDataDescriptor.getSampleType() == SampleType::String) 
-                       ? packet.getRawDataSize() 
-                       : lastDataDescriptor.getSampleSize();
-    lastRawDataValue.resize(sampleSize);
-    void* rawValue = lastRawDataValue.data();
-    const ErrCode errCode = packet->getRawLastValue(&rawValue);
-    if (errCode != OPENDAQ_SUCCESS)
-        lastDataDescriptor = nullptr;
+    {
+        // timestamp
+        const auto domainPacket = packet.getDomainPacket();
+        if (!domainPacket.assigned())
+            return;
+
+        lastDomainDescriptor = domainPacket.getDataDescriptor();
+        const bool ok = validateDomainDescriptionForTimestamp(lastDomainDescriptor);
+        if (!ok)
+        {
+            lastDomainDescriptor = nullptr;
+            return;
+        }
+
+        lastRawTimestamp.resize(lastDomainDescriptor.getSampleSize()); // 8 bytes for int64/uint64
+        void* rawValue = lastRawTimestamp.data();
+        const ErrCode errCode = domainPacket->getRawLastValue(&rawValue);
+        if (errCode != OPENDAQ_SUCCESS)
+            lastDomainDescriptor = nullptr;
+    }
+}
+
+template <typename TInterface, typename... Interfaces>
+ErrCode SignalBase<TInterface, Interfaces...>::getLastValueImpl(IBaseObject** value)
+{
+    if (lastDataValue.assigned())
+    {
+        *value = lastDataValue.addRefAndReturn();
+        return OPENDAQ_SUCCESS;
+    }
+
+    if (!lastDataDescriptor.assigned())
+        return OPENDAQ_IGNORED;
+
+    const ErrCode errCode = daqTry(
+        [&value, this]
+        {
+            auto manager = this->context.getTypeManager();
+            void* rawValue = lastRawDataValue.data();
+            SizeT actualSampleSize =
+                (lastDataDescriptor.getSampleType() == SampleType::Binary || lastDataDescriptor.getSampleType() == SampleType::String)
+                    ? lastRawDataValue.size()
+                    : 0;
+            lastDataValue = PacketDetails::buildObjectFromDescriptor(rawValue, lastDataDescriptor, manager, actualSampleSize);
+            *value = lastDataValue.addRefAndReturn();
+        });
+    return errCode;
+}
+
+template <typename TInterface, typename... Interfaces>
+ErrCode SignalBase<TInterface, Interfaces...>::getLastTimestampImpl(IBaseObject** timestamp)
+{
+    if (lastTimestamp.assigned())
+    {
+        *timestamp = lastTimestamp.addRefAndReturn();
+        return OPENDAQ_SUCCESS;
+    }
+
+    if (!lastDomainDescriptor.assigned())
+        return OPENDAQ_IGNORED;
+
+    const ErrCode errCode = daqTry(
+        [&timestamp, this]
+        {
+            void* rawValue = lastRawTimestamp.data();
+            lastTimestamp = PacketDetails::dataToObj(rawValue, lastDomainDescriptor.getSampleType(), lastDomainDescriptor.getSampleSize());
+            *timestamp = lastTimestamp.addRefAndReturn();
+        });
+    return errCode;
+}
+
+template <typename TInterface, typename... Interfaces>
+bool SignalBase<TInterface, Interfaces...>::validateDomainDescriptionForTimestamp(const daq::DataDescriptorPtr& domainDescriptor) const
+{
+    if (!domainDescriptor.assigned())
+        return false;
+
+    if (const auto tsType = domainDescriptor.getSampleType(); tsType != SampleType::Int64 && tsType != SampleType::UInt64)
+        return false;
+
+    if (domainDescriptor.getDimensions().getCount() > 0)
+        return false;
+
+    if (auto unit = domainDescriptor.getUnit(); !unit.assigned() || unit.getSymbol() != "s")
+        return false;
+
+    return true;
 }
 
 OPENDAQ_REGISTER_DESERIALIZE_FACTORY(SignalImpl)

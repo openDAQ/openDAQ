@@ -203,7 +203,7 @@ public:
 
         using SysPeriod = std::chrono::system_clock::period;
         Int scaleNumerator = SysPeriod::num * commonDomain.resolution.getDenominator();
-        Int scaleDenominator = SysPeriod::num * commonDomain.resolution.getNumerator();
+        Int scaleDenominator = SysPeriod::den * commonDomain.resolution.getNumerator();
         RangeValue offsetFromCommon = static_cast<RangeValue>(epochOffset * scaleNumerator / scaleDenominator);
 
         // tick_common = tick * multiplier
@@ -230,7 +230,7 @@ public:
 
         using SysPeriod = std::chrono::system_clock::period;
         Int scaleNumerator = SysPeriod::num * commonDomain.resolution.getDenominator();
-        Int scaleDenominator = SysPeriod::num * commonDomain.resolution.getNumerator();
+        Int scaleDenominator = SysPeriod::den * commonDomain.resolution.getNumerator();
         Int offsetFromCommon = epochOffset * scaleNumerator / scaleDenominator;
 
 	    RangeValue startScaledToCommon = valueInCommon.start - offsetFromCommon;

@@ -37,6 +37,9 @@
 #include <opendaq/event_packet_utils.h>
 #include <opendaq/mem_pool_allocator.h>
 #include <opendaq/data_packet_impl.h>
+#include <date/date.h>
+#include <chrono>
+#include <sstream>
 
 BEGIN_NAMESPACE_OPENDAQ
 
@@ -192,6 +195,7 @@ private:
     ErrCode getLastValueImpl(IBaseObject** value);
     ErrCode getLastTimestampImpl(IBaseObject** timestamp);
     bool validateDomainDescriptionForTimestamp(const daq::DataDescriptorPtr& domainDescriptor) const;
+    BaseObjectPtr tweakTimestampObject(BaseObjectPtr& timestamp);
 };
 
 #ifdef WORKAROUND_MEMBER_INLINE_VARIABLE
@@ -1422,10 +1426,21 @@ ErrCode SignalBase<TInterface, Interfaces...>::getLastTimestampImpl(IBaseObject*
     const ErrCode errCode = daqTry(
         [&timestamp, this]
         {
+            auto manager = this->context.getTypeManager();
             void* rawValue = lastRawTimestamp.data();
-            lastTimestamp = PacketDetails::dataToObj(rawValue, lastDomainDescriptor.getSampleType(), lastDomainDescriptor.getSampleSize());
+            auto tsWithoutTweak = PacketDetails::buildObjectFromDescriptor(rawValue, lastDomainDescriptor, manager, 0);
+
+            lastTimestamp = tweakTimestampObject(tsWithoutTweak);
             *timestamp = lastTimestamp.addRefAndReturn();
         });
+
+    if (OPENDAQ_FAILED(errCode))
+    {
+        daqClearErrorInfo();
+        lastDomainDescriptor = nullptr;
+        lastRawTimestamp.clear();
+        return OPENDAQ_IGNORED;
+    }
     return errCode;
 }
 
@@ -1435,7 +1450,13 @@ bool SignalBase<TInterface, Interfaces...>::validateDomainDescriptionForTimestam
     if (!domainDescriptor.assigned())
         return false;
 
-    if (const auto tsType = domainDescriptor.getSampleType(); tsType != SampleType::Int64 && tsType != SampleType::UInt64)
+    const auto tsType = domainDescriptor.getSampleType();
+    const bool isNumeric = (tsType == SampleType::Int8    || tsType == SampleType::UInt8  ||
+                            tsType == SampleType::Int16   || tsType == SampleType::UInt16 ||
+                            tsType == SampleType::Int32   || tsType == SampleType::UInt32 ||
+                            tsType == SampleType::Int64   || tsType == SampleType::UInt64 ||
+                            tsType == SampleType::Float32 || tsType == SampleType::Float64);
+    if (!isNumeric)
         return false;
 
     if (domainDescriptor.getDimensions().getCount() > 0)
@@ -1444,7 +1465,58 @@ bool SignalBase<TInterface, Interfaces...>::validateDomainDescriptionForTimestam
     if (auto unit = domainDescriptor.getUnit(); !unit.assigned() || unit.getSymbol() != "s")
         return false;
 
+    if (auto origin = domainDescriptor.getOrigin(); !origin.assigned())
+        return false;
+
     return true;
+}
+
+template <typename TInterface, typename... Interfaces>
+BaseObjectPtr SignalBase<TInterface, Interfaces...>::tweakTimestampObject(BaseObjectPtr& timestamp)
+{
+    if (!timestamp.assigned())
+        DAQ_THROW_EXCEPTION(NotAssignedException, "Timestamp value is not assigned.");
+
+    const auto originStr = lastDomainDescriptor.getOrigin();
+    if (!originStr.assigned())
+        DAQ_THROW_EXCEPTION(NotAssignedException, "Origin in domain descriptor is not assigned.");
+
+    auto resolution = lastDomainDescriptor.getTickResolution();
+    if (!resolution.assigned())
+        resolution = Ratio(1, 1);
+
+    resolution = (resolution / Ratio(1, 1000000)).simplify(); // Convert to microseconds
+
+    int64_t tick;
+    if (const auto floatObj = timestamp.asPtrOrNull<IFloat>(); floatObj.assigned())
+        tick = static_cast<int64_t>(floatObj);
+    else if (const auto intObj = timestamp.asPtrOrNull<IInteger>(); intObj.assigned())
+        tick = static_cast<int64_t>(intObj);
+    else
+        DAQ_THROW_EXCEPTION(NotSupportedException, "Unsupported timestamp type. Expected a numeric type.");
+
+    // Normalize ISO 8601 origin to the format date::from_stream expects: "YYYY-mm-ddTHH:MM:SS+HH:MM"
+    std::string origin = originStr.toStdString();
+    if (origin.find('T') == std::string::npos)
+        origin += "T00:00:00+00:00";
+    else if (!origin.empty() && origin.back() == 'Z')
+        origin = origin.erase(origin.size() - 1) + "+00:00";
+    else if (origin.find('+') == std::string::npos)
+        origin += "+00:00";
+
+    std::chrono::system_clock::time_point signalEpoch;
+    std::istringstream ss(origin);
+    date::from_stream(ss, "%FT%T%z", signalEpoch);
+    if (ss.fail())
+        DAQ_THROW_EXCEPTION(InvalidParametersException, "Origin string is not a valid ISO 8601 date-time.");
+
+    const int64_t originOffsetUs = std::chrono::duration_cast<std::chrono::microseconds>(
+        signalEpoch.time_since_epoch()).count();
+
+    const int64_t tickUs = tick * resolution.getNumerator() / resolution.getDenominator();
+    const int64_t resultUs = originOffsetUs + tickUs;
+
+    return Integer(resultUs);
 }
 
 OPENDAQ_REGISTER_DESERIALIZE_FACTORY(SignalImpl)

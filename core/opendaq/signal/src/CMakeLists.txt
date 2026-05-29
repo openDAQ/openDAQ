@@ -429,6 +429,11 @@ if (WIN32)
     set(BCRYPT_LIB bcrypt.dll)
 endif()
 
+set(SRC_PublicLinkLibraries_Component
+    date::date
+    PARENT_SCOPE
+)
+
 set(SRC_PrivateLinkLibraries_Component
     tsl::ordered_map
     ${BCRYPT_LIB}

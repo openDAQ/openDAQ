@@ -806,17 +806,6 @@ TEST_F(SignalTest, NoLastValue)
     ASSERT_FALSE(signal.getLastValue().assigned());
 }
 
-TEST_F(SignalTest, NoLastValueWithTimestamp)
-{
-    const auto signal = Signal(NullContext(), nullptr, "sig");
-
-    BaseObjectPtr value;
-    BaseObjectPtr ts;
-    ASSERT_NO_THROW(ts = signal.getLastValueWithTimestamp(value));
-    ASSERT_FALSE(value.assigned());
-    ASSERT_FALSE(ts.assigned());
-}
-
 TEST_F(SignalTest, SetLastValue)
 {
     const auto signal = Signal(NullContext(), nullptr, "sig");
@@ -847,182 +836,6 @@ TEST_F(SignalTest, GetLastValue)
     ASSERT_EQ(integerPtr, 4);
 }
 
-TEST_F(SignalTest, GetLastValueWithTimestampNotAssigned)
-{
-    const auto signal = Signal(NullContext(), nullptr, "sig");
-    auto descriptor = DataDescriptorBuilder().setName("test").setSampleType(SampleType::Int64).build();
-
-    auto dataPacket = DataPacket(descriptor, 5);
-    int64_t* data = static_cast<int64_t*>(dataPacket.getData());
-    data[4] = 4;
-
-    signal.sendPacket(dataPacket);
-
-    BaseObjectPtr value;
-    BaseObjectPtr ts;
-    ASSERT_NO_THROW(ts = signal.getLastValueWithTimestamp(value));
-    ASSERT_TRUE(value.assigned());
-    IntegerPtr integerPtr;
-    ASSERT_NO_THROW(integerPtr = value.asPtr<IInteger>());
-    ASSERT_EQ(integerPtr, 4);
-    ASSERT_FALSE(ts.assigned());
-}
-
-TEST_F(SignalTest, GetLastValueWithTimestamp)
-{
-    const auto signal = Signal(NullContext(), nullptr, "sig");
-    auto descriptor = DataDescriptorBuilder().setName("test").setSampleType(SampleType::Int64).build();
-
-    const auto domainSignal = Signal(NullContext(), nullptr, "domainSig");
-    auto domainDescriptor = DataDescriptorBuilder().setName("tsSig").setSampleType(SampleType::Int64).setUnit(Unit("s")).build();
-
-    auto domainPacket = DataPacket(domainDescriptor, 5);
-    int64_t* domainData = static_cast<int64_t*>(domainPacket.getData());
-    domainData[4] = 1779961693000000;
-
-    auto dataPacket = DataPacketWithDomain(domainPacket, descriptor, 5);
-    int64_t* data = static_cast<int64_t*>(dataPacket.getData());
-    data[4] = 4;
-
-    domainSignal.sendPacket(domainPacket);
-    signal.sendPacket(dataPacket);
-
-    BaseObjectPtr value;
-    BaseObjectPtr ts;
-    ASSERT_NO_THROW(ts = signal.getLastValueWithTimestamp(value));
-    ASSERT_TRUE(value.assigned());
-    ASSERT_TRUE(ts.assigned());
-
-    IntegerPtr valuePtr;
-    ASSERT_NO_THROW(valuePtr = value.asPtr<IInteger>());
-    ASSERT_EQ(valuePtr, 4);
-
-    IntegerPtr tsPtr;
-    ASSERT_NO_THROW(tsPtr = ts.asPtr<IInteger>());
-    ASSERT_EQ(tsPtr, 1779961693000000);
-}
-
-TEST_F(SignalTest, GetLastValueWithTimestampWrongTsSampleType)
-{
-    const auto signal = Signal(NullContext(), nullptr, "sig");
-    auto descriptor = DataDescriptorBuilder().setName("test").setSampleType(SampleType::Int64).build();
-
-    const auto domainSignal = Signal(NullContext(), nullptr, "domainSig");
-    auto domainDescriptor = DataDescriptorBuilder().setName("tsSig").setSampleType(SampleType::Float64).setUnit(Unit("s")).build();
-
-    auto domainPacket = DataPacket(domainDescriptor, 5);
-    double* domainData = static_cast<double*>(domainPacket.getData());
-    domainData[4] = 1779961693000000;
-
-    auto dataPacket = DataPacketWithDomain(domainPacket, descriptor, 5);
-    int64_t* data = static_cast<int64_t*>(dataPacket.getData());
-    data[4] = 4;
-
-    domainSignal.sendPacket(domainPacket);
-    signal.sendPacket(dataPacket);
-
-    BaseObjectPtr value;
-    BaseObjectPtr ts;
-    ASSERT_NO_THROW(ts = signal.getLastValueWithTimestamp(value));
-    ASSERT_TRUE(value.assigned());
-    ASSERT_FALSE(ts.assigned());
-
-    IntegerPtr valuePtr;
-    ASSERT_NO_THROW(valuePtr = value.asPtr<IInteger>());
-    ASSERT_EQ(valuePtr, 4);
-}
-
-TEST_F(SignalTest, GetLastValueWithTimestampWrongTsUnit)
-{
-    const auto signal = Signal(NullContext(), nullptr, "sig");
-    auto descriptor = DataDescriptorBuilder().setName("test").setSampleType(SampleType::Int64).build();
-
-    const auto domainSignal = Signal(NullContext(), nullptr, "domainSig");
-    auto domainDescriptor = DataDescriptorBuilder().setName("tsSig").setSampleType(SampleType::Int64).setUnit(Unit("pps")).build();
-
-    auto domainPacket = DataPacket(domainDescriptor, 5);
-    int64_t* domainData = static_cast<int64_t*>(domainPacket.getData());
-    domainData[4] = 1779961693000000;
-
-    auto dataPacket = DataPacketWithDomain(domainPacket, descriptor, 5);
-    int64_t* data = static_cast<int64_t*>(dataPacket.getData());
-    data[4] = 4;
-
-    domainSignal.sendPacket(domainPacket);
-    signal.sendPacket(dataPacket);
-
-    BaseObjectPtr value;
-    BaseObjectPtr ts;
-    ASSERT_NO_THROW(ts = signal.getLastValueWithTimestamp(value));
-    ASSERT_TRUE(value.assigned());
-    ASSERT_FALSE(ts.assigned());
-
-    IntegerPtr valuePtr;
-    ASSERT_NO_THROW(valuePtr = value.asPtr<IInteger>());
-    ASSERT_EQ(valuePtr, 4);
-}
-
-TEST_F(SignalTest, GetLastValueWithTimestampTsDescChangedToWrong)
-{
-    const auto signal = Signal(NullContext(), nullptr, "sig");
-    auto descriptor = DataDescriptorBuilder().setName("test").setSampleType(SampleType::Int64).build();
-
-    const auto domainSignal = Signal(NullContext(), nullptr, "domainSig");
-    auto domainDescriptor = DataDescriptorBuilder().setName("tsSig").setSampleType(SampleType::Int64).setUnit(Unit("s")).build();
-
-    {
-        auto domainPacket = DataPacket(domainDescriptor, 5);
-        int64_t* domainData = static_cast<int64_t*>(domainPacket.getData());
-        domainData[4] = 1779961693000000;
-
-        auto dataPacket = DataPacketWithDomain(domainPacket, descriptor, 5);
-        int64_t* data = static_cast<int64_t*>(dataPacket.getData());
-        data[4] = 4;
-
-        domainSignal.sendPacket(domainPacket);
-        signal.sendPacket(dataPacket);
-
-        BaseObjectPtr value;
-        BaseObjectPtr ts;
-        ASSERT_NO_THROW(ts = signal.getLastValueWithTimestamp(value));
-        ASSERT_TRUE(value.assigned());
-        ASSERT_TRUE(ts.assigned());
-
-        IntegerPtr valuePtr;
-        ASSERT_NO_THROW(valuePtr = value.asPtr<IInteger>());
-        ASSERT_EQ(valuePtr, 4);
-
-        IntegerPtr tsPtr;
-        ASSERT_NO_THROW(tsPtr = ts.asPtr<IInteger>());
-        ASSERT_EQ(tsPtr, 1779961693000000);
-    }
-
-    auto wrongDomainDescriptor = DataDescriptorBuilder().setName("tsSig").setSampleType(SampleType::Int64).build();
-
-    {
-        auto domainPacket = DataPacket(wrongDomainDescriptor, 2);
-        int64_t* domainData = static_cast<int64_t*>(domainPacket.getData());
-        domainData[1] = 1779961694000000;
-
-        auto dataPacket = DataPacketWithDomain(domainPacket, descriptor, 2);
-        int64_t* data = static_cast<int64_t*>(dataPacket.getData());
-        data[1] = 56;
-
-        domainSignal.sendPacket(domainPacket);
-        signal.sendPacket(dataPacket);
-
-        BaseObjectPtr value;
-        BaseObjectPtr ts;
-        ASSERT_NO_THROW(ts = signal.getLastValueWithTimestamp(value));
-        ASSERT_TRUE(value.assigned());
-        ASSERT_FALSE(ts.assigned());
-
-        IntegerPtr valuePtr;
-        ASSERT_NO_THROW(valuePtr = value.asPtr<IInteger>());
-        ASSERT_EQ(valuePtr, 56);
-    }
-}
-
 TEST_F(SignalTest, GetLastValueString)
 {
     const auto signal = Signal(NullContext(), nullptr, "sig");
@@ -1042,169 +855,6 @@ TEST_F(SignalTest, GetLastValueString)
     StringPtr ptr;
     ASSERT_NO_THROW(ptr = lastValue.asPtr<IString>());
     ASSERT_EQ(ptr, "abcd");
-}
-
-TEST_F(SignalTest, GetLastValueWithTimestampString)
-{
-    const auto signal = Signal(NullContext(), nullptr, "sig");
-    auto descriptor = DataDescriptorBuilder().setName("test").setSampleType(SampleType::String).build();
-
-    const auto domainSignal = Signal(NullContext(), nullptr, "domainSig");
-    auto domainDescriptor = DataDescriptorBuilder().setName("tsSig").setSampleType(SampleType::Int64).setUnit(Unit("s")).build();
-
-    auto domainPacket = DataPacket(domainDescriptor, 1);
-    int64_t* domainData = static_cast<int64_t*>(domainPacket.getData());
-    domainData[0] = 1779961693000000;
-
-    // Allocate buffer for "abcd" (4 bytes, no null terminator needed)
-    auto dataPacket = BinaryDataPacket(domainPacket, descriptor, 4);
-    char* data = static_cast<char*>(dataPacket.getData());
-    data[0] = 'a';
-    data[1] = 'b';
-    data[2] = 'c';
-    data[3] = 'd';
-
-
-    domainSignal.sendPacket(domainPacket);
-    signal.sendPacket(dataPacket);
-
-    BaseObjectPtr value;
-    BaseObjectPtr ts;
-    ASSERT_NO_THROW(ts = signal.getLastValueWithTimestamp(value));
-    ASSERT_TRUE(value.assigned());
-    ASSERT_TRUE(ts.assigned());
-
-    StringPtr ptr;
-    ASSERT_NO_THROW(ptr = value.asPtr<IString>());
-    ASSERT_EQ(ptr, "abcd");
-
-    IntegerPtr tsPtr;
-    ASSERT_NO_THROW(tsPtr = ts.asPtr<IInteger>());
-    ASSERT_EQ(tsPtr, 1779961693000000);
-}
-
-TEST_F(SignalTest, GetLastValueWithTimestampUInt64)
-{
-    const auto signal = Signal(NullContext(), nullptr, "sig");
-    auto descriptor = DataDescriptorBuilder().setName("test").setSampleType(SampleType::Int64).build();
-
-    const auto domainSignal = Signal(NullContext(), nullptr, "domainSig");
-    auto domainDescriptor = DataDescriptorBuilder().setName("tsSig").setSampleType(SampleType::UInt64).setUnit(Unit("s")).build();
-
-    auto domainPacket = DataPacket(domainDescriptor, 5);
-    uint64_t* domainData = static_cast<uint64_t*>(domainPacket.getData());
-    domainData[4] = 1779961693000000ULL;
-
-    auto dataPacket = DataPacketWithDomain(domainPacket, descriptor, 5);
-    int64_t* data = static_cast<int64_t*>(dataPacket.getData());
-    data[4] = 4;
-
-    domainSignal.sendPacket(domainPacket);
-    signal.sendPacket(dataPacket);
-
-    BaseObjectPtr value;
-    BaseObjectPtr ts;
-    ASSERT_NO_THROW(ts = signal.getLastValueWithTimestamp(value));
-    ASSERT_TRUE(value.assigned());
-    ASSERT_TRUE(ts.assigned());
-
-    IntegerPtr valuePtr;
-    ASSERT_NO_THROW(valuePtr = value.asPtr<IInteger>());
-    ASSERT_EQ(valuePtr, 4);
-
-    IntegerPtr tsPtr;
-    ASSERT_NO_THROW(tsPtr = ts.asPtr<IInteger>());
-    ASSERT_EQ(tsPtr, static_cast<int64_t>(1779961693000000ULL));
-}
-
-TEST_F(SignalTest, GetLastValueWithTimestampDomainHasDimensions)
-{
-    const auto signal = Signal(NullContext(), nullptr, "sig");
-    auto descriptor = DataDescriptorBuilder().setName("test").setSampleType(SampleType::Int64).build();
-
-    const auto domainSignal = Signal(NullContext(), nullptr, "domainSig");
-    auto numbers = List<INumber>();
-    numbers.pushBack(1);
-    numbers.pushBack(2);
-    auto dimensions = List<IDimension>();
-    dimensions.pushBack(Dimension(ListDimensionRule(numbers)));
-    auto domainDescriptor = DataDescriptorBuilder()
-                                .setName("tsSig")
-                                .setSampleType(SampleType::Int64)
-                                .setUnit(Unit("s"))
-                                .setDimensions(dimensions)
-                                .build();
-
-    auto domainPacket = DataPacket(domainDescriptor, 5);
-    int64_t* domainData = static_cast<int64_t*>(domainPacket.getData());
-    domainData[8] = 1779961693000000;
-    domainData[9] = 1779961694000000;
-
-    auto dataPacket = DataPacketWithDomain(domainPacket, descriptor, 5);
-    int64_t* data = static_cast<int64_t*>(dataPacket.getData());
-    data[4] = 4;
-
-    domainSignal.sendPacket(domainPacket);
-    signal.sendPacket(dataPacket);
-
-    BaseObjectPtr value;
-    BaseObjectPtr ts;
-    ASSERT_NO_THROW(ts = signal.getLastValueWithTimestamp(value));
-    ASSERT_TRUE(value.assigned());
-    ASSERT_FALSE(ts.assigned());
-
-    IntegerPtr valuePtr;
-    ASSERT_NO_THROW(valuePtr = value.asPtr<IInteger>());
-    ASSERT_EQ(valuePtr, 4);
-}
-
-TEST_F(SignalTest, GetLastValueWithTimestampTsDescChangedToValid)
-{
-    const auto signal = Signal(NullContext(), nullptr, "sig");
-    auto descriptor = DataDescriptorBuilder().setName("test").setSampleType(SampleType::Int64).build();
-
-    const auto domainSignal = Signal(NullContext(), nullptr, "domainSig");
-    auto invalidDomainDescriptor = DataDescriptorBuilder().setName("tsSig").setSampleType(SampleType::Int64).build();
-
-    {
-        auto domainPacket = DataPacket(invalidDomainDescriptor, 1);
-        static_cast<int64_t*>(domainPacket.getData())[0] = 1779961693000000;
-        auto dataPacket = DataPacketWithDomain(domainPacket, descriptor, 1);
-        static_cast<int64_t*>(dataPacket.getData())[0] = 4;
-        domainSignal.sendPacket(domainPacket);
-        signal.sendPacket(dataPacket);
-
-        BaseObjectPtr value;
-        BaseObjectPtr ts;
-        ASSERT_NO_THROW(ts = signal.getLastValueWithTimestamp(value));
-        ASSERT_TRUE(value.assigned());
-        ASSERT_FALSE(ts.assigned());
-    }
-
-    auto validDomainDescriptor = DataDescriptorBuilder().setName("tsSig").setSampleType(SampleType::Int64).setUnit(Unit("s")).build();
-
-    {
-        auto domainPacket = DataPacket(validDomainDescriptor, 1);
-        static_cast<int64_t*>(domainPacket.getData())[0] = 1779961694000000;
-        auto dataPacket = DataPacketWithDomain(domainPacket, descriptor, 1);
-        static_cast<int64_t*>(dataPacket.getData())[0] = 56;
-        domainSignal.sendPacket(domainPacket);
-        signal.sendPacket(dataPacket);
-
-        BaseObjectPtr value;
-        BaseObjectPtr ts;
-        ASSERT_NO_THROW(ts = signal.getLastValueWithTimestamp(value));
-        ASSERT_TRUE(value.assigned());
-        ASSERT_TRUE(ts.assigned());
-
-        IntegerPtr valuePtr;
-        ASSERT_NO_THROW(valuePtr = value.asPtr<IInteger>());
-        ASSERT_EQ(valuePtr, 56);
-
-        IntegerPtr tsPtr;
-        ASSERT_NO_THROW(tsPtr = ts.asPtr<IInteger>());
-        ASSERT_EQ(tsPtr, 1779961694000000);
-    }
 }
 
 TEST_F(SignalTest, GetLastValueAfterMultipleSend)
@@ -1230,47 +880,6 @@ TEST_F(SignalTest, GetLastValueAfterMultipleSend)
     IntegerPtr integerPtr;
     ASSERT_NO_THROW(integerPtr = lastValuePacket.asPtr<IInteger>());
     ASSERT_EQ(integerPtr, 1);
-}
-
-TEST_F(SignalTest, GetLastValueWithTimestampAfterMultipleSend)
-{
-    const auto signal = Signal(NullContext(), nullptr, "sig");
-    auto descriptor = DataDescriptorBuilder().setName("test").setSampleType(SampleType::Int64).build();
-
-    const auto domainSignal = Signal(NullContext(), nullptr, "domainSig");
-    auto domainDescriptor = DataDescriptorBuilder().setName("tsSig").setSampleType(SampleType::Int64).setUnit(Unit("s")).build();
-
-    {
-        auto domainPacket = DataPacket(domainDescriptor, 1);
-        static_cast<int64_t*>(domainPacket.getData())[0] = 1000000;
-        auto dataPacket = DataPacketWithDomain(domainPacket, descriptor, 1);
-        static_cast<int64_t*>(dataPacket.getData())[0] = 10;
-        domainSignal.sendPacket(domainPacket);
-        signal.sendPacket(dataPacket);
-    }
-
-    {
-        auto domainPacket = DataPacket(domainDescriptor, 1);
-        static_cast<int64_t*>(domainPacket.getData())[0] = 2000000;
-        auto dataPacket = DataPacketWithDomain(domainPacket, descriptor, 1);
-        static_cast<int64_t*>(dataPacket.getData())[0] = 20;
-        domainSignal.sendPacket(domainPacket);
-        signal.sendPacket(dataPacket);
-    }
-
-    BaseObjectPtr value;
-    BaseObjectPtr ts;
-    ASSERT_NO_THROW(ts = signal.getLastValueWithTimestamp(value));
-    ASSERT_TRUE(value.assigned());
-    ASSERT_TRUE(ts.assigned());
-
-    IntegerPtr valuePtr;
-    ASSERT_NO_THROW(valuePtr = value.asPtr<IInteger>());
-    ASSERT_EQ(valuePtr, 20);
-
-    IntegerPtr tsPtr;
-    ASSERT_NO_THROW(tsPtr = ts.asPtr<IInteger>());
-    ASSERT_EQ(tsPtr, 2000000);
 }
 
 TEST_F(SignalTest, GetLastValueAfterEmptyPacket)
@@ -1324,33 +933,6 @@ TEST_F(SignalTest, GetLastValueDisabled)
     ASSERT_FALSE(signal.getLastValue().assigned());
 }
 
-TEST_F(SignalTest, GetLastValueWithTimestampDisabled)
-{
-    const auto signal = Signal(NullContext(), nullptr, "sig");
-    const auto privateSignal = signal.asPtrOrNull<ISignalPrivate>();
-    ASSERT_TRUE(privateSignal.assigned());
-    privateSignal.enableKeepLastValue(false);
-
-    auto descriptor = DataDescriptorBuilder().setName("test").setSampleType(SampleType::Int64).build();
-
-    const auto domainSignal = Signal(NullContext(), nullptr, "domainSig");
-    auto domainDescriptor = DataDescriptorBuilder().setName("tsSig").setSampleType(SampleType::Int64).setUnit(Unit("s")).build();
-
-    auto domainPacket = DataPacket(domainDescriptor, 1);
-    static_cast<int64_t*>(domainPacket.getData())[0] = 1000000;
-    auto dataPacket = DataPacketWithDomain(domainPacket, descriptor, 1);
-    static_cast<int64_t*>(dataPacket.getData())[0] = 10;
-
-    domainSignal.sendPacket(domainPacket);
-    signal.sendPacket(dataPacket);
-
-    BaseObjectPtr value;
-    BaseObjectPtr ts;
-    ASSERT_NO_THROW(ts = signal.getLastValueWithTimestamp(value));
-    ASSERT_FALSE(value.assigned());
-    ASSERT_FALSE(ts.assigned());
-}
-
 TEST_F(SignalTest, GetLastValueNonPublicDisabled)
 {
     const auto signal = Signal(NullContext(), nullptr, "sig");
@@ -1366,31 +948,6 @@ TEST_F(SignalTest, GetLastValueNonPublicDisabled)
     }
 
     ASSERT_FALSE(signal.getLastValue().assigned());
-}
-
-TEST_F(SignalTest, GetLastValueWithTimestampNonPublicDisabled)
-{
-    const auto signal = Signal(NullContext(), nullptr, "sig");
-    signal.setPublic(False);
-
-    auto descriptor = DataDescriptorBuilder().setName("test").setSampleType(SampleType::Int64).build();
-
-    const auto domainSignal = Signal(NullContext(), nullptr, "domainSig");
-    auto domainDescriptor = DataDescriptorBuilder().setName("tsSig").setSampleType(SampleType::Int64).setUnit(Unit("s")).build();
-
-    auto domainPacket = DataPacket(domainDescriptor, 1);
-    static_cast<int64_t*>(domainPacket.getData())[0] = 1000000;
-    auto dataPacket = DataPacketWithDomain(domainPacket, descriptor, 1);
-    static_cast<int64_t*>(dataPacket.getData())[0] = 10;
-
-    domainSignal.sendPacket(domainPacket);
-    signal.sendPacket(dataPacket);
-
-    BaseObjectPtr value;
-    BaseObjectPtr ts;
-    ASSERT_NO_THROW(ts = signal.getLastValueWithTimestamp(value));
-    ASSERT_FALSE(value.assigned());
-    ASSERT_FALSE(ts.assigned());
 }
 
 TEST_F(SignalTest, GetLastValueInvisible)
@@ -1410,6 +967,523 @@ TEST_F(SignalTest, GetLastValueInvisible)
     }
 
     ASSERT_TRUE(signal.getLastValue().assigned());
+}
+
+class SignalLastValueWithTimestampTest : public testing::Test
+{
+public:
+
+    void SetUp() override
+    {
+        Init();
+        Check();
+    }
+
+    void TearDown() override
+    {
+        signal.release();
+        domainSignal.release();
+    }
+
+    void Init()
+    {
+        signal = Signal(NullContext(), nullptr, "sig");
+        domainSignal = Signal(NullContext(), nullptr, "domainSig");
+    }
+
+    template <typename T>
+    DataPacketPtr BuildDataPacket(const DataDescriptorPtr& desc, const DataPacketPtr& domainPacket, const size_t packetSize, const T value)
+    {
+        auto dataPacket = DataPacketWithDomain(domainPacket, desc, packetSize);
+        static_cast<T*>(dataPacket.getData())[packetSize - 1] = value;
+        return dataPacket;
+    }
+
+    template <typename T>
+    DataPacketPtr BuildDomainPacket(const DataDescriptorPtr& desc, const size_t packetSize, const T ts)
+    {
+        auto domainPacket = DataPacket(desc, packetSize);
+        static_cast<T*>(domainPacket.getData())[packetSize - 1] = ts;
+        return domainPacket;
+    }
+
+    void Check()
+    {
+        BaseObjectPtr value;
+        BaseObjectPtr ts;
+        ASSERT_NO_THROW(ts = signal.getLastValueWithTimestamp(value));
+        ASSERT_FALSE(value.assigned());
+        ASSERT_FALSE(ts.assigned());
+    }
+
+    void Check(const BaseObjectPtr& expectedValue)
+    {
+        BaseObjectPtr value;
+        BaseObjectPtr ts;
+        ASSERT_NO_THROW(ts = signal.getLastValueWithTimestamp(value));
+        ASSERT_TRUE(value.assigned());
+        ASSERT_FALSE(ts.assigned());
+
+        ASSERT_EQ(value, expectedValue);
+    }
+
+    void Check(const BaseObjectPtr& expectedValue, const int64_t expectedTs)
+    {
+        BaseObjectPtr value;
+        BaseObjectPtr ts;
+        ASSERT_NO_THROW(ts = signal.getLastValueWithTimestamp(value));
+        ASSERT_TRUE(value.assigned());
+        ASSERT_TRUE(ts.assigned());
+
+        ASSERT_EQ(value, expectedValue);
+
+        IntegerPtr tsPtr;
+        ASSERT_NO_THROW(tsPtr = ts.asPtr<IInteger>());
+        ASSERT_EQ(tsPtr, expectedTs);
+    }
+
+    SignalConfigPtr signal;
+    SignalConfigPtr domainSignal;
+};
+
+TEST_F(SignalLastValueWithTimestampTest, GetLastValueWithTimestampAfterMultipleSend)
+{
+    auto descriptor = DataDescriptorBuilder().setName("test").setSampleType(SampleType::Int64).build();
+    auto domainDescriptor = DataDescriptorBuilder()
+                                .setName("tsSig")
+                                .setSampleType(SampleType::Int64)
+                                .setUnit(Unit("s"))
+                                .setOrigin("1970-01-01T00:00:00")
+                                .build();
+
+    {
+        auto domainPacket = BuildDomainPacket(domainDescriptor, 1, int64_t(1779961693));
+        auto dataPacket = BuildDataPacket(descriptor, domainPacket, 1, int64_t(10));
+
+        domainSignal.sendPacket(domainPacket);
+        signal.sendPacket(dataPacket);
+    }
+
+    {
+        auto domainPacket = BuildDomainPacket(domainDescriptor, 1, int64_t(1779964000));
+        auto dataPacket = BuildDataPacket(descriptor, domainPacket, 1, int64_t(20));
+
+        domainSignal.sendPacket(domainPacket);
+        signal.sendPacket(dataPacket);
+    }
+    Check(Integer(20), 1779964000000000);
+}
+
+TEST_F(SignalLastValueWithTimestampTest, NoLastValueWithTimestamp)
+{
+    BaseObjectPtr value;
+    BaseObjectPtr ts;
+    ASSERT_NO_THROW(ts = signal.getLastValueWithTimestamp(value));
+    ASSERT_FALSE(value.assigned());
+    ASSERT_FALSE(ts.assigned());
+}
+
+TEST_F(SignalLastValueWithTimestampTest, GetLastValueWithTimestampNotAssigned)
+{
+    auto descriptor = DataDescriptorBuilder().setName("test").setSampleType(SampleType::Int64).build();
+    auto dataPacket = DataPacket(descriptor, 5);
+
+    auto* data = static_cast<int64_t*>(dataPacket.getData());
+    data[4] = 41;
+
+    signal.sendPacket(dataPacket);
+
+    Check(Integer(41));
+}
+
+TEST_F(SignalLastValueWithTimestampTest, GetLastValueWithTimestampAssigned)
+{
+    auto descriptor = DataDescriptorBuilder().setName("test").setSampleType(SampleType::Int64).build();
+    auto domainDescriptor = DataDescriptorBuilder()
+                                .setName("tsSig")
+                                .setSampleType(SampleType::Int64)
+                                .setUnit(Unit("s"))
+                                .setOrigin("1970-01-01T00:00:00")
+                                .build();
+
+    auto domainPacket = BuildDomainPacket(domainDescriptor, 5, int64_t(1779961600));
+    auto dataPacket = BuildDataPacket(descriptor, domainPacket, 5, int64_t(45));
+
+    domainSignal.sendPacket(domainPacket);
+    signal.sendPacket(dataPacket);
+
+    Check(Integer(45), 1779961600000000);
+}
+
+TEST_F(SignalLastValueWithTimestampTest, GetLastValueWithTimestampWrongTsSampleType)
+{
+    auto descriptor = DataDescriptorBuilder().setName("test").setSampleType(SampleType::Int64).build();
+    auto domainDescriptor = DataDescriptorBuilder()
+                                .setName("tsSig")
+                                .setSampleType(SampleType::ComplexFloat64)
+                                .setUnit(Unit("s"))
+                                .setOrigin("1970-01-01T00:00:00")
+                                .build();
+
+    auto domainPacket = DataPacket(domainDescriptor, 5);
+    auto dataPacket = BuildDataPacket(descriptor, domainPacket, 5, int64_t(85));
+
+    domainSignal.sendPacket(domainPacket);
+    signal.sendPacket(dataPacket);
+
+    Check(Integer(85));
+}
+
+TEST_F(SignalLastValueWithTimestampTest, GetLastValueWithTimestampWrongTsUnit)
+{
+    auto descriptor = DataDescriptorBuilder().setName("test").setSampleType(SampleType::Int64).build();
+    auto domainDescriptor = DataDescriptorBuilder()
+                                .setName("tsSig")
+                                .setSampleType(SampleType::Int64)
+                                .setUnit(Unit("pps"))
+                                .setOrigin("1970-01-01T00:00:00")
+                                .build();
+
+    auto domainPacket = BuildDomainPacket(domainDescriptor, 5, int64_t(1779961695));
+    auto dataPacket = BuildDataPacket(descriptor, domainPacket, 5, int64_t(65));
+
+    domainSignal.sendPacket(domainPacket);
+    signal.sendPacket(dataPacket);
+
+    Check(Integer(65));
+}
+
+TEST_F(SignalLastValueWithTimestampTest, GetLastValueWithTimestampWitoutTsUnit)
+{
+    auto descriptor = DataDescriptorBuilder().setName("test").setSampleType(SampleType::Int64).build();
+    auto domainDescriptor = DataDescriptorBuilder()
+                                .setName("tsSig")
+                                .setSampleType(SampleType::Int64)
+                                .setOrigin("1970-01-01T00:00:00")
+                                .build();
+
+    auto domainPacket = BuildDomainPacket(domainDescriptor, 5, int64_t(1779961696));
+    auto dataPacket = BuildDataPacket(descriptor, domainPacket, 5, int64_t(789));
+
+    domainSignal.sendPacket(domainPacket);
+    signal.sendPacket(dataPacket);
+
+    Check(Integer(789));
+}
+
+TEST_F(SignalLastValueWithTimestampTest, GetLastValueWithTimestampWrongOrigin)
+{
+    auto descriptor = DataDescriptorBuilder().setName("test").setSampleType(SampleType::Int64).build();
+    auto domainDescriptor = DataDescriptorBuilder()
+                                .setName("tsSig")
+                                .setSampleType(SampleType::Int64)
+                                .setUnit(Unit("s"))
+                                .setOrigin("wrongOrigin")
+                                .build();
+
+    auto domainPacket = BuildDomainPacket(domainDescriptor, 5, int64_t(1779961691));
+    auto dataPacket = BuildDataPacket(descriptor, domainPacket, 5, int64_t(654));
+
+    domainSignal.sendPacket(domainPacket);
+    signal.sendPacket(dataPacket);
+
+    Check(Integer(654));
+}
+
+TEST_F(SignalLastValueWithTimestampTest, GetLastValueWithTimestampTsDescChangedToWrong)
+{
+    auto descriptor = DataDescriptorBuilder().setName("test").setSampleType(SampleType::Int64).build();
+    {
+        auto domainDescriptor = DataDescriptorBuilder()
+                                    .setName("tsSig")
+                                    .setSampleType(SampleType::Int64)
+                                    .setUnit(Unit("s"))
+                                    .setOrigin("1970-01-01T00:00:00")
+                                    .build();
+        auto domainPacket = BuildDomainPacket(domainDescriptor, 5, int64_t(1779961999));
+        auto dataPacket = BuildDataPacket(descriptor, domainPacket, 5, int64_t(-5));
+
+        domainSignal.sendPacket(domainPacket);
+        signal.sendPacket(dataPacket);
+
+        Check(Integer(-5), 1779961999000000);
+    }
+
+    {
+        auto wrongDomainDescriptor =
+            DataDescriptorBuilder().setName("tsSig").setSampleType(SampleType::Int64).setOrigin("1970-01-01T00:00:00").build();
+        auto domainPacket = BuildDomainPacket(wrongDomainDescriptor, 2, int64_t(1779962000));
+        auto dataPacket = BuildDataPacket(descriptor, domainPacket, 2, int64_t(56));
+
+        domainSignal.sendPacket(domainPacket);
+        signal.sendPacket(dataPacket);
+
+        Check(Integer(56));
+    }
+}
+
+TEST_F(SignalLastValueWithTimestampTest, GetLastValueWithTimestampTsOriginChanged)
+{
+    auto descriptor = DataDescriptorBuilder().setName("test").setSampleType(SampleType::Int64).build();
+    {
+        auto domainDescriptor = DataDescriptorBuilder()
+        .setName("tsSig")
+            .setSampleType(SampleType::Int64)
+            .setUnit(Unit("s"))
+            .setOrigin("1970-01-01T00:00:00")
+            .build();
+        auto domainPacket = BuildDomainPacket(domainDescriptor, 1, int64_t(1779961999));
+        auto dataPacket = BuildDataPacket(descriptor, domainPacket, 1, int64_t(-5));
+
+        domainSignal.sendPacket(domainPacket);
+        signal.sendPacket(dataPacket);
+
+        Check(Integer(-5), 1779961999000000);
+    }
+
+    {
+        auto wrongDomainDescriptor = DataDescriptorBuilder()
+        .setName("tsSig")
+            .setSampleType(SampleType::Int64)
+            .setUnit(Unit("s"))
+            .setOrigin("wrong")
+            .build();
+        auto domainPacket = BuildDomainPacket(wrongDomainDescriptor, 1, int64_t(1779962000));
+        auto dataPacket = BuildDataPacket(descriptor, domainPacket, 1, int64_t(56));
+
+        domainSignal.sendPacket(domainPacket);
+        signal.sendPacket(dataPacket);
+
+        Check(Integer(56));
+    }
+
+    {
+        auto domainDescriptor = DataDescriptorBuilder()
+        .setName("tsSig")
+            .setSampleType(SampleType::Int64)
+            .setUnit(Unit("s"))
+            .setOrigin("1970-01-01T00:00:00")
+            .build();
+        auto domainPacket = BuildDomainPacket(domainDescriptor, 1, int64_t(1779962001));
+        auto dataPacket = BuildDataPacket(descriptor, domainPacket, 1, int64_t(-52));
+
+        domainSignal.sendPacket(domainPacket);
+        signal.sendPacket(dataPacket);
+
+        Check(Integer(-52), 1779962001000000);
+    }
+}
+
+TEST_F(SignalLastValueWithTimestampTest, GetLastValueWithTimestampString)
+{
+    auto descriptor = DataDescriptorBuilder().setName("test").setSampleType(SampleType::String).build();
+    auto domainDescriptor = DataDescriptorBuilder()
+                                .setName("tsSig")
+                                .setSampleType(SampleType::Int64)
+                                .setUnit(Unit("s"))
+                                .setOrigin("1970-01-01T00:00:00")
+                                .setTickResolution(Ratio(1, 1000))
+                                .build();
+
+    auto domainPacket = BuildDomainPacket(domainDescriptor, 1, int64_t(1779961693000));
+
+    // Allocate buffer for "abcd" (4 bytes, no null terminator needed)
+    auto dataPacket = BinaryDataPacket(domainPacket, descriptor, 4);
+    char* data = static_cast<char*>(dataPacket.getData());
+    data[0] = 'a';
+    data[1] = 'b';
+    data[2] = 'c';
+    data[3] = 'd';
+
+
+    domainSignal.sendPacket(domainPacket);
+    signal.sendPacket(dataPacket);
+
+    Check(String("abcd"), 1779961693000000);
+}
+
+TEST_F(SignalLastValueWithTimestampTest, GetLastValueWithTimestampUInt64)
+{
+    auto descriptor = DataDescriptorBuilder().setName("test").setSampleType(SampleType::Int64).build();
+    auto domainDescriptor = DataDescriptorBuilder()
+                                .setName("tsSig")
+                                .setSampleType(SampleType::UInt64)
+                                .setUnit(Unit("s"))
+                                .setOrigin("1970-01-01T00:00:00")
+                                .build();
+
+    auto domainPacket = BuildDomainPacket(domainDescriptor, 5, uint64_t(1778861693ULL));
+    auto dataPacket = BuildDataPacket(descriptor, domainPacket, 5, int64_t(-45));
+
+    domainSignal.sendPacket(domainPacket);
+    signal.sendPacket(dataPacket);
+
+    Check(Integer(-45), 1778861693000000);
+}
+
+TEST_F(SignalLastValueWithTimestampTest, GetLastValueWithTimestampDouble)
+{
+    auto descriptor = DataDescriptorBuilder().setName("test").setSampleType(SampleType::Int64).build();
+    auto domainDescriptor = DataDescriptorBuilder()
+                                .setName("tsSig")
+                                .setSampleType(SampleType::Float64)
+                                .setUnit(Unit("s"))
+                                .setOrigin("1970-01-01T00:00:00")
+                                .build();
+
+    auto domainPacket = BuildDomainPacket(domainDescriptor, 5, double(1777761693.0));
+    auto dataPacket = BuildDataPacket(descriptor, domainPacket, 5, int64_t(896));
+
+    domainSignal.sendPacket(domainPacket);
+    signal.sendPacket(dataPacket);
+
+    Check(Integer(896), 1777761693000000);
+}
+
+TEST_F(SignalLastValueWithTimestampTest, GetLastValueWithTimestampFloat)
+{
+    auto descriptor = DataDescriptorBuilder().setName("test").setSampleType(SampleType::Int64).build();
+    auto domainDescriptor = DataDescriptorBuilder()
+                                .setName("tsSig")
+                                .setSampleType(SampleType::Float32)
+                                .setUnit(Unit("s"))
+                                .setOrigin("1970-01-01T00:00:00")
+                                .build();
+
+    auto domainPacket = BuildDomainPacket(domainDescriptor, 5, float(177991.0));
+    auto dataPacket = BuildDataPacket(descriptor, domainPacket, 5, int64_t(735));
+
+    domainSignal.sendPacket(domainPacket);
+    signal.sendPacket(dataPacket);
+
+    Check(Integer(735), 177991000000);
+}
+
+TEST_F(SignalLastValueWithTimestampTest, GetLastValueWithTimestampInt32)
+{
+    auto descriptor = DataDescriptorBuilder().setName("test").setSampleType(SampleType::Int64).build();
+    auto domainDescriptor = DataDescriptorBuilder()
+                                .setName("tsSig")
+                                .setSampleType(SampleType::Int32)
+                                .setUnit(Unit("s"))
+                                .setOrigin("1970-01-01T00:00:00")
+                                .build();
+
+    auto domainPacket = BuildDomainPacket(domainDescriptor, 5, int32_t(1279961693));
+    auto dataPacket = BuildDataPacket(descriptor, domainPacket, 5, int64_t(4));
+
+    domainSignal.sendPacket(domainPacket);
+    signal.sendPacket(dataPacket);
+
+    Check(Integer(4), 1279961693000000);
+}
+
+TEST_F(SignalLastValueWithTimestampTest, GetLastValueWithTimestampDomainHasDimensions)
+{
+    auto descriptor = DataDescriptorBuilder().setName("test").setSampleType(SampleType::Int64).build();
+    auto numbers = List<INumber>();
+    numbers.pushBack(1);
+    numbers.pushBack(2);
+    auto dimensions = List<IDimension>();
+    dimensions.pushBack(Dimension(ListDimensionRule(numbers)));
+    auto domainDescriptor = DataDescriptorBuilder()
+                                .setName("tsSig")
+                                .setSampleType(SampleType::Int64)
+                                .setUnit(Unit("s"))
+                                .setDimensions(dimensions)
+                                .setOrigin("1970-01-01T00:00:00")
+                                .build();
+
+    auto domainPacket = DataPacket(domainDescriptor, 5);
+    int64_t* domainData = static_cast<int64_t*>(domainPacket.getData());
+    domainData[8] = 1779961693;
+    domainData[9] = 1779961694;
+
+    auto dataPacket = BuildDataPacket(descriptor, domainPacket, 5, int64_t(-852));
+
+    domainSignal.sendPacket(domainPacket);
+    signal.sendPacket(dataPacket);
+
+    Check(Integer(-852));
+}
+
+TEST_F(SignalLastValueWithTimestampTest, GetLastValueWithTimestampTsDescChangedToValid)
+{
+    auto descriptor = DataDescriptorBuilder().setName("test").setSampleType(SampleType::Int64).build();
+
+    {
+        auto invalidDomainDescriptor =
+            DataDescriptorBuilder().setName("tsSig").setSampleType(SampleType::Int64).setOrigin("1970-01-01T00:00:00").build();
+
+        auto domainPacket = BuildDomainPacket(invalidDomainDescriptor, 1, int64_t(1771661693));
+        auto dataPacket = BuildDataPacket(descriptor, domainPacket, 1, int64_t(4));
+
+        domainSignal.sendPacket(domainPacket);
+        signal.sendPacket(dataPacket);
+
+        Check(Integer(4));
+    }
+
+    {
+        auto validDomainDescriptor = DataDescriptorBuilder()
+                                         .setName("tsSig")
+                                         .setSampleType(SampleType::Int64)
+                                         .setUnit(Unit("s"))
+                                         .setOrigin("1970-01-01T00:00:00")
+                                         .build();
+
+        auto domainPacket = BuildDomainPacket(validDomainDescriptor, 1, int64_t(1771661695));
+        auto dataPacket = BuildDataPacket(descriptor, domainPacket, 1, int64_t(-56));
+
+        domainSignal.sendPacket(domainPacket);
+        signal.sendPacket(dataPacket);
+
+        Check(Integer(-56), 1771661695000000);
+    }
+}
+
+TEST_F(SignalLastValueWithTimestampTest, GetLastValueWithTimestampDisabled)
+{
+    const auto privateSignal = signal.asPtrOrNull<ISignalPrivate>();
+    ASSERT_TRUE(privateSignal.assigned());
+    privateSignal.enableKeepLastValue(false);
+
+    auto descriptor = DataDescriptorBuilder().setName("test").setSampleType(SampleType::Int64).build();
+    auto domainDescriptor = DataDescriptorBuilder()
+                                .setName("tsSig")
+                                .setSampleType(SampleType::Int64)
+                                .setUnit(Unit("s"))
+                                .setOrigin("1970-01-01T00:00:00")
+                                .build();
+
+    auto domainPacket = BuildDomainPacket(domainDescriptor, 1, int64_t(10));
+    auto dataPacket = BuildDataPacket(descriptor, domainPacket, 1, int64_t(56));
+
+    domainSignal.sendPacket(domainPacket);
+    signal.sendPacket(dataPacket);
+
+    Check();
+}
+
+TEST_F(SignalLastValueWithTimestampTest, GetLastValueWithTimestampNonPublicDisabled)
+{
+    signal.setPublic(False);
+
+    auto descriptor = DataDescriptorBuilder().setName("test").setSampleType(SampleType::Int64).build();
+    auto domainDescriptor = DataDescriptorBuilder()
+                                .setName("tsSig")
+                                .setSampleType(SampleType::Int64)
+                                .setUnit(Unit("s"))
+                                .setOrigin("1970-01-01T00:00:00")
+                                .build();
+
+    auto domainPacket = BuildDomainPacket(domainDescriptor, 1, int64_t(11));
+    auto dataPacket = BuildDataPacket(descriptor, domainPacket, 1, int64_t(57));
+
+    domainSignal.sendPacket(domainPacket);
+    signal.sendPacket(dataPacket);
+
+    Check();
 }
 
 class ListenerImpl : public ImplementationOfWeak<IInputPortNotifications>

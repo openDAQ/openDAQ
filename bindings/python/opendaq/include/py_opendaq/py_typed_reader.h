@@ -325,6 +325,7 @@ private:
         if constexpr (isMultiReader)
         {
             daq::ReaderConfigPtr readerConfig = reader.template asPtr<daq::IReaderConfig>();
+            // Block size is abused here to denote number of signals that are being read.
             blockSize = readerConfig.getInputPorts().getCount();
         }
 
@@ -332,6 +333,10 @@ private:
         using SampleType = typename SampleTypeToBufferType<ValueType>::Type;
 
         StatusType status;
+        // Allocate contiguous memory to fit all the samples.
+        // Block reader: count = number of blocks read, blockSize = number of samples in a block
+        // Multi reader: count = number of samples from each port, blockSize = number of signals being read at once
+        // Values per sample: each sample consists of valuesPerSample values - vector signal when valuesPerSample > 1
         std::vector<SampleType> values(count * blockSize * sampleSize * valuesPerSample);
         if constexpr (ReaderHasReadWithTimeout<ReaderType>::value)
         {
@@ -340,6 +345,7 @@ private:
                 std::vector<void*> ptrs(blockSize);
                 for (size_t i = 0; i < blockSize; i++)
                 {
+                    // Divide contiguous memory - one pointer to a section per signal each.
                     ptrs[i] = values.data() + i * count * sampleSize * valuesPerSample;
                 }
                 reader->read(ptrs.data(), &count, timeoutMs, &status);
@@ -363,21 +369,30 @@ private:
         {
             if (!isMultiReader)
             {
+                // BlockReader: count is the number of blocks successfully read.
+                // A block has blockSize samples and each sample consists of valuesPerSample values (=1 for scalar signals)
                 shape = {count, blockSize*valuesPerSample};
             }
             else
             {
+                // MultiReader: blockSize is the number of signals we read from.
+                // Count is the number of samples that were read. Each sample consists of valuesPerSample values.
                 shape = {blockSize, count*valuesPerSample};
             }
         }
         else
         {
+            // Normal reading: we read N=count samples and each samples has valuesPerSample values.
             shape = {count*valuesPerSample};
         }
 
         py::array::StridesContainer strides = {};
         if (blockSize > 1 && isMultiReader)
         {
+            // MultiReader: Strides must be adjusted, because the contiguous memory allocated is not "unused" just at the
+            // trailing end. The memory was divided into sections by passing pointers to the MultiReader. Regardles of how
+            // many samples were actually read, these sections are initialCount*valuesPerSample*valueSize apart, because
+            // they were divided so at allocation (before calling read).
             const size_t valueSize = isSampleTypeStruct ? sampleSize : sizeof(SampleType);
             strides = {valueSize * initialCount * valuesPerSample, valueSize};
         }
@@ -444,6 +459,7 @@ private:
         if constexpr (isMultiReader)
         {
             daq::ReaderConfigPtr readerConfig = reader.template asPtr<daq::IReaderConfig>();
+            // Block size is abused here to denote number of signals that are being read.
             blockSize = readerConfig.getInputPorts().getCount();
         }
 
@@ -451,6 +467,10 @@ private:
         using ValueSampleType = typename SampleTypeToBufferType<ValueType>::Type;
         using DomainSampleType = typename SampleTypeToBufferType<DomainType>::Type;
         StatusType status;
+        // Allocate contiguous memory to fit all the samples.
+        // Block reader: count = number of blocks read, blockSize = number of samples in a block
+        // Multi reader: count = number of samples from each port, blockSize = number of signals being read at once
+        // Values per sample: each sample consists of valuesPerSample values - vector signal when valuesPerSample > 1
         std::vector<ValueSampleType> values(count * blockSize * sampleSize * valuesPerSample);
         std::vector<DomainSampleType> domain(count * blockSize);
         if constexpr (ReaderHasReadWithTimeout<ReaderType>::value)
@@ -460,6 +480,7 @@ private:
                 std::vector<void*> valuesPtrs(blockSize), domainPtrs(blockSize);
                 for (size_t i = 0; i < blockSize; i++)
                 {
+                    // Divide contiguous memory - one pointer to a section for each signal.
                     valuesPtrs[i] = values.data() + i * count * sampleSize * valuesPerSample;
                     domainPtrs[i] = domain.data() + i * count;
                 }
@@ -484,15 +505,20 @@ private:
         {
             if (!isMultiReader)
             {
+                // BlockReader: count is the number of blocks successfully read.
+                // A block has blockSize samples and each sample consists of valuesPerSample values (=1 for scalar signals)
                 shape = {count, blockSize*valuesPerSample};
             }
             else
             {
+                // MultiReader: blockSize is the number of signals we read from.
+                // Count is the number of samples that were read. Each sample consists of valuesPerSample values.
                 shape = {blockSize, count*valuesPerSample};
             }
         }
         else
         {
+            // Normal reading: we read N=count samples and each samples has valuesPerSample values.
             shape = {count*valuesPerSample};
         }
 
@@ -500,6 +526,7 @@ private:
         py::array::StridesContainer domainStrides;
         if (blockSize > 1 && isMultiReader)
         {
+            // MultiReader: See the explanation in the no-domain version of this function.
             const size_t valueSize = isValueSampleTypeStruct ? sampleSize : sizeof(ValueSampleType);
             const size_t domainSize = sizeof(DomainSampleType);
             valuesStrides = {valueSize * initialCount * valuesPerSample, valueSize};

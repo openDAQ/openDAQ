@@ -303,13 +303,14 @@ private:
         if constexpr (isSampleTypeStruct)
         {
             if (!dataDescriptor.assigned())
-            throw std::runtime_error("Data descriptor should be assigned when sample type is Struct");
+                throw std::runtime_error("Data descriptor should be assigned when sample type is Struct");
             sampleSize = dataDescriptor.getSampleSize();
         }
         if (dataDescriptor.assigned() && dataDescriptor.getDimensions().assigned())
         {
             auto dimensions = dataDescriptor.getDimensions();
-            if (dimensions.getCount() > 1){
+            if (dimensions.getCount() > 1)
+            {
                 throw std::runtime_error("Typed reading: cannot read matrix/tensor data.");
             }
             if (dimensions.getCount() == 1)
@@ -362,21 +363,23 @@ private:
         {
             if (!isMultiReader)
             {
-                shape = {count, blockSize};
+                shape = {count, blockSize*valuesPerSample};
             }
             else
             {
-                shape = {blockSize, count};
+                shape = {blockSize, count*valuesPerSample};
             }
         }
         else
-            shape = {count};
+        {
+            shape = {count*valuesPerSample};
+        }
 
-        py::array::StridesContainer strides;
+        py::array::StridesContainer strides = {};
         if (blockSize > 1 && isMultiReader)
         {
             const size_t valueSize = isSampleTypeStruct ? sampleSize : sizeof(SampleType);
-            strides = {valueSize * initialCount, valueSize};
+            strides = {valueSize * initialCount * valuesPerSample, valueSize};
         }
 
         py::dtype dtype{};
@@ -425,7 +428,8 @@ private:
         if (dataDescriptor.assigned() && dataDescriptor.getDimensions().assigned())
         {
             auto dimensions = dataDescriptor.getDimensions();
-            if (dimensions.getCount() > 1){
+            if (dimensions.getCount() > 1)
+            {
                 throw std::runtime_error("Typed reading: cannot read matrix/tensor data.");
             }
             if (dimensions.getCount() == 1)
@@ -480,15 +484,17 @@ private:
         {
             if (!isMultiReader)
             {
-                shape = {count, blockSize};
+                shape = {count, blockSize*valuesPerSample};
             }
             else
             {
-                shape = {blockSize, count};
+                shape = {blockSize, count*valuesPerSample};
             }
         }
         else
-            shape = {count};
+        {
+            shape = {count*valuesPerSample};
+        }
 
         py::array::StridesContainer valuesStrides;
         py::array::StridesContainer domainStrides;
@@ -496,7 +502,7 @@ private:
         {
             const size_t valueSize = isValueSampleTypeStruct ? sampleSize : sizeof(ValueSampleType);
             const size_t domainSize = sizeof(DomainSampleType);
-            valuesStrides = {valueSize * initialCount, valueSize};
+            valuesStrides = {valueSize * initialCount * valuesPerSample, valueSize};
             domainStrides = {domainSize * initialCount, domainSize};
         }
 

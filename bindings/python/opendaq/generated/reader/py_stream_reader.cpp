@@ -37,7 +37,8 @@ void defineIStreamReader(pybind11::module_ m, PyDaqIntf<daq::IStreamReader, daq:
             PyTypedReader::checkTypes(valueType, domainType);
             const auto signalPtr = daq::SignalPtr::Borrow(signal);
             auto descriptor = signalPtr.getDescriptor();
-            if (skipEvents == daq::True && descriptor.assigned()){
+            if (skipEvents == daq::True && descriptor.assigned())
+            {
                 auto dimensions = descriptor.getDimensions();
                 if (dimensions.assigned() && dimensions.getCount() > 0)
                 {

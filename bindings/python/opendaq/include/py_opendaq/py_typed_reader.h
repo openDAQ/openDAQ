@@ -146,10 +146,9 @@ struct PyTypedReader
         daq::SampleType valueType = daq::SampleType::Undefined;
         reader->getValueReadType(&valueType);
 
-        daq::DataDescriptorPtr dataDescriptor;
+        daq::DataDescriptorPtr dataDescriptor = getDescriptor<ReaderType>(reader, VALUE_DATA_DESCRIPTOR_ATTRIBUTE);
         if (valueType == daq::SampleType::Undefined || valueType == daq::SampleType::Struct)
         {
-            dataDescriptor = getDescriptor<ReaderType>(reader, VALUE_DATA_DESCRIPTOR_ATTRIBUTE);
             if (!dataDescriptor.assigned())
             {
                 auto status = readZeroValues(reader, timeoutMs);
@@ -163,25 +162,25 @@ struct PyTypedReader
         switch (valueType)
         {
             case daq::SampleType::Float32:
-                return readWithDomain<daq::SampleTypeToType<daq::SampleType::Float32>::Type>(reader, count, timeoutMs, returnStatus);
+                return readWithDomain<daq::SampleTypeToType<daq::SampleType::Float32>::Type>(reader, count, timeoutMs, returnStatus, dataDescriptor);
             case daq::SampleType::Float64:
-                return readWithDomain<daq::SampleTypeToType<daq::SampleType::Float64>::Type>(reader, count, timeoutMs, returnStatus);
+                return readWithDomain<daq::SampleTypeToType<daq::SampleType::Float64>::Type>(reader, count, timeoutMs, returnStatus, dataDescriptor);
             case daq::SampleType::UInt32:
-                return readWithDomain<daq::SampleTypeToType<daq::SampleType::UInt32>::Type>(reader, count, timeoutMs, returnStatus);
+                return readWithDomain<daq::SampleTypeToType<daq::SampleType::UInt32>::Type>(reader, count, timeoutMs, returnStatus, dataDescriptor);
             case daq::SampleType::Int32:
-                return readWithDomain<daq::SampleTypeToType<daq::SampleType::Int32>::Type>(reader, count, timeoutMs, returnStatus);
+                return readWithDomain<daq::SampleTypeToType<daq::SampleType::Int32>::Type>(reader, count, timeoutMs, returnStatus, dataDescriptor);
             case daq::SampleType::UInt64:
-                return readWithDomain<daq::SampleTypeToType<daq::SampleType::UInt64>::Type>(reader, count, timeoutMs, returnStatus);
+                return readWithDomain<daq::SampleTypeToType<daq::SampleType::UInt64>::Type>(reader, count, timeoutMs, returnStatus, dataDescriptor);
             case daq::SampleType::Int64:
-                return readWithDomain<daq::SampleTypeToType<daq::SampleType::Int64>::Type>(reader, count, timeoutMs, returnStatus);
+                return readWithDomain<daq::SampleTypeToType<daq::SampleType::Int64>::Type>(reader, count, timeoutMs, returnStatus, dataDescriptor);
             case daq::SampleType::UInt8:
-                return readWithDomain<daq::SampleTypeToType<daq::SampleType::UInt8>::Type>(reader, count, timeoutMs, returnStatus);
+                return readWithDomain<daq::SampleTypeToType<daq::SampleType::UInt8>::Type>(reader, count, timeoutMs, returnStatus, dataDescriptor);
             case daq::SampleType::Int8:
-                return readWithDomain<daq::SampleTypeToType<daq::SampleType::Int8>::Type>(reader, count, timeoutMs, returnStatus);
+                return readWithDomain<daq::SampleTypeToType<daq::SampleType::Int8>::Type>(reader, count, timeoutMs, returnStatus, dataDescriptor);
             case daq::SampleType::UInt16:
-                return readWithDomain<daq::SampleTypeToType<daq::SampleType::UInt16>::Type>(reader, count, timeoutMs, returnStatus);
+                return readWithDomain<daq::SampleTypeToType<daq::SampleType::UInt16>::Type>(reader, count, timeoutMs, returnStatus, dataDescriptor);
             case daq::SampleType::Int16:
-                return readWithDomain<daq::SampleTypeToType<daq::SampleType::Int16>::Type>(reader, count, timeoutMs, returnStatus);
+                return readWithDomain<daq::SampleTypeToType<daq::SampleType::Int16>::Type>(reader, count, timeoutMs, returnStatus, dataDescriptor);
             case daq::SampleType::Struct:
                 return readWithDomain<StructPlaceholder>(reader, count, timeoutMs, returnStatus, dataDescriptor);
             case daq::SampleType::RangeInt64:
@@ -412,7 +411,7 @@ private:
                        : SampleTypeDomainTypeReaderStatusVariant<ReaderType>{std::make_tuple(py::array{}, py::array{})};
         }
 
-        size_t blockSize = 1, sampleSize = 1;
+        size_t blockSize = 1, sampleSize = 1, valuesPerSample = 1;
         const size_t initialCount = count;
         constexpr const bool isMultiReader = std::is_base_of_v<daq::MultiReaderPtr, ReaderType>;
         constexpr const bool isValueSampleTypeStruct = std::is_same_v<ValueType, StructPlaceholder>;
@@ -422,6 +421,17 @@ private:
             if (!dataDescriptor.assigned())
                 throw std::runtime_error("Data descriptor should be assigned when sample type is Struct");
             sampleSize = dataDescriptor.getSampleSize();
+        }
+        if (dataDescriptor.assigned() && dataDescriptor.getDimensions().assigned())
+        {
+            auto dimensions = dataDescriptor.getDimensions();
+            if (dimensions.getCount() > 1){
+                throw std::runtime_error("Typed reading: cannot read matrix/tensor data.");
+            }
+            if (dimensions.getCount() == 1)
+            {
+                valuesPerSample = dimensions[0].getSize();
+            }
         }
         if constexpr (std::is_base_of_v<daq::BlockReaderPtr, ReaderType>)
         {
@@ -437,7 +447,7 @@ private:
         using ValueSampleType = typename SampleTypeToBufferType<ValueType>::Type;
         using DomainSampleType = typename SampleTypeToBufferType<DomainType>::Type;
         StatusType status;
-        std::vector<ValueSampleType> values(count * blockSize * sampleSize);
+        std::vector<ValueSampleType> values(count * blockSize * sampleSize * valuesPerSample);
         std::vector<DomainSampleType> domain(count * blockSize);
         if constexpr (ReaderHasReadWithTimeout<ReaderType>::value)
         {
@@ -446,7 +456,7 @@ private:
                 std::vector<void*> valuesPtrs(blockSize), domainPtrs(blockSize);
                 for (size_t i = 0; i < blockSize; i++)
                 {
-                    valuesPtrs[i] = values.data() + i * count * sampleSize;
+                    valuesPtrs[i] = values.data() + i * count * sampleSize * valuesPerSample;
                     domainPtrs[i] = domain.data() + i * count;
                 }
                 reader->readWithDomain(valuesPtrs.data(), domainPtrs.data(), &count, timeoutMs, &status);

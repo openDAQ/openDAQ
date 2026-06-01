@@ -500,26 +500,30 @@ private:
         assignDescriptorsFromStatus(reader, status);
 
         py::gil_scoped_acquire acquire;
-        py::array::ShapeContainer shape;
+        py::array::ShapeContainer domainShape;
+        py::array::ShapeContainer valueShape;
         if (blockSize > 1)
         {
             if (!isMultiReader)
             {
+                domainShape = {count, blockSize};
                 // BlockReader: count is the number of blocks successfully read.
                 // A block has blockSize samples and each sample consists of valuesPerSample values (=1 for scalar signals)
-                shape = {count, blockSize*valuesPerSample};
+                valueShape = {count, blockSize*valuesPerSample};
             }
             else
             {
+                domainShape = {blockSize, count};
                 // MultiReader: blockSize is the number of signals we read from.
                 // Count is the number of samples that were read. Each sample consists of valuesPerSample values.
-                shape = {blockSize, count*valuesPerSample};
+                valueShape = {blockSize, count*valuesPerSample};
             }
         }
         else
         {
+            domainShape = {count};
             // Normal reading: we read N=count samples and each samples has valuesPerSample values.
-            shape = {count*valuesPerSample};
+            valueShape = {count*valuesPerSample};
         }
 
         py::array::StridesContainer valuesStrides;
@@ -553,8 +557,8 @@ private:
                            });
         }
 
-        auto valuesArray = toPyArray(std::move(values), shape, valuesStrides, dtype);
-        auto domainArray = toPyArray(std::move(domain), shape, domainStrides, domainDtype);
+        auto valuesArray = toPyArray(std::move(values), valueShape, valuesStrides, dtype);
+        auto domainArray = toPyArray(std::move(domain), domainShape, domainStrides, domainDtype);
 
         return returnStatus
                    ? SampleTypeDomainTypeReaderStatusVariant<ReaderType>{std::make_tuple(

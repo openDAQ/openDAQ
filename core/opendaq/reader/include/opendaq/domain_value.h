@@ -30,6 +30,17 @@ struct DomainInfo
     std::chrono::system_clock::time_point epoch;
     RatioPtr resolution;
 
+    static DomainInfo fromDescriptor(const DataDescriptorPtr &descriptor)
+    {
+        if (!descriptor.assigned())
+            DAQ_THROW_EXCEPTION(ArgumentNullException, "Descriptor must not be null");
+        
+        auto epoch = daq::reader::parseEpoch(descriptor.getOrigin());
+        auto resolution = descriptor.getTickResolution();
+
+        return {epoch, resolution};
+    }
+
     friend bool operator==(const DomainInfo& lhs, const DomainInfo& rhs)
     {
         if (!lhs.resolution.assigned() || !rhs.resolution.assigned())

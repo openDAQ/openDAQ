@@ -217,12 +217,11 @@ ErrCode readData(
     SizeT offset,
     void** outputBuffer,
     SizeT toRead,
-    const DataDescriptorPtr& descriptor,
     const FunctionPtr& transformFunction = nullptr)
 {
     OPENDAQ_PARAM_NOT_NULL(inputBuffer);
     OPENDAQ_PARAM_NOT_NULL(outputBuffer);
-    OPENDAQ_PARAM_NOT_NULL(descriptor.getObject());
+    OPENDAQ_PARAM_NOT_NULL(readLayout.descriptor.getObject());
 
     const auto& rawSampleSize = readLayout.rawSampleSize;
     const auto& valuesPerSample = readLayout.valuesPerSample;
@@ -363,8 +362,7 @@ std::unique_ptr<DomainValue> readDomainValue(
             domainPacket.getData(),
             index,
             &data,
-            1,
-            nullptr);
+            1);
         return std::make_unique<DomainValueImpl<OutputT>>(domainInfo, timestamp);
     }
 }

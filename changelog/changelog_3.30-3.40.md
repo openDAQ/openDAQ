@@ -39,6 +39,7 @@
 
 ## Bug fixes
 
+- [#1219](https://github.com/openDAQ/openDAQ/pull/1219) Fixes reading vector signals with stream reader in python.
 - [#1214](https://github.com/openDAQ/openDAQ/pull/1214) Fixes the order in which packets are enqueued in sendPackets. They are now always correctly enqueued front-to-back.
 - [#1213](https://github.com/openDAQ/openDAQ/pull/1213) Forward device locked state core event in native client.
 - [#1205](https://github.com/openDAQ/openDAQ/pull/1205) Fix raw socket access exception on Linux/macOS for non-root users

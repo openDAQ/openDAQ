@@ -594,9 +594,9 @@ TEST_F(OpcuaDeviceModulesTest, GetConnectedClientsInfo)
     ASSERT_EQ(serverSideClientsInfo.getCount(), 1u);
     ASSERT_EQ(serverSideClientsInfo[0].getProtocolName(), "OpenDAQOPCUA");
     ASSERT_EQ(serverSideClientsInfo[0].getProtocolType(), ProtocolType::Configuration);
-    ASSERT_EQ(serverSideClientsInfo[0].getHostName(), "");
-    ASSERT_EQ(serverSideClientsInfo[0].getAddress(), "");
-    ASSERT_EQ(serverSideClientsInfo[0].getClientTypeName(), "");
+    ASSERT_GT(serverSideClientsInfo[0].getHostName().getLength(), 0);
+    ASSERT_GT(serverSideClientsInfo[0].getAddress().getLength(), 0);
+    ASSERT_EQ(serverSideClientsInfo[0].getClientTypeName(), "Control");
 }
 
 TEST_F(OpcuaDeviceModulesTest, GetRemoteDeviceObjects)

@@ -57,6 +57,7 @@ SimulatorChannelImpl::SimulatorChannelImpl(const ContextPtr& context,
     createDomainSignalInputPort();
 
     initComponentStatus();
+    this->tags.asPtr<ITagsPrivate>(true).add("AI");
 }
 
 void SimulatorChannelImpl::onPacketReceived(const InputPortPtr& port)
@@ -119,7 +120,7 @@ void SimulatorChannelImpl::createSignals()
     timeSignal.asPtr<IComponentPrivate>().lockAttributes(List<IString>("visible"));
 
     valueSignal = Signal(context, signals, this->localId);
-    valueSignal.getTags().asPtr<ITagsPrivate>(true).add("AnalogInput");
+    valueSignal.getTags().asPtr<ITagsPrivate>(true).add("AI");
     valueSignal.setDescriptor(generator->buildDescriptor());
     generator->valueSignal = valueSignal;
     valueSignal.setDomainSignal(timeSignal);

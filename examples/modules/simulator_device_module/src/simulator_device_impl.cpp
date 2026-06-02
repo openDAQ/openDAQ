@@ -58,14 +58,37 @@ DeviceInfoPtr SimulatorDeviceImpl::CreateDeviceInfo(const DictPtr<IString, IBase
     const StringPtr name = moduleOptions.get("Name");
     const StringPtr manufacturer = moduleOptions.get("Manufacturer");
     const StringPtr serialNumber = moduleOptions.get("SerialNumber");
+    const StringPtr softwareRevision = moduleOptions.get("SoftwareRevision");
+    const StringPtr macAddress = moduleOptions.get("MacAddress");
 
     auto connectionString = fmt::format("daq.simulator://{}_{}", manufacturer, serialNumber);
     auto devInfo = DeviceInfo(connectionString);
     devInfo.setName(name);
     devInfo.setManufacturer(manufacturer);
-    devInfo.setModel("Simulator device");
     devInfo.setSerialNumber(serialNumber);
+    devInfo.setSoftwareRevision(softwareRevision);
+
+    devInfo.setModel("AI Signal Simulator device");
     devInfo.setDeviceType(CreateType());
+    devInfo.setDeviceClass("SignalGenerator");
+    devInfo.setPlatform("Software");
+    devInfo.setManufacturerUri("https://opendaq.com");
+
+    devInfo.setHardwareRevision("N/A");
+    devInfo.setDeviceRevision("2.0");
+    devInfo.setRevisionCounter(0);
+
+    devInfo.setDeviceManual("https://docs.opendaq.com");
+    devInfo.setProductCode("ODAQ-SIM-01");
+    devInfo.setProductInstanceUri(fmt::format("opendaq.com/{}", serialNumber));
+    devInfo.setLocation("Local");
+
+    devInfo.setAssetId(fmt::format("odaq-sim-{}", serialNumber));
+    devInfo.setMacAddress(macAddress);
+devInfo.setParentMacAddress("");
+    devInfo.setSystemType("SimulatedDAQ");
+    devInfo.setSystemUuid(fmt::format("simulator-{}", serialNumber));
+    devInfo.setUserName("");
 
     return devInfo;
 }

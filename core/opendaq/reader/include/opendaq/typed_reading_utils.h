@@ -30,6 +30,9 @@ struct ReadLayout
 
 class TypedReadingUtils
 {
+public:
+    static ReadLayout createReadLayout(const DataDescriptorPtr &descriptor);
+
     static std::unique_ptr<DomainValue> readDomainValue(
         SampleType in,
         SampleType out,

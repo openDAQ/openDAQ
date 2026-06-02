@@ -9,49 +9,55 @@ BEGIN_NAMESPACE_OPENDAQ
 
 namespace {
 
+template<typename T>
+struct TypeTag
+{
+    using Type = T;
+};
+
 template<typename Visitor>
 decltype(auto) visitSampleType(SampleType sampleType, Visitor&& visitor)
 {
     switch (sampleType)
     {
         case SampleType::Float32:
-            return std::forward<Visitor>(visitor).template operator()<SampleTypeToType<SampleType::Float32>::Type>();
+            return std::forward<Visitor>(visitor)(TypeTag<SampleTypeToType<SampleType::Float32>::Type>{});
         case SampleType::Float64:
-            return std::forward<Visitor>(visitor).template operator()<SampleTypeToType<SampleType::Float64>::Type>();
+            return std::forward<Visitor>(visitor)(TypeTag<SampleTypeToType<SampleType::Float64>::Type>{});
         case SampleType::UInt8:
-            return std::forward<Visitor>(visitor).template operator()<SampleTypeToType<SampleType::UInt8>::Type>();
+            return std::forward<Visitor>(visitor)(TypeTag<SampleTypeToType<SampleType::UInt8>::Type>{});
         case SampleType::Int8:
-            return std::forward<Visitor>(visitor).template operator()<SampleTypeToType<SampleType::Int8>::Type>();
+            return std::forward<Visitor>(visitor)(TypeTag<SampleTypeToType<SampleType::Int8>::Type>{});
         case SampleType::UInt16:
-            return std::forward<Visitor>(visitor).template operator()<SampleTypeToType<SampleType::UInt16>::Type>();
+            return std::forward<Visitor>(visitor)(TypeTag<SampleTypeToType<SampleType::UInt16>::Type>{});
         case SampleType::Int16:
-            return std::forward<Visitor>(visitor).template operator()<SampleTypeToType<SampleType::Int16>::Type>();
+            return std::forward<Visitor>(visitor)(TypeTag<SampleTypeToType<SampleType::Int16>::Type>{});
         case SampleType::UInt32:
-            return std::forward<Visitor>(visitor).template operator()<SampleTypeToType<SampleType::UInt32>::Type>();
+            return std::forward<Visitor>(visitor)(TypeTag<SampleTypeToType<SampleType::UInt32>::Type>{});
         case SampleType::Int32:
-            return std::forward<Visitor>(visitor).template operator()<SampleTypeToType<SampleType::Int32>::Type>();
+            return std::forward<Visitor>(visitor)(TypeTag<SampleTypeToType<SampleType::Int32>::Type>{});
         case SampleType::UInt64:
-            return std::forward<Visitor>(visitor).template operator()<SampleTypeToType<SampleType::UInt64>::Type>();
+            return std::forward<Visitor>(visitor)(TypeTag<SampleTypeToType<SampleType::UInt64>::Type>{});
         case SampleType::Int64:
-            return std::forward<Visitor>(visitor).template operator()<SampleTypeToType<SampleType::Int64>::Type>();
+            return std::forward<Visitor>(visitor)(TypeTag<SampleTypeToType<SampleType::Int64>::Type>{});
         case SampleType::RangeInt64:
-            return std::forward<Visitor>(visitor).template operator()<SampleTypeToType<SampleType::RangeInt64>::Type>();
+            return std::forward<Visitor>(visitor)(TypeTag<SampleTypeToType<SampleType::RangeInt64>::Type>{});
         case SampleType::ComplexFloat32:
-            return std::forward<Visitor>(visitor).template operator()<SampleTypeToType<SampleType::ComplexFloat32>::Type>();
+            return std::forward<Visitor>(visitor)(TypeTag<SampleTypeToType<SampleType::ComplexFloat32>::Type>{});
         case SampleType::ComplexFloat64:
-            return std::forward<Visitor>(visitor).template operator()<SampleTypeToType<SampleType::ComplexFloat64>::Type>();
+            return std::forward<Visitor>(visitor)(TypeTag<SampleTypeToType<SampleType::ComplexFloat64>::Type>{});
         case SampleType::Struct:
-            return std::forward<Visitor>(visitor).template operator()<SampleTypeToType<SampleType::Struct>::Type>();
+            return std::forward<Visitor>(visitor)(TypeTag<SampleTypeToType<SampleType::Struct>::Type>{});
         case SampleType::Undefined:
-            return std::forward<Visitor>(visitor).template operator()<SampleTypeToType<SampleType::Struct>::Type>();
+            return std::forward<Visitor>(visitor)(TypeTag<SampleTypeToType<SampleType::Struct>::Type>{});
         case SampleType::Binary:
-            return std::forward<Visitor>(visitor).template operator()<SampleTypeToType<SampleType::Struct>::Type>();
+            return std::forward<Visitor>(visitor)(TypeTag<SampleTypeToType<SampleType::Struct>::Type>{});
         case SampleType::String:
-            return std::forward<Visitor>(visitor).template operator()<SampleTypeToType<SampleType::Struct>::Type>();
+            return std::forward<Visitor>(visitor)(TypeTag<SampleTypeToType<SampleType::Struct>::Type>{});
         case SampleType::Null:
-            return std::forward<Visitor>(visitor).template operator()<SampleTypeToType<SampleType::Struct>::Type>();
+            return std::forward<Visitor>(visitor)(TypeTag<SampleTypeToType<SampleType::Struct>::Type>{});
         case SampleType::_count:
-            return std::forward<Visitor>(visitor).template operator()<SampleTypeToType<SampleType::Struct>::Type>();
+            return std::forward<Visitor>(visitor)(TypeTag<SampleTypeToType<SampleType::Struct>::Type>{});
     }
     DAQ_THROW_EXCEPTION(NotSupportedException, "The requested sample-type is unsupported or invalid.");
 }
@@ -145,12 +151,11 @@ decltype(auto) visitTwoSampleTypes(
         DAQ_THROW_EXCEPTION(NotSupportedException, "Output sample type not supported.");
 
 
-    return visitSampleType(inputType, [&]<typename InputType>() -> decltype(auto)
+    return visitSampleType(inputType, [&](auto inputTag) -> decltype(auto)
     {
-        return visitSampleType(outputType, [&]<typename OutputType>() -> decltype(auto)
+        return visitSampleType(outputType, [&](auto outputTag) -> decltype(auto)
         {
-            return std::forward<Visitor>(visitor)
-                .template operator()<InputType, OutputType>();
+            return std::forward<Visitor>(visitor)(inputTag, outputTag);
         });
     });
 }
@@ -529,8 +534,23 @@ SizeT findDomainValue(
 
 }
 
+ReadLayout TypedReadingUtils::createReadLayout(const DataDescriptorPtr &descriptor)
+{
+    if (!descriptor.assigned())
+        DAQ_THROW_EXCEPTION(ArgumentNullException, "Descriptor must be assigned!");
+    
+    const SizeT rawSampleSize = descriptor.getRawSampleSize();
+    SizeT valuesPerSample = 1;
+    auto dimensions = descriptor.getDimensions();
+    if (dimensions.assigned() && dimensions.getCount() == 1)
+    {
+        valuesPerSample = dimensions[0].getSize();
+    }
 
-std::unique_ptr<DomainValue> readDomainValue(
+    return {descriptor, rawSampleSize, valuesPerSample};
+}
+
+std::unique_ptr<DomainValue> TypedReadingUtils::readDomainValue(
     SampleType in,
     SampleType out,
     const ReadLayout& readLayout,
@@ -542,22 +562,26 @@ std::unique_ptr<DomainValue> readDomainValue(
     if (dataRule.getType() == DataRuleType::Linear)
     {
         return visitTwoSampleTypes(in, out, true,
-        [&]<typename InputT, typename OutputT>() -> std::unique_ptr<DomainValue>
+        [&](auto inputTag, auto outputTag) -> std::unique_ptr<DomainValue>
         {
+            using InputT = typename decltype(inputTag)::Type;
+            using OutputT = typename decltype(outputTag)::Type;
             return detail::readDomainValueLinear<InputT, OutputT>(domainPacket, index, domainInfo);
         });
     }
     else
     {
         return visitTwoSampleTypes(in, out, true,
-        [&]<typename InputT, typename OutputT>() -> std::unique_ptr<DomainValue>
+        [&](auto inputTag, auto outputTag) -> std::unique_ptr<DomainValue>
         {
+            using InputT = typename decltype(inputTag)::Type;
+            using OutputT = typename decltype(outputTag)::Type;
             return detail::readDomainValue<InputT, OutputT>(readLayout, domainPacket, index, domainInfo);
         });
     }
 }
 
-SizeT findDomainValue(
+SizeT TypedReadingUtils::findDomainValue(
     SampleType in,
     SampleType out,
     const ReadLayout& readLayout,
@@ -569,22 +593,26 @@ SizeT findDomainValue(
     if (dataRule.getType() == DataRuleType::Linear)
     {
         return visitTwoSampleTypes(in, out, true,
-        [&]<typename InputT, typename OutputT>() -> SizeT
+        [&](auto inputTag, auto outputTag) -> SizeT
         {
+            using InputT = typename decltype(inputTag)::Type;
+            using OutputT = typename decltype(outputTag)::Type;
             return detail::findDomainValueLinear<InputT, OutputT>(domainPacket, target, firstSampleAbsoluteTime);
         });
     }
     else
     {
         return visitTwoSampleTypes(in, out, true,
-        [&]<typename InputT, typename OutputT>() -> SizeT
+        [&](auto inputTag, auto outputTag) -> SizeT
         {
+            using InputT = typename decltype(inputTag)::Type;
+            using OutputT = typename decltype(outputTag)::Type;
             return detail::findDomainValue<InputT, OutputT>(readLayout, domainPacket, target, firstSampleAbsoluteTime);
         });
     }
 }
 
-ErrCode readData(
+ErrCode TypedReadingUtils::readData(
     SampleType in,
     SampleType out,
     bool isDomain,
@@ -593,11 +621,13 @@ ErrCode readData(
     SizeT offset,
     void** outputBuffer,
     SizeT count,
-    const FunctionPtr transform = nullptr)
+    const FunctionPtr transform)
 {
     return visitTwoSampleTypes(in, out, isDomain,
-    [&]<typename InputT, typename OutputT>() -> ErrCode
+    [&](auto inputTag, auto outputTag) -> ErrCode
     {
+        using InputT = typename decltype(inputTag)::Type;
+        using OutputT = typename decltype(outputTag)::Type;
         return detail::readData<InputT, OutputT>(readLayout, inputBuffer, offset, outputBuffer, count, transform);
     });
 }

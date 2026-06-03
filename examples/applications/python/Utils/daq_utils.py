@@ -1,4 +1,8 @@
+import os
 import opendaq as daq
+
+if not hasattr(daq, 'OPENDAQ_MODULES_DIR'):
+    daq.OPENDAQ_MODULES_DIR = os.getcwd()
 
 def print_indented(msg, depth):
     print('  ' * depth, msg)
@@ -74,42 +78,30 @@ def print_struct(struct_, depth=0):
 
 def setup_simulator(**kwargs):
     """
-    Sets up an openDAQ simulator device. It uses the reference device as its root
-    and instantiates a server for each of supported protocols. The simulator has mdns discovery enabled.
-    The simulator setup may be customized by passing keyword arguments:
-    - name: str - name of the device (defaults to 'Reference device simulator')
-    - local_id: str - local ID of the device (defaults to 'RefDevSimulator')
-    - serial_number: str - serial number of the device (defaults to 'sim01')
-    - protocols: List[str] - protocols that the device supports (defaults to ['OpenDAQNativeStreaming'])
-    """
-    config = daq.PropertyObject()
+    Sets up an openDAQ AI Signal Simulator. Uses the simulator device module
+    as root and starts servers with mDNS discovery enabled.
 
-    config.add_property(
-        daq.StringProperty(
-            daq.String('Name'),
-            daq.String(kwargs.get('name', 'Reference device simulator')),
-            daq.Boolean(True)))
-    config.add_property(
-        daq.StringProperty(
-            daq.String('LocalId'),
-            daq.String(kwargs.get('local_id', 'RefDevSimulator')),
-            daq.Boolean(True)))
-    config.add_property(
-        daq.StringProperty(
-            daq.String('SerialNumber'),
-            daq.String(kwargs.get('serial_number', 'sim01')),
-            daq.Boolean(True)))
+    Customizable via keyword arguments:
+    - num_channels: int - number of AI channels (defaults to 4)
+    - protocols: List[str] - server protocols to enable (defaults to ['OpenDAQNativeStreaming'])
+    """
+    module_path = getattr(daq, "OPENDAQ_MODULES_DIR", os.getcwd())
 
     instance_builder = daq.InstanceBuilder()
+    instance_builder.module_path = module_path
     instance_builder.add_discovery_server("mdns")
-    instance_builder.set_root_device('daqref://device0', config)
-    instance_builder.module_path = daq.OPENDAQ_MODULES_DIR
+
     server_instance = instance_builder.build()
 
-    server_config = daq.PropertyObject()
+    sim_type = daq.IComponentType.cast_from(
+        server_instance.available_device_types["SimulatorDevice"])
+    config = sim_type.create_default_config()
+    config.set_property_value("NumberOfChannels",
+        daq.Integer(kwargs.get("num_channels", 4)))
 
-    protocols = kwargs.get('protocols', ['OpenDAQNativeStreaming'])
-    print("protocols", protocols)
+    server_instance.set_root_device("daq.simulator://", config)
+    protocols = kwargs.get("protocols", ["OpenDAQNativeStreaming"])
+    server_config = daq.PropertyObject()
     for protocol_name in protocols:
         server_instance.add_server(protocol_name, server_config).enable_discovery()
 

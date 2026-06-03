@@ -16,8 +16,6 @@ SignalReader::SignalReader(const InputPortConfigPtr& port,
                            const LoggerComponentPtr& logger,
                            bool globalIdFromSignal)
     : loggerComponent(logger)
-    , valueReader(createReaderForType(mode == ReadMode::RawValue ? SampleType::Undefined : valueReadType, nullptr))
-    , domainReader(createReaderForType(domainReadType, nullptr))
     , port(port)
     , connection(port.getConnection())
     , readMode(mode)
@@ -26,6 +24,10 @@ SignalReader::SignalReader(const InputPortConfigPtr& port,
     , commonSampleRate(-1)
     , globalIdFromSignal(globalIdFromSignal)
 {
+    trContext.domainIn = SampleType::Undefined;
+    trContext.domainOut = domainReadType;
+    trContext.valueIn = SampleType::Undefined;
+    trContext.valueOut = mode == ReadMode::RawValue ? SampleType::Undefined : valueReadType;
 }
 
 SignalReader::SignalReader(const SignalReader& old,
@@ -33,9 +35,6 @@ SignalReader::SignalReader(const SignalReader& old,
                            SampleType valueReadType,
                            SampleType domainReadType)
     : loggerComponent(old.loggerComponent)
-    , valueReader(createReaderForType(old.readMode == ReadMode::RawValue ? SampleType::Undefined : valueReadType,
-                                      old.valueReader->getTransformFunction()))
-    , domainReader(createReaderForType(domainReadType, old.domainReader->getTransformFunction()))
     , port(old.port)
     , connection(port.getConnection())
     , readMode(old.readMode)
@@ -44,7 +43,17 @@ SignalReader::SignalReader(const SignalReader& old,
     , commonSampleRate(-1)
     , unused(old.unused)
     , globalIdFromSignal(old.globalIdFromSignal)
+    , trContext{} // In-out types might change
 {
+    // Preserve transform from the old reader
+    trContext.valueTransform = old.trContext.valueTransform;
+    trContext.domainTransform = old.trContext.domainTransform;
+    // Type-related state gets set as in new
+    trContext.domainIn = SampleType::Undefined;
+    trContext.domainOut = domainReadType;
+    trContext.valueIn = SampleType::Undefined;
+    trContext.valueOut = readMode == ReadMode::RawValue ? SampleType::Undefined : valueReadType;
+
     info = old.info;
 
     port.setListener(listener);
@@ -127,29 +136,29 @@ void SignalReader::handleDescriptorChanged(const EventPacketPtr& eventPacket)
     auto [valueDescriptorChanged, domainDescriptorChanged, newValueDescriptor, newDomainDescriptor] =
         parseDataDescriptorEventPacket(eventPacket);
 
-    if (valueDescriptorChanged && newValueDescriptor.assigned() && valueReader->getReadType() == SampleType::Undefined)
-    {
-        SampleType valueType;
-        auto postScaling = newValueDescriptor.getPostScaling();
-        if (!postScaling.assigned() || readMode == ReadMode::Scaled)
-        {
-            valueType = newValueDescriptor.getSampleType();
-        }
-        else
-        {
-            valueType = postScaling.getInputSampleType();
-        }
-
-        valueReader = createReaderForType(valueType, valueReader->getTransformFunction());
-    }
-
     if (valueDescriptorChanged)
     {
-        invalid = !valueReader->handleDescriptorChanged(newValueDescriptor, readMode);
+        if (newValueDescriptor.assigned() && trContext.valueOut == SampleType::Undefined)
+        {
+            SampleType valueType;
+            auto postScaling = newValueDescriptor.getPostScaling();
+            if (!postScaling.assigned() || readMode == ReadMode::Scaled)
+            {
+                valueType = newValueDescriptor.getSampleType();
+            }
+            else
+            {
+                valueType = postScaling.getInputSampleType();
+            }
+    
+            trContext.valueOut = valueType;
+        }
+
+        invalid = !onValueDescriptorUpdate(newValueDescriptor);
     }
     if (domainDescriptorChanged)
     {
-        auto validDomain = domainReader->handleDescriptorChanged(newDomainDescriptor, readMode);
+        auto validDomain = onDomainDescriptorUpdate(newDomainDescriptor);
         if (validDomain && newDomainDescriptor.assigned())
         {
             auto newResolution = newDomainDescriptor.getTickResolution();
@@ -219,7 +228,7 @@ void SignalReader::setStartInfo(std::chrono::system_clock::time_point minEpoch, 
     synced = SyncStatus::Unsynchronized;
 }
 
-std::unique_ptr<Comparable> SignalReader::readStartDomain()
+std::unique_ptr<DomainValue> SignalReader::readDomainStart()
 {
     DataPacketPtr domainPacket = info.dataPacket.getDomainPacket();
     if (!domainPacket.assigned())
@@ -227,14 +236,42 @@ std::unique_ptr<Comparable> SignalReader::readStartDomain()
         DAQ_THROW_EXCEPTION(InvalidStateException, "Packet must have a domain packet assigned!");
     }
 
-    if (domainPacket.getDataDescriptor().getRule().getType() == DataRuleType::Linear)
-    {
-        return domainReader->readStartLinear(domainPacket, info.prevSampleIndex, domainInfo);
-    }
-    else
-    {
-        return domainReader->readStart(domainPacket.getData(), info.prevSampleIndex, domainInfo);
-    }
+    return TypedReadingUtils::readDomainValue(trContext.domainIn,
+                                              trContext.domainOut,
+                                              trContext.domainLayout,
+                                              domainPacket,
+                                              info.prevSampleIndex,
+                                              trContext.domainInfo);
+}
+
+const DomainInfo& SignalReader::getDomainInfo() const
+{
+    return trContext.domainInfo;
+}
+
+SampleType SignalReader::getValueReadType() const
+{
+    return trContext.valueOut;
+}
+
+void SignalReader::setValueTransformFunction(FunctionPtr transform)
+{
+    trContext.valueTransform = std::move(transform);
+}
+
+void SignalReader::setDomainTransformFunction(FunctionPtr transform)
+{
+    trContext.domainTransform = std::move(transform);
+}
+
+FunctionPtr SignalReader::getValueTransformFunction() const
+{
+    return trContext.valueTransform;
+}
+
+FunctionPtr SignalReader::getDomainTransformFunction() const
+{
+    return trContext.domainTransform;
 }
 
 bool SignalReader::isFirstPacketEvent()
@@ -389,7 +426,7 @@ bool SignalReader::skipUntilLastEventPacket()
     return hasEventPacket;
 }
 
-bool SignalReader::sync(const Comparable& commonStart, std::chrono::system_clock::rep* firstSampleAbsoluteTimestamp)
+bool SignalReader::sync(const DomainValue* commonStart, std::chrono::system_clock::rep* firstSampleAbsoluteTimestamp)
 {
     if (synced == SyncStatus::Synchronized)
     {
@@ -411,15 +448,12 @@ bool SignalReader::sync(const Comparable& commonStart, std::chrono::system_clock
     {
         auto domainPacket = info.dataPacket.getDomainPacket();
         // Check if commonStart can be reached within the current packet
-        if (domainPacket.getDataDescriptor().getRule().getType() == DataRuleType::Linear)
-        {
-            info.prevSampleIndex = domainReader->getOffsetToLinear(domainInfo, commonStart, domainPacket, &cachedFirstTimestamp);
-        }
-        else
-        {
-            info.prevSampleIndex = domainReader->getOffsetTo(
-                domainInfo, commonStart, domainPacket.getData(), domainPacket.getSampleCount(), &cachedFirstTimestamp);
-        }
+        info.prevSampleIndex = TypedReadingUtils::findDomainValue(trContext.domainIn,
+                                                                  trContext.domainOut,
+                                                                  trContext.domainLayout,
+                                                                  domainPacket,
+                                                                  commonStart,
+                                                                  &cachedFirstTimestamp);
 
         if (info.prevSampleIndex == static_cast<SizeT>(-1))
         {
@@ -567,7 +601,15 @@ ErrCode SignalReader::readPacketData()
 
     if (info.values != nullptr)
     {
-        ErrCode errCode = valueReader->readData(getValuePacketData(info.dataPacket), info.prevSampleIndex, &info.values, toRead);
+        ErrCode errCode = TypedReadingUtils::readData(trContext.valueIn,
+                                              trContext.valueOut,
+                                              false,
+                                              trContext.valueLayout,
+                                              getValuePacketData(info.dataPacket),
+                                              info.prevSampleIndex,
+                                              &info.values,
+                                              toRead,
+                                              trContext.valueTransform);
         OPENDAQ_RETURN_IF_FAILED(errCode);
     }
 
@@ -582,13 +624,30 @@ ErrCode SignalReader::readPacketData()
         LOG_T("[Reading: {} ", port.getSignal().getLocalId());
 
         auto domainPacket = dataPacket.getDomainPacket();
-        ErrCode errCode = domainReader->readData(domainPacket.getData(), info.prevSampleIndex, &info.domainValues, toRead);
+        ErrCode errCode = TypedReadingUtils::readData(trContext.domainIn,
+                                                      trContext.domainOut,
+                                                      true,
+                                                      trContext.domainLayout,
+                                                      domainPacket.getData(),
+                                                      info.prevSampleIndex,
+                                                      &info.domainValues,
+                                                      toRead,
+                                                      trContext.domainTransform);
+        
         if (errCode == OPENDAQ_ERR_INVALIDSTATE)
         {
             if (!trySetDomainSampleType(domainPacket))
                 return DAQ_EXTEND_ERROR_INFO(errCode, "Failed to set domain sample type for packet");
             daqClearErrorInfo();
-            errCode = domainReader->readData(domainPacket.getData(), info.prevSampleIndex, &info.domainValues, toRead);
+            errCode = TypedReadingUtils::readData(trContext.domainIn,
+                                                  trContext.domainOut,
+                                                  true,
+                                                  trContext.domainLayout,
+                                                  domainPacket.getData(),
+                                                  info.prevSampleIndex,
+                                                  &info.domainValues,
+                                                  toRead,
+                                                  trContext.domainTransform);
         }
 
         LOG_T("]");
@@ -609,18 +668,75 @@ ErrCode SignalReader::readPacketData()
     return OPENDAQ_SUCCESS;
 }
 
-bool SignalReader::trySetDomainSampleType(const daq::DataPacketPtr& domainPacket) const
+bool SignalReader::trySetDomainSampleType(const daq::DataPacketPtr& domainPacket)
 {
     ObjectPtr<IErrorInfo> errorInfo;
     daqGetErrorInfo(&errorInfo);
     daqClearErrorInfo();
 
     auto dataDescriptor = domainPacket.getDataDescriptor();
-    if (domainReader->handleDescriptorChanged(dataDescriptor, readMode))
+    if (onDomainDescriptorUpdate(dataDescriptor))
         return true;
 
     daqSetErrorInfo(errorInfo);
     return false;
 }
+
+bool SignalReader::onValueDescriptorUpdate(const DataDescriptorPtr& valueDescriptor)
+{
+    if (!valueDescriptor.assigned())
+        return false;
+
+    const auto postScaling = valueDescriptor.getPostScaling();
+    if (!postScaling.assigned() || readMode == ReadMode::Scaled)
+    {
+        trContext.valueIn = valueDescriptor.getSampleType();
+    }
+    else
+    {
+        trContext.valueIn = postScaling.getInputSampleType();
+    }
+
+    trContext.valueLayout.rawSampleSize = valueDescriptor.getRawSampleSize();
+    auto dimensions = valueDescriptor.getDimensions();
+    if (dimensions.assigned() && dimensions.getCount() == 1)
+    {
+        trContext.valueLayout.valuesPerSample = dimensions[0].getSize();
+    }
+
+    trContext.valueLayout.descriptor = valueDescriptor;
+
+    return TypedReadingUtils::isSampleTypeConvertible(trContext.valueIn, trContext.valueOut, false);
+}
+
+bool SignalReader::onDomainDescriptorUpdate(const DataDescriptorPtr& domainDescriptor)
+{
+    if (!domainDescriptor.assigned())
+        return false;
+
+    const auto postScaling = domainDescriptor.getPostScaling();
+    if (!postScaling.assigned() || readMode == ReadMode::Scaled)
+    {
+        trContext.domainIn = domainDescriptor.getSampleType();
+    }
+    else
+    {
+        trContext.domainIn = postScaling.getInputSampleType();
+    }
+
+    trContext.domainLayout.rawSampleSize = domainDescriptor.getRawSampleSize();
+    auto dimensions = domainDescriptor.getDimensions();
+    if (dimensions.assigned() && dimensions.getCount() == 1)
+    {
+        trContext.domainLayout.valuesPerSample = dimensions[0].getSize();
+    }
+
+    trContext.domainLayout.descriptor = domainDescriptor;
+
+    trContext.domainInfo = DomainInfo::fromDescriptor(domainDescriptor);
+
+    return TypedReadingUtils::isSampleTypeConvertible(trContext.domainIn, trContext.domainOut, true);
+}
+
 
 END_NAMESPACE_OPENDAQ

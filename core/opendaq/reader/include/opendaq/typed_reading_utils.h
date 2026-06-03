@@ -34,6 +34,8 @@ class TypedReadingUtils
 public:
     static ReadLayout createReadLayout(const DataDescriptorPtr& descriptor);
 
+    static bool isSampleTypeConvertible(SampleType in, SampleType out, bool isDomain);
+
     static std::unique_ptr<DomainValue> readDomainValue(SampleType in,
                                                         SampleType out,
                                                         const ReadLayout& readLayout,
@@ -41,7 +43,7 @@ public:
                                                         SizeT index,
                                                         const DomainInfo& domainInfo);
 
-    static SizeT findDomainValue(SampleType in,
+static SizeT findDomainValue(SampleType in,
                                  SampleType out,
                                  const ReadLayout& readLayout,
                                  const DataPacketPtr& domainPacket,

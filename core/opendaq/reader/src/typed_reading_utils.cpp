@@ -5,7 +5,6 @@
 #include <opendaq/sample_type.h>
 #include <opendaq/sample_type_traits.h>
 
-
 BEGIN_NAMESPACE_OPENDAQ
 
 namespace
@@ -209,6 +208,20 @@ namespace detail
 {
 
 template <typename InputT, typename OutputT>
+bool isSampleTypeConvertible(bool isDomain)
+{
+    if constexpr (std::is_same_v<OutputT, void*>)
+    {
+        return !isDomain;
+    }
+    else
+    {
+        return std::is_convertible_v<InputT, OutputT>;
+    }
+}
+
+
+template <typename InputT, typename OutputT>
 ErrCode readData(const ReadLayout& readLayout,
                  void* inputBuffer,
                  SizeT offset,
@@ -346,7 +359,7 @@ std::unique_ptr<DomainValue> readDomainValue(const ReadLayout& readLayout,
 
         OutputT timestamp{};
         void* data = &timestamp;
-        readData<InputT, OutputT>(readLayout, domainPacket.getData(), index, &data, 1);
+        readData<InputT, OutputT>(readLayout, domainPacket.getData(), index, &data, 1, nullptr);
         return std::make_unique<DomainValueImpl<OutputT>>(domainInfo, timestamp);
     }
 }
@@ -527,6 +540,30 @@ ReadLayout TypedReadingUtils::createReadLayout(const DataDescriptorPtr& descript
     }
 
     return {descriptor, rawSampleSize, valuesPerSample};
+}
+
+bool TypedReadingUtils::isSampleTypeConvertible(SampleType in, SampleType out, bool isDomain)
+{
+    // TODO: Detais about limiting allowed types (not throwing unless necessary)
+    switch (in){
+        case SampleType::Struct:
+        case SampleType::Invalid:
+        case SampleType::Null:
+        case SampleType::_count:
+            return false;
+        default:
+            break;
+    }
+
+    return visitTwoSampleTypes(in,
+                               out,
+                               isDomain,
+                               [&](auto inputTag, auto outputTag) -> bool
+                               {
+                                   using InputT = typename decltype(inputTag)::Type;
+                                   using OutputT = typename decltype(outputTag)::Type;
+                                   return detail::isSampleTypeConvertible<InputT, OutputT>(isDomain);
+                               });
 }
 
 std::unique_ptr<DomainValue> TypedReadingUtils::readDomainValue(SampleType in,

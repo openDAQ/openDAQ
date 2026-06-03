@@ -87,6 +87,8 @@ public:
     virtual std::unique_ptr<DomainValue> toCommonDomain(const DomainInfo& commonDomain) = 0;
     virtual std::unique_ptr<DomainValue> fromCommonDomain(const DomainInfo& regularDomain) = 0;
 
+    virtual void roundUpOnDomainInterval(const RatioPtr& interval) = 0;
+
 #if !defined(NDEBUG)
     virtual std::string asTime() const = 0;
 #endif
@@ -163,6 +165,21 @@ public:
         Type regularValue = static_cast<Type>(valueScaledToCommon * multiplierDenominator / static_cast<double>(multiplierNumerator));
 
         return std::make_unique<DomainValueImpl<Type>>(regularDomain, regularValue);
+    }
+
+    void roundUpOnDomainInterval(const RatioPtr& interval) override
+    {
+        auto num = domain.resolution.getNumerator() * interval.getDenominator();
+        auto den = domain.resolution.getDenominator() * interval.getNumerator();
+
+        const Int gcd = std::gcd(num, den);
+        num /= gcd;
+        den /= gcd;
+
+        if (den % num != 0) // 1 = k * num/den, the resolution is a fractional divider of a unit
+            DAQ_THROW_EXCEPTION(NotSupportedException, "Resolution must be aligned on full unit of domain");
+
+        value = static_cast<Type>((((value * num + den - 1) / den) * den) / num);
     }
 
     Type getValue() const
@@ -270,6 +287,11 @@ public:
         return std::make_unique<DomainValueImpl<RangeType64>>(regularDomain, RangeType64{startValue, endValue});
     }
 
+    void roundUpOnDomainInterval(const RatioPtr& interval) override
+    {
+        DAQ_THROW_EXCEPTION(NotSupportedException);
+    }
+
     RangeType64 getValue() const
     {
         return value;
@@ -328,6 +350,11 @@ public:
         DAQ_THROW_EXCEPTION(NotSupportedException);
     }
 
+    void roundUpOnDomainInterval(const RatioPtr& interval) override
+    {
+        DAQ_THROW_EXCEPTION(NotSupportedException);
+    }
+
     ComplexFloat32 getValue() const
     {
         DAQ_THROW_EXCEPTION(NotSupportedException);
@@ -361,6 +388,11 @@ public:
     }
 
     std::unique_ptr<DomainValue> fromCommonDomain(const DomainInfo& regularDomain) override
+    {
+        DAQ_THROW_EXCEPTION(NotSupportedException);
+    }
+
+    void roundUpOnDomainInterval(const RatioPtr& interval) override
     {
         DAQ_THROW_EXCEPTION(NotSupportedException);
     }

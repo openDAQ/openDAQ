@@ -15,31 +15,32 @@
  */
 
 #pragma once
-#include <opendaq/signal.h>
-#include <opendaq/signal_events.h>
-#include <opendaq/signal_config.h>
-#include <opendaq/context_ptr.h>
-#include <opendaq/data_descriptor_ptr.h>
-#include <opendaq/connection_ptr.h>
-#include <opendaq/signal_config_ptr.h>
-#include <opendaq/signal_private_ptr.h>
-#include <opendaq/event_packet_ptr.h>
 #include <coretypes/string_ptr.h>
-#include <opendaq/packet_factory.h>
-#include <opendaq/signal_events_ptr.h>
 #include <coretypes/validation.h>
-#include <opendaq/component_impl.h>
-#include <opendaq/input_port_private_ptr.h>
-#include <utility>
-#include <opendaq/signal_exceptions.h>
-#include <opendaq/signal_errors.h>
-#include <opendaq/data_descriptor_factory.h>
-#include <opendaq/event_packet_utils.h>
-#include <opendaq/mem_pool_allocator.h>
-#include <opendaq/data_packet_impl.h>
 #include <date/date.h>
+#include <opendaq/component_impl.h>
+#include <opendaq/connection_ptr.h>
+#include <opendaq/context_ptr.h>
+#include <opendaq/data_descriptor_factory.h>
+#include <opendaq/data_descriptor_ptr.h>
+#include <opendaq/data_packet_impl.h>
+#include <opendaq/event_packet_ptr.h>
+#include <opendaq/event_packet_utils.h>
+#include <opendaq/input_port_private_ptr.h>
+#include <opendaq/mem_pool_allocator.h>
+#include <opendaq/packet_factory.h>
+#include <opendaq/signal.h>
+#include <opendaq/signal_config.h>
+#include <opendaq/signal_config_ptr.h>
+#include <opendaq/signal_errors.h>
+#include <opendaq/signal_events.h>
+#include <opendaq/signal_events_ptr.h>
+#include <opendaq/signal_exceptions.h>
+#include <opendaq/signal_private_ptr.h>
 #include <chrono>
 #include <sstream>
+#include <utility>
+#include "opendaq/reader_utils.h"
 
 BEGIN_NAMESPACE_OPENDAQ
 
@@ -1496,18 +1497,11 @@ BaseObjectPtr SignalBase<TInterface, Interfaces...>::tweakTimestampObject(BaseOb
         DAQ_THROW_EXCEPTION(NotSupportedException, "Unsupported timestamp type. Expected a numeric type.");
 
     // Normalize ISO 8601 origin to the format date::from_stream expects: "YYYY-mm-ddTHH:MM:SS+HH:MM"
-    std::string origin = originStr.toStdString();
-    if (origin.find('T') == std::string::npos)
-        origin += "T00:00:00+00:00";
-    else if (!origin.empty() && origin.back() == 'Z')
-        origin = origin.erase(origin.size() - 1) + "+00:00";
-    else if (origin.find('+') == std::string::npos)
-        origin += "+00:00";
+    bool parsingIsOk = false;
+    const auto origin = originStr.toStdString();
+    const auto signalEpoch = reader::parseEpoch(origin, &parsingIsOk);
 
-    std::chrono::system_clock::time_point signalEpoch;
-    std::istringstream ss(origin);
-    date::from_stream(ss, "%FT%T%z", signalEpoch);
-    if (ss.fail())
+    if (parsingIsOk == false)
         DAQ_THROW_EXCEPTION(InvalidParametersException, "Origin string is not a valid ISO 8601 date-time.");
 
     const int64_t originOffsetUs = std::chrono::duration_cast<std::chrono::microseconds>(

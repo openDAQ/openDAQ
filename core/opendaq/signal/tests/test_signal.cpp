@@ -1305,6 +1305,29 @@ TEST_F(SignalLastValueWithTimestampTest, GetLastValueWithTimestampString)
     Check(String("abcd"), 1779961693000000);
 }
 
+TEST_F(SignalLastValueWithTimestampTest, GetLastValueStringMultipleSendDifferentLength)
+{
+    auto descriptor = DataDescriptorBuilder().setName("test").setSampleType(SampleType::String).build();
+
+    auto sendString = [&](const std::string& str)
+    {
+        auto dataPacket = BinaryDataPacket(nullptr, descriptor, str.size());
+        char* data = static_cast<char*>(dataPacket.getData());
+        for (size_t i = 0; i < str.size(); ++i)
+            data[i] = str[i];
+        signal.sendPacket(dataPacket);
+    };
+
+    sendString("abcd");
+    Check(String("abcd"));
+
+    sendString("abcdefgh"); // longer than the previous packet
+    Check(String("abcdefgh"));
+
+    sendString("xy"); // shorter than the previous packet
+    Check(String("xy"));
+}
+
 TEST_F(SignalLastValueWithTimestampTest, GetLastValueWithTimestampUInt64)
 {
     auto descriptor = DataDescriptorBuilder().setName("test").setSampleType(SampleType::Int64).build();

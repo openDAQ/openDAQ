@@ -38,7 +38,6 @@
 #include <opendaq/signal_exceptions.h>
 #include <opendaq/signal_private_ptr.h>
 #include <chrono>
-#include <sstream>
 #include <utility>
 #include "opendaq/reader_utils.h"
 
@@ -146,16 +145,266 @@ protected:
     inline static std::unordered_set<std::string> signalAvailableAttributes = SIGNAL_AVAILABLE_ATTRIBUTES;
 #endif
 
+    struct LastValueCache
+    {
+        void resetData()
+        {
+            value = nullptr;
+            valueDescriptor = nullptr;
+            rawValue.clear();
+        }
+
+        void resetTimestamp()
+        {
+            internalCacheValid = false;
+            timestamp = nullptr;
+            domainDescriptor = nullptr;
+            rawTimestamp.clear();
+        }
+
+        const DataDescriptorPtr& getDomainDataDescriptor() const
+        {
+            return domainDescriptor;
+        }
+
+        const DataDescriptorPtr& getValueDataDescriptor() const
+        {
+            return valueDescriptor;
+        }
+
+        BaseObjectPtr getTimestamp() const
+        {
+            return timestamp.addRefAndReturn();
+        }
+
+        BaseObjectPtr getValue() const
+        {
+            return value.addRefAndReturn();
+        }
+
+        bool timestampCached() const
+        {
+            return timestamp.assigned();
+        }
+
+        bool valueCached() const
+        {
+            return value.assigned();
+        }
+
+        bool domainDescriptorCached() const
+        {
+            return domainDescriptor.assigned();
+        }
+
+        bool valueDescriptorCached() const
+        {
+            return valueDescriptor.assigned();
+        }
+
+        SizeT getActualValueSampleSize() const
+        {
+            if (!valueDescriptor.assigned())
+                return 0;
+            using ST = SampleType;
+            const auto valueST = valueDescriptor.getSampleType();
+            return (valueST == ST::Binary || valueST == ST::String) ? rawValue.size() : 0;
+        }
+
+        void* getRawTimestampData()
+        {
+            return rawTimestamp.data();
+        }
+
+        void* getRawValueData()
+        {
+            return rawValue.data();
+        }
+
+        void calculateTimestamp(const BaseObjectPtr& timestamp)
+        {
+            if (!timestamp.assigned())
+                DAQ_THROW_EXCEPTION(NotAssignedException, "Timestamp value is not assigned.");
+
+            int64_t tick = 0;
+            if (const auto floatObj = timestamp.asPtrOrNull<IFloat>(); floatObj.assigned())
+                tick = static_cast<int64_t>(floatObj);
+            else if (const auto intObj = timestamp.asPtrOrNull<IInteger>(); intObj.assigned())
+                tick = static_cast<int64_t>(intObj);
+            else
+                DAQ_THROW_EXCEPTION(NotSupportedException, "Unsupported timestamp type. Expected a numeric type.");
+
+            const auto& resolution = getResolution();
+            const int64_t tickUs = tick * resolution.getNumerator() / resolution.getDenominator();
+            const int64_t resultUs = tickUs + getOriginOffset();
+            this->timestamp = Integer(resultUs);
+        }
+
+        void setValue(BaseObjectPtr&& value)
+        {
+            this->value = std::move(value);
+        }
+
+        void cache(const DataPacketPtr& packet)
+        {
+            cacheValue(packet);
+            cacheTimestamp(packet);
+        }
+
+    private:
+        BaseObjectPtr value;
+        BaseObjectPtr timestamp;
+
+        DataDescriptorPtr valueDescriptor;
+        DataDescriptorPtr domainDescriptor;
+        std::vector<std::byte> rawValue;
+        std::vector<std::byte> rawTimestamp;
+
+
+        RatioPtr domainResolution = Ratio(1'000'000, 1);
+        int64_t originOffsetUs{0};
+        bool internalCacheValid{false};
+
+        const RatioPtr& getResolution()
+        {
+            if (internalCacheValid || !domainDescriptor.assigned())
+                return domainResolution;
+
+            recalculateInternalCache();
+            return domainResolution;
+        }
+
+        int64_t getOriginOffset()
+        {
+            if (internalCacheValid || !domainDescriptor.assigned())
+                return originOffsetUs;
+
+            recalculateInternalCache();
+            return originOffsetUs;
+        }
+
+        void recalculateInternalCache()
+        {
+            {
+                // Convert to microseconds
+                domainResolution = domainDescriptor.getTickResolution();
+                if (!domainResolution.assigned())
+                    domainResolution = Ratio(1'000'000, 1);
+                else
+                    domainResolution = (domainResolution / Ratio(1, 1'000'000)).simplify();
+            }
+            {
+                // Normalize ISO 8601 origin to the format date::from_stream expects: "YYYY-mm-ddTHH:MM:SS+HH:MM"
+
+                const auto originStr = domainDescriptor.getOrigin();
+                if (!originStr.assigned())
+                    DAQ_THROW_EXCEPTION(NotAssignedException, "Origin in domain descriptor is not assigned.");
+                const auto origin = originStr.toStdString();
+
+                bool parsingIsOk = false;
+                const auto signalEpoch = reader::parseEpoch(origin, &parsingIsOk);
+
+                if (parsingIsOk == false)
+                    DAQ_THROW_EXCEPTION(InvalidParametersException, "Origin string is not a valid ISO 8601 date-time.");
+
+                originOffsetUs = std::chrono::duration_cast<std::chrono::microseconds>(signalEpoch.time_since_epoch()).count();
+            }
+            internalCacheValid = true;
+        }
+
+        void cacheValue(const DataPacketPtr& packet)
+        {
+            value = nullptr;
+            if (packet.assigned())
+            {
+                if (auto packetValueDescriptor = packet.getDataDescriptor(); packetValueDescriptor.assigned())
+                {
+                    const bool descriptorChanged =
+                        reinterpret_cast<std::uintptr_t>(packetValueDescriptor.getObject()) != reinterpret_cast<std::uintptr_t>(valueDescriptor.getObject());
+                    if (descriptorChanged)
+                        valueDescriptor = std::move(packetValueDescriptor);
+
+                    const auto sampleType = valueDescriptor.getSampleType();
+                    const bool isVarLength = (sampleType == SampleType::Binary || sampleType == SampleType::String);
+                    // variable length samples (String/Binary) carry a packet-dependent raw size
+                    // so the buffer must be resized on every packet, not only when the descriptor object changes
+                    if (descriptorChanged || isVarLength)
+                    {
+                        const SizeT sampleSize = isVarLength ? packet.getRawDataSize() : valueDescriptor.getSampleSize();
+                        rawValue.resize(sampleSize);
+                    }
+
+                    void* rawValue = this->rawValue.data();
+                    const ErrCode errCode = packet->getRawLastValue(&rawValue);
+                    if (errCode == OPENDAQ_SUCCESS)
+                        return;
+                }
+            }
+            // we come here only if packet is not assigned or if getRawLastValue failed, so we reset the cache
+            resetData();
+        }
+
+        void cacheTimestamp(const DataPacketPtr& packet)
+        {
+            timestamp = nullptr;
+            if (packet.assigned())
+            {
+                if (const auto domainPacket = packet.getDomainPacket(); domainPacket.assigned())
+                {
+                    if (auto packetDomainDescriptor = domainPacket.getDataDescriptor(); packetDomainDescriptor.assigned())
+                    {
+                        if (reinterpret_cast<std::uintptr_t>(packetDomainDescriptor.getObject()) != reinterpret_cast<std::uintptr_t>(domainDescriptor.getObject()))
+                        {
+                            domainDescriptor = std::move(packetDomainDescriptor);
+                            internalCacheValid = false;
+                            if (!validateDomainDescriptionForTimestamp())
+                            {
+                                resetTimestamp();
+                                return;
+                            }
+                            rawTimestamp.resize(domainDescriptor.getSampleSize());
+                        }
+                        void* rawValue = rawTimestamp.data();
+                        const ErrCode errCode = domainPacket->getRawLastValue(&rawValue);
+                        if (errCode == OPENDAQ_SUCCESS)
+                            return;
+                    }
+                }
+            }
+            // we come here only if packet or domain packet is not assigned or if getRawLastValue failed, so we reset the cache
+            resetTimestamp();
+        }
+
+        bool validateDomainDescriptionForTimestamp() const
+        {
+            if (!domainDescriptor.assigned())
+                return false;
+
+            const auto tsType = domainDescriptor.getSampleType();
+            const bool isNumeric = (tsType == SampleType::Int8    || tsType == SampleType::UInt8  ||
+                                    tsType == SampleType::Int16   || tsType == SampleType::UInt16 ||
+                                    tsType == SampleType::Int32   || tsType == SampleType::UInt32 ||
+                                    tsType == SampleType::Int64   || tsType == SampleType::UInt64 ||
+                                    tsType == SampleType::Float32 || tsType == SampleType::Float64);
+            if (!isNumeric)
+                return false;
+
+            if (domainDescriptor.getDimensions().getCount() > 0)
+                return false;
+
+            if (auto unit = domainDescriptor.getUnit(); !unit.assigned() || unit.getSymbol() != "s")
+                return false;
+
+            if (auto origin = domainDescriptor.getOrigin(); !origin.assigned())
+                return false;
+
+            return true;
+        }
+    };
+
     DataDescriptorPtr dataDescriptor;
     StringPtr deserializedDomainSignalId;
-    BaseObjectPtr lastDataValue;
-    BaseObjectPtr lastTimestamp;
-
-    // variables for calculating last value and timestamp
-    std::vector<std::byte> lastRawDataValue;
-    DataDescriptorPtr lastDataDescriptor;
-    std::vector<std::byte> lastRawTimestamp;
-    DataDescriptorPtr lastDomainDescriptor;
+    LastValueCache lastValueCache;
 
 private:
     bool isPublic{};
@@ -195,8 +444,6 @@ private:
     void setLastValueFromPacket(const DataPacketPtr& packet = nullptr);
     ErrCode getLastValueImpl(IBaseObject** value);
     ErrCode getLastTimestampImpl(IBaseObject** timestamp);
-    bool validateDomainDescriptionForTimestamp(const daq::DataDescriptorPtr& domainDescriptor) const;
-    BaseObjectPtr tweakTimestampObject(BaseObjectPtr& timestamp);
 };
 
 #ifdef WORKAROUND_MEMBER_INLINE_VARIABLE
@@ -870,7 +1117,7 @@ ErrCode SignalBase<TInterface, Interfaces...>::setLastValue(IBaseObject* lastVal
     auto lock = this->getAcquisitionLock2();
 
     setLastValueFromPacket(nullptr);
-    this->lastDataValue = lastValue;
+    lastValueCache.setValue(BaseObjectPtr(lastValue));
     return OPENDAQ_SUCCESS;
 }
 
@@ -1341,73 +1588,29 @@ void SignalBase<TInterface, Interfaces...>::visibleChanged()
 template <typename TInterface, typename... Interfaces>
 void SignalBase<TInterface, Interfaces...>::setLastValueFromPacket(const DataPacketPtr& packet)
 {
-    lastDataValue = nullptr;
-    lastDataDescriptor = nullptr;
-    lastTimestamp = nullptr;
-    lastDomainDescriptor = nullptr;
-
-    if (!packet.assigned())
-        return;
-
-    {
-        // data value
-        lastDataDescriptor = packet.getDataDescriptor();
-        SizeT sampleSize =
-            (lastDataDescriptor.getSampleType() == SampleType::Binary || lastDataDescriptor.getSampleType() == SampleType::String)
-                ? packet.getRawDataSize()
-                : lastDataDescriptor.getSampleSize();
-        lastRawDataValue.resize(sampleSize);
-        void* rawValue = lastRawDataValue.data();
-        const ErrCode errCode = packet->getRawLastValue(&rawValue);
-        if (errCode != OPENDAQ_SUCCESS)
-            lastDataDescriptor = nullptr;
-    }
-
-    {
-        // timestamp
-        const auto domainPacket = packet.getDomainPacket();
-        if (!domainPacket.assigned())
-            return;
-
-        lastDomainDescriptor = domainPacket.getDataDescriptor();
-        const bool ok = validateDomainDescriptionForTimestamp(lastDomainDescriptor);
-        if (!ok)
-        {
-            lastDomainDescriptor = nullptr;
-            return;
-        }
-
-        lastRawTimestamp.resize(lastDomainDescriptor.getSampleSize()); // 8 bytes for int64/uint64
-        void* rawValue = lastRawTimestamp.data();
-        const ErrCode errCode = domainPacket->getRawLastValue(&rawValue);
-        if (errCode != OPENDAQ_SUCCESS)
-            lastDomainDescriptor = nullptr;
-    }
+    lastValueCache.cache(packet);
 }
 
 template <typename TInterface, typename... Interfaces>
 ErrCode SignalBase<TInterface, Interfaces...>::getLastValueImpl(IBaseObject** value)
 {
-    if (lastDataValue.assigned())
+    if (lastValueCache.valueCached())
     {
-        *value = lastDataValue.addRefAndReturn();
+        *value = lastValueCache.getValue().detach();
         return OPENDAQ_SUCCESS;
     }
 
-    if (!lastDataDescriptor.assigned())
+    if (!lastValueCache.valueDescriptorCached())
         return OPENDAQ_IGNORED;
 
     const ErrCode errCode = daqTry(
         [&value, this]
         {
             auto manager = this->context.getTypeManager();
-            void* rawValue = lastRawDataValue.data();
-            SizeT actualSampleSize =
-                (lastDataDescriptor.getSampleType() == SampleType::Binary || lastDataDescriptor.getSampleType() == SampleType::String)
-                    ? lastRawDataValue.size()
-                    : 0;
-            lastDataValue = PacketDetails::buildObjectFromDescriptor(rawValue, lastDataDescriptor, manager, actualSampleSize);
-            *value = lastDataValue.addRefAndReturn();
+            void* rawValue = lastValueCache.getRawValueData();
+            lastValueCache.setValue(
+                PacketDetails::buildObjectFromDescriptor(rawValue, lastValueCache.getValueDataDescriptor(), manager, lastValueCache.getActualValueSampleSize()));
+            *value = lastValueCache.getValue().detach();
         });
     return errCode;
 }
@@ -1415,102 +1618,33 @@ ErrCode SignalBase<TInterface, Interfaces...>::getLastValueImpl(IBaseObject** va
 template <typename TInterface, typename... Interfaces>
 ErrCode SignalBase<TInterface, Interfaces...>::getLastTimestampImpl(IBaseObject** timestamp)
 {
-    if (lastTimestamp.assigned())
+    if (lastValueCache.timestampCached())
     {
-        *timestamp = lastTimestamp.addRefAndReturn();
+        *timestamp = lastValueCache.getTimestamp().detach();
         return OPENDAQ_SUCCESS;
     }
 
-    if (!lastDomainDescriptor.assigned())
+    if (!lastValueCache.domainDescriptorCached())
         return OPENDAQ_IGNORED;
 
     const ErrCode errCode = daqTry(
         [&timestamp, this]
         {
             auto manager = this->context.getTypeManager();
-            void* rawValue = lastRawTimestamp.data();
-            auto tsWithoutTweak = PacketDetails::buildObjectFromDescriptor(rawValue, lastDomainDescriptor, manager, 0);
+            void* rawValue = lastValueCache.getRawTimestampData();
+            auto tsWithoutTweak = PacketDetails::buildObjectFromDescriptor(rawValue, lastValueCache.getDomainDataDescriptor(), manager, 0);
 
-            lastTimestamp = tweakTimestampObject(tsWithoutTweak);
-            *timestamp = lastTimestamp.addRefAndReturn();
+            lastValueCache.calculateTimestamp(tsWithoutTweak);
+            *timestamp = lastValueCache.getTimestamp().detach();
         });
 
     if (OPENDAQ_FAILED(errCode))
     {
         daqClearErrorInfo();
-        lastDomainDescriptor = nullptr;
-        lastRawTimestamp.clear();
+        lastValueCache.resetTimestamp();
         return OPENDAQ_IGNORED;
     }
     return errCode;
-}
-
-template <typename TInterface, typename... Interfaces>
-bool SignalBase<TInterface, Interfaces...>::validateDomainDescriptionForTimestamp(const daq::DataDescriptorPtr& domainDescriptor) const
-{
-    if (!domainDescriptor.assigned())
-        return false;
-
-    const auto tsType = domainDescriptor.getSampleType();
-    const bool isNumeric = (tsType == SampleType::Int8    || tsType == SampleType::UInt8  ||
-                            tsType == SampleType::Int16   || tsType == SampleType::UInt16 ||
-                            tsType == SampleType::Int32   || tsType == SampleType::UInt32 ||
-                            tsType == SampleType::Int64   || tsType == SampleType::UInt64 ||
-                            tsType == SampleType::Float32 || tsType == SampleType::Float64);
-    if (!isNumeric)
-        return false;
-
-    if (domainDescriptor.getDimensions().getCount() > 0)
-        return false;
-
-    if (auto unit = domainDescriptor.getUnit(); !unit.assigned() || unit.getSymbol() != "s")
-        return false;
-
-    if (auto origin = domainDescriptor.getOrigin(); !origin.assigned())
-        return false;
-
-    return true;
-}
-
-template <typename TInterface, typename... Interfaces>
-BaseObjectPtr SignalBase<TInterface, Interfaces...>::tweakTimestampObject(BaseObjectPtr& timestamp)
-{
-    if (!timestamp.assigned())
-        DAQ_THROW_EXCEPTION(NotAssignedException, "Timestamp value is not assigned.");
-
-    const auto originStr = lastDomainDescriptor.getOrigin();
-    if (!originStr.assigned())
-        DAQ_THROW_EXCEPTION(NotAssignedException, "Origin in domain descriptor is not assigned.");
-
-    auto resolution = lastDomainDescriptor.getTickResolution();
-    if (!resolution.assigned())
-        resolution = Ratio(1, 1);
-
-    resolution = (resolution / Ratio(1, 1000000)).simplify(); // Convert to microseconds
-
-    int64_t tick;
-    if (const auto floatObj = timestamp.asPtrOrNull<IFloat>(); floatObj.assigned())
-        tick = static_cast<int64_t>(floatObj);
-    else if (const auto intObj = timestamp.asPtrOrNull<IInteger>(); intObj.assigned())
-        tick = static_cast<int64_t>(intObj);
-    else
-        DAQ_THROW_EXCEPTION(NotSupportedException, "Unsupported timestamp type. Expected a numeric type.");
-
-    // Normalize ISO 8601 origin to the format date::from_stream expects: "YYYY-mm-ddTHH:MM:SS+HH:MM"
-    bool parsingIsOk = false;
-    const auto origin = originStr.toStdString();
-    const auto signalEpoch = reader::parseEpoch(origin, &parsingIsOk);
-
-    if (parsingIsOk == false)
-        DAQ_THROW_EXCEPTION(InvalidParametersException, "Origin string is not a valid ISO 8601 date-time.");
-
-    const int64_t originOffsetUs = std::chrono::duration_cast<std::chrono::microseconds>(
-        signalEpoch.time_since_epoch()).count();
-
-    const int64_t tickUs = tick * resolution.getNumerator() / resolution.getDenominator();
-    const int64_t resultUs = originOffsetUs + tickUs;
-
-    return Integer(resultUs);
 }
 
 OPENDAQ_REGISTER_DESERIALIZE_FACTORY(SignalImpl)

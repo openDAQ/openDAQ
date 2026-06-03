@@ -388,10 +388,8 @@ ErrCode MirroredSignalBase<Interfaces...>::unsubscribeCompletedInternal(IString*
         if (syncLock)
             lock = this->getRecursiveConfigLock2();
 
-        this->lastDataValue = nullptr;
-        this->lastDataDescriptor = nullptr;
-        this->lastTimestamp = nullptr;
-        this->lastDomainDescriptor = nullptr;
+        this->lastValueCache.resetData();
+        this->lastValueCache.resetTimestamp();
     }
 
     if (onUnsubscribeCompleteEvent.hasListeners())

@@ -30,11 +30,11 @@ struct DomainInfo
     std::chrono::system_clock::time_point epoch;
     RatioPtr resolution;
 
-    static DomainInfo fromDescriptor(const DataDescriptorPtr &descriptor)
+    static DomainInfo fromDescriptor(const DataDescriptorPtr& descriptor)
     {
         if (!descriptor.assigned())
             DAQ_THROW_EXCEPTION(ArgumentNullException, "Descriptor must not be null");
-        
+
         auto epoch = daq::reader::parseEpoch(descriptor.getOrigin());
         auto resolution = descriptor.getTickResolution();
 
@@ -64,10 +64,8 @@ struct DomainInfo
 inline std::ostream& operator<<(std::ostream& os, const DomainInfo& info)
 {
     os << "DomainInfo{"
-       << "epoch=" << info.epoch.time_since_epoch().count()
-       << ", resolution="
-       << info.resolution.getNumerator() << "/" << info.resolution.getDenominator()
-       << "}";
+       << "epoch=" << info.epoch.time_since_epoch().count() << ", resolution=" << info.resolution.getNumerator() << "/"
+       << info.resolution.getDenominator() << "}";
 
     return os;
 }
@@ -75,7 +73,10 @@ inline std::ostream& operator<<(std::ostream& os, const DomainInfo& info)
 class DomainValue
 {
 public:
-	explicit DomainValue(const DomainInfo& info) : domain(info) {}
+    explicit DomainValue(const DomainInfo& info)
+        : domain(info)
+    {
+    }
     virtual ~DomainValue() = default;
 
     const DomainInfo& getDomain() const
@@ -83,41 +84,46 @@ public:
         return domain;
     }
 
-	virtual std::unique_ptr<DomainValue> toCommonDomain(const DomainInfo& commonDomain) = 0;
-	virtual std::unique_ptr<DomainValue> fromCommonDomain(const DomainInfo& regularDomain) = 0;
+    virtual std::unique_ptr<DomainValue> toCommonDomain(const DomainInfo& commonDomain) = 0;
+    virtual std::unique_ptr<DomainValue> fromCommonDomain(const DomainInfo& regularDomain) = 0;
 
 #if !defined(NDEBUG)
     virtual std::string asTime() const = 0;
 #endif
 
-	friend bool operator<(const DomainValue& lhs, const DomainValue& rhs)
+    friend bool operator<(const DomainValue& lhs, const DomainValue& rhs)
     {
         return lhs.compare(rhs) < 0;
     }
 
 protected:
-	DomainInfo domain;
+    DomainInfo domain;
+
 private:
     virtual int compare(const DomainValue& other) const = 0;
 };
 
-template<typename Type>
+template <typename Type>
 class DomainValueImpl : public DomainValue
 {
 public:
-	explicit DomainValueImpl(const DomainInfo& info, Type value) : DomainValue(info), value(value) {
+    explicit DomainValueImpl(const DomainInfo& info, Type value)
+        : DomainValue(info)
+        , value(value)
+    {
 #if !defined(NDEBUG)
-        if constexpr (std::is_integral_v<Type>){
+        if constexpr (std::is_integral_v<Type>)
+        {
             std::cout << "DomainValueImpl(value=" << value << ", domain=" << info << ")" << std::endl;
         }
 #endif
-	}
+    }
 
     ~DomainValueImpl() override = default;
 
-	std::unique_ptr<DomainValue> toCommonDomain(const DomainInfo& commonDomain) override
-	{
-	    // Offset of current domain in common domain ticks
+    std::unique_ptr<DomainValue> toCommonDomain(const DomainInfo& commonDomain) override
+    {
+        // Offset of current domain in common domain ticks
         Int epochOffset = domain.epoch.time_since_epoch().count() - commonDomain.epoch.time_since_epoch().count();
 
         using SysPeriod = std::chrono::system_clock::period;
@@ -130,24 +136,24 @@ public:
         Int multiplierDenominator = domain.resolution.getDenominator() * commonDomain.resolution.getNumerator();
         // The cast to double follows the legacy implementation, but it's questionable how it impacts potential precision loss
         Type valueScaledToCommon = static_cast<Type>(value * multiplierNumerator / static_cast<double>(multiplierDenominator));
-	    Type valueInCommon = offsetFromCommon + valueScaledToCommon;
+        Type valueInCommon = offsetFromCommon + valueScaledToCommon;
 
-		return std::make_unique<DomainValueImpl<Type>>(commonDomain, valueInCommon);
-	}
+        return std::make_unique<DomainValueImpl<Type>>(commonDomain, valueInCommon);
+    }
 
-	std::unique_ptr<DomainValue> fromCommonDomain(const DomainInfo& regularDomain) override
-	{
-	    const auto& commonDomain = this->domain;
-	    const auto& valueInCommon = this->value;
+    std::unique_ptr<DomainValue> fromCommonDomain(const DomainInfo& regularDomain) override
+    {
+        const auto& commonDomain = this->domain;
+        const auto& valueInCommon = this->value;
 
-	    // Offset of regularDomain domain in common domain ticks
+        // Offset of regularDomain domain in common domain ticks
         Int epochOffset = regularDomain.epoch.time_since_epoch().count() - commonDomain.epoch.time_since_epoch().count();
 
         using SysPeriod = std::chrono::system_clock::period;
         Int scaleNumerator = SysPeriod::num * commonDomain.resolution.getDenominator();
         Int scaleDenominator = SysPeriod::den * commonDomain.resolution.getNumerator();
         Int offsetFromCommon = epochOffset * scaleNumerator / scaleDenominator;
-	    Type valueScaledToCommon = valueInCommon - offsetFromCommon;
+        Type valueScaledToCommon = valueInCommon - offsetFromCommon;
 
         // TODO: The regular value should probably be +1 here so that when converted back into fine domain
         // it is true that regularValue >= valueInCommon (reason: domain value searching)
@@ -156,13 +162,13 @@ public:
         Int multiplierDenominator = regularDomain.resolution.getDenominator() * commonDomain.resolution.getNumerator();
         Type regularValue = static_cast<Type>(valueScaledToCommon * multiplierDenominator / static_cast<double>(multiplierNumerator));
 
-		return std::make_unique<DomainValueImpl<Type>>(regularDomain, regularValue);
-	}
+        return std::make_unique<DomainValueImpl<Type>>(regularDomain, regularValue);
+    }
 
-	Type getValue() const
-	{
-	    return value;
-	}
+    Type getValue() const
+    {
+        return value;
+    }
 
 #if !defined(NDEBUG)
     virtual std::string asTime() const override
@@ -176,36 +182,40 @@ public:
     }
 #endif
 
-	int compare(const DomainValue& other) const override
-	{
-	    const auto* otherImpl = dynamic_cast<const DomainValueImpl<Type>*>(&other);
-	    if (otherImpl == nullptr){
-	        DAQ_THROW_EXCEPTION(InvalidParameterException, "Both DomainValue objects must be of the same type!");
-	    }
-	    if (otherImpl->domain != this->domain)
-	        DAQ_THROW_EXCEPTION(InvalidParameterException, "Have to compare DomainValue objects in the same domain!");
+    int compare(const DomainValue& other) const override
+    {
+        const auto* otherImpl = dynamic_cast<const DomainValueImpl<Type>*>(&other);
+        if (otherImpl == nullptr)
+        {
+            DAQ_THROW_EXCEPTION(InvalidParameterException, "Both DomainValue objects must be of the same type!");
+        }
+        if (otherImpl->domain != this->domain)
+            DAQ_THROW_EXCEPTION(InvalidParameterException, "Have to compare DomainValue objects in the same domain!");
 
-	    if (this->value > otherImpl->value)
-	        return 1;
-	    else if (this->value == otherImpl->value)
-	        return 0;
-	    else // this->value < otherImpl->value
-	        return -1;
-	}
+        if (this->value > otherImpl->value)
+            return 1;
+        else if (this->value == otherImpl->value)
+            return 0;
+        else  // this->value < otherImpl->value
+            return -1;
+    }
 
 private:
-	Type value;
+    Type value;
 };
 
-template<>
+template <>
 class DomainValueImpl<RangeType64> final : public DomainValue
 {
 public:
     using RangeValue = RangeType64::Type;
 
-    explicit DomainValueImpl(const DomainInfo& info, RangeType64 value) : DomainValue(info), value(value) {
+    explicit DomainValueImpl(const DomainInfo& info, RangeType64 value)
+        : DomainValue(info)
+        , value(value)
+    {
         std::cout << "DomainValueImpl(value=" << value.start << ", domain=" << info << ")" << std::endl;
-	}
+    }
 
     std::unique_ptr<DomainValue> toCommonDomain(const DomainInfo& commonDomain) override
     {
@@ -220,23 +230,23 @@ public:
         // tick_common = tick * multiplier
         Int multiplierNumerator = domain.resolution.getNumerator() * commonDomain.resolution.getDenominator();
         Int multiplierDenominator = domain.resolution.getDenominator() * commonDomain.resolution.getNumerator();
-        RangeValue startScaledToCommon = static_cast<RangeValue>(value.start * multiplierNumerator / static_cast<double>(multiplierDenominator));
-        RangeValue endScaledToCommon = static_cast<RangeValue>(value.end * multiplierNumerator / static_cast<double>(multiplierDenominator));
+        RangeValue startScaledToCommon =
+            static_cast<RangeValue>(value.start * multiplierNumerator / static_cast<double>(multiplierDenominator));
+        RangeValue endScaledToCommon =
+            static_cast<RangeValue>(value.end * multiplierNumerator / static_cast<double>(multiplierDenominator));
 
         RangeValue startInCommon = offsetFromCommon + startScaledToCommon;
-        RangeValue endInCommon = value.end == -1
-            ? static_cast<RangeValue>(-1)
-            : offsetFromCommon + endScaledToCommon;
+        RangeValue endInCommon = value.end == -1 ? static_cast<RangeValue>(-1) : offsetFromCommon + endScaledToCommon;
 
-		return std::make_unique<DomainValueImpl<RangeType64>>(commonDomain, RangeType64{startInCommon, endInCommon});
+        return std::make_unique<DomainValueImpl<RangeType64>>(commonDomain, RangeType64{startInCommon, endInCommon});
     }
 
     std::unique_ptr<DomainValue> fromCommonDomain(const DomainInfo& regularDomain) override
     {
         const auto& commonDomain = this->domain;
-	    const auto& valueInCommon = this->value;
+        const auto& valueInCommon = this->value;
 
-	    // Offset of regularDomain domain in common domain ticks
+        // Offset of regularDomain domain in common domain ticks
         Int epochOffset = regularDomain.epoch.time_since_epoch().count() - commonDomain.epoch.time_since_epoch().count();
 
         using SysPeriod = std::chrono::system_clock::period;
@@ -244,24 +254,26 @@ public:
         Int scaleDenominator = SysPeriod::den * commonDomain.resolution.getNumerator();
         Int offsetFromCommon = epochOffset * scaleNumerator / scaleDenominator;
 
-	    RangeValue startScaledToCommon = valueInCommon.start - offsetFromCommon;
-	    RangeValue endScaledToCommon = valueInCommon.end - offsetFromCommon;
+        RangeValue startScaledToCommon = valueInCommon.start - offsetFromCommon;
+        RangeValue endScaledToCommon = valueInCommon.end - offsetFromCommon;
 
         // tick_common = tick * multiplier
         Int multiplierNumerator = regularDomain.resolution.getNumerator() * commonDomain.resolution.getDenominator();
         Int multiplierDenominator = regularDomain.resolution.getDenominator() * commonDomain.resolution.getNumerator();
-        RangeValue startValue = static_cast<RangeValue>(startScaledToCommon * multiplierDenominator / static_cast<double>(multiplierNumerator));
-        RangeValue endValue = valueInCommon.end == -1
-            ? static_cast<RangeValue>(-1)
-            : static_cast<RangeValue>(endScaledToCommon * multiplierDenominator / static_cast<double>(multiplierNumerator));
+        RangeValue startValue =
+            static_cast<RangeValue>(startScaledToCommon * multiplierDenominator / static_cast<double>(multiplierNumerator));
+        RangeValue endValue =
+            valueInCommon.end == -1
+                ? static_cast<RangeValue>(-1)
+                : static_cast<RangeValue>(endScaledToCommon * multiplierDenominator / static_cast<double>(multiplierNumerator));
 
-		return std::make_unique<DomainValueImpl<RangeType64>>(regularDomain, RangeType64{startValue, endValue});
+        return std::make_unique<DomainValueImpl<RangeType64>>(regularDomain, RangeType64{startValue, endValue});
     }
 
     RangeType64 getValue() const
-	{
-	    return value;
-	}
+    {
+        return value;
+    }
 
 #if !defined(NDEBUG)
     virtual std::string asTime() const override
@@ -275,33 +287,36 @@ public:
     }
 #endif
 
-	int compare(const DomainValue& other) const override
-	{
-	    const auto* otherImpl = dynamic_cast<const DomainValueImpl<RangeType64>*>(&other);
-	    if (otherImpl == nullptr){
-	        DAQ_THROW_EXCEPTION(InvalidParameterException, "Both DomainValue objects must be of the same type!");
-	    }
-	    if (otherImpl->domain != this->domain)
-	        DAQ_THROW_EXCEPTION(InvalidParameterException, "Have to compare DomainValue objects in the same domain!");
+    int compare(const DomainValue& other) const override
+    {
+        const auto* otherImpl = dynamic_cast<const DomainValueImpl<RangeType64>*>(&other);
+        if (otherImpl == nullptr)
+        {
+            DAQ_THROW_EXCEPTION(InvalidParameterException, "Both DomainValue objects must be of the same type!");
+        }
+        if (otherImpl->domain != this->domain)
+            DAQ_THROW_EXCEPTION(InvalidParameterException, "Have to compare DomainValue objects in the same domain!");
 
-	    if (this->value.start > otherImpl->value.start)
-	        return 1;
-	    else if (this->value.start == otherImpl->value.start)
-	        return 0;
-	    else // this->value.start < otherImpl->value.start
-	        return -1;
-	}
+        if (this->value.start > otherImpl->value.start)
+            return 1;
+        else if (this->value.start == otherImpl->value.start)
+            return 0;
+        else  // this->value.start < otherImpl->value.start
+            return -1;
+    }
 
 private:
     RangeType64 value;
 };
 
-template<>
+template <>
 class DomainValueImpl<ComplexFloat32> final : public DomainValue
 {
 public:
-    explicit DomainValueImpl(const DomainInfo& info, ComplexFloat32 value) : DomainValue(info) {
-	}
+    explicit DomainValueImpl(const DomainInfo& info, ComplexFloat32 value)
+        : DomainValue(info)
+    {
+    }
 
     std::unique_ptr<DomainValue> toCommonDomain(const DomainInfo& commonDomain) override
     {
@@ -314,9 +329,9 @@ public:
     }
 
     ComplexFloat32 getValue() const
-	{
-	    DAQ_THROW_EXCEPTION(NotSupportedException);
-	}
+    {
+        DAQ_THROW_EXCEPTION(NotSupportedException);
+    }
 
 #if !defined(NDEBUG)
     virtual std::string asTime() const override
@@ -325,18 +340,20 @@ public:
     }
 #endif
 
-	int compare(const DomainValue& other) const override
-	{
-	    DAQ_THROW_EXCEPTION(NotSupportedException);
-	}
+    int compare(const DomainValue& other) const override
+    {
+        DAQ_THROW_EXCEPTION(NotSupportedException);
+    }
 };
 
-template<>
+template <>
 class DomainValueImpl<ComplexFloat64> final : public DomainValue
 {
 public:
-    explicit DomainValueImpl(const DomainInfo& info, ComplexFloat64 value) : DomainValue(info) {
-	}
+    explicit DomainValueImpl(const DomainInfo& info, ComplexFloat64 value)
+        : DomainValue(info)
+    {
+    }
 
     std::unique_ptr<DomainValue> toCommonDomain(const DomainInfo& commonDomain) override
     {
@@ -349,9 +366,9 @@ public:
     }
 
     ComplexFloat64 getValue() const
-	{
-	    DAQ_THROW_EXCEPTION(NotSupportedException);
-	}
+    {
+        DAQ_THROW_EXCEPTION(NotSupportedException);
+    }
 
 #if !defined(NDEBUG)
     virtual std::string asTime() const override
@@ -360,12 +377,10 @@ public:
     }
 #endif
 
-	int compare(const DomainValue& other) const override
-	{
-	    DAQ_THROW_EXCEPTION(NotSupportedException);
-	}
+    int compare(const DomainValue& other) const override
+    {
+        DAQ_THROW_EXCEPTION(NotSupportedException);
+    }
 };
-
-
 
 END_NAMESPACE_OPENDAQ

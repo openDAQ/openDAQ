@@ -16,7 +16,7 @@ TEST_F(DomainValueTest, DomainInfoComparison)
     ASSERT_TRUE(info1 == info2);
 
     // Different epoch
-    daq::DomainInfo  info3 = {daq::reader::parseEpoch("1999-01-01T00:00:00+00:00"), daq::Ratio(1, 1000)};
+    daq::DomainInfo info3 = {daq::reader::parseEpoch("1999-01-01T00:00:00+00:00"), daq::Ratio(1, 1000)};
     ASSERT_FALSE(info3 == info1);
 
     // Different resolution denominator
@@ -33,16 +33,18 @@ TEST_F(DomainValueTest, DomainInfoComparison)
 
     // Unassigned resolution
     daq::DomainInfo info7 = {daq::reader::parseEpoch("1999-01-01T00:00:00+00:00"), nullptr};
-    ASSERT_THROW((void)(info7 == info1), daq::InvalidParameterException);
+    ASSERT_THROW((void) (info7 == info1), daq::InvalidParameterException);
 }
 
-template<typename T>
-void checkTypedDomainValue(){
+template <typename T>
+void checkTypedDomainValue()
+{
     auto epoch = daq::reader::parseEpoch("2026-01-01T00:00:00+00:00");
     daq::DomainInfo domain = {epoch, daq::Ratio(1, 1000000)};
 
     T tick;
-    if constexpr (std::is_same_v<T, daq::RangeType64>){
+    if constexpr (std::is_same_v<T, daq::RangeType64>)
+    {
         tick = {12345, 12350};
     }
     else
@@ -58,7 +60,8 @@ void checkTypedDomainValue(){
     ASSERT_EQ(castValue->getValue(), tick);
 
     T greaterTick;
-    if constexpr (std::is_same_v<T, daq::RangeType64>){
+    if constexpr (std::is_same_v<T, daq::RangeType64>)
+    {
         greaterTick = {12351, 12360};
     }
     else
@@ -91,7 +94,7 @@ TEST_F(DomainValueTest, StoresDaqRange)
     checkTypedDomainValue<daq::RangeType64>();
 }
 
-template<typename T>
+template <typename T>
 void checkTypedDomainValueComplex()
 {
     auto epoch = daq::reader::parseEpoch("2026-01-01T00:00:00+00:00");
@@ -109,8 +112,8 @@ void checkTypedDomainValueComplex()
     T greaterTick = {16.2, 25.3};
 
     std::unique_ptr<daq::DomainValue> greaterValue = std::make_unique<daq::DomainValueImpl<T>>(domain, greaterTick);
-    ASSERT_THROW((void)(*value < *greaterValue), daq::NotSupportedException);
-    ASSERT_THROW((void)(*greaterValue < *value), daq::NotSupportedException);
+    ASSERT_THROW((void) (*value < *greaterValue), daq::NotSupportedException);
+    ASSERT_THROW((void) (*greaterValue < *value), daq::NotSupportedException);
 }
 
 TEST_F(DomainValueTest, ThrowsForComplex)
@@ -187,12 +190,12 @@ TEST_F(DomainValueTest, SameDomainSameType)
     auto value1InCommonDomain = value1->toCommonDomain(commonDomain);
     auto* value1InCommonDomainP = dynamic_cast<daq::DomainValueImpl<daq::Int>*>(value1InCommonDomain.get());
 
-    ASSERT_THROW((void)(*value1P < *value1InCommonDomainP), daq::InvalidParameterException);
+    ASSERT_THROW((void) (*value1P < *value1InCommonDomainP), daq::InvalidParameterException);
 
     auto value2 = std::make_unique<daq::DomainValueImpl<daq::UInt>>(domain1, 1213000);
     daq::DomainValue* value2P = value2.get();
 
-    ASSERT_THROW((void)(*value1 < *value2), daq::InvalidParameterException);
+    ASSERT_THROW((void) (*value1 < *value2), daq::InvalidParameterException);
 }
 
 TEST_F(DomainValueTest, RealisticTimeStamp)
@@ -234,5 +237,4 @@ TEST_F(DomainValueTest, NonRepresentibleConversions)
     // satisfies domain[index] >= coarse we found the correct one. Right now the situation is reversed, lossful conversion
     // rounds down.
     ASSERT_FALSE(*valueInFine < *valueBackInFine);
-
 }

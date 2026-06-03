@@ -1,21 +1,23 @@
 #include <opendaq/typed_reading_utils.h>
 
 #include <coretypes/exceptions.h>
+#include <opendaq/reader_utils.h>
 #include <opendaq/sample_type.h>
 #include <opendaq/sample_type_traits.h>
-#include <opendaq/reader_utils.h>
+
 
 BEGIN_NAMESPACE_OPENDAQ
 
-namespace {
+namespace
+{
 
-template<typename T>
+template <typename T>
 struct TypeTag
 {
     using Type = T;
 };
 
-template<typename Visitor>
+template <typename Visitor>
 decltype(auto) visitSampleType(SampleType sampleType, Visitor&& visitor)
 {
     switch (sampleType)
@@ -80,7 +82,7 @@ bool validateInputType(SampleType sampleType, bool isDomain)
         case SampleType::Int64:
             return true;
         case SampleType::RangeInt64:
-            return true; // TODO: Not sure what kind of support we actually have
+            return true;  // TODO: Not sure what kind of support we actually have
         case SampleType::ComplexFloat32:
         case SampleType::ComplexFloat64:
         case SampleType::Struct:
@@ -135,11 +137,7 @@ bool validateInputOutputType(SampleType inputType, SampleType outputType, bool i
 }
 
 template <typename Visitor>
-decltype(auto) visitTwoSampleTypes(
-    SampleType inputType,
-    SampleType outputType,
-    bool isDomain,
-    Visitor&& visitor)
+decltype(auto) visitTwoSampleTypes(SampleType inputType, SampleType outputType, bool isDomain, Visitor&& visitor)
 {
     if (!validateInputType(inputType, isDomain))
         DAQ_THROW_EXCEPTION(NotSupportedException, "Input sample type not supported.");
@@ -150,14 +148,13 @@ decltype(auto) visitTwoSampleTypes(
     if (!validateInputOutputType(inputType, outputType, isDomain))
         DAQ_THROW_EXCEPTION(NotSupportedException, "Output sample type not supported.");
 
-
-    return visitSampleType(inputType, [&](auto inputTag) -> decltype(auto)
-    {
-        return visitSampleType(outputType, [&](auto outputTag) -> decltype(auto)
-        {
-            return std::forward<Visitor>(visitor)(inputTag, outputTag);
-        });
-    });
+    return visitSampleType(inputType,
+                           [&](auto inputTag) -> decltype(auto)
+                           {
+                               return visitSampleType(outputType,
+                                                      [&](auto outputTag) -> decltype(auto)
+                                                      { return std::forward<Visitor>(visitor)(inputTag, outputTag); });
+                           });
 }
 
 std::string_view format_as(SampleType sampleType)
@@ -208,16 +205,16 @@ std::string_view format_as(SampleType sampleType)
 
 }
 
-namespace detail {
+namespace detail
+{
 
-template<typename InputT, typename OutputT>
-ErrCode readData(
-    const ReadLayout& readLayout,
-    void* inputBuffer,
-    SizeT offset,
-    void** outputBuffer,
-    SizeT toRead,
-    const FunctionPtr& transformFunction = nullptr)
+template <typename InputT, typename OutputT>
+ErrCode readData(const ReadLayout& readLayout,
+                 void* inputBuffer,
+                 SizeT offset,
+                 void** outputBuffer,
+                 SizeT toRead,
+                 const FunctionPtr& transformFunction = nullptr)
 {
     OPENDAQ_PARAM_NOT_NULL(inputBuffer);
     OPENDAQ_PARAM_NOT_NULL(outputBuffer);
@@ -279,10 +276,7 @@ ErrCode readData(
 }
 
 template <typename InputT, typename OutputT>
-void getDeltaStart(
-    const daq::DictPtr<daq::IString, daq::IBaseObject>& params,
-    OutputT& delta,
-    OutputT& start)
+void getDeltaStart(const daq::DictPtr<daq::IString, daq::IBaseObject>& params, OutputT& delta, OutputT& start)
 {
     if constexpr (std::is_same_v<OutputT, void*>)
     {
@@ -299,15 +293,13 @@ void getDeltaStart(
     }
 }
 
-template<typename InputT, typename OutputT>
-std::unique_ptr<DomainValue> readDomainValueLinear(
-    const DataPacketPtr& domainPacket,
-    SizeT index,
-    const DomainInfo& domainInfo)
+template <typename InputT, typename OutputT>
+std::unique_ptr<DomainValue> readDomainValueLinear(const DataPacketPtr& domainPacket, SizeT index, const DomainInfo& domainInfo)
 {
     if constexpr (std::is_same_v<void*, OutputT> || !std::is_integral_v<OutputT>)
     {
-        DAQ_THROW_EXCEPTION(NotSupportedException, "ReadDomainValueLinear not supported for the selected output type (void / non-integral).");
+        DAQ_THROW_EXCEPTION(NotSupportedException,
+                            "ReadDomainValueLinear not supported for the selected output type (void / non-integral).");
         return {};
     }
     else
@@ -329,18 +321,17 @@ std::unique_ptr<DomainValue> readDomainValueLinear(
             }
         }
 
-        OutputT timestamp = start + static_cast<OutputT>(rdOffset) + static_cast<OutputT>(packetOffset.getIntValue()) +
-                                delta * static_cast<OutputT>(index);
+        OutputT timestamp =
+            start + static_cast<OutputT>(rdOffset) + static_cast<OutputT>(packetOffset.getIntValue()) + delta * static_cast<OutputT>(index);
         return std::make_unique<DomainValueImpl<OutputT>>(domainInfo, timestamp);
     }
 }
 
-template<typename InputT, typename OutputT>
-std::unique_ptr<DomainValue> readDomainValue(
-    const ReadLayout& readLayout,
-    const DataPacketPtr& domainPacket,
-    SizeT index,
-    const DomainInfo& domainInfo)
+template <typename InputT, typename OutputT>
+std::unique_ptr<DomainValue> readDomainValue(const ReadLayout& readLayout,
+                                             const DataPacketPtr& domainPacket,
+                                             SizeT index,
+                                             const DomainInfo& domainInfo)
 {
     if constexpr (std::is_same_v<void*, OutputT>)
     {
@@ -353,25 +344,17 @@ std::unique_ptr<DomainValue> readDomainValue(
         if (!descriptor.assigned())
             DAQ_THROW_EXCEPTION(InvalidStateException, "Packet should have descriptor assigned.");
 
-
-
         OutputT timestamp{};
         void* data = &timestamp;
-        readData<InputT, OutputT>(
-            readLayout,
-            domainPacket.getData(),
-            index,
-            &data,
-            1);
+        readData<InputT, OutputT>(readLayout, domainPacket.getData(), index, &data, 1);
         return std::make_unique<DomainValueImpl<OutputT>>(domainInfo, timestamp);
     }
 }
 
-template<typename InputT, typename OutputT>
-SizeT findDomainValueLinear(
-    const DataPacketPtr& domainPacket,
-    const DomainValue* target,
-    [[maybe_unused]] std::chrono::system_clock::rep* absoluteTimestamp)
+template <typename InputT, typename OutputT>
+SizeT findDomainValueLinear(const DataPacketPtr& domainPacket,
+                            const DomainValue* target,
+                            [[maybe_unused]] std::chrono::system_clock::rep* absoluteTimestamp)
 {
     if constexpr (std::is_same_v<void*, OutputT> || !std::is_integral_v<OutputT>)
     {
@@ -391,7 +374,7 @@ SizeT findDomainValueLinear(
         const auto parameters = dataRule.getParameters();
 
         int64_t rdOffset = 0;
-        { // Extract reference domain offset
+        {  // Extract reference domain offset
             auto refDomainInfo = domainPacket.getDataDescriptor().getReferenceDomainInfo();
             if (refDomainInfo.assigned())
             {
@@ -407,7 +390,7 @@ SizeT findDomainValueLinear(
         getDeltaStart<InputT, OutputT>(parameters, ruleDelta, ruleStart);
         NumberPtr packetOffset = domainPacket.getOffset();
 
-         // Total packet offset in signal resolution ticks.
+        // Total packet offset in signal resolution ticks.
         const OutputT startTick = ruleStart + static_cast<OutputT>(rdOffset) + static_cast<OutputT>(packetOffset.getIntValue());
         const OutputT previousEndTick = startTick - ruleDelta;
 
@@ -457,17 +440,15 @@ SizeT findDomainValueLinear(
     }
     else
     {
-        DAQ_THROW_EXCEPTION(NotSupportedException,
-                                   "Implicit conversion from packet data-type to the read data-type is not supported.");
+        DAQ_THROW_EXCEPTION(NotSupportedException, "Implicit conversion from packet data-type to the read data-type is not supported.");
     }
 }
 
-template<typename InputT, typename OutputT>
-SizeT findDomainValue(
-    const ReadLayout& readLayout,
-    const DataPacketPtr& domainPacket,
-    const DomainValue* target,
-    [[maybe_unused]] std::chrono::system_clock::rep* absoluteTimestamp)
+template <typename InputT, typename OutputT>
+SizeT findDomainValue(const ReadLayout& readLayout,
+                      const DataPacketPtr& domainPacket,
+                      const DomainValue* target,
+                      [[maybe_unused]] std::chrono::system_clock::rep* absoluteTimestamp)
 {
     void* inputBuffer = domainPacket.getData();
     SizeT size = domainPacket.getSampleCount();
@@ -484,14 +465,15 @@ SizeT findDomainValue(
 
         for (std::size_t i = 0; i < size * readLayout.valuesPerSample; ++i)
         {
-            OutputT value = static_cast<OutputT>(domainBuffer[i]); // C4244 - possible data loss due to conversion
+            OutputT value = static_cast<OutputT>(domainBuffer[i]);  // C4244 - possible data loss due to conversion
 
             bool greaterEqual = false;
             if constexpr (IsTemplateOf<OutputT, daq::RangeType>::value)
             {
                 if (value.start >= targetValue.start)
                 {
-                    if (absoluteTimestamp){
+                    if (absoluteTimestamp)
+                    {
                         auto readValueSysTime = reader::toSysTime(value.start, target->getDomain().epoch, target->getDomain().resolution);
                         *absoluteTimestamp = readValueSysTime.time_since_epoch().count();
                     }
@@ -525,18 +507,17 @@ SizeT findDomainValue(
     }
     else
     {
-        DAQ_THROW_EXCEPTION(NotSupportedException,
-                                   "Implicit conversion from packet data-type to the read data-type is not supported.");
+        DAQ_THROW_EXCEPTION(NotSupportedException, "Implicit conversion from packet data-type to the read data-type is not supported.");
     }
 }
 
 }
 
-ReadLayout TypedReadingUtils::createReadLayout(const DataDescriptorPtr &descriptor)
+ReadLayout TypedReadingUtils::createReadLayout(const DataDescriptorPtr& descriptor)
 {
     if (!descriptor.assigned())
         DAQ_THROW_EXCEPTION(ArgumentNullException, "Descriptor must be assigned!");
-    
+
     const SizeT rawSampleSize = descriptor.getRawSampleSize();
     SizeT valuesPerSample = 1;
     auto dimensions = descriptor.getDimensions();
@@ -548,86 +529,95 @@ ReadLayout TypedReadingUtils::createReadLayout(const DataDescriptorPtr &descript
     return {descriptor, rawSampleSize, valuesPerSample};
 }
 
-std::unique_ptr<DomainValue> TypedReadingUtils::readDomainValue(
-    SampleType in,
-    SampleType out,
-    const ReadLayout& readLayout,
-    const DataPacketPtr& domainPacket,
-    SizeT index,
-    const DomainInfo& domainInfo)
+std::unique_ptr<DomainValue> TypedReadingUtils::readDomainValue(SampleType in,
+                                                                SampleType out,
+                                                                const ReadLayout& readLayout,
+                                                                const DataPacketPtr& domainPacket,
+                                                                SizeT index,
+                                                                const DomainInfo& domainInfo)
 {
     const DataRulePtr dataRule = domainPacket.getDataDescriptor().getRule();
     if (dataRule.getType() == DataRuleType::Linear)
     {
-        return visitTwoSampleTypes(in, out, true,
-        [&](auto inputTag, auto outputTag) -> std::unique_ptr<DomainValue>
-        {
-            using InputT = typename decltype(inputTag)::Type;
-            using OutputT = typename decltype(outputTag)::Type;
-            return detail::readDomainValueLinear<InputT, OutputT>(domainPacket, index, domainInfo);
-        });
+        return visitTwoSampleTypes(in,
+                                   out,
+                                   true,
+                                   [&](auto inputTag, auto outputTag) -> std::unique_ptr<DomainValue>
+                                   {
+                                       using InputT = typename decltype(inputTag)::Type;
+                                       using OutputT = typename decltype(outputTag)::Type;
+                                       return detail::readDomainValueLinear<InputT, OutputT>(domainPacket, index, domainInfo);
+                                   });
     }
     else
     {
-        return visitTwoSampleTypes(in, out, true,
-        [&](auto inputTag, auto outputTag) -> std::unique_ptr<DomainValue>
-        {
-            using InputT = typename decltype(inputTag)::Type;
-            using OutputT = typename decltype(outputTag)::Type;
-            return detail::readDomainValue<InputT, OutputT>(readLayout, domainPacket, index, domainInfo);
-        });
+        return visitTwoSampleTypes(in,
+                                   out,
+                                   true,
+                                   [&](auto inputTag, auto outputTag) -> std::unique_ptr<DomainValue>
+                                   {
+                                       using InputT = typename decltype(inputTag)::Type;
+                                       using OutputT = typename decltype(outputTag)::Type;
+                                       return detail::readDomainValue<InputT, OutputT>(readLayout, domainPacket, index, domainInfo);
+                                   });
     }
 }
 
-SizeT TypedReadingUtils::findDomainValue(
-    SampleType in,
-    SampleType out,
-    const ReadLayout& readLayout,
-    const DataPacketPtr& domainPacket,
-    const DomainValue* target,
-    std::chrono::system_clock::rep* firstSampleAbsoluteTime)
+SizeT TypedReadingUtils::findDomainValue(SampleType in,
+                                         SampleType out,
+                                         const ReadLayout& readLayout,
+                                         const DataPacketPtr& domainPacket,
+                                         const DomainValue* target,
+                                         std::chrono::system_clock::rep* firstSampleAbsoluteTime)
 {
     const DataRulePtr dataRule = domainPacket.getDataDescriptor().getRule();
     if (dataRule.getType() == DataRuleType::Linear)
     {
-        return visitTwoSampleTypes(in, out, true,
-        [&](auto inputTag, auto outputTag) -> SizeT
-        {
-            using InputT = typename decltype(inputTag)::Type;
-            using OutputT = typename decltype(outputTag)::Type;
-            return detail::findDomainValueLinear<InputT, OutputT>(domainPacket, target, firstSampleAbsoluteTime);
-        });
+        return visitTwoSampleTypes(in,
+                                   out,
+                                   true,
+                                   [&](auto inputTag, auto outputTag) -> SizeT
+                                   {
+                                       using InputT = typename decltype(inputTag)::Type;
+                                       using OutputT = typename decltype(outputTag)::Type;
+                                       return detail::findDomainValueLinear<InputT, OutputT>(domainPacket, target, firstSampleAbsoluteTime);
+                                   });
     }
     else
     {
-        return visitTwoSampleTypes(in, out, true,
-        [&](auto inputTag, auto outputTag) -> SizeT
-        {
-            using InputT = typename decltype(inputTag)::Type;
-            using OutputT = typename decltype(outputTag)::Type;
-            return detail::findDomainValue<InputT, OutputT>(readLayout, domainPacket, target, firstSampleAbsoluteTime);
-        });
+        return visitTwoSampleTypes(in,
+                                   out,
+                                   true,
+                                   [&](auto inputTag, auto outputTag) -> SizeT
+                                   {
+                                       using InputT = typename decltype(inputTag)::Type;
+                                       using OutputT = typename decltype(outputTag)::Type;
+                                       return detail::findDomainValue<InputT, OutputT>(
+                                           readLayout, domainPacket, target, firstSampleAbsoluteTime);
+                                   });
     }
 }
 
-ErrCode TypedReadingUtils::readData(
-    SampleType in,
-    SampleType out,
-    bool isDomain,
-    const ReadLayout& readLayout,
-    void* inputBuffer,
-    SizeT offset,
-    void** outputBuffer,
-    SizeT count,
-    const FunctionPtr transform)
+ErrCode TypedReadingUtils::readData(SampleType in,
+                                    SampleType out,
+                                    bool isDomain,
+                                    const ReadLayout& readLayout,
+                                    void* inputBuffer,
+                                    SizeT offset,
+                                    void** outputBuffer,
+                                    SizeT count,
+                                    const FunctionPtr transform)
 {
-    return visitTwoSampleTypes(in, out, isDomain,
-    [&](auto inputTag, auto outputTag) -> ErrCode
-    {
-        using InputT = typename decltype(inputTag)::Type;
-        using OutputT = typename decltype(outputTag)::Type;
-        return detail::readData<InputT, OutputT>(readLayout, inputBuffer, offset, outputBuffer, count, transform);
-    });
+    return visitTwoSampleTypes(in,
+                               out,
+                               isDomain,
+                               [&](auto inputTag, auto outputTag) -> ErrCode
+                               {
+                                   using InputT = typename decltype(inputTag)::Type;
+                                   using OutputT = typename decltype(outputTag)::Type;
+                                   return detail::readData<InputT, OutputT>(
+                                       readLayout, inputBuffer, offset, outputBuffer, count, transform);
+                               });
 }
 
 END_NAMESPACE_OPENDAQ

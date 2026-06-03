@@ -1945,7 +1945,7 @@ struct LinearRuleParam
     int64_t delta;
     int64_t start;
     int64_t packetOffset;
-    int64_t sampleCount;
+    uint64_t sampleCount;
     int64_t expectedMicros;  // (delta * (sampleCount - 1) + start + packetOffset) * 1'000'000
 };
 
@@ -1979,7 +1979,7 @@ public:
     }
 
     template <typename T>
-    DataPacketPtr BuildDataPacket(const DataDescriptorPtr& desc, const DataPacketPtr& domainPacket, const size_t packetSize, const T value)
+    DataPacketPtr BuildDataPacket(const DataDescriptorPtr& desc, const DataPacketPtr& domainPacket, const uint64_t packetSize, const T value)
     {
         auto dataPacket = DataPacketWithDomain(domainPacket, desc, packetSize);
         static_cast<T*>(dataPacket.getData())[packetSize - 1] = value;

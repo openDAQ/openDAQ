@@ -444,7 +444,15 @@ class App(tk.Tk):
             self.tree.insert(parent_node_id, tk.END, iid=component_node_id, image=icon,
                              text=self._format_tree_item_text(component_name), open=is_open, values=(component_node_id,), tags=(status_string,))
 
+    DEFAULT_FOLDER_NAMES = frozenset(('Sig', 'FB', 'Dev', 'IP', 'IO', 'Srv'))
 
+    def _is_default_folder(self, iid):
+        if not iid:
+            return False
+        node = utils.find_component(iid, self.context.instance)
+        if node is None or not daq.IFolder.can_cast_from(node):
+            return False
+        return node.name in self.DEFAULT_FOLDER_NAMES
 
     def get_standard_folder_name(self, component):
         if component == 'Sig':
@@ -654,6 +662,10 @@ class App(tk.Tk):
         if element == 'indicator':
             if iid:
                 self.tree.item(iid, open=not self.tree.item(iid, 'open'))
+            return 'break'
+
+        if iid and self._is_default_folder(iid):
+            self.tree.item(iid, open=not self.tree.item(iid, 'open'))
             return 'break'
 
         if iid and iid == utils.treeview_get_first_selection(self.tree):
@@ -967,10 +979,12 @@ class App(tk.Tk):
         if node_unique_id not in self.context.nodes:
             return
         node = self.context.nodes[node_unique_id]
+
         if (daq.IFolder.can_cast_from(node)
                 and not daq.IDevice.can_cast_from(node)
                 and not daq.IFunctionBlock.can_cast_from(node)
-                and not daq.IServer.can_cast_from(node)):
+                and not daq.IServer.can_cast_from(node)
+                and node.name in self.DEFAULT_FOLDER_NAMES):
             self.tree.item(selected_iid, open=not self.tree.item(selected_iid, 'open'))
             self.tree.selection_set('')
             return

@@ -13,6 +13,7 @@
 ##
 
 import sys
+sys.path.append("..")
 import opendaq as daq
 import Utils.daq_utils as daq_utils
 

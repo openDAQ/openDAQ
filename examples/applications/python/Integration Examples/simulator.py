@@ -30,17 +30,22 @@ instance_builder.module_path = opendaq.OPENDAQ_MODULES_DIR
 instance_builder.add_discovery_server("mdns")
 instance = instance_builder.build()
 
-# Get the simulator device type's default config from the built
-# instance. This is the proper way to configure a device type:
-# ask the type for its config object rather than building one
-# by hand with hardcoded property names.
-sim_type = opendaq.IComponentType.cast_from(
-    instance.available_device_types["SimulatorDevice"])
-config = sim_type.create_default_config()
+# Check which simulator is available and get its default config.
+device_types = instance.available_device_types
+has_simulator = any(
+    opendaq.IDeviceType.cast_from(dt).connection_string_prefix == "daq.simulator"
+    for dt in device_types.values()
+)
 
-# Four AI channels is enough for most examples. The default is 8.
-config.set_property_value("NumberOfChannels", opendaq.Integer(4))
-instance.set_root_device("daq.simulator://", config)
+if has_simulator:
+    sim_type = opendaq.IComponentType.cast_from(device_types["SimulatorDevice"])
+    config = sim_type.create_default_config()
+    config.set_property_value("NumberOfChannels", opendaq.Integer(4))
+    instance.set_root_device("daq.simulator://", config)
+else:
+    # Fall back to the reference device if the simulator module
+    # isn't built or loaded.
+    instance.set_root_device("daqref://device0")
 
 # Start OPC UA and Native Streaming servers so clients can connect
 # with either protocol. enable_discovery hooks each server into

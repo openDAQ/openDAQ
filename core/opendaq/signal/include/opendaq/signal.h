@@ -157,6 +157,13 @@ DECLARE_OPENDAQ_INTERFACE(ISignal, IComponent)
      * If a timestamp is assigned, it can typically be cast to IInteger and represents the UNIX time since epoch in microseconds
      * corresponding to the returned signal value.
      *
+     * The timestamp is computed from the signal's domain signal and is only available when all of the
+     * following hold; otherwise `timestamp` is a nullptr:
+     * - the signal has an assigned domain signal with a domain descriptor,
+     * - the domain sample type is numeric (integer or floating point) and scalar (no dimensions),
+     * - the domain unit symbol is "s" (seconds),
+     * - the domain origin is assigned and is a valid ISO 8601 date-time (e.g. "2024-01-01T00:00:00").
+     *
      * For String type signals in binary data packets, the string data must be encoded as UTF-8 strings. The string length is
      * determined by the sample size, and the string does not need to be null-terminated. The method extracts the string value
      * from the packet data and returns it as an IString object.

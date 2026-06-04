@@ -623,6 +623,91 @@ TEST_F(ConfigProtocolIntegrationTest, TestGetLastValue)
     ASSERT_EQ(integerPtr2, 7);
 }
 
+TEST_F(ConfigProtocolIntegrationTest, TestGetLastValueWithoutTimestamp)
+{
+    const auto serverSignals = serverDevice.getSignals(search::Recursive(search::Custom(Function(
+        [](const BaseObjectPtr& obj)
+        {
+            auto signal = obj.template asPtr<ISignal>();
+            return (!signal.getDomainSignal().assigned() && signal.getDescriptor().assigned() &&
+                    (signal.getDescriptor().getSampleType() == SampleType::Int64));
+        }))));
+    ASSERT_FALSE(serverSignals.getCount() == 0);
+    SignalConfigPtr serverSignal = serverSignals[0];
+
+    const auto clientSignals = clientDevice.getSignals(search::Recursive(search::Custom(Function(
+        [id = serverSignal.getGlobalId()](const BaseObjectPtr& obj) { return obj.template asPtr<ISignal>().getGlobalId() == id; }))));
+    ASSERT_FALSE(clientSignals.getCount() == 0);
+    SignalConfigPtr clientSignal = clientSignals[0];
+
+    const auto senderAndChecker = [&](uint64_t sampleCount, int64_t lastValue)
+    {
+        auto dataPacket = DataPacket(serverSignal.getDescriptor(), sampleCount);
+
+        static_cast<int64_t*>(dataPacket.getData())[sampleCount - 1] = lastValue;
+
+        serverSignal.sendPacket(dataPacket);
+
+        BaseObjectPtr value;
+        BaseObjectPtr timestamp;
+        ASSERT_NO_THROW(timestamp = clientSignal.getLastValueWithTimestamp(value));
+
+        IntegerPtr integerPtr;
+        ASSERT_NO_THROW(integerPtr = value.asPtr<IInteger>());
+        ASSERT_EQ(integerPtr, lastValue);
+        ASSERT_FALSE(timestamp.assigned());
+    };
+    senderAndChecker(5, 987);
+    senderAndChecker(2, 1000);
+}
+
+TEST_F(ConfigProtocolIntegrationTest, TestGetLastValueWithTimestamp)
+{
+    const auto serverSignals = serverDevice.getSignals(search::Recursive(search::Custom(Function(
+        [](const BaseObjectPtr& obj)
+        {
+            auto signal = obj.template asPtr<ISignal>();
+            return (signal.getDomainSignal().assigned() && signal.getDomainSignal().getDescriptor().assigned() &&
+                    signal.getName() == "sig1");
+        }))));
+    ASSERT_FALSE(serverSignals.getCount() == 0);
+    SignalConfigPtr serverSignal = serverSignals[0];
+    SignalConfigPtr serverDomainSignal = serverSignal.getDomainSignal();
+    ASSERT_TRUE(serverDomainSignal.getDescriptor().assigned());
+    ASSERT_TRUE(serverDomainSignal.getDescriptor().getUnit().assigned());
+    ASSERT_TRUE(serverDomainSignal.getDescriptor().getUnit().getSymbol() == "s");
+    ASSERT_TRUE(serverDomainSignal.getDescriptor().getOrigin().assigned());
+
+    const auto clientSignals = clientDevice.getSignals(search::Recursive(search::Custom(Function(
+        [id = serverSignal.getGlobalId()](const BaseObjectPtr& obj) { return obj.template asPtr<ISignal>().getGlobalId() == id; }))));
+    ASSERT_FALSE(clientSignals.getCount() == 0);
+    SignalConfigPtr clientSignal = clientSignals[0];
+
+    const auto senderAndChecker = [&](uint64_t sampleCount, int64_t lastValue, uint64_t lastTs)
+    {
+        auto domainDataPacket = DataPacket(serverSignal.getDomainSignal().getDescriptor(), sampleCount);
+        auto dataPacket = DataPacketWithDomain(domainDataPacket, serverSignal.getDescriptor(), sampleCount);
+
+        static_cast<int64_t*>(dataPacket.getData())[sampleCount - 1] = lastValue;
+        static_cast<uint64_t*>(domainDataPacket.getData())[sampleCount - 1] = lastTs;
+
+        serverDomainSignal.sendPacket(domainDataPacket);
+        serverSignal.sendPacket(dataPacket);
+
+        BaseObjectPtr value;
+        BaseObjectPtr timestamp;
+        ASSERT_NO_THROW(timestamp = clientSignal.getLastValueWithTimestamp(value));
+
+        IntegerPtr integerPtr;
+        ASSERT_NO_THROW(integerPtr = value.asPtr<IInteger>());
+        ASSERT_EQ(integerPtr, lastValue);
+        ASSERT_TRUE(timestamp.assigned());
+        ASSERT_EQ(timestamp.asPtr<IInteger>(), lastTs * 1'000'000);
+    };
+    senderAndChecker(5, 987, 123456);
+    senderAndChecker(2, 1000, 123789);
+}
+
 TEST_F(ConfigProtocolIntegrationTest, DeviceInfoChanges)
 {
     const auto serverSubDevice = serverDevice.getDevices()[1];

@@ -1357,13 +1357,13 @@ TEST_F(SignalLastValueWithTimestampTest, GetLastValueWithTimestampDouble)
                                 .setOrigin("1970-01-01T00:00:00")
                                 .build();
 
-    auto domainPacket = BuildDomainPacket(domainDescriptor, 5, double(1777761693.0));
+    auto domainPacket = BuildDomainPacket(domainDescriptor, 5, double(1777761693.123456));
     auto dataPacket = BuildDataPacket(descriptor, domainPacket, 5, int64_t(896));
 
     domainSignal.sendPacket(domainPacket);
     signal.sendPacket(dataPacket);
 
-    Check(Integer(896), 1777761693000000);
+    Check(Integer(896), 1777761693123456);
 }
 
 TEST_F(SignalLastValueWithTimestampTest, GetLastValueWithTimestampFloat)

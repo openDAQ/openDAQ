@@ -115,16 +115,15 @@ public:
         if (!timestamp.assigned())
             DAQ_THROW_EXCEPTION(NotAssignedException, "Timestamp value is not assigned.");
 
-        int64_t tick = 0;
+        const auto& resolution = getResolution();
+        int64_t tickUs = 0;
         if (const auto floatObj = timestamp.asPtrOrNull<IFloat>(); floatObj.assigned())
-            tick = static_cast<int64_t>(floatObj);
+            tickUs = static_cast<int64_t>(static_cast<double>(floatObj) * resolution.getNumerator() / resolution.getDenominator());
         else if (const auto intObj = timestamp.asPtrOrNull<IInteger>(); intObj.assigned())
-            tick = static_cast<int64_t>(intObj);
+            tickUs = static_cast<int64_t>(intObj) * resolution.getNumerator() / resolution.getDenominator();
         else
             DAQ_THROW_EXCEPTION(NotSupportedException, "Unsupported timestamp type. Expected a numeric type.");
 
-        const auto& resolution = getResolution();
-        const int64_t tickUs = tick * resolution.getNumerator() / resolution.getDenominator();
         const int64_t resultUs = tickUs + getOriginOffset();
         this->timestamp = Integer(resultUs);
     }

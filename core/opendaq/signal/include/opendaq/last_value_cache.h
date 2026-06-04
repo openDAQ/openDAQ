@@ -45,7 +45,7 @@ public:
 
     void resetTimestamp()
     {
-        internalCacheValid = false;
+        domainInfoValid = false;
         timestamp = nullptr;
         domainDescriptor = nullptr;
         rawTimestamp.clear();
@@ -143,7 +143,7 @@ public:
 private:
     const RatioPtr& getResolution()
     {
-        if (internalCacheValid || !domainDescriptor.assigned())
+        if (domainInfoValid || !domainDescriptor.assigned())
             return domainResolution;
 
         recalculateInternalCache();
@@ -152,7 +152,7 @@ private:
 
     int64_t getOriginOffset()
     {
-        if (internalCacheValid || !domainDescriptor.assigned())
+        if (domainInfoValid || !domainDescriptor.assigned())
             return originOffsetUs;
 
         recalculateInternalCache();
@@ -185,7 +185,7 @@ private:
 
             originOffsetUs = std::chrono::duration_cast<std::chrono::microseconds>(signalEpoch.time_since_epoch()).count();
         }
-        internalCacheValid = true;
+        domainInfoValid = true;
     }
 
     void cacheValue(const DataPacketPtr& packet)
@@ -232,7 +232,7 @@ private:
                     if (reinterpret_cast<std::uintptr_t>(packetDomainDescriptor.getObject()) != reinterpret_cast<std::uintptr_t>(domainDescriptor.getObject()))
                     {
                         domainDescriptor = std::move(packetDomainDescriptor);
-                        internalCacheValid = false;
+                        domainInfoValid = false;
                         if (!validateDomainDescriptionForTimestamp())
                         {
                             resetTimestamp();
@@ -287,7 +287,7 @@ private:
 
     RatioPtr domainResolution = Ratio(1'000'000, 1);
     int64_t originOffsetUs{0};
-    bool internalCacheValid{false};
+    bool domainInfoValid{false};
 };
 
 END_NAMESPACE_OPENDAQ

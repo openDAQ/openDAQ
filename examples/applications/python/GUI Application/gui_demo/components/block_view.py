@@ -11,7 +11,6 @@ from .output_signals_view import OutputSignalsView
 from .properties_view import PropertiesView
 from .recorder_view import RecorderView
 from .attributes_dialog import AttributesDialog
-from .signal_preview_panel import SignalPreviewPanel
 
 class BlockView(ttk.Frame):
 
@@ -155,10 +154,6 @@ class BlockView(ttk.Frame):
                     op_mode_menu.add_command(label=mode, command=make_select(mode))
 
                 self._bind_mousewheel_recursive(self.right_stack)
-                
-                signals = self.node.get_signals(daq.AnySearchFilter() if self.context.view_hidden_components else None)
-                if signals:
-                    self._attach_signal_preview()
             
             elif daq.IFunctionBlock.can_cast_from(self.node):
                 self._create_right_stack()
@@ -193,10 +188,6 @@ class BlockView(ttk.Frame):
                 
                 self._bind_mousewheel_recursive(self.right_stack)
                 
-                signals = self.node.get_signals(daq.AnySearchFilter() if self.context.view_hidden_components else None)
-                if signals:
-                    self._attach_signal_preview()
-                
             elif daq.IFolder.can_cast_from(self.node):
                 self.node = daq.IFolder.cast_from(self.node)
                 self.properties = PropertiesView(
@@ -230,7 +221,6 @@ class BlockView(ttk.Frame):
                 self.rows = [0]
 
                 self._bind_mousewheel_recursive(self.right_stack)
-                self._attach_signal_preview()
             elif daq.IComponent.can_cast_from(self.node):
                 self.node = daq.IComponent.cast_from(self.node)
                 self.properties = PropertiesView(
@@ -316,12 +306,6 @@ class BlockView(ttk.Frame):
         widget.bind('<MouseWheel>', self._on_right_mousewheel)
         for child in widget.winfo_children():
             self._bind_mousewheel_recursive(child)
-
-    def _attach_signal_preview(self):
-        self._signal_preview = SignalPreviewPanel(
-            self._right_container, self.node, self.context)
-        self._signal_preview.place(
-            relx=0, rely=1.0, relwidth=1.0, anchor='sw')
 
     def _on_destroy(self, event):
         if hasattr(self, '_signal_refresh_job') and self._signal_refresh_job is not None:

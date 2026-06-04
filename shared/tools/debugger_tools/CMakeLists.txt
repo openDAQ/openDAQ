@@ -56,13 +56,18 @@ if(GDB_EXECUTABLE)
             message(STATUS "GDB auto-load safe-path allows all directories (/).")
         elseif(SPECIFIC_DIR_INDEX GREATER -1)
             message(STATUS "GDB auto-load safe-path explicitly allows the build directory.")
-        else()
+        else()  
             # 5. Warn the user if it's not allowed
             message(WARNING 
-                "GDB will likely block auto-loading .gdbinit!\n"
-                "The build directory is not in your GDB auto-load safe-path.\n"
-                "To fix this, add the following line to your ~/.gdbinit:\n"
+                "GDB will likely block auto-loading the generated .gdbinit!\n"
+                "To fix this permanently, add this to your global ~/.gdbinit:\n"
                 "  add-auto-load-safe-path ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/\n"
+                "\n"
+                "Alternatively, you can load it manually in two ways:\n"
+                "1. When launching GDB from the terminal:\n"
+                "   gdb -x ${OutputBinDir}/.gdbinit ./YourExecutable\n"
+                "2. From inside an active GDB session:\n"
+                "   (gdb) source ${OutputBinDir}/.gdbinit\n"
             )
         endif()
     else()

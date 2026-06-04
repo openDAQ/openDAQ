@@ -1,5 +1,5 @@
 /*
- * Copyright 2022-2025 openDAQ d.o.o.
+ * Copyright 2022-2026 openDAQ d.o.o.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -106,7 +106,7 @@ public:
     ErrCode INTERFACE_FUNC updateOperationMode(OperationModeType modeType) override;
     ErrCode INTERFACE_FUNC setComponentConfig(IPropertyObject* config) override;
     ErrCode INTERFACE_FUNC getComponentConfig(IPropertyObject** config) override;
-    ErrCode INTERFACE_FUNC setParentActive(Bool parentActive) override;
+    ErrCode INTERFACE_FUNC setParentActive(Bool parentActive, Bool onUpdate) override;
 
     // IRemovable
     ErrCode INTERFACE_FUNC remove() override;
@@ -135,8 +135,8 @@ protected:
     virtual ErrCode lockAllAttributesInternal();
     ListPtr<IComponent> searchItems(const SearchFilterPtr& searchFilter, const std::vector<ComponentPtr>& items);
 
-    void notifyItemsActiveChanged(const std::vector<ComponentPtr>& items);
-    virtual void notifyActiveChanged();
+    void notifyItemsActiveChanged(const std::vector<ComponentPtr>& items, bool onUpdate);
+    virtual void notifyActiveChanged(bool onUpdate);
 
 private:
     bool updateActive();
@@ -400,29 +400,47 @@ ErrCode ComponentImpl<Intf, Intfs...>::setActive(Bool active)
         triggerCoreEvent(args);
     }
 
-    auto errCode = daqTry([this] { notifyActiveChanged(); });
+    auto errCode = daqTry([this] { notifyActiveChanged(false); });
     OPENDAQ_RETURN_IF_FAILED(errCode);
 
     return OPENDAQ_SUCCESS;
 }
 
 template <class Intf, class... Intfs>
-void ComponentImpl<Intf, Intfs...>::notifyItemsActiveChanged(const std::vector<ComponentPtr>& items)
+void ComponentImpl<Intf, Intfs...>::notifyItemsActiveChanged(const std::vector<ComponentPtr>& items, bool onUpdate)
 {
     for (const auto& item : items)
     {
-        item.asPtr<IComponentPrivate>(true).setParentActive(this->active);
+        item.asPtr<IComponentPrivate>(true).setParentActive(this->active, onUpdate);
     }
 }
 
 template <class Intf, class... Intfs>
-void ComponentImpl<Intf, Intfs...>::notifyActiveChanged()
+void ComponentImpl<Intf, Intfs...>::notifyActiveChanged(bool)
 {
 }
 
 template <class Intf, class... Intfs>
-ErrCode ComponentImpl<Intf, Intfs...>::setParentActive(Bool parentActive)
+ErrCode ComponentImpl<Intf, Intfs...>::setParentActive(Bool parentActive, Bool onUpdate)
 {
+    if (onUpdate)
+    {
+        if (static_cast<bool>(parentActive) == this->parentActive)
+            return OPENDAQ_IGNORED;
+
+        bool oldActive = active;
+        this->parentActive = parentActive;
+        this->active = this->localActive && this->parentActive;
+
+        if (oldActive != this->active)
+        {
+            auto errCode = daqTry([this] { notifyActiveChanged(true); });
+            OPENDAQ_RETURN_IF_FAILED(errCode);
+        }
+
+        return OPENDAQ_SUCCESS;
+    }
+
     {
         auto lock = this->getRecursiveConfigLock2();
 
@@ -445,7 +463,7 @@ ErrCode ComponentImpl<Intf, Intfs...>::setParentActive(Bool parentActive)
         triggerCoreEvent(args);
     }
 
-    auto errCode = daqTry([this] { notifyActiveChanged(); });
+    auto errCode = daqTry([this] { notifyActiveChanged(false); });
     OPENDAQ_RETURN_IF_FAILED(errCode);
 
     return OPENDAQ_SUCCESS;
@@ -1213,20 +1231,42 @@ std::vector<std::pair<std::string, SerializedObjectPtr>> ComponentImpl<Intf, Int
 template <class Intf, class... Intfs>
 void ComponentImpl<Intf, Intfs...>::updateObject(const SerializedObjectPtr& obj, const BaseObjectPtr& /* context */)
 {
-    if (obj.hasKey("active") && !lockedAttributes.count("Active"))
+    if (!lockedAttributes.count("Active"))
     {
-        localActive = obj.readBool("active");
+        bool oldActive = active;
+        if (obj.hasKey("active"))
+            localActive = obj.readBool("active");
+        else
+            localActive = true;
+
         active = parentActive && localActive;
+        if (oldActive != this->active)
+            notifyActiveChanged(true);
     }
 
-    if (obj.hasKey("visible") && !lockedAttributes.count("Visible"))
-        visible = obj.readBool("visible");
+    if (!lockedAttributes.count("Visible"))
+    {
+        if (obj.hasKey("visible"))
+            visible = obj.readBool("visible");
+        else
+            visible = true;
+    }
 
-    if (obj.hasKey("description") && !lockedAttributes.count("Description"))
-        description = obj.readString("description");
+    if (!lockedAttributes.count("Description"))
+    {
+        if (obj.hasKey("description"))
+            description = obj.readString("description");
+        else
+            description = "";
+    }
 
-    if (obj.hasKey("name") && !lockedAttributes.count("Name"))
-        name = obj.readString("name");
+    if (!lockedAttributes.count("Name"))
+    {
+        if (obj.hasKey("name"))
+            name = obj.readString("name");
+        else
+            name = "";
+    }
 }
 
 template <class Intf, class... Intfs>

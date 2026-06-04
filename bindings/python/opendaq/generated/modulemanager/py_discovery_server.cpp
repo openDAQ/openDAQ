@@ -41,6 +41,10 @@ void defineIDiscoveryServer(pybind11::module_ m, PyDaqIntf<daq::IDiscoveryServer
     cls.doc() = "";
 
     m.def("MdnsDiscoveryServer", &daq::MdnsDiscoveryServer_Create);
+    m.def("MdnsDiscoveryServerWithOptions", [](daq::ILogger* logger, std::variant<daq::IDict*, py::dict>& options){
+        return daq::MdnsDiscoveryServerWithOptions_Create(logger, getVariantValue<daq::IDict*>(options));
+    }, py::arg("logger"), py::arg("options"));
+
 
     cls.def("register_service",
         [](daq::IDiscoveryServer *object, std::variant<daq::IString*, py::str, daq::IEvalValue*>& id, daq::IPropertyObject* config, daq::IDeviceInfo* deviceInfo)

@@ -1,5 +1,5 @@
 /*
- * Copyright 2022-2025 openDAQ d.o.o.
+ * Copyright 2022-2026 openDAQ d.o.o.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -2290,6 +2290,8 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::addProperty(
     if (frozen)
         return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_FROZEN);
 
+    auto lock = getRecursiveConfigLock2();
+
     const ErrCode errCode = daqTry([&]() -> auto {
         const PropertyPtr propPtr = property;
         StringPtr propName = propPtr.getName();
@@ -2747,8 +2749,11 @@ void GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::beginApplyUpdat
 template <typename PropObjInterface, typename... Interfaces>
 void GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::endApplyUpdate()
 {
-    auto ignoredProps = List<IString>();
-    for (auto& [propName, action] : updatingPropsAndValues)
+    UpdatingActions localUpdates = std::move(updatingPropsAndValues);
+    UpdatingActions appliedUpdates;
+    appliedUpdates.reserve(localUpdates.size());
+
+    for (auto& [propName, action] : localUpdates)
     {
         StringPtr name = propName;
         ErrCode err;
@@ -2763,31 +2768,15 @@ void GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::endApplyUpdate(
             checkErrorInfo(err);
         }
 
-        if (err == OPENDAQ_IGNORED)
-        {
-            ignoredProps.pushBack(name);
-        }
-        else
+        if (err != OPENDAQ_IGNORED)
         {
             PropertyPtr prop;
             getPropertyAndValueInternal(name, action.value, prop);
+            appliedUpdates.emplace_back(name, action);
         }
     }
 
-    for (const auto& propName : ignoredProps)
-    {
-        auto it = std::find_if(updatingPropsAndValues.begin(),
-                               updatingPropsAndValues.end(),
-                               [propName](const std::pair<std::string, UpdatingAction>& val)
-                               {
-                                   return propName == val.first;
-                               });
-        if (it != updatingPropsAndValues.end())
-            updatingPropsAndValues.erase(it);
-    }
-
-    endApplyProperties(updatingPropsAndValues, isParentUpdating());
-    updatingPropsAndValues.clear();
+    endApplyProperties(appliedUpdates, isParentUpdating());
 }
 
 template <typename PropObjInterface, typename... Interfaces>
@@ -2944,6 +2933,8 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::checkForRefe
 template <typename PropObjInterface, typename... Interfaces>
 ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::enableCoreEventTrigger()
 {
+    auto lock = getRecursiveConfigLock2();
+
     coreEventMuted = false;
 
     for (auto& [propName, propValue] : propValues)
@@ -2958,6 +2949,8 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::enableCoreEv
 template <typename PropObjInterface, typename... Interfaces>
 ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::disableCoreEventTrigger()
 {
+    auto lock = getRecursiveConfigLock2();
+
     coreEventMuted = true;
 
     for (auto& item : propValues)
@@ -3640,10 +3633,10 @@ void GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::endApplyPropert
 {
     auto list = List<IString>();
     auto dict = Dict<IString, IBaseObject>();
-    for (const auto& item : propsAndValues)
+    for (const auto& [propName, action] : propsAndValues)
     {
-        list.pushBack(item.first);
-        dict.set(item.first, item.second.value);
+        list.pushBack(propName);
+        dict.set(propName, action.value);
     }
 
     if (endUpdateEvent.hasListeners())
@@ -3708,15 +3701,11 @@ bool GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::hasUserReadAcce
     if (!obj.assigned())
         return true;
 
-    auto objPtr = obj.asPtrOrNull<IPropertyObject>();
+    auto objPtr = obj.asPtrOrNull<IPropertyObject>(true);
     if (!objPtr.assigned())
         return true;
 
-    auto userContextPtr = BaseObjectPtr::Borrow(userContext);
-    if (!userContextPtr.assigned())
-        return true;
-
-    auto userPtr = userContextPtr.asPtrOrNull<IUser>();
+    auto userPtr = userContext.asPtrOrNull<IUser>(true);
     if (!userPtr.assigned())
         return true;
 

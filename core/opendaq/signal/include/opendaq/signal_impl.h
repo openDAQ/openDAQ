@@ -1,5 +1,5 @@
 /*
- * Copyright 2022-2025 openDAQ d.o.o.
+ * Copyright 2022-2026 openDAQ d.o.o.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -1142,8 +1142,11 @@ void SignalBase<TInterface, Interfaces...>::serializeCustomObjectValues(const Se
         serializer.writeString(ownerId);
     }
 
-    serializer.key("public");
-    serializer.writeBool(isPublic);
+    if (!isPublic)
+    {
+        serializer.key("public");
+        serializer.writeBool(isPublic);
+    }
 
     Super::serializeCustomObjectValues(serializer, forUpdate);
 }
@@ -1151,8 +1154,14 @@ void SignalBase<TInterface, Interfaces...>::serializeCustomObjectValues(const Se
 template <typename TInterface, typename... Interfaces>
 void SignalBase<TInterface, Interfaces...>::updateObject(const SerializedObjectPtr& obj, const BaseObjectPtr& context)
 {
-    if (obj.hasKey("public"))
-        isPublic = obj.readBool("public");
+    if (!this->lockedAttributes.count("Public"))
+    {
+        if (obj.hasKey("public"))
+            isPublic = obj.readBool("public");
+        else
+            isPublic = true;
+        setKeepLastPacket();
+    }
 
     Super::updateObject(obj, context);
 }

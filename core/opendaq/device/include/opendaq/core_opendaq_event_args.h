@@ -1,5 +1,5 @@
 /*
- * Copyright 2022-2025 openDAQ d.o.o.
+ * Copyright 2022-2026 openDAQ d.o.o.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -140,7 +140,7 @@ OPENDAQ_DECLARE_CLASS_FACTORY_WITH_INTERFACE(
 
 /*!
  * @brief Creates Core event args that are passed as argument when the device is locked or unlocked.
- * @param isLock New lock state of the device.
+ * @param isLocked New lock state of the device.
  *
  * The ID of the event is 160, and the event name is "DeviceLockStateChanged".
  */

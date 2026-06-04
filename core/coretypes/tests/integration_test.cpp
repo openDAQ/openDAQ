@@ -71,6 +71,26 @@ TEST_F(IntegrationTest, ListIterators)
     ASSERT_EQ(sum, 6);
 }
 
+TEST_F(IntegrationTest, ListIteratorsWithNull)
+{
+    auto list = List<IInteger>();
+
+    list.pushBack(1);
+    list.pushBack(2);
+    list.pushBack(nullptr);
+    list.pushBack(3);
+
+    size_t count = 0;
+
+    for (const auto& item : list)
+    {
+        (void) item;
+        count++;
+    }
+
+    ASSERT_EQ(count, 4u);
+}
+
 TEST_F(IntegrationTest, DictKeysIterator)
 {
     auto dict = Dict<IInteger, IInteger>();
@@ -115,6 +135,25 @@ TEST_F(IntegrationTest, DictValuesIterator)
     }
 
     ASSERT_EQ(sum, 66);
+}
+
+TEST_F(IntegrationTest, DictValuesIteratorWithNull)
+{
+    auto dict = Dict<IInteger, IInteger>();
+
+    dict.set(1, 11);
+    dict.set(2, 22);
+    dict.set(3, 33);
+    dict.set(4, nullptr);
+
+    size_t count = 0;
+    for (const auto& item : dict.getValues())
+    {
+        (void) item;
+        count++;
+    }
+
+    ASSERT_EQ(count, 4u);
 }
 
 TEST_F(IntegrationTest, HashStruct)

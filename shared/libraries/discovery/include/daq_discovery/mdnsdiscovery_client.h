@@ -1,5 +1,5 @@
 /*
- * Copyright 2022-2025 openDAQ d.o.o.
+ * Copyright 2022-2026 openDAQ d.o.o.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -478,6 +478,9 @@ inline void MDNSDiscoveryClient::encodeNonDiscoveryRequest(const std::string& re
 
 inline void MDNSDiscoveryClient::setupDiscoveryQuery()
 {
+    // TODO according to the RFC  https://www.rfc-editor.org/rfc/rfc6763.html#section-12
+    // device does not mandatory respond with all additional records to PTR query
+    // we expect that it does but we need to check if the device actually replied with SRV, A, AAAA, TXT records and if didn't then query for missing records explicitely
     std::vector<mdns_record_type> types {MDNS_RECORDTYPE_PTR};
     discoveryQueries.resize(serviceNames.size() * types.size());
     for (size_t nameIdx = 0; nameIdx < serviceNames.size(); nameIdx++)
@@ -837,6 +840,7 @@ inline std::string MDNSDiscoveryClient::getIpv6NetworkInterfaceFromIndex(unsigne
     return "";
 }
 
+// as some devices do not reply with A nor AAAA records we additionally cache the sender address as a workaround to get the device address
 inline void MDNSDiscoveryClient::cacheFromAddress(int sock, const sockaddr* from, const std::string& serviceInstance)
 {
     if (from->sa_family == AF_INET)

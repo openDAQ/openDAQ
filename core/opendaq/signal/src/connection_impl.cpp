@@ -139,7 +139,7 @@ ErrCode ConnectionImpl::enqueueMultipleInternal(ListPtr<IPacket>&& packets)
             const size_t cnt = packets.getCount();
             for (size_t i = 0; i < cnt; ++i)
             {
-                auto packet = packets.popBack();
+                auto packet = packets.popFront();
                 onPacketEnqueued(packet);
                 this->packets.push_back(packet);
             }
@@ -175,7 +175,7 @@ ErrCode ConnectionImpl::enqueueMultipleInternal(P&& packets)
                     PacketPtr packet;
                     if constexpr (std::is_rvalue_reference_v<P&&>)
                     {
-                        packet = packets.popBack();
+                        packet = packets.popFront();
                     }
                     else
                     {

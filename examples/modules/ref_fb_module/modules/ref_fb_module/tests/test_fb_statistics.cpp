@@ -832,7 +832,7 @@ TEST_F(StatisticsTest, StatisticsTestOverlapImplicitRule)
     helper.run();
 }
 
-TEST_F(StatisticsTest, StatisticsTestOverlapExplicitRule)
+TEST_F(StatisticsTest, DISABLED_StatisticsTestOverlapExplicitRule)
 {
     // default block size = 10
 

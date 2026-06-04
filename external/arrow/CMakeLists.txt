@@ -47,8 +47,10 @@ opendaq_dependency(
     ADD_FETCH_ALIAS     Arrow::arrow_static=arrow_static
     EXPECT_TARGET       Arrow::arrow_static
     SOURCE_SUBDIR       cpp
-    PATCH_FILES        
+    PATCH_FILES
                         "${CMAKE_CURRENT_SOURCE_DIR}/boost_linking.patch"
+                        "${CMAKE_CURRENT_SOURCE_DIR}/apple_libtool_regex.patch"
+                        "${CMAKE_CURRENT_SOURCE_DIR}/thirdparty_dir.patch"
 )
 
 if (Arrow_FETCHED)

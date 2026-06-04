@@ -9,7 +9,7 @@ inputs:
   python-versions:
     description: 'Space-separated list of Python versions'
     required: false
-    default: '3.8 3.9 3.10 3.11 3.12 3.13 3.14'
+    default: '3.9 3.10 3.11 3.12 3.13 3.14'
   build-path:
     description: 'Path to build directory (must be already configured with CMake)'
     required: false

@@ -1,0 +1,8 @@
+<Project>
+  <Import Project="OpenDaqNetVersion.props" Condition="Exists('OpenDaqNetVersion.props')" />
+
+  <PropertyGroup>
+    <OpenDaqNetVersion Condition="'$(OpenDaqNetVersion)' == ''">net8.0</OpenDaqNetVersion>
+    <OpenDaqNetVersionWindows Condition="'$(OpenDaqNetVersionWindows)' == ''">$(OpenDaqNetVersion)-windows</OpenDaqNetVersionWindows>
+  </PropertyGroup>
+</Project>

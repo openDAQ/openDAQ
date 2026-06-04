@@ -1,5 +1,5 @@
 /*
- * Copyright 2022-2025 openDAQ d.o.o.
+ * Copyright 2022-2026 openDAQ d.o.o.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -57,6 +57,8 @@ public:
     void unsubscribeFromCoreEvent(const ContextPtr& context);
 
     void closeConnectionOnRemoval();
+
+    opendaq_native_streaming_protocol::NativeStreamingClientHandlerPtr getTransportClientHandler() const;
 
 private:
     void transportConnectionStatusChangedHandler(const EnumerationPtr& status, const StringPtr& statusMessage);
@@ -122,6 +124,7 @@ public:
     void INTERFACE_FUNC updateDeviceInfo(const StringPtr& connectionString) override;
 
     // IComponentPrivate
+    ErrCode INTERFACE_FUNC setComponentConfig(IPropertyObject* config) override;
     ErrCode INTERFACE_FUNC getComponentConfig(IPropertyObject** config) override;
 
 protected:

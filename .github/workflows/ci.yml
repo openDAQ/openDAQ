@@ -20,9 +20,7 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  build_windows:
-    runs-on: windows-2022
-    name: ${{ matrix.name }}
+  ci:
     if: ${{ ! github.event.pull_request.draft }}
     name: openDAQ
     uses: openDAQ/openDAQ-CI/.github/workflows/reusable.yml@v2

@@ -1,0 +1,5 @@
+set print pretty on
+set print object on
+set print max-depth 2
+
+source @OPENDAQ_GDB_PY_DIR@/opendaq_gdb_printers.py

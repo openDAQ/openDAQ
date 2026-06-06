@@ -1,2 +1,2 @@
-$Prefix$$ReturnType$ EXPORTED $Prefix$$NonInterfaceType$_$Name$($Arguments$);
-$Prefix$$ReturnType$ EXPORTED $Prefix$$NonInterfaceType$_$Name$($Arguments$);
+$TemplateTypes$$DocComment$$Prefix$$ReturnType$ EXPORTED $Prefix$$NonInterfaceType$_$Name$($Arguments$);
+$TemplateTypes$$DocComment$$Prefix$$ReturnType$ EXPORTED $Prefix$$NonInterfaceType$_$Name$($Arguments$);

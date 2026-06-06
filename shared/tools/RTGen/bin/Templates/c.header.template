@@ -33,7 +33,8 @@ extern "C"
 #endif
 
 $headers$
-$DeclareRtIntf$
+$InterfaceDocComment$$DeclareRtIntf$
+
 $typedefs$
 $intfid_declaration$
 $Methods$

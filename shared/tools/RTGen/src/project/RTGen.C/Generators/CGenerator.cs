@@ -1,6 +1,7 @@
 ﻿using RTGen.Exceptions;
 using RTGen.Generation;
 using RTGen.Interfaces;
+using RTGen.Interfaces.Doc;
 using RTGen.Types;
 using RTGen.Util;
 using System;
@@ -298,6 +299,158 @@ namespace RTGen.C.Generators
             return sb.ToString();
         }
 
+        protected string GenerateDocComment(IMethod method)
+        {
+            IDocComment doc = method.Documentation;
+            if (doc == null)
+                return string.Empty;
+
+            return GenerateDocCommentFromDoc(doc);
+        }
+
+        protected string GenerateDocCommentFromDoc(IDocComment doc)
+        {
+            if (doc == null)
+                return string.Empty;
+
+            // Collect all content in source order: Brief + Description + Tags
+            var parts = new List<IDocTag>(doc.Tags);
+            if (doc.Brief != null)
+                parts.Insert(doc.Brief.TagIndex, doc.Brief);
+            if (doc.Description != null)
+                parts.Insert(doc.Description.TagIndex, doc.Description);
+
+            StringBuilder sb = new StringBuilder();
+            sb.AppendLine("/*!");
+
+            bool hasContent = false;
+
+            foreach (IDocTag tag in parts)
+            {
+                switch (tag.TagType)
+                {
+                    case TagType.Private:
+                        return string.Empty;
+                    case TagType.Brief:
+                        sb.Append(" * @brief ");
+                        AppendLines(sb, (IDocAttribute)tag);
+                        hasContent = true;
+                        break;
+                    case TagType.Param:
+                        var param = (IDocParam)tag;
+                        sb.Append(param.IsOut ? " * @param[out] " : " * @param ");
+                        sb.Append(param.ParamName).Append(' ');
+                        AppendLines(sb, param);
+                        hasContent = true;
+                        break;
+                    case TagType.Throws:
+                        var throws = (IDocThrows)tag;
+                        sb.Append(" * @throws ").Append(throws.ExceptionName).Append(' ');
+                        if (tag is IDocAttribute throwsAttr)
+                            AppendLines(sb, throwsAttr);
+                        else
+                            sb.AppendLine();
+                        hasContent = true;
+                        break;
+                    case TagType.RetVal:
+                        var retVal = (IDocRetVal)tag;
+                        sb.Append(" * @retval ").Append(retVal.ReturnValue).Append(' ');
+                        AppendLines(sb, (IDocAttribute)tag);
+                        hasContent = true;
+                        break;
+                    case TagType.Description:
+                        AppendLinesMultiline(sb, (IDocAttribute)tag);
+                        hasContent = true;
+                        break;
+                    case TagType.Unknown:
+                    {
+                        string raw = tag.RawText;
+                        raw = System.Text.RegularExpressions.Regex.Replace(raw, @"\*\r?\n\s*\*", " ");
+                        raw = raw.Trim('*', ' ', '\t', '\r', '\n');
+                        if (!string.IsNullOrEmpty(raw))
+                        {
+                            sb.Append(" * ").AppendLine(raw);
+                            hasContent = true;
+                        }
+                        break;
+                    }
+                    case TagType.Block:
+                        // @{ and @} are Doxygen group scope markers — skip silently
+                        break;
+                }
+            }
+
+            sb.AppendLine(" */" + Environment.NewLine);
+
+            if (!hasContent)
+                return string.Empty;
+
+            return sb.ToString();
+        }
+
+        protected string GenerateTemplateTypeAnnotations(IMethod method)
+        {
+            StringBuilder sb = new StringBuilder();
+
+            foreach (IArgument arg in method.Arguments)
+            {
+                if (arg.Type.GenericArguments != null && arg.Type.GenericArguments.Count > 0)
+                {
+                    string annotationName = arg.Type.Name == "IList" ? "elementType" : "templateType";
+                    var typeNames = arg.Type.GenericArguments.Select(t => t.NonInterfaceName);
+                    sb.AppendLine($"// [{annotationName}({arg.Name}, {string.Join(", ", typeNames)})]");
+                }
+            }
+
+            return sb.ToString();
+        }
+
+        protected string GenerateInterfaceDocComment(IRTInterface rtClass)
+        {
+            string body = GenerateDocCommentFromDoc(rtClass.Documentation);
+            if (string.IsNullOrEmpty(body))
+                return string.Empty;
+
+            // Strip trailing whitespace/newlines, add base.Indentation prefix to each line
+            body = body.TrimEnd();
+            StringBuilder result = new StringBuilder();
+            foreach (string line in body.Split(new[] { Environment.NewLine }, StringSplitOptions.None))
+            {
+                if (line.Length > 0)
+                    result.Append(base.Indentation).AppendLine(line);
+                else
+                    result.AppendLine();
+            }
+            return result.ToString();
+        }
+
+        /// <summary>Appends all lines of an attribute tag joined on one line (for Brief/Param/Throws/RetVal).</summary>
+        private static void AppendLines(StringBuilder sb, IDocAttribute attr)
+        {
+            foreach (var line in attr.Lines)
+            {
+                string t = line.FullText.Trim();
+                if (!string.IsNullOrEmpty(t))
+                    sb.Append(t).Append(' ');
+            }
+            if (sb[sb.Length - 1] == ' ')
+                sb.Length--;
+            sb.AppendLine();
+        }
+
+        /// <summary>Appends all lines of an attribute tag, each on its own *-prefixed line (for Description).</summary>
+        private static void AppendLinesMultiline(StringBuilder sb, IDocAttribute attr)
+        {
+            foreach (var line in attr.Lines)
+            {
+                string t = line.FullText.Trim();
+                if (!string.IsNullOrEmpty(t))
+                    sb.Append(" * ").AppendLine(t);
+                else
+                    sb.AppendLine(" *");
+            }
+        }
+
         protected void GenerateHeader(string templatePath, string outputPath)
         {
             string methodTemplatePath = Path.Combine(Path.GetDirectoryName(templatePath), Path.GetFileNameWithoutExtension(templatePath) + ".method.template");
@@ -308,6 +461,7 @@ namespace RTGen.C.Generators
 
             Variables["Methods"] = methods.ToString();
             Variables["headers"] = GetIncludes(RtFile);
+            Variables["InterfaceDocComment"] = GenerateInterfaceDocComment(RtFile.CurrentClass);
             Variables["DeclareRtIntf"] = GetDeclareRtIntf();
             Variables["typedefs"] = GetTypedefs();
             Variables["intfid_declaration"] = GetIntfIDDeclaration();
@@ -395,6 +549,20 @@ namespace RTGen.C.Generators
                         return typeName;
                     case "Arguments":
                         return ArgumentsToString(methodOrFactory, ArgsListType.MethodDeclaration);
+                    case "DocComment":
+                        // Don't emit doc comment inside /* */ block — the inner */ would close the outer comment.
+                        // Check if the method/factory uses forbidden types directly on its arguments.
+                        if (method != null && method.Arguments.Any(a => ForbiddenTypes.Contains(a.Type.NonInterfaceName)))
+                            return string.Empty;
+                        if (factory != null && factory.ToOverload().Arguments.Any(a => ForbiddenTypes.Contains(a.Type.NonInterfaceName)))
+                            return string.Empty;
+                        if (method != null)
+                            return GenerateDocComment(method);
+                        if (factory != null && factory.Documentation != null)
+                            return GenerateDocCommentFromDoc(factory.Documentation);
+                        return string.Empty;
+                    case "TemplateTypes":
+                        return method != null ? GenerateTemplateTypeAnnotations(method) : string.Empty;
                     default:
                         LogIgnoredVariable(variable, templatePath);
                         return string.Empty;
@@ -464,9 +632,37 @@ namespace RTGen.C.Generators
                 });
 
                 bool isCommentedOut = _methodNamesToCommentOut.Contains(method.Name);
-                if (isCommentedOut) methods.AppendLine("/*");
-                methods.AppendLine(base.Indentation + generatedMethod);
-                if (isCommentedOut) methods.AppendLine("*/");
+
+                // Indent each line of the generated method/factory properly
+                string[] lines = generatedMethod.Split(new[] { Environment.NewLine }, StringSplitOptions.None);
+                foreach (string ln in lines)
+                {
+                    // Skip blank lines between doc comment */ and function signature
+                    if (ln.Length == 0)
+                        continue;
+
+                    string indented = base.Indentation + ln;
+
+                    if (isCommentedOut && lines[0] == ln)
+                    {
+                        methods.AppendLine("/*");
+                        methods.AppendLine(indented);
+                        if (lines.Length == 1)
+                            methods.AppendLine("*/");
+                    }
+                    else if (isCommentedOut && ln == lines[lines.Length - 1])
+                    {
+                        methods.AppendLine(indented);
+                        methods.AppendLine("*/");
+                    }
+                    else
+                    {
+                        methods.AppendLine(indented);
+                    }
+                }
+
+                // Blank line after each method for readability
+                methods.AppendLine();
             }
 
             foreach (IRTFactory factory in RtFile.Factories)
@@ -479,9 +675,37 @@ namespace RTGen.C.Generators
                 });
 
                 bool isCommentedOut = _methodNamesToCommentOut.Contains(factory.Name);
-                if (isCommentedOut) methods.AppendLine("/*");
-                methods.AppendLine(base.Indentation + generatedFactory);
-                if (isCommentedOut) methods.AppendLine("*/");
+
+                // Indent each line of the generated factory properly
+                string[] lines = generatedFactory.Split(new[] { Environment.NewLine }, StringSplitOptions.None);
+                foreach (string ln in lines)
+                {
+                    // Skip blank lines between doc comment */ and function signature
+                    if (ln.Length == 0)
+                        continue;
+
+                    string indented = base.Indentation + ln;
+
+                    if (isCommentedOut && lines[0] == ln)
+                    {
+                        methods.AppendLine("/*");
+                        methods.AppendLine(indented);
+                        if (lines.Length == 1)
+                            methods.AppendLine("*/");
+                    }
+                    else if (isCommentedOut && ln == lines[lines.Length - 1])
+                    {
+                        methods.AppendLine(indented);
+                        methods.AppendLine("*/");
+                    }
+                    else
+                    {
+                        methods.AppendLine(indented);
+                    }
+                }
+
+                // Blank line after each factory for readability
+                methods.AppendLine();
             }
 
             return methods;

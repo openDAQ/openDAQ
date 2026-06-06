@@ -33,6 +33,7 @@ extern "C"
 #endif
 
 $headers$
+$DeclareRtIntf$
 $typedefs$
 $intfid_declaration$
 $Methods$

@@ -157,6 +157,19 @@ namespace RTGen.C.Generators
             return sb.ToString();
         }
 
+        protected string GetDeclareRtIntf()
+        {
+            IRTInterface rtClass = RtFile.CurrentClass;
+            ITypeName baseType = rtClass.BaseType;
+
+            if (baseType == null || string.IsNullOrEmpty(baseType.NonInterfaceName))
+            {
+                return string.Empty;
+            }
+
+            return base.Indentation + $"DAQ_EXTENDS_INTERFACE({Prefix}{rtClass.Type.NonInterfaceName}, {Prefix}{baseType.NonInterfaceName});";
+        }
+
         protected string GetIntfIDDefinition()
         {
             StringBuilder sb = new StringBuilder();
@@ -295,6 +308,7 @@ namespace RTGen.C.Generators
 
             Variables["Methods"] = methods.ToString();
             Variables["headers"] = GetIncludes(RtFile);
+            Variables["DeclareRtIntf"] = GetDeclareRtIntf();
             Variables["typedefs"] = GetTypedefs();
             Variables["intfid_declaration"] = GetIntfIDDeclaration();
 

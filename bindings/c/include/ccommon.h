@@ -32,6 +32,10 @@ extern "C"
 #include <stddef.h>
 #include <stdint.h>
 
+#ifndef DAQ_EXTENDS_INTERFACE
+#define DAQ_EXTENDS_INTERFACE(intf, base) struct intf
+#endif
+
     typedef uint32_t daqErrCode;
     typedef uint8_t daqBool;
     typedef int64_t daqInt;

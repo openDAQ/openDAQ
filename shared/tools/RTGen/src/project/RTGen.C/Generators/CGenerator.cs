@@ -28,7 +28,13 @@ namespace RTGen.C.Generators
 
         protected static ISet<string> ForbiddenTypes => new HashSet<string>
         {
-            "ComplexFloat64"
+            "ComplexFloat64",
+            "SourceLocation"
+        };
+
+        protected static ISet<string> ForbiddenFactoryNames => new HashSet<string>
+        {
+            "createMiMallocAllocator"
         };
 
         protected static readonly String Prefix = "daq";
@@ -221,6 +227,12 @@ namespace RTGen.C.Generators
             IRTFactory factory = methodOrFactory as IRTFactory;
             IMethod method = methodOrFactory as IMethod;
             IOverload overload = method != null ? method.Overloads[0] : factory.ToOverload();
+
+            // Mark factories with explicitly forbidden names for commenting out
+            if (factory != null && ForbiddenFactoryNames.Contains(factory.Name))
+            {
+                _methodNamesToCommentOut.Add(factory.Name);
+            }
 
             IList<IArgument> args = overload.Arguments.ToList();
 

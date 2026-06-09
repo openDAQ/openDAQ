@@ -150,6 +150,33 @@
             }
         },
         {
+            "name": "core",
+            "hidden": true,
+            "cacheVariables": {
+                "OPENDAQ_ENABLE_TESTS": false,
+                "OPENDAQ_ENABLE_TEST_UTILS": false,
+                "OPENDAQ_GENERATE_C_BINDINGS": true,
+                "OPENDAQ_GENERATE_PYTHON_BINDINGS": false,
+                "OPENDAQ_GENERATE_CSHARP_BINDINGS": false,
+                "OPENDAQ_GENERATE_DELPHI_BINDINGS": false,
+                "OPENDAQ_ENABLE_OPCUA": false,
+                "OPENDAQ_ENABLE_WEBSOCKET_STREAMING": false,
+                "OPENDAQ_ENABLE_NATIVE_STREAMING": false,
+                "DAQMODULES_OPENDAQ_CLIENT_MODULE": false,
+                "DAQMODULES_OPENDAQ_SERVER_MODULE": false,
+                "DAQMODULES_REF_DEVICE_MODULE": false,
+                "DAQMODULES_SIMULATOR_DEVICE_MODULE": false,
+                "DAQMODULES_AUDIO_DEVICE_MODULE": false,
+                "DAQMODULES_REF_FB_MODULE": false,
+                "DAQMODULES_EMPTY_MODULE": false,
+                "DAQMODULES_BASIC_CSV_RECORDER_MODULE": false,
+                "DAQMODULES_LICENSING_MODULE": false,
+                "OPENDAQ_BUILD_DOCUMENTATION": false,
+                "APP_ENABLE_WEBPAGE_EXAMPLES": false,
+                "DAQSIMULATOR_ENABLE_SIMULATOR_APP": false
+            }
+        },
+        {
             "name": "package",
             "hidden": false,
             "cacheVariables": {

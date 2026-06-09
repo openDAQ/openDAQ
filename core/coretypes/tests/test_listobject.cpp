@@ -443,6 +443,22 @@ TEST_F(ListObjectTest, SerializeDeserializeV2)
     ASSERT_EQ(id, IString::Id);
 }
 
+TEST_F(ListObjectTest, SerializeDeserializeWithNullElement)
+{
+    auto ser = JsonSerializerWithVersion(2);
+    auto list = List<IString>("e1", nullptr);
+    list.serialize(ser);
+    auto str = ser.getOutput();
+
+    auto deser = JsonDeserializer();
+    auto obj = deser.deserialize(str);
+    ASSERT_EQ(obj, list);
+
+    IntfID id;
+    obj.asPtr<IListElementType>()->getElementInterfaceId(&id);
+    ASSERT_EQ(id, IString::Id);
+}
+
 TEST_F(ListObjectTest, FromVectorInt)
 {
     std::vector<int> vec = { 1, 2, 3, 4, 5, 6 };

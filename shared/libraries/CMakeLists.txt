@@ -1,12 +1,12 @@
 opendaq_set_cmake_context()
 
 add_subdirectory(utils)
-add_subdirectory(signal_generator)
 add_subdirectory(discovery_common)
 add_subdirectory(discovery)
 add_subdirectory(discovery_server)
 
 if (OPENDAQ_ENABLE_TEST_UTILS)
+    add_subdirectory(signal_generator)
     add_subdirectory(testutils)
 endif()
 

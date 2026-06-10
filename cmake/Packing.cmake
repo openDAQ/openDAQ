@@ -98,7 +98,6 @@ endif()
 ## Format: opendaq-<version>[-<sha>]-<arch>-<os>-<compiler>-<compiler-version>-<build-type>
 ##
 
-include(openDAQPackagingUtils)
 opendaq_detect_triplet()
 
 set(_PACKING_VERSION "${OPENDAQ_PACKAGE_VERSION}")

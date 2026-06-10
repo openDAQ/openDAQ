@@ -450,6 +450,7 @@ FetchContent_GetProperties(
     SOURCE_DIR OPENDAQ_CMAKE_UTILS_SOURCE_DIR
 )
 install(FILES ${OPENDAQ_CMAKE_UTILS_SOURCE_DIR}/cmake/openDAQBaseUtils.cmake
+              ${OPENDAQ_CMAKE_UTILS_SOURCE_DIR}/cmake/openDAQPackagingUtils.cmake
         DESTINATION share/cmake
         COMPONENT ${SDK_NAME}_Development
 )

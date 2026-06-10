@@ -96,60 +96,11 @@ endif()
 ## Package filename customization
 ##
 ## Format: opendaq-<version>[-<sha>]-<arch>-<os>-<compiler>-<compiler-version>-<build-type>
-## Field ordering follows GNU triplet convention (<arch>-<os>-…), values follow
-## Conan settings vocabulary (arch, os, compiler). SHA is appended to the
-## version for non-release builds to disambiguate dev/rc commits.
 ##
 
-# OS name (Conan settings.os, lowercase)
-string(TOLOWER "${CMAKE_SYSTEM_NAME}" _PACKING_OS_NAME)
-if(_PACKING_OS_NAME STREQUAL "darwin")
-    set(_PACKING_OS_NAME "macos")
-endif()
+include(openDAQPackagingUtils)
+opendaq_detect_triplet()
 
-# Architecture (Conan settings.arch)
-if(CMAKE_SIZEOF_VOID_P EQUAL 8)
-    if(CMAKE_SYSTEM_PROCESSOR MATCHES "aarch64|arm64|ARM64")
-        set(_PACKING_ARCH_NAME "armv8")
-    else()
-        set(_PACKING_ARCH_NAME "x86_64")
-    endif()
-else()
-    if(CMAKE_SYSTEM_PROCESSOR MATCHES "arm|ARM")
-        set(_PACKING_ARCH_NAME "armv7")
-    else()
-        set(_PACKING_ARCH_NAME "x86")
-    endif()
-endif()
-
-# Compiler (Conan settings.compiler) and major version
-if(MSVC)
-    set(_PACKING_COMPILER_ID "msvc")
-    set(_PACKING_COMPILER_VER "${MSVC_TOOLSET_VERSION}")
-elseif(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
-    set(_PACKING_COMPILER_ID "gcc")
-elseif(CMAKE_CXX_COMPILER_ID STREQUAL "AppleClang")
-    set(_PACKING_COMPILER_ID "apple-clang")
-elseif(CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
-    set(_PACKING_COMPILER_ID "clang")
-elseif(CMAKE_CXX_COMPILER_ID STREQUAL "Intel" OR CMAKE_CXX_COMPILER_ID STREQUAL "IntelLLVM")
-    set(_PACKING_COMPILER_ID "intel-cc")
-else()
-    string(TOLOWER "${CMAKE_CXX_COMPILER_ID}" _PACKING_COMPILER_ID)
-endif()
-if(NOT MSVC)
-    string(REGEX REPLACE "^([0-9]+).*" "\\1" _PACKING_COMPILER_VER "${CMAKE_CXX_COMPILER_VERSION}")
-endif()
-
-# Build type (lowercase). If not set (multi-config generators) fall back to "release".
-if(CMAKE_BUILD_TYPE)
-    string(TOLOWER "${CMAKE_BUILD_TYPE}" _PACKING_BUILD_TYPE)
-else()
-    set(_PACKING_BUILD_TYPE "release")
-endif()
-
-# Version is the clean major.minor.patch, extended with an optional 4th tweak component.
-# For non-release builds, a short SHA is appended to disambiguate commits.
 set(_PACKING_VERSION "${OPENDAQ_PACKAGE_VERSION}")
 if(package_version MATCHES "^[0-9]+\\.[0-9]+\\.[0-9]+\\.([0-9]+)")
     string(APPEND _PACKING_VERSION ".${CMAKE_MATCH_1}")
@@ -159,9 +110,8 @@ if(NOT OPENDAQ_IS_RELEASE_VERSION AND OPENDAQ_WC_REVISION_HASH)
     string(APPEND _PACKING_VERSION "-${_PACKING_SHORT_SHA}")
 endif()
 
-set(CPACK_PACKAGE_FILE_NAME
-    "opendaq-${_PACKING_VERSION}-${_PACKING_ARCH_NAME}-${_PACKING_OS_NAME}-${_PACKING_COMPILER_ID}-${_PACKING_COMPILER_VER}-${_PACKING_BUILD_TYPE}"
-)
+opendaq_generate_package_name(VERSION "${_PACKING_VERSION}" NAME "opendaq")
+set(CPACK_PACKAGE_FILE_NAME "${OPENDAQ_PACKAGE_NAME}")
 
 ##
 ## Finally ...

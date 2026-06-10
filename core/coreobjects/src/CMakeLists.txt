@@ -365,6 +365,7 @@ list(APPEND SRC_PublicHeaders  ${ConfigHeader}
                                ${SRC_PermisisonsBuilder}
                                ${SRC_PermisisonMaskBuilder}
                                ${SRC_Permisisons}
+                               ${SRC_PermisisonsInternal}
                                ${SRC_ObjectLockGuard}
                                ${SRC_PropertyMetadataReadArgs}
                                ${SRC_Mutex}

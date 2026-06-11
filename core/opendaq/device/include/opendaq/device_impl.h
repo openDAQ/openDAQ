@@ -1168,8 +1168,11 @@ ListPtr<ILockGuard> GenericDevice<TInterface, Interfaces...>::getTreeLockGuard()
     this->getRecursiveLockGuard(&lockGuard);
     lockGuardList.pushBack(lockGuard);
 
+    auto excludeIds =
+        search::Or(search::Or(search::InterfaceId(IDevice::Id), search::InterfaceId(ISignal::Id)), search::InterfaceId(IInputPort::Id));
+
     ListPtr<IComponent> items;
-    this->getItems(&items, search::Recursive(search::Not(search::InterfaceId(IDevice::Id))));
+    this->getItems(&items, search::Recursive(search::Not(excludeIds)));
     if (!items.assigned())
         return lockGuardList;
 

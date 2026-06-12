@@ -83,6 +83,7 @@ public:
     BaseObjectPtr callProperty(const std::string& globalId, const std::string& propertyName, const BaseObjectPtr& params);
     void setAttributeValue(const std::string& globalId, const std::string& attributeName, const BaseObjectPtr& attributeValue);
     BaseObjectPtr getLastValue(const std::string& globalId);
+    ListPtr<IBaseObject> getLastValueWithTimestamp(const std::string& globalId);
     void lock(const std::string& globalId);
     void unlock(const std::string& globalId);
     void forceUnlock(const std::string& globalId);

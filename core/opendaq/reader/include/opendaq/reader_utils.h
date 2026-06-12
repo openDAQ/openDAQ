@@ -83,12 +83,14 @@ namespace reader
         return epoch;
     }
 
-    inline auto parseEpoch(const std::string& origin)
+    inline auto parseEpoch(const std::string& origin, bool* ok = nullptr)
     {
         std::chrono::system_clock::time_point epoch;
 
         std::istringstream epochString(fixupIso8601(origin));
         date::from_stream(epochString, "%FT%T%z", epoch);
+        if (ok)
+            *ok = !epochString.fail();
 
         return epoch;
     }

@@ -1,5 +1,5 @@
 /*
- * Copyright 2022-2025 openDAQ d.o.o.
+ * Copyright 2022-2026 openDAQ d.o.o.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -147,7 +147,7 @@ public:
                         const StringPtr& name = nullptr);
     
 protected:
-    void notifyActiveChanged() override;
+    void notifyActiveChanged(bool onUpdate) override;
 
     virtual ErrCode INTERFACE_FUNC getItems(IList** items, ISearchFilter* searchFilter) override;
     ErrCode INTERFACE_FUNC getItem(IString* localId, IComponent** item) override;
@@ -214,9 +214,9 @@ SignalContainerImpl<Intf, Intfs...>::SignalContainerImpl(const ContextPtr& conte
 }
 
 template <class Intf, class ... Intfs>
-void SignalContainerImpl<Intf, Intfs...>::notifyActiveChanged()
+void SignalContainerImpl<Intf, Intfs...>::notifyActiveChanged(bool onUpdate)
 {
-    this->notifyItemsActiveChanged(this->components);
+    this->notifyItemsActiveChanged(this->components, onUpdate);
 }
 
 template <class Intf, class ... Intfs>

@@ -1,5 +1,5 @@
 /*
- * Copyright 2022-2025 openDAQ d.o.o.
+ * Copyright 2022-2026 openDAQ d.o.o.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -50,6 +50,9 @@ public:
 
     // INativeStreamingPrivate
     void INTERFACE_FUNC upgradeToSafeProcessingCallbacks() override;
+
+    // IStreamingPrivate
+    ErrCode INTERFACE_FUNC setOwnerDevice(const DevicePtr& device) override;
 
 protected:
     void onSetActive(bool active) override;

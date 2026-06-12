@@ -36,6 +36,15 @@ void defineIStreamReader(pybind11::module_ m, PyDaqIntf<daq::IStreamReader, daq:
         {
             PyTypedReader::checkTypes(valueType, domainType);
             const auto signalPtr = daq::SignalPtr::Borrow(signal);
+            auto descriptor = signalPtr.getDescriptor();
+            if (skipEvents == daq::True && descriptor.assigned())
+            {
+                auto dimensions = descriptor.getDimensions();
+                if (dimensions.assigned() && dimensions.getCount() > 0)
+                {
+                    throw std::runtime_error("Stream reader: skipEvents must be false when reading vector data.");
+                }
+            }
             return daq::StreamReaderFromBuilder_Create(daq::StreamReaderBuilder()
                     .setSignal(signal)
                     .setValueReadType(valueType)

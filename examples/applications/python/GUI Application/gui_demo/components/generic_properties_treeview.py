@@ -71,7 +71,7 @@ class PropertiesTreeview(ttk.Treeview):
         # bind double-click to editing (if not read_only)
         if not self.read_only:
             self.bind('<Double-1>', lambda event=None: self.edit_value())
-        self.bind('<Button-3>', lambda event=None: self.show_menu(event))
+        self.bind('<Button-3>', lambda event: self.show_menu(event))
         self.bind('<MouseWheel>', lambda e=None: self.after_idle(self._sync_overlays))
         self.bind('<ButtonRelease-1>', lambda e=None: self.after(10, self._sync_overlays), add='+')
         self.bind('<Configure>', self._on_configure)
@@ -149,6 +149,8 @@ class PropertiesTreeview(ttk.Treeview):
 
     def fill_properties(self, parent_iid, node, hidden):
         def printed_value(value_type, value):
+            if value is None:
+                return 'N/A'
             if value_type == daq.CoreType.ctBool:
                 return utils.yes_no[value]
             elif value_type == daq.CoreType.ctFloat:
@@ -345,6 +347,8 @@ class PropertiesTreeview(ttk.Treeview):
         self.refresh()
 
     def show_menu(self, event):
+        if event is None:
+            return
         region = self.identify_region(event.x, event.y)
         menu = tk.Menu(self, tearoff=0)
         if region == 'heading':

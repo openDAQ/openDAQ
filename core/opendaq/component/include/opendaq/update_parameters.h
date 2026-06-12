@@ -1,5 +1,5 @@
 /*
- * Copyright 2022-2025 openDAQ d.o.o.
+ * Copyright 2022-2026 openDAQ d.o.o.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -44,12 +44,24 @@ DECLARE_OPENDAQ_INTERFACE(IUpdateParameters, IPropertyObject)
      * @param options The device update options object.
      */
     virtual ErrCode INTERFACE_FUNC getDeviceUpdateOptions(IDeviceUpdateOptions** options) = 0;
-    
+
     /*!
      * @brief Sets the device update options object that allows for specifying how a device and its subdevices are to be updated.
      * @param options The device update options object.
      */
     virtual ErrCode INTERFACE_FUNC setDeviceUpdateOptions(IDeviceUpdateOptions* options) = 0;
+
+    /*!
+     * @brief Gets the removeUnusedDevices flag. When true, connected devices not mentioned in the loading config will be removed.
+     * @param remove The current value of the removeUnusedDevices flag.
+     */
+    virtual ErrCode INTERFACE_FUNC getRemoveUnusedDevices(Bool* remove) = 0;
+
+    /*!
+     * @brief Sets the removeUnusedDevices flag. When set to true, connected devices not mentioned in the loading config will be removed.
+     * @param mode The new value for the removeUnusedDevices flag.
+     */
+    virtual ErrCode INTERFACE_FUNC setRemoveUnusedDevices(Bool remove) = 0;
 };
 /*!@}*/
 

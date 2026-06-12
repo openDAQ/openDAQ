@@ -1,5 +1,5 @@
 /*
- * Copyright 2022-2025 openDAQ d.o.o.
+ * Copyright 2022-2026 openDAQ d.o.o.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -71,7 +71,7 @@ public:
     ErrCode INTERFACE_FUNC setOperationModeRecursive(OperationModeType modeType) override;
     ErrCode INTERFACE_FUNC getOperationMode(OperationModeType* modeType) override;
 
-    ErrCode INTERFACE_FUNC setParentActive(Bool parentActive) override;
+    ErrCode INTERFACE_FUNC setParentActive(Bool parentActive, Bool onUpdate) override;
     ErrCode INTERFACE_FUNC setAsRoot() override;
 
     template <class Implementation>
@@ -386,11 +386,11 @@ inline ErrCode GenericConfigClientDeviceImpl<TDeviceBase>::getOperationMode(Oper
 }
 
 template <class TDeviceBase>
-inline ErrCode GenericConfigClientDeviceImpl<TDeviceBase>::setParentActive(Bool parentActive)
+inline ErrCode GenericConfigClientDeviceImpl<TDeviceBase>::setParentActive(Bool parentActive, Bool onUpdate)
 {
     if (this->isRootDevice)
         return OPENDAQ_IGNORED;
-    return Super::setParentActive(parentActive);
+    return Super::setParentActive(parentActive, onUpdate);
 }
 
 template <class TDeviceBase>
@@ -628,6 +628,9 @@ inline void GenericConfigClientDeviceImpl<TDeviceBase>::deviceLockStatusChanged(
 
     if (isLocked)
         this->userLock.lock();
+
+    if (!this->coreEventMuted && this->coreEvent.assigned())
+        this->triggerCoreEvent(CoreEventArgsDeviceLockStateChanged(isLocked));
 }
 
 template <class TDeviceBase>

@@ -43,8 +43,17 @@ set(nuget_config --configfile "./.nuget/NuGet.Config" --ignore-failed-sources) #
 set(dotnet_config --configuration $<CONFIG>_Build)
 # suppress warnings:
 # > CS1591: Missing XML comment for publicly visible type or member 'xyz'.
-# > NU1801: The local source 'path' doesn't exist.
+
+set(dotnet_frameworks "${OPENDAQ_DOTNET_TARGET_FRAMEWORKS}")
+# Build the -windows suffixed variant for WinForms/WPF projects
+string(REGEX REPLACE "([^;]+)" "\\1-windows" dotnet_frameworks_windows "${dotnet_frameworks}")
+message(STATUS "Target .NET framework(s): ${dotnet_frameworks}")
+
+file(WRITE "${fullProjectDir}/OpenDaqNetVersion.props"
+"<Project>\n  <PropertyGroup>\n    <OpenDaqNetVersion>${dotnet_frameworks}</OpenDaqNetVersion>\n    <OpenDaqNetVersionWindows>${dotnet_frameworks_windows}</OpenDaqNetVersionWindows>\n  </PropertyGroup>\n</Project>\n")
+
 set(msbuild_parameters -p:NoWarn="CS1591,NU1801" -p:Platform=${platform} -p:CMAKE_RUNTIME_OUTPUT_DIRECTORY=${CMAKE_RUNTIME_OUTPUT_DIRECTORY} -p:OPENDAQ_PACKAGE_VERSION=${OPENDAQ_PACKAGE_VERSION})
+
 set(dotnet_cmd_args ${projectFileName} ${dotnet_config} --verbosity minimal ${nuget_config} ${msbuild_parameters})
 set(dotnet_test_args ${projectFileName} --no-build ${dotnet_config} -p:Platform=${platform} --logger """junit\\\;LogFilePath=${test_path}/test_${targetName}.xml""")
 #set(dotnet_pack_args ${projectFileName} --no-build ${dotnet_config} ${msbuild_parameters})

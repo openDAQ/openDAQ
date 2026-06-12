@@ -247,13 +247,21 @@ class App(tk.Tk):
 
         view_menu = tk.Menu(menu_bar, tearoff=0)
         menu_bar.add_cascade(label='View', menu=view_menu)
-        view_menu.add_checkbutton(
-            label='Show hidden components', command=self.handle_view_show_hidden_components)
+        view_menu.add_checkbutton(label='Show hidden components',command=self.handle_view_show_hidden_components)
+
+        self._signal_preview_var = tk.BooleanVar(value=self.context.view_signal_preview)
+        view_menu.add_checkbutton(label='Signal preview',variable=self._signal_preview_var,command=self.handle_view_signal_preview_toggled)
 
     def handle_view_show_hidden_components(self):
         self.context.view_hidden_components = not self.context.view_hidden_components
         self.tree_update()
 
+    def handle_view_signal_preview_toggled(self):
+        self.context.view_signal_preview = self._signal_preview_var.get()
+        if self.context.selected_node is not None:
+            self.right_side_panel_clear()
+            self.right_side_panel_draw_node(self.context.selected_node)
+            
     # MARK: - Tree view
     def tree_widget_create(self, parent_frame):
         frame = ttk.Frame(parent_frame)
@@ -436,7 +444,15 @@ class App(tk.Tk):
             self.tree.insert(parent_node_id, tk.END, iid=component_node_id, image=icon,
                              text=self._format_tree_item_text(component_name), open=is_open, values=(component_node_id,), tags=(status_string,))
 
+    DEFAULT_FOLDER_NAMES = frozenset(('Sig', 'FB', 'Dev', 'IP', 'IO', 'Srv'))
 
+    def _is_default_folder(self, iid):
+        if not iid:
+            return False
+        node = utils.find_component(iid, self.context.instance)
+        if node is None or not daq.IFolder.can_cast_from(node):
+            return False
+        return node.name in self.DEFAULT_FOLDER_NAMES
 
     def get_standard_folder_name(self, component):
         if component == 'Sig':
@@ -468,9 +484,10 @@ class App(tk.Tk):
         component_name = self.get_standard_folder_name(component.name)
         if daq.IDevice.can_cast_from(component):
             device = daq.IDevice.cast_from(component)
-            mode = self.operation_mode_to_string(device.operation_mode)
-            if mode:
-                component_name = f'{component_name} | {mode}'
+            if device.operation_mode is not None:
+                mode = self.operation_mode_to_string(device.operation_mode)
+                if mode:
+                    component_name = f'{component_name} | {mode}'
         return component_name
 
     def _build_component_state_labels(self, component, tags):
@@ -598,6 +615,8 @@ class App(tk.Tk):
     def handle_load_modules_button_clicked(self):
         if platform.system() == 'Windows':
             extension = '.module.dll'
+        elif platform.system() == 'Darwin':
+            extension = '.dylib'
         else:
             extension = '.module.so'
 
@@ -643,6 +662,10 @@ class App(tk.Tk):
         if element == 'indicator':
             if iid:
                 self.tree.item(iid, open=not self.tree.item(iid, 'open'))
+            return 'break'
+
+        if iid and self._is_default_folder(iid):
+            self.tree.item(iid, open=not self.tree.item(iid, 'open'))
             return 'break'
 
         if iid and iid == utils.treeview_get_first_selection(self.tree):
@@ -915,10 +938,10 @@ class App(tk.Tk):
 
         info_fields = [("ID", ctype.id)]
         if type_kind == "device" and daq.IDeviceType.can_cast_from(comp_type):
-            prefix = getattr(daq.IDeviceType.cast_from(comp_type), 'prefix', None)
+            prefix = daq.IDeviceType.cast_from(comp_type).connection_string_prefix
             info_fields.append(("Prefix", prefix))  # the label row already handles None -> "N/A"
         elif type_kind == "streaming" and daq.IStreamingType.can_cast_from(comp_type):
-            prefix = getattr(daq.IStreamingType.cast_from(comp_type), 'prefix', None)
+            prefix = daq.IStreamingType.cast_from(comp_type).connection_string_prefix
             info_fields.append(("Prefix", prefix))
 
         for label, value in info_fields:
@@ -956,10 +979,12 @@ class App(tk.Tk):
         if node_unique_id not in self.context.nodes:
             return
         node = self.context.nodes[node_unique_id]
+
         if (daq.IFolder.can_cast_from(node)
                 and not daq.IDevice.can_cast_from(node)
                 and not daq.IFunctionBlock.can_cast_from(node)
-                and not daq.IServer.can_cast_from(node)):
+                and not daq.IServer.can_cast_from(node)
+                and node.name in self.DEFAULT_FOLDER_NAMES):
             self.tree.item(selected_iid, open=not self.tree.item(selected_iid, 'open'))
             self.tree.selection_set('')
             return

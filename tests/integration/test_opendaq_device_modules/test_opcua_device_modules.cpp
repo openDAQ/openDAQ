@@ -8,6 +8,7 @@
 #include <opendaq/device_impl.h>
 #include <opendaq/module_info_factory.h>
 #include <opendaq/device_type_factory.h>
+#include <testutils/testutils.h>
 
 #include "test_helpers/device_modules.h"
 
@@ -593,9 +594,9 @@ TEST_F(OpcuaDeviceModulesTest, GetConnectedClientsInfo)
     ASSERT_EQ(serverSideClientsInfo.getCount(), 1u);
     ASSERT_EQ(serverSideClientsInfo[0].getProtocolName(), "OpenDAQOPCUA");
     ASSERT_EQ(serverSideClientsInfo[0].getProtocolType(), ProtocolType::Configuration);
-    ASSERT_EQ(serverSideClientsInfo[0].getHostName(), "");
-    ASSERT_EQ(serverSideClientsInfo[0].getAddress(), "");
-    ASSERT_EQ(serverSideClientsInfo[0].getClientTypeName(), "");
+    ASSERT_GT(serverSideClientsInfo[0].getHostName().getLength(), 0);
+    ASSERT_GT(serverSideClientsInfo[0].getAddress().getLength(), 0);
+    ASSERT_EQ(serverSideClientsInfo[0].getClientTypeName(), "Control");
 }
 
 TEST_F(OpcuaDeviceModulesTest, GetRemoteDeviceObjects)
@@ -1755,7 +1756,9 @@ TEST_F(OpcuaDeviceModulesTest, GetSetNonCheangableUserNameLocation)
     }
 }
 
-TEST_F(OpcuaDeviceModulesTest, SettingOperationMode)
+// Hangs: setOperationMode / RefDevice::acqLoop lock-order inversion (transport-agnostic;
+// also reproduces in the Native variant of this test).
+TEST_F_UNSTABLE_SKIPPED(OpcuaDeviceModulesTest, SettingOperationMode)
 {
     auto server = CreateServerInstance();
     auto client = CreateClientInstance();

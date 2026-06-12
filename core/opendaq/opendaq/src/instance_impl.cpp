@@ -64,7 +64,7 @@ InstanceImpl::InstanceImpl(IInstanceBuilder* instanceBuilder)
 
     const auto devicePrivate = rootDevice.asPtrOrNull<IDevicePrivate>();
     if (devicePrivate.assigned())
-        devicePrivate->setAsRoot();
+        checkErrorInfo(devicePrivate->setAsRoot());
 
     for (const auto& [_, discoveryServer] : context.getDiscoveryServers())
         discoveryServer.asPtr<IDiscoveryServer>().setRootDevice(rootDevice);
@@ -86,10 +86,15 @@ static StringPtr DefineLocalId(const StringPtr& localId)
     return "openDAQDevice";
 }
 
-static DiscoveryServerPtr createDiscoveryServer(const StringPtr& serviceName, const LoggerPtr& logger)
+static DiscoveryServerPtr createDiscoveryServer(const StringPtr& serviceName, const LoggerPtr& logger, const DictPtr<IString, IBaseObject>& instanceOptions)
 {
     if (serviceName == "mdns")
-        return MdnsDiscoveryServer(logger);
+    {
+        if (instanceOptions.hasKey("MdnsDiscoveryServer"))
+            return MdnsDiscoveryServerWithOptions(logger, instanceOptions.get("MdnsDiscoveryServer"));
+        else
+            return MdnsDiscoveryServer(logger);
+    }
     return nullptr;
 }
 
@@ -140,20 +145,20 @@ static ContextPtr ContextFromInstanceBuilder(IInstanceBuilder* instanceBuilder)
     if (!moduleManager.assigned())
     {
         moduleManager = ModuleManagerMultiplePaths(builderPtr.getModulePathsList());
-        moduleManager->setAuthenticatedOnly(loadAuthenticatedModulesOnly);
-        moduleManager->setModuleAuthenticator(moduleAuthenticator);
+        moduleManager.setAuthenticatedOnly(loadAuthenticatedModulesOnly);
         if (moduleAuthenticator != nullptr)
         {
-            moduleAuthenticator->setLogger(logger);
+            moduleManager.setModuleAuthenticator(moduleAuthenticator);
+            moduleAuthenticator.setLogger(logger);
         }
 
-        builderPtr->setModuleManager(moduleManager);
+        builderPtr.setModuleManager(moduleManager);
     }
 
     auto discoveryServers = Dict<IString, IDiscoveryServer>();
     for (const auto& serverName : builderPtr.getDiscoveryServers())
     {
-        auto server = createDiscoveryServer(serverName, logger);
+        auto server = createDiscoveryServer(serverName, logger, options);
         if (server.assigned())
             discoveryServers.set(serverName, server);
     }

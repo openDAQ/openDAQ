@@ -2,6 +2,7 @@
 #include <packet_streaming/packet_streaming_client.h>
 #include <packet_streaming/packet_streaming_server.h>
 #include <opendaq/packet_factory.h>
+#include <opendaq/binary_data_packet_factory.h>
 #include <opendaq/data_descriptor_factory.h>
 #include <opendaq/data_rule_factory.h>
 #include <opendaq/packet_destruct_callback_factory.h>
@@ -166,6 +167,73 @@ TEST_F(PacketStreamingTest, DataPacket)
     ASSERT_EQ(serverDataPacket, clientDataPacket);
 
     serverDataPacket.release();
+
+    completeTransmitAll();
+    ASSERT_TRUE(client.areReferencesCleared());
+}
+
+TEST_F(PacketStreamingTest, StringDataPacket)
+{
+    constexpr uint32_t signalId = 1;
+    const std::string expectedString = "abcd";
+
+    const auto stringDescriptor = DataDescriptorBuilder()
+        .setSampleType(SampleType::String)
+        .build();
+
+    const auto serverEventPacket = DataDescriptorChangedEventPacket(stringDescriptor, nullptr);
+    server.addDaqPacket(signalId, serverEventPacket);
+
+    auto serverStringPacket = BinaryDataPacket(nullptr, stringDescriptor, expectedString.size());
+
+    auto* data = static_cast<char*>(serverStringPacket.getData());
+    std::memcpy(data, expectedString.data(), expectedString.size());
+
+    {
+        // Verify server-side packet behavior before transmission.
+        DataPacketPtr serverSidePacket = serverStringPacket;
+
+        ASSERT_EQ(serverSidePacket.getType(), daq::PacketType::Data);
+        ASSERT_EQ(serverSidePacket.getSampleCount(), 1u);
+
+        StringPtr serverLastValue = serverSidePacket.getLastValue();
+        ASSERT_EQ(serverLastValue.toStdString(), expectedString);
+    }
+
+    server.addDaqPacket(signalId, serverStringPacket);
+
+    transmitAll();
+
+    {
+        auto [receivedSignalId, clientEventPacket] = client.getNextDaqPacket();
+
+        ASSERT_EQ(receivedSignalId, signalId);
+        ASSERT_EQ(clientEventPacket, serverEventPacket);
+    }
+
+    {
+        auto [receivedSignalId, clientPacket] = client.getNextDaqPacket();
+
+        ASSERT_EQ(receivedSignalId, signalId);
+        ASSERT_TRUE(clientPacket.assigned());
+        ASSERT_EQ(clientPacket.getType(), daq::PacketType::Data);
+
+        DataPacketPtr clientDataPacket = clientPacket;
+
+        ASSERT_EQ(clientDataPacket.getSampleCount(), 1u);
+
+        StringPtr clientLastValue = clientDataPacket.getLastValue();
+        ASSERT_EQ(clientLastValue.toStdString(), expectedString);
+    }
+
+    {
+        auto [receivedSignalId, packet] = client.getNextDaqPacket();
+
+        ASSERT_EQ(receivedSignalId, std::numeric_limits<uint32_t>::max());
+        ASSERT_EQ(packet, nullptr);
+    }
+
+    serverStringPacket.release();
 
     completeTransmitAll();
     ASSERT_TRUE(client.areReferencesCleared());

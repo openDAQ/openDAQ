@@ -1,5 +1,5 @@
 /*
- * Copyright 2022-2025 openDAQ d.o.o.
+ * Copyright 2022-2026 openDAQ d.o.o.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -28,6 +28,9 @@ static const char* NativeStreamingDevicePrefix = "daq.ns";
 class NativeStreamingDeviceImpl : public Device
 {
 public:
+    using Super = Device;
+    using Self = NativeStreamingDeviceImpl;
+
     explicit NativeStreamingDeviceImpl(const ContextPtr& ctx,
                                        const ComponentPtr& parent,
                                        const StringPtr& localId,
@@ -36,6 +39,8 @@ public:
                                        std::shared_ptr<boost::asio::io_context> processingIOContextPtr,
                                        Int initTimeout,
                                        const DeviceTypePtr& type);
+
+    ErrCode INTERFACE_FUNC setComponentConfig(IPropertyObject* config) override;
 
 protected:
     void removed() override;
@@ -59,6 +64,8 @@ protected:
     std::unordered_map<StringPtr, std::pair<SignalPtr, StringPtr>, StringHash, StringEqualTo> deviceSignals;
     std::unordered_map<StringPtr, std::pair<SignalPtr, StringPtr>, StringHash, StringEqualTo> deviceSignalsReconnection;
     DeviceTypePtr deviceType;
+
+    opendaq_native_streaming_protocol::NativeStreamingClientHandlerPtr transportProtocolClient;
 };
 
 END_NAMESPACE_OPENDAQ_NATIVE_STREAMING_CLIENT_MODULE

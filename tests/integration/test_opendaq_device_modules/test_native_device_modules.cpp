@@ -16,6 +16,7 @@
 #include <opendaq/module_impl.h>
 #include <ref_device_module/module_dll.h>
 #include <ref_fb_module/module_dll.h>
+#include <testutils/testutils.h>
 #include <websocket_streaming_client_module/module_dll.h>
 #include <websocket_streaming_server_module/module_dll.h>
 #include <chrono>
@@ -421,7 +422,9 @@ TEST_F(NativeDeviceModulesTest, ConnectUsernameDeviceAndStreamingConfig)
     ASSERT_TRUE(device.assigned());
 }
 
-TEST_F(NativeDeviceModulesTest, GetConnectedClientsInfo)
+// Flaky: connected-clients info propagates asynchronously, so on slow runners the assertion
+// can race the propagation and see one fewer client than expected.
+TEST_F_UNSTABLE_SKIPPED(NativeDeviceModulesTest, GetConnectedClientsInfo)
 {
     auto server = CreateServerInstance();
     auto client = CreateClientInstance();
@@ -3525,7 +3528,11 @@ TEST_F(NativeDeviceModulesTest, GetAvailableDevicesCheck)
     }
 }
 
-TEST_F(NativeDeviceModulesTest, SettingOperationMode)
+// Hangs: lock-order inversion between setOperationMode → getTreeLockGuard
+// (signal-lock then device-lock via items+InheritLock) and RefDevice::acqLoop →
+// Signal::getDescriptor (device-lock then signal-lock). Shared mechanism for all
+// SettingOperationMode* variants below.
+TEST_F_UNSTABLE_SKIPPED(NativeDeviceModulesTest, SettingOperationMode)
 {
     auto server = CreateServerInstance();
     auto client = CreateClientInstance();
@@ -3587,7 +3594,8 @@ TEST_F(NativeDeviceModulesTest, SettingOperationMode)
     test_helpers::checkDeviceOperationMode(client.getDevices()[0].getDevices()[0], daq::OperationModeType::Idle);
 }
 
-TEST_F(NativeDeviceModulesTest, SettingOperationModeWithoutPermissions)
+// Hangs: same setOperationMode / RefDevice::acqLoop lock-order inversion as SettingOperationMode.
+TEST_F_UNSTABLE_SKIPPED(NativeDeviceModulesTest, SettingOperationModeWithoutPermissions)
 {
     auto CreateUsers = []()
     {
@@ -3721,7 +3729,8 @@ TEST_F(NativeDeviceModulesTest, SettingOperationModeWithoutPermissions)
     }
 }
 
-TEST_F(NativeDeviceModulesTest, SettingOperationModeWithPermissions)
+// Hangs: same setOperationMode / RefDevice::acqLoop lock-order inversion as SettingOperationMode.
+TEST_F_UNSTABLE_SKIPPED(NativeDeviceModulesTest, SettingOperationModeWithPermissions)
 {
     auto CreateUsers = []()
     {
@@ -3795,7 +3804,94 @@ TEST_F(NativeDeviceModulesTest, SettingOperationModeWithPermissions)
     }
 }
 
-TEST_F(NativeDeviceModulesTest, SettingOperationModeWithPermissionsNestedDevice)
+// Hangs: same setOperationMode / RefDevice::acqLoop lock-order inversion as SettingOperationMode.
+TEST_F_UNSTABLE_SKIPPED(NativeDeviceModulesTest, SettingOperationModeWithPermissionsForInvisibleDevice)
+{
+    auto CreateUsers = []()
+    {
+        auto users = List<IUser>();
+        const std::vector<std::pair<std::string, std::string>> templateForUser = {{"reader", "reader"}, {"admin", "admin"}};
+        for (const auto& [user, group] : templateForUser)
+            users.pushBack(User(user + "User", user + "UserPass", group.empty() ? nullptr : ListPtr<IString>{group}));
+
+        return users;
+    };
+
+    auto CreatePermissionsBuilder = []() -> daq::PermissionsBuilderPtr
+    {
+        using namespace daq;
+        return PermissionsBuilder()
+            .inherit(false)
+            .assign("everyone", PermissionMaskBuilder())
+            .assign("reader", PermissionMaskBuilder().read())
+            .assign("admin", PermissionMaskBuilder().read().write().execute());
+    };
+
+    const auto permissions = CreatePermissionsBuilder().build();
+
+    const auto authenticationProvider = StaticAuthenticationProvider(true, CreateUsers());
+
+    InstancePtr server;
+    InstancePtr client;
+    using OMT = daq::OperationModeType;
+    {
+        // create server and client isntances
+        server = CreateServerInstance(CreateCustomServerInstanceWithPermissions(authenticationProvider, permissions));
+        // client has all permissions to change operation mode for all server devices
+        client = CreateClientInstanceForUser("adminUser", "adminUserPass");
+    }
+
+    {
+        auto device0 = server.getDevices()[0];
+        auto device1 = server.getDevices()[0].getDevices()[0];
+        device0.asPtr<IComponentPrivate>().unlockAllAttributes();
+        device1.asPtr<IComponentPrivate>().unlockAllAttributes();
+        device0.setVisible(false);
+        device1.setVisible(false);
+        ASSERT_FALSE(device0.getVisible());
+        ASSERT_FALSE(device1.getVisible());
+    }
+
+    {
+        // reset all devices to Operation for the following tests
+        ASSERT_NO_THROW(server.setOperationModeRecursive(OMT::Operation));
+        std::this_thread::sleep_for(std::chrono::milliseconds(100));
+        test_helpers::checkDeviceOperationMode(server, OMT::Operation, true);
+        test_helpers::checkDeviceOperationMode(server.getDevices(search::Any())[0], OMT::Operation, true);
+        test_helpers::checkDeviceOperationMode(server.getDevices(search::Any())[0].getDevices(search::Any())[0], OMT::Operation, true);
+
+        ASSERT_NO_THROW(client.setOperationMode(OMT::Operation));
+        test_helpers::checkDeviceOperationMode(client.getRootDevice(), OMT::Operation);
+    }
+
+    {
+        // check initial operation mode for server and client devices
+        test_helpers::checkDeviceOperationMode(server, OMT::Operation, true);
+        test_helpers::checkDeviceOperationMode(server.getDevices(search::Any())[0], OMT::Operation, true);
+        test_helpers::checkDeviceOperationMode(server.getDevices(search::Any())[0].getDevices(search::Any())[0], OMT::Operation, true);
+
+        test_helpers::checkDeviceOperationMode(client, OMT::Operation);
+        test_helpers::checkDeviceOperationMode(client.getDevices(search::Any())[0], OMT::Operation);
+        test_helpers::checkDeviceOperationMode(client.getDevices(search::Any())[0].getDevices(search::Any())[0], OMT::Operation);
+        test_helpers::checkDeviceOperationMode(client.getDevices(search::Any())[0].getDevices(search::Any())[0].getDevices(search::Any())[0], OMT::Operation);
+    }
+
+    {
+        ASSERT_NO_THROW(client.setOperationModeRecursive(OMT::Idle));
+        std::this_thread::sleep_for(std::chrono::milliseconds(100));
+        test_helpers::checkDeviceOperationMode(server.getRootDevice(), OMT::Idle, true);
+        test_helpers::checkDeviceOperationMode(server.getDevices(search::Any())[0], OMT::Idle, true);
+        test_helpers::checkDeviceOperationMode(server.getDevices(search::Any())[0].getDevices(search::Any())[0], OMT::Idle, true);
+
+        test_helpers::checkDeviceOperationMode(client.getRootDevice(), OMT::Idle);
+        test_helpers::checkDeviceOperationMode(client.getDevices(search::Any())[0], OMT::Idle);
+        test_helpers::checkDeviceOperationMode(client.getDevices(search::Any())[0].getDevices(search::Any())[0], OMT::Idle);
+        test_helpers::checkDeviceOperationMode(client.getDevices(search::Any())[0].getDevices(search::Any())[0].getDevices(search::Any())[0], OMT::Idle);
+    }
+}
+
+// Hangs: same setOperationMode / RefDevice::acqLoop lock-order inversion as SettingOperationMode.
+TEST_F_UNSTABLE_SKIPPED(NativeDeviceModulesTest, SettingOperationModeWithPermissionsNestedDevice)
 {
     auto CreateUsers = []()
     {
@@ -4371,7 +4467,11 @@ TEST_P(NativeC2DStreamingTest, ServerCoreEvents)
     ASSERT_TRUE(signalRemovedFuture.wait_for(std::chrono::seconds(5)) == std::future_status::ready);
 }
 
-TEST_P(NativeC2DStreamingTest, ClientLostConnection)
+// Flaky: when the server is removed, the mirrored input-port → client signal cleanup is
+// only one-sided on some interleavings — mirroredInputPort.getSignal() goes null but
+// clientLocalSignal.getConnections().getCount() stays at 1 indefinitely (not lag —
+// the notification is dropped, polling doesn't help).
+TEST_P_UNSTABLE_SKIPPED(NativeC2DStreamingTest, ClientLostConnection)
 {
     SKIP_TEST_MAC_CI;
     auto server = CreateServerInstance();

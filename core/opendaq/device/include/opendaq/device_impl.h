@@ -35,6 +35,7 @@
 #include <opendaq/component_keys.h>
 #include <opendaq/core_opendaq_event_args_factory.h>
 #include <coreobjects/property_object_factory.h>
+#include <coreobjects/property_factory.h>
 #include <opendaq/module_manager_ptr.h>
 #include <opendaq/module_manager_utils_ptr.h>
 #include <opendaq/sync_component_factory.h>
@@ -76,6 +77,8 @@ public:
 
     virtual DeviceInfoPtr onGetInfo();
 
+    virtual SyncComponent2Ptr onGetSynchronization();
+
     virtual uint64_t onGetTicksSinceOrigin();
 
     DictPtr<IString, IFunctionBlockType> onGetAvailableFunctionBlockTypes() override;
@@ -105,6 +108,7 @@ public:
     ErrCode INTERFACE_FUNC getChannels(IList** channels, ISearchFilter* searchFilter = nullptr) override;
     ErrCode INTERFACE_FUNC getChannelsRecursive(IList** channels, ISearchFilter* searchFilter = nullptr) override;
     ErrCode INTERFACE_FUNC getSyncComponent(ISyncComponent** syncComponent) override;
+    ErrCode INTERFACE_FUNC getSynchronization(ISyncComponent2** synchronization) override;
 
     ErrCode INTERFACE_FUNC addServer(IString* typeId, IPropertyObject* config, IServer** server) override;
     ErrCode INTERFACE_FUNC removeServer(IServer* server) override;
@@ -1625,6 +1629,37 @@ ErrCode GenericDevice<TInterface, Interfaces...>::getSyncComponent(ISyncComponen
 }
 
 template <typename TInterface, typename... Interfaces>
+SyncComponent2Ptr GenericDevice<TInterface, Interfaces...>::onGetSynchronization()
+{
+    return SyncComponent2();
+}
+
+template <typename TInterface, typename... Interfaces>
+ErrCode GenericDevice<TInterface, Interfaces...>::getSynchronization(ISyncComponent2** sync)
+{
+    OPENDAQ_PARAM_NOT_NULL(sync);
+
+    if (this->isComponentRemoved)
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_COMPONENT_REMOVED);
+
+    return daqTry([&]
+    {
+        if (!this->objPtr.hasProperty("Sync"))
+        {
+            SyncComponent2Ptr syncComponent2;
+            const ErrCode errCode = wrapHandlerReturn(this, &Self::onGetSynchronization, syncComponent2);
+            checkErrorInfo(errCode);
+
+            this->addProperty(ObjectPropertyBuilder("Sync", syncComponent2).setVisible(false).build());
+        }
+
+        const SyncComponent2Ptr syncComponent2 = this->objPtr.getPropertyValue("Sync");
+        *sync = syncComponent2.addRefAndReturn();
+        return OPENDAQ_SUCCESS;
+    });
+}
+
+template <typename TInterface, typename... Interfaces>
 ErrCode GenericDevice<TInterface, Interfaces...>::getDeviceConfig(IPropertyObject** config)
 {
     return this->getComponentConfig(config);
@@ -2531,6 +2566,7 @@ void GenericDevice<TInterface, Interfaces...>::updateObject(const SerializedObje
             updatableDeviceInfo.updateInternal(deviceInfoObject, context);
         }
     }
+
 }
 
 template <typename TInterface, typename ... Interfaces>

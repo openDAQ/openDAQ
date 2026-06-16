@@ -15,9 +15,10 @@
  */
 
 #pragma once
-#include <config_protocol/config_client_component_impl.h>
+#include <config_protocol/config_client_property_object_impl.h>
 #include <opendaq/sync_component2_impl.h>
 #include <config_protocol/config_protocol_deserialize_context_impl.h>
+#include <opendaq/deserialize_component.h>
 
 namespace daq::config_protocol
 {
@@ -25,27 +26,35 @@ namespace daq::config_protocol
 template <class Impl>
 class ConfigClientBaseSyncComponent2Impl;
 
-using ConfigClientSyncComponent2Impl = ConfigClientBaseSyncComponent2Impl<SyncComponent2Impl<IComponent, IConfigClientObject>>;
+using ConfigClientSyncComponent2Impl = ConfigClientBaseSyncComponent2Impl<SyncComponent2Impl<IPropertyObject, IConfigClientObject, IDeserializeComponent>>;
 
 template <class Impl>
-class ConfigClientBaseSyncComponent2Impl : public ConfigClientComponentBaseImpl<Impl>
+class ConfigClientBaseSyncComponent2Impl : public ConfigClientPropertyObjectBaseImpl<Impl>
 {
 public:
 
-    using Super = ConfigClientComponentBaseImpl<Impl>;
+    using Super = ConfigClientPropertyObjectBaseImpl<Impl>;
     using Super::Super;
+
+    // IPropertyObject
+    ErrCode INTERFACE_FUNC setPropertyValue(IString* propertyName, IBaseObject* value) override;
+    ErrCode INTERFACE_FUNC setProtectedPropertyValue(IString* propertyName, IBaseObject* value) override;
+    ErrCode INTERFACE_FUNC clearPropertyValue(IString* propertyName) override;
+    ErrCode INTERFACE_FUNC addProperty(IProperty* property) override;
+    ErrCode INTERFACE_FUNC removeProperty(IString* propertyName) override;
+    ErrCode INTERFACE_FUNC beginUpdate() override;
+    ErrCode INTERFACE_FUNC endUpdate() override;
 
     // ISyncComponent2
     ErrCode INTERFACE_FUNC getSelectedSource(ISyncInterface** selectedSource) override;
     ErrCode INTERFACE_FUNC addInterface(ISyncInterface* syncInterface) override;
 
-    static ErrCode Deserialize(ISerializedObject* serialized, IBaseObject* context, IFunction* factoryCallback, IBaseObject** obj);
+    // IDeserializeComponent
+    ErrCode INTERFACE_FUNC deserializeValues(ISerializedObject* serializedObject, IBaseObject* context, IFunction* callbackFactory) override;
+    ErrCode INTERFACE_FUNC complete() override;
+    ErrCode INTERFACE_FUNC getDeserializedParameter(IString* parameter, IBaseObject** value) override;
 
-protected:
-    template <class Interface, class Implementation>
-    static BaseObjectPtr DeserializeSyncComponent2(const SerializedObjectPtr& serialized,
-                                                    const BaseObjectPtr& context,
-                                                    const FunctionPtr& factoryCallback);
+    static ErrCode Deserialize(ISerializedObject* serialized, IBaseObject* context, IFunction* factoryCallback, IBaseObject** obj);
 };
 
 } // namespace daq::config_protocol

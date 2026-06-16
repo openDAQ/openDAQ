@@ -20,37 +20,33 @@
 #include <coretypes/intfs.h>
 #include <coretypes/dictobject.h>
 #include <coretypes/dictobject_factory.h>
-#include <opendaq/component_impl.h>
 #include <opendaq/sync_component2.h>
 #include <opendaq/sync_component2_internal.h>
 #include <opendaq/sync_interface_ptr.h>
 #include <opendaq/sync_interface_internal_ptr.h>
-#include <opendaq/component_deserialize_context_factory.h>
 #include <opendaq/clock_sync_interface_impl.h>
 #include <coretypes/objectptr.h>
 #include <coretypes/deserializer.h>
 #include <coreobjects/property_object_factory.h>
 #include <coreobjects/property_factory.h>
+#include <coreobjects/property_object_impl.h>
 #include <fmt/format.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
-template <typename TInterface = IComponent, typename... Interfaces>
+template <typename TInterface = IPropertyObject, typename... Interfaces>
 class SyncComponent2Impl;
 
 using SyncComponent2Base = SyncComponent2Impl<>;
 
 template <class Intf, class... Intfs>
-class SyncComponent2Impl : public ComponentImpl<Intf, ISyncComponent2, ISyncComponent2Internal, Intfs...>
+class SyncComponent2Impl : public GenericPropertyObjectImpl<Intf, ISyncComponent2, ISyncComponent2Internal, Intfs...>
 {
 public:
-    using Super = ComponentImpl<Intf, ISyncComponent2, ISyncComponent2Internal, Intfs...>;
+    using Super = GenericPropertyObjectImpl<Intf, ISyncComponent2, ISyncComponent2Internal, Intfs...>;
     using Self = SyncComponent2Impl<Intf, Intfs...>;
 
-    SyncComponent2Impl(const ContextPtr& context,
-                      const ComponentPtr& parent,
-                      const StringPtr& localId,
-                      Bool registerEvents = False);
+    explicit SyncComponent2Impl(Bool registerEvents = False);
 
     // ISyncComponent2
     ErrCode INTERFACE_FUNC getSelectedSource(ISyncInterface** selectedSource) override;
@@ -78,11 +74,8 @@ protected:
 
 
 template <class Intf, class... Intfs>
-SyncComponent2Impl<Intf, Intfs...>::SyncComponent2Impl(const ContextPtr& context,
-                                                        const ComponentPtr& parent,
-                                                        const StringPtr& localId,
-                                                        Bool registerEvents)
-    : Super(context, parent, localId, nullptr, nullptr)
+SyncComponent2Impl<Intf, Intfs...>::SyncComponent2Impl(Bool registerEvents)
+    : Super()
 {
     this->init(registerEvents == True);
 }
@@ -95,13 +88,13 @@ void SyncComponent2Impl<Intf, Intfs...>::init(bool registerEvents)
 
     auto interfaces = PropertyObject();
     interfaces.addProperty(ObjectProperty(source.getName(), source));
-    Super::addProperty(ObjectProperty("Interfaces", interfaces));
+    this->addProperty(ObjectProperty("Interfaces", interfaces));
 
     const auto souceProperty = StringPropertyBuilder("Source", source.getName())
                                                         .setSelectionValues(EvalValue("%Interfaces:PropertyNames"))
                                                         .setReadOnly(true)
                                                         .build();
-    Super::addProperty(souceProperty);
+    this->addProperty(souceProperty);
     this->objPtr.setPropertyOrder(List<IString>("Interfaces"));
 
     if (registerEvents)
@@ -253,18 +246,16 @@ ErrCode SyncComponent2Impl<Intf, Intfs...>::Deserialize(ISerializedObject* seria
     OPENDAQ_PARAM_NOT_NULL(obj);
     const ErrCode errCode = daqTry([&obj, &serialized, &context, &factoryCallback]
     {
-        *obj = Super::DeserializeComponent(
-            serialized,
-            context,
-            factoryCallback,
-            [](const SerializedObjectPtr&, const ComponentDeserializeContextPtr& deserializeContext, const StringPtr& className)
-            {
-                return createWithImplementation<ISyncComponent2, SyncComponent2Impl<Intf, Intfs...>>(
-                    deserializeContext.getContext(),
-                    deserializeContext.getParent(),
-                    deserializeContext.getLocalId(),
-                    false).detach();
-            }).detach();
+        *obj = Super::DeserializePropertyObject(
+                   serialized,
+                   context,
+                   factoryCallback,
+                   [](const SerializedObjectPtr&, const BaseObjectPtr&, const StringPtr&)
+                   {
+                       return createWithImplementation<ISyncComponent2, SyncComponent2Impl<Intf, Intfs...>>(false)
+                           .detach();
+                   })
+                   .detach();
     });
     OPENDAQ_RETURN_IF_FAILED(errCode);
     return errCode;

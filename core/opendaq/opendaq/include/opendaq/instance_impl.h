@@ -75,6 +75,7 @@ public:
     ErrCode INTERFACE_FUNC addStreaming(IStreaming** streaming, IString* connectionString, IPropertyObject* config = nullptr) override;
 
     ErrCode INTERFACE_FUNC getSyncComponent(ISyncComponent** syncComponent) override;
+    ErrCode INTERFACE_FUNC getSynchronization(ISyncComponent2** synchronization) override;
 
     ErrCode INTERFACE_FUNC addServer(IString* typeId, IPropertyObject* config, IServer** server) override;
     ErrCode INTERFACE_FUNC removeServer(IServer* server) override;

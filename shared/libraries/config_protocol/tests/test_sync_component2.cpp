@@ -31,13 +31,13 @@ public:
     TestDeviceWithSync2Impl(const ContextPtr& ctx, const ComponentPtr& parent, const StringPtr& localId)
         : Device(ctx, parent, localId)
     {
-        auto syncComponent = SyncComponent2(ctx, this->thisPtr<ComponentPtr>(), "sync");
+        SyncComponent2Ptr sync;
+        checkErrorInfo(this->getSynchronization(&sync));
 
         const auto syncInterface = createWithImplementation<ISyncInterface, SyncInterfaceBase>("TestInterface");
-        syncComponent.asPtr<ISyncComponent2Internal>(true).addInterface(syncInterface);
+        sync.asPtr<ISyncComponent2Internal>(true).addInterface(syncInterface);
 
-        syncComponent.asPtr<IPropertyObjectInternal>().setLockingStrategy(LockingStrategy::ForwardOwnerLockOwn);
-        this->addExistingComponent(syncComponent.detach());
+        // sync.asPtr<IPropertyObjectInternal>().setLockingStrategy(LockingStrategy::ForwardOwnerLockOwn);
     }
 
     static ErrCode Deserialize(ISerializedObject* serialized, IBaseObject* context, IFunction* factoryCallback, IBaseObject** obj)
@@ -111,12 +111,12 @@ public:
 
     SyncComponent2Ptr getServerSyncComponent() const
     {
-        return serverDevice.findComponent("sync");
+        return serverDevice.getSynchronization();
     }
 
     SyncComponent2Ptr getClientSyncComponent() const
     {
-        return clientDevice.findComponent("sync");
+        return clientDevice.getSynchronization();
     }
 
 protected:

@@ -569,6 +569,11 @@ ErrCode InstanceImpl::getSyncComponent(ISyncComponent** syncComponent)
     return rootDevice->getSyncComponent(syncComponent);
 }
 
+ErrCode InstanceImpl::getSynchronization(ISyncComponent2** synchronization)
+{
+    return rootDevice->getSynchronization(synchronization);
+}
+
 ErrCode InstanceImpl::createDefaultAddDeviceConfig(IPropertyObject** defaultConfig)
 {
     return rootDevice->createDefaultAddDeviceConfig(defaultConfig);

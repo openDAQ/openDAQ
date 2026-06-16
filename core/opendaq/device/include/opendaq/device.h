@@ -24,6 +24,7 @@
 #include <opendaq/device_type.h>
 #include <opendaq/streaming.h>
 #include <opendaq/sync_component.h>
+#include <opendaq/sync_component2.h>
 #include <opendaq/server.h>
 #include <opendaq/update_parameters.h>
 #include <coreobjects/user.h>
@@ -404,6 +405,12 @@ DECLARE_OPENDAQ_INTERFACE(IDevice, IFolder)
      *         OPENDAQ_IGNORED if adding the devices from modules is not allowed within the device.
      */
     virtual ErrCode INTERFACE_FUNC addDevices(IDict** devices, IDict* connectionArgs, IDict* errCodes = nullptr, IDict* errorInfos = nullptr) = 0;
+
+    /*!
+     * @brief Gets the synchronization object of the device.
+     * @param[out] sync The synchronization object.
+     */
+    virtual ErrCode INTERFACE_FUNC getSynchronization(ISyncComponent2** sync) = 0;
 };
 /*!@}*/
 

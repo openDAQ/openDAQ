@@ -61,6 +61,7 @@ struct MockDevice : MockGenericSignalContainer<MockDevice, IDevice>
     MOCK_METHOD(ErrCode, setOperationModeRecursive, (OperationModeType), (override MOCK_CALL));
     MOCK_METHOD(ErrCode, getOperationMode, (OperationModeType*), (override MOCK_CALL));
     MOCK_METHOD(ErrCode, getAvailableOperationModes, (IList**), (override MOCK_CALL));
+    MOCK_METHOD(ErrCode, getSynchronization, (ISyncComponent2**), (override MOCK_CALL));
 };
 
 END_NAMESPACE_OPENDAQ

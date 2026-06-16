@@ -181,14 +181,14 @@ using SyncComponent2Test = testing::Test;
 TEST_F(SyncComponent2Test, Create)
 {
     const auto ctx = NullContext();
-    const auto syncComponent2 = SyncComponent2(ctx, nullptr, "sync");
+    const auto syncComponent2 = SyncComponent2();
     ASSERT_TRUE(syncComponent2.assigned());
 }
 
 TEST_F(SyncComponent2Test, GetInterfaces)
 {
     const auto ctx = NullContext();
-    const auto syncComponent2 = SyncComponent2(ctx, nullptr, "sync");
+    const auto syncComponent2 = SyncComponent2();
 
     const auto interfaces = syncComponent2.getInterfaces();
     ASSERT_EQ(interfaces.getCount(), 1u);
@@ -198,7 +198,7 @@ TEST_F(SyncComponent2Test, GetInterfaces)
 TEST_F(SyncComponent2Test, GetSelectedSource)
 {
     const auto ctx = NullContext();
-    const auto syncComponent2 = SyncComponent2(ctx, nullptr, "sync");
+    const auto syncComponent2 = SyncComponent2();
 
     const auto selectedSource = syncComponent2.getSelectedSource();
     ASSERT_TRUE(selectedSource.assigned());
@@ -208,7 +208,7 @@ TEST_F(SyncComponent2Test, GetSelectedSource)
 TEST_F(SyncComponent2Test, AddTwoTheSameInterfaces)
 {
     const auto ctx = NullContext();
-    const auto syncComponent2 = SyncComponent2(ctx, nullptr, "sync");
+    const auto syncComponent2 = SyncComponent2();
     const auto syncComponent2Internal = syncComponent2.asPtr<ISyncComponent2Internal>(true);
 
     const auto newInterface = createWithImplementation<ISyncInterface, SyncInterfaceBase>("TestInterface");
@@ -226,7 +226,7 @@ TEST_F(SyncComponent2Test, AddTwoTheSameInterfaces)
 TEST_F(SyncComponent2Test, SetSelectedSource)
 {
     const auto ctx = NullContext();
-    const auto syncComponent2 = SyncComponent2(ctx, nullptr, "sync");
+    const auto syncComponent2 = SyncComponent2();
     const auto syncComponent2Internal = syncComponent2.asPtr<ISyncComponent2Internal>(true);
 
     // Add another interface
@@ -246,7 +246,7 @@ TEST_F(SyncComponent2Test, SetSelectedSource)
 TEST_F(SyncComponent2Test, GetSourceSynced)
 {
     const auto ctx = NullContext();
-    const auto syncComponent2 = SyncComponent2(ctx, nullptr, "sync");
+    const auto syncComponent2 = SyncComponent2();
 
     Bool synced;
     ASSERT_ERROR_CODE_EQ(syncComponent2->getSourceSynced(&synced), OPENDAQ_SUCCESS);
@@ -256,7 +256,7 @@ TEST_F(SyncComponent2Test, GetSourceSynced)
 TEST_F(SyncComponent2Test, GetSourceReferenceDomainId)
 {
     const auto ctx = NullContext();
-    const auto syncComponent2 = SyncComponent2(ctx, nullptr, "sync");
+    const auto syncComponent2 = SyncComponent2();
 
     StringPtr referenceDomainId;
     ASSERT_ERROR_CODE_EQ(syncComponent2->getSourceReferenceDomainId(&referenceDomainId), OPENDAQ_SUCCESS);
@@ -300,7 +300,7 @@ TEST_F(SyncComponent2Test, SyncInterfaceProperties)
 TEST_F(SyncComponent2Test, Serialization)
 {
     const auto ctx = NullContext();
-    const auto syncComponent2 = SyncComponent2(ctx, nullptr, "sync");
+    const auto syncComponent2 = SyncComponent2();
     const auto syncComponent2Internal = syncComponent2.asPtr<ISyncComponent2Internal>(true);
 
     // Add another interface
@@ -507,7 +507,7 @@ TEST_F(PtpSyncInterfaceTest, SaveLoad)
 {
     // Create SyncComponent2 and add PtpSyncInterface with eth port
     const auto ctx = NullContext();
-    const auto syncComponent2 = SyncComponent2(ctx, nullptr, "sync");
+    const auto syncComponent2 = SyncComponent2();
     const auto syncComponent2Internal = syncComponent2.asPtr<ISyncComponent2Internal>(true);
 
     const auto iface = createWithImplementation<ISyncInterface, TestPtpSyncInterface>();

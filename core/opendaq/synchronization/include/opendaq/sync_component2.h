@@ -63,9 +63,6 @@ DECLARE_OPENDAQ_INTERFACE(ISyncComponent2, IBaseObject)
 
 OPENDAQ_DECLARE_CLASS_FACTORY_WITH_INTERFACE(
     LIBRARY_FACTORY, SyncComponent2, ISyncComponent2,
-    IContext*, context,
-    IComponent*, parent,
-    IString*, localId,
     Bool, registerEvents
 )
 

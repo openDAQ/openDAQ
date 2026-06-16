@@ -41,13 +41,10 @@ inline SyncComponentPtr SyncComponent(const ContextPtr& context, const Component
 
 /*!
  * @brief Creates a synchronization component 2.
- * @param context The Context. Most often the creating function-block/device passes its own Context to the SyncComponent2.
- * @param parent The parent component.
- * @param localId The local ID of the component.
  */
-inline SyncComponent2Ptr SyncComponent2(const ContextPtr& context, const ComponentPtr& parent, const StringPtr& localId)
+inline SyncComponent2Ptr SyncComponent2()
 {
-    return { SyncComponent2_Create(context, parent, localId, true) };
+    return { SyncComponent2_Create(true) };
 }
 
 /*!@}*/

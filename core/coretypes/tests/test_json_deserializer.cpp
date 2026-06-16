@@ -132,6 +132,13 @@ TEST_F(JsonDeserializerTest, null)
     ASSERT_FALSE(deserialized.assigned());
 }
 
+TEST_F(JsonDeserializerTest, nullWithRawInterface)
+{
+    IBaseObject* obj;
+    checkErrorInfo(deserializer->deserialize(StringPtr("null"), nullptr, nullptr, reinterpret_cast<IBaseObject**>(&obj)));
+    ASSERT_EQ(obj, nullptr);
+}
+
 TEST_F(JsonDeserializerTest, emptyList)
 {
     ListPtr<IBaseObject> deserialized = deserializer.deserialize("[]");

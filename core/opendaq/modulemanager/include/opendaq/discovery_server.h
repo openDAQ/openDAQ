@@ -1,5 +1,5 @@
 /*
- * Copyright 2022-2025 openDAQ d.o.o.
+ * Copyright 2022-2026 openDAQ d.o.o.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -42,8 +42,13 @@ DECLARE_OPENDAQ_INTERFACE(IDiscoveryServer, IBaseObject)
 };
 /*!@}*/
 
-OPENDAQ_DECLARE_CLASS_FACTORY_WITH_INTERFACE(LIBRARY_FACTORY, 
+OPENDAQ_DECLARE_CLASS_FACTORY_WITH_INTERFACE(LIBRARY_FACTORY,
     MdnsDiscoveryServer, IDiscoveryServer,
     ILogger*, logger)
+
+OPENDAQ_DECLARE_CLASS_FACTORY_WITH_INTERFACE(LIBRARY_FACTORY,
+    MdnsDiscoveryServerWithOptions, IDiscoveryServer,
+    ILogger*, logger,
+    IDict*, options)
 
 END_NAMESPACE_OPENDAQ

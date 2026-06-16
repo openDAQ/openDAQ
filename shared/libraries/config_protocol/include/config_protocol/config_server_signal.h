@@ -1,5 +1,5 @@
 /*
- * Copyright 2022-2025 openDAQ d.o.o.
+ * Copyright 2022-2026 openDAQ d.o.o.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,6 +17,7 @@
 #pragma once
 #include <opendaq/device_ptr.h>
 #include <opendaq/signal_ptr.h>
+#include <coretypes/listobject_factory.h>
 
 namespace daq::config_protocol
 {
@@ -25,6 +26,7 @@ class ConfigServerSignal
 {
 public:
     static BaseObjectPtr getLastValue(const RpcContext& context, const SignalPtr& signal, const ParamsDictPtr& params);
+    static BaseObjectPtr getLastValueWithTimestamp(const RpcContext& context, const SignalPtr& signal, const ParamsDictPtr& params);
 };
 
 inline BaseObjectPtr ConfigServerSignal::getLastValue(const RpcContext& context, const SignalPtr& signal, const ParamsDictPtr& /*params*/)
@@ -33,5 +35,16 @@ inline BaseObjectPtr ConfigServerSignal::getLastValue(const RpcContext& context,
 
     const auto value = signal.getLastValue();
     return value;
+}
+
+inline BaseObjectPtr ConfigServerSignal::getLastValueWithTimestamp(const RpcContext& context,
+                                                                   const SignalPtr& signal,
+                                                                   const ParamsDictPtr& /*params*/)
+{
+    ConfigServerAccessControl::protectObject(signal, context.user, Permission::Read);
+
+    BaseObjectPtr value;
+    const auto timestamp = signal.getLastValueWithTimestamp(value);
+    return List<IBaseObject>(value, timestamp);
 }
 }

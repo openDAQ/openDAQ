@@ -1,5 +1,5 @@
 /*
- * Copyright 2022-2025 openDAQ d.o.o.
+ * Copyright 2022-2026 openDAQ d.o.o.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -78,10 +78,11 @@ IteratorBaseImpl<T, E, VS>::~IteratorBaseImpl()
 template <typename T, typename E, typename VS>
 ErrCode IteratorBaseImpl<T, E, VS>::getCurrent(IBaseObject** obj) const
 {
-    OPENDAQ_PARAM_NOT_NULL(obj);
-
     if (it == end)
         return OPENDAQ_ERR_NOTASSIGNED;
+
+    if (obj == nullptr)
+        return OPENDAQ_ERR_ARGUMENT_NULL;
 
     *obj = valueSelector(*it);
     return OPENDAQ_SUCCESS;

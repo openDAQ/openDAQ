@@ -433,6 +433,17 @@ BaseObjectPtr ConfigProtocolClientComm::getLastValue(const std::string& globalId
     return parseRpcOrRejectReply(getPropertyValueRpcReplyPacketBuffer.parseRpcRequestOrReply(), deserializeContext);
 }
 
+ListPtr<IBaseObject> ConfigProtocolClientComm::getLastValueWithTimestamp(const std::string& globalId)
+{
+    auto dict = Dict<IString, IBaseObject>();
+    dict.set("ComponentGlobalId", String(globalId));
+    auto rpcRequestPacketBuffer = createRpcRequestPacketBuffer(generateId(), "GetLastValueWithTimestamp", dict);
+    const auto rpcReplyPacketBuffer = sendRequestCallback(rpcRequestPacketBuffer);
+
+    const auto deserializeContext = createDeserializeContext(std::string{}, daqContext);
+    return parseRpcOrRejectReply(rpcReplyPacketBuffer.parseRpcRequestOrReply(), deserializeContext);
+}
+
 void ConfigProtocolClientComm::lock(const std::string& globalId)
 {
     auto params = Dict<IString, IBaseObject>();
@@ -455,14 +466,6 @@ void ConfigProtocolClientComm::forceUnlock(const std::string& globalId)
     params.set("ComponentGlobalId", String(globalId));
 
     sendCommand(ClientCommand("ForceUnlock", 6), params);
-}
-
-bool ConfigProtocolClientComm::isLocked(const std::string& globalId)
-{
-    auto params = Dict<IString, IBaseObject>();
-    params.set("ComponentGlobalId", String(globalId));
-
-    return sendCommand(ClientCommand("IsLocked", 6), params);
 }
 
 BaseObjectPtr ConfigProtocolClientComm::createRpcRequest(const StringPtr& name, const ParamsDictPtr& params) const

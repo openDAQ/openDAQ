@@ -1,5 +1,5 @@
 /*
- * Copyright 2022-2025 openDAQ d.o.o.
+ * Copyright 2022-2026 openDAQ d.o.o.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -383,16 +383,13 @@ ErrCode MirroredSignalBase<Interfaces...>::unsubscribeCompletedInternal(IString*
         mirroredDomainDataDescriptor = nullptr;
     }
 
-    if (syncLock)
     {
-        auto lock = this->getRecursiveConfigLock2();
-        this->lastDataValue = nullptr;
-        this->lastDataDescriptor = nullptr;
-    }
-    else
-    {
-        this->lastDataValue = nullptr;
-        this->lastDataDescriptor = nullptr;
+        LockGuardPtr lock;
+        if (syncLock)
+            lock = this->getRecursiveConfigLock2();
+
+        this->lastValueCache.resetData();
+        this->lastValueCache.resetTimestamp();
     }
 
     if (onUnsubscribeCompleteEvent.hasListeners())

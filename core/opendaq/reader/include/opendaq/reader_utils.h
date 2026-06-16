@@ -1,5 +1,5 @@
 /*
- * Copyright 2022-2025 openDAQ d.o.o.
+ * Copyright 2022-2026 openDAQ d.o.o.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -83,12 +83,14 @@ namespace reader
         return epoch;
     }
 
-    inline auto parseEpoch(const std::string& origin)
+    inline auto parseEpoch(const std::string& origin, bool* ok = nullptr)
     {
         std::chrono::system_clock::time_point epoch;
 
         std::istringstream epochString(fixupIso8601(origin));
         date::from_stream(epochString, "%FT%T%z", epoch);
+        if (ok)
+            *ok = !epochString.fail();
 
         return epoch;
     }

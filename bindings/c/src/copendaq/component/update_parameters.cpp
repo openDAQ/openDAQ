@@ -32,6 +32,16 @@ daqErrCode daqUpdateParameters_setDeviceUpdateOptions(daqUpdateParameters* self,
     return reinterpret_cast<daq::IUpdateParameters*>(self)->setDeviceUpdateOptions(reinterpret_cast<daq::IDeviceUpdateOptions*>(options));
 }
 
+daqErrCode daqUpdateParameters_getRemoveUnusedDevices(daqUpdateParameters* self, daqBool* remove)
+{
+    return reinterpret_cast<daq::IUpdateParameters*>(self)->getRemoveUnusedDevices(remove);
+}
+
+daqErrCode daqUpdateParameters_setRemoveUnusedDevices(daqUpdateParameters* self, daqBool remove)
+{
+    return reinterpret_cast<daq::IUpdateParameters*>(self)->setRemoveUnusedDevices(remove);
+}
+
 daqErrCode daqUpdateParameters_createUpdateParameters(daqUpdateParameters** obj)
 {
     daq::IUpdateParameters* ptr = nullptr;

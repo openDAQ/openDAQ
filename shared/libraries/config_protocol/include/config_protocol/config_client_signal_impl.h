@@ -1,5 +1,5 @@
 /*
- * Copyright 2022-2025 openDAQ d.o.o.
+ * Copyright 2022-2026 openDAQ d.o.o.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -41,6 +41,7 @@ public:
     // IConfigClientSignalPrivate
     void INTERFACE_FUNC assignDomainSignal(const SignalPtr& domainSignal) override;
     ErrCode INTERFACE_FUNC getLastValue(IBaseObject** value) override;
+    ErrCode INTERFACE_FUNC getLastValueWithTimestamp(IBaseObject** value, IBaseObject** timestamp) override;
 
     StringPtr onGetRemoteId() const override;
     Bool onTriggerEvent(const EventPacketPtr& eventPacket) override;
@@ -182,6 +183,30 @@ inline ErrCode ConfigClientSignalImpl::getLastValue(IBaseObject** value)
         *value = this->clientComm->getLastValue(this->remoteGlobalId).detach();
     });
     OPENDAQ_RETURN_IF_FAILED(errCode, "Failed to get last value for signal with remote ID: %s", this->remoteGlobalId.c_str());
+    return errCode;
+}
+
+inline ErrCode ConfigClientSignalImpl::getLastValueWithTimestamp(IBaseObject** value, IBaseObject** timestamp)
+{
+    const ErrCode err = Super::getLastValueWithTimestamp(value, timestamp);
+    OPENDAQ_RETURN_IF_FAILED(err);
+    if (err != OPENDAQ_IGNORED)
+        return err;
+
+    // Super may have populated one output while ignoring the other (e.g. value cached but no usable
+    // domain timestamp). Release any partial output before falling back to the remote call.
+    releaseRefIfNotNull(*value);
+    releaseRefIfNotNull(*timestamp);
+    *value = nullptr;
+    *timestamp = nullptr;
+
+    const ErrCode errCode = daqTry([&]()
+    {
+        const ListPtr<IBaseObject> result = this->clientComm->getLastValueWithTimestamp(this->remoteGlobalId);
+        *value = result[0].addRefAndReturn();
+        *timestamp = result[1].addRefAndReturn();
+    });
+    OPENDAQ_RETURN_IF_FAILED(errCode, "Failed to get last value with timestamp for signal with remote ID: %s", this->remoteGlobalId.c_str());
     return errCode;
 }
 

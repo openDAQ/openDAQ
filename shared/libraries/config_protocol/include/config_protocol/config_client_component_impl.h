@@ -1,5 +1,5 @@
 /*
- * Copyright 2022-2025 openDAQ d.o.o.
+ * Copyright 2022-2026 openDAQ d.o.o.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -45,7 +45,7 @@ public:
     ErrCode INTERFACE_FUNC getComponentConfig(IPropertyObject** config) override;
 
     // IComponentPrivate overrides
-    ErrCode INTERFACE_FUNC setParentActive(Bool parentActive) override;
+    ErrCode INTERFACE_FUNC setParentActive(Bool parentActive, Bool onUpdate) override;
 
     static ErrCode Deserialize(ISerializedObject* serialized, IBaseObject* context, IFunction* factoryCallback, IBaseObject** obj);
 protected:
@@ -89,22 +89,28 @@ ErrCode ConfigClientComponentBaseImpl<Impl>::setActive(Bool active)
 }
 
 template <class Impl>
-ErrCode ConfigClientComponentBaseImpl<Impl>::setParentActive(Bool parentActive)
+ErrCode ConfigClientComponentBaseImpl<Impl>::setParentActive(Bool parentActive, Bool onUpdate)
 {
-    ErrCode errCode = Impl::setParentActive(parentActive);
+    ErrCode errCode = Impl::setParentActive(parentActive, onUpdate);
     OPENDAQ_RETURN_IF_FAILED(errCode);
-    if (this->clientComm->getProtocolVersion() > 21)
+
+    if (!onUpdate)
+    {
+        if (this->clientComm->getProtocolVersion() > 21)
+            return errCode;
+
+        const bool muted = this->coreEventMuted;
+        if (!muted)
+            Impl::disableCoreEventTrigger();
+
+        errCode = Impl::setActive(parentActive);
+
+        if (!muted)
+            Impl::enableCoreEventTrigger();
         return errCode;
+    }
 
-    const bool muted = this->coreEventMuted;
-    if (!muted)
-        Impl::disableCoreEventTrigger();
-
-    errCode = Impl::setActive(parentActive);
-
-    if (!muted)
-        Impl::enableCoreEventTrigger();
-    return errCode;
+    return OPENDAQ_SUCCESS;
 }
 
 template <class Impl>
@@ -274,18 +280,32 @@ void ConfigClientComponentBaseImpl<Impl>::onRemoteUpdate(const SerializedObjectP
 {
     ConfigClientPropertyObjectBaseImpl<Impl>::onRemoteUpdate(serialized);
 
+    bool oldActive = this->active;
     if (serialized.hasKey("active"))
         this->localActive = serialized.readBool("active");
+    else
+        this->localActive = true;
+
     this->active = this->parentActive && this->localActive;
+    if (oldActive != this->active)
+    {
+        this->notifyActiveChanged(true);
+    }
 
     if (serialized.hasKey("visible"))
         this->visible = serialized.readBool("visible");
+    else
+        this->visible = true;
 
     if (serialized.hasKey("description"))
         this->description = serialized.readString("description");
+    else
+        this->description = "";
 
     if (serialized.hasKey("name"))
        this->name = serialized.readString("name");
+    else
+       this->name = "";
 
     if (serialized.hasKey("statuses"))
     {

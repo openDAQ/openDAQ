@@ -1,5 +1,5 @@
 /*
- * Copyright 2022-2025 openDAQ d.o.o.
+ * Copyright 2022-2026 openDAQ d.o.o.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -15,28 +15,29 @@
  */
 
 #pragma once
-#include <opendaq/signal.h>
-#include <opendaq/signal_events.h>
-#include <opendaq/signal_config.h>
-#include <opendaq/context_ptr.h>
-#include <opendaq/data_descriptor_ptr.h>
-#include <opendaq/connection_ptr.h>
-#include <opendaq/signal_config_ptr.h>
-#include <opendaq/signal_private_ptr.h>
-#include <opendaq/event_packet_ptr.h>
 #include <coretypes/string_ptr.h>
-#include <opendaq/packet_factory.h>
-#include <opendaq/signal_events_ptr.h>
 #include <coretypes/validation.h>
 #include <opendaq/component_impl.h>
-#include <opendaq/input_port_private_ptr.h>
-#include <utility>
-#include <opendaq/signal_exceptions.h>
-#include <opendaq/signal_errors.h>
+#include <opendaq/connection_ptr.h>
+#include <opendaq/context_ptr.h>
 #include <opendaq/data_descriptor_factory.h>
-#include <opendaq/event_packet_utils.h>
-#include <opendaq/mem_pool_allocator.h>
+#include <opendaq/data_descriptor_ptr.h>
 #include <opendaq/data_packet_impl.h>
+#include <opendaq/event_packet_ptr.h>
+#include <opendaq/event_packet_utils.h>
+#include <opendaq/input_port_private_ptr.h>
+#include <opendaq/last_value_cache.h>
+#include <opendaq/mem_pool_allocator.h>
+#include <opendaq/packet_factory.h>
+#include <opendaq/signal.h>
+#include <opendaq/signal_config.h>
+#include <opendaq/signal_config_ptr.h>
+#include <opendaq/signal_errors.h>
+#include <opendaq/signal_events.h>
+#include <opendaq/signal_events_ptr.h>
+#include <opendaq/signal_exceptions.h>
+#include <opendaq/signal_private_ptr.h>
+#include <utility>
 
 BEGIN_NAMESPACE_OPENDAQ
 
@@ -83,6 +84,7 @@ public:
     ErrCode INTERFACE_FUNC getStreamed(Bool* streamed) override;
     ErrCode INTERFACE_FUNC setStreamed(Bool streamed) override;
     ErrCode INTERFACE_FUNC getLastValue(IBaseObject** value) override;
+    ErrCode INTERFACE_FUNC getLastValueWithTimestamp(IBaseObject** value, IBaseObject** timestamp) override;
 
     // ISignalConfig
     ErrCode INTERFACE_FUNC setDescriptor(IDataDescriptor* descriptor) override;
@@ -143,11 +145,7 @@ protected:
 
     DataDescriptorPtr dataDescriptor;
     StringPtr deserializedDomainSignalId;
-    BaseObjectPtr lastDataValue;
-
-    // variables for calculating last value
-    std::vector<char> lastRawDataValue;
-    DataDescriptorPtr lastDataDescriptor;
+    LastValueCache lastValueCache;
 
 private:
     bool isPublic{};
@@ -185,6 +183,8 @@ private:
     bool keepLastPacketAndEnqueueMultiple(ListOfPackets&& packets);
 
     void setLastValueFromPacket(const DataPacketPtr& packet = nullptr);
+    ErrCode getLastValueImpl(IBaseObject** value);
+    ErrCode getLastTimestampImpl(IBaseObject** timestamp);
 };
 
 #ifdef WORKAROUND_MEMBER_INLINE_VARIABLE
@@ -858,7 +858,7 @@ ErrCode SignalBase<TInterface, Interfaces...>::setLastValue(IBaseObject* lastVal
     auto lock = this->getAcquisitionLock2();
 
     setLastValueFromPacket(nullptr);
-    this->lastDataValue = lastValue;
+    lastValueCache.setValue(BaseObjectPtr(lastValue));
     return OPENDAQ_SUCCESS;
 }
 
@@ -1142,8 +1142,11 @@ void SignalBase<TInterface, Interfaces...>::serializeCustomObjectValues(const Se
         serializer.writeString(ownerId);
     }
 
-    serializer.key("public");
-    serializer.writeBool(isPublic);
+    if (!isPublic)
+    {
+        serializer.key("public");
+        serializer.writeBool(isPublic);
+    }
 
     Super::serializeCustomObjectValues(serializer, forUpdate);
 }
@@ -1151,8 +1154,14 @@ void SignalBase<TInterface, Interfaces...>::serializeCustomObjectValues(const Se
 template <typename TInterface, typename... Interfaces>
 void SignalBase<TInterface, Interfaces...>::updateObject(const SerializedObjectPtr& obj, const BaseObjectPtr& context)
 {
-    if (obj.hasKey("public"))
-        isPublic = obj.readBool("public");
+    if (!this->lockedAttributes.count("Public"))
+    {
+        if (obj.hasKey("public"))
+            isPublic = obj.readBool("public");
+        else
+            isPublic = true;
+        setKeepLastPacket();
+    }
 
     Super::updateObject(obj, context);
 }
@@ -1272,28 +1281,29 @@ ErrCode SignalBase<TInterface, Interfaces...>::getLastValue(IBaseObject** value)
 {
     OPENDAQ_PARAM_NOT_NULL(value);
     auto lock = this->getRecursiveConfigLock2();
+    const ErrCode errCode = getLastValueImpl(value);
 
-    if (lastDataValue.assigned())
-    {
-        *value = lastDataValue.addRefAndReturn();
-        return OPENDAQ_SUCCESS;
-    }
-
-    if (!lastDataDescriptor.assigned())
-        return OPENDAQ_IGNORED;
-
-    const ErrCode errCode = daqTry([&value, this]
-    {
-        auto manager = this->context.getTypeManager();
-        void* rawValue = lastRawDataValue.data();
-        SizeT actualSampleSize = (lastDataDescriptor.getSampleType() == SampleType::Binary || lastDataDescriptor.getSampleType() == SampleType::String)
-                                 ? lastRawDataValue.size()
-                                 : 0;
-        lastDataValue = PacketDetails::buildObjectFromDescriptor(rawValue, lastDataDescriptor, manager, actualSampleSize);
-        *value = lastDataValue.addRefAndReturn();
-    });
     OPENDAQ_RETURN_IF_FAILED(errCode);
     return errCode;
+}
+
+template <typename TInterface, typename... Interfaces>
+ErrCode SignalBase<TInterface, Interfaces...>::getLastValueWithTimestamp(IBaseObject** value, IBaseObject** timestamp)
+{
+    OPENDAQ_PARAM_NOT_NULL(value);
+    OPENDAQ_PARAM_NOT_NULL(timestamp);
+    auto lock = this->getRecursiveConfigLock2();
+    const ErrCode valueErrCode = getLastValueImpl(value);
+
+    OPENDAQ_RETURN_IF_FAILED(valueErrCode);
+
+    const ErrCode tsErrCode = getLastTimestampImpl(timestamp);
+
+    OPENDAQ_RETURN_IF_FAILED(tsErrCode);
+    if (valueErrCode == OPENDAQ_IGNORED || tsErrCode == OPENDAQ_IGNORED)
+        return OPENDAQ_IGNORED;
+
+    return OPENDAQ_SUCCESS;
 }
 
 template <typename TInterface, typename... Interfaces>
@@ -1328,22 +1338,63 @@ void SignalBase<TInterface, Interfaces...>::visibleChanged()
 template <typename TInterface, typename... Interfaces>
 void SignalBase<TInterface, Interfaces...>::setLastValueFromPacket(const DataPacketPtr& packet)
 {
-    lastDataValue = nullptr;
-    if (!packet.assigned())
+    lastValueCache.cache(packet);
+}
+
+template <typename TInterface, typename... Interfaces>
+ErrCode SignalBase<TInterface, Interfaces...>::getLastValueImpl(IBaseObject** value)
+{
+    if (lastValueCache.valueCached())
     {
-        lastDataDescriptor = nullptr;
-        return;
+        *value = lastValueCache.getValue().detach();
+        return OPENDAQ_SUCCESS;
     }
 
-    lastDataDescriptor = packet.getDataDescriptor();
-    SizeT sampleSize = (lastDataDescriptor.getSampleType() == SampleType::Binary || lastDataDescriptor.getSampleType() == SampleType::String) 
-                       ? packet.getRawDataSize() 
-                       : lastDataDescriptor.getSampleSize();
-    lastRawDataValue.resize(sampleSize);
-    void* rawValue = lastRawDataValue.data();
-    const ErrCode errCode = packet->getRawLastValue(&rawValue);
-    if (errCode != OPENDAQ_SUCCESS)
-        lastDataDescriptor = nullptr;
+    if (!lastValueCache.valueDescriptorCached())
+        return OPENDAQ_IGNORED;
+
+    const ErrCode errCode = daqTry(
+        [&value, this]
+        {
+            auto manager = this->context.getTypeManager();
+            void* rawValue = lastValueCache.getRawValueData();
+            lastValueCache.setValue(
+                PacketDetails::buildObjectFromDescriptor(rawValue, lastValueCache.getValueDataDescriptor(), manager, lastValueCache.getActualValueSampleSize()));
+            *value = lastValueCache.getValue().detach();
+        });
+    return errCode;
+}
+
+template <typename TInterface, typename... Interfaces>
+ErrCode SignalBase<TInterface, Interfaces...>::getLastTimestampImpl(IBaseObject** timestamp)
+{
+    if (lastValueCache.timestampCached())
+    {
+        *timestamp = lastValueCache.getTimestamp().detach();
+        return OPENDAQ_SUCCESS;
+    }
+
+    if (!lastValueCache.domainDescriptorCached())
+        return OPENDAQ_IGNORED;
+
+    const ErrCode errCode = daqTry(
+        [&timestamp, this]
+        {
+            auto manager = this->context.getTypeManager();
+            void* rawValue = lastValueCache.getRawTimestampData();
+            auto tsWithoutTweak = PacketDetails::buildObjectFromDescriptor(rawValue, lastValueCache.getDomainDataDescriptor(), manager, 0);
+
+            lastValueCache.calculateTimestamp(tsWithoutTweak);
+            *timestamp = lastValueCache.getTimestamp().detach();
+        });
+
+    if (OPENDAQ_FAILED(errCode))
+    {
+        daqClearErrorInfo();
+        lastValueCache.resetTimestamp();
+        return OPENDAQ_IGNORED;
+    }
+    return errCode;
 }
 
 OPENDAQ_REGISTER_DESERIALIZE_FACTORY(SignalImpl)

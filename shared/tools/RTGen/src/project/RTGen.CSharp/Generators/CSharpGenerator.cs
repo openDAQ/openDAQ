@@ -506,6 +506,12 @@ namespace RTGen.CSharp.Generators
                 case "CSNativeOutputArgument":
                     return DoNativeOutputArgument();
 
+                case "CSNativeOutputArgumentsAll":
+                    return DoNativeOutputArguments();
+
+                case "CSAssignExtraOutputs":
+                    return DoAssignExtraOutputs();
+
                 case "CSReturnTheOutputValue":
                     return DoReturnTheOutputValue();
 
@@ -772,6 +778,75 @@ namespace RTGen.CSharp.Generators
                 codeLines.AppendLine();
                 codeLines.AppendLine(indentation + "//native output argument");
                 codeLines.AppendLine(indentation + rawReturnTypePtrDeclaration + castArgumentObjects);
+
+                codeLines.TrimTrailingNewLine();
+                return codeLines.ToString();
+            }
+
+            string DoNativeOutputArguments()
+            {
+                if (lastOutParam == null)
+                {
+                    return string.Empty;
+                }
+
+                string indentation         = base.Indentation + base.Indentation;
+                string castArgumentObjects = GetMethodVariable(method, "CSCastArgumentObjects");
+
+                StringBuilder codeLines = new StringBuilder();
+
+                codeLines.AppendLine();
+                codeLines.AppendLine(indentation + "//native output arguments");
+
+                foreach (IArgument outParam in method.Arguments.Where(arg => arg.IsOutParam && !arg.Type.Flags.IsValueType))
+                {
+                    codeLines.Append(indentation + GetRawReturnTypePtrDeclaration(method, outParam));
+                }
+
+                if (!string.IsNullOrEmpty(castArgumentObjects))
+                {
+                    codeLines.Append(castArgumentObjects);
+                }
+
+                codeLines.TrimTrailingNewLine();
+                return codeLines.ToString();
+            }
+
+            string DoAssignExtraOutputs()
+            {
+                if (lastOutParam == null)
+                {
+                    return string.Empty;
+                }
+
+                string indentation = base.Indentation + base.Indentation;
+
+                StringBuilder codeLines = new StringBuilder();
+
+                //assign every 'out' argument except the last one (the last one becomes the return value)
+                foreach (IArgument outParam in method.Arguments)
+                {
+                    if (!outParam.IsOutParam
+                        || outParam.Name.Equals(lastOutParam.Name)
+                        || outParam.Type.Flags.IsValueType) //value types are written directly by the native call
+                    {
+                        continue;
+                    }
+
+                    _useArgumentPointers = true;
+                    string pointerName = GetArgumentName(method.Overloads[0], outParam) ?? string.Empty;
+                    _useArgumentPointers = false;
+                    string managedName = GetArgumentName(method.Overloads[0], outParam) ?? string.Empty;
+
+                    string nonInterfaceTypePtr = GetDotNetTypeName(outParam.Type, method, outParam, dontCast: true);
+                    string constructionExpression = outParam.Type.Name.Equals("string")
+                                                    ? $"Marshal.PtrToStringAnsi({pointerName})"
+                                                    : $"new {nonInterfaceTypePtr}({pointerName}, incrementReference: false)";
+
+                    codeLines.AppendLine();
+                    codeLines.AppendLine(indentation + "// validate pointer and assign output argument");
+                    codeLines.AppendLine(indentation + $"{managedName} = ({pointerName} == IntPtr.Zero) ? default : {constructionExpression};");
+                }
 
                 codeLines.TrimTrailingNewLine();
                 return codeLines.ToString();
@@ -2688,7 +2763,7 @@ namespace RTGen.CSharp.Generators
                 bool isDelegateType           = IsDelegateType(argument);
 
                 if (!isFactoryIgnoredArgument
-                    && ((argument.Name.Equals(lastOutParam?.Name) && !isSetter)
+                    && ((argument.IsOutParam && !isSetter) //'out' arguments are outputs, never inputs to cast (covers multiple 'out' params)
                         || argument.Type.Flags.IsValueType
                         || !(isCastType || isDotNetInterface))
                     && !isDelegateType)
@@ -2923,6 +2998,11 @@ namespace RTGen.CSharp.Generators
                         templatePath = Utility.GetTemplate(Options.Language + ".method.impl.samplereader.template");
                     else
                         templatePath = Utility.GetTemplate(Options.Language + ".method.impl.multireader.template");
+                }
+                else if (hasRetVal && (method.Arguments.Count(arg => arg.IsOutParam) > 1))
+                {
+                    //more than one 'out' argument: last one becomes the return value, the rest become managed 'out' parameters
+                    templatePath = Utility.GetTemplate(Options.Language + ".method.impl.multiret.template");
                 }
                 else if (hasRetVal)
                 {

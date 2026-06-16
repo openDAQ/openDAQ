@@ -44,3 +44,11 @@ daqErrCode daqDiscoveryServer_createMdnsDiscoveryServer(daqDiscoveryServer** obj
     *obj = reinterpret_cast<daqDiscoveryServer*>(ptr);
     return err;
 }
+
+daqErrCode daqDiscoveryServer_createMdnsDiscoveryServerWithOptions(daqDiscoveryServer** obj, daqLogger* logger, daqDict* options)
+{
+    daq::IDiscoveryServer* ptr = nullptr;
+    daqErrCode err = daq::createMdnsDiscoveryServerWithOptions(&ptr, reinterpret_cast<daq::ILogger*>(logger), reinterpret_cast<daq::IDict*>(options));
+    *obj = reinterpret_cast<daqDiscoveryServer*>(ptr);
+    return err;
+}

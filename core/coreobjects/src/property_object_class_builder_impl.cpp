@@ -194,10 +194,8 @@ ListPtr<IProperty> PropertyObjectClassBuilderImpl::getProperties() const
         }
     }
 
-    for (const auto& prop : props)
-    {
-        properties.unsafePushBack(prop.second);
-    }
+    for (const auto& prop : props.getValues())
+        properties.unsafePushBack(prop);
 
     return properties;
 }

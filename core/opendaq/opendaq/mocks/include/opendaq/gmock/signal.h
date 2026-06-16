@@ -1,5 +1,5 @@
 /*
- * Copyright 2022-2025 openDAQ d.o.o.
+ * Copyright 2022-2026 openDAQ d.o.o.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -15,14 +15,16 @@
  */
 
 #pragma once
-#include <vector>
+#include <coreobjects/property_object_impl.h>
+#include <coretypes/gmock/mock_ptr.h>
+#include <gmock/gmock.h>
+#include <opendaq/removable.h>
 #include <opendaq/signal.h>
+#include <opendaq/signal_ptr.h>
 #include <opendaq/signal_events.h>
 #include <opendaq/signal_private.h>
-#include <opendaq/removable.h>
-#include <coreobjects/property_object_impl.h>
-#include <gmock/gmock.h>
-#include <coretypes/gmock/mock_ptr.h>
+#include <opendaq/connection_ptr.h>
+#include <vector>
 
 struct MockSignal : daq::GenericPropertyObjectImpl<daq::ISignal, daq::ISignalEvents, daq::ISignalPrivate, daq::IRemovable>
 {
@@ -78,6 +80,7 @@ struct MockSignal : daq::GenericPropertyObjectImpl<daq::ISignal, daq::ISignalEve
     MOCK_METHOD(daq::ErrCode, getStreamed, (daq::Bool* streamed), (override MOCK_CALL));
 
     MOCK_METHOD(daq::ErrCode, getLastValue, (IBaseObject** value), (override MOCK_CALL));
+    MOCK_METHOD(daq::ErrCode, getLastValueWithTimestamp, (IBaseObject** value, IBaseObject** timestamp), (override MOCK_CALL));
     MOCK_METHOD(daq::ErrCode, getSignalSerializeId, (daq::IString** serializeId), (override MOCK_CALL));
 
     std::vector<daq::ConnectionPtr> connections;

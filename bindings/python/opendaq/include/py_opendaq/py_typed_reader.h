@@ -1,5 +1,5 @@
 /*
- * Copyright 2022-2025 openDAQ d.o.o.
+ * Copyright 2022-2026 openDAQ d.o.o.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -89,10 +89,9 @@ struct PyTypedReader
         daq::SampleType valueType = daq::SampleType::Undefined;
         reader->getValueReadType(&valueType);
 
-        daq::DataDescriptorPtr dataDescriptor;
+        daq::DataDescriptorPtr dataDescriptor = getDescriptor<ReaderType>(reader, VALUE_DATA_DESCRIPTOR_ATTRIBUTE);
         if (valueType == daq::SampleType::Undefined || valueType == daq::SampleType::Struct)
         {
-            dataDescriptor = getDescriptor<ReaderType>(reader, VALUE_DATA_DESCRIPTOR_ATTRIBUTE);
             if (!dataDescriptor.assigned())
             {
                 auto status = readZeroValues(reader, timeoutMs);
@@ -106,25 +105,25 @@ struct PyTypedReader
         switch (valueType)
         {
             case daq::SampleType::Float32:
-                return read<daq::SampleTypeToType<daq::SampleType::Float32>::Type>(reader, count, timeoutMs, returnStatus);
+                return read<daq::SampleTypeToType<daq::SampleType::Float32>::Type>(reader, count, timeoutMs, returnStatus, dataDescriptor);
             case daq::SampleType::Float64:
-                return read<daq::SampleTypeToType<daq::SampleType::Float64>::Type>(reader, count, timeoutMs, returnStatus);
+                return read<daq::SampleTypeToType<daq::SampleType::Float64>::Type>(reader, count, timeoutMs, returnStatus, dataDescriptor);
             case daq::SampleType::UInt32:
-                return read<daq::SampleTypeToType<daq::SampleType::UInt32>::Type>(reader, count, timeoutMs, returnStatus);
+                return read<daq::SampleTypeToType<daq::SampleType::UInt32>::Type>(reader, count, timeoutMs, returnStatus, dataDescriptor);
             case daq::SampleType::Int32:
-                return read<daq::SampleTypeToType<daq::SampleType::Int32>::Type>(reader, count, timeoutMs, returnStatus);
+                return read<daq::SampleTypeToType<daq::SampleType::Int32>::Type>(reader, count, timeoutMs, returnStatus, dataDescriptor);
             case daq::SampleType::UInt64:
-                return read<daq::SampleTypeToType<daq::SampleType::UInt64>::Type>(reader, count, timeoutMs, returnStatus);
+                return read<daq::SampleTypeToType<daq::SampleType::UInt64>::Type>(reader, count, timeoutMs, returnStatus, dataDescriptor);
             case daq::SampleType::Int64:
-                return read<daq::SampleTypeToType<daq::SampleType::Int64>::Type>(reader, count, timeoutMs, returnStatus);
+                return read<daq::SampleTypeToType<daq::SampleType::Int64>::Type>(reader, count, timeoutMs, returnStatus, dataDescriptor);
             case daq::SampleType::UInt8:
-                return read<daq::SampleTypeToType<daq::SampleType::UInt8>::Type>(reader, count, timeoutMs, returnStatus);
+                return read<daq::SampleTypeToType<daq::SampleType::UInt8>::Type>(reader, count, timeoutMs, returnStatus, dataDescriptor);
             case daq::SampleType::Int8:
-                return read<daq::SampleTypeToType<daq::SampleType::Int8>::Type>(reader, count, timeoutMs, returnStatus);
+                return read<daq::SampleTypeToType<daq::SampleType::Int8>::Type>(reader, count, timeoutMs, returnStatus, dataDescriptor);
             case daq::SampleType::UInt16:
-                return read<daq::SampleTypeToType<daq::SampleType::UInt16>::Type>(reader, count, timeoutMs, returnStatus);
+                return read<daq::SampleTypeToType<daq::SampleType::UInt16>::Type>(reader, count, timeoutMs, returnStatus, dataDescriptor);
             case daq::SampleType::Int16:
-                return read<daq::SampleTypeToType<daq::SampleType::Int16>::Type>(reader, count, timeoutMs, returnStatus);
+                return read<daq::SampleTypeToType<daq::SampleType::Int16>::Type>(reader, count, timeoutMs, returnStatus, dataDescriptor);
             case daq::SampleType::Struct:
                 return read<StructPlaceholder>(reader, count, timeoutMs, returnStatus, dataDescriptor);
             case daq::SampleType::RangeInt64:
@@ -147,10 +146,9 @@ struct PyTypedReader
         daq::SampleType valueType = daq::SampleType::Undefined;
         reader->getValueReadType(&valueType);
 
-        daq::DataDescriptorPtr dataDescriptor;
+        daq::DataDescriptorPtr dataDescriptor = getDescriptor<ReaderType>(reader, VALUE_DATA_DESCRIPTOR_ATTRIBUTE);
         if (valueType == daq::SampleType::Undefined || valueType == daq::SampleType::Struct)
         {
-            dataDescriptor = getDescriptor<ReaderType>(reader, VALUE_DATA_DESCRIPTOR_ATTRIBUTE);
             if (!dataDescriptor.assigned())
             {
                 auto status = readZeroValues(reader, timeoutMs);
@@ -164,25 +162,25 @@ struct PyTypedReader
         switch (valueType)
         {
             case daq::SampleType::Float32:
-                return readWithDomain<daq::SampleTypeToType<daq::SampleType::Float32>::Type>(reader, count, timeoutMs, returnStatus);
+                return readWithDomain<daq::SampleTypeToType<daq::SampleType::Float32>::Type>(reader, count, timeoutMs, returnStatus, dataDescriptor);
             case daq::SampleType::Float64:
-                return readWithDomain<daq::SampleTypeToType<daq::SampleType::Float64>::Type>(reader, count, timeoutMs, returnStatus);
+                return readWithDomain<daq::SampleTypeToType<daq::SampleType::Float64>::Type>(reader, count, timeoutMs, returnStatus, dataDescriptor);
             case daq::SampleType::UInt32:
-                return readWithDomain<daq::SampleTypeToType<daq::SampleType::UInt32>::Type>(reader, count, timeoutMs, returnStatus);
+                return readWithDomain<daq::SampleTypeToType<daq::SampleType::UInt32>::Type>(reader, count, timeoutMs, returnStatus, dataDescriptor);
             case daq::SampleType::Int32:
-                return readWithDomain<daq::SampleTypeToType<daq::SampleType::Int32>::Type>(reader, count, timeoutMs, returnStatus);
+                return readWithDomain<daq::SampleTypeToType<daq::SampleType::Int32>::Type>(reader, count, timeoutMs, returnStatus, dataDescriptor);
             case daq::SampleType::UInt64:
-                return readWithDomain<daq::SampleTypeToType<daq::SampleType::UInt64>::Type>(reader, count, timeoutMs, returnStatus);
+                return readWithDomain<daq::SampleTypeToType<daq::SampleType::UInt64>::Type>(reader, count, timeoutMs, returnStatus, dataDescriptor);
             case daq::SampleType::Int64:
-                return readWithDomain<daq::SampleTypeToType<daq::SampleType::Int64>::Type>(reader, count, timeoutMs, returnStatus);
+                return readWithDomain<daq::SampleTypeToType<daq::SampleType::Int64>::Type>(reader, count, timeoutMs, returnStatus, dataDescriptor);
             case daq::SampleType::UInt8:
-                return readWithDomain<daq::SampleTypeToType<daq::SampleType::UInt8>::Type>(reader, count, timeoutMs, returnStatus);
+                return readWithDomain<daq::SampleTypeToType<daq::SampleType::UInt8>::Type>(reader, count, timeoutMs, returnStatus, dataDescriptor);
             case daq::SampleType::Int8:
-                return readWithDomain<daq::SampleTypeToType<daq::SampleType::Int8>::Type>(reader, count, timeoutMs, returnStatus);
+                return readWithDomain<daq::SampleTypeToType<daq::SampleType::Int8>::Type>(reader, count, timeoutMs, returnStatus, dataDescriptor);
             case daq::SampleType::UInt16:
-                return readWithDomain<daq::SampleTypeToType<daq::SampleType::UInt16>::Type>(reader, count, timeoutMs, returnStatus);
+                return readWithDomain<daq::SampleTypeToType<daq::SampleType::UInt16>::Type>(reader, count, timeoutMs, returnStatus, dataDescriptor);
             case daq::SampleType::Int16:
-                return readWithDomain<daq::SampleTypeToType<daq::SampleType::Int16>::Type>(reader, count, timeoutMs, returnStatus);
+                return readWithDomain<daq::SampleTypeToType<daq::SampleType::Int16>::Type>(reader, count, timeoutMs, returnStatus, dataDescriptor);
             case daq::SampleType::Struct:
                 return readWithDomain<StructPlaceholder>(reader, count, timeoutMs, returnStatus, dataDescriptor);
             case daq::SampleType::RangeInt64:
@@ -297,7 +295,7 @@ private:
                                 : SampleTypeReaderStatusVariant<ReaderType>{};
         }
 
-        size_t blockSize = 1, sampleSize = 1;
+        size_t blockSize = 1, sampleSize = 1, valuesPerSample = 1;
         const size_t initialCount = count;
         constexpr const bool isMultiReader = std::is_base_of_v<daq::MultiReaderPtr, ReaderType>;
         constexpr const bool isSampleTypeStruct = std::is_same_v<ValueType, StructPlaceholder>;
@@ -308,6 +306,18 @@ private:
                 throw std::runtime_error("Data descriptor should be assigned when sample type is Struct");
             sampleSize = dataDescriptor.getSampleSize();
         }
+        if (dataDescriptor.assigned() && dataDescriptor.getDimensions().assigned())
+        {
+            auto dimensions = dataDescriptor.getDimensions();
+            if (dimensions.getCount() > 1)
+            {
+                throw std::runtime_error("Typed reading: cannot read matrix/tensor data.");
+            }
+            if (dimensions.getCount() == 1)
+            {
+                valuesPerSample = dimensions[0].getSize();
+            }
+        }
         if constexpr (std::is_same_v<ReaderType, daq::BlockReaderPtr>)
         {
             reader->getBlockSize(&blockSize);
@@ -315,6 +325,7 @@ private:
         if constexpr (isMultiReader)
         {
             daq::ReaderConfigPtr readerConfig = reader.template asPtr<daq::IReaderConfig>();
+            // Block size is abused here to denote number of signals that are being read.
             blockSize = readerConfig.getInputPorts().getCount();
         }
 
@@ -322,7 +333,11 @@ private:
         using SampleType = typename SampleTypeToBufferType<ValueType>::Type;
 
         StatusType status;
-        std::vector<SampleType> values(count * blockSize * sampleSize);
+        // Allocate contiguous memory to fit all the samples.
+        // Block reader: count = number of blocks read, blockSize = number of samples in a block
+        // Multi reader: count = number of samples from each port, blockSize = number of signals being read at once
+        // Values per sample: each sample consists of valuesPerSample values - vector signal when valuesPerSample > 1
+        std::vector<SampleType> values(count * blockSize * sampleSize * valuesPerSample);
         if constexpr (ReaderHasReadWithTimeout<ReaderType>::value)
         {
             if constexpr (isMultiReader)
@@ -330,7 +345,8 @@ private:
                 std::vector<void*> ptrs(blockSize);
                 for (size_t i = 0; i < blockSize; i++)
                 {
-                    ptrs[i] = values.data() + i * count * sampleSize;
+                    // Divide contiguous memory - one pointer to a section per signal each.
+                    ptrs[i] = values.data() + i * count * sampleSize * valuesPerSample;
                 }
                 reader->read(ptrs.data(), &count, timeoutMs, &status);
             }
@@ -353,21 +369,32 @@ private:
         {
             if (!isMultiReader)
             {
-                shape = {count, blockSize};
+                // BlockReader: count is the number of blocks successfully read.
+                // A block has blockSize samples and each sample consists of valuesPerSample values (=1 for scalar signals)
+                shape = {count, blockSize*valuesPerSample};
             }
             else
             {
-                shape = {blockSize, count};
+                // MultiReader: blockSize is the number of signals we read from.
+                // Count is the number of samples that were read. Each sample consists of valuesPerSample values.
+                shape = {blockSize, count*valuesPerSample};
             }
         }
         else
-            shape = {count};
+        {
+            // Normal reading: we read N=count samples and each samples has valuesPerSample values.
+            shape = {count*valuesPerSample};
+        }
 
-        py::array::StridesContainer strides;
+        py::array::StridesContainer strides = {};
         if (blockSize > 1 && isMultiReader)
         {
+            // MultiReader: Strides must be adjusted, because the contiguous memory allocated is not "unused" just at the
+            // trailing end. The memory was divided into sections by passing pointers to the MultiReader. Regardles of how
+            // many samples were actually read, these sections are initialCount*valuesPerSample*valueSize apart, because
+            // they were divided so at allocation (before calling read).
             const size_t valueSize = isSampleTypeStruct ? sampleSize : sizeof(SampleType);
-            strides = {valueSize * initialCount, valueSize};
+            strides = {valueSize * initialCount * valuesPerSample, valueSize};
         }
 
         py::dtype dtype{};
@@ -402,7 +429,7 @@ private:
                        : SampleTypeDomainTypeReaderStatusVariant<ReaderType>{std::make_tuple(py::array{}, py::array{})};
         }
 
-        size_t blockSize = 1, sampleSize = 1;
+        size_t blockSize = 1, sampleSize = 1, valuesPerSample = 1;
         const size_t initialCount = count;
         constexpr const bool isMultiReader = std::is_base_of_v<daq::MultiReaderPtr, ReaderType>;
         constexpr const bool isValueSampleTypeStruct = std::is_same_v<ValueType, StructPlaceholder>;
@@ -413,6 +440,18 @@ private:
                 throw std::runtime_error("Data descriptor should be assigned when sample type is Struct");
             sampleSize = dataDescriptor.getSampleSize();
         }
+        if (dataDescriptor.assigned() && dataDescriptor.getDimensions().assigned())
+        {
+            auto dimensions = dataDescriptor.getDimensions();
+            if (dimensions.getCount() > 1)
+            {
+                throw std::runtime_error("Typed reading: cannot read matrix/tensor data.");
+            }
+            if (dimensions.getCount() == 1)
+            {
+                valuesPerSample = dimensions[0].getSize();
+            }
+        }
         if constexpr (std::is_base_of_v<daq::BlockReaderPtr, ReaderType>)
         {
             reader->getBlockSize(&blockSize);
@@ -420,6 +459,7 @@ private:
         if constexpr (isMultiReader)
         {
             daq::ReaderConfigPtr readerConfig = reader.template asPtr<daq::IReaderConfig>();
+            // Block size is abused here to denote number of signals that are being read.
             blockSize = readerConfig.getInputPorts().getCount();
         }
 
@@ -427,7 +467,11 @@ private:
         using ValueSampleType = typename SampleTypeToBufferType<ValueType>::Type;
         using DomainSampleType = typename SampleTypeToBufferType<DomainType>::Type;
         StatusType status;
-        std::vector<ValueSampleType> values(count * blockSize * sampleSize);
+        // Allocate contiguous memory to fit all the samples.
+        // Block reader: count = number of blocks read, blockSize = number of samples in a block
+        // Multi reader: count = number of samples from each port, blockSize = number of signals being read at once
+        // Values per sample: each sample consists of valuesPerSample values - vector signal when valuesPerSample > 1
+        std::vector<ValueSampleType> values(count * blockSize * sampleSize * valuesPerSample);
         std::vector<DomainSampleType> domain(count * blockSize);
         if constexpr (ReaderHasReadWithTimeout<ReaderType>::value)
         {
@@ -436,7 +480,8 @@ private:
                 std::vector<void*> valuesPtrs(blockSize), domainPtrs(blockSize);
                 for (size_t i = 0; i < blockSize; i++)
                 {
-                    valuesPtrs[i] = values.data() + i * count * sampleSize;
+                    // Divide contiguous memory - one pointer to a section for each signal.
+                    valuesPtrs[i] = values.data() + i * count * sampleSize * valuesPerSample;
                     domainPtrs[i] = domain.data() + i * count;
                 }
                 reader->readWithDomain(valuesPtrs.data(), domainPtrs.data(), &count, timeoutMs, &status);
@@ -455,28 +500,40 @@ private:
         assignDescriptorsFromStatus(reader, status);
 
         py::gil_scoped_acquire acquire;
-        py::array::ShapeContainer shape;
+        py::array::ShapeContainer domainShape;
+        py::array::ShapeContainer valueShape;
         if (blockSize > 1)
         {
             if (!isMultiReader)
             {
-                shape = {count, blockSize};
+                domainShape = {count, blockSize};
+                // BlockReader: count is the number of blocks successfully read.
+                // A block has blockSize samples and each sample consists of valuesPerSample values (=1 for scalar signals)
+                valueShape = {count, blockSize*valuesPerSample};
             }
             else
             {
-                shape = {blockSize, count};
+                domainShape = {blockSize, count};
+                // MultiReader: blockSize is the number of signals we read from.
+                // Count is the number of samples that were read. Each sample consists of valuesPerSample values.
+                valueShape = {blockSize, count*valuesPerSample};
             }
         }
         else
-            shape = {count};
+        {
+            domainShape = {count};
+            // Normal reading: we read N=count samples and each samples has valuesPerSample values.
+            valueShape = {count*valuesPerSample};
+        }
 
         py::array::StridesContainer valuesStrides;
         py::array::StridesContainer domainStrides;
         if (blockSize > 1 && isMultiReader)
         {
+            // MultiReader: See the explanation in the no-domain version of this function.
             const size_t valueSize = isValueSampleTypeStruct ? sampleSize : sizeof(ValueSampleType);
             const size_t domainSize = sizeof(DomainSampleType);
-            valuesStrides = {valueSize * initialCount, valueSize};
+            valuesStrides = {valueSize * initialCount * valuesPerSample, valueSize};
             domainStrides = {domainSize * initialCount, domainSize};
         }
 
@@ -500,8 +557,8 @@ private:
                            });
         }
 
-        auto valuesArray = toPyArray(std::move(values), shape, valuesStrides, dtype);
-        auto domainArray = toPyArray(std::move(domain), shape, domainStrides, domainDtype);
+        auto valuesArray = toPyArray(std::move(values), valueShape, valuesStrides, dtype);
+        auto domainArray = toPyArray(std::move(domain), domainShape, domainStrides, domainDtype);
 
         return returnStatus
                    ? SampleTypeDomainTypeReaderStatusVariant<ReaderType>{std::make_tuple(

@@ -179,6 +179,7 @@ void ConfigProtocolServer::buildRpcDispatchStructure()
     addHandler<DevicePtr>("GetDefaultAddDeviceConfig", &ConfigServerDevice::getDefaultAddDeviceConfig);
 
     addHandler<SignalPtr>("GetLastValue", &ConfigServerSignal::getLastValue);
+    addHandler<SignalPtr>("GetLastValueWithTimestamp", &ConfigServerSignal::getLastValueWithTimestamp);
 
     addHandler<InputPortPtr>("ConnectSignal", std::bind(&ConfigProtocolServer::connectSignal, this, _1, _2, _3));
     addHandler<InputPortPtr>("ConnectExternalSignal", std::bind(&ConfigProtocolServer::connectExternalSignal, this, _1, _2, _3));

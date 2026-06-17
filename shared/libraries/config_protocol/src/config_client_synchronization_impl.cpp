@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#include <config_protocol/config_client_sync_component2_impl.h>
-#include <opendaq/sync_component2.h>
+#include <config_protocol/config_client_synchronization_impl.h>
+#include <opendaq/synchronization.h>
 #include <opendaq/component_deserialize_context_ptr.h>
 #include <coretypes/serialized_object_ptr.h>
 #include <coretypes/function_ptr.h>
@@ -25,7 +25,7 @@ namespace daq::config_protocol
 {
 
 template <class Impl>
-ErrCode ConfigClientBaseSyncComponent2Impl<Impl>::setPropertyValue(IString* propertyName, IBaseObject* value)
+ErrCode ConfigClientBaseSynchronizationImpl<Impl>::setPropertyValue(IString* propertyName, IBaseObject* value)
 {
     if (this->remoteUpdating)
         return Impl::setPropertyValue(propertyName, value);
@@ -33,7 +33,7 @@ ErrCode ConfigClientBaseSyncComponent2Impl<Impl>::setPropertyValue(IString* prop
 }
 
 template <class Impl>
-ErrCode ConfigClientBaseSyncComponent2Impl<Impl>::setProtectedPropertyValue(IString* propertyName, IBaseObject* value)
+ErrCode ConfigClientBaseSynchronizationImpl<Impl>::setProtectedPropertyValue(IString* propertyName, IBaseObject* value)
 {
     if (this->remoteUpdating)
         return Impl::setProtectedPropertyValue(propertyName, value);
@@ -41,7 +41,7 @@ ErrCode ConfigClientBaseSyncComponent2Impl<Impl>::setProtectedPropertyValue(IStr
 }
 
 template <class Impl>
-ErrCode ConfigClientBaseSyncComponent2Impl<Impl>::clearPropertyValue(IString* propertyName)
+ErrCode ConfigClientBaseSynchronizationImpl<Impl>::clearPropertyValue(IString* propertyName)
 {
     if (this->remoteUpdating)
         return Impl::clearPropertyValue(propertyName);
@@ -49,7 +49,7 @@ ErrCode ConfigClientBaseSyncComponent2Impl<Impl>::clearPropertyValue(IString* pr
 }
 
 template <class Impl>
-ErrCode ConfigClientBaseSyncComponent2Impl<Impl>::addProperty(IProperty* property)
+ErrCode ConfigClientBaseSynchronizationImpl<Impl>::addProperty(IProperty* property)
 {
     if (this->remoteUpdating)
         return Impl::addProperty(property);
@@ -57,7 +57,7 @@ ErrCode ConfigClientBaseSyncComponent2Impl<Impl>::addProperty(IProperty* propert
 }
 
 template <class Impl>
-ErrCode ConfigClientBaseSyncComponent2Impl<Impl>::removeProperty(IString* propertyName)
+ErrCode ConfigClientBaseSynchronizationImpl<Impl>::removeProperty(IString* propertyName)
 {
     if (this->remoteUpdating)
         return Impl::removeProperty(propertyName);
@@ -65,7 +65,7 @@ ErrCode ConfigClientBaseSyncComponent2Impl<Impl>::removeProperty(IString* proper
 }
 
 template <class Impl>
-ErrCode ConfigClientBaseSyncComponent2Impl<Impl>::beginUpdate()
+ErrCode ConfigClientBaseSynchronizationImpl<Impl>::beginUpdate()
 {
     if (this->remoteUpdating)
         return Impl::beginUpdate();
@@ -73,7 +73,7 @@ ErrCode ConfigClientBaseSyncComponent2Impl<Impl>::beginUpdate()
 }
 
 template <class Impl>
-ErrCode ConfigClientBaseSyncComponent2Impl<Impl>::endUpdate()
+ErrCode ConfigClientBaseSynchronizationImpl<Impl>::endUpdate()
 {
     if (this->remoteUpdating)
         return Impl::endUpdate();
@@ -81,7 +81,7 @@ ErrCode ConfigClientBaseSyncComponent2Impl<Impl>::endUpdate()
 }
 
 template <class Impl>
-ErrCode ConfigClientBaseSyncComponent2Impl<Impl>::getSelectedSource(ISyncInterface** selectedSource)
+ErrCode ConfigClientBaseSynchronizationImpl<Impl>::getSelectedSource(ISyncInterface** selectedSource)
 {
     OPENDAQ_PARAM_NOT_NULL(selectedSource);
     return daqTry([&]
@@ -94,13 +94,13 @@ ErrCode ConfigClientBaseSyncComponent2Impl<Impl>::getSelectedSource(ISyncInterfa
 }
 
 template <class Impl>
-ErrCode ConfigClientBaseSyncComponent2Impl<Impl>::addInterface(ISyncInterface* syncInterface)
+ErrCode ConfigClientBaseSynchronizationImpl<Impl>::addInterface(ISyncInterface* syncInterface)
 {
     return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOT_SUPPORTED, "Adding interfaces is not supported on the client side");
 }
 
 template <class Impl>
-ErrCode ConfigClientBaseSyncComponent2Impl<Impl>::deserializeValues(ISerializedObject* /*serializedObject*/,
+ErrCode ConfigClientBaseSynchronizationImpl<Impl>::deserializeValues(ISerializedObject* /*serializedObject*/,
                                                                    IBaseObject* /*context*/,
                                                                    IFunction* /*callbackFactory*/)
 {
@@ -108,13 +108,13 @@ ErrCode ConfigClientBaseSyncComponent2Impl<Impl>::deserializeValues(ISerializedO
 }
 
 template <class Impl>
-ErrCode ConfigClientBaseSyncComponent2Impl<Impl>::complete()
+ErrCode ConfigClientBaseSynchronizationImpl<Impl>::complete()
 {
     return Super::complete();
 }
 
 template <class Impl>
-ErrCode ConfigClientBaseSyncComponent2Impl<Impl>::getDeserializedParameter(IString* parameter, IBaseObject** value)
+ErrCode ConfigClientBaseSynchronizationImpl<Impl>::getDeserializedParameter(IString* parameter, IBaseObject** value)
 {
     OPENDAQ_PARAM_NOT_NULL(parameter);
     OPENDAQ_PARAM_NOT_NULL(value);
@@ -122,7 +122,7 @@ ErrCode ConfigClientBaseSyncComponent2Impl<Impl>::getDeserializedParameter(IStri
 }
 
 template <class Impl>
-ErrCode ConfigClientBaseSyncComponent2Impl<Impl>::Deserialize(ISerializedObject* serialized,
+ErrCode ConfigClientBaseSynchronizationImpl<Impl>::Deserialize(ISerializedObject* serialized,
                                                               IBaseObject* context,
                                                               IFunction* factoryCallback,
                                                               IBaseObject** obj)
@@ -151,7 +151,7 @@ ErrCode ConfigClientBaseSyncComponent2Impl<Impl>::Deserialize(ISerializedObject*
             factoryCallbackPtr,
             [&configDeserializeContext](const SerializedObjectPtr&, const BaseObjectPtr&, const StringPtr&)
             {
-                auto syncComponent = createWithImplementation<ISyncComponent2, ConfigClientSyncComponent2Impl>(
+                auto syncComponent = createWithImplementation<ISynchronization, ConfigClientSynchronizationImpl>(
                     configDeserializeContext->getClientComm(),
                     configDeserializeContext->getRemoteGlobalId());
                 syncComponent.as<IConfigClientObject>(true)->setRemoteUpdating(true);
@@ -170,6 +170,6 @@ ErrCode ConfigClientBaseSyncComponent2Impl<Impl>::Deserialize(ISerializedObject*
 }
 
 // Explicit template instantiation
-template class ConfigClientBaseSyncComponent2Impl<SyncComponent2Impl<IPropertyObject, IConfigClientObject, IDeserializeComponent>>;
+template class ConfigClientBaseSynchronizationImpl<SynchronizationImpl<IPropertyObject, IConfigClientObject, IDeserializeComponent>>;
 
 } // namespace daq::config_protocol

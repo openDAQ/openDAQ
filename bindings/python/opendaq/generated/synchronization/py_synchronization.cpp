@@ -31,49 +31,49 @@
 #include "py_core_types/py_converter.h"
 #include "py_core_objects/py_variant_extractor.h"
 
-PyDaqIntf<daq::ISyncComponent2, daq::IBaseObject> declareISyncComponent2(pybind11::module_ m)
+PyDaqIntf<daq::ISynchronization, daq::IBaseObject> declareISynchronization(pybind11::module_ m)
 {
-    return wrapInterface<daq::ISyncComponent2, daq::IBaseObject>(m, "ISyncComponent2");
+    return wrapInterface<daq::ISynchronization, daq::IBaseObject>(m, "ISynchronization");
 }
 
-void defineISyncComponent2(pybind11::module_ m, PyDaqIntf<daq::ISyncComponent2, daq::IBaseObject> cls)
+void defineISynchronization(pybind11::module_ m, PyDaqIntf<daq::ISynchronization, daq::IBaseObject> cls)
 {
     cls.doc() = "Interface representing a Synchronization Component 2 in a Test & Measurement system.";
 
-    m.def("SyncComponent2", [](const bool registerEvents){
-        return daq::SyncComponent2_Create(registerEvents);
+    m.def("Synchronization", [](const bool registerEvents){
+        return daq::Synchronization_Create(registerEvents);
     }, py::arg("register_events"));
 
 
     cls.def_property_readonly("selected_source",
-        [](daq::ISyncComponent2 *object)
+        [](daq::ISynchronization *object)
         {
             py::gil_scoped_release release;
-            const auto objectPtr = daq::SyncComponent2Ptr::Borrow(object);
+            const auto objectPtr = daq::SynchronizationPtr::Borrow(object);
             return objectPtr.getSelectedSource().detach();
         },
         "Retrieves the selected sync source interface.");
     cls.def_property_readonly("source_synced",
-        [](daq::ISyncComponent2 *object)
+        [](daq::ISynchronization *object)
         {
             py::gil_scoped_release release;
-            const auto objectPtr = daq::SyncComponent2Ptr::Borrow(object);
+            const auto objectPtr = daq::SynchronizationPtr::Borrow(object);
             return objectPtr.getSourceSynced();
         },
         "Gets whether the source is synced.");
     cls.def_property_readonly("source_reference_domain_id",
-        [](daq::ISyncComponent2 *object)
+        [](daq::ISynchronization *object)
         {
             py::gil_scoped_release release;
-            const auto objectPtr = daq::SyncComponent2Ptr::Borrow(object);
+            const auto objectPtr = daq::SynchronizationPtr::Borrow(object);
             return objectPtr.getSourceReferenceDomainId().toStdString();
         },
         "Gets the reference domain ID of the source.");
     cls.def_property_readonly("interfaces",
-        [](daq::ISyncComponent2 *object)
+        [](daq::ISynchronization *object)
         {
             py::gil_scoped_release release;
-            const auto objectPtr = daq::SyncComponent2Ptr::Borrow(object);
+            const auto objectPtr = daq::SynchronizationPtr::Borrow(object);
             return objectPtr.getInterfaces().detach();
         },
         py::return_value_policy::take_ownership,

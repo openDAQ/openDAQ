@@ -16,7 +16,7 @@
 
 #pragma once
 #include <config_protocol/config_client_property_object_impl.h>
-#include <opendaq/sync_component2_impl.h>
+#include <opendaq/synchronization_impl.h>
 #include <config_protocol/config_protocol_deserialize_context_impl.h>
 #include <opendaq/deserialize_component.h>
 
@@ -24,12 +24,12 @@ namespace daq::config_protocol
 {
 
 template <class Impl>
-class ConfigClientBaseSyncComponent2Impl;
+class ConfigClientBaseSynchronizationImpl;
 
-using ConfigClientSyncComponent2Impl = ConfigClientBaseSyncComponent2Impl<SyncComponent2Impl<IPropertyObject, IConfigClientObject, IDeserializeComponent>>;
+using ConfigClientSynchronizationImpl = ConfigClientBaseSynchronizationImpl<SynchronizationImpl<IPropertyObject, IConfigClientObject, IDeserializeComponent>>;
 
 template <class Impl>
-class ConfigClientBaseSyncComponent2Impl : public ConfigClientPropertyObjectBaseImpl<Impl>
+class ConfigClientBaseSynchronizationImpl : public ConfigClientPropertyObjectBaseImpl<Impl>
 {
 public:
 
@@ -45,7 +45,7 @@ public:
     ErrCode INTERFACE_FUNC beginUpdate() override;
     ErrCode INTERFACE_FUNC endUpdate() override;
 
-    // ISyncComponent2
+    // ISynchronization
     ErrCode INTERFACE_FUNC getSelectedSource(ISyncInterface** selectedSource) override;
     ErrCode INTERFACE_FUNC addInterface(ISyncInterface* syncInterface) override;
 

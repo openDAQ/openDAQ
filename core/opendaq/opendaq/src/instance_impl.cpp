@@ -569,7 +569,7 @@ ErrCode InstanceImpl::getSyncComponent(ISyncComponent** syncComponent)
     return rootDevice->getSyncComponent(syncComponent);
 }
 
-ErrCode InstanceImpl::getSynchronization(ISyncComponent2** synchronization)
+ErrCode InstanceImpl::getSynchronization(ISynchronization** synchronization)
 {
     return rootDevice->getSynchronization(synchronization);
 }

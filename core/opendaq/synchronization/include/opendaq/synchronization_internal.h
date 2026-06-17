@@ -23,14 +23,14 @@ BEGIN_NAMESPACE_OPENDAQ
 
 /*!
  * @ingroup opendaq_synchronization_path
- * @addtogroup opendaq_sync_component2 Sync Component 2
+ * @addtogroup opendaq_synchronization Sync Component 2
  * @{
  */
 
 /*!
  * @brief Internal interface for synchronization component 2 operations.
  */
-DECLARE_OPENDAQ_INTERFACE(ISyncComponent2Internal, IBaseObject)
+DECLARE_OPENDAQ_INTERFACE(ISynchronizationInternal, IBaseObject)
 {
     /*!
      * @brief Adds an interface to the synchronization component 2.

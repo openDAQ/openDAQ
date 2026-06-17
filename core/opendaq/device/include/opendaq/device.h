@@ -24,7 +24,7 @@
 #include <opendaq/device_type.h>
 #include <opendaq/streaming.h>
 #include <opendaq/sync_component.h>
-#include <opendaq/sync_component2.h>
+#include <opendaq/synchronization.h>
 #include <opendaq/server.h>
 #include <opendaq/update_parameters.h>
 #include <coreobjects/user.h>
@@ -410,7 +410,7 @@ DECLARE_OPENDAQ_INTERFACE(IDevice, IFolder)
      * @brief Gets the synchronization object of the device.
      * @param[out] sync The synchronization object.
      */
-    virtual ErrCode INTERFACE_FUNC getSynchronization(ISyncComponent2** sync) = 0;
+    virtual ErrCode INTERFACE_FUNC getSynchronization(ISynchronization** sync) = 0;
 };
 /*!@}*/
 

@@ -77,7 +77,7 @@ public:
 
     virtual DeviceInfoPtr onGetInfo();
 
-    virtual SyncComponent2Ptr onGetSynchronization();
+    virtual SynchronizationPtr onGetSynchronization();
 
     virtual uint64_t onGetTicksSinceOrigin();
 
@@ -108,7 +108,7 @@ public:
     ErrCode INTERFACE_FUNC getChannels(IList** channels, ISearchFilter* searchFilter = nullptr) override;
     ErrCode INTERFACE_FUNC getChannelsRecursive(IList** channels, ISearchFilter* searchFilter = nullptr) override;
     ErrCode INTERFACE_FUNC getSyncComponent(ISyncComponent** syncComponent) override;
-    ErrCode INTERFACE_FUNC getSynchronization(ISyncComponent2** synchronization) override;
+    ErrCode INTERFACE_FUNC getSynchronization(ISynchronization** synchronization) override;
 
     ErrCode INTERFACE_FUNC addServer(IString* typeId, IPropertyObject* config, IServer** server) override;
     ErrCode INTERFACE_FUNC removeServer(IServer* server) override;
@@ -1629,13 +1629,13 @@ ErrCode GenericDevice<TInterface, Interfaces...>::getSyncComponent(ISyncComponen
 }
 
 template <typename TInterface, typename... Interfaces>
-SyncComponent2Ptr GenericDevice<TInterface, Interfaces...>::onGetSynchronization()
+SynchronizationPtr GenericDevice<TInterface, Interfaces...>::onGetSynchronization()
 {
-    return SyncComponent2();
+    return Synchronization();
 }
 
 template <typename TInterface, typename... Interfaces>
-ErrCode GenericDevice<TInterface, Interfaces...>::getSynchronization(ISyncComponent2** sync)
+ErrCode GenericDevice<TInterface, Interfaces...>::getSynchronization(ISynchronization** sync)
 {
     OPENDAQ_PARAM_NOT_NULL(sync);
 
@@ -1646,15 +1646,15 @@ ErrCode GenericDevice<TInterface, Interfaces...>::getSynchronization(ISyncCompon
     {
         if (!this->objPtr.hasProperty("Sync"))
         {
-            SyncComponent2Ptr syncComponent2;
-            const ErrCode errCode = wrapHandlerReturn(this, &Self::onGetSynchronization, syncComponent2);
+            SynchronizationPtr Synchronization;
+            const ErrCode errCode = wrapHandlerReturn(this, &Self::onGetSynchronization, Synchronization);
             checkErrorInfo(errCode);
 
-            this->addProperty(ObjectPropertyBuilder("Sync", syncComponent2).setVisible(false).build());
+            this->addProperty(ObjectPropertyBuilder("Sync", Synchronization).setVisible(false).build());
         }
 
-        const SyncComponent2Ptr syncComponent2 = this->objPtr.getPropertyValue("Sync");
-        *sync = syncComponent2.addRefAndReturn();
+        const SynchronizationPtr Synchronization = this->objPtr.getPropertyValue("Sync");
+        *sync = Synchronization.addRefAndReturn();
         return OPENDAQ_SUCCESS;
     });
 }

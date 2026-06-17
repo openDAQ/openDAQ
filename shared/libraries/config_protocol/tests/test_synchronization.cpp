@@ -7,9 +7,9 @@
 #include <config_protocol/config_client_device_impl.h>
 #include <opendaq/context_factory.h>
 #include <opendaq/device_impl.h>
-#include <opendaq/sync_component2.h>
-#include <opendaq/sync_component2_impl.h>
-#include <opendaq/sync_component2_internal_ptr.h>
+#include <opendaq/synchronization.h>
+#include <opendaq/synchronization_impl.h>
+#include <opendaq/synchronization_internal_ptr.h>
 #include <opendaq/sync_interface_base_impl.h>
 #include <opendaq/sync_interface_ptr.h>
 #include <coreobjects/property_object_internal_ptr.h>
@@ -22,7 +22,7 @@ using namespace daq::config_protocol;
 using namespace testing;
 using namespace std::placeholders;
 
-// Simple test device with SyncComponent2
+// Simple test device with Synchronization
 class TestDeviceWithSync2Impl : public Device
 {
 public:
@@ -31,11 +31,11 @@ public:
     TestDeviceWithSync2Impl(const ContextPtr& ctx, const ComponentPtr& parent, const StringPtr& localId)
         : Device(ctx, parent, localId)
     {
-        SyncComponent2Ptr sync;
+        SynchronizationPtr sync;
         checkErrorInfo(this->getSynchronization(&sync));
 
         const auto syncInterface = createWithImplementation<ISyncInterface, SyncInterfaceBase>("TestInterface");
-        sync.asPtr<ISyncComponent2Internal>(true).addInterface(syncInterface);
+        sync.asPtr<ISynchronizationInternal>(true).addInterface(syncInterface);
 
         // sync.asPtr<IPropertyObjectInternal>().setLockingStrategy(LockingStrategy::ForwardOwnerLockOwn);
     }
@@ -62,7 +62,7 @@ public:
 
 OPENDAQ_REGISTER_DESERIALIZE_FACTORY(TestDeviceWithSync2Impl)
 
-class ConfigSyncComponent2Test : public Test
+class ConfigSynchronizationTest : public Test
 {
 public:
     void SetUp() override
@@ -75,7 +75,7 @@ public:
 
         server = std::make_unique<ConfigProtocolServer>(
             serverDevice,
-            std::bind(&ConfigSyncComponent2Test::serverNotificationReady, this, std::placeholders::_1),
+            std::bind(&ConfigSynchronizationTest::serverNotificationReady, this, std::placeholders::_1),
             anonymousUser,
             ClientType::Control,
             test_utils::dummyExtSigFolder(serverDevice.getContext()));
@@ -83,8 +83,8 @@ public:
         clientContext = NullContext();
         client = std::make_unique<ConfigProtocolClient<ConfigClientDeviceImpl>>(
             clientContext,
-            std::bind(&ConfigSyncComponent2Test::sendRequestAndGetReply, this, std::placeholders::_1),
-            std::bind(&ConfigSyncComponent2Test::sendNoReplyRequest, this, std::placeholders::_1),
+            std::bind(&ConfigSynchronizationTest::sendRequestAndGetReply, this, std::placeholders::_1),
+            std::bind(&ConfigSynchronizationTest::sendNoReplyRequest, this, std::placeholders::_1),
             nullptr,
             nullptr,
             nullptr);
@@ -109,12 +109,12 @@ public:
         client->triggerNotificationPacket(notificationPacket);
     }
 
-    SyncComponent2Ptr getServerSyncComponent() const
+    SynchronizationPtr getServerSyncComponent() const
     {
         return serverDevice.getSynchronization();
     }
 
-    SyncComponent2Ptr getClientSyncComponent() const
+    SynchronizationPtr getClientSyncComponent() const
     {
         return clientDevice.getSynchronization();
     }
@@ -128,7 +128,7 @@ protected:
     std::unique_ptr<ConfigProtocolClient<ConfigClientDeviceImpl>> client;
 };
 
-TEST_F(ConfigSyncComponent2Test, Connect)
+TEST_F(ConfigSynchronizationTest, Connect)
 {
     auto serverSync = getServerSyncComponent();
     auto clientSync = getClientSyncComponent();
@@ -137,7 +137,7 @@ TEST_F(ConfigSyncComponent2Test, Connect)
     ASSERT_TRUE(clientSync.assigned());
 }
 
-TEST_F(ConfigSyncComponent2Test, GetInterfaces)
+TEST_F(ConfigSynchronizationTest, GetInterfaces)
 {
     auto serverSync = getServerSyncComponent();
     auto clientSync = getClientSyncComponent();
@@ -149,7 +149,7 @@ TEST_F(ConfigSyncComponent2Test, GetInterfaces)
     ASSERT_EQ(serverInterfaces.getKeyList(), clientInterfaces.getKeyList());
 }
 
-TEST_F(ConfigSyncComponent2Test, GetSelectedSource)
+TEST_F(ConfigSynchronizationTest, GetSelectedSource)
 {
     auto serverSync = getServerSyncComponent();
     auto clientSync = getClientSyncComponent();
@@ -160,7 +160,7 @@ TEST_F(ConfigSyncComponent2Test, GetSelectedSource)
     ASSERT_EQ(serverSource.getName(), clientSource.getName());
 }
 
-TEST_F(ConfigSyncComponent2Test, SetSelectedSourceFromClient)
+TEST_F(ConfigSynchronizationTest, SetSelectedSourceFromClient)
 {
     auto serverSync = getServerSyncComponent();
     auto clientSync = getClientSyncComponent();
@@ -173,7 +173,7 @@ TEST_F(ConfigSyncComponent2Test, SetSelectedSourceFromClient)
     ASSERT_EQ(serverSync.getSelectedSource().getName(), "TestInterface");
 }
 
-TEST_F(ConfigSyncComponent2Test, GetSourceSynced)
+TEST_F(ConfigSynchronizationTest, GetSourceSynced)
 {
     auto serverSync = getServerSyncComponent();
     auto clientSync = getClientSyncComponent();
@@ -185,7 +185,7 @@ TEST_F(ConfigSyncComponent2Test, GetSourceSynced)
     ASSERT_EQ(serverSynced, clientSynced);
 }
 
-TEST_F(ConfigSyncComponent2Test, GetSourceReferenceDomainId)
+TEST_F(ConfigSynchronizationTest, GetSourceReferenceDomainId)
 {
     auto serverSync = getServerSyncComponent();
     auto clientSync = getClientSyncComponent();
@@ -197,7 +197,7 @@ TEST_F(ConfigSyncComponent2Test, GetSourceReferenceDomainId)
     ASSERT_EQ(serverDomainId, clientDomainId);
 }
 
-TEST_F(ConfigSyncComponent2Test, SyncInterfaceGetName)
+TEST_F(ConfigSynchronizationTest, SyncInterfaceGetName)
 {
     auto clientSync = getClientSyncComponent();
     auto clientSource = clientSync.getSelectedSource();
@@ -205,7 +205,7 @@ TEST_F(ConfigSyncComponent2Test, SyncInterfaceGetName)
     ASSERT_EQ(clientSource.getName(), "ClockSyncInterface");
 }
 
-TEST_F(ConfigSyncComponent2Test, SyncInterfaceGetSynced)
+TEST_F(ConfigSynchronizationTest, SyncInterfaceGetSynced)
 {
     auto serverSync = getServerSyncComponent();
     auto clientSync = getClientSyncComponent();
@@ -216,7 +216,7 @@ TEST_F(ConfigSyncComponent2Test, SyncInterfaceGetSynced)
     ASSERT_EQ(serverSource.getSynced(), clientSource.getSynced());
 }
 
-TEST_F(ConfigSyncComponent2Test, SyncInterfaceGetReferenceDomainId)
+TEST_F(ConfigSynchronizationTest, SyncInterfaceGetReferenceDomainId)
 {
     auto serverSync = getServerSyncComponent();
     auto clientSync = getClientSyncComponent();
@@ -227,7 +227,7 @@ TEST_F(ConfigSyncComponent2Test, SyncInterfaceGetReferenceDomainId)
     ASSERT_EQ(serverSource.getReferenceDomainId(), clientSource.getReferenceDomainId());
 }
 
-TEST_F(ConfigSyncComponent2Test, SyncInterfacePropertyAccess)
+TEST_F(ConfigSynchronizationTest, SyncInterfacePropertyAccess)
 {
     auto clientSync = getClientSyncComponent();
     auto clientSource = clientSync.getSelectedSource();
@@ -240,7 +240,7 @@ TEST_F(ConfigSyncComponent2Test, SyncInterfacePropertyAccess)
     ASSERT_NO_THROW(propObj.getPropertyValue("Status.ReferenceDomainId"));
 }
 
-TEST_F(ConfigSyncComponent2Test, SetSyncInterfaceModeViaProperty)
+TEST_F(ConfigSynchronizationTest, SetSyncInterfaceModeViaProperty)
 {
     auto serverSync = getServerSyncComponent();
     auto clientSync = getClientSyncComponent();

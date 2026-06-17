@@ -15,7 +15,7 @@
  */
 #pragma once
 #include <opendaq/sync_component_ptr.h>
-#include <opendaq/sync_component2_ptr.h>
+#include <opendaq/synchronization_ptr.h>
 #include <opendaq/sync_interface_ptr.h>
 #include <opendaq/context_ptr.h>
 #include <opendaq/component_ptr.h>
@@ -42,9 +42,9 @@ inline SyncComponentPtr SyncComponent(const ContextPtr& context, const Component
 /*!
  * @brief Creates a synchronization component 2.
  */
-inline SyncComponent2Ptr SyncComponent2()
+inline SynchronizationPtr Synchronization()
 {
-    return { SyncComponent2_Create(true) };
+    return { Synchronization_Create(true) };
 }
 
 /*!@}*/

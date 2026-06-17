@@ -46,7 +46,8 @@ public:
     using Super = GenericPropertyObjectImpl<Intf, ISynchronization, ISynchronizationInternal, Intfs...>;
     using Self = SynchronizationImpl<Intf, Intfs...>;
 
-    explicit SynchronizationImpl(Bool registerEvents = False);
+    explicit SynchronizationImpl(Bool remote);
+    explicit SynchronizationImpl();
 
     // ISynchronization
     ErrCode INTERFACE_FUNC getSelectedSource(ISyncInterface** selectedSource) override;
@@ -65,7 +66,6 @@ public:
     static ErrCode Deserialize(ISerializedObject* serialized, IBaseObject* context, IFunction* factoryCallback, IBaseObject** obj);
 
 protected:
-    void init(bool registerEvents);
     void setSelectedSource(const SyncInterfacePtr& newSource);
     void onInterfaceModeChanged(const PropertyObjectPtr& objPtr, const PropertyValueEventArgsPtr& eventArgs);
 
@@ -74,31 +74,25 @@ protected:
 
 
 template <class Intf, class... Intfs>
-SynchronizationImpl<Intf, Intfs...>::SynchronizationImpl(Bool registerEvents)
+SynchronizationImpl<Intf, Intfs...>::SynchronizationImpl(Bool remote)
     : Super()
 {
-    this->init(registerEvents == True);
-}
-
-template <class Intf, class... Intfs>
-void SynchronizationImpl<Intf, Intfs...>::init(bool registerEvents)
-{
-    source = createWithImplementation<ISyncInterface, ClockSyncInterfaceImpl>();
-    source.asPtr<IPropertyObject>(true).setPropertyValue("Mode", "Input");
-
-    auto interfaces = PropertyObject();
-    interfaces.addProperty(ObjectProperty(source.getName(), source));
-    this->addProperty(ObjectProperty("Interfaces", interfaces));
-
-    const auto souceProperty = StringPropertyBuilder("Source", source.getName())
-                                                        .setSelectionValues(EvalValue("%Interfaces:PropertyNames"))
-                                                        .setReadOnly(true)
-                                                        .build();
-    this->addProperty(souceProperty);
-    this->objPtr.setPropertyOrder(List<IString>("Interfaces"));
-
-    if (registerEvents)
+    if (!remote)
     {
+        source = createWithImplementation<ISyncInterface, ClockSyncInterfaceImpl>();
+        source.asPtr<IPropertyObject>(true).setPropertyValue("Mode", "Input");
+
+        auto interfaces = PropertyObject();
+        interfaces.addProperty(ObjectProperty(source.getName(), source));
+        this->addProperty(ObjectProperty("Interfaces", interfaces));
+
+        const auto souceProperty = StringPropertyBuilder("Source", source.getName())
+                                                            .setSelectionValues(EvalValue("%Interfaces:PropertyNames"))
+                                                            .setReadOnly(true)
+                                                            .build();
+        this->addProperty(souceProperty);
+        this->objPtr.setPropertyOrder(List<IString>("Interfaces"));
+
         source.asPtr<IPropertyObject>(true).getOnPropertyValueWrite("Mode") += [this](const PropertyObjectPtr& objPtr, const PropertyValueEventArgsPtr& eventArgs)
         {
             if (source == objPtr)
@@ -119,6 +113,12 @@ void SynchronizationImpl<Intf, Intfs...>::init(bool registerEvents)
             }
         };
     }
+}
+
+template <class Intf, class... Intfs>
+SynchronizationImpl<Intf, Intfs...>::SynchronizationImpl()
+    : SynchronizationImpl(false)
+{
 }
 
 template <class Intf, class... Intfs>

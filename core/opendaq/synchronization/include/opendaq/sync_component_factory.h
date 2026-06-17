@@ -44,7 +44,7 @@ inline SyncComponentPtr SyncComponent(const ContextPtr& context, const Component
  */
 inline SynchronizationPtr Synchronization()
 {
-    return { Synchronization_Create(true) };
+    return { Synchronization_Create() };
 }
 
 /*!@}*/

@@ -91,11 +91,6 @@ ErrCode ConfigClientSyncInterfaceImpl::deserializeValues(ISerializedObject* seri
     return OPENDAQ_SUCCESS;
 }
 
-ErrCode ConfigClientSyncInterfaceImpl::complete()
-{
-    return Super::complete();
-}
-
 ErrCode ConfigClientSyncInterfaceImpl::getDeserializedParameter(IString* parameter, IBaseObject** value)
 {
     OPENDAQ_PARAM_NOT_NULL(parameter);

@@ -40,9 +40,9 @@ void defineISynchronization(pybind11::module_ m, PyDaqIntf<daq::ISynchronization
 {
     cls.doc() = "Interface representing a Synchronization Component 2 in a Test & Measurement system.";
 
-    m.def("Synchronization", [](const bool registerEvents){
-        return daq::Synchronization_Create(registerEvents);
-    }, py::arg("register_events"));
+    m.def("Synchronization", [](){
+        return daq::Synchronization_Create();
+    });
 
 
     cls.def_property_readonly("selected_source",

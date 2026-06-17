@@ -130,7 +130,10 @@ public:
         OPENDAQ_RETURN_IF_FAILED(errCode);
 
         if (createdDevice.assigned())
+        {
             createdDevice.getInfo();
+            createdDevice.getSynchronization();
+        }
 
         *device = createdDevice.detach();
         return errCode;

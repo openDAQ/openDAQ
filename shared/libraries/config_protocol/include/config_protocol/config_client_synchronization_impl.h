@@ -23,18 +23,14 @@
 namespace daq::config_protocol
 {
 
-template <class Impl>
-class ConfigClientBaseSynchronizationImpl;
-
-using ConfigClientSynchronizationImpl = ConfigClientBaseSynchronizationImpl<SynchronizationImpl<IPropertyObject, IConfigClientObject, IDeserializeComponent>>;
-
-template <class Impl>
-class ConfigClientBaseSynchronizationImpl : public ConfigClientPropertyObjectBaseImpl<Impl>
+class ConfigClientSynchronizationImpl : public ConfigClientPropertyObjectBaseImpl<SynchronizationImpl<IPropertyObject, IConfigClientObject, IDeserializeComponent>>
 {
 public:
-
+    using Impl = SynchronizationImpl<IPropertyObject, IConfigClientObject, IDeserializeComponent>;
     using Super = ConfigClientPropertyObjectBaseImpl<Impl>;
-    using Super::Super;
+
+    ConfigClientSynchronizationImpl(const ConfigProtocolClientCommPtr& configProtocolClientComm,
+                                    const std::string& remoteGlobalId);
 
     // IPropertyObject
     ErrCode INTERFACE_FUNC setPropertyValue(IString* propertyName, IBaseObject* value) override;
@@ -51,7 +47,6 @@ public:
 
     // IDeserializeComponent
     ErrCode INTERFACE_FUNC deserializeValues(ISerializedObject* serializedObject, IBaseObject* context, IFunction* callbackFactory) override;
-    ErrCode INTERFACE_FUNC complete() override;
     ErrCode INTERFACE_FUNC getDeserializedParameter(IString* parameter, IBaseObject** value) override;
 
     static ErrCode Deserialize(ISerializedObject* serialized, IBaseObject* context, IFunction* factoryCallback, IBaseObject** obj);

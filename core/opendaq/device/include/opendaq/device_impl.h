@@ -1631,7 +1631,7 @@ ErrCode GenericDevice<TInterface, Interfaces...>::getSyncComponent(ISyncComponen
 template <typename TInterface, typename... Interfaces>
 SynchronizationPtr GenericDevice<TInterface, Interfaces...>::onGetSynchronization()
 {
-    return Synchronization();
+    return nullptr;
 }
 
 template <typename TInterface, typename... Interfaces>
@@ -1646,15 +1646,18 @@ ErrCode GenericDevice<TInterface, Interfaces...>::getSynchronization(ISynchroniz
     {
         if (!this->objPtr.hasProperty("Sync"))
         {
-            SynchronizationPtr Synchronization;
-            const ErrCode errCode = wrapHandlerReturn(this, &Self::onGetSynchronization, Synchronization);
-            checkErrorInfo(errCode);
+            SynchronizationPtr synchronization;
+            OPENDAQ_RETURN_IF_FAILED(wrapHandlerReturn(this, &Self::onGetSynchronization, synchronization));
 
-            this->addProperty(ObjectPropertyBuilder("Sync", Synchronization).setVisible(false).build());
+            if (synchronization.assigned())
+                this->addProperty(ObjectPropertyBuilder("Sync", synchronization).setVisible(false).build());
+        
+            *sync = synchronization.detach();
+            return OPENDAQ_SUCCESS;
         }
 
-        const SynchronizationPtr Synchronization = this->objPtr.getPropertyValue("Sync");
-        *sync = Synchronization.addRefAndReturn();
+        SynchronizationPtr synchronization = this->objPtr.getPropertyValue("Sync");
+        *sync = synchronization.detach();
         return OPENDAQ_SUCCESS;
     });
 }

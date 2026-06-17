@@ -50,7 +50,6 @@ public:
 
     // IDeserializeComponent
     ErrCode INTERFACE_FUNC deserializeValues(ISerializedObject* serializedObject, IBaseObject* context, IFunction* callbackFactory) override;
-    ErrCode INTERFACE_FUNC complete() override;
     ErrCode INTERFACE_FUNC getDeserializedParameter(IString* parameter, IBaseObject** value) override;
 
     static ErrCode Deserialize(ISerializedObject* serialized, IBaseObject* context, IFunction* factoryCallback, IBaseObject** obj);

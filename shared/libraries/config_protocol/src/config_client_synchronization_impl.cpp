@@ -24,64 +24,61 @@
 namespace daq::config_protocol
 {
 
-template <class Impl>
-ErrCode ConfigClientBaseSynchronizationImpl<Impl>::setPropertyValue(IString* propertyName, IBaseObject* value)
+ConfigClientSynchronizationImpl::ConfigClientSynchronizationImpl(const ConfigProtocolClientCommPtr& configProtocolClientComm,const std::string& remoteGlobalId)
+    : Super(configProtocolClientComm, remoteGlobalId, True)
+{
+}
+
+ErrCode ConfigClientSynchronizationImpl::setPropertyValue(IString* propertyName, IBaseObject* value)
 {
     if (this->remoteUpdating)
         return Impl::setPropertyValue(propertyName, value);
     return Super::setPropertyValue(propertyName, value);
 }
 
-template <class Impl>
-ErrCode ConfigClientBaseSynchronizationImpl<Impl>::setProtectedPropertyValue(IString* propertyName, IBaseObject* value)
+ErrCode ConfigClientSynchronizationImpl::setProtectedPropertyValue(IString* propertyName, IBaseObject* value)
 {
     if (this->remoteUpdating)
         return Impl::setProtectedPropertyValue(propertyName, value);
     return Super::setProtectedPropertyValue(propertyName, value);
 }
 
-template <class Impl>
-ErrCode ConfigClientBaseSynchronizationImpl<Impl>::clearPropertyValue(IString* propertyName)
+ErrCode ConfigClientSynchronizationImpl::clearPropertyValue(IString* propertyName)
 {
     if (this->remoteUpdating)
         return Impl::clearPropertyValue(propertyName);
     return Super::clearPropertyValue(propertyName);
 }
 
-template <class Impl>
-ErrCode ConfigClientBaseSynchronizationImpl<Impl>::addProperty(IProperty* property)
+ErrCode ConfigClientSynchronizationImpl::addProperty(IProperty* property)
 {
     if (this->remoteUpdating)
         return Impl::addProperty(property);
     return Super::addProperty(property);
 }
 
-template <class Impl>
-ErrCode ConfigClientBaseSynchronizationImpl<Impl>::removeProperty(IString* propertyName)
+ErrCode ConfigClientSynchronizationImpl::removeProperty(IString* propertyName)
 {
     if (this->remoteUpdating)
         return Impl::removeProperty(propertyName);
     return Super::removeProperty(propertyName);
 }
 
-template <class Impl>
-ErrCode ConfigClientBaseSynchronizationImpl<Impl>::beginUpdate()
+ErrCode ConfigClientSynchronizationImpl::beginUpdate()
 {
     if (this->remoteUpdating)
         return Impl::beginUpdate();
     return Super::beginUpdate();
 }
 
-template <class Impl>
-ErrCode ConfigClientBaseSynchronizationImpl<Impl>::endUpdate()
+ErrCode ConfigClientSynchronizationImpl::endUpdate()
 {
     if (this->remoteUpdating)
         return Impl::endUpdate();
     return Super::endUpdate();
 }
 
-template <class Impl>
-ErrCode ConfigClientBaseSynchronizationImpl<Impl>::getSelectedSource(ISyncInterface** selectedSource)
+ErrCode ConfigClientSynchronizationImpl::getSelectedSource(ISyncInterface** selectedSource)
 {
     OPENDAQ_PARAM_NOT_NULL(selectedSource);
     return daqTry([&]
@@ -93,36 +90,26 @@ ErrCode ConfigClientBaseSynchronizationImpl<Impl>::getSelectedSource(ISyncInterf
     });
 }
 
-template <class Impl>
-ErrCode ConfigClientBaseSynchronizationImpl<Impl>::addInterface(ISyncInterface* syncInterface)
+ErrCode ConfigClientSynchronizationImpl::addInterface(ISyncInterface* syncInterface)
 {
     return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOT_SUPPORTED, "Adding interfaces is not supported on the client side");
 }
 
-template <class Impl>
-ErrCode ConfigClientBaseSynchronizationImpl<Impl>::deserializeValues(ISerializedObject* /*serializedObject*/,
+ErrCode ConfigClientSynchronizationImpl::deserializeValues(ISerializedObject* /*serializedObject*/,
                                                                    IBaseObject* /*context*/,
                                                                    IFunction* /*callbackFactory*/)
 {
     return OPENDAQ_SUCCESS;
 }
 
-template <class Impl>
-ErrCode ConfigClientBaseSynchronizationImpl<Impl>::complete()
-{
-    return Super::complete();
-}
-
-template <class Impl>
-ErrCode ConfigClientBaseSynchronizationImpl<Impl>::getDeserializedParameter(IString* parameter, IBaseObject** value)
+ErrCode ConfigClientSynchronizationImpl::getDeserializedParameter(IString* parameter, IBaseObject** value)
 {
     OPENDAQ_PARAM_NOT_NULL(parameter);
     OPENDAQ_PARAM_NOT_NULL(value);
     return OPENDAQ_NOTFOUND;
 }
 
-template <class Impl>
-ErrCode ConfigClientBaseSynchronizationImpl<Impl>::Deserialize(ISerializedObject* serialized,
+ErrCode ConfigClientSynchronizationImpl::Deserialize(ISerializedObject* serialized,
                                                               IBaseObject* context,
                                                               IFunction* factoryCallback,
                                                               IBaseObject** obj)
@@ -168,8 +155,5 @@ ErrCode ConfigClientBaseSynchronizationImpl<Impl>::Deserialize(ISerializedObject
     OPENDAQ_RETURN_IF_FAILED(errCode);
     return errCode;
 }
-
-// Explicit template instantiation
-template class ConfigClientBaseSynchronizationImpl<SynchronizationImpl<IPropertyObject, IConfigClientObject, IDeserializeComponent>>;
 
 } // namespace daq::config_protocol

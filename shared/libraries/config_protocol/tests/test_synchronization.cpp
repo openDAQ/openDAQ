@@ -33,30 +33,14 @@ public:
     {
         SynchronizationPtr sync;
         checkErrorInfo(this->getSynchronization(&sync));
-
-        const auto syncInterface = createWithImplementation<ISyncInterface, SyncInterfaceBase>("TestInterface");
-        sync.asPtr<ISynchronizationInternal>(true).addInterface(syncInterface);
-
-        // sync.asPtr<IPropertyObjectInternal>().setLockingStrategy(LockingStrategy::ForwardOwnerLockOwn);
     }
 
-    static ErrCode Deserialize(ISerializedObject* serialized, IBaseObject* context, IFunction* factoryCallback, IBaseObject** obj)
+    SynchronizationPtr onGetSynchronization() override
     {
-        OPENDAQ_PARAM_NOT_NULL(obj);
-        return daqTry([&obj, &serialized, &context, &factoryCallback]
-        {
-            *obj = Super::DeserializeComponent(
-                serialized,
-                context,
-                factoryCallback,
-                [](const SerializedObjectPtr&, const ComponentDeserializeContextPtr& deserializeContext, const StringPtr&)
-                {
-                    return createWithImplementation<IDevice, TestDeviceWithSync2Impl>(
-                        deserializeContext.getContext(),
-                        deserializeContext.getParent(),
-                        deserializeContext.getLocalId());
-                }).detach();
-        });
+        auto sync = Synchronization();
+        const auto syncInterface = createWithImplementation<ISyncInterface, SyncInterfaceBase>("TestInterface");
+        sync.asPtr<ISynchronizationInternal>(true).addInterface(syncInterface);
+        return sync;
     }
 };
 

@@ -16,6 +16,7 @@
 #pragma once
 #include <opendaq/reader_domain_info.h>
 #include <opendaq/typed_reader.h>
+#include <type_traits>
 
 BEGIN_NAMESPACE_OPENDAQ
 
@@ -99,7 +100,7 @@ class ComparableValue : public Comparable
 public:
     explicit ComparableValue(ReadType startingValue, const ReaderDomainInfo& domainInfo, bool log = true)
         : Comparable(domainInfo)
-        , value(static_cast<ReadType>(startingValue * domainInfo.multiplier.getNumerator() / static_cast<double>(domainInfo.multiplier.getDenominator())))
+        , value(scaleStartingValue(startingValue, domainInfo))
     {
 
 #if !defined(NDEBUG)
@@ -209,6 +210,18 @@ public:
 #endif
 
 private:
+    [[nodiscard]] static ReadType scaleStartingValue(ReadType startingValue, const ReaderDomainInfo& domainInfo)
+    {
+        const Int num = domainInfo.multiplier.getNumerator();
+        const Int den = domainInfo.multiplier.getDenominator();
+
+        if constexpr (std::is_integral_v<ReadType>)
+            // Split into whole/remainder parts to keep full integer precision and avoid overflow.
+            return static_cast<ReadType>((startingValue / den) * num + (startingValue % den) * num / den);
+
+        return static_cast<ReadType>(startingValue * static_cast<double>(num) / den);
+    }
+
     [[nodiscard]]
     int compare(const Comparable& other) const override
     {

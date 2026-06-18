@@ -146,6 +146,8 @@ private:
     void prepare(void** outValues, SizeT count, std::chrono::milliseconds timeoutTime);
     void prepareWithDomain(void** outValues, void** domain, SizeT count, std::chrono::milliseconds timeoutTime);
 
+    ErrCode readInternal(bool withDomain, void* samples, void* domain, SizeT* count, SizeT timeoutMs, IMultiReaderStatus** status);
+
     [[nodiscard]] Duration durationFromStart() const;
 
     /**

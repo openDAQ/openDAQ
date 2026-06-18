@@ -7,6 +7,7 @@
 #include <opendaq/reader_factory.h>
 #include <opendaq/time_reader.h>
 #include <opendaq/typed_reader.h>
+#include <opendaq/event_packet_utils.h>
 #include "reader_common.h"
 
 #include <gmock/gmock-matchers.h>
@@ -5232,5 +5233,124 @@ TEST_F(MultiReaderTest, UsedUnusedInput)
         auto status = multi.read(nullptr, &count);
         ASSERT_EQ(status.getReadStatus(), ReadStatus::Ok);
         ASSERT_TRUE(status.getValid());
+    }
+}
+
+TEST_F(MultiReaderTest, SharedDomainDescriptorChangeInvalidatesReaderAcrossCallbacks)
+{
+    constexpr SizeT NUM_SIGNALS = 2;
+    constexpr SizeT NUM_SAMPLES = 64;
+    float dataBuffers[NUM_SIGNALS][NUM_SAMPLES];
+    Int domainBuffers[NUM_SIGNALS][NUM_SAMPLES];
+    std::array<float*, NUM_SIGNALS> dataJagged{dataBuffers[0], dataBuffers[1]};
+    std::array<Int*, NUM_SIGNALS> domainJagged{domainBuffers[0], domainBuffers[1]};
+
+    const auto initialDomainDescriptor = createDomainDescriptor("2022-09-27T00:00:00+00:00", Ratio(1, 1000000), LinearDataRule(1000, 0));
+
+    const auto changedDomainDescriptor = createDomainDescriptor("2022-09-27T00:00:00+00:00", Ratio(1, 1000000), LinearDataRule(100, 0));
+
+    auto domainSignal = Signal(context, nullptr, "shared_domain");
+    domainSignal.setDescriptor(initialDomainDescriptor);
+
+    auto& signal0 = addSignal(12345, 50, domainSignal, daq::SampleType::Float32);
+    auto& signal1 = addSignal(12345, 40, domainSignal, daq::SampleType::Float32);
+
+    auto ports = portsList();
+    auto signals = signalsToList();
+
+    auto multi = MultiReaderBuilder()
+                     .addInputPorts(ports)
+                     .setDomainReadType(SampleType::Int64)
+                     .setValueReadType(SampleType::Float32)
+                     .setAllowDifferentSamplingRates(false)
+                     .setInputPortNotificationMethod(PacketReadyNotification::SameThread)
+                     .build();
+
+    SizeT initialCallbackCount = 0;
+    multi.setOnDataAvailable(Procedure(
+        [&]
+        {
+            ++initialCallbackCount;
+
+            SizeT count = 0;
+            auto status = multi.readWithDomain(dataJagged.data(), domainJagged.data(), &count);
+
+            ASSERT_EQ(count, 0u);
+            ASSERT_EQ(status.getReadStatus(), ReadStatus::Event);
+            ASSERT_TRUE(status.getValid());
+        }));
+
+    // Connecting each signal produces its own initial descriptor event.
+    ports[0].connect(signals[0]);
+    ports[1].connect(signals[1]);
+
+    // Only get callback once all ports are connected
+    ASSERT_EQ(initialCallbackCount, 1u);
+
+    SizeT descriptorChangeCallbackCount = 0;
+    MultiReaderStatusPtr firstChangeStatus;
+    MultiReaderStatusPtr secondChangeStatus;
+
+    multi.setOnDataAvailable(Procedure(
+        [&]
+        {
+            ++descriptorChangeCallbackCount;
+
+            // The callback itself is entered with a valid reader on the
+            // first domain-descriptor event.
+            const daq::Bool validBeforeRead = multi.asPtr<IReaderConfig>().getIsValid();
+
+            SizeT count = 0;
+            const auto status = multi.readWithDomain(dataJagged.data(), domainJagged.data(), &count);
+
+            ASSERT_EQ(count, 0u);
+            ASSERT_EQ(status.getReadStatus(), ReadStatus::Event);
+
+            if (descriptorChangeCallbackCount == 1)
+            {
+                ASSERT_TRUE(validBeforeRead);
+
+                // Processing the first descriptor change discovers that
+                // the two inputs no longer have compatible sample rates.
+                ASSERT_FALSE(multi.asPtr<IReaderConfig>().getIsValid());
+                ASSERT_FALSE(status.getValid());
+
+                firstChangeStatus = status;
+            }
+            else if (descriptorChangeCallbackCount == 2)
+            {
+                // The second callback is generated while the reader is
+                // already invalid.
+                ASSERT_FALSE(validBeforeRead);
+                ASSERT_FALSE(status.getValid());
+
+                secondChangeStatus = status;
+            }
+        }));
+
+    domainSignal.setDescriptor(changedDomainDescriptor);
+
+    ASSERT_EQ(descriptorChangeCallbackCount, 2u);
+    ASSERT_TRUE(firstChangeStatus.assigned());
+    ASSERT_TRUE(secondChangeStatus.assigned());
+
+    for (size_t i = 0; i < 2; ++i)
+    {
+        auto& status = (i == 0) ? firstChangeStatus : secondChangeStatus;
+        const auto eventPackets = status.getEventPackets();
+
+        ASSERT_EQ(eventPackets.getCount(), 1u);
+
+        // Which port receives the shared-domain event first is an
+        // implementation detail, so only verify the descriptor contents here.
+        const auto eventPacket = eventPackets.getValueList()[0];
+
+        ASSERT_EQ(eventPacket.getEventId(), event_packet_id::DATA_DESCRIPTOR_CHANGED);
+
+        const auto [valueChanged, domainChanged, valueDescriptor, domainDescriptor] = parseDataDescriptorEventPacket(eventPacket);
+
+        ASSERT_FALSE(valueChanged);
+        ASSERT_TRUE(domainChanged);
+        ASSERT_EQ(domainDescriptor, changedDomainDescriptor);
     }
 }

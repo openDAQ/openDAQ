@@ -5252,8 +5252,8 @@ TEST_F(MultiReaderTest, SharedDomainDescriptorChangeInvalidatesReaderAcrossCallb
     auto domainSignal = Signal(context, nullptr, "shared_domain");
     domainSignal.setDescriptor(initialDomainDescriptor);
 
-    auto& signal0 = addSignal(12345, 50, domainSignal, daq::SampleType::Float32);
-    auto& signal1 = addSignal(12345, 40, domainSignal, daq::SampleType::Float32);
+    addSignal(12345, 50, domainSignal, daq::SampleType::Float32);
+    addSignal(12345, 40, domainSignal, daq::SampleType::Float32);
 
     auto ports = portsList();
     auto signals = signalsToList();

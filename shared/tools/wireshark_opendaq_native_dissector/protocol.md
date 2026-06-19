@@ -46,7 +46,7 @@ Every PDU starts with a single packed little-endian `uint32`:
 |---|---|---|---|
 | 1 | STREAMING_PACKET | STR_PACKET | A streaming packet (see §3) |
 | 2 | SIGNAL_AVAILABLE | STR_SIGNAL_AVAIL | numeric id + string id + serialized signal (§4) |
-| 3 | SIGNAL_UNAVAILABLE | STR_SIGNAL_UNAVAIL | (signal teardown) |
+| 3 | SIGNAL_UNAVAILABLE | STR_SIGNAL_UNAVAIL | numeric id + string id (§4b) |
 | 4 | SUBSCRIBE | STR_SIGNAL_SUBSC_CMD | numeric id + string id (§5) |
 | 5 | UNSUBSCRIBE | STR_SIGNAL_UNSUB_CMD | numeric id + string id (§5) |
 | 6 | INIT_DONE | STR_PROTO_INIT_DONE | empty |
@@ -158,6 +158,19 @@ This is the **binding** between a numeric `signalId` (used in STR_PACKET headers
 human-readable string path. The numeric id is only unique **within a single connection**, and may
 be **re-bound** to a different string later in the stream — consumers should track bindings
 per-connection and per-position (frame order).
+
+---
+
+## 4b. Signal unavailable (STR_SIGNAL_UNAVAIL, type 3)
+
+| Offset | Field | Type | Notes |
+|---|---|---|---|
+| 0 | signalNumericId | uint32 | The numeric id being torn down |
+| 4 | stringId | char[] | Signal string id; **no length prefix**, runs to end of payload (length = `payloadSize - 4`) |
+
+Announces that a previously-available signal is gone. The numeric id may later be **re-used** for a
+different signal via a new STR_SIGNAL_AVAIL, so consumers tracking id→name bindings should treat
+this as a teardown from this frame onward.
 
 ---
 

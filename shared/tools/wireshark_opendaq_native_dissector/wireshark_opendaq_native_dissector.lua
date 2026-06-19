@@ -65,6 +65,23 @@ local function lookup_signal_name(pinfo, num_id)
     return nil
 end
 
+-- Record an id -> name binding for this conversation at the current frame.
+-- Only appends on the first sequential pass, and only when the name actually
+-- changed, so repeated identical announcements don't bloat the timeline.
+-- A nil `name` is a teardown marker: lookups for later frames then return nil.
+local function record_binding(pinfo, num_id, name)
+    if not num_id or pinfo.visited then return end
+    local key = conv_key(pinfo)
+    local m = signal_names[key] or {}
+    signal_names[key] = m
+    local timeline = m[num_id] or {}
+    m[num_id] = timeline
+    local last = timeline[#timeline]
+    if not last or last.name ~= name then
+        timeline[#timeline + 1] = { frame = pinfo.number, name = name }
+    end
+end
+
 -- Last path segment of a signal string id, for a compact Info-column label.
 -- e.g. "/Dewesoft_DB26000025/IO/1/AI7/Sig/AITime" -> "AITime"
 local function leaf_name(name)
@@ -99,8 +116,11 @@ local f_str_hdr_type     = ProtoField.uint8("opendaq_native.str.type", "Packet T
 local f_str_hdr_version  = ProtoField.uint8("opendaq_native.str.version", "Version", base.DEC)
 local f_str_hdr_flags    = ProtoField.uint8("opendaq_native.str.flags", "Flags", base.HEX)
 local f_str_hdr_sig_id   = ProtoField.uint32("opendaq_native.str.signal_id", "Signal ID", base.DEC)
-local f_str_hdr_sig_name = ProtoField.string("opendaq_native.str.signal_name", "Signal Name")
 local f_str_hdr_pl_size  = ProtoField.uint32("opendaq_native.str.payload_size", "Payload Size", base.DEC)
+
+-- Generic generated field: the resolved full signal path, reused by every handler
+-- that maps a numeric signal id to its name (STR_PACKET, ACKs, ...).
+local f_signal_name = ProtoField.string("opendaq_native.signal_name", "Signal Name")
 
 -- NEW: Field to visualize the C++ Struct Alignment Padding
 local f_str_padding      = ProtoField.bytes("opendaq_native.str.padding", "Alignment Padding")
@@ -123,6 +143,10 @@ local f_sa_str_id  = ProtoField.string("opendaq_native.sa.str_id", "Signal Strin
 local f_sub_num_id = ProtoField.uint32("opendaq_native.sub.num_id", "Signal Numeric ID", base.DEC)
 local f_sub_str_id = ProtoField.string("opendaq_native.sub.str_id", "Signal String ID")
 
+-- STR_SIGNAL_UNAVAIL Payload Fields
+local f_ua_num_id = ProtoField.uint32("opendaq_native.ua.num_id", "Signal Numeric ID", base.DEC)
+local f_ua_str_id = ProtoField.string("opendaq_native.ua.str_id", "Signal String ID")
+
 -- STR_SIGNAL_SUBSC_ACK / STR_SIGNAL_UNSUB_ACK Payload Fields
 local f_ack_num_id = ProtoField.uint32("opendaq_native.ack.num_id", "Signal Numeric ID", base.DEC)
 
@@ -138,11 +162,14 @@ my_proto.fields = {
     f_config_up_version, f_config_up_result,
     
     f_str_hdr_size, f_str_hdr_type, f_str_hdr_version, f_str_hdr_flags,
-    f_str_hdr_sig_id, f_str_hdr_sig_name, f_str_hdr_pl_size, f_str_padding, f_str_pkt_id, f_str_dom_pkt_id,
+    f_str_hdr_sig_id, f_str_hdr_pl_size, f_str_padding, f_str_pkt_id, f_str_dom_pkt_id,
     f_str_samp_count, f_str_off_float, f_str_off_int, f_str_rel_pkt_id,
-    
+
+    f_signal_name,
+
     f_sa_num_id, f_sa_str_len, f_sa_str_id,
     f_sub_num_id, f_sub_str_id,
+    f_ua_num_id, f_ua_str_id,
     f_ack_num_id,
     f_payload, f_json_text
 }
@@ -303,7 +330,7 @@ local function dissect_pdu(buffer, pinfo, tree)
                 -- Add the resolved full signal path as a generated, filterable field
                 sig_full_name = lookup_signal_name(pinfo, sig_id)
                 if sig_full_name then
-                    str_tree:add(f_str_hdr_sig_name, buffer(offset + 4, 4), sig_full_name):set_generated()
+                    str_tree:add(f_signal_name, buffer(offset + 4, 4), sig_full_name):set_generated()
                 end
             end
             str_tree:add_le(f_str_hdr_pl_size, buffer(offset + 8, 4))
@@ -423,20 +450,8 @@ local function dissect_pdu(buffer, pinfo, tree)
                     rec.item = leaf_name(str_id_val)
                 end
 
-                -- Remember the id -> name binding for this conversation. Only append on the
-                -- first sequential pass, and only when the name actually changed, so repeated
-                -- identical STR_SIGNAL_AVAIL re-sends don't bloat the timeline.
-                if num_id and not pinfo.visited then
-                    local key = conv_key(pinfo)
-                    local m = signal_names[key] or {}
-                    signal_names[key] = m
-                    local timeline = m[num_id] or {}
-                    m[num_id] = timeline
-                    local last = timeline[#timeline]
-                    if not last or last.name ~= str_id_val then
-                        timeline[#timeline + 1] = { frame = pinfo.number, name = str_id_val }
-                    end
-                end
+                -- Remember the id -> name binding for this conversation.
+                record_binding(pinfo, num_id, str_id_val)
             end
             
             if data_range:len() > offset then
@@ -459,16 +474,22 @@ local function dissect_pdu(buffer, pinfo, tree)
             local sub_tree = subtree:add(my_proto, data_range, tree_name)
             
             local offset = 0
+            local num_id = nil
             if data_range:len() >= offset + 4 then
+                num_id = data_range(offset, 4):le_uint()
                 sub_tree:add_le(f_sub_num_id, data_range(offset, 4))
                 offset = offset + 4
             end
-            
+
             local remaining_len = data_range:len() - offset
             if remaining_len > 0 then
                 sub_tree:add(f_sub_str_id, data_range(offset, remaining_len))
                 local str_id_val = data_range(offset, remaining_len):string()
                 info_string = info_string .. " [" .. str_id_val .. "]"
+                rec.item = string.format("%s(%s)", leaf_name(str_id_val), tostring(num_id or "?"))
+                -- Subscribe/unsubscribe carry the id->name binding too; feed the table so
+                -- names resolve even when the STR_SIGNAL_AVAIL was not captured.
+                record_binding(pinfo, num_id, str_id_val)
             end
         end
         
@@ -481,8 +502,16 @@ local function dissect_pdu(buffer, pinfo, tree)
             
             local num_id = data_range:le_uint()
             ack_tree:add_le(f_ack_num_id, data_range)
-            info_string = info_string .. " [ID: " .. num_id .. "]"
-            
+            local name = lookup_signal_name(pinfo, num_id)
+            if name then
+                ack_tree:add(f_signal_name, data_range, name):set_generated()
+                info_string = info_string .. string.format(" [%s(%d)]", name, num_id)
+                rec.item = string.format("%s(%d)", leaf_name(name), num_id)
+            else
+                info_string = info_string .. " [ID: " .. num_id .. "]"
+                rec.item = tostring(num_id)
+            end
+
             if buffer:len() > 8 then
                 ack_tree:add(f_payload, buffer(8))
             end
@@ -490,6 +519,32 @@ local function dissect_pdu(buffer, pinfo, tree)
             subtree:add(f_payload, buffer(4))
         end
         
+    elseif type_val == 3 then
+        -- STR_SIGNAL_UNAVAIL (3) packet handling: uint32 numeric id + trailing string id
+        if buffer:len() > 4 then
+            local data_range = buffer(4)
+            local ua_tree = subtree:add(my_proto, data_range, "Signal Unavailable Payload")
+
+            local offset = 0
+            local num_id = nil
+            if data_range:len() >= 4 then
+                num_id = data_range(0, 4):le_uint()
+                ua_tree:add_le(f_ua_num_id, data_range(0, 4))
+                offset = 4
+            end
+
+            if data_range:len() > offset then
+                local str_id_val = data_range(offset):string()
+                ua_tree:add(f_ua_str_id, data_range(offset))
+                info_string = info_string .. " [" .. str_id_val .. "]"
+                rec.item = string.format("%s(%s)", leaf_name(str_id_val), tostring(num_id or "?"))
+            end
+
+            -- The signal is gone: clear its name from this frame onward, so later
+            -- packets don't render a stale name until the id is re-announced.
+            record_binding(pinfo, num_id, nil)
+        end
+
     elseif type_val == 10 then
         -- TRANS_LAYER_PROPS (10) packet handling
         if buffer:len() > 4 then

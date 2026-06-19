@@ -45,6 +45,17 @@ local json_dissector = Dissector.get("json")
 -- to a different string over the life of the stream, hence the (conversation, id, frame) shape.
 local signal_names = {}
 
+-- A single frame can carry several WebSocket messages (and TCP-reassembled messages
+-- complete on a later frame), so our dissector is invoked multiple times per frame.
+-- Accumulate every call's per-PDU records and summarize them once, so the Info column
+-- reflects ALL messages in the frame (deduped), not just the last one. Built in frame
+-- order during the first pass; the resulting string is cached per frame and read back
+-- idempotently on later re-dissection (clicking a packet).
+local info_by_frame = {}   -- frame number -> final Info string
+local acc_frame = nil      -- frame currently being accumulated
+local acc_records = nil    -- per-PDU records gathered across the frame's calls
+local acc_verbose = nil    -- per-PDU verbose strings gathered across the frame's calls
+
 -- Canonical, direction-independent key for the conversation a packet belongs to.
 local function conv_key(pinfo)
     local a = tostring(pinfo.src) .. ":" .. tostring(pinfo.src_port)
@@ -638,23 +649,45 @@ function my_proto.dissector(buffer, pinfo, tree)
         offset = offset + pdu_len
     end
 
+    -- Accumulate this call's PDUs into the frame's running totals, then (re)build the
+    -- frame's Info string: a single PDU keeps its rich per-PDU text; multiple PDUs (even
+    -- across several messages in the frame) collapse into one deduped grouped summary.
+    -- A frame matched by an `opendaq_native.signal` filter is then visibly shown as
+    -- containing that signal, even when it lives in a non-final message of the frame.
+    local fno = pinfo.number
+    if not pinfo.visited then
+        if acc_frame ~= fno then
+            acc_frame, acc_records, acc_verbose = fno, {}, {}
+        end
+        for _, r in ipairs(records) do acc_records[#acc_records + 1] = r end
+        for _, v in ipairs(verbose) do acc_verbose[#acc_verbose + 1] = v end
+
+        local text
+        if #acc_records == 1 then
+            text = acc_verbose[1]
+        elseif #acc_records > 0 then
+            text = summarize(acc_records)
+        end
+        info_by_frame[fno] = text
+    end
+
     -- Ensure Wireshark's native dissectors don't overwrite our Protocol column text
     pinfo.cols.protocol = "OpenDAQ native"
-    -- One PDU: keep the rich per-PDU text. Many PDUs: compact grouped summary.
-    if #verbose == 1 then
-        pinfo.cols.info:set(verbose[1])
-    elseif #records > 0 then
-        pinfo.cols.info:set(summarize(records))
+    local shown = info_by_frame[fno]
+    if shown ~= nil then
+        pinfo.cols.info:set(shown)
     end
 
     -- Tell Wireshark how many bytes we successfully parsed
     return buffer:len()
 end
 
--- Reset the per-conversation signal name map at the start of each capture load/reload,
--- so mappings from a previously opened file don't leak into the current one.
+-- Reset per-capture state at the start of each capture load/reload, so data from a
+-- previously opened file doesn't leak into the current one.
 function my_proto.init()
     signal_names = {}
+    info_by_frame = {}
+    acc_frame, acc_records, acc_verbose = nil, nil, nil
 end
 
 -- 4. Register as a true WebSocket Sub-Dissector

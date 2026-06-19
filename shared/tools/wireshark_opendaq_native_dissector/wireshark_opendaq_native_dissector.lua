@@ -129,8 +129,12 @@ local f_str_hdr_flags    = ProtoField.uint8("opendaq_native.str.flags", "Flags",
 local f_str_hdr_sig_id   = ProtoField.uint32("opendaq_native.str.signal_id", "Signal ID", base.DEC)
 local f_str_hdr_pl_size  = ProtoField.uint32("opendaq_native.str.payload_size", "Payload Size", base.DEC)
 
--- Generic generated field: the resolved full signal path, reused by every handler
--- that maps a numeric signal id to its name (STR_PACKET, ACKs, ...).
+-- Generic generated fields, reused by every handler that references a signal, so a
+-- single filter matches a signal across all packet types regardless of the per-type
+-- field it lives under:
+--   opendaq_native.signal       -- numeric id
+--   opendaq_native.signal_name  -- resolved full signal path
+local f_signal      = ProtoField.uint32("opendaq_native.signal", "Signal (numeric id)", base.DEC)
 local f_signal_name = ProtoField.string("opendaq_native.signal_name", "Signal Name")
 
 -- NEW: Field to visualize the C++ Struct Alignment Padding
@@ -176,7 +180,7 @@ my_proto.fields = {
     f_str_hdr_sig_id, f_str_hdr_pl_size, f_str_padding, f_str_pkt_id, f_str_dom_pkt_id,
     f_str_samp_count, f_str_off_float, f_str_off_int, f_str_rel_pkt_id,
 
-    f_signal_name,
+    f_signal, f_signal_name,
 
     f_sa_num_id, f_sa_str_len, f_sa_str_id,
     f_sub_num_id, f_sub_str_id,
@@ -338,7 +342,8 @@ local function dissect_pdu(buffer, pinfo, tree)
             if sig_none then
                 sig_id_item:append_text(" (none / not signal-specific)")
             else
-                -- Add the resolved full signal path as a generated, filterable field
+                -- Unified signal id + resolved name, as generated filterable fields
+                str_tree:add(f_signal, buffer(offset + 4, 4), sig_id):set_generated()
                 sig_full_name = lookup_signal_name(pinfo, sig_id)
                 if sig_full_name then
                     str_tree:add(f_signal_name, buffer(offset + 4, 4), sig_full_name):set_generated()
@@ -439,6 +444,7 @@ local function dissect_pdu(buffer, pinfo, tree)
             if data_range:len() >= offset + 4 then
                 num_id = data_range(offset, 4):le_uint()
                 sa_tree:add_le(f_sa_num_id, data_range(offset, 4))
+                sa_tree:add(f_signal, data_range(offset, 4), num_id):set_generated()
                 offset = offset + 4
             end
 
@@ -452,7 +458,11 @@ local function dissect_pdu(buffer, pinfo, tree)
             if str_len > 0 and data_range:len() >= offset + str_len then
                 sa_tree:add(f_sa_str_id, data_range(offset, str_len))
                 local str_id_val = data_range(offset, str_len):string()
-                info_string = info_string .. " [" .. str_id_val .. "]"
+                if num_id then
+                    info_string = info_string .. string.format(" [%s(%d)]", str_id_val, num_id)
+                else
+                    info_string = info_string .. " [" .. str_id_val .. "]"
+                end
                 offset = offset + str_len
 
                 if num_id then
@@ -489,6 +499,7 @@ local function dissect_pdu(buffer, pinfo, tree)
             if data_range:len() >= offset + 4 then
                 num_id = data_range(offset, 4):le_uint()
                 sub_tree:add_le(f_sub_num_id, data_range(offset, 4))
+                sub_tree:add(f_signal, data_range(offset, 4), num_id):set_generated()
                 offset = offset + 4
             end
 
@@ -496,7 +507,11 @@ local function dissect_pdu(buffer, pinfo, tree)
             if remaining_len > 0 then
                 sub_tree:add(f_sub_str_id, data_range(offset, remaining_len))
                 local str_id_val = data_range(offset, remaining_len):string()
-                info_string = info_string .. " [" .. str_id_val .. "]"
+                if num_id then
+                    info_string = info_string .. string.format(" [%s(%d)]", str_id_val, num_id)
+                else
+                    info_string = info_string .. " [" .. str_id_val .. "]"
+                end
                 rec.item = string.format("%s(%s)", leaf_name(str_id_val), tostring(num_id or "?"))
                 -- Subscribe/unsubscribe carry the id->name binding too; feed the table so
                 -- names resolve even when the STR_SIGNAL_AVAIL was not captured.
@@ -513,6 +528,7 @@ local function dissect_pdu(buffer, pinfo, tree)
             
             local num_id = data_range:le_uint()
             ack_tree:add_le(f_ack_num_id, data_range)
+            ack_tree:add(f_signal, data_range, num_id):set_generated()
             local name = lookup_signal_name(pinfo, num_id)
             if name then
                 ack_tree:add(f_signal_name, data_range, name):set_generated()
@@ -541,13 +557,18 @@ local function dissect_pdu(buffer, pinfo, tree)
             if data_range:len() >= 4 then
                 num_id = data_range(0, 4):le_uint()
                 ua_tree:add_le(f_ua_num_id, data_range(0, 4))
+                ua_tree:add(f_signal, data_range(0, 4), num_id):set_generated()
                 offset = 4
             end
 
             if data_range:len() > offset then
                 local str_id_val = data_range(offset):string()
                 ua_tree:add(f_ua_str_id, data_range(offset))
-                info_string = info_string .. " [" .. str_id_val .. "]"
+                if num_id then
+                    info_string = info_string .. string.format(" [%s(%d)]", str_id_val, num_id)
+                else
+                    info_string = info_string .. " [" .. str_id_val .. "]"
+                end
                 rec.item = string.format("%s(%s)", leaf_name(str_id_val), tostring(num_id or "?"))
             end
 

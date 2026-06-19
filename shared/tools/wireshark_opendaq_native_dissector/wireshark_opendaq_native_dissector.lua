@@ -769,6 +769,35 @@ function my_proto.init()
     acc_frame, acc_records, acc_verbose = nil, nil, nil
 end
 
--- 4. Register as a true WebSocket Sub-Dissector
+-- 4. Register as a WebSocket sub-dissector on a configurable set of ports.
+--    Edit > Preferences > Protocols > OpenDAQ native  (or -o opendaq_native.ports:"...").
+my_proto.prefs.ports = Pref.range("WebSocket port(s)", "7420",
+    "TCP/WebSocket port(s) carrying OpenDAQ native traffic (e.g. \"7420\" or \"7420,7500-7510\")",
+    65535)   -- max value the range string is validated against
+
 local ws_dissector_table = DissectorTable.get("ws.port")
-ws_dissector_table:add(7420, my_proto)
+local registered_ports = nil   -- the range string we are currently bound to
+
+-- Bind the dissector to the currently configured port(s), unbinding the previously
+-- registered range first. The registered_ports dedup makes this idempotent.
+local function register_ports()
+    local new_ports = my_proto.prefs.ports
+    if tostring(new_ports) ~= tostring(registered_ports) then
+        if registered_ports then
+            ws_dissector_table:remove(registered_ports, my_proto)
+        end
+        registered_ports = new_ports
+        if new_ports then
+            ws_dissector_table:add(new_ports, my_proto)
+        end
+    end
+end
+
+-- Initial registration at script load (prefs_changed is not reliably called at startup
+-- on all Wireshark versions, so we must bind here too).
+register_ports()
+
+-- Re-register live whenever the user edits the port preference.
+function my_proto.prefs_changed()
+    register_ports()
+end

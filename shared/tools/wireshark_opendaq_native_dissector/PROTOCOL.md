@@ -1,7 +1,7 @@
 # openDAQ Native Streaming Protocol — Wire Format
 
 Reference for the **openDAQ native** protocol as carried over WebSocket (default port
-**7420**). Compiled from the protocol/library sources in this repository and used as the basis
+**7420**, configurable in the dissector). Compiled from the protocol/library sources in this repository and used as the basis
 for the Wireshark dissector ([wireshark_opendaq_native_dissector.lua](wireshark_opendaq_native_dissector.lua)).
 
 ## Conventions

@@ -265,6 +265,372 @@ namespace test_helpers
     }
 
     [[maybe_unused]]
+    inline bool packetsEqualWithComparators(const ListPtr<IPacket>& listA,
+                                            const ListPtr<IPacket>& listB,
+                                            std::function<bool(const PacketPtr&, const PacketPtr&)> dataPacketComparator,
+                                            std::function<bool(const PacketPtr&, const PacketPtr&)> eventPacketComparator)
+    {
+        auto context = NullContext();
+        auto loggerComponent = context.getLogger().getOrAddComponent("packetsEqual");
+
+        bool result = true;
+        if (listA.getCount() != listB.getCount())
+        {
+            LOG_E("Compared packets count differs: A {}, B {}", listA.getCount(), listB.getCount());
+            result = false;
+        }
+
+        auto count = std::min(listA.getCount(), listB.getCount());
+
+        for (SizeT i = 0; i < count; i++)
+        {
+            if (listA.getItemAt(i).getType() == PacketType::Event &&
+                listB.getItemAt(i).getType() == PacketType::Event)
+            {
+                bool eventResult = eventPacketComparator(listA.getItemAt(i), listB.getItemAt(i));
+                result &= eventResult;
+
+                if (!eventResult)
+                {
+                    LOG_E("Event packets at index {} differs: A - \"{}\", B - \"{}\"",
+                          i,
+                          listA.getItemAt(i).toString(),
+                          listB.getItemAt(i).toString());
+                }
+            }
+            else if (listA.getItemAt(i).getType() == PacketType::Data &&
+                listB.getItemAt(i).getType() == PacketType::Data)
+            {
+                bool dataResult = dataPacketComparator(listA.getItemAt(i), listB.getItemAt(i));
+                result &= dataResult;
+
+                if (!dataResult)
+                {
+                    LOG_E("Data packets at index {} differs: A - \"{}\", B - \"{}\"",
+                          i, listA.getItemAt(i).toString(), listB.getItemAt(i).toString());
+                }
+            }
+            else if (!BaseObjectPtr::Equals(listA.getItemAt(i), listB.getItemAt(i)))
+            {
+                result = false;
+                LOG_E("Packets at index {} differs: A - \"{}\", B - \"{}\"",
+                      i, listA.getItemAt(i).toString(), listB.getItemAt(i).toString());
+            }
+        }
+
+        return result;
+    }
+
+    [[maybe_unused]]
+    inline bool packetBehaviorComparison(const ListPtr<IPacket>& listA,
+                                            const ListPtr<IPacket>& listB,
+                                            std::function<bool(const PacketPtr&, const PacketPtr&)> dataPacketComparator,
+                                            std::function<bool(const DataDescriptorPtr&, const DataDescriptorPtr&)> decriptorComparator)
+    {
+        // This overload is used for more complex comparison of packets in which data packets are
+        // compared with one comparator, and event packets are not compared directly,
+        // but instead used to extract descriptors which are compared with another comparator
+        // The idea is to compare descriptors that were set before data packets
+        auto context = NullContext();
+        auto loggerComponent = context.getLogger().getOrAddComponent("packetsEqual");
+
+
+        if (!listA.assigned() && !listB.assigned())
+            return true;
+        if (listA.assigned() && listB.assigned() && listA.getCount() == 0 && listB.getCount() == 0)
+            return true;
+
+        bool result = true;
+
+        struct Entity {
+            Entity(std::string name, const ListPtr<IPacket>& list)
+                : name(std::move(name))
+                , list(list)
+                , lastDataDesc(nullptr)
+                , lastDomainDesc(nullptr)
+                , currentPacket(nullptr)
+                , index(0)
+                , count(list.getCount()) {};
+            void extractPacket()
+            {
+                if (count > index)
+                    currentPacket = list.getItemAt(index);
+                else
+                    currentPacket = nullptr;
+            }
+
+            const std::string name;
+            const ListPtr<IPacket>& list;
+            DataDescriptorPtr lastDataDesc;
+            DataDescriptorPtr lastDomainDesc;
+            PacketPtr currentPacket;
+            SizeT index = 0;
+            SizeT count = 0;
+
+        };
+        Entity entityA("A", listA);
+        Entity entityB("B", listB);
+
+        bool comparing = true;
+        while (result && comparing)
+        {
+            entityA.extractPacket();
+            entityB.extractPacket();
+
+            {
+                // event section
+                // Here we set data and domain descriptors from event packets to later compare them with each other
+                auto handleEvent = [&](Entity& entity)
+                {
+                    if (entity.currentPacket.assigned())
+                    {
+                        if (entity.currentPacket.getType() == PacketType::Event)
+                        {
+                            // extract descriptors
+                            auto eventPacket = entity.currentPacket.asPtr<IEventPacket>(true);
+
+                            if (eventPacket.getEventId() != event_packet_id::DATA_DESCRIPTOR_CHANGED)
+                            {
+                                // unsupported event id
+                                result = false;
+                                LOG_E("Event packets at index {} in {} has wrong event id", entity.index, entity.name);
+                            }
+                            else
+                            {
+                                if (auto valueDataDesc = eventPacket.getParameters().get(event_packet_param::DATA_DESCRIPTOR);
+                                    valueDataDesc.assigned())
+                                    entity.lastDataDesc = std::move(valueDataDesc);
+                                if (auto domainDataDesc = eventPacket.getParameters().get(event_packet_param::DOMAIN_DATA_DESCRIPTOR);
+                                    domainDataDesc.assigned())
+                                    entity.lastDomainDesc = std::move(domainDataDesc);
+                            }
+                        }
+                        else if (entity.currentPacket.getType() == PacketType::Data)
+                        {
+                           // skip
+                        }
+                        else
+                        {
+                            // wrong packet type
+                            result = false;
+                            LOG_E("Event packets at index {} in {} has wrong event type", entity.index, entity.name);
+                        }
+                    }
+                };
+
+                handleEvent(entityA);
+                handleEvent(entityB);
+                if (!result)
+                    break;
+            }
+
+            if (entityA.currentPacket.assigned() && entityB.currentPacket.assigned())
+            {
+                if (entityA.currentPacket.getType() == PacketType::Data && entityB.currentPacket.getType() == PacketType::Data)
+                {
+                    // if both packets are data packets we compare descriptors that were set before them and then compare the data packets themselves
+                    // compare last descriptors
+                    bool dataDescResult = decriptorComparator(entityA.lastDataDesc, entityB.lastDataDesc);
+                    if (!dataDescResult)
+                    {
+                        LOG_E("Data descriptors are not synchronized: A - \"{}\", B - \"{}\"",
+                              entityA.lastDataDesc.assigned() ? entityA.lastDataDesc.toString() : "null",
+                              entityB.lastDataDesc.assigned() ? entityB.lastDataDesc.toString() : "null");
+                    }
+
+                    bool domainDescResult = decriptorComparator(entityA.lastDomainDesc, entityB.lastDomainDesc);
+                    if (!domainDescResult)
+                    {
+                        LOG_E("Domain data descriptors are not synchronized: A - \"{}\", B - \"{}\"",
+                              entityA.lastDomainDesc.assigned() ? entityA.lastDomainDesc.toString() : "null",
+                              entityB.lastDomainDesc.assigned() ? entityB.lastDomainDesc.toString() : "null");
+                    }
+                    result &= dataDescResult && domainDescResult;
+
+                    // compare data packets
+                    bool dataResult = dataPacketComparator(entityA.currentPacket, entityB.currentPacket);
+                    if (!dataResult)
+                    {
+                        LOG_E("Data packets at index A - \"{}\", B - \"{}\"",
+                              entityA.currentPacket.toString(), entityB.currentPacket.toString());
+                    }
+                    result &= dataResult;
+                }
+                // if at least one packet is not a data packet we just skip it and move to the next one
+                // because we have extracted descriptors on the previous step and we will compare them with the next data packets
+                if (entityA.currentPacket.getType() != PacketType::Data)
+                    ++entityA.index;
+                if (entityB.currentPacket.getType() != PacketType::Data)
+                    ++entityB.index;
+                // if both packets are data packets we move to the next ones for future comparison
+                if (entityA.currentPacket.getType() == PacketType::Data && entityB.currentPacket.getType() == PacketType::Data)
+                {
+                    ++entityA.index;
+                    ++entityB.index;
+                }
+            }
+            else if (!entityA.currentPacket.assigned() && !entityB.currentPacket.assigned())
+            {
+                // if both packets are not assigned we have reached the end of both lists and we need to compare last descriptors that were set before the last data packets
+                // the idea is that we must have the same descriptors
+                comparing = false;
+
+                bool dataDescResult = decriptorComparator(entityA.lastDataDesc, entityB.lastDataDesc);
+                if (!dataDescResult)
+                {
+                    LOG_E("Data descriptors are not synchronized: A - \"{}\", B - \"{}\"",
+                          entityA.lastDataDesc.assigned() ? entityA.lastDataDesc.toString() : "null",
+                          entityB.lastDataDesc.assigned() ? entityB.lastDataDesc.toString() : "null");
+                }
+
+                bool domainDescResult = decriptorComparator(entityA.lastDomainDesc, entityB.lastDomainDesc);
+                if (!domainDescResult)
+                {
+                    LOG_E("Domain data descriptors are not synchronized: A - \"{}\", B - \"{}\"",
+                          entityA.lastDomainDesc.assigned() ? entityA.lastDomainDesc.toString() : "null",
+                          entityB.lastDomainDesc.assigned() ? entityB.lastDomainDesc.toString() : "null");
+                }
+                result &= dataDescResult && domainDescResult;
+            }
+            else
+            {
+                // at least one packet not assigned
+                // if we have a data packet only for one entity then it is an error state (we have more data packets in one list than in the other)
+                // if we have an event packet only for one entity then we just skip it and move to the next one for future comparison
+
+                auto process = [&](Entity& entity)
+                {
+                    if (entity.currentPacket.assigned())
+                    {
+                        if (entity.currentPacket.getType() == PacketType::Event)
+                        {
+                            ++entity.index;
+                        }
+                        else
+                        {
+                            comparing = false;
+                            result = false;
+                            LOG_E("Container {} has additional data packet at index {}:  \"{}\"",
+                                  entity.name,
+                                  entity.index,
+                                  entity.currentPacket.toString());
+                        }
+                    }
+                };
+                process(entityA);
+                process(entityB);
+            }
+        }
+
+        return result;
+    }
+
+    [[maybe_unused]]
+    inline std::string valueToString(void* data, const SampleType st)
+    {
+        std::string result;
+        switch (st)
+        {
+            case SampleType::Int8:
+                result = std::to_string(*static_cast<SampleTypeToType<SampleType::Int8>::Type*>(data));
+                break;
+            case SampleType::UInt8:
+                result = std::to_string(*static_cast<SampleTypeToType<SampleType::UInt8>::Type*>(data));
+                break;
+            case SampleType::Int16:
+                result = std::to_string(*static_cast<SampleTypeToType<SampleType::Int16>::Type*>(data));
+                break;
+            case SampleType::UInt16:
+                result = std::to_string(*static_cast<SampleTypeToType<SampleType::UInt16>::Type*>(data));
+                break;
+            case SampleType::Int32:
+                result = std::to_string(*static_cast<SampleTypeToType<SampleType::Int32>::Type*>(data));
+                break;
+            case SampleType::UInt32:
+                result = std::to_string(*static_cast<SampleTypeToType<SampleType::UInt32>::Type*>(data));
+                break;
+            case SampleType::Int64:
+                result = std::to_string(*static_cast<SampleTypeToType<SampleType::Int64>::Type*>(data));
+                break;
+            case SampleType::UInt64:
+                result = std::to_string(*static_cast<SampleTypeToType<SampleType::UInt64>::Type*>(data));
+                break;
+            case SampleType::Float32:
+                result = std::to_string(*static_cast<SampleTypeToType<SampleType::Float32>::Type*>(data));
+                break;
+            case SampleType::Float64:
+                result = std::to_string(*static_cast<SampleTypeToType<SampleType::Float64>::Type*>(data));
+                break;
+            default:
+                result = "";
+        }
+        return result;
+    }
+
+    [[maybe_unused]]
+    inline void printPackets(const std::string& label, const ListPtr<IPacket>& packets, const bool skipValues = false)
+    {
+        std::cout << "=== " << label << " (" << packets.getCount() << " packets) ===\n";
+        for (SizeT i = 0; i < packets.getCount(); ++i)
+        {
+            const auto packet = packets.getItemAt(i);
+            std::cout << "[" << i << "] ";
+
+            if (packet.getType() == PacketType::Event)
+            {
+                auto ev = packet.asPtr<IEventPacket>(true);
+                std::cout << "Event id=" << ev.getEventId();
+                if (ev.getEventId() == event_packet_id::DATA_DESCRIPTOR_CHANGED)
+                {
+                    const DataDescriptorPtr valueDesc = ev.getParameters().get(event_packet_param::DATA_DESCRIPTOR);
+                    const DataDescriptorPtr domainDesc = ev.getParameters().get(event_packet_param::DOMAIN_DATA_DESCRIPTOR);
+                    std::cout << "\n    value : " << (valueDesc.assigned() ? valueDesc.toString() : "null")
+                              << "\n    domain: " << (domainDesc.assigned() ? domainDesc.toString() : "null");
+                }
+                std::cout << "\n";
+            }
+            else if (packet.getType() == PacketType::Data)
+            {
+                auto printValues = [skipValues](const DataPacketPtr& packet)
+                {
+                    const auto dataDesc = packet.getDataDescriptor();
+                    const auto sampleCount = packet.getSampleCount();
+                    std::cout << "[";
+                    if (dataDesc.assigned() && !skipValues)
+                    {
+                        std::byte* values = static_cast<std::byte*>(packet.getData());
+                        for (SizeT s = 0; s < sampleCount; ++s)
+                            std::cout << (s ? ", " : "") << valueToString(values + (s * dataDesc.getRawSampleSize()), dataDesc.getSampleType());
+                    }
+                    else
+                    {
+                        std::cout << "<...>";
+                    }
+                    std::cout << "]";
+                };
+
+                auto dataPacket = packet.asPtr<IDataPacket>(true);
+
+                std::cout << "Data sampleCount=" << dataPacket.getSampleCount() << " values=";
+
+                printValues(dataPacket);
+
+                if (auto domainPacket = dataPacket.getDomainPacket().asPtr<IDataPacket>(false); domainPacket.assigned())
+                {
+                    std::cout << "; domain=";
+                    printValues(domainPacket);
+                }
+                std::cout << "\n";
+            }
+            else
+            {
+                std::cout << packet.toString() << "\n";
+            }
+        }
+        std::cout << std::flush;
+    }
+
+    [[maybe_unused]]
     inline InstancePtr connectInstanceWithClientType(const InstancePtr& clientInstance, const std::string& connectionString, ClientType clientType, bool dropOthers = false)
     {
         auto config = clientInstance.createDefaultAddDeviceConfig();

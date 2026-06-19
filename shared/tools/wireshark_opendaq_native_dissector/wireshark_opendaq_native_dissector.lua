@@ -38,6 +38,40 @@ local str_pkt_types = {
 -- Fetch Wireshark's built-in JSON dissector
 local json_dissector = Dissector.get("json")
 
+-- Per-conversation, per-id timeline of name bindings:
+--   signal_names[conv_key][numeric_id] = { {frame=N1, name="..."}, {frame=N2, name="..."}, ... }
+-- entries are appended in increasing frame order during the first pass.
+-- Signal IDs are only unique within a connection, and a single ID may be re-bound
+-- to a different string over the life of the stream, hence the (conversation, id, frame) shape.
+local signal_names = {}
+
+-- Canonical, direction-independent key for the conversation a packet belongs to.
+local function conv_key(pinfo)
+    local a = tostring(pinfo.src) .. ":" .. tostring(pinfo.src_port)
+    local b = tostring(pinfo.dst) .. ":" .. tostring(pinfo.dst_port)
+    if a <= b then return a .. "<->" .. b else return b .. "<->" .. a end
+end
+
+-- Resolve the name that was in effect for num_id at the current packet's position.
+-- Returns the latest binding whose frame is <= pinfo.number, or nil.
+local function lookup_signal_name(pinfo, num_id)
+    local m = signal_names[conv_key(pinfo)]
+    local timeline = m and m[num_id]
+    if not timeline then return nil end
+    local fnum = pinfo.number
+    for i = #timeline, 1, -1 do
+        if timeline[i].frame <= fnum then return timeline[i].name end
+    end
+    return nil
+end
+
+-- Last path segment of a signal string id, for a compact Info-column label.
+-- e.g. "/Dewesoft_DB26000025/IO/1/AI7/Sig/AITime" -> "AITime"
+local function leaf_name(name)
+    if not name then return nil end
+    return name:match("([^/]+)$") or name
+end
+
 -- 2. Define the Protocol Fields
 -- Base 4-byte Header
 local f_type = ProtoField.uint32("opendaq_native.type", "Payload Type", base.DEC, payload_types, 0xF0000000)
@@ -65,6 +99,7 @@ local f_str_hdr_type     = ProtoField.uint8("opendaq_native.str.type", "Packet T
 local f_str_hdr_version  = ProtoField.uint8("opendaq_native.str.version", "Version", base.DEC)
 local f_str_hdr_flags    = ProtoField.uint8("opendaq_native.str.flags", "Flags", base.HEX)
 local f_str_hdr_sig_id   = ProtoField.uint32("opendaq_native.str.signal_id", "Signal ID", base.DEC)
+local f_str_hdr_sig_name = ProtoField.string("opendaq_native.str.signal_name", "Signal Name")
 local f_str_hdr_pl_size  = ProtoField.uint32("opendaq_native.str.payload_size", "Payload Size", base.DEC)
 
 -- NEW: Field to visualize the C++ Struct Alignment Padding
@@ -75,6 +110,9 @@ local f_str_dom_pkt_id   = ProtoField.int64("opendaq_native.str.domain_packet_id
 local f_str_samp_count   = ProtoField.int64("opendaq_native.str.sample_count", "Sample Count", base.DEC)
 local f_str_off_float    = ProtoField.double("opendaq_native.str.offset_float", "Offset (Float64)")
 local f_str_off_int      = ProtoField.int64("opendaq_native.str.offset_int", "Offset (Int64)", base.DEC)
+
+-- Release packet payload: a list of packet IDs the client may release
+local f_str_rel_pkt_id   = ProtoField.int64("opendaq_native.str.release_packet_id", "Release Packet ID", base.DEC)
 
 -- STR_SIGNAL_AVAIL Payload Fields
 local f_sa_num_id  = ProtoField.uint32("opendaq_native.sa.num_id", "Signal Numeric ID", base.DEC)
@@ -99,9 +137,9 @@ my_proto.fields = {
     f_config_gpi_cur_version, f_config_gpi_sup_count, f_config_gpi_sup_version,
     f_config_up_version, f_config_up_result,
     
-    f_str_hdr_size, f_str_hdr_type, f_str_hdr_version, f_str_hdr_flags, 
-    f_str_hdr_sig_id, f_str_hdr_pl_size, f_str_padding, f_str_pkt_id, f_str_dom_pkt_id, 
-    f_str_samp_count, f_str_off_float, f_str_off_int,
+    f_str_hdr_size, f_str_hdr_type, f_str_hdr_version, f_str_hdr_flags,
+    f_str_hdr_sig_id, f_str_hdr_sig_name, f_str_hdr_pl_size, f_str_padding, f_str_pkt_id, f_str_dom_pkt_id,
+    f_str_samp_count, f_str_off_float, f_str_off_int, f_str_rel_pkt_id,
     
     f_sa_num_id, f_sa_str_len, f_sa_str_id,
     f_sub_num_id, f_sub_str_id,
@@ -109,17 +147,16 @@ my_proto.fields = {
     f_payload, f_json_text
 }
 
--- 3. The Dissector Function
-function my_proto.dissector(buffer, pinfo, tree)
+-- 3a. Dissect a single transport PDU. `buffer` is a tvb covering exactly one
+-- transport message (the 4-byte header plus its payload). Returns the Info-column
+-- text for this PDU, or nil if it was too short to parse.
+local function dissect_pdu(buffer, pinfo, tree)
     -- If the payload is smaller than our base 4-byte header, ignore it
-    if buffer:len() < 4 then 
-        return 0 
+    if buffer:len() < 4 then
+        return nil
     end
 
-    -- Change the protocol column
-    pinfo.cols.protocol = "OpenDAQ native"
-    
-    -- Create the root tree for this packet
+    -- Create the root tree for this PDU
     local subtree = tree:add(my_proto, buffer(), "OpenDAQ native")
     
     -- Grab the first 4 bytes directly from the buffer
@@ -139,6 +176,10 @@ function my_proto.dissector(buffer, pinfo, tree)
     -- Look up the string name for the Info column
     local type_str = payload_types[type_val] or "UNKNOWN_TYPE"
     local info_string = type_str .. " (Size: " .. size_val .. ")"
+
+    -- Compact record describing this PDU, used to build a grouped Info summary
+    -- when several PDUs are coalesced into one WebSocket message.
+    local rec = { kind = type_str }
 
     -- Check if this is a Configuration Packet (Type 9)
     if type_val == 9 then
@@ -251,13 +292,40 @@ function my_proto.dissector(buffer, pinfo, tree)
             end
             
             local sig_id = buffer(offset + 4, 4):le_uint()
-            str_tree:add_le(f_str_hdr_sig_id, buffer(offset + 4, 4))
+            local sig_id_item = str_tree:add_le(f_str_hdr_sig_id, buffer(offset + 4, 4))
+            -- 0xFFFFFFFF is the sentinel for "no signal" (e.g. Release packets are
+            -- connection-level housekeeping, not tied to a single signal).
+            local sig_none = (sig_id == 0xFFFFFFFF)
+            local sig_full_name = nil
+            if sig_none then
+                sig_id_item:append_text(" (none / not signal-specific)")
+            else
+                -- Add the resolved full signal path as a generated, filterable field
+                sig_full_name = lookup_signal_name(pinfo, sig_id)
+                if sig_full_name then
+                    str_tree:add(f_str_hdr_sig_name, buffer(offset + 4, 4), sig_full_name):set_generated()
+                end
+            end
             str_tree:add_le(f_str_hdr_pl_size, buffer(offset + 8, 4))
             
             offset = offset + 12
             
             local str_pkt_str = str_pkt_types[str_pkt_type] or "Unknown"
-            info_string = info_string .. string.format(" [%s | SigID: %d]", str_pkt_str, sig_id)
+            if sig_none then
+                -- Connection-level packet (no signal). Release gets a "RELEASE(N IDs)"
+                -- label built where its payload is parsed; other sentinel packets just
+                -- show their sub-type here.
+                if str_pkt_type ~= 2 then
+                    info_string = info_string .. string.format(" [%s]", str_pkt_str)
+                    rec.sub = str_pkt_str
+                end
+            else
+                rec.sub = str_pkt_str
+                local name = sig_full_name
+                local sig_label = name and string.format("%s(%d)", name, sig_id) or tostring(sig_id)
+                info_string = info_string .. string.format(" [%s | Signal: %s]", str_pkt_str, sig_label)
+                rec.item = name and string.format("%s(%d)", leaf_name(name), sig_id) or tostring(sig_id)
+            end
             
             if str_pkt_type == 1 then
                 -- DataPacketHeader: C++ Struct Alignment Padding (4 bytes) + Additional Data (32 bytes)
@@ -302,6 +370,17 @@ function my_proto.dissector(buffer, pinfo, tree)
                     local json_tree = str_tree:add(my_proto, data_range, "Event Payload (JSON)")
                     json_tree:add(f_json_text, data_range)
                     json_dissector:call(data_range:tvb(), pinfo, json_tree)
+                elseif str_pkt_type == 2 then
+                    -- Release payload: an array of int64 packet IDs the client may release
+                    local count = math.floor(data_range:len() / 8)
+                    local rel_tree = str_tree:add(my_proto, data_range, "Released Packet IDs")
+                    rel_tree:append_text(string.format(" (%d)", count))
+                    for i = 0, count - 1 do
+                        rel_tree:add_le(f_str_rel_pkt_id, data_range(i * 8, 8))
+                    end
+                    -- Reflect the count in the Info column
+                    info_string = info_string .. string.format(" RELEASE(%d IDs)", count)
+                    rec.item = string.format("RELEASE(%d IDs)", count)
                 else
                     -- Attach remaining bytes as binary payload for other streaming types
                     str_tree:add(f_payload, data_range)
@@ -318,23 +397,46 @@ function my_proto.dissector(buffer, pinfo, tree)
             local sa_tree = subtree:add(my_proto, data_range, "Signal Available Payload")
             
             local offset = 0
+            local num_id = nil
             if data_range:len() >= offset + 4 then
+                num_id = data_range(offset, 4):le_uint()
                 sa_tree:add_le(f_sa_num_id, data_range(offset, 4))
                 offset = offset + 4
             end
-            
+
             local str_len = 0
             if data_range:len() >= offset + 2 then
                 str_len = data_range(offset, 2):le_uint()
                 sa_tree:add_le(f_sa_str_len, data_range(offset, 2))
                 offset = offset + 2
             end
-            
+
             if str_len > 0 and data_range:len() >= offset + str_len then
                 sa_tree:add(f_sa_str_id, data_range(offset, str_len))
                 local str_id_val = data_range(offset, str_len):string()
                 info_string = info_string .. " [" .. str_id_val .. "]"
                 offset = offset + str_len
+
+                if num_id then
+                    rec.item = string.format("%s(%d)", leaf_name(str_id_val), num_id)
+                else
+                    rec.item = leaf_name(str_id_val)
+                end
+
+                -- Remember the id -> name binding for this conversation. Only append on the
+                -- first sequential pass, and only when the name actually changed, so repeated
+                -- identical STR_SIGNAL_AVAIL re-sends don't bloat the timeline.
+                if num_id and not pinfo.visited then
+                    local key = conv_key(pinfo)
+                    local m = signal_names[key] or {}
+                    signal_names[key] = m
+                    local timeline = m[num_id] or {}
+                    m[num_id] = timeline
+                    local last = timeline[#timeline]
+                    if not last or last.name ~= str_id_val then
+                        timeline[#timeline + 1] = { frame = pinfo.number, name = str_id_val }
+                    end
+                end
             end
             
             if data_range:len() > offset then
@@ -409,12 +511,95 @@ function my_proto.dissector(buffer, pinfo, tree)
         end
     end
     
+    return info_string, rec
+end
+
+-- Build the grouped Info summary from the per-PDU records, e.g.
+--   "STR_PACKET x8 [Data]: AITime(703), AI(704), Status(705)"
+-- Groups by payload type, lists distinct sub-types and distinct signal items.
+local function summarize(records)
+    local order, by_kind = {}, {}
+    for _, rec in ipairs(records) do
+        local g = by_kind[rec.kind]
+        if not g then
+            g = { kind = rec.kind, count = 0, subs = {}, sub_seen = {}, items = {}, item_seen = {} }
+            by_kind[rec.kind] = g
+            order[#order + 1] = g
+        end
+        g.count = g.count + 1
+        if rec.sub and not g.sub_seen[rec.sub] then
+            g.sub_seen[rec.sub] = true
+            g.subs[#g.subs + 1] = rec.sub
+        end
+        if rec.item and not g.item_seen[rec.item] then
+            g.item_seen[rec.item] = true
+            g.items[#g.items + 1] = rec.item
+        end
+    end
+
+    local parts = {}
+    for _, g in ipairs(order) do
+        local s = g.kind
+        if g.count > 1 then s = s .. " x" .. g.count end
+        if #g.subs > 0 then s = s .. " [" .. table.concat(g.subs, ",") .. "]" end
+        if #g.items > 0 then s = s .. ": " .. table.concat(g.items, ", ") end
+        parts[#parts + 1] = s
+    end
+    return table.concat(parts, "  ")
+end
+
+-- 3b. The Dissector Function: a single WebSocket message can carry several
+-- transport PDUs concatenated back-to-back (the sender coalesces packets, possibly
+-- from multiple signals, into one write). Split the buffer and dissect each PDU.
+function my_proto.dissector(buffer, pinfo, tree)
+    -- If the payload is smaller than our base 4-byte header, ignore it
+    if buffer:len() < 4 then
+        return 0
+    end
+
+    -- Change the protocol column
+    pinfo.cols.protocol = "OpenDAQ native"
+
+    local verbose = {}   -- per-PDU verbose strings (used when only one PDU)
+    local records = {}   -- per-PDU compact records (used to summarize many PDUs)
+    local offset = 0
+    while offset + 4 <= buffer:len() do
+        -- The low 28 bits of the 4-byte LE header are the payload size; the PDU is
+        -- that payload plus the 4-byte header itself.
+        local size_val = buffer(offset, 4):le_uint() % 0x10000000
+        local pdu_len = 4 + size_val
+
+        if offset + pdu_len > buffer:len() then
+            -- A transport PDU is split across messages: ask for reassembly so the
+            -- remainder is appended and the whole buffer is handed back next time.
+            pinfo.desegment_offset = offset
+            pinfo.desegment_len = (offset + pdu_len) - buffer:len()
+            break
+        end
+
+        local info, rec = dissect_pdu(buffer(offset, pdu_len):tvb(), pinfo, tree)
+        if info then verbose[#verbose + 1] = info end
+        if rec then records[#records + 1] = rec end
+        offset = offset + pdu_len
+    end
+
     -- Ensure Wireshark's native dissectors don't overwrite our Protocol column text
     pinfo.cols.protocol = "OpenDAQ native"
-    pinfo.cols.info:set(info_string)    
+    -- One PDU: keep the rich per-PDU text. Many PDUs: compact grouped summary.
+    if #verbose == 1 then
+        pinfo.cols.info:set(verbose[1])
+    elseif #records > 0 then
+        pinfo.cols.info:set(summarize(records))
+    end
 
     -- Tell Wireshark how many bytes we successfully parsed
     return buffer:len()
+end
+
+-- Reset the per-conversation signal name map at the start of each capture load/reload,
+-- so mappings from a previously opened file don't leak into the current one.
+function my_proto.init()
+    signal_names = {}
 end
 
 -- 4. Register as a true WebSocket Sub-Dissector

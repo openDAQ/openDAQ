@@ -1,0 +1,422 @@
+-- Define the custom protocol
+local my_proto = Proto("opendaq_native", "OpenDAQ native")
+
+-- 1. Map your C++ Enums to Lua tables
+local payload_types = {
+    [1]  = "STR_PACKET",
+    [2]  = "STR_SIGNAL_AVAIL",
+    [3]  = "STR_SIGNAL_UNAVAIL",
+    [4]  = "STR_SIGNAL_SUBSC_CMD",
+    [5]  = "STR_SIGNAL_UNSUB_CMD",
+    [6]  = "STR_PROTO_INIT_DONE",
+    [7]  = "STR_SIGNAL_SUBSC_ACK",
+    [8]  = "STR_SIGNAL_UNSUB_ACK",
+    [9]  = "CONFIG",
+    [10] = "TRANS_LAYER_PROPS",
+    [11] = "STR_PROTO_INIT_REQ"
+}
+
+-- Map the Configuration PacketType Enum
+local packet_types = {
+    [0x80] = "GetProtocolInfo",
+    [0x81] = "UpgradeProtocol",
+    [0x82] = "Rpc",
+    [0x83] = "ServerNotification",
+    [0x84] = "InvalidRequest",
+    [0x85] = "NoReplyRpc",
+    [0x86] = "ConnectionRejected"
+}
+
+-- Map the Streaming PacketType Enum
+local str_pkt_types = {
+    [0] = "Event",
+    [1] = "Data",
+    [2] = "Release",
+    [3] = "AlreadySent"
+}
+
+-- Fetch Wireshark's built-in JSON dissector
+local json_dissector = Dissector.get("json")
+
+-- 2. Define the Protocol Fields
+-- Base 4-byte Header
+local f_type = ProtoField.uint32("opendaq_native.type", "Payload Type", base.DEC, payload_types, 0xF0000000)
+local f_size = ProtoField.uint32("opendaq_native.size", "Payload Size (Bytes)", base.DEC, nil, 0x0FFFFFFF)
+
+-- Configuration PacketHeader (16 bytes)
+local f_config_hdr_size     = ProtoField.uint8("opendaq_native.config.header_size", "Config Header Size", base.DEC)
+local f_config_type         = ProtoField.uint8("opendaq_native.config.type", "Config Packet Type", base.HEX, packet_types)
+local f_config_unused       = ProtoField.bytes("opendaq_native.config.unused", "Unused Bytes")
+local f_config_payload_size = ProtoField.uint32("opendaq_native.config.payload_size", "Config Payload Size", base.DEC)
+local f_config_id           = ProtoField.uint64("opendaq_native.config.id", "Config ID", base.DEC)
+
+-- GetProtocolInfo Payload Fields (16-bit integers)
+local f_config_gpi_cur_version = ProtoField.uint16("opendaq_native.config.gpi.current_version", "Current Version", base.DEC)
+local f_config_gpi_sup_count   = ProtoField.uint16("opendaq_native.config.gpi.supported_count", "Supported Versions Count", base.DEC)
+local f_config_gpi_sup_version = ProtoField.uint16("opendaq_native.config.gpi.supported_version", "Supported Version", base.DEC)
+
+-- UpgradeProtocol Payload Fields
+local f_config_up_version = ProtoField.int16("opendaq_native.config.up.version", "Version", base.DEC)
+local f_config_up_result  = ProtoField.int8("opendaq_native.config.up.result", "Result", base.DEC)
+
+-- Streaming Packet (STR_PACKET) Fields
+local f_str_hdr_size     = ProtoField.uint8("opendaq_native.str.size", "Header Size", base.DEC)
+local f_str_hdr_type     = ProtoField.uint8("opendaq_native.str.type", "Packet Type", base.DEC, str_pkt_types)
+local f_str_hdr_version  = ProtoField.uint8("opendaq_native.str.version", "Version", base.DEC)
+local f_str_hdr_flags    = ProtoField.uint8("opendaq_native.str.flags", "Flags", base.HEX)
+local f_str_hdr_sig_id   = ProtoField.uint32("opendaq_native.str.signal_id", "Signal ID", base.DEC)
+local f_str_hdr_pl_size  = ProtoField.uint32("opendaq_native.str.payload_size", "Payload Size", base.DEC)
+
+-- NEW: Field to visualize the C++ Struct Alignment Padding
+local f_str_padding      = ProtoField.bytes("opendaq_native.str.padding", "Alignment Padding")
+
+local f_str_pkt_id       = ProtoField.int64("opendaq_native.str.packet_id", "Packet ID", base.DEC)
+local f_str_dom_pkt_id   = ProtoField.int64("opendaq_native.str.domain_packet_id", "Domain Packet ID", base.DEC)
+local f_str_samp_count   = ProtoField.int64("opendaq_native.str.sample_count", "Sample Count", base.DEC)
+local f_str_off_float    = ProtoField.double("opendaq_native.str.offset_float", "Offset (Float64)")
+local f_str_off_int      = ProtoField.int64("opendaq_native.str.offset_int", "Offset (Int64)", base.DEC)
+
+-- STR_SIGNAL_AVAIL Payload Fields
+local f_sa_num_id  = ProtoField.uint32("opendaq_native.sa.num_id", "Signal Numeric ID", base.DEC)
+local f_sa_str_len = ProtoField.uint16("opendaq_native.sa.str_len", "String ID Length", base.DEC)
+local f_sa_str_id  = ProtoField.string("opendaq_native.sa.str_id", "Signal String ID")
+
+-- STR_SIGNAL_SUBSC_CMD / STR_SIGNAL_UNSUB_CMD Payload Fields
+local f_sub_num_id = ProtoField.uint32("opendaq_native.sub.num_id", "Signal Numeric ID", base.DEC)
+local f_sub_str_id = ProtoField.string("opendaq_native.sub.str_id", "Signal String ID")
+
+-- STR_SIGNAL_SUBSC_ACK / STR_SIGNAL_UNSUB_ACK Payload Fields
+local f_ack_num_id = ProtoField.uint32("opendaq_native.ack.num_id", "Signal Numeric ID", base.DEC)
+
+-- Fallback Raw Payload and JSON String
+local f_payload = ProtoField.bytes("opendaq_native.payload", "Raw Payload") 
+local f_json_text = ProtoField.string("opendaq_native.json_text", "Raw JSON String")
+
+-- Register all fields
+my_proto.fields = { 
+    f_type, f_size, 
+    f_config_hdr_size, f_config_type, f_config_unused, f_config_payload_size, f_config_id,
+    f_config_gpi_cur_version, f_config_gpi_sup_count, f_config_gpi_sup_version,
+    f_config_up_version, f_config_up_result,
+    
+    f_str_hdr_size, f_str_hdr_type, f_str_hdr_version, f_str_hdr_flags, 
+    f_str_hdr_sig_id, f_str_hdr_pl_size, f_str_padding, f_str_pkt_id, f_str_dom_pkt_id, 
+    f_str_samp_count, f_str_off_float, f_str_off_int,
+    
+    f_sa_num_id, f_sa_str_len, f_sa_str_id,
+    f_sub_num_id, f_sub_str_id,
+    f_ack_num_id,
+    f_payload, f_json_text
+}
+
+-- 3. The Dissector Function
+function my_proto.dissector(buffer, pinfo, tree)
+    -- If the payload is smaller than our base 4-byte header, ignore it
+    if buffer:len() < 4 then 
+        return 0 
+    end
+
+    -- Change the protocol column
+    pinfo.cols.protocol = "OpenDAQ native"
+    
+    -- Create the root tree for this packet
+    local subtree = tree:add(my_proto, buffer(), "OpenDAQ native")
+    
+    -- Grab the first 4 bytes directly from the buffer
+    local header_range = buffer(0, 4)
+    
+    -- Add the fields in Little-Endian byte order
+    subtree:add_le(f_type, header_range)
+    subtree:add_le(f_size, header_range)
+    
+    -- Read the raw 32-bit unsigned integer as Little-Endian
+    local header_val = header_range:le_uint()
+    
+    -- Extract the Type and Size
+    local type_val = math.floor(header_val / 0x10000000)
+    local size_val = header_val % 0x10000000
+        
+    -- Look up the string name for the Info column
+    local type_str = payload_types[type_val] or "UNKNOWN_TYPE"
+    local info_string = type_str .. " (Size: " .. size_val .. ")"
+
+    -- Check if this is a Configuration Packet (Type 9)
+    if type_val == 9 then
+        -- Ensure we have enough bytes for the 16-byte PacketHeader
+        if buffer:len() >= 20 then
+            -- Create a sub-tree specifically for the Config Header
+            local config_tree = subtree:add(my_proto, buffer(4, 16), "Configuration Header")
+            
+            -- Read the 16 bytes based on your C++ struct layout
+            config_tree:add(f_config_hdr_size, buffer(4, 1))
+            config_tree:add(f_config_type, buffer(5, 1))
+            config_tree:add(f_config_unused, buffer(6, 2))
+            config_tree:add_le(f_config_payload_size, buffer(8, 4))
+            config_tree:add_le(f_config_id, buffer(12, 8))
+            
+            -- Append the specific Config Type to the Wireshark Info column for easier reading
+            local c_type_val = buffer(5, 1):uint()
+            local c_type_str = packet_types[c_type_val] or string.format("UNKNOWN (0x%02X)", c_type_val)
+            info_string = info_string .. " [" .. c_type_str .. "]"
+            
+            -- Handle data beyond the 20 bytes (4 base + 16 config)
+            if buffer:len() > 20 then
+                local data_range = buffer(20)
+                
+                if c_type_val == 0x80 then
+                    -- Specific binary parsing for GetProtocolInfo (0x80)
+                    local gpi_tree = subtree:add(my_proto, data_range, "GetProtocolInfo Payload")
+                    if data_range:len() >= 2 then
+                        gpi_tree:add_le(f_config_gpi_cur_version, data_range(0, 2))
+                    end
+                    if data_range:len() >= 4 then
+                        local sup_count = data_range(2, 2):le_uint()
+                        gpi_tree:add_le(f_config_gpi_sup_count, data_range(2, 2))
+                        local offset = 4
+                        for i = 1, sup_count do
+                            if data_range:len() >= offset + 2 then
+                                gpi_tree:add_le(f_config_gpi_sup_version, data_range(offset, 2))
+                                offset = offset + 2
+                            else
+                                break
+                            end
+                        end
+                    end
+
+                elseif c_type_val == 0x81 then
+                    -- Specific parsing for UpgradeProtocol (0x81)
+                    local up_tree = subtree:add(my_proto, data_range, "UpgradeProtocol Payload")
+                    if data_range:len() == 2 then
+                        up_tree:add_le(f_config_up_version, data_range(0, 2))
+                    elseif data_range:len() == 1 then
+                        local res_val = data_range(0, 1):le_int()
+                        local res_item = up_tree:add_le(f_config_up_result, data_range(0, 1))
+                        if res_val ~= 0 then
+                            res_item:append_text(" (Success)")
+                        else
+                            res_item:append_text(" (Fail)")
+                        end
+                    else
+                        up_tree:add(f_payload, data_range)
+                    end
+
+                elseif c_type_val == 0x82 or c_type_val == 0x83 then
+                    -- Extract RPC Method Name or Error Code for the Info column
+                    if c_type_val == 0x82 then
+                        local payload_str = data_range:string()
+                        local rpc_method = payload_str:match('"key"%s*:%s*"Name"%s*,%s*"value"%s*:%s*"([^"]+)"')
+                        if rpc_method then
+                            info_string = info_string .. " RPC=" .. rpc_method
+                        end
+                        local rpc_error = payload_str:match('"key"%s*:%s*"ErrorCode"%s*,%s*"value"%s*:%s*(%-?%d+)')
+                        if rpc_error then
+                            info_string = info_string .. " Error code=" .. rpc_error
+                        end
+                    end
+
+                    -- Parse JSON via Wireshark's JSON Dissector
+                    if json_dissector then
+                        local json_tree = subtree:add(my_proto, data_range, c_type_str .. " JSON Payload")
+                        json_tree:add(f_json_text, data_range)
+                        json_dissector:call(data_range:tvb(), pinfo, json_tree)
+                    else
+                        subtree:add(f_payload, data_range)
+                    end
+                else
+                    subtree:add(f_payload, data_range)
+                end
+            end -- closes: if buffer:len() > 20
+        else
+            subtree:add(buffer(4), "Truncated Configuration Header")
+        end -- closes: if buffer:len() >= 20
+        
+    elseif type_val == 1 then
+        -- STR_PACKET (1) packet handling (Streaming Packets)
+        if buffer:len() >= 16 then
+            local offset = 4
+            local str_tree = subtree:add(my_proto, buffer(offset), "Streaming Packet")
+            
+            -- Read 12-byte GenericPacketHeader
+            str_tree:add(f_str_hdr_size, buffer(offset, 1))
+            local str_pkt_type = buffer(offset + 1, 1):uint()
+            str_tree:add(f_str_hdr_type, buffer(offset + 1, 1))
+            str_tree:add(f_str_hdr_version, buffer(offset + 2, 1))
+            
+            local flags = buffer(offset + 3, 1):uint()
+            local flag_item = str_tree:add(f_str_hdr_flags, buffer(offset + 3, 1))
+            
+            local band = (bit32 and bit32.band) or (bit and bit.band)
+            if band and band(flags, 0x1) == 0x1 then
+                flag_item:append_text(" (CAN_RELEASE)")
+            end
+            
+            local sig_id = buffer(offset + 4, 4):le_uint()
+            str_tree:add_le(f_str_hdr_sig_id, buffer(offset + 4, 4))
+            str_tree:add_le(f_str_hdr_pl_size, buffer(offset + 8, 4))
+            
+            offset = offset + 12
+            
+            local str_pkt_str = str_pkt_types[str_pkt_type] or "Unknown"
+            info_string = info_string .. string.format(" [%s | SigID: %d]", str_pkt_str, sig_id)
+            
+            if str_pkt_type == 1 then
+                -- DataPacketHeader: C++ Struct Alignment Padding (4 bytes) + Additional Data (32 bytes)
+                if buffer:len() >= offset + 36 then
+                    -- Show the padding explicitly to prevent confusion
+                    str_tree:add(f_str_padding, buffer(offset, 4))
+                    offset = offset + 4
+                    
+                    -- Now safely read the aligned 64-bit integers
+                    str_tree:add_le(f_str_pkt_id, buffer(offset, 8))
+                    str_tree:add_le(f_str_dom_pkt_id, buffer(offset + 8, 8))
+                    str_tree:add_le(f_str_samp_count, buffer(offset + 16, 8))
+                    
+                    local offset_type = math.floor((flags % 8) / 2)
+                    if offset_type == 1 then
+                        str_tree:add_le(f_str_off_int, buffer(offset + 24, 8))
+                    elseif offset_type == 2 then
+                        str_tree:add_le(f_str_off_float, buffer(offset + 24, 8))
+                    end
+                    offset = offset + 32
+                end
+                
+            elseif str_pkt_type == 3 then
+                -- AlreadySentPacketHeader: C++ Struct Alignment Padding (4 bytes) + Additional Data (16 bytes)
+                if buffer:len() >= offset + 20 then
+                    -- Handle padding
+                    str_tree:add(f_str_padding, buffer(offset, 4))
+                    offset = offset + 4
+                    
+                    -- Read aligned 64-bit integers
+                    str_tree:add_le(f_str_pkt_id, buffer(offset, 8))
+                    str_tree:add_le(f_str_dom_pkt_id, buffer(offset + 8, 8))
+                    offset = offset + 16
+                end
+            end
+            
+            -- Handle remaining payload based on the streaming packet type
+            if buffer:len() > offset then
+                local data_range = buffer(offset)
+                if str_pkt_type == 0 and json_dissector then
+                    -- Parse remaining payload as JSON for 'Event' packets
+                    local json_tree = str_tree:add(my_proto, data_range, "Event Payload (JSON)")
+                    json_tree:add(f_json_text, data_range)
+                    json_dissector:call(data_range:tvb(), pinfo, json_tree)
+                else
+                    -- Attach remaining bytes as binary payload for other streaming types
+                    str_tree:add(f_payload, data_range)
+                end
+            end
+        else
+            subtree:add(f_payload, buffer(4))
+        end
+
+    elseif type_val == 2 then
+        -- STR_SIGNAL_AVAIL packet handling
+        if buffer:len() > 4 then
+            local data_range = buffer(4)
+            local sa_tree = subtree:add(my_proto, data_range, "Signal Available Payload")
+            
+            local offset = 0
+            if data_range:len() >= offset + 4 then
+                sa_tree:add_le(f_sa_num_id, data_range(offset, 4))
+                offset = offset + 4
+            end
+            
+            local str_len = 0
+            if data_range:len() >= offset + 2 then
+                str_len = data_range(offset, 2):le_uint()
+                sa_tree:add_le(f_sa_str_len, data_range(offset, 2))
+                offset = offset + 2
+            end
+            
+            if str_len > 0 and data_range:len() >= offset + str_len then
+                sa_tree:add(f_sa_str_id, data_range(offset, str_len))
+                local str_id_val = data_range(offset, str_len):string()
+                info_string = info_string .. " [" .. str_id_val .. "]"
+                offset = offset + str_len
+            end
+            
+            if data_range:len() > offset then
+                local json_range = data_range(offset)
+                if json_dissector then
+                    local json_tree = sa_tree:add(my_proto, json_range, "Serialized Signal JSON")
+                    json_tree:add(f_json_text, json_range)
+                    json_dissector:call(json_range:tvb(), pinfo, json_tree)
+                else
+                    sa_tree:add(f_payload, json_range)
+                end
+            end
+        end
+
+    elseif type_val == 4 or type_val == 5 then
+        -- STR_SIGNAL_SUBSC_CMD (4) and STR_SIGNAL_UNSUB_CMD (5) packet handling
+        if buffer:len() > 4 then
+            local data_range = buffer(4)
+            local tree_name = (type_val == 4) and "Subscribe Command Payload" or "Unsubscribe Command Payload"
+            local sub_tree = subtree:add(my_proto, data_range, tree_name)
+            
+            local offset = 0
+            if data_range:len() >= offset + 4 then
+                sub_tree:add_le(f_sub_num_id, data_range(offset, 4))
+                offset = offset + 4
+            end
+            
+            local remaining_len = data_range:len() - offset
+            if remaining_len > 0 then
+                sub_tree:add(f_sub_str_id, data_range(offset, remaining_len))
+                local str_id_val = data_range(offset, remaining_len):string()
+                info_string = info_string .. " [" .. str_id_val .. "]"
+            end
+        end
+        
+    elseif type_val == 7 or type_val == 8 then
+        -- STR_SIGNAL_SUBSC_ACK (7) and STR_SIGNAL_UNSUB_ACK (8) packet handling
+        if buffer:len() >= 8 then
+            local data_range = buffer(4, 4)
+            local tree_name = (type_val == 7) and "Subscribe ACK Payload" or "Unsubscribe ACK Payload"
+            local ack_tree = subtree:add(my_proto, data_range, tree_name)
+            
+            local num_id = data_range:le_uint()
+            ack_tree:add_le(f_ack_num_id, data_range)
+            info_string = info_string .. " [ID: " .. num_id .. "]"
+            
+            if buffer:len() > 8 then
+                ack_tree:add(f_payload, buffer(8))
+            end
+        elseif buffer:len() > 4 then
+            subtree:add(f_payload, buffer(4))
+        end
+        
+    elseif type_val == 10 then
+        -- TRANS_LAYER_PROPS (10) packet handling
+        if buffer:len() > 4 then
+            local data_range = buffer(4)
+            local tl_tree = subtree:add(my_proto, data_range, "Transport Layer Properties Payload")
+            if json_dissector then
+                tl_tree:add(f_json_text, data_range)
+                json_dissector:call(data_range:tvb(), pinfo, tl_tree)
+            else
+                tl_tree:add(f_payload, data_range)
+            end
+        end
+
+    else
+        -- Standard Packet Handling for all other unmapped types
+        if buffer:len() > 4 then
+            local data_range = buffer(4)
+            subtree:add(f_payload, data_range)
+        end
+    end
+    
+    -- Ensure Wireshark's native dissectors don't overwrite our Protocol column text
+    pinfo.cols.protocol = "OpenDAQ native"
+    pinfo.cols.info:set(info_string)    
+
+    -- Tell Wireshark how many bytes we successfully parsed
+    return buffer:len()
+end
+
+-- 4. Register as a true WebSocket Sub-Dissector
+local ws_dissector_table = DissectorTable.get("ws.port")
+ws_dissector_table:add(7420, my_proto)

@@ -136,8 +136,17 @@ public:
         // tick_common = tick * multiplier
         Int multiplierNumerator = domain.resolution.getNumerator() * commonDomain.resolution.getDenominator();
         Int multiplierDenominator = domain.resolution.getDenominator() * commonDomain.resolution.getNumerator();
-        // The cast to double follows the legacy implementation, but it's questionable how it impacts potential precision loss
-        Type valueScaledToCommon = static_cast<Type>(value * multiplierNumerator / static_cast<double>(multiplierDenominator));
+
+        Type valueScaledToCommon = 0;
+        if constexpr (std::is_integral_v<Type>)
+        {
+            valueScaledToCommon = static_cast<Type>((value / multiplierDenominator) * multiplierNumerator +
+                                                    (value % multiplierDenominator) * multiplierNumerator / multiplierDenominator);
+        }
+        else
+        {
+            valueScaledToCommon = static_cast<Type>(value * multiplierNumerator / static_cast<double>(multiplierDenominator));
+        }
         Type valueInCommon = offsetFromCommon + valueScaledToCommon;
 
         return std::make_unique<DomainValueImpl<Type>>(commonDomain, valueInCommon);
@@ -159,10 +168,20 @@ public:
 
         // TODO: The regular value should probably be +1 here so that when converted back into fine domain
         // it is true that regularValue >= valueInCommon (reason: domain value searching)
-        // tick_common = tick * multiplier
+        // tick = tick_common / multiplier
         Int multiplierNumerator = regularDomain.resolution.getNumerator() * commonDomain.resolution.getDenominator();
         Int multiplierDenominator = regularDomain.resolution.getDenominator() * commonDomain.resolution.getNumerator();
-        Type regularValue = static_cast<Type>(valueScaledToCommon * multiplierDenominator / static_cast<double>(multiplierNumerator));
+
+        Type regularValue = 0;
+        if constexpr (std::is_integral_v<Type>)
+        {
+            regularValue = static_cast<Type>((valueScaledToCommon / multiplierNumerator) * multiplierDenominator +
+                                             (valueScaledToCommon % multiplierNumerator) * multiplierDenominator / multiplierNumerator);
+        }
+        else
+        {
+            regularValue = static_cast<Type>(valueScaledToCommon * multiplierDenominator / static_cast<double>(multiplierNumerator));
+        }
 
         return std::make_unique<DomainValueImpl<Type>>(regularDomain, regularValue);
     }
@@ -176,7 +195,7 @@ public:
         num /= gcd;
         den /= gcd;
 
-        if (den % num != 0) // 1 = k * num/den, the resolution is a fractional divider of a unit
+        if (den % num != 0)  // 1 = k * num/den, the resolution is a fractional divider of a unit
             DAQ_THROW_EXCEPTION(NotSupportedException, "Resolution must be aligned on full unit of domain");
 
         value = static_cast<Type>((((value * num + den - 1) / den) * den) / num);
@@ -248,9 +267,11 @@ public:
         Int multiplierNumerator = domain.resolution.getNumerator() * commonDomain.resolution.getDenominator();
         Int multiplierDenominator = domain.resolution.getDenominator() * commonDomain.resolution.getNumerator();
         RangeValue startScaledToCommon =
-            static_cast<RangeValue>(value.start * multiplierNumerator / static_cast<double>(multiplierDenominator));
+            static_cast<RangeValue>((value.start / multiplierDenominator) * multiplierNumerator +
+                                    (value.start % multiplierDenominator) * multiplierNumerator / multiplierDenominator);
         RangeValue endScaledToCommon =
-            static_cast<RangeValue>(value.end * multiplierNumerator / static_cast<double>(multiplierDenominator));
+            static_cast<RangeValue>((value.end / multiplierDenominator) * multiplierNumerator +
+                                    (value.end % multiplierDenominator) * multiplierNumerator / multiplierDenominator);
 
         RangeValue startInCommon = offsetFromCommon + startScaledToCommon;
         RangeValue endInCommon = value.end == -1 ? static_cast<RangeValue>(-1) : offsetFromCommon + endScaledToCommon;
@@ -278,11 +299,13 @@ public:
         Int multiplierNumerator = regularDomain.resolution.getNumerator() * commonDomain.resolution.getDenominator();
         Int multiplierDenominator = regularDomain.resolution.getDenominator() * commonDomain.resolution.getNumerator();
         RangeValue startValue =
-            static_cast<RangeValue>(startScaledToCommon * multiplierDenominator / static_cast<double>(multiplierNumerator));
+            static_cast<RangeValue>((startScaledToCommon / multiplierNumerator) * multiplierDenominator +
+                                    (startScaledToCommon % multiplierNumerator) * multiplierDenominator / multiplierNumerator);
         RangeValue endValue =
             valueInCommon.end == -1
                 ? static_cast<RangeValue>(-1)
-                : static_cast<RangeValue>(endScaledToCommon * multiplierDenominator / static_cast<double>(multiplierNumerator));
+                : static_cast<RangeValue>((endScaledToCommon / multiplierNumerator) * multiplierDenominator +
+                                          (endScaledToCommon % multiplierNumerator) * multiplierDenominator / multiplierNumerator);
 
         return std::make_unique<DomainValueImpl<RangeType64>>(regularDomain, RangeType64{startValue, endValue});
     }

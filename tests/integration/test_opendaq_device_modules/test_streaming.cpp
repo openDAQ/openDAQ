@@ -1006,7 +1006,7 @@ TEST_P(StreamingTestForModernLt, SignalDescriptorEvents)
     auto serverSignal = getSignal(serverInstance, "ChangingSignal");
     // Give the client time to do async work related to signal creation
     // Otherwise getSignal() on the client may not find it yet.
-    std::this_thread::sleep_for(1s);
+    CONDITIONAL_SLEEP;
     auto clientSignal = getSignal(clientInstance, "ChangingSignal");
 
     auto mirroredSignalPtr = clientSignal.template asPtr<IMirroredSignalConfig>();
@@ -1070,7 +1070,7 @@ TEST_P(StreamingTestForModernLt, DataPackets)
     const size_t packetsToReadClient = packetsToGenerate + ((std::get<1>(GetParam()).find("daq.lt://") == 0) ? 1 : 2);
     // Give the client time to do async work related to signal creation
     // Otherwise getSignal() on the client may not find it yet.
-    std::this_thread::sleep_for(1s);
+    CONDITIONAL_SLEEP;
     auto mirroredSignalPtr = getSignal(clientInstance, "ByteStep").template asPtr<IMirroredSignalConfig>();
 
     std::promise<StringPtr> subscribeCompletePromise;
@@ -1127,7 +1127,7 @@ TEST_P(StreamingTestForModernLt, MultipleSignalsConcurrent)
 
     // Give the client time to do async work related to signal creation
     // Otherwise getSignal() on the client may not find it yet
-    std::this_thread::sleep_for(1s);
+    CONDITIONAL_SLEEP;
 
     std::vector<std::promise<StringPtr>> subscribePromises(signalNames.size());
     std::vector<std::future<StringPtr>> subscribeFutures(signalNames.size());
@@ -1213,7 +1213,7 @@ TEST_P(StreamingTestForModernLt, LastValue)
     auto serverSignal = getSignal(serverInstance, "IntStep");
     // Give the client time to do async work related to signal creation
     // Otherwise getSignal() on the client may not find it yet
-    std::this_thread::sleep_for(1s);
+    CONDITIONAL_SLEEP;
     auto mirroredSignalPtr = getSignal(clientInstance, "IntStep").template asPtr<IMirroredSignalConfig>();
 
     std::promise<StringPtr> subscribeCompletePromise;
@@ -1312,7 +1312,7 @@ TEST_P(StreamingTestForModernLt, DISABLED_SetNullDescriptor)
         auto serverSignalPtr = getSignal(serverInstance, "ByteStep").template asPtr<ISignalConfig>();
         // Give the client time to do async work related to signal creation
         // Otherwise getSignal() on the client may not find it yet
-        std::this_thread::sleep_for(1s);
+        CONDITIONAL_SLEEP;
         auto mirroredSignalPtr = getSignal(clientInstance, "ByteStep").template asPtr<IMirroredSignalConfig>();
         std::promise<StringPtr> subscribeCompletePromise;
         std::future<StringPtr> subscribeCompleteFuture;
@@ -1350,7 +1350,7 @@ TEST_P(StreamingTestForModernLt, DISABLED_SetNullDescriptor)
         auto serverSignalPtr = getSignal(serverInstance, "ByteStep").template asPtr<ISignalConfig>();
         // Give the client time to do async work related to signal creation
         // Otherwise getSignal() on the client may not find it yet.
-        std::this_thread::sleep_for(1s);
+        CONDITIONAL_SLEEP;
         auto mirroredOrigSignalPtr = getSignal(clientInstance, "ByteStep").template asPtr<IMirroredSignalConfig>();
 
         std::promise<StringPtr> origSigSubscribeCompletePromise;
@@ -1424,7 +1424,7 @@ TEST_P(StreamingTestForModernLt, ChangedDataDescriptorBeforeSubscribe)
     SignalConfigPtr serverSignalPtr = getSignal(serverInstance, "ByteStep");
     // Give the client time to do async work related to signal creation
     // Otherwise getSignal() on the client may not find it yet
-    std::this_thread::sleep_for(1s);
+    CONDITIONAL_SLEEP;
     MirroredSignalConfigPtr clientSignalPtr = getSignal(clientInstance, "ByteStep");
     MirroredSignalConfigPtr clientDomainSignalPtr = clientSignalPtr.getDomainSignal();
 
@@ -1610,7 +1610,7 @@ TEST_P(StreamingReconnectionTestForModernLt, DISABLED_Reconnection)
 {
     // Give the client time to do async work related to signal creation
     // Otherwise getSignal() on the client may not find it yet
-    std::this_thread::sleep_for(1s);
+    CONDITIONAL_SLEEP;
     auto mirroredSignalPtr = getSignal(clientInstance, "ByteStep").template asPtr<IMirroredSignalConfig>();
     std::promise<StringPtr> subscribeCompletePromise;
     std::future<StringPtr> subscribeCompleteFuture;

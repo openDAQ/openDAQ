@@ -46,6 +46,17 @@
 #   endif
 #endif
 
+// In Modern LT module operations are processed asynchronously.
+// We have to give the client time to complete asynchronous processing related to signal creation.
+// Otherwise getSignal() on the client may not find it yet.
+#if defined(DAQMODULES_LT_LEGACY_MODULES)
+#   define CONDITIONAL_SLEEP
+#elif defined(__APPLE__)
+#   define CONDITIONAL_SLEEP std::this_thread::sleep_for(std::chrono::seconds(5))
+#else
+#   define CONDITIONAL_SLEEP std::this_thread::sleep_for(std::chrono::seconds(1))
+#endif
+
 BEGIN_NAMESPACE_OPENDAQ
 
 namespace test_helpers

@@ -6,7 +6,7 @@ The dissector provides a seamless debugging experience natively within Wireshark
 
 ## Features
 
-* **Automatic WebSocket Hook:** Automatically binds to WebSocket traffic on port `7420`.
+* **Configurable WebSocket Hook:** Binds to WebSocket traffic on port `7420` by default; the port(s) are configurable under **Edit → Preferences → Protocols → OpenDAQ native** (or `-o opendaq_native.ports:"..."` on the CLI), and may be a single port, a list, or ranges (e.g. `7420,7500-7510`).
 * **Base Header Decoding:** Parses the standard 4-byte Little-Endian protocol header (Payload Type and Size).
 * **Smart Info Column:** Extracts critical context (RPC Method Names, Error Codes, Signal IDs, and Streaming Sub-types) and appends them directly to Wireshark's top-level "Info" column for quick scanning.
 * **Native JSON Integration:** Handoffs embedded JSON payloads (e.g., RPC configurations, Transport Layer Properties, and Signal parameters) to Wireshark's highly optimized built-in JSON dissector, creating fully expandable, syntax-highlighted trees.
@@ -50,7 +50,15 @@ If you prefer to navigate manually, the default paths are usually:
 ## Usage
 
 1. Start a packet capture on the network interface handling your OpenDAQ traffic.
-2. Because the dissector automatically registers to WebSocket port `7420`, OpenDAQ native packets will automatically display as **OpenDAQ native** in the Protocol column.
+2. Because the dissector registers to WebSocket port `7420` by default, OpenDAQ native packets will automatically display as **OpenDAQ native** in the Protocol column. To capture on a different port (or several), set it under **Edit → Preferences → Protocols → OpenDAQ native** → **WebSocket port(s)** — accepts a single port, a list, or ranges (e.g. `7420,7500-7510`).
 3. To filter your capture and see *only* this traffic, type the following into the Wireshark display filter bar:
    ```text
    opendaq_native
+   ```
+
+---
+
+## See also
+
+* [PROTOCOL.md](PROTOCOL.md) — the on-the-wire format of every packet type.
+* [CHANGELOG.md](CHANGELOG.md) — version history.

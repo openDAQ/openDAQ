@@ -52,8 +52,8 @@ private:
 
     static ListPtr<IMirroredDeviceConfig> getAllDevicesRecursively(const MirroredDeviceConfigPtr& device);
 
-    ListPtr<IAddressInfo> findMatchingAddresses(const ListPtr<IAddressInfo>& availableAddresses,
-                                       const AddressInfoPtr& deviceConnectionAddress);
+    ListPtr<IAddressInfo> getSuitableAddressesInfo(const ListPtr<IAddressInfo>& availableAddressesInfo,
+                                                   const AddressInfoPtr& deviceConnectionAddress);
     static AddressInfoPtr getDeviceConnectionAddress(const DevicePtr& device);
     void completeStreamingConnections(const MirroredDeviceConfigPtr& topDevice);
     void attachStreamingsToDevice(const MirroredDeviceConfigPtr& device);
@@ -393,8 +393,8 @@ inline ListPtr<IMirroredDeviceConfig> StreamingSourceManager::getAllDevicesRecur
     return result;
 }
 
-inline ListPtr<IAddressInfo> StreamingSourceManager::findMatchingAddresses(const ListPtr<IAddressInfo>& availableAddresses,
-                                                                         const AddressInfoPtr& deviceConnectionAddress)
+inline ListPtr<IAddressInfo> StreamingSourceManager::getSuitableAddressesInfo(const ListPtr<IAddressInfo>& availableAddressesInfo,
+                                                                              const AddressInfoPtr& deviceConnectionAddress)
 {
     
     auto result = List<IAddressInfo>();
@@ -409,7 +409,7 @@ inline ListPtr<IAddressInfo> StreamingSourceManager::findMatchingAddresses(const
 
     if (primaryAddressType == "IPv4" || primaryAddressType == "IPv6")
     {
-        for (const auto& addressInfo : availableAddresses)
+        for (const auto& addressInfo : availableAddressesInfo)
         {
             if (addressInfo.getType() == primaryAddressType)
                 addToResult(addressInfo);
@@ -421,7 +421,7 @@ inline ListPtr<IAddressInfo> StreamingSourceManager::findMatchingAddresses(const
         LOG_W("Server streaming capability does not provide any addresses of primary {} type", primaryAddressType);
     }
 
-    for (const auto& addressInfo : availableAddresses)
+    for (const auto& addressInfo : availableAddressesInfo)
     {
         addToResult(addressInfo);
     }
@@ -472,7 +472,7 @@ inline void StreamingSourceManager::completeStreamingConnections(const MirroredD
 
 inline void StreamingSourceManager::attachStreamingsToDevice(const MirroredDeviceConfigPtr& device)
 {
-    // Get the address used for device connection
+    // Get the full address information used for device configuration connection
     const auto deviceConnectionAddress = getDeviceConnectionAddress(device);
 
     // protocol priority as a key, streaming source as a value
@@ -508,7 +508,7 @@ inline void StreamingSourceManager::attachStreamingsToDevice(const MirroredDevic
         }
     }
 
-    // connect via all allowed streaming capabilities which are not connected yet
+    // connect to all allowed streaming servers which are not connected to yet
     for (const auto& cap : device.getInfo().getServerCapabilities())
     {
         if (cap.getProtocolType() != ProtocolType::Streaming)
@@ -532,35 +532,52 @@ inline void StreamingSourceManager::attachStreamingsToDevice(const MirroredDevic
         StreamingPtr streaming;
 
         // Prioritize discovery addresses if available for this protocol
-        ListPtr<IAddressInfo> addressesToUse;
+        ListPtr<IAddressInfo> addressesInfoToCheck;
         if (discoveredAddressesByProtocol.count(protocolId) > 0)
         {
-            addressesToUse = discoveredAddressesByProtocol[protocolId];
+            addressesInfoToCheck = discoveredAddressesByProtocol[protocolId];
             LOG_D("Device {} using discovered addresses for protocol {}", device.getGlobalId(), protocolId);
         }
         else
         {
-            addressesToUse = cap.getAddressInfo();
+            addressesInfoToCheck = cap.getAddressInfo();
         }
 
-        const auto streamingAddresses = findMatchingAddresses(addressesToUse, deviceConnectionAddress);
-        SizeT currAddressIndex = 0;
+        // get the addresses of primary type giving the priority to known config connection address
+        const auto suitableAddressesInfo = getSuitableAddressesInfo(addressesInfoToCheck, deviceConnectionAddress);
 
-        do 
+        auto streamingConnectionStrings = List<IString>();
+        for (const auto& addressInfo : suitableAddressesInfo)
+            streamingConnectionStrings.pushBack(addressInfo.getConnectionString());
+        if (streamingConnectionStrings.empty())
+            streamingConnectionStrings.pushBack(cap.getConnectionString());
+
+        for (const auto& connectionString : streamingConnectionStrings)
         {
-            StringPtr connectionString = currAddressIndex < streamingAddresses.getCount()
-                                             ? streamingAddresses[currAddressIndex].getConnectionString()
-                                             : cap.getConnectionString();
-
             if (!connectionString.assigned())
                 continue;
 
+            auto itAlreadyConnected =
+                std::find_if(prioritizedStreamingSourcesMap.begin(),
+                             prioritizedStreamingSourcesMap.end(),
+                             [&protocolId](const std::pair<SizeT, StreamingPtr>& item)
+                             {
+                                 // do not connect to the same streaming server twice e.g. via IPv4 & IPv6 or 2 different network paths
+                                 return protocolId == item.second.getProtocolId();
+                             });
+            if (itAlreadyConnected != prioritizedStreamingSourcesMap.end())
+                continue;
+
             const auto addedStreamingSources = device.getStreamingSources();
-            auto it =
+            auto itAlreadyAdded =
                 std::find_if(addedStreamingSources.begin(),
                              addedStreamingSources.end(),
-                             [&connectionString](const StreamingPtr& item) { return connectionString == item.getConnectionString(); });
-            if (it != addedStreamingSources.end())
+                             [&connectionString](const StreamingPtr& item)
+                             {
+                                 // do not connect if source is already added e.g. in case of reconnection or update
+                                 return connectionString == item.getConnectionString();
+                             });
+            if (itAlreadyAdded != addedStreamingSources.end())
                 continue;
 
             auto errCode = daqTry(
@@ -576,9 +593,7 @@ inline void StreamingSourceManager::attachStreamingsToDevice(const MirroredDevic
 
             const SizeT protocolPriority = protocolIt->second;
             prioritizedStreamingSourcesMap.insert_or_assign(protocolPriority, streaming);
-
-        } while (currAddressIndex++ < streamingAddresses.getCount());
-       
+        }
     }
 
     // add streaming sources ordered by protocol priority

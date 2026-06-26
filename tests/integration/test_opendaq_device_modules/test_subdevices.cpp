@@ -401,6 +401,7 @@ TEST_P(SubDevicesTest, RootStreamingToClient)
     InstancePtr secondLeafDevice = addSecondLeafDevice(gateway, client, success);
     ASSERT_TRUE(success);
 
+    CONDITIONAL_SLEEP;
     testSignalStreamingSources(client, gateway, false);
     testInputPortStreamingSources(client, gateway, false);
 

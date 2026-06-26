@@ -1203,6 +1203,10 @@ TEST_P(StreamingTestForModernLt, LastValue)
     // Config-enabled transports (daq.nd://, daq.opcua://) fall back to a config-protocol RPC and keep returning it
     const bool isStreamingOnly = (std::get<1>(GetParam()).find("daq.lt://") == 0);
 
+    // Give the client time to do async work related to signal creation
+    // Otherwise getSignal() on the client may not find it yet.
+    CONDITIONAL_SLEEP;
+
     // Flaky on IPv6 OPC UA endpoints: phase-3 lastValue mismatch after unsubscribe
     // (mirror keeps a stale streaming-cached value instead of reading via the config channel).
     if (std::get<1>(GetParam()) == "daq.opcua://[::1]/")
@@ -1211,9 +1215,6 @@ TEST_P(StreamingTestForModernLt, LastValue)
     }
 
     auto serverSignal = getSignal(serverInstance, "IntStep");
-    // Give the client time to do async work related to signal creation
-    // Otherwise getSignal() on the client may not find it yet
-    CONDITIONAL_SLEEP;
     auto mirroredSignalPtr = getSignal(clientInstance, "IntStep").template asPtr<IMirroredSignalConfig>();
 
     std::promise<StringPtr> subscribeCompletePromise;
@@ -1408,6 +1409,10 @@ TEST_P(StreamingTestForModernLt, DISABLED_SetNullDescriptor)
 
 TEST_P(StreamingTestForModernLt, ChangedDataDescriptorBeforeSubscribe)
 {
+    // Give the client time to do async work related to signal creation
+    // Otherwise getSignal() on the client may not find it yet.
+    CONDITIONAL_SLEEP;
+
     // daq.nd:// is not supported by this test.
     // A native configuration device mirrors the whole component tree and actively pushes signal descriptor
     // changes to the client as DataDescriptorChanged core events. So with daq.nd the descriptor change reaches the client through two
@@ -1422,9 +1427,6 @@ TEST_P(StreamingTestForModernLt, ChangedDataDescriptorBeforeSubscribe)
 
     SKIP_TEST_MAC_CI;
     SignalConfigPtr serverSignalPtr = getSignal(serverInstance, "ByteStep");
-    // Give the client time to do async work related to signal creation
-    // Otherwise getSignal() on the client may not find it yet
-    CONDITIONAL_SLEEP;
     MirroredSignalConfigPtr clientSignalPtr = getSignal(clientInstance, "ByteStep");
     MirroredSignalConfigPtr clientDomainSignalPtr = clientSignalPtr.getDomainSignal();
 

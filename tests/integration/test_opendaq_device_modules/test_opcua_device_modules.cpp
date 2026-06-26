@@ -260,6 +260,7 @@ TEST_F(OpcuaDeviceModulesTest, ServerEnableDisableDiscovery)
     auto connectedClient = Instance("[[none]]");
     addOpcuaClientModule(connectedClient);
     auto device = connectedClient.addDevice("daq.opcua://127.0.0.1");
+    CONDITIONAL_SLEEP;
     ASSERT_GT(device.getServers().getCount(), 0u);
     auto mirroredServer = device.getServers()[0];
 
@@ -1292,6 +1293,7 @@ TEST_F(OpcuaDeviceModulesTest, AddStreamingPostConnection)
     ASSERT_EQ(streaming, clientMirroredDevice.getStreamingSources()[0]);
 
     streaming.addSignals(clientSignals);
+    CONDITIONAL_SLEEP;
     for (const auto& signal : clientSignals)
     {
         auto mirorredSignal = signal.template asPtr<IMirroredSignalConfig>();

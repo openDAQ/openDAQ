@@ -108,6 +108,7 @@ public:
         addLtClientModule(client);
 
         auto refDevice = client.addDevice("daq.lt://127.0.0.1/");
+        CONDITIONAL_SLEEP;
         return client;
     }
 };
@@ -130,6 +131,7 @@ TEST_F(WebsocketModulesTest, ConnectAndDisconnectBackwardCompatibility)
     auto client = Instance("[[none]]");
     addLtClientModule(client);
     client.addDevice("daq.ws://127.0.0.1/", nullptr);
+    CONDITIONAL_SLEEP;
 }
 
 TEST_F(WebsocketModulesTest, ConnectViaIpv6)
@@ -144,6 +146,7 @@ TEST_F(WebsocketModulesTest, ConnectViaIpv6)
     auto client = Instance("[[none]]");
     addLtClientModule(client);
     client.addDevice("daq.lt://[::1]", nullptr);
+    CONDITIONAL_SLEEP;
 }
 
 TEST_F(WebsocketModulesTest, PopulateDefaultConfigFromProvider)
@@ -208,6 +211,7 @@ TEST_F(WebsocketModulesTest, DiscoveringServer)
             if (capability.getProtocolName() == "OpenDAQLTStreaming")
             {
                 device = client.addDevice(deviceInfo.getConnectionString(), nullptr);
+                CONDITIONAL_SLEEP;
                 return;
             }
         }
@@ -270,6 +274,7 @@ TEST_F(WebsocketModulesTest, CheckDeviceInfoPopulatedWithProvider)
                 }
 
                 client.addDevice(capability.getConnectionString(), nullptr);
+                CONDITIONAL_SLEEP;
                 ASSERT_EQ(deviceInfo.getName(), rootInfo.getName());
                 ASSERT_EQ(deviceInfo.getManufacturer(), rootInfo.getManufacturer());
                 ASSERT_EQ(deviceInfo.getModel(), rootInfo.getModel());
@@ -366,7 +371,6 @@ TEST_F(WebsocketModulesTest, GetRemoteDeviceObjects)
     auto client = CreateClientInstance();
 
     ASSERT_EQ(client.getDevices().getCount(), 1u);
-    CONDITIONAL_SLEEP;
     auto signals = client.getSignals(search::Recursive(search::Visible()));
     ASSERT_EQ(signals.getCount(), 5u);
 }
@@ -379,8 +383,10 @@ TEST_F(WebsocketModulesTest, RemoveDevice)
 
     addLtClientModule(client);
     auto device = client.addDevice("daq.lt://127.0.0.1/");
+    CONDITIONAL_SLEEP;
 
     ASSERT_NO_THROW(client.removeDevice(device));
+    CONDITIONAL_SLEEP;
     ASSERT_TRUE(device.isRemoved());
 }
 
@@ -395,7 +401,6 @@ TEST_F(WebsocketModulesTest, SignalConfig_Server)
     serverSignal.setDescriptor(serverSignalDataDescriptor);
 
     auto client = CreateClientInstance();
-    CONDITIONAL_SLEEP;
     auto clientSignals = client.getDevices()[0].getSignals(search::Recursive(search::Any()));
     auto clientSignal = getSignalByName(clientSignals, "AI0").asPtr<ISignalConfig>();
 
@@ -409,7 +414,6 @@ TEST_F(WebsocketModulesTest, DataDescriptor)
 {
     auto server = CreateServerInstance();
     auto client = CreateClientInstance();
-    CONDITIONAL_SLEEP;
     testSignalDescriptorsByLocalId({"AI0", "AI1"},
                                    client.getSignals(search::Recursive(search::Any())),
                                    server.getSignals(search::Recursive(search::Any())));
@@ -420,7 +424,6 @@ TEST_F(WebsocketModulesTest, SubscribeReadUnsubscribe)
     SKIP_TEST_MAC_CI;
     auto server = CreateServerInstance();
     auto client = CreateClientInstance();
-    CONDITIONAL_SLEEP;
     auto signal = getSignalByName(client.getSignals(search::Recursive(search::Any())), "AI0")
                       .template asPtr<IMirroredSignalConfig>();
 
@@ -499,7 +502,7 @@ TEST_F(WebsocketModulesTest, GetConfigurationConnectionInfoIPv6)
     auto client = Instance("[[none]]");
     addLtClientModule(client);
     client.addDevice("daq.lt://[::1]", nullptr);
-
+    CONDITIONAL_SLEEP;
     auto devices = client.getDevices();
     ASSERT_EQ(devices.getCount(), 1u);
 
@@ -519,7 +522,6 @@ TEST_F(WebsocketModulesTest, AddSignals)
     SKIP_TEST_MAC_CI;
     auto server = CreateServerInstance();
     auto client = CreateClientInstance();
-    CONDITIONAL_SLEEP;
     size_t addedSignalsCount = 0;
     std::promise<void> addSignalsPromise;
     std::future<void> addSignalsFuture = addSignalsPromise.get_future();
@@ -565,7 +567,6 @@ TEST_F(WebsocketModulesTest, RemoveSignals)
     SKIP_TEST_MAC_CI;
     auto server = CreateServerInstance();
     auto client = CreateClientInstance();
-    CONDITIONAL_SLEEP;
     auto clientSignals = client.getSignals(search::Recursive(search::Any()));
 
     auto removedValueSignal = getSignalByName(clientSignals, "AI1");
@@ -629,7 +630,6 @@ TEST_F(WebsocketModulesTest, UpdateAddSignals)
     serverRefDevice.setPropertyValue("NumberOfChannels", 1);
 
     auto client = CreateClientInstance();
-    CONDITIONAL_SLEEP;
 
     size_t addedSignalsCount = 0;
     std::promise<void> addSignalsPromise;
@@ -687,7 +687,6 @@ TEST_F(WebsocketModulesTest, UpdateRemoveSignals)
     serverRefDevice.setPropertyValue("NumberOfChannels", 3);
 
     auto client = CreateClientInstance();
-    CONDITIONAL_SLEEP;
     auto clientSignals = client.getSignals(search::Recursive(search::Any()));
 
     auto removedValueSignal = getSignalByName(clientSignals, "AI2");

@@ -318,6 +318,7 @@ TEST_F(ConnectedClientsDiscoveryTest, LtConnectedClients)
         }
 
         auto device = clientInstance.addDevice("daq.lt://127.0.0.1");
+        CONDITIONAL_SLEEP;
         auto connectedClientsInfo = getConnectedClients();
         ASSERT_EQ(connectedClientsInfo.getCount(), 1u);
 
@@ -327,6 +328,7 @@ TEST_F(ConnectedClientsDiscoveryTest, LtConnectedClients)
         ASSERT_TRUE(connectedClientsInfo[0].getAddress().toStdString().find("127.0.0.1") != std::string::npos);
 
         clientInstance.removeDevice(device);
+        CONDITIONAL_SLEEP;
         ASSERT_EQ(getConnectedClients().getCount(), 0u);
     }
 }

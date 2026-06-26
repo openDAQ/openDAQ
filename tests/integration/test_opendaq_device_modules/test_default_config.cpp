@@ -518,6 +518,7 @@ TEST_F(ModulesDefaultConfigTest, SmartConnectWithIpVerOpcUa)
     generalConfig.setPropertyValue("PrimaryAddressType", "IPv4");
     {
         const auto device = instance.addDevice("daq://openDAQ_sim01_opcua", config);
+        CONDITIONAL_SLEEP;
         auto devConnStr = device.getInfo().getConfigurationConnectionInfo().getConnectionString();
         EXPECT_TRUE(test_helpers::isIpv4ConnectionString(devConnStr)) << devConnStr;
         devConnStr = device.getInfo().getConnectionString();
@@ -539,6 +540,7 @@ TEST_F(ModulesDefaultConfigTest, SmartConnectWithIpVerOpcUa)
     generalConfig.setPropertyValue("PrimaryAddressType", "IPv6");
     {
         const auto device = instance.addDevice("daq://openDAQ_sim01_opcua", config);
+        CONDITIONAL_SLEEP;
         auto devConnStr = device.getInfo().getConfigurationConnectionInfo().getConnectionString();
         EXPECT_TRUE(test_helpers::isIpv6ConnectionString(devConnStr)) << devConnStr;
         devConnStr = device.getInfo().getConnectionString();
@@ -583,6 +585,7 @@ TEST_F(ModulesDefaultConfigTest, SmartConnectWithIpVerLt)
     generalConfig.setPropertyValue("PrimaryAddressType", "IPv4");
     {
         const auto device = instance.addDevice("daq://openDAQ_sim01_lt", config);
+        CONDITIONAL_SLEEP;
         auto devConnStr = device.getInfo().getConfigurationConnectionInfo().getConnectionString();
         EXPECT_TRUE(test_helpers::isIpv4ConnectionString(devConnStr)) << devConnStr;
         devConnStr = device.getInfo().getConnectionString();
@@ -598,6 +601,7 @@ TEST_F(ModulesDefaultConfigTest, SmartConnectWithIpVerLt)
     generalConfig.setPropertyValue("PrimaryAddressType", "IPv6");
     {
         const auto device = instance.addDevice("daq://openDAQ_sim01_lt", config);
+        CONDITIONAL_SLEEP;
         auto devConnStr = device.getInfo().getConfigurationConnectionInfo().getConnectionString();
         EXPECT_TRUE(test_helpers::isIpv6ConnectionString(devConnStr)) << devConnStr;
         devConnStr = device.getInfo().getConnectionString();

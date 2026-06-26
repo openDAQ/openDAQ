@@ -1849,6 +1849,7 @@ TEST_F(NativeDeviceModulesTest, AddStreamingPostConnection)
     ASSERT_EQ(streaming, clientMirroredDevice.getStreamingSources()[1]);
 
     streaming.addSignals(clientSignals);
+    CONDITIONAL_SLEEP;
     for (const auto& signal : clientSignals)
     {
         auto mirorredSignal = signal.template asPtr<IMirroredSignalConfig>();
@@ -1894,13 +1895,22 @@ public:
         auto config = instance.createDefaultAddDeviceConfig();
         PropertyObjectPtr general = config.getPropertyValue("General");
 
+        bool isLt = false;
         auto prioritizedStreamingProtocols = List<IString>();
         for (const auto& protocolId : GetParam())
+        {
+            isLt |= (protocolId == "OpenDAQLTStreaming");
             prioritizedStreamingProtocols.pushBack(protocolId);
+        }
 
         general.setPropertyValue("PrioritizedStreamingProtocols", prioritizedStreamingProtocols);
 
         instance.addDevice("daq.nd://127.0.0.1", config);
+        if (isLt)
+        {
+            CONDITIONAL_SLEEP;
+        }
+
         return instance;
     }
 

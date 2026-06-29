@@ -36,6 +36,22 @@ extern "C"
 #define DAQ_EXTENDS_INTERFACE(intf, base) struct intf
 #endif
 
+#ifndef DAQ_DEFAULT_VALUE
+#define DAQ_DEFAULT_VALUE(...)
+#endif
+
+#ifndef DAQ_LIST_ELEMENT_TYPE
+#define DAQ_LIST_ELEMENT_TYPE(type)
+#endif
+
+#ifndef DAQ_DICT_TEMPLATE_TYPE
+#define DAQ_DICT_TEMPLATE_TYPE(keyType, valueType)
+#endif
+
+#ifndef DAQ_TEMPLATE_TYPE
+#define DAQ_TEMPLATE_TYPE(...)
+#endif
+
     typedef uint32_t daqErrCode;
     typedef uint8_t daqBool;
     typedef int64_t daqInt;

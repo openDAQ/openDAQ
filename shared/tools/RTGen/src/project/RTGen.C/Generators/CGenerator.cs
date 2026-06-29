@@ -254,6 +254,12 @@ namespace RTGen.C.Generators
                 if (listType == ArgsListType.MethodDeclaration)
                 {
                     sb.Append($"{(arg.Type.Name != "void" ? Prefix : "")}{arg.Type.NonInterfaceName}{arg.Type.Modifiers} {arg.Name}");
+
+                    bool isSelfArg = method != null && i == 0;
+                    if (_generatorType == GeneratorType.Header && !isSelfArg)
+                    {
+                        sb.Append(GetArgumentAnnotations(arg));
+                    }
                 }
                 else
                 {
@@ -388,21 +394,55 @@ namespace RTGen.C.Generators
             return sb.ToString();
         }
 
-        protected string GenerateTemplateTypeAnnotations(IMethod method)
+        protected string GetArgumentAnnotations(IArgument arg)
         {
             StringBuilder sb = new StringBuilder();
 
-            foreach (IArgument arg in method.Arguments)
+            IList<string> typeNames = GetGenericTypeNames(arg.Type);
+            if (typeNames.Count > 0)
             {
-                if (arg.Type.GenericArguments != null && arg.Type.GenericArguments.Count > 0)
-                {
-                    string annotationName = arg.Type.Name == "IList" ? "elementType" : "templateType";
-                    var typeNames = arg.Type.GenericArguments.Select(t => t.NonInterfaceName);
-                    sb.AppendLine($"// [{annotationName}({arg.Name}, {string.Join(", ", typeNames)})]");
-                }
+                string macroName;
+                if (arg.Type.Name == "IList" && typeNames.Count == 1)
+                    macroName = "DAQ_LIST_ELEMENT_TYPE";
+                else if (arg.Type.Name == "IDict" && typeNames.Count == 2)
+                    macroName = "DAQ_DICT_TEMPLATE_TYPE";
+                else
+                    macroName = "DAQ_TEMPLATE_TYPE";
+
+                sb.Append($" {macroName}({string.Join(", ", typeNames)})");
+            }
+
+            if (!string.IsNullOrEmpty(arg.DefaultValue))
+            {
+                sb.Append($" DAQ_DEFAULT_VALUE({arg.DefaultValue})");
             }
 
             return sb.ToString();
+        }
+
+        protected IList<string> GetGenericTypeNames(ITypeName type)
+        {
+            List<string> names = new List<string>();
+
+            if (type.GenericArguments == null)
+            {
+                return names;
+            }
+
+            foreach (ITypeName generic in type.GenericArguments)
+            {
+                foreach (string genericName in generic.NonInterfaceName.Split(','))
+                {
+                    string name = genericName.Trim();
+                    if (name.EndsWith("Ptr"))
+                    {
+                        name = name.Substring(0, name.Length - "Ptr".Length);
+                    }
+                    names.Add(Prefix + name);
+                }
+            }
+
+            return names;
         }
 
         protected string GenerateInterfaceDocComment(IRTInterface rtClass)
@@ -561,8 +601,6 @@ namespace RTGen.C.Generators
                         if (factory != null && factory.Documentation != null)
                             return GenerateDocCommentFromDoc(factory.Documentation);
                         return string.Empty;
-                    case "TemplateTypes":
-                        return method != null ? GenerateTemplateTypeAnnotations(method) : string.Empty;
                     default:
                         LogIgnoredVariable(variable, templatePath);
                         return string.Empty;

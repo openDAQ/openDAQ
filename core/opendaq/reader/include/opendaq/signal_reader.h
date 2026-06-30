@@ -14,12 +14,13 @@
  * limitations under the License.
  */
 #pragma once
+#include <opendaq/domain_value.h>
 #include <opendaq/event_packet_ptr.h>
 #include <opendaq/input_port_config_ptr.h>
-#include <opendaq/multi_typed_reader.h>
 #include <opendaq/read_info.h>
 #include <opendaq/reader_domain_info.h>
 #include <opendaq/reader_status.h>
+#include <opendaq/typed_reading_utils.h>
 
 #include <chrono>
 
@@ -60,7 +61,7 @@ struct SignalReader
      */
     SizeT getAvailable(bool acrossDescriptorChanges) const;
     void handleDescriptorChanged(const EventPacketPtr& eventPacket);
-    bool trySetDomainSampleType(const daq::DataPacketPtr& domainPacket) const;
+    bool trySetDomainSampleType(const daq::DataPacketPtr& domainPacket);
     void setCommonSampleRate(const std::int64_t commonSampleRate);
 
     void prepare(void* outValues, SizeT count);
@@ -71,7 +72,16 @@ struct SignalReader
     /**
      * @brief Returns the tick of the first available sample in maxResolution units and relative to the minimum epoch.
      */
-    std::unique_ptr<Comparable> readStartDomain();
+    std::unique_ptr<DomainValue> readDomainStart();
+    const DomainInfo& getDomainInfo() const;
+    SampleType getValueReadType() const;
+
+    void setValueTransformFunction(FunctionPtr transform);
+    void setDomainTransformFunction(FunctionPtr transform);
+    
+    FunctionPtr getValueTransformFunction() const;
+    FunctionPtr getDomainTransformFunction() const;
+
     /**
      * @brief Dequeues first datapacket if available and returns true if first packet is Event.
      *
@@ -83,7 +93,7 @@ struct SignalReader
     bool isFirstPacketEvent();
     EventPacketPtr readUntilNextDataPacket();
     bool skipUntilLastEventPacket();
-    bool sync(const Comparable& commonStart, std::chrono::system_clock::rep* firstSampleAbsoluteTimestamp = nullptr);
+    bool sync(const DomainValue* commonStart, std::chrono::system_clock::rep* firstSampleAbsoluteTimestamp = nullptr);
 
     ErrCode readPackets();
     ErrCode readPacketData();
@@ -96,9 +106,6 @@ struct SignalReader
     bool isConnected() const;
 
     LoggerComponentPtr loggerComponent;
-
-    std::unique_ptr<Reader> valueReader;
-    std::unique_ptr<Reader> domainReader;
 
     InputPortConfigPtr port;
     ConnectionPtr connection;
@@ -118,6 +125,25 @@ struct SignalReader
 
     NumberPtr packetDelta {0};
     std::chrono::system_clock::rep cachedFirstTimestamp;
+
+private:
+
+    bool onValueDescriptorUpdate(const DataDescriptorPtr& valueDescriptor);
+    bool onDomainDescriptorUpdate(const DataDescriptorPtr& domainDescriptor);
+    struct TypedReadingContext
+    {
+        SampleType domainIn;
+        SampleType domainOut;
+        ReadLayout domainLayout;
+        DomainInfo domainInfo;
+        FunctionPtr domainTransform = nullptr;
+        
+        SampleType valueIn;
+        SampleType valueOut;
+        ReadLayout valueLayout;
+        FunctionPtr valueTransform = nullptr;
+    };
+    TypedReadingContext trContext;
 };
 
 END_NAMESPACE_OPENDAQ

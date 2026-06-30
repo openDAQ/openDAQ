@@ -13,6 +13,9 @@ set(TEST_SOURCES test_factories.cpp
                  test_time_reader.cpp
                  test_multi_reader.cpp
                  test_stream_reader_from_input_port.cpp
+                 test_domain_value.cpp
+                 test_typed_reading.cpp
+                 ../src/typed_reading_utils.cpp
 )
 
 opendaq_prepare_test_runner(TEST_APP FOR ${MODULE_NAME}
@@ -32,12 +35,13 @@ if (MSVC)
     target_compile_options(${TEST_APP} PRIVATE /bigobj)
 endif()
 
-target_link_libraries(${TEST_APP} PRIVATE daq::coreobjects
-)
 
 add_test(NAME ${TEST_APP}
          COMMAND $<TARGET_FILE_NAME:${TEST_APP}>
          WORKING_DIRECTORY $<TARGET_FILE_DIR:${TEST_APP}>
+)
+
+target_link_libraries(${TEST_APP} PRIVATE daq::coreobjects daq::opendaq
 )
 
 if (OPENDAQ_ENABLE_COVERAGE)

@@ -24,7 +24,7 @@ using namespace std::chrono;
 using Milliseconds = duration<double, std::milli>;
 
 template <>
-struct fmt::formatter<daq::Comparable> : ostream_formatter
+struct fmt::formatter<daq::DomainValue> : ostream_formatter
 {
 };
 
@@ -575,17 +575,19 @@ void MultiReaderImpl::setStartInfo()
         if (signal.unused)
             continue;
 
-        if (signal.domainInfo.epoch < minEpoch)
+        auto& domainInfo = signal.getDomainInfo();
+        if (domainInfo.epoch < minEpoch)
         {
-            minEpoch = signal.domainInfo.epoch;
+            minEpoch = domainInfo.epoch;
         }
 
-        if (static_cast<double>(signal.domainInfo.resolution) < static_cast<double>(maxResolution))
+        if (static_cast<double>(domainInfo.resolution) < static_cast<double>(maxResolution))
         {
-            maxResolution = signal.domainInfo.resolution;
+            maxResolution = domainInfo.resolution;
         }
     }
 
+    commonDomain = DomainInfo{minEpoch, maxResolution};
     readResolution = maxResolution;
     readOrigin = date::format("%FT%TZ", minEpoch);
 
@@ -624,7 +626,7 @@ ErrCode MultiReaderImpl::getValueReadType(SampleType* sampleType)
         // value read type may differ from what was configured (e. g. Undefined -> Int64).
         // The SignalReader will instantiate the appropriate type reader when descriptors change.
         // Shouldn't be relied on if different signals are read simultaneously.
-        *sampleType = signals.front().valueReader->getReadType();
+        *sampleType = signals.front().getValueReadType();
     else
         *sampleType = valueReadType;
     return OPENDAQ_SUCCESS;
@@ -644,7 +646,7 @@ ErrCode MultiReaderImpl::setValueTransformFunction(IFunction* transform)
 
     for (auto& signal : signals)
     {
-        signal.valueReader->setTransformFunction(transform);
+        signal.setValueTransformFunction(transform);
     }
 
     return OPENDAQ_SUCCESS;
@@ -656,7 +658,7 @@ ErrCode MultiReaderImpl::setDomainTransformFunction(IFunction* transform)
 
     for (auto& signal : signals)
     {
-        signal.domainReader->setTransformFunction(transform);
+        signal.setDomainTransformFunction(transform);
     }
 
     return OPENDAQ_SUCCESS;
@@ -739,7 +741,7 @@ ErrCode INTERFACE_FUNC MultiReaderImpl::removeInput(IString* globalId)
 
     signals.erase(it);
     // Reset common start to avoid holding a reference to the deleted signal reader.
-    commonStart = nullptr;
+    commonDomainStart = nullptr;
 
     portsConnected = allPortsConnected();
     if (!portsConnected)
@@ -1472,27 +1474,21 @@ void MultiReaderImpl::readDomainStart()
         // => SignalReader should be able to handle two domain settings - one native to the signal it is reading and
         // another, "common", that will be set from Multireader parent. Ideally, getting these common domain information,
         // it should be trivial to compare starts.
-        auto sigStart = signal.readStartDomain();
-        if (!commonStart || *commonStart < *sigStart)
+        // auto sigStart = signal.readStartDomain();
+        auto sigStart = signal.readDomainStart();
+        auto sigStartInCommonDomain = sigStart->toCommonDomain(commonDomain);
+        if (!commonDomainStart || *commonDomainStart < *sigStartInCommonDomain)
         {
-            commonStart = std::move(sigStart);
+            commonDomainStart = std::move(sigStartInCommonDomain);
         }
     }
 
     LOG_T("---");
-    LOG_T("DomainStart: {}", *commonStart);
+    LOG_T("DomainStart: {}", *commonDomainStart);
 
-    if (startOnFullUnitOfDomain)
-    {
-        commonStart->roundUpOnUnitOfDomain();
-        LOG_T("Rounded DomainStart: {}", *commonStart);
-    }
-    else
-    {
-        const RatioPtr interval = Ratio(sampleRateDividerLcm, commonSampleRate).simplify();
-        commonStart->roundUpOnDomainInterval(interval);
-        LOG_T("Aligned DomainStart: {}", *commonStart);
-    }
+    const RatioPtr interval = startOnFullUnitOfDomain ? Ratio(1, 1) : Ratio(sampleRateDividerLcm, commonSampleRate).simplify();
+    commonDomainStart->roundUpOnDomainInterval(interval);
+    LOG_T("Aligned DomainStart: {}", *commonDomainStart);
 }
 
 void MultiReaderImpl::sync()
@@ -1507,7 +1503,8 @@ void MultiReaderImpl::sync()
             continue;
 
         system_clock::rep firstSampleAbsoluteTime;
-        synced = signal.sync(*commonStart, &firstSampleAbsoluteTime) && synced;
+        auto startInNativeDomain = commonDomainStart->fromCommonDomain(signal.getDomainInfo());
+        synced = signal.sync(startInNativeDomain.get(), &firstSampleAbsoluteTime) && synced;
 
         if (synced)
         {
@@ -1564,9 +1561,10 @@ ErrCode MultiReaderImpl::getOffset(void* domainStart)
 {
     OPENDAQ_PARAM_NOT_NULL(domainStart);
 
-    if (commonStart)
+    if (commonDomainStart)
     {
-        commonStart->getValue(domainStart);
+        // TODO: What can this be possibly used for?
+        // commonStart->getValue(domainStart);
         return OPENDAQ_SUCCESS;
     }
 
@@ -1586,7 +1584,8 @@ ErrCode MultiReaderImpl::getIsSynchronized(Bool* isSynchronized)
 {
     OPENDAQ_PARAM_NOT_NULL(isSynchronized);
 
-    *isSynchronized = static_cast<bool>(commonStart);
+    // TODO: There is a more comlpex answer to this
+    *isSynchronized = commonDomainStart != nullptr;
 
     return OPENDAQ_SUCCESS;
 }
@@ -1634,7 +1633,7 @@ ErrCode MultiReaderImpl::getValueTransformFunction(IFunction** transform)
         return OPENDAQ_ERR_INVALIDSTATE;
     }
 
-    *transform = signals.front().valueReader->getTransformFunction().addRefAndReturn();
+    *transform = signals.front().getValueTransformFunction().addRefAndReturn();
 
     return OPENDAQ_SUCCESS;
 }
@@ -1650,7 +1649,7 @@ ErrCode MultiReaderImpl::getDomainTransformFunction(IFunction** transform)
         return OPENDAQ_ERR_INVALIDSTATE;
     }
 
-    *transform = signals.front().domainReader->getTransformFunction().addRefAndReturn();
+    *transform = signals.front().getDomainTransformFunction().addRefAndReturn();
 
     return OPENDAQ_SUCCESS;
 }

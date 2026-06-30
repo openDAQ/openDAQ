@@ -15,6 +15,7 @@
  */
 #pragma once
 #include <opendaq/multi_reader.h>
+
 #include <opendaq/read_info.h>
 #include <opendaq/reader_config_ptr.h>
 #include <opendaq/signal_reader.h>
@@ -184,10 +185,12 @@ private:
     Clock::duration timeout{};
     Clock::time_point startTime;
 
+    DomainInfo commonDomain;
     StringPtr readOrigin;
     RatioPtr readResolution;
     RatioPtr tickOffsetTolerance;
-    std::unique_ptr<Comparable> commonStart;
+    // std::unique_ptr<Comparable> commonStart;
+    std::unique_ptr<DomainValue> commonDomainStart;
     std::int64_t requiredCommonSampleRate = -1;
     std::int64_t commonSampleRate = -1;
     std::int32_t sampleRateDividerLcm = 1;

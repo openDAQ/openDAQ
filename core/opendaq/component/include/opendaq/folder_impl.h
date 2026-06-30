@@ -344,6 +344,12 @@ ErrCode INTERFACE_FUNC FolderImpl<Intf, Intfs...>::getSerializeId(ConstCharPtr* 
 template <class Intf, class ... Intfs>
 ErrCode FolderImpl<Intf, Intfs...>::enableCoreEventTrigger()
 {
+    // hold the recursive config lock while iterating "items"
+    // consistent with addItem()/removeItem()
+    // otherwise iteration can race with a concurrent structural change (e.g. a streaming client
+    // adding mirrored signals from a background thread), invalidating the container's iterators
+    // and corrupting the heap
+    auto lock = this->getRecursiveConfigLock2();
     for (const auto& [_, item] : items)
     {
         const ErrCode err = item.template asPtr<IPropertyObjectInternal>(true)->enableCoreEventTrigger();
@@ -356,6 +362,12 @@ ErrCode FolderImpl<Intf, Intfs...>::enableCoreEventTrigger()
 template <class Intf, class ... Intfs>
 ErrCode FolderImpl<Intf, Intfs...>::disableCoreEventTrigger()
 {
+    // hold the recursive config lock while iterating "items"
+    // consistent with addItem()/removeItem()
+    // otherwise iteration can race with a concurrent structural change (e.g. a streaming client
+    // adding mirrored signals from a background thread), invalidating the container's iterators
+    // and corrupting the heap
+    auto lock = this->getRecursiveConfigLock2();
     for (const auto& [_, item] : items)
     {
         const ErrCode err = item.template asPtr<IPropertyObjectInternal>(true)->disableCoreEventTrigger();

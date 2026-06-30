@@ -140,8 +140,9 @@ public:
         Type valueScaledToCommon = 0;
         if constexpr (std::is_integral_v<Type>)
         {
+            // Round to the closest tick
             valueScaledToCommon = static_cast<Type>((value / multiplierDenominator) * multiplierNumerator +
-                                                    (value % multiplierDenominator) * multiplierNumerator / multiplierDenominator);
+                                                    (2 * (value % multiplierDenominator) * multiplierNumerator + multiplierDenominator) / (2 * multiplierDenominator));
         }
         else
         {
@@ -166,17 +167,15 @@ public:
         Int offsetFromCommon = epochOffset * scaleNumerator / scaleDenominator;
         Type valueScaledToCommon = valueInCommon - offsetFromCommon;
 
-        // TODO: The regular value should probably be +1 here so that when converted back into fine domain
-        // it is true that regularValue >= valueInCommon (reason: domain value searching)
-        // tick = tick_common / multiplier
         Int multiplierNumerator = regularDomain.resolution.getNumerator() * commonDomain.resolution.getDenominator();
         Int multiplierDenominator = regularDomain.resolution.getDenominator() * commonDomain.resolution.getNumerator();
 
         Type regularValue = 0;
         if constexpr (std::is_integral_v<Type>)
         {
+            // Round to the closest tick
             regularValue = static_cast<Type>((valueScaledToCommon / multiplierNumerator) * multiplierDenominator +
-                                             (valueScaledToCommon % multiplierNumerator) * multiplierDenominator / multiplierNumerator);
+                                             (2 * (valueScaledToCommon % multiplierNumerator) * multiplierDenominator + multiplierNumerator) / (2 * multiplierNumerator));
         }
         else
         {

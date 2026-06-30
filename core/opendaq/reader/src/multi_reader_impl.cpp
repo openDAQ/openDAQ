@@ -1563,7 +1563,7 @@ ErrCode MultiReaderImpl::getOffset(void* domainStart)
 
     if (commonDomainStart)
     {
-        // TODO:
+        // TODO: What can this be possibly used for?
         // commonStart->getValue(domainStart);
         return OPENDAQ_SUCCESS;
     }

@@ -228,13 +228,50 @@ TEST_F(DomainValueTest, NonRepresentibleConversions)
     daq::DomainInfo commonDomain = {commonEpoch, commonResolution};
     daq::DomainInfo coarseDomain = {commonEpoch, coarseResolution};
 
-    std::unique_ptr<daq::DomainValue> valueInFine = std::make_unique<daq::DomainValueImpl<daq::Int>>(commonDomain, 1002);
-    auto valueInCoarse = valueInFine->fromCommonDomain(coarseDomain);
-    auto valueBackInFine = valueInCoarse->toCommonDomain(commonDomain);
+    {
+        std::unique_ptr<daq::DomainValue> valueInFine = std::make_unique<daq::DomainValueImpl<daq::Int>>(commonDomain, 1002); // 1002 / 1 000 000
+        auto valueInCoarse = valueInFine->fromCommonDomain(coarseDomain); // 1 / 1 000
+        auto valueBackInFine = valueInCoarse->toCommonDomain(commonDomain); // 1 000 / 1 000 000
+    
+        // During a lossful conversion fine1->coarse->fine2 where coarse == fine2 it may be fine2 != fine1. Currently, the nearest tick is taken in the coarse domain.
+        // It may be required that if we find index that satisfies domain[index] >= coarse we found the correct sample.
+        // Rounding down case
+        ASSERT_FALSE(*valueInFine < *valueBackInFine);
+    }
 
-    // TODO: For the domain value finding it would probably be required that during a lossful conversion fine1->coarse->fine2
-    // where coars == fine2 (but in different domains) it also holds that fine2 >= fine1. Because then if we find index that
-    // satisfies domain[index] >= coarse we found the correct one. Right now the situation is reversed, lossful conversion
-    // rounds down.
-    ASSERT_FALSE(*valueInFine < *valueBackInFine);
+    {
+        std::unique_ptr<daq::DomainValue> valueInFine = std::make_unique<daq::DomainValueImpl<daq::Int>>(commonDomain, 998); // 998 / 1 000 000
+        auto valueInCoarse = valueInFine->fromCommonDomain(coarseDomain); // 1 / 1 000
+        auto valueBackInFine = valueInCoarse->toCommonDomain(commonDomain); // 1 000 / 1 000 000
+    
+        // Rounding up case
+        ASSERT_TRUE(*valueInFine < *valueBackInFine);
+    }
+}
+
+TEST_F(DomainValueTest, NonRepresentibleConversions2)
+{
+    std::string commonEpochString = "1970-01-01T00:00:00+00:00";
+    std::chrono::system_clock::time_point commonEpoch = daq::reader::parseEpoch(commonEpochString);
+    daq::RatioPtr commonResolution = daq::Ratio(1, 7);
+    daq::RatioPtr coarseResolution = daq::Ratio(1, 3);
+
+    daq::DomainInfo commonDomain = {commonEpoch, commonResolution};
+    daq::DomainInfo coarseDomain = {commonEpoch, coarseResolution};
+
+    {
+        std::unique_ptr<daq::DomainValue> valueInFine = std::make_unique<daq::DomainValueImpl<daq::Int>>(commonDomain, 2);
+        auto valueInCoarse = valueInFine->fromCommonDomain(coarseDomain);
+        auto valueBackInFine = valueInCoarse->toCommonDomain(commonDomain);
+    
+        ASSERT_FALSE(*valueInFine < *valueBackInFine || *valueBackInFine < *valueInFine);
+    }
+    
+    {
+        std::unique_ptr<daq::DomainValue> valueInCoarse = std::make_unique<daq::DomainValueImpl<daq::Int>>(coarseDomain, 5);
+        auto valueInFine = valueInCoarse->toCommonDomain(commonDomain);
+        auto valueBackInCoarse = valueInFine->fromCommonDomain(coarseDomain);
+    
+        ASSERT_FALSE(*valueInCoarse < *valueBackInCoarse || *valueBackInCoarse < *valueInCoarse);
+    }
 }

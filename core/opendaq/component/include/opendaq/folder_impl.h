@@ -175,6 +175,8 @@ ErrCode INTERFACE_FUNC FolderImpl<Intf, Intfs...>::isEmpty(Bool* empty)
 {
     OPENDAQ_PARAM_NOT_NULL(empty);
 
+    // hold the recursive config lock while accessing "items"
+    auto lock = this->getRecursiveConfigLock2();
     *empty = items.empty() ? True : False;
 
     return OPENDAQ_SUCCESS;
@@ -214,6 +216,12 @@ void FolderImpl<Intf, Intfs...>::syncComponentOperationMode(const ComponentPtr& 
 template <class Intf, class ... Intfs>
 void FolderImpl<Intf, Intfs...>::notifyActiveChanged(bool onUpdate)
 {
+    // hold the recursive config lock while iterating "items"
+    // consistent with addItem()/removeItem()
+    // otherwise iteration can race with a concurrent structural change (e.g. a streaming client
+    // adding mirrored signals from a background thread), invalidating the container's iterators
+    // and corrupting the heap
+    auto lock = this->getRecursiveConfigLock2();
     std::vector<ComponentPtr> itemsVec;
     for (const auto& [_, item] : this->items)
         itemsVec.emplace_back(item);
@@ -461,6 +469,12 @@ void FolderImpl<Intf, Intfs...>::clearInternal()
 template <class Intf, class... Intfs>
 void FolderImpl<Intf, Intfs...>::removed()
 {
+    // hold the recursive config lock while clearInternal() iterates "items"
+    // consistent with clear()/addItem()/removeItem()
+    // otherwise iteration during removal can race with a concurrent structural change (e.g. a streaming
+    // client adding mirrored signals from a background thread), invalidating the container's iterators
+    // and corrupting the heap
+    auto lock = this->getRecursiveConfigLock2();
     clearInternal();
 }
 
@@ -478,6 +492,12 @@ bool FolderImpl<Intf, Intfs...>::addItemInternal(const ComponentPtr& component)
 template <class Intf, class ... Intfs>
 void FolderImpl<Intf, Intfs...>::serializeCustomObjectValues(const SerializerPtr& serializer, bool forUpdate)
 {
+    // hold the recursive config lock while iterating "items"
+    // consistent with addItem()/removeItem()
+    // otherwise iteration can race with a concurrent structural change (e.g. a streaming client
+    // adding mirrored signals from a background thread), invalidating the container's iterators
+    // and corrupting the heap
+    auto lock = this->getRecursiveConfigLock2();
     Super::serializeCustomObjectValues(serializer, forUpdate);
 
     if (!items.empty())
@@ -528,6 +548,12 @@ void FolderImpl<Intf, Intfs...>::deserializeCustomObjectValues(
 template <class Intf, class... Intfs>
 void FolderImpl<Intf, Intfs...>::callBeginUpdateOnChildren()
 {
+    // hold the recursive config lock while iterating "items"
+    // consistent with addItem()/removeItem()
+    // otherwise iteration can race with a concurrent structural change (e.g. a streaming client
+    // adding mirrored signals from a background thread), invalidating the container's iterators
+    // and corrupting the heap
+    auto lock = this->getRecursiveConfigLock2();
     Super::callBeginUpdateOnChildren();
 
     for (const auto& [_, item] : items)
@@ -543,6 +569,12 @@ void FolderImpl<Intf, Intfs...>::callBeginUpdateOnChildren()
 template <class Intf, class... Intfs>
 void FolderImpl<Intf, Intfs...>::callEndUpdateOnChildren()
 {
+    // hold the recursive config lock while iterating "items"
+    // consistent with addItem()/removeItem()
+    // otherwise iteration can race with a concurrent structural change (e.g. a streaming client
+    // adding mirrored signals from a background thread), invalidating the container's iterators
+    // and corrupting the heap
+    auto lock = this->getRecursiveConfigLock2();
     Super::callEndUpdateOnChildren();
 
     for (const auto& [_, item] : items)
@@ -558,6 +590,12 @@ void FolderImpl<Intf, Intfs...>::callEndUpdateOnChildren()
 template <class Intf, class ... Intfs>
 void FolderImpl<Intf, Intfs...>::onUpdatableUpdateEnd(const BaseObjectPtr& context)
 {
+    // hold the recursive config lock while iterating "items"
+    // consistent with addItem()/removeItem()
+    // otherwise iteration can race with a concurrent structural change (e.g. a streaming client
+    // adding mirrored signals from a background thread), invalidating the container's iterators
+    // and corrupting the heap
+    auto lock = this->getRecursiveConfigLock2();
     for (const auto& [_, item] : items)
     {
         const auto updatable = item.template asPtrOrNull<IUpdatable>(true);
@@ -573,6 +611,12 @@ ErrCode FolderImpl<Intf, Intfs...>::updateOperationMode(OperationModeType modeTy
     ErrCode errCode = Super::updateOperationMode(modeType);
     OPENDAQ_RETURN_IF_FAILED(errCode);
 
+    // hold the recursive config lock while iterating "items"
+    // consistent with addItem()/removeItem()
+    // otherwise iteration can race with a concurrent structural change (e.g. a streaming client
+    // adding mirrored signals from a background thread), invalidating the container's iterators
+    // and corrupting the heap
+    auto lock = this->getRecursiveConfigLock2();
     for (const auto& [_, item] : items)
     {
         auto componentPrivate = item.template asPtrOrNull<IComponentPrivate>(true);

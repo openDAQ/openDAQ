@@ -21,6 +21,7 @@
 #include <date/date.h>
 #include <chrono>
 #include <ostream>
+#include <optional>
 
 BEGIN_NAMESPACE_OPENDAQ
 
@@ -90,6 +91,21 @@ namespace reader
         std::istringstream epochString(fixupIso8601(origin));
         date::from_stream(epochString, "%FT%T%z", epoch);
 
+        return epoch;
+    }
+    
+    inline std::optional<std::chrono::system_clock::time_point> tryParseEpoch(const std::string& origin)
+    {
+        std::chrono::system_clock::time_point epoch;
+    
+        std::istringstream epochString(fixupIso8601(origin));
+        date::from_stream(epochString, "%FT%T%z", epoch);
+
+        if (epochString.fail() || !epochString.eof())
+        {
+            return std::nullopt;
+        }
+    
         return epoch;
     }
 

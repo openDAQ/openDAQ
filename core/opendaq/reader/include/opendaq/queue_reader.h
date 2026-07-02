@@ -72,7 +72,8 @@ enum class QueueReaderIssue : uint32_t
     ValueTypesNotConvertible        = 1 << 0,
     DomainTypesNotConvertible       = 1 << 1,
     SampleRateChanged               = 1 << 2,
-    UnsupportedDomainRule           = 1 << 3
+    UnsupportedDomainRule           = 1 << 3,
+    OriginParsingFailed             = 1 << 4
 };
 
 class QueueReader
@@ -102,10 +103,13 @@ public:
 
     bool isValid() const;
 
+    void domainChangeHandled();
+
 private:
     SignalEventType addEncounteredEvent(const EventPacketPtr& packet);
-    void handleDomainDescriptorChange(const DataDescriptorPtr& descriptor);
-    void handleValueDescriptorChange(const DataDescriptorPtr& descriptor);
+    void parseDomainDescriptor();
+    void parseValueDescriptor();
+    void parseCachedDescriptors();
     size_t getNumberOfEventPacketsInQueue();
     bool dropUntilEvent();
 
@@ -140,7 +144,8 @@ private:
     TypedReadingContext typeCtx;
 
     Int sampleRate = -1;
-    NumberPtr packetDelta{0};
+    Int packetDelta{0};
+    bool domainChanged = false;
 };
 
 END_NAMESPACE_OPENDAQ

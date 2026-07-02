@@ -120,6 +120,28 @@ DomainInfo QueueReader::getDomainInfo() const
     return typeCtx.domainInfo;
 }
 
+std::unique_ptr<DomainValue> QueueReader::getFirstSampleDomainValue() const
+{
+    if (packets.front().getType() != PacketType::Data)
+    {
+        return nullptr;
+    }
+
+    DataPacketPtr domainPacket = packets.front().asPtr<IDataPacket>(true).getDomainPacket();
+    if (!domainPacket.assigned())
+    {
+        // TODO: Reconsider this exception
+        DAQ_THROW_EXCEPTION(InvalidStateException, "Packet must have a domain packet assigned!");
+    }
+
+    return TypedReadingUtils::readDomainValue(typeCtx.domainIn,
+                                              typeCtx.domainOut,
+                                              typeCtx.domainLayout,
+                                              domainPacket,
+                                              readingPosition,
+                                              typeCtx.domainInfo);
+}
+
 Int QueueReader::getSampleRate() const
 {
     return sampleRate;
@@ -191,6 +213,11 @@ bool QueueReader::isValid() const
     return issues.empty();
 }
 
+void QueueReader::domainChangeHandled()
+{
+    domainChanged = false;
+}
+
 SignalEventType QueueReader::addEncounteredEvent(const EventPacketPtr& packet)
 {
     auto event = SignalEvent(packet);
@@ -199,20 +226,19 @@ SignalEventType QueueReader::addEncounteredEvent(const EventPacketPtr& packet)
     switch (eventType)
     {
         case SignalEventType::DomainChanged:
-            handleDomainDescriptorChange(event.getDomainDescriptor());
+            typeCtx.domainLayout.descriptor = event.getDomainDescriptor();
             break;
         case SignalEventType::ValueChanged:
-            handleValueDescriptorChange(event.getValueDescriptor());
+            typeCtx.valueLayout.descriptor = event.getValueDescriptor();
             break;
         case SignalEventType::DomainAndValueChanged:
-            handleDomainDescriptorChange(event.getDomainDescriptor());
-            handleValueDescriptorChange(event.getValueDescriptor());
+            typeCtx.domainLayout.descriptor = event.getDomainDescriptor();
+            typeCtx.valueLayout.descriptor = event.getValueDescriptor();
             break;
         default:
             break;
     }
-
-    // TODO: Check for invalid state
+    parseCachedDescriptors();
 
     bool addToList = true;
     if (!events.empty())
@@ -226,8 +252,11 @@ SignalEventType QueueReader::addEncounteredEvent(const EventPacketPtr& packet)
     return eventType;
 }
 
-void QueueReader::handleDomainDescriptorChange(const DataDescriptorPtr& descriptor)
+void QueueReader::parseDomainDescriptor()
 {
+    auto& descriptor = typeCtx.domainLayout.descriptor;
+
+    // Type conversion
     const auto postScaling = descriptor.getPostScaling();
     if (!postScaling.assigned() || readMode == ReadMode::Scaled)
     {
@@ -245,64 +274,78 @@ void QueueReader::handleDomainDescriptorChange(const DataDescriptorPtr& descript
         typeCtx.domainLayout.valuesPerSample = dimensions[0].getSize();
     }
 
-    typeCtx.domainLayout.descriptor = descriptor;
-
     typeCtx.domainInfo = DomainInfo::fromDescriptor(descriptor);
 
     bool domainTypesConvertible = TypedReadingUtils::isSampleTypeConvertible(typeCtx.domainIn, typeCtx.domainOut, true);
     issues.set(QueueReaderIssue::DomainTypesNotConvertible, !domainTypesConvertible);
+    // END Type Conversion
 
+    // Resolution and origin
     auto newResolution = descriptor.getTickResolution();
     if (typeCtx.domainInfo.resolution != newResolution)
     {
         typeCtx.domainInfo.resolution = newResolution;
-        // TODO: Unsync state
+        domainChanged = true;
     }
 
     std::string origin = descriptor.getOrigin();
-    auto newOrigin = reader::parseEpoch(origin);
-    if (typeCtx.domainInfo.epoch != newOrigin)
+    auto newOrigin = reader::tryParseEpoch(origin);
+    if (newOrigin.has_value() && typeCtx.domainInfo.epoch != newOrigin.value())
     {
-        typeCtx.domainInfo.epoch = newOrigin;
-        // TODO: Unsync state
+        typeCtx.domainInfo.epoch = newOrigin.value();
+        domainChanged = true;
     }
+    issues.set(QueueReaderIssue::OriginParsingFailed, !newOrigin.has_value());
+    // END Resolution and origin
 
-    std::int64_t newSampleRate = 0;
-    try
+    // Sample rate and delta
     {
-        newSampleRate = reader::getSampleRate(descriptor);
-        issues.set(QueueReaderIssue::UnsupportedDomainRule, false);
-    }
-    catch (const std::exception& e)
-    {
-        issues.set(QueueReaderIssue::UnsupportedDomainRule, true);
-        LOG_D("Failed to change descriptor: {}", e.what());
-        (void) e;
-        return;
-    }
+        std::int64_t newSampleRate = 0;
 
-    // TODO: Remove this. Change in sampling rate should just invalid the synchronization state/progress of the multireader.
-    if (sampleRate != -1 && sampleRate != newSampleRate)
-    {
-        issues.set(QueueReaderIssue::SampleRateChanged, true);
-    }
+        NumberPtr delta = 1;
+        auto rule = descriptor.getRule();
+        const bool ruleIsLinear = rule.assigned() && rule.getType() == DataRuleType::Linear;
+    
+        if (ruleIsLinear)
+        {
+            delta = rule.getParameters()["delta"];
+        }
 
-    if (sampleRate != newSampleRate)
-    {
-        sampleRate = newSampleRate;
-    }
+        double sr = static_cast<double>(typeCtx.domainInfo.resolution.getDenominator()) /
+                            (static_cast<double>(typeCtx.domainInfo.resolution.getNumerator()) *
+                            delta.getFloatValue());
+        
+        const bool deltaIsInteger = (delta.getFloatValue() == static_cast<double>(delta.getIntValue()));
+        const bool sampleRateIsInteger = (sr == static_cast<double>(static_cast<std::int64_t>(sr)));
 
-    packetDelta = 0;
-    const auto domainRule = descriptor.getRule();
-    if (domainRule.getType() == DataRuleType::Linear)
-    {
-        const auto domainRuleParams = domainRule.getParameters();
-        packetDelta = domainRuleParams.get("delta");
+        newSampleRate = static_cast<std::int64_t>(sr);
+        
+        if (sampleRate != -1 && sampleRate != newSampleRate)
+        {
+            // TODO: Remove this. Change in sampling rate should just invalidate the synchronization state/progress of the multireader.
+            issues.set(QueueReaderIssue::SampleRateChanged, true);
+        }
+        if (sampleRate != newSampleRate)
+        {
+            sampleRate = newSampleRate;
+            domainChanged = true;
+        }
+
+        if (packetDelta != delta.getIntValue())
+        {
+            packetDelta = delta.getIntValue();
+            domainChanged = true;
+        }
+
+        issues.set(QueueReaderIssue::UnsupportedDomainRule, !ruleIsLinear || !deltaIsInteger || !sampleRateIsInteger);
     }
+    // END Sample rate and delta
 }
 
-void QueueReader::handleValueDescriptorChange(const DataDescriptorPtr& descriptor)
+void QueueReader::parseValueDescriptor()
 {
+    auto& descriptor = typeCtx.valueLayout.descriptor;
+
     auto postScaling = descriptor.getPostScaling();
     if (!postScaling.assigned() || readMode == ReadMode::Scaled)
     {
@@ -320,8 +363,6 @@ void QueueReader::handleValueDescriptorChange(const DataDescriptorPtr& descripto
         {
             typeCtx.valueLayout.valuesPerSample = dimensions[0].getSize();
         }
-    
-        typeCtx.valueLayout.descriptor = descriptor;
     }
 
     if (typeCtx.valueOut == SampleType::Undefined) // Dynamically determine output type
@@ -332,6 +373,12 @@ void QueueReader::handleValueDescriptorChange(const DataDescriptorPtr& descripto
 
     bool valueTypesConvertible = TypedReadingUtils::isSampleTypeConvertible(typeCtx.valueIn, typeCtx.valueOut, false);
     issues.set(QueueReaderIssue::ValueTypesNotConvertible, !valueTypesConvertible);
+}
+
+void QueueReader::parseCachedDescriptors()
+{
+    parseDomainDescriptor();
+    parseValueDescriptor();
 }
 
 size_t QueueReader::getNumberOfEventPacketsInQueue()

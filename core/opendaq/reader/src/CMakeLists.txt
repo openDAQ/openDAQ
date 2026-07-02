@@ -175,6 +175,7 @@ set(SRC_PrivateHeaders_Component
     queue_reader.h
     reader_status_impl.h
     reader_impl.h
+    enum_flags.h
     PARENT_SCOPE
 )
 

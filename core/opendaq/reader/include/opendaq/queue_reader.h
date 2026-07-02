@@ -16,10 +16,12 @@
 #pragma once
 #include <opendaq/data_descriptor_ptr.h>
 #include <opendaq/event_packet_ptr.h>
+#include <opendaq/enum_flags.h>
 #include <opendaq/input_port_config_ptr.h>
 #include <opendaq/logger_component_ptr.h>
 #include <opendaq/sample_type.h>
 #include <opendaq/sample_reader.h>
+#include <opendaq/typed_reading_utils.h>
 
 #include <deque>
 
@@ -41,8 +43,8 @@ public:
 
     bool merge(const SignalEvent& otherEvent);
     SignalEventType getType() const;
-    DataDescriptorPtr getDomainDescriptor() const;
-    DataDescriptorPtr getValueDescriptor() const;
+    const DataDescriptorPtr& getDomainDescriptor() const;
+    const DataDescriptorPtr& getValueDescriptor() const;
 
     EventPacketPtr toEventPacket() const;
 
@@ -64,6 +66,15 @@ enum class AdvanceResult
     Error
 };
 
+enum class QueueReaderIssue : uint32_t
+{
+    None                            = 0,
+    ValueTypesNotConvertible        = 1 << 0,
+    DomainTypesNotConvertible       = 1 << 1,
+    SampleRateChanged               = 1 << 2,
+    UnsupportedDomainRule           = 1 << 3
+};
+
 class QueueReader
 {
 public:
@@ -77,9 +88,10 @@ public:
 public:
     void packetReceived();
 
-    // getDomainInfo()
-    // getFirstSampleDomainValue()
+    DomainInfo getDomainInfo() const;
+    std::unique_ptr<DomainValue> getFirstSampleDomainValue() const;
     // advanceToDomainValue()
+    Int getSampleRate() const;
 
     void consumeLeadingEventPackets();
     void dropOutdatedDomainSegments();
@@ -87,6 +99,8 @@ public:
 
     bool hasPendingEvents() const;
     EventPacketPtr popFrontEvent();
+
+    bool isValid() const;
 
 private:
     SignalEventType addEncounteredEvent(const EventPacketPtr& packet);
@@ -99,8 +113,34 @@ private:
     std::deque<PacketPtr> packets;
     std::deque<SignalEvent> events;
 
+    SizeT readingPosition = 0;
+
     InputPortConfigPtr port;
     ConnectionPtr connection;
+
+    LoggerComponentPtr loggerComponent;
+
+    EnumFlags<QueueReaderIssue> issues;
+
+    ReadMode readMode;
+
+    struct TypedReadingContext
+    {
+        SampleType domainIn;
+        SampleType domainOut;
+        ReadLayout domainLayout;
+        DomainInfo domainInfo;
+        FunctionPtr domainTransform = nullptr;
+        
+        SampleType valueIn;
+        SampleType valueOut;
+        ReadLayout valueLayout;
+        FunctionPtr valueTransform = nullptr;
+    };
+    TypedReadingContext typeCtx;
+
+    Int sampleRate = -1;
+    NumberPtr packetDelta{0};
 };
 
 END_NAMESPACE_OPENDAQ

@@ -1,4 +1,6 @@
 #include <opendaq/queue_reader.h>
+
+#include <opendaq/custom_log.h>
 #include <opendaq/event_packet_utils.h>
 
 BEGIN_NAMESPACE_OPENDAQ
@@ -65,12 +67,12 @@ SignalEventType SignalEvent::getType() const
     return eventType;
 }
 
-DataDescriptorPtr SignalEvent::getDomainDescriptor() const
+const DataDescriptorPtr& SignalEvent::getDomainDescriptor() const
 {
     return domainDescriptor;
 }
 
-DataDescriptorPtr SignalEvent::getValueDescriptor() const
+const DataDescriptorPtr& SignalEvent::getValueDescriptor() const
 {
     return valueDescriptor;
 }
@@ -90,7 +92,13 @@ QueueReader::QueueReader(const InputPortConfigPtr& port, // Consider using Conne
                  bool globalIdFromSignal)
     : port(port)
     , connection(port.getConnection())
+    , readMode(mode)
+    , loggerComponent(logger)
 {
+    typeCtx.domainIn = SampleType::Undefined;
+    typeCtx.domainOut = domainReadType;
+    typeCtx.valueIn = SampleType::Undefined;
+    typeCtx.valueOut = mode == ReadMode::RawValue ? SampleType::Undefined : valueReadType;
 }
 
 void QueueReader::packetReceived()
@@ -105,6 +113,16 @@ void QueueReader::packetReceived()
 
     // Consider if the assumption that queue always starts with data simplifies anything
     consumeLeadingEventPackets();
+}
+
+DomainInfo QueueReader::getDomainInfo() const
+{
+    return typeCtx.domainInfo;
+}
+
+Int QueueReader::getSampleRate() const
+{
+    return sampleRate;
 }
 
 void QueueReader::consumeLeadingEventPackets()
@@ -138,13 +156,17 @@ void QueueReader::dropOutdatedDomainSegments()
 SizeT QueueReader::getAvailableSamples() const
 {
     SizeT count = 0;
+    SizeT packetReadingPosition = readingPosition;
     for (const auto& packet : packets)
     {
         if (packet.getType() != PacketType::Data)
             break;
 
         DataPacketPtr dataPacket = packet.asPtr<IDataPacket>(true);
-        count += dataPacket.getSampleCount();
+        count += dataPacket.getSampleCount() - packetReadingPosition;
+
+        // Only first packet may have non-zero reading position
+        packetReadingPosition = 0;
     }
     return count;
 }
@@ -162,6 +184,11 @@ EventPacketPtr QueueReader::popFrontEvent()
     auto eventPacket = events.front().toEventPacket();
     events.pop_front();
     return eventPacket;
+}
+
+bool QueueReader::isValid() const
+{
+    return issues.empty();
 }
 
 SignalEventType QueueReader::addEncounteredEvent(const EventPacketPtr& packet)
@@ -185,10 +212,12 @@ SignalEventType QueueReader::addEncounteredEvent(const EventPacketPtr& packet)
             break;
     }
 
+    // TODO: Check for invalid state
+
     bool addToList = true;
     if (!events.empty())
     {
-        // Attempt merging with the last event
+        // Attempt merging with the last event and add to list if merge not possible
         addToList = !events.back().merge(event);
     }
     if (addToList)
@@ -199,11 +228,110 @@ SignalEventType QueueReader::addEncounteredEvent(const EventPacketPtr& packet)
 
 void QueueReader::handleDomainDescriptorChange(const DataDescriptorPtr& descriptor)
 {
-    // Parse into domain info
+    const auto postScaling = descriptor.getPostScaling();
+    if (!postScaling.assigned() || readMode == ReadMode::Scaled)
+    {
+        typeCtx.domainIn = descriptor.getSampleType();
+    }
+    else
+    {
+        typeCtx.domainIn = postScaling.getInputSampleType();
+    }
+
+    typeCtx.domainLayout.rawSampleSize = descriptor.getRawSampleSize();
+    auto dimensions = descriptor.getDimensions();
+    if (dimensions.assigned() && dimensions.getCount() == 1)
+    {
+        typeCtx.domainLayout.valuesPerSample = dimensions[0].getSize();
+    }
+
+    typeCtx.domainLayout.descriptor = descriptor;
+
+    typeCtx.domainInfo = DomainInfo::fromDescriptor(descriptor);
+
+    bool domainTypesConvertible = TypedReadingUtils::isSampleTypeConvertible(typeCtx.domainIn, typeCtx.domainOut, true);
+    issues.set(QueueReaderIssue::DomainTypesNotConvertible, !domainTypesConvertible);
+
+    auto newResolution = descriptor.getTickResolution();
+    if (typeCtx.domainInfo.resolution != newResolution)
+    {
+        typeCtx.domainInfo.resolution = newResolution;
+        // TODO: Unsync state
+    }
+
+    std::string origin = descriptor.getOrigin();
+    auto newOrigin = reader::parseEpoch(origin);
+    if (typeCtx.domainInfo.epoch != newOrigin)
+    {
+        typeCtx.domainInfo.epoch = newOrigin;
+        // TODO: Unsync state
+    }
+
+    std::int64_t newSampleRate = 0;
+    try
+    {
+        newSampleRate = reader::getSampleRate(descriptor);
+        issues.set(QueueReaderIssue::UnsupportedDomainRule, false);
+    }
+    catch (const std::exception& e)
+    {
+        issues.set(QueueReaderIssue::UnsupportedDomainRule, true);
+        LOG_D("Failed to change descriptor: {}", e.what());
+        (void) e;
+        return;
+    }
+
+    // TODO: Remove this. Change in sampling rate should just invalid the synchronization state/progress of the multireader.
+    if (sampleRate != -1 && sampleRate != newSampleRate)
+    {
+        issues.set(QueueReaderIssue::SampleRateChanged, true);
+    }
+
+    if (sampleRate != newSampleRate)
+    {
+        sampleRate = newSampleRate;
+    }
+
+    packetDelta = 0;
+    const auto domainRule = descriptor.getRule();
+    if (domainRule.getType() == DataRuleType::Linear)
+    {
+        const auto domainRuleParams = domainRule.getParameters();
+        packetDelta = domainRuleParams.get("delta");
+    }
 }
 
 void QueueReader::handleValueDescriptorChange(const DataDescriptorPtr& descriptor)
 {
+    auto postScaling = descriptor.getPostScaling();
+    if (!postScaling.assigned() || readMode == ReadMode::Scaled)
+    {
+        typeCtx.valueIn = descriptor.getSampleType();
+    }
+    else
+    {
+        typeCtx.valueIn = postScaling.getInputSampleType();
+    }
+
+    {
+        typeCtx.valueLayout.rawSampleSize = descriptor.getRawSampleSize();
+        auto dimensions = descriptor.getDimensions();
+        if (dimensions.assigned() && dimensions.getCount() == 1)
+        {
+            typeCtx.valueLayout.valuesPerSample = dimensions[0].getSize();
+        }
+    
+        typeCtx.valueLayout.descriptor = descriptor;
+    }
+
+    if (typeCtx.valueOut == SampleType::Undefined) // Dynamically determine output type
+    {
+        
+        typeCtx.valueOut = typeCtx.valueIn;
+    }
+
+    bool valueTypesConvertible = TypedReadingUtils::isSampleTypeConvertible(typeCtx.valueIn, typeCtx.valueOut, false);
+    issues.set(QueueReaderIssue::ValueTypesNotConvertible, !valueTypesConvertible);
 }
 
 size_t QueueReader::getNumberOfEventPacketsInQueue()

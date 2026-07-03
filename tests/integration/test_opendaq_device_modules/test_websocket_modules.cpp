@@ -102,13 +102,16 @@ public:
         return server;
     }
 
-    InstancePtr CreateClientInstance()
+    InstancePtr CreateClientInstance(const bool withDelay = true)
     {
         auto client = Instance("[[none]]");
         addLtClientModule(client);
 
         auto refDevice = client.addDevice("daq.lt://127.0.0.1/");
-        CONDITIONAL_SLEEP;
+        if (withDelay)
+        {
+            CONDITIONAL_SLEEP;
+        }
         return client;
     }
 };
@@ -121,7 +124,7 @@ TEST_F(WebsocketModulesTest, ConnectFail)
 TEST_F(WebsocketModulesTest, ConnectAndDisconnect)
 {
     auto server = CreateServerInstance();
-    auto client = CreateClientInstance();
+    auto client = CreateClientInstance(false);
 }
 
 TEST_F(WebsocketModulesTest, ConnectAndDisconnectBackwardCompatibility)
@@ -131,7 +134,6 @@ TEST_F(WebsocketModulesTest, ConnectAndDisconnectBackwardCompatibility)
     auto client = Instance("[[none]]");
     addLtClientModule(client);
     client.addDevice("daq.ws://127.0.0.1/", nullptr);
-    CONDITIONAL_SLEEP;
 }
 
 TEST_F(WebsocketModulesTest, ConnectViaIpv6)
@@ -146,7 +148,6 @@ TEST_F(WebsocketModulesTest, ConnectViaIpv6)
     auto client = Instance("[[none]]");
     addLtClientModule(client);
     client.addDevice("daq.lt://[::1]", nullptr);
-    CONDITIONAL_SLEEP;
 }
 
 TEST_F(WebsocketModulesTest, PopulateDefaultConfigFromProvider)
@@ -211,7 +212,6 @@ TEST_F(WebsocketModulesTest, DiscoveringServer)
             if (capability.getProtocolName() == "OpenDAQLTStreaming")
             {
                 device = client.addDevice(deviceInfo.getConnectionString(), nullptr);
-                CONDITIONAL_SLEEP;
                 return;
             }
         }
@@ -274,7 +274,6 @@ TEST_F(WebsocketModulesTest, CheckDeviceInfoPopulatedWithProvider)
                 }
 
                 client.addDevice(capability.getConnectionString(), nullptr);
-                CONDITIONAL_SLEEP;
                 ASSERT_EQ(deviceInfo.getName(), rootInfo.getName());
                 ASSERT_EQ(deviceInfo.getManufacturer(), rootInfo.getManufacturer());
                 ASSERT_EQ(deviceInfo.getModel(), rootInfo.getModel());
@@ -353,7 +352,7 @@ TEST_F(WebsocketModulesTest, TestDiscoveryReachability)
 TEST_F(WebsocketModulesTest, GetConnectedClientsInfo)
 {
     auto server = CreateServerInstance();
-    auto client = CreateClientInstance();
+    auto client = CreateClientInstance(false);
 
     // one streaming connection
     auto serverSideClientsInfo = server.getRootDevice().getInfo().getConnectedClientsInfo();
@@ -383,10 +382,8 @@ TEST_F(WebsocketModulesTest, RemoveDevice)
 
     addLtClientModule(client);
     auto device = client.addDevice("daq.lt://127.0.0.1/");
-    CONDITIONAL_SLEEP;
 
     ASSERT_NO_THROW(client.removeDevice(device));
-    CONDITIONAL_SLEEP;
     ASSERT_TRUE(device.isRemoved());
 }
 
@@ -478,7 +475,7 @@ TEST_F(WebsocketModulesTest, GetConfigurationConnectionInfoIPv4)
 {
     SKIP_TEST_MAC_CI;
     auto server = CreateServerInstance();
-    auto client = CreateClientInstance();
+    auto client = CreateClientInstance(false);
 
     auto devices = client.getDevices();
     ASSERT_EQ(devices.getCount(), 1u);
@@ -502,7 +499,7 @@ TEST_F(WebsocketModulesTest, GetConfigurationConnectionInfoIPv6)
     auto client = Instance("[[none]]");
     addLtClientModule(client);
     client.addDevice("daq.lt://[::1]", nullptr);
-    CONDITIONAL_SLEEP;
+
     auto devices = client.getDevices();
     ASSERT_EQ(devices.getCount(), 1u);
 

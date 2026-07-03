@@ -1849,7 +1849,6 @@ TEST_F(NativeDeviceModulesTest, AddStreamingPostConnection)
     ASSERT_EQ(streaming, clientMirroredDevice.getStreamingSources()[1]);
 
     streaming.addSignals(clientSignals);
-    CONDITIONAL_SLEEP;
     for (const auto& signal : clientSignals)
     {
         auto mirorredSignal = signal.template asPtr<IMirroredSignalConfig>();

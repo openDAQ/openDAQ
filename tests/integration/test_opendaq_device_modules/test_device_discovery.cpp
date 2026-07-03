@@ -328,7 +328,6 @@ TEST_F(ConnectedClientsDiscoveryTest, LtConnectedClients)
         ASSERT_TRUE(connectedClientsInfo[0].getAddress().toStdString().find("127.0.0.1") != std::string::npos);
 
         clientInstance.removeDevice(device);
-        CONDITIONAL_SLEEP;
         ASSERT_EQ(getConnectedClients().getCount(), 0u);
     }
 }

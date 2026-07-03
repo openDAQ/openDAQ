@@ -952,6 +952,8 @@ public:
 
         result &= eventPacketT.getEventId() == eventPacketR.getEventId();
         result &= eventPacketT.getEventId() == event_packet_id::DATA_DESCRIPTOR_CHANGED;
+        if (result == false)
+            return false;
 
         const DataDescriptorPtr valueDataDescT = eventPacketT.getParameters().get(event_packet_param::DATA_DESCRIPTOR);
         const DataDescriptorPtr domainDataDescT = eventPacketT.getParameters().get(event_packet_param::DOMAIN_DATA_DESCRIPTOR);

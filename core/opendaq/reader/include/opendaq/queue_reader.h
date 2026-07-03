@@ -91,7 +91,7 @@ public:
 
     DomainInfo getDomainInfo() const;
     std::unique_ptr<DomainValue> getFirstSampleDomainValue() const;
-    // advanceToDomainValue()
+    AdvanceResult advanceToDomainValue(const DomainValue* domainValue);
     Int getSampleRate() const;
 
     void consumeLeadingEventPackets();

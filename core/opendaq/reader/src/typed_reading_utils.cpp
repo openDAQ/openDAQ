@@ -369,13 +369,7 @@ SizeT findDomainValueLinear(const DataPacketPtr& domainPacket,
                             const DomainValue* target,
                             [[maybe_unused]] std::chrono::system_clock::rep* absoluteTimestamp)
 {
-    if constexpr (std::is_same_v<void*, OutputT> || !std::is_integral_v<OutputT>)
-    {
-        // void reader should never be used to read domain info
-        // Only integral ReadType is supported
-        return static_cast<SizeT>(-1);
-    }
-    else if constexpr (std::is_convertible_v<InputT, OutputT>)
+    if constexpr (!std::is_same_v<void*, OutputT> && std::is_integral_v<OutputT> && std::is_convertible_v<InputT, OutputT>)
     {
         const SizeT sampleCount = domainPacket.getSampleCount();
         if (sampleCount == 0)

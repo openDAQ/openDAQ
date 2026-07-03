@@ -111,7 +111,6 @@ void QueueReader::packetReceived()
         packet = connection.dequeue();
     }
 
-    // Consider if the assumption that queue always starts with data simplifies anything
     consumeLeadingEventPackets();
 }
 
@@ -130,7 +129,6 @@ std::unique_ptr<DomainValue> QueueReader::getFirstSampleDomainValue() const
     DataPacketPtr domainPacket = packets.front().asPtr<IDataPacket>(true).getDomainPacket();
     if (!domainPacket.assigned())
     {
-        // TODO: Reconsider this exception
         DAQ_THROW_EXCEPTION(InvalidStateException, "Packet must have a domain packet assigned!");
     }
 
@@ -140,6 +138,82 @@ std::unique_ptr<DomainValue> QueueReader::getFirstSampleDomainValue() const
                                               domainPacket,
                                               readingPosition,
                                               typeCtx.domainInfo);
+}
+
+AdvanceResult QueueReader::advanceToDomainValue(const DomainValue* domainValue)
+{
+    // TODO: Add first timestamp mechanism for sync tolerance checking
+
+    SignalEventType signalChange = SignalEventType::NoChange;
+
+    bool found = false;
+    SizeT end = 0;
+    SizeT packetReadingPosition = readingPosition;
+    for (auto& packet: packets)
+    {
+        if (packet.getType() == PacketType::Data)
+        {
+            DataPacketPtr domainPacket = packet.asPtr<IDataPacket>(true).getDomainPacket();
+
+            SizeT index = TypedReadingUtils::findDomainValue(typeCtx.domainIn,
+                                                             typeCtx.domainOut,
+                                                             typeCtx.domainLayout,
+                                                             domainPacket,
+                                                             domainValue,
+                                                             nullptr /*TODO*/);
+            
+            if (index != static_cast<SizeT>(-1))
+            {
+                if (index < packetReadingPosition)
+                {
+                    return AdvanceResult::OvershotError;
+                }
+                readingPosition = index;
+                found = true;
+                break;
+            }
+
+            packetReadingPosition = 0;
+            ++end;
+            continue;
+        }
+        else if (packet.getType() == PacketType::Event)
+        {
+            auto eventPacket = packet.asPtr<IEventPacket>(true);
+            signalChange = addEncounteredEvent(eventPacket);
+            ++end;
+
+            if (signalChange == SignalEventType::DomainChanged ||
+                signalChange == SignalEventType::DomainAndValueChanged ||
+                signalChange == SignalEventType::Gap)
+            {
+                break;
+            }
+            continue;
+        }
+        else
+        {
+            // Unexpected packet type encountered.
+            // Packet should be removed and sync is not successful.
+            signalChange = SignalEventType::DomainChanged;
+            ++end;
+            break;
+        }
+    }
+
+    packets.erase(packets.begin(), packets.begin() + end);
+
+    switch (signalChange)
+    {
+    case SignalEventType::DomainChanged:
+    case SignalEventType::DomainAndValueChanged:
+    case SignalEventType::Gap:
+        return AdvanceResult::DomainChanged;
+    default:
+        break;
+    }
+
+    return found ? AdvanceResult::Success : AdvanceResult::NeedMoreData;
 }
 
 Int QueueReader::getSampleRate() const

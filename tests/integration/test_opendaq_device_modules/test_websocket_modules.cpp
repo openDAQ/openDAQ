@@ -352,7 +352,7 @@ TEST_F(WebsocketModulesTest, TestDiscoveryReachability)
 TEST_F(WebsocketModulesTest, GetConnectedClientsInfo)
 {
     auto server = CreateServerInstance();
-    auto client = CreateClientInstance(false);
+    auto client = CreateClientInstance();
 
     // one streaming connection
     auto serverSideClientsInfo = server.getRootDevice().getInfo().getConnectedClientsInfo();

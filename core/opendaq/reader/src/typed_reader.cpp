@@ -659,7 +659,7 @@ ErrCode TypedReader<TReadType>::readValues(void* inputBuffer, SizeT offset, void
             }
 
             // Set the pointer to the value after the last copied one
-            *outputBuffer = &dataOut[toRead];
+            *outputBuffer = &dataOut[toRead * valuesPerSample];
         }
 
         return OPENDAQ_SUCCESS;
@@ -696,7 +696,7 @@ ErrCode TypedReader<ClockTick>::readValues<ClockRange>(void* inputBuffer, SizeT 
     }
 
     // Set the pointer to the value after the last copied one
-    *outputBuffer = &dataOut[toRead];
+    *outputBuffer = &dataOut[toRead * valuesPerSample];
     return OPENDAQ_SUCCESS;
 }
 

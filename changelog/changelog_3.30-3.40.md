@@ -78,6 +78,7 @@
 
 ## Misc
 
+- [#1238](https://github.com/openDAQ/openDAQ/pull/1238), [#1235](https://github.com/openDAQ/openDAQ/pull/1235) Try all streaming connection addresses if first fails
 - [#1216](https://github.com/openDAQ/openDAQ/pull/1216) Speeds up comparison between end sentinel when iterating over openDAQ list and dictionary objects
 - [#1120](https://github.com/openDAQ/openDAQ/pull/1120) Change reachability status to a sparse selection property type.
 - [#1171](https://github.com/openDAQ/openDAQ/pull/1171) MDNS discovery ratelimiting

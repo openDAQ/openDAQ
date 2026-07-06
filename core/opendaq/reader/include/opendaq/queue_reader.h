@@ -71,9 +71,8 @@ enum class QueueReaderIssue : uint32_t
     None                            = 0,
     ValueTypesNotConvertible        = 1 << 0,
     DomainTypesNotConvertible       = 1 << 1,
-    SampleRateChanged               = 1 << 2,
-    UnsupportedDomainRule           = 1 << 3,
-    OriginParsingFailed             = 1 << 4
+    UnsupportedDomainRule           = 1 << 2,
+    OriginParsingFailed             = 1 << 3
 };
 
 class QueueReader

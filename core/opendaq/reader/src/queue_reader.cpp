@@ -394,11 +394,6 @@ void QueueReader::parseDomainDescriptor()
 
         newSampleRate = static_cast<std::int64_t>(sr);
         
-        if (sampleRate != -1 && sampleRate != newSampleRate)
-        {
-            // TODO: Remove this. Change in sampling rate should just invalidate the synchronization state/progress of the multireader.
-            issues.set(QueueReaderIssue::SampleRateChanged, true);
-        }
         if (sampleRate != newSampleRate)
         {
             sampleRate = newSampleRate;

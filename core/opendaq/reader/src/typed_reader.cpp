@@ -733,9 +733,15 @@ bool TypedReader<ReadType>::handleDescriptorChanged(DataDescriptorPtr& descripto
 
         rawSampleSize = descriptor.getRawSampleSize();
         auto dimensions = descriptor.getDimensions();
-        if (dimensions.assigned() && dimensions.getCount() == 1)
+        if (dimensions.assigned() && dimensions.getCount() >= 1)
         {
-            valuesPerSample = dimensions[0].getSize();
+            SizeT count = 1;
+            for (SizeT i = 0; i < dimensions.getCount(); ++i)
+            {
+                count *= dimensions[i].getSize();
+            }
+
+            valuesPerSample = count;
         }
 
         dataDescriptor = descriptor;

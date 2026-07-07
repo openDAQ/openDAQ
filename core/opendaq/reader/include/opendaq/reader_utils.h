@@ -68,17 +68,36 @@ namespace reader
         if (epoch.find('T') == std::string::npos)
         {
             // If no time, assume Midnight UTC
-            epoch += "T00:00:00+00:00";
+            epoch += "T00:00:00+0000";
         }
-        else if (epoch[epoch.size() - 1] == 'Z')
+        else if (!epoch.empty() && epoch.back() == 'Z')
         {
             // If time-zone marked as "Zulu" (UTC) replace with offset
-            epoch = epoch.erase(epoch.size() - 1) + "+00:00";
+            epoch.pop_back();
+            epoch += "+0000";
         }
-        else if (epoch.find('+') == std::string::npos)
+        else
         {
-            // If not time-zone offset assume UTC
-            epoch += "+00:00";
+            // Search after T to ignore any '-' character in the date portion
+            const auto timeStart = epoch.find('T');
+            const auto plusPos = epoch.find('+', timeStart);
+            const auto minusPos = epoch.find('-', timeStart);
+
+            const auto offsetPos = plusPos != std::string::npos ? plusPos : minusPos;
+
+            if (offsetPos == std::string::npos)
+            {
+                // If not time-zone offset assume UTC
+                epoch += "+0000";
+            }
+            else
+            {
+                const auto colonPos = epoch.find(':', offsetPos);
+                if (colonPos != std::string::npos)
+                {
+                    epoch.erase(colonPos, 1);
+                }
+            }
         }
 
         return epoch;
@@ -101,7 +120,13 @@ namespace reader
         std::istringstream epochString(fixupIso8601(origin));
         date::from_stream(epochString, "%FT%T%z", epoch);
 
-        if (epochString.fail() || !epochString.eof())
+        if (epochString.fail())
+        {
+            return std::nullopt;
+        }
+
+        epochString >> std::ws; // strip trailing whitespace
+        if (epochString.peek() != std::istringstream::traits_type::eof())
         {
             return std::nullopt;
         }

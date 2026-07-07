@@ -89,7 +89,7 @@ TEST_F(QueueReaderTest, AdvancePastEnd)
     setDomainDescriptor(DataDescriptorBuilder()
         .setSampleType(SampleType::Int64)
         .setTickResolution(Ratio(1, sampleRate))
-        .setOrigin("1970-01-01T00:00:00")
+        .setOrigin("2022-09-27T00:02:03+00:00")
         .setRule(LinearDataRule(1, 0))
         .setUnit(Unit("s", -1, "second", "time"))
         .build());
@@ -146,7 +146,7 @@ TEST_F(QueueReaderTest, DomainChangeDetection)
     setDomainDescriptor(DataDescriptorBuilder()
         .setSampleType(SampleType::Int64)
         .setTickResolution(Ratio(1, sampleRate))
-        .setOrigin("1970-01-01T00:00:00")
+        .setOrigin("1970-01-01T00:00:00+00:00")
         .setRule(LinearDataRule(1, 0))
         .setUnit(Unit("s", -1, "second", "time"))
         .build());
@@ -192,10 +192,16 @@ TEST_F(QueueReaderTest, DomainChangeDetection)
     result = reader.advanceToDomainValue(domainValue.get());
     ASSERT_EQ(result, AdvanceResult::Success);
 
+    // The descriptor change event when the sig was connected to port
+    ASSERT_TRUE(reader.hasPendingEvents());
+    auto eventPacket = reader.popFrontEvent();
+    ASSERT_FALSE(reader.hasPendingEvents());
+    ASSERT_EQ(reader.getSampleRate(), sampleRate);
+
     setDomainDescriptor(DataDescriptorBuilder()
         .setSampleType(SampleType::Int64)
         .setTickResolution(Ratio(1, sampleRate))
-        .setOrigin("1970-01-01T00:00:00")
+        .setOrigin("1970-01-01T00:00:00+00:00")
         .setRule(LinearDataRule(10, 0))
         .setUnit(Unit("s", -1, "second", "time"))
         .build());
@@ -207,4 +213,31 @@ TEST_F(QueueReaderTest, DomainChangeDetection)
     domainValue = std::make_unique<DomainValueImpl<Int>>(reader.getDomainInfo(), 525);
     result = reader.advanceToDomainValue(domainValue.get());
     ASSERT_EQ(result, AdvanceResult::DomainChanged);
+
+    // Event from changing the descriptor mid operation
+    ASSERT_TRUE(reader.hasPendingEvents());
+
+    eventPacket = reader.popFrontEvent();
+    ASSERT_FALSE(reader.hasPendingEvents());
+    ASSERT_EQ(reader.getSampleRate(), sampleRate / 10);
+    ASSERT_TRUE(reader.isValid());
+}
+
+TEST_F(QueueReaderTest, OriginParsing)
+{
+    std::string origin = "1970-01-01T00:01:00+0000";
+    auto epoch = reader::tryParseEpoch(origin);
+    ASSERT_TRUE(epoch.has_value());
+ 
+    origin = "1970-01-01T00:01:00+00:00";
+    epoch = reader::tryParseEpoch(origin);
+    ASSERT_TRUE(epoch.has_value());
+    
+    origin = "abc";
+    epoch = reader::tryParseEpoch(origin);
+    ASSERT_FALSE(epoch.has_value());
+
+    origin = "1970-01-01T00:01:00+00:00abc";
+    epoch = reader::tryParseEpoch(origin);
+    ASSERT_FALSE(epoch.has_value());
 }

@@ -89,7 +89,7 @@ QueueReader::QueueReader(const InputPortConfigPtr& port, // Consider using Conne
                  SampleType domainReadType,
                  ReadMode mode,
                  const LoggerComponentPtr& logger,
-                 bool globalIdFromSignal)
+                 bool globalIdFromSignal) // TODO
     : port(port)
     , connection(port.getConnection())
     , readMode(mode)
@@ -110,18 +110,19 @@ void QueueReader::packetReceived()
         packets.push_back(std::move(packet));
         packet = connection.dequeue();
     }
-
-    consumeLeadingEventPackets();
 }
 
-DomainInfo QueueReader::getDomainInfo() const
+DomainInfo QueueReader::getDomainInfo()
 {
+    drainConnection();
     return typeCtx.domainInfo;
 }
 
-std::unique_ptr<DomainValue> QueueReader::getFirstSampleDomainValue() const
+std::unique_ptr<DomainValue> QueueReader::getFirstSampleDomainValue()
 {
-    if (packets.front().getType() != PacketType::Data)
+    drainConnection();
+
+    if (packets.empty() || packets.front().getType() != PacketType::Data)
     {
         return nullptr;
     }
@@ -143,6 +144,7 @@ std::unique_ptr<DomainValue> QueueReader::getFirstSampleDomainValue() const
 AdvanceResult QueueReader::advanceToDomainValue(const DomainValue* domainValue)
 {
     // TODO: Add first timestamp mechanism for sync tolerance checking
+    drainConnection();
 
     SignalEventType signalChange = SignalEventType::NoChange;
 
@@ -216,8 +218,9 @@ AdvanceResult QueueReader::advanceToDomainValue(const DomainValue* domainValue)
     return found ? AdvanceResult::Success : AdvanceResult::NeedMoreData;
 }
 
-Int QueueReader::getSampleRate() const
+Int QueueReader::getSampleRate()
 {
+    drainConnection();
     return sampleRate;
 }
 
@@ -240,6 +243,8 @@ void QueueReader::consumeLeadingEventPackets()
 
 void QueueReader::dropOutdatedDomainSegments()
 {
+    drainConnection();
+
     while (getNumberOfEventPacketsInQueue() >= 2)
     {
         auto foundEvent = dropUntilEvent();
@@ -249,8 +254,10 @@ void QueueReader::dropOutdatedDomainSegments()
     dropUntilEvent();
 }
 
-SizeT QueueReader::getAvailableSamples() const
+SizeT QueueReader::getAvailableSamples()
 {
+    drainConnection();
+
     SizeT count = 0;
     SizeT packetReadingPosition = readingPosition;
     for (const auto& packet : packets)
@@ -267,13 +274,15 @@ SizeT QueueReader::getAvailableSamples() const
     return count;
 }
 
-bool QueueReader::hasPendingEvents() const
+bool QueueReader::hasPendingEvents()
 {
+    drainConnection();
     return !events.empty();
 }
 
 EventPacketPtr QueueReader::popFrontEvent()
 {
+    drainConnection();
     if (events.empty())
         return nullptr;
     
@@ -282,14 +291,27 @@ EventPacketPtr QueueReader::popFrontEvent()
     return eventPacket;
 }
 
-bool QueueReader::isValid() const
+bool QueueReader::isValid()
 {
+    drainConnection();
     return issues.empty();
 }
 
 void QueueReader::domainChangeHandled()
 {
     domainChanged = false;
+}
+
+void QueueReader::drainConnection()
+{
+    if (!connection.assigned())
+        return;
+
+    if (!connection.peek().assigned())
+        return;
+
+    packetReceived();
+    consumeLeadingEventPackets();
 }
 
 SignalEventType QueueReader::addEncounteredEvent(const EventPacketPtr& packet)
@@ -329,6 +351,8 @@ SignalEventType QueueReader::addEncounteredEvent(const EventPacketPtr& packet)
 void QueueReader::parseDomainDescriptor()
 {
     auto& descriptor = typeCtx.domainLayout.descriptor;
+    if (!descriptor.assigned())
+        return;
 
     // Type conversion
     const auto postScaling = descriptor.getPostScaling();

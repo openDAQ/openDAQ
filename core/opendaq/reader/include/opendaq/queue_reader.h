@@ -78,7 +78,7 @@ enum class QueueReaderIssue : uint32_t
 class QueueReader
 {
 public:
-    QueueReader(const InputPortConfigPtr& port, // Consider using Connection instead
+    explicit QueueReader(const InputPortConfigPtr& port, // Consider using Connection instead
                  SampleType valueReadType,
                  SampleType domainReadType,
                  ReadMode mode,
@@ -86,25 +86,26 @@ public:
                  bool globalIdFromSignal);
 
 public:
-    void packetReceived();
-
-    DomainInfo getDomainInfo() const;
-    std::unique_ptr<DomainValue> getFirstSampleDomainValue() const;
+    DomainInfo getDomainInfo();
+    std::unique_ptr<DomainValue> getFirstSampleDomainValue();
     AdvanceResult advanceToDomainValue(const DomainValue* domainValue);
-    Int getSampleRate() const;
+    Int getSampleRate();
 
-    void consumeLeadingEventPackets();
     void dropOutdatedDomainSegments();
-    SizeT getAvailableSamples() const;
-
-    bool hasPendingEvents() const;
+    SizeT getAvailableSamples();
+    
+    bool hasPendingEvents();
     EventPacketPtr popFrontEvent();
-
-    bool isValid() const;
-
+    
+    bool isValid();
+    
     void domainChangeHandled();
-
+    
 private:
+    void drainConnection();
+    void packetReceived();
+    void consumeLeadingEventPackets();
+    
     SignalEventType addEncounteredEvent(const EventPacketPtr& packet);
     void parseDomainDescriptor();
     void parseValueDescriptor();

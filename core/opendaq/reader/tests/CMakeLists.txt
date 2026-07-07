@@ -15,7 +15,9 @@ set(TEST_SOURCES test_factories.cpp
                  test_stream_reader_from_input_port.cpp
                  test_domain_value.cpp
                  test_typed_reading.cpp
+                 test_queue_reader.cpp
                  ../src/typed_reading_utils.cpp
+                 ../src/queue_reader.cpp
 )
 
 opendaq_prepare_test_runner(TEST_APP FOR ${MODULE_NAME}

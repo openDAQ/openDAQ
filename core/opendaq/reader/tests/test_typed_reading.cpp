@@ -4,7 +4,6 @@
 #include <coretypes/exceptions.h>
 #include <coretypes/ratio_factory.h>
 
-
 #include <opendaq/data_descriptor_factory.h>
 #include <opendaq/data_rule_factory.h>
 #include <opendaq/domain_value.h>

@@ -97,6 +97,18 @@ public:
     {
         return lhs.compare(rhs) < 0;
     }
+    friend bool operator>(const DomainValue& lhs, const DomainValue& rhs)
+    {
+        return lhs.compare(rhs) > 0;
+    }
+    friend bool operator==(const DomainValue& lhs, const DomainValue& rhs)
+    {
+        return lhs.compare(rhs) == 0;
+    }
+    friend bool operator!=(const DomainValue& lhs, const DomainValue& rhs)
+    {
+        return lhs.compare(rhs) != 0;
+    }
 
 protected:
     DomainInfo domain;

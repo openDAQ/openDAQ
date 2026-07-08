@@ -91,7 +91,7 @@ public:
     AdvanceResult advanceToDomainValue(const DomainValue* domainValue);
     Int getSampleRate();
 
-    void dropOutdatedDomainSegments();
+    void dropOutdatedPacketSegments();
     SizeT getAvailableSamples();
     
     bool hasPendingEvents();

@@ -273,7 +273,7 @@ TEST_F(QueueReaderTest, CreateBeforeConnection)
     ASSERT_THROW(reader.getFirstSampleDomainValue(), InvalidOperationException);
     ASSERT_THROW(reader.advanceToDomainValue(domainValue.get()), InvalidOperationException);
     ASSERT_THROW(reader.getSampleRate(), InvalidOperationException);
-    ASSERT_THROW(reader.dropOutdatedDomainSegments(), InvalidOperationException);
+    ASSERT_THROW(reader.dropOutdatedPacketSegments(), InvalidOperationException);
     ASSERT_THROW(reader.hasPendingEvents(), InvalidOperationException);
     ASSERT_THROW(reader.popFrontEvent(), InvalidOperationException);
 }
@@ -320,7 +320,7 @@ TEST_F(QueueReaderTest, CreateBeforeConnectionRecovery)
     Int sr;
     ASSERT_NO_THROW(sr = reader.getSampleRate());
     ASSERT_EQ(sr, sampleRate);
-    ASSERT_NO_THROW(reader.dropOutdatedDomainSegments());
+    ASSERT_NO_THROW(reader.dropOutdatedPacketSegments());
     ASSERT_NO_THROW(reader.hasPendingEvents());
     ASSERT_NO_THROW(reader.popFrontEvent());
 }
@@ -626,7 +626,7 @@ TEST_F(QueueReaderTest, CheckAdvanceDomainEdgeCases)
 
     descriptor = event.getParameters()[event_packet_param::DOMAIN_DATA_DESCRIPTOR];
     delta = descriptor.getRule().getParameters()["delta"];
-    ASSERT_EQ(delta.getIntValue(), 2u); // Check that we got the second descriptor
+    ASSERT_EQ(delta.getIntValue(), 2u); // Check that we got the third descriptor
 
     result = reader.advanceToDomainValue(domainValue.get());
     ASSERT_EQ(result, AdvanceResult::Success); // Advancing for the second time will result in a success
@@ -650,4 +650,70 @@ TEST_F(QueueReaderTest, CheckAdvanceDomainEdgeCases)
     ASSERT_FALSE(reader.hasPendingEvents());
     event = reader.popFrontEvent();
     ASSERT_EQ(event.getObject(), nullptr);
+}
+
+TEST_F(QueueReaderTest, DropOutdatedPacketSegments)
+{
+    // Domain (time) signal: Int64, linear rule.
+    constexpr Int sampleRate = 10000;
+    setDomainDescriptor(DataDescriptorBuilder()
+                            .setSampleType(SampleType::Int64)
+                            .setTickResolution(Ratio(1, sampleRate))
+                            .setOrigin("1970-01-01T00:00:00+00:00")
+                            .setRule(LinearDataRule(1, 0))
+                            .setUnit(Unit("s", -1, "second", "time"))
+                            .build());
+
+    setValueDescriptor(DataDescriptorBuilder().setSampleType(SampleType::Float64).build());
+
+    setOffsetDelta(500, 1);
+
+    const size_t packetSize = 5;
+    setPacketSize(packetSize);
+
+    auto inputPort = InputPort(context, nullptr, "port", true);
+    inputPort.connect(signal);
+    QueueReader reader = QueueReader(inputPort, SampleType::Float64, SampleType::Int64, ReadMode::Scaled, loggerComponent, false);
+
+    sendNextPacket(); // [500 - 504]
+    sendNextPacket();
+    sendNextPacket(); // [510 - 514]
+    setDomainDescriptor(DataDescriptorBuilder()
+                            .setSampleType(SampleType::Int64)
+                            .setTickResolution(Ratio(1, sampleRate))
+                            .setOrigin("1970-01-01T00:00:00+00:00")
+                            .setRule(LinearDataRule(10, 0))
+                            .setUnit(Unit("s", -1, "second", "time"))
+                            .build());
+
+    setOffsetDelta(getOffset(), 10);
+    sendNextPacket(); // [515 - 555]
+    sendNextPacket(); // [565 - 605]
+
+    setDomainDescriptor(DataDescriptorBuilder()
+                            .setSampleType(SampleType::Int64)
+                            .setTickResolution(Ratio(1, sampleRate))
+                            .setOrigin("1970-01-01T00:00:00+00:00")
+                            .setRule(LinearDataRule(2, 0))
+                            .setUnit(Unit("s", -1, "second", "time"))
+                            .build());
+
+    setOffsetDelta(getOffset(), 2);
+
+    sendNextPacket(); // [615 - 623]
+    sendNextPacket(); // [625 - 633]
+    // Establish a queue, now test queue handling
+    
+    reader.dropOutdatedPacketSegments();
+
+    ASSERT_TRUE(reader.hasPendingEvents());
+
+    auto event = reader.popFrontEvent();
+    ASSERT_FALSE(reader.hasPendingEvents());
+
+    DataDescriptorPtr descriptor = event.getParameters()[event_packet_param::DOMAIN_DATA_DESCRIPTOR];
+    NumberPtr delta = descriptor.getRule().getParameters()["delta"];
+    ASSERT_EQ(delta.getIntValue(), 2u);
+
+    assertReaderAtDomainValue(reader, 615);
 }

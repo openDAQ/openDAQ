@@ -252,7 +252,7 @@ void QueueReader::checkConnection() const
         DAQ_THROW_EXCEPTION(InvalidOperationException, "Connection must be assigned for this operation.");
 }
 
-void QueueReader::dropOutdatedDomainSegments()
+void QueueReader::dropOutdatedPacketSegments()
 {
     checkConnection();
     drainConnection();
@@ -264,6 +264,7 @@ void QueueReader::dropOutdatedDomainSegments()
         consumeLeadingEventPackets();
     }
     dropUntilEvent();
+    consumeLeadingEventPackets();
 }
 
 SizeT QueueReader::getAvailableSamples()

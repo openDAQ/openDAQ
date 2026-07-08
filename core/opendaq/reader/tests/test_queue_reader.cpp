@@ -241,3 +241,168 @@ TEST_F(QueueReaderTest, OriginParsing)
     epoch = reader::tryParseEpoch(origin);
     ASSERT_FALSE(epoch.has_value());
 }
+
+TEST_F(QueueReaderTest, CreateBeforeConnection)
+{
+    auto inputPort = InputPort(context, nullptr, "port", true);
+
+    QueueReader reader = QueueReader(inputPort, SampleType::Float64, SampleType::Int64, ReadMode::Scaled, loggerComponent, false);
+    std::unique_ptr<DomainValue> domainValue = std::make_unique<DomainValueImpl<Int>>(DomainInfo{std::chrono::system_clock::time_point{}, Ratio(1, 1000)}, 512);
+
+    bool valid;
+    ASSERT_NO_THROW(valid = reader.isValid());
+    ASSERT_FALSE(valid);
+
+    ASSERT_THROW(reader.getDomainInfo(), InvalidOperationException);
+    ASSERT_THROW(reader.getFirstSampleDomainValue(), InvalidOperationException);
+    ASSERT_THROW(reader.advanceToDomainValue(domainValue.get()), InvalidOperationException);
+    ASSERT_THROW(reader.getSampleRate(), InvalidOperationException);
+    ASSERT_THROW(reader.dropOutdatedDomainSegments(), InvalidOperationException);
+    ASSERT_THROW(reader.hasPendingEvents(), InvalidOperationException);
+    ASSERT_THROW(reader.popFrontEvent(), InvalidOperationException);
+}
+
+TEST_F(QueueReaderTest, CreateBeforeConnectionRecovery)
+{
+    // Domain (time) signal: Int64, linear rule.
+    constexpr Int sampleRate = 10000;
+    setDomainDescriptor(DataDescriptorBuilder()
+        .setSampleType(SampleType::Int64)
+        .setTickResolution(Ratio(1, sampleRate))
+        .setOrigin("1970-01-01T00:00:00+00:00")
+        .setRule(LinearDataRule(1, 0))
+        .setUnit(Unit("s", -1, "second", "time"))
+        .build());
+    
+    setValueDescriptor(DataDescriptorBuilder()
+        .setSampleType(SampleType::Float64)
+        .build());
+
+    setOffsetDelta(500, 1);
+
+    const size_t packetSize = 5;
+    setPacketSize(packetSize);
+
+    auto inputPort = InputPort(context, nullptr, "port", true);
+
+    QueueReader reader = QueueReader(inputPort, SampleType::Float64, SampleType::Int64, ReadMode::Scaled, loggerComponent, false);
+
+    ASSERT_FALSE(reader.isValid());
+    ASSERT_THROW(reader.getDomainInfo(), InvalidOperationException);
+    
+    inputPort.connect(signal);
+    reader.updateConnection();
+
+    std::unique_ptr<DomainValue> domainValue = std::make_unique<DomainValueImpl<Int>>(DomainInfo{std::chrono::system_clock::time_point{}, Ratio(1, 1000)}, 512);
+
+    bool valid;
+    ASSERT_NO_THROW(valid = reader.isValid());
+    ASSERT_TRUE(valid);
+
+    ASSERT_NO_THROW(reader.getDomainInfo());
+    ASSERT_NO_THROW(reader.getFirstSampleDomainValue());
+    ASSERT_NO_THROW(reader.advanceToDomainValue(domainValue.get()));
+    Int sr;
+    ASSERT_NO_THROW(sr = reader.getSampleRate());
+    ASSERT_EQ(sr, sampleRate);
+    ASSERT_NO_THROW(reader.dropOutdatedDomainSegments());
+    ASSERT_NO_THROW(reader.hasPendingEvents());
+    ASSERT_NO_THROW(reader.popFrontEvent());
+}
+
+TEST_F(QueueReaderTest, InvalidDomainAndBack)
+{
+    // Domain (time) signal: Int64, linear rule.
+    constexpr Int sampleRate = 10000;
+    setDomainDescriptor(DataDescriptorBuilder()
+        .setSampleType(SampleType::Int64)
+        .setTickResolution(Ratio(1, sampleRate))
+        .setOrigin("abc") // Invalid origin
+        .setRule(LinearDataRule(1, 0))
+        .setUnit(Unit("s", -1, "second", "time"))
+        .build());
+    
+    setValueDescriptor(DataDescriptorBuilder()
+        .setSampleType(SampleType::Float64)
+        .build());
+
+    setOffsetDelta(500, 1);
+
+    const size_t packetSize = 5;
+    setPacketSize(packetSize);
+
+    auto inputPort = InputPort(context, nullptr, "port", true);
+    inputPort.setNotificationMethod(PacketReadyNotification::SameThread);
+
+    QueueReader reader = QueueReader(inputPort, SampleType::Float64, SampleType::Int64, ReadMode::Scaled, loggerComponent, false);
+
+    ASSERT_FALSE(reader.isValid());
+    ASSERT_THROW(reader.getDomainInfo(), InvalidOperationException);
+    
+    inputPort.connect(signal);
+    reader.updateConnection();
+
+    bool valid;
+    ASSERT_NO_THROW(valid = reader.isValid());
+    ASSERT_FALSE(valid);
+
+    setDomainDescriptor(DataDescriptorBuilder()
+        .setSampleType(SampleType::Int64)
+        .setTickResolution(Ratio(1, sampleRate))
+        .setOrigin("1970-01-01T00:00:00+00:00")
+        .setRule(LinearDataRule(1, 0))
+        .setUnit(Unit("s", -1, "second", "time"))
+        .build());
+    
+    ASSERT_TRUE(reader.isValid());
+
+    setDomainDescriptor(DataDescriptorBuilder()
+        .setSampleType(SampleType::Int64)
+        .setTickResolution(Ratio(1, sampleRate))
+        .setOrigin("1970-01-01T00:00:00+00:00")
+        .setRule(LinearDataRule(3.5, 0)) // Non-integer delta
+        .setUnit(Unit("s", -1, "second", "time"))
+        .build());
+
+    ASSERT_FALSE(reader.isValid());
+    
+    setDomainDescriptor(DataDescriptorBuilder()
+        .setSampleType(SampleType::Int64)
+        .setTickResolution(Ratio(1, sampleRate))
+        .setOrigin("1970-01-01T00:00:00+00:00")
+        .setRule(LinearDataRule(1, 0))
+        .setUnit(Unit("s", -1, "second", "time"))
+        .build());
+    
+    ASSERT_TRUE(reader.isValid());
+
+    setDomainDescriptor(DataDescriptorBuilder()
+        .setSampleType(SampleType::Int64)
+        .setTickResolution(Ratio(1, sampleRate))
+        .setOrigin("1970-01-01T00:00:00+00:00")
+        .setRule(LinearDataRule(3, 0)) // Non-integer sample rate
+        .setUnit(Unit("s", -1, "second", "time"))
+        .build());
+    
+    ASSERT_FALSE(reader.isValid());
+
+    setDomainDescriptor(DataDescriptorBuilder()
+        .setSampleType(SampleType::Int64)
+        .setTickResolution(Ratio(1, sampleRate))
+        .setOrigin("1970-01-01T00:00:00+00:00")
+        .setRule(LinearDataRule(1, 0))
+        .setUnit(Unit("s", -1, "second", "time"))
+        .build());
+    
+    ASSERT_TRUE(reader.isValid());
+
+    setDomainDescriptor(DataDescriptorBuilder()
+        .setSampleType(SampleType::Int64)
+        .setTickResolution(Ratio(1, sampleRate))
+        .setOrigin("1970-01-01T00:00:00+00:00")
+        .setRule(ExplicitDataRule()) // Explicit data rule - shall be removed when resampling is added
+        .setUnit(Unit("s", -1, "second", "time"))
+        .build());
+    
+    ASSERT_FALSE(reader.isValid());
+}

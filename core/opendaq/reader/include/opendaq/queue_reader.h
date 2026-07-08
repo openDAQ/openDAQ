@@ -100,11 +100,14 @@ public:
     bool isValid();
     
     void domainChangeHandled();
+    void updateConnection();
     
 private:
     void drainConnection();
-    void packetReceived();
+    void adoptPackets();
     void consumeLeadingEventPackets();
+
+    void checkConnection() const;
     
     SignalEventType addEncounteredEvent(const EventPacketPtr& packet);
     void parseDomainDescriptor();

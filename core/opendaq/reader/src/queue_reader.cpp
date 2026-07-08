@@ -101,7 +101,7 @@ QueueReader::QueueReader(const InputPortConfigPtr& port, // Consider using Conne
     typeCtx.valueOut = mode == ReadMode::RawValue ? SampleType::Undefined : valueReadType;
 }
 
-void QueueReader::packetReceived()
+void QueueReader::adoptPackets()
 {
     // Take ownership of all packets
     PacketPtr packet = connection.dequeue();
@@ -114,12 +114,15 @@ void QueueReader::packetReceived()
 
 DomainInfo QueueReader::getDomainInfo()
 {
+    checkConnection();
+
     drainConnection();
     return typeCtx.domainInfo;
 }
 
 std::unique_ptr<DomainValue> QueueReader::getFirstSampleDomainValue()
 {
+    checkConnection();
     drainConnection();
 
     if (packets.empty() || packets.front().getType() != PacketType::Data)
@@ -144,6 +147,7 @@ std::unique_ptr<DomainValue> QueueReader::getFirstSampleDomainValue()
 AdvanceResult QueueReader::advanceToDomainValue(const DomainValue* domainValue)
 {
     // TODO: Add first timestamp mechanism for sync tolerance checking
+    checkConnection();
     drainConnection();
 
     SignalEventType signalChange = SignalEventType::NoChange;
@@ -220,7 +224,9 @@ AdvanceResult QueueReader::advanceToDomainValue(const DomainValue* domainValue)
 
 Int QueueReader::getSampleRate()
 {
+    checkConnection();
     drainConnection();
+
     return sampleRate;
 }
 
@@ -241,8 +247,15 @@ void QueueReader::consumeLeadingEventPackets()
     packets.erase(packets.begin(), packets.begin() + end);
 }
 
+void QueueReader::checkConnection() const
+{
+    if (!connection.assigned())
+        DAQ_THROW_EXCEPTION(InvalidOperationException, "Connection must be assigned for this operation.");
+}
+
 void QueueReader::dropOutdatedDomainSegments()
 {
+    checkConnection();
     drainConnection();
 
     while (getNumberOfEventPacketsInQueue() >= 2)
@@ -256,6 +269,7 @@ void QueueReader::dropOutdatedDomainSegments()
 
 SizeT QueueReader::getAvailableSamples()
 {
+    checkConnection();
     drainConnection();
 
     SizeT count = 0;
@@ -276,12 +290,14 @@ SizeT QueueReader::getAvailableSamples()
 
 bool QueueReader::hasPendingEvents()
 {
+    checkConnection();
     drainConnection();
     return !events.empty();
 }
 
 EventPacketPtr QueueReader::popFrontEvent()
 {
+    checkConnection();
     drainConnection();
     if (events.empty())
         return nullptr;
@@ -293,6 +309,9 @@ EventPacketPtr QueueReader::popFrontEvent()
 
 bool QueueReader::isValid()
 {
+    if (!connection.assigned())
+        return false;
+    
     drainConnection();
     return issues.empty();
 }
@@ -300,6 +319,12 @@ bool QueueReader::isValid()
 void QueueReader::domainChangeHandled()
 {
     domainChanged = false;
+}
+
+void QueueReader::updateConnection()
+{
+    connection = port.getConnection();
+    drainConnection();
 }
 
 void QueueReader::drainConnection()
@@ -310,7 +335,7 @@ void QueueReader::drainConnection()
     if (!connection.peek().assigned())
         return;
 
-    packetReceived();
+    adoptPackets();
     consumeLeadingEventPackets();
 }
 

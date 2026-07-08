@@ -154,7 +154,6 @@ AdvanceResult QueueReader::advanceToDomainValue(const DomainValue* domainValue)
 
     bool found = false;
     SizeT end = 0;
-    SizeT packetReadingPosition = readingPosition;
     for (auto& packet: packets)
     {
         if (packet.getType() == PacketType::Data)
@@ -170,7 +169,7 @@ AdvanceResult QueueReader::advanceToDomainValue(const DomainValue* domainValue)
             
             if (index != static_cast<SizeT>(-1))
             {
-                if (index < packetReadingPosition)
+                if (index < readingPosition)
                 {
                     return AdvanceResult::OvershotError;
                 }
@@ -179,7 +178,7 @@ AdvanceResult QueueReader::advanceToDomainValue(const DomainValue* domainValue)
                 break;
             }
 
-            packetReadingPosition = 0;
+            readingPosition = 0;
             ++end;
             continue;
         }

@@ -86,6 +86,13 @@ protected:
     SignalConfigPtr domainSignal;
 };
 
+void assertReaderAtDomainValue(QueueReader& reader, Int tick)
+{
+    auto start = reader.getFirstSampleDomainValue();
+    auto* startP = dynamic_cast<DomainValueImpl<Int>*>(start.get());
+    ASSERT_EQ(startP->getValue(), tick);
+}
+
 TEST_F(QueueReaderTest, AdvancePastEnd)
 {
     // Domain (time) signal: Int64, linear rule.
@@ -132,6 +139,14 @@ TEST_F(QueueReaderTest, AdvancePastEnd)
 
     auto start2 = reader.getFirstSampleDomainValue();
     ASSERT_EQ(*domainValue, *start2);
+
+    ASSERT_TRUE(reader.hasPendingEvents());
+    auto event = reader.popFrontEvent();
+    ASSERT_EQ(event.getType(), PacketType::Event);
+    auto params = event.getParameters();
+    const DataDescriptorPtr domainFromEvent = params[event_packet_param::DOMAIN_DATA_DESCRIPTOR];
+    ASSERT_EQ(domainFromEvent.getTickResolution().getDenominator(), sampleRate);
+    ASSERT_FALSE(reader.hasPendingEvents());
 
     domainValue = std::make_unique<DomainValueImpl<Int>>(reader.getDomainInfo(), 100512);
     result = reader.advanceToDomainValue(domainValue.get());
@@ -501,4 +516,123 @@ TEST_F(QueueReaderTest, GapEventsRefuseMerge)
 
     auto merged = domainChange.merge(gapChange);
     ASSERT_FALSE(merged);
+}
+
+TEST_F(QueueReaderTest, CheckAdvanceDomainEdgeCases)
+{
+    // Domain (time) signal: Int64, linear rule.
+    constexpr Int sampleRate = 10000;
+    setDomainDescriptor(DataDescriptorBuilder()
+                            .setSampleType(SampleType::Int64)
+                            .setTickResolution(Ratio(1, sampleRate))
+                            .setOrigin("1970-01-01T00:00:00+00:00")
+                            .setRule(LinearDataRule(1, 0))
+                            .setUnit(Unit("s", -1, "second", "time"))
+                            .build());
+
+    setValueDescriptor(DataDescriptorBuilder().setSampleType(SampleType::Float64).build());
+
+    setOffsetDelta(500, 1);
+
+    const size_t packetSize = 5;
+    setPacketSize(packetSize);
+
+    auto inputPort = InputPort(context, nullptr, "port", true);
+    inputPort.connect(signal);
+    QueueReader reader = QueueReader(inputPort, SampleType::Float64, SampleType::Int64, ReadMode::Scaled, loggerComponent, false);
+
+    sendNextPacket(); // [500 - 504]
+    sendNextPacket();
+    sendNextPacket(); // [510 - 514]
+    setDomainDescriptor(DataDescriptorBuilder()
+                            .setSampleType(SampleType::Int64)
+                            .setTickResolution(Ratio(1, sampleRate))
+                            .setOrigin("1970-01-01T00:00:00+00:00")
+                            .setRule(LinearDataRule(10, 0))
+                            .setUnit(Unit("s", -1, "second", "time"))
+                            .build());
+
+    setOffsetDelta(getOffset(), 10);
+    sendNextPacket(); // [515 - 555]
+    sendNextPacket(); // [565 - 605]
+
+    setDomainDescriptor(DataDescriptorBuilder()
+                            .setSampleType(SampleType::Int64)
+                            .setTickResolution(Ratio(1, sampleRate))
+                            .setOrigin("1970-01-01T00:00:00+00:00")
+                            .setRule(LinearDataRule(2, 0))
+                            .setUnit(Unit("s", -1, "second", "time"))
+                            .build());
+
+    setOffsetDelta(getOffset(), 2);
+
+    sendNextPacket(); // [615 - 623]
+    sendNextPacket(); // [625 - 633]
+    // Establish a queue, now test queue handling
+    
+    // Initial data segment
+    ASSERT_TRUE(reader.hasPendingEvents());
+    ASSERT_EQ(reader.getAvailableSamples(), 3 * packetSize); // First three packets worth of samples
+    
+    auto event = reader.popFrontEvent();
+    ASSERT_FALSE(reader.hasPendingEvents());
+
+    DataDescriptorPtr descriptor = event.getParameters()[event_packet_param::DOMAIN_DATA_DESCRIPTOR];
+    NumberPtr delta = descriptor.getRule().getParameters()["delta"];
+    ASSERT_EQ(delta.getIntValue(), 1);
+
+    auto start = reader.getFirstSampleDomainValue();
+    auto* startP = dynamic_cast<DomainValueImpl<Int>*>(start.get());
+    ASSERT_EQ(startP->getValue(), 500);
+    // End Initial data segment
+
+    // Second data segment
+    std::unique_ptr<DomainValue> domainValue = std::make_unique<DomainValueImpl<Int>>(reader.getDomainInfo(), 515);
+    AdvanceResult result = reader.advanceToDomainValue(domainValue.get());
+    ASSERT_EQ(result, AdvanceResult::DomainChanged);
+    
+    ASSERT_TRUE(reader.hasPendingEvents());
+
+    event = reader.popFrontEvent();
+    ASSERT_FALSE(reader.hasPendingEvents());
+
+    descriptor = event.getParameters()[event_packet_param::DOMAIN_DATA_DESCRIPTOR];
+    delta = descriptor.getRule().getParameters()["delta"];
+    ASSERT_EQ(delta.getIntValue(), 10); // Check that we got the second descriptor
+
+    assertReaderAtDomainValue(reader, 515); // Advance succeeded, but domain change reporting takes priority
+
+    result = reader.advanceToDomainValue(domainValue.get());
+    ASSERT_EQ(result, AdvanceResult::Success); // Advancing for the second time will result in a success
+    assertReaderAtDomainValue(reader, 515);
+
+    domainValue = std::make_unique<DomainValueImpl<Int>>(reader.getDomainInfo(), 605);
+    result = reader.advanceToDomainValue(domainValue.get());
+    ASSERT_EQ(result, AdvanceResult::Success); // Can advance to the last sample in the data segment
+    assertReaderAtDomainValue(reader, 605);
+    // End Second data segment
+
+    // Third data segment
+    domainValue = std::make_unique<DomainValueImpl<Int>>(reader.getDomainInfo(), 615);
+    result = reader.advanceToDomainValue(domainValue.get());
+    ASSERT_EQ(result, AdvanceResult::DomainChanged); // The first sample in the next sample only through domain change
+    assertReaderAtDomainValue(reader, 615);
+
+    ASSERT_TRUE(reader.hasPendingEvents());
+
+    event = reader.popFrontEvent();
+    ASSERT_FALSE(reader.hasPendingEvents());
+
+    descriptor = event.getParameters()[event_packet_param::DOMAIN_DATA_DESCRIPTOR];
+    delta = descriptor.getRule().getParameters()["delta"];
+    ASSERT_EQ(delta.getIntValue(), 2); // Check that we got the second descriptor
+
+    result = reader.advanceToDomainValue(domainValue.get());
+    ASSERT_EQ(result, AdvanceResult::Success); // Advancing for the second time will result in a success
+    assertReaderAtDomainValue(reader, 615);
+
+    domainValue = std::make_unique<DomainValueImpl<Int>>(reader.getDomainInfo(), 633);
+    result = reader.advanceToDomainValue(domainValue.get());
+    ASSERT_EQ(result, AdvanceResult::Success); // Can advance to the last sample in the data segment
+    assertReaderAtDomainValue(reader, 633);
 }

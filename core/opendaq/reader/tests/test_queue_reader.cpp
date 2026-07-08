@@ -131,7 +131,7 @@ TEST_F(QueueReaderTest, AdvancePastEnd)
 
     ASSERT_TRUE(startP != nullptr);
 
-    ASSERT_EQ(startP->getValue(), 500);
+    ASSERT_EQ(startP->getValue(), 500u);
 
     std::unique_ptr<DomainValue> domainValue = std::make_unique<DomainValueImpl<Int>>(reader.getDomainInfo(), 512);
     AdvanceResult result = reader.advanceToDomainValue(domainValue.get());
@@ -191,7 +191,7 @@ TEST_F(QueueReaderTest, DomainChangeDetection)
 
     ASSERT_TRUE(startP != nullptr);
 
-    ASSERT_EQ(startP->getValue(), 500);
+    ASSERT_EQ(startP->getValue(), 500u);
 
     std::unique_ptr<DomainValue> domainValue = std::make_unique<DomainValueImpl<Int>>(reader.getDomainInfo(), 512);
     AdvanceResult result = reader.advanceToDomainValue(domainValue.get());
@@ -223,7 +223,7 @@ TEST_F(QueueReaderTest, DomainChangeDetection)
 
     setOffsetDelta(getOffset(), 10);
 
-    ASSERT_EQ(reader.getAvailableSamples(), 3);
+    ASSERT_EQ(reader.getAvailableSamples(), 3u);
 
     domainValue = std::make_unique<DomainValueImpl<Int>>(reader.getDomainInfo(), 525);
     result = reader.advanceToDomainValue(domainValue.get());
@@ -579,17 +579,18 @@ TEST_F(QueueReaderTest, CheckAdvanceDomainEdgeCases)
 
     DataDescriptorPtr descriptor = event.getParameters()[event_packet_param::DOMAIN_DATA_DESCRIPTOR];
     NumberPtr delta = descriptor.getRule().getParameters()["delta"];
-    ASSERT_EQ(delta.getIntValue(), 1);
+    ASSERT_EQ(delta.getIntValue(), 1u);
 
     auto start = reader.getFirstSampleDomainValue();
     auto* startP = dynamic_cast<DomainValueImpl<Int>*>(start.get());
-    ASSERT_EQ(startP->getValue(), 500);
+    ASSERT_EQ(startP->getValue(), 500u);
     // End Initial data segment
 
     // Second data segment
     std::unique_ptr<DomainValue> domainValue = std::make_unique<DomainValueImpl<Int>>(reader.getDomainInfo(), 515);
     AdvanceResult result = reader.advanceToDomainValue(domainValue.get());
     ASSERT_EQ(result, AdvanceResult::DomainChanged);
+    assertReaderAtDomainValue(reader, 515); // First available sample is the first sample of the "unopened" data packet
     
     ASSERT_TRUE(reader.hasPendingEvents());
 
@@ -598,13 +599,13 @@ TEST_F(QueueReaderTest, CheckAdvanceDomainEdgeCases)
 
     descriptor = event.getParameters()[event_packet_param::DOMAIN_DATA_DESCRIPTOR];
     delta = descriptor.getRule().getParameters()["delta"];
-    ASSERT_EQ(delta.getIntValue(), 10); // Check that we got the second descriptor
-
-    assertReaderAtDomainValue(reader, 515); // Advance succeeded, but domain change reporting takes priority
+    ASSERT_EQ(delta.getIntValue(), 10u); // Check that we got the second descriptor
 
     result = reader.advanceToDomainValue(domainValue.get());
     ASSERT_EQ(result, AdvanceResult::Success); // Advancing for the second time will result in a success
     assertReaderAtDomainValue(reader, 515);
+
+    ASSERT_EQ(reader.getSampleRate(), sampleRate/10);
 
     domainValue = std::make_unique<DomainValueImpl<Int>>(reader.getDomainInfo(), 605);
     result = reader.advanceToDomainValue(domainValue.get());
@@ -625,14 +626,28 @@ TEST_F(QueueReaderTest, CheckAdvanceDomainEdgeCases)
 
     descriptor = event.getParameters()[event_packet_param::DOMAIN_DATA_DESCRIPTOR];
     delta = descriptor.getRule().getParameters()["delta"];
-    ASSERT_EQ(delta.getIntValue(), 2); // Check that we got the second descriptor
+    ASSERT_EQ(delta.getIntValue(), 2u); // Check that we got the second descriptor
 
     result = reader.advanceToDomainValue(domainValue.get());
     ASSERT_EQ(result, AdvanceResult::Success); // Advancing for the second time will result in a success
     assertReaderAtDomainValue(reader, 615);
 
+    ASSERT_EQ(reader.getSampleRate(), sampleRate/2);
+
     domainValue = std::make_unique<DomainValueImpl<Int>>(reader.getDomainInfo(), 633);
     result = reader.advanceToDomainValue(domainValue.get());
     ASSERT_EQ(result, AdvanceResult::Success); // Can advance to the last sample in the data segment
     assertReaderAtDomainValue(reader, 633);
+
+    domainValue = std::make_unique<DomainValueImpl<Int>>(reader.getDomainInfo(), 650);
+    result = reader.advanceToDomainValue(domainValue.get());
+    ASSERT_EQ(result, AdvanceResult::NeedMoreData);
+
+    // Empty queue
+    ASSERT_EQ(reader.getAvailableSamples(), 0u);
+    auto first = reader.getFirstSampleDomainValue();
+    ASSERT_EQ(first.get(), nullptr);
+    ASSERT_FALSE(reader.hasPendingEvents());
+    event = reader.popFrontEvent();
+    ASSERT_EQ(event.getObject(), nullptr);
 }

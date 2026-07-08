@@ -7,11 +7,12 @@
 #include <opendaq/data_descriptor_factory.h>
 #include <opendaq/data_rule_factory.h>
 #include <opendaq/domain_value.h>
+#include <opendaq/event_packet_utils.h>
 #include <opendaq/input_port_factory.h>
 #include <opendaq/packet_factory.h>
+#include <opendaq/queue_reader.h>
 #include <opendaq/reader_utils.h>
 #include <opendaq/typed_reading_utils.h>
-#include <opendaq/queue_reader.h>
 #include "reader_common.h"
 
 #include <chrono>
@@ -31,12 +32,12 @@ protected:
         signal.setDomainSignal(domainSignal);
     }
 
-    void setDomainDescriptor(const DataDescriptorPtr &descriptor)
+    void setDomainDescriptor(const DataDescriptorPtr& descriptor)
     {
         domainSignal.setDescriptor(descriptor);
     }
 
-    void setValueDescriptor(const DataDescriptorPtr &descriptor)
+    void setValueDescriptor(const DataDescriptorPtr& descriptor)
     {
         signal.setDescriptor(descriptor);
     }
@@ -53,7 +54,10 @@ protected:
         samples = 0;
     }
 
-    Int getOffset() const { return offset; }
+    Int getOffset() const
+    {
+        return offset;
+    }
 
     void sendNextPacket()
     {
@@ -64,12 +68,12 @@ protected:
         {
             d[i] = static_cast<double>(samples + i);
         }
-    
+
         domainSignal.sendPacket(domainPacket);
         signal.sendPacket(valuePacket);
 
         samples += packetSize;
-        offset += packetSize*delta;
+        offset += packetSize * delta;
     }
 
 protected:
@@ -87,16 +91,14 @@ TEST_F(QueueReaderTest, AdvancePastEnd)
     // Domain (time) signal: Int64, linear rule.
     constexpr Int sampleRate = 10000;
     setDomainDescriptor(DataDescriptorBuilder()
-        .setSampleType(SampleType::Int64)
-        .setTickResolution(Ratio(1, sampleRate))
-        .setOrigin("2022-09-27T00:02:03+00:00")
-        .setRule(LinearDataRule(1, 0))
-        .setUnit(Unit("s", -1, "second", "time"))
-        .build());
-    
-    setValueDescriptor(DataDescriptorBuilder()
-        .setSampleType(SampleType::Float64)
-        .build());
+                            .setSampleType(SampleType::Int64)
+                            .setTickResolution(Ratio(1, sampleRate))
+                            .setOrigin("2022-09-27T00:02:03+00:00")
+                            .setRule(LinearDataRule(1, 0))
+                            .setUnit(Unit("s", -1, "second", "time"))
+                            .build());
+
+    setValueDescriptor(DataDescriptorBuilder().setSampleType(SampleType::Float64).build());
 
     setOffsetDelta(500, 1);
 
@@ -107,7 +109,7 @@ TEST_F(QueueReaderTest, AdvancePastEnd)
     inputPort.connect(signal);
 
     QueueReader reader = QueueReader(inputPort, SampleType::Float64, SampleType::Int64, ReadMode::Scaled, loggerComponent, false);
-    
+
     for (int c = 0; c < 3; ++c)
     {
         sendNextPacket();
@@ -127,10 +129,10 @@ TEST_F(QueueReaderTest, AdvancePastEnd)
     std::unique_ptr<DomainValue> domainValue = std::make_unique<DomainValueImpl<Int>>(reader.getDomainInfo(), 512);
     AdvanceResult result = reader.advanceToDomainValue(domainValue.get());
     ASSERT_EQ(result, AdvanceResult::Success);
-    
+
     auto start2 = reader.getFirstSampleDomainValue();
     ASSERT_EQ(*domainValue, *start2);
-    
+
     domainValue = std::make_unique<DomainValueImpl<Int>>(reader.getDomainInfo(), 100512);
     result = reader.advanceToDomainValue(domainValue.get());
     ASSERT_EQ(result, AdvanceResult::NeedMoreData);
@@ -144,16 +146,14 @@ TEST_F(QueueReaderTest, DomainChangeDetection)
     // Domain (time) signal: Int64, linear rule.
     constexpr Int sampleRate = 10000;
     setDomainDescriptor(DataDescriptorBuilder()
-        .setSampleType(SampleType::Int64)
-        .setTickResolution(Ratio(1, sampleRate))
-        .setOrigin("1970-01-01T00:00:00+00:00")
-        .setRule(LinearDataRule(1, 0))
-        .setUnit(Unit("s", -1, "second", "time"))
-        .build());
-    
-    setValueDescriptor(DataDescriptorBuilder()
-        .setSampleType(SampleType::Float64)
-        .build());
+                            .setSampleType(SampleType::Int64)
+                            .setTickResolution(Ratio(1, sampleRate))
+                            .setOrigin("1970-01-01T00:00:00+00:00")
+                            .setRule(LinearDataRule(1, 0))
+                            .setUnit(Unit("s", -1, "second", "time"))
+                            .build());
+
+    setValueDescriptor(DataDescriptorBuilder().setSampleType(SampleType::Float64).build());
 
     setOffsetDelta(500, 1);
 
@@ -164,7 +164,7 @@ TEST_F(QueueReaderTest, DomainChangeDetection)
     inputPort.connect(signal);
 
     QueueReader reader = QueueReader(inputPort, SampleType::Float64, SampleType::Int64, ReadMode::Scaled, loggerComponent, false);
-    
+
     sendNextPacket();
 
     ASSERT_TRUE(reader.hasPendingEvents());
@@ -199,13 +199,13 @@ TEST_F(QueueReaderTest, DomainChangeDetection)
     ASSERT_EQ(reader.getSampleRate(), sampleRate);
 
     setDomainDescriptor(DataDescriptorBuilder()
-        .setSampleType(SampleType::Int64)
-        .setTickResolution(Ratio(1, sampleRate))
-        .setOrigin("1970-01-01T00:00:00+00:00")
-        .setRule(LinearDataRule(10, 0))
-        .setUnit(Unit("s", -1, "second", "time"))
-        .build());
-    
+                            .setSampleType(SampleType::Int64)
+                            .setTickResolution(Ratio(1, sampleRate))
+                            .setOrigin("1970-01-01T00:00:00+00:00")
+                            .setRule(LinearDataRule(10, 0))
+                            .setUnit(Unit("s", -1, "second", "time"))
+                            .build());
+
     setOffsetDelta(getOffset(), 10);
 
     ASSERT_EQ(reader.getAvailableSamples(), 3);
@@ -228,11 +228,11 @@ TEST_F(QueueReaderTest, OriginParsing)
     std::string origin = "1970-01-01T00:01:00+0000";
     auto epoch = reader::tryParseEpoch(origin);
     ASSERT_TRUE(epoch.has_value());
- 
+
     origin = "1970-01-01T00:01:00+00:00";
     epoch = reader::tryParseEpoch(origin);
     ASSERT_TRUE(epoch.has_value());
-    
+
     origin = "abc";
     epoch = reader::tryParseEpoch(origin);
     ASSERT_FALSE(epoch.has_value());
@@ -247,7 +247,8 @@ TEST_F(QueueReaderTest, CreateBeforeConnection)
     auto inputPort = InputPort(context, nullptr, "port", true);
 
     QueueReader reader = QueueReader(inputPort, SampleType::Float64, SampleType::Int64, ReadMode::Scaled, loggerComponent, false);
-    std::unique_ptr<DomainValue> domainValue = std::make_unique<DomainValueImpl<Int>>(DomainInfo{std::chrono::system_clock::time_point{}, Ratio(1, 1000)}, 512);
+    std::unique_ptr<DomainValue> domainValue =
+        std::make_unique<DomainValueImpl<Int>>(DomainInfo{std::chrono::system_clock::time_point{}, Ratio(1, 1000)}, 512);
 
     bool valid;
     ASSERT_NO_THROW(valid = reader.isValid());
@@ -267,16 +268,14 @@ TEST_F(QueueReaderTest, CreateBeforeConnectionRecovery)
     // Domain (time) signal: Int64, linear rule.
     constexpr Int sampleRate = 10000;
     setDomainDescriptor(DataDescriptorBuilder()
-        .setSampleType(SampleType::Int64)
-        .setTickResolution(Ratio(1, sampleRate))
-        .setOrigin("1970-01-01T00:00:00+00:00")
-        .setRule(LinearDataRule(1, 0))
-        .setUnit(Unit("s", -1, "second", "time"))
-        .build());
-    
-    setValueDescriptor(DataDescriptorBuilder()
-        .setSampleType(SampleType::Float64)
-        .build());
+                            .setSampleType(SampleType::Int64)
+                            .setTickResolution(Ratio(1, sampleRate))
+                            .setOrigin("1970-01-01T00:00:00+00:00")
+                            .setRule(LinearDataRule(1, 0))
+                            .setUnit(Unit("s", -1, "second", "time"))
+                            .build());
+
+    setValueDescriptor(DataDescriptorBuilder().setSampleType(SampleType::Float64).build());
 
     setOffsetDelta(500, 1);
 
@@ -289,11 +288,12 @@ TEST_F(QueueReaderTest, CreateBeforeConnectionRecovery)
 
     ASSERT_FALSE(reader.isValid());
     ASSERT_THROW(reader.getDomainInfo(), InvalidOperationException);
-    
+
     inputPort.connect(signal);
     reader.updateConnection();
 
-    std::unique_ptr<DomainValue> domainValue = std::make_unique<DomainValueImpl<Int>>(DomainInfo{std::chrono::system_clock::time_point{}, Ratio(1, 1000)}, 512);
+    std::unique_ptr<DomainValue> domainValue =
+        std::make_unique<DomainValueImpl<Int>>(DomainInfo{std::chrono::system_clock::time_point{}, Ratio(1, 1000)}, 512);
 
     bool valid;
     ASSERT_NO_THROW(valid = reader.isValid());
@@ -315,16 +315,14 @@ TEST_F(QueueReaderTest, InvalidDomainAndBack)
     // Domain (time) signal: Int64, linear rule.
     constexpr Int sampleRate = 10000;
     setDomainDescriptor(DataDescriptorBuilder()
-        .setSampleType(SampleType::Int64)
-        .setTickResolution(Ratio(1, sampleRate))
-        .setOrigin("abc") // Invalid origin
-        .setRule(LinearDataRule(1, 0))
-        .setUnit(Unit("s", -1, "second", "time"))
-        .build());
-    
-    setValueDescriptor(DataDescriptorBuilder()
-        .setSampleType(SampleType::Float64)
-        .build());
+                            .setSampleType(SampleType::Int64)
+                            .setTickResolution(Ratio(1, sampleRate))
+                            .setOrigin("abc")  // Invalid origin
+                            .setRule(LinearDataRule(1, 0))
+                            .setUnit(Unit("s", -1, "second", "time"))
+                            .build());
+
+    setValueDescriptor(DataDescriptorBuilder().setSampleType(SampleType::Float64).build());
 
     setOffsetDelta(500, 1);
 
@@ -338,7 +336,7 @@ TEST_F(QueueReaderTest, InvalidDomainAndBack)
 
     ASSERT_FALSE(reader.isValid());
     ASSERT_THROW(reader.getDomainInfo(), InvalidOperationException);
-    
+
     inputPort.connect(signal);
     reader.updateConnection();
 
@@ -347,62 +345,160 @@ TEST_F(QueueReaderTest, InvalidDomainAndBack)
     ASSERT_FALSE(valid);
 
     setDomainDescriptor(DataDescriptorBuilder()
-        .setSampleType(SampleType::Int64)
-        .setTickResolution(Ratio(1, sampleRate))
-        .setOrigin("1970-01-01T00:00:00+00:00")
-        .setRule(LinearDataRule(1, 0))
-        .setUnit(Unit("s", -1, "second", "time"))
-        .build());
-    
+                            .setSampleType(SampleType::Int64)
+                            .setTickResolution(Ratio(1, sampleRate))
+                            .setOrigin("1970-01-01T00:00:00+00:00")
+                            .setRule(LinearDataRule(1, 0))
+                            .setUnit(Unit("s", -1, "second", "time"))
+                            .build());
+
     ASSERT_TRUE(reader.isValid());
 
     setDomainDescriptor(DataDescriptorBuilder()
-        .setSampleType(SampleType::Int64)
-        .setTickResolution(Ratio(1, sampleRate))
-        .setOrigin("1970-01-01T00:00:00+00:00")
-        .setRule(LinearDataRule(3.5, 0)) // Non-integer delta
-        .setUnit(Unit("s", -1, "second", "time"))
-        .build());
+                            .setSampleType(SampleType::Int64)
+                            .setTickResolution(Ratio(1, sampleRate))
+                            .setOrigin("1970-01-01T00:00:00+00:00")
+                            .setRule(LinearDataRule(3.5, 0))  // Non-integer delta
+                            .setUnit(Unit("s", -1, "second", "time"))
+                            .build());
 
     ASSERT_FALSE(reader.isValid());
-    
+
     setDomainDescriptor(DataDescriptorBuilder()
-        .setSampleType(SampleType::Int64)
-        .setTickResolution(Ratio(1, sampleRate))
-        .setOrigin("1970-01-01T00:00:00+00:00")
-        .setRule(LinearDataRule(1, 0))
-        .setUnit(Unit("s", -1, "second", "time"))
-        .build());
-    
+                            .setSampleType(SampleType::Int64)
+                            .setTickResolution(Ratio(1, sampleRate))
+                            .setOrigin("1970-01-01T00:00:00+00:00")
+                            .setRule(LinearDataRule(1, 0))
+                            .setUnit(Unit("s", -1, "second", "time"))
+                            .build());
+
     ASSERT_TRUE(reader.isValid());
 
     setDomainDescriptor(DataDescriptorBuilder()
-        .setSampleType(SampleType::Int64)
-        .setTickResolution(Ratio(1, sampleRate))
-        .setOrigin("1970-01-01T00:00:00+00:00")
-        .setRule(LinearDataRule(3, 0)) // Non-integer sample rate
-        .setUnit(Unit("s", -1, "second", "time"))
-        .build());
-    
+                            .setSampleType(SampleType::Int64)
+                            .setTickResolution(Ratio(1, sampleRate))
+                            .setOrigin("1970-01-01T00:00:00+00:00")
+                            .setRule(LinearDataRule(3, 0))  // Non-integer sample rate
+                            .setUnit(Unit("s", -1, "second", "time"))
+                            .build());
+
     ASSERT_FALSE(reader.isValid());
 
     setDomainDescriptor(DataDescriptorBuilder()
-        .setSampleType(SampleType::Int64)
-        .setTickResolution(Ratio(1, sampleRate))
-        .setOrigin("1970-01-01T00:00:00+00:00")
-        .setRule(LinearDataRule(1, 0))
-        .setUnit(Unit("s", -1, "second", "time"))
-        .build());
-    
+                            .setSampleType(SampleType::Int64)
+                            .setTickResolution(Ratio(1, sampleRate))
+                            .setOrigin("1970-01-01T00:00:00+00:00")
+                            .setRule(LinearDataRule(1, 0))
+                            .setUnit(Unit("s", -1, "second", "time"))
+                            .build());
+
     ASSERT_TRUE(reader.isValid());
 
     setDomainDescriptor(DataDescriptorBuilder()
-        .setSampleType(SampleType::Int64)
-        .setTickResolution(Ratio(1, sampleRate))
-        .setOrigin("1970-01-01T00:00:00+00:00")
-        .setRule(ExplicitDataRule()) // Explicit data rule - shall be removed when resampling is added
-        .setUnit(Unit("s", -1, "second", "time"))
-        .build());
-    
+                            .setSampleType(SampleType::Int64)
+                            .setTickResolution(Ratio(1, sampleRate))
+                            .setOrigin("1970-01-01T00:00:00+00:00")
+                            .setRule(ExplicitDataRule())  // Explicit data rule - shall be removed when resampling is added
+                            .setUnit(Unit("s", -1, "second", "time"))
+                            .build());
+
     ASSERT_FALSE(reader.isValid());
+}
+
+TEST_F(QueueReaderTest, MergeDomainAndValueChange)
+{
+    constexpr Int sampleRate = 10000;
+    auto domainDescriptor = DataDescriptorBuilder()
+                                .setSampleType(SampleType::Int64)
+                                .setTickResolution(Ratio(1, sampleRate))
+                                .setOrigin("1970-01-01T00:00:00+00:00")
+                                .setRule(LinearDataRule(1, 0))
+                                .setUnit(Unit("s", -1, "second", "time"))
+                                .build();
+
+    auto valueDescriptor = DataDescriptorBuilder().setSampleType(SampleType::Float64).setUnit(Unit("V", -1, "volt", "voltage")).build();
+
+    auto domainChangePacket =
+        DataDescriptorChangedEventPacket(descriptorToEventPacketParam(nullptr), descriptorToEventPacketParam(domainDescriptor));
+    SignalEvent domainChange(domainChangePacket);
+
+    ASSERT_EQ(domainChange.getType(), SignalEventType::DomainChanged);
+
+    auto valueChangePacket =
+        DataDescriptorChangedEventPacket(descriptorToEventPacketParam(valueDescriptor), descriptorToEventPacketParam(nullptr));
+    SignalEvent valueChange(valueChangePacket);
+
+    ASSERT_EQ(valueChange.getType(), SignalEventType::ValueChanged);
+
+    auto merged = domainChange.merge(valueChange);
+    ASSERT_TRUE(merged);
+
+    ASSERT_EQ(domainChange.getType(), SignalEventType::DomainAndValueChanged);
+
+    ASSERT_EQ(domainChange.getDomainDescriptor().getTickResolution().getDenominator(), sampleRate);
+    ASSERT_EQ(domainChange.getValueDescriptor().getUnit().getQuantity(), String("voltage"));
+}
+
+TEST_F(QueueReaderTest, LatestDescriptorPreserved)
+{
+    constexpr Int sampleRate = 10000;
+    auto domainDescriptor = DataDescriptorBuilder()
+                                .setSampleType(SampleType::Int64)
+                                .setTickResolution(Ratio(1, sampleRate))
+                                .setOrigin("1970-01-01T00:00:00+00:00")
+                                .setRule(LinearDataRule(1, 0))
+                                .setUnit(Unit("s", -1, "second", "time"))
+                                .build();
+    auto domainDescriptor2 = DataDescriptorBuilder()
+                                 .setSampleType(SampleType::Int64)
+                                 .setTickResolution(Ratio(1, sampleRate))
+                                 .setOrigin("1970-01-01T00:00:00+00:00")
+                                 .setRule(LinearDataRule(10, 0))
+                                 .setUnit(Unit("s", -1, "second", "time"))
+                                 .build();
+
+    auto domainChangePacket =
+        DataDescriptorChangedEventPacket(descriptorToEventPacketParam(nullptr), descriptorToEventPacketParam(domainDescriptor));
+    SignalEvent domainChange(domainChangePacket);
+    ASSERT_EQ(domainChange.getType(), SignalEventType::DomainChanged);
+    NumberPtr delta = domainChange.getDomainDescriptor().getRule().getParameters()["delta"];
+    ASSERT_EQ(delta.getIntValue(), 1u);
+
+    auto domainChangePacket2 =
+        DataDescriptorChangedEventPacket(descriptorToEventPacketParam(nullptr), descriptorToEventPacketParam(domainDescriptor2));
+    SignalEvent domainChange2(domainChangePacket2);
+    ASSERT_EQ(domainChange2.getType(), SignalEventType::DomainChanged);
+    delta = domainChange2.getDomainDescriptor().getRule().getParameters()["delta"];
+    ASSERT_EQ(delta.getIntValue(), 10u);
+
+    bool merged = domainChange.merge(domainChange2);
+    ASSERT_TRUE(merged);
+
+    ASSERT_EQ(domainChange.getType(), SignalEventType::DomainChanged);
+    delta = domainChange.getDomainDescriptor().getRule().getParameters()["delta"];
+    ASSERT_EQ(delta.getIntValue(), 10u);
+}
+
+TEST_F(QueueReaderTest, GapEventsRefuseMerge)
+{
+    constexpr Int sampleRate = 10000;
+    auto domainDescriptor = DataDescriptorBuilder()
+                                .setSampleType(SampleType::Int64)
+                                .setTickResolution(Ratio(1, sampleRate))
+                                .setOrigin("1970-01-01T00:00:00+00:00")
+                                .setRule(LinearDataRule(1, 0))
+                                .setUnit(Unit("s", -1, "second", "time"))
+                                .build();
+
+    auto domainChangePacket =
+        DataDescriptorChangedEventPacket(descriptorToEventPacketParam(nullptr), descriptorToEventPacketParam(domainDescriptor));
+    SignalEvent domainChange(domainChangePacket);
+    ASSERT_EQ(domainChange.getType(), SignalEventType::DomainChanged);
+
+    auto gapPacket = ImplicitDomainGapDetectedEventPacket(0);
+    SignalEvent gapChange(gapPacket);
+    ASSERT_EQ(gapChange.getType(), SignalEventType::Gap);
+
+    auto merged = domainChange.merge(gapChange);
+    ASSERT_FALSE(merged);
 }

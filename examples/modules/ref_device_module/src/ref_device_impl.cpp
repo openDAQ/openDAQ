@@ -138,13 +138,6 @@ DeviceInfoPtr RefDeviceImpl::onGetInfo()
     return RefDeviceImpl::CreateDeviceInfo(moduleInfo, id, serialNumber);
 }
 
-uint64_t RefDeviceImpl::onGetTicksSinceOrigin()
-{
-    auto microSecondsSinceDeviceStart = getMicroSecondsSinceDeviceStart();
-    auto ticksSinceEpoch = microSecondsFromEpochToDeviceStart + microSecondsSinceDeviceStart;
-    return static_cast<SizeT>(ticksSinceEpoch.count());
-}
-
 bool RefDeviceImpl::allowAddDevicesFromModules()
 {
     return true;
@@ -600,6 +593,8 @@ void RefDeviceImpl::createSignals()
 {
     timeSignal = createAndAddSignal("Time", nullptr, false);
     timeSignal.getTags().asPtr<ITagsPrivate>(true).add("DeviceDomain");
+
+    setDomainSignal(timeSignal);
 }
 
 #ifdef DAQMODULES_REF_DEVICE_MODULE_SIMULATOR_ENABLED

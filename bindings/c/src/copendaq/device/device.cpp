@@ -201,3 +201,8 @@ daqErrCode daqDevice_addDevices(daqDevice* self, daqDict** devices, daqDict* con
 {
     return reinterpret_cast<daq::IDevice*>(self)->addDevices(reinterpret_cast<daq::IDict**>(devices), reinterpret_cast<daq::IDict*>(connectionArgs), reinterpret_cast<daq::IDict*>(errCodes), reinterpret_cast<daq::IDict*>(errorInfos));
 }
+
+daqErrCode daqDevice_getDomainSignal(daqDevice* self, daqSignal** signal)
+{
+    return reinterpret_cast<daq::IDevice*>(self)->getDomainSignal(reinterpret_cast<daq::ISignal**>(signal));
+}

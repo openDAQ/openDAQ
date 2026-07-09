@@ -385,7 +385,7 @@ void defineIDevice(pybind11::module_ m, PyDaqIntf<daq::IDevice, daq::IFolder> cl
         },
         py::return_value_policy::take_ownership,
         "Gets a list of available operation modes for the device.");
-    cls.def_property("operation_mode",
+     cls.def_property("operation_mode",
         [](daq::IDevice *object)
         {
             py::gil_scoped_release release;
@@ -417,4 +417,13 @@ void defineIDevice(pybind11::module_ m, PyDaqIntf<daq::IDevice, daq::IFolder> cl
         },
         py::arg("connection_args"), py::arg("err_codes") = nullptr, py::arg("error_infos") = nullptr,
         "Connects to multiple devices in parallel using the provided connection strings and returns the connected devices. Each connection is established concurrently to improve performance when handling multiple devices. The additions, in turn, are performed sequentially in the order specified by connectionArgs.");
+    cls.def_property_readonly("domain_signal",
+        [](daq::IDevice *object)
+        {
+            py::gil_scoped_release release;
+            const auto objectPtr = daq::DevicePtr::Borrow(object);
+            return objectPtr.getDomainSignal().detach();
+        },
+        py::return_value_policy::take_ownership,
+        "Gets the domain signal of the device.");
 }

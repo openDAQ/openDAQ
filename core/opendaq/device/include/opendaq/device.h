@@ -404,6 +404,12 @@ DECLARE_OPENDAQ_INTERFACE(IDevice, IFolder)
      *         OPENDAQ_IGNORED if adding the devices from modules is not allowed within the device.
      */
     virtual ErrCode INTERFACE_FUNC addDevices(IDict** devices, IDict* connectionArgs, IDict* errCodes = nullptr, IDict* errorInfos = nullptr) = 0;
+
+    /*!
+     * @brief Gets the domain signal of the device.
+     * @param[out] signal The domain signal.
+     */
+    virtual ErrCode INTERFACE_FUNC getDomainSignal(ISignal** signal) = 0;
 };
 /*!@}*/
 

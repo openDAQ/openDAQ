@@ -56,6 +56,9 @@ public:
     // IComponentPrivate
     ErrCode INTERFACE_FUNC setComponentConfig(IPropertyObject* config) override;
 
+    // IDevice
+    ErrCode INTERFACE_FUNC getDomainSignal(ISignal** signal) override;
+
 protected:
     void serializeCustomObjectValues(const SerializerPtr& serializer, bool forUpdate) override;
     void deserializeCustomObjectValues(const SerializedObjectPtr& serializedObject,
@@ -287,12 +290,18 @@ ErrCode MirroredDeviceBase<Interfaces...>::setComponentConfig(IPropertyObject* c
         auto deviceSelf = this->template borrowPtr<DevicePtr>();
         PropertyObjectPtr generalConfig = this->componentConfig.getPropertyValue("General");
         bool automaticallyConnectStreamings = generalConfig.getPropertyValue("AutomaticallyConnectStreaming");
-        if (automaticallyConnectStreamings &&
-            !(generalConfig.getPropertyValue("StreamingConnectionHeuristic") == 2)) // is not "NotConnected"
+        Int streamingConnectionHeuristic = generalConfig.getPropertyValue("StreamingConnectionHeuristic");
+        if (automaticallyConnectStreamings && streamingConnectionHeuristic != 2) // is not "NotConnected"
             streamingSourceManager = std::make_shared<StreamingSourceManager>(this->context, deviceSelf, this->componentConfig);
     }
 
     return errCode;
+}
+
+template <typename... Interfaces>
+ErrCode MirroredDeviceBase<Interfaces...>::getDomainSignal(ISignal** signal)
+{
+    return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOTIMPLEMENTED, "getDomainSignal is not implemented for MirroredDevice");
 }
 
 template <typename... Interfaces>

@@ -124,6 +124,8 @@ public:
     ErrCode INTERFACE_FUNC setOperationModeRecursive(OperationModeType modeType) override;
     ErrCode INTERFACE_FUNC getOperationMode(OperationModeType* modeType) override;
 
+    ErrCode INTERFACE_FUNC getDomainSignal(ISignal** signal) override;
+
     // IDevicePrivate
     ErrCode INTERFACE_FUNC setAsRoot() override;
     ErrCode INTERFACE_FUNC getDeviceConfig(IPropertyObject** config) override;
@@ -251,6 +253,8 @@ protected:
     DevicePtr getParentDevice();
     OperationModeType getOperationMode();
 
+    void setDomainSignal(const SignalPtr& signal);
+
 private:
     void getChannelsFromFolder(ListPtr<IChannel>& channelList, const FolderPtr& folder, const SearchFilterPtr& searchFilter, bool filterChannels = true);
     ListPtr<ISignal> getSignalsRecursiveInternal(const SearchFilterPtr& searchFilter);
@@ -271,6 +275,7 @@ private:
     DeviceDomainPtr deviceDomain;
     OperationModeType operationMode {OperationModeType::Unknown};
     ListPtr<IInteger> availableOperationModes;
+    SignalPtr domainSignal;
 };
 
 template <typename TInterface, typename... Interfaces>
@@ -738,6 +743,11 @@ ErrCode GenericDevice<TInterface, Interfaces...>::getTicksSinceOrigin(uint64_t* 
 template <typename TInterface, typename... Interfaces>
 uint64_t GenericDevice<TInterface, Interfaces...>::onGetTicksSinceOrigin()
 {
+    if (this->domainSignal.assigned())
+    {
+        if (const auto lastValue = domainSignal.getLastValue(); lastValue.assigned())
+            return lastValue;
+    }
     return 0;
 }
 
@@ -1257,6 +1267,20 @@ ErrCode GenericDevice<TInterface, Interfaces...>::getOperationMode(OperationMode
     OPENDAQ_PARAM_NOT_NULL(modeType);
     *modeType = this->operationMode;
     return OPENDAQ_SUCCESS;
+}
+
+template <typename TInterface, typename... Interfaces>
+ErrCode GenericDevice<TInterface, Interfaces...>::getDomainSignal(ISignal** signal)
+{
+    OPENDAQ_PARAM_NOT_NULL(signal);
+    *signal = this->domainSignal.addRefAndReturn();
+    return OPENDAQ_SUCCESS;
+}
+
+template <typename TInterface, typename... Interfaces>
+void GenericDevice<TInterface, Interfaces...>::setDomainSignal(const SignalPtr& signal)
+{
+    this->domainSignal = signal;
 }
 
 template <typename TInterface, typename... Interfaces>

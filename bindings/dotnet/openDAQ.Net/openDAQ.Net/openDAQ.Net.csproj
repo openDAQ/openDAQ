@@ -77,6 +77,8 @@
     <_ciPackageRuntimesPathWinx86>runtimes\win-x86\native</_ciPackageRuntimesPathWinx86>
     <_ciPackageRuntimesPathLinx64>runtimes\linux-x64\native</_ciPackageRuntimesPathLinx64>
     <_ciPackageLib>lib\$(OpenDaqNetVersion.Split(';')[0])</_ciPackageLib>
+    <!-- native DLLs sit under the per-TFM output subdir; pick the first TFM (identical across frameworks) -->
+    <_ciWinTfmSubdir>$(OpenDaqNetVersion.Split(';')[0])</_ciWinTfmSubdir>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(Platform)' == 'x64'">
@@ -154,12 +156,12 @@
   <ItemGroup Condition="'$(_IsCiPackBuild)' == 'True'">
     <!-- NuGet package creation in CI -->
     <!-- Windows runtimes -->
-    <OpenDaqWinLibs Include="$(_SdkOutputPathWindows64)\*.dll" Exclude="$(_SdkOutputPathWindows64)\openDAQ.Net.dll;$(_SdkOutputPathWindows64)\openDAQDemo.Net.dll" />
-    <None Include="@(OpenDaqWinLibs)" PackagePath="$(_ciPackageRuntimesPathWinx64)\" Pack="true" Visible="false" Condition="Exists('$(_SdkOutputPathWindows64)')">
+    <OpenDaqWinLibs Include="$(_SdkOutputPathWindows64)\$(_ciWinTfmSubdir)\*.dll" Exclude="$(_SdkOutputPathWindows64)\$(_ciWinTfmSubdir)\openDAQ.Net.dll;$(_SdkOutputPathWindows64)\$(_ciWinTfmSubdir)\openDAQDemo.Net.dll" />
+    <None Include="@(OpenDaqWinLibs)" PackagePath="$(_ciPackageRuntimesPathWinx64)\" Pack="true" Visible="false" Condition="Exists('$(_SdkOutputPathWindows64)\$(_ciWinTfmSubdir)')">
       <CopyToOutputDirectory>Never</CopyToOutputDirectory>
     </None>
-    <OpenDaqModuleWinLibs Include="$(_SdkOutputPathWindows64)\modules\*.dll" />
-    <None Include="@(OpenDaqModuleWinLibs)" PackagePath="$(_ciPackageRuntimesPathWinx64)\modules\" Pack="true" Visible="false" Condition="Exists('$(_SdkOutputPathWindows64)\modules')">
+    <OpenDaqModuleWinLibs Include="$(_SdkOutputPathWindows64)\$(_ciWinTfmSubdir)\modules\*.dll" />
+    <None Include="@(OpenDaqModuleWinLibs)" PackagePath="$(_ciPackageRuntimesPathWinx64)\modules\" Pack="true" Visible="false" Condition="Exists('$(_SdkOutputPathWindows64)\$(_ciWinTfmSubdir)\modules')">
       <CopyToOutputDirectory>Never</CopyToOutputDirectory>
     </None>
     <!-- Linux runtimes -->

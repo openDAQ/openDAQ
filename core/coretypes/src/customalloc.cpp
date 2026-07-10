@@ -3,7 +3,7 @@
 #ifdef WINHEAP
     #undef DECLARE_OPENDAQ_INTERFACE
     #undef DECLARE_OPENDAQ_INTERFACE_EX
-    #include <Windows.h>
+    #include <windows.h>
 #endif
 
 BEGIN_NAMESPACE_OPENDAQ

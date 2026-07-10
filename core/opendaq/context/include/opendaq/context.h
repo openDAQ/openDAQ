@@ -106,13 +106,18 @@ DECLARE_OPENDAQ_INTERFACE(IContext, IBaseObject)
      */
     virtual ErrCode INTERFACE_FUNC getModuleOptions(IString* moduleId, IDict** options) = 0;
 
-    
     // [templateType(servers, IString, IBaseObject)]
     /*!
      * @brief Gets the dictionary of available discovery servers.
      * @param[out] servers The dictionary of available discovery servers.
      */
     virtual ErrCode INTERFACE_FUNC getDiscoveryServers(IDict** servers) = 0;
+
+    /*!
+     * @brief Gets the root device of the openDAQ instance.
+     * @param[out] device The root device.
+     */
+    virtual ErrCode INTERFACE_FUNC getRootDevice(IBaseObject** device) = 0;
 };
 /*!@}*/
 

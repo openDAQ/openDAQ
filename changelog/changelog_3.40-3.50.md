@@ -3,6 +3,7 @@
 ## Features
 
 - [#1241](https://github.com/openDAQ/openDAQ/pull/1241) Implement IDevice::getDomainSignal()
+- [#1242](https://github.com/openDAQ/openDAQ/pull/1242) implement IContext::getRootDevice
 
 ## Python
 
@@ -25,4 +26,13 @@
 #### `IDevice`
 ```diff
 + IDevice::getDomainSignal(ISignal** signal);
+```
+#### `Context`
+```diff
++ IContext::getRootDevice(IBaseObject** device);
+```
+
+#### `IContextInternal`
+```diff
++ IContextInternal::setRootDevice(IBaseObject* device);
 ```

@@ -267,7 +267,7 @@ void QueueReader::dropOutdatedPacketSegments()
     consumeLeadingEventPackets();
 }
 
-SizeT QueueReader::getAvailableSamples()
+SizeT QueueReader::getAvailableSamplesImpl()
 {
     checkConnection();
     drainConnection();
@@ -286,6 +286,11 @@ SizeT QueueReader::getAvailableSamples()
         packetReadingPosition = 0;
     }
     return count;
+}
+
+SizeT QueueReader::getAvailableSamples()
+{
+    return getAvailableSamplesImpl() * sampleRateDivider;
 }
 
 bool QueueReader::hasPendingEvents()
@@ -325,6 +330,113 @@ void QueueReader::updateConnection()
 {
     connection = port.getConnection();
     drainConnection();
+}
+
+void QueueReader::setSampleRateDivider(SizeT divider)
+{
+    sampleRateDivider = divider;
+}
+
+SizeT QueueReader::getSampleRateDivider() const
+{
+    return sampleRateDivider;
+}
+
+AdvanceResult QueueReader::read(void* valueBuffer, void* domainBuffer, SizeT* count)
+{
+    if (hasPendingEvents())
+    {
+        return AdvanceResult::Error;
+    }
+
+    SizeT remainingToRead = *count / sampleRateDivider;
+    void* valuePtr = valueBuffer;
+    void* domainPtr = domainBuffer;
+
+    SizeT end = 0;
+    for (auto& packet : packets)
+    {
+        if (packet.getType() != PacketType::Data)
+            break;
+        
+        DataPacketPtr dataPacket = packet.asPtr<IDataPacket>(true);
+        SizeT remainingInPacket = dataPacket.getSampleCount() - readingPosition;
+        SizeT toRead = std::min(remainingToRead, remainingInPacket);
+
+        if (valuePtr != nullptr)
+        {
+            void* valueData = nullptr;
+            switch (readMode)
+            {
+                case ReadMode::RawValue:
+                case ReadMode::Unscaled:
+                    valueData = dataPacket.getRawData();
+                    break;
+                case ReadMode::Scaled:
+                default:
+                    valueData = dataPacket.getData();
+                    break;
+            }
+
+            ErrCode errCode = TypedReadingUtils::readData(typeCtx.valueIn,
+                                              typeCtx.valueOut,
+                                              false,
+                                              typeCtx.valueLayout,
+                                              valueData,
+                                              readingPosition,
+                                              &valuePtr,
+                                              toRead,
+                                              typeCtx.valueTransform);
+            if (!OPENDAQ_SUCCEEDED(errCode))
+                throwExceptionFromErrorCode(errCode, getErrorInfoMessage(errCode, true));
+        }
+
+        if (domainPtr != nullptr)
+        {
+            auto domainPacket = dataPacket.getDomainPacket();
+
+            ErrCode errCode = TypedReadingUtils::readData(typeCtx.domainIn,
+                                                      typeCtx.domainOut,
+                                                      true,
+                                                      typeCtx.domainLayout,
+                                                      domainPacket.getData(),
+                                                      readingPosition,
+                                                      &domainPtr,
+                                                      toRead,
+                                                      typeCtx.domainTransform);
+            
+            if (!OPENDAQ_SUCCEEDED(errCode))
+                throwExceptionFromErrorCode(errCode, getErrorInfoMessage(errCode, true));
+        }
+
+        remainingToRead -= toRead;
+
+        if (remainingToRead == 0)
+        {
+            // Read less than full packet - update reading position
+            readingPosition += toRead;
+            break;
+        }
+
+        readingPosition = 0;
+        ++end;
+    }
+    packets.erase(packets.begin(), packets.begin() + end);
+    
+    // Parse trailing events
+    if (readingPosition == 0)
+        consumeLeadingEventPackets();
+
+    *count -= remainingToRead;
+
+    if (remainingToRead > 0)
+        return AdvanceResult::NeedMoreData;
+    return AdvanceResult::Success;
+}
+
+AdvanceResult QueueReader::skip(SizeT* count)
+{
+    return read(nullptr, nullptr, count);
 }
 
 void QueueReader::drainConnection()

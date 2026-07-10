@@ -92,6 +92,12 @@ public:
     Int getSampleRate();
 
     void dropOutdatedPacketSegments();
+    
+    /**
+     * @brief Get the Available Samples in common rate equivalent
+     * 
+     * @return SizeT Available samples multiplied by the sample rate divider.
+     */
     SizeT getAvailableSamples();
     
     bool hasPendingEvents();
@@ -102,10 +108,25 @@ public:
     void domainChangeHandled();
     void updateConnection();
     
+    void setSampleRateDivider(SizeT divider);
+    SizeT getSampleRateDivider() const;
+
+    /**
+     * @brief Read samples into the buffer
+     * 
+     * @param buffer Buffer that has capacity of at least count / sampleRateDivider
+     * @param count Desired sample count in common rate equivalent. 
+     * @return AdvanceResult 
+     */
+    AdvanceResult read(void* valueBuffer, void* domainBuffer, SizeT* count);
+    AdvanceResult skip(SizeT* count);
+    
 private:
     void drainConnection();
     void adoptPackets();
     void consumeLeadingEventPackets();
+    
+    SizeT getAvailableSamplesImpl();
 
     void checkConnection() const;
     
@@ -149,6 +170,8 @@ private:
     Int sampleRate = -1;
     Int packetDelta{0};
     bool domainChanged = false;
+
+    SizeT sampleRateDivider = 1;
 };
 
 END_NAMESPACE_OPENDAQ

@@ -155,8 +155,8 @@ if (WIN32)
     )
 
     set(PING_LIBS
-        Ws2_32
-        IPHLPAPI
+        ws2_32
+        iphlpapi
     )
 endif()
 

@@ -227,6 +227,27 @@ ErrCode ContextImpl::getDiscoveryServers(IDict** servers)
     return OPENDAQ_SUCCESS;
 }
 
+ErrCode ContextImpl::getRootDevice(IBaseObject** device)
+{
+    OPENDAQ_PARAM_NOT_NULL(device);
+    *device = nullptr;
+
+    if (!this->rootDeviceWeakRef.assigned())
+        return OPENDAQ_IGNORED;
+
+    *device = this->rootDeviceWeakRef.getRef().detach();
+    return OPENDAQ_SUCCESS;
+}
+
+ErrCode ContextImpl::setRootDevice(IBaseObject* device)
+{
+    if (!device)
+        this->rootDeviceWeakRef = nullptr;
+    else
+        this->rootDeviceWeakRef = device;
+    return OPENDAQ_SUCCESS;
+}
+
 void ContextImpl::registerOpenDaqTypes()
 {
     if (typeManager == nullptr)

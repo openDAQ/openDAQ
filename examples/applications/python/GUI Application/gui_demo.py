@@ -51,6 +51,7 @@ class DisplayType(enum.Enum):
     TOPOLOGY = 4
     TOPOLOGY_CUSTOM_COMPONENTS = 5
     MODULES = 6
+    SYNCRONIZATION = 7
     UNSPECIFIED = 99
 
     def from_tab_index(index):
@@ -66,6 +67,8 @@ class DisplayType(enum.Enum):
             return DisplayType.TOPOLOGY
         elif index == 5:
             return DisplayType.MODULES
+        elif index == 6:
+            return DisplayType.SYNCRONIZATION
         return DisplayType.UNSPECIFIED
 
 class ContextParams:
@@ -147,6 +150,7 @@ class App(tk.Tk):
         nb.add(ttk.Frame(nb), text='Function blocks')
         nb.add(ttk.Frame(nb), text='Full Topology')
         nb.add(ttk.Frame(nb), text='Modules')
+        nb.add(ttk.Frame(nb), text='Synchronization')
         nb.bind('<<NotebookTabChanged>>', self.on_tab_change)
         nb.pack(fill=tk.X)
         self.nb = nb

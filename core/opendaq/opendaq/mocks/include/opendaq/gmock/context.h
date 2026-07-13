@@ -35,10 +35,13 @@ struct MockContext : daq::ImplementationOf<daq::IContext, daq::IContextInternal>
     MOCK_METHOD(daq::ErrCode, getTypeManager, (daq::ITypeManager** manager), (override MOCK_CALL));
     MOCK_METHOD(daq::ErrCode, getAuthenticationProvider, (daq::IAuthenticationProvider** authenticationProvider), (override MOCK_CALL));
     MOCK_METHOD(daq::ErrCode, getOnCoreEvent, (daq::IEvent** event), (override MOCK_CALL));
-    MOCK_METHOD(daq::ErrCode, moveModuleManager, (daq::IModuleManager** manager), (override MOCK_CALL));
     MOCK_METHOD(daq::ErrCode, getOptions, (daq::IDict** options), (override MOCK_CALL));
     MOCK_METHOD(daq::ErrCode, getModuleOptions, (daq::IString* moduleId, daq::IDict** options), (override MOCK_CALL));
     MOCK_METHOD(daq::ErrCode, getDiscoveryServers, (daq::IDict** services), (override MOCK_CALL));
+    MOCK_METHOD(daq::ErrCode, getRootDevice, (daq::IBaseObject** device), (override MOCK_CALL));
+
+    MOCK_METHOD(daq::ErrCode, moveModuleManager, (daq::IModuleManager** manager), (override MOCK_CALL));
+    MOCK_METHOD(daq::ErrCode, setRootDevice, (daq::IBaseObject* device), (override MOCK_CALL));
 
     daq::ErrCode INTERFACE_FUNC getModuleManager(daq::IBaseObject** manager) override
     {
@@ -82,6 +85,11 @@ struct MockContext : daq::ImplementationOf<daq::IContext, daq::IContextInternal>
         EXPECT_CALL(*this, getOnCoreEvent)
             .Times(AnyNumber())
             .WillRepeatedly(DoAll(Invoke([&](daq::IEvent** event) { *event = coreEvent.addRefAndReturn(); }),
+                                  Return(OPENDAQ_SUCCESS)));
+
+        EXPECT_CALL(*this, setRootDevice)
+            .Times(AnyNumber())
+            .WillRepeatedly(DoAll(Invoke([&](daq::IBaseObject* device) {}),
                                   Return(OPENDAQ_SUCCESS)));
     }
 };

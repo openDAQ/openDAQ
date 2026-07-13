@@ -33,7 +33,7 @@ SignalEvent::SignalEvent(Int gapDiff)
 {
 }
 
-SignalEvent SignalEvent::gapEvent(Int gapDiff)
+SignalEvent SignalEvent::syncGapEvent(Int gapDiff)
 {
     return SignalEvent(gapDiff);
 }
@@ -536,8 +536,8 @@ bool QueueReader::dropLeftoverSegment(SizeT samplesInBlock)
         return false;
     
     dropUntilEvent();
-
-
+    addToEventQueue(SignalEvent::syncGapEvent(availableNativeSamples));
+    consumeLeadingEventPackets(); // Transition to new segment
     return true;
 }
 
@@ -562,17 +562,20 @@ SignalEventType QueueReader::addEncounteredEvent(const EventPacketPtr& packet)
             break;
     }
     parseCachedDescriptors();
+    addToEventQueue(std::move(event));
+    return eventType;
+}
 
-    bool addToList = true;
+void QueueReader::addToEventQueue(SignalEvent&& event)
+{
+    bool eventMerged = false;
     if (!events.empty())
     {
         // Attempt merging with the last event and add to list if merge not possible
-        addToList = !events.back().merge(event);
+        eventMerged = events.back().merge(event);
     }
-    if (addToList)
+    if (!eventMerged)
         events.push_back(event);
-
-    return eventType;
 }
 
 void QueueReader::parseDomainDescriptor()

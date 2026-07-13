@@ -5298,3 +5298,76 @@ TEST_F(MultiReaderTest, UsedUnusedInput)
         ASSERT_TRUE(status.getValid());
     }
 }
+
+TEST_F(MultiReaderTest, CheckSpecificCase)
+{
+    readSignals.reserve(2);
+
+    auto sig0 = addSignal(0, 2, createDomainSignal("2022-09-27T00:02:03+00:00", Ratio(1, 1000), LinearDataRule(1, 0), nullptr)); // 1000 Hz
+    auto sig1 = addSignal(0, 1, createDomainSignal("2022-09-27T00:02:03+00:00", Ratio(1, 1000), LinearDataRule(5, 0), nullptr)); // 200 Hz
+
+    const MultiReaderPtr multiReader = MultiReaderBuilder()
+                                           .setInputPortNotificationMethod(PacketReadyNotification::SameThread)
+                                           .addSignals(signalsToList())
+                                           .setValueReadType(SampleType::Float64)
+                                           .setDomainReadType(SampleType::Int64)
+                                           .build();
+
+    {
+        SizeT count{0};
+        auto status = multiReader.read(nullptr, &count);
+        ASSERT_EQ(status.getReadStatus(), ReadStatus::Event);
+    }
+
+    constexpr size_t numberOfSamplesToRead = 12;
+    double dataFirstSignal[2*numberOfSamplesToRead];
+    double dataSecondSignal[2*numberOfSamplesToRead];
+    double* data[2]{dataFirstSignal, dataSecondSignal};
+
+    sig0.createAndSendPacket(0, true);
+    sig0.createAndSendPacket(1, true);
+    sig0.createAndSendPacket(2, true);
+    sig0.createAndSendPacket(3, true);
+    sig0.createAndSendPacket(4, true);
+    sig0.createAndSendPacket(5, true);
+    sig0.setValueDescriptor(DataDescriptorBuilder().setSampleType(SampleType::Float64).setUnit(Unit("A", -1, "ampere", "current")).build());
+    sig0.createAndSendPacket(6, true);
+    sig0.createAndSendPacket(7, true);
+    sig0.createAndSendPacket(8, true);
+
+    sig1.createAndSendPacket(0, true);
+    sig1.createAndSendPacket(1, true);
+    sig1.createAndSendPacket(2, true);
+    sig1.createAndSendPacket(3, true);
+    sig1.createAndSendPacket(4, true);
+    sig1.createAndSendPacket(5, true);
+    sig1.createAndSendPacket(6, true);
+    sig1.createAndSendPacket(7, true);
+
+    {
+        auto available = multiReader.getAvailableCount();
+        ASSERT_EQ(available, 10u);
+
+        SizeT count = numberOfSamplesToRead;
+        auto status = multiReader.read(data, &count);
+        ASSERT_EQ(count, 10u);
+    }
+
+    {
+        auto available = multiReader.getAvailableCount();
+        ASSERT_EQ(available, 0);
+
+        SizeT count{2};
+        auto status = multiReader.read(data, &count);
+        ASSERT_EQ(status.getReadStatus(), ReadStatus::Ok);
+    }
+
+    {
+        auto available = multiReader.getAvailableCount();
+        ASSERT_EQ(available, 0);
+
+        SizeT count{0};
+        auto status = multiReader.read(data, &count);
+        ASSERT_EQ(status.getReadStatus(), ReadStatus::Ok);
+    }
+}

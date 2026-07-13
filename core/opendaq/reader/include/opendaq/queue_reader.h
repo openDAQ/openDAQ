@@ -41,7 +41,7 @@ class SignalEvent
 public:
     SignalEvent(const EventPacketPtr& packet);
 
-    static SignalEvent gapEvent(Int gapDiff);
+    static SignalEvent syncGapEvent(Int gapDiff);
 
     bool merge(const SignalEvent& otherEvent);
     SignalEventType getType() const;
@@ -151,6 +151,7 @@ private:
     void checkConnection() const;
     
     SignalEventType addEncounteredEvent(const EventPacketPtr& packet);
+    void addToEventQueue(SignalEvent&& event);
     void parseDomainDescriptor();
     void parseValueDescriptor();
     void parseCachedDescriptors();

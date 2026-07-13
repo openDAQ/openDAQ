@@ -9,10 +9,12 @@ SignalEvent::SignalEvent(const EventPacketPtr& packet)
     : eventType(SignalEventType::NoChange)
     , domainDescriptor(nullptr)
     , valueDescriptor(nullptr)
+    , gapDiff(0)
 {
     if (packet.getEventId() == event_packet_id::IMPLICIT_DOMAIN_GAP_DETECTED)
     {
         eventType = SignalEventType::Gap;
+        gapDiff = packet.getParameters().get(event_packet_param::GAP_DIFF);
     }
     else
     {
@@ -21,6 +23,19 @@ SignalEvent::SignalEvent(const EventPacketPtr& packet)
         valueDescriptor = newValueDescriptor;
         updateType();
     }
+}
+
+SignalEvent::SignalEvent(Int gapDiff)
+    : eventType(SignalEventType::Gap)
+    , domainDescriptor(nullptr)
+    , valueDescriptor(nullptr)
+    , gapDiff(gapDiff)
+{
+}
+
+SignalEvent SignalEvent::gapEvent(Int gapDiff)
+{
+    return SignalEvent(gapDiff);
 }
 
 void SignalEvent::updateType()
@@ -78,7 +93,14 @@ const DataDescriptorPtr& SignalEvent::getValueDescriptor() const
 
 EventPacketPtr SignalEvent::toEventPacket() const
 {
-    return DataDescriptorChangedEventPacket(descriptorToEventPacketParam(valueDescriptor), descriptorToEventPacketParam(domainDescriptor));
+    if (eventType == SignalEventType::Gap)
+    {
+        return ImplicitDomainGapDetectedEventPacket(gapDiff);
+    }
+    else
+    {
+        return DataDescriptorChangedEventPacket(descriptorToEventPacketParam(valueDescriptor), descriptorToEventPacketParam(domainDescriptor));
+    }
 }
 
 QueueReader::QueueReader(const InputPortConfigPtr& port,  // Consider using Connection instead
@@ -488,6 +510,35 @@ void QueueReader::drainConnection()
 
     adoptPackets();
     consumeLeadingEventPackets();
+}
+
+bool QueueReader::dropLeftoverSegment(SizeT samplesInBlock)
+{
+    if (sampleRateDivider == 0 || samplesInBlock % sampleRateDivider != 0)
+    {
+        DAQ_THROW_EXCEPTION(InvalidStateException, "Aligned block size must be divisible by all signal dividers.");
+    }
+    
+    if (hasPendingEvents())
+    {
+        DAQ_THROW_EXCEPTION(InvalidStateException, "Events must be handled before dropping leftover segments.");
+    }
+
+    // No events in the queue, this segment has not been ended - mustn't drop
+    if (getNumberOfEventPacketsInQueue() == 0)
+        return false;
+
+
+    const SizeT requiredNativeSamples = samplesInBlock / sampleRateDivider;
+    size_t availableNativeSamples = getAvailableSamplesNative();
+
+    if (availableNativeSamples >= requiredNativeSamples)
+        return false;
+    
+    dropUntilEvent();
+
+
+    return true;
 }
 
 SignalEventType QueueReader::addEncounteredEvent(const EventPacketPtr& packet)

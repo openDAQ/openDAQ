@@ -10,13 +10,13 @@ SignalEvent::SignalEvent(const EventPacketPtr& packet)
     , domainDescriptor(nullptr)
     , valueDescriptor(nullptr)
 {
-    if (packet.getEventId() == event_packet_id::IMPLICIT_DOMAIN_GAP_DETECTED){
+    if (packet.getEventId() == event_packet_id::IMPLICIT_DOMAIN_GAP_DETECTED)
+    {
         eventType = SignalEventType::Gap;
     }
     else
     {
-        const auto [valueDescChanged, domainDescChanged, newValueDescriptor, newDomainDescriptor] =
-                        parseDataDescriptorEventPacket(packet);
+        const auto [valueDescChanged, domainDescChanged, newValueDescriptor, newDomainDescriptor] = parseDataDescriptorEventPacket(packet);
         domainDescriptor = newDomainDescriptor;
         valueDescriptor = newValueDescriptor;
         updateType();
@@ -27,7 +27,7 @@ void SignalEvent::updateType()
 {
     if (eventType == SignalEventType::Gap)
         return;
-    
+
     if (domainDescriptor.assigned() and valueDescriptor.assigned())
     {
         eventType = SignalEventType::DomainAndValueChanged;
@@ -44,7 +44,6 @@ void SignalEvent::updateType()
     {
         eventType = SignalEventType::NoChange;
     }
-
 }
 
 bool SignalEvent::merge(const SignalEvent& other)
@@ -79,17 +78,15 @@ const DataDescriptorPtr& SignalEvent::getValueDescriptor() const
 
 EventPacketPtr SignalEvent::toEventPacket() const
 {
-    return DataDescriptorChangedEventPacket(
-        descriptorToEventPacketParam(valueDescriptor),
-        descriptorToEventPacketParam(domainDescriptor));
+    return DataDescriptorChangedEventPacket(descriptorToEventPacketParam(valueDescriptor), descriptorToEventPacketParam(domainDescriptor));
 }
 
-QueueReader::QueueReader(const InputPortConfigPtr& port, // Consider using Connection instead
-                 SampleType valueReadType,
-                 SampleType domainReadType,
-                 ReadMode mode,
-                 const LoggerComponentPtr& logger,
-                 bool globalIdFromSignal) // TODO
+QueueReader::QueueReader(const InputPortConfigPtr& port,  // Consider using Connection instead
+                         SampleType valueReadType,
+                         SampleType domainReadType,
+                         ReadMode mode,
+                         const LoggerComponentPtr& logger,
+                         bool globalIdFromSignal)  // TODO
     : port(port)
     , connection(port.getConnection())
     , readMode(mode)
@@ -136,12 +133,8 @@ std::unique_ptr<DomainValue> QueueReader::getFirstSampleDomainValue()
         DAQ_THROW_EXCEPTION(InvalidStateException, "Packet must have a domain packet assigned!");
     }
 
-    return TypedReadingUtils::readDomainValue(typeCtx.domainIn,
-                                              typeCtx.domainOut,
-                                              typeCtx.domainLayout,
-                                              domainPacket,
-                                              readingPosition,
-                                              typeCtx.domainInfo);
+    return TypedReadingUtils::readDomainValue(
+        typeCtx.domainIn, typeCtx.domainOut, typeCtx.domainLayout, domainPacket, readingPosition, typeCtx.domainInfo);
 }
 
 AdvanceResult QueueReader::advanceToDomainValue(const DomainValue* domainValue)
@@ -154,19 +147,15 @@ AdvanceResult QueueReader::advanceToDomainValue(const DomainValue* domainValue)
 
     bool found = false;
     SizeT end = 0;
-    for (auto& packet: packets)
+    for (auto& packet : packets)
     {
         if (packet.getType() == PacketType::Data)
         {
             DataPacketPtr domainPacket = packet.asPtr<IDataPacket>(true).getDomainPacket();
 
-            SizeT index = TypedReadingUtils::findDomainValue(typeCtx.domainIn,
-                                                             typeCtx.domainOut,
-                                                             typeCtx.domainLayout,
-                                                             domainPacket,
-                                                             domainValue,
-                                                             nullptr /*TODO*/);
-            
+            SizeT index = TypedReadingUtils::findDomainValue(
+                typeCtx.domainIn, typeCtx.domainOut, typeCtx.domainLayout, domainPacket, domainValue, nullptr /*TODO*/);
+
             if (index != static_cast<SizeT>(-1))
             {
                 if (index < readingPosition)
@@ -188,8 +177,7 @@ AdvanceResult QueueReader::advanceToDomainValue(const DomainValue* domainValue)
             signalChange = addEncounteredEvent(eventPacket);
             ++end;
 
-            if (signalChange == SignalEventType::DomainChanged ||
-                signalChange == SignalEventType::DomainAndValueChanged ||
+            if (signalChange == SignalEventType::DomainChanged || signalChange == SignalEventType::DomainAndValueChanged ||
                 signalChange == SignalEventType::Gap)
             {
                 break;
@@ -210,12 +198,12 @@ AdvanceResult QueueReader::advanceToDomainValue(const DomainValue* domainValue)
 
     switch (signalChange)
     {
-    case SignalEventType::DomainChanged:
-    case SignalEventType::DomainAndValueChanged:
-    case SignalEventType::Gap:
-        return AdvanceResult::DomainChanged;
-    default:
-        break;
+        case SignalEventType::DomainChanged:
+        case SignalEventType::DomainAndValueChanged:
+        case SignalEventType::Gap:
+            return AdvanceResult::DomainChanged;
+        default:
+            break;
     }
 
     return found ? AdvanceResult::Success : AdvanceResult::NeedMoreData;
@@ -232,9 +220,11 @@ Int QueueReader::getSampleRate()
 void QueueReader::consumeLeadingEventPackets()
 {
     size_t end = 0;
-    for (const auto& packet : packets){
+    for (const auto& packet : packets)
+    {
         auto packetType = packet.getType();
-        if (packetType == PacketType::Data){
+        if (packetType == PacketType::Data)
+        {
             break;
         }
 
@@ -267,7 +257,7 @@ void QueueReader::dropOutdatedPacketSegments()
     consumeLeadingEventPackets();
 }
 
-SizeT QueueReader::getAvailableSamplesImpl()
+SizeT QueueReader::getAvailableSamplesNative()
 {
     checkConnection();
     drainConnection();
@@ -290,7 +280,7 @@ SizeT QueueReader::getAvailableSamplesImpl()
 
 SizeT QueueReader::getAvailableSamples()
 {
-    return getAvailableSamplesImpl() * sampleRateDivider;
+    return getAvailableSamplesNative() * sampleRateDivider;
 }
 
 bool QueueReader::hasPendingEvents()
@@ -306,7 +296,7 @@ EventPacketPtr QueueReader::popFrontEvent()
     drainConnection();
     if (events.empty())
         return nullptr;
-    
+
     auto eventPacket = events.front().toEventPacket();
     events.pop_front();
     return eventPacket;
@@ -316,7 +306,7 @@ bool QueueReader::isValid()
 {
     if (!connection.assigned())
         return false;
-    
+
     drainConnection();
     return issues.empty();
 }
@@ -344,24 +334,67 @@ SizeT QueueReader::getSampleRateDivider() const
 
 AdvanceResult QueueReader::read(void* valueBuffer, void* domainBuffer, SizeT* count)
 {
+    if (count == nullptr || sampleRateDivider == 0)
+        return AdvanceResult::Error;
+
+    if (*count % sampleRateDivider != 0)
+    {
+        // Enforce reading in units of common samples
+        return AdvanceResult::Error;
+    }
+    SizeT nativeCount = *count / sampleRateDivider;
+    AdvanceResult result = readNative(valueBuffer, domainBuffer, &nativeCount);
+    *count = nativeCount * sampleRateDivider;
+    return result;
+}
+
+AdvanceResult QueueReader::readNative(void* valueBuffer, void* domainBuffer, SizeT* count)
+{
+    if (count == nullptr)
+        return AdvanceResult::Error;
+
+    if (*count == 0)
+        return AdvanceResult::Success;
+
     if (hasPendingEvents())
     {
         return AdvanceResult::Error;
     }
 
-    SizeT remainingToRead = *count / sampleRateDivider;
+    const SizeT requested = *count;
+    SizeT remainingToRead = requested;
     void* valuePtr = valueBuffer;
     void* domainPtr = domainBuffer;
 
+    bool returnError = false;
     SizeT end = 0;
     for (auto& packet : packets)
     {
         if (packet.getType() != PacketType::Data)
+        {
+            // The user of this class should read <= available samples, so event is not encountered
+            returnError = true;
             break;
-        
+        }
+
         DataPacketPtr dataPacket = packet.asPtr<IDataPacket>(true);
-        SizeT remainingInPacket = dataPacket.getSampleCount() - readingPosition;
+        SizeT sampleCount = dataPacket.getSampleCount();
+
+        if (readingPosition > sampleCount)
+        {
+            returnError = true;
+            break;
+        }
+
+        SizeT remainingInPacket = sampleCount - readingPosition;
         SizeT toRead = std::min(remainingToRead, remainingInPacket);
+
+        if (toRead == 0)
+        {
+            readingPosition = 0;
+            ++end;
+            continue;
+        }
 
         if (valuePtr != nullptr)
         {
@@ -379,14 +412,14 @@ AdvanceResult QueueReader::read(void* valueBuffer, void* domainBuffer, SizeT* co
             }
 
             ErrCode errCode = TypedReadingUtils::readData(typeCtx.valueIn,
-                                              typeCtx.valueOut,
-                                              false,
-                                              typeCtx.valueLayout,
-                                              valueData,
-                                              readingPosition,
-                                              &valuePtr,
-                                              toRead,
-                                              typeCtx.valueTransform);
+                                                          typeCtx.valueOut,
+                                                          false,
+                                                          typeCtx.valueLayout,
+                                                          valueData,
+                                                          readingPosition,
+                                                          &valuePtr,
+                                                          toRead,
+                                                          typeCtx.valueTransform);
             if (!OPENDAQ_SUCCEEDED(errCode))
                 throwExceptionFromErrorCode(errCode, getErrorInfoMessage(errCode, true));
         }
@@ -394,17 +427,19 @@ AdvanceResult QueueReader::read(void* valueBuffer, void* domainBuffer, SizeT* co
         if (domainPtr != nullptr)
         {
             auto domainPacket = dataPacket.getDomainPacket();
+            if (!domainPacket.assigned())
+                DAQ_THROW_EXCEPTION(NotSupportedException, "Domain packet must be assigned.");
 
             ErrCode errCode = TypedReadingUtils::readData(typeCtx.domainIn,
-                                                      typeCtx.domainOut,
-                                                      true,
-                                                      typeCtx.domainLayout,
-                                                      domainPacket.getData(),
-                                                      readingPosition,
-                                                      &domainPtr,
-                                                      toRead,
-                                                      typeCtx.domainTransform);
-            
+                                                          typeCtx.domainOut,
+                                                          true,
+                                                          typeCtx.domainLayout,
+                                                          domainPacket.getData(),
+                                                          readingPosition,
+                                                          &domainPtr,
+                                                          toRead,
+                                                          typeCtx.domainTransform);
+
             if (!OPENDAQ_SUCCEEDED(errCode))
                 throwExceptionFromErrorCode(errCode, getErrorInfoMessage(errCode, true));
         }
@@ -413,8 +448,12 @@ AdvanceResult QueueReader::read(void* valueBuffer, void* domainBuffer, SizeT* co
 
         if (remainingToRead == 0)
         {
-            // Read less than full packet - update reading position
             readingPosition += toRead;
+            if (readingPosition == sampleCount)
+            {
+                readingPosition = 0;
+                ++end;
+            }
             break;
         }
 
@@ -422,16 +461,16 @@ AdvanceResult QueueReader::read(void* valueBuffer, void* domainBuffer, SizeT* co
         ++end;
     }
     packets.erase(packets.begin(), packets.begin() + end);
-    
+    *count = requested - remainingToRead;
+
+    if (returnError)
+        return AdvanceResult::Error;
+
     // Parse trailing events
     if (readingPosition == 0)
         consumeLeadingEventPackets();
 
-    *count -= remainingToRead;
-
-    if (remainingToRead > 0)
-        return AdvanceResult::NeedMoreData;
-    return AdvanceResult::Success;
+    return remainingToRead == 0 ? AdvanceResult::Success : AdvanceResult::NeedMoreData;
 }
 
 AdvanceResult QueueReader::skip(SizeT* count)
@@ -481,7 +520,7 @@ SignalEventType QueueReader::addEncounteredEvent(const EventPacketPtr& packet)
     }
     if (addToList)
         events.push_back(event);
-    
+
     return eventType;
 }
 
@@ -540,21 +579,20 @@ void QueueReader::parseDomainDescriptor()
         NumberPtr delta = 1;
         auto rule = descriptor.getRule();
         const bool ruleIsLinear = rule.assigned() && rule.getType() == DataRuleType::Linear;
-    
+
         if (ruleIsLinear)
         {
             delta = rule.getParameters()["delta"];
         }
 
         double sr = static_cast<double>(typeCtx.domainInfo.resolution.getDenominator()) /
-                            (static_cast<double>(typeCtx.domainInfo.resolution.getNumerator()) *
-                            delta.getFloatValue());
-        
+                    (static_cast<double>(typeCtx.domainInfo.resolution.getNumerator()) * delta.getFloatValue());
+
         const bool deltaIsInteger = (delta.getFloatValue() == static_cast<double>(delta.getIntValue()));
         const bool sampleRateIsInteger = (sr == static_cast<double>(static_cast<std::int64_t>(sr)));
 
         newSampleRate = static_cast<std::int64_t>(sr);
-        
+
         if (sampleRate != newSampleRate)
         {
             sampleRate = newSampleRate;
@@ -595,9 +633,8 @@ void QueueReader::parseValueDescriptor()
         }
     }
 
-    if (typeCtx.valueOut == SampleType::Undefined) // Dynamically determine output type
+    if (typeCtx.valueOut == SampleType::Undefined)  // Dynamically determine output type
     {
-        
         typeCtx.valueOut = typeCtx.valueIn;
     }
 
@@ -614,7 +651,7 @@ void QueueReader::parseCachedDescriptors()
 size_t QueueReader::getNumberOfEventPacketsInQueue()
 {
     size_t numberOfEventPackets = 0;
-    for (const auto& packet: packets)
+    for (const auto& packet : packets)
     {
         if (packet.getType() == PacketType::Event)
             ++numberOfEventPackets;

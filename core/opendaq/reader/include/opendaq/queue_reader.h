@@ -112,7 +112,7 @@ public:
     SizeT getSampleRateDivider() const;
 
     /**
-     * @brief Read samples into the buffer
+     * @brief Read common rate equivalent samples into the buffer
      * 
      * @param buffer Buffer that has capacity of at least count / sampleRateDivider
      * @param count Desired sample count in common rate equivalent. 
@@ -126,7 +126,8 @@ private:
     void adoptPackets();
     void consumeLeadingEventPackets();
     
-    SizeT getAvailableSamplesImpl();
+    SizeT getAvailableSamplesNative();
+    AdvanceResult readNative(void* valueBuffer, void* domainBuffer, SizeT* count);
 
     void checkConnection() const;
     

@@ -296,7 +296,7 @@ endif()
 set(RTGEN_NAMESPACE ${SDK_TARGET_NAMESPACE})
 include(RTGen)
 
-if(NOT WIN32)
+if(NOT CMAKE_HOST_WIN32)
     # Make sure mono is found properly and exists
     find_program(MONO_C
         NAMES "mono"

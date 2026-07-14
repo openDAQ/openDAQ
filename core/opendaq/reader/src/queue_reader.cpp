@@ -366,6 +366,7 @@ AdvanceResult QueueReader::read(void* valueBuffer, void* domainBuffer, SizeT* co
     if (*count % sampleRateDivider != 0)
     {
         // Enforce reading in units of common samples
+        *count = 0;
         return AdvanceResult::Error;
     }
     SizeT nativeCount = *count / sampleRateDivider;
@@ -384,6 +385,7 @@ AdvanceResult QueueReader::readNative(void* valueBuffer, void* domainBuffer, Siz
 
     if (hasPendingEvents())
     {
+        *count = 0;
         return AdvanceResult::Error;
     }
 

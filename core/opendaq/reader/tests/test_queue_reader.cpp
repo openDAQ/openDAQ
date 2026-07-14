@@ -965,3 +965,90 @@ TEST_F(QueueReaderTest, TestReading)
     ASSERT_FALSE(reader.dropLeftoverSegment(8));
     ASSERT_FALSE(reader.dropLeftoverSegment(5000)); // Non-delimited segment
 }
+
+TEST_F(QueueReaderTest, ReadingEdgeCases)
+{
+    // Domain (time) signal: Int64, linear rule.
+    constexpr Int sampleRate = 1000;
+    setDomainDescriptor(DataDescriptorBuilder()
+                            .setSampleType(SampleType::Int64)
+                            .setTickResolution(Ratio(1, sampleRate))
+                            .setOrigin("1970-01-01T00:00:00+00:00")
+                            .setRule(LinearDataRule(1, 0))
+                            .setUnit(Unit("s", -1, "second", "time"))
+                            .build());
+
+    setValueDescriptor(DataDescriptorBuilder().setSampleType(SampleType::Float64).build());
+
+    setOffsetDelta(500, 1);
+
+    const size_t packetSize = 5;
+    setPacketSize(packetSize);
+
+    auto inputPort = InputPort(context, nullptr, "port", true);
+    inputPort.connect(signal);
+    QueueReader reader = QueueReader(inputPort, SampleType::Float64, SampleType::Int64, ReadMode::Scaled, loggerComponent, false);
+
+    sendNextPacket(); // [500 - 504]
+    sendNextPacket();
+    sendNextPacket(); // [510 - 514]
+    sendNextPacket(); // [515 - 519]
+    setDomainDescriptor(DataDescriptorBuilder()
+                            .setSampleType(SampleType::Int64)
+                            .setTickResolution(Ratio(1, sampleRate))
+                            .setOrigin("1970-01-01T00:00:00+00:00")
+                            .setRule(LinearDataRule(10, 0))
+                            .setUnit(Unit("s", -1, "second", "time"))
+                            .build());
+
+    setOffsetDelta(getOffset(), 10);
+    sendNextPacket(); // [515 - 555]
+    sendNextPacket(); // [565 - 605]
+
+    setDomainDescriptor(DataDescriptorBuilder()
+                            .setSampleType(SampleType::Int64)
+                            .setTickResolution(Ratio(1, sampleRate))
+                            .setOrigin("1970-01-01T00:00:00+00:00")
+                            .setRule(LinearDataRule(2, 0))
+                            .setUnit(Unit("s", -1, "second", "time"))
+                            .build());
+
+    setOffsetDelta(getOffset(), 2);
+
+    sendNextPacket(); // [615 - 623]
+    sendNextPacket(); // [625 - 633]
+    // Establish a queue, now test queue handling
+
+    std::array<double, 20> buffer;
+
+    reader.popFrontEvent();
+    ASSERT_EQ(reader.getAvailableSamples(), 20u);
+    auto result = reader.read(nullptr, nullptr, nullptr);
+    ASSERT_EQ(result, AdvanceResult::Error);
+    SizeT count = 18;
+    result = reader.read(nullptr, nullptr, &count);
+    ASSERT_EQ(result, AdvanceResult::Success);
+    ASSERT_EQ(count, 18u);
+
+    ASSERT_EQ(reader.getAvailableSamples(), 2u);
+    reader.setSampleRateDivider(10);
+    count = 15;
+    result = reader.read(buffer.data(), nullptr, &count);
+    ASSERT_EQ(result, AdvanceResult::Error);
+    ASSERT_EQ(count, 0u);
+    count = 20;
+    result = reader.read(buffer.data(), nullptr, &count);
+    ASSERT_EQ(result, AdvanceResult::Success);
+    ASSERT_EQ(count, 20u);
+
+    reader.popFrontEvent();
+    count = 0;
+    ASSERT_EQ(reader.read(buffer.data(), nullptr, &count), AdvanceResult::Success);
+    ASSERT_EQ(count, 0u);
+
+    reader.dropOutdatedPacketSegments();
+    reader.popFrontEvent();
+    ASSERT_EQ(reader.getAvailableSamples(), 100u);
+    count = 200;
+    ASSERT_EQ(reader.read(nullptr, nullptr, &count), AdvanceResult::NeedMoreData);
+}

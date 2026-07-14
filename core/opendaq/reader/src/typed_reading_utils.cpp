@@ -250,8 +250,8 @@ ErrCode readData(const ReadLayout& readLayout,
     }
     else if constexpr (std::is_convertible_v<InputT, OutputT>)
     {
-        auto dataStart = static_cast<InputT*>(inputBuffer) + (offset * valuesPerSample);
-        auto dataOut = static_cast<OutputT*>(*outputBuffer);
+        auto* dataStart = static_cast<InputT*>(inputBuffer) + (offset * valuesPerSample);
+        auto* dataOut = static_cast<OutputT*>(*outputBuffer);
 
         if (transformFunction.assigned())
         {
@@ -262,7 +262,7 @@ ErrCode readData(const ReadLayout& readLayout,
         }
 
         // If the type of samples is the same, then just copy
-        if (std::is_same_v<OutputT, InputT>)
+        if constexpr (std::is_same_v<OutputT, InputT>)
         {
             // Returns the pointer to the value after the last copied one
             *outputBuffer = std::copy_n(dataStart, valuesPerSample * toRead, dataOut);  // C4244 - possible data loss due to conversion

@@ -28,6 +28,7 @@ try:
     from gui_demo.components.add_server_dialog import AddServerDialog
     from gui_demo.components.add_function_block_dialog import AddFunctionBlockDialog
     from gui_demo.components.load_instance_config_dialog import LoadInstanceConfigDialog
+    from gui_demo.components.sync_view import SyncView
     from gui_demo.app_context import AppContext
     from gui_demo import utils
     from gui_demo.event_port import EventPort
@@ -38,11 +39,11 @@ except Exception as e:
     from opendaq.gui_demo.components.add_server_dialog import AddServerDialog
     from opendaq.gui_demo.components.add_function_block_dialog import AddFunctionBlockDialog
     from opendaq.gui_demo.components.load_instance_config_dialog import LoadInstanceConfigDialog
+    from opendaq.gui_demo.components.sync_view import SyncView
     from opendaq.gui_demo.app_context import AppContext
     from opendaq.gui_demo import utils
     from opendaq.gui_demo.event_port import EventPort
-
-
+    
 class DisplayType(enum.Enum):
     SYSTEM_OVERVIEW = 0
     SIGNALS = 1
@@ -157,6 +158,7 @@ class App(tk.Tk):
 
         main_frame_navigator = ttk.PanedWindow(
             main_frame_bottom, orient=tk.HORIZONTAL)
+        self.main_frame_navigator = main_frame_navigator
         main_frame_navigator.pack_propagate(0)
 
         frame_navigator_for_properties = ttk.Frame(
@@ -294,12 +296,28 @@ class App(tk.Tk):
         scroll_bar.pack(fill=tk.Y, side=tk.RIGHT)
 
         parent_frame.add(frame)
+        self.tree_frame = frame
         tree.tag_configure('warning', foreground=utils.StatusColor.WARNING)
         tree.tag_configure('error', foreground=utils.StatusColor.ERROR)
         tree.tag_configure('inactive', foreground='gray')
         self.tree = tree
 
     def tree_update(self, new_selected_node=None):
+        if self.current_tab() == DisplayType.SYNCRONIZATION:
+            # Runs before right_side_panel_clear so the sync view survives
+            # refresh events; recreating it on every event makes clicks laggy.
+            self.tree.delete(*self.tree.get_children())
+            self._tree_pane_set_visible(False)
+            if getattr(self, 'sync_view', None) is not None \
+                    and self.sync_view.winfo_exists():
+                self.sync_view.full_refresh()
+            else:
+                self.right_side_panel_clear()
+                self.sync_view = SyncView(self.right_side_panel, self.context)
+                self.sync_view.pack(fill=tk.BOTH, expand=True)
+            return
+        self._tree_pane_set_visible(True)
+
         self.tree.delete(*self.tree.get_children())
         self.right_side_panel_clear()
 
@@ -331,6 +349,13 @@ class App(tk.Tk):
         self.set_node_update_status()
         self.set_node_lock_status()
         self.set_node_active_status()
+
+    def _tree_pane_set_visible(self, visible):
+        panes = self.main_frame_navigator.panes()
+        if visible and str(self.tree_frame) not in panes:
+            self.main_frame_navigator.insert(0, self.tree_frame)
+        elif not visible and str(self.tree_frame) in panes:
+            self.main_frame_navigator.forget(self.tree_frame)
 
     def tree_traverse_components_recursive(
             self, component, display_type=DisplayType.UNSPECIFIED, tree_parent_id=None):

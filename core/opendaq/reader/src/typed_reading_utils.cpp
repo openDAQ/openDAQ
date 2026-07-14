@@ -220,7 +220,6 @@ bool isSampleTypeConvertible(bool isDomain)
     }
 }
 
-
 template <typename InputT, typename OutputT>
 ErrCode readData(const ReadLayout& readLayout,
                  void* inputBuffer,
@@ -539,7 +538,8 @@ ReadLayout TypedReadingUtils::createReadLayout(const DataDescriptorPtr& descript
 bool TypedReadingUtils::isSampleTypeConvertible(SampleType in, SampleType out, bool isDomain)
 {
     // TODO: Detais about limiting allowed types (not throwing unless necessary)
-    switch (in){
+    switch (in)
+    {
         case SampleType::Struct:
         case SampleType::Invalid:
         case SampleType::Null:
@@ -547,6 +547,23 @@ bool TypedReadingUtils::isSampleTypeConvertible(SampleType in, SampleType out, b
             return false;
         default:
             break;
+    }
+
+    if (isDomain)
+    {
+        switch (in)
+        {
+            case SampleType::Float32:
+                return in == SampleType::Float32 || in == SampleType::Float64;
+            case SampleType::Float64:
+                return in == SampleType::Float32 || in == SampleType::Float64;
+            case SampleType::ComplexFloat32:
+            case SampleType::ComplexFloat64:
+            case SampleType::Binary:
+                return false;
+            default:
+                break;
+        }
     }
 
     return visitTwoSampleTypes(in,

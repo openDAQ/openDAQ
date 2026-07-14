@@ -346,6 +346,10 @@ void QueueReader::updateConnection()
 
 void QueueReader::setSampleRateDivider(SizeT divider)
 {
+    if (divider == 0)
+    {
+        DAQ_THROW_EXCEPTION(InvalidParameterException, "Sample rate divider must not be 0.");
+    }
     sampleRateDivider = divider;
 }
 
@@ -356,7 +360,7 @@ SizeT QueueReader::getSampleRateDivider() const
 
 AdvanceResult QueueReader::read(void* valueBuffer, void* domainBuffer, SizeT* count)
 {
-    if (count == nullptr || sampleRateDivider == 0)
+    if (count == nullptr)
         return AdvanceResult::Error;
 
     if (*count % sampleRateDivider != 0)
@@ -514,7 +518,7 @@ void QueueReader::drainConnection()
 
 bool QueueReader::dropLeftoverSegment(SizeT samplesInBlock)
 {
-    if (sampleRateDivider == 0 || samplesInBlock % sampleRateDivider != 0)
+    if (samplesInBlock % sampleRateDivider != 0)
     {
         DAQ_THROW_EXCEPTION(InvalidStateException, "Aligned block size must be divisible by all signal dividers.");
     }
@@ -728,7 +732,10 @@ bool QueueReader::dropUntilEvent()
         ++end;
     }
     if (foundEvent)
+    {
         packets.erase(packets.begin(), packets.begin() + end);
+        readingPosition = 0;
+    }
     return foundEvent;
 }
 

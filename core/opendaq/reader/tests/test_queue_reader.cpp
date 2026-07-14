@@ -717,3 +717,155 @@ TEST_F(QueueReaderTest, DropOutdatedPacketSegments)
 
     assertReaderAtDomainValue(reader, 615);
 }
+
+TEST_F(QueueReaderTest, DropLeftoverSegment)
+{
+    // Domain (time) signal: Int64, linear rule.
+    constexpr Int sampleRate = 1000;
+    setDomainDescriptor(DataDescriptorBuilder()
+                            .setSampleType(SampleType::Int64)
+                            .setTickResolution(Ratio(1, sampleRate))
+                            .setOrigin("1970-01-01T00:00:00+00:00")
+                            .setRule(LinearDataRule(1, 0))
+                            .setUnit(Unit("s", -1, "second", "time"))
+                            .build());
+
+    setValueDescriptor(DataDescriptorBuilder().setSampleType(SampleType::Float64).build());
+
+    setOffsetDelta(500, 1);
+
+    const size_t packetSize = 5;
+    setPacketSize(packetSize);
+
+    auto inputPort = InputPort(context, nullptr, "port", true);
+    inputPort.connect(signal);
+    QueueReader reader = QueueReader(inputPort, SampleType::Float64, SampleType::Int64, ReadMode::Scaled, loggerComponent, false);
+
+    sendNextPacket(); // [500 - 504]
+    sendNextPacket();
+    sendNextPacket(); // [510 - 514]
+    setDomainDescriptor(DataDescriptorBuilder()
+                            .setSampleType(SampleType::Int64)
+                            .setTickResolution(Ratio(1, sampleRate))
+                            .setOrigin("1970-01-01T00:00:00+00:00")
+                            .setRule(LinearDataRule(10, 0))
+                            .setUnit(Unit("s", -1, "second", "time"))
+                            .build());
+
+    setOffsetDelta(getOffset(), 10);
+    sendNextPacket(); // [515 - 555]
+    sendNextPacket(); // [565 - 605]
+
+    setDomainDescriptor(DataDescriptorBuilder()
+                            .setSampleType(SampleType::Int64)
+                            .setTickResolution(Ratio(1, sampleRate))
+                            .setOrigin("1970-01-01T00:00:00+00:00")
+                            .setRule(LinearDataRule(2, 0))
+                            .setUnit(Unit("s", -1, "second", "time"))
+                            .build());
+
+    setOffsetDelta(getOffset(), 2);
+
+    sendNextPacket(); // [615 - 623]
+    sendNextPacket(); // [625 - 633]
+    // Establish a queue, now test queue handling
+    ASSERT_TRUE(reader.hasPendingEvents());
+    auto event = reader.popFrontEvent();
+    ASSERT_TRUE(event.assigned());
+    ASSERT_FALSE(reader.hasPendingEvents());
+
+    ASSERT_EQ(reader.getAvailableSamples(), 15);
+    ASSERT_THROW(reader.setSampleRateDivider(0), InvalidParameterException);
+    
+    ASSERT_NO_THROW(reader.setSampleRateDivider(10));
+    ASSERT_EQ(reader.getAvailableSamples(), 150u);
+    ASSERT_THROW(reader.dropLeftoverSegment(13), InvalidStateException);
+
+    ASSERT_FALSE(reader.dropLeftoverSegment(10));
+    ASSERT_FALSE(reader.dropLeftoverSegment(150));
+    ASSERT_TRUE(reader.dropLeftoverSegment(200));
+
+    ASSERT_TRUE(reader.hasPendingEvents());
+    ASSERT_THROW(reader.dropLeftoverSegment(10), InvalidStateException); // Cannot drop with pending events
+    event = reader.popFrontEvent();
+    ASSERT_TRUE(event.assigned());
+    ASSERT_EQ(event.getEventId(), event_packet_id::IMPLICIT_DOMAIN_GAP_DETECTED);
+    ASSERT_TRUE(reader.hasPendingEvents());
+    event = reader.popFrontEvent();
+    ASSERT_EQ(event.getEventId(), event_packet_id::DATA_DESCRIPTOR_CHANGED);
+    ASSERT_FALSE(reader.hasPendingEvents());
+    
+    ASSERT_EQ(reader.getAvailableSamples(), 100u);
+    ASSERT_NO_THROW(reader.setSampleRateDivider(100));
+    ASSERT_EQ(reader.getAvailableSamples(), 1000u);
+
+    ASSERT_FALSE(reader.dropLeftoverSegment(100));
+    ASSERT_FALSE(reader.dropLeftoverSegment(1000));
+    ASSERT_THROW(reader.dropLeftoverSegment(1001), InvalidStateException);
+    ASSERT_TRUE(reader.dropLeftoverSegment(1100));
+    ASSERT_THROW(reader.dropLeftoverSegment(100), InvalidStateException); // pending events
+    
+    ASSERT_TRUE(reader.hasPendingEvents());
+    event = reader.popFrontEvent();
+    ASSERT_TRUE(event.assigned());
+    ASSERT_EQ(event.getEventId(), event_packet_id::IMPLICIT_DOMAIN_GAP_DETECTED);
+    ASSERT_TRUE(reader.hasPendingEvents());
+    event = reader.popFrontEvent();
+    ASSERT_EQ(event.getEventId(), event_packet_id::DATA_DESCRIPTOR_CHANGED);
+    ASSERT_FALSE(reader.hasPendingEvents());
+
+    reader.setSampleRateDivider(2);
+    ASSERT_EQ(reader.getAvailableSamples(), 20u);
+    ASSERT_FALSE(reader.dropLeftoverSegment(1000)); // Don't drop if unfinished segment
+}
+
+TEST_F(QueueReaderTest, LeftoverSegmentPartialPackets)
+{
+    // Domain (time) signal: Int64, linear rule.
+    constexpr Int sampleRate = 10000;
+    setDomainDescriptor(DataDescriptorBuilder()
+                            .setSampleType(SampleType::Int64)
+                            .setTickResolution(Ratio(1, sampleRate))
+                            .setOrigin("1970-01-01T00:00:00+00:00")
+                            .setRule(LinearDataRule(1, 0))
+                            .setUnit(Unit("s", -1, "second", "time"))
+                            .build());
+
+    setValueDescriptor(DataDescriptorBuilder().setSampleType(SampleType::Float64).build());
+
+    setOffsetDelta(500, 1);
+
+    const size_t packetSize = 200;
+    setPacketSize(packetSize);
+
+    auto inputPort = InputPort(context, nullptr, "port", true);
+    inputPort.connect(signal);
+    QueueReader reader = QueueReader(inputPort, SampleType::Float64, SampleType::Int64, ReadMode::Scaled, loggerComponent, false);
+
+    sendNextPacket(); // [500 - 699]
+    sendNextPacket(); // [700 - 899]
+
+    setDomainDescriptor(DataDescriptorBuilder()
+                            .setSampleType(SampleType::Int64)
+                            .setTickResolution(Ratio(1, sampleRate))
+                            .setOrigin("1970-01-01T00:00:00+00:00")
+                            .setRule(LinearDataRule(2, 0))
+                            .setUnit(Unit("s", -1, "second", "time"))
+                            .build());
+    
+    setOffsetDelta(getOffset(), 2);
+    setPacketSize(packetSize / 2);
+
+    sendNextPacket();
+
+    ASSERT_TRUE(reader.hasPendingEvents());
+    reader.popFrontEvent();
+
+    std::unique_ptr<DomainValue> domainValue = std::make_unique<DomainValueImpl<Int>>(reader.getDomainInfo(), 870);
+    AdvanceResult result = reader.advanceToDomainValue(domainValue.get());
+    ASSERT_EQ(result, AdvanceResult::Success);
+
+    ASSERT_FALSE(reader.dropLeftoverSegment(10));
+    ASSERT_FALSE(reader.dropLeftoverSegment(30));
+    ASSERT_TRUE(reader.dropLeftoverSegment(31));
+}

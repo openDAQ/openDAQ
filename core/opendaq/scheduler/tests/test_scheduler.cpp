@@ -4,6 +4,7 @@
 #include <chrono>
 #include <thread>
 #include <future>
+#include <atomic>
 #include <opendaq/work_factory.h>
 
 #include <opendaq/logger_factory.h>
@@ -214,4 +215,62 @@ TEST_F(SchedulerTestCommon, ExecutesOneTimeWorkWithTimeLoop)
     scheduler.runMainLoop(loopTime);
     auto end = std::chrono::steady_clock::now();
     ASSERT_TRUE(end - begin >= std::chrono::milliseconds(loopTime));
+}
+
+TEST_F(SchedulerTestCommon, MainLoopExecutesRepetitiveWorkWithInterval)
+{
+    auto scheduler = SchedulerWithMainLoop(Logger(), 1);
+    std::atomic<int> counter{0};
+
+    const auto work = WorkRepetitive(20, [&counter] { ++counter; });
+    scheduler.scheduleWorkOnMainLoop(work);
+
+    std::thread loopThread([&]() { scheduler.runMainLoop(5); });
+    std::this_thread::sleep_for(std::chrono::milliseconds(75));
+    work.cancel();
+    std::this_thread::sleep_for(std::chrono::milliseconds(30));
+    scheduler.stopMainLoop();
+    loopThread.join();
+
+    EXPECT_GE(counter.load(), 2);
+}
+
+TEST_F(SchedulerTestCommon, MainLoopCancelFromWork)
+{
+    auto scheduler = SchedulerWithMainLoop(Logger(), 1);
+    std::atomic<int> counter{0};
+
+    const auto work = WorkRepetitive(10, [&counter] { ++counter; });
+    scheduler.scheduleWorkOnMainLoop(work);
+
+    std::thread loopThread([&]() { scheduler.runMainLoop(5); });
+    std::this_thread::sleep_for(std::chrono::milliseconds(30));
+
+    work.cancel();
+    std::this_thread::sleep_for(std::chrono::milliseconds(30));
+
+    scheduler.stopMainLoop();
+    loopThread.join();
+
+    EXPECT_GE(counter.load(), 1);
+}
+
+TEST_F(SchedulerTestCommon, MainLoopAfterStoppedRunsCallbackOnMainLoop)
+{
+    auto scheduler = SchedulerWithMainLoop(Logger(), 1);
+    std::atomic<bool> afterCalled{false};
+
+    const auto work = WorkRepetitive(10, [] {});
+    scheduler.scheduleWorkOnMainLoop(work);
+
+    std::thread loopThread([&]() { scheduler.runMainLoop(5); });
+    std::this_thread::sleep_for(std::chrono::milliseconds(25));
+
+    work->cancel(Work([&afterCalled] { afterCalled = true; }));
+    std::this_thread::sleep_for(std::chrono::milliseconds(30));
+
+    scheduler.stopMainLoop();
+    loopThread.join();
+
+    EXPECT_TRUE(afterCalled.load());
 }

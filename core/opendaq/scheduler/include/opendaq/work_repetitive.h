@@ -16,6 +16,7 @@
 
 #pragma once
 #include <coretypes/baseobject.h>
+#include <opendaq/work.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
@@ -37,6 +38,24 @@ DECLARE_OPENDAQ_INTERFACE(IWorkRepetitive, IBaseObject)
      * @param[out] repeatAfter Set to `true` to continue repeating the task, or `false` to stop.
      */
     virtual ErrCode INTERFACE_FUNC executeRepetitively(Bool* repeatAfter) = 0;
+
+    /*!
+     * @brief Returns the interval between periodic executions in milliseconds.
+     * If the interval is zero, there is no timing requirement and the work is rescheduled as soon as possible.
+     */
+    virtual ErrCode INTERFACE_FUNC getIntervalMs(SizeT* intervalMs) = 0;
+
+    /*!
+     * @brief Requests cancellation of repetitive scheduling for this work item.
+     * @param after Optional callback scheduled after the in-flight execution completes.
+     *              If the work is not executing, @p after is scheduled on the next iteration.
+     */
+    virtual ErrCode INTERFACE_FUNC cancel(IWork* after = nullptr) = 0;
+
+    /*!
+     * @brief Returns whether repetitive scheduling for this work item has been cancelled.
+     */
+    virtual ErrCode INTERFACE_FUNC isCanceled(Bool* isCanceled) = 0;
 };
 
 /*!@}*/

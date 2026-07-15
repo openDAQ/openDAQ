@@ -78,6 +78,10 @@ function(create_component_source_groups_${BASE_NAME})
         ${SDK_HEADERS_DIR}/work_repetitive.h
         ${SDK_HEADERS_DIR}/work_impl.h
         ${SDK_HEADERS_DIR}/work_factory.h
+        ${SDK_HEADERS_DIR}/repetitive_work_executor.h
+        ${SDK_HEADERS_DIR}/periodic_work_manager.h
+        ${SDK_SRC_DIR}/repetitive_work_executor.cpp
+        ${SDK_SRC_DIR}/periodic_work_manager.cpp
     )
 endfunction()
 
@@ -98,6 +102,9 @@ set(SRC_PrivateHeaders_Component
     task_impl.h
     task_internal.h
     task_flow.h
+    work_repetitive_internal.h
+    repetitive_work_executor.h
+    periodic_work_manager.h
     PARENT_SCOPE
 )
 
@@ -106,6 +113,8 @@ set(SRC_Cpp_Component
     awaitable_impl.cpp
     task_graph_impl.cpp
     task_impl.cpp
+    repetitive_work_executor.cpp
+    periodic_work_manager.cpp
     scheduler.natvis
     PARENT_SCOPE
 )

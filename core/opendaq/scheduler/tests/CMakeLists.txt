@@ -10,6 +10,7 @@ set(TEST_SOURCES test_awaitable.cpp
                  test_scheduler_mt.cpp
                  test_task.cpp
                  test_work.cpp
+                 test_periodic_work.cpp
                  test_task_internals.cpp
 )
 

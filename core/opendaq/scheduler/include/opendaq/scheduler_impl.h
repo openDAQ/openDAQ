@@ -23,8 +23,16 @@
 #include <opendaq/awaitable_ptr.h>
 #include <opendaq/task_flow.h>
 #include <opendaq/work_ptr.h>
+#include <opendaq/work_repetitive_ptr.h>
+#include <opendaq/repetitive_work_executor.h>
+
+#include <chrono>
+#include <list>
+#include <memory>
 
 BEGIN_NAMESPACE_OPENDAQ
+
+class PeriodicWorkManager;
 
 class MainThreadLoop
 {
@@ -42,11 +50,13 @@ public:
     MainThreadLoop& operator=(const MainThreadLoop&) = delete;
 
 private:
-    bool executeWork(const WorkPtr& work);
+    ErrCode scheduleRepetitive(IWorkRepetitive* work);
 
+    void executeOneShotWork(const WorkPtr& work);
     void runIteration(std::unique_lock<std::mutex>& lock);
 
     LoggerComponentPtr loggerComponent;
+    RepetitiveWorkExecutor executor;
 
     mutable std::mutex mutex;
     std::condition_variable cv;
@@ -85,9 +95,9 @@ private:
 
     std::unique_ptr<tf::Executor> executor;
 
+    std::unique_ptr<PeriodicWorkManager> periodicWorkManager;
     std::unique_ptr<MainThreadLoop> mainThreadWorker;
 };
-
 
 inline std::size_t SchedulerImpl::getWorkerCount() const
 {

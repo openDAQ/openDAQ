@@ -1,5 +1,6 @@
 #include <opendaq/scheduler_impl.h>
 #include <opendaq/scheduler_errors.h>
+#include <opendaq/periodic_work_manager.h>
 
 #include <opendaq/awaitable_impl.h>
 
@@ -8,9 +9,11 @@
 #include <opendaq/task_internal.h>
 #include <opendaq/task_ptr.h>
 #include <opendaq/work_factory.h>
+#include <opendaq/work_repetitive_ptr.h>
 #include <coretypes/function_ptr.h>
 #include <coretypes/validation.h>
 #include <utility>
+#include <vector>
 #include <opendaq/thread_name.h>
 
 class CustomWorkerInterface : public tf::WorkerInterface
@@ -28,12 +31,14 @@ public:
 
 BEGIN_NAMESPACE_OPENDAQ
 MainThreadLoop::MainThreadLoop(const LoggerPtr& logger)
+    : loggerComponent(logger.getOrAddComponent("MainThreadLoop"))
+    , executor(loggerComponent)
 {
-    this->loggerComponent = logger.getOrAddComponent("MainThreadLoop");
 }
 
 MainThreadLoop::~MainThreadLoop()
 {
+    executor.cancelAll();
     stop();
 }
 
@@ -46,74 +51,71 @@ ErrCode MainThreadLoop::stop()
     }));
 }
 
-bool MainThreadLoop::executeWork(const WorkPtr& work)
+void MainThreadLoop::executeOneShotWork(const WorkPtr& work)
 {
-    Bool repeatAfter = False;
-    ErrCode errCode;
-    
-    if (auto workPtr = work.asPtrOrNull<IWorkRepetitive>(true); workPtr.assigned())
-        errCode = workPtr->executeRepetitively(&repeatAfter);
-    else
-        errCode = work->execute();
-    
+    const ErrCode errCode = work->execute();
     if (OPENDAQ_FAILED(errCode))
-    {
-        ListPtr<IErrorInfo> errorInfos;
-        daqGetErrorInfoList(&errorInfos);
-        if (errorInfos.assigned())
-        {
-            std::ostringstream errorStream;
-            bool firstMessage = true;
-            for (const auto& errorInfo : errorInfos)
-            {
-                StringPtr message;
-                errCode = errorInfo->getMessage(&message);
-                if (OPENDAQ_FAILED(errCode))
-                    continue;
-
-                if (message.assigned())
-                {
-                    errorStream << (firstMessage ? "" : "\n") << message;
-                    firstMessage = false;
-                }
-
-                #ifndef NDEBUG
-                    ConstCharPtr fileName = nullptr;
-                    Int fileLine = -1;
-
-                    errorInfo->getFileName(&fileName);
-                    errorInfo->getFileLine(&fileLine);
-                    if (fileName != nullptr)
-                    {
-                        errorStream << " [ File " << fileName;
-                        if (fileLine != -1)
-                            errorStream << ":" << fileLine;
-                        errorStream << " ]";
-                    }
-                #endif                        
-            }
-            LOG_W("Error executing work: {}", errorStream.str());
-        }
-    }
-    return repeatAfter; 
+        executor.logExecutionError();
 }
 
 void MainThreadLoop::runIteration(std::unique_lock<std::mutex>& lock)
 {
     std::list<WorkPtr> currentWork;
     currentWork.swap(workQueue);
+
+    const auto repetitiveToRun = executor.entries();
+
     lock.unlock();
 
-    for (auto it = currentWork.begin(); it != currentWork.end();)
+    for (const auto& work : currentWork)
+        executeOneShotWork(work);
+
+    const auto now = std::chrono::steady_clock::now();
+    for (const auto& entry : repetitiveToRun)
     {
-        if (executeWork(*it))
-            ++it;
-        else
-            it = currentWork.erase(it);
+        if (isRepetitiveWorkCanceled(entry->work))
+        {
+            if (!entry->inFlight.load())
+            {
+                executor.finishCancel(entry, [this](const WorkPtr& callback) {
+                    scheduleTask(static_cast<IWork*>(callback));
+                });
+            }
+            continue;
+        }
+
+        SizeT intervalMs = 0;
+        entry->work->getIntervalMs(&intervalMs);
+
+        if (intervalMs > 0 && now < entry->nextRun)
+            continue;
+
+        entry->inFlight = true;
+        Bool repeatAfter = False;
+        executor.executeRepetitively(entry->work, &repeatAfter);
+        entry->inFlight = false;
+
+        if (isRepetitiveWorkCanceled(entry->work))
+        {
+            executor.finishCancel(entry, [this](const WorkPtr& callback) {
+                scheduleTask(static_cast<IWork*>(callback));
+            });
+            continue;
+        }
+
+        if (intervalMs > 0)
+        {
+            entry->nextRun = now + std::chrono::milliseconds(intervalMs);
+            continue;
+        }
+
+        if (!repeatAfter)
+        {
+            executor.finishCancel(entry, {});
+        }
     }
 
     lock.lock();
-    workQueue.splice(workQueue.end(), currentWork);
 }
 
 ErrCode MainThreadLoop::runIteration()
@@ -158,9 +160,23 @@ bool MainThreadLoop::isRunning() const
     return running;
 }
 
+ErrCode MainThreadLoop::scheduleRepetitive(IWorkRepetitive* work)
+{
+    OPENDAQ_PARAM_NOT_NULL(work);
+
+    const ErrCode err = executor.schedule(work);
+    OPENDAQ_RETURN_IF_FAILED(err);
+
+    cv.notify_one();
+    return OPENDAQ_SUCCESS;
+}
+
 ErrCode MainThreadLoop::scheduleTask(IWork* work)
 {
     OPENDAQ_PARAM_NOT_NULL(work);
+
+    if (const auto repetitive = WorkPtr::Borrow(work).asPtrOrNull<IWorkRepetitive>(true); repetitive.assigned())
+        return scheduleRepetitive(repetitive);
 
     {
         std::lock_guard<std::mutex> lock(mutex);
@@ -180,6 +196,7 @@ SchedulerImpl::SchedulerImpl(LoggerPtr logger, SizeT numWorkers, Bool useMainLoo
     , executor(std::make_unique<tf::Executor>(numWorkers < 1 ? std::thread::hardware_concurrency() : numWorkers,
                std::make_shared<CustomWorkerInterface>()))
 {
+    periodicWorkManager = std::make_unique<PeriodicWorkManager>(*this, *executor, this->loggerComponent);
     if (useMainLoop)
         mainThreadWorker = std::make_unique<MainThreadLoop>(this->logger);
     LOG_D("Starting scheduler with {} workers.", executor->num_workers())
@@ -204,6 +221,9 @@ ErrCode SchedulerImpl::stop()
 {
     LOGP_T("Stop requested")
     stopped = true;
+
+    LOGP_T("Stopping periodic work manager")
+    periodicWorkManager.reset();
 
     LOGP_T("Stopping scheduler")
     executor.reset();
@@ -250,7 +270,11 @@ ErrCode SchedulerImpl::scheduleWork(IWork* work)
     if (stopped)
         return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_SCHEDULER_STOPPED);
 
-    executor->silent_async([work = WorkPtr(work)]()
+    const auto workPtr = WorkPtr::Borrow(work);
+    if (const auto repetitive = workPtr.asPtrOrNull<IWorkRepetitive>(true); repetitive.assigned())
+        return periodicWorkManager->schedule(repetitive);
+
+    executor->silent_async([work = workPtr]()
     {
         work->execute();
     });

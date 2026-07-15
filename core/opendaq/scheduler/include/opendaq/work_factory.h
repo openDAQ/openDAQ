@@ -45,6 +45,15 @@ WorkPtr WorkRepetitive(Callback&& callback)
     return createWithImplementation<IWork, WorkRepetitiveImpl<Callback>>(std::forward<Callback>(callback));
 }
 
+/*!
+ *  @brief creates a repetitive work object with the given interval in milliseconds for periodic scheduling.
+ */
+template <class Callback>
+WorkRepetitivePtr WorkRepetitive(SizeT intervalMs, Callback&& callback)
+{
+    return createWithImplementation<IWork, WorkRepetitiveImpl<Callback>>(intervalMs, std::forward<Callback>(callback));
+}
+
 /*!@}*/
 
 END_NAMESPACE_OPENDAQ

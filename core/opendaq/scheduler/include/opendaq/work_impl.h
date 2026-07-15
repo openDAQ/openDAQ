@@ -16,9 +16,13 @@
 
 #pragma once
 #include <opendaq/work.h>
+#include <opendaq/work_ptr.h>
 #include <opendaq/work_repetitive.h>
+#include <opendaq/work_repetitive_internal.h>
 #include <coretypes/intfs.h>
 #include <coretypes/validation.h>
+
+#include <atomic>
 
 BEGIN_NAMESPACE_OPENDAQ
 
@@ -54,16 +58,27 @@ ErrCode INTERFACE_FUNC WorkImpl<Callback>::execute()
 }
 
 template <class Callback>
-class WorkRepetitiveImpl: public ImplementationOf<IWork, IWorkRepetitive>
+class WorkRepetitiveImpl: public ImplementationOf<IWork, IWorkRepetitive, IWorkRepetitiveInternal>
 {
 public:
     explicit WorkRepetitiveImpl(const Callback& callback);
     explicit WorkRepetitiveImpl(Callback&& callback);
+    explicit WorkRepetitiveImpl(SizeT intervalMs, const Callback& callback);
+    explicit WorkRepetitiveImpl(SizeT intervalMs, Callback&& callback);
 
     ErrCode INTERFACE_FUNC executeRepetitively(Bool* repeatAfter) override;
     ErrCode INTERFACE_FUNC execute() override;
+    ErrCode INTERFACE_FUNC getIntervalMs(SizeT* intervalMs) override;
+    ErrCode INTERFACE_FUNC cancel(IWork* after) override;
+    ErrCode INTERFACE_FUNC isCanceled(Bool* isCanceled) override;
+
+    // Internal interface
+    ErrCode INTERFACE_FUNC getOnStopCallback(IWork** onStopCallback) override;
 
 private:
+    SizeT intervalMs{0};
+    std::atomic<bool> canceled{false};
+    WorkPtr afterStoppedCallback;
     Callback callback;
 };
 
@@ -76,6 +91,20 @@ WorkRepetitiveImpl<Callback>::WorkRepetitiveImpl(const Callback& callback)
 template <class Callback>
 WorkRepetitiveImpl<Callback>::WorkRepetitiveImpl(Callback&& callback)
     : callback(std::move(callback))
+{
+}
+
+template <class Callback>
+WorkRepetitiveImpl<Callback>::WorkRepetitiveImpl(SizeT intervalMs, const Callback& callback)
+    : intervalMs(intervalMs)
+    , callback(callback)
+{
+}
+
+template <class Callback>
+WorkRepetitiveImpl<Callback>::WorkRepetitiveImpl(SizeT intervalMs, Callback&& callback)
+    : intervalMs(intervalMs)
+    , callback(std::move(callback))
 {
 }
 
@@ -101,6 +130,42 @@ ErrCode INTERFACE_FUNC WorkRepetitiveImpl<Callback>::execute()
 {
     Bool repeatAfter;
     return this->executeRepetitively(&repeatAfter);
+}
+
+template <class Callback>
+ErrCode INTERFACE_FUNC WorkRepetitiveImpl<Callback>::getIntervalMs(SizeT* intervalMsOut)
+{
+    OPENDAQ_PARAM_NOT_NULL(intervalMsOut);
+    *intervalMsOut = intervalMs;
+    return OPENDAQ_SUCCESS;
+}
+
+template <class Callback>
+ErrCode INTERFACE_FUNC WorkRepetitiveImpl<Callback>::cancel(IWork* after)
+{
+    if (after != nullptr)
+        afterStoppedCallback = after;
+
+    canceled.store(true);
+    return OPENDAQ_SUCCESS;
+}
+
+template <class Callback>
+ErrCode INTERFACE_FUNC WorkRepetitiveImpl<Callback>::isCanceled(Bool* isCanceledOut)
+{
+    OPENDAQ_PARAM_NOT_NULL(isCanceledOut);
+    *isCanceledOut = canceled.load();
+    return OPENDAQ_SUCCESS;
+}
+
+template <class Callback>
+ErrCode INTERFACE_FUNC WorkRepetitiveImpl<Callback>::getOnStopCallback(IWork** onStopCallbackOut)
+{
+    OPENDAQ_PARAM_NOT_NULL(onStopCallbackOut);
+    if (afterStoppedCallback.assigned())
+        *onStopCallbackOut = afterStoppedCallback.detach();
+
+    return OPENDAQ_SUCCESS;
 }
 
 END_NAMESPACE_OPENDAQ

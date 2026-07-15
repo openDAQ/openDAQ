@@ -668,6 +668,29 @@ void QueueReader::parseDomainDescriptor()
         issues.set(QueueReaderIssue::UnsupportedDomainRule, !ruleIsLinear || !deltaIsInteger || !sampleRateIsInteger);
     }
     // END Sample rate and delta
+
+    // Unit and quantity
+    bool domainIsTimeInSeconds = false;
+    do
+    {
+        auto domainUnit = descriptor.getUnit();
+        if (!domainUnit.assigned())
+            break;
+        
+        const auto domainQuantity = domainUnit.getQuantity();
+        if (!domainQuantity.assigned() || domainQuantity.getLength() == 0)
+            break;
+        if (domainQuantity != "time")
+            break;
+        
+        const auto domainUnitSymbol = domainUnit.getSymbol();
+        if (domainUnitSymbol != "s")
+            break;
+
+        domainIsTimeInSeconds = true;
+    } while (false);
+    issues.set(QueueReaderIssue::DomainUnitInvalid, !domainIsTimeInSeconds);
+    // END Unit and quantity
 }
 
 void QueueReader::parseValueDescriptor()

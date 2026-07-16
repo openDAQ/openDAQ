@@ -1,13 +1,15 @@
 ##
-# Example that creates mock signals with value and domain descriptors. That are later validated
-# individually for any issues with reading them as well as checking their cross compatibility.
+# Example that showcases how compatibility between signals may be determined. Opendaq-based
+# software that reads data from multiple signals (application, function block) typically has
+# some limitations on what sets of signals it's capable of reading together. The limitations
+# can be dependent on the signals' domains, value descriptors or on current configuration of
+# the software. The compatibility check should typically be done in two stages:
 #
-# Applications should implement similar checks to determine whether or not the connected signal
-# is appropriate for the connected input port and whether the application is able to read it
-# correctly. The checks have two phases: in the first phase, a signal itself may be invalid
-# or the provided set of signals may be invalid due to incompatibility between different
-# signals.
-#
+#  1. individual signal check - common requirements that all signals must satisfy individually
+#  2. compatibility cross check - conditions where the combination of signals may cause a problem
+#    (e. g. a function block may be able to read from two 2Hz signals or two 5Hz signals, but
+#     from a 2Hz and a 5Hz signal).
+# 
 # A similar system is used in Multireader to accept/reject reading from a set of signals.
 #
 ##
@@ -336,11 +338,13 @@ if __name__ == "__main__":
 
     results = []
     for signal in signals:
+        # Check whether signal satisfies the requirements to be read in this application
         result = check_signal(signal)
         results.append(result)
         print_signal_result(result)
 
     print("\nStage 2: Check cross-signal compatibility")
 
+    # Check whether this combination of signals can be handled in this application
     compatibility = check_cross_compatibility(results)
     print_compatibility_result(compatibility)

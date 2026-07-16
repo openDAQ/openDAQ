@@ -528,6 +528,9 @@ void NativeDeviceImpl::updateDeviceInfo(const StringPtr& connectionString)
 {
     uint16_t configProtocolVersion = clientComm->getProtocolVersion();
 
+    DeviceInfoPtr deviceInfo;
+    checkErrorInfo(getInfo(&deviceInfo));
+
     if (clientComm->getProtocolVersion() < 8)
     {
         auto changeableFields = List<IString>();

@@ -145,6 +145,10 @@ public:
     // IUpdatable
     ErrCode INTERFACE_FUNC updateInternal(ISerializedObject* obj, IBaseObject* context) override;
 
+    ErrCode INTERFACE_FUNC clone(IPropertyObject** cloned) override;
+    ErrCode INTERFACE_FUNC getInterfaceIds(SizeT* idCount, IntfID** ids) override;
+    ErrCode INTERFACE_FUNC freeze() override;
+
 protected:
     ErrCode createAndSetStringProperty(const StringPtr& name, const StringPtr& value);
     ErrCode createAndSetIntProperty(const StringPtr& name, const IntegerPtr& value);
@@ -1202,6 +1206,39 @@ ErrCode DeviceInfoConfigImpl<TInterface, Interfaces...>::setOwner(IPropertyObjec
 
     return OPENDAQ_SUCCESS;
 }
+
+template <typename TInterface, typename ... Interfaces>
+ErrCode DeviceInfoConfigImpl<TInterface, Interfaces...>::clone(IPropertyObject** cloned)
+{
+    OPENDAQ_PARAM_NOT_NULL(cloned);
+    *cloned = this->template thisInterface<IPropertyObject>();
+    return OPENDAQ_SUCCESS;
+}
+
+template <typename TInterface, typename ... Interfaces>
+ErrCode DeviceInfoConfigImpl<TInterface, Interfaces...>::getInterfaceIds(SizeT* idCount, IntfID** ids)
+{
+    OPENDAQ_PARAM_NOT_NULL(idCount);
+
+    *idCount = Super::InterfaceIds::Count() + 1;
+    if (ids == nullptr)
+    {
+        return OPENDAQ_SUCCESS;
+    }
+
+    **ids = IPropertyObject::Id;
+    (*ids)++;
+
+    Super::InterfaceIds::AddInterfaceIds(*ids);
+    return OPENDAQ_SUCCESS;
+}
+
+template <typename TInterface, typename ... Interfaces>
+ErrCode DeviceInfoConfigImpl<TInterface, Interfaces...>::freeze()
+{
+    return OPENDAQ_IGNORED;
+}
+
 
 template <typename TInterface, typename ... Interfaces>
 void DeviceInfoConfigImpl<TInterface, Interfaces...>::triggerCoreEventMethod(const CoreEventArgsPtr& args)

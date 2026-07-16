@@ -333,14 +333,23 @@ ErrCode GenericDevice<TInterface, Interfaces...>::getInfo(IDeviceInfo** info)
 
     if (!this->deviceInfo.assigned())
     {
-        DeviceInfoPtr devInfo;
-        const ErrCode errCode = wrapHandlerReturn(this, &Self::onGetInfo, devInfo);
-        OPENDAQ_RETURN_IF_FAILED(errCode);
-        this->deviceInfo = devInfo.detach();
-    }
+        if (this->objPtr.hasProperty("DaqDeviceInfo"))
+        {
+            this->deviceInfo = this->objPtr.getPropertyValue("DaqDeviceInfo");
+        }
+        else
+        {
+            DeviceInfoPtr devInfo;
+            const ErrCode errCode = wrapHandlerReturn(this, &Self::onGetInfo, devInfo);
+            OPENDAQ_RETURN_IF_FAILED(errCode);
 
-    if (this->deviceInfo.assigned())
-        this->deviceInfo.template asPtr<IOwnable>(true).setOwner(this->objPtr);
+            if (devInfo.assigned())
+            {
+                this->objPtr.addProperty(ObjectProperty("DaqDeviceInfo", devInfo));
+                this->deviceInfo = this->objPtr.getPropertyValue("DaqDeviceInfo");
+            }
+        }       
+    }
 
     *info = this->deviceInfo.addRefAndReturn();
     return OPENDAQ_SUCCESS;
@@ -2346,10 +2355,10 @@ void GenericDevice<TInterface, Interfaces...>::deserializeCustomObjectValues(con
     if (serializedObject.hasKey("isRootDevice"))
         isRootDevice = serializedObject.readBool("isRootDevice");
 
-    if (serializedObject.hasKey("deviceInfo"))
-    {
-        deviceInfo = serializedObject.readObject("deviceInfo", context, factoryCallback);
-    }
+    // if (serializedObject.hasKey("deviceInfo"))
+    // {
+    //     deviceInfo = serializedObject.readObject("deviceInfo", context, factoryCallback);
+    // }
 
     if (serializedObject.hasKey("deviceDomain"))
     {

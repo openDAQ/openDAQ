@@ -133,7 +133,7 @@ private:
     void swapComponent(Component& origComponent, const Component& newComponent);
 };
 
-template <class Intf = IComponent, class... Intfs>
+template <class Intf = IFolder, class... Intfs>
 class SignalContainerImpl : public GenericSignalContainerImpl<Intf, Intfs...>
 {
 public:

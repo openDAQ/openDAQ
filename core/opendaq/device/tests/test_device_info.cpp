@@ -166,26 +166,26 @@ TEST_F(DeviceInfoTest, Freezable)
 
     ASSERT_FALSE(deviceInfoConfig.isFrozen());
     ASSERT_NO_THROW(deviceInfoConfig.freeze());
-    ASSERT_TRUE(deviceInfoConfig.isFrozen());
+    ASSERT_FALSE(deviceInfoConfig.isFrozen());
 
-    ASSERT_THROW(deviceInfoConfig.setName("Name"), FrozenException);
-    ASSERT_THROW(deviceInfoConfig.setConnectionString("connection_string"), FrozenException);
-    ASSERT_THROW(deviceInfoConfig.setManufacturer("manufacturer"), FrozenException);
-    ASSERT_THROW(deviceInfoConfig.setManufacturerUri("manufacturer_uri"), FrozenException);
-    ASSERT_THROW(deviceInfoConfig.setModel("model"), FrozenException);
-    ASSERT_THROW(deviceInfoConfig.setProductCode("product_code"), FrozenException);
-    ASSERT_THROW(deviceInfoConfig.setHardwareRevision("hardware_revision"), FrozenException);
-    ASSERT_THROW(deviceInfoConfig.setSoftwareRevision("software_revision"), FrozenException);
-    ASSERT_THROW(deviceInfoConfig.setDeviceManual("device_manual"), FrozenException);
-    ASSERT_THROW(deviceInfoConfig.setDeviceClass("device_class"), FrozenException);
-    ASSERT_THROW(deviceInfoConfig.setSerialNumber("serial_number"), FrozenException);
-    ASSERT_THROW(deviceInfoConfig.setProductInstanceUri("product_instance_uri"), FrozenException);
-    ASSERT_THROW(deviceInfoConfig.setRevisionCounter(1), FrozenException);
+    ASSERT_NO_THROW(deviceInfoConfig.setName("Name"));
+    ASSERT_NO_THROW(deviceInfoConfig.setConnectionString("connection_string"));
+    ASSERT_NO_THROW(deviceInfoConfig.setManufacturer("manufacturer"));
+    ASSERT_NO_THROW(deviceInfoConfig.setManufacturerUri("manufacturer_uri"));
+    ASSERT_NO_THROW(deviceInfoConfig.setModel("model"));
+    ASSERT_NO_THROW(deviceInfoConfig.setProductCode("product_code"));
+    ASSERT_NO_THROW(deviceInfoConfig.setHardwareRevision("hardware_revision"));
+    ASSERT_NO_THROW(deviceInfoConfig.setSoftwareRevision("software_revision"));
+    ASSERT_NO_THROW(deviceInfoConfig.setDeviceManual("device_manual"));
+    ASSERT_NO_THROW(deviceInfoConfig.setDeviceClass("device_class"));
+    ASSERT_NO_THROW(deviceInfoConfig.setSerialNumber("serial_number"));
+    ASSERT_NO_THROW(deviceInfoConfig.setProductInstanceUri("product_instance_uri"));
+    ASSERT_NO_THROW(deviceInfoConfig.setRevisionCounter(1));
 
-    ASSERT_THROW(deviceInfoConfig.addProperty(StringProperty("test_key", "test_value")), FrozenException);
+    ASSERT_NO_THROW(deviceInfoConfig.addProperty(StringProperty("test_key", "test_value")));
 
     auto deviceType = DeviceType("test", "", "", "prefix");
-    ASSERT_THROW(deviceInfoConfig.setDeviceType(deviceType), FrozenException);
+    ASSERT_NO_THROW(deviceInfoConfig.setDeviceType(deviceType));
 
     SizeT clientNumber = 0;
     auto connectedClientInfo = ConnectedClientInfo("url", ProtocolType::Configuration, "Protocol name", "ExclusiveControl", "Host name");

@@ -580,11 +580,11 @@ void GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::setLockOwner(co
 template <class PropObjInterface, class... Interfaces>
 void GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::internalDispose(bool)
 {
-    for (auto& item : propValues)
+    for (auto& [_, value] : propValues)
     {
-        if (item.second.assigned())
+        if (value.assigned())
         {
-            OwnablePtr ownablePtr = item.second.template asPtrOrNull<IOwnable>(true);
+            OwnablePtr ownablePtr = value.template asPtrOrNull<IOwnable>(true);
             if (ownablePtr.assigned())
                 ownablePtr.setOwner(nullptr);
         }
@@ -2292,9 +2292,12 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::addProperty(
 
     auto lock = getRecursiveConfigLock2();
 
-    const ErrCode errCode = daqTry([&]() -> auto {
+    const ErrCode errCode = daqTry([&]() -> ErrCode 
+    {
         const PropertyPtr propPtr = property;
-        StringPtr propName = propPtr.getName();
+        const PropertyInternalPtr propInternalPtr = propPtr.asPtr<IPropertyInternal>(true);
+        const StringPtr propName = propPtr.getName();
+
         if (!propName.assigned())
             return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDVALUE, fmt::format(R"(Property "{}" does not have an assigned name.)", propName));
 
@@ -2302,13 +2305,13 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::addProperty(
             return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDVALUE,
                                        fmt::format(R"(Reference property "{}" references a property that is already referenced by another.)", propName));
 
-        propPtr.asPtr<IOwnable>().setOwner(objPtr);
+        propPtr.asPtr<IOwnable>(true).setOwner(objPtr);
 
         const auto res = localProperties.insert(std::make_pair(propName, propPtr));
         if (!res.second)
             return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_ALREADYEXISTS, fmt::format(R"(Property "{}" already exists.)", propName));
 
-        auto readEvent = propPtr.asPtr<IPropertyInternal>().getClassOnPropertyValueRead();
+        auto readEvent = propInternalPtr.getClassOnPropertyValueRead();
         if (readEvent.getListenerCount())
         {
             PropertyValueEventEmitter emitter;
@@ -2317,7 +2320,7 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::addProperty(
                 emitter.addHandler(listener);
         }
 
-        auto writeEvent = propPtr.asPtr<IPropertyInternal>().getClassOnPropertyValueWrite();
+        auto writeEvent = propInternalPtr.getClassOnPropertyValueWrite();
         if (writeEvent.getListenerCount())
         {
             PropertyValueEventEmitter emitter;
@@ -2335,8 +2338,9 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::addProperty(
             PropertyObjectPtr clone;
             ErrCode err = cloneable->clone(&clone);
             OPENDAQ_RETURN_IF_FAILED(err);
-            
-            propPtr.asPtrOrNull<IPropertyInternal>().overrideDefaultValue(clone);
+
+            if (defaultValue.getObject() != clone.getObject())
+                propInternalPtr.overrideDefaultValue(clone);
         }
         
         triggerCoreEventInternal(CoreEventArgsPropertyAdded(objPtr, propPtr, path));

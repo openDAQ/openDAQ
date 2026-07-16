@@ -127,8 +127,8 @@ DECLARE_OPENDAQ_INTERFACE(IContext, IBaseObject)
  * @{
  */
 
-// [templateType(options, IStringObject, IBaseObject)]
-// [templateType(discoveryServers, IStringObject, IDiscoveryServer)]
+// [templateType(options, IString, IBaseObject)]
+// [templateType(discoveryServers, IString, IDiscoveryServer)]
 OPENDAQ_DECLARE_CLASS_FACTORY(
     LIBRARY_FACTORY, Context,
     IScheduler*, Scheduler,

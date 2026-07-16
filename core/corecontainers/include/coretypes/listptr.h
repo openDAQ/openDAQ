@@ -175,7 +175,7 @@ public:
      * @brief Returns true if there are no elements in the list.
      * @return True if no elements are in the list, False otherwise.
      */
-    SizeT empty() const;
+    Bool empty() const;
 
     template <typename TEnum, std::enable_if_t<std::is_enum_v<TEnum>, int> = 0>
     void setItemAt(size_t index, const TEnum& obj);
@@ -312,7 +312,7 @@ SizeT ListObjectPtr<T, U, V>::getCount() const
 }
 
 template <class T, class TValueInterface, class TValuePtr>
-SizeT ListObjectPtr<T, TValueInterface, TValuePtr>::empty() const
+Bool ListObjectPtr<T, TValueInterface, TValuePtr>::empty() const
 {
     if (!ObjectPtr<T>::object)
         DAQ_THROW_EXCEPTION(InvalidParameterException);

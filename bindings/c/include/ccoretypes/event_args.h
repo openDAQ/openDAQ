@@ -34,6 +34,12 @@ extern "C"
 
 #include <ccommon.h>
 
+    /*!
+     * @ingroup types_events
+     * @defgroup types_event_args EventArgs
+     */
+    DAQ_EXTENDS_INTERFACE(daqEventArgs, daqBaseObject);
+
     typedef struct daqEventArgs daqEventArgs;
     typedef struct daqString daqString;
 
@@ -41,7 +47,9 @@ extern "C"
     void EXPORTED daqEventArgs_getInterfaceId(daqIntfID* intfId);
 
     daqErrCode EXPORTED daqEventArgs_getEventId(daqEventArgs* self, daqInt* id);
+
     daqErrCode EXPORTED daqEventArgs_getEventName(daqEventArgs* self, daqString** name);
+
     daqErrCode EXPORTED daqEventArgs_createEventArgs(daqEventArgs** obj, daqInt eventId, daqString* eventName);
 
 #ifdef __cplusplus

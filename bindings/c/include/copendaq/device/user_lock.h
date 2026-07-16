@@ -34,16 +34,43 @@ extern "C"
 
 #include <ccommon.h>
 
+    /*!
+     * @brief This class manages the lock state of an object, usually a device. A device can be locked either with a specific user or without one. If the device is locked with a specific user, only that user can unlock it. If the device is locked without a user, any user can unlock it.
+     */
+    DAQ_EXTENDS_INTERFACE(daqUserLock, daqBaseObject);
+
     typedef struct daqUserLock daqUserLock;
     typedef struct daqUser daqUser;
 
     EXPORTED extern const daqIntfID DAQ_USER_LOCK_INTF_ID;
     void EXPORTED daqUserLock_getInterfaceId(daqIntfID* intfId);
 
-    daqErrCode EXPORTED daqUserLock_lock(daqUserLock* self, daqUser* user);
-    daqErrCode EXPORTED daqUserLock_unlock(daqUserLock* self, daqUser* user);
+    /*!
+     * @brief Lock the object. Only the user who locked the object can unlock it. If the object was locked without a specific user, or with an anonymous user, any user can unlock it.
+     * @param user User performing the lock action.
+     */
+    daqErrCode EXPORTED daqUserLock_lock(daqUserLock* self, daqUser* user DAQ_DEFAULT_VALUE(nullptr));
+
+    /*!
+     * @brief Unlock the object. Only the user who locked the object can unlock it. If the object was locked without a specific user, or with an anonymous user, any user can unlock it.
+     * @param user User performing the unlock action.
+     */
+    daqErrCode EXPORTED daqUserLock_unlock(daqUserLock* self, daqUser* user DAQ_DEFAULT_VALUE(nullptr));
+
+    /*!
+     * @brief Forcefully unlock the object. A force unlock will always succeed, regardless of which user initially locked the object.
+     */
     daqErrCode EXPORTED daqUserLock_forceUnlock(daqUserLock* self);
+
+    /*!
+     * @brief Returns true if the object is locked.
+     * @param isLockedOut[out] True if the object is locked.
+     */
     daqErrCode EXPORTED daqUserLock_isLocked(daqUserLock* self, daqBool* isLockedOut);
+
+    /*!
+     * @brief Creates an unlocked UserLock object.
+     */
     daqErrCode EXPORTED daqUserLock_createUserLock(daqUserLock** obj);
 
 #ifdef __cplusplus

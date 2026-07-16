@@ -34,6 +34,12 @@ extern "C"
 
 #include <ccommon.h>
 
+    /*!
+     * @ingroup types_events
+     * @defgroup types_event Event
+     */
+    DAQ_EXTENDS_INTERFACE(daqEvent, daqBaseObject);
+
     typedef struct daqEvent daqEvent;
     typedef struct daqEventHandler daqEventHandler;
     typedef struct daqEventArgs daqEventArgs;
@@ -43,15 +49,25 @@ extern "C"
     void EXPORTED daqEvent_getInterfaceId(daqIntfID* intfId);
 
     daqErrCode EXPORTED daqEvent_addHandler(daqEvent* self, daqEventHandler* eventHandler);
+
     daqErrCode EXPORTED daqEvent_removeHandler(daqEvent* self, daqEventHandler* eventHandler);
+
     daqErrCode EXPORTED daqEvent_trigger(daqEvent* self, daqBaseObject* sender, daqEventArgs* args);
+
     daqErrCode EXPORTED daqEvent_clear(daqEvent* self);
+
     daqErrCode EXPORTED daqEvent_getSubscriberCount(daqEvent* self, daqSizeT* count);
+
     daqErrCode EXPORTED daqEvent_getSubscribers(daqEvent* self, daqList** subscribers);
+
     daqErrCode EXPORTED daqEvent_mute(daqEvent* self);
+
     daqErrCode EXPORTED daqEvent_unmute(daqEvent* self);
+
     daqErrCode EXPORTED daqEvent_muteListener(daqEvent* self, daqEventHandler* eventHandler);
+
     daqErrCode EXPORTED daqEvent_unmuteListener(daqEvent* self, daqEventHandler* eventHandler);
+
     daqErrCode EXPORTED daqEvent_createEvent(daqEvent** obj);
 
 #ifdef __cplusplus

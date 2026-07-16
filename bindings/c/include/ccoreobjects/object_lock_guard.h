@@ -34,6 +34,11 @@ extern "C"
 
 #include <ccommon.h>
 
+    /*!
+     * @brief Interface for lock guard objects.
+     */
+    DAQ_EXTENDS_INTERFACE(daqLockGuard, daqBaseObject);
+
 
     EXPORTED extern const daqIntfID DAQ_LOCK_GUARD_INTF_ID;
     void EXPORTED daqLockGuard_getInterfaceId(daqIntfID* intfId);

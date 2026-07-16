@@ -34,6 +34,11 @@ extern "C"
 
 #include <ccommon.h>
 
+    /*!
+     * @brief Provides information on what streaming type can be created by a given module. Can be used to obtain the default configuration used when either adding/creating a new device, or establishing a new streaming connection.
+     */
+    DAQ_EXTENDS_INTERFACE(daqStreamingType, daqComponentType);
+
     typedef struct daqStreamingType daqStreamingType;
     typedef struct daqString daqString;
     typedef struct daqPropertyObject daqPropertyObject;
@@ -42,6 +47,14 @@ extern "C"
     void EXPORTED daqStreamingType_getInterfaceId(daqIntfID* intfId);
 
     daqErrCode EXPORTED daqStreamingType_getConnectionStringPrefix(daqStreamingType* self, daqString** prefix);
+
+    /*!
+     * @brief Creates a Streaming type object, with the id, name, description and optional defaultConfig.
+     * @param id The unique type ID of the Streaming.
+     * @param name The name of the Streaming. Eg. FFT.
+     * @param description A short description of the Streaming and its behaviour.
+     * @param defaultConfig The property object, to be cloned and returned, each time user creates default configuration object. This way each instance of the Streaming has its own configuration object.
+     */
     daqErrCode EXPORTED daqStreamingType_createStreamingType(daqStreamingType** obj, daqString* id, daqString* name, daqString* description, daqString* prefix, daqPropertyObject* defaultConfig);
 
 #ifdef __cplusplus

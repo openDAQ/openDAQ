@@ -34,6 +34,38 @@ extern "C"
 
 #include <ccommon.h>
 
+    /*!
+     * @brief Contains standard information about an openDAQ device and device type. The Device Info object is a Property Object, allowing for custom String, Int, Bool, or Float-type properties to be added.
+     *
+     * The getter methods represent a standardized set of Device properties according to the
+     * OPC UA: Devices standard. Any additional String, Int, Bool, or Float-type properties can be added, using the
+     * appropriate Property Object "add property" method. Any other types of properties are invalid.
+     * Although Integer-type properties are valid additions, Selection properties cannot be added to
+     * Device Info.
+     *
+     * As the Device Info object adheres to the OPC UA: Devices standard, it behaves differently than
+     * standard Property Objects. No metadata except the Value Type and Default Value are published
+     * via OPC UA, and this only said Property metadata is visible to any clients.
+     *
+     * All fields - default (e.g. platform, manufacturer...) and custom are represented as either:
+     *
+     * - String-type properties
+     * - Integer-type properties
+     * - Bool-type properties
+     * - Float type properties
+     *
+     * As such, listing all properties via Property Object methods, will return both the
+     * names of the default and custom properties. All default properties are initialized to an empty
+     * string except for RevisionCounter and Position that are integer properties and are
+     * thus initialized to '0'. The names of the properties are written in camelCase - for
+     * example "systemUuid", "parentMacAddress", "manufacturerUri".
+     *
+     * If the DeviceInfo object is obtained from a device, or when listing available devices, the
+     * object is frozen (immutable). As such, Property Object setter methods cannot be used
+     * and will fail when called.
+     */
+    DAQ_EXTENDS_INTERFACE(daqDeviceInfo, daqPropertyObject);
+
     typedef struct daqDeviceInfo daqDeviceInfo;
     typedef struct daqString daqString;
     typedef struct daqDeviceType daqDeviceType;
@@ -45,39 +77,229 @@ extern "C"
     EXPORTED extern const daqIntfID DAQ_DEVICE_INFO_INTF_ID;
     void EXPORTED daqDeviceInfo_getInterfaceId(daqIntfID* intfId);
 
+    /*!
+     * @brief Gets the name of the device
+     * @param[out] name The name of the device.
+     *
+     * If the info object is obtained from a device that is already added (not through discovery),
+     * the name string value matches that of the device's "Name" attribute.
+     */
     daqErrCode EXPORTED daqDeviceInfo_getName(daqDeviceInfo* self, daqString** name);
+
+    /*!
+     * @brief Gets the string representation of a connection address used to connect to the device.
+     * @param[out] connectionString The string used to connect to the device.
+     */
     daqErrCode EXPORTED daqDeviceInfo_getConnectionString(daqDeviceInfo* self, daqString** connectionString);
-    daqErrCode EXPORTED daqDeviceInfo_getDeviceType(daqDeviceInfo* self, daqDeviceType** deviceType);
+
+    /*!
+     * @brief Gets a device type as an object providing type id, name, short description and default device configuration. By using default config object as a starting point, users can easily modify the preset properties to tailor the configuration of the client device accordingly.
+     * @param[out] deviceType The device type object
+     */
+    daqErrCode EXPORTED daqDeviceInfo_getDeviceType(daqDeviceInfo* self, daqDeviceType** deviceType DAQ_TEMPLATE_TYPE(daqDeviceType));
+
+    /*!
+     * @brief Gets the company that manufactured the device
+     * @param[out] manufacturer The manufacturer of the device.
+     */
     daqErrCode EXPORTED daqDeviceInfo_getManufacturer(daqDeviceInfo* self, daqString** manufacturer);
+
+    /*!
+     * @brief Gets the unique identifier of the company that manufactured the device This identifier should be a fully qualified domain name; however, it may be a GUID or similar construct that ensures global uniqueness.
+     * @param[out] manufacturerUri The manufacturer uri of the device.
+     */
     daqErrCode EXPORTED daqDeviceInfo_getManufacturerUri(daqDeviceInfo* self, daqString** manufacturerUri);
+
+    /*!
+     * @brief Gets the model of the device
+     * @param[out] model The model of the device.
+     */
     daqErrCode EXPORTED daqDeviceInfo_getModel(daqDeviceInfo* self, daqString** model);
+
+    /*!
+     * @brief Gets the unique combination of numbers and letters used to identify the device.
+     * @param[out] productCode The product code of the device.
+     */
     daqErrCode EXPORTED daqDeviceInfo_getProductCode(daqDeviceInfo* self, daqString** productCode);
+
+    /*!
+     * @brief Gets the revision level of the device.
+     * @param[out] deviceRevision The device revision level.
+     */
     daqErrCode EXPORTED daqDeviceInfo_getDeviceRevision(daqDeviceInfo* self, daqString** deviceRevision);
+
+    /*!
+     * @brief Gets the revision level of the hardware.
+     * @param[out] hardwareRevision The hardware revision of the device.
+     */
     daqErrCode EXPORTED daqDeviceInfo_getHardwareRevision(daqDeviceInfo* self, daqString** hardwareRevision);
+
+    /*!
+     * @brief Gets the revision level of the software component.
+     * @param[out] softwareRevision The software revision of the device.
+     */
     daqErrCode EXPORTED daqDeviceInfo_getSoftwareRevision(daqDeviceInfo* self, daqString** softwareRevision);
+
+    /*!
+     * @brief Gets the address of the user manual. It may be a pathname in the file system or a URL (Web address)
+     * @param[out] deviceManual The manual of the device.
+     */
     daqErrCode EXPORTED daqDeviceInfo_getDeviceManual(daqDeviceInfo* self, daqString** deviceManual);
+
+    /*!
+     * @brief Gets the purpose of the device. For example "TestMeasurementDevice".
+     * @param[out] deviceClass The class of the device.
+     */
     daqErrCode EXPORTED daqDeviceInfo_getDeviceClass(daqDeviceInfo* self, daqString** deviceClass);
+
+    /*!
+     * @brief Gets the unique production number provided by the manufacturer
+     * @param[out] serialNumber The serial number of the device.
+     */
     daqErrCode EXPORTED daqDeviceInfo_getSerialNumber(daqDeviceInfo* self, daqString** serialNumber);
+
+    /*!
+     * @brief Gets the globally unique resource identifier provided by the manufacturer. The recommended syntax of the ProductInstanceUri is: <ManufacturerUri>/<any string> where <any string> is unique among all instances using the same ManufacturerUri.
+     * @param[out] productInstanceUri The product instance uri of the device.
+     */
     daqErrCode EXPORTED daqDeviceInfo_getProductInstanceUri(daqDeviceInfo* self, daqString** productInstanceUri);
+
+    /*!
+     * @brief Gets the incremental counter indicating the number of times the configuration data has been modified.
+     * @param[out] revisionCounter The revision counter of the device.
+     */
     daqErrCode EXPORTED daqDeviceInfo_getRevisionCounter(daqDeviceInfo* self, daqInt* revisionCounter);
+
+    /*!
+     * @brief Gets the asset ID of the device. Represents a user writable alphanumeric character sequence uniquely identifying a component.
+     * @param[out] id The asset ID of the device.
+     *
+     * The ID is provided by the integrator or user of the device. It contains typically an identifier
+     * in a branch, use case or user specific naming scheme. This could be for example a reference to
+     * an electric scheme. The ID must be a string representation of an Int32 number.
+     */
     daqErrCode EXPORTED daqDeviceInfo_getAssetId(daqDeviceInfo* self, daqString** id);
+
+    /*!
+     * @brief Gets the Mac address of the device.
+     * @param[out] macAddress The Mac address.
+     */
     daqErrCode EXPORTED daqDeviceInfo_getMacAddress(daqDeviceInfo* self, daqString** macAddress);
+
+    /*!
+     * @brief Gets the Mac address of the device's parent.
+     * @param[out] macAddress The parent's Mac address.
+     */
     daqErrCode EXPORTED daqDeviceInfo_getParentMacAddress(daqDeviceInfo* self, daqString** macAddress);
+
+    /*!
+     * @brief Gets the platform of the device. The platform specifies whether real hardware is used or if the device is simulated.
+     * @param[out] platform The platform of the device.
+     */
     daqErrCode EXPORTED daqDeviceInfo_getPlatform(daqDeviceInfo* self, daqString** platform);
+
+    /*!
+     * @brief Gets the position of the device. The position specifies the position within a given system. For example in which slot or slice the device is in.
+     * @param[out] position The position of the device.
+     *
+     * The Position should be a positive integer in the range supported by the UInt16 data type.
+     */
     daqErrCode EXPORTED daqDeviceInfo_getPosition(daqDeviceInfo* self, daqInt* position);
+
+    /*!
+     * @brief Gets the system type. The system type can, for example, be LayeredSystem, StandaloneSystem, or RackSystem.
+     * @param[out] type The system type of the device.
+     */
     daqErrCode EXPORTED daqDeviceInfo_getSystemType(daqDeviceInfo* self, daqString** type);
+
+    /*!
+     * @brief Gets the system UUID that represents a unique ID of a system. All devices in a system share this UUID.
+     * @param[out] uuid The unique ID of a system.
+     */
     daqErrCode EXPORTED daqDeviceInfo_getSystemUuid(daqDeviceInfo* self, daqString** uuid);
-    daqErrCode EXPORTED daqDeviceInfo_getCustomInfoPropertyNames(daqDeviceInfo* self, daqList** customInfoNames);
+
+    /*!
+     * @brief Gets the list of property names that are not in the default set of Device info properties. Default properties are all info properties that have a corresponding getter method.
+     * @param[out] customInfoNames The list of names of custom properties.
+     */
+    daqErrCode EXPORTED daqDeviceInfo_getCustomInfoPropertyNames(daqDeviceInfo* self, daqList** customInfoNames DAQ_LIST_ELEMENT_TYPE(daqString));
+
+    /*!
+     * @brief Gets the version of the SDK used to build said device. Can be empty if the device does not use the SDK as its firmware/is implemented at a protocol-level.
+     * @param[out] version The SDK version.
+     */
     daqErrCode EXPORTED daqDeviceInfo_getSdkVersion(daqDeviceInfo* self, daqString** version);
-    daqErrCode EXPORTED daqDeviceInfo_getServerCapabilities(daqDeviceInfo* self, daqList** serverCapabilities);
+
+    /*!
+     * @brief Gets the list of server capabilities stored in device info.
+     * @param[out] serverCapabilities The list of device supported protocols (List containing IServerCapability objects, representing the supported protocols along with their properties).
+     */
+    daqErrCode EXPORTED daqDeviceInfo_getServerCapabilities(daqDeviceInfo* self, daqList** serverCapabilities DAQ_LIST_ELEMENT_TYPE(daqServerCapability));
+
+    /*!
+     * @brief Gets the location of the device.
+     * @param[out] location The location of the device.
+     *
+     * If the info object is obtained from a device that is already added (not through discovery),
+     * the location string value matches that of the device's "location" property.
+     */
     daqErrCode EXPORTED daqDeviceInfo_getLocation(daqDeviceInfo* self, daqString** location);
+
+    /*!
+     * @brief Retrieves the configuration connection information of the server to which the client is connected.
+     * @param[out] connectionInfo The server capability with the configuration connection information.
+     *
+     * This method returns the configuration connection information of the server to which the client is connected.
+     * If the connection to the server is not established, the fields of the server capability object are empty.
+     */
     daqErrCode EXPORTED daqDeviceInfo_getConfigurationConnectionInfo(daqDeviceInfo* self, daqServerCapability** connectionInfo);
+
+    /*!
+     * @brief Checks whether the server capability with a given ID is available.
+     * @param protocolId The ID of the server capability protocol.
+     * @param[out] hasCapability True if the protocol is available; False otherwise.
+     */
     daqErrCode EXPORTED daqDeviceInfo_hasServerCapability(daqDeviceInfo* self, daqString* protocolId, daqBool* hasCapability);
+
+    /*!
+     * @brief Gets the server capability with a given ID.
+     * @param protocolId The ID of the server capability protocol.
+     * @param[out] serverCapability The server capability with the given ID.
+     * @retval OPENDAQ_ERR_NOTFOUND if the server capability is not available.
+     */
     daqErrCode EXPORTED daqDeviceInfo_getServerCapability(daqDeviceInfo* self, daqString* protocolId, daqServerCapability** serverCapability);
-    daqErrCode EXPORTED daqDeviceInfo_getNetworkInterfaces(daqDeviceInfo* self, daqDict** interfaces);
+
+    /*!
+     * @brief Gets the dictionary of network interfaces stored in device info.
+     * @param[out] interfaces The dictionary of device network interfaces.
+     *
+     * Obtained dictionary contains INetworkInterface objects, representing the available network interfaces
+     * and allowing to manage their configurations. The dictionary key corresponds to interface identifier (e.g. "eth0").
+     */
+    daqErrCode EXPORTED daqDeviceInfo_getNetworkInterfaces(daqDeviceInfo* self, daqDict** interfaces DAQ_DICT_TEMPLATE_TYPE(daqString, daqNetworkInterface));
+
+    /*!
+     * @brief Gets the network interface with a given name.
+     * @param interfaceName The name of the device network interface.
+     * @param[out] intf The device network interface with the given name.
+     * @retval OPENDAQ_ERR_NOTFOUND if the network interface with the given name is not available.
+     */
     daqErrCode EXPORTED daqDeviceInfo_getNetworkInterface(daqDeviceInfo* self, daqString* interfaceName, daqNetworkInterface** intf);
+
+    /*!
+     * @brief Gets the name of the current user of the device.
+     * @param[out] userName The name of the current user of the device.
+     *
+     * If the info object is obtained from a device that is already added (not through discovery),
+     * the username string value matches that of the device's "userName" property.
+     */
     daqErrCode EXPORTED daqDeviceInfo_getUserName(daqDeviceInfo* self, daqString** userName);
-    daqErrCode EXPORTED daqDeviceInfo_getConnectedClientsInfo(daqDeviceInfo* self, daqList** connectedClientsInfo);
+
+    /*!
+     * @brief Gets the list of connected client information objects.
+     * @param[out] connectedClientsInfo The list of connected client information objects.
+     */
+    daqErrCode EXPORTED daqDeviceInfo_getConnectedClientsInfo(daqDeviceInfo* self, daqList** connectedClientsInfo DAQ_LIST_ELEMENT_TYPE(daqConnectedClientInfo));
 
 #ifdef __cplusplus
 }

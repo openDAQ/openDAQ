@@ -34,6 +34,21 @@ extern "C"
 
 #include <ccommon.h>
 
+    /*!
+     * @brief Interface representing a Synchronization Component in a Test & Measurement system. A SynchronizationComponent ensures synchronization among measurement devices in the system. It can act as a sync source and/or as a sync output, with each component having one sync input and 0 to n sync outputs.
+     *
+     * SynchronizationComponents are configured via interfaces, which can include PTP, IRIQ, GPS,
+     * and CLK sync interfaces, among others.
+     * @note Every SynchronizationComponent has at least one interface. Only one interface can be set
+     * as an input, while others can be used as sync outputs to synchronize other devices.
+     * The configuration of these interfaces and the reading of their status is defined in Part 4.
+     * @note Depending on the setup, some interfaces may be switched off, and some interfaces may
+     * act as sync sources or outputs.
+     * @note A CLK interface can be used to let a device run in Fre-Run mode, where the device
+     * syncs internally to an internal quartz.
+     */
+    DAQ_EXTENDS_INTERFACE(daqSyncComponent, daqComponent);
+
     typedef struct daqSyncComponent daqSyncComponent;
     typedef struct daqDict daqDict;
     typedef struct daqContext daqContext;
@@ -43,10 +58,30 @@ extern "C"
     EXPORTED extern const daqIntfID DAQ_SYNC_COMPONENT_INTF_ID;
     void EXPORTED daqSyncComponent_getInterfaceId(daqIntfID* intfId);
 
+    /*!
+     * @brief Retrieves the synchronization lock status.
+     * @param[out] synchronizationLocked True if synchronization is locked; false otherwise.
+     */
     daqErrCode EXPORTED daqSyncComponent_getSyncLocked(daqSyncComponent* self, daqBool* synchronizationLocked);
+
+    /*!
+     * @brief Retrieves the selected sync source interface.
+     * @param[out] selectedSource The selected sync source interface.
+     */
     daqErrCode EXPORTED daqSyncComponent_getSelectedSource(daqSyncComponent* self, daqInt* selectedSource);
+
+    /*!
+     * @brief Sets the selected sync source interface.
+     * @param selectedSource The selected sync source interface.
+     */
     daqErrCode EXPORTED daqSyncComponent_setSelectedSource(daqSyncComponent* self, daqInt selectedSource);
-    daqErrCode EXPORTED daqSyncComponent_getInterfaces(daqSyncComponent* self, daqDict** interfaces);
+
+    /*!
+     * @brief Retrieves the list of interfaces associated with this synchronization component.
+     * @param[out] interfaces List of interfaces associated with this component.
+     */
+    daqErrCode EXPORTED daqSyncComponent_getInterfaces(daqSyncComponent* self, daqDict** interfaces DAQ_DICT_TEMPLATE_TYPE(daqString, daqPropertyObject));
+
     daqErrCode EXPORTED daqSyncComponent_createSyncComponent(daqSyncComponent** obj, daqContext* context, daqComponent* ParseFailedException, daqString* localId);
 
 #ifdef __cplusplus

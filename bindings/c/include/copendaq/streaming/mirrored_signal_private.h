@@ -34,6 +34,11 @@ extern "C"
 
 #include <ccommon.h>
 
+    /*!
+     * @brief Internal functions used by openDAQ core. This interface should never be used in client SDK or module code.
+     */
+    DAQ_EXTENDS_INTERFACE(daqMirroredSignalPrivate, daqBaseObject);
+
     typedef struct daqMirroredSignalPrivate daqMirroredSignalPrivate;
     typedef struct daqEventPacket daqEventPacket;
     typedef struct daqStreaming daqStreaming;
@@ -44,15 +49,49 @@ extern "C"
     EXPORTED extern const daqIntfID DAQ_MIRRORED_SIGNAL_PRIVATE_INTF_ID;
     void EXPORTED daqMirroredSignalPrivate_getInterfaceId(daqIntfID* intfId);
 
+    /*!
+     * @brief Handles event packet e.g. packet with changes of the signals descriptors or signal properties
+     * @param eventPacket The event packet to be handled.
+     * @returns True if the eventPacket should be sent along the signal path; False otherwise.
+     */
     daqErrCode EXPORTED daqMirroredSignalPrivate_triggerEvent(daqMirroredSignalPrivate* self, daqEventPacket* eventPacket, daqBool* forward);
+
+    /*!
+     * @brief Adds streaming source for signal.
+     * @param streaming The Streaming object representing the data source.
+     */
     daqErrCode EXPORTED daqMirroredSignalPrivate_addStreamingSource(daqMirroredSignalPrivate* self, daqStreaming* streaming);
+
+    /*!
+     * @brief Removes streaming source for signal.
+     * @param streamingConnectionString The connection string of streaming source to be removed.
+     */
     daqErrCode EXPORTED daqMirroredSignalPrivate_removeStreamingSource(daqMirroredSignalPrivate* self, daqString* streamingConnectionString);
+
+    /*!
+     * @brief Handles the completion of subscription acknowledged by the specified streaming source.
+     * @param streamingConnectionString The connection string of the streaming source that completed the subscription for the signal.
+     */
     daqErrCode EXPORTED daqMirroredSignalPrivate_subscribeCompleted(daqMirroredSignalPrivate* self, daqString* streamingConnectionString);
+
+    /*!
+     * @brief Handles the completion of unsubscription acknowledged by the specified streaming source.
+     * @param streamingConnectionString The connection string of the streaming source that completed the unsubscription for the signal.
+     */
     daqErrCode EXPORTED daqMirroredSignalPrivate_unsubscribeCompleted(daqMirroredSignalPrivate* self, daqString* streamingConnectionString);
+
+    /*!
+     * @brief Acts the same as unsubscribeCompleted() but does not enter a critical section.
+     * @param streamingConnectionString The connection string of the streaming source that completed the unsubscription for the signal.
+     */
     daqErrCode EXPORTED daqMirroredSignalPrivate_unsubscribeCompletedNoLock(daqMirroredSignalPrivate* self, daqString* streamingConnectionString);
+
     daqErrCode EXPORTED daqMirroredSignalPrivate_getMirroredDataDescriptor(daqMirroredSignalPrivate* self, daqDataDescriptor** descriptor);
+
     daqErrCode EXPORTED daqMirroredSignalPrivate_setMirroredDataDescriptor(daqMirroredSignalPrivate* self, daqDataDescriptor* descriptor);
+
     daqErrCode EXPORTED daqMirroredSignalPrivate_getMirroredDomainSignal(daqMirroredSignalPrivate* self, daqMirroredSignalConfig** domainSignals);
+
     daqErrCode EXPORTED daqMirroredSignalPrivate_setMirroredDomainSignal(daqMirroredSignalPrivate* self, daqMirroredSignalConfig* domainSignal);
 
 #ifdef __cplusplus

@@ -34,6 +34,12 @@ extern "C"
 
 #include <ccommon.h>
 
+    /*!
+     * @brief A signal data reader that abstracts away reading of signal packets by keeping an internal read-position and automatically advances it on subsequent reads. The difference to a StreamReader is that instead of reading on per sample basis it always returns only a full block of samples. This means that even if more samples are available they will not be read until there is enough of them to fill at least one block.
+     * @remark Currently only supports single-dimensional scalar sample-types and RangeInt64
+     */
+    DAQ_EXTENDS_INTERFACE(daqBlockReader, daqSampleReader);
+
     typedef struct daqBlockReader daqBlockReader;
     typedef struct daqBlockReaderStatus daqBlockReaderStatus;
     typedef struct daqSignal daqSignal;
@@ -42,12 +48,41 @@ extern "C"
     EXPORTED extern const daqIntfID DAQ_BLOCK_READER_INTF_ID;
     void EXPORTED daqBlockReader_getInterfaceId(daqIntfID* intfId);
 
-    daqErrCode EXPORTED daqBlockReader_read(daqBlockReader* self, void* blocks, daqSizeT* count, daqSizeT timeoutMs, daqBlockReaderStatus** status);
-    daqErrCode EXPORTED daqBlockReader_readWithDomain(daqBlockReader* self, void* dataBlocks, void* domainBlocks, daqSizeT* count, daqSizeT timeoutMs, daqBlockReaderStatus** status);
+    /*!
+     * @brief Copies at maximum the next `count` blocks of unread samples to the values buffer. The amount actually read is returned through the `count` parameter.
+     * @param blocks The buffer that the samples will be copied to. The buffer must be a contiguous memory big enough to receive `count` * `blockSize` amount of samples.
+     * @param count The maximum amount of blocks to be read. If the `count` is less than available the parameter value is set to the actual amount and only the available blocks are returned. The rest of the buffer is not modified or cleared.
+     * @param timeoutMs The maximum amount of time in milliseconds to wait for the requested amount of blocks before returning.
+     * @param[out] status: Represents the status of the reader. - If the reader is invalid, IReaderStatus::getValid returns false. - If an event packet was encountered during processing, IReaderStatus::isEventEncountered returns true. - If the reading process is successful, ReaderStatus::isOk returns true, indicating that IReaderStatus::getValid is true and IReaderStatus::isEventEncountered is false.
+     */
+    daqErrCode EXPORTED daqBlockReader_read(daqBlockReader* self, void* blocks, daqSizeT* count, daqSizeT timeoutMs DAQ_DEFAULT_VALUE(0), daqBlockReaderStatus** status DAQ_DEFAULT_VALUE(nullptr));
+
+    /*!
+     * @brief Copies at maximum the next `count` blocks of unread samples and clock-stamps to the `dataBlocks` and `domainBlocks` buffers. The amount actually read is returned through the `count` parameter.
+     * @param dataBlocks The buffer that the samples will be copied to. The buffer must be a contiguous memory big enough to receive `count` * `blockSize` amount of samples.
+     * @param domainBlocks The buffer that the domain values will be copied to. The buffer must be a contiguous memory big enough to receive `count` * `blockSize` amount of clock-stamps.
+     * @param count The maximum amount of blocks to be read. If the `count` is less than available the parameter value is set to the actual amount and only the available blocks are returned. The rest of the buffer is not modified or cleared.
+     * @param timeoutMs The maximum amount of time in milliseconds to wait for the requested amount of blocks before returning.
+     * @param[out] status: Represents the status of the reader. - If the reader is invalid, IReaderStatus::getValid returns false. - If an event packet was encountered during processing, IReaderStatus::isEventEncountered returns true. - If the reading process is successful, ReaderStatus::isOk returns true, indicating that IReaderStatus::getValid is true and IReaderStatus::isEventEncountered is false.
+     */
+    daqErrCode EXPORTED daqBlockReader_readWithDomain(daqBlockReader* self, void* dataBlocks, void* domainBlocks, daqSizeT* count, daqSizeT timeoutMs DAQ_DEFAULT_VALUE(0), daqBlockReaderStatus** status DAQ_DEFAULT_VALUE(nullptr));
+
+    /*!
+     * @brief The amount of samples the reader considers as one block.
+     * @param[out] size The number of samples in a block.
+     */
     daqErrCode EXPORTED daqBlockReader_getBlockSize(daqBlockReader* self, daqSizeT* size);
+
+    /*!
+     * @brief The amount of block overlapping.
+     * @param[out] overlap The overlap size in percents.
+     */
     daqErrCode EXPORTED daqBlockReader_getOverlap(daqBlockReader* self, daqSizeT* overlap);
+
     daqErrCode EXPORTED daqBlockReader_createBlockReader(daqBlockReader** obj, daqSignal* signal, daqSizeT blockSize, daqSampleType valueReadType, daqSampleType domainReadType, daqReadMode mode);
+
     daqErrCode EXPORTED daqBlockReader_createBlockReaderFromExisting(daqBlockReader** obj, daqBlockReader* invalidatedReader, daqSampleType valueReadType, daqSampleType domainReadType, daqSizeT blockSize);
+
     daqErrCode EXPORTED daqBlockReader_createBlockReaderFromPort(daqBlockReader** obj, daqInputPortConfig* port, daqSizeT blockSize, daqSampleType valueReadType, daqSampleType domainReadType, daqReadMode mode);
 
 #ifdef __cplusplus

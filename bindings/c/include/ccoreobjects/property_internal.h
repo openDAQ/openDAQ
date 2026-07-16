@@ -34,6 +34,12 @@ extern "C"
 
 #include <ccommon.h>
 
+    /*!
+     * @ingroup objects_property
+     * @addtogroup objects_property_obj PropertyInternal
+     */
+    DAQ_EXTENDS_INTERFACE(daqPropertyInternal, daqBaseObject);
+
     typedef struct daqPropertyInternal daqPropertyInternal;
     typedef struct daqProperty daqProperty;
     typedef struct daqPropertyObject daqPropertyObject;
@@ -52,43 +58,122 @@ extern "C"
     EXPORTED extern const daqIntfID DAQ_PROPERTY_INTERNAL_INTF_ID;
     void EXPORTED daqPropertyInternal_getInterfaceId(daqIntfID* intfId);
 
+    /*!
+     * @brief Clones the property without an owner.
+     */
     daqErrCode EXPORTED daqPropertyInternal_clone(daqPropertyInternal* self, daqProperty** clonedProperty);
+
+    /*!
+     * @brief Clones the property, setting the passed PropertyObject as its owner.
+     *
+     * If the provided owner is the same as the current owner of the property, the property is not cloned.
+     * Instead the property itself is returned as-is.
+     */
     daqErrCode EXPORTED daqPropertyInternal_cloneWithOwner(daqPropertyInternal* self, daqPropertyObject* owner, daqProperty** clonedProperty);
+
+    /*!
+     * @brief Gets the Property description in an as either a String or unresolved EvalValue. The EvalValue is bound to the owner, if the Property has an owner.
+     */
     daqErrCode EXPORTED daqPropertyInternal_getDescriptionUnresolved(daqPropertyInternal* self, daqString** description);
+
+    /*!
+     * @brief Gets the Property unit in an as either a String (TODO: as an IUnit once supported) or unresolved EvalValue. The EvalValue is bound to the owner, if the Property has an owner.
+     */
     daqErrCode EXPORTED daqPropertyInternal_getUnitUnresolved(daqPropertyInternal* self, daqBaseObject** unit);
+
+    /*!
+     * @brief Gets the Property min value in an as either a Number or unresolved EvalValue. The EvalValue is bound to the owner, if the Property has an owner.
+     */
     daqErrCode EXPORTED daqPropertyInternal_getMinValueUnresolved(daqPropertyInternal* self, daqNumber** min);
+
+    /*!
+     * @brief Gets the Property max value in an as either a Number or unresolved EvalValue. The EvalValue is bound to the owner, if the Property has an owner.
+     */
     daqErrCode EXPORTED daqPropertyInternal_getMaxValueUnresolved(daqPropertyInternal* self, daqNumber** max);
+
+    /*!
+     * @brief Gets the Property default value in an as either a BaseObject or unresolved EvalValue. The EvalValue is bound to the owner, if the Property has an owner.
+     */
     daqErrCode EXPORTED daqPropertyInternal_getDefaultValueUnresolved(daqPropertyInternal* self, daqBaseObject** value);
-    daqErrCode EXPORTED daqPropertyInternal_getSuggestedValuesUnresolved(daqPropertyInternal* self, daqList** values);
+
+    /*!
+     * @brief Gets the Property suggested values in an as either a List of BaseObjects or unresolved EvalValue. The EvalValue is bound to the owner, if the Property has an owner.
+     */
+    daqErrCode EXPORTED daqPropertyInternal_getSuggestedValuesUnresolved(daqPropertyInternal* self, daqList** values DAQ_LIST_ELEMENT_TYPE(daqBaseObject));
+
+    /*!
+     * @brief Gets the Property visible field in an as either a Boolean or unresolved EvalValue. The EvalValue is bound to the owner, if the Property has an owner.
+     */
     daqErrCode EXPORTED daqPropertyInternal_getVisibleUnresolved(daqPropertyInternal* self, daqBoolean** visible);
+
+    /*!
+     * @brief Gets the Property read-only field in an as either a Boolean or unresolved EvalValue. The EvalValue is bound to the owner, if the Property has an owner.
+     */
     daqErrCode EXPORTED daqPropertyInternal_getReadOnlyUnresolved(daqPropertyInternal* self, daqBoolean** readOnly);
+
+    /*!
+     * @brief Gets the Property selection values in an as either a Dictionary of Int-BaseObject pairs, List of BaseObjects, or unresolved EvalValue. The EvalValue is bound to the owner, if the Property has an owner.
+     */
     daqErrCode EXPORTED daqPropertyInternal_getSelectionValuesUnresolved(daqPropertyInternal* self, daqBaseObject** values);
+
+    /*!
+     * @brief Gets the Property referenced property in an as either a Property or unresolved EvalValue. The EvalValue is bound to the owner, if the Property has an owner.
+     */
     daqErrCode EXPORTED daqPropertyInternal_getReferencedPropertyUnresolved(daqPropertyInternal* self, daqEvalValue** propertyEval);
+
+    /*!
+     * @brief Gets the unresolved type of the Property
+     */
     daqErrCode EXPORTED daqPropertyInternal_getValueTypeUnresolved(daqPropertyInternal* self, daqCoreType* coreType);
-    daqErrCode EXPORTED daqPropertyInternal_getClassOnPropertyValueRead(daqPropertyInternal* self, daqEvent** event);
-    daqErrCode EXPORTED daqPropertyInternal_getClassOnPropertyValueWrite(daqPropertyInternal* self, daqEvent** event);
+
+    daqErrCode EXPORTED daqPropertyInternal_getClassOnPropertyValueRead(daqPropertyInternal* self, daqEvent** event DAQ_TEMPLATE_TYPE(daqPropertyObject, daqPropertyValueEventArgs));
+
+    daqErrCode EXPORTED daqPropertyInternal_getClassOnPropertyValueWrite(daqPropertyInternal* self, daqEvent** event DAQ_TEMPLATE_TYPE(daqPropertyObject, daqPropertyValueEventArgs));
+
     daqErrCode EXPORTED daqPropertyInternal_getValueTypeNoLock(daqPropertyInternal* self, daqCoreType* type);
+
     daqErrCode EXPORTED daqPropertyInternal_getKeyTypeNoLock(daqPropertyInternal* self, daqCoreType* type);
+
     daqErrCode EXPORTED daqPropertyInternal_getItemTypeNoLock(daqPropertyInternal* self, daqCoreType* type);
+
     daqErrCode EXPORTED daqPropertyInternal_getDescriptionNoLock(daqPropertyInternal* self, daqString** description);
+
     daqErrCode EXPORTED daqPropertyInternal_getUnitNoLock(daqPropertyInternal* self, daqUnit** unit);
+
     daqErrCode EXPORTED daqPropertyInternal_getMinValueNoLock(daqPropertyInternal* self, daqNumber** min);
+
     daqErrCode EXPORTED daqPropertyInternal_getMaxValueNoLock(daqPropertyInternal* self, daqNumber** max);
+
     daqErrCode EXPORTED daqPropertyInternal_getDefaultValueNoLock(daqPropertyInternal* self, daqBaseObject** value);
-    daqErrCode EXPORTED daqPropertyInternal_getSuggestedValuesNoLock(daqPropertyInternal* self, daqList** values);
+
+    daqErrCode EXPORTED daqPropertyInternal_getSuggestedValuesNoLock(daqPropertyInternal* self, daqList** values DAQ_LIST_ELEMENT_TYPE(daqBaseObject));
+
     daqErrCode EXPORTED daqPropertyInternal_getVisibleNoLock(daqPropertyInternal* self, daqBool* visible);
+
     daqErrCode EXPORTED daqPropertyInternal_getReadOnlyNoLock(daqPropertyInternal* self, daqBool* readOnly);
+
     daqErrCode EXPORTED daqPropertyInternal_getSelectionValuesNoLock(daqPropertyInternal* self, daqBaseObject** values);
+
     daqErrCode EXPORTED daqPropertyInternal_getReferencedPropertyNoLock(daqPropertyInternal* self, daqProperty** propertyEval);
+
     daqErrCode EXPORTED daqPropertyInternal_getIsReferencedNoLock(daqPropertyInternal* self, daqBool* isReferenced);
+
     daqErrCode EXPORTED daqPropertyInternal_getValidatorNoLock(daqPropertyInternal* self, daqValidator** validator);
+
     daqErrCode EXPORTED daqPropertyInternal_getCoercerNoLock(daqPropertyInternal* self, daqCoercer** coercer);
+
     daqErrCode EXPORTED daqPropertyInternal_getCallableInfoNoLock(daqPropertyInternal* self, daqCallableInfo** callable);
+
     daqErrCode EXPORTED daqPropertyInternal_getStructTypeNoLock(daqPropertyInternal* self, daqStructType** structType);
+
     daqErrCode EXPORTED daqPropertyInternal_overrideDefaultValue(daqPropertyInternal* self, daqBaseObject* newDefaultValue);
+
     daqErrCode EXPORTED daqPropertyInternal_setValueProtected(daqPropertyInternal* self, daqBaseObject* newValue);
+
     daqErrCode EXPORTED daqPropertyInternal_getHasOnReadListeners(daqPropertyInternal* self, daqBool* hasListeners);
+
     daqErrCode EXPORTED daqPropertyInternal_getHasOnGetSuggestedValuesListeners(daqPropertyInternal* self, daqBool* hasListeners);
+
     daqErrCode EXPORTED daqPropertyInternal_getHasOnGetSelectionValuesListeners(daqPropertyInternal* self, daqBool* hasListeners);
 
 #ifdef __cplusplus

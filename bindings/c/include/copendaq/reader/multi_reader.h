@@ -34,6 +34,11 @@ extern "C"
 
 #include <ccommon.h>
 
+    /*!
+     * @brief Reads multiple Signals at once.
+     */
+    DAQ_EXTENDS_INTERFACE(daqMultiReader, daqSampleReader);
+
     typedef struct daqMultiReader daqMultiReader;
     typedef struct daqMultiReaderStatus daqMultiReaderStatus;
     typedef struct daqRatio daqRatio;
@@ -44,22 +49,107 @@ extern "C"
     EXPORTED extern const daqIntfID DAQ_MULTI_READER_INTF_ID;
     void EXPORTED daqMultiReader_getInterfaceId(daqIntfID* intfId);
 
-    daqErrCode EXPORTED daqMultiReader_read(daqMultiReader* self, void* samples, daqSizeT* count, daqSizeT timeoutMs, daqMultiReaderStatus** status);
-    daqErrCode EXPORTED daqMultiReader_readWithDomain(daqMultiReader* self, void* samples, void* domain, daqSizeT* count, daqSizeT timeoutMs, daqMultiReaderStatus** status);
+    /*!
+     * @brief Copies at maximum the next `count` unread samples to the values buffer. The amount actually read is returned through the `count` parameter.
+     * @param samples The buffer that the samples will be copied to. The buffer must be a contiguous memory big enough to receive `count` amount of samples. This should be a jagged array (array of pointers to arrays) where the size is equal to the Signal count and each Signal buffer is at least `count` size long. E.g: reading the next 5 samples of 3 signals samples | ˇ     0  1  2  3  4  5  <-- count [0] = [0, 0, 0, 0, 0, 0] [1] = [0, 0, 0, 0, 0, 0] [2] = [0, 0, 0, 0, 0, 0]
+     * @param count The maximum amount of samples to be read expressed in commonSampleRate. If the `count` is less than available the parameter value is set to the actual amount and only the available samples are returned. The rest of the buffer is not modified or cleared. In case of different sample rates, the number of read samples may be different for each individual signal.
+     * @param timeoutMs The maximum amount of time in milliseconds to wait for the requested amount of samples before returning.
+     * @param[out] status: Represents the status of the reader. - If the reader is invalid, IReaderStatus::getValid returns false. - If an event packet was encountered during processing, IReaderStatus::getReadStatus returns ReadStatus::Event - If the reading process is successful, IReaderStatus::getReadStatus returns ReadStatus::Ok, indicating that IReaderStatus::getValid is true and there is no encountered events
+     */
+    daqErrCode EXPORTED daqMultiReader_read(daqMultiReader* self, void* samples, daqSizeT* count, daqSizeT timeoutMs DAQ_DEFAULT_VALUE(0), daqMultiReaderStatus** status DAQ_DEFAULT_VALUE(nullptr));
+
+    /*!
+     * @brief Copies at maximum the next `count` unread samples and clock-stamps to the `samples` and `domain` buffers. The amount actually read is returned through the `count` parameter.
+     * @param samples The buffer that the samples will be copied to. The buffer must be a contiguous memory big enough to receive `count` amount of samples. This should be a jagged array (array of pointers to arrays) where the size is equal to the Signal count and each Signal buffer is at least `count` size long. E.g: reading the next 5 samples of 3 signals samples | ˇ     0  1  2  3  4  5  <-- count [0] = [0, 0, 0, 0, 0, 0] [1] = [0, 0, 0, 0, 0, 0] [2] = [0, 0, 0, 0, 0, 0]
+     * @param domain The buffer that the domain values will be copied to. The buffer must be a contiguous memory big enough to receive `count` amount of clock-stamps. This should be a jagged array (array of pointers to arrays) where the size is equal to the Signal count and each Signal buffer is at least `count` size long. E.g: reading the next 5 samples of 3 signals domain | ˇ     0  1  2  3  4  5  <-- count [0] = [0, 0, 0, 0, 0, 0] [1] = [0, 0, 0, 0, 0, 0] [2] = [0, 0, 0, 0, 0, 0]
+     * @param count The maximum amount of samples to be read expressed in commonSampleRate. If the `count` is less than available the parameter value is set to the actual amount and only the available samples are returned. The rest of the buffer is not modified or cleared. In case of different sample rates, the number of read samples may be different for each individual signal.
+     * @param timeoutMs The maximum amount of time in milliseconds to wait for the requested amount of samples before returning.
+     * @param[out] status: Represents the status of the reader. - If the reader is invalid, IReaderStatus::getValid returns false. - If an event packet was encountered during processing, IReaderStatus::getReadStatus returns ReadStatus::Event - If the reading process is successful, IReaderStatus::getReadStatus returns ReadStatus::Ok, indicating that IReaderStatus::getValid is true and there is no encountered events
+     */
+    daqErrCode EXPORTED daqMultiReader_readWithDomain(daqMultiReader* self, void* samples, void* domain, daqSizeT* count, daqSizeT timeoutMs DAQ_DEFAULT_VALUE(0), daqMultiReaderStatus** status DAQ_DEFAULT_VALUE(nullptr));
+
+    /*!
+     * @brief Skips the specified amount of samples.
+     * @param count The maximum amount of samples to be skipped. If the `count` is less than available the parameter value is set to the actual amount and only the available samples are skipped. The rest of the buffer is not modified or cleared.
+     * @param[out] status: Represents the status of the reader. - If the reader is invalid, IReaderStatus::getValid returns false. - If an event packet was encountered during processing, IReaderStatus::getReadStatus returns ReadStatus::Event - If the reading process is successful, IReaderStatus::getReadStatus returns ReadStatus::Ok, indicating that IReaderStatus::getValid is true and there is no encountered events
+     */
     daqErrCode EXPORTED daqMultiReader_skipSamples(daqMultiReader* self, daqSizeT* count, daqMultiReaderStatus** status);
+
+    /*!
+     * @brief Gets the resolution the reader aligned all the signals to. This is the highest resolution (lowest value) of all the signals to not loose the precision.
+     * @param resolution The aligned resolution used for all read signals.
+     */
     daqErrCode EXPORTED daqMultiReader_getTickResolution(daqMultiReader* self, daqRatio** resolution);
+
+    /*!
+     * @brief Gets the origin the reader aligned all the signals to. This is usually the earliest (lowest value) from all the signals.
+     * @param origin The origin all signals are aligned to.
+     */
     daqErrCode EXPORTED daqMultiReader_getOrigin(daqMultiReader* self, daqString** origin);
+
+    /*!
+     * @brief Gets the domain value (offset) from the aligned origin at the point the reader starts to provide synchronized samples.
+     * @param domainStart The domain point at which the reader managed to synchronize all the signals.
+     * @return OPENDAQ_SUCCESS if the reader is synchronized,
+         *         OPENDAQ_IGNORED if the reader is not synchronized.
+     */
     daqErrCode EXPORTED daqMultiReader_getOffset(daqMultiReader* self, void* domainStart);
+
+    /*!
+     * @brief Gets the synchronization status of the reader
+     * @param isSynchronized True if reader is synchronized, False otherwise.
+     *
+     * Reader will try to synchronize the data from the signals when `getAvailableCount` or any of the read methods is called.
+     */
     daqErrCode EXPORTED daqMultiReader_getIsSynchronized(daqMultiReader* self, daqBool* isSynchronized);
+
+    /*!
+     * @brief Gets the common sample rate in case input signal have different rates. The value of common sample rate is such that sample rate of any individual signal can be represented as commonSampleRate / Div, where Div is an integer. Unless the required common sample rate is specified in the MultiReader constructor, common sample rate is lowest common multiple of individual signal's sample rates. The number of samples to be read is specified in common sample rate.
+     * @param commonSampleRate The domain point at which the reader managed to synchronize all the signals.
+     */
     daqErrCode EXPORTED daqMultiReader_getCommonSampleRate(daqMultiReader* self, daqInt* commonSampleRate);
+
+    /*!
+     * @brief Sets active or inactive MultiReader state. In inactive state MultiReader will receive only event packets.
+     * @param isActive Set true for the active state.
+     */
     daqErrCode EXPORTED daqMultiReader_setActive(daqMultiReader* self, daqBool isActive);
+
+    /*!
+     * @brief Gets active or inactive MultiReader state. In inactive state MultiReader will receive only event packets.
+     */
     daqErrCode EXPORTED daqMultiReader_getActive(daqMultiReader* self, daqBool* isActive);
+
+    /*!
+     * @brief Add the component to the list of inputs that are being read from.
+     * @param input may be either an ISignal or an IInputPort.
+     */
     daqErrCode EXPORTED daqMultiReader_addInput(daqMultiReader* self, daqComponent* input);
+
+    /*!
+     * @brief Remove the component with matching global ID.
+     * @param id Global ID of the component that was added to the MultiReader.
+     */
     daqErrCode EXPORTED daqMultiReader_removeInput(daqMultiReader* self, daqString* id);
+
+    /*!
+     * @brief Set whether input with matching global ID is used in synchronization and reading.
+     * @param id Global ID of a component previously added into the MultiReader.
+     * @param unused If true, the component won't be synchronized or read from. An unused component cannot cause the MultiReader to enter invalid state. In reading operations, provide buffers for ALL inputs, even the unused ones.
+     */
     daqErrCode EXPORTED daqMultiReader_setInputUsed(daqMultiReader* self, daqString* id, daqBool isUsed);
+
+    /*!
+     * @brief Get the used flag for the input component. If the result is false, the input is not used (ignored) by the MultiReader.
+     * @param id Global ID of a component previously added into the MultiReader.
+     * @param unused Output parameter
+     */
     daqErrCode EXPORTED daqMultiReader_getInputUsed(daqMultiReader* self, daqString* id, daqBool* isUsed);
-    daqErrCode EXPORTED daqMultiReader_createMultiReader(daqMultiReader** obj, daqList* signals, daqSampleType valueReadType, daqSampleType domainReadType, daqReadMode mode, daqReadTimeoutType timeoutType);
-    daqErrCode EXPORTED daqMultiReader_createMultiReaderEx(daqMultiReader** obj, daqList* signals, daqSampleType valueReadType, daqSampleType domainReadType, daqReadMode mode, daqReadTimeoutType timeoutType, daqInt requiredCommonSampleRate, daqBool startOnFullUnitOfDomain, daqSizeT minReadCount);
+
+    daqErrCode EXPORTED daqMultiReader_createMultiReader(daqMultiReader** obj, daqList* signals DAQ_LIST_ELEMENT_TYPE(daqSignal), daqSampleType valueReadType, daqSampleType domainReadType, daqReadMode mode, daqReadTimeoutType timeoutType);
+
+    daqErrCode EXPORTED daqMultiReader_createMultiReaderEx(daqMultiReader** obj, daqList* signals DAQ_LIST_ELEMENT_TYPE(daqSignal), daqSampleType valueReadType, daqSampleType domainReadType, daqReadMode mode, daqReadTimeoutType timeoutType, daqInt requiredCommonSampleRate, daqBool startOnFullUnitOfDomain, daqSizeT minReadCount);
+
     daqErrCode EXPORTED daqMultiReader_createMultiReaderFromExisting(daqMultiReader** obj, daqMultiReader* invalidatedReader, daqSampleType valueReadType, daqSampleType domainReadType);
 
 #ifdef __cplusplus

@@ -34,18 +34,74 @@ extern "C"
 
 #include <ccommon.h>
 
+    /*!
+     * @brief Provides the name and type of a single function/procedure argument
+     *
+     * Usually part of a list of arguments in a Callable info object.
+     *
+     * Argument info objects implement the Struct methods internally and are Core type `ctStruct`.
+     */
+    DAQ_EXTENDS_INTERFACE(daqArgumentInfo, daqBaseObject);
+
     typedef struct daqArgumentInfo daqArgumentInfo;
     typedef struct daqString daqString;
 
     EXPORTED extern const daqIntfID DAQ_ARGUMENT_INFO_INTF_ID;
     void EXPORTED daqArgumentInfo_getInterfaceId(daqIntfID* intfId);
 
+    /*!
+     * @brief Gets the name of the argument.
+     * @param[out] name The name of the argument.
+     */
     daqErrCode EXPORTED daqArgumentInfo_getName(daqArgumentInfo* self, daqString** name);
+
+    /*!
+     * @brief Gets the core type of the argument.
+     * @param[out] type The type of the argument.
+     *
+     * Dictionary, List and Object types should be avoided in public function/procedure callable objects
+     * as their key, item, or base interface type cannot be determined without internal knowledge
+     * of the function/procedure.
+     */
     daqErrCode EXPORTED daqArgumentInfo_getType(daqArgumentInfo* self, daqCoreType* type);
+
+    /*!
+     * @brief Gets the item type of list/dict-type Argument Info objects. The item type specifies the type of values in the list or dictionary arguments.
+     * @param[out] itemType The item type of the list/dictionary argument.
+     *
+     * In list-type Argument Info, the type of each item corresponds to the item type.
+     *
+     * In dict-type Argument Info, the type of each value in the <key, value> pairing corresponds to the
+     * item type.
+     */
     daqErrCode EXPORTED daqArgumentInfo_getItemType(daqArgumentInfo* self, daqCoreType* itemType);
+
+    /*!
+     * @brief Gets the key type of dict-type Argument Info objects. The item type specifies the type of keys in dictionary arguments.
+     * @param[out] keyType The key type of the dictionary argument.
+     */
     daqErrCode EXPORTED daqArgumentInfo_getKeyType(daqArgumentInfo* self, daqCoreType* keyType);
+
+    /*!
+     * @brief Creates an Argument info object with the specified name and type.
+     * @param name The name of the argument.
+     * @param type The type expected of the argument.
+     */
     daqErrCode EXPORTED daqArgumentInfo_createArgumentInfo(daqArgumentInfo** obj, daqString* name, daqCoreType type);
+
+    /*!
+     * @brief Creates a list-type Argument info object with the specified name and item type.
+     * @param name The name of the argument.
+     * @param itemType Corresponds to the expected type of items in the list argument.
+     */
     daqErrCode EXPORTED daqArgumentInfo_createListArgumentInfo(daqArgumentInfo** obj, daqString* name, daqCoreType itemType);
+
+    /*!
+     * @brief Creates a dict-type Argument info object with the specified name, key type and item type.
+     * @param name The name of the argument.
+     * @param keyType Corresponds to the expected type of key in the dictionary argument.
+     * @param itemType Corresponds to the expected type of items in the dictionary argument.
+     */
     daqErrCode EXPORTED daqArgumentInfo_createDictArgumentInfo(daqArgumentInfo** obj, daqString* name, daqCoreType keyType, daqCoreType itemType);
 
 #ifdef __cplusplus

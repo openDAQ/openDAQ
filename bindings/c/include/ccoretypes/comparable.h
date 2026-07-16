@@ -34,11 +34,32 @@ extern "C"
 
 #include <ccommon.h>
 
+    /*!
+     * @brief Enables comparison to another object.
+     *
+     * Use this interface to compare the object to another object. his interface is implemented by types
+     * whose values can be ordered or sorted. It requires that implementing types define a single method,
+     * `compareTo`, that indicates whether the position of the current instance in the sort order is before,
+     * after, or the same as a second object of the same type.
+     */
+    DAQ_EXTENDS_INTERFACE(daqComparable, daqBaseObject);
+
     typedef struct daqComparable daqComparable;
 
     EXPORTED extern const daqIntfID DAQ_COMPARABLE_INTF_ID;
     void EXPORTED daqComparable_getInterfaceId(daqIntfID* intfId);
 
+    /*!
+     * @brief Compares the object to another object.
+     * @param obj Object for comparison.
+     * @retval OPENDAQ_LOWER The object's value is lower than the value of the compared object.
+     * @retval OPENDAQ_HIGHER The object's value is higher than the value of the compared object.
+     * @retval OPENDAQ_EQUAL The object's value is equal to the value of the compared object.
+     *
+     * Compares the current instance with another object of the same type and returns an integer that
+     * indicates whether the current instance precedes, follows, or occurs in the same position in the
+     * sort order as the other object.
+     */
     daqErrCode EXPORTED daqComparable_compareTo(daqComparable* self, daqBaseObject* obj);
 
 #ifdef __cplusplus

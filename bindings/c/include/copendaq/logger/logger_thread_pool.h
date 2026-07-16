@@ -34,6 +34,11 @@ extern "C"
 
 #include <ccommon.h>
 
+    /*!
+     * @brief Container for messages queue and backing threads used for asynchronous logging.
+     */
+    DAQ_EXTENDS_INTERFACE(daqLoggerThreadPool, daqBaseObject);
+
     typedef struct daqLoggerThreadPool daqLoggerThreadPool;
 
     EXPORTED extern const daqIntfID DAQ_LOGGER_THREAD_POOL_INTF_ID;

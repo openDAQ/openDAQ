@@ -34,6 +34,12 @@ extern "C"
 
 #include <ccommon.h>
 
+    /*!
+     * @ingroup types_utility
+     * @defgroup types_updatable Updatable
+     */
+    DAQ_EXTENDS_INTERFACE(daqUpdatable, daqBaseObject);
+
     typedef struct daqUpdatable daqUpdatable;
     typedef struct daqSerializedObject daqSerializedObject;
     typedef struct daqSerializer daqSerializer;
@@ -42,8 +48,11 @@ extern "C"
     void EXPORTED daqUpdatable_getInterfaceId(daqIntfID* intfId);
 
     daqErrCode EXPORTED daqUpdatable_update(daqUpdatable* self, daqSerializedObject* update, daqBaseObject* config);
+
     daqErrCode EXPORTED daqUpdatable_serializeForUpdate(daqUpdatable* self, daqSerializer* serializer);
+
     daqErrCode EXPORTED daqUpdatable_updateEnded(daqUpdatable* self, daqBaseObject* context);
+
     daqErrCode EXPORTED daqUpdatable_updateInternal(daqUpdatable* self, daqSerializedObject* update, daqBaseObject* context);
 
 #ifdef __cplusplus

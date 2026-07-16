@@ -34,6 +34,21 @@ extern "C"
 
 #include <ccommon.h>
 
+    /*!
+     * @brief Signals accepted by input ports can be connected, forming a connection between the input port and signal, through which Packets can be sent.
+     *
+     * Any openDAQ object which wishes to receive signal data must create an input port and connect it to said
+     * signals. Such objects are for example function blocks, and readers.
+     *
+     * An input port can filter out incompatible signals by returning false when such a signal is passed as argument
+     * to `acceptsSignal`, and also rejects the signals when they are passed as argument to `connect`.
+     *
+     * Depending on the configuration, an input port might not require a signal to be connected, returning false
+     * when `requiresSignal` is called. Such input ports are usually a part of function blocks that do not require
+     * a given signal to perform calculations.
+     */
+    DAQ_EXTENDS_INTERFACE(daqInputPort, daqComponent);
+
     typedef struct daqInputPort daqInputPort;
     typedef struct daqSignal daqSignal;
     typedef struct daqConnection daqConnection;
@@ -42,15 +57,65 @@ extern "C"
     EXPORTED extern const daqIntfID DAQ_INPUT_PORT_INTF_ID;
     void EXPORTED daqInputPort_getInterfaceId(daqIntfID* intfId);
 
+    /*!
+     * @brief Returns true if the signal can be connected to the input port; false otherwise.
+     * @param signal The signal being evaluated for compatibility.
+     * @param[out] accepts True if the signal can be connected; false otherwise.
+     * @retval OPENDAQ_ERR_NOTASSIGNED if the accepted signal criteria is not defined by the input port.
+     */
     daqErrCode EXPORTED daqInputPort_acceptsSignal(daqInputPort* self, daqSignal* signal, daqBool* accepts);
+
+    /*!
+     * @brief Connects the signal to the input port, forming a Connection.
+     * @param signal The signal to be connected to the input port.
+     * @retval OPENDAQ_ERR_SIGNAL_NOT_ACCEPTED if the signal is not accepted.
+     * @retval OPENDAQ_ERR_NOTASSIGNED if the accepted signal criteria is not defined by the input port.
+     *
+     * The signal is notified of the connection formed between it and the input port.
+     */
     daqErrCode EXPORTED daqInputPort_connect(daqInputPort* self, daqSignal* signal);
+
+    /*!
+     * @brief Disconnects the signal from the input port.
+     */
     daqErrCode EXPORTED daqInputPort_disconnect(daqInputPort* self);
+
+    /*!
+     * @brief Gets the signal connected to the input port.
+     * @param[out] signal The signal connected to the input port.
+     */
     daqErrCode EXPORTED daqInputPort_getSignal(daqInputPort* self, daqSignal** signal);
+
+    /*!
+     * @brief Returns true if the input port requires a signal to be connected; false otherwise.
+     * @param[out] requiresSignal True if the input port requires a signal to be connected; false otherwise.
+     */
     daqErrCode EXPORTED daqInputPort_getRequiresSignal(daqInputPort* self, daqBool* requiresSignal);
+
+    /*!
+     * @brief Gets the Connection object formed between the Signal and Input port.
+     * @param[out] connection The Connection object.
+     */
     daqErrCode EXPORTED daqInputPort_getConnection(daqInputPort* self, daqConnection** connection);
+
+    /*!
+     * @brief Returns true if the port is public; false otherwise.
+     * @param[out] isPublic True if the port is public; false otherwise.
+     */
     daqErrCode EXPORTED daqInputPort_getPublic(daqInputPort* self, daqBool* isPublic);
+
+    /*!
+     * @brief Sets the port to be either public or private.
+     * @param isPublic If false, the port is set to private; if true, the port is set to be public.
+     */
     daqErrCode EXPORTED daqInputPort_setPublic(daqInputPort* self, daqBool isPublic);
-    daqErrCode EXPORTED daqInputPort_acceptsSignals(daqInputPort* self, daqList* signals, daqList** accepts);
+
+    /*!
+     * @brief Checks whether the given signals can be connected to the input port.
+     * @param signals The signals to check.
+     * @param[out] accepts Output list of boolean values matching @p signals by index. A value of `true` indicates that the corresponding signal can be connected; `false` otherwise.
+     */
+    daqErrCode EXPORTED daqInputPort_acceptsSignals(daqInputPort* self, daqList* signals DAQ_LIST_ELEMENT_TYPE(daqSignal), daqList** accepts DAQ_LIST_ELEMENT_TYPE(daqBoolean));
 
 #ifdef __cplusplus
 }

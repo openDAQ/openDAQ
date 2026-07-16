@@ -34,6 +34,11 @@ extern "C"
 
 #include <ccommon.h>
 
+    /*!
+     * @brief Configuration component of Data rule objects. Contains setter methods that allow for Data rule parameter configuration, and a `build` method that builds the Data rule.
+     */
+    DAQ_EXTENDS_INTERFACE(daqDataRuleBuilder, daqBaseObject);
+
     typedef struct daqDataRuleBuilder daqDataRuleBuilder;
     typedef struct daqDataRule daqDataRule;
     typedef struct daqDict daqDict;
@@ -42,14 +47,57 @@ extern "C"
     EXPORTED extern const daqIntfID DAQ_DATA_RULE_BUILDER_INTF_ID;
     void EXPORTED daqDataRuleBuilder_getInterfaceId(daqIntfID* intfId);
 
+    /*!
+     * @brief Builds and returns a Data rule object using the currently set values of the Builder.
+     * @param[out] dataRule The built Data rule.
+     */
     daqErrCode EXPORTED daqDataRuleBuilder_build(daqDataRuleBuilder* self, daqDataRule** dataRule);
+
+    /*!
+     * @brief Sets the type of the data rule.
+     * @param type The type of the data rule.
+     */
     daqErrCode EXPORTED daqDataRuleBuilder_setType(daqDataRuleBuilder* self, daqDataRuleType type);
+
+    /*!
+     * @brief Gets the type of the data rule.
+     * @param[out] type The type of the data rule.
+     */
     daqErrCode EXPORTED daqDataRuleBuilder_getType(daqDataRuleBuilder* self, daqDataRuleType* type);
-    daqErrCode EXPORTED daqDataRuleBuilder_setParameters(daqDataRuleBuilder* self, daqDict* parameters);
-    daqErrCode EXPORTED daqDataRuleBuilder_getParameters(daqDataRuleBuilder* self, daqDict** parameters);
+
+    /*!
+     * @brief Sets a dictionary of string-object key-value pairs representing the parameters used to evaluate the rule.
+     * @param parameters The dictionary containing the rule parameter members.
+     */
+    daqErrCode EXPORTED daqDataRuleBuilder_setParameters(daqDataRuleBuilder* self, daqDict* parameters DAQ_DICT_TEMPLATE_TYPE(daqString, daqBaseObject));
+
+    /*!
+     * @brief Gets a dictionary of string-object key-value pairs representing the parameters used to evaluate the rule.
+     * @param[out] parameters The dictionary containing the rule parameter members.
+     */
+    daqErrCode EXPORTED daqDataRuleBuilder_getParameters(daqDataRuleBuilder* self, daqDict** parameters DAQ_DICT_TEMPLATE_TYPE(daqString, daqBaseObject));
+
+    /*!
+     * @brief Adds a string-object pair parameter to the Dictionary of Data rule parameters.
+     * @param name The string-type name of the parameter.
+     * @param parameter The object-type parameter.
+     */
     daqErrCode EXPORTED daqDataRuleBuilder_addParameter(daqDataRuleBuilder* self, daqString* name, daqBaseObject* parameter);
+
+    /*!
+     * @brief Removes the parameter with the given name from the Dictionary of Data rule parameters.
+     */
     daqErrCode EXPORTED daqDataRuleBuilder_removeParameter(daqDataRuleBuilder* self, daqString* name);
+
+    /*!
+     * @brief Creates a Data rule builder with no parameters.
+     */
     daqErrCode EXPORTED daqDataRuleBuilder_createDataRuleBuilder(daqDataRuleBuilder** obj);
+
+    /*!
+     * @brief Data rule copy factory that creates a configurable Data rule builder object from a possibly non-configurable Data rule.
+     * @param ruleToCopy The rule of which configuration should be copied.
+     */
     daqErrCode EXPORTED daqDataRuleBuilder_createDataRuleBuilderFromExisting(daqDataRuleBuilder** obj, daqDataRule* ruleToCopy);
 
 #ifdef __cplusplus

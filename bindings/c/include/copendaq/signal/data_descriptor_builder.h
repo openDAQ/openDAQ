@@ -34,6 +34,11 @@ extern "C"
 
 #include <ccommon.h>
 
+    /*!
+     * @brief Builder component of Data descriptor objects. Contains setter methods that allow for Data descriptor parameter configuration, and a `build` method that builds the Data descriptor.
+     */
+    DAQ_EXTENDS_INTERFACE(daqDataDescriptorBuilder, daqBaseObject);
+
     typedef struct daqDataDescriptorBuilder daqDataDescriptorBuilder;
     typedef struct daqDataDescriptor daqDataDescriptor;
     typedef struct daqString daqString;
@@ -49,32 +54,192 @@ extern "C"
     EXPORTED extern const daqIntfID DAQ_DATA_DESCRIPTOR_BUILDER_INTF_ID;
     void EXPORTED daqDataDescriptorBuilder_getInterfaceId(daqIntfID* intfId);
 
+    /*!
+     * @brief Builds and returns a Data descriptor object using the currently set values of the Builder.
+     * @param[out] dataDescriptor The built Data descriptor.
+     */
     daqErrCode EXPORTED daqDataDescriptorBuilder_build(daqDataDescriptorBuilder* self, daqDataDescriptor** dataDescriptor);
+
+    /*!
+     * @brief Sets a descriptive name for the signal's value.
+     * @param name The name of the signal value.
+     *
+     * When, for example, describing the amplitude values of spectrum data, the name would be `Amplitude`.
+     */
     daqErrCode EXPORTED daqDataDescriptorBuilder_setName(daqDataDescriptorBuilder* self, daqString* name);
+
+    /*!
+     * @brief Gets a descriptive name for the signal's value.
+     * @param[out] name The name of the signal value.
+     */
     daqErrCode EXPORTED daqDataDescriptorBuilder_getName(daqDataDescriptorBuilder* self, daqString** name);
-    daqErrCode EXPORTED daqDataDescriptorBuilder_setDimensions(daqDataDescriptorBuilder* self, daqList* dimensions);
-    daqErrCode EXPORTED daqDataDescriptorBuilder_getDimensions(daqDataDescriptorBuilder* self, daqList** dimensions);
+
+    /*!
+     * @brief Sets the list of the descriptor's dimension's.
+     * @param dimensions The list of dimensions.
+     *
+     * The number of dimensions defines the rank of the signal's data (eg. Vector, Matrix).
+     */
+    daqErrCode EXPORTED daqDataDescriptorBuilder_setDimensions(daqDataDescriptorBuilder* self, daqList* dimensions DAQ_LIST_ELEMENT_TYPE(daqDimension));
+
+    /*!
+     * @brief Gets the list of the descriptor's dimension's.
+     * @param[out] dimensions The list of dimensions.
+     */
+    daqErrCode EXPORTED daqDataDescriptorBuilder_getDimensions(daqDataDescriptorBuilder* self, daqList** dimensions DAQ_LIST_ELEMENT_TYPE(daqDimension));
+
+    /*!
+     * @brief Sets the descriptor's sample type.
+     * @param sampleType The descriptor's sample type.
+     */
     daqErrCode EXPORTED daqDataDescriptorBuilder_setSampleType(daqDataDescriptorBuilder* self, daqSampleType sampleType);
+
+    /*!
+     * @brief Gets the descriptor's sample type.
+     * @param[out] sampleType The descriptor's sample type.
+     */
     daqErrCode EXPORTED daqDataDescriptorBuilder_getSampleType(daqDataDescriptorBuilder* self, daqSampleType* sampleType);
+
+    /*!
+     * @brief Sets the unit of the data in a signal's packets.
+     * @param unit The unit specified by the descriptor.
+     */
     daqErrCode EXPORTED daqDataDescriptorBuilder_setUnit(daqDataDescriptorBuilder* self, daqUnit* unit);
+
+    /*!
+     * @brief Gets the unit of the data in a signal's packets.
+     * @param[out] unit The unit specified by the descriptor.
+     */
     daqErrCode EXPORTED daqDataDescriptorBuilder_getUnit(daqDataDescriptorBuilder* self, daqUnit** unit);
+
+    /*!
+     * @brief Sets the value range of the data in a signal's packets defining the lowest and highest expected values.
+     * @param range The value range the signal's data.
+     *
+     * The range is not enforced by openDAQ.
+     */
     daqErrCode EXPORTED daqDataDescriptorBuilder_setValueRange(daqDataDescriptorBuilder* self, daqRange* range);
+
+    /*!
+     * @brief Gets the value range of the data in a signal's packets defining the lowest and highest expected values.
+     * @param[out] range The value range the signal's data.
+     */
     daqErrCode EXPORTED daqDataDescriptorBuilder_getValueRange(daqDataDescriptorBuilder* self, daqRange** range);
+
+    /*!
+     * @brief Sets the value Data rule.
+     * @param rule The value Data rule.
+     *
+     * If explicit, the values will be contained in the packet buffer. Otherwise they are calculated
+     * using the packet parameter as the input into the rule.
+     */
     daqErrCode EXPORTED daqDataDescriptorBuilder_setRule(daqDataDescriptorBuilder* self, daqDataRule* rule);
+
+    /*!
+     * @brief Gets the value Data rule.
+     * @param[out] rule The value Data rule.
+     */
     daqErrCode EXPORTED daqDataDescriptorBuilder_getRule(daqDataDescriptorBuilder* self, daqDataRule** rule);
+
+    /*!
+     * @brief Sets the absolute origin of a signal value component.
+     * @param origin The absolute origin.
+     *
+     * An origin can be an arbitrary string that determines the starting point of the signal data.
+     * All explicit or implicit values are multiplied by the resolution and added to the origin to obtain
+     * absolute data instead of relative.
+     *
+     * Most commonly a time epoch is used, in which case it should be formatted according to the ISO 8601 standard.
+     */
     daqErrCode EXPORTED daqDataDescriptorBuilder_setOrigin(daqDataDescriptorBuilder* self, daqString* origin);
+
+    /*!
+     * @brief Gets the absolute origin of a signal value component.
+     * @param[out] origin The absolute origin.
+     */
     daqErrCode EXPORTED daqDataDescriptorBuilder_getOrigin(daqDataDescriptorBuilder* self, daqString** origin);
+
+    /*!
+     * @brief Sets the Resolution which scales the an explicit or implicit value to the physical unit defined in `unit`.
+     * @param tickResolution The Resolution.
+     */
     daqErrCode EXPORTED daqDataDescriptorBuilder_setTickResolution(daqDataDescriptorBuilder* self, daqRatio* tickResolution);
+
+    /*!
+     * @brief Gets the Resolution which scales the an explicit or implicit value to the physical unit defined in `unit`.
+     * @param[out] tickResolution The Resolution.
+     */
     daqErrCode EXPORTED daqDataDescriptorBuilder_getTickResolution(daqDataDescriptorBuilder* self, daqRatio** tickResolution);
+
+    /*!
+     * @brief Sets the scaling rule that needs to be applied to explicit/implicit data by readers.
+     * @param scaling The scaling rule.
+     *
+     * The OutputDataType of the rule matches the value descriptor's sample type. The InputDataType defines the sample type
+     * of either the explicit data in packet buffers, or the packet's implicit value's sample type.
+     */
     daqErrCode EXPORTED daqDataDescriptorBuilder_setPostScaling(daqDataDescriptorBuilder* self, daqScaling* scaling);
+
+    /*!
+     * @brief Gets the scaling rule that needs to be applied to explicit/implicit data by readers.
+     * @param[out] scaling The scaling rule.
+     */
     daqErrCode EXPORTED daqDataDescriptorBuilder_getPostScaling(daqDataDescriptorBuilder* self, daqScaling** scaling);
-    daqErrCode EXPORTED daqDataDescriptorBuilder_setStructFields(daqDataDescriptorBuilder* self, daqList* structFields);
-    daqErrCode EXPORTED daqDataDescriptorBuilder_getStructFields(daqDataDescriptorBuilder* self, daqList** structFields);
-    daqErrCode EXPORTED daqDataDescriptorBuilder_setMetadata(daqDataDescriptorBuilder* self, daqDict* metadata);
-    daqErrCode EXPORTED daqDataDescriptorBuilder_getMetadata(daqDataDescriptorBuilder* self, daqDict** metadata);
+
+    /*!
+     * @brief Sets the fields of the struct, forming a recursive value descriptor definition.
+     * @param structFields The list of data descriptors forming the struct fields.
+     *
+     * Contains a list of value descriptors, defining the data layout: the data described by the first DataDescriptor
+     * of the list is at the start, followed by the data described by the second and so on.
+     */
+    daqErrCode EXPORTED daqDataDescriptorBuilder_setStructFields(daqDataDescriptorBuilder* self, daqList* structFields DAQ_LIST_ELEMENT_TYPE(daqDataDescriptor));
+
+    /*!
+     * @brief Gets the fields of the struct, forming a recursive value descriptor definition.
+     * @param[out] structFields The list of data descriptors forming the struct fields.
+     */
+    daqErrCode EXPORTED daqDataDescriptorBuilder_getStructFields(daqDataDescriptorBuilder* self, daqList** structFields DAQ_LIST_ELEMENT_TYPE(daqDataDescriptor));
+
+    /*!
+     * @brief Sets any extra metadata defined by the data descriptor.
+     * @param metadata Additional metadata of the descriptor as a dictionary.
+     *
+     * All objects in the metadata dictionary must be serializable.
+     */
+    daqErrCode EXPORTED daqDataDescriptorBuilder_setMetadata(daqDataDescriptorBuilder* self, daqDict* metadata DAQ_DICT_TEMPLATE_TYPE(daqString, daqString));
+
+    /*!
+     * @brief Gets any extra metadata defined by the data descriptor.
+     * @param[out] metadata Additional metadata of the descriptor as a dictionary.
+     */
+    daqErrCode EXPORTED daqDataDescriptorBuilder_getMetadata(daqDataDescriptorBuilder* self, daqDict** metadata DAQ_DICT_TEMPLATE_TYPE(daqString, daqString));
+
+    /*!
+     * @brief Sets the Reference Domain Info.
+     * @param referenceDomainInfo The Reference Domain Info.
+     *
+     * If set, gives additional information about the reference domain.
+     */
     daqErrCode EXPORTED daqDataDescriptorBuilder_setReferenceDomainInfo(daqDataDescriptorBuilder* self, daqReferenceDomainInfo* referenceDomainInfo);
+
+    /*!
+     * @brief Gets the Reference Domain Info.
+     * @param[out] referenceDomainInfo The Reference Domain Info.
+     *
+     * If set, gives additional information about the reference domain.
+     */
     daqErrCode EXPORTED daqDataDescriptorBuilder_getReferenceDomainInfo(daqDataDescriptorBuilder* self, daqReferenceDomainInfo** referenceDomainInfo);
+
+    /*!
+     * @brief Data descriptor builder factory that creates a builder object with no parameters configured.
+     */
     daqErrCode EXPORTED daqDataDescriptorBuilder_createDataDescriptorBuilder(daqDataDescriptorBuilder** obj);
+
+    /*!
+     * @brief Data descriptor copy factory that creates a Data descriptor builder object from a different Data descriptor, copying its parameters.
+     * @param descriptorToCopy The Data descriptor of which configuration should be copied.
+     */
     daqErrCode EXPORTED daqDataDescriptorBuilder_createDataDescriptorBuilderFromExisting(daqDataDescriptorBuilder** obj, daqDataDescriptor* descriptorToCopy);
 
 #ifdef __cplusplus

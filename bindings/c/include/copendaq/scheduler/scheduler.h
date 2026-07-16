@@ -34,6 +34,11 @@ extern "C"
 
 #include <ccommon.h>
 
+    /*!
+     * @brief A thread-pool scheduler that supports scheduling one-off functions as well as dependency graphs.
+     */
+    DAQ_EXTENDS_INTERFACE(daqScheduler, daqBaseObject);
+
     typedef struct daqScheduler daqScheduler;
     typedef struct daqFunction daqFunction;
     typedef struct daqAwaitable daqAwaitable;
@@ -44,18 +49,93 @@ extern "C"
     EXPORTED extern const daqIntfID DAQ_SCHEDULER_INTF_ID;
     void EXPORTED daqScheduler_getInterfaceId(daqIntfID* intfId);
 
+    /*!
+     * @brief Schedules the specified @p work function to run on the thread-pool. The call does not block but immediately returns an @p awaitable that represents the asynchronous execution. It can be waited upon and queried for status and result.
+     * @param function The function to schedule for execution.
+     * @param[out] awaitable The object representing the state and result of the execution.
+     * @retval OPENDAQ_ERR_SCHEDULER_STOPPED when the scheduler already stopped and is not accepting any more work.
+     */
     daqErrCode EXPORTED daqScheduler_scheduleFunction(daqScheduler* self, daqFunction* function, daqAwaitable** awaitable);
+
+    /*!
+     * @brief Schedules the specified work callback to run on the thread-pool. The call does not block.
+     * @param work The function to schedule for execution.
+     * @retval OPENDAQ_ERR_SCHEDULER_STOPPED when the scheduler already stopped and is not accepting any more work.
+     *
+     * Work is a lightweight callback that returns no value and accepts no procedure. It has less overhead than
+     * function. The function does not return awaitable object.
+     */
     daqErrCode EXPORTED daqScheduler_scheduleWork(daqScheduler* self, daqWork* work);
+
+    /*!
+     * @brief Schedules the specified dependency @p graph to run on the thread-pool. The call does not block but immediately returns an @p awaitable that represents the asynchronous execution. It can be waited upon and queried for status and result. <b>Any exceptions that occur during the graph execution are silently ignored.</b>
+     * @param graph The dependency graph (acyclic directed graph) to schedule.
+     * @param[out] awaitable The object representing the state and result of the execution.
+     * @retval OPENDAQ_ERR_SCHEDULER_STOPPED when the scheduler already stopped and is not accepting any more work.
+     */
     daqErrCode EXPORTED daqScheduler_scheduleGraph(daqScheduler* self, daqTaskGraph* graph, daqAwaitable** awaitable);
+
+    /*!
+     * @brief Cancels all outstanding work and waits for the remaining to complete. After this point the scheduler does not allow any new work or graphs for scheduling.
+     */
     daqErrCode EXPORTED daqScheduler_stop(daqScheduler* self);
+
+    /*!
+     * @brief Waits fo all current scheduled work and tasks to complete.
+     */
     daqErrCode EXPORTED daqScheduler_waitAll(daqScheduler* self);
+
+    /*!
+     * @brief Returns whether more than one worker thread is used.
+     * @param[out] multiThreaded Returns @c true if more that one worker thread is used by the scheduler.
+     */
     daqErrCode EXPORTED daqScheduler_isMultiThreaded(daqScheduler* self, daqBool* multiThreaded);
-    daqErrCode EXPORTED daqScheduler_runMainLoop(daqScheduler* self, daqSizeT loopTime);
+
+    /*!
+     * @brief Starts and blocks the main event loop, executing scheduled tasks.
+     * @param loopTime The maximum time to block the loop, in milliseconds.
+     *
+     * This method runs the main loop, processing all enqueued work (including repetitive tasks)
+     * until @ref stopMainLoop is called. Typically executed on the main thread or in a dedicated loop thread.
+     */
+    daqErrCode EXPORTED daqScheduler_runMainLoop(daqScheduler* self, daqSizeT loopTime DAQ_DEFAULT_VALUE(1));
+
+    /*!
+     * @brief Checks if the main loop is currently set.
+     * @param[out] isSet Returns @c true if the main loop is set and running.
+     * This method does not gauarantee that the main loop is currently running, only that it has been set up.
+     */
     daqErrCode EXPORTED daqScheduler_isMainLoopSet(daqScheduler* self, daqBool* isSet);
+
+    /*!
+     * @brief Signals the main loop to stop processing and return from @ref runMainLoop.
+     * This method unblocks the loop and requests graceful shutdown. It is typically called
+     * from another thread or in response to an application shutdown signal.
+     * Has no effect if the loop is not currently running.
+     */
     daqErrCode EXPORTED daqScheduler_stopMainLoop(daqScheduler* self);
+
+    /*!
+     * @brief Executes a single iteration of the main loop, processing scheduled tasks.
+     *
+     * This non-blocking method runs one iteration of the main loop, executing one-time tasks
+     * and advancing any repetitive tasks. Intended for cases where the main loop is polled manually,
+     * such as in GUI frameworks or embedded systems.
+     */
     daqErrCode EXPORTED daqScheduler_runMainLoopIteration(daqScheduler* self);
+
+    /*!
+     * @brief Schedules a task to be executed by the main loop.
+     *
+     * The provided work object is queued for execution during a call to either
+     * @ref runMainLoop or @ref runMainLoopIteration. This mechanism is commonly used
+         * to marshal tasks from background threads to the main loop thread.
+     * @param work A lightweight, non-blocking task object to be scheduled.
+     */
     daqErrCode EXPORTED daqScheduler_scheduleWorkOnMainLoop(daqScheduler* self, daqWork* work);
+
     daqErrCode EXPORTED daqScheduler_createScheduler(daqScheduler** obj, daqLogger* logger, daqSizeT numWorkers);
+
     daqErrCode EXPORTED daqScheduler_createSchedulerWithMainLoop(daqScheduler** obj, daqLogger* logger, daqSizeT numWorkers, daqBool useMainLoop);
 
 #ifdef __cplusplus

@@ -34,14 +34,36 @@ extern "C"
 
 #include <ccommon.h>
 
+    /*!
+     * @ingroup opendaq_scheduler_components
+     * @addtogroup opendaq_awaitable Awaitable
+     */
+    DAQ_EXTENDS_INTERFACE(daqAwaitable, daqBaseObject);
+
     typedef struct daqAwaitable daqAwaitable;
 
     EXPORTED extern const daqIntfID DAQ_AWAITABLE_INTF_ID;
     void EXPORTED daqAwaitable_getInterfaceId(daqIntfID* intfId);
 
+    /*!
+     * @brief Cancels the outstanding work if it has not already started.
+     * @param[out] canceled Is @c true if the execution was canceled or @c false if the execution has already completed
+     */
     daqErrCode EXPORTED daqAwaitable_cancel(daqAwaitable* self, daqBool* canceled);
+
     daqErrCode EXPORTED daqAwaitable_wait(daqAwaitable* self);
+
+    /*!
+     * @brief Waits until the awaitable has a valid result and retrieves it or re-throws the exception that occurred during the execution.
+     * @param[out] result The execution result if any otherwise @c nullptr.
+     * @retval OPENDAQ_ERR_EMPTY_AWAITABLE when there is no work associated with the awaitable.
+     */
     daqErrCode EXPORTED daqAwaitable_getResult(daqAwaitable* self, daqBaseObject** result);
+
+    /*!
+     * @brief Checks if the execution has already finished.
+     * @param[out] completed Is @c true if the execution has finished or @c false if the execution is in progress or there is no work associated
+     */
     daqErrCode EXPORTED daqAwaitable_hasCompleted(daqAwaitable* self, daqBool* completed);
 
 #ifdef __cplusplus

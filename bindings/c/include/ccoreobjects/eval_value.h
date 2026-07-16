@@ -34,6 +34,14 @@ extern "C"
 
 #include <ccommon.h>
 
+    /*!
+     * @brief Dynamic expression evaluator
+     *
+     * Provides dynamic evaluation of expressions. Expression is passed as an argument to a
+     * factory function. Expression is evaluated at runtime when result value is requested.
+     */
+    DAQ_EXTENDS_INTERFACE(daqEvalValue, daqBaseObject);
+
     typedef struct daqEvalValue daqEvalValue;
     typedef struct daqString daqString;
     typedef struct daqPropertyObject daqPropertyObject;
@@ -43,14 +51,60 @@ extern "C"
     EXPORTED extern const daqIntfID DAQ_EVAL_VALUE_INTF_ID;
     void EXPORTED daqEvalValue_getInterfaceId(daqIntfID* intfId);
 
+    /*!
+     * @brief Gets the expression.
+     * @param[out] eval The expression.
+     *
+     * Expression is passed as a parameter to the factory function.
+     */
     daqErrCode EXPORTED daqEvalValue_getEval(daqEvalValue* self, daqString** eval);
+
+    /*!
+     * @brief Gets the result of the expression.
+     * @param[out] obj The result of the expression.
+     * @retval OPENDAQ_ERR_CALCFAILED when calculation failed.
+     * @retval OPENDAQ_ERR_RESOLVEFAILED when reference resolution failed
+     * @retval OPENDAQ_ERR_PARSEFAILED when expression parsing failed
+     *
+     * When this method is called for the first time, the object will trigger
+     * execution and return result.
+     */
     daqErrCode EXPORTED daqEvalValue_getResult(daqEvalValue* self, daqBaseObject** obj);
+
+    /*!
+     * @brief Clones the object and attaches an owner.
+     * @param owner The owner to attach to the cloned eval value.
+     * @param[out] clonedValue The cloned object.
+     *
+     * When the expression contains reference to some property object, then the expression cannot be
+     * evaluated unless an owner is attached to eval value. However, the object can be cloned with the
+     * specified owner attached. The client can then evaluate the cloned object.
+     */
     daqErrCode EXPORTED daqEvalValue_cloneWithOwner(daqEvalValue* self, daqPropertyObject* owner, daqEvalValue** clonedValue);
+
+    /*!
+     * @brief Returns the parse error code.
+     *
+     * When an eval value object is created, the expression is passed as an argument to the factory
+     * function. Parsing of the expression can fail, but the factory function will always succeed. Use this
+     * function to check if the parsing of the expression succeeded without evaluating the expression.
+     */
     daqErrCode EXPORTED daqEvalValue_getParseErrorCode(daqEvalValue* self);
-    daqErrCode EXPORTED daqEvalValue_getPropertyReferences(daqEvalValue* self, daqList** propertyReferences);
+
+    /*!
+     * @brief Returns the names of all properties referenced by the eval value.
+     * @param[out] propertyReferences The names of referenced properties.
+     *
+     * Referenced properties are all occurrences matching the '"%" propref' pattern in the evaluation string.
+     */
+    daqErrCode EXPORTED daqEvalValue_getPropertyReferences(daqEvalValue* self, daqList** propertyReferences DAQ_LIST_ELEMENT_TYPE(daqString));
+
     daqErrCode EXPORTED daqEvalValue_getResultNoLock(daqEvalValue* self, daqBaseObject** obj);
+
     daqErrCode EXPORTED daqEvalValue_createEvalValue(daqEvalValue** obj, daqString* eval);
+
     daqErrCode EXPORTED daqEvalValue_createEvalValueArgs(daqEvalValue** obj, daqString* eval, daqList* args);
+
     daqErrCode EXPORTED daqEvalValue_createEvalValueFunc(daqEvalValue** obj, daqString* eval, daqFunction* func);
 
 #ifdef __cplusplus

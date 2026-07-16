@@ -34,6 +34,13 @@ extern "C"
 
 #include <ccommon.h>
 
+    /*!
+     * @brief Allows write access to folder.
+     *
+     * Provides methods to add and remove items to the folder.
+     */
+    DAQ_EXTENDS_INTERFACE(daqFolderConfig, daqFolder);
+
     typedef struct daqFolderConfig daqFolderConfig;
     typedef struct daqComponent daqComponent;
     typedef struct daqString daqString;
@@ -42,12 +49,54 @@ extern "C"
     EXPORTED extern const daqIntfID DAQ_FOLDER_CONFIG_INTF_ID;
     void EXPORTED daqFolderConfig_getInterfaceId(daqIntfID* intfId);
 
+    /*!
+     * @brief Adds a component to the folder.
+     * @param item The component.
+     */
     daqErrCode EXPORTED daqFolderConfig_addItem(daqFolderConfig* self, daqComponent* item);
+
+    /*!
+     * @brief Removes the item from the folder.
+     * @param item The item component.
+     */
     daqErrCode EXPORTED daqFolderConfig_removeItem(daqFolderConfig* self, daqComponent* item);
+
+    /*!
+     * @brief Removes the item from the folder using local id of the component.
+     * @param localId The local id of the component.
+     */
     daqErrCode EXPORTED daqFolderConfig_removeItemWithLocalId(daqFolderConfig* self, daqString* localId);
+
+    /*!
+     * @brief Removes all items from the folder.
+     */
     daqErrCode EXPORTED daqFolderConfig_clear(daqFolderConfig* self);
+
+    /*!
+     * @brief Creates a folder.
+     * @param context The Context. Most often the creating function-block/device passes its own Context to the Folder.
+     * @param parent The parent component.
+     * @param localId The local ID of the component.
+     */
     daqErrCode EXPORTED daqFolderConfig_createFolder(daqFolderConfig** obj, daqContext* context, daqComponent* parent, daqString* localId);
+
+    /*!
+     * @brief Creates a folder with an interface ID that must be implemented by its children.
+     * @param context The Context. Most often the creating function-block/device passes its own Context to the Folder.
+     * @param itemType The ID of interface that child objects of the folder must implement.
+     * @param parent The parent component.
+     * @param localId The local ID of the component.
+     */
     daqErrCode EXPORTED daqFolderConfig_createFolderWithItemType(daqFolderConfig** obj, daqIntfID itemType, daqContext* context, daqComponent* parent, daqString* localId);
+
+    /*!
+     * @brief Creates an IO folder.
+     * @param context The Context. Most often the creating function-block/device passes its own Context to the Folder.
+     * @param parent The parent component.
+     * @param localId The local ID of the parent.
+     *
+     * IO folders are folder created by device and may contain only channels and other IO folders.
+     */
     daqErrCode EXPORTED daqFolderConfig_createIoFolder(daqFolderConfig** obj, daqContext* context, daqComponent* parent, daqString* localId);
 
 #ifdef __cplusplus

@@ -34,6 +34,23 @@ extern "C"
 
 #include <ccommon.h>
 
+    /*!
+     * Represents a complex number as `IComplexNumber` interface. Use this interface to wrap
+     * complex number when you need to add the number to lists, dictionaries and
+     * other containers which accept `IBaseObject` and derived interfaces.
+     *
+     * Complex numbers have two components: real and imaginary. Both of them are of Float type.
+     *
+     * Available factories:
+     * @code
+     * // Creates a new ComplexNumber object. Throws exception if not successful.
+     * IComplexNumber* ComplexNumber_Create(ComplexFloat64* value)
+       // Creates a new ComplexNumber object. Returns error code if not successful.
+     * ErrCode createComplexNumber(IComplexNumber** obj, ComplexFloat64 value)
+     * @endcode
+     */
+    DAQ_EXTENDS_INTERFACE(daqComplexNumber, daqBaseObject);
+
     typedef struct daqComplexNumber daqComplexNumber;
 
     EXPORTED extern const daqIntfID DAQ_COMPLEX_NUMBER_INTF_ID;
@@ -42,11 +59,23 @@ extern "C"
 /*
     daqErrCode EXPORTED daqComplexNumber_getValue(daqComplexNumber* self, daqComplexFloat64* value);
 */
+
 /*
     daqErrCode EXPORTED daqComplexNumber_equalsValue(daqComplexNumber* self, daqComplexFloat64 value, daqBool* equal);
 */
+
+    /*!
+     * @brief Gets the real part of the complex number value.
+     * @param[out] real The real part of the complex value.
+     */
     daqErrCode EXPORTED daqComplexNumber_getReal(daqComplexNumber* self, daqFloat* real);
+
+    /*!
+     * @brief Gets the imaginary part of the complex number value.
+     * @param[out] imaginary The imaginary part of the complex value.
+     */
     daqErrCode EXPORTED daqComplexNumber_getImaginary(daqComplexNumber* self, daqFloat* imaginary);
+
     daqErrCode EXPORTED daqComplexNumber_createComplexNumber(daqComplexNumber** obj, daqFloat real, daqFloat imaginary);
 
 #ifdef __cplusplus

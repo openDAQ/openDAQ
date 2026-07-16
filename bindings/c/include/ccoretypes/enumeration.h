@@ -34,6 +34,25 @@ extern "C"
 
 #include <ccommon.h>
 
+    /*!
+     * @brief Enumerations are immutable objects that encapsulate a value within a predefined set of named integral constants. These constants are predefined in an Enumeration type with the same name as the Enumeration.
+     *
+     * The Enumeration types are stored within a Type Manager. In any given Instance of openDAQ, a single Type Manager should
+     * exist that is part of its Context.
+     *
+     * When creating an Enumeration object, the Type Manager is used to validate the given enumerator value name against the
+     * Enumeration type stored within the Manager. If no type with the given Enumeration name is currently stored,
+     * construction of the Enumeration object will fail. Similarly, if the provided enumerator value name is not part of
+     * the Enumeration type, the construction of the Enumeration object will also fail.
+     *
+     * Since the Enumerations objects are immutable the value of an existing Enumeration object cannot be modified.
+     * However, the Enumeration object encapsulated by a smart pointer of the corresponding type can be replaced
+     * with a newly created one. This replacement is accomplished using the assignment operator with the right
+     * operand being a constant string literal containing the enumerator value name valid for the Enumeration type
+     * of the original Enumeration object.
+     */
+    DAQ_EXTENDS_INTERFACE(daqEnumeration, daqBaseObject);
+
     typedef struct daqEnumeration daqEnumeration;
     typedef struct daqEnumerationType daqEnumerationType;
     typedef struct daqString daqString;
@@ -43,12 +62,30 @@ extern "C"
     EXPORTED extern const daqIntfID DAQ_ENUMERATION_INTF_ID;
     void EXPORTED daqEnumeration_getInterfaceId(daqIntfID* intfId);
 
+    /*!
+     * @brief Gets the Enumeration's type.
+     * @param[out] type The Enumeration type
+     */
     daqErrCode EXPORTED daqEnumeration_getEnumerationType(daqEnumeration* self, daqEnumerationType** type);
+
+    /*!
+     * @brief Gets the Enumeration value as String containing the name of the enumerator constant.
+     * @param[out] value Emumeration value.
+     */
     daqErrCode EXPORTED daqEnumeration_getValue(daqEnumeration* self, daqString** value);
+
+    /*!
+     * @brief Gets the Enumeration value as Integer enumerator constant.
+     * @param[out] value Emumeration Integer value.
+     */
     daqErrCode EXPORTED daqEnumeration_getIntValue(daqEnumeration* self, daqInt* value);
+
     daqErrCode EXPORTED daqEnumeration_createEnumeration(daqEnumeration** obj, daqString* name, daqString* value, daqTypeManager* typeManager);
+
     daqErrCode EXPORTED daqEnumeration_createEnumerationWithIntValue(daqEnumeration** obj, daqString* name, daqInteger* value, daqTypeManager* typeManager);
+
     daqErrCode EXPORTED daqEnumeration_createEnumerationWithType(daqEnumeration** obj, daqEnumerationType* type, daqString* value);
+
     daqErrCode EXPORTED daqEnumeration_createEnumerationWithIntValueAndType(daqEnumeration** obj, daqEnumerationType* type, daqInteger* value);
 
 #ifdef __cplusplus

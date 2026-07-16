@@ -34,11 +34,20 @@ extern "C"
 
 #include <ccommon.h>
 
+    /*!
+     * @brief Objects that can be cloned implement this interface.
+     */
+    DAQ_EXTENDS_INTERFACE(daqCloneable, daqBaseObject);
+
     typedef struct daqCloneable daqCloneable;
 
     EXPORTED extern const daqIntfID DAQ_CLONEABLE_INTF_ID;
     void EXPORTED daqCloneable_getInterfaceId(daqIntfID* intfId);
 
+    /*!
+     * @brief Clones the object.
+     * @param[out] cloned The cloned object.
+     */
     daqErrCode EXPORTED daqCloneable_clone(daqCloneable* self, daqBaseObject** cloned);
 
 #ifdef __cplusplus

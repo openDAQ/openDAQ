@@ -34,6 +34,12 @@ extern "C"
 
 #include <ccommon.h>
 
+    /*!
+     * @ingroup objects_property_object
+     * @addtogroup objects_property_object_class PropertyObjectClassInternal
+     */
+    DAQ_EXTENDS_INTERFACE(daqPropertyObjectClassInternal, daqBaseObject);
+
     typedef struct daqPropertyObjectClassInternal daqPropertyObjectClassInternal;
     typedef struct daqPropertyObjectClass daqPropertyObjectClass;
     typedef struct daqTypeManager daqTypeManager;
@@ -41,7 +47,12 @@ extern "C"
     EXPORTED extern const daqIntfID DAQ_PROPERTY_OBJECT_CLASS_INTERNAL_INTF_ID;
     void EXPORTED daqPropertyObjectClassInternal_getInterfaceId(daqIntfID* intfId);
 
-    daqErrCode EXPORTED daqPropertyObjectClassInternal_clone(daqPropertyObjectClassInternal* self, daqPropertyObjectClass** cloned, daqTypeManager* typeManager);
+    /*!
+     * @brief Clones the property object class.
+     * @param[out] cloned The cloned property object class.
+     * @param typeManager The type manager to use for the cloned property object class. if type manager is not provided, cloned class will store a type manager from the original class.
+     */
+    daqErrCode EXPORTED daqPropertyObjectClassInternal_clone(daqPropertyObjectClassInternal* self, daqPropertyObjectClass** cloned, daqTypeManager* typeManager DAQ_DEFAULT_VALUE(nullptr));
 
 #ifdef __cplusplus
 }

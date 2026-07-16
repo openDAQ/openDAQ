@@ -34,13 +34,23 @@ extern "C"
 
 #include <ccommon.h>
 
+    /*!
+     * @ingroup opendaq_signal_path
+     * @addtogroup opendaq_connection ConnectionInternal
+     */
+    DAQ_EXTENDS_INTERFACE(daqConnectionInternal, daqBaseObject);
+
     typedef struct daqConnectionInternal daqConnectionInternal;
     typedef struct daqPacket daqPacket;
 
     EXPORTED extern const daqIntfID DAQ_CONNECTION_INTERNAL_INTF_ID;
     void EXPORTED daqConnectionInternal_getInterfaceId(daqIntfID* intfId);
 
+    /*!
+     * @brief Enqueues an event packet with the last descriptor at the front of the queue.
+     */
     daqErrCode EXPORTED daqConnectionInternal_enqueueLastDescriptor(daqConnectionInternal* self);
+
     daqErrCode EXPORTED daqConnectionInternal_dequeueUpTo(daqConnectionInternal* self, daqPacket** packetPtr, daqSizeT* count);
 
 #ifdef __cplusplus

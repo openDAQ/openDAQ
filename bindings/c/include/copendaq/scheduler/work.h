@@ -34,11 +34,19 @@ extern "C"
 
 #include <ccommon.h>
 
+    /*!
+     * @brief A lightweight implementation of callback used in scheduler for worker tasks.
+     */
+    DAQ_EXTENDS_INTERFACE(daqWork, daqBaseObject);
+
     typedef struct daqWork daqWork;
 
     EXPORTED extern const daqIntfID DAQ_WORK_INTF_ID;
     void EXPORTED daqWork_getInterfaceId(daqIntfID* intfId);
 
+    /*!
+     * @brief Executes the callback.
+     */
     daqErrCode EXPORTED daqWork_execute(daqWork* self);
 
 #ifdef __cplusplus

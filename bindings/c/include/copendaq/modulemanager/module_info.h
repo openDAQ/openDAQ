@@ -34,6 +34,11 @@ extern "C"
 
 #include <ccommon.h>
 
+    /*!
+     * @brief Give module information composing of: - version info (major, minor, patch) - name - id.
+     */
+    DAQ_EXTENDS_INTERFACE(daqModuleInfo, daqBaseObject);
+
     typedef struct daqModuleInfo daqModuleInfo;
     typedef struct daqVersionInfo daqVersionInfo;
     typedef struct daqString daqString;
@@ -41,9 +46,24 @@ extern "C"
     EXPORTED extern const daqIntfID DAQ_MODULE_INFO_INTF_ID;
     void EXPORTED daqModuleInfo_getInterfaceId(daqIntfID* intfId);
 
+    /*!
+     * @brief Retrieves the module version information.
+     * @param[out] version The semantic version information.
+     */
     daqErrCode EXPORTED daqModuleInfo_getVersionInfo(daqModuleInfo* self, daqVersionInfo** version);
+
+    /*!
+     * @brief Gets the module name.
+     * @param[out] name The module name.
+     */
     daqErrCode EXPORTED daqModuleInfo_getName(daqModuleInfo* self, daqString** name);
+
+    /*!
+     * @brief Gets the module id.
+     * @param[out] id The module id.
+     */
     daqErrCode EXPORTED daqModuleInfo_getId(daqModuleInfo* self, daqString** id);
+
     daqErrCode EXPORTED daqModuleInfo_createModuleInfo(daqModuleInfo** obj, daqVersionInfo* versionInfo, daqString* name, daqString* id);
 
 #ifdef __cplusplus

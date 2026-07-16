@@ -34,6 +34,14 @@ extern "C"
 
 #include <ccommon.h>
 
+    /*!
+     * @brief Acts as a container for channels and other io folders.
+     *
+     * Every device has an IO folder, which allows only other IO folders and
+     * channels as children.
+     */
+    DAQ_EXTENDS_INTERFACE(daqIoFolderConfig, daqFolderConfig);
+
 
     EXPORTED extern const daqIntfID DAQ_IO_FOLDER_CONFIG_INTF_ID;
     void EXPORTED daqIoFolderConfig_getInterfaceId(daqIntfID* intfId);

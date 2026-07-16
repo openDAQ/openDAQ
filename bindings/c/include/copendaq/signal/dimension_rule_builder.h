@@ -34,6 +34,11 @@ extern "C"
 
 #include <ccommon.h>
 
+    /*!
+     * @brief Configuration component of Dimension rule objects. Contains setter methods that allow for Dimension rule parameter configuration, and a `build` method that builds the Dimension rule.
+     */
+    DAQ_EXTENDS_INTERFACE(daqDimensionRuleBuilder, daqBaseObject);
+
     typedef struct daqDimensionRuleBuilder daqDimensionRuleBuilder;
     typedef struct daqDimensionRule daqDimensionRule;
     typedef struct daqDict daqDict;
@@ -42,14 +47,62 @@ extern "C"
     EXPORTED extern const daqIntfID DAQ_DIMENSION_RULE_BUILDER_INTF_ID;
     void EXPORTED daqDimensionRuleBuilder_getInterfaceId(daqIntfID* intfId);
 
+    /*!
+     * @brief Builds and returns a Dimension rule object using the currently set values of the Builder.
+     * @param[out] dataRule The built Dimension rule.
+     */
     daqErrCode EXPORTED daqDimensionRuleBuilder_build(daqDimensionRuleBuilder* self, daqDimensionRule** dimensionRule);
+
+    /*!
+     * @brief Sets the type of the dimension rule. Rule parameters must be configured to match the requirements of the rule type.
+     * @param type The type of the dimension rule.
+     *
+     * The required rule parameters are as follows:
+     * - Linear: `delta`, `start`, and `size` number parameters. Calculated as: <em>index * delta + start</em> for `size` number of elements.
+     * - Logarithmic: `delta`, `start`, `base`, and `size` number parameters. Calculated as: <em>base ^ (index * delta + start)</em> for `size` number of elements.
+     * - List: `list` parameter. The list contains all dimension labels.
+     */
     daqErrCode EXPORTED daqDimensionRuleBuilder_setType(daqDimensionRuleBuilder* self, daqDimensionRuleType type);
+
+    /*!
+     * @brief Gets the type of the dimension rule.
+     * @param[out] type The type of the dimension rule.
+     */
     daqErrCode EXPORTED daqDimensionRuleBuilder_getType(daqDimensionRuleBuilder* self, daqDimensionRuleType* type);
-    daqErrCode EXPORTED daqDimensionRuleBuilder_setParameters(daqDimensionRuleBuilder* self, daqDict* parameters);
-    daqErrCode EXPORTED daqDimensionRuleBuilder_getParameters(daqDimensionRuleBuilder* self, daqDict** parameters);
+
+    /*!
+     * @brief Sets a dictionary of string-object key-value pairs representing the parameters used to evaluate the rule.
+     * @param parameters The dictionary containing the rule parameter members.
+     */
+    daqErrCode EXPORTED daqDimensionRuleBuilder_setParameters(daqDimensionRuleBuilder* self, daqDict* parameters DAQ_DICT_TEMPLATE_TYPE(daqString, daqBaseObject));
+
+    /*!
+     * @brief Gets a dictionary of string-object key-value pairs representing the parameters used to evaluate the rule.
+     * @param[out] parameters The dictionary containing the rule parameter members.
+     */
+    daqErrCode EXPORTED daqDimensionRuleBuilder_getParameters(daqDimensionRuleBuilder* self, daqDict** parameters DAQ_DICT_TEMPLATE_TYPE(daqString, daqBaseObject));
+
+    /*!
+     * @brief Adds a string-object pair parameter to the Dictionary of Dimension rule parameters.
+     * @param name The string-type name of the parameter.
+     * @param parameter The object-type parameter.
+     */
     daqErrCode EXPORTED daqDimensionRuleBuilder_addParameter(daqDimensionRuleBuilder* self, daqString* name, daqBaseObject* parameter);
+
+    /*!
+     * @brief Removes the parameter with the given name from the Dictionary of Dimension rule parameters.
+     */
     daqErrCode EXPORTED daqDimensionRuleBuilder_removeParameter(daqDimensionRuleBuilder* self, daqString* name);
+
+    /*!
+     * @brief Creates a DataRuleConfig with no parameters.
+     */
     daqErrCode EXPORTED daqDimensionRuleBuilder_createDimensionRuleBuilder(daqDimensionRuleBuilder** obj);
+
+    /*!
+     * @brief Dimension rule copy factory that creates a builder Rule object from a possibly non-configurable Rule.
+     * @param ruleToCopy The rule of which configuration should be copied.
+     */
     daqErrCode EXPORTED daqDimensionRuleBuilder_createDimensionRuleBuilderFromExisting(daqDimensionRuleBuilder** obj, daqDimensionRule* ruleToCopy);
 
 #ifdef __cplusplus

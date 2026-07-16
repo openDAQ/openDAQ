@@ -34,6 +34,12 @@ extern "C"
 
 #include <ccommon.h>
 
+    /*!
+     * @ingroup types_types
+     * @defgroup types_types_type_manager Type manager private
+     */
+    DAQ_EXTENDS_INTERFACE(daqTypeManagerPrivate, daqBaseObject);
+
     typedef struct daqTypeManagerPrivate daqTypeManagerPrivate;
     typedef struct daqProcedure daqProcedure;
 

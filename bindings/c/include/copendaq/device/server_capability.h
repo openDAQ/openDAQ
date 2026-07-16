@@ -34,6 +34,20 @@ extern "C"
 
 #include <ccommon.h>
 
+    /*!
+     * @brief Represents standard information about a server's capability to support various protocols. The Server Capability object functions as a Property Object, facilitating the inclusion of custom properties of String, Int, Bool, or Float types. This interface serves to store essential details regarding the supported protocol by a device. It adheres to a standardized set of properties, including methods to retrieve information such as the connection string, protocol name, protocol type, connection type, and core events enabled.
+     * Additional String, Int, Bool, or Float-type properties can be added using the appropriate Property Object "add property" method.
+     * However, other property types are considered invalid for this interface.
+     * The Server Capability object conforms to a standardized format, ensuring compatibility with communication standards.
+     * For instance, it provides methods to retrieve details like
+     * - the connection string (URL),
+     * - protocol name (e.g., "OpenDAQNativeStreaming", "OpenDAQOPCUA"),
+     * - protocol type (e.g., "Configuration&Streaming", "Streaming"),
+     * - connection type (e.g., IPv4, IPv6),
+     * - core events enabled (indicating communication mode).
+     */
+    DAQ_EXTENDS_INTERFACE(daqServerCapability, daqPropertyObject);
+
     typedef struct daqServerCapability daqServerCapability;
     typedef struct daqString daqString;
     typedef struct daqList daqList;
@@ -42,17 +56,79 @@ extern "C"
     EXPORTED extern const daqIntfID DAQ_SERVER_CAPABILITY_INTF_ID;
     void EXPORTED daqServerCapability_getInterfaceId(daqIntfID* intfId);
 
+    /*!
+     * @brief Gets the connection string of the device with the current protocol.
+     * @param[out] connectionString The connection string of the device (URL to connect).
+     */
     daqErrCode EXPORTED daqServerCapability_getConnectionString(daqServerCapability* self, daqString** connectionString);
-    daqErrCode EXPORTED daqServerCapability_getConnectionStrings(daqServerCapability* self, daqList** connectionStrings);
+
+    /*!
+     * @brief Gets the connection string of the device with the current protocol.
+     * @param[out] connectionStrings The connection string of the device (URL to connect).
+     */
+    daqErrCode EXPORTED daqServerCapability_getConnectionStrings(daqServerCapability* self, daqList** connectionStrings DAQ_LIST_ELEMENT_TYPE(daqString));
+
+    /*!
+     * @brief Gets the name of the protocol supported by the device.
+     * @param[out] protocolName The name of the protocol (e.g., "OpenDAQNativeStreaming", "OpenDAQOPCUA", "OpenDAQLTStreaming").
+     */
     daqErrCode EXPORTED daqServerCapability_getProtocolName(daqServerCapability* self, daqString** protocolName);
+
+    /*!
+     * @brief Gets the id of the protocol supported by the device. Should not contain spaces or special characters except for '_' and '-'.
+     * @param[out] protocolId The id of the protocol.
+     */
     daqErrCode EXPORTED daqServerCapability_getProtocolId(daqServerCapability* self, daqString** protocolId);
+
+    /*!
+     * @brief Gets the type of protocol supported by the device.
+     * @param[out] type The type of protocol (Enumeration value reflecting protocol type: "ConfigurationAndStreaming", "Configuration", "Streaming", "Unknown").
+     */
     daqErrCode EXPORTED daqServerCapability_getProtocolType(daqServerCapability* self, daqProtocolType* type);
+
+    /*!
+     * @brief Gets the prefix of the connection string (eg. "daq.nd" or "daq.opcua")
+     * @param prefix The connection string prefix
+     */
     daqErrCode EXPORTED daqServerCapability_getPrefix(daqServerCapability* self, daqString** prefix);
+
+    /*!
+     * @brief Gets the type of connection supported by the device.
+     * @param[out] type The type of connection (e.g., "TCP/IP").
+     */
     daqErrCode EXPORTED daqServerCapability_getConnectionType(daqServerCapability* self, daqString** type);
+
+    /*!
+     * @brief Gets the client update method supported by the device.
+     * @param[out] enabled The client update method (Boolean value indicating if core events are enabled for communication between server and client device).
+     */
     daqErrCode EXPORTED daqServerCapability_getCoreEventsEnabled(daqServerCapability* self, daqBool* enabled);
-    daqErrCode EXPORTED daqServerCapability_getAddresses(daqServerCapability* self, daqList** addresses);
+
+    /*!
+     * @brief Gets the device's list of addresses with the current protocol.
+     * @param[out] addresses The device's list of addresses (hosts)
+     */
+    daqErrCode EXPORTED daqServerCapability_getAddresses(daqServerCapability* self, daqList** addresses DAQ_LIST_ELEMENT_TYPE(daqString));
+
+    /*!
+     * @brief Gets the port of the device with the current protocol.
+     * @param[out] port The port of the device.
+     */
     daqErrCode EXPORTED daqServerCapability_getPort(daqServerCapability* self, daqInteger** port);
-    daqErrCode EXPORTED daqServerCapability_getAddressInfo(daqServerCapability* self, daqList** addressInfo);
+
+    /*!
+     * @brief Gets the list of address information objects.
+     * @param[out] addressInfo The list of address information objects.
+     *
+     * Address information duplicates the connection string and address as available on the Server Capability object.
+     * Additionally, it provides information on what type of address it is (e.g., IPv4, IPv6), as well as whether the address is reachable.
+     */
+    daqErrCode EXPORTED daqServerCapability_getAddressInfo(daqServerCapability* self, daqList** addressInfo DAQ_LIST_ELEMENT_TYPE(daqAddressInfo));
+
+    /*!
+     * @brief Gets the protocol version supported by the device's protocol.
+     * @param[out] version The protocol version.
+     */
     daqErrCode EXPORTED daqServerCapability_getProtocolVersion(daqServerCapability* self, daqString** version);
 
 #ifdef __cplusplus

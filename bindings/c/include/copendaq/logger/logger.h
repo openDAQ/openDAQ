@@ -34,6 +34,23 @@ extern "C"
 
 #include <ccommon.h>
 
+    /*!
+     * @brief Represents a collection of @ref ILoggerComponent "Logger Components" with multiple
+     * @ref ILoggerSink "Logger Sinks" and a single @ref ILoggerThreadPool "Logger Thread Pool"
+     * shared between components.
+     *
+     * Logger is used to create, manage and maintain Logger Components associated with different parts of
+     * the openDAQ SDK. The Logger provides methods, allowing for components to be added and removed dynamically.
+     * The components added within the same Logger object should have unique names. Each newly added
+     * component inherits threshold log severity level from the Logger. Then this level can be changed
+     * independently per component. The set of sinks is initialized on the Logger object creation
+     * and cannot be changed after.
+     *
+     * Additionally, Logger provides the ability to manage flushing policies for the added components,
+     * see `flushOnLevel` method.
+     */
+    DAQ_EXTENDS_INTERFACE(daqLogger, daqBaseObject);
+
     typedef struct daqLogger daqLogger;
     typedef struct daqString daqString;
     typedef struct daqLoggerComponent daqLoggerComponent;
@@ -42,16 +59,67 @@ extern "C"
     EXPORTED extern const daqIntfID DAQ_LOGGER_INTF_ID;
     void EXPORTED daqLogger_getInterfaceId(daqIntfID* intfId);
 
+    /*!
+     * @brief Sets the default log severity level.
+     * @param level The log severity level.
+     */
     daqErrCode EXPORTED daqLogger_setLevel(daqLogger* self, daqLogLevel level);
+
+    /*!
+     * @brief Gets the default log severity level.
+     * @param[out] level The log severity level.
+     */
     daqErrCode EXPORTED daqLogger_getLevel(daqLogger* self, daqLogLevel* level);
+
+    /*!
+     * @brief Gets an added component by name or creates a new one with a given name and adds it to the Logger object.
+     * @param name The component's name.
+     * @param[out] component The logger component with the name equal to @p `name`.
+     * @retval OPENDAQ_ERR_INVALIDPARAMETER if @p name is empty string.
+     */
     daqErrCode EXPORTED daqLogger_getOrAddComponent(daqLogger* self, daqString* name, daqLoggerComponent** component);
+
+    /*!
+     * @brief Creates a component with a given name and adds it to the Logger object.
+     * @param name The component's name.
+     * @param[out] component Added component.
+     * @retval OPENDAQ_ERR_INVALIDPARAMETER if @p name is empty string.
+     */
     daqErrCode EXPORTED daqLogger_addComponent(daqLogger* self, daqString* name, daqLoggerComponent** component);
+
+    /*!
+     * @brief Removes the component with a given name from the Logger object.
+     * @param name The component's name.
+     * @retval OPENDAQ_ERR_NOTFOUND if a component with the specified @p name was not added.
+     */
     daqErrCode EXPORTED daqLogger_removeComponent(daqLogger* self, daqString* name);
-    daqErrCode EXPORTED daqLogger_getComponents(daqLogger* self, daqList** components);
+
+    /*!
+     * @brief Gets a list of added components.
+     * @param[out] components The list of added components.
+     */
+    daqErrCode EXPORTED daqLogger_getComponents(daqLogger* self, daqList** components DAQ_LIST_ELEMENT_TYPE(daqLoggerComponent));
+
+    /*!
+     * @brief Gets an added component by name.
+     * @param name The component's name.
+     * @param[out] component The logger component with the name equal to @p `name`.
+     * @retval OPENDAQ_ERR_NOTFOUND if a component with the specified @p name was not added.
+     */
     daqErrCode EXPORTED daqLogger_getComponent(daqLogger* self, daqString* name, daqLoggerComponent** component);
+
+    /*!
+     * @brief Triggers writing out the messages stored in temporary buffers for added components and sinks associated with the Logger object.
+     */
     daqErrCode EXPORTED daqLogger_flush(daqLogger* self);
+
+    /*!
+     * @brief Sets the minimum severity level of messages to be automatically flushed by components of Logger object.
+     * @param level The log severity level.
+     */
     daqErrCode EXPORTED daqLogger_flushOnLevel(daqLogger* self, daqLogLevel level);
-    daqErrCode EXPORTED daqLogger_createLogger(daqLogger** obj, daqList* sinks, daqLogLevel level);
+
+    daqErrCode EXPORTED daqLogger_createLogger(daqLogger** obj, daqList* sinks DAQ_LIST_ELEMENT_TYPE(daqLoggerSink), daqLogLevel level);
 
 #ifdef __cplusplus
 }

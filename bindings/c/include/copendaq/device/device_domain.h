@@ -34,6 +34,23 @@ extern "C"
 
 #include <ccommon.h>
 
+    /*!
+     * @brief Contains information about the domain of the device.
+     *
+     * The device domain contains a general view into the device's domain data. While devices most often operate
+     * in the time domain, this interface allows for description of any other domain commonly used in signal processing.
+     * For example, common domains include the angle domain, frequency domain, the spatial domain, and the wavelet domain.
+     *
+     * The device domain allows for users to query a device for its current domain value via `getTicksSinceOrigin`
+     * and convert that into its domain unit by multiplying the tick count with the resolution. To get the absolute
+     * domain value, we can then also add the value to the Origin, which is most often provided
+     * as a time epoch in the ISO 8601 format.
+     *
+     * Note that all devices might note provide a device domain implementation. Such devices cannot be directly queried
+     * for their domain data. In such a case, the domain data can be obtained through the device's output signals.
+     */
+    DAQ_EXTENDS_INTERFACE(daqDeviceDomain, daqBaseObject);
+
     typedef struct daqDeviceDomain daqDeviceDomain;
     typedef struct daqRatio daqRatio;
     typedef struct daqString daqString;
@@ -43,11 +60,34 @@ extern "C"
     EXPORTED extern const daqIntfID DAQ_DEVICE_DOMAIN_INTF_ID;
     void EXPORTED daqDeviceDomain_getInterfaceId(daqIntfID* intfId);
 
+    /*!
+     * @brief Gets domain (usually time) between two consecutive ticks. Resolution is provided in a domain unit.
+     * @param[out] tickResolution The device's resolution.
+     */
     daqErrCode EXPORTED daqDeviceDomain_getTickResolution(daqDeviceDomain* self, daqRatio** tickResolution);
+
+    /*!
+     * @brief Gets the device's absolute origin. Most often this is a time epoch in the ISO 8601 format.
+     * @param[out] origin The origin.
+     */
     daqErrCode EXPORTED daqDeviceDomain_getOrigin(daqDeviceDomain* self, daqString** origin);
+
+    /*!
+     * @brief Gets the domain unit (eg. seconds, hours, degrees...)
+     * @param[out] unit The domain unit.
+     */
     daqErrCode EXPORTED daqDeviceDomain_getUnit(daqDeviceDomain* self, daqUnit** unit);
+
+    /*!
+     * @brief Gets the Reference Domain Info.
+     * @param[out] referenceDomainInfo The Reference Domain Info.
+     *
+     * If set, gives additional information about the reference domain.
+     */
     daqErrCode EXPORTED daqDeviceDomain_getReferenceDomainInfo(daqDeviceDomain* self, daqReferenceDomainInfo** referenceDomainInfo);
+
     daqErrCode EXPORTED daqDeviceDomain_createDeviceDomain(daqDeviceDomain** obj, daqRatio* tickResolution, daqString* origin, daqUnit* unit);
+
     daqErrCode EXPORTED daqDeviceDomain_createDeviceDomainWithReferenceDomainInfo(daqDeviceDomain** obj, daqRatio* tickResolution, daqString* origin, daqUnit* unit, daqReferenceDomainInfo* referenceDomainInfo);
 
 #ifdef __cplusplus

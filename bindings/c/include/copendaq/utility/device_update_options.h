@@ -34,6 +34,33 @@ extern "C"
 
 #include <ccommon.h>
 
+    /*!
+     * @brief Allows for specifying how a device and its subdevices are to be updated when loading a configuration.
+     *
+     * The device options object can be created using a serialized openDAQ JSON setup. The options are structured
+     * hierarchically, so that options for subdevices are stored in the parent device options. The following metadata
+     * is read from the setup: local ID, manufacturer, serial number, and connection string.
+     *
+     * For each individual device in the setup, the update mode can be specified. The update mode defines how the device is updated when loading:
+     * - Load: Updates the device. Adds the device if missing.
+     * - UpdateOnly: The device is updated, but not added if missing.
+     * - Skip: The device is not updated. Does neither add nor remove the device.
+     * - Remove: Removes the device from the tree, if present.
+     * - Remap: Same as load, but removes old device (if present) and uses the new manufacturer, serial number, and connection string to add a new one and update.
+     * @subsection opendaq_device_options_remapping Remapping
+     * When the update mode is set to Remap, the device is removed and added again with the new manufacturer, serial number, and connection
+     * string. This can be used when swapping out a device with a different one of the same make/model. This option will try and load the same
+     * settings used to configure the original device to the new one.
+     *
+     * When loading, the new manufacturer + serial number combination will have priority over the new connection string. In case a device with
+     * the new manufacturer + serial number combination is not found, the new connection string will be used as fallback.
+     * If the remapping fails (e.g. due to missing device with the new manufacturer + serial number combination and invalid connection string),
+     * the original device will be removed (if present) and no new device will be added.
+     *
+     * Signal->Input port connections will be preserved when remapping, assuming the new device has the same signal and input port structure and IDs.
+     */
+    DAQ_EXTENDS_INTERFACE(daqDeviceUpdateOptions, daqBaseObject);
+
     typedef struct daqDeviceUpdateOptions daqDeviceUpdateOptions;
     typedef struct daqString daqString;
     typedef struct daqList daqList;
@@ -41,19 +68,90 @@ extern "C"
     EXPORTED extern const daqIntfID DAQ_DEVICE_UPDATE_OPTIONS_INTF_ID;
     void EXPORTED daqDeviceUpdateOptions_getInterfaceId(daqIntfID* intfId);
 
+    /*!
+     * @brief Gets the local ID of the device. The local ID is obtained from the JSON key for the device entry.
+     * @param localId The local ID of the device.
+     *
+     * The root device might not have the local ID configured. In this case the local ID will be set to "Root".
+     */
     daqErrCode EXPORTED daqDeviceUpdateOptions_getLocalId(daqDeviceUpdateOptions* self, daqString** localId);
+
+    /*!
+     * @brief Gets the manufacturer of the device, as written in the setup string.
+     * @param manufacturer The manufacturer of the device.
+     */
     daqErrCode EXPORTED daqDeviceUpdateOptions_getManufacturer(daqDeviceUpdateOptions* self, daqString** manufacturer);
+
+    /*!
+     * @brief Gets the serial number of the device, as written in the setup string.
+     * @param serialNumber The serial number of the device.
+     */
     daqErrCode EXPORTED daqDeviceUpdateOptions_getSerialNumber(daqDeviceUpdateOptions* self, daqString** serialNumber);
+
+    /*!
+     * @brief Gets the connection string of the device, as written in the setup string.
+     * @param connectionString The connection string of the device.
+     */
     daqErrCode EXPORTED daqDeviceUpdateOptions_getConnectionString(daqDeviceUpdateOptions* self, daqString** connectionString);
+
+    /*!
+     * @brief Sets the new manufacturer of the device to be used for remapping.
+     * @param manufacturer The new manufacturer of the device to be used for remapping.
+     */
     daqErrCode EXPORTED daqDeviceUpdateOptions_setNewManufacturer(daqDeviceUpdateOptions* self, daqString* manufacturer);
+
+    /*!
+     * @brief Gets the new manufacturer of the device to be used for remapping.
+     * @param manufacturer The new manufacturer of the device to be used for remapping.
+     */
     daqErrCode EXPORTED daqDeviceUpdateOptions_getNewManufacturer(daqDeviceUpdateOptions* self, daqString** manufacturer);
+
+    /*!
+     * @brief Sets the new serial number of the device to be used for remapping.
+     * @param serialNumber The new serial number of the device to be used for remapping.
+     */
     daqErrCode EXPORTED daqDeviceUpdateOptions_setNewSerialNumber(daqDeviceUpdateOptions* self, daqString* serialNumber);
+
+    /*!
+     * @brief Gets the new serial number of the device to be used for remapping.
+     * @param serialNumber The new serial number of the device to be used for remapping.
+     */
     daqErrCode EXPORTED daqDeviceUpdateOptions_getNewSerialNumber(daqDeviceUpdateOptions* self, daqString** serialNumber);
+
+    /*!
+     * @brief Sets the new connection string of the device to be used for remapping.
+     * @param connectionString The new connection string of the device to be used for remapping.
+     *
+     * The manufacturer and serial number combination has priority over the connection string when remapping.
+     */
     daqErrCode EXPORTED daqDeviceUpdateOptions_setNewConnectionString(daqDeviceUpdateOptions* self, daqString* connectionString);
+
+    /*!
+     * @brief Gets the new connection string of the device to be used for remapping.
+     * @param connectionString The new connection string of the device to be used for remapping.
+     *
+     * The manufacturer and serial number combination has priority over the connection string when remapping.
+     */
     daqErrCode EXPORTED daqDeviceUpdateOptions_getNewConnectionString(daqDeviceUpdateOptions* self, daqString** connectionString);
+
+    /*!
+     * @brief Gets the update mode for the device.
+     * @param mode The update mode for the device.
+     */
     daqErrCode EXPORTED daqDeviceUpdateOptions_getUpdateMode(daqDeviceUpdateOptions* self, daqDeviceUpdateMode* mode);
+
+    /*!
+     * @brief Sets the update mode for the device.
+     * @param mode The update mode for the device.
+     */
     daqErrCode EXPORTED daqDeviceUpdateOptions_setUpdateMode(daqDeviceUpdateOptions* self, daqDeviceUpdateMode mode);
-    daqErrCode EXPORTED daqDeviceUpdateOptions_getChildDeviceOptions(daqDeviceUpdateOptions* self, daqList** childDeviceOptions);
+
+    /*!
+     * @brief Gets the list of child device options for the device. These are used to configure subdevices of the current device.
+     * @param childDeviceOptions The list of child device options for the device.
+     */
+    daqErrCode EXPORTED daqDeviceUpdateOptions_getChildDeviceOptions(daqDeviceUpdateOptions* self, daqList** childDeviceOptions DAQ_LIST_ELEMENT_TYPE(daqDeviceUpdateOptions));
+
     daqErrCode EXPORTED daqDeviceUpdateOptions_createDeviceUpdateOptions(daqDeviceUpdateOptions** obj, daqString* setupString);
 
 #ifdef __cplusplus

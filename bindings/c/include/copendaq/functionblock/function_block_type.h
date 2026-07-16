@@ -34,6 +34,11 @@ extern "C"
 
 #include <ccommon.h>
 
+    /*!
+     * @brief Provides information about the function block.
+     */
+    DAQ_EXTENDS_INTERFACE(daqFunctionBlockType, daqComponentType);
+
     typedef struct daqFunctionBlockType daqFunctionBlockType;
     typedef struct daqString daqString;
     typedef struct daqPropertyObject daqPropertyObject;
@@ -41,6 +46,13 @@ extern "C"
     EXPORTED extern const daqIntfID DAQ_FUNCTION_BLOCK_TYPE_INTF_ID;
     void EXPORTED daqFunctionBlockType_getInterfaceId(daqIntfID* intfId);
 
+    /*!
+     * @brief Creates a Function block type object, with the id, name, description and optional defaultConfig.
+     * @param id The unique type ID of the function block.
+     * @param name The name of the function block. Eg. FFT.
+     * @param description A short description of the function block and its behaviour.
+     * @param defaultConfig The property object, to be cloned and returned, each time user creates default configuration object. This way each instance of the function block has its own configuration object.
+     */
     daqErrCode EXPORTED daqFunctionBlockType_createFunctionBlockType(daqFunctionBlockType** obj, daqString* id, daqString* name, daqString* description, daqPropertyObject* defaultConfig);
 
 #ifdef __cplusplus

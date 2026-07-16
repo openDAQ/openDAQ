@@ -34,14 +34,18 @@ extern "C"
 
 #include <ccommon.h>
 
+    DAQ_EXTENDS_INTERFACE(daqEndUpdateEventArgs, daqEventArgs);
+
     typedef struct daqEndUpdateEventArgs daqEndUpdateEventArgs;
     typedef struct daqList daqList;
 
     EXPORTED extern const daqIntfID DAQ_END_UPDATE_EVENT_ARGS_INTF_ID;
     void EXPORTED daqEndUpdateEventArgs_getInterfaceId(daqIntfID* intfId);
 
-    daqErrCode EXPORTED daqEndUpdateEventArgs_getProperties(daqEndUpdateEventArgs* self, daqList** properties);
+    daqErrCode EXPORTED daqEndUpdateEventArgs_getProperties(daqEndUpdateEventArgs* self, daqList** properties DAQ_LIST_ELEMENT_TYPE(daqString));
+
     daqErrCode EXPORTED daqEndUpdateEventArgs_getIsParentUpdating(daqEndUpdateEventArgs* self, daqBool* isParentUpdating);
+
     daqErrCode EXPORTED daqEndUpdateEventArgs_createEndUpdateEventArgs(daqEndUpdateEventArgs** obj, daqList* properties, daqBool isParentUpdating);
 
 #ifdef __cplusplus

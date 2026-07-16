@@ -34,6 +34,14 @@ extern "C"
 
 #include <ccommon.h>
 
+    /*!
+     * @brief Acts as a base interface for components, such as device, function block, channel and signal.
+     *
+     * The IComponent provides a set of methods that are common to all components:
+     * LocalID, GlobalID and Active properties.
+     */
+    DAQ_EXTENDS_INTERFACE(daqComponent, daqPropertyObject);
+
     typedef struct daqComponent daqComponent;
     typedef struct daqString daqString;
     typedef struct daqContext daqContext;
@@ -45,26 +53,182 @@ extern "C"
     EXPORTED extern const daqIntfID DAQ_COMPONENT_INTF_ID;
     void EXPORTED daqComponent_getInterfaceId(daqIntfID* intfId);
 
+    /*!
+     * @brief Gets the local ID of the component.
+     * @param[out] localId The local ID of the component.
+     *
+     * Represents the identifier that is unique in a relation to the
+     * parent component. There is no predefined format for local ID. It is a string defined
+     * by its parent component.
+     */
     daqErrCode EXPORTED daqComponent_getLocalId(daqComponent* self, daqString** localId);
+
+    /*!
+     * @brief Gets the global ID of the component.
+     * @param[out] globalId The global ID of the component.
+     *
+     * Represents the identifier that is globally unique. Globally unique identifier is composed
+     * from local identifiers from the parent components separated by '/' character. Device component
+     * must make sure that its ID is globally unique.
+     */
     daqErrCode EXPORTED daqComponent_getGlobalId(daqComponent* self, daqString** globalId);
+
+    /*!
+     * @brief Returns true if the component is active; false otherwise.
+     * @param[out] active True if the component is active; false otherwise.
+     *
+     * A component is active if its local active state is true and its parent is active.
+     * An active component acquires data, performs calculations and send packets on the signal path.
+     */
     daqErrCode EXPORTED daqComponent_getActive(daqComponent* self, daqBool* active);
+
+    /*!
+     * @brief Sets the component to be either active or inactive. Sets the local active state and notifies children about the parent active state change.
+     * @param active The new local active state of the component.
+     * @retval OPENDAQ_IGNORED if "Active" is part of the component's list of locked attributes, or if the new active value is equal to the previous.
+     *
+     * An active component acquires data, performs calculations and send packets on the signal path.
+     */
     daqErrCode EXPORTED daqComponent_setActive(daqComponent* self, daqBool active);
+
+    /*!
+     * @brief Gets the context object.
+     * @param[out] context The context object.
+     */
     daqErrCode EXPORTED daqComponent_getContext(daqComponent* self, daqContext** context);
+
+    /*!
+     * @brief Gets the parent of the component.
+     * @param[out] parent The parent of the component.
+     *
+     * Every openDAQ component has a parent, except for instance. Parent should be passed as
+     * a parameter to the constructor/factory. Once the component is created, the parent
+     * cannot be changed.
+     */
     daqErrCode EXPORTED daqComponent_getParent(daqComponent* self, daqComponent** parent);
+
+    /*!
+     * @brief Gets the name of the component.
+     * @param[out] name The name of the component. Local ID if name is not configured.
+     *
+     * The object that implements this interface defines how the name is specified.
+     */
     daqErrCode EXPORTED daqComponent_getName(daqComponent* self, daqString** name);
+
+    /*!
+     * @brief Sets the name of the component.
+     * @param name The name of the component.
+     * @retval OPENDAQ_IGNORED if "Name" is part of the component's list of locked attributes, or if the new name value is equal to the previous.
+     *
+     * The object that implements this interface defines how the name is specified.
+     */
     daqErrCode EXPORTED daqComponent_setName(daqComponent* self, daqString* name);
+
+    /*!
+     * @brief Gets the description of the component.
+     * @param[out] description The description of the component. Empty if not configured.
+     *
+     * The object that implements this interface defines how the description is specified.
+     */
     daqErrCode EXPORTED daqComponent_getDescription(daqComponent* self, daqString** description);
+
+    /*!
+     * @brief Sets the description of the component.
+     * @param description The description of the component.
+     * @retval OPENDAQ_IGNORED if "Description" is part of the component's list of locked attributes, or if the new description value is equal to the previous.
+     *
+     * The object that implements this interface defines how the description is specified.
+     */
     daqErrCode EXPORTED daqComponent_setDescription(daqComponent* self, daqString* description);
+
+    /*!
+     * @brief Gets the tags of the component.
+     * @param[out] tags The tags of the component.
+     *
+     * Tags are user definable labels that can be attached to the component.
+     */
     daqErrCode EXPORTED daqComponent_getTags(daqComponent* self, daqTags** tags);
+
+    /*!
+     * @brief Gets `visible` metadata state of the component
+     * @param[out] visible True if the component is visible; False otherwise.
+     *
+     * Visible determines whether search/getter methods return find the component by default.
+     */
     daqErrCode EXPORTED daqComponent_getVisible(daqComponent* self, daqBool* visible);
+
+    /*!
+     * @brief Sets `visible` attribute state of the component
+     * @param visible True if the component is visible; False otherwise.
+     * @retval OPENDAQ_IGNORED if "Visible" is part of the component's list of locked attributes.
+     *
+     * Visible determines whether search/getter methods return find the component by default.
+     */
     daqErrCode EXPORTED daqComponent_setVisible(daqComponent* self, daqBool visible);
-    daqErrCode EXPORTED daqComponent_getLockedAttributes(daqComponent* self, daqList** attributes);
-    daqErrCode EXPORTED daqComponent_getOnComponentCoreEvent(daqComponent* self, daqEvent** event);
+
+    /*!
+     * @brief Gets a list of the component's locked attributes. The locked attributes cannot be modified via their respective setters.
+     * @param[out] attributes A list of strings containing the names of locked attributes in capital case (eg. "Name", "Description").
+     */
+    daqErrCode EXPORTED daqComponent_getLockedAttributes(daqComponent* self, daqList** attributes DAQ_LIST_ELEMENT_TYPE(daqString));
+
+    /*!
+     * @brief Gets the Core Event object that triggers whenever a change to this component happens within the openDAQ core structure.
+     * @param[out] event The Core Event object. The event triggers with a Component reference and a CoreEventArgs object as arguments.
+     *
+     * The Core Event is triggered on various changes to the openDAQ Components. This includes changes to property values,
+     * addition/removal of child components, connecting signals to input ports and others. The event type can be identified
+     * via the event ID available within the CoreEventArgs object. Each event type has a set of predetermined parameters
+     * available in the `parameters` field of the arguments. These can be used by any openDAQ server, or other listener to
+     * react to changes within the core structure.
+     */
+    daqErrCode EXPORTED daqComponent_getOnComponentCoreEvent(daqComponent* self, daqEvent** event DAQ_TEMPLATE_TYPE(daqComponent, daqCoreEventArgs));
+
+    /*!
+     * @brief Gets the container of Component statuses.
+     * @param[out] statusContainer The container of Component statuses.
+     */
     daqErrCode EXPORTED daqComponent_getStatusContainer(daqComponent* self, daqComponentStatusContainer** statusContainer);
+
+    /*!
+     * @brief Finds the component (signal/device/function block) with the specified (global) id.
+     * @param id The id of the component to search for.
+     * @param[out] outComponent The resulting component.
+     *
+     * If the component parameter is true, the starting component is the root device.
+     *
+     * The id provided should be in relative form from the starting component. E.g., to find a signal in
+     * the starting component, the id should be in the form of "Dev/dev_id/Ch/ch_id/Sig/sig_id.
+     */
     daqErrCode EXPORTED daqComponent_findComponent(daqComponent* self, daqString* id, daqComponent** outComponent);
+
+    /*!
+     * @brief Gets the operation mode of the device.
+     * @param[out] modeType The current operation mode.
+     */
     daqErrCode EXPORTED daqComponent_getOperationMode(daqComponent* self, daqOperationModeType* modeType);
+
+    /*!
+     * @brief Returns true if the component is local active; false otherwise.
+     * @param[out] localActive True if the component is local active; false otherwise.
+     *
+     * An active component acquires data, performs calculations and send packets on the signal path.
+     * Note that is local active is True, the component may still be inactive if its parents are inactive.
+     */
     daqErrCode EXPORTED daqComponent_getLocalActive(daqComponent* self, daqBool* localActive);
+
+    /*!
+     * @brief Returns true if the component's parent is active; false otherwise.
+     * @param[out] parentActive True if the component's parent is active; false otherwise.
+     */
     daqErrCode EXPORTED daqComponent_getParentActive(daqComponent* self, daqBool* parentActive);
+
+    /*!
+     * @brief Creates a component.
+     * @param context The Context. Most often the creating function-block/device passes its own Context to the Folder.
+     * @param parent The parent component.
+     * @param localId The local ID of the component.
+     */
     daqErrCode EXPORTED daqComponent_createComponent(daqComponent** obj, daqContext* context, daqComponent* parent, daqString* localId, daqString* className);
 
 #ifdef __cplusplus

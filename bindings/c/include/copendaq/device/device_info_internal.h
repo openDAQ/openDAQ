@@ -34,6 +34,12 @@ extern "C"
 
 #include <ccommon.h>
 
+    /*!
+     * @ingroup opendaq_devices
+     * @addtogroup opendaq_device_info Device info internal
+     */
+    DAQ_EXTENDS_INTERFACE(daqDeviceInfoInternal, daqBaseObject);
+
     typedef struct daqDeviceInfoInternal daqDeviceInfoInternal;
     typedef struct daqServerCapability daqServerCapability;
     typedef struct daqString daqString;
@@ -43,11 +49,44 @@ extern "C"
     EXPORTED extern const daqIntfID DAQ_DEVICE_INFO_INTERNAL_INTF_ID;
     void EXPORTED daqDeviceInfoInternal_getInterfaceId(daqIntfID* intfId);
 
+    /*!
+     * @brief Adds a protocol to the list of supported capabilities.
+     * @param serverCapability The supported protocol to add.
+     */
     daqErrCode EXPORTED daqDeviceInfoInternal_addServerCapability(daqDeviceInfoInternal* self, daqServerCapability* serverCapability);
+
+    /*!
+     * @brief Removes a protocol from the list of supported capabilities.
+     * @param protocolId The ID of the protocol to remove.
+     */
     daqErrCode EXPORTED daqDeviceInfoInternal_removeServerCapability(daqDeviceInfoInternal* self, daqString* protocolId);
+
+    /*!
+     * @brief Removes all server streaming capabilities from the list of supported capabilities.
+     */
     daqErrCode EXPORTED daqDeviceInfoInternal_clearServerStreamingCapabilities(daqDeviceInfoInternal* self);
+
+    /*!
+     * @brief Adds a network interface to the dictionary of available interfaces.
+     * @param networkInterface The available interface to add.
+     * @param name The name of available interface to add.
+     *
+     * The provided name should be unique within the device info as used as the key in the dictionary of available interfaces.
+     */
     daqErrCode EXPORTED daqDeviceInfoInternal_addNetworkInteface(daqDeviceInfoInternal* self, daqString* name, daqNetworkInterface* networkInterface);
+
+    /*!
+     * @brief Registers a newly connected client or re-registers a reconnected client.
+     * @param clientNumber If provided, represents the original ordinal number of the re-registered client. If unassigned or exceeding the total number of clients ever registered (including those that were later deregistered), it is set to the incremented total count; otherwise, the client is registered under the specified number.
+     * @param clientInfo The connected client information object.
+     * @return OPENDAQ_ERR_ALREADYEXISTS if a client with the specified number already registered.
+     */
     daqErrCode EXPORTED daqDeviceInfoInternal_addConnectedClient(daqDeviceInfoInternal* self, daqSizeT* clientNumber, daqConnectedClientInfo* clientInfo);
+
+    /*!
+     * @brief Unregisters a previously connected client upon disconnection.
+     * @param clientNumber The number identifying the disconnected client.
+     */
     daqErrCode EXPORTED daqDeviceInfoInternal_removeConnectedClient(daqDeviceInfoInternal* self, daqSizeT clientNumber);
 
 #ifdef __cplusplus

@@ -34,6 +34,11 @@ extern "C"
 
 #include <ccommon.h>
 
+    /*!
+     * @brief IBlockReaderStatus inherits from IReaderStatus to expand information returned read function
+     */
+    DAQ_EXTENDS_INTERFACE(daqBlockReaderStatus, daqReaderStatus);
+
     typedef struct daqBlockReaderStatus daqBlockReaderStatus;
     typedef struct daqEventPacket daqEventPacket;
     typedef struct daqNumber daqNumber;
@@ -41,7 +46,12 @@ extern "C"
     EXPORTED extern const daqIntfID DAQ_BLOCK_READER_STATUS_INTF_ID;
     void EXPORTED daqBlockReaderStatus_getInterfaceId(daqIntfID* intfId);
 
+    /*!
+     * @brief Returns the number of samples that were read. Sometimes, during the process of reading, an event packet may occur that stops the reading of remaining samples. Developers can use this function to determine how many samples were actually read.
+     * @param[out] samplesCount the amount of samples that were read.
+     */
     daqErrCode EXPORTED daqBlockReaderStatus_getReadSamples(daqBlockReaderStatus* self, daqSizeT* readSamples);
+
     daqErrCode EXPORTED daqBlockReaderStatus_createBlockReaderStatus(daqBlockReaderStatus** obj, daqEventPacket* eventPacket, daqBool valid, daqNumber* offset, daqSizeT readSamples);
 
 #ifdef __cplusplus

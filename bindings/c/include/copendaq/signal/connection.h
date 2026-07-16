@@ -34,6 +34,17 @@ extern "C"
 
 #include <ccommon.h>
 
+    /*!
+     * @brief Represents a connection between an Input port and Signal. Acts as a queue for packets sent by the signal, which can be read by the input port and the input port's owner.
+     *
+     * The Connection provides standard queue methods, allowing for packets to be put at the back
+     * of the queue, and popped from the front. Additionally, the front packet can be inspected via
+     * `peek`, and the number of queued packets can be obtained through `getPacketCount`.
+     *
+     * The Connection has a reference to the connected Signal and Input port.
+     */
+    DAQ_EXTENDS_INTERFACE(daqConnection, daqBaseObject);
+
     typedef struct daqConnection daqConnection;
     typedef struct daqPacket daqPacket;
     typedef struct daqSignal daqSignal;
@@ -44,25 +55,137 @@ extern "C"
     EXPORTED extern const daqIntfID DAQ_CONNECTION_INTF_ID;
     void EXPORTED daqConnection_getInterfaceId(daqIntfID* intfId);
 
+    /*!
+     * @brief Places a packet at the back of the queue.
+     * @param packet The packet to be enqueued.
+     */
     daqErrCode EXPORTED daqConnection_enqueue(daqConnection* self, daqPacket* packet);
+
+    /*!
+     * @brief Places a packet at the back of the queue.
+     * @param packet The packet to be enqueued.
+     *
+     * The connection notifies the listener on the same thread that this method was called.
+     */
     daqErrCode EXPORTED daqConnection_enqueueOnThisThread(daqConnection* self, daqPacket* packet);
+
+    /*!
+     * @brief Removes the packet at the front of the queue and returns it.
+     * @param[out] packet The removed packet or @c nullptr if the connection has no packets.
+     * @retval OPENDAQ_NO_MORE_ITEMS When the connection does not hold any packets.
+     */
     daqErrCode EXPORTED daqConnection_dequeue(daqConnection* self, daqPacket** packet);
+
+    /*!
+     * @brief Returns the packet at the front of the queue without removing it.
+     * @param[out] packet The packet at the front of the queue or @c nullptr if the connection has no packets.
+     * @retval OPENDAQ_NO_MORE_ITEMS When the connection does not hold any packets.
+     */
     daqErrCode EXPORTED daqConnection_peek(daqConnection* self, daqPacket** packet);
+
+    /*!
+     * @brief Gets the number of queued packets.
+     * @param[out] packetCount The number of queued packets.
+     */
     daqErrCode EXPORTED daqConnection_getPacketCount(daqConnection* self, daqSizeT* packetCount);
+
+    /*!
+     * @brief Gets the Signal that is sending packets through the Connection.
+     * @param[out] signal The Signal.
+     */
     daqErrCode EXPORTED daqConnection_getSignal(daqConnection* self, daqSignal** signal);
+
+    /*!
+     * @brief Gets the Input port to which packets are being sent.
+     * @param[out] inputPort The input port.
+     */
     daqErrCode EXPORTED daqConnection_getInputPort(daqConnection* self, daqInputPort** inputPort);
+
+    /*!
+     * @brief Gets the number of samples available in the queued packets. The returned value ignores any Sample-Descriptor changes.
+     * @param[out] samples The total amount of samples currently available in the stored packets.
+     */
     daqErrCode EXPORTED daqConnection_getAvailableSamples(daqConnection* self, daqSizeT* samples);
+
+    /*!
+     * @brief Gets the number of same-type samples available in the queued packets. The returned value is up-to the next Sample-Descriptor-Changed packet if any.
+     * @param[out] samples The total amount of same-type samples currently available in the stored packets.
+     */
     daqErrCode EXPORTED daqConnection_getSamplesUntilNextDescriptor(daqConnection* self, daqSizeT* samples);
+
+    /*!
+     * @brief Returns true if the type of connection is remote.
+     * @param[out] remote True if connection is remote.
+     *
+     * Remote connections do not pass any packets. They represent the connection between input ports and signals
+     * on remote devices.
+     */
     daqErrCode EXPORTED daqConnection_isRemote(daqConnection* self, daqBool* remote);
+
+    /*!
+     * @brief Places a packet at the back of the queue. The reference of the packet is stolen.
+     * @param packet The packet to be enqueued.
+     *
+     * After calling the method, the packet should not be touched again. The ownership of the packet
+     * is taken by underlying connections and it could be destroyed before the function returns.
+     */
     daqErrCode EXPORTED daqConnection_enqueueAndStealRef(daqConnection* self, daqPacket* packet);
-    daqErrCode EXPORTED daqConnection_enqueueMultiple(daqConnection* self, daqList* packets);
-    daqErrCode EXPORTED daqConnection_enqueueMultipleAndStealRef(daqConnection* self, daqList* packets);
-    daqErrCode EXPORTED daqConnection_dequeueAll(daqConnection* self, daqList** packets);
+
+    /*!
+     * @brief Places multiple packets at the back of the queue.
+     * @param packets The packets to be enqueued.
+     */
+    daqErrCode EXPORTED daqConnection_enqueueMultiple(daqConnection* self, daqList* packets DAQ_LIST_ELEMENT_TYPE(daqPacket));
+
+    /*!
+     * @brief Places multiple packets at the back of the queue. The references of the packets are stolen.
+     * @param packets The packets to be enqueued.
+     *
+     * After calling the method, the packets should not be touched again. The ownership of the packets
+     * is taken by underlying connections and it could be destroyed before the function returns.
+     */
+    daqErrCode EXPORTED daqConnection_enqueueMultipleAndStealRef(daqConnection* self, daqList* packets DAQ_LIST_ELEMENT_TYPE(daqPacket));
+
+    /*!
+     * @brief Removes all packets from the queue.
+     * @param[out] packets The removed packets.
+     *
+     * Removing all packets can be more efficient than dequeuing packet by packet in heavily loaded systems.
+     */
+    daqErrCode EXPORTED daqConnection_dequeueAll(daqConnection* self, daqList** packets DAQ_LIST_ELEMENT_TYPE(daqPacket));
+
+    /*!
+     * @brief Gets the number of samples available in the queued packets until the next event packet. The returned value is up-to the next Event packet if any.
+     * @param[out] samples The total amount of samples currently available in the stored packets until the next event packet.
+     */
     daqErrCode EXPORTED daqConnection_getSamplesUntilNextEventPacket(daqConnection* self, daqSizeT* samples);
+
+    /*!
+     * @brief Gets the number of samples available in the queued packets until the next gap packet. The returned value is up-to the next Gap packet if any.
+     * @param[out] samples The total amount of samples currently available in the stored packets until the next gap packet.
+     */
     daqErrCode EXPORTED daqConnection_getSamplesUntilNextGapPacket(daqConnection* self, daqSizeT* samples);
+
+    /*!
+     * @brief Queries if the connection has an event packet.
+     * @param[out] hasEventPacket True if the connection has an event packet.
+     */
     daqErrCode EXPORTED daqConnection_hasEventPacket(daqConnection* self, daqBool* hasEventPacket);
+
+    /*!
+     * @brief Queries if the connection has a gap packet.
+     * @param[out] hasGapPacket True if the connection has a gap packet.
+     */
     daqErrCode EXPORTED daqConnection_hasGapPacket(daqConnection* self, daqBool* hasGapPacket);
+
+    /*!
+     * @brief Places a packet at the back of the queue.
+     * @param packet The packet to be enqueued.
+     *
+     * The connection schedules the `onPacketReceived` notification.
+     */
     daqErrCode EXPORTED daqConnection_enqueueWithScheduler(daqConnection* self, daqPacket* packet);
+
     daqErrCode EXPORTED daqConnection_createConnection(daqConnection** obj, daqInputPort* inputPort, daqSignal* signal, daqContext* context);
 
 #ifdef __cplusplus

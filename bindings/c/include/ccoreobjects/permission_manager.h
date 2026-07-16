@@ -34,6 +34,11 @@ extern "C"
 
 #include <ccommon.h>
 
+    /*!
+     * @brief A class which is responsible for managing permissions on an object level. Given a user's group, it is possible to restrict or allow read, write and execute permissions for each object. It is also possible to specify if permissions are inherited from parent object
+     */
+    DAQ_EXTENDS_INTERFACE(daqPermissionManager, daqBaseObject);
+
     typedef struct daqPermissionManager daqPermissionManager;
     typedef struct daqPermissions daqPermissions;
     typedef struct daqUser daqUser;
@@ -41,8 +46,24 @@ extern "C"
     EXPORTED extern const daqIntfID DAQ_PERMISSION_MANAGER_INTF_ID;
     void EXPORTED daqPermissionManager_getInterfaceId(daqIntfID* intfId);
 
+    /*!
+     * @brief Set object permission configuration.
+     * @param permissions Permissions configuration object.
+     */
     daqErrCode EXPORTED daqPermissionManager_setPermissions(daqPermissionManager* self, daqPermissions* permissions);
+
+    /*!
+     * @brief Check if user has a given permission on an object of the permission manager.
+     * @param user A reference to the user.
+     * @param permission A permission to test.
+     * @param[out] authorizedOut Returns true if user is authorized and false otherwise.
+     */
     daqErrCode EXPORTED daqPermissionManager_isAuthorized(daqPermissionManager* self, daqUser* user, daqPermission permission, daqBool* authorizedOut);
+
+    /*!
+     * @brief Creates an permission manager with a given parent.
+     * @param parent Permission manager of a parent object. It can be null for a root object.
+     */
     daqErrCode EXPORTED daqPermissionManager_createPermissionManager(daqPermissionManager** obj, daqPermissionManager* parent);
 
 #ifdef __cplusplus

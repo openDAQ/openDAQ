@@ -34,6 +34,11 @@ extern "C"
 
 #include <ccommon.h>
 
+    /*!
+     * @brief A basic signal reader that simplifies accessing the signals's data stream.
+     */
+    DAQ_EXTENDS_INTERFACE(daqReader, daqBaseObject);
+
     typedef struct daqReader daqReader;
     typedef struct daqProcedure daqProcedure;
     typedef struct daqInputPortNotifications daqInputPortNotifications;
@@ -41,9 +46,35 @@ extern "C"
     EXPORTED extern const daqIntfID DAQ_READER_INTF_ID;
     void EXPORTED daqReader_getInterfaceId(daqIntfID* intfId);
 
+    /*!
+     * @brief Gets the number of segments available to read
+     * @param[out] count The number of available segments
+     */
     daqErrCode EXPORTED daqReader_getAvailableCount(daqReader* self, daqSizeT* count);
+
+    /*!
+     * @brief Sets the specified callback function to be called when there is available data in the reader.
+     * @param callback The callback function to be set or @c nullptr to unset it.
+     *
+     * Pass @c nullptr to unset the callback. The callback should take no arguments.
+     */
     daqErrCode EXPORTED daqReader_setOnDataAvailable(daqReader* self, daqProcedure* callback);
+
+    /*!
+     * @brief Sets an external listener to the reader.
+     * @param listener The external listener.
+     *
+     * When an external listener is set, after the reader is done processing the input port notification methods,
+     * it also calls the methods of the external listener.
+     */
     daqErrCode EXPORTED daqReader_setExternalListener(daqReader* self, daqInputPortNotifications* listener);
+
+    /*!
+     * @brief Checks if there is data to read.
+     * @param[out] empty Set to true if there is data to read, false otherwise.
+     * This method returns true if there is data available to read.
+     * The data can be an event packet or a sufficient amount of data samples for minimum reading.
+     */
     daqErrCode EXPORTED daqReader_getEmpty(daqReader* self, daqBool* empty);
 
 #ifdef __cplusplus

@@ -34,6 +34,11 @@ extern "C"
 
 #include <ccommon.h>
 
+    /*!
+     * @brief Represents configuration interface for mirrored device. Allows attaching and removing streaming data sources associated with the device.
+     */
+    DAQ_EXTENDS_INTERFACE(daqMirroredDeviceConfig, daqMirroredDevice);
+
     typedef struct daqMirroredDeviceConfig daqMirroredDeviceConfig;
     typedef struct daqStreaming daqStreaming;
     typedef struct daqString daqString;
@@ -42,8 +47,22 @@ extern "C"
     EXPORTED extern const daqIntfID DAQ_MIRRORED_DEVICE_CONFIG_INTF_ID;
     void EXPORTED daqMirroredDeviceConfig_getInterfaceId(daqIntfID* intfId);
 
+    /*!
+     * @brief Adds streaming source for device.
+     * @param streaming The Streaming object representing the data source.
+     */
     daqErrCode EXPORTED daqMirroredDeviceConfig_addStreamingSource(daqMirroredDeviceConfig* self, daqStreaming* streamingSource);
+
+    /*!
+     * @brief Removes streaming source for device e.g. when the streaming source is no longer available.
+     * @param streamingConnectionString The connection string of streaming source to be removed.
+     */
     daqErrCode EXPORTED daqMirroredDeviceConfig_removeStreamingSource(daqMirroredDeviceConfig* self, daqString* streamingConnectionString);
+
+    /*!
+     * @brief Sets the device's type that corresponds to the client-side device module.
+     * @param type The device's type.
+     */
     daqErrCode EXPORTED daqMirroredDeviceConfig_setMirroredDeviceType(daqMirroredDeviceConfig* self, daqDeviceType* type);
 
 #ifdef __cplusplus

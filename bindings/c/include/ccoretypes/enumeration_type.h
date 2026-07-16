@@ -34,6 +34,23 @@ extern "C"
 
 #include <ccommon.h>
 
+    /*!
+     * @brief Enumeration types define the enumerator names and values of Enumerations with a name matching that of the Enumeration type.
+     *
+     * An Enumeration type provides a String-type name, a list of enumerator names (list of Strings) and
+     * a list of enumerator values (list of Integer objects). To use Enumeration types for creating Enumeration
+     * objects, they must be added to the Type Manager. Alternatively, if an Enumeration is created without
+     * a matching Enumeration type in the manager, a default Enumeration type is generated based on the
+     * enumerator names and values of the created Enumeration object. This generated Enumeration type is then
+     * added to the Type Manager.
+     *
+     * The enumerator values are represented as a list of Integer objects. These values can be explicitly specified
+     * during Enumeration type creation, or only the first enumerator value can be specified, with the rest
+     * automatically assigned in ascending order, starting from that value (or from the default '0' value if not
+     * specified).
+     */
+    DAQ_EXTENDS_INTERFACE(daqEnumerationType, daqType);
+
     typedef struct daqEnumerationType daqEnumerationType;
     typedef struct daqList daqList;
     typedef struct daqDict daqDict;
@@ -42,11 +59,33 @@ extern "C"
     EXPORTED extern const daqIntfID DAQ_ENUMERATION_TYPE_INTF_ID;
     void EXPORTED daqEnumerationType_getInterfaceId(daqIntfID* intfId);
 
-    daqErrCode EXPORTED daqEnumerationType_getEnumeratorNames(daqEnumerationType* self, daqList** names);
-    daqErrCode EXPORTED daqEnumerationType_getAsDictionary(daqEnumerationType* self, daqDict** dictionary);
+    /*!
+     * @brief Gets the list of enumerator names.
+     * @param[out] names The list of enumerator names (String objects)
+     */
+    daqErrCode EXPORTED daqEnumerationType_getEnumeratorNames(daqEnumerationType* self, daqList** names DAQ_LIST_ELEMENT_TYPE(daqString));
+
+    /*!
+     * @brief Gets the enumerator names and values as a Dictionary.
+     * @param[out] dictionary The Dictionary object with enumerator names as keys, and enumerator values as its values.
+     */
+    daqErrCode EXPORTED daqEnumerationType_getAsDictionary(daqEnumerationType* self, daqDict** dictionary DAQ_DICT_TEMPLATE_TYPE(daqString, daqInteger));
+
+    /*!
+     * @brief Gets the value of enumerator with the specified name.
+     * @param name The name of the enumerator (String object).
+     * @param[out] value The integer value of the enumerator with the specified name.
+     */
     daqErrCode EXPORTED daqEnumerationType_getEnumeratorIntValue(daqEnumerationType* self, daqString* name, daqInt* value);
+
+    /*!
+     * @brief Gets the number of enumerators within the Enumeration Type.
+     * @param[out] count The number of enumerators within the Enumeration Type.
+     */
     daqErrCode EXPORTED daqEnumerationType_getCount(daqEnumerationType* self, daqSizeT* count);
+
     daqErrCode EXPORTED daqEnumerationType_createEnumerationType(daqEnumerationType** obj, daqString* typeName, daqList* enumeratorNames, daqInt firstEnumeratorIntValue);
+
     daqErrCode EXPORTED daqEnumerationType_createEnumerationTypeWithValues(daqEnumerationType** obj, daqString* typeName, daqDict* enumerators);
 
 #ifdef __cplusplus

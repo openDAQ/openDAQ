@@ -34,6 +34,16 @@ extern "C"
 
 #include <ccommon.h>
 
+    /*!
+     * @brief Represents the status of the reading process returned by the reader::read function.
+     *
+     * The `IReaderStatus` class provides information about the outcome of the reading operation,
+     * including the validity of the reader and the potential encounter of event packets during processing.
+     * Objects of this class are typically returned as a result of the `read` function of the Readers,
+     * allowing the client code to assess and respond to the status of the reading process.
+     */
+    DAQ_EXTENDS_INTERFACE(daqReaderStatus, daqBaseObject);
+
     typedef struct daqReaderStatus daqReaderStatus;
     typedef struct daqEventPacket daqEventPacket;
     typedef struct daqNumber daqNumber;
@@ -41,10 +51,30 @@ extern "C"
     EXPORTED extern const daqIntfID DAQ_READER_STATUS_INTF_ID;
     void EXPORTED daqReaderStatus_getInterfaceId(daqIntfID* intfId);
 
+    /*!
+     * @brief Retrieves the current reading status, indicating whether the reading process is in an "Ok" state, has encountered an Event, has failed, or is in an Unknown state.
+     * @param[out] status a ReadStatus enum variable where the current reading status will be stored.
+     */
     daqErrCode EXPORTED daqReaderStatus_getReadStatus(daqReaderStatus* self, daqReadStatus* status);
+
+    /*!
+     * @brief Retrieves the event packet from the reading process.
+     * @param[out] packet The event packet from the reading process.
+     */
     daqErrCode EXPORTED daqReaderStatus_getEventPacket(daqReaderStatus* self, daqEventPacket** packet);
+
+    /*!
+     * @brief Checks the validity of the reader.
+     * @param[out] valid Boolean value indicating the validity of the reader
+     */
     daqErrCode EXPORTED daqReaderStatus_getValid(daqReaderStatus* self, daqBool* valid);
+
+    /*!
+     * @brief Retrieves the offset of the the read values
+     * @param[out] offset The offset of the read values
+     */
     daqErrCode EXPORTED daqReaderStatus_getOffset(daqReaderStatus* self, daqNumber** offset);
+
     daqErrCode EXPORTED daqReaderStatus_createReaderStatus(daqReaderStatus** obj, daqEventPacket* eventPacket, daqBool valid, daqNumber* offset);
 
 #ifdef __cplusplus

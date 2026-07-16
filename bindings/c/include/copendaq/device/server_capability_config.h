@@ -34,6 +34,8 @@ extern "C"
 
 #include <ccommon.h>
 
+    DAQ_EXTENDS_INTERFACE(daqServerCapabilityConfig, daqServerCapability);
+
     typedef struct daqServerCapabilityConfig daqServerCapabilityConfig;
     typedef struct daqString daqString;
     typedef struct daqInteger daqInteger;
@@ -42,18 +44,74 @@ extern "C"
     EXPORTED extern const daqIntfID DAQ_SERVER_CAPABILITY_CONFIG_INTF_ID;
     void EXPORTED daqServerCapabilityConfig_getInterfaceId(daqIntfID* intfId);
 
+    /*!
+     * @brief Sets the connection string of device with current protocol
+     * @param connectionString The connection string of device
+     */
     daqErrCode EXPORTED daqServerCapabilityConfig_setConnectionString(daqServerCapabilityConfig* self, daqString* connectionString);
+
+    /*!
+     * @brief Sets the connection string of device with current protocol
+     * @param connectionString The connection string of device
+     */
     daqErrCode EXPORTED daqServerCapabilityConfig_addConnectionString(daqServerCapabilityConfig* self, daqString* connectionString);
+
+    /*!
+     * @brief Sets the ID of protocol
+     * @param protocolId The ID of protocol
+     */
     daqErrCode EXPORTED daqServerCapabilityConfig_setProtocolId(daqServerCapabilityConfig* self, daqString* protocolId);
+
+    /*!
+     * @brief Sets the name of protocol
+     * @param protocolName The name of protocol
+     */
     daqErrCode EXPORTED daqServerCapabilityConfig_setProtocolName(daqServerCapabilityConfig* self, daqString* protocolName);
+
+    /*!
+     * @brief Sets the type of protocol
+     * @param type The type of protocol
+     */
     daqErrCode EXPORTED daqServerCapabilityConfig_setProtocolType(daqServerCapabilityConfig* self, daqProtocolType type);
+
+    /*!
+     * @brief Sets the prefix of the connection string (eg. "daq.nd" or "daq.opcua")
+     * @param prefix The connection string prefix
+     */
     daqErrCode EXPORTED daqServerCapabilityConfig_setPrefix(daqServerCapabilityConfig* self, daqString* prefix);
+
+    /*!
+     * @brief Sets the type of connection
+     * @param type The type of connection
+     */
     daqErrCode EXPORTED daqServerCapabilityConfig_setConnectionType(daqServerCapabilityConfig* self, daqString* type);
+
+    /*!
+     * @brief Sets the boolean flag indicating whether the server capability supports core event propagation to clients
+     * @param enabled True if core events are enabled; false otherwise
+     */
     daqErrCode EXPORTED daqServerCapabilityConfig_setCoreEventsEnabled(daqServerCapabilityConfig* self, daqBool enabled);
+
+    /*!
+     * @brief Sets the device's address
+     * @param[out] address The device's address
+     */
     daqErrCode EXPORTED daqServerCapabilityConfig_addAddress(daqServerCapabilityConfig* self, daqString* address);
+
+    /*!
+     * @brief Sets the port of the device
+     * @param port The port of the device
+     */
     daqErrCode EXPORTED daqServerCapabilityConfig_setPort(daqServerCapabilityConfig* self, daqInteger* port);
+
     daqErrCode EXPORTED daqServerCapabilityConfig_addAddressInfo(daqServerCapabilityConfig* self, daqAddressInfo* addressInfo);
+
+    /*!
+     * @brief Sets the protocol version
+     * @param version The protocol version
+     */
     daqErrCode EXPORTED daqServerCapabilityConfig_setProtocolVersion(daqServerCapabilityConfig* self, daqString* version);
+
     daqErrCode EXPORTED daqServerCapabilityConfig_createServerCapability(daqServerCapabilityConfig** obj, daqString* protocolId, daqString* protocolName, daqProtocolType protocolType);
 
 #ifdef __cplusplus

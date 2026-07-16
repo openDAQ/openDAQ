@@ -34,15 +34,48 @@ extern "C"
 
 #include <ccommon.h>
 
+    /*!
+     * @brief Used by openDAQ properties to coerce a value to match the restrictions imposed by the Property.
+     *
+     * Whenever a value is set to on a Property object, if the corresponding Property has a coercer configured, the value will
+     * be evaluated and modified to fit the restrictions imposed by the coercer. For example, a coercer can enforce lower-than,
+     * greater-than, equality, or other number relations on written values.
+     *
+     * The coercion conditions are configured with an evaluation string when the coercer is constructed. The string constructs an
+     * Eval value that replaces any instance of the keyword "value" or "val" with the value being set. The result of the Eval
+     * value evaluation is the output of the `coerce` function call. For example, coercers created with the string
+     * "if(value > 5, 5, value)" would enforce that the property value is always equal to or lower than 5.
+     */
+    DAQ_EXTENDS_INTERFACE(daqCoercer, daqBaseObject);
+
     typedef struct daqCoercer daqCoercer;
     typedef struct daqString daqString;
 
     EXPORTED extern const daqIntfID DAQ_COERCER_INTF_ID;
     void EXPORTED daqCoercer_getInterfaceId(daqIntfID* intfId);
 
+    /*!
+     * @brief Coerces `value` to match the coercion restrictions and outputs the result.
+     * @param propObj Optional property object parameter required if the coercion depends on other properties of the Property object.
+     * @param value The value to be coerced to fit the restrictions.
+     * @param[out] result The coercer output containing the modified `value`.
+     * @retval OPENDAQ_ERR_COERCE_FAILED if `value` cannot be coerced to fit the restrictions.
+     * @retval OPENDAQ_SUCCESS If the value either already fits the restrictions, or was successfully modified to do so.
+     */
     daqErrCode EXPORTED daqCoercer_coerce(daqCoercer* self, daqBaseObject* propObj, daqBaseObject* value, daqBaseObject** result);
+
     daqErrCode EXPORTED daqCoercer_coerceNoLock(daqCoercer* self, daqBaseObject* propObj, daqBaseObject* value, daqBaseObject** result);
+
+    /*!
+     * @brief Gets the string expression used when creating the coercer.
+     * @param[out] eval The coercion expression.
+     */
     daqErrCode EXPORTED daqCoercer_getEval(daqCoercer* self, daqString** eval);
+
+    /*!
+     * @brief Creates a Coercer with the given evaluation expression.
+     * @param eval The evaluation expression used for coercion.
+     */
     daqErrCode EXPORTED daqCoercer_createCoercer(daqCoercer** obj, daqString* eval);
 
 #ifdef __cplusplus

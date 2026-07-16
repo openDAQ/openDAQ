@@ -34,6 +34,25 @@ extern "C"
 
 #include <ccommon.h>
 
+    /*!
+     * @brief Provides access to private methods for managing the Device's connection statuses.
+     *
+     * Enables adding, removing, and updating statuses stored in the connection status container.
+     * Statuses are identified by unique connection strings and can be accessed via
+     * IComponentStatusContainer using name aliases. A configuration status, accessible via alias "ConfigurationStatus",
+     * is unique per container and cannot be removed if added.
+     *
+     * On the other hand, multiple streaming statuses are supported, one per each streaming source attached to the device.
+     * Aliases for these follow the pattern "StreamingStatus_n," with optional protocol-based prefixes (e.g.,
+     * "OpenDAQNativeStreamingStatus_1", "OpenDAQLTStreamingStatus_2", "StreamingStatus_3" etc.).
+     *
+     * "ConnectionStatusChanged" Core events are triggered whenever there is a change in the connection status of the openDAQ Device,
+     * including parameters such as status name alias, value, protocol type, connection string, and streaming
+     * object (nullptr for configuration statuses). Removing streaming statuses also triggers said Core event with
+     * "Removed" as the value and nullptr for the streaming object parameters.
+     */
+    DAQ_EXTENDS_INTERFACE(daqConnectionStatusContainerPrivate, daqBaseObject);
+
     typedef struct daqConnectionStatusContainerPrivate daqConnectionStatusContainerPrivate;
     typedef struct daqString daqString;
     typedef struct daqEnumeration daqEnumeration;
@@ -42,10 +61,42 @@ extern "C"
     EXPORTED extern const daqIntfID DAQ_CONNECTION_STATUS_CONTAINER_PRIVATE_INTF_ID;
     void EXPORTED daqConnectionStatusContainerPrivate_getInterfaceId(daqIntfID* intfId);
 
+    /*!
+     * @brief Adds a new configuration connection status with the specified connection string and initial value.
+     * @param connectionString The connection string identifying the status.
+     * @param initialValue The initial value of the status.
+     */
     daqErrCode EXPORTED daqConnectionStatusContainerPrivate_addConfigurationConnectionStatus(daqConnectionStatusContainerPrivate* self, daqString* connectionString, daqEnumeration* initialValue);
+
+    /*!
+     * @brief Adds a new streaming connection status with the specified connection string, initial value, and streaming object.
+     * @param connectionString The connection string identifying the status.
+     * @param initialValue The initial value of the status.
+     * @param streamingObject The streaming object associated with the status.
+     */
     daqErrCode EXPORTED daqConnectionStatusContainerPrivate_addStreamingConnectionStatus(daqConnectionStatusContainerPrivate* self, daqString* connectionString, daqEnumeration* initialValue, daqStreaming* streamingObject);
+
+    /*!
+     * @brief Removes a streaming connection status associated with the specified connection string.
+     * @param connectionString The connection string identifying the status to remove.
+     */
     daqErrCode EXPORTED daqConnectionStatusContainerPrivate_removeStreamingConnectionStatus(daqConnectionStatusContainerPrivate* self, daqString* connectionString);
+
+    /*!
+     * @brief Updates the value of an existing connection status.
+     * @param connectionString The connection string identifying the status to update.
+     * @param value The new value of the status.
+     * @param streamingObject The streaming object associated with the connection, used in triggered Core events. Set to nullptr for configuration connections.
+     */
     daqErrCode EXPORTED daqConnectionStatusContainerPrivate_updateConnectionStatus(daqConnectionStatusContainerPrivate* self, daqString* connectionString, daqEnumeration* value, daqStreaming* streamingObject);
+
+    /*!
+     * @brief Updates the value of an existing connection status with a message.
+     * @param connectionString The connection string identifying the status to update.
+     * @param value The new value of the status.
+     * @param streamingObject The streaming object associated with the connection, used in triggered Core events. Set to nullptr for configuration connections.
+     * @param message The new message of the connection status. Usually describes last reconnect attempt failure.
+     */
     daqErrCode EXPORTED daqConnectionStatusContainerPrivate_updateConnectionStatusWithMessage(daqConnectionStatusContainerPrivate* self, daqString* connectionString, daqEnumeration* value, daqStreaming* streamingObject, daqString* message);
 
 #ifdef __cplusplus

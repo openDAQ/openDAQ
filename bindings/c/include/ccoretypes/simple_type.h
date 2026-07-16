@@ -34,6 +34,11 @@ extern "C"
 
 #include <ccommon.h>
 
+    /*!
+     * @brief Simple type created from a CoreType. The name of the type matches that of the CoreType used for its construction (eg. ctInt == "int"
+     */
+    DAQ_EXTENDS_INTERFACE(daqSimpleType, daqType);
+
     typedef struct daqSimpleType daqSimpleType;
 
     EXPORTED extern const daqIntfID DAQ_SIMPLE_TYPE_INTF_ID;

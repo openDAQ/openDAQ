@@ -34,6 +34,11 @@ extern "C"
 
 #include <ccommon.h>
 
+    /*!
+     * @brief A packaged callback with possible continuations and dependencies that can be arranged in a dependency graph (directed acyclic graph). The task is not executed directly but only when the graph is scheduled for execution and all dependencies have been satisfied.
+     */
+    DAQ_EXTENDS_INTERFACE(daqTask, daqBaseObject);
+
     typedef struct daqTask daqTask;
     typedef struct daqString daqString;
     typedef struct daqProcedure daqProcedure;
@@ -41,9 +46,25 @@ extern "C"
     EXPORTED extern const daqIntfID DAQ_TASK_INTF_ID;
     void EXPORTED daqTask_getInterfaceId(daqIntfID* intfId);
 
+    /*!
+     * @brief Gets the task name.
+     * @param[out] name The task name.
+     */
     daqErrCode EXPORTED daqTask_getName(daqTask* self, daqString** name);
+
+    /*!
+     * @brief Sets the task name that is used in diagnostics.
+     * @param name The new task name.
+     */
     daqErrCode EXPORTED daqTask_setName(daqTask* self, daqString* name);
+
+    /*!
+     * @brief Sets the continuation to only execute after this task completes. Be careful of forming cycles as tasks whose dependencies cannot be satisfied will never execute.
+     * @param continuation The task that should wait for this one to complete.
+     * @retval OPENDAQ_ERR_NOT_SUPPORTED If the @p continuation implementation was not crated by the scheduler library.
+     */
     daqErrCode EXPORTED daqTask_then(daqTask* self, daqTask* continuation);
+
     daqErrCode EXPORTED daqTask_createTask(daqTask** obj, daqProcedure* work, daqString* name);
 
 #ifdef __cplusplus

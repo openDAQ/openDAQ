@@ -34,6 +34,14 @@ extern "C"
 
 #include <ccommon.h>
 
+    /*!
+     * @brief Notifications object passed to the input port on construction by its owner (listener).
+     *
+     * Input ports invoke the notification functions within the Input port notifications object when corresponding
+     * events occur. The listener can then react on those events.
+     */
+    DAQ_EXTENDS_INTERFACE(daqInputPortNotifications, daqBaseObject);
+
     typedef struct daqInputPortNotifications daqInputPortNotifications;
     typedef struct daqInputPort daqInputPort;
     typedef struct daqSignal daqSignal;
@@ -41,9 +49,30 @@ extern "C"
     EXPORTED extern const daqIntfID DAQ_INPUT_PORT_NOTIFICATIONS_INTF_ID;
     void EXPORTED daqInputPortNotifications_getInterfaceId(daqIntfID* intfId);
 
+    /*!
+     * @brief Called when the Input port method `acceptsSignal` is called. Should return true if the signal is accepted; false otherwise.
+     * @param port The input port on which the method was called.
+     * @param signal The signal which is being checked for acceptance.
+     * @param[out] accept True if the signal is accepted; false otherwise.
+     */
     daqErrCode EXPORTED daqInputPortNotifications_acceptsSignal(daqInputPortNotifications* self, daqInputPort* port, daqSignal* signal, daqBool* accept);
+
+    /*!
+     * @brief Called when a signal is connected to the input port.
+     * @param port The port to which the signal was connected.
+     */
     daqErrCode EXPORTED daqInputPortNotifications_connected(daqInputPortNotifications* self, daqInputPort* port);
+
+    /*!
+     * @brief Called when a signal is disconnected from the input port.
+     * @param port The port from which a signal was disconnected.
+     */
     daqErrCode EXPORTED daqInputPortNotifications_disconnected(daqInputPortNotifications* self, daqInputPort* port);
+
+    /*!
+     * @brief Notifies the listener of the newly received packet on the specified input-port.
+     * @param port The port on which the new packet was received.
+     */
     daqErrCode EXPORTED daqInputPortNotifications_packetReceived(daqInputPortNotifications* self, daqInputPort* port);
 
 #ifdef __cplusplus

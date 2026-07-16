@@ -34,6 +34,14 @@ extern "C"
 
 #include <ccommon.h>
 
+    /*!
+     * @brief The builder interface of Property object classes. Allows for their modification and building of Property object classes.
+     *
+     * The configuration interface allows for modifying the list of properties, the class's name, parent, and the
+     * sorting order of properties. To build the Class, the `build` method is used.
+     */
+    DAQ_EXTENDS_INTERFACE(daqPropertyObjectClassBuilder, daqBaseObject);
+
     typedef struct daqPropertyObjectClassBuilder daqPropertyObjectClassBuilder;
     typedef struct daqPropertyObjectClass daqPropertyObjectClass;
     typedef struct daqString daqString;
@@ -45,18 +53,92 @@ extern "C"
     EXPORTED extern const daqIntfID DAQ_PROPERTY_OBJECT_CLASS_BUILDER_INTF_ID;
     void EXPORTED daqPropertyObjectClassBuilder_getInterfaceId(daqIntfID* intfId);
 
+    /*!
+     * @brief Builds and returns a Property object class using the currently set values of the Builder.
+     * @param[out] propertyObjectClass The built Property object class.
+     */
     daqErrCode EXPORTED daqPropertyObjectClassBuilder_build(daqPropertyObjectClassBuilder* self, daqPropertyObjectClass** propertyObjectClass);
+
+    /*!
+     * @brief Sets the name of the property class.
+     * @param className The name of the class.
+     */
     daqErrCode EXPORTED daqPropertyObjectClassBuilder_setName(daqPropertyObjectClassBuilder* self, daqString* className);
+
+    /*!
+     * @brief Gets the name of the property class.
+     * @param[out] className The name of the class.
+     */
     daqErrCode EXPORTED daqPropertyObjectClassBuilder_getName(daqPropertyObjectClassBuilder* self, daqString** className);
+
+    /*!
+     * @brief Gets the name of the parent of the property class.
+     * @param parentName The parent class's name.
+     */
     daqErrCode EXPORTED daqPropertyObjectClassBuilder_setParentName(daqPropertyObjectClassBuilder* self, daqString* parentName);
+
+    /*!
+     * @brief Gets the name of the parent of the property class.
+     * @param[out] parentName The parent class's name.
+     */
     daqErrCode EXPORTED daqPropertyObjectClassBuilder_getParentName(daqPropertyObjectClassBuilder* self, daqString** parentName);
+
+    /*!
+     * @brief Adds a property to the class.
+     * @param property The property to be added.
+     * @retval OPENDAQ_ERR_ALREADYEXISTS if a property with the same name already added to the class.
+     * @retval OPENDAQ_ERR_INVALIDTYPE if the property is an object type and is not atomic.
+     *
+     * The default value of object-type properties that are added to a class are frozen once added.
+     */
     daqErrCode EXPORTED daqPropertyObjectClassBuilder_addProperty(daqPropertyObjectClassBuilder* self, daqProperty* property);
-    daqErrCode EXPORTED daqPropertyObjectClassBuilder_getProperties(daqPropertyObjectClassBuilder* self, daqDict** properties);
+
+    /*!
+     * @brief Gets the dictionary of properties
+     * @param[out] properties dictionary of properties
+     */
+    daqErrCode EXPORTED daqPropertyObjectClassBuilder_getProperties(daqPropertyObjectClassBuilder* self, daqDict** properties DAQ_DICT_TEMPLATE_TYPE(daqString, daqProperty));
+
+    /*!
+     * @brief Removes a property with the given name from the class.
+     * @param propertyName The name of the property to be removed.
+     * @retval OPENDAQ_ERR_NOTFOUND if the property with `propertyName` is not a member of the class.
+     */
     daqErrCode EXPORTED daqPropertyObjectClassBuilder_removeProperty(daqPropertyObjectClassBuilder* self, daqString* propertyName);
-    daqErrCode EXPORTED daqPropertyObjectClassBuilder_setPropertyOrder(daqPropertyObjectClassBuilder* self, daqList* orderedPropertyNames);
-    daqErrCode EXPORTED daqPropertyObjectClassBuilder_getPropertyOrder(daqPropertyObjectClassBuilder* self, daqList** orderedPropertyNames);
+
+    /*!
+     * @brief Sets a custom order of properties as defined in the list of property names.
+     * @param orderedPropertyNames A list of names of properties. The order of the list is applied to the class's properties.
+     *
+     * The list should contain names of properties available in the class. When retrieving the class's properties, they will
+     * be sorted in the order in which the names appear in the provided list. Any class properties not in the custom order are
+     * kept in insertion order at the end of the class's list of properties.
+     */
+    daqErrCode EXPORTED daqPropertyObjectClassBuilder_setPropertyOrder(daqPropertyObjectClassBuilder* self, daqList* orderedPropertyNames DAQ_LIST_ELEMENT_TYPE(daqString));
+
+    /*!
+     * @brief Gets a custom order of properties as defined in the list of property names.
+     * @param[out] orderedPropertyNames A list of names of properties. The order of the list is applied to the class's properties.
+     */
+    daqErrCode EXPORTED daqPropertyObjectClassBuilder_getPropertyOrder(daqPropertyObjectClassBuilder* self, daqList** orderedPropertyNames DAQ_LIST_ELEMENT_TYPE(daqString));
+
+    /*!
+     * @brief Gets a type manager
+     * @param[out] manager a type manager
+     */
     daqErrCode EXPORTED daqPropertyObjectClassBuilder_getManager(daqPropertyObjectClassBuilder* self, daqTypeManager** manager);
+
+    /*!
+     * @brief Creates a property object class configuration object with a given name.
+     * @param name The name of the class.
+     */
     daqErrCode EXPORTED daqPropertyObjectClassBuilder_createPropertyObjectClassBuilder(daqPropertyObjectClassBuilder** obj, daqString* name);
+
+    /*!
+     * @brief Creates a Property object class configuration object with a given name, and a reference to the Type manager.
+     * @param manager The Property object class manager object.
+     * @param name The name of the class.
+     */
     daqErrCode EXPORTED daqPropertyObjectClassBuilder_createPropertyObjectClassBuilderWithManager(daqPropertyObjectClassBuilder** obj, daqTypeManager* manager, daqString* name);
 
 #ifdef __cplusplus

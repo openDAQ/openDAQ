@@ -34,12 +34,28 @@ extern "C"
 
 #include <ccommon.h>
 
+    /*!
+     * @brief An ownable object can have IPropertyObject as the owner.
+     *
+     * An object can declare itself ownable. When a parent object that supports a concept of ownership
+     * calls the` setOwner` method, it becomes the owner of the object. It's up to the object's implementation
+     * to decide what actions should it forward to the owner.
+     *
+     * For example, a property object that is a child of another property object will look up property values
+     * in their owner's dictionary if the property is not set locally.
+     */
+    DAQ_EXTENDS_INTERFACE(daqOwnable, daqBaseObject);
+
     typedef struct daqOwnable daqOwnable;
     typedef struct daqPropertyObject daqPropertyObject;
 
     EXPORTED extern const daqIntfID DAQ_OWNABLE_INTF_ID;
     void EXPORTED daqOwnable_getInterfaceId(daqIntfID* intfId);
 
+    /*!
+     * @brief Sets the owner of the object.
+     * @param owner The object that will own this object.
+     */
     daqErrCode EXPORTED daqOwnable_setOwner(daqOwnable* self, daqPropertyObject* owner);
 
 #ifdef __cplusplus

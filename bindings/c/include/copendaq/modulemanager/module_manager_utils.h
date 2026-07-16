@@ -34,6 +34,12 @@ extern "C"
 
 #include <ccommon.h>
 
+    /*!
+     * @ingroup opendaq_modules
+     * @addtogroup opendaq_module_manager Module manager utils
+     */
+    DAQ_EXTENDS_INTERFACE(daqModuleManagerUtils, daqBaseObject);
+
     typedef struct daqModuleManagerUtils daqModuleManagerUtils;
     typedef struct daqList daqList;
     typedef struct daqDict daqDict;
@@ -49,19 +55,137 @@ extern "C"
     EXPORTED extern const daqIntfID DAQ_MODULE_MANAGER_UTILS_INTF_ID;
     void EXPORTED daqModuleManagerUtils_getInterfaceId(daqIntfID* intfId);
 
-    daqErrCode EXPORTED daqModuleManagerUtils_getAvailableDevices(daqModuleManagerUtils* self, daqList** availableDevices);
-    daqErrCode EXPORTED daqModuleManagerUtils_getAvailableDeviceTypes(daqModuleManagerUtils* self, daqDict** deviceTypes);
-    daqErrCode EXPORTED daqModuleManagerUtils_createDevice(daqModuleManagerUtils* self, daqDevice** device, daqString* connectionString, daqComponent* parent, daqPropertyObject* config);
-    daqErrCode EXPORTED daqModuleManagerUtils_getAvailableFunctionBlockTypes(daqModuleManagerUtils* self, daqDict** functionBlockTypes);
-    daqErrCode EXPORTED daqModuleManagerUtils_createFunctionBlock(daqModuleManagerUtils* self, daqFunctionBlock** functionBlock, daqString* id, daqComponent* parent, daqPropertyObject* config, daqString* localId);
-    daqErrCode EXPORTED daqModuleManagerUtils_createStreaming(daqModuleManagerUtils* self, daqStreaming** streaming, daqString* connectionString, daqPropertyObject* config);
-    daqErrCode EXPORTED daqModuleManagerUtils_getAvailableStreamingTypes(daqModuleManagerUtils* self, daqDict** streamingTypes);
+    /*!
+     * @brief Returns a list of known devices info. The implementation can start discovery in background and only return the results in this function.
+     * @param[out] availableDevices The list of known devices information.
+     *
+     * Contains information on devices available in all loaded modules.
+     */
+    daqErrCode EXPORTED daqModuleManagerUtils_getAvailableDevices(daqModuleManagerUtils* self, daqList** availableDevices DAQ_LIST_ELEMENT_TYPE(daqDeviceInfo));
+
+    /*!
+     * @brief Returns a dictionary of known and available device types this module can create.
+     * @param[out] deviceTypes The dictionary of known device types.
+     *
+     * Contains information on devices available in all loaded modules.
+     */
+    daqErrCode EXPORTED daqModuleManagerUtils_getAvailableDeviceTypes(daqModuleManagerUtils* self, daqDict** deviceTypes DAQ_DICT_TEMPLATE_TYPE(daqString, daqDeviceType));
+
+    /*!
+     * @brief Creates a device object that can communicate with the device described in the specified connection string. The device object is not automatically added as a sub-device of the caller, but only returned by reference.
+     * @param[out] device The device object created to communicate with and control the device.
+     * @param connectionString Describes the connection info of the device to connect to.
+     * @param parent The parent component/device to which the device attaches.
+     * @param config A configuration object that contains parameters used to configure a device in the form of key-value pairs.
+     *
+     * Iterates through all loaded modules and creates a device with the first module that accepts the provided connection string.
+     */
+    daqErrCode EXPORTED daqModuleManagerUtils_createDevice(daqModuleManagerUtils* self, daqDevice** device, daqString* connectionString, daqComponent* parent, daqPropertyObject* config DAQ_DEFAULT_VALUE(nullptr));
+
+    /*!
+     * @brief Returns a dictionary of known and available function block types this module can create.
+     * @param[out] functionBlockTypes The dictionary of known function block types.
+     *
+     * Contains information on function blocks available in all loaded modules.
+     */
+    daqErrCode EXPORTED daqModuleManagerUtils_getAvailableFunctionBlockTypes(daqModuleManagerUtils* self, daqDict** functionBlockTypes DAQ_DICT_TEMPLATE_TYPE(daqString, daqFunctionBlockType));
+
+    /*!
+     * @brief Creates and returns a function block with the specified id. The function block is not automatically added to the FB list of the caller.
+     * @param id The id of the function block to create. Ids can be retrieved by calling `getAvailableFunctionBlockTypes()`.
+     * @param parent The parent component/device to which the function block attaches.
+     * @param config Function block configuration. In case of a null value, implementation should use default configuration.
+     * @param localId Custom local ID for the function block. Overrides the "LocalId" property of the "config" object, if present.
+     * @param[out] functionBlock The created function block.
+     * Iterates through all loaded modules and creates a function block with the first module that accepts the provided connection string.
+     * The local ID is equal to the name of the function block type with a "_n" suffix, where "n" is an integer, equal to that of the greatest
+     * integer suffix amongst the function blocks of the same function block type already added to a given parent. The initial value of "n" is 0.
+     * A custom local ID can be provided by adding a "LocalId" string property to the `config` property object input parameter, or by providing the
+     * localId string argument.
+     */
+    daqErrCode EXPORTED daqModuleManagerUtils_createFunctionBlock(daqModuleManagerUtils* self, daqFunctionBlock** functionBlock, daqString* id, daqComponent* parent, daqPropertyObject* config DAQ_DEFAULT_VALUE(nullptr), daqString* localId DAQ_DEFAULT_VALUE(nullptr));
+
+    /*!
+     * @brief Creates a streaming object using the specified connection string and config object.
+     * @param[out] streaming The created streaming object.
+     * @param connectionString Describes the connection parameters of the streaming.
+     * @param config A configuration object that contains parameters used to configure a streaming connection in the form of key-value pairs.
+     *
+     * Iterates through all loaded modules and creates a streaming connection with the first module that accepts the provided connection string.
+     */
+    daqErrCode EXPORTED daqModuleManagerUtils_createStreaming(daqModuleManagerUtils* self, daqStreaming** streaming, daqString* connectionString, daqPropertyObject* config DAQ_DEFAULT_VALUE(nullptr));
+
+    daqErrCode EXPORTED daqModuleManagerUtils_getAvailableStreamingTypes(daqModuleManagerUtils* self, daqDict** streamingTypes DAQ_DICT_TEMPLATE_TYPE(daqString, daqStreamingType));
+
     daqErrCode EXPORTED daqModuleManagerUtils_createDefaultAddDeviceConfig(daqModuleManagerUtils* self, daqPropertyObject** defaultConfig);
-    daqErrCode EXPORTED daqModuleManagerUtils_createServer(daqModuleManagerUtils* self, daqServer** server, daqString* serverTypeId, daqDevice* rootDevice, daqPropertyObject* serverConfig);
+
+    /*!
+     * @brief Creates and returns a server with the provided serverType and configuration.
+     * @param serverTypeId Type id of the server. Can be obtained from its corresponding Server type object.
+     * @param rootDevice The root device
+     * @param serverConfig Config of the server. Can be created from its corresponding Server type object. In case of a null value, it will use the default configuration.
+     * @param[out] server The created server.
+     *
+     * Iterates through all loaded modules and creates a server with the first module that accepts the provided serverTypeId.
+     * The servers folder of the root device is automatically assigned as parent for created server component.
+     * The local ID of created server component is equal to the name of the server type.
+     */
+    daqErrCode EXPORTED daqModuleManagerUtils_createServer(daqModuleManagerUtils* self, daqServer** server, daqString* serverTypeId, daqDevice* rootDevice, daqPropertyObject* serverConfig DAQ_DEFAULT_VALUE(nullptr));
+
+    /*!
+     * @brief Initiates the modification of IP configuration parameters for a specified network interface associated with a target device.
+     * @param iface The name of the network interface whose IP configuration parameters need to be updated.
+     * @param manufacturer The manufacturer's name identifying the device owning the network interface.
+     * @param serialNumber The serial number of the device owning the network interface.
+     * @param config A property object containing the configuration parameters to be applied.
+     *
+     * The manufacturer name and serial number are used to uniquely identify the target device. Once the config modification is invoked,
+     * the new config parameters are advertised via multicast to all devices in the subnet. The target device compares the received
+     * identification parameters with its own and, if they match, attempts to apply the new configuration parameters for the specified interface.
+     */
     daqErrCode EXPORTED daqModuleManagerUtils_changeIpConfig(daqModuleManagerUtils* self, daqString* iface, daqString* manufacturer, daqString* serialNumber, daqPropertyObject* config);
+
+    /*!
+     * @brief Attempts to retrieve the current IP configuration parameters for a specified network interface associated with a target device.
+     * @param iface The name of the network interface whose IP configuration parameters are to be retrieved.
+     * @param manufacturer The manufacturer's name identifying the device owning the network interface.
+     * @param serialNumber The serial number of the device owning the network interface.
+     * @param[out] config A property object where the retrieved configuration parameters are stored.
+     *
+     * The manufacturer name and serial number are used to uniquely identify the target device. The method queries the current
+     * IP configuration parameters of the specified network interface via multicast addressing query to all devices in the subnet.
+     * The target device compares the received identification parameters with its own and, if they match, attempts to retrieve
+     * the currently active configuration parameters for the specified interface.
+     */
     daqErrCode EXPORTED daqModuleManagerUtils_requestIpConfig(daqModuleManagerUtils* self, daqString* iface, daqString* manufacturer, daqString* serialNumber, daqPropertyObject** config);
+
+    /*!
+     * @brief Completes the DeviceInfo's ServerCapabilities of existing device with the information obtained from device discovery.
+     * @param device The device whose ServerCapabilities should be completed.
+     */
     daqErrCode EXPORTED daqModuleManagerUtils_completeDeviceCapabilities(daqModuleManagerUtils* self, daqDevice* device);
-    daqErrCode EXPORTED daqModuleManagerUtils_createDevices(daqModuleManagerUtils* self, daqDict** devices, daqDict* connectionArgs, daqComponent* parent, daqDict* errCodes, daqDict* errorInfos);
+
+    /*!
+     * @brief Creates multiple device objects in parallel using the specified connection strings. Each device is created concurrently. None of the created device object are automatically added as a sub-device of the caller, but only returned by reference.
+     * @param[out] devices A dictionary which maps each connection string to the corresponding created device object. If a device creation attempt fails, the value will be `nullptr` for that entry.
+     * @param connectionArgs A dictionary where each key is a connection string identifying the target device (e.g., IPv4/IPv6), and each value is a configuration object that customizes the connection. The configuration may specify parameters such as maximum sample rate, communication port, number of channels, or other device-specific settings. A `nullptr` value indicates that the default configuration should be used.
+     * @param parent The parent component/device to which the created devices attach.
+     * @param errCodes An optional dictionary to populate error codes for failed connections. For each failed connection, the key is the connection string, and the value contains error code.
+     * @param errorInfos An optional dictionary to populate error info details for failed connections. For each failed connection, the key is the connection string, and the value contains error info object.
+     * @return OPENDAQ_PARTIAL_SUCCESS if at least one device was successfully created, but not all of them;
+         *         OPENDAQ_ERR_GENERALERROR if no devices were created.
+     */
+    daqErrCode EXPORTED daqModuleManagerUtils_createDevices(daqModuleManagerUtils* self, daqDict** devices DAQ_DICT_TEMPLATE_TYPE(daqString, daqDevice), daqDict* connectionArgs DAQ_DICT_TEMPLATE_TYPE(daqString, daqPropertyObject), daqComponent* parent, daqDict* errCodes DAQ_DICT_TEMPLATE_TYPE(daqString, daqInteger) DAQ_DEFAULT_VALUE(nullptr), daqDict* errorInfos DAQ_DICT_TEMPLATE_TYPE(daqString, daqErrorInfo) DAQ_DEFAULT_VALUE(nullptr));
+
+    /*!
+     * @brief Retrieves discovery information for a device identified by manufacturer and serial number.
+     * @param[out] deviceInfo The device information object containing discovery data.
+     * @param manufacturer The manufacturer's name identifying the device.
+     * @param serialNumber The serial number of the device.
+     *
+     * The manufacturer name and serial number are used to uniquely identify the target device.
+     * This method searches through the available devices discovered during the last scan.
+     */
     daqErrCode EXPORTED daqModuleManagerUtils_getDiscoveryInfo(daqModuleManagerUtils* self, daqDeviceInfo** deviceInfo, daqString* manufacturer, daqString* serialNumber);
 
 #ifdef __cplusplus

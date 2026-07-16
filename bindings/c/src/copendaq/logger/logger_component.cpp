@@ -37,10 +37,12 @@ daqErrCode daqLoggerComponent_getLevel(daqLoggerComponent* self, daqLogLevel* le
     return reinterpret_cast<daq::ILoggerComponent*>(self)->getLevel(reinterpret_cast<daq::LogLevel*>(level));
 }
 
-// daqErrCode daqLoggerComponent_logMessage(daqLoggerComponent* self, daqSourceLocation location, daqConstCharPtr msg, daqLogLevel level)
-// {
-//     return reinterpret_cast<daq::ILoggerComponent*>(self)->logMessage(static_cast<daq::SourceLocation>(location), static_cast<daq::ConstCharPtr>(msg), static_cast<daq::LogLevel>(level));
-// }
+/*
+daqErrCode daqLoggerComponent_logMessage(daqLoggerComponent* self, daqSourceLocation location, daqConstCharPtr msg, daqLogLevel level)
+{
+    return reinterpret_cast<daq::ILoggerComponent*>(self)->logMessage(static_cast<daq::SourceLocation>(location), static_cast<daq::ConstCharPtr>(msg), static_cast<daq::LogLevel>(level));
+}
+*/
 
 daqErrCode daqLoggerComponent_setPattern(daqLoggerComponent* self, daqString* pattern)
 {

@@ -34,6 +34,11 @@ extern "C"
 
 #include <ccommon.h>
 
+    /*!
+     * @brief Builder component of Block reader objects. Contains setter methods to configure the Block reader parameters and a `build` method that builds the Unit object.
+     */
+    DAQ_EXTENDS_INTERFACE(daqBlockReaderBuilder, daqBaseObject);
+
     typedef struct daqBlockReaderBuilder daqBlockReaderBuilder;
     typedef struct daqBlockReader daqBlockReader;
     typedef struct daqSignal daqSignal;
@@ -42,25 +47,120 @@ extern "C"
     EXPORTED extern const daqIntfID DAQ_BLOCK_READER_BUILDER_INTF_ID;
     void EXPORTED daqBlockReaderBuilder_getInterfaceId(daqIntfID* intfId);
 
+    /*!
+     * @brief Builds and returns a Block reader object using the currently set values of the Builder.
+     * @param[out] blockReader The built Block reader.
+     */
     daqErrCode EXPORTED daqBlockReaderBuilder_build(daqBlockReaderBuilder* self, daqBlockReader** blockReader);
+
+    /*!
+     * @brief Sets old block reader instance to copy from
+     * @param blockReader The old Block reader instance
+     */
     daqErrCode EXPORTED daqBlockReaderBuilder_setOldBlockReader(daqBlockReaderBuilder* self, daqBlockReader* blockReader);
+
+    /*!
+     * @brief Gets the old Block reader instance to copy from
+     * @param blockReader The old Block reader instance
+     */
     daqErrCode EXPORTED daqBlockReaderBuilder_getOldBlockReader(daqBlockReaderBuilder* self, daqBlockReader** blockReader);
+
+    /*!
+     * @brief Sets the signal to block reader
+     * @param signal The signal which will be handled in block reader
+     */
     daqErrCode EXPORTED daqBlockReaderBuilder_setSignal(daqBlockReaderBuilder* self, daqSignal* signal);
+
+    /*!
+     * @brief Gets the signal
+     * @param signal The signal which will be handled in block reader
+     */
     daqErrCode EXPORTED daqBlockReaderBuilder_getSignal(daqBlockReaderBuilder* self, daqSignal** signal);
+
+    /*!
+     * @brief Sets the input port to block reader
+     * @param port The input port which will be handled in block reader
+     */
     daqErrCode EXPORTED daqBlockReaderBuilder_setInputPort(daqBlockReaderBuilder* self, daqInputPort* port);
+
+    /*!
+     * @brief Gets the input port
+     * @param port The input port which will be handled in block reader
+     */
     daqErrCode EXPORTED daqBlockReaderBuilder_getInputPort(daqBlockReaderBuilder* self, daqInputPort** port);
+
+    /*!
+     * @brief Sets the value signal read type
+     * @param type The value signal read type
+     */
     daqErrCode EXPORTED daqBlockReaderBuilder_setValueReadType(daqBlockReaderBuilder* self, daqSampleType type);
+
+    /*!
+     * @brief Gets the value signal read type
+     * @param[out] type The value signal read type
+     */
     daqErrCode EXPORTED daqBlockReaderBuilder_getValueReadType(daqBlockReaderBuilder* self, daqSampleType* type);
+
+    /*!
+     * @brief Sets the domain signal read type
+     * @param type The domain signal read type
+     */
     daqErrCode EXPORTED daqBlockReaderBuilder_setDomainReadType(daqBlockReaderBuilder* self, daqSampleType type);
+
+    /*!
+     * @brief Gets the domain signal read type
+     * @param[out] type The domain signal read type
+     */
     daqErrCode EXPORTED daqBlockReaderBuilder_getDomainReadType(daqBlockReaderBuilder* self, daqSampleType* type);
+
+    /*!
+     * @brief Sets the read mode (Unscaled, Scaled, RawValue)
+     * @param mode The read mode
+     */
     daqErrCode EXPORTED daqBlockReaderBuilder_setReadMode(daqBlockReaderBuilder* self, daqReadMode mode);
+
+    /*!
+     * @brief Gets the read mode (Unscaled, Scaled, RawValue)
+     * @param[out] mode The read mode
+     */
     daqErrCode EXPORTED daqBlockReaderBuilder_getReadMode(daqBlockReaderBuilder* self, daqReadMode* mode);
+
+    /*!
+     * @brief Sets the block size
+     * @param mode The block size
+     */
     daqErrCode EXPORTED daqBlockReaderBuilder_setBlockSize(daqBlockReaderBuilder* self, daqSizeT size);
+
+    /*!
+     * @brief Gets the block size
+     * @param[out] mode The block size
+     */
     daqErrCode EXPORTED daqBlockReaderBuilder_getBlockSize(daqBlockReaderBuilder* self, daqSizeT* size);
+
+    /*!
+     * @brief Sets the overlap
+     * @param mode The overlap
+     */
     daqErrCode EXPORTED daqBlockReaderBuilder_setOverlap(daqBlockReaderBuilder* self, daqSizeT overlap);
+
+    /*!
+     * @brief Gets the overlap
+     * @param[out] mode The overlap[
+     */
     daqErrCode EXPORTED daqBlockReaderBuilder_getOverlap(daqBlockReaderBuilder* self, daqSizeT* overlap);
+
+    /*!
+     * @brief Sets the skip events
+     * @param skipEvents The skip events
+     */
     daqErrCode EXPORTED daqBlockReaderBuilder_setSkipEvents(daqBlockReaderBuilder* self, daqBool skipEvents);
+
+    /*!
+     * @brief Gets the skip events
+     * @param[out] skipEvents The skip events
+     */
     daqErrCode EXPORTED daqBlockReaderBuilder_getSkipEvents(daqBlockReaderBuilder* self, daqBool* skipEvents);
+
     daqErrCode EXPORTED daqBlockReaderBuilder_createBlockReaderBuilder(daqBlockReaderBuilder** obj);
 
 #ifdef __cplusplus

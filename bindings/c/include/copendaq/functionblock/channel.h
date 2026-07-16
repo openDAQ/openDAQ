@@ -34,6 +34,11 @@ extern "C"
 
 #include <ccommon.h>
 
+    /*!
+     * @brief Channels represent physical sensors of openDAQ devices. Internally they are standard function blocks with an additional option to provide a list of tags.
+     */
+    DAQ_EXTENDS_INTERFACE(daqChannel, daqFunctionBlock);
+
 
     EXPORTED extern const daqIntfID DAQ_CHANNEL_INTF_ID;
     void EXPORTED daqChannel_getInterfaceId(daqIntfID* intfId);

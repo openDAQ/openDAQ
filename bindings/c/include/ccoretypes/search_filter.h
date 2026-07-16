@@ -34,19 +34,74 @@ extern "C"
 
 #include <ccommon.h>
 
+    /*!
+     * @brief Search filter that can be passed as an optional parameter to search functions to filter out unwanted results. Allows for recursive searches.
+     *
+     * Each filter defines an "accepts object" and "visit children" function.
+     *
+     * Accepts object defines whether or not the object being evaluated as part of a search method should be included
+     * in the resulting output.
+     *
+     * Visit children defines whether or not the children of said object should be traversed during a recursive search.
+     */
+    DAQ_EXTENDS_INTERFACE(daqSearchFilter, daqBaseObject);
+
     typedef struct daqSearchFilter daqSearchFilter;
     typedef struct daqFunction daqFunction;
 
     EXPORTED extern const daqIntfID DAQ_SEARCH_FILTER_INTF_ID;
     void EXPORTED daqSearchFilter_getInterfaceId(daqIntfID* intfId);
 
+    /*!
+     * @brief Defines whether or not the object should be included in the search results
+     * @param obj The object being evaluated.
+     * @param[out] accepts True of the object is to be included in the results; false otherwise.
+     */
     daqErrCode EXPORTED daqSearchFilter_acceptsObject(daqSearchFilter* self, daqBaseObject* obj, daqBool* accepts);
+
+    /*!
+     * @brief Defines whether or not the children of said object should be traversed during a recursive search.
+     * @param obj The object being evaluated.
+     * @param[out] visit True of the object's children should be traversed; false otherwise.
+     */
     daqErrCode EXPORTED daqSearchFilter_visitChildren(daqSearchFilter* self, daqBaseObject* obj, daqBool* visit);
+
+    /*!
+     * @brief Creates a search filter that accepts all objects. "Visit children" always returns `true`.
+     */
     daqErrCode EXPORTED daqSearchFilter_createAnySearchFilter(daqSearchFilter** obj);
+
+    /*!
+     * @brief Creates a "conjunction" search filter that combines 2 filters, accepting an object only if both filters accept it. "Visit children" returns `true` only if both filters do so.
+     * @param left The first argument of the conjunction operation.
+     * @param right The second argument of the conjunction operation.
+     */
     daqErrCode EXPORTED daqSearchFilter_createAndSearchFilter(daqSearchFilter** obj, daqSearchFilter* left, daqSearchFilter* right);
+
+    /*!
+     * @brief Creates a "disjunction" search filter that combines 2 filters, accepting an object if any of the two filters accepts it. "Visit children" returns `true` if any of the two filters accepts does so.
+     * @param left The first argument of the disjunction operation.
+     * @param right The second argument of the disjunction operation.
+     */
     daqErrCode EXPORTED daqSearchFilter_createOrSearchFilter(daqSearchFilter** obj, daqSearchFilter* left, daqSearchFilter* right);
+
+    /*!
+     * @brief Creates a search filter that negates the "accepts object" result of the filter provided as construction argument. Does not negate the "visit children" result.
+     * @param filter The filter of which results should be negated.
+     */
     daqErrCode EXPORTED daqSearchFilter_createNotSearchFilter(daqSearchFilter** obj, daqSearchFilter* filter);
+
+    /*!
+     * @brief Creates a custom search filter with a user-defined "accepts object" and "visit children" function.
+     * @param acceptsFunction The function to be called when "accepts object" is called. Should return `true` or `false`.
+     * @param visitFunction The function to be called when "visit children" is called. Should return `true` or `false`.
+     */
     daqErrCode EXPORTED daqSearchFilter_createCustomSearchFilter(daqSearchFilter** obj, daqFunction* acceptsFunction, daqFunction* visitFunction);
+
+    /*!
+     * @brief Creates a search filter that indicates that the search method should recursively search through the object's child elements. This filter constructor should always be the final filter wrapper, and should not be used as a constructor argument for another filter.
+     * @param filter The filter to be wrapped with a "recursive" flag.
+     */
     daqErrCode EXPORTED daqSearchFilter_createRecursiveSearchFilter(daqSearchFilter** obj, daqSearchFilter* filter);
 
 #ifdef __cplusplus

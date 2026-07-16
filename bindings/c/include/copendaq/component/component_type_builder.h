@@ -34,6 +34,14 @@ extern "C"
 
 #include <ccommon.h>
 
+    /*!
+     * @brief Builder component of Component type objects. Contains setter methods to configure the Component type parameters, and a `build` method that builds the object.
+     *
+     * Depending on the set "Type" builder parameter, a different Component type is created - eg. Streaming type,
+     * Device type, Function block type, or Server type
+     */
+    DAQ_EXTENDS_INTERFACE(daqComponentTypeBuilder, daqBaseObject);
+
     typedef struct daqComponentTypeBuilder daqComponentTypeBuilder;
     typedef struct daqComponentType daqComponentType;
     typedef struct daqString daqString;
@@ -42,23 +50,120 @@ extern "C"
     EXPORTED extern const daqIntfID DAQ_COMPONENT_TYPE_BUILDER_INTF_ID;
     void EXPORTED daqComponentTypeBuilder_getInterfaceId(daqIntfID* intfId);
 
+    /*!
+     * @brief Builds and returns a Component type object using the currently set values of the Builder.
+     * @param[out] componentType The built Component type.
+     *
+     * Depending on the set "sort" builder parameter, a different Component type is created - eg. Streaming type,
+     * Device type, Function block type, or Server type
+     */
     daqErrCode EXPORTED daqComponentTypeBuilder_build(daqComponentTypeBuilder* self, daqComponentType** componentType);
+
+    /*!
+     * @brief Sets the unique component type id.
+     * @param id The unique id of a component type.
+     *
+     * Unique id should not be presented on the UI.
+     */
     daqErrCode EXPORTED daqComponentTypeBuilder_setId(daqComponentTypeBuilder* self, daqString* id);
+
+    /*!
+     * @brief Gets the unique component type id.
+     * @param[out] id The unique id of a component type.
+     *
+     * Unique id should not be presented on the UI.
+     */
     daqErrCode EXPORTED daqComponentTypeBuilder_getId(daqComponentTypeBuilder* self, daqString** id);
+
+    /*!
+     * @brief Sets the component type sort. Can be either Streaming, Function block, Device, or Server. Depending on the setting, the corresponding Component type object will be built.
+     * @param sort The sort of the component type.
+     */
     daqErrCode EXPORTED daqComponentTypeBuilder_setTypeSort(daqComponentTypeBuilder* self, daqComponentTypeSort sort);
+
+    /*!
+     * @brief Gets the component type sort. Can be either Streaming, Function block, Device, or Server. Depending on the setting, the corresponding Component type object will be built.
+     * @param sort The sort of the component type.
+     */
     daqErrCode EXPORTED daqComponentTypeBuilder_getTypeSort(daqComponentTypeBuilder* self, daqComponentTypeSort* sort);
+
+    /*!
+     * @brief Sets the user-friendly name of a component type.
+     * @param name The user-friendly name of a component type.
+     *
+     * Name is usually presented on the UI. Does not have to be unique.
+     */
     daqErrCode EXPORTED daqComponentTypeBuilder_setName(daqComponentTypeBuilder* self, daqString* name);
+
+    /*!
+     * @brief Gets the user-friendly name of a component type.
+     * @param[out] name The user-friendly name of a component type.
+     *
+     * Name is usually presented on the UI. Does not have to be unique.
+     */
     daqErrCode EXPORTED daqComponentTypeBuilder_getName(daqComponentTypeBuilder* self, daqString** name);
+
+    /*!
+     * @brief Sets the description of a component type.
+     * @param description The description of a component type.
+     *
+     * A short description of a component type and the associated configuration parameters it offers.
+     */
     daqErrCode EXPORTED daqComponentTypeBuilder_setDescription(daqComponentTypeBuilder* self, daqString* description);
+
+    /*!
+     * @brief Gets the description of a component type.
+     * @param[out] description The description of a component type.
+     *
+     * A short description of a component type and the associated configuration parameters it offers.
+     */
     daqErrCode EXPORTED daqComponentTypeBuilder_getDescription(daqComponentTypeBuilder* self, daqString** description);
+
     daqErrCode EXPORTED daqComponentTypeBuilder_setConnectionStringPrefix(daqComponentTypeBuilder* self, daqString* prefix);
+
     daqErrCode EXPORTED daqComponentTypeBuilder_getConnectionStringPrefix(daqComponentTypeBuilder* self, daqString** prefix);
+
+    /*!
+     * @brief Sets the default configuration object that will be cloned and passed to users by the built Component type when requested.
+     * @param defaultConfig The default configuration object.
+     *
+     * Configuration objects are property object with user-defined key-value pairs.
+     * For example: Port=1000, OutputRate=5000, ...
+     */
     daqErrCode EXPORTED daqComponentTypeBuilder_setDefaultConfig(daqComponentTypeBuilder* self, daqPropertyObject* defaultConfig);
+
+    /*!
+     * @brief Gets the default configuration object that will be cloned and passed to users by the built Component type when requested.
+     * @param[out] defaultConfig The default configuration object.
+     *
+     * Configuration objects are property object with user-defined key-value pairs.
+     * For example: Port=1000, OutputRate=5000, ...
+     */
     daqErrCode EXPORTED daqComponentTypeBuilder_getDefaultConfig(daqComponentTypeBuilder* self, daqPropertyObject** defaultConfig);
+
+    /*!
+     * @brief Creates a ComponentTypeBuilder with default parameters.
+     */
     daqErrCode EXPORTED daqComponentTypeBuilder_createComponentTypeBuilder(daqComponentTypeBuilder** obj);
+
+    /*!
+     * @brief Creates a ComponentTypeBuilder with the type sort set to "Device".
+     */
     daqErrCode EXPORTED daqComponentTypeBuilder_createDeviceTypeBuilder(daqComponentTypeBuilder** obj);
+
+    /*!
+     * @brief Creates a ComponentTypeBuilder with the type sort set to "Streaming".
+     */
     daqErrCode EXPORTED daqComponentTypeBuilder_createStreamingTypeBuilder(daqComponentTypeBuilder** obj);
+
+    /*!
+     * @brief Creates a ComponentTypeBuilder with the type sort set to "Server".
+     */
     daqErrCode EXPORTED daqComponentTypeBuilder_createServerTypeBuilder(daqComponentTypeBuilder** obj);
+
+    /*!
+     * @brief Creates a ComponentTypeBuilder with the type sort set to "FunctionBlock".
+     */
     daqErrCode EXPORTED daqComponentTypeBuilder_createFunctionBlockTypeBuilder(daqComponentTypeBuilder** obj);
 
 #ifdef __cplusplus

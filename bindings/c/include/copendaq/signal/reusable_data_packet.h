@@ -34,6 +34,12 @@ extern "C"
 
 #include <ccommon.h>
 
+    /*!
+     * @ingroup opendaq_packets
+     * @addtogroup opendaq_reusable_data_packet Reusable Data packet
+     */
+    DAQ_EXTENDS_INTERFACE(daqReusableDataPacket, daqBaseObject);
+
     typedef struct daqReusableDataPacket daqReusableDataPacket;
     typedef struct daqDataDescriptor daqDataDescriptor;
     typedef struct daqNumber daqNumber;

@@ -34,13 +34,25 @@ extern "C"
 
 #include <ccommon.h>
 
+    DAQ_EXTENDS_INTERFACE(daqLastMessageLoggerSinkPrivate, daqBaseObject);
+
     typedef struct daqLastMessageLoggerSinkPrivate daqLastMessageLoggerSinkPrivate;
     typedef struct daqString daqString;
 
     EXPORTED extern const daqIntfID DAQ_LAST_MESSAGE_LOGGER_SINK_PRIVATE_INTF_ID;
     void EXPORTED daqLastMessageLoggerSinkPrivate_getInterfaceId(daqIntfID* intfId);
 
+    /*!
+     * @brief Get the last log message
+     * @param[out] lastMessage The last log message
+     */
     daqErrCode EXPORTED daqLastMessageLoggerSinkPrivate_getLastMessage(daqLastMessageLoggerSinkPrivate* self, daqString** lastMessage);
+
+    /*!
+     * @brief Wait for receiving a new log message
+     * @param timeoutMs The timeout in milliseconds until which wait for a new log message. If timeout set as 0 ms waiting will be skipped.
+     * @param[out] success The success will return true if there was a new unread log message before waiting or sink got a new logger message before timeout. False if timeout was reached.
+     */
     daqErrCode EXPORTED daqLastMessageLoggerSinkPrivate_waitForMessage(daqLastMessageLoggerSinkPrivate* self, daqSizeT timeoutMs, daqBool* success);
 
 #ifdef __cplusplus

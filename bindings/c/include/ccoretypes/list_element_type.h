@@ -34,11 +34,20 @@ extern "C"
 
 #include <ccommon.h>
 
+    /*!
+     * @brief Interface enabling introspection into the expected element type of the list.
+     */
+    DAQ_EXTENDS_INTERFACE(daqListElementType, daqBaseObject);
+
     typedef struct daqListElementType daqListElementType;
 
     EXPORTED extern const daqIntfID DAQ_LIST_ELEMENT_TYPE_INTF_ID;
     void EXPORTED daqListElementType_getInterfaceId(daqIntfID* intfId);
 
+    /*!
+     * @brief Returns the interface id of the expected list element type.
+     * @param[out] id The interface id of the expected element type otherwise returns the id of `IUnknown`.
+     */
     daqErrCode EXPORTED daqListElementType_getElementInterfaceId(daqListElementType* self, daqIntfID* id);
 
 #ifdef __cplusplus

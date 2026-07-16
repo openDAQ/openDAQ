@@ -34,6 +34,12 @@ extern "C"
 
 #include <ccommon.h>
 
+    /*!
+     * @ingroup types_serialization
+     * @defgroup types_serialized_list SerializedList
+     */
+    DAQ_EXTENDS_INTERFACE(daqSerializedList, daqBaseObject);
+
     typedef struct daqSerializedList daqSerializedList;
     typedef struct daqSerializedObject daqSerializedObject;
     typedef struct daqFunction daqFunction;
@@ -44,14 +50,23 @@ extern "C"
     void EXPORTED daqSerializedList_getInterfaceId(daqIntfID* intfId);
 
     daqErrCode EXPORTED daqSerializedList_readSerializedObject(daqSerializedList* self, daqSerializedObject** plainObj);
+
     daqErrCode EXPORTED daqSerializedList_readSerializedList(daqSerializedList* self, daqSerializedList** list);
+
     daqErrCode EXPORTED daqSerializedList_readList(daqSerializedList* self, daqBaseObject* context, daqFunction* factoryCallback, daqList** list);
+
     daqErrCode EXPORTED daqSerializedList_readObject(daqSerializedList* self, daqBaseObject* context, daqFunction* factoryCallback, daqBaseObject** obj);
+
     daqErrCode EXPORTED daqSerializedList_readString(daqSerializedList* self, daqString** string);
+
     daqErrCode EXPORTED daqSerializedList_readBool(daqSerializedList* self, daqBool* boolean);
+
     daqErrCode EXPORTED daqSerializedList_readFloat(daqSerializedList* self, daqFloat* real);
+
     daqErrCode EXPORTED daqSerializedList_readInt(daqSerializedList* self, daqInt* integer);
+
     daqErrCode EXPORTED daqSerializedList_getCount(daqSerializedList* self, daqSizeT* size);
+
     daqErrCode EXPORTED daqSerializedList_getCurrentItemType(daqSerializedList* self, daqCoreType* size);
 
 #ifdef __cplusplus

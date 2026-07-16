@@ -34,6 +34,37 @@ extern "C"
 
 #include <ccommon.h>
 
+    /*!
+     * @brief Rule that defines how a signal value is calculated from an implicit initialization value when the rule type is not `Explicit`.
+     *
+     * Data rule objects implement the Struct methods internally and are Core type `ctStruct`.
+     * @subsection data_rule_explicit Explicit rule
+     * When the rule type of the Data rule is set to `Explicit`, the values passed through the signal path, described by
+     * the Value descriptor are stored in packet buffers.
+     *
+     * The Explicit rule can have 2 optional parameters:
+     *
+     * - `minExpectedDelta`: Specifies the minimum difference in value between two subsequent samples
+     * - `maxExpectedDelta`: Specifies the maximum difference in value between two subsequent samples
+     *
+     * These are mostly used for domain signals to specify the expected rate of a signal, or the expected timeout of a signal.
+     * The delta parameters should be configured to match the deltas in terms of the raw signal values (before scaling/resolution
+     * are applied).
+     *
+     * An explicit rule must have either both or none of these parameters. To use only one, the other must be set to 0.
+     * @subsection data_rule_implicit Implicit rule
+     * When the rule type of the Data rule is not `Explicit`, the buffers of packets are empty. The values must instead be
+     * calculated via the Implicit value found in the packet buffers in conjunction with the parameters of the rule. Each
+     * implicit rule type specifies its own required set of parameters.
+     * @subsubsection data_rule_linear Linear rule
+     * The parameters include a `delta` and `start` integer members. The values are calculated according to the following
+     * equation: <em>packetOffset + sampleIndex * delta + start</em>.
+     * @subsubsection data_rule_linear Constant rule
+     * The parameters contain a `constant` number member. The value described by the constant rule is always equal to the
+     * constant.
+     */
+    DAQ_EXTENDS_INTERFACE(daqDataRule, daqBaseObject);
+
     typedef struct daqDataRule daqDataRule;
     typedef struct daqDict daqDict;
     typedef struct daqNumber daqNumber;
@@ -42,13 +73,59 @@ extern "C"
     EXPORTED extern const daqIntfID DAQ_DATA_RULE_INTF_ID;
     void EXPORTED daqDataRule_getInterfaceId(daqIntfID* intfId);
 
+    /*!
+     * @brief Gets the type of the data rule.
+     * @param[out] type The type of the data rule.
+     */
     daqErrCode EXPORTED daqDataRule_getType(daqDataRule* self, daqDataRuleType* type);
-    daqErrCode EXPORTED daqDataRule_getParameters(daqDataRule* self, daqDict** parameters);
+
+    /*!
+     * @brief Gets a dictionary of string-object key-value pairs representing the parameters used to evaluate the rule.
+     * @param[out] parameters The dictionary containing the rule parameter members.
+     */
+    daqErrCode EXPORTED daqDataRule_getParameters(daqDataRule* self, daqDict** parameters DAQ_DICT_TEMPLATE_TYPE(daqString, daqBaseObject));
+
+    /*!
+     * @brief Creates a DataRule with a Linear rule type configuration.
+     * @param delta Coefficient by which the input data is to be multiplied.
+     * @param start Constant that is added to the <em>scale * value</em> multiplication result.
+     *
+     * The scale and offset are stored within the `parameters` member of the Rule object
+     * with the scale being at the first position of the list, and the offset at the second.
+     */
     daqErrCode EXPORTED daqDataRule_createLinearDataRule(daqDataRule** obj, daqNumber* delta, daqNumber* start);
+
+    /*!
+     * @brief Creates a DataRule with a Constant rule type configuration.
+     */
     daqErrCode EXPORTED daqDataRule_createConstantDataRule(daqDataRule** obj);
+
+    /*!
+     * @brief Creates a DataRule with an Explicit rule type configuration and no parameters.
+     */
     daqErrCode EXPORTED daqDataRule_createExplicitDataRule(daqDataRule** obj);
+
+    /*!
+     * @brief Creates a DataRule with an Explicit rule type configuration two optional parameters.
+     * @param minExpectedDelta The lowest expected distance between two samples.
+     * @param maxExpectedDelta The highest expected distance between two samples.
+     *
+     * Most often used for domain signals to specify estimates on how close together/far apart two
+     * subsequent samples might be.
+     */
     daqErrCode EXPORTED daqDataRule_createExplicitDomainDataRule(daqDataRule** obj, daqNumber* minExpectedDelta, daqNumber* maxExpectedDelta);
+
+    /*!
+     * @brief Creates a DataRule with an Explicit rule type configuration and parameters.
+     * @param ruleType .
+     * @param parameters .
+     */
     daqErrCode EXPORTED daqDataRule_createDataRule(daqDataRule** obj, daqDataRuleType ruleType, daqDict* parameters);
+
+    /*!
+     * @brief Creates a DataRulePtr from Builder.
+     * @param builder DataRule Builder
+     */
     daqErrCode EXPORTED daqDataRule_createDataRuleFromBuilder(daqDataRule** obj, daqDataRuleBuilder* builder);
 
 #ifdef __cplusplus

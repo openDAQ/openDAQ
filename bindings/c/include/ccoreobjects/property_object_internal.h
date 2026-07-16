@@ -34,6 +34,12 @@ extern "C"
 
 #include <ccommon.h>
 
+    /*!
+     * @ingroup objects_property_object
+     * @addtogroup objects_property_object_obj PropertyObjectInternal
+     */
+    DAQ_EXTENDS_INTERFACE(daqPropertyObjectInternal, daqBaseObject);
+
     typedef struct daqPropertyObjectInternal daqPropertyObjectInternal;
     typedef struct daqProperty daqProperty;
     typedef struct daqProcedure daqProcedure;
@@ -46,26 +52,62 @@ extern "C"
     void EXPORTED daqPropertyObjectInternal_getInterfaceId(daqIntfID* intfId);
 
     daqErrCode EXPORTED daqPropertyObjectInternal_checkForReferences(daqPropertyObjectInternal* self, daqProperty* property, daqBool* isReferenced);
+
     daqErrCode EXPORTED daqPropertyObjectInternal_checkForReferencesNoLock(daqPropertyObjectInternal* self, daqProperty* property, daqBool* isReferenced);
+
     daqErrCode EXPORTED daqPropertyObjectInternal_enableCoreEventTrigger(daqPropertyObjectInternal* self);
+
     daqErrCode EXPORTED daqPropertyObjectInternal_disableCoreEventTrigger(daqPropertyObjectInternal* self);
+
     daqErrCode EXPORTED daqPropertyObjectInternal_getCoreEventTrigger(daqPropertyObjectInternal* self, daqProcedure** trigger);
+
     daqErrCode EXPORTED daqPropertyObjectInternal_setCoreEventTrigger(daqPropertyObjectInternal* self, daqProcedure* trigger);
+
     daqErrCode EXPORTED daqPropertyObjectInternal_clone(daqPropertyObjectInternal* self, daqPropertyObject** cloned);
+
     daqErrCode EXPORTED daqPropertyObjectInternal_setPath(daqPropertyObjectInternal* self, daqString* path);
+
     daqErrCode EXPORTED daqPropertyObjectInternal_getPath(daqPropertyObjectInternal* self, daqString** path);
+
     daqErrCode EXPORTED daqPropertyObjectInternal_isUpdating(daqPropertyObjectInternal* self, daqBool* updating);
+
     daqErrCode EXPORTED daqPropertyObjectInternal_hasUserReadAccess(daqPropertyObjectInternal* self, daqBaseObject* userContext, daqBool* hasAccessOut);
+
     daqErrCode EXPORTED daqPropertyObjectInternal_getPropertyValueNoLock(daqPropertyObjectInternal* self, daqString* name, daqBaseObject** value);
+
     daqErrCode EXPORTED daqPropertyObjectInternal_getPropertySelectionValueNoLock(daqPropertyObjectInternal* self, daqString* name, daqBaseObject** value);
+
     daqErrCode EXPORTED daqPropertyObjectInternal_setPropertyValueNoLock(daqPropertyObjectInternal* self, daqString* name, daqBaseObject* value);
+
     daqErrCode EXPORTED daqPropertyObjectInternal_setProtectedPropertyValueNoLock(daqPropertyObjectInternal* self, daqString* name, daqBaseObject* value);
+
     daqErrCode EXPORTED daqPropertyObjectInternal_clearPropertyValueNoLock(daqPropertyObjectInternal* self, daqString* name);
+
+    /*!
+     * @brief Gets a lock guard that locks the object's mutex.
+     */
     daqErrCode EXPORTED daqPropertyObjectInternal_getLockGuard(daqPropertyObjectInternal* self, daqLockGuard** lockGuard);
+
+    /*!
+     * @brief Gets a lock guard that locks the object's mutex. The mutex is wrapped to be recursive, allowing for multiple locks to be instantiated on the same thread. Fails if a non-recursive lock was already created on this thread.
+     */
     daqErrCode EXPORTED daqPropertyObjectInternal_getRecursiveLockGuard(daqPropertyObjectInternal* self, daqLockGuard** lockGuard);
+
+    /*!
+     * @brief Sets the locking strategy of the object. The locking strategy must be set before the object gets and owner is added to a parent folder.
+     */
     daqErrCode EXPORTED daqPropertyObjectInternal_setLockingStrategy(daqPropertyObjectInternal* self, daqLockingStrategy strategy);
+
+    /*!
+     * @brief Gets the locking strategy of the object. The locking strategy must be set before the object gets and owner is added to a parent folder.
+     */
     daqErrCode EXPORTED daqPropertyObjectInternal_getLockingStrategy(daqPropertyObjectInternal* self, daqLockingStrategy* strategy);
+
+    /*!
+     * @brief Gets the object's mutex. Returns the mutex of the closest `OwnLock` strategy ancestor if using the `InheritLock` strategy.
+     */
     daqErrCode EXPORTED daqPropertyObjectInternal_getMutex(daqPropertyObjectInternal* self, daqMutex** mutex);
+
     daqErrCode EXPORTED daqPropertyObjectInternal_getMutexOwner(daqPropertyObjectInternal* self, daqPropertyObjectInternal** owner);
 
 #ifdef __cplusplus

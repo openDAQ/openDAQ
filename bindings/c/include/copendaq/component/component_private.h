@@ -34,6 +34,14 @@ extern "C"
 
 #include <ccommon.h>
 
+    /*!
+     * @brief Provides access to private methods of the component.
+     *
+     * Said methods allow for triggering a Core event of the component, and locking/unlocking attributes of
+     * the component.
+     */
+    DAQ_EXTENDS_INTERFACE(daqComponentPrivate, daqBaseObject);
+
     typedef struct daqComponentPrivate daqComponentPrivate;
     typedef struct daqList daqList;
     typedef struct daqCoreEventArgs daqCoreEventArgs;
@@ -42,14 +50,61 @@ extern "C"
     EXPORTED extern const daqIntfID DAQ_COMPONENT_PRIVATE_INTF_ID;
     void EXPORTED daqComponentPrivate_getInterfaceId(daqIntfID* intfId);
 
-    daqErrCode EXPORTED daqComponentPrivate_lockAttributes(daqComponentPrivate* self, daqList* attributes);
+    /*!
+     * @brief Locks the attributes contained in the provided list.
+     * @param attributes The list of attributes that should be locked. Is not case sensitive.
+     */
+    daqErrCode EXPORTED daqComponentPrivate_lockAttributes(daqComponentPrivate* self, daqList* attributes DAQ_LIST_ELEMENT_TYPE(daqString));
+
+    /*!
+     * @brief Locks all attributes of the component.
+     */
     daqErrCode EXPORTED daqComponentPrivate_lockAllAttributes(daqComponentPrivate* self);
-    daqErrCode EXPORTED daqComponentPrivate_unlockAttributes(daqComponentPrivate* self, daqList* attributes);
+
+    /*!
+     * @brief Unlocks the attributes contained in the provided list.
+     * @param attributes The list of attributes that should be unlocked. Is not case sensitive.
+     */
+    daqErrCode EXPORTED daqComponentPrivate_unlockAttributes(daqComponentPrivate* self, daqList* attributes DAQ_LIST_ELEMENT_TYPE(daqString));
+
+    /*!
+     * @brief Unlocks all attributes of the component.
+     */
     daqErrCode EXPORTED daqComponentPrivate_unlockAllAttributes(daqComponentPrivate* self);
+
+    /*!
+     * @brief Triggers the component-specific core event with the provided arguments.
+     * @param args The arguments of the core event.
+     */
     daqErrCode EXPORTED daqComponentPrivate_triggerComponentCoreEvent(daqComponentPrivate* self, daqCoreEventArgs* args);
+
+    /*!
+     * @brief Notifies component about the change of the operation mode.
+     * @param modeType The new operation mode.
+     */
     daqErrCode EXPORTED daqComponentPrivate_updateOperationMode(daqComponentPrivate* self, daqOperationModeType modeType);
+
+    /*!
+     * @brief Sets the configuration which was used to create the component.
+     * @param config The configuration of the component.
+     */
     daqErrCode EXPORTED daqComponentPrivate_setComponentConfig(daqComponentPrivate* self, daqPropertyObject* config);
+
+    /*!
+     * @brief Retrieves the configuration which was used to create the component.
+     * @param config The configuration of the component.
+     */
     daqErrCode EXPORTED daqComponentPrivate_getComponentConfig(daqComponentPrivate* self, daqPropertyObject** config);
+
+    /*!
+     * @brief Called by parent component to notify this component about parent's active state change.
+     * @param parentActive True if parent is active.
+     * @param onUpdate True if the call is triggered from config update, false if the call is triggered by a change of the active state.
+     *
+     * The component updates its internal parentActive flag and recomputes its effective active state.
+     * If the effective active state changes, triggers an AttributeChanged event.
+     * Container components (folders, devices) propagate this call to their children.
+     */
     daqErrCode EXPORTED daqComponentPrivate_setParentActive(daqComponentPrivate* self, daqBool parentActive, daqBool onUpdate);
 
 #ifdef __cplusplus

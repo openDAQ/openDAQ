@@ -34,12 +34,26 @@ extern "C"
 
 #include <ccommon.h>
 
+    /*!
+     * @brief Interface enabling introspection into the expected key and value types of the dictionary.
+     */
+    DAQ_EXTENDS_INTERFACE(daqDictElementType, daqBaseObject);
+
     typedef struct daqDictElementType daqDictElementType;
 
     EXPORTED extern const daqIntfID DAQ_DICT_ELEMENT_TYPE_INTF_ID;
     void EXPORTED daqDictElementType_getInterfaceId(daqIntfID* intfId);
 
+    /*!
+     * @brief Returns the interface id of the expected key type.
+     * @param[out] id The interface id of the expected key type otherwise returns the id of `IUnknown`.
+     */
     daqErrCode EXPORTED daqDictElementType_getKeyInterfaceId(daqDictElementType* self, daqIntfID* id);
+
+    /*!
+     * @brief Returns the interface id of the expected value type.
+     * @param[out] id The interface id of the expected value type otherwise returns the id of `IUnknown`.
+     */
     daqErrCode EXPORTED daqDictElementType_getValueInterfaceId(daqDictElementType* self, daqIntfID* id);
 
 #ifdef __cplusplus

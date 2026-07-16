@@ -34,15 +34,34 @@ extern "C"
 
 #include <ccommon.h>
 
+    /*!
+     * @brief A class which describes a permission configuration for openDAQ object.A configuration object can be constructed using the permission builder class.
+     */
+    DAQ_EXTENDS_INTERFACE(daqPermissions, daqBaseObject);
+
     typedef struct daqPermissions daqPermissions;
     typedef struct daqDict daqDict;
 
     EXPORTED extern const daqIntfID DAQ_PERMISSIONS_INTF_ID;
     void EXPORTED daqPermissions_getInterfaceId(daqIntfID* intfId);
 
+    /*!
+     * @brief Returns true if an object should inherit permissions from its parent object.
+     * @param isInherited[out] True if permissions should be inherited from parent object.
+     */
     daqErrCode EXPORTED daqPermissions_getInherited(daqPermissions* self, daqBool* isInherited);
-    daqErrCode EXPORTED daqPermissions_getAllowed(daqPermissions* self, daqDict** permissions);
-    daqErrCode EXPORTED daqPermissions_getDenied(daqPermissions* self, daqDict** permissions);
+
+    /*!
+     * @brief Returns a dictionary of allowed permissions for each group.
+     * @param permissions[out] A dictionary of allowed permissions for each group.
+     */
+    daqErrCode EXPORTED daqPermissions_getAllowed(daqPermissions* self, daqDict** permissions DAQ_DICT_TEMPLATE_TYPE(daqString, daqInteger));
+
+    /*!
+     * @brief Returns a dictionary of denied permissions for each group.
+     * @param permissions[out] A dictionary of denied permissions for each group.
+     */
+    daqErrCode EXPORTED daqPermissions_getDenied(daqPermissions* self, daqDict** permissions DAQ_DICT_TEMPLATE_TYPE(daqString, daqInteger));
 
 #ifdef __cplusplus
 }

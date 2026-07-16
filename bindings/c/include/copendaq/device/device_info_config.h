@@ -34,6 +34,15 @@ extern "C"
 
 #include <ccommon.h>
 
+    /*!
+     * @brief Configuration component of Device info objects. Contains setter methods that are available until the object is frozen.
+     *
+     * Device info config contains functions that allow for the configuration of Device info objects.
+     * The implementation of `config` also implements the `freeze` function that freezes the object making it
+     * immutable. Once frozen, the setter methods fail as the object can no longer be modified.
+     */
+    DAQ_EXTENDS_INTERFACE(daqDeviceInfoConfig, daqDeviceInfo);
+
     typedef struct daqDeviceInfoConfig daqDeviceInfoConfig;
     typedef struct daqString daqString;
     typedef struct daqDeviceType daqDeviceType;
@@ -41,31 +50,159 @@ extern "C"
     EXPORTED extern const daqIntfID DAQ_DEVICE_INFO_CONFIG_INTF_ID;
     void EXPORTED daqDeviceInfoConfig_getInterfaceId(daqIntfID* intfId);
 
+    /*!
+     * @brief Sets the name of the device
+     * @param name The name of the device.
+     */
     daqErrCode EXPORTED daqDeviceInfoConfig_setName(daqDeviceInfoConfig* self, daqString* name);
+
+    /*!
+     * @brief Sets the string representation of a connection address used to connect to the device.
+     * @param connectionString The string used to connect to the device.
+     */
     daqErrCode EXPORTED daqDeviceInfoConfig_setConnectionString(daqDeviceInfoConfig* self, daqString* connectionString);
+
+    /*!
+     * @brief Sets a device type as an object providing type id, name, short description and default device configuration.
+     * @param[out] deviceType The device type object
+     */
     daqErrCode EXPORTED daqDeviceInfoConfig_setDeviceType(daqDeviceInfoConfig* self, daqDeviceType* deviceType);
+
+    /*!
+     * @brief Sets the company that manufactured the device
+     * @param manufacturer The manufacturer of the device.
+     */
     daqErrCode EXPORTED daqDeviceInfoConfig_setManufacturer(daqDeviceInfoConfig* self, daqString* manufacturer);
+
+    /*!
+     * @brief Sets the unique identifier of the company that manufactured the device. This identifier should be a fully qualified domain name; however, it may be a GUID or similar construct that ensures global uniqueness.
+     * @param manufacturerUri The manufacturer uri of the device.
+     */
     daqErrCode EXPORTED daqDeviceInfoConfig_setManufacturerUri(daqDeviceInfoConfig* self, daqString* manufacturerUri);
+
+    /*!
+     * @brief Sets the model of the device
+     * @param model The model of the device.
+     */
     daqErrCode EXPORTED daqDeviceInfoConfig_setModel(daqDeviceInfoConfig* self, daqString* model);
+
+    /*!
+     * @brief Sets the unique combination of numbers and letters used to identify the device.
+     * @param productCode The product code of the device.
+     */
     daqErrCode EXPORTED daqDeviceInfoConfig_setProductCode(daqDeviceInfoConfig* self, daqString* productCode);
+
+    /*!
+     * @brief Sets the revision level of the device.
+     * @param deviceRevision The device revision level.
+     */
     daqErrCode EXPORTED daqDeviceInfoConfig_setDeviceRevision(daqDeviceInfoConfig* self, daqString* deviceRevision);
+
+    /*!
+     * @brief Sets the revision level of the hardware
+     * @param hardwareRevision The hardware revision of the device.
+     */
     daqErrCode EXPORTED daqDeviceInfoConfig_setHardwareRevision(daqDeviceInfoConfig* self, daqString* hardwareRevision);
+
+    /*!
+     * @brief sets the revision level of the software component
+     * @param softwareRevision The software revision of the device.
+     */
     daqErrCode EXPORTED daqDeviceInfoConfig_setSoftwareRevision(daqDeviceInfoConfig* self, daqString* softwareRevision);
+
+    /*!
+     * @brief Sets the address of the user manual. It may be a pathname in the file system or a URL (Web address)
+     * @param deviceManual The manual of the device.
+     */
     daqErrCode EXPORTED daqDeviceInfoConfig_setDeviceManual(daqDeviceInfoConfig* self, daqString* deviceManual);
+
+    /*!
+     * @brief Sets the purpose of the device. For example "TestMeasurementDevice".
+     * @param deviceClass The class of the device.
+     */
     daqErrCode EXPORTED daqDeviceInfoConfig_setDeviceClass(daqDeviceInfoConfig* self, daqString* deviceClass);
+
+    /*!
+     * @brief Sets the serial number of the device
+     * @param serialNumber The serial number of the device.
+     */
     daqErrCode EXPORTED daqDeviceInfoConfig_setSerialNumber(daqDeviceInfoConfig* self, daqString* serialNumber);
+
+    /*!
+     * @brief Sets the globally unique resource identifier provided by the manufacturer. The recommended syntax of the ProductInstanceUri is: <ManufacturerUri>/<any string> where <any string> is unique among all instances using the same ManufacturerUri.
+     * @param productInstanceUri The product instance uri of the device.
+     */
     daqErrCode EXPORTED daqDeviceInfoConfig_setProductInstanceUri(daqDeviceInfoConfig* self, daqString* productInstanceUri);
+
+    /*!
+     * @brief Sets the incremental counter indicating the number of times the configuration data has been modified.
+     * @param revisionCounter The revision counter of the device.
+     */
     daqErrCode EXPORTED daqDeviceInfoConfig_setRevisionCounter(daqDeviceInfoConfig* self, daqInt revisionCounter);
+
+    /*!
+     * @brief Sets the asset ID of the device. Represents a user writable alphanumeric character sequence uniquely identifying a component.
+     * @param id The asset ID of the device.
+     *
+     * The ID is provided by the integrator or user of the device. It contains typically an identifier
+     * in a branch, use case or user specific naming scheme. This could be for example a reference to
+     * an electric scheme.
+     */
     daqErrCode EXPORTED daqDeviceInfoConfig_setAssetId(daqDeviceInfoConfig* self, daqString* id);
+
+    /*!
+     * @brief Sets the Mac address of the device.
+     * @param macAddress The Mac address.
+     */
     daqErrCode EXPORTED daqDeviceInfoConfig_setMacAddress(daqDeviceInfoConfig* self, daqString* macAddress);
+
+    /*!
+     * @brief Sets the Mac address of the device's parent.
+     * @param macAddress The parent's Mac address.
+     */
     daqErrCode EXPORTED daqDeviceInfoConfig_setParentMacAddress(daqDeviceInfoConfig* self, daqString* macAddress);
+
+    /*!
+     * @brief Sets the platform of the device. The platform specifies whether real hardware is used or if the device is simulated.
+     * @param platform The platform of the device.
+     */
     daqErrCode EXPORTED daqDeviceInfoConfig_setPlatform(daqDeviceInfoConfig* self, daqString* platform);
+
+    /*!
+     * @brief Sets the position of the device. The position specifies the position within a given system. For example in which slot or slice the device is in.
+     * @param position The position of the device.
+     */
     daqErrCode EXPORTED daqDeviceInfoConfig_setPosition(daqDeviceInfoConfig* self, daqInt position);
+
+    /*!
+     * @brief Sets the system type. The system type can, for example, be LayeredSystem, StandaloneSystem, or RackSystem.
+     * @param type The system type of the device.
+     */
     daqErrCode EXPORTED daqDeviceInfoConfig_setSystemType(daqDeviceInfoConfig* self, daqString* type);
+
+    /*!
+     * @brief Sets the system UUID that represents a unique ID of a system. All devices in a system share this UUID.
+     * @param uuid The unique ID of a system.
+     */
     daqErrCode EXPORTED daqDeviceInfoConfig_setSystemUuid(daqDeviceInfoConfig* self, daqString* uuid);
+
+    /*!
+     * @brief Sets the location of the device.
+     * @param[out] location The location of the device.
+     */
     daqErrCode EXPORTED daqDeviceInfoConfig_setLocation(daqDeviceInfoConfig* self, daqString* location);
+
+    /*!
+     * @brief Sets the name of the current user of the device.
+     * @param[out] userName The location of the device.
+     *
+     * If the info object is obtained from a device that is already added (not through discovery),
+     * the username string value matches that of the device's "userName" property.
+     */
     daqErrCode EXPORTED daqDeviceInfoConfig_setUserName(daqDeviceInfoConfig* self, daqString* userName);
+
     daqErrCode EXPORTED daqDeviceInfoConfig_createDeviceInfoConfig(daqDeviceInfoConfig** obj, daqString* name, daqString* connectionString);
+
     daqErrCode EXPORTED daqDeviceInfoConfig_createDeviceInfoConfigWithCustomSdkVersion(daqDeviceInfoConfig** obj, daqString* name, daqString* connectionString, daqString* sdkVersion);
 
 #ifdef __cplusplus

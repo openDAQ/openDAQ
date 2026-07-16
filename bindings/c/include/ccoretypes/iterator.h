@@ -34,12 +34,40 @@ extern "C"
 
 #include <ccommon.h>
 
+    /*!
+     * @brief Use this interface to iterator through items of a container object.
+     *
+     * Call moveNext function in a loop until it returns OPENDAQ_NO_MORE_ITEMS. Iteration
+     * cannot be restarted. In this case a new iterator must be created.
+     *
+     * Example:
+     * @code
+     * IIterator* it = ...;
+       while (it->moveNext() != OPENDAQ_NO_MORE_ITEMS)
+     * {
+     *      IBaseObject* obj;
+     *      it->getCurrent(&obj);
+     *      // do something with obj
+     * }
+      @endcode
+     */
+    DAQ_EXTENDS_INTERFACE(daqIterator, daqBaseObject);
+
     typedef struct daqIterator daqIterator;
 
     EXPORTED extern const daqIntfID DAQ_ITERATOR_INTF_ID;
     void EXPORTED daqIterator_getInterfaceId(daqIntfID* intfId);
 
+    /*!
+     * @brief Moves iterator to next position.
+     */
     daqErrCode EXPORTED daqIterator_moveNext(daqIterator* self);
+
+    /*!
+     * @brief Gets the object at current iterator position.
+     * @param[out] obj Object at current iterator position.
+     * @retval OPENDAQ_NO_MORE_ITEMS Iterator is over the last item position.
+     */
     daqErrCode EXPORTED daqIterator_getCurrent(daqIterator* self, daqBaseObject** obj);
 
 #ifdef __cplusplus

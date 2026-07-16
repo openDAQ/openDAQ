@@ -34,13 +34,36 @@ extern "C"
 
 #include <ccommon.h>
 
+    /*!
+     * @brief Internal functions used by openDAQ core. This interface should never be used in client SDK or module code.
+     */
+    DAQ_EXTENDS_INTERFACE(daqScalingCalcPrivate, daqBaseObject);
+
     typedef struct daqScalingCalcPrivate daqScalingCalcPrivate;
 
     EXPORTED extern const daqIntfID DAQ_SCALING_CALC_PRIVATE_INTF_ID;
     void EXPORTED daqScalingCalcPrivate_getInterfaceId(daqIntfID* intfId);
 
+    /*!
+     * @brief Scales the packet data.
+     * @param data Pointer to the packet data.
+     * @param sampleCount The number of samples in the packet.
+     * @returns A pointer to the scaled data.
+     */
     void EXPORTED daqScalingCalcPrivate_scaleData(daqScalingCalcPrivate* self, void* data, daqSizeT sampleCount);
+
+    /*!
+     * @brief Scales the packet data.
+     * @param data Pointer to the packet data.
+     * @param sampleCount The number of samples in the packet.
+     * @param[out] A pointer to the scaled data.
+     */
     void EXPORTED daqScalingCalcPrivate_scaleDataOutput(daqScalingCalcPrivate* self, void* data, daqSizeT sampleCount, void** output);
+
+    /*!
+     * @brief Checks whether the Scaling Calculator is available for packet or not.
+     * @return True if the Scaling Calculator is initialized within the implementation; false otherwise.
+     */
     daqBool EXPORTED daqScalingCalcPrivate_hasScalingCalc(daqScalingCalcPrivate* self);
 
 #ifdef __cplusplus

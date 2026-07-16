@@ -34,13 +34,29 @@ extern "C"
 
 #include <ccommon.h>
 
+    /*!
+     * @brief Internal functions used by openDAQ core. This interface should never be used in client SDK or module code.
+     */
+    DAQ_EXTENDS_INTERFACE(daqInputPortPrivate, daqBaseObject);
+
     typedef struct daqInputPortPrivate daqInputPortPrivate;
     typedef struct daqSignal daqSignal;
 
     EXPORTED extern const daqIntfID DAQ_INPUT_PORT_PRIVATE_INTF_ID;
     void EXPORTED daqInputPortPrivate_getInterfaceId(daqIntfID* intfId);
 
+    /*!
+     * @brief Disconnects the signal without notification to the signal.
+     */
     daqErrCode EXPORTED daqInputPortPrivate_disconnectWithoutSignalNotification(daqInputPortPrivate* self);
+
+    /*!
+     * @brief Connects the signal to the input port, forming a Connection.
+     * @param signal The signal to be connected to the input port.
+     *
+     * On connect, an event packet is enqueued in the connection. This method schedules the
+     * `onPacketReceived` notification instead of invoking it on the same thread.
+     */
     daqErrCode EXPORTED daqInputPortPrivate_connectSignalSchedulerNotification(daqInputPortPrivate* self, daqSignal* signal);
 
 #ifdef __cplusplus

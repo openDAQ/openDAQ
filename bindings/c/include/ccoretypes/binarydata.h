@@ -34,13 +34,31 @@ extern "C"
 
 #include <ccommon.h>
 
+    /*!
+     * @brief Represents binary large object (BLOB).
+     *
+     * Binary data is just a continuously allocated memory of a specific size. A client can get a pointer to
+     * internal buffer and size it.
+     */
+    DAQ_EXTENDS_INTERFACE(daqBinaryData, daqBaseObject);
+
     typedef struct daqBinaryData daqBinaryData;
 
     EXPORTED extern const daqIntfID DAQ_BINARY_DATA_INTF_ID;
     void EXPORTED daqBinaryData_getInterfaceId(daqIntfID* intfId);
 
+    /*!
+     * @brief Gets the address of the buffer.
+     * @param[out] data The buffer's starting address.
+     */
     daqErrCode EXPORTED daqBinaryData_getAddress(daqBinaryData* self, void** data);
+
+    /*!
+     * @brief Gets the size of the buffer.
+     * @param[out] size The buffer's size.
+     */
     daqErrCode EXPORTED daqBinaryData_getSize(daqBinaryData* self, daqSizeT* size);
+
     daqErrCode EXPORTED daqBinaryData_createBinaryData(daqBinaryData** obj, daqSizeT size);
 
 #ifdef __cplusplus

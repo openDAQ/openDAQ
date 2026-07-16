@@ -34,6 +34,19 @@ extern "C"
 
 #include <ccommon.h>
 
+    /*!
+     * @brief The top-level openDAQ object. It acts as container for the openDAQ context and the base module manager.
+     *
+     * It forwards all Device and PropertyObject calls to the current root device, making the calls on the Instance
+     * and root device equivalent.
+     *
+     * On creation, it creates a Client device - a default device implementation that can load any function blocks
+     * present in the module manager search path. If the native openDAQ client-module is loaded, the Client device
+     * can connect to any TMS enabled device by using the `addDevice` function. The Client is set as the root device
+     * when the instance is created.
+     */
+    DAQ_EXTENDS_INTERFACE(daqInstance, daqDevice);
+
     typedef struct daqInstance daqInstance;
     typedef struct daqModuleManager daqModuleManager;
     typedef struct daqDevice daqDevice;
@@ -49,13 +62,69 @@ extern "C"
     EXPORTED extern const daqIntfID DAQ_INSTANCE_INTF_ID;
     void EXPORTED daqInstance_getInterfaceId(daqIntfID* intfId);
 
+    /*!
+     * @brief Gets the Module manager.
+     * @param[out] manager The module manager.
+     */
     daqErrCode EXPORTED daqInstance_getModuleManager(daqInstance* self, daqModuleManager** manager);
+
+    /*!
+     * @brief Gets the current root device.
+     * @param[out] rootDevice The current root device.
+     *
+     * All Device calls invoked on the Instance are forwarded to the current root device.
+     */
     daqErrCode EXPORTED daqInstance_getRootDevice(daqInstance* self, daqDevice** rootDevice);
-    daqErrCode EXPORTED daqInstance_setRootDevice(daqInstance* self, daqString* connectionString, daqPropertyObject* config);
-    daqErrCode EXPORTED daqInstance_getAvailableServerTypes(daqInstance* self, daqDict** serverTypes);
-    daqErrCode EXPORTED daqInstance_addStandardServers(daqInstance* self, daqList** servers);
+
+    /*!
+     * @brief Adds a device with the connection string as root device.
+     * @param connectionString The connection string containing the address of the device.
+     * @param config A config object to configure a client device. This object can contain properties like max sample rate, port to use for 3rd party communication, number of channels to generate, or other device specific settings. In case of nullptr, a default configuration is used.
+     *
+     * All Device calls invoked on the Instance are forwarded to the root device. The root device can only be set once.
+     */
+    daqErrCode EXPORTED daqInstance_setRootDevice(daqInstance* self, daqString* connectionString, daqPropertyObject* config DAQ_DEFAULT_VALUE(nullptr));
+
+    /*!
+     * @brief Get a dictionary of available server types as <IString, IServerType> pairs
+     * @param[out] serverTypes The dictionary of available server types.
+     */
+    daqErrCode EXPORTED daqInstance_getAvailableServerTypes(daqInstance* self, daqDict** serverTypes DAQ_DICT_TEMPLATE_TYPE(daqString, daqServerType));
+
+    /*!
+     * @brief Creates and adds streaming and "OpenDAQOPCUA" servers with default configurations.
+     * @param[out] servers List of added created servers.
+     */
+    daqErrCode EXPORTED daqInstance_addStandardServers(daqInstance* self, daqList** servers DAQ_LIST_ELEMENT_TYPE(daqServer));
+
+    /*!
+     * @brief Creates an openDAQ instance.
+     * @param context The context object.
+     * @param localId The localID of the instance.
+     *
+     * openDAQ application uses instance as an entry point and a root component. The instance is the first openDAQ object
+     * that is created in the application.
+     *
+     * The caller should provide a localID that is a string that should be unique across multiple instances. If the
+     * instance sets a root device, the localID of the root device is automatically used as localID of the instance.
+     *
+     * The caller should provide configured module manager and context.
+     */
     daqErrCode EXPORTED daqInstance_createInstance(daqInstance** obj, daqContext* context, daqString* localId);
+
+    /*!
+     * @brief Creates a Instance with Builder
+     * @param builder Instance Builder
+     */
     daqErrCode EXPORTED daqInstance_createInstanceFromBuilder(daqInstance** obj, daqInstanceBuilder* builder);
+
+    /*!
+     * @brief Creates an openDAQ client.
+     * @param ctx The context object.
+     * @param localId The localID of the client.
+     * @param defaultDeviceInfo The DeviceInfo to be used by the client device.
+     * @param parent The parent component of the client.
+     */
     daqErrCode EXPORTED daqDevice_createClient(daqDevice** obj, daqContext* ctx, daqString* localId, daqDeviceInfo* defaultDeviceInfo, daqComponent* parent);
 
 #ifdef __cplusplus

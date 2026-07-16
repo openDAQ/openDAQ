@@ -34,16 +34,61 @@ extern "C"
 
 #include <ccommon.h>
 
+    /*!
+     * @brief Describes a measurement unit with IDs as defined in <a href="https://unece.org/trade/cefact/UNLOCODE-Download">Codes for Units of Measurement used in International Trade</a>.
+     * Unit objects implement the Struct methods internally and are Core type `ctStruct`.
+     * @subsection unit_components Unit components
+     * - ID: The unit ID as defined in <a href="https://unece.org/trade/cefact/UNLOCODE-Download">Codes for Units of Measurement used in International Trade</a>.
+     *   Should be set to -1 if the unit ID is not available.
+     * - Symbol: The symbol of the unit, i.e. "m/s". It is mandatory and must be set before the Unit object is frozen.
+     * - Name: The full name of the unit, i.e. "meters per second". The unit's name is optional.
+     * - Quantity: The quantity represented by the unit, i.e. "Velocity". The unit's quantity is optional.
+     */
+    DAQ_EXTENDS_INTERFACE(daqUnit, daqBaseObject);
+
     typedef struct daqUnit daqUnit;
     typedef struct daqString daqString;
 
     EXPORTED extern const daqIntfID DAQ_UNIT_INTF_ID;
     void EXPORTED daqUnit_getInterfaceId(daqIntfID* intfId);
 
+    /*!
+     * @brief Gets the unit ID as defined in <a href="https://unece.org/trade/cefact/UNLOCODE-Download">Codes for Units of Measurement used in International Trade</a>.
+     * @param[out] id The unit ID.
+     *
+     * Returns -1 if the unit id is not available.
+     */
     daqErrCode EXPORTED daqUnit_getId(daqUnit* self, daqInt* id);
+
+    /*!
+     * @brief Gets the symbol of the unit, i.e. "m/s".
+     * @param[out] symbol The unit's symbol.
+     */
     daqErrCode EXPORTED daqUnit_getSymbol(daqUnit* self, daqString** symbol);
+
+    /*!
+     * @brief Gets the full name of the unit, i.e. "meters per second".
+     * @param[out] name The unit's full name.
+     *
+     * `nullptr` if not set.
+     */
     daqErrCode EXPORTED daqUnit_getName(daqUnit* self, daqString** name);
+
+    /*!
+     * @brief Gets the quantity represented by the unit, i.e. "Velocity"
+     * @param[out] quantity The unit's quantity.
+     *
+     * `nullptr` if not set.
+     */
     daqErrCode EXPORTED daqUnit_getQuantity(daqUnit* self, daqString** quantity);
+
+    /*!
+     * @brief Creates a Unit struct with its `id`, `symbol`, `name`, and `quantity` fields configured.
+     * @param id The unit ID as defined in <a href="https://unece.org/trade/cefact/UNLOCODE-Download">Codes for Units of Measurement used in International Trade</a>.
+     * @param symbol The symbol of the unit, i.e. "m/s".
+     * @param name The full name of the unit, i.e. "meters per second". (optional)
+     * @param quantity The quantity represented by the unit, i.e. "Velocity". (optional)
+     */
     daqErrCode EXPORTED daqUnit_createUnit(daqUnit** obj, daqInt id, daqString* symbol, daqString* name, daqString* quantity);
 
 #ifdef __cplusplus

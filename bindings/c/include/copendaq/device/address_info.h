@@ -34,6 +34,12 @@ extern "C"
 
 #include <ccommon.h>
 
+    /*!
+     * @ingroup opendaq_server_capability
+     * @addtogroup opendaq_address_info Address info
+     */
+    DAQ_EXTENDS_INTERFACE(daqAddressInfo, daqPropertyObject);
+
     typedef struct daqAddressInfo daqAddressInfo;
     typedef struct daqString daqString;
     typedef struct daqAddressInfoBuilder daqAddressInfoBuilder;
@@ -41,11 +47,44 @@ extern "C"
     EXPORTED extern const daqIntfID DAQ_ADDRESS_INFO_INTF_ID;
     void EXPORTED daqAddressInfo_getInterfaceId(daqIntfID* intfId);
 
+    /*!
+     * @brief Gets the server address as a string.
+     * @param[out] address The server address as a string.
+     */
     daqErrCode EXPORTED daqAddressInfo_getAddress(daqAddressInfo* self, daqString** address);
+
+    /*!
+     * @brief Gets the connection string corresponding to the address.
+     * @param[out] connectionString The connection string.
+     */
     daqErrCode EXPORTED daqAddressInfo_getConnectionString(daqAddressInfo* self, daqString** connectionString);
+
+    /*!
+     * @brief Gets the type of the address.
+     * @param type The type the address.
+     *
+     * Currently available address types in the main openDAQ modules are: IPv4 and IPv6.
+     */
     daqErrCode EXPORTED daqAddressInfo_getType(daqAddressInfo* self, daqString** type);
+
+    /*!
+     * @brief Gets the reachability status of the address.
+     * @param addressReachability The reachability status of the address.
+     *
+     * This status is set to "Unknown" by default. For IPv4 address types, the module manager checks
+     * reachability when querying for available devices.
+     */
     daqErrCode EXPORTED daqAddressInfo_getReachabilityStatus(daqAddressInfo* self, daqAddressReachabilityStatus* addressReachability);
+
+    /*!
+     * @brief Creates an Address with no parameters configured.
+     */
     daqErrCode EXPORTED daqAddressInfo_createAddressInfo(daqAddressInfo** obj);
+
+    /*!
+     * @brief Creates an Address using the builder's configuration parameters.
+     * @param builder The address info builder.
+     */
     daqErrCode EXPORTED daqAddressInfo_createAddressInfoFromBuilder(daqAddressInfo** obj, daqAddressInfoBuilder* builder);
 
 #ifdef __cplusplus

@@ -34,11 +34,20 @@ extern "C"
 
 #include <ccommon.h>
 
+    DAQ_EXTENDS_INTERFACE(daqAddressInfoPrivate, daqBaseObject);
+
     typedef struct daqAddressInfoPrivate daqAddressInfoPrivate;
 
     EXPORTED extern const daqIntfID DAQ_ADDRESS_INFO_PRIVATE_INTF_ID;
     void EXPORTED daqAddressInfoPrivate_getInterfaceId(daqIntfID* intfId);
 
+    /*!
+     * @brief Sets the reachability status of the address, ignoring the "Frozen" status of the address.
+     * @param addressReachability The reachability status of the address.
+     *
+     * This status is set to "Unknown" by default. For IPv4 address types, the module manager checks
+     * reachability when querying for available devices.
+     */
     daqErrCode EXPORTED daqAddressInfoPrivate_setReachabilityStatusPrivate(daqAddressInfoPrivate* self, daqAddressReachabilityStatus addressReachability);
 
 #ifdef __cplusplus

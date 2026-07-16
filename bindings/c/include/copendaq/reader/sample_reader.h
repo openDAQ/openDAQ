@@ -34,16 +34,51 @@ extern "C"
 
 #include <ccommon.h>
 
+    /*!
+     * @brief A basic signal reader that simplifies reading the signals's samples.
+     */
+    DAQ_EXTENDS_INTERFACE(daqSampleReader, daqReader);
+
     typedef struct daqSampleReader daqSampleReader;
     typedef struct daqFunction daqFunction;
 
     EXPORTED extern const daqIntfID DAQ_SAMPLE_READER_INTF_ID;
     void EXPORTED daqSampleReader_getInterfaceId(daqIntfID* intfId);
 
+    /*!
+     * @brief Gets the sample-type the signal value samples will be converted to when read or @c SampleType::Invalid if read-type has not been determined yet.
+     * @param[out] sampleType The sample-type type of the read samples otherwise @c SampleType::Invalid.
+     */
     daqErrCode EXPORTED daqSampleReader_getValueReadType(daqSampleReader* self, daqSampleType* sampleType);
+
+    /*!
+     * @brief Gets the sample-type the signal domain samples will be converted to when read or @c SampleType::Invalid if read-type has not been determined yet.
+     * @param[out] sampleType The sample-type type of the read samples otherwise @c SampleType::Invalid.
+     */
     daqErrCode EXPORTED daqSampleReader_getDomainReadType(daqSampleReader* self, daqSampleType* sampleType);
+
+    /*!
+     * @brief Sets the transform function that will be called with the read value-data and currently valid Signal-Descriptor giving the user the chance add a custom post-processing step. The function should have a signature compatible with:
+     * @code
+         * transform(Int inputBuffer, Int outputBuffer, SizeT toRead, IDataDescriptor* descriptor)
+         * @endcode
+     * @param transform The function performing the post-processing.
+     */
     daqErrCode EXPORTED daqSampleReader_setValueTransformFunction(daqSampleReader* self, daqFunction* transform);
+
+    /*!
+     * @brief Sets the transform function that will be called with the read domain-data and currently valid Signal-Descriptor giving the user the chance add a custom post-processing step. The function should have a signature compatible with:
+     * @code
+         * transform(Int inputBuffer, Int outputBuffer, SizeT toRead, IDataDescriptor* descriptor)
+         * @endcode
+     * @param transform The function performing the post-processing.
+     */
     daqErrCode EXPORTED daqSampleReader_setDomainTransformFunction(daqSampleReader* self, daqFunction* transform);
+
+    /*!
+     * @brief Gets the reader's read mode which determines if the reader will also scale the read data or not.
+     * @param[out] mode The mode the reader is in (either Raw or Scaled)
+     */
     daqErrCode EXPORTED daqSampleReader_getReadMode(daqSampleReader* self, daqReadMode* mode);
 
 #ifdef __cplusplus

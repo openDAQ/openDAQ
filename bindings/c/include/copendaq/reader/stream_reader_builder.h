@@ -34,6 +34,11 @@ extern "C"
 
 #include <ccommon.h>
 
+    /*!
+     * @brief Builder component of Stream reader objects. Contains setter methods to configure the Stream reader parameters and a `build` method that builds the Unit object.
+     */
+    DAQ_EXTENDS_INTERFACE(daqStreamReaderBuilder, daqBaseObject);
+
     typedef struct daqStreamReaderBuilder daqStreamReaderBuilder;
     typedef struct daqStreamReader daqStreamReader;
     typedef struct daqSignal daqSignal;
@@ -42,23 +47,108 @@ extern "C"
     EXPORTED extern const daqIntfID DAQ_STREAM_READER_BUILDER_INTF_ID;
     void EXPORTED daqStreamReaderBuilder_getInterfaceId(daqIntfID* intfId);
 
+    /*!
+     * @brief Builds and returns a Stream reader object using the currently set values of the Builder.
+     * @param[out] streamReader The built Stream reader.
+     */
     daqErrCode EXPORTED daqStreamReaderBuilder_build(daqStreamReaderBuilder* self, daqStreamReader** streamReader);
+
+    /*!
+     * @brief Sets the signal to stream reader
+     * @param signal The signal which will be handled in stream reader
+     */
     daqErrCode EXPORTED daqStreamReaderBuilder_setSignal(daqStreamReaderBuilder* self, daqSignal* signal);
+
+    /*!
+     * @brief Gets the signal
+     * @param signal The signal which will be handled in stream reader
+     */
     daqErrCode EXPORTED daqStreamReaderBuilder_getSignal(daqStreamReaderBuilder* self, daqSignal** signal);
+
+    /*!
+     * @brief Sets the input port to stream reader
+     * @param port The input port which will be handled in stream reader
+     */
     daqErrCode EXPORTED daqStreamReaderBuilder_setInputPort(daqStreamReaderBuilder* self, daqInputPort* port);
+
+    /*!
+     * @brief Gets the input port
+     * @param port The input port which will be handled in stream reader
+     */
     daqErrCode EXPORTED daqStreamReaderBuilder_getInputPort(daqStreamReaderBuilder* self, daqInputPort** port);
+
+    /*!
+     * @brief Sets the value signal read type
+     * @param type The value signal read type
+     */
     daqErrCode EXPORTED daqStreamReaderBuilder_setValueReadType(daqStreamReaderBuilder* self, daqSampleType type);
+
+    /*!
+     * @brief Gets the value signal read type
+     * @param[out] type The value signal read type
+     */
     daqErrCode EXPORTED daqStreamReaderBuilder_getValueReadType(daqStreamReaderBuilder* self, daqSampleType* type);
+
+    /*!
+     * @brief Sets the domain signal read type
+     * @param type The domain signal read type
+     */
     daqErrCode EXPORTED daqStreamReaderBuilder_setDomainReadType(daqStreamReaderBuilder* self, daqSampleType type);
+
+    /*!
+     * @brief Gets the domain signal read type
+     * @param[out] type The domain signal read type
+     */
     daqErrCode EXPORTED daqStreamReaderBuilder_getDomainReadType(daqStreamReaderBuilder* self, daqSampleType* type);
+
+    /*!
+     * @brief Sets the read mode (Unscaled, Scaled, RawValue)
+     * @param mode The read mode
+     */
     daqErrCode EXPORTED daqStreamReaderBuilder_setReadMode(daqStreamReaderBuilder* self, daqReadMode mode);
+
+    /*!
+     * @brief Gets the read mode (Unscaled, Scaled, RawValue)
+     * @param[out] mode The read mode
+     */
     daqErrCode EXPORTED daqStreamReaderBuilder_getReadMode(daqStreamReaderBuilder* self, daqReadMode* mode);
+
+    /*!
+     * @brief Sets the read timeout mode
+     * @param type The timeout mode. if "Any" returns immediately if there is available data otherwise time-out is exceeded. if "All" waiting until timeout and returns available data if existing. otherwise time-out is exceeded.
+     */
     daqErrCode EXPORTED daqStreamReaderBuilder_setReadTimeoutType(daqStreamReaderBuilder* self, daqReadTimeoutType type);
+
+    /*!
+     * @brief Gets the read timeout mode
+     * @param type The timeout mode. if "Any" returns immediately if there is available data otherwise time-out is exceeded. if "All" waiting until timeout and returns available data if existing. otherwise time-out is exceeded.
+     */
     daqErrCode EXPORTED daqStreamReaderBuilder_getReadTimeoutType(daqStreamReaderBuilder* self, daqReadTimeoutType* type);
+
+    /*!
+     * @brief Sets the skip events
+     * @param skipEvents The skip events
+     */
     daqErrCode EXPORTED daqStreamReaderBuilder_setSkipEvents(daqStreamReaderBuilder* self, daqBool skipEvents);
+
+    /*!
+     * @brief Gets the skip events
+     * @param[out] skipEvents The skip events
+     */
     daqErrCode EXPORTED daqStreamReaderBuilder_getSkipEvents(daqStreamReaderBuilder* self, daqBool* skipEvents);
+
+    /*!
+     * @brief Sets the notification method of port created/owned stream reader. The default notification method is SameThread.
+     * @param notificationMethod The notification method to be used. If "None", uses Scheduler for stream reader with signal, and keeps the mode of the input port.
+     */
     daqErrCode EXPORTED daqStreamReaderBuilder_setInputPortNotificationMethod(daqStreamReaderBuilder* self, daqPacketReadyNotification notificationMethod);
+
+    /*!
+     * @brief Gets the notification method of port created/owned stream reader. The default notification method is SameThread.
+     * @param notificationMethod The notification method to be used. If "None", uses Scheduler for stream reader with signal, and keeps the mode of the input port.
+     */
     daqErrCode EXPORTED daqStreamReaderBuilder_getInputPortNotificationMethod(daqStreamReaderBuilder* self, daqPacketReadyNotification* notificationMethod);
+
     daqErrCode EXPORTED daqStreamReaderBuilder_createStreamReaderBuilder(daqStreamReaderBuilder** obj);
 
 #ifdef __cplusplus

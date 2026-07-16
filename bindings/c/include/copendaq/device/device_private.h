@@ -34,6 +34,12 @@ extern "C"
 
 #include <ccommon.h>
 
+    /*!
+     * @ingroup opendaq_devices
+     * @addtogroup opendaq_device Device private
+     */
+    DAQ_EXTENDS_INTERFACE(daqDevicePrivate, daqBaseObject);
+
     typedef struct daqDevicePrivate daqDevicePrivate;
     typedef struct daqPropertyObject daqPropertyObject;
     typedef struct daqUser daqUser;
@@ -42,11 +48,17 @@ extern "C"
     void EXPORTED daqDevicePrivate_getInterfaceId(daqIntfID* intfId);
 
     daqErrCode EXPORTED daqDevicePrivate_setAsRoot(daqDevicePrivate* self);
+
     daqErrCode EXPORTED daqDevicePrivate_setDeviceConfig(daqDevicePrivate* self, daqPropertyObject* config);
+
     daqErrCode EXPORTED daqDevicePrivate_getDeviceConfig(daqDevicePrivate* self, daqPropertyObject** config);
+
     daqErrCode EXPORTED daqDevicePrivate_lock(daqDevicePrivate* self, daqUser* user);
+
     daqErrCode EXPORTED daqDevicePrivate_unlock(daqDevicePrivate* self, daqUser* user);
+
     daqErrCode EXPORTED daqDevicePrivate_isLockedInternal(daqDevicePrivate* self, daqBool* locked);
+
     daqErrCode EXPORTED daqDevicePrivate_forceUnlock(daqDevicePrivate* self);
 
 #ifdef __cplusplus

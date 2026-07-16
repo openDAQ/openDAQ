@@ -34,6 +34,11 @@ extern "C"
 
 #include <ccommon.h>
 
+    /*!
+     * @brief As with Data packets, Event packets travel along the signal paths. They are used to notify recipients of any relevant changes to the signal sending the packet.
+     */
+    DAQ_EXTENDS_INTERFACE(daqEventPacket, daqPacket);
+
     typedef struct daqEventPacket daqEventPacket;
     typedef struct daqString daqString;
     typedef struct daqDict daqDict;
@@ -43,10 +48,42 @@ extern "C"
     EXPORTED extern const daqIntfID DAQ_EVENT_PACKET_INTF_ID;
     void EXPORTED daqEventPacket_getInterfaceId(daqIntfID* intfId);
 
+    /*!
+     * @brief Gets the ID of the event as a string. In example "DATA_DESCRIPTOR_CHANGED".
+     * @param[out] id The ID of the event.
+     */
     daqErrCode EXPORTED daqEventPacket_getEventId(daqEventPacket* self, daqString** id);
-    daqErrCode EXPORTED daqEventPacket_getParameters(daqEventPacket* self, daqDict** parameters);
+
+    /*!
+     * @brief Dictionary containing parameters as <String, BaseObject> pairs relevant to the event signalized by the Event packet.
+     * @param[out] parameters The event parameters dictionary.
+     */
+    daqErrCode EXPORTED daqEventPacket_getParameters(daqEventPacket* self, daqDict** parameters DAQ_DICT_TEMPLATE_TYPE(daqString, daqBaseObject));
+
+    /*!
+     * @brief Creates and Event packet with a given id and parameter dictionary.
+     * @param id The ID of the event.
+     * @param params The <String, BaseObject> dictionary containing the event parameters.
+     */
     daqErrCode EXPORTED daqEventPacket_createEventPacket(daqEventPacket** obj, daqString* id, daqDict* params);
+
+    /*!
+     * @brief Creates a DataDescriptorChanged Event packet.
+     * @param dataDescriptor The data descriptor of the value signal.
+     * @param domainDataDescriptor The data descriptor of the domain signal that carries domain data of the value signal.
+     *
+     * The ID of the packet is "DATA_DESCRIPTOR_CHANGED". Its parameters dictionary contains the keys "DataDescriptor"
+     * and "DomainDataDescriptor", carrying their respective Signal descriptor objects as values.
+     */
     daqErrCode EXPORTED daqEventPacket_createDataDescriptorChangedEventPacket(daqEventPacket** obj, daqDataDescriptor* dataDescriptor, daqDataDescriptor* domainDataDescriptor);
+
+    /*!
+     * @brief Creates a ImplicitDomainGapDetected Event packet.
+     * @param diff The size of the gap in ticks or value
+     *
+     * The ID of the packet is "IMPLICIT_DOMAIN_GAP_DETECTED". Its parameters dictionary contains the key "Diff", which holds
+     * the size of the gap. The size can be negative, in which case it is an overlap of samples.
+     */
     daqErrCode EXPORTED daqEventPacket_createImplicitDomainGapDetectedEventPacket(daqEventPacket** obj, daqNumber* diff);
 
 #ifdef __cplusplus

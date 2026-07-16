@@ -34,12 +34,23 @@ extern "C"
 
 #include <ccommon.h>
 
+    /*!
+     * @brief Internal Context interface used for transferring the Module Manager reference to a new owner.
+     */
+    DAQ_EXTENDS_INTERFACE(daqContextInternal, daqBaseObject);
+
     typedef struct daqContextInternal daqContextInternal;
     typedef struct daqModuleManager daqModuleManager;
 
     EXPORTED extern const daqIntfID DAQ_CONTEXT_INTERNAL_INTF_ID;
     void EXPORTED daqContextInternal_getInterfaceId(daqIntfID* intfId);
 
+    /*!
+     * @brief Gets the Module Manager. Moves the strong reference to the manager to the first caller and retains a weak reference internally.
+     * @param[out] manager The module manager.
+     *
+     * Returns a nullptr on subsequent invocations, and if the manager is not assigned.
+     */
     daqErrCode EXPORTED daqContextInternal_moveModuleManager(daqContextInternal* self, daqModuleManager** manager);
 
 #ifdef __cplusplus

@@ -34,6 +34,11 @@ extern "C"
 
 #include <ccommon.h>
 
+    /*!
+     * @brief A class which is responsible for authenticating a user. The authentication is usually done by verifying the username and password. An authenticator implementation might use external services for achieving that. It might make a call to an external database, do a lookup to a json file with defined users or it might simply check the password against a hardcoded one.
+     */
+    DAQ_EXTENDS_INTERFACE(daqAuthenticationProvider, daqBaseObject);
+
     typedef struct daqAuthenticationProvider daqAuthenticationProvider;
     typedef struct daqString daqString;
     typedef struct daqUser daqUser;
@@ -42,13 +47,56 @@ extern "C"
     EXPORTED extern const daqIntfID DAQ_AUTHENTICATION_PROVIDER_INTF_ID;
     void EXPORTED daqAuthenticationProvider_getInterfaceId(daqIntfID* intfId);
 
+    /*!
+     * @brief Authenticate user using username and password. If authentication is successful, a User instance is returned. Otherwise an exception is thrown.
+     * @param username The username.
+     * @param password The password in plain text.
+     * @param user[out] And instance of successfully authenticated user. If authentication is not successful, an exception is thrown.
+     */
     daqErrCode EXPORTED daqAuthenticationProvider_authenticate(daqAuthenticationProvider* self, daqString* username, daqString* password, daqUser** userOut);
+
+    /*!
+     * @brief Returns true if anonymous authentication is allowed. When anonymous authentication is enabled, user can connect to the server without providing username or password.
+     * @param allowedOut[out] True if anonymous authentication is allowed.
+     */
     daqErrCode EXPORTED daqAuthenticationProvider_isAnonymousAllowed(daqAuthenticationProvider* self, daqBool* allowedOut);
+
+    /*!
+     * @brief Authenticate as anonymous user. If anonymous authentication is not allowed, an exception is thrown.
+     * @param user[out] Pointer to anonymous user instance. If authentication is not successful, an exception is thrown.
+     */
     daqErrCode EXPORTED daqAuthenticationProvider_authenticateAnonymous(daqAuthenticationProvider* self, daqUser** userOut);
+
+    /*!
+     * @brief Find a user instance by its username. If no user with maching username is not found, null is returned.
+     * @param username The username.
+     * @param userOut[out] Found user instance. If no user with maching username is not found, null is returned.
+     */
     daqErrCode EXPORTED daqAuthenticationProvider_findUser(daqAuthenticationProvider* self, daqString* username, daqUser** userOut);
+
+    /*!
+     * @brief Creates an empty authentication provider without any user.
+     * @param allowAnonymous True if anonymous authentication is allowed.
+     */
     daqErrCode EXPORTED daqAuthenticationProvider_createAuthenticationProvider(daqAuthenticationProvider** obj, daqBool allowAnonymous);
+
+    /*!
+     * @brief Creates an authentication provider out of static list of users.
+     * @param allowAnonymous True if anonymous authentication is allowed.
+     * @param userList List of User objects.
+     */
     daqErrCode EXPORTED daqAuthenticationProvider_createStaticAuthenticationProvider(daqAuthenticationProvider** obj, daqBool allowAnonymous, daqList* userList);
+
+    /*!
+     * @brief Creates an authentication provider out of json string.
+     * @param jsonString Json string containg a list of serialized User objects.
+     */
     daqErrCode EXPORTED daqAuthenticationProvider_createJsonStringAuthenticationProvider(daqAuthenticationProvider** obj, daqString* jsonString);
+
+    /*!
+     * @brief Creates an authentication provider out of json file.
+     * @param filename File path to a json file containing a list of serialized User objects.
+     */
     daqErrCode EXPORTED daqAuthenticationProvider_createJsonFileAuthenticationProvider(daqAuthenticationProvider** obj, daqString* filename);
 
 #ifdef __cplusplus

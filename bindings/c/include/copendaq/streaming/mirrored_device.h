@@ -34,6 +34,11 @@ extern "C"
 
 #include <ccommon.h>
 
+    /*!
+     * @brief Represents an openDAQ mirrored client device. Allows accessing streaming data sources associated with the device.
+     */
+    DAQ_EXTENDS_INTERFACE(daqMirroredDevice, daqDevice);
+
     typedef struct daqMirroredDevice daqMirroredDevice;
     typedef struct daqList daqList;
     typedef struct daqString daqString;
@@ -42,8 +47,22 @@ extern "C"
     EXPORTED extern const daqIntfID DAQ_MIRRORED_DEVICE_INTF_ID;
     void EXPORTED daqMirroredDevice_getInterfaceId(daqIntfID* intfId);
 
-    daqErrCode EXPORTED daqMirroredDevice_getStreamingSources(daqMirroredDevice* self, daqList** streamingSources);
+    /*!
+     * @brief Gets a list of streaming objects representing all streaming sources of the device.
+     * @param[out] streamingSources The list of streaming objects.
+     */
+    daqErrCode EXPORTED daqMirroredDevice_getStreamingSources(daqMirroredDevice* self, daqList** streamingSources DAQ_LIST_ELEMENT_TYPE(daqStreaming));
+
+    /*!
+     * @brief Gets the global ID of the device as it appears on the remote instance.
+     * @param[out] id The device ID.
+     */
     daqErrCode EXPORTED daqMirroredDevice_getRemoteId(daqMirroredDevice* self, daqString** id);
+
+    /*!
+     * @brief Gets the device's type that corresponds to the client-side device module.
+     * @param type The device's type.
+     */
     daqErrCode EXPORTED daqMirroredDevice_getMirroredDeviceType(daqMirroredDevice* self, daqDeviceType** type);
 
 #ifdef __cplusplus

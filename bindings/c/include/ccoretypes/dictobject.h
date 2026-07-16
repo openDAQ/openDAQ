@@ -34,6 +34,11 @@ extern "C"
 
 #include <ccommon.h>
 
+    /*!
+     * @brief Represents a collection of key/value pairs.
+     */
+    DAQ_EXTENDS_INTERFACE(daqDict, daqBaseObject);
+
     typedef struct daqDict daqDict;
     typedef struct daqList daqList;
     typedef struct daqIterable daqIterable;
@@ -41,18 +46,103 @@ extern "C"
     EXPORTED extern const daqIntfID DAQ_DICT_INTF_ID;
     void EXPORTED daqDict_getInterfaceId(daqIntfID* intfId);
 
+    /*!
+     * @brief Gets the element with the specified key.
+     * @param key The key of the element to get.
+     * @param[out] value The element with the specified key.
+     *
+     * The reference count of the element that is retrieved is incremented. The client is
+     * responsible for calling `releaseRef` when the element is no longer needed.
+     */
     daqErrCode EXPORTED daqDict_get(daqDict* self, daqBaseObject* key, daqBaseObject** value);
+
+    /*!
+     * @brief Sets the element with the specified key.
+     * @param key The key of the element to set.
+     * @param value The element with the specified key.
+     *
+     * The reference count of the key and the element is incremented.
+     */
     daqErrCode EXPORTED daqDict_set(daqDict* self, daqBaseObject* key, daqBaseObject* value);
+
+    /*!
+     * @brief Removes the element with the specified key.
+     * @param key The key of the element to remove.
+     * @param[out] value The element with the specified key.
+     *
+     * The client is responsible for calling `releaseRef` when the element is no longer needed.
+     * If the client does not need the element after it is removed, it should call `delete` method.
+     */
     daqErrCode EXPORTED daqDict_remove(daqDict* self, daqBaseObject* key, daqBaseObject** value);
+
+    /*!
+     * @brief Deletes the element with the specified key.
+     * @param key The key of the element to delete.
+     *
+     * If the client needs the element deleted, it should use `removeAt` method.
+     */
     daqErrCode EXPORTED daqDict_deleteItem(daqDict* self, daqBaseObject* key);
+
+    /*!
+     * @brief Removes all elements from the list.
+     */
     daqErrCode EXPORTED daqDict_clear(daqDict* self);
+
+    /*!
+     * @brief Gets the number of elements contained in the dictionary.
+     * @param[out] size The number of elements contained in the dictionary.
+     */
     daqErrCode EXPORTED daqDict_getCount(daqDict* self, daqSizeT* size);
+
+    /*!
+     * @brief Checks if the element with the specified key exists in the dictionary.
+     * @param key The key of the element to check.
+     * @param[out] hasKey True if the element exists, False otherwise.
+     */
     daqErrCode EXPORTED daqDict_hasKey(daqDict* self, daqBaseObject* key, daqBool* hasKey);
+
+    /*!
+     * @brief Gets the list of all keys in the dictionary.
+     * @param[out] keys The list of the keys.
+     *
+     * The order of the keys is not defined.
+     *
+     * The client is responsible for calling `releaseRef` when the list is no longer needed.
+     */
     daqErrCode EXPORTED daqDict_getKeyList(daqDict* self, daqList** keys);
+
+    /*!
+     * @brief Gets the list of all elements in the dictionary.
+     * @param[out] values The list of the elements.
+     *
+     * The order of the elements is not defined.
+     *
+     * The client is responsible for calling `releaseRef` when the list is no longer needed.
+     */
     daqErrCode EXPORTED daqDict_getValueList(daqDict* self, daqList** values);
+
+    /*!
+     * @brief Gets the iterable interface of the keys.
+     * @param[out] iterable The iterable interface of the keys.
+     *
+     * The Iterable interface enables iteration through the keys.
+     *
+     * The client is responsible for calling `releaseRef` when the interface is no longer needed.
+     */
     daqErrCode EXPORTED daqDict_getKeys(daqDict* self, daqIterable** iterable);
+
+    /*!
+     * @brief Gets the iterable interface of the elements.
+     * @param[out] iterable The iterable interface of the elements.
+     *
+     * The Iterable interface enables iteration through the elements.
+     *
+     * The client is responsible for calling `releaseRef` when the interface is no longer needed.
+     */
     daqErrCode EXPORTED daqDict_getValues(daqDict* self, daqIterable** iterable);
+
     daqErrCode EXPORTED daqDict_createDict(daqDict** obj);
+
     daqErrCode EXPORTED daqDict_createDictWithExpectedTypes(daqDict** obj, daqIntfID keyType, daqIntfID valueType);
 
 #ifdef __cplusplus

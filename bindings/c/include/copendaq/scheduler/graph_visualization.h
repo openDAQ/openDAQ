@@ -34,12 +34,21 @@ extern "C"
 
 #include <ccommon.h>
 
+    /*!
+     * @brief Represents a way to get a string representation of a graph usually in some diagram description language like DOT, mermaid or D2.
+     */
+    DAQ_EXTENDS_INTERFACE(daqGraphVisualization, daqBaseObject);
+
     typedef struct daqGraphVisualization daqGraphVisualization;
     typedef struct daqString daqString;
 
     EXPORTED extern const daqIntfID DAQ_GRAPH_VISUALIZATION_INTF_ID;
     void EXPORTED daqGraphVisualization_getInterfaceId(daqIntfID* intfId);
 
+    /*!
+     * @brief Returns the graph representation as a string.
+     * @param[out] dot Graph's string representation
+     */
     daqErrCode EXPORTED daqGraphVisualization_dump(daqGraphVisualization* self, daqString** dot);
 
 #ifdef __cplusplus

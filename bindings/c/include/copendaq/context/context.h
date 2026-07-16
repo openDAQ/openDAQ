@@ -34,6 +34,16 @@ extern "C"
 
 #include <ccommon.h>
 
+    /*!
+     * @brief The Context serves as a container for the Scheduler and Logger. It originates at the instance, and is passed to the root device, which forwards it to components such as function blocks and signals.
+     *
+     * Note: The context holds a strong reference to the Module Manager until  the reference is moved via the
+     * ContextInternal move function. The strong reference moved to an external owner to avoid memory leaks
+     * due to circular references. This is done automatically when the Context is used in the openDAQ Instance
+     * constructor.
+     */
+    DAQ_EXTENDS_INTERFACE(daqContext, daqBaseObject);
+
     typedef struct daqContext daqContext;
     typedef struct daqScheduler daqScheduler;
     typedef struct daqLogger daqLogger;
@@ -47,16 +57,72 @@ extern "C"
     EXPORTED extern const daqIntfID DAQ_CONTEXT_INTF_ID;
     void EXPORTED daqContext_getInterfaceId(daqIntfID* intfId);
 
+    /*!
+     * @brief Gets the scheduler.
+     * @param[out] scheduler The scheduler.
+     */
     daqErrCode EXPORTED daqContext_getScheduler(daqContext* self, daqScheduler** scheduler);
+
+    /*!
+     * @brief Gets the logger.
+     * @param[out] logger The logger.
+     */
     daqErrCode EXPORTED daqContext_getLogger(daqContext* self, daqLogger** logger);
+
+    /*!
+     * @brief Gets the Module Manager as a Base Object.
+     * @param[out] manager The module manager.
+     */
     daqErrCode EXPORTED daqContext_getModuleManager(daqContext* self, daqBaseObject** manager);
+
+    /*!
+     * @brief Gets the Type Manager.
+     * @param[out] manager The type manager.
+     */
     daqErrCode EXPORTED daqContext_getTypeManager(daqContext* self, daqTypeManager** manager);
+
+    /*!
+     * @brief Gets the Authentication provider.
+     * @param[out] authenticationProvider The authentication provider.
+     */
     daqErrCode EXPORTED daqContext_getAuthenticationProvider(daqContext* self, daqAuthenticationProvider** authenticationProvider);
-    daqErrCode EXPORTED daqContext_getOnCoreEvent(daqContext* self, daqEvent** event);
-    daqErrCode EXPORTED daqContext_getOptions(daqContext* self, daqDict** options);
-    daqErrCode EXPORTED daqContext_getModuleOptions(daqContext* self, daqString* moduleId, daqDict** options);
-    daqErrCode EXPORTED daqContext_getDiscoveryServers(daqContext* self, daqDict** servers);
-    daqErrCode EXPORTED daqContext_createContext(daqContext** obj, daqScheduler* Scheduler, daqLogger* Logger, daqTypeManager* typeManager, daqModuleManager* moduleManager, daqAuthenticationProvider* authenticationProvider, daqDict* options, daqDict* discoveryServers);
+
+    /*!
+     * @brief Gets the Core Event object that triggers whenever a change happens within the openDAQ core structure.
+     * @param[out] event The Core Event object. The event triggers with a Component reference and a CoreEventArgs object as arguments.
+     *
+     * The Core Event is triggered on various changes to the openDAQ Components. This includes changes to property values,
+     * addition/removal of child components, connecting signals to input ports and others. The event type can be identified
+     * via the event ID available within the CoreEventArgs object. Each event type has a set of predetermined parameters
+     * available in the `parameters` field of the arguments. These can be used by any openDAQ server, or other listener to
+     * react to changes within the core structure.
+     */
+    daqErrCode EXPORTED daqContext_getOnCoreEvent(daqContext* self, daqEvent** event DAQ_TEMPLATE_TYPE(daqComponent, daqCoreEventArgs));
+
+    /*!
+     * @brief Gets the dictionary of options
+     * @param[out] options The dictionary of options
+     */
+    daqErrCode EXPORTED daqContext_getOptions(daqContext* self, daqDict** options DAQ_DICT_TEMPLATE_TYPE(daqString, daqBaseObject));
+
+    /*!
+     * @brief Retrieves the options associated with the specified module ID.
+     * @param moduleId The identifier of the module for which options are requested.
+     * @param[out] options A dictionary containing the options associated with the specified module ID.
+     */
+    daqErrCode EXPORTED daqContext_getModuleOptions(daqContext* self, daqString* moduleId, daqDict** options DAQ_DICT_TEMPLATE_TYPE(daqString, daqBaseObject));
+
+    /*!
+     * @brief Gets the dictionary of available discovery servers.
+     * @param[out] servers The dictionary of available discovery servers.
+     */
+    daqErrCode EXPORTED daqContext_getDiscoveryServers(daqContext* self, daqDict** servers DAQ_DICT_TEMPLATE_TYPE(daqString, daqBaseObject));
+
+    /*!
+     * @ingroup opendaq_context
+     * @addtogroup opendaq_context_factories Factories
+     */
+    daqErrCode EXPORTED daqContext_createContext(daqContext** obj, daqScheduler* Scheduler, daqLogger* Logger, daqTypeManager* typeManager, daqModuleManager* moduleManager, daqAuthenticationProvider* authenticationProvider, daqDict* options DAQ_DICT_TEMPLATE_TYPE(daqString, daqBaseObject), daqDict* discoveryServers DAQ_DICT_TEMPLATE_TYPE(daqString, daqDiscoveryServer));
 
 #ifdef __cplusplus
 }

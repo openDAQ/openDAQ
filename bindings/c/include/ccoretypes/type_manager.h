@@ -34,6 +34,19 @@ extern "C"
 
 #include <ccommon.h>
 
+    /*!
+     * @brief Container for Type objects. The Type manager is used when creating certain types of objects (eg. Structs and Property object classes). The Types stored within the manager contain pre-defined fields, as well as constraints specifying how objects should look.
+     *
+     * The currently available types in openDAQ that should be added to the Type manager are the Struct type
+     * and the Property object class. The former is used to validate Structs when they are created, while the latter
+     * contains pre-defined properties that are added to Property objects on construction.
+     *
+     * When adding a Property object class to the manager, they can form inheritance chains with one-another.
+     * Thus, a parent of a given class must be added to the manager before any of its children. Likewise, a class
+     * cannot be removed before its children are removed.
+     */
+    DAQ_EXTENDS_INTERFACE(daqTypeManager, daqBaseObject);
+
     typedef struct daqTypeManager daqTypeManager;
     typedef struct daqType daqType;
     typedef struct daqString daqString;
@@ -42,11 +55,48 @@ extern "C"
     EXPORTED extern const daqIntfID DAQ_TYPE_MANAGER_INTF_ID;
     void EXPORTED daqTypeManager_getInterfaceId(daqIntfID* intfId);
 
+    /*!
+     * @brief Adds a type to the manager.
+     * @param type The Type to be added.
+     * @retval OPENDAQ_ERR_ALREADYEXISTS if a type with the same name is already added.
+     * @retval OPENDAQ_ERR_INVALIDPARAMETER if either the type name is an empty string.
+     *
+     * The type name must be unique and. If a Property object class specifies a parent class,
+     * then the parent class must be added before it.
+     */
     daqErrCode EXPORTED daqTypeManager_addType(daqTypeManager* self, daqType* type);
+
+    /*!
+     * @brief Removes the type from the manager.
+     * @param typeName The type's name.
+     * @retval OPENDAQ_ERR_NOTFOUND if the class is not registered.
+     *
+     * The removed class must not be a parent of another added class. If it is, those classes must be removed
+     * before it.
+     */
     daqErrCode EXPORTED daqTypeManager_removeType(daqTypeManager* self, daqString* typeName);
+
+    /*!
+     * @brief Gets an added Type by name.
+     * @param typeName The Type's name.
+     * @param[out] type The Type with name equal to `name`.
+     * @retval OPENDAQ_ERR_NOTFOUND if a Type with the specified name is not added.
+     */
     daqErrCode EXPORTED daqTypeManager_getType(daqTypeManager* self, daqString* typeName, daqType** type);
-    daqErrCode EXPORTED daqTypeManager_getTypes(daqTypeManager* self, daqList** types);
+
+    /*!
+     * @brief Gets a list of all added Types.
+     * @param[out] types The list of all added Types.
+     */
+    daqErrCode EXPORTED daqTypeManager_getTypes(daqTypeManager* self, daqList** types DAQ_LIST_ELEMENT_TYPE(daqString));
+
+    /*!
+     * @brief Checks if a type with the specified name is already added.
+     * @param typeName The name of the checked type.
+     * @param[out] hasType True if the type is aready added to the manager; False otherwise.
+     */
     daqErrCode EXPORTED daqTypeManager_hasType(daqTypeManager* self, daqString* typeName, daqBool* hasType);
+
     daqErrCode EXPORTED daqTypeManager_createTypeManager(daqTypeManager** obj);
 
 #ifdef __cplusplus

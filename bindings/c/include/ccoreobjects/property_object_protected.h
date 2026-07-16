@@ -34,15 +34,42 @@ extern "C"
 
 #include <ccommon.h>
 
+    /*!
+     * @brief Provides protected access that allows changing read-only property values of a Property object.
+     */
+    DAQ_EXTENDS_INTERFACE(daqPropertyObjectProtected, daqBaseObject);
+
     typedef struct daqPropertyObjectProtected daqPropertyObjectProtected;
     typedef struct daqString daqString;
 
     EXPORTED extern const daqIntfID DAQ_PROPERTY_OBJECT_PROTECTED_INTF_ID;
     void EXPORTED daqPropertyObjectProtected_getInterfaceId(daqIntfID* intfId);
 
+    /*!
+     * @brief Sets a property value. Does not fail if the property is read-only.
+     * @param propertyName The name of the Property of which value the function should set.
+     * @param value The property value to set.
+     */
     daqErrCode EXPORTED daqPropertyObjectProtected_setProtectedPropertyValue(daqPropertyObjectProtected* self, daqString* propertyName, daqBaseObject* value);
+
+    /*!
+     * @brief Clears a property value. Does not fail if the property is read-only.
+     * @param propertyName The name of the Property of which value the function should be cleared.
+     */
     daqErrCode EXPORTED daqPropertyObjectProtected_clearProtectedPropertyValue(daqPropertyObjectProtected* self, daqString* propertyName);
+
+    /*!
+     * @brief Sets a Selection property value by the selection item value. Does not fail if the property is read-only.
+     * @param propertyName The name of the Property.
+     * @param value The selection value to set (must be one of the Property's selection values).
+     */
     daqErrCode EXPORTED daqPropertyObjectProtected_setProtectedPropertySelectionValue(daqPropertyObjectProtected* self, daqString* propertyName, daqBaseObject* value);
+
+    /*!
+     * @brief Clears values of all properties contained in the Property object, including nested child properties.
+     *
+     * This function behaves similarly to `IPropertyObject::clearPropertyValues()`, but also clears read-only properties.
+     */
     daqErrCode EXPORTED daqPropertyObjectProtected_clearProtectedPropertyValues(daqPropertyObjectProtected* self);
 
 #ifdef __cplusplus

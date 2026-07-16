@@ -34,12 +34,31 @@ extern "C"
 
 #include <ccommon.h>
 
+    /*!
+     * @brief Represents either a float or an int number.
+     *
+     * Number is used if data type of the number is not strictly defined, i.e.
+     * it can accept a float or an int.
+     */
+    DAQ_EXTENDS_INTERFACE(daqNumber, daqBaseObject);
+
     typedef struct daqNumber daqNumber;
 
     EXPORTED extern const daqIntfID DAQ_NUMBER_INTF_ID;
     void EXPORTED daqNumber_getInterfaceId(daqIntfID* intfId);
 
+    /*!
+     * @brief Gets a value stored in the object as a floating point value.
+     * @param[out] value Stored value as a floating point.
+     * @return OPENDAQ_SUCCESS if succeeded, error code otherwise.
+     */
     daqErrCode EXPORTED daqNumber_getFloatValue(daqNumber* self, daqFloat* value);
+
+    /*!
+     * @brief Gets a value stored in the object as an integer value.
+     * @param[out] value Stored value as an integer.
+     * @return OPENDAQ_SUCCESS if succeeded, error code otherwise.
+     */
     daqErrCode EXPORTED daqNumber_getIntValue(daqNumber* self, daqInt* value);
 
 #ifdef __cplusplus

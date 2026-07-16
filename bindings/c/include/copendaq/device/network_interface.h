@@ -34,6 +34,20 @@ extern "C"
 
 #include <ccommon.h>
 
+    /*!
+     * @brief Provides an interface to manipulate the configuration of a device's (server's) network interface. Offers methods to update the IP configuration and retrieve the currently active one, if the corresponding feature supported by the device. Additionally, includes a helper method to create a prebuilt property object with valid default configuration.
+     *
+     * The configuration property object, passed as a parameter to said methods, should include the following properties:
+     *
+     * - **"dhcp4"**: A boolean property indicating whether DHCP is enabled for IPv4. Defaults to `True` (DHCP enabled).
+     * If set to `False` (DHCP disabled), non-empty static configuration properties are required.
+     * - **"address4"**: A string property specifying the statically assigned IPv4 address in the format `address/netmask` (e.g. 192.168.1.2/24).
+     * This property is ignored when DHCP is enabled for IPv4. However, if DHCP is disabled, the list must include at least one address. Defaults to an empty string.
+     * - **"gateway4"**: A string property specifying the IPv4 gateway address. This is required if DHCP is disabled and ignored otherwise. Defaults to an empty string.
+     * - **"dhcp6"**, **"address6"**, **"gateway6"**: These properties follow the same format and rules as their IPv4 counterparts but apply to IPv6 configuration.
+     */
+    DAQ_EXTENDS_INTERFACE(daqNetworkInterface, daqBaseObject);
+
     typedef struct daqNetworkInterface daqNetworkInterface;
     typedef struct daqPropertyObject daqPropertyObject;
     typedef struct daqString daqString;
@@ -41,9 +55,31 @@ extern "C"
     EXPORTED extern const daqIntfID DAQ_NETWORK_INTERFACE_INTF_ID;
     void EXPORTED daqNetworkInterface_getInterfaceId(daqIntfID* intfId);
 
+    /*!
+     * @brief Requests the currently active configuration for the network interface.
+     * @param[out] config The property object containing the currently active configuration.
+     * @retval OPENDAQ_ERR_NOTIMPLEMENTED if the device doesn't support retrieving the active configuration.
+     */
     daqErrCode EXPORTED daqNetworkInterface_requestCurrentConfiguration(daqNetworkInterface* self, daqPropertyObject** config);
+
+    /*!
+     * @brief Submits a new configuration for the network interface.
+     * @param config The new configuration to apply.
+     * @retval OPENDAQ_SUCCESS if the new configuration is applied successfully; otherwise, returns an informative error code.
+     *
+     * The provided configuration must adhere to the required properties, including "dhcp4", "address4", "gateway4", and their IPv6 equivalents,
+     * as described in the class-level documentation.
+     */
     daqErrCode EXPORTED daqNetworkInterface_submitConfiguration(daqNetworkInterface* self, daqPropertyObject* config);
+
+    /*!
+     * @brief Creates a property object containing default configuration values for a network interface.
+     * @param[out] defaultConfig The configuration object containing default settings for configuring device's network interface.
+     *
+     * The created object can be modified or directly submitted using the `submitConfiguration` method.
+     */
     daqErrCode EXPORTED daqNetworkInterface_createDefaultConfiguration(daqNetworkInterface* self, daqPropertyObject** defaultConfig);
+
     daqErrCode EXPORTED daqNetworkInterface_createNetworkInterface(daqNetworkInterface** obj, daqString* name, daqString* ownerDeviceManufacturerName, daqString* ownerDeviceSerialNumber, daqBaseObject* moduleManager);
 
 #ifdef __cplusplus

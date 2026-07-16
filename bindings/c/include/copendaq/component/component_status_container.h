@@ -34,6 +34,15 @@ extern "C"
 
 #include <ccommon.h>
 
+    /*!
+     * @brief A container of Component Statuses and their corresponding values.
+     *
+     * Each status has a unique name and represents an actual status related to the openDAQ Component,
+     * such as connection status, synchronization status, etc. The statuses' values are represented
+     * by Enumeration objects.
+     */
+    DAQ_EXTENDS_INTERFACE(daqComponentStatusContainer, daqBaseObject);
+
     typedef struct daqComponentStatusContainer daqComponentStatusContainer;
     typedef struct daqString daqString;
     typedef struct daqEnumeration daqEnumeration;
@@ -42,9 +51,28 @@ extern "C"
     EXPORTED extern const daqIntfID DAQ_COMPONENT_STATUS_CONTAINER_INTF_ID;
     void EXPORTED daqComponentStatusContainer_getInterfaceId(daqIntfID* intfId);
 
+    /*!
+     * @brief Gets the current value of Component status with a given name.
+     * @param name The name of Component status.
+     * @param[out] value The current value of Component status.
+     */
     daqErrCode EXPORTED daqComponentStatusContainer_getStatus(daqComponentStatusContainer* self, daqString* name, daqEnumeration** value);
-    daqErrCode EXPORTED daqComponentStatusContainer_getStatuses(daqComponentStatusContainer* self, daqDict** statuses);
+
+    /*!
+     * @brief Gets the current values of all Component statuses.
+     * @param[out] statuses The Component statuses as a dictionary.
+     *
+     * All objects in the statuses dictionary are key value pairs of <IString, IEnumeration>.
+     */
+    daqErrCode EXPORTED daqComponentStatusContainer_getStatuses(daqComponentStatusContainer* self, daqDict** statuses DAQ_DICT_TEMPLATE_TYPE(daqString, daqEnumeration));
+
+    /*!
+     * @brief Gets the status message of Component status with a given name.
+     * @param name The name of Component status.
+     * @param[out] message The current message of Component status.
+     */
     daqErrCode EXPORTED daqComponentStatusContainer_getStatusMessage(daqComponentStatusContainer* self, daqString* name, daqString** message);
+
     daqErrCode EXPORTED daqComponentStatusContainer_createComponentStatusContainer(daqComponentStatusContainer** obj);
 
 #ifdef __cplusplus

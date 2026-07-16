@@ -34,13 +34,43 @@ extern "C"
 
 #include <ccommon.h>
 
+    /*!
+     * Represents int number as `IInteger` interface. Use this interface to wrap integer
+     * variable when you need to add the number to lists, dictionaries and other containers which
+     * accept `IBaseObject` and derived interfaces.
+     *
+     * Available factories:
+     * @code
+     * // Creates a new Integer. Throws exception if not successful.
+     * IInteger* Integer_Create(Int value)
+       // Creates a new IntObject. Returns error code if not successful.
+     * ErrCode createInteger(IInteger** obj, Int value)
+     * @endcode
+     */
+    DAQ_EXTENDS_INTERFACE(daqInteger, daqBaseObject);
+
     typedef struct daqInteger daqInteger;
 
     EXPORTED extern const daqIntfID DAQ_INTEGER_INTF_ID;
     void EXPORTED daqInteger_getInterfaceId(daqIntfID* intfId);
 
+    /*!
+     * @brief Gets an int value stored in the object.
+     * @param[out] value Stored int value.
+     *
+     * Call this method to extract the int value that is stored in the object.
+     */
     daqErrCode EXPORTED daqInteger_getValue(daqInteger* self, daqInt* value);
+
+    /*!
+     * @brief Compares stored int value to the int parameter.
+     * @param value Value for comparison.
+     * @param[out] equals The result of the comparison.
+     *
+     * Call this method to directly compare the object to the value parameter.
+     */
     daqErrCode EXPORTED daqInteger_equalsValue(daqInteger* self, daqInt value, daqBool* equals);
+
     daqErrCode EXPORTED daqInteger_createInteger(daqInteger** obj, daqInt value);
 
 #ifdef __cplusplus

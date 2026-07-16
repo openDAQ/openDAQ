@@ -34,13 +34,35 @@ extern "C"
 
 #include <ccommon.h>
 
+    /*!
+     * @brief Recorders represent objects which record input data to a persistent storage medium such as a file, database, or cloud storage bucket. Recorders implement the `IRecorder` interface and may expose additional properties for configuring the storage (such as file type, storage location, etc.). tags.
+     */
+    DAQ_EXTENDS_INTERFACE(daqRecorder, daqBaseObject);
+
     typedef struct daqRecorder daqRecorder;
 
     EXPORTED extern const daqIntfID DAQ_RECORDER_INTF_ID;
     void EXPORTED daqRecorder_getInterfaceId(daqIntfID* intfId);
 
+    /*!
+     * @brief Starts recording data from connected signals to the persistent storage medium.
+     * @retval OPENDAQ_SUCCESS if the recording successfully started.
+     * @retval OPENDAQ_ERR_INVALIDSTATE if the recording has already been started and the implementation chooses to treat this scenario as an error.
+     */
     daqErrCode EXPORTED daqRecorder_startRecording(daqRecorder* self);
+
+    /*!
+     * @brief Stops recording data from connected signals to the persistent storage medium.
+     * @retval OPENDAQ_SUCCESS if the recording successfully stopped.
+     * @retval OPENDAQ_ERR_INVALIDSTATE if the recording is not started and the implementation chooses to treat this scenario as an error.
+     */
     daqErrCode EXPORTED daqRecorder_stopRecording(daqRecorder* self);
+
+    /*!
+     * @brief Checks whether data from connected signals is currently being recorded to the persistent storage medium.
+     * @param isRecording A pointer to a boolean which is populated with the recording state.
+     * @retval OPENDAQ_SUCCESS if the recording status was successfully returned.
+     */
     daqErrCode EXPORTED daqRecorder_getIsRecording(daqRecorder* self, daqBool* isRecording);
 
 #ifdef __cplusplus

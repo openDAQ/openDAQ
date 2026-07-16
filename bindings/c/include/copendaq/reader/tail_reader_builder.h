@@ -34,6 +34,11 @@ extern "C"
 
 #include <ccommon.h>
 
+    /*!
+     * @brief Builder component of Tail reader objects. Contains setter methods to configure the Tail reader parameters and a `build` method that builds the Unit object.
+     */
+    DAQ_EXTENDS_INTERFACE(daqTailReaderBuilder, daqBaseObject);
+
     typedef struct daqTailReaderBuilder daqTailReaderBuilder;
     typedef struct daqTailReader daqTailReader;
     typedef struct daqSignal daqSignal;
@@ -42,21 +47,96 @@ extern "C"
     EXPORTED extern const daqIntfID DAQ_TAIL_READER_BUILDER_INTF_ID;
     void EXPORTED daqTailReaderBuilder_getInterfaceId(daqIntfID* intfId);
 
+    /*!
+     * @brief Builds and returns a Tail reader object using the currently set values of the Builder.
+     * @param[out] tailReader The built Tail reader.
+     */
     daqErrCode EXPORTED daqTailReaderBuilder_build(daqTailReaderBuilder* self, daqTailReader** tailReader);
+
+    /*!
+     * @brief Sets the signal to tail reader
+     * @param signal The signal which will be handled in tail reader
+     */
     daqErrCode EXPORTED daqTailReaderBuilder_setSignal(daqTailReaderBuilder* self, daqSignal* signal);
+
+    /*!
+     * @brief Gets the signal
+     * @param signal The signal which will be handled in tail reader
+     */
     daqErrCode EXPORTED daqTailReaderBuilder_getSignal(daqTailReaderBuilder* self, daqSignal** signal);
+
+    /*!
+     * @brief Sets the input port to tail reader
+     * @param port The input port which will be handled in tail reader
+     */
     daqErrCode EXPORTED daqTailReaderBuilder_setInputPort(daqTailReaderBuilder* self, daqInputPort* port);
+
+    /*!
+     * @brief Gets the input port
+     * @param port The input port which will be handled in tail reader
+     */
     daqErrCode EXPORTED daqTailReaderBuilder_getInputPort(daqTailReaderBuilder* self, daqInputPort** port);
+
+    /*!
+     * @brief Sets the value signal read type
+     * @param type The value signal read type
+     */
     daqErrCode EXPORTED daqTailReaderBuilder_setValueReadType(daqTailReaderBuilder* self, daqSampleType type);
+
+    /*!
+     * @brief Gets the value signal read type
+     * @param[out] type The value signal read type
+     */
     daqErrCode EXPORTED daqTailReaderBuilder_getValueReadType(daqTailReaderBuilder* self, daqSampleType* type);
+
+    /*!
+     * @brief Sets the domain signal read type
+     * @param type The domain signal read type
+     */
     daqErrCode EXPORTED daqTailReaderBuilder_setDomainReadType(daqTailReaderBuilder* self, daqSampleType type);
+
+    /*!
+     * @brief Gets the domain signal read type
+     * @param[out] type The domain signal read type
+     */
     daqErrCode EXPORTED daqTailReaderBuilder_getDomainReadType(daqTailReaderBuilder* self, daqSampleType* type);
+
+    /*!
+     * @brief Sets the read mode (Unscaled, Scaled, RawValue)
+     * @param mode The read mode
+     */
     daqErrCode EXPORTED daqTailReaderBuilder_setReadMode(daqTailReaderBuilder* self, daqReadMode mode);
+
+    /*!
+     * @brief Gets the read mode (Unscaled, Scaled, RawValue)
+     * @param[out] mode The read mode
+     */
     daqErrCode EXPORTED daqTailReaderBuilder_getReadMode(daqTailReaderBuilder* self, daqReadMode* mode);
+
+    /*!
+     * @brief Sets the history size
+     * @param historySize The history size
+     */
     daqErrCode EXPORTED daqTailReaderBuilder_setHistorySize(daqTailReaderBuilder* self, daqSizeT historySize);
+
+    /*!
+     * @brief Gets the history size
+     * @param[out] historySize The history size
+     */
     daqErrCode EXPORTED daqTailReaderBuilder_getHistorySize(daqTailReaderBuilder* self, daqSizeT* historySize);
+
+    /*!
+     * @brief Sets the skip events
+     * @param skipEvents The skip events
+     */
     daqErrCode EXPORTED daqTailReaderBuilder_setSkipEvents(daqTailReaderBuilder* self, daqBool skipEvents);
+
+    /*!
+     * @brief Gets the skip events
+     * @param[out] skipEvents The skip events
+     */
     daqErrCode EXPORTED daqTailReaderBuilder_getSkipEvents(daqTailReaderBuilder* self, daqBool* skipEvents);
+
     daqErrCode EXPORTED daqTailReaderBuilder_createTailReaderBuilder(daqTailReaderBuilder** obj);
 
 #ifdef __cplusplus

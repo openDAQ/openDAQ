@@ -34,6 +34,11 @@ extern "C"
 
 #include <ccommon.h>
 
+    /*!
+     * @brief A reader that only ever reads the last N samples, subsequent calls may result in overlapping data.
+     */
+    DAQ_EXTENDS_INTERFACE(daqTailReader, daqSampleReader);
+
     typedef struct daqTailReader daqTailReader;
     typedef struct daqTailReaderStatus daqTailReaderStatus;
     typedef struct daqSignal daqSignal;
@@ -42,11 +47,33 @@ extern "C"
     EXPORTED extern const daqIntfID DAQ_TAIL_READER_INTF_ID;
     void EXPORTED daqTailReader_getInterfaceId(daqIntfID* intfId);
 
-    daqErrCode EXPORTED daqTailReader_read(daqTailReader* self, void* values, daqSizeT* count, daqTailReaderStatus** status);
-    daqErrCode EXPORTED daqTailReader_readWithDomain(daqTailReader* self, void* values, void* domain, daqSizeT* count, daqTailReaderStatus** status);
+    /*!
+     * @brief Copies at maximum the next `count` unread samples to the values buffer. The amount actually read is returned through the `count` parameter.
+     * @param values The buffer that the samples will be copied to. The buffer must be a contiguous memory big enough to receive `count` amount of samples.
+     * @param count The maximum amount of samples to be read. If the `count` is less than available the parameter value is set to the actual amount and only the available samples are returned. The rest of the buffer is not modified or cleared.
+     * @param[out] status: Represents the status of the reader. - If the reader is invalid, IReaderStatus::getValid returns false. - If an event packet was encountered during processing, IReaderStatus::getReadStatus returns ReadStatus::Event - If the reading process is successful, IReaderStatus::getReadStatu returns ReadStatus::Ok, indicating that IReaderStatus::getValid is true and there is no encountered events
+     */
+    daqErrCode EXPORTED daqTailReader_read(daqTailReader* self, void* values, daqSizeT* count, daqTailReaderStatus** status DAQ_DEFAULT_VALUE(nullptr));
+
+    /*!
+     * @brief Copies at maximum the next `count` unread samples and clock-stamps to the `values` and `stamps` buffers. The amount actually read is returned through the `count` parameter.
+     * @param values The buffer that the data values will be copied to. The buffer must be a contiguous memory big enough to receive `count` amount of samples.
+     * @param domain The buffer that the domain values will be copied to. The buffer must be a contiguous memory big enough to receive `count` amount of clock-stamps.
+     * @param count The maximum amount of samples to be read. If the `count` is less than available the parameter value is set to the actual amount and only the available samples are returned. The rest of the buffer is not modified or cleared.
+     * @param[out] status: Represents the status of the reader. - If the reader is invalid, IReaderStatus::getValid returns false. - If an event packet was encountered during processing, IReaderStatus::getReadStatus returns ReadStatus::Event - If the reading process is successful, IReaderStatus::getReadStatu returns ReadStatus::Ok, indicating that IReaderStatus::getValid is true and there is no encountered events
+     */
+    daqErrCode EXPORTED daqTailReader_readWithDomain(daqTailReader* self, void* values, void* domain, daqSizeT* count, daqTailReaderStatus** status DAQ_DEFAULT_VALUE(nullptr));
+
+    /*!
+     * @brief The maximum amount of samples in history to keep.
+     * @param[out] size The history size.
+     */
     daqErrCode EXPORTED daqTailReader_getHistorySize(daqTailReader* self, daqSizeT* size);
+
     daqErrCode EXPORTED daqTailReader_createTailReader(daqTailReader** obj, daqSignal* signal, daqSizeT historySize, daqSampleType valueReadType, daqSampleType domainReadType, daqReadMode mode);
+
     daqErrCode EXPORTED daqTailReader_createTailReaderFromPort(daqTailReader** obj, daqInputPortConfig* port, daqSizeT historySize, daqSampleType valueReadType, daqSampleType domainReadType, daqReadMode mode);
+
     daqErrCode EXPORTED daqTailReader_createTailReaderFromExisting(daqTailReader** obj, daqTailReader* invalidatedReader, daqSizeT historySize, daqSampleType valueReadType, daqSampleType domainReadType);
 
 #ifdef __cplusplus

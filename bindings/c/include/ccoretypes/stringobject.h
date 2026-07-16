@@ -34,14 +34,52 @@ extern "C"
 
 #include <ccommon.h>
 
+    /*!
+     * Represents string variable as `IString` interface. Use this interface to wrap string
+     * variable when you need to add the variable to lists, dictionaries and other containers which
+     * accept `IBaseObject` and derived interfaces.
+     *
+     * Available factories:
+     * @code
+     * // Creates a new String object. Throws exception if not successful.
+     * IString* String_Create(ConstCharPtr value)
+       // Creates a new String object with predefined length. Returns error code if not successful.
+     * ErrCode createString(IString** obj, ConstCharPtr value)
+       // Creates a new String object with predefined length. Throws exception if not successful.
+     * IString* StringN_Create(ConstCharPtr data, SizeT length)
+       // Creates a new String object. Returns error code if not successful.
+     * ErrCode createStringN(IString** obj, ConstCharPtr data, SizeT length)
+     * @endcode
+     */
+    DAQ_EXTENDS_INTERFACE(daqString, daqBaseObject);
+
     typedef struct daqString daqString;
 
     EXPORTED extern const daqIntfID DAQ_STRING_INTF_ID;
     void EXPORTED daqString_getInterfaceId(daqIntfID* intfId);
 
+    /*!
+     * @brief Gets a string value stored in the object.
+     * @param[out] value Stored string value.
+     * @return OPENDAQ_SUCCESS if succeeded, error code otherwise.
+     *
+     * Call this method to extract the string value that is stored in the object. Method extracts the
+     * value as a pointer to 8-bit char type.
+     */
     daqErrCode EXPORTED daqString_getCharPtr(daqString* self, daqConstCharPtr* value);
+
+    /*!
+     * @brief Gets length of string.
+     * @param[out] size The size of the string.
+     * @return OPENDAQ_SUCCESS if succeeded, error code otherwise.
+     *
+     * Call this method to get the length of the string. Null char terminator is not included in
+     * the size of the string.
+     */
     daqErrCode EXPORTED daqString_getLength(daqString* self, daqSizeT* size);
+
     daqErrCode EXPORTED daqString_createString(daqString** obj, daqConstCharPtr str);
+
     daqErrCode EXPORTED daqString_createStringN(daqString** obj, daqConstCharPtr str, daqSizeT length);
 
 #ifdef __cplusplus

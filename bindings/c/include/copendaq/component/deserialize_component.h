@@ -34,6 +34,8 @@ extern "C"
 
 #include <ccommon.h>
 
+    DAQ_EXTENDS_INTERFACE(daqDeserializeComponent, daqBaseObject);
+
     typedef struct daqDeserializeComponent daqDeserializeComponent;
     typedef struct daqSerializedObject daqSerializedObject;
     typedef struct daqFunction daqFunction;
@@ -43,7 +45,9 @@ extern "C"
     void EXPORTED daqDeserializeComponent_getInterfaceId(daqIntfID* intfId);
 
     daqErrCode EXPORTED daqDeserializeComponent_deserializeValues(daqDeserializeComponent* self, daqSerializedObject* serializedObject, daqBaseObject* context, daqFunction* callbackFactory);
+
     daqErrCode EXPORTED daqDeserializeComponent_complete(daqDeserializeComponent* self);
+
     daqErrCode EXPORTED daqDeserializeComponent_getDeserializedParameter(daqDeserializeComponent* self, daqString* parameter, daqBaseObject** value);
 
 #ifdef __cplusplus

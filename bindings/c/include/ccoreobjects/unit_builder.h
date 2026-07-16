@@ -34,6 +34,11 @@ extern "C"
 
 #include <ccommon.h>
 
+    /*!
+     * @brief Builder component of Unit objects. Contains setter methods to configure the Unit parameters, and a `build` method that builds the Unit object.
+     */
+    DAQ_EXTENDS_INTERFACE(daqUnitBuilder, daqBaseObject);
+
     typedef struct daqUnitBuilder daqUnitBuilder;
     typedef struct daqUnit daqUnit;
     typedef struct daqString daqString;
@@ -41,16 +46,77 @@ extern "C"
     EXPORTED extern const daqIntfID DAQ_UNIT_BUILDER_INTF_ID;
     void EXPORTED daqUnitBuilder_getInterfaceId(daqIntfID* intfId);
 
+    /*!
+     * @brief Builds and returns a Unit object using the currently set values of the Builder.
+     * @param[out] unit The built Unit.
+     */
     daqErrCode EXPORTED daqUnitBuilder_build(daqUnitBuilder* self, daqUnit** unit);
+
+    /*!
+     * @brief Sets the unit ID as defined in <a href="https://unece.org/trade/cefact/UNLOCODE-Download">Codes for Units of Measurement used in International Trade</a>.
+     * @param id The unit ID.
+     *
+     * The ID should be -1 if the unit is not available.
+     */
     daqErrCode EXPORTED daqUnitBuilder_setId(daqUnitBuilder* self, daqInt id);
+
+    /*!
+     * @brief Gets the unit ID as defined in <a href="https://unece.org/trade/cefact/UNLOCODE-Download">Codes for Units of Measurement used in International Trade</a>.
+     * @param[out] id The unit ID.
+     *
+     * Returns -1 if the unit id is not available.
+     */
     daqErrCode EXPORTED daqUnitBuilder_getId(daqUnitBuilder* self, daqInt* id);
+
+    /*!
+     * @brief Sets the symbol of the unit, i.e. "m/s".
+     * @param symbol The unit's symbol.
+     */
     daqErrCode EXPORTED daqUnitBuilder_setSymbol(daqUnitBuilder* self, daqString* symbol);
+
+    /*!
+     * @brief Gets the symbol of the unit, i.e. "m/s".
+     * @param[out] symbol The unit's symbol.
+     */
     daqErrCode EXPORTED daqUnitBuilder_getSymbol(daqUnitBuilder* self, daqString** symbol);
+
+    /*!
+     * @brief Sets the full name of the unit, i.e. "meters per second".
+     * @param name The unit's full name.
+     */
     daqErrCode EXPORTED daqUnitBuilder_setName(daqUnitBuilder* self, daqString* name);
+
+    /*!
+     * @brief Gets the full name of the unit, i.e. "meters per second".
+     * @param[out] name The unit's full name.
+     *
+     * `nullptr` if not set.
+     */
     daqErrCode EXPORTED daqUnitBuilder_getName(daqUnitBuilder* self, daqString** name);
+
+    /*!
+     * @brief Sets the quantity represented by the unit, i.e. "Velocity"
+     * @param quantity The unit's quantity.
+     */
     daqErrCode EXPORTED daqUnitBuilder_setQuantity(daqUnitBuilder* self, daqString* quantity);
+
+    /*!
+     * @brief Gets the quantity represented by the unit, i.e. "Velocity"
+     * @param[out] quantity The unit's quantity.
+     *
+     * `nullptr` if not set.
+     */
     daqErrCode EXPORTED daqUnitBuilder_getQuantity(daqUnitBuilder* self, daqString** quantity);
+
+    /*!
+     * @brief Creates a UnitConfig with no parameters configured.
+     */
     daqErrCode EXPORTED daqUnitBuilder_createUnitBuilder(daqUnitBuilder** obj);
+
+    /*!
+     * @brief UnitConfig copy factory that creates a configurable Unit object from a possibly non-configurable Unit.
+     * @param unitToCopy The Unit of which configuration should be copied.
+     */
     daqErrCode EXPORTED daqUnitBuilder_createUnitBuilderFromExisting(daqUnitBuilder** obj, daqUnit* unitToCopy);
 
 #ifdef __cplusplus

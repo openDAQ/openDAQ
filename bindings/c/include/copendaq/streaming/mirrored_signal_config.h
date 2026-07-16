@@ -34,6 +34,11 @@ extern "C"
 
 #include <ccommon.h>
 
+    /*!
+     * @brief Represents configuration interface for mirrored signals. Allows selecting streaming data sources per signal.
+     */
+    DAQ_EXTENDS_INTERFACE(daqMirroredSignalConfig, daqSignalConfig);
+
     typedef struct daqMirroredSignalConfig daqMirroredSignalConfig;
     typedef struct daqString daqString;
     typedef struct daqList daqList;
@@ -42,13 +47,61 @@ extern "C"
     EXPORTED extern const daqIntfID DAQ_MIRRORED_SIGNAL_CONFIG_INTF_ID;
     void EXPORTED daqMirroredSignalConfig_getInterfaceId(daqIntfID* intfId);
 
+    /*!
+     * @brief Gets the global ID of the signal as it appears on the remote device.
+     * @param[out] id The signal ID.
+     */
     daqErrCode EXPORTED daqMirroredSignalConfig_getRemoteId(daqMirroredSignalConfig* self, daqString** id);
-    daqErrCode EXPORTED daqMirroredSignalConfig_getStreamingSources(daqMirroredSignalConfig* self, daqList** streamingConnectionStrings);
+
+    /*!
+     * @brief Gets a list of connection strings of all available streaming sources of the signal.
+     * @param[out] streamingConnectionStrings The list of streaming connection strings.
+     */
+    daqErrCode EXPORTED daqMirroredSignalConfig_getStreamingSources(daqMirroredSignalConfig* self, daqList** streamingConnectionStrings DAQ_LIST_ELEMENT_TYPE(daqString));
+
+    /*!
+     * @brief Sets the active streaming source of the signal.
+     * @param streamingConnectionString The connection string of streaming source to be set as active.
+     * @retval OPENDAQ_ERR_NOTFOUND if the streaming source with the corresponding connection string is not part of the available streaming sources for the signal.
+     */
     daqErrCode EXPORTED daqMirroredSignalConfig_setActiveStreamingSource(daqMirroredSignalConfig* self, daqString* streamingConnectionString);
+
+    /*!
+     * @brief Gets a connection strings of the active streaming source of the signal.
+     * @param[out] streamingConnectionString The connection string of active streaming source.
+     */
     daqErrCode EXPORTED daqMirroredSignalConfig_getActiveStreamingSource(daqMirroredSignalConfig* self, daqString** streamingConnectionString);
+
+    /*!
+     * @brief Stops the streaming and clears the active streaming source of the signal.
+     */
     daqErrCode EXPORTED daqMirroredSignalConfig_deactivateStreaming(daqMirroredSignalConfig* self);
-    daqErrCode EXPORTED daqMirroredSignalConfig_getOnSubscribeComplete(daqMirroredSignalConfig* self, daqEvent** event);
-    daqErrCode EXPORTED daqMirroredSignalConfig_getOnUnsubscribeComplete(daqMirroredSignalConfig* self, daqEvent** event);
+
+    /*!
+     * @brief Gets the Event that is triggered whenever the acknowledgment for signal subscription completion is received from the streaming server.
+     * @param[out] event The Event representing the acknowledgment of signal subscription completion.
+     *
+     * A handler can be added to the event containing a callback function which is invoked whenever
+     * the event is triggered. The callback function requires two parameters - a MirroredSignalConfig
+     * object, as well as a "Subscription event args" object.
+     * The callback will be invoked with the MirroredSignalConfig object as the first argument,
+     * the second argument holds an event args object that contains the connection string of streaming
+     * and the event type (Subscribed).
+     */
+    daqErrCode EXPORTED daqMirroredSignalConfig_getOnSubscribeComplete(daqMirroredSignalConfig* self, daqEvent** event DAQ_TEMPLATE_TYPE(daqMirroredSignalConfig, daqSubscriptionEventArgs));
+
+    /*!
+     * @brief Gets the Event that is triggered whenever the acknowledgment for signal unsubscription completion is received from the streaming server.
+     * @param[out] event The Event representing the acknowledgment of signal unsubscription completion.
+     *
+     * A handler can be added to the event containing a callback function which is invoked whenever
+     * the event is triggered. The callback function requires two parameters - a MirroredSignalConfig
+     * object, as well as a "Subscription event args" object.
+     * The callback will be invoked with the MirroredSignalConfig object as the first argument,
+     * the second argument holds an event args object that contains the connection string of streaming
+     * and the event type (Unsubscribed).
+     */
+    daqErrCode EXPORTED daqMirroredSignalConfig_getOnUnsubscribeComplete(daqMirroredSignalConfig* self, daqEvent** event DAQ_TEMPLATE_TYPE(daqMirroredSignalConfig, daqSubscriptionEventArgs));
 
 #ifdef __cplusplus
 }

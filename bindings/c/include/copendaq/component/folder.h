@@ -34,6 +34,14 @@ extern "C"
 
 #include <ccommon.h>
 
+    /*!
+     * @brief Acts as a container for other components
+     *
+     * Other components use the folder component to organize the children components,
+     * such as channels, signals, function blocks, etc.
+     */
+    DAQ_EXTENDS_INTERFACE(daqFolder, daqComponent);
+
     typedef struct daqFolder daqFolder;
     typedef struct daqList daqList;
     typedef struct daqSearchFilter daqSearchFilter;
@@ -43,10 +51,36 @@ extern "C"
     EXPORTED extern const daqIntfID DAQ_FOLDER_INTF_ID;
     void EXPORTED daqFolder_getInterfaceId(daqIntfID* intfId);
 
-    daqErrCode EXPORTED daqFolder_getItems(daqFolder* self, daqList** items, daqSearchFilter* searchFilter);
+    /*!
+     * @brief Gets the list of the items in the folder.
+     * @param searchFilter Provides an optional filter that filters out unwanted components and allows for recursion.
+     * @param[out] items The list of the items.
+     *
+     * If searchFilter is not provided, the returned list contains only immediate children with visible set to `true`.
+     */
+    daqErrCode EXPORTED daqFolder_getItems(daqFolder* self, daqList** items DAQ_LIST_ELEMENT_TYPE(daqComponent), daqSearchFilter* searchFilter DAQ_DEFAULT_VALUE(nullptr));
+
+    /*!
+     * @brief Returns True if the folder is empty.
+     * @param[out] empty True if the folder is empty.
+     */
     daqErrCode EXPORTED daqFolder_isEmpty(daqFolder* self, daqBool* empty);
+
+    /*!
+     * @brief Returns True if the folder has an item with local ID.
+     * @param localId The local ID of the item.
+     * @param[out] value True if the folder contains item with local ID.
+     */
     daqErrCode EXPORTED daqFolder_hasItem(daqFolder* self, daqString* localId, daqBool* value);
-    daqErrCode EXPORTED daqFolder_getItem(daqFolder* self, daqString* localId, daqComponent** item);
+
+    /*!
+     * @brief Gets the item component with the specified localId.
+     * @param localId The local id of the child component.
+     * @param[out] item The item component.
+     * @retval OPENDAQ_SUCCESS if succeeded.
+     * @retval OPENDAQ_NOT_FOUND if folder with the specified ID not found.
+     */
+    daqErrCode EXPORTED daqFolder_getItem(daqFolder* self, daqString* localId, daqComponent** item DAQ_TEMPLATE_TYPE(daqComponent));
 
 #ifdef __cplusplus
 }

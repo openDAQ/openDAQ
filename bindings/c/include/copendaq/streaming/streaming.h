@@ -34,6 +34,36 @@ extern "C"
 
 #include <ccommon.h>
 
+    /*!
+     * @brief Represents the client-side part of a streaming service responsible for initiating communication with the openDAQ device streaming server and processing the received data. Wraps the client-side implementation details of the particular data transfer protocol used by openDAQ to send processed/acquired data from devices running an openDAQ Server to an openDAQ Client.
+     *
+     * The Streaming is used as a selectable data source for mirrored signals. For this, it
+     * provides methods, allowing mirrored signals to be added/removed dynamically,
+     * to enable/disable the use of Streaming as a data source of these signals.
+     * Forwarding of packets received from the remote device through the data transfer protocol down to
+     * the signal path is enabled when the following conditions are met:
+     * - Streaming object itself is in active state.
+     * - Streaming is selected as an active source of the corresponding signal.
+     *
+     * Usually, the data transfer protocol provides information about the signals whose data can be sent
+     * over the protocol. It allows the implementation to reject unsupported signals from being added to
+     * the streaming. Each Streaming object provides the string representation of a connection address
+     * used to connect to the streaming service of the device. This string representation is used as
+     * a unique ID to determine the streaming source for the mirrored signal.
+     *
+     * When the generalized client-to-device streaming mechanism is employed, however, the roles are effectively switched:
+     * the server becomes a consumer of signal data, while the client-side Streaming object acts as
+     * the producer, sending signal data over the protocol. In this context, Streaming objects are expected
+     * to exist on the server side as well to interact with mirrored copies of client signals.
+     * In context of client-to-device streaming, in addition to signals, mirrored input ports can also be added or removed
+     * dynamically through the corresponding methods of the Streaming interface, similarly to mirrored signals.
+     *
+     * The support for client-to-device streaming can be checked via `getClientToDeviceStreamingEnabled`.
+     * If it is not enabled or not supported by the protocol, the method provides `false` value, and adding or removing
+     * mirrored input ports is not allowed, therefore disabling any client-to-device streaming operations.
+     */
+    DAQ_EXTENDS_INTERFACE(daqStreaming, daqBaseObject);
+
     typedef struct daqStreaming daqStreaming;
     typedef struct daqList daqList;
     typedef struct daqString daqString;
@@ -42,18 +72,99 @@ extern "C"
     EXPORTED extern const daqIntfID DAQ_STREAMING_INTF_ID;
     void EXPORTED daqStreaming_getInterfaceId(daqIntfID* intfId);
 
+    /*!
+     * @brief Gets the active state of the Streaming.
+     * @param[out] active True if the Streaming is active; false otherwise.
+     */
     daqErrCode EXPORTED daqStreaming_getActive(daqStreaming* self, daqBool* active);
+
+    /*!
+     * @brief Sets the Streaming to be either active or inactive.
+     * @param active The new active state of the Streaming.
+     */
     daqErrCode EXPORTED daqStreaming_setActive(daqStreaming* self, daqBool active);
-    daqErrCode EXPORTED daqStreaming_addSignals(daqStreaming* self, daqList* signals);
-    daqErrCode EXPORTED daqStreaming_removeSignals(daqStreaming* self, daqList* signals);
+
+    /*!
+     * @brief Adds signals to the Streaming.
+     * @param signals The list of signals to be added.
+     * @retval OPENDAQ_ERR_DUPLICATEITEM if a signal on the list is already added to the Streaming.
+     * @retval OPENDAQ_ERR_NOINTERFACE if a signal on the list is not a mirrored signal.
+     *
+     * After a signal is added to the Streaming, the Streaming automatically appears in the list of
+     * available streaming sources of a signal. Some signals, however, may be silently ignored
+     * without triggering an error - for example, private signals are excluded by default.
+     */
+    daqErrCode EXPORTED daqStreaming_addSignals(daqStreaming* self, daqList* signals DAQ_LIST_ELEMENT_TYPE(daqSignal));
+
+    /*!
+     * @brief Removes signals from the Streaming.
+     * @param signals The list of signals to be removed.
+     * @retval OPENDAQ_ERR_NOTFOUND if a signal on the list was not added to the Streaming.
+     *
+     * After a signal is removed from the Streaming, the Streaming is automatically excluded in the list of
+     * available streaming sources of a signal.
+     */
+    daqErrCode EXPORTED daqStreaming_removeSignals(daqStreaming* self, daqList* signals DAQ_LIST_ELEMENT_TYPE(daqSignal));
+
+    /*!
+     * @brief Removes all added signals from the Streaming.
+     */
     daqErrCode EXPORTED daqStreaming_removeAllSignals(daqStreaming* self);
+
+    /*!
+     * @brief Gets the string representation of a connection address used to connect to the streaming service of the device.
+     * @param[out] connectionString The string used to connect to the streaming service.
+     */
     daqErrCode EXPORTED daqStreaming_getConnectionString(daqStreaming* self, daqString** connectionString);
+
+    /*!
+     * @brief Retrieves the current status of the streaming connection.
+     * @param[out] connectionStatus The connection status, represented as an enumeration of type "ConnectionStatusType" with possible values: "Connected", "Reconnecting", or "Unrecoverable".
+     */
     daqErrCode EXPORTED daqStreaming_getConnectionStatus(daqStreaming* self, daqEnumeration** connectionStatus);
-    daqErrCode EXPORTED daqStreaming_addInputPorts(daqStreaming* self, daqList* inputPorts);
-    daqErrCode EXPORTED daqStreaming_removeInputPorts(daqStreaming* self, daqList* inputPorts);
+
+    /*!
+     * @brief Adds input ports to the Streaming.
+     * @param inputPorts The list of input ports to be added.
+     * @retval OPENDAQ_ERR_DUPLICATEITEM if an input port on the list is already added to the Streaming.
+     * @retval OPENDAQ_ERR_NOINTERFACE if an input port on the list is not a mirrored signal.
+     *
+     * After an input port is added to the Streaming, the Streaming automatically appears in the list of
+     * available streaming sources of an input port.
+     */
+    daqErrCode EXPORTED daqStreaming_addInputPorts(daqStreaming* self, daqList* inputPorts DAQ_LIST_ELEMENT_TYPE(daqMirroredInputPortConfig));
+
+    /*!
+     * @brief Removes input ports from the Streaming.
+     * @param inputPorts The list of input ports to be removed.
+     * @retval OPENDAQ_ERR_NOTFOUND if an input port on the list was not added to the Streaming.
+     *
+     * After an input port is removed from the Streaming, the Streaming is automatically excluded in the list of
+     * available streaming sources of an input port.
+     */
+    daqErrCode EXPORTED daqStreaming_removeInputPorts(daqStreaming* self, daqList* inputPorts DAQ_LIST_ELEMENT_TYPE(daqMirroredInputPortConfig));
+
+    /*!
+     * @brief Removes all added input ports from the Streaming.
+     */
     daqErrCode EXPORTED daqStreaming_removeAllInputPorts(daqStreaming* self);
+
+    /*!
+     * @brief Gets the global ID of the device (as it appears on the remote instance) to which this streaming object establishes a connection.
+     * @param[out] deviceRemoteId The string representing the device's remote ID.
+     */
     daqErrCode EXPORTED daqStreaming_getOwnerDeviceRemoteId(daqStreaming* self, daqString** deviceRemoteId);
+
+    /*!
+     * @brief Gets the identifier of the data transfer protocol (e.g., "OpenDAQNativeStreaming", "OpenDAQLTStreaming") used by this streaming object.
+     * @param[out] protocolId The string representing the protocol ID.
+     */
     daqErrCode EXPORTED daqStreaming_getProtocolId(daqStreaming* self, daqString** protocolId);
+
+    /*!
+     * @brief Checks whether client-to-device streaming is enabled for this streaming object.
+     * @param[out] enabled The flag indicating if client-to-device streaming is enabled.
+     */
     daqErrCode EXPORTED daqStreaming_getClientToDeviceStreamingEnabled(daqStreaming* self, daqBool* enabled);
 
 #ifdef __cplusplus

@@ -34,6 +34,11 @@ extern "C"
 
 #include <ccommon.h>
 
+    /*!
+     * @brief IMultiReaderStatus inherits from IReaderStatus to expand information returned read function
+     */
+    DAQ_EXTENDS_INTERFACE(daqMultiReaderStatus, daqReaderStatus);
+
     typedef struct daqMultiReaderStatus daqMultiReaderStatus;
     typedef struct daqDict daqDict;
     typedef struct daqEventPacket daqEventPacket;
@@ -42,8 +47,18 @@ extern "C"
     EXPORTED extern const daqIntfID DAQ_MULTI_READER_STATUS_INTF_ID;
     void EXPORTED daqMultiReaderStatus_getInterfaceId(daqIntfID* intfId);
 
-    daqErrCode EXPORTED daqMultiReaderStatus_getEventPackets(daqMultiReaderStatus* self, daqDict** eventPackets);
+    /*!
+     * @brief Retrieves the dictionary of event packets from the reading process, ordered by signals.
+     * @param[out] eventPackets The dictionary with global id of input port and the corresponding event packet.
+     */
+    daqErrCode EXPORTED daqMultiReaderStatus_getEventPackets(daqMultiReaderStatus* self, daqDict** eventPackets DAQ_DICT_TEMPLATE_TYPE(daqString, daqEventPacket));
+
+    /*!
+     * @brief Retrieves the descriptor of main signal. The main signal is the first signal in the list of signals.
+     * @param[out] descriptor The descriptor of the main signal.
+     */
     daqErrCode EXPORTED daqMultiReaderStatus_getMainDescriptor(daqMultiReaderStatus* self, daqEventPacket** descriptor);
+
     daqErrCode EXPORTED daqMultiReaderStatus_createMultiReaderStatus(daqMultiReaderStatus** obj, daqEventPacket* mainDescriptor, daqDict* eventPackets, daqBool valid, daqNumber* offset);
 
 #ifdef __cplusplus

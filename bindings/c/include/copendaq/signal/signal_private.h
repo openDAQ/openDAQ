@@ -34,6 +34,11 @@ extern "C"
 
 #include <ccommon.h>
 
+    /*!
+     * @brief Internal functions used by openDAQ core. This interface should never be used in client SDK or module code.
+     */
+    DAQ_EXTENDS_INTERFACE(daqSignalPrivate, daqBaseObject);
+
     typedef struct daqSignalPrivate daqSignalPrivate;
     typedef struct daqString daqString;
     typedef struct daqPacket daqPacket;
@@ -41,10 +46,33 @@ extern "C"
     EXPORTED extern const daqIntfID DAQ_SIGNAL_PRIVATE_INTF_ID;
     void EXPORTED daqSignalPrivate_getInterfaceId(daqIntfID* intfId);
 
+    /*!
+     * @brief Sets the domain signal to null without notifying the domain signal
+     */
     daqErrCode EXPORTED daqSignalPrivate_clearDomainSignalWithoutNotification(daqSignalPrivate* self);
+
+    /*!
+     * @brief Enable or disable keeping last data packet which is using by Signal method `getLastValue`
+     * @param enabled Option for enabling method getLastValue
+     */
     daqErrCode EXPORTED daqSignalPrivate_enableKeepLastValue(daqSignalPrivate* self, daqBool enabled);
+
+    /*!
+     * @brief Gets the signal serilized id. In local device the serilized id matached the signal global id. For remote id it is the signal id in the remote device.
+     * @param[out] serializeId The signal serilized id.
+     */
     daqErrCode EXPORTED daqSignalPrivate_getSignalSerializeId(daqSignalPrivate* self, daqString** serializeId);
+
+    /*!
+     * @brief Returns True if last value calculation is enabled on the signal.
+     * @param[out] keepLastValue True if enabled.
+     */
     daqErrCode EXPORTED daqSignalPrivate_getKeepLastValue(daqSignalPrivate* self, daqBool* keepLastValue);
+
+    /*!
+     * @brief Sends a packet through all connections of the signal, acquiring a recursive lock instead of an acquisition lock.
+     * @param packet The packet to be sent.
+     */
     daqErrCode EXPORTED daqSignalPrivate_sendPacketRecursiveLock(daqSignalPrivate* self, daqPacket* packet);
 
 #ifdef __cplusplus

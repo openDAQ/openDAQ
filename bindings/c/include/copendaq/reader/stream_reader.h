@@ -34,6 +34,12 @@ extern "C"
 
 #include <ccommon.h>
 
+    /*!
+     * @brief A signal data reader that abstracts away reading of signal packets by keeping an internal read-position and automatically advances it on subsequent reads.
+     * @remark Currently only supports scalar sample-types and RangeInt64
+     */
+    DAQ_EXTENDS_INTERFACE(daqStreamReader, daqSampleReader);
+
     typedef struct daqStreamReader daqStreamReader;
     typedef struct daqReaderStatus daqReaderStatus;
     typedef struct daqSignal daqSignal;
@@ -42,11 +48,35 @@ extern "C"
     EXPORTED extern const daqIntfID DAQ_STREAM_READER_INTF_ID;
     void EXPORTED daqStreamReader_getInterfaceId(daqIntfID* intfId);
 
-    daqErrCode EXPORTED daqStreamReader_read(daqStreamReader* self, void* samples, daqSizeT* count, daqSizeT timeoutMs, daqReaderStatus** status);
-    daqErrCode EXPORTED daqStreamReader_readWithDomain(daqStreamReader* self, void* samples, void* domain, daqSizeT* count, daqSizeT timeoutMs, daqReaderStatus** status);
+    /*!
+     * @brief Copies at maximum the next `count` unread samples to the values buffer. The amount actually read is returned through the `count` parameter.
+     * @param samples The buffer that the samples will be copied to. The buffer must be a contiguous memory big enough to receive `count` amount of samples.
+     * @param count The maximum amount of samples to be read. If the `count` is less than available the parameter value is set to the actual amount and only the available samples are returned. The rest of the buffer is not modified or cleared.
+     * @param timeoutMs The maximum amount of time in milliseconds to wait for the requested amount of samples before returning.
+     * @param[out] status: Represents the status of the reader. - If the reader is invalid, IReaderStatus::getValid returns false. - If an event packet was encountered during processing, IReaderStatus::getReadStatus returns ReadStatus::Event - If the reading process is successful, IReaderStatus::getReadStatu returns ReadStatus::Ok, indicating that IReaderStatus::getValid is true and there is no encountered events
+     */
+    daqErrCode EXPORTED daqStreamReader_read(daqStreamReader* self, void* samples, daqSizeT* count, daqSizeT timeoutMs DAQ_DEFAULT_VALUE(0), daqReaderStatus** status DAQ_DEFAULT_VALUE(nullptr));
+
+    /*!
+     * @brief Copies at maximum the next `count` unread samples and clock-stamps to the `samples` and `domain` buffers. The amount actually read is returned through the `count` parameter.
+     * @param samples The buffer that the samples will be copied to. The buffer must be a contiguous memory big enough to receive `count` amount of samples.
+     * @param domain The buffer that the domain values will be copied to. The buffer must be a contiguous memory big enough to receive `count` amount of clock-stamps.
+     * @param count The maximum amount of samples to be read. If the `count` is less than available the parameter value is set to the actual amount and only the available samples are returned. The rest of the buffer is not modified or cleared.
+     * @param timeoutMs The maximum amount of time in milliseconds to wait for the requested amount of samples before returning.
+     * @param[out] status: Represents the status of the reader. - If the reader is invalid, IReaderStatus::getValid returns false. - If an event packet was encountered during processing, IReaderStatus::getReadStatus returns ReadStatus::Event - If the reading process is successful, IReaderStatus::getReadStatu returns ReadStatus::Ok, indicating that IReaderStatus::getValid is true and there is no encountered events
+     */
+    daqErrCode EXPORTED daqStreamReader_readWithDomain(daqStreamReader* self, void* samples, void* domain, daqSizeT* count, daqSizeT timeoutMs DAQ_DEFAULT_VALUE(0), daqReaderStatus** status DAQ_DEFAULT_VALUE(nullptr));
+
+    /*!
+     * @brief Skips the specified amount of samples.
+     * @param count The maximum amount of samples to be skipped. If the `count` is less than available the parameter value is set to the actual amount and only the available samples are skipped. The rest of the buffer is not modified or cleared.
+     */
     daqErrCode EXPORTED daqStreamReader_skipSamples(daqStreamReader* self, daqSizeT* count, daqReaderStatus** status);
+
     daqErrCode EXPORTED daqStreamReader_createStreamReader(daqStreamReader** obj, daqSignal* signal, daqSampleType valueReadType, daqSampleType domainReadType, daqReadMode mode, daqReadTimeoutType timeoutType);
+
     daqErrCode EXPORTED daqStreamReader_createStreamReaderFromPort(daqStreamReader** obj, daqInputPortConfig* port, daqSampleType valueReadType, daqSampleType domainReadType, daqReadMode readMode, daqReadTimeoutType timeoutType);
+
     daqErrCode EXPORTED daqStreamReader_createStreamReaderFromExisting(daqStreamReader** obj, daqStreamReader* invalidatedReader, daqSampleType valueReadType, daqSampleType domainReadType);
 
 #ifdef __cplusplus

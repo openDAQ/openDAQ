@@ -34,12 +34,28 @@ extern "C"
 
 #include <ccommon.h>
 
+    /*!
+     * @brief Transforms a mutable object to an immutable object.
+     *
+     * If an object supports IFreezable interface, it is possible to transform it to immutable object.
+     * Once the object is frozen, it should not allow to change any of its properties or internal state.
+     */
+    DAQ_EXTENDS_INTERFACE(daqFreezable, daqBaseObject);
+
     typedef struct daqFreezable daqFreezable;
 
     EXPORTED extern const daqIntfID DAQ_FREEZABLE_INTF_ID;
     void EXPORTED daqFreezable_getInterfaceId(daqIntfID* intfId);
 
+    /*!
+     * @brief Makes the object frozen/immutable. It should return OPENDAQ_IGNORED value if the object is already frozen.
+     */
     daqErrCode EXPORTED daqFreezable_freeze(daqFreezable* self);
+
+    /*!
+     * @brief Checks if the objects is frozen/immutable.
+     * @param[out] isFrozen The object's frozen/immutable state.
+     */
     daqErrCode EXPORTED daqFreezable_isFrozen(daqFreezable* self, daqBool* isFrozen);
 
 #ifdef __cplusplus

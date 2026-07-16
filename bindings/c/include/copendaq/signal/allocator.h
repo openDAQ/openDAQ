@@ -34,6 +34,15 @@ extern "C"
 
 #include <ccommon.h>
 
+    /*!
+     * @brief An allocator used to allocate memory.
+     *
+     * The default BB allocator simply uses `malloc`, but the user can implement a custom allocator to
+     * override this behavior (perhaps using a memory pool or different allocation strategy). An
+     * example/reference implementation is provided which uses Microsoft `mimalloc`.
+     */
+    DAQ_EXTENDS_INTERFACE(daqAllocator, daqBaseObject);
+
     typedef struct daqAllocator daqAllocator;
     typedef struct daqDataDescriptor daqDataDescriptor;
     typedef struct daqDeleter daqDeleter;
@@ -41,10 +50,33 @@ extern "C"
     EXPORTED extern const daqIntfID DAQ_ALLOCATOR_INTF_ID;
     void EXPORTED daqAllocator_getInterfaceId(daqIntfID* intfId);
 
+    /*!
+     * @brief Allocates a chunk of memory for a packet.
+     * @param descriptor The OPTIONAL data descriptor of the signal for which memory is to be allocated. This can provide hints to the allocator. However, allocator implementations MUST accept null values.
+     * @param bytes The number of bytes to allocate.
+     * @param align The alignment requirement of the caller (typically the element size). This value may be zero if the caller does not need to specify an alignment requirement.
+     * @param[out] address The address of the allocated memory.
+     *
+     * The implementation MAY set address value to `nullptr` without returning an error code,
+     * if the allocator is out of memory. Alternatively, the implementation MAY return an error
+     * code in this case.
+     */
     daqErrCode EXPORTED daqAllocator_allocate(daqAllocator* self, daqDataDescriptor* descriptor, daqSizeT bytes, daqSizeT align, void** address);
+
+    /*!
+     * @brief Releases a chunk of memory allocated by allocate().
+     * @param address The address of the allocated memory to release.
+     *
+     * The implementation MUST ignore calls where @p address is null.
+     */
     daqErrCode EXPORTED daqAllocator_free(daqAllocator* self, void* address);
+
     daqErrCode EXPORTED daqAllocator_createMallocAllocator(daqAllocator** obj);
-    // daqErrCode EXPORTED daqAllocator_createMiMallocAllocator(daqAllocator** obj);
+
+/*
+    daqErrCode EXPORTED daqAllocator_createMiMallocAllocator(daqAllocator** obj);
+*/
+
     daqErrCode EXPORTED daqAllocator_createExternalAllocator(daqAllocator** obj, void* data, daqDeleter* deleter);
 
 #ifdef __cplusplus

@@ -34,6 +34,11 @@ extern "C"
 
 #include <ccommon.h>
 
+    /*!
+     * @brief An interface providing access to a new reader in order to reuse the invalidated reader's settings and configuration.
+     */
+    DAQ_EXTENDS_INTERFACE(daqReaderConfig, daqBaseObject);
+
     typedef struct daqReaderConfig daqReaderConfig;
     typedef struct daqFunction daqFunction;
     typedef struct daqList daqList;
@@ -41,11 +46,35 @@ extern "C"
     EXPORTED extern const daqIntfID DAQ_READER_CONFIG_INTF_ID;
     void EXPORTED daqReaderConfig_getInterfaceId(daqIntfID* intfId);
 
+    /*!
+     * @brief Gets the transform function that will be called with the read value-data and currently valid Signal-Descriptor giving the user the chance add a custom post-processing step.
+     * @param[out] transform The function performing the post-processing or @c nullptr if not assigned.
+     */
     daqErrCode EXPORTED daqReaderConfig_getValueTransformFunction(daqReaderConfig* self, daqFunction** transform);
+
+    /*!
+     * @brief Gets the transform function that will be called with the read domain-data and currently valid Signal-Descriptor giving the user the chance add a custom post-processing step.
+     * @param[out] transform The function performing the post-processing or @c nullptr if not assigned.
+     */
     daqErrCode EXPORTED daqReaderConfig_getDomainTransformFunction(daqReaderConfig* self, daqFunction** transform);
-    daqErrCode EXPORTED daqReaderConfig_getInputPorts(daqReaderConfig* self, daqList** ports);
+
+    /*!
+     * @brief Gets the internally created input-ports if used.
+     * @param[out] ports The internal Input-Ports if used by the reader otherwise @c nullptr.
+     */
+    daqErrCode EXPORTED daqReaderConfig_getInputPorts(daqReaderConfig* self, daqList** ports DAQ_LIST_ELEMENT_TYPE(daqInputPortConfig));
+
+    /*!
+     * @brief Gets the type of time-out handling used by the reader.
+     * @param[out] timeoutType How the reader handles time-outs.
+     */
     daqErrCode EXPORTED daqReaderConfig_getReadTimeoutType(daqReaderConfig* self, daqReadTimeoutType* timeoutType);
+
+    /*!
+     * @brief Marks the current reader as invalid preventing any additional operations to be performed on the reader except reusing its info and configuration in a new reader.
+     */
     daqErrCode EXPORTED daqReaderConfig_markAsInvalid(daqReaderConfig* self);
+
     daqErrCode EXPORTED daqReaderConfig_getIsValid(daqReaderConfig* self, daqBool* isValid);
 
 #ifdef __cplusplus

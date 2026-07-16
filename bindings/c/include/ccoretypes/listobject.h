@@ -34,28 +34,144 @@ extern "C"
 
 #include <ccommon.h>
 
+    /*!
+     * @brief Represents a heterogeneous collection of objects that can be individually accessed by index.
+     */
+    DAQ_EXTENDS_INTERFACE(daqList, daqBaseObject);
+
     typedef struct daqList daqList;
     typedef struct daqIterator daqIterator;
 
     EXPORTED extern const daqIntfID DAQ_LIST_INTF_ID;
     void EXPORTED daqList_getInterfaceId(daqIntfID* intfId);
 
+    /*!
+     * @brief Gets the element at a specific position.
+     * @param index The zero-based index of the element to get.
+     * @param[out] obj The element at the specified index.
+     *
+     * The reference count of the element that is retrieved is incremented. The client is
+     * responsible for calling `releaseRef` when the element is no longer needed.
+     */
     daqErrCode EXPORTED daqList_getItemAt(daqList* self, daqSizeT index, daqBaseObject** obj);
+
+    /*!
+     * @brief Gets the number of elements contained in the list.
+     * @param[out] size The number of elements contained in the list.
+     */
     daqErrCode EXPORTED daqList_getCount(daqList* self, daqSizeT* size);
+
+    /*!
+     * @brief Sets the element at a specific position.
+     * @param index The zero-based index of the element to set.
+     * @param obj The element to set at the specified index.
+     *
+     * The reference count of the element is incremented.
+     */
     daqErrCode EXPORTED daqList_setItemAt(daqList* self, daqSizeT index, daqBaseObject* obj);
+
+    /*!
+     * @brief Inserts the element at the end of the list.
+     * @param obj The element to insert.
+     *
+     * The reference count of the element is incremented.
+     */
     daqErrCode EXPORTED daqList_pushBack(daqList* self, daqBaseObject* obj);
+
+    /*!
+     * @brief Inserts the element at the start of the list.
+     * @param obj The element to insert.
+     *
+     * The reference count of the element is incremented.
+     */
     daqErrCode EXPORTED daqList_pushFront(daqList* self, daqBaseObject* obj);
+
+    /*!
+     * @brief Inserts the element at the end of the list without incrementing the reference count.
+     * @param obj The element to insert.
+     *
+     * The reference count of the element is not incremented. The client can use this method when it no
+     * longer needs to access the element after calling the method.
+     */
     daqErrCode EXPORTED daqList_moveBack(daqList* self, daqBaseObject* obj);
+
+    /*!
+     * @brief Inserts the element at the start of the list without incrementing the reference count.
+     * @param obj The element to insert.
+     *
+     * The reference count of the element is not incremented. The client can use this method when it no
+     * longer needs to access the element after calling the method.
+     */
     daqErrCode EXPORTED daqList_moveFront(daqList* self, daqBaseObject* obj);
+
+    /*!
+     * @brief Gets the element from the end of the list.
+     * @param[out] obj The extracted element.
+     *
+     * The reference count of the element that is retrieved is incremented. The client is
+     * responsible for calling `releaseRef` when the element is no longer needed.
+     */
     daqErrCode EXPORTED daqList_popBack(daqList* self, daqBaseObject** obj);
+
+    /*!
+     * @brief Gets the element from the start of the list.
+     * @param[out] obj The extracted element.
+     *
+     * The reference count of the element that is retrieved is incremented. The client is
+     * responsible for calling `releaseRef` when the element is no longer needed.
+     */
     daqErrCode EXPORTED daqList_popFront(daqList* self, daqBaseObject** obj);
+
+    /*!
+     * @brief Inserts the element at a specific position.
+     * @param index The zero-based index of the element to insert.
+     * @param obj The element to insert at the specified index.
+     *
+     * The reference count of the element is incremented.
+     */
     daqErrCode EXPORTED daqList_insertAt(daqList* self, daqSizeT index, daqBaseObject* obj);
+
+    /*!
+     * @brief Removes the element at a specific position.
+     * @param index The zero-based index of the element to remove.
+     * @param[out] obj The removed element.
+     *
+     * The client is responsible for calling `releaseRef` when the element is no longer needed.
+     * If the client does not need the element after it is removed, it should call `delete` method.
+     */
     daqErrCode EXPORTED daqList_removeAt(daqList* self, daqSizeT index, daqBaseObject** obj);
+
+    /*!
+     * @brief Deletes the element at a specific position.
+     * @param index The zero-based index of the element to remove.
+     *
+     * If the client needs the element deleted, it should use `removeAt` method.
+     */
     daqErrCode EXPORTED daqList_deleteAt(daqList* self, daqSizeT index);
+
+    /*!
+     * @brief Removes all elements from the list.
+     */
     daqErrCode EXPORTED daqList_clear(daqList* self);
+
+    /*!
+     * @brief Creates and returns the start iterator of the list.
+     * @param[out] iterator The start iterator.
+     *
+     * Use iterators to iterate through the elements.
+     */
     daqErrCode EXPORTED daqList_createStartIterator(daqList* self, daqIterator** iterator);
+
+    /*!
+     * @brief Creates and returns the stop iterator of the list.
+     * @param[out] iterator The stop iterator.
+     *
+     * Use iterators to iterate through the elements.
+     */
     daqErrCode EXPORTED daqList_createEndIterator(daqList* self, daqIterator** iterator);
+
     daqErrCode EXPORTED daqList_createList(daqList** obj);
+
     daqErrCode EXPORTED daqList_createListWithElementType(daqList** obj, daqIntfID id);
 
 #ifdef __cplusplus

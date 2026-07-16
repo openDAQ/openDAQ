@@ -34,6 +34,17 @@ extern "C"
 
 #include <ccommon.h>
 
+    /*!
+     * @brief Provides access to private methods of the Component status container.
+     *
+     * Said methods allow for adding new statuses and setting a value for existing statuses stored in
+     * the component status container. Device connection statuses, however, are managed independently
+     * via IConnectionStatusContainerPrivate.
+     *
+     * "StatusChanged" Core events are triggered whenever there is a change in the status of the openDAQ Component.
+     */
+    DAQ_EXTENDS_INTERFACE(daqComponentStatusContainerPrivate, daqBaseObject);
+
     typedef struct daqComponentStatusContainerPrivate daqComponentStatusContainerPrivate;
     typedef struct daqString daqString;
     typedef struct daqEnumeration daqEnumeration;
@@ -41,9 +52,34 @@ extern "C"
     EXPORTED extern const daqIntfID DAQ_COMPONENT_STATUS_CONTAINER_PRIVATE_INTF_ID;
     void EXPORTED daqComponentStatusContainerPrivate_getInterfaceId(daqIntfID* intfId);
 
+    /*!
+     * @brief Adds the new status with given name and initial value.
+     * @param name The name of the component status.
+     * @param initialValue The initial value of the component status.
+     */
     daqErrCode EXPORTED daqComponentStatusContainerPrivate_addStatus(daqComponentStatusContainerPrivate* self, daqString* name, daqEnumeration* initialValue);
+
+    /*!
+     * @brief Sets the value for the existing component status.
+     * @param name The name of the component status.
+     * @param value The new value of the component status.
+     */
     daqErrCode EXPORTED daqComponentStatusContainerPrivate_setStatus(daqComponentStatusContainerPrivate* self, daqString* name, daqEnumeration* value);
+
+    /*!
+     * @brief Adds the new status with given name, initial value, and message.
+     * @param name The name of the component status.
+     * @param initialValue The initial value of the component status.
+     * @param message The message of the component status.
+     */
     daqErrCode EXPORTED daqComponentStatusContainerPrivate_addStatusWithMessage(daqComponentStatusContainerPrivate* self, daqString* name, daqEnumeration* initialValue, daqString* message);
+
+    /*!
+     * @brief Sets the value for the existing component status with a message.
+     * @param name The name of the component status.
+     * @param value The new value of the component status.
+     * @param message The new message of the component status.
+     */
     daqErrCode EXPORTED daqComponentStatusContainerPrivate_setStatusWithMessage(daqComponentStatusContainerPrivate* self, daqString* name, daqEnumeration* value, daqString* message);
 
 #ifdef __cplusplus

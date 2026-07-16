@@ -34,17 +34,51 @@ extern "C"
 
 #include <ccommon.h>
 
+    /*!
+     * @brief A class which is responsible for creating a permission mask. This is a collection of Permission values which are allowed or denied for a given group id. Permission mask is defined as a 64-bit integer, where each bit corespond to a specific permission defined by Permission enum.
+     */
+    DAQ_EXTENDS_INTERFACE(daqPermissionMaskBuilder, daqBaseObject);
+
     typedef struct daqPermissionMaskBuilder daqPermissionMaskBuilder;
 
     EXPORTED extern const daqIntfID DAQ_PERMISSION_MASK_BUILDER_INTF_ID;
     void EXPORTED daqPermissionMaskBuilder_getInterfaceId(daqIntfID* intfId);
 
+    /*!
+     * @brief Add read permission to the bit mask.
+     */
     daqErrCode EXPORTED daqPermissionMaskBuilder_read(daqPermissionMaskBuilder* self);
+
+    /*!
+     * @brief Add write permission to the bit mask.
+     */
     daqErrCode EXPORTED daqPermissionMaskBuilder_write(daqPermissionMaskBuilder* self);
+
+    /*!
+     * @brief Add execute permission to the bit mask.
+     */
     daqErrCode EXPORTED daqPermissionMaskBuilder_execute(daqPermissionMaskBuilder* self);
+
+    /*!
+     * @brief Removes all permissions from bit mask.
+     */
     daqErrCode EXPORTED daqPermissionMaskBuilder_clear(daqPermissionMaskBuilder* self);
+
+    /*!
+     * @brief Build permission mask and return it as 64-bit integer.
+     * @param permissionMask[out] Permission mask defined as 64-bit integer where each bit corresponds to a specific permissoin defined by Permission enum.
+     */
     daqErrCode EXPORTED daqPermissionMaskBuilder_build(daqPermissionMaskBuilder* self, daqInt* permissionMask);
+
+    /*!
+     * @brief Creates a permision mask builder object.
+     */
     daqErrCode EXPORTED daqPermissionMaskBuilder_createPermissionMaskBuilder(daqPermissionMaskBuilder** obj);
+
+    /*!
+     * @brief Creates a permission mask builder object from integer permission mask.
+     * @param permissionMask Permission mask defined as 64-bit integer where each bit corresponds to a specific permission defined in Permission enum.
+     */
     daqErrCode EXPORTED daqPermissionMaskBuilder_createPermissionMaskBuilderFromMask(daqPermissionMaskBuilder** obj, daqInt permissionMask);
 
 #ifdef __cplusplus

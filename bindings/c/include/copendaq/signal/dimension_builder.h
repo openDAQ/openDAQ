@@ -34,6 +34,11 @@ extern "C"
 
 #include <ccommon.h>
 
+    /*!
+     * @brief Configuration component of Dimension objects. Contains setter methods that allow for Dimension parameter configuration, and a `build` method that builds the Dimension.
+     */
+    DAQ_EXTENDS_INTERFACE(daqDimensionBuilder, daqBaseObject);
+
     typedef struct daqDimensionBuilder daqDimensionBuilder;
     typedef struct daqDimension daqDimension;
     typedef struct daqString daqString;
@@ -43,14 +48,63 @@ extern "C"
     EXPORTED extern const daqIntfID DAQ_DIMENSION_BUILDER_INTF_ID;
     void EXPORTED daqDimensionBuilder_getInterfaceId(daqIntfID* intfId);
 
+    /*!
+     * @brief Builds and returns a Dimension object using the currently set values of the Builder.
+     * @param[out] dimension The built Dimension.
+     */
     daqErrCode EXPORTED daqDimensionBuilder_build(daqDimensionBuilder* self, daqDimension** dimension);
+
+    /*!
+     * @brief Sets the name of the dimension.
+     * @param name The name of the dimension.
+     *
+     * The name that best describes the dimension, in example "Frequency" for spectrum data.
+     */
     daqErrCode EXPORTED daqDimensionBuilder_setName(daqDimensionBuilder* self, daqString* name);
+
+    /*!
+     * @brief Gets the name of the dimension.
+     * @param[out] name The name of the dimension.
+     */
     daqErrCode EXPORTED daqDimensionBuilder_getName(daqDimensionBuilder* self, daqString** name);
+
+    /*!
+     * @brief Sets the unit of the dimension's labels.
+     * @param unit The unit of the dimension.
+     */
     daqErrCode EXPORTED daqDimensionBuilder_setUnit(daqDimensionBuilder* self, daqUnit* unit);
+
+    /*!
+     * @brief Gets the unit of the dimension's labels.
+     * @param[out] unit The unit of the dimension.
+     */
     daqErrCode EXPORTED daqDimensionBuilder_getUnit(daqDimensionBuilder* self, daqUnit** unit);
+
+    /*!
+     * @brief Sets the rule that defines the labels and size of the dimension.
+     * @param rule The dimension rule.
+     * @retval OPENDAQ_ERR_FROZEN if the dimension object is frozen.
+     *
+     * The rule takes as input the index of data value in a sample and produces a label associated
+     * with that index.
+     */
     daqErrCode EXPORTED daqDimensionBuilder_setRule(daqDimensionBuilder* self, daqDimensionRule* rule);
+
+    /*!
+     * @brief Gets the rule that defines the labels and size of the dimension.
+     * @param[out] rule The dimension rule.
+     */
     daqErrCode EXPORTED daqDimensionBuilder_getRule(daqDimensionBuilder* self, daqDimensionRule** rule);
+
+    /*!
+     * @brief Creates a Dimension builder object with no configuration parameters.
+     */
     daqErrCode EXPORTED daqDimensionBuilder_createDimensionBuilder(daqDimensionBuilder** obj);
+
+    /*!
+     * @brief Creates a builder copy of the dimension object passed as parameter.
+     * @param dimensionToCopy The dimension object to be copied.
+     */
     daqErrCode EXPORTED daqDimensionBuilder_createDimensionBuilderFromExisting(daqDimensionBuilder** obj, daqDimension* dimensionToCopy);
 
 #ifdef __cplusplus

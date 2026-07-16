@@ -34,6 +34,25 @@ extern "C"
 
 #include <ccommon.h>
 
+    /*!
+     * @brief Container of properties that can be used as a base class when instantiating a Property object.
+     *
+     * A Property object class is defined via a name and a list of properties. For a Property object to be
+     * created, using a class as its base, a class must be added to the Type manager.
+     *
+     * The name of the class must be unique within a given Type manager instance. The name of the Class
+     * is used when choosing a template class for a Property object, as well as to define a class hierarchy.
+     * A class with the Parent name configured will inherit the properties of the class with said name.
+     *
+     * The properties of a Property object class are, by default, sorted in insertion order. The order can,
+     * however, be overridden by specifying a Property object order - a list containing the names of properties.
+     * If specified, when retrieving the list of properties, they will be in the provided order.
+     *
+     * All Property object class objects are created as Property object class builder objects that allow for
+     * customization and building of the class.
+     */
+    DAQ_EXTENDS_INTERFACE(daqPropertyObjectClass, daqType);
+
     typedef struct daqPropertyObjectClass daqPropertyObjectClass;
     typedef struct daqString daqString;
     typedef struct daqProperty daqProperty;
@@ -43,10 +62,44 @@ extern "C"
     EXPORTED extern const daqIntfID DAQ_PROPERTY_OBJECT_CLASS_INTF_ID;
     void EXPORTED daqPropertyObjectClass_getInterfaceId(daqIntfID* intfId);
 
+    /*!
+     * @brief Gets the name of the parent of the property class.
+     * @param[out] parentName The parent class's name.
+     */
     daqErrCode EXPORTED daqPropertyObjectClass_getParentName(daqPropertyObjectClass* self, daqString** parentName);
+
+    /*!
+     * @brief Gets the class's property with the given name.
+     * @param propertyName The property's name.
+     * @param[out] property The property.
+     * @retval OPENDAQ_ERR_NOTFOUND if the Property with name `propertyName` is not added to the class.
+     * @retval OPENDAQ_ERR_MANAGER_NOT_ASSIGNED if the parent name is set, but the Type manager is not available.
+     */
     daqErrCode EXPORTED daqPropertyObjectClass_getProperty(daqPropertyObjectClass* self, daqString* propertyName, daqProperty** property);
+
+    /*!
+     * @brief Checks if the property is registered.
+     * @param propertyName The property's name.
+     * @param[out] hasProperty True if the property is registered, false otherwise.
+     * @retval OPENDAQ_ERR_MANAGER_NOT_ASSIGNED if the parent name is set, but the Type manager is not available.
+     */
     daqErrCode EXPORTED daqPropertyObjectClass_hasProperty(daqPropertyObjectClass* self, daqString* propertyName, daqBool* hasProperty);
-    daqErrCode EXPORTED daqPropertyObjectClass_getProperties(daqPropertyObjectClass* self, daqBool includeInherited, daqList** properties);
+
+    /*!
+     * @brief Gets the list of properties added to the class.
+     * @param includeInherited If true, the returned list of properties also includes the properties of the class's ancestors.
+     * @param[out] properties The list of properties.
+     * @retval OPENDAQ_ERR_MANAGER_NOT_ASSIGNED if the parent name is set, but the Type manager is not available.
+     *
+     * The properties are sorted in insertion order, unless a custom sorting order is specified for the class. Any properties
+     * not listed in the custom sorting order are listed at the end of the properties list, sorted in insertion order.
+     */
+    daqErrCode EXPORTED daqPropertyObjectClass_getProperties(daqPropertyObjectClass* self, daqBool includeInherited, daqList** properties DAQ_LIST_ELEMENT_TYPE(daqProperty));
+
+    /*!
+     * @brief Creates a PropertyObjectClass using Builder
+     * @param builder PropertyObjectClass Builder
+     */
     daqErrCode EXPORTED daqPropertyObjectClass_createPropertyObjectClassFromBuilder(daqPropertyObjectClass** obj, daqPropertyObjectClassBuilder* builder);
 
 #ifdef __cplusplus

@@ -34,6 +34,16 @@ extern "C"
 
 #include <ccommon.h>
 
+    /*!
+     * @brief Interface for managing device network configuration information and settings.
+     *
+     * The interface is typically used by the discovery server, if present, to obtain the necessary
+     * information for advertising the device's network configuration capabilities and handling related requests.
+     *
+     * The device must be designated as the root device to enable the use of this interface's methods.
+     */
+    DAQ_EXTENDS_INTERFACE(daqDeviceNetworkConfig, daqBaseObject);
+
     typedef struct daqDeviceNetworkConfig daqDeviceNetworkConfig;
     typedef struct daqString daqString;
     typedef struct daqPropertyObject daqPropertyObject;
@@ -42,10 +52,34 @@ extern "C"
     EXPORTED extern const daqIntfID DAQ_DEVICE_NETWORK_CONFIG_INTF_ID;
     void EXPORTED daqDeviceNetworkConfig_getInterfaceId(daqIntfID* intfId);
 
+    /*!
+     * @brief Submits a new configuration parameters to a specified network interface.
+     * @param ifaceName The name of the network interface adapter as registered in the operating system. Typically, this is a short symbolic identifier for the adapter, e.g. "eth0".
+     * @param config The property object with new configuration parameters to submit. The format of the properties matches that used in INetworkInterface.
+     * @retval OPENDAQ_ERR_NOTIMPLEMENTED if the device does not support network configuration management.
+     */
     daqErrCode EXPORTED daqDeviceNetworkConfig_submitNetworkConfiguration(daqDeviceNetworkConfig* self, daqString* ifaceName, daqPropertyObject* config);
+
+    /*!
+     * @brief Retrieves the currently active configuration of a specified network interface.
+     * @param ifaceName The name of the network interface adapter as registered in the operating system. Typically, this is a short symbolic identifier for the adapter, e.g. "eth0".
+     * @param[out] config The property object containing the active configuration of the network interface.
+     * @retval OPENDAQ_ERR_NOTIMPLEMENTED if the device does not support retrieving network configurations.
+     */
     daqErrCode EXPORTED daqDeviceNetworkConfig_retrieveNetworkConfiguration(daqDeviceNetworkConfig* self, daqString* ifaceName, daqPropertyObject** config);
+
+    /*!
+     * @brief Checks if the device supports network configuration management.
+     * @param[out] enabled A flag indicating whether the device supports managing network configurations.
+     */
     daqErrCode EXPORTED daqDeviceNetworkConfig_getNetworkConfigurationEnabled(daqDeviceNetworkConfig* self, daqBool* enabled);
-    daqErrCode EXPORTED daqDeviceNetworkConfig_getNetworkInterfaceNames(daqDeviceNetworkConfig* self, daqList** ifaceNames);
+
+    /*!
+     * @brief Gets the names of all configurable network interfaces on the device.
+     * @param[out] ifaceNames A list containing the names of network interface adapters available for configuration.
+     * @retval OPENDAQ_ERR_NOTIMPLEMENTED if the device does not support network configuration management.
+     */
+    daqErrCode EXPORTED daqDeviceNetworkConfig_getNetworkInterfaceNames(daqDeviceNetworkConfig* self, daqList** ifaceNames DAQ_LIST_ELEMENT_TYPE(daqString));
 
 #ifdef __cplusplus
 }

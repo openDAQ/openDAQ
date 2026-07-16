@@ -40,13 +40,15 @@ daqErrCode daqAllocator_createMallocAllocator(daqAllocator** obj)
     return err;
 }
 
-// daqErrCode daqAllocator_createMiMallocAllocator(daqAllocator** obj)
-// {
-//     daq::IAllocator* ptr = nullptr;
-//     daqErrCode err = daq::createMiMallocAllocator(&ptr);
-//     *obj = reinterpret_cast<daqAllocator*>(ptr);
-//     return err;
-// }
+/*
+daqErrCode daqAllocator_createMiMallocAllocator(daqAllocator** obj)
+{
+    daq::IAllocator* ptr = nullptr;
+    daqErrCode err = daq::createMiMallocAllocator(&ptr);
+    *obj = reinterpret_cast<daqAllocator*>(ptr);
+    return err;
+}
+*/
 
 daqErrCode daqAllocator_createExternalAllocator(daqAllocator** obj, void* data, daqDeleter* deleter)
 {

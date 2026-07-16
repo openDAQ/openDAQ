@@ -34,13 +34,52 @@ extern "C"
 
 #include <ccommon.h>
 
+    /*!
+     * @brief Enables conversion of the object to either Int, Float, or Bool type.
+     *
+     * An object which implements `IIntObject` will typically also implement IConvertible,
+     * which allows conversion to other types.
+     *
+     * Example:
+     * @code
+     * IIntObject* intObj = ...;
+     * IConvertible* conv;
+     * auto errCode = intObj.queryInterface(IConvertible::Id, reinterpret_cast<void**>(&conv));
+     * if (OPENDAQ_FAILED(errCode))
+     *   return;
+       Float val;
+     * errCode = conv->toFloat(&val);
+     * if (OPENDAQ_FAILED(errCode))
+     *   return;
+       // print val
+     * @endcode
+     */
+    DAQ_EXTENDS_INTERFACE(daqConvertible, daqBaseObject);
+
     typedef struct daqConvertible daqConvertible;
 
     EXPORTED extern const daqIntfID DAQ_CONVERTIBLE_INTF_ID;
     void EXPORTED daqConvertible_getInterfaceId(daqIntfID* intfId);
 
+    /*!
+     * @brief Converts the object to Float type.
+     * @param[out] val Float value.
+     * @retval OPENDAQ_ERR_CONVERSIONFAILED Conversion has failed
+     */
     daqErrCode EXPORTED daqConvertible_toFloat(daqConvertible* self, daqFloat* val);
+
+    /*!
+     * @brief Converts the object to Int type.
+     * @param[out] val Int value.
+     * @retval OPENDAQ_ERR_CONVERSIONFAILED Conversion has failed
+     */
     daqErrCode EXPORTED daqConvertible_toInt(daqConvertible* self, daqInt* val);
+
+    /*!
+     * @brief Converts the object to Bool type.
+     * @param[out] val Bool value
+     * @retval OPENDAQ_ERR_CONVERSIONFAILED Conversion has failed
+     */
     daqErrCode EXPORTED daqConvertible_toBool(daqConvertible* self, daqBool* val);
 
 #ifdef __cplusplus

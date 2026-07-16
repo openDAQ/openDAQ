@@ -34,6 +34,11 @@ extern "C"
 
 #include <ccommon.h>
 
+    /*!
+     * @brief Provides information about the server.
+     */
+    DAQ_EXTENDS_INTERFACE(daqServerType, daqComponentType);
+
     typedef struct daqServerType daqServerType;
     typedef struct daqString daqString;
     typedef struct daqPropertyObject daqPropertyObject;
@@ -41,6 +46,13 @@ extern "C"
     EXPORTED extern const daqIntfID DAQ_SERVER_TYPE_INTF_ID;
     void EXPORTED daqServerType_getInterfaceId(daqIntfID* intfId);
 
+    /*!
+     * @brief Creates a Server type object, with the id, name, description and optional defaultConfig.
+     * @param id The unique type ID of the server.
+     * @param name The name of the server type.
+     * @param description A short description of the server type.
+     * @param defaultConfig The property object, to be cloned and returned, each time user creates default configuration object. This way each instance of the server has its own configuration object.
+     */
     daqErrCode EXPORTED daqServerType_createServerType(daqServerType** obj, daqString* id, daqString* name, daqString* description, daqPropertyObject* defaultConfig);
 
 #ifdef __cplusplus

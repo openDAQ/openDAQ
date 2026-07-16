@@ -34,11 +34,24 @@ extern "C"
 
 #include <ccommon.h>
 
+    /*!
+     * @brief Callback which is called when external memory is no longer needed and can be freed.
+     *
+     * This interface is used with blueberry packets that are created with external memory. Provider
+     * of external memory is responsible to provide a custom deleter, which is called when the packet is
+     * destroyed.
+     */
+    DAQ_EXTENDS_INTERFACE(daqDeleter, daqBaseObject);
+
     typedef struct daqDeleter daqDeleter;
 
     EXPORTED extern const daqIntfID DAQ_DELETER_INTF_ID;
     void EXPORTED daqDeleter_getInterfaceId(daqIntfID* intfId);
 
+    /*!
+     * @brief Deletes or frees the memory associated with `address` parameter.
+     * @param[out] address The address of the external memory.
+     */
     daqErrCode EXPORTED daqDeleter_deleteMemory(daqDeleter* self, void* address);
 
 #ifdef __cplusplus

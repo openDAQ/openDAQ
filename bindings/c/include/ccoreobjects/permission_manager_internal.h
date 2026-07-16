@@ -34,6 +34,11 @@ extern "C"
 
 #include <ccommon.h>
 
+    /*!
+     * @brief Internal PermissionManager interface. It should be used only in openDAQ core implementation files.
+     */
+    DAQ_EXTENDS_INTERFACE(daqPermissionManagerInternal, daqBaseObject);
+
     typedef struct daqPermissionManagerInternal daqPermissionManagerInternal;
     typedef struct daqPermissionManager daqPermissionManager;
     typedef struct daqPermissions daqPermissions;
@@ -41,10 +46,33 @@ extern "C"
     EXPORTED extern const daqIntfID DAQ_PERMISSION_MANAGER_INTERNAL_INTF_ID;
     void EXPORTED daqPermissionManagerInternal_getInterfaceId(daqIntfID* intfId);
 
+    /*!
+     * @brief Change the parant of a permission manager.
+     * @param parentManager A reference to the permission manager of a parent object.
+     */
     daqErrCode EXPORTED daqPermissionManagerInternal_setParent(daqPermissionManagerInternal* self, daqPermissionManager* parentManager);
+
+    /*!
+     * @brief Adds a reference to the permission manager of a child object.
+     * @param childManager A reference to the permission manager of a child object.
+     */
     daqErrCode EXPORTED daqPermissionManagerInternal_addChildManager(daqPermissionManagerInternal* self, daqPermissionManager* childManager);
+
+    /*!
+     * @brief Removes a reference to the permission manager of a child object.
+     * @param childManager A reference to the permission manager of a child object.
+     */
     daqErrCode EXPORTED daqPermissionManagerInternal_removeChildManager(daqPermissionManagerInternal* self, daqPermissionManager* childManager);
+
+    /*!
+     * @brief Returns permisisons configuration object.
+     * @param permissionsOut[out] A Permissions configuration object.
+     */
     daqErrCode EXPORTED daqPermissionManagerInternal_getPermissions(daqPermissionManagerInternal* self, daqPermissions** permissionsOut);
+
+    /*!
+     * @brief Recursively update permissions of objects with new permissions from their parents.
+     */
     daqErrCode EXPORTED daqPermissionManagerInternal_updateInheritedPermissions(daqPermissionManagerInternal* self);
 
 #ifdef __cplusplus

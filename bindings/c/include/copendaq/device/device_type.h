@@ -34,6 +34,11 @@ extern "C"
 
 #include <ccommon.h>
 
+    /*!
+     * @brief Provides information on what device type can be created by a given module. Can be used to obtain the default configuration used when either adding/creating a new device.
+     */
+    DAQ_EXTENDS_INTERFACE(daqDeviceType, daqComponentType);
+
     typedef struct daqDeviceType daqDeviceType;
     typedef struct daqString daqString;
     typedef struct daqPropertyObject daqPropertyObject;
@@ -42,6 +47,14 @@ extern "C"
     void EXPORTED daqDeviceType_getInterfaceId(daqIntfID* intfId);
 
     daqErrCode EXPORTED daqDeviceType_getConnectionStringPrefix(daqDeviceType* self, daqString** prefix);
+
+    /*!
+     * @brief Creates a Device type object, with the id, name, description and optional defaultConfig.
+     * @param id The unique type ID of the device.
+     * @param name The name of the device type.
+     * @param description A short description of the device type.
+     * @param defaultConfig The property object, to be cloned and returned, each time user creates default configuration object. This way each instance of the device has its own configuration object.
+     */
     daqErrCode EXPORTED daqDeviceType_createDeviceType(daqDeviceType** obj, daqString* id, daqString* name, daqString* description, daqPropertyObject* defaultConfig, daqString* prefix);
 
 #ifdef __cplusplus

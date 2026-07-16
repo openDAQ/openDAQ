@@ -34,6 +34,11 @@ extern "C"
 
 #include <ccommon.h>
 
+    /*!
+     * @brief The configuration component of input ports. Provides access to Input port owners to internal components of the input port.
+     */
+    DAQ_EXTENDS_INTERFACE(daqInputPortConfig, daqInputPort);
+
     typedef struct daqInputPortConfig daqInputPortConfig;
     typedef struct daqInputPortNotifications daqInputPortNotifications;
     typedef struct daqContext daqContext;
@@ -43,17 +48,71 @@ extern "C"
     EXPORTED extern const daqIntfID DAQ_INPUT_PORT_CONFIG_INTF_ID;
     void EXPORTED daqInputPortConfig_getInterfaceId(daqIntfID* intfId);
 
+    /*!
+     * @brief Sets the input-ports response to the packet enqueued notification.
+     */
     daqErrCode EXPORTED daqInputPortConfig_setNotificationMethod(daqInputPortConfig* self, daqPacketReadyNotification method);
+
+    /*!
+     * @brief Gets the input-ports response to the packet enqueued notification.
+     */
     daqErrCode EXPORTED daqInputPortConfig_getNotificationMethod(daqInputPortConfig* self, daqPacketReadyNotification* method);
+
+    /*!
+     * @brief Gets called when a packet was enqueued in a connection.
+     * @param queueWasEmpty True if queue was empty before packet was enqueued.
+     */
     daqErrCode EXPORTED daqInputPortConfig_notifyPacketEnqueued(daqInputPortConfig* self, daqBool queueWasEmpty);
+
+    /*!
+     * @brief Gets called when a packet was enqueued in a connection.
+     *
+     * The notification is called on the same thread that enqueued the packet.
+     */
     daqErrCode EXPORTED daqInputPortConfig_notifyPacketEnqueuedOnThisThread(daqInputPortConfig* self);
+
+    /*!
+     * @brief Set the object receiving input-port related events and notifications.
+     */
     daqErrCode EXPORTED daqInputPortConfig_setListener(daqInputPortConfig* self, daqInputPortNotifications* port);
+
+    /*!
+     * @brief Get a custom data attached to the object.
+     */
     daqErrCode EXPORTED daqInputPortConfig_getCustomData(daqInputPortConfig* self, daqBaseObject** customData);
+
+    /*!
+     * @brief Set a custom data attached to the object.
+     */
     daqErrCode EXPORTED daqInputPortConfig_setCustomData(daqInputPortConfig* self, daqBaseObject* customData);
+
+    /*!
+     * @brief Sets requires signal flag of the input port.
+     * @param requiresSignal True if the input port requires a signal to be connected; false otherwise.
+     *
+     * If an input port requires a signal, then the input port must have a signal connected otherwise
+     * the owner of the input port (function block) should report an error.
+     */
     daqErrCode EXPORTED daqInputPortConfig_setRequiresSignal(daqInputPortConfig* self, daqBool requiresSignal);
+
+    /*!
+     * @brief Returns the state of gap checking requested by the input port.
+     * @param gapCheckingEnabled true if gap checking is requested by the input port.
+     */
     daqErrCode EXPORTED daqInputPortConfig_getGapCheckingEnabled(daqInputPortConfig* self, daqBool* gapCheckingEnabled);
+
+    /*!
+     * @brief Gets called when a packet was enqueued in a connection.
+     *
+     * The notification is scheduled.
+     */
     daqErrCode EXPORTED daqInputPortConfig_notifyPacketEnqueuedWithScheduler(daqInputPortConfig* self);
+
+    /*!
+     * @brief Gets the object receiving input-port related events and notifications.
+     */
     daqErrCode EXPORTED daqInputPortConfig_getListener(daqInputPortConfig* self, daqInputPortNotifications** port);
+
     daqErrCode EXPORTED daqInputPortConfig_createInputPort(daqInputPortConfig** obj, daqContext* context, daqComponent* parent, daqString* localId, daqBool gapChecking);
 
 #ifdef __cplusplus

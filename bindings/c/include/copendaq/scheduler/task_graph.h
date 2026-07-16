@@ -34,6 +34,11 @@ extern "C"
 
 #include <ccommon.h>
 
+    /*!
+     * @brief A dependency graph (directed acyclic graph) of tasks that can be scheduled for execution on a Scheduler.
+     */
+    DAQ_EXTENDS_INTERFACE(daqTaskGraph, daqTask);
+
     typedef struct daqTaskGraph daqTaskGraph;
     typedef struct daqProcedure daqProcedure;
     typedef struct daqString daqString;

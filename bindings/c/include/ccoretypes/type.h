@@ -34,12 +34,24 @@ extern "C"
 
 #include <ccommon.h>
 
+    /*!
+     * @brief The base object type that is inherited by all Types (eg. Struct type, Simple type, Property object class) in openDAQ.
+     * Types are used for the construction of objects that are require validation/have pre-defined fields such as
+     * Structs and Property objects. Types should be inserted into the Type manager to be used by different parts
+     * of the SDK.
+     */
+    DAQ_EXTENDS_INTERFACE(daqType, daqBaseObject);
+
     typedef struct daqType daqType;
     typedef struct daqString daqString;
 
     EXPORTED extern const daqIntfID DAQ_TYPE_INTF_ID;
     void EXPORTED daqType_getInterfaceId(daqIntfID* intfId);
 
+    /*!
+     * @brief Gets the name of the Type
+     * @param[out] typeName The name of the Type.
+     */
     daqErrCode EXPORTED daqType_getName(daqType* self, daqString** typeName);
 
 #ifdef __cplusplus

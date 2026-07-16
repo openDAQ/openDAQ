@@ -34,11 +34,20 @@ extern "C"
 
 #include <ccommon.h>
 
+    /*!
+     * @brief Private rule interface implemented by Dimension rules, Data rules and Scaling. Allows for parameter verification.
+     */
+    DAQ_EXTENDS_INTERFACE(daqRulePrivate, daqBaseObject);
+
     typedef struct daqRulePrivate daqRulePrivate;
 
     EXPORTED extern const daqIntfID DAQ_RULE_PRIVATE_INTF_ID;
     void EXPORTED daqRulePrivate_getInterfaceId(daqIntfID* intfId);
 
+    /*!
+     * @brief Checks whether the parameters are valid and returns an appropriate error code if not.
+     * @retval OPENDAQ_ERR_INVALID_PARAMETERS If the parameters are invalid for the specific rule type.
+     */
     daqErrCode EXPORTED daqRulePrivate_verifyParameters(daqRulePrivate* self);
 
 #ifdef __cplusplus

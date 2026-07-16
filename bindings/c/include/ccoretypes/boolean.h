@@ -34,14 +34,46 @@ extern "C"
 
 #include <ccommon.h>
 
+    /*!
+     * Represents boolean variable as `IBoolean` interface. Use this interface to wrap boolean
+     * variable when you need to add the variable to lists, dictionaries and other containers which
+     * accept `IBaseObject` interface.
+     *
+     * Available factories:
+     * @code
+     * // Creates a new Boolean. Throws exception if not successful.
+     * IBoolean* Boolean_Create(Bool value)
+       // Creates a new Boolean. Returns error code if not successful.
+     * ErrCode createBoolean(IBoolean** obj, Bool value)
+     * @endcode
+     */
+    DAQ_EXTENDS_INTERFACE(daqBoolean, daqBaseObject);
+
     typedef struct daqBoolean daqBoolean;
 
     EXPORTED extern const daqIntfID DAQ_BOOLEAN_INTF_ID;
     void EXPORTED daqBoolean_getInterfaceId(daqIntfID* intfId);
 
+    /*!
+     * @brief Gets a boolean value stored in the object.
+     * @param[out] value Stored boolean value.
+     * @return OPENDAQ_SUCCESS if succeeded, error code otherwise.
+     *
+     * Call this method to extract the boolean value that is stored in the object.
+     */
     daqErrCode EXPORTED daqBoolean_getValue(daqBoolean* self, daqBool* value);
+
+    /*!
+     * @brief Compares stored boolean value to the boolean parameter.
+     * @param value Value for comparison.
+     * @param[out] equal The result of the comparison.
+     *
+     * Call this method to directly compare the object to the boolean parameter.
+     */
     daqErrCode EXPORTED daqBoolean_equalsValue(daqBoolean* self, daqBool value, daqBool* equal);
+
     daqErrCode EXPORTED daqBoolean_createBoolean(daqBoolean** obj, daqBool value);
+
     daqErrCode EXPORTED daqBoolean_createBoolObject(daqBoolean** obj, daqBool value);
 
 #ifdef __cplusplus

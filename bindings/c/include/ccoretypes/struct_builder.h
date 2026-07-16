@@ -34,6 +34,11 @@ extern "C"
 
 #include <ccommon.h>
 
+    /*!
+     * @brief Builder component of Struct objects. Contains setter methods to configure the Struct parameters, and a `build` method that builds the Struct object.
+     */
+    DAQ_EXTENDS_INTERFACE(daqStructBuilder, daqBaseObject);
+
     typedef struct daqStructBuilder daqStructBuilder;
     typedef struct daqStruct daqStruct;
     typedef struct daqStructType daqStructType;
@@ -45,16 +50,74 @@ extern "C"
     EXPORTED extern const daqIntfID DAQ_STRUCT_BUILDER_INTF_ID;
     void EXPORTED daqStructBuilder_getInterfaceId(daqIntfID* intfId);
 
+    /*!
+     * @brief Builds and returns a Struct object using the currently set values of the Builder.
+     * @param[out] struct_ The built Struct.
+     */
     daqErrCode EXPORTED daqStructBuilder_build(daqStructBuilder* self, daqStruct** struct_);
+
+    /*!
+     * @brief Gets the Struct's type.
+     * @param[out] type The Struct type
+     */
     daqErrCode EXPORTED daqStructBuilder_getStructType(daqStructBuilder* self, daqStructType** type);
-    daqErrCode EXPORTED daqStructBuilder_getFieldNames(daqStructBuilder* self, daqList** names);
-    daqErrCode EXPORTED daqStructBuilder_setFieldValues(daqStructBuilder* self, daqList* values);
-    daqErrCode EXPORTED daqStructBuilder_getFieldValues(daqStructBuilder* self, daqList** values);
+
+    /*!
+     * @brief Gets a list of all Struct field names.
+     * @param[out] names The list of field names.
+     *
+     * The list of names will be of equal length to the list of values. Additionally, the name of a field at any given
+     * index corresponds to the value stored in the list of values.
+     */
+    daqErrCode EXPORTED daqStructBuilder_getFieldNames(daqStructBuilder* self, daqList** names DAQ_LIST_ELEMENT_TYPE(daqString));
+
+    /*!
+     * @brief Gets a list of all Struct field values.
+     * @param[out] values The list of field values.
+     *
+     * The list of names will be of equal length to the list of values. Additionally, the name of a field at any given
+     * index corresponds to the value stored in the list of values.
+     */
+    daqErrCode EXPORTED daqStructBuilder_setFieldValues(daqStructBuilder* self, daqList* values DAQ_LIST_ELEMENT_TYPE(daqBaseObject));
+
+    /*!
+     * @brief Gets a list of all Struct field values.
+     * @param[out] values The list of field values.
+     *
+     * The list of names will be of equal length to the list of values. Additionally, the name of a field at any given
+     * index corresponds to the value stored in the list of values.
+     */
+    daqErrCode EXPORTED daqStructBuilder_getFieldValues(daqStructBuilder* self, daqList** values DAQ_LIST_ELEMENT_TYPE(daqBaseObject));
+
+    /*!
+     * @brief Sets the value of a field with the given name.
+     * @param name The name of the queried field.
+     * @param field The value of the field.
+     */
     daqErrCode EXPORTED daqStructBuilder_set(daqStructBuilder* self, daqString* name, daqBaseObject* field);
+
+    /*!
+     * @brief Gets the value of a field with the given name.
+     * @param name The name of the queried field.
+     * @param[out] field The value of the field.
+     */
     daqErrCode EXPORTED daqStructBuilder_get(daqStructBuilder* self, daqString* name, daqBaseObject** field);
+
+    /*!
+     * @brief Checks whether a field with the given name exists in the Struct
+     * @param name The name of the checked field.
+     * @param[out] contains True if the a field with `name` exists in the Struct; false otherwise.
+     */
     daqErrCode EXPORTED daqStructBuilder_hasField(daqStructBuilder* self, daqString* name, daqBool* contains);
-    daqErrCode EXPORTED daqStructBuilder_getAsDictionary(daqStructBuilder* self, daqDict** dictionary);
+
+    /*!
+     * @brief Gets the field names and values of the Struct as a Dictionary.
+     * @param[out] dictionary The Dictionary object with field names as keys, and field values as its values.
+     */
+    daqErrCode EXPORTED daqStructBuilder_getAsDictionary(daqStructBuilder* self, daqDict** dictionary DAQ_DICT_TEMPLATE_TYPE(daqString, daqBaseObject));
+
     daqErrCode EXPORTED daqStructBuilder_createStructBuilder(daqStructBuilder** obj, daqString* name, daqTypeManager* typeManager);
+
     daqErrCode EXPORTED daqStructBuilder_createStructBuilderFromStruct(daqStructBuilder** obj, daqStruct* struct_);
 
 #ifdef __cplusplus

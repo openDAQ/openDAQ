@@ -34,6 +34,11 @@ extern "C"
 
 #include <ccommon.h>
 
+    /*!
+     * @brief A module is an object that provides device and function block factories. The object is usually implemented in an external dynamic link / shared library. IModuleManager is responsible for loading all modules.
+     */
+    DAQ_EXTENDS_INTERFACE(daqModule, daqBaseObject);
+
     typedef struct daqModule daqModule;
     typedef struct daqModuleInfo daqModuleInfo;
     typedef struct daqList daqList;
@@ -51,19 +56,99 @@ extern "C"
     EXPORTED extern const daqIntfID DAQ_MODULE_INTF_ID;
     void EXPORTED daqModule_getInterfaceId(daqIntfID* intfId);
 
+    /*!
+     * @brief Retrieves the module information.
+     * @param[out] info The module information.
+     */
     daqErrCode EXPORTED daqModule_getModuleInfo(daqModule* self, daqModuleInfo** info);
-    daqErrCode EXPORTED daqModule_getAvailableDevices(daqModule* self, daqList** availableDevices);
-    daqErrCode EXPORTED daqModule_getAvailableDeviceTypes(daqModule* self, daqDict** deviceTypes);
-    daqErrCode EXPORTED daqModule_createDevice(daqModule* self, daqDevice** device, daqString* connectionString, daqComponent* parent, daqPropertyObject* config);
-    daqErrCode EXPORTED daqModule_getAvailableFunctionBlockTypes(daqModule* self, daqDict** functionBlockTypes);
-    daqErrCode EXPORTED daqModule_createFunctionBlock(daqModule* self, daqFunctionBlock** functionBlock, daqString* id, daqComponent* parent, daqString* localId, daqPropertyObject* config);
-    daqErrCode EXPORTED daqModule_getAvailableServerTypes(daqModule* self, daqDict** serverTypes);
-    daqErrCode EXPORTED daqModule_createServer(daqModule* self, daqServer** server, daqString* serverTypeId, daqDevice* rootDevice, daqPropertyObject* config);
-    daqErrCode EXPORTED daqModule_createStreaming(daqModule* self, daqStreaming** streaming, daqString* connectionString, daqPropertyObject* config);
+
+    /*!
+     * @brief Returns a list of known devices info. The implementation can start discovery in background and only return the results in this function.
+     * @param[out] availableDevices The list of known devices information.
+     */
+    daqErrCode EXPORTED daqModule_getAvailableDevices(daqModule* self, daqList** availableDevices DAQ_LIST_ELEMENT_TYPE(daqDeviceInfo));
+
+    /*!
+     * @brief Returns a dictionary of known and available device types this module can create.
+     * @param[out] deviceTypes The dictionary of known device types.
+     */
+    daqErrCode EXPORTED daqModule_getAvailableDeviceTypes(daqModule* self, daqDict** deviceTypes DAQ_DICT_TEMPLATE_TYPE(daqString, daqDeviceType));
+
+    /*!
+     * @brief Creates a device object that can communicate with the device described in the specified connection string. The device object is not automatically added as a sub-device of the caller, but only returned by reference.
+     * @param[out] device The device object created to communicate with and control the device.
+     * @param connectionString Describes the connection info of the device to connect to.
+     * @param parent The parent component/device to which the device attaches.
+     * @param config A configuration object that contains parameters used to configure a device in the form of key-value pairs.
+     */
+    daqErrCode EXPORTED daqModule_createDevice(daqModule* self, daqDevice** device, daqString* connectionString, daqComponent* parent, daqPropertyObject* config DAQ_DEFAULT_VALUE(nullptr));
+
+    /*!
+     * @brief Returns a dictionary of known and available function block types this module can create.
+     * @param[out] functionBlockTypes The dictionary of known function block types.
+     */
+    daqErrCode EXPORTED daqModule_getAvailableFunctionBlockTypes(daqModule* self, daqDict** functionBlockTypes DAQ_DICT_TEMPLATE_TYPE(daqString, daqFunctionBlockType));
+
+    /*!
+     * @brief Creates and returns a function block with the specified id. The function block is not automatically added to the FB list of the caller.
+     * @param id The id of the function block to create. Ids can be retrieved by calling `getAvailableFunctionBlockTypes()`.
+     * @param parent The parent component/device to which the device attaches.
+     * @param localId The local id of the function block.
+     * @param config Function block configuration. In case of a null value, implementation should use default configuration.
+     * @param[out] functionBlock The created function block.
+     */
+    daqErrCode EXPORTED daqModule_createFunctionBlock(daqModule* self, daqFunctionBlock** functionBlock, daqString* id, daqComponent* parent, daqString* localId, daqPropertyObject* config DAQ_DEFAULT_VALUE(nullptr));
+
+    /*!
+     * @brief Returns a dictionary of known and available servers types that this module can create.
+     * @param[out] serverTypes The dictionary of known server types.
+     */
+    daqErrCode EXPORTED daqModule_getAvailableServerTypes(daqModule* self, daqDict** serverTypes DAQ_DICT_TEMPLATE_TYPE(daqString, daqServerType));
+
+    /*!
+     * @brief Creates and returns a server with the specified server type.
+     * @param serverTypeId The id of the server type to create. ServerType can be retrieved by calling `getAvailableServerTypes()`.
+     * @param config Server configuration. In case of a null value, implementation should use default configuration.
+     * @param rootDevice Root device.
+     * @param[out] server The created server.
+     */
+    daqErrCode EXPORTED daqModule_createServer(daqModule* self, daqServer** server, daqString* serverTypeId, daqDevice* rootDevice, daqPropertyObject* config DAQ_DEFAULT_VALUE(nullptr));
+
+    /*!
+     * @brief Creates and returns a streaming object using the specified connection string and config object.
+     * @param connectionString Typically a connection string usually has a well known prefix, such as `daq.lt//`.
+     * @param config A config object that contains parameters used to configure a streaming connection. In case of a null value, implementation should use default configuration.
+     * @param[out] streaming The created streaming object.
+     */
+    daqErrCode EXPORTED daqModule_createStreaming(daqModule* self, daqStreaming** streaming, daqString* connectionString, daqPropertyObject* config DAQ_DEFAULT_VALUE(nullptr));
+
     daqErrCode EXPORTED daqModule_completeServerCapability(daqModule* self, daqBool* succeeded, daqServerCapability* source, daqServerCapabilityConfig* target);
-    daqErrCode EXPORTED daqModule_getAvailableStreamingTypes(daqModule* self, daqDict** streamingTypes);
-    daqErrCode EXPORTED daqModule_loadLicense(daqModule* self, daqBool* succeeded, daqDict* licenseConfig);
-    daqErrCode EXPORTED daqModule_getLicenseConfig(daqModule* self, daqDict** licenseConfig);
+
+    /*!
+     * @brief Returns a dictionary of known and available streaming types that this module (client) can create.
+     * @param[out] streamingTypes The dictionary of known streaming types.
+     */
+    daqErrCode EXPORTED daqModule_getAvailableStreamingTypes(daqModule* self, daqDict** streamingTypes DAQ_DICT_TEMPLATE_TYPE(daqString, daqStreamingType));
+
+    /*!
+     * @brief Used for loading a license, when the module requires one. Licenses can specify the degree to which the module is unlocked to the user (i.e. which and/or how many concurrent function blocks from this modules are accessible with the license).
+     * @param[out] succeeded License was accepted.
+     * @param licenseConfig Any information relevant to load the license (i.e. a path to the license file).
+     */
+    daqErrCode EXPORTED daqModule_loadLicense(daqModule* self, daqBool* succeeded, daqDict* licenseConfig DAQ_DICT_TEMPLATE_TYPE(daqString, daqString));
+
+    /*!
+     * @brief Used to retrieve the license config template.
+     * @param[out] licenseConfig Previously used config.
+     */
+    daqErrCode EXPORTED daqModule_getLicenseConfig(daqModule* self, daqDict** licenseConfig DAQ_DICT_TEMPLATE_TYPE(daqString, daqString));
+
+    /*!
+     * @brief Check whether the module license is loaded.
+     * @param[out] loaded True, if the module license is loaded.
+     *
+     * Always return True if no license is required by the module.
+     */
     daqErrCode EXPORTED daqModule_licenseLoaded(daqModule* self, daqBool* loaded);
 
 #ifdef __cplusplus

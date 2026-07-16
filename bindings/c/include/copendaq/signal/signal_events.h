@@ -34,6 +34,11 @@ extern "C"
 
 #include <ccommon.h>
 
+    /*!
+     * @brief Internal functions of a signal containing event methods that are called on certain events. Eg. when a signal is connected to an input port, or when a signal is used as a domain signal of another.
+     */
+    DAQ_EXTENDS_INTERFACE(daqSignalEvents, daqBaseObject);
+
     typedef struct daqSignalEvents daqSignalEvents;
     typedef struct daqConnection daqConnection;
     typedef struct daqSignal daqSignal;
@@ -41,10 +46,40 @@ extern "C"
     EXPORTED extern const daqIntfID DAQ_SIGNAL_EVENTS_INTF_ID;
     void EXPORTED daqSignalEvents_getInterfaceId(daqIntfID* intfId);
 
+    /*!
+     * @brief Notifies the signal that it has been connected to an input port forming a new connection.
+     * @param connection The formed connection.
+     *
+     * The data descriptor of the signal is enqueued on the connection, triggering the `onPacketReceived`
+     * callback on the same thread.
+     */
     daqErrCode EXPORTED daqSignalEvents_listenerConnected(daqSignalEvents* self, daqConnection* connection);
+
+    /*!
+     * @brief Notifies the signal that it has been disconnected from an input port with the given connection.
+     * @param connection The connection that was broken.
+     */
     daqErrCode EXPORTED daqSignalEvents_listenerDisconnected(daqSignalEvents* self, daqConnection* connection);
+
+    /*!
+     * @brief Notifies the signal that it is being used as a domain signal by the signal passed as the function argument.
+     * @param signal The callee signal on which the domain signal reference has been set.
+     */
     daqErrCode EXPORTED daqSignalEvents_domainSignalReferenceSet(daqSignalEvents* self, daqSignal* signal);
+
+    /*!
+     * @brief Notifies the signal that it is no longer being used as a domain signal by the signal passed as the function argument.
+     * @param signal The callee signal on which the domain signal reference has been removed.
+     */
     daqErrCode EXPORTED daqSignalEvents_domainSignalReferenceRemoved(daqSignalEvents* self, daqSignal* signal);
+
+    /*!
+     * @brief Notifies the signal that it has been connected to an input port forming a new connection.
+     * @param connection The formed connection.
+     *
+     * The data descriptor of the signal is enqueued on the connection, scheduling the `onPacketReceived`
+     * callback.
+     */
     daqErrCode EXPORTED daqSignalEvents_listenerConnectedScheduled(daqSignalEvents* self, daqConnection* connection);
 
 #ifdef __cplusplus

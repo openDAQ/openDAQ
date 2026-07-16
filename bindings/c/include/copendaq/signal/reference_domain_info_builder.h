@@ -34,6 +34,11 @@ extern "C"
 
 #include <ccommon.h>
 
+    /*!
+     * @brief Builder component of Reference Domain Info objects. Contains setter methods that allow for Reference Domain Info parameter configuration, and a `build` method that builds the Reference Domain Info.
+     */
+    DAQ_EXTENDS_INTERFACE(daqReferenceDomainInfoBuilder, daqBaseObject);
+
     typedef struct daqReferenceDomainInfoBuilder daqReferenceDomainInfoBuilder;
     typedef struct daqReferenceDomainInfo daqReferenceDomainInfo;
     typedef struct daqString daqString;
@@ -42,16 +47,119 @@ extern "C"
     EXPORTED extern const daqIntfID DAQ_REFERENCE_DOMAIN_INFO_BUILDER_INTF_ID;
     void EXPORTED daqReferenceDomainInfoBuilder_getInterfaceId(daqIntfID* intfId);
 
+    /*!
+     * @brief Builds and returns a Reference Domain Info object using the currently set values of the Builder.
+     * @param[out] referenceDomainInfo The built Reference Domain Info.
+     */
     daqErrCode EXPORTED daqReferenceDomainInfoBuilder_build(daqReferenceDomainInfoBuilder* self, daqReferenceDomainInfo** referenceDomainInfo);
+
+    /*!
+     * @brief Sets the Reference Domain ID.
+     * @param referenceDomainId The Reference Domain ID.
+     *
+     * If set, gives the common identifier of one domain group.
+     * Signals with the same Reference Domain ID share a common synchronization source
+     * (all the signals in a group either come from the same device
+     * or are synchronized using a protocol, such as PTP, NTP, IRIG, etc.).
+     * Those signals can always be read together, implying that a Multi Reader
+     * can be used to read the signals if their sampling rates are compatible.
+     */
     daqErrCode EXPORTED daqReferenceDomainInfoBuilder_setReferenceDomainId(daqReferenceDomainInfoBuilder* self, daqString* referenceDomainId);
+
+    /*!
+     * @brief Gets the Reference Domain ID.
+     * @param[out] referenceDomainId The Reference Domain ID.
+     *
+     * If set, gives the common identifier of one domain group.
+     * Signals with the same Reference Domain ID share a common synchronization source
+     * (all the signals in a group either come from the same device
+     * or are synchronized using a protocol, such as PTP, NTP, IRIG, etc.).
+     * Those signals can always be read together, implying that a Multi Reader
+     * can be used to read the signals if their sampling rates are compatible.
+     */
     daqErrCode EXPORTED daqReferenceDomainInfoBuilder_getReferenceDomainId(daqReferenceDomainInfoBuilder* self, daqString** referenceDomainId);
+
+    /*!
+     * @brief Sets the Reference Domain Offset.
+     * @param referenceDomainOffset The Reference Domain Offset.
+     *
+     * If set, denotes the offset in ticks that must be added to the domain values of the signal
+     * for them to be equal to that of the sync source. The sync source will always have an offset of 0.
+     * This offset is changed only if the sync source changes and should be kept at 0 otherwise,
+     * allowing clients to differentiate between data loss and resync events.
+     * Any device can choose to always keep the offset at 0, representing changes in the offset in
+     * the domain packet values instead. This implementation prevents clients from differentiating
+     * between errors (data loss) and resync events. Additionally, if the offset is not configured,
+     * clients have no way of detecting a resync event in the case of asynchronous signals.
+     */
     daqErrCode EXPORTED daqReferenceDomainInfoBuilder_setReferenceDomainOffset(daqReferenceDomainInfoBuilder* self, daqInteger* referenceDomainOffset);
+
+    /*!
+     * @brief Gets the Reference Domain Offset.
+     * @param[out] referenceDomainOffset The Reference Domain Offset.
+     *
+     * If set, denotes the offset in ticks that must be added to the domain values of the signal
+     * for them to be equal to that of the sync source. The sync source will always have an offset of 0.
+     * This offset is changed only if the sync source changes and should be kept at 0 otherwise,
+     * allowing clients to differentiate between data loss and resync events.
+     * Any device can choose to always keep the offset at 0, representing changes in the offset in
+     * the domain packet values instead. This implementation prevents clients from differentiating
+     * between errors (data loss) and resync events. Additionally, if the offset is not configured,
+     * clients have no way of detecting a resync event in the case of asynchronous signals.
+     */
     daqErrCode EXPORTED daqReferenceDomainInfoBuilder_getReferenceDomainOffset(daqReferenceDomainInfoBuilder* self, daqInteger** referenceDomainOffset);
+
+    /*!
+     * @brief Sets the value that indicates the Reference Time Source.
+     * @param referenceTimeProtocol The value that indicates the Reference Time Source.
+     *
+     * If not set to Unknown, the domain quantity is “time”, and the timestamps are absolute according
+     * to the chosen time standard. The possible values are Gps, Tai, and Utc.
+     * This field is used to determine if two signals with different Domain IDs can be read
+     * together. Signals that have configured a Reference Time Source are trusted to have absolute
+     * time stamps that correlate to the chosen time standard (eg. two separate PTP networks,
+     * both driven through GPS can be read together, as their absolute time is the same).
+     */
     daqErrCode EXPORTED daqReferenceDomainInfoBuilder_setReferenceTimeProtocol(daqReferenceDomainInfoBuilder* self, daqTimeProtocol referenceTimeProtocol);
+
+    /*!
+     * @brief Gets the value that indicates the Reference Time Source.
+     * @param[out] referenceTimeProtocol The value that indicates the Reference Time Source.
+     *
+     * If not set to Unknown, the domain quantity is “time”, and the timestamps are absolute according
+     * to the chosen time standard. The possible values are Gps, Tai, and Utc.
+     * This field is used to determine if two signals with different Domain IDs can be read
+     * together. Signals that have configured a Reference Time Source are trusted to have absolute
+     * time stamps that correlate to the chosen time standard (eg. two separate PTP networks,
+     * both driven through GPS can be read together, as their absolute time is the same).
+     */
     daqErrCode EXPORTED daqReferenceDomainInfoBuilder_getReferenceTimeProtocol(daqReferenceDomainInfoBuilder* self, daqTimeProtocol* referenceTimeProtocol);
+
+    /*!
+     * @brief Sets the value that indicates if offset is used.
+     * @param[out] usesOffset The value that indicates if offset is used.
+     *
+     * If False, a device will contain time jumps due to resync in the domain signal data.
+     */
     daqErrCode EXPORTED daqReferenceDomainInfoBuilder_setUsesOffset(daqReferenceDomainInfoBuilder* self, daqUsesOffset usesOffset);
+
+    /*!
+     * @brief Gets the value that indicates if offset is used.
+     * @param[out] usesOffset The value that indicates if offset is used.
+     *
+     * If False, a device will contain time jumps due to resync in the domain signal data.
+     */
     daqErrCode EXPORTED daqReferenceDomainInfoBuilder_getUsesOffset(daqReferenceDomainInfoBuilder* self, daqUsesOffset* usesOffset);
+
+    /*!
+     * @brief Reference Domain Info builder factory that creates a builder object with no parameters configured.
+     */
     daqErrCode EXPORTED daqReferenceDomainInfoBuilder_createReferenceDomainInfoBuilder(daqReferenceDomainInfoBuilder** obj);
+
+    /*!
+     * @brief Reference Domain Info copy factory that creates a Reference Domain Info builder object from a different Reference Domain Info, copying its parameters.
+     * @param referenceDomainInfoToCopy The Reference Domain Info of which configuration should be copied.
+     */
     daqErrCode EXPORTED daqReferenceDomainInfoBuilder_createReferenceDomainInfoBuilderFromExisting(daqReferenceDomainInfoBuilder** obj, daqReferenceDomainInfo* referenceDomainInfoToCopy);
 
 #ifdef __cplusplus

@@ -34,6 +34,8 @@ extern "C"
 
 #include <ccommon.h>
 
+    DAQ_EXTENDS_INTERFACE(daqComponentHolder, daqBaseObject);
+
     typedef struct daqComponentHolder daqComponentHolder;
     typedef struct daqString daqString;
     typedef struct daqComponent daqComponent;
@@ -42,9 +44,13 @@ extern "C"
     void EXPORTED daqComponentHolder_getInterfaceId(daqIntfID* intfId);
 
     daqErrCode EXPORTED daqComponentHolder_getLocalId(daqComponentHolder* self, daqString** localId);
+
     daqErrCode EXPORTED daqComponentHolder_getParentGlobalId(daqComponentHolder* self, daqString** parentId);
+
     daqErrCode EXPORTED daqComponentHolder_getComponent(daqComponentHolder* self, daqComponent** component);
+
     daqErrCode EXPORTED daqComponentHolder_createComponentHolder(daqComponentHolder** obj, daqComponent* component);
+
     daqErrCode EXPORTED daqComponentHolder_createComponentHolderWithIds(daqComponentHolder** obj, daqString* id, daqString* parentGlobalId, daqComponent* component);
 
 #ifdef __cplusplus

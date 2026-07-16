@@ -34,6 +34,22 @@ extern "C"
 
 #include <ccommon.h>
 
+    /*!
+     * @brief Function blocks perform calculations on inputs/generate data, outputting new data in its output signals as packets.
+     *
+     * Each function block describes its behaviour and identifiers in its FunctionBlockType structure. It
+     * provides a list of input ports that can be connected to signals that the input port accepts, as well as a
+     * list of output signals that carry the function block's output data.
+     *
+     * Additionally, as each function block is a property object, it can define its own set of properties, providing
+     * user-configurable settings. In example, a FFT function block would expose a `blockSize` property, defining the
+     * amount of samples to be used for calculation in each block.
+     *
+     * Function blocks also provide a status signal, through which a status packet is sent whenever a connection to a
+     * new input port is formed, or when the status changes.
+     */
+    DAQ_EXTENDS_INTERFACE(daqFunctionBlock, daqFolder);
+
     typedef struct daqFunctionBlock daqFunctionBlock;
     typedef struct daqFunctionBlockType daqFunctionBlockType;
     typedef struct daqList daqList;
@@ -46,14 +62,76 @@ extern "C"
     EXPORTED extern const daqIntfID DAQ_FUNCTION_BLOCK_INTF_ID;
     void EXPORTED daqFunctionBlock_getInterfaceId(daqIntfID* intfId);
 
+    /*!
+     * @brief Gets an information structure contain metadata of the function block type.
+     * @param[out] type The Function block type object.
+     */
     daqErrCode EXPORTED daqFunctionBlock_getFunctionBlockType(daqFunctionBlock* self, daqFunctionBlockType** type);
-    daqErrCode EXPORTED daqFunctionBlock_getInputPorts(daqFunctionBlock* self, daqList** ports, daqSearchFilter* searchFilter);
-    daqErrCode EXPORTED daqFunctionBlock_getSignals(daqFunctionBlock* self, daqList** signals, daqSearchFilter* searchFilter);
-    daqErrCode EXPORTED daqFunctionBlock_getSignalsRecursive(daqFunctionBlock* self, daqList** signals, daqSearchFilter* searchFilter);
+
+    /*!
+     * @brief Gets a list of the function block's input ports.
+     * @param searchFilter Provides an optional filter that filters out unwanted components and allows for recursion.
+     * @param[out] ports The list of input ports.
+     *
+     * If searchFilter is not provided, the returned list contains only visible input ports and does not include those of
+     * child function blocks.
+     */
+    daqErrCode EXPORTED daqFunctionBlock_getInputPorts(daqFunctionBlock* self, daqList** ports DAQ_LIST_ELEMENT_TYPE(daqInputPort), daqSearchFilter* searchFilter DAQ_DEFAULT_VALUE(nullptr));
+
+    /*!
+     * @brief Gets the list of the function block's output signals.
+     * @param searchFilter Provides an optional filter that filters out unwanted components and allows for recursion.
+     * @param[out] signals The list of output signals.
+     *
+     * If searchFilter is not provided, the returned list contains only visible signals and does not include those of
+     * child function blocks.
+     */
+    daqErrCode EXPORTED daqFunctionBlock_getSignals(daqFunctionBlock* self, daqList** signals DAQ_LIST_ELEMENT_TYPE(daqSignal), daqSearchFilter* searchFilter DAQ_DEFAULT_VALUE(nullptr));
+
+    /*!
+     * @brief Gets the list of the function block's visible output signals including signals from visible child function blocks.
+     * @param searchFilter Provides an optional filter that filters out unwanted components and allows for recursion.
+     * @param[out] signals The list of output signals.
+     */
+    daqErrCode EXPORTED daqFunctionBlock_getSignalsRecursive(daqFunctionBlock* self, daqList** signals DAQ_LIST_ELEMENT_TYPE(daqSignal), daqSearchFilter* searchFilter DAQ_DEFAULT_VALUE(nullptr));
+
+    /*!
+     * @brief Gets the function block's status signal.
+     * @param[out] statusSignal The status signal.
+     *
+     * The status signal sends out a status event packet every time it is connected to an input port.
+     * Additionally, a status event packet is sent whenever the status of the function block changes.
+     */
     daqErrCode EXPORTED daqFunctionBlock_getStatusSignal(daqFunctionBlock* self, daqSignal** statusSignal);
-    daqErrCode EXPORTED daqFunctionBlock_getFunctionBlocks(daqFunctionBlock* self, daqList** functionBlocks, daqSearchFilter* searchFilter);
-    daqErrCode EXPORTED daqFunctionBlock_getAvailableFunctionBlockTypes(daqFunctionBlock* self, daqDict** functionBlockTypes);
-    daqErrCode EXPORTED daqFunctionBlock_addFunctionBlock(daqFunctionBlock* self, daqFunctionBlock** functionBlock, daqString* typeId, daqPropertyObject* config);
+
+    /*!
+     * @brief Gets a list of sub-function blocks.
+     * @param searchFilter Provides optional parameters such as "recursive" and "visibleOnly" to modify the search pattern.
+     * @param[out] functionBlocks The list of sub-function blocks.
+     *
+     * If searchFilter is not provided, the returned list contains only visible function blocks and does not include those of
+     * child function blocks.
+     */
+    daqErrCode EXPORTED daqFunctionBlock_getFunctionBlocks(daqFunctionBlock* self, daqList** functionBlocks DAQ_LIST_ELEMENT_TYPE(daqFunctionBlock), daqSearchFilter* searchFilter DAQ_DEFAULT_VALUE(nullptr));
+
+    /*!
+     * @brief Gets all nested function block types that are supported, containing their description.
+     * @param[out] functionBlockTypes A dictionary of available function block types.
+     */
+    daqErrCode EXPORTED daqFunctionBlock_getAvailableFunctionBlockTypes(daqFunctionBlock* self, daqDict** functionBlockTypes DAQ_DICT_TEMPLATE_TYPE(daqString, daqFunctionBlockType));
+
+    /*!
+     * @brief Creates and adds a function block as the nested of current function block with the provided unique ID and returns it.
+     * @param[out] functionBlock The added function block.
+     * @param typeId The unique ID of the function block. Can be obtained from its corresponding Function Block Info object.
+     * @param config A config object to configure a function block with custom settings specific to that function block type.
+     */
+    daqErrCode EXPORTED daqFunctionBlock_addFunctionBlock(daqFunctionBlock* self, daqFunctionBlock** functionBlock, daqString* typeId, daqPropertyObject* config DAQ_DEFAULT_VALUE(nullptr));
+
+    /*!
+     * @brief Removes the function block provided as argument, disconnecting its signals and input ports.
+     * @param functionBlock The function block to be removed.
+     */
     daqErrCode EXPORTED daqFunctionBlock_removeFunctionBlock(daqFunctionBlock* self, daqFunctionBlock* functionBlock);
 
 #ifdef __cplusplus

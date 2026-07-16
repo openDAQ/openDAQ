@@ -34,6 +34,57 @@ extern "C"
 
 #include <ccommon.h>
 
+    /*!
+     * @brief Builder component of Instance objects. Contains setter methods to configure the Instance parameters, such as Context (Logger, Scheduler, ModuleManager) and RootDevice. Contains a  `build` method that builds the Instance object.
+     *
+     * The InstanceBuilder provides a fluent interface for setting various configuration options for an Instance
+     * object before its creation. It allows customization of the logger, module manager, scheduler and root device.
+     * Once configured, calling the `build` method returns a fully initialized Instance object with the specified settings.
+     * @subsection Configuration Methods:
+     * The InstanceBuilder provides the following configuration methods:
+     *
+     * - **Logger:** The custom Logger for the Instance. This logger will be used for logging messages related to the Instance and its components.
+     * If a custom logger is set, the `Logger sink` will be ignored since it is only used with the default Instance logger.
+     * If custom logger was not set, builder will generate Instance with default logger.
+     *
+     * - **Global log level:** The Logger global log level for the Instance. All log messages with a severity
+     * level equal to or higher than the specified level will be processed. Default log level is LogLevel::Default
+     *
+     * - **Component log level:** The Logger level for a specific component of the Instance. Log messages related to
+     * that component will be processed according to the specified log level. By default, each component uses the global log level.
+     *
+     * - **Logger sink:** The logger sink to the default Instance logger. This sink will be responsible for processing log messages,
+     * such as writing them to a file or sending them to a remote server. If `Logger` has been set, configuring of the 'Logger sink' has no effect in building Instance.
+     * If logger sinks has not been configure, the Instance uses 'default sinks'.
+     *
+     * - **Module manager:** The custom ModuleManager for the Instance. When configured, the default module manager path will be ignored.
+     * If module manager has not configured, the Instance uses built in manager
+     *
+     * - **Module path:** The path for the default ModuleManager of the Instance. If a custom module manager has not been set,
+     * this path will be used to load modules. Default module path is empty string
+     *
+     * - **Scheduler:** The custom scheduler for the Instance. If set, the number of worker threads will be ignored.
+     * If scheduler has not been configured, the Instance uses default schduler.
+     *
+     * - **Scheduler worker num:** The number of worker threads in the scheduler of the Instance. if a scheduler has not been set and worker num is 0,
+     * which considers as maximum number of concurrent threads.
+     *
+     * - **Default root device local ID:** The local id of the default client root device. Has no effect if `Root device` has been congigured.
+     *
+     * - **Default root device info:** The information of default root device of the Instance such as serial number. Has no effect if `Root device` has been congigured.
+     *
+     * - **Root device:** The connection string of a device that replaces the default openDAQ root device (virtual client).
+     * When the instance is created a connection to the device with the given connection string will be established, and the device will be placed at the root of the component tree structure.
+     * When configured, the `Default root device local ID` and `Default root device info` will be ignored.
+     *
+     * - **Sink log level:** The sink logger level of the default Instance logger. This level is ignored if a custom logger has been configured.
+     * - **Config provider:** The config provider is expanding the local options of instance builder from json file or command lines.
+     * If value was set before, provider will override this with new one.
+     * - **Module options:** Local options dictionary of instance builder has `modules` key which contains custom values for modules.
+     * By default this dictionary is empty, but can be populated from json file, env variables or command line arguments.
+     */
+    DAQ_EXTENDS_INTERFACE(daqInstanceBuilder, daqBaseObject);
+
     typedef struct daqInstanceBuilder daqInstanceBuilder;
     typedef struct daqInstance daqInstance;
     typedef struct daqConfigProvider daqConfigProvider;
@@ -53,48 +104,261 @@ extern "C"
     EXPORTED extern const daqIntfID DAQ_INSTANCE_BUILDER_INTF_ID;
     void EXPORTED daqInstanceBuilder_getInterfaceId(daqIntfID* intfId);
 
+    /*!
+     * @brief Builds and returns an Instance object using the currently set values of the Builder.
+     * @param[out] instance The built Instance.
+     */
     daqErrCode EXPORTED daqInstanceBuilder_build(daqInstanceBuilder* self, daqInstance** instance);
+
+    /*!
+     * @brief Populates internal options dictionary with values from set config provider
+     * @param configProvider The configuration provider
+     */
     daqErrCode EXPORTED daqInstanceBuilder_addConfigProvider(daqInstanceBuilder* self, daqConfigProvider* configProvider);
+
+    /*!
+     * @brief Sets the Context object of the instance. This overwrites other context related settings such as logger, scheduler and module manager settings.
+     * @param context The Context object for instance.
+     */
     daqErrCode EXPORTED daqInstanceBuilder_setContext(daqInstanceBuilder* self, daqContext* context);
+
+    /*!
+     * @brief Returns a context object of the instance.
+     * @param[out] context The Context object of the instance.
+     */
     daqErrCode EXPORTED daqInstanceBuilder_getContext(daqInstanceBuilder* self, daqContext** context);
+
+    /*!
+     * @brief Sets the custom Logger for the Instance. This logger will be used for logging messages related to the Instance and its components. When configured, the `Logger sink` will be ignored, as it is in use only with the default Instance logger.
+     * @param logger The custom Logger of Instance
+     */
     daqErrCode EXPORTED daqInstanceBuilder_setLogger(daqInstanceBuilder* self, daqLogger* logger);
+
+    /*!
+     * @brief Gets the Logger of the Instance. Returns nullptr if custom logger has not been set
+     * @param[out] logger The Logger of Instance
+     */
     daqErrCode EXPORTED daqInstanceBuilder_getLogger(daqInstanceBuilder* self, daqLogger** logger);
+
+    /*!
+     * @brief Sets the Logger global log level for the Instance. All log messages with a severity level equal to or higher than the specified level will be processed.
+     * @param logLevel The Logger global level of Instance
+     */
     daqErrCode EXPORTED daqInstanceBuilder_setGlobalLogLevel(daqInstanceBuilder* self, daqLogLevel logLevel);
+
+    /*!
+     * @brief Gets the default Logger global level of Instance
+     * @param[out] logLevel The Logger global level of Instance. Returns LogLevel::Default, If global log level has not been set
+     */
     daqErrCode EXPORTED daqInstanceBuilder_getGlobalLogLevel(daqInstanceBuilder* self, daqLogLevel* logLevel);
+
+    /*!
+     * @brief Sets The Logger level for a specific component of the Instance. Log messages related to that component will be processed according to the specified log level.
+     * @param component The name of Instance component
+     * @param logLevel The log level of Instance component
+     */
     daqErrCode EXPORTED daqInstanceBuilder_setComponentLogLevel(daqInstanceBuilder* self, daqString* component, daqLogLevel logLevel);
-    daqErrCode EXPORTED daqInstanceBuilder_getComponentsLogLevel(daqInstanceBuilder* self, daqDict** components);
+
+    /*!
+     * @brief Gets the dictionary of component names and log level which will be added to logger components
+     * @param[out] components The dictionary of component names and log level
+     */
+    daqErrCode EXPORTED daqInstanceBuilder_getComponentsLogLevel(daqInstanceBuilder* self, daqDict** components DAQ_DICT_TEMPLATE_TYPE(daqString, daqNumber));
+
+    /*!
+     * @brief Adds the logger sink of the default Instance logger. If Logger has been set, configuring of the Logger sink has no effect in building Instance.
+     * @param sink The logger sink of the default Instance logger
+     */
     daqErrCode EXPORTED daqInstanceBuilder_addLoggerSink(daqInstanceBuilder* self, daqLoggerSink* sink);
+
+    /*!
+     * @brief Sets the sink logger level of the default Instance logger. If Logger has been set, configuring of the Logger sink has no effect in building Instance.
+     * @param sink The sink logger of the default Instance logger
+     * @param logLevel The sink logger level of the default Instance logger
+     */
     daqErrCode EXPORTED daqInstanceBuilder_setSinkLogLevel(daqInstanceBuilder* self, daqLoggerSink* sink, daqLogLevel logLevel);
-    daqErrCode EXPORTED daqInstanceBuilder_getLoggerSinks(daqInstanceBuilder* self, daqList** sinks);
+
+    /*!
+     * @brief Gets the list of logger sinks for the default Instance logger.
+     * @param[out] sinks The list of logger sinks of the default Instance logger
+     */
+    daqErrCode EXPORTED daqInstanceBuilder_getLoggerSinks(daqInstanceBuilder* self, daqList** sinks DAQ_LIST_ELEMENT_TYPE(daqLoggerSink));
+
+    /*!
+     * @brief Sets the path for the default ModuleManager of the Instance. If Module manager has been set, configuring of Module path has no effect in building Instance.
+     * @param path The path for the default ModuleManager of Instance
+     */
     daqErrCode EXPORTED daqInstanceBuilder_setModulePath(daqInstanceBuilder* self, daqString* path);
+
+    /*!
+     * @brief Gets the path for the default ModuleManager of Instance.
+     * @param[out] path The path for the default ModuleManager of Instance. Returns empty string, If module path has not been set
+     */
     daqErrCode EXPORTED daqInstanceBuilder_getModulePath(daqInstanceBuilder* self, daqString** path);
+
+    /*!
+     * @brief Add the path for the default ModuleManager of the Instance. If Module manager has been set, configuring of Module path has no effect in building Instance.
+     * @param path The path for the default ModuleManager of Instance
+     */
     daqErrCode EXPORTED daqInstanceBuilder_addModulePath(daqInstanceBuilder* self, daqString* path);
-    daqErrCode EXPORTED daqInstanceBuilder_getModulePathsList(daqInstanceBuilder* self, daqList** paths);
+
+    /*!
+     * @brief Get the list of paths for the default ModuleManager of the Instance. If Module manager has been set, configuring of Module path has no effect in building Instance.
+     * @param paths The paths for the default ModuleManager of Instance
+     */
+    daqErrCode EXPORTED daqInstanceBuilder_getModulePathsList(daqInstanceBuilder* self, daqList** paths DAQ_LIST_ELEMENT_TYPE(daqString));
+
+    /*!
+     * @brief Sets The custom ModuleManager for the Instance.
+     * @param moduleManager The custom ModuleManager of Instance
+     */
     daqErrCode EXPORTED daqInstanceBuilder_setModuleManager(daqInstanceBuilder* self, daqModuleManager* moduleManager);
+
+    /*!
+     * @brief Gets the custom ModuleManager of Instance
+     * @param[out] moduleManager The ModuleManager of Instance. Returns nullptr, if custom ModuleManager has not been set
+     */
     daqErrCode EXPORTED daqInstanceBuilder_getModuleManager(daqInstanceBuilder* self, daqModuleManager** moduleManager);
+
+    /*!
+     * @brief Sets the AuthenticationProvider for the Instance.
+     * @param authenticationProvider The AuthenticationProvider for the Instance
+     */
     daqErrCode EXPORTED daqInstanceBuilder_setAuthenticationProvider(daqInstanceBuilder* self, daqAuthenticationProvider* authenticationProvider);
+
+    /*!
+     * @brief Gets the AuthenticationProvider of Instance
+     * @param[out] authenticationProvider The AuthenticationProvider of Instance.
+     */
     daqErrCode EXPORTED daqInstanceBuilder_getAuthenticationProvider(daqInstanceBuilder* self, daqAuthenticationProvider** authenticationProvider);
+
+    /*!
+     * @brief Sets the number of worker threads in the scheduler of the Instance. If Scheduler has been set, configuring of Scheduler worker num has no effect in building Instance.
+     * @param numWorkers The amount of worker threads in the scheduler of Instance. If @c is 0, then the amount of workers is the maximum number of concurrent threads supported by the implementation.
+     */
     daqErrCode EXPORTED daqInstanceBuilder_setSchedulerWorkerNum(daqInstanceBuilder* self, daqSizeT numWorkers);
+
+    /*!
+     * @brief Gets the amount of worker threads in the scheduler of Instance.
+     * @param[out] numWorkers The amount of worker threads in the scheduler of Instance. Returns 0, if worker num has not been set
+     */
     daqErrCode EXPORTED daqInstanceBuilder_getSchedulerWorkerNum(daqInstanceBuilder* self, daqSizeT* numWorkers);
+
+    /*!
+     * @brief Sets the custom scheduler of Instance
+     * @param scheduler The custom scheduler of Instance
+     */
     daqErrCode EXPORTED daqInstanceBuilder_setScheduler(daqInstanceBuilder* self, daqScheduler* scheduler);
+
+    /*!
+     * @brief Gets the custom scheduler of Instance
+     * @param[out] scheduler The custom scheduler of Instance. Returns nullptr, if custom Scheduler has not been set.
+     */
     daqErrCode EXPORTED daqInstanceBuilder_getScheduler(daqInstanceBuilder* self, daqScheduler** scheduler);
+
+    /*!
+     * @brief Sets the local id for default device. Has no effect if `Root device` has been congigured.
+     * @param localId The default root device local id
+     */
     daqErrCode EXPORTED daqInstanceBuilder_setDefaultRootDeviceLocalId(daqInstanceBuilder* self, daqString* localId);
+
+    /*!
+     * @brief Gets the default root device local id
+     * @param[out] localId The default root device local id. Returns empty string id default root device local is has not been set.
+     */
     daqErrCode EXPORTED daqInstanceBuilder_getDefaultRootDeviceLocalId(daqInstanceBuilder* self, daqString** localId);
-    daqErrCode EXPORTED daqInstanceBuilder_setRootDevice(daqInstanceBuilder* self, daqString* connectionString, daqPropertyObject* config);
+
+    /*!
+     * @brief Sets the connection string for a device that replaces the default openDAQ root device. When the instance is created, a connection to the device with the given connection string will be established, and the device will be placed at the root of the component tree structure.
+     * @param connectionString The connection string for the root device of the Instance.
+     * @param config A config object to configure a client device. This object can contain properties like max sample rate, port to use for 3rd party communication, number of channels to generate, or other device specific settings. In case of nullptr, a default configuration is used.
+     */
+    daqErrCode EXPORTED daqInstanceBuilder_setRootDevice(daqInstanceBuilder* self, daqString* connectionString, daqPropertyObject* config DAQ_DEFAULT_VALUE(nullptr));
+
+    /*!
+     * @brief Gets the connection string for the default root device of Instance.
+     * @param[out] connectionString The connection string for the root device of Instance. Returns nullptr, if root device connection string has not been set.
+     */
     daqErrCode EXPORTED daqInstanceBuilder_getRootDevice(daqInstanceBuilder* self, daqString** connectionString);
+
+    /*!
+     * @brief Gets the configuration property object for the default root device of Instance.
+     * @param[out] config The configuraton property object for the root device of Instance. Returns nullptr, for the default configuration property object.
+     */
     daqErrCode EXPORTED daqInstanceBuilder_getRootDeviceConfig(daqInstanceBuilder* self, daqPropertyObject** config);
+
+    /*!
+     * @brief Sets the default device info of Instance. If device info has been set, method getInfo of Instance will return set device info if Root Device has not been set
+     * @param deviceInfo The device info of the default device of Instance
+     */
     daqErrCode EXPORTED daqInstanceBuilder_setDefaultRootDeviceInfo(daqInstanceBuilder* self, daqDeviceInfo* deviceInfo);
+
+    /*!
+     * @brief Gets the default device info of Instance
+     * @param deviceInfo The default device info of Instance. Returns nullptr, if default device info has not been set.
+     */
     daqErrCode EXPORTED daqInstanceBuilder_getDefaultRootDeviceInfo(daqInstanceBuilder* self, daqDeviceInfo** deviceInfo);
-    daqErrCode EXPORTED daqInstanceBuilder_getOptions(daqInstanceBuilder* self, daqDict** options);
+
+    /*!
+     * @brief Gets the dictionary of instance options
+     * @param[out] options The dictionary of instance options
+     */
+    daqErrCode EXPORTED daqInstanceBuilder_getOptions(daqInstanceBuilder* self, daqDict** options DAQ_DICT_TEMPLATE_TYPE(daqString, daqBaseObject));
+
+    /*!
+     * @brief Allows enabling or disabling standard configuration providers, including JsonConfigProvider, based on the specified flag.
+     * @param flag Boolean flag indicating whether to enable (true) or disable (false) standard config providers.
+     */
     daqErrCode EXPORTED daqInstanceBuilder_enableStandardProviders(daqInstanceBuilder* self, daqBool flag);
-    daqErrCode EXPORTED daqInstanceBuilder_getDiscoveryServers(daqInstanceBuilder* self, daqList** serverNames);
+
+    /*!
+     * @brief Gets the dictionary of discovery servers
+     * @param[out] serverNames The dictionary of discovery server names
+     */
+    daqErrCode EXPORTED daqInstanceBuilder_getDiscoveryServers(daqInstanceBuilder* self, daqList** serverNames DAQ_LIST_ELEMENT_TYPE(daqString));
+
+    /*!
+     * @brief Adds a discovery server to the context
+     * @param serverName The discovery server to add
+     *
+     * openDAQ supports the "mdns" server by default, but must be added to the instance builder to be enabled.
+     */
     daqErrCode EXPORTED daqInstanceBuilder_addDiscoveryServer(daqInstanceBuilder* self, daqString* serverName);
+
+    /*!
+     * @brief Enables or disables usage of the scheduler's main loop.
+     * @param useMainLoop Whether to construct the scheduler with main loop support.
+     * If enabled, the scheduler will be constructed with the main worker, allowing use of the main loop.
+     * Note that enabling this does not automatically start the main loop. To start it, you must call
+     * `IScheduler::runMainLoop()` or `IScheduler::runMainLoopIteration()`.
+     */
     daqErrCode EXPORTED daqInstanceBuilder_setUsingSchedulerMainLoop(daqInstanceBuilder* self, daqBool useMainLoop);
+
+    /*!
+     * @brief Checks whether the scheduler will be created with main loop support.
+     * @param[out] useMainLoop True if the scheduler will be configured with main loop support; otherwise, false.
+     */
     daqErrCode EXPORTED daqInstanceBuilder_getUsingSchedulerMainLoop(daqInstanceBuilder* self, daqBool* useMainLoop);
+
+    /*!
+     * @brief Set verification class for modules. The class will check each module DLL and verify it's authenticity before it is loaded.
+     * @param authenticator Verifier object.
+     */
     daqErrCode EXPORTED daqInstanceBuilder_setModuleAuthenticator(daqInstanceBuilder* self, daqModuleAuthenticator* authenticator);
+
+    /*!
+     * @brief Gets the authenticator object.
+     * @param[out] authenticator Verifier object. Will return nullptr if not set.
+     */
     daqErrCode EXPORTED daqInstanceBuilder_getModuleAuthenticator(daqInstanceBuilder* self, daqModuleAuthenticator** authenticator);
+
     daqErrCode EXPORTED daqInstanceBuilder_setLoadAuthenticatedModulesOnly(daqInstanceBuilder* self, daqBool authOnly);
+
     daqErrCode EXPORTED daqInstanceBuilder_getLoadAuthenticatedModulesOnly(daqInstanceBuilder* self, daqBool* authOnly);
+
+    /*!
+     * @brief Creates a InstanceBuilder with no parameters configured.
+     */
     daqErrCode EXPORTED daqInstanceBuilder_createInstanceBuilder(daqInstanceBuilder** obj);
 
 #ifdef __cplusplus

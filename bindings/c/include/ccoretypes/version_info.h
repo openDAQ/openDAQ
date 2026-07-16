@@ -34,14 +34,34 @@ extern "C"
 
 #include <ccommon.h>
 
+    /*!
+     * @brief Represents a semantic version composing of: - major version representing breaking changes - minor version representing new features - patch version representing only bug fixes.
+     */
+    DAQ_EXTENDS_INTERFACE(daqVersionInfo, daqBaseObject);
+
     typedef struct daqVersionInfo daqVersionInfo;
 
     EXPORTED extern const daqIntfID DAQ_VERSION_INFO_INTF_ID;
     void EXPORTED daqVersionInfo_getInterfaceId(daqIntfID* intfId);
 
+    /*!
+     * @brief The major version incremented at breaking changes.
+     * @param[out] major The major version component.
+     */
     daqErrCode EXPORTED daqVersionInfo_getMajor(daqVersionInfo* self, daqSizeT* major);
+
+    /*!
+     * @brief The minor version incremented at new features with full backwards compatibility.
+     * @param[out] minor The minor version component.
+     */
     daqErrCode EXPORTED daqVersionInfo_getMinor(daqVersionInfo* self, daqSizeT* minor);
+
+    /*!
+     * @brief The patch version incremented when only bug-fixes are added.
+     * @param[out] patch The patch version component.
+     */
     daqErrCode EXPORTED daqVersionInfo_getPatch(daqVersionInfo* self, daqSizeT* patch);
+
     daqErrCode EXPORTED daqVersionInfo_createVersionInfo(daqVersionInfo** obj, daqSizeT major, daqSizeT minor, daqSizeT patch);
 
 #ifdef __cplusplus

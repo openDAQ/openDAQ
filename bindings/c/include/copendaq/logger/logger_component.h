@@ -34,6 +34,20 @@ extern "C"
 
 #include <ccommon.h>
 
+    /*!
+     * @brief Logs messages produced by a specific part of openDAC SDK. The messages are written into the @ref ILoggerSink "Logger Sinks" associated with the Logger Component object.
+     *
+     * The set of associated sinks is initialized on the Logger Component object creation and cannot be
+     * changed after.
+     *
+     * Logger Component allows to set up a threshold log severity level, so the messages with lower level
+     * will not be registered.
+     * Additionally, it provides the ability to trigger writing out messages stored in temporary buffers or
+     * set up the minimum severity level of messages to be written out automatically,
+     * see `flushOnLevel` method.
+     */
+    DAQ_EXTENDS_INTERFACE(daqLoggerComponent, daqBaseObject);
+
     typedef struct daqLoggerComponent daqLoggerComponent;
     typedef struct daqString daqString;
     typedef struct daqList daqList;
@@ -42,14 +56,52 @@ extern "C"
     EXPORTED extern const daqIntfID DAQ_LOGGER_COMPONENT_INTF_ID;
     void EXPORTED daqLoggerComponent_getInterfaceId(daqIntfID* intfId);
 
+    /*!
+     * @brief Gets the name of the component.
+     * @param[out] name The name of the component.
+     */
     daqErrCode EXPORTED daqLoggerComponent_getName(daqLoggerComponent* self, daqString** name);
+
+    /*!
+     * @brief Sets the minimal severity level of messages to be logged by the component.
+     * @param level The log severity level of the component.
+     */
     daqErrCode EXPORTED daqLoggerComponent_setLevel(daqLoggerComponent* self, daqLogLevel level);
+
+    /*!
+     * @brief Gets the minimal severity level of messages to be logged by the component.
+     * @param[out] level The log severity level of the component.
+     */
     daqErrCode EXPORTED daqLoggerComponent_getLevel(daqLoggerComponent* self, daqLogLevel* level);
-    // daqErrCode EXPORTED daqLoggerComponent_logMessage(daqLoggerComponent* self, daqSourceLocation location, daqConstCharPtr msg, daqLogLevel level);
+
+/*
+    daqErrCode EXPORTED daqLoggerComponent_logMessage(daqLoggerComponent* self, daqSourceLocation location, daqConstCharPtr msg, daqLogLevel level);
+*/
+
+    /*!
+     * @brief Sets the custom formatter pattern for the component.
+     * @param pattern The format pattern string.
+     */
     daqErrCode EXPORTED daqLoggerComponent_setPattern(daqLoggerComponent* self, daqString* pattern);
+
+    /*!
+     * @brief Checks whether the messages with given log severity level will be logged or not.
+     * @param level The severity level of messages.
+     * @param[out] willLog True if the messages with @p level will be logged within the component; false otherwise.
+     */
     daqErrCode EXPORTED daqLoggerComponent_shouldLog(daqLoggerComponent* self, daqLogLevel level, daqBool* willLog);
+
+    /*!
+     * @brief Triggers writing out the messages stored in temporary buffers.
+     */
     daqErrCode EXPORTED daqLoggerComponent_flush(daqLoggerComponent* self);
+
+    /*!
+     * @brief Sets the minimum severity level of messages to be automatically written to the associated sinks bypassing the temporary buffers.
+     * @param level The severity level of messages.
+     */
     daqErrCode EXPORTED daqLoggerComponent_flushOnLevel(daqLoggerComponent* self, daqLogLevel level);
+
     daqErrCode EXPORTED daqLoggerComponent_createLoggerComponent(daqLoggerComponent** obj, daqString* name, daqList* sinks, daqLoggerThreadPool* threadPool, daqLogLevel level);
 
 #ifdef __cplusplus

@@ -34,6 +34,12 @@ extern "C"
 
 #include <ccommon.h>
 
+    /*!
+     * @ingroup opendaq_log_file_info
+     * @addtogroup opendaq_log_file_info log_file_info_builder
+     */
+    DAQ_EXTENDS_INTERFACE(daqLogFileInfoBuilder, daqBaseObject);
+
     typedef struct daqLogFileInfoBuilder daqLogFileInfoBuilder;
     typedef struct daqLogFileInfo daqLogFileInfo;
     typedef struct daqString daqString;
@@ -41,21 +47,99 @@ extern "C"
     EXPORTED extern const daqIntfID DAQ_LOG_FILE_INFO_BUILDER_INTF_ID;
     void EXPORTED daqLogFileInfoBuilder_getInterfaceId(daqIntfID* intfId);
 
+    /*!
+     * @brief Builds the log file info.
+     * @param[out] logFileInfo The log file info.
+     */
     daqErrCode EXPORTED daqLogFileInfoBuilder_build(daqLogFileInfoBuilder* self, daqLogFileInfo** logFileInfo);
+
+    /*!
+     * @brief Gets the local path of the log file. The local path can be not assigned as it is optional.
+     * @param[out] localPath The local path of the log file.
+     */
     daqErrCode EXPORTED daqLogFileInfoBuilder_getLocalPath(daqLogFileInfoBuilder* self, daqString** localPath);
+
+    /*!
+     * @brief Sets the local path of the log file. The local path can be not assigned as it is optional.
+     * @param localPath The local path of the log file.
+     */
     daqErrCode EXPORTED daqLogFileInfoBuilder_setLocalPath(daqLogFileInfoBuilder* self, daqString* localPath);
+
+    /*!
+     * @brief Gets the name of the log file.
+     * @param[out] name The name of the log file.
+     */
     daqErrCode EXPORTED daqLogFileInfoBuilder_getName(daqLogFileInfoBuilder* self, daqString** name);
+
+    /*!
+     * @brief Sets the name of the log file.
+     * @param name The name of the log file.
+     */
     daqErrCode EXPORTED daqLogFileInfoBuilder_setName(daqLogFileInfoBuilder* self, daqString* name);
+
+    /*!
+     * @brief Gets the id of the log file. If the local path is not assigned, the id is equal to the `localPath + "/" + name`.
+     * @param id The id of the log file.
+     */
     daqErrCode EXPORTED daqLogFileInfoBuilder_getId(daqLogFileInfoBuilder* self, daqString** id);
+
+    /*!
+     * @brief Sets the id of the log file. Oth
+     * @param id The id of the log file.
+     */
     daqErrCode EXPORTED daqLogFileInfoBuilder_setId(daqLogFileInfoBuilder* self, daqString* id);
+
+    /*!
+     * @brief Gets the description of the log file.
+     * @param[out] description The description of the log file.
+     */
     daqErrCode EXPORTED daqLogFileInfoBuilder_getDescription(daqLogFileInfoBuilder* self, daqString** description);
+
+    /*!
+     * @brief Sets the description of the log file.
+     * @param description The description of the log file.
+     */
     daqErrCode EXPORTED daqLogFileInfoBuilder_setDescription(daqLogFileInfoBuilder* self, daqString* description);
+
+    /*!
+     * @brief Gets the size of the log file in bytes.
+     * @param[out] size The size of the log file.
+     */
     daqErrCode EXPORTED daqLogFileInfoBuilder_getSize(daqLogFileInfoBuilder* self, daqSizeT* size);
+
+    /*!
+     * @brief Sets the size of the log file in bytes.
+     * @param size The size of the log file.
+     */
     daqErrCode EXPORTED daqLogFileInfoBuilder_setSize(daqLogFileInfoBuilder* self, daqSizeT size);
+
+    /*!
+     * @brief Gets the encoding of the log file.
+     * @param[out] encoding The encoding of the log file.
+     */
     daqErrCode EXPORTED daqLogFileInfoBuilder_getEncoding(daqLogFileInfoBuilder* self, daqString** encoding);
+
+    /*!
+     * @brief Sets the encoding of the log file.
+     * @param encoding The encoding of the log file.
+     */
     daqErrCode EXPORTED daqLogFileInfoBuilder_setEncoding(daqLogFileInfoBuilder* self, daqString* encoding);
+
+    /*!
+     * @brief Gets the date of the last modification of the log file in ISO 8601 format.
+     * @param[out] lastModified The date of the last modification of the log file.
+     */
     daqErrCode EXPORTED daqLogFileInfoBuilder_getLastModified(daqLogFileInfoBuilder* self, daqString** lastModified);
+
+    /*!
+     * @brief Sets the date of the last modification of the log file in ISO 8601 format.
+     * @param lastModified The date of the last modification of the log file.
+     */
     daqErrCode EXPORTED daqLogFileInfoBuilder_setLastModified(daqLogFileInfoBuilder* self, daqString* lastModified);
+
+    /*!
+     * @brief Creates an LogFileInfo Builder with no parameters configured.
+     */
     daqErrCode EXPORTED daqLogFileInfoBuilder_createLogFileInfoBuilder(daqLogFileInfoBuilder** obj);
 
 #ifdef __cplusplus

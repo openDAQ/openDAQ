@@ -34,6 +34,11 @@ extern "C"
 
 #include <ccommon.h>
 
+    /*!
+     * @brief Builder component of Multi reader objects. Contains setter methods to configure the Multi reader parameters and a `build` method that builds the Unit object.
+     */
+    DAQ_EXTENDS_INTERFACE(daqMultiReaderBuilder, daqBaseObject);
+
     typedef struct daqMultiReaderBuilder daqMultiReaderBuilder;
     typedef struct daqMultiReader daqMultiReader;
     typedef struct daqSignal daqSignal;
@@ -44,34 +49,194 @@ extern "C"
     EXPORTED extern const daqIntfID DAQ_MULTI_READER_BUILDER_INTF_ID;
     void EXPORTED daqMultiReaderBuilder_getInterfaceId(daqIntfID* intfId);
 
+    /*!
+     * @brief Builds and returns a Multi reader object using the currently set values of the Builder.
+     * @param[out] multiReader The built Multi reader.
+     */
     daqErrCode EXPORTED daqMultiReaderBuilder_build(daqMultiReaderBuilder* self, daqMultiReader** multiReader);
+
+    /*!
+     * @brief Adds a signal that will be read by the multi reader
+     * @param signal The signal that will be read by the multi reader
+     */
     daqErrCode EXPORTED daqMultiReaderBuilder_addSignal(daqMultiReaderBuilder* self, daqSignal* signal);
-    daqErrCode EXPORTED daqMultiReaderBuilder_addSignals(daqMultiReaderBuilder* self, daqList* signals);
+
+    /*!
+     * @brief Adds signals that will be read by the multi reader
+     * @param signals The signals that will be read by the multi reader
+     */
+    daqErrCode EXPORTED daqMultiReaderBuilder_addSignals(daqMultiReaderBuilder* self, daqList* signals DAQ_LIST_ELEMENT_TYPE(daqSignal));
+
+    /*!
+     * @brief Adds a port that will be read from by the multi reader
+     * @param port The port that will be read by the multi reader
+     */
     daqErrCode EXPORTED daqMultiReaderBuilder_addInputPort(daqMultiReaderBuilder* self, daqInputPort* port);
-    daqErrCode EXPORTED daqMultiReaderBuilder_addInputPorts(daqMultiReaderBuilder* self, daqList* ports);
-    daqErrCode EXPORTED daqMultiReaderBuilder_getSourceComponents(daqMultiReaderBuilder* self, daqList** components);
+
+    /*!
+     * @brief Adds ports that will be read from by the multi reader
+     * @param ports The ports that will be read by the multi reader
+     */
+    daqErrCode EXPORTED daqMultiReaderBuilder_addInputPorts(daqMultiReaderBuilder* self, daqList* ports DAQ_LIST_ELEMENT_TYPE(daqInputPort));
+
+    /*!
+     * @brief Gets the list of read components (signals or ports)
+     * @param[out] components The list of read components
+     */
+    daqErrCode EXPORTED daqMultiReaderBuilder_getSourceComponents(daqMultiReaderBuilder* self, daqList** components DAQ_LIST_ELEMENT_TYPE(daqComponent));
+
+    /*!
+     * @brief Sets the value signal read type
+     * @param type The value signal read type
+     */
     daqErrCode EXPORTED daqMultiReaderBuilder_setValueReadType(daqMultiReaderBuilder* self, daqSampleType type);
+
+    /*!
+     * @brief Gets the value signal read type
+     * @param[out] type The value signal read type
+     */
     daqErrCode EXPORTED daqMultiReaderBuilder_getValueReadType(daqMultiReaderBuilder* self, daqSampleType* type);
+
+    /*!
+     * @brief Sets the domain signal read type
+     * @param type The domain signal read type
+     */
     daqErrCode EXPORTED daqMultiReaderBuilder_setDomainReadType(daqMultiReaderBuilder* self, daqSampleType type);
+
+    /*!
+     * @brief Gets the domain signal read type
+     * @param[out] type The domain signal read type
+     */
     daqErrCode EXPORTED daqMultiReaderBuilder_getDomainReadType(daqMultiReaderBuilder* self, daqSampleType* type);
+
+    /*!
+     * @brief Sets the read mode (Unscaled, Scaled, RawValue)
+     * @param mode The read mode
+     */
     daqErrCode EXPORTED daqMultiReaderBuilder_setReadMode(daqMultiReaderBuilder* self, daqReadMode mode);
+
+    /*!
+     * @brief Gets the read mode (Unscaled, Scaled, RawValue)
+     * @param[out] mode The read mode
+     */
     daqErrCode EXPORTED daqMultiReaderBuilder_getReadMode(daqMultiReaderBuilder* self, daqReadMode* mode);
+
+    /*!
+     * @brief Sets the read timeout mode
+     * @param type The timeout mode. if "Any" returns immediately if there is available data otherwise time-out is exceeded. if "All" waiting until timeout and returns available data if existing. otherwise time-out is exceeded.
+     *
+     * NOTE: THIS IS CURRENTLY IGNORED AND IS ALWAYS SET TO ReadTimeoutType::All
+     */
     daqErrCode EXPORTED daqMultiReaderBuilder_setReadTimeoutType(daqMultiReaderBuilder* self, daqReadTimeoutType type);
+
+    /*!
+     * @brief Gets the read timeout mode
+     * @param type The timeout mode. if "Any" returns immediately if there is available data otherwise time-out is exceeded. if "All" waiting until timeout and returns available data if existing. otherwise time-out is exceeded.
+     */
     daqErrCode EXPORTED daqMultiReaderBuilder_getReadTimeoutType(daqMultiReaderBuilder* self, daqReadTimeoutType* type);
+
+    /*!
+     * @brief Sets the required common sample rate
+     * @param sampleRate The required common sample rate
+     */
     daqErrCode EXPORTED daqMultiReaderBuilder_setRequiredCommonSampleRate(daqMultiReaderBuilder* self, daqInt sampleRate);
+
+    /*!
+     * @brief Gets the required common sample rate
+     * @param sampleRate The required common sample rate
+     */
     daqErrCode EXPORTED daqMultiReaderBuilder_getRequiredCommonSampleRate(daqMultiReaderBuilder* self, daqInt* sampleRate);
+
+    /*!
+     * @brief Sets the start on full unit of domain
+     * @param enabled enable/disable start on full unit of domain
+     */
     daqErrCode EXPORTED daqMultiReaderBuilder_setStartOnFullUnitOfDomain(daqMultiReaderBuilder* self, daqBool enabled);
+
+    /*!
+     * @brief Gets the start on full unit of domain
+     * @param enabled enable/disable start on full unit of domain
+     */
     daqErrCode EXPORTED daqMultiReaderBuilder_getStartOnFullUnitOfDomain(daqMultiReaderBuilder* self, daqBool* enabled);
+
+    /*!
+     * @brief Sets the minimal number of samples to read.
+     * @param minReadCount The minimal number of samples to read.
+     *
+     * If set, the reader will return 0 for `getAvailableCount` if less than `minReadCount`
+     * samples are available. It will also never read less than `minReadCount` samples. The
+     * default value is 1.
+     */
     daqErrCode EXPORTED daqMultiReaderBuilder_setMinReadCount(daqMultiReaderBuilder* self, daqSizeT minReadCount);
+
+    /*!
+     * @brief Gets the minimal number of samples to read.
+     * @param[out] minReadCount The minimal number of samples to read.
+     *
+     * If set, the reader will return 0 for `getAvailableCount` if less than `minReadCount`
+     * samples are available. It will also never read less than `minReadCount` samples. The
+     * default value is 1.
+     */
     daqErrCode EXPORTED daqMultiReaderBuilder_getMinReadCount(daqMultiReaderBuilder* self, daqSizeT* minReadCount);
+
+    /*!
+     * @brief Set maximum distance between signals in fractions of domain unit
+     * @param offsetTolerance Ratio that define offset tolerance as a fraction of domain unit.
+     */
     daqErrCode EXPORTED daqMultiReaderBuilder_setTickOffsetTolerance(daqMultiReaderBuilder* self, daqRatio* offsetTolerance);
+
+    /*!
+     * @brief Get maximum distance between signals in fractions of domain unit
+     * @param offsetTolerance[out] Ratio that define offset tolerance as a fraction of domain unit.
+     */
     daqErrCode EXPORTED daqMultiReaderBuilder_getTickOffsetTolerance(daqMultiReaderBuilder* self, daqRatio** offsetTolerance);
+
+    /*!
+     * @brief Sets the "AllowDifferentSamplingRates" multi reader parameter.
+     * @param allowDifferentRates If set to `false`, the multi reader will only accept signals with the same sampling rate.
+     */
     daqErrCode EXPORTED daqMultiReaderBuilder_setAllowDifferentSamplingRates(daqMultiReaderBuilder* self, daqBool allowDifferentRates);
+
+    /*!
+     * @brief Gets the "AllowDifferentSamplingRates" multi reader parameter.
+     * @param allowDifferentRates If set to `false`, the multi reader will only accept signals with the same sampling rate.
+     */
     daqErrCode EXPORTED daqMultiReaderBuilder_getAllowDifferentSamplingRates(daqMultiReaderBuilder* self, daqBool* allowDifferentRates);
+
+    /*!
+     * @brief Sets the notification method of ports created/owned by the multi reader. The default notification method is Unspecified.
+     * @param notificationMethod The notification method to be used.
+     *
+     * If "Unspecified", the reader keeps the mode of the input port. When building with signals, "Unspecified" is an invalid configuration.
+     */
     daqErrCode EXPORTED daqMultiReaderBuilder_setInputPortNotificationMethod(daqMultiReaderBuilder* self, daqPacketReadyNotification notificationMethod);
+
+    /*!
+     * @brief Gets the notification method of ports created/owned by the multi reader. The default notification method is SameThread.
+     * @param notificationMethod The notification method to be used.
+     *
+     * If "Unspecified", the reader keeps the mode of the input port. When building with signals, "Unspecified" is an invalid configuration.
+     */
     daqErrCode EXPORTED daqMultiReaderBuilder_getInputPortNotificationMethod(daqMultiReaderBuilder* self, daqPacketReadyNotification* notificationMethod);
-    daqErrCode EXPORTED daqMultiReaderBuilder_setInputPortNotificationMethods(daqMultiReaderBuilder* self, daqList* notificationMethods);
-    daqErrCode EXPORTED daqMultiReaderBuilder_getInputPortNotificationMethods(daqMultiReaderBuilder* self, daqList** notificationMethods);
+
+    /*!
+     * @brief Sets the notification methods of ports created/owned by the multi reader. The default notification method is Unspecified.
+     * @param notificationMethods The notification methods to be used.
+     *
+     * The list of methods corresponds to the list of reader components (signals, input ports). Both the size and order of both must match if configured.
+     * If a method is set to "Unspecified", the reader keeps the mode of the input port. When building with signals, "Unspecified" is an invalid configuration.
+     */
+    daqErrCode EXPORTED daqMultiReaderBuilder_setInputPortNotificationMethods(daqMultiReaderBuilder* self, daqList* notificationMethods DAQ_LIST_ELEMENT_TYPE(daqPacketReadyNotification));
+
+    /*!
+     * @brief Gets the notification methods of ports created/owned by the multi reader. The default notification method is Unspecified.
+     * @param notificationMethods The notification methods to be used.
+     *
+     * The list of methods corresponds to the list of reader components (signals, input ports). Both the size and order of both must match if configured.
+     * If a method is set to "Unspecified", the reader keeps the mode of the input port. When building with signals, "Unspecified" is an invalid configuration.
+     */
+    daqErrCode EXPORTED daqMultiReaderBuilder_getInputPortNotificationMethods(daqMultiReaderBuilder* self, daqList** notificationMethods DAQ_LIST_ELEMENT_TYPE(daqPacketReadyNotification));
+
     daqErrCode EXPORTED daqMultiReaderBuilder_createMultiReaderBuilder(daqMultiReaderBuilder** obj);
 
 #ifdef __cplusplus

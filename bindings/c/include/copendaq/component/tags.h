@@ -34,6 +34,17 @@ extern "C"
 
 #include <ccommon.h>
 
+    /*!
+     * @brief List of string tags. Provides helpers to get and search the list of tags.
+     *
+     * Tags provide a view into an underlying list of tags. The list can be retrieved via
+     * `getList`, and inspected through `contains` and `query`.
+     *
+     * To manipulate the list of tags, the add/remove tag functions can be used. The Tags
+     * object can only be modified if the object is not locked by the owning Component.
+     */
+    DAQ_EXTENDS_INTERFACE(daqTags, daqBaseObject);
+
     typedef struct daqTags daqTags;
     typedef struct daqList daqList;
     typedef struct daqString daqString;
@@ -41,9 +52,26 @@ extern "C"
     EXPORTED extern const daqIntfID DAQ_TAGS_INTF_ID;
     void EXPORTED daqTags_getInterfaceId(daqIntfID* intfId);
 
-    daqErrCode EXPORTED daqTags_getList(daqTags* self, daqList** value);
+    /*!
+     * @brief Gets the list of all tags in the list.
+     * @param[out] value The list of tag strings.
+     */
+    daqErrCode EXPORTED daqTags_getList(daqTags* self, daqList** value DAQ_LIST_ELEMENT_TYPE(daqString));
+
+    /*!
+     * @brief Checks whether a tag is present in the list of tags.
+     * @param name The name of the tag being checked.
+     * @param[out] value True if a tag is found; false otherwise.
+     */
     daqErrCode EXPORTED daqTags_contains(daqTags* self, daqString* name, daqBool* value);
+
+    /*!
+     * @brief Queries the list of tags, creating an EvalValue expression from the `query` string. Returns true if the list of tags matches the query, false otherwise.
+     * @param query The query string. I.e. "tag1 || (tag2 && tag3)"
+     * @param[out] value The result of the query
+     */
     daqErrCode EXPORTED daqTags_query(daqTags* self, daqString* query, daqBool* value);
+
     daqErrCode EXPORTED daqTags_createTags(daqTags** obj);
 
 #ifdef __cplusplus

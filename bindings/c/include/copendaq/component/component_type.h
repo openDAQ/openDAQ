@@ -34,6 +34,14 @@ extern "C"
 
 #include <ccommon.h>
 
+    /*!
+     * @brief Provides information about the component types.
+     *
+     * Is a Struct core type, and has access to Struct methods internally. Note that the Default config is not part of
+     * the Struct fields.
+     */
+    DAQ_EXTENDS_INTERFACE(daqComponentType, daqBaseObject);
+
     typedef struct daqComponentType daqComponentType;
     typedef struct daqString daqString;
     typedef struct daqPropertyObject daqPropertyObject;
@@ -42,10 +50,43 @@ extern "C"
     EXPORTED extern const daqIntfID DAQ_COMPONENT_TYPE_INTF_ID;
     void EXPORTED daqComponentType_getInterfaceId(daqIntfID* intfId);
 
+    /*!
+     * @brief Gets the unique component type id.
+     * @param[out] id The unique id of a component type.
+     *
+     * Unique id should not be presented on the UI.
+     */
     daqErrCode EXPORTED daqComponentType_getId(daqComponentType* self, daqString** id);
+
+    /*!
+     * @brief Gets the user-friendly name of a component type.
+     * @param[out] name The user-friendly name of a component type.
+     *
+     * Name is usually presented on the UI. Does not have to be unique.
+     */
     daqErrCode EXPORTED daqComponentType_getName(daqComponentType* self, daqString** name);
+
+    /*!
+     * @brief Gets the description of a component type.
+     * @param[out] description The description of a component type.
+     *
+     * A short description of a component type and the associated configuration parameters it offers.
+     */
     daqErrCode EXPORTED daqComponentType_getDescription(daqComponentType* self, daqString** description);
+
+    /*!
+     * @brief The function clones and returns default configuration. On each call, we need to create new object, because we want that each instance of the component has its own configuration object.
+     * @param[out] defaultConfig Newly created configuration object.
+     *
+     * Configuration objects are property object with user-defined key-value pairs.
+     * For example: Port=1000, OutputRate=5000, ...
+     */
     daqErrCode EXPORTED daqComponentType_createDefaultConfig(daqComponentType* self, daqPropertyObject** defaultConfig);
+
+    /*!
+     * @brief Retrieves the module information.
+     * @param[out] info The module information.
+     */
     daqErrCode EXPORTED daqComponentType_getModuleInfo(daqComponentType* self, daqModuleInfo** info);
 
 #ifdef __cplusplus

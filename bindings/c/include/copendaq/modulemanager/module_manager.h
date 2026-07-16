@@ -34,6 +34,11 @@ extern "C"
 
 #include <ccommon.h>
 
+    /*!
+     * @brief Loads all available modules in a implementation-defined manner. User can also side-load custom modules via `addModule` call.
+     */
+    DAQ_EXTENDS_INTERFACE(daqModuleManager, daqBaseObject);
+
     typedef struct daqModuleManager daqModuleManager;
     typedef struct daqList daqList;
     typedef struct daqModule daqModule;
@@ -45,14 +50,57 @@ extern "C"
     EXPORTED extern const daqIntfID DAQ_MODULE_MANAGER_INTF_ID;
     void EXPORTED daqModuleManager_getInterfaceId(daqIntfID* intfId);
 
-    daqErrCode EXPORTED daqModuleManager_getModules(daqModuleManager* self, daqList** modules);
+    /*!
+     * @brief Retrieves all modules known to the manager. Whether they were found or side-loaded.
+     * @param[out] modules A list of known modules.
+     */
+    daqErrCode EXPORTED daqModuleManager_getModules(daqModuleManager* self, daqList** modules DAQ_LIST_ELEMENT_TYPE(daqModule));
+
+    /*!
+     * @brief Side-load a custom module in run-time from memory that was not found by default.
+     * @param module The module to add.
+     * @retval OPENDAQ_ERR_DUPLICATEITEM When an identical @p module was already added.
+     */
     daqErrCode EXPORTED daqModuleManager_addModule(daqModuleManager* self, daqModule* module);
+
+    /*!
+     * @brief Loads all modules from the directory path specified during manager construction. The Context is passed to all loaded modules for internal use.
+     * @param context The Context containing the Logger, Scheduler, Property Object Class Manager and Module Manager
+     */
     daqErrCode EXPORTED daqModuleManager_loadModules(daqModuleManager* self, daqContext* context);
+
+    /*!
+     * @brief Loads and adds a single module from the given absolute file system path.
+     * @param path The absolute path to the module file.
+     * @param[out] module The resulting loaded and added module object.
+     *
+     * This function should be used only after the default modules have been loaded using `loadModules`.
+     * The specified path must exist and reference a file with the proper extension.
+     */
     daqErrCode EXPORTED daqModuleManager_loadModule(daqModuleManager* self, daqString* path, daqModule** module);
+
+    /*!
+     * @brief Toggle whether this module manager will only load modules that can be authenticated.
+     * @param authenticatedOnly true - only authenticated modules are loaded, false - all modules are loaded
+     */
     daqErrCode EXPORTED daqModuleManager_setAuthenticatedOnly(daqModuleManager* self, daqBool authenticatedOnly);
+
+    /*!
+     * @brief Imports the module authenticator.
+     * @param authenticator A custom authenticator used to verify the signature/checksum of the modules.
+     */
     daqErrCode EXPORTED daqModuleManager_setModuleAuthenticator(daqModuleManager* self, daqModuleAuthenticator* authenticator);
-    daqErrCode EXPORTED daqModuleManager_getVendorKeys(daqModuleManager* self, daqDict** vendorKeys);
+
+    /*!
+     * @brief Returns a dictionary of module IDs and the respective public keys of their vendors.
+     * @param[out] vendorKeys key (IString) - module ID, value (IString) - public vendor key
+     *
+     * Used to identify which authenticator/certificate was used to authenticate the module.
+     */
+    daqErrCode EXPORTED daqModuleManager_getVendorKeys(daqModuleManager* self, daqDict** vendorKeys DAQ_DICT_TEMPLATE_TYPE(daqString, daqString));
+
     daqErrCode EXPORTED daqModuleManager_createModuleManager(daqModuleManager** obj, daqString* path);
+
     daqErrCode EXPORTED daqModuleManager_createModuleManagerMultiplePaths(daqModuleManager** obj, daqList* paths);
 
 #ifdef __cplusplus

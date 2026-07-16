@@ -34,13 +34,27 @@ extern "C"
 
 #include <ccommon.h>
 
+    /*!
+     * @brief Internal User interface. It should be used only in openDAQ core implementation files.
+     */
+    DAQ_EXTENDS_INTERFACE(daqUserInternal, daqBaseObject);
+
     typedef struct daqUserInternal daqUserInternal;
     typedef struct daqString daqString;
 
     EXPORTED extern const daqIntfID DAQ_USER_INTERNAL_INTF_ID;
     void EXPORTED daqUserInternal_getInterfaceId(daqIntfID* intfId);
 
+    /*!
+     * @brief Returns the user's password, which can either be in plain text or hashed using the Bcrypt algorithm. Hashed passwords should follow the Modular Crypt Format. For security purposes, hashed passwords are preferred.
+     * @param passwordHash[out] Returns the user's password, which can either be in plain text or hashed using the Bcrypt algorithm.
+     */
     daqErrCode EXPORTED daqUserInternal_getPasswordHash(daqUserInternal* self, daqString** passwordHash);
+
+    /*!
+     * @brief Returns true if user is anonymous. Anonymous user is any user without defined username and passowrd.
+     * @param anonymous[out] Returns true if user is anonymous.
+     */
     daqErrCode EXPORTED daqUserInternal_isAnonymous(daqUserInternal* self, daqBool* anonymous);
 
 #ifdef __cplusplus

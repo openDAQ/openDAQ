@@ -34,6 +34,12 @@ extern "C"
 
 #include <ccommon.h>
 
+    /*!
+     * @ingroup opendaq_server_capability
+     * @addtogroup opendaq_address_info Address info
+     */
+    DAQ_EXTENDS_INTERFACE(daqAddressInfoBuilder, daqBaseObject);
+
     typedef struct daqAddressInfoBuilder daqAddressInfoBuilder;
     typedef struct daqAddressInfo daqAddressInfo;
     typedef struct daqString daqString;
@@ -41,15 +47,73 @@ extern "C"
     EXPORTED extern const daqIntfID DAQ_ADDRESS_INFO_BUILDER_INTF_ID;
     void EXPORTED daqAddressInfoBuilder_getInterfaceId(daqIntfID* intfId);
 
+    /*!
+     * @brief Builds the address.
+     * @param[out] address The address.
+     */
     daqErrCode EXPORTED daqAddressInfoBuilder_build(daqAddressInfoBuilder* self, daqAddressInfo** address);
+
+    /*!
+     * @brief Gets the server address as a string.
+     * @param[out] address The server address as a string.
+     */
     daqErrCode EXPORTED daqAddressInfoBuilder_getAddress(daqAddressInfoBuilder* self, daqString** address);
+
+    /*!
+     * @brief Sets the server address as a string.
+     * @param address The server address as a string.
+     */
     daqErrCode EXPORTED daqAddressInfoBuilder_setAddress(daqAddressInfoBuilder* self, daqString* address);
+
+    /*!
+     * @brief Gets the connection string corresponding to the address.
+     * @param[out] connectionString The connection string.
+     */
     daqErrCode EXPORTED daqAddressInfoBuilder_getConnectionString(daqAddressInfoBuilder* self, daqString** connectionString);
+
+    /*!
+     * @brief Sets the connection string corresponding to the address.
+     * @param connectionString The connection string.
+     */
     daqErrCode EXPORTED daqAddressInfoBuilder_setConnectionString(daqAddressInfoBuilder* self, daqString* connectionString);
+
+    /*!
+     * @brief Gets the type of the address.
+     * @param[out] type The type the address.
+     *
+     * Currently available address types in the main openDAQ modules are: IPv4 and IPv6.
+     */
     daqErrCode EXPORTED daqAddressInfoBuilder_getType(daqAddressInfoBuilder* self, daqString** type);
+
+    /*!
+     * @brief Sets the type of the address.
+     * @param type The type the address.
+     *
+     * Currently available address types in the main openDAQ modules are: IPv4 and IPv6.
+     */
     daqErrCode EXPORTED daqAddressInfoBuilder_setType(daqAddressInfoBuilder* self, daqString* type);
+
+    /*!
+     * @brief Gets the reachability status of the address.
+     * @param addressReachability The reachability status of the address.
+     *
+     * This status is set to "Unknown" by default. For IPv4 address types, the module manager checks
+     * reachability when querying for available devices.
+     */
     daqErrCode EXPORTED daqAddressInfoBuilder_getReachabilityStatus(daqAddressInfoBuilder* self, daqAddressReachabilityStatus* addressReachability);
+
+    /*!
+     * @brief Sets the reachability status of the address.
+     * @param addressReachability The reachability status of the address.
+     *
+     * This status is set to "Unknown" by default. For IPv4 address types, the module manager checks
+     * reachability when querying for available devices.
+     */
     daqErrCode EXPORTED daqAddressInfoBuilder_setReachabilityStatus(daqAddressInfoBuilder* self, daqAddressReachabilityStatus addressReachability);
+
+    /*!
+     * @brief Creates an Address builder with no parameters configured.
+     */
     daqErrCode EXPORTED daqAddressInfoBuilder_createAddressInfoBuilder(daqAddressInfoBuilder** obj);
 
 #ifdef __cplusplus

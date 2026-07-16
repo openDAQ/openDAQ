@@ -34,6 +34,26 @@ extern "C"
 
 #include <ccommon.h>
 
+    /*!
+     * @brief Signal descriptor field that defines a scaling transformation, which should be applied to data carried by the signal's packets when read.
+     *
+     * Each scaling specifies its `scalingType` and parses the parameters accordingly. The parameters
+     * are to be interpreted and used as specified by each specific scaling type as detailed below.
+     *
+     * Additionally, each Scaling object states is input and output data types. The inputDataType
+     * describes the raw data type of the signal value (that data is input into the scaling scaling),
+     * while the outputDataType should match the sample type of the signal's value descriptor.
+     * Scaling objects implement the Struct methods internally and are Core type `ctStruct`.
+     * @subsection scaling_types Scaling types
+     * @subsubsection scaling_types_linear Linear scaling
+     * Linear scaling parameters must have two entries:
+     *   - Scale: coefficient by which the input data is to be multiplied
+     *   - Offset: a constant that is added to the <em>scale * value</em> multiplication result
+     *
+     * The linear scaling output is calculated as follows: <em>inputValue * scale + offset</em>
+     */
+    DAQ_EXTENDS_INTERFACE(daqScaling, daqBaseObject);
+
     typedef struct daqScaling daqScaling;
     typedef struct daqDict daqDict;
     typedef struct daqNumber daqNumber;
@@ -42,12 +62,59 @@ extern "C"
     EXPORTED extern const daqIntfID DAQ_SCALING_INTF_ID;
     void EXPORTED daqScaling_getInterfaceId(daqIntfID* intfId);
 
+    /*!
+     * @brief Gets the scaling's input data type.
+     * @param[out] type The input data type
+     *
+     * The input data type corresponds to the raw values passed through the signal path in
+     * data packets.
+     */
     daqErrCode EXPORTED daqScaling_getInputSampleType(daqScaling* self, daqSampleType* type);
+
+    /*!
+     * @brief Gets the scaling's output data type.
+     * @param[out] type The output data type
+     *
+     * The output data type corresponds to the sample type specified in the value descriptor of
+     * a signal, and is the type in which said signal's data should be read in after having
+     * the scaling applied to it.
+     */
     daqErrCode EXPORTED daqScaling_getOutputSampleType(daqScaling* self, daqScaledSampleType* type);
+
+    /*!
+     * @brief Gets the type of the scaling that determines how the scaling parameters should be interpreted and how the scaling should be calculated.
+     * @param[out] type The type of the scaling.
+     */
     daqErrCode EXPORTED daqScaling_getType(daqScaling* self, daqScalingType* type);
-    daqErrCode EXPORTED daqScaling_getParameters(daqScaling* self, daqDict** parameters);
+
+    /*!
+     * @brief Gets the dictionary of parameters that are used to calculate the scaling in conjunction with the input data.
+     * @param[out] parameters The dictionary of parameters.
+     */
+    daqErrCode EXPORTED daqScaling_getParameters(daqScaling* self, daqDict** parameters DAQ_DICT_TEMPLATE_TYPE(daqString, daqBaseObject));
+
+    /*!
+     * @brief Creates a Scaling with a Linear scaling type configuration. The returned Scaling object is already frozen.
+     * @param scale Coefficient by which the input data is to be multiplied.
+     * @param offset Constant that is added to the <em>scale * value</em> multiplication result.
+     * @param inputDataType The scaling's input data type.
+     * @param outputDataType The scaling's output data type.
+     */
     daqErrCode EXPORTED daqScaling_createLinearScaling(daqScaling** obj, daqNumber* scale, daqNumber* offset, daqSampleType inputDataType, daqScaledSampleType outputDataType);
+
+    /*!
+     * @brief Creates a Scaling object with given input/output types, Scaling type and parameters.
+     * @param inputDataType The type of input data expected by the rule.
+     * @param outputDataType The data type output by the rule after calculation.
+     * @param scalingType The type of the scaling.
+     * @param parameters Tha parameters of the Dimension rule.
+     */
     daqErrCode EXPORTED daqScaling_createScaling(daqScaling** obj, daqSampleType inputDataType, daqScaledSampleType outputDataType, daqScalingType scalingType, daqDict* parameters);
+
+    /*!
+     * @brief Creates a Scaling object from Builder
+     * @param builder Scaling Builder
+     */
     daqErrCode EXPORTED daqScaling_createScalingFromBuilder(daqScaling** obj, daqScalingBuilder* builder);
 
 #ifdef __cplusplus

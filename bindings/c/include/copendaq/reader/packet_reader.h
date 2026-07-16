@@ -34,6 +34,11 @@ extern "C"
 
 #include <ccommon.h>
 
+    /*!
+     * @brief A signal reader reads packets from a signal data stream.
+     */
+    DAQ_EXTENDS_INTERFACE(daqPacketReader, daqReader);
+
     typedef struct daqPacketReader daqPacketReader;
     typedef struct daqPacket daqPacket;
     typedef struct daqList daqList;
@@ -43,9 +48,20 @@ extern "C"
     EXPORTED extern const daqIntfID DAQ_PACKET_READER_INTF_ID;
     void EXPORTED daqPacketReader_getInterfaceId(daqIntfID* intfId);
 
+    /*!
+     * @brief Retrieves the next available packet in the data-stream.
+     * @param[out] packet The next available packet or @c nullptr if not are available.
+     */
     daqErrCode EXPORTED daqPacketReader_read(daqPacketReader* self, daqPacket** packet);
-    daqErrCode EXPORTED daqPacketReader_readAll(daqPacketReader* self, daqList** packets);
+
+    /*!
+     * @brief Retrieves all the currently available packets in the data-stream.
+     * @param[out] packets The currently available packets or an empty list.
+     */
+    daqErrCode EXPORTED daqPacketReader_readAll(daqPacketReader* self, daqList** packets DAQ_LIST_ELEMENT_TYPE(daqPacket));
+
     daqErrCode EXPORTED daqPacketReader_createPacketReader(daqPacketReader** obj, daqSignal* signal);
+
     daqErrCode EXPORTED daqPacketReader_createPacketReaderFromPort(daqPacketReader** obj, daqInputPortConfig* port);
 
 #ifdef __cplusplus

@@ -34,15 +34,47 @@ extern "C"
 
 #include <ccommon.h>
 
+    /*!
+     * @brief Provides information about the argument count and types, as well as the return type of Function/Procedure-type properties.
+     *
+     * A callable should be invoked with the parameter types specified in the `arguments` field, in the
+     * order listed.
+     *
+     * A Procedure-type Property will not have a return type configured in its Callable info field.
+     * Argument info objects implement the Struct methods internally and are Core type `ctStruct`.
+     */
+    DAQ_EXTENDS_INTERFACE(daqCallableInfo, daqBaseObject);
+
     typedef struct daqCallableInfo daqCallableInfo;
     typedef struct daqList daqList;
 
     EXPORTED extern const daqIntfID DAQ_CALLABLE_INFO_INTF_ID;
     void EXPORTED daqCallableInfo_getInterfaceId(daqIntfID* intfId);
 
+    /*!
+     * @brief Gets the return type of the callable function.
+     * @param[out] type The return type of the callable.
+     */
     daqErrCode EXPORTED daqCallableInfo_getReturnType(daqCallableInfo* self, daqCoreType* type);
-    daqErrCode EXPORTED daqCallableInfo_getArguments(daqCallableInfo* self, daqList** argumentInfo);
+
+    /*!
+     * @brief Gets the list of arguments the callable function/procedure expects.
+     * @param[out] argumentInfo the list of arguments of type `ArgumentInfo`.
+     */
+    daqErrCode EXPORTED daqCallableInfo_getArguments(daqCallableInfo* self, daqList** argumentInfo DAQ_LIST_ELEMENT_TYPE(daqArgumentInfo));
+
+    /*!
+     * @brief A flag indicating if function is marked as const. A const function promises not to modify the state of the device or any other objects under the openDAQ instance.
+     * @param[out] constFlag a flag indicating if the function is marked as const or not.
+     */
     daqErrCode EXPORTED daqCallableInfo_isConst(daqCallableInfo* self, daqBool* constFlag);
+
+    /*!
+     * @brief Creates a CallableInfo object with the specified arguments and return type.
+     * @param argumentInfo The list of `ArgumentInfo` type argument information.
+     * @param returnType The return type of the described callable object.
+     * @param constFlag A flag indicating if the function is marked as const or not. A const function promises not to modify the state of the device or any other objects under the openDAQ instance.
+     */
     daqErrCode EXPORTED daqCallableInfo_createCallableInfo(daqCallableInfo** obj, daqList* argumentInfo, daqCoreType returnType, daqBool constFlag);
 
 #ifdef __cplusplus

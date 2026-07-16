@@ -34,6 +34,8 @@ extern "C"
 
 #include <ccommon.h>
 
+    DAQ_EXTENDS_INTERFACE(daqSubscriptionEventArgs, daqEventArgs);
+
     typedef struct daqSubscriptionEventArgs daqSubscriptionEventArgs;
     typedef struct daqString daqString;
 
@@ -41,7 +43,9 @@ extern "C"
     void EXPORTED daqSubscriptionEventArgs_getInterfaceId(daqIntfID* intfId);
 
     daqErrCode EXPORTED daqSubscriptionEventArgs_getStreamingConnectionString(daqSubscriptionEventArgs* self, daqString** streamingConnectionString);
+
     daqErrCode EXPORTED daqSubscriptionEventArgs_getSubscriptionEventType(daqSubscriptionEventArgs* self, daqSubscriptionEventType* type);
+
     daqErrCode EXPORTED daqSubscriptionEventArgs_createSubscriptionEventArgs(daqSubscriptionEventArgs** obj, daqString* streamingConnectionString, daqSubscriptionEventType type);
 
 #ifdef __cplusplus

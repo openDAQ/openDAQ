@@ -34,6 +34,11 @@ extern "C"
 
 #include <ccommon.h>
 
+    /*!
+     * @brief An immutable structure which describes an openDAQ user. It holds username, password as a hash string and a list of groups assigned to the user.
+     */
+    DAQ_EXTENDS_INTERFACE(daqUser, daqBaseObject);
+
     typedef struct daqUser daqUser;
     typedef struct daqString daqString;
     typedef struct daqList daqList;
@@ -41,8 +46,24 @@ extern "C"
     EXPORTED extern const daqIntfID DAQ_USER_INTF_ID;
     void EXPORTED daqUser_getInterfaceId(daqIntfID* intfId);
 
+    /*!
+     * @brief Returns the username as a string.
+     * @param username[out] The username.
+     */
     daqErrCode EXPORTED daqUser_getUsername(daqUser* self, daqString** username);
-    daqErrCode EXPORTED daqUser_getGroups(daqUser* self, daqList** groups);
+
+    /*!
+     * @brief Returns a list of group IDs which the user belongs to.
+     * @param password[out] groups The list of group IDs which the user belongs to.
+     */
+    daqErrCode EXPORTED daqUser_getGroups(daqUser* self, daqList** groups DAQ_LIST_ELEMENT_TYPE(daqString));
+
+    /*!
+     * @brief Creates an immutable user object
+     * @param username The username.
+     * @param passwordHash The hashed password as a string in Modular Crypt Format.
+     * @param groups The list of group IDs which the user belongs to.
+     */
     daqErrCode EXPORTED daqUser_createUser(daqUser** obj, daqString* username, daqString* passwordHash, daqList* groups);
 
 #ifdef __cplusplus

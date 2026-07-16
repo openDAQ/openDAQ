@@ -34,13 +34,30 @@ extern "C"
 
 #include <ccommon.h>
 
+    /*!
+     * @brief An iterable object can construct iterators and use them to iterate through items.
+     *
+     * Use this interface to get the start and end iterators. Use iterators to iterate through
+     * available items. Containers such as lists and dictionaries usually implement this interface.
+     */
+    DAQ_EXTENDS_INTERFACE(daqIterable, daqBaseObject);
+
     typedef struct daqIterable daqIterable;
     typedef struct daqIterator daqIterator;
 
     EXPORTED extern const daqIntfID DAQ_ITERABLE_INTF_ID;
     void EXPORTED daqIterable_getInterfaceId(daqIntfID* intfId);
 
+    /*!
+     * @brief Creates and returns the object's start iterator.
+     * @param[out] iterator The object's start iterator.
+     */
     daqErrCode EXPORTED daqIterable_createStartIterator(daqIterable* self, daqIterator** iterator);
+
+    /*!
+     * @brief Creates and returns the object's end iterator.
+     * @param[out] iterator The object's end iterator.
+     */
     daqErrCode EXPORTED daqIterable_createEndIterator(daqIterable* self, daqIterator** iterator);
 
 #ifdef __cplusplus

@@ -34,12 +34,29 @@ extern "C"
 
 #include <ccommon.h>
 
+    /*!
+     * @brief Allows the component to be notified when it is removed.
+     */
+    DAQ_EXTENDS_INTERFACE(daqRemovable, daqBaseObject);
+
     typedef struct daqRemovable daqRemovable;
 
     EXPORTED extern const daqIntfID DAQ_REMOVABLE_INTF_ID;
     void EXPORTED daqRemovable_getInterfaceId(daqIntfID* intfId);
 
+    /*!
+     * @brief Notifies the component that it is being removed.
+     *
+     * Call `remove` on the component to mark it as removed. It's up to the implementation
+     * to define what is does on the act of removal. Basic implementation of `Component`
+     * will switch it to inactive state and it cannot be activated again.
+     */
     daqErrCode EXPORTED daqRemovable_remove(daqRemovable* self);
+
+    /*!
+     * @brief Returns True if component was removed.
+     * @param[out] removed True if component was removed; otherwise False.
+     */
     daqErrCode EXPORTED daqRemovable_isRemoved(daqRemovable* self, daqBool* removed);
 
 #ifdef __cplusplus

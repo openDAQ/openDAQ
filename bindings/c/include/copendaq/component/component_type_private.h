@@ -34,12 +34,21 @@ extern "C"
 
 #include <ccommon.h>
 
+    /*!
+     * @brief Private interface to component type. Allows for setting the module information.
+     */
+    DAQ_EXTENDS_INTERFACE(daqComponentTypePrivate, daqBaseObject);
+
     typedef struct daqComponentTypePrivate daqComponentTypePrivate;
     typedef struct daqModuleInfo daqModuleInfo;
 
     EXPORTED extern const daqIntfID DAQ_COMPONENT_TYPE_PRIVATE_INTF_ID;
     void EXPORTED daqComponentTypePrivate_getInterfaceId(daqIntfID* intfId);
 
+    /*!
+     * @brief Sets the module information.
+     * @param info The module information.
+     */
     daqErrCode EXPORTED daqComponentTypePrivate_setModuleInfo(daqComponentTypePrivate* self, daqModuleInfo* info);
 
 #ifdef __cplusplus

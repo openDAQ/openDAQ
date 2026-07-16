@@ -34,18 +34,61 @@ extern "C"
 
 #include <ccommon.h>
 
+    /*!
+     * @ingroup opendaq_server_capability
+     * @addtogroup opendaq_connected_client_info Connected client info
+     */
+    DAQ_EXTENDS_INTERFACE(daqConnectedClientInfo, daqPropertyObject);
+
     typedef struct daqConnectedClientInfo daqConnectedClientInfo;
     typedef struct daqString daqString;
 
     EXPORTED extern const daqIntfID DAQ_CONNECTED_CLIENT_INFO_INTF_ID;
     void EXPORTED daqConnectedClientInfo_getInterfaceId(daqIntfID* intfId);
 
+    /*!
+     * @brief Gets the client address string.
+     * @param[out] address The client address string.
+     */
     daqErrCode EXPORTED daqConnectedClientInfo_getAddress(daqConnectedClientInfo* self, daqString** address);
+
+    /*!
+     * @brief Gets the type of protocol used by the client.
+     * @param[out] type The type of protocol (Enumeration value reflecting protocol type: "ConfigurationAndStreaming", "Configuration", "Streaming", "Unknown").
+     */
     daqErrCode EXPORTED daqConnectedClientInfo_getProtocolType(daqConnectedClientInfo* self, daqProtocolType* type);
+
+    /*!
+     * @brief Gets the name of the protocol used by the client.
+     * @param[out] protocolName The name of the protocol (e.g., "OpenDAQNativeStreaming", "OpenDAQOPCUA", "OpenDAQLTStreaming").
+     */
     daqErrCode EXPORTED daqConnectedClientInfo_getProtocolName(daqConnectedClientInfo* self, daqString** protocolName);
+
+    /*!
+     * @brief Gets the type of connected configuration connection client.
+     * @param[out] type The string representation of client type ("Control", "ExclusiveControl", "ViewOnly").
+     */
     daqErrCode EXPORTED daqConnectedClientInfo_getClientTypeName(daqConnectedClientInfo* self, daqString** type);
+
+    /*!
+     * @brief Gets the client host name.
+     * @param[out] hostName The client host name.
+     */
     daqErrCode EXPORTED daqConnectedClientInfo_getHostName(daqConnectedClientInfo* self, daqString** hostName);
+
+    /*!
+     * @brief Creates a Connected client with no parameters configured.
+     */
     daqErrCode EXPORTED daqConnectedClientInfo_createConnectedClientInfo(daqConnectedClientInfo** obj);
+
+    /*!
+     * @brief Creates a Connected client info using the provided parameters.
+     * @param address The address of connected client.
+     * @param protocolType The type of the protocol type used by the client.
+     * @param protocolName The name of the protocol name used by the client.
+     * @param clientType The configuration connection client type name.
+     * @param hostName The host name of connected client.
+     */
     daqErrCode EXPORTED daqConnectedClientInfo_createConnectedClientInfoWithParams(daqConnectedClientInfo** obj, daqString* address, daqProtocolType protocolType, daqString* protocolName, daqString* clientType, daqString* hostName);
 
 #ifdef __cplusplus

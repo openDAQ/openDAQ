@@ -34,14 +34,34 @@ extern "C"
 
 #include <ccommon.h>
 
+    /*!
+     * @brief Describes a range of values between the `lowValue` and `highValue` boundaries.
+     * Range objects implement the Struct methods internally and are Core type `ctStruct`.
+     */
+    DAQ_EXTENDS_INTERFACE(daqRange, daqBaseObject);
+
     typedef struct daqRange daqRange;
     typedef struct daqNumber daqNumber;
 
     EXPORTED extern const daqIntfID DAQ_RANGE_INTF_ID;
     void EXPORTED daqRange_getInterfaceId(daqIntfID* intfId);
 
+    /*!
+     * @brief Gets the lower boundary value of the range.
+     */
     daqErrCode EXPORTED daqRange_getLowValue(daqRange* self, daqNumber** value);
+
+    /*!
+     * @brief Gets the upper boundary value of the range.
+     */
     daqErrCode EXPORTED daqRange_getHighValue(daqRange* self, daqNumber** value);
+
+    /*!
+     * @brief Creates a range object with specified low and high boundary values.
+     * @param lowValue The lower boundary of the range.
+     * @param highValue The upper boundary of the range.
+     * @retval OPENDAQ_ERR_RANGE_BOUNDARIES_INVALID if lowValue > highValue.
+     */
     daqErrCode EXPORTED daqRange_createRange(daqRange** obj, daqNumber* lowValue, daqNumber* highValue);
 
 #ifdef __cplusplus

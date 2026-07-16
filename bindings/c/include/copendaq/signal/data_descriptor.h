@@ -34,6 +34,81 @@ extern "C"
 
 #include <ccommon.h>
 
+    /*!
+     * @brief Describes the data sent by a signal, defining how they are to be interpreted by anyone receiving the signal's packets.
+     *
+     * The data descriptor provides all information required on how to process data buffers, and how to interpret the data.
+     * It contains the following fields:
+     * - `Name`: A descriptive name of the data being described. In example, when the values describe the amplitude of spectrum data, the name
+     * would be `Amplitude`.
+     * - `Dimensions`: A list of dimensions of the signal. A sample descriptor can have 0 or more dimensions. A signal with 1 dimension
+     * has vector data. A signal with 2 dimensions has matrix data, a signal with 0 has a single value for each sample.
+     * - `SampleType`: An enum value that specifies the underlying data type (eg. Float64, Int32, String,...)
+     * - `Unit`: The unit of the data in the signal's packets.
+     * - `ValueRange`: The value range of the data in a signal's packets defining the lowest and highest expected values. The range is not
+     * enforced.
+     * - `Rule`: The data rule that defines how a signal value is calculated from an implicit initialization value when the rule type is not
+     * `Explicit`.
+     * - `Origin`: Defines the starting point of the signal. If set, all values are added to the absolute origin when read.
+     * - `TickResolution`: Used to scale signal ticks into their physical unit. In example, a resolution of 1/1000 with the unit being `seconds`
+     * states that a value of 1 correlates to 1 millisecond.
+     * - `PostScaling`: Defines a scaling transformation, which should be applied to data carried by the signal's packets when read. If
+     * `PostScaling` is used, the `Rule`, `Resolution`, and `Origin` must not be configured. The `SampleType` must match the
+     * `outputDataType` of the `PostScaling`.
+     * - `StructFields`: A list of DataDescriptor. The descriptor list is used to define complex data samples. When defined, the sample
+     * buffer is laid out so that the data described by the first DataDescriptor is at the start, followed by the data
+     * described by the second and so on. If the list is not empty, all descriptor parameters except for `Name` and
+     * `Dimensions` should not be configured. See below for a explanation of Structure data descriptors.
+     * - `ReferenceDomainInfo`: If set, gives the common identifier of one domain group. Signals with the same Reference Domain ID share a
+     * common synchronization source (all the signals in a group either come from the same device or are synchronized
+     * using a protocol, such as PTP, NTP, IRIG, etc.). Those signals can always be read together, implying that a
+     * Multi Reader can be used to read the signals if their sampling rates are compatible.
+     * @subsection data_descriptor_dimensions Dimensions
+     * The list of dimensions determines the rank of values described by the descriptor. In example, if the list contains 1 dimension, the data
+     * values are vectors. If it contains 2, the data values are matrices, if 0, the descriptor describes a single value.
+     *
+     * When the data is placed into packet buffers, the values are laid out in packet buffers linearly, where each value fills up
+     * `sizeof(sampleType) * (dimensionSize1 * dimensionSize2 *...)` bytes.
+     *
+     * Data descriptor objects implement the Struct methods internally and are Core type `ctStruct`.
+     * @subsection data_descriptor_struct_fields Struct fields
+     *
+     * A DataDescriptor with the `StructFields` field filled with other descriptors is used to represent signal data in the form of structures.
+     * It allows for custom and complex structures to be described and sent by a signal.
+     *
+     * When evaluating a struct descriptor, their struct field values are laid out in the packet buffers in the order they are placed in
+     * the `structFields` list. Eg. a struct with 3 fields, of types [int64_t, float, double] will have a buffer composed of an int64_t value,
+     * followed by a float, and lastly a double value.
+     *
+     * Note that if the Dimensions field of the DataDescriptor is not empty, struct data can also be of a higher rank
+     * (eg. a vector/matrix of structs).
+     * @subsection data_descriptor_calculation_order Value calculation
+     * Besides the struct fields and dimensions, the Value descriptor also provides 4 fields which need to be taken into account and calculated
+     * when reading packet buffers: `Rule`, `Resolution`, `Origin`, and `PostScaling`.
+     * @subsubsection data_descriptor_calculation_without_scaling Without `PostScaling`
+     *
+     * 1. Check and apply `Rule`:
+     * - If the rule is `explicit`, the values of a packet are present in the packet's data buffer
+     * - If not `explicit`, the packet's values need to be calculated. To calculate them, take the PacketOffset and SampleCount of the
+     * packet. Use the PacketOffset, as well as the index of the sample in a packet to calculate the rule's output value: `Value = PacketOffset + Rule(Index)`.
+     * Eg. `Value = PacketOffset + Delta * Index + Start`
+     * 2. Apply `TickResolution`:
+     * - If the `TickResolution` is set, multiply the value from 1. with the `Resolution`. This scales the value into the `Unit` of the value
+     * descriptor.
+     * - If not set, keep the value from 1.
+     * 3. Add `Origin`:
+     * - If the `Origin` is set, take the value from 2. and add it to the `Origin`.
+     * In example, if using the Unix Epoch, a value `1669279690` in seconds would mean Thursday, 24 November 2022 08:48:10 GMT.
+     * - If not set, keep the value from 2.
+     * @subsubsection data_descriptor_calculation_with_scaling With `PostScaling`
+     *
+     * If `PostScaling` is set, the `Rule` must be explicit, while `Resolution` and `Origin` must not be configured.
+     *
+     * To calculate the value with `PostScaling` configured, take the values of the packet's data buffer and apply the post scaling to each
+     * value in the buffer: `Value = PostScaling(Value)`, eg. `Value = Value * Scale + Offset`
+     */
+    DAQ_EXTENDS_INTERFACE(daqDataDescriptor, daqBaseObject);
+
     typedef struct daqDataDescriptor daqDataDescriptor;
     typedef struct daqString daqString;
     typedef struct daqList daqList;
@@ -49,20 +124,118 @@ extern "C"
     EXPORTED extern const daqIntfID DAQ_DATA_DESCRIPTOR_INTF_ID;
     void EXPORTED daqDataDescriptor_getInterfaceId(daqIntfID* intfId);
 
+    /*!
+     * @brief Gets a descriptive name of the signal value.
+     * @param[out] name The name of the signal value.
+     *
+     * When, for example, describing the amplitude values of spectrum data, the name would be `Amplitude`.
+     */
     daqErrCode EXPORTED daqDataDescriptor_getName(daqDataDescriptor* self, daqString** name);
-    daqErrCode EXPORTED daqDataDescriptor_getDimensions(daqDataDescriptor* self, daqList** dimensions);
+
+    /*!
+     * @brief Gets the list of the descriptor's dimension's.
+     * @param[out] dimensions The list of dimensions.
+     *
+     * The number of dimensions defines the rank of the signal's data (eg. Vector, Matrix).
+     */
+    daqErrCode EXPORTED daqDataDescriptor_getDimensions(daqDataDescriptor* self, daqList** dimensions DAQ_LIST_ELEMENT_TYPE(daqDimension));
+
+    /*!
+     * @brief Gets the descriptor's sample type.
+     * @param[out] sampleType The descriptor's sample type.
+     */
     daqErrCode EXPORTED daqDataDescriptor_getSampleType(daqDataDescriptor* self, daqSampleType* sampleType);
+
+    /*!
+     * @brief Gets the unit of the data in a signal's packets.
+     * @param[out] unit The unit specified by the descriptor.
+     */
     daqErrCode EXPORTED daqDataDescriptor_getUnit(daqDataDescriptor* self, daqUnit** unit);
+
+    /*!
+     * @brief Gets the value range of the data in a signal's packets defining the lowest and highest expected values.
+     * @param[out] range The value range the signal's data.
+     *
+     * The range is not enforced by openDAQ.
+     */
     daqErrCode EXPORTED daqDataDescriptor_getValueRange(daqDataDescriptor* self, daqRange** range);
+
+    /*!
+     * @brief Gets the value Data rule.
+     * @param[out] rule The value Data rule.
+     *
+     * If explicit, the values will be contained in the packet buffer. Otherwise they are calculated
+     * using the offset packet parameter as the input into the rule.
+     */
     daqErrCode EXPORTED daqDataDescriptor_getRule(daqDataDescriptor* self, daqDataRule** rule);
+
+    /*!
+     * @brief Gets the absolute origin of a signal value component.
+     * @param[out] origin The absolute origin.
+     *
+     * An origin can be an arbitrary string that determines the starting point of the signal data.
+     * All explicit or implicit values are multiplied by the resolution and added to the origin to obtain
+     * absolute data instead of relative.
+     *
+     * Most commonly a time reference is used, in which case it should be formatted according to the ISO 8601 standard.
+     */
     daqErrCode EXPORTED daqDataDescriptor_getOrigin(daqDataDescriptor* self, daqString** origin);
+
+    /*!
+     * @brief Gets the Resolution which scales the explicit or implicit value to the physical unit defined in `unit`. It is defined as domain (usually time) between two consecutive ticks.
+     * @param[out] tickResolution The Resolution.
+     */
     daqErrCode EXPORTED daqDataDescriptor_getTickResolution(daqDataDescriptor* self, daqRatio** tickResolution);
+
     daqErrCode EXPORTED daqDataDescriptor_getPostScaling(daqDataDescriptor* self, daqScaling** scaling);
-    daqErrCode EXPORTED daqDataDescriptor_getStructFields(daqDataDescriptor* self, daqList** structFields);
-    daqErrCode EXPORTED daqDataDescriptor_getMetadata(daqDataDescriptor* self, daqDict** metadata);
+
+    /*!
+     * @brief Gets the fields of the struct, forming a recursive value descriptor definition.
+     * @param[out] structFields The list of data descriptors forming the struct fields.
+     *
+     * Contains a list of value descriptors, defining the data layout: the data described by the first DataDescriptor
+     * of the list is at the start, followed by the data described by the second and so on.
+     */
+    daqErrCode EXPORTED daqDataDescriptor_getStructFields(daqDataDescriptor* self, daqList** structFields DAQ_LIST_ELEMENT_TYPE(daqDataDescriptor));
+
+    /*!
+     * @brief Gets any extra metadata defined by the data descriptor.
+     * @param[out] metadata Additional metadata of the descriptor as a dictionary.
+     *
+     * All objects in the metadata dictionary must be key value pairs of <String, String>.
+     */
+    daqErrCode EXPORTED daqDataDescriptor_getMetadata(daqDataDescriptor* self, daqDict** metadata DAQ_DICT_TEMPLATE_TYPE(daqString, daqString));
+
+    /*!
+     * @brief Gets the size of one sample in bytes.
+     * @param[out] sampleSize The size of one sample in bytes.
+     *
+     * The size of one sample is calculated on constructor of the data descriptor object.
+     */
     daqErrCode EXPORTED daqDataDescriptor_getSampleSize(daqDataDescriptor* self, daqSizeT* sampleSize);
+
+    /*!
+     * @brief Gets the actual sample size in buffer of one sample in bytes.
+     * @param[out] sampleSize The actual size of one sample in buffer in bytes.
+     *
+     * The actual size of one sample is calculated on constructor of the data descriptor object.
+     * Actual sample size is the sample size that is used in buffer. If the data descriptor includes
+     * implicitly generated samples, the actual sample size is less than sample size.
+     */
     daqErrCode EXPORTED daqDataDescriptor_getRawSampleSize(daqDataDescriptor* self, daqSizeT* rawSampleSize);
+
+    /*!
+     * @brief Gets the Reference Domain Info.
+     * @param[out] referenceDomainInfo The Reference Domain Info.
+     *
+     * If set, gives additional information about the reference domain.
+     */
     daqErrCode EXPORTED daqDataDescriptor_getReferenceDomainInfo(daqDataDescriptor* self, daqReferenceDomainInfo** referenceDomainInfo);
+
+    /*!
+     * @brief Creates a Data Descriptor using Builder
+     * @param builder Data Descriptor Builder
+     */
     daqErrCode EXPORTED daqDataDescriptor_createDataDescriptorFromBuilder(daqDataDescriptor** obj, daqDataDescriptorBuilder* builder);
 
 #ifdef __cplusplus

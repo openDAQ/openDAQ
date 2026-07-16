@@ -34,6 +34,20 @@ extern "C"
 
 #include <ccommon.h>
 
+    /*!
+     * @brief The builder interface of Properties. Allows for construction of Properties through the `build` method.
+     *
+     * Contains setters for the Property fields. The setters take as parameters openDAQ objects, even if
+     * the value must always evaluate to, for example, a boolean. This allows for EvalValue objects to be
+     * set instead of a static value.
+     *
+     * The EvalValue objects can evaluate to Boolean, String, List, Unit, and Property types. and can thus be
+     * used when such types are expected from the getters.
+     *
+     * The Property can be built by calling the `build` method.
+     */
+    DAQ_EXTENDS_INTERFACE(daqPropertyBuilder, daqBaseObject);
+
     typedef struct daqPropertyBuilder daqPropertyBuilder;
     typedef struct daqProperty daqProperty;
     typedef struct daqString daqString;
@@ -57,61 +71,420 @@ extern "C"
     EXPORTED extern const daqIntfID DAQ_PROPERTY_BUILDER_INTF_ID;
     void EXPORTED daqPropertyBuilder_getInterfaceId(daqIntfID* intfId);
 
+    /*!
+     * @brief Builds and returns a Property using the currently set values of the Builder.
+     * @param[out] property The built property.
+     */
     daqErrCode EXPORTED daqPropertyBuilder_build(daqPropertyBuilder* self, daqProperty** property);
+
+    /*!
+     * @brief Sets the Value type of the Property. Values written to the corresponding Property value must be of the same type.
+     * @param type The value type.
+     */
     daqErrCode EXPORTED daqPropertyBuilder_setValueType(daqPropertyBuilder* self, daqCoreType type);
+
+    /*!
+     * @brief Gets the Value type of the Property.
+     * @param[out] type The value type.
+     */
     daqErrCode EXPORTED daqPropertyBuilder_getValueType(daqPropertyBuilder* self, daqCoreType* type);
+
+    /*!
+     * @brief Sets the Name of the Property. The names of Properties in a Property object must be unique. The name is used as the key to the corresponding Property value when getting/setting the value.
+     * @param name The Name of the Property.
+     */
     daqErrCode EXPORTED daqPropertyBuilder_setName(daqPropertyBuilder* self, daqString* name);
+
+    /*!
+     * @brief Gets the Name of the Property.
+     * @param[out] name The Name of the Property.
+     */
     daqErrCode EXPORTED daqPropertyBuilder_getName(daqPropertyBuilder* self, daqString** name);
+
+    /*!
+     * @brief Sets the short string Description of the Property.
+     * @param description The Description of the Property.
+     */
     daqErrCode EXPORTED daqPropertyBuilder_setDescription(daqPropertyBuilder* self, daqString* description);
+
+    /*!
+     * @brief Gets the short string Description of the Property.
+     * @param[out] description The Description of the Property.
+     */
     daqErrCode EXPORTED daqPropertyBuilder_getDescription(daqPropertyBuilder* self, daqString** description);
+
+    /*!
+     * @brief Sets the Unit of the Property.
+     * @param unit The Unit of the Property.
+     */
     daqErrCode EXPORTED daqPropertyBuilder_setUnit(daqPropertyBuilder* self, daqUnit* unit);
+
+    /*!
+     * @brief Gets the Unit of the Property.
+     * @param[out] unit The Unit of the Property.
+     */
     daqErrCode EXPORTED daqPropertyBuilder_getUnit(daqPropertyBuilder* self, daqUnit** unit);
+
+    /*!
+     * @brief Sets the Minimum value of the Property. Available only if the Value type is `ctInt` or `ctFloat`.
+     * @param min The Minimum value of the Property.
+     */
     daqErrCode EXPORTED daqPropertyBuilder_setMinValue(daqPropertyBuilder* self, daqNumber* min);
+
+    /*!
+     * @brief Gets the Minimum value of the Property. Available only if the Value type is `ctInt` or `ctFloat`.
+     * @param[out] min The Minimum value of the Property.
+     */
     daqErrCode EXPORTED daqPropertyBuilder_getMinValue(daqPropertyBuilder* self, daqNumber** min);
+
+    /*!
+     * @brief Sets the Maximum value of the Property. Available only if the Value type is `ctInt` or `ctFloat`.
+     * @param max The Maximum value of the Property.
+     */
     daqErrCode EXPORTED daqPropertyBuilder_setMaxValue(daqPropertyBuilder* self, daqNumber* max);
+
+    /*!
+     * @brief Gets the Maximum value of the Property. Available only if the Value type is `ctInt` or `ctFloat`.
+     * @param[out] max The Maximum value of the Property.
+     */
     daqErrCode EXPORTED daqPropertyBuilder_getMaxValue(daqPropertyBuilder* self, daqNumber** max);
+
+    /*!
+     * @brief Sets the Default value of the Property. The Default value must always be configured for a Property to be in a valid state. Exceptions are Function/Procedure and Reference properties. The function will freeze default value if it is freezable.
+     * @param value The Default value of the Property.
+     */
     daqErrCode EXPORTED daqPropertyBuilder_setDefaultValue(daqPropertyBuilder* self, daqBaseObject* value);
+
+    /*!
+     * @brief Gets the Default value of the Property.
+     * @param[out] value The Default value of the Property.
+     */
     daqErrCode EXPORTED daqPropertyBuilder_getDefaultValue(daqPropertyBuilder* self, daqBaseObject** value);
-    daqErrCode EXPORTED daqPropertyBuilder_setSuggestedValues(daqPropertyBuilder* self, daqList* values);
-    daqErrCode EXPORTED daqPropertyBuilder_getSuggestedValues(daqPropertyBuilder* self, daqList** values);
+
+    /*!
+     * @brief Sets the list of Suggested values. Contains values that are the optimal settings for the corresponding Property value. These values, however, are not enforced when setting a new Property value.
+     * @param values The Suggested values of the Property.
+     */
+    daqErrCode EXPORTED daqPropertyBuilder_setSuggestedValues(daqPropertyBuilder* self, daqList* values DAQ_LIST_ELEMENT_TYPE(daqBaseObject));
+
+    /*!
+     * @brief Gets the list of Suggested values. Contains values that are the optimal gettings for the corresponding Property value. These values, however, are not enforced when getting a new Property value.
+     * @param[out] values The Suggested values of the Property.
+     */
+    daqErrCode EXPORTED daqPropertyBuilder_getSuggestedValues(daqPropertyBuilder* self, daqList** values DAQ_LIST_ELEMENT_TYPE(daqBaseObject));
+
+    /*!
+     * @brief Used to determine whether the property is visible or not.
+     * @param visible True if the Property is visible; false otherwise.
+     */
     daqErrCode EXPORTED daqPropertyBuilder_setVisible(daqPropertyBuilder* self, daqBoolean* visible);
+
+    /*!
+     * @brief Used to determine whether the property is visible or not.
+     * @param[out] visible True if the Property is visible; false otherwise.
+     */
     daqErrCode EXPORTED daqPropertyBuilder_getVisible(daqPropertyBuilder* self, daqBoolean** visible);
+
+    /*!
+     * @brief Used to determine whether the Property is a read-only property or not.
+     * @param readOnly True if the Property is a read-only property; false otherwise.
+     *
+     * Read-only Property values can still be modified by using the `PropertyObjectProtected` interface methods.
+     */
     daqErrCode EXPORTED daqPropertyBuilder_setReadOnly(daqPropertyBuilder* self, daqBoolean* readOnly);
+
+    /*!
+     * @brief Used to determine whether the Property is a read-only property or not.
+     * @param[out] readOnly True if the Property is a read-only property; false otherwise.
+     */
     daqErrCode EXPORTED daqPropertyBuilder_getReadOnly(daqPropertyBuilder* self, daqBoolean** readOnly);
+
+    /*!
+     * @brief Sets the list or dictionary of selection values. If the list/dictionary is not empty, the property is a Selection property, and must have the Value type `ctInt`.
+     * @param values The list/dictionary of possible selection values.
+     */
     daqErrCode EXPORTED daqPropertyBuilder_setSelectionValues(daqPropertyBuilder* self, daqBaseObject* values);
+
+    /*!
+     * @brief Gets the list or dictionary of selection values.
+     * @param[out] values The list/dictionary of possible selection values.
+     */
     daqErrCode EXPORTED daqPropertyBuilder_getSelectionValues(daqPropertyBuilder* self, daqBaseObject** values);
+
+    /*!
+     * @brief Sets the referenced property. If set, all getters except for the `Name`, `Referenced property`, and `Is referenced` getters will return the value of the `Referenced property`.
+     * @param propertyEval The referenced property.
+     *
+     * If the Property is not bound to a Property object this call will not be able to return the Referenced property.
+     */
     daqErrCode EXPORTED daqPropertyBuilder_setReferencedProperty(daqPropertyBuilder* self, daqEvalValue* propertyEval);
+
+    /*!
+     * @brief Gets the referenced property.
+     * @param[out] propertyEval The referenced property.
+     */
     daqErrCode EXPORTED daqPropertyBuilder_getReferencedProperty(daqPropertyBuilder* self, daqEvalValue** propertyEval);
+
+    /*!
+     * @brief Sets the validator of the Property.
+     * @param validator The validator.
+     *
+     * Used to validate whether a value written to the corresponding Property value is valid or not.
+     */
     daqErrCode EXPORTED daqPropertyBuilder_setValidator(daqPropertyBuilder* self, daqValidator* validator);
+
+    /*!
+     * @brief Gets the validator of the Property.
+     * @param[out] validator The validator.
+     */
     daqErrCode EXPORTED daqPropertyBuilder_getValidator(daqPropertyBuilder* self, daqValidator** validator);
+
+    /*!
+     * @brief Sets the coercer of the Property.
+     * @param coercer The coercer.
+     *
+     * Used to coerce a value written to the corresponding Property value to the constraints specified by the coercer.
+     */
     daqErrCode EXPORTED daqPropertyBuilder_setCoercer(daqPropertyBuilder* self, daqCoercer* coercer);
+
+    /*!
+     * @brief Gets the coercer of the Property.
+     * @param[out] coercer The coercer.
+     */
     daqErrCode EXPORTED daqPropertyBuilder_getCoercer(daqPropertyBuilder* self, daqCoercer** coercer);
+
+    /*!
+     * @brief Sets the Callable information objects of the Property that specifies the argument and return types of the callable object stored as the Property value.
+     * @param callable The Callable info object.
+     */
     daqErrCode EXPORTED daqPropertyBuilder_setCallableInfo(daqPropertyBuilder* self, daqCallableInfo* callable);
+
+    /*!
+     * @brief Gets the Callable information objects of the Property that specifies the argument and return types of the callable object stored as the Property value.
+     * @param[out] callable The Callable info object.
+     */
     daqErrCode EXPORTED daqPropertyBuilder_getCallableInfo(daqPropertyBuilder* self, daqCallableInfo** callable);
-    daqErrCode EXPORTED daqPropertyBuilder_setOnPropertyValueWrite(daqPropertyBuilder* self, daqEvent* event);
-    daqErrCode EXPORTED daqPropertyBuilder_getOnPropertyValueWrite(daqPropertyBuilder* self, daqEvent** event);
-    daqErrCode EXPORTED daqPropertyBuilder_setOnPropertyValueRead(daqPropertyBuilder* self, daqEvent* event);
-    daqErrCode EXPORTED daqPropertyBuilder_getOnPropertyValueRead(daqPropertyBuilder* self, daqEvent** event);
-    daqErrCode EXPORTED daqPropertyBuilder_setOnSuggestedValuesRead(daqPropertyBuilder* self, daqEvent* event);
-    daqErrCode EXPORTED daqPropertyBuilder_getOnSuggestedValuesRead(daqPropertyBuilder* self, daqEvent** event);
-    daqErrCode EXPORTED daqPropertyBuilder_setOnSelectionValuesRead(daqPropertyBuilder* self, daqEvent* event);
-    daqErrCode EXPORTED daqPropertyBuilder_getOnSelectionValuesRead(daqPropertyBuilder* self, daqEvent** event);
+
+    /*!
+     * @brief Sets a custom on-write event. Used mostly when cloning properties.
+     * @param event The on-write event.
+     */
+    daqErrCode EXPORTED daqPropertyBuilder_setOnPropertyValueWrite(daqPropertyBuilder* self, daqEvent* event DAQ_TEMPLATE_TYPE(daqPropertyObject, daqPropertyValueEventArgs));
+
+    /*!
+     * @brief Gets a custom on-write event. Used mostly when cloning properties.
+     * @param[out] event The on-write event.
+     */
+    daqErrCode EXPORTED daqPropertyBuilder_getOnPropertyValueWrite(daqPropertyBuilder* self, daqEvent** event DAQ_TEMPLATE_TYPE(daqPropertyObject, daqPropertyValueEventArgs));
+
+    /*!
+     * @brief Sets a custom on-read event. Used mostly when cloning properties.
+     * @param event The on-read event.
+     */
+    daqErrCode EXPORTED daqPropertyBuilder_setOnPropertyValueRead(daqPropertyBuilder* self, daqEvent* event DAQ_TEMPLATE_TYPE(daqPropertyObject, daqPropertyValueEventArgs));
+
+    /*!
+     * @brief Gets a custom on-read event. Used mostly when cloning properties.
+     * @param[out] event The on-read event.
+     */
+    daqErrCode EXPORTED daqPropertyBuilder_getOnPropertyValueRead(daqPropertyBuilder* self, daqEvent** event DAQ_TEMPLATE_TYPE(daqPropertyObject, daqPropertyValueEventArgs));
+
+    /*!
+     * @brief Sets a custom on-suggested-values-read event. Used mostly when cloning properties.
+     * @param event The on-read event.
+     */
+    daqErrCode EXPORTED daqPropertyBuilder_setOnSuggestedValuesRead(daqPropertyBuilder* self, daqEvent* event DAQ_TEMPLATE_TYPE(daqProperty, daqPropertyMetadataReadArgs));
+
+    /*!
+     * @brief Gets a custom on-suggested-values-read event. Used mostly when cloning properties.
+     * @param event The on-read event.
+     */
+    daqErrCode EXPORTED daqPropertyBuilder_getOnSuggestedValuesRead(daqPropertyBuilder* self, daqEvent** event DAQ_TEMPLATE_TYPE(daqProperty, daqPropertyMetadataReadArgs));
+
+    /*!
+     * @brief Sets a custom on-selection-values-read event. Used mostly when cloning properties.
+     * @param event The on-read event.
+     */
+    daqErrCode EXPORTED daqPropertyBuilder_setOnSelectionValuesRead(daqPropertyBuilder* self, daqEvent* event DAQ_TEMPLATE_TYPE(daqProperty, daqPropertyMetadataReadArgs));
+
+    /*!
+     * @brief Gets a custom on-selection-values-read event. Used mostly when cloning properties.
+     * @param event The on-read event.
+     */
+    daqErrCode EXPORTED daqPropertyBuilder_getOnSelectionValuesRead(daqPropertyBuilder* self, daqEvent** event DAQ_TEMPLATE_TYPE(daqProperty, daqPropertyMetadataReadArgs));
+
+    /*!
+     * @brief Sets the integer value selection flag for selection properties with valueType == ctInt.
+     *
+     * When true, the property stores the actual selected integer value (IntegerValueSelection).
+     * When false (default), the property stores the index of the selected entry (IndexSelection).
+     *
+     * This flag is ignored for sparse selection properties and for selection properties
+     * with a valueType other than ctInt.
+     * @param isIntegerValueSelection True to store the selected value; false to store the selection index.
+     */
     daqErrCode EXPORTED daqPropertyBuilder_setIsIntegerValueSelection(daqPropertyBuilder* self, daqBool isIntegerValueSelection);
+
+    /*!
+     * @brief Gets the integer value selection flag for selection properties with valueType == ctInt.
+     *
+     * When true, the property stores the actual selected integer value (IntegerValueSelection).
+     * When false (default), the property stores the index of the selected entry (IndexSelection).
+     *
+     * This flag is ignored for sparse selection properties and for selection properties
+     * with a valueType other than ctInt.
+     * @param isIntegerValueSelection The current value of the flag.
+     */
     daqErrCode EXPORTED daqPropertyBuilder_getIsIntegerValueSelection(daqPropertyBuilder* self, daqBool* isIntegerValueSelection);
+
+    /*!
+     * @brief Creates an Property builder object with only the name field configured.
+     * @param name The name of the Property.
+     *
+     * The default Value type is `ctUndefined`.
+     */
     daqErrCode EXPORTED daqPropertyBuilder_createPropertyBuilder(daqPropertyBuilder** obj, daqString* name);
+
+    /*!
+     * @brief Creates a boolean Property builder object with a specified name and default value.
+     * @param name The name of the Property.
+     * @param defaultValue The boolean default value. Can be an EvalValue.
+     *
+     * The Property Value type is `ctBool`. Note that the defaultValue parameter can be EvalValue.
+     */
     daqErrCode EXPORTED daqPropertyBuilder_createBoolPropertyBuilder(daqPropertyBuilder** obj, daqString* name, daqBoolean* defaultValue);
+
+    /*!
+     * @brief Creates an integer Property builder object with a specified name and default value.
+     * @param name The name of the Property.
+     * @param defaultValue The integer default value. Can be an EvalValue.
+     *
+     * The Property Value type is `ctInt`. Note that the defaultValue parameter can be EvalValue.
+     */
     daqErrCode EXPORTED daqPropertyBuilder_createIntPropertyBuilder(daqPropertyBuilder** obj, daqString* name, daqInteger* defaultValue);
+
+    /*!
+     * @brief Creates a floating point value Property builder object with a specified name and default value.
+     * @param name The name of the Property.
+     * @param defaultValue The float default value. Can be an EvalValue
+     *
+     * The Property Value type is `ctFloat`. Note that the defaultValue parameter can be EvalValue.
+     */
     daqErrCode EXPORTED daqPropertyBuilder_createFloatPropertyBuilder(daqPropertyBuilder** obj, daqString* name, daqFloatObject* defaultValue);
+
+    /*!
+     * @brief Creates a string Property builder object with a specified name and default value.
+     * @param name The name of the Property.
+     * @param defaultValue The integer default value. Can be an EvalValue.
+     *
+     * The Property Value type is `ctString`. Note that the defaultValue parameter can be EvalValue.
+     */
     daqErrCode EXPORTED daqPropertyBuilder_createStringPropertyBuilder(daqPropertyBuilder** obj, daqString* name, daqString* defaultValue);
+
+    /*!
+     * @brief Creates a list Property builder object with a specified name and default value.
+     * @param name The name of the Property.
+     * @param defaultValue The list default value. Can be an EvalValue.
+     *
+     * The Property Value type is `ctList`. Note that the defaultValue parameter can be EvalValue.
+     * The list passed as `defaultValue` must be homogeneous.
+     *
+     * The Property's Item type field will be set according to defaultValue list type.
+     */
     daqErrCode EXPORTED daqPropertyBuilder_createListPropertyBuilder(daqPropertyBuilder** obj, daqString* name, daqList* defaultValue);
+
+    /*!
+     * @brief Creates a dictionary Property builder object with a specified name and default value.
+     * @param name The name of the Property.
+     * @param defaultValue The dictionary default value.
+     *
+     * The Property Value type is `ctDict`. The dictionary passed as default value must have homogeneous key
+     * and value lists (all dictionary keys/values must be of the same type).
+     *
+     * The Property's Item type field will be set according to defaultValue dictionary Item type. The same goes for
+     * the Key type.
+     *
+     * TODO: defaultValue can be an EvalValue once dictionaries are supported.
+     */
     daqErrCode EXPORTED daqPropertyBuilder_createDictPropertyBuilder(daqPropertyBuilder** obj, daqString* name, daqDict* defaultValue);
+
+    /*!
+     * @brief Creates a ratio Property builder object with a specified name and default value.
+     * @param name The name of the Property.
+     * @param defaultValue The ratio default value.
+     *
+     * The Property Value type is `ctRatio`.
+     *
+     * TODO: defaultValue can be an EvalValue once ratios are supported.
+     */
     daqErrCode EXPORTED daqPropertyBuilder_createRatioPropertyBuilder(daqPropertyBuilder** obj, daqString* name, daqRatio* defaultValue);
+
+    /*!
+     * @brief Creates an object-type Property builder object with a specified name and default value..
+     * @param name The name of the Property.
+     * @param defaultValue The Property object default value.
+     *
+     * The Property Value type is `ctObject`. Object properties cannot be have any metadata other than
+     * their name, description, and default value configured. The PropertyObject default value can only
+     * be a base PropertyObject type (not a descendant type).
+     *
+     * If the defaultValue is not specified, it will automatically be configured to an empty Property Object.
+     */
     daqErrCode EXPORTED daqPropertyBuilder_createObjectPropertyBuilder(daqPropertyBuilder** obj, daqString* name, daqPropertyObject* defaultValue);
+
+    /*!
+     * @brief Creates a Reference Property builder object that points at a property specified in the `referencedProperty` parameter.
+     * @param name The name of the Property.
+     * @param referencedPropertyEval The evaluation expression that evaluates to another property.
+     */
     daqErrCode EXPORTED daqPropertyBuilder_createReferencePropertyBuilder(daqPropertyBuilder** obj, daqString* name, daqEvalValue* referencedPropertyEval);
+
+    /*!
+     * @brief Creates a function- or procedure-type Property builder object. Requires the a CallableInfo object to specify the argument type/count and function return type.
+     * @param name The name of the Property.
+     * @param callableInfo Information about the callable argument type/count and return type.
+     *
+     * The Property Value type is `ctFunction` or `ctProc`, depending on if `callableInfo` contains information
+     * on the return type or not.
+     */
     daqErrCode EXPORTED daqPropertyBuilder_createFunctionPropertyBuilder(daqPropertyBuilder** obj, daqString* name, daqCallableInfo* callableInfo);
+
+    /*!
+     * @brief Creates a Selection Property builder object with a list of selection values. The default value is an integer index into the default selected value.
+     * @param name The name of the Property.
+     * @param selectionValues The list of selectable values.
+     * @param defaultValue The default index into the list of selection values.
+     *
+     * The Property Value type is `ctInt`.
+     */
     daqErrCode EXPORTED daqPropertyBuilder_createSelectionPropertyBuilder(daqPropertyBuilder** obj, daqString* name, daqList* selectionValues, daqInteger* defaultValue);
+
+    /*!
+     * @brief Creates a Selection Property builder object with a dictionary of selection values. The default value is an integer key into the provided dictionary.
+     * @param name The name of the Property.
+     * @param selectionValues The dictionary of selectable values. The key type must be `ctInt`.
+     * @param defaultValue The default key into the list of selection values.
+     *
+     * The Property Value type is `ctInt`. The key type of the Selection values dictionary must be `ctInt`.
+     */
     daqErrCode EXPORTED daqPropertyBuilder_createSparseSelectionPropertyBuilder(daqPropertyBuilder** obj, daqString* name, daqDict* selectionValues, daqInteger* defaultValue);
+
+    /*!
+     * @brief Creates a Struct Property builder object with a specified name and default value.
+     * @param name The name of the Property.
+     * @param defaultValue The default structure value.
+     *
+     * The Property Value type is `ctStruct`.
+     */
     daqErrCode EXPORTED daqPropertyBuilder_createStructPropertyBuilder(daqPropertyBuilder** obj, daqString* name, daqStruct* defaultValue);
+
+    /*!
+     * @brief Creates an Enumeration Property builder object with a specified name and default value.
+     * @param name The name of the Property.
+     * @param defaultValue The default structure value.
+     *
+     * The Property Value type is `ctEnumeration`.
+     */
     daqErrCode EXPORTED daqPropertyBuilder_createEnumerationPropertyBuilder(daqPropertyBuilder** obj, daqString* name, daqEnumeration* defaultValue);
 
 #ifdef __cplusplus

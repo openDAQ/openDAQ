@@ -34,11 +34,19 @@ extern "C"
 
 #include <ccommon.h>
 
+    /*!
+     * @brief Used to subscribe to packet destruction
+     */
+    DAQ_EXTENDS_INTERFACE(daqPacketDestructCallback, daqBaseObject);
+
     typedef struct daqPacketDestructCallback daqPacketDestructCallback;
 
     EXPORTED extern const daqIntfID DAQ_PACKET_DESTRUCT_CALLBACK_INTF_ID;
     void EXPORTED daqPacketDestructCallback_getInterfaceId(daqIntfID* intfId);
 
+    /*!
+     * @brief Called when packet is destroyed.
+     */
     daqErrCode EXPORTED daqPacketDestructCallback_onPacketDestroyed(daqPacketDestructCallback* self);
 
 #ifdef __cplusplus

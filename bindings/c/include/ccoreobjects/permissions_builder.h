@@ -34,6 +34,11 @@ extern "C"
 
 #include <ccommon.h>
 
+    /*!
+     * @brief A class which is responsible for assigning permissions to a property object. Permisison builder can specify allowed and denied permissions for each group. It can also inherit or overwrite premissions from parent objects.
+     */
+    DAQ_EXTENDS_INTERFACE(daqPermissionsBuilder, daqBaseObject);
+
     typedef struct daqPermissionsBuilder daqPermissionsBuilder;
     typedef struct daqString daqString;
     typedef struct daqPermissionMaskBuilder daqPermissionMaskBuilder;
@@ -42,12 +47,48 @@ extern "C"
     EXPORTED extern const daqIntfID DAQ_PERMISSIONS_BUILDER_INTF_ID;
     void EXPORTED daqPermissionsBuilder_getInterfaceId(daqIntfID* intfId);
 
+    /*!
+     * @brief Configure component to inherit or ignore permissions from the parent object.
+     * @param inherit Flag signifying if component should inherit permissions from its parent object.
+     */
     daqErrCode EXPORTED daqPermissionsBuilder_inherit(daqPermissionsBuilder* self, daqBool inherit);
+
+    /*!
+     * @brief Strictly assign a specified set of permissions for a given group. This method allows only the specified permissions and will not inherit any permissions from the parent object for the group, even if the inherit flag is enabled.
+     * @param groupId The id of a group to set permissions for.
+     * @param permissions A set of permissions to allow for given group.
+     */
     daqErrCode EXPORTED daqPermissionsBuilder_assign(daqPermissionsBuilder* self, daqString* groupId, daqPermissionMaskBuilder* permissions);
+
+    /*!
+     * @brief Allow a specified set of permissions for a given group. If the inherit flag is enabled, this method will allow both the specified permissions and any permissions already allowed for the group on the parent component. Denied permissions will always overrule allowed permissions.
+     * @param groupId The id of a group to allow permissions for.
+     * @param permissions A set of permissions to allow for given group.
+     */
     daqErrCode EXPORTED daqPermissionsBuilder_allow(daqPermissionsBuilder* self, daqString* groupId, daqPermissionMaskBuilder* permissions);
+
+    /*!
+     * @brief Deny a specified set of permissions for a given group. If the inherit flag is enabled, this method will deny both the specified permissions and any permissions already denied for the group on the parent component. Denied permissions will always overrule allowed permissions.
+     * @param groupId The id of a group to deny permissions for.
+     * @param permissions A set of permissions to deny for given group.
+     */
     daqErrCode EXPORTED daqPermissionsBuilder_deny(daqPermissionsBuilder* self, daqString* groupId, daqPermissionMaskBuilder* permissions);
+
+    /*!
+     * @brief Add permissions of another permission config object and overwrite existing ones. Inherit flag will not be overwritten.
+     * @param config Permission config object.
+     */
     daqErrCode EXPORTED daqPermissionsBuilder_extend(daqPermissionsBuilder* self, daqPermissions* config);
+
+    /*!
+     * @brief Builds the permission config object.
+     * @param configOut[out] Permission config object.
+     */
     daqErrCode EXPORTED daqPermissionsBuilder_build(daqPermissionsBuilder* self, daqPermissions** configOut);
+
+    /*!
+     * @brief Creates a Permissions builder object.
+     */
     daqErrCode EXPORTED daqPermissionsBuilder_createPermissionsBuilder(daqPermissionsBuilder** obj);
 
 #ifdef __cplusplus

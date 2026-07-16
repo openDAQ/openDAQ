@@ -34,14 +34,33 @@ extern "C"
 
 #include <ccommon.h>
 
+    /*!
+     * @brief Base packet type. Data, Value, and Event packets are all also packets. Provides the packet's unique ID that is unique to a given device, as well as the packet type.
+     */
+    DAQ_EXTENDS_INTERFACE(daqPacket, daqBaseObject);
+
     typedef struct daqPacket daqPacket;
     typedef struct daqPacketDestructCallback daqPacketDestructCallback;
 
     EXPORTED extern const daqIntfID DAQ_PACKET_INTF_ID;
     void EXPORTED daqPacket_getInterfaceId(daqIntfID* intfId);
 
+    /*!
+     * @brief Gets the packet's type.
+     * @param[out] type The packet type.
+     */
     daqErrCode EXPORTED daqPacket_getType(daqPacket* self, daqPacketType* type);
+
+    /*!
+     * @brief Subscribes for notification when the packet is destroyed.
+     * @param packetDestructCallback The callback that is called when the packet is destroyed.
+     */
     daqErrCode EXPORTED daqPacket_subscribeForDestructNotification(daqPacket* self, daqPacketDestructCallback* packetDestructCallback);
+
+    /*!
+     * @brief Gets the reference count of the packet.
+     * @param[out] refCount The reference count of the packet.
+     */
     daqErrCode EXPORTED daqPacket_getRefCount(daqPacket* self, daqSizeT* refCount);
 
 #ifdef __cplusplus

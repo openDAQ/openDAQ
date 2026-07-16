@@ -34,6 +34,11 @@ extern "C"
 
 #include <ccommon.h>
 
+    /*!
+     * @brief Configuration component of Scaling objects. Contains setter methods that allow for Scaling parameter configuration, and a `build` method that builds the Scaling object.
+     */
+    DAQ_EXTENDS_INTERFACE(daqScalingBuilder, daqBaseObject);
+
     typedef struct daqScalingBuilder daqScalingBuilder;
     typedef struct daqScaling daqScaling;
     typedef struct daqDict daqDict;
@@ -42,18 +47,89 @@ extern "C"
     EXPORTED extern const daqIntfID DAQ_SCALING_BUILDER_INTF_ID;
     void EXPORTED daqScalingBuilder_getInterfaceId(daqIntfID* intfId);
 
+    /*!
+     * @brief Builds and returns a Scaling object using the currently set values of the Builder.
+     * @param[out] scaling The built Scaling object.
+     */
     daqErrCode EXPORTED daqScalingBuilder_build(daqScalingBuilder* self, daqScaling** scaling);
+
+    /*!
+     * @brief Sets the scaling's input data type.
+     * @param type The input data type.
+     *
+     * The input data type corresponds to the raw data passed through the signal path in
+     * data packets.
+     */
     daqErrCode EXPORTED daqScalingBuilder_setInputDataType(daqScalingBuilder* self, daqSampleType type);
+
+    /*!
+     * @brief Gets the scaling's input data type.
+     * @param[out] type The input data type.
+     */
     daqErrCode EXPORTED daqScalingBuilder_getInputDataType(daqScalingBuilder* self, daqSampleType* type);
+
+    /*!
+     * @brief Sets the scaling's output data type.
+     * @param type The output data type
+     *
+     * The output data type corresponds to the type specified in the value descriptor of
+     * a signal, and is the type in which said signal's data should be read in after having
+     * the scaling applied to it.
+     */
     daqErrCode EXPORTED daqScalingBuilder_setOutputDataType(daqScalingBuilder* self, daqScaledSampleType type);
+
+    /*!
+     * @brief Gets the scaling's output data type.
+     * @param[out] type The output data type
+     */
     daqErrCode EXPORTED daqScalingBuilder_getOutputDataType(daqScalingBuilder* self, daqScaledSampleType* type);
+
+    /*!
+     * @brief Sets the type of the scaling that determines how the scaling parameters should be interpreted and how the scaling should be calculated.
+     * @param type The type of the scaling.
+     */
     daqErrCode EXPORTED daqScalingBuilder_setScalingType(daqScalingBuilder* self, daqScalingType type);
+
+    /*!
+     * @brief Gets the type of the scaling that determines how the scaling parameters should be interpreted and how the scaling should be calculated.
+     * @param[out] type The type of the scaling.
+     */
     daqErrCode EXPORTED daqScalingBuilder_getScalingType(daqScalingBuilder* self, daqScalingType* type);
-    daqErrCode EXPORTED daqScalingBuilder_setParameters(daqScalingBuilder* self, daqDict* parameters);
-    daqErrCode EXPORTED daqScalingBuilder_getParameters(daqScalingBuilder* self, daqDict** parameters);
+
+    /*!
+     * @brief Gets the list of parameters that are used to calculate the scaling in conjunction with the input data.
+     * @param parameters The list of parameters. All elements are Number types.
+     * @retval OPENDAQ_ERR_FROZEN if the object is frozen.
+     */
+    daqErrCode EXPORTED daqScalingBuilder_setParameters(daqScalingBuilder* self, daqDict* parameters DAQ_DICT_TEMPLATE_TYPE(daqString, daqBaseObject));
+
+    /*!
+     * @brief Gets the list of parameters that are used to calculate the scaling in conjunction with the input data.
+     * @param[out] parameters The list of parameters. All elements are Number types.
+     */
+    daqErrCode EXPORTED daqScalingBuilder_getParameters(daqScalingBuilder* self, daqDict** parameters DAQ_DICT_TEMPLATE_TYPE(daqString, daqBaseObject));
+
+    /*!
+     * @brief Adds a string-object pair parameter to the Dictionary of Scaling parameters.
+     * @param name The string-type name of the parameter.
+     * @param parameter The object-type parameter.
+     */
     daqErrCode EXPORTED daqScalingBuilder_addParameter(daqScalingBuilder* self, daqString* name, daqBaseObject* parameter);
+
+    /*!
+     * @brief Removes the parameter with the given name from the Dictionary of Scaling parameters.
+     */
     daqErrCode EXPORTED daqScalingBuilder_removeParameter(daqScalingBuilder* self, daqString* name);
+
+    /*!
+     * @brief Creates a Scaling builder object with no parameters configured.
+     */
     daqErrCode EXPORTED daqScalingBuilder_createScalingBuilder(daqScalingBuilder** obj);
+
+    /*!
+     * @brief Scaling builder copy factory that creates a configurable Scaling object from a non-configurable one.
+     * @param scalingToCopy The scaling of which configuration should be copied.
+     */
     daqErrCode EXPORTED daqScalingBuilder_createScalingBuilderFromExisting(daqScalingBuilder** obj, daqScaling* scalingToCopy);
 
 #ifdef __cplusplus

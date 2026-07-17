@@ -110,7 +110,8 @@ inline ErrCode ConfigClientDeviceInfoImpl::Deserialize(ISerializedObject* serial
     {
         ComponentDeserializeContextPtr deserializeContextPtr = ComponentDeserializeContextPtr::Borrow(context);
         const auto ctx = deserializeContextPtr.asPtr<IConfigProtocolDeserializeContext>();
-        PropertyObjectPtr propObj = createWithImplementation<IDeviceInfoConfig, ConfigClientDeviceInfoImpl>(ctx->getClientComm(), ctx->getRemoteGlobalId());
+        PropertyObjectPtr propObj = createWithImplementation<IDeviceInfoConfig, ConfigClientDeviceInfoImpl>(
+            ctx->getClientComm(), ctx->getRemoteGlobalId(), ctx->getTypeManager().getObject());
 
         Super::DeserializePropertyOrder(serialized, context, nullptr, propObj);
 

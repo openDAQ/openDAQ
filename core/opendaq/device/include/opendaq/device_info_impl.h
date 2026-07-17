@@ -49,9 +49,9 @@ class DeviceInfoConfigImpl : public GenericPropertyObjectImpl<TInterface, IDevic
 public:
     using Super = GenericPropertyObjectImpl<TInterface, IDeviceInfoInternal, Interfaces...>;
 
-    DeviceInfoConfigImpl();
+    explicit DeviceInfoConfigImpl(ITypeManager* manager = nullptr);
 
-    explicit DeviceInfoConfigImpl(const StringPtr& name, 
+    explicit DeviceInfoConfigImpl(const StringPtr& name,
                                   const StringPtr& connectionString, 
                                   const StringPtr& customSdkVersion = nullptr,
                                   const ListPtr<IString>& changeableDefaultPropertyNames = nullptr);
@@ -134,14 +134,6 @@ public:
     ErrCode INTERFACE_FUNC removeConnectedClient(SizeT clientNumber) override;
     ErrCode INTERFACE_FUNC getConnectedClientsInfo(IList** connectedClientsInfo) override;
 
-    // IPropertyObject
-    ErrCode INTERFACE_FUNC getPropertyValueNoLock(IString* propertyName, IBaseObject** value) override;
-    ErrCode INTERFACE_FUNC setPropertyValueNoLock(IString* propertyName, IBaseObject* value) override;
-    ErrCode INTERFACE_FUNC setProtectedPropertyValue(IString* propertyName, IBaseObject* value) override;
-
-    // IOwnable
-    virtual ErrCode INTERFACE_FUNC setOwner(IPropertyObject* newOwner) override;
-
     // IUpdatable
     ErrCode INTERFACE_FUNC updateInternal(ISerializedObject* obj, IBaseObject* context) override;
 
@@ -168,7 +160,6 @@ protected:
     DictPtr<IString, INetworkInterface> networkInterfaces;
 
     EventPtr<const ComponentPtr, const CoreEventArgsPtr> coreEvent;
-    PropertyObjectPtr getOwnerOfProperty(const StringPtr& propertyName);
     std::atomic<SizeT> totalCountOfConnectedClientsEverRegistered;
 };
 
@@ -208,8 +199,8 @@ namespace deviceInfoDetails
 }
 
 template <typename TInterface, typename ... Interfaces>
-DeviceInfoConfigImpl<TInterface, Interfaces...>::DeviceInfoConfigImpl()
-    : Super()
+DeviceInfoConfigImpl<TInterface, Interfaces...>::DeviceInfoConfigImpl(ITypeManager* manager)
+    : Super(manager, nullptr)
     , networkInterfaces(Dict<IString, INetworkInterface>())
     , totalCountOfConnectedClientsEverRegistered(0)
 {
@@ -1100,111 +1091,6 @@ ErrCode DeviceInfoConfigImpl<TInterface, Interfaces...>::updateInternal(ISeriali
     });    
     OPENDAQ_RETURN_IF_FAILED(errCode);
     return errCode;
-}
-
-template <typename TInterface, typename ... Interfaces>
-PropertyObjectPtr DeviceInfoConfigImpl<TInterface, Interfaces...>::getOwnerOfProperty(const StringPtr& propertyName)
-{
-    if (propertyName == "userName" || propertyName == "location")
-        if (!this->objPtr.getProperty(propertyName).getReadOnly())
-            return Super::getPropertyObjectParent();
-    return nullptr;
-}
-
-template <typename TInterface, typename ... Interfaces>
-ErrCode DeviceInfoConfigImpl<TInterface, Interfaces...>::getPropertyValueNoLock(IString* propertyName, IBaseObject** value)
-{
-    OPENDAQ_PARAM_NOT_NULL(propertyName);
-    auto owner = getOwnerOfProperty(propertyName);
-    if (owner.assigned())
-        return owner->getPropertyValue(propertyName, value);
-
-    return Super::getPropertyValueNoLock(propertyName, value); 
-}
-
-template <typename TInterface, typename ... Interfaces>
-ErrCode DeviceInfoConfigImpl<TInterface, Interfaces...>::setPropertyValueNoLock(IString* propertyName, IBaseObject* value)
-{
-    OPENDAQ_PARAM_NOT_NULL(propertyName);
-    auto owner = getOwnerOfProperty(propertyName);
-    if (owner.assigned())
-        return owner->setPropertyValue(propertyName, value);
-
-    return Super::setPropertyValueNoLock(propertyName, value);
-}
-
-template <typename TInterface, typename ... Interfaces>
-ErrCode DeviceInfoConfigImpl<TInterface, Interfaces...>::setProtectedPropertyValue(IString* propertyName, IBaseObject* value)
-{
-    OPENDAQ_PARAM_NOT_NULL(propertyName);
-    auto owner = getOwnerOfProperty(propertyName);
-    if (owner.assigned())
-        return owner.template as<IPropertyObjectProtected>(true)->setProtectedPropertyValue(propertyName, value);
-
-    return Super::setProtectedPropertyValue(propertyName, value);
-}
-
-template <typename TInterface, typename ... Interfaces>
-ErrCode DeviceInfoConfigImpl<TInterface, Interfaces...>::setOwner(IPropertyObject* newOwner)
-{
-    ErrCode errCode = Super::setOwner(newOwner);
-    OPENDAQ_RETURN_IF_FAILED(errCode);
-
-    if (errCode == OPENDAQ_IGNORED)
-        return errCode;
-
-    if (newOwner == nullptr)
-        return errCode;
-
-    ComponentPtr parent = newOwner;
-
-    errCode = this->setProtectedPropertyValue(String("name"), parent.getName());
-    OPENDAQ_RETURN_IF_FAILED(errCode);
-
-    if (!coreEvent.assigned())
-    {
-        parent.getContext()->getOnCoreEvent(&coreEvent);
-
-        auto thisWeakRef = this->template getWeakRefInternal<IDeviceInfoConfig>();
-        ProcedurePtr procedure = [this, thisWeakRef](const CoreEventArgsPtr& args)
-        {
-            const auto thisRef = thisWeakRef.getRef();
-            if (!thisRef.assigned())
-                return;
-            this->triggerCoreEventMethod(args);
-        };
-
-        this->setCoreEventTrigger(procedure);
-        this->enableCoreEventTrigger(); // enables core event trigger for nested property objects
-    }
-
-    if (parent.supportsInterface<IMirroredDevice>())
-        return errCode;
-    
-    auto lock = this->getRecursiveConfigLock2();
-    for (const StringPtr& propertyName: {String("userName"), String("location")})
-    {
-        PropertyPtr property;
-        errCode = this->getProperty(propertyName, &property);
-        OPENDAQ_RETURN_IF_FAILED(errCode);
-
-        if (property.getReadOnly())
-            continue;
-
-        errCode = parent->addProperty(StringProperty(propertyName, ""));
-        OPENDAQ_RETURN_IF_FAILED_EXCEPT(errCode, OPENDAQ_ERR_ALREADYEXISTS);
-        if (errCode == OPENDAQ_ERR_ALREADYEXISTS)
-            continue;
-
-        BaseObjectPtr propertyValue;
-        errCode = Super::getPropertyValueNoLock(propertyName, &propertyValue);
-        OPENDAQ_RETURN_IF_FAILED(errCode);
-        
-        errCode = parent->setPropertyValue(propertyName, propertyValue);
-        OPENDAQ_RETURN_IF_FAILED(errCode);
-    }
-
-    return OPENDAQ_SUCCESS;
 }
 
 template <typename TInterface, typename ... Interfaces>

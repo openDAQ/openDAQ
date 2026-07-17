@@ -683,9 +683,16 @@ void ConfigClientPropertyObjectBaseImpl<Impl>::updatePropertyValues(const Serial
 
         if (valueTypeUnresolved == ctObject)
         {
-            const ObjectPtr<IConfigClientObject> clientObj = thisPtr.getPropertyValue(propName);
+            const auto propValue = thisPtr.getPropertyValue(propName);
             const auto childSerObj = propValues.readSerializedObject(propName);
-            checkErrorInfo(clientObj->remoteUpdate(childSerObj));
+
+            // Nested property objects that are not networked config-client objects (eg. DeviceInfo's
+            // serverCapabilities/configurationConnectionInfo/activeClientConnections) are plain value
+            // snapshots without persistent identity - replace them wholesale instead of merging.
+            if (const auto clientObj = propValue.asPtrOrNull<IConfigClientObject>(true); clientObj.assigned())
+                checkErrorInfo(clientObj->remoteUpdate(childSerObj));
+            else
+                checkErrorInfo(Impl::setProtectedPropertyValue(propName, propValues.readObject(propName, typeManager)));
         }
         else
         {

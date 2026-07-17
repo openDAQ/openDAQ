@@ -3397,6 +3397,7 @@ TEST_F(NativeDeviceModulesTest, SaveLoadDeviceInfo)
         deviceInfo.setPropertyValue("ClientCustomProperty", "newValue");
 
         config = client.saveConfiguration();
+        std::cout << config << std::endl;
     }
 
     auto server = CreateServerInstanceWithEnabledLogFileInfo();

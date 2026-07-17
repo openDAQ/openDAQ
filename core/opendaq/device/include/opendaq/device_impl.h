@@ -171,10 +171,6 @@ public:
     ErrCode INTERFACE_FUNC updateOperationMode(OperationModeType modeType) override;
     ErrCode INTERFACE_FUNC setParentActive(Bool parentActive, Bool onUpdate) override;
 
-    // IPropertyObjectInternal
-    ErrCode INTERFACE_FUNC enableCoreEventTrigger() override;
-    ErrCode INTERFACE_FUNC disableCoreEventTrigger() override;
-
 protected:
     DeviceInfoPtr deviceInfo;
     FolderConfigPtr devices;
@@ -1988,6 +1984,15 @@ void GenericDevice<TInterface, Interfaces...>::serializeCustomObjectValues(const
     DeviceInfoPtr deviceInfo;
     checkErrorInfo(this->getInfo(&deviceInfo));
 
+    if (deviceInfo.assigned())
+    {
+        serializer.key("deviceInfo");
+        if (forUpdate)
+            deviceInfo.template asPtr<IUpdatable>(true).serializeForUpdate(serializer);
+        else
+            deviceInfo.serialize(serializer);
+    }
+
     if (!forUpdate)
     {
         if (deviceDomain.assigned())
@@ -2045,27 +2050,13 @@ void GenericDevice<TInterface, Interfaces...>::serializeCustomObjectValues(const
         }
     }
 
-    if (deviceInfo.assigned())
-    {
-        serializer.key("deviceInfo");
-        if (forUpdate)
-        {
-            deviceInfo.template asPtr<IUpdatable>(true).serializeForUpdate(serializer);
-        }
-        else
-        {
-            deviceInfo.serialize(serializer);
-        }
-    }
-
     if (syncComponent.assigned())
     {
         serializer.key("Synchronization");
-        if(forUpdate) {
+        if (forUpdate)
             syncComponent.template asPtr<IUpdatable>(true).serializeForUpdate(serializer);
-        } else {
+        else
             syncComponent.serialize(serializer);
-        }
     }
 
     serializer.key("UserLock");
@@ -2355,11 +2346,6 @@ void GenericDevice<TInterface, Interfaces...>::deserializeCustomObjectValues(con
     if (serializedObject.hasKey("isRootDevice"))
         isRootDevice = serializedObject.readBool("isRootDevice");
 
-    // if (serializedObject.hasKey("deviceInfo"))
-    // {
-    //     deviceInfo = serializedObject.readObject("deviceInfo", context, factoryCallback);
-    // }
-
     if (serializedObject.hasKey("deviceDomain"))
     {
         deviceDomain = serializedObject.readObject("deviceDomain");
@@ -2528,54 +2514,6 @@ void GenericDevice<TInterface, Interfaces...>::updateObject(const SerializedObje
 
     if (obj.hasKey("UserLock"))
         userLock = obj.readObject("UserLock", context);
-
-    if (obj.hasKey("deviceInfo"))
-    {
-        DeviceInfoPtr deviceInfo;
-        this->getInfo(&deviceInfo);
-
-        if (auto updatableDeviceInfo = deviceInfo.asPtrOrNull<IUpdatable>(true); updatableDeviceInfo.assigned())
-        {
-            const auto deviceInfoObject = obj.readSerializedObject("deviceInfo");
-            updatableDeviceInfo.updateInternal(deviceInfoObject, context);
-        }
-    }
-}
-
-template <typename TInterface, typename ... Interfaces>
-ErrCode GenericDevice<TInterface, Interfaces...>::enableCoreEventTrigger()
-{
-    ErrCode errCode = Super::enableCoreEventTrigger();
-    OPENDAQ_RETURN_IF_FAILED(errCode);
-
-    DeviceInfoPtr deviceInfo;
-    errCode = this->getInfo(&deviceInfo);
-    OPENDAQ_RETURN_IF_FAILED(errCode);
-
-    if (deviceInfo.assigned())
-    {
-        const ErrCode err = deviceInfo.asPtr<IPropertyObjectInternal>(true)->enableCoreEventTrigger();
-        OPENDAQ_RETURN_IF_FAILED(err);
-        return err;
-    }
-
-    return errCode;
-}
-
-template <typename TInterface, typename ... Interfaces>
-ErrCode GenericDevice<TInterface, Interfaces...>::disableCoreEventTrigger()
-{
-    ErrCode errCode = Super::disableCoreEventTrigger();
-    OPENDAQ_RETURN_IF_FAILED(errCode);
-
-    if (this->deviceInfo.assigned())
-    {
-        const ErrCode err = deviceInfo.asPtr<IPropertyObjectInternal>(true)->disableCoreEventTrigger();
-        OPENDAQ_RETURN_IF_FAILED(err);
-        return err;
-    }
-
-    return errCode;
 }
 
 template <typename TInterface, typename ... Interfaces>

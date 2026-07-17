@@ -274,7 +274,7 @@ protected:
     void unfreeze();
     StringPtr getPath() const;
     TypeManagerPtr getTypeManager();
-    CloneParameters getCloneParameters();    
+    CloneParameters getCloneParameters();
 
     void setMutex(const MutexPtr& mutex);
     void setLockOwner(const PropertyObjectInternalPtr& owner);

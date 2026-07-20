@@ -10,13 +10,14 @@
 #include "opendaq/data_descriptor_factory.h"
 #include "opendaq/packet_factory.h"
 
+#include <thread>
+
 BEGIN_NAMESPACE_OPENDAQ
 
 ConnectionImpl::ConnectionImpl(const InputPortPtr& port, const SignalPtr& signal, ContextPtr context)
     : port(port)
     , signalRef(signal)
     , context(std::move(context))
-    , queueEmpty(true)
     , loggerComponent(this->context.getLogger().getOrAddComponent("daq_connection"))
 {
     const auto portConfig = port.asPtrOrNull<IInputPortConfig>(true);
@@ -32,33 +33,196 @@ ConnectionImpl::ConnectionImpl(const InputPortPtr& port, const SignalPtr& signal
     }
 }
 
-template <class P, class F>
-ErrCode ConnectionImpl::enqueueInternal(P&& packet, const F& f)
+ConnectionImpl::~ConnectionImpl()
 {
-    const ErrCode errCode = daqTry([this, &packet, &f]
+    // refcount reached zero: no producer or consumer can be inside the gate anymore
+    if (IPacket* front = pendingFrontDescriptor.exchange(nullptr, std::memory_order_acquire))
+        front->releaseRef();
+    destroyChain(pendingDrainChain);
+    destroyChain(inboxTop.exchange(nullptr, std::memory_order_acquire));
+    destroyChain(freeTop.exchange(nullptr, std::memory_order_acquire));
+    destroyChain(producerNodeCache);
+}
+
+void ConnectionImpl::destroyChain(PacketNode* chain)
+{
+    while (chain)
     {
+        PacketNode* next = chain->next.load(std::memory_order_relaxed);
+        if (chain->packet)
+            chain->packet->releaseRef();
+        delete chain;
+        chain = next;
+    }
+}
+
+ConnectionImpl::PacketNode* ConnectionImpl::reverseChain(PacketNode* chain)
+{
+    PacketNode* reversed = nullptr;
+    while (chain)
+    {
+        PacketNode* next = chain->next.load(std::memory_order_relaxed);
+        chain->next.store(reversed, std::memory_order_relaxed);
+        reversed = chain;
+        chain = next;
+    }
+    return reversed;
+}
+
+ConnectionImpl::PacketNode* ConnectionImpl::acquireNodeProducer()
+{
+    // Producer-thread-private cache, refilled wholesale from the shared free list.
+    // freeTop is only ever taken with exchange (all at once), never CAS-popped, so the
+    // classic Treiber-pop ABA problem cannot occur.
+    if (!producerNodeCache)
+        producerNodeCache = freeTop.exchange(nullptr, std::memory_order_acq_rel);
+
+    if (producerNodeCache)
+    {
+        PacketNode* node = producerNodeCache;
+        producerNodeCache = node->next.load(std::memory_order_relaxed);
+        node->next.store(nullptr, std::memory_order_relaxed);
+        node->gapCheck = true;
+        return node;
+    }
+    return new PacketNode();
+}
+
+void ConnectionImpl::recycleNode(PacketNode* node)
+{
+    node->packet = nullptr;
+    PacketNode* cur = freeTop.load(std::memory_order_relaxed);
+    do
+    {
+        node->next.store(cur, std::memory_order_relaxed);
+    } while (!freeTop.compare_exchange_weak(cur, node, std::memory_order_release, std::memory_order_relaxed));
+}
+
+bool ConnectionImpl::pushChain(PacketNode* first, PacketNode* last, bool& queueWasEmpty)
+{
+    GateGuard gate(accessGate);
+
+    // seq_cst pairing with closeQueue(): if this load returns false, it precedes the
+    // closed store in the seq_cst total order, so our gate increment does too, and
+    // closeQueue()'s gate spin waits for this push to finish before draining.
+    if (closedFlag.load(std::memory_order_seq_cst))
+    {
+        destroyChain(first);
+        queueWasEmpty = false;
+        return false;
+    }
+
+    PacketNode* cur = inboxTop.load(std::memory_order_relaxed);
+    do
+    {
+        last->next.store(cur, std::memory_order_relaxed);
+    } while (!inboxTop.compare_exchange_weak(cur, first, std::memory_order_release, std::memory_order_relaxed));
+
+    queueWasEmpty = queueEmptyFlag.exchange(false, std::memory_order_acq_rel);
+    return true;
+}
+
+void ConnectionImpl::latchDescriptors(const EventPacketPtr& packet)
+{
+    if (packet.getEventId() != event_packet_id::DATA_DESCRIPTOR_CHANGED)
+        return;
+
+    const auto params = packet.getParameters();
+    const DataDescriptorPtr valueDescriptorParam = params[event_packet_param::DATA_DESCRIPTOR];
+    const DataDescriptorPtr domainDescriptorParam = params[event_packet_param::DOMAIN_DATA_DESCRIPTOR];
+
+    std::lock_guard lock(latchMutex);
+    if (valueDescriptorParam.assigned())
+        valueDataDescriptor = valueDescriptorParam;
+    if (domainDescriptorParam.assigned())
+        domainDataDescriptor = domainDescriptorParam;
+}
+
+template <class P, class F>
+ErrCode ConnectionImpl::enqueueInternal(P&& packet, bool useProducerCache, const F& f)
+{
+    const ErrCode errCode = daqTry([this, &packet, useProducerCache, &f]
+    {
+        const auto type = packet.getType();
+
         if (!port.getActive())
         {
-            const auto type = packet.getType();
             if (type != PacketType::Event)
                 return OPENDAQ_IGNORED;
             LOGP_T("Port not active, data packet dropped.")
         }
 
+        // descriptor latch feeds enqueueLastDescriptor for listeners attached later
+        if (type == PacketType::Event)
+        {
+            const auto eventPacket = packet.template asPtrOrNull<IEventPacket>(true);
+            if (eventPacket.assigned())
+                latchDescriptors(eventPacket);
+        }
+
+        PacketNode* node = useProducerCache ? acquireNodeProducer() : new PacketNode();
+        if constexpr (std::is_rvalue_reference_v<P&&>)
+            node->packet = packet.detach();
+        else
+            node->packet = packet.addRefAndReturn();
+
         bool queueWasEmpty;
+        if (!pushChain(node, node, queueWasEmpty))
+        {
+            LOGP_T("Connection closed, packet dropped.")
+            return OPENDAQ_IGNORED;
+        }
 
-        withLock(
-            [&packet, &queueWasEmpty, this]()
-            {
-                queueWasEmpty = queueEmpty;
-                if (gapCheckState != GapCheckState::disabled)
-                    checkForGaps(packet);
+        f(queueWasEmpty);
+        LOGP_T("Packet enqueued.")
+        return OPENDAQ_SUCCESS;
+    });
+    OPENDAQ_RETURN_IF_FAILED(errCode);
+    return errCode;
+}
 
-                onPacketEnqueued(packet);
-                packets.emplace_back(std::forward<P>(packet));
-                queueEmpty = false;
-                LOGP_T("Packet enqueued.")
-            });
+template <class P, class F>
+ErrCode ConnectionImpl::enqueueMultipleInternal(P&& packets, bool useProducerCache, const F& f)
+{
+    const ErrCode errCode = daqTry([this, &packets, useProducerCache, &f]
+    {
+        if (!port.getActive())
+            return OPENDAQ_IGNORED;
+
+        const size_t cnt = packets.getCount();
+        if (cnt == 0)
+            return OPENDAQ_IGNORED;
+
+        // Build the chain newest-first so that pushing it as one unit is equivalent to
+        // pushing the packets one by one (the consumer restores FIFO by reversing).
+        PacketNode* first = nullptr;  // newest
+        PacketNode* last = nullptr;   // oldest
+        for (size_t i = 0; i < cnt; ++i)
+        {
+            PacketPtr packet;
+            if constexpr (std::is_rvalue_reference_v<P&&>)
+                packet = packets.popFront();
+            else
+                packet = packets.getItemAt(i);
+
+            if (const auto eventPacket = packet.template asPtrOrNull<IEventPacket>(true); eventPacket.assigned())
+                latchDescriptors(eventPacket);
+
+            PacketNode* node = useProducerCache ? acquireNodeProducer() : new PacketNode();
+            node->packet = packet.detach();
+            node->gapCheck = false;  // multi-packet enqueue skipped gap checks historically
+            node->next.store(first, std::memory_order_relaxed);
+            first = node;
+            if (!last)
+                last = node;
+        }
+
+        bool queueWasEmpty;
+        if (!pushChain(first, last, queueWasEmpty))
+        {
+            LOGP_T("Connection closed, packets dropped.")
+            return OPENDAQ_IGNORED;
+        }
 
         f(queueWasEmpty);
         return OPENDAQ_SUCCESS;
@@ -73,7 +237,7 @@ ErrCode ConnectionImpl::enqueue(IPacket* packet)
 
     const auto packetPtr = PacketPtr::Borrow(packet);
 
-    return enqueueInternal(packetPtr, [this](bool queueWasEmpty) { port.notifyPacketEnqueued(queueWasEmpty); });
+    return enqueueInternal(packetPtr, false, [this](bool queueWasEmpty) { port.notifyPacketEnqueued(queueWasEmpty); });
 }
 
 ErrCode INTERFACE_FUNC ConnectionImpl::enqueueOnThisThread(IPacket* packet)
@@ -82,7 +246,7 @@ ErrCode INTERFACE_FUNC ConnectionImpl::enqueueOnThisThread(IPacket* packet)
 
     const auto packetPtr = PacketPtr::Borrow(packet);
 
-    return enqueueInternal(packetPtr, [this](bool) { port.notifyPacketEnqueuedOnThisThread(); });
+    return enqueueInternal(packetPtr, false, [this](bool) { port.notifyPacketEnqueuedOnThisThread(); });
 }
 
 ErrCode ConnectionImpl::enqueueWithScheduler(IPacket* packet)
@@ -91,118 +255,16 @@ ErrCode ConnectionImpl::enqueueWithScheduler(IPacket* packet)
 
     const auto packetPtr = PacketPtr::Borrow(packet);
 
-    return enqueueInternal(packetPtr, [this](bool) { port.notifyPacketEnqueuedWithScheduler(); });
+    return enqueueInternal(packetPtr, false, [this](bool) { port.notifyPacketEnqueuedWithScheduler(); });
 }
 
-#if _MSC_VER < 1920
-
-ErrCode ConnectionImpl::enqueueMultipleInternal(const ListPtr<IPacket>& packets)
-{
-    const ErrCode errCode = daqTry([this, &packets] 
-    {
-        if (!port.getActive())
-            return OPENDAQ_IGNORED;
-
-        bool queueWasEmpty;
-
-        withLock([&packets, &queueWasEmpty, this]()
-        {
-            queueWasEmpty = queueEmpty;
-            const size_t cnt = packets.getCount();
-            for (size_t i = 0; i < cnt; ++i)
-            {
-                auto packet = packets.getItemAt(i);
-                onPacketEnqueued(packet);
-                this->packets.push_back(packet);
-            }
-            queueEmpty = false;
-        });
-
-        port.notifyPacketEnqueued(queueWasEmpty);
-        return OPENDAQ_SUCCESS;
-    });
-    OPENDAQ_RETURN_IF_FAILED(errCode);
-    return errCode;
-}
-
-ErrCode ConnectionImpl::enqueueMultipleInternal(ListPtr<IPacket>&& packets)
-{
-    const ErrCode errCode = daqTry([this, &packets]
-    {
-        if (!port.getActive())
-            return OPENDAQ_IGNORED;
-
-        bool queueWasEmpty;
-
-        withLock([&packets, &queueWasEmpty, this]() {
-            queueWasEmpty = queueEmpty;
-            const size_t cnt = packets.getCount();
-            for (size_t i = 0; i < cnt; ++i)
-            {
-                auto packet = packets.popFront();
-                onPacketEnqueued(packet);
-                this->packets.push_back(packet);
-            }
-            queueEmpty = false;
-        });
-
-        port.notifyPacketEnqueued(queueWasEmpty);
-        return OPENDAQ_SUCCESS;
-    });
-    OPENDAQ_RETURN_IF_FAILED(errCode);
-    return errCode;
-}
-
-#else
-
-template <class P>
-ErrCode ConnectionImpl::enqueueMultipleInternal(P&& packets)
-{
-    const ErrCode errCode = daqTry([this, &packets]
-    {
-        if (!port.getActive())
-            return OPENDAQ_IGNORED;
-
-        bool queueWasEmpty;
-
-        withLock(
-            [&packets, &queueWasEmpty, this]()
-            {
-                queueWasEmpty = queueEmpty;
-                const size_t cnt = packets.getCount();
-                for (size_t i = 0; i < cnt; ++i)
-                {
-                    PacketPtr packet;
-                    if constexpr (std::is_rvalue_reference_v<P&&>)
-                    {
-                        packet = packets.popFront();
-                    }
-                    else
-                    {
-                        packet = packets.getItemAt(i);
-                    }
-                    onPacketEnqueued(packet);
-                    this->packets.push_back(packet);
-                }
-                queueEmpty = false;
-            });
-
-        port.notifyPacketEnqueued(queueWasEmpty);
-        return OPENDAQ_SUCCESS;
-    });
-    OPENDAQ_RETURN_IF_FAILED(errCode);
-    return errCode;
-}
-
-#endif
- 
 ErrCode INTERFACE_FUNC ConnectionImpl::enqueueMultiple(IList* packets)
 {
     OPENDAQ_PARAM_NOT_NULL(packets);
 
     const auto packetsPtr = ListPtr<IPacket>::Borrow(packets);
 
-    return enqueueMultipleInternal(packetsPtr);
+    return enqueueMultipleInternal(packetsPtr, false, [this](bool queueWasEmpty) { port.notifyPacketEnqueued(queueWasEmpty); });
 }
 
 ErrCode INTERFACE_FUNC ConnectionImpl::enqueueAndStealRef(IPacket* packet)
@@ -211,7 +273,7 @@ ErrCode INTERFACE_FUNC ConnectionImpl::enqueueAndStealRef(IPacket* packet)
 
     auto packetPtr = PacketPtr::Adopt(packet);
 
-    return enqueueInternal(std::move(packetPtr), [this](bool queueWasEmpty) { port.notifyPacketEnqueued(queueWasEmpty); });
+    return enqueueInternal(std::move(packetPtr), false, [this](bool queueWasEmpty) { port.notifyPacketEnqueued(queueWasEmpty); });
 }
 
 ErrCode INTERFACE_FUNC ConnectionImpl::enqueueMultipleAndStealRef(IList* packets)
@@ -220,18 +282,121 @@ ErrCode INTERFACE_FUNC ConnectionImpl::enqueueMultipleAndStealRef(IList* packets
 
     auto packetsPtr = ListPtr<IPacket>::Adopt(packets);
 
-    return enqueueMultipleInternal(std::move(packetsPtr));
+    return enqueueMultipleInternal(std::move(packetsPtr), false, [this](bool queueWasEmpty) { port.notifyPacketEnqueued(queueWasEmpty); });
+}
+
+// single-producer fast path: identical to the generic entry points, but nodes come from
+// the producer-thread-private cache (see IConnectionInternal docs for the contract)
+
+ErrCode ConnectionImpl::enqueueProducer(IPacket* packet)
+{
+    OPENDAQ_PARAM_NOT_NULL(packet);
+
+    const auto packetPtr = PacketPtr::Borrow(packet);
+
+    return enqueueInternal(packetPtr, true, [this](bool queueWasEmpty) { port.notifyPacketEnqueued(queueWasEmpty); });
+}
+
+ErrCode ConnectionImpl::enqueueProducerAndStealRef(IPacket* packet)
+{
+    OPENDAQ_PARAM_NOT_NULL(packet);
+
+    auto packetPtr = PacketPtr::Adopt(packet);
+
+    return enqueueInternal(std::move(packetPtr), true, [this](bool queueWasEmpty) { port.notifyPacketEnqueued(queueWasEmpty); });
+}
+
+ErrCode ConnectionImpl::enqueueMultipleProducer(IList* packets)
+{
+    OPENDAQ_PARAM_NOT_NULL(packets);
+
+    const auto packetsPtr = ListPtr<IPacket>::Borrow(packets);
+
+    return enqueueMultipleInternal(packetsPtr, true, [this](bool queueWasEmpty) { port.notifyPacketEnqueued(queueWasEmpty); });
+}
+
+ErrCode ConnectionImpl::enqueueMultipleProducerAndStealRef(IList* packets)
+{
+    OPENDAQ_PARAM_NOT_NULL(packets);
+
+    auto packetsPtr = ListPtr<IPacket>::Adopt(packets);
+
+    return enqueueMultipleInternal(std::move(packetsPtr), true, [this](bool queueWasEmpty) { port.notifyPacketEnqueued(queueWasEmpty); });
+}
+
+void ConnectionImpl::drainInbox()
+{
+    // consumer thread, called inside the gate
+
+    if (IPacket* front = pendingFrontDescriptor.exchange(nullptr, std::memory_order_acq_rel))
+    {
+        packets.emplace_front(PacketPtr::Adopt(front));
+        eventPacketsCnt++;
+    }
+
+    PacketNode* chain = pendingDrainChain;
+    pendingDrainChain = nullptr;
+    PacketNode* fresh = reverseChain(inboxTop.exchange(nullptr, std::memory_order_acq_rel));
+    if (!chain)
+    {
+        chain = fresh;
+    }
+    else if (fresh)
+    {
+        PacketNode* tail = chain;
+        while (PacketNode* next = tail->next.load(std::memory_order_relaxed))
+            tail = next;
+        tail->next.store(fresh, std::memory_order_relaxed);
+    }
+
+    while (chain)
+    {
+        PacketNode* node = chain;
+        chain = node->next.load(std::memory_order_relaxed);
+
+        PacketPtr packet = PacketPtr::Adopt(node->packet);
+        const bool doGapCheck = node->gapCheck;
+        recycleNode(node);
+
+        if (gapCheckState != GapCheckState::disabled && doGapCheck)
+        {
+            try
+            {
+                checkForGaps(packet);
+            }
+            catch (...)
+            {
+                // the offending packet is dropped (it was never part of the queue, matching
+                // the historical enqueue-side behavior); the rest is drained on the next call
+                pendingDrainChain = chain;
+                throw;
+            }
+        }
+
+        onPacketEnqueuedCounters(packet);
+        packets.emplace_back(std::move(packet));
+        LOGP_T("Packet enqueued.")
+    }
 }
 
 ErrCode ConnectionImpl::dequeue(IPacket** packet)
 {
     OPENDAQ_PARAM_NOT_NULL(packet);
 
-    return withLock([&packet, this]()
+    return daqTry([&packet, this]()
     {
+        GateGuard gate(accessGate);
+        if (closedFlag.load(std::memory_order_seq_cst))
+        {
+            *packet = nullptr;
+            return OPENDAQ_NO_MORE_ITEMS;
+        }
+
+        drainInbox();
+
         if (packets.empty())
         {
-            queueEmpty = true;
+            queueEmptyFlag.store(true, std::memory_order_release);
             LOGP_T("No packet to dequeue.")
             *packet = nullptr;
             return OPENDAQ_NO_MORE_ITEMS;
@@ -252,16 +417,22 @@ ErrCode INTERFACE_FUNC ConnectionImpl::dequeueAll(IList** packets)
 
     auto packetsPtr = List<IPacket>();
 
-    return withLock(
+    return daqTry(
         [&packetsPtr, packets, this]()
         {
-            for (const auto& packet : this->packets)
+            GateGuard gate(accessGate);
+            if (!closedFlag.load(std::memory_order_seq_cst))
             {
-                packetsPtr.pushBack(packet);
+                drainInbox();
+
+                for (const auto& packet : this->packets)
+                {
+                    packetsPtr.pushBack(packet);
+                }
+                samplesCnt = 0;
+                eventPacketsCnt = 0;
+                this->packets.clear();
             }
-            samplesCnt = 0;
-            eventPacketsCnt = 0;
-            this->packets.clear();
 
             *packets = packetsPtr.detach();
             return OPENDAQ_NO_MORE_ITEMS;
@@ -272,8 +443,17 @@ ErrCode ConnectionImpl::peek(IPacket** packet)
 {
     OPENDAQ_PARAM_NOT_NULL(packet);
 
-    return withLock([&packet, this]()
+    return daqTry([&packet, this]()
     {
+        GateGuard gate(accessGate);
+        if (closedFlag.load(std::memory_order_seq_cst))
+        {
+            *packet = nullptr;
+            return OPENDAQ_NO_MORE_ITEMS;
+        }
+
+        drainInbox();
+
         if (packets.empty())
         {
             LOGP_T("No packet to peek.")
@@ -291,8 +471,17 @@ ErrCode ConnectionImpl::getPacketCount(SizeT* packetCount)
 {
     OPENDAQ_PARAM_NOT_NULL(packetCount);
 
-    return withLock([&packetCount, this]()
+    return daqTry([&packetCount, this]()
     {
+        GateGuard gate(accessGate);
+        if (closedFlag.load(std::memory_order_seq_cst))
+        {
+            *packetCount = 0;
+            return OPENDAQ_SUCCESS;
+        }
+
+        drainInbox();
+
         *packetCount = packets.size();
         LOG_T("Packet count = {}.", *packetCount)
         return OPENDAQ_SUCCESS;
@@ -303,8 +492,17 @@ ErrCode ConnectionImpl::getAvailableSamples(SizeT* samples)
 {
     OPENDAQ_PARAM_NOT_NULL(samples);
 
-    return withLock([samples, this]()
+    return daqTry([samples, this]()
     {
+        GateGuard gate(accessGate);
+        if (closedFlag.load(std::memory_order_seq_cst))
+        {
+            *samples = 0;
+            return OPENDAQ_SUCCESS;
+        }
+
+        drainInbox();
+
         *samples = samplesCnt;
 
         LOG_T("Available samples = {}.", *samples)
@@ -316,7 +514,16 @@ ErrCode ConnectionImpl::getSamplesUntilNextEventPacket(SizeT* samples)
 {
     OPENDAQ_PARAM_NOT_NULL(samples);
 
-    return withLock([samples, this]() {
+    return daqTry([samples, this]() {
+        GateGuard gate(accessGate);
+        if (closedFlag.load(std::memory_order_seq_cst))
+        {
+            *samples = 0;
+            return OPENDAQ_SUCCESS;
+        }
+
+        drainInbox();
+
         if (eventPacketsCnt == 0 && gapPacketsCnt == 0)
         {
             *samples = samplesCnt;
@@ -356,7 +563,16 @@ ErrCode ConnectionImpl::getSamplesUntilNextDescriptor(SizeT* samples)
 {
     OPENDAQ_PARAM_NOT_NULL(samples);
 
-    return withLock([samples, this]() {
+    return daqTry([samples, this]() {
+        GateGuard gate(accessGate);
+        if (closedFlag.load(std::memory_order_seq_cst))
+        {
+            *samples = 0;
+            return OPENDAQ_SUCCESS;
+        }
+
+        drainInbox();
+
         if (eventPacketsCnt == 0)
         {
             *samples = samplesCnt;
@@ -399,9 +615,18 @@ ErrCode ConnectionImpl::getSamplesUntilNextDescriptor(SizeT* samples)
 
 ErrCode ConnectionImpl::getSamplesUntilNextGapPacket(SizeT* samples)
 {
-        OPENDAQ_PARAM_NOT_NULL(samples);
+    OPENDAQ_PARAM_NOT_NULL(samples);
 
-    return withLock([samples, this]() {
+    return daqTry([samples, this]() {
+        GateGuard gate(accessGate);
+        if (closedFlag.load(std::memory_order_seq_cst))
+        {
+            *samples = 0;
+            return OPENDAQ_SUCCESS;
+        }
+
+        drainInbox();
+
         if (gapPacketsCnt == 0)
         {
             *samples = samplesCnt;
@@ -439,15 +664,24 @@ ErrCode ConnectionImpl::getSamplesUntilNextGapPacket(SizeT* samples)
 
         LOG_T("Samples until next gap packet = {}.", *samples)
         return OPENDAQ_SUCCESS;
-    });    
+    });
 }
 
 ErrCode ConnectionImpl::hasEventPacket(Bool* hasEventPacket)
 {
     OPENDAQ_PARAM_NOT_NULL(hasEventPacket);
 
-    return withLock([hasEventPacket, this]()
+    return daqTry([hasEventPacket, this]()
     {
+        GateGuard gate(accessGate);
+        if (closedFlag.load(std::memory_order_seq_cst))
+        {
+            *hasEventPacket = False;
+            return OPENDAQ_SUCCESS;
+        }
+
+        drainInbox();
+
         *hasEventPacket = eventPacketsCnt != 0 || gapPacketsCnt != 0;
         LOG_T("Has event packet = {}.", *hasEventPacket)
         return OPENDAQ_SUCCESS;
@@ -458,8 +692,17 @@ ErrCode ConnectionImpl::hasGapPacket(Bool* hasGapPacket)
 {
     OPENDAQ_PARAM_NOT_NULL(hasGapPacket);
 
-    return withLock([hasGapPacket, this]()
+    return daqTry([hasGapPacket, this]()
     {
+        GateGuard gate(accessGate);
+        if (closedFlag.load(std::memory_order_seq_cst))
+        {
+            *hasGapPacket = False;
+            return OPENDAQ_SUCCESS;
+        }
+
+        drainInbox();
+
         *hasGapPacket = gapPacketsCnt != 0;
         LOG_T("Has gap packet = {}.", *hasGapPacket)
         return OPENDAQ_SUCCESS;
@@ -504,9 +747,18 @@ ErrCode ConnectionImpl::dequeueUpTo(IPacket** packetPtr, SizeT* count)
     OPENDAQ_PARAM_NOT_NULL(packetPtr);
     OPENDAQ_PARAM_NOT_NULL(count);
 
-    return withLock(
+    return daqTry(
         [&packetPtr, &count, this]()
         {
+            GateGuard gate(accessGate);
+            if (closedFlag.load(std::memory_order_seq_cst))
+            {
+                *count = 0;
+                return OPENDAQ_SUCCESS;
+            }
+
+            drainInbox();
+
             auto ptr = packetPtr;
             *count = std::min(*count, packets.size());
             for (size_t i = 0; i < *count; ++i)
@@ -519,6 +771,29 @@ ErrCode ConnectionImpl::dequeueUpTo(IPacket** packetPtr, SizeT* count)
             countPackets();
             return OPENDAQ_SUCCESS;
         });
+}
+
+ErrCode ConnectionImpl::closeQueue()
+{
+    // config path: block until every in-flight producer/consumer operation has left the
+    // gate (their windows are bounded; see the class comment for the seq_cst argument),
+    // then drop everything so no packet stays pinned in an orphaned queue.
+    closedFlag.store(true, std::memory_order_seq_cst);
+    while (accessGate.load(std::memory_order_seq_cst) != 0)
+        std::this_thread::yield();
+
+    if (IPacket* front = pendingFrontDescriptor.exchange(nullptr, std::memory_order_acq_rel))
+        front->releaseRef();
+    destroyChain(pendingDrainChain);
+    pendingDrainChain = nullptr;
+    destroyChain(inboxTop.exchange(nullptr, std::memory_order_acq_rel));
+    packets.clear();
+    samplesCnt = 0;
+    eventPacketsCnt = 0;
+    gapPacketsCnt = 0;
+
+    LOGP_T("Connection queue closed.")
+    return OPENDAQ_SUCCESS;
 }
 
 const std::deque<PacketPtr>& ConnectionImpl::getPackets() const noexcept
@@ -707,7 +982,7 @@ void ConnectionImpl::countPackets()
     }
 }
 
-void ConnectionImpl::onPacketEnqueued(const PacketPtr& packet)
+void ConnectionImpl::onPacketEnqueuedCounters(const PacketPtr& packet)
 {
     if (packet.getType() == PacketType::Data)
     {
@@ -717,23 +992,6 @@ void ConnectionImpl::onPacketEnqueued(const PacketPtr& packet)
     else if (packet.getType() == PacketType::Event)
     {
         eventPacketsCnt++;
-        auto eventPacket = packet.asPtr<IEventPacket>(true);
-        if (!(eventPacket.getEventId() == event_packet_id::DATA_DESCRIPTOR_CHANGED))
-            return;
-
-        const auto params = eventPacket.getParameters();
-        const DataDescriptorPtr valueDescriptorParam = params[event_packet_param::DATA_DESCRIPTOR];
-        const DataDescriptorPtr domainDescriptorParam = params[event_packet_param::DOMAIN_DATA_DESCRIPTOR];
-
-        if (valueDescriptorParam.assigned())
-        {
-            valueDataDescriptor = valueDescriptorParam;
-        }
-
-        if (domainDescriptorParam.assigned())
-        {
-            domainDataDescriptor = domainDescriptorParam;
-        }
     }
 }
 
@@ -757,19 +1015,32 @@ void ConnectionImpl::onPacketDequeued(const PacketPtr& packet)
         else if (eventPacket.getEventId() == event_packet_id::IMPLICIT_DOMAIN_GAP_DETECTED)
         {
             gapPacketsCnt--;
-        }  
+        }
     }
 }
 
 ErrCode ConnectionImpl::enqueueLastDescriptor()
 {
-    return withLock([this]
+    return daqTry([this]
     {
-        if (valueDataDescriptor.assigned() || domainDataDescriptor.assigned())
+        DataDescriptorPtr valueDescriptor;
+        DataDescriptorPtr domainDescriptor;
         {
-            eventPacketsCnt++;
-            const auto dataDescriptorEventPacket = DataDescriptorChangedEventPacket(valueDataDescriptor, domainDataDescriptor);
-            packets.emplace_front(dataDescriptorEventPacket);
+            std::lock_guard lock(latchMutex);
+            valueDescriptor = valueDataDescriptor;
+            domainDescriptor = domainDataDescriptor;
+        }
+
+        if (valueDescriptor.assigned() || domainDescriptor.assigned())
+        {
+            GateGuard gate(accessGate);
+            if (closedFlag.load(std::memory_order_seq_cst))
+                return OPENDAQ_IGNORED;
+
+            auto dataDescriptorEventPacket = DataDescriptorChangedEventPacket(valueDescriptor, domainDescriptor);
+            // merged to the queue front by the consumer's next drain; latest request wins
+            if (IPacket* old = pendingFrontDescriptor.exchange(dataDescriptorEventPacket.detach(), std::memory_order_acq_rel))
+                old->releaseRef();
         }
         return OPENDAQ_SUCCESS;
     });

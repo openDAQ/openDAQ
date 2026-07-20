@@ -18,6 +18,7 @@
 #include <coretypes/string_ptr.h>
 #include <coretypes/validation.h>
 #include <opendaq/component_impl.h>
+#include <opendaq/connection_internal.h>
 #include <opendaq/connection_ptr.h>
 #include <opendaq/context_ptr.h>
 #include <opendaq/data_descriptor_factory.h>
@@ -27,7 +28,6 @@
 #include <opendaq/event_packet_utils.h>
 #include <opendaq/input_port_private_ptr.h>
 #include <opendaq/last_value_cache.h>
-#include <opendaq/mem_pool_allocator.h>
 #include <opendaq/packet_factory.h>
 #include <opendaq/signal.h>
 #include <opendaq/signal_config.h>
@@ -37,6 +37,9 @@
 #include <opendaq/signal_events_ptr.h>
 #include <opendaq/signal_exceptions.h>
 #include <opendaq/signal_private_ptr.h>
+#include <atomic>
+#include <limits>
+#include <thread>
 #include <utility>
 
 BEGIN_NAMESPACE_OPENDAQ
@@ -55,9 +58,45 @@ class SignalBase;
 
 using SignalImpl = SignalBase<ISignalConfig>;
 
-using TempConnectionsAllocator = details::MemPoolAllocator<ConnectionPtr>;
-using TempConnectionsMemPool = details::StaticMemPool<ConnectionPtr, 8>;
-using TempConnections = std::vector<ConnectionPtr, TempConnectionsAllocator>;
+namespace details
+{
+
+/*
+ * Immutable snapshot of a signal's connections, published with an atomic pointer so the
+ * (single) producer thread can fan packets out without taking any lock. Entries hold
+ * strong references, so a pinned snapshot keeps every contained connection alive for the
+ * duration of a send even if it is disconnected concurrently.
+ */
+struct ConnectionsSnapshot
+{
+    struct Entry
+    {
+        ConnectionPtr connection;               // strong ref
+        IConnectionInternal* producerPath{};    // borrowed; single-producer fast path (may be null)
+    };
+
+    std::vector<Entry> entries;
+    mutable std::atomic<int> refCount{1};       // 1 = the publication reference
+
+    void addRef() const noexcept
+    {
+        refCount.fetch_add(1, std::memory_order_relaxed);
+    }
+
+    void release() const noexcept
+    {
+        if (refCount.fetch_sub(1, std::memory_order_acq_rel) == 1)
+            delete this;
+    }
+};
+
+struct RetiredPacket
+{
+    IPacket* packet;
+    RetiredPacket* next;
+};
+
+}
 
 template <typename TInterface, typename... Interfaces>
 class SignalBase : public ComponentImpl<TInterface, ISignalEvents, ISignalPrivate, Interfaces...>
@@ -157,6 +196,23 @@ private:
     bool keepLastPacket;
     bool keepLastValue;
 
+    // Lock-free data path state. `connections` above stays the canonical list, owned and
+    // mutated only under the config lock; the snapshot is a derived immutable copy that the
+    // single producer thread pins per send. See pinConnectionsSnapshot for the protocol.
+    std::atomic<details::ConnectionsSnapshot*> connectionsSnapshot;
+    mutable std::atomic<int> snapshotGate{0};
+
+    // Last-value support: the producer publishes the latest data packet into an atomic slot
+    // (no raw-byte copy on the hot path anymore); getLastValue* lazily feeds lastValueCache
+    // from it under the config lock. Retired packets that a concurrent reader may still be
+    // pinning are parked on a lock-free list and reclaimed on the config path.
+    std::atomic<IPacket*> lastPacketSlot{nullptr};
+    std::atomic<std::uint64_t> lastPacketSeq{0};
+    mutable std::atomic<int> lastValueGate{0};
+    std::atomic<details::RetiredPacket*> retiredPackets{nullptr};
+    std::atomic<bool> keepLastPacketAtomic{false};
+    std::uint64_t lastValueCachedSeq{std::numeric_limits<std::uint64_t>::max()};  // config-lock guarded
+
     ErrCode listenerConnectedInternal(IConnection* connection, bool schedule);
     ErrCode sendPacketInner(IPacket* packet, bool recursiveLock);
     bool sendPacketInternal(const PacketPtr& packet, bool ignoreActive = false) const;
@@ -167,15 +223,22 @@ private:
     void setKeepLastPacket();
     TypePtr addToTypeManagerRecursively(const TypeManagerPtr& typeManager,
                                         const DataDescriptorPtr& descriptor) const;
-    void buildTempConnections(TempConnections& tempConnections);
-    void checkKeepLastPacket(const PacketPtr& packet);
-    void enqueuePacketToConnections(const PacketPtr& packet, const TempConnections& tempConnections);
-    void enqueuePacketToConnections(PacketPtr&& packet, const TempConnections& tempConnections);
-    void enqueuePacketsToConnections(const ListPtr<IPacket>& packets, const TempConnections& tempConnections);
-    void enqueuePacketsToConnections(ListPtr<IPacket>&& packets, const TempConnections& tempConnections);
-    
+
+    details::ConnectionsSnapshot* pinConnectionsSnapshot() const;
+    void publishConnectionsSnapshot();
     template <class Packet>
-    bool checkKeepLastPacketAndBuildConnections(Packet&& packet, TempConnections& tempConnections);
+    void cacheLastPacketOnSend(const Packet& packet);
+    void retireOrReleaseSlotPacket(IPacket* packet);
+    PacketPtr pinLastPacket() const;
+    void drainRetiredPackets();
+    void clearLastPacketSlot();
+    void refreshLastValueCacheFromSlot();
+
+    void enqueuePacketToConnections(const PacketPtr& packet, const details::ConnectionsSnapshot& snapshot);
+    void enqueuePacketToConnections(PacketPtr&& packet, const details::ConnectionsSnapshot& snapshot);
+    void enqueuePacketsToConnections(const ListPtr<IPacket>& packets, const details::ConnectionsSnapshot& snapshot);
+    void enqueuePacketsToConnections(ListPtr<IPacket>&& packets, const details::ConnectionsSnapshot& snapshot);
+
     template <class Packet>
     bool keepLastPacketAndEnqueue(Packet&& packet, bool recursiveLock = false);
 
@@ -202,6 +265,7 @@ SignalBase<TInterface, Interfaces...>::SignalBase(const ContextPtr& context,
     , dataDescriptor(std::move(descriptor))
     , isPublic(true)
     , keepLastValue(true)
+    , connectionsSnapshot(new details::ConnectionsSnapshot())
 {
     if (dataDescriptor.assigned() && dataDescriptor.getSampleType() == SampleType::Null)
         DAQ_THROW_EXCEPTION(InvalidSampleTypeException, "SampleType \"Null\" is reserved for \"DATA_DESCRIPTOR_CHANGED\" event packet.");
@@ -219,6 +283,20 @@ SignalBase<TInterface, Interfaces...>::~SignalBase()
 {
     if (domainSignal.assigned())
         domainSignal.asPtr<ISignalEvents>().domainSignalReferenceRemoved(this->template borrowPtr<SignalPtr>());
+
+    // no producer or reader can be active anymore: refcount reached zero
+    if (auto* snapshot = connectionsSnapshot.exchange(nullptr, std::memory_order_acquire))
+        snapshot->release();
+    if (IPacket* packet = lastPacketSlot.exchange(nullptr, std::memory_order_acquire))
+        packet->releaseRef();
+    auto* retired = retiredPackets.exchange(nullptr, std::memory_order_acquire);
+    while (retired)
+    {
+        retired->packet->releaseRef();
+        auto* next = retired->next;
+        delete retired;
+        retired = next;
+    }
 }
 
 template <typename TInterface, typename... Interfaces>
@@ -664,107 +742,230 @@ ErrCode SignalBase<TInterface, Interfaces...>::getConnections(IList** connection
 }
 
 template <typename TInterface, typename... Interfaces>
-void SignalBase<TInterface, Interfaces...>::buildTempConnections(TempConnections& tempConnections)
+details::ConnectionsSnapshot* SignalBase<TInterface, Interfaces...>::pinConnectionsSnapshot() const
 {
-    tempConnections.reserve(connections.size());
-    for (const auto& connection : connections)
-        tempConnections.push_back(connection);
+    // Publication protocol (Dekker-style; the four seq_cst operations marked below are part
+    // of the single seq_cst total order S):
+    //   reader: gate++ (A); snapshot load (B); refCount pin; gate--
+    //   writer: snapshot exchange (C); spin while gate != 0 (D); release publication ref
+    // If B returned the old snapshot, B precedes C in S (a load ordered after C would have
+    // to observe the new pointer), hence A precedes C as well, and every D executed after C
+    // observes gate > 0 until this reader's gate--, which is sequenced after the pin.
+    // The writer therefore can never release the old snapshot between B and the pin.
+    snapshotGate.fetch_add(1, std::memory_order_seq_cst);                       // (A)
+    auto* snapshot = connectionsSnapshot.load(std::memory_order_seq_cst);       // (B)
+    snapshot->addRef();
+    snapshotGate.fetch_sub(1, std::memory_order_release);
+    return snapshot;
 }
 
 template <typename TInterface, typename... Interfaces>
-void SignalBase<TInterface, Interfaces...>::checkKeepLastPacket(const PacketPtr& packet)
+void SignalBase<TInterface, Interfaces...>::publishConnectionsSnapshot()
 {
-    if (keepLastPacket)
+    // config paths only, always under the config lock (serializes writers against each other)
+    auto* snapshot = new details::ConnectionsSnapshot();
+    snapshot->entries.reserve(connections.size());
+    for (const auto& connection : connections)
     {
-        auto dataPacket = packet.asPtrOrNull<IDataPacket>();
-        if (dataPacket.assigned() && dataPacket.getSampleCount() > 0)
-        {
-            setLastValueFromPacket(dataPacket);
-        }
+        details::ConnectionsSnapshot::Entry entry;
+        entry.connection = connection;
+        IConnectionInternal* internal = nullptr;
+        if (OPENDAQ_SUCCEEDED(connection->borrowInterface(IConnectionInternal::Id, reinterpret_cast<void**>(&internal))))
+            entry.producerPath = internal;
+        snapshot->entries.push_back(std::move(entry));
+    }
+
+    auto* old = connectionsSnapshot.exchange(snapshot, std::memory_order_seq_cst);  // (C)
+    while (snapshotGate.load(std::memory_order_seq_cst) != 0)                       // (D)
+        std::this_thread::yield();
+    old->release();
+}
+
+template <typename TInterface, typename... Interfaces>
+template <class Packet>
+void SignalBase<TInterface, Interfaces...>::cacheLastPacketOnSend(const Packet& packet)
+{
+    const auto dataPacket = packet.template asPtrOrNull<IDataPacket>(true);
+    if (!dataPacket.assigned() || dataPacket.getSampleCount() == 0)
+        return;
+
+    IPacket* newPacket = packet.addRefAndReturn();
+    IPacket* old = lastPacketSlot.exchange(newPacket, std::memory_order_seq_cst);
+    lastPacketSeq.fetch_add(1, std::memory_order_release);
+    retireOrReleaseSlotPacket(old);
+
+    // enableKeepLastValue(false)/setPublic(false) may have cleared the slot concurrently;
+    // re-check so a disabled cache never retains a packet (single producer: nobody else
+    // can store into the slot between the exchange above and this check).
+    if (!keepLastPacketAtomic.load(std::memory_order_acquire))
+        retireOrReleaseSlotPacket(lastPacketSlot.exchange(nullptr, std::memory_order_seq_cst));
+}
+
+template <typename TInterface, typename... Interfaces>
+void SignalBase<TInterface, Interfaces...>::retireOrReleaseSlotPacket(IPacket* packet)
+{
+    if (!packet)
+        return;
+
+    // Same gate argument as pinConnectionsSnapshot, with roles reversed: the slot exchange
+    // that produced `packet` is seq_cst; if the gate reads 0 afterwards, every reader that
+    // could have loaded this pointer has already completed its addRef, so releasing here is
+    // safe. Otherwise park the packet for config-path reclamation (drainRetiredPackets).
+    if (lastValueGate.load(std::memory_order_seq_cst) == 0)
+    {
+        packet->releaseRef();
+        return;
+    }
+
+    auto* node = new details::RetiredPacket{packet, nullptr};
+    auto* cur = retiredPackets.load(std::memory_order_relaxed);
+    do
+    {
+        node->next = cur;
+    } while (!retiredPackets.compare_exchange_weak(cur, node, std::memory_order_release, std::memory_order_relaxed));
+}
+
+template <typename TInterface, typename... Interfaces>
+PacketPtr SignalBase<TInterface, Interfaces...>::pinLastPacket() const
+{
+    lastValueGate.fetch_add(1, std::memory_order_seq_cst);
+    IPacket* raw = lastPacketSlot.load(std::memory_order_seq_cst);
+    if (raw)
+        raw->addRef();
+    lastValueGate.fetch_sub(1, std::memory_order_release);
+    return PacketPtr::Adopt(raw);
+}
+
+template <typename TInterface, typename... Interfaces>
+void SignalBase<TInterface, Interfaces...>::drainRetiredPackets()
+{
+    // config path, under the config lock
+    auto* chain = retiredPackets.exchange(nullptr, std::memory_order_acq_rel);
+    if (!chain)
+        return;
+
+    // wait out any reader still inside the pin window; afterwards every packet on the
+    // chain either carries the reader's extra ref or is unreferenced by readers
+    while (lastValueGate.load(std::memory_order_seq_cst) != 0)
+        std::this_thread::yield();
+
+    while (chain)
+    {
+        chain->packet->releaseRef();
+        auto* next = chain->next;
+        delete chain;
+        chain = next;
     }
 }
 
 template <typename TInterface, typename... Interfaces>
-void SignalBase<TInterface, Interfaces...>::enqueuePacketToConnections(const PacketPtr& packet, const TempConnections& tempConnections)
+void SignalBase<TInterface, Interfaces...>::clearLastPacketSlot()
 {
-    for (const auto& connection : tempConnections)
-        connection.enqueue(packet);
+    // config path, under the config lock
+    retireOrReleaseSlotPacket(lastPacketSlot.exchange(nullptr, std::memory_order_seq_cst));
+    drainRetiredPackets();
 }
 
 template <typename TInterface, typename... Interfaces>
-void SignalBase<TInterface, Interfaces...>::enqueuePacketToConnections(PacketPtr&& packet, const TempConnections& tempConnections)
+void SignalBase<TInterface, Interfaces...>::enqueuePacketToConnections(const PacketPtr& packet,
+                                                                       const details::ConnectionsSnapshot& snapshot)
 {
-    if (tempConnections.empty())
+    for (const auto& entry : snapshot.entries)
+    {
+        if (entry.producerPath)
+            checkErrorInfo(entry.producerPath->enqueueProducer(packet));
+        else
+            entry.connection.enqueue(packet);
+    }
+}
+
+template <typename TInterface, typename... Interfaces>
+void SignalBase<TInterface, Interfaces...>::enqueuePacketToConnections(PacketPtr&& packet,
+                                                                       const details::ConnectionsSnapshot& snapshot)
+{
+    if (snapshot.entries.empty())
         return;
 
-    auto startIt = tempConnections.begin();
-    const auto endIt = std::prev(tempConnections.end());
+    auto startIt = snapshot.entries.begin();
+    const auto endIt = std::prev(snapshot.entries.end());
 
-    while (startIt != endIt)
-        startIt++->enqueue(packet);
+    for (; startIt != endIt; ++startIt)
+    {
+        if (startIt->producerPath)
+            checkErrorInfo(startIt->producerPath->enqueueProducer(packet));
+        else
+            startIt->connection.enqueue(packet);
+    }
 
-    startIt->enqueue(std::move(packet));
+    if (startIt->producerPath)
+        checkErrorInfo(startIt->producerPath->enqueueProducerAndStealRef(packet.detach()));
+    else
+        startIt->connection->enqueueAndStealRef(packet.detach());
 }
 
 template <typename TInterface, typename... Interfaces>
 void SignalBase<TInterface, Interfaces...>::enqueuePacketsToConnections(
     const ListPtr<IPacket>& packets,
-    const TempConnections& tempConnections)
+    const details::ConnectionsSnapshot& snapshot)
 {
-    for (const auto& connection : tempConnections)
-        connection.enqueueMultiple(packets);
+    for (const auto& entry : snapshot.entries)
+    {
+        if (entry.producerPath)
+            checkErrorInfo(entry.producerPath->enqueueMultipleProducer(packets));
+        else
+            entry.connection.enqueueMultiple(packets);
+    }
 }
 
 template <typename TInterface, typename... Interfaces>
 void SignalBase<TInterface, Interfaces...>::enqueuePacketsToConnections(
     ListPtr<IPacket>&& packets,
-    const TempConnections& tempConnections)
+    const details::ConnectionsSnapshot& snapshot)
 {
-    if (tempConnections.empty())
+    if (snapshot.entries.empty())
         return;
 
-    auto startIt = tempConnections.begin();
-    const auto endIt = std::prev(tempConnections.end());
+    auto startIt = snapshot.entries.begin();
+    const auto endIt = std::prev(snapshot.entries.end());
 
-    while (startIt != endIt)
-        startIt++->enqueueMultiple(packets);
+    for (; startIt != endIt; ++startIt)
+    {
+        if (startIt->producerPath)
+            checkErrorInfo(startIt->producerPath->enqueueMultipleProducer(packets));
+        else
+            startIt->connection.enqueueMultiple(packets);
+    }
 
-    (*startIt)->enqueueMultipleAndStealRef(packets.detach());
-}
-
-template <typename TInterface, typename ... Interfaces>
-template <class Packet>
-bool SignalBase<TInterface, Interfaces...>::checkKeepLastPacketAndBuildConnections(Packet&& packet, TempConnections& tempConnections)
-{
-    if (!this->active)
-        return false;
-
-    checkKeepLastPacket(packet);
-    buildTempConnections(tempConnections);
-    return true;
+    if (startIt->producerPath)
+        checkErrorInfo(startIt->producerPath->enqueueMultipleProducerAndStealRef(packets.detach()));
+    else
+        startIt->connection->enqueueMultipleAndStealRef(packets.detach());
 }
 
 template <typename TInterface, typename... Interfaces>
 template <class Packet>
-bool SignalBase<TInterface, Interfaces...>::keepLastPacketAndEnqueue(Packet&& packet, bool recursiveLock)
+bool SignalBase<TInterface, Interfaces...>::keepLastPacketAndEnqueue(Packet&& packet, bool /*recursiveLock*/)
 {
-    TempConnectionsMemPool memPool;
-    TempConnections tempConnections{TempConnectionsAllocator(memPool)};
+    // The data path takes no lock: `active` is atomic, the last packet goes into an atomic
+    // slot and the connection list is a pinned immutable snapshot. The recursiveLock flag
+    // is obsolete (there is no lock left to recurse on) but kept for the internal ABI.
+    if (!this->active.load(std::memory_order_relaxed))
+        return false;
 
-    if (!recursiveLock)
-    {
-        auto lock = this->getAcquisitionLock2();
-        if (!checkKeepLastPacketAndBuildConnections(packet, tempConnections))
-            return false;
-    }
-    else
-    {
-        auto lock = this->getRecursiveConfigLock2();
-        if (!checkKeepLastPacketAndBuildConnections(packet, tempConnections))
-            return false;
-    }
+    if (keepLastPacketAtomic.load(std::memory_order_relaxed))
+        cacheLastPacketOnSend(packet);
 
-    enqueuePacketToConnections(std::forward<Packet>(packet), tempConnections);
+    auto* snapshot = pinConnectionsSnapshot();
+    try
+    {
+        enqueuePacketToConnections(std::forward<Packet>(packet), *snapshot);
+    }
+    catch (...)
+    {
+        snapshot->release();
+        throw;
+    }
+    snapshot->release();
 
     return true;
 }
@@ -773,22 +974,25 @@ template <typename TInterface, typename... Interfaces>
 template <class ListOfPackets>
 bool SignalBase<TInterface, Interfaces...>::keepLastPacketAndEnqueueMultiple(ListOfPackets&& packets)
 {
-    TempConnectionsMemPool memPool;
-    TempConnections tempConnections{TempConnectionsAllocator(memPool)};
+    const size_t cnt = packets.getCount();
 
+    if (!this->active.load(std::memory_order_relaxed) || cnt == 0)
+        return false;
+
+    if (keepLastPacketAtomic.load(std::memory_order_relaxed))
+        cacheLastPacketOnSend(packets[cnt - 1]);
+
+    auto* snapshot = pinConnectionsSnapshot();
+    try
     {
-        size_t cnt = packets.getCount();
-
-        auto lock = this->getAcquisitionLock2();
-
-        if (!this->active || cnt == 0)
-            return false;
-
-        checkKeepLastPacket(packets[cnt - 1]);
-        buildTempConnections(tempConnections);
+        enqueuePacketsToConnections(std::forward<ListOfPackets>(packets), *snapshot);
     }
-
-    enqueuePacketsToConnections(std::forward<ListOfPackets>(packets), tempConnections);
+    catch (...)
+    {
+        snapshot->release();
+        throw;
+    }
+    snapshot->release();
 
     return true;
 }
@@ -855,10 +1059,13 @@ ErrCode INTERFACE_FUNC SignalBase<TInterface, Interfaces...>::sendPacketsAndStea
 template <typename TInterface, typename ... Interfaces>
 ErrCode SignalBase<TInterface, Interfaces...>::setLastValue(IBaseObject* lastValue)
 {
-    auto lock = this->getAcquisitionLock2();
+    auto lock = this->getRecursiveConfigLock2();
 
+    clearLastPacketSlot();
     setLastValueFromPacket(nullptr);
     lastValueCache.setValue(BaseObjectPtr(lastValue));
+    // packets sent after this point win over the explicit value (seq mismatch -> re-cache)
+    lastValueCachedSeq = lastPacketSeq.load(std::memory_order_acquire);
     return OPENDAQ_SUCCESS;
 }
 
@@ -884,21 +1091,39 @@ ErrCode SignalBase<TInterface, Interfaces...>::listenerConnectedInternal(IConnec
     const auto it = std::find(connections.begin(), connections.end(), connectionPtr);
     if (it != connections.end())
         return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_DUPLICATEITEM);
-    
+
     const auto packet = createDataDescriptorChangedEventPacket();
 
+    bool listenedStatusChanged = false;
     if (connections.empty())
     {
         const ErrCode errCode = wrapHandler(this, &Self::onListenedStatusChanged, true);
         OPENDAQ_RETURN_IF_FAILED(errCode);
+        listenedStatusChanged = true;
+    }
+
+    // Seed the new connection's queue with the descriptor event BEFORE publishing it to the
+    // producer: any producer snapshot that contains this connection then contains the event
+    // ahead of every data packet. This replaces the descriptor-event-before-data ordering
+    // that the shared sendPacket mutex used to provide.
+    const ErrCode enqueueErrCode = daqTry(
+        [&]
+        {
+            if (!schedule)
+                connectionPtr.enqueueOnThisThread(packet);
+            else
+                connectionPtr.enqueueWithScheduler(packet);
+        });
+    if (OPENDAQ_FAILED(enqueueErrCode))
+    {
+        // keep the empty <-> non-empty transitions of onListenedStatusChanged consistent
+        if (listenedStatusChanged)
+            wrapHandler(this, &Self::onListenedStatusChanged, false);
+        return enqueueErrCode;
     }
 
     connections.push_back(connectionPtr);
-
-    if (!schedule)
-        connectionPtr.enqueueOnThisThread(packet);
-    else
-        connectionPtr.enqueueWithScheduler(packet);
+    publishConnectionsSnapshot();
 
     return OPENDAQ_SUCCESS;
 }
@@ -1015,7 +1240,15 @@ ErrCode SignalBase<TInterface, Interfaces...>::listenerDisconnected(IConnection*
     if (it == connections.end())
         return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOTFOUND);
 
+    const ConnectionPtr removedConnection = std::move(*it);
     connections.erase(it);
+    // unpublish first, then close: a producer pinning an older snapshot still holds a strong
+    // ref (no use-after-free); its in-flight enqueue either lands before the close (and is
+    // drained by it) or after (and is dropped) - either way nothing stays pinned in the
+    // orphaned queue and no new packet can enter it after this call returns
+    publishConnectionsSnapshot();
+    if (const auto internal = removedConnection.template asPtrOrNull<IConnectionInternal>(true); internal.assigned())
+        internal->closeQueue();
 
     if (connections.empty())
     {
@@ -1182,7 +1415,11 @@ template <typename TInterface, typename ... Interfaces>
 void SignalBase<TInterface, Interfaces...>::clearConnections(std::vector<ConnectionPtr>& connections)
 {
     for (auto& connection : connections)
+    {
+        if (const auto internal = connection.template asPtrOrNull<IConnectionInternal>(true); internal.assigned())
+            internal->closeQueue();
         disconnectInputPort(connection);
+    }
     connections.clear();
 }
 
@@ -1191,6 +1428,8 @@ void SignalBase<TInterface, Interfaces...>::removed()
 {
     clearConnections(connections);
     clearConnections(remoteConnections);
+    publishConnectionsSnapshot();  // now empty: producers can no longer reach any connection
+    clearLastPacketSlot();
 
     for (auto it = begin(domainSignalReferences); it != end(domainSignalReferences); ++it)
     {
@@ -1269,10 +1508,13 @@ template <typename TInterface, typename... Interfaces>
 void SignalBase<TInterface, Interfaces...>::setKeepLastPacket()
 {
     keepLastPacket = keepLastValue && isPublic;
+    keepLastPacketAtomic.store(keepLastPacket, std::memory_order_release);
 
     if (!keepLastPacket)
     {
+        clearLastPacketSlot();
         setLastValueFromPacket(nullptr);
+        lastValueCachedSeq = std::numeric_limits<std::uint64_t>::max();
     }
 }
 
@@ -1342,8 +1584,28 @@ void SignalBase<TInterface, Interfaces...>::setLastValueFromPacket(const DataPac
 }
 
 template <typename TInterface, typename... Interfaces>
+void SignalBase<TInterface, Interfaces...>::refreshLastValueCacheFromSlot()
+{
+    // config path, under the config lock: feed lastValueCache lazily from the packet the
+    // producer last published (the raw-byte copy no longer happens on the send path)
+    const std::uint64_t seq = lastPacketSeq.load(std::memory_order_acquire);
+    if (seq == lastValueCachedSeq)
+        return;
+
+    const PacketPtr packet = pinLastPacket();
+    drainRetiredPackets();
+    if (packet.assigned())
+    {
+        lastValueCache.cache(packet.template asPtr<IDataPacket>(true));
+        lastValueCachedSeq = seq;
+    }
+}
+
+template <typename TInterface, typename... Interfaces>
 ErrCode SignalBase<TInterface, Interfaces...>::getLastValueImpl(IBaseObject** value)
 {
+    refreshLastValueCacheFromSlot();
+
     if (lastValueCache.valueCached())
     {
         *value = lastValueCache.getValue().detach();
@@ -1368,6 +1630,8 @@ ErrCode SignalBase<TInterface, Interfaces...>::getLastValueImpl(IBaseObject** va
 template <typename TInterface, typename... Interfaces>
 ErrCode SignalBase<TInterface, Interfaces...>::getLastTimestampImpl(IBaseObject** timestamp)
 {
+    refreshLastValueCacheFromSlot();
+
     if (lastValueCache.timestampCached())
     {
         *timestamp = lastValueCache.getTimestamp().detach();

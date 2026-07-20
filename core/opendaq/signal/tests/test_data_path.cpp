@@ -10,8 +10,10 @@
 #include <opendaq/event_packet.h>
 #include <opendaq/packet_factory.h>
 #include <opendaq/data_rule_factory.h>
+#include <opendaq/range_factory.h>
 #include <coreobjects/unit_factory.h>
 #include <atomic>
+#include <chrono>
 #include <thread>
 
 #include "opendaq/reader_factory.h"
@@ -209,6 +211,160 @@ TEST_F(DataPathTest, StressSendVsConnectDisconnect)
     stop.store(true);
     producer.join();
     ASSERT_GT(sent.load(), 0);
+}
+
+// closeQueue vs an actively draining consumer and a live producer: exercises the
+// access-gate teardown protocol (closed flag + gate spin) from all three roles at once
+TEST_F(DataPathTest, StressDisconnectUnderFire)
+{
+    const auto ctx = NullContext();
+
+    const auto sigDesc = DataDescriptorBuilder().setSampleType(SampleType::Float64).build();
+    const auto signal = Signal(ctx, nullptr, "sig");
+    signal.setDescriptor(sigDesc);
+
+    std::atomic<bool> stopProducer{false};
+    std::thread producer(
+        [&]
+        {
+            const auto packet = DataPacket(sigDesc, 16);
+            while (!stopProducer.load(std::memory_order_relaxed))
+                signal.sendPacket(packet);
+        });
+
+    for (int round = 0; round < 100; ++round)
+    {
+        auto port = InputPort(ctx, nullptr, "ip");
+        port.connect(signal);
+        const auto connection = port.getConnection();
+
+        std::atomic<bool> stopConsumer{false};
+        std::thread consumer(
+            [&]
+            {
+                // keeps draining right through the disconnect: dequeue/getPacketCount race
+                // the closeQueue drain and must never crash, hang, or corrupt the queue
+                while (!stopConsumer.load(std::memory_order_relaxed))
+                {
+                    connection.dequeue();
+                    SizeT count;
+                    connection->getPacketCount(&count);
+                }
+            });
+
+        std::this_thread::yield();
+        port.disconnect();  // tombstone + drain while both other roles are active
+
+        stopConsumer.store(true);
+        consumer.join();
+
+        // closed queue stays empty and rejects everything
+        SizeT count = 12345;
+        connection->getPacketCount(&count);
+        ASSERT_EQ(count, 0u);
+        ASSERT_FALSE(connection.dequeue().assigned());
+    }
+
+    stopProducer.store(true);
+    producer.join();
+}
+
+// config-thread descriptor events (heap nodes, descriptor latch) racing the producer's
+// pooled nodes on the same lock-free inbox; the consumer drains a mixed stream
+TEST_F(DataPathTest, StressDescriptorEventsVsProducer)
+{
+    const auto ctx = NullContext();
+
+    const auto descA = DataDescriptorBuilder().setSampleType(SampleType::Float64).build();
+    const auto descB = DataDescriptorBuilder().setSampleType(SampleType::Float64).setValueRange(daq::Range(0, 10)).build();
+
+    const auto signal = Signal(ctx, nullptr, "sig");
+    signal.setDescriptor(descA);
+
+    auto port = InputPort(ctx, nullptr, "ip");
+    port.connect(signal);
+    const auto connection = port.getConnection();
+
+    std::atomic<bool> stop{false};
+    std::thread producer(
+        [&]
+        {
+            const auto packetA = DataPacket(descA, 16);
+            while (!stop.load(std::memory_order_relaxed))
+                signal.sendPacket(packetA);
+        });
+
+    std::thread config(
+        [&]
+        {
+            // setDescriptor fans events into the queue from the config thread
+            for (int i = 0; i < 200; ++i)
+            {
+                signal.setDescriptor(i % 2 ? descB : descA);
+                std::this_thread::yield();
+            }
+        });
+
+    // consumer: drain the mixed stream; counters must stay consistent with the contents
+    size_t eventPackets = 0;
+    const auto deadline = std::chrono::steady_clock::now() + std::chrono::seconds(30);
+    while (eventPackets < 100)
+    {
+        ASSERT_LT(std::chrono::steady_clock::now(), deadline) << "descriptor events lost in the queue";
+        const auto packet = connection.dequeue();
+        if (packet.assigned() && packet.supportsInterface<IEventPacket>())
+            ++eventPackets;
+    }
+
+    config.join();
+    stop.store(true);
+    producer.join();
+
+    // full drain leaves consistent counters
+    connection.dequeueAll();
+    SizeT count = 999, samples = 999;
+    connection->getPacketCount(&count);
+    connection->getAvailableSamples(&samples);
+    ASSERT_EQ(count, 0u);
+    ASSERT_EQ(samples, 0u);
+}
+
+// snapshot publish churn with queues that are never consumed: producers pinning old
+// snapshots must keep disconnected connections alive exactly until close, and closeQueue
+// must release every packet (the suite's leak listener verifies the lifetime half)
+TEST_F(DataPathTest, StressSnapshotChurnUnconsumedQueues)
+{
+    const auto ctx = NullContext();
+
+    const auto sigDesc = DataDescriptorBuilder().setSampleType(SampleType::Float64).build();
+    const auto signal = Signal(ctx, nullptr, "sig");
+    signal.setDescriptor(sigDesc);
+
+    std::atomic<bool> stop{false};
+    std::thread producer(
+        [&]
+        {
+            const auto packet = DataPacket(sigDesc, 16);
+            while (!stop.load(std::memory_order_relaxed))
+                signal.sendPacket(packet);
+        });
+
+    for (int round = 0; round < 100; ++round)
+    {
+        std::vector<InputPortConfigPtr> ports;
+        for (int i = 0; i < 4; ++i)
+        {
+            auto port = InputPort(ctx, nullptr, "ip" + std::to_string(i));
+            port.connect(signal);
+            ports.push_back(port);
+        }
+        // queues fill up unconsumed; disconnect closes + drains them under producer fire
+        for (auto& port : ports)
+            port.disconnect();
+    }
+
+    stop.store(true);
+    producer.join();
 }
 
 TEST_F(DataPathTest, StressSendVsGetLastValueAndActive)

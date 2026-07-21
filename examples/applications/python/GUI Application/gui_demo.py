@@ -109,6 +109,10 @@ class App(tk.Tk):
             self.context.connection_string = None
 
         self.modules_map = {}
+        self._nested_fb_indicators = {}
+        self._nested_fb_buttons = {}
+        self._nested_fb_button_pos = {}
+        self._nested_fb_hovered_row = None
         self._indicator_click = False
 
         self.title('openDAQ demo')
@@ -192,8 +196,20 @@ class App(tk.Tk):
         default_font = tkfont.nametofont('TkDefaultFont')
         default_font.configure(size=9 * self.context.ui_scaling_factor)
 
+        # hover look for nested FB indicators: darker text plus the hand
+        # cursor signal that the row is clickable
+        self.tree.tag_configure('nested_fb_hover', foreground='#666666')
+
         self.context.load_icons(os.path.join(
             os.path.dirname(__file__), 'gui_demo', 'icons'))
+
+        # '+' icon shown on nested FB indicators: crisp 2x source,
+        # scaled down so it sits comfortably inside a tree row
+        self._nested_fb_add_icon = self._fit_icon_to_height(
+            utils.load_icon(os.path.join(
+                os.path.dirname(__file__), 'gui_demo', 'icons', 'add.png'),
+                scale=2),
+            treeview_rowheight - 6)
 
         self.init_opendaq()
 
@@ -201,6 +217,26 @@ class App(tk.Tk):
             self._load_config(args.config)
 
         self.poll_opendaq_events()
+
+    # shrinks a PhotoImage to the largest zoom/subsample fraction that fits
+    # within target_h; returns the icon unchanged if it already fits
+    @staticmethod
+    def _fit_icon_to_height(icon, target_h):
+        src_h = icon.height()
+        if src_h <= target_h or target_h <= 0:
+            return icon
+        best = None  # (resulting height, zoom, subsample)
+        for s in range(1, 13):
+            z = (target_h * s) // src_h
+            if z < 1:
+                continue
+            h = src_h * z / s
+            if best is None or h > best[0]:
+                best = (h, z, s)
+        if best is None:
+            return icon
+        _, z, s = best
+        return icon.zoom(z, z).subsample(s, s)
 
     def poll_opendaq_events(self):
         try:
@@ -216,6 +252,9 @@ class App(tk.Tk):
             self.context.instance.context.scheduler.run_main_loop_iteration()
         except Exception as e:
             print("Scheduler processing error:", e)
+
+        # safety net keeping the nested FB indicator '+' buttons glued to their rows
+        self._nested_fb_indicators_update()
 
         # Re-schedule after 50 ms
         self.after(50, self.poll_opendaq_events)
@@ -286,18 +325,34 @@ class App(tk.Tk):
         # add a scrollbar
         scroll_bar = ttk.Scrollbar(
             frame, orient=tk.VERTICAL, command=tree.yview)
-        tree.configure(yscroll=scroll_bar.set)
+
+        def tree_yscroll(first, last):
+            scroll_bar.set(first, last)
+            self._nested_fb_indicators_update()  # immediate sync while scrolling
+        tree.configure(yscroll=tree_yscroll)
         scroll_bar.pack(fill=tk.Y, side=tk.RIGHT)
 
         parent_frame.add(frame)
         tree.tag_configure('warning', foreground=utils.StatusColor.WARNING)
         tree.tag_configure('error', foreground=utils.StatusColor.ERROR)
         tree.tag_configure('inactive', foreground='gray')
+        tree.tag_configure('nested_fb', foreground='gray')
+        tree.bind('<Configure>', lambda e: self._nested_fb_indicators_update(), add='+')
+        tree.bind('<Motion>', self._handle_tree_motion)
+        tree.bind('<Leave>', self._handle_tree_leave)
+        self._tree_field_bg = ttk.Style().lookup(
+            'Treeview', 'fieldbackground') or 'white'
         self.tree = tree
 
     def tree_update(self, new_selected_node=None):
         self.tree.delete(*self.tree.get_children())
         self.right_side_panel_clear()
+        for btn in self._nested_fb_buttons.values():
+            btn.destroy()
+        self._nested_fb_buttons = {}
+        self._nested_fb_button_pos = {}
+        self._nested_fb_indicators = {}
+        self._nested_fb_indicator_hover_set(None)
 
         self.context.selected_node = new_selected_node
 
@@ -322,6 +377,8 @@ class App(tk.Tk):
 
         self.tree_traverse_components_recursive(
             self.context.instance, self.current_tab())
+        self.tree_insert_nested_fb_indicators()
+        self._nested_fb_indicators_update()
         self.tree_restore_selection(
             self.context.selected_node)  # reset in case the selected node outdates
         self.set_node_update_status()
@@ -443,6 +500,153 @@ class App(tk.Tk):
             
             self.tree.insert(parent_node_id, tk.END, iid=component_node_id, image=icon,
                              text=self._format_tree_item_text(component_name), open=is_open, values=(component_node_id,), tags=(status_string,))
+
+    # MARK: - Nested function block indicators
+
+    # appends a grayed-out indicator row for every nested function block
+    # type a function block or channel offers; clicking its '+' or
+    # double-clicking the row adds that function block directly
+    def tree_insert_nested_fb_indicators(self, parent_iid=''):
+        for iid in self.tree.get_children(parent_iid):
+            self.tree_insert_nested_fb_indicators(iid)
+
+            component = self.context.nodes.get(iid)
+            if component is None or not daq.IFunctionBlock.can_cast_from(component):
+                continue
+
+            fb = daq.IFunctionBlock.cast_from(component)
+            try:
+                fb_types = fb.available_function_block_types
+            except RuntimeError:
+                continue
+            if not fb_types:
+                continue
+
+            # types already instantiated under this block don't get an indicator
+            # (nested blocks usually accept a single instance per type)
+            existing_type_ids = set()
+            try:
+                for child_fb in fb.function_blocks:
+                    try:
+                        existing_type_ids.add(
+                            str(child_fb.function_block_type.id))
+                    except RuntimeError:
+                        pass
+            except (RuntimeError, AttributeError):
+                pass
+
+            for fb_type_id in fb_types.keys():
+                fb_type_id = str(fb_type_id)
+                if fb_type_id in existing_type_ids:
+                    continue
+                try:
+                    display_name = daq.IComponentType.cast_from(
+                        fb_types[fb_type_id]).name or fb_type_id
+                except RuntimeError:
+                    display_name = fb_type_id
+
+                indicator_iid = f'__nested_fb__|{iid}|{fb_type_id}'
+                if self.tree.exists(indicator_iid):
+                    continue
+                self.tree.insert(iid, tk.END, iid=indicator_iid,
+                                 image=self.context.icons['function_block'],
+                                 text=self._format_tree_item_text(display_name),
+                                 tags=('nested_fb',))
+                self._nested_fb_indicators[indicator_iid] = (iid, fb_type_id)
+
+                # floating '+' button pinned to the right edge of the row
+                btn = tk.Label(self.tree, image=self._nested_fb_add_icon,
+                               bg=self._tree_field_bg, bd=0, cursor='hand2')
+                btn.bind('<Button-1>',
+                         lambda e, indicator_iid=indicator_iid: self.add_nested_function_block(indicator_iid))
+                btn.bind('<Enter>',
+                         lambda e, indicator_iid=indicator_iid: self._nested_fb_indicator_hover_set(indicator_iid))
+                btn.bind('<Leave>', self._handle_nested_fb_button_leave)
+                self._nested_fb_buttons[indicator_iid] = btn
+
+    # places the '+' buttons of nested FB indicators at the right edge of the
+    # tree, hiding those whose row is collapsed or scrolled out of view
+    def _nested_fb_indicators_update(self):
+        if not self._nested_fb_buttons:
+            return
+
+        icon_w = self._nested_fb_add_icon.width()
+        icon_h = self._nested_fb_add_icon.height()
+        pad = int(6 * self.context.ui_scaling_factor * self.context.dpi_factor)
+        x = self.tree.winfo_width() - icon_w - pad
+
+        for indicator_iid, btn in self._nested_fb_buttons.items():
+            bbox = self.tree.bbox(indicator_iid) if self.tree.exists(
+                indicator_iid) else None
+            if not bbox or x <= 0:
+                if self._nested_fb_button_pos.get(indicator_iid) is not None:
+                    btn.place_forget()
+                    self._nested_fb_button_pos[indicator_iid] = None
+                continue
+
+            y = bbox[1] + (bbox[3] - icon_h) // 2
+            if self._nested_fb_button_pos.get(indicator_iid) != (x, y):
+                btn.place(x=x, y=y)
+                self._nested_fb_button_pos[indicator_iid] = (x, y)
+
+    # applies/clears the hover state of a nested FB indicator row
+    def _nested_fb_indicator_hover_set(self, indicator_iid):
+        if indicator_iid and not self.tree.exists(indicator_iid):
+            indicator_iid = None
+        # re-assert the cursor on every event: since Tk 8.7/9 the Treeview
+        # class bindings reset the widget cursor behind our back
+        cursor = 'hand2' if indicator_iid else ''
+        if str(self.tree.cget('cursor')) != cursor:
+            self.tree.configure(cursor=cursor)
+        if indicator_iid == self._nested_fb_hovered_row:
+            return
+        prev = self._nested_fb_hovered_row
+        if prev and self.tree.exists(prev):
+            self.tree.item(prev, tags=('nested_fb',))
+        self._nested_fb_hovered_row = indicator_iid
+        if indicator_iid:
+            self.tree.item(indicator_iid, tags=('nested_fb_hover',))
+
+    def _handle_tree_motion(self, event):
+        iid = self.tree.identify_row(event.y)
+        self._nested_fb_indicator_hover_set(iid if iid in self._nested_fb_indicators else None)
+        # block the Treeview class <Motion> binding (Tk 8.7+/9) which would
+        # immediately reset the cursor set above; this tree shows no headings,
+        # so no separator-resize behavior is lost
+        return 'break'
+
+    def _handle_tree_leave(self, event):
+        # moving onto a floating '+' button also fires <Leave>; keep the
+        # hover state in that case
+        widget = self.winfo_containing(event.x_root, event.y_root)
+        if widget is not None and widget in self._nested_fb_buttons.values():
+            return
+        self._nested_fb_indicator_hover_set(None)
+
+    def _handle_nested_fb_button_leave(self, event):
+        widget = self.winfo_containing(event.x_root, event.y_root)
+        if widget is self.tree:
+            return  # tree <Motion> takes over from here
+        self._nested_fb_indicator_hover_set(None)
+
+    def add_nested_function_block(self, indicator_iid):
+        parent_iid, fb_type_id = self._nested_fb_indicators.get(indicator_iid, (None, None))
+        if parent_iid is None:
+            return
+
+        component = self.context.nodes.get(parent_iid)
+        if component is None or not daq.IFunctionBlock.can_cast_from(component):
+            return
+        fb = daq.IFunctionBlock.cast_from(component)
+
+        try:
+            new_fb = fb.add_function_block(fb_type_id)
+        except Exception as e:
+            utils.show_error('Error adding function block',
+                             f'{fb_type_id}: {str(e)}', self)
+            return
+
+        self.tree_update(new_fb)
 
     DEFAULT_FOLDER_NAMES = frozenset(('Sig', 'FB', 'Dev', 'IP', 'IO', 'Srv'))
 
@@ -654,10 +858,19 @@ class App(tk.Tk):
     def _block_indicator_double_click(self, event):
         if self.tree.identify_element(event.x, event.y) == 'indicator':
             return 'break'
+        iid = self.tree.identify_row(event.y)
+        if iid and iid in self._nested_fb_indicators:
+            self.add_nested_function_block(iid)
+            return 'break'
 
     def handle_tree_click(self, event):
         iid = self.tree.identify_row(event.y)
         element = self.tree.identify_element(event.x, event.y)
+
+        if iid and iid in self._nested_fb_indicators:
+            # indicator rows are not selectable; the floating '+' button
+            # and double-click (handled elsewhere) do the adding
+            return 'break'
 
         if element == 'indicator':
             if iid:
@@ -750,6 +963,17 @@ class App(tk.Tk):
 
     def handle_tree_right_button_release(self, event):
         iid = utils.treeview_get_first_selection(self.tree)
+
+        if iid and iid in self._nested_fb_indicators:
+            popup = tk.Menu(self.tree, tearoff=0)
+            popup.add_command(
+                label='Add function block',
+                command=lambda: self.add_nested_function_block(iid))
+            try:
+                popup.tk_popup(event.x_root, event.y_root, 0)
+            finally:
+                popup.grab_release()
+            return
 
         node = None
         if iid:
@@ -973,6 +1197,9 @@ class App(tk.Tk):
             self.right_side_panel_draw_module(selected_iid)
             return
 
+        if selected_iid in self._nested_fb_indicators:
+            return
+
         item = self.tree.item(selected_iid)
         # WA for IDs with spaces
         node_unique_id = ' '.join(str(val) for val in item['values'])
@@ -1123,6 +1350,8 @@ class App(tk.Tk):
         self.tree.item(node, tags=tuple(current_tags))
 
     def _set_node_update_status_recursive(self, node):
+        if node in self._nested_fb_indicators:
+            return
         node_obj = utils.find_component(node, self.context.instance)
         if node_obj is None:
             return
@@ -1140,6 +1369,8 @@ class App(tk.Tk):
             self._set_node_lock_status_recursive(node)
 
     def _set_node_lock_status_recursive(self, node, parent_locked=False):
+        if node in self._nested_fb_indicators:
+            return
         component = utils.find_component(node, self.context.instance)
 
         if daq.IDevice.can_cast_from(component):
@@ -1166,6 +1397,8 @@ class App(tk.Tk):
             self._set_node_active_status_recursive(node)
 
     def _set_node_active_status_recursive(self, node):
+        if node in self._nested_fb_indicators:
+            return
         component = utils.find_component(node, self.context.instance)
 
         current_tags = set(self.tree.item(node, 'tags'))

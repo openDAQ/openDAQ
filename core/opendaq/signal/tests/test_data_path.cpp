@@ -11,10 +11,17 @@
 #include <opendaq/packet_factory.h>
 #include <opendaq/data_rule_factory.h>
 #include <opendaq/range_factory.h>
+#include <opendaq/connection_factory.h>
+#include <opendaq/connection_internal.h>
+#include <coretypes/listobject_factory.h>
+#include <coretypes/number_ptr.h>
 #include <coreobjects/unit_factory.h>
 #include <atomic>
 #include <chrono>
+#include <condition_variable>
+#include <mutex>
 #include <thread>
+#include <vector>
 
 #include "opendaq/reader_factory.h"
 
@@ -549,4 +556,717 @@ TEST_F(DataPathTest, LastValueFromCalculatedPacket)
 
     packet = nullptr;
     ASSERT_EQ(signal.getLastValue(), expected);
+}
+
+// ============================================================================
+// Tier 1 - direct coverage of the consumer-API surface and send variants
+// ============================================================================
+
+// Every consumer method shares the consumerOp scaffold but has its own hand-written
+// closed-path result. This pins each of those results deterministically: after closeQueue,
+// every consumer entry point must return a synthesized empty answer without touching state.
+TEST_F(DataPathTest, ClosedQueueConsumerApiMatrix)
+{
+    const auto ctx = NullContext();
+    const auto sigDesc = DataDescriptorBuilder().setSampleType(SampleType::Int64).build();
+    const auto signal = Signal(ctx, nullptr, "sig");
+    signal.setDescriptor(sigDesc);
+
+    auto port = InputPort(ctx, nullptr, "ip");
+    port.connect(signal);
+    const auto connection = port.getConnection();
+
+    // put a mix of packets in the queue so "closed returns empty" is a real transition
+    for (int i = 0; i < 3; ++i)
+        signal.sendPacket(DataPacket(sigDesc, 8));
+
+    auto internal = connection.asPtr<IConnectionInternal>(true);
+    internal->closeQueue();
+
+    // scalar/bool queries
+    ASSERT_EQ(connection.getPacketCount(), 0u);
+    ASSERT_EQ(connection.getAvailableSamples(), 0u);
+    ASSERT_EQ(connection.getSamplesUntilNextDescriptor(), 0u);
+    ASSERT_EQ(connection.getSamplesUntilNextEventPacket(), 0u);
+    ASSERT_EQ(connection.getSamplesUntilNextGapPacket(), 0u);
+    ASSERT_FALSE(connection.hasEventPacket());
+    ASSERT_FALSE(connection.hasGapPacket());
+    // dequeue family
+    ASSERT_FALSE(connection.dequeue().assigned());
+    ASSERT_FALSE(connection.peek().assigned());
+    ASSERT_EQ(connection.dequeueAll().getCount(), 0u);
+    IPacket* batch[8] = {};
+    SizeT count = 8;
+    internal->dequeueUpTo(batch, &count);
+    ASSERT_EQ(count, 0u);
+}
+
+// Generalizes StressDisconnectUnderFire: the consumer rotates through *every* consumer
+// operation while closeQueue tears the queue down under a live producer. Exercises each
+// op's gate-enter / closed-check / drain path against the teardown, not just dequeue.
+TEST_F(DataPathTest, StressAllConsumerOpsUnderFire)
+{
+    const auto ctx = NullContext();
+    const auto sigDesc = DataDescriptorBuilder().setSampleType(SampleType::Float64).build();
+    const auto signal = Signal(ctx, nullptr, "sig");
+    signal.setDescriptor(sigDesc);
+
+    std::atomic<bool> stopProducer{false};
+    std::thread producer(
+        [&]
+        {
+            const auto packet = DataPacket(sigDesc, 16);
+            while (!stopProducer.load(std::memory_order_relaxed))
+                signal.sendPacket(packet);
+        });
+
+    for (int round = 0; round < 100; ++round)
+    {
+        auto port = InputPort(ctx, nullptr, "ip");
+        port.connect(signal);
+        const auto connection = port.getConnection();
+        auto internal = connection.asPtr<IConnectionInternal>(true);
+
+        std::atomic<bool> stopConsumer{false};
+        std::thread consumer(
+            [&]
+            {
+                int op = 0;
+                while (!stopConsumer.load(std::memory_order_relaxed))
+                {
+                    switch (op++ % 10)
+                    {
+                        case 0: connection.dequeue(); break;
+                        case 1: connection.peek(); break;
+                        case 2: connection.getPacketCount(); break;
+                        case 3: connection.getAvailableSamples(); break;
+                        case 4: connection.dequeueAll(); break;
+                        case 5: connection.getSamplesUntilNextDescriptor(); break;
+                        case 6: connection.getSamplesUntilNextEventPacket(); break;
+                        case 7: connection.hasEventPacket(); break;
+                        case 8: connection.hasGapPacket(); break;
+                        case 9:
+                        {
+                            IPacket* batch[4] = {};
+                            SizeT n = 4;
+                            internal->dequeueUpTo(batch, &n);
+                            for (SizeT i = 0; i < n; ++i)
+                                if (batch[i])
+                                    batch[i]->releaseRef();
+                            break;
+                        }
+                    }
+                }
+            });
+
+        std::this_thread::yield();
+        port.disconnect();
+
+        stopConsumer.store(true);
+        consumer.join();
+
+        ASSERT_EQ(connection.getPacketCount(), 0u);
+        ASSERT_FALSE(connection.dequeue().assigned());
+    }
+
+    stopProducer.store(true);
+    producer.join();
+}
+
+// dequeueUpTo is the hot reader path (Readers use it) and had no concurrent coverage.
+// Sequence-numbered payloads make loss/duplication an exact oracle: a single producer +
+// single consumer + FIFO queue must yield a strictly contiguous 0,1,2,... with no gaps.
+TEST_F(DataPathTest, DequeueUpToNoLossNoDuplication)
+{
+    const auto ctx = NullContext();
+    const auto sigDesc = DataDescriptorBuilder().setSampleType(SampleType::Int64).build();
+    const auto signal = Signal(ctx, nullptr, "sig");
+    signal.setDescriptor(sigDesc);
+
+    auto port = InputPort(ctx, nullptr, "ip");
+    port.connect(signal);
+    const auto connection = port.getConnection();
+    auto internal = connection.asPtr<IConnectionInternal>(true);
+
+    constexpr int64_t target = 20000;
+    std::atomic<bool> stop{false};
+    std::thread producer(
+        [&]
+        {
+            for (int64_t i = 0; i < target; ++i)
+            {
+                const auto packet = DataPacket(sigDesc, 1);
+                *static_cast<int64_t*>(packet.getRawData()) = i;
+                signal.sendPacket(packet);
+            }
+            stop.store(true, std::memory_order_release);
+        });
+
+    int64_t expected = 0;
+    const auto deadline = std::chrono::steady_clock::now() + std::chrono::seconds(30);
+    while (expected < target)
+    {
+        ASSERT_LT(std::chrono::steady_clock::now(), deadline) << "dequeueUpTo stalled at " << expected;
+        IPacket* batch[16] = {};
+        SizeT n = 16;
+        internal->dequeueUpTo(batch, &n);
+        for (SizeT i = 0; i < n; ++i)
+        {
+            const auto pkt = PacketPtr::Adopt(batch[i]);
+            const auto dp = pkt.asPtrOrNull<IDataPacket>(true);
+            if (!dp.assigned())  // the leading descriptor event
+                continue;
+            const int64_t v = *static_cast<const int64_t*>(dp.getRawData());
+            ASSERT_EQ(v, expected) << "loss or duplication in dequeueUpTo";
+            ++expected;
+        }
+        if (n == 0)
+            std::this_thread::yield();
+    }
+
+    producer.join();
+}
+
+// Multiple config threads reading the last value concurrently while the producer publishes.
+// They serialize on the config lock, but underneath that lock several threads enter the
+// reader window and drain the retire list from different threads, racing the producer's
+// one-sided recycle decision. Every observed value must be well-formed.
+TEST_F(DataPathTest, MultiThreadedGetLastValueVsProducer)
+{
+    const auto ctx = NullContext();
+    const auto sigDesc = DataDescriptorBuilder().setSampleType(SampleType::Int64).build();
+    const auto signal = Signal(ctx, nullptr, "sig");
+    signal.setDescriptor(sigDesc);
+
+    std::atomic<bool> stop{false};
+    std::thread producer(
+        [&]
+        {
+            int64_t counter = 0;
+            while (!stop.load(std::memory_order_relaxed))
+            {
+                const auto packet = DataPacket(sigDesc, 4);
+                auto* data = static_cast<int64_t*>(packet.getRawData());
+                for (int i = 0; i < 4; ++i)
+                    data[i] = counter;
+                signal.sendPacket(packet);
+                ++counter;
+            }
+        });
+
+    std::atomic<bool> malformed{false};
+    std::vector<std::thread> readers;
+    for (int t = 0; t < 4; ++t)
+        readers.emplace_back(
+            [&]
+            {
+                for (int i = 0; i < 3000; ++i)
+                {
+                    const auto v = signal.getLastValue();
+                    if (v.assigned() && !v.asPtrOrNull<IInteger>().assigned())
+                        malformed.store(true);
+                    BaseObjectPtr value;
+                    signal.getLastValueWithTimestamp(value);
+                    if (value.assigned() && !value.asPtrOrNull<IInteger>().assigned())
+                        malformed.store(true);
+                }
+            });
+
+    for (auto& r : readers)
+        r.join();
+    stop.store(true);
+    producer.join();
+
+    ASSERT_FALSE(malformed.load()) << "getLastValue returned a malformed value under concurrency";
+}
+
+// The two operations exempt from the owner-serialization rule - enqueueLastDescriptor
+// (setListener) and closeQueue (disconnect) - may race everything, including each other.
+// Nothing else covered enqueueLastDescriptor's pendingFrontDescriptor exchange/merge.
+TEST_F(DataPathTest, StressSetListenerVsDisconnect)
+{
+    const auto ctx = NullContext();
+    const auto sigDesc = DataDescriptorBuilder().setSampleType(SampleType::Float64).build();
+    const auto signal = Signal(ctx, nullptr, "sig");
+    signal.setDescriptor(sigDesc);
+
+    std::atomic<bool> stopProducer{false};
+    std::thread producer(
+        [&]
+        {
+            const auto packet = DataPacket(sigDesc, 16);
+            while (!stopProducer.load(std::memory_order_relaxed))
+                signal.sendPacket(packet);
+        });
+
+    for (int round = 0; round < 60; ++round)
+    {
+        auto port = InputPort(ctx, nullptr, "ip");
+        port.connect(signal);  // seeds the descriptor event -> latch is set
+        const auto connection = port.getConnection();
+        auto internal = connection.asPtr<IConnectionInternal>(true);
+
+        std::atomic<bool> stopWorkers{false};
+        std::thread descriptorHammer(
+            [&]
+            {
+                while (!stopWorkers.load(std::memory_order_relaxed))
+                    internal->enqueueLastDescriptor();  // exempt op racing the teardown
+            });
+        std::thread consumer(
+            [&]
+            {
+                while (!stopWorkers.load(std::memory_order_relaxed))
+                {
+                    connection.dequeue();
+                    connection.getPacketCount();
+                }
+            });
+
+        std::this_thread::yield();
+        port.disconnect();  // closeQueue racing enqueueLastDescriptor + consumer + producer
+
+        stopWorkers.store(true);
+        descriptorHammer.join();
+        consumer.join();
+
+        ASSERT_EQ(connection.getPacketCount(), 0u);
+    }
+
+    stopProducer.store(true);
+    producer.join();
+}
+
+// The multi-packet and steal-ref send forms build a pre-linked node chain and skip
+// per-node gap checks - a distinct enqueue path from single sendPacket. The steal-ref
+// forms are also where a refcount error becomes a use-after-free rather than a leak.
+TEST_F(DataPathTest, StressSendVariantsUnderChurn)
+{
+    const auto ctx = NullContext();
+    const auto sigDesc = DataDescriptorBuilder().setSampleType(SampleType::Int64).build();
+    const auto signal = Signal(ctx, nullptr, "sig");
+    signal.setDescriptor(sigDesc);
+
+    std::atomic<bool> stop{false};
+    std::atomic<int64_t> sent{0};
+    std::thread producer(
+        [&]
+        {
+            int i = 0;
+            while (!stop.load(std::memory_order_relaxed))
+            {
+                switch (i % 4)
+                {
+                    case 0:  // single, by const ref
+                    {
+                        auto p = DataPacket(sigDesc, 4);
+                        signal.sendPacket(p);
+                        break;
+                    }
+                    case 1:  // multiple, by const ref
+                    {
+                        auto list = List<IPacket>();
+                        list.pushBack(DataPacket(sigDesc, 4));
+                        list.pushBack(DataPacket(sigDesc, 4));
+                        signal.sendPackets(list);
+                        break;
+                    }
+                    case 2:  // single, steal ref (rvalue overload)
+                        signal.sendPacket(DataPacket(sigDesc, 4));
+                        break;
+                    case 3:  // multiple, steal ref
+                    {
+                        auto list = List<IPacket>();
+                        list.pushBack(DataPacket(sigDesc, 4));
+                        list.pushBack(DataPacket(sigDesc, 4));
+                        signal.sendPackets(std::move(list));
+                        break;
+                    }
+                }
+                ++i;
+                sent.fetch_add(1, std::memory_order_relaxed);
+            }
+        });
+
+    while (sent.load(std::memory_order_relaxed) == 0)
+        std::this_thread::yield();
+
+    for (int round = 0; round < 150; ++round)
+    {
+        auto port = InputPort(ctx, nullptr, "ip");
+        port.connect(signal);
+        const auto connection = port.getConnection();
+        for (int d = 0; d < 20; ++d)
+            connection.dequeueAll();
+        port.disconnect();
+    }
+
+    stop.store(true);
+    producer.join();
+    ASSERT_GT(sent.load(), 0);
+}
+
+// ============================================================================
+// Tier 2 - semantic edges of the new designs
+// ============================================================================
+
+// Lost-wakeup guard. The consumer drains ONLY when notified (SameThread packetReceived
+// fires on the producer's thread when the queue goes empty->non-empty). If the
+// queueEmptyFlag handoff ever drops a notification, a packet strands and the consumer
+// never wakes -> the deadline fires. There is deliberately no timeout-driven re-drain.
+namespace
+{
+// Notifies an external condition variable on packetReceived; sync state is injected via
+// the constructor so the test owns it directly (no getObject cast needed).
+struct NotifyDrainListener : ImplementationOfWeak<IInputPortNotifications>
+{
+    std::mutex& m;
+    std::condition_variable& cv;
+    bool& pending;
+
+    NotifyDrainListener(std::mutex& m, std::condition_variable& cv, bool& pending)
+        : m(m)
+        , cv(cv)
+        , pending(pending)
+    {
+    }
+
+    ErrCode INTERFACE_FUNC acceptsSignal(IInputPort*, ISignal*, daq::Bool* accept) override
+    {
+        *accept = daq::True;
+        return OPENDAQ_SUCCESS;
+    }
+    ErrCode INTERFACE_FUNC connected(IInputPort*) override { return OPENDAQ_SUCCESS; }
+    ErrCode INTERFACE_FUNC disconnected(IInputPort*) override { return OPENDAQ_SUCCESS; }
+    ErrCode INTERFACE_FUNC packetReceived(IInputPort*) override
+    {
+        {
+            std::lock_guard<std::mutex> lock(m);
+            pending = true;
+        }
+        cv.notify_one();
+        return OPENDAQ_SUCCESS;
+    }
+};
+}
+
+TEST_F(DataPathTest, LostWakeupLiveness)
+{
+    const auto ctx = NullContext();
+    const auto sigDesc = DataDescriptorBuilder().setSampleType(SampleType::Int64).build();
+    const auto signal = Signal(ctx, nullptr, "sig");
+    signal.setDescriptor(sigDesc);
+
+    std::mutex m;
+    std::condition_variable cv;
+    bool pending = false;
+
+    auto port = InputPort(ctx, nullptr, "ip");
+    port.setNotificationMethod(PacketReadyNotification::SameThread);
+    auto listener = createWithImplementation<IInputPortNotifications, NotifyDrainListener>(m, cv, pending);
+    port.setListener(listener);
+    port.connect(signal);
+    const auto connection = port.getConnection();
+
+    constexpr int64_t target = 10000;
+    std::atomic<int64_t> received{0};
+    std::atomic<bool> stop{false};
+
+    std::thread consumer(
+        [&]
+        {
+            while (!stop.load(std::memory_order_relaxed))
+            {
+                std::unique_lock<std::mutex> lock(m);
+                cv.wait_for(lock, std::chrono::milliseconds(50),
+                            [&] { return pending || stop.load(std::memory_order_relaxed); });
+                if (!pending)
+                    continue;  // spurious/timeout: do NOT drain, so a real lost wakeup is not masked
+                pending = false;
+                lock.unlock();
+
+                // notified: drain everything currently queued
+                for (;;)
+                {
+                    const auto pkt = connection.dequeue();
+                    if (!pkt.assigned())
+                        break;
+                    if (pkt.supportsInterface<IDataPacket>())
+                        received.fetch_add(1, std::memory_order_relaxed);
+                }
+            }
+        });
+
+    for (int64_t i = 0; i < target; ++i)
+    {
+        signal.sendPacket(DataPacket(sigDesc, 1));
+        if ((i & 0x3f) == 0)
+            std::this_thread::yield();  // open empty<->non-empty windows
+    }
+
+    const auto deadline = std::chrono::steady_clock::now() + std::chrono::seconds(30);
+    while (received.load(std::memory_order_relaxed) < target)
+    {
+        ASSERT_LT(std::chrono::steady_clock::now(), deadline)
+            << "lost wakeup: stranded at " << received.load() << " / " << target;
+        std::this_thread::sleep_for(std::chrono::milliseconds(5));
+    }
+
+    stop.store(true);
+    cv.notify_all();
+    consumer.join();
+    ASSERT_EQ(received.load(), target);
+}
+
+// When gap-checking throws mid-drain, the drain stashes the rest of the inbox in
+// pendingDrainChain, drops the offending packet, and resumes on the next consumer call.
+// Sequence [bad-data-before-event, event, good-data]: the first dequeue throws, then the
+// event and the good packet must still come through intact on subsequent dequeues.
+TEST_F(DataPathTest, GapThrowResumesRemainingPackets)
+{
+    const auto ctx = NullContext();
+    MockInputPort::Strict inputPort;
+    MockSignal::Strict signal;
+    EXPECT_CALL(inputPort.mock(), getGapCheckingEnabled(testing::_)).WillOnce(GetBool(True));
+    const auto connection = Connection(inputPort.ptr, signal.ptr, ctx);
+
+    const auto valueDesc = DataDescriptorBuilder().setSampleType(SampleType::Float64).build();
+    const auto domainDesc = DataDescriptorBuilder()
+                                .setSampleType(SampleType::Int64)
+                                .setRule(LinearDataRule(10, 0))
+                                .build();
+
+    // all three land in the inbox before any dequeue, so one drain sees the whole chain
+    const auto bad = DataPacketWithDomain(DataPacket(domainDesc, 10, 0), valueDesc, 10);   // data before event
+    const auto event = DataDescriptorChangedEventPacket(valueDesc, domainDesc);
+    const auto good = DataPacketWithDomain(DataPacket(domainDesc, 10, 100), valueDesc, 10);
+    connection.enqueue(bad);
+    connection.enqueue(event);
+    connection.enqueue(good);
+
+    // drain hits `bad` first (state uninitialized) and throws; event + good are stashed
+    ASSERT_THROW(connection.dequeue(), InvalidStateException);
+    // resume: the descriptor event initializes gap state, then the good data packet follows
+    const auto p1 = connection.dequeue();
+    ASSERT_TRUE(p1.assigned());
+    ASSERT_TRUE(p1.supportsInterface<IEventPacket>());
+    const auto p2 = connection.dequeue();
+    ASSERT_TRUE(p2.assigned());
+    ASSERT_EQ(p2, good);
+}
+
+// closeQueue must free a parked pendingDrainChain (the stash from a gap-throw) without
+// leaking or crashing, and leave the queue reporting closed/empty.
+TEST_F(DataPathTest, CloseQueueWithParkedDrainChain)
+{
+    const auto ctx = NullContext();
+    MockInputPort::Strict inputPort;
+    MockSignal::Strict signal;
+    EXPECT_CALL(inputPort.mock(), getGapCheckingEnabled(testing::_)).WillOnce(GetBool(True));
+    const auto connection = Connection(inputPort.ptr, signal.ptr, ctx);
+
+    const auto valueDesc = DataDescriptorBuilder().setSampleType(SampleType::Float64).build();
+    const auto domainDesc = DataDescriptorBuilder()
+                                .setSampleType(SampleType::Int64)
+                                .setRule(LinearDataRule(10, 0))
+                                .build();
+
+    connection.enqueue(DataPacketWithDomain(DataPacket(domainDesc, 10, 0), valueDesc, 10));   // bad
+    connection.enqueue(DataDescriptorChangedEventPacket(valueDesc, domainDesc));              // stashed
+    connection.enqueue(DataPacketWithDomain(DataPacket(domainDesc, 10, 100), valueDesc, 10)); // stashed
+
+    ASSERT_THROW(connection.dequeue(), InvalidStateException);  // parks event + good
+
+    auto internal = connection.asPtr<IConnectionInternal>(true);
+    ASSERT_NO_THROW(internal->closeQueue());  // must release the parked chain
+    ASSERT_EQ(connection.getPacketCount(), 0u);
+    ASSERT_FALSE(connection.dequeue().assigned());
+}
+
+// Descriptor churn across sample types of different sizes while readers hammer getLastValue.
+// Drives the staged node's descriptor cache (pointer-identity skip), the per-packet buffer
+// resize on descriptor change, and cacheRaw for varying sample sizes.
+TEST_F(DataPathTest, LastValueUnderDescriptorChurn)
+{
+    const auto ctx = NullContext();
+    const auto signal = Signal(ctx, nullptr, "sig");
+
+    const SampleType types[] = {SampleType::Int16, SampleType::Int32, SampleType::Int64, SampleType::Float64};
+    std::vector<DataDescriptorPtr> descs;
+    for (auto t : types)
+        descs.push_back(DataDescriptorBuilder().setSampleType(t).build());
+    signal.setDescriptor(descs[0]);
+
+    std::atomic<bool> stop{false};
+    std::atomic<bool> failed{false};
+    std::thread producer(
+        [&]
+        {
+            int i = 0;
+            while (!stop.load(std::memory_order_relaxed))
+            {
+                const auto& d = descs[i % descs.size()];
+                signal.setDescriptor(d);
+                signal.sendPacket(DataPacket(d, 8));
+                ++i;
+            }
+        });
+
+    for (int i = 0; i < 4000; ++i)
+    {
+        try
+        {
+            const auto v = signal.getLastValue();
+            if (v.assigned() && !v.asPtrOrNull<INumber>().assigned())
+                failed.store(true);
+        }
+        catch (...)
+        {
+            failed.store(true);
+        }
+    }
+
+    stop.store(true);
+    producer.join();
+    ASSERT_FALSE(failed.load()) << "getLastValue misbehaved under descriptor churn";
+}
+
+// setLastValue is producer-role; enableKeepLastValue is config-role - they may race, and
+// the design tolerates it. Also covers setLastValue(nullptr) and the timestamp path.
+TEST_F(DataPathTest, SetLastValueEdgeCasesAndRace)
+{
+    const auto ctx = NullContext();
+    const auto sigDesc = DataDescriptorBuilder().setSampleType(SampleType::Int64).build();
+    const auto signal = Signal(ctx, nullptr, "sig");
+    signal.setDescriptor(sigDesc);
+    signal.asPtr<ISignalPrivate>(true).enableKeepLastValue(false);
+
+    // nullptr explicit value -> nothing cached
+    signal.setLastValue(nullptr);
+    ASSERT_FALSE(signal.getLastValue().assigned());
+
+    // explicit value + timestamp path (no domain -> timestamp unassigned)
+    signal.setLastValue(7);
+    ASSERT_EQ(signal.getLastValue(), 7);
+    BaseObjectPtr value;
+    BaseObjectPtr ts;
+    ASSERT_NO_THROW(ts = signal.getLastValueWithTimestamp(value));
+    ASSERT_EQ(value, 7);
+    ASSERT_FALSE(ts.assigned());
+
+    // race: producer role (setLastValue + sendPacket) vs config role (enableKeepLastValue)
+    std::atomic<bool> stop{false};
+    std::atomic<bool> crashed{false};
+    std::thread producerRole(
+        [&]
+        {
+            int64_t c = 0;
+            while (!stop.load(std::memory_order_relaxed))
+            {
+                try
+                {
+                    signal.setLastValue(++c);  // throws INVALIDSTATE if caching got enabled - tolerated
+                }
+                catch (...)
+                {
+                }
+                const auto pk = DataPacket(sigDesc, 4);
+                *static_cast<int64_t*>(pk.getRawData()) = c;
+                signal.sendPacket(pk);
+            }
+        });
+    std::thread configRole(
+        [&]
+        {
+            for (int i = 0; i < 4000; ++i)
+                signal.asPtr<ISignalPrivate>(true).enableKeepLastValue(i % 2 == 0);
+        });
+    std::thread reader(
+        [&]
+        {
+            for (int i = 0; i < 4000; ++i)
+            {
+                try
+                {
+                    signal.getLastValue();
+                }
+                catch (...)
+                {
+                    crashed.store(true);
+                }
+            }
+        });
+
+    configRole.join();
+    reader.join();
+    stop.store(true);
+    producerRole.join();
+    ASSERT_FALSE(crashed.load());
+
+    // settled: caching off, last explicit value wins
+    signal.asPtr<ISignalPrivate>(true).enableKeepLastValue(false);
+    signal.setLastValue(12345);
+    ASSERT_EQ(static_cast<Int>(signal.getLastValue()), 12345);
+}
+
+// Zero-sample data packets (staging must skip them but the queue must still deliver) and
+// event packets sent through sendPacket (which bypass staging entirely), plain and under
+// connect/disconnect churn.
+TEST_F(DataPathTest, EmptyAndEventPacketsThroughSendPath)
+{
+    const auto ctx = NullContext();
+    const auto sigDesc = DataDescriptorBuilder().setSampleType(SampleType::Int64).build();
+    const auto signal = Signal(ctx, nullptr, "sig");
+    signal.setDescriptor(sigDesc);
+
+    {
+        auto port = InputPort(ctx, nullptr, "ip");
+        port.connect(signal);
+        const auto connection = port.getConnection();
+        connection.dequeueAll();  // clear the connect descriptor event
+
+        // zero-sample data packet: last-value staging skips it, the queue still carries it
+        signal.sendPacket(DataPacket(sigDesc, 0));
+        // event packet via sendPacket bypasses staging
+        signal.sendPacket(DataDescriptorChangedEventPacket(sigDesc, nullptr));
+
+        const auto all = connection.dequeueAll();
+        ASSERT_EQ(all.getCount(), 2u);
+        ASSERT_TRUE(all[0].supportsInterface<IDataPacket>());
+        ASSERT_EQ(all[0].asPtr<IDataPacket>(true).getSampleCount(), 0u);
+        ASSERT_TRUE(all[1].supportsInterface<IEventPacket>());
+        // getLastValue unaffected by the zero-sample packet (nothing was staged)
+        ASSERT_FALSE(signal.getLastValue().assigned());
+        port.disconnect();
+    }
+
+    // churn variant: interleave empty / normal / event packets under connect-disconnect
+    std::atomic<bool> stop{false};
+    std::thread producer(
+        [&]
+        {
+            int i = 0;
+            while (!stop.load(std::memory_order_relaxed))
+            {
+                switch (i % 3)
+                {
+                    case 0: signal.sendPacket(DataPacket(sigDesc, 0)); break;
+                    case 1: signal.sendPacket(DataPacket(sigDesc, 8)); break;
+                    case 2: signal.sendPacket(DataDescriptorChangedEventPacket(sigDesc, nullptr)); break;
+                }
+                ++i;
+            }
+        });
+
+    for (int round = 0; round < 100; ++round)
+    {
+        auto port = InputPort(ctx, nullptr, "ip");
+        port.connect(signal);
+        const auto connection = port.getConnection();
+        connection.dequeueAll();
+        port.disconnect();
+    }
+
+    stop.store(true);
+    producer.join();
 }

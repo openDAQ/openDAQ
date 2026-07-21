@@ -478,6 +478,52 @@ TEST_F(DataPathTest, SendPacketDoesNotRetainPacket)
     ASSERT_EQ(ts, 2000000);
 }
 
+// setLastValue is a producer-role call (owner-serialized with sendPacket, lock-free): it
+// publishes through the same staged slot as sent packets. A config thread hammering
+// getLastValue concurrently must always observe a well-formed value.
+TEST_F(DataPathTest, StressSetLastValueVsGetLastValue)
+{
+    const auto ctx = NullContext();
+
+    const auto sigDesc = DataDescriptorBuilder().setSampleType(SampleType::Int64).build();
+    const auto signal = Signal(ctx, nullptr, "sig");
+    signal.setDescriptor(sigDesc);
+    signal.asPtr<ISignalPrivate>(true).enableKeepLastValue(false);
+
+    std::atomic<bool> stop{false};
+    int64_t counter = 0;
+
+    std::thread producer(
+        [&]
+        {
+            while (!stop.load(std::memory_order_relaxed))
+            {
+                const auto packet = DataPacket(sigDesc, 4);
+                auto* data = static_cast<int64_t*>(packet.getRawData());
+                for (int i = 0; i < 4; ++i)
+                    data[i] = counter;
+                signal.sendPacket(packet);
+                signal.setLastValue(++counter);
+            }
+        });
+
+    for (int round = 0; round < 4000; ++round)
+    {
+        BaseObjectPtr value;
+        ASSERT_NO_THROW(value = signal.getLastValue());
+        if (value.assigned())
+            ASSERT_TRUE(value.asPtrOrNull<IInteger>().assigned());
+    }
+
+    stop.store(true);
+    producer.join();
+
+    // producer stopped: the last explicit value must be the visible one (keep-last is off,
+    // so sendPacket never publishes to the slot)
+    if (counter > 0)
+        ASSERT_EQ(static_cast<Int>(signal.getLastValue()), counter);
+}
+
 // Same contract for calculated (implicit-rule) packets: getRawLastValue computes the last
 // sample from the rule into the staged buffer at send time, so the value survives the
 // packet without the packet ever being retained.

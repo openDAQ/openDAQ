@@ -896,9 +896,8 @@ ErrCode INTERFACE_FUNC SignalBase<TInterface, Interfaces...>::sendPacketsAndStea
 template <typename TInterface, typename ... Interfaces>
 ErrCode SignalBase<TInterface, Interfaces...>::setLastValue(IBaseObject* lastValue)
 {
-    // config path; the lock stays because it is what serializes this against concurrent
-    // getLastValue readers of the byte cache
-    auto lock = this->getRecursiveConfigLock2();
+    // producer-role call, owner-serialized with sendPacket - lock-free like the send path
+    // (the explicit value goes through the same staged-slot publication as sent packets)
 
     // manual last values are only meaningful while automatic caching is off (see
     // ISignalConfig::setLastValue docs) - otherwise the next sent packet would silently
@@ -907,7 +906,7 @@ ErrCode SignalBase<TInterface, Interfaces...>::setLastValue(IBaseObject* lastVal
         return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDSTATE,
                                    "setLastValue requires automatic last-value caching to be disabled (enableKeepLastValue(false)).");
 
-    lastValueStore.setExplicitValue(BaseObjectPtr(lastValue));
+    lastValueStore.publishExplicit(BaseObjectPtr(lastValue));
     return OPENDAQ_SUCCESS;
 }
 

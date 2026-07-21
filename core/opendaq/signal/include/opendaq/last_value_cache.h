@@ -282,21 +282,24 @@ struct StagedLastValue
     DataDescriptorPtr domainDescriptor;
     std::vector<std::byte> rawValue;
     std::vector<std::byte> rawDomain;
+    BaseObjectPtr explicitValue;      // setLastValue payload (isExplicit nodes only)
     SizeT valueSampleSize{0};
     SizeT domainSampleSize{0};
     bool valueIsVarLength{false};
     bool valueValid{false};
     bool domainValid{false};
+    bool isExplicit{false};
     StagedLastValue* next{nullptr};   // retire-list linkage
 };
 
 /*
- * All last-value state and handling of a signal. isEnabled()/publish() belong to the
- * signal's single producer thread and never block or (steady state) allocate; every other
- * method is a config operation, serialized externally by the signal's config lock. The
- * producer publishes a staged copy through an atomic slot; a displaced node is reused
- * when no reader is active, otherwise retired for config-path reclamation (see
- * active_operation_tracker.h). getValue()/getTimestamp() lazily feed the byte cache.
+ * All last-value state and handling of a signal. isEnabled()/publish()/publishExplicit()
+ * belong to the signal's producer role (owner-serialized, like sendPacket itself) and
+ * never block or (steady state) allocate; every other method is a config operation,
+ * serialized externally by the signal's config lock. The producer publishes a staged copy
+ * through an atomic slot; a displaced node is reused when no reader is active, otherwise
+ * retired for config-path reclamation (see active_operation_tracker.h).
+ * getValue()/getTimestamp() lazily feed the byte cache.
  */
 class LastValueStore
 {
@@ -324,14 +327,23 @@ public:
 
         StagedLastValue* staged = acquireStagedNode();
         fillStagedNode(*staged, dataPacket);
-
-        auto* old = slot.exchange(staged, std::memory_order_seq_cst);
-        seq.fetch_add(1, std::memory_order_release);
-        recycleOrRetireStaged(old);
+        publishNode(staged);
 
         // setEnabled(false) may have raced us; re-check so a disabled store retains nothing
         if (!enabled.load(std::memory_order_acquire))
             recycleOrRetireStaged(slot.exchange(nullptr, std::memory_order_seq_cst));
+    }
+
+    // setLastValue support (producer role, owner-serialized with publish just like
+    // sendPacket): publishes the explicit value through the same slot, lock-free
+    void publishExplicit(BaseObjectPtr&& value)
+    {
+        StagedLastValue* staged = acquireStagedNode();
+        staged->isExplicit = true;
+        staged->explicitValue = std::move(value);
+        staged->valueValid = false;
+        staged->domainValid = false;
+        publishNode(staged);
     }
 
     // ---- config paths (serialized by the signal's config lock) ----
@@ -346,16 +358,6 @@ public:
             cache.resetTimestamp();
             cachedSeq = std::numeric_limits<std::uint64_t>::max();
         }
-    }
-
-    // setLastValue support: the explicit value wins until the next published packet
-    void setExplicitValue(BaseObjectPtr&& value)
-    {
-        clear();
-        cache.resetData();
-        cache.resetTimestamp();
-        cache.setValue(std::move(value));
-        cachedSeq = seq.load(std::memory_order_acquire);
     }
 
     void resetCachedValue()
@@ -430,9 +432,18 @@ public:
     }
 
 private:
+    void publishNode(StagedLastValue* staged)
+    {
+        auto* old = slot.exchange(staged, std::memory_order_seq_cst);
+        seq.fetch_add(1, std::memory_order_release);
+        recycleOrRetireStaged(old);
+    }
+
     // note: getRawLastValue also materializes rule-calculated (implicit) samples
     void fillStagedNode(StagedLastValue& staged, const DataPacketPtr& dataPacket)
     {
+        staged.isExplicit = false;
+        staged.explicitValue = nullptr;
         staged.valueValid = false;
         staged.domainValid = false;
 
@@ -544,12 +555,21 @@ private:
             details::ActiveOperationTracker::Scope reader(readers);
             if (const auto* staged = slot.load(std::memory_order_seq_cst))
             {
-                cache.cacheRaw(staged->valueValid ? staged->valueDescriptor : nullptr,
-                               staged->rawValue.data(),
-                               staged->valueSampleSize,
-                               staged->domainValid ? staged->domainDescriptor : nullptr,
-                               staged->rawDomain.data(),
-                               staged->domainSampleSize);
+                if (staged->isExplicit)
+                {
+                    cache.resetData();
+                    cache.resetTimestamp();
+                    cache.setValue(BaseObjectPtr(staged->explicitValue));
+                }
+                else
+                {
+                    cache.cacheRaw(staged->valueValid ? staged->valueDescriptor : nullptr,
+                                   staged->rawValue.data(),
+                                   staged->valueSampleSize,
+                                   staged->domainValid ? staged->domainDescriptor : nullptr,
+                                   staged->rawDomain.data(),
+                                   staged->domainSampleSize);
+                }
                 cachedSeq = currentSeq;
             }
         }

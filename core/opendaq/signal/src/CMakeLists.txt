@@ -177,11 +177,12 @@ function(create_component_source_groups_${BASE_NAME})
         ${SDK_SRC_DIR}/range_impl.cpp
     )
     
-    source_group("signal//connection" FILES 
+    source_group("signal//connection" FILES
         ${SDK_HEADERS_DIR}/connection.h
         ${SDK_HEADERS_DIR}/connection_internal.h
         ${SDK_HEADERS_DIR}/connection_impl.h
         ${SDK_HEADERS_DIR}/connection_factory.h
+        ${SDK_HEADERS_DIR}/reclamation_gate.h
         ${SDK_SRC_DIR}/connection_impl.cpp
     )
     
@@ -358,6 +359,7 @@ set(SRC_PublicHeaders_Component
     last_value_cache.h
     input_port_impl.h
     connection_internal.h
+    reclamation_gate.h
     input_port_private.h
     reference_domain_info_factory.h
     reference_domain_offset_adder.h

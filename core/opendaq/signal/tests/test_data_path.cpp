@@ -269,8 +269,9 @@ TEST_F(DataPathTest, StressDisconnectUnderFire)
     producer.join();
 }
 
-// config-thread descriptor events (heap nodes, descriptor latch) racing the producer's
-// pooled nodes on the same lock-free inbox; the consumer drains a mixed stream
+// descriptor events interleaved with data packets from a second thread; per the openDAQ
+// usage rule the signal owner serializes setDescriptor against sendPacket (emulated here
+// with ownerMutex), while the consumer drains the mixed stream fully concurrently
 TEST_F(DataPathTest, StressDescriptorEventsVsProducer)
 {
     const auto ctx = NullContext();
@@ -285,22 +286,30 @@ TEST_F(DataPathTest, StressDescriptorEventsVsProducer)
     port.connect(signal);
     const auto connection = port.getConnection();
 
+    std::mutex ownerMutex;  // the owner's external serialization of production vs configuration
+
     std::atomic<bool> stop{false};
     std::thread producer(
         [&]
         {
             const auto packetA = DataPacket(descA, 16);
             while (!stop.load(std::memory_order_relaxed))
+            {
+                std::lock_guard lock(ownerMutex);
                 signal.sendPacket(packetA);
+            }
         });
 
     std::thread config(
         [&]
         {
-            // setDescriptor fans events into the queue from the config thread
+            // setDescriptor fans events into the queue, serialized with sendPacket by the owner
             for (int i = 0; i < 200; ++i)
             {
-                signal.setDescriptor(i % 2 ? descB : descA);
+                {
+                    std::lock_guard lock(ownerMutex);
+                    signal.setDescriptor(i % 2 ? descB : descA);
+                }
                 std::this_thread::yield();
             }
         });

@@ -19,6 +19,7 @@
 #include <opendaq/connection_internal.h>
 #include <opendaq/input_port_config_ptr.h>
 #include <opendaq/context_ptr.h>
+#include <opendaq/reclamation_gate.h>
 #include <coretypes/intfs.h>
 #include <coretypes/weakrefobj.h>
 #include <opendaq/event_packet_ptr.h>
@@ -33,29 +34,30 @@ BEGIN_NAMESPACE_OPENDAQ
 /*
  * Lock-free connection queue.
  *
- * Threading contract (see IConnection docs): all queue operations are restricted to the
- * signal's single producer thread (the enqueue methods) and the port's single consumer
- * thread (dequeue, peek, counters, scans). Configuration paths (descriptor events,
- * setListener, disconnect) may run on other threads; they use the generic enqueue entry
- * points, the descriptor latch and closeQueue(), all of which tolerate blocking.
+ * Threading contract (openDAQ usage rule, not enforced by any ownership mechanism):
+ * a connection has exactly one producer role and one consumer role. Every enqueue entry
+ * point - the signal's sendPacket fan-out as well as configuration-side event packets
+ * (setDescriptor, connect) - is serialized externally by the signal's owner, so no two
+ * enqueues ever run concurrently. All dequeue/peek/counter/scan operations belong to the
+ * port's single consumer. Only disconnect (closeQueue) and setListener
+ * (enqueueLastDescriptor) are exempt from the rule and may race everything else.
  *
  * Structure:
- *  - Producers push heap/pooled nodes onto `inboxTop` (Treiber-style CAS push, LIFO).
- *    A CAS push always publishes an intact chain, so a concurrent consumer grab
- *    (exchange) can never observe a half-linked node.
+ *  - The (externally serialized) enqueuer pushes pooled nodes onto `inboxTop`
+ *    (Treiber-style CAS push, LIFO). A CAS push always publishes an intact chain, so a
+ *    concurrent consumer grab (exchange) can never observe a half-linked node.
  *  - The consumer grabs the whole inbox with exchange(nullptr), reverses it (restoring
  *    FIFO), runs gap checking + counters, and appends to the consumer-owned `packets`
  *    deque, which serves every consumer-side query without any lock.
- *  - Consumed nodes are recycled via `freeTop` (consumer CAS-pushes). Only the producer
- *    fast path takes nodes out, and it takes the entire list with exchange(nullptr) into
- *    a producer-private cache; there is no concurrent CAS-pop, hence no ABA hazard.
+ *  - Consumed nodes are recycled via `freeTop` (consumer CAS-pushes). Only the enqueue
+ *    path takes nodes out, and it takes the entire list with exchange(nullptr) into a
+ *    private cache; there is no concurrent CAS-pop, hence no ABA hazard.
  *  - `closedFlag` + `accessGate` implement disconnect teardown: closeQueue() sets the
- *    flag (seq_cst), then spins until the gate is 0. Every producer/consumer operation
- *    increments the gate (seq_cst) and re-checks the flag inside it, so once the spin
- *    completes no operation can be in flight and the queue state is owned exclusively.
- *    (Dekker-style argument: if an operation's flag check read `false`, the check
- *    precedes the flag store in the seq_cst total order, hence its gate increment does
- *    too, and closeQueue()'s spin observes the gate until that operation finishes.)
+ *    flag (seq_cst), then waits until the gate is quiescent. Every producer/consumer
+ *    operation holds the gate and re-checks the flag inside it, so once the wait
+ *    completes no operation can be in flight and the queue state is owned exclusively
+ *    (see the correctness argument in reclamation_gate.h; the "state" here is the
+ *    closed flag, the "pin" is the queue access itself).
  */
 class ConnectionImpl : public ImplementationOfWeak<IConnection, IConnectionInternal>
 {
@@ -96,13 +98,7 @@ public:
 
     // IConnectionInternal
     ErrCode INTERFACE_FUNC enqueueLastDescriptor() override;
-    ErrCode INTERFACE_FUNC enqueueProducer(IPacket* packet) override;
-    ErrCode INTERFACE_FUNC enqueueProducerAndStealRef(IPacket* packet) override;
-    ErrCode INTERFACE_FUNC enqueueMultipleProducer(IList* packets) override;
-    ErrCode INTERFACE_FUNC enqueueMultipleProducerAndStealRef(IList* packets) override;
     ErrCode INTERFACE_FUNC closeQueue() override;
-
-    [[nodiscard]] const std::deque<PacketPtr>& getPackets() const noexcept;
 
 private:
     union DomainValue
@@ -118,24 +114,6 @@ private:
         std::atomic<PacketNode*> next{nullptr};
         IPacket* packet{nullptr};
         bool gapCheck{true};
-    };
-
-    // RAII around accessGate; every producer/consumer operation holds it while touching
-    // queue state so closeQueue() can wait for quiescence.
-    struct GateGuard
-    {
-        explicit GateGuard(std::atomic<int>& gate)
-            : gate(gate)
-        {
-            gate.fetch_add(1, std::memory_order_seq_cst);
-        }
-
-        ~GateGuard()
-        {
-            gate.fetch_sub(1, std::memory_order_release);
-        }
-
-        std::atomic<int>& gate;
     };
 
     InputPortConfigPtr port;
@@ -156,8 +134,8 @@ private:
     // lock-free producer -> consumer inbox
     std::atomic<PacketNode*> inboxTop{nullptr};
     std::atomic<PacketNode*> freeTop{nullptr};
-    PacketNode* producerNodeCache{nullptr};          // producer-thread-private
-    std::atomic<int> accessGate{0};
+    PacketNode* nodeCache{nullptr};                  // enqueuer-private (enqueues are externally serialized)
+    details::ReclamationGate accessGate;
     std::atomic<bool> closedFlag{false};
     std::atomic<bool> queueEmptyFlag{true};
     std::atomic<IPacket*> pendingFrontDescriptor{nullptr};
@@ -176,7 +154,7 @@ private:
 
     DomainValue numberToDomainValue(const NumberPtr& number);
 
-    PacketNode* acquireNodeProducer();
+    PacketNode* acquireNode();
     static PacketNode* reverseChain(PacketNode* chain);
     void recycleNode(PacketNode* node);
     static void destroyChain(PacketNode* chain);
@@ -185,10 +163,20 @@ private:
     void drainInbox();  // consumer thread, inside the gate
 
     template <class P, class F>
-    ErrCode enqueueInternal(P&& packet, bool useProducerCache, const F& f);
+    ErrCode enqueueInternal(P&& packet, const F& f);
 
     template <class P, class F>
-    ErrCode enqueueMultipleInternal(P&& packets, bool useProducerCache, const F& f);
+    ErrCode enqueueMultipleInternal(P&& packets, const F& f);
+
+    // Scaffold for every consumer-side operation: gate + closed check + inbox drain + body.
+    // closedBody runs instead of body when the queue is closed and MUST NOT touch any queue
+    // state (deque, counters): closeQueue() only excludes operations that entered the gate
+    // before it flipped the flag, so a later operation can run concurrently with its drain.
+    template <class ClosedF, class F>
+    ErrCode consumerOp(const ClosedF& closedBody, const F& body);
+
+    template <class ShortCircuit, class IsBoundary>
+    ErrCode samplesUntil(SizeT* samples, const ShortCircuit& shortCircuit, const IsBoundary& isBoundary);
 
 protected:
     SizeT samplesCnt{};

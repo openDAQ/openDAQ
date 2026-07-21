@@ -6,7 +6,7 @@ from datetime import datetime
 from ..app_context import AppContext
 from .. import dummy_sync2component as sync_stub
 from .sync_graph_view import SyncGraphWindow
-from .sync_config_views import (GroupConfigView, DeviceConfigView,
+from .sync_config_views import (GroupDetailView, DeviceConfigView,
                                 InterfaceConfigView)
 
 try:
@@ -91,16 +91,29 @@ def _norm_id(ref_id):
     return ''.join(ch for ch in str(ref_id).lower() if ch.isalnum())
 
 
-def real_reference_domain_id(device):
-    # The id a connected device reports on its device domain; takes
-    # precedence over the dummy component.
+def real_reference_domain_info(device):
+    # Reference domain info the connected device itself reports; None when
+    # the device reports nothing. Takes precedence over the dummy component.
     try:
         domain = device.domain
         info = domain.reference_domain_info if domain is not None else None
         ref_id = str(info.reference_domain_id) if info is not None else ''
-        return '' if ref_id == 'None' else ref_id
+        if not ref_id or ref_id == 'None':
+            return None
+        offset = getattr(info, 'reference_domain_offset', None)
+        protocol = getattr(info, 'reference_time_protocol', None)
+        return {
+            'id': ref_id,
+            'offset': str(offset) if offset is not None else '0',
+            'protocol': getattr(protocol, 'name', None) or str(protocol or 'Unknown'),
+        }
     except Exception:
-        return ''
+        return None
+
+
+def real_reference_domain_id(device):
+    info = real_reference_domain_info(device)
+    return info['id'] if info else ''
 
 
 def owns_reference_domain(device, ref_id):
@@ -292,7 +305,10 @@ class SyncView(ttk.Frame):
         status = source.get_status_container().get_status('SourceStatus')
         applied, applied_key, all_keys, owns = device_group_keys(device, sync)
         has_output = False
-        for iface in sync.get_sync_interfaces().values():
+        for name, iface in sync.get_sync_interfaces().items():
+            if name == 'ClockSyncInterface':
+                # The clock outputs only to its own device.
+                continue
             role = iface.get_status_container().get_status('RoleStatus')
             if role == sync_stub.RoleStatus.Output:
                 has_output = True
@@ -320,10 +336,10 @@ class SyncView(ttk.Frame):
     def _build_toolbar(self, parent):
         small_font = ('TkDefaultFont', 7)
         ttk.Entry(parent, textvariable=self._search_var).pack(
-            fill=tk.X, padx=(2, 8), pady=(2, 3))
+            fill=tk.X, padx=(0, 15), pady=(0, 3))
 
         bar = ttk.Frame(parent)
-        bar.pack(fill=tk.X, padx=(2, 8), pady=(0, 4))
+        bar.pack(fill=tk.X, padx=(2, 15), pady=(0, 4))
         ttk.Label(bar, text='Source', font=small_font).pack(side=tk.LEFT)
         source_box = ttk.Combobox(bar, textvariable=self._source_filter_var,
                                   values=SOURCE_FILTER_VALUES, state='readonly',
@@ -352,7 +368,7 @@ class SyncView(ttk.Frame):
 
     def _build_panes(self):
         paned = ttk.PanedWindow(self, orient=tk.HORIZONTAL)
-        paned.pack(fill=tk.BOTH, expand=True, padx=5, pady=5)
+        paned.pack(fill=tk.BOTH, expand=True, padx=(0,5), pady=(0,5))
 
         scale = self.context.ui_scaling_factor * self.context.dpi_factor
         left = ttk.Frame(paned)
@@ -416,9 +432,6 @@ class SyncView(ttk.Frame):
     def _show_detail_placeholder(self):
         for child in self.detail_host.winfo_children():
             child.destroy()
-        ttk.Label(self.detail_host, foreground='#777777',
-                  text='Select a group, device, or interface to configure it.'
-                  ).pack(padx=10, pady=10, anchor=tk.NW)
 
     # MARK: - Indicator strip
 
@@ -637,25 +650,33 @@ class SyncView(ttk.Frame):
                     members = [(self._rows[m]['device'], self._rows[m]['sync'])
                                for m in group['members'] if m in self._rows]
                     if members:
-                        view = GroupConfigView(
+                        applied = ''
+                        for m in group['members']:
+                            row = self._rows.get(m)
+                            if row is not None and not \
+                                    row['applied_key'].startswith('clock-sync:'):
+                                applied = row['applied']
+                                break
+                        kind = 'local' if group['local'] else source_kind(applied)
+                        view = GroupDetailView(
                             self.detail_host, self.context,
                             self._group_display(group), members,
-                            group['master_gid'], self._on_model_changed)
+                            group['master_gid'], kind, applied)
             elif gid in self._rows:
                 row = self._rows[gid]
                 if iface_name is None:
-                    reported = row['applied'] \
-                        if row['applied_key'].startswith('dev-ref:') else ''
                     view = DeviceConfigView(
                         self.detail_host, self.context, row['device'],
                         row['sync'], self.context.sync_event_log,
-                        self._on_model_changed, reported_ref_id=reported)
+                        self._on_model_changed,
+                        real_info=real_reference_domain_info(row['device']))
                 else:
                     iface = row['sync'].get_sync_interfaces().get(iface_name)
                     if iface is not None:
                         view = InterfaceConfigView(
                             self.detail_host, self.context, row['device'],
-                            row['sync'], iface, self._on_model_changed)
+                            row['sync'], iface, self._on_model_changed,
+                            event_log=self.context.sync_event_log)
 
         if view is None:
             self._show_detail_placeholder()

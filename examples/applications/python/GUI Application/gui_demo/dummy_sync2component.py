@@ -486,13 +486,14 @@ class Synchronization:
         self._device = device
         self._name = "DaqSynchronization"
 
-        # The device's own clock: always reachable, selected as the source
-        # by default. Its id is the device's local id.
+        # The device's own clock only distributes its own time, so it is
+        # Output-only; selecting it as the source means the device
+        # free-runs. Its id is the device's local id.
         clock = SyncInterface(
             "ClockSyncInterface",
-            available_modes=[SyncMode.Off, SyncMode.Input],
+            available_modes=[SyncMode.Off, SyncMode.Output],
             time_protocol=TimeProtocol.Utc,
-            upstream_domain_id=f"clock-sync:{device.global_id}",
+            output_domain_id=f"clock-sync:{device.global_id}",
             upstream_reachable=True)
 
         ptp = PtpSyncInterface(upstream_reachable=True)
@@ -505,7 +506,8 @@ class Synchronization:
         irig = IrigSyncInterface()
 
         self._interfaces = {i.name: i for i in [clock, ptp, ntp, gps, irig]}
-        self._local_id = clock._upstream_domain_id
+        self._clock = clock
+        self._local_id = clock._output_domain_id
 
         # Handlers subscribed through on_property_value_changed.
         self._property_changed_handlers = []
@@ -524,11 +526,13 @@ class Synchronization:
         return dict(self._interfaces)
 
     def get_available_sources(self):
-        """All interfaces that support Input or Auto mode."""
+        """All interfaces that support Input or Auto mode, plus the device's
+        own clock."""
         sources = {}
         for name, interface in self._interfaces.items():
             modes = interface.get_available_modes()
-            if SyncMode.Input in modes or SyncMode.Auto in modes:
+            if (SyncMode.Input in modes or SyncMode.Auto in modes
+                    or interface is self._clock):
                 sources[name] = interface
         return sources
 
@@ -557,6 +561,9 @@ class Synchronization:
             mode = SyncMode.Auto
         elif SyncMode.Input in modes:
             mode = SyncMode.Input
+        elif source is self._clock:
+            # The internal clock only outputs, to its own device.
+            mode = SyncMode.Output
         else:
             raise ValueError(f"{source.name} cannot be selected as a source")
 

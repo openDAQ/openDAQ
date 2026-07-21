@@ -2,6 +2,7 @@ import tkinter as tk
 from tkinter import ttk
 from tkinter import messagebox
 
+from .. import utils
 from .. import dummy_sync2component as sync_stub
 
 TIME_PROTOCOL_NAMES = {
@@ -11,38 +12,36 @@ TIME_PROTOCOL_NAMES = {
     sync_stub.TimeProtocol.Utc: 'UTC',
 }
 
-# Editable per-interface settings: (attribute, label, combobox choices);
-# None means a free-text entry converted to the attribute's current type.
+# Per-interface settings shown in the read-only property tables.
 INTERFACE_FIELDS = {
     'PtpSyncInterface': [
-        ('domain_number', 'Domain number', None),
-        ('transport', 'Transport protocol', (sync_stub.PtpTransport.L2,
-                                             sync_stub.PtpTransport.UDP_IPV4,
-                                             sync_stub.PtpTransport.UDP_IPV6)),
-        ('delay_mechanism', 'Delay mechanism', (sync_stub.PtpDelayMechanism.E2E,
-                                                sync_stub.PtpDelayMechanism.P2P)),
-        ('log_sync_interval', 'Log sync interval', None),
-        ('log_announce_interval', 'Log announce interval', None),
-        ('priority1', 'Priority 1', None),
-        ('priority2', 'Priority 2', None),
+        ('domain_number', 'Domain number'),
+        ('transport', 'Transport protocol'),
+        ('delay_mechanism', 'Delay mechanism'),
+        ('log_sync_interval', 'Log sync interval'),
+        ('log_announce_interval', 'Log announce interval'),
+        ('priority1', 'Priority 1'),
+        ('priority2', 'Priority 2'),
     ],
     'NtpSyncInterface': [
-        ('servers', 'Servers (comma separated)', None),
-        ('domain_id', 'Domain id', None),
-        ('min_poll', 'Min poll (log2 s)', None),
-        ('max_poll', 'Max poll (log2 s)', None),
-        ('iburst', 'Iburst', ('True', 'False')),
-        ('version', 'NTP version', ('3', '4')),
+        ('servers', 'Servers'),
+        ('domain_id', 'Domain id'),
+        ('min_poll', 'Min poll (log2 s)'),
+        ('max_poll', 'Max poll (log2 s)'),
+        ('iburst', 'Iburst'),
+        ('version', 'NTP version'),
     ],
     'IrigSyncInterface': [
-        ('source_id', 'Source id', None),
+        ('source_id', 'Source id'),
     ],
 }
 
-# Same look as the Modules tab detail panel.
-HEADER_FONT = ("TkDefaultFont", 13, "bold")
-SECTION_FONT = ("TkDefaultFont", 10, "bold")
-LABEL_WIDTH = 24
+KIND_INTERFACES = {
+    'ptp': 'PtpSyncInterface',
+    'ntp': 'NtpSyncInterface',
+    'gps': 'GpsSyncInterface',
+    'irig': 'IrigSyncInterface',
+}
 
 
 def display_value(value):
@@ -51,59 +50,135 @@ def display_value(value):
     return str(value)
 
 
-def convert_like(current, raw):
-    # Editor string back to the attribute's current type; setters validate.
-    if isinstance(current, bool):
-        return raw == 'True'
-    if isinstance(current, list):
-        return [p.strip() for p in str(raw).split(',') if p.strip()]
-    if isinstance(current, int):
-        stripped = str(raw).strip()
-        if not stripped.lstrip('-').isdigit():
-            raise ValueError(f'not a number: {raw!r}')
-        return int(stripped)
-    return str(raw)
+def status_color(source_status):
+    # Sync source status mapped to the block views' status square colors.
+    return {
+        sync_stub.SourceStatus.Synced: utils.StatusColor.OK,
+        sync_stub.SourceStatus.Listening: utils.StatusColor.WARNING,
+        sync_stub.SourceStatus.Calibrating: utils.StatusColor.WARNING,
+        sync_stub.SourceStatus.Error: utils.StatusColor.ERROR,
+    }.get(source_status, utils.StatusColor.NOT_SET)
 
 
 class _DetailFrame(ttk.Frame):
-    # Shared scaffolding: bold header, "Label:" rows, separated sections.
+    # Panels styled like the block views: a header row with the name and a
+    # clickable status container, and a read-only property table below.
     # on_change tells the owning view to refresh after modifications.
 
-    def __init__(self, parent, context, title, on_change, subtitle='',
-                 **kwargs):
+    def __init__(self, parent, context, title, on_change, **kwargs):
         ttk.Frame.__init__(self, parent, **kwargs)
         self.context = context
         self.on_change = on_change
-        ttk.Label(self, text=title, font=HEADER_FONT).pack(
-            anchor=tk.W, padx=10, pady=(10, 0 if subtitle else 5))
-        if subtitle:
-            ttk.Label(self, text=subtitle, foreground='gray',
-                      wraplength=400).pack(anchor=tk.W, padx=10, pady=(0, 5))
+        self.header = ttk.Frame(self)
+        self.header.pack(fill=tk.X, padx=10, pady=(10, 5))
+        ttk.Label(self.header, text=title,
+                  font=('TkDefaultFont', 11, 'bold')).pack(side=tk.LEFT)
 
-    def _info_row(self, label, value, parent=None):
-        row = ttk.Frame(parent or self)
-        row.pack(fill=tk.X, padx=10, pady=1)
-        ttk.Label(row, text=f'{label}:', width=LABEL_WIDTH, anchor=tk.NW).pack(
-            side=tk.LEFT)
-        ttk.Label(row, text=str(value), anchor=tk.W, justify=tk.LEFT,
-                  wraplength=380).pack(side=tk.LEFT, fill=tk.X)
-        return row
+    def _header_status(self, color, text, on_click=None):
+        # Colored square + message, like the block view status container;
+        # clicking opens the status dialog.
+        ttk.Label(self.header, text=' | ').pack(side=tk.LEFT)
+        cursor = 'hand2' if on_click else ''
+        frame = tk.Frame(self.header, cursor=cursor)
+        frame.pack(side=tk.LEFT)
+        square = tk.Frame(frame, width=10, height=10, bg=str(color),
+                          cursor=cursor)
+        square.pack_propagate(False)
+        square.pack(side=tk.LEFT, padx=(0, 4))
+        message = tk.Label(frame, text=text, cursor=cursor)
+        message.pack(side=tk.LEFT)
 
-    def _editor_row(self, label, editor_factory, parent=None):
-        row = ttk.Frame(parent or self)
-        row.pack(fill=tk.X, padx=10, pady=2)
-        ttk.Label(row, text=f'{label}:', width=LABEL_WIDTH, anchor=tk.W).pack(
-            side=tk.LEFT)
-        editor = editor_factory(row)
-        editor.pack(side=tk.LEFT)
-        return editor
+        if on_click is None:
+            return
 
-    def _section(self, title, parent=None):
-        host = parent or self
-        ttk.Separator(host, orient=tk.HORIZONTAL).pack(
-            fill=tk.X, padx=10, pady=(10, 5))
-        ttk.Label(host, text=title, font=SECTION_FONT).pack(
-            anchor=tk.W, padx=10, pady=(0, 5))
+        def _enter(e):
+            for w in (frame, message):
+                w.configure(bg='#e0e0e0')
+
+        def _leave(e):
+            bg = self.header.winfo_rgb(ttk.Style().lookup('TFrame', 'background'))
+            bg_hex = '#{:04x}{:04x}{:04x}'.format(*bg)
+            for w in (frame, message):
+                w.configure(bg=bg_hex)
+
+        for widget in (frame, square, message):
+            widget.bind('<Button-1>', lambda e: on_click())
+            widget.bind('<Enter>', _enter)
+            widget.bind('<Leave>', _leave)
+
+    def _header_text(self, text):
+        ttk.Label(self.header, text=f' | {text}').pack(side=tk.LEFT)
+
+    def _property_table(self, rows):
+        # Read-only two-column table, like the properties view; read-only
+        # values are gray, matching the property view's readonly tag.
+        frame = ttk.Frame(self)
+        frame.pack(fill=tk.BOTH, expand=True, padx=10, pady=5)
+        tree = ttk.Treeview(frame, columns=('value',), show='tree headings')
+        tree.heading('#0', anchor=tk.W, text='Property name')
+        tree.heading('value', anchor=tk.W, text='Value')
+        dpi = self.context.dpi_factor
+        tree.column('#0', anchor=tk.W, minwidth=50, width=int(200 * dpi),
+                    stretch=True)
+        tree.column('value', anchor=tk.W, minwidth=50, width=int(200 * dpi),
+                    stretch=True)
+        tree.tag_configure('readonly', foreground='gray')
+        scroll = ttk.Scrollbar(frame, orient=tk.VERTICAL, command=tree.yview)
+        tree.configure(yscroll=scroll.set)
+        tree.pack(fill=tk.BOTH, expand=True, side=tk.LEFT)
+        scroll.pack(fill=tk.Y, side=tk.RIGHT)
+        for label, value in rows:
+            tree.insert('', tk.END, text=label, values=(value,),
+                        tags=('readonly',))
+        _bind_copy(tree)
+        return tree
+
+    def _show_status_dialog(self, title, statuses, changes):
+        # Statuses and the latest changes, like the block views' status
+        # window. Ctrl+C copies the selected row.
+        dpi = self.context.dpi_factor if self.context else 1.0
+        w, h = int(600 * dpi), int(300 * dpi)
+        window = tk.Toplevel(self)
+        window.withdraw()
+        window.title(title)
+        window.attributes('-topmost', True)
+        window.transient(self)
+        window.bind('<Escape>', lambda e: window.destroy())
+
+        status_tree = ttk.Treeview(window, columns=('Name', 'Status', 'Message'),
+                                   show='headings', height=len(statuses))
+        for col in ('Name', 'Status', 'Message'):
+            status_tree.heading(col, text=col, anchor=tk.W)
+        for name, value, message in statuses:
+            status_tree.insert('', tk.END, values=(name, value, message))
+        status_tree.pack(fill=tk.X, padx=5, pady=(5, 0))
+        _bind_copy(status_tree)
+
+        ttk.Label(window, text='Latest changes').pack(anchor=tk.W, padx=5,
+                                                      pady=(8, 0))
+        frame = ttk.Frame(window)
+        frame.pack(fill=tk.BOTH, expand=True, padx=5, pady=5)
+        change_tree = ttk.Treeview(frame, columns=('Time', 'Change'),
+                                   show='headings')
+        change_tree.heading('Time', text='Time', anchor=tk.W)
+        change_tree.heading('Change', text='Change', anchor=tk.W)
+        change_tree.column('Time', width=int(90 * dpi), stretch=False)
+        scroll = ttk.Scrollbar(frame, orient=tk.VERTICAL,
+                               command=change_tree.yview)
+        change_tree.configure(yscroll=scroll.set)
+        change_tree.pack(fill=tk.BOTH, expand=True, side=tk.LEFT)
+        scroll.pack(fill=tk.Y, side=tk.RIGHT)
+        for stamp, sender, prop, value in changes:
+            change_tree.insert('', tk.END, values=(
+                f'{stamp:%H:%M:%S}', f'{sender}: {prop} -> {value}'))
+        _bind_copy(change_tree)
+
+        main = self.winfo_toplevel()
+        window.update_idletasks()
+        x = main.winfo_rootx() + main.winfo_width() // 2 - w // 2
+        y = main.winfo_rooty() + main.winfo_height() // 2 - h // 2
+        window.geometry(f'{w}x{h}+{x}+{y}')
+        window.deiconify()
 
     def _changed(self):
         if self.on_change is not None:
@@ -113,192 +188,141 @@ class _DetailFrame(ttk.Frame):
         messagebox.showerror(title, str(error), parent=self)
 
 
-class GroupConfigView(_DetailFrame):
-    # One source applied to the whole group. Elected mode lets BMCA decide
-    # (prefer_auto); designated mode makes one device's PTP output-only and
-    # sets everyone else to Input.
+def _bind_copy(tree):
+    # Ctrl+C copies the selected row as tab-separated text.
+    def copy(event=None):
+        selection = tree.selection()
+        if not selection:
+            return
+        item = tree.item(selection[0])
+        parts = ([item['text']] if item['text'] else []) + \
+            [str(v) for v in item['values']]
+        tree.clipboard_clear()
+        tree.clipboard_append('\t'.join(parts))
+        return 'break'
+
+    tree.bind('<Control-c>', copy)
+
+
+def _device_changes(event_log, gid, sender=None):
+    # Newest first; entries are (stamp, gid, sender, prop, value).
+    changes = []
+    for stamp, entry_gid, entry_sender, prop, value in reversed(event_log):
+        if entry_gid != gid:
+            continue
+        if sender is not None and entry_sender != sender:
+            continue
+        changes.append((stamp, entry_sender, prop, value))
+    return changes
+
+
+class GroupDetailView(_DetailFrame):
+    # Read-only: a working group is not something to reconfigure. Any change
+    # breaks the group apart until the network re-forms, and partial
+    # application would leave members with different settings.
 
     def __init__(self, parent, context, group_name, members, master_gid,
-                 on_change, **kwargs):
-        # members: list of (device, sync) pairs.
-        _DetailFrame.__init__(self, parent, context, group_name, on_change,
-                              subtitle='Synchronization group', **kwargs)
-        self.members = members
-
+                 kind, reference_id, **kwargs):
+        # members: list of (device, sync) pairs, master first.
+        _DetailFrame.__init__(self, parent, context, group_name, None,
+                              **kwargs)
         master_name = 'none (external or local reference)'
         for device, sync in members:
             if device.global_id == master_gid:
                 master_name = device.name
                 break
-        self._info_row('Devices', ', '.join(d.name for d, s in members))
-        self._info_row('Master', master_name)
 
-        self._section('Group configuration')
+        rows = [
+            ('Master', master_name),
+            ('Devices', ', '.join(d.name for d, s in members)),
+        ]
+        if reference_id:
+            rows.append(('Reference domain', reference_id))
 
-        # Only sources every device offers (and that aren't output-only).
-        common = None
-        for device, sync in members:
-            names = {name for name, iface in sync.get_available_sources().items()
-                     if not iface.get_output_only()}
-            common = names if common is None else common & names
-        self.common_sources = sorted(common or [])
+        iface = self._reference_interface(members, master_gid, kind)
+        if iface is not None and kind in ('ptp', 'ntp', 'irig'):
+            for attr, label in INTERFACE_FIELDS.get(type(iface).__name__, []):
+                rows.append((label, display_value(getattr(iface, attr))))
 
-        default = 'PtpSyncInterface' if 'PtpSyncInterface' in self.common_sources \
-            else (self.common_sources[0] if self.common_sources else '')
-        self.source_var = tk.StringVar(value=default)
+        self._property_table(rows)
 
-        def make_source_box(row):
-            box = ttk.Combobox(row, textvariable=self.source_var,
-                               values=self.common_sources, state='readonly',
-                               width=24)
-            box.bind('<<ComboboxSelected>>', lambda e: self._update_ptp_frame())
-            return box
-
-        self._editor_row('Source for the group', make_source_box)
-
-        # PTP-only options; hidden for other sources.
-        self.ptp_frame = ttk.Frame(self)
-        self.domain_var = tk.StringVar(value='0')
-        row = ttk.Frame(self.ptp_frame)
-        row.pack(fill=tk.X, padx=10, pady=2)
-        ttk.Label(row, text='PTP domain number:', width=LABEL_WIDTH,
-                  anchor=tk.W).pack(side=tk.LEFT)
-        ttk.Entry(row, textvariable=self.domain_var, width=6).pack(side=tk.LEFT)
-
-        self.master_mode_var = tk.StringVar(value='designated' if master_gid
-                                            else 'elected')
-        mode_row = ttk.Frame(self.ptp_frame)
-        mode_row.pack(fill=tk.X, padx=10, pady=2)
-        ttk.Label(mode_row, text='Master:', width=LABEL_WIDTH,
-                  anchor=tk.W).pack(side=tk.LEFT)
-        ttk.Radiobutton(mode_row, text='Elected (BMCA)',
-                        variable=self.master_mode_var, value='elected',
-                        command=self._update_ptp_frame).pack(side=tk.LEFT)
-        ttk.Radiobutton(mode_row, text='Designated',
-                        variable=self.master_mode_var, value='designated',
-                        command=self._update_ptp_frame).pack(side=tk.LEFT,
-                                                             padx=10)
-
-        default_master = members[0][0].name
-        for device, sync in members:
-            if device.global_id == master_gid:
-                default_master = device.name
-                break
-        self.master_var = tk.StringVar(value=default_master)
-        self.master_row = ttk.Frame(self.ptp_frame)
-        ttk.Label(self.master_row, text='Master device:', width=LABEL_WIDTH,
-                  anchor=tk.W).pack(side=tk.LEFT)
-        ttk.Combobox(self.master_row, textvariable=self.master_var,
-                     values=[d.name for d, s in members], state='readonly',
-                     width=24).pack(side=tk.LEFT)
-
-        self.apply_button = ttk.Button(self, text='Apply to group',
-                                       command=self._apply)
-        self.apply_button.pack(anchor=tk.W, padx=10, pady=(8, 10))
-        self._update_ptp_frame()
-
-    def _update_ptp_frame(self):
-        if self.source_var.get() == 'PtpSyncInterface':
-            self.ptp_frame.pack(fill=tk.X, before=self.apply_button)
-        else:
-            self.ptp_frame.pack_forget()
-            return
-        if self.master_mode_var.get() == 'designated':
-            self.master_row.pack(fill=tk.X, padx=10, pady=2)
-        else:
-            self.master_row.pack_forget()
-
-    def _apply(self):
-        source_name = self.source_var.get()
-        if not source_name:
-            return
-        is_ptp = source_name == 'PtpSyncInterface'
-        designated = is_ptp and self.master_mode_var.get() == 'designated'
-        errors = []
-
-        if is_ptp:
-            raw = self.domain_var.get().strip()
-            if not raw.isdigit():
-                self._error('Configure group', 'PTP domain number must be a number.')
-                return
-            domain = int(raw)
-
-        # Master first, so its domain is up before others point at it.
-        pairs = list(self.members)
-        if designated:
-            pairs.sort(key=lambda p: p[0].name != self.master_var.get())
-
-        for device, sync in pairs:
-            iface = sync.get_sync_interfaces().get(source_name)
-            if iface is None:
-                errors.append(f'{device.name}: no {source_name}')
-                continue
-            try:
-                if is_ptp:
-                    iface.domain_number = domain
-                if designated and device.name == self.master_var.get():
-                    # Output-only is rejected on the selected source, so the
-                    # master's source moves to its local clock first.
-                    if sync.get_source() is iface:
-                        clock = sync.get_sync_interfaces()['ClockSyncInterface']
-                        sync.set_source(clock, prefer_auto=False)
-                    if not iface.get_output_only():
-                        iface.set_output_only(True)
-                else:
-                    if iface.get_output_only():
-                        iface.set_output_only(False)
-                    sync.set_source(iface, prefer_auto=not designated)
-            except ValueError as e:
-                errors.append(f'{device.name}: {e}')
-
-        if errors:
-            self._error('Configure group', '\n'.join(errors))
-        self._changed()
+    def _reference_interface(self, members, master_gid, kind):
+        name = KIND_INTERFACES.get(kind)
+        if name is None:
+            return None
+        ordered = sorted(members, key=lambda p: p[0].global_id != master_gid)
+        for device, sync in ordered:
+            iface = sync.get_sync_interfaces().get(name)
+            if iface is not None:
+                return iface
+        return None
 
 
 class DeviceConfigView(_DetailFrame):
-    # Source selection, reference domain info, and recent property changes.
+    # Header status container (click for statuses and latest changes), a
+    # configurable source, and the sync component's state as a read-only
+    # property table.
 
     def __init__(self, parent, context, device, sync, event_log, on_change,
-                 reported_ref_id='', **kwargs):
+                 real_info=None, **kwargs):
         _DetailFrame.__init__(self, parent, context, device.name, on_change,
-                              subtitle='Device synchronization', **kwargs)
+                              **kwargs)
         self.device = device
         self.sync = sync
+        self.event_log = event_log
 
-        info = sync.get_reference_domain_info()
-        if reported_ref_id:
-            self._info_row('Reported by device', reported_ref_id)
-        self._info_row('Applied reference domain',
-                       info.get_source_reference_domain_id())
-        self._info_row('All reference domains',
-                       '\n'.join(info.get_reference_domain_ids()))
-        self._info_row('Domain offset (ticks)',
-                       str(info.get_reference_domain_offset()))
-        self._info_row('Time protocol', TIME_PROTOCOL_NAMES.get(
-            info.get_reference_time_protocol(), '?'))
+        source = sync.get_source()
+        status = source.get_status_container()
+        source_status = status.get_status('SourceStatus')
+        message = status.get_status_message('SourceStatus')
+        self._header_status(status_color(source_status),
+                            source_status + (f' - {message}' if message else ''),
+                            on_click=self._show_statuses)
 
-        self._section('Source')
+        row = ttk.Frame(self)
+        row.pack(fill=tk.X, padx=10, pady=(4, 2))
+        ttk.Label(row, text='Source:').pack(side=tk.LEFT, padx=(0, 5))
         sources = [name for name, iface in sync.get_available_sources().items()
                    if not iface.get_output_only()]
-        self.source_var = tk.StringVar(value=sync.get_source().name)
+        self.source_var = tk.StringVar(value=source.name)
+        box = ttk.Combobox(row, textvariable=self.source_var, values=sources,
+                           state='readonly', width=24)
+        box.pack(side=tk.LEFT)
+        box.bind('<<ComboboxSelected>>', lambda e: self._commit_source())
 
-        def make_source_box(row):
-            box = ttk.Combobox(row, textvariable=self.source_var,
-                               values=sources, state='readonly', width=24)
-            box.bind('<<ComboboxSelected>>', lambda e: self._commit_source())
-            return box
+        # A connected device reports its own reference domain info; only
+        # devices that report nothing fall back to the dummy component.
+        if real_info is not None:
+            rows = [
+                ('Applied reference domain', real_info['id']),
+                ('Domain offset (ticks)', real_info['offset']),
+                ('Time protocol', real_info['protocol']),
+            ]
+        else:
+            info = sync.get_reference_domain_info()
+            rows = [
+                ('Applied reference domain',
+                 info.get_source_reference_domain_id()),
+                ('All reference domains',
+                 ', '.join(info.get_reference_domain_ids())),
+                ('Domain offset (ticks)',
+                 str(info.get_reference_domain_offset())),
+                ('Time protocol', TIME_PROTOCOL_NAMES.get(
+                    info.get_reference_time_protocol(), '?')),
+            ]
+        self._property_table(rows)
 
-        self._editor_row('Selected source', make_source_box)
-
-        changes = [entry for entry in reversed(event_log)
-                   if entry[1] == device.global_id][:8]
-        if changes:
-            self._section('Recent changes')
-            for stamp, gid, sender, prop, value in changes:
-                ttk.Label(self,
-                          text=f'{stamp:%H:%M:%S}  {sender}: {prop} -> {value}',
-                          foreground='gray').pack(anchor=tk.W, padx=10)
+    def _show_statuses(self):
+        source = self.sync.get_source()
+        container = source.get_status_container()
+        statuses = []
+        for name in ('SourceStatus', 'RoleStatus'):
+            statuses.append((f'{source.name}.{name}',
+                             container.get_status(name),
+                             container.get_status_message(name)))
+        self._show_status_dialog(f'Statuses - {self.device.name}', statuses,
+                                 _device_changes(self.event_log,
+                                                 self.device.global_id))
 
     def _commit_source(self):
         iface = self.sync.get_available_sources().get(self.source_var.get())
@@ -312,148 +336,72 @@ class DeviceConfigView(_DetailFrame):
 
 
 class InterfaceConfigView(_DetailFrame):
-    # Mode and output-only through the public API, the interface's protocol
-    # settings, and the stub-only knobs under iface.simulate.
+    # Status and role in the header container (click for the latest
+    # changes), the stub-only simulate controls aligned at the top, and the
+    # configuration as a read-only property table.
 
     def __init__(self, parent, context, device, sync, iface, on_change,
-                 **kwargs):
-        _DetailFrame.__init__(self, parent, context, iface.name, on_change,
-                              subtitle=f'Sync interface on {device.name}',
+                 event_log=None, **kwargs):
+        _DetailFrame.__init__(self, parent, context,
+                              f'{iface.name} ({device.name})', on_change,
                               **kwargs)
+        self.device = device
         self.sync = sync
         self.iface = iface
+        self.event_log = event_log if event_log is not None else []
 
         status = iface.get_status_container()
         source_status = status.get_status('SourceStatus')
         message = status.get_status_message('SourceStatus')
-        role = status.get_status('RoleStatus')
-        self._info_row('Status', source_status + (f' ({message})' if message
-                                                  else ''))
-        self._info_row('Role', role)
-        self._info_row('Selected source',
-                       'Yes' if iface is sync.get_source() else 'No')
+        self._header_status(status_color(source_status),
+                            source_status + (f' - {message}' if message else ''),
+                            on_click=self._show_statuses)
+        if iface is sync.get_source():
+            self._header_text('selected source')
 
-        self._section('Configuration')
-
-        # Input/Auto select the interface as source; Output = output-only;
-        # Off releases output-only (a non-source interface is Off anyway).
-        modes = [sync_stub.MODE_NAMES[m] for m in iface.get_available_modes()]
-        self.mode_var = tk.StringVar(value=sync_stub.MODE_NAMES[iface.get_mode()])
-
-        def make_mode_box(row):
-            box = ttk.Combobox(row, textvariable=self.mode_var, values=modes,
-                               state='readonly', width=10)
-            box.bind('<<ComboboxSelected>>', lambda e: self._commit_mode())
-            return box
-
-        self._editor_row('Source mode', make_mode_box)
-
-        self.output_var = tk.BooleanVar(value=iface.get_output_only())
-        if sync_stub.SyncMode.Output in iface.get_available_modes():
-            self._editor_row(
-                'Output only',
-                lambda row: ttk.Checkbutton(row,
-                                            text='distribute this clock',
-                                            variable=self.output_var,
-                                            command=self._commit_output_only))
-
-        self._fields = {}
-        fields = INTERFACE_FIELDS.get(type(iface).__name__, [])
-        for attr, label, choices in fields:
-            var = tk.StringVar(value=display_value(getattr(iface, attr)))
-
-            def make_editor(row, var=var, attr=attr, choices=choices):
-                if choices is not None:
-                    editor = ttk.Combobox(row, textvariable=var, values=choices,
-                                          state='readonly', width=16)
-                    editor.bind('<<ComboboxSelected>>',
-                                lambda e, a=attr: self._commit_field(a))
-                else:
-                    editor = ttk.Entry(row, textvariable=var, width=18)
-                    editor.bind('<Return>', lambda e, a=attr: self._commit_field(a))
-                return editor
-
-            self._editor_row(label, make_editor)
-            self._fields[attr] = var
-
-        if fields:
-            ttk.Button(self, text='Apply settings', command=self._commit_all).pack(
-                anchor=tk.W, padx=10, pady=(6, 2))
-
-        self._section('Simulate (stub-only)')
-        reachable = 'reachable' if iface.simulate.upstream_reachable else 'unreachable'
-        self._info_row('Upstream time source', reachable)
-        buttons = ttk.Frame(self)
-        buttons.pack(fill=tk.X, padx=10, pady=2)
-        ttk.Button(buttons, text='Upstream loss',
+        # Stub-only simulation controls, aligned at the top.
+        sim = ttk.Frame(self)
+        sim.pack(fill=tk.X, padx=10, pady=(0, 5))
+        ttk.Label(sim, text='Simulate:').pack(side=tk.LEFT, padx=(0, 5))
+        ttk.Button(sim, text='Upstream loss',
                    command=lambda: self._simulate(iface.simulate.upstream_loss)).pack(
             side=tk.LEFT)
-        ttk.Button(buttons, text='Upstream restored',
+        ttk.Button(sim, text='Upstream restored',
                    command=lambda: self._simulate(iface.simulate.upstream_restored)).pack(
             side=tk.LEFT, padx=5)
         if sync_stub.SyncMode.Auto in iface.get_available_modes():
+            ttk.Label(sim, text='Auto role').pack(side=tk.LEFT, padx=(10, 2))
             self.role_var = tk.StringVar(value=iface.simulate.auto_role)
+            role_box = ttk.Combobox(sim, textvariable=self.role_var,
+                                    values=(sync_stub.RoleStatus.Input,
+                                            sync_stub.RoleStatus.Output,
+                                            sync_stub.RoleStatus.Unknown),
+                                    state='readonly', width=8)
+            role_box.pack(side=tk.LEFT)
+            role_box.bind('<<ComboboxSelected>>',
+                          lambda e: self._simulate(self._commit_auto_role))
 
-            def make_role_box(row):
-                box = ttk.Combobox(row, textvariable=self.role_var,
-                                   values=(sync_stub.RoleStatus.Input,
-                                           sync_stub.RoleStatus.Output,
-                                           sync_stub.RoleStatus.Unknown),
-                                   state='readonly', width=10)
-                box.bind('<<ComboboxSelected>>',
-                         lambda e: self._simulate(self._commit_auto_role))
-                return box
+        rows = [
+            ('Mode', sync_stub.MODE_NAMES[iface.get_mode()]),
+            ('Available modes', ', '.join(
+                sync_stub.MODE_NAMES[m] for m in iface.get_available_modes())),
+            ('Output only', str(iface.get_output_only())),
+            ('Reference domain', iface.get_reference_domain_id() or '(none)'),
+        ]
+        for attr, label in INTERFACE_FIELDS.get(type(iface).__name__, []):
+            rows.append((label, display_value(getattr(iface, attr))))
+        self._property_table(rows)
 
-            self._editor_row('Negotiated role while Auto', make_role_box)
-
-    # MARK: - Commits
-
-    def _commit_mode(self):
-        wanted = self.mode_var.get()
-        try:
-            if wanted == 'Auto':
-                self.sync.set_source(self.iface, prefer_auto=True)
-            elif wanted == 'Input':
-                self.sync.set_source(self.iface, prefer_auto=False)
-            elif wanted == 'Output':
-                self.iface.set_output_only(True)
-            elif wanted == 'Off':
-                if self.iface is self.sync.get_source():
-                    raise ValueError('the selected source cannot be turned off; '
-                                     'select another source first')
-                self.iface.set_output_only(False)
-        except ValueError as e:
-            self._error('Source mode', e)
-        self._changed()
-
-    def _commit_output_only(self):
-        try:
-            self.iface.set_output_only(self.output_var.get())
-        except ValueError as e:
-            self._error('Output only', e)
-        self._changed()
-
-    def _commit_field(self, attr):
-        try:
-            current = getattr(self.iface, attr)
-            setattr(self.iface, attr, convert_like(current, self._fields[attr].get()))
-        except ValueError as e:
-            self._error('Invalid value', f'{attr}: {e}')
-        self._changed()
-
-    def _commit_all(self):
-        errors = []
-        for attr, var in self._fields.items():
-            try:
-                current = getattr(self.iface, attr)
-                converted = convert_like(current, var.get())
-                if converted != current:
-                    setattr(self.iface, attr, converted)
-            except ValueError as e:
-                errors.append(f'{attr}: {e}')
-        if errors:
-            self._error('Invalid values', '\n'.join(errors))
-        self._changed()
+    def _show_statuses(self):
+        container = self.iface.get_status_container()
+        statuses = []
+        for name in ('SourceStatus', 'RoleStatus'):
+            statuses.append((name, container.get_status(name),
+                             container.get_status_message(name)))
+        self._show_status_dialog(f'Statuses - {self.iface.name}', statuses,
+                                 _device_changes(self.event_log,
+                                                 self.device.global_id,
+                                                 sender=self.iface.name))
 
     def _commit_auto_role(self):
         self.iface.simulate.auto_role = self.role_var.get()

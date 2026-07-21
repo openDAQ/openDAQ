@@ -19,7 +19,7 @@
 #include <opendaq/connection_internal.h>
 #include <opendaq/input_port_config_ptr.h>
 #include <opendaq/context_ptr.h>
-#include <opendaq/reclamation_gate.h>
+#include <opendaq/activity_counter.h>
 #include <coretypes/intfs.h>
 #include <coretypes/weakrefobj.h>
 #include <opendaq/event_packet_ptr.h>
@@ -52,12 +52,12 @@ BEGIN_NAMESPACE_OPENDAQ
  *  - Consumed nodes are recycled via `freeTop` (consumer CAS-pushes). Only the enqueue
  *    path takes nodes out, and it takes the entire list with exchange(nullptr) into a
  *    private cache; there is no concurrent CAS-pop, hence no ABA hazard.
- *  - `closedFlag` + `accessGate` implement disconnect teardown: closeQueue() sets the
- *    flag (seq_cst), then waits until the gate is quiescent. Every producer/consumer
- *    operation holds the gate and re-checks the flag inside it, so once the wait
- *    completes no operation can be in flight and the queue state is owned exclusively
- *    (see the correctness argument in reclamation_gate.h; the "state" here is the
- *    closed flag, the "pin" is the queue access itself).
+ *  - `closedFlag` + `activeOps` implement disconnect teardown: closeQueue() sets the
+ *    flag (seq_cst), then waits until no operation is active. Every producer/consumer
+ *    operation runs inside an ActivityCounter::Scope and re-checks the flag inside it,
+ *    so once the wait completes no operation can be in flight and the queue state is
+ *    owned exclusively (see the correctness argument in activity_counter.h; the "state"
+ *    here is the closed flag, the "pin" is the queue access itself).
  */
 class ConnectionImpl : public ImplementationOfWeak<IConnection, IConnectionInternal>
 {
@@ -135,7 +135,7 @@ private:
     std::atomic<PacketNode*> inboxTop{nullptr};
     std::atomic<PacketNode*> freeTop{nullptr};
     PacketNode* nodeCache{nullptr};                  // enqueuer-private (enqueues are externally serialized)
-    details::ReclamationGate accessGate;
+    details::ActivityCounter activeOps;
     std::atomic<bool> closedFlag{false};
     std::atomic<bool> queueEmptyFlag{true};
     std::atomic<IPacket*> pendingFrontDescriptor{nullptr};

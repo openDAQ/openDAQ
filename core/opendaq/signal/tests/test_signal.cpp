@@ -835,6 +835,11 @@ TEST_F(SignalTest, NoLastValue)
 TEST_F(SignalTest, SetLastValue)
 {
     const auto signal = Signal(NullContext(), nullptr, "sig");
+
+    // manual last values require automatic last-value caching to be disabled first
+    ASSERT_THROW(signal.setLastValue(4), InvalidStateException);
+
+    signal.asPtr<ISignalPrivate>(true).enableKeepLastValue(false);
     signal.setLastValue(4);
     ASSERT_EQ(signal.getLastValue(), 4);
 

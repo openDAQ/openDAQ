@@ -146,6 +146,7 @@ function(create_component_source_groups_${BASE_NAME})
         ${SDK_HEADERS_DIR}/signal_private.h
         ${SDK_HEADERS_DIR}/signal_config.h
         ${SDK_HEADERS_DIR}/last_value_cache.h
+        ${SDK_HEADERS_DIR}/last_value_store.h
         ${SDK_SRC_DIR}/signal_impl.cpp
     )
     
@@ -182,7 +183,7 @@ function(create_component_source_groups_${BASE_NAME})
         ${SDK_HEADERS_DIR}/connection_internal.h
         ${SDK_HEADERS_DIR}/connection_impl.h
         ${SDK_HEADERS_DIR}/connection_factory.h
-        ${SDK_HEADERS_DIR}/reclamation_gate.h
+        ${SDK_HEADERS_DIR}/activity_counter.h
         ${SDK_SRC_DIR}/connection_impl.cpp
     )
     
@@ -357,9 +358,10 @@ set(SRC_PublicHeaders_Component
     packet_destruct_callback_factory.h
     signal_impl.h
     last_value_cache.h
+    last_value_store.h
     input_port_impl.h
     connection_internal.h
-    reclamation_gate.h
+    activity_counter.h
     input_port_private.h
     reference_domain_info_factory.h
     reference_domain_offset_adder.h

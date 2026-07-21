@@ -472,3 +472,30 @@ TEST_F(DataPathTest, SendPacketDoesNotRetainPacket)
     // tick 2000 at resolution 1/1000 s from the 1970 epoch = 2'000'000 us
     ASSERT_EQ(ts, 2000000);
 }
+
+// Same contract for calculated (implicit-rule) packets: getRawLastValue computes the last
+// sample from the rule into the staged buffer at send time, so the value survives the
+// packet without the packet ever being retained.
+TEST_F(DataPathTest, LastValueFromCalculatedPacket)
+{
+    const auto ctx = NullContext();
+
+    const auto sigDesc = DataDescriptorBuilder()
+                             .setSampleType(SampleType::Int64)
+                             .setRule(LinearDataRule(2, 10))
+                             .build();
+
+    const auto signal = Signal(ctx, nullptr, "sig");
+    signal.setDescriptor(sigDesc);
+
+    auto packet = DataPacket(sigDesc, 3, 5);
+    const auto expected = packet.getLastValue();
+
+    signal.sendPacket(packet);
+
+    packet->addRef();
+    ASSERT_EQ(packet->releaseRef(), 1);
+
+    packet = nullptr;
+    ASSERT_EQ(signal.getLastValue(), expected);
+}

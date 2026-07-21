@@ -99,10 +99,10 @@ void ConnectionImpl::recycleNode(PacketNode* node)
 
 bool ConnectionImpl::pushChain(PacketNode* first, PacketNode* last, bool& queueWasEmpty)
 {
-    details::ReclamationGate::Guard gate(accessGate);
+    details::ActivityCounter::Scope op(activeOps);
 
     // pairs with closeQueue(): a false read here precedes the closed store in the seq_cst
-    // total order, so closeQueue()'s quiescence wait covers this whole push
+    // total order, so closeQueue()'s idle wait covers this whole push
     if (closedFlag.load(std::memory_order_seq_cst))
     {
         destroyChain(first);
@@ -343,10 +343,10 @@ ErrCode ConnectionImpl::consumerOp(const ClosedF& closedBody, const F& body)
 {
     return daqTry([this, &closedBody, &body]
     {
-        details::ReclamationGate::Guard gate(accessGate);
+        details::ActivityCounter::Scope op(activeOps);
         // A closed queue may still be mid-drain in closeQueue() (it only waits out
-        // operations that entered the gate before the flag flipped), so the closed
-        // path must not touch any queue state.
+        // operations that started before the flag flipped), so the closed path must
+        // not touch any queue state.
         if (closedFlag.load(std::memory_order_seq_cst))
             return closedBody();
         drainInbox();
@@ -642,11 +642,11 @@ ErrCode ConnectionImpl::dequeueUpTo(IPacket** packetPtr, SizeT* count)
 
 ErrCode ConnectionImpl::closeQueue()
 {
-    // config path: block until every in-flight producer/consumer operation has left the
-    // gate (see reclamation_gate.h for the seq_cst argument), then drop everything so
-    // no packet stays pinned in an orphaned queue.
+    // config path: block until every in-flight producer/consumer operation has finished
+    // (see activity_counter.h for the seq_cst argument), then drop everything so no
+    // packet stays pinned in an orphaned queue.
     closedFlag.store(true, std::memory_order_seq_cst);
-    accessGate.waitQuiescent();
+    activeOps.waitUntilIdle();
 
     if (IPacket* front = pendingFrontDescriptor.exchange(nullptr, std::memory_order_acq_rel))
         front->releaseRef();
@@ -894,7 +894,7 @@ ErrCode ConnectionImpl::enqueueLastDescriptor()
 
         if (valueDescriptor.assigned() || domainDescriptor.assigned())
         {
-            details::ReclamationGate::Guard gate(accessGate);
+            details::ActivityCounter::Scope op(activeOps);
             if (closedFlag.load(std::memory_order_seq_cst))
                 return OPENDAQ_IGNORED;
 

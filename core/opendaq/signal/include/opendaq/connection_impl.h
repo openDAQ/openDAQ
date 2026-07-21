@@ -19,7 +19,7 @@
 #include <opendaq/connection_internal.h>
 #include <opendaq/input_port_config_ptr.h>
 #include <opendaq/context_ptr.h>
-#include <opendaq/activity_counter.h>
+#include <opendaq/active_operation_tracker.h>
 #include <coretypes/intfs.h>
 #include <coretypes/weakrefobj.h>
 #include <opendaq/event_packet_ptr.h>
@@ -34,30 +34,16 @@ BEGIN_NAMESPACE_OPENDAQ
 /*
  * Lock-free connection queue.
  *
- * Threading contract (openDAQ usage rule, not enforced by any ownership mechanism):
- * a connection has exactly one producer role and one consumer role. Every enqueue entry
- * point - the signal's sendPacket fan-out as well as configuration-side event packets
- * (setDescriptor, connect) - is serialized externally by the signal's owner, so no two
- * enqueues ever run concurrently. All dequeue/peek/counter/scan operations belong to the
- * port's single consumer. Only disconnect (closeQueue) and setListener
- * (enqueueLastDescriptor) are exempt from the rule and may race everything else.
+ * Usage rule (not enforced): one producer role, one consumer role. All enqueues are
+ * serialized externally by the signal's owner; only closeQueue() (disconnect) and
+ * enqueueLastDescriptor() (setListener) may race everything else.
  *
- * Structure:
- *  - The (externally serialized) enqueuer pushes pooled nodes onto `inboxTop`
- *    (Treiber-style CAS push, LIFO). A CAS push always publishes an intact chain, so a
- *    concurrent consumer grab (exchange) can never observe a half-linked node.
- *  - The consumer grabs the whole inbox with exchange(nullptr), reverses it (restoring
- *    FIFO), runs gap checking + counters, and appends to the consumer-owned `packets`
- *    deque, which serves every consumer-side query without any lock.
- *  - Consumed nodes are recycled via `freeTop` (consumer CAS-pushes). Only the enqueue
- *    path takes nodes out, and it takes the entire list with exchange(nullptr) into a
- *    private cache; there is no concurrent CAS-pop, hence no ABA hazard.
- *  - `closedFlag` + `activeOps` implement disconnect teardown: closeQueue() sets the
- *    flag (seq_cst), then waits until no operation is active. Every producer/consumer
- *    operation runs inside an ActivityCounter::Scope and re-checks the flag inside it,
- *    so once the wait completes no operation can be in flight and the queue state is
- *    owned exclusively (see the correctness argument in activity_counter.h; the "state"
- *    here is the closed flag, the "pin" is the queue access itself).
+ * The enqueuer CAS-pushes pooled nodes onto the `inboxTop` stack; the consumer takes the
+ * whole inbox with exchange(nullptr), reverses it to FIFO, runs gap checks + counters and
+ * appends to the consumer-owned `packets` deque that serves every query. Spent nodes
+ * recycle via `freeTop` (whole-list exchange on refill: no CAS-pop, no ABA). closeQueue()
+ * sets `closedFlag` and waits on `activeOps` until no operation is in flight, then owns
+ * all queue state exclusively (see active_operation_tracker.h).
  */
 class ConnectionImpl : public ImplementationOfWeak<IConnection, IConnectionInternal>
 {
@@ -135,7 +121,7 @@ private:
     std::atomic<PacketNode*> inboxTop{nullptr};
     std::atomic<PacketNode*> freeTop{nullptr};
     PacketNode* nodeCache{nullptr};                  // enqueuer-private (enqueues are externally serialized)
-    details::ActivityCounter activeOps;
+    details::ActiveOperationTracker activeOps;
     std::atomic<bool> closedFlag{false};
     std::atomic<bool> queueEmptyFlag{true};
     std::atomic<IPacket*> pendingFrontDescriptor{nullptr};
@@ -168,10 +154,8 @@ private:
     template <class P, class F>
     ErrCode enqueueMultipleInternal(P&& packets, const F& f);
 
-    // Scaffold for every consumer-side operation: gate + closed check + inbox drain + body.
-    // closedBody runs instead of body when the queue is closed and MUST NOT touch any queue
-    // state (deque, counters): closeQueue() only excludes operations that entered the gate
-    // before it flipped the flag, so a later operation can run concurrently with its drain.
+    // Every consumer-side op: track + closed check + inbox drain + body. closedBody must
+    // not touch any queue state - it can run concurrently with closeQueue()'s drain.
     template <class ClosedF, class F>
     ErrCode consumerOp(const ClosedF& closedBody, const F& body);
 

@@ -99,10 +99,9 @@ void ConnectionImpl::recycleNode(PacketNode* node)
 
 bool ConnectionImpl::pushChain(PacketNode* first, PacketNode* last, bool& queueWasEmpty)
 {
-    details::ActivityCounter::Scope op(activeOps);
+    details::ActiveOperationTracker::Scope op(activeOps);
 
-    // pairs with closeQueue(): a false read here precedes the closed store in the seq_cst
-    // total order, so closeQueue()'s idle wait covers this whole push
+    // pairs with closeQueue(): a false read here means its idle wait covers this push
     if (closedFlag.load(std::memory_order_seq_cst))
     {
         destroyChain(first);
@@ -343,10 +342,9 @@ ErrCode ConnectionImpl::consumerOp(const ClosedF& closedBody, const F& body)
 {
     return daqTry([this, &closedBody, &body]
     {
-        details::ActivityCounter::Scope op(activeOps);
-        // A closed queue may still be mid-drain in closeQueue() (it only waits out
-        // operations that started before the flag flipped), so the closed path must
-        // not touch any queue state.
+        details::ActiveOperationTracker::Scope op(activeOps);
+        // a closed queue may still be mid-drain in closeQueue(): closedBody must not
+        // touch any queue state
         if (closedFlag.load(std::memory_order_seq_cst))
             return closedBody();
         drainInbox();
@@ -642,9 +640,8 @@ ErrCode ConnectionImpl::dequeueUpTo(IPacket** packetPtr, SizeT* count)
 
 ErrCode ConnectionImpl::closeQueue()
 {
-    // config path: block until every in-flight producer/consumer operation has finished
-    // (see activity_counter.h for the seq_cst argument), then drop everything so no
-    // packet stays pinned in an orphaned queue.
+    // block until every in-flight operation has finished (see active_operation_tracker.h),
+    // then drop everything so no packet stays pinned in an orphaned queue
     closedFlag.store(true, std::memory_order_seq_cst);
     activeOps.waitUntilIdle();
 
@@ -894,7 +891,7 @@ ErrCode ConnectionImpl::enqueueLastDescriptor()
 
         if (valueDescriptor.assigned() || domainDescriptor.assigned())
         {
-            details::ActivityCounter::Scope op(activeOps);
+            details::ActiveOperationTracker::Scope op(activeOps);
             if (closedFlag.load(std::memory_order_seq_cst))
                 return OPENDAQ_IGNORED;
 

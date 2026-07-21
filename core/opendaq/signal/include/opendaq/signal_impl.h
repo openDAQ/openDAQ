@@ -25,9 +25,9 @@
 #include <opendaq/data_descriptor_ptr.h>
 #include <opendaq/event_packet_ptr.h>
 #include <opendaq/event_packet_utils.h>
-#include <opendaq/activity_counter.h>
+#include <opendaq/active_operation_tracker.h>
 #include <opendaq/input_port_private_ptr.h>
-#include <opendaq/last_value_store.h>
+#include <opendaq/last_value_cache.h>
 #include <opendaq/packet_factory.h>
 #include <opendaq/signal.h>
 #include <opendaq/signal_config.h>
@@ -199,7 +199,7 @@ protected:
 
     DataDescriptorPtr dataDescriptor;
     StringPtr deserializedDomainSignalId;
-    // all last-value state and handling (see last_value_store.h); mutable because the
+    // all last-value state and handling (see last_value_cache.h); mutable because the
     // producer publishes from the const sendPacketInternal path
     mutable details::LastValueStore lastValueStore;
 
@@ -216,7 +216,7 @@ private:
     // mutated only under the config lock; the snapshot is a derived immutable copy that the
     // single producer thread pins per send. See pinConnectionsSnapshot for the protocol.
     std::atomic<details::ConnectionsSnapshot*> connectionsSnapshot;
-    mutable details::ActivityCounter snapshotGate;
+    mutable details::ActiveOperationTracker snapshotGate;
 
     ErrCode listenerConnectedInternal(IConnection* connection, bool schedule);
     ErrCode sendPacketInner(IPacket* packet);
@@ -728,9 +728,9 @@ ErrCode SignalBase<TInterface, Interfaces...>::getConnections(IList** connection
 template <typename TInterface, typename... Interfaces>
 details::SnapshotPin SignalBase<TInterface, Interfaces...>::pinConnectionsSnapshot() const
 {
-    // reader side of the publication protocol (see activity_counter.h for the proof): the
-    // counter guarantees the publisher never releases the snapshot between our load and pin
-    details::ActivityCounter::Scope reader(snapshotGate);
+    // reader side of the publication protocol (see active_operation_tracker.h): the tracker
+    // guarantees the publisher never releases the snapshot between our load and pin
+    details::ActiveOperationTracker::Scope reader(snapshotGate);
     auto* snapshot = connectionsSnapshot.load(std::memory_order_seq_cst);
     snapshot->addRef();
     return details::SnapshotPin(snapshot);

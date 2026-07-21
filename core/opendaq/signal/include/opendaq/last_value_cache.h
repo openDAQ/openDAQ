@@ -20,14 +20,20 @@
 #include <coretypes/ratio_factory.h>
 #include <coretypes/integer_factory.h>
 #include <coretypes/number_ptr.h>
+#include <opendaq/active_operation_tracker.h>
+#include <opendaq/context_ptr.h>
 #include <opendaq/data_descriptor_ptr.h>
+#include <opendaq/data_packet_impl.h>
 #include <opendaq/data_packet_ptr.h>
+#include <opendaq/packet_ptr.h>
 #include <opendaq/signal_exceptions.h>
 #include <opendaq/reader_utils.h>
 #include <date/date.h>
+#include <atomic>
 #include <chrono>
 #include <cstddef>
 #include <cstdint>
+#include <limits>
 #include <utility>
 #include <vector>
 
@@ -260,5 +266,316 @@ private:
     int64_t originOffsetUs{0};
     bool domainInfoValid{false};
 };
+
+namespace details
+{
+
+/*
+ * Copy of the last sample of the most recently sent data packet (raw bytes + descriptor
+ * references only) - the packet itself is never retained past sendPacket, so producers
+ * backed by circular buffers can reclaim its memory immediately. Reused nodes keep their
+ * descriptors as a cache to skip size queries while the descriptor is unchanged.
+ */
+struct StagedLastValue
+{
+    DataDescriptorPtr valueDescriptor;
+    DataDescriptorPtr domainDescriptor;
+    std::vector<std::byte> rawValue;
+    std::vector<std::byte> rawDomain;
+    SizeT valueSampleSize{0};
+    SizeT domainSampleSize{0};
+    bool valueIsVarLength{false};
+    bool valueValid{false};
+    bool domainValid{false};
+    StagedLastValue* next{nullptr};   // retire-list linkage
+};
+
+/*
+ * All last-value state and handling of a signal. isEnabled()/publish() belong to the
+ * signal's single producer thread and never block or (steady state) allocate; every other
+ * method is a config operation, serialized externally by the signal's config lock. The
+ * producer publishes a staged copy through an atomic slot; a displaced node is reused
+ * when no reader is active, otherwise retired for config-path reclamation (see
+ * active_operation_tracker.h). getValue()/getTimestamp() lazily feed the byte cache.
+ */
+class LastValueStore
+{
+public:
+    ~LastValueStore()
+    {
+        delete slot.exchange(nullptr, std::memory_order_acquire);
+        deleteStagedChain(retired.exchange(nullptr, std::memory_order_acquire));
+        delete spare;
+    }
+
+    // ---- hot path (single producer thread) ----
+
+    bool isEnabled() const
+    {
+        return enabled.load(std::memory_order_relaxed);
+    }
+
+    // copies the packet's last sample and publishes it; retains no packet references
+    void publish(const PacketPtr& packet)
+    {
+        const auto dataPacket = packet.asPtrOrNull<IDataPacket>(true);
+        if (!dataPacket.assigned() || dataPacket.getSampleCount() == 0)
+            return;
+
+        StagedLastValue* staged = acquireStagedNode();
+        fillStagedNode(*staged, dataPacket);
+
+        auto* old = slot.exchange(staged, std::memory_order_seq_cst);
+        seq.fetch_add(1, std::memory_order_release);
+        recycleOrRetireStaged(old);
+
+        // setEnabled(false) may have raced us; re-check so a disabled store retains nothing
+        if (!enabled.load(std::memory_order_acquire))
+            recycleOrRetireStaged(slot.exchange(nullptr, std::memory_order_seq_cst));
+    }
+
+    // ---- config paths (serialized by the signal's config lock) ----
+
+    void setEnabled(bool value)
+    {
+        enabled.store(value, std::memory_order_release);
+        if (!value)
+        {
+            clear();
+            cache.resetData();
+            cache.resetTimestamp();
+            cachedSeq = std::numeric_limits<std::uint64_t>::max();
+        }
+    }
+
+    // setLastValue support: the explicit value wins until the next published packet
+    void setExplicitValue(BaseObjectPtr&& value)
+    {
+        clear();
+        cache.resetData();
+        cache.resetTimestamp();
+        cache.setValue(std::move(value));
+        cachedSeq = seq.load(std::memory_order_acquire);
+    }
+
+    void resetCachedValue()
+    {
+        cache.resetData();
+        cache.resetTimestamp();
+    }
+
+    // drops the published value and reclaims retired nodes; the byte cache is not touched
+    void clear()
+    {
+        if (auto* node = slot.exchange(nullptr, std::memory_order_seq_cst))
+            retireStagedNode(node);  // never touch the producer-private spare from here
+        drainRetiredStaged();
+    }
+
+    ErrCode getValue(IBaseObject** value, const ContextPtr& context)
+    {
+        refreshCache();
+
+        if (cache.valueCached())
+        {
+            *value = cache.getValue().detach();
+            return OPENDAQ_SUCCESS;
+        }
+
+        if (!cache.valueDescriptorCached())
+            return OPENDAQ_IGNORED;
+
+        return daqTry(
+            [&value, &context, this]
+            {
+                auto manager = context.getTypeManager();
+                void* rawValue = cache.getRawValueData();
+                cache.setValue(
+                    PacketDetails::buildObjectFromDescriptor(rawValue, cache.getValueDataDescriptor(), manager, cache.getActualValueSampleSize()));
+                *value = cache.getValue().detach();
+            });
+    }
+
+    ErrCode getTimestamp(IBaseObject** timestamp, const ContextPtr& context)
+    {
+        refreshCache();
+
+        if (cache.timestampCached())
+        {
+            *timestamp = cache.getTimestamp().detach();
+            return OPENDAQ_SUCCESS;
+        }
+
+        if (!cache.domainDescriptorCached())
+            return OPENDAQ_IGNORED;
+
+        const ErrCode errCode = daqTry(
+            [&timestamp, &context, this]
+            {
+                auto manager = context.getTypeManager();
+                void* rawValue = cache.getRawTimestampData();
+                auto tsWithoutTweak = PacketDetails::buildObjectFromDescriptor(rawValue, cache.getDomainDataDescriptor(), manager, 0);
+
+                cache.calculateTimestamp(tsWithoutTweak);
+                *timestamp = cache.getTimestamp().detach();
+            });
+
+        if (OPENDAQ_FAILED(errCode))
+        {
+            daqClearErrorInfo();
+            cache.resetTimestamp();
+            return OPENDAQ_IGNORED;
+        }
+        return errCode;
+    }
+
+private:
+    // note: getRawLastValue also materializes rule-calculated (implicit) samples
+    void fillStagedNode(StagedLastValue& staged, const DataPacketPtr& dataPacket)
+    {
+        staged.valueValid = false;
+        staged.domainValid = false;
+
+        try
+        {
+            if (auto descriptor = dataPacket.getDataDescriptor(); descriptor.assigned())
+            {
+                if (descriptor.getObject() != staged.valueDescriptor.getObject())
+                {
+                    const auto sampleType = descriptor.getSampleType();
+                    staged.valueIsVarLength = (sampleType == SampleType::Binary || sampleType == SampleType::String);
+                    if (!staged.valueIsVarLength)
+                        staged.valueSampleSize = descriptor.getSampleSize();
+                    staged.valueDescriptor = std::move(descriptor);
+                }
+                if (staged.valueIsVarLength)
+                    staged.valueSampleSize = dataPacket.getRawDataSize();
+                staged.rawValue.resize(staged.valueSampleSize);
+                void* raw = staged.rawValue.data();
+                staged.valueValid = OPENDAQ_SUCCEEDED(dataPacket->getRawLastValue(&raw));
+            }
+
+            if (const auto domainPacket = dataPacket.getDomainPacket(); domainPacket.assigned())
+            {
+                if (auto domainDescriptor = domainPacket.getDataDescriptor(); domainDescriptor.assigned())
+                {
+                    if (domainDescriptor.getObject() != staged.domainDescriptor.getObject())
+                    {
+                        staged.domainSampleSize = domainDescriptor.getSampleSize();
+                        staged.domainDescriptor = std::move(domainDescriptor);
+                    }
+                    staged.rawDomain.resize(staged.domainSampleSize);
+                    void* raw = staged.rawDomain.data();
+                    staged.domainValid = OPENDAQ_SUCCEEDED(domainPacket->getRawLastValue(&raw));
+                }
+            }
+        }
+        catch (...)
+        {
+            // an unreadable packet must not break the send; getValue/getTimestamp report IGNORED
+            staged.valueValid = false;
+            staged.domainValid = false;
+        }
+    }
+
+    StagedLastValue* acquireStagedNode()
+    {
+        if (spare)
+        {
+            auto* node = spare;
+            spare = nullptr;
+            return node;
+        }
+        return new StagedLastValue();
+    }
+
+    // producer thread only: reuse the displaced node if provably unobserved, else retire it
+    void recycleOrRetireStaged(StagedLastValue* node)
+    {
+        if (!node)
+            return;
+
+        if (readers.isIdle())
+        {
+            if (!spare)
+            {
+                node->next = nullptr;
+                spare = node;
+            }
+            else
+            {
+                delete node;  // only via the disable re-check in publish()
+            }
+            return;
+        }
+
+        retireStagedNode(node);
+    }
+
+    void retireStagedNode(StagedLastValue* node)
+    {
+        auto* cur = retired.load(std::memory_order_relaxed);
+        do
+        {
+            node->next = cur;
+        } while (!retired.compare_exchange_weak(cur, node, std::memory_order_release, std::memory_order_relaxed));
+    }
+
+    // config path: wait out active readers, then the retired nodes are exclusively ours
+    void drainRetiredStaged()
+    {
+        auto* chain = retired.exchange(nullptr, std::memory_order_acq_rel);
+        if (!chain)
+            return;
+
+        readers.waitUntilIdle();
+        deleteStagedChain(chain);
+    }
+
+    // config path: feed the byte cache from the published node; the whole read must stay
+    // inside the reader window since the producer reuses nodes once the tracker is idle
+    void refreshCache()
+    {
+        const std::uint64_t currentSeq = seq.load(std::memory_order_acquire);
+        if (currentSeq == cachedSeq)
+            return;
+
+        {
+            details::ActiveOperationTracker::Scope reader(readers);
+            if (const auto* staged = slot.load(std::memory_order_seq_cst))
+            {
+                cache.cacheRaw(staged->valueValid ? staged->valueDescriptor : nullptr,
+                               staged->rawValue.data(),
+                               staged->valueSampleSize,
+                               staged->domainValid ? staged->domainDescriptor : nullptr,
+                               staged->rawDomain.data(),
+                               staged->domainSampleSize);
+                cachedSeq = currentSeq;
+            }
+        }
+        drainRetiredStaged();
+    }
+
+    static void deleteStagedChain(StagedLastValue* chain)
+    {
+        while (chain)
+        {
+            auto* next = chain->next;
+            delete chain;
+            chain = next;
+        }
+    }
+
+    std::atomic<StagedLastValue*> slot{nullptr};
+    std::atomic<std::uint64_t> seq{0};
+    ActiveOperationTracker readers;
+    std::atomic<StagedLastValue*> retired{nullptr};
+    StagedLastValue* spare{nullptr};    // producer-private
+    std::atomic<bool> enabled{false};
+    LastValueCache cache;
+    std::uint64_t cachedSeq{std::numeric_limits<std::uint64_t>::max()};  // config-lock guarded
+};
+
+}
 
 END_NAMESPACE_OPENDAQ

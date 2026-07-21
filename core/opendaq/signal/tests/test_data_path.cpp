@@ -181,6 +181,11 @@ TEST_F(DataPathTest, StressSendVsConnectDisconnect)
             }
         });
 
+    // wait for the producer to be live so the roles genuinely overlap (thread startup can
+    // exceed the whole test duration otherwise)
+    while (sent.load(std::memory_order_relaxed) == 0)
+        std::this_thread::yield();
+
     // this thread plays both the config role (connect/disconnect) and, per connection,
     // the consumer role. Gap checking makes the consumer validate the
     // descriptor-event-before-data invariant on every reconnect: a data packet arriving

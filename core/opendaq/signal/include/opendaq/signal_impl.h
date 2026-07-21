@@ -109,10 +109,29 @@ private:
     ConnectionsSnapshot* snapshot;
 };
 
-struct RetiredPacket
+/*
+ * Signal-owned copy of the last sample of the most recently sent data packet. The producer
+ * fills one of these at send time (raw bytes + descriptor references only - descriptors are
+ * plain immutable objects, never packet-buffer memory) and publishes it through an atomic
+ * slot. The packet itself is NOT retained past sendPacket: producers backed by circular
+ * buffers must be able to reclaim a packet's memory as soon as the send returns.
+ *
+ * Nodes are pooled and recycled, so the descriptor members double as a producer-side cache:
+ * when the incoming packet's descriptor is pointer-identical to the one from this node's
+ * previous use, sample-size queries and buffer resizing are skipped.
+ */
+struct StagedLastValue
 {
-    IPacket* packet;
-    RetiredPacket* next;
+    DataDescriptorPtr valueDescriptor;
+    DataDescriptorPtr domainDescriptor;
+    std::vector<std::byte> rawValue;
+    std::vector<std::byte> rawDomain;
+    SizeT valueSampleSize{0};
+    SizeT domainSampleSize{0};
+    bool valueIsVarLength{false};
+    bool valueValid{false};
+    bool domainValid{false};
+    StagedLastValue* next{nullptr};   // free-list / retire-list linkage
 };
 
 }
@@ -220,14 +239,18 @@ private:
     std::atomic<details::ConnectionsSnapshot*> connectionsSnapshot;
     mutable details::ReclamationGate snapshotGate;
 
-    // Last-value support: the producer publishes the latest data packet into an atomic slot
-    // (no raw-byte copy on the hot path anymore); getLastValue* lazily feeds lastValueCache
-    // from it under the config lock. Retired packets that a concurrent reader may still be
-    // pinning are parked on a lock-free list and reclaimed on the config path.
-    std::atomic<IPacket*> lastPacketSlot{nullptr};
-    std::atomic<std::uint64_t> lastPacketSeq{0};
+    // Last-value support: at send time the producer copies the packet's last sample into a
+    // pooled StagedLastValue node and publishes it through an atomic slot; the packet itself
+    // is never retained past sendPacket (circular-buffer producers must be able to reclaim
+    // it immediately). getLastValue* lazily feeds lastValueCache from the staged copy under
+    // the config lock. Displaced nodes are recycled to the producer-private cache when no
+    // reader is pinned, otherwise parked on the retire list and reclaimed on the config path.
+    std::atomic<details::StagedLastValue*> lastValueSlot{nullptr};
+    std::atomic<std::uint64_t> lastValueSeq{0};
     mutable details::ReclamationGate lastValueGate;
-    std::atomic<details::RetiredPacket*> retiredPackets{nullptr};
+    std::atomic<details::StagedLastValue*> retiredStaged{nullptr};
+    std::atomic<details::StagedLastValue*> stagedFreeTop{nullptr};
+    details::StagedLastValue* stagedNodeCache{nullptr};  // producer-private
     std::atomic<bool> keepLastPacketAtomic{false};
     std::uint64_t lastValueCachedSeq{std::numeric_limits<std::uint64_t>::max()};  // config-lock guarded
 
@@ -246,11 +269,14 @@ private:
     void publishConnectionsSnapshot();
     template <class Packet>
     void cacheLastPacketOnSend(const Packet& packet);
-    void retireOrReleaseSlotPacket(IPacket* packet);
-    PacketPtr pinLastPacket() const;
-    void drainRetiredPackets();
-    void clearLastPacketSlot();
+    void fillStagedNode(details::StagedLastValue& staged, const DataPacketPtr& dataPacket);
+    details::StagedLastValue* acquireStagedNode();
+    void recycleOrRetireStaged(details::StagedLastValue* node);  // producer thread only
+    void retireStagedNode(details::StagedLastValue* node);
+    void drainRetiredStaged();
+    void clearLastValueSlot();
     void refreshLastValueCacheFromSlot();
+    static void deleteStagedChain(details::StagedLastValue* chain);
 
     void enqueuePacketToConnections(const PacketPtr& packet, const details::ConnectionsSnapshot& snapshot);
     void enqueuePacketToConnections(PacketPtr&& packet, const details::ConnectionsSnapshot& snapshot);
@@ -304,16 +330,10 @@ SignalBase<TInterface, Interfaces...>::~SignalBase()
     // no producer or reader can be active anymore: refcount reached zero
     if (auto* snapshot = connectionsSnapshot.exchange(nullptr, std::memory_order_acquire))
         snapshot->release();
-    if (IPacket* packet = lastPacketSlot.exchange(nullptr, std::memory_order_acquire))
-        packet->releaseRef();
-    auto* retired = retiredPackets.exchange(nullptr, std::memory_order_acquire);
-    while (retired)
-    {
-        retired->packet->releaseRef();
-        auto* next = retired->next;
-        delete retired;
-        retired = next;
-    }
+    delete lastValueSlot.exchange(nullptr, std::memory_order_acquire);
+    deleteStagedChain(retiredStaged.exchange(nullptr, std::memory_order_acquire));
+    deleteStagedChain(stagedFreeTop.exchange(nullptr, std::memory_order_acquire));
+    deleteStagedChain(stagedNodeCache);
 }
 
 template <typename TInterface, typename... Interfaces>
@@ -789,79 +809,160 @@ void SignalBase<TInterface, Interfaces...>::cacheLastPacketOnSend(const Packet& 
     if (!dataPacket.assigned() || dataPacket.getSampleCount() == 0)
         return;
 
-    IPacket* newPacket = packet.addRefAndReturn();
-    IPacket* old = lastPacketSlot.exchange(newPacket, std::memory_order_seq_cst);
-    lastPacketSeq.fetch_add(1, std::memory_order_release);
-    retireOrReleaseSlotPacket(old);
+    // copy the last sample out of the packet NOW: the signal must not retain the packet
+    // past sendPacket (circular-buffer producers reclaim the memory as soon as it returns)
+    details::StagedLastValue* staged = acquireStagedNode();
+    fillStagedNode(*staged, dataPacket);
+
+    auto* old = lastValueSlot.exchange(staged, std::memory_order_seq_cst);
+    lastValueSeq.fetch_add(1, std::memory_order_release);
+    recycleOrRetireStaged(old);
 
     // enableKeepLastValue(false)/setPublic(false) may have cleared the slot concurrently;
-    // re-check so a disabled cache never retains a packet (single producer: nobody else
-    // can store into the slot between the exchange above and this check).
+    // re-check so a disabled cache never retains a stale value (single producer: nobody
+    // else can store into the slot between the exchange above and this check).
     if (!keepLastPacketAtomic.load(std::memory_order_acquire))
-        retireOrReleaseSlotPacket(lastPacketSlot.exchange(nullptr, std::memory_order_seq_cst));
+        recycleOrRetireStaged(lastValueSlot.exchange(nullptr, std::memory_order_seq_cst));
 }
 
 template <typename TInterface, typename... Interfaces>
-void SignalBase<TInterface, Interfaces...>::retireOrReleaseSlotPacket(IPacket* packet)
+void SignalBase<TInterface, Interfaces...>::fillStagedNode(details::StagedLastValue& staged, const DataPacketPtr& dataPacket)
 {
-    if (!packet)
+    staged.valueValid = false;
+    staged.domainValid = false;
+
+    try
+    {
+        if (auto descriptor = dataPacket.getDataDescriptor(); descriptor.assigned())
+        {
+            // pooled nodes keep the descriptor from their previous use as a cache: same
+            // descriptor object means the sample-size queries and resize can be skipped
+            if (descriptor.getObject() != staged.valueDescriptor.getObject())
+            {
+                const auto sampleType = descriptor.getSampleType();
+                staged.valueIsVarLength = (sampleType == SampleType::Binary || sampleType == SampleType::String);
+                if (!staged.valueIsVarLength)
+                    staged.valueSampleSize = descriptor.getSampleSize();
+                staged.valueDescriptor = std::move(descriptor);
+            }
+            if (staged.valueIsVarLength)
+                staged.valueSampleSize = dataPacket.getRawDataSize();
+            staged.rawValue.resize(staged.valueSampleSize);
+            void* raw = staged.rawValue.data();
+            staged.valueValid = OPENDAQ_SUCCEEDED(dataPacket->getRawLastValue(&raw));
+        }
+
+        if (const auto domainPacket = dataPacket.getDomainPacket(); domainPacket.assigned())
+        {
+            if (auto domainDescriptor = domainPacket.getDataDescriptor(); domainDescriptor.assigned())
+            {
+                if (domainDescriptor.getObject() != staged.domainDescriptor.getObject())
+                {
+                    staged.domainSampleSize = domainDescriptor.getSampleSize();
+                    staged.domainDescriptor = std::move(domainDescriptor);
+                }
+                staged.rawDomain.resize(staged.domainSampleSize);
+                void* raw = staged.rawDomain.data();
+                staged.domainValid = OPENDAQ_SUCCEEDED(domainPacket->getRawLastValue(&raw));
+            }
+        }
+    }
+    catch (...)
+    {
+        // an unreadable packet must not break the send; getLastValue* will report IGNORED
+        staged.valueValid = false;
+        staged.domainValid = false;
+    }
+}
+
+template <typename TInterface, typename... Interfaces>
+details::StagedLastValue* SignalBase<TInterface, Interfaces...>::acquireStagedNode()
+{
+    // producer thread: private cache first, wholesale refill from the shared free list
+    // (exchange takes the entire list, so there is no CAS-pop and no ABA hazard)
+    if (!stagedNodeCache)
+        stagedNodeCache = stagedFreeTop.exchange(nullptr, std::memory_order_acq_rel);
+    if (stagedNodeCache)
+    {
+        auto* node = stagedNodeCache;
+        stagedNodeCache = node->next;
+        node->next = nullptr;
+        return node;
+    }
+    return new details::StagedLastValue();
+}
+
+template <typename TInterface, typename... Interfaces>
+void SignalBase<TInterface, Interfaces...>::recycleOrRetireStaged(details::StagedLastValue* node)
+{
+    if (!node)
         return;
 
     // one-sided variant of the gate protocol (see reclamation_gate.h): after the seq_cst
-    // slot exchange that produced `packet`, a quiescent gate proves every reader of this
-    // pointer has completed its addRef, so releasing immediately is safe. Otherwise park
-    // the packet for config-path reclamation (drainRetiredPackets) - never wait here.
+    // slot exchange that displaced `node`, a quiescent gate proves no reader can still be
+    // inside a pin that observed it, so the producer may reuse it immediately. Otherwise
+    // park it for config-path reclamation (drainRetiredStaged) - never wait here.
     if (lastValueGate.quiescent())
     {
-        packet->releaseRef();
+        node->next = stagedNodeCache;
+        stagedNodeCache = node;
         return;
     }
 
-    auto* node = new details::RetiredPacket{packet, nullptr};
-    auto* cur = retiredPackets.load(std::memory_order_relaxed);
+    retireStagedNode(node);
+}
+
+template <typename TInterface, typename... Interfaces>
+void SignalBase<TInterface, Interfaces...>::retireStagedNode(details::StagedLastValue* node)
+{
+    auto* cur = retiredStaged.load(std::memory_order_relaxed);
     do
     {
         node->next = cur;
-    } while (!retiredPackets.compare_exchange_weak(cur, node, std::memory_order_release, std::memory_order_relaxed));
+    } while (!retiredStaged.compare_exchange_weak(cur, node, std::memory_order_release, std::memory_order_relaxed));
 }
 
 template <typename TInterface, typename... Interfaces>
-PacketPtr SignalBase<TInterface, Interfaces...>::pinLastPacket() const
-{
-    details::ReclamationGate::Guard gate(lastValueGate);
-    IPacket* raw = lastPacketSlot.load(std::memory_order_seq_cst);
-    if (raw)
-        raw->addRef();
-    return PacketPtr::Adopt(raw);
-}
-
-template <typename TInterface, typename... Interfaces>
-void SignalBase<TInterface, Interfaces...>::drainRetiredPackets()
+void SignalBase<TInterface, Interfaces...>::drainRetiredStaged()
 {
     // config path, under the config lock
-    auto* chain = retiredPackets.exchange(nullptr, std::memory_order_acq_rel);
+    auto* chain = retiredStaged.exchange(nullptr, std::memory_order_acq_rel);
     if (!chain)
         return;
 
-    // wait out any reader still inside the pin window; afterwards every packet on the
-    // chain either carries the reader's extra ref or is unreferenced by readers
+    // wait out any reader still inside the pin window, then hand the nodes back to the
+    // producer through the shared free list
     lastValueGate.waitQuiescent();
 
+    auto* tail = chain;
+    while (tail->next)
+        tail = tail->next;
+    auto* cur = stagedFreeTop.load(std::memory_order_relaxed);
+    do
+    {
+        tail->next = cur;
+    } while (!stagedFreeTop.compare_exchange_weak(cur, chain, std::memory_order_release, std::memory_order_relaxed));
+}
+
+template <typename TInterface, typename... Interfaces>
+void SignalBase<TInterface, Interfaces...>::clearLastValueSlot()
+{
+    // config path, under the config lock; must not touch the producer-private cache, so a
+    // displaced node always goes through the retire list even when the gate is quiescent
+    if (auto* node = lastValueSlot.exchange(nullptr, std::memory_order_seq_cst))
+        retireStagedNode(node);
+    drainRetiredStaged();
+}
+
+template <typename TInterface, typename... Interfaces>
+void SignalBase<TInterface, Interfaces...>::deleteStagedChain(details::StagedLastValue* chain)
+{
     while (chain)
     {
-        chain->packet->releaseRef();
         auto* next = chain->next;
         delete chain;
         chain = next;
     }
-}
-
-template <typename TInterface, typename... Interfaces>
-void SignalBase<TInterface, Interfaces...>::clearLastPacketSlot()
-{
-    // config path, under the config lock
-    retireOrReleaseSlotPacket(lastPacketSlot.exchange(nullptr, std::memory_order_seq_cst));
-    drainRetiredPackets();
 }
 
 template <typename TInterface, typename... Interfaces>
@@ -1014,11 +1115,12 @@ ErrCode SignalBase<TInterface, Interfaces...>::setLastValue(IBaseObject* lastVal
 {
     auto lock = this->getRecursiveConfigLock2();
 
-    clearLastPacketSlot();
-    lastValueCache.cache(nullptr);
+    clearLastValueSlot();
+    lastValueCache.resetData();
+    lastValueCache.resetTimestamp();
     lastValueCache.setValue(BaseObjectPtr(lastValue));
     // packets sent after this point win over the explicit value (seq mismatch -> re-cache)
-    lastValueCachedSeq = lastPacketSeq.load(std::memory_order_acquire);
+    lastValueCachedSeq = lastValueSeq.load(std::memory_order_acquire);
     return OPENDAQ_SUCCESS;
 }
 
@@ -1382,7 +1484,7 @@ void SignalBase<TInterface, Interfaces...>::removed()
     clearConnections(connections);
     clearConnections(remoteConnections);
     publishConnectionsSnapshot();  // now empty: producers can no longer reach any connection
-    clearLastPacketSlot();
+    clearLastValueSlot();
 
     for (auto it = begin(domainSignalReferences); it != end(domainSignalReferences); ++it)
     {
@@ -1465,8 +1567,9 @@ void SignalBase<TInterface, Interfaces...>::setKeepLastPacket()
 
     if (!keepLastPacket)
     {
-        clearLastPacketSlot();
-        lastValueCache.cache(nullptr);
+        clearLastValueSlot();
+        lastValueCache.resetData();
+        lastValueCache.resetTimestamp();
         lastValueCachedSeq = std::numeric_limits<std::uint64_t>::max();
     }
 }
@@ -1535,19 +1638,28 @@ void SignalBase<TInterface, Interfaces...>::visibleChanged()
 template <typename TInterface, typename... Interfaces>
 void SignalBase<TInterface, Interfaces...>::refreshLastValueCacheFromSlot()
 {
-    // config path, under the config lock: feed lastValueCache lazily from the packet the
-    // producer last published (the raw-byte copy no longer happens on the send path)
-    const std::uint64_t seq = lastPacketSeq.load(std::memory_order_acquire);
+    // config path, under the config lock: feed lastValueCache lazily from the staged copy
+    // the producer last published. The staged node has no refcount, so unlike the old
+    // packet pin the read must complete entirely inside the gate: the producer only reuses
+    // a displaced node once the gate is quiescent.
+    const std::uint64_t seq = lastValueSeq.load(std::memory_order_acquire);
     if (seq == lastValueCachedSeq)
         return;
 
-    const PacketPtr packet = pinLastPacket();
-    drainRetiredPackets();
-    if (packet.assigned())
     {
-        lastValueCache.cache(packet.template asPtr<IDataPacket>(true));
-        lastValueCachedSeq = seq;
+        details::ReclamationGate::Guard gate(lastValueGate);
+        if (const auto* staged = lastValueSlot.load(std::memory_order_seq_cst))
+        {
+            lastValueCache.cacheRaw(staged->valueValid ? staged->valueDescriptor : nullptr,
+                                    staged->rawValue.data(),
+                                    staged->valueSampleSize,
+                                    staged->domainValid ? staged->domainDescriptor : nullptr,
+                                    staged->rawDomain.data(),
+                                    staged->domainSampleSize);
+            lastValueCachedSeq = seq;
+        }
     }
+    drainRetiredStaged();
 }
 
 template <typename TInterface, typename... Interfaces>

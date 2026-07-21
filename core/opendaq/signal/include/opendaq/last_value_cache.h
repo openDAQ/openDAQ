@@ -133,10 +133,45 @@ public:
         this->value = std::move(value);
     }
 
-    void cache(const DataPacketPtr& packet)
+    // Feeds the cache from a staged raw copy of the last sample (made at send time - the
+    // packet itself is never retained). A null descriptor means the corresponding part was
+    // not readable and resets it, mirroring the old packet-based failure handling.
+    void cacheRaw(const DataDescriptorPtr& stagedValueDescriptor,
+                  const void* valueData,
+                  SizeT valueSize,
+                  const DataDescriptorPtr& stagedDomainDescriptor,
+                  const void* domainData,
+                  SizeT domainSize)
     {
-        cacheValue(packet);
-        cacheTimestamp(packet);
+        value = nullptr;
+        if (stagedValueDescriptor.assigned())
+        {
+            if (stagedValueDescriptor.getObject() != valueDescriptor.getObject())
+                valueDescriptor = stagedValueDescriptor;
+            const auto* bytes = static_cast<const std::byte*>(valueData);
+            rawValue.assign(bytes, bytes + valueSize);
+        }
+        else
+            resetData();
+
+        timestamp = nullptr;
+        if (stagedDomainDescriptor.assigned())
+        {
+            if (stagedDomainDescriptor.getObject() != domainDescriptor.getObject())
+            {
+                domainDescriptor = stagedDomainDescriptor;
+                domainInfoValid = false;
+                if (!validateDomainDescriptionForTimestamp())
+                {
+                    resetTimestamp();
+                    return;
+                }
+            }
+            const auto* bytes = static_cast<const std::byte*>(domainData);
+            rawTimestamp.assign(bytes, bytes + domainSize);
+        }
+        else
+            resetTimestamp();
     }
 
 private:
@@ -185,69 +220,6 @@ private:
             originOffsetUs = std::chrono::duration_cast<std::chrono::microseconds>(signalEpoch.time_since_epoch()).count();
         }
         domainInfoValid = true;
-    }
-
-    void cacheValue(const DataPacketPtr& packet)
-    {
-        value = nullptr;
-        if (packet.assigned())
-        {
-            if (auto packetValueDescriptor = packet.getDataDescriptor(); packetValueDescriptor.assigned())
-            {
-                const bool descriptorChanged =
-                    reinterpret_cast<std::uintptr_t>(packetValueDescriptor.getObject()) != reinterpret_cast<std::uintptr_t>(valueDescriptor.getObject());
-                if (descriptorChanged)
-                    valueDescriptor = std::move(packetValueDescriptor);
-
-                const auto sampleType = valueDescriptor.getSampleType();
-                const bool isVarLength = (sampleType == SampleType::Binary || sampleType == SampleType::String);
-                // variable length samples (String/Binary) carry a packet-dependent raw size
-                // so the buffer must be resized on every packet, not only when the descriptor object changes
-                if (descriptorChanged || isVarLength)
-                {
-                    const SizeT sampleSize = isVarLength ? packet.getRawDataSize() : valueDescriptor.getSampleSize();
-                    rawValue.resize(sampleSize);
-                }
-
-                void* rawValue = this->rawValue.data();
-                const ErrCode errCode = packet->getRawLastValue(&rawValue);
-                if (errCode == OPENDAQ_SUCCESS)
-                    return;
-            }
-        }
-        // we come here only if packet is not assigned or if getRawLastValue failed, so we reset the cache
-        resetData();
-    }
-
-    void cacheTimestamp(const DataPacketPtr& packet)
-    {
-        timestamp = nullptr;
-        if (packet.assigned())
-        {
-            if (const auto domainPacket = packet.getDomainPacket(); domainPacket.assigned())
-            {
-                if (auto packetDomainDescriptor = domainPacket.getDataDescriptor(); packetDomainDescriptor.assigned())
-                {
-                    if (reinterpret_cast<std::uintptr_t>(packetDomainDescriptor.getObject()) != reinterpret_cast<std::uintptr_t>(domainDescriptor.getObject()))
-                    {
-                        domainDescriptor = std::move(packetDomainDescriptor);
-                        domainInfoValid = false;
-                        if (!validateDomainDescriptionForTimestamp())
-                        {
-                            resetTimestamp();
-                            return;
-                        }
-                        rawTimestamp.resize(domainDescriptor.getSampleSize());
-                    }
-                    void* rawValue = rawTimestamp.data();
-                    const ErrCode errCode = domainPacket->getRawLastValue(&rawValue);
-                    if (errCode == OPENDAQ_SUCCESS)
-                        return;
-                }
-            }
-        }
-        // we come here only if packet or domain packet is not assigned or if getRawLastValue failed, so we reset the cache
-        resetTimestamp();
     }
 
     bool validateDomainDescriptionForTimestamp() const

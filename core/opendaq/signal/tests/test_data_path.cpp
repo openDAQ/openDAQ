@@ -424,3 +424,51 @@ TEST_F(DataPathTest, StressSendVsGetLastValueAndActive)
     stop.store(true);
     producer.join();
 }
+
+// Contract: the signal must not retain any reference to a sent packet after sendPacket
+// returns, even with keep-last-value enabled. Producers backed by circular buffers reclaim
+// a packet's memory as soon as the send completes; the last value is copied out at send time.
+TEST_F(DataPathTest, SendPacketDoesNotRetainPacket)
+{
+    const auto ctx = NullContext();
+
+    const auto domainDesc = DataDescriptorBuilder()
+                                .setSampleType(SampleType::Int64)
+                                .setUnit(Unit("s", -1, "seconds", "time"))
+                                .setTickResolution(Ratio(1, 1000))
+                                .setOrigin("1970-01-01T00:00:00Z")
+                                .setRule(ExplicitDataRule())
+                                .build();
+    const auto sigDesc = DataDescriptorBuilder().setSampleType(SampleType::Int64).build();
+
+    const auto signal = Signal(ctx, nullptr, "sig");
+    signal.setDescriptor(sigDesc);
+
+    auto domainPacket = DataPacket(domainDesc, 2);
+    static_cast<int64_t*>(domainPacket.getRawData())[0] = 1000;
+    static_cast<int64_t*>(domainPacket.getRawData())[1] = 2000;
+    auto packet = DataPacketWithDomain(domainPacket, sigDesc, 2);
+    static_cast<int64_t*>(packet.getRawData())[0] = 11;
+    static_cast<int64_t*>(packet.getRawData())[1] = 42;
+
+    signal.sendPacket(packet);
+
+    // refcount probe: releaseRef reports the count produced by our own references alone.
+    // packet: this test's ptr; domainPacket: this test's ptr + the value packet's reference.
+    packet->addRef();
+    ASSERT_EQ(packet->releaseRef(), 1);
+    domainPacket->addRef();
+    ASSERT_EQ(domainPacket->releaseRef(), 2);
+
+    // the last value must survive the packets being destroyed (it was copied at send time)
+    domainPacket = nullptr;
+    packet = nullptr;
+    ASSERT_EQ(signal.getLastValue(), 42);
+
+    BaseObjectPtr value;
+    BaseObjectPtr ts;
+    ASSERT_NO_THROW(ts = signal.getLastValueWithTimestamp(value));
+    ASSERT_EQ(value, 42);
+    // tick 2000 at resolution 1/1000 s from the 1970 epoch = 2'000'000 us
+    ASSERT_EQ(ts, 2000000);
+}

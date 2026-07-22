@@ -259,7 +259,7 @@ SignalBase<TInterface, Interfaces...>::SignalBase(const ContextPtr& context,
     , dataDescriptor(std::move(descriptor))
     , isPublic(true)
     , keepLastValue(true)
-    , connectionsSnapshot(new details::ConnectionsSnapshot())
+    , connectionsSnapshot(nullptr)
 {
     if (dataDescriptor.assigned() && dataDescriptor.getSampleType() == SampleType::Null)
         DAQ_THROW_EXCEPTION(InvalidSampleTypeException, "SampleType \"Null\" is reserved for \"DATA_DESCRIPTOR_CHANGED\" event packet.");
@@ -270,6 +270,12 @@ SignalBase<TInterface, Interfaces...>::SignalBase(const ContextPtr& context,
         auto typeManager = this->context.getTypeManager();
         addToTypeManagerRecursively(typeManager, dataDescriptor);
     }
+
+    // Allocated last: this atomic holds a raw owning pointer released only in ~SignalBase,
+    // which never runs if the constructor throws. Every statement above can throw (invalid
+    // sample type, type-manager registration), so publishing the snapshot only after them
+    // keeps construction leak-free.
+    connectionsSnapshot.store(new details::ConnectionsSnapshot(), std::memory_order_relaxed);
 }
 
 template <typename TInterface, typename... Interfaces>

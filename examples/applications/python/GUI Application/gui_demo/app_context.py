@@ -34,11 +34,25 @@ class AppContext(object):
         self.dpi_factor = self._detect_dpi_factor()
         self.icons = {}
         # daq
+        # instance parameters, applied by create_instance() once the
+        # configure-instance dialog was confirmed
+        self.module_path = params.module_path
+        self.discovery_servers = list(getattr(params, 'discovery_servers', []) or [])
+        # logger configuration used when the instance is created
         self.log_level = daq.LogLevel.Default
         self.log_to_file = True
         self.file_log_level = daq.LogLevel.Default
         self.log_file_path = os.path.join(
             tempfile.gettempdir(), 'opendaq_gui_{}.log'.format(os.getpid()))
+
+        self.instance = None
+        self.connection_string = ''
+        self.signals = {}
+        self.needs_refresh = False
+
+    # builds the openDAQ instance from the collected parameters; called after
+    # the configure-instance dialog was closed
+    def create_instance(self):
         builder = daq.InstanceBuilder()
         builder.scheduler_worker_num = 0
         builder.using_scheduler_main_loop = True
@@ -50,10 +64,10 @@ class AppContext(object):
         else:
             builder.module_path = daq.OPENDAQ_MODULES_DIR
 
-        if params.module_path != None:
-            builder.add_module_path(params.module_path)
+        if self.module_path:
+            builder.add_module_path(self.module_path)
 
-        for protocol in getattr(params, 'discovery_servers', []):
+        for protocol in self.discovery_servers:
             builder.add_discovery_server(protocol)
 
         builder.global_log_level = self.log_level
@@ -69,9 +83,6 @@ class AppContext(object):
 
         self.instance = daq.InstanceFromBuilder(builder)
         self.instance.context.on_core_event + daq.QueuedEventHandler(self.on_core_event)
-        self.connection_string = ''
-        self.signals = {}
-        self.needs_refresh = False
 
     def _detect_dpi_factor(self) -> float:
         """Detect system DPI scaling factor (1.0 = 96 DPI). Used to scale UI elements on high-DPI displays."""

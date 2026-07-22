@@ -28,6 +28,7 @@ try:
     from gui_demo.components.add_server_dialog import AddServerDialog
     from gui_demo.components.add_function_block_dialog import AddFunctionBlockDialog
     from gui_demo.components.load_instance_config_dialog import LoadInstanceConfigDialog
+    from gui_demo.components.configure_instance_dialog import ConfigureInstanceDialog
     from gui_demo.components.logs_window import LogsWindow
     from gui_demo.app_context import AppContext
     from gui_demo import utils
@@ -39,6 +40,7 @@ except Exception as e:
     from opendaq.gui_demo.components.add_server_dialog import AddServerDialog
     from opendaq.gui_demo.components.add_function_block_dialog import AddFunctionBlockDialog
     from opendaq.gui_demo.components.load_instance_config_dialog import LoadInstanceConfigDialog
+    from opendaq.gui_demo.components.configure_instance_dialog import ConfigureInstanceDialog
     from opendaq.gui_demo.components.logs_window import LogsWindow
     from opendaq.gui_demo.app_context import AppContext
     from opendaq.gui_demo import utils
@@ -219,12 +221,26 @@ class App(tk.Tk):
                 scale=2),
             treeview_rowheight - 6)
 
+        self.instance_configure_dialog_show()
         self.init_opendaq()
 
         if args.config != '':
             self._load_config(args.config)
 
         self.poll_opendaq_events()
+
+    # MARK: - Configure instance dialog
+    def instance_configure_dialog_show(self):
+        dialog = ConfigureInstanceDialog(self, self.context)
+        dialog.show()
+        try:
+            self.context.create_instance()
+        except Exception as e:
+            print('Instance creation failed:', e, file=sys.stderr)
+            utils.show_error('Instance creation failed',
+                             f'{str(e)}\nStarting with default settings instead.', self)
+            self.context.module_path = None
+            self.context.create_instance()
 
     # shrinks a PhotoImage to the largest zoom/subsample fraction that fits
     # within target_h; returns the icon unchanged if it already fits

@@ -1,5 +1,6 @@
 import os
 import platform
+import tempfile
 
 import opendaq as daq
 
@@ -33,6 +34,11 @@ class AppContext(object):
         self.dpi_factor = self._detect_dpi_factor()
         self.icons = {}
         # daq
+        self.log_level = daq.LogLevel.Default
+        self.log_to_file = True
+        self.file_log_level = daq.LogLevel.Default
+        self.log_file_path = os.path.join(
+            tempfile.gettempdir(), 'opendaq_gui_{}.log'.format(os.getpid()))
         builder = daq.InstanceBuilder()
         builder.scheduler_worker_num = 0
         builder.using_scheduler_main_loop = True
@@ -49,6 +55,17 @@ class AppContext(object):
 
         for protocol in getattr(params, 'discovery_servers', []):
             builder.add_discovery_server(protocol)
+
+        builder.global_log_level = self.log_level
+        # explicit sinks: console output as before, plus a rotating log file
+        # the logs window reads from
+        builder.add_logger_sink(daq.StdOutLoggerSink())
+        if self.log_to_file:
+            file_sink = daq.RotatingFileLoggerSink(
+                self.log_file_path, 2 * 1024 * 1024, 3)
+            file_sink.level = self.file_log_level
+            file_sink.pattern = '[%Y-%m-%d %H:%M:%S.%e] [%n] [%l] %v'
+            builder.add_logger_sink(file_sink)
 
         self.instance = daq.InstanceFromBuilder(builder)
         self.instance.context.on_core_event + daq.QueuedEventHandler(self.on_core_event)

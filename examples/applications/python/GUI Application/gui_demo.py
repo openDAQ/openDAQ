@@ -28,6 +28,7 @@ try:
     from gui_demo.components.add_server_dialog import AddServerDialog
     from gui_demo.components.add_function_block_dialog import AddFunctionBlockDialog
     from gui_demo.components.load_instance_config_dialog import LoadInstanceConfigDialog
+    from gui_demo.components.logs_window import LogsWindow
     from gui_demo.app_context import AppContext
     from gui_demo import utils
     from gui_demo.event_port import EventPort
@@ -38,6 +39,7 @@ except Exception as e:
     from opendaq.gui_demo.components.add_server_dialog import AddServerDialog
     from opendaq.gui_demo.components.add_function_block_dialog import AddFunctionBlockDialog
     from opendaq.gui_demo.components.load_instance_config_dialog import LoadInstanceConfigDialog
+    from opendaq.gui_demo.components.logs_window import LogsWindow
     from opendaq.gui_demo.app_context import AppContext
     from opendaq.gui_demo import utils
     from opendaq.gui_demo.event_port import EventPort
@@ -114,6 +116,8 @@ class App(tk.Tk):
         self._nested_fb_button_pos = {}
         self._nested_fb_hovered_row = None
         self._indicator_click = False
+        self._floating_dialogs = {}
+        self._logs_window = None
 
         self.title('openDAQ demo')
         self.geometry('{}x{}'.format(
@@ -140,6 +144,10 @@ class App(tk.Tk):
         refresh_button = ttk.Button(
             main_frame_top, text='Refresh', command=self.handle_refresh_button_clicked)
         refresh_button.pack(side=tk.LEFT, padx=5)
+
+        logs_button = ttk.Button(
+            main_frame_top, text='Logs', command=self.handle_logs_button_clicked)
+        logs_button.pack(side=tk.LEFT, padx=5)
 
         main_frame_bottom = ttk.Frame(self)
         main_frame_bottom.pack(fill=tk.BOTH, expand=True)
@@ -239,6 +247,10 @@ class App(tk.Tk):
         return icon.zoom(z, z).subsample(s, s)
 
     def poll_opendaq_events(self):
+        if self.context.instance is None:
+            self.after(50, self.poll_opendaq_events)
+            return
+
         try:
             daq.event_queue.process_events()
         except Exception as e:
@@ -290,6 +302,8 @@ class App(tk.Tk):
 
         self._signal_preview_var = tk.BooleanVar(value=self.context.view_signal_preview)
         view_menu.add_checkbutton(label='Signal preview',variable=self._signal_preview_var,command=self.handle_view_signal_preview_toggled)
+        view_menu.add_separator()
+        view_menu.add_command(label='Show logs', command=self.handle_logs_button_clicked)
 
     def handle_view_show_hidden_components(self):
         self.context.view_hidden_components = not self.context.view_hidden_components
@@ -768,20 +782,53 @@ class App(tk.Tk):
         self.right_side_panel = sframe
         self.right_side_canvas = None
 
+    # MARK: - Add dialogs (non-modal)
+
+    # shows an add dialog without grabbing input, so the main window stays
+    # usable while it is open; an already open dialog is raised instead of
+    # opening a second one
+    def floating_dialog_show(self, key, factory, retarget=None):
+        dialog = self._floating_dialogs.get(key)
+        if dialog is not None and dialog.winfo_exists():
+            if retarget is not None:
+                retarget(dialog)
+            dialog.deiconify()
+            dialog.lift()
+            dialog.focus_set()
+            return
+        dialog = factory()
+        self._floating_dialogs[key] = dialog
+        dialog.show_floating()
+
     # MARK: - Add device dialog
     def add_device_dialog_show(self):
-        dialog = AddDeviceDialog(self, self.context, None)
-        dialog.show()
+        self.floating_dialog_show(
+            'add_device', lambda: AddDeviceDialog(self, self.context, None))
 
     # MARK: - Add function block dialog
     def add_function_block_dialog_show(self, component=None):
-        dialog = AddFunctionBlockDialog(self, self.context, component)
-        dialog.show()
-        
+        def retarget(dialog):
+            if component is not None:
+                dialog.parent_component = component
+                dialog.update_dialog()
+        self.floating_dialog_show(
+            'add_function_block',
+            lambda: AddFunctionBlockDialog(self, self.context, component),
+            retarget)
+
     # MARK: - Add server dialog
     def add_server_dialog_show(self, component=None):
-        dialog = AddServerDialog(self, self.context, component)
-        dialog.show()
+        self.floating_dialog_show(
+            'add_server', lambda: AddServerDialog(self, self.context, component))
+
+    # MARK: - Logs window
+    def logs_window_show(self):
+        if self._logs_window is not None and self._logs_window.winfo_exists():
+            self._logs_window.deiconify()
+            self._logs_window.lift()
+            self._logs_window.focus_set()
+            return
+        self._logs_window = LogsWindow(self, self.context)
 
     # MARK: - Button handlers
     def handle_add_device_button_clicked(self):
@@ -789,9 +836,12 @@ class App(tk.Tk):
 
     def handle_add_function_block_button_clicked(self):
         self.add_function_block_dialog_show()
-        
+
     def handle_add_server_button_clicked(self):
         self.add_server_dialog_show()
+
+    def handle_logs_button_clicked(self):
+        self.logs_window_show()
 
     def handle_save_config_button_clicked(self):
         file = asksaveasfile(initialfile='config.json', title='Save configuration',

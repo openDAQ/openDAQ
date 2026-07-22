@@ -23,10 +23,27 @@ class Dialog(tk.Toplevel):
         self.update_idletasks()  # ensure geometry is fully computed while hidden
         w = self.winfo_width()
         h = self.winfo_height()
+        # before the window is mapped (which on Windows only happens once the
+        # event loop runs) winfo_width/height report 1; use the requested
+        # size for the centering math instead
+        if w <= 1 or h <= 1:
+            w = self.winfo_reqwidth()
+            h = self.winfo_reqheight()
+
         main_window = self.parent.winfo_toplevel()
-        x = main_window.winfo_rootx() + main_window.winfo_width() // 2 - w // 2
-        y = main_window.winfo_rooty() + main_window.winfo_height() // 2 - h // 2
-        self.geometry(f'{w}x{h}+{x}+{y}')
+        main_w = main_window.winfo_width()
+        main_h = main_window.winfo_height()
+        if main_w <= 1 or main_h <= 1:
+            # main window not mapped yet (startup dialog): center on screen
+            x = (self.winfo_screenwidth() - w) // 2
+            y = (self.winfo_screenheight() - h) // 2
+        else:
+            x = main_window.winfo_rootx() + main_w // 2 - w // 2
+            y = main_window.winfo_rooty() + main_h // 2 - h // 2
+
+        # position only -- never resize here, so an explicit geometry set by
+        # the dialog is not clobbered while the window is still unmapped
+        self.geometry(f'+{max(0, x)}+{max(0, y)}')
 
     def initial_update(self):
         pass
@@ -40,6 +57,16 @@ class Dialog(tk.Toplevel):
         self.focus_set()
         self.grab_set()         # Prevent interaction with other windows
         self.wait_window(self)
+
+    # non-modal variant of show(): the main window stays interactive while
+    # the dialog is open
+    def show_floating(self):
+        self.initial_update()
+        self.deiconify()
+        self.center_window()
+        self.update_idletasks()
+        self.event_generate('<<DialogReady>>')
+        self.focus_set()
         
     def close(self):
         self.destroy()

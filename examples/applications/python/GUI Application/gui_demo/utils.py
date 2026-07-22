@@ -31,6 +31,24 @@ class StatusColor(enum.Enum):
     def __str__(self):
         return self.value
 
+# display order of log levels in comboboxes
+LOG_LEVELS = {
+    'Trace': daq.LogLevel.Trace,
+    'Debug': daq.LogLevel.Debug,
+    'Info': daq.LogLevel.Info,
+    'Warn': daq.LogLevel.Warn,
+    'Error': daq.LogLevel.Error,
+    'Critical': daq.LogLevel.Critical,
+    'Off': daq.LogLevel.Off,
+    'Default': daq.LogLevel.Default,
+}
+
+def log_level_name(level):
+    for name, value in LOG_LEVELS.items():
+        if value == level:
+            return name
+    return 'Default'
+
 def find_component(id, parent=None, convert_id=True):
     if convert_id:
         split_id = id.split('/')

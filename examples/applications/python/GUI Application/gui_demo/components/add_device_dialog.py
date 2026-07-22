@@ -253,7 +253,15 @@ class AddDeviceDialog(Dialog):
         self.context.selected_node = new_device
         self.event_port.emit()
         if self._keep_open_var.get():
-            self.update_child_devices(self.device_tree, self.dialog_parent_device)
+            # rebuild the parent tree so the newly added device shows up in
+            # it; restoring the selection re-triggers the device scan on the
+            # right side
+            parent_id = self.dialog_parent_device.global_id
+            self.update_parent_devices(
+                self.parent_device_tree, '', self.context.instance)
+            if not self.parent_device_tree.exists(parent_id):
+                parent_id = self.context.instance.global_id
+            self.select_parent_device(parent_id)
         else:
             self.close()
 

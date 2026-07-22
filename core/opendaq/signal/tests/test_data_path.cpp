@@ -19,6 +19,7 @@
 #include <atomic>
 #include <chrono>
 #include <condition_variable>
+#include <memory>
 #include <mutex>
 #include <thread>
 #include <vector>
@@ -44,11 +45,95 @@ struct CustomInputPortNotifications : ImplementationOfWeak<IInputPortNotificatio
 
     ~CustomInputPortNotifications() override
     {
-        inputPort.remove();   
+        inputPort.remove();
     }
 
     InputPortPtr inputPort;
 };
+
+namespace
+{
+// ---------------------------------------------------------------------------
+// Shared helpers. Every data-path test stands up the same handful of things -
+// a plain descriptor, a signal, a connected input port, a thread hammering an
+// operation in a loop - so those live here and each test keeps only the parts
+// specific to the race or contract it exercises.
+// ---------------------------------------------------------------------------
+
+// Plain single-field descriptor of the given sample type.
+DataDescriptorPtr plainDescriptor(SampleType sampleType)
+{
+    return DataDescriptorBuilder().setSampleType(sampleType).build();
+}
+
+// A signal wired up with `desc`, ready to send or connect.
+SignalConfigPtr makeSignal(const ContextPtr& ctx, const DataDescriptorPtr& desc, const char* id = "sig")
+{
+    const auto signal = Signal(ctx, nullptr, id);
+    signal.setDescriptor(desc);
+    return signal;
+}
+
+// A fresh input port already connected to `signal`; call getConnection() for its connection.
+InputPortConfigPtr connectedPort(const ContextPtr& ctx, const SignalConfigPtr& signal, bool gapChecking = false)
+{
+    auto port = InputPort(ctx, nullptr, "ip", gapChecking);
+    port.connect(signal);
+    return port;
+}
+
+// Send one data packet whose every sample equals `value` - the counter/sequence oracle the
+// last-value and no-loss tests use.
+void sendFilledInt64(const SignalConfigPtr& signal, const DataDescriptorPtr& desc, SizeT sampleCount, int64_t value)
+{
+    const auto packet = DataPacket(desc, sampleCount);
+    auto* data = static_cast<int64_t*>(packet.getRawData());
+    for (SizeT i = 0; i < sampleCount; ++i)
+        data[i] = value;
+    signal.sendPacket(packet);
+}
+
+// RAII background worker: runs `body()` in a tight loop on its own thread until join() or
+// destruction, replacing the stop-flag + spawn + join boilerplate the stress tests repeat.
+class BackgroundLoop
+{
+public:
+    template <typename Body>
+    explicit BackgroundLoop(Body body)
+        : stopFlag(std::make_shared<std::atomic<bool>>(false))
+    {
+        auto flag = stopFlag;
+        worker = std::thread(
+            [flag, body = std::move(body)]() mutable
+            {
+                while (!flag->load(std::memory_order_relaxed))
+                    body();
+            });
+    }
+    BackgroundLoop(BackgroundLoop&&) = default;
+    BackgroundLoop& operator=(BackgroundLoop&&) = default;
+    ~BackgroundLoop() { join(); }
+
+    // Stop the loop and wait for the thread. Idempotent.
+    void join()
+    {
+        if (stopFlag)
+            stopFlag->store(true, std::memory_order_relaxed);
+        if (worker.joinable())
+            worker.join();
+    }
+
+private:
+    std::shared_ptr<std::atomic<bool>> stopFlag;
+    std::thread worker;
+};
+
+// Background producer that repeatedly sends one fixed data packet at `signal` until stopped.
+BackgroundLoop spamPackets(const SignalConfigPtr& signal, const DataDescriptorPtr& desc, SizeT sampleCount = 16)
+{
+    return BackgroundLoop([signal, packet = DataPacket(desc, sampleCount)] { signal.sendPacket(packet); });
+}
+}  // namespace
 
 using DataPathTest = Test;
 
@@ -56,10 +141,8 @@ TEST_F(DataPathTest, DestroyListenerInNotification)
 {
     const auto ctx = NullContext();
 
-    const auto sigDesc = DataDescriptorBuilder().setSampleType(SampleType::Int32).build();
-
-    const auto signal = Signal(ctx, nullptr, "sig");
-    signal.setDescriptor(sigDesc);
+    const auto sigDesc = plainDescriptor(SampleType::Int32);
+    const auto signal = makeSignal(ctx, sigDesc);
 
     const auto inputPort = InputPort(ctx, nullptr, "ip");
 
@@ -162,30 +245,23 @@ TEST_F(DataPathTest, StressSendVsConnectDisconnect)
                                 .setUnit(Unit("s", -1, "second", "time"))
                                 .setOrigin("1970-01-01T00:00:00Z")
                                 .build();
-    const auto sigDesc = DataDescriptorBuilder().setSampleType(SampleType::Float64).build();
+    const auto sigDesc = plainDescriptor(SampleType::Float64);
 
-    const auto domainSignal = Signal(ctx, nullptr, "domain");
-    domainSignal.setDescriptor(domainDesc);
-    const auto signal = Signal(ctx, nullptr, "sig");
-    signal.setDescriptor(sigDesc);
+    const auto domainSignal = makeSignal(ctx, domainDesc, "domain");
+    const auto signal = makeSignal(ctx, sigDesc);
     signal.setDomainSignal(domainSignal);
 
-    std::atomic<bool> stop{false};
     std::atomic<int64_t> sent{0};
 
     // the signal's single producer
-    std::thread producer(
-        [&]
+    BackgroundLoop producer(
+        [&, offset = int64_t{0}]() mutable
         {
-            int64_t offset = 0;
-            while (!stop.load(std::memory_order_relaxed))
-            {
-                const auto domainPacket = DataPacket(domainDesc, 16, offset);
-                const auto packet = DataPacketWithDomain(domainPacket, sigDesc, 16);
-                signal.sendPacket(packet);
-                offset += 160;
-                sent.fetch_add(1, std::memory_order_relaxed);
-            }
+            const auto domainPacket = DataPacket(domainDesc, 16, offset);
+            const auto packet = DataPacketWithDomain(domainPacket, sigDesc, 16);
+            signal.sendPacket(packet);
+            offset += 160;
+            sent.fetch_add(1, std::memory_order_relaxed);
         });
 
     // wait for the producer to be live so the roles genuinely overlap (thread startup can
@@ -199,8 +275,7 @@ TEST_F(DataPathTest, StressSendVsConnectDisconnect)
     // before the initial event packet would throw InvalidStateException from dequeue.
     for (int round = 0; round < 200; ++round)
     {
-        auto port = InputPort(ctx, nullptr, "ip", true /*gap checking*/);
-        port.connect(signal);
+        auto port = connectedPort(ctx, signal, true /*gap checking*/);
         const auto connection = port.getConnection();
 
         bool first = true;
@@ -220,7 +295,6 @@ TEST_F(DataPathTest, StressSendVsConnectDisconnect)
         port.disconnect();
     }
 
-    stop.store(true);
     producer.join();
     ASSERT_GT(sent.load(), 0);
 }
@@ -231,23 +305,14 @@ TEST_F(DataPathTest, StressDisconnectUnderFire)
 {
     const auto ctx = NullContext();
 
-    const auto sigDesc = DataDescriptorBuilder().setSampleType(SampleType::Float64).build();
-    const auto signal = Signal(ctx, nullptr, "sig");
-    signal.setDescriptor(sigDesc);
+    const auto sigDesc = plainDescriptor(SampleType::Float64);
+    const auto signal = makeSignal(ctx, sigDesc);
 
-    std::atomic<bool> stopProducer{false};
-    std::thread producer(
-        [&]
-        {
-            const auto packet = DataPacket(sigDesc, 16);
-            while (!stopProducer.load(std::memory_order_relaxed))
-                signal.sendPacket(packet);
-        });
+    auto producer = spamPackets(signal, sigDesc);
 
     for (int round = 0; round < 100; ++round)
     {
-        auto port = InputPort(ctx, nullptr, "ip");
-        port.connect(signal);
+        auto port = connectedPort(ctx, signal);
         const auto connection = port.getConnection();
 
         std::atomic<bool> stopConsumer{false};
@@ -277,7 +342,6 @@ TEST_F(DataPathTest, StressDisconnectUnderFire)
         ASSERT_FALSE(connection.dequeue().assigned());
     }
 
-    stopProducer.store(true);
     producer.join();
 }
 
@@ -288,28 +352,21 @@ TEST_F(DataPathTest, StressDescriptorEventsVsProducer)
 {
     const auto ctx = NullContext();
 
-    const auto descA = DataDescriptorBuilder().setSampleType(SampleType::Float64).build();
+    const auto descA = plainDescriptor(SampleType::Float64);
     const auto descB = DataDescriptorBuilder().setSampleType(SampleType::Float64).setValueRange(daq::Range(0, 10)).build();
 
-    const auto signal = Signal(ctx, nullptr, "sig");
-    signal.setDescriptor(descA);
+    const auto signal = makeSignal(ctx, descA);
 
-    auto port = InputPort(ctx, nullptr, "ip");
-    port.connect(signal);
+    auto port = connectedPort(ctx, signal);
     const auto connection = port.getConnection();
 
     std::mutex ownerMutex;  // the owner's external serialization of production vs configuration
 
-    std::atomic<bool> stop{false};
-    std::thread producer(
-        [&]
+    BackgroundLoop producer(
+        [&, packetA = DataPacket(descA, 16)]
         {
-            const auto packetA = DataPacket(descA, 16);
-            while (!stop.load(std::memory_order_relaxed))
-            {
-                std::lock_guard lock(ownerMutex);
-                signal.sendPacket(packetA);
-            }
+            std::lock_guard lock(ownerMutex);
+            signal.sendPacket(packetA);
         });
 
     std::thread config(
@@ -338,7 +395,6 @@ TEST_F(DataPathTest, StressDescriptorEventsVsProducer)
     }
 
     config.join();
-    stop.store(true);
     producer.join();
 
     // full drain leaves consistent counters
@@ -357,18 +413,10 @@ TEST_F(DataPathTest, StressSnapshotChurnUnconsumedQueues)
 {
     const auto ctx = NullContext();
 
-    const auto sigDesc = DataDescriptorBuilder().setSampleType(SampleType::Float64).build();
-    const auto signal = Signal(ctx, nullptr, "sig");
-    signal.setDescriptor(sigDesc);
+    const auto sigDesc = plainDescriptor(SampleType::Float64);
+    const auto signal = makeSignal(ctx, sigDesc);
 
-    std::atomic<bool> stop{false};
-    std::thread producer(
-        [&]
-        {
-            const auto packet = DataPacket(sigDesc, 16);
-            while (!stop.load(std::memory_order_relaxed))
-                signal.sendPacket(packet);
-        });
+    auto producer = spamPackets(signal, sigDesc);
 
     for (int round = 0; round < 100; ++round)
     {
@@ -384,7 +432,6 @@ TEST_F(DataPathTest, StressSnapshotChurnUnconsumedQueues)
             port.disconnect();
     }
 
-    stop.store(true);
     producer.join();
 }
 
@@ -392,25 +439,14 @@ TEST_F(DataPathTest, StressSendVsGetLastValueAndActive)
 {
     const auto ctx = NullContext();
 
-    const auto sigDesc = DataDescriptorBuilder().setSampleType(SampleType::Int64).build();
-    const auto signal = Signal(ctx, nullptr, "sig");
-    signal.setDescriptor(sigDesc);
+    const auto sigDesc = plainDescriptor(SampleType::Int64);
+    const auto signal = makeSignal(ctx, sigDesc);
 
-    std::atomic<bool> stop{false};
-
-    std::thread producer(
-        [&]
+    BackgroundLoop producer(
+        [&, counter = int64_t{0}]() mutable
         {
-            int64_t counter = 0;
-            while (!stop.load(std::memory_order_relaxed))
-            {
-                const auto packet = DataPacket(sigDesc, 4);
-                auto* data = static_cast<int64_t*>(packet.getRawData());
-                for (int i = 0; i < 4; ++i)
-                    data[i] = counter;
-                signal.sendPacket(packet);
-                ++counter;
-            }
+            sendFilledInt64(signal, sigDesc, 4, counter);
+            ++counter;
         });
 
     // config-path hammering: last-value pin/retire, keep-last toggles, active toggles
@@ -433,7 +469,6 @@ TEST_F(DataPathTest, StressSendVsGetLastValueAndActive)
         }
     }
 
-    stop.store(true);
     producer.join();
 }
 
@@ -451,10 +486,8 @@ TEST_F(DataPathTest, SendPacketDoesNotRetainPacket)
                                 .setOrigin("1970-01-01T00:00:00Z")
                                 .setRule(ExplicitDataRule())
                                 .build();
-    const auto sigDesc = DataDescriptorBuilder().setSampleType(SampleType::Int64).build();
-
-    const auto signal = Signal(ctx, nullptr, "sig");
-    signal.setDescriptor(sigDesc);
+    const auto sigDesc = plainDescriptor(SampleType::Int64);
+    const auto signal = makeSignal(ctx, sigDesc);
 
     auto domainPacket = DataPacket(domainDesc, 2);
     static_cast<int64_t*>(domainPacket.getRawData())[0] = 1000;
@@ -492,26 +525,17 @@ TEST_F(DataPathTest, StressSetLastValueVsGetLastValue)
 {
     const auto ctx = NullContext();
 
-    const auto sigDesc = DataDescriptorBuilder().setSampleType(SampleType::Int64).build();
-    const auto signal = Signal(ctx, nullptr, "sig");
-    signal.setDescriptor(sigDesc);
+    const auto sigDesc = plainDescriptor(SampleType::Int64);
+    const auto signal = makeSignal(ctx, sigDesc);
     signal.asPtr<ISignalPrivate>(true).enableKeepLastValue(false);
 
-    std::atomic<bool> stop{false};
     int64_t counter = 0;
 
-    std::thread producer(
+    BackgroundLoop producer(
         [&]
         {
-            while (!stop.load(std::memory_order_relaxed))
-            {
-                const auto packet = DataPacket(sigDesc, 4);
-                auto* data = static_cast<int64_t*>(packet.getRawData());
-                for (int i = 0; i < 4; ++i)
-                    data[i] = counter;
-                signal.sendPacket(packet);
-                signal.setLastValue(++counter);
-            }
+            sendFilledInt64(signal, sigDesc, 4, counter);
+            signal.setLastValue(++counter);
         });
 
     for (int round = 0; round < 4000; ++round)
@@ -522,7 +546,6 @@ TEST_F(DataPathTest, StressSetLastValueVsGetLastValue)
             ASSERT_TRUE(value.asPtrOrNull<IInteger>().assigned());
     }
 
-    stop.store(true);
     producer.join();
 
     // producer stopped: the last explicit value must be the visible one (keep-last is off,
@@ -543,8 +566,7 @@ TEST_F(DataPathTest, LastValueFromCalculatedPacket)
                              .setRule(LinearDataRule(2, 10))
                              .build();
 
-    const auto signal = Signal(ctx, nullptr, "sig");
-    signal.setDescriptor(sigDesc);
+    const auto signal = makeSignal(ctx, sigDesc);
 
     auto packet = DataPacket(sigDesc, 3, 5);
     const auto expected = packet.getLastValue();
@@ -568,12 +590,10 @@ TEST_F(DataPathTest, LastValueFromCalculatedPacket)
 TEST_F(DataPathTest, ClosedQueueConsumerApiMatrix)
 {
     const auto ctx = NullContext();
-    const auto sigDesc = DataDescriptorBuilder().setSampleType(SampleType::Int64).build();
-    const auto signal = Signal(ctx, nullptr, "sig");
-    signal.setDescriptor(sigDesc);
+    const auto sigDesc = plainDescriptor(SampleType::Int64);
+    const auto signal = makeSignal(ctx, sigDesc);
 
-    auto port = InputPort(ctx, nullptr, "ip");
-    port.connect(signal);
+    auto port = connectedPort(ctx, signal);
     const auto connection = port.getConnection();
 
     // put a mix of packets in the queue so "closed returns empty" is a real transition
@@ -607,23 +627,14 @@ TEST_F(DataPathTest, ClosedQueueConsumerApiMatrix)
 TEST_F(DataPathTest, StressAllConsumerOpsUnderFire)
 {
     const auto ctx = NullContext();
-    const auto sigDesc = DataDescriptorBuilder().setSampleType(SampleType::Float64).build();
-    const auto signal = Signal(ctx, nullptr, "sig");
-    signal.setDescriptor(sigDesc);
+    const auto sigDesc = plainDescriptor(SampleType::Float64);
+    const auto signal = makeSignal(ctx, sigDesc);
 
-    std::atomic<bool> stopProducer{false};
-    std::thread producer(
-        [&]
-        {
-            const auto packet = DataPacket(sigDesc, 16);
-            while (!stopProducer.load(std::memory_order_relaxed))
-                signal.sendPacket(packet);
-        });
+    auto producer = spamPackets(signal, sigDesc);
 
     for (int round = 0; round < 100; ++round)
     {
-        auto port = InputPort(ctx, nullptr, "ip");
-        port.connect(signal);
+        auto port = connectedPort(ctx, signal);
         const auto connection = port.getConnection();
         auto internal = connection.asPtr<IConnectionInternal>(true);
 
@@ -669,7 +680,6 @@ TEST_F(DataPathTest, StressAllConsumerOpsUnderFire)
         ASSERT_FALSE(connection.dequeue().assigned());
     }
 
-    stopProducer.store(true);
     producer.join();
 }
 
@@ -679,12 +689,10 @@ TEST_F(DataPathTest, StressAllConsumerOpsUnderFire)
 TEST_F(DataPathTest, DequeueUpToNoLossNoDuplication)
 {
     const auto ctx = NullContext();
-    const auto sigDesc = DataDescriptorBuilder().setSampleType(SampleType::Int64).build();
-    const auto signal = Signal(ctx, nullptr, "sig");
-    signal.setDescriptor(sigDesc);
+    const auto sigDesc = plainDescriptor(SampleType::Int64);
+    const auto signal = makeSignal(ctx, sigDesc);
 
-    auto port = InputPort(ctx, nullptr, "ip");
-    port.connect(signal);
+    auto port = connectedPort(ctx, signal);
     const auto connection = port.getConnection();
     auto internal = connection.asPtr<IConnectionInternal>(true);
 
@@ -694,11 +702,7 @@ TEST_F(DataPathTest, DequeueUpToNoLossNoDuplication)
         [&]
         {
             for (int64_t i = 0; i < target; ++i)
-            {
-                const auto packet = DataPacket(sigDesc, 1);
-                *static_cast<int64_t*>(packet.getRawData()) = i;
-                signal.sendPacket(packet);
-            }
+                sendFilledInt64(signal, sigDesc, 1, i);
             stop.store(true, std::memory_order_release);
         });
 
@@ -734,24 +738,14 @@ TEST_F(DataPathTest, DequeueUpToNoLossNoDuplication)
 TEST_F(DataPathTest, MultiThreadedGetLastValueVsProducer)
 {
     const auto ctx = NullContext();
-    const auto sigDesc = DataDescriptorBuilder().setSampleType(SampleType::Int64).build();
-    const auto signal = Signal(ctx, nullptr, "sig");
-    signal.setDescriptor(sigDesc);
+    const auto sigDesc = plainDescriptor(SampleType::Int64);
+    const auto signal = makeSignal(ctx, sigDesc);
 
-    std::atomic<bool> stop{false};
-    std::thread producer(
-        [&]
+    BackgroundLoop producer(
+        [&, counter = int64_t{0}]() mutable
         {
-            int64_t counter = 0;
-            while (!stop.load(std::memory_order_relaxed))
-            {
-                const auto packet = DataPacket(sigDesc, 4);
-                auto* data = static_cast<int64_t*>(packet.getRawData());
-                for (int i = 0; i < 4; ++i)
-                    data[i] = counter;
-                signal.sendPacket(packet);
-                ++counter;
-            }
+            sendFilledInt64(signal, sigDesc, 4, counter);
+            ++counter;
         });
 
     std::atomic<bool> malformed{false};
@@ -774,7 +768,6 @@ TEST_F(DataPathTest, MultiThreadedGetLastValueVsProducer)
 
     for (auto& r : readers)
         r.join();
-    stop.store(true);
     producer.join();
 
     ASSERT_FALSE(malformed.load()) << "getLastValue returned a malformed value under concurrency";
@@ -786,23 +779,14 @@ TEST_F(DataPathTest, MultiThreadedGetLastValueVsProducer)
 TEST_F(DataPathTest, StressSetListenerVsDisconnect)
 {
     const auto ctx = NullContext();
-    const auto sigDesc = DataDescriptorBuilder().setSampleType(SampleType::Float64).build();
-    const auto signal = Signal(ctx, nullptr, "sig");
-    signal.setDescriptor(sigDesc);
+    const auto sigDesc = plainDescriptor(SampleType::Float64);
+    const auto signal = makeSignal(ctx, sigDesc);
 
-    std::atomic<bool> stopProducer{false};
-    std::thread producer(
-        [&]
-        {
-            const auto packet = DataPacket(sigDesc, 16);
-            while (!stopProducer.load(std::memory_order_relaxed))
-                signal.sendPacket(packet);
-        });
+    auto producer = spamPackets(signal, sigDesc);
 
     for (int round = 0; round < 60; ++round)
     {
-        auto port = InputPort(ctx, nullptr, "ip");
-        port.connect(signal);  // seeds the descriptor event -> latch is set
+        auto port = connectedPort(ctx, signal);  // connect seeds the descriptor event -> latch is set
         const auto connection = port.getConnection();
         auto internal = connection.asPtr<IConnectionInternal>(true);
 
@@ -833,7 +817,6 @@ TEST_F(DataPathTest, StressSetListenerVsDisconnect)
         ASSERT_EQ(connection.getPacketCount(), 0u);
     }
 
-    stopProducer.store(true);
     producer.join();
 }
 
@@ -843,49 +826,43 @@ TEST_F(DataPathTest, StressSetListenerVsDisconnect)
 TEST_F(DataPathTest, StressSendVariantsUnderChurn)
 {
     const auto ctx = NullContext();
-    const auto sigDesc = DataDescriptorBuilder().setSampleType(SampleType::Int64).build();
-    const auto signal = Signal(ctx, nullptr, "sig");
-    signal.setDescriptor(sigDesc);
+    const auto sigDesc = plainDescriptor(SampleType::Int64);
+    const auto signal = makeSignal(ctx, sigDesc);
 
-    std::atomic<bool> stop{false};
     std::atomic<int64_t> sent{0};
-    std::thread producer(
-        [&]
+    BackgroundLoop producer(
+        [&, i = 0]() mutable
         {
-            int i = 0;
-            while (!stop.load(std::memory_order_relaxed))
+            switch (i % 4)
             {
-                switch (i % 4)
+                case 0:  // single, by const ref
                 {
-                    case 0:  // single, by const ref
-                    {
-                        auto p = DataPacket(sigDesc, 4);
-                        signal.sendPacket(p);
-                        break;
-                    }
-                    case 1:  // multiple, by const ref
-                    {
-                        auto list = List<IPacket>();
-                        list.pushBack(DataPacket(sigDesc, 4));
-                        list.pushBack(DataPacket(sigDesc, 4));
-                        signal.sendPackets(list);
-                        break;
-                    }
-                    case 2:  // single, steal ref (rvalue overload)
-                        signal.sendPacket(DataPacket(sigDesc, 4));
-                        break;
-                    case 3:  // multiple, steal ref
-                    {
-                        auto list = List<IPacket>();
-                        list.pushBack(DataPacket(sigDesc, 4));
-                        list.pushBack(DataPacket(sigDesc, 4));
-                        signal.sendPackets(std::move(list));
-                        break;
-                    }
+                    auto p = DataPacket(sigDesc, 4);
+                    signal.sendPacket(p);
+                    break;
                 }
-                ++i;
-                sent.fetch_add(1, std::memory_order_relaxed);
+                case 1:  // multiple, by const ref
+                {
+                    auto list = List<IPacket>();
+                    list.pushBack(DataPacket(sigDesc, 4));
+                    list.pushBack(DataPacket(sigDesc, 4));
+                    signal.sendPackets(list);
+                    break;
+                }
+                case 2:  // single, steal ref (rvalue overload)
+                    signal.sendPacket(DataPacket(sigDesc, 4));
+                    break;
+                case 3:  // multiple, steal ref
+                {
+                    auto list = List<IPacket>();
+                    list.pushBack(DataPacket(sigDesc, 4));
+                    list.pushBack(DataPacket(sigDesc, 4));
+                    signal.sendPackets(std::move(list));
+                    break;
+                }
             }
+            ++i;
+            sent.fetch_add(1, std::memory_order_relaxed);
         });
 
     while (sent.load(std::memory_order_relaxed) == 0)
@@ -893,15 +870,13 @@ TEST_F(DataPathTest, StressSendVariantsUnderChurn)
 
     for (int round = 0; round < 150; ++round)
     {
-        auto port = InputPort(ctx, nullptr, "ip");
-        port.connect(signal);
+        auto port = connectedPort(ctx, signal);
         const auto connection = port.getConnection();
         for (int d = 0; d < 20; ++d)
             connection.dequeueAll();
         port.disconnect();
     }
 
-    stop.store(true);
     producer.join();
     ASSERT_GT(sent.load(), 0);
 }
@@ -953,9 +928,8 @@ struct NotifyDrainListener : ImplementationOfWeak<IInputPortNotifications>
 TEST_F(DataPathTest, LostWakeupLiveness)
 {
     const auto ctx = NullContext();
-    const auto sigDesc = DataDescriptorBuilder().setSampleType(SampleType::Int64).build();
-    const auto signal = Signal(ctx, nullptr, "sig");
-    signal.setDescriptor(sigDesc);
+    const auto sigDesc = plainDescriptor(SampleType::Int64);
+    const auto signal = makeSignal(ctx, sigDesc);
 
     std::mutex m;
     std::condition_variable cv;
@@ -1089,27 +1063,21 @@ TEST_F(DataPathTest, CloseQueueWithParkedDrainChain)
 TEST_F(DataPathTest, LastValueUnderDescriptorChurn)
 {
     const auto ctx = NullContext();
-    const auto signal = Signal(ctx, nullptr, "sig");
 
     const SampleType types[] = {SampleType::Int16, SampleType::Int32, SampleType::Int64, SampleType::Float64};
     std::vector<DataDescriptorPtr> descs;
     for (auto t : types)
-        descs.push_back(DataDescriptorBuilder().setSampleType(t).build());
-    signal.setDescriptor(descs[0]);
+        descs.push_back(plainDescriptor(t));
+    const auto signal = makeSignal(ctx, descs[0]);
 
-    std::atomic<bool> stop{false};
     std::atomic<bool> failed{false};
-    std::thread producer(
-        [&]
+    BackgroundLoop producer(
+        [&, i = 0]() mutable
         {
-            int i = 0;
-            while (!stop.load(std::memory_order_relaxed))
-            {
-                const auto& d = descs[i % descs.size()];
-                signal.setDescriptor(d);
-                signal.sendPacket(DataPacket(d, 8));
-                ++i;
-            }
+            const auto& d = descs[i % descs.size()];
+            signal.setDescriptor(d);
+            signal.sendPacket(DataPacket(d, 8));
+            ++i;
         });
 
     for (int i = 0; i < 4000; ++i)
@@ -1126,7 +1094,6 @@ TEST_F(DataPathTest, LastValueUnderDescriptorChurn)
         }
     }
 
-    stop.store(true);
     producer.join();
     ASSERT_FALSE(failed.load()) << "getLastValue misbehaved under descriptor churn";
 }
@@ -1136,9 +1103,8 @@ TEST_F(DataPathTest, LastValueUnderDescriptorChurn)
 TEST_F(DataPathTest, SetLastValueEdgeCasesAndRace)
 {
     const auto ctx = NullContext();
-    const auto sigDesc = DataDescriptorBuilder().setSampleType(SampleType::Int64).build();
-    const auto signal = Signal(ctx, nullptr, "sig");
-    signal.setDescriptor(sigDesc);
+    const auto sigDesc = plainDescriptor(SampleType::Int64);
+    const auto signal = makeSignal(ctx, sigDesc);
     signal.asPtr<ISignalPrivate>(true).enableKeepLastValue(false);
 
     // nullptr explicit value -> nothing cached
@@ -1155,25 +1121,20 @@ TEST_F(DataPathTest, SetLastValueEdgeCasesAndRace)
     ASSERT_FALSE(ts.assigned());
 
     // race: producer role (setLastValue + sendPacket) vs config role (enableKeepLastValue)
-    std::atomic<bool> stop{false};
     std::atomic<bool> crashed{false};
-    std::thread producerRole(
-        [&]
+    BackgroundLoop producerRole(
+        [&, c = int64_t{0}]() mutable
         {
-            int64_t c = 0;
-            while (!stop.load(std::memory_order_relaxed))
+            try
             {
-                try
-                {
-                    signal.setLastValue(++c);  // throws INVALIDSTATE if caching got enabled - tolerated
-                }
-                catch (...)
-                {
-                }
-                const auto pk = DataPacket(sigDesc, 4);
-                *static_cast<int64_t*>(pk.getRawData()) = c;
-                signal.sendPacket(pk);
+                signal.setLastValue(++c);  // throws INVALIDSTATE if caching got enabled - tolerated
             }
+            catch (...)
+            {
+            }
+            const auto pk = DataPacket(sigDesc, 4);
+            *static_cast<int64_t*>(pk.getRawData()) = c;
+            signal.sendPacket(pk);
         });
     std::thread configRole(
         [&]
@@ -1199,7 +1160,6 @@ TEST_F(DataPathTest, SetLastValueEdgeCasesAndRace)
 
     configRole.join();
     reader.join();
-    stop.store(true);
     producerRole.join();
     ASSERT_FALSE(crashed.load());
 
@@ -1215,13 +1175,11 @@ TEST_F(DataPathTest, SetLastValueEdgeCasesAndRace)
 TEST_F(DataPathTest, EmptyAndEventPacketsThroughSendPath)
 {
     const auto ctx = NullContext();
-    const auto sigDesc = DataDescriptorBuilder().setSampleType(SampleType::Int64).build();
-    const auto signal = Signal(ctx, nullptr, "sig");
-    signal.setDescriptor(sigDesc);
+    const auto sigDesc = plainDescriptor(SampleType::Int64);
+    const auto signal = makeSignal(ctx, sigDesc);
 
     {
-        auto port = InputPort(ctx, nullptr, "ip");
-        port.connect(signal);
+        auto port = connectedPort(ctx, signal);
         const auto connection = port.getConnection();
         connection.dequeueAll();  // clear the connect descriptor event
 
@@ -1241,32 +1199,25 @@ TEST_F(DataPathTest, EmptyAndEventPacketsThroughSendPath)
     }
 
     // churn variant: interleave empty / normal / event packets under connect-disconnect
-    std::atomic<bool> stop{false};
-    std::thread producer(
-        [&]
+    BackgroundLoop producer(
+        [&, i = 0]() mutable
         {
-            int i = 0;
-            while (!stop.load(std::memory_order_relaxed))
+            switch (i % 3)
             {
-                switch (i % 3)
-                {
-                    case 0: signal.sendPacket(DataPacket(sigDesc, 0)); break;
-                    case 1: signal.sendPacket(DataPacket(sigDesc, 8)); break;
-                    case 2: signal.sendPacket(DataDescriptorChangedEventPacket(sigDesc, nullptr)); break;
-                }
-                ++i;
+                case 0: signal.sendPacket(DataPacket(sigDesc, 0)); break;
+                case 1: signal.sendPacket(DataPacket(sigDesc, 8)); break;
+                case 2: signal.sendPacket(DataDescriptorChangedEventPacket(sigDesc, nullptr)); break;
             }
+            ++i;
         });
 
     for (int round = 0; round < 100; ++round)
     {
-        auto port = InputPort(ctx, nullptr, "ip");
-        port.connect(signal);
+        auto port = connectedPort(ctx, signal);
         const auto connection = port.getConnection();
         connection.dequeueAll();
         port.disconnect();
     }
 
-    stop.store(true);
     producer.join();
 }

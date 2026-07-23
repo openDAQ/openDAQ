@@ -110,11 +110,16 @@ protected:
     std::list<ErrorInfoWrapper> errorInfoList;
 };
 
+// Per-thread holder of the error-guard scope stack. Deliberately trivially destructible: it lives in
+// thread-local storage, and on mingw-w64 the emutls block backing a thread_local may be freed/reused
+// before a registered thread-local destructor runs at thread exit, so any non-trivial destructor
+// would dereference freed memory and crash. With no destructor and raw-pointer members, no thread-exit
+// callback is registered; the small scope list is leaked at thread exit (harmless - the thread is
+// ending). Tracked error-guard objects are still released eagerly during normal use.
 class ErrorInfoHolder
 {
 public:
     ErrorInfoHolder() = default;
-    ~ErrorInfoHolder();
 
     void setErrorInfo(IErrorInfo* errorInfo);
     void extendErrorInfo(IErrorInfo* errorInfo);
@@ -129,9 +134,22 @@ public:
 
 private:
     using ContainerT = std::list<ErrorGuardImpl*>;
-    ContainerT* getOrCreateList();
 
-    std::unique_ptr<ContainerT> errorScopeList;
+    // Returns the current top-of-stack scope, or nullptr if none is active.
+    ErrorGuardImpl* currentScope() const;
+    // Ensures a scope exists to attach errors to (creating the owned sentinel guard if needed).
+    ErrorGuardImpl* getOrCreateBack();
+    // Releases and forgets the sentinel guard (if present) once its errors have been consumed.
+    void removeInitialGuard();
+
+    // Scope stack of non-owning guard pointers. Created lazily and freed as soon as it becomes empty
+    // (see removeScopeEntry), so a thread that exits with a balanced scope stack leaks nothing; the
+    // holder itself has no destructor (see class comment). Recreated on next use.
+    ContainerT* errorScopeList = nullptr;
+    // The sentinel guard collects errors raised outside any explicit guard - the only entry owned by
+    // the holder (regular guards are owned by their RAII wrappers). It is released eagerly by
+    // removeInitialGuard when its errors are consumed, so it does not linger as a tracked object.
+    ErrorGuardImpl* initialGuard = nullptr;
 };
 
 END_NAMESPACE_OPENDAQ

@@ -1982,7 +1982,18 @@ void GenericDevice<TInterface, Interfaces...>::serializeCustomObjectValues(const
     }
 
     DeviceInfoPtr deviceInfo;
-    checkErrorInfo(this->getInfo(&deviceInfo));
+    {
+        // the method created property "DaqDeviceInfo" on the first call
+        // if it was not done before, we will have a deadlock with enabled core event
+        const bool muted = this->coreEventMuted;
+        auto propInternal = this->objPtr.template asPtr<IPropertyObjectInternal>(true);
+        if (!muted)
+            propInternal->disableCoreEventTrigger();
+        const auto errCode = this->getInfo(&deviceInfo);
+        if (!muted)
+            propInternal->enableCoreEventTrigger();
+        checkErrorInfo(errCode);
+    }
 
     if (deviceInfo.assigned())
     {

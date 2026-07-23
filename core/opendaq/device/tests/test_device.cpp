@@ -190,8 +190,8 @@ public:
                                .setUnit(deviceDoamin.getUnit())
                                .build();
 
-        timeSignal = this->createAndAddSignal("Time", descriptor);
-        this->setDomainSignal(timeSignal);
+        timeSignal = this->createAndAddSignal("Time", descriptor, false);
+        timeSignal.getTags().asPtr<daq::ITagsPrivate>(true).add("DeviceDomain");
     }
 
     daq::SignalConfigPtr timeSignal;
@@ -202,7 +202,7 @@ TEST_F(DeviceTest, GetDomainSignal)
     const auto device = daq::createWithImplementation<daq::IDevice, DomainSignalDevice>();
 
     ASSERT_TRUE(device.getDomainSignal().assigned());
-    ASSERT_EQ(device.getDomainSignal(), device.getSignals()[0]);
+    ASSERT_EQ(device.getDomainSignal(), device.getSignals(daq::search::Any())[0]);
 }
 
 TEST_F(DeviceTest, GetTicksSinceOriginFromDomainSignal)

@@ -56,9 +56,6 @@ public:
     // IComponentPrivate
     ErrCode INTERFACE_FUNC setComponentConfig(IPropertyObject* config) override;
 
-    // IDevice
-    ErrCode INTERFACE_FUNC getDomainSignal(ISignal** signal) override;
-
 protected:
     void serializeCustomObjectValues(const SerializerPtr& serializer, bool forUpdate) override;
     void deserializeCustomObjectValues(const SerializedObjectPtr& serializedObject,
@@ -296,12 +293,6 @@ ErrCode MirroredDeviceBase<Interfaces...>::setComponentConfig(IPropertyObject* c
     }
 
     return errCode;
-}
-
-template <typename... Interfaces>
-ErrCode MirroredDeviceBase<Interfaces...>::getDomainSignal(ISignal** signal)
-{
-    return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOTIMPLEMENTED, "getDomainSignal is not implemented for MirroredDevice");
 }
 
 template <typename... Interfaces>

@@ -253,8 +253,6 @@ protected:
     DevicePtr getParentDevice();
     OperationModeType getOperationMode();
 
-    void setDomainSignal(const SignalPtr& signal);
-
 private:
     void getChannelsFromFolder(ListPtr<IChannel>& channelList, const FolderPtr& folder, const SearchFilterPtr& searchFilter, bool filterChannels = true);
     ListPtr<ISignal> getSignalsRecursiveInternal(const SearchFilterPtr& searchFilter);
@@ -1273,14 +1271,18 @@ template <typename TInterface, typename... Interfaces>
 ErrCode GenericDevice<TInterface, Interfaces...>::getDomainSignal(ISignal** signal)
 {
     OPENDAQ_PARAM_NOT_NULL(signal);
+
+    if (!this->domainSignal.assigned())
+    {
+        ListPtr<ISignal> signals;
+        OPENDAQ_RETURN_IF_FAILED(getSignals(&signals, search::RequireTags(List<IString>("DeviceDomain"))));
+
+        if (signals.assigned() && signals.getCount() > 0)
+            this->domainSignal = signals[0];
+    }
+
     *signal = this->domainSignal.addRefAndReturn();
     return OPENDAQ_SUCCESS;
-}
-
-template <typename TInterface, typename... Interfaces>
-void GenericDevice<TInterface, Interfaces...>::setDomainSignal(const SignalPtr& signal)
-{
-    this->domainSignal = signal;
 }
 
 template <typename TInterface, typename... Interfaces>

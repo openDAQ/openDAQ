@@ -593,8 +593,6 @@ void RefDeviceImpl::createSignals()
 {
     timeSignal = createAndAddSignal("Time", nullptr, false);
     timeSignal.getTags().asPtr<ITagsPrivate>(true).add("DeviceDomain");
-
-    setDomainSignal(timeSignal);
 }
 
 #ifdef DAQMODULES_REF_DEVICE_MODULE_SIMULATOR_ENABLED

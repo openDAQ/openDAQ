@@ -741,7 +741,11 @@ ErrCode GenericDevice<TInterface, Interfaces...>::getTicksSinceOrigin(uint64_t* 
 template <typename TInterface, typename... Interfaces>
 uint64_t GenericDevice<TInterface, Interfaces...>::onGetTicksSinceOrigin()
 {
-    if (this->domainSignal.assigned())
+    SignalPtr domainSignal;
+    if (OPENDAQ_FAILED(getDomainSignal(&domainSignal)))
+        daqClearErrorInfo();
+
+    if (domainSignal.assigned())
     {
         if (const auto lastValue = domainSignal.getLastValue(); lastValue.assigned())
             return lastValue;

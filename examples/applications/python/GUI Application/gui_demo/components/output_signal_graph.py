@@ -53,6 +53,9 @@ class OutputSignalGraph(ttk.Frame):
         self._dt = None
         self._sr = None
         self._first_tick = None
+        # running sample index: time is computed from this and the sample rate
+        # (read() returns values only; the domain signal is not read)
+        self._sample_pos = 0
 
         # name -> ISignal for chartable signals
         self._eligible = {}
@@ -228,6 +231,7 @@ class OutputSignalGraph(ttk.Frame):
 
         self._data.clear()
         self._first_tick = None
+        self._sample_pos = 0
         self._needs_redraw = True
 
         self._unit_str = ''
@@ -235,13 +239,16 @@ class OutputSignalGraph(ttk.Frame):
         self._tick_res_den = None
         self._window_size_in_samples = None
         self._dt = None
-        
+
         name = self._signal_var.get()
         signal = self._eligible.get(name)
         if signal is None:
+            self._set_scale_visible(False)
             return
 
         self._selected_signal = signal
+        # Linear/Log scale toggle is relevant once a signal is charted.
+        self._set_scale_visible(True)
         self._reader = daq.StreamReader(signal, skip_events=False)
 
     # MARK: Polling
@@ -340,6 +347,7 @@ class OutputSignalGraph(ttk.Frame):
         self._dt = None
 
         self._first_tick = None
+        self._sample_pos = 0
         self._data.clear()
         self._needs_redraw = True
 
@@ -388,8 +396,10 @@ class OutputSignalGraph(ttk.Frame):
 
             read_count = min(available, self.MAX_BUFFER_SIZE)
 
+            # Explicit signals: read values only and compute the domain time
+            # from the sample rate, instead of reading the domain ticks.
             try:
-                values, domain_ticks, status = self._reader.read_with_domain(
+                values, status = self._reader.read(
                     read_count, return_status=True)
             except RuntimeError as e:
                 print(f'[SignalPreview] Read failed: {e}')
@@ -397,7 +407,7 @@ class OutputSignalGraph(ttk.Frame):
                 return
 
             if len(values) > 0:
-                self._ingest(values, domain_ticks)
+                self._ingest(values)
 
             if status.read_status == daq.ReadStatus.Event:
                 self._handle_event_packet(status.event_packet)
@@ -449,6 +459,7 @@ class OutputSignalGraph(ttk.Frame):
         self._needs_redraw = True
         self._data.clear()
         self._first_tick = None
+        self._sample_pos = 0
         self._chart_ready = False
 
         if event_id != 'DATA_DESCRIPTOR_CHANGED':
@@ -462,26 +473,28 @@ class OutputSignalGraph(ttk.Frame):
         if not self._is_chartable(self._selected_descriptor, self._selected_domain_descriptor):
             self._deselect_signal()
 
-    def _ingest(self, values, domain_ticks):
-        if values is None or domain_ticks is None:
+    def _ingest(self, values):
+        if values is None:
             return
 
         n = len(values)
         if n == 0:
             return
 
-        if self._tick_res_num is None or self._tick_res_den is None:
+        if (self._tick_res_num is None or self._tick_res_den is None
+                or self._dt is None or self._sr is None):
             return
 
-        ratio = self._tick_res_num / self._tick_res_den
-        if self._first_tick is None:
-            self._first_tick = int(domain_ticks[0])
+        # Seconds per sample from the (linear) domain: tick_resolution * delta.
+        # The domain is not read; time comes from the running sample index.
+        dt_seconds = (self._tick_res_num / self._tick_res_den) * self._dt
 
-        base = self._first_tick
-        buf = self._data
-
-        t_arr = (domain_ticks.astype(np.float64) - base) * ratio
+        idx = self._sample_pos + np.arange(n, dtype=np.float64)
+        t_arr = idx * dt_seconds
         v_arr = values.astype(np.float64)
+        self._sample_pos += n
+
+        buf = self._data
 
         actual_points_per_frame = int(self._window_seconds * self._sr)
 

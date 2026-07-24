@@ -124,6 +124,8 @@ public:
     ErrCode INTERFACE_FUNC setOperationModeRecursive(OperationModeType modeType) override;
     ErrCode INTERFACE_FUNC getOperationMode(OperationModeType* modeType) override;
 
+    ErrCode INTERFACE_FUNC getDomainSignal(ISignal** signal) override;
+
     // IDevicePrivate
     ErrCode INTERFACE_FUNC setAsRoot() override;
     ErrCode INTERFACE_FUNC getDeviceConfig(IPropertyObject** config) override;
@@ -271,6 +273,7 @@ private:
     DeviceDomainPtr deviceDomain;
     OperationModeType operationMode {OperationModeType::Unknown};
     ListPtr<IInteger> availableOperationModes;
+    SignalPtr domainSignal;
 };
 
 template <typename TInterface, typename... Interfaces>
@@ -738,6 +741,15 @@ ErrCode GenericDevice<TInterface, Interfaces...>::getTicksSinceOrigin(uint64_t* 
 template <typename TInterface, typename... Interfaces>
 uint64_t GenericDevice<TInterface, Interfaces...>::onGetTicksSinceOrigin()
 {
+    SignalPtr domainSignal;
+    if (OPENDAQ_FAILED(getDomainSignal(&domainSignal)))
+        daqClearErrorInfo();
+
+    if (domainSignal.assigned())
+    {
+        if (const auto lastValue = domainSignal.getLastValue(); lastValue.assigned())
+            return lastValue;
+    }
     return 0;
 }
 
@@ -1256,6 +1268,24 @@ ErrCode GenericDevice<TInterface, Interfaces...>::getOperationMode(OperationMode
 {
     OPENDAQ_PARAM_NOT_NULL(modeType);
     *modeType = this->operationMode;
+    return OPENDAQ_SUCCESS;
+}
+
+template <typename TInterface, typename... Interfaces>
+ErrCode GenericDevice<TInterface, Interfaces...>::getDomainSignal(ISignal** signal)
+{
+    OPENDAQ_PARAM_NOT_NULL(signal);
+
+    if (!this->domainSignal.assigned())
+    {
+        ListPtr<ISignal> signals;
+        OPENDAQ_RETURN_IF_FAILED(getSignals(&signals, search::RequireTags(List<IString>("DeviceDomain"))));
+
+        if (signals.assigned() && signals.getCount() > 0)
+            this->domainSignal = signals[0];
+    }
+
+    *signal = this->domainSignal.addRefAndReturn();
     return OPENDAQ_SUCCESS;
 }
 

@@ -20,6 +20,10 @@
 #include <opendaq/mock/mock_streaming_factory.h>
 #include <opendaq/device_network_config_ptr.h>
 #include <opendaq/component_private_ptr.h>
+#include <opendaq/data_descriptor_factory.h>
+#include <opendaq/reference_domain_info_factory.h>
+#include <opendaq/packet_factory.h>
+#include <opendaq/device_domain_factory.h>
 #include "testutils/testutils.h"
 
 using DeviceTest = testing::Test;
@@ -154,6 +158,65 @@ public:
     }
 };
 
+
+class DomainSignalDevice final : public daq::Device
+{
+public:
+    DomainSignalDevice(const daq::ContextPtr& ctx = daq::NullContext(),
+                        const daq::ComponentPtr& parent = nullptr,
+                        const daq::StringPtr& localId = "dev")
+        : daq::Device(ctx, parent, localId)
+    {
+        const auto referenceDomainInfo = daq::ReferenceDomainInfoBuilder()
+                                        .setReferenceDomainId("ReferenceDomainId")
+                                        .setReferenceDomainOffset(0)
+                                        .setReferenceTimeProtocol(daq::TimeProtocol::Tai)
+                                        .build();
+
+        const auto deviceDoamin = daq::DeviceDomain(
+            daq::Ratio(1, 1'000'000),
+            "1970-01-01T00:00:00",
+            daq::Unit("s", -1, "seconds", "time"),
+            referenceDomainInfo
+        );
+        this->setDeviceDomain(deviceDoamin);
+
+        auto descriptor = daq::DataDescriptorBuilder()
+                               .setSampleType(daq::SampleType::Int64)
+                               .setReferenceDomainInfo(referenceDomainInfo)
+                               .setRule(daq::LinearDataRule(1, 0))
+                               .setOrigin(deviceDoamin.getOrigin())
+                               .setTickResolution(deviceDoamin.getTickResolution())
+                               .setUnit(deviceDoamin.getUnit())
+                               .build();
+
+        timeSignal = this->createAndAddSignal("Time", descriptor, false);
+        timeSignal.getTags().asPtr<daq::ITagsPrivate>(true).add("DeviceDomain");
+    }
+
+    daq::SignalConfigPtr timeSignal;
+};
+
+TEST_F(DeviceTest, GetDomainSignal)
+{
+    const auto device = daq::createWithImplementation<daq::IDevice, DomainSignalDevice>();
+
+    ASSERT_TRUE(device.getDomainSignal().assigned());
+    ASSERT_EQ(device.getDomainSignal(), device.getSignals(daq::search::Any())[0]);
+}
+
+TEST_F(DeviceTest, GetTicksSinceOriginFromDomainSignal)
+{
+    const auto device = daq::createWithImplementation<daq::IDevice, DomainSignalDevice>();
+    daq::SignalConfigPtr deviceDomainSignal = device.getDomainSignal();
+
+    auto packet = daq::DataPacket(deviceDomainSignal.getDescriptor(), 5, 0);
+
+    deviceDomainSignal.sendPacket(packet);
+
+    ASSERT_EQ(device.getTicksSinceOrigin(), packet.getLastValue());
+    ASSERT_EQ(device.getTicksSinceOrigin(), 4);
+}
 
 TEST_F(DeviceTest, DeviceInfoNameLocationSync)
 {

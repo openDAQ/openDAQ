@@ -44,7 +44,6 @@ public:
 
     // IDevice
     DeviceInfoPtr onGetInfo() override;
-    uint64_t onGetTicksSinceOrigin() override;
 
     bool allowAddDevicesFromModules() override;
     bool allowAddFunctionBlocksFromModules() override;

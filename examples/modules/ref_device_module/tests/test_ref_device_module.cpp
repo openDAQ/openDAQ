@@ -22,6 +22,7 @@
 #include <ref_device_module/version.h>
 #include <testutils/testutils.h>
 #include <chrono>
+#include <future>
 #include <thread>
 #include "../../../core/opendaq/opendaq/tests/test_config_provider.h"
 #include <iomanip>
@@ -164,7 +165,26 @@ TEST_F(RefDeviceModuleTest, DeviceDomainTicksSinceEpoch)
     auto module = CreateModule();
 
     auto device = module.createDevice("daqref://device1", nullptr);
+    auto reader = PacketReader(device.getDomainSignal());
 
+    // wait for the first data packet to be available
+    std::promise<void> promise;
+    std::future<void> future = promise.get_future();
+    reader.setOnDataAvailable([&reader, &promise] {
+        auto packets = reader.readAll();
+        for (const auto& packet : packets)
+        {
+            if (packet.getType() == PacketType::Data)
+            {
+                promise.set_value();
+                reader.setOnDataAvailable(nullptr);
+                return;
+            }
+        }
+    });
+
+    auto result = future.wait_for(std::chrono::seconds(1));
+    ASSERT_EQ(result, std::future_status::ready);
     auto res = device.getTicksSinceOrigin();
     ASSERT_GT(res, 0u);
 }

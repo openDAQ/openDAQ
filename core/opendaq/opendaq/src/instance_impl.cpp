@@ -415,6 +415,11 @@ ErrCode InstanceImpl::getSignalsRecursive(IList** signals, ISearchFilter* search
     return rootDevice->getSignalsRecursive(signals, searchFilter);
 }
 
+ErrCode InstanceImpl::getDomainSignal(ISignal** signal)
+{
+    return rootDevice->getDomainSignal(signal);
+}
+
 ErrCode InstanceImpl::getTicksSinceOrigin(uint64_t* ticks)
 {
     return rootDevice->getTicksSinceOrigin(ticks);

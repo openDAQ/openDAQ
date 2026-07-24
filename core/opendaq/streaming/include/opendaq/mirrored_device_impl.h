@@ -287,8 +287,8 @@ ErrCode MirroredDeviceBase<Interfaces...>::setComponentConfig(IPropertyObject* c
         auto deviceSelf = this->template borrowPtr<DevicePtr>();
         PropertyObjectPtr generalConfig = this->componentConfig.getPropertyValue("General");
         bool automaticallyConnectStreamings = generalConfig.getPropertyValue("AutomaticallyConnectStreaming");
-        if (automaticallyConnectStreamings &&
-            !(generalConfig.getPropertyValue("StreamingConnectionHeuristic") == 2)) // is not "NotConnected"
+        Int streamingConnectionHeuristic = generalConfig.getPropertyValue("StreamingConnectionHeuristic");
+        if (automaticallyConnectStreamings && streamingConnectionHeuristic != 2) // is not "NotConnected"
             streamingSourceManager = std::make_shared<StreamingSourceManager>(this->context, deviceSelf, this->componentConfig);
     }
 

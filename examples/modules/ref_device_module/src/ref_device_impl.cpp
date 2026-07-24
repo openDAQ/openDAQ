@@ -138,13 +138,6 @@ DeviceInfoPtr RefDeviceImpl::onGetInfo()
     return RefDeviceImpl::CreateDeviceInfo(moduleInfo, id, serialNumber);
 }
 
-uint64_t RefDeviceImpl::onGetTicksSinceOrigin()
-{
-    auto microSecondsSinceDeviceStart = getMicroSecondsSinceDeviceStart();
-    auto ticksSinceEpoch = microSecondsFromEpochToDeviceStart + microSecondsSinceDeviceStart;
-    return static_cast<SizeT>(ticksSinceEpoch.count());
-}
-
 bool RefDeviceImpl::allowAddDevicesFromModules()
 {
     return true;

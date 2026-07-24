@@ -95,6 +95,8 @@ public:
     ErrCode INTERFACE_FUNC getOperationMode(OperationModeType* modeType) override;
     ErrCode INTERFACE_FUNC findProperties(IList** properties, ISearchFilter* propertyFilter, ISearchFilter* componentFilter = nullptr) override;
 
+    ErrCode INTERFACE_FUNC getDomainSignal(ISignal** signal) override;
+
     // IDeviceDomain
     ErrCode INTERFACE_FUNC getTicksSinceOrigin(uint64_t* ticks) override;
 

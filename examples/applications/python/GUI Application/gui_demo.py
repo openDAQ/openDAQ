@@ -118,6 +118,10 @@ class App(tk.Tk):
         self._tree_action_buttons = {}
         self._tree_action_pos = {}
         self._tree_hover_row = None
+        # tree search / filter state
+        self._tree_all_items = []
+        self._filter_matches = []
+        self._search_results_visible = False
         self._indicator_click = False
         self._floating_dialogs = {}
         self._logs_window = None
@@ -353,6 +357,9 @@ class App(tk.Tk):
     def tree_widget_create(self, parent_frame):
         frame = ttk.Frame(parent_frame)
 
+        # filter row beneath the view tabs
+        self._tree_search_row_create(frame)
+
         # define columns
         tree = ttk.Treeview(frame, columns=('name', 'hash'), displaycolumns=(
             'name'), show='tree', selectmode=tk.BROWSE)
@@ -503,6 +510,243 @@ class App(tk.Tk):
         return daq.IFunctionBlock.can_cast_from(
             component) or daq.IDevice.can_cast_from(component)
 
+    # MARK: - Tree search / filter
+    def _tree_search_row_create(self, parent):
+        self._search_var = tk.StringVar()
+
+        row = ttk.Frame(parent)
+        row.pack(side=tk.TOP, fill=tk.X, padx=(0, 2), pady=2)
+        self._search_row_frame = row
+
+        entry = ttk.Entry(row, textvariable=self._search_var, width=50)
+        entry.pack(side=tk.LEFT)
+        self._search_entry = entry
+
+        ttk.Button(row, text='▾', width=2,
+                   command=self._toggle_search_results).pack(
+            side=tk.LEFT, padx=(2, 0))
+        ttk.Button(row, text='✕', width=2,
+                   command=self._clear_search).pack(side=tk.LEFT, padx=(2, 2))
+
+        # inline matches list: stays inside the main window (not a popup), so
+        # it never detaches when focus changes or you switch desktops. Hidden
+        # until there are matches.
+        results = tk.Frame(parent, relief=tk.SOLID, borderwidth=1, bg='white')
+        canvas = tk.Canvas(results, highlightthickness=0, bg='white', height=1)
+        sb = ttk.Scrollbar(results, orient=tk.VERTICAL, command=canvas.yview)
+        inner = tk.Frame(canvas, bg='white')
+        inner.bind('<Configure>',
+                   lambda e: canvas.configure(scrollregion=canvas.bbox('all')))
+        self._search_results_window = canvas.create_window(
+            (0, 0), window=inner, anchor='nw')
+        canvas.bind('<Configure>', lambda e: canvas.itemconfigure(
+            self._search_results_window, width=e.width))
+        canvas.configure(yscrollcommand=sb.set)
+        canvas.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
+        sb.pack(side=tk.RIGHT, fill=tk.Y)
+        self._search_results_frame = results
+        self._search_results_canvas = canvas
+        self._search_results_inner = inner
+
+        self._search_var.trace_add(
+            'write', lambda *a: self._on_search_changed())
+        entry.bind('<Escape>', lambda e: self._clear_search())
+        entry.bind('<Down>', lambda e: self._show_search_results())
+
+    def _on_search_changed(self):
+        self._apply_tree_filter()
+
+    def _clear_search(self):
+        self._hide_search_results()
+        if self._search_var.get():
+            self._search_var.set('')
+
+    @staticmethod
+    def _component_type_label(comp):
+        if comp is None:
+            return ''
+        checks = ((daq.IChannel, 'channel'), (daq.ISignal, 'signal'),
+                  (daq.IInputPort, 'input port'),
+                  (daq.IFunctionBlock, 'function block'),
+                  (daq.IDevice, 'device'), (daq.IServer, 'server'),
+                  (daq.IFolder, 'folder'))
+        for iface, label in checks:
+            try:
+                if iface.can_cast_from(comp):
+                    return label
+            except Exception:
+                pass
+        return ''
+
+    # (display_name, global_id, lowercase haystack) for a tree row
+    def _row_search_fields(self, iid):
+        comp = self.context.nodes.get(iid)
+        if comp is not None:
+            name = self.get_component_tree_name(comp)
+            type_label = self._component_type_label(comp)
+        else:
+            name = self.tree.item(iid, 'text').strip()
+            type_label = ''
+        hay = ' '.join((name, iid, type_label)).lower()
+        return name, iid, hay
+
+    # snapshot of the fully built tree, so the filter can restore it before
+    # re-applying without a full rebuild (keeps selection while typing)
+    def _tree_capture_structure(self):
+        self._tree_all_items = []
+
+        def walk(parent):
+            for index, iid in enumerate(self.tree.get_children(parent)):
+                self._tree_all_items.append(
+                    (iid, parent, index, bool(self.tree.item(iid, 'open'))))
+                walk(iid)
+        walk('')
+
+    def _tree_descendants(self, iid):
+        out = []
+        for child in self.tree.get_children(iid):
+            out.append(child)
+            out.extend(self._tree_descendants(child))
+        return out
+
+    # shows rows matching the search text plus their parent chain (and the
+    # subtree of a matched row); an empty search restores the full view
+    def _apply_tree_filter(self):
+        query = self._search_var.get().strip().lower() \
+            if hasattr(self, '_search_var') else ''
+
+        # restore the captured layout first
+        for iid, parent, index, is_open in self._tree_all_items:
+            if self.tree.exists(iid):
+                self.tree.move(iid, parent, index)
+                self.tree.item(iid, open=is_open)
+
+        self._filter_matches = []
+        if not query:
+            self._hide_search_results()
+            self._tree_overlays_update()
+            return
+
+        keep = set()
+        matches = []
+        for iid, parent, index, is_open in self._tree_all_items:
+            if iid in self._nested_fb_indicators:
+                continue  # skip the "add function block" placeholder rows
+            name, gid, hay = self._row_search_fields(iid)
+            if query in hay:
+                matches.append((iid, name, gid))
+                keep.add(iid)
+                ancestor = self.tree.parent(iid)
+                while ancestor:
+                    keep.add(ancestor)
+                    ancestor = self.tree.parent(ancestor)
+
+        for iid, parent, index, is_open in self._tree_all_items:
+            if iid not in keep and self.tree.exists(iid):
+                self.tree.detach(iid)
+
+        # collapse redundant single default folders in the filtered view
+        self._filter_splice_single_folders()
+        self._open_all_visible()
+
+        self._filter_matches = matches
+        if matches:
+            self._show_search_results()
+        else:
+            self._hide_search_results()
+        self._tree_overlays_update()
+
+    # like tree_splice_single_folders but hides (detach) instead of deleting,
+    # so the full tree can be restored when the filter changes
+    def _filter_splice_single_folders(self, parent_iid=''):
+        for iid in self.tree.get_children(parent_iid):
+            self._filter_splice_single_folders(iid)
+        if not parent_iid:
+            return
+        children = self.tree.get_children(parent_iid)
+        if len(children) != 1 or not self._is_default_folder(children[0]):
+            return
+        folder_iid = children[0]
+        for index, child in enumerate(self.tree.get_children(folder_iid)):
+            self.tree.move(child, parent_iid, index)
+        self.tree.detach(folder_iid)
+
+    def _open_all_visible(self, parent_iid=''):
+        for iid in self.tree.get_children(parent_iid):
+            self.tree.item(iid, open=True)
+            self._open_all_visible(iid)
+
+    # ---- inline matches list (name in black, global id in gray) ----
+    def _toggle_search_results(self):
+        if self._search_results_visible:
+            self._hide_search_results()
+        elif self._filter_matches:
+            self._show_search_results()
+
+    def _show_search_results(self):
+        self._populate_search_results()
+        if not self._filter_matches:
+            self._hide_search_results()
+            return
+        if not self._search_results_visible:
+            self._search_results_frame.pack(
+                after=self._search_row_frame, side=tk.TOP, fill=tk.X,
+                padx=(0, 2), pady=(0, 2))
+            self._search_results_visible = True
+
+    def _hide_search_results(self):
+        if self._search_results_visible:
+            self._search_results_frame.pack_forget()
+            self._search_results_visible = False
+
+    def _populate_search_results(self):
+        inner = self._search_results_inner
+        for child in inner.winfo_children():
+            child.destroy()
+        for iid, name, gid in self._filter_matches:
+            r = tk.Frame(inner, bg='white')
+            r.pack(fill=tk.X)
+            ln = tk.Label(r, text=name, fg='black', bg='white', anchor='w')
+            ln.pack(side=tk.LEFT, padx=(6, 0))
+            short = self.context.short_id(gid) if gid else ''
+            li = tk.Label(r, text=' | ' + short, fg='#808080', bg='white',
+                          anchor='w')
+            li.pack(side=tk.LEFT, padx=(0, 6))
+            for w in (r, ln, li):
+                w.bind('<Button-1>', lambda e, i=iid: self._search_jump_to(i))
+                w.bind('<Enter>',
+                       lambda e, ws=(r, ln, li): self._hl_row(ws, True))
+                w.bind('<Leave>',
+                       lambda e, ws=(r, ln, li): self._hl_row(ws, False))
+                w.bind('<MouseWheel>', self._search_results_wheel)
+        inner.update_idletasks()
+        count = max(len(self._filter_matches), 1)
+        per_row = max(inner.winfo_reqheight() // count, 20)
+        visible = min(count, 8)
+        self._search_results_canvas.configure(height=per_row * visible)
+
+    def _search_results_wheel(self, event):
+        self._search_results_canvas.yview_scroll(
+            int(-1 * (event.delta / 120)), 'units')
+        return 'break'
+
+    def _hl_row(self, widgets, on):
+        bg = '#e4e4e4' if on else 'white'
+        for w in widgets:
+            try:
+                w.configure(bg=bg)
+            except Exception:
+                pass
+
+    # jump to a match but keep the current filter untouched
+    def _search_jump_to(self, iid):
+        if self.tree.exists(iid):
+            self.tree.see(iid)
+            self.tree.selection_set(iid)
+            self.tree.focus(iid)
+            self.tree.focus_set()
+        self._hide_search_results()
+
     def tree_update(self, new_selected_node=None):
         self.tree.delete(*self.tree.get_children())
         self.right_side_panel_clear()
@@ -528,13 +772,16 @@ class App(tk.Tk):
                 self.tree.insert('', tk.END, iid=mod_id,
                                  text=self._format_tree_item_text(display_name), open=False)
                 self.modules_map[mod_id] = mod
+            self._tree_capture_structure()
+            self._apply_tree_filter()
             return
 
         self.tree_traverse_components_recursive(
             self.context.instance, self.current_tab())
         self.tree_splice_single_folders()
         self.tree_insert_nested_fb_indicators()
-        self._tree_overlays_update()
+        self._tree_capture_structure()
+        self._apply_tree_filter()
         self.tree_restore_selection(
             self.context.selected_node)  # reset in case the selected node outdates
         self.set_node_update_status()

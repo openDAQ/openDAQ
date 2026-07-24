@@ -2,7 +2,8 @@
 
 ## Features
 
-- [#1242](https://github.com/openDAQ/openDAQ/pull/1242) implement IContext::getRootDevice
+- [#1242](https://github.com/openDAQ/openDAQ/pull/1242) Implement IContext::getRootDevice
+- [#1244](https://github.com/openDAQ/openDAQ/pull/1244) Static objects and object pool
 
 ## Python
 

@@ -111,8 +111,12 @@ class AddDeviceDialog(Dialog):
     def initial_update(self):
         self.update_parent_devices(
             self.parent_device_tree, '', self.context.instance)
-        self.select_parent_device(
-            self.context.instance.global_id)
+        # preselect the device the dialog was opened for, if any
+        parent_to_select = self.node.global_id if self.node is not None \
+            else self.context.instance.global_id
+        if not self.parent_device_tree.exists(parent_to_select):
+            parent_to_select = self.context.instance.global_id
+        self.select_parent_device(parent_to_select)
         self.conn_string_entry.focus_set()
 
     def select_parent_device(self, device_id: str):
@@ -253,7 +257,15 @@ class AddDeviceDialog(Dialog):
         self.context.selected_node = new_device
         self.event_port.emit()
         if self._keep_open_var.get():
-            self.update_child_devices(self.device_tree, self.dialog_parent_device)
+            # rebuild the parent tree so the newly added device shows up in
+            # it; restoring the selection re-triggers the device scan on the
+            # right side
+            parent_id = self.dialog_parent_device.global_id
+            self.update_parent_devices(
+                self.parent_device_tree, '', self.context.instance)
+            if not self.parent_device_tree.exists(parent_id):
+                parent_id = self.context.instance.global_id
+            self.select_parent_device(parent_id)
         else:
             self.close()
 
@@ -298,12 +310,15 @@ class AddDeviceDialog(Dialog):
 
         def fetch():
             try:
-                devices = [
-                    (daq.IDeviceInfo.cast_from(d).name,
-                     daq.IDeviceInfo.cast_from(d).location,
-                     daq.IDeviceInfo.cast_from(d).connection_string)
-                    for d in parent_device.available_devices
-                ]
+                show_demo = self.context.include_reference_devices
+                devices = []
+                for d in parent_device.available_devices:
+                    info = daq.IDeviceInfo.cast_from(d)
+                    conn = info.connection_string
+                    # skip internal demo/reference devices when disabled
+                    if not show_demo and self.context.is_demo_device(conn):
+                        continue
+                    devices.append((info.name, info.location, conn))
             except Exception:
                 devices = []
             self.after(0, lambda: self._on_devices_loaded(tree, devices, generation))

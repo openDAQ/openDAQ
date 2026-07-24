@@ -3,6 +3,7 @@
 import argparse
 import os
 import enum
+import gc
 import sys
 import platform
 
@@ -28,6 +29,8 @@ try:
     from gui_demo.components.add_server_dialog import AddServerDialog
     from gui_demo.components.add_function_block_dialog import AddFunctionBlockDialog
     from gui_demo.components.load_instance_config_dialog import LoadInstanceConfigDialog
+    from gui_demo.components.configure_instance_dialog import ConfigureInstanceDialog
+    from gui_demo.components.logs_window import LogsWindow
     from gui_demo.app_context import AppContext
     from gui_demo import utils
     from gui_demo.event_port import EventPort
@@ -38,6 +41,8 @@ except Exception as e:
     from opendaq.gui_demo.components.add_server_dialog import AddServerDialog
     from opendaq.gui_demo.components.add_function_block_dialog import AddFunctionBlockDialog
     from opendaq.gui_demo.components.load_instance_config_dialog import LoadInstanceConfigDialog
+    from opendaq.gui_demo.components.configure_instance_dialog import ConfigureInstanceDialog
+    from opendaq.gui_demo.components.logs_window import LogsWindow
     from opendaq.gui_demo.app_context import AppContext
     from opendaq.gui_demo import utils
     from opendaq.gui_demo.event_port import EventPort
@@ -109,33 +114,29 @@ class App(tk.Tk):
             self.context.connection_string = None
 
         self.modules_map = {}
+        self._nested_fb_indicators = {}
+        self._tree_action_buttons = {}
+        self._tree_action_pos = {}
+        self._tree_hover_row = None
+        # tree search / filter state
+        self._tree_all_items = []
+        self._filter_matches = []
+        self._search_results_visible = False
         self._indicator_click = False
+        self._floating_dialogs = {}
+        self._logs_window = None
 
         self.title('openDAQ demo')
         self.geometry('{}x{}'.format(
             int(1500 * self.context.ui_scaling_factor * self.context.dpi_factor),
             int(800 * self.context.ui_scaling_factor * self.context.dpi_factor)))
 
-        main_frame_top = ttk.Frame(self)
-        main_frame_top.pack(fill=tk.X)
+        # icons load first: menus, the refresh button and the tree action
+        # buttons all reference them
+        self.context.load_icons(os.path.join(
+            os.path.dirname(__file__), 'gui_demo', 'icons'))
 
         self.menu_bar_create()
-
-        add_device_button = ttk.Button(
-            main_frame_top, text='Add device', command=self.handle_add_device_button_clicked)
-        add_device_button.pack(side=tk.LEFT, padx=5)
-
-        add_function_block_button = ttk.Button(
-            main_frame_top, text='Add function block', command=self.handle_add_function_block_button_clicked)
-        add_function_block_button.pack(side=tk.LEFT, padx=5)
-        
-        add_server_button = ttk.Button(
-            main_frame_top, text='Add server', command=self.handle_add_server_button_clicked)
-        add_server_button.pack(side=tk.LEFT, padx=5)
-
-        refresh_button = ttk.Button(
-            main_frame_top, text='Refresh', command=self.handle_refresh_button_clicked)
-        refresh_button.pack(side=tk.LEFT, padx=5)
 
         main_frame_bottom = ttk.Frame(self)
         main_frame_bottom.pack(fill=tk.BOTH, expand=True)
@@ -150,6 +151,9 @@ class App(tk.Tk):
         nb.bind('<<NotebookTabChanged>>', self.on_tab_change)
         nb.pack(fill=tk.X)
         self.nb = nb
+
+        # refresh now lives in the tree's search/filter row (see
+        # _tree_search_row_create), so it no longer floats over the tab strip.
 
         main_frame_navigator = ttk.PanedWindow(
             main_frame_bottom, orient=tk.HORIZONTAL)
@@ -192,9 +196,12 @@ class App(tk.Tk):
         default_font = tkfont.nametofont('TkDefaultFont')
         default_font.configure(size=9 * self.context.ui_scaling_factor)
 
-        self.context.load_icons(os.path.join(
-            os.path.dirname(__file__), 'gui_demo', 'icons'))
+        # hover look for nested FB indicators: strong contrast marks the row
+        # as clickable (a single click adds the function block)
+        self.tree.tag_configure('nested_fb_hover',
+                                foreground='#1f1f1f', background='#e4e4e4')
 
+        self.instance_create()
         self.init_opendaq()
 
         if args.config != '':
@@ -202,7 +209,71 @@ class App(tk.Tk):
 
         self.poll_opendaq_events()
 
+    # MARK: - Instance lifecycle
+    def instance_create(self):
+        try:
+            self.context.create_instance()
+        except Exception as e:
+            print('Instance creation failed:', e, file=sys.stderr)
+            utils.show_error('Instance creation failed',
+                             f'{str(e)}\nStarting with default settings instead.', self)
+            self.context.module_path = None
+            self.context.create_instance()
+
+    def handle_reconfigure_instance_clicked(self):
+        dialog = ConfigureInstanceDialog(self, self.context)
+        dialog.show()
+        if dialog.confirmed:
+            self.instance_recreate()
+
+    # recreates the instance with the current context settings; the running
+    # setup (devices, function blocks, servers) is saved first and loaded
+    # into the new instance
+    def instance_recreate(self):
+        config_string = None
+        try:
+            config_string = self.context.instance.save_configuration()
+        except Exception as e:
+            print('Saving configuration failed:', e, file=sys.stderr)
+
+        # drop everything that references the old instance
+        for dialog in self._floating_dialogs.values():
+            if dialog.winfo_exists():
+                dialog.destroy()
+        self._floating_dialogs = {}
+        self.tree.delete(*self.tree.get_children())
+        self.right_side_panel_clear()
+        self._tree_hover_set(None)
+        self.context.selected_node = None
+        self.context.nodes = {}
+        self.context.signals = {}
+        self.context.custom_component_ids = set()
+        self.context.instance = None
+        gc.collect()  # release the old instance before creating the new one
+
+        # the old sink keeps its log file open; the new instance gets a
+        # fresh one and the logs window follows it automatically
+        self.context.next_log_file()
+        self.instance_create()
+
+        if config_string is not None:
+            try:
+                self.context.instance.load_configuration(
+                    config_string, daq.UpdateParameters())
+            except Exception as e:
+                print('Restoring configuration failed:', e, file=sys.stderr)
+                utils.show_error(
+                    'Reconfigure instance',
+                    f'New instance created, but restoring devices and '
+                    f'function blocks failed: {str(e)}', self)
+
+        self.tree_update()
+
     def poll_opendaq_events(self):
+        if self.context.instance is None:
+            self.after(50, self.poll_opendaq_events)
+            return
+
         try:
             daq.event_queue.process_events()
         except Exception as e:
@@ -216,6 +287,9 @@ class App(tk.Tk):
             self.context.instance.context.scheduler.run_main_loop_iteration()
         except Exception as e:
             print("Scheduler processing error:", e)
+
+        # safety net keeping the floating row-action buttons glued to their rows
+        self._tree_overlays_update()
 
         # Re-schedule after 50 ms
         self.after(50, self.poll_opendaq_events)
@@ -234,16 +308,25 @@ class App(tk.Tk):
         menu_bar = tk.Menu(self)
         self.config(menu=menu_bar)
 
+        icons = self.context.icons
+
         file_menu = tk.Menu(menu_bar, tearoff=0)
         menu_bar.add_cascade(label='File', menu=file_menu)
         file_menu.add_command(label='Load configuration',
+                              image=icons['load_config'], compound=tk.LEFT,
                               command=self.handle_load_config_button_clicked)
         file_menu.add_command(label='Save configuration',
+                              image=icons['save_config'], compound=tk.LEFT,
                               command=self.handle_save_config_button_clicked)
         file_menu.add_command(label='Load module',
+                              image=icons['load_module'], compound=tk.LEFT,
                               command=self.handle_load_modules_button_clicked)
+        file_menu.add_command(label='Reconfigure instance…',
+                              image=icons['settings'], compound=tk.LEFT,
+                              command=self.handle_reconfigure_instance_clicked)
         file_menu.add_separator()
-        file_menu.add_command(label='Exit', command=self.quit)
+        file_menu.add_command(label='Exit', image=icons['exit_app'],
+                              compound=tk.LEFT, command=self.quit)
 
         view_menu = tk.Menu(menu_bar, tearoff=0)
         menu_bar.add_cascade(label='View', menu=view_menu)
@@ -251,6 +334,10 @@ class App(tk.Tk):
 
         self._signal_preview_var = tk.BooleanVar(value=self.context.view_signal_preview)
         view_menu.add_checkbutton(label='Signal preview',variable=self._signal_preview_var,command=self.handle_view_signal_preview_toggled)
+        view_menu.add_separator()
+        view_menu.add_command(label='Show logs', image=icons['logs'],
+                              compound=tk.LEFT,
+                              command=self.handle_logs_button_clicked)
 
     def handle_view_show_hidden_components(self):
         self.context.view_hidden_components = not self.context.view_hidden_components
@@ -265,6 +352,9 @@ class App(tk.Tk):
     # MARK: - Tree view
     def tree_widget_create(self, parent_frame):
         frame = ttk.Frame(parent_frame)
+
+        # filter row beneath the view tabs
+        self._tree_search_row_create(frame)
 
         # define columns
         tree = ttk.Treeview(frame, columns=('name', 'hash'), displaycolumns=(
@@ -286,18 +376,441 @@ class App(tk.Tk):
         # add a scrollbar
         scroll_bar = ttk.Scrollbar(
             frame, orient=tk.VERTICAL, command=tree.yview)
-        tree.configure(yscroll=scroll_bar.set)
+
+        def tree_yscroll(first, last):
+            scroll_bar.set(first, last)
+            self._tree_overlays_update()  # immediate sync while scrolling
+        tree.configure(yscroll=tree_yscroll)
         scroll_bar.pack(fill=tk.Y, side=tk.RIGHT)
 
         parent_frame.add(frame)
         tree.tag_configure('warning', foreground=utils.StatusColor.WARNING)
         tree.tag_configure('error', foreground=utils.StatusColor.ERROR)
         tree.tag_configure('inactive', foreground='gray')
+        tree.tag_configure('nested_fb', foreground='gray')
+        tree.bind('<Configure>', lambda e: self._tree_overlays_update(), add='+')
+        tree.bind('<Motion>', self._handle_tree_motion)
+        tree.bind('<Leave>', self._handle_tree_leave)
+        style = ttk.Style()
+        self._tree_field_bg = style.lookup(
+            'Treeview', 'fieldbackground') or 'white'
+        # selection color, used to blend the floating buttons into a
+        # selected row (child widgets cannot be transparent in tk)
+        self._tree_selected_bg = '#0078d7'
+        for state_spec, color in style.map('Treeview', 'background'):
+            if 'selected' in state_spec:
+                self._tree_selected_bg = color
+                break
         self.tree = tree
+        self.tree_action_buttons_create()
+
+    # background the given row is currently painted with
+    def _row_background(self, iid):
+        if iid and self.tree.exists(iid):
+            if iid in self.tree.selection():
+                return self._tree_selected_bg
+            if 'nested_fb_hover' in self.tree.item(iid, 'tags'):
+                return '#e4e4e4'
+        return self._tree_field_bg
+
+    # floating per-row action buttons: logs + add pinned to the instance
+    # row, remove shown on the hovered row
+    def tree_action_buttons_create(self):
+        def make_button(icon_key, handler):
+            btn = tk.Label(self.tree, image=self.context.icons[icon_key],
+                           bg=self._tree_field_bg, bd=0)
+            btn.bind('<Button-1>', handler)
+            btn.bind('<Leave>', self._handle_action_button_leave)
+            return btn
+
+        self._tree_action_buttons = {
+            'logs': make_button('logs', lambda e: self.logs_window_show()),
+            'add': make_button('plus', self.handle_tree_add_clicked),
+            'remove': make_button('trash', self.handle_tree_remove_clicked),
+            'hover_add': make_button('plus', self.handle_tree_hover_add_clicked),
+        }
+
+    def handle_tree_add_clicked(self, event):
+        icons = self.context.icons
+        menu = tk.Menu(self.tree, tearoff=0)
+        menu.add_command(label='Add device', image=icons['device'],
+                         compound=tk.LEFT,
+                         command=self.handle_add_device_button_clicked)
+        menu.add_command(label='Add function block', image=icons['function_block'],
+                         compound=tk.LEFT,
+                         command=self.handle_add_function_block_button_clicked)
+        menu.add_command(label='Add server', image=icons['server'],
+                         compound=tk.LEFT,
+                         command=self.handle_add_server_button_clicked)
+        try:
+            menu.tk_popup(event.widget.winfo_rootx(),
+                          event.widget.winfo_rooty() + event.widget.winfo_height())
+        finally:
+            menu.grab_release()
+
+    def handle_tree_remove_clicked(self, event):
+        iid = self._tree_hover_row
+        component = self.context.nodes.get(iid) if iid else None
+        if component is None:
+            return
+        if daq.IFunctionBlock.can_cast_from(
+                component) and not daq.IChannel.can_cast_from(component):
+            self.handle_tree_menu_remove_function_block(
+                daq.IFunctionBlock.cast_from(component))
+        elif daq.IDevice.can_cast_from(component):
+            self.handle_tree_menu_remove_device(
+                daq.IDevice.cast_from(component))
+
+    # plus button on a hovered device row: add menu targeting that device
+    def handle_tree_hover_add_clicked(self, event):
+        iid = self._tree_hover_row
+        component = self.context.nodes.get(iid) if iid else None
+        if component is None or not daq.IDevice.can_cast_from(component):
+            return
+        device = daq.IDevice.cast_from(component)
+
+        icons = self.context.icons
+        menu = tk.Menu(self.tree, tearoff=0)
+        menu.add_command(label='Add device', image=icons['device'],
+                         compound=tk.LEFT,
+                         command=lambda: self.add_device_dialog_show(device))
+        try:
+            has_fb_types = bool(device.available_function_block_types)
+        except RuntimeError:
+            has_fb_types = False
+        if has_fb_types:
+            menu.add_command(
+                label='Add function block', image=icons['function_block'],
+                compound=tk.LEFT,
+                command=lambda: self.add_function_block_dialog_show(device))
+        try:
+            menu.tk_popup(event.widget.winfo_rootx(),
+                          event.widget.winfo_rooty() + event.widget.winfo_height())
+        finally:
+            menu.grab_release()
+
+    # True when the hovered row is a device that can receive children
+    def _device_addable(self, iid):
+        component = self.context.nodes.get(iid)
+        return component is not None and daq.IDevice.can_cast_from(component)
+
+    def _component_removable(self, iid):
+        component = self.context.nodes.get(iid)
+        if component is None:
+            return False
+        if self.context.instance is not None and \
+                component.global_id == self.context.instance.global_id:
+            return False
+        if daq.IChannel.can_cast_from(component):
+            return False
+        return daq.IFunctionBlock.can_cast_from(
+            component) or daq.IDevice.can_cast_from(component)
+
+    # MARK: - Tree search / filter
+    def _tree_search_row_create(self, parent):
+        self._search_var = tk.StringVar()
+
+        row = ttk.Frame(parent)
+        row.pack(side=tk.TOP, fill=tk.X, padx=(0, 2), pady=2)
+        self._search_row_frame = row
+
+        # flat, borderless icon buttons matching the tree action buttons; the
+        # background tracks the row so the transparent icon corners blend in
+        row_bg = ttk.Style().lookup('TFrame', 'background') or \
+            self.cget('background')
+        self._search_row_bg = row_bg
+
+        def flat_button(handler, image=None, text=None):
+            kwargs = {'bd': 0, 'bg': row_bg, 'cursor': 'hand2'}
+            if image is not None:
+                kwargs['image'] = image
+            if text is not None:
+                kwargs['text'] = text
+                kwargs['font'] = ('TkDefaultFont', 11)
+                kwargs['fg'] = '#555555'
+                kwargs['padx'] = 3
+            btn = tk.Label(row, **kwargs)
+            btn.bind('<Button-1>', lambda e: handler())
+            btn.bind('<Enter>', lambda e: btn.configure(bg='#e4e4e4'))
+            btn.bind('<Leave>', lambda e: btn.configure(bg=row_bg))
+            return btn
+
+        icons = self.context.icons
+        entry = ttk.Entry(row, textvariable=self._search_var, width=50)
+        entry.pack(side=tk.LEFT)
+        self._search_entry = entry
+
+        open_btn = flat_button(
+            self._toggle_search_results, image=icons.get('down'),
+            text=None if icons.get('down') else '▾')
+        open_btn.pack(side=tk.LEFT, padx=(4, 0))
+
+        clear_btn = flat_button(self._clear_search, text='✕')
+        clear_btn.pack(side=tk.LEFT, padx=(4, 0))
+
+        refresh_btn = flat_button(
+            self.handle_refresh_button_clicked, image=icons.get('refresh'),
+            text=None if icons.get('refresh') else '↻')
+        refresh_btn.pack(side=tk.LEFT, padx=(6, 2))
+        self._search_refresh_button = refresh_btn
+
+        # matches list: a floating popup so it overlays the tree (instead of
+        # pushing it down), sits directly under the search box at the same
+        # width, and can be nudged a few points higher. Hidden until there
+        # are matches.
+        popup = tk.Toplevel(parent)
+        popup.withdraw()
+        popup.overrideredirect(True)
+        popup.transient(parent.winfo_toplevel())
+        results = tk.Frame(popup, relief=tk.SOLID, borderwidth=1, bg='white')
+        results.pack(fill=tk.BOTH, expand=True)
+        canvas = tk.Canvas(results, highlightthickness=0, bg='white', height=1)
+        sb = ttk.Scrollbar(results, orient=tk.VERTICAL, command=canvas.yview)
+        inner = tk.Frame(canvas, bg='white')
+        inner.bind('<Configure>',
+                   lambda e: canvas.configure(scrollregion=canvas.bbox('all')))
+        self._search_results_window = canvas.create_window(
+            (0, 0), window=inner, anchor='nw')
+        canvas.bind('<Configure>', lambda e: canvas.itemconfigure(
+            self._search_results_window, width=e.width))
+        canvas.configure(yscrollcommand=sb.set)
+        canvas.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
+        sb.pack(side=tk.RIGHT, fill=tk.Y)
+        self._search_results_popup = popup
+        self._search_results_frame = results
+        self._search_results_canvas = canvas
+        self._search_results_inner = inner
+
+        self._search_var.trace_add(
+            'write', lambda *a: self._on_search_changed())
+        entry.bind('<Escape>', lambda e: self._clear_search())
+        entry.bind('<Down>', lambda e: self._show_search_results())
+        entry.bind('<FocusOut>',
+                   lambda e: self.after(150, self._maybe_hide_search_results))
+
+    def _on_search_changed(self):
+        self._apply_tree_filter()
+
+    def _clear_search(self):
+        self._hide_search_results()
+        if self._search_var.get():
+            self._search_var.set('')
+
+    @staticmethod
+    def _component_type_label(comp):
+        if comp is None:
+            return ''
+        checks = ((daq.IChannel, 'channel'), (daq.ISignal, 'signal'),
+                  (daq.IInputPort, 'input port'),
+                  (daq.IFunctionBlock, 'function block'),
+                  (daq.IDevice, 'device'), (daq.IServer, 'server'),
+                  (daq.IFolder, 'folder'))
+        for iface, label in checks:
+            try:
+                if iface.can_cast_from(comp):
+                    return label
+            except Exception:
+                pass
+        return ''
+
+    # (display_name, global_id, lowercase haystack) for a tree row
+    def _row_search_fields(self, iid):
+        comp = self.context.nodes.get(iid)
+        if comp is not None:
+            name = self.get_component_tree_name(comp)
+            type_label = self._component_type_label(comp)
+        else:
+            name = self.tree.item(iid, 'text').strip()
+            type_label = ''
+        hay = ' '.join((name, iid, type_label)).lower()
+        return name, iid, hay
+
+    # snapshot of the fully built tree, so the filter can restore it before
+    # re-applying without a full rebuild (keeps selection while typing)
+    def _tree_capture_structure(self):
+        self._tree_all_items = []
+
+        def walk(parent):
+            for index, iid in enumerate(self.tree.get_children(parent)):
+                self._tree_all_items.append(
+                    (iid, parent, index, bool(self.tree.item(iid, 'open'))))
+                walk(iid)
+        walk('')
+
+    def _tree_descendants(self, iid):
+        out = []
+        for child in self.tree.get_children(iid):
+            out.append(child)
+            out.extend(self._tree_descendants(child))
+        return out
+
+    # shows rows matching the search text plus their parent chain (and the
+    # subtree of a matched row); an empty search restores the full view
+    def _apply_tree_filter(self):
+        query = self._search_var.get().strip().lower() \
+            if hasattr(self, '_search_var') else ''
+
+        # restore the captured layout first
+        for iid, parent, index, is_open in self._tree_all_items:
+            if self.tree.exists(iid):
+                self.tree.move(iid, parent, index)
+                self.tree.item(iid, open=is_open)
+
+        self._filter_matches = []
+        if not query:
+            self._hide_search_results()
+            self._tree_overlays_update()
+            return
+
+        keep = set()
+        matches = []
+        for iid, parent, index, is_open in self._tree_all_items:
+            if iid in self._nested_fb_indicators:
+                continue  # skip the "add function block" placeholder rows
+            name, gid, hay = self._row_search_fields(iid)
+            if query in hay:
+                matches.append((iid, name, gid))
+                keep.add(iid)
+                ancestor = self.tree.parent(iid)
+                while ancestor:
+                    keep.add(ancestor)
+                    ancestor = self.tree.parent(ancestor)
+
+        for iid, parent, index, is_open in self._tree_all_items:
+            if iid not in keep and self.tree.exists(iid):
+                self.tree.detach(iid)
+
+        # collapse redundant single default folders in the filtered view
+        self._filter_splice_single_folders()
+        self._open_all_visible()
+
+        self._filter_matches = matches
+        if matches:
+            self._show_search_results()
+        else:
+            self._hide_search_results()
+        self._tree_overlays_update()
+
+    # like tree_splice_single_folders but hides (detach) instead of deleting,
+    # so the full tree can be restored when the filter changes
+    def _filter_splice_single_folders(self, parent_iid=''):
+        for iid in self.tree.get_children(parent_iid):
+            self._filter_splice_single_folders(iid)
+        if not parent_iid:
+            return
+        children = self.tree.get_children(parent_iid)
+        if len(children) != 1 or not self._is_default_folder(children[0]):
+            return
+        folder_iid = children[0]
+        for index, child in enumerate(self.tree.get_children(folder_iid)):
+            self.tree.move(child, parent_iid, index)
+        self.tree.detach(folder_iid)
+
+    def _open_all_visible(self, parent_iid=''):
+        for iid in self.tree.get_children(parent_iid):
+            self.tree.item(iid, open=True)
+            self._open_all_visible(iid)
+
+    # ---- floating matches list (name in black, global id in gray) ----
+    def _toggle_search_results(self):
+        if self._search_results_visible:
+            self._hide_search_results()
+        elif self._filter_matches:
+            self._show_search_results()
+
+    def _show_search_results(self):
+        self._populate_search_results()
+        if not self._filter_matches:
+            self._hide_search_results()
+            return
+        self._position_search_results()
+        self._search_results_popup.deiconify()
+        self._search_results_popup.lift()
+        self._search_results_visible = True
+
+    def _position_search_results(self):
+        entry = self._search_entry
+        entry.update_idletasks()
+        x = entry.winfo_rootx()
+        # sit directly under the box, nudged up 3 points
+        y = entry.winfo_rooty() + entry.winfo_height() - 3
+        width = entry.winfo_width()
+        canvas_h = int(float(self._search_results_canvas.cget('height')))
+        height = canvas_h + 2  # account for the 1px border on each side
+        self._search_results_popup.geometry(f'{width}x{height}+{x}+{y}')
+
+    def _hide_search_results(self):
+        if self._search_results_visible:
+            self._search_results_popup.withdraw()
+            self._search_results_visible = False
+
+    def _maybe_hide_search_results(self):
+        # keep the popup open while focus is in the search row (box + buttons)
+        # or in the popup itself
+        try:
+            focus_widget = self.focus_get()
+        except Exception:
+            focus_widget = None
+        w = focus_widget
+        while w is not None:
+            if w is self._search_results_popup or w is self._search_row_frame:
+                return
+            w = getattr(w, 'master', None)
+        self._hide_search_results()
+
+    def _populate_search_results(self):
+        inner = self._search_results_inner
+        for child in inner.winfo_children():
+            child.destroy()
+        for iid, name, gid in self._filter_matches:
+            r = tk.Frame(inner, bg='white')
+            r.pack(fill=tk.X)
+            ln = tk.Label(r, text=name, fg='black', bg='white', anchor='w')
+            ln.pack(side=tk.LEFT, padx=(6, 0))
+            short = self.context.short_id(gid) if gid else ''
+            li = tk.Label(r, text=short, fg='#808080', bg='white',
+                          anchor='w')
+            li.pack(side=tk.LEFT, padx=(8, 6))
+            for w in (r, ln, li):
+                w.bind('<Button-1>', lambda e, i=iid: self._search_jump_to(i))
+                w.bind('<Enter>',
+                       lambda e, ws=(r, ln, li): self._hl_row(ws, True))
+                w.bind('<Leave>',
+                       lambda e, ws=(r, ln, li): self._hl_row(ws, False))
+                w.bind('<MouseWheel>', self._search_results_wheel)
+        inner.update_idletasks()
+        count = max(len(self._filter_matches), 1)
+        per_row = max(inner.winfo_reqheight() // count, 20)
+        visible = min(count, 8)
+        self._search_results_canvas.configure(height=per_row * visible)
+
+    def _search_results_wheel(self, event):
+        self._search_results_canvas.yview_scroll(
+            int(-1 * (event.delta / 120)), 'units')
+        return 'break'
+
+    def _hl_row(self, widgets, on):
+        bg = '#e4e4e4' if on else 'white'
+        for w in widgets:
+            try:
+                w.configure(bg=bg)
+            except Exception:
+                pass
+
+    # jump to a match but keep the current filter untouched
+    def _search_jump_to(self, iid):
+        if self.tree.exists(iid):
+            self.tree.see(iid)
+            self.tree.selection_set(iid)
+            self.tree.focus(iid)
+            self.tree.focus_set()
+        self._hide_search_results()
 
     def tree_update(self, new_selected_node=None):
         self.tree.delete(*self.tree.get_children())
         self.right_side_panel_clear()
+        self._nested_fb_indicators = {}
+        self._tree_hover_set(None)
 
         self.context.selected_node = new_selected_node
 
@@ -318,10 +831,16 @@ class App(tk.Tk):
                 self.tree.insert('', tk.END, iid=mod_id,
                                  text=self._format_tree_item_text(display_name), open=False)
                 self.modules_map[mod_id] = mod
+            self._tree_capture_structure()
+            self._apply_tree_filter()
             return
 
         self.tree_traverse_components_recursive(
             self.context.instance, self.current_tab())
+        self.tree_splice_single_folders()
+        self.tree_insert_nested_fb_indicators()
+        self._tree_capture_structure()
+        self._apply_tree_filter()
         self.tree_restore_selection(
             self.context.selected_node)  # reset in case the selected node outdates
         self.set_node_update_status()
@@ -420,6 +939,8 @@ class App(tk.Tk):
             icon = self.context.icons['input_port']
         elif daq.IDevice.can_cast_from(component):
             icon = self.context.icons['device']
+        elif daq.IServer.can_cast_from(component):
+            icon = self.context.icons['server']
         elif daq.IFolder.can_cast_from(component):
             icon = self.context.icons['folder']
             component_name = self.get_component_tree_name(component)
@@ -443,6 +964,193 @@ class App(tk.Tk):
             
             self.tree.insert(parent_node_id, tk.END, iid=component_node_id, image=icon,
                              text=self._format_tree_item_text(component_name), open=is_open, values=(component_node_id,), tags=(status_string,))
+
+    # a default folder that is the only child of its parent adds a level
+    # without information; hoist its children up and drop the folder row
+    def tree_splice_single_folders(self, parent_iid=''):
+        for iid in self.tree.get_children(parent_iid):
+            self.tree_splice_single_folders(iid)
+        if not parent_iid:
+            return
+        children = self.tree.get_children(parent_iid)
+        if len(children) != 1 or not self._is_default_folder(children[0]):
+            return
+        folder_iid = children[0]
+        for index, child in enumerate(self.tree.get_children(folder_iid)):
+            self.tree.move(child, parent_iid, index)
+        self.tree.delete(folder_iid)
+
+    # MARK: - Nested function block indicators
+
+    # appends a grayed-out indicator row for every nested function block
+    # type a function block or channel offers; a single click on the row
+    # adds that function block directly
+    def tree_insert_nested_fb_indicators(self, parent_iid=''):
+        for iid in self.tree.get_children(parent_iid):
+            self.tree_insert_nested_fb_indicators(iid)
+
+            component = self.context.nodes.get(iid)
+            if component is None or not daq.IFunctionBlock.can_cast_from(component):
+                continue
+
+            fb = daq.IFunctionBlock.cast_from(component)
+            try:
+                fb_types = fb.available_function_block_types
+            except RuntimeError:
+                continue
+            if not fb_types:
+                continue
+
+            # types already instantiated under this block don't get an indicator
+            # (nested blocks usually accept a single instance per type)
+            existing_type_ids = set()
+            try:
+                for child_fb in fb.function_blocks:
+                    try:
+                        existing_type_ids.add(
+                            str(child_fb.function_block_type.id))
+                    except RuntimeError:
+                        pass
+            except (RuntimeError, AttributeError):
+                pass
+
+            for fb_type_id in fb_types.keys():
+                fb_type_id = str(fb_type_id)
+                if fb_type_id in existing_type_ids:
+                    continue
+                try:
+                    display_name = daq.IComponentType.cast_from(
+                        fb_types[fb_type_id]).name or fb_type_id
+                except RuntimeError:
+                    display_name = fb_type_id
+
+                indicator_iid = f'__nested_fb__|{iid}|{fb_type_id}'
+                if self.tree.exists(indicator_iid):
+                    continue
+                self.tree.insert(iid, tk.END, iid=indicator_iid,
+                                 image=self.context.icons['add_fb'],
+                                 text=self._format_tree_item_text(display_name),
+                                 tags=('nested_fb',))
+                self._nested_fb_indicators[indicator_iid] = (iid, fb_type_id)
+
+                # expand the ancestor chain so the indicator is visible
+                ancestor = iid
+                while ancestor:
+                    self.tree.item(ancestor, open=True)
+                    ancestor = self.tree.parent(ancestor)
+
+    # places the floating row-action buttons: logs + add pinned to the
+    # instance row, remove on the hovered row when it is removable
+    def _tree_overlays_update(self):
+        if not self._tree_action_buttons:
+            return
+
+        pad = int(6 * self.context.ui_scaling_factor * self.context.dpi_factor)
+        width = self.tree.winfo_width()
+        placements = {}
+
+        backgrounds = {}
+        root_iid = self.context.instance.global_id \
+            if self.context.instance is not None else None
+        if root_iid and self.tree.exists(root_iid):
+            bbox = self.tree.bbox(root_iid)
+            if bbox:
+                x = width - pad
+                for key in ('add', 'logs'):
+                    btn = self._tree_action_buttons[key]
+                    x -= btn.winfo_reqwidth()
+                    if x <= 0:
+                        break
+                    y = bbox[1] + (bbox[3] - btn.winfo_reqheight()) // 2
+                    placements[key] = (x, y)
+                    backgrounds[key] = self._row_background(root_iid)
+                    x -= pad
+
+        hover = self._tree_hover_row
+        if hover and hover != root_iid and self.tree.exists(hover):
+            bbox = self.tree.bbox(hover)
+            if bbox:
+                # keep the '+' (add) rightmost, remove to its left
+                wanted = (('hover_add', self._device_addable(hover)),
+                          ('remove', self._component_removable(hover)))
+                x = width - pad
+                for key, show in wanted:
+                    if not show:
+                        continue
+                    btn = self._tree_action_buttons[key]
+                    x -= btn.winfo_reqwidth()
+                    if x <= 0:
+                        break
+                    y = bbox[1] + (bbox[3] - btn.winfo_reqheight()) // 2
+                    placements[key] = (x, y)
+                    backgrounds[key] = self._row_background(hover)
+                    x -= pad
+
+        for key, btn in self._tree_action_buttons.items():
+            pos = placements.get(key)
+            if pos is None:
+                if self._tree_action_pos.get(key) is not None:
+                    btn.place_forget()
+                    self._tree_action_pos[key] = None
+                continue
+            # blend into the row the button floats over
+            bg = backgrounds.get(key, self._tree_field_bg)
+            if str(btn.cget('bg')) != bg:
+                btn.configure(bg=bg)
+            if self._tree_action_pos.get(key) != pos:
+                btn.place(x=pos[0], y=pos[1])
+                self._tree_action_pos[key] = pos
+
+    # tracks the hovered row: nested FB indicators get their hover style,
+    # removable rows get the floating remove button
+    def _tree_hover_set(self, iid):
+        if iid and not self.tree.exists(iid):
+            iid = None
+        if iid == self._tree_hover_row:
+            return
+        prev = self._tree_hover_row
+        if prev and prev in self._nested_fb_indicators and self.tree.exists(prev):
+            self.tree.item(prev, tags=('nested_fb',))
+        self._tree_hover_row = iid
+        if iid and iid in self._nested_fb_indicators:
+            self.tree.item(iid, tags=('nested_fb_hover',))
+        self._tree_overlays_update()
+
+    def _handle_tree_motion(self, event):
+        self._tree_hover_set(self.tree.identify_row(event.y) or None)
+
+    def _handle_tree_leave(self, event):
+        # moving onto a floating action button also fires <Leave>; keep the
+        # hover state in that case
+        widget = self.winfo_containing(event.x_root, event.y_root)
+        if widget is not None and widget in self._tree_action_buttons.values():
+            return
+        self._tree_hover_set(None)
+
+    def _handle_action_button_leave(self, event):
+        widget = self.winfo_containing(event.x_root, event.y_root)
+        if widget is self.tree:
+            return  # tree <Motion> takes over from here
+        self._tree_hover_set(None)
+
+    def add_nested_function_block(self, indicator_iid):
+        parent_iid, fb_type_id = self._nested_fb_indicators.get(indicator_iid, (None, None))
+        if parent_iid is None:
+            return
+
+        component = self.context.nodes.get(parent_iid)
+        if component is None or not daq.IFunctionBlock.can_cast_from(component):
+            return
+        fb = daq.IFunctionBlock.cast_from(component)
+
+        try:
+            new_fb = fb.add_function_block(fb_type_id)
+        except Exception as e:
+            utils.show_error('Error adding function block',
+                             f'{fb_type_id}: {str(e)}', self)
+            return
+
+        self.tree_update(new_fb)
 
     DEFAULT_FOLDER_NAMES = frozenset(('Sig', 'FB', 'Dev', 'IP', 'IO', 'Srv'))
 
@@ -564,20 +1272,58 @@ class App(tk.Tk):
         self.right_side_panel = sframe
         self.right_side_canvas = None
 
+    # MARK: - Add dialogs (non-modal)
+
+    # shows an add dialog without grabbing input, so the main window stays
+    # usable while it is open; an already open dialog is raised instead of
+    # opening a second one
+    def floating_dialog_show(self, key, factory, retarget=None):
+        dialog = self._floating_dialogs.get(key)
+        if dialog is not None and dialog.winfo_exists():
+            if retarget is not None:
+                retarget(dialog)
+            dialog.deiconify()
+            dialog.lift()
+            dialog.focus_set()
+            return
+        dialog = factory()
+        self._floating_dialogs[key] = dialog
+        dialog.show_floating()
+
     # MARK: - Add device dialog
-    def add_device_dialog_show(self):
-        dialog = AddDeviceDialog(self, self.context, None)
-        dialog.show()
+    def add_device_dialog_show(self, component=None):
+        def retarget(dialog):
+            if component is not None:
+                dialog.node = component
+                dialog.select_parent_device(component.global_id)
+        self.floating_dialog_show(
+            'add_device', lambda: AddDeviceDialog(self, self.context, component),
+            retarget)
 
     # MARK: - Add function block dialog
     def add_function_block_dialog_show(self, component=None):
-        dialog = AddFunctionBlockDialog(self, self.context, component)
-        dialog.show()
-        
+        def retarget(dialog):
+            if component is not None:
+                dialog.parent_component = component
+                dialog.update_dialog()
+        self.floating_dialog_show(
+            'add_function_block',
+            lambda: AddFunctionBlockDialog(self, self.context, component),
+            retarget)
+
     # MARK: - Add server dialog
     def add_server_dialog_show(self, component=None):
-        dialog = AddServerDialog(self, self.context, component)
-        dialog.show()
+        self.floating_dialog_show(
+            'add_server', lambda: AddServerDialog(self, self.context, component))
+
+    # MARK: - Logs window
+    def logs_window_show(self):
+        if self._logs_window is not None and self._logs_window.winfo_exists():
+            self._logs_window.deiconify()
+            self._logs_window.lift()
+            self._logs_window.focus_set()
+            return
+        self._logs_window = LogsWindow(self, self.context)
 
     # MARK: - Button handlers
     def handle_add_device_button_clicked(self):
@@ -585,9 +1331,12 @@ class App(tk.Tk):
 
     def handle_add_function_block_button_clicked(self):
         self.add_function_block_dialog_show()
-        
+
     def handle_add_server_button_clicked(self):
         self.add_server_dialog_show()
+
+    def handle_logs_button_clicked(self):
+        self.logs_window_show()
 
     def handle_save_config_button_clicked(self):
         file = asksaveasfile(initialfile='config.json', title='Save configuration',
@@ -654,10 +1403,20 @@ class App(tk.Tk):
     def _block_indicator_double_click(self, event):
         if self.tree.identify_element(event.x, event.y) == 'indicator':
             return 'break'
+        # a double click on an indicator row already added the block on the
+        # first click; swallow the second one
+        iid = self.tree.identify_row(event.y)
+        if iid and iid in self._nested_fb_indicators:
+            return 'break'
 
     def handle_tree_click(self, event):
         iid = self.tree.identify_row(event.y)
         element = self.tree.identify_element(event.x, event.y)
+
+        if iid and iid in self._nested_fb_indicators:
+            # a single click on an indicator row adds the function block
+            self.add_nested_function_block(iid)
+            return 'break'
 
         if element == 'indicator':
             if iid:
@@ -673,11 +1432,16 @@ class App(tk.Tk):
             return 'break'
 
     def create_property_object_menu(self, node):
+        icons = self.context.icons
         popup = tk.Menu(self.tree, tearoff=0)
 
-        popup.add_command(label='Begin update', command=self.handle_begin_update)
-        popup.add_command(label='End update', command=self.handle_end_update)
-        popup.add_command(label='Clear property values', command=lambda: self.handle_tree_clear_property_values(node))
+        popup.add_command(label='Begin update', image=icons['begin_update'],
+                          compound=tk.LEFT, command=self.handle_begin_update)
+        popup.add_command(label='End update', image=icons['end_update'],
+                          compound=tk.LEFT, command=self.handle_end_update)
+        popup.add_command(label='Clear property values',
+                          image=icons['clear_values'], compound=tk.LEFT,
+                          command=lambda: self.handle_tree_clear_property_values(node))
 
         return popup
 
@@ -694,11 +1458,13 @@ class App(tk.Tk):
         if has_fb_types:
             popup.add_command(
                 label='Add Function block',
+                image=self.context.icons['function_block'], compound=tk.LEFT,
                 command=lambda: self.add_function_block_dialog_show(node)
             )
         if not daq.IChannel.can_cast_from(node):
             popup.add_command(
                 label='Remove',
+                image=self.context.icons['trash'], compound=tk.LEFT,
                 command=lambda: self.handle_tree_menu_remove_function_block(node)
             )
 
@@ -707,8 +1473,11 @@ class App(tk.Tk):
     def create_device_menu(self, node):
         popup = self.create_property_object_menu(node)
 
-        popup.add_command(label='Lock', command=self.handle_lock)
-        popup.add_command(label='Unlock', command=self.handle_unlock)
+        icons = self.context.icons
+        popup.add_command(label='Lock', image=icons['lock'], compound=tk.LEFT,
+                          command=self.handle_lock)
+        popup.add_command(label='Unlock', image=icons['unlock'],
+                          compound=tk.LEFT, command=self.handle_unlock)
 
         try:
             has_fb_types = bool(node.available_function_block_types)
@@ -717,12 +1486,14 @@ class App(tk.Tk):
         if has_fb_types:
             popup.add_command(
                 label='Add Function block',
+                image=icons['function_block'], compound=tk.LEFT,
                 command=lambda: self.add_function_block_dialog_show(node)
             )
 
         if node.global_id != self.context.instance.global_id:
             popup.add_command(
                 label='Remove',
+                image=icons['trash'], compound=tk.LEFT,
                 command=lambda: self.handle_tree_menu_remove_device(node)
             )
 
@@ -732,8 +1503,10 @@ class App(tk.Tk):
         popup = self.create_property_object_menu(node)
 
         popup.add_command(label='Enable discovery',
+                          image=self.context.icons['link'], compound=tk.LEFT,
                           command=lambda: self.handle_enable_discovery(node))
         popup.add_command(label='Disable discovery',
+                          image=self.context.icons['unlink'], compound=tk.LEFT,
                           command=lambda: self.handle_disable_discovery(node))
 
         return popup
@@ -750,6 +1523,18 @@ class App(tk.Tk):
 
     def handle_tree_right_button_release(self, event):
         iid = utils.treeview_get_first_selection(self.tree)
+
+        if iid and iid in self._nested_fb_indicators:
+            popup = tk.Menu(self.tree, tearoff=0)
+            popup.add_command(
+                label='Add function block',
+                image=self.context.icons['add_fb'], compound=tk.LEFT,
+                command=lambda: self.add_nested_function_block(iid))
+            try:
+                popup.tk_popup(event.x_root, event.y_root, 0)
+            finally:
+                popup.grab_release()
+            return
 
         node = None
         if iid:
@@ -973,6 +1758,9 @@ class App(tk.Tk):
             self.right_side_panel_draw_module(selected_iid)
             return
 
+        if selected_iid in self._nested_fb_indicators:
+            return
+
         item = self.tree.item(selected_iid)
         # WA for IDs with spaces
         node_unique_id = ' '.join(str(val) for val in item['values'])
@@ -1123,6 +1911,8 @@ class App(tk.Tk):
         self.tree.item(node, tags=tuple(current_tags))
 
     def _set_node_update_status_recursive(self, node):
+        if node in self._nested_fb_indicators:
+            return
         node_obj = utils.find_component(node, self.context.instance)
         if node_obj is None:
             return
@@ -1140,6 +1930,8 @@ class App(tk.Tk):
             self._set_node_lock_status_recursive(node)
 
     def _set_node_lock_status_recursive(self, node, parent_locked=False):
+        if node in self._nested_fb_indicators:
+            return
         component = utils.find_component(node, self.context.instance)
 
         if daq.IDevice.can_cast_from(component):
@@ -1166,6 +1958,8 @@ class App(tk.Tk):
             self._set_node_active_status_recursive(node)
 
     def _set_node_active_status_recursive(self, node):
+        if node in self._nested_fb_indicators:
+            return
         component = utils.find_component(node, self.context.instance)
 
         current_tags = set(self.tree.item(node, 'tags'))
@@ -1209,7 +2003,8 @@ if __name__ == '__main__':
     parser.add_argument('--connection_string',
                         help='Connection string', type=str, default='')
     parser.add_argument(
-        '--demo', help='Include internal demo/reference devices', action='store_true')
+        '--demo', action=argparse.BooleanOptionalAction, default=True,
+        help='Include internal demo/reference devices (default: on; use --no-demo to hide)')
     parser.add_argument(
         '--config', help='Saved config', type=str, default='')
     parser.add_argument(

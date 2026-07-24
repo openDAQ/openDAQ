@@ -1,5 +1,6 @@
 import os
 import platform
+import tempfile
 
 import opendaq as daq
 
@@ -18,13 +19,17 @@ class AppContext(object):
 
     default_folders = {'Dev', 'FB', 'IO', 'IP', 'Sig'}
 
+    # connection-string prefixes of the internal demo/reference devices; these
+    # are hidden from the Add device list when include_reference_devices is off
+    demo_connection_prefixes = ('daqref://', 'daq.simulator://')
+
     def __init__(self, params):
 
         # logic
         self.nodes = {}
         self.custom_component_ids = set()
         self.selected_node = None
-        self.include_reference_devices = False
+        self.include_reference_devices = True
         self.view_hidden_components = False
         self.view_signal_preview = True
         self.metadata_fields = []
@@ -33,6 +38,43 @@ class AppContext(object):
         self.dpi_factor = self._detect_dpi_factor()
         self.icons = {}
         # daq
+        # instance parameters, applied by create_instance() once the
+        # configure-instance dialog was confirmed
+        self.module_path = params.module_path
+        self.discovery_servers = list(getattr(params, 'discovery_servers', []) or [])
+        # logger configuration used when the instance is created
+        self.log_level = daq.LogLevel.Default
+        self.log_to_file = True
+        self.file_log_level = daq.LogLevel.Default
+        self._log_file_index = 0
+        self.log_file_path = os.path.join(
+            tempfile.gettempdir(), 'opendaq_gui_{}.log'.format(os.getpid()))
+
+        self.instance = None
+        self.connection_string = ''
+        self.signals = {}
+        self.needs_refresh = False
+
+    # switches to a fresh log file; the previous instance's sink keeps the
+    # old file open, so a recreated instance gets its own
+    def next_log_file(self):
+        self._log_file_index += 1
+        self.log_file_path = os.path.join(
+            tempfile.gettempdir(), 'opendaq_gui_{}_{}.log'.format(
+                os.getpid(), self._log_file_index))
+
+    # True when the connection string belongs to an internal demo/reference
+    # device (reference device or simulator)
+    def is_demo_device(self, connection_string):
+        if not connection_string:
+            return False
+        conn = str(connection_string)
+        return any(conn.startswith(prefix)
+                   for prefix in self.demo_connection_prefixes)
+
+    # builds the openDAQ instance from the collected parameters; called after
+    # the configure-instance dialog was closed
+    def create_instance(self):
         builder = daq.InstanceBuilder()
         builder.scheduler_worker_num = 0
         builder.using_scheduler_main_loop = True
@@ -44,17 +86,25 @@ class AppContext(object):
         else:
             builder.module_path = daq.OPENDAQ_MODULES_DIR
 
-        if params.module_path != None:
-            builder.add_module_path(params.module_path)
+        if self.module_path:
+            builder.add_module_path(self.module_path)
 
-        for protocol in getattr(params, 'discovery_servers', []):
+        for protocol in self.discovery_servers:
             builder.add_discovery_server(protocol)
+
+        builder.global_log_level = self.log_level
+        # explicit sinks: console output as before, plus a rotating log file
+        # the logs window reads from
+        builder.add_logger_sink(daq.StdOutLoggerSink())
+        if self.log_to_file:
+            file_sink = daq.RotatingFileLoggerSink(
+                self.log_file_path, 2 * 1024 * 1024, 3)
+            file_sink.level = self.file_log_level
+            file_sink.pattern = '[%Y-%m-%d %H:%M:%S.%e] [%n] [%l] %v'
+            builder.add_logger_sink(file_sink)
 
         self.instance = daq.InstanceFromBuilder(builder)
         self.instance.context.on_core_event + daq.QueuedEventHandler(self.on_core_event)
-        self.connection_string = ''
-        self.signals = {}
-        self.needs_refresh = False
 
     def _detect_dpi_factor(self) -> float:
         """Detect system DPI scaling factor (1.0 = 96 DPI). Used to scale UI elements on high-DPI displays."""

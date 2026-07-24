@@ -87,6 +87,7 @@ private:
                                         const DataDescriptorPtr& inputDomainDataDescriptor);
 
     void configure();
+    void configureNoLock();
 
     void initProperties();
     void propertyChanged(bool configure);

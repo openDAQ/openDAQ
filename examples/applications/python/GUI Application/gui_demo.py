@@ -114,9 +114,9 @@ class App(tk.Tk):
 
         self.modules_map = {}
         self._nested_fb_indicators = {}
-        self._nested_fb_buttons = {}
-        self._nested_fb_button_pos = {}
-        self._nested_fb_hovered_row = None
+        self._tree_action_buttons = {}
+        self._tree_action_pos = {}
+        self._tree_hover_row = None
         self._indicator_click = False
         self._floating_dialogs = {}
         self._logs_window = None
@@ -126,35 +126,12 @@ class App(tk.Tk):
             int(1500 * self.context.ui_scaling_factor * self.context.dpi_factor),
             int(800 * self.context.ui_scaling_factor * self.context.dpi_factor)))
 
-        main_frame_top = ttk.Frame(self)
-        main_frame_top.pack(fill=tk.X)
-
         # icons load first: menus, the refresh button and the tree action
         # buttons all reference them
         self.context.load_icons(os.path.join(
             os.path.dirname(__file__), 'gui_demo', 'icons'))
 
         self.menu_bar_create()
-
-        add_device_button = ttk.Button(
-            main_frame_top, text='Add device', command=self.handle_add_device_button_clicked)
-        add_device_button.pack(side=tk.LEFT, padx=5)
-
-        add_function_block_button = ttk.Button(
-            main_frame_top, text='Add function block', command=self.handle_add_function_block_button_clicked)
-        add_function_block_button.pack(side=tk.LEFT, padx=5)
-        
-        add_server_button = ttk.Button(
-            main_frame_top, text='Add server', command=self.handle_add_server_button_clicked)
-        add_server_button.pack(side=tk.LEFT, padx=5)
-
-        refresh_button = ttk.Button(
-            main_frame_top, text='Refresh', command=self.handle_refresh_button_clicked)
-        refresh_button.pack(side=tk.LEFT, padx=5)
-
-        logs_button = ttk.Button(
-            main_frame_top, text='Logs', command=self.handle_logs_button_clicked)
-        logs_button.pack(side=tk.LEFT, padx=5)
 
         main_frame_bottom = ttk.Frame(self)
         main_frame_bottom.pack(fill=tk.BOTH, expand=True)
@@ -169,6 +146,13 @@ class App(tk.Tk):
         nb.bind('<<NotebookTabChanged>>', self.on_tab_change)
         nb.pack(fill=tk.X)
         self.nb = nb
+
+        # refresh lives at the top right, on the tab-strip line
+        refresh_button = ttk.Button(
+            main_frame_bottom, image=self.context.icons['refresh'],
+            command=self.handle_refresh_button_clicked)
+        refresh_button.place(relx=1.0, x=-4, y=1, anchor=tk.NE)
+        refresh_button.lift()
 
         main_frame_navigator = ttk.PanedWindow(
             main_frame_bottom, orient=tk.HORIZONTAL)
@@ -215,14 +199,6 @@ class App(tk.Tk):
         # cursor signal that the row is clickable
         self.tree.tag_configure('nested_fb_hover', foreground='#666666')
 
-        # '+' icon shown on nested FB indicators: crisp 2x source,
-        # scaled down so it sits comfortably inside a tree row
-        self._nested_fb_add_icon = self._fit_icon_to_height(
-            utils.load_icon(os.path.join(
-                os.path.dirname(__file__), 'gui_demo', 'icons', 'add.png'),
-                scale=2),
-            treeview_rowheight - 6)
-
         self.instance_configure_dialog_show()
         self.init_opendaq()
 
@@ -244,26 +220,6 @@ class App(tk.Tk):
             self.context.module_path = None
             self.context.create_instance()
 
-    # shrinks a PhotoImage to the largest zoom/subsample fraction that fits
-    # within target_h; returns the icon unchanged if it already fits
-    @staticmethod
-    def _fit_icon_to_height(icon, target_h):
-        src_h = icon.height()
-        if src_h <= target_h or target_h <= 0:
-            return icon
-        best = None  # (resulting height, zoom, subsample)
-        for s in range(1, 13):
-            z = (target_h * s) // src_h
-            if z < 1:
-                continue
-            h = src_h * z / s
-            if best is None or h > best[0]:
-                best = (h, z, s)
-        if best is None:
-            return icon
-        _, z, s = best
-        return icon.zoom(z, z).subsample(s, s)
-
     def poll_opendaq_events(self):
         if self.context.instance is None:
             self.after(50, self.poll_opendaq_events)
@@ -283,8 +239,8 @@ class App(tk.Tk):
         except Exception as e:
             print("Scheduler processing error:", e)
 
-        # safety net keeping the nested FB indicator '+' buttons glued to their rows
-        self._nested_fb_indicators_update()
+        # safety net keeping the floating row-action buttons glued to their rows
+        self._tree_overlays_update()
 
         # Re-schedule after 50 ms
         self.after(50, self.poll_opendaq_events)
@@ -368,7 +324,7 @@ class App(tk.Tk):
 
         def tree_yscroll(first, last):
             scroll_bar.set(first, last)
-            self._nested_fb_indicators_update()  # immediate sync while scrolling
+            self._tree_overlays_update()  # immediate sync while scrolling
         tree.configure(yscroll=tree_yscroll)
         scroll_bar.pack(fill=tk.Y, side=tk.RIGHT)
 
@@ -377,22 +333,129 @@ class App(tk.Tk):
         tree.tag_configure('error', foreground=utils.StatusColor.ERROR)
         tree.tag_configure('inactive', foreground='gray')
         tree.tag_configure('nested_fb', foreground='gray')
-        tree.bind('<Configure>', lambda e: self._nested_fb_indicators_update(), add='+')
+        tree.bind('<Configure>', lambda e: self._tree_overlays_update(), add='+')
         tree.bind('<Motion>', self._handle_tree_motion)
         tree.bind('<Leave>', self._handle_tree_leave)
-        self._tree_field_bg = ttk.Style().lookup(
+        style = ttk.Style()
+        self._tree_field_bg = style.lookup(
             'Treeview', 'fieldbackground') or 'white'
+        # selection color, used to blend the floating buttons into a
+        # selected row (child widgets cannot be transparent in tk)
+        self._tree_selected_bg = '#0078d7'
+        for state_spec, color in style.map('Treeview', 'background'):
+            if 'selected' in state_spec:
+                self._tree_selected_bg = color
+                break
         self.tree = tree
+        self.tree_action_buttons_create()
+
+    # background the given row is currently painted with
+    def _row_background(self, iid):
+        if iid and self.tree.exists(iid):
+            if iid in self.tree.selection():
+                return self._tree_selected_bg
+            if 'nested_fb_hover' in self.tree.item(iid, 'tags'):
+                return '#e4e4e4'
+        return self._tree_field_bg
+
+    # floating per-row action buttons: logs + add pinned to the instance
+    # row, remove shown on the hovered row
+    def tree_action_buttons_create(self):
+        def make_button(icon_key, handler):
+            btn = tk.Label(self.tree, image=self.context.icons[icon_key],
+                           bg=self._tree_field_bg, bd=0)
+            btn.bind('<Button-1>', handler)
+            btn.bind('<Leave>', self._handle_action_button_leave)
+            return btn
+
+        self._tree_action_buttons = {
+            'logs': make_button('logs', lambda e: self.logs_window_show()),
+            'add': make_button('plus', self.handle_tree_add_clicked),
+            'remove': make_button('trash', self.handle_tree_remove_clicked),
+            'hover_add': make_button('plus', self.handle_tree_hover_add_clicked),
+        }
+
+    def handle_tree_add_clicked(self, event):
+        icons = self.context.icons
+        menu = tk.Menu(self.tree, tearoff=0)
+        menu.add_command(label='Add device', image=icons['device'],
+                         compound=tk.LEFT,
+                         command=self.handle_add_device_button_clicked)
+        menu.add_command(label='Add function block', image=icons['function_block'],
+                         compound=tk.LEFT,
+                         command=self.handle_add_function_block_button_clicked)
+        menu.add_command(label='Add server', image=icons['server'],
+                         compound=tk.LEFT,
+                         command=self.handle_add_server_button_clicked)
+        try:
+            menu.tk_popup(event.widget.winfo_rootx(),
+                          event.widget.winfo_rooty() + event.widget.winfo_height())
+        finally:
+            menu.grab_release()
+
+    def handle_tree_remove_clicked(self, event):
+        iid = self._tree_hover_row
+        component = self.context.nodes.get(iid) if iid else None
+        if component is None:
+            return
+        if daq.IFunctionBlock.can_cast_from(
+                component) and not daq.IChannel.can_cast_from(component):
+            self.handle_tree_menu_remove_function_block(
+                daq.IFunctionBlock.cast_from(component))
+        elif daq.IDevice.can_cast_from(component):
+            self.handle_tree_menu_remove_device(
+                daq.IDevice.cast_from(component))
+
+    # plus button on a hovered device row: add menu targeting that device
+    def handle_tree_hover_add_clicked(self, event):
+        iid = self._tree_hover_row
+        component = self.context.nodes.get(iid) if iid else None
+        if component is None or not daq.IDevice.can_cast_from(component):
+            return
+        device = daq.IDevice.cast_from(component)
+
+        icons = self.context.icons
+        menu = tk.Menu(self.tree, tearoff=0)
+        menu.add_command(label='Add device', image=icons['device'],
+                         compound=tk.LEFT,
+                         command=lambda: self.add_device_dialog_show(device))
+        try:
+            has_fb_types = bool(device.available_function_block_types)
+        except RuntimeError:
+            has_fb_types = False
+        if has_fb_types:
+            menu.add_command(
+                label='Add function block', image=icons['function_block'],
+                compound=tk.LEFT,
+                command=lambda: self.add_function_block_dialog_show(device))
+        try:
+            menu.tk_popup(event.widget.winfo_rootx(),
+                          event.widget.winfo_rooty() + event.widget.winfo_height())
+        finally:
+            menu.grab_release()
+
+    # True when the hovered row is a device that can receive children
+    def _device_addable(self, iid):
+        component = self.context.nodes.get(iid)
+        return component is not None and daq.IDevice.can_cast_from(component)
+
+    def _component_removable(self, iid):
+        component = self.context.nodes.get(iid)
+        if component is None:
+            return False
+        if self.context.instance is not None and \
+                component.global_id == self.context.instance.global_id:
+            return False
+        if daq.IChannel.can_cast_from(component):
+            return False
+        return daq.IFunctionBlock.can_cast_from(
+            component) or daq.IDevice.can_cast_from(component)
 
     def tree_update(self, new_selected_node=None):
         self.tree.delete(*self.tree.get_children())
         self.right_side_panel_clear()
-        for btn in self._nested_fb_buttons.values():
-            btn.destroy()
-        self._nested_fb_buttons = {}
-        self._nested_fb_button_pos = {}
         self._nested_fb_indicators = {}
-        self._nested_fb_indicator_hover_set(None)
+        self._tree_hover_set(None)
 
         self.context.selected_node = new_selected_node
 
@@ -418,7 +481,7 @@ class App(tk.Tk):
         self.tree_traverse_components_recursive(
             self.context.instance, self.current_tab())
         self.tree_insert_nested_fb_indicators()
-        self._nested_fb_indicators_update()
+        self._tree_overlays_update()
         self.tree_restore_selection(
             self.context.selected_node)  # reset in case the selected node outdates
         self.set_node_update_status()
@@ -546,8 +609,8 @@ class App(tk.Tk):
     # MARK: - Nested function block indicators
 
     # appends a grayed-out indicator row for every nested function block
-    # type a function block or channel offers; clicking its '+' or
-    # double-clicking the row adds that function block directly
+    # type a function block or channel offers; a single click on the row
+    # adds that function block directly
     def tree_insert_nested_fb_indicators(self, parent_iid=''):
         for iid in self.tree.get_children(parent_iid):
             self.tree_insert_nested_fb_indicators(iid)
@@ -596,80 +659,98 @@ class App(tk.Tk):
                                  tags=('nested_fb',))
                 self._nested_fb_indicators[indicator_iid] = (iid, fb_type_id)
 
-                # floating '+' button pinned to the right edge of the row
-                btn = tk.Label(self.tree, image=self._nested_fb_add_icon,
-                               bg=self._tree_field_bg, bd=0, cursor='hand2')
-                btn.bind('<Button-1>',
-                         lambda e, indicator_iid=indicator_iid: self.add_nested_function_block(indicator_iid))
-                btn.bind('<Enter>',
-                         lambda e, indicator_iid=indicator_iid: self._nested_fb_indicator_hover_set(indicator_iid))
-                btn.bind('<Leave>', self._handle_nested_fb_button_leave)
-                self._nested_fb_buttons[indicator_iid] = btn
-
-    # places the '+' buttons of nested FB indicators at the right edge of the
-    # tree, hiding those whose row is collapsed or scrolled out of view
-    def _nested_fb_indicators_update(self):
-        if not self._nested_fb_buttons:
+    # places the floating row-action buttons: logs + add pinned to the
+    # instance row, remove on the hovered row when it is removable
+    def _tree_overlays_update(self):
+        if not self._tree_action_buttons:
             return
 
-        icon_w = self._nested_fb_add_icon.width()
-        icon_h = self._nested_fb_add_icon.height()
         pad = int(6 * self.context.ui_scaling_factor * self.context.dpi_factor)
-        x = self.tree.winfo_width() - icon_w - pad
+        width = self.tree.winfo_width()
+        placements = {}
 
-        for indicator_iid, btn in self._nested_fb_buttons.items():
-            bbox = self.tree.bbox(indicator_iid) if self.tree.exists(
-                indicator_iid) else None
-            if not bbox or x <= 0:
-                if self._nested_fb_button_pos.get(indicator_iid) is not None:
+        backgrounds = {}
+        root_iid = self.context.instance.global_id \
+            if self.context.instance is not None else None
+        if root_iid and self.tree.exists(root_iid):
+            bbox = self.tree.bbox(root_iid)
+            if bbox:
+                x = width - pad
+                for key in ('add', 'logs'):
+                    btn = self._tree_action_buttons[key]
+                    x -= btn.winfo_reqwidth()
+                    if x <= 0:
+                        break
+                    y = bbox[1] + (bbox[3] - btn.winfo_reqheight()) // 2
+                    placements[key] = (x, y)
+                    backgrounds[key] = self._row_background(root_iid)
+                    x -= pad
+
+        hover = self._tree_hover_row
+        if hover and hover != root_iid and self.tree.exists(hover):
+            bbox = self.tree.bbox(hover)
+            if bbox:
+                wanted = (('remove', self._component_removable(hover)),
+                          ('hover_add', self._device_addable(hover)))
+                x = width - pad
+                for key, show in wanted:
+                    if not show:
+                        continue
+                    btn = self._tree_action_buttons[key]
+                    x -= btn.winfo_reqwidth()
+                    if x <= 0:
+                        break
+                    y = bbox[1] + (bbox[3] - btn.winfo_reqheight()) // 2
+                    placements[key] = (x, y)
+                    backgrounds[key] = self._row_background(hover)
+                    x -= pad
+
+        for key, btn in self._tree_action_buttons.items():
+            pos = placements.get(key)
+            if pos is None:
+                if self._tree_action_pos.get(key) is not None:
                     btn.place_forget()
-                    self._nested_fb_button_pos[indicator_iid] = None
+                    self._tree_action_pos[key] = None
                 continue
+            # blend into the row the button floats over
+            bg = backgrounds.get(key, self._tree_field_bg)
+            if str(btn.cget('bg')) != bg:
+                btn.configure(bg=bg)
+            if self._tree_action_pos.get(key) != pos:
+                btn.place(x=pos[0], y=pos[1])
+                self._tree_action_pos[key] = pos
 
-            y = bbox[1] + (bbox[3] - icon_h) // 2
-            if self._nested_fb_button_pos.get(indicator_iid) != (x, y):
-                btn.place(x=x, y=y)
-                self._nested_fb_button_pos[indicator_iid] = (x, y)
-
-    # applies/clears the hover state of a nested FB indicator row
-    def _nested_fb_indicator_hover_set(self, indicator_iid):
-        if indicator_iid and not self.tree.exists(indicator_iid):
-            indicator_iid = None
-        # re-assert the cursor on every event: since Tk 8.7/9 the Treeview
-        # class bindings reset the widget cursor behind our back
-        cursor = 'hand2' if indicator_iid else ''
-        if str(self.tree.cget('cursor')) != cursor:
-            self.tree.configure(cursor=cursor)
-        if indicator_iid == self._nested_fb_hovered_row:
+    # tracks the hovered row: nested FB indicators get their hover style,
+    # removable rows get the floating remove button
+    def _tree_hover_set(self, iid):
+        if iid and not self.tree.exists(iid):
+            iid = None
+        if iid == self._tree_hover_row:
             return
-        prev = self._nested_fb_hovered_row
-        if prev and self.tree.exists(prev):
+        prev = self._tree_hover_row
+        if prev and prev in self._nested_fb_indicators and self.tree.exists(prev):
             self.tree.item(prev, tags=('nested_fb',))
-        self._nested_fb_hovered_row = indicator_iid
-        if indicator_iid:
-            self.tree.item(indicator_iid, tags=('nested_fb_hover',))
+        self._tree_hover_row = iid
+        if iid and iid in self._nested_fb_indicators:
+            self.tree.item(iid, tags=('nested_fb_hover',))
+        self._tree_overlays_update()
 
     def _handle_tree_motion(self, event):
-        iid = self.tree.identify_row(event.y)
-        self._nested_fb_indicator_hover_set(iid if iid in self._nested_fb_indicators else None)
-        # block the Treeview class <Motion> binding (Tk 8.7+/9) which would
-        # immediately reset the cursor set above; this tree shows no headings,
-        # so no separator-resize behavior is lost
-        return 'break'
+        self._tree_hover_set(self.tree.identify_row(event.y) or None)
 
     def _handle_tree_leave(self, event):
-        # moving onto a floating '+' button also fires <Leave>; keep the
+        # moving onto a floating action button also fires <Leave>; keep the
         # hover state in that case
         widget = self.winfo_containing(event.x_root, event.y_root)
-        if widget is not None and widget in self._nested_fb_buttons.values():
+        if widget is not None and widget in self._tree_action_buttons.values():
             return
-        self._nested_fb_indicator_hover_set(None)
+        self._tree_hover_set(None)
 
-    def _handle_nested_fb_button_leave(self, event):
+    def _handle_action_button_leave(self, event):
         widget = self.winfo_containing(event.x_root, event.y_root)
         if widget is self.tree:
             return  # tree <Motion> takes over from here
-        self._nested_fb_indicator_hover_set(None)
+        self._tree_hover_set(None)
 
     def add_nested_function_block(self, indicator_iid):
         parent_iid, fb_type_id = self._nested_fb_indicators.get(indicator_iid, (None, None))
@@ -829,9 +910,14 @@ class App(tk.Tk):
         dialog.show_floating()
 
     # MARK: - Add device dialog
-    def add_device_dialog_show(self):
+    def add_device_dialog_show(self, component=None):
+        def retarget(dialog):
+            if component is not None:
+                dialog.node = component
+                dialog.select_parent_device(component.global_id)
         self.floating_dialog_show(
-            'add_device', lambda: AddDeviceDialog(self, self.context, None))
+            'add_device', lambda: AddDeviceDialog(self, self.context, component),
+            retarget)
 
     # MARK: - Add function block dialog
     def add_function_block_dialog_show(self, component=None):

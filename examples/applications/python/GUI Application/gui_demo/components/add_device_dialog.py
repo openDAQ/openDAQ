@@ -111,8 +111,12 @@ class AddDeviceDialog(Dialog):
     def initial_update(self):
         self.update_parent_devices(
             self.parent_device_tree, '', self.context.instance)
-        self.select_parent_device(
-            self.context.instance.global_id)
+        # preselect the device the dialog was opened for, if any
+        parent_to_select = self.node.global_id if self.node is not None \
+            else self.context.instance.global_id
+        if not self.parent_device_tree.exists(parent_to_select):
+            parent_to_select = self.context.instance.global_id
+        self.select_parent_device(parent_to_select)
         self.conn_string_entry.focus_set()
 
     def select_parent_device(self, device_id: str):

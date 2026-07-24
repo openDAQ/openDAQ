@@ -112,6 +112,7 @@ option(OPENDAQ_ENABLE_UNSTABLE_TEST_LABELS "Enable labeling unstable tests" OFF)
 
 # Additional build options
 option(OPENDAQ_ENABLE_ERROR_GUARD "Enable error guard" OFF)
+option(OPENDAQ_ENABLE_DEBUG_EXTENSIONS "Enable debug extensions" OFF)
 
 if (NOT OPENDAQ_ENABLE_ERROR_GUARD AND CMAKE_BUILD_TYPE STREQUAL "Debug")
     set(OPENDAQ_ENABLE_ERROR_GUARD ON CACHE BOOL "Enable error guard" FORCE)

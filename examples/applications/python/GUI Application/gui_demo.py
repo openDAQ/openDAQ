@@ -195,9 +195,10 @@ class App(tk.Tk):
         default_font = tkfont.nametofont('TkDefaultFont')
         default_font.configure(size=9 * self.context.ui_scaling_factor)
 
-        # hover look for nested FB indicators: darker text plus the hand
-        # cursor signal that the row is clickable
-        self.tree.tag_configure('nested_fb_hover', foreground='#666666')
+        # hover look for nested FB indicators: strong contrast marks the row
+        # as clickable (a single click adds the function block)
+        self.tree.tag_configure('nested_fb_hover',
+                                foreground='#1f1f1f', background='#e4e4e4')
 
         self.instance_configure_dialog_show()
         self.init_opendaq()
@@ -480,6 +481,7 @@ class App(tk.Tk):
 
         self.tree_traverse_components_recursive(
             self.context.instance, self.current_tab())
+        self.tree_splice_single_folders()
         self.tree_insert_nested_fb_indicators()
         self._tree_overlays_update()
         self.tree_restore_selection(
@@ -606,6 +608,21 @@ class App(tk.Tk):
             self.tree.insert(parent_node_id, tk.END, iid=component_node_id, image=icon,
                              text=self._format_tree_item_text(component_name), open=is_open, values=(component_node_id,), tags=(status_string,))
 
+    # a default folder that is the only child of its parent adds a level
+    # without information; hoist its children up and drop the folder row
+    def tree_splice_single_folders(self, parent_iid=''):
+        for iid in self.tree.get_children(parent_iid):
+            self.tree_splice_single_folders(iid)
+        if not parent_iid:
+            return
+        children = self.tree.get_children(parent_iid)
+        if len(children) != 1 or not self._is_default_folder(children[0]):
+            return
+        folder_iid = children[0]
+        for index, child in enumerate(self.tree.get_children(folder_iid)):
+            self.tree.move(child, parent_iid, index)
+        self.tree.delete(folder_iid)
+
     # MARK: - Nested function block indicators
 
     # appends a grayed-out indicator row for every nested function block
@@ -654,10 +671,16 @@ class App(tk.Tk):
                 if self.tree.exists(indicator_iid):
                     continue
                 self.tree.insert(iid, tk.END, iid=indicator_iid,
-                                 image=self.context.icons['function_block'],
+                                 image=self.context.icons['add_fb'],
                                  text=self._format_tree_item_text(display_name),
                                  tags=('nested_fb',))
                 self._nested_fb_indicators[indicator_iid] = (iid, fb_type_id)
+
+                # expand the ancestor chain so the indicator is visible
+                ancestor = iid
+                while ancestor:
+                    self.tree.item(ancestor, open=True)
+                    ancestor = self.tree.parent(ancestor)
 
     # places the floating row-action buttons: logs + add pinned to the
     # instance row, remove on the hovered row when it is removable
@@ -1022,9 +1045,10 @@ class App(tk.Tk):
     def _block_indicator_double_click(self, event):
         if self.tree.identify_element(event.x, event.y) == 'indicator':
             return 'break'
+        # a double click on an indicator row already added the block on the
+        # first click; swallow the second one
         iid = self.tree.identify_row(event.y)
         if iid and iid in self._nested_fb_indicators:
-            self.add_nested_function_block(iid)
             return 'break'
 
     def handle_tree_click(self, event):
@@ -1032,8 +1056,8 @@ class App(tk.Tk):
         element = self.tree.identify_element(event.x, event.y)
 
         if iid and iid in self._nested_fb_indicators:
-            # indicator rows are not selectable; the floating '+' button
-            # and double-click (handled elsewhere) do the adding
+            # a single click on an indicator row adds the function block
+            self.add_nested_function_block(iid)
             return 'break'
 
         if element == 'indicator':

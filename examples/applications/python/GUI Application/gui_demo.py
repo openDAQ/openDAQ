@@ -152,12 +152,8 @@ class App(tk.Tk):
         nb.pack(fill=tk.X)
         self.nb = nb
 
-        # refresh lives at the top right, on the tab-strip line
-        refresh_button = ttk.Button(
-            main_frame_bottom, image=self.context.icons['refresh'],
-            command=self.handle_refresh_button_clicked)
-        refresh_button.place(relx=1.0, x=-4, y=1, anchor=tk.NE)
-        refresh_button.lift()
+        # refresh now lives in the tree's search/filter row (see
+        # _tree_search_row_create), so it no longer floats over the tab strip.
 
         main_frame_navigator = ttk.PanedWindow(
             main_frame_bottom, orient=tk.HORIZONTAL)
@@ -527,6 +523,10 @@ class App(tk.Tk):
             side=tk.LEFT, padx=(2, 0))
         ttk.Button(row, text='✕', width=2,
                    command=self._clear_search).pack(side=tk.LEFT, padx=(2, 2))
+
+        ttk.Button(row, image=self.context.icons['refresh'],
+                   command=self.handle_refresh_button_clicked).pack(
+            side=tk.LEFT, padx=(6, 2))
 
         # inline matches list: stays inside the main window (not a popup), so
         # it never detaches when focus changes or you switch desktops. Hidden

@@ -514,24 +514,56 @@ class App(tk.Tk):
         row.pack(side=tk.TOP, fill=tk.X, padx=(0, 2), pady=2)
         self._search_row_frame = row
 
+        # flat, borderless icon buttons matching the tree action buttons; the
+        # background tracks the row so the transparent icon corners blend in
+        row_bg = ttk.Style().lookup('TFrame', 'background') or \
+            self.cget('background')
+        self._search_row_bg = row_bg
+
+        def flat_button(handler, image=None, text=None):
+            kwargs = {'bd': 0, 'bg': row_bg, 'cursor': 'hand2'}
+            if image is not None:
+                kwargs['image'] = image
+            if text is not None:
+                kwargs['text'] = text
+                kwargs['font'] = ('TkDefaultFont', 11)
+                kwargs['fg'] = '#555555'
+                kwargs['padx'] = 3
+            btn = tk.Label(row, **kwargs)
+            btn.bind('<Button-1>', lambda e: handler())
+            btn.bind('<Enter>', lambda e: btn.configure(bg='#e4e4e4'))
+            btn.bind('<Leave>', lambda e: btn.configure(bg=row_bg))
+            return btn
+
+        icons = self.context.icons
         entry = ttk.Entry(row, textvariable=self._search_var, width=50)
         entry.pack(side=tk.LEFT)
         self._search_entry = entry
 
-        ttk.Button(row, text='▾', width=2,
-                   command=self._toggle_search_results).pack(
-            side=tk.LEFT, padx=(2, 0))
-        ttk.Button(row, text='✕', width=2,
-                   command=self._clear_search).pack(side=tk.LEFT, padx=(2, 2))
+        open_btn = flat_button(
+            self._toggle_search_results, image=icons.get('down'),
+            text=None if icons.get('down') else '▾')
+        open_btn.pack(side=tk.LEFT, padx=(4, 0))
 
-        ttk.Button(row, image=self.context.icons['refresh'],
-                   command=self.handle_refresh_button_clicked).pack(
-            side=tk.LEFT, padx=(6, 2))
+        clear_btn = flat_button(self._clear_search, text='✕')
+        clear_btn.pack(side=tk.LEFT, padx=(4, 0))
 
-        # inline matches list: stays inside the main window (not a popup), so
-        # it never detaches when focus changes or you switch desktops. Hidden
-        # until there are matches.
-        results = tk.Frame(parent, relief=tk.SOLID, borderwidth=1, bg='white')
+        refresh_btn = flat_button(
+            self.handle_refresh_button_clicked, image=icons.get('refresh'),
+            text=None if icons.get('refresh') else '↻')
+        refresh_btn.pack(side=tk.LEFT, padx=(6, 2))
+        self._search_refresh_button = refresh_btn
+
+        # matches list: a floating popup so it overlays the tree (instead of
+        # pushing it down), sits directly under the search box at the same
+        # width, and can be nudged a few points higher. Hidden until there
+        # are matches.
+        popup = tk.Toplevel(parent)
+        popup.withdraw()
+        popup.overrideredirect(True)
+        popup.transient(parent.winfo_toplevel())
+        results = tk.Frame(popup, relief=tk.SOLID, borderwidth=1, bg='white')
+        results.pack(fill=tk.BOTH, expand=True)
         canvas = tk.Canvas(results, highlightthickness=0, bg='white', height=1)
         sb = ttk.Scrollbar(results, orient=tk.VERTICAL, command=canvas.yview)
         inner = tk.Frame(canvas, bg='white')
@@ -544,6 +576,7 @@ class App(tk.Tk):
         canvas.configure(yscrollcommand=sb.set)
         canvas.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
         sb.pack(side=tk.RIGHT, fill=tk.Y)
+        self._search_results_popup = popup
         self._search_results_frame = results
         self._search_results_canvas = canvas
         self._search_results_inner = inner
@@ -552,6 +585,8 @@ class App(tk.Tk):
             'write', lambda *a: self._on_search_changed())
         entry.bind('<Escape>', lambda e: self._clear_search())
         entry.bind('<Down>', lambda e: self._show_search_results())
+        entry.bind('<FocusOut>',
+                   lambda e: self.after(150, self._maybe_hide_search_results))
 
     def _on_search_changed(self):
         self._apply_tree_filter()
@@ -676,7 +711,7 @@ class App(tk.Tk):
             self.tree.item(iid, open=True)
             self._open_all_visible(iid)
 
-    # ---- inline matches list (name in black, global id in gray) ----
+    # ---- floating matches list (name in black, global id in gray) ----
     def _toggle_search_results(self):
         if self._search_results_visible:
             self._hide_search_results()
@@ -688,16 +723,40 @@ class App(tk.Tk):
         if not self._filter_matches:
             self._hide_search_results()
             return
-        if not self._search_results_visible:
-            self._search_results_frame.pack(
-                after=self._search_row_frame, side=tk.TOP, fill=tk.X,
-                padx=(0, 2), pady=(0, 2))
-            self._search_results_visible = True
+        self._position_search_results()
+        self._search_results_popup.deiconify()
+        self._search_results_popup.lift()
+        self._search_results_visible = True
+
+    def _position_search_results(self):
+        entry = self._search_entry
+        entry.update_idletasks()
+        x = entry.winfo_rootx()
+        # sit directly under the box, nudged up 3 points
+        y = entry.winfo_rooty() + entry.winfo_height() - 3
+        width = entry.winfo_width()
+        canvas_h = int(float(self._search_results_canvas.cget('height')))
+        height = canvas_h + 2  # account for the 1px border on each side
+        self._search_results_popup.geometry(f'{width}x{height}+{x}+{y}')
 
     def _hide_search_results(self):
         if self._search_results_visible:
-            self._search_results_frame.pack_forget()
+            self._search_results_popup.withdraw()
             self._search_results_visible = False
+
+    def _maybe_hide_search_results(self):
+        # keep the popup open while focus is in the search row (box + buttons)
+        # or in the popup itself
+        try:
+            focus_widget = self.focus_get()
+        except Exception:
+            focus_widget = None
+        w = focus_widget
+        while w is not None:
+            if w is self._search_results_popup or w is self._search_row_frame:
+                return
+            w = getattr(w, 'master', None)
+        self._hide_search_results()
 
     def _populate_search_results(self):
         inner = self._search_results_inner
@@ -709,9 +768,9 @@ class App(tk.Tk):
             ln = tk.Label(r, text=name, fg='black', bg='white', anchor='w')
             ln.pack(side=tk.LEFT, padx=(6, 0))
             short = self.context.short_id(gid) if gid else ''
-            li = tk.Label(r, text=' | ' + short, fg='#808080', bg='white',
+            li = tk.Label(r, text=short, fg='#808080', bg='white',
                           anchor='w')
-            li.pack(side=tk.LEFT, padx=(0, 6))
+            li.pack(side=tk.LEFT, padx=(8, 6))
             for w in (r, ln, li):
                 w.bind('<Button-1>', lambda e, i=iid: self._search_jump_to(i))
                 w.bind('<Enter>',
@@ -1011,8 +1070,9 @@ class App(tk.Tk):
         if hover and hover != root_iid and self.tree.exists(hover):
             bbox = self.tree.bbox(hover)
             if bbox:
-                wanted = (('remove', self._component_removable(hover)),
-                          ('hover_add', self._device_addable(hover)))
+                # keep the '+' (add) rightmost, remove to its left
+                wanted = (('hover_add', self._device_addable(hover)),
+                          ('remove', self._component_removable(hover)))
                 x = width - pad
                 for key, show in wanted:
                     if not show:

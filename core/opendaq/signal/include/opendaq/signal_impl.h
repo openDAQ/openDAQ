@@ -156,6 +156,7 @@ private:
     std::vector<WeakRefPtr<ISignalConfig>> domainSignalReferences;
     bool keepLastPacket;
     bool keepLastValue;
+    TypeManagerPtr typeManager;
 
     ErrCode listenerConnectedInternal(IConnection* connection, bool schedule);
     ErrCode sendPacketInner(IPacket* packet, bool recursiveLock);
@@ -202,6 +203,7 @@ SignalBase<TInterface, Interfaces...>::SignalBase(const ContextPtr& context,
     , dataDescriptor(std::move(descriptor))
     , isPublic(true)
     , keepLastValue(true)
+    , typeManager(context.getTypeManager())
 {
     if (dataDescriptor.assigned() && dataDescriptor.getSampleType() == SampleType::Null)
         DAQ_THROW_EXCEPTION(InvalidSampleTypeException, "SampleType \"Null\" is reserved for \"DATA_DESCRIPTOR_CHANGED\" event packet.");
@@ -209,7 +211,6 @@ SignalBase<TInterface, Interfaces...>::SignalBase(const ContextPtr& context,
 
     if (dataDescriptor.assigned() && dataDescriptor.getSampleType() == SampleType::Struct)
     {
-        auto typeManager = this->context.getTypeManager();
         addToTypeManagerRecursively(typeManager, dataDescriptor);
     }
 }
@@ -424,7 +425,6 @@ ErrCode SignalBase<TInterface, Interfaces...>::setDescriptor(IDataDescriptor* de
             {
                 if (dataDescriptor.assigned() && dataDescriptor.getSampleType() == SampleType::Struct)
                 {
-                    auto typeManager = this->context.getTypeManager();
                     addToTypeManagerRecursively(typeManager, dataDescriptor);
                 }
             }
@@ -676,7 +676,7 @@ void SignalBase<TInterface, Interfaces...>::checkKeepLastPacket(const PacketPtr&
 {
     if (keepLastPacket)
     {
-        auto dataPacket = packet.asPtrOrNull<IDataPacket>();
+        auto dataPacket = packet.asPtrOrNull<IDataPacket>(true);
         if (dataPacket.assigned() && dataPacket.getSampleCount() > 0)
         {
             setLastValueFromPacket(dataPacket);

@@ -1,5 +1,5 @@
 /*
- * Copyright 2022-2026 openDAQ d.o.o.
+ * Copyright 2022-2025 openDAQ d.o.o.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -15,24 +15,19 @@
  */
 
 #pragma once
-#include <coretypes/integer.h>
-#include <coretypes/objectptr.h>
+#include <coretypes/common.h>
 
-BEGIN_NAMESPACE_OPENDAQ
+using LockFreeStackHandle = void*;
+using LockFreeStackElement = void*;
 
-inline ObjectPtr<IInteger> Integer(const Int value)
-{
-    ObjectPtr<IInteger> obj(Integer_Create(value));
-    return obj;
-}
+extern "C"
+LockFreeStackHandle PUBLIC_EXPORT daqLockFreeStackCreate(size_t initialSize);
 
-inline ObjectPtr<IInteger> IntegerFromPool(const Int value)
-{
-    ObjectPtr<IInteger> obj(IntegerFromPool_Create(value));
-    return obj;
-}
+extern "C" 
+void PUBLIC_EXPORT daqLockFreeStackPush(LockFreeStackHandle handle, LockFreeStackElement element);
 
-using IntPtr = ObjectPtr<IInteger>;
-using IntegerPtr = ObjectPtr<IInteger>;
+extern "C" 
+LockFreeStackElement PUBLIC_EXPORT daqLockFreeStackPop(LockFreeStackHandle handle);
 
-END_NAMESPACE_OPENDAQ
+extern "C" 
+void PUBLIC_EXPORT daqLockFreeStackDestroy(LockFreeStackHandle handle);

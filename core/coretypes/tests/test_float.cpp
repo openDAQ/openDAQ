@@ -177,3 +177,9 @@ TEST_F(FloatTest, InterfaceIdString)
 {
     ASSERT_EQ(daqInterfaceIdString<IFloat>(), "{D1E14646-B7B0-5D3D-9553-BE6F1CD4F0D8}");
 }
+
+TEST_F(FloatTest, FromPool)
+{
+    const auto obj = FloatingFromPool(152.2);
+    ASSERT_DOUBLE_EQ(static_cast<Float>(obj), 152.2);
+}

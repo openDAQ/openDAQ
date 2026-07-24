@@ -42,6 +42,7 @@ class AppContext(object):
         self.log_level = daq.LogLevel.Default
         self.log_to_file = True
         self.file_log_level = daq.LogLevel.Default
+        self._log_file_index = 0
         self.log_file_path = os.path.join(
             tempfile.gettempdir(), 'opendaq_gui_{}.log'.format(os.getpid()))
 
@@ -49,6 +50,14 @@ class AppContext(object):
         self.connection_string = ''
         self.signals = {}
         self.needs_refresh = False
+
+    # switches to a fresh log file; the previous instance's sink keeps the
+    # old file open, so a recreated instance gets its own
+    def next_log_file(self):
+        self._log_file_index += 1
+        self.log_file_path = os.path.join(
+            tempfile.gettempdir(), 'opendaq_gui_{}_{}.log'.format(
+                os.getpid(), self._log_file_index))
 
     # builds the openDAQ instance from the collected parameters; called after
     # the configure-instance dialog was closed

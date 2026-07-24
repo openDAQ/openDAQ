@@ -45,8 +45,9 @@ class LogsWindow(tk.Toplevel):
         self.level_combo.bind('<<ComboboxSelected>>', self.handle_level_selected)
         self.level_combo.pack(side=tk.LEFT)
 
-        ttk.Label(toolbar, text=context.log_file_path,
-                  foreground='gray').pack(side=tk.RIGHT)
+        self._path_label = ttk.Label(toolbar, text=context.log_file_path,
+                                     foreground='gray')
+        self._path_label.pack(side=tk.RIGHT)
 
         text_frame = ttk.Frame(self)
         text_frame.pack(fill=tk.BOTH, expand=True, padx=5, pady=(0, 5))
@@ -70,6 +71,7 @@ class LogsWindow(tk.Toplevel):
         self.text = text
 
         self._file = None
+        self._file_path = None
         self._file_pos = 0
         self._poll_job = None
 
@@ -121,13 +123,21 @@ class LogsWindow(tk.Toplevel):
 
         if size is not None:
             try:
-                # reopen from the start when the sink rotated the file
-                if self._file is None or size < self._file_pos:
+                # reopen when the sink rotated the file or the instance was
+                # recreated with a new log file
+                if self._file is None or path != self._file_path \
+                        or size < self._file_pos:
                     if self._file is not None:
                         self._file.close()
-                        self.append_meta_line('--- log file rotated ---\n')
+                        if path != self._file_path:
+                            self.append_meta_line(
+                                '--- instance recreated, following new log file ---\n')
+                            self._path_label.configure(text=path)
+                        else:
+                            self.append_meta_line('--- log file rotated ---\n')
                     self._file = open(path, 'r', encoding='utf-8',
                                       errors='replace')
+                    self._file_path = path
                     self._file_pos = 0
                 self._file.seek(self._file_pos)
                 data = self._file.read()

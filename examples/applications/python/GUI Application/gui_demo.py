@@ -3,6 +3,7 @@
 import argparse
 import os
 import enum
+import gc
 import sys
 import platform
 
@@ -200,7 +201,7 @@ class App(tk.Tk):
         self.tree.tag_configure('nested_fb_hover',
                                 foreground='#1f1f1f', background='#e4e4e4')
 
-        self.instance_configure_dialog_show()
+        self.instance_create()
         self.init_opendaq()
 
         if args.config != '':
@@ -208,10 +209,8 @@ class App(tk.Tk):
 
         self.poll_opendaq_events()
 
-    # MARK: - Configure instance dialog
-    def instance_configure_dialog_show(self):
-        dialog = ConfigureInstanceDialog(self, self.context)
-        dialog.show()
+    # MARK: - Instance lifecycle
+    def instance_create(self):
         try:
             self.context.create_instance()
         except Exception as e:
@@ -220,6 +219,55 @@ class App(tk.Tk):
                              f'{str(e)}\nStarting with default settings instead.', self)
             self.context.module_path = None
             self.context.create_instance()
+
+    def handle_reconfigure_instance_clicked(self):
+        dialog = ConfigureInstanceDialog(self, self.context)
+        dialog.show()
+        if dialog.confirmed:
+            self.instance_recreate()
+
+    # recreates the instance with the current context settings; the running
+    # setup (devices, function blocks, servers) is saved first and loaded
+    # into the new instance
+    def instance_recreate(self):
+        config_string = None
+        try:
+            config_string = self.context.instance.save_configuration()
+        except Exception as e:
+            print('Saving configuration failed:', e, file=sys.stderr)
+
+        # drop everything that references the old instance
+        for dialog in self._floating_dialogs.values():
+            if dialog.winfo_exists():
+                dialog.destroy()
+        self._floating_dialogs = {}
+        self.tree.delete(*self.tree.get_children())
+        self.right_side_panel_clear()
+        self._tree_hover_set(None)
+        self.context.selected_node = None
+        self.context.nodes = {}
+        self.context.signals = {}
+        self.context.custom_component_ids = set()
+        self.context.instance = None
+        gc.collect()  # release the old instance before creating the new one
+
+        # the old sink keeps its log file open; the new instance gets a
+        # fresh one and the logs window follows it automatically
+        self.context.next_log_file()
+        self.instance_create()
+
+        if config_string is not None:
+            try:
+                self.context.instance.load_configuration(
+                    config_string, daq.UpdateParameters())
+            except Exception as e:
+                print('Restoring configuration failed:', e, file=sys.stderr)
+                utils.show_error(
+                    'Reconfigure instance',
+                    f'New instance created, but restoring devices and '
+                    f'function blocks failed: {str(e)}', self)
+
+        self.tree_update()
 
     def poll_opendaq_events(self):
         if self.context.instance is None:
@@ -273,6 +321,9 @@ class App(tk.Tk):
         file_menu.add_command(label='Load module',
                               image=icons['load_module'], compound=tk.LEFT,
                               command=self.handle_load_modules_button_clicked)
+        file_menu.add_command(label='Reconfigure instance…',
+                              image=icons['settings'], compound=tk.LEFT,
+                              command=self.handle_reconfigure_instance_clicked)
         file_menu.add_separator()
         file_menu.add_command(label='Exit', image=icons['exit_app'],
                               compound=tk.LEFT, command=self.quit)
@@ -1645,7 +1696,8 @@ if __name__ == '__main__':
     parser.add_argument('--connection_string',
                         help='Connection string', type=str, default='')
     parser.add_argument(
-        '--demo', help='Include internal demo/reference devices', action='store_true')
+        '--demo', action=argparse.BooleanOptionalAction, default=True,
+        help='Include internal demo/reference devices (default: on; use --no-demo to hide)')
     parser.add_argument(
         '--config', help='Saved config', type=str, default='')
     parser.add_argument(

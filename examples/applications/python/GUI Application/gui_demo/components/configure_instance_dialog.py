@@ -6,45 +6,55 @@ from ..app_context import AppContext
 from .dialog import Dialog
 
 
-# startup dialog collecting instance parameters before the openDAQ instance
-# is created; closing the dialog (Start, Escape or the window button) applies
-# the entered values to the app context
+# collects instance parameters and logger settings; when confirmed the app
+# recreates the openDAQ instance with them and transfers the saved setup
+# (devices, function blocks, servers) into the new instance
 class ConfigureInstanceDialog(Dialog):
     def __init__(self, parent, context: AppContext, **kwargs):
-        Dialog.__init__(self, parent, 'Configure instance', context, **kwargs)
+        Dialog.__init__(self, parent, 'Reconfigure instance', context, **kwargs)
 
+        self.confirmed = False
+        # the logger sub-dialog writes straight to the context; keep a
+        # snapshot so cancelling reverts its changes
+        self._logger_snapshot = (
+            context.log_level, context.log_to_file, context.file_log_level)
 
-        self.geometry(f'{int(620 * context.dpi_factor)}x{int(250 * context.dpi_factor)}')
+        self.geometry('{}x{}'.format(
+            int(620 * self.context.ui_scaling_factor * self.context.dpi_factor),
+            int(300 * self.context.ui_scaling_factor * self.context.dpi_factor)))
+
+        info = ('Recreates the openDAQ instance with the settings below. '
+                'The devices and function blocks that are currently set up '
+                'are saved first and transferred into the new instance.')
+        ttk.Label(self, text=info, foreground='gray', justify=tk.LEFT,
+                  wraplength=int(560 * self.context.ui_scaling_factor
+                                 * self.context.dpi_factor)).pack(
+            anchor=tk.W, padx=5, pady=(5, 0))
+
         form = ttk.Frame(self)
         form.pack(fill=tk.BOTH, expand=True, padx=5, pady=5)
 
         entry_width = int(50 * self.context.ui_scaling_factor)
 
-        ttk.Label(form, text='Connection string:').grid(
-            row=0, column=0, sticky=tk.W, pady=2)
-        self.connection_string_entry = ttk.Entry(form, width=entry_width)
-        self.connection_string_entry.grid(
-            row=0, column=1, sticky=tk.EW, pady=2, padx=(5, 0))
-
         ttk.Label(form, text='Module path:').grid(
-            row=1, column=0, sticky=tk.W, pady=2)
+            row=0, column=0, sticky=tk.W, pady=2)
         self.module_path_entry = ttk.Entry(form, width=entry_width)
         self.module_path_entry.grid(
-            row=1, column=1, sticky=tk.EW, pady=2, padx=(5, 0))
+            row=0, column=1, sticky=tk.EW, pady=2, padx=(5, 0))
 
         ttk.Label(form, text='Discovery servers:').grid(
-            row=2, column=0, sticky=tk.W, pady=2)
+            row=1, column=0, sticky=tk.W, pady=2)
         self.discovery_servers_entry = ttk.Entry(form, width=entry_width)
         self.discovery_servers_entry.grid(
-            row=2, column=1, sticky=tk.EW, pady=2, padx=(5, 0))
+            row=1, column=1, sticky=tk.EW, pady=2, padx=(5, 0))
 
         self._demo_var = tk.BooleanVar(value=context.include_reference_devices)
         ttk.Checkbutton(form, text='Include reference (demo) devices',
                         variable=self._demo_var).grid(
-            row=3, column=0, columnspan=2, sticky=tk.W, pady=2)
+            row=2, column=0, columnspan=2, sticky=tk.W, pady=2)
 
         logger_row = ttk.Frame(form)
-        logger_row.grid(row=4, column=0, columnspan=2, sticky=tk.EW, pady=(8, 2))
+        logger_row.grid(row=3, column=0, columnspan=2, sticky=tk.EW, pady=(8, 2))
         ttk.Button(logger_row, text='Configure logger…',
                    command=self.handle_configure_logger_clicked).pack(side=tk.LEFT)
         self.logger_summary_label = ttk.Label(logger_row, foreground='gray')
@@ -54,15 +64,15 @@ class ConfigureInstanceDialog(Dialog):
 
         actions_row = ttk.Frame(self)
         actions_row.pack(fill=tk.X, pady=(8, 2))
-        start_button = ttk.Button(actions_row, text='Start',
-                                  command=self.handle_start_clicked)
-        start_button.pack(side=tk.RIGHT)
-        self.bind('<Return>', lambda event: self.handle_start_clicked())
-        start_button.focus_set()
+        recreate_button = ttk.Button(actions_row, text='Recreate instance',
+                                     command=self.handle_recreate_clicked)
+        recreate_button.pack(side=tk.RIGHT)
+        ttk.Button(actions_row, text='Cancel',
+                   command=self.close).pack(side=tk.RIGHT, padx=(0, 5))
+        self.bind('<Return>', lambda event: self.handle_recreate_clicked())
+        recreate_button.focus_set()
 
-        # prefill from the values collected from the command line
-        if context.connection_string:
-            self.connection_string_entry.insert(0, context.connection_string)
+        # prefill with the current instance settings
         if context.module_path:
             self.module_path_entry.insert(0, context.module_path)
         self.discovery_servers_entry.insert(
@@ -81,18 +91,22 @@ class ConfigureInstanceDialog(Dialog):
         dialog.show()
         self.update_logger_summary()
 
-    def handle_start_clicked(self):
-        self.close()
-
     def apply(self):
-        self.context.connection_string = self.connection_string_entry.get().strip() or None
         self.context.module_path = self.module_path_entry.get().strip() or None
         self.context.discovery_servers = [
             s.strip() for s in self.discovery_servers_entry.get().split(',') if s.strip()]
         self.context.include_reference_devices = self._demo_var.get()
 
-    def close(self):
+    def handle_recreate_clicked(self):
         self.apply()
+        self.confirmed = True
+        Dialog.close(self)
+
+    # Cancel, Escape and the window button all land here
+    def close(self):
+        if not self.confirmed:
+            (self.context.log_level, self.context.log_to_file,
+             self.context.file_log_level) = self._logger_snapshot
         Dialog.close(self)
 
 

@@ -19,13 +19,17 @@ class AppContext(object):
 
     default_folders = {'Dev', 'FB', 'IO', 'IP', 'Sig'}
 
+    # connection-string prefixes of the internal demo/reference devices; these
+    # are hidden from the Add device list when include_reference_devices is off
+    demo_connection_prefixes = ('daqref://', 'daq.simulator://')
+
     def __init__(self, params):
 
         # logic
         self.nodes = {}
         self.custom_component_ids = set()
         self.selected_node = None
-        self.include_reference_devices = False
+        self.include_reference_devices = True
         self.view_hidden_components = False
         self.view_signal_preview = True
         self.metadata_fields = []
@@ -58,6 +62,15 @@ class AppContext(object):
         self.log_file_path = os.path.join(
             tempfile.gettempdir(), 'opendaq_gui_{}_{}.log'.format(
                 os.getpid(), self._log_file_index))
+
+    # True when the connection string belongs to an internal demo/reference
+    # device (reference device or simulator)
+    def is_demo_device(self, connection_string):
+        if not connection_string:
+            return False
+        conn = str(connection_string)
+        return any(conn.startswith(prefix)
+                   for prefix in self.demo_connection_prefixes)
 
     # builds the openDAQ instance from the collected parameters; called after
     # the configure-instance dialog was closed

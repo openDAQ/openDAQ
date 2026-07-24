@@ -310,12 +310,15 @@ class AddDeviceDialog(Dialog):
 
         def fetch():
             try:
-                devices = [
-                    (daq.IDeviceInfo.cast_from(d).name,
-                     daq.IDeviceInfo.cast_from(d).location,
-                     daq.IDeviceInfo.cast_from(d).connection_string)
-                    for d in parent_device.available_devices
-                ]
+                show_demo = self.context.include_reference_devices
+                devices = []
+                for d in parent_device.available_devices:
+                    info = daq.IDeviceInfo.cast_from(d)
+                    conn = info.connection_string
+                    # skip internal demo/reference devices when disabled
+                    if not show_demo and self.context.is_demo_device(conn):
+                        continue
+                    devices.append((info.name, info.location, conn))
             except Exception:
                 devices = []
             self.after(0, lambda: self._on_devices_loaded(tree, devices, generation))

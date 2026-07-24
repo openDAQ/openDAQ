@@ -1179,7 +1179,34 @@ ErrCode DeviceInfoConfigImpl<TInterface, Interfaces...>::setOwner(IPropertyObjec
     }
 
     if (parent.supportsInterface<IMirroredDevice>())
-        return errCode;
+    {
+        // Transport/deserialization already exposes userName/location on the mirrored device.
+        // Apply DeviceInfo values locally only — never via setPropertyValue, which on config-client
+        // devices issues a remote RPC and deadlocks when nesting runs on the notification thread
+        // (e.g. ComponentAdded while addDevice is in flight).
+        auto lock = this->getRecursiveConfigLock2();
+        auto parentProtected = parent.template asPtr<IPropertyObjectProtected>(true);
+        for (const StringPtr& propertyName: {String("userName"), String("location")})
+        {
+            PropertyPtr property;
+            errCode = this->getProperty(propertyName, &property);
+            OPENDAQ_RETURN_IF_FAILED(errCode);
+
+            if (property.getReadOnly())
+                continue;
+            if (!parent.hasProperty(propertyName))
+                continue;
+
+            BaseObjectPtr propertyValue;
+            errCode = Super::getPropertyValueNoLock(propertyName, &propertyValue);
+            OPENDAQ_RETURN_IF_FAILED(errCode);
+
+            errCode = parentProtected->setProtectedPropertyValue(propertyName, propertyValue);
+            if (OPENDAQ_FAILED(errCode))
+                daqClearErrorInfo();
+        }
+        return OPENDAQ_SUCCESS;
+    }
     
     auto lock = this->getRecursiveConfigLock2();
     for (const StringPtr& propertyName: {String("userName"), String("location")})

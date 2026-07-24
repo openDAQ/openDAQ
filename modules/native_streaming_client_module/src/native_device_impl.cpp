@@ -554,6 +554,9 @@ void NativeDeviceImpl::updateDeviceInfo(const StringPtr& connectionString)
         }
     
         deviceInfo = newDeviceInfo;
+
+        this->deviceInfo = deviceInfo;
+        checkErrorInfo(getInfo(&deviceInfo));
     }
 
     deviceInfo.asPtr<IPropertyObjectProtected>(true)->setProtectedPropertyValue(String("connectionString"), connectionString);

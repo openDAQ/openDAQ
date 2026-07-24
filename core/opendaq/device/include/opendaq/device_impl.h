@@ -171,6 +171,9 @@ public:
     ErrCode INTERFACE_FUNC updateOperationMode(OperationModeType modeType) override;
     ErrCode INTERFACE_FUNC setParentActive(Bool parentActive, Bool onUpdate) override;
 
+    // IPropertyObjectInternal
+    ErrCode INTERFACE_FUNC enableCoreEventTrigger() override;
+
 protected:
     DeviceInfoPtr deviceInfo;
     FolderConfigPtr devices;
@@ -263,6 +266,7 @@ private:
     void removeDeviceIfNotStatic(const StringPtr& deviceId);
     void removeRemappedDevices(const SerializedObjectPtr& obj, const BaseObjectPtr& context);
     DevicePtr findConnectedDeviceForRemap(const StringPtr& manufacturer, const StringPtr& serialNumber, const StringPtr& connectionString);
+    ErrCode ensureDeviceInfoNested();
 
     DeviceDomainPtr deviceDomain;
     OperationModeType operationMode {OperationModeType::Unknown};
@@ -320,6 +324,105 @@ DeviceInfoPtr GenericDevice<TInterface, Interfaces...>::onGetInfo()
 }
 
 template <typename TInterface, typename... Interfaces>
+ErrCode GenericDevice<TInterface, Interfaces...>::ensureDeviceInfoNested()
+{
+    if (this->objPtr.hasProperty("DaqDeviceInfo"))
+    {
+        const BaseObjectPtr value = this->objPtr.getPropertyValue("DaqDeviceInfo");
+        if (const auto nestedInfo = value.asPtrOrNull<IDeviceInfo>(true); nestedInfo.assigned())
+        {
+            // Device code may replace this->deviceInfo after nesting; re-nest when the object changed.
+            if (!this->deviceInfo.assigned() || this->deviceInfo == nestedInfo)
+            {
+                this->deviceInfo = nestedInfo;
+                return OPENDAQ_SUCCESS;
+            }
+
+            const ErrCode removeErr = this->objPtr->removeProperty(String("DaqDeviceInfo"));
+            if (OPENDAQ_FAILED(removeErr))
+            {
+                // Some remote clients (e.g. OPC UA) do not allow removeProperty — keep member only.
+                daqClearErrorInfo();
+                if (const auto ownable = this->deviceInfo.template asPtrOrNull<IOwnable>(true); ownable.assigned())
+                {
+                    const ErrCode ownerErr = ownable->setOwner(this->template borrowInterface<IPropertyObject>());
+                    if (OPENDAQ_FAILED(ownerErr))
+                        daqClearErrorInfo();
+                }
+                return OPENDAQ_SUCCESS;
+            }
+        }
+        else
+        {
+            // Remote protocols may recreate DaqDeviceInfo as a plain PropertyObject.
+            // Some client devices (e.g. OPC UA) do not allow removeProperty — ignore and fall through.
+            const ErrCode removeErr = this->objPtr->removeProperty(String("DaqDeviceInfo"));
+            if (OPENDAQ_FAILED(removeErr))
+                daqClearErrorInfo();
+            else if (!this->deviceInfo.assigned())
+                this->deviceInfo = nullptr;
+        }
+    }
+
+    DeviceInfoPtr info = this->deviceInfo;
+    if (!info.assigned())
+    {
+        const ErrCode errCode = wrapHandlerReturn(this, &Self::onGetInfo, info);
+        OPENDAQ_RETURN_IF_FAILED(errCode);
+        if (!info.assigned())
+            return OPENDAQ_SUCCESS;
+    }
+
+    // Already present as a non-DeviceInfo property that we could not remove (mirrored/remote client).
+    // Keep DeviceInfo on the member only — nesting via ObjectProperty is not supported here.
+    if (this->objPtr.hasProperty("DaqDeviceInfo"))
+    {
+        this->deviceInfo = info;
+        return OPENDAQ_SUCCESS;
+    }
+
+    // Share the device mutex so discovery threads reading DeviceInfo (and forwarding
+    // userName/location to the device) cannot deadlock with enableCoreEventTrigger.
+    if (const auto infoInternal = info.template asPtrOrNull<IPropertyObjectInternal>(true); infoInternal.assigned())
+    {
+        const ErrCode lockErr = infoInternal->setLockingStrategy(LockingStrategy::InheritLock);
+        if (OPENDAQ_FAILED(lockErr))
+            daqClearErrorInfo();
+    }
+
+    // Adding ObjectProperty with core events enabled can deadlock; mute while nesting.
+    const bool muted = this->coreEventMuted;
+    auto propInternal = this->objPtr.template asPtr<IPropertyObjectInternal>(true);
+    if (!muted)
+        propInternal->disableCoreEventTrigger();
+
+    const ErrCode addErr =
+        this->objPtr->addProperty(ObjectPropertyBuilder("DaqDeviceInfo", info).setVisible(false).setReadOnly(true).build());
+    if (OPENDAQ_FAILED(addErr))
+    {
+        daqClearErrorInfo();
+        this->deviceInfo = info;
+        // Some remote clients (e.g. OPC UA) do not allow adding ObjectProperty. Still attach ownership
+        // so read-only enforcement and userName/location forwarding work.
+        if (const auto ownable = info.template asPtrOrNull<IOwnable>(true); ownable.assigned())
+        {
+            const ErrCode ownerErr = ownable->setOwner(this->template borrowInterface<IPropertyObject>());
+            if (OPENDAQ_FAILED(ownerErr))
+                daqClearErrorInfo();
+        }
+        if (!muted)
+            propInternal->enableCoreEventTrigger();
+        return OPENDAQ_SUCCESS;
+    }
+    this->deviceInfo = this->objPtr.getPropertyValue("DaqDeviceInfo");
+
+    if (!muted)
+        propInternal->enableCoreEventTrigger();
+
+    return OPENDAQ_SUCCESS;
+}
+
+template <typename TInterface, typename... Interfaces>
 ErrCode GenericDevice<TInterface, Interfaces...>::getInfo(IDeviceInfo** info)
 {
     OPENDAQ_PARAM_NOT_NULL(info);
@@ -327,28 +430,20 @@ ErrCode GenericDevice<TInterface, Interfaces...>::getInfo(IDeviceInfo** info)
     if (this->isComponentRemoved)
         return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_COMPONENT_REMOVED);
 
-    if (!this->deviceInfo.assigned())
-    {
-        if (this->objPtr.hasProperty("DaqDeviceInfo"))
-        {
-            this->deviceInfo = this->objPtr.getPropertyValue("DaqDeviceInfo");
-        }
-        else
-        {
-            DeviceInfoPtr devInfo;
-            const ErrCode errCode = wrapHandlerReturn(this, &Self::onGetInfo, devInfo);
-            OPENDAQ_RETURN_IF_FAILED(errCode);
-
-            if (devInfo.assigned())
-            {
-                this->objPtr.addProperty(ObjectProperty("DaqDeviceInfo", devInfo));
-                this->deviceInfo = this->objPtr.getPropertyValue("DaqDeviceInfo");
-            }
-        }       
-    }
+    const ErrCode errCode = ensureDeviceInfoNested();
+    OPENDAQ_RETURN_IF_FAILED(errCode);
 
     *info = this->deviceInfo.addRefAndReturn();
     return OPENDAQ_SUCCESS;
+}
+
+template <typename TInterface, typename... Interfaces>
+ErrCode GenericDevice<TInterface, Interfaces...>::enableCoreEventTrigger()
+{
+    // Materialize DaqDeviceInfo while still muted so Super can wire nested core events.
+    const ErrCode errCode = ensureDeviceInfoNested();
+    OPENDAQ_RETURN_IF_FAILED(errCode);
+    return Super::enableCoreEventTrigger();
 }
 
 template <typename TInterface, typename... Interfaces>
@@ -1573,6 +1668,8 @@ PropertyObjectPtr GenericDevice<TInterface, Interfaces...>::onCreateDefaultAddDe
 template <typename TInterface, typename ... Interfaces>
 ErrCode GenericDevice<TInterface, Interfaces...>::setName(IString* name)
 {
+    OPENDAQ_RETURN_IF_FAILED(ensureDeviceInfoNested());
+
     if (deviceInfo.assigned())
     {
         auto protected_ = deviceInfo.asPtr<IPropertyObjectProtected>();
@@ -1982,18 +2079,7 @@ void GenericDevice<TInterface, Interfaces...>::serializeCustomObjectValues(const
     }
 
     DeviceInfoPtr deviceInfo;
-    {
-        // the method created property "DaqDeviceInfo" on the first call
-        // if it was not done before, we will have a deadlock with enabled core event
-        const bool muted = this->coreEventMuted;
-        auto propInternal = this->objPtr.template asPtr<IPropertyObjectInternal>(true);
-        if (!muted)
-            propInternal->disableCoreEventTrigger();
-        const auto errCode = this->getInfo(&deviceInfo);
-        if (!muted)
-            propInternal->enableCoreEventTrigger();
-        checkErrorInfo(errCode);
-    }
+    checkErrorInfo(this->getInfo(&deviceInfo));
 
     if (deviceInfo.assigned())
     {
@@ -2525,6 +2611,18 @@ void GenericDevice<TInterface, Interfaces...>::updateObject(const SerializedObje
 
     if (obj.hasKey("UserLock"))
         userLock = obj.readObject("UserLock", context);
+
+    if (obj.hasKey("deviceInfo"))
+    {
+        DeviceInfoPtr info;
+        checkErrorInfo(this->getInfo(&info));
+
+        if (auto updatableDeviceInfo = info.asPtrOrNull<IUpdatable>(true); updatableDeviceInfo.assigned())
+        {
+            const auto deviceInfoObject = obj.readSerializedObject("deviceInfo");
+            updatableDeviceInfo.updateInternal(deviceInfoObject, context);
+        }
+    }
 }
 
 template <typename TInterface, typename ... Interfaces>

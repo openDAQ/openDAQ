@@ -1,5 +1,6 @@
 #include "test_helpers/test_helpers.h"
 #include <coreobjects/authentication_provider_factory.h>
+#include <thread>
 
 #include "test_helpers/device_modules.h"
 
@@ -63,6 +64,22 @@ public:
         addLtClientModule(client);
 
         auto refDevice = client.addDevice("daq.lt://127.0.0.1/");
+
+        // Mirrored signals (and domain links / descriptors) are published asynchronously.
+        for (int i = 0; i < 100; ++i)
+        {
+            const auto signals = refDevice.getSignals(search::Recursive(search::Any()));
+            SizeT withDomain = 0;
+            for (const auto& signal : signals)
+            {
+                if (signal.getDomainSignal().assigned())
+                    ++withDomain;
+            }
+            // Two AI channels → two value signals with domains, plus time/domain signals.
+            if (signals.getCount() >= 5u && withDomain >= 2u)
+                break;
+            std::this_thread::sleep_for(std::chrono::milliseconds(50));
+        }
         return client;
     }
 };
@@ -351,10 +368,25 @@ TEST_F(WebsocketModulesTest, SignalConfig_Server)
     auto client = CreateClientInstance();
 
     auto clientSignals = client.getDevices()[0].getSignals(search::Recursive(search::Visible()));
-    auto clientSignal = clientSignals[0].asPtr<ISignalConfig>();
+    SignalConfigPtr clientSignal;
+    for (int i = 0; i < 100; ++i)
+    {
+        for (const auto& signal : clientSignals)
+        {
+            const auto descriptor = signal.getDescriptor();
+            if (descriptor.assigned() && descriptor.getName() == newSignalName)
+            {
+                clientSignal = signal;
+                break;
+            }
+        }
+        if (clientSignal.assigned())
+            break;
+        std::this_thread::sleep_for(std::chrono::milliseconds(50));
+        clientSignals = client.getDevices()[0].getSignals(search::Recursive(search::Visible()));
+    }
 
-    auto clientSignalDataDescriptor = DataDescriptorBuilderCopy(clientSignal.getDescriptor()).build();
-
+    ASSERT_TRUE(clientSignal.assigned());
     ASSERT_EQ(serverSignal.getDescriptor().getName(), newSignalName);
     ASSERT_EQ(serverSignal.getDescriptor().getName(), clientSignal.getDescriptor().getName());
 }
@@ -364,10 +396,43 @@ TEST_F(WebsocketModulesTest, DataDescriptor)
     auto server = CreateServerInstance();
     auto client = CreateClientInstance();
 
-    testSignalDescriptors(0u,
-                          4u,
-                          client.getSignals(search::Recursive(search::Any())),
-                          server.getSignals(search::Recursive(search::Any())));
+    auto clientSignals = client.getSignals(search::Recursive(search::Any()));
+    auto serverSignals = server.getSignals(search::Recursive(search::Any()));
+
+    // LT pseudo-device lists signals in streaming-availability order (Time, *Time, value, ...),
+    // while the ref device lists them in tree order (value, *Time, ..., Time). Match by
+    // descriptor name instead of list index.
+    SizeT matchedValueSignals = 0;
+    for (const auto& clientSignal : clientSignals)
+    {
+        if (!clientSignal.getDomainSignal().assigned())
+            continue;
+
+        ASSERT_TRUE(clientSignal.getDescriptor().assigned());
+        const auto descriptorName = clientSignal.getDescriptor().getName();
+
+        SignalPtr serverSignal;
+        for (const auto& signal : serverSignals)
+        {
+            if (signal.getDescriptor().assigned() && signal.getDescriptor().getName() == descriptorName)
+            {
+                serverSignal = signal;
+                break;
+            }
+        }
+        ASSERT_TRUE(serverSignal.assigned()) << descriptorName;
+        ASSERT_TRUE(serverSignal.getDomainSignal().assigned()) << descriptorName;
+
+        ASSERT_EQ(clientSignal.getDescriptor(), serverSignal.getDescriptor());
+
+        const auto clientDomain = clientSignal.getDomainSignal().getDescriptor();
+        const auto serverDomain = serverSignal.getDomainSignal().getDescriptor();
+        ASSERT_EQ(clientDomain.getRule().getParameters(), serverDomain.getRule().getParameters());
+        ASSERT_EQ(clientDomain.getOrigin(), serverDomain.getOrigin());
+        ASSERT_EQ(clientDomain.getTickResolution(), serverDomain.getTickResolution());
+        ++matchedValueSignals;
+    }
+    ASSERT_GE(matchedValueSignals, 2u);
 }
 
 TEST_F(WebsocketModulesTest, SubscribeReadUnsubscribe)

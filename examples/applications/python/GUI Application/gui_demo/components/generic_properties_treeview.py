@@ -179,6 +179,9 @@ class PropertiesTreeview(ttk.Treeview):
                 property_value = ''
             elif property_info.value_type in (daq.CoreType.ctList, daq.CoreType.ctDict):
                 property_value = str(node.get_property_value(property_info.name))
+            elif property_info.value_type == daq.CoreType.ctEnumeration:
+                property_value = self._enum_value_name(
+                    node.get_property_value(property_info.name))
             else:
                 property_value = printed_value(
                     property_info.value_type, node.get_property_value(property_info.name))
@@ -895,6 +898,19 @@ class PropertiesTreeview(ttk.Treeview):
                 self.winfo_toplevel().unbind('<<DialogReady>>', self._toplevel_bind_id)
             except Exception:
                 pass
+
+    # display name of an enumeration property's current value
+    @staticmethod
+    def _enum_value_name(value):
+        try:
+            if daq.IEnumeration.can_cast_from(value):
+                enum = daq.IEnumeration.cast_from(value)
+                keys = list(enum.enumeration_type.as_dictionary.keys())
+                if 0 <= enum.value < len(keys):
+                    return keys[enum.value]
+        except RuntimeError:
+            pass
+        return str(value)
 
     @staticmethod
     def _format_value(value):

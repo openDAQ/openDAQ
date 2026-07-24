@@ -129,6 +129,11 @@ class App(tk.Tk):
         main_frame_top = ttk.Frame(self)
         main_frame_top.pack(fill=tk.X)
 
+        # icons load first: menus, the refresh button and the tree action
+        # buttons all reference them
+        self.context.load_icons(os.path.join(
+            os.path.dirname(__file__), 'gui_demo', 'icons'))
+
         self.menu_bar_create()
 
         add_device_button = ttk.Button(
@@ -209,9 +214,6 @@ class App(tk.Tk):
         # hover look for nested FB indicators: darker text plus the hand
         # cursor signal that the row is clickable
         self.tree.tag_configure('nested_fb_hover', foreground='#666666')
-
-        self.context.load_icons(os.path.join(
-            os.path.dirname(__file__), 'gui_demo', 'icons'))
 
         # '+' icon shown on nested FB indicators: crisp 2x source,
         # scaled down so it sits comfortably inside a tree row
@@ -301,16 +303,22 @@ class App(tk.Tk):
         menu_bar = tk.Menu(self)
         self.config(menu=menu_bar)
 
+        icons = self.context.icons
+
         file_menu = tk.Menu(menu_bar, tearoff=0)
         menu_bar.add_cascade(label='File', menu=file_menu)
         file_menu.add_command(label='Load configuration',
+                              image=icons['load_config'], compound=tk.LEFT,
                               command=self.handle_load_config_button_clicked)
         file_menu.add_command(label='Save configuration',
+                              image=icons['save_config'], compound=tk.LEFT,
                               command=self.handle_save_config_button_clicked)
         file_menu.add_command(label='Load module',
+                              image=icons['load_module'], compound=tk.LEFT,
                               command=self.handle_load_modules_button_clicked)
         file_menu.add_separator()
-        file_menu.add_command(label='Exit', command=self.quit)
+        file_menu.add_command(label='Exit', image=icons['exit_app'],
+                              compound=tk.LEFT, command=self.quit)
 
         view_menu = tk.Menu(menu_bar, tearoff=0)
         menu_bar.add_cascade(label='View', menu=view_menu)
@@ -319,7 +327,9 @@ class App(tk.Tk):
         self._signal_preview_var = tk.BooleanVar(value=self.context.view_signal_preview)
         view_menu.add_checkbutton(label='Signal preview',variable=self._signal_preview_var,command=self.handle_view_signal_preview_toggled)
         view_menu.add_separator()
-        view_menu.add_command(label='Show logs', command=self.handle_logs_button_clicked)
+        view_menu.add_command(label='Show logs', image=icons['logs'],
+                              compound=tk.LEFT,
+                              command=self.handle_logs_button_clicked)
 
     def handle_view_show_hidden_components(self):
         self.context.view_hidden_components = not self.context.view_hidden_components
@@ -507,6 +517,8 @@ class App(tk.Tk):
             icon = self.context.icons['input_port']
         elif daq.IDevice.can_cast_from(component):
             icon = self.context.icons['device']
+        elif daq.IServer.can_cast_from(component):
+            icon = self.context.icons['server']
         elif daq.IFolder.can_cast_from(component):
             icon = self.context.icons['folder']
             component_name = self.get_component_tree_name(component)
@@ -952,11 +964,16 @@ class App(tk.Tk):
             return 'break'
 
     def create_property_object_menu(self, node):
+        icons = self.context.icons
         popup = tk.Menu(self.tree, tearoff=0)
 
-        popup.add_command(label='Begin update', command=self.handle_begin_update)
-        popup.add_command(label='End update', command=self.handle_end_update)
-        popup.add_command(label='Clear property values', command=lambda: self.handle_tree_clear_property_values(node))
+        popup.add_command(label='Begin update', image=icons['begin_update'],
+                          compound=tk.LEFT, command=self.handle_begin_update)
+        popup.add_command(label='End update', image=icons['end_update'],
+                          compound=tk.LEFT, command=self.handle_end_update)
+        popup.add_command(label='Clear property values',
+                          image=icons['clear_values'], compound=tk.LEFT,
+                          command=lambda: self.handle_tree_clear_property_values(node))
 
         return popup
 
@@ -973,11 +990,13 @@ class App(tk.Tk):
         if has_fb_types:
             popup.add_command(
                 label='Add Function block',
+                image=self.context.icons['function_block'], compound=tk.LEFT,
                 command=lambda: self.add_function_block_dialog_show(node)
             )
         if not daq.IChannel.can_cast_from(node):
             popup.add_command(
                 label='Remove',
+                image=self.context.icons['trash'], compound=tk.LEFT,
                 command=lambda: self.handle_tree_menu_remove_function_block(node)
             )
 
@@ -986,8 +1005,11 @@ class App(tk.Tk):
     def create_device_menu(self, node):
         popup = self.create_property_object_menu(node)
 
-        popup.add_command(label='Lock', command=self.handle_lock)
-        popup.add_command(label='Unlock', command=self.handle_unlock)
+        icons = self.context.icons
+        popup.add_command(label='Lock', image=icons['lock'], compound=tk.LEFT,
+                          command=self.handle_lock)
+        popup.add_command(label='Unlock', image=icons['unlock'],
+                          compound=tk.LEFT, command=self.handle_unlock)
 
         try:
             has_fb_types = bool(node.available_function_block_types)
@@ -996,12 +1018,14 @@ class App(tk.Tk):
         if has_fb_types:
             popup.add_command(
                 label='Add Function block',
+                image=icons['function_block'], compound=tk.LEFT,
                 command=lambda: self.add_function_block_dialog_show(node)
             )
 
         if node.global_id != self.context.instance.global_id:
             popup.add_command(
                 label='Remove',
+                image=icons['trash'], compound=tk.LEFT,
                 command=lambda: self.handle_tree_menu_remove_device(node)
             )
 
@@ -1011,8 +1035,10 @@ class App(tk.Tk):
         popup = self.create_property_object_menu(node)
 
         popup.add_command(label='Enable discovery',
+                          image=self.context.icons['link'], compound=tk.LEFT,
                           command=lambda: self.handle_enable_discovery(node))
         popup.add_command(label='Disable discovery',
+                          image=self.context.icons['unlink'], compound=tk.LEFT,
                           command=lambda: self.handle_disable_discovery(node))
 
         return popup
@@ -1034,6 +1060,7 @@ class App(tk.Tk):
             popup = tk.Menu(self.tree, tearoff=0)
             popup.add_command(
                 label='Add function block',
+                image=self.context.icons['add_fb'], compound=tk.LEFT,
                 command=lambda: self.add_nested_function_block(iid))
             try:
                 popup.tk_popup(event.x_root, event.y_root, 0)

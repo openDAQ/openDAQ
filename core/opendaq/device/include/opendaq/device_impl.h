@@ -397,7 +397,7 @@ ErrCode GenericDevice<TInterface, Interfaces...>::ensureDeviceInfoNested()
         propInternal->disableCoreEventTrigger();
 
     const ErrCode addErr =
-        this->objPtr->addProperty(ObjectPropertyBuilder("DaqDeviceInfo", info).setVisible(false).setReadOnly(true).build());
+        this->addCoreProperty(ObjectPropertyBuilder("DaqDeviceInfo", info).setVisible(false).setReadOnly(true).build());
     if (OPENDAQ_FAILED(addErr))
     {
         daqClearErrorInfo();

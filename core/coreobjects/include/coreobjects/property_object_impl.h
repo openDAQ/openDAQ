@@ -47,6 +47,7 @@
 #include <cmath>
 #include <limits>
 #include <map>
+#include <set>
 #include <utility>
 #include <coretypes/recursive_search_ptr.h>
 #include <coreobjects/property_object_core.h>
@@ -307,6 +308,8 @@ protected:
     virtual PropertyObjectPtr getPropertyObjectParent();
     virtual PropertyObjectPtr cloneChildPropertyObject(const PropertyPtr& prop);
 
+    ErrCode addCoreProperty(IProperty* property);
+
 private:
     ObjectPtr<IPropertyObjectCore> propObjCore;
 
@@ -332,6 +335,7 @@ private:
 
     std::unordered_map<StringPtr, BaseObjectPtr, StringHash, StringEqualTo> propValues;
     PropertyOrderedMap localProperties;
+    std::set<std::string> corePropertyNames;
 
     WeakRefPtr<IPropertyObject> owner;
     int updateCount;
@@ -395,7 +399,7 @@ private:
 
     // Gets the property, as well as its value. Gets the referenced property, if the property is a refProp
     ErrCode getPropertyAndValueInternal(const StringPtr& name, BaseObjectPtr& value, PropertyPtr& property, bool triggerEvent = true, bool retrieveUpdatingValue = false);
-    ErrCode getPropertiesInternal(Bool includeInvisible, Bool bind, IList** list);
+    ErrCode getPropertiesInternal(Bool includeInvisible, Bool bind, IList** list, Bool includeCoreProperties = true);
 
     // Gets the property value, if stored in local value dictionary (propValues)
     // Parses brackets, if the property is a list
@@ -461,6 +465,9 @@ private:
     ErrCode getUpdatingInternal(Bool* updating);
 
     static bool hasUserReadAccess(const BaseObjectPtr& userContext, const BaseObjectPtr& obj);
+
+    ErrCode addPropertyInternal(IProperty* property, bool isCoreProperty = false);
+
 };
 
 using PropertyObjectImpl = GenericPropertyObjectImpl<IPropertyObject>;
@@ -1852,10 +1859,12 @@ void GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::configureCloned
 
     for (const auto& val : propValues)
     {
-        const auto ct = val.second.getCoreType();
+        const auto& propName = val.first;
+        const auto& prop = val.second;
+        const auto ct = prop.getCoreType();
         if (ct == ctList || ct == ctDict)
         {
-            if (const auto cloneable = val.second.asPtrOrNull<ICloneable>(); cloneable.assigned())
+            if (const auto cloneable = prop.asPtrOrNull<ICloneable>(); cloneable.assigned())
             {
                 BaseObjectPtr obj;
                 const ErrCode err = cloneable->clone(&obj);
@@ -1864,12 +1873,12 @@ void GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::configureCloned
                 if (!obj.assigned())
                     continue;
 
-                this->propValues.insert(std::make_pair(val.first, obj));
+                this->propValues.insert(std::make_pair(propName, obj));
             }
         }
         else if (ct == ctObject)
         {
-            if (const auto cloneable = val.second.asPtrOrNull<IPropertyObjectInternal>(); cloneable.assigned())
+            if (const auto cloneable = prop.asPtrOrNull<IPropertyObjectInternal>(); cloneable.assigned())
             {
                 PropertyObjectPtr obj;
                 const ErrCode err = cloneable->clone(&obj);
@@ -1878,11 +1887,11 @@ void GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::configureCloned
                 if (!obj.assigned())
                     continue;
 
-                auto it = this->propValues.find(val.first);
+                auto it = this->propValues.find(propName);
                 if (it != this->propValues.end())
                     it->second = obj;
                 else
-                    this->propValues.insert(std::make_pair(val.first, obj));
+                    this->propValues.insert(std::make_pair(propName, obj));
             }
         }
         else
@@ -2282,8 +2291,8 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::getProperty(
     return errCode;
 }
 
-template <class PropObjInterface, class... Interfaces>
-ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::addProperty(IProperty* property)
+template <typename PropObjInterface, typename... Interfaces>
+ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::addPropertyInternal(IProperty* property, bool isCoreProperty)
 {
     OPENDAQ_PARAM_NOT_NULL(property);
 
@@ -2332,21 +2341,44 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::addProperty(
         if (checkIsChildObjectProperty(propPtr))
         {
             auto defaultValue = propPtr.getDefaultValue();
-            setChildPropertyObject(propPtr.getName(), defaultValue);
+            setChildPropertyObject(propName, defaultValue);
 
-            const auto cloneable = defaultValue.asPtrOrNull<IPropertyObjectInternal>();
-            PropertyObjectPtr clone;
-            ErrCode err = cloneable->clone(&clone);
-            OPENDAQ_RETURN_IF_FAILED(err);
+            if (!isCoreProperty)
+            {
+                const auto cloneable = defaultValue.asPtrOrNull<IPropertyObjectInternal>();
+                PropertyObjectPtr clone;
+                ErrCode err = cloneable->clone(&clone);
+                OPENDAQ_RETURN_IF_FAILED(err);
 
-            if (defaultValue.getObject() != clone.getObject())
-                propInternalPtr.overrideDefaultValue(clone);
+                if (defaultValue.getObject() != clone.getObject())
+                    propInternalPtr.overrideDefaultValue(clone);
+            }
+            else 
+            {
+                corePropertyNames.insert(propName);
+            }
         }
         
         triggerCoreEventInternal(CoreEventArgsPropertyAdded(objPtr, propPtr, path));
 
         return OPENDAQ_SUCCESS;
     });
+    OPENDAQ_RETURN_IF_FAILED(errCode);
+    return errCode;
+}
+
+template <class PropObjInterface, class... Interfaces>
+ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::addProperty(IProperty* property)
+{
+    const ErrCode errCode = addPropertyInternal(property);
+    OPENDAQ_RETURN_IF_FAILED(errCode);
+    return errCode;
+}
+
+template <typename PropObjInterface, typename... Interfaces>
+ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::addCoreProperty(IProperty* property)
+{
+    const ErrCode errCode = addPropertyInternal(property, true);
     OPENDAQ_RETURN_IF_FAILED(errCode);
     return errCode;
 }
@@ -2363,9 +2395,9 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::removeProper
 
     auto lock = getRecursiveConfigLock2();
 
+    auto namePtr = StringPtr::Borrow(propertyName);
     if (localProperties.find(propertyName) == localProperties.cend())
     {
-        StringPtr namePtr = propertyName;
         return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOTFOUND, fmt::format(R"(Property "{}" does not exist)", namePtr));
     }
 
@@ -2375,6 +2407,9 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::removeProper
         propValues.erase(propertyName);
     }
 
+    if (auto it = corePropertyNames.find(namePtr); it != corePropertyNames.end())
+        corePropertyNames.erase(it);
+
     triggerCoreEventInternal(CoreEventArgsPropertyRemoved(objPtr, propertyName, path));
 
     return OPENDAQ_SUCCESS;
@@ -2383,13 +2418,13 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::removeProper
 template <class PropObjInterface, class... Interfaces>
 ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::getVisibleProperties(IList** properties)
 {
-    return getPropertiesInternal(false, true, properties);
+    return getPropertiesInternal(false, true, properties, false);
 }
 
 template <class PropObjInterface, class... Interfaces>
 ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::getAllProperties(IList** properties)
 {
-    return getPropertiesInternal(true, true, properties);
+    return getPropertiesInternal(true, true, properties, false);
 }
 
 template <class PropObjInterface, typename... Interfaces>
@@ -2419,7 +2454,8 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::setPropertyO
 template <class PropObjInterface, class... Interfaces>
 ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::getPropertiesInternal(Bool includeInvisible,
                                                                                           Bool bind,
-                                                                                          IList** list)
+                                                                                          IList** list,
+                                                                                          Bool includeCoreProperties)
 {
     OPENDAQ_PARAM_NOT_NULL(list);
 
@@ -2439,8 +2475,11 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::getPropertie
         allProperties.reserve(localProperties.size());
     }
 
-    for (const auto& prop : localProperties)
-        allProperties.push_back(prop.second);
+    for (const auto& [propName, prop] : localProperties)
+    {
+        if (includeCoreProperties || corePropertyNames.count(propName) == 0)
+            allProperties.push_back(prop);
+    }
 
     PropertyOrderedMap lookup;
     for (auto& prop : allProperties)
@@ -2451,7 +2490,7 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::getPropertie
             continue;
         }
 
-        auto boundProp = prop.asPtr<IPropertyInternal>().cloneWithOwner(objPtr);
+        auto boundProp = prop.asPtr<IPropertyInternal>(true).cloneWithOwner(objPtr);
         if (!includeInvisible && boundProp.getIsReferenced())
         {
             continue;
@@ -2464,7 +2503,7 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::getPropertie
                 continue;
             }
 
-            auto freezable = boundProp.template asPtrOrNull<IFreezable>();
+            auto freezable = boundProp.template asPtrOrNull<IFreezable>(true);
             if (freezable.assigned())
             {
                 freezable.freeze();

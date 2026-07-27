@@ -536,7 +536,7 @@ class App(tk.Tk):
             return btn
 
         icons = self.context.icons
-        entry = ttk.Entry(row, textvariable=self._search_var, width=50)
+        entry = ttk.Entry(row, textvariable=self._search_var, width=45)
         entry.pack(side=tk.LEFT)
         self._search_entry = entry
 

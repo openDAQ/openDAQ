@@ -99,7 +99,9 @@ class AppContext(object):
         if self.log_to_file:
             file_sink = daq.RotatingFileLoggerSink(
                 self.log_file_path, 2 * 1024 * 1024, 3)
-            file_sink.level = self.file_log_level
+            file_sink.level = (daq.LogLevel.Debug
+                               if self.file_log_level == daq.LogLevel.Default
+                               else self.file_log_level)
             file_sink.pattern = '[%Y-%m-%d %H:%M:%S.%e] [%n] [%l] %v'
             builder.add_logger_sink(file_sink)
 

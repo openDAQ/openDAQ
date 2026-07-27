@@ -1,12 +1,12 @@
 import os
+import re
 import tkinter as tk
+from collections import deque
 from tkinter import ttk
-
-from .. import utils
 
 
 # non-modal window tailing the log file written by the instance's rotating
-# file sink; also allows changing logger levels at runtime
+# file sink, with a severity filter over what it shows
 class LogsWindow(tk.Toplevel):
 
     POLL_INTERVAL_MS = 400
@@ -19,6 +19,11 @@ class LogsWindow(tk.Toplevel):
         ('[debug]', 'quiet'),
         ('[trace]', 'quiet'),
     )
+
+    LEVEL_ORDER = ('trace', 'debug', 'info', 'warning', 'error', 'critical')
+    SHOW_ALL = 'All'
+
+    _LEVEL_RE = re.compile(r'^\[[^\]]*\]\s*\[[^\]]*\]\s*\[([a-z]+)\]')
 
     def __init__(self, parent, context, **kwargs):
         tk.Toplevel.__init__(self, parent, **kwargs)
@@ -38,11 +43,16 @@ class LogsWindow(tk.Toplevel):
         ttk.Button(toolbar, text='Clear',
                    command=self.handle_clear_clicked).pack(side=tk.LEFT, padx=5)
 
-        ttk.Label(toolbar, text='Global log level:').pack(
-            side=tk.LEFT, padx=(15, 2))
-        self.level_combo = ttk.Combobox(toolbar, state='readonly', width=8,
-                                        values=list(utils.LOG_LEVELS))
-        self.level_combo.bind('<<ComboboxSelected>>', self.handle_level_selected)
+        # A view filter, not a logger setting - what the instance emits is
+        # fixed when it is built, in the configure-instance dialog.
+        ttk.Label(toolbar, text='Show:').pack(side=tk.LEFT, padx=(15, 2))
+        self._filter_rank = 0
+        self.level_combo = ttk.Combobox(
+            toolbar, state='readonly', width=9,
+            values=[self.SHOW_ALL] + [name.capitalize()
+                                      for name in self.LEVEL_ORDER])
+        self.level_combo.set(self.SHOW_ALL)
+        self.level_combo.bind('<<ComboboxSelected>>', self.handle_filter_selected)
         self.level_combo.pack(side=tk.LEFT)
 
         self._path_label = ttk.Label(toolbar, text=context.log_file_path,
@@ -75,37 +85,62 @@ class LogsWindow(tk.Toplevel):
         self._file_pos = 0
         self._poll_job = None
 
+        # Every line read so far, so changing the filter can re-render without
+        # re-reading the file. Bounded by the same cap as the widget.
+        self._lines = deque(maxlen=self.MAX_LINES)
+        self._last_rank = 0
+
         self.protocol('WM_DELETE_WINDOW', self.close)
 
-        self.update_level_combo()
         if not context.log_to_file:
             self.append_meta_line(
                 'File logging is disabled. Enable it in the configure-instance '
                 'dialog on the next start to see logs here.\n')
         self.poll_log_file()
 
-    def update_level_combo(self):
-        try:
-            level = self.context.instance.context.logger.level
-            self.level_combo.set(utils.log_level_name(level))
-        except (AttributeError, RuntimeError):
-            self.level_combo.set('Default')
+    def handle_filter_selected(self, event=None):
+        selected = self.level_combo.get()
+        if selected == self.SHOW_ALL:
+            self._filter_rank = 0
+        else:
+            self._filter_rank = self.LEVEL_ORDER.index(selected.lower())
+        self.render_lines()
 
-    def handle_level_selected(self, event=None):
-        if self.context.instance is None:
-            return
-        level = utils.LOG_LEVELS[self.level_combo.get()]
-        try:
-            logger = self.context.instance.context.logger
-            logger.level = level
-            # components created earlier keep their own level, so apply the
-            # new one to them as well
-            for component in logger.components:
-                component.level = level
-        except RuntimeError:
-            pass
+    # Severity of a line, or None for continuation lines such as the
+    # ' - Caused by:' that follow an error and carry no level of their own.
+    @classmethod
+    def line_rank(cls, line):
+        match = cls._LEVEL_RE.match(line)
+        if match is None:
+            return None
+        level = match.group(1)
+        if level not in cls.LEVEL_ORDER:
+            return None
+        return cls.LEVEL_ORDER.index(level)
+
+    def render_lines(self):
+        self.text.configure(state=tk.NORMAL)
+        self.text.delete('1.0', tk.END)
+        rank = 0
+        for line in self._lines:
+            parsed = self.line_rank(line)
+            if parsed is not None:
+                rank = parsed
+            if rank >= self._filter_rank:
+                self.text.insert(tk.END, line, self.tags_for_line(line))
+        self.text.configure(state=tk.DISABLED)
+        if self._follow_var.get():
+            self.text.see(tk.END)
+
+    @classmethod
+    def tags_for_line(cls, line):
+        for token, tag_name in cls.LINE_TAGS:
+            if token in line:
+                return (tag_name,)
+        return ()
 
     def handle_clear_clicked(self):
+        self._lines.clear()
         self.text.configure(state=tk.NORMAL)
         self.text.delete('1.0', tk.END)
         self.text.configure(state=tk.DISABLED)
@@ -152,12 +187,12 @@ class LogsWindow(tk.Toplevel):
     def append_log_data(self, data):
         self.text.configure(state=tk.NORMAL)
         for line in data.splitlines(True):
-            tag = ()
-            for token, tag_name in self.LINE_TAGS:
-                if token in line:
-                    tag = (tag_name,)
-                    break
-            self.text.insert(tk.END, line, tag)
+            self._lines.append(line)
+            parsed = self.line_rank(line)
+            if parsed is not None:
+                self._last_rank = parsed
+            if self._last_rank >= self._filter_rank:
+                self.text.insert(tk.END, line, self.tags_for_line(line))
 
         # cap the amount of text kept in the widget
         line_count = int(self.text.index('end-1c').split('.')[0])

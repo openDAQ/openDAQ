@@ -1,0 +1,11 @@
+diff --git a/mdns.h b/mdns.h
+--- a/mdns.h
++++ b/mdns.h
+@@ -23,5 +23,5 @@
+ #ifdef _WIN32
+-#include <Winsock2.h>
+-#include <Ws2tcpip.h>
++#include <winsock2.h>
++#include <ws2tcpip.h>
+ #define strncasecmp _strnicmp
+ #else

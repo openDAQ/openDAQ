@@ -318,6 +318,7 @@ TEST_F(ConnectedClientsDiscoveryTest, LtConnectedClients)
         }
 
         auto device = clientInstance.addDevice("daq.lt://127.0.0.1");
+        CONDITIONAL_SLEEP;
         auto connectedClientsInfo = getConnectedClients();
         ASSERT_EQ(connectedClientsInfo.getCount(), 1u);
 

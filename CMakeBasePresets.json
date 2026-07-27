@@ -189,6 +189,7 @@
                 "OPENDAQ_SKIP_UNSTABLE_TESTS": true,
                 "DAQMODULES_LT_LEGACY_MODULES": true
                 "OPENDAQ_ENABLE_OBJECT_POOLS": true
+                "DAQMODULES_LT_LEGACY_MODULES": false
             }
         },
         {

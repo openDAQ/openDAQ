@@ -38,6 +38,51 @@ public:
         }
     }
 
+    // Finds a signal by its name (the leaf of its local ID)
+    // The LT streaming client mangles the full server signal path into its local ID (replacing '/' with '#')
+    static SignalPtr getSignalByName(const ListPtr<ISignal>& signals, const std::string& name)
+    {
+        for (const auto& signal : signals)
+        {
+            const std::string localId = signal.getLocalId().toStdString();
+            const auto pos = localId.find_last_of("#/");
+            const std::string leaf = pos == std::string::npos ? localId : localId.substr(pos + 1);
+            if (leaf == name)
+                return signal;
+        }
+        return nullptr;
+    }
+
+    void testSignalDescriptorsByLocalId(const std::vector<std::string>& valueSignalNames,
+                                        const ListPtr<ISignal>& clientSignals,
+                                        const ListPtr<ISignal>& serverSignals)
+    {
+        ASSERT_EQ(clientSignals.getCount(), serverSignals.getCount());
+
+        for (const auto& name : valueSignalNames)
+        {
+            SignalPtr clientSignal = getSignalByName(clientSignals, name);
+            SignalPtr serverSignal = getSignalByName(serverSignals, name);
+
+            ASSERT_TRUE(clientSignal.assigned()) << "client signal not found: " << name;
+            ASSERT_TRUE(serverSignal.assigned()) << "server signal not found: " << name;
+
+            ASSERT_TRUE(clientSignal.getDomainSignal().assigned()) << name;
+
+            DataDescriptorPtr dataDescriptor = clientSignal.getDescriptor();
+            DataDescriptorPtr serverDataDescriptor = serverSignal.getDescriptor();
+
+            DataDescriptorPtr domainDataDescriptor = clientSignal.getDomainSignal().getDescriptor();
+            DataDescriptorPtr serverDomainDataDescriptor = serverSignal.getDomainSignal().getDescriptor();
+
+            ASSERT_EQ(dataDescriptor, serverDataDescriptor);
+
+            ASSERT_EQ(domainDataDescriptor.getRule().getParameters(), serverDomainDataDescriptor.getRule().getParameters());
+            ASSERT_EQ(domainDataDescriptor.getOrigin(), serverDomainDataDescriptor.getOrigin());
+            ASSERT_EQ(domainDataDescriptor.getTickResolution(), serverDomainDataDescriptor.getTickResolution());
+        }
+    }
+
     InstancePtr CreateServerInstance()
     {
         auto logger = Logger();
@@ -58,27 +103,15 @@ public:
         return server;
     }
 
-    InstancePtr CreateClientInstance()
+    InstancePtr CreateClientInstance(const bool withDelay = true)
     {
         auto client = Instance("[[none]]");
         addLtClientModule(client);
 
         auto refDevice = client.addDevice("daq.lt://127.0.0.1/");
-
-        // Mirrored signals (and domain links / descriptors) are published asynchronously.
-        for (int i = 0; i < 100; ++i)
+        if (withDelay)
         {
-            const auto signals = refDevice.getSignals(search::Recursive(search::Any()));
-            SizeT withDomain = 0;
-            for (const auto& signal : signals)
-            {
-                if (signal.getDomainSignal().assigned())
-                    ++withDomain;
-            }
-            // Two AI channels → two value signals with domains, plus time/domain signals.
-            if (signals.getCount() >= 5u && withDomain >= 2u)
-                break;
-            std::this_thread::sleep_for(std::chrono::milliseconds(50));
+            CONDITIONAL_SLEEP;
         }
         return client;
     }
@@ -92,7 +125,7 @@ TEST_F(WebsocketModulesTest, ConnectFail)
 TEST_F(WebsocketModulesTest, ConnectAndDisconnect)
 {
     auto server = CreateServerInstance();
-    auto client = CreateClientInstance();
+    auto client = CreateClientInstance(false);
 }
 
 TEST_F(WebsocketModulesTest, ConnectAndDisconnectBackwardCompatibility)
@@ -360,30 +393,15 @@ TEST_F(WebsocketModulesTest, SignalConfig_Server)
 
     auto server = CreateServerInstance();
 
-    auto serverSignal = server.getSignals(search::Recursive(search::Visible()))[0].asPtr<ISignalConfig>();
+    auto serverSignal = getSignalByName(server.getSignals(search::Recursive(search::Any())), "AI0").asPtr<ISignalConfig>();
     auto serverSignalDataDescriptor = DataDescriptorBuilderCopy(serverSignal.getDescriptor()).setName(newSignalName).build();
     serverSignal.setDescriptor(serverSignalDataDescriptor);
 
     auto client = CreateClientInstance();
+    auto clientSignals = client.getDevices()[0].getSignals(search::Recursive(search::Any()));
+    auto clientSignal = getSignalByName(clientSignals, "AI0").asPtr<ISignalConfig>();
 
-    auto clientSignals = client.getDevices()[0].getSignals(search::Recursive(search::Visible()));
-    SignalConfigPtr clientSignal;
-    for (int i = 0; i < 100; ++i)
-    {
-        for (const auto& signal : clientSignals)
-        {
-            const auto descriptor = signal.getDescriptor();
-            if (descriptor.assigned() && descriptor.getName() == newSignalName)
-            {
-                clientSignal = signal;
-                break;
-            }
-        }
-        if (clientSignal.assigned())
-            break;
-        std::this_thread::sleep_for(std::chrono::milliseconds(50));
-        clientSignals = client.getDevices()[0].getSignals(search::Recursive(search::Visible()));
-    }
+    auto clientSignalDataDescriptor = DataDescriptorBuilderCopy(clientSignal.getDescriptor()).build();
 
     ASSERT_TRUE(clientSignal.assigned());
     ASSERT_EQ(serverSignal.getDescriptor().getName(), newSignalName);
@@ -394,44 +412,9 @@ TEST_F(WebsocketModulesTest, DataDescriptor)
 {
     auto server = CreateServerInstance();
     auto client = CreateClientInstance();
-
-    auto clientSignals = client.getSignals(search::Recursive(search::Any()));
-    auto serverSignals = server.getSignals(search::Recursive(search::Any()));
-
-    // LT pseudo-device lists signals in streaming-availability order (Time, *Time, value, ...),
-    // while the ref device lists them in tree order (value, *Time, ..., Time). Match by
-    // descriptor name instead of list index.
-    SizeT matchedValueSignals = 0;
-    for (const auto& clientSignal : clientSignals)
-    {
-        if (!clientSignal.getDomainSignal().assigned())
-            continue;
-
-        ASSERT_TRUE(clientSignal.getDescriptor().assigned());
-        const auto descriptorName = clientSignal.getDescriptor().getName();
-
-        SignalPtr serverSignal;
-        for (const auto& signal : serverSignals)
-        {
-            if (signal.getDescriptor().assigned() && signal.getDescriptor().getName() == descriptorName)
-            {
-                serverSignal = signal;
-                break;
-            }
-        }
-        ASSERT_TRUE(serverSignal.assigned()) << descriptorName;
-        ASSERT_TRUE(serverSignal.getDomainSignal().assigned()) << descriptorName;
-
-        ASSERT_EQ(clientSignal.getDescriptor(), serverSignal.getDescriptor());
-
-        const auto clientDomain = clientSignal.getDomainSignal().getDescriptor();
-        const auto serverDomain = serverSignal.getDomainSignal().getDescriptor();
-        ASSERT_EQ(clientDomain.getRule().getParameters(), serverDomain.getRule().getParameters());
-        ASSERT_EQ(clientDomain.getOrigin(), serverDomain.getOrigin());
-        ASSERT_EQ(clientDomain.getTickResolution(), serverDomain.getTickResolution());
-        ++matchedValueSignals;
-    }
-    ASSERT_GE(matchedValueSignals, 2u);
+    testSignalDescriptorsByLocalId({"AI0", "AI1"},
+                                   client.getSignals(search::Recursive(search::Any())),
+                                   server.getSignals(search::Recursive(search::Any())));
 }
 
 TEST_F(WebsocketModulesTest, SubscribeReadUnsubscribe)
@@ -439,8 +422,8 @@ TEST_F(WebsocketModulesTest, SubscribeReadUnsubscribe)
     SKIP_TEST_MAC_CI;
     auto server = CreateServerInstance();
     auto client = CreateClientInstance();
-
-    auto signal = client.getSignalsRecursive()[0].template asPtr<IMirroredSignalConfig>();
+    auto signal = getSignalByName(client.getSignals(search::Recursive(search::Any())), "AI0")
+                      .template asPtr<IMirroredSignalConfig>();
 
     StringPtr streamingSource = signal.getActiveStreamingSource();
 
@@ -493,7 +476,7 @@ TEST_F(WebsocketModulesTest, GetConfigurationConnectionInfoIPv4)
 {
     SKIP_TEST_MAC_CI;
     auto server = CreateServerInstance();
-    auto client = CreateClientInstance();
+    auto client = CreateClientInstance(false);
 
     auto devices = client.getDevices();
     ASSERT_EQ(devices.getCount(), 1u);
@@ -537,7 +520,6 @@ TEST_F(WebsocketModulesTest, AddSignals)
     SKIP_TEST_MAC_CI;
     auto server = CreateServerInstance();
     auto client = CreateClientInstance();
-
     size_t addedSignalsCount = 0;
     std::promise<void> addSignalsPromise;
     std::future<void> addSignalsFuture = addSignalsPromise.get_future();
@@ -566,16 +548,15 @@ TEST_F(WebsocketModulesTest, AddSignals)
     auto clientSignals = client.getSignals(search::Recursive(search::Any()));
     ASSERT_EQ(clientSignals.getCount(), 7u);
 
-    removeDeviceDomainSignal(serverSignals);
-    removeDeviceDomainSignal(clientSignals);
+    testSignalDescriptorsByLocalId({"AI2"}, clientSignals, serverSignals);
 
-    testSignalDescriptors(4u, 6u, clientSignals, serverSignals);
-
-    for (size_t i = 4; i < clientSignals.getCount(); ++i)
+    for (const auto& name : {"AI2", "AI2Time"})
     {
-        auto mirroredSignalPtr = clientSignals[i].asPtr<IMirroredSignalConfig>();
-        ASSERT_EQ(mirroredSignalPtr.getStreamingSources().getCount(), 1u) << clientSignals[i].getGlobalId();
-        ASSERT_TRUE(mirroredSignalPtr.getActiveStreamingSource().assigned()) << clientSignals[i].getGlobalId();
+        auto signal = getSignalByName(clientSignals, name);
+        ASSERT_TRUE(signal.assigned()) << "client signal not found: " << name;
+        auto mirroredSignalPtr = signal.asPtr<IMirroredSignalConfig>();
+        ASSERT_EQ(mirroredSignalPtr.getStreamingSources().getCount(), 1u) << signal.getGlobalId();
+        ASSERT_TRUE(mirroredSignalPtr.getActiveStreamingSource().assigned()) << signal.getGlobalId();
     }
 }
 
@@ -584,8 +565,12 @@ TEST_F(WebsocketModulesTest, RemoveSignals)
     SKIP_TEST_MAC_CI;
     auto server = CreateServerInstance();
     auto client = CreateClientInstance();
-
     auto clientSignals = client.getSignals(search::Recursive(search::Any()));
+
+    auto removedValueSignal = getSignalByName(clientSignals, "AI1");
+    auto removedDomainSignal = getSignalByName(clientSignals, "AI1Time");
+    ASSERT_TRUE(removedValueSignal.assigned());
+    ASSERT_TRUE(removedDomainSignal.assigned());
 
     size_t removedSignalsCount = 0;
     std::promise<void> removedSignalsPromise;
@@ -597,9 +582,10 @@ TEST_F(WebsocketModulesTest, RemoveSignals)
         if (static_cast<CoreEventId>(args.getEventId()) == CoreEventId::ComponentRemoved)
         {
             StringPtr id = params.get("Id");
+            const auto removedGlobalId = comp.getGlobalId() + "/" + id;
 
-            ASSERT_TRUE((comp.getGlobalId() + "/" + id) == clientSignals[2].getGlobalId() ||
-                        (comp.getGlobalId() + "/" + id) == clientSignals[3].getGlobalId());
+            ASSERT_TRUE(removedGlobalId == removedValueSignal.getGlobalId() ||
+                        removedGlobalId == removedDomainSignal.getGlobalId());
             removedSignalsCount++;
             if (removedSignalsCount == 2)
             {
@@ -613,15 +599,15 @@ TEST_F(WebsocketModulesTest, RemoveSignals)
 
     ASSERT_TRUE(removedSignalsFuture.wait_for(std::chrono::seconds(10)) == std::future_status::ready);
 
-    auto mirroredSignalPtr = clientSignals[2].asPtr<IMirroredSignalConfig>();
-    ASSERT_EQ(mirroredSignalPtr.getStreamingSources().getCount(), 0u) << clientSignals[2].getGlobalId();
-    ASSERT_FALSE(mirroredSignalPtr.getActiveStreamingSource().assigned()) << clientSignals[2].getGlobalId();
-    ASSERT_TRUE(clientSignals[2].isRemoved());
+    auto mirroredSignalPtr = removedValueSignal.asPtr<IMirroredSignalConfig>();
+    ASSERT_EQ(mirroredSignalPtr.getStreamingSources().getCount(), 0u) << removedValueSignal.getGlobalId();
+    ASSERT_FALSE(mirroredSignalPtr.getActiveStreamingSource().assigned()) << removedValueSignal.getGlobalId();
+    ASSERT_TRUE(removedValueSignal.isRemoved());
 
-    mirroredSignalPtr = clientSignals[3].asPtr<IMirroredSignalConfig>();
-    ASSERT_EQ(mirroredSignalPtr.getStreamingSources().getCount(), 0u) << clientSignals[3].getGlobalId();
-    ASSERT_FALSE(mirroredSignalPtr.getActiveStreamingSource().assigned()) << clientSignals[3].getGlobalId();
-    ASSERT_TRUE(clientSignals[3].isRemoved());
+    mirroredSignalPtr = removedDomainSignal.asPtr<IMirroredSignalConfig>();
+    ASSERT_EQ(mirroredSignalPtr.getStreamingSources().getCount(), 0u) << removedDomainSignal.getGlobalId();
+    ASSERT_FALSE(mirroredSignalPtr.getActiveStreamingSource().assigned()) << removedDomainSignal.getGlobalId();
+    ASSERT_TRUE(removedDomainSignal.isRemoved());
 
     clientSignals = client.getSignals(search::Recursive(search::Any()));
     ASSERT_EQ(clientSignals.getCount(), 3u);
@@ -672,16 +658,15 @@ TEST_F(WebsocketModulesTest, UpdateAddSignals)
     auto clientSignals = client.getSignals(search::Recursive(search::Any()));
     ASSERT_EQ(clientSignals.getCount(), 5u);
 
-    removeDeviceDomainSignal(serverSignals);
-    removeDeviceDomainSignal(clientSignals);
+    testSignalDescriptorsByLocalId({"AI0", "AI1"}, clientSignals, serverSignals);
 
-    testSignalDescriptors(0u, 4u, clientSignals, serverSignals);
-
-    for (size_t i = 0; i < clientSignals.getCount(); ++i)
+    for (const auto& name : {"AI0", "AI0Time", "AI1", "AI1Time"})
     {
-        auto mirroredSignalPtr = clientSignals[i].asPtr<IMirroredSignalConfig>();
-        ASSERT_EQ(mirroredSignalPtr.getStreamingSources().getCount(), 1u) << clientSignals[i].getGlobalId();
-        ASSERT_TRUE(mirroredSignalPtr.getActiveStreamingSource().assigned()) << clientSignals[i].getGlobalId();
+        auto signal = getSignalByName(clientSignals, name);
+        ASSERT_TRUE(signal.assigned()) << "client signal not found: " << name;
+        auto mirroredSignalPtr = signal.asPtr<IMirroredSignalConfig>();
+        ASSERT_EQ(mirroredSignalPtr.getStreamingSources().getCount(), 1u) << signal.getGlobalId();
+        ASSERT_TRUE(mirroredSignalPtr.getActiveStreamingSource().assigned()) << signal.getGlobalId();
     }
 }
 
@@ -700,8 +685,12 @@ TEST_F(WebsocketModulesTest, UpdateRemoveSignals)
     serverRefDevice.setPropertyValue("NumberOfChannels", 3);
 
     auto client = CreateClientInstance();
-
     auto clientSignals = client.getSignals(search::Recursive(search::Any()));
+
+    auto removedValueSignal = getSignalByName(clientSignals, "AI2");
+    auto removedDomainSignal = getSignalByName(clientSignals, "AI2Time");
+    ASSERT_TRUE(removedValueSignal.assigned());
+    ASSERT_TRUE(removedDomainSignal.assigned());
 
     size_t removedSignalsCount = 0;
     std::promise<void> removedSignalsPromise;
@@ -713,9 +702,10 @@ TEST_F(WebsocketModulesTest, UpdateRemoveSignals)
         if (static_cast<CoreEventId>(args.getEventId()) == CoreEventId::ComponentRemoved)
         {
             StringPtr id = params.get("Id");
+            const auto removedGlobalId = comp.getGlobalId() + "/" + id;
 
-            ASSERT_TRUE((comp.getGlobalId() + "/" + id) == clientSignals[4].getGlobalId() ||
-                        (comp.getGlobalId() + "/" + id) == clientSignals[5].getGlobalId());
+            ASSERT_TRUE(removedGlobalId == removedValueSignal.getGlobalId() ||
+                        removedGlobalId == removedDomainSignal.getGlobalId());
             removedSignalsCount++;
             if (removedSignalsCount == 2)
             {
@@ -730,15 +720,15 @@ TEST_F(WebsocketModulesTest, UpdateRemoveSignals)
 
     ASSERT_TRUE(removedSignalsFuture.wait_for(std::chrono::seconds(10)) == std::future_status::ready);
 
-    auto mirroredSignalPtr = clientSignals[4].asPtr<IMirroredSignalConfig>();
-    ASSERT_EQ(mirroredSignalPtr.getStreamingSources().getCount(), 0u) << clientSignals[4].getGlobalId();
-    ASSERT_FALSE(mirroredSignalPtr.getActiveStreamingSource().assigned()) << clientSignals[4].getGlobalId();
-    ASSERT_TRUE(clientSignals[4].isRemoved());
+    auto mirroredSignalPtr = removedValueSignal.asPtr<IMirroredSignalConfig>();
+    ASSERT_EQ(mirroredSignalPtr.getStreamingSources().getCount(), 0u) << removedValueSignal.getGlobalId();
+    ASSERT_FALSE(mirroredSignalPtr.getActiveStreamingSource().assigned()) << removedValueSignal.getGlobalId();
+    ASSERT_TRUE(removedValueSignal.isRemoved());
 
-    mirroredSignalPtr = clientSignals[5].asPtr<IMirroredSignalConfig>();
-    ASSERT_EQ(mirroredSignalPtr.getStreamingSources().getCount(), 0u) << clientSignals[5].getGlobalId();
-    ASSERT_FALSE(mirroredSignalPtr.getActiveStreamingSource().assigned()) << clientSignals[5].getGlobalId();
-    ASSERT_TRUE(clientSignals[5].isRemoved());
+    mirroredSignalPtr = removedDomainSignal.asPtr<IMirroredSignalConfig>();
+    ASSERT_EQ(mirroredSignalPtr.getStreamingSources().getCount(), 0u) << removedDomainSignal.getGlobalId();
+    ASSERT_FALSE(mirroredSignalPtr.getActiveStreamingSource().assigned()) << removedDomainSignal.getGlobalId();
+    ASSERT_TRUE(removedDomainSignal.isRemoved());
 
     clientSignals = client.getSignals(search::Recursive(search::Any()));
     ASSERT_EQ(clientSignals.getCount(), 5u);

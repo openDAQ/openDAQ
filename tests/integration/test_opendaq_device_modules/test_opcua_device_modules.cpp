@@ -334,11 +334,12 @@ TEST_F(OpcuaDeviceModulesTest, ServerEnableDisableDiscovery)
     }
 }
 
-#ifdef _WIN32
-
 TEST_F(OpcuaDeviceModulesTest, TestDiscoveryReachability)
 {
     bool checkIPv6 = !test_helpers::Ipv6IsDisabled();
+    // ICMP ping (and thus active IPv4 reachability detection) requires root on Linux/macOS.
+    const auto expectedIpv4Reachability =
+        test_helpers::icmpPingAvailable() ? AddressReachabilityStatus::Reachable : AddressReachabilityStatus::Unknown;
     auto path = "/test/opcua/discovery_reachability/";
 
     auto instance = InstanceBuilder()
@@ -377,20 +378,20 @@ TEST_F(OpcuaDeviceModulesTest, TestDiscoveryReachability)
                 if (addressInfo.getType() == "IPv4")
                 {
                     hasIPv4 = true;
-                    ASSERT_EQ(addressInfo.getReachabilityStatus(), AddressReachabilityStatus::Reachable);
+                    ASSERT_EQ(addressInfo.getReachabilityStatus(), expectedIpv4Reachability);
                 }
                 else if (addressInfo.getType() == "IPv6")
                 {
                     hasIPv6 = true;
                     ASSERT_EQ(addressInfo.getReachabilityStatus(), AddressReachabilityStatus::Unknown);
                 }
-                
+
                 if (hasIPv4 && (hasIPv6 || !checkIPv6))
                     return;
 
                 cnt++;
             }
-        }      
+        }
     }
 
     ASSERT_TRUE(false) << "Device not found";
@@ -461,8 +462,6 @@ TEST_F(OpcuaDeviceModulesTest, TestDiscoveryReachabilityAfterConnectIPv6)
 
     ASSERT_TRUE(false) << "OpcUa streaming capability with connection string " << deviceConnectionString << " not found";
 }
-
-#endif
 
 DevicePtr FindOpcuaDeviceByPath(const InstancePtr& instance, const std::string& path, const PropertyObjectPtr& config = nullptr)
 {

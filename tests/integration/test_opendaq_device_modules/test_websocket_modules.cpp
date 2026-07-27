@@ -254,11 +254,12 @@ TEST_F(WebsocketModulesTest, CheckDeviceInfoPopulatedWithProvider)
     ASSERT_TRUE(false) << "Device not found";
 }
 
-#ifdef _WIN32
-
 TEST_F(WebsocketModulesTest, TestDiscoveryReachability)
 {
     bool checkIPv6 = !test_helpers::Ipv6IsDisabled();
+    // ICMP ping (and thus active IPv4 reachability detection) requires root on Linux/macOS.
+    const auto expectedIpv4Reachability =
+        test_helpers::icmpPingAvailable() ? AddressReachabilityStatus::Reachable : AddressReachabilityStatus::Unknown;
 
     auto instance = InstanceBuilder()
         .setModulePath("[[none]]")
@@ -296,26 +297,24 @@ TEST_F(WebsocketModulesTest, TestDiscoveryReachability)
                 if (addressInfo.getType() == "IPv4")
                 {
                     hasIPv4 = true;
-                    ASSERT_EQ(addressInfo.getReachabilityStatus(), AddressReachabilityStatus::Reachable);
+                    ASSERT_EQ(addressInfo.getReachabilityStatus(), expectedIpv4Reachability);
                 }
                 else if (addressInfo.getType() == "IPv6")
                 {
                     hasIPv6 = true;
                     ASSERT_EQ(addressInfo.getReachabilityStatus(), AddressReachabilityStatus::Unknown);
                 }
-                
+
                 if (hasIPv4 && (hasIPv6 || !checkIPv6))
                     return;
 
                 cnt++;
             }
-        }      
+        }
     }
 
     ASSERT_TRUE(false) << "Device not found";
 }
-
-#endif
 
 TEST_F(WebsocketModulesTest, GetConnectedClientsInfo)
 {

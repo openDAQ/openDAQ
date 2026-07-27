@@ -1181,11 +1181,12 @@ TEST_F(NativeDeviceModulesTest, CheckDeviceInfoPopulatedWithProvider)
     ASSERT_TRUE(false) << "Device not found";
 }
 
-#ifdef _WIN32
-
 TEST_F(NativeDeviceModulesTest, TestDiscoveryReachability)
 {
     bool checkIPv6 = !test_helpers::Ipv6IsDisabled();
+    // ICMP ping (and thus active IPv4 reachability detection) requires root on Linux/macOS.
+    const auto expectedIpv4Reachability =
+        test_helpers::icmpPingAvailable() ? AddressReachabilityStatus::Reachable : AddressReachabilityStatus::Unknown;
     auto path = "/test/native_configurator/discovery_reachability/";
 
     auto server = InstanceBuilder().setModulePath("[[none]]").addDiscoveryServer("mdns").build();
@@ -1221,7 +1222,7 @@ TEST_F(NativeDeviceModulesTest, TestDiscoveryReachability)
                 if (addressInfo.getType() == "IPv4")
                 {
                     hasIPv4 = true;
-                    ASSERT_EQ(addressInfo.getReachabilityStatus(), AddressReachabilityStatus::Reachable);
+                    ASSERT_EQ(addressInfo.getReachabilityStatus(), expectedIpv4Reachability);
                 }
                 else if (addressInfo.getType() == "IPv6")
                 {
@@ -1305,8 +1306,6 @@ TEST_F(NativeDeviceModulesTest, TestDiscoveryReachabilityAfterConnectIPv6)
     }
     ASSERT_TRUE(false) << "Native streaming capability with connection string " << deviceConnectionString << " not found";
 }
-
-#endif
 
 DevicePtr FindNativeDeviceByPath(const InstancePtr& instance, const std::string& path, const PropertyObjectPtr& config = nullptr)
 {

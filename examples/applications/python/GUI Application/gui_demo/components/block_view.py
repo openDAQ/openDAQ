@@ -323,6 +323,12 @@ class BlockView(ttk.Frame):
             self._component_core_event_handler = None
 
     def _on_component_core_event(self, sender, args: daq.IEventArgs):
+        # Unsubscribing on destroy stops new events, but one already sitting in
+        # the queue still arrives. Touching the dead widgets raises out of
+        # process_events(), which drops every event still queued behind it.
+        if not self.winfo_exists():
+            return
+
         if args.event_name == "AttributeChanged":
             if not daq.ICoreEventArgs.can_cast_from(args):
                 return

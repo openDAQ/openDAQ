@@ -1327,9 +1327,11 @@ class App(tk.Tk):
         if 'locked' in tags:
             labels.append('locked')
 
-        # Updating marker
-        if 'selected' in tags:
-            labels.append('*')
+        # Inside a begin_update block. A tag foreground loses to the selection
+        # highlight and begin_update always runs on the selected row, so the
+        # marker has to be in the text to be seen at all.
+        if 'updating' in tags:
+            labels.append('in update')
 
         return labels
 
@@ -1934,17 +1936,23 @@ class App(tk.Tk):
 
     def handle_begin_update(self):
         selected_item = utils.treeview_get_first_selection(self.tree)
-        if selected_item:
-            self.begin_update_on_node(selected_item)
-            self.set_node_update_status()
-            self.tree_update(self.context.selected_node)
+        if not selected_item:
+            return
+
+        self.context.updating_nodes.add(selected_item)
+        self.begin_update_on_node(selected_item)
+        self.set_node_update_status()
+        self.tree_update(self.context.selected_node)
 
     def handle_end_update(self):
         selected_item = utils.treeview_get_first_selection(self.tree)
-        if selected_item:
-            self.end_update_on_node(selected_item)
-            self.set_node_update_status()
-            self.tree_update(self.context.selected_node)
+        if not selected_item:
+            return
+
+        self.context.updating_nodes.discard(selected_item)
+        self.end_update_on_node(selected_item)
+        self.set_node_update_status()
+        self.tree_update(self.context.selected_node)
 
     def begin_update_on_node(self, node):
         node_obj = utils.find_component(node, self.context.instance)
@@ -1957,6 +1965,7 @@ class App(tk.Tk):
         try:
             node_obj.end_update()
         except RuntimeError:
+            # Remote components reject it; the marker is cleared regardless.
             pass
 
     def handle_lock(self):
@@ -2017,10 +2026,14 @@ class App(tk.Tk):
         node_obj = utils.find_component(node, self.context.instance)
         if node_obj is None:
             return
-        if node_obj.updating:
-            self.add_tag_and_configure(node, 'selected', 'red')
+        # Either the user ran Begin update on this row, or the SDK reports it
+        # inside a block - locally begin_update cascades, so the whole subtree
+        # reports it. _update_tree_item_visual_state turns the tag into the
+        # visible marker.
+        if self.context.is_in_update(node_obj):
+            self.add_tag_and_configure(node, 'updating', '#b8860b')
         else:
-            self.remove_tag(node, 'selected')
+            self.remove_tag(node, 'updating')
         self._update_tree_item_visual_state(node)
         children = self.tree.get_children(node)
         for child in children:

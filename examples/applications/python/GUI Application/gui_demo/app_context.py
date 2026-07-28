@@ -50,6 +50,11 @@ class AppContext(object):
         self.log_file_path = os.path.join(
             tempfile.gettempdir(), 'opendaq_gui_{}.log'.format(os.getpid()))
 
+        # global ids the user ran "Begin update" on. Tracked here because the
+        # SDK's own `updating` flag never goes true on remote components, so it
+        # cannot be used to show that the action was taken.
+        self.updating_nodes = set()
+
         self.instance = None
         self.connection_string = ''
         self.signals = {}
@@ -152,6 +157,20 @@ class AppContext(object):
         if parent_device is None:
             return
         parent_device.remove_device(device)
+
+    # The one place that decides whether a component counts as being in an
+    # update block: either the user ran Begin update on it, or the SDK says so.
+    # Remote components never report the flag, so the first half carries them.
+    def is_in_update(self, component):
+        global_id = getattr(component, 'global_id', None)
+        if global_id is not None and global_id in self.updating_nodes:
+            return True
+        try:
+            return bool(daq.IPropertyObject.cast_from(component).updating)
+        except Exception:
+            # cast_from can fail in more ways than RuntimeError; this only
+            # decides how something is drawn, so it must never propagate.
+            return False
 
     def add_first_available_device(self):
         device_info = DeviceInfoLocal(self.connection_string)

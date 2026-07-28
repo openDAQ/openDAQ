@@ -1341,7 +1341,8 @@ class App(tk.Tk):
         tags = set(self.tree.item(node, 'tags'))
         base_name = self.get_component_tree_name(component)
         labels = self._build_component_state_labels(component, tags)
-        suffix = f" [{', '.join(labels)}]" if labels else ''
+        # ' | ' separated, matching the rest of the row rather than bracketing.
+        suffix = ''.join(f' | {label}' for label in labels)
         self.tree.item(node, text=self._format_tree_item_text(base_name + suffix))
 
     def _format_tree_item_text(self, text):

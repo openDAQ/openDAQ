@@ -32,6 +32,10 @@ class AppContext(object):
         self.include_reference_devices = True
         self.view_hidden_components = False
         self.view_signal_preview = True
+        # (parent global id, fb type id) the block refused another instance of.
+        # How many nested blocks a type accepts is decided in its C++ impl and
+        # is not exposed, so it can only be learned by being told no once.
+        self.nested_fb_full = set()
         self.metadata_fields = []
         # gui
         self.ui_scaling_factor = 1.0

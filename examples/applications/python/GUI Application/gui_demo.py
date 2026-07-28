@@ -1101,22 +1101,12 @@ class App(tk.Tk):
             if not fb_types:
                 continue
 
-            # types already instantiated under this block don't get an indicator
-            # (nested blocks usually accept a single instance per type)
-            existing_type_ids = set()
-            try:
-                for child_fb in fb.function_blocks:
-                    try:
-                        existing_type_ids.add(
-                            str(child_fb.function_block_type.id))
-                    except RuntimeError:
-                        pass
-            except (RuntimeError, AttributeError):
-                pass
-
+            # Every offered type keeps its indicator - nesting is not on/off,
+            # many blocks accept more than one instance - except where this
+            # block has already told us it will not take another.
             for fb_type_id in fb_types.keys():
                 fb_type_id = str(fb_type_id)
-                if fb_type_id in existing_type_ids:
+                if (iid, fb_type_id) in self.context.nested_fb_full:
                     continue
                 try:
                     display_name = daq.IComponentType.cast_from(
@@ -1246,8 +1236,16 @@ class App(tk.Tk):
         try:
             new_fb = fb.add_function_block(fb_type_id)
         except Exception as e:
-            utils.show_error('Error adding function block',
-                             f'{fb_type_id}: {str(e)}', self)
+            # Nothing reports how many instances of a nested type a block
+            # accepts, so a refusal is the only way to find out. Remember it and
+            # stop offering that type here rather than letting the row sit there
+            # failing - each attempt also leaves the parent in Error status.
+            self.context.nested_fb_full.add((parent_iid, fb_type_id))
+            utils.show_error(
+                'Cannot add function block',
+                f'{fb_type_id} was refused by this block:\n\n{str(e)}\n\n'
+                f'It will no longer be offered here.', self)
+            self.tree_update(self.context.selected_node)
             return
 
         self.tree_update(new_fb)

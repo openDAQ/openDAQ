@@ -118,6 +118,7 @@ class App(tk.Tk):
         self._tree_action_buttons = {}
         self._tree_action_pos = {}
         self._tree_hover_row = None
+        self._tree_font_cache = None
         # tree search / filter state
         self._tree_all_items = []
         self._filter_matches = []
@@ -384,11 +385,27 @@ class App(tk.Tk):
         except Exception:
             return 20
 
+    # Cached: the overlay placement measures text on every mouse motion.
+    def _tree_font(self):
+        if self._tree_font_cache is None:
+            self._tree_font_cache = tkfont.Font(
+                font=ttk.Style().lookup('Treeview', 'font') or 'TkDefaultFont')
+        return self._tree_font_cache
+
+    # Right edge of a row's text. The cell bbox already carries both the
+    # indentation and the horizontal scroll offset, so this stays correct at
+    # any scroll position without tracking depth by hand.
+    def _tree_row_text_right(self, iid):
+        bbox = self.tree.bbox(iid, '#0')
+        if not bbox:
+            return None
+        return bbox[0] + self.TREE_ICON_WIDTH + self._tree_font().measure(
+            self.tree.item(iid, 'text'))
+
     # Width the deepest visible row needs. Tk never sizes the tree column to its
     # contents, so without this a nested row is clipped instead of scrollable.
     def _tree_content_width(self):
-        font = tkfont.Font(
-            font=ttk.Style().lookup('Treeview', 'font') or 'TkDefaultFont')
+        font = self._tree_font()
         indent = self._tree_indent()
         widest = 0
 
@@ -536,6 +553,8 @@ class App(tk.Tk):
             'add': make_button('plus', self.handle_tree_add_clicked),
             'remove': make_button('trash', self.handle_tree_remove_clicked),
             'hover_add': make_button('plus', self.handle_tree_hover_add_clicked),
+            # image is swapped per row: it shows the action, not the state
+            'lock': make_button('lock', self.handle_tree_lock_clicked),
         }
 
     def handle_tree_add_clicked(self, event):
@@ -569,6 +588,16 @@ class App(tk.Tk):
             self.handle_tree_menu_remove_device(
                 daq.IDevice.cast_from(component))
 
+    # lock button on a hovered device row: toggles that device's lock
+    def handle_tree_lock_clicked(self, event):
+        iid = self._tree_hover_row
+        if not self._device_lockable(iid):
+            return
+        if self._device_locked(iid):
+            self.unlock_device_node(iid)
+        else:
+            self.lock_device_node(iid)
+
     # plus button on a hovered device row: add menu targeting that device
     def handle_tree_hover_add_clicked(self, event):
         iid = self._tree_hover_row
@@ -601,6 +630,26 @@ class App(tk.Tk):
     def _device_addable(self, iid):
         component = self.context.nodes.get(iid)
         return component is not None and daq.IDevice.can_cast_from(component)
+
+    # the client instance itself is excluded: it is the local root, not
+    # something a lock protects against another client
+    def _device_lockable(self, iid):
+        component = self.context.nodes.get(iid) if iid else None
+        if component is None or not daq.IDevice.can_cast_from(component):
+            return False
+        if self.context.instance is not None and \
+                component.global_id == self.context.instance.global_id:
+            return False
+        return True
+
+    def _device_locked(self, iid):
+        component = self.context.nodes.get(iid) if iid else None
+        if component is None or not daq.IDevice.can_cast_from(component):
+            return False
+        try:
+            return bool(daq.IDevice.cast_from(component).locked)
+        except Exception:
+            return False
 
     def _component_removable(self, iid):
         component = self.context.nodes.get(iid)
@@ -1133,43 +1182,48 @@ class App(tk.Tk):
         pad = int(6 * self.context.ui_scaling_factor * self.context.dpi_factor)
         width = self.tree.winfo_width()
         placements = {}
-
         backgrounds = {}
+
+        # lays buttons out right to left along a row, stopping before the row's
+        # own text. Anything that no longer fits is left unplaced rather than
+        # drawn over the component name.
+        def place_row(iid, wanted):
+            bbox = self.tree.bbox(iid)
+            if not bbox:
+                return
+            text_right = self._tree_row_text_right(iid)
+            limit = 0 if text_right is None else max(0, text_right + pad)
+            x = width - pad
+            for key, show in wanted:
+                if not show:
+                    continue
+                btn = self._tree_action_buttons[key]
+                x -= btn.winfo_reqwidth()
+                # the rest sit further left, so none of them fit either
+                if x < limit:
+                    break
+                y = bbox[1] + (bbox[3] - btn.winfo_reqheight()) // 2
+                placements[key] = (x, y)
+                backgrounds[key] = self._row_background(iid)
+                x -= pad
+
         root_iid = self.context.instance.global_id \
             if self.context.instance is not None else None
         if root_iid and self.tree.exists(root_iid):
-            bbox = self.tree.bbox(root_iid)
-            if bbox:
-                x = width - pad
-                for key in ('add',):
-                    btn = self._tree_action_buttons[key]
-                    x -= btn.winfo_reqwidth()
-                    if x <= 0:
-                        break
-                    y = bbox[1] + (bbox[3] - btn.winfo_reqheight()) // 2
-                    placements[key] = (x, y)
-                    backgrounds[key] = self._row_background(root_iid)
-                    x -= pad
+            place_row(root_iid, (('add', True),))
 
         hover = self._tree_hover_row
         if hover and hover != root_iid and self.tree.exists(hover):
-            bbox = self.tree.bbox(hover)
-            if bbox:
-                # keep the '+' (add) rightmost, remove to its left
-                wanted = (('hover_add', self._device_addable(hover)),
-                          ('remove', self._component_removable(hover)))
-                x = width - pad
-                for key, show in wanted:
-                    if not show:
-                        continue
-                    btn = self._tree_action_buttons[key]
-                    x -= btn.winfo_reqwidth()
-                    if x <= 0:
-                        break
-                    y = bbox[1] + (bbox[3] - btn.winfo_reqheight()) // 2
-                    placements[key] = (x, y)
-                    backgrounds[key] = self._row_background(hover)
-                    x -= pad
+            lockable = self._device_lockable(hover)
+            if lockable:
+                # the icon names the action available, not the current state
+                self._tree_action_buttons['lock'].configure(
+                    image=self.context.icons[
+                        'unlock' if self._device_locked(hover) else 'lock'])
+            # keep the '+' (add) rightmost, then remove, then lock
+            place_row(hover, (('hover_add', self._device_addable(hover)),
+                              ('remove', self._component_removable(hover)),
+                              ('lock', lockable)))
 
         for key, btn in self._tree_action_buttons.items():
             pos = placements.get(key)
@@ -1963,7 +2017,13 @@ class App(tk.Tk):
             pass
 
     def handle_lock(self):
-        node = utils.treeview_get_first_selection(self.tree)
+        self.lock_device_node(utils.treeview_get_first_selection(self.tree))
+
+    def handle_unlock(self):
+        self.unlock_device_node(utils.treeview_get_first_selection(self.tree))
+
+    # both the context menu and the hover button land here
+    def lock_device_node(self, node):
         component = utils.find_component(node, self.context.instance)
 
         try:
@@ -1973,9 +2033,9 @@ class App(tk.Tk):
         except Exception as e:
             utils.show_error('Lock failed', f'{component.name}: {e}', self)
             print(f'Lock failed: {str(e)}', file=sys.stderr)
+        self._tree_overlays_update()
 
-    def handle_unlock(self):
-        node = utils.treeview_get_first_selection(self.tree)
+    def unlock_device_node(self, node):
         component = utils.find_component(node, self.context.instance)
 
         try:
@@ -1988,6 +2048,7 @@ class App(tk.Tk):
             do_force_unlock = messagebox.askyesno('Unlock failed', msg)
             if do_force_unlock:
                 self._force_unlock_device(node, component)
+        self._tree_overlays_update()
 
     def _force_unlock_device(self, node, component):
         try:

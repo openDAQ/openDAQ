@@ -364,6 +364,45 @@ class App(tk.Tk):
             self.right_side_panel_clear()
             self.right_side_panel_draw_node(self.context.selected_node)
             
+    TREE_ICON_WIDTH = 24
+    TREE_TEXT_PADDING = 28
+
+    def _tree_indent(self):
+        try:
+            return int(str(self.tk.call(
+                'ttk::style', 'lookup', 'Treeview', '-indent')))
+        except Exception:
+            return 20
+
+    # Width the deepest visible row needs. Tk never sizes the tree column to its
+    # contents, so without this a nested row is clipped instead of scrollable.
+    def _tree_content_width(self):
+        font = tkfont.Font(
+            font=ttk.Style().lookup('Treeview', 'font') or 'TkDefaultFont')
+        indent = self._tree_indent()
+        widest = 0
+
+        def walk(parent, depth):
+            nonlocal widest
+            for iid in self.tree.get_children(parent):
+                needed = (depth * indent + self.TREE_ICON_WIDTH
+                          + font.measure(self.tree.item(iid, 'text')))
+                widest = max(widest, needed)
+                if self.tree.item(iid, 'open'):
+                    walk(iid, depth + 1)
+
+        walk('', 1)
+        return widest + self.TREE_TEXT_PADDING
+
+    def _tree_autosize_column(self):
+        visible = self.tree.winfo_width()
+        if visible <= 1:
+            return
+        # never narrower than the pane, so a shallow tree shows no scrollbar
+        wanted = max(self._tree_content_width(), visible - 4)
+        if abs(wanted - self.tree.column('#0', 'width')) > 2:
+            self.tree.column('#0', width=wanted)
+
     # Flat, borderless icon button matching the tree action buttons. The
     # background tracks its row so transparent icon corners blend in.
     def _flat_icon_button(self, parent, handler, image=None, text=None, bg=None):
@@ -394,10 +433,12 @@ class App(tk.Tk):
         # define columns
         tree = ttk.Treeview(frame, columns=('name', 'hash'), displaycolumns=(
             'name'), show='tree', selectmode=tk.BROWSE)
-        tree.pack(fill=tk.BOTH, expand=True, side=tk.LEFT)
 
-        # layout
-        tree.column('#0', width=int(350 * self.context.ui_scaling_factor * self.context.dpi_factor))
+        # layout. #0 must not stretch: a stretched column is always exactly the
+        # widget width, so there would be nothing for xview to scroll over and
+        # deeply indented rows would simply be clipped.
+        tree.column('#0', stretch=False,
+                    width=int(350 * self.context.ui_scaling_factor * self.context.dpi_factor))
         # hide the column with unique id
         tree.column('#1', width=0, minwidth=0, stretch=False)
 
@@ -416,7 +457,21 @@ class App(tk.Tk):
             scroll_bar.set(first, last)
             self._tree_overlays_update()  # immediate sync while scrolling
         tree.configure(yscroll=tree_yscroll)
+
+        scroll_bar_x = ttk.Scrollbar(
+            frame, orient=tk.HORIZONTAL, command=tree.xview)
+
+        def tree_xscroll(first, last):
+            scroll_bar_x.set(first, last)
+            self._tree_overlays_update()
+        tree.configure(xscroll=tree_xscroll)
+        self._tree_scroll_x = scroll_bar_x
+
+        # Packed before the tree: the tree claims a side=LEFT slab, so anything
+        # packed after it lands in the strip beside it rather than under it.
+        scroll_bar_x.pack(fill=tk.X, side=tk.BOTTOM)
         scroll_bar.pack(fill=tk.Y, side=tk.RIGHT)
+        tree.pack(fill=tk.BOTH, expand=True, side=tk.LEFT)
 
         parent_frame.add(frame)
         tree.tag_configure('warning', foreground=utils.StatusColor.WARNING)
@@ -424,6 +479,13 @@ class App(tk.Tk):
         tree.tag_configure('inactive', foreground='gray')
         tree.tag_configure('nested_fb', foreground='gray')
         tree.bind('<Configure>', lambda e: self._tree_overlays_update(), add='+')
+        # expanding or collapsing changes which rows are visible, so the width
+        # the column needs changes with it
+        tree.bind('<Configure>', lambda e: self._tree_autosize_column(), add='+')
+        tree.bind('<<TreeviewOpen>>',
+                  lambda e: self.after_idle(self._tree_autosize_column), add='+')
+        tree.bind('<<TreeviewClose>>',
+                  lambda e: self.after_idle(self._tree_autosize_column), add='+')
         tree.bind('<Motion>', self._handle_tree_motion)
         tree.bind('<Leave>', self._handle_tree_leave)
         style = ttk.Style()
@@ -608,6 +670,7 @@ class App(tk.Tk):
 
     def _on_search_changed(self):
         self._apply_tree_filter()
+        self._tree_autosize_column()
 
     def _clear_search(self):
         self._hide_search_results()
@@ -869,6 +932,7 @@ class App(tk.Tk):
                 self.modules_map[mod_id] = mod
             self._tree_capture_structure()
             self._apply_tree_filter()
+            self._tree_autosize_column()
             return
 
         self.tree_traverse_components_recursive(

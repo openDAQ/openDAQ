@@ -27,16 +27,15 @@ class OutputSignalRow(ttk.Frame):
         last_value, raw_value = self._read_values()
         self._view_value = last_value
 
-        is_struct_or_string = False
-        if isinstance(raw_value, daq.IBaseObject) and IStruct.can_cast_from(raw_value) or isinstance(raw_value, str):
-            is_struct_or_string = True
+        is_viewable = self._is_viewable(raw_value)
+        if is_viewable:
+            self._view_value = raw_value
 
         # Check whether this signal can be charted so we know whether
         # to show the expand arrow.  Gated on the global toggle too.
         self._chartable = self._check_chartable()
-        show_expand = (
-            self._chartable
-            and context is not None
+        self._preview_enabled = (
+            context is not None
             and getattr(context, 'view_signal_preview', False))
 
         # Bottom separator between rows.
@@ -49,28 +48,19 @@ class OutputSignalRow(ttk.Frame):
         self._name_frame.grid(row=1, column=0, sticky=tk.W)
         
         self._arrow_label = None
-        if show_expand:
-            self._arrow_right = (
-                context.icons.get('right')
-                if context and context.icons else None)
-            self._arrow_down = (
-                context.icons.get('down')
-                if context and context.icons else None)
-            self._arrow_label = ttk.Label(
-                self._name_frame, image=self._arrow_right, cursor='hand2')
-            self._arrow_label.pack(side=tk.LEFT, padx=(0, 2))
-            self._arrow_label.bind('<Button-1>', lambda _e: self._toggle_expand())
-
-        ttk.Label(self._name_frame, text=output_signal.name, anchor=tk.W).pack(
-            side=tk.LEFT)
+        self._name_label = ttk.Label(
+            self._name_frame, text=output_signal.name, anchor=tk.W)
+        self._name_label.pack(side=tk.LEFT)
+        self._create_expand_arrow()
 
         # Duration control
-        self._duration_presets = [0.01, 0.05, 0.1, 0.2, 0.5, 1]
-        self._duration_var = tk.StringVar(value='0.2s')
+        self._duration_var = tk.StringVar(
+            value=f'{OutputSignalGraph.DEFAULT_WINDOW_SECONDS:g}s')
         self._dur_label = ttk.Label(self._name_frame, text='|     Display duration:')
         self._dur_cb = ttk.Combobox(
             self._name_frame, textvariable=self._duration_var,
-            values=[f'{d:g}s' for d in self._duration_presets], width=12)
+            values=[f'{d:g}s' for d in OutputSignalGraph.DURATION_PRESETS],
+            width=12)
 
         # Value column with optional View button
         value_frame = ttk.Frame(self)
@@ -78,19 +68,19 @@ class OutputSignalRow(ttk.Frame):
 
         self.view_button = None
         
-        if is_struct_or_string:
+        if is_viewable:
             self.view_button = ttk.Button(
                 value_frame, text='View', command=lambda: self.handle_view_clicked(self._view_value)
             )
             self.view_button.pack(side=tk.RIGHT, padx=(4, 0))
-            
-            display_value = str(last_value)
+
+            display_value = self._summarise(last_value)
             self.value_label = ttk.Label(value_frame, text=display_value, anchor=tk.E, justify=tk.RIGHT)
             if len(display_value) < 25:
                 self.value_label.pack(side=tk.RIGHT, fill=tk.X, expand=True)
-                
+
         else:
-            display_value = self._truncate_for_display(last_value, is_struct_or_string)
+            display_value = self._truncate_for_display(last_value, is_viewable)
             self.value_label = ttk.Label(value_frame, text=display_value, anchor=tk.E, justify=tk.RIGHT)
             self.value_label.pack(side=tk.RIGHT, fill=tk.X, expand=True)
 
@@ -113,6 +103,21 @@ class OutputSignalRow(ttk.Frame):
             return False
         return OutputSignalGraph._is_chartable(
             signal.descriptor, domain.descriptor)
+
+    def _create_expand_arrow(self):
+        if self._arrow_label is not None or not self._chartable:
+            return
+        if not self._preview_enabled:
+            return
+
+        icons = self.context.icons or {}
+        self._arrow_right = icons.get('right')
+        self._arrow_down = icons.get('down')
+        self._arrow_label = ttk.Label(
+            self._name_frame, image=self._arrow_right, cursor='hand2')
+        self._arrow_label.pack(side=tk.LEFT, padx=(0, 2),
+                               before=self._name_label)
+        self._arrow_label.bind('<Button-1>', lambda _e: self._toggle_expand())
 
     def _toggle_expand(self):
         if self._expanded:
@@ -165,14 +170,42 @@ class OutputSignalRow(ttk.Frame):
         self._bottom_sep.grid_remove()
 
     def refresh(self):
+        # A signal's descriptors can arrive after the row was built, so the
+        # arrow has to be able to appear late rather than only at construction.
+        if not self._chartable:
+            self._chartable = self._check_chartable()
+            self._create_expand_arrow()
+
         last_value, raw_value = self._read_values()
-        is_viewable = (isinstance(raw_value, daq.IBaseObject) and IStruct.can_cast_from(raw_value)) or isinstance(raw_value, str)
-        display_value = self._truncate_for_display(last_value, is_viewable)
+        is_viewable = self._is_viewable(raw_value)
+        if is_viewable:
+            display_value = self._summarise(last_value)
+            self._view_value = raw_value
+        else:
+            display_value = self._truncate_for_display(last_value, is_viewable)
+            self._view_value = last_value
         self.value_label.config(text=display_value)
-        self._view_value = raw_value if (isinstance(raw_value, daq.IBaseObject) and IStruct.can_cast_from(raw_value)) else last_value
         if self.view_button is not None:
             self.view_button.configure(command=lambda: self.handle_view_clicked(self._view_value))
             
+    # Values that need a View button because an inline label cannot carry them:
+    # structs, long strings, and vector samples, which arrive as an IList.
+    @staticmethod
+    def _is_viewable(value):
+        if isinstance(value, str):
+            return True
+        if not isinstance(value, daq.IBaseObject):
+            return False
+        return IStruct.can_cast_from(value) or daq.IList.can_cast_from(value)
+
+    # A 1024-bin spectrum stringifies to some 12k characters, which tells the
+    # reader nothing. Its length does.
+    @staticmethod
+    def _summarise(value):
+        if isinstance(value, daq.IBaseObject) and daq.IList.can_cast_from(value):
+            return f'[{len(daq.IList.cast_from(value))} values]'
+        return str(value)
+
     @staticmethod
     def _truncate_for_display(value, is_viewable):
         """For values that have a View button, truncate the inline label
@@ -199,6 +232,56 @@ class OutputSignalRow(ttk.Frame):
         except RuntimeError:
             raw_value = None
         return last_value, raw_value
+
+    # Row labels for a vector sample. A signal whose descriptor names the axis
+    # it spans gets that axis - frequency for an FFT - rather than bare indices.
+    def _vector_axis(self, count):
+        indices = ([str(i) for i in range(count)], 'Index')
+        if not daq.ISignal.can_cast_from(self.output_signal):
+            return indices
+
+        signal = daq.ISignal.cast_from(self.output_signal)
+        dimension = OutputSignalGraph._vector_dimension(signal.descriptor)
+        if dimension is None:
+            return indices
+
+        labels = dimension.labels
+        if labels is None or len(labels) < count:
+            return indices
+
+        unit = dimension.unit
+        symbol = getattr(unit, 'symbol', None) if unit is not None else None
+        suffix = f' {symbol}' if symbol else ''
+        return ([f'{labels[i]:.6g}{suffix}' for i in range(count)],
+                dimension.name if dimension.name else 'Index')
+
+    def _show_vector_dialog(self, values):
+        count = len(values)
+        positions, heading = self._vector_axis(count)
+
+        dialog = Dialog(self, 'View Vector', self.context)
+        dialog.geometry('420x600')
+        tree_frame = ttk.Frame(dialog)
+        tree_frame.pack(fill=tk.BOTH, expand=True, padx=10, pady=10)
+
+        tree = ttk.Treeview(tree_frame, columns=('value',), show='tree headings')
+        tree.heading('#0', text=heading)
+        tree.heading('value', text='Value')
+        tree.column('#0', anchor=tk.W, minwidth=100, width=150)
+        tree.column('value', anchor=tk.W, minwidth=100)
+
+        scroll_bar = ttk.Scrollbar(
+            tree_frame, orient=tk.VERTICAL, command=tree.yview)
+        tree.configure(yscrollcommand=scroll_bar.set)
+        scroll_bar.pack(side=tk.RIGHT, fill=tk.Y)
+
+        for index in range(count):
+            entry = values[index]
+            text = f'{entry:.6g}' if isinstance(entry, float) else str(entry)
+            tree.insert('', tk.END, text=positions[index], values=(text,))
+
+        tree.pack(fill=tk.BOTH, expand=True)
+        dialog.show()
 
     def handle_edit_clicked(self):
         if self.output_signal is not None:
@@ -254,6 +337,8 @@ class OutputSignalRow(ttk.Frame):
             text_widget.bind('<Button-3>', show_menu)
             
             dialog.show()
+        elif isinstance(value, daq.IBaseObject) and daq.IList.can_cast_from(value):
+            self._show_vector_dialog(daq.IList.cast_from(value))
         elif isinstance(value, daq.IBaseObject) and IStruct.can_cast_from(value):
             # Structs
             struct = IStruct.cast_from(value)

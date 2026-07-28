@@ -631,17 +631,32 @@ class App(tk.Tk):
                 pass
         return ''
 
-    # (display_name, global_id, lowercase haystack) for a tree row
+    @staticmethod
+    def _component_tags(comp):
+        try:
+            tags = comp.tags
+        except (AttributeError, RuntimeError):
+            return []
+        if tags is None:
+            return []
+        try:
+            return [str(tag) for tag in tags.list]
+        except (AttributeError, RuntimeError):
+            return []
+
+    # (display_name, global_id, lowercase haystack) for a tree row. Searching
+    # covers name, tags and local id - not the whole global id, so a query
+    # cannot match on a path fragment of some unrelated ancestor.
     def _row_search_fields(self, iid):
         comp = self.context.nodes.get(iid)
-        if comp is not None:
-            name = self.get_component_tree_name(comp)
-            type_label = self._component_type_label(comp)
-        else:
+        if comp is None:
             name = self.tree.item(iid, 'text').strip()
-            type_label = ''
-        hay = ' '.join((name, iid, type_label)).lower()
-        return name, iid, hay
+            return name, iid, name.lower()
+
+        name = self.get_component_tree_name(comp)
+        local_id = getattr(comp, 'local_id', '') or ''
+        terms = [name, str(local_id)] + self._component_tags(comp)
+        return name, iid, ' '.join(terms).lower()
 
     # snapshot of the fully built tree, so the filter can restore it before
     # re-applying without a full rebuild (keeps selection while typing)

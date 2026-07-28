@@ -807,6 +807,15 @@ class App(tk.Tk):
         self._hide_search_results()
 
     def tree_update(self, new_selected_node=None):
+        # Rows the search filter hid are detached, not deleted: they still
+        # belong to the widget and keep their ids reserved, but having no
+        # parent they are unreachable through get_children. Clear them by id
+        # first or rebuilding collides with them ("Item ... already exists").
+        for iid, _parent, _index, _is_open in self._tree_all_items:
+            if self.tree.exists(iid):
+                self.tree.delete(iid)
+        self._tree_all_items = []
+
         self.tree.delete(*self.tree.get_children())
         self.right_side_panel_clear()
         self._nested_fb_indicators = {}

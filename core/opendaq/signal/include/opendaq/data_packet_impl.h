@@ -808,7 +808,7 @@ ErrCode DataPacketImpl<TInterface, TInterfaces...>::reuse(IDataDescriptor* newDe
         this->callDestructCallbacks();
     }
 
-    this->packetId = generatePacketId();
+    this->packetId = daqGeneratePacketId();
 
     sampleCount = static_cast<uint32_t>(newSampleCount);
     rawSampleSize = static_cast<uint32_t>(newRawSampleSize);

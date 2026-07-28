@@ -163,6 +163,13 @@ class App(tk.Tk):
             text=None if self.context.icons.get('refresh') else '↻')
         self._tab_refresh_button.pack(side=tk.RIGHT, padx=(6, 6))
 
+        # packed after refresh, so side=RIGHT puts it to refresh's left
+        self._tab_logs_button = self._flat_icon_button(
+            tab_row, self.handle_logs_button_clicked,
+            image=self.context.icons.get('logs'),
+            text=None if self.context.icons.get('logs') else 'Logs')
+        self._tab_logs_button.pack(side=tk.RIGHT)
+
         main_frame_navigator = ttk.PanedWindow(
             main_frame_bottom, orient=tk.HORIZONTAL)
         main_frame_navigator.pack_propagate(0)
@@ -451,8 +458,9 @@ class App(tk.Tk):
             btn.bind('<Leave>', self._handle_action_button_leave)
             return btn
 
+        # logs lives in the tab row, not on a tree row: it is not about any one
+        # component
         self._tree_action_buttons = {
-            'logs': make_button('logs', lambda e: self.logs_window_show()),
             'add': make_button('plus', self.handle_tree_add_clicked),
             'remove': make_button('trash', self.handle_tree_remove_clicked),
             'hover_add': make_button('plus', self.handle_tree_hover_add_clicked),
@@ -1076,7 +1084,7 @@ class App(tk.Tk):
             bbox = self.tree.bbox(root_iid)
             if bbox:
                 x = width - pad
-                for key in ('add', 'logs'):
+                for key in ('add',):
                     btn = self._tree_action_buttons[key]
                     x -= btn.winfo_reqwidth()
                     if x <= 0:

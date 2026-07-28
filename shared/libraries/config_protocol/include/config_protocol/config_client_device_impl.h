@@ -553,20 +553,7 @@ void GenericConfigClientDeviceImpl<TDeviceBase>::onRemoteUpdate(const Serialized
             if (deserializedObj.assigned())
             {
                 if (key == "deviceInfo")
-                {
-                    if (this->objPtr.hasProperty("DaqDeviceInfo"))
-                    {
-                        const BaseObjectPtr existing = this->objPtr.getPropertyValue("DaqDeviceInfo");
-                        if (existing.asPtrOrNull<IDeviceInfo>(true).assigned())
-                            this->deviceInfo = existing;
-                        else
-                            this->deviceInfo = deserializedObj.template asPtr<IDeviceInfo>(true);
-                    }
-                    else
-                    {
-                        this->deviceInfo = deserializedObj.template asPtr<IDeviceInfo>(true);
-                    }
-                }
+                    TDeviceBase::setDeviceInfo(deserializedObj);
                 else
                     this->addExistingComponent(deserializedObj);
             }

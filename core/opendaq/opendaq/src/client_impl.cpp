@@ -13,6 +13,9 @@ ClientImpl::ClientImpl(const ContextPtr ctx, const StringPtr& localId, const Dev
                           ? this->logger.getOrAddComponent("Client")
                           : throw ArgumentNullException("Logger must not be null"))
 {
+    if (const auto devInfoPtr = deviceInfo.asPtrOrNull<IDeviceInfoConfig>(); devInfoPtr.assigned())
+        devInfoPtr.setConnectionString("daq.root://default_client");
+
     this->name = "OpenDAQClient";
     this->deviceInfo = deviceInfo;
 

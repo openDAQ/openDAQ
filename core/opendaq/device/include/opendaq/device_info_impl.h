@@ -1049,6 +1049,8 @@ ErrCode DeviceInfoConfigImpl<TInterface, Interfaces...>::serializePropertyValue(
     // skip object-type property which cannot be properly handled by older version
     if (name == "activeClientConnections" && version < 3)
         return OPENDAQ_IGNORED;
+    if (name == "configurationConnectionInfo")
+        return OPENDAQ_IGNORED;
     return Super::serializePropertyValue(name, value, serializer);
 }
 
@@ -1059,8 +1061,12 @@ ErrCode DeviceInfoConfigImpl<TInterface, Interfaces...>::serializeProperty(const
     ErrCode err = serializer->getVersion(&version);
     OPENDAQ_RETURN_IF_FAILED(err);
 
+    const auto name = property.getName();
+
     // skip object-type property which cannot be properly handled by older version
-    if (property.getName() == "activeClientConnections" && version < 3)
+    if (name == "activeClientConnections" && version < 3)
+        return OPENDAQ_IGNORED;
+    if (name == "configurationConnectionInfo")
         return OPENDAQ_IGNORED;
     return Super::serializeProperty(property, serializer);
 }

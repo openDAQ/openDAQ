@@ -527,8 +527,15 @@ TEST_F(OpcuaDeviceModulesTest, TestDiscoveryReachabilityAfterConnect)
             ASSERT_EQ(addressInfo.getAddress(), capability.getAddresses()[index]);
             if (addressInfo.getType() == "IPv4")
             {
-                ASSERT_EQ(addressInfo.getReachabilityStatus(), AddressReachabilityStatus::Reachable);
-                cnt++;
+                // Only the address actually used to connect is guaranteed Reachable - marked so by
+                // completeServerCapabilities() upon a successful connection. Verifying any other
+                // IPv4 address requires an ICMP ping, which needs root and is unavailable here, so
+                // on a multi-homed machine those legitimately stay Unknown.
+                if (addressInfo.getConnectionString() == capability.getConnectionString())
+                {
+                    ASSERT_EQ(addressInfo.getReachabilityStatus(), AddressReachabilityStatus::Reachable);
+                    cnt++;
+                }
             }
             else if (addressInfo.getType() == "IPv6")
             {

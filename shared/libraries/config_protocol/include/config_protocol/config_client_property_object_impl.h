@@ -637,9 +637,12 @@ void ConfigClientPropertyObjectBaseImpl<Impl>::updatePropertyValues(const Serial
     const auto hasKeyStr = String("propValues");
     const PropertyObjectPtr thisPtr = this->template borrowPtr<PropertyObjectPtr>();
 
+    ListPtr<IProperty> properties;
+    checkErrorInfo(Impl::getPropertiesInternal(true, true, &properties, true));
+
     if (!serObj.hasKey(hasKeyStr))
     {
-        for (const auto& prop : thisPtr.getAllProperties())
+        for (const auto& prop : properties)
         {
             const auto propInternal = prop.asPtrOrNull<IPropertyInternal>(true);
             if (propInternal.assigned())
@@ -661,7 +664,7 @@ void ConfigClientPropertyObjectBaseImpl<Impl>::updatePropertyValues(const Serial
     const auto propValues = serObj.readSerializedObject("propValues");
     const auto protectedPropObjPtr = thisPtr.asPtr<IPropertyObjectProtected>();
 
-    for (const auto& prop : thisPtr.getAllProperties())
+    for (const auto& prop : properties)
     {
         const auto propName = prop.getName();
         const auto propInternal = prop.asPtrOrNull<IPropertyInternal>(true);

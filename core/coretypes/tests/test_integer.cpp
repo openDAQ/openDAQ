@@ -243,3 +243,9 @@ TEST_F(IntegerTest, BorrowInterface)
     const auto obj1 = obj.asPtr<IInteger>(true);
     ASSERT_EQ(1, obj1);
 }
+
+TEST_F(IntegerTest, FromPool)
+{
+    const auto obj = IntegerFromPool(152);
+    ASSERT_EQ(obj, 152);
+}

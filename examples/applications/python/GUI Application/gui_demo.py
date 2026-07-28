@@ -141,7 +141,12 @@ class App(tk.Tk):
         main_frame_bottom = ttk.Frame(self)
         main_frame_bottom.pack(fill=tk.BOTH, expand=True)
 
-        nb = ttk.Notebook(main_frame_bottom)
+        # the tab strip and the refresh button share a row, so refresh sits at
+        # the right of the tabs rather than looking like part of the search box
+        tab_row = ttk.Frame(main_frame_bottom)
+        tab_row.pack(fill=tk.X)
+
+        nb = ttk.Notebook(tab_row)
         nb.add(ttk.Frame(nb), text='System Overview')
         nb.add(ttk.Frame(nb), text='Signals')
         nb.add(ttk.Frame(nb), text='Channels')
@@ -149,11 +154,14 @@ class App(tk.Tk):
         nb.add(ttk.Frame(nb), text='Full Topology')
         nb.add(ttk.Frame(nb), text='Modules')
         nb.bind('<<NotebookTabChanged>>', self.on_tab_change)
-        nb.pack(fill=tk.X)
+        nb.pack(side=tk.LEFT, fill=tk.X, expand=True)
         self.nb = nb
 
-        # refresh now lives in the tree's search/filter row (see
-        # _tree_search_row_create), so it no longer floats over the tab strip.
+        self._tab_refresh_button = self._flat_icon_button(
+            tab_row, self.handle_refresh_button_clicked,
+            image=self.context.icons.get('refresh'),
+            text=None if self.context.icons.get('refresh') else '↻')
+        self._tab_refresh_button.pack(side=tk.RIGHT, padx=(6, 6))
 
         main_frame_navigator = ttk.PanedWindow(
             main_frame_bottom, orient=tk.HORIZONTAL)
@@ -556,12 +564,6 @@ class App(tk.Tk):
 
         clear_btn = flat_button(self._clear_search, text='✕')
         clear_btn.pack(side=tk.LEFT, padx=(4, 0))
-
-        refresh_btn = flat_button(
-            self.handle_refresh_button_clicked, image=icons.get('refresh'),
-            text=None if icons.get('refresh') else '↻')
-        refresh_btn.pack(side=tk.LEFT, padx=(6, 2))
-        self._search_refresh_button = refresh_btn
 
         # matches list: a floating popup so it overlays the tree (instead of
         # pushing it down), sits directly under the search box at the same

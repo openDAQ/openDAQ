@@ -632,7 +632,6 @@ class App(tk.Tk):
             return self._flat_icon_button(row, handler, image=image, text=text,
                                           bg=row_bg)
 
-        icons = self.context.icons
         entry = ttk.Entry(row, textvariable=self._search_var, width=53)
         entry.pack(side=tk.LEFT)
         self._search_entry = entry
@@ -686,23 +685,6 @@ class App(tk.Tk):
         self._hide_search_results()
         if self._search_var.get():
             self._search_var.set('')
-
-    @staticmethod
-    def _component_type_label(comp):
-        if comp is None:
-            return ''
-        checks = ((daq.IChannel, 'channel'), (daq.ISignal, 'signal'),
-                  (daq.IInputPort, 'input port'),
-                  (daq.IFunctionBlock, 'function block'),
-                  (daq.IDevice, 'device'), (daq.IServer, 'server'),
-                  (daq.IFolder, 'folder'))
-        for iface, label in checks:
-            try:
-                if iface.can_cast_from(comp):
-                    return label
-            except Exception:
-                pass
-        return ''
 
     @staticmethod
     def _component_tags(comp):

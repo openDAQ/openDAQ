@@ -349,6 +349,26 @@ class App(tk.Tk):
             self.right_side_panel_clear()
             self.right_side_panel_draw_node(self.context.selected_node)
             
+    # Flat, borderless icon button matching the tree action buttons. The
+    # background tracks its row so transparent icon corners blend in.
+    def _flat_icon_button(self, parent, handler, image=None, text=None, bg=None):
+        if bg is None:
+            bg = ttk.Style().lookup('TFrame', 'background') or \
+                self.cget('background')
+        kwargs = {'bd': 0, 'bg': bg, 'cursor': 'hand2'}
+        if image is not None:
+            kwargs['image'] = image
+        if text is not None:
+            kwargs['text'] = text
+            kwargs['font'] = ('TkDefaultFont', 11)
+            kwargs['fg'] = '#555555'
+            kwargs['padx'] = 3
+        button = tk.Label(parent, **kwargs)
+        button.bind('<Button-1>', lambda e: handler())
+        button.bind('<Enter>', lambda e: button.configure(bg='#e4e4e4'))
+        button.bind('<Leave>', lambda e: button.configure(bg=bg))
+        return button
+
     # MARK: - Tree view
     def tree_widget_create(self, parent_frame):
         frame = ttk.Frame(parent_frame)
@@ -521,19 +541,8 @@ class App(tk.Tk):
         self._search_row_bg = row_bg
 
         def flat_button(handler, image=None, text=None):
-            kwargs = {'bd': 0, 'bg': row_bg, 'cursor': 'hand2'}
-            if image is not None:
-                kwargs['image'] = image
-            if text is not None:
-                kwargs['text'] = text
-                kwargs['font'] = ('TkDefaultFont', 11)
-                kwargs['fg'] = '#555555'
-                kwargs['padx'] = 3
-            btn = tk.Label(row, **kwargs)
-            btn.bind('<Button-1>', lambda e: handler())
-            btn.bind('<Enter>', lambda e: btn.configure(bg='#e4e4e4'))
-            btn.bind('<Leave>', lambda e: btn.configure(bg=row_bg))
-            return btn
+            return self._flat_icon_button(row, handler, image=image, text=text,
+                                          bg=row_bg)
 
         icons = self.context.icons
         entry = ttk.Entry(row, textvariable=self._search_var, width=45)

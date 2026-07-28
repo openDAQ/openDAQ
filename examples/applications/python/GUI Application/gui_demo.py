@@ -349,6 +349,12 @@ class App(tk.Tk):
 
         self._signal_preview_var = tk.BooleanVar(value=self.context.view_signal_preview)
         view_menu.add_checkbutton(label='Signal preview',variable=self._signal_preview_var,command=self.handle_view_signal_preview_toggled)
+
+        self._nested_fb_var = tk.BooleanVar(
+            value=self.context.view_nested_fb_indicators)
+        view_menu.add_checkbutton(label='Nested block placeholders',
+                                  variable=self._nested_fb_var,
+                                  command=self.handle_view_nested_fb_toggled)
         view_menu.add_separator()
         view_menu.add_command(label='Show logs', image=icons['logs'],
                               compound=tk.LEFT,
@@ -357,6 +363,10 @@ class App(tk.Tk):
     def handle_view_show_hidden_components(self):
         self.context.view_hidden_components = not self.context.view_hidden_components
         self.tree_update()
+
+    def handle_view_nested_fb_toggled(self):
+        self.context.view_nested_fb_indicators = self._nested_fb_var.get()
+        self.tree_update(self.context.selected_node)
 
     def handle_view_signal_preview_toggled(self):
         self.context.view_signal_preview = self._signal_preview_var.get()
@@ -1086,6 +1096,9 @@ class App(tk.Tk):
     # type a function block or channel offers; a single click on the row
     # adds that function block directly
     def tree_insert_nested_fb_indicators(self, parent_iid=''):
+        if not self.context.view_nested_fb_indicators:
+            return
+
         for iid in self.tree.get_children(parent_iid):
             self.tree_insert_nested_fb_indicators(iid)
 

@@ -26,6 +26,12 @@ inline ObjectPtr<IFloat> Floating(const Float value)
     return obj;
 }
 
+inline ObjectPtr<IFloat> FloatingFromPool(const Float value)
+{
+    ObjectPtr<IFloat> obj(FloatFromPool_Create(value));
+    return obj;
+}
+
 using FloatPtr = ObjectPtr<IFloat>;
 
 END_NAMESPACE_OPENDAQ

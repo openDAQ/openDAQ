@@ -9,6 +9,7 @@ opendaq_append_required_boost_components(
     uuid
     locale
     align
+    lockfree
 )
 if(DAQMODULES_PARQUET_RECORDER_MODULE AND MSVC)
     opendaq_append_required_boost_components(

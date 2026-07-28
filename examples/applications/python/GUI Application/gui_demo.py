@@ -561,14 +561,9 @@ class App(tk.Tk):
                                           bg=row_bg)
 
         icons = self.context.icons
-        entry = ttk.Entry(row, textvariable=self._search_var, width=45)
+        entry = ttk.Entry(row, textvariable=self._search_var, width=53)
         entry.pack(side=tk.LEFT)
         self._search_entry = entry
-
-        open_btn = flat_button(
-            self._toggle_search_results, image=icons.get('down'),
-            text=None if icons.get('down') else '▾')
-        open_btn.pack(side=tk.LEFT, padx=(4, 0))
 
         clear_btn = flat_button(self._clear_search, text='✕')
         clear_btn.pack(side=tk.LEFT, padx=(4, 0))
@@ -600,10 +595,14 @@ class App(tk.Tk):
         self._search_results_canvas = canvas
         self._search_results_inner = inner
 
+        # The list is not a dropdown to be opened: it belongs to the search box
+        # and follows it. Clicking or tabbing into the box shows whatever
+        # matches, typing keeps it current, and leaving the box puts it away.
         self._search_var.trace_add(
             'write', lambda *a: self._on_search_changed())
         entry.bind('<Escape>', lambda e: self._clear_search())
-        entry.bind('<Down>', lambda e: self._show_search_results())
+        entry.bind('<FocusIn>', lambda e: self._show_search_results())
+        entry.bind('<Button-1>', lambda e: self._show_search_results())
         entry.bind('<FocusOut>',
                    lambda e: self.after(150, self._maybe_hide_search_results))
 
@@ -731,12 +730,6 @@ class App(tk.Tk):
             self._open_all_visible(iid)
 
     # ---- floating matches list (name in black, global id in gray) ----
-    def _toggle_search_results(self):
-        if self._search_results_visible:
-            self._hide_search_results()
-        elif self._filter_matches:
-            self._show_search_results()
-
     def _show_search_results(self):
         self._populate_search_results()
         if not self._filter_matches:

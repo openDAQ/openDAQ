@@ -54,6 +54,10 @@ class AppContext(object):
         # SDK's own `updating` flag never goes true on remote components, so it
         # cannot be used to show that the action was taken.
         self.updating_nodes = set()
+        # (component global id, property name) written while inside an update
+        # block. Inside one the SDK still reports the old value and fires no
+        # event, so nothing else can tell which rows have a queued change.
+        self.pending_properties = set()
 
         self.instance = None
         self.connection_string = ''
@@ -171,6 +175,10 @@ class AppContext(object):
             # cast_from can fail in more ways than RuntimeError; this only
             # decides how something is drawn, so it must never propagate.
             return False
+
+    def clear_pending_properties(self, global_id):
+        self.pending_properties = {
+            entry for entry in self.pending_properties if entry[0] != global_id}
 
     def add_first_available_device(self):
         device_info = DeviceInfoLocal(self.connection_string)

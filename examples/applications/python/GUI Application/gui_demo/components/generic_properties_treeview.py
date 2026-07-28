@@ -80,6 +80,8 @@ class PropertiesTreeview(ttk.Treeview):
         self.pack(fill=tk.BOTH, expand=True)
 
         self.tag_configure('readonly', foreground='gray')
+        # written inside an update block, so not applied to the device yet
+        self.tag_configure('pending', foreground='#b8860b')
 
         # define headings
         self.heading('#0', anchor=tk.W, text='Property name')
@@ -243,7 +245,8 @@ class PropertiesTreeview(ttk.Treeview):
                 tk.END,
                 open=True,
                 text=display_name,
-                values=(property_value, *meta_fields))
+                values=(property_value, *meta_fields),
+                tags=self._row_tags(property_info))
             self._row_props[iid] = property_info
 
             is_single_value_selection = (
@@ -337,6 +340,7 @@ class PropertiesTreeview(ttk.Treeview):
                 prop.value = utils.value_to_coretype(
                     self.clipboard_get(), prop.value_type)
 
+            self._note_write(prop)
             self.refresh()
 
         except Exception as e:
@@ -477,6 +481,7 @@ class PropertiesTreeview(ttk.Treeview):
                     return
                 data.append(self._coerce_item_value(value, prop.item_type))
             prop.value = data
+            self._note_write(prop)
             self.refresh()
         except Exception as e:
             utils.show_error('Add item error', f'Can\'t add item: {e}', self)
@@ -489,6 +494,7 @@ class PropertiesTreeview(ttk.Treeview):
             else:
                 del data[int(key_text)]
             prop.value = data
+            self._note_write(prop)
             self.refresh()
         except Exception as e:
             utils.show_error('Delete item error', f'Can\'t delete item: {e}', self)
@@ -508,6 +514,8 @@ class PropertiesTreeview(ttk.Treeview):
         new_value = entry.get()
         try:
             self.update_property(self.node, path, new_value)
+            # path may address a nested object; the row is keyed by the leaf
+            self._note_write_name(path[-1])
             self.refresh()
         except Exception:
             pass
@@ -609,6 +617,42 @@ class PropertiesTreeview(ttk.Treeview):
                                 and prop.suggested_values is not None
                                 and len(prop.suggested_values) > 0)):
                         self._overlay_items[iid] = prop
+
+    def _node_global_id(self):
+        return getattr(self.node, 'global_id', None)
+
+    # Runs inside the row-insert loop, so it must never raise: an exception here
+    # would abort fill_properties and leave the whole list unpopulated.
+    def _row_tags(self, prop):
+        try:
+            gid = self._node_global_id()
+            if gid is None or self.context is None:
+                return ()
+            pending = getattr(self.context, 'pending_properties', None)
+            if pending and (gid, prop.name) in pending:
+                return ('pending',)
+        except Exception:
+            pass
+        return ()
+
+    # Called after a value is written from this view. Inside an update block the
+    # write is queued, the SDK keeps reporting the old value and fires no event,
+    # so the row is remembered here to be shown as pending.
+    def _note_write(self, prop):
+        self._note_write_name(prop.name)
+
+    # Also called from write handlers that sit outside their try block, so a
+    # failure here must not stop the write being shown.
+    def _note_write_name(self, name):
+        try:
+            gid = self._node_global_id()
+            if gid is None or self.context is None:
+                return
+            if not self.context.is_in_update(self.node):
+                return
+            self.context.pending_properties.add((gid, name))
+        except Exception:
+            pass
 
     def _create_overlay_for_item(self, iid, prop):
         kind = self._property_kind(prop)
@@ -758,6 +802,7 @@ class PropertiesTreeview(ttk.Treeview):
             except Exception as e:
                 print("Failed to set bool:", e)
                 return
+            self._note_write(_prop)
             self.refresh()
 
         cb.configure(command=on_change)
@@ -845,6 +890,7 @@ class PropertiesTreeview(ttk.Treeview):
             except Exception as e:
                 print("Failed to set selection:", e)
                 return
+            self._note_write(_prop)
             self.refresh()
 
         cb.bind('<<ComboboxSelected>>', on_change)
@@ -901,6 +947,7 @@ class PropertiesTreeview(ttk.Treeview):
             if _unit:
                 raw = raw.removesuffix(f' {_unit}').strip()
             _prop.value = utils.value_to_coretype(raw, _prop.value_type)
+            self._note_write(_prop)
             self.refresh()
 
         cb.bind('<Return>', lambda e: save())

@@ -1950,6 +1950,7 @@ class App(tk.Tk):
             return
 
         self.context.updating_nodes.discard(selected_item)
+        self.context.clear_pending_properties(selected_item)
         self.end_update_on_node(selected_item)
         self.set_node_update_status()
         self.tree_update(self.context.selected_node)

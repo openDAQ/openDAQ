@@ -2405,6 +2405,8 @@ void GenericDevice<TInterface, Interfaces...>::deserializeCustomObjectValues(con
 {
     Super::deserializeCustomObjectValues(serializedObject, context, factoryCallback);
 
+    // device Info became neaster property object of device info,
+    // but we are still reading device info to have possibility connect older servers
     if (serializedObject.hasKey("deviceInfo"))
         setDeviceInfo(serializedObject.readObject("deviceInfo", context, factoryCallback));
 

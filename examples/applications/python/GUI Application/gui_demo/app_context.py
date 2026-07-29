@@ -32,12 +32,16 @@ class AppContext(object):
         self.include_reference_devices = True
         self.view_hidden_components = False
         self.view_signal_preview = True
-        # the placeholder rows offering to add a nested function block; useful
-        # while configuring, clutter on a deeply nested tree
-        self.view_nested_fb_indicators = True
+        # global ids whose nested-function-block placeholder rows the user hid.
+        # The rows are useful while configuring a block and clutter once it is
+        # done, and which blocks are done is per block, not global - so this is
+        # a per-row opt-out rather than one switch over the whole tree.
+        self.nested_fb_hidden = set()
         # (parent global id, fb type id) the block refused another instance of.
         # How many nested blocks a type accepts is decided in its C++ impl and
-        # is not exposed, so it can only be learned by being told no once.
+        # is not exposed, so it can only be learned by being told no once. The
+        # answer is only true for as long as the block stays as it was, so it is
+        # forgotten again whenever that changes - see forget_nested_fb_refusals.
         self.nested_fb_full = set()
         self.metadata_fields = []
         # gui
@@ -186,6 +190,22 @@ class AppContext(object):
     def clear_pending_properties(self, global_id):
         self.pending_properties = {
             entry for entry in self.pending_properties if entry[0] != global_id}
+
+    # A refusal only means "full right now". Removing a nested block frees the
+    # slot that caused it, and the refusal may equally have come from a
+    # transient error, so anything that changes the block - or an explicit
+    # refresh - drops what was learned and lets the type be offered again.
+    # global_id None forgets every parent; otherwise that component and
+    # everything under it, since removing a block takes its children with it and
+    # a rebuilt block can reuse the same global id.
+    def forget_nested_fb_refusals(self, global_id=None):
+        if global_id is None:
+            self.nested_fb_full = set()
+            return
+        prefix = global_id + '/'
+        self.nested_fb_full = {
+            entry for entry in self.nested_fb_full
+            if entry[0] != global_id and not entry[0].startswith(prefix)}
 
     def add_first_available_device(self):
         device_info = DeviceInfoLocal(self.connection_string)

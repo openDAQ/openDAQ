@@ -121,8 +121,9 @@ class App(tk.Tk):
         self._tree_font_cache = None
         # tree search / filter state
         self._tree_all_items = []
-        self._filter_matches = []
-        self._search_results_visible = False
+        self._nested_fb_types_cache = {}
+        # true while the search box is showing its hint as its own text
+        self._search_placeholder = False
         self._indicator_click = False
         self._floating_dialogs = {}
         self._logs_window = None
@@ -264,6 +265,9 @@ class App(tk.Tk):
         self.context.nodes = {}
         self.context.signals = {}
         self.context.custom_component_ids = set()
+        # per-component tree state learned about the old instance
+        self.context.forget_nested_fb_refusals()
+        self.context.nested_fb_hidden = set()
         self.context.instance = None
         gc.collect()  # release the old instance before creating the new one
 
@@ -351,11 +355,6 @@ class App(tk.Tk):
         self._signal_preview_var = tk.BooleanVar(value=self.context.view_signal_preview)
         view_menu.add_checkbutton(label='Signal preview',variable=self._signal_preview_var,command=self.handle_view_signal_preview_toggled)
 
-        self._nested_fb_var = tk.BooleanVar(
-            value=self.context.view_nested_fb_indicators)
-        view_menu.add_checkbutton(label='Nested block placeholders',
-                                  variable=self._nested_fb_var,
-                                  command=self.handle_view_nested_fb_toggled)
         view_menu.add_separator()
         view_menu.add_command(label='Show logs', image=icons['logs'],
                               compound=tk.LEFT,
@@ -364,10 +363,6 @@ class App(tk.Tk):
     def handle_view_show_hidden_components(self):
         self.context.view_hidden_components = not self.context.view_hidden_components
         self.tree_update()
-
-    def handle_view_nested_fb_toggled(self):
-        self.context.view_nested_fb_indicators = self._nested_fb_var.get()
-        self.tree_update(self.context.selected_node)
 
     def handle_view_signal_preview_toggled(self):
         self.context.view_signal_preview = self._signal_preview_var.get()
@@ -513,6 +508,14 @@ class App(tk.Tk):
                   lambda e: self.after_idle(self._tree_autosize_column), add='+')
         tree.bind('<<TreeviewClose>>',
                   lambda e: self.after_idle(self._tree_autosize_column), add='+')
+        # the filter restores the snapshot's expansion state when it clears, so
+        # the snapshot has to follow what the user does to the unfiltered tree
+        tree.bind('<<TreeviewOpen>>',
+                  lambda e: self.after_idle(self._tree_resnapshot_open_state),
+                  add='+')
+        tree.bind('<<TreeviewClose>>',
+                  lambda e: self.after_idle(self._tree_resnapshot_open_state),
+                  add='+')
         tree.bind('<Motion>', self._handle_tree_motion)
         tree.bind('<Leave>', self._handle_tree_leave)
         style = ttk.Style()
@@ -537,8 +540,8 @@ class App(tk.Tk):
                 return '#e4e4e4'
         return self._tree_field_bg
 
-    # floating per-row action buttons: logs + add pinned to the instance
-    # row, remove shown on the hovered row
+    # floating per-row action buttons: add pinned to the instance row, the
+    # rest shown on the hovered row
     def tree_action_buttons_create(self):
         def make_button(icon_key, handler):
             btn = tk.Label(self.tree, image=self.context.icons[icon_key],
@@ -555,6 +558,8 @@ class App(tk.Tk):
             'hover_add': make_button('plus', self.handle_tree_hover_add_clicked),
             # image is swapped per row: it shows the action, not the state
             'lock': make_button('lock', self.handle_tree_lock_clicked),
+            'nested_fb': make_button('add_fb',
+                                     self.handle_tree_nested_fb_clicked),
         }
 
     def handle_tree_add_clicked(self, event):
@@ -598,38 +603,85 @@ class App(tk.Tk):
         else:
             self.lock_device_node(iid)
 
-    # plus button on a hovered device row: add menu targeting that device
+    # a row only offers the hide/show toggle when it has placeholders to hide.
+    # A block that already refused every type it offers has none, so it gets no
+    # button - otherwise the toggle would flip with nothing to show for it.
+    def _nested_fb_togglable(self, iid):
+        fb_types = self._nested_fb_types(iid)
+        if not fb_types:
+            return False
+        return any((iid, str(fb_type_id)) not in self.context.nested_fb_full
+                   for fb_type_id in fb_types.keys())
+
+    # hide or bring back this row's nested-function-block placeholders. Scoped
+    # to the one row: a block is finished being configured on its own schedule.
+    def handle_tree_nested_fb_clicked(self, event):
+        iid = self._tree_hover_row
+        if not self._nested_fb_togglable(iid):
+            return
+        hidden = self.context.nested_fb_hidden
+        if iid in hidden:
+            hidden.discard(iid)
+        else:
+            hidden.add(iid)
+        self.tree_update(self.context.selected_node)
+
+    # plus button on a hovered row: the same offers its right-click menu makes,
+    # so a block that can take a nested function block gets the button too
     def handle_tree_hover_add_clicked(self, event):
         iid = self._tree_hover_row
         component = self.context.nodes.get(iid) if iid else None
-        if component is None or not daq.IDevice.can_cast_from(component):
+        if component is None:
             return
-        device = daq.IDevice.cast_from(component)
 
         icons = self.context.icons
         menu = tk.Menu(self.tree, tearoff=0)
-        menu.add_command(label='Add device', image=icons['device'],
-                         compound=tk.LEFT,
-                         command=lambda: self.add_device_dialog_show(device))
-        try:
-            has_fb_types = bool(device.available_function_block_types)
-        except RuntimeError:
-            has_fb_types = False
-        if has_fb_types:
+
+        if daq.IDevice.can_cast_from(component):
+            device = daq.IDevice.cast_from(component)
+            menu.add_command(label='Add device', image=icons['device'],
+                             compound=tk.LEFT,
+                             command=lambda: self.add_device_dialog_show(device))
+            target = device
+        else:
+            target = component
+
+        if self._nested_fb_types(iid) is not None or \
+                self._device_fb_types(iid) is not None:
             menu.add_command(
                 label='Add function block', image=icons['function_block'],
                 compound=tk.LEFT,
-                command=lambda: self.add_function_block_dialog_show(device))
+                command=lambda: self.add_function_block_dialog_show(target))
+
+        if menu.index(tk.END) is None:
+            return  # nothing to offer after all
         try:
             menu.tk_popup(event.widget.winfo_rootx(),
                           event.widget.winfo_rooty() + event.widget.winfo_height())
         finally:
             menu.grab_release()
 
-    # True when the hovered row is a device that can receive children
-    def _device_addable(self, iid):
+    # the function block types a device row offers, or None
+    def _device_fb_types(self, iid):
         component = self.context.nodes.get(iid)
-        return component is not None and daq.IDevice.can_cast_from(component)
+        if component is None or not daq.IDevice.can_cast_from(component):
+            return None
+        try:
+            fb_types = daq.IDevice.cast_from(
+                component).available_function_block_types
+        except Exception:
+            return None
+        return fb_types if fb_types else None
+
+    # True when the hovered row has anything to add: a device always does, a
+    # function block or channel only when it accepts nested blocks
+    def _row_addable(self, iid):
+        component = self.context.nodes.get(iid)
+        if component is None:
+            return False
+        if daq.IDevice.can_cast_from(component):
+            return True
+        return self._nested_fb_types(iid) is not None
 
     # the client instance itself is excluded: it is the local root, not
     # something a lock protects against another client
@@ -669,7 +721,6 @@ class App(tk.Tk):
 
         row = ttk.Frame(parent)
         row.pack(side=tk.TOP, fill=tk.X, padx=(0, 2), pady=2)
-        self._search_row_frame = row
 
         # flat, borderless icon buttons matching the tree action buttons; the
         # background tracks the row so the transparent icon corners blend in
@@ -684,69 +735,61 @@ class App(tk.Tk):
         entry = ttk.Entry(row, textvariable=self._search_var, width=53)
         entry.pack(side=tk.LEFT)
         self._search_entry = entry
+        self._search_entry_fg = str(entry.cget('foreground')) or ''
 
         clear_btn = flat_button(self._clear_search, text='✕')
         clear_btn.pack(side=tk.LEFT, padx=(4, 0))
 
-        # matches list: a floating popup so it overlays the tree (instead of
-        # pushing it down), sits directly under the search box at the same
-        # width, and can be nudged a few points higher. Hidden until there
-        # are matches.
-        popup = tk.Toplevel(parent)
-        popup.withdraw()
-        popup.overrideredirect(True)
-        popup.transient(parent.winfo_toplevel())
-        results = tk.Frame(popup, relief=tk.SOLID, borderwidth=1, bg='white')
-        results.pack(fill=tk.BOTH, expand=True)
-        canvas = tk.Canvas(results, highlightthickness=0, bg='white', height=1)
-        sb = ttk.Scrollbar(results, orient=tk.VERTICAL, command=canvas.yview)
-        inner = tk.Frame(canvas, bg='white')
-        inner.bind('<Configure>',
-                   lambda e: canvas.configure(scrollregion=canvas.bbox('all')))
-        self._search_results_window = canvas.create_window(
-            (0, 0), window=inner, anchor='nw')
-        canvas.bind('<Configure>', lambda e: canvas.itemconfigure(
-            self._search_results_window, width=e.width))
-        canvas.configure(yscrollcommand=sb.set)
-        canvas.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
-        sb.pack(side=tk.RIGHT, fill=tk.Y)
-        self._search_results_popup = popup
-        self._search_results_frame = results
-        self._search_results_canvas = canvas
-        self._search_results_inner = inner
-
-        # The list is not a dropdown to be opened: it belongs to the search box
-        # and follows it. Clicking or tabbing into the box shows whatever
-        # matches, typing keeps it current, and leaving the box puts it away.
+        # placeholder first, then the trace: this row is built before the tree
+        # exists, and filtering on the initial write would reach for it
+        self._search_placeholder_show()
         self._search_var.trace_add(
             'write', lambda *a: self._on_search_changed())
         entry.bind('<Escape>', lambda e: self._clear_search())
-        entry.bind('<FocusIn>', lambda e: self._show_search_results())
-        entry.bind('<Button-1>', lambda e: self._show_search_results())
-        entry.bind('<FocusOut>',
-                   lambda e: self.after(150, self._maybe_hide_search_results))
+        entry.bind('<FocusIn>', lambda e: self._search_placeholder_hide())
+        entry.bind('<FocusOut>', lambda e: self._search_placeholder_show())
+
+    # ttk has no placeholder, so the box holds the hint as its own text while
+    # it is empty and unfocused. Nothing else may read the variable directly:
+    # _search_query is what tells a query from the hint.
+    SEARCH_HINT = 'filter by name, tag or local id'
+
+    def _search_placeholder_show(self):
+        if self._search_placeholder or self._search_var.get():
+            return
+        self._search_placeholder = True
+        self._search_entry.configure(foreground='#808080')
+        self._search_var.set(self.SEARCH_HINT)
+
+    def _search_placeholder_hide(self):
+        if not self._search_placeholder:
+            return
+        self._search_placeholder = False
+        self._search_entry.configure(foreground=self._search_entry_fg)
+        self._search_var.set('')
+
+    def _search_query(self):
+        if getattr(self, '_search_placeholder', False):
+            return ''
+        return self._search_var.get().strip()
 
     def _on_search_changed(self):
         self._apply_tree_filter()
         self._tree_autosize_column()
 
     def _clear_search(self):
-        self._hide_search_results()
+        if self._search_placeholder:
+            return  # nothing was typed; the box is showing the hint
         if self._search_var.get():
             self._search_var.set('')
+        # clearing with the caret still in the box leaves it empty: the hint
+        # would sit behind the caret and read like typed text
+        if self._search_entry.focus_get() is not self._search_entry:
+            self._search_placeholder_show()
 
     @staticmethod
     def _component_tags(comp):
-        try:
-            tags = comp.tags
-        except (AttributeError, RuntimeError):
-            return []
-        if tags is None:
-            return []
-        try:
-            return [str(tag) for tag in tags.list]
-        except (AttributeError, RuntimeError):
-            return []
+        return utils.component_tags(comp)
 
     # (display_name, global_id, lowercase haystack) for a tree row. Searching
     # covers name, tags and local id - not the whole global id, so a query
@@ -760,7 +803,8 @@ class App(tk.Tk):
         name = self.get_component_tree_name(comp)
         local_id = getattr(comp, 'local_id', '') or ''
         terms = [name, str(local_id)] + self._component_tags(comp)
-        return name, iid, ' '.join(terms).lower()
+        display = name.split(' | ')[0].strip()  # drop operation-mode suffix
+        return display, iid, ' '.join(terms).lower()
 
     # snapshot of the fully built tree, so the filter can restore it before
     # re-applying without a full rebuild (keeps selection while typing)
@@ -774,6 +818,13 @@ class App(tk.Tk):
                 walk(iid)
         walk('')
 
+    # Only meaningful with no filter applied: while one is, rows are detached
+    # and a fresh walk would drop them from the snapshot entirely.
+    def _tree_resnapshot_open_state(self):
+        if self._search_query():
+            return
+        self._tree_capture_structure()
+
     def _tree_descendants(self, iid):
         out = []
         for child in self.tree.get_children(iid):
@@ -784,8 +835,7 @@ class App(tk.Tk):
     # shows rows matching the search text plus their parent chain (and the
     # subtree of a matched row); an empty search restores the full view
     def _apply_tree_filter(self):
-        query = self._search_var.get().strip().lower() \
-            if hasattr(self, '_search_var') else ''
+        query = self._search_query().lower()
 
         # restore the captured layout first
         for iid, parent, index, is_open in self._tree_all_items:
@@ -793,9 +843,7 @@ class App(tk.Tk):
                 self.tree.move(iid, parent, index)
                 self.tree.item(iid, open=is_open)
 
-        self._filter_matches = []
         if not query:
-            self._hide_search_results()
             self._tree_overlays_update()
             return
 
@@ -819,13 +867,8 @@ class App(tk.Tk):
 
         # collapse redundant single default folders in the filtered view
         self._filter_splice_single_folders()
-        self._open_all_visible()
+        self._open_to_reveal([iid for iid, _name, _gid in matches])
 
-        self._filter_matches = matches
-        if matches:
-            self._show_search_results()
-        else:
-            self._hide_search_results()
         self._tree_overlays_update()
 
     # like tree_splice_single_folders but hides (detach) instead of deleting,
@@ -843,99 +886,15 @@ class App(tk.Tk):
             self.tree.move(child, parent_iid, index)
         self.tree.detach(folder_iid)
 
-    def _open_all_visible(self, parent_iid=''):
-        for iid in self.tree.get_children(parent_iid):
-            self.tree.item(iid, open=True)
-            self._open_all_visible(iid)
-
-    # ---- floating matches list (name in black, global id in gray) ----
-    def _show_search_results(self):
-        self._populate_search_results()
-        if not self._filter_matches:
-            self._hide_search_results()
-            return
-        self._position_search_results()
-        self._search_results_popup.deiconify()
-        self._search_results_popup.lift()
-        self._search_results_visible = True
-
-    def _position_search_results(self):
-        entry = self._search_entry
-        entry.update_idletasks()
-        x = entry.winfo_rootx()
-        # sit directly under the box, nudged up 3 points
-        y = entry.winfo_rooty() + entry.winfo_height() - 3
-        width = entry.winfo_width()
-        canvas_h = int(float(self._search_results_canvas.cget('height')))
-        height = canvas_h + 2  # account for the 1px border on each side
-        self._search_results_popup.geometry(f'{width}x{height}+{x}+{y}')
-
-    def _hide_search_results(self):
-        if self._search_results_visible:
-            self._search_results_popup.withdraw()
-            self._search_results_visible = False
-
-    def _maybe_hide_search_results(self):
-        # keep the popup open while focus is in the search row (box + buttons)
-        # or in the popup itself
-        try:
-            focus_widget = self.focus_get()
-        except Exception:
-            focus_widget = None
-        w = focus_widget
-        while w is not None:
-            if w is self._search_results_popup or w is self._search_row_frame:
-                return
-            w = getattr(w, 'master', None)
-        self._hide_search_results()
-
-    def _populate_search_results(self):
-        inner = self._search_results_inner
-        for child in inner.winfo_children():
-            child.destroy()
-        for iid, name, gid in self._filter_matches:
-            r = tk.Frame(inner, bg='white')
-            r.pack(fill=tk.X)
-            ln = tk.Label(r, text=name, fg='black', bg='white', anchor='w')
-            ln.pack(side=tk.LEFT, padx=(6, 0))
-            short = self.context.short_id(gid) if gid else ''
-            li = tk.Label(r, text=short, fg='#808080', bg='white',
-                          anchor='w')
-            li.pack(side=tk.LEFT, padx=(8, 6))
-            for w in (r, ln, li):
-                w.bind('<Button-1>', lambda e, i=iid: self._search_jump_to(i))
-                w.bind('<Enter>',
-                       lambda e, ws=(r, ln, li): self._hl_row(ws, True))
-                w.bind('<Leave>',
-                       lambda e, ws=(r, ln, li): self._hl_row(ws, False))
-                w.bind('<MouseWheel>', self._search_results_wheel)
-        inner.update_idletasks()
-        count = max(len(self._filter_matches), 1)
-        per_row = max(inner.winfo_reqheight() // count, 20)
-        visible = min(count, 8)
-        self._search_results_canvas.configure(height=per_row * visible)
-
-    def _search_results_wheel(self, event):
-        self._search_results_canvas.yview_scroll(
-            int(-1 * (event.delta / 120)), 'units')
-        return 'break'
-
-    def _hl_row(self, widgets, on):
-        bg = '#e4e4e4' if on else 'white'
-        for w in widgets:
-            try:
-                w.configure(bg=bg)
-            except Exception:
-                pass
-
-    # jump to a match but keep the current filter untouched
-    def _search_jump_to(self, iid):
-        if self.tree.exists(iid):
-            self.tree.see(iid)
-            self.tree.selection_set(iid)
-            self.tree.focus(iid)
-            self.tree.focus_set()
-        self._hide_search_results()
+    # expands only the parent chains that lead to a match, so filtering never
+    # unfolds a match's own subtree. Everything else keeps the expansion the
+    # user left it at, which is what the restore pass above put back.
+    def _open_to_reveal(self, iids):
+        for iid in iids:
+            ancestor = self.tree.parent(iid)
+            while ancestor:
+                self.tree.item(ancestor, open=True)
+                ancestor = self.tree.parent(ancestor)
 
     def tree_update(self, new_selected_node=None):
         # Rows the search filter hid are detached, not deleted: they still
@@ -950,6 +909,7 @@ class App(tk.Tk):
         self.tree.delete(*self.tree.get_children())
         self.right_side_panel_clear()
         self._nested_fb_indicators = {}
+        self._nested_fb_types_cache = {}
         self._tree_hover_set(None)
 
         self.context.selected_node = new_selected_node
@@ -1123,26 +1083,45 @@ class App(tk.Tk):
 
     # MARK: - Nested function block indicators
 
+    # The nested function block types a tree row offers, or None when the row is
+    # not a function block or offers none. Cached for the life of the built tree:
+    # on a remote block this is an RPC, and the hover overlays ask twice per pass
+    # while scrolling and resizing run that pass repeatedly. The cache is dropped
+    # in tree_update, which is also the only thing that acts on the answer.
+    def _nested_fb_types(self, iid):
+        if iid in self._nested_fb_types_cache:
+            return self._nested_fb_types_cache[iid]
+        types = self._nested_fb_types_uncached(iid)
+        self._nested_fb_types_cache[iid] = types
+        return types
+
+    def _nested_fb_types_uncached(self, iid):
+        component = self.context.nodes.get(iid)
+        if component is None or not daq.IFunctionBlock.can_cast_from(component):
+            return None
+        fb = daq.IFunctionBlock.cast_from(component)
+        try:
+            fb_types = fb.available_function_block_types
+        except Exception:
+            # Deliberately broader than RuntimeError. Asking a remote block for
+            # its nested types needs config protocol 9, and the SDK reports the
+            # refusal in more ways than one; anything escaping here aborts the
+            # whole indicator pass, so every later row silently loses its
+            # placeholders too.
+            return None
+        return fb_types if fb_types else None
+
     # appends a grayed-out indicator row for every nested function block
     # type a function block or channel offers; a single click on the row
     # adds that function block directly
     def tree_insert_nested_fb_indicators(self, parent_iid=''):
-        if not self.context.view_nested_fb_indicators:
-            return
-
         for iid in self.tree.get_children(parent_iid):
             self.tree_insert_nested_fb_indicators(iid)
 
-            component = self.context.nodes.get(iid)
-            if component is None or not daq.IFunctionBlock.can_cast_from(component):
-                continue
-
-            fb = daq.IFunctionBlock.cast_from(component)
-            try:
-                fb_types = fb.available_function_block_types
-            except RuntimeError:
-                continue
-            if not fb_types:
+            # hidden rows still report types: the button that unhides them is
+            # only offered where there is something to unhide
+            fb_types = self._nested_fb_types(iid)
+            if not fb_types or iid in self.context.nested_fb_hidden:
                 continue
 
             # Every offered type keeps its indicator - nesting is not on/off,
@@ -1173,8 +1152,8 @@ class App(tk.Tk):
                     self.tree.item(ancestor, open=True)
                     ancestor = self.tree.parent(ancestor)
 
-    # places the floating row-action buttons: logs + add pinned to the
-    # instance row, remove on the hovered row when it is removable
+    # places the floating row-action buttons: add pinned to the instance row,
+    # and on the hovered row whichever of add / remove / nested / lock apply
     def _tree_overlays_update(self):
         if not self._tree_action_buttons:
             return
@@ -1220,9 +1199,19 @@ class App(tk.Tk):
                 self._tree_action_buttons['lock'].configure(
                     image=self.context.icons[
                         'unlock' if self._device_locked(hover) else 'lock'])
-            # keep the '+' (add) rightmost, then remove, then lock
-            place_row(hover, (('hover_add', self._device_addable(hover)),
+            nested = self._nested_fb_togglable(hover)
+            if nested:
+                # same convention as lock: the icon is the action, so a row
+                # showing placeholders offers to tuck them away
+                self._tree_action_buttons['nested_fb'].configure(
+                    image=self.context.icons[
+                        'add_fb' if hover in self.context.nested_fb_hidden
+                        else 'right'])
+            # keep the '+' (add) rightmost, then remove, then the nested
+            # placeholder toggle beside it, then lock
+            place_row(hover, (('hover_add', self._row_addable(hover)),
                               ('remove', self._component_removable(hover)),
+                              ('nested_fb', nested),
                               ('lock', lockable)))
 
         for key, btn in self._tree_action_buttons.items():
@@ -1293,7 +1282,8 @@ class App(tk.Tk):
             utils.show_error(
                 'Cannot add function block',
                 f'{fb_type_id} was refused by this block:\n\n{str(e)}\n\n'
-                f'It will no longer be offered here.', self)
+                f'It will not be offered here again until you remove one of '
+                f'them or refresh.', self)
             self.tree_update(self.context.selected_node)
             return
 
@@ -1549,6 +1539,8 @@ class App(tk.Tk):
             utils.show_error('Load module failed', str(e), self)
 
     def handle_refresh_button_clicked(self):
+        # refresh is the way out of a refusal that was really a transient error
+        self.context.forget_nested_fb_refusals()
         self.tree_update(self.context.selected_node)
 
     # MARK: - Tree view handlers
@@ -1615,11 +1607,13 @@ class App(tk.Tk):
 
         try:
             has_fb_types = bool(node.available_function_block_types)
-        except RuntimeError:
+        except Exception:
+            # broader than RuntimeError: a remote block can refuse this call in
+            # more ways than one, and it must not take the context menu with it
             has_fb_types = False
         if has_fb_types:
             popup.add_command(
-                label='Add Function block',
+                label='Add function block',
                 image=self.context.icons['function_block'], compound=tk.LEFT,
                 command=lambda: self.add_function_block_dialog_show(node)
             )
@@ -1643,11 +1637,13 @@ class App(tk.Tk):
 
         try:
             has_fb_types = bool(node.available_function_block_types)
-        except RuntimeError:
+        except Exception:
+            # broader than RuntimeError: a remote block can refuse this call in
+            # more ways than one, and it must not take the context menu with it
             has_fb_types = False
         if has_fb_types:
             popup.add_command(
-                label='Add Function block',
+                label='Add function block',
                 image=icons['function_block'], compound=tk.LEFT,
                 command=lambda: self.add_function_block_dialog_show(node)
             )
@@ -1957,7 +1953,13 @@ class App(tk.Tk):
         device = utils.get_nearest_device(node.parent, self.context.instance)
         parent_fb = utils.get_nearest_fb(node.parent, device)
 
+        removed_id = node.global_id
         parent_fb.remove_function_block(node)
+        # The removal frees whatever capacity a refusal was about, so the parent
+        # offers its nested types again. The removed block's own refusals go too:
+        # re-adding it gets the same global id back and would inherit them.
+        self.context.forget_nested_fb_refusals(parent_fb.global_id)
+        self.context.forget_nested_fb_refusals(removed_id)
         self.context.selected_node = parent_fb
         self.tree_update(self.context.selected_node)
 
@@ -1969,7 +1971,11 @@ class App(tk.Tk):
         if not node:
             return
         parent = node.parent
+        removed_id = node.global_id
         self.context.remove_device(node)
+        # same as removing a function block: nothing learned about what used to
+        # be under here survives it
+        self.context.forget_nested_fb_refusals(removed_id)
 
         self.context.selected_node = parent
         self.tree_update(self.context.selected_node)

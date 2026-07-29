@@ -207,15 +207,13 @@ class PropertiesTreeview(ttk.Treeview):
                     property_value = 'Selection list is empty'
             elif kind in self.METHOD_KINDS:
                 property_value = self._last_method_results.get(property_info.name, '')
-            elif kind == daq.PropertyType.Struct:
-                property_value = ''
-            elif kind == daq.PropertyType.Object:
+            elif kind in self.CONTAINER_KINDS:
+                # the contents are the child rows; str() on a list or dict here
+                # only printed the interface pointer, which said nothing
                 property_value = ''
             elif kind == daq.PropertyType.Enumeration:
                 property_value = self._enum_value_name(
                     node.get_property_value(property_info.name))
-            elif kind in self.ITEM_CONTAINER_KINDS:
-                property_value = str(node.get_property_value(property_info.name))
             else:
                 property_value = printed_value(
                     property_info.value_type, node.get_property_value(property_info.name))

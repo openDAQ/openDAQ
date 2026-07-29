@@ -12,6 +12,12 @@ from .metadata_dialog import MetadataDialog
 from .metadata_fields_selector_dialog import MetadataFieldsSelectorDialog
 
 
+# shown in the value cell of a property written inside a begin/end update block,
+# and stripped again when the cell is copied
+PENDING_LABEL = 'pending'
+PENDING_SUFFIX = f' | {PENDING_LABEL}'
+
+
 class PropertiesTreeview(ttk.Treeview):
 
     # deterministic property kinds (daq.PropertyType) used for dispatch
@@ -222,6 +228,15 @@ class PropertiesTreeview(ttk.Treeview):
             if unit_symbol and property_value != '':
                 property_value = f'{property_value} {unit_symbol}'
 
+            # The 'pending' tag foreground loses to the selection highlight and a
+            # write always happens on the selected row, so the state also goes in
+            # the text. The name column carries the property path and cannot take
+            # it, leaving the value cell. ' | ' separated, as in the tree.
+            pending = self._is_pending(property_info)
+            if pending:
+                property_value = f'{property_value}{PENDING_SUFFIX}' \
+                    if property_value != '' else PENDING_LABEL
+
             meta_fields = [None] * len(self._metadata_fields)
             try:
                 for i, field in enumerate(self._metadata_fields):
@@ -238,11 +253,15 @@ class PropertiesTreeview(ttk.Treeview):
             else:
                 display_name = property_info.name
 
+            # Editable rows carry a widget over the value cell, which hides both
+            # the colour and the word. The icon sits in the name column, so it is
+            # the only marker every pending row is guaranteed to show.
             iid = self.insert(
                 '' if not parent_iid else parent_iid,
                 tk.END,
                 open=True,
                 text=display_name,
+                image=self.context.icons.get('in_update', '') if pending else '',
                 values=(property_value, *meta_fields),
                 tags=self._row_tags(property_info))
             self._row_props[iid] = property_info
@@ -254,7 +273,11 @@ class PropertiesTreeview(ttk.Treeview):
             )
             if kind not in self.METHOD_KINDS and kind not in self.CONTAINER_KINDS:
                 if property_info.read_only or self.read_only or is_single_value_selection:
-                    self.item(iid, tags=('readonly',))
+                    # this replaces the tags rather than adding to them, so a
+                    # pending row would lose its colour: the read-only view is
+                    # built over the same node and sees the same pending set
+                    self.item(iid, tags=('readonly', 'pending') if pending
+                              else ('readonly',))
 
             if kind == daq.PropertyType.Object:
                 hidden_children = [s.removeprefix(f"{property_info.name}.") for s in hidden if s.startswith(f"{property_info.name}.")]
@@ -279,7 +302,17 @@ class PropertiesTreeview(ttk.Treeview):
 
         self.clipboard_clear()
         value = '' if len(item['values']) == 0 else item['values'][0]
-        self.clipboard_append(str(value).strip())
+        value = str(value).strip()
+        # The pending marker is display state, not part of the value. Driven by
+        # the row's state, not by the text: a string property is free to end in
+        # ' | pending' on its own, and only value rows ever carry the marker.
+        prop = self._row_props.get(selected_item)
+        if prop is not None and self._is_pending(prop):
+            if value.endswith(PENDING_SUFFIX):
+                value = value[:-len(PENDING_SUFFIX)]
+            elif value == PENDING_LABEL:
+                value = ''
+        self.clipboard_append(value.strip())
 
     def handle_show_metadata(self):
         selected_item = utils.treeview_get_first_selection(self)
@@ -621,17 +654,18 @@ class PropertiesTreeview(ttk.Treeview):
 
     # Runs inside the row-insert loop, so it must never raise: an exception here
     # would abort fill_properties and leave the whole list unpopulated.
-    def _row_tags(self, prop):
+    def _is_pending(self, prop):
         try:
             gid = self._node_global_id()
             if gid is None or self.context is None:
-                return ()
+                return False
             pending = getattr(self.context, 'pending_properties', None)
-            if pending and (gid, prop.name) in pending:
-                return ('pending',)
+            return bool(pending) and (gid, prop.name) in pending
         except Exception:
-            pass
-        return ()
+            return False
+
+    def _row_tags(self, prop):
+        return ('pending',) if self._is_pending(prop) else ()
 
     # Called after a value is written from this view. Inside an update block the
     # write is queued, the SDK keeps reporting the old value and fires no event,

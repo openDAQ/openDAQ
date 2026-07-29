@@ -23,25 +23,35 @@ class AddFunctionBlockDialog(Dialog):
 
         # parent
 
-        parent_device_tree_frame = ttk.Frame(self)
-        parent_device_tree = ttk.Treeview(parent_device_tree_frame)
+        # picking a parent only makes sense when adding from the root instance;
+        # opened on a device or function block, that component is the parent
+        parent_device_tree = None
+        self._parent_label = None
+        if selected_component is None or self.context.instance is None \
+                or selected_component.global_id == self.context.instance.global_id:
+            parent_device_tree_frame = ttk.Frame(self)
+            parent_device_tree = ttk.Treeview(parent_device_tree_frame)
 
-        parent_device_scroll_bar = ttk.Scrollbar(
-            parent_device_tree_frame, orient=tk.VERTICAL, command=parent_device_tree.yview)
-        parent_device_tree.configure(
-            yscrollcommand=parent_device_scroll_bar.set)
-        parent_device_scroll_bar.pack(side=tk.RIGHT, fill=tk.Y)
+            parent_device_scroll_bar = ttk.Scrollbar(
+                parent_device_tree_frame, orient=tk.VERTICAL, command=parent_device_tree.yview)
+            parent_device_tree.configure(
+                yscrollcommand=parent_device_scroll_bar.set)
+            parent_device_scroll_bar.pack(side=tk.RIGHT, fill=tk.Y)
 
-        parent_device_tree.heading('#0', text='Parent', anchor=tk.W)
+            parent_device_tree.heading('#0', text='Parent', anchor=tk.W)
 
-        parent_device_tree.column(
-            '#0', anchor=tk.W, minwidth=int(200 * self.context.dpi_factor), stretch=True)
+            parent_device_tree.column(
+                '#0', anchor=tk.W, minwidth=int(200 * self.context.dpi_factor), stretch=True)
 
-        parent_device_tree.bind('<<TreeviewSelect>>',
-                                self.handle_parent_device_selected)
-        parent_device_tree.pack(fill=tk.BOTH, expand=True)
+            parent_device_tree.bind('<<TreeviewSelect>>',
+                                    self.handle_parent_device_selected)
+            parent_device_tree.pack(fill=tk.BOTH, expand=True)
 
-        parent_device_tree_frame.grid(row=0, column=0, sticky=tk.NSEW)
+            parent_device_tree_frame.grid(row=0, column=0, sticky=tk.NSEW)
+        else:
+            self._parent_label = ttk.Label(
+                self, text=f'Adding to: {selected_component.name}', foreground='#808080')
+            self._parent_label.grid(row=0, column=0, columnspan=2, sticky=tk.W)
 
         # child
 
@@ -75,15 +85,20 @@ class AddFunctionBlockDialog(Dialog):
 
         tree.pack(fill=tk.BOTH, expand=True)
 
-        tree_frame.grid(row=0, column=1, sticky=tk.NSEW)
-
         self.device_tree = parent_device_tree
         self.fb_tree = tree
 
-        self.grid_rowconfigure(0, weight=1)
-        self.grid_columnconfigure(0, weight=1)
-        self.grid_columnconfigure(1, weight=2)
-        self.grid_columnconfigure((0, 1), uniform='uniform')
+        if parent_device_tree is not None:
+            tree_frame.grid(row=0, column=1, sticky=tk.NSEW)
+            self.grid_rowconfigure(0, weight=1)
+            self.grid_columnconfigure(0, weight=1)
+            self.grid_columnconfigure(1, weight=2)
+            self.grid_columnconfigure((0, 1), uniform='uniform')
+        else:
+            # without the selector the type list takes the whole width
+            tree_frame.grid(row=1, column=0, columnspan=2, sticky=tk.NSEW)
+            self.grid_rowconfigure(1, weight=1)
+            self.grid_columnconfigure(0, weight=1)
 
         actions_row = ttk.Frame(tree_frame)
         self._keep_open_var = tk.BooleanVar(value=False)
@@ -100,14 +115,33 @@ class AddFunctionBlockDialog(Dialog):
         self.update_dialog()
 
     def update_dialog(self):
+        if self.device_tree is None:
+            # no selector shown: the target is fixed, apply it directly
+            self.set_parent_component(self.parent_component)
+            return
         self.update_parent_devices(
             self.device_tree, '', self.context.instance)
         parent_to_select = self.parent_component.global_id if self.parent_component is not None else self.context.instance.global_id
         self.select_parent_device(parent_to_select)
 
     def select_parent_device(self, device_id: str):
-        if self.device_tree.exists(device_id):
+        if self.device_tree is not None and self.device_tree.exists(device_id):
             self.device_tree.selection_set(device_id)
+
+    def set_parent_component(self, parent_component):
+        if parent_component is None:
+            return
+        if daq.IDevice.can_cast_from(parent_component):
+            self.parent_component = daq.IDevice.cast_from(parent_component)
+        elif daq.IFunctionBlock.can_cast_from(parent_component):
+            self.parent_component = daq.IFunctionBlock.cast_from(
+                parent_component)
+        else:
+            return
+        if self._parent_label is not None:
+            self._parent_label.configure(
+                text=f'Adding to: {self.parent_component.name}')
+        self.update_function_blocks()
 
     def update_parent_devices(self, tree, parent_id, component):
         tree.delete(*tree.get_children())
@@ -151,13 +185,8 @@ class AddFunctionBlockDialog(Dialog):
         if selected_item is None:
             return
 
-        parent_component = utils.find_component(
-            selected_item, self.context.instance)
-        if parent_component is not None:
-            if daq.IDevice.can_cast_from(parent_component) or daq.IFunctionBlock.can_cast_from(parent_component):
-                self.parent_component = daq.IDevice.cast_from(parent_component) if daq.IDevice.can_cast_from(
-                    parent_component) else daq.IFunctionBlock.cast_from(parent_component)
-                self.update_function_blocks()
+        self.set_parent_component(utils.find_component(
+            selected_item, self.context.instance))
 
     def handle_fb_type_selected(self, e=None):
         can_config = False

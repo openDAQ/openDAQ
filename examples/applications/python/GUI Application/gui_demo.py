@@ -1440,6 +1440,17 @@ class App(tk.Tk):
         self._floating_dialogs[key] = dialog
         dialog.show_floating()
 
+    # Cached dialogs are keyed by kind, and these two build a different layout
+    # depending on it: opened on the instance they offer the parent tree,
+    # opened on a component that component is the parent and there is no tree.
+    # One cache entry per kind, or reopening would reuse the wrong layout.
+    def _add_dialog_key(self, base, component):
+        root = self.context.instance
+        if component is None or root is None or \
+                component.global_id == root.global_id:
+            return f'{base}_root'
+        return f'{base}_component'
+
     # MARK: - Add device dialog
     def add_device_dialog_show(self, component=None):
         def retarget(dialog):
@@ -1447,7 +1458,8 @@ class App(tk.Tk):
                 dialog.node = component
                 dialog.select_parent_device(component.global_id)
         self.floating_dialog_show(
-            'add_device', lambda: AddDeviceDialog(self, self.context, component),
+            self._add_dialog_key('add_device', component),
+            lambda: AddDeviceDialog(self, self.context, component),
             retarget)
 
     # MARK: - Add function block dialog
@@ -1457,7 +1469,7 @@ class App(tk.Tk):
                 dialog.parent_component = component
                 dialog.update_dialog()
         self.floating_dialog_show(
-            'add_function_block',
+            self._add_dialog_key('add_function_block', component),
             lambda: AddFunctionBlockDialog(self, self.context, component),
             retarget)
 

@@ -216,9 +216,9 @@ StreamingImpl<Interfaces...>::StreamingImpl(const StringPtr& connectionString,
     , loggerComponent(this->context.getLogger().getOrAddComponent(fmt::format("Streaming({})", connectionString)))
     , connectionStatus(Enumeration("ConnectionStatusType", "Connected", this->context.getTypeManager()))
     , skipDomainSignalSubscribe(skipDomainSignalSubscribe)
+    , protocolGroupId(protocolGroupId.assigned() ? protocolGroupId : "")
     , protocolId(protocolId)
     , isClientToDeviceStreamingSupported(isClientToDeviceStreamingSupported)
-    , protocolGroupId(protocolGroupId.assigned() ? protocolGroupId : "")
 {
     const auto validateClientToDeviceStreamingParameters = [this]()
     {

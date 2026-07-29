@@ -506,6 +506,7 @@ inline ErrCode ServerCapabilityConfigImpl::getProtocolSecurityLevel(IInteger** s
 
 inline ErrCode ServerCapabilityConfigImpl::setProtocolSecurityLevel(IInteger* securityLevel)
 {
+    OPENDAQ_PARAM_NOT_NULL(securityLevel);
     return Super::setPropertyValue(String(SecurityLevel), securityLevel);
 }
 

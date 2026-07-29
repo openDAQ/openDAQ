@@ -42,7 +42,6 @@ public:
     static ErrCode Deserialize(ISerializedObject* serialized, IBaseObject* context, IFunction* factoryCallback, IBaseObject** obj);
 
 protected:
-
     ErrCode setValueInternal(IString* propertyName, IBaseObject* value) override;
 };
 

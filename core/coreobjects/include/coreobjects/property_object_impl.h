@@ -2099,6 +2099,11 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::clearPropert
             {
                 if (auto it = propValues.find(prop.getName()); it->second.assigned())
                 {
+                    // Match clearPropertyValuesInternal: leave frozen nested objects intact.
+                    if (const auto freezable = it->second.template asPtrOrNull<IFreezable>(true);
+                        freezable.assigned() && freezable.isFrozen())
+                        return OPENDAQ_IGNORED;
+
                     if (protectedAccess)
                     {
                         auto objProtected = it->second.template asPtr<IPropertyObjectProtected>(true);

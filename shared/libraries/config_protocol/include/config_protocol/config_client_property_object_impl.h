@@ -526,7 +526,24 @@ ErrCode ConfigClientPropertyObjectBaseImpl<Impl>::remoteUpdate(ISerializedObject
 {
     const ErrCode errCode = daqTry([&serialized, this]
     {
-        onRemoteUpdate(serialized);
+        // ComponentUpdateEnd sets deserializationComplete=false before calling onRemoteUpdate
+        // directly. Nested remoteUpdate (e.g. Dev folder → child device) must do the same —
+        // otherwise setProtectedPropertyValue issues RPCs while the server is still inside
+        // SendOutCoreEvents and deadlocks (worker count = 1).
+        const bool wasComplete = this->deserializationComplete;
+        this->deserializationComplete = false;
+
+        try
+        {
+            onRemoteUpdate(serialized);
+        }
+        catch (...)
+        {
+            this->deserializationComplete = wasComplete;
+            throw;
+        }
+
+        this->deserializationComplete = wasComplete;
         return OPENDAQ_SUCCESS;
     });
     OPENDAQ_RETURN_IF_FAILED(errCode);
@@ -642,27 +659,13 @@ void ConfigClientPropertyObjectBaseImpl<Impl>::updatePropertyValues(const Serial
 
     if (!serObj.hasKey(hasKeyStr))
     {
-        for (const auto& prop : properties)
-        {
-            const auto propInternal = prop.asPtrOrNull<IPropertyInternal>(true);
-            if (propInternal.assigned())
-            {
-                const auto valueTypeUnresolved = propInternal.getValueTypeUnresolved();
-                if (propInternal.getReferencedPropertyUnresolved().assigned())
-                    continue;
-                if (valueTypeUnresolved == ctFunc || valueTypeUnresolved == ctProc)
-                    continue;
-            }
-
-            checkErrorInfo(Impl::clearProtectedPropertyValue(prop.getName()));
-        }
-
+        // Frozen nested objects are skipped inside clearPropertyValuesInternal.
+        checkErrorInfo(Impl::clearProtectedPropertyValues());
         return;
     }
     
     const TypeManagerPtr typeManager = this->getTypeManager();
     const auto propValues = serObj.readSerializedObject("propValues");
-    const auto protectedPropObjPtr = thisPtr.asPtr<IPropertyObjectProtected>();
 
     for (const auto& prop : properties)
     {
@@ -680,7 +683,9 @@ void ConfigClientPropertyObjectBaseImpl<Impl>::updatePropertyValues(const Serial
 
         if (!propValues.hasKey(propName))
         {
-            checkErrorInfo(Impl::clearProtectedPropertyValue(propName));
+            const ErrCode errCode = Impl::clearProtectedPropertyValue(propName);
+            if (OPENDAQ_FAILED(errCode))
+                daqClearErrorInfo();
             continue;
         }
 

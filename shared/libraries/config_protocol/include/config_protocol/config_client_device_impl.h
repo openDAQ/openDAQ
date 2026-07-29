@@ -74,6 +74,8 @@ public:
     ErrCode INTERFACE_FUNC setParentActive(Bool parentActive, Bool onUpdate) override;
     ErrCode INTERFACE_FUNC setAsRoot() override;
 
+    ErrCode INTERFACE_FUNC getInfo(IDeviceInfo** info) override;
+
     template <class Implementation>
     static ErrCode Deserialize(ISerializedObject* serialized, IBaseObject* context, IFunction* factoryCallback, IBaseObject** obj);
 
@@ -402,6 +404,32 @@ ErrCode GenericConfigClientDeviceImpl<TDeviceBase>::setAsRoot()
     auto lock = this->getRecursiveConfigLock2();
 
     this->isRootDevice = true;
+    return OPENDAQ_SUCCESS;
+}
+
+template <class TDeviceBase>
+ErrCode GenericConfigClientDeviceImpl<TDeviceBase>::getInfo(IDeviceInfo** info)
+{
+    OPENDAQ_PARAM_NOT_NULL(info);
+
+    if (this->isComponentRemoved)
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_COMPONENT_REMOVED);
+
+    // Remote config client: DeviceInfo lives in the DaqDeviceInfo property (deserialized / updated from server).
+    this->deviceInfo = this->objPtr.getPropertyValue("DaqDeviceInfo").template asPtrOrNull<IDeviceInfo>(true);
+
+    DeviceTypePtr mirroredDeviceType;
+    OPENDAQ_RETURN_IF_FAILED(this->getMirroredDeviceType(&mirroredDeviceType));
+
+    if (this->deviceInfo.assigned() && mirroredDeviceType.assigned() && !this->deviceInfo.getDeviceType().assigned())
+    {
+        const ErrCode setErr =
+            this->deviceInfo.template asPtr<IDeviceInfoConfig>(true)->setDeviceType(mirroredDeviceType);
+        if (OPENDAQ_FAILED(setErr))
+            daqClearErrorInfo();
+    }
+
+    *info = this->deviceInfo.addRefAndReturn();
     return OPENDAQ_SUCCESS;
 }
 

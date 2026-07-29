@@ -13,11 +13,12 @@ ClientImpl::ClientImpl(const ContextPtr ctx, const StringPtr& localId, const Dev
                           ? this->logger.getOrAddComponent("Client")
                           : throw ArgumentNullException("Logger must not be null"))
 {
+    this->name = "OpenDAQClient";
+
     if (const auto devInfoPtr = deviceInfo.asPtrOrNull<IDeviceInfoConfig>(); devInfoPtr.assigned())
         devInfoPtr.setConnectionString("daq.root://default_client");
-
-    this->name = "OpenDAQClient";
-    this->deviceInfo = deviceInfo;
+    
+    checkErrorInfo(setDeviceInfo(deviceInfo));
 
     auto syncComponentPrivate = this->syncComponent.asPtr<IComponentPrivate>(true);
     syncComponentPrivate.unlockAttributes(List<IString>("Visible"));

@@ -250,7 +250,7 @@ protected:
     DevicePtr getParentDevice();
     OperationModeType getOperationMode();
 
-    ErrCode setDeviceInfo(DeviceInfoPtr deviceInfo);
+    ErrCode setDeviceInfo(const DeviceInfoPtr& deviceInfo);
 
 private:
     void getChannelsFromFolder(ListPtr<IChannel>& channelList, const FolderPtr& folder, const SearchFilterPtr& searchFilter, bool filterChannels = true);
@@ -268,7 +268,6 @@ private:
     void removeDeviceIfNotStatic(const StringPtr& deviceId);
     void removeRemappedDevices(const SerializedObjectPtr& obj, const BaseObjectPtr& context);
     DevicePtr findConnectedDeviceForRemap(const StringPtr& manufacturer, const StringPtr& serialNumber, const StringPtr& connectionString);
-    ErrCode ensureDeviceInfoNested();
 
     DeviceDomainPtr deviceDomain;
     OperationModeType operationMode {OperationModeType::Unknown};
@@ -328,72 +327,14 @@ DeviceInfoPtr GenericDevice<TInterface, Interfaces...>::onGetInfo()
 }
 
 template <typename TInterface, typename... Interfaces>
-ErrCode GenericDevice<TInterface, Interfaces...>::setDeviceInfo(DeviceInfoPtr deviceInfo)
+ErrCode GenericDevice<TInterface, Interfaces...>::setDeviceInfo(const DeviceInfoPtr& deviceInfo)
 {
     if (!deviceInfo.assigned())
-    {
-        const ErrCode errCode = wrapHandlerReturn(this, &Self::onGetInfo, deviceInfo);
-        OPENDAQ_RETURN_IF_FAILED(errCode);
-    }
+        return OPENDAQ_IGNORED;
 
-    if (deviceInfo.assigned())
-    {
-        const ErrCode errCode = Self::setProtectedPropertyValue(String("DaqDeviceInfo"), deviceInfo);
-        OPENDAQ_RETURN_IF_FAILED(errCode);
-
-        if (const auto infoInternal = deviceInfo.asPtrOrNull<IPropertyObjectInternal>(true); infoInternal.assigned())
-        {
-            const ErrCode lockErr = infoInternal->setLockingStrategy(LockingStrategy::InheritLock);
-            if (OPENDAQ_FAILED(lockErr))
-                daqClearErrorInfo();
-        }
-
-        this->deviceInfo = deviceInfo;
-        return OPENDAQ_SUCCESS;
-    }
-
-    return OPENDAQ_IGNORED;
-}
-
-template <typename TInterface, typename... Interfaces>
-ErrCode GenericDevice<TInterface, Interfaces...>::ensureDeviceInfoNested()
-{
-    PropertyObjectPtr propValue;
-
-    {
-        BaseObjectPtr valuePtr;
-        OPENDAQ_RETURN_IF_FAILED(Self::getPropertyValue(String("DaqDeviceInfo"), &valuePtr));
-        propValue = valuePtr;
-    }
-
-    if (propValue.supportsInterface(IDeviceInfo::Id))
-    {
-        this->deviceInfo = std::move(propValue);
-    }
-    else
-    {
-        if (!this->deviceInfo.assigned())
-        {
-            DeviceInfoPtr info;
-            const ErrCode errCode = wrapHandlerReturn(this, &Self::onGetInfo, info);
-            OPENDAQ_RETURN_IF_FAILED(errCode);
-            this->deviceInfo = info;
-        }
-
-        if (this->deviceInfo.assigned())
-        {
-            const ErrCode errCode = Self::setProtectedPropertyValue(String("DaqDeviceInfo"), this->deviceInfo);
-            OPENDAQ_RETURN_IF_FAILED(errCode);
-
-            if (const auto infoInternal = this->deviceInfo.template asPtrOrNull<IPropertyObjectInternal>(true); infoInternal.assigned())
-            {
-                const ErrCode lockErr = infoInternal->setLockingStrategy(LockingStrategy::InheritLock);
-                if (OPENDAQ_FAILED(lockErr))
-                    daqClearErrorInfo();
-            }
-        }
-    }
-
+    const ErrCode errCode = Self::setProtectedPropertyValue(String("DaqDeviceInfo"), deviceInfo);
+    OPENDAQ_RETURN_IF_FAILED(errCode);
+    this->deviceInfo = deviceInfo;
     return OPENDAQ_SUCCESS;
 }
 
@@ -405,8 +346,22 @@ ErrCode GenericDevice<TInterface, Interfaces...>::getInfo(IDeviceInfo** info)
     if (this->isComponentRemoved)
         return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_COMPONENT_REMOVED);
 
-    const ErrCode errCode = ensureDeviceInfoNested();
-    OPENDAQ_RETURN_IF_FAILED(errCode);
+    // Local devices: DeviceInfo is created once (ctor setDeviceInfo, or lazy onGetInfo).
+    // Prefer an already-deserialized DaqDeviceInfo nested property when present.
+    if (!this->deviceInfo.assigned())
+    {
+        DeviceInfoPtr nestedInfo = this->objPtr.getPropertyValue("DaqDeviceInfo").template asPtrOrNull<IDeviceInfo>(true);
+        if (nestedInfo.assigned())
+        {
+            this->deviceInfo = nestedInfo;
+        }
+        else
+        {
+            DeviceInfoPtr devInfo;
+            OPENDAQ_RETURN_IF_FAILED(wrapHandlerReturn(this, &Self::onGetInfo, devInfo));
+            OPENDAQ_RETURN_IF_FAILED(setDeviceInfo(devInfo));
+        }
+    }
 
     *info = this->deviceInfo.addRefAndReturn();
     return OPENDAQ_SUCCESS;
@@ -415,8 +370,9 @@ ErrCode GenericDevice<TInterface, Interfaces...>::getInfo(IDeviceInfo** info)
 template <typename TInterface, typename... Interfaces>
 ErrCode GenericDevice<TInterface, Interfaces...>::enableCoreEventTrigger()
 {
-    // Materialize DaqDeviceInfo while still muted so Super can wire nested core events.
-    const ErrCode errCode = ensureDeviceInfoNested();
+    // Materialize DaqDeviceInfo while still muted.
+    DeviceInfoPtr info;
+    const ErrCode errCode = getInfo(&info);
     OPENDAQ_RETURN_IF_FAILED(errCode);
     return Super::enableCoreEventTrigger();
 }
@@ -1643,11 +1599,12 @@ PropertyObjectPtr GenericDevice<TInterface, Interfaces...>::onCreateDefaultAddDe
 template <typename TInterface, typename ... Interfaces>
 ErrCode GenericDevice<TInterface, Interfaces...>::setName(IString* name)
 {
-    OPENDAQ_RETURN_IF_FAILED(ensureDeviceInfoNested());
+    DeviceInfoPtr info;
+    OPENDAQ_RETURN_IF_FAILED(getInfo(&info));
 
-    if (deviceInfo.assigned())
+    if (info.assigned())
     {
-        auto protected_ = deviceInfo.asPtr<IPropertyObjectProtected>();
+        auto protected_ = info.asPtr<IPropertyObjectProtected>();
         OPENDAQ_RETURN_IF_FAILED(protected_->setProtectedPropertyValue(String("name"), name));
     }
 
@@ -2112,6 +2069,16 @@ void GenericDevice<TInterface, Interfaces...>::serializeCustomObjectValues(const
         }
     }
 
+    // ComponentUpdateEnd uses serialize() (not forUpdate). Config-client devices still apply
+    // DeviceInfo from this dedicated key via setDeviceInfo; NativeDeviceHelper::updateDeviceInfo
+    // then restores the client-local configurationConnectionInfo. DaqDeviceInfo also stays in
+    // propValues so updatePropertyValues merges instead of clearing the nested object.
+    if (!forUpdate && deviceInfo.assigned())
+    {
+        serializer.key("deviceInfo");
+        deviceInfo.serialize(serializer);
+    }
+
     if (syncComponent.assigned())
     {
         serializer.key("Synchronization");
@@ -2405,8 +2372,8 @@ void GenericDevice<TInterface, Interfaces...>::deserializeCustomObjectValues(con
 {
     Super::deserializeCustomObjectValues(serializedObject, context, factoryCallback);
 
-    // device Info became neaster property object of device info,
-    // but we are still reading device info to have possibility connect older servers
+    // Backward compatibility: older payloads used a dedicated "deviceInfo" key.
+    // New format serializes DeviceInfo as the normal DaqDeviceInfo nested property.
     if (serializedObject.hasKey("deviceInfo"))
         setDeviceInfo(serializedObject.readObject("deviceInfo", context, factoryCallback));
 
@@ -2578,6 +2545,8 @@ void GenericDevice<TInterface, Interfaces...>::updateObject(const SerializedObje
     if (obj.hasKey("UserLock"))
         userLock = obj.readObject("UserLock", context);
 
+    // Backward compatibility with older update payloads that used a dedicated "deviceInfo" key.
+    // New updates carry DeviceInfo via the normal DaqDeviceInfo property value.
     if (obj.hasKey("deviceInfo"))
     {
         DeviceInfoPtr info;
@@ -2588,6 +2557,9 @@ void GenericDevice<TInterface, Interfaces...>::updateObject(const SerializedObje
             const auto deviceInfoObject = obj.readSerializedObject("deviceInfo");
             updatableDeviceInfo.updateInternal(deviceInfoObject, context);
         }
+
+        // Rebind nested property in case updateObjectProperties cleared DaqDeviceInfo.
+        checkErrorInfo(setDeviceInfo(info));
     }
 }
 

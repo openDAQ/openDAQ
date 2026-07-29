@@ -78,7 +78,7 @@ void AudioDeviceImpl::setDeviceInfo()
 {
     ma_device_info info;
     ma_utils::getMiniAudioDeviceInfo(&maDevice, &info);
-    this->deviceInfo = CreateDeviceInfo(maContext, info);
+    checkErrorInfo(Device::setDeviceInfo(CreateDeviceInfo(maContext, info)));
 }
 
 void AudioDeviceImpl::sampleRateChanged(uint32_t sampleRate)

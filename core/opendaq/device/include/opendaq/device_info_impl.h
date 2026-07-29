@@ -222,6 +222,8 @@ DeviceInfoConfigImpl<TInterface, Interfaces...>::DeviceInfoConfigImpl(ITypeManag
     Super::addProperty(ObjectPropertyBuilder("configurationConnectionInfo", ServerCapability("", "", ProtocolType::Unknown)).setReadOnly(true).build());
     Super::addProperty(ObjectPropertyBuilder("activeClientConnections", PropertyObject()).setReadOnly(true).build());
     Super::addProperty(BoolPropertyBuilder("hidden", false).setVisible(false).build());
+
+    this->objPtr.template asPtr<IPropertyObjectInternal>(true).setLockingStrategy(LockingStrategy::InheritLock);
 }
 
 template <typename TInterface, typename... Interfaces>
@@ -1042,6 +1044,13 @@ ErrCode DeviceInfoConfigImpl<TInterface, Interfaces...>::serializePropertyValue(
         if (this->objPtr.getProperty(name).getReadOnly())
             return OPENDAQ_IGNORED;
     }
+
+    if (name == "configurationConnectionInfo")
+        return OPENDAQ_IGNORED;
+    // userName/location live on the owning Device and are serialized there.
+    if (getOwnerOfProperty(name).assigned())
+        return OPENDAQ_IGNORED;
+
     Int version;
     ErrCode err = serializer->getVersion(&version);
     OPENDAQ_RETURN_IF_FAILED(err);
@@ -1049,9 +1058,7 @@ ErrCode DeviceInfoConfigImpl<TInterface, Interfaces...>::serializePropertyValue(
     // skip object-type property which cannot be properly handled by older version
     if (name == "activeClientConnections" && version < 3)
         return OPENDAQ_IGNORED;
-    if (name == "configurationConnectionInfo")
-        return OPENDAQ_IGNORED;
-    return Super::serializePropertyValue(name, value, serializer);
+    return Super::serializePropertyValue(name, value, serializer, forUpdate);
 }
 
 template <typename TInterface, typename ... Interfaces>
@@ -1065,8 +1072,6 @@ ErrCode DeviceInfoConfigImpl<TInterface, Interfaces...>::serializeProperty(const
 
     // skip object-type property which cannot be properly handled by older version
     if (name == "activeClientConnections" && version < 3)
-        return OPENDAQ_IGNORED;
-    if (name == "configurationConnectionInfo")
         return OPENDAQ_IGNORED;
     return Super::serializeProperty(property, serializer);
 }
@@ -1134,7 +1139,14 @@ ErrCode DeviceInfoConfigImpl<TInterface, Interfaces...>::setPropertyValueNoLock(
     OPENDAQ_PARAM_NOT_NULL(propertyName);
     auto owner = getOwnerOfProperty(propertyName);
     if (owner.assigned())
+    {
+        // Mirrored/config-client devices must not be written via setPropertyValue here:
+        // that always issues an RPC and deadlocks when DeviceInfo is applied during
+        // ComponentUpdateEnd / nested remoteUpdate (server still in SendOutCoreEvents).
+        if (owner.template supportsInterface<IMirroredDevice>())
+            return owner.template asPtr<IPropertyObjectProtected>(true)->setProtectedPropertyValue(propertyName, value);
         return owner->setPropertyValue(propertyName, value);
+    }
 
     return Super::setPropertyValueNoLock(propertyName, value);
 }
@@ -1186,31 +1198,8 @@ ErrCode DeviceInfoConfigImpl<TInterface, Interfaces...>::setOwner(IPropertyObjec
 
     if (parent.supportsInterface<IMirroredDevice>())
     {
-        // Transport/deserialization already exposes userName/location on the mirrored device.
-        // Apply DeviceInfo values locally only — never via setPropertyValue, which on config-client
-        // devices issues a remote RPC and deadlocks when nesting runs on the notification thread
-        // (e.g. ComponentAdded while addDevice is in flight).
-        auto lock = this->getRecursiveConfigLock2();
-        auto parentProtected = parent.template asPtr<IPropertyObjectProtected>(true);
-        for (const StringPtr& propertyName: {String("userName"), String("location")})
-        {
-            PropertyPtr property;
-            errCode = this->getProperty(propertyName, &property);
-            OPENDAQ_RETURN_IF_FAILED(errCode);
-
-            if (property.getReadOnly())
-                continue;
-            if (!parent.hasProperty(propertyName))
-                continue;
-
-            BaseObjectPtr propertyValue;
-            errCode = Super::getPropertyValueNoLock(propertyName, &propertyValue);
-            OPENDAQ_RETURN_IF_FAILED(errCode);
-
-            errCode = parentProtected->setProtectedPropertyValue(propertyName, propertyValue);
-            if (OPENDAQ_FAILED(errCode))
-                daqClearErrorInfo();
-        }
+        // userName/location already live on the mirrored Device (propValues / core events).
+        // DeviceInfo locals are not authoritative — do not overwrite Device with defaults.
         return OPENDAQ_SUCCESS;
     }
     

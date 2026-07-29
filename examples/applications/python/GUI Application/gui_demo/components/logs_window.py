@@ -43,8 +43,10 @@ class LogsWindow(tk.Toplevel):
         ttk.Button(toolbar, text='Clear',
                    command=self.handle_clear_clicked).pack(side=tk.LEFT, padx=5)
 
-        # A view filter, not a logger setting - what the instance emits is
-        # fixed when it is built, in the configure-instance dialog.
+        # A view filter over what was already written, not a logger setting.
+        # The lowest level the SDK can emit is baked in at compile time, and
+        # the levels the instance actually uses are chosen when it is built
+        # (configure-instance dialog), so there is nothing useful to set here.
         ttk.Label(toolbar, text='Show:').pack(side=tk.LEFT, padx=(15, 2))
         self._filter_rank = 0
         self.level_combo = ttk.Combobox(
@@ -94,8 +96,9 @@ class LogsWindow(tk.Toplevel):
 
         if not context.log_to_file:
             self.append_meta_line(
-                'File logging is disabled. Enable it in the configure-instance '
-                'dialog on the next start to see logs here.\n')
+                'File logging is disabled. Turn it on in File > Reconfigure '
+                'instance... > Configure logger; the instance is recreated '
+                'when you confirm, and logs appear here from then on.\n')
         self.poll_log_file()
 
     def handle_filter_selected(self, event=None):

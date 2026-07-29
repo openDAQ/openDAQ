@@ -164,6 +164,10 @@ class App(tk.Tk):
             image=self.context.icons.get('refresh'),
             text=None if self.context.icons.get('refresh') else '↻')
         self._tab_refresh_button.pack(side=tk.RIGHT, padx=(6, 6))
+        utils.attach_tooltip(
+            self._tab_refresh_button,
+            'Rebuild the tree from the instance\n'
+            '(it is not the search box\'s reset - that is the ✕)')
 
         # packed after refresh, so side=RIGHT puts it to refresh's left
         self._tab_logs_button = self._flat_icon_button(
@@ -171,6 +175,8 @@ class App(tk.Tk):
             image=self.context.icons.get('logs'),
             text=None if self.context.icons.get('logs') else 'Logs')
         self._tab_logs_button.pack(side=tk.RIGHT)
+        utils.attach_tooltip(self._tab_logs_button,
+                             'Show the instance log')
 
         main_frame_navigator = ttk.PanedWindow(
             main_frame_bottom, orient=tk.HORIZONTAL)
@@ -543,9 +549,19 @@ class App(tk.Tk):
     # floating per-row action buttons: add pinned to the instance row, the
     # rest shown on the hovered row
     def tree_action_buttons_create(self):
-        def make_button(icon_key, handler):
+        def make_button(icon_key, handler, tooltip=None):
             btn = tk.Label(self.tree, image=self.context.icons[icon_key],
                            bg=self._tree_field_bg, bd=0)
+            # Tooltip first: Tk runs same-sequence bindings in the order they
+            # were added, and its handlers have to go before these two. The tip
+            # sits just below the button, over the rows the pointer crosses on
+            # its way out, so it must be gone before _handle_action_button_leave
+            # asks what is under the pointer - and gone before tk_popup below
+            # blocks in the menu loop with a tip still scheduled.
+            if tooltip is not None:
+                # icon-only buttons, two of which swap image per row, so the text
+                # is resolved when the tip is shown, not when it is attached
+                utils.attach_tooltip(btn, tooltip)
             btn.bind('<Button-1>', handler)
             btn.bind('<Leave>', self._handle_action_button_leave)
             return btn
@@ -553,14 +569,50 @@ class App(tk.Tk):
         # logs lives in the tab row, not on a tree row: it is not about any one
         # component
         self._tree_action_buttons = {
-            'add': make_button('plus', self.handle_tree_add_clicked),
-            'remove': make_button('trash', self.handle_tree_remove_clicked),
-            'hover_add': make_button('plus', self.handle_tree_hover_add_clicked),
+            'add': make_button('plus', self.handle_tree_add_clicked,
+                               'Add a device, function block or server'),
+            'remove': make_button('trash', self.handle_tree_remove_clicked,
+                                  self._remove_tooltip),
+            'hover_add': make_button('plus', self.handle_tree_hover_add_clicked,
+                                     self._hover_add_tooltip),
             # image is swapped per row: it shows the action, not the state
-            'lock': make_button('lock', self.handle_tree_lock_clicked),
+            'lock': make_button('lock', self.handle_tree_lock_clicked,
+                                self._lock_tooltip),
             'nested_fb': make_button('add_fb',
-                                     self.handle_tree_nested_fb_clicked),
+                                     self.handle_tree_nested_fb_clicked,
+                                     self._nested_fb_tooltip),
         }
+
+    # ---- tooltips for the hovered row's buttons: what they do depends on the
+    # row they are floating over, so each is resolved on demand. Returning None
+    # when nothing is hovered any more suppresses the tip. ----
+    def _remove_tooltip(self):
+        component = self.context.nodes.get(self._tree_hover_row)
+        if component is None:
+            return None
+        return 'Remove this device' if daq.IDevice.can_cast_from(component) \
+            else 'Remove this function block'
+
+    def _hover_add_tooltip(self):
+        component = self.context.nodes.get(self._tree_hover_row)
+        if component is None:
+            return None
+        return 'Add a device or function block to this device' \
+            if daq.IDevice.can_cast_from(component) \
+            else 'Add a nested function block'
+
+    def _lock_tooltip(self):
+        if self._tree_hover_row is None:
+            return None
+        return 'Unlock this device' if self._device_locked(
+            self._tree_hover_row) else 'Lock this device'
+
+    def _nested_fb_tooltip(self):
+        if self._tree_hover_row is None:
+            return None
+        return 'Show the nested function blocks this can take' \
+            if self._tree_hover_row in self.context.nested_fb_hidden \
+            else 'Hide the nested function blocks this can take'
 
     def handle_tree_add_clicked(self, event):
         icons = self.context.icons

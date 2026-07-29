@@ -164,6 +164,61 @@ def component_tags(component):
         return []
 
 
+def attach_tooltip(widget, text, delay_ms=500):
+    """Label an icon-only button. `text` may be a callable, for buttons whose
+    meaning changes with the row they are floating over.
+
+    The tip is placed below the widget rather than at the pointer: the tree's
+    floating action buttons decide whether they are still hovered by asking
+    what is under the pointer, and a window there would look like a third
+    widget and make them flicker."""
+    state = {'window': None, 'job': None}
+
+    def hide(_event=None):
+        if state['job'] is not None:
+            widget.after_cancel(state['job'])
+            state['job'] = None
+        if state['window'] is not None:
+            state['window'].destroy()
+            state['window'] = None
+
+    def show():
+        state['job'] = None
+        # ismapped as well as exists: a floating button can be un-placed while
+        # the pointer still rests on it (a rebuild, or the row scrolling away),
+        # and Windows sends no <Leave> until the mouse moves - so without this
+        # the tip would appear over the tree with no button above it.
+        if not widget.winfo_exists() or not widget.winfo_ismapped():
+            return
+        label = text() if callable(text) else text
+        if not label:
+            return
+        top = tk.Toplevel(widget)
+        top.withdraw()
+        top.overrideredirect(True)
+        try:
+            top.attributes('-topmost', True)
+        except tk.TclError:
+            pass
+        tk.Label(top, text=label, justify=tk.LEFT, background='#ffffe1',
+                 relief=tk.SOLID, borderwidth=1, padx=4, pady=1).pack()
+        top.update_idletasks()
+        top.geometry('+{}+{}'.format(
+            widget.winfo_rootx(),
+            widget.winfo_rooty() + widget.winfo_height() + 2))
+        top.deiconify()
+        state['window'] = top
+
+    def schedule(_event=None):
+        hide()
+        state['job'] = widget.after(delay_ms, show)
+
+    widget.bind('<Enter>', schedule, add='+')
+    widget.bind('<Leave>', hide, add='+')
+    widget.bind('<Button-1>', hide, add='+')
+    widget.bind('<Destroy>', hide, add='+')
+
+
 def root_device(node):
     while node.parent:
         node = node.parent

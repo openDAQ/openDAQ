@@ -135,16 +135,6 @@ class OutputSignalGraph(ttk.Frame):
 
         self._scale_var = tk.StringVar(value='Linear')
 
-        controls = ttk.Frame(self._content_frame)
-        controls.pack(fill=tk.X, padx=(2, 12), pady=(2, 0))
-
-        ttk.Label(controls, text='Scale').pack(side=tk.LEFT)
-        self._scale_cb = ttk.Combobox(
-            controls, textvariable=self._scale_var, state='readonly',
-            values=['Linear', 'Log'], width=7)
-        self._scale_cb.pack(side=tk.LEFT, padx=(4, 0))
-        self._scale_cb.bind('<<ComboboxSelected>>', self._on_scale_changed)
-
         self._signal_var = tk.StringVar()
         self._dropdown = None
 
@@ -153,6 +143,17 @@ class OutputSignalGraph(ttk.Frame):
             self._content_frame, bg=self._BG,
             height=140, highlightthickness=0)
         self._chart.pack(fill=tk.BOTH, expand=True, padx=(2, 0), pady=(4, 6))
+
+        # Built here but packed only while it applies, so it reads as belonging
+        # to the axis it scales rather than as a strip above the plot.
+        self._scale_controls = ttk.Frame(self._content_frame)
+        ttk.Label(self._scale_controls, text='Scale').pack(side=tk.LEFT)
+        self._scale_cb = ttk.Combobox(
+            self._scale_controls, textvariable=self._scale_var,
+            state='readonly', values=['Linear', 'Log'], width=7)
+        self._scale_cb.pack(side=tk.LEFT, padx=(4, 0))
+        self._scale_cb.bind('<<ComboboxSelected>>', self._on_scale_changed)
+        self._refresh_scale_control()
 
         self._chart.bind('<Configure>', lambda _e: self._invalidate_chart())
         self._redirect_mousewheel(self)
@@ -310,6 +311,7 @@ class OutputSignalGraph(ttk.Frame):
         self._unit_str = ''
         self._forget_domain_timing()
         self._forget_dimension()
+        self._refresh_scale_control()
         self._auto_window_applied = False
 
         name = self._signal_var.get()
@@ -438,6 +440,10 @@ class OutputSignalGraph(ttk.Frame):
         self._unit_str = ''
         self._forget_domain_timing()
         self._forget_dimension()
+        # deliberately no _refresh_scale_control() here: the same signal is
+        # still selected and the reader is rebuilt with skip_events=False, so
+        # its descriptor event restores the dimension a moment later. Resetting
+        # would throw away a Log choice on every transient read failure.
 
         self._first_tick = None
         self._data.clear()
@@ -457,6 +463,22 @@ class OutputSignalGraph(ttk.Frame):
     @property
     def _is_spectrum(self):
         return self._bin_positions is not None
+
+    # A decade axis only says something about a spectrum; a scalar trace against
+    # time has nothing to gain from it. The descriptor can turn one into the
+    # other at any time, so the control follows it instead of the build.
+    def _refresh_scale_control(self):
+        if self._is_spectrum:
+            self._scale_controls.pack(fill=tk.X, padx=(2, 12), pady=(0, 2))
+            return
+
+        # Log picked while the signal was a spectrum would otherwise keep the
+        # axis logarithmic with nothing on screen left to undo it.
+        if self._scale_var.get() != 'Linear':
+            self._scale_var.set('Linear')
+            self._needs_redraw = True
+
+        self._scale_controls.pack_forget()
 
     def _on_scale_changed(self, _event=None):
         self._needs_redraw = True
@@ -524,6 +546,9 @@ class OutputSignalGraph(ttk.Frame):
                           if unit is not None else None)
                 self._unit_str = str(symbol) if symbol is not None else ''
                 self._apply_dimension(self._selected_descriptor)
+            # The value descriptor is what decides whether samples are vectors,
+            # so this is the one place the scale control can start to apply.
+            self._refresh_scale_control()
 
         # An event that only changes the value descriptor leaves the domain out
         # entirely - the timing we already have stays valid.

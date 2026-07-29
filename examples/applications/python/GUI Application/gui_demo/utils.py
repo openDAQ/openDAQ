@@ -148,6 +148,22 @@ def show_selection(title, current_value, values):
     return result
 
 
+def component_tags(component):
+    """Tag strings of a component, empty when it has none. Both the tree search
+    and the input port dropdown fold these into their search text; components
+    that predate tags (or are already gone) must not raise here."""
+    try:
+        tags = component.tags
+    except (AttributeError, RuntimeError):
+        return []
+    if tags is None:
+        return []
+    try:
+        return [str(tag) for tag in tags.list]
+    except (AttributeError, RuntimeError):
+        return []
+
+
 def root_device(node):
     while node.parent:
         node = node.parent

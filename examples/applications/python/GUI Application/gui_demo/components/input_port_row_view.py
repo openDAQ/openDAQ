@@ -21,6 +21,7 @@ class InputPortRowView(ttk.Frame):
         self._filtered_signals = []
         self._signal_display_to_signal = {}
         self._signal_name_to_signal = {}
+        self._signal_search_text = {}
         self._suggestions_popup = None
         self._suggestions_canvas = None
         self._suggestions_inner = None
@@ -78,6 +79,7 @@ class InputPortRowView(ttk.Frame):
     def fill_dropdown(self):
         self._signal_display_to_signal = {}
         self._signal_name_to_signal = {}
+        self._signal_search_text = {}
         signals_dict = self.context.signals_for_device(self.device)
         signals = [signal_id for signal_id in signals_dict.keys()]
         if not self.context.view_hidden_components:
@@ -90,6 +92,8 @@ class InputPortRowView(ttk.Frame):
             # Keep the first mapping in case of duplicate display text.
             if display not in self._signal_display_to_signal:
                 self._signal_display_to_signal[display] = signal
+                self._signal_search_text[display] = self._search_text_for_signal(
+                    signal)
                 display_values.append(display)
             if name_text not in self._signal_name_to_signal:
                 self._signal_name_to_signal[name_text] = signal
@@ -108,6 +112,15 @@ class InputPortRowView(ttk.Frame):
 
     def _name_text_for_signal(self, signal):
         return signal.name if signal.name is not None else ''
+
+    # Search text behind a suggestion: name, local id and tags, so a tag can be
+    # typed to narrow the list down. The global id is left out on purpose, or a
+    # query would match on the path of some unrelated ancestor.
+    def _search_text_for_signal(self, signal):
+        local_id = getattr(signal, 'local_id', '') or ''
+        terms = [self._name_text_for_signal(signal), str(local_id)] \
+            + utils.component_tags(signal)
+        return ' '.join(terms).lower()
 
     # Split a display string back into (name, global id) so a suggestion row
     # can show the name in black and the global id in gray.
@@ -130,7 +143,9 @@ class InputPortRowView(ttk.Frame):
         if not typed:
             filtered = self._all_signals
         else:
-            filtered = [s for s in self._all_signals if typed in s.lower()]
+            # 'none' (and any display without a haystack) matches on its text
+            filtered = [s for s in self._all_signals
+                        if typed in self._signal_search_text.get(s, s.lower())]
         self._filtered_signals = filtered
         self.dropdown['values'] = filtered
         self.selection = self.input_var.get()

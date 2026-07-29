@@ -897,12 +897,20 @@ class PropertiesTreeview(ttk.Treeview):
         self._overlay_comboboxes[iid] = cb
 
     def _place_enum_combobox(self, iid, prop):
-        if not daq.IEnumeration.can_cast_from(prop.value):
+        try:
+            if not daq.IEnumeration.can_cast_from(prop.value):
+                return
+            enum = daq.IEnumeration.cast_from(prop.value)
+            enum_type = enum.enumeration_type
+            keys = [str(k) for k, _ in enum_type.as_dictionary.items()]
+            current_key = self._enum_key(enum)
+        except Exception as e:
+            print('Failed to read enum property:', e)
             return
-        enum = daq.IEnumeration.cast_from(prop.value)
-        enum_type = enum.enumeration_type
-        keys = [k for k, _ in enum_type.as_dictionary.items()]
-        current_key = keys[enum.value] if 0 <= enum.value < len(keys) else keys[0]
+        if not keys:
+            return
+        if current_key not in keys:
+            keys = [current_key] + keys
         cb = self._make_combobox(iid, keys, current_key)
         if cb is None:
             return
@@ -917,6 +925,9 @@ class PropertiesTreeview(ttk.Treeview):
             except Exception as e:
                 print("Failed to set enum:", e)
                 return
+            # every other editor records the write, so an enum set inside a
+            # begin/end update block is marked pending like the rest
+            self._note_write(_prop)
             self.refresh()
 
         cb.bind('<<ComboboxSelected>>', on_change)
@@ -1125,13 +1136,25 @@ class PropertiesTreeview(ttk.Treeview):
     def _enum_value_name(value):
         try:
             if daq.IEnumeration.can_cast_from(value):
-                enum = daq.IEnumeration.cast_from(value)
-                keys = list(enum.enumeration_type.as_dictionary.keys())
-                if 0 <= enum.value < len(keys):
-                    return keys[enum.value]
-        except RuntimeError:
+                return PropertiesTreeview._enum_key(
+                    daq.IEnumeration.cast_from(value))
+        except Exception:
             pass
         return str(value)
+
+    # The name of the enumerator the value currently holds. `value` is the
+    # integer constant, not a position: enumerator values are free to be
+    # 1/2/4 or to start anywhere, so the key list must not be indexed with it.
+    @staticmethod
+    def _enum_key(enum):
+        name = getattr(enum, 'name', None)
+        if name:
+            return str(name)
+        # older bindings expose only the integer, so match it against the type
+        for key, key_value in enum.enumeration_type.as_dictionary.items():
+            if int(key_value) == int(enum.value):
+                return str(key)
+        return str(enum)
 
     @staticmethod
     def _format_value(value):

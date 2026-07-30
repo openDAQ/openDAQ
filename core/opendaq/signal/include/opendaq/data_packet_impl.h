@@ -46,52 +46,52 @@ inline BaseObjectPtr dataToObj(void* addr, const SampleType& type, SizeT sampleS
         case SampleType::Float32:
         {
             const auto data = static_cast<float*>(addr);
-            return Floating(*data);
+            return FloatingFromPool(*data);
         }
         case SampleType::Float64:
         {
             const auto data = static_cast<double*>(addr);
-            return Floating(*data);
+            return FloatingFromPool(*data);
         }
         case SampleType::Int8:
         {
             const auto data = static_cast<int8_t*>(addr);
-            return Integer(*data);
+            return IntegerFromPool(*data);
         }
         case SampleType::UInt8:
         {
             const auto data = static_cast<uint8_t*>(addr);
-            return Integer(*data);
+            return IntegerFromPool(*data);
         }
         case SampleType::Int16:
         {
             const auto data = static_cast<int16_t*>(addr);
-            return Integer(*data);
+            return IntegerFromPool(*data);
         }
         case SampleType::UInt16:
         {
             const auto data = static_cast<uint16_t*>(addr);
-            return Integer(*data);
+            return IntegerFromPool(*data);
         }
         case SampleType::Int32:
         {
             const auto data = static_cast<int32_t*>(addr);
-            return Integer(*data);
+            return IntegerFromPool(*data);
         }
         case SampleType::UInt32:
         {
             const auto data = static_cast<uint32_t*>(addr);
-            return Integer(*data);
+            return IntegerFromPool(*data);
         }
         case SampleType::Int64:
         {
             const auto data = static_cast<int64_t*>(addr);
-            return Integer(*data);
+            return IntegerFromPool(*data);
         }
         case SampleType::UInt64:
         {
             const auto data = static_cast<uint64_t*>(addr);
-            return Integer(*data);
+            return IntegerFromPool(*data);
         }
         case SampleType::RangeInt64:
         {

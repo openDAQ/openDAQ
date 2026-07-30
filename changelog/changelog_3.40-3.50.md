@@ -4,6 +4,7 @@
 
 - [#1242](https://github.com/openDAQ/openDAQ/pull/1242) Implement IContext::getRootDevice
 - [#1244](https://github.com/openDAQ/openDAQ/pull/1244) Static objects and object pool
+- [#1258](https://github.com/openDAQ/openDAQ/pull/1258) Make device info the nested device property
 
 ## Python
 

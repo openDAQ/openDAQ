@@ -106,13 +106,13 @@ TEST(ObjectPoolTest, Create)
     pool.cleanup();
 }
 
-constexpr size_t ObjCount = 1000;
+constexpr int ObjCount = 1000;
 
 TEST(ObjectPoolTest, SpeedNoPool)
 {
     std::stack<StandardObject*> objects;
 
-    for (size_t i = 0; i < ObjCount; ++i)
+    for (int i = 0; i < ObjCount; ++i)
     {
         const auto s = fast_rand() % 2;
         if (s == 0 || objects.empty())
@@ -145,7 +145,7 @@ TEST(ObjectPoolTest, SpeedWithPool)
 
     std::stack<PoolObject*> objects;
 
-    for (size_t i = 0; i < ObjCount; ++i)
+    for (int i = 0; i < ObjCount; ++i)
     {
         const auto s = fast_rand() % 2;
         if (s == 0 || objects.empty())

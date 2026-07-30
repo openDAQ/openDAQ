@@ -211,6 +211,7 @@ private:
     std::vector<ConnectionPtr> remoteConnections;
     std::vector<WeakRefPtr<ISignalConfig>> domainSignalReferences;
     bool keepLastValue;
+    TypeManagerPtr typeManager;
 
     // Lock-free data path state. `connections` above stays the canonical list, owned and
     // mutated only under the config lock; the snapshot is a derived immutable copy that the
@@ -259,6 +260,7 @@ SignalBase<TInterface, Interfaces...>::SignalBase(const ContextPtr& context,
     , dataDescriptor(std::move(descriptor))
     , isPublic(true)
     , keepLastValue(true)
+    , typeManager(context.getTypeManager())
     , connectionsSnapshot(nullptr)
 {
     if (dataDescriptor.assigned() && dataDescriptor.getSampleType() == SampleType::Null)
@@ -267,7 +269,6 @@ SignalBase<TInterface, Interfaces...>::SignalBase(const ContextPtr& context,
 
     if (dataDescriptor.assigned() && dataDescriptor.getSampleType() == SampleType::Struct)
     {
-        auto typeManager = this->context.getTypeManager();
         addToTypeManagerRecursively(typeManager, dataDescriptor);
     }
 
@@ -492,7 +493,6 @@ ErrCode SignalBase<TInterface, Interfaces...>::setDescriptor(IDataDescriptor* de
             {
                 if (dataDescriptor.assigned() && dataDescriptor.getSampleType() == SampleType::Struct)
                 {
-                    auto typeManager = this->context.getTypeManager();
                     addToTypeManagerRecursively(typeManager, dataDescriptor);
                 }
             }

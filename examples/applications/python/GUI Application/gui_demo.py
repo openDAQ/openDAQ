@@ -646,14 +646,14 @@ class App(tk.Tk):
         # logs lives in the tab row, not on a tree row: it is not about any one
         # component
         self._tree_action_buttons = {
-            'add': make_button('add', 'plus', self.handle_tree_add_clicked,
-                               'Add a device, function block or server'),
+            # no tooltip on either '+': the menu it opens names its own options,
+            # so the tip only got in the way of the thing it was describing
+            'add': make_button('add', 'plus', self.handle_tree_add_clicked),
             'remove': make_button('remove', 'trash',
                                   self.handle_tree_remove_clicked,
                                   self._remove_tooltip),
             'hover_add': make_button('hover_add', 'plus',
-                                     self.handle_tree_hover_add_clicked,
-                                     self._hover_add_tooltip),
+                                     self.handle_tree_hover_add_clicked),
             # 'lock' and 'nested_fb' swap image per row, and both show the
             # action rather than the current state: a lock-shaped icon sitting
             # on a locked row reads as a status badge, and gets clicked by

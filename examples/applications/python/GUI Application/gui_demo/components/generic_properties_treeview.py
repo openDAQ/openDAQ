@@ -548,8 +548,17 @@ class PropertiesTreeview(ttk.Treeview):
             # path may address a nested object; the row is keyed by the leaf
             self._note_write_name(path[-1])
             self.refresh()
-        except Exception:
-            pass
+        except Exception as e:
+            # A rejected write (out of range, read-only, locked or disconnected
+            # device) otherwise looked like the edit was accepted and then undone:
+            # the entry closed, the old value came back, and nothing said why.
+            # Every other editor in this view reports its failure, so this one
+            # does too.
+            print('Failed to set property value:', e)
+            utils.show_error(
+                'Cannot set property value',
+                f'{".".join(str(p) for p in path)} was refused:\n\n{str(e)}',
+                self)
         finally:
             entry.destroy()
 

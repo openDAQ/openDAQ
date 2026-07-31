@@ -1266,10 +1266,15 @@ class App(tk.Tk):
                               ('nested_fb', nested),
                               ('lock', lockable)))
 
+        # These buttons follow the hovered row, so they get moved out from under
+        # the pointer and back under it as it travels. Tk reports that as <Enter>
+        # with no matching <Leave>, which left a tooltip trailing the mouse down
+        # the tree; a button that just moved has not been pointed at.
         for key, btn in self._tree_action_buttons.items():
             pos = placements.get(key)
             if pos is None:
                 if self._tree_action_pos.get(key) is not None:
+                    utils.tooltip_dismiss(btn)
                     btn.place_forget()
                     self._tree_action_pos[key] = None
                 continue
@@ -1278,6 +1283,7 @@ class App(tk.Tk):
             if str(btn.cget('bg')) != bg:
                 btn.configure(bg=bg)
             if self._tree_action_pos.get(key) != pos:
+                utils.tooltip_dismiss(btn)
                 btn.place(x=pos[0], y=pos[1])
                 self._tree_action_pos[key] = pos
 

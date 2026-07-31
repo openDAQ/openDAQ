@@ -164,6 +164,17 @@ def component_tags(component):
         return []
 
 
+def tooltip_dismiss(widget):
+    """Cancel and hide a widget's tooltip. Call this when moving the widget: a
+    tooltip belongs to a pointer resting on something, and a widget that was
+    just repositioned under the pointer is not that."""
+    dismiss = getattr(widget, 'tooltip_dismiss', None)
+    if dismiss is not None:
+        dismiss()
+
+
+# 500 ms: long enough that sweeping the pointer across a row of buttons shows
+# nothing, short enough to feel like an answer when someone stops to ask.
 def attach_tooltip(widget, text, delay_ms=500):
     """Label an icon-only button. `text` may be a callable, for buttons whose
     meaning changes with the row they are floating over.
@@ -171,24 +182,61 @@ def attach_tooltip(widget, text, delay_ms=500):
     The tip is placed below the widget rather than at the pointer: the tree's
     floating action buttons decide whether they are still hovered by asking
     what is under the pointer, and a window there would look like a third
-    widget and make them flicker."""
-    state = {'window': None, 'job': None}
+    widget and make them flicker.
+
+    <Leave> is treated as a hint, not the truth. A popup menu's grab swallows it,
+    an un-placed widget never sends it, and a widget moved under a resting
+    pointer gets <Enter> without ever having been pointed at - so while a tip is
+    up, the pointer position is rechecked and the tip withdrawn once it is no
+    longer over the widget."""
+    # How long a tip can outlive the pointer that earned it. Every path that
+    # loses <Leave> - a menu grab, an un-placed widget, a widget moved under a
+    # resting pointer - is caught by this poll, so it is also the worst-case
+    # lifetime of a stale tip. Only runs while a tip is on screen.
+    WATCH_MS = 150
+    state = {'window': None, 'job': None, 'watch': None}
+
+    def cancel(key):
+        if state[key] is not None:
+            try:
+                widget.after_cancel(state[key])
+            except Exception:
+                pass
+            state[key] = None
 
     def hide(_event=None):
-        if state['job'] is not None:
-            widget.after_cancel(state['job'])
-            state['job'] = None
+        cancel('job')
+        cancel('watch')
         if state['window'] is not None:
-            state['window'].destroy()
+            try:
+                state['window'].destroy()
+            except Exception:
+                pass
             state['window'] = None
+
+    # Whether the pointer really is over the widget, rather than whether Tk last
+    # said so. Also false for a widget that exists but is not on screen.
+    def pointer_on_widget():
+        try:
+            if not widget.winfo_exists() or not widget.winfo_ismapped():
+                return False
+            px, py = widget.winfo_pointerxy()
+            x, y = widget.winfo_rootx(), widget.winfo_rooty()
+            return (x <= px < x + widget.winfo_width()
+                    and y <= py < y + widget.winfo_height())
+        except Exception:
+            return False
+
+    def watch():
+        state['watch'] = None
+        if not pointer_on_widget():
+            hide()
+            return
+        state['watch'] = widget.after(WATCH_MS, watch)
 
     def show():
         state['job'] = None
-        # ismapped as well as exists: a floating button can be un-placed while
-        # the pointer still rests on it (a rebuild, or the row scrolling away),
-        # and Windows sends no <Leave> until the mouse moves - so without this
-        # the tip would appear over the tree with no button above it.
-        if not widget.winfo_exists() or not widget.winfo_ismapped():
+        if not pointer_on_widget():
             return
         label = text() if callable(text) else text
         if not label:
@@ -208,6 +256,7 @@ def attach_tooltip(widget, text, delay_ms=500):
             widget.winfo_rooty() + widget.winfo_height() + 2))
         top.deiconify()
         state['window'] = top
+        state['watch'] = widget.after(WATCH_MS, watch)
 
     def schedule(_event=None):
         hide()
@@ -217,6 +266,11 @@ def attach_tooltip(widget, text, delay_ms=500):
     widget.bind('<Leave>', hide, add='+')
     widget.bind('<Button-1>', hide, add='+')
     widget.bind('<Destroy>', hide, add='+')
+
+    # A widget that is moved under a resting pointer gets <Enter> without the
+    # user having pointed at anything, and no <Leave> when it moves away again.
+    # Whoever moves the widget has to say so; see tooltip_dismiss.
+    widget.tooltip_dismiss = hide
 
 
 def root_device(node):

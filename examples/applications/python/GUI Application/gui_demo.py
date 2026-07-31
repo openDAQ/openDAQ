@@ -117,6 +117,11 @@ class App(tk.Tk):
         self._nested_fb_indicators = {}
         self._tree_action_buttons = {}
         self._tree_action_pos = {}
+        # row colour each floating button currently sits on, and which one is
+        # being held; together they decide its hover and pressed shade
+        self._tree_action_base_bg = {}
+        self._tree_action_pressed = None
+        self._shade_cache = {}
         self._tree_hover_row = None
         self._tree_font_cache = None
         # tree search / filter state
@@ -544,10 +549,71 @@ class App(tk.Tk):
                 return '#e4e4e4'
         return self._tree_field_bg
 
+    # How far the button background is pushed towards black when the pointer is
+    # over it and while it is held. tk has no alpha on a widget background, so
+    # this is a blend rather than an overlay - which is what keeps it working on
+    # a selected row, where the row underneath is the selection colour.
+    ACTION_BUTTON_HOVER_SHADE = 0.12
+    ACTION_BUTTON_PRESSED_SHADE = 0.26
+
+    # blend a colour towards black. winfo_rgb resolves names and system colours
+    # too, so this works whatever the theme hands back for the row background
+    def _shade(self, color, amount):
+        key = (color, amount)
+        cached = self._shade_cache.get(key)
+        if cached is not None:
+            return cached
+        try:
+            r, g, b = (c // 257 for c in self.winfo_rgb(color))
+        except tk.TclError:
+            return color
+        f = 1.0 - amount
+        shaded = '#{:02x}{:02x}{:02x}'.format(
+            int(r * f), int(g * f), int(b * f))
+        self._shade_cache[key] = shaded
+        return shaded
+
+    def _widget_has_pointer(self, widget):
+        try:
+            if not widget.winfo_ismapped():
+                return False
+            px, py = widget.winfo_pointerxy()
+            x, y = widget.winfo_rootx(), widget.winfo_rooty()
+            return (x <= px < x + widget.winfo_width()
+                    and y <= py < y + widget.winfo_height())
+        except Exception:
+            return False
+
+    # Repaints the placed buttons for their current state. Driven by the pointer
+    # position rather than by the last <Enter> seen: these buttons are moved
+    # under and away from a resting pointer as the hovered row changes, so Tk's
+    # enter and leave events do not describe where the pointer actually is.
+    def _tree_action_buttons_restyle(self):
+        for key, btn in self._tree_action_buttons.items():
+            base = self._tree_action_base_bg.get(key)
+            if base is None or self._tree_action_pos.get(key) is None:
+                continue
+            if self._tree_action_pressed == key and self._widget_has_pointer(btn):
+                bg = self._shade(base, self.ACTION_BUTTON_PRESSED_SHADE)
+            elif self._widget_has_pointer(btn):
+                bg = self._shade(base, self.ACTION_BUTTON_HOVER_SHADE)
+            else:
+                bg = base
+            if str(btn.cget('bg')) != bg:
+                btn.configure(bg=bg)
+
+    def _handle_action_button_press(self, key):
+        self._tree_action_pressed = key
+        self._tree_action_buttons_restyle()
+
+    def _handle_action_button_release(self, key):
+        self._tree_action_pressed = None
+        self._tree_action_buttons_restyle()
+
     # floating per-row action buttons: add pinned to the instance row, the
     # rest shown on the hovered row
     def tree_action_buttons_create(self):
-        def make_button(icon_key, handler, tooltip=None):
+        def make_button(key, icon_key, handler, tooltip=None):
             btn = tk.Label(self.tree, image=self.context.icons[icon_key],
                            bg=self._tree_field_bg, bd=0)
             # Tooltip first: Tk runs same-sequence bindings in the order they
@@ -560,23 +626,41 @@ class App(tk.Tk):
                 # icon-only buttons, two of which swap image per row, so the text
                 # is resolved when the tip is shown, not when it is attached
                 utils.attach_tooltip(btn, tooltip)
-            btn.bind('<Button-1>', handler)
-            btn.bind('<Leave>', self._handle_action_button_leave)
+            # Press styling before the handler: an add button opens a menu whose
+            # grab blocks here, so the held look has to be on screen by then. The
+            # release lands after the menu closes, which is when it should clear.
+            btn.bind('<Button-1>',
+                     lambda e, k=key: self._handle_action_button_press(k),
+                     add='+')
+            btn.bind('<Button-1>', handler, add='+')
+            btn.bind('<ButtonRelease-1>',
+                     lambda e, k=key: self._handle_action_button_release(k),
+                     add='+')
+            btn.bind('<Enter>',
+                     lambda e: self._tree_action_buttons_restyle(), add='+')
+            btn.bind('<Leave>', self._handle_action_button_leave, add='+')
+            btn.bind('<Leave>',
+                     lambda e: self._tree_action_buttons_restyle(), add='+')
             return btn
 
         # logs lives in the tab row, not on a tree row: it is not about any one
         # component
         self._tree_action_buttons = {
-            'add': make_button('plus', self.handle_tree_add_clicked,
+            'add': make_button('add', 'plus', self.handle_tree_add_clicked,
                                'Add a device, function block or server'),
-            'remove': make_button('trash', self.handle_tree_remove_clicked,
+            'remove': make_button('remove', 'trash',
+                                  self.handle_tree_remove_clicked,
                                   self._remove_tooltip),
-            'hover_add': make_button('plus', self.handle_tree_hover_add_clicked,
+            'hover_add': make_button('hover_add', 'plus',
+                                     self.handle_tree_hover_add_clicked,
                                      self._hover_add_tooltip),
-            # image is swapped per row: it shows the action, not the state
-            'lock': make_button('lock', self.handle_tree_lock_clicked,
+            # 'lock' and 'nested_fb' swap image per row, and both show the
+            # action rather than the current state: a lock-shaped icon sitting
+            # on a locked row reads as a status badge, and gets clicked by
+            # someone trying to unlock. The tooltip names the same action.
+            'lock': make_button('lock', 'lock', self.handle_tree_lock_clicked,
                                 self._lock_tooltip),
-            'nested_fb': make_button('add_fb',
+            'nested_fb': make_button('nested_fb', 'add_fb',
                                      self.handle_tree_nested_fb_clicked,
                                      self._nested_fb_tooltip),
         }
@@ -1282,15 +1366,17 @@ class App(tk.Tk):
                     utils.tooltip_dismiss(btn)
                     btn.place_forget()
                     self._tree_action_pos[key] = None
+                    self._tree_action_base_bg[key] = None
                 continue
-            # blend into the row the button floats over
-            bg = backgrounds.get(key, self._tree_field_bg)
-            if str(btn.cget('bg')) != bg:
-                btn.configure(bg=bg)
+            # the row it floats over is what it blends into when idle, and what
+            # the hover and pressed shades are derived from
+            self._tree_action_base_bg[key] = backgrounds.get(
+                key, self._tree_field_bg)
             if self._tree_action_pos.get(key) != pos:
                 utils.tooltip_dismiss(btn)
                 btn.place(x=pos[0], y=pos[1])
                 self._tree_action_pos[key] = pos
+        self._tree_action_buttons_restyle()
 
     # tracks the hovered row: nested FB indicators get their hover style,
     # removable rows get the floating remove button

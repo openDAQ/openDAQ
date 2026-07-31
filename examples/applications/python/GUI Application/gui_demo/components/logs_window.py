@@ -23,6 +23,11 @@ class LogsWindow(tk.Toplevel):
     LEVEL_ORDER = ('trace', 'debug', 'info', 'warning', 'error', 'critical')
     SHOW_ALL = 'All'
 
+    # Three bracketed fields then the level, because that is the sink pattern
+    # AppContext.create_instance sets ('[time] [component] [level] message').
+    # The two are coupled and nothing enforces it: change the pattern and this
+    # stops matching, line_rank returns None for every line, and the severity
+    # filter quietly becomes a no-op rather than failing.
     _LEVEL_RE = re.compile(r'^\[[^\]]*\]\s*\[[^\]]*\]\s*\[([a-z]+)\]')
 
     def __init__(self, parent, context, **kwargs):

@@ -57,6 +57,7 @@ class PropertiesTreeview(ttk.Treeview):
         self._last_method_results = {}
         self._active_dropdown_cb = None
         self._last_configure_size = (0, 0)
+        # guards _sync_overlays against itself; see the method
         self._syncing_overlays = False
         self.read_only = read_only
 
@@ -712,6 +713,10 @@ class PropertiesTreeview(ttk.Treeview):
             self._place_suggested_combobox(iid, prop)
 
     def _sync_overlays(self):
+        # Reentrant through Tk, not through any caller: place() and lift() below
+        # change widget geometry, which fires the <Configure> and scroll
+        # callbacks bound in __init__, each of which calls this again. Without
+        # the flag the first placement recurses until Tk runs out of stack.
         if self._syncing_overlays:
             return
         self._syncing_overlays = True

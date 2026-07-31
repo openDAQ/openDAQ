@@ -50,6 +50,11 @@ def log_level_name(level):
     return 'Default'
 
 def find_component(id, parent=None, convert_id=True):
+    # find_component wants a path relative to `parent`, while a global id is
+    # absolute: '/root_local_id/rest/of/path'. Splitting on '/' therefore yields
+    # an empty leading element and the root's own id, and dropping both is what
+    # 'split_id[2:]' is for. Pass convert_id=False when the caller already holds
+    # a relative path, or the first two real segments would be eaten instead.
     if convert_id:
         split_id = id.split('/')
         id = '/'.join(split_id[2:])
@@ -481,7 +486,11 @@ def is_device_connected(device: daq.IDevice):
     try:
         connection_status = status_container.get_status("ConnectionStatus")
         return connection_status.name == "Connected"
-    except:
+    except Exception:
+        # No ConnectionStatus at all, which is the normal case for anything not
+        # reached over a network: the local instance and the reference devices
+        # never publish one. Treating those as disconnected would mark the whole
+        # local tree as such, so absence of a status means nothing is wrong.
         return True
 
 def update_properties(target: daq.IPropertyObject, source: daq.IPropertyObject):

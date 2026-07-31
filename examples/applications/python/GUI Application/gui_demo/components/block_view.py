@@ -338,8 +338,12 @@ class BlockView(ttk.Frame):
 
     def _on_component_core_event(self, sender, args: daq.IEventArgs):
         # Unsubscribing on destroy stops new events, but one already sitting in
-        # the queue still arrives. Touching the dead widgets raises out of
-        # process_events(), which drops every event still queued behind it.
+        # the queue still arrives, and the tree rebuilds this view often enough
+        # for that to be routine rather than rare. Touching the dead widgets
+        # raises out of process_events(), which then drops every event still
+        # queued behind it - so the symptom is never this view, it is some other
+        # component silently missing an update. Cheaper to ignore the event here
+        # than to make the queue tolerate handlers that throw.
         if not self.winfo_exists():
             return
 

@@ -313,6 +313,9 @@ class AddDeviceDialog(Dialog):
     def handle_entry_enter(self, event):
         self.process_add_device(False)
 
+    # The iid is the connection string: _on_devices_loaded inserts discovered
+    # rows with iid=conn, which is what makes this lookup possible at all. Give
+    # those rows a synthetic id and this silently finds nothing.
     def find_available_device(self, parent_device: daq.IDevice, selected_item_iid):
         if parent_device is None or selected_item_iid is None:
             return None
@@ -370,6 +373,8 @@ class AddDeviceDialog(Dialog):
             tree.delete(*tree.get_children())
             tree.configure(cursor='')
             for name, loc, conn in devices:
+                # iid is the connection string on purpose; find_available_device
+                # matches on it to get back from a selected row to the device
                 tree.insert('', tk.END, iid=conn, values=(name, loc, conn))
         except tk.TclError:
             pass  # dialog was closed before results arrived

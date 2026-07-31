@@ -317,14 +317,14 @@ class App(tk.Tk):
         # safety net keeping the floating row-action buttons glued to their rows
         self._tree_overlays_update()
 
-        # Re-schedule after 50 ms
         self.after(50, self.poll_opendaq_events)
 
     def init_opendaq(self):
 
         # add the first device if connection string is provided once on start
         if self.context.connection_string is not None:
-            # also calls self.update_tree_widget()
+            # adds the device only; the tree is built once below, so a caller
+            # cannot skip that on the assumption this refreshed anything
             self.context.add_first_available_device()
 
         self.tree_update()
@@ -455,29 +455,27 @@ class App(tk.Tk):
     def tree_widget_create(self, parent_frame):
         frame = ttk.Frame(parent_frame)
 
-        # filter row beneath the view tabs
+        # shares this frame with the tree, so whatever is packed here sets the
+        # pane's minimum width
         self._tree_search_row_create(frame)
 
-        # define columns
         tree = ttk.Treeview(frame, columns=('name', 'hash'), displaycolumns=(
             'name'), show='tree', selectmode=tk.BROWSE)
 
-        # layout. #0 must not stretch: a stretched column is always exactly the
-        # widget width, so there would be nothing for xview to scroll over and
-        # deeply indented rows would simply be clipped.
+        # #0 must not stretch: a stretched column is always exactly the widget
+        # width, so there would be nothing for xview to scroll over and deeply
+        # indented rows would simply be clipped.
         tree.column('#0', stretch=False,
                     width=int(350 * self.context.ui_scaling_factor * self.context.dpi_factor))
-        # hide the column with unique id
+        # 'hash' carries the global id for lookups and is never displayed
         tree.column('#1', width=0, minwidth=0, stretch=False)
 
-        # bind selection
         tree.bind('<<TreeviewSelect>>', self.handle_tree_select)
         tree.bind('<ButtonRelease-3>', self.handle_tree_right_button_release)
         tree.bind('<Button-3>', self.handle_tree_right_button)
         tree.bind('<Button-1>', self.handle_tree_click)
         tree.bind('<Double-1>', self._block_indicator_double_click)
 
-        # add a scrollbar
         scroll_bar = ttk.Scrollbar(
             frame, orient=tk.VERTICAL, command=tree.yview)
 
@@ -705,8 +703,11 @@ class App(tk.Tk):
                 compound=tk.LEFT,
                 command=lambda: self.add_function_block_dialog_show(target))
 
+        # index(END) is None only for a menu with no entries, and only because
+        # tearoff=0 above: a tearoff entry would make it 0 and this guard would
+        # stop firing, posting an empty menu on every row that offers nothing.
         if menu.index(tk.END) is None:
-            return  # nothing to offer after all
+            return
         try:
             menu.tk_popup(event.widget.winfo_rootx(),
                           event.widget.winfo_rooty() + event.widget.winfo_height())
@@ -889,7 +890,8 @@ class App(tk.Tk):
     def _apply_tree_filter(self):
         query = self._search_query().lower()
 
-        # restore the captured layout first
+        # Filtering works from the fully built tree every time, so the first
+        # step is always to put back what the last query moved or detached.
         for iid, parent, index, is_open in self._tree_all_items:
             if self.tree.exists(iid):
                 self.tree.move(iid, parent, index)
@@ -949,10 +951,13 @@ class App(tk.Tk):
                 ancestor = self.tree.parent(ancestor)
 
     def tree_update(self, new_selected_node=None):
-        # Rows the search filter hid are detached, not deleted: they still
-        # belong to the widget and keep their ids reserved, but having no
-        # parent they are unreachable through get_children. Clear them by id
-        # first or rebuilding collides with them ("Item ... already exists").
+        # The filter detaches non-matching rows instead of deleting them, so that
+        # clearing it restores the tree without a rebuild and without losing the
+        # selection. The price is paid here: a detached row still belongs to the
+        # widget and keeps its id reserved, while having no parent makes it
+        # unreachable through get_children, so a rebuild walks into
+        # "Item ... already exists". Deleting by id first keeps the cheap restore;
+        # deleting on filter instead would have thrown it away.
         for iid, _parent, _index, _is_open in self._tree_all_items:
             if self.tree.exists(iid):
                 self.tree.delete(iid)
@@ -1014,7 +1019,10 @@ class App(tk.Tk):
         items = folder.get_items(daq.AnySearchFilter(
         ) if self.context.view_hidden_components else None) if folder else []
 
-        # tree view only in topology mode + parent exists
+        # Where this row hangs. The flat tabs (Signals, and the top level of
+        # Channels and Function blocks) drop the ancestry on purpose so every
+        # match is a root row; tree_parent_id is how a recursion opts back into
+        # nesting, for the contents of a matched block.
         if tree_parent_id is not None:
             parent_id = tree_parent_id
         elif display_type not in (
@@ -1247,14 +1255,11 @@ class App(tk.Tk):
         if hover and hover != root_iid and self.tree.exists(hover):
             lockable = self._device_lockable(hover)
             if lockable:
-                # the icon names the action available, not the current state
                 self._tree_action_buttons['lock'].configure(
                     image=self.context.icons[
                         'unlock' if self._device_locked(hover) else 'lock'])
             nested = self._nested_fb_togglable(hover)
             if nested:
-                # same convention as lock: the icon is the action, so a row
-                # showing placeholders offers to tuck them away
                 self._tree_action_buttons['nested_fb'].configure(
                     image=self.context.icons[
                         'add_fb' if hover in self.context.nested_fb_hidden
@@ -1666,8 +1671,10 @@ class App(tk.Tk):
         try:
             has_fb_types = bool(node.available_function_block_types)
         except Exception:
-            # broader than RuntimeError: a remote block can refuse this call in
-            # more ways than one, and it must not take the context menu with it
+            # Broader than RuntimeError on purpose: asking a remote block for
+            # its nested types needs config protocol 9, and an older server, a
+            # dropped connection or a permission refusal each surface
+            # differently. None of them should cost the whole context menu.
             has_fb_types = False
         if has_fb_types:
             popup.add_command(
@@ -1696,8 +1703,10 @@ class App(tk.Tk):
         try:
             has_fb_types = bool(node.available_function_block_types)
         except Exception:
-            # broader than RuntimeError: a remote block can refuse this call in
-            # more ways than one, and it must not take the context menu with it
+            # Broader than RuntimeError on purpose: asking a remote block for
+            # its nested types needs config protocol 9, and an older server, a
+            # dropped connection or a permission refusal each surface
+            # differently. None of them should cost the whole context menu.
             has_fb_types = False
         if has_fb_types:
             popup.add_command(

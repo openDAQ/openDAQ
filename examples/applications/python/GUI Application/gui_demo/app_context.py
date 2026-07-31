@@ -75,8 +75,11 @@ class AppContext(object):
         self.signals = {}
         self.needs_refresh = False
 
-    # switches to a fresh log file; the previous instance's sink keeps the
-    # old file open, so a recreated instance gets its own
+    # A log file belongs to the sink that opened it, and the old sink only goes
+    # away when the old instance is collected - so a recreated instance cannot be
+    # handed the same path, and anything tailing it would sit on a file nothing
+    # writes to any more. Numbering the file is what makes the switch visible to
+    # the logs window, which watches the path rather than the sink.
     def next_log_file(self):
         self._log_file_index += 1
         self.log_file_path = os.path.join(
@@ -119,9 +122,17 @@ class AppContext(object):
         if self.log_to_file:
             file_sink = daq.RotatingFileLoggerSink(
                 self.log_file_path, 2 * 1024 * 1024, 3)
+            # Default is the obvious choice for "no preference" and is the one
+            # value that yields an empty file: it is 7 in LogLevel and Off is 6,
+            # so as a threshold it sits above every real severity and discards
+            # all of them. Mapped here rather than explained in the logs window,
+            # because a sink's level cannot be changed once it is built.
             file_sink.level = (daq.LogLevel.Debug
                                if self.file_log_level == daq.LogLevel.Default
                                else self.file_log_level)
+            # LogsWindow._LEVEL_RE parses these three bracketed fields to read a
+            # line's severity; keep them in step or its filter silently stops
+            # matching anything
             file_sink.pattern = '[%Y-%m-%d %H:%M:%S.%e] [%n] [%l] %v'
             builder.add_logger_sink(file_sink)
 

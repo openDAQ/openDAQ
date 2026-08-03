@@ -92,7 +92,7 @@ namespace daq::test_utils
         
         void setDeviceInfoHelper(const DeviceInfoPtr& deviceInfo)
         {
-            setDeviceInfo(deviceInfo);
+            this->deviceInfo = deviceInfo;
         }
 
     protected:

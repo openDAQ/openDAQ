@@ -175,7 +175,6 @@ public:
     ErrCode INTERFACE_FUNC enableCoreEventTrigger() override;
 
 protected:
-    DeviceInfoPtr deviceInfo;
     FolderConfigPtr devices;
     IoFolderConfigPtr ioFolder;
     SyncComponentPtr syncComponent;
@@ -250,7 +249,37 @@ protected:
     DevicePtr getParentDevice();
     OperationModeType getOperationMode();
 
-    ErrCode setDeviceInfo(const DeviceInfoPtr& deviceInfo);
+    class DeviceInfoPtrWrapper : public DeviceInfoPtr
+    {
+    public:
+        explicit DeviceInfoPtrWrapper(GenericDevice* owner) : owner(owner) { 
+            checkErrorInfo(owner->addCoreProperty(ObjectProperty("DaqDeviceInfo", PropertyObject())));
+        }
+        DeviceInfoPtrWrapper& operator=(const DeviceInfoPtrWrapper&) = delete;
+        DeviceInfoPtrWrapper& operator=(const DeviceInfoPtr& info) { setDeviceInfo(info); DeviceInfoPtr::operator=(info); return *this; }
+
+        DeviceInfoPtr getDeviceInfo() const 
+        {
+            BaseObjectPtr info;
+            checkErrorInfo(owner->getPropertyValue(String("DaqDeviceInfo"), &info));
+            return info.asPtrOrNull<IDeviceInfo>();
+        }
+
+        bool assigned() const { return getDeviceInfo().assigned(); }
+    
+    private:
+        friend GenericDevice;
+        GenericDevice* owner;
+        void setDeviceInfo(const DeviceInfoPtr& info) 
+        {
+            if (!info.assigned())
+                return;
+        
+            checkErrorInfo(owner->setDeviceInfo(info));
+        }
+    };
+
+    DeviceInfoPtrWrapper deviceInfo;
 
 private:
     void getChannelsFromFolder(ListPtr<IChannel>& channelList, const FolderPtr& folder, const SearchFilterPtr& searchFilter, bool filterChannels = true);
@@ -268,6 +297,7 @@ private:
     void removeDeviceIfNotStatic(const StringPtr& deviceId);
     void removeRemappedDevices(const SerializedObjectPtr& obj, const BaseObjectPtr& context);
     DevicePtr findConnectedDeviceForRemap(const StringPtr& manufacturer, const StringPtr& serialNumber, const StringPtr& connectionString);
+    ErrCode setDeviceInfo(const DeviceInfoPtr& deviceInfo);
 
     DeviceDomainPtr deviceDomain;
     OperationModeType operationMode {OperationModeType::Unknown};
@@ -292,7 +322,7 @@ GenericDevice<TInterface, Interfaces...>::GenericDevice(const ContextPtr& ctx,
               if (!this->coreEventMuted)
                   this->triggerCoreEvent(args);
           }))
-
+    , deviceInfo(this)
 {
     this->defaultComponents.insert("Dev");
     this->defaultComponents.insert("IO");
@@ -316,8 +346,6 @@ GenericDevice<TInterface, Interfaces...>::GenericDevice(const ContextPtr& ctx,
     devices.asPtr<IComponentPrivate>().unlockAttributes(List<IString>("Active"));
     ioFolder.asPtr<IComponentPrivate>().unlockAttributes(List<IString>("Active"));
     servers.asPtr<IComponentPrivate>().unlockAttributes(List<IString>("Active"));
-
-    checkErrorInfo(this->addCoreProperty(ObjectProperty("DaqDeviceInfo", PropertyObject())));
 }
 
 template <typename TInterface, typename... Interfaces>
@@ -334,8 +362,7 @@ ErrCode GenericDevice<TInterface, Interfaces...>::setDeviceInfo(const DeviceInfo
 
     const ErrCode errCode = Self::setProtectedPropertyValue(String("DaqDeviceInfo"), deviceInfo);
     OPENDAQ_RETURN_IF_FAILED(errCode);
-    this->deviceInfo = deviceInfo;
-    return OPENDAQ_SUCCESS;
+    return errCode;
 }
 
 template <typename TInterface, typename... Interfaces>
@@ -346,24 +373,15 @@ ErrCode GenericDevice<TInterface, Interfaces...>::getInfo(IDeviceInfo** info)
     if (this->isComponentRemoved)
         return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_COMPONENT_REMOVED);
 
-    // Local devices: DeviceInfo is created once (ctor setDeviceInfo, or lazy onGetInfo).
-    // Prefer an already-deserialized DaqDeviceInfo nested property when present.
     if (!this->deviceInfo.assigned())
     {
-        DeviceInfoPtr nestedInfo = this->objPtr.getPropertyValue("DaqDeviceInfo").template asPtrOrNull<IDeviceInfo>(true);
-        if (nestedInfo.assigned())
-        {
-            this->deviceInfo = nestedInfo;
-        }
-        else
-        {
-            DeviceInfoPtr devInfo;
-            OPENDAQ_RETURN_IF_FAILED(wrapHandlerReturn(this, &Self::onGetInfo, devInfo));
-            OPENDAQ_RETURN_IF_FAILED(setDeviceInfo(devInfo));
-        }
+        DeviceInfoPtr devInfo;
+        OPENDAQ_RETURN_IF_FAILED(wrapHandlerReturn(this, &Self::onGetInfo, devInfo));
+        if (devInfo.assigned())
+            this->deviceInfo = devInfo;
     }
 
-    *info = this->deviceInfo.addRefAndReturn();
+    *info = this->deviceInfo.getDeviceInfo().addRefAndReturn();
     return OPENDAQ_SUCCESS;
 }
 
@@ -2338,6 +2356,7 @@ void GenericDevice<TInterface, Interfaces...>::DeserializeVersion(const Serializ
 {
     if (!deviceInfo.assigned())
         return;
+
     if (!serialized.hasKey("__version"))
         return;
 
@@ -2375,7 +2394,7 @@ void GenericDevice<TInterface, Interfaces...>::deserializeCustomObjectValues(con
     // Backward compatibility: older payloads used a dedicated "deviceInfo" key.
     // New format serializes DeviceInfo as the normal DaqDeviceInfo nested property.
     if (serializedObject.hasKey("deviceInfo"))
-        setDeviceInfo(serializedObject.readObject("deviceInfo", context, factoryCallback));
+        this->deviceInfo = serializedObject.readObject("deviceInfo", context, factoryCallback);
 
     if (serializedObject.hasKey("isRootDevice"))
         isRootDevice = serializedObject.readBool("isRootDevice");
@@ -2558,8 +2577,8 @@ void GenericDevice<TInterface, Interfaces...>::updateObject(const SerializedObje
             updatableDeviceInfo.updateInternal(deviceInfoObject, context);
         }
 
-        // Rebind nested property in case updateObjectProperties cleared DaqDeviceInfo.
-        checkErrorInfo(setDeviceInfo(info));
+        // // Rebind nested property in case updateObjectProperties cleared DaqDeviceInfo.
+        // this->deviceInfo = info;
     }
 }
 

@@ -581,7 +581,7 @@ void GenericConfigClientDeviceImpl<TDeviceBase>::onRemoteUpdate(const Serialized
             if (deserializedObj.assigned())
             {
                 if (key == "deviceInfo")
-                    TDeviceBase::setDeviceInfo(deserializedObj);
+                    this->deviceInfo = deserializedObj;
                 else
                     this->addExistingComponent(deserializedObj);
             }

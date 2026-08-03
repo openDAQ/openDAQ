@@ -335,7 +335,7 @@ private:
 
     std::unordered_map<StringPtr, BaseObjectPtr, StringHash, StringEqualTo> propValues;
     PropertyOrderedMap localProperties;
-    std::set<std::string> corePropertyNames;
+    std::set<StringPtr> corePropertyNames;
 
     WeakRefPtr<IPropertyObject> owner;
     int updateCount;
@@ -399,7 +399,7 @@ private:
 
     // Gets the property, as well as its value. Gets the referenced property, if the property is a refProp
     ErrCode getPropertyAndValueInternal(const StringPtr& name, BaseObjectPtr& value, PropertyPtr& property, bool triggerEvent = true, bool retrieveUpdatingValue = false);
-    ErrCode getPropertiesInternal(Bool includeInvisible, Bool bind, IList** list, Bool includeCoreProperties = true);
+    ErrCode getPropertiesInternal(Bool includeInvisible, Bool bind, IList** list, Bool includeCoreProperties = false);
 
     // Gets the property value, if stored in local value dictionary (propValues)
     // Parses brackets, if the property is a list
@@ -2881,7 +2881,7 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::findProperti
 
     // If no filter is provided, only visible properties directly belonging to the current object are returned.
     if (!propertyFilter)
-        return getPropertiesInternal(false, true, properties);
+        return getPropertiesInternal(false, true, properties, true);
 
     const ErrCode errCode = daqTry([&]
     {
@@ -2889,7 +2889,7 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::findProperti
         ListPtr<IProperty> allProperties;
         auto foundProperties = List<IProperty>();
 
-        ErrCode errCode = getPropertiesInternal(true, true, &allProperties);
+        ErrCode errCode = getPropertiesInternal(true, true, &allProperties, true);
         OPENDAQ_RETURN_IF_FAILED(errCode);
 
         for (const auto& property : allProperties)
@@ -3773,7 +3773,7 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::updateIntern
     const auto serialized = SerializedObjectPtr::Borrow(obj);
 
     ListPtr<IProperty> allProps;
-    ErrCode errCode = getPropertiesInternal(True, False, &allProps);
+    ErrCode errCode = getPropertiesInternal(True, False, &allProps, true);
     OPENDAQ_RETURN_IF_FAILED(errCode, "Failed to get properties");
 
     errCode = updateObjectProperties(this->thisInterface(), serialized, allProps);

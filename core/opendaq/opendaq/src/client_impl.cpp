@@ -18,7 +18,7 @@ ClientImpl::ClientImpl(const ContextPtr ctx, const StringPtr& localId, const Dev
     if (const auto devInfoPtr = deviceInfo.asPtrOrNull<IDeviceInfoConfig>(); devInfoPtr.assigned())
         devInfoPtr.setConnectionString("daq.root://default_client");
     
-    checkErrorInfo(setDeviceInfo(deviceInfo));
+    this->deviceInfo = deviceInfo;
 
     auto syncComponentPrivate = this->syncComponent.asPtr<IComponentPrivate>(true);
     syncComponentPrivate.unlockAttributes(List<IString>("Visible"));

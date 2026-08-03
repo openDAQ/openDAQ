@@ -32,7 +32,7 @@ SimulatorDeviceImpl::SimulatorDeviceImpl(const PropertyObjectPtr& config, const 
     , epoch(getEpoch())
 {
     this->loggerComponent = this->context.getLogger().getOrAddComponent(SIMULATOR_MODULE_NAME);
-    checkErrorInfo(setDeviceInfo(info));
+    this->deviceInfo = info;
 
     initProperties();
     initClock();

@@ -553,8 +553,7 @@ void NativeDeviceImpl::updateDeviceInfo(const StringPtr& connectionString)
                 deviceInfoInternal->setProtectedPropertyValue(propName, propValue);
         }
 
-        checkErrorInfo(setDeviceInfo(newDeviceInfo));
-        deviceInfo = newDeviceInfo;
+        this->deviceInfo = deviceInfo = newDeviceInfo;
     }
 
     if (!deviceInfo.hasProperty("NativeConfigProtocolVersion"))

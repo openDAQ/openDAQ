@@ -366,6 +366,12 @@ class App(tk.Tk):
         self._signal_preview_var = tk.BooleanVar(value=self.context.view_signal_preview)
         view_menu.add_checkbutton(label='Signal preview',variable=self._signal_preview_var,command=self.handle_view_signal_preview_toggled)
 
+        self._nested_fb_var = tk.BooleanVar(value=self.context.view_nested_fb)
+        view_menu.add_checkbutton(
+            label='Nested function block buttons',
+            variable=self._nested_fb_var,
+            command=self.handle_view_nested_fb_toggled)
+
         view_menu.add_separator()
         view_menu.add_command(label='Show logs', image=icons['logs'],
                               compound=tk.LEFT,
@@ -380,6 +386,14 @@ class App(tk.Tk):
         if self.context.selected_node is not None:
             self.right_side_panel_clear()
             self.right_side_panel_draw_node(self.context.selected_node)
+
+    # Turning the placeholders back on should show them everywhere, so the
+    # per-row opt-outs collected while they were on do not survive the switch.
+    def handle_view_nested_fb_toggled(self):
+        self.context.view_nested_fb = self._nested_fb_var.get()
+        if self.context.view_nested_fb:
+            self.context.nested_fb_hidden = set()
+        self.tree_update(self.context.selected_node)
             
     TREE_ICON_WIDTH = 24
     TREE_TEXT_PADDING = 28
@@ -731,6 +745,8 @@ class App(tk.Tk):
     # A block that already refused every type it offers has none, so it gets no
     # button - otherwise the toggle would flip with nothing to show for it.
     def _nested_fb_togglable(self, iid):
+        if not self.context.view_nested_fb:
+            return False
         fb_types = self._nested_fb_types(iid)
         if not fb_types:
             return False
@@ -1249,6 +1265,9 @@ class App(tk.Tk):
     # type a function block or channel offers; a single click on the row
     # adds that function block directly
     def tree_insert_nested_fb_indicators(self, parent_iid=''):
+        if not self.context.view_nested_fb:
+            return
+
         for iid in self.tree.get_children(parent_iid):
             self.tree_insert_nested_fb_indicators(iid)
 

@@ -37,6 +37,10 @@ class AppContext(object):
         # done, and which blocks are done is per block, not global - so this is
         # a per-row opt-out rather than one switch over the whole tree.
         self.nested_fb_hidden = set()
+        # master switch for the nested-function-block placeholder rows and the
+        # per-row button that hides them. The per-row opt-out above is for a
+        # block that is finished; this is for a user who never wants them.
+        self.view_nested_fb = True
         # (parent global id, fb type id) the block refused another instance of.
         # How many nested blocks a type accepts is decided in its C++ impl and
         # is not exposed, so it can only be learned by being told no once. The

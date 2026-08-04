@@ -87,7 +87,7 @@ DECLARE_OPENDAQ_INTERFACE(IServerCapability, IPropertyObject)
      * Could be empty if the protocol is not part of any group.
      * @param[out] protocolGropuId The id of the protocol group.
      */
-    virtual ErrCode INTERFACE_FUNC getProtocolGroupId(IString** protocolGropuId) = 0;
+    virtual ErrCode INTERFACE_FUNC getProtocolGroupId(IString** protocolGroupId) = 0;
 
     /*!
      * @brief Gets the id of the protocol supported by the device. Should not contain spaces or special characters except for '_' and '-'.

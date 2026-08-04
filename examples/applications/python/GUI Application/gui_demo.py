@@ -398,16 +398,6 @@ class App(tk.Tk):
                 font=ttk.Style().lookup('Treeview', 'font') or 'TkDefaultFont')
         return self._tree_font_cache
 
-    # Right edge of a row's text. The cell bbox already carries both the
-    # indentation and the horizontal scroll offset, so this stays correct at
-    # any scroll position without tracking depth by hand.
-    def _tree_row_text_right(self, iid):
-        bbox = self.tree.bbox(iid, '#0')
-        if not bbox:
-            return None
-        return bbox[0] + self.TREE_ICON_WIDTH + self._tree_font().measure(
-            self.tree.item(iid, 'text'))
-
     # Width the deepest visible row needs. Tk never sizes the tree column to its
     # contents, so without this a nested row is clipped instead of scrollable.
     def _tree_content_width(self):
@@ -1307,23 +1297,25 @@ class App(tk.Tk):
         placements = {}
         backgrounds = {}
 
-        # lays buttons out right to left along a row, stopping before the row's
-        # own text. Anything that no longer fits is left unplaced rather than
-        # drawn over the component name.
+        # lays buttons out right to left along a row, pinned to the visible
+        # right edge of the tree.
         def place_row(iid, wanted):
             bbox = self.tree.bbox(iid)
             if not bbox:
                 return
-            text_right = self._tree_row_text_right(iid)
-            limit = 0 if text_right is None else max(0, text_right + pad)
             x = width - pad
             for key, show in wanted:
                 if not show:
                     continue
                 btn = self._tree_action_buttons[key]
                 x -= btn.winfo_reqwidth()
-                # the rest sit further left, so none of them fit either
-                if x < limit:
+                # Keying the left limit off the end of the row's own text used
+                # to drop the buttons entirely on any row wide enough to run
+                # past the visible edge, which is the deeply nested rows and so
+                # exactly the ones with the most to add or remove. A long name
+                # is readable by scrolling; a button that was never placed is
+                # not reachable at all. Only running out of widget stops them.
+                if x < 0:
                     break
                 y = bbox[1] + (bbox[3] - btn.winfo_reqheight()) // 2
                 placements[key] = (x, y)

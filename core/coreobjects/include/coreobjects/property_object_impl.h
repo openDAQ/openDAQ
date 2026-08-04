@@ -189,6 +189,7 @@ public:
         const std::unordered_map<StringPtr, BaseObjectPtr, StringHash, StringEqualTo>& propValues;
         const std::vector<StringPtr>& customOrder;
         const PermissionManagerPtr& permissionManager;
+        const std::set<StringPtr>& corePropertyNames;
     };
 
     void configureClonedMembers(const CloneParameters& parameters);
@@ -199,7 +200,8 @@ public:
                                 const PropertyOrderedMap& localProperties,
                                 const std::unordered_map<StringPtr, BaseObjectPtr, StringHash, StringEqualTo>& propValues,
                                 const std::vector<StringPtr>& customOrder,
-                                const PermissionManagerPtr& permissionManager);
+                                const PermissionManagerPtr& permissionManager,
+                                const std::set<StringPtr>& corePropertyNames);
       
     // TODO: Make remove friend classes once private methods are properly exposed in protected scope.
     template <typename TInterface, typename... TInterfaces>
@@ -568,7 +570,8 @@ typename GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::CloneParame
         localProperties,
         propValues,
         customOrder,
-        permissionManager
+        permissionManager,
+        corePropertyNames
     };
 }
 
@@ -1815,7 +1818,8 @@ void GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::configureCloned
                            parameters.localProperties,
                            parameters.propValues,
                            parameters.customOrder,
-                           parameters.permissionManager);
+                           parameters.permissionManager,
+                           parameters.corePropertyNames);
 }
 
 template <typename PropObjInterface, typename... Interfaces>
@@ -1827,7 +1831,8 @@ void GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::configureCloned
     const PropertyOrderedMap& localProperties,
     const std::unordered_map<StringPtr, BaseObjectPtr, StringHash, StringEqualTo>& propValues,
     const std::vector<StringPtr>& customOrder,
-    const PermissionManagerPtr& permissionManager)
+    const PermissionManagerPtr& permissionManager,
+    const std::set<StringPtr>& corePropertyNames)
 {
     this->valueWriteEvents.clear();
     for (const auto& [name, srcEmitter] : valueWriteEvents)
@@ -1852,6 +1857,7 @@ void GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::configureCloned
     this->triggerCoreEvent = triggerCoreEvent;
     this->localProperties = localProperties;
     this->customOrder = customOrder;
+    this->corePropertyNames = corePropertyNames;
 
     BaseObjectPtr permissionManagerClone;
     permissionManager.template asPtr<ICloneable>()->clone(&permissionManagerClone);
@@ -2358,11 +2364,10 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::addPropertyI
                 if (defaultValue.getObject() != clone.getObject())
                     propInternalPtr.overrideDefaultValue(clone);
             }
-            else 
-            {
-                corePropertyNames.insert(propName);
-            }
         }
+
+        if (isCoreProperty)
+            corePropertyNames.insert(propName);
         
         triggerCoreEventInternal(CoreEventArgsPropertyAdded(objPtr, propPtr, path));
 
@@ -3068,7 +3073,8 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::clone(IPrope
                                         localProperties,
                                         propValues,
                                         customOrder,
-                                        permissionManager);
+                                        permissionManager,
+                                        corePropertyNames);
 
         *cloned = obj.detach();
         return OPENDAQ_SUCCESS;

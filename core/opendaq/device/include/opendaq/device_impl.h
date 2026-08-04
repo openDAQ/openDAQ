@@ -266,7 +266,9 @@ protected:
         {
             if (!info.assigned())
                 return;
-        
+            StringPtr ownerName;
+            checkErrorInfo(owner->getName(&ownerName));
+            info.asPtr<IDeviceInfoConfig>(true).setName(ownerName);
             checkErrorInfo(owner->setDeviceInfo(info));
         }
     };
@@ -2077,16 +2079,6 @@ void GenericDevice<TInterface, Interfaces...>::serializeCustomObjectValues(const
                 serializer.writeString(serialNumber);
             }
         }
-    }
-
-    // ComponentUpdateEnd uses serialize() (not forUpdate). Config-client devices still apply
-    // DeviceInfo from this dedicated key via setDeviceInfo; NativeDeviceHelper::updateDeviceInfo
-    // then restores the client-local configurationConnectionInfo. DaqDeviceInfo also stays in
-    // propValues so updatePropertyValues merges instead of clearing the nested object.
-    if (!forUpdate && deviceInfo.assigned())
-    {
-        serializer.key("deviceInfo");
-        deviceInfo.serialize(serializer);
     }
 
     if (syncComponent.assigned())

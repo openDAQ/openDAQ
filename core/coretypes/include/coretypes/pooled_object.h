@@ -24,13 +24,13 @@ namespace daq::object_pool
 {
 
 /*!
- * Debug object tracking normally spans construction to destruction, but a pooled object is
- * constructed once and then recycled indefinitely: it is never destroyed while the pool lives, so
- * it would stay tracked for the whole process. Every object the pool has to construct to meet peak
- * demand would then be reported as a leak by the first test that pushed the demand up, even though
- * nothing leaked. Tracking is therefore bound to the period the object is handed out, which is what
- * the leak checks mean by "alive": marked live when the pool resets it for a caller, and parked
- * again when its last reference goes. Objects sitting in the free list are not tracked.
+ * @brief An object owned by an ObjectPool and recycled rather than destroyed.
+ *
+ * Reaching reference count 0 returns the object to the pool's free list instead of deleting it, so a
+ * single instance serves many callers in turn. The pool destroys them when it is cleaned up.
+ *
+ * A derived type must call markLive() from its reset(), which is what ObjectPool::get() invokes as it
+ * hands the object over.
  */
 template <class Derived, class Impl>
 class PooledObject : public Impl
@@ -43,8 +43,7 @@ public:
         , next(nullptr)
         , pool(pool)
     {
-        // Born parked: the pool either pushes this straight onto the free list or hands it out
-        // through get(), which marks it live.
+        // Not handed out yet.
         markParked();
     }
 
@@ -62,6 +61,7 @@ public:
     }
 
 protected:
+    /// Counts the object as in use for debug object tracking. Call when handing it to a caller.
     void markLive()
     {
 #ifndef NDEBUG
@@ -69,6 +69,7 @@ protected:
 #endif
     }
 
+    /// Stops counting the object as in use, for while it sits in the pool's free list.
     void markParked()
     {
 #ifndef NDEBUG
@@ -89,7 +90,8 @@ public:
     void reset(T value)
     {
         this->value = value;
-        // Called by ObjectPool::get() as the object is handed to a caller.
+
+        // get() calls reset() as it hands the object over, so this is where it becomes live.
         this->markLive();
     }
 };

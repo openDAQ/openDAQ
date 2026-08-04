@@ -18,10 +18,20 @@
 
 #include <coretypes/object_pool.h>
 #include <coretypes/common.h>
+#include <coretypes/intfs.h>
 
 namespace daq::object_pool
 {
 
+/*!
+ * @brief An object owned by an ObjectPool and recycled rather than destroyed.
+ *
+ * Reaching reference count 0 returns the object to the pool's free list instead of deleting it, so a
+ * single instance serves many callers in turn. The pool destroys them when it is cleaned up.
+ *
+ * A derived type must call markLive() from its reset(), which is what ObjectPool::get() invokes as it
+ * hands the object over.
+ */
 template <class Derived, class Impl>
 class PooledObject : public Impl
 {
@@ -33,6 +43,8 @@ public:
         , next(nullptr)
         , pool(pool)
     {
+        // Not handed out yet.
+        markParked();
     }
 
     int INTERFACE_FUNC releaseRef() override
@@ -41,10 +53,28 @@ public:
         assert(newRefCount >= 0);
         if (newRefCount == 0)
         {
+            markParked();
             this->pool->addToFreeList(static_cast<Derived*>(this));
         }
 
         return newRefCount;
+    }
+
+protected:
+    /// Counts the object as in use for debug object tracking. Call when handing it to a caller.
+    void markLive()
+    {
+#ifndef NDEBUG
+        daqTrackObject(this->getThisAsBaseObject());
+#endif
+    }
+
+    /// Stops counting the object as in use, for while it sits in the pool's free list.
+    void markParked()
+    {
+#ifndef NDEBUG
+        daqUntrackObject(this->getThisAsBaseObject());
+#endif
     }
 
 private:
@@ -60,6 +90,9 @@ public:
     void reset(T value)
     {
         this->value = value;
+
+        // get() calls reset() as it hands the object over, so this is where it becomes live.
+        this->markLive();
     }
 };
 

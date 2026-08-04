@@ -23,6 +23,19 @@ class AppContext(object):
     # are hidden from the Add device list when include_reference_devices is off
     demo_connection_prefixes = ('daqref://', 'daq.simulator://')
 
+    # How many instances of a nested function block type its parent will take.
+    # A block decides this in its C++ impl and the SDK does not expose it, so
+    # without an entry here the only way to find the limit is to be refused -
+    # and each refusal also leaves the parent sitting in Error status. A type
+    # listed here stops being offered once the limit is reached instead.
+    # Absent means unlimited, which stays the assumption until a refusal is
+    # recorded in nested_fb_full.
+    nested_fb_limits = {
+        # Statistics takes exactly one: "Only one nested function block is
+        # supported".
+        'RefFBModuleTrigger': 1,
+    }
+
     def __init__(self, params):
 
         # logic
@@ -221,6 +234,31 @@ class AppContext(object):
         self.nested_fb_full = {
             entry for entry in self.nested_fb_full
             if entry[0] != global_id and not entry[0].startswith(prefix)}
+
+    # True when the parent already holds as many of this nested type as the
+    # policy above allows, so the placeholder has nothing left to add.
+    def nested_fb_at_limit(self, parent, fb_type_id):
+        limit = self.nested_fb_limits.get(str(fb_type_id))
+        if limit is None:
+            return False
+        return self.count_nested_fbs(parent, fb_type_id) >= limit
+
+    def count_nested_fbs(self, parent, fb_type_id):
+        wanted = str(fb_type_id)
+        count = 0
+        try:
+            children = parent.function_blocks
+        except RuntimeError:
+            return 0
+        for child in children:
+            try:
+                if str(child.function_block_type.id) == wanted:
+                    count += 1
+            except RuntimeError:
+                # A child that will not name its type cannot be counted against
+                # the limit; better to keep offering than to hide the row.
+                continue
+        return count
 
     def add_first_available_device(self):
         device_info = DeviceInfoLocal(self.connection_string)

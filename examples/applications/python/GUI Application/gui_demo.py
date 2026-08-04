@@ -750,8 +750,19 @@ class App(tk.Tk):
         fb_types = self._nested_fb_types(iid)
         if not fb_types:
             return False
-        return any((iid, str(fb_type_id)) not in self.context.nested_fb_full
+        return any(self._nested_fb_offered(iid, fb_type_id)
                    for fb_type_id in fb_types.keys())
+
+    # Whether this row still has somewhere to put another block of this type:
+    # it has not been refused one, and it is not already at the declared limit.
+    def _nested_fb_offered(self, iid, fb_type_id):
+        fb_type_id = str(fb_type_id)
+        if (iid, fb_type_id) in self.context.nested_fb_full:
+            return False
+        component = self.context.nodes.get(iid)
+        if component is None:
+            return True
+        return not self.context.nested_fb_at_limit(component, fb_type_id)
 
     # hide or bring back this row's nested-function-block placeholders. Scoped
     # to the one row: a block is finished being configured on its own schedule.
@@ -1279,10 +1290,11 @@ class App(tk.Tk):
 
             # Every offered type keeps its indicator - nesting is not on/off,
             # many blocks accept more than one instance - except where this
-            # block has already told us it will not take another.
+            # block is full: it either said no once, or it is a type declared
+            # to take a fixed number and already holds them.
             for fb_type_id in fb_types.keys():
                 fb_type_id = str(fb_type_id)
-                if (iid, fb_type_id) in self.context.nested_fb_full:
+                if not self._nested_fb_offered(iid, fb_type_id):
                     continue
                 try:
                     display_name = daq.IComponentType.cast_from(

@@ -252,20 +252,12 @@ protected:
     class DeviceInfoPtrWrapper : public DeviceInfoPtr
     {
     public:
-        explicit DeviceInfoPtrWrapper(GenericDevice* owner) : owner(owner) { 
+        explicit DeviceInfoPtrWrapper(GenericDevice* owner) : owner(owner) 
+        { 
             checkErrorInfo(owner->addCoreProperty(ObjectProperty("DaqDeviceInfo", PropertyObject())));
         }
         DeviceInfoPtrWrapper& operator=(const DeviceInfoPtrWrapper&) = delete;
         DeviceInfoPtrWrapper& operator=(const DeviceInfoPtr& info) { setDeviceInfo(info); DeviceInfoPtr::operator=(info); return *this; }
-
-        DeviceInfoPtr getDeviceInfo() const 
-        {
-            BaseObjectPtr info;
-            checkErrorInfo(owner->getPropertyValue(String("DaqDeviceInfo"), &info));
-            return info.asPtrOrNull<IDeviceInfo>();
-        }
-
-        bool assigned() const { return getDeviceInfo().assigned(); }
     
     private:
         friend GenericDevice;
@@ -381,7 +373,7 @@ ErrCode GenericDevice<TInterface, Interfaces...>::getInfo(IDeviceInfo** info)
             this->deviceInfo = devInfo;
     }
 
-    *info = this->deviceInfo.getDeviceInfo().addRefAndReturn();
+    *info = this->deviceInfo.addRefAndReturn();
     return OPENDAQ_SUCCESS;
 }
 
@@ -2576,9 +2568,6 @@ void GenericDevice<TInterface, Interfaces...>::updateObject(const SerializedObje
             const auto deviceInfoObject = obj.readSerializedObject("deviceInfo");
             updatableDeviceInfo.updateInternal(deviceInfoObject, context);
         }
-
-        // // Rebind nested property in case updateObjectProperties cleared DaqDeviceInfo.
-        // this->deviceInfo = info;
     }
 }
 

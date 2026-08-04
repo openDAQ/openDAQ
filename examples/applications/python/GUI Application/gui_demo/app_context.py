@@ -23,16 +23,9 @@ class AppContext(object):
     # are hidden from the Add device list when include_reference_devices is off
     demo_connection_prefixes = ('daqref://', 'daq.simulator://')
 
-    # How many instances of a nested function block type its parent will take.
-    # A block decides this in its C++ impl and the SDK does not expose it, so
-    # without an entry here the only way to find the limit is to be refused -
-    # and each refusal also leaves the parent sitting in Error status. A type
-    # listed here stops being offered once the limit is reached instead.
-    # Absent means unlimited, which stays the assumption until a refusal is
-    # recorded in nested_fb_full.
+    # nested function block type id -> instances its parent accepts.
+    # Absent means unlimited.
     nested_fb_limits = {
-        # Statistics takes exactly one: "Only one nested function block is
-        # supported".
         'RefFBModuleTrigger': 1,
     }
 
@@ -50,12 +43,7 @@ class AppContext(object):
         # done, and which blocks are done is per block, not global - so this is
         # a per-row opt-out rather than one switch over the whole tree.
         self.nested_fb_hidden = set()
-        # master switch for the nested-function-block placeholder rows and the
-        # per-row button that hides them. The per-row opt-out above is for a
-        # block that is finished; this is for a user who never wants them.
         self.view_nested_fb = True
-        # cleared by ticking "do not ask again" on the removal dialog. Session
-        # scoped, like every other view preference here.
         self.confirm_component_removal = True
         # (parent global id, fb type id) the block refused another instance of.
         # How many nested blocks a type accepts is decided in its C++ impl and
@@ -238,8 +226,6 @@ class AppContext(object):
             entry for entry in self.nested_fb_full
             if entry[0] != global_id and not entry[0].startswith(prefix)}
 
-    # True when the parent already holds as many of this nested type as the
-    # policy above allows, so the placeholder has nothing left to add.
     def nested_fb_at_limit(self, parent, fb_type_id):
         limit = self.nested_fb_limits.get(str(fb_type_id))
         if limit is None:
@@ -258,8 +244,6 @@ class AppContext(object):
                 if str(child.function_block_type.id) == wanted:
                     count += 1
             except RuntimeError:
-                # A child that will not name its type cannot be counted against
-                # the limit; better to keep offering than to hide the row.
                 continue
         return count
 

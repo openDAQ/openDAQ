@@ -458,9 +458,7 @@ def show_error(title, message, parent=None):
     messagebox.showerror(title, message, parent=parent)
 
 
-# Modal yes/no with an opt-out, which messagebox cannot carry. Returns
-# (confirmed, opted_out); opted_out is only ever true alongside a confirmation,
-# so cancelling can never be what silences the question.
+# Returns (confirmed, opted_out).
 def ask_confirmation(title, message, parent=None, opt_out_label=None):
     dialog = tk.Toplevel(parent)
     dialog.withdraw()
@@ -493,8 +491,6 @@ def ask_confirmation(title, message, parent=None, opt_out_label=None):
     confirm = ttk.Button(buttons, text='Remove', command=lambda: close(True))
     confirm.pack(side=tk.RIGHT, padx=(0, 6))
 
-    # Escape and the window's close button both mean "no", so neither can
-    # destroy the dialog without an answer being recorded.
     dialog.bind('<Escape>', lambda _e: close(False))
     dialog.protocol('WM_DELETE_WINDOW', lambda: close(False))
     dialog.bind('<Return>', lambda _e: close(True))

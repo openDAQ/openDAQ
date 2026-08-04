@@ -387,8 +387,6 @@ class App(tk.Tk):
             self.right_side_panel_clear()
             self.right_side_panel_draw_node(self.context.selected_node)
 
-    # Turning the placeholders back on should show them everywhere, so the
-    # per-row opt-outs collected while they were on do not survive the switch.
     def handle_view_nested_fb_toggled(self):
         self.context.view_nested_fb = self._nested_fb_var.get()
         if self.context.view_nested_fb:
@@ -753,8 +751,6 @@ class App(tk.Tk):
         return any(self._nested_fb_offered(iid, fb_type_id)
                    for fb_type_id in fb_types.keys())
 
-    # Whether this row still has somewhere to put another block of this type:
-    # it has not been refused one, and it is not already at the declared limit.
     def _nested_fb_offered(self, iid, fb_type_id):
         fb_type_id = str(fb_type_id)
         if (iid, fb_type_id) in self.context.nested_fb_full:
@@ -1290,8 +1286,7 @@ class App(tk.Tk):
 
             # Every offered type keeps its indicator - nesting is not on/off,
             # many blocks accept more than one instance - except where this
-            # block is full: it either said no once, or it is a type declared
-            # to take a fixed number and already holds them.
+            # block has already told us it will not take another.
             for fb_type_id in fb_types.keys():
                 fb_type_id = str(fb_type_id)
                 if not self._nested_fb_offered(iid, fb_type_id):
@@ -1328,8 +1323,6 @@ class App(tk.Tk):
         placements = {}
         backgrounds = {}
 
-        # lays buttons out right to left along a row, pinned to the visible
-        # right edge of the tree.
         def place_row(iid, wanted):
             bbox = self.tree.bbox(iid)
             if not bbox:
@@ -1340,12 +1333,6 @@ class App(tk.Tk):
                     continue
                 btn = self._tree_action_buttons[key]
                 x -= btn.winfo_reqwidth()
-                # Keying the left limit off the end of the row's own text used
-                # to drop the buttons entirely on any row wide enough to run
-                # past the visible edge, which is the deeply nested rows and so
-                # exactly the ones with the most to add or remove. A long name
-                # is readable by scrolling; a button that was never placed is
-                # not reachable at all. Only running out of widget stops them.
                 if x < 0:
                     break
                 y = bbox[1] + (bbox[3] - btn.winfo_reqheight()) // 2
@@ -2139,9 +2126,6 @@ class App(tk.Tk):
         self.context.selected_node = parent_fb
         self.tree_update(self.context.selected_node)
 
-    # Removing a device takes its channels, signals and everything configured
-    # under it, and there is no undo, so it asks first. The opt-out is for the
-    # user who is adding and dropping devices all afternoon.
     def _confirm_removal(self, description):
         if not self.context.confirm_component_removal:
             return True

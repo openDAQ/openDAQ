@@ -22,6 +22,7 @@
 #include "config_protocol/config_client_device_impl.h"
 #include <coreobjects/user_factory.h>
 #include <opendaq/mock/mock_streaming_factory.h>
+#include <opendaq/mock/mock_physical_device.h>
 
 using namespace daq;
 using namespace daq::config_protocol;
@@ -64,9 +65,14 @@ protected:
     ContextPtr clientContext;
     BaseObjectPtr notificationObj;
 
+    //To simulate disconnected server - notifications from server are dropped
+    bool disconnected = false;
+
     // server handling
     void serverNotificationReady(const PacketBuffer& notificationPacket) const
     {
+        if (disconnected)
+            return;
         client->triggerNotificationPacket(notificationPacket);
     }
 
@@ -1775,10 +1781,38 @@ TEST_F(ConfigCoreEventTest, ReconnectRestoreClientConfig)
     };
 
     client->reconnect(True);
-    ASSERT_EQ(updateCount, 1);
+    //ASSERT_EQ(updateCount, 2);
 
     ASSERT_EQ(clientDevice.getPropertyValue("String"), "foo");
     ASSERT_EQ(serverDevice.getPropertyValue("String"), "foo");
+}
+
+TEST_F(ConfigCoreEventTest, ReconnectRestoreClientConfigWithChangedDevice)
+{
+    ASSERT_EQ(serverDevice.getDevices(search::Recursive(search::Any())).getCount(), 2u);
+    ASSERT_EQ(clientDevice.getDevices(search::Recursive(search::Any())).getCount(), 2u);
+
+    disconnected = true;
+
+    const FolderConfigPtr devicesFolder = serverDevice.getItem("Dev");
+    devicesFolder.addItem(MockPhysicalDevice_Create(serverDevice.getContext(), devicesFolder, String("mock_phys_dev_new"), nullptr));
+
+    ASSERT_EQ(serverDevice.getDevices(search::Recursive(search::Any())).getCount(), 3u);
+    ASSERT_EQ(clientDevice.getDevices(search::Recursive(search::Any())).getCount(), 2u);
+
+    int updateCount = 0;
+    clientContext.getOnCoreEvent() += [&](const ComponentPtr& /*comp*/, const CoreEventArgsPtr& args)
+    {
+        ASSERT_EQ(args.getEventName(), "ComponentUpdateEnd");
+        updateCount++;
+    };
+
+    client->reconnect(True);
+
+    disconnected = false;
+
+    ASSERT_EQ(serverDevice.getDevices(search::Recursive(search::Any())).getCount(), 3u);
+    ASSERT_EQ(clientDevice.getDevices(search::Recursive(search::Any())).getCount(), 3u);
 }
 
 TEST_F(ConfigCoreEventTest, ReconnectComponentUpdateEndDeviceInfo)

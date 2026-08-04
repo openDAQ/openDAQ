@@ -268,7 +268,7 @@ protected:
                 return;
             StringPtr ownerName;
             checkErrorInfo(owner->getName(&ownerName));
-            info.asPtr<IDeviceInfoConfig>(true).setName(ownerName);
+            info.asPtr<IPropertyObjectProtected>(true).setProtectedPropertyValue(String("name"), ownerName);
             checkErrorInfo(owner->setDeviceInfo(info));
         }
     };

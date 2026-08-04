@@ -54,6 +54,9 @@ class AppContext(object):
         # per-row button that hides them. The per-row opt-out above is for a
         # block that is finished; this is for a user who never wants them.
         self.view_nested_fb = True
+        # cleared by ticking "do not ask again" on the removal dialog. Session
+        # scoped, like every other view preference here.
+        self.confirm_component_removal = True
         # (parent global id, fb type id) the block refused another instance of.
         # How many nested blocks a type accepts is decided in its C++ impl and
         # is not exposed, so it can only be learned by being told no once. The

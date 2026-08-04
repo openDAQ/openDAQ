@@ -458,6 +458,62 @@ def show_error(title, message, parent=None):
     messagebox.showerror(title, message, parent=parent)
 
 
+# Modal yes/no with an opt-out, which messagebox cannot carry. Returns
+# (confirmed, opted_out); opted_out is only ever true alongside a confirmation,
+# so cancelling can never be what silences the question.
+def ask_confirmation(title, message, parent=None, opt_out_label=None):
+    dialog = tk.Toplevel(parent)
+    dialog.withdraw()
+    dialog.title(title)
+    dialog.configure(padx=12, pady=10)
+    dialog.resizable(False, False)
+    if parent is not None:
+        dialog.transient(parent.winfo_toplevel())
+
+    answer = {'confirmed': False, 'opt_out': False}
+    opt_out_var = tk.BooleanVar(value=False)
+
+    ttk.Label(dialog, text=message, justify=tk.LEFT,
+              wraplength=380).pack(anchor=tk.W)
+
+    if opt_out_label:
+        ttk.Checkbutton(dialog, text=opt_out_label,
+                        variable=opt_out_var).pack(anchor=tk.W, pady=(10, 0))
+
+    buttons = ttk.Frame(dialog)
+    buttons.pack(anchor=tk.E, pady=(12, 0))
+
+    def close(confirmed):
+        answer['confirmed'] = confirmed
+        answer['opt_out'] = confirmed and bool(opt_out_var.get())
+        dialog.destroy()
+
+    cancel = ttk.Button(buttons, text='Cancel', command=lambda: close(False))
+    cancel.pack(side=tk.RIGHT)
+    confirm = ttk.Button(buttons, text='Remove', command=lambda: close(True))
+    confirm.pack(side=tk.RIGHT, padx=(0, 6))
+
+    # Escape and the window's close button both mean "no", so neither can
+    # destroy the dialog without an answer being recorded.
+    dialog.bind('<Escape>', lambda _e: close(False))
+    dialog.protocol('WM_DELETE_WINDOW', lambda: close(False))
+    dialog.bind('<Return>', lambda _e: close(True))
+
+    dialog.update_idletasks()
+    if parent is not None:
+        root = parent.winfo_toplevel()
+        x = root.winfo_rootx() + root.winfo_width() // 2 - dialog.winfo_reqwidth() // 2
+        y = root.winfo_rooty() + root.winfo_height() // 2 - dialog.winfo_reqheight() // 2
+        dialog.geometry(f'+{max(0, x)}+{max(0, y)}')
+
+    dialog.deiconify()
+    cancel.focus_set()
+    dialog.grab_set()
+    dialog.wait_window(dialog)
+
+    return answer['confirmed'], answer['opt_out']
+
+
 def snake_case_to_title(snake_case: str):
     return snake_case.replace('_', ' ').title()
 

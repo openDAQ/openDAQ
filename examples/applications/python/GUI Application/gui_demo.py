@@ -2139,6 +2139,24 @@ class App(tk.Tk):
         self.context.selected_node = parent_fb
         self.tree_update(self.context.selected_node)
 
+    # Removing a device takes its channels, signals and everything configured
+    # under it, and there is no undo, so it asks first. The opt-out is for the
+    # user who is adding and dropping devices all afternoon.
+    def _confirm_removal(self, description):
+        if not self.context.confirm_component_removal:
+            return True
+
+        confirmed, opted_out = utils.ask_confirmation(
+            'Remove device',
+            f'Remove {description}?\n\n'
+            'Everything configured under it goes with it, and this cannot be '
+            'undone.',
+            self,
+            opt_out_label='Do not ask again this session')
+        if opted_out:
+            self.context.confirm_component_removal = False
+        return confirmed
+
     def handle_tree_menu_remove_device(self, node):
         if type(node) is not daq.IDevice:
             node = daq.IDevice.cast_from(
@@ -2146,6 +2164,10 @@ class App(tk.Tk):
 
         if not node:
             return
+
+        if not self._confirm_removal(node.name or node.global_id):
+            return
+
         parent = node.parent
         removed_id = node.global_id
         self.context.remove_device(node)

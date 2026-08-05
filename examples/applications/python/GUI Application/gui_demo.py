@@ -997,6 +997,30 @@ class App(tk.Tk):
         display = name.split(' | ')[0].strip()  # drop operation-mode suffix
         return display, iid, ' '.join(terms).lower()
 
+    # Fold state by global id, which survives a rebuild because the ids do. Rows
+    # the filter has detached are recorded too: they are still the user's folds,
+    # and forgetting them would collapse them the moment the filter clears.
+    def _tree_remember_open_state(self):
+        for iid in list(self._nested_fb_indicators):
+            self._tree_open_state.pop(iid, None)
+
+        # While a filter is applied the visible tree is force-expanded to reveal
+        # the matches, so reading the live rows would record the filter's doing as
+        # the user's. The snapshot the filter restores from holds the real state.
+        if self._search_query():
+            for iid, _parent, _index, is_open in self._tree_all_items:
+                if iid not in self._nested_fb_indicators:
+                    self._tree_open_state[iid] = is_open
+            return
+
+        def walk(parent):
+            for iid in self.tree.get_children(parent):
+                if iid not in self._nested_fb_indicators:
+                    self._tree_open_state[iid] = bool(
+                        self.tree.item(iid, 'open'))
+                walk(iid)
+        walk('')
+
     # snapshot of the fully built tree, so the filter can restore it before
     # re-applying without a full rebuild (keeps selection while typing)
     def _tree_capture_structure(self):
@@ -1089,6 +1113,9 @@ class App(tk.Tk):
                 ancestor = self.tree.parent(ancestor)
 
     def tree_update(self, new_selected_node=None):
+        # what the user had folded, so the rebuild below can put it back
+        self._tree_remember_open_state()
+
         # The filter detaches non-matching rows instead of deleting them, so that
         # clearing it restores the tree without a rebuild and without losing the
         # selection. The price is paid here: a detached row still belongs to the
@@ -1135,7 +1162,9 @@ class App(tk.Tk):
         self.tree_traverse_components_recursive(
             self.context.instance, self.current_tab())
         self.tree_splice_single_folders()
-        self.tree_insert_nested_fb_indicators()
+        # expand=False: the fold state was just restored, and opening ancestors
+        # to show a placeholder would undo it
+        self.tree_insert_nested_fb_indicators(expand=False)
         self._tree_capture_structure()
         self._apply_tree_filter()
         self.tree_restore_selection(
@@ -1260,8 +1289,14 @@ class App(tk.Tk):
             except:
                 pass
             
-            is_open = not daq.IFunctionBlock.can_cast_from(component)
-            
+            # Function blocks start closed, everything else open - but only the
+            # first time a row is seen. Adding or removing a block rebuilds the
+            # whole tree, and defaulting again would throw away every fold the
+            # user had arranged, including the block they just added.
+            is_open = self._tree_open_state.get(
+                component_node_id,
+                not daq.IFunctionBlock.can_cast_from(component))
+
             self.tree.insert(parent_node_id, tk.END, iid=component_node_id, image=icon,
                              text=self._format_tree_item_text(component_name), open=is_open, values=(component_node_id,), tags=(status_string,))
 

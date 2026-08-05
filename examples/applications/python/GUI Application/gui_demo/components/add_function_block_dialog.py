@@ -26,7 +26,6 @@ class AddFunctionBlockDialog(Dialog):
         # picking a parent only makes sense when adding from the root instance;
         # opened on a device or function block, that component is the parent
         parent_device_tree = None
-        self._parent_label = None
         if selected_component is None or self.context.instance is None \
                 or selected_component.global_id == self.context.instance.global_id:
             parent_device_tree_frame = ttk.Frame(self)
@@ -48,10 +47,6 @@ class AddFunctionBlockDialog(Dialog):
             parent_device_tree.pack(fill=tk.BOTH, expand=True)
 
             parent_device_tree_frame.grid(row=0, column=0, sticky=tk.NSEW)
-        else:
-            self._parent_label = ttk.Label(
-                self, text=f'Adding to: {selected_component.name}', foreground='#808080')
-            self._parent_label.grid(row=0, column=0, columnspan=2, sticky=tk.W)
 
         # child
 
@@ -95,9 +90,9 @@ class AddFunctionBlockDialog(Dialog):
             self.grid_columnconfigure(1, weight=2)
             self.grid_columnconfigure((0, 1), uniform='uniform')
         else:
-            # without the selector the type list takes the whole width
-            tree_frame.grid(row=1, column=0, columnspan=2, sticky=tk.NSEW)
-            self.grid_rowconfigure(1, weight=1)
+            # without the selector the type list takes the whole dialog
+            tree_frame.grid(row=0, column=0, columnspan=2, sticky=tk.NSEW)
+            self.grid_rowconfigure(0, weight=1)
             self.grid_columnconfigure(0, weight=1)
 
         actions_row = ttk.Frame(tree_frame)
@@ -138,9 +133,6 @@ class AddFunctionBlockDialog(Dialog):
                 parent_component)
         else:
             return
-        if self._parent_label is not None:
-            self._parent_label.configure(
-                text=f'Adding to: {self.parent_component.name}')
         self.update_function_blocks()
 
     def update_parent_devices(self, tree, parent_id, component):

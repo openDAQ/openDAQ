@@ -28,7 +28,6 @@ class AddDeviceDialog(Dialog):
         # picking a parent only makes sense when adding from the root instance;
         # opened on a specific device, that device is the parent already
         parent_device_tree = None
-        self._parent_label = None
         if node is None or self.context.instance is None \
                 or node.global_id == self.context.instance.global_id:
             parent_device_tree_frame = ttk.Frame(self)
@@ -51,10 +50,6 @@ class AddDeviceDialog(Dialog):
 
             parent_device_tree_frame.grid(row=0, column=0)
             parent_device_tree_frame.grid_configure(sticky=tk.NSEW)
-        else:
-            self._parent_label = ttk.Label(
-                self, text=f'Adding to: {node.name}', foreground='#808080')
-            self._parent_label.grid(row=0, column=0, columnspan=2, sticky=tk.W)
 
         # device
 
@@ -114,9 +109,9 @@ class AddDeviceDialog(Dialog):
             self.columnconfigure(0, weight=1, uniform='column')
             self.columnconfigure(1, weight=2, uniform='column')
         else:
-            # without the selector the discovery pane takes the whole width
-            right_side_frame.grid(row=1, column=0, columnspan=2)
-            self.grid_rowconfigure(1, weight=1)
+            # without the selector the discovery pane takes the whole dialog
+            right_side_frame.grid(row=0, column=0, columnspan=2)
+            self.grid_rowconfigure(0, weight=1)
             self.columnconfigure(0, weight=1)
         right_side_frame.grid_configure(sticky=tk.NSEW)
 
@@ -160,9 +155,6 @@ class AddDeviceDialog(Dialog):
         if parent_device is None or not daq.IDevice.can_cast_from(parent_device):
             return
         self.dialog_parent_device = daq.IDevice.cast_from(parent_device)
-        if self._parent_label is not None:
-            self._parent_label.configure(
-                text=f'Adding to: {self.dialog_parent_device.name}')
         self.update_child_devices(self.device_tree, self.dialog_parent_device)
 
     def handle_parent_device_selected(self, event):

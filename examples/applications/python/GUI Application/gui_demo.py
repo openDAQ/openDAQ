@@ -124,9 +124,12 @@ class App(tk.Tk):
         self._shade_cache = {}
         self._tree_hover_row = None
         self._tree_font_cache = None
+        # fold state by global id, replayed when a rebuild recreates the rows
+        self._tree_open_state = {}
         # tree search / filter state
         self._tree_all_items = []
         self._nested_fb_types_cache = {}
+        self._removable_cache = {}
         # true while the search box is showing its hint as its own text
         self._search_placeholder = False
         self._indicator_click = False
@@ -830,7 +833,17 @@ class App(tk.Tk):
         except Exception:
             return False
 
+    # Cached for the life of the built tree: the overlay pass runs on every
+    # motion, scroll and 50 ms poll, and answering this asks the parent for its
+    # available types - an RPC when the parent is remote.
     def _component_removable(self, iid):
+        if iid in self._removable_cache:
+            return self._removable_cache[iid]
+        removable = self._component_removable_uncached(iid)
+        self._removable_cache[iid] = removable
+        return removable
+
+    def _component_removable_uncached(self, iid):
         component = self.context.nodes.get(iid)
         if component is None:
             return False
@@ -839,8 +852,59 @@ class App(tk.Tk):
             return False
         if daq.IChannel.can_cast_from(component):
             return False
-        return daq.IFunctionBlock.can_cast_from(
-            component) or daq.IDevice.can_cast_from(component)
+        if daq.IFunctionBlock.can_cast_from(component):
+            return self._function_block_removable(
+                daq.IFunctionBlock.cast_from(component))
+        if daq.IDevice.can_cast_from(component):
+            return self._device_removable(daq.IDevice.cast_from(component))
+        return False
+
+    # The SDK calls a block static when its type is not among the types its parent
+    # offers, and refuses to remove it - see onRemoveFunctionBlock in
+    # signal_container_impl.h and device_impl.h. Asking the same question here is
+    # what keeps a delete button off a block that would only answer with an error.
+    def _function_block_removable(self, fb):
+        try:
+            type_id = str(fb.function_block_type.id)
+            parent = fb.parent
+            owner = utils.get_nearest_fb(parent, None) \
+                or utils.get_nearest_device(parent, self.context.instance)
+            if owner is None:
+                return False
+            return type_id in owner.available_function_block_types
+        except Exception:
+            # Fail open. Asking a remote parent for its types needs config
+            # protocol 9, and an older server or a permission refusal raises -
+            # which is not the same as the block being static. Offer the action
+            # and let the SDK refuse it, rather than hiding it on a guess.
+            return True
+
+    # Same rule for devices, against the parent's available device types. A
+    # mirrored device reports its type through IMirroredDevice, matching what
+    # GenericDevice::onRemoveDevice compares.
+    def _device_removable(self, device):
+        try:
+            parent = utils.get_nearest_device(device.parent, None)
+            if parent is None:
+                return False
+            if daq.IMirroredDevice.can_cast_from(device):
+                mirrored_type = daq.IMirroredDevice.cast_from(
+                    device).mirrored_device_type
+                # A mirrored device with no type set skips the check in the SDK,
+                # and only the native streaming client ever sets one - so config
+                # and OPC UA client devices land here and are removable.
+                if mirrored_type is None:
+                    return True
+                type_id = str(mirrored_type.id)
+            else:
+                info = device.info
+                if info is None or info.device_type is None:
+                    # nothing to compare, so the SDK will not refuse it either
+                    return True
+                type_id = str(info.device_type.id)
+            return type_id in parent.available_device_types
+        except Exception:
+            return True  # fail open, as above
 
     # MARK: - Tree search / filter
     def _tree_search_row_create(self, parent):
@@ -1041,6 +1105,7 @@ class App(tk.Tk):
         self.right_side_panel_clear()
         self._nested_fb_indicators = {}
         self._nested_fb_types_cache = {}
+        self._removable_cache = {}
         self._tree_hover_set(None)
 
         self.context.selected_node = new_selected_node
@@ -1828,7 +1893,9 @@ class App(tk.Tk):
                 image=self.context.icons['function_block'], compound=tk.LEFT,
                 command=lambda: self.add_function_block_dialog_show(node)
             )
-        if not daq.IChannel.can_cast_from(node):
+        # same rule as the row button: a static block would only answer with an
+        # error, so it is not offered here either
+        if self._component_removable(node.global_id):
             popup.add_command(
                 label='Remove',
                 image=self.context.icons['trash'], compound=tk.LEFT,
@@ -1861,7 +1928,7 @@ class App(tk.Tk):
                 command=lambda: self.add_function_block_dialog_show(node)
             )
 
-        if node.global_id != self.context.instance.global_id:
+        if self._component_removable(node.global_id):
             popup.add_command(
                 label='Remove',
                 image=icons['trash'], compound=tk.LEFT,

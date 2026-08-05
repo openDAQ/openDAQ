@@ -23,12 +23,6 @@ class AppContext(object):
     # are hidden from the Add device list when include_reference_devices is off
     demo_connection_prefixes = ('daqref://', 'daq.simulator://')
 
-    # nested function block type id -> instances its parent accepts.
-    # Absent means unlimited.
-    nested_fb_limits = {
-        'RefFBModuleTrigger': 1,
-    }
-
     def __init__(self, params):
 
         # logic
@@ -46,6 +40,10 @@ class AppContext(object):
         # answer is only true for as long as the block stays as it was, so it is
         # forgotten again whenever that changes - see forget_nested_fb_refusals.
         self.nested_fb_full = set()
+        # global ids of components just added, so the tree can open them once. A
+        # newly added block is the one case where the closed-by-default fold is
+        # unhelpful; whoever adds it says so here rather than the tree guessing.
+        self.newly_added_ids = set()
         self.metadata_fields = []
         # gui
         self.ui_scaling_factor = 1.0
@@ -220,27 +218,6 @@ class AppContext(object):
         self.nested_fb_full = {
             entry for entry in self.nested_fb_full
             if entry[0] != global_id and not entry[0].startswith(prefix)}
-
-    def nested_fb_at_limit(self, parent, fb_type_id):
-        limit = self.nested_fb_limits.get(str(fb_type_id))
-        if limit is None:
-            return False
-        return self.count_nested_fbs(parent, fb_type_id) >= limit
-
-    def count_nested_fbs(self, parent, fb_type_id):
-        wanted = str(fb_type_id)
-        count = 0
-        try:
-            children = parent.function_blocks
-        except RuntimeError:
-            return 0
-        for child in children:
-            try:
-                if str(child.function_block_type.id) == wanted:
-                    count += 1
-            except RuntimeError:
-                continue
-        return count
 
     def add_first_available_device(self):
         device_info = DeviceInfoLocal(self.connection_string)

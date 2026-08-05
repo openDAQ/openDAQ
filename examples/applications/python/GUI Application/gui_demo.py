@@ -116,6 +116,7 @@ class App(tk.Tk):
         self.modules_map = {}
         self._nested_fb_indicators = {}
         self._tree_action_buttons = {}
+        self._tree_action_backings = []
         self._tree_action_pos = {}
         # row colour each floating button currently sits on, and which one is
         # being held; together they decide its hover and pressed shade
@@ -660,6 +661,11 @@ class App(tk.Tk):
             btn.bind('<Leave>',
                      lambda e: self._tree_action_buttons_restyle(), add='+')
             return btn
+
+        # One per row that can carry buttons: the instance row and the hovered
+        # row. Created before the buttons, which is what puts them underneath.
+        self._tree_action_backings = [
+            tk.Frame(self.tree, bd=0, highlightthickness=0) for _ in range(2)]
 
         # logs lives in the tab row, not on a tree row: it is not about any one
         # component
@@ -1415,17 +1421,6 @@ class App(tk.Tk):
                 self.tree.delete(indicator_iid)
         self._nested_fb_indicators = {}
 
-    # the placeholder rows belonging to one row, dropped without touching
-    # anything else the row holds
-    def _nested_fb_indicators_remove(self, iid):
-        for indicator_iid, (parent_iid, _type) in list(
-                self._nested_fb_indicators.items()):
-            if parent_iid != iid:
-                continue
-            del self._nested_fb_indicators[indicator_iid]
-            if self.tree.exists(indicator_iid):
-                self.tree.delete(indicator_iid)
-
     # places the floating row-action buttons: add pinned to the instance row,
     # and on the hovered row whichever of add / remove / nested / lock apply
     def _tree_overlays_update(self):
@@ -1436,12 +1431,16 @@ class App(tk.Tk):
         width = self.tree.winfo_width()
         placements = {}
         backgrounds = {}
+        # (x, y, w, h) of the strip the buttons occupy, per row that has any
+        backings = []
 
         def place_row(iid, wanted):
             bbox = self.tree.bbox(iid)
             if not bbox:
                 return
             x = width - pad
+            right = x
+            leftmost = None
             for key, show in wanted:
                 if not show:
                     continue
@@ -1452,7 +1451,17 @@ class App(tk.Tk):
                 y = bbox[1] + (bbox[3] - btn.winfo_reqheight()) // 2
                 placements[key] = (x, y)
                 backgrounds[key] = self._row_background(iid)
+                leftmost = x
                 x -= pad
+            if leftmost is None:
+                return
+            # One opaque strip behind the whole cluster. The buttons are separate
+            # widgets with gaps between them, and each only paints its own icon
+            # box - so without this the row text shows through in the gaps and
+            # around the icons, which reads as the text being on top of them.
+            backings.append((leftmost - pad, bbox[1],
+                             right - leftmost + 2 * pad, bbox[3],
+                             self._row_background(iid)))
 
         root_iid = self.context.instance.global_id \
             if self.context.instance is not None else None
@@ -1492,6 +1501,21 @@ class App(tk.Tk):
                 utils.tooltip_dismiss(btn)
                 btn.place(x=pos[0], y=pos[1])
                 self._tree_action_pos[key] = pos
+
+        # Lowered beneath the buttons, so the strip hides the row text without
+        # hiding the icons. A tk child cannot be transparent, which is why the
+        # strip has to exist at all rather than the buttons simply overlapping.
+        any_button = next(iter(self._tree_action_buttons.values()), None)
+        for index, backing in enumerate(self._tree_action_backings):
+            if index >= len(backings):
+                backing.place_forget()
+                continue
+            x, y, w, h, bg = backings[index]
+            backing.configure(bg=bg)
+            backing.place(x=x, y=y, width=w, height=h)
+            if any_button is not None:
+                backing.lower(any_button)
+
         self._tree_action_buttons_restyle()
 
     # tracks the hovered row: nested FB indicators get their hover style,

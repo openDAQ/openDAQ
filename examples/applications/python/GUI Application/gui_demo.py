@@ -1297,6 +1297,17 @@ class App(tk.Tk):
                     self.tree.item(ancestor, open=True)
                     ancestor = self.tree.parent(ancestor)
 
+    # stands in for every type a block offers, when it offers more than one
+    NESTED_FB_ANY_LABEL = '<nested function block>'
+
+    @staticmethod
+    def _nested_fb_type_name(fb_types, fb_type_id):
+        try:
+            return daq.IComponentType.cast_from(
+                fb_types[fb_type_id]).name or fb_type_id
+        except Exception:
+            return fb_type_id
+
     # every placeholder row in the tree, for the view-wide switch
     def _nested_fb_indicators_remove_all(self):
         for indicator_iid in list(self._nested_fb_indicators):
@@ -1402,24 +1413,68 @@ class App(tk.Tk):
         self._tree_hover_set(self.tree.identify_row(event.y) or None)
 
     def _handle_tree_leave(self, event):
-        # moving onto a floating action button also fires <Leave>; keep the
-        # hover state in that case
-        widget = self.winfo_containing(event.x_root, event.y_root)
-        if widget is not None and widget in self._tree_action_buttons.values():
+        # Moving onto a floating action button also fires <Leave>; keep the hover
+        # state in that case. The backing strips count too: they show through the
+        # gaps between the buttons, and dropping hover there would un-place the
+        # buttons, put the pointer back over the row, and re-arm hover - a flicker
+        # loop while sliding from one button to the next.
+        if self._widget_in_action_cluster(
+                self.winfo_containing(event.x_root, event.y_root)):
             return
         self._tree_hover_set(None)
+
+    def _widget_in_action_cluster(self, widget):
+        return widget is not None and (
+            widget in self._tree_action_buttons.values()
+            or widget in self._tree_action_backings)
 
     def _handle_action_button_leave(self, event):
         widget = self.winfo_containing(event.x_root, event.y_root)
-        if widget is self.tree:
-            return  # tree <Motion> takes over from here
+        if widget is self.tree or self._widget_in_action_cluster(widget):
+            return  # tree <Motion>, or another part of the cluster, takes over
         self._tree_hover_set(None)
 
-    def add_nested_function_block(self, indicator_iid):
-        parent_iid, fb_type_id = self._nested_fb_indicators.get(indicator_iid, (None, None))
+    # A row standing for one type adds it. The anonymous row asks which type
+    # first, at the pointer, so the choice happens where the click did.
+    def add_nested_function_block(self, indicator_iid, event=None):
+        parent_iid, fb_type_id = self._nested_fb_indicators.get(
+            indicator_iid, (None, None))
         if parent_iid is None:
             return
+        if fb_type_id is None:
+            self._nested_fb_type_menu(parent_iid, event)
+            return
+        self._add_nested_function_block(parent_iid, fb_type_id)
 
+    def _nested_fb_type_menu(self, parent_iid, event=None):
+        fb_types = self._nested_fb_types(parent_iid)
+        if not fb_types:
+            return
+        offered = [str(t) for t in fb_types.keys()
+                   if self._nested_fb_offered(parent_iid, str(t))]
+        if not offered:
+            return
+        menu = tk.Menu(self.tree, tearoff=0)
+        for fb_type_id in offered:
+            menu.add_command(
+                label=self._nested_fb_type_name(fb_types, fb_type_id),
+                image=self.context.icons['add_fb'], compound=tk.LEFT,
+                command=lambda t=fb_type_id: self._add_nested_function_block(
+                    parent_iid, t))
+        x = event.x_root if event is not None else self.winfo_pointerx()
+        y = event.y_root if event is not None else self.winfo_pointery()
+        try:
+            # No entry index, unlike the context menus: those are posted from a
+            # button release, this one from the press. An index makes Tk put that
+            # entry under the cursor and activate it, so the release that follows
+            # would choose it without the user doing so.
+            menu.tk_popup(x, y + 2)
+        finally:
+            # No destroy() here: tk_popup only blocks on Windows, so elsewhere
+            # this returns immediately and would tear the menu down unused.
+            menu.grab_release()
+
+    def _add_nested_function_block(self, parent_iid, fb_type_id):
         component = self.context.nodes.get(parent_iid)
         if component is None or not daq.IFunctionBlock.can_cast_from(component):
             return
@@ -1723,7 +1778,7 @@ class App(tk.Tk):
 
         if iid and iid in self._nested_fb_indicators:
             # a single click on an indicator row adds the function block
-            self.add_nested_function_block(iid)
+            self.add_nested_function_block(iid, event)
             return 'break'
 
         if element == 'indicator':
@@ -1841,11 +1896,17 @@ class App(tk.Tk):
         iid = utils.treeview_get_first_selection(self.tree)
 
         if iid and iid in self._nested_fb_indicators:
+            parent_iid, fb_type_id = self._nested_fb_indicators[iid]
+            if fb_type_id is None:
+                # the anonymous row lists its types directly, rather than one
+                # entry that opens a second menu
+                self._nested_fb_type_menu(parent_iid, event)
+                return
             popup = tk.Menu(self.tree, tearoff=0)
             popup.add_command(
                 label='Add function block',
                 image=self.context.icons['add_fb'], compound=tk.LEFT,
-                command=lambda: self.add_nested_function_block(iid))
+                command=lambda: self.add_nested_function_block(iid, event))
             try:
                 popup.tk_popup(event.x_root, event.y_root, 0)
             finally:

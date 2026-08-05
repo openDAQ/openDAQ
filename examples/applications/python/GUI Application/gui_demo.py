@@ -391,7 +391,20 @@ class App(tk.Tk):
         self.context.view_nested_fb = self._nested_fb_var.get()
         if self.context.view_nested_fb:
             self.context.nested_fb_hidden = set()
-        self.tree_update(self.context.selected_node)
+        # under a filter the rebuild is the only safe path; see the per-row toggle
+        if self._search_query():
+            self.tree_update(self.context.selected_node)
+            return
+
+        # same reasoning as the per-row toggle: this adds or removes placeholder
+        # rows and nothing else, so it must not cost the user their open tree
+        if self.context.view_nested_fb:
+            self.tree_insert_nested_fb_indicators(expand=False)
+        else:
+            self._nested_fb_indicators_remove_all()
+        self._tree_capture_structure()
+        self._tree_autosize_column()
+        self._tree_overlays_update()
             
     TREE_ICON_WIDTH = 24
     TREE_TEXT_PADDING = 28
@@ -767,11 +780,32 @@ class App(tk.Tk):
         if not self._nested_fb_togglable(iid):
             return
         hidden = self.context.nested_fb_hidden
-        if iid in hidden:
+        show = iid in hidden
+        if show:
             hidden.discard(iid)
         else:
             hidden.add(iid)
-        self.tree_update(self.context.selected_node)
+
+        # A filter detaches the rows it hides, and the snapshot it restores from is
+        # rebuilt by walking the attached rows - so re-snapshotting under a filter
+        # would forget the detached ones entirely. Let the rebuild handle that case;
+        # it re-applies the query, and a filtered tree is force-expanded anyway, so
+        # there is no expansion left to protect.
+        if self._search_query():
+            self.tree_update(self.context.selected_node)
+            return
+
+        # Otherwise deliberately not a tree_update: rebuilding collapses everything
+        # the user had open, and this only ever adds or removes the placeholder rows
+        # under one row. Nothing else changed, so nothing else is touched.
+        if show:
+            self._nested_fb_indicators_insert(iid, expand=False)
+        else:
+            self._nested_fb_indicators_remove(iid)
+
+        self._tree_capture_structure()
+        self._tree_autosize_column()
+        self._tree_overlays_update()
 
     # plus button on a hovered row: the same offers its right-click menu makes,
     # so a block that can take a nested function block gets the button too
@@ -1271,46 +1305,71 @@ class App(tk.Tk):
     # appends a grayed-out indicator row for every nested function block
     # type a function block or channel offers; a single click on the row
     # adds that function block directly
-    def tree_insert_nested_fb_indicators(self, parent_iid=''):
+    def tree_insert_nested_fb_indicators(self, parent_iid='', expand=True):
         if not self.context.view_nested_fb:
             return
 
         for iid in self.tree.get_children(parent_iid):
-            self.tree_insert_nested_fb_indicators(iid)
+            self.tree_insert_nested_fb_indicators(iid, expand)
+            self._nested_fb_indicators_insert(iid, expand)
 
-            # hidden rows still report types: the button that unhides them is
-            # only offered where there is something to unhide
-            fb_types = self._nested_fb_types(iid)
-            if not fb_types or iid in self.context.nested_fb_hidden:
+    # The placeholder rows for one row, so the per-row toggle can add and remove
+    # them in place. `expand` is off when the caller is only restoring rows the
+    # user just asked to see again: opening the ancestor chain is right while the
+    # tree is being built, but not something a toggle should do to it.
+    def _nested_fb_indicators_insert(self, iid, expand=True):
+        # hidden rows still report types: the button that unhides them is
+        # only offered where there is something to unhide
+        fb_types = self._nested_fb_types(iid)
+        if not fb_types or iid in self.context.nested_fb_hidden:
+            return
+
+        # Every offered type keeps its indicator - nesting is not on/off,
+        # many blocks accept more than one instance - except where this
+        # block has already told us it will not take another.
+        for fb_type_id in fb_types.keys():
+            fb_type_id = str(fb_type_id)
+            if not self._nested_fb_offered(iid, fb_type_id):
                 continue
+            try:
+                display_name = daq.IComponentType.cast_from(
+                    fb_types[fb_type_id]).name or fb_type_id
+            except RuntimeError:
+                display_name = fb_type_id
 
-            # Every offered type keeps its indicator - nesting is not on/off,
-            # many blocks accept more than one instance - except where this
-            # block has already told us it will not take another.
-            for fb_type_id in fb_types.keys():
-                fb_type_id = str(fb_type_id)
-                if not self._nested_fb_offered(iid, fb_type_id):
-                    continue
-                try:
-                    display_name = daq.IComponentType.cast_from(
-                        fb_types[fb_type_id]).name or fb_type_id
-                except RuntimeError:
-                    display_name = fb_type_id
+            indicator_iid = f'__nested_fb__|{iid}|{fb_type_id}'
+            if self.tree.exists(indicator_iid):
+                continue
+            self.tree.insert(iid, tk.END, iid=indicator_iid,
+                             image=self.context.icons['add_fb'],
+                             text=self._format_tree_item_text(display_name),
+                             tags=('nested_fb',))
+            self._nested_fb_indicators[indicator_iid] = (iid, fb_type_id)
 
-                indicator_iid = f'__nested_fb__|{iid}|{fb_type_id}'
-                if self.tree.exists(indicator_iid):
-                    continue
-                self.tree.insert(iid, tk.END, iid=indicator_iid,
-                                 image=self.context.icons['add_fb'],
-                                 text=self._format_tree_item_text(display_name),
-                                 tags=('nested_fb',))
-                self._nested_fb_indicators[indicator_iid] = (iid, fb_type_id)
-
+            if expand:
                 # expand the ancestor chain so the indicator is visible
                 ancestor = iid
                 while ancestor:
                     self.tree.item(ancestor, open=True)
                     ancestor = self.tree.parent(ancestor)
+
+    # every placeholder row in the tree, for the view-wide switch
+    def _nested_fb_indicators_remove_all(self):
+        for indicator_iid in list(self._nested_fb_indicators):
+            if self.tree.exists(indicator_iid):
+                self.tree.delete(indicator_iid)
+        self._nested_fb_indicators = {}
+
+    # the placeholder rows belonging to one row, dropped without touching
+    # anything else the row holds
+    def _nested_fb_indicators_remove(self, iid):
+        for indicator_iid, (parent_iid, _type) in list(
+                self._nested_fb_indicators.items()):
+            if parent_iid != iid:
+                continue
+            del self._nested_fb_indicators[indicator_iid]
+            if self.tree.exists(indicator_iid):
+                self.tree.delete(indicator_iid)
 
     # places the floating row-action buttons: add pinned to the instance row,
     # and on the hovered row whichever of add / remove / nested / lock apply

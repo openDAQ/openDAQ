@@ -1027,6 +1027,29 @@ class App(tk.Tk):
                 walk(iid)
         walk('')
 
+    # Function blocks default to closed, and a block you just asked for is the one
+    # case where that is unhelpful. It used to fall open as a side effect of the
+    # placeholder rows expanding their ancestors, which the fold state put a stop
+    # to - so whoever adds a component names it and this opens it once, along with
+    # the chain down to it. An ancestor's global id is a prefix of the child's, so
+    # the chain needs no component objects: only the ids the adder had.
+    def _tree_open_newly_added(self, new_selected_node):
+        pending = self.context.newly_added_ids
+        if new_selected_node is not None:
+            try:
+                if new_selected_node.global_id not in self._tree_open_state:
+                    pending.add(new_selected_node.global_id)
+            except Exception:
+                pass
+        if not pending:
+            return
+        for global_id in pending:
+            self._tree_open_state[global_id] = True
+            parts = str(global_id).split('/')
+            for depth in range(2, len(parts)):
+                self._tree_open_state['/'.join(parts[:depth])] = True
+        pending.clear()
+
     # snapshot of the fully built tree, so the filter can restore it before
     # re-applying without a full rebuild (keeps selection while typing)
     def _tree_capture_structure(self):
@@ -1121,6 +1144,7 @@ class App(tk.Tk):
     def tree_update(self, new_selected_node=None):
         # what the user had folded, so the rebuild below can put it back
         self._tree_remember_open_state()
+        self._tree_open_newly_added(new_selected_node)
 
         # The filter detaches non-matching rows instead of deleting them, so that
         # clearing it restores the tree without a rebuild and without losing the

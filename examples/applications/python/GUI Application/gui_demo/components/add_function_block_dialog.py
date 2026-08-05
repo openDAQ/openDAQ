@@ -303,6 +303,12 @@ class AddFunctionBlockDialog(Dialog):
             return
         parent_top.configure(cursor='')
         self.context.selected_node = new_fb
+        # the tree refreshes off a plain event, so the new block is named here or
+        # it would come back folded like any other function block
+        try:
+            self.context.newly_added_ids.add(new_fb.global_id)
+        except Exception:
+            pass
         self.event_port.emit()
         if self._keep_open_var.get():
             self.update_dialog()

@@ -46,6 +46,10 @@ class AppContext(object):
         # answer is only true for as long as the block stays as it was, so it is
         # forgotten again whenever that changes - see forget_nested_fb_refusals.
         self.nested_fb_full = set()
+        # global ids of components just added, so the tree can open them once. A
+        # newly added block is the one case where the closed-by-default fold is
+        # unhelpful; whoever adds it says so here rather than the tree guessing.
+        self.newly_added_ids = set()
         self.metadata_fields = []
         # gui
         self.ui_scaling_factor = 1.0

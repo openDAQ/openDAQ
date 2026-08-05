@@ -278,7 +278,6 @@ class App(tk.Tk):
         self.context.custom_component_ids = set()
         # per-component tree state learned about the old instance
         self.context.forget_nested_fb_refusals()
-        self.context.nested_fb_hidden = set()
         self.context.instance = None
         gc.collect()  # release the old instance before creating the new one
 
@@ -389,15 +388,16 @@ class App(tk.Tk):
 
     def handle_view_nested_fb_toggled(self):
         self.context.view_nested_fb = self._nested_fb_var.get()
-        if self.context.view_nested_fb:
-            self.context.nested_fb_hidden = set()
-        # under a filter the rebuild is the only safe path; see the per-row toggle
+        # A filter detaches the rows it hides, and the snapshot it restores from is
+        # taken by walking the attached rows - so re-taking it while rows are
+        # detached would forget them. Rebuild in that case; nothing is lost,
+        # because a filtered tree is force-expanded anyway.
         if self._search_query():
             self.tree_update(self.context.selected_node)
             return
 
-        # same reasoning as the per-row toggle: this adds or removes placeholder
-        # rows and nothing else, so it must not cost the user their open tree
+        # Otherwise in place: this adds or removes placeholder rows and nothing
+        # else, so it must not cost the user their open tree
         if self.context.view_nested_fb:
             self.tree_insert_nested_fb_indicators(expand=False)
         else:
@@ -669,15 +669,11 @@ class App(tk.Tk):
                                   self._remove_tooltip),
             'hover_add': make_button('hover_add', 'plus',
                                      self.handle_tree_hover_add_clicked),
-            # 'lock' and 'nested_fb' swap image per row, and both show the
-            # action rather than the current state: a lock-shaped icon sitting
-            # on a locked row reads as a status badge, and gets clicked by
-            # someone trying to unlock. The tooltip names the same action.
+            # 'lock' swaps image per row and shows the action rather than the
+            # current state: a lock-shaped icon on a locked row reads as a status
+            # badge, and gets clicked by someone trying to unlock.
             'lock': make_button('lock', 'lock', self.handle_tree_lock_clicked,
                                 self._lock_tooltip),
-            'nested_fb': make_button('nested_fb', 'add_fb',
-                                     self.handle_tree_nested_fb_clicked,
-                                     self._nested_fb_tooltip),
         }
 
     # ---- tooltips for the hovered row's buttons: what they do depends on the
@@ -703,13 +699,6 @@ class App(tk.Tk):
             return None
         return 'Unlock this device' if self._device_locked(
             self._tree_hover_row) else 'Lock this device'
-
-    def _nested_fb_tooltip(self):
-        if self._tree_hover_row is None:
-            return None
-        return 'Show the nested function blocks this can take' \
-            if self._tree_hover_row in self.context.nested_fb_hidden \
-            else 'Hide the nested function blocks this can take'
 
     def handle_tree_add_clicked(self, event):
         icons = self.context.icons
@@ -752,18 +741,6 @@ class App(tk.Tk):
         else:
             self.lock_device_node(iid)
 
-    # a row only offers the hide/show toggle when it has placeholders to hide.
-    # A block that already refused every type it offers has none, so it gets no
-    # button - otherwise the toggle would flip with nothing to show for it.
-    def _nested_fb_togglable(self, iid):
-        if not self.context.view_nested_fb:
-            return False
-        fb_types = self._nested_fb_types(iid)
-        if not fb_types:
-            return False
-        return any(self._nested_fb_offered(iid, fb_type_id)
-                   for fb_type_id in fb_types.keys())
-
     def _nested_fb_offered(self, iid, fb_type_id):
         fb_type_id = str(fb_type_id)
         if (iid, fb_type_id) in self.context.nested_fb_full:
@@ -772,40 +749,6 @@ class App(tk.Tk):
         if component is None:
             return True
         return not self.context.nested_fb_at_limit(component, fb_type_id)
-
-    # hide or bring back this row's nested-function-block placeholders. Scoped
-    # to the one row: a block is finished being configured on its own schedule.
-    def handle_tree_nested_fb_clicked(self, event):
-        iid = self._tree_hover_row
-        if not self._nested_fb_togglable(iid):
-            return
-        hidden = self.context.nested_fb_hidden
-        show = iid in hidden
-        if show:
-            hidden.discard(iid)
-        else:
-            hidden.add(iid)
-
-        # A filter detaches the rows it hides, and the snapshot it restores from is
-        # rebuilt by walking the attached rows - so re-snapshotting under a filter
-        # would forget the detached ones entirely. Let the rebuild handle that case;
-        # it re-applies the query, and a filtered tree is force-expanded anyway, so
-        # there is no expansion left to protect.
-        if self._search_query():
-            self.tree_update(self.context.selected_node)
-            return
-
-        # Otherwise deliberately not a tree_update: rebuilding collapses everything
-        # the user had open, and this only ever adds or removes the placeholder rows
-        # under one row. Nothing else changed, so nothing else is touched.
-        if show:
-            self._nested_fb_indicators_insert(iid, expand=False)
-        else:
-            self._nested_fb_indicators_remove(iid)
-
-        self._tree_capture_structure()
-        self._tree_autosize_column()
-        self._tree_overlays_update()
 
     # plus button on a hovered row: the same offers its right-click menu makes,
     # so a block that can take a nested function block gets the button too
@@ -1313,31 +1256,32 @@ class App(tk.Tk):
             self.tree_insert_nested_fb_indicators(iid, expand)
             self._nested_fb_indicators_insert(iid, expand)
 
-    # The placeholder rows for one row, so the per-row toggle can add and remove
-    # them in place. `expand` is off when the caller is only restoring rows the
-    # user just asked to see again: opening the ancestor chain is right while the
-    # tree is being built, but not something a toggle should do to it.
+    # The placeholder rows for one row. `expand` opens the ancestor chain so a new
+    # row is visible, which is right while first building the tree and wrong when
+    # the View switch restores rows into a tree the user has already arranged.
     def _nested_fb_indicators_insert(self, iid, expand=True):
-        # hidden rows still report types: the button that unhides them is
-        # only offered where there is something to unhide
         fb_types = self._nested_fb_types(iid)
-        if not fb_types or iid in self.context.nested_fb_hidden:
+        if not fb_types:
+            return
+        offered = [str(t) for t in fb_types.keys()
+                   if self._nested_fb_offered(iid, str(t))]
+        if not offered:
             return
 
-        # Every offered type keeps its indicator - nesting is not on/off,
-        # many blocks accept more than one instance - except where this
-        # block has already told us it will not take another.
-        for fb_type_id in fb_types.keys():
-            fb_type_id = str(fb_type_id)
-            if not self._nested_fb_offered(iid, fb_type_id):
-                continue
-            try:
-                display_name = daq.IComponentType.cast_from(
-                    fb_types[fb_type_id]).name or fb_type_id
-            except RuntimeError:
-                display_name = fb_type_id
+        # One type gets a row naming it, so a click adds it outright. Several get
+        # a single anonymous row: on a CAN decoder, where every level offers four
+        # types and each nests again, a row per type buries the tree in
+        # placeholders. Clicking that row asks which type instead.
+        if len(offered) == 1:
+            fb_type_id = offered[0]
+            rows = [(f'__nested_fb__|{iid}|{fb_type_id}',
+                     self._nested_fb_type_name(fb_types, fb_type_id),
+                     fb_type_id)]
+        else:
+            rows = [(f'__nested_fb__|{iid}|__any__',
+                     self.NESTED_FB_ANY_LABEL, None)]
 
-            indicator_iid = f'__nested_fb__|{iid}|{fb_type_id}'
+        for indicator_iid, display_name, fb_type_id in rows:
             if self.tree.exists(indicator_iid):
                 continue
             self.tree.insert(iid, tk.END, iid=indicator_iid,
@@ -1411,17 +1355,9 @@ class App(tk.Tk):
                 self._tree_action_buttons['lock'].configure(
                     image=self.context.icons[
                         'unlock' if self._device_locked(hover) else 'lock'])
-            nested = self._nested_fb_togglable(hover)
-            if nested:
-                self._tree_action_buttons['nested_fb'].configure(
-                    image=self.context.icons[
-                        'add_fb' if hover in self.context.nested_fb_hidden
-                        else 'right'])
-            # keep the '+' (add) rightmost, then remove, then the nested
-            # placeholder toggle beside it, then lock
+            # '+' stays rightmost, then remove, then lock
             place_row(hover, (('hover_add', self._row_addable(hover)),
                               ('remove', self._component_removable(hover)),
-                              ('nested_fb', nested),
                               ('lock', lockable)))
 
         # These buttons follow the hovered row, so they get moved out from under

@@ -38,11 +38,6 @@ class AppContext(object):
         self.include_reference_devices = True
         self.view_hidden_components = False
         self.view_signal_preview = True
-        # global ids whose nested-function-block placeholder rows the user hid.
-        # The rows are useful while configuring a block and clutter once it is
-        # done, and which blocks are done is per block, not global - so this is
-        # a per-row opt-out rather than one switch over the whole tree.
-        self.nested_fb_hidden = set()
         self.view_nested_fb = True
         self.confirm_component_removal = True
         # (parent global id, fb type id) the block refused another instance of.

@@ -49,7 +49,7 @@ class DeviceInfoConfigImpl : public GenericPropertyObjectImpl<TInterface, IDevic
 public:
     using Super = GenericPropertyObjectImpl<TInterface, IDeviceInfoInternal, Interfaces...>;
 
-    DeviceInfoConfigImpl();
+    explicit DeviceInfoConfigImpl(ITypeManager* manager = nullptr);
 
     explicit DeviceInfoConfigImpl(const StringPtr& name, 
                                   const StringPtr& connectionString, 
@@ -145,6 +145,10 @@ public:
     // IUpdatable
     ErrCode INTERFACE_FUNC updateInternal(ISerializedObject* obj, IBaseObject* context) override;
 
+    ErrCode INTERFACE_FUNC clone(IPropertyObject** cloned) override;
+    ErrCode INTERFACE_FUNC getInterfaceIds(SizeT* idCount, IntfID** ids) override;
+    ErrCode INTERFACE_FUNC freeze() override;
+
 protected:
     ErrCode createAndSetStringProperty(const StringPtr& name, const StringPtr& value);
     ErrCode createAndSetIntProperty(const StringPtr& name, const IntegerPtr& value);
@@ -152,8 +156,6 @@ protected:
     ErrCode getIntProperty(const StringPtr& name, Int* value);
 
     bool isPropertyChangeable(const StringPtr& propertyName);
-
-    void triggerCoreEventMethod(const CoreEventArgsPtr& args);
 
     virtual ErrCode setValueInternal(IString* propertyName, IBaseObject* value);
     ErrCode serializePropertyValue(const StringPtr& name, const ObjectPtr<IBaseObject>& value, ISerializer* serializer, bool forUpdate) override;
@@ -163,7 +165,6 @@ protected:
     DeviceTypePtr deviceType;
     DictPtr<IString, INetworkInterface> networkInterfaces;
 
-    EventPtr<const ComponentPtr, const CoreEventArgsPtr> coreEvent;
     PropertyObjectPtr getOwnerOfProperty(const StringPtr& propertyName);
     std::atomic<SizeT> totalCountOfConnectedClientsEverRegistered;
 };
@@ -204,8 +205,8 @@ namespace deviceInfoDetails
 }
 
 template <typename TInterface, typename ... Interfaces>
-DeviceInfoConfigImpl<TInterface, Interfaces...>::DeviceInfoConfigImpl()
-    : Super()
+DeviceInfoConfigImpl<TInterface, Interfaces...>::DeviceInfoConfigImpl(ITypeManager* manager)
+    : Super(manager, nullptr)
     , networkInterfaces(Dict<IString, INetworkInterface>())
     , totalCountOfConnectedClientsEverRegistered(0)
 {
@@ -218,6 +219,8 @@ DeviceInfoConfigImpl<TInterface, Interfaces...>::DeviceInfoConfigImpl()
     Super::addProperty(ObjectPropertyBuilder("configurationConnectionInfo", ServerCapability("", "", ProtocolType::Unknown)).setReadOnly(true).build());
     Super::addProperty(ObjectPropertyBuilder("activeClientConnections", PropertyObject()).setReadOnly(true).build());
     Super::addProperty(BoolPropertyBuilder("hidden", false).setVisible(false).build());
+
+    this->objPtr.template asPtr<IPropertyObjectInternal>(true).setLockingStrategy(LockingStrategy::InheritLock);
 }
 
 template <typename TInterface, typename... Interfaces>
@@ -1038,6 +1041,13 @@ ErrCode DeviceInfoConfigImpl<TInterface, Interfaces...>::serializePropertyValue(
         if (this->objPtr.getProperty(name).getReadOnly())
             return OPENDAQ_IGNORED;
     }
+
+    if (name == "configurationConnectionInfo")
+        return OPENDAQ_IGNORED;
+    // userName/location live on the owning Device and are serialized there.
+    if (getOwnerOfProperty(name).assigned())
+        return OPENDAQ_IGNORED;
+
     Int version;
     ErrCode err = serializer->getVersion(&version);
     OPENDAQ_RETURN_IF_FAILED(err);
@@ -1045,7 +1055,7 @@ ErrCode DeviceInfoConfigImpl<TInterface, Interfaces...>::serializePropertyValue(
     // skip object-type property which cannot be properly handled by older version
     if (name == "activeClientConnections" && version < 3)
         return OPENDAQ_IGNORED;
-    return Super::serializePropertyValue(name, value, serializer);
+    return Super::serializePropertyValue(name, value, serializer, forUpdate);
 }
 
 template <typename TInterface, typename ... Interfaces>
@@ -1055,8 +1065,10 @@ ErrCode DeviceInfoConfigImpl<TInterface, Interfaces...>::serializeProperty(const
     ErrCode err = serializer->getVersion(&version);
     OPENDAQ_RETURN_IF_FAILED(err);
 
+    const auto name = property.getName();
+
     // skip object-type property which cannot be properly handled by older version
-    if (property.getName() == "activeClientConnections" && version < 3)
+    if (name == "activeClientConnections" && version < 3)
         return OPENDAQ_IGNORED;
     return Super::serializeProperty(property, serializer);
 }
@@ -1154,26 +1166,6 @@ ErrCode DeviceInfoConfigImpl<TInterface, Interfaces...>::setOwner(IPropertyObjec
 
     ComponentPtr parent = newOwner;
 
-    errCode = this->setProtectedPropertyValue(String("name"), parent.getName());
-    OPENDAQ_RETURN_IF_FAILED(errCode);
-
-    if (!coreEvent.assigned())
-    {
-        parent.getContext()->getOnCoreEvent(&coreEvent);
-
-        auto thisWeakRef = this->template getWeakRefInternal<IDeviceInfoConfig>();
-        ProcedurePtr procedure = [this, thisWeakRef](const CoreEventArgsPtr& args)
-        {
-            const auto thisRef = thisWeakRef.getRef();
-            if (!thisRef.assigned())
-                return;
-            this->triggerCoreEventMethod(args);
-        };
-
-        this->setCoreEventTrigger(procedure);
-        this->enableCoreEventTrigger(); // enables core event trigger for nested property objects
-    }
-
     if (parent.supportsInterface<IMirroredDevice>())
         return errCode;
     
@@ -1204,20 +1196,35 @@ ErrCode DeviceInfoConfigImpl<TInterface, Interfaces...>::setOwner(IPropertyObjec
 }
 
 template <typename TInterface, typename ... Interfaces>
-void DeviceInfoConfigImpl<TInterface, Interfaces...>::triggerCoreEventMethod(const CoreEventArgsPtr& args)
+ErrCode DeviceInfoConfigImpl<TInterface, Interfaces...>::clone(IPropertyObject** cloned)
 {
-    auto ownerPtr = this->getOwner();
-    const ComponentPtr parent = ownerPtr.assigned() ? ownerPtr.getRef() : nullptr;
-    try
+    OPENDAQ_PARAM_NOT_NULL(cloned);
+    *cloned = this->template thisInterface<IPropertyObject>();
+    return OPENDAQ_SUCCESS;
+}
+
+template <typename TInterface, typename ... Interfaces>
+ErrCode DeviceInfoConfigImpl<TInterface, Interfaces...>::getInterfaceIds(SizeT* idCount, IntfID** ids)
+{
+    OPENDAQ_PARAM_NOT_NULL(idCount);
+
+    *idCount = Super::InterfaceIds::Count() + 1;
+    if (ids == nullptr)
     {
-        if (parent.assigned())
-            this->coreEvent(parent, args);
+        return OPENDAQ_SUCCESS;
     }
-    catch (...)
-    {
-        const auto loggerComponent = parent.getContext().getLogger().getOrAddComponent("DeviceInfo");
-        LOG_W("Device info failed while triggering core event {}", args.getEventName());
-    }
+
+    **ids = IPropertyObject::Id;
+    (*ids)++;
+
+    Super::InterfaceIds::AddInterfaceIds(*ids);
+    return OPENDAQ_SUCCESS;
+}
+
+template <typename TInterface, typename ... Interfaces>
+ErrCode DeviceInfoConfigImpl<TInterface, Interfaces...>::freeze()
+{
+    return OPENDAQ_IGNORED;
 }
 
 OPENDAQ_REGISTER_DESERIALIZE_FACTORY(DeviceInfoConfigBase)

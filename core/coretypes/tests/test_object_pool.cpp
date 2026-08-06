@@ -117,7 +117,7 @@ TEST(ObjectPoolTest, SpeedNoPool)
         const auto s = fast_rand() % 2;
         if (s == 0 || objects.empty())
         {
-            auto obj = new StandardObject(i);
+            auto obj = new StandardObject(static_cast<int>(i));
             obj->addRef();
             objects.push(obj);
         }
@@ -150,7 +150,7 @@ TEST(ObjectPoolTest, SpeedWithPool)
         const auto s = fast_rand() % 2;
         if (s == 0 || objects.empty())
         {
-            auto obj = pool.get(i);
+            auto obj = pool.get(static_cast<int>(i));
             obj->addRef();
 
             objects.push(obj);

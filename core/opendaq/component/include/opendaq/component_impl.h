@@ -159,7 +159,9 @@ protected:
 
     std::unordered_set<std::string> lockedAttributes;
     bool visible;
-    bool active;       // computed: localActive && parentActive
+    // computed: localActive && parentActive; atomic so the data path (Signal::sendPacket,
+    // Connection::enqueue via IInputPort::getActive) can read it without taking the config lock
+    std::atomic<bool> active;
     bool parentActive;
     bool localActive;
     StringPtr name;
@@ -318,9 +320,8 @@ ErrCode ComponentImpl<Intf, Intfs ...>::getActive(Bool* active)
 {
     OPENDAQ_PARAM_NOT_NULL(active);
 
-    auto lock = this->getRecursiveConfigLock2();
-
-    *active = this->active;
+    // lock-free on purpose: called on the data path (Connection::enqueue) for every packet
+    *active = this->active.load(std::memory_order_acquire);
     return OPENDAQ_SUCCESS;
 }
 
@@ -396,7 +397,7 @@ ErrCode ComponentImpl<Intf, Intfs...>::setActive(Bool active)
     {
         const CoreEventArgsPtr args = createWithImplementation<ICoreEventArgs, CoreEventArgsImpl>(
             CoreEventId::AttributeChanged,
-            Dict<IString, IBaseObject>({{"AttributeName", "Active"}, {"Active", this->active}, {"LocalActive", this->localActive}}));
+            Dict<IString, IBaseObject>({{"AttributeName", "Active"}, {"Active", this->active.load()}, {"LocalActive", this->localActive}}));
         triggerCoreEvent(args);
     }
 
@@ -411,7 +412,7 @@ void ComponentImpl<Intf, Intfs...>::notifyItemsActiveChanged(const std::vector<C
 {
     for (const auto& item : items)
     {
-        item.asPtr<IComponentPrivate>(true).setParentActive(this->active, onUpdate);
+        item.asPtr<IComponentPrivate>(true).setParentActive(this->active.load(), onUpdate);
     }
 }
 
@@ -459,7 +460,7 @@ ErrCode ComponentImpl<Intf, Intfs...>::setParentActive(Bool parentActive, Bool o
     {
         const CoreEventArgsPtr args = createWithImplementation<ICoreEventArgs, CoreEventArgsImpl>(
             CoreEventId::AttributeChanged,
-            Dict<IString, IBaseObject>({{"AttributeName", "Active"}, {"Active", this->active}, {"ParentActive", this->parentActive}}));
+            Dict<IString, IBaseObject>({{"AttributeName", "Active"}, {"Active", this->active.load()}, {"ParentActive", this->parentActive}}));
         triggerCoreEvent(args);
     }
 
@@ -472,10 +473,10 @@ ErrCode ComponentImpl<Intf, Intfs...>::setParentActive(Bool parentActive, Bool o
 template <class Intf, class... Intfs>
 bool ComponentImpl<Intf, Intfs...>::updateActive()
 {
-    auto oldActive = active;
-    active = parentActive && localActive;
+    const bool oldActive = active.load(std::memory_order_relaxed);
+    active.store(parentActive && localActive, std::memory_order_release);
 
-    const auto hasActiveChanged = oldActive != active;
+    const bool hasActiveChanged = oldActive != active.load(std::memory_order_relaxed);
 
     if (hasActiveChanged)
         activeChanged();

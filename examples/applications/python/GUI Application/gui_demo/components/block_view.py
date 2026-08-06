@@ -233,6 +233,9 @@ class BlockView(ttk.Frame):
 
         self.status_square = None
         self.status_message = None
+        # Must exist before change_status() below, which refreshes it. The
+        # widget itself is built after the status so it packs to its right.
+        self.updating_label = None
 
         container = self.node.status_container
         if len(container.statuses.items()) > 0:
@@ -267,6 +270,17 @@ class BlockView(ttk.Frame):
                 widget.bind('<Leave>', _on_leave)
 
             self.change_status()
+
+        # A component inside a begin_update block does not apply property
+        # writes until end_update, which is invisible otherwise.
+        if daq.IPropertyObject.can_cast_from(self.node):
+            icons = context.icons if context else None
+            self.updating_icon = icons.get('in_update') if icons else None
+            self.updating_separator = ttk.Label(self.header_frame, text=' | ')
+            self.updating_label = tk.Label(
+                self.header_frame, text=' in update', compound=tk.LEFT,
+                image=self.updating_icon)
+            self.refresh_updating_indicator()
 
         if node and daq.IComponent.can_cast_from(self.node):
             component = daq.IComponent.cast_from(self.node)
@@ -323,6 +337,16 @@ class BlockView(ttk.Frame):
             self._component_core_event_handler = None
 
     def _on_component_core_event(self, sender, args: daq.IEventArgs):
+        # Unsubscribing on destroy stops new events, but one already sitting in
+        # the queue still arrives, and the tree rebuilds this view often enough
+        # for that to be routine rather than rare. Touching the dead widgets
+        # raises out of process_events(), which then drops every event still
+        # queued behind it - so the symptom is never this view, it is some other
+        # component silently missing an update. Cheaper to ignore the event here
+        # than to make the queue tolerate handlers that throw.
+        if not self.winfo_exists():
+            return
+
         if args.event_name == "AttributeChanged":
             if not daq.ICoreEventArgs.can_cast_from(args):
                 return
@@ -391,7 +415,32 @@ class BlockView(ttk.Frame):
         window.geometry(f'{w}x{h}+{x}+{y}')
         window.deiconify()
 
+    # Shown only while the component is between begin_update and end_update,
+    # and packed last so it sits after the status in the header.
+    def refresh_updating_indicator(self):
+        # Queued core events can reach a view that is already torn down.
+        if self.updating_label is None or not self.updating_label.winfo_exists():
+            return
+        if self.context is not None:
+            updating = self.context.is_in_update(self.node)
+        else:
+            try:
+                updating = bool(daq.IPropertyObject.cast_from(self.node).updating)
+            except RuntimeError:
+                updating = False
+        # winfo_manager() asks whether it is packed; winfo_ismapped() would
+        # also be false whenever an ancestor is still unmapped. The separator
+        # comes and goes with the label so the header does not keep a stray '|'.
+        packed = bool(self.updating_label.winfo_manager())
+        if updating and not packed:
+            self.updating_separator.pack(side=tk.LEFT)
+            self.updating_label.pack(side=tk.LEFT)
+        elif packed and not updating:
+            self.updating_label.pack_forget()
+            self.updating_separator.pack_forget()
+
     def change_status(self):
+        self.refresh_updating_indicator()
         if self.status_square is None:
             return
         color = utils.StatusColor.NOT_SET

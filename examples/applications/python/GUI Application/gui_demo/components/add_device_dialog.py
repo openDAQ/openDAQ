@@ -25,26 +25,31 @@ class AddDeviceDialog(Dialog):
 
         # parent
 
-        parent_device_tree_frame = ttk.Frame(self)
-        parent_device_tree = ttk.Treeview(parent_device_tree_frame)
+        # picking a parent only makes sense when adding from the root instance;
+        # opened on a specific device, that device is the parent already
+        parent_device_tree = None
+        if node is None or self.context.instance is None \
+                or node.global_id == self.context.instance.global_id:
+            parent_device_tree_frame = ttk.Frame(self)
+            parent_device_tree = ttk.Treeview(parent_device_tree_frame)
 
-        parent_device_scroll_bar = ttk.Scrollbar(
-            parent_device_tree_frame, orient=tk.VERTICAL, command=parent_device_tree.yview)
-        parent_device_tree.configure(
-            yscrollcommand=parent_device_scroll_bar.set)
-        parent_device_scroll_bar.pack(side=tk.RIGHT, fill=tk.Y)
+            parent_device_scroll_bar = ttk.Scrollbar(
+                parent_device_tree_frame, orient=tk.VERTICAL, command=parent_device_tree.yview)
+            parent_device_tree.configure(
+                yscrollcommand=parent_device_scroll_bar.set)
+            parent_device_scroll_bar.pack(side=tk.RIGHT, fill=tk.Y)
 
-        parent_device_tree.heading('#0', text='Parent device', anchor=tk.W)
+            parent_device_tree.heading('#0', text='Parent device', anchor=tk.W)
 
-        parent_device_tree.column(
-            '#0', anchor=tk.W, minwidth=int(200 * self.context.dpi_factor), stretch=True)
+            parent_device_tree.column(
+                '#0', anchor=tk.W, minwidth=int(200 * self.context.dpi_factor), stretch=True)
 
-        parent_device_tree.bind('<<TreeviewSelect>>',
-                                self.handle_parent_device_selected)
-        parent_device_tree.pack(fill=tk.BOTH, expand=True)
+            parent_device_tree.bind('<<TreeviewSelect>>',
+                                    self.handle_parent_device_selected)
+            parent_device_tree.pack(fill=tk.BOTH, expand=True)
 
-        parent_device_tree_frame.grid(row=0, column=0)
-        parent_device_tree_frame.grid_configure(sticky=tk.NSEW)
+            parent_device_tree_frame.grid(row=0, column=0)
+            parent_device_tree_frame.grid_configure(sticky=tk.NSEW)
 
         # device
 
@@ -98,39 +103,67 @@ class AddDeviceDialog(Dialog):
         add_device_frame.pack(side=tk.BOTTOM, fill=tk.X,
                               padx=(5, 0), pady=(5, 0))
 
-        right_side_frame.grid(row=0, column=1)
+        if parent_device_tree is not None:
+            right_side_frame.grid(row=0, column=1)
+            self.grid_rowconfigure(0, weight=1)
+            self.columnconfigure(0, weight=1, uniform='column')
+            self.columnconfigure(1, weight=2, uniform='column')
+        else:
+            # without the selector the discovery pane takes the whole dialog
+            right_side_frame.grid(row=0, column=0, columnspan=2)
+            self.grid_rowconfigure(0, weight=1)
+            self.columnconfigure(0, weight=1)
         right_side_frame.grid_configure(sticky=tk.NSEW)
-
-        self.grid_rowconfigure(0, weight=1)
-        self.columnconfigure(0, weight=1, uniform='column')
-        self.columnconfigure(1, weight=2, uniform='column')
 
         self.dialog_parent_device = None
         self._search_generation = 0
 
     def initial_update(self):
-        self.update_parent_devices(
-            self.parent_device_tree, '', self.context.instance)
-        self.select_parent_device(
-            self.context.instance.global_id)
+        if self.parent_device_tree is not None:
+            self.update_parent_devices(
+                self.parent_device_tree, '', self.context.instance)
+        # preselect the device the dialog was opened for, if any
+        parent_to_select = self.node.global_id if self.node is not None \
+            else self.context.instance.global_id
+        if self.parent_device_tree is not None \
+                and not self.parent_device_tree.exists(parent_to_select):
+            parent_to_select = self.context.instance.global_id
+        self.select_parent_device(parent_to_select)
         self.conn_string_entry.focus_set()
 
     def select_parent_device(self, device_id: str):
+        if self.parent_device_tree is None:
+            # No selector shown: the target is fixed, apply it directly. Prefer
+            # the component we were handed over looking it up again - a failed
+            # lookup would silently leave the dialog pointing at the previous
+            # device, label and all, since this instance is reused per target.
+            target = self.node if self.node is not None \
+                and self.node.global_id == device_id \
+                else self.component_for_id(device_id)
+            self.set_parent_device(target)
+            return
         if self.parent_device_tree.exists(device_id):
             self.parent_device_tree.selection_set(device_id)
+
+    def component_for_id(self, global_id: str):
+        if self.context.instance is not None \
+                and global_id == self.context.instance.global_id:
+            return self.context.instance
+        return utils.find_component(global_id, self.context.instance)
+
+    def set_parent_device(self, parent_device):
+        if parent_device is None or not daq.IDevice.can_cast_from(parent_device):
+            return
+        self.dialog_parent_device = daq.IDevice.cast_from(parent_device)
+        self.update_child_devices(self.device_tree, self.dialog_parent_device)
 
     def handle_parent_device_selected(self, event):
         selected_item = utils.treeview_get_first_selection(
             self.parent_device_tree)
         if selected_item is None:
             return
-        parent_device = utils.find_component(
-            selected_item, self.context.instance)
-        if parent_device is not None and daq.IDevice.can_cast_from(parent_device):
-            parent_device = daq.IDevice.cast_from(parent_device)
-            self.dialog_parent_device = parent_device
-            self.update_child_devices(
-                self.device_tree, parent_device)
+        self.set_parent_device(utils.find_component(
+            selected_item, self.context.instance))
 
     def handle_device_selected(self, event):
         selected_item_iid = utils.treeview_get_first_selection(
@@ -253,7 +286,16 @@ class AddDeviceDialog(Dialog):
         self.context.selected_node = new_device
         self.event_port.emit()
         if self._keep_open_var.get():
-            self.update_child_devices(self.device_tree, self.dialog_parent_device)
+            # rebuild the parent tree so the newly added device shows up in
+            # it; restoring the selection re-triggers the device scan on the
+            # right side
+            parent_id = self.dialog_parent_device.global_id
+            if self.parent_device_tree is not None:
+                self.update_parent_devices(
+                    self.parent_device_tree, '', self.context.instance)
+                if not self.parent_device_tree.exists(parent_id):
+                    parent_id = self.context.instance.global_id
+            self.select_parent_device(parent_id)
         else:
             self.close()
 
@@ -263,6 +305,9 @@ class AddDeviceDialog(Dialog):
     def handle_entry_enter(self, event):
         self.process_add_device(False)
 
+    # The iid is the connection string: _on_devices_loaded inserts discovered
+    # rows with iid=conn, which is what makes this lookup possible at all. Give
+    # those rows a synthetic id and this silently finds nothing.
     def find_available_device(self, parent_device: daq.IDevice, selected_item_iid):
         if parent_device is None or selected_item_iid is None:
             return None
@@ -298,12 +343,15 @@ class AddDeviceDialog(Dialog):
 
         def fetch():
             try:
-                devices = [
-                    (daq.IDeviceInfo.cast_from(d).name,
-                     daq.IDeviceInfo.cast_from(d).location,
-                     daq.IDeviceInfo.cast_from(d).connection_string)
-                    for d in parent_device.available_devices
-                ]
+                show_demo = self.context.include_reference_devices
+                devices = []
+                for d in parent_device.available_devices:
+                    info = daq.IDeviceInfo.cast_from(d)
+                    conn = info.connection_string
+                    # skip internal demo/reference devices when disabled
+                    if not show_demo and self.context.is_demo_device(conn):
+                        continue
+                    devices.append((info.name, info.location, conn))
             except Exception:
                 devices = []
             self.after(0, lambda: self._on_devices_loaded(tree, devices, generation))
@@ -317,6 +365,8 @@ class AddDeviceDialog(Dialog):
             tree.delete(*tree.get_children())
             tree.configure(cursor='')
             for name, loc, conn in devices:
+                # iid is the connection string on purpose; find_available_device
+                # matches on it to get back from a selected row to the device
                 tree.insert('', tk.END, iid=conn, values=(name, loc, conn))
         except tk.TclError:
             pass  # dialog was closed before results arrived

@@ -31,7 +31,30 @@ class StatusColor(enum.Enum):
     def __str__(self):
         return self.value
 
+# display order of log levels in comboboxes
+LOG_LEVELS = {
+    'Trace': daq.LogLevel.Trace,
+    'Debug': daq.LogLevel.Debug,
+    'Info': daq.LogLevel.Info,
+    'Warn': daq.LogLevel.Warn,
+    'Error': daq.LogLevel.Error,
+    'Critical': daq.LogLevel.Critical,
+    'Off': daq.LogLevel.Off,
+    'Default': daq.LogLevel.Default,
+}
+
+def log_level_name(level):
+    for name, value in LOG_LEVELS.items():
+        if value == level:
+            return name
+    return 'Default'
+
 def find_component(id, parent=None, convert_id=True):
+    # find_component wants a path relative to `parent`, while a global id is
+    # absolute: '/root_local_id/rest/of/path'. Splitting on '/' therefore yields
+    # an empty leading element and the root's own id, and dropping both is what
+    # 'split_id[2:]' is for. Pass convert_id=False when the caller already holds
+    # a relative path, or the first two real segments would be eaten instead.
     if convert_id:
         split_id = id.split('/')
         id = '/'.join(split_id[2:])
@@ -128,6 +151,131 @@ def show_selection(title, current_value, values):
 
     show_modal(top)
     return result
+
+
+def component_tags(component):
+    """Tag strings of a component, empty when it has none. Both the tree search
+    and the input port dropdown fold these into their search text; components
+    that predate tags (or are already gone) must not raise here."""
+    try:
+        tags = component.tags
+    except (AttributeError, RuntimeError):
+        return []
+    if tags is None:
+        return []
+    try:
+        return [str(tag) for tag in tags.list]
+    except (AttributeError, RuntimeError):
+        return []
+
+
+def tooltip_dismiss(widget):
+    """Cancel and hide a widget's tooltip. Call this when moving the widget: a
+    tooltip belongs to a pointer resting on something, and a widget that was
+    just repositioned under the pointer is not that."""
+    dismiss = getattr(widget, 'tooltip_dismiss', None)
+    if dismiss is not None:
+        dismiss()
+
+
+# 500 ms: long enough that sweeping the pointer across a row of buttons shows
+# nothing, short enough to feel like an answer when someone stops to ask.
+def attach_tooltip(widget, text, delay_ms=500):
+    """Label an icon-only button. `text` may be a callable, for buttons whose
+    meaning changes with the row they are floating over.
+
+    The tip is placed below the widget rather than at the pointer: the tree's
+    floating action buttons decide whether they are still hovered by asking
+    what is under the pointer, and a window there would look like a third
+    widget and make them flicker.
+
+    <Leave> is treated as a hint, not the truth. A popup menu's grab swallows it,
+    an un-placed widget never sends it, and a widget moved under a resting
+    pointer gets <Enter> without ever having been pointed at - so while a tip is
+    up, the pointer position is rechecked and the tip withdrawn once it is no
+    longer over the widget."""
+    # How long a tip can outlive the pointer that earned it. Every path that
+    # loses <Leave> - a menu grab, an un-placed widget, a widget moved under a
+    # resting pointer - is caught by this poll, so it is also the worst-case
+    # lifetime of a stale tip. Only runs while a tip is on screen.
+    WATCH_MS = 150
+    state = {'window': None, 'job': None, 'watch': None}
+
+    def cancel(key):
+        if state[key] is not None:
+            try:
+                widget.after_cancel(state[key])
+            except Exception:
+                pass
+            state[key] = None
+
+    def hide(_event=None):
+        cancel('job')
+        cancel('watch')
+        if state['window'] is not None:
+            try:
+                state['window'].destroy()
+            except Exception:
+                pass
+            state['window'] = None
+
+    # Whether the pointer really is over the widget, rather than whether Tk last
+    # said so. Also false for a widget that exists but is not on screen.
+    def pointer_on_widget():
+        try:
+            if not widget.winfo_exists() or not widget.winfo_ismapped():
+                return False
+            px, py = widget.winfo_pointerxy()
+            x, y = widget.winfo_rootx(), widget.winfo_rooty()
+            return (x <= px < x + widget.winfo_width()
+                    and y <= py < y + widget.winfo_height())
+        except Exception:
+            return False
+
+    def watch():
+        state['watch'] = None
+        if not pointer_on_widget():
+            hide()
+            return
+        state['watch'] = widget.after(WATCH_MS, watch)
+
+    def show():
+        state['job'] = None
+        if not pointer_on_widget():
+            return
+        label = text() if callable(text) else text
+        if not label:
+            return
+        top = tk.Toplevel(widget)
+        top.withdraw()
+        top.overrideredirect(True)
+        try:
+            top.attributes('-topmost', True)
+        except tk.TclError:
+            pass
+        tk.Label(top, text=label, justify=tk.LEFT, background='#ffffe1',
+                 relief=tk.SOLID, borderwidth=1, padx=4, pady=1).pack()
+        top.update_idletasks()
+        top.geometry('+{}+{}'.format(
+            widget.winfo_rootx(),
+            widget.winfo_rooty() + widget.winfo_height() + 2))
+        top.deiconify()
+        state['window'] = top
+        state['watch'] = widget.after(WATCH_MS, watch)
+
+    def schedule(_event=None):
+        hide()
+        state['job'] = widget.after(delay_ms, show)
+
+    widget.bind('<Enter>', schedule, add='+')
+    widget.bind('<Leave>', hide, add='+')
+    widget.bind('<Button-1>', hide, add='+')
+    widget.bind('<Destroy>', hide, add='+')
+
+    # A widget that is moved under a resting pointer gets <Enter> without the
+    # user having pointed at anything, and no <Leave> when it moves away again.
+    # Whoever moves the widget has to say so; see tooltip_dismiss.
+    widget.tooltip_dismiss = hide
 
 
 def root_device(node):
@@ -310,6 +458,58 @@ def show_error(title, message, parent=None):
     messagebox.showerror(title, message, parent=parent)
 
 
+# Returns (confirmed, opted_out).
+def ask_confirmation(title, message, parent=None, opt_out_label=None):
+    dialog = tk.Toplevel(parent)
+    dialog.withdraw()
+    dialog.title(title)
+    dialog.configure(padx=12, pady=10)
+    dialog.resizable(False, False)
+    if parent is not None:
+        dialog.transient(parent.winfo_toplevel())
+
+    answer = {'confirmed': False, 'opt_out': False}
+    opt_out_var = tk.BooleanVar(value=False)
+
+    ttk.Label(dialog, text=message, justify=tk.LEFT,
+              wraplength=380).pack(anchor=tk.W)
+
+    if opt_out_label:
+        ttk.Checkbutton(dialog, text=opt_out_label,
+                        variable=opt_out_var).pack(anchor=tk.W, pady=(10, 0))
+
+    buttons = ttk.Frame(dialog)
+    buttons.pack(anchor=tk.E, pady=(12, 0))
+
+    def close(confirmed):
+        answer['confirmed'] = confirmed
+        answer['opt_out'] = confirmed and bool(opt_out_var.get())
+        dialog.destroy()
+
+    cancel = ttk.Button(buttons, text='Cancel', command=lambda: close(False))
+    cancel.pack(side=tk.RIGHT)
+    confirm = ttk.Button(buttons, text='Remove', command=lambda: close(True))
+    confirm.pack(side=tk.RIGHT, padx=(0, 6))
+
+    dialog.bind('<Escape>', lambda _e: close(False))
+    dialog.protocol('WM_DELETE_WINDOW', lambda: close(False))
+    dialog.bind('<Return>', lambda _e: close(True))
+
+    dialog.update_idletasks()
+    if parent is not None:
+        root = parent.winfo_toplevel()
+        x = root.winfo_rootx() + root.winfo_width() // 2 - dialog.winfo_reqwidth() // 2
+        y = root.winfo_rooty() + root.winfo_height() // 2 - dialog.winfo_reqheight() // 2
+        dialog.geometry(f'+{max(0, x)}+{max(0, y)}')
+
+    dialog.deiconify()
+    cancel.focus_set()
+    dialog.grab_set()
+    dialog.wait_window(dialog)
+
+    return answer['confirmed'], answer['opt_out']
+
+
 def snake_case_to_title(snake_case: str):
     return snake_case.replace('_', ' ').title()
 
@@ -338,7 +538,11 @@ def is_device_connected(device: daq.IDevice):
     try:
         connection_status = status_container.get_status("ConnectionStatus")
         return connection_status.name == "Connected"
-    except:
+    except Exception:
+        # No ConnectionStatus at all, which is the normal case for anything not
+        # reached over a network: the local instance and the reference devices
+        # never publish one. Treating those as disconnected would mark the whole
+        # local tree as such, so absence of a status means nothing is wrong.
         return True
 
 def update_properties(target: daq.IPropertyObject, source: daq.IPropertyObject):

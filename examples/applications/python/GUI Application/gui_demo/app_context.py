@@ -1,5 +1,6 @@
 import os
 import platform
+import tempfile
 
 import opendaq as daq
 
@@ -18,21 +19,92 @@ class AppContext(object):
 
     default_folders = {'Dev', 'FB', 'IO', 'IP', 'Sig'}
 
+    # connection-string prefixes of the internal demo/reference devices; these
+    # are hidden from the Add device list when include_reference_devices is off
+    demo_connection_prefixes = ('daqref://', 'daq.simulator://')
+
+    # nested function block type id -> instances its parent accepts.
+    # Absent means unlimited.
+    nested_fb_limits = {
+        'RefFBModuleTrigger': 1,
+    }
+
     def __init__(self, params):
 
         # logic
         self.nodes = {}
         self.custom_component_ids = set()
         self.selected_node = None
-        self.include_reference_devices = False
+        self.include_reference_devices = True
         self.view_hidden_components = False
         self.view_signal_preview = True
+        self.view_nested_fb = True
+        self.confirm_component_removal = True
+        # (parent global id, fb type id) the block refused another instance of.
+        # How many nested blocks a type accepts is decided in its C++ impl and
+        # is not exposed, so it can only be learned by being told no once. The
+        # answer is only true for as long as the block stays as it was, so it is
+        # forgotten again whenever that changes - see forget_nested_fb_refusals.
+        self.nested_fb_full = set()
+        # global ids of components just added, so the tree can open them once. A
+        # newly added block is the one case where the closed-by-default fold is
+        # unhelpful; whoever adds it says so here rather than the tree guessing.
+        self.newly_added_ids = set()
         self.metadata_fields = []
         # gui
         self.ui_scaling_factor = 1.0
         self.dpi_factor = self._detect_dpi_factor()
         self.icons = {}
         # daq
+        # instance parameters, applied by create_instance() once the
+        # configure-instance dialog was confirmed
+        self.module_path = params.module_path
+        self.discovery_servers = list(getattr(params, 'discovery_servers', []) or [])
+        # logger configuration used when the instance is created
+        self.log_level = daq.LogLevel.Default
+        self.log_to_file = True
+        self.file_log_level = daq.LogLevel.Default
+        self._log_file_index = 0
+        self.log_file_path = os.path.join(
+            tempfile.gettempdir(), 'opendaq_gui_{}.log'.format(os.getpid()))
+
+        # global ids the user ran "Begin update" on. Tracked here because the
+        # SDK's own `updating` flag never goes true on remote components, so it
+        # cannot be used to show that the action was taken.
+        self.updating_nodes = set()
+        # (component global id, property name) written while inside an update
+        # block. Inside one the SDK still reports the old value and fires no
+        # event, so nothing else can tell which rows have a queued change.
+        self.pending_properties = set()
+
+        self.instance = None
+        self.connection_string = ''
+        self.signals = {}
+        self.needs_refresh = False
+
+    # A log file belongs to the sink that opened it, and the old sink only goes
+    # away when the old instance is collected - so a recreated instance cannot be
+    # handed the same path, and anything tailing it would sit on a file nothing
+    # writes to any more. Numbering the file is what makes the switch visible to
+    # the logs window, which watches the path rather than the sink.
+    def next_log_file(self):
+        self._log_file_index += 1
+        self.log_file_path = os.path.join(
+            tempfile.gettempdir(), 'opendaq_gui_{}_{}.log'.format(
+                os.getpid(), self._log_file_index))
+
+    # True when the connection string belongs to an internal demo/reference
+    # device (reference device or simulator)
+    def is_demo_device(self, connection_string):
+        if not connection_string:
+            return False
+        conn = str(connection_string)
+        return any(conn.startswith(prefix)
+                   for prefix in self.demo_connection_prefixes)
+
+    # builds the openDAQ instance from the collected parameters; called after
+    # the configure-instance dialog was closed
+    def create_instance(self):
         builder = daq.InstanceBuilder()
         builder.scheduler_worker_num = 0
         builder.using_scheduler_main_loop = True
@@ -44,17 +116,35 @@ class AppContext(object):
         else:
             builder.module_path = daq.OPENDAQ_MODULES_DIR
 
-        if params.module_path != None:
-            builder.add_module_path(params.module_path)
+        if self.module_path:
+            builder.add_module_path(self.module_path)
 
-        for protocol in getattr(params, 'discovery_servers', []):
+        for protocol in self.discovery_servers:
             builder.add_discovery_server(protocol)
+
+        builder.global_log_level = self.log_level
+        # explicit sinks: console output as before, plus a rotating log file
+        # the logs window reads from
+        builder.add_logger_sink(daq.StdOutLoggerSink())
+        if self.log_to_file:
+            file_sink = daq.RotatingFileLoggerSink(
+                self.log_file_path, 2 * 1024 * 1024, 3)
+            # Default is the obvious choice for "no preference" and is the one
+            # value that yields an empty file: it is 7 in LogLevel and Off is 6,
+            # so as a threshold it sits above every real severity and discards
+            # all of them. Mapped here rather than explained in the logs window,
+            # because a sink's level cannot be changed once it is built.
+            file_sink.level = (daq.LogLevel.Debug
+                               if self.file_log_level == daq.LogLevel.Default
+                               else self.file_log_level)
+            # LogsWindow._LEVEL_RE parses these three bracketed fields to read a
+            # line's severity; keep them in step or its filter silently stops
+            # matching anything
+            file_sink.pattern = '[%Y-%m-%d %H:%M:%S.%e] [%n] [%l] %v'
+            builder.add_logger_sink(file_sink)
 
         self.instance = daq.InstanceFromBuilder(builder)
         self.instance.context.on_core_event + daq.QueuedEventHandler(self.on_core_event)
-        self.connection_string = ''
-        self.signals = {}
-        self.needs_refresh = False
 
     def _detect_dpi_factor(self) -> float:
         """Detect system DPI scaling factor (1.0 = 96 DPI). Used to scale UI elements on high-DPI displays."""
@@ -100,6 +190,61 @@ class AppContext(object):
         if parent_device is None:
             return
         parent_device.remove_device(device)
+
+    # The one place that decides whether a component counts as being in an
+    # update block: either the user ran Begin update on it, or the SDK says so.
+    # Remote components never report the flag, so the first half carries them.
+    def is_in_update(self, component):
+        global_id = getattr(component, 'global_id', None)
+        if global_id is not None and global_id in self.updating_nodes:
+            return True
+        try:
+            return bool(daq.IPropertyObject.cast_from(component).updating)
+        except Exception:
+            # cast_from can fail in more ways than RuntimeError; this only
+            # decides how something is drawn, so it must never propagate.
+            return False
+
+    def clear_pending_properties(self, global_id):
+        self.pending_properties = {
+            entry for entry in self.pending_properties if entry[0] != global_id}
+
+    # A refusal only means "full right now". Removing a nested block frees the
+    # slot that caused it, and the refusal may equally have come from a
+    # transient error, so anything that changes the block - or an explicit
+    # refresh - drops what was learned and lets the type be offered again.
+    # global_id None forgets every parent; otherwise that component and
+    # everything under it, since removing a block takes its children with it and
+    # a rebuilt block can reuse the same global id.
+    def forget_nested_fb_refusals(self, global_id=None):
+        if global_id is None:
+            self.nested_fb_full = set()
+            return
+        prefix = global_id + '/'
+        self.nested_fb_full = {
+            entry for entry in self.nested_fb_full
+            if entry[0] != global_id and not entry[0].startswith(prefix)}
+
+    def nested_fb_at_limit(self, parent, fb_type_id):
+        limit = self.nested_fb_limits.get(str(fb_type_id))
+        if limit is None:
+            return False
+        return self.count_nested_fbs(parent, fb_type_id) >= limit
+
+    def count_nested_fbs(self, parent, fb_type_id):
+        wanted = str(fb_type_id)
+        count = 0
+        try:
+            children = parent.function_blocks
+        except RuntimeError:
+            return 0
+        for child in children:
+            try:
+                if str(child.function_block_type.id) == wanted:
+                    count += 1
+            except RuntimeError:
+                continue
+        return count
 
     def add_first_available_device(self):
         device_info = DeviceInfoLocal(self.connection_string)

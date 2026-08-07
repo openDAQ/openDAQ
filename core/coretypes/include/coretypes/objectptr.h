@@ -2056,7 +2056,6 @@ bool ObjectPtr<T>::supportsInterface(const IntfID& id) const
     return false;
 }
 
-
 template <class T>
 void ObjectPtr<T>::dispose() const
 {

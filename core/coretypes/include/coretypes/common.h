@@ -150,6 +150,53 @@ END_NAMESPACE_OPENDAQ
                                                            \
     struct OPENDAQ_NO_VTABLE DAQ_EMPTY_BASES interfaceName : public InterfaceBase::interfaceName##Impl
 
+#if defined(_MSC_VER)
+    #define OPENDAQ_BEGIN_IGNORE_DEPRECATED \
+        __pragma(warning(push))             \
+        __pragma(warning(disable : 4996))
+    #define OPENDAQ_END_IGNORE_DEPRECATED \
+        __pragma(warning(pop))
+#elif defined(__GNUC__) || defined(__clang__)
+    #define OPENDAQ_BEGIN_IGNORE_DEPRECATED                              \
+        _Pragma("GCC diagnostic push")                                   \
+        _Pragma("GCC diagnostic ignored \"-Wdeprecated-declarations\"")
+    #define OPENDAQ_END_IGNORE_DEPRECATED \
+        _Pragma("GCC diagnostic pop")
+#else
+    #define OPENDAQ_BEGIN_IGNORE_DEPRECATED
+    #define OPENDAQ_END_IGNORE_DEPRECATED
+#endif
+
+// Same as DECLARE_OPENDAQ_INTERFACE, but marks "interfaceName" with [[deprecated(...)]] so client code
+// referencing it gets a compiler warning. Kept to the same 2-argument call-site shape as
+// DECLARE_OPENDAQ_INTERFACE (interfaceName, baseInterface) on purpose: RTGen (see shared/tools/RTGen),
+// which generates the C/Python/etc. bindings, parses these macro invocations with its own lightweight
+// grammar that only understands exactly two comma-separated arguments for any DECLARE_*_INTERFACE*
+// macro - it does not preprocess the file, so it would fail to parse a 3rd (message) argument. The
+// deprecation message is instead derived from "interfaceName" itself; put any migration details in the
+// interface's Doxygen comment (@deprecated ...) - RTGen already carries that free text into generated
+// docs for every language binding.
+// The internal InterfaceBase::interfaceName##Impl also refers to "interfaceName" (via "Actual"), so that
+// reference is wrapped in a warning-suppression pragma to avoid the SDK's own headers self-triggering
+// the warning.
+#define DECLARE_OPENDAQ_INTERFACE_DEPRECATED(interfaceName, baseInterface) \
+    struct [[deprecated(#interfaceName " is deprecated and will be removed in a future release.")]] interfaceName; \
+                                                                                           \
+    namespace InterfaceBase                                                               \
+    {                                                                                      \
+        OPENDAQ_BEGIN_IGNORE_DEPRECATED                                                    \
+        struct OPENDAQ_NO_VTABLE DAQ_EMPTY_BASES interfaceName##Impl : public baseInterface  \
+        {                                                  \
+            using Base = baseInterface;                    \
+            using Actual = interfaceName;                  \
+                                                           \
+            DEFINE_INTFID(#interfaceName)                  \
+        };                                                 \
+        OPENDAQ_END_IGNORE_DEPRECATED                                                      \
+    }                                                      \
+                                                           \
+    struct OPENDAQ_NO_VTABLE DAQ_EMPTY_BASES [[deprecated(#interfaceName " is deprecated and will be removed in a future release.")]] interfaceName : public InterfaceBase::interfaceName##Impl
+
 #define DECLARE_TEMPLATED_OPENDAQ_INTERFACE_T(interfaceName, baseInterface) \
     template <typename T>                                              \
     struct interfaceName;                                              \

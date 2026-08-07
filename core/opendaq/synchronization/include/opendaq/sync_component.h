@@ -54,8 +54,10 @@ BEGIN_NAMESPACE_OPENDAQ
  *
  * @note A CLK interface can be used to let a device run in Fre-Run mode, where the device
  * syncs internally to an internal quartz.
+ *
+ * @deprecated ISyncComponent is deprecated and will be removed in a future release.
  */
-DECLARE_OPENDAQ_INTERFACE(ISyncComponent, IComponent)
+DECLARE_OPENDAQ_INTERFACE_DEPRECATED(ISyncComponent, IComponent)
 {
     /*!
      * @brief Retrieves the synchronization lock status.
@@ -84,11 +86,13 @@ DECLARE_OPENDAQ_INTERFACE(ISyncComponent, IComponent)
 };
 /*!@}*/
 
+OPENDAQ_BEGIN_IGNORE_DEPRECATED
 OPENDAQ_DECLARE_CLASS_FACTORY_WITH_INTERFACE(
     LIBRARY_FACTORY, SyncComponent, ISyncComponent,
     IContext*, context,
-    IComponent*, ParseFailedException,
+    IComponent*, parent,
     IString*, localId
 )
+OPENDAQ_END_IGNORE_DEPRECATED
 
 END_NAMESPACE_OPENDAQ

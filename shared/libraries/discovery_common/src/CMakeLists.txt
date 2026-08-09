@@ -23,9 +23,12 @@ target_link_libraries(${LIB_NAME} PUBLIC mdns::mdns
 install(TARGETS ${LIB_NAME}
         EXPORT ${SDK_NAME}
         LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
+                COMPONENT ${SDK_NAME}_${LIB_NAME}_Runtime
         ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
+                COMPONENT ${SDK_NAME}_${LIB_NAME}_Development
 )
 
 install(FILES ${SRC_HEADERS}
         DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/${INCLUDE_PREFIX}
+        COMPONENT ${SDK_NAME}_${LIB_NAME}_Development
 )

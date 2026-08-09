@@ -1,0 +1,92 @@
+name: Build openDAQ stagings
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    types: [opened, reopened, synchronize, ready_for_review]
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  resolve:
+    name: Resolve publish target
+    runs-on: ubuntu-latest
+    outputs:
+      staging-push: ${{ steps.target.outputs.staging-push }}
+    steps:
+      - name: Resolve publish target
+        id: target
+        shell: python3 {0}
+        env:
+          OWNER: ${{ github.repository_owner }}
+          REF: ${{ github.ref }}
+        run: |
+          import json, os
+
+          owner = os.environ["OWNER"]
+          ref   = os.environ["REF"]
+
+          if ref.startswith("refs/heads/release/"):
+              channel = "stable"
+          elif ref == "refs/heads/main":
+              channel = "dev"
+          else:
+              channel = "test"
+
+          target = [{
+              "path": f"ghcr.io/{owner}/{channel}/staging/opendaq",
+              "artifacts": ["staging-*/core"],
+              "tags": ["latest"],
+          }]
+
+          with open(os.environ["GITHUB_OUTPUT"], "a") as f:
+              f.write(f"staging-push={json.dumps(target)}\n")
+
+          print(json.dumps(target, indent=2))
+
+  stage:
+    needs: resolve
+    name: openDAQ
+    permissions:
+      contents: read
+      packages: write
+    uses: openDAQ/openDAQ-CI/.github/workflows/stage.yml@jira/TBBAS-3439-multi-staging
+    with:
+      timeout: '[{"timeout-minutes": 180}]'
+      include-jobs: >
+        [
+          "windows-2022-x86_64-msvs-v143-release",
+          "windows-2022-x86-msvs-v143-release",
+          "manylinux_2_28-x86_64-ninja-gcc-release",
+          "ubuntu-22.04-x86_64-ninja-gcc-release",
+          "ubuntu-22.04-armv8-ninja-gcc-release",
+          "macos-26-x86_64-ninja-appleclang-release",
+          "macos-26-armv8-ninja-appleclang-release"
+        ]
+      cmake-presets: >
+        [
+          {
+            "match-jobs": ["*"],
+            "configure-preset": "stage"
+          },
+          {
+            "match-jobs": ["windows-*-msvs-*"],
+            "cache-variables": {"OPENDAQ_MSVC_SINGLE_PROCESS_BUILD": true}
+          },
+          {
+            "match-jobs": ["macos-*"],
+            "cache-variables": {"CMAKE_OSX_DEPLOYMENT_TARGET": "10.15"}
+          }
+        ]
+      cpack-presets: >
+        [
+          {
+            "match-jobs": ["*"],
+            "stagings": [{"name": "core"}]
+          }
+        ]
+      staging-push: ${{ needs.resolve.outputs.staging-push }}

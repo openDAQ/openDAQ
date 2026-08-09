@@ -82,6 +82,13 @@ jobs:
             "cache-variables": {"CMAKE_OSX_DEPLOYMENT_TARGET": "10.15"}
           }
         ]
+      packages: >
+        [
+          {
+            "match-jobs": ["manylinux_2_28-*"],
+            "yum-install": ["mono-core"]
+          }
+        ]
       cpack-presets: >
         [
           {

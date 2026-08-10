@@ -649,6 +649,7 @@ BaseObjectPtr ConfigProtocolClientComm::deserializeConfigComponent(const StringP
 
     if (typeId == "SyncComponent")
     {
+        // TODO: add here a log message that this type is deprecated and will be ignored in future versions
         BaseObjectPtr obj;
         checkErrorInfo(ConfigClientSyncComponentImpl::Deserialize(serObj, context, factoryCallback, &obj));
         return obj;

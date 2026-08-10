@@ -147,7 +147,6 @@ public:
 
     ErrCode INTERFACE_FUNC clone(IPropertyObject** cloned) override;
     ErrCode INTERFACE_FUNC getInterfaceIds(SizeT* idCount, IntfID** ids) override;
-    ErrCode INTERFACE_FUNC freeze() override;
 
 protected:
     ErrCode createAndSetStringProperty(const StringPtr& name, const StringPtr& value);
@@ -1219,12 +1218,6 @@ ErrCode DeviceInfoConfigImpl<TInterface, Interfaces...>::getInterfaceIds(SizeT* 
 
     Super::InterfaceIds::AddInterfaceIds(*ids);
     return OPENDAQ_SUCCESS;
-}
-
-template <typename TInterface, typename ... Interfaces>
-ErrCode DeviceInfoConfigImpl<TInterface, Interfaces...>::freeze()
-{
-    return OPENDAQ_IGNORED;
 }
 
 OPENDAQ_REGISTER_DESERIALIZE_FACTORY(DeviceInfoConfigBase)

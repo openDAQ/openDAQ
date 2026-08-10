@@ -1781,7 +1781,7 @@ TEST_F(ConfigCoreEventTest, ReconnectRestoreClientConfig)
     };
 
     client->reconnect(True);
-    //ASSERT_EQ(updateCount, 2);
+    ASSERT_EQ(updateCount, 2);
 
     ASSERT_EQ(clientDevice.getPropertyValue("String"), "foo");
     ASSERT_EQ(serverDevice.getPropertyValue("String"), "foo");

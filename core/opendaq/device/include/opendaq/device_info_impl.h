@@ -1198,8 +1198,7 @@ template <typename TInterface, typename ... Interfaces>
 ErrCode DeviceInfoConfigImpl<TInterface, Interfaces...>::clone(IPropertyObject** cloned)
 {
     OPENDAQ_PARAM_NOT_NULL(cloned);
-    *cloned = this->template thisInterface<IPropertyObject>();
-    return OPENDAQ_SUCCESS;
+    return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOT_CLONEABLE);
 }
 
 template <typename TInterface, typename ... Interfaces>

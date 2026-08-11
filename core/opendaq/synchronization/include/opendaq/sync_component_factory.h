@@ -15,7 +15,7 @@
  */
 #pragma once
 #include <opendaq/sync_component_ptr.h>
-#include <opendaq/sync_component2_ptr.h>
+#include <opendaq/synchronization_ptr.h>
 #include <opendaq/sync_interface_ptr.h>
 #include <opendaq/context_ptr.h>
 #include <opendaq/component_ptr.h>
@@ -41,13 +41,10 @@ inline SyncComponentPtr SyncComponent(const ContextPtr& context, const Component
 
 /*!
  * @brief Creates a synchronization component 2.
- * @param context The Context. Most often the creating function-block/device passes its own Context to the SyncComponent2.
- * @param parent The parent component.
- * @param localId The local ID of the component.
  */
-inline SyncComponent2Ptr SyncComponent2(const ContextPtr& context, const ComponentPtr& parent, const StringPtr& localId)
+inline SynchronizationPtr Synchronization()
 {
-    return { SyncComponent2_Create(context, parent, localId, true) };
+    return { Synchronization_Create() };
 }
 
 /*!@}*/

@@ -262,7 +262,7 @@ inline void checkErrorGuard(IErrorGuard* errorGuard)
                 message->getCharPtr(&msgCharPtr);
                 if (msgCharPtr)
                 {
-                    ss << (firstError ? "" : "\n")<< msgCharPtr;
+                    ss << (firstError ? "" : "\n") << msgCharPtr;
                     firstError = false;
                 }
                 message->releaseRef();
@@ -274,19 +274,6 @@ inline void checkErrorGuard(IErrorGuard* errorGuard)
 
     if (OPENDAQ_FAILED(lastErrorCode))
         throwExceptionFromErrorCode(lastErrorCode, ss.str());
-}
-
-template <typename... Params>
-[[deprecated("This function will be deprecated in release 3.30.")]]
-void setErrorInfoWithSource(IBaseObject* source, const std::string& message, Params... params)
-{
-    IErrorInfo* errorInfo = nullptr;
-    const ErrCode err = createErrorInfoObjectWithSource(&errorInfo, source, message, std::forward<Params>(params)...);
-    if (OPENDAQ_FAILED(err))
-        return;
-    
-    daqSetErrorInfo(errorInfo);
-    errorInfo->releaseRef();
 }
 
 template <typename... Params>

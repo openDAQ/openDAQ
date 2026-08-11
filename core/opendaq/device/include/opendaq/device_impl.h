@@ -35,6 +35,7 @@
 #include <opendaq/component_keys.h>
 #include <opendaq/core_opendaq_event_args_factory.h>
 #include <coreobjects/property_object_factory.h>
+#include <coreobjects/property_factory.h>
 #include <opendaq/module_manager_ptr.h>
 #include <opendaq/module_manager_utils_ptr.h>
 #include <opendaq/sync_component_factory.h>
@@ -76,6 +77,8 @@ public:
 
     virtual DeviceInfoPtr onGetInfo();
 
+    virtual SynchronizationPtr onGetSynchronization();
+
     virtual uint64_t onGetTicksSinceOrigin();
 
     DictPtr<IString, IFunctionBlockType> onGetAvailableFunctionBlockTypes() override;
@@ -105,6 +108,7 @@ public:
     ErrCode INTERFACE_FUNC getChannels(IList** channels, ISearchFilter* searchFilter = nullptr) override;
     ErrCode INTERFACE_FUNC getChannelsRecursive(IList** channels, ISearchFilter* searchFilter = nullptr) override;
     ErrCode INTERFACE_FUNC getSyncComponent(ISyncComponent** syncComponent) override;
+    ErrCode INTERFACE_FUNC getSynchronization(ISynchronization** synchronization) override;
 
     ErrCode INTERFACE_FUNC addServer(IString* typeId, IPropertyObject* config, IServer** server) override;
     ErrCode INTERFACE_FUNC removeServer(IServer* server) override;
@@ -1671,6 +1675,45 @@ ErrCode GenericDevice<TInterface, Interfaces...>::getSyncComponent(ISyncComponen
 }
 
 template <typename TInterface, typename... Interfaces>
+SynchronizationPtr GenericDevice<TInterface, Interfaces...>::onGetSynchronization()
+{
+    return nullptr;
+}
+
+template <typename TInterface, typename... Interfaces>
+ErrCode GenericDevice<TInterface, Interfaces...>::getSynchronization(ISynchronization** sync)
+{
+    OPENDAQ_PARAM_NOT_NULL(sync);
+
+    if (this->isComponentRemoved)
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_COMPONENT_REMOVED);
+
+    return daqTry([&]
+    {
+        const auto syncPropName = String("daqSynchronization");
+        SynchronizationPtr synchronization;
+        if (!this->objPtr.hasProperty(syncPropName))
+        {
+            OPENDAQ_RETURN_IF_FAILED(wrapHandlerReturn(this, &Self::onGetSynchronization, synchronization));
+
+            this->addCoreProperty(ObjectPropertyBuilder(syncPropName, PropertyObject()).setVisible(false).build());
+            if (synchronization.assigned())
+                OPENDAQ_RETURN_IF_FAILED(this->setProtectedPropertyValue(syncPropName, synchronization));
+        
+            *sync = synchronization.detach();
+            return OPENDAQ_SUCCESS;
+        }
+        else 
+        {
+            synchronization = this->objPtr.getPropertyValue(syncPropName).template asPtrOrNull<ISynchronization>();
+        }
+
+        *sync = synchronization.detach();
+        return OPENDAQ_SUCCESS;
+    });
+}
+
+template <typename TInterface, typename... Interfaces>
 ErrCode GenericDevice<TInterface, Interfaces...>::getDeviceConfig(IPropertyObject** config)
 {
     return this->getComponentConfig(config);
@@ -2561,6 +2604,7 @@ void GenericDevice<TInterface, Interfaces...>::updateObject(const SerializedObje
             updatableDeviceInfo.updateInternal(deviceInfoObject, context);
         }
     }
+
 }
 
 template <typename TInterface, typename ... Interfaces>

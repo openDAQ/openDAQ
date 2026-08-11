@@ -25,14 +25,14 @@ BEGIN_NAMESPACE_OPENDAQ
 
 /*!
  * @ingroup opendaq_synchronization_path
- * @addtogroup opendaq_sync_component2 Sync Component 2
+ * @addtogroup opendaq_synchronization Sync Component 2
  * @{
  */
 
 /*!
  * @brief Interface representing a Synchronization Component 2 in a Test & Measurement system.
  */
-DECLARE_OPENDAQ_INTERFACE(ISyncComponent2, IBaseObject)
+DECLARE_OPENDAQ_INTERFACE(ISynchronization, IBaseObject)
 {
     /*!
      * @brief Retrieves the selected sync source interface.
@@ -61,12 +61,6 @@ DECLARE_OPENDAQ_INTERFACE(ISyncComponent2, IBaseObject)
 };
 /*!@}*/
 
-OPENDAQ_DECLARE_CLASS_FACTORY_WITH_INTERFACE(
-    LIBRARY_FACTORY, SyncComponent2, ISyncComponent2,
-    IContext*, context,
-    IComponent*, parent,
-    IString*, localId,
-    Bool, registerEvents
-)
+OPENDAQ_DECLARE_CLASS_FACTORY_WITH_INTERFACE(LIBRARY_FACTORY, Synchronization, ISynchronization)
 
 END_NAMESPACE_OPENDAQ

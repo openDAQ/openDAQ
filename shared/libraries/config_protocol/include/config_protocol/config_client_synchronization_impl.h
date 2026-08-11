@@ -1,5 +1,5 @@
 /*
- * Copyright 2022-2026 openDAQ d.o.o.
+ * Copyright 2022-2025 openDAQ d.o.o.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,24 +16,21 @@
 
 #pragma once
 #include <config_protocol/config_client_property_object_impl.h>
-#include <opendaq/sync_interface_base_impl.h>
+#include <opendaq/synchronization_impl.h>
 #include <config_protocol/config_protocol_deserialize_context_impl.h>
-#include <opendaq/component_deserialize_context_ptr.h>
-#include <coretypes/serialized_object_ptr.h>
-#include <coretypes/function_ptr.h>
 #include <opendaq/deserialize_component.h>
 
 namespace daq::config_protocol
 {
 
-class ConfigClientSyncInterfaceImpl : public ConfigClientPropertyObjectBaseImpl<SyncInterfaceBaseImpl<IPropertyObject, IConfigClientObject, IDeserializeComponent>>
+class ConfigClientSynchronizationImpl : public ConfigClientPropertyObjectBaseImpl<SynchronizationImpl<IPropertyObject, IConfigClientObject, IDeserializeComponent>>
 {
 public:
-    using Impl = SyncInterfaceBaseImpl<IPropertyObject, IConfigClientObject, IDeserializeComponent>;
+    using Impl = SynchronizationImpl<IPropertyObject, IConfigClientObject, IDeserializeComponent>;
     using Super = ConfigClientPropertyObjectBaseImpl<Impl>;
 
-    ConfigClientSyncInterfaceImpl(const ConfigProtocolClientCommPtr& configProtocolClientComm,
-                                  const std::string& remoteGlobalId);
+    ConfigClientSynchronizationImpl(const ConfigProtocolClientCommPtr& configProtocolClientComm,
+                                    const std::string& remoteGlobalId);
 
     // IPropertyObject
     ErrCode INTERFACE_FUNC setPropertyValue(IString* propertyName, IBaseObject* value) override;
@@ -41,12 +38,12 @@ public:
     ErrCode INTERFACE_FUNC clearPropertyValue(IString* propertyName) override;
     ErrCode INTERFACE_FUNC addProperty(IProperty* property) override;
     ErrCode INTERFACE_FUNC removeProperty(IString* propertyName) override;
-
     ErrCode INTERFACE_FUNC beginUpdate() override;
     ErrCode INTERFACE_FUNC endUpdate() override;
 
-    // ISyncInterfaceInternal
-    ErrCode INTERFACE_FUNC deactivateAsSource() override;
+    // ISynchronization
+    ErrCode INTERFACE_FUNC getSelectedSource(ISyncInterface** selectedSource) override;
+    ErrCode INTERFACE_FUNC addInterface(ISyncInterface* syncInterface) override;
 
     // IDeserializeComponent
     ErrCode INTERFACE_FUNC deserializeValues(ISerializedObject* serializedObject, IBaseObject* context, IFunction* callbackFactory) override;

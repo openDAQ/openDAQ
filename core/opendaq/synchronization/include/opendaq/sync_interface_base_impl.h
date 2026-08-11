@@ -173,25 +173,7 @@ template <typename TInterface, typename... Interfaces>
 ErrCode SyncInterfaceBaseImpl<TInterface, Interfaces...>::clone(IPropertyObject** cloned)
 {
     OPENDAQ_PARAM_NOT_NULL(cloned);
-
-    auto obj = createWithImplementation<ISyncInterface, SyncInterfaceBase>();
-
-    return daqTry([this, &obj, &cloned]()
-    {
-        auto implPtr = dynamic_cast<SyncInterfaceBase*>(obj.getObject());
-        const auto params = this->getCloneParameters();
-        implPtr->configureClonedMembers(params.valueWriteEvents,
-                                        params.valueReadEvents,
-                                        params.endUpdateEvent,
-                                        params.triggerCoreEvent,
-                                        params.localProperties,
-                                        params.propValues,
-                                        params.customOrder,
-                                        params.permissionManager);
-
-        *cloned = obj.template as<IPropertyObject>();
-        return OPENDAQ_SUCCESS;
-    });
+    return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOT_CLONEABLE);
 }
 
 OPENDAQ_REGISTER_DESERIALIZE_FACTORY(SyncInterfaceBase)

@@ -14,94 +14,105 @@
  * limitations under the License.
  */
 
-#include <config_protocol/config_client_sync_interface_impl.h>
-#include <opendaq/sync_interface.h>
-#include <coretypes/objectptr.h>
+#include <config_protocol/config_client_synchronization_impl.h>
+#include <opendaq/synchronization.h>
 #include <opendaq/component_deserialize_context_ptr.h>
 #include <coretypes/serialized_object_ptr.h>
 #include <coretypes/function_ptr.h>
+#include <coretypes/objectptr.h>
 
 namespace daq::config_protocol
 {
 
-ConfigClientSyncInterfaceImpl::ConfigClientSyncInterfaceImpl(const ConfigProtocolClientCommPtr& configProtocolClientComm,
-                                                             const std::string& remoteGlobalId)
-    : Super(configProtocolClientComm, remoteGlobalId)
+ConfigClientSynchronizationImpl::ConfigClientSynchronizationImpl(const ConfigProtocolClientCommPtr& configProtocolClientComm,const std::string& remoteGlobalId)
+    : Super(configProtocolClientComm, remoteGlobalId, True)
 {
 }
 
-ErrCode ConfigClientSyncInterfaceImpl::setPropertyValue(IString* propertyName, IBaseObject* value)
+ErrCode ConfigClientSynchronizationImpl::setPropertyValue(IString* propertyName, IBaseObject* value)
 {
-    if (remoteUpdating)
+    if (this->remoteUpdating)
         return Impl::setPropertyValue(propertyName, value);
     return Super::setPropertyValue(propertyName, value);
 }
 
-ErrCode ConfigClientSyncInterfaceImpl::setProtectedPropertyValue(IString* propertyName, IBaseObject* value)
+ErrCode ConfigClientSynchronizationImpl::setProtectedPropertyValue(IString* propertyName, IBaseObject* value)
 {
-    if (remoteUpdating)
+    if (this->remoteUpdating)
         return Impl::setProtectedPropertyValue(propertyName, value);
-    return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_ACCESSDENIED, "Setting protected values is not allowed on client sync interface");
+    return Super::setProtectedPropertyValue(propertyName, value);
 }
 
-ErrCode ConfigClientSyncInterfaceImpl::clearPropertyValue(IString* propertyName)
+ErrCode ConfigClientSynchronizationImpl::clearPropertyValue(IString* propertyName)
 {
-    if (remoteUpdating)
+    if (this->remoteUpdating)
         return Impl::clearPropertyValue(propertyName);
     return Super::clearPropertyValue(propertyName);
 }
 
-ErrCode ConfigClientSyncInterfaceImpl::addProperty(IProperty* property)
+ErrCode ConfigClientSynchronizationImpl::addProperty(IProperty* property)
 {
-    if (remoteUpdating)
+    if (this->remoteUpdating)
         return Impl::addProperty(property);
     return Super::addProperty(property);
 }
 
-ErrCode ConfigClientSyncInterfaceImpl::removeProperty(IString* propertyName)
+ErrCode ConfigClientSynchronizationImpl::removeProperty(IString* propertyName)
 {
-    if (remoteUpdating)
+    if (this->remoteUpdating)
         return Impl::removeProperty(propertyName);
     return Super::removeProperty(propertyName);
 }
 
-ErrCode ConfigClientSyncInterfaceImpl::beginUpdate()
+ErrCode ConfigClientSynchronizationImpl::beginUpdate()
 {
-    if (remoteUpdating)
+    if (this->remoteUpdating)
         return Impl::beginUpdate();
     return Super::beginUpdate();
 }
 
-ErrCode ConfigClientSyncInterfaceImpl::endUpdate()
+ErrCode ConfigClientSynchronizationImpl::endUpdate()
 {
-    if (remoteUpdating)
+    if (this->remoteUpdating)
         return Impl::endUpdate();
     return Super::endUpdate();
 }
 
-ErrCode ConfigClientSyncInterfaceImpl::deactivateAsSource()
+ErrCode ConfigClientSynchronizationImpl::getSelectedSource(ISyncInterface** selectedSource)
 {
-    return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOT_SUPPORTED, "Deactivating as source is not supported on client sync interface");
+    OPENDAQ_PARAM_NOT_NULL(selectedSource);
+    return daqTry([&]
+    {
+        StringPtr sourceName = this->objPtr.getPropertyValue("Source");
+        PropertyObjectPtr interfaces = this->objPtr.getPropertyValue("Interfaces");
+        *selectedSource = interfaces.getPropertyValue(sourceName).template as<ISyncInterface>();
+        return OPENDAQ_SUCCESS;
+    });
 }
 
-ErrCode ConfigClientSyncInterfaceImpl::deserializeValues(ISerializedObject* serializedObject,
-                                                          IBaseObject* context,
-                                                          IFunction* callbackFactory)
+ErrCode ConfigClientSynchronizationImpl::addInterface(ISyncInterface* syncInterface)
+{
+    return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOT_SUPPORTED, "Adding interfaces is not supported on the client side");
+}
+
+ErrCode ConfigClientSynchronizationImpl::deserializeValues(ISerializedObject* /*serializedObject*/,
+                                                                   IBaseObject* /*context*/,
+                                                                   IFunction* /*callbackFactory*/)
 {
     return OPENDAQ_SUCCESS;
 }
 
-ErrCode ConfigClientSyncInterfaceImpl::getDeserializedParameter(IString* parameter, IBaseObject** value)
+ErrCode ConfigClientSynchronizationImpl::getDeserializedParameter(IString* parameter, IBaseObject** value)
 {
     OPENDAQ_PARAM_NOT_NULL(parameter);
     OPENDAQ_PARAM_NOT_NULL(value);
     return OPENDAQ_NOTFOUND;
 }
 
-ErrCode ConfigClientSyncInterfaceImpl::Deserialize(ISerializedObject* serialized,
-                                                    IBaseObject* context,
-                                                    IFunction* factoryCallback,
-                                                    IBaseObject** obj)
+ErrCode ConfigClientSynchronizationImpl::Deserialize(ISerializedObject* serialized,
+                                                              IBaseObject* context,
+                                                              IFunction* factoryCallback,
+                                                              IBaseObject** obj)
 {
     OPENDAQ_PARAM_NOT_NULL(obj);
     OPENDAQ_PARAM_NOT_NULL(context);
@@ -125,13 +136,13 @@ ErrCode ConfigClientSyncInterfaceImpl::Deserialize(ISerializedObject* serialized
             serializedPtr,
             contextPtr,
             factoryCallbackPtr,
-            [&configDeserializeContext](const SerializedObjectPtr& serialized, const ComponentDeserializeContextPtr& deserializeContext, const StringPtr& className)
+            [&configDeserializeContext](const SerializedObjectPtr&, const BaseObjectPtr&, const StringPtr&)
             {
-                auto obj = createWithImplementation<ISyncInterface, ConfigClientSyncInterfaceImpl>(
+                auto syncComponent = createWithImplementation<ISynchronization, ConfigClientSynchronizationImpl>(
                     configDeserializeContext->getClientComm(),
                     configDeserializeContext->getRemoteGlobalId());
-                obj.as<IConfigClientObject>(true)->setRemoteUpdating(true);
-                return obj;
+                syncComponent.as<IConfigClientObject>(true)->setRemoteUpdating(true);
+                return syncComponent;
             });
 
         propObj.as<IConfigClientObject>(true)->setRemoteUpdating(false);

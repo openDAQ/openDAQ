@@ -20,45 +20,42 @@
 #include <coretypes/intfs.h>
 #include <coretypes/dictobject.h>
 #include <coretypes/dictobject_factory.h>
-#include <opendaq/component_impl.h>
-#include <opendaq/sync_component2.h>
-#include <opendaq/sync_component2_internal.h>
+#include <opendaq/synchronization.h>
+#include <opendaq/synchronization_internal.h>
 #include <opendaq/sync_interface_ptr.h>
 #include <opendaq/sync_interface_internal_ptr.h>
-#include <opendaq/component_deserialize_context_factory.h>
 #include <opendaq/clock_sync_interface_impl.h>
 #include <coretypes/objectptr.h>
 #include <coretypes/deserializer.h>
 #include <coreobjects/property_object_factory.h>
 #include <coreobjects/property_factory.h>
+#include <coreobjects/property_object_impl.h>
 #include <fmt/format.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
-template <typename TInterface = IComponent, typename... Interfaces>
-class SyncComponent2Impl;
+template <typename TInterface = IPropertyObject, typename... Interfaces>
+class SynchronizationImpl;
 
-using SyncComponent2Base = SyncComponent2Impl<>;
+using SynchronizationBase = SynchronizationImpl<>;
 
 template <class Intf, class... Intfs>
-class SyncComponent2Impl : public ComponentImpl<Intf, ISyncComponent2, ISyncComponent2Internal, Intfs...>
+class SynchronizationImpl : public GenericPropertyObjectImpl<Intf, ISynchronization, ISynchronizationInternal, Intfs...>
 {
 public:
-    using Super = ComponentImpl<Intf, ISyncComponent2, ISyncComponent2Internal, Intfs...>;
-    using Self = SyncComponent2Impl<Intf, Intfs...>;
+    using Super = GenericPropertyObjectImpl<Intf, ISynchronization, ISynchronizationInternal, Intfs...>;
+    using Self = SynchronizationImpl<Intf, Intfs...>;
 
-    SyncComponent2Impl(const ContextPtr& context,
-                      const ComponentPtr& parent,
-                      const StringPtr& localId,
-                      Bool registerEvents = False);
+    explicit SynchronizationImpl(Bool remote);
+    explicit SynchronizationImpl();
 
-    // ISyncComponent2
+    // ISynchronization
     ErrCode INTERFACE_FUNC getSelectedSource(ISyncInterface** selectedSource) override;
     ErrCode INTERFACE_FUNC getSourceSynced(Bool* synced) override;
     ErrCode INTERFACE_FUNC getSourceReferenceDomainId(IString** referenceDomainId) override;
     ErrCode INTERFACE_FUNC getInterfaces(IDict** interfaces) override;
 
-    // ISyncComponent2Internal
+    // ISynchronizationInternal
     ErrCode INTERFACE_FUNC addInterface(ISyncInterface* syncInterface) override;
 
 
@@ -69,7 +66,6 @@ public:
     static ErrCode Deserialize(ISerializedObject* serialized, IBaseObject* context, IFunction* factoryCallback, IBaseObject** obj);
 
 protected:
-    void init(bool registerEvents);
     void setSelectedSource(const SyncInterfacePtr& newSource);
     void onInterfaceModeChanged(const PropertyObjectPtr& objPtr, const PropertyValueEventArgsPtr& eventArgs);
 
@@ -78,34 +74,25 @@ protected:
 
 
 template <class Intf, class... Intfs>
-SyncComponent2Impl<Intf, Intfs...>::SyncComponent2Impl(const ContextPtr& context,
-                                                        const ComponentPtr& parent,
-                                                        const StringPtr& localId,
-                                                        Bool registerEvents)
-    : Super(context, parent, localId, nullptr, nullptr)
+SynchronizationImpl<Intf, Intfs...>::SynchronizationImpl(Bool remote)
+    : Super()
 {
-    this->init(registerEvents == True);
-}
-
-template <class Intf, class... Intfs>
-void SyncComponent2Impl<Intf, Intfs...>::init(bool registerEvents)
-{
-    source = createWithImplementation<ISyncInterface, ClockSyncInterfaceImpl>();
-    source.asPtr<IPropertyObject>(true).setPropertyValue("Mode", "Input");
-
-    auto interfaces = PropertyObject();
-    interfaces.addProperty(ObjectProperty(source.getName(), source));
-    Super::addProperty(ObjectProperty("Interfaces", interfaces));
-
-    const auto souceProperty = StringPropertyBuilder("Source", source.getName())
-                                                        .setSelectionValues(EvalValue("%Interfaces:PropertyNames"))
-                                                        .setReadOnly(true)
-                                                        .build();
-    Super::addProperty(souceProperty);
-    this->objPtr.setPropertyOrder(List<IString>("Interfaces"));
-
-    if (registerEvents)
+    if (!remote)
     {
+        source = createWithImplementation<ISyncInterface, ClockSyncInterfaceImpl>();
+        source.asPtr<IPropertyObject>(true).setPropertyValue("Mode", "Input");
+
+        auto interfaces = PropertyObject();
+        interfaces.addProperty(ObjectProperty(source.getName(), source));
+        this->addProperty(ObjectProperty("Interfaces", interfaces));
+
+        const auto souceProperty = StringPropertyBuilder("Source", source.getName())
+                                                            .setSelectionValues(EvalValue("%Interfaces:PropertyNames"))
+                                                            .setReadOnly(true)
+                                                            .build();
+        this->addProperty(souceProperty);
+        this->objPtr.setPropertyOrder(List<IString>("Interfaces"));
+
         source.asPtr<IPropertyObject>(true).getOnPropertyValueWrite("Mode") += [this](const PropertyObjectPtr& objPtr, const PropertyValueEventArgsPtr& eventArgs)
         {
             if (source == objPtr)
@@ -129,7 +116,13 @@ void SyncComponent2Impl<Intf, Intfs...>::init(bool registerEvents)
 }
 
 template <class Intf, class... Intfs>
-ErrCode SyncComponent2Impl<Intf, Intfs...>::getSelectedSource(ISyncInterface** selectedSource)
+SynchronizationImpl<Intf, Intfs...>::SynchronizationImpl()
+    : SynchronizationImpl(false)
+{
+}
+
+template <class Intf, class... Intfs>
+ErrCode SynchronizationImpl<Intf, Intfs...>::getSelectedSource(ISyncInterface** selectedSource)
 {
     OPENDAQ_PARAM_NOT_NULL(selectedSource);
     auto lock = this->getRecursiveConfigLock();
@@ -138,14 +131,14 @@ ErrCode SyncComponent2Impl<Intf, Intfs...>::getSelectedSource(ISyncInterface** s
 }
 
 template <class Intf, class... Intfs>
-void SyncComponent2Impl<Intf, Intfs...>::setSelectedSource(const SyncInterfacePtr& newSource)
+void SynchronizationImpl<Intf, Intfs...>::setSelectedSource(const SyncInterfacePtr& newSource)
 {
     this->template borrowPtr<PropertyObjectProtectedPtr>().setProtectedPropertyValue("Source", newSource.getName());
     source = newSource;
 }
 
 template <class Intf, class... Intfs>
-void SyncComponent2Impl<Intf, Intfs...>::onInterfaceModeChanged(const PropertyObjectPtr& objPtr, const PropertyValueEventArgsPtr& eventArgs)
+void SynchronizationImpl<Intf, Intfs...>::onInterfaceModeChanged(const PropertyObjectPtr& objPtr, const PropertyValueEventArgsPtr& eventArgs)
 {
     if (source == objPtr)
     {
@@ -170,7 +163,7 @@ void SyncComponent2Impl<Intf, Intfs...>::onInterfaceModeChanged(const PropertyOb
 }
 
 template <class Intf, class... Intfs>
-ErrCode SyncComponent2Impl<Intf, Intfs...>::getSourceSynced(Bool* synced)
+ErrCode SynchronizationImpl<Intf, Intfs...>::getSourceSynced(Bool* synced)
 {
     OPENDAQ_PARAM_NOT_NULL(synced);
     auto lock = this->getRecursiveConfigLock();
@@ -182,7 +175,7 @@ ErrCode SyncComponent2Impl<Intf, Intfs...>::getSourceSynced(Bool* synced)
 }
 
 template <class Intf, class... Intfs>
-ErrCode SyncComponent2Impl<Intf, Intfs...>::getSourceReferenceDomainId(IString** referenceDomainId)
+ErrCode SynchronizationImpl<Intf, Intfs...>::getSourceReferenceDomainId(IString** referenceDomainId)
 {
     OPENDAQ_PARAM_NOT_NULL(referenceDomainId);
     auto lock = this->getRecursiveConfigLock();
@@ -194,7 +187,7 @@ ErrCode SyncComponent2Impl<Intf, Intfs...>::getSourceReferenceDomainId(IString**
 }
 
 template <class Intf, class... Intfs>
-ErrCode SyncComponent2Impl<Intf, Intfs...>::getInterfaces(IDict** interfaces)
+ErrCode SynchronizationImpl<Intf, Intfs...>::getInterfaces(IDict** interfaces)
 {
     OPENDAQ_PARAM_NOT_NULL(interfaces);
     return daqTry([&]
@@ -211,7 +204,7 @@ ErrCode SyncComponent2Impl<Intf, Intfs...>::getInterfaces(IDict** interfaces)
 }
 
 template <class Intf, class... Intfs>
-ErrCode SyncComponent2Impl<Intf, Intfs...>::addInterface(ISyncInterface* syncInterface)
+ErrCode SynchronizationImpl<Intf, Intfs...>::addInterface(ISyncInterface* syncInterface)
 {
     OPENDAQ_PARAM_NOT_NULL(syncInterface);
     return daqTry([&]
@@ -231,7 +224,7 @@ ErrCode SyncComponent2Impl<Intf, Intfs...>::addInterface(ISyncInterface* syncInt
 
 
 template <class Intf, class... Intfs>
-ErrCode SyncComponent2Impl<Intf, Intfs...>::getSerializeId(ConstCharPtr* id) const
+ErrCode SynchronizationImpl<Intf, Intfs...>::getSerializeId(ConstCharPtr* id) const
 {
     OPENDAQ_PARAM_NOT_NULL(id);
     *id = SerializeId();
@@ -239,13 +232,13 @@ ErrCode SyncComponent2Impl<Intf, Intfs...>::getSerializeId(ConstCharPtr* id) con
 }
 
 template <class Intf, class... Intfs>
-ConstCharPtr SyncComponent2Impl<Intf, Intfs...>::SerializeId()
+ConstCharPtr SynchronizationImpl<Intf, Intfs...>::SerializeId()
 {
-    return "SyncComponent2";
+    return "Synchronization";
 }
 
 template <class Intf, class... Intfs>
-ErrCode SyncComponent2Impl<Intf, Intfs...>::Deserialize(ISerializedObject* serialized,
+ErrCode SynchronizationImpl<Intf, Intfs...>::Deserialize(ISerializedObject* serialized,
                                                          IBaseObject* context,
                                                          IFunction* factoryCallback,
                                                          IBaseObject** obj)
@@ -253,23 +246,21 @@ ErrCode SyncComponent2Impl<Intf, Intfs...>::Deserialize(ISerializedObject* seria
     OPENDAQ_PARAM_NOT_NULL(obj);
     const ErrCode errCode = daqTry([&obj, &serialized, &context, &factoryCallback]
     {
-        *obj = Super::DeserializeComponent(
-            serialized,
-            context,
-            factoryCallback,
-            [](const SerializedObjectPtr&, const ComponentDeserializeContextPtr& deserializeContext, const StringPtr& className)
-            {
-                return createWithImplementation<ISyncComponent2, SyncComponent2Impl<Intf, Intfs...>>(
-                    deserializeContext.getContext(),
-                    deserializeContext.getParent(),
-                    deserializeContext.getLocalId(),
-                    false).detach();
-            }).detach();
+        *obj = Super::DeserializePropertyObject(
+                   serialized,
+                   context,
+                   factoryCallback,
+                   [](const SerializedObjectPtr&, const BaseObjectPtr&, const StringPtr&)
+                   {
+                       return createWithImplementation<ISynchronization, SynchronizationImpl<Intf, Intfs...>>(false)
+                           .detach();
+                   })
+                   .detach();
     });
     OPENDAQ_RETURN_IF_FAILED(errCode);
     return errCode;
 }
 
-OPENDAQ_REGISTER_DESERIALIZE_FACTORY(SyncComponent2Base)
+OPENDAQ_REGISTER_DESERIALIZE_FACTORY(SynchronizationBase)
 
 END_NAMESPACE_OPENDAQ

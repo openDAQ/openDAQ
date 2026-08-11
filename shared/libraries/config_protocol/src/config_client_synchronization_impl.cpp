@@ -96,8 +96,8 @@ ErrCode ConfigClientSynchronizationImpl::addInterface(ISyncInterface* syncInterf
 }
 
 ErrCode ConfigClientSynchronizationImpl::deserializeValues(ISerializedObject* /*serializedObject*/,
-                                                                   IBaseObject* /*context*/,
-                                                                   IFunction* /*callbackFactory*/)
+                                                           IBaseObject* /*context*/,
+                                                           IFunction* /*callbackFactory*/)
 {
     return OPENDAQ_SUCCESS;
 }
@@ -110,9 +110,9 @@ ErrCode ConfigClientSynchronizationImpl::getDeserializedParameter(IString* param
 }
 
 ErrCode ConfigClientSynchronizationImpl::Deserialize(ISerializedObject* serialized,
-                                                              IBaseObject* context,
-                                                              IFunction* factoryCallback,
-                                                              IBaseObject** obj)
+                                                     IBaseObject* context,
+                                                     IFunction* factoryCallback,
+                                                     IBaseObject** obj)
 {
     OPENDAQ_PARAM_NOT_NULL(obj);
     OPENDAQ_PARAM_NOT_NULL(context);

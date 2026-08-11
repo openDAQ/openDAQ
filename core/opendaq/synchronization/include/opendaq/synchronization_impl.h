@@ -46,7 +46,6 @@ public:
     using Super = GenericPropertyObjectImpl<Intf, ISynchronization, ISynchronizationInternal, Intfs...>;
     using Self = SynchronizationImpl<Intf, Intfs...>;
 
-    explicit SynchronizationImpl(Bool remote);
     explicit SynchronizationImpl();
 
     // ISynchronization
@@ -62,10 +61,14 @@ public:
     // ISerializable
     ErrCode INTERFACE_FUNC getSerializeId(ConstCharPtr* id) const override;
 
+    // IPropertyObjectInternal
+    ErrCode INTERFACE_FUNC clone(IPropertyObject** cloned) override;
+
     static ConstCharPtr SerializeId();
     static ErrCode Deserialize(ISerializedObject* serialized, IBaseObject* context, IFunction* factoryCallback, IBaseObject** obj);
 
 protected:
+    explicit SynchronizationImpl(Bool remote);
     void setSelectedSource(const SyncInterfacePtr& newSource);
     void onInterfaceModeChanged(const PropertyObjectPtr& objPtr, const PropertyValueEventArgsPtr& eventArgs);
 
@@ -232,6 +235,13 @@ ErrCode SynchronizationImpl<Intf, Intfs...>::getSerializeId(ConstCharPtr* id) co
 }
 
 template <class Intf, class... Intfs>
+ErrCode SynchronizationImpl<Intf, Intfs...>::clone(IPropertyObject** cloned)
+{
+    OPENDAQ_PARAM_NOT_NULL(cloned);
+    return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOT_CLONEABLE);
+}
+
+template <class Intf, class... Intfs>
 ConstCharPtr SynchronizationImpl<Intf, Intfs...>::SerializeId()
 {
     return "Synchronization";
@@ -252,8 +262,7 @@ ErrCode SynchronizationImpl<Intf, Intfs...>::Deserialize(ISerializedObject* seri
                    factoryCallback,
                    [](const SerializedObjectPtr&, const BaseObjectPtr&, const StringPtr&)
                    {
-                       return createWithImplementation<ISynchronization, SynchronizationImpl<Intf, Intfs...>>(false)
-                           .detach();
+                       return createWithImplementation<ISynchronization, SynchronizationImpl<Intf, Intfs...>>().detach();
                    })
                    .detach();
     });

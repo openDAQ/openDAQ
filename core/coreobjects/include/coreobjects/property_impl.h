@@ -1854,17 +1854,17 @@ private:
     // Value comparison; EvalValues are compared via their eval strings, without evaluation.
     static bool equalsMetadataField(const BaseObjectPtr& a, const BaseObjectPtr& b)
     {
-        if (!a.assigned() || !b.assigned())
-            return a.assigned() == b.assigned();
+        if (a.assigned() != b.assigned())
+            return false;
+        if (!a.assigned())
+            return true;
 
         const auto evalA = a.asPtrOrNull<IEvalValue>(true);
         const auto evalB = b.asPtrOrNull<IEvalValue>(true);
-        if (evalA.assigned() || evalB.assigned())
-        {
-            if (!evalA.assigned() || !evalB.assigned())
-                return false;
+        if (evalA.assigned() != evalB.assigned())
+            return false;
+        if (evalA.assigned())
             return evalA.getEval() == evalB.getEval();
-        }
 
         Bool eq = False;
         return OPENDAQ_SUCCEEDED(a->equals(b, &eq)) && eq;
@@ -1874,9 +1874,9 @@ private:
     template <typename TPtr>
     static bool equalsEvalField(const TPtr& a, const TPtr& b)
     {
-        if (!a.assigned() || !b.assigned())
-            return a.assigned() == b.assigned();
-        return a.getEval() == b.getEval();
+        if (a.assigned() != b.assigned())
+            return false;
+        return !a.assigned() || a.getEval() == b.getEval();
     }
 
     PropertyPtr bindAndGetRefProp(bool lock)

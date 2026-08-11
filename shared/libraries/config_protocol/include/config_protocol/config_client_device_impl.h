@@ -74,6 +74,8 @@ public:
     ErrCode INTERFACE_FUNC setParentActive(Bool parentActive, Bool onUpdate) override;
     ErrCode INTERFACE_FUNC setAsRoot() override;
 
+    DeviceInfoPtr onGetInfo() override;
+
     template <class Implementation>
     static ErrCode Deserialize(ISerializedObject* serialized, IBaseObject* context, IFunction* factoryCallback, IBaseObject** obj);
 
@@ -403,6 +405,12 @@ ErrCode GenericConfigClientDeviceImpl<TDeviceBase>::setAsRoot()
 
     this->isRootDevice = true;
     return OPENDAQ_SUCCESS;
+}
+
+template <class TDeviceBase>
+DeviceInfoPtr GenericConfigClientDeviceImpl<TDeviceBase>::onGetInfo()
+{
+    return this->objPtr.getPropertyValue("DaqDeviceInfo").template asPtrOrNull<IDeviceInfo>(true);
 }
 
 template <class TDeviceBase>

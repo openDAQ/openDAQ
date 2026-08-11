@@ -30,7 +30,7 @@ using NativeDeviceModulesTest = testing::Test;
 
 using namespace daq;
 
-const uint16_t LATEST_CONFIG_PROTOCOL_VERSION = 24;
+const uint16_t LATEST_CONFIG_PROTOCOL_VERSION = 25;
 
 static InstancePtr CreateCustomServerInstance(AuthenticationProviderPtr authenticationProvider)
 {
@@ -1181,11 +1181,12 @@ TEST_F(NativeDeviceModulesTest, CheckDeviceInfoPopulatedWithProvider)
     ASSERT_TRUE(false) << "Device not found";
 }
 
-#ifdef _WIN32
-
 TEST_F(NativeDeviceModulesTest, TestDiscoveryReachability)
 {
     bool checkIPv6 = !test_helpers::Ipv6IsDisabled();
+    // ICMP ping (and thus active IPv4 reachability detection) requires root on Linux/macOS.
+    const auto expectedIpv4Reachability =
+        test_helpers::icmpPingAvailable() ? AddressReachabilityStatus::Reachable : AddressReachabilityStatus::Unknown;
     auto path = "/test/native_configurator/discovery_reachability/";
 
     auto server = InstanceBuilder().setModulePath("[[none]]").addDiscoveryServer("mdns").build();
@@ -1221,7 +1222,7 @@ TEST_F(NativeDeviceModulesTest, TestDiscoveryReachability)
                 if (addressInfo.getType() == "IPv4")
                 {
                     hasIPv4 = true;
-                    ASSERT_EQ(addressInfo.getReachabilityStatus(), AddressReachabilityStatus::Reachable);
+                    ASSERT_EQ(addressInfo.getReachabilityStatus(), expectedIpv4Reachability);
                 }
                 else if (addressInfo.getType() == "IPv6")
                 {
@@ -1305,8 +1306,6 @@ TEST_F(NativeDeviceModulesTest, TestDiscoveryReachabilityAfterConnectIPv6)
     }
     ASSERT_TRUE(false) << "Native streaming capability with connection string " << deviceConnectionString << " not found";
 }
-
-#endif
 
 DevicePtr FindNativeDeviceByPath(const InstancePtr& instance, const std::string& path, const PropertyObjectPtr& config = nullptr)
 {
@@ -1417,8 +1416,15 @@ TEST_F(NativeDeviceModulesTest, TestDiscoveryReachabilityAfterConnect)
             ASSERT_EQ(addressInfo.getAddress(), capability.getAddresses()[index]);
             if (addressInfo.getType() == "IPv4")
             {
-                ASSERT_EQ(addressInfo.getReachabilityStatus(), AddressReachabilityStatus::Reachable);
-                cnt++;
+                // Only the address actually used to connect is guaranteed Reachable - marked so by
+                // completeServerCapabilities() upon a successful connection. Verifying any other
+                // IPv4 address requires an ICMP ping, which needs root and is unavailable here, so
+                // on a multi-homed machine those legitimately stay Unknown.
+                if (addressInfo.getConnectionString() == capability.getConnectionString())
+                {
+                    ASSERT_EQ(addressInfo.getReachabilityStatus(), AddressReachabilityStatus::Reachable);
+                    cnt++;
+                }
             }
             else if (addressInfo.getType() == "IPv6")
             {
@@ -1894,13 +1900,22 @@ public:
         auto config = instance.createDefaultAddDeviceConfig();
         PropertyObjectPtr general = config.getPropertyValue("General");
 
+        bool isLt = false;
         auto prioritizedStreamingProtocols = List<IString>();
         for (const auto& protocolId : GetParam())
+        {
+            isLt |= (protocolId == "OpenDAQLTStreaming");
             prioritizedStreamingProtocols.pushBack(protocolId);
+        }
 
         general.setPropertyValue("PrioritizedStreamingProtocols", prioritizedStreamingProtocols);
 
         instance.addDevice("daq.nd://127.0.0.1", config);
+        if (isLt)
+        {
+            CONDITIONAL_SLEEP;
+        }
+
         return instance;
     }
 

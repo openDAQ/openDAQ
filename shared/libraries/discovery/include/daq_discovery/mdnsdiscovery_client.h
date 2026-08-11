@@ -41,7 +41,7 @@
 
 #ifdef _WIN32
 #include <iphlpapi.h>
-#include <WinSock2.h>
+#include <winsock2.h>
 #else
 #include <ifaddrs.h>
 #include <net/if.h>

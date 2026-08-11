@@ -93,6 +93,7 @@ option(OPENDAQ_MIMALLOC_SUPPORT "Enable MiMalloc-based packet allocator" OFF)
 option(OPENDAQ_ENABLE_NATIVE_STREAMING "Enable ${SDK_NAME} native streaming" OFF)
 option(OPENDAQ_ENABLE_ACCESS_CONTROL "Enable object-level access control" ON)
 option(OPENDAQ_RTGEN_ON_CMAKE_CONFIG "Run RT gen as part of the CMake configuration process to make sure the files exist during development" OFF)
+option(OPENDAQ_ENABLE_OBJECT_POOLS "Enable object pools for integer and float base objects" OFF)
 
 option(OPENDAQ_ENABLE_OPCUA "Enable OpcUa" OFF)
 
@@ -296,7 +297,7 @@ endif()
 set(RTGEN_NAMESPACE ${SDK_TARGET_NAMESPACE})
 include(RTGen)
 
-if(NOT WIN32)
+if(NOT CMAKE_HOST_WIN32)
     # Make sure mono is found properly and exists
     find_program(MONO_C
         NAMES "mono"

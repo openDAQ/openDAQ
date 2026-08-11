@@ -32,6 +32,7 @@ public:
     using Super = ImplementationOf<Intf, IConvertible, ICoreType, IComparable, ISerializable, Intfs...>;
 
     OrdinalObjectImpl(V value);
+    OrdinalObjectImpl();
 
     // IBaseObject
     ErrCode INTERFACE_FUNC getHashCode(SizeT* hashCode) override;
@@ -71,7 +72,13 @@ OrdinalObjectImpl<V, Intf, Intfs ...>::OrdinalObjectImpl(const V value)
 {
 }
 
-template <class V, class Intf, class ... Intfs>
+template <class V, class Intf, class... Intfs>
+OrdinalObjectImpl<V, Intf, Intfs...>::OrdinalObjectImpl()
+    : value(V {})
+{
+}
+
+template <class V, class Intf, class... Intfs>
 ErrCode OrdinalObjectImpl<V, Intf, Intfs ...>::equals(IBaseObject* other, Bool* equal) const
 {
     if (equal == nullptr)

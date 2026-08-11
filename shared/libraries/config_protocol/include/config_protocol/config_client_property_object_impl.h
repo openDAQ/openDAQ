@@ -526,7 +526,24 @@ ErrCode ConfigClientPropertyObjectBaseImpl<Impl>::remoteUpdate(ISerializedObject
 {
     const ErrCode errCode = daqTry([&serialized, this]
     {
-        onRemoteUpdate(serialized);
+        // ComponentUpdateEnd sets deserializationComplete=false before calling onRemoteUpdate
+        // directly. Nested remoteUpdate (e.g. Dev folder → child device) must do the same —
+        // otherwise setProtectedPropertyValue issues RPCs while the server is still inside
+        // SendOutCoreEvents and deadlocks (worker count = 1).
+        const bool wasComplete = this->deserializationComplete;
+        this->deserializationComplete = false;
+
+        try
+        {
+            onRemoteUpdate(serialized);
+        }
+        catch (...)
+        {
+            this->deserializationComplete = wasComplete;
+            throw;
+        }
+
+        this->deserializationComplete = wasComplete;
         return OPENDAQ_SUCCESS;
     });
     OPENDAQ_RETURN_IF_FAILED(errCode);
@@ -637,31 +654,20 @@ void ConfigClientPropertyObjectBaseImpl<Impl>::updatePropertyValues(const Serial
     const auto hasKeyStr = String("propValues");
     const PropertyObjectPtr thisPtr = this->template borrowPtr<PropertyObjectPtr>();
 
+    ListPtr<IProperty> properties;
+    checkErrorInfo(Impl::getPropertiesInternal(true, true, &properties, true));
+
     if (!serObj.hasKey(hasKeyStr))
     {
-        for (const auto& prop : thisPtr.getAllProperties())
-        {
-            const auto propInternal = prop.asPtrOrNull<IPropertyInternal>(true);
-            if (propInternal.assigned())
-            {
-                const auto valueTypeUnresolved = propInternal.getValueTypeUnresolved();
-                if (propInternal.getReferencedPropertyUnresolved().assigned())
-                    continue;
-                if (valueTypeUnresolved == ctFunc || valueTypeUnresolved == ctProc)
-                    continue;
-            }
-
-            checkErrorInfo(Impl::clearProtectedPropertyValue(prop.getName()));
-        }
-
+        // Frozen nested objects are skipped inside clearPropertyValuesInternal.
+        checkErrorInfo(Impl::clearProtectedPropertyValues());
         return;
     }
     
     const TypeManagerPtr typeManager = this->getTypeManager();
     const auto propValues = serObj.readSerializedObject("propValues");
-    const auto protectedPropObjPtr = thisPtr.asPtr<IPropertyObjectProtected>();
 
-    for (const auto& prop : thisPtr.getAllProperties())
+    for (const auto& prop : properties)
     {
         const auto propName = prop.getName();
         const auto propInternal = prop.asPtrOrNull<IPropertyInternal>(true);
@@ -677,15 +683,24 @@ void ConfigClientPropertyObjectBaseImpl<Impl>::updatePropertyValues(const Serial
 
         if (!propValues.hasKey(propName))
         {
-            checkErrorInfo(Impl::clearProtectedPropertyValue(propName));
+            const ErrCode errCode = Impl::clearProtectedPropertyValue(propName);
+            if (OPENDAQ_FAILED(errCode))
+                daqClearErrorInfo();
             continue;
         }
 
         if (valueTypeUnresolved == ctObject)
         {
-            const ObjectPtr<IConfigClientObject> clientObj = thisPtr.getPropertyValue(propName);
+            const auto propValue = thisPtr.getPropertyValue(propName);
             const auto childSerObj = propValues.readSerializedObject(propName);
-            checkErrorInfo(clientObj->remoteUpdate(childSerObj));
+
+            // Nested property objects that are not networked config-client objects (eg. DeviceInfo's
+            // serverCapabilities/configurationConnectionInfo/activeClientConnections) are plain value
+            // snapshots without persistent identity - replace them wholesale instead of merging.
+            if (const auto clientObj = propValue.asPtrOrNull<IConfigClientObject>(true); clientObj.assigned())
+                checkErrorInfo(clientObj->remoteUpdate(childSerObj));
+            else
+                checkErrorInfo(Impl::setProtectedPropertyValue(propName, propValues.readObject(propName, typeManager)));
         }
         else
         {

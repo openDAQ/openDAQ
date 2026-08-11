@@ -55,7 +55,8 @@ public:
                            ContextPtr context,
                            bool skipDomainSignalSubscribe,
                            const StringPtr& protocolId = nullptr,
-                           bool isClientToDeviceStreamingSupported = false);
+                           bool isClientToDeviceStreamingSupported = false,
+                           const StringPtr& protocolGroupId = nullptr);
 
     ~StreamingImpl() override;
 
@@ -73,6 +74,7 @@ public:
     ErrCode INTERFACE_FUNC removeAllInputPorts() override;
 
     ErrCode INTERFACE_FUNC getOwnerDeviceRemoteId(IString** deviceRemoteId) const override;
+    ErrCode INTERFACE_FUNC getProtocolGroupId(IString** protocolGroupId) const override;
     ErrCode INTERFACE_FUNC getProtocolId(IString** protocolId) const override;
 
     ErrCode INTERFACE_FUNC getClientToDeviceStreamingEnabled(Bool* enabled) const override;
@@ -194,6 +196,7 @@ private:
 
     std::unordered_set<StringPtr, StringHash, StringEqualTo> availableSignalIds;
 
+    StringPtr protocolGroupId;
     StringPtr protocolId;
     const bool isClientToDeviceStreamingSupported;
 
@@ -206,12 +209,14 @@ StreamingImpl<Interfaces...>::StreamingImpl(const StringPtr& connectionString,
                                             ContextPtr context,
                                             bool skipDomainSignalSubscribe,
                                             const StringPtr& protocolId,
-                                            bool isClientToDeviceStreamingSupported)
+                                            bool isClientToDeviceStreamingSupported,
+                                            const StringPtr& protocolGroupId)
     : connectionString(connectionString)
     , context(std::move(context))
     , loggerComponent(this->context.getLogger().getOrAddComponent(fmt::format("Streaming({})", connectionString)))
     , connectionStatus(Enumeration("ConnectionStatusType", "Connected", this->context.getTypeManager()))
     , skipDomainSignalSubscribe(skipDomainSignalSubscribe)
+    , protocolGroupId(protocolGroupId.assigned() ? protocolGroupId : "")
     , protocolId(protocolId)
     , isClientToDeviceStreamingSupported(isClientToDeviceStreamingSupported)
 {
@@ -1085,6 +1090,15 @@ ErrCode StreamingImpl<Interfaces...>::getOwnerDeviceRemoteId(IString** deviceRem
     {
         return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDSTATE, "Owner device is not assigned");
     }
+}
+
+template <typename... Interfaces>
+ErrCode StreamingImpl<Interfaces...>::getProtocolGroupId(IString** protocolGroupId) const
+{
+    OPENDAQ_PARAM_NOT_NULL(protocolGroupId);
+
+    *protocolGroupId = this->protocolGroupId.addRefAndReturn();
+    return OPENDAQ_SUCCESS;
 }
 
 template <typename... Interfaces>

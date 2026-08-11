@@ -83,6 +83,13 @@ DECLARE_OPENDAQ_INTERFACE(IServerCapability, IPropertyObject)
     virtual ErrCode INTERFACE_FUNC getProtocolName(IString** protocolName) = 0;
 
     /*!
+     * @brief Gets the id of the protocol group supported by the device. Should not contain spaces or special characters except for '_' and '-'.
+     * Could be empty if the protocol is not part of any group.
+     * @param[out] protocolGropuId The id of the protocol group.
+     */
+    virtual ErrCode INTERFACE_FUNC getProtocolGroupId(IString** protocolGroupId) = 0;
+
+    /*!
      * @brief Gets the id of the protocol supported by the device. Should not contain spaces or special characters except for '_' and '-'.
      * @param[out] protocolId The id of the protocol.
      */
@@ -140,6 +147,16 @@ DECLARE_OPENDAQ_INTERFACE(IServerCapability, IPropertyObject)
      * @param[out] version The protocol version.
      */
     virtual ErrCode INTERFACE_FUNC getProtocolVersion(IString** version) = 0;
+
+    /*!
+     * @brief Gets the security level of the protocol.
+     * @param[out] securityLevel The security level of the protocol.
+     *
+     * Could be '-1' if the protocol does not define any security level or if the security level is not known,
+     * '0' if the protocol is not secure, and positive integer values for different security levels defined by the protocol.
+     * The higher the value, the more secure the protocol is considered to be.
+     */
+    virtual ErrCode INTERFACE_FUNC getProtocolSecurityLevel(IInteger** securityLevel) = 0;
 };
 /*!@}*/
 

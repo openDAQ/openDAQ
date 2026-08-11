@@ -17,6 +17,7 @@
 
 #include <discovery_server/mdnsdiscovery_server.h>
 #include <discovery_common/daq_discovery_common.h>
+#include <algorithm>
 #include <stdexcept>
 #include <opendaq/utils/thread_name.h>
 
@@ -338,7 +339,13 @@ bool MDNSDiscoveryServer::registerService(const std::string& id, MdnsDiscoveredS
     bool success;
     {
         std::lock_guard<std::mutex> lock(mx);
-        success = services.emplace(id, service).second;
+        const auto range = services.equal_range(id);
+        success = std::none_of(range.first,
+                               range.second,
+                               [&service](const auto& registered)
+                               { return registered.second.serviceName == service.serviceName; });
+        if (success)
+            services.emplace(id, service);
     }
     if (success)
     {
@@ -356,15 +363,14 @@ void MDNSDiscoveryServer::goodbyeMulticast(const MdnsDiscoveredService& service)
 
 bool MDNSDiscoveryServer::unregisterService(const std::string& id)
 {
-    bool success = false;
     std::lock_guard<std::mutex> lock(mx);
-    auto it = services.find(id);
-    if (it != services.end())
-    {
-        success = true;
+
+    const auto range = services.equal_range(id);
+    const bool success = range.first != range.second;
+
+    for (auto it = range.first; it != range.second; ++it)
         goodbyeMulticast(it->second);
-        services.erase(it);
-    }
+    services.erase(range.first, range.second);
 
     return success;
 }

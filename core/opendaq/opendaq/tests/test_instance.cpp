@@ -1231,4 +1231,12 @@ TEST_F(InstanceTest, TestUpdateMissingStaticFB)
     ASSERT_FALSE(fb.isRemoved());
 }
 
+TEST_F(InstanceTest, SetRootDeviceUpdatesContextRootDevice)
+{
+    auto instance = test_helpers::setupInstance();
+    ASSERT_EQ(instance.getRootDevice(), instance.getContext().getRootDevice());
+    
+    instance.setRootDevice("daqmock://phys_device");
+    ASSERT_EQ(instance.getRootDevice(), instance.getContext().getRootDevice());
+}
 END_NAMESPACE_OPENDAQ

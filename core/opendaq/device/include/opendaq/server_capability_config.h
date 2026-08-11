@@ -44,6 +44,13 @@ DECLARE_OPENDAQ_INTERFACE(IServerCapabilityConfig, IServerCapability)
 
     // [returnSelf]
     /*!
+     * @brief Sets the ID of protocol group. Empty protocol group ID means that the protocol is not part of any group.
+     * @param protocolGroupId The ID of protocol group
+     */
+    virtual ErrCode INTERFACE_FUNC setProtocolGroupId(IString* protocolGroupId) = 0;
+
+    // [returnSelf]
+    /*!
      * @brief Sets the ID of protocol
      * @param protocolId The ID of protocol
      */
@@ -107,6 +114,17 @@ DECLARE_OPENDAQ_INTERFACE(IServerCapabilityConfig, IServerCapability)
      * @param version The protocol version
      */
     virtual ErrCode INTERFACE_FUNC setProtocolVersion(IString* version) = 0;
+
+    // [returnSelf]
+    /*!
+     * @brief Sets the security level of the protocol.
+     * @param securityLevel The security level of the protocol.
+     *
+     * Could be '-1' if the protocol does not define any security level or if the security level is not known,
+     * '0' if the protocol is not secure, and positive integer values for different security levels defined by the protocol.
+     * The higher the value, the more secure the protocol is considered to be.
+     */
+    virtual ErrCode INTERFACE_FUNC setProtocolSecurityLevel(IInteger* securityLevel) = 0;
 };
 
 OPENDAQ_DECLARE_CLASS_FACTORY_WITH_INTERFACE(

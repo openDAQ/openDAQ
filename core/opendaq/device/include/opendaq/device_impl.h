@@ -177,10 +177,8 @@ public:
 
     // IPropertyObjectInternal
     ErrCode INTERFACE_FUNC enableCoreEventTrigger() override;
-    ErrCode INTERFACE_FUNC disableCoreEventTrigger() override;
 
 protected:
-    DeviceInfoPtr deviceInfo;
     FolderConfigPtr devices;
     IoFolderConfigPtr ioFolder;
     SyncComponentPtr syncComponent;
@@ -255,6 +253,32 @@ protected:
     DevicePtr getParentDevice();
     OperationModeType getOperationMode();
 
+    class DeviceInfoPtrWrapper : public DeviceInfoPtr
+    {
+    public:
+        explicit DeviceInfoPtrWrapper(GenericDevice* owner) : owner(owner) 
+        { 
+            checkErrorInfo(owner->addCoreProperty(ObjectProperty("DaqDeviceInfo", PropertyObject())));
+        }
+        DeviceInfoPtrWrapper& operator=(const DeviceInfoPtrWrapper&) = delete;
+        DeviceInfoPtrWrapper& operator=(const DeviceInfoPtr& info) { setDeviceInfo(info); DeviceInfoPtr::operator=(info); return *this; }
+    
+    private:
+        friend GenericDevice;
+        GenericDevice* owner;
+        void setDeviceInfo(const DeviceInfoPtr& info) 
+        {
+            if (!info.assigned())
+                return;
+            StringPtr ownerName;
+            checkErrorInfo(owner->getName(&ownerName));
+            info.asPtr<IPropertyObjectProtected>(true).setProtectedPropertyValue(String("name"), ownerName);
+            checkErrorInfo(owner->setDeviceInfo(info));
+        }
+    };
+
+    DeviceInfoPtrWrapper deviceInfo;
+
 private:
     void getChannelsFromFolder(ListPtr<IChannel>& channelList, const FolderPtr& folder, const SearchFilterPtr& searchFilter, bool filterChannels = true);
     ListPtr<ISignal> getSignalsRecursiveInternal(const SearchFilterPtr& searchFilter);
@@ -271,6 +295,7 @@ private:
     void removeDeviceIfNotStatic(const StringPtr& deviceId);
     void removeRemappedDevices(const SerializedObjectPtr& obj, const BaseObjectPtr& context);
     DevicePtr findConnectedDeviceForRemap(const StringPtr& manufacturer, const StringPtr& serialNumber, const StringPtr& connectionString);
+    ErrCode setDeviceInfo(const DeviceInfoPtr& deviceInfo);
 
     DeviceDomainPtr deviceDomain;
     OperationModeType operationMode {OperationModeType::Unknown};
@@ -295,7 +320,7 @@ GenericDevice<TInterface, Interfaces...>::GenericDevice(const ContextPtr& ctx,
               if (!this->coreEventMuted)
                   this->triggerCoreEvent(args);
           }))
-
+    , deviceInfo(this)
 {
     this->defaultComponents.insert("Dev");
     this->defaultComponents.insert("IO");
@@ -328,6 +353,17 @@ DeviceInfoPtr GenericDevice<TInterface, Interfaces...>::onGetInfo()
 }
 
 template <typename TInterface, typename... Interfaces>
+ErrCode GenericDevice<TInterface, Interfaces...>::setDeviceInfo(const DeviceInfoPtr& deviceInfo)
+{
+    if (!deviceInfo.assigned())
+        return OPENDAQ_IGNORED;
+
+    const ErrCode errCode = Self::setProtectedPropertyValue(String("DaqDeviceInfo"), deviceInfo);
+    OPENDAQ_RETURN_IF_FAILED(errCode);
+    return errCode;
+}
+
+template <typename TInterface, typename... Interfaces>
 ErrCode GenericDevice<TInterface, Interfaces...>::getInfo(IDeviceInfo** info)
 {
     OPENDAQ_PARAM_NOT_NULL(info);
@@ -338,16 +374,23 @@ ErrCode GenericDevice<TInterface, Interfaces...>::getInfo(IDeviceInfo** info)
     if (!this->deviceInfo.assigned())
     {
         DeviceInfoPtr devInfo;
-        const ErrCode errCode = wrapHandlerReturn(this, &Self::onGetInfo, devInfo);
-        OPENDAQ_RETURN_IF_FAILED(errCode);
-        this->deviceInfo = devInfo.detach();
+        OPENDAQ_RETURN_IF_FAILED(wrapHandlerReturn(this, &Self::onGetInfo, devInfo));
+        if (devInfo.assigned())
+            this->deviceInfo = devInfo;
     }
-
-    if (this->deviceInfo.assigned())
-        this->deviceInfo.template asPtr<IOwnable>(true).setOwner(this->objPtr);
 
     *info = this->deviceInfo.addRefAndReturn();
     return OPENDAQ_SUCCESS;
+}
+
+template <typename TInterface, typename... Interfaces>
+ErrCode GenericDevice<TInterface, Interfaces...>::enableCoreEventTrigger()
+{
+    // Materialize DaqDeviceInfo while still muted.
+    DeviceInfoPtr info;
+    const ErrCode errCode = getInfo(&info);
+    OPENDAQ_RETURN_IF_FAILED(errCode);
+    return Super::enableCoreEventTrigger();
 }
 
 template <typename TInterface, typename... Interfaces>
@@ -1572,9 +1615,12 @@ PropertyObjectPtr GenericDevice<TInterface, Interfaces...>::onCreateDefaultAddDe
 template <typename TInterface, typename ... Interfaces>
 ErrCode GenericDevice<TInterface, Interfaces...>::setName(IString* name)
 {
-    if (deviceInfo.assigned())
+    DeviceInfoPtr info;
+    OPENDAQ_RETURN_IF_FAILED(getInfo(&info));
+
+    if (info.assigned())
     {
-        auto protected_ = deviceInfo.asPtr<IPropertyObjectProtected>();
+        auto protected_ = info.asPtr<IPropertyObjectProtected>();
         OPENDAQ_RETURN_IF_FAILED(protected_->setProtectedPropertyValue(String("name"), name));
     }
 
@@ -2053,16 +2099,15 @@ void GenericDevice<TInterface, Interfaces...>::serializeCustomObjectValues(const
     {
         if (deviceInfo.assigned())
         {
-            auto connectionString = deviceInfo.getConnectionString();
+            const auto connectionString = deviceInfo.getConnectionString();
             if (connectionString.getLength() != 0)
             {
                 serializer.key("connectionString");
-                serializer.writeString(deviceInfo.getConnectionString());
+                serializer.writeString(connectionString);
             }
 
-            auto manufacturer = deviceInfo.getManufacturer();
-            auto serialNumber = deviceInfo.getSerialNumber();
-
+            const auto manufacturer = deviceInfo.getManufacturer();
+            const auto serialNumber = deviceInfo.getSerialNumber();
             if (manufacturer.getLength() != 0 && serialNumber.getLength() != 0)
             {
                 serializer.key("manufacturer");
@@ -2074,27 +2119,13 @@ void GenericDevice<TInterface, Interfaces...>::serializeCustomObjectValues(const
         }
     }
 
-    if (deviceInfo.assigned())
-    {
-        serializer.key("deviceInfo");
-        if (forUpdate)
-        {
-            deviceInfo.template asPtr<IUpdatable>(true).serializeForUpdate(serializer);
-        }
-        else
-        {
-            deviceInfo.serialize(serializer);
-        }
-    }
-
     if (syncComponent.assigned())
     {
         serializer.key("Synchronization");
-        if(forUpdate) {
+        if (forUpdate)
             syncComponent.template asPtr<IUpdatable>(true).serializeForUpdate(serializer);
-        } else {
+        else
             syncComponent.serialize(serializer);
-        }
     }
 
     serializer.key("UserLock");
@@ -2347,6 +2378,7 @@ void GenericDevice<TInterface, Interfaces...>::DeserializeVersion(const Serializ
 {
     if (!deviceInfo.assigned())
         return;
+
     if (!serialized.hasKey("__version"))
         return;
 
@@ -2381,23 +2413,19 @@ void GenericDevice<TInterface, Interfaces...>::deserializeCustomObjectValues(con
 {
     Super::deserializeCustomObjectValues(serializedObject, context, factoryCallback);
 
+    // Backward compatibility: older payloads used a dedicated "deviceInfo" key.
+    // New format serializes DeviceInfo as the normal DaqDeviceInfo nested property.
+    if (serializedObject.hasKey("deviceInfo"))
+        this->deviceInfo = serializedObject.readObject("deviceInfo", context, factoryCallback);
+
     if (serializedObject.hasKey("isRootDevice"))
         isRootDevice = serializedObject.readBool("isRootDevice");
 
-    if (serializedObject.hasKey("deviceInfo"))
-    {
-        deviceInfo = serializedObject.readObject("deviceInfo", context, factoryCallback);
-    }
-
     if (serializedObject.hasKey("deviceDomain"))
-    {
         deviceDomain = serializedObject.readObject("deviceDomain");
-    }
 
     if (serializedObject.hasKey("Synchronization"))
-    {
         this->template deserializeDefaultFolder<ISyncComponent>(serializedObject, context, factoryCallback, syncComponent, "Synchronization");
-    }
 
     if (serializedObject.hasKey("connectionStatuses"))
     {
@@ -2558,54 +2586,20 @@ void GenericDevice<TInterface, Interfaces...>::updateObject(const SerializedObje
     if (obj.hasKey("UserLock"))
         userLock = obj.readObject("UserLock", context);
 
+    // Backward compatibility with older update payloads that used a dedicated "deviceInfo" key.
+    // New updates carry DeviceInfo via the normal DaqDeviceInfo property value.
     if (obj.hasKey("deviceInfo"))
     {
-        DeviceInfoPtr deviceInfo;
-        this->getInfo(&deviceInfo);
+        DeviceInfoPtr info;
+        checkErrorInfo(this->getInfo(&info));
 
-        if (auto updatableDeviceInfo = deviceInfo.asPtrOrNull<IUpdatable>(true); updatableDeviceInfo.assigned())
+        if (auto updatableDeviceInfo = info.asPtrOrNull<IUpdatable>(true); updatableDeviceInfo.assigned())
         {
             const auto deviceInfoObject = obj.readSerializedObject("deviceInfo");
             updatableDeviceInfo.updateInternal(deviceInfoObject, context);
         }
     }
 
-}
-
-template <typename TInterface, typename ... Interfaces>
-ErrCode GenericDevice<TInterface, Interfaces...>::enableCoreEventTrigger()
-{
-    ErrCode errCode = Super::enableCoreEventTrigger();
-    OPENDAQ_RETURN_IF_FAILED(errCode);
-
-    DeviceInfoPtr deviceInfo;
-    errCode = this->getInfo(&deviceInfo);
-    OPENDAQ_RETURN_IF_FAILED(errCode);
-
-    if (deviceInfo.assigned())
-    {
-        const ErrCode err = deviceInfo.asPtr<IPropertyObjectInternal>(true)->enableCoreEventTrigger();
-        OPENDAQ_RETURN_IF_FAILED(err);
-        return err;
-    }
-
-    return errCode;
-}
-
-template <typename TInterface, typename ... Interfaces>
-ErrCode GenericDevice<TInterface, Interfaces...>::disableCoreEventTrigger()
-{
-    ErrCode errCode = Super::disableCoreEventTrigger();
-    OPENDAQ_RETURN_IF_FAILED(errCode);
-
-    if (this->deviceInfo.assigned())
-    {
-        const ErrCode err = deviceInfo.asPtr<IPropertyObjectInternal>(true)->disableCoreEventTrigger();
-        OPENDAQ_RETURN_IF_FAILED(err);
-        return err;
-    }
-
-    return errCode;
 }
 
 template <typename TInterface, typename ... Interfaces>

@@ -46,52 +46,52 @@ inline BaseObjectPtr dataToObj(void* addr, const SampleType& type, SizeT sampleS
         case SampleType::Float32:
         {
             const auto data = static_cast<float*>(addr);
-            return Floating(*data);
+            return FloatingFromPool(*data);
         }
         case SampleType::Float64:
         {
             const auto data = static_cast<double*>(addr);
-            return Floating(*data);
+            return FloatingFromPool(*data);
         }
         case SampleType::Int8:
         {
             const auto data = static_cast<int8_t*>(addr);
-            return Integer(*data);
+            return IntegerFromPool(*data);
         }
         case SampleType::UInt8:
         {
             const auto data = static_cast<uint8_t*>(addr);
-            return Integer(*data);
+            return IntegerFromPool(*data);
         }
         case SampleType::Int16:
         {
             const auto data = static_cast<int16_t*>(addr);
-            return Integer(*data);
+            return IntegerFromPool(*data);
         }
         case SampleType::UInt16:
         {
             const auto data = static_cast<uint16_t*>(addr);
-            return Integer(*data);
+            return IntegerFromPool(*data);
         }
         case SampleType::Int32:
         {
             const auto data = static_cast<int32_t*>(addr);
-            return Integer(*data);
+            return IntegerFromPool(*data);
         }
         case SampleType::UInt32:
         {
             const auto data = static_cast<uint32_t*>(addr);
-            return Integer(*data);
+            return IntegerFromPool(*data);
         }
         case SampleType::Int64:
         {
             const auto data = static_cast<int64_t*>(addr);
-            return Integer(*data);
+            return IntegerFromPool(*data);
         }
         case SampleType::UInt64:
         {
             const auto data = static_cast<uint64_t*>(addr);
-            return Integer(*data);
+            return IntegerFromPool(*data);
         }
         case SampleType::RangeInt64:
         {
@@ -317,6 +317,7 @@ protected:
     void freeMemory();
     void freeScaledData();
     void initPacket();
+    void updateCalcFlags();
 
     DeleterPtr deleter;
     DataDescriptorPtr descriptor;
@@ -329,6 +330,10 @@ protected:
     void* data;
     void* scaledData;
 
+    // Bytes allocated for scaledData. The buffer is kept across reuse() and only grown when a
+    // larger one is needed, so recomputing does not reallocate.
+    uint32_t scaledDataCapacity = 0;
+
     std::mutex readLock;
 
     bool hasScalingCalc;
@@ -336,6 +341,10 @@ protected:
     bool hasRawDataOnly;
     bool externalMemory;
     bool hasReferenceDomainOffset;
+
+    // Whether scaledData holds the computed form of the packet's current contents. Kept separate
+    // from the pointer so that the allocation can outlive the data it was computed from.
+    bool scaledDataValid = false;
 };
 
 template <typename TInterface, typename... TInterfaces>
@@ -344,6 +353,12 @@ void DataPacketImpl<TInterface, TInterfaces ...>::initPacket()
     if (descriptor.getSampleType() == SampleType::Struct && rawSampleSize != sampleSize)
         DAQ_THROW_EXCEPTION(InvalidParameterException, "Packets with struct implicit descriptor not supported");
 
+    updateCalcFlags();
+}
+
+template <typename TInterface, typename... TInterfaces>
+void DataPacketImpl<TInterface, TInterfaces ...>::updateCalcFlags()
+{
     hasDataRuleCalc = descriptor.asPtr<IDataRuleCalcPrivate>(true)->hasDataRuleCalc();
     hasScalingCalc = descriptor.asPtr<IScalingCalcPrivate>(true)->hasScalingCalc();
 
@@ -568,58 +583,64 @@ ErrCode DataPacketImpl<TInterface, TInterfaces...>::getData(void** address)
         return OPENDAQ_SUCCESS;
     }
 
-    readLock.lock();
+    std::lock_guard lock{readLock};
 
-    if (scaledData)
+    if (scaledDataValid)
     {
         *address = scaledData;
+        return OPENDAQ_SUCCESS;
     }
-    else
+
+    if (sampleCount == 0 || dataSize == 0)
     {
-        if (sampleCount == 0)
-            *address = nullptr;
-        else
-        {
-            ErrCode err = daqTry(
-                [&]()
-                {
-                    if (hasScalingCalc)
-                    {
-                        scaledData = descriptor.asPtr<IScalingCalcPrivate>(true)->scaleData(data, sampleCount);
-                    }
-                    else if (hasDataRuleCalc)
-                    {
-                        scaledData = descriptor.asPtr<IDataRuleCalcPrivate>(true)->calculateRule(offset, sampleCount, data, rawDataSize);
-                    }
-
-                    if (hasReferenceDomainOffset)
-                    {
-                        auto referenceDomainOffsetAdder = std::unique_ptr<ReferenceDomainOffsetAdder>(createReferenceDomainOffsetAdderTyped(
-                            descriptor.getSampleType(), descriptor.getReferenceDomainInfo().getReferenceDomainOffset(), sampleCount));
-
-                        if (data)
-                        {
-                            // Explicit data rule, apply Reference Domain Offset
-                            // Uses malloc to create a new array
-                            scaledData = referenceDomainOffsetAdder->addReferenceDomainOffset(data);
-                        }
-                        else
-                        {
-                            // Linear data rule, apply Reference Domain Offset
-                            // Modifies existing array
-                            referenceDomainOffsetAdder->addReferenceDomainOffset(&scaledData);
-                        }
-                    }
-
-                    *address = scaledData;
-                    return OPENDAQ_SUCCESS;
-                });
-
-            OPENDAQ_RETURN_IF_FAILED(err);
-        }
+        *address = nullptr;
+        return OPENDAQ_SUCCESS;
     }
 
-    readLock.unlock();
+    const ErrCode errCode = daqTry(
+        [this]
+        {
+            if (scaledDataCapacity < dataSize)
+            {
+                std::free(scaledData);
+                scaledDataCapacity = 0;
+
+                scaledData = std::malloc(dataSize);
+                if (scaledData == nullptr)
+                    DAQ_THROW_EXCEPTION(NoMemoryException);
+
+                scaledDataCapacity = dataSize;
+            }
+
+            // The calculators are handed the buffer to write into rather than allocating one of
+            // their own, so the allocation survives reuse() and recomputing costs nothing.
+            if (hasScalingCalc)
+            {
+                descriptor.asPtr<IScalingCalcPrivate>(true)->scaleData(data, sampleCount, &scaledData);
+            }
+            else if (hasDataRuleCalc)
+            {
+                descriptor.asPtr<IDataRuleCalcPrivate>(true)->calculateRule(offset, sampleCount, data, rawDataSize, &scaledData);
+            }
+            else
+            {
+                // Explicit data rule with nothing but a Reference Domain Offset to apply.
+                std::memcpy(scaledData, data, dataSize);
+            }
+
+            if (hasReferenceDomainOffset)
+            {
+                const auto referenceDomainOffsetAdder = std::unique_ptr<ReferenceDomainOffsetAdder>(createReferenceDomainOffsetAdderTyped(
+                    descriptor.getSampleType(), descriptor.getReferenceDomainInfo().getReferenceDomainOffset(), sampleCount));
+
+                referenceDomainOffsetAdder->addReferenceDomainOffset(&scaledData);
+            }
+
+            scaledDataValid = true;
+        });
+    OPENDAQ_RETURN_IF_FAILED(errCode);
+
+    *address = scaledData;
     return OPENDAQ_SUCCESS;
 }
 
@@ -796,6 +817,7 @@ ErrCode DataPacketImpl<TInterface, TInterfaces...>::reuse(IDataDescriptor* newDe
 
         freeMemory();
         scaledData = nullptr;
+        scaledDataCapacity = 0;
 
         memorySize = static_cast<uint32_t>(newRawDataSize);
         data = std::malloc(newRawDataSize);
@@ -808,7 +830,7 @@ ErrCode DataPacketImpl<TInterface, TInterfaces...>::reuse(IDataDescriptor* newDe
         this->callDestructCallbacks();
     }
 
-    this->packetId = generatePacketId();
+    this->packetId = daqGeneratePacketId();
 
     sampleCount = static_cast<uint32_t>(newSampleCount);
     rawSampleSize = static_cast<uint32_t>(newRawSampleSize);
@@ -822,6 +844,11 @@ ErrCode DataPacketImpl<TInterface, TInterfaces...>::reuse(IDataDescriptor* newDe
 
     sampleSize = static_cast<uint32_t>(descriptor.getSampleSize());
     dataSize = sampleCount * sampleSize;
+
+    // A new descriptor can change which calculators apply, and the cached computed data describes
+    // the previous contents in any case. The buffer itself is kept and only grown on demand.
+    updateCalcFlags();
+    scaledDataValid = false;
 
     *success = True;
     return OPENDAQ_SUCCESS;

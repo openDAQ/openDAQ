@@ -1,12 +1,14 @@
 #include <testutils/testutils.h>
 #include <testutils/daq_memcheck_listener.h>
 #include <coreobjects/util.h>
+#include <opendaq/module_manager_init.h>
 
 int main(int argc, char** args)
 {
     daq::daqInitializeCoreObjectsTesting();
 
     testing::InitGoogleTest(&argc, args);
+    daqInitModuleManagerLibrary();
 
     testing::TestEventListeners& listeners = testing::UnitTest::GetInstance()->listeners();
     listeners.Append(new DaqMemCheckListener());

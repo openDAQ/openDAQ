@@ -2,7 +2,7 @@
 #include <cstring>
 
 #if defined(_WIN32) && !defined(__WINPTHREADS_VERSION)
-#include <Windows.h>
+#include <windows.h>
 #endif
 
 #ifdef __linux

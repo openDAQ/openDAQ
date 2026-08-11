@@ -528,6 +528,9 @@ void NativeDeviceImpl::updateDeviceInfo(const StringPtr& connectionString)
 {
     uint16_t configProtocolVersion = clientComm->getProtocolVersion();
 
+    DeviceInfoPtr deviceInfo;
+    checkErrorInfo(getInfo(&deviceInfo));
+
     if (clientComm->getProtocolVersion() < 8)
     {
         auto changeableFields = List<IString>();
@@ -549,11 +552,9 @@ void NativeDeviceImpl::updateDeviceInfo(const StringPtr& connectionString)
             if (const auto propValue = deviceInfo.getPropertyValue(propName); propValue.assigned())
                 deviceInfoInternal->setProtectedPropertyValue(propName, propValue);
         }
-    
-        deviceInfo = newDeviceInfo;
-    }
 
-    deviceInfo.asPtr<IPropertyObjectProtected>(true)->setProtectedPropertyValue(String("connectionString"), connectionString);
+        this->deviceInfo = deviceInfo = newDeviceInfo;
+    }
 
     if (!deviceInfo.hasProperty("NativeConfigProtocolVersion"))
     {
@@ -562,26 +563,28 @@ void NativeDeviceImpl::updateDeviceInfo(const StringPtr& connectionString)
     }
 
     // Set the connection info for the device
-    ServerCapabilityConfigPtr connectionInfo = deviceInfo.getConfigurationConnectionInfo();
-
-    auto host = ConnectionStringUtils::GetHost(connectionString);
+    const auto host = ConnectionStringUtils::GetHost(connectionString);
     const auto addressInfo = AddressInfoBuilder().setAddress(host)
-                                 .setReachabilityStatus(AddressReachabilityStatus::Reachable)
-                                 .setType(ConnectionStringUtils::GetHostType(connectionString))
-                                 .setConnectionString(connectionString)
-                                 .build();
+                                    .setReachabilityStatus(AddressReachabilityStatus::Reachable)
+                                    .setType(ConnectionStringUtils::GetHostType(connectionString))
+                                    .setConnectionString(connectionString)
+                                    .build();
 
-    connectionInfo.setProtocolId(NativeConfigurationDeviceTypeId)
-        .setProtocolName("OpenDAQNativeConfiguration")
-        .setProtocolType(ProtocolType::ConfigurationAndStreaming)
-        .setConnectionType("TCP/IP")
-        .addAddress(host)
-        .setPort(std::stoi(ConnectionStringUtils::GetPort(connectionString).toStdString()))
-        .setPrefix("daq.nd")
-        .setConnectionString(connectionString)
-        .setProtocolVersion(std::to_string(configProtocolVersion))
-        .addAddressInfo(addressInfo)
-        .freeze();
+    ServerCapabilityConfigPtr connectionInfo = ServerCapability(NativeConfigurationDeviceTypeId,
+                                                                "OpenDAQNativeConfiguration",
+                                                                ProtocolType::ConfigurationAndStreaming);
+    connectionInfo.setConnectionType("TCP/IP")
+                  .addAddress(host)
+                  .setPort(std::stoi(ConnectionStringUtils::GetPort(connectionString).toStdString()))
+                  .setPrefix("daq.nd")
+                  .setConnectionString(connectionString)
+                  .setProtocolVersion(std::to_string(configProtocolVersion))
+                  .addAddressInfo(addressInfo)
+                  .freeze();
+
+    auto deviceInfoProtected = deviceInfo.asPtr<IPropertyObjectProtected>(true);
+    deviceInfoProtected.setProtectedPropertyValue("connectionString", connectionString);
+    deviceInfoProtected.setProtectedPropertyValue("configurationConnectionInfo", connectionInfo);
 }
 
 StringPtr ConnectionStringUtils::GetHostType(const StringPtr& url)

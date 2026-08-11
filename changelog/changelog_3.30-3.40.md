@@ -39,6 +39,8 @@
 
 ## Bug fixes
 
+- [#1266](https://github.com/openDAQ/openDAQ/pull/1266) Native client updates `IProperty` metadata that changed on the server during `onUpdateEnded`
+- [#1266](https://github.com/openDAQ/openDAQ/pull/1266) Native client deserializes properties into their `ConfigClient` variant during `onUpdateEnded`
 - [#1219](https://github.com/openDAQ/openDAQ/pull/1219) Fixes reading vector signals with stream reader in python.
 - [#1214](https://github.com/openDAQ/openDAQ/pull/1214) Fixes the order in which packets are enqueued in sendPackets. They are now always correctly enqueued front-to-back.
 - [#1213](https://github.com/openDAQ/openDAQ/pull/1213) Forward device locked state core event in native client.

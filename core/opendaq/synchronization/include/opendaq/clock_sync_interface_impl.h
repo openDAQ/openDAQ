@@ -26,24 +26,12 @@ public:
     using Super = SyncInterfaceBaseImpl<>;
 
     explicit ClockSyncInterfaceImpl();
-
-    // ISyncInterfaceInternal
-    ErrCode INTERFACE_FUNC deactivateAsSource() override;
 };
 
 inline ClockSyncInterfaceImpl::ClockSyncInterfaceImpl()
     : Super("ClockSyncInterface")
 {
     setModeOptions(List<IString>("Input", "Off"));
-}
-
-inline ErrCode ClockSyncInterfaceImpl::deactivateAsSource()
-{
-    auto lock = getRecursiveConfigLock2();
-
-    setMode("Off");
-
-    return OPENDAQ_SUCCESS;
 }
 
 END_NAMESPACE_OPENDAQ

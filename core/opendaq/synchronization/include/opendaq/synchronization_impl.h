@@ -49,14 +49,14 @@ public:
     explicit SynchronizationImpl();
 
     // ISynchronization
-    ErrCode INTERFACE_FUNC getSelectedSource(ISyncInterface** selectedSource) override;
-    ErrCode INTERFACE_FUNC getSourceSynced(Bool* synced) override;
-    ErrCode INTERFACE_FUNC getSourceReferenceDomainId(IString** referenceDomainId) override;
-    ErrCode INTERFACE_FUNC getInterfaces(IDict** interfaces) override;
+    ErrCode INTERFACE_FUNC getSyncInterfaces(IDict** interfaces) override;
+    ErrCode INTERFACE_FUNC getAvailableSources(IDict** interfaces) override;
+    ErrCode INTERFACE_FUNC setSource(ISyncInterface* source, Bool preferAuto) override;
+    ErrCode INTERFACE_FUNC getSource(ISyncInterface** source) override;
+    ErrCode INTERFACE_FUNC getReferenceDomainIds(IList** ids) override;
 
     // ISynchronizationInternal
     ErrCode INTERFACE_FUNC addInterface(ISyncInterface* syncInterface) override;
-
 
     // ISerializable
     ErrCode INTERFACE_FUNC getSerializeId(ConstCharPtr* id) const override;

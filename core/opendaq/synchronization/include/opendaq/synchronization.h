@@ -34,30 +34,18 @@ BEGIN_NAMESPACE_OPENDAQ
  */
 DECLARE_OPENDAQ_INTERFACE(ISynchronization, IBaseObject)
 {
-    /*!
-     * @brief Retrieves the selected sync source interface.
-     * @param[out] selectedSource The selected sync source interface.
-     */
-    virtual ErrCode INTERFACE_FUNC getSelectedSource(ISyncInterface** selectedSource) = 0;
-
-    /*!
-     * @brief Gets whether the source is synced.
-     * @param[out] synced True if the source is synced; false otherwise.
-     */
-    virtual ErrCode INTERFACE_FUNC getSourceSynced(Bool* synced) = 0;
-
-    /*!
-     * @brief Gets the reference domain ID of the source.
-     * @param[out] referenceDomainId The reference domain ID string.
-     */
-    virtual ErrCode INTERFACE_FUNC getSourceReferenceDomainId(IString** referenceDomainId) = 0;
+    // [templateType(interfaces, IString, ISyncInterface)]
+    virtual ErrCode INTERFACE_FUNC getSyncInterfaces(IDict** interfaces) = 0;
 
     // [templateType(interfaces, IString, ISyncInterface)]
-    /*!
-     * @brief Retrieves the dictionary of interfaces associated with this synchronization component.
-     * @param[out] interfaces Dictionary of interfaces associated with this component, where keys are interface names (IString) and values are sync interfaces (ISyncInterface).
-     */
-    virtual ErrCode INTERFACE_FUNC getInterfaces(IDict** interfaces) = 0;
+    virtual ErrCode INTERFACE_FUNC getAvailableSources(IDict** interfaces) = 0;
+
+    virtual ErrCode INTERFACE_FUNC setSource(ISyncInterface* source, Bool preferAuto = true) = 0;
+
+    virtual ErrCode INTERFACE_FUNC getSource(ISyncInterface** source) = 0;
+
+    // [templateType(ids, IString)]
+    virtual ErrCode INTERFACE_FUNC getReferenceDomainIds(IList** ids) = 0;
 };
 /*!@}*/
 

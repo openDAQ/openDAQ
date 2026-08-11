@@ -17,6 +17,7 @@
 #pragma once
 
 #include <coretypes/baseobject.h>
+#include <opendaq/sync_interface.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
@@ -31,10 +32,7 @@ BEGIN_NAMESPACE_OPENDAQ
  */
 DECLARE_OPENDAQ_INTERFACE(ISyncInterfaceInternal, IBaseObject)
 {
-    /*!
-     * @brief Notifies this interface that it is no longer the selected source.
-     */
-    virtual ErrCode INTERFACE_FUNC deactivateAsSource() = 0;
+    virtual ErrCode INTERFACE_FUNC setMode(SyncMode mode) = 0;
 };
 /*!@}*/
 

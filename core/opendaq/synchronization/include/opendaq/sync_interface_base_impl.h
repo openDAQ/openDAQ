@@ -42,15 +42,17 @@ public:
 
     SyncInterfaceBaseImpl();
 
-    explicit SyncInterfaceBaseImpl(const StringPtr& name);
-
     // ISyncInterface
     ErrCode INTERFACE_FUNC getName(IString** name) override;
-    ErrCode INTERFACE_FUNC getSynced(Bool* synced) override;
     ErrCode INTERFACE_FUNC getReferenceDomainId(IString** referenceDomainId) override;
+    ErrCode INTERFACE_FUNC getMode(SyncMode* sourceMode) override;
+    ErrCode INTERFACE_FUNC getAvailableModes(IDict** availableModes) override;
+    ErrCode INTERFACE_FUNC setOutputOnly(Bool outputOnly) override;
+    ErrCode INTERFACE_FUNC getOutputOnly(Bool* outputOnly) override;
+    ErrCode INTERFACE_FUNC getStatusContainer(IComponentStatusContainer** syncStatus) override;
 
     // ISyncInterfaceInternal
-    ErrCode INTERFACE_FUNC deactivateAsSource() override;
+    ErrCode INTERFACE_FUNC setMode(SyncMode mode) override;
 
     // ISerializable
     ErrCode INTERFACE_FUNC getSerializeId(ConstCharPtr* id) const override;
@@ -62,18 +64,24 @@ public:
 
 protected:
     void setModeOptions(const ListPtr<IString>& options);
-    void setMode(const StringPtr& mode);
+    explicit SyncInterfaceBaseImpl(const StringPtr& name); // probably also add available modes and remove setModeOptions
 };
 
 template <typename TInterface, typename... Interfaces>
 SyncInterfaceBaseImpl<TInterface, Interfaces...>::SyncInterfaceBaseImpl()
     : Super()
 {   
-    const auto modeOptions = List<IString>("Input", "Output", "Auto", "Off");
+    const auto modeOptions = Dict<IInteger, IString>({
+        {static_cast<Int>(SyncMode::Off), "Off"},
+        {static_cast<Int>(SyncMode::Input), "Input"},
+        {static_cast<Int>(SyncMode::Output), "Output"},
+        {static_cast<Int>(SyncMode::Auto), "Auto"},
+    });
 
     this->objPtr.addProperty(StringPropertyBuilder("Name", "SyncInterfaceBase").setReadOnly(true).build());
-    this->objPtr.addProperty(ListPropertyBuilder("ModeOptions", modeOptions).setReadOnly(true).setVisible(false).build());
-    this->objPtr.addProperty(StringPropertyBuilder("Mode", "Off").setSelectionValues(EvalValue("$ModeOptions")).build());
+    this->objPtr.addProperty(DictPropertyBuilder("ModeOptions", modeOptions).setReadOnly(true).setVisible(false).build());
+    this->objPtr.addProperty(SparseSelectionPropertyBuilder("Mode", EvalValue("$ModeOptions"), static_cast<Int>(SyncMode::Off)).setReadOnly(true).build());
+    this->objPtr.addProperty(BoolPropertyBuilder("OutputOnly", false).setReadOnly(true).setVisible(false).build());
     this->objPtr.setPropertyOrder(List<IString>("ModeOptions"));
 
     auto statusProperty = PropertyObject();
@@ -101,11 +109,53 @@ ErrCode SyncInterfaceBaseImpl<TInterface, Interfaces...>::getName(IString** name
 }
 
 template <typename TInterface, typename... Interfaces>
-ErrCode SyncInterfaceBaseImpl<TInterface, Interfaces...>::getSynced(Bool* synced)
+ErrCode SyncInterfaceBaseImpl<TInterface, Interfaces...>::getMode(SyncMode* sourceMode)
 {
-    OPENDAQ_PARAM_NOT_NULL(synced);
-    *synced = this->objPtr.getPropertyValue("Status.Synchronized");
+    OPENDAQ_PARAM_NOT_NULL(sourceMode);
+    *sourceMode = static_cast<SyncMode>(this->objPtr.getPropertyValue("Mode").template asPtr<IInteger>());
     return OPENDAQ_SUCCESS;
+}
+
+template <typename TInterface, typename... Interfaces>
+ErrCode SyncInterfaceBaseImpl<TInterface, Interfaces...>::setMode(SyncMode sourceMode)
+{
+    const auto converted = Integer(static_cast<Int>(sourceMode));
+    const ErrCode errCode = this->setProtectedPropertyValue(String("Mode"), converted);
+    OPENDAQ_RETURN_IF_FAILED(errCode);
+    return errCode;
+}
+
+template <typename TInterface, typename... Interfaces>
+ErrCode SyncInterfaceBaseImpl<TInterface, Interfaces...>::getAvailableModes(IDict** availableModes)
+{
+    OPENDAQ_PARAM_NOT_NULL(availableModes);
+    *availableModes = this->objPtr.getPropertyValue("ModeOptions").template as<IDict>();
+    return OPENDAQ_SUCCESS;
+}
+
+template <typename TInterface, typename... Interfaces>
+ErrCode SyncInterfaceBaseImpl<TInterface, Interfaces...>::setOutputOnly(Bool outputOnly)
+{
+    const ErrCode errCode = this->setProtectedPropertyValue(String("OutputOnly"), Boolean(outputOnly));
+    OPENDAQ_RETURN_IF_FAILED(errCode);
+    return errCode;
+}
+
+template <typename TInterface, typename... Interfaces>
+ErrCode SyncInterfaceBaseImpl<TInterface, Interfaces...>::getOutputOnly(Bool* outputOnly)
+{
+    OPENDAQ_PARAM_NOT_NULL(outputOnly);
+    BaseObjectPtr valuePtr;
+    const ErrCode errCode = this->getPropertyValue(String("OutputOnly"), &valuePtr);
+    OPENDAQ_RETURN_IF_FAILED(errCode);
+    OPENDAQ_RETURN_IF_FAILED(valuePtr.asPtr<IBoolean>(true)->getValue(outputOnly));
+    return errCode;
+}
+
+template <typename TInterface, typename... Interfaces>
+ErrCode SyncInterfaceBaseImpl<TInterface, Interfaces...>::getStatusContainer(IComponentStatusContainer** syncStatus)
+{
+    return OPENDAQ_IGNORED;
 }
 
 template <typename TInterface, typename... Interfaces>
@@ -117,21 +167,9 @@ ErrCode SyncInterfaceBaseImpl<TInterface, Interfaces...>::getReferenceDomainId(I
 }
 
 template <typename TInterface, typename... Interfaces>
-ErrCode SyncInterfaceBaseImpl<TInterface, Interfaces...>::deactivateAsSource()
-{
-    return OPENDAQ_IGNORED;
-}
-
-template <typename TInterface, typename... Interfaces>
 void SyncInterfaceBaseImpl<TInterface, Interfaces...>::setModeOptions(const ListPtr<IString>& options)
 {
     this->objPtr.template asPtr<IPropertyObjectProtected>(true).setProtectedPropertyValue("ModeOptions", options);
-}
-
-template <typename TInterface, typename... Interfaces>
-void SyncInterfaceBaseImpl<TInterface, Interfaces...>::setMode(const StringPtr& mode)
-{
-    this->objPtr.setPropertyValue("Mode", mode);
 }
 
 template <typename TInterface, typename... Interfaces>

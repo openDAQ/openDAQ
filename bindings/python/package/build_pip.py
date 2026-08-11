@@ -49,7 +49,7 @@ def auto_wheel_tag(opendaq_path, bin_dir):
     linux_pattern = r'linux'
     windows_pattern = r'win'
     macos_pattern = r'macos|darwin'
-    machine_pattern = r'x86_64|amd64|arm64'
+    machine_pattern = r'x86_64|amd64|arm64|aarch64'
 
     wheel_tag = ''
     if re.search(macos_pattern, opendaq_path):
@@ -61,7 +61,9 @@ def auto_wheel_tag(opendaq_path, bin_dir):
             wheel_tag = macos_tag + '_' + arch
     elif re.search(machine_pattern, opendaq_path):
         if re.search(linux_pattern, opendaq_path):
-            wheel_tag = 'manylinux_2_28_x86_64'
+            arch = 'aarch64' if re.search(
+                r'arm64|aarch64', opendaq_path) else 'x86_64'
+            wheel_tag = 'manylinux_2_28_' + arch
         elif re.search(windows_pattern, opendaq_path):
             wheel_tag = 'win_amd64'
     return wheel_tag
@@ -155,6 +157,9 @@ if not python_version:
     sys.exit(1)
 if not package_version:
     print('Could not detect package version')
+    sys.exit(1)
+if not wheel_tag:
+    print(f'Could not detect wheel tag from {modules.opendaq}')
     sys.exit(1)
 
 print(f'Generating pip package for OpenDAQ ver. {package_version}')

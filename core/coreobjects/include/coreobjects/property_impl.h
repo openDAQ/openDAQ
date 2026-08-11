@@ -1237,6 +1237,91 @@ public:
         return daqDuplicateCharPtr(stream.str().c_str(), str);
     }
 
+    ErrCode INTERFACE_FUNC equals(IBaseObject* other, Bool* equal) const override
+    {
+        OPENDAQ_PARAM_NOT_NULL(equal);
+
+        *equal = false;
+        if (other == nullptr)
+            return OPENDAQ_SUCCESS;
+
+        const ErrCode errCode = daqTry([&]()
+        {
+            const auto otherProperty = BaseObjectPtr::Borrow(other).asPtrOrNull<IProperty>(true);
+            if (!otherProperty.assigned())
+                return OPENDAQ_SUCCESS;
+
+            if (otherProperty.getObject() == propPtr.getObject())
+            {
+                *equal = true;
+                return OPENDAQ_SUCCESS;
+            }
+
+            const auto otherInternal = otherProperty.asPtrOrNull<IPropertyInternal>(true);
+            if (!otherInternal.assigned())
+                return OPENDAQ_SUCCESS;
+
+            if (this->valueType != otherInternal.getValueTypeUnresolved())
+                return OPENDAQ_SUCCESS;
+            if (!equalsMetadataField(this->name, otherProperty.getName()))
+                return OPENDAQ_SUCCESS;
+            if (!equalsMetadataField(this->refProp, otherInternal.getReferencedPropertyUnresolved()))
+                return OPENDAQ_SUCCESS;
+            if (!equalsMetadataField(this->description, otherInternal.getDescriptionUnresolved()))
+                return OPENDAQ_SUCCESS;
+            if (!equalsMetadataField(this->unit, otherInternal.getUnitUnresolved()))
+                return OPENDAQ_SUCCESS;
+            if (!equalsMetadataField(this->minValue, otherInternal.getMinValueUnresolved()))
+                return OPENDAQ_SUCCESS;
+            if (!equalsMetadataField(this->maxValue, otherInternal.getMaxValueUnresolved()))
+                return OPENDAQ_SUCCESS;
+            if (!equalsMetadataField(this->defaultValue, otherInternal.getDefaultValueUnresolved()))
+                return OPENDAQ_SUCCESS;
+            if (!equalsMetadataField(this->readOnly, otherInternal.getReadOnlyUnresolved()))
+                return OPENDAQ_SUCCESS;
+            if (!equalsMetadataField(this->visible, otherInternal.getVisibleUnresolved()))
+                return OPENDAQ_SUCCESS;
+            if (!equalsMetadataField(this->selectionValues, otherInternal.getSelectionValuesUnresolved()))
+                return OPENDAQ_SUCCESS;
+            if (!equalsMetadataField(this->suggestedValues, otherInternal.getSuggestedValuesUnresolved()))
+                return OPENDAQ_SUCCESS;
+
+            const auto thisInternal = propPtr.asPtr<IPropertyInternal>(true);
+            if (thisInternal.getHasOnReadListeners() != otherInternal.getHasOnReadListeners())
+                return OPENDAQ_SUCCESS;
+            if (thisInternal.getHasOnGetSelectionValuesListeners() != otherInternal.getHasOnGetSelectionValuesListeners())
+                return OPENDAQ_SUCCESS;
+            if (thisInternal.getHasOnGetSuggestedValuesListeners() != otherInternal.getHasOnGetSuggestedValuesListeners())
+                return OPENDAQ_SUCCESS;
+
+            if (!this->refProp.assigned())
+            {
+                if (!equalsEvalField(this->coercer, otherInternal.getCoercerNoLock()))
+                    return OPENDAQ_SUCCESS;
+                if (!equalsEvalField(this->validator, otherInternal.getValidatorNoLock()))
+                    return OPENDAQ_SUCCESS;
+                if (!equalsMetadataField(this->callableInfo, otherInternal.getCallableInfoNoLock()))
+                    return OPENDAQ_SUCCESS;
+            }
+
+            if (this->selectionValues.assigned() && !this->selectionValues.asPtrOrNull<IEvalValue>(true).assigned())
+            {
+                PropertyType otherType = PropertyType::Undefined;
+                OPENDAQ_RETURN_IF_FAILED(otherProperty->getPropertyType(&otherType));
+
+                const PropertyType thisType =
+                    this->propertyType != PropertyType::Undefined ? this->propertyType : inferPropertyTypeFromMetadata();
+                if (thisType != otherType)
+                    return OPENDAQ_SUCCESS;
+            }
+
+            *equal = true;
+            return OPENDAQ_SUCCESS;
+        });
+        OPENDAQ_RETURN_IF_FAILED(errCode);
+        return errCode;
+    }
+
     //
     // ISerializable
     //
@@ -1764,6 +1849,34 @@ private:
 
         // Fallback: mirror CoreType
         return static_cast<PropertyType>(this->valueType);
+    }
+
+    // Value comparison; EvalValues are compared via their eval strings, without evaluation.
+    static bool equalsMetadataField(const BaseObjectPtr& a, const BaseObjectPtr& b)
+    {
+        if (!a.assigned() || !b.assigned())
+            return a.assigned() == b.assigned();
+
+        const auto evalA = a.asPtrOrNull<IEvalValue>(true);
+        const auto evalB = b.asPtrOrNull<IEvalValue>(true);
+        if (evalA.assigned() || evalB.assigned())
+        {
+            if (!evalA.assigned() || !evalB.assigned())
+                return false;
+            return evalA.getEval() == evalB.getEval();
+        }
+
+        Bool eq = False;
+        return OPENDAQ_SUCCEEDED(a->equals(b, &eq)) && eq;
+    }
+
+    // Coercers and validators have no value-based equals; compared via their eval strings.
+    template <typename TPtr>
+    static bool equalsEvalField(const TPtr& a, const TPtr& b)
+    {
+        if (!a.assigned() || !b.assigned())
+            return a.assigned() == b.assigned();
+        return a.getEval() == b.getEval();
     }
 
     PropertyPtr bindAndGetRefProp(bool lock)

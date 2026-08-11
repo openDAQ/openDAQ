@@ -61,6 +61,19 @@ BEGIN_NAMESPACE_OPENDAQ
 
 namespace test_helpers
 {
+    // Mirrors the ICMP availability gate in ModuleManagerImpl::checkNetworkSettings: on
+    // Linux/macOS, ICMP ping (and thus active IPv4 reachability detection during discovery)
+    // requires root. Windows has no such restriction.
+    [[maybe_unused]]
+    inline bool icmpPingAvailable()
+    {
+#if defined(__linux__) || defined(__APPLE__)
+        return geteuid() == 0;
+#else
+        return true;
+#endif
+    }
+
     [[maybe_unused]]
     inline void setupSubscribeAckHandler(
         std::promise<StringPtr>& acknowledgementPromise,

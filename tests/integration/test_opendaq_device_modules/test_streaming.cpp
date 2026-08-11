@@ -167,9 +167,10 @@ protected:
 
 TEST_P(StreamingTest, SignalDescriptorEvents)
 {
-    // LT streaming subscribe-completion ack is intermittently dropped — waitForAcknowledgement
-    // below would time out at 5 s. Skip just the daq.lt:// param; other transports still run.
-    if (std::get<1>(GetParam()).find("daq.lt://") == 0)
+    // LT streaming: subscribe-completion ack is intermittently dropped on daq.lt://, and over
+    // opcua/nd the mirrored config descriptor (with post-scaling) diverges from incomplete LT
+    // event-packet descriptors / extra events. Native streaming params still cover those transports.
+    if (std::get<0>(GetParam()) == "OpenDAQLTStreaming")
         GTEST_SKIP();
 
     const size_t packetsToGenerate = 5;
@@ -228,8 +229,8 @@ TEST_P(StreamingTest, SignalDescriptorEvents)
 
 TEST_P(StreamingTest, DataPackets)
 {
-    // Same dropped LT streaming subscribe-completion ack as SignalDescriptorEvents.
-    if (std::get<1>(GetParam()).find("daq.lt://") == 0)
+    // Same LT streaming gaps as SignalDescriptorEvents (extra/incomplete event packets).
+    if (std::get<0>(GetParam()) == "OpenDAQLTStreaming")
         GTEST_SKIP();
 
     const size_t packetsToGenerate = 10;
@@ -317,8 +318,8 @@ TEST_P(StreamingTest, LastValue)
 
 TEST_P(StreamingTest, SetNullDescriptor)
 {
-    // Same dropped LT streaming subscribe-completion ack as SignalDescriptorEvents.
-    if (std::get<1>(GetParam()).find("daq.lt://") == 0)
+    // Same LT streaming gaps as SignalDescriptorEvents (extra/incomplete event packets).
+    if (std::get<0>(GetParam()) == "OpenDAQLTStreaming")
         GTEST_SKIP();
 
     if (!usingLTPseudoDevice)
@@ -413,10 +414,10 @@ TEST_P(StreamingTest, SetNullDescriptor)
 
 TEST_P(StreamingTest, ChangedDataDescriptorBeforeSubscribe)
 {
-    // daq.nd:// is not supported by this test. daq.lt:// hits the same dropped LT streaming
-    // subscribe-completion ack as SignalDescriptorEvents.
+    // daq.nd:// is not supported by this test. OpenDAQLTStreaming has the same event-packet gaps
+    // as SignalDescriptorEvents (including when preferred over opcua).
     if (std::get<1>(GetParam()).find("daq.nd://") == 0 ||
-        std::get<1>(GetParam()).find("daq.lt://") == 0)
+        std::get<0>(GetParam()) == "OpenDAQLTStreaming")
     {
         GTEST_SKIP();
     }

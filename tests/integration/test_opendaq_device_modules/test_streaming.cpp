@@ -158,7 +158,7 @@ protected:
 
 #ifdef ENABLE_ALTERNATIVE_LT_STREAMING_TESTS
         if (usingSecureLTStreaming)
-            test_helpers::lt_tls::applySecureDeviceConfig(config);
+            test_helpers::lt_tls::applySecureClientConfig(config);
 #endif
 
         auto device = instance.addDevice(connectionString, config);
@@ -872,12 +872,14 @@ public:
         suite.push_back(std::make_tuple("OpenDAQLTStreaming", "daq.opcua://127.0.0.1/"));
         suite.push_back(std::make_tuple("OpenDAQLTStreaming", "daq.opcua://[::1]/"));
 
-        // TODO: the secure channel can only be reached through a direct daq.lts:// connection. The LT
-        // server advertises just the plaintext OpenDAQLTStreaming capability (see WsStreamingServer::addCapability()
-        // and getDiscoveryConfig()), so a config device (daq.nd:// / daq.opcua://) cannot pick the secure
-        // streaming protocol yet. Add those parameters once the server can advertise multiple prefixes/protocols
         suite.push_back(std::make_tuple("OpenDAQLTStreamingSecure", "daq.lts://127.0.0.1/"));
         suite.push_back(std::make_tuple("OpenDAQLTStreamingSecure", "daq.lts://[::1]/"));
+#if defined(OPENDAQ_ENABLE_NATIVE_STREAMING)
+        suite.push_back(std::make_tuple("OpenDAQLTStreamingSecure", "daq.nd://127.0.0.1/"));
+        suite.push_back(std::make_tuple("OpenDAQLTStreamingSecure", "daq.nd://[::1]/"));
+#endif
+        suite.push_back(std::make_tuple("OpenDAQLTStreamingSecure", "daq.opcua://127.0.0.1/"));
+        suite.push_back(std::make_tuple("OpenDAQLTStreamingSecure", "daq.opcua://[::1]/"));
         return suite;
     }
 
@@ -1245,6 +1247,30 @@ TEST_P(StreamingTestForModernLt, MultipleSignalsConcurrent)
                 << "signal " << signalNames[i];
         }
     }
+}
+
+// The client must end up on the channel it prioritized. With the TLS channel enabled the server publishes
+// both the plaintext and the secure capability (see WsStreamingServer::addCapability()), so behind a config
+// channel (daq.nd:// / daq.opcua://) picking the wrong one would silently downgrade the connection to
+// plaintext while every other test still passes
+TEST_P(StreamingTestForModernLt, ActiveStreamingSource)
+{
+    const std::string expectedPrefix = usingSecureLTStreaming ? "daq.lts://" : "daq.lt://";
+
+    // Give the client time to do async work related to signal creation
+    // Otherwise getSignal() on the client may not find it yet
+    CONDITIONAL_SLEEP;
+    auto mirroredSignalPtr = getSignal(clientInstance, "ByteStep").template asPtr<IMirroredSignalConfig>();
+
+    const StringPtr activeSource = mirroredSignalPtr.getActiveStreamingSource();
+    ASSERT_TRUE(activeSource.assigned());
+    EXPECT_EQ(activeSource.toStdString().rfind(expectedPrefix, 0), 0u) << "active streaming source: " << activeSource;
+
+    // MinConnections (the default heuristic) connects the single prioritized protocol only
+    const auto sources = mirroredSignalPtr.getStreamingSources();
+    EXPECT_EQ(sources.getCount(), 1u);
+    for (const StringPtr& source : sources)
+        EXPECT_EQ(source.toStdString().rfind(expectedPrefix, 0), 0u) << "streaming source: " << source;
 }
 
 TEST_P(StreamingTestForModernLt, LastValue)
@@ -1635,29 +1661,12 @@ protected:
     ServerPtr streamingServer;
 };
 
-// DISABLED: this test aborts the whole process (SIGABRT)
-// It aborts on the main thread during the re-add server step,
-// restoreStreamingServer() -> serverInstance.addServer("OpenDAQLTStreaming"), inside the WsStreamingServer constructor.
-// Trace:
-//  - restoreStreamingServer()
-//  - <...>
-//  - Module::createServer   // == addServer("OpenDAQLTStreaming")
-//  - <...>
-//  - WsStreamingServer::WsStreamingServer(...)
-//  - addCapability()
-//      - throw InvalidStateException because the "OpenDAQLTStreaming" capability is still registered
-//          from the previous instance (removeServer() does not remove it from the device info)
-//  - <constructor unwinding>
-//  - std::thread::~thread() for _thread in WsStreamingServer
-//  - std::terminate
+// DISABLED: the client never reconnects after the streaming server is restored
 //
-// Two cooperating bugs in the LtStreamingModulesModern shared/libraries/websocket_streaming/src/ws_streaming_server.cpp:
-//   1) Capability leak. WsStreamingServer::onStopServer() stops/joins the io thread but
-//      never removes the "OpenDAQLTStreaming" server capability it registered in addCapability()
-//      After removeServer() the device info still advertises that capability
-//   2) The constructor is not exception safe. On re-add the ctor first spawns its thread
-//      and then calls addCapability(). If addCapability() throw an exeption then unwinding the half-built object destroys
-//      the still joinable _thread with no join()/detach()
+// after removeStreamingServer() the client marks every signal as unavailable, and once
+// restoreStreamingServer() brings the server back the existing streaming object does not re-establish the
+// connection - no re-subscribe acknowledgement arrives and the test times out waiting for it
+// Re-enable the test once the LT streaming client reconnects on its own
 
 TEST_P(StreamingReconnectionTestForModernLt, DISABLED_Reconnection)
 {

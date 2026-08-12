@@ -27,7 +27,11 @@ BEGIN_NAMESPACE_OPENDAQ
 namespace test_helpers::lt_tls
 {
     inline constexpr const char* ServerTypeId = "OpenDAQLTStreaming";
-    inline constexpr const char* SecureDeviceTypeId = "OpenDAQLTStreamingSecure";
+    inline constexpr const char* PlainProtocolId = "OpenDAQLTStreaming";
+    inline constexpr const char* SecureProtocolId = "OpenDAQLTStreamingSecure";
+    // the secure device and streaming types share the protocol ID
+    inline constexpr const char* SecureDeviceTypeId = SecureProtocolId;
+    inline constexpr const char* SecureStreamingTypeId = SecureProtocolId;
 
     inline constexpr const char* CaCert = "secrets/ca.crt";
     inline constexpr const char* ServerCert = "secrets/server.crt";
@@ -58,16 +62,22 @@ namespace test_helpers::lt_tls
         return config;
     }
 
-    // The same values as secureDeviceConfig(), applied to the secure device type section of a general
-    // add-device configuration (the object returned by createDefaultAddDeviceConfig())
+    // The same values as secureDeviceConfig(), applied to the secure sections of a general add-device
+    // configuration (the object returned by createDefaultAddDeviceConfig())
+    // The device type section is used by a direct daq.lts:// connection, the streaming type section by a
+    // streaming connection established from a server capability behind a config channel
+    // (daq.nd:// / daq.opcua://)
     [[maybe_unused]]
-    inline void applySecureDeviceConfig(const PropertyObjectPtr& addDeviceConfig)
+    inline void applySecureClientConfig(const PropertyObjectPtr& addDeviceConfig)
     {
-        const auto prefix = std::string("Device.") + SecureDeviceTypeId + ".";
-        addDeviceConfig.setPropertyValue(prefix + "EnableMutualTls", true);
-        addDeviceConfig.setPropertyValue(prefix + "CertificateFilePath", ClientCert);
-        addDeviceConfig.setPropertyValue(prefix + "KeyFilePath", ClientKey);
-        addDeviceConfig.setPropertyValue(prefix + "CaCertificateFilePath", CaCert);
+        for (const auto& prefix : {std::string("Device.") + SecureDeviceTypeId + ".",
+                                   std::string("Streaming.") + SecureStreamingTypeId + "."})
+        {
+            addDeviceConfig.setPropertyValue(prefix + "EnableMutualTls", true);
+            addDeviceConfig.setPropertyValue(prefix + "CertificateFilePath", ClientCert);
+            addDeviceConfig.setPropertyValue(prefix + "KeyFilePath", ClientKey);
+            addDeviceConfig.setPropertyValue(prefix + "CaCertificateFilePath", CaCert);
+        }
     }
 }
 

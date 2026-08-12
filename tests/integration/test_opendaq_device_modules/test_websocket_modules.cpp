@@ -107,8 +107,6 @@ static std::string ChannelName(const testing::TestParamInfo<Channel>& info)
 }
 
 // Tests which are not specific to one channel and run over both of them.
-// Discovery-based tests are deliberately not here: the LT server advertises only its plaintext
-// capability (see WsStreamingServer::addCapability() / getDiscoveryConfig())
 class WebsocketModulesChannelTest : public WebsocketModulesTest, public testing::WithParamInterface<Channel>
 {
 public:
@@ -144,6 +142,15 @@ public:
             return test_helpers::lt_tls::secureServerConfig(server);
 #endif
         return nullptr;
+    }
+
+    // Same as serverConfig(), but always assigned so the caller can set further properties (path, port, ...)
+    PropertyObjectPtr serverConfigWithDefaults(const InstancePtr& server) const
+    {
+        const auto config = serverConfig(server);
+        if (config.assigned())
+            return config;
+        return server.getAvailableServerTypes().get("OpenDAQLTStreaming").createDefaultConfig();
     }
 
     PropertyObjectPtr deviceConfig([[maybe_unused]] const InstancePtr& client) const
@@ -209,7 +216,17 @@ TEST_P(WebsocketModulesChannelTest, ConnectAndDisconnectBackwardCompatibility)
 
     auto client = Instance("[[none]]");
     addLtClientModule(client);
-    client.addDevice(secure() ? "daq.wss://127.0.0.1/" : "daq.ws://127.0.0.1/", deviceConfig(client));
+
+    // daq.ws:// is the legacy alias of the plaintext daq.lt:// channel. The secure channel was introduced
+    // together with daq.lts:// and has no legacy alias: the client module accepts daq.ws, daq.lt and
+    // daq.lts only, so daq.wss:// must be rejected
+    if (secure())
+    {
+        ASSERT_THROW(client.addDevice("daq.wss://127.0.0.1/", deviceConfig(client)), NotFoundException);
+        return;
+    }
+
+    client.addDevice("daq.ws://127.0.0.1/", deviceConfig(client));
 }
 
 TEST_P(WebsocketModulesChannelTest, ConnectViaIpv6)
@@ -256,7 +273,7 @@ TEST_F(WebsocketModulesTest, PopulateDefaultConfigFromProvider)
     ASSERT_EQ(serverConfig.getPropertyValue("Path").asPtr<IString>(), "/some/path");
 }
 
-TEST_F(WebsocketModulesTest, DiscoveringServer)
+TEST_P(WebsocketModulesChannelTest, DiscoveringServer)
 {
     auto server = InstanceBuilder()
         .setModulePath("[[none]]")
@@ -268,10 +285,10 @@ TEST_F(WebsocketModulesTest, DiscoveringServer)
     server.addDevice("daqref://device1");
 
     addLtServerModule(server);
-    auto serverConfig = server.getAvailableServerTypes().get("OpenDAQLTStreaming").createDefaultConfig();
+    auto config = serverConfigWithDefaults(server);
     auto path = "/test/streaming_lt/discovery/";
-    serverConfig.setPropertyValue("Path", path);
-    server.addServer("OpenDAQLTStreaming", serverConfig).enableDiscovery();
+    config.setPropertyValue("Path", path);
+    server.addServer("OpenDAQLTStreaming", config).enableDiscovery();
 
     auto client = Instance("[[none]]");
     addLtClientModule(client);
@@ -281,13 +298,13 @@ TEST_F(WebsocketModulesTest, DiscoveringServer)
     {
         for (const auto & capability : deviceInfo.getServerCapabilities())
         {
-            if (!test_helpers::isSufix(deviceInfo.getConnectionString(), path))
+            if (!test_helpers::isSufix(capability.getConnectionString(), path))
             {
-                break;
+                continue;
             }
-            if (capability.getProtocolName() == "OpenDAQLTStreaming")
+            if (capability.getProtocolName() == expectedProtocolId())
             {
-                device = client.addDevice(deviceInfo.getConnectionString(), nullptr);
+                device = client.addDevice(capability.getConnectionString(), deviceConfig(client));
                 return;
             }
         }
@@ -296,7 +313,7 @@ TEST_F(WebsocketModulesTest, DiscoveringServer)
 }
 
 
-TEST_F(WebsocketModulesTest, CheckDeviceInfoPopulatedWithProvider)
+TEST_P(WebsocketModulesChannelTest, CheckDeviceInfoPopulatedWithProvider)
 {
     std::string filename = "populateDefaultConfig.json";
     std::string json = R"(
@@ -332,8 +349,8 @@ TEST_F(WebsocketModulesTest, CheckDeviceInfoPopulatedWithProvider)
     instance.addDevice("daqref://device1");
 
     addLtServerModule(instance);
-    auto serverConfig = instance.getAvailableServerTypes().get("OpenDAQLTStreaming").createDefaultConfig();
-    instance.addServer("OpenDAQLTStreaming", serverConfig).enableDiscovery();
+    auto config = serverConfigWithDefaults(instance);
+    instance.addServer("OpenDAQLTStreaming", config).enableDiscovery();
 
     auto client = Instance("[[none]]");
     addLtClientModule(client);
@@ -342,14 +359,14 @@ TEST_F(WebsocketModulesTest, CheckDeviceInfoPopulatedWithProvider)
     {
         for (const auto & capability : deviceInfo.getServerCapabilities())
         {
-            if (capability.getProtocolName() == "OpenDAQLTStreaming")
+            if (capability.getProtocolName() == expectedProtocolId())
             {
                 if (!test_helpers::isSufix(capability.getConnectionString(), path))
                 {
-                    break;
+                    continue;
                 }
 
-                client.addDevice(capability.getConnectionString(), nullptr);
+                client.addDevice(capability.getConnectionString(), deviceConfig(client));
                 ASSERT_EQ(deviceInfo.getName(), rootInfo.getName());
                 ASSERT_EQ(deviceInfo.getManufacturer(), rootInfo.getManufacturer());
                 ASSERT_EQ(deviceInfo.getModel(), rootInfo.getModel());
@@ -362,7 +379,7 @@ TEST_F(WebsocketModulesTest, CheckDeviceInfoPopulatedWithProvider)
     ASSERT_TRUE(false) << "Device not found";
 }
 
-TEST_F(WebsocketModulesTest, TestDiscoveryReachability)
+TEST_P(WebsocketModulesChannelTest, TestDiscoveryReachability)
 {
     bool checkIPv6 = !test_helpers::Ipv6IsDisabled();
     // ICMP ping (and thus active IPv4 reachability detection) requires root on Linux/macOS.
@@ -376,11 +393,11 @@ TEST_F(WebsocketModulesTest, TestDiscoveryReachability)
 
     addLtServerModule(instance);
 
-    auto serverConfig = instance.getAvailableServerTypes().get("OpenDAQLTStreaming").createDefaultConfig();
+    auto config = serverConfigWithDefaults(instance);
     auto path = "/test/native_configurator/discovery_reachability/";
-    serverConfig.setPropertyValue("Path", path);
+    config.setPropertyValue("Path", path);
 
-    instance.addServer("OpenDAQLTStreaming", serverConfig).enableDiscovery();
+    instance.addServer("OpenDAQLTStreaming", config).enableDiscovery();
 
     auto client = Instance("[[none]]");
     addLtClientModule(client);
@@ -390,9 +407,9 @@ TEST_F(WebsocketModulesTest, TestDiscoveryReachability)
         for (const auto & capability : deviceInfo.getServerCapabilities())
         {
             if (!test_helpers::isSufix(capability.getConnectionString(), path))
-                break;
-            
-            if (capability.getProtocolName() != "OpenDAQLTStreaming")
+                continue;
+
+            if (capability.getProtocolName() != expectedProtocolId())
                 continue;
 
             bool hasIPv4 = false;
@@ -424,6 +441,76 @@ TEST_F(WebsocketModulesTest, TestDiscoveryReachability)
     ASSERT_TRUE(false) << "Device not found";
 }
 
+#ifndef DAQMODULES_LT_LEGACY_MODULES
+// A server with the TLS channel enabled keeps serving the plaintext one and advertises both services
+// (_streaming-lt._tcp and _streaming-lts._tcp). Both capabilities are merged into a single discovered device
+// info, because the root device info provides a manufacturer and a serial number to group them by
+TEST_F(WebsocketModulesTest, DiscoveringBothChannels)
+{
+    const std::string path = "/test/streaming_lt/discovery/both_channels/";
+
+    auto rootInfo = DeviceInfo("");
+    rootInfo.setName("TestName");
+    rootInfo.setManufacturer("TestManufacturer");
+    rootInfo.setSerialNumber("TestSerialNumberBothChannels");
+
+    auto server = InstanceBuilder()
+        .setModulePath("[[none]]")
+        .addDiscoveryServer("mdns")
+        .setDefaultRootDeviceInfo(rootInfo)
+        .build();
+
+    addRefDeviceModule(server);
+    server.addDevice("daqref://device1");
+
+    addLtServerModule(server);
+    auto config = test_helpers::lt_tls::secureServerConfig(server);
+    config.setPropertyValue("Path", path);
+    server.addServer("OpenDAQLTStreaming", config).enableDiscovery();
+
+    auto client = Instance("[[none]]");
+    addLtClientModule(client);
+
+    DeviceInfoPtr discovered;
+    for (const auto& deviceInfo : client.getAvailableDevices())
+    {
+        for (const auto& capability : deviceInfo.getServerCapabilities())
+        {
+            if (test_helpers::isSufix(capability.getConnectionString(), path))
+            {
+                discovered = deviceInfo;
+                break;
+            }
+        }
+        if (discovered.assigned())
+            break;
+    }
+    ASSERT_TRUE(discovered.assigned()) << "Device not found";
+
+    ASSERT_TRUE(discovered.hasServerCapability(test_helpers::lt_tls::PlainProtocolId));
+    ASSERT_TRUE(discovered.hasServerCapability(test_helpers::lt_tls::SecureProtocolId));
+
+    const auto plainCap = discovered.getServerCapability(test_helpers::lt_tls::PlainProtocolId);
+    const auto secureCap = discovered.getServerCapability(test_helpers::lt_tls::SecureProtocolId);
+
+    ASSERT_EQ(plainCap.getProtocolType(), ProtocolType::Streaming);
+    ASSERT_EQ(secureCap.getProtocolType(), ProtocolType::Streaming);
+    ASSERT_EQ(plainCap.getPrefix(), "daq.lt");
+    ASSERT_EQ(secureCap.getPrefix(), "daq.lts");
+    ASSERT_EQ(plainCap.getPort(), 7414);
+    ASSERT_EQ(secureCap.getPort(), 7415);
+    // both channels belong to the same protocol group, so a client can pick either of them
+    ASSERT_EQ(secureCap.getProtocolGroupId(), plainCap.getProtocolGroupId());
+    // and the secure one wins whenever protocols are ordered by their security level
+    ASSERT_GT(secureCap.getProtocolSecurityLevel(), plainCap.getProtocolSecurityLevel());
+
+    auto device = client.addDevice(secureCap.getConnectionString(), test_helpers::lt_tls::secureDeviceConfig(client));
+    const auto connectionInfo = device.getInfo().getConfigurationConnectionInfo();
+    ASSERT_EQ(connectionInfo.getProtocolId(), test_helpers::lt_tls::SecureProtocolId);
+    ASSERT_EQ(connectionInfo.getPort(), 7415);
+}
+#endif
+
 TEST_P(WebsocketModulesChannelTest, GetConnectedClientsInfo)
 {
     auto server = CreateServerInstance();
@@ -432,7 +519,8 @@ TEST_P(WebsocketModulesChannelTest, GetConnectedClientsInfo)
     // one streaming connection
     auto serverSideClientsInfo = server.getRootDevice().getInfo().getConnectedClientsInfo();
     ASSERT_EQ(serverSideClientsInfo.getCount(), 1u);
-    ASSERT_EQ(serverSideClientsInfo[0].getProtocolName(), "OpenDAQLTStreaming");
+    // the server reports the protocol the client arrived on, so the two channels are told apart
+    ASSERT_EQ(serverSideClientsInfo[0].getProtocolName(), expectedProtocolId());
     ASSERT_EQ(serverSideClientsInfo[0].getHostName(), "");
     ASSERT_TRUE(serverSideClientsInfo[0].getAddress().toStdString().find("127.0.0.1") != std::string::npos);
     ASSERT_EQ(serverSideClientsInfo[0].getClientTypeName(), "");

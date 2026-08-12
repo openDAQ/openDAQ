@@ -374,12 +374,14 @@ ErrCode InstanceImpl::setRootDevice(IString* connectionString, IPropertyObject* 
         OPENDAQ_RETURN_IF_FAILED(context.asPtr<IContextInternal>(true)->setRootDevice(rootDevice));
     }
 
-    for (const auto& [_, discoveryServer] : context.getDiscoveryServers())
-        discoveryServer.asPtr<IDiscoveryServer>(true).setRootDevice(rootDevice);
-
     LOG_I("Root device explicitly set to {}", connectionStringPtr);
 
     this->rootDevice.asPtr<IPropertyObjectInternal>(true).enableCoreEventTrigger();
+
+    // Register discovery after DeviceInfo is nested and shares the device mutex.
+    for (const auto& [_, discoveryServer] : context.getDiscoveryServers())
+        discoveryServer.asPtr<IDiscoveryServer>(true).setRootDevice(rootDevice);
+
     return OPENDAQ_SUCCESS;
 }
 

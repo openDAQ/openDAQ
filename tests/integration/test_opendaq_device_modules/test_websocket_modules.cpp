@@ -1,5 +1,6 @@
 #include "test_helpers/test_helpers.h"
 #include <coreobjects/authentication_provider_factory.h>
+#include <thread>
 
 #include "test_helpers/device_modules.h"
 #include "test_helpers/lt_tls.h"
@@ -361,11 +362,12 @@ TEST_F(WebsocketModulesTest, CheckDeviceInfoPopulatedWithProvider)
     ASSERT_TRUE(false) << "Device not found";
 }
 
-#ifdef _WIN32
-
 TEST_F(WebsocketModulesTest, TestDiscoveryReachability)
 {
     bool checkIPv6 = !test_helpers::Ipv6IsDisabled();
+    // ICMP ping (and thus active IPv4 reachability detection) requires root on Linux/macOS.
+    const auto expectedIpv4Reachability =
+        test_helpers::icmpPingAvailable() ? AddressReachabilityStatus::Reachable : AddressReachabilityStatus::Unknown;
 
     auto instance = InstanceBuilder()
         .setModulePath("[[none]]")
@@ -403,26 +405,24 @@ TEST_F(WebsocketModulesTest, TestDiscoveryReachability)
                 if (addressInfo.getType() == "IPv4")
                 {
                     hasIPv4 = true;
-                    ASSERT_EQ(addressInfo.getReachabilityStatus(), AddressReachabilityStatus::Reachable);
+                    ASSERT_EQ(addressInfo.getReachabilityStatus(), expectedIpv4Reachability);
                 }
                 else if (addressInfo.getType() == "IPv6")
                 {
                     hasIPv6 = true;
                     ASSERT_EQ(addressInfo.getReachabilityStatus(), AddressReachabilityStatus::Unknown);
                 }
-                
+
                 if (hasIPv4 && (hasIPv6 || !checkIPv6))
                     return;
 
                 cnt++;
             }
-        }      
+        }
     }
 
     ASSERT_TRUE(false) << "Device not found";
 }
-
-#endif
 
 TEST_P(WebsocketModulesChannelTest, GetConnectedClientsInfo)
 {
@@ -478,6 +478,7 @@ TEST_P(WebsocketModulesChannelTest, SignalConfig_Server)
 
     auto clientSignalDataDescriptor = DataDescriptorBuilderCopy(clientSignal.getDescriptor()).build();
 
+    ASSERT_TRUE(clientSignal.assigned());
     ASSERT_EQ(serverSignal.getDescriptor().getName(), newSignalName);
     ASSERT_EQ(serverSignal.getDescriptor().getName(), clientSignal.getDescriptor().getName());
 }

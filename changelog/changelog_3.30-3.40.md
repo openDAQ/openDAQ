@@ -39,6 +39,7 @@
 
 ## Bug fixes
 
+- [#1268](https://github.com/openDAQ/openDAQ/pull/1268) Fix IcmpPing leaking its object, socket and reply buffer.
 - [#1263](https://github.com/openDAQ/openDAQ/pull/1263) Fix client root device not being synchronized correctly after reconnect if "RestoreClientConfigOnReconnect" is enabled
 - [#1266](https://github.com/openDAQ/openDAQ/pull/1266) Native client updates `IProperty` metadata that changed on the server during `onUpdateEnded`
 - [#1266](https://github.com/openDAQ/openDAQ/pull/1266) Native client deserializes properties into their `ConfigClient` variant during `onUpdateEnded`

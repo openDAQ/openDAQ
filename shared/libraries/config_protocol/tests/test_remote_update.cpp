@@ -53,11 +53,13 @@ protected:
     std::unique_ptr<ConfigProtocolClient<ConfigClientDeviceImpl>> client;
     ContextPtr clientContext;
     BaseObjectPtr notificationObj;
+    bool muteNotifications = false;
 
     // server handling
     void serverNotificationReady(const PacketBuffer& notificationPacket) const
     {
-        client->triggerNotificationPacket(notificationPacket);
+        if (!muteNotifications)
+            client->triggerNotificationPacket(notificationPacket);
     }
 
     // client handling
@@ -194,6 +196,49 @@ TEST_F(ConfigRemoteUpdateTest, TestRemoveStaticComponents)
 
     auto fb = clientDevice.getFunctionBlocks()[0];
     ASSERT_THROW(clientDevice.removeFunctionBlock(fb), InvalidOperationException);
+}
+
+TEST_F(ConfigRemoteUpdateTest, UpdateReplacesChangedProperty)
+{
+    auto serverComponent = serverDevice.getCustomComponents()[0];
+    auto clientComponent = clientDevice.getCustomComponents()[0];
+
+    // Replace a property on the server while notifications are muted; the client keeps the old metadata
+    muteNotifications = true;
+    serverComponent.removeProperty("Ratio");
+    serverComponent.addProperty(RatioPropertyBuilder("Ratio", Ratio(1, 10)).setDescription("changed").build());
+    muteNotifications = false;
+
+    ASSERT_EQ(clientComponent.getProperty("Ratio").getDefaultValue(), Ratio(1, 1000));
+
+    // A server-side update re-syncs the client via remoteUpdate
+    updateHelper(serverComponent, serializeHelper(serverComponent));
+
+    const auto clientProp = clientComponent.getProperty("Ratio");
+    ASSERT_EQ(clientProp.getDefaultValue(), Ratio(1, 10));
+    ASSERT_EQ(clientProp.getDescription(), "changed");
+    ASSERT_EQ(clientComponent.getPropertyValue("Ratio"), Ratio(1, 10));
+
+    // The property order matches the server after the replacement
+    auto serverNames = List<IString>();
+    for (const auto& prop : serverComponent.getAllProperties())
+        serverNames.pushBack(prop.getName());
+    auto clientNames = List<IString>();
+    for (const auto& prop : clientComponent.getAllProperties())
+        clientNames.pushBack(prop.getName());
+    ASSERT_EQ(serverNames, clientNames);
+}
+
+TEST_F(ConfigRemoteUpdateTest, UpdateKeepsUnchangedProperties)
+{
+    auto serverComponent = serverDevice.getCustomComponents()[0];
+    auto clientComponent = clientDevice.getCustomComponents()[0];
+
+    const auto clientPropBefore = clientComponent.getProperty("Ratio");
+    updateHelper(serverComponent, serializeHelper(serverComponent));
+
+    // Unchanged properties are not replaced
+    ASSERT_EQ(clientComponent.getProperty("Ratio").getObject(), clientPropBefore.getObject());
 }
 
 TEST_F(ConfigRemoteUpdateTest, UpdateChannelActive)

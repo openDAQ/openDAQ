@@ -607,16 +607,52 @@ void ConfigClientPropertyObjectBaseImpl<Impl>::updateProperties(const Serialized
     const auto propertyList = serObj.readSerializedList(keyStr);
     const TypeManagerPtr typeManager = this->getTypeManager();
     std::unordered_set<std::string> serializedProps{};
+    std::vector<StringPtr> serializedOrder{};
+
+    // Deserialize via the config-protocol factory so incoming properties are config-client
+    // properties.
+    const auto deserializeContext = createWithImplementation<IComponentDeserializeContext, ConfigProtocolDeserializeContextImpl>(
+        this->clientComm, this->remoteGlobalId, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, typeManager);
+    const FunctionPtr factoryCallback =
+        [this](const StringPtr& typeId, const SerializedObjectPtr& object, const BaseObjectPtr& context, const FunctionPtr& factoryCallback)
+        {
+            return clientComm->deserializeConfigComponent(typeId, object, context, factoryCallback);
+        };
+
+    bool propertyReplaced = false;
 
     for (SizeT i = 0; i < propertyList.getCount(); i++)
     {
-        const PropertyPtr prop = propertyList.readObject(typeManager);
+        const PropertyPtr prop = propertyList.readObject(deserializeContext, factoryCallback);
 
         const auto propName = prop.getName();
         serializedProps.insert(propName);
+        serializedOrder.push_back(propName);
 
         if (!thisPtr.hasProperty(propName))
+        {
             thisPtr.addProperty(prop);
+            propertyReplaced = true;
+            continue;
+        }
+
+        // Object-type properties are merged recursively in updatePropertyValues
+        const auto propInternal = prop.asPtrOrNull<IPropertyInternal>(true);
+        if (propInternal.assigned() && propInternal.getValueTypeUnresolved() == ctObject)
+            continue;
+
+        // Replace the property if its metadata changed on the server.
+        if (prop != thisPtr.getProperty(propName))
+        {
+            const ErrCode errCode = Impl::removeProperty(propName);
+            if (OPENDAQ_SUCCEEDED(errCode))
+            {
+                thisPtr.addProperty(prop);
+                propertyReplaced = true;
+            }
+            else
+                daqClearErrorInfo();
+        }
     }
 
     for (const auto& prop : thisPtr.getAllProperties())
@@ -628,6 +664,31 @@ void ConfigClientPropertyObjectBaseImpl<Impl>::updateProperties(const Serialized
             if (OPENDAQ_FAILED(errCode))
                 daqClearErrorInfo();
         }
+    }
+
+    // Replaced and added properties end up at the end of the insertion order, which determines
+    // the property order unless a custom order is defined.
+    if (propertyReplaced && Impl::customOrder.empty())
+    {
+        auto lock = Impl::getRecursiveConfigLock2();
+
+        PropertyOrderedMap orderedProps;
+        orderedProps.reserve(Impl::localProperties.size());
+        for (const auto& propName : serializedOrder)
+        {
+            const auto it = Impl::localProperties.find(propName);
+            if (it != Impl::localProperties.end())
+                orderedProps.insert(*it);
+        }
+
+        // Non-serialized leftovers keep their relative order after the serialized ones.
+        for (const auto& prop : Impl::localProperties)
+        {
+            if (orderedProps.find(prop.first) == orderedProps.end())
+                orderedProps.insert(prop);
+        }
+
+        Impl::localProperties = std::move(orderedProps);
     }
 }
 

@@ -37,10 +37,7 @@ DECLARE_OPENDAQ_INTERFACE(ISynchronization, IBaseObject)
     // [templateType(interfaces, IString, ISyncInterface)]
     virtual ErrCode INTERFACE_FUNC getSyncInterfaces(IDict** interfaces) = 0;
 
-    // [templateType(interfaces, IString, ISyncInterface)]
-    virtual ErrCode INTERFACE_FUNC getAvailableSources(IDict** interfaces) = 0;
-
-    virtual ErrCode INTERFACE_FUNC setSource(ISyncInterface* source, Bool preferAuto = true) = 0;
+    virtual ErrCode INTERFACE_FUNC setSource(IString* sourceName) = 0;
 
     virtual ErrCode INTERFACE_FUNC getSource(ISyncInterface** source) = 0;
 

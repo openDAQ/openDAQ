@@ -78,7 +78,7 @@ ErrCode ConfigClientSynchronizationImpl::endUpdate()
     return Super::endUpdate();
 }
 
-ErrCode ConfigClientSynchronizationImpl::getSelectedSource(ISyncInterface** selectedSource)
+ErrCode ConfigClientSynchronizationImpl::getSource(ISyncInterface** selectedSource)
 {
     OPENDAQ_PARAM_NOT_NULL(selectedSource);
     return daqTry([&]

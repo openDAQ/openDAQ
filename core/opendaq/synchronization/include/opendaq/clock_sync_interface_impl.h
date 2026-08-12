@@ -29,9 +29,8 @@ public:
 };
 
 inline ClockSyncInterfaceImpl::ClockSyncInterfaceImpl()
-    : Super("ClockSyncInterface")
+    : Super("ClockSyncInterface", {SyncMode::Off, SyncMode::Input})
 {
-    setModeOptions(List<IString>("Input", "Off"));
 }
 
 END_NAMESPACE_OPENDAQ

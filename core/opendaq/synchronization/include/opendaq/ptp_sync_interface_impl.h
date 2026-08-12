@@ -64,7 +64,7 @@ public:
     explicit PtpSyncInterfaceBaseImpl();
 
     // ISyncInterfaceInternal
-    ErrCode INTERFACE_FUNC deactivateAsSource() override;
+    // ErrCode INTERFACE_FUNC deactivateAsSource() override;
 
 protected:
     void createPortProporties(const StringPtr& portName);
@@ -85,21 +85,21 @@ private:
 };
 
 inline PtpSyncInterfaceBaseImpl::PtpSyncInterfaceBaseImpl()
-    : Super("PtpSyncInterface")
+    : Super("PtpSyncInterface", {SyncMode::Off, SyncMode::Input, SyncMode::Output, SyncMode::Auto})
 {
-    setModeOptions(List<IString>("Input", "Auto", "Output", "Off"));
+    // setModeOptions(List<IString>("Input", "Auto", "Output", "Off"));
     createGeneralProperties();
 }
 
-inline ErrCode PtpSyncInterfaceBaseImpl::deactivateAsSource()
-{
-    auto lock = getRecursiveConfigLock2();
+// inline ErrCode PtpSyncInterfaceBaseImpl::deactivateAsSource()
+// {
+//     auto lock = getRecursiveConfigLock2();
 
-    if (this->objPtr.getPropertyValue("Mode") != "Off")
-        setMode("Output");
+//     if (this->objPtr.getPropertyValue("Mode") != "Off")
+//         setMode("Output");
 
-    return OPENDAQ_SUCCESS;
-}
+//     return OPENDAQ_SUCCESS;
+// }
 
 inline void PtpSyncInterfaceBaseImpl::createGeneralProperties()
 {

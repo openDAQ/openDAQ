@@ -42,7 +42,7 @@ public:
     ErrCode INTERFACE_FUNC endUpdate() override;
 
     // ISynchronization
-    ErrCode INTERFACE_FUNC getSelectedSource(ISyncInterface** selectedSource) override;
+    ErrCode INTERFACE_FUNC getSource(ISyncInterface** source) override;
     ErrCode INTERFACE_FUNC addInterface(ISyncInterface* syncInterface) override;
 
     // IDeserializeComponent

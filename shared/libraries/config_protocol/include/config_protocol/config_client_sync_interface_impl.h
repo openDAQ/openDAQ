@@ -45,9 +45,6 @@ public:
     ErrCode INTERFACE_FUNC beginUpdate() override;
     ErrCode INTERFACE_FUNC endUpdate() override;
 
-    // ISyncInterfaceInternal
-    ErrCode INTERFACE_FUNC deactivateAsSource() override;
-
     // IDeserializeComponent
     ErrCode INTERFACE_FUNC deserializeValues(ISerializedObject* serializedObject, IBaseObject* context, IFunction* callbackFactory) override;
     ErrCode INTERFACE_FUNC getDeserializedParameter(IString* parameter, IBaseObject** value) override;

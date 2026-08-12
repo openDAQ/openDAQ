@@ -50,8 +50,7 @@ public:
 
     // ISynchronization
     ErrCode INTERFACE_FUNC getSyncInterfaces(IDict** interfaces) override;
-    ErrCode INTERFACE_FUNC getAvailableSources(IDict** interfaces) override;
-    ErrCode INTERFACE_FUNC setSource(ISyncInterface* source, Bool preferAuto) override;
+    ErrCode INTERFACE_FUNC setSource(IString* sourceName) override;
     ErrCode INTERFACE_FUNC getSource(ISyncInterface** source) override;
     ErrCode INTERFACE_FUNC getReferenceDomainIds(IList** ids) override;
 
@@ -69,12 +68,10 @@ public:
 
 protected:
     explicit SynchronizationImpl(Bool remote);
-    void setSelectedSource(const SyncInterfacePtr& newSource);
-    void onInterfaceModeChanged(const PropertyObjectPtr& objPtr, const PropertyValueEventArgsPtr& eventArgs);
-
     SyncInterfacePtr source;
+private:
+    void onSourceChanged(const StringPtr& sourceName);
 };
-
 
 template <class Intf, class... Intfs>
 SynchronizationImpl<Intf, Intfs...>::SynchronizationImpl(Bool remote)
@@ -83,7 +80,7 @@ SynchronizationImpl<Intf, Intfs...>::SynchronizationImpl(Bool remote)
     if (!remote)
     {
         source = createWithImplementation<ISyncInterface, ClockSyncInterfaceImpl>();
-        source.asPtr<IPropertyObject>(true).setPropertyValue("Mode", "Input");
+        source.asPtr<ISyncInterfaceInternal>(true).setMode(SyncMode::Input);
 
         auto interfaces = PropertyObject();
         interfaces.addProperty(ObjectProperty(source.getName(), source));
@@ -96,24 +93,9 @@ SynchronizationImpl<Intf, Intfs...>::SynchronizationImpl(Bool remote)
         this->addProperty(souceProperty);
         this->objPtr.setPropertyOrder(List<IString>("Interfaces"));
 
-        source.asPtr<IPropertyObject>(true).getOnPropertyValueWrite("Mode") += [this](const PropertyObjectPtr& objPtr, const PropertyValueEventArgsPtr& eventArgs)
-        {
-            if (source == objPtr)
-            {
-                const StringPtr mode = eventArgs.getValue();
-                if (mode == "Off")
-                    eventArgs.setValue("Input");
-            }
-            else
-            {
-                const StringPtr mode = eventArgs.getValue();
-                if (mode == "Input")
-                {
-                    const auto oldSource = source;
-                    setSelectedSource(objPtr);
-                    oldSource.template asPtr<ISyncInterfaceInternal>(true).deactivateAsSource();
-                }
-            }
+        this->objPtr.getOnPropertyValueWrite("Interfaces") += [&](PropertyObjectPtr&, PropertyValueEventArgsPtr& args)
+        { 
+           onSourceChanged(args.getValue());
         };
     }
 }
@@ -125,72 +107,62 @@ SynchronizationImpl<Intf, Intfs...>::SynchronizationImpl()
 }
 
 template <class Intf, class... Intfs>
-ErrCode SynchronizationImpl<Intf, Intfs...>::getSelectedSource(ISyncInterface** selectedSource)
+void SynchronizationImpl<Intf, Intfs...>::onSourceChanged(const StringPtr& sourceName)
+{
+    auto lock = this->getRecursiveConfigLock2();
+    const PropertyObjectPtr interfacesProperty = this->objPtr.getPropertyValue("Interfaces");
+    SyncInterfacePtr newSource = interfacesProperty.getPropertyValue(sourceName);
+
+    SyncMode newSourceMode = SyncMode::Off;
+    const DictPtr<IInteger, IString> modeOptions = newSource.getAvailableModes();
+    if (modeOptions.hasKey(static_cast<Int>(SyncMode::Auto)))
+        newSourceMode = SyncMode::Auto;
+    else if (modeOptions.hasKey(static_cast<Int>(SyncMode::Input)))
+        newSourceMode = SyncMode::Input;
+    else
+        DAQ_THROW_EXCEPTION(InvalidParameterException, "Sync inteface {} can not be choosen as source", sourceName);
+
+    source.asPtr<ISyncInterfaceInternal>(true).setMode(SyncMode::Off);
+    newSource.asPtr<ISyncInterfaceInternal>(true).setMode(newSourceMode);
+    source = newSource.detach();
+}
+
+template <class Intf, class... Intfs>
+ErrCode SynchronizationImpl<Intf, Intfs...>::setSource(IString* sourceName)
+{
+    const ErrCode errCode = this->setProtectedPropertyValue(String("Source"), sourceName);
+    OPENDAQ_RETURN_IF_FAILED(errCode);
+    return errCode;
+}
+
+template <class Intf, class... Intfs>
+ErrCode SynchronizationImpl<Intf, Intfs...>::getSource(ISyncInterface** selectedSource)
 {
     OPENDAQ_PARAM_NOT_NULL(selectedSource);
-    auto lock = this->getRecursiveConfigLock();
+    auto lock = this->getRecursiveConfigLock2();
     *selectedSource = this->source.addRefAndReturn();
     return OPENDAQ_SUCCESS;
 }
 
 template <class Intf, class... Intfs>
-void SynchronizationImpl<Intf, Intfs...>::setSelectedSource(const SyncInterfacePtr& newSource)
+ErrCode SynchronizationImpl<Intf, Intfs...>::getReferenceDomainIds(IList** ids)
 {
-    this->template borrowPtr<PropertyObjectProtectedPtr>().setProtectedPropertyValue("Source", newSource.getName());
-    source = newSource;
-}
+    OPENDAQ_PARAM_NOT_NULL(ids);
+    auto idList = List<IString>();
 
-template <class Intf, class... Intfs>
-void SynchronizationImpl<Intf, Intfs...>::onInterfaceModeChanged(const PropertyObjectPtr& objPtr, const PropertyValueEventArgsPtr& eventArgs)
-{
-    if (source == objPtr)
+    const PropertyObjectPtr interfacesProperty = this->objPtr.getPropertyValue("Interfaces");
+    for (const auto & intefaceProp : interfacesProperty.getAllProperties())
     {
-        const StringPtr mode = eventArgs.getValue();
-        if (mode == "Output" || mode == "Off")
-        {
-            const PropertyObjectPtr interfacesProperty = this->objPtr.getPropertyValue("Interfaces");
-            const PropertyObjectPtr clockSyncInterfaceProperty = interfacesProperty.getPropertyValue("ClockSyncInterface");
-            clockSyncInterfaceProperty.setPropertyValue("Mode", "Input");
-        }
+        SyncInterfacePtr interface = intefaceProp.getValue();
+        idList.pushBack(interface.getReferenceDomainId());
     }
-    else
-    {
-        const StringPtr mode = eventArgs.getValue();
-        if (mode == "Input" || mode == "Auto")
-        {
-            const auto oldSource = source;
-            setSelectedSource(objPtr);
-            oldSource.template asPtr<ISyncInterfaceInternal>(true).deactivateAsSource();
-        }
-    }
-}
 
-template <class Intf, class... Intfs>
-ErrCode SynchronizationImpl<Intf, Intfs...>::getSourceSynced(Bool* synced)
-{
-    OPENDAQ_PARAM_NOT_NULL(synced);
-    auto lock = this->getRecursiveConfigLock();
-
-    SyncInterfacePtr source;
-    OPENDAQ_RETURN_IF_FAILED(this->getSelectedSource(&source));
-    OPENDAQ_RETURN_IF_FAILED(source->getSynced(synced));
+    *ids = idList.detach();
     return OPENDAQ_SUCCESS;
 }
 
 template <class Intf, class... Intfs>
-ErrCode SynchronizationImpl<Intf, Intfs...>::getSourceReferenceDomainId(IString** referenceDomainId)
-{
-    OPENDAQ_PARAM_NOT_NULL(referenceDomainId);
-    auto lock = this->getRecursiveConfigLock();
-
-    SyncInterfacePtr source;
-    OPENDAQ_RETURN_IF_FAILED(this->getSelectedSource(&source));
-    OPENDAQ_RETURN_IF_FAILED(source->getReferenceDomainId(referenceDomainId));
-    return OPENDAQ_SUCCESS;
-}
-
-template <class Intf, class... Intfs>
-ErrCode SynchronizationImpl<Intf, Intfs...>::getInterfaces(IDict** interfaces)
+ErrCode SynchronizationImpl<Intf, Intfs...>::getSyncInterfaces(IDict** interfaces)
 {
     OPENDAQ_PARAM_NOT_NULL(interfaces);
     return daqTry([&]
@@ -213,18 +185,12 @@ ErrCode SynchronizationImpl<Intf, Intfs...>::addInterface(ISyncInterface* syncIn
     return daqTry([&]
     {
         const SyncInterfacePtr interfacePtr = SyncInterfacePtr::Borrow(syncInterface);
-        const PropertyObjectPtr interfaceProperty = interfacePtr;
 
         const PropertyObjectPtr interfacesProperty = this->objPtr.getPropertyValue("Interfaces");
 
-        interfacesProperty.addProperty(ObjectProperty(interfacePtr.getName(), interfaceProperty));
-        interfaceProperty.getOnPropertyValueWrite("Mode") += [this](const PropertyObjectPtr& obj, const PropertyValueEventArgsPtr& args)
-        {
-            onInterfaceModeChanged(obj, args);
-        };
+        interfacesProperty.addProperty(ObjectProperty(interfacePtr.getName(), interfacePtr));
     });
 }
-
 
 template <class Intf, class... Intfs>
 ErrCode SynchronizationImpl<Intf, Intfs...>::getSerializeId(ConstCharPtr* id) const

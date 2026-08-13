@@ -2,7 +2,29 @@
 #include <opendaq/scheduler_errors.h>
 #include <coretypes/objectptr.h>
 
+#include <chrono>
+#include <future>
+
 BEGIN_NAMESPACE_OPENDAQ
+
+namespace
+{
+    // Sets the flag once the guarded scope is left, including during stack unwinding.
+    struct CompletionGuard
+    {
+        explicit CompletionGuard(std::atomic<bool>& completed)
+            : completed(completed)
+        {
+        }
+
+        ~CompletionGuard()
+        {
+            completed = true;
+        }
+
+        std::atomic<bool>& completed;
+    };
+}
 
 template <typename TReturn>
 AwaitableImpl<TReturn>::AwaitableImpl(Future future)
@@ -53,6 +75,7 @@ ErrCode AwaitableImpl<TReturn>::getResult(daq::IBaseObject** result)
     {
         try
         {
+            CompletionGuard guard(completed);
             future.get();
         }
         catch (...)
@@ -60,14 +83,16 @@ ErrCode AwaitableImpl<TReturn>::getResult(daq::IBaseObject** result)
             // Mask exceptions from taskflow - don't rethrow
             // This matches the behavior expected by ScheduleGraphMasksExceptions test
         }
+
         *result = nullptr;
     }
     else
     {
         std::optional<BaseObjectPtr> optional;
-        OPENDAQ_TRY(optional = future.get();)
-
-        completed = true;
+        OPENDAQ_TRY(
+            CompletionGuard guard(completed);
+            optional = future.get();
+        )
 
         if (!optional.has_value())
         {
@@ -88,8 +113,8 @@ ErrCode AwaitableImpl<TReturn>::hasCompleted(Bool* finished)
 
     if (!future.valid())
         *finished = this->completed.load();
-
-    *finished = !future.valid();
+    else
+        *finished = future.wait_for(std::chrono::seconds(0)) == std::future_status::ready;
     return OPENDAQ_SUCCESS;
 }
 

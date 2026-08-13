@@ -35,10 +35,21 @@ public:
         checkErrorInfo(this->getSynchronization(&sync));
     }
 
+    class TestSyncInterface : public SyncInterfaceBaseImpl<>
+    {
+    public:
+        using Super = SyncInterfaceBaseImpl<>;
+
+        TestSyncInterface(const StringPtr& name, const std::vector<SyncMode> & availableModes = {})
+            : Super(name, availableModes)
+        {
+        }
+    };
+
     SynchronizationPtr onGetSynchronization() override
     {
         auto sync = Synchronization();
-        const auto syncInterface = createWithImplementation<ISyncInterface, SyncInterfaceBase>("TestInterface");
+        const auto syncInterface = createWithImplementation<ISyncInterface, TestSyncInterface>("TestInterface");
         sync.asPtr<ISynchronizationInternal>(true).addInterface(syncInterface);
         return sync;
     }
@@ -121,52 +132,40 @@ TEST_F(ConfigSynchronizationTest, Connect)
     ASSERT_TRUE(clientSync.assigned());
 }
 
-TEST_F(ConfigSynchronizationTest, GetInterfaces)
+TEST_F(ConfigSynchronizationTest, getSyncInterfaces)
 {
     auto serverSync = getServerSyncComponent();
     auto clientSync = getClientSyncComponent();
 
-    auto serverInterfaces = serverSync.getInterfaces();
-    auto clientInterfaces = clientSync.getInterfaces();
+    auto serverInterfaces = serverSync.getSyncInterfaces();
+    auto clientInterfaces = clientSync.getSyncInterfaces();
 
     ASSERT_EQ(serverInterfaces.getCount(), clientInterfaces.getCount());
     ASSERT_EQ(serverInterfaces.getKeyList(), clientInterfaces.getKeyList());
 }
 
-TEST_F(ConfigSynchronizationTest, GetSelectedSource)
+TEST_F(ConfigSynchronizationTest, getSource)
 {
     auto serverSync = getServerSyncComponent();
     auto clientSync = getClientSyncComponent();
 
-    auto serverSource = serverSync.getSelectedSource();
-    auto clientSource = clientSync.getSelectedSource();
+    auto serverSource = serverSync.getSource();
+    auto clientSource = clientSync.getSource();
 
     ASSERT_EQ(serverSource.getName(), clientSource.getName());
 }
 
-TEST_F(ConfigSynchronizationTest, SetSelectedSourceFromClient)
+TEST_F(ConfigSynchronizationTest, setSourceFromClient)
 {
     auto serverSync = getServerSyncComponent();
     auto clientSync = getClientSyncComponent();
 
     // Set selected source from client
-    clientSync.getInterfaces().get("TestInterface").asPtr<IPropertyObject>(true).setPropertyValue("Mode", "Input");
+    clientSync.getSyncInterfaces().get("TestInterface").asPtr<IPropertyObject>(true).setPropertyValue("Mode", "Input");
 
     // Verify server has the new selected source
-    ASSERT_EQ(clientSync.getSelectedSource().getName(), "TestInterface");
-    ASSERT_EQ(serverSync.getSelectedSource().getName(), "TestInterface");
-}
-
-TEST_F(ConfigSynchronizationTest, GetSourceSynced)
-{
-    auto serverSync = getServerSyncComponent();
-    auto clientSync = getClientSyncComponent();
-
-    daq::Bool serverSynced, clientSynced;
-    ASSERT_ERROR_CODE_EQ(serverSync->getSourceSynced(&serverSynced), OPENDAQ_SUCCESS);
-    ASSERT_ERROR_CODE_EQ(clientSync->getSourceSynced(&clientSynced), OPENDAQ_SUCCESS);
-
-    ASSERT_EQ(serverSynced, clientSynced);
+    ASSERT_EQ(clientSync.getSource().getName(), "TestInterface");
+    ASSERT_EQ(serverSync.getSource().getName(), "TestInterface");
 }
 
 TEST_F(ConfigSynchronizationTest, GetSourceReferenceDomainId)
@@ -174,9 +173,9 @@ TEST_F(ConfigSynchronizationTest, GetSourceReferenceDomainId)
     auto serverSync = getServerSyncComponent();
     auto clientSync = getClientSyncComponent();
 
-    daq::StringPtr serverDomainId, clientDomainId;
-    ASSERT_ERROR_CODE_EQ(serverSync->getSourceReferenceDomainId(&serverDomainId), OPENDAQ_SUCCESS);
-    ASSERT_ERROR_CODE_EQ(clientSync->getSourceReferenceDomainId(&clientDomainId), OPENDAQ_SUCCESS);
+    daq::ListPtr<IString> serverDomainId, clientDomainId;
+    ASSERT_ERROR_CODE_EQ(serverSync->getReferenceDomainIds(&serverDomainId), OPENDAQ_SUCCESS);
+    ASSERT_ERROR_CODE_EQ(clientSync->getReferenceDomainIds(&clientDomainId), OPENDAQ_SUCCESS);
 
     ASSERT_EQ(serverDomainId, clientDomainId);
 }
@@ -184,20 +183,9 @@ TEST_F(ConfigSynchronizationTest, GetSourceReferenceDomainId)
 TEST_F(ConfigSynchronizationTest, SyncInterfaceGetName)
 {
     auto clientSync = getClientSyncComponent();
-    auto clientSource = clientSync.getSelectedSource();
+    auto clientSource = clientSync.getSource();
 
     ASSERT_EQ(clientSource.getName(), "ClockSyncInterface");
-}
-
-TEST_F(ConfigSynchronizationTest, SyncInterfaceGetSynced)
-{
-    auto serverSync = getServerSyncComponent();
-    auto clientSync = getClientSyncComponent();
-
-    auto serverSource = serverSync.getSelectedSource();
-    auto clientSource = clientSync.getSelectedSource();
-
-    ASSERT_EQ(serverSource.getSynced(), clientSource.getSynced());
 }
 
 TEST_F(ConfigSynchronizationTest, SyncInterfaceGetReferenceDomainId)
@@ -205,8 +193,8 @@ TEST_F(ConfigSynchronizationTest, SyncInterfaceGetReferenceDomainId)
     auto serverSync = getServerSyncComponent();
     auto clientSync = getClientSyncComponent();
 
-    auto serverSource = serverSync.getSelectedSource();
-    auto clientSource = clientSync.getSelectedSource();
+    auto serverSource = serverSync.getSource();
+    auto clientSource = clientSync.getSource();
 
     ASSERT_EQ(serverSource.getReferenceDomainId(), clientSource.getReferenceDomainId());
 }
@@ -214,7 +202,7 @@ TEST_F(ConfigSynchronizationTest, SyncInterfaceGetReferenceDomainId)
 TEST_F(ConfigSynchronizationTest, SyncInterfacePropertyAccess)
 {
     auto clientSync = getClientSyncComponent();
-    auto clientSource = clientSync.getSelectedSource();
+    auto clientSource = clientSync.getSource();
     auto propObj = clientSource.asPtr<IPropertyObject>(true);
 
     // Test reading properties via property object interface
@@ -228,10 +216,10 @@ TEST_F(ConfigSynchronizationTest, SetSyncInterfaceModeViaProperty)
 {
     auto serverSync = getServerSyncComponent();
     auto clientSync = getClientSyncComponent();
-    clientSync.getInterfaces().get("TestInterface").asPtr<IPropertyObject>(true).setPropertyValue("Mode", "Input");
+    clientSync.getSyncInterfaces().get("TestInterface").asPtr<IPropertyObject>(true).setPropertyValue("Mode", "Input");
 
-    PropertyObjectPtr serverSource = serverSync.getSelectedSource();
-    PropertyObjectPtr clientSource = clientSync.getSelectedSource();
+    PropertyObjectPtr serverSource = serverSync.getSource();
+    PropertyObjectPtr clientSource = clientSync.getSource();
 
     // Get initial mode
     auto initialMode = serverSource.getPropertyValue("Mode");

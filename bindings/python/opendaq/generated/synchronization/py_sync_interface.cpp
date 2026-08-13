@@ -33,6 +33,12 @@
 
 PyDaqIntf<daq::ISyncInterface, daq::IBaseObject> declareISyncInterface(pybind11::module_ m)
 {
+    py::enum_<daq::SyncMode>(m, "SyncMode")
+        .value("Off", daq::SyncMode::Off)
+        .value("Input", daq::SyncMode::Input)
+        .value("Output", daq::SyncMode::Output)
+        .value("Auto", daq::SyncMode::Auto);
+
     return wrapInterface<daq::ISyncInterface, daq::IBaseObject>(m, "ISyncInterface");
 }
 
@@ -48,14 +54,6 @@ void defineISyncInterface(pybind11::module_ m, PyDaqIntf<daq::ISyncInterface, da
             return objectPtr.getName().toStdString();
         },
         "Gets the name of the synchronization interface.");
-    cls.def_property_readonly("synced",
-        [](daq::ISyncInterface *object)
-        {
-            py::gil_scoped_release release;
-            const auto objectPtr = daq::SyncInterfacePtr::Borrow(object);
-            return objectPtr.getSynced();
-        },
-        "Gets whether the synchronization interface is synced.");
     cls.def_property_readonly("reference_domain_id",
         [](daq::ISyncInterface *object)
         {
@@ -64,4 +62,39 @@ void defineISyncInterface(pybind11::module_ m, PyDaqIntf<daq::ISyncInterface, da
             return objectPtr.getReferenceDomainId().toStdString();
         },
         "Gets the reference domain ID of the synchronization interface.");
+    cls.def_property_readonly("mode",
+        [](daq::ISyncInterface *object)
+        {
+            py::gil_scoped_release release;
+            const auto objectPtr = daq::SyncInterfacePtr::Borrow(object);
+            return objectPtr.getMode();
+        },
+        "");
+    cls.def_property_readonly("available_modes",
+        [](daq::ISyncInterface *object)
+        {
+            py::gil_scoped_release release;
+            const auto objectPtr = daq::SyncInterfacePtr::Borrow(object);
+            return objectPtr.getAvailableModes().detach();
+        },
+        py::return_value_policy::take_ownership,
+        "");
+    cls.def_property_readonly("status_container",
+        [](daq::ISyncInterface *object)
+        {
+            py::gil_scoped_release release;
+            const auto objectPtr = daq::SyncInterfacePtr::Borrow(object);
+            return objectPtr.getStatusContainer().detach();
+        },
+        py::return_value_policy::take_ownership,
+        "");
+    cls.def_property_readonly("configuration",
+        [](daq::ISyncInterface *object)
+        {
+            py::gil_scoped_release release;
+            const auto objectPtr = daq::SyncInterfacePtr::Borrow(object);
+            return objectPtr.getConfiguration().detach();
+        },
+        py::return_value_policy::take_ownership,
+        "");
 }

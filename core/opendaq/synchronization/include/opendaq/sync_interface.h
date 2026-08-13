@@ -20,13 +20,14 @@
 #include <coretypes/stringobject.h>
 #include <coretypes/listobject.h>
 #include <opendaq/component_status_container.h>
+#include <coreobjects/property_object.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
 /*#
  * [interfaceSmartPtr(IInteger, IntegerPtr, "<coretypes/integer.h>")]
+ * [interfaceLibrary(IPropertyObject, CoreObjects)]
  */
-
 
 /*!
  * @ingroup opendaq_synchronization_path
@@ -48,15 +49,15 @@ enum class SyncMode : EnumType
 DECLARE_OPENDAQ_INTERFACE(ISyncInterface, IBaseObject)
 {
     /*!
-     * @brief Gets the name of the synchronization interface.
-     * @param[out] name The name of the synchronization interface.
-     */
+      * @brief Gets the name of the synchronization interface.
+      * @param[out] name The name of the synchronization interface.
+      */
     virtual ErrCode INTERFACE_FUNC getName(IString** name) = 0;
 
     /*!
-     * @brief Gets the reference domain ID of the synchronization interface.
-     * @param[out] referenceDomainId The reference domain ID string.
-     */
+      * @brief Gets the reference domain ID of the synchronization interface.
+      * @param[out] referenceDomainId The reference domain ID string.
+      */
     virtual ErrCode INTERFACE_FUNC getReferenceDomainId(IString** referenceDomainId) = 0;
 
     virtual ErrCode INTERFACE_FUNC getMode(SyncMode* sourceMode) = 0;
@@ -64,10 +65,9 @@ DECLARE_OPENDAQ_INTERFACE(ISyncInterface, IBaseObject)
     // [templateType(availableModes, IInteger, IString)]
     virtual ErrCode INTERFACE_FUNC getAvailableModes(IDict** availableModes) = 0;
 
-    virtual ErrCode INTERFACE_FUNC setOutputOnly(Bool outputOnly) = 0;
-    virtual ErrCode INTERFACE_FUNC getOutputOnly(Bool* outputOnly) = 0;
-
     virtual ErrCode INTERFACE_FUNC getStatusContainer(IComponentStatusContainer** syncStatus) = 0;
+
+    virtual ErrCode INTERFACE_FUNC getConfiguration(IPropertyObject** configuration) = 0;
 };
 /*!@}*/
 

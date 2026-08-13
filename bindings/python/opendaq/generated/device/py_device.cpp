@@ -417,4 +417,13 @@ void defineIDevice(pybind11::module_ m, PyDaqIntf<daq::IDevice, daq::IFolder> cl
         },
         py::arg("connection_args"), py::arg("err_codes") = nullptr, py::arg("error_infos") = nullptr,
         "Connects to multiple devices in parallel using the provided connection strings and returns the connected devices. Each connection is established concurrently to improve performance when handling multiple devices. The additions, in turn, are performed sequentially in the order specified by connectionArgs.");
+    cls.def_property_readonly("synchronization",
+        [](daq::IDevice *object)
+        {
+            py::gil_scoped_release release;
+            const auto objectPtr = daq::DevicePtr::Borrow(object);
+            return objectPtr.getSynchronization().detach();
+        },
+        py::return_value_policy::take_ownership,
+        "Gets the synchronization object of the device.");
 }

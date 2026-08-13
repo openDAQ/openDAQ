@@ -32,7 +32,7 @@ BEGIN_NAMESPACE_OPENDAQ
  */
 DECLARE_OPENDAQ_INTERFACE(ISyncInterfaceInternal, IBaseObject)
 {
-    virtual ErrCode INTERFACE_FUNC setMode(SyncMode mode) = 0;
+    virtual ErrCode INTERFACE_FUNC setAsSource(Bool source) = 0;
 };
 /*!@}*/
 

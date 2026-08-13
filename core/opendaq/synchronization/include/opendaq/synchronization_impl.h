@@ -80,7 +80,7 @@ SynchronizationImpl<Intf, Intfs...>::SynchronizationImpl(Bool remote)
     if (!remote)
     {
         source = createWithImplementation<ISyncInterface, ClockSyncInterfaceImpl>();
-        source.asPtr<ISyncInterfaceInternal>(true).setMode(SyncMode::Input);
+        source.asPtr<ISyncInterfaceInternal>(true).setAsSource(true);
 
         auto interfaces = PropertyObject();
         interfaces.addProperty(ObjectProperty(source.getName(), source));
@@ -93,7 +93,7 @@ SynchronizationImpl<Intf, Intfs...>::SynchronizationImpl(Bool remote)
         this->addProperty(souceProperty);
         this->objPtr.setPropertyOrder(List<IString>("Interfaces"));
 
-        this->objPtr.getOnPropertyValueWrite("Interfaces") += [&](PropertyObjectPtr&, PropertyValueEventArgsPtr& args)
+        this->objPtr.getOnPropertyValueWrite("Source") += [&](PropertyObjectPtr&, PropertyValueEventArgsPtr& args)
         { 
            onSourceChanged(args.getValue());
         };
@@ -112,19 +112,22 @@ void SynchronizationImpl<Intf, Intfs...>::onSourceChanged(const StringPtr& sourc
     auto lock = this->getRecursiveConfigLock2();
     const PropertyObjectPtr interfacesProperty = this->objPtr.getPropertyValue("Interfaces");
     SyncInterfacePtr newSource = interfacesProperty.getPropertyValue(sourceName);
+    SyncInterfacePtr oldSource = source;
+    const auto oldSourceMode = oldSource.getMode();
 
-    SyncMode newSourceMode = SyncMode::Off;
-    const DictPtr<IInteger, IString> modeOptions = newSource.getAvailableModes();
-    if (modeOptions.hasKey(static_cast<Int>(SyncMode::Auto)))
-        newSourceMode = SyncMode::Auto;
-    else if (modeOptions.hasKey(static_cast<Int>(SyncMode::Input)))
-        newSourceMode = SyncMode::Input;
-    else
-        DAQ_THROW_EXCEPTION(InvalidParameterException, "Sync inteface {} can not be choosen as source", sourceName);
+    oldSource.asPtr<ISyncInterfaceInternal>(true).setAsSource(False);
 
-    source.asPtr<ISyncInterfaceInternal>(true).setMode(SyncMode::Off);
-    newSource.asPtr<ISyncInterfaceInternal>(true).setMode(newSourceMode);
-    source = newSource.detach();
+    try
+    {
+        newSource.asPtr<ISyncInterfaceInternal>(true).setAsSource(True);
+        source = newSource.detach();
+    }
+    catch(...)
+    {
+        oldSource.asPtr<ISyncInterfaceInternal>(true).setAsSource(True);
+        oldSource.asPtr<IPropertyObject>().setPropertyValue("Mode", static_cast<Int>(oldSourceMode));
+        throw;
+    }
 }
 
 template <class Intf, class... Intfs>
@@ -154,7 +157,9 @@ ErrCode SynchronizationImpl<Intf, Intfs...>::getReferenceDomainIds(IList** ids)
     for (const auto & intefaceProp : interfacesProperty.getAllProperties())
     {
         SyncInterfacePtr interface = intefaceProp.getValue();
-        idList.pushBack(interface.getReferenceDomainId());
+        const auto referenceDomainID = interface.getReferenceDomainId();
+        if (referenceDomainID.assigned() && referenceDomainID.getLength() != 0)
+            idList.pushBack(interface.getReferenceDomainId());
     }
 
     *ids = idList.detach();

@@ -176,6 +176,22 @@ TEST_F(SyncComponentTest, Serialization)
 // sync and SyncInterface Tests
 // =====================================================
 
+class TestSyncInterface : public SyncInterfaceBaseImpl<>
+{
+public:
+    using Super = SyncInterfaceBaseImpl<>;
+
+    TestSyncInterface(const StringPtr& name, const std::vector<SyncMode> & availableModes)
+        : Super(name, availableModes)
+    {
+    }
+
+    static SyncInterfacePtr Create(const StringPtr& name = "TestInterface", const std::vector<SyncMode> & availableModes = {SyncMode::Off, SyncMode::Input, SyncMode::Output, SyncMode::Auto})
+    {
+        return createWithImplementation<ISyncInterface, TestSyncInterface>(name, availableModes);
+    }
+};
+
 using SynchronizationTest = testing::Test;
 
 TEST_F(SynchronizationTest, Create)
@@ -185,22 +201,22 @@ TEST_F(SynchronizationTest, Create)
     ASSERT_TRUE(sync.assigned());
 }
 
-TEST_F(SynchronizationTest, GetInterfaces)
+TEST_F(SynchronizationTest, getSyncInterfaces)
 {
     const auto ctx = NullContext();
     const auto sync = Synchronization();
 
-    const auto interfaces = sync.getInterfaces();
+    const auto interfaces = sync.getSyncInterfaces();
     ASSERT_EQ(interfaces.getCount(), 1u);
     ASSERT_TRUE(interfaces.hasKey("ClockSyncInterface"));
 }
 
-TEST_F(SynchronizationTest, GetSelectedSource)
+TEST_F(SynchronizationTest, setSource)
 {
     const auto ctx = NullContext();
     const auto sync = Synchronization();
 
-    const auto selectedSource = sync.getSelectedSource();
+    const auto selectedSource = sync.getSource();
     ASSERT_TRUE(selectedSource.assigned());
     ASSERT_EQ(selectedSource.getName(), "ClockSyncInterface");
 }
@@ -211,16 +227,16 @@ TEST_F(SynchronizationTest, AddTwoTheSameInterfaces)
     const auto sync = Synchronization();
     const auto syncInternal = sync.asPtr<ISynchronizationInternal>(true);
 
-    const auto newInterface = createWithImplementation<ISyncInterface, SyncInterfaceBase>("TestInterface");
+    const auto newInterface = TestSyncInterface::Create();
     ASSERT_NO_THROW(syncInternal.addInterface(newInterface));
-    ASSERT_EQ(sync.getInterfaces().getCount(), 2u);
+    ASSERT_EQ(sync.getSyncInterfaces().getCount(), 2u);
 
     ASSERT_ANY_THROW(syncInternal.addInterface(newInterface));
-    ASSERT_EQ(sync.getInterfaces().getCount(), 2u);
+    ASSERT_EQ(sync.getSyncInterfaces().getCount(), 2u);
 
-    const auto newInterfaceWithTheSameName = createWithImplementation<ISyncInterface, SyncInterfaceBase>("TestInterface");
+    const auto newInterfaceWithTheSameName = TestSyncInterface::Create();
     ASSERT_ANY_THROW(syncInternal.addInterface(newInterfaceWithTheSameName));
-    ASSERT_EQ(sync.getInterfaces().getCount(), 2u);
+    ASSERT_EQ(sync.getSyncInterfaces().getCount(), 2u);
 }
 
 TEST_F(SynchronizationTest, SetSelectedSource)
@@ -230,27 +246,19 @@ TEST_F(SynchronizationTest, SetSelectedSource)
     const auto syncInternal = sync.asPtr<ISynchronizationInternal>(true);
 
     // Add another interface
-    const auto newInterface = createWithImplementation<ISyncInterface, SyncInterfaceBase>("TestInterface");
+    const auto newInterface = TestSyncInterface::Create("TestInterface", {SyncMode::Input});
     syncInternal.addInterface(newInterface);
 
     // Verify we have 2 interfaces
-    const auto interfaces = sync.getInterfaces();
+    const auto interfaces = sync.getSyncInterfaces();
     ASSERT_EQ(interfaces.getCount(), 2u);
 
     // Change selected source
-    newInterface.asPtr<IPropertyObject>(true).setPropertyValue("Mode", "Input");
-    const auto selectedSource = sync.getSelectedSource();
+    sync.setSource("TestInterface");
+    
+    const auto selectedSource = sync.getSource();
     ASSERT_EQ(selectedSource.getName(), "TestInterface");
-}
-
-TEST_F(SynchronizationTest, GetSourceSynced)
-{
-    const auto ctx = NullContext();
-    const auto sync = Synchronization();
-
-    Bool synced;
-    ASSERT_ERROR_CODE_EQ(sync->getSourceSynced(&synced), OPENDAQ_SUCCESS);
-    ASSERT_FALSE(synced);
+    ASSERT_EQ(selectedSource.getMode(), SyncMode::Input);
 }
 
 TEST_F(SynchronizationTest, GetSourceReferenceDomainId)
@@ -258,74 +266,38 @@ TEST_F(SynchronizationTest, GetSourceReferenceDomainId)
     const auto ctx = NullContext();
     const auto sync = Synchronization();
 
-    StringPtr referenceDomainId;
-    ASSERT_ERROR_CODE_EQ(sync->getSourceReferenceDomainId(&referenceDomainId), OPENDAQ_SUCCESS);
-    ASSERT_EQ(referenceDomainId, "");
+    ListPtr<IString> referenceDomainId;
+    ASSERT_ERROR_CODE_EQ(sync->getReferenceDomainIds(&referenceDomainId), OPENDAQ_SUCCESS);
+    ASSERT_EQ(referenceDomainId.getCount(), 0);
 }
 
 TEST_F(SynchronizationTest, SyncInterfaceGetName)
 {
-    const auto syncInterface = createWithImplementation<ISyncInterface, SyncInterfaceBase>("MyInterface");
+    const auto syncInterface = TestSyncInterface::Create("MyInterface");
     ASSERT_EQ(syncInterface.getName(), "MyInterface");
 }
 
-TEST_F(SynchronizationTest, SyncInterfaceGetSynced)
-{
-    const auto syncInterface = createWithImplementation<ISyncInterface, SyncInterfaceBase>("MyInterface");
-    ASSERT_FALSE(syncInterface.getSynced());
-}
 
 TEST_F(SynchronizationTest, SyncInterfaceGetReferenceDomainId)
 {
-    const auto syncInterface = createWithImplementation<ISyncInterface, SyncInterfaceBase>("MyInterface");
+    const auto syncInterface = TestSyncInterface::Create("MyInterface");
     ASSERT_EQ(syncInterface.getReferenceDomainId(), "");
 }
 
 TEST_F(SynchronizationTest, SyncInterfaceProperties)
 {
-    const auto syncInterface = createWithImplementation<ISyncInterface, SyncInterfaceBase>("MyInterface");
+    const auto syncInterface = TestSyncInterface::Create("MyInterface");
     const auto propObj = syncInterface.asPtr<IPropertyObject>(true);
 
     // Check Name property
     ASSERT_EQ(propObj.getPropertyValue("Name"), "MyInterface");
 
     // Check Mode property (default is Off)
-    ASSERT_EQ(propObj.getPropertyValue("Mode"), "Off");
+    ASSERT_EQ(propObj.getPropertySelectionValue("Mode"), "Off");
 
     // Check Status properties
     ASSERT_EQ(propObj.getPropertyValue("Status.Synchronized"), False);
     ASSERT_EQ(propObj.getPropertyValue("Status.ReferenceDomainId"), "");
-}
-
-TEST_F(SynchronizationTest, Serialization)
-{
-    const auto ctx = NullContext();
-    const auto sync = Synchronization();
-    const auto syncInternal = sync.asPtr<ISynchronizationInternal>(true);
-
-    // Add another interface
-    const auto newInterface = createWithImplementation<ISyncInterface, SyncInterfaceBase>("TestInterface");
-    syncInternal.addInterface(newInterface);
-
-    // Change selected source
-    newInterface.asPtr<IPropertyObject>(true).setPropertyValue("Mode", "Input");
-
-    const auto serializer = JsonSerializer();
-    sync.serialize(serializer);
-    const auto serializedJson = serializer.getOutput();
-
-    const auto deserializer = JsonDeserializer();
-    const auto deserializeContext = ComponentDeserializeContext(ctx, nullptr, nullptr, "sync");
-    const SynchronizationPtr deserialized = deserializer.deserialize(serializedJson, deserializeContext);
-
-    const auto interfaces = deserialized.getInterfaces();
-    ASSERT_EQ(deserialized.getInterfaces().getCount(), 2u);
-    ASSERT_TRUE(interfaces.hasKey("ClockSyncInterface"));
-    ASSERT_TRUE(interfaces.hasKey("TestInterface"));
-    // ASSERT_EQ(deserialized.getSelectedSource().getName(), "TestInterface"); // This not save load, so we are not restoiring selected source on deserialization
-    ASSERT_EQ(interfaces.get("TestInterface").asPtr<IPropertyObject>(true).getPropertyValue("Mode"), "Input");
-    ASSERT_EQ(interfaces.get("ClockSyncInterface").asPtr<IPropertyObject>(true).getPropertyValue("Mode"), "Off");
-
 }
 
 // =====================================================
@@ -341,44 +313,44 @@ public:
     using PtpSyncInterfaceBaseImpl::setPortModeOptions;
     using PtpSyncInterfaceBaseImpl::setPortsMode;
     using PtpSyncInterfaceBaseImpl::setPortDelayMechanismOptions;
+
+    static SyncInterfacePtr Create()
+    {
+        return createWithImplementation<ISyncInterface, TestPtpSyncInterface>();
+    }
 };
 
 using PtpSyncInterfaceTest = testing::Test;
 
 TEST_F(PtpSyncInterfaceTest, Create)
 {
-    const auto iface = createWithImplementation<ISyncInterface, PtpSyncInterfaceBaseImpl>();
+    const auto iface = TestPtpSyncInterface::Create();
     ASSERT_TRUE(iface.assigned());
 }
 
 TEST_F(PtpSyncInterfaceTest, GetName)
 {
-    const auto iface = createWithImplementation<ISyncInterface, PtpSyncInterfaceBaseImpl>();
+    const auto iface = TestPtpSyncInterface::Create();
     ASSERT_EQ(iface.getName(), "PtpSyncInterface");
-}
-
-TEST_F(PtpSyncInterfaceTest, GetSynced)
-{
-    const auto iface = createWithImplementation<ISyncInterface, PtpSyncInterfaceBaseImpl>();
-    ASSERT_FALSE(iface.getSynced());
 }
 
 TEST_F(PtpSyncInterfaceTest, GetReferenceDomainId)
 {
-    const auto iface = createWithImplementation<ISyncInterface, PtpSyncInterfaceBaseImpl>();
+    const auto iface = TestPtpSyncInterface::Create();
     ASSERT_EQ(iface.getReferenceDomainId(), "");
 }
 
 TEST_F(PtpSyncInterfaceTest, DefaultMode)
 {
-    const auto iface = createWithImplementation<ISyncInterface, PtpSyncInterfaceBaseImpl>();
+    const auto iface = TestPtpSyncInterface::Create();
+    ASSERT_EQ(iface.getMode(), SyncMode::Off);
     const auto propObj = iface.asPtr<IPropertyObject>(true);
-    ASSERT_EQ(propObj.getPropertyValue("Mode"), "Off");
+    ASSERT_EQ(propObj.getPropertyValue("Mode"), SyncMode::Off);
 }
 
 TEST_F(PtpSyncInterfaceTest, DefaultPtpConfigurationProperties)
 {
-    const auto iface = createWithImplementation<ISyncInterface, PtpSyncInterfaceBaseImpl>();
+    const auto iface = TestPtpSyncInterface::Create();
     const auto propObj = iface.asPtr<IPropertyObject>(true);
 
     ASSERT_EQ(propObj.getPropertyValue("Parameters.PtpConfiguration.Profile"),            "None");
@@ -390,35 +362,10 @@ TEST_F(PtpSyncInterfaceTest, DefaultPtpConfigurationProperties)
     ASSERT_EQ(propObj.getPropertyValue("Parameters.PtpConfiguration.TransportProtocol"),  "IEEE802_3");
 }
 
-TEST_F(PtpSyncInterfaceTest, DeactivateAsSourceWhenModeIsOff)
-{
-    const auto iface = createWithImplementation<ISyncInterface, PtpSyncInterfaceBaseImpl>();
-    const auto ifaceInternal = iface.asPtr<ISyncInterfaceInternal>(true);
-    const auto propObj = iface.asPtr<IPropertyObject>(true);
-
-    // mode is "Off" by default — deactivateAsSource should leave it unchanged
-    ASSERT_ERROR_CODE_EQ(ifaceInternal->deactivateAsSource(), OPENDAQ_SUCCESS);
-    ASSERT_EQ(propObj.getPropertyValue("Mode"), "Off");
-}
-
-TEST_F(PtpSyncInterfaceTest, DeactivateAsSourceWhenModeIsNotOff)
-{
-    const auto iface = createWithImplementation<ISyncInterface, PtpSyncInterfaceBaseImpl>();
-    const auto ifaceInternal = iface.asPtr<ISyncInterfaceInternal>(true);
-    const auto propObj = iface.asPtr<IPropertyObject>(true);
-
-    // First make it a source so mode becomes "Input"
-    propObj.setPropertyValue("Mode", "Input");
-    ASSERT_EQ(propObj.getPropertyValue("Mode"), "Input");
-
-    // Now deactivate as source — mode should switch to "Output"
-    ASSERT_ERROR_CODE_EQ(ifaceInternal->deactivateAsSource(), OPENDAQ_SUCCESS);
-    ASSERT_EQ(propObj.getPropertyValue("Mode"), "Output");
-}
 
 TEST_F(PtpSyncInterfaceTest, CreatePortProperties)
 {
-    const auto iface = createWithImplementation<ISyncInterface, TestPtpSyncInterface>();
+    const auto iface = TestPtpSyncInterface::Create();
     auto* impl = dynamic_cast<TestPtpSyncInterface*>(iface.getObject());
     const auto propObj = iface.asPtr<IPropertyObject>(true);
 
@@ -439,7 +386,7 @@ TEST_F(PtpSyncInterfaceTest, CreatePortProperties)
 
 TEST_F(PtpSyncInterfaceTest, SetProfileOptions)
 {
-    const auto iface = createWithImplementation<ISyncInterface, TestPtpSyncInterface>();
+    const auto iface = TestPtpSyncInterface::Create();
     auto* impl = dynamic_cast<TestPtpSyncInterface*>(iface.getObject());
     const auto propObj = iface.asPtr<IPropertyObject>(true);
 
@@ -454,7 +401,7 @@ TEST_F(PtpSyncInterfaceTest, SetProfileOptions)
 
 TEST_F(PtpSyncInterfaceTest, SetTransportProtocolOptions)
 {
-    const auto iface = createWithImplementation<ISyncInterface, TestPtpSyncInterface>();
+    const auto iface = TestPtpSyncInterface::Create();
     auto* impl = dynamic_cast<TestPtpSyncInterface*>(iface.getObject());
     const auto propObj = iface.asPtr<IPropertyObject>(true);
 
@@ -468,7 +415,7 @@ TEST_F(PtpSyncInterfaceTest, SetTransportProtocolOptions)
 
 TEST_F(PtpSyncInterfaceTest, SetPortModeOptionsAndPortsMode)
 {
-    const auto iface = createWithImplementation<ISyncInterface, TestPtpSyncInterface>();
+    const auto iface = TestPtpSyncInterface::Create();
     auto* impl = dynamic_cast<TestPtpSyncInterface*>(iface.getObject());
     const auto propObj = iface.asPtr<IPropertyObject>(true);
 
@@ -488,7 +435,7 @@ TEST_F(PtpSyncInterfaceTest, SetPortModeOptionsAndPortsMode)
 
 TEST_F(PtpSyncInterfaceTest, SetPortDelayMechanismOptions)
 {
-    const auto iface = createWithImplementation<ISyncInterface, TestPtpSyncInterface>();
+    const auto iface = TestPtpSyncInterface::Create();
     auto* impl = dynamic_cast<TestPtpSyncInterface*>(iface.getObject());
     const auto propObj = iface.asPtr<IPropertyObject>(true);
 
@@ -510,7 +457,7 @@ TEST_F(PtpSyncInterfaceTest, SaveLoad)
     const auto sync = Synchronization();
     const auto syncInternal = sync.asPtr<ISynchronizationInternal>(true);
 
-    const auto iface = createWithImplementation<ISyncInterface, TestPtpSyncInterface>();
+    const auto iface = TestPtpSyncInterface::Create();
     const auto updateableIface = iface.asPtr<IUpdatable>(true);
     const auto ifacePropObj = iface.asPtr<IPropertyObject>(true);
     auto* impl = dynamic_cast<TestPtpSyncInterface*>(iface.getObject());
@@ -519,8 +466,8 @@ TEST_F(PtpSyncInterfaceTest, SaveLoad)
     ASSERT_NO_THROW(syncInternal.addInterface(iface));
 
     // Check default values
-    ASSERT_EQ(sync.getSelectedSource().getName(), "ClockSyncInterface");
-    ASSERT_EQ(ifacePropObj.getPropertyValue("Mode"), "Off");
+    ASSERT_EQ(sync.getSource().getName(), "ClockSyncInterface");
+    ASSERT_EQ(iface.getMode(), SyncMode::Off);
     ASSERT_EQ(ifacePropObj.getPropertyValue("Parameters.PtpConfiguration.TransportProtocol"), "IEEE802_3");
     ASSERT_EQ(ifacePropObj.getPropertyValue("Parameters.Ports.eth0.DelayMechanism"), "E2E");
 
@@ -530,13 +477,13 @@ TEST_F(PtpSyncInterfaceTest, SaveLoad)
     ASSERT_ERROR_CODE_EQ(errCode, OPENDAQ_SUCCESS);
 
     // Do some changes after serialization to verify that deserialization will restore them
-    ifacePropObj.setPropertyValue("Mode", "Input");
+    sync.setSource("PtpSyncInterface");
     ifacePropObj.setPropertyValue("Parameters.PtpConfiguration.TransportProtocol", "UDP_IPV4");
     ifacePropObj.setPropertyValue("Parameters.Ports.eth0.DelayMechanism", "P2P");
 
     // Check that changes are applied
-    ASSERT_EQ(sync.getSelectedSource().getName(), "PtpSyncInterface");
-    ASSERT_EQ(ifacePropObj.getPropertyValue("Mode"), "Input");
+    ASSERT_EQ(sync.getSource().getName(), "PtpSyncInterface");
+    ASSERT_EQ(ifacePropObj.getPropertySelectionValue("Mode"), "Auto");
     ASSERT_EQ(ifacePropObj.getPropertyValue("Parameters.PtpConfiguration.TransportProtocol"), "UDP_IPV4");
     ASSERT_EQ(ifacePropObj.getPropertyValue("Parameters.Ports.eth0.DelayMechanism"), "P2P");
 
@@ -545,7 +492,7 @@ TEST_F(PtpSyncInterfaceTest, SaveLoad)
     deserializer.update(updateableIface, serializer.getOutput(), nullptr);
 
     // Verify that values are restored to defaults
-    ASSERT_EQ(sync.getSelectedSource().getName(), "ClockSyncInterface");
+    ASSERT_EQ(sync.getSource().getName(), "ClockSyncInterface");
     ASSERT_EQ(ifacePropObj.getPropertyValue("Mode"), "Off");
     ASSERT_EQ(ifacePropObj.getPropertyValue("Parameters.PtpConfiguration.TransportProtocol"), "IEEE802_3");
     ASSERT_EQ(ifacePropObj.getPropertyValue("Parameters.Ports.eth0.DelayMechanism"), "E2E");

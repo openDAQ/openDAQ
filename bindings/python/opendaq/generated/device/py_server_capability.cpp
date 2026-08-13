@@ -71,6 +71,14 @@ void defineIServerCapability(pybind11::module_ m, PyDaqIntf<daq::IServerCapabili
             return objectPtr.getProtocolName().toStdString();
         },
         "Gets the name of the protocol supported by the device.");
+    cls.def_property_readonly("protocol_group_id",
+        [](daq::IServerCapability *object)
+        {
+            py::gil_scoped_release release;
+            const auto objectPtr = daq::ServerCapabilityPtr::Borrow(object);
+            return objectPtr.getProtocolGroupId().toStdString();
+        },
+        "Gets the id of the protocol group supported by the device. Should not contain spaces or special characters except for '_' and '-'. Could be empty if the protocol is not part of any group.");
     cls.def_property_readonly("protocol_id",
         [](daq::IServerCapability *object)
         {
@@ -146,4 +154,13 @@ void defineIServerCapability(pybind11::module_ m, PyDaqIntf<daq::IServerCapabili
             return objectPtr.getProtocolVersion().toStdString();
         },
         "Gets the protocol version supported by the device's protocol.");
+    cls.def_property_readonly("protocol_security_level",
+        [](daq::IServerCapability *object)
+        {
+            py::gil_scoped_release release;
+            const auto objectPtr = daq::ServerCapabilityPtr::Borrow(object);
+            return objectPtr.getProtocolSecurityLevel().detach();
+        },
+        py::return_value_policy::take_ownership,
+        "Gets the security level of the protocol.");
 }

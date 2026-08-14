@@ -1,14 +1,69 @@
-name: Nightly build and run unstable tests
+name: Nightly build and run tests
 
 on:
   schedule:
     - cron: '0 0 * * *'  # Every day at midnight UTC
   workflow_dispatch:
 
+env:
+  s3bucket: bb-blueberry-sdk-releases
+  s3prefix: nightly-tests
+
 jobs:
   run-ci-jobs:
     if: ${{ github.event_name == 'workflow_dispatch' || github.ref == 'refs/heads/main' }}
     uses: ./.github/workflows/ci.yml
     with:
-      cmake_preset: unstable_tests_ci
-      ctest_preset: run_unstable_test_repeatedly
+      cmake_preset: ci
+      ctest_preset: run_tests
+
+  upload-test-results:
+    name: Upload test results to S3
+    needs: run-ci-jobs
+    if: ${{ !cancelled() && needs.run-ci-jobs.result != 'skipped' }}
+    runs-on: ubuntu-latest
+
+    env:
+      DOWNLOAD_PATH: ${{ github.workspace }}/_test-results
+
+    steps:
+      - name: Download test result artifacts
+        uses: actions/download-artifact@v4
+        with:
+          pattern: test-results-*
+          path: ${{ env.DOWNLOAD_PATH }}
+
+      - name: Pack results
+        id: pack
+        shell: python3 {0}
+        run: |
+          import datetime, os, tarfile
+          from pathlib import Path
+
+          src = Path(os.environ["DOWNLOAD_PATH"])
+          job_dirs = sorted(p for p in src.iterdir() if p.is_dir()) if src.is_dir() else []
+          archive = ""
+
+          if job_dirs:
+              date = datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%d")
+              archive = f"{date}_{os.environ['GITHUB_RUN_ID']}.tar.gz"
+              with tarfile.open(archive, "w:gz") as tar:
+                  for job_dir in job_dirs:
+                      tar.add(job_dir, arcname=job_dir.name.removeprefix("test-results-"))
+          else:
+              print("::notice::no test results in this run, nothing to upload")
+
+          with open(os.environ["GITHUB_OUTPUT"], "a") as f:
+              f.write(f"archive={archive}\n")
+
+      - name: Configure AWS credentials
+        if: steps.pack.outputs.archive != ''
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ secrets.AWS_REGION }}
+
+      - name: Upload test results to S3 bucket
+        if: steps.pack.outputs.archive != ''
+        run: aws s3 cp "${{ steps.pack.outputs.archive }}" "s3://${s3bucket}/${s3prefix}/"

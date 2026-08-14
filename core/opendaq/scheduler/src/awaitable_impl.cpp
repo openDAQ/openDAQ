@@ -7,25 +7,6 @@
 
 BEGIN_NAMESPACE_OPENDAQ
 
-namespace
-{
-    // Sets the flag once the guarded scope is left, including during stack unwinding.
-    struct CompletionGuard
-    {
-        explicit CompletionGuard(std::atomic<bool>& completed)
-            : completed(completed)
-        {
-        }
-
-        ~CompletionGuard()
-        {
-            completed = true;
-        }
-
-        std::atomic<bool>& completed;
-    };
-}
-
 template <typename TReturn>
 AwaitableImpl<TReturn>::AwaitableImpl(Future future)
     : future(std::move(future))
@@ -65,17 +46,12 @@ template <typename TReturn>
 ErrCode AwaitableImpl<TReturn>::getResult(daq::IBaseObject** result)
 {
     OPENDAQ_PARAM_NOT_NULL(result);
-
-    if (!completed && !future.valid())
-    {
-        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_EMPTY_AWAITABLE);
-    }
+    OPENDAQ_RETURN_IF_FAILED(this->wait());
 
     if constexpr (std::is_void_v<TReturn>)
     {
         try
         {
-            CompletionGuard guard(completed);
             future.get();
         }
         catch (...)
@@ -89,10 +65,7 @@ ErrCode AwaitableImpl<TReturn>::getResult(daq::IBaseObject** result)
     else
     {
         std::optional<BaseObjectPtr> optional;
-        OPENDAQ_TRY(
-            CompletionGuard guard(completed);
-            optional = future.get();
-        )
+        OPENDAQ_TRY(optional = future.get();)
 
         if (!optional.has_value())
         {

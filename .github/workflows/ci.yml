@@ -78,11 +78,7 @@ jobs:
           },
           {
             "match-jobs": ["windows-*-x86-*"],
-            "cache-variables": {"OPENSSL_ROOT_DIR": "C:/vcpkg/installed/x86-windows"}
-          },
-          {
-            "match-jobs": ["windows-*-x86_64-ninja-clang-*"],
-            "cache-variables": {"OPENSSL_ROOT_DIR": "C:/vcpkg/installed/x64-windows"}
+            "cache-variables": {"OPENSSL_ROOT_DIR": "C:/Program Files (x86)/OpenSSL-Win32"}
           },
           {
             "match-jobs": ["macos-*"],

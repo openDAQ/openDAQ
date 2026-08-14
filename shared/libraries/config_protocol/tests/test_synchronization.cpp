@@ -35,12 +35,12 @@ public:
         checkErrorInfo(this->getSynchronization(&sync));
     }
 
-    class TestSyncInterface : public SyncInterfaceBaseImpl<>
+    class TestSyncInterface : public SyncInterfaceBaseImpl
     {
     public:
-        using Super = SyncInterfaceBaseImpl<>;
+        using Super = SyncInterfaceBaseImpl;
 
-        TestSyncInterface(const StringPtr& name, const std::vector<SyncMode> & availableModes = {})
+        TestSyncInterface(const StringPtr& name, const std::vector<SyncMode> & availableModes = {SyncMode::Off, SyncMode::Input, SyncMode::Output, SyncMode::Auto})
             : Super(name, availableModes)
         {
         }
@@ -161,7 +161,7 @@ TEST_F(ConfigSynchronizationTest, setSourceFromClient)
     auto clientSync = getClientSyncComponent();
 
     // Set selected source from client
-    clientSync.getSyncInterfaces().get("TestInterface").asPtr<IPropertyObject>(true).setPropertyValue("Mode", "Input");
+    clientSync.setSource("TestInterface");
 
     // Verify server has the new selected source
     ASSERT_EQ(clientSync.getSource().getName(), "TestInterface");
@@ -216,22 +216,19 @@ TEST_F(ConfigSynchronizationTest, SetSyncInterfaceModeViaProperty)
 {
     auto serverSync = getServerSyncComponent();
     auto clientSync = getClientSyncComponent();
-    clientSync.getSyncInterfaces().get("TestInterface").asPtr<IPropertyObject>(true).setPropertyValue("Mode", "Input");
+    clientSync.setSource("TestInterface");
 
-    PropertyObjectPtr serverSource = serverSync.getSource();
-    PropertyObjectPtr clientSource = clientSync.getSource();
+    const auto serverSource = serverSync.getSource();
+    const auto clientSource = clientSync.getSource();
+
+    ASSERT_EQ(serverSource.getName(), clientSource.getName());
 
     // Get initial mode
-    auto initialMode = serverSource.getPropertyValue("Mode");
-    ASSERT_EQ(initialMode, clientSource.getPropertyValue("Mode"));
+    ASSERT_EQ(serverSource.getMode(), SyncMode::Auto);
+    ASSERT_EQ(serverSource.getMode(), clientSource.getMode());
 
     // Set mode on client
-    clientSource.setPropertyValue("Mode", "Off");
-    ASSERT_EQ(serverSource.getPropertyValue("Mode"), "Off");
-    ASSERT_EQ(clientSource.getPropertyValue("Mode"), "Off");
-
-    // Set mode on client
-    clientSource.setPropertyValue("Mode", "Input");
-    ASSERT_EQ(serverSource.getPropertyValue("Mode"), "Input");
-    ASSERT_EQ(clientSource.getPropertyValue("Mode"), "Input");
+    clientSource.setMode(SyncMode::Input);
+    ASSERT_EQ(serverSource.getMode(), SyncMode::Input);
+    ASSERT_EQ(serverSource.getMode(), clientSource.getMode());
 }

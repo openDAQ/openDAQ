@@ -60,6 +60,7 @@ function(create_component_source_groups_${BASE_NAME})
         ${SDK_SRC_DIR}/synchronization_impl.cpp
         ${SDK_SRC_DIR}/sync_interface_base_impl.cpp
         ${SDK_SRC_DIR}/clock_sync_interface_impl.cpp
+        ${SDK_SRC_DIR}/ptp_sync_interface_impl.cpp
     )
     
   
@@ -89,5 +90,6 @@ set(SRC_Cpp_Component
     synchronization_impl.cpp
     sync_interface_base_impl.cpp
     clock_sync_interface_impl.cpp
+    ptp_sync_interface_impl.cpp
     PARENT_SCOPE
 )

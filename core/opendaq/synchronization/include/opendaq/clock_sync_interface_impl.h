@@ -20,17 +20,12 @@
 
 BEGIN_NAMESPACE_OPENDAQ
 
-class ClockSyncInterfaceImpl : public SyncInterfaceBaseImpl<>
+class ClockSyncInterfaceImpl : public SyncInterfaceBaseImpl
 {
 public:
-    using Super = SyncInterfaceBaseImpl<>;
+    using Super = SyncInterfaceBaseImpl;
 
     explicit ClockSyncInterfaceImpl();
 };
-
-inline ClockSyncInterfaceImpl::ClockSyncInterfaceImpl()
-    : Super("ClockSyncInterface", {SyncMode::Off, SyncMode::Input})
-{
-}
 
 END_NAMESPACE_OPENDAQ

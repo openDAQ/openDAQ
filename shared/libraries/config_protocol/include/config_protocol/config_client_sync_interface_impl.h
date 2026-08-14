@@ -26,10 +26,10 @@
 namespace daq::config_protocol
 {
 
-class ConfigClientSyncInterfaceImpl : public ConfigClientPropertyObjectBaseImpl<SyncInterfaceBaseImpl<IPropertyObject, IConfigClientObject, IDeserializeComponent>>
+class ConfigClientSyncInterfaceImpl : public ConfigClientPropertyObjectBaseImpl<GenericSyncInterfaceImpl<IPropertyObject, IConfigClientObject, IDeserializeComponent>>
 {
 public:
-    using Impl = SyncInterfaceBaseImpl<IPropertyObject, IConfigClientObject, IDeserializeComponent>;
+    using Impl = GenericSyncInterfaceImpl<IPropertyObject, IConfigClientObject, IDeserializeComponent>;
     using Super = ConfigClientPropertyObjectBaseImpl<Impl>;
 
     ConfigClientSyncInterfaceImpl(const ConfigProtocolClientCommPtr& configProtocolClientComm,

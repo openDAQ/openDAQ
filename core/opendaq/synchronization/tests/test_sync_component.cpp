@@ -176,10 +176,10 @@ TEST_F(SyncComponentTest, Serialization)
 // sync and SyncInterface Tests
 // =====================================================
 
-class TestSyncInterface : public SyncInterfaceBaseImpl<>
+class TestSyncInterface : public SyncInterfaceBaseImpl
 {
 public:
-    using Super = SyncInterfaceBaseImpl<>;
+    using Super = SyncInterfaceBaseImpl;
 
     TestSyncInterface(const StringPtr& name, const std::vector<SyncMode> & availableModes)
         : Super(name, availableModes)
@@ -351,15 +351,15 @@ TEST_F(PtpSyncInterfaceTest, DefaultMode)
 TEST_F(PtpSyncInterfaceTest, DefaultPtpConfigurationProperties)
 {
     const auto iface = TestPtpSyncInterface::Create();
-    const auto propObj = iface.asPtr<IPropertyObject>(true);
+    const auto configuration = iface.getConfiguration();
 
-    ASSERT_EQ(propObj.getPropertyValue("Parameters.PtpConfiguration.Profile"),            "None");
-    ASSERT_EQ(propObj.getPropertyValue("Parameters.PtpConfiguration.TwoStepFlag"),        True);
-    ASSERT_EQ(propObj.getPropertyValue("Parameters.PtpConfiguration.DomainNumber"),       0);
-    ASSERT_EQ(propObj.getPropertyValue("Parameters.PtpConfiguration.UtcOffset"),          37);
-    ASSERT_EQ(propObj.getPropertyValue("Parameters.PtpConfiguration.Priority1"),          128);
-    ASSERT_EQ(propObj.getPropertyValue("Parameters.PtpConfiguration.Priority2"),          128);
-    ASSERT_EQ(propObj.getPropertyValue("Parameters.PtpConfiguration.TransportProtocol"),  "IEEE802_3");
+    ASSERT_EQ(configuration.getPropertyValue("PtpConfiguration.Profile"),            "None");
+    ASSERT_EQ(configuration.getPropertyValue("PtpConfiguration.TwoStepFlag"),        True);
+    ASSERT_EQ(configuration.getPropertyValue("PtpConfiguration.DomainNumber"),       0);
+    ASSERT_EQ(configuration.getPropertyValue("PtpConfiguration.UtcOffset"),          37);
+    ASSERT_EQ(configuration.getPropertyValue("PtpConfiguration.Priority1"),          128);
+    ASSERT_EQ(configuration.getPropertyValue("PtpConfiguration.Priority2"),          128);
+    ASSERT_EQ(configuration.getPropertyValue("PtpConfiguration.TransportProtocol"),  "IEEE802_3");
 }
 
 
@@ -377,7 +377,8 @@ TEST_F(PtpSyncInterfaceTest, CreatePortProperties)
     ASSERT_EQ(portStatus.getPropertyValue("State"), "Disabled");
 
     // Configuration port entry should exist
-    const PropertyObjectPtr portConfig = propObj.getPropertyValue("Parameters.Ports.eth0");
+    const auto configuration = iface.getConfiguration();
+    const PropertyObjectPtr portConfig = configuration.getPropertyValue("PortConfiguration.eth0");
     ASSERT_TRUE(portConfig.assigned());
     ASSERT_EQ(portConfig.getPropertyValue("Mode"),            "Off");
     ASSERT_EQ(portConfig.getPropertyValue("DelayMechanism"),  "E2E");
@@ -388,12 +389,12 @@ TEST_F(PtpSyncInterfaceTest, SetProfileOptions)
 {
     const auto iface = TestPtpSyncInterface::Create();
     auto* impl = dynamic_cast<TestPtpSyncInterface*>(iface.getObject());
-    const auto propObj = iface.asPtr<IPropertyObject>(true);
+    const auto configuration = iface.getConfiguration();
 
     const auto newOptions = List<IString>("Custom1", "Custom2");
     impl->setProfileOptions(newOptions);
 
-    const ListPtr<IString> stored = propObj.getPropertyValue("Parameters.PtpConfiguration.ProfileOptions");
+    const ListPtr<IString> stored = configuration.getPropertyValue("PtpConfiguration.ProfileOptions");
     ASSERT_EQ(stored.getCount(), 2u);
     ASSERT_EQ(stored[0], "Custom1");
     ASSERT_EQ(stored[1], "Custom2");
@@ -403,12 +404,12 @@ TEST_F(PtpSyncInterfaceTest, SetTransportProtocolOptions)
 {
     const auto iface = TestPtpSyncInterface::Create();
     auto* impl = dynamic_cast<TestPtpSyncInterface*>(iface.getObject());
-    const auto propObj = iface.asPtr<IPropertyObject>(true);
+    const auto configuration = iface.getConfiguration();
 
     const auto newOptions = List<IString>("UDP_IPV4");
     impl->setTransportProtocolOptions(newOptions);
 
-    const ListPtr<IString> stored = propObj.getPropertyValue("Parameters.PtpConfiguration.TransportProtocolOptions");
+    const ListPtr<IString> stored = configuration.getPropertyValue("PtpConfiguration.TransportProtocolOptions");
     ASSERT_EQ(stored.getCount(), 1u);
     ASSERT_EQ(stored[0], "UDP_IPV4");
 }
@@ -417,7 +418,7 @@ TEST_F(PtpSyncInterfaceTest, SetPortModeOptionsAndPortsMode)
 {
     const auto iface = TestPtpSyncInterface::Create();
     auto* impl = dynamic_cast<TestPtpSyncInterface*>(iface.getObject());
-    const auto propObj = iface.asPtr<IPropertyObject>(true);
+    const auto configuration = iface.getConfiguration();
 
     impl->createPortProporties("eth0");
     impl->createPortProporties("eth1");
@@ -426,8 +427,8 @@ TEST_F(PtpSyncInterfaceTest, SetPortModeOptionsAndPortsMode)
     impl->setPortModeOptions(newModeOptions);
     impl->setPortsMode("Input");
 
-    const PropertyObjectPtr portConfig0 = propObj.getPropertyValue("Parameters.Ports.eth0");
-    const PropertyObjectPtr portConfig1 = propObj.getPropertyValue("Parameters.Ports.eth1");
+    const PropertyObjectPtr portConfig0 = configuration.getPropertyValue("PortConfiguration.eth0");
+    const PropertyObjectPtr portConfig1 = configuration.getPropertyValue("PortConfiguration.eth1");
 
     ASSERT_EQ(portConfig0.getPropertyValue("Mode"), "Input");
     ASSERT_EQ(portConfig1.getPropertyValue("Mode"), "Input");
@@ -437,14 +438,14 @@ TEST_F(PtpSyncInterfaceTest, SetPortDelayMechanismOptions)
 {
     const auto iface = TestPtpSyncInterface::Create();
     auto* impl = dynamic_cast<TestPtpSyncInterface*>(iface.getObject());
-    const auto propObj = iface.asPtr<IPropertyObject>(true);
+    const auto configuration = iface.getConfiguration();
 
     impl->createPortProporties("eth0");
 
     const auto newOptions = List<IString>("P2P");
     impl->setPortDelayMechanismOptions(newOptions);
 
-    const PropertyObjectPtr portConfig = propObj.getPropertyValue("Parameters.Ports.eth0");
+    const PropertyObjectPtr portConfig = configuration.getPropertyValue("PortConfiguration.eth0");
     const ListPtr<IString> stored = portConfig.getPropertyValue("DelayMechanismOptions");
     ASSERT_EQ(stored.getCount(), 1u);
     ASSERT_EQ(stored[0], "P2P");
@@ -459,7 +460,8 @@ TEST_F(PtpSyncInterfaceTest, SaveLoad)
 
     const auto iface = TestPtpSyncInterface::Create();
     const auto updateableIface = iface.asPtr<IUpdatable>(true);
-    const auto ifacePropObj = iface.asPtr<IPropertyObject>(true);
+    const auto configuration = iface.getConfiguration();
+
     auto* impl = dynamic_cast<TestPtpSyncInterface*>(iface.getObject());
     impl->createPortProporties("eth0");
 
@@ -468,8 +470,8 @@ TEST_F(PtpSyncInterfaceTest, SaveLoad)
     // Check default values
     ASSERT_EQ(sync.getSource().getName(), "ClockSyncInterface");
     ASSERT_EQ(iface.getMode(), SyncMode::Off);
-    ASSERT_EQ(ifacePropObj.getPropertyValue("Parameters.PtpConfiguration.TransportProtocol"), "IEEE802_3");
-    ASSERT_EQ(ifacePropObj.getPropertyValue("Parameters.Ports.eth0.DelayMechanism"), "E2E");
+    ASSERT_EQ(configuration.getPropertyValue("PtpConfiguration.TransportProtocol"), "IEEE802_3");
+    ASSERT_EQ(configuration.getPropertyValue("PortConfiguration.eth0.DelayMechanism"), "E2E");
 
     // Do serialize for update
     auto serializer = JsonSerializer();
@@ -478,14 +480,14 @@ TEST_F(PtpSyncInterfaceTest, SaveLoad)
 
     // Do some changes after serialization to verify that deserialization will restore them
     sync.setSource("PtpSyncInterface");
-    ifacePropObj.setPropertyValue("Parameters.PtpConfiguration.TransportProtocol", "UDP_IPV4");
-    ifacePropObj.setPropertyValue("Parameters.Ports.eth0.DelayMechanism", "P2P");
+    configuration.setPropertyValue("PtpConfiguration.TransportProtocol", "UDP_IPV4");
+    configuration.setPropertyValue("PortConfiguration.eth0.DelayMechanism", "P2P");
 
     // Check that changes are applied
     ASSERT_EQ(sync.getSource().getName(), "PtpSyncInterface");
-    ASSERT_EQ(ifacePropObj.getPropertySelectionValue("Mode"), "Auto");
-    ASSERT_EQ(ifacePropObj.getPropertyValue("Parameters.PtpConfiguration.TransportProtocol"), "UDP_IPV4");
-    ASSERT_EQ(ifacePropObj.getPropertyValue("Parameters.Ports.eth0.DelayMechanism"), "P2P");
+    ASSERT_EQ(iface.getMode(), SyncMode::Auto);
+    ASSERT_EQ(configuration.getPropertyValue("PtpConfiguration.TransportProtocol"), "UDP_IPV4");
+    ASSERT_EQ(configuration.getPropertyValue("PortConfiguration.eth0.DelayMechanism"), "P2P");
 
     // Do restore syncronization
     const auto deserializer = JsonDeserializer();
@@ -493,9 +495,9 @@ TEST_F(PtpSyncInterfaceTest, SaveLoad)
 
     // Verify that values are restored to defaults
     ASSERT_EQ(sync.getSource().getName(), "ClockSyncInterface");
-    ASSERT_EQ(ifacePropObj.getPropertyValue("Mode"), "Off");
-    ASSERT_EQ(ifacePropObj.getPropertyValue("Parameters.PtpConfiguration.TransportProtocol"), "IEEE802_3");
-    ASSERT_EQ(ifacePropObj.getPropertyValue("Parameters.Ports.eth0.DelayMechanism"), "E2E");
+    ASSERT_EQ(iface.getMode(), SyncMode::Off);
+    ASSERT_EQ(configuration.getPropertyValue("PtpConfiguration.TransportProtocol"), "IEEE802_3");
+    ASSERT_EQ(configuration.getPropertyValue("PortConfiguration.eth0.DelayMechanism"), "E2E");
 }
 
 END_NAMESPACE_OPENDAQ

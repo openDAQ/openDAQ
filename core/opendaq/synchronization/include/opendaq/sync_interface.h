@@ -60,13 +60,13 @@ DECLARE_OPENDAQ_INTERFACE(ISyncInterface, IBaseObject)
       */
     virtual ErrCode INTERFACE_FUNC getReferenceDomainId(IString** referenceDomainId) = 0;
 
+    virtual ErrCode INTERFACE_FUNC setMode(SyncMode mode) = 0;
     virtual ErrCode INTERFACE_FUNC getMode(SyncMode* sourceMode) = 0;
 
     // [templateType(availableModes, IInteger, IString)]
     virtual ErrCode INTERFACE_FUNC getAvailableModes(IDict** availableModes) = 0;
 
-    virtual ErrCode INTERFACE_FUNC getStatusContainer(IComponentStatusContainer** syncStatus) = 0;
-
+    virtual ErrCode INTERFACE_FUNC getStatus(IPropertyObject** status) = 0;
     virtual ErrCode INTERFACE_FUNC getConfiguration(IPropertyObject** configuration) = 0;
 };
 /*!@}*/

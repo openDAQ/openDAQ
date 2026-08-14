@@ -4,6 +4,7 @@
 #include <opendaq/format.h>
 #include <opendaq/custom_log.h>
 #include <chrono>
+#include <memory>
 #include <thread>
 
 using namespace boost;
@@ -60,9 +61,6 @@ void IcmpPing::start(const std::vector<boost::asio::ip::address_v4>& remotes, co
     socket.get_option(unicastHopsDefault);
     // LOG("Socket ping TTL default M: {} U: {}\n", mulitcastHopsDefault.value(), unicastHopsDefault.value());
 
-    numReplies = 0;
-    sequenceNumber = 0;
-
     if (maxHops == -1)
     {
         maxHops = 64;
@@ -77,6 +75,12 @@ void IcmpPing::start(const std::vector<boost::asio::ip::address_v4>& remotes, co
     // socket.get_option(unicastHopsDefault);
     // LOG("Socket ping TTL set M: {} U: {}\n", mulitcastHopsDefault.value(), unicastHopsDefault.value());
 
+    // Set up all state the handlers observe before arming the first operation.
+    numReplies = 0;
+    numRemotes = remotes.size();
+    numSent = 0;
+    ++sequenceNumber;
+
     startReceive();
     startSend(remotes);
 }
@@ -90,7 +94,8 @@ void IcmpPing::stop()
 
     system::error_code ec;
     socket.shutdown(boost::asio::socket_base::shutdown_both, ec);
-    if (ec && ec != boost::asio::error::bad_descriptor)
+    // A raw ICMP socket is never connected.
+    if (ec && ec != boost::asio::error::bad_descriptor && ec != boost::asio::error::not_connected)
     {
         LOG_E("Error shutting ICMP socket [{}] \n", ec.message());
     }
@@ -117,22 +122,19 @@ void IcmpPing::startSend(const std::vector<boost::asio::ip::address_v4>& remotes
     echoRequest.setType(ICMPHeader::EchoRequest);
     echoRequest.setCode(0);
     echoRequest.setIdentifier(identifier);
-    echoRequest.setSequenceNumber(++sequenceNumber);
+    echoRequest.setSequenceNumber(sequenceNumber);
     computeChecksum(echoRequest, body.begin(), body.end());
 
-    // Encode the request packet.
-    boost::asio::streambuf requestBuffer;
-    std::ostream os(&requestBuffer);
+    // Encode the request packet. Kept alive by every send handler until it completes.
+    const auto requestBuffer = std::make_shared<boost::asio::streambuf>();
+    std::ostream os(requestBuffer.get());
     os << echoRequest << body;
-
-    // Send the request.
-    numReplies = 0;
-    numRemotes = remotes.size();
-    numSent = 0;
 
     // LOG("Ping remotes: {}\n", numRemotes);
 
     timeStart = std::chrono::steady_clock::now();
+    // Read by handleReceive, so set before the first send is armed.
+    timeSent = timeStart;
 
     for (std::size_t i = 0; i < numRemotes; ++i)
     {
@@ -143,9 +145,9 @@ void IcmpPing::startSend(const std::vector<boost::asio::ip::address_v4>& remotes
         auto ip = remotes[i];
 
         socket.async_send_to(
-            requestBuffer.data(),
+            requestBuffer->data(),
             ip::icmp::endpoint(ip, 0),
-            [i, ip, this, ptr = shared_from_this()](boost::system::error_code ec, std::size_t)
+            [i, ip, this, requestBuffer, ptr = shared_from_this()](boost::system::error_code ec, std::size_t)
         {
             if (++numSent == numRemotes)
             {
@@ -167,8 +169,6 @@ void IcmpPing::startSend(const std::vector<boost::asio::ip::address_v4>& remotes
             LOG_T("[{}] Sent ping to {} on thread id: {}\n", i, ip, fmt::streamed(std::this_thread::get_id()));
         });
     }
-
-    timeSent = steady_timer::clock_type::now();
 }
 
 void IcmpPing::waitSendAndReply()
@@ -259,9 +259,6 @@ void IcmpPing::handleReceive(std::size_t length)
         chrono::steady_clock::duration elapsed = now - timeSent;
 
         auto sourceAddr = ipv4Header.getSourceAddress();
-        auto sourceStr = sourceAddr.to_string();
-
-        responseAddresses.emplace(sourceStr);
 
         LOG_T("[{}] {} bytes from {}: icmp_seq={}, ttl={}, time={} ms",
             fmt::streamed(std::this_thread::get_id()),
@@ -271,6 +268,11 @@ void IcmpPing::handleReceive(std::size_t length)
             ipv4Header.getTimeToLive(),
             chrono::duration_cast<chrono::milliseconds>(elapsed).count()
         );
+
+        // Reply state is read from the calling thread; mutate and notify under the lock.
+        std::lock_guard lock(mutexReplies);
+
+        responseAddresses.emplace(sourceAddr.to_string());
 
         if (++numReplies == numRemotes)
         {
@@ -284,11 +286,13 @@ void IcmpPing::handleReceive(std::size_t length)
 
 std::unordered_set<std::string> IcmpPing::getReplyAddresses() const
 {
+    std::lock_guard lock(mutexReplies);
     return responseAddresses;
 }
 
 void IcmpPing::clearReplies()
 {
+    std::lock_guard lock(mutexReplies);
     numReplies = 0;
     responseAddresses.clear();
 }

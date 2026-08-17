@@ -71,7 +71,10 @@ public:
         {
             DeviceInfoPtr rootDeviceInfo = rootDevice.getInfo();
             for (const auto& [_, discoveryServer] : context.getDiscoveryServers())
-                discoveryServer.template asPtr<IDiscoveryServer>(true).registerService(id, getDiscoveryConfig(), rootDeviceInfo);
+            {
+                for (const auto& discoveryConfig : getDiscoveryConfigs())
+                    discoveryServer.template asPtr<IDiscoveryServer>().registerService(id, discoveryConfig, rootDeviceInfo);
+            }
         }
         return OPENDAQ_SUCCESS;
     }
@@ -177,6 +180,11 @@ protected:
     virtual PropertyObjectPtr getDiscoveryConfig()
     {
         return PropertyObject();
+    }
+
+    virtual ListPtr<IPropertyObject> getDiscoveryConfigs()
+    {
+        return List<IPropertyObject>(getDiscoveryConfig());
     }
 
     virtual void onStopServer()

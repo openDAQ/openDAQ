@@ -176,7 +176,7 @@ private:
     std::atomic<bool> running {false};
     std::thread serviceThread;
     
-    std::map<std::string, MdnsDiscoveredService> services;
+    std::multimap<std::string, MdnsDiscoveredService> services;
     std::unordered_map<std::string, AdapterInfo> adapters;
 
     std::string manufacturer;

@@ -47,11 +47,12 @@ void StreamingManager::sendPacketToSubscribers(const std::string& signalStringId
         {
             while (std::next(it) != registeredSignal.subscribedClientsIds.end())
             {
-                sendDaqPacket(sendPacketBufferCb, packetStreamingServers.at(*it), PacketPtr(packet), *it, registeredSignal.numericId);  // copy packet ptr
+                if (const auto streamingPacketServer = getPacketStreamingServerNoLock(*it))
+                    sendDaqPacket(sendPacketBufferCb, streamingPacketServer, PacketPtr(packet), *it, registeredSignal.numericId); // copy packet ptr
                 ++it;
             }
-
-            sendDaqPacket(sendPacketBufferCb, packetStreamingServers.at(*it), std::move(packet), *it, registeredSignal.numericId); // move packet ptr
+            if (const auto streamingPacketServer = getPacketStreamingServerNoLock(*it))
+                sendDaqPacket(sendPacketBufferCb, streamingPacketServer, std::move(packet), *it, registeredSignal.numericId); // move packet ptr
         }
     }
     else
@@ -94,11 +95,13 @@ void StreamingManager::processPackets(const tsl::ordered_map<std::string, Packet
                 {
                     while (std::next(it2) != registeredSignal.subscribedClientsIds.end())
                     {
-                        packetStreamingServers.at(*it2)->addDaqPacket(registeredSignal.numericId, packet);
+                        if (const auto streamingPacketServer = getPacketStreamingServerNoLock(*it2))
+                            streamingPacketServer->addDaqPacket(registeredSignal.numericId, packet);
                         ++it2;
                     }
-        
-                    pushToPacketStreamingServer(packetStreamingServers.at(*it2), std::move(packet), registeredSignal.numericId);
+
+                    if (const auto streamingPacketServer = getPacketStreamingServerNoLock(*it2))
+                        pushToPacketStreamingServer(streamingPacketServer, std::move(packet), registeredSignal.numericId);
                 }
             }
         }
@@ -113,8 +116,8 @@ PacketStreamingServerPtr StreamingManager::getPacketServerIfRegistered(const std
 {
     std::scoped_lock lock(sync);
 
-    if (const auto it = streamingClientsIds.find(clientId); it != streamingClientsIds.end())
-        return packetStreamingServers.at(clientId);
+    if (const auto itStreamingClientsIds = streamingClientsIds.find(clientId); itStreamingClientsIds != streamingClientsIds.end())
+        return getPacketStreamingServerNoLock(clientId);
 
     return nullptr;
 }
@@ -337,9 +340,11 @@ ListPtr<ISignal> StreamingManager::unregisterClient(const std::string& clientId)
     else
     {
         LOG_I("Client {} was not registered as streaming client", clientId);
-        return List<ISignal>();
     }
 
+    // clean up any leftover packet server/client and subscriptions unconditionally,
+    // regardless of whether the client was found above, so no stale entry referencing
+    // this client id can survive in any of the maps/sets below
     // FIXME keep and reuse packet server when packet retransmission feature will be enabled
     if (auto it = packetStreamingServers.find(clientId); it != packetStreamingServers.end())
         packetStreamingServers.erase(it);
@@ -368,6 +373,11 @@ bool StreamingManager::registerSignalSubscriber(const std::string& signalStringI
 
     std::scoped_lock lock(sync);
 
+    const auto streamingPacketServer = getPacketStreamingServerNoLock(subscribedClientId);
+    if (!streamingPacketServer)
+        throw NativeStreamingProtocolException(
+            fmt::format("Can't register subscriber - client {} is not registered for streaming", subscribedClientId));
+
     if (auto iter = registeredSignals.find(signalStringId); iter != registeredSignals.end())
     {
         auto& registeredSignal = iter->second;
@@ -390,7 +400,7 @@ bool StreamingManager::registerSignalSubscriber(const std::string& signalStringI
                 if (registeredSignal.lastDataDescriptorParam.assigned())
                 {
                     sendDaqPacket(sendPacketBufferCb,
-                                  packetStreamingServers.at(subscribedClientId),
+                                  streamingPacketServer,
                                   DataDescriptorChangedEventPacket(registeredSignal.lastDataDescriptorParam,
                                                                    registeredSignal.lastDomainDescriptorParam),
                                   subscribedClientId,
@@ -439,6 +449,14 @@ bool StreamingManager::removeSignalSubscriberNoLock(const std::string& signalStr
     }
 
     return doSignalUnsubscribe;
+}
+
+PacketStreamingServerPtr StreamingManager::getPacketStreamingServerNoLock(const std::string& clientId)
+{
+    if (const auto serverIt = packetStreamingServers.find(clientId); serverIt != packetStreamingServers.end())
+        return serverIt->second;
+    else
+        return nullptr;
 }
 
 SignalNumericIdType StreamingManager::findSignalNumericId(const SignalPtr& signal)

@@ -328,6 +328,7 @@ public:
                                         : List<IString>("OpenDAQLTStreaming", "OpenDAQNativeStreaming");
         const auto config = createDeviceConfig(gatewayInstance, streamingProtocolIds, MIN_CONNECTIONS);
         gatewayInstance.addDevice(createStructureDeviceConnectionString(leafDeviceIndex), config);
+        CONDITIONAL_SLEEP;
     }
 
     InstancePtr addSecondLeafDevice(const InstancePtr& gatewayInstance, const InstancePtr& clientInstance, bool& success)
@@ -383,7 +384,7 @@ public:
                                         : List<IString>("OpenDAQLTStreaming", "OpenDAQNativeStreaming");
         auto config = createDeviceConfig(instance, streamingProtocolIds, heuristicValue);
         auto gatewayDevice = instance.addDevice(createStructureDeviceConnectionString(0), config);
-
+        CONDITIONAL_SLEEP;
         return instance;
     }
 };
@@ -400,6 +401,7 @@ TEST_P(SubDevicesTest, RootStreamingToClient)
     InstancePtr secondLeafDevice = addSecondLeafDevice(gateway, client, success);
     ASSERT_TRUE(success);
 
+    CONDITIONAL_SLEEP;
     testSignalStreamingSources(client, gateway, false);
     testInputPortStreamingSources(client, gateway, false);
 

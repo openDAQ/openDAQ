@@ -25,7 +25,7 @@ class ClockSyncInterfaceImpl : public SyncInterfaceBaseImpl
 public:
     using Super = SyncInterfaceBaseImpl;
 
-    explicit ClockSyncInterfaceImpl();
+    explicit ClockSyncInterfaceImpl(const TypeManagerPtr& manager);
 };
 
 END_NAMESPACE_OPENDAQ

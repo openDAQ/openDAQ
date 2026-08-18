@@ -1,12 +1,21 @@
 #include <opendaq/sync_interface_base_impl.h>
+#include <opendaq/component_status_container_private_ptr.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
 template class GenericSyncInterfaceImpl<IPropertyObject, ISyncInterfaceInternal>;
 
-SyncInterfaceBaseImpl::SyncInterfaceBaseImpl(const StringPtr& name, const std::vector<SyncMode>& availableModes)
-    : Super()
+SyncInterfaceBaseImpl::SyncInterfaceBaseImpl(const TypeManagerPtr& manager, const StringPtr& name, const std::vector<SyncMode>& availableModes)
+    : Super(manager)
     , name(name)
+    , manager(manager)
+{
+    initAvailiableModes(availableModes);
+    initProperties();
+    initSynchronizationStatus();
+}
+
+void SyncInterfaceBaseImpl::initAvailiableModes(const std::vector<SyncMode>& availableModes)
 {
     sourceModes = Dict<IInteger, IString>();
     outputModes = Dict<IInteger, IString>({{static_cast<Int>(SyncMode::Off), "Off"}});
@@ -29,19 +38,46 @@ SyncInterfaceBaseImpl::SyncInterfaceBaseImpl(const StringPtr& name, const std::v
                 break;
         }
     }
+}
 
+void SyncInterfaceBaseImpl::initProperties()
+{
     this->objPtr.addProperty(StringPropertyBuilder("Name", name).setReadOnly(true).build());
     this->objPtr.addProperty(DictPropertyBuilder("ModeOptions", outputModes).setReadOnly(true).setVisible(false).build());
     this->objPtr.addProperty(SparseSelectionProperty("Mode", EvalValue("$ModeOptions"), Integer(SyncMode::Off)));
     this->objPtr.setPropertyOrder(List<IString>("ModeOptions"));
 
     status = PropertyObject();
-    status.addProperty(BoolPropertyBuilder("Synchronized", False).setReadOnly(true).build());
+    const EnumerationTypePtr syncRoleStatusType = manager.getType("SynchronizationRoleStatusType");
+    const EnumerationTypePtr syncSourceStatusType = manager.getType("SynchronizationSourceStatusType");
+
+    status.addProperty(SelectionPropertyBuilder("SynchronizationRoleStatus", syncRoleStatusType.getEnumeratorNames(), static_cast<Int>(SyncRoleStatus::Off)).setReadOnly(true).build());
+    status.addProperty(SelectionPropertyBuilder("SynchronizationSourceStatus", syncSourceStatusType.getEnumeratorNames(), static_cast<Int>(SyncSourceStatus::Off)).setReadOnly(true).build());
     status.addProperty(StringPropertyBuilder("ReferenceDomainId", "").setReadOnly(true).build());
     this->objPtr.addProperty(ObjectPropertyBuilder("Status", status).setReadOnly(true).build());
 
     configuration = PropertyObject();
     this->objPtr.addProperty(ObjectProperty("Configuration", configuration));
+
+    this->objPtr.getOnPropertyValueWrite("Mode") += [this](PropertyObjectPtr&, PropertyValueEventArgsPtr& arg)
+    {
+        Int intMode = 0;
+        checkErrorInfo(arg.getValue().asPtr<IInteger>(true)->getValue(&intMode));
+        onModeChanged(static_cast<SyncMode>(intMode));
+    };
+}
+
+void SyncInterfaceBaseImpl::initSynchronizationStatus()
+{
+    const auto statusContainerPrivate = this->statusContainer.asPtr<IComponentStatusContainerPrivate>(true);
+
+    const auto syncRoleStatus =
+        EnumerationWithIntValue("SynchronizationRoleStatusType", static_cast<Int>(SyncRoleStatus::Off), manager);
+    statusContainerPrivate.addStatus("SynchronizationRoleStatus", syncRoleStatus);
+    
+    const auto syncSourceStatus =
+        EnumerationWithIntValue("SynchronizationSourceStatusType", static_cast<Int>(SyncSourceStatus::Off), manager);
+    statusContainerPrivate.addStatus("SynchronizationSourceStatus", syncSourceStatus);
 }
 
 ErrCode SyncInterfaceBaseImpl::getName(IString** name)
@@ -79,12 +115,6 @@ ErrCode SyncInterfaceBaseImpl::getConfiguration(IPropertyObject** configuration)
     return OPENDAQ_SUCCESS;
 }
 
-ErrCode SyncInterfaceBaseImpl::clone(IPropertyObject** cloned)
-{
-    OPENDAQ_PARAM_NOT_NULL(cloned);
-    return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOT_CLONEABLE);
-}
-
 ErrCode SyncInterfaceBaseImpl::setAsSource(Bool source)
 {
     if (source)
@@ -106,6 +136,49 @@ ErrCode SyncInterfaceBaseImpl::setAsSource(Bool source)
     OPENDAQ_RETURN_IF_FAILED(this->setProtectedPropertyValue(String("ModeOptions"), outputModes));
     isSource = False;
     OPENDAQ_RETURN_IF_FAILED(this->setPropertyValue(String("Mode"), Integer(SyncMode::Off)));
+    return OPENDAQ_SUCCESS;
+}
+
+void SyncInterfaceBaseImpl::onModeChanged(SyncMode mode)
+{
+}
+
+void SyncInterfaceBaseImpl::setSyncSourceStatus(SyncSourceStatus status, const StringPtr& message)
+{
+    this->status.asPtr<IPropertyObjectProtected>(true).setProtectedPropertyValue("SynchronizationSourceStatus", static_cast<Int>(status));
+    const auto syncSourceStatus =
+        EnumerationWithIntValue("SynchronizationSourceStatusType", static_cast<Int>(status), manager);
+
+    const auto statusContainerPrivate = this->statusContainer.asPtr<IComponentStatusContainerPrivate>(true);
+    statusContainerPrivate.setStatusWithMessage("SynchronizationSourceStatus", syncSourceStatus, message);
+}
+
+void SyncInterfaceBaseImpl::setSyncRoleStatus(SyncRoleStatus status, const StringPtr& message)
+{
+    this->status.asPtr<IPropertyObjectProtected>(true).setProtectedPropertyValue("SynchronizationRoleStatus", static_cast<Int>(status));
+    const auto syncRoleStatus =
+        EnumerationWithIntValue("SynchronizationRoleStatusType", static_cast<Int>(status), manager);
+    
+    const auto statusContainerPrivate = this->statusContainer.asPtr<IComponentStatusContainerPrivate>(true);
+    statusContainerPrivate.setStatusWithMessage("SynchronizationRoleStatus", syncRoleStatus, message);
+}
+
+ErrCode SyncInterfaceBaseImpl::clone(IPropertyObject** cloned)
+{
+    OPENDAQ_PARAM_NOT_NULL(cloned);
+    return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOT_CLONEABLE);
+}
+
+ErrCode SyncInterfaceBaseImpl::serializeCustomValues(ISerializer* serializer, bool forUpdate)
+{
+    OPENDAQ_RETURN_IF_FAILED(Super::serializeCustomValues(serializer, forUpdate));
+
+    if (!forUpdate)
+    {
+        serializer->key("SyncStatus");
+        auto serializable = statusContainer.asOrNull<ISerializable>(true);
+        OPENDAQ_RETURN_IF_FAILED(serializable->serialize(serializer));
+    }
     return OPENDAQ_SUCCESS;
 }
 

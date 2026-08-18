@@ -1131,10 +1131,10 @@ inline ErrCode ConfigClientPropertyObjectImpl::Deserialize(ISerializedObject* se
             serializedPtr,
             contextPtr,
             factoryCallbackPtr,
-            [&componentDeserializeContext, &factoryCallback](
+            [](
                 const SerializedObjectPtr& serialized, const ComponentDeserializeContextPtr& deserializeContext, const StringPtr& className)
             {
-                const auto ctx = componentDeserializeContext.asPtr<IConfigProtocolDeserializeContext>();
+                const auto ctx = deserializeContext.asPtr<IConfigProtocolDeserializeContext>(true);
                 PropertyObjectPtr propObj = createWithImplementation<IPropertyObject, ConfigClientPropertyObjectImpl>(
                     ctx->getClientComm(), ctx->getRemoteGlobalId(), ctx->getTypeManager(), className);
 

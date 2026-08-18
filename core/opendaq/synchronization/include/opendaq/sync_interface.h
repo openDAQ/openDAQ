@@ -37,10 +37,28 @@ BEGIN_NAMESPACE_OPENDAQ
 
 enum class SyncMode : EnumType
 {
-  Off = 0,  ///> Interface is disabled.
-  Input,    ///> Interface can only receive a synchronization reference.
-  Output,   ///> Interface can only distribute the device clock.
-  Auto      ///> Interface automatically selects its active role.
+    Off = 0,  ///> Interface is disabled.
+    Input,    ///> Interface can only receive a synchronization reference.
+    Output,   ///> Interface can only distribute the device clock.
+    Auto      ///> Interface automatically selects its active role.
+};
+
+enum class SyncSourceStatus : EnumType
+{
+    Off = 0,
+    Listening,
+    Calibrating,
+    Synced,
+    Error,
+    Unknown
+};
+
+enum class SyncRoleStatus : EnumType
+{
+    Off = 0,
+    Input,
+    Output,
+    Unknown
 };
 
 /*!
@@ -68,6 +86,8 @@ DECLARE_OPENDAQ_INTERFACE(ISyncInterface, IBaseObject)
 
     virtual ErrCode INTERFACE_FUNC getStatus(IPropertyObject** status) = 0;
     virtual ErrCode INTERFACE_FUNC getConfiguration(IPropertyObject** configuration) = 0;
+
+    virtual ErrCode INTERFACE_FUNC getStatusContainer(IComponentStatusContainer** syncStatus) = 0;
 };
 /*!@}*/
 

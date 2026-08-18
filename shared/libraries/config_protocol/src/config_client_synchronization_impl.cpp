@@ -24,8 +24,10 @@
 namespace daq::config_protocol
 {
 
-ConfigClientSynchronizationImpl::ConfigClientSynchronizationImpl(const ConfigProtocolClientCommPtr& configProtocolClientComm,const std::string& remoteGlobalId)
-    : Super(configProtocolClientComm, remoteGlobalId, True)
+ConfigClientSynchronizationImpl::ConfigClientSynchronizationImpl(const ConfigProtocolClientCommPtr& configProtocolClientComm,
+                                                                 const std::string& remoteGlobalId,
+                                                                 const TypeManagerPtr& manager)
+    : Super(configProtocolClientComm, remoteGlobalId, manager)
 {
 }
 
@@ -78,23 +80,6 @@ ErrCode ConfigClientSynchronizationImpl::endUpdate()
     return Super::endUpdate();
 }
 
-ErrCode ConfigClientSynchronizationImpl::getSource(ISyncInterface** selectedSource)
-{
-    OPENDAQ_PARAM_NOT_NULL(selectedSource);
-    return daqTry([&]
-    {
-        StringPtr sourceName = this->objPtr.getPropertyValue("Source");
-        PropertyObjectPtr interfaces = this->objPtr.getPropertyValue("Interfaces");
-        *selectedSource = interfaces.getPropertyValue(sourceName).template as<ISyncInterface>();
-        return OPENDAQ_SUCCESS;
-    });
-}
-
-ErrCode ConfigClientSynchronizationImpl::addInterface(ISyncInterface* syncInterface)
-{
-    return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOT_SUPPORTED, "Adding interfaces is not supported on the client side");
-}
-
 ErrCode ConfigClientSynchronizationImpl::deserializeValues(ISerializedObject* /*serializedObject*/,
                                                            IBaseObject* /*context*/,
                                                            IFunction* /*callbackFactory*/)
@@ -127,8 +112,6 @@ ErrCode ConfigClientSynchronizationImpl::Deserialize(ISerializedObject* serializ
         if (!componentDeserializeContext.assigned())
             return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_ARGUMENT_NULL, "Invalid deserialization context");
 
-        const auto configDeserializeContext = componentDeserializeContext.asPtr<IConfigProtocolDeserializeContext>();
-
         const auto serializedPtr = SerializedObjectPtr::Borrow(serialized);
         const auto factoryCallbackPtr = FunctionPtr::Borrow(factoryCallback);
 
@@ -136,11 +119,13 @@ ErrCode ConfigClientSynchronizationImpl::Deserialize(ISerializedObject* serializ
             serializedPtr,
             contextPtr,
             factoryCallbackPtr,
-            [&configDeserializeContext](const SerializedObjectPtr&, const BaseObjectPtr&, const StringPtr&)
+            [](const SerializedObjectPtr&, const BaseObjectPtr& deserializeContext, const StringPtr&)
             {
+                const auto ctx = deserializeContext.asPtr<IConfigProtocolDeserializeContext>(true);
                 auto syncComponent = createWithImplementation<ISynchronization, ConfigClientSynchronizationImpl>(
-                    configDeserializeContext->getClientComm(),
-                    configDeserializeContext->getRemoteGlobalId());
+                    ctx->getClientComm(),
+                    ctx->getRemoteGlobalId(),
+                    ctx->getTypeManager());
                 syncComponent.as<IConfigClientObject>(true)->setRemoteUpdating(true);
                 return syncComponent;
             });

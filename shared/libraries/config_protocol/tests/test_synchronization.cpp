@@ -12,6 +12,7 @@
 #include <opendaq/synchronization_internal_ptr.h>
 #include <opendaq/sync_interface_base_impl.h>
 #include <opendaq/sync_interface_ptr.h>
+#include <opendaq/ptp_sync_interface_impl.h>
 #include <coreobjects/property_object_internal_ptr.h>
 #include <coreobjects/user_factory.h>
 #include <opendaq/component_deserialize_context_factory.h>
@@ -39,18 +40,48 @@ public:
     {
     public:
         using Super = SyncInterfaceBaseImpl;
+        using Super::setSyncSourceStatus;
+        using Super::setSyncRoleStatus;
 
-        TestSyncInterface(const StringPtr& name, const std::vector<SyncMode> & availableModes = {SyncMode::Off, SyncMode::Input, SyncMode::Output, SyncMode::Auto})
-            : Super(name, availableModes)
+        TestSyncInterface(const TypeManagerPtr& manager,
+                          const StringPtr& name,
+                          const std::vector<SyncMode> & availableModes = {SyncMode::Off, SyncMode::Input, SyncMode::Output, SyncMode::Auto})
+            : Super(manager, name, availableModes)
         {
         }
     };
 
+    class TestPtpSyncInterface : public PtpSyncInterfaceBaseImpl
+    {
+    public:
+        using Super = PtpSyncInterfaceBaseImpl;
+
+        explicit TestPtpSyncInterface(const TypeManagerPtr& manager)
+            : Super(manager)
+        {
+        }
+
+        using Super::createPortProporties;
+    };
+
     SynchronizationPtr onGetSynchronization() override
     {
-        auto sync = Synchronization();
-        const auto syncInterface = createWithImplementation<ISyncInterface, TestSyncInterface>("TestInterface");
+        const auto manager = this->context.getTypeManager();
+        auto sync = Synchronization(manager);
+        const auto syncInterface = createWithImplementation<ISyncInterface, TestSyncInterface>(manager, "TestInterface");
+
+        // Simulate a driver that already knows its sync status before the device is added
+        // to the component tree, so the client's initial connect state can be verified too.
+        auto* impl = dynamic_cast<TestSyncInterface*>(syncInterface.getObject());
+        impl->setSyncSourceStatus(SyncSourceStatus::Synced, "boot");
+
         sync.asPtr<ISynchronizationInternal>(true).addInterface(syncInterface);
+
+        const auto ptpInterface = createWithImplementation<ISyncInterface, TestPtpSyncInterface>(manager);
+        auto* ptpImpl = dynamic_cast<TestPtpSyncInterface*>(ptpInterface.getObject());
+        ptpImpl->createPortProporties("eth0");
+        sync.asPtr<ISynchronizationInternal>(true).addInterface(ptpInterface);
+
         return sync;
     }
 };
@@ -208,7 +239,7 @@ TEST_F(ConfigSynchronizationTest, SyncInterfacePropertyAccess)
     // Test reading properties via property object interface
     ASSERT_EQ(propObj.getPropertyValue("Name"), "ClockSyncInterface");
     ASSERT_NO_THROW(propObj.getPropertyValue("Mode"));
-    ASSERT_NO_THROW(propObj.getPropertyValue("Status.Synchronized"));
+    ASSERT_NO_THROW(propObj.getPropertyValue("Status.SynchronizationSourceStatus"));
     ASSERT_NO_THROW(propObj.getPropertyValue("Status.ReferenceDomainId"));
 }
 
@@ -231,4 +262,129 @@ TEST_F(ConfigSynchronizationTest, SetSyncInterfaceModeViaProperty)
     clientSource.setMode(SyncMode::Input);
     ASSERT_EQ(serverSource.getMode(), SyncMode::Input);
     ASSERT_EQ(serverSource.getMode(), clientSource.getMode());
+}
+
+TEST_F(ConfigSynchronizationTest, InitialStatusMatchesOnConnect)
+{
+    // TestInterface's status is set to "Synced" before the device is even created (simulating
+    // a driver that already knows its status at boot), so a freshly connecting client should
+    // see that status right away, not just on a later change.
+    auto serverSync = getServerSyncComponent();
+    auto clientSync = getClientSyncComponent();
+
+    const SyncInterfacePtr serverInterface = serverSync.getSyncInterfaces().get("TestInterface");
+    const SyncInterfacePtr clientInterface = clientSync.getSyncInterfaces().get("TestInterface");
+
+    const auto serverStatus = serverInterface.getStatusContainer().getStatus("SynchronizationSourceStatus");
+    const auto clientStatus = clientInterface.getStatusContainer().getStatus("SynchronizationSourceStatus");
+
+    ASSERT_EQ(serverStatus.getValue(), "Synced");
+    ASSERT_EQ(clientStatus.getValue(), "Synced");
+}
+
+TEST_F(ConfigSynchronizationTest, StatusChangedPropagatesToClient)
+{
+    auto serverSync = getServerSyncComponent();
+    auto clientSync = getClientSyncComponent();
+
+    const SyncInterfacePtr serverInterface = serverSync.getSyncInterfaces().get("TestInterface");
+    const SyncInterfacePtr clientInterface = clientSync.getSyncInterfaces().get("TestInterface");
+
+    auto* impl = dynamic_cast<TestDeviceWithSync2Impl::TestSyncInterface*>(serverInterface.getObject());
+    ASSERT_NE(impl, nullptr);
+
+    impl->setSyncSourceStatus(SyncSourceStatus::Error, "cable unplugged");
+
+    const auto serverStatusContainer = serverInterface.getStatusContainer();
+    const auto clientStatusContainer = clientInterface.getStatusContainer();
+
+    ASSERT_EQ(serverStatusContainer.getStatus("SynchronizationSourceStatus").getValue(), "Error");
+    ASSERT_EQ(clientStatusContainer.getStatus("SynchronizationSourceStatus").getValue(), "Error");
+
+    ASSERT_EQ(serverStatusContainer.getStatusMessage("SynchronizationSourceStatus"), "cable unplugged");
+    ASSERT_EQ(clientStatusContainer.getStatusMessage("SynchronizationSourceStatus"), "cable unplugged");
+}
+
+TEST_F(ConfigSynchronizationTest, SaveLoadFromClient)
+{
+    auto serverSync = getServerSyncComponent();
+    auto clientSync = getClientSyncComponent();
+    const auto clientSyncUpdatable = clientSync.asPtr<IUpdatable>(true);
+
+    ASSERT_EQ(clientSync.getSource().getName(), "ClockSyncInterface");
+    ASSERT_EQ(serverSync.getSource().getName(), "ClockSyncInterface");
+
+    auto serializer = JsonSerializer();
+    ASSERT_ERROR_CODE_EQ(clientSyncUpdatable->serializeForUpdate(serializer), OPENDAQ_SUCCESS);
+
+    // Change the source from the client, verify the server followed
+    clientSync.setSource("TestInterface");
+    ASSERT_EQ(clientSync.getSource().getName(), "TestInterface");
+    ASSERT_EQ(serverSync.getSource().getName(), "TestInterface");
+
+    // Restore from the client - the server should be driven back to its saved state too
+    const auto deserializer = JsonDeserializer();
+    deserializer.update(clientSyncUpdatable, serializer.getOutput(), nullptr);
+
+    ASSERT_EQ(clientSync.getSource().getName(), "ClockSyncInterface");
+    ASSERT_EQ(serverSync.getSource().getName(), "ClockSyncInterface");
+}
+
+TEST_F(ConfigSynchronizationTest, RoleStatusChangedPropagatesToClient)
+{
+    auto serverSync = getServerSyncComponent();
+    auto clientSync = getClientSyncComponent();
+
+    const SyncInterfacePtr serverInterface = serverSync.getSyncInterfaces().get("TestInterface");
+    const SyncInterfacePtr clientInterface = clientSync.getSyncInterfaces().get("TestInterface");
+
+    auto* impl = dynamic_cast<TestDeviceWithSync2Impl::TestSyncInterface*>(serverInterface.getObject());
+    ASSERT_NE(impl, nullptr);
+
+    impl->setSyncRoleStatus(SyncRoleStatus::Input, "locked as input");
+
+    const auto serverStatusContainer = serverInterface.getStatusContainer();
+    const auto clientStatusContainer = clientInterface.getStatusContainer();
+
+    ASSERT_EQ(serverStatusContainer.getStatus("SynchronizationRoleStatus").getValue(), "Input");
+    ASSERT_EQ(clientStatusContainer.getStatus("SynchronizationRoleStatus").getValue(), "Input");
+
+    ASSERT_EQ(serverStatusContainer.getStatusMessage("SynchronizationRoleStatus"), "locked as input");
+    ASSERT_EQ(clientStatusContainer.getStatusMessage("SynchronizationRoleStatus"), "locked as input");
+}
+
+TEST_F(ConfigSynchronizationTest, PtpInterfaceNestedPropertiesVisibleOnClient)
+{
+    auto serverSync = getServerSyncComponent();
+    auto clientSync = getClientSyncComponent();
+
+    const SyncInterfacePtr serverInterface = serverSync.getSyncInterfaces().get("PtpSyncInterface");
+    const SyncInterfacePtr clientInterface = clientSync.getSyncInterfaces().get("PtpSyncInterface");
+
+    const auto serverConfig = serverInterface.getConfiguration();
+    const auto clientConfig = clientInterface.getConfiguration();
+
+    ASSERT_EQ(serverConfig.getPropertyValue("PtpConfiguration.TransportProtocol"), clientConfig.getPropertyValue("PtpConfiguration.TransportProtocol"));
+    ASSERT_EQ(clientConfig.getPropertyValue("PtpConfiguration.TransportProtocol"), "IEEE802_3");
+
+    ASSERT_EQ(serverConfig.getPropertyValue("PortConfiguration.eth0.DelayMechanism"), clientConfig.getPropertyValue("PortConfiguration.eth0.DelayMechanism"));
+    ASSERT_EQ(clientConfig.getPropertyValue("PortConfiguration.eth0.DelayMechanism"), "E2E");
+}
+
+TEST_F(ConfigSynchronizationTest, PtpInterfaceNestedPropertyChangeFromClientPropagatesToServer)
+{
+    auto serverSync = getServerSyncComponent();
+    auto clientSync = getClientSyncComponent();
+
+    const SyncInterfacePtr serverInterface = serverSync.getSyncInterfaces().get("PtpSyncInterface");
+    const SyncInterfacePtr clientInterface = clientSync.getSyncInterfaces().get("PtpSyncInterface");
+
+    const auto serverConfig = serverInterface.getConfiguration();
+    const auto clientConfig = clientInterface.getConfiguration();
+
+    clientConfig.setPropertyValue("PortConfiguration.eth0.DelayMechanism", "P2P");
+    clientConfig.setPropertyValue("PtpConfiguration.TransportProtocol", "UDP_IPV4");
+
+    ASSERT_EQ(serverConfig.getPropertyValue("PortConfiguration.eth0.DelayMechanism"), "P2P");
+    ASSERT_EQ(serverConfig.getPropertyValue("PtpConfiguration.TransportProtocol"), "UDP_IPV4");
 }

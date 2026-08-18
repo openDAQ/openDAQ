@@ -2,8 +2,8 @@
 
 BEGIN_NAMESPACE_OPENDAQ
 
-ClockSyncInterfaceImpl::ClockSyncInterfaceImpl()
-    : Super("ClockSyncInterface", {SyncMode::Off, SyncMode::Input})
+ClockSyncInterfaceImpl::ClockSyncInterfaceImpl(const TypeManagerPtr& manager)
+    : Super(manager, "ClockSyncInterface", {SyncMode::Off, SyncMode::Input})
 {
 }
 

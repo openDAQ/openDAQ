@@ -1,4 +1,5 @@
 #include <opendaq/ptp_sync_interface_impl.h>
+#include <opendaq/component_status_container_private_ptr.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
@@ -34,8 +35,10 @@ namespace PtpPropertyNames
     constexpr const char* PortConfigLogSyncInterval = "LogSyncInterval";
 }
 
-PtpSyncInterfaceBaseImpl::PtpSyncInterfaceBaseImpl()
-    : Super("PtpSyncInterface", {SyncMode::Off, SyncMode::Input, SyncMode::Output, SyncMode::Auto})
+PtpSyncInterfaceBaseImpl::PtpSyncInterfaceBaseImpl(const TypeManagerPtr& manager, 
+                                                   const StringPtr& name,
+                                                   const std::vector<SyncMode>& availableModes)
+    : Super(manager, name, availableModes)
 {
     createGeneralProperties();
 }
@@ -79,22 +82,27 @@ void PtpSyncInterfaceBaseImpl::createPortProporties(const StringPtr& portName)
     {
         // creating status property
         const PropertyObjectPtr portStatus = PropertyObject();
-        portStatus.addProperty(StringPropertyBuilder(PtpPropertyNames::StatusPortState, "Disabled").setReadOnly(true).build());
+        const EnumerationTypePtr syncSourceStatusType = manager.getType("SynchronizationSourceStatusType");
+        portStatus.addProperty(SelectionPropertyBuilder(PtpPropertyNames::StatusPortState, syncSourceStatusType.getEnumeratorNames(), static_cast<Int>(SyncSourceStatus::Off)).setReadOnly(true).build());
 
         portsStatus.addProperty(ObjectPropertyBuilder(portName, portStatus).setReadOnly(true).build());
+
+        const auto syncSourceStatus = EnumerationWithIntValueAndType(syncSourceStatusType, static_cast<Int>(SyncSourceStatus::Off));
+        const auto statusContainerPrivate = this->statusContainer.asPtr<IComponentStatusContainerPrivate>(true);
+        statusContainerPrivate.addStatus(portName, syncSourceStatus);
     }
 
     {
         // creating configuration property
-        const auto modeOptions = List<IString>("Output", "Auto", "Off");
+        const auto modeOptions = Dict<IInteger, IString>({{static_cast<Int>(PortSyncMode::Off), "Off"}});
         const auto delayMechanismOptions = List<IString>("E2E", "P2P");
 
         const PropertyObjectPtr portConfiguration = PropertyObject();
-        portConfiguration.addProperty(ListPropertyBuilder   (PtpPropertyNames::PortConfigModeOptions,       modeOptions).setReadOnly(true).setVisible(false).build());
-        portConfiguration.addProperty(StringPropertyBuilder (PtpPropertyNames::PortConfigMode,              "Off").setSelectionValues(EvalValue("$ModeOptions")).build());
-        portConfiguration.addProperty(ListPropertyBuilder   (PtpPropertyNames::PortConfigDelayMechanismOptions, delayMechanismOptions).setReadOnly(true).setVisible(false).build());
-        portConfiguration.addProperty(StringPropertyBuilder (PtpPropertyNames::PortConfigDelayMechanism,    "E2E").setSelectionValues(EvalValue("$DelayMechanismOptions")).build());
-        portConfiguration.addProperty(IntProperty           (PtpPropertyNames::PortConfigLogSyncInterval,   0));
+        portConfiguration.addProperty(DictPropertyBuilder    (PtpPropertyNames::PortConfigModeOptions, modeOptions).setReadOnly(true).setVisible(false).build());
+        portConfiguration.addProperty(SparseSelectionProperty(PtpPropertyNames::PortConfigMode, EvalValue("$ModeOptions"), static_cast<Int>(PortSyncMode::Off)));
+        portConfiguration.addProperty(ListPropertyBuilder    (PtpPropertyNames::PortConfigDelayMechanismOptions, delayMechanismOptions).setReadOnly(true).setVisible(false).build());
+        portConfiguration.addProperty(StringPropertyBuilder  (PtpPropertyNames::PortConfigDelayMechanism, "E2E").setSelectionValues(EvalValue("$DelayMechanismOptions")).build());
+        portConfiguration.addProperty(IntProperty            (PtpPropertyNames::PortConfigLogSyncInterval, 0));
 
         portConfiguration.setPropertyOrder(List<IString>(PtpPropertyNames::PortConfigModeOptions, PtpPropertyNames::PortConfigDelayMechanismOptions));
 
@@ -112,7 +120,57 @@ void PtpSyncInterfaceBaseImpl::setTransportProtocolOptions(const ListPtr<IString
     ptpConfiguration.template asPtr<IPropertyObjectProtected>(true).setProtectedPropertyValue(PtpPropertyNames::PtpConfigTransportProtocolOptions, options);
 }
 
-void PtpSyncInterfaceBaseImpl::setPortModeOptions(const ListPtr<IString>& options)
+void PtpSyncInterfaceBaseImpl::setPortDelayMechanismOptions(const ListPtr<IString>& options)
+{
+    for (const auto& portProperty : portsConfiguration.getAllProperties())
+    {
+        const PropertyObjectProtectedPtr portConfig = portsConfiguration.getPropertyValue(portProperty.getName());
+        portConfig.setProtectedPropertyValue(PtpPropertyNames::PortConfigDelayMechanismOptions, options);
+    }
+}
+
+void PtpSyncInterfaceBaseImpl::setPortSyncStatus(const StringPtr& portName, SyncSourceStatus status, const StringPtr& message)
+{
+    PropertyObjectPtr portStatus = portsStatus.getPropertyValue(portName);
+    portStatus.asPtr<IPropertyObjectProtected>(true).setProtectedPropertyValue(PtpPropertyNames::StatusPortState, static_cast<Int>(status));
+
+    const auto syncSourceStatus =
+        EnumerationWithIntValue("SynchronizationSourceStatusType", static_cast<Int>(status), manager);
+
+    const auto statusContainerPrivate = this->statusContainer.asPtr<IComponentStatusContainerPrivate>(true);
+    statusContainerPrivate.setStatusWithMessage(portName, syncSourceStatus, message);
+}
+
+void PtpSyncInterfaceBaseImpl::onModeChanged(SyncMode mode)
+{
+    auto portsMode = PortSyncMode::Off;
+    auto portModeOptions = Dict<IInteger, IString>({{static_cast<Int>(PortSyncMode::Off), "Off"}});
+
+    switch (mode)
+    {
+        case SyncMode::Off:
+            // save state
+            return;
+        case SyncMode::Input:
+            portModeOptions.set(static_cast<Int>(PortSyncMode::Auto), "Auto");
+            portsMode = PortSyncMode::Auto;
+            break;
+        case SyncMode::Output:
+            portModeOptions.set(static_cast<Int>(PortSyncMode::Output), "Output");
+            portsMode = PortSyncMode::Output;
+            break;
+         case SyncMode::Auto:
+            portModeOptions.set(static_cast<Int>(PortSyncMode::Output), "Output");
+            portModeOptions.set(static_cast<Int>(PortSyncMode::Auto), "Auto");
+            portsMode = PortSyncMode::Auto;
+            break;
+    };
+
+    setPortModeOptions(portModeOptions);
+    setPortsMode(portsMode);
+}
+
+void PtpSyncInterfaceBaseImpl::setPortModeOptions(const DictPtr<IInteger, IString>& options)
 {
     for (const auto& portProperty : portsConfiguration.getAllProperties())
     {
@@ -121,21 +179,15 @@ void PtpSyncInterfaceBaseImpl::setPortModeOptions(const ListPtr<IString>& option
     }
 }
 
-void PtpSyncInterfaceBaseImpl::setPortsMode(const StringPtr& mode)
+void PtpSyncInterfaceBaseImpl::setPortsMode(PortSyncMode mode)
 {
+    const auto intMode = Integer(static_cast<Int>(mode));
     for (const auto& portProperty : portsConfiguration.getAllProperties())
     {
         const PropertyObjectPtr portConfig = portsConfiguration.getPropertyValue(portProperty.getName());
-        portConfig.setPropertyValue(PtpPropertyNames::PortConfigMode, mode);
-    }
-}
-
-void PtpSyncInterfaceBaseImpl::setPortDelayMechanismOptions(const ListPtr<IString>& options)
-{
-    for (const auto& portProperty : portsConfiguration.getAllProperties())
-    {
-        const PropertyObjectProtectedPtr portConfig = portsConfiguration.getPropertyValue(portProperty.getName());
-        portConfig.setProtectedPropertyValue(PtpPropertyNames::PortConfigDelayMechanismOptions, options);
+        Int currentMode = portConfig.getPropertyValue(PtpPropertyNames::PortConfigMode);
+        if (static_cast<PortSyncMode>(currentMode) != PortSyncMode::Off)
+            portConfig.setPropertyValue(PtpPropertyNames::PortConfigMode, intMode);
     }
 }
 

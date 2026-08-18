@@ -20,21 +20,31 @@
 
 BEGIN_NAMESPACE_OPENDAQ
 
+enum class PortSyncMode : EnumType
+{
+    Off = 0,
+    Output,
+    Auto
+};
+
 class PtpSyncInterfaceBaseImpl : public SyncInterfaceBaseImpl
 {
 public:
     using Super = SyncInterfaceBaseImpl;
-
-    explicit PtpSyncInterfaceBaseImpl();
-
 protected:
+    PtpSyncInterfaceBaseImpl(const TypeManagerPtr& manager, 
+                             const StringPtr& name = "PtpSyncInterface",
+                             const std::vector<SyncMode>& availableModes = {SyncMode::Off, SyncMode::Input, SyncMode::Output, SyncMode::Auto});
+
     void createPortProporties(const StringPtr& portName);
 
     void setProfileOptions(const ListPtr<IString>& options);
     void setTransportProtocolOptions(const ListPtr<IString>& options);
-    void setPortModeOptions(const ListPtr<IString>& options);
-    void setPortsMode(const StringPtr& mode);
     void setPortDelayMechanismOptions(const ListPtr<IString>& options);
+
+    void setPortSyncStatus(const StringPtr& portName, SyncSourceStatus status, const StringPtr& message);
+
+    void onModeChanged(SyncMode mode) override;
 
     PropertyObjectPtr portsStatus;
     PropertyObjectPtr ptpConfiguration;
@@ -42,6 +52,8 @@ protected:
 
 private:
     void createGeneralProperties();
+    void setPortModeOptions(const DictPtr<IInteger, IString>& options);
+    void setPortsMode(PortSyncMode mode);
 };
 
 

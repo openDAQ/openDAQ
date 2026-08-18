@@ -28,6 +28,7 @@ target_link_libraries(${TEST_APP} PRIVATE daq::test_utils
                                           daq::opcuatms_client
                                           daq::native_stream_cl_module
                                           daq::opendaq_mocks
+                                          daq::config_protocol
 )
 
 # Should link only what you need $<BUILD_INTERFACE:Boost::asio>

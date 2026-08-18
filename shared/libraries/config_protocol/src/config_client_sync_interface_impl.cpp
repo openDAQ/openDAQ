@@ -16,8 +16,9 @@
 
 #include <config_protocol/config_client_sync_interface_impl.h>
 #include <opendaq/sync_interface.h>
-#include <coretypes/objectptr.h>
+#include <opendaq/component_status_container_private_ptr.h>
 #include <opendaq/component_deserialize_context_ptr.h>
+#include <coretypes/objectptr.h>
 #include <coretypes/serialized_object_ptr.h>
 #include <coretypes/function_ptr.h>
 
@@ -25,8 +26,9 @@ namespace daq::config_protocol
 {
 
 ConfigClientSyncInterfaceImpl::ConfigClientSyncInterfaceImpl(const ConfigProtocolClientCommPtr& configProtocolClientComm,
-                                                             const std::string& remoteGlobalId)
-    : Super(configProtocolClientComm, remoteGlobalId)
+                                                             const std::string& remoteGlobalId,
+                                                             const TypeManagerPtr& manager)
+    : Super(configProtocolClientComm, remoteGlobalId, manager)
 {
 }
 
@@ -83,6 +85,20 @@ ErrCode ConfigClientSyncInterfaceImpl::deserializeValues(ISerializedObject* seri
                                                           IBaseObject* context,
                                                           IFunction* callbackFactory)
 {
+    OPENDAQ_PARAM_NOT_NULL(serializedObject);
+
+    Bool hasSyncStatus {False};
+    OPENDAQ_RETURN_IF_FAILED(serializedObject->hasKey(String("SyncStatus"), &hasSyncStatus));
+
+    if (hasSyncStatus)
+    {
+        BaseObjectPtr objPtr;
+        OPENDAQ_RETURN_IF_FAILED(serializedObject->readObject(String("SyncStatus"), context, callbackFactory, &objPtr));
+        
+        if (const auto newStatusContainer = objPtr.asPtrOrNull<IComponentStatusContainer>(); newStatusContainer.assigned())
+            statusContainer = newStatusContainer;
+    }
+
     return OPENDAQ_SUCCESS;
 }
 
@@ -120,11 +136,14 @@ ErrCode ConfigClientSyncInterfaceImpl::Deserialize(ISerializedObject* serialized
             serializedPtr,
             contextPtr,
             factoryCallbackPtr,
-            [&configDeserializeContext](const SerializedObjectPtr& serialized, const ComponentDeserializeContextPtr& deserializeContext, const StringPtr& className)
+            [&factoryCallback](const SerializedObjectPtr& serialized, const ComponentDeserializeContextPtr& deserializeContext, const StringPtr& className)
             {
+                const auto ctx = deserializeContext.asPtr<IConfigProtocolDeserializeContext>(true);
                 auto obj = createWithImplementation<ISyncInterface, ConfigClientSyncInterfaceImpl>(
-                    configDeserializeContext->getClientComm(),
-                    configDeserializeContext->getRemoteGlobalId());
+                    ctx->getClientComm(),
+                    ctx->getRemoteGlobalId(),
+                    ctx->getTypeManager());
+                obj.asPtr<IDeserializeComponent>(true).deserializeValues(serialized, deserializeContext, factoryCallback);
                 obj.as<IConfigClientObject>(true)->setRemoteUpdating(true);
                 return obj;
             });
@@ -138,6 +157,36 @@ ErrCode ConfigClientSyncInterfaceImpl::Deserialize(ISerializedObject* serialized
     });
     OPENDAQ_RETURN_IF_FAILED(errCode);
     return errCode;
+}
+
+void ConfigClientSyncInterfaceImpl::handleRemoteCoreObjectInternal(const ComponentPtr& sender, const CoreEventArgsPtr& args)
+{
+    switch (static_cast<CoreEventId>(args.getEventId()))
+    {
+        case CoreEventId::StatusChanged:
+            statusChanged(args);
+            break;
+        default:
+            break;
+    }
+
+    Super::handleRemoteCoreObjectInternal(sender, args);
+}
+
+void ConfigClientSyncInterfaceImpl::statusChanged(const CoreEventArgsPtr& args)
+{
+    const DictPtr<IString, IBaseObject> params = args.getParameters();
+    StringPtr msg = params.getOrDefault("Message", "");
+
+    for (const auto& [key, value] : params)
+    {
+        if (value.getCoreType() == CoreType::ctEnumeration)
+        {
+            statusContainer.asPtr<IComponentStatusContainerPrivate>().setStatusWithMessage(
+                key, value.template asPtr<IEnumeration>(true), msg);
+            msg = String("");
+        }
+    }
 }
 
 } // namespace daq::config_protocol

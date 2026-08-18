@@ -32,6 +32,7 @@ template <class Impl>
 class ConfigClientComponentBaseImpl : public ConfigClientPropertyObjectBaseImpl<Impl>
 {
 public:
+    using Super = ConfigClientPropertyObjectBaseImpl<Impl>;
     template <class ... Args>
     ConfigClientComponentBaseImpl(const ConfigProtocolClientCommPtr& configProtocolClientComm,
                                   const std::string& remoteGlobalId,
@@ -70,7 +71,7 @@ template <class ... Args>
 ConfigClientComponentBaseImpl<Impl>::ConfigClientComponentBaseImpl(const ConfigProtocolClientCommPtr& configProtocolClientComm,
                                                                    const std::string& remoteGlobalId,
                                                                    const Args&... args)
-    : ConfigClientPropertyObjectBaseImpl<Impl>(configProtocolClientComm, remoteGlobalId, args ...)
+    : Super(configProtocolClientComm, remoteGlobalId, args ...)
 {
 }
 
@@ -243,7 +244,7 @@ void ConfigClientComponentBaseImpl<Impl>::handleRemoteCoreObjectInternal(const C
             break;
     }
 
-    ConfigClientPropertyObjectBaseImpl<Impl>::handleRemoteCoreObjectInternal(sender, args);
+    Super::handleRemoteCoreObjectInternal(sender, args);
 }
 
 template <class Impl>
@@ -278,7 +279,7 @@ void ConfigClientComponentBaseImpl<Impl>::remoteUpdateStatuses(const SerializedO
 template <class Impl>
 void ConfigClientComponentBaseImpl<Impl>::onRemoteUpdate(const SerializedObjectPtr& serialized)
 {
-    ConfigClientPropertyObjectBaseImpl<Impl>::onRemoteUpdate(serialized);
+    Super::onRemoteUpdate(serialized);
 
     bool oldActive = this->active;
     if (serialized.hasKey("active"))
@@ -403,10 +404,13 @@ void ConfigClientComponentBaseImpl<Impl>::tagsChanged(const CoreEventArgsPtr& ar
 template <class Impl>
 void ConfigClientComponentBaseImpl<Impl>::statusChanged(const CoreEventArgsPtr& args)
 {
+    const DictPtr<IString, IBaseObject> params = args.getParameters();
+    if (params.hasKey("Path"))
+        return;
+
     ComponentStatusContainerPtr statusContainer;
     checkErrorInfo(Impl::getStatusContainer(&statusContainer));
 
-    const DictPtr<IString, IBaseObject> params = args.getParameters();
     StringPtr msg = params.getOrDefault("Message", "");
 
     for (const auto& [key, value] : params)

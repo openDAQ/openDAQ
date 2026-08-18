@@ -33,7 +33,8 @@ public:
     using Super = ConfigClientPropertyObjectBaseImpl<Impl>;
 
     ConfigClientSyncInterfaceImpl(const ConfigProtocolClientCommPtr& configProtocolClientComm,
-                                  const std::string& remoteGlobalId);
+                                  const std::string& remoteGlobalId,
+                                  const TypeManagerPtr& manager);
 
     // IPropertyObject
     ErrCode INTERFACE_FUNC setPropertyValue(IString* propertyName, IBaseObject* value) override;
@@ -50,6 +51,11 @@ public:
     ErrCode INTERFACE_FUNC getDeserializedParameter(IString* parameter, IBaseObject** value) override;
 
     static ErrCode Deserialize(ISerializedObject* serialized, IBaseObject* context, IFunction* factoryCallback, IBaseObject** obj);
+
+protected:
+    void handleRemoteCoreObjectInternal(const ComponentPtr& sender, const CoreEventArgsPtr& args) override;
+private:
+    void statusChanged(const CoreEventArgsPtr& args);
 };
 
 } // namespace daq::config_protocol

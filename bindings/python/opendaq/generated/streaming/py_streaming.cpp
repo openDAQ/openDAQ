@@ -131,6 +131,14 @@ void defineIStreaming(pybind11::module_ m, PyDaqIntf<daq::IStreaming, daq::IBase
             return objectPtr.getOwnerDeviceRemoteId().toStdString();
         },
         "Gets the global ID of the device (as it appears on the remote instance) to which this streaming object establishes a connection.");
+    cls.def_property_readonly("protocol_group_id",
+        [](daq::IStreaming *object)
+        {
+            py::gil_scoped_release release;
+            const auto objectPtr = daq::StreamingPtr::Borrow(object);
+            return objectPtr.getProtocolGroupId().toStdString();
+        },
+        "Gets the group identifier of the data transfer protocol (e.g., \"OpenDAQNativeStreamingGroup\", \"OpenDAQLTStreamingGroup\") used by this streaming object.");
     cls.def_property_readonly("protocol_id",
         [](daq::IStreaming *object)
         {

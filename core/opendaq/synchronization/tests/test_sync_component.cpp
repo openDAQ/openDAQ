@@ -394,7 +394,7 @@ TEST_F(SynchronizationTest, SyncInterfaceProperties)
     ASSERT_EQ(propObj.getPropertyValue("Name"), "MyInterface");
 
     // Check Mode property (default is Off)
-    ASSERT_EQ(propObj.getPropertySelectionValue("Mode"), "Off");
+    ASSERT_EQ(propObj.getPropertySelectionValue("Configuration.Mode"), "Off");
 
     // Check Status properties
     ASSERT_EQ(propObj.getPropertyValue("Status.SynchronizationSourceStatus"), SyncSourceStatus::Off);
@@ -460,7 +460,7 @@ TEST_F(PtpSyncInterfaceTest, DefaultMode)
     const auto iface = TestPtpSyncInterface::Create(ctx.getTypeManager());
     ASSERT_EQ(iface.getMode(), SyncMode::Off);
     const auto propObj = iface.asPtr<IPropertyObject>(true);
-    ASSERT_EQ(propObj.getPropertyValue("Mode"), SyncMode::Off);
+    ASSERT_EQ(propObj.getPropertyValue("Configuration.Mode"), SyncMode::Off);
 }
 
 TEST_F(PtpSyncInterfaceTest, DefaultPtpConfigurationProperties)

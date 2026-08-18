@@ -44,7 +44,7 @@ protected:
 
     void setPortSyncStatus(const StringPtr& portName, SyncSourceStatus status, const StringPtr& message);
 
-    void onModeChanged(SyncMode mode) override;
+    void onConfigurationChanged(const StringPtr& name, const BaseObjectPtr& value) override;
 
     PropertyObjectPtr portsStatus;
     PropertyObjectPtr ptpConfiguration;
@@ -54,6 +54,7 @@ private:
     void createGeneralProperties();
     void setPortModeOptions(const DictPtr<IInteger, IString>& options);
     void setPortsMode(PortSyncMode mode);
+    void onModeChanged(SyncMode mode);
 };
 
 

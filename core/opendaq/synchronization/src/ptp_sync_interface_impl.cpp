@@ -141,6 +141,16 @@ void PtpSyncInterfaceBaseImpl::setPortSyncStatus(const StringPtr& portName, Sync
     statusContainerPrivate.setStatusWithMessage(portName, syncSourceStatus, message);
 }
 
+void PtpSyncInterfaceBaseImpl::onConfigurationChanged(const StringPtr& name, const BaseObjectPtr& value)
+{
+    if (name == "Mode")
+    {
+        Int intMode = 0;
+        checkErrorInfo(value.asPtr<IInteger>(true)->getValue(&intMode));
+        onModeChanged(static_cast<SyncMode>(intMode));
+    }
+}
+
 void PtpSyncInterfaceBaseImpl::onModeChanged(SyncMode mode)
 {
     auto portsMode = PortSyncMode::Off;

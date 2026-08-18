@@ -236,7 +236,7 @@ TEST_F(ConfigSynchronizationTest, SyncInterfacePropertyAccess)
 
     // Test reading properties via property object interface
     ASSERT_EQ(propObj.getPropertyValue("Name"), "ClockSyncInterface");
-    ASSERT_NO_THROW(propObj.getPropertyValue("Mode"));
+    ASSERT_NO_THROW(propObj.getPropertyValue("Configuration.Mode"));
     ASSERT_NO_THROW(propObj.getPropertyValue("Status.SynchronizationSourceStatus"));
     ASSERT_NO_THROW(propObj.getPropertyValue("Status.ReferenceDomainId"));
 }

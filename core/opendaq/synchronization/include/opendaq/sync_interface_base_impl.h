@@ -89,7 +89,7 @@ protected:
                                    const StringPtr& name,
                                    const std::vector<SyncMode>& availableModes);
     
-    virtual void onModeChanged(SyncMode mode);
+    virtual void onConfigurationChanged(const StringPtr& name, const BaseObjectPtr& value);
 
     void setSyncSourceStatus(SyncSourceStatus status, const StringPtr& message = "");
     void setSyncRoleStatus(SyncRoleStatus status, const StringPtr& message = "");
@@ -134,7 +134,7 @@ ErrCode GenericSyncInterfaceImpl<TInterface, Interfaces...>::getName(IString** n
 template <typename TInterface, typename... Interfaces>
 ErrCode GenericSyncInterfaceImpl<TInterface, Interfaces...>::setMode(SyncMode mode)
 {
-    const ErrCode errCode = this->setPropertyValue(String("Mode"), Integer(mode));
+    const ErrCode errCode = this->setPropertyValue(String("Configuration.Mode"), Integer(mode));
     OPENDAQ_RETURN_IF_FAILED(errCode, "Failed to set sync interface mode");
     return errCode;
 }
@@ -143,7 +143,7 @@ template <typename TInterface, typename... Interfaces>
 ErrCode GenericSyncInterfaceImpl<TInterface, Interfaces...>::getMode(SyncMode* sourceMode)
 {
     OPENDAQ_PARAM_NOT_NULL(sourceMode);
-    *sourceMode = static_cast<SyncMode>(this->objPtr.getPropertyValue("Mode").template asPtr<IInteger>());
+    *sourceMode = static_cast<SyncMode>(this->objPtr.getPropertyValue("Configuration.Mode").template asPtr<IInteger>());
     return OPENDAQ_SUCCESS;
 }
 
@@ -151,7 +151,7 @@ template <typename TInterface, typename... Interfaces>
 ErrCode GenericSyncInterfaceImpl<TInterface, Interfaces...>::getAvailableModes(IDict** availableModes)
 {
     OPENDAQ_PARAM_NOT_NULL(availableModes);
-    *availableModes = this->objPtr.getPropertyValue("ModeOptions").template as<IDict>();
+    *availableModes = this->objPtr.getPropertyValue("Configuration.ModeOptions").template as<IDict>();
     return OPENDAQ_SUCCESS;
 }
 

@@ -43,9 +43,6 @@ void SyncInterfaceBaseImpl::initAvailiableModes(const std::vector<SyncMode>& ava
 void SyncInterfaceBaseImpl::initProperties()
 {
     this->objPtr.addProperty(StringPropertyBuilder("Name", name).setReadOnly(true).build());
-    this->objPtr.addProperty(DictPropertyBuilder("ModeOptions", outputModes).setReadOnly(true).setVisible(false).build());
-    this->objPtr.addProperty(SparseSelectionProperty("Mode", EvalValue("$ModeOptions"), Integer(SyncMode::Off)));
-    this->objPtr.setPropertyOrder(List<IString>("ModeOptions"));
 
     status = PropertyObject();
     const EnumerationTypePtr syncRoleStatusType = manager.getType("SynchronizationRoleStatusType");
@@ -57,13 +54,14 @@ void SyncInterfaceBaseImpl::initProperties()
     this->objPtr.addProperty(ObjectPropertyBuilder("Status", status).setReadOnly(true).build());
 
     configuration = PropertyObject();
+    configuration.addProperty(DictPropertyBuilder("ModeOptions", outputModes).setReadOnly(true).setVisible(false).build());
+    configuration.addProperty(SparseSelectionProperty("Mode", EvalValue("$ModeOptions"), Integer(SyncMode::Off)));
+    configuration.setPropertyOrder(List<IString>("ModeOptions"));
     this->objPtr.addProperty(ObjectProperty("Configuration", configuration));
 
-    this->objPtr.getOnPropertyValueWrite("Mode") += [this](PropertyObjectPtr&, PropertyValueEventArgsPtr& arg)
+    configuration.getOnAnyPropertyValueWrite() += [this](PropertyObjectPtr&, PropertyValueEventArgsPtr& arg)
     {
-        Int intMode = 0;
-        checkErrorInfo(arg.getValue().asPtr<IInteger>(true)->getValue(&intMode));
-        onModeChanged(static_cast<SyncMode>(intMode));
+        onConfigurationChanged(arg.getProperty().getName(), arg.getValue());
     };
 }
 
@@ -122,7 +120,7 @@ ErrCode SyncInterfaceBaseImpl::setAsSource(Bool source)
         if (sourceModes.getCount() == 0)
             return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALID_OPERATION, "Current sync interface can not be chossen as source");
 
-        OPENDAQ_RETURN_IF_FAILED(this->setProtectedPropertyValue(String("ModeOptions"), sourceModes));
+        OPENDAQ_RETURN_IF_FAILED(this->setProtectedPropertyValue(String("Configuration.ModeOptions"), sourceModes));
 
         if (sourceModes.hasKey(static_cast<Int>(SyncMode::Auto)))
             OPENDAQ_RETURN_IF_FAILED(this->setMode(SyncMode::Auto));
@@ -133,13 +131,13 @@ ErrCode SyncInterfaceBaseImpl::setAsSource(Bool source)
         return OPENDAQ_SUCCESS;
     }
 
-    OPENDAQ_RETURN_IF_FAILED(this->setProtectedPropertyValue(String("ModeOptions"), outputModes));
+    OPENDAQ_RETURN_IF_FAILED(this->setProtectedPropertyValue(String("Configuration.ModeOptions"), outputModes));
     isSource = False;
-    OPENDAQ_RETURN_IF_FAILED(this->setPropertyValue(String("Mode"), Integer(SyncMode::Off)));
+    OPENDAQ_RETURN_IF_FAILED(this->setPropertyValue(String("Configuration.Mode"), Integer(SyncMode::Off)));
     return OPENDAQ_SUCCESS;
 }
 
-void SyncInterfaceBaseImpl::onModeChanged(SyncMode mode)
+void SyncInterfaceBaseImpl::onConfigurationChanged(const StringPtr& name, const BaseObjectPtr& value)
 {
 }
 

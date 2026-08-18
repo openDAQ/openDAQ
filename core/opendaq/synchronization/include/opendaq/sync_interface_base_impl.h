@@ -63,7 +63,7 @@ protected:
     ComponentStatusContainerPtr statusContainer;
 };
 
-class SyncInterfaceBaseImpl : public GenericSyncInterfaceImpl<IPropertyObject, ISyncInterfaceInternal>
+class PUBLIC_EXPORT SyncInterfaceBaseImpl : public GenericSyncInterfaceImpl<IPropertyObject, ISyncInterfaceInternal>
 {
 public:
     using Super = GenericSyncInterfaceImpl<IPropertyObject, ISyncInterfaceInternal>;

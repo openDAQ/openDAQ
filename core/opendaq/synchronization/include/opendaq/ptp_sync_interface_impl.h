@@ -27,7 +27,7 @@ enum class PortSyncMode : EnumType
     Auto
 };
 
-class PtpSyncInterfaceBaseImpl : public SyncInterfaceBaseImpl
+class PUBLIC_EXPORT PtpSyncInterfaceBaseImpl : public SyncInterfaceBaseImpl
 {
 public:
     using Super = SyncInterfaceBaseImpl;

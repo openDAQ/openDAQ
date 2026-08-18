@@ -86,8 +86,6 @@ public:
     }
 };
 
-OPENDAQ_REGISTER_DESERIALIZE_FACTORY(TestDeviceWithSync2Impl)
-
 class ConfigSynchronizationTest : public Test
 {
 public:

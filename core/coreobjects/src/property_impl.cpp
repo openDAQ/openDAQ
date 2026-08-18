@@ -323,7 +323,7 @@ ErrCode PropertyImpl::getKeyTypeInternal(CoreType* type, bool lock)
         return OPENDAQ_SUCCESS;
 
     IntfID intfID;
-    err = value.asPtr<IDictElementType>(true)->getKeyInterfaceId(&intfID);
+    const ErrCode err = value.asPtr<IDictElementType>(true)->getKeyInterfaceId(&intfID);
     OPENDAQ_RETURN_IF_FAILED(err);
 
     auto coreType = details::intfIdToCoreType(intfID);

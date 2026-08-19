@@ -15,40 +15,23 @@ concurrency:
 
 jobs:
   resolve:
-    name: Resolve publish target
+    name: Resolve the publish channel
     runs-on: ubuntu-latest
     outputs:
-      staging-push: ${{ steps.target.outputs.staging-push }}
+      channel: ${{ steps.channel.outputs.channel }}
     steps:
-      - name: Resolve publish target
-        id: target
-        shell: python3 {0}
-        env:
-          OWNER: ${{ github.repository_owner }}
-          REF: ${{ github.ref }}
+      - name: Resolve the publish channel
+        id: channel
+        shell: bash
         run: |
-          import json, os
+          case "$GITHUB_REF" in
+            refs/heads/release/*) channel=stable ;;
+            refs/heads/main)      channel=dev    ;;
+            *)                    channel=test   ;;
+          esac
 
-          owner = os.environ["OWNER"]
-          ref   = os.environ["REF"]
-
-          if ref.startswith("refs/heads/release/"):
-              channel = "stable"
-          elif ref == "refs/heads/main":
-              channel = "dev"
-          else:
-              channel = "test"
-
-          target = [{
-              "path": f"ghcr.io/{owner}/{channel}/staging/opendaq",
-              "artifacts": ["staging-*/core"],
-              "tags": ["latest"],
-          }]
-
-          with open(os.environ["GITHUB_OUTPUT"], "a") as f:
-              f.write(f"staging-push={json.dumps(target)}\n")
-
-          print(json.dumps(target, indent=2))
+          echo "channel=$channel" >> "$GITHUB_OUTPUT"
+          echo "publishing to the $channel channel"
 
   stage:
     needs: resolve
@@ -89,6 +72,10 @@ jobs:
           {
             "match-jobs": ["manylinux_2_28-*"],
             "yum-install": ["mono-core"]
+          },
+          {
+            "match-jobs": ["windows-*"],
+            "choco-install": ["nsis"]
           }
         ]
       cpack-presets: >
@@ -96,6 +83,30 @@ jobs:
           {
             "match-jobs": ["*"],
             "stagings": [{"name": "core"}]
+          },
+          {
+            "match-jobs": ["windows-*"],
+            "installers": [{"name": "core", "package": "NSIS"}]
+          },
+          {
+            "match-jobs": ["ubuntu-*"],
+            "installers": [{"name": "core", "package": "DEB"}]
+          },
+          {
+            "match-jobs": ["macos-*"],
+            "installers": [{"name": "core", "package": "productbuild"}]
           }
         ]
-      staging-push: ${{ needs.resolve.outputs.staging-push }}
+      staging-push: >-
+        [
+          {
+            "path": "ghcr.io/${{ github.repository_owner }}/${{ needs.resolve.outputs.channel }}/staging/opendaq",
+            "artifacts": ["staging-*/core"],
+            "tags": ["latest"]
+          },
+          {
+            "path": "ghcr.io/${{ github.repository_owner }}/${{ needs.resolve.outputs.channel }}/installer/opendaq",
+            "artifacts": ["package-*/core"],
+            "tags": ["latest"]
+          }
+        ]

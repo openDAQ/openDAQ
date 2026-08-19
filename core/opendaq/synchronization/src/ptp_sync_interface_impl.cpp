@@ -5,9 +5,6 @@ BEGIN_NAMESPACE_OPENDAQ
 
 namespace PtpPropertyNames
 {
-    // Mode property
-    constexpr const char* Mode = "Mode";
-
     // Status properties
     constexpr const char* StatusPorts = "Ports";
     constexpr const char* StatusPortState = "State";
@@ -16,6 +13,7 @@ namespace PtpPropertyNames
 
     // PTP Configuration properties
     constexpr const char* PtpConfiguration = "PtpConfiguration";
+    constexpr const char* PtpConfigMode = "Mode";
     constexpr const char* PtpConfigProfileOptions = "ProfileOptions";
     constexpr const char* PtpConfigProfile = "Profile";
     constexpr const char* PtpConfigTwoStepFlag = "TwoStepFlag";
@@ -143,7 +141,7 @@ void PtpSyncInterfaceBaseImpl::setPortSyncStatus(const StringPtr& portName, Sync
 
 void PtpSyncInterfaceBaseImpl::onConfigurationChanged(const StringPtr& name, const BaseObjectPtr& value)
 {
-    if (name == "Mode")
+    if (name == PtpPropertyNames::PtpConfigMode)
     {
         Int intMode = 0;
         checkErrorInfo(value.asPtr<IInteger>(true)->getValue(&intMode));

@@ -45,11 +45,19 @@ jobs:
         [
           {
             "match-jobs": ["ubuntu-*-x86_64-*"],
-            "apt-install": ["lld", "libx11-dev", "libxi-dev", "libxcursor-dev", "libxrandr-dev", "libgl-dev", "libudev-dev", "libfreetype6-dev"]
+            "apt-install": ["lld", "libssl-dev", "libx11-dev", "libxi-dev", "libxcursor-dev", "libxrandr-dev", "libgl-dev", "libudev-dev", "libfreetype6-dev"]
           },
           {
             "match-jobs": ["ubuntu-*-x86-*"],
-            "apt-install": ["lld", "libx11-dev:i386", "libxi-dev:i386", "libxcursor-dev:i386", "libxrandr-dev:i386", "libgl-dev:i386", "libudev-dev:i386", "libfreetype6-dev:i386"]
+            "apt-install": ["lld", "libssl-dev:i386", "libx11-dev:i386", "libxi-dev:i386", "libxcursor-dev:i386", "libxrandr-dev:i386", "libgl-dev:i386", "libudev-dev:i386", "libfreetype6-dev:i386"]
+          },
+          {
+            "match-jobs": ["windows-*-x86-*"],
+            "run": "vcpkg install openssl:x86-windows; Add-Content -Path $env:GITHUB_PATH -Value C:\\vcpkg\\installed\\x86-windows\\bin -Encoding utf8"
+          },
+          {
+            "match-jobs": ["windows-*-x86_64-*"],
+            "run": "vcpkg install openssl:x64-windows; Add-Content -Path $env:GITHUB_PATH -Value C:\\vcpkg\\installed\\x64-windows\\bin -Encoding utf8"
           },
           {
             "match-jobs": ["windows-*", "*-x86_64-*", "macos-*"],
@@ -71,6 +79,14 @@ jobs:
           {
             "match-jobs": ["windows-*-msvs-*"],
             "cache-variables": {"OPENDAQ_MSVC_SINGLE_PROCESS_BUILD": true}
+          },
+          {
+            "match-jobs": ["windows-*-x86-*"],
+            "cache-variables": {"OPENSSL_ROOT_DIR": "C:/vcpkg/installed/x86-windows"}
+          },
+          {
+            "match-jobs": ["windows-*-x86_64-*"],
+            "cache-variables": {"OPENSSL_ROOT_DIR": "C:/vcpkg/installed/x64-windows"}
           },
           {
             "match-jobs": ["macos-*"],

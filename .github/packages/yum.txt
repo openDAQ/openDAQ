@@ -1,4 +1,5 @@
 mono-core
+openssl-devel
 freetype-devel
 libudev-devel
 libX11-devel

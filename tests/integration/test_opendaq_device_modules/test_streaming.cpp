@@ -3,6 +3,7 @@
 #include <coreobjects/authentication_provider_factory.h>
 
 #include "test_helpers/device_modules.h"
+#include "test_helpers/lt_tls.h"
 
 #ifdef DAQMODULES_LT_LEGACY_MODULES
     #define ENABLE_COMMON_LT_STREAMING_TESTS
@@ -27,11 +28,13 @@ public:
             GTEST_SKIP() << "Ipv6 is disabled";
         }
 
+        usingNativePseudoDevice = std::get<0>(GetParam()) == "OpenDAQNativeStreaming" && (std::get<1>(GetParam()).find("daq.ns://") == 0);
+        usingSecureLTStreaming = std::get<0>(GetParam()) == "OpenDAQLTStreamingSecure";
+        usingLTPseudoDevice = (std::get<0>(GetParam()) == "OpenDAQLTStreaming" && std::get<1>(GetParam()).find("daq.lt://") == 0) ||
+                              (usingSecureLTStreaming && std::get<1>(GetParam()).find("daq.lts://") == 0);
+
         serverInstance = CreateServerInstance();
         clientInstance = CreateClientInstance();
-
-        usingNativePseudoDevice = std::get<0>(GetParam()) == "OpenDAQNativeStreaming" && (std::get<1>(GetParam()).find("daq.ns://") == 0);
-        usingLTPseudoDevice = std::get<0>(GetParam()) == "OpenDAQLTStreaming" && (std::get<1>(GetParam()).find("daq.lt://") == 0);
     }
 
     void TearDown() override
@@ -153,6 +156,11 @@ protected:
         PropertyObjectPtr general = config.getPropertyValue("General");
         general.setPropertyValue("PrioritizedStreamingProtocols", List<IString>(std::get<0>(GetParam())));
 
+#ifdef ENABLE_ALTERNATIVE_LT_STREAMING_TESTS
+        if (usingSecureLTStreaming)
+            test_helpers::lt_tls::applySecureClientConfig(config);
+#endif
+
         auto device = instance.addDevice(connectionString, config);
         return instance;
     }
@@ -163,6 +171,7 @@ protected:
 
     bool usingNativePseudoDevice{false};
     bool usingLTPseudoDevice{false};
+    bool usingSecureLTStreaming{false};
 };
 
 TEST_P(StreamingTest, SignalDescriptorEvents)
@@ -862,6 +871,15 @@ public:
 #endif
         suite.push_back(std::make_tuple("OpenDAQLTStreaming", "daq.opcua://127.0.0.1/"));
         suite.push_back(std::make_tuple("OpenDAQLTStreaming", "daq.opcua://[::1]/"));
+
+        suite.push_back(std::make_tuple("OpenDAQLTStreamingSecure", "daq.lts://127.0.0.1/"));
+        suite.push_back(std::make_tuple("OpenDAQLTStreamingSecure", "daq.lts://[::1]/"));
+#if defined(OPENDAQ_ENABLE_NATIVE_STREAMING)
+        suite.push_back(std::make_tuple("OpenDAQLTStreamingSecure", "daq.nd://127.0.0.1/"));
+        suite.push_back(std::make_tuple("OpenDAQLTStreamingSecure", "daq.nd://[::1]/"));
+#endif
+        suite.push_back(std::make_tuple("OpenDAQLTStreamingSecure", "daq.opcua://127.0.0.1/"));
+        suite.push_back(std::make_tuple("OpenDAQLTStreamingSecure", "daq.opcua://[::1]/"));
         return suite;
     }
 
@@ -992,6 +1010,40 @@ public:
 
         return result;
     };
+
+protected:
+    InstancePtr CreateServerInstance() override
+    {
+        auto logger = Logger();
+        auto scheduler = Scheduler(logger);
+        auto moduleManager = ModuleManager("[[none]]");
+        auto typeManager = TypeManager();
+        auto authenticationProvider = AuthenticationProvider();
+        auto context = Context(scheduler, logger, typeManager, moduleManager, authenticationProvider);
+
+        const ModulePtr deviceModule(MockDeviceModule_Create(context));
+        moduleManager.addModule(deviceModule);
+
+        auto instance = InstanceCustom(context, "local");
+        addLtServerModule(instance);
+        addNativeServerModule(instance);
+        addOpcuaServerModule(instance);
+
+        const auto mockDevice = instance.addDevice("daqmock://phys_device");
+
+        instance.addServer("OpenDAQLTStreaming", ltServerConfig(instance));
+        instance.addServer("OpenDAQNativeStreaming", nullptr);
+        instance.addServer("OpenDAQOPCUA", nullptr);
+
+        return instance;
+    }
+
+    PropertyObjectPtr ltServerConfig(const InstancePtr& instance)
+    {
+        if (!usingSecureLTStreaming)
+            return nullptr;
+        return test_helpers::lt_tls::secureServerConfig(instance);
+    }
 };
 
 TEST_P(StreamingTestForModernLt, SignalDescriptorEvents)
@@ -1070,7 +1122,7 @@ TEST_P(StreamingTestForModernLt, DataPackets)
     // they are not expected to be transmitted over LT streaming, but they are triggered on client side
     // and received by client reader, so they are included in expected packet count and compared in packet comparison
     const size_t packetsToReadServer = packetsToGenerate + 1;
-    const size_t packetsToReadClient = packetsToGenerate + ((std::get<1>(GetParam()).find("daq.lt://") == 0) ? 1 : 2);
+    const size_t packetsToReadClient = packetsToGenerate + (usingLTPseudoDevice ? 1 : 2);
     // Give the client time to do async work related to signal creation
     // Otherwise getSignal() on the client may not find it yet.
     CONDITIONAL_SLEEP;
@@ -1095,7 +1147,7 @@ TEST_P(StreamingTestForModernLt, DataPackets)
 
     EXPECT_EQ(serverReceivedPackets.getCount(), packetsToReadServer);
     EXPECT_EQ(clientReceivedPackets.getCount(), packetsToReadClient);
-    if (std::get<1>(GetParam()).find("daq.lt://") == 0)
+    if (usingLTPseudoDevice)
     {
         // Pure LT pseudo-device: server and client packet streams line up one-to-one, so compare them
         // pairwise with the LT-aware comparators (LT transmits only a subset of descriptor fields)
@@ -1126,7 +1178,7 @@ TEST_P(StreamingTestForModernLt, MultipleSignalsConcurrent)
     const std::vector<std::string> signalNames = {"ByteStep", "IntStep", "Sine"};
     const size_t packetsToGenerate = 10;
     const size_t packetsToReadServer = packetsToGenerate + 1;
-    const size_t packetsToReadClient = packetsToGenerate + ((std::get<1>(GetParam()).find("daq.lt://") == 0) ? 1 : 2);
+    const size_t packetsToReadClient = packetsToGenerate + (usingLTPseudoDevice ? 1 : 2);
 
     // Give the client time to do async work related to signal creation
     // Otherwise getSignal() on the client may not find it yet
@@ -1169,14 +1221,12 @@ TEST_P(StreamingTestForModernLt, MultipleSignalsConcurrent)
         return n;
     };
 
-    const bool isLtPseudoDevice = std::get<1>(GetParam()).find("daq.lt://") == 0;
-
     for (size_t i = 0; i < signalNames.size(); ++i)
     {
         auto serverReceivedPackets = test_helpers::tryReadPackets(serverReaders[i], packetsToReadServer);
         EXPECT_EQ(serverReceivedPackets.getCount(), packetsToReadServer) << "signal " << signalNames[i];
 
-        if (isLtPseudoDevice)
+        if (usingLTPseudoDevice)
         {
             // LT pseudo-device: descriptors arrive only via streaming, so the server/client streams line up one-to-one.
             auto clientReceivedPackets = test_helpers::tryReadPackets(clientReaders[i], packetsToReadClient);
@@ -1199,12 +1249,36 @@ TEST_P(StreamingTestForModernLt, MultipleSignalsConcurrent)
     }
 }
 
+// The client must end up on the channel it prioritized. With the TLS channel enabled the server publishes
+// both the plaintext and the secure capability (see WsStreamingServer::addCapability()), so behind a config
+// channel (daq.nd:// / daq.opcua://) picking the wrong one would silently downgrade the connection to
+// plaintext while every other test still passes
+TEST_P(StreamingTestForModernLt, ActiveStreamingSource)
+{
+    const std::string expectedPrefix = usingSecureLTStreaming ? "daq.lts://" : "daq.lt://";
+
+    // Give the client time to do async work related to signal creation
+    // Otherwise getSignal() on the client may not find it yet
+    CONDITIONAL_SLEEP;
+    auto mirroredSignalPtr = getSignal(clientInstance, "ByteStep").template asPtr<IMirroredSignalConfig>();
+
+    const StringPtr activeSource = mirroredSignalPtr.getActiveStreamingSource();
+    ASSERT_TRUE(activeSource.assigned());
+    EXPECT_EQ(activeSource.toStdString().rfind(expectedPrefix, 0), 0u) << "active streaming source: " << activeSource;
+
+    // MinConnections (the default heuristic) connects the single prioritized protocol only
+    const auto sources = mirroredSignalPtr.getStreamingSources();
+    EXPECT_EQ(sources.getCount(), 1u);
+    for (const StringPtr& source : sources)
+        EXPECT_EQ(source.toStdString().rfind(expectedPrefix, 0), 0u) << "streaming source: " << source;
+}
+
 TEST_P(StreamingTestForModernLt, LastValue)
 {
-    // daq.lt:// is a streaming-only transport (no config channel), so while unsubscribed the client
-    // signal has no way to fetch the last value and getLastValue() stays unassigned
+    // daq.lt:// and daq.lts:// are streaming-only transports (no config channel), so while unsubscribed the
+    // client signal has no way to fetch the last value and getLastValue() stays unassigned
     // Config-enabled transports (daq.nd://, daq.opcua://) fall back to a config-protocol RPC and keep returning it
-    const bool isStreamingOnly = (std::get<1>(GetParam()).find("daq.lt://") == 0);
+    const bool isStreamingOnly = usingLTPseudoDevice;
 
     // Give the client time to do async work related to signal creation
     // Otherwise getSignal() on the client may not find it yet.
@@ -1347,7 +1421,7 @@ TEST_P(StreamingTestForModernLt, DISABLED_SetNullDescriptor)
 
         EXPECT_TRUE(test_helpers::packetsEqual(serverReceivedPackets,
                                                clientReceivedPackets,
-                                               std::get<0>(GetParam()) == "OpenDAQLTStreaming"));
+                                               std::get<0>(GetParam()).find("OpenDAQLTStreaming") == 0));
     }
     else // usingLTPseudoDevice true
     {
@@ -1562,7 +1636,7 @@ protected:
 
         const auto mockDevice = instance.addDevice("daqmock://phys_device");
 
-        streamingServer = instance.addServer("OpenDAQLTStreaming", nullptr);
+        streamingServer = instance.addServer("OpenDAQLTStreaming", ltServerConfig(instance));
 #if defined(OPENDAQ_ENABLE_NATIVE_STREAMING)
         // native server provides the config channel for daq.nd:// clients (streaming itself stays on LT,
         // which is the only prioritized streaming protocol on the client side)
@@ -1581,35 +1655,18 @@ protected:
 
     void restoreStreamingServer()
     {
-        streamingServer = serverInstance.addServer("OpenDAQLTStreaming", nullptr);
+        streamingServer = serverInstance.addServer("OpenDAQLTStreaming", ltServerConfig(serverInstance));
     }
 
     ServerPtr streamingServer;
 };
 
-// DISABLED: this test aborts the whole process (SIGABRT)
-// It aborts on the main thread during the re-add server step,
-// restoreStreamingServer() -> serverInstance.addServer("OpenDAQLTStreaming"), inside the WsStreamingServer constructor.
-// Trace:
-//  - restoreStreamingServer()
-//  - <...>
-//  - Module::createServer   // == addServer("OpenDAQLTStreaming")
-//  - <...>
-//  - WsStreamingServer::WsStreamingServer(...)
-//  - addCapability()
-//      - throw InvalidStateException because the "OpenDAQLTStreaming" capability is still registered
-//          from the previous instance (removeServer() does not remove it from the device info)
-//  - <constructor unwinding>
-//  - std::thread::~thread() for _thread in WsStreamingServer
-//  - std::terminate
+// DISABLED: the client never reconnects after the streaming server is restored
 //
-// Two cooperating bugs in the LtStreamingModulesModern shared/libraries/websocket_streaming/src/ws_streaming_server.cpp:
-//   1) Capability leak. WsStreamingServer::onStopServer() stops/joins the io thread but
-//      never removes the "OpenDAQLTStreaming" server capability it registered in addCapability()
-//      After removeServer() the device info still advertises that capability
-//   2) The constructor is not exception safe. On re-add the ctor first spawns its thread
-//      and then calls addCapability(). If addCapability() throw an exeption then unwinding the half-built object destroys
-//      the still joinable _thread with no join()/detach()
+// after removeStreamingServer() the client marks every signal as unavailable, and once
+// restoreStreamingServer() brings the server back the existing streaming object does not re-establish the
+// connection - no re-subscribe acknowledgement arrives and the test times out waiting for it
+// Re-enable the test once the LT streaming client reconnects on its own
 
 TEST_P(StreamingReconnectionTestForModernLt, DISABLED_Reconnection)
 {

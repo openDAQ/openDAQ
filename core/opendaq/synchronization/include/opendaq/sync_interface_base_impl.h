@@ -63,6 +63,14 @@ protected:
     ComponentStatusContainerPtr statusContainer;
 };
 
+#ifdef _MSC_VER
+    #pragma warning(push)
+    // SyncInterfaceBaseImpl's data members and base class don't have dll-interface, but they are never
+    // accessed outside of this DLL directly - only through the exported ABI (ISyncInterface, ...) methods.
+    #pragma warning(disable : 4251)
+    #pragma warning(disable : 4275)
+#endif
+
 class PUBLIC_EXPORT SyncInterfaceBaseImpl : public GenericSyncInterfaceImpl<IPropertyObject, ISyncInterfaceInternal>
 {
 public:
@@ -109,6 +117,10 @@ private:
     DictPtr<IInteger, IString> sourceModes;
     DictPtr<IInteger, IString> outputModes;
 };
+
+#ifdef _MSC_VER
+    #pragma warning(pop)
+#endif
 
 template <typename TInterface, typename... Interfaces>
 GenericSyncInterfaceImpl<TInterface, Interfaces...>::GenericSyncInterfaceImpl(const TypeManagerPtr& manager)

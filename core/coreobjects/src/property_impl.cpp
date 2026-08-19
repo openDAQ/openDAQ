@@ -944,20 +944,18 @@ ErrCode PropertyImpl::getHasOnReadListeners(Bool* hasListeners)
     {
         EventPtr event;
         ErrCode err = ownerPtr->getOnPropertyValueRead(name, &event);
-        if (OPENDAQ_FAILED(err))
+        if (OPENDAQ_SUCCEEDED(err))
         {
-            *hasListeners = false;
-            daqClearErrorInfo();
+            *hasListeners = event.hasListeners();
             return OPENDAQ_SUCCESS;
         }
-
-        *hasListeners = event.hasListeners();
-    }
-    else
-    {
-        *hasListeners = onValueRead.hasListeners();
+        else 
+        {
+            daqClearErrorInfo();
+        }
     }
 
+    *hasListeners = onValueRead.hasListeners();
     return OPENDAQ_SUCCESS;
 }
 
@@ -1273,7 +1271,7 @@ ErrCode PropertyImpl::getSerializeId(ConstCharPtr* id) const
     return OPENDAQ_SUCCESS;
 }
 
-ErrCode PropertyImpl::ReadBuilderDeserializeValues(const PropertyBuilderPtr& builder, ISerializedObject* serializedObj, IBaseObject* context, IFunction* factoryCallback)
+PUBLIC_EXPORT ErrCode PropertyImpl::ReadBuilderDeserializeValues(const PropertyBuilderPtr& builder, ISerializedObject* serializedObj, IBaseObject* context, IFunction* factoryCallback)
 {
     auto propObj = builder;
     ErrCode errCode = deserializeMember<decltype(valueType)>(serializedObj, "valueType", builder, context, factoryCallback, &IPropertyBuilder::setValueType);
@@ -1627,6 +1625,13 @@ PropertyObjectPtr PropertyImpl::getOwner() const
     if (owner.assigned())
         return owner.getRef();
     return nullptr;
+}
+
+ErrCode PropertyImpl::getOwner(IPropertyObject** owner)
+{
+    OPENDAQ_PARAM_NOT_NULL(owner);
+    *owner = getOwner().detach();
+    return OPENDAQ_SUCCESS;
 }
 
 PropertyType PropertyImpl::inferPropertyTypeFromMetadata() const

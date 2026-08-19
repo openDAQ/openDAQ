@@ -27,6 +27,14 @@ enum class PortSyncMode : EnumType
     Auto
 };
 
+#ifdef _MSC_VER
+    #pragma warning(push)
+    // PtpSyncInterfaceBaseImpl's data members don't have dll-interface, but they are never
+    // accessed outside of this DLL directly - only through the exported ABI (ISyncInterface, ...) methods.
+    #pragma warning(disable : 4251)
+    #pragma warning(disable : 4275)
+#endif
+
 class PUBLIC_EXPORT PtpSyncInterfaceBaseImpl : public SyncInterfaceBaseImpl
 {
 public:
@@ -57,5 +65,8 @@ private:
     void onModeChanged(SyncMode mode);
 };
 
+#ifdef _MSC_VER
+    #pragma warning(pop)
+#endif
 
 END_NAMESPACE_OPENDAQ

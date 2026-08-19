@@ -68,6 +68,7 @@ set(SRC_Cpp config_protocol.cpp
             config_protocol_streaming_consumer.cpp
             config_client_sync_interface_impl.cpp
             config_client_synchronization_impl.cpp
+            config_client_property.cpp
 )
 
 opendaq_prepend_include(${BASE_NAME} SRC_PublicHeaders)

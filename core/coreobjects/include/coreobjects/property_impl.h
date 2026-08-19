@@ -41,7 +41,7 @@
 
 BEGIN_NAMESPACE_OPENDAQ
 
-class PUBLIC_EXPORT PropertyImpl : public ImplementationOf<IProperty, ISerializable, IPropertyInternal, IOwnable>
+class PropertyImpl : public ImplementationOf<IProperty, ISerializable, IPropertyInternal, IOwnable>
 {
 protected:
     PropertyImpl();
@@ -176,7 +176,7 @@ public:
 
     ErrCode INTERFACE_FUNC getSerializeId(ConstCharPtr* id) const override;
 
-    static ErrCode ReadBuilderDeserializeValues(const PropertyBuilderPtr& builder, ISerializedObject* serializedObj, IBaseObject* context, IFunction* factoryCallback);
+    static ErrCode PUBLIC_EXPORT ReadBuilderDeserializeValues(const PropertyBuilderPtr& builder, ISerializedObject* serializedObj, IBaseObject* context, IFunction* factoryCallback);
 
     static ErrCode Deserialize(ISerializedObject* serializedObj, IBaseObject* context, IFunction* factoryCallback, IBaseObject** obj);
 
@@ -203,6 +203,8 @@ public:
     //
 
     ErrCode INTERFACE_FUNC setOwner(IPropertyObject* owner) override;
+
+    ErrCode INTERFACE_FUNC getOwner(IPropertyObject** owner) override;
 
     ErrCode validateDuringConstruction();
 

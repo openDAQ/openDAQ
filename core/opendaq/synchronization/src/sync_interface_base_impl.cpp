@@ -7,8 +7,8 @@ template class GenericSyncInterfaceImpl<IPropertyObject, ISyncInterfaceInternal>
 
 SyncInterfaceBaseImpl::SyncInterfaceBaseImpl(const TypeManagerPtr& manager, const StringPtr& name, const std::vector<SyncMode>& availableModes)
     : Super(manager)
-    , name(name)
     , manager(manager)
+    , name(name)
 {
     initAvailiableModes(availableModes);
     initProperties();

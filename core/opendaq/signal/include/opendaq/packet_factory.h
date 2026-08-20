@@ -104,6 +104,33 @@ DataPacketPtr ConstantDataPacketWithDomain(const DataPacketPtr& domainPacket,
 }
 
 /*!
+ * @brief Creates a single-sample constant rule Data packet with no domain packet.
+ * @param descriptor The descriptor of the signal sending the data. Its rule must be a constant rule.
+ * @param value The constant value.
+ *
+ * Intended for signals that carry a level-held value and have no domain signal assigned.
+ */
+template <class T>
+DataPacketPtr ConstantDataPacket(const DataDescriptorPtr& descriptor, T value)
+{
+    DataPacketPtr obj(ConstantDataPacketWithDomain_Create(nullptr, descriptor, 1, reinterpret_cast<void*>(&value), nullptr, 0));
+    return obj;
+}
+
+/*!
+ * @brief Creates a single-sample constant rule Data packet with no domain packet from a raw value.
+ * @param descriptor The descriptor of the signal sending the data. Its rule must be a constant rule.
+ * @param rawValue Pointer to the constant value, laid out as the descriptor's sample type.
+ *
+ * The value is copied into the packet, so the caller keeps ownership of @p rawValue.
+ */
+inline DataPacketPtr ConstantDataPacketWithRawValue(const DataDescriptorPtr& descriptor, void* rawValue)
+{
+    DataPacketPtr obj(ConstantDataPacketWithDomain_Create(nullptr, descriptor, 1, rawValue, nullptr, 0));
+    return obj;
+}
+
+/*!
  * @brief Creates a Data packet with a given descriptor, sample count,
  * a reference to a packet that describes the domain (time) data,
  * pointer to an existing memory location and a deleter, and an optional packet offset.

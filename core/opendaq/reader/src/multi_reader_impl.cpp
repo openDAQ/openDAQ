@@ -1100,6 +1100,11 @@ MultiReaderStatusPtr MultiReaderImpl::readAndSynchronize(bool zeroDataRead, Size
     }
 
     ErrCode errCode = synchronize(availableSamples, syncStatus);
+    if (OPENDAQ_FAILED(errCode))
+    {
+        LOG_D("Multi reader failed to synchronize: {}", getErrorInfoMessage(errCode));
+        clearErrorInfo();
+    }
     if (OPENDAQ_FAILED(errCode) || eventPackets.getCount() != 0)
     {
         return createReaderStatus(eventPackets);

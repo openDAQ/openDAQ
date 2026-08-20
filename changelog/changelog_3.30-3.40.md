@@ -39,6 +39,7 @@
 
 ## Bug fixes
 
+- [#1277](https://github.com/openDAQ/openDAQ/pull/1277) Fix MultiReader leaking its input ports when disposed before being released; readers treat a missing domain tick resolution as 1/1 instead of crashing
 - [#1273](https://github.com/openDAQ/openDAQ/pull/1273) Fix wrong packet-streaming optimization parameters order
 - [#1273](https://github.com/openDAQ/openDAQ/pull/1273) Fix native streaming server crash on access to non-existed packet server
 - [#1268](https://github.com/openDAQ/openDAQ/pull/1268) Fix IcmpPing leaking its object, socket and reply buffer.

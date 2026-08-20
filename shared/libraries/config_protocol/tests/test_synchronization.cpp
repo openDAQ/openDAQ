@@ -32,8 +32,7 @@ public:
     TestDeviceWithSync2Impl(const ContextPtr& ctx, const ComponentPtr& parent, const StringPtr& localId)
         : Device(ctx, parent, localId)
     {
-        SynchronizationPtr sync;
-        checkErrorInfo(this->getSynchronization(&sync));
+        initSynchronization();
     }
 
     class TestSyncInterface : public SyncInterfaceBaseImpl
@@ -64,25 +63,22 @@ public:
         using Super::createPortProporties;
     };
 
-    SynchronizationPtr onGetSynchronization() override
+    void initSynchronization()
     {
         const auto manager = this->context.getTypeManager();
         auto sync = Synchronization(manager);
-        const auto syncInterface = createWithImplementation<ISyncInterface, TestSyncInterface>(manager, "TestInterface");
 
-        // Simulate a driver that already knows its sync status before the device is added
-        // to the component tree, so the client's initial connect state can be verified too.
-        auto* impl = dynamic_cast<TestSyncInterface*>(syncInterface.getObject());
+        const auto testSyncInterface = createWithImplementation<ISyncInterface, TestSyncInterface>(manager, "TestInterface");
+        auto* impl = dynamic_cast<TestSyncInterface*>(testSyncInterface.getObject());
         impl->setSyncSourceStatus(SyncSourceStatus::Synced, "boot");
-
-        sync.asPtr<ISynchronizationInternal>(true).addInterface(syncInterface);
+        sync.asPtr<ISynchronizationInternal>(true).addInterface(testSyncInterface);
 
         const auto ptpInterface = createWithImplementation<ISyncInterface, TestPtpSyncInterface>(manager);
         auto* ptpImpl = dynamic_cast<TestPtpSyncInterface*>(ptpInterface.getObject());
         ptpImpl->createPortProporties("eth0");
         sync.asPtr<ISynchronizationInternal>(true).addInterface(ptpInterface);
 
-        return sync;
+        setSynchronization(sync);
     }
 };
 

@@ -77,8 +77,6 @@ public:
 
     virtual DeviceInfoPtr onGetInfo();
 
-    virtual SynchronizationPtr onGetSynchronization();
-
     virtual uint64_t onGetTicksSinceOrigin();
 
     DictPtr<IString, IFunctionBlockType> onGetAvailableFunctionBlockTypes() override;
@@ -252,6 +250,8 @@ protected:
 
     DevicePtr getParentDevice();
     OperationModeType getOperationMode();
+
+    void setSynchronization(const SynchronizationPtr& sync);
 
     class DeviceInfoPtrWrapper : public DeviceInfoPtr
     {
@@ -1675,9 +1675,14 @@ ErrCode GenericDevice<TInterface, Interfaces...>::getSyncComponent(ISyncComponen
 }
 
 template <typename TInterface, typename... Interfaces>
-SynchronizationPtr GenericDevice<TInterface, Interfaces...>::onGetSynchronization()
+void GenericDevice<TInterface, Interfaces...>::setSynchronization(const SynchronizationPtr& synchronization)
 {
-    return nullptr;
+    if (!synchronization.assigned())
+        return;
+
+    const auto syncPropName = String("daqSynchronization");
+    this->addCoreProperty(ObjectPropertyBuilder(syncPropName, PropertyObject()).setVisible(false).build());
+    checkErrorInfo(this->setProtectedPropertyValue(syncPropName, synchronization));
 }
 
 template <typename TInterface, typename... Interfaces>
@@ -1688,29 +1693,22 @@ ErrCode GenericDevice<TInterface, Interfaces...>::getSynchronization(ISynchroniz
     if (this->isComponentRemoved)
         return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_COMPONENT_REMOVED);
 
-    return daqTry([&]
+    const auto syncPropName = String("daqSynchronization");
+
+    Bool syncFound = False;
+    OPENDAQ_RETURN_IF_FAILED(this->hasProperty(syncPropName, &syncFound));
+
+    if (syncFound)
     {
-        const auto syncPropName = String("daqSynchronization");
-        SynchronizationPtr synchronization;
-        if (!this->objPtr.hasProperty(syncPropName))
-        {
-            OPENDAQ_RETURN_IF_FAILED(wrapHandlerReturn(this, &Self::onGetSynchronization, synchronization));
+        BaseObjectPtr objPtr;
+        OPENDAQ_RETURN_IF_FAILED(this->getPropertyValue(syncPropName, &objPtr));
 
-            this->addCoreProperty(ObjectPropertyBuilder(syncPropName, PropertyObject()).setVisible(false).build());
-            if (synchronization.assigned())
-                OPENDAQ_RETURN_IF_FAILED(this->setProtectedPropertyValue(syncPropName, synchronization));
-        
-            *sync = synchronization.detach();
-            return OPENDAQ_SUCCESS;
-        }
-        else 
-        {
-            synchronization = this->objPtr.getPropertyValue(syncPropName).template asPtrOrNull<ISynchronization>();
-        }
-
-        *sync = synchronization.detach();
+        *sync = objPtr.asPtrOrNull<ISynchronization>().detach();
         return OPENDAQ_SUCCESS;
-    });
+    }
+
+    *sync = nullptr;
+    return OPENDAQ_IGNORED;
 }
 
 template <typename TInterface, typename... Interfaces>

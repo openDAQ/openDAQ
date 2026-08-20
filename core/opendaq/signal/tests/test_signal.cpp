@@ -3134,3 +3134,173 @@ TEST_F(SignalTest, SetDomainDescriptorUnderLock)
     for (int i = 0; i < 10; ++i)
         signal.setPropertyValue("Test", i);
 }
+
+static DataDescriptorPtr ConstantDescriptor(SampleType sampleType = SampleType::Int64)
+{
+    return DataDescriptorBuilder().setName("const").setSampleType(sampleType).setRule(ConstantDataRule()).build();
+}
+
+TEST_F(SignalTest, ConstantNoDomainReplaysLastValueOnConnect)
+{
+    const auto context = NullContext();
+    const auto signal = Signal(context, nullptr, "sig");
+    const auto descriptor = ConstantDescriptor();
+    signal.setDescriptor(descriptor);
+    signal.sendPacket(ConstantDataPacket(descriptor, int64_t{7}));
+
+    const auto ip = InputPort(context, nullptr, "ip");
+    ip.connect(signal);
+
+    const auto packets = ip.getConnection().dequeueAll();
+    ASSERT_EQ(packets.getCount(), 2u);
+    ASSERT_EQ(packets[0].getType(), PacketType::Event);
+
+    const auto dataPacket = packets[1].asPtr<IDataPacket>();
+    ASSERT_EQ(dataPacket.getSampleCount(), 1u);
+    ASSERT_FALSE(dataPacket.getDomainPacket().assigned());
+    ASSERT_EQ(dataPacket.getLastValue(), 7);
+    ASSERT_EQ(signal.getLastValue(), 7);
+}
+
+TEST_F(SignalTest, ConstantNoDomainReplaysToEveryConnection)
+{
+    const auto context = NullContext();
+    const auto signal = Signal(context, nullptr, "sig");
+    const auto descriptor = ConstantDescriptor();
+    signal.setDescriptor(descriptor);
+    signal.sendPacket(ConstantDataPacket(descriptor, int64_t{7}));
+
+    const auto ip1 = InputPort(context, nullptr, "ip1");
+    const auto ip2 = InputPort(context, nullptr, "ip2");
+    ip1.connect(signal);
+    ip2.connect(signal);
+
+    ASSERT_EQ(ip1.getConnection().getPacketCount(), 2u);
+    ASSERT_EQ(ip2.getConnection().getPacketCount(), 2u);
+}
+
+TEST_F(SignalTest, ConstantNoDomainNoReplayWithoutValue)
+{
+    const auto context = NullContext();
+    const auto signal = Signal(context, nullptr, "sig");
+    signal.setDescriptor(ConstantDescriptor());
+
+    const auto ip = InputPort(context, nullptr, "ip");
+    ip.connect(signal);
+
+    ASSERT_EQ(ip.getConnection().getPacketCount(), 1u);
+}
+
+TEST_F(SignalTest, ConstantNoDomainNoReplayAfterDescriptorChanged)
+{
+    const auto context = NullContext();
+    const auto signal = Signal(context, nullptr, "sig");
+    const auto descriptor = ConstantDescriptor();
+    signal.setDescriptor(descriptor);
+    signal.sendPacket(ConstantDataPacket(descriptor, int64_t{7}));
+
+    signal.setDescriptor(ConstantDescriptor(SampleType::Int32));
+
+    const auto ip = InputPort(context, nullptr, "ip");
+    ip.connect(signal);
+
+    ASSERT_EQ(ip.getConnection().getPacketCount(), 1u);
+}
+
+TEST_F(SignalTest, ConstantNoDomainNoReplayWhenSignalInactive)
+{
+    const auto context = NullContext();
+    const auto signal = Signal(context, nullptr, "sig");
+    const auto descriptor = ConstantDescriptor();
+    signal.setDescriptor(descriptor);
+    signal.sendPacket(ConstantDataPacket(descriptor, int64_t{7}));
+    signal.setActive(false);
+
+    const auto ip = InputPort(context, nullptr, "ip");
+    ip.connect(signal);
+
+    ASSERT_EQ(ip.getConnection().getPacketCount(), 1u);
+}
+
+TEST_F(SignalTest, ConstantNoDomainNoReplayWhenPortInactive)
+{
+    const auto context = NullContext();
+    const auto signal = Signal(context, nullptr, "sig");
+    const auto descriptor = ConstantDescriptor();
+    signal.setDescriptor(descriptor);
+    signal.sendPacket(ConstantDataPacket(descriptor, int64_t{7}));
+
+    const auto ip = InputPort(context, nullptr, "ip");
+    ip.setActive(false);
+    ip.connect(signal);
+
+    ASSERT_EQ(ip.getConnection().getPacketCount(), 1u);
+}
+
+TEST_F(SignalTest, ConstantNoDomainNoReplayWhenKeepLastValueDisabled)
+{
+    const auto context = NullContext();
+    const auto signal = Signal(context, nullptr, "sig");
+    signal.asPtr<ISignalPrivate>().enableKeepLastValue(false);
+
+    const auto descriptor = ConstantDescriptor();
+    signal.setDescriptor(descriptor);
+    signal.sendPacket(ConstantDataPacket(descriptor, int64_t{7}));
+
+    const auto ip = InputPort(context, nullptr, "ip");
+    ip.connect(signal);
+
+    ASSERT_EQ(ip.getConnection().getPacketCount(), 1u);
+}
+
+TEST_F(SignalTest, ConstantNoDomainReplaysOnPrivateSignal)
+{
+    const auto context = NullContext();
+    const auto signal = Signal(context, nullptr, "sig");
+    signal.setPublic(false);
+
+    const auto descriptor = ConstantDescriptor();
+    signal.setDescriptor(descriptor);
+    signal.sendPacket(ConstantDataPacket(descriptor, int64_t{7}));
+
+    ASSERT_EQ(signal.getLastValue(), 7);
+
+    const auto ip = InputPort(context, nullptr, "ip");
+    ip.connect(signal);
+
+    ASSERT_EQ(ip.getConnection().getPacketCount(), 2u);
+}
+
+TEST_F(SignalTest, ConstantWithDomainSignalDoesNotReplay)
+{
+    const auto context = NullContext();
+    const auto signal = Signal(context, nullptr, "sig");
+    const auto descriptor = ConstantDescriptor();
+    signal.setDescriptor(descriptor);
+    signal.sendPacket(ConstantDataPacket(descriptor, int64_t{7}));
+
+    const auto domainSignal = Signal(context, nullptr, "time");
+    signal.setDomainSignal(domainSignal);
+
+    const auto ip = InputPort(context, nullptr, "ip");
+    ip.connect(signal);
+
+    ASSERT_EQ(ip.getConnection().getPacketCount(), 1u);
+}
+
+TEST_F(SignalTest, ExplicitRuleWithoutDomainSignalDoesNotReplay)
+{
+    const auto context = NullContext();
+    const auto signal = Signal(context, nullptr, "sig");
+    const auto descriptor = DataDescriptorBuilder().setName("test").setSampleType(SampleType::Int64).build();
+    signal.setDescriptor(descriptor);
+
+    auto dataPacket = DataPacket(descriptor, 1);
+    static_cast<int64_t*>(dataPacket.getData())[0] = 7;
+    signal.sendPacket(dataPacket);
+
+    const auto ip = InputPort(context, nullptr, "ip");
+    ip.connect(signal);
+
+    ASSERT_EQ(ip.getConnection().getPacketCount(), 1u);
+}

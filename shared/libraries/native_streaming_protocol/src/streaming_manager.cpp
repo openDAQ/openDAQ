@@ -40,8 +40,12 @@ void StreamingManager::sendPacketToSubscribers(const std::string& signalStringId
                     registeredSignal.lastDataDescriptorParam = dataDescriptorParam;
                 if (domainDescriptorParam.assigned())
                     registeredSignal.lastDomainDescriptorParam = domainDescriptorParam;
+
+                onDescriptorChanged(registeredSignal);
             }
         }
+
+        snapshotConstantValue(registeredSignal, packet);
 
         if (auto it = registeredSignal.subscribedClientsIds.begin(); it != registeredSignal.subscribedClientsIds.end())
         {
@@ -87,8 +91,12 @@ void StreamingManager::processPackets(const tsl::ordered_map<std::string, Packet
                             registeredSignal.lastDataDescriptorParam = dataDescriptorParam;
                         if (domainDescriptorParam.assigned())
                             registeredSignal.lastDomainDescriptorParam = domainDescriptorParam;
+
+                        onDescriptorChanged(registeredSignal);
                     }
                 }
+
+                snapshotConstantValue(registeredSignal, packet);
 
                 if (auto it2 = registeredSignal.subscribedClientsIds.begin(); it2 != registeredSignal.subscribedClientsIds.end())
                 {
@@ -130,6 +138,39 @@ void StreamingManager::sendDaqPacket(const SendPacketBufferCallback& sendPacketB
     {
         sendPacketBufferCb(clientId, std::move(packetBuffer));
     }
+}
+
+void StreamingManager::onDescriptorChanged(RegisteredServerSignal& registeredSignal)
+{
+    // A snapshotted value belongs to the descriptor it was captured under.
+    registeredSignal.lastValueRawData.reset();
+    registeredSignal.constantWithoutDomain = false;
+
+    const auto& domainParam = registeredSignal.lastDomainDescriptorParam;
+    if (domainParam.assigned() && domainParam != NullDataDescriptor())
+        return;
+
+    const auto& descriptor = registeredSignal.lastDataDescriptorParam;
+    if (!descriptor.assigned() || descriptor == NullDataDescriptor())
+        return;
+
+    const auto rule = descriptor.getRule();
+    registeredSignal.constantWithoutDomain = rule.assigned() && rule.getType() == DataRuleType::Constant;
+}
+
+void StreamingManager::snapshotConstantValue(RegisteredServerSignal& registeredSignal, const PacketPtr& packet)
+{
+    if (!registeredSignal.constantWithoutDomain || packet.getType() != PacketType::Data)
+        return;
+
+    const auto dataPacket = packet.asPtrOrNull<IDataPacket>(true);
+    if (!dataPacket.assigned() || dataPacket.getSampleCount() == 0)
+        return;
+
+    registeredSignal.lastValueRawData = std::make_unique<uint8_t[]>(registeredSignal.lastDataDescriptorParam.getSampleSize());
+    void* rawValue = registeredSignal.lastValueRawData.get();
+    if (OPENDAQ_FAILED(dataPacket->getRawLastValue(&rawValue)))
+        registeredSignal.lastValueRawData.reset();
 }
 
 void StreamingManager::linearCachingAssertion(const std::string& condition,
@@ -395,6 +436,18 @@ bool StreamingManager::registerSignalSubscriber(const std::string& signalStringI
                                                                    registeredSignal.lastDomainDescriptorParam),
                                   subscribedClientId,
                                   registeredSignal.numericId);
+
+                    // No reader is created for this subscriber, so the value the first subscriber got on connect
+                    // has to be replayed here.
+                    if (registeredSignal.constantWithoutDomain && registeredSignal.lastValueRawData)
+                    {
+                        sendDaqPacket(sendPacketBufferCb,
+                                      packetStreamingServers.at(subscribedClientId),
+                                      ConstantDataPacketWithRawValue(registeredSignal.lastDataDescriptorParam,
+                                                                     registeredSignal.lastValueRawData.get()),
+                                      subscribedClientId,
+                                      registeredSignal.numericId);
+                    }
                 }
             }
             subscribers.insert(subscribedClientId);

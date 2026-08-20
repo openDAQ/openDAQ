@@ -41,7 +41,7 @@ if (OPENDAQ_ENABLE_WEBSOCKET_STREAMING AND (DAQMODULES_OPENDAQ_CLIENT_MODULE OR 
         FetchContent_Declare(
             LtStreamingModulesModern
             GIT_REPOSITORY https://github.com/openDAQ/LTStreamingModulesModern.git
-            GIT_TAG        v4.0.2
+            GIT_TAG        af049ed94e482187e80aa509320bd457426f62cb
             GIT_PROGRESS   ON
             GIT_SHALLOW    OFF
             SOURCE_SUBDIR  "INVALID"

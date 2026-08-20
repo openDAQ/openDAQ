@@ -188,11 +188,8 @@ MultiReaderImpl::MultiReaderImpl(const MultiReaderBuilderPtr& builder)
 
 MultiReaderImpl::~MultiReaderImpl()
 {
-    if (!portBinder.assigned())
-    {
-        for (const auto& reader : signals)
-            reader.port.remove();
-    }
+    if (!this->disposeCalled)
+        internalDispose(false);
 }
 
 ListPtr<ISignal> MultiReaderImpl::getSignals() const
@@ -574,6 +571,12 @@ void MultiReaderImpl::setStartInfo()
     {
         if (signal.unused)
             continue;
+
+        // a signal that never delivered a valid domain descriptor has no resolution and cannot be synchronized
+        if (!signal.domainInfo.resolution.assigned())
+            DAQ_THROW_EXCEPTION(InvalidStateException,
+                                "Multi reader signal \"{}\" has no domain tick resolution",
+                                signal.getComponentGlobalId());
 
         if (signal.domainInfo.epoch < minEpoch)
         {
@@ -1588,13 +1591,29 @@ ErrCode MultiReaderImpl::getActive(Bool* isActive)
 
 void MultiReaderImpl::internalDispose(bool)
 {
-    this->portBinder = nullptr;
-    this->signals.clear();
-    this->externalListener = nullptr;
-    this->readCallback = nullptr;
-    this->invalid = true;
-    this->isActive = false;
-    this->portsConnected = false;
+    std::list<SignalReader> localSignals;
+    bool removePorts;
+
+    {
+        std::scoped_lock lock{mutex, notify.mutex};
+
+        removePorts = !this->portBinder.assigned();
+        localSignals = std::move(this->signals);
+        this->signals.clear();
+        this->portBinder = nullptr;
+        this->externalListener = nullptr;
+        this->readCallback = nullptr;
+        this->invalid = true;
+        this->isActive = false;
+        this->portsConnected = false;
+    }
+
+    // port removal locks the signals, which can deadlock with packet notifications waiting on notify.mutex, so it must happen outside the locks
+    if (removePorts)
+    {
+        for (const auto& reader : localSignals)
+            reader.port.remove();
+    }
 }
 
 #pragma region ReaderConfig

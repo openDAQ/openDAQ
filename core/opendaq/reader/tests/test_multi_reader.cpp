@@ -4576,6 +4576,57 @@ TEST_F(MultiReaderTest, MultiReaderActiveDataAvailableCallback)
     ASSERT_EQ(state, 6);
 }
 
+TEST_F(MultiReaderTest, DisposeDisconnectsInternalPorts)
+{
+    constexpr const auto NUM_SIGNALS = 2;
+
+    readSignals.reserve(NUM_SIGNALS);
+
+    addSignal(0, 100, createDomainSignal("2022-09-27T00:02:03+00:00"));
+    addSignal(0, 100, createDomainSignal("2022-09-27T00:02:03+00:00"));
+
+    auto multi = MultiReaderBuilder().setInputPortNotificationMethod(PacketReadyNotification::SameThread).addSignals(signalsToList()).build();
+
+    for (const auto& read : readSignals)
+        ASSERT_EQ(read.signal.getConnections().getCount(), 1u);
+
+    multi.dispose();
+    multi.release();
+
+    for (const auto& read : readSignals)
+        ASSERT_EQ(read.signal.getConnections().getCount(), 0u);
+}
+
+TEST_F(MultiReaderTest, ReadSignalWithoutDomainDoesNotCrash)
+{
+    const auto ctx = NullContext();
+
+    // a domain-type signal has no domain signal of its own, so the reader never receives its tick resolution
+    auto timeDesc = DataDescriptorBuilder()
+                        .setSampleType(SampleType::Int64)
+                        .setRule(LinearDataRule(1, 0))
+                        .setTickResolution(Ratio(1, 1000))
+                        .setUnit(Unit("s", -1, "seconds", "time"))
+                        .build();
+
+    const auto timeSignal = SignalWithDescriptor(ctx, timeDesc, nullptr, "time");
+
+    const auto reader = MultiReaderBuilder().setInputPortNotificationMethod(PacketReadyNotification::SameThread).addSignal(timeSignal).build();
+
+    timeSignal.sendPacket(DataPacket(timeDesc, 100, 0));
+
+    // the sync path must not dereference the missing resolution and the read must return gracefully with no data
+    size_t count = 0;
+    auto status = reader.read(nullptr, &count, 0);
+    ASSERT_EQ(status.getReadStatus(), ReadStatus::Event);
+    ASSERT_EQ(count, 0u);
+
+    count = 0;
+    status = reader.read(nullptr, &count, 0);
+    ASSERT_NE(status.getReadStatus(), ReadStatus::Ok);
+    ASSERT_EQ(count, 0u);
+}
+
 TEST_F(MultiReaderTest, ExpectSR)
 {
     const auto ctx = NullContext();

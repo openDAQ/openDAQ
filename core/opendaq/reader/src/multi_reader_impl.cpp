@@ -572,12 +572,6 @@ void MultiReaderImpl::setStartInfo()
         if (signal.unused)
             continue;
 
-        // a signal that never delivered a valid domain descriptor has no resolution and cannot be synchronized
-        if (!signal.domainInfo.resolution.assigned())
-            DAQ_THROW_EXCEPTION(InvalidStateException,
-                                "Multi reader signal \"{}\" has no domain tick resolution",
-                                signal.getComponentGlobalId());
-
         if (signal.domainInfo.epoch < minEpoch)
         {
             minEpoch = signal.domainInfo.epoch;

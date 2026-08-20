@@ -2358,10 +2358,9 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::addPropertyI
             {
                 const auto cloneable = defaultValue.asPtrOrNull<IPropertyObjectInternal>();
                 PropertyObjectPtr clone;
-                ErrCode err = cloneable->clone(&clone);
-                OPENDAQ_RETURN_IF_FAILED(err);
-
-                if (defaultValue.getObject() != clone.getObject())
+                const ErrCode errorCode = cloneable->clone(&clone);
+                OPENDAQ_RETURN_IF_FAILED_EXCEPT(errorCode, OPENDAQ_ERR_NOT_CLONEABLE);
+                if (errorCode != OPENDAQ_ERR_NOT_CLONEABLE)
                     propInternalPtr.overrideDefaultValue(clone);
             }
         }

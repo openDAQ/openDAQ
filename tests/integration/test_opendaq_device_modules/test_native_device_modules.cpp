@@ -19,9 +19,10 @@
 #include <testutils/testutils.h>
 #include <websocket_streaming_client_module/module_dll.h>
 #include <websocket_streaming_server_module/module_dll.h>
+#include <config_protocol/config_protocol.h>
 #include <chrono>
 #include <iomanip>
-#include "opendaq/mock/mock_device_module.h"
+#include <opendaq/mock/mock_device_module.h>
 #include "test_helpers/test_helpers.h"
 
 #include "test_helpers/device_modules.h"
@@ -29,8 +30,6 @@
 using NativeDeviceModulesTest = testing::Test;
 
 using namespace daq;
-
-const uint16_t LATEST_CONFIG_PROTOCOL_VERSION = 25;
 
 static InstancePtr CreateCustomServerInstance(AuthenticationProviderPtr authenticationProvider)
 {
@@ -238,7 +237,7 @@ TEST_F(NativeDeviceModulesTest, CheckProtocolVersion)
 
     auto info = client.getDevices()[0].getInfo();
     ASSERT_TRUE(info.hasProperty("NativeConfigProtocolVersion"));
-    ASSERT_EQ(static_cast<uint16_t>(info.getPropertyValue("NativeConfigProtocolVersion")), LATEST_CONFIG_PROTOCOL_VERSION);
+    ASSERT_EQ(static_cast<uint16_t>(info.getPropertyValue("NativeConfigProtocolVersion")), config_protocol::GetLatestConfigProtocolVersion());
 
     // because info holds a client device as owner, it have to be removed before module manager is destroyed
     // otherwise module of native client device would not be removed
@@ -4618,7 +4617,7 @@ TEST_P(NativeC2DStreamingTest, StreamingData)
 
 // version 17 falls to basic C2Ds
 // version 18 uses generalized C2Ds
-INSTANTIATE_TEST_SUITE_P(NativeC2DStreamingTestGroup, NativeC2DStreamingTest, testing::Values(17, LATEST_CONFIG_PROTOCOL_VERSION));
+INSTANTIATE_TEST_SUITE_P(NativeC2DStreamingTestGroup, NativeC2DStreamingTest, testing::Values(17, config_protocol::GetLatestConfigProtocolVersion()));
 
 TEST_F(NativeDeviceModulesTest, AddNestedFB)
 {

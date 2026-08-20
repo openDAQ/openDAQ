@@ -147,9 +147,10 @@ public:
     ScopedRemoteUpdate(ScopedRemoteUpdate&&) = delete;
 
     explicit ScopedRemoteUpdate(const PropertyObjectPtr& obj)
-        : obj(obj)
+        : configClientObj(obj.asPtrOrNull<IConfigClientObject>(true))
     {
-        checkErrorInfo(obj.asPtr<IConfigClientObject>(true)->setRemoteUpdating(True));
+        if (configClientObj.assigned())
+            checkErrorInfo(configClientObj->setRemoteUpdating(True));
     }
 
     ScopedRemoteUpdate operator=(const ScopedRemoteUpdate&) = delete;
@@ -157,11 +158,12 @@ public:
 
     ~ScopedRemoteUpdate()
     {
-        checkErrorInfo(obj.asPtr<IConfigClientObject>(true)->setRemoteUpdating(False));
+        if (configClientObj.assigned())
+            checkErrorInfo(configClientObj->setRemoteUpdating(False));
     }
 
 private:
-    BaseObjectPtr obj;
+    ObjectPtr<IConfigClientObject> configClientObj;
 };
 
 
@@ -246,13 +248,24 @@ ErrCode ConfigClientPropertyObjectBaseImpl<Impl>::getPropertyValue(IString* prop
 
     const ErrCode errCode = daqTry([this, &propertyNamePtr, &value]()
     {
-
         PropertyPtr prop;
         checkErrorInfo(Impl::getProperty(propertyNamePtr, &prop));
 
-        auto isFunction = prop.getValueType() == ctFunc || prop.getValueType() == ctProc;
-        auto hasReadListeners = prop.asPtr<IPropertyInternal>().getHasOnReadListeners();
-        if (clientComm->getConnected() && (isFunction || hasReadListeners))
+        bool shouldCallRpc = false;
+        {
+            // if the property value if function
+            const auto propType = prop.getValueType();
+            shouldCallRpc = propType == ctFunc || propType == ctProc;
+        }
+        if (!shouldCallRpc)
+        {
+            // if there is a listerner on the server which can override the value
+            EventPtr event;
+            checkErrorInfo(prop.asPtr<IPropertyInternal>(true)->getClassOnPropertyValueRead(&event));
+            shouldCallRpc = event.hasListeners();
+        }
+
+        if (clientComm->getConnected() && shouldCallRpc)
         {
             bool setValue;
             auto v = getValueFromServer(propertyNamePtr, setValue);
@@ -281,9 +294,12 @@ ErrCode ConfigClientPropertyObjectBaseImpl<Impl>::getPropertySelectionValue(IStr
     {
         PropertyPtr prop;
         checkErrorInfo(Impl::getProperty(propertyNamePtr, &prop));
+        PropertyInternalPtr propInternal = prop.asPtr<IPropertyInternal>(true);
 
-        auto hasReadListeners = prop.asPtr<IPropertyInternal>().getHasOnReadListeners();
-        if (clientComm->getConnected() && hasReadListeners)
+        EventPtr event;
+        checkErrorInfo(propInternal->getClassOnPropertyValueRead(&event));
+
+        if (clientComm->getConnected() && (event.hasListeners()))
         {
             bool setValue;
             auto v = getValueFromServer(propertyNamePtr, setValue);
@@ -294,7 +310,7 @@ ErrCode ConfigClientPropertyObjectBaseImpl<Impl>::getPropertySelectionValue(IStr
                 OPENDAQ_RETURN_IF_FAILED(errCode);
             }
         }
-    
+
         return Impl::getPropertySelectionValue(propertyNamePtr, value);
     });
 }
@@ -484,7 +500,7 @@ ErrCode ConfigClientPropertyObjectBaseImpl<Impl>::setRemoteGlobalId(IString* rem
     {
         if (prop.getValueType() == CoreType::ctObject)
         {
-            if (auto configObj = dynamic_cast<ConfigClientPropertyImpl*>(prop.getObject()); configObj)
+            if (auto configObj = dynamic_cast<ConfigClientObjectImpl*>(prop.getDefaultValue().getObject()); configObj)
                 configObj->setRemoteGlobalId(this->remoteGlobalId);
         }
     }
@@ -926,7 +942,7 @@ void ConfigClientPropertyObjectBaseImpl<Impl>::propertyAdded(const CoreEventArgs
     if (obj.hasProperty(prop.getName()))
         return;
     
-    if (auto configObj = dynamic_cast<ConfigClientPropertyImpl*>(prop.getObject()); configObj)
+    if (auto configObj = dynamic_cast<ConfigClientObjectImpl*>(prop.getDefaultValue().getObject()); configObj)
         configObj->setRemoteGlobalId(this->remoteGlobalId);
 
     if (params.get("Path") != "")
@@ -1131,10 +1147,10 @@ inline ErrCode ConfigClientPropertyObjectImpl::Deserialize(ISerializedObject* se
             serializedPtr,
             contextPtr,
             factoryCallbackPtr,
-            [&componentDeserializeContext, &factoryCallback](
+            [](
                 const SerializedObjectPtr& serialized, const ComponentDeserializeContextPtr& deserializeContext, const StringPtr& className)
             {
-                const auto ctx = componentDeserializeContext.asPtr<IConfigProtocolDeserializeContext>();
+                const auto ctx = deserializeContext.asPtr<IConfigProtocolDeserializeContext>(true);
                 PropertyObjectPtr propObj = createWithImplementation<IPropertyObject, ConfigClientPropertyObjectImpl>(
                     ctx->getClientComm(), ctx->getRemoteGlobalId(), ctx->getTypeManager(), className);
 

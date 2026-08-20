@@ -28,7 +28,6 @@ public:
     virtual ~ConfigClientObjectImpl() = default;
 
     virtual void setRemoteGlobalId(const std::string newId);
-    const std::string& getRemoteGlobalId();
 
 protected:
     ConfigProtocolClientCommPtr clientComm;

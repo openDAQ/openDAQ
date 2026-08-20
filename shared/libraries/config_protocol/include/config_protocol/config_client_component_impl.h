@@ -32,7 +32,6 @@ template <class Impl>
 class ConfigClientComponentBaseImpl : public ConfigClientPropertyObjectBaseImpl<Impl>
 {
 public:
-    using Super = ConfigClientPropertyObjectBaseImpl<Impl>;
     template <class ... Args>
     ConfigClientComponentBaseImpl(const ConfigProtocolClientCommPtr& configProtocolClientComm,
                                   const std::string& remoteGlobalId,
@@ -71,7 +70,7 @@ template <class ... Args>
 ConfigClientComponentBaseImpl<Impl>::ConfigClientComponentBaseImpl(const ConfigProtocolClientCommPtr& configProtocolClientComm,
                                                                    const std::string& remoteGlobalId,
                                                                    const Args&... args)
-    : Super(configProtocolClientComm, remoteGlobalId, args ...)
+    : ConfigClientPropertyObjectBaseImpl<Impl>(configProtocolClientComm, remoteGlobalId, args ...)
 {
 }
 
@@ -244,7 +243,7 @@ void ConfigClientComponentBaseImpl<Impl>::handleRemoteCoreObjectInternal(const C
             break;
     }
 
-    Super::handleRemoteCoreObjectInternal(sender, args);
+    ConfigClientPropertyObjectBaseImpl<Impl>::handleRemoteCoreObjectInternal(sender, args);
 }
 
 template <class Impl>
@@ -279,7 +278,7 @@ void ConfigClientComponentBaseImpl<Impl>::remoteUpdateStatuses(const SerializedO
 template <class Impl>
 void ConfigClientComponentBaseImpl<Impl>::onRemoteUpdate(const SerializedObjectPtr& serialized)
 {
-    Super::onRemoteUpdate(serialized);
+    ConfigClientPropertyObjectBaseImpl<Impl>::onRemoteUpdate(serialized);
 
     bool oldActive = this->active;
     if (serialized.hasKey("active"))

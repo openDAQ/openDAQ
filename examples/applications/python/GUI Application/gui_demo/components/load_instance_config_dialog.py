@@ -130,12 +130,7 @@ class LoadInstanceConfigDialog(Dialog):
             self.refresh()
 
         cb.configure(command=on_change)
-        def _on_mousewheel(e):
-            self.yview_scroll(int(-1 * (e.delta / 120)), 'units')
-            self._sync_overlays()
-            return 'break'
-
-        cb.bind('<MouseWheel>', _on_mousewheel)
+        utils.bind_mousewheel_to(cb, self.tree, self._sync_overlays)
         self._overlay_widgets[iid] = cb
 
     def _make_combobox(self, iid, values, current_value, column, editable=False):
@@ -180,9 +175,7 @@ class LoadInstanceConfigDialog(Dialog):
             cb.bind('<Escape>', _clear_active_if_needed)
             cb.bind('<FocusOut>', _clear_active_if_needed)
 
-        cb.bind('<MouseWheel>', lambda e: 'break')
-        cb.bind('<Button-4>', lambda e: 'break')
-        cb.bind('<Button-5>', lambda e: 'break')
+        utils.bind_mousewheel_to(cb, self.tree, self._sync_overlays)
         return cb
 
     def _place_enum_combobox(self, iid, option, meta):

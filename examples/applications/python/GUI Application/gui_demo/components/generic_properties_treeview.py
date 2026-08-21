@@ -616,9 +616,7 @@ class PropertiesTreeview(ttk.Treeview):
             cb.bind('<FocusOut>', _clear_active_if_needed)
             cb.bind('<KeyPress>', lambda e : 'break')
 
-        cb.bind('<MouseWheel>', lambda e: 'break')
-        cb.bind('<Button-4>', lambda e: 'break')
-        cb.bind('<Button-5>', lambda e: 'break')
+        utils.bind_mousewheel_to(cb, self, self._sync_overlays)
         return cb
 
     def _place_bool_checkbox(self, iid, prop):
@@ -639,12 +637,7 @@ class PropertiesTreeview(ttk.Treeview):
             self.refresh()
 
         cb.configure(command=on_change)
-        def _on_mousewheel(e):
-            self.yview_scroll(int(-1 * (e.delta / 120)), 'units')
-            self._sync_overlays()
-            return 'break'
-
-        cb.bind('<MouseWheel>', _on_mousewheel)
+        utils.bind_mousewheel_to(cb, self, self._sync_overlays)
         self._overlay_comboboxes[iid] = cb
 
     def _place_method_button(self, iid, prop):
@@ -692,6 +685,7 @@ class PropertiesTreeview(ttk.Treeview):
                 
         btn = ttk.Button(self, text=prop.name, command=execute)
         btn.place(x=x, y=y, width=width, height=height)
+        utils.bind_mousewheel_to(btn, self, self._sync_overlays)
         self._overlay_comboboxes[iid] = btn
         
     def _tree_indent(self):

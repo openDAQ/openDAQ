@@ -264,6 +264,36 @@ def value_to_coretype(value, coretype: daq.CoreType):
     raise ValueError(f'Unsupported core type: {coretype}')
 
 
+def mousewheel_steps(event) -> int:
+    '''
+    Scroll steps for a mouse wheel event: negative scrolls up, positive down.
+    Covers both the Windows <MouseWheel> delta and X11 <Button-4>/<Button-5>.
+    '''
+    if event.num == 4:
+        return -1
+    if event.num == 5:
+        return 1
+    return int(-event.delta / 120) or (-1 if event.delta > 0 else 1)
+
+
+def bind_mousewheel_to(widget, scrollable, after_scroll=None):
+    '''
+    Scroll `scrollable` when the wheel is used over `widget`.
+
+    A widget placed on top of a scrollable one keeps the wheel to itself, so the
+    scroll has to be passed on by hand. `after_scroll` is called once the view
+    has moved, for callers that have to reposition anything placed on top of it.
+    '''
+    def on_mousewheel(event):
+        scrollable.yview_scroll(mousewheel_steps(event), 'units')
+        if after_scroll is not None:
+            after_scroll()
+        return 'break'
+
+    for sequence in ('<MouseWheel>', '<Button-4>', '<Button-5>'):
+        widget.bind(sequence, on_mousewheel)
+
+
 def get_item_path(tree, item_id):
     path = []
     while item_id:

@@ -426,19 +426,13 @@ TEST_F(WebsocketModulesTest, SubscribeReadUnsubscribe)
 
     StringPtr streamingSource = signal.getActiveStreamingSource();
 
-    std::promise<StringPtr> signalSubscribePromise;
-    std::future<StringPtr> signalSubscribeFuture;
-    test_helpers::setupSubscribeAckHandler(signalSubscribePromise, signalSubscribeFuture, signal);
-
-    std::promise<StringPtr> signalUnsubscribePromise;
-    std::future<StringPtr> signalUnsubscribeFuture;
-    test_helpers::setupUnsubscribeAckHandler(signalUnsubscribePromise, signalUnsubscribeFuture, signal);
+    test_helpers::SignalAckListener acks(signal);
 
     using namespace std::chrono_literals;
     StreamReaderPtr reader = daq::StreamReader<double, uint64_t>(signal, ReadTimeoutType::Any);
 
-    ASSERT_TRUE(test_helpers::waitForAcknowledgement(signalSubscribeFuture));
-    ASSERT_EQ(signalSubscribeFuture.get(), streamingSource);
+    ASSERT_TRUE(acks.waitForSubscribeAck());
+    ASSERT_EQ(acks.subscribeAckStreaming(), streamingSource);
 
     {
         daq::SizeT count = 0;
@@ -455,8 +449,8 @@ TEST_F(WebsocketModulesTest, SubscribeReadUnsubscribe)
 
     reader.release();
 
-    ASSERT_TRUE(test_helpers::waitForAcknowledgement(signalUnsubscribeFuture));
-    ASSERT_EQ(signalUnsubscribeFuture.get(), streamingSource);
+    ASSERT_TRUE(acks.waitForUnsubscribeAck());
+    ASSERT_EQ(acks.unsubscribeAckStreaming(), streamingSource);
 }
 
 TEST_F(WebsocketModulesTest, DISABLED_RenderSignal)

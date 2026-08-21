@@ -82,14 +82,12 @@ public:
     void testStreamClientSignalFromLeaf(const InstancePtr& client)
     {
         auto clientSignal = client.getSignalsRecursive()[0].template asPtr<IMirroredSignalConfig>();
-        std::promise<StringPtr> clientSignalSubscribePromise;
-        std::future<StringPtr> clientSignalSubscribeFuture;
-        test_helpers::setupSubscribeAckHandler(clientSignalSubscribePromise, clientSignalSubscribeFuture, clientSignal);
+        test_helpers::SignalAckListener clientAcks(clientSignal);
 
         using namespace std::chrono_literals;
         StreamReaderPtr reader = daq::StreamReader<double, uint64_t>(clientSignal, ReadTimeoutType::Any);
 
-        ASSERT_TRUE(test_helpers::waitForAcknowledgement(clientSignalSubscribeFuture));
+        ASSERT_TRUE(clientAcks.waitForSubscribeAck());
 
         {
             daq::SizeT count = 0;
@@ -112,21 +110,17 @@ public:
     void testStreamGatewayAndClientSignals(const InstancePtr& client, const InstancePtr& gateway)
     {
         auto clientSignal = client.getSignalsRecursive()[0].template asPtr<IMirroredSignalConfig>();
-        std::promise<StringPtr> clientSignalSubscribePromise;
-        std::future<StringPtr> clientSignalSubscribeFuture;
-        test_helpers::setupSubscribeAckHandler(clientSignalSubscribePromise, clientSignalSubscribeFuture, clientSignal);
+        test_helpers::SignalAckListener clientAcks(clientSignal);
 
         auto gatewaySignal = gateway.getSignalsRecursive()[0].template asPtr<IMirroredSignalConfig>();
-        std::promise<StringPtr> gatewaySignalSubscribePromise;
-        std::future<StringPtr> gatewaySignalSubscribeFuture;
-        test_helpers::setupSubscribeAckHandler(gatewaySignalSubscribePromise, gatewaySignalSubscribeFuture, gatewaySignal);
+        test_helpers::SignalAckListener gatewayAcks(gatewaySignal);
 
         using namespace std::chrono_literals;
         StreamReaderPtr clientReader = daq::StreamReader<double, uint64_t>(clientSignal, ReadTimeoutType::Any);
         StreamReaderPtr gatewayReader = daq::StreamReader<double, uint64_t>(gatewaySignal, ReadTimeoutType::Any);
 
-        ASSERT_TRUE(test_helpers::waitForAcknowledgement(gatewaySignalSubscribeFuture));
-        ASSERT_TRUE(test_helpers::waitForAcknowledgement(clientSignalSubscribeFuture));
+        ASSERT_TRUE(gatewayAcks.waitForSubscribeAck());
+        ASSERT_TRUE(clientAcks.waitForSubscribeAck());
 
         {
             daq::SizeT count = 0;
@@ -156,20 +150,16 @@ public:
     void testStreamClientSignalViaGateway(const InstancePtr& client, const InstancePtr& gateway)
     {
         auto clientSignal = client.getSignalsRecursive()[0].template asPtr<IMirroredSignalConfig>();
-        std::promise<StringPtr> clientSignalSubscribePromise;
-        std::future<StringPtr> clientSignalSubscribeFuture;
-        test_helpers::setupSubscribeAckHandler(clientSignalSubscribePromise, clientSignalSubscribeFuture, clientSignal);
+        test_helpers::SignalAckListener clientAcks(clientSignal);
 
         auto gatewaySignal = gateway.getSignalsRecursive()[0].template asPtr<IMirroredSignalConfig>();
-        std::promise<StringPtr> gatewaySignalSubscribePromise;
-        std::future<StringPtr> gatewaySignalSubscribeFuture;
-        test_helpers::setupSubscribeAckHandler(gatewaySignalSubscribePromise, gatewaySignalSubscribeFuture, gatewaySignal);
+        test_helpers::SignalAckListener gatewayAcks(gatewaySignal);
 
         using namespace std::chrono_literals;
         StreamReaderPtr reader = daq::StreamReader<double, uint64_t>(clientSignal, ReadTimeoutType::Any);
 
-        ASSERT_TRUE(test_helpers::waitForAcknowledgement(gatewaySignalSubscribeFuture));
-        ASSERT_TRUE(test_helpers::waitForAcknowledgement(clientSignalSubscribeFuture));
+        ASSERT_TRUE(gatewayAcks.waitForSubscribeAck());
+        ASSERT_TRUE(clientAcks.waitForSubscribeAck());
 
         {
             daq::SizeT count = 0;

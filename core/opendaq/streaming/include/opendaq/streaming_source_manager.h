@@ -217,7 +217,7 @@ inline void StreamingSourceManager::enableStreamingForAddedComponent(const Compo
     if (allStreamingSources.empty())
         return;
 
-    auto setupStreamingForSignal = [this, &allStreamingSources](const SignalPtr& signal)
+    auto addSignalToStreamings = [this, &allStreamingSources](const SignalPtr& signal)
     {
         if (!signal.getPublic())
             return;
@@ -242,6 +242,12 @@ inline void StreamingSourceManager::enableStreamingForAddedComponent(const Compo
                 checkErrorInfo(errCode);
             }
         }
+    };
+
+    auto activateStreamingForSignal = [this, &allStreamingSources](const SignalPtr& signal)
+    {
+        if (!signal.getPublic())
+            return;
         auto mirroredSignalConfigPtr = signal.template asPtr<IMirroredSignalConfig>();
         if (!mirroredSignalConfigPtr.getActiveStreamingSource().assigned())
         {
@@ -263,16 +269,17 @@ inline void StreamingSourceManager::enableStreamingForAddedComponent(const Compo
     };
 
     // setup streaming sources for all signals of the new component
+    ListPtr<ISignal> addedSignals = List<ISignal>();
     if (auto addedSignal = addedComponent.asPtrOrNull<ISignal>(); addedSignal.assigned())
-    {
-        setupStreamingForSignal(addedSignal);
-    }
+        addedSignals.pushBack(addedSignal);
     else if (auto addedFolder = addedComponent.asPtrOrNull<IFolder>(); addedFolder.assigned())
-    {
-        ListPtr<ISignal> nestedSignals = addedFolder.getItems(search::Recursive(search::InterfaceId(ISignal::Id)));
-        for (const auto& nestedSignal : nestedSignals)
-            setupStreamingForSignal(nestedSignal);
-    }
+        addedSignals = addedFolder.getItems(search::Recursive(search::InterfaceId(ISignal::Id)));
+
+    // add all signals before activating any: activation may subscribe a listened signal along with its domain signal, which must already be added
+    for (const auto& signal : addedSignals)
+        addSignalToStreamings(signal);
+    for (const auto& signal : addedSignals)
+        activateStreamingForSignal(signal);
 
     auto setupStreamingForInputPort = [this, &allStreamingSources](const InputPortPtr& inputPort)
     {

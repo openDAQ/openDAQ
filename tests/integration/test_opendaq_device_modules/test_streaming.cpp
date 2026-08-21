@@ -156,7 +156,7 @@ protected:
         PropertyObjectPtr general = config.getPropertyValue("General");
         general.setPropertyValue("PrioritizedStreamingProtocols", List<IString>(std::get<0>(GetParam())));
 
-#ifdef ENABLE_ALTERNATIVE_LT_STREAMING_TESTS
+#ifdef OPENDAQ_ENABLE_WEBSOCKET_STREAMING_WITH_TLS
         if (usingSecureLTStreaming)
             test_helpers::lt_tls::applySecureClientConfig(config);
 #endif
@@ -872,6 +872,7 @@ public:
         suite.push_back(std::make_tuple("OpenDAQLTStreaming", "daq.opcua://127.0.0.1/"));
         suite.push_back(std::make_tuple("OpenDAQLTStreaming", "daq.opcua://[::1]/"));
 
+#ifdef OPENDAQ_ENABLE_WEBSOCKET_STREAMING_WITH_TLS
         suite.push_back(std::make_tuple("OpenDAQLTStreamingSecure", "daq.lts://127.0.0.1/"));
         suite.push_back(std::make_tuple("OpenDAQLTStreamingSecure", "daq.lts://[::1]/"));
 #if defined(OPENDAQ_ENABLE_NATIVE_STREAMING)
@@ -880,6 +881,7 @@ public:
 #endif
         suite.push_back(std::make_tuple("OpenDAQLTStreamingSecure", "daq.opcua://127.0.0.1/"));
         suite.push_back(std::make_tuple("OpenDAQLTStreamingSecure", "daq.opcua://[::1]/"));
+#endif
         return suite;
     }
 
@@ -1038,11 +1040,13 @@ protected:
         return instance;
     }
 
-    PropertyObjectPtr ltServerConfig(const InstancePtr& instance)
+    PropertyObjectPtr ltServerConfig([[maybe_unused]] const InstancePtr& instance)
     {
-        if (!usingSecureLTStreaming)
-            return nullptr;
-        return test_helpers::lt_tls::secureServerConfig(instance);
+#ifdef OPENDAQ_ENABLE_WEBSOCKET_STREAMING_WITH_TLS
+        if (usingSecureLTStreaming)
+            return test_helpers::lt_tls::secureServerConfig(instance);
+#endif
+        return nullptr;
     }
 };
 

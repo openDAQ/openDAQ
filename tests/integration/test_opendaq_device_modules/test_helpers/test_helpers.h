@@ -19,6 +19,7 @@
 #include <chrono>
 #include <thread>
 #include <future>
+#include <optional>
 #include <fstream>
 #include <boost/asio/ip/tcp.hpp>
 #include <boost/asio/io_service.hpp>
@@ -109,12 +110,116 @@ namespace test_helpers
             };
     }
 
+    // Detaches a signal's (un)subscribe ack handlers on scope exit so they cannot outlive the promises they reference
+    class AckHandlerGuard
+    {
+    public:
+        explicit AckHandlerGuard(const MirroredSignalConfigPtr& signal)
+            : signal(signal)
+        {
+        }
+
+        AckHandlerGuard(const AckHandlerGuard&) = delete;
+        AckHandlerGuard& operator=(const AckHandlerGuard&) = delete;
+
+        ~AckHandlerGuard()
+        {
+            if (!signal.assigned())
+                return;
+            if (IEvent* ev = signal.getOnSubscribeComplete())
+                ev->clear();
+            if (IEvent* ev = signal.getOnUnsubscribeComplete())
+                ev->clear();
+        }
+
+    private:
+        MirroredSignalConfigPtr signal;
+    };
+
     [[maybe_unused]]
     inline bool waitForAcknowledgement(
         std::future<StringPtr>& acknowledgementFuture,
         std::chrono::seconds timeout = std::chrono::seconds(5))
     {
         return acknowledgementFuture.wait_for(timeout) == std::future_status::ready;
+    }
+
+    // Listens for one signal's subscribe/unsubscribe acks and detaches its handlers on scope exit; create one per subscribe/unsubscribe cycle
+    class SignalAckListener
+    {
+    public:
+        explicit SignalAckListener(const MirroredSignalConfigPtr& signal)
+            : signal(signal)
+        {
+            subscribeFuture = subscribePromise.get_future();
+            unsubscribeFuture = unsubscribePromise.get_future();
+            this->signal.getOnSubscribeComplete() +=
+                [this](MirroredSignalConfigPtr&, SubscriptionEventArgsPtr& args) { setOnce(subscribePromise, args); };
+            this->signal.getOnUnsubscribeComplete() +=
+                [this](MirroredSignalConfigPtr&, SubscriptionEventArgsPtr& args) { setOnce(unsubscribePromise, args); };
+        }
+
+        SignalAckListener(const SignalAckListener&) = delete;
+        SignalAckListener& operator=(const SignalAckListener&) = delete;
+
+        ~SignalAckListener()
+        {
+            if (IEvent* ev = signal.getOnSubscribeComplete())
+                ev->clear();
+            if (IEvent* ev = signal.getOnUnsubscribeComplete())
+                ev->clear();
+        }
+
+        bool waitForSubscribeAck(std::chrono::seconds timeout = std::chrono::seconds(5))
+        {
+            return subscribeFuture.wait_for(timeout) == std::future_status::ready;
+        }
+
+        bool waitForUnsubscribeAck(std::chrono::seconds timeout = std::chrono::seconds(5))
+        {
+            return unsubscribeFuture.wait_for(timeout) == std::future_status::ready;
+        }
+
+        StringPtr subscribeAckStreaming()
+        {
+            return subscribeFuture.get();
+        }
+
+        StringPtr unsubscribeAckStreaming()
+        {
+            return unsubscribeFuture.get();
+        }
+
+    private:
+        // a repeated ack (e.g. after reconnect) must not throw through the event dispatch
+        static void setOnce(std::promise<StringPtr>& promise, SubscriptionEventArgsPtr& args)
+        {
+            try
+            {
+                promise.set_value(args.getStreamingConnectionString());
+            }
+            catch (const std::future_error&)
+            {
+            }
+        }
+
+        MirroredSignalConfigPtr signal;
+        std::promise<StringPtr> subscribePromise;
+        std::promise<StringPtr> unsubscribePromise;
+        std::future<StringPtr> subscribeFuture;
+        std::future<StringPtr> unsubscribeFuture;
+    };
+
+    // Runs one acked subscribe/unsubscribe cycle, e.g. to consume the LT initial-fetch hold before timing-sensitive expectations
+    [[maybe_unused]]
+    inline bool warmUpSubscription(const MirroredSignalConfigPtr& signal)
+    {
+        SignalAckListener acks(signal);
+        auto reader = PacketReader(signal);
+        if (!acks.waitForSubscribeAck())
+            return false;
+        reader.release();
+        return acks.waitForUnsubscribeAck();
     }
 
     // Successfully resolving the localhost address confirms that an IPv6 connection is possible with the localhost address.

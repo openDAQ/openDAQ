@@ -353,13 +353,14 @@ def update_properties(target: daq.IPropertyObject, source: daq.IPropertyObject):
         source_prop = source.get_property(prop_name)
         target_prop = target.get_property(prop_name)
 
-        if source_prop.value_type != target_prop.value_type:
+        source_property_type = source_prop.property_type
+        if source_property_type != target_prop.property_type:
             continue
 
         if target_prop.read_only:
             continue
 
-        if source_prop.value_type == daq.CoreType.ctObject:
+        if source_property_type == daq.PropertyType.Object:
             update_properties(target_prop.value, source_prop.value)
         else:
             target.set_property_value(prop_name, source_prop.value)

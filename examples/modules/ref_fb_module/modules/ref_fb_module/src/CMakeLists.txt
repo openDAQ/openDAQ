@@ -39,6 +39,7 @@ set(SRC_Srcs module_dll.cpp
 if (DAQMODULES_REF_FB_MODULE_ENABLE_RENDERER)
     message(STATUS "Renderer function block enabled") 
     set(SRC_Include ${SRC_Include} renderer_fb_impl.h
+                                   renderer_utils.h
                                    video_player_fb_impl.h
                                    polyline.h
                                    polyline_impl.h
@@ -86,6 +87,7 @@ set(MODULE_FILES ${MODULE_HEADERS_DIR}/ref_fb_module_common.h
 
 if (DAQMODULES_REF_FB_MODULE_ENABLE_RENDERER)
     set(MODULE_FILES ${MODULE_FILES} ${MODULE_HEADERS_DIR}/renderer_fb_impl.h
+                                     ${MODULE_HEADERS_DIR}/renderer_utils.h
                                      ${MODULE_HEADERS_DIR}/video_player_fb_impl.h
                                      ${MODULE_BINARY_HEADER_DIR}/arial.ttf.h
                                      renderer_fb_impl.cpp

@@ -174,14 +174,18 @@ ErrCode INTERFACE_FUNC DataDescriptorImpl::getReferenceDomainInfo(IReferenceDoma
     return OPENDAQ_SUCCESS;
 }
 
-void DataDescriptorImpl::calculateSampleMemSize()
+SizeT DataDescriptorImpl::calculateElementCount() const
 {
     size_t elementCnt = 1;
     for (const auto& dimension : dimensions)
         elementCnt *= dimension.getSize();
 
-    if (elementCnt == 0)
-        elementCnt = 1;
+    return elementCnt == 0 ? 1 : elementCnt;
+}
+
+void DataDescriptorImpl::calculateSampleMemSize()
+{
+    const size_t elementCnt = calculateElementCount();
 
     if (!structFields.assigned() || structFields.getCount() == 0)
     {
@@ -419,7 +423,7 @@ void DataDescriptorImpl::initCalcs()
         return;
 
     if (dataRule.assigned() && (dataRule.getType() == DataRuleType::Constant || dataRule.getType() == DataRuleType::Linear))
-        dataRuleCalc = std::unique_ptr<DataRuleCalc>(createDataRuleCalcTyped(dataRule, sampleType));
+        dataRuleCalc = std::unique_ptr<DataRuleCalc>(createDataRuleCalcTyped(dataRule, sampleType, calculateElementCount()));
 
     if (scaling.assigned())
         scalingCalc = std::unique_ptr<ScalingCalc>(createScalingCalcTyped(scaling));

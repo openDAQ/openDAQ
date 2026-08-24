@@ -8,13 +8,12 @@
 #  1. individual signal check - common requirements that all signals must satisfy individually
 #  2. compatibility cross check - conditions where the combination of signals may cause a problem
 #    (e. g. a function block may be able to read from two 2Hz signals or two 5Hz signals, but
-#     from a 2Hz and a 5Hz signal).
+#     not from a 2Hz and a 5Hz signal).
 # 
 # A similar system is used in Multireader to accept/reject reading from a set of signals.
 #
 ##
 
-import math
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from enum import Enum, auto
@@ -66,6 +65,7 @@ class CompatibilityIssue(Enum):
     IncompatibleTickResolution = auto()
     DifferentOrigin = auto()
     NonIntegerRateRatio = auto()
+    DifferentTickResolution = auto()
 
 
 @dataclass

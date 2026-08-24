@@ -3304,3 +3304,37 @@ TEST_F(SignalTest, ExplicitRuleWithoutDomainSignalDoesNotReplay)
 
     ASSERT_EQ(ip.getConnection().getPacketCount(), 1u);
 }
+
+TEST_F(SignalTest, ConstantVectorNoDomainReplaysLastValueOnConnect)
+{
+    const auto context = NullContext();
+    const auto signal = Signal(context, nullptr, "sig");
+    const auto descriptor = DataDescriptorBuilder()
+                                .setName("const")
+                                .setSampleType(SampleType::Int32)
+                                .setDimensions(List<IDimension>(Dimension(LinearDimensionRule(1, 0, 3))))
+                                .setRule(ConstantDataRule())
+                                .build();
+    signal.setDescriptor(descriptor);
+    signal.sendPacket(ConstantDataPacket(descriptor, std::vector<int32_t>{4, 5, 6}));
+
+    const auto ip = InputPort(context, nullptr, "ip");
+    ip.connect(signal);
+
+    const auto packets = ip.getConnection().dequeueAll();
+    ASSERT_EQ(packets.getCount(), 2u);
+    ASSERT_EQ(packets[0].getType(), PacketType::Event);
+
+    const auto dataPacket = packets[1].asPtr<IDataPacket>();
+    ASSERT_EQ(dataPacket.getSampleCount(), 1u);
+    ASSERT_FALSE(dataPacket.getDomainPacket().assigned());
+
+    const auto* data = static_cast<const int32_t*>(dataPacket.getData());
+    ASSERT_EQ(data[0], 4);
+    ASSERT_EQ(data[1], 5);
+    ASSERT_EQ(data[2], 6);
+
+    const ListPtr<IBaseObject> lastValue = signal.getLastValue();
+    ASSERT_EQ(lastValue.getCount(), 3u);
+    ASSERT_EQ(lastValue[2], 6);
+}

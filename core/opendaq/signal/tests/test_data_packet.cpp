@@ -1193,3 +1193,146 @@ TEST_F(DataPacketTest, GetValueByIndex)
         }
     }
 }
+
+// Constant rule signals with dimensions
+
+static DataDescriptorPtr setupVectorDescriptor(SampleType type, size_t elementCount)
+{
+    return DataDescriptorBuilder()
+        .setSampleType(type)
+        .setDimensions(List<IDimension>(Dimension(LinearDimensionRule(1, 0, elementCount))))
+        .setRule(ConstantDataRule())
+        .build();
+}
+
+static DataPacketPtr constantVectorPacket(const DataDescriptorPtr& descriptor,
+                                          SizeT sampleCount,
+                                          void* initialValue,
+                                          void* otherValues = nullptr,
+                                          SizeT otherValueCount = 0)
+{
+    return DataPacketPtr(
+        ConstantDataPacketWithDomain_Create(nullptr, descriptor, sampleCount, initialValue, otherValues, otherValueCount));
+}
+
+TEST_F(DataPacketTest, ConstantRuleVectorExpandsEveryElement)
+{
+    const auto descriptor = setupVectorDescriptor(SampleType::Int32, 4);
+    ASSERT_EQ(descriptor.getSampleSize(), 4u * sizeof(int32_t));
+
+    std::vector<int32_t> value{1, 2, 3, 4};
+    const auto packet = constantVectorPacket(descriptor, 3, value.data());
+
+    ASSERT_EQ(packet.getDataSize(), 3u * 4u * sizeof(int32_t));
+
+    const auto* data = static_cast<const int32_t*>(packet.getData());
+    for (size_t sample = 0; sample < 3; ++sample)
+        for (size_t element = 0; element < 4; ++element)
+            ASSERT_EQ(data[sample * 4 + element], value[element]) << "sample " << sample << " element " << element;
+}
+
+TEST_F(DataPacketTest, ConstantRuleVectorWithValueChanges)
+{
+    const auto descriptor = setupVectorDescriptor(SampleType::Int32, 2);
+
+    std::vector<int32_t> initial{1, 2};
+
+    // [position][value…] entries, laid out by hand because the typed factory only builds scalar entries
+    std::vector<uint8_t> entries(2 * (sizeof(uint32_t) + 2 * sizeof(int32_t)));
+    auto* entry = entries.data();
+    const auto writeEntry = [&entry](uint32_t position, int32_t first, int32_t second)
+    {
+        std::memcpy(entry, &position, sizeof(position));
+        entry += sizeof(position);
+        std::memcpy(entry, &first, sizeof(first));
+        entry += sizeof(first);
+        std::memcpy(entry, &second, sizeof(second));
+        entry += sizeof(second);
+    };
+    writeEntry(2, 3, 4);
+    writeEntry(4, 5, 6);
+
+    const auto packet = constantVectorPacket(descriptor, 6, initial.data(), entries.data(), 2);
+
+    const std::vector<int32_t> expected{1, 2, 1, 2, 3, 4, 3, 4, 5, 6, 5, 6};
+    const auto* data = static_cast<const int32_t*>(packet.getData());
+    for (size_t i = 0; i < expected.size(); ++i)
+        ASSERT_EQ(data[i], expected[i]) << "index " << i;
+}
+
+TEST_F(DataPacketTest, ConstantRuleVectorRawLastValue)
+{
+    const auto descriptor = setupVectorDescriptor(SampleType::Int32, 4);
+
+    std::vector<int32_t> value{7, 8, 9, 10};
+    const auto packet = constantVectorPacket(descriptor, 5, value.data());
+
+    std::vector<int32_t> lastValue(4, 0);
+    void* rawLastValue = lastValue.data();
+    ASSERT_EQ(packet->getRawLastValue(&rawLastValue), OPENDAQ_SUCCESS);
+    ASSERT_EQ(lastValue, value);
+}
+
+TEST_F(DataPacketTest, ConstantRuleVectorGetLastValue)
+{
+    const auto descriptor = setupVectorDescriptor(SampleType::Int64, 3);
+
+    std::vector<int64_t> value{11, 12, 13};
+    const auto packet = constantVectorPacket(descriptor, 2, value.data());
+
+    const ListPtr<IBaseObject> lastValue = packet.getLastValue();
+    ASSERT_EQ(lastValue.getCount(), 3u);
+    ASSERT_EQ(lastValue[0], 11);
+    ASSERT_EQ(lastValue[1], 12);
+    ASSERT_EQ(lastValue[2], 13);
+}
+
+TEST_F(DataPacketTest, ConstantDataPacketVectorFactory)
+{
+    const auto descriptor = setupVectorDescriptor(SampleType::Float64, 2);
+
+    const auto packet = ConstantDataPacket(descriptor, std::vector<double>{1.5, 2.5});
+    const auto* data = static_cast<const double*>(packet.getData());
+    ASSERT_EQ(data[0], 1.5);
+    ASSERT_EQ(data[1], 2.5);
+
+    ASSERT_THROW(ConstantDataPacket(descriptor, std::vector<double>{1.5}), InvalidParameterException);
+    ASSERT_THROW(ConstantDataPacket(descriptor, std::vector<double>{1.5, 2.5, 3.5}), InvalidParameterException);
+}
+
+TEST_F(DataPacketTest, ConstantDataPacketWithDomainVectorFactory)
+{
+    const auto descriptor = setupVectorDescriptor(SampleType::Int32, 3);
+    const auto domainDescriptor = setupDescriptor(SampleType::Int64, LinearDataRule(1, 0), nullptr);
+    const auto domainPacket = DataPacket(domainDescriptor, 4, 0);
+
+    const auto packet = ConstantDataPacketWithDomain(domainPacket, descriptor, 4, std::vector<int32_t>{7, 8, 9});
+
+    ASSERT_EQ(packet.getSampleCount(), 4u);
+    ASSERT_EQ(packet.getDomainPacket(), domainPacket);
+
+    // One value held across every sample of the packet.
+    const auto* data = static_cast<const int32_t*>(packet.getData());
+    for (size_t sample = 0; sample < 4; ++sample)
+    {
+        ASSERT_EQ(data[sample * 3 + 0], 7);
+        ASSERT_EQ(data[sample * 3 + 1], 8);
+        ASSERT_EQ(data[sample * 3 + 2], 9);
+    }
+
+    ASSERT_THROW(ConstantDataPacketWithDomain(domainPacket, descriptor, 4, std::vector<int32_t>{7, 8}), InvalidParameterException);
+}
+
+TEST_F(DataPacketTest, ConstantDataPacketWithDomainScalarOverloadStillResolves)
+{
+    const auto descriptor = setupDescriptor(SampleType::Int32, ConstantDataRule(), nullptr);
+    const auto domainDescriptor = setupDescriptor(SampleType::Int64, LinearDataRule(1, 0), nullptr);
+    const auto domainPacket = DataPacket(domainDescriptor, 2, 0);
+
+    // The scalar overload takes the value by itself, and partial ordering keeps the two apart.
+    const auto packet = ConstantDataPacketWithDomain<int32_t>(domainPacket, descriptor, 2, 5);
+
+    const auto* data = static_cast<const int32_t*>(packet.getData());
+    ASSERT_EQ(data[0], 5);
+    ASSERT_EQ(data[1], 5);
+}

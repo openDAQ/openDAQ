@@ -15,6 +15,8 @@
  */
 
 #pragma once
+#include <cstring>
+
 #include <opendaq/data_rule_ptr.h>
 #include <opendaq/signal_exceptions.h>
 #include <opendaq/range_type.h>
@@ -51,7 +53,7 @@ public:
 };
 
 [[maybe_unused]]
-static DataRuleCalc* createDataRuleCalcTyped(const DataRulePtr& outputRule, SampleType outputType);
+static DataRuleCalc* createDataRuleCalcTyped(const DataRulePtr& outputRule, SampleType outputType, SizeT elementCount = 1);
 
 template <typename T>
 class DataRuleCalcTyped : public DataRuleCalc
@@ -64,10 +66,10 @@ public:
     void calculateLastSample(const NumberPtr& packetOffset, SizeT sampleCount, void* input, SizeT inputSize, void** output) override;
 
 private:
-    friend DataRuleCalc* createDataRuleCalcTyped(const DataRulePtr& outputRule, SampleType outputType);
+    friend DataRuleCalc* createDataRuleCalcTyped(const DataRulePtr& outputRule, SampleType outputType, SizeT elementCount);
     static std::vector<T> ParseRuleParameters(const DictPtr<IString, IBaseObject>& ruleParameters, DataRuleType type);
 
-    explicit DataRuleCalcTyped(const DataRulePtr& rule);
+    explicit DataRuleCalcTyped(const DataRulePtr& rule, SizeT elementCount = 1);
 
     void* calculateLinearRule(const NumberPtr& packetOffset, SizeT sampleCount) const;
     void* calculateConstantRule(SizeT sampleCount, void* input, SizeT inputSize);
@@ -86,10 +88,13 @@ private:
 
     DataRuleType type;
     std::vector<T> parameters;
+    // Number of values in one sample; above one the constant rule works on whole vectors.
+    SizeT elementCount;
 };
 
 template <typename T>
-DataRuleCalcTyped<T>::DataRuleCalcTyped(const DataRulePtr& rule)
+DataRuleCalcTyped<T>::DataRuleCalcTyped(const DataRulePtr& rule, SizeT elementCount)
+    : elementCount(elementCount == 0 ? 1 : elementCount)
 {
     type = rule.getType();
     parameters = ParseRuleParameters(rule.getParameters(), type);
@@ -246,7 +251,7 @@ void* DataRuleCalcTyped<T>::calculateLinearRule(const NumberPtr& packetOffset, S
 template <typename T>
 void* DataRuleCalcTyped<T>::calculateConstantRule(SizeT sampleCount, void* input, SizeT inputSize)
 {
-    auto output = std::malloc(sampleCount * sizeof(T));
+    auto output = std::malloc(sampleCount * elementCount * sizeof(T));
     if (!output)
         DAQ_THROW_EXCEPTION(NoMemoryException, "Memory allocation failed.");
 
@@ -279,37 +284,38 @@ void DataRuleCalcTyped<T>::calculateLinearRule(const NumberPtr& packetOffset, Si
 template <typename T>
 void DataRuleCalcTyped<T>::calculateConstantRule(SizeT sampleCount, void* input, SizeT inputSize, void** output)
 {
-    if (inputSize < sizeof(T))
+    const size_t valueSize = elementCount * sizeof(T);
+    if (inputSize < valueSize)
         DAQ_THROW_EXCEPTION(InvalidParameterException, "Constant rule data packet must have at least one value");
 
-    constexpr size_t entrySize = sizeof(T) + sizeof(uint32_t);
-    const size_t entryCount = (inputSize - sizeof(T)) / entrySize;
+    const size_t entrySize = valueSize + sizeof(uint32_t);
+    const size_t entryCount = (inputSize - valueSize) / entrySize;
 
-    T* outputTyped = static_cast<T*>(*output);
-    T constant = *static_cast<T*>(input);
+    auto* outputBytes = reinterpret_cast<uint8_t*>(*output);
+    auto* constant = reinterpret_cast<uint8_t*>(input);
 
     SizeT currentEntry = 0;
-    auto* entryPtr = (reinterpret_cast<uint8_t*>(input) + sizeof(T));
+    auto* entryPtr = (reinterpret_cast<uint8_t*>(input) + valueSize);
 
     SizeT sampleIndex = 0;
     while (sampleIndex < sampleCount)
     {
         SizeT upToSamples;
-        T nextConstantValue{};
+        uint8_t* nextConstant = nullptr;
         if (currentEntry++ == entryCount)
             upToSamples = sampleCount;
         else
         {
             upToSamples = *(reinterpret_cast<uint32_t*>(entryPtr));
             entryPtr += sizeof(uint32_t);
-            nextConstantValue = *(reinterpret_cast<T*>(entryPtr));
-            entryPtr += sizeof(T);
+            nextConstant = entryPtr;
+            entryPtr += valueSize;
         }
 
         for (; sampleIndex < upToSamples; sampleIndex++)
-            outputTyped[sampleIndex] = constant;
+            std::memcpy(outputBytes + sampleIndex * valueSize, constant, valueSize);
 
-        constant = nextConstantValue;
+        constant = nextConstant;
     }
 }
 
@@ -327,7 +333,7 @@ inline void* DataRuleCalcTyped<T>::calculateLinearSample(const NumberPtr& packet
 template <typename T>
 inline void* DataRuleCalcTyped<T>::calculateConstantSample(const SizeT sampleIndex, void* input, SizeT inputSize)
 {
-    auto output = std::malloc(sizeof(T));
+    auto output = std::malloc(elementCount * sizeof(T));
     if (!output)
         DAQ_THROW_EXCEPTION(NoMemoryException, "Memory allocation failed.");
 
@@ -357,23 +363,23 @@ inline void DataRuleCalcTyped<T>::calculateLinearSample(const NumberPtr& packetO
 template <typename T>
 inline void DataRuleCalcTyped<T>::calculateConstantSample(const SizeT sampleIndex, void* input, SizeT inputSize, void** output)
 {
-    if (inputSize < sizeof(T))
+    const size_t valueSize = elementCount * sizeof(T);
+    if (inputSize < valueSize)
         DAQ_THROW_EXCEPTION(InvalidParameterException, "Constant rule data packet must have at least one value");
 
-    constexpr size_t entrySize = sizeof(T) + sizeof(uint32_t);
-    const size_t entryCount = (inputSize - sizeof(T)) / entrySize;
+    const size_t entrySize = valueSize + sizeof(uint32_t);
+    const size_t entryCount = (inputSize - valueSize) / entrySize;
 
-    T* outputTyped = static_cast<T*>(*output);
-    T constant = *static_cast<T*>(input);
+    auto* constant = reinterpret_cast<uint8_t*>(input);
 
     SizeT currentEntry = 0;
-    auto* entryPtr = (reinterpret_cast<uint8_t*>(input) + sizeof(T));
+    auto* entryPtr = (reinterpret_cast<uint8_t*>(input) + valueSize);
 
     SizeT currentSampleIndex = 0;
     while (currentSampleIndex <= sampleIndex)
     {
         SizeT upToSamples;
-        T nextConstantValue{};
+        uint8_t* nextConstant = nullptr;
         if (currentEntry++ == entryCount)
         {
             upToSamples = sampleIndex;
@@ -382,18 +388,18 @@ inline void DataRuleCalcTyped<T>::calculateConstantSample(const SizeT sampleInde
         {
             upToSamples = *(reinterpret_cast<uint32_t*>(entryPtr));
             entryPtr += sizeof(uint32_t);
-            nextConstantValue = *(reinterpret_cast<T*>(entryPtr));
-            entryPtr += sizeof(T);
+            nextConstant = entryPtr;
+            entryPtr += valueSize;
         }
 
         if (upToSamples >= sampleIndex)
             break;
 
         currentSampleIndex = upToSamples;
-        constant = nextConstantValue;
+        constant = nextConstant;
     }
 
-    *outputTyped = constant;
+    std::memcpy(*output, constant, valueSize);
 }
 
 template <typename T>
@@ -405,68 +411,66 @@ inline void DataRuleCalcTyped<T>::calculateLastLinearSample(const NumberPtr& pac
 template <typename T>
 inline void DataRuleCalcTyped<T>::calculateLastConstantSample(const SizeT sampleCount, void* input, SizeT inputSize, void** output)
 {
-    if (inputSize < sizeof(T))
+    const size_t valueSize = elementCount * sizeof(T);
+    if (inputSize < valueSize)
         DAQ_THROW_EXCEPTION(InvalidParameterException, "Constant rule data packet must have at least one value");
 
-    constexpr size_t entrySize = sizeof(T) + sizeof(uint32_t);
-    const size_t entryCount = (inputSize - sizeof(T)) / entrySize;
+    const size_t entrySize = valueSize + sizeof(uint32_t);
+    const size_t entryCount = (inputSize - valueSize) / entrySize;
 
-    T* outputTyped = static_cast<T*>(*output);
     auto* basePtr = reinterpret_cast<uint8_t*>(input);
-    T initialConstant = *reinterpret_cast<T*>(basePtr);
 
     if (entryCount == 0)
     {
-        *outputTyped = initialConstant;
+        std::memcpy(*output, basePtr, valueSize);
         return;
     }
 
-    auto* entriesStart = basePtr + sizeof(T);
+    auto* entriesStart = basePtr + valueSize;
     auto* entryPtr = entriesStart + (entryCount - 1) * entrySize;
 
     // Walk backwards until we find the largest upToSamples < sampleCount
     for (SizeT i = entryCount; i > 0; --i, entryPtr -= entrySize)
     {
         uint32_t upToSamples = *reinterpret_cast<uint32_t*>(entryPtr);
-        T value = *reinterpret_cast<T*>(entryPtr + sizeof(uint32_t));
 
         if (sampleCount - 1 > upToSamples)
         {
-            *outputTyped = value;
+            std::memcpy(*output, entryPtr + sizeof(uint32_t), valueSize);
             return;
         }
     }
 
     // If all upToSamples are >= sampleCount - 1, use the initial constant
-    *outputTyped = initialConstant;
+    std::memcpy(*output, basePtr, valueSize);
 }
 
-static DataRuleCalc* createDataRuleCalcTyped(const DataRulePtr& outputRule, SampleType outputType)
+static DataRuleCalc* createDataRuleCalcTyped(const DataRulePtr& outputRule, SampleType outputType, SizeT elementCount)
 {
     switch (outputType)
     {
         case SampleType::Float32:
-            return new DataRuleCalcTyped<SampleTypeToType<SampleType::Float32>::Type>(outputRule);
+            return new DataRuleCalcTyped<SampleTypeToType<SampleType::Float32>::Type>(outputRule, elementCount);
         case SampleType::Float64:
-            return new DataRuleCalcTyped<SampleTypeToType<SampleType::Float64>::Type>(outputRule);
+            return new DataRuleCalcTyped<SampleTypeToType<SampleType::Float64>::Type>(outputRule, elementCount);
         case SampleType::UInt8:
-            return new DataRuleCalcTyped<SampleTypeToType<SampleType::UInt8>::Type>(outputRule);
+            return new DataRuleCalcTyped<SampleTypeToType<SampleType::UInt8>::Type>(outputRule, elementCount);
         case SampleType::Int8:
-            return new DataRuleCalcTyped<SampleTypeToType<SampleType::Int8>::Type>(outputRule);
+            return new DataRuleCalcTyped<SampleTypeToType<SampleType::Int8>::Type>(outputRule, elementCount);
         case SampleType::UInt16:
-            return new DataRuleCalcTyped<SampleTypeToType<SampleType::UInt16>::Type>(outputRule);
+            return new DataRuleCalcTyped<SampleTypeToType<SampleType::UInt16>::Type>(outputRule, elementCount);
         case SampleType::Int16:
-            return new DataRuleCalcTyped<SampleTypeToType<SampleType::Int16>::Type>(outputRule);
+            return new DataRuleCalcTyped<SampleTypeToType<SampleType::Int16>::Type>(outputRule, elementCount);
         case SampleType::UInt32:
-            return new DataRuleCalcTyped<SampleTypeToType<SampleType::UInt32>::Type>(outputRule);
+            return new DataRuleCalcTyped<SampleTypeToType<SampleType::UInt32>::Type>(outputRule, elementCount);
         case SampleType::Int32:
-            return new DataRuleCalcTyped<SampleTypeToType<SampleType::Int32>::Type>(outputRule);
+            return new DataRuleCalcTyped<SampleTypeToType<SampleType::Int32>::Type>(outputRule, elementCount);
         case SampleType::UInt64:
-            return new DataRuleCalcTyped<SampleTypeToType<SampleType::UInt64>::Type>(outputRule);
+            return new DataRuleCalcTyped<SampleTypeToType<SampleType::UInt64>::Type>(outputRule, elementCount);
         case SampleType::Int64:
-            return new DataRuleCalcTyped<SampleTypeToType<SampleType::Int64>::Type>(outputRule);
+            return new DataRuleCalcTyped<SampleTypeToType<SampleType::Int64>::Type>(outputRule, elementCount);
         case SampleType::RangeInt64:
-            return new DataRuleCalcTyped<SampleTypeToType<SampleType::RangeInt64>::Type>(outputRule);
+            return new DataRuleCalcTyped<SampleTypeToType<SampleType::RangeInt64>::Type>(outputRule, elementCount);
         case SampleType::Binary:
         case SampleType::ComplexFloat32:
         case SampleType::ComplexFloat64:

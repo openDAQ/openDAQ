@@ -16,10 +16,19 @@
 #include <opendaq/work_factory.h>
 #include <coreobjects/callable_info_factory.h>
 #include <opendaq/reader_utils.h>
+#include <ref_fb_module/renderer_utils.h>
 
 BEGIN_NAMESPACE_REF_FB_MODULE
 namespace Renderer
 {
+
+namespace
+{
+bool isVectorContext(const SignalContext& signalContext)
+{
+    return isVectorDescriptor(signalContext.inputDataSignalDescriptor);
+}
+}
 
 RendererFbImpl::RendererFbImpl(const ModuleInfoPtr& moduleInfo,
                                const ContextPtr& ctx, 
@@ -262,9 +271,35 @@ void RendererFbImpl::renderSignals(sf::RenderTarget& renderTarget, const sf::Fon
 {
     for (auto& sigCtx : signalContexts)
     {
-        if (sigCtx.valid)
+        if (!sigCtx.valid)
+            continue;
+
+        if (sigCtx.domainless)
+            renderDomainlessSignal(sigCtx, renderTarget, renderFont);
+        else
             SAMPLE_TYPE_DISPATCH(sigCtx.domainSampleType, renderSignal, sigCtx, renderTarget, renderFont);
     }
+}
+
+void RendererFbImpl::renderDomainlessSignal(SignalContext& signalContext, sf::RenderTarget& renderTarget, const sf::Font& renderFont)
+{
+    // A vector has shape across its elements, and that is what there is to see.
+    if (isVectorContext(signalContext))
+    {
+        renderValueProfile(signalContext, renderTarget);
+        return;
+    }
+
+    // Sharing an axis puts the value in scale with the other signals; alone it only reads as a number.
+    if (singleXAxis && singleYAxis)
+    {
+        renderValueLine(signalContext, renderTarget);
+        if (signalContext.constantValueSet && showLastValue)
+            renderValueLabel(signalContext, renderTarget, renderFont, signalContext.constantValueText);
+        return;
+    }
+
+    renderValueStrip(signalContext, renderTarget, renderFont);
 }
 
 sf::Color RendererFbImpl::getColor(const SignalContext& signalContext)
@@ -308,7 +343,7 @@ void RendererFbImpl::renderPacket(
     size_t signalDimension = signalContext.inputDataSignalDescriptor.getDimensions().getCount();
 
     if (signalDimension == 1)
-        renderArrayPacketImplicitAndExplicit<DST>(signalContext, domainRule.getType(), renderTarget, renderFont, packet, havePrevPacket, nextExpectedDomainPacketValue, line, end);
+        renderArrayPacket(signalContext, packet, havePrevPacket, line, end);
     else
         renderPacketImplicitAndExplicit<DST>(signalContext, domainRule.getType(), renderTarget, renderFont, packet, havePrevPacket, nextExpectedDomainPacketValue, line, end);
 }
@@ -481,25 +516,14 @@ void RendererFbImpl::renderPacketImplicitAndExplicit(
         end = true;
 }
 
-template <SampleType DST>
-void RendererFbImpl::renderArrayPacketImplicitAndExplicit(
-    SignalContext& signalContext,
-    DataRuleType domainRuleType,
-    sf::RenderTarget& renderTarget,
-    const sf::Font& renderFont,
-    const DataPacketPtr& packet,
-    bool& havePrevPacket,
-    typename SampleTypeToType<DomainTypeCast<DST>::DomainSampleType>::Type& nextExpectedDomainPacketValue,
-    std::unique_ptr<Polyline>& line,
-    bool& end)
+void RendererFbImpl::renderArrayPacket(
+    SignalContext& signalContext, const DataPacketPtr& packet, bool& havePrevPacket, std::unique_ptr<Polyline>& line, bool& end)
 {
     const float xSize = signalContext.bottomRight.x - signalContext.topLeft.x;
     const float xOffset = signalContext.topLeft.x;
     const float ySize = signalContext.bottomRight.y - signalContext.topLeft.y;
     const float yOffset = signalContext.bottomRight.y;
 
-    auto domainPacket = packet.getDomainPacket();
-    auto domainDataDescriptor = domainPacket.getDataDescriptor();
     const auto samplesInPacket = packet.getSampleCount();
 
     size_t xTickOffset = 0;
@@ -528,45 +552,9 @@ void RendererFbImpl::renderArrayPacketImplicitAndExplicit(
     if (samplesInPacket == 0)
         return;
 
-    double value;
     for (size_t i = 0; i < xTickCount; i++)
     {
-        size_t idx = i + xTickOffset;
-        switch (signalContext.sampleType)
-        {
-            case (SampleType::Float32):
-                value = reinterpret_cast<float*>(data)[idx];
-                break;
-            case (SampleType::Float64):
-                value = reinterpret_cast<double*>(data)[idx];
-                break;
-            case (SampleType::UInt8):
-                value = reinterpret_cast<uint8_t*>(data)[idx];
-                break;
-            case (SampleType::Int8):
-                value = reinterpret_cast<int8_t*>(data)[idx];
-                break;
-            case (SampleType::UInt16):
-                value = reinterpret_cast<uint16_t*>(data)[idx];
-                break;
-            case (SampleType::Int16):
-                value = reinterpret_cast<int16_t*>(data)[idx];
-                break;
-            case (SampleType::UInt32):
-                value = reinterpret_cast<uint32_t*>(data)[idx];
-                break;
-            case (SampleType::Int32):
-                value = reinterpret_cast<int32_t*>(data)[idx];
-                break;
-            case (SampleType::UInt64):
-                value = reinterpret_cast<uint64_t*>(data)[idx];
-                break;
-            case (SampleType::Int64):
-                value = reinterpret_cast<int64_t*>(data)[idx];
-                break;
-            default:
-                value = 0.0;
-        }
+        const double value = elementValue(signalContext.sampleType, data, i + xTickOffset);
 
         float xPos = xOffset + static_cast<float>(1.0 * i / domainFactor);
         float yPos = yOffset - static_cast<float>((value - yMin) / valueFactor);
@@ -617,25 +605,99 @@ void RendererFbImpl::renderSignal(SignalContext& signalContext, sf::RenderTarget
 
     if (signalContext.lastValueSet && showLastValue)
     {
-        sf::Text lastValueText(renderFont);
-        lastValueText.setFillColor(axisColor);
-        lastValueText.setCharacterSize(16);
         std::ostringstream valueStr;
-        if (singleXAxis && singleYAxis)
-            valueStr << signalContext.caption;
-        else
-            valueStr << "Value";
-        valueStr << " = " << std::fixed << std::showpoint << std::setprecision(3) << signalContext.lastValue;
-        lastValueText.setString(valueStr.str());
-        const auto valueBounds = lastValueText.getGlobalBounds();
-        float top = signalContext.topLeft.y - valueBounds.size.y * 2.0f;
-        if (singleXAxis && singleYAxis)
-            top += signalContext.index * valueBounds.size.y * 2.0f;
-
-        lastValueText.setPosition({signalContext.bottomRight.x - valueBounds.size.x, top});
-
-        renderTarget.draw(lastValueText);
+        valueStr << std::fixed << std::showpoint << std::setprecision(3) << signalContext.lastValue;
+        renderValueLabel(signalContext, renderTarget, renderFont, valueStr.str());
     }
+}
+
+void RendererFbImpl::renderValueLabel(SignalContext& signalContext,
+                                      sf::RenderTarget& renderTarget,
+                                      const sf::Font& renderFont,
+                                      const std::string& valueText)
+{
+    sf::Text lastValueText(renderFont);
+    lastValueText.setFillColor(axisColor);
+    lastValueText.setCharacterSize(16);
+
+    std::ostringstream valueStr;
+    if (singleXAxis && singleYAxis)
+        valueStr << signalContext.caption;
+    else
+        valueStr << "Value";
+    valueStr << " = " << valueText;
+
+    lastValueText.setString(valueStr.str());
+    const auto valueBounds = lastValueText.getGlobalBounds();
+    float top = signalContext.topLeft.y - valueBounds.size.y * 2.0f;
+    if (singleXAxis && singleYAxis)
+        top += signalContext.index * valueBounds.size.y * 2.0f;
+
+    lastValueText.setPosition({signalContext.bottomRight.x - valueBounds.size.x, top});
+
+    renderTarget.draw(lastValueText);
+}
+
+void RendererFbImpl::renderValueStrip(SignalContext& signalContext, sf::RenderTarget& renderTarget, const sf::Font& renderFont)
+{
+    sf::Text valueText(renderFont);
+    valueText.setStyle(sf::Text::Style::Bold);
+    valueText.setFillColor(getColor(signalContext));
+    valueText.setCharacterSize(16);
+
+    std::string caption = signalContext.caption;
+    if (signalContext.constantValueSet)
+        caption += " = " + signalContext.constantValueText;
+    valueText.setString(caption);
+
+    const auto bounds = valueText.getGlobalBounds();
+    const float x = (signalContext.topLeft.x + signalContext.bottomRight.x - bounds.size.x) / 2.0f;
+    const float y = (signalContext.topLeft.y + signalContext.bottomRight.y - bounds.size.y) / 2.0f;
+    valueText.setPosition({x, y});
+
+    renderTarget.draw(valueText);
+}
+
+void RendererFbImpl::renderValueProfile(SignalContext& signalContext, sf::RenderTarget& renderTarget)
+{
+    if (signalContext.dataPackets.empty())
+        return;
+
+    auto line = std::make_unique<Polyline>(lineThickness, LineStyle::solid);
+    line->setColor(getColor(signalContext));
+
+    bool havePrevPacket = false;
+    bool end = false;
+    renderArrayPacket(signalContext, signalContext.dataPackets.front(), havePrevPacket, line, end);
+
+    renderTarget.draw(*line);
+}
+
+void RendererFbImpl::renderValueLine(SignalContext& signalContext, sf::RenderTarget& renderTarget)
+{
+    if (!signalContext.constantValueSet)
+        return;
+
+    double yMax, yMin;
+    getYMinMax(signalContext, yMax, yMin);
+    if (yMax <= yMin)
+        return;
+
+    const float ySize = signalContext.bottomRight.y - signalContext.topLeft.y;
+    const auto valueFactor = (yMax - yMin) / static_cast<double>(ySize);
+
+    float yPos = signalContext.bottomRight.y - static_cast<float>((signalContext.constantValue - yMin) / valueFactor);
+    if (yPos < signalContext.topLeft.y)
+        yPos = signalContext.topLeft.y;
+    else if (yPos > signalContext.bottomRight.y)
+        yPos = signalContext.bottomRight.y;
+
+    auto line = std::make_unique<Polyline>(lineThickness, LineStyle::solid);
+    line->setColor(getColor(signalContext));
+    line->addPoint(signalContext.topLeft.x, yPos);
+    line->addPoint(signalContext.bottomRight.x, yPos);
+
+    renderTarget.draw(*line);
 }
 
 void RendererFbImpl::onConnected(const InputPortPtr& inputPort)
@@ -883,15 +945,28 @@ void RendererFbImpl::processSignalContexts()
         processSignalContext(sigCtx);
 }
 
-template <typename Iter, typename Cont>
-bool RendererFbImpl::isLastIter(Iter iter, const Cont& cont)
-{
-    return (iter != cont.end()) && (std::next(iter) != cont.end()) && (std::next(iter, 2) == cont.end());
-}
-
 void RendererFbImpl::renderAxes(sf::RenderTarget& renderTarget, const sf::Font& renderFont)
 {
     const float xAxisLabelHeight = 40.0f;
+    const float valueStripHeight = 40.0f;
+
+    // The axis belongs to a signal that has a domain; a signal without one only borrows the scale.
+    auto lastPlotIt = signalContexts.end();
+    size_t plotCount = 0;
+    size_t stripCount = 0;
+    for (auto sigIt = signalContexts.begin(); sigIt != signalContexts.end() - 1; ++sigIt)
+    {
+        if (sigIt->valid && sigIt->domainless && !isVectorContext(*sigIt))
+        {
+            stripCount++;
+        }
+        else
+        {
+            plotCount++;
+            if (sigIt->valid && !sigIt->domainless)
+                lastPlotIt = sigIt;
+        }
+    }
 
     if (singleYAxis && singleXAxis)
     {
@@ -909,32 +984,39 @@ void RendererFbImpl::renderAxes(sf::RenderTarget& renderTarget, const sf::Font& 
             if (sigIt->max > yMaxValue)
                 yMaxValue = sigIt->max;
 
-            if (isLastIter(sigIt, signalContexts))
+            if (sigIt == lastPlotIt)
                 renderAxis(renderTarget, *sigIt, renderFont, true, false);
         }
         renderMultiTitle(renderTarget, renderFont);
     }
     else
     {
-        const size_t axesCount = signalContexts.size() - 1;
-        float itemHeight;
+        float available = bottomRight.y - topLeft.y;
         if (singleXAxis)
-            itemHeight = (bottomRight.y - topLeft.y - xAxisLabelHeight) / static_cast<float>(axesCount);
-        else
-            itemHeight = (bottomRight.y - topLeft.y) / static_cast<float>(axesCount);
+            available -= xAxisLabelHeight;
+        const float itemHeight = plotItemHeight(available, plotCount, stripCount, valueStripHeight);
         const float width = bottomRight.x - topLeft.x;
         float curTop = 0.0f;
         for (auto sigIt = signalContexts.begin(); sigIt != signalContexts.end() - 1; ++sigIt)
         {
             if (!sigIt->valid)
                 continue;
+            const bool strip = sigIt->domainless && !isVectorContext(*sigIt);
             sigIt->topLeft = sf::Vector2f(75.0f, curTop + xAxisLabelHeight);
-            curTop += itemHeight;
+            curTop += strip ? valueStripHeight : itemHeight;
             float bottom = curTop;
             if (!singleXAxis)
                 bottom -= xAxisLabelHeight;
             sigIt->bottomRight = sf::Vector2f(static_cast<float>(width) - 25.0f, bottom);
-            const auto drawXAxisLabels = !singleXAxis || isLastIter(sigIt, signalContexts);
+            if (strip)
+                continue;
+            if (sigIt->domainless)
+            {
+                // A signal without a domain still has an axis when its elements are the axis.
+                renderAxis(renderTarget, *sigIt, renderFont, true, true);
+                continue;
+            }
+            const auto drawXAxisLabels = !singleXAxis || sigIt == lastPlotIt;
             renderAxis(renderTarget, *sigIt, renderFont, drawXAxisLabels, true);
         }
     }
@@ -954,7 +1036,14 @@ void RendererFbImpl::prepareSingleXAxis()
 
     try
     {
+        // Signals without a domain signal take no part in the common axis, they only borrow its width.
         auto sigIt = signalContexts.begin();
+        while (sigIt != signalContexts.end() - 1 && sigIt->valid && sigIt->domainless)
+            ++sigIt;
+
+        if (sigIt == signalContexts.end() - 1)
+            return;
+
         if (!sigIt->valid)
         {
             DAQ_THROW_EXCEPTION(InvalidStateException, "First signal not valid");
@@ -968,7 +1057,7 @@ void RendererFbImpl::prepareSingleXAxis()
 
         for (; sigIt != signalContexts.end() - 1; ++sigIt)
         {
-            if (!sigIt->valid)
+            if (!sigIt->valid || sigIt->domainless)
                 continue;
 
             if (sigIt->hasTimeOrigin != hasTimeOrigin)
@@ -1005,6 +1094,9 @@ void RendererFbImpl::prepareSingleXAxis()
 
         for (sigIt = signalContexts.begin(); sigIt != signalContexts.end() - 1; ++sigIt)
         {
+            if (!sigIt->valid || sigIt->domainless)
+                continue;
+
             SAMPLE_TYPE_DISPATCH(sigIt->domainSampleType, setSingleXAxis, *sigIt, lastTimeValue, lastDomainValue)
         }
 
@@ -1292,7 +1384,6 @@ void RendererFbImpl::processSignalContext(SignalContext& signalContext)
             LOG_T("Processing {} event", eventPacket.getEventId())
             if (eventPacket.getEventId() == event_packet_id::DATA_DESCRIPTOR_CHANGED)
             {
-                // TODO handle Null-descriptor params ('Null' sample type descriptors)
                 DataDescriptorPtr valueSignalDescriptor = eventPacket.getParameters().get(event_packet_param::DATA_DESCRIPTOR);
                 DataDescriptorPtr domainSignalDescriptor = eventPacket.getParameters().get(event_packet_param::DOMAIN_DATA_DESCRIPTOR);
                 processSignalDescriptorChanged(signalContext, valueSignalDescriptor, domainSignalDescriptor);
@@ -1310,11 +1401,12 @@ void RendererFbImpl::processSignalContext(SignalContext& signalContext)
 
 void RendererFbImpl::processSignalDescriptorChanged(SignalContext& signalContext, const DataDescriptorPtr& valueSignalDescriptor, const DataDescriptorPtr& domainSignalDescriptor)
 {
+    // A stub descriptor means the signal has no descriptor of that kind, as opposed to an unchanged one.
     if (domainSignalDescriptor.assigned())
-        signalContext.inputDomainDataDescriptor = domainSignalDescriptor;
+        signalContext.inputDomainDataDescriptor = isNullDescriptor(domainSignalDescriptor) ? DataDescriptorPtr() : domainSignalDescriptor;
 
     if (valueSignalDescriptor.assigned())
-        signalContext.inputDataSignalDescriptor = valueSignalDescriptor;
+        signalContext.inputDataSignalDescriptor = isNullDescriptor(valueSignalDescriptor) ? DataDescriptorPtr() : valueSignalDescriptor;
 
     configureSignalContext(signalContext);
 }
@@ -1354,9 +1446,16 @@ void RendererFbImpl::processCoreEvent(ComponentPtr& component, CoreEventArgsPtr&
 void RendererFbImpl::configureSignalContext(SignalContext& signalContext)
 {
     signalContext.valid = false;
-    if (!signalContext.inputDataSignalDescriptor.assigned() || !signalContext.inputDomainDataDescriptor.assigned())
+    signalContext.domainless = false;
+    if (!signalContext.inputDataSignalDescriptor.assigned())
     {
         LOG_D("Incomplete input signal descriptors")
+        return;
+    }
+
+    if (!signalContext.inputDomainDataDescriptor.assigned())
+    {
+        configureDomainlessSignalContext(signalContext);
         return;
     }
 
@@ -1473,6 +1572,130 @@ void RendererFbImpl::configureSignalContext(SignalContext& signalContext)
     }
 }
 
+void RendererFbImpl::updateDomainlessValueRange(SignalContext& signalContext, const DataPacketPtr& dataPacket)
+{
+    if (signalContext.inputDataSignalDescriptor.getValueRange().assigned())
+        return;
+
+    const auto elementCount = signalContext.inputDataSignalDescriptor.getDimensions()[0].getSize();
+    if (elementCount == 0)
+        return;
+
+    double low = std::numeric_limits<double>::max();
+    double high = std::numeric_limits<double>::lowest();
+    for (size_t i = 0; i < elementCount; i++)
+    {
+        const double value = elementValue(signalContext.sampleType, dataPacket.getData(), i);
+        low = std::min(low, value);
+        high = std::max(high, value);
+    }
+
+    constantValueRange(low, high, signalContext.min, signalContext.max);
+}
+
+void RendererFbImpl::configureDomainlessSignalContext(SignalContext& signalContext)
+{
+    const auto dataDescriptor = signalContext.inputDataSignalDescriptor;
+
+    signalContext.sampleType = dataDescriptor.getSampleType();
+    signalContext.constantValueSet = false;
+    signalContext.constantValueText.clear();
+    signalContext.constantValue = 0.0;
+
+    const auto valueRange = dataDescriptor.getValueRange();
+    if (valueRange.assigned())
+    {
+        signalContext.min = valueRange.getLowValue();
+        signalContext.max = valueRange.getHighValue();
+    }
+    else
+    {
+        constantValueRange(signalContext.constantValue, signalContext.min, signalContext.max);
+    }
+
+    setSignalContextCaption(signalContext);
+
+    signalContext.domainless = true;
+    signalContext.valid = true;
+    LOGP_D("Signal without a domain signal connected")
+}
+
+void RendererFbImpl::captureDomainlessValue(SignalContext& signalContext, const DataPacketPtr& dataPacket)
+{
+    const auto sampleCount = dataPacket.getSampleCount();
+    if (sampleCount == 0)
+        return;
+
+    if (signalContext.inputDataSignalDescriptor.getDimensions().getCount() > 0)
+    {
+        // The elements are drawn against their index, so the packet is kept rather than a single value.
+        signalContext.dataPackets.clear();
+        signalContext.dataPackets.push_front(dataPacket);
+        signalContext.constantValueSet = true;
+        updateDomainlessValueRange(signalContext, dataPacket);
+        return;
+    }
+
+    const size_t sampleSize = getSampleSize(signalContext.sampleType);
+    auto* data = reinterpret_cast<uint8_t*>(dataPacket.getData()) + (sampleCount - 1) * sampleSize;
+
+    std::ostringstream valueText;
+    double value;
+    switch (signalContext.sampleType)
+    {
+        case SampleType::Float32:
+            value = *(reinterpret_cast<float*>(data));
+            valueText << std::fixed << std::showpoint << std::setprecision(3) << value;
+            break;
+        case SampleType::Float64:
+            value = *(reinterpret_cast<double*>(data));
+            valueText << std::fixed << std::showpoint << std::setprecision(3) << value;
+            break;
+        case SampleType::UInt8:
+            valueText << static_cast<uint64_t>(*(reinterpret_cast<uint8_t*>(data)));
+            value = static_cast<double>(*(reinterpret_cast<uint8_t*>(data)));
+            break;
+        case SampleType::Int8:
+            valueText << static_cast<int64_t>(*(reinterpret_cast<int8_t*>(data)));
+            value = static_cast<double>(*(reinterpret_cast<int8_t*>(data)));
+            break;
+        case SampleType::UInt16:
+            valueText << static_cast<uint64_t>(*(reinterpret_cast<uint16_t*>(data)));
+            value = static_cast<double>(*(reinterpret_cast<uint16_t*>(data)));
+            break;
+        case SampleType::Int16:
+            valueText << static_cast<int64_t>(*(reinterpret_cast<int16_t*>(data)));
+            value = static_cast<double>(*(reinterpret_cast<int16_t*>(data)));
+            break;
+        case SampleType::UInt32:
+            valueText << static_cast<uint64_t>(*(reinterpret_cast<uint32_t*>(data)));
+            value = static_cast<double>(*(reinterpret_cast<uint32_t*>(data)));
+            break;
+        case SampleType::Int32:
+            valueText << static_cast<int64_t>(*(reinterpret_cast<int32_t*>(data)));
+            value = static_cast<double>(*(reinterpret_cast<int32_t*>(data)));
+            break;
+        case SampleType::UInt64:
+            valueText << *(reinterpret_cast<uint64_t*>(data));
+            value = static_cast<double>(*(reinterpret_cast<uint64_t*>(data)));
+            break;
+        case SampleType::Int64:
+            valueText << *(reinterpret_cast<int64_t*>(data));
+            value = static_cast<double>(*(reinterpret_cast<int64_t*>(data)));
+            break;
+        default:
+            LOG_W("Sample type of signal without a domain signal not supported: {}", convertSampleTypeToString(signalContext.sampleType))
+            return;
+    }
+
+    signalContext.constantValue = value;
+    signalContext.constantValueText = valueText.str();
+    signalContext.constantValueSet = true;
+
+    if (!signalContext.inputDataSignalDescriptor.getValueRange().assigned())
+        constantValueRange(value, signalContext.min, signalContext.max);
+}
+
 void RendererFbImpl::setSignalContextCaption(SignalContext& signalContext, const std::string& caption)
 {
     if (caption.empty())
@@ -1495,6 +1718,12 @@ void RendererFbImpl::processDataPacket(SignalContext& signalContext, const DataP
 {
     if (!signalContext.valid)
         return;
+
+    if (signalContext.domainless)
+    {
+        captureDomainlessValue(signalContext, dataPacket);
+        return;
+    }
 
     auto domainPacket = dataPacket.getDomainPacket();
     if (!domainPacket.assigned())

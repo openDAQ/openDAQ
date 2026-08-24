@@ -7,7 +7,6 @@ import opendaq as daq
 from .. import utils
 from ..app_context import AppContext
 from .function_dialog import FunctionDialog
-from .edit_container_property import EditContainerPropertyDialog
 from .metadata_dialog import MetadataDialog
 from .metadata_fields_selector_dialog import MetadataFieldsSelectorDialog
 
@@ -305,6 +304,115 @@ class PropertiesTreeview(ttk.Treeview):
         except Exception as e:
             utils.show_error('Paste error', f'Can\'t paste: {e}', parent=self)
 
+    @staticmethod
+    def _default_value_for(core_type):
+        if core_type == daq.CoreType.ctBool:
+            return daq.Boolean(False)
+        if core_type == daq.CoreType.ctInt:
+            return daq.Integer(0)
+        if core_type == daq.CoreType.ctFloat:
+            return daq.Float(0.0)
+        if core_type == daq.CoreType.ctString:
+            return daq.String('')
+        return None
+
+    def _can_edit_container(self, prop):
+        if prop is None or self.read_only or prop.read_only:
+            return False
+        if prop.property_type not in (daq.PropertyType.List, daq.PropertyType.Dict):
+            return False
+        if self._default_value_for(prop.item_type) is None:
+            return False
+        if prop.property_type == daq.PropertyType.Dict:
+            return self._default_value_for(prop.key_type) is not None
+        return True
+
+    def container_item_owner(self, path):
+        prop, prop_path = self.nearest_property_with_path(path)
+        if prop is None or len(path) != len(prop_path) + 1:
+            return None, None
+        if prop.property_type not in (daq.PropertyType.List, daq.PropertyType.Dict):
+            return None, None
+        return prop, prop_path
+
+    def _new_dict_key(self, container, key_type):
+        existing = list(container.keys())
+        if key_type in (daq.CoreType.ctInt, daq.CoreType.ctFloat):
+            numbers = [float(k) for k in existing]
+            nxt = int(max(numbers)) + 1 if numbers else 0
+            return daq.Integer(nxt) if key_type == daq.CoreType.ctInt else daq.Float(float(nxt))
+        if key_type == daq.CoreType.ctString:
+            labels = {str(k) for k in existing}
+            candidate, n = 'key', 2
+            while candidate in labels:
+                candidate = f'key {n}'
+                n += 1
+            return daq.String(candidate)
+        if key_type == daq.CoreType.ctBool:
+            labels = {bool(k) for k in existing}
+            for option in (False, True):
+                if option not in labels:
+                    return daq.Boolean(option)
+        return None
+
+    @staticmethod
+    def _rebuilt_list(items):
+        new_value = daq.List()
+        for item in items:
+            new_value.append(item)
+        return new_value
+
+    def handle_container_add(self, container_path, index):
+        prop = utils.get_property_for_path(self.context, container_path, self.node)
+        if not self._can_edit_container(prop):
+            return
+
+        try:
+            value = prop.value
+            item = self._default_value_for(prop.item_type)
+
+            if prop.property_type == daq.PropertyType.List:
+                items = list(value)
+                at = len(items) if index is None else max(0, min(index, len(items)))
+                items.insert(at, item)
+                prop.value = self._rebuilt_list(items)
+            else:
+                key = self._new_dict_key(value, prop.key_type)
+                if key is None:
+                    return
+                value[key] = item
+                prop.value = value
+
+            self.refresh()
+        except Exception as e:
+            utils.show_error('Add item error', f'Can\'t add item: {e}', parent=self)
+
+    def handle_container_remove(self, container_path, item_iid):
+        prop = utils.get_property_for_path(self.context, container_path, self.node)
+        if not self._can_edit_container(prop):
+            return
+
+        try:
+            value = prop.value
+
+            if prop.property_type == daq.PropertyType.List:
+                index = self.index(item_iid)
+                items = list(value)
+                if not 0 <= index < len(items):
+                    return
+                del items[index]
+                prop.value = self._rebuilt_list(items)
+            else:
+                key = utils.value_to_coretype(
+                    self.item(item_iid, 'text').strip(), prop.key_type)
+                del value[key]
+                prop.value = value
+
+            self.refresh()
+        except Exception as e:
+            utils.show_error('Remove item error',
+                             f'Can\'t remove item: {e}', parent=self)
+
     def handle_clear_property_value(self):
         selected_item_id = utils.treeview_get_first_selection(self)
         if selected_item_id is None:
@@ -372,6 +480,31 @@ class PropertiesTreeview(ttk.Treeview):
                 is_container = prop.property_type in (
                     daq.PropertyType.Object, daq.PropertyType.Struct,
                     daq.PropertyType.List, daq.PropertyType.Dict)
+
+            owner, owner_path = self.container_item_owner(path)
+
+            if self._can_edit_container(prop):
+                menu.add_command(
+                    label='Add item',
+                    command=lambda: self.handle_container_add(path, None))
+                menu.add_separator()
+            elif self._can_edit_container(owner):
+                item_index = self.index(selected_item_id)
+                if owner.property_type == daq.PropertyType.List:
+                    menu.add_command(
+                        label='Add item above',
+                        command=lambda: self.handle_container_add(owner_path, item_index))
+                    menu.add_command(
+                        label='Add item below',
+                        command=lambda: self.handle_container_add(owner_path, item_index + 1))
+                else:
+                    menu.add_command(
+                        label='Add item',
+                        command=lambda: self.handle_container_add(owner_path, None))
+                menu.add_command(
+                    label='Remove item',
+                    command=lambda: self.handle_container_remove(owner_path, selected_item_id))
+                menu.add_separator()
 
             is_readonly = 'readonly' in self.item(selected_item_id, 'tags')
             if not is_container:
@@ -850,10 +983,6 @@ class PropertiesTreeview(ttk.Treeview):
             elif parent_property_type == daq.PropertyType.Struct:
                 self.edit_struct_property(selected_item_id, name, parent)
                 return
-            elif parent_property_type == daq.PropertyType.List:
-                EditContainerPropertyDialog(self, parent, self.context).show()
-                self.refresh()
-                return
 
         prop = utils.get_property_for_path(self.context, path, self.node)
 
@@ -903,8 +1032,6 @@ class PropertiesTreeview(ttk.Treeview):
                                daq.PropertyType.SparseSelection):
             return  # handled by overlay combobox
         elif property_type in (daq.PropertyType.Dict, daq.PropertyType.List):
-            EditContainerPropertyDialog(self, prop, self.context).show()
-            self.refresh()
             return
         elif property_type in (daq.PropertyType.Int, daq.PropertyType.Float,
                                daq.PropertyType.String, daq.PropertyType.Ratio):

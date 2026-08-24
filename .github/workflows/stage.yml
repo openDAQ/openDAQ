@@ -17,18 +17,8 @@ jobs:
     outputs:
       channel: ${{ steps.channel.outputs.channel }}
     steps:
-      - name: Resolve the publish channel
+      - uses: openDAQ/openDAQ-CI/.github/actions/resolve-channel@jira/TBBAS-3477-staging-check
         id: channel
-        shell: bash
-        run: |
-          case "$GITHUB_REF" in
-            refs/heads/release/*) channel=stable ;;
-            refs/heads/main)      channel=dev    ;;
-            *)                    channel=test   ;;
-          esac
-
-          echo "channel=$channel" >> "$GITHUB_OUTPUT"
-          echo "publishing to the $channel channel"
 
   stage:
     needs: resolve

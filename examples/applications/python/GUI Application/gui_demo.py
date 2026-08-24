@@ -28,6 +28,7 @@ try:
     from gui_demo.components.add_server_dialog import AddServerDialog
     from gui_demo.components.add_function_block_dialog import AddFunctionBlockDialog
     from gui_demo.components.load_instance_config_dialog import LoadInstanceConfigDialog
+    from gui_demo.components.synchronization_dialog import SynchronizationDialog
     from gui_demo.app_context import AppContext
     from gui_demo import utils
     from gui_demo.event_port import EventPort
@@ -38,6 +39,7 @@ except Exception as e:
     from opendaq.gui_demo.components.add_server_dialog import AddServerDialog
     from opendaq.gui_demo.components.add_function_block_dialog import AddFunctionBlockDialog
     from opendaq.gui_demo.components.load_instance_config_dialog import LoadInstanceConfigDialog
+    from opendaq.gui_demo.components.synchronization_dialog import SynchronizationDialog
     from opendaq.gui_demo.app_context import AppContext
     from opendaq.gui_demo import utils
     from opendaq.gui_demo.event_port import EventPort
@@ -710,6 +712,12 @@ class App(tk.Tk):
         popup.add_command(label='Lock', command=self.handle_lock)
         popup.add_command(label='Unlock', command=self.handle_unlock)
 
+        if node.synchronization is not None:
+            popup.add_command(
+                label='Get synchronization',
+                command=lambda: self.handle_show_synchronization(node)
+            )
+
         try:
             has_fb_types = bool(node.available_function_block_types)
         except RuntimeError:
@@ -1030,6 +1038,16 @@ class App(tk.Tk):
         prop_obj = daq.IPropertyObject.cast_from(node)
         prop_obj.clear_property_values()
         self.tree_update(self.context.selected_node)
+
+    def handle_show_synchronization(self, node):
+        synchronization = node.synchronization
+        if synchronization is None:
+            return
+
+        if daq.IPropertyObject.can_cast_from(synchronization):
+            synchronization = daq.IPropertyObject.cast_from(synchronization)
+
+        SynchronizationDialog(self, node, synchronization, self.context).show()
 
     # MARK: - Other
 

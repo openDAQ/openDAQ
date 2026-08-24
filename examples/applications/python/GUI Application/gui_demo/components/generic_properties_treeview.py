@@ -175,8 +175,10 @@ class PropertiesTreeview(ttk.Treeview):
                 property_value = self._last_method_results.get(property_info.name, '')
             elif property_type in (daq.PropertyType.Struct, daq.PropertyType.Object):
                 property_value = ''
-            elif property_type in (daq.PropertyType.List, daq.PropertyType.Dict):
+            elif property_type == daq.PropertyType.List:
                 property_value = str(node.get_property_value(property_info.name))
+            elif property_type == daq.PropertyType.Dict:
+                property_value = ''
             else:
                 property_value = printed_value(
                     property_info.value_type, node.get_property_value(property_info.name))

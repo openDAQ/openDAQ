@@ -61,6 +61,7 @@ void SyncInterfaceBaseImpl::initProperties()
 
     configuration.getOnAnyPropertyValueWrite() += [this](PropertyObjectPtr&, PropertyValueEventArgsPtr& arg)
     {
+        auto lock = this->getRecursiveConfigLock2();
         onConfigurationChanged(arg.getProperty().getName(), arg.getValue());
     };
 }

@@ -92,7 +92,11 @@ void PtpSyncInterfaceBaseImpl::createPortProporties(const StringPtr& portName)
 
     {
         // creating configuration property
-        const auto modeOptions = Dict<IInteger, IString>({{static_cast<Int>(PortSyncMode::Off), "Off"}});
+        const auto modeOptions = Dict<IInteger, IString>({
+            {static_cast<Int>(PortSyncMode::Off), "Off"},
+            {static_cast<Int>(PortSyncMode::Output), "Output"},
+            {static_cast<Int>(PortSyncMode::Auto), "Auto"}
+        });
         const auto delayMechanismOptions = List<IString>("E2E", "P2P");
 
         const PropertyObjectPtr portConfiguration = PropertyObject();

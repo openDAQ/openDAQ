@@ -1,0 +1,25 @@
+name: Clean up stagings
+
+on:
+  schedule:
+    - cron: '0 6 * * 1'
+  workflow_dispatch:
+    inputs:
+      dry-run:
+        description: "List what would be pruned without deleting."
+        type: boolean
+        default: false
+
+jobs:
+  cleanup:
+    name: Stagings and installers
+    permissions:
+      packages: write
+    uses: openDAQ/openDAQ-CI/.github/workflows/staging-cleanup.yml@jira/TBBAS-3293-staging-cleanup
+    with:
+      dry-run: ${{ inputs.dry-run || false }}
+      staging-retentions: >-
+        [
+          { "path": "ghcr.io/openDAQ/dev/staging/opendaq",    "retention": { "days": 30 } },
+          { "path": "ghcr.io/openDAQ/dev/installer/opendaq",  "retention": { "days": 30 } }
+        ]

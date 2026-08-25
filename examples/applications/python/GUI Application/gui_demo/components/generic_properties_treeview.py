@@ -502,6 +502,7 @@ class PropertiesTreeview(ttk.Treeview):
         if region == 'heading':
             menu.add_command(
                 label='Select columns',
+                image=self.context.menu_icon('settings'), compound=tk.LEFT,
                 command=lambda: MetadataFieldsSelectorDialog(self, self.context).show()
             )
         else:
@@ -546,17 +547,27 @@ class PropertiesTreeview(ttk.Treeview):
 
             is_readonly = 'readonly' in self.item(selected_item_id, 'tags')
             if not is_container:
-                menu.add_command(label='Copy', command=self.handle_copy)
+                menu.add_command(label='Copy',
+                                 image=self.context.menu_icon(), compound=tk.LEFT,
+                                 command=self.handle_copy)
             if not self.read_only and not is_readonly and not is_container:
-                menu.add_command(label='Paste', command=self.handle_paste)
+                menu.add_command(label='Paste',
+                                 image=self.context.menu_icon(), compound=tk.LEFT,
+                                 command=self.handle_paste)
             if not self.read_only and not is_container and not is_readonly:
-                menu.add_command(label='Clear property value', command=self.handle_clear_property_value)
+                menu.add_command(label='Clear property value',
+                                 image=self.context.menu_icon('clear_values'), compound=tk.LEFT,
+                                 command=self.handle_clear_property_value)
             if not self.read_only and is_container:
-                menu.add_command(label='Clear property values', command=self.handle_clear_property_values)
+                menu.add_command(label='Clear property values',
+                                 image=self.context.menu_icon('clear_values'), compound=tk.LEFT,
+                                 command=self.handle_clear_property_values)
             if not is_container:
                 menu.add_separator()
                 
-            menu.add_command(label='Metadata', command=self.handle_show_metadata)
+            menu.add_command(label='Metadata',
+                             image=self.context.menu_icon('logs'), compound=tk.LEFT,
+                             command=self.handle_show_metadata)
             
         menu.tk_popup(event.x_root, event.y_root)
 

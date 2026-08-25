@@ -187,8 +187,11 @@ class AddFunctionBlockDialog(Dialog):
                 pass
 
         menu = tk.Menu(self, tearoff=0)
-        menu.add_command(label='Add', command=lambda: self.handle_button(False))
+        menu.add_command(label='Add',
+                         image=self.context.menu_icon('add_fb'), compound=tk.LEFT,
+                         command=lambda: self.handle_button(False))
         menu.add_command(label='Add with config',
+                         image=self.context.menu_icon('settings'), compound=tk.LEFT,
                          command=lambda: self.handle_button(True),
                          state=tk.NORMAL if can_config else tk.DISABLED)
         menu.tk_popup(event.x_root, event.y_root)

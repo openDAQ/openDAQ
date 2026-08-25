@@ -188,6 +188,13 @@ class BlockView(ttk.Frame):
                 
                 self._bind_mousewheel_recursive(self.right_stack)
                 
+            elif daq.IServer.can_cast_from(self.node):
+                self.node = daq.IServer.cast_from(self.node)
+                self.properties = PropertiesView(
+                    self.expanded_frame, self.node, self.context)
+                self.label_icon.config(image=self.server_img)
+                self.cols = [0]
+                self.rows = [0]
             elif daq.IFolder.can_cast_from(self.node):
                 self.node = daq.IFolder.cast_from(self.node)
                 self.properties = PropertiesView(

@@ -69,7 +69,7 @@ class PropertiesTreeview(ttk.Treeview):
 
         # bind double-click to editing (if not read_only)
         if not self.read_only:
-            self.bind('<Double-1>', lambda event=None: self.edit_value())
+            self.bind('<Double-1>', lambda event: self.edit_value(event))
         self.bind('<Button-3>', lambda event: self.show_menu(event))
         self.bind('<MouseWheel>', lambda e=None: self.after_idle(self._sync_overlays))
         self.bind('<ButtonRelease-1>', lambda e=None: self.after(10, self._sync_overlays), add='+')
@@ -362,6 +362,42 @@ class PropertiesTreeview(ttk.Treeview):
             new_value.append(item)
         return new_value
 
+    def item_for_path(self, path):
+        parent = ''
+        for segment in path:
+            for iid in self.get_children(parent):
+                if self.item(iid, 'text').strip() == segment:
+                    parent = iid
+                    break
+            else:
+                return None
+        return parent
+
+    def added_item_id(self, container_path, added):
+        container_iid = self.item_for_path(container_path)
+        if container_iid is None:
+            return None
+
+        children = self.get_children(container_iid)
+        if isinstance(added, int):
+            return children[added] if 0 <= added < len(children) else None
+        return next((iid for iid in children
+                     if self.item(iid, 'text').strip() == added), None)
+
+    def edit_added_item(self, container_path, added):
+        item_iid = self.added_item_id(container_path, added)
+        if item_iid is None:
+            return
+
+        self.see(item_iid)
+        self.selection_set(item_iid)
+        self.after_idle(lambda: self.edit_resolved_item(container_path, added))
+
+    def edit_resolved_item(self, container_path, added):
+        item_iid = self.added_item_id(container_path, added)
+        if item_iid is not None:
+            self.edit_container_item(item_iid, container_path, False)
+
     def handle_container_add(self, container_path, index):
         prop = utils.get_property_for_path(self.context, container_path, self.node)
         if not self._can_edit_container(prop):
@@ -376,14 +412,17 @@ class PropertiesTreeview(ttk.Treeview):
                 at = len(items) if index is None else max(0, min(index, len(items)))
                 items.insert(at, item)
                 prop.value = self._rebuilt_list(items)
+                added = at
             else:
                 key = self._new_dict_key(value, prop.key_type)
                 if key is None:
                     return
                 value[key] = item
                 prop.value = value
+                added = str(key)
 
             self.refresh()
+            self.after_idle(lambda: self.edit_added_item(container_path, added))
         except Exception as e:
             utils.show_error('Add item error', f'Can\'t add item: {e}', parent=self)
 
@@ -397,11 +436,10 @@ class PropertiesTreeview(ttk.Treeview):
 
             if prop.property_type == daq.PropertyType.List:
                 index = self.index(item_iid)
-                items = list(value)
-                if not 0 <= index < len(items):
+                if not 0 <= index < len(value):
                     return
-                del items[index]
-                prop.value = self._rebuilt_list(items)
+                del value[index]
+                prop.value = value
             else:
                 key = utils.value_to_coretype(
                     self.item(item_iid, 'text').strip(), prop.key_type)
@@ -952,6 +990,89 @@ class PropertiesTreeview(ttk.Treeview):
         entry.bind('<Return>', lambda e: self.save_struct_value(entry, parent, name))
         entry.bind('<FocusOut>', lambda e: self.save_struct_value(entry, parent, name))
 
+    def edit_container_item(self, item_iid, owner_path, edit_key):
+        if not self.exists(item_iid):
+            return
+
+        prop = utils.get_property_for_path(self.context, owner_path, self.node)
+        if not self._can_edit_container(prop):
+            return
+
+        bbox = self.bbox(item_iid, '#0' if edit_key else '#1')
+        if not bbox:
+            return
+
+        if prop.property_type == daq.PropertyType.List:
+            locator = self.index(item_iid)
+        else:
+            locator = self.item(item_iid, 'text').strip()
+
+        x, y, width, height = bbox
+        current = self.item(item_iid, 'text') if edit_key else self.set(item_iid, 'value')
+
+        entry = ttk.Entry(self)
+        entry.place(x=x, y=y, width=width, height=height)
+        entry.insert(0, current)
+        entry.select_range(0, tk.END)
+        entry.focus()
+
+        def commit(_event=None):
+            self.save_container_item(entry, owner_path, locator, edit_key)
+
+        entry.bind('<Return>', commit)
+        entry.bind('<FocusOut>', commit)
+        entry.bind('<Escape>', lambda e: entry.destroy())
+
+    def save_container_item(self, entry, owner_path, locator, edit_key):
+        if not entry.winfo_exists():
+            return
+
+        text = entry.get()
+        entry.destroy()
+
+        prop = utils.get_property_for_path(self.context, owner_path, self.node)
+        if not self._can_edit_container(prop):
+            return
+
+        try:
+            value = prop.value
+
+            if prop.property_type == daq.PropertyType.List:
+                if not 0 <= locator < len(value):
+                    return
+                value[locator] = utils.value_to_coretype(text, prop.item_type)
+                prop.value = value
+            else:
+                old_key = utils.value_to_coretype(locator, prop.key_type)
+                if edit_key:
+                    prop.value = self._renamed_key(
+                        value, old_key, utils.value_to_coretype(text, prop.key_type))
+                else:
+                    value[old_key] = utils.value_to_coretype(text, prop.item_type)
+                    prop.value = value
+
+            self.refresh()
+        except Exception as e:
+            utils.show_error('Edit item error', f'Can\'t edit item: {e}', parent=self)
+
+    @staticmethod
+    def _renamed_key(container, old_key, new_key):
+        if str(old_key) == str(new_key):
+            return container
+
+        # daq.Dict has no hasKey binding; a missing key raises from __getitem__
+        try:
+            container[new_key]
+        except RuntimeError:
+            pass
+        else:
+            raise ValueError(f'key "{new_key}" already exists')
+
+        # set on an absent key appends, so the renamed entry moves to the end
+        container[new_key] = container[old_key]
+        del container[old_key]
+        return container
+
     def edit_simple_property(self, selected_item_id, property_value, path):
         x, y, width, height = self.bbox(selected_item_id, '#1')
         entry = ttk.Entry(self)
@@ -961,7 +1082,7 @@ class PropertiesTreeview(ttk.Treeview):
         entry.bind('<Return>', lambda e: self.save_simple_value(entry, path))
         entry.bind('<FocusOut>', lambda e: self.save_simple_value(entry, path))
 
-    def edit_value(self):
+    def edit_value(self, event):
         selected_item_id = utils.treeview_get_first_selection(self)
         if selected_item_id is None:
             return
@@ -971,11 +1092,21 @@ class PropertiesTreeview(ttk.Treeview):
 
         # handle struct
         if len(path) > 1:
-            parent = utils.get_property_for_path(self.context, path[:-1], self.node)
-            
             if 'readonly' in self.item(selected_item_id, 'tags'):
                 return
- 
+
+            owner, owner_path = self.container_item_owner(path)
+            if owner is not None:
+                if self._can_edit_container(owner):
+                    edit_key = (owner.property_type == daq.PropertyType.Dict
+                                and self.identify_column(event.x) == '#0')
+                    self.edit_container_item(selected_item_id, owner_path, edit_key)
+                return
+
+            parent = utils.get_property_for_path(self.context, path[:-1], self.node)
+            if parent is None:
+                return
+
             parent_property_type = parent.property_type
 
             if type(parent.value) is complex or type(parent.value) is Fraction:

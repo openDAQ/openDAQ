@@ -39,6 +39,8 @@ class BlockView(ttk.Frame):
         self.channel_img = None
         self.function_block_img = None
         self.folder_img = None
+        self.server_img = None
+        self.input_port_img = None
         self.component_img = None
         self.sync_component_img = None
 
@@ -56,6 +58,10 @@ class BlockView(ttk.Frame):
                 self.function_block_img = context.icons['function_block']
             if 'folder' in context.icons:
                 self.folder_img = context.icons['folder']
+            if 'server' in context.icons:
+                self.server_img = context.icons['server']
+            if 'input_port' in context.icons:
+                self.input_port_img = context.icons['input_port']
             if 'circle' in context.icons:
                 self.component_img = context.icons['circle']
             if 'link' in context.icons:
@@ -199,7 +205,10 @@ class BlockView(ttk.Frame):
                 self.node = daq.IFolder.cast_from(self.node)
                 self.properties = PropertiesView(
                     self.expanded_frame, self.node, self.context)
-                self.label_icon.config(image=self.folder_img)
+                if self.node.name == 'IP':
+                    self.label_icon.config(image=self.input_port_img)
+                else:
+                    self.label_icon.config(image=self.folder_img)
                 self.cols = [0]
                 self.rows = [0]
             elif daq.ISyncComponent.can_cast_from(self.node):

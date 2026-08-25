@@ -275,6 +275,18 @@ class App(tk.Tk):
     def tree_widget_create(self, parent_frame):
         frame = ttk.Frame(parent_frame)
 
+        search_frame = ttk.Frame(frame)
+        search_frame.pack(fill=tk.X, side=tk.TOP)
+
+        search_entry = ttk.Entry(search_frame)
+        search_entry.pack(fill=tk.X, padx=(0,16), pady=(0,4), ipady=2)
+        self.tree_search_default_foreground = search_entry.cget('foreground')
+        search_entry.insert(0, "Filter tree by name, tag or local id")
+        search_entry.configure(foreground='gray')
+        search_entry.bind('<FocusIn>', self.handle_tree_search_focus_in)
+        search_entry.bind('<FocusOut>', self.handle_tree_search_focus_out)
+        self.tree_search_entry = search_entry
+
         # define columns
         tree = ttk.Treeview(frame, columns=('name', 'hash'), displaycolumns=(
             'name'), show='tree', selectmode=tk.BROWSE)
@@ -303,6 +315,17 @@ class App(tk.Tk):
         tree.tag_configure('error', foreground=utils.StatusColor.ERROR)
         tree.tag_configure('inactive', foreground='gray')
         self.tree = tree
+
+    def handle_tree_search_focus_in(self, event):
+        if self.tree_search_entry.get() == "Filter tree by name, tag or local id":
+            self.tree_search_entry.delete(0, tk.END)
+            self.tree_search_entry.configure(
+                foreground=self.tree_search_default_foreground)
+
+    def handle_tree_search_focus_out(self, event):
+        if not self.tree_search_entry.get():
+            self.tree_search_entry.insert(0, "Filter tree by name, tag or local id")
+            self.tree_search_entry.configure(foreground='gray')
 
     def tree_update(self, new_selected_node=None):
         self.tree.delete(*self.tree.get_children())
@@ -776,6 +799,9 @@ class App(tk.Tk):
         node.disable_discovery()
 
     def handle_tree_right_button_release(self, event):
+        if self.current_tab() == DisplayType.MODULES:
+            return
+
         iid = utils.treeview_get_first_selection(self.tree)
 
         node = None

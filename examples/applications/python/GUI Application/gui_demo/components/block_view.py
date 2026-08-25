@@ -97,7 +97,7 @@ class BlockView(ttk.Frame):
                 self.output_signals.pack(fill=tk.X)
                     
                 self.label_icon.config(image=self.device_img)
-                self.edit_button.pack_configure(padx=(6, 19))
+                self.edit_button.pack_configure(padx=(6, 27))
                 
                 self.cols = [0, 1]
                 self.rows = [0]
@@ -207,7 +207,7 @@ class BlockView(ttk.Frame):
                 self.properties = PropertiesView(
                     self.expanded_frame, self.node, self.context)
                 self.label_icon.config(image=self.sync_component_img)
-                self.edit_button.pack_configure(padx=(6, 10))
+                self.edit_button.pack_configure(padx=(6, 27))
                 self.cols = [0]
                 self.rows = [0]
             elif daq.ISignal.can_cast_from(self.node):

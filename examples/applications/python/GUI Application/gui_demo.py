@@ -757,8 +757,10 @@ class App(tk.Tk):
         popup = self.create_property_object_menu(node)
 
         popup.add_command(label='Enable discovery',
+                          image=self.context.menu_icon('discovery'), compound=tk.LEFT,
                           command=lambda: self.handle_enable_discovery(node))
         popup.add_command(label='Disable discovery',
+                          image=self.context.menu_icon('discovery_off'), compound=tk.LEFT,
                           command=lambda: self.handle_disable_discovery(node))
 
         return popup

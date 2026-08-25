@@ -1,0 +1,99 @@
+name: Build openDAQ stagings
+
+on:
+  push:
+  schedule:
+    - cron: '0 2 * * 1'
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  resolve:
+    name: Resolve the publish channel
+    runs-on: ubuntu-latest
+    outputs:
+      channel: ${{ steps.channel.outputs.channel }}
+    steps:
+      - uses: openDAQ/openDAQ-CI/.github/actions/resolve-channel@jira/TBBAS-3477-staging-check
+        id: channel
+
+  stage:
+    needs: resolve
+    name: openDAQ
+    permissions:
+      contents: read
+      packages: write
+    uses: openDAQ/openDAQ-CI/.github/workflows/stage.yml@jira/TBBAS-3439-multi-staging
+    with:
+      timeout: '[{"timeout-minutes": 180}]'
+      include-jobs: >
+        [
+          "windows-2022-x86_64-msvs-v143-release",
+          "windows-2022-x86-msvs-v143-release",
+          "manylinux_2_28-x86_64-ninja-gcc-release",
+          "ubuntu-22.04-x86_64-ninja-gcc-release",
+          "ubuntu-22.04-armv8-ninja-gcc-release",
+          "macos-26-x86_64-ninja-appleclang-release",
+          "macos-26-armv8-ninja-appleclang-release"
+        ]
+      cmake-presets: >
+        [
+          {
+            "match-jobs": ["*"],
+            "configure-preset": "stage"
+          },
+          {
+            "match-jobs": ["windows-*-msvs-*"],
+            "cache-variables": {"OPENDAQ_MSVC_SINGLE_PROCESS_BUILD": true}
+          },
+          {
+            "match-jobs": ["macos-*"],
+            "cache-variables": {"CMAKE_OSX_DEPLOYMENT_TARGET": "10.15"}
+          }
+        ]
+      packages: >
+        [
+          {
+            "match-jobs": ["manylinux_2_28-*"],
+            "yum-install": ["mono-core"]
+          },
+          {
+            "match-jobs": ["windows-*"],
+            "choco-install": ["nsis"]
+          }
+        ]
+      cpack-presets: >
+        [
+          {
+            "match-jobs": ["*"],
+            "stagings": [{"name": "core"}]
+          },
+          {
+            "match-jobs": ["windows-*"],
+            "installers": [{"name": "core", "package": "NSIS"}]
+          },
+          {
+            "match-jobs": ["ubuntu-*"],
+            "installers": [{"name": "core", "package": "DEB"}]
+          },
+          {
+            "match-jobs": ["macos-*"],
+            "installers": [{"name": "core", "package": "productbuild"}]
+          }
+        ]
+      staging-push: >-
+        [
+          {
+            "path": "ghcr.io/${{ github.repository_owner }}/${{ needs.resolve.outputs.channel }}/staging/opendaq",
+            "artifacts": ["staging-*/core"],
+            "tags": ["latest"]
+          },
+          {
+            "path": "ghcr.io/${{ github.repository_owner }}/${{ needs.resolve.outputs.channel }}/installer/opendaq",
+            "artifacts": ["package-*/core"],
+            "tags": ["latest"]
+          }
+        ]

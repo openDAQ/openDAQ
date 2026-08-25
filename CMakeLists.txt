@@ -472,6 +472,7 @@ if (DEFINED mdns_SOURCE_DIR)
     install(
         FILES "${mdns_SOURCE_DIR}/mdns.h"
         DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
+        COMPONENT ${SDK_NAME}_discovery_Development
     )
 else()
     message(ERROR "missing mdns dependency")

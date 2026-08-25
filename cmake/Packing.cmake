@@ -20,7 +20,13 @@ set(CPACK_PACKAGE_VERSION_PATCH ${PROJECT_VERSION_PATCH})
 set(CPACK_VERBATIM_VARIABLES ON)
 
 set(CPACK_PACKAGE_INSTALL_DIRECTORY ${CPACK_PACKAGE_NAME})
-set(CPACK_OUTPUT_FILE_PREFIX "${CMAKE_SOURCE_DIR}/build/_packages")
+
+# Output directory, defaulted rather than fixed: a cpack --preset run passes its own
+# packageDirectory (cpack -B), which overrides CPACK_PACKAGE_DIRECTORY but NOT
+# CPACK_OUTPUT_FILE_PREFIX -- the latter would silently keep the packages here.
+if(NOT CPACK_PACKAGE_DIRECTORY)
+    set(CPACK_PACKAGE_DIRECTORY "${CMAKE_SOURCE_DIR}/build/_packages")
+endif()
 
 if (UNIX)
     # https://unix.stackexchange.com/a/11552/254512
@@ -46,8 +52,8 @@ if(APPLE)
     # productbuild only accepts .txt, .rtf, .html, .rtfd for license/readme/welcome (not LICENSE or README.md).
     set(_CPACK_APPLE_STAGED "${CMAKE_BINARY_DIR}/CPack_apple_resources")
     file(MAKE_DIRECTORY "${_CPACK_APPLE_STAGED}")
-    configure_file("${CMAKE_SOURCE_DIR}/LICENSE" "${_CPACK_APPLE_STAGED}/LICENSE.txt" COPYONLY)
-    configure_file("${CMAKE_SOURCE_DIR}/README.md" "${_CPACK_APPLE_STAGED}/README.txt" COPYONLY)
+    configure_file("${CMAKE_CURRENT_SOURCE_DIR}/LICENSE" "${_CPACK_APPLE_STAGED}/LICENSE.txt" COPYONLY)
+    configure_file("${CMAKE_CURRENT_SOURCE_DIR}/README.md" "${_CPACK_APPLE_STAGED}/README.txt" COPYONLY)
     file(WRITE "${_CPACK_APPLE_STAGED}/WELCOME.txt" "openDAQ SDK\n")
     set(CPACK_RESOURCE_FILE_LICENSE "${_CPACK_APPLE_STAGED}/LICENSE.txt")
     set(CPACK_RESOURCE_FILE_README "${_CPACK_APPLE_STAGED}/README.txt")
@@ -93,75 +99,46 @@ if ("${CMAKE_SYSTEM_PROCESSOR}" STREQUAL "aarch64")
 endif()
 
 ##
-## Package filename customization
+## Package filename customization and staging metadata
 ##
 ## Format: opendaq-<version>[-<sha>]-<arch>-<os>-<compiler>-<compiler-version>-<build-type>
-## Field ordering follows GNU triplet convention (<arch>-<os>-…), values follow
-## Conan settings vocabulary (arch, os, compiler). SHA is appended to the
-## version for non-release builds to disambiguate dev/rc commits.
+## Composed by opendaq-cmake-utils, so modules name their packages the same way.
 ##
 
-# OS name (Conan settings.os, lowercase)
-string(TOLOWER "${CMAKE_SYSTEM_NAME}" _PACKING_OS_NAME)
-if(_PACKING_OS_NAME STREQUAL "darwin")
-    set(_PACKING_OS_NAME "macos")
-endif()
-
-# Architecture (Conan settings.arch)
-if(CMAKE_SIZEOF_VOID_P EQUAL 8)
-    if(CMAKE_SYSTEM_PROCESSOR MATCHES "aarch64|arm64|ARM64")
-        set(_PACKING_ARCH_NAME "armv8")
-    else()
-        set(_PACKING_ARCH_NAME "x86_64")
-    endif()
-else()
-    if(CMAKE_SYSTEM_PROCESSOR MATCHES "arm|ARM")
-        set(_PACKING_ARCH_NAME "armv7")
-    else()
-        set(_PACKING_ARCH_NAME "x86")
-    endif()
-endif()
-
-# Compiler (Conan settings.compiler) and major version
-if(MSVC)
-    set(_PACKING_COMPILER_ID "msvc")
-    set(_PACKING_COMPILER_VER "${MSVC_TOOLSET_VERSION}")
-elseif(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
-    set(_PACKING_COMPILER_ID "gcc")
-elseif(CMAKE_CXX_COMPILER_ID STREQUAL "AppleClang")
-    set(_PACKING_COMPILER_ID "apple-clang")
-elseif(CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
-    set(_PACKING_COMPILER_ID "clang")
-elseif(CMAKE_CXX_COMPILER_ID STREQUAL "Intel" OR CMAKE_CXX_COMPILER_ID STREQUAL "IntelLLVM")
-    set(_PACKING_COMPILER_ID "intel-cc")
-else()
-    string(TOLOWER "${CMAKE_CXX_COMPILER_ID}" _PACKING_COMPILER_ID)
-endif()
-if(NOT MSVC)
-    string(REGEX REPLACE "^([0-9]+).*" "\\1" _PACKING_COMPILER_VER "${CMAKE_CXX_COMPILER_VERSION}")
-endif()
-
-# Build type (lowercase). If not set (multi-config generators) fall back to "release".
-if(CMAKE_BUILD_TYPE)
-    string(TOLOWER "${CMAKE_BUILD_TYPE}" _PACKING_BUILD_TYPE)
-else()
-    set(_PACKING_BUILD_TYPE "release")
-endif()
-
-# Version is the clean major.minor.patch, extended with an optional 4th tweak component.
-# For non-release builds, a short SHA is appended to disambiguate commits.
-set(_PACKING_VERSION "${OPENDAQ_PACKAGE_VERSION}")
+# The version in the package name carries what tells builds of one version apart: the
+# optional 4th version component, and a short sha off release branches.
+set(_PACKING_VERSION_SUFFIX "")
 if(package_version MATCHES "^[0-9]+\\.[0-9]+\\.[0-9]+\\.([0-9]+)")
-    string(APPEND _PACKING_VERSION ".${CMAKE_MATCH_1}")
+    string(APPEND _PACKING_VERSION_SUFFIX ".${CMAKE_MATCH_1}")
 endif()
 if(NOT OPENDAQ_IS_RELEASE_VERSION AND OPENDAQ_WC_REVISION_HASH)
     string(SUBSTRING "${OPENDAQ_WC_REVISION_HASH}" 0 7 _PACKING_SHORT_SHA)
-    string(APPEND _PACKING_VERSION "-${_PACKING_SHORT_SHA}")
+    string(APPEND _PACKING_VERSION_SUFFIX "-${_PACKING_SHORT_SHA}")
 endif()
+set(CPACK_OPENDAQ_META_PACKAGE_VERSION_SUFFIX "${_PACKING_VERSION_SUFFIX}")
 
-set(CPACK_PACKAGE_FILE_NAME
-    "opendaq-${_PACKING_VERSION}-${_PACKING_ARCH_NAME}-${_PACKING_OS_NAME}-${_PACKING_COMPILER_ID}-${_PACKING_COMPILER_VER}-${_PACKING_BUILD_TYPE}"
+opendaq_detect_settings()
+
+# Ships inside the packages: what the build is. No `package` section -- one build here yields
+# several packages, and a copy sealed inside all of them could name only one.
+opendaq_write_metadata(OUTPUT "${CMAKE_BINARY_DIR}/build-meta.json")
+
+# The package this build defaults to; each cpack run names its own.
+# CPACK_PACKAGE_FILE_NAME is also read out of CPackConfig.cmake by .github/actions/build-sdk.
+opendaq_detect_package()
+opendaq_compose_package_triplet()
+opendaq_compose_package_file_name()
+
+# COMPONENT is required: untagged installs land in "Unspecified" and drop out of a
+# component-scoped package.
+install(FILES "${CMAKE_BINARY_DIR}/build-meta.json"
+        DESTINATION share/opendaq
+        COMPONENT ${SDK_NAME}_Development
 )
+
+# Let each cpack run name the package it produces (-D CPACK_OPENDAQ_META_PACKAGE_NAME=...),
+# so one build can yield core, modules and bindings as separate packages.
+set(CPACK_PROJECT_CONFIG_FILE "${CPACK_OPENDAQ_PROJECT_CONFIG}")
 
 ##
 ## Finally ...
@@ -211,6 +188,13 @@ set(REQUIRED_COMPONENTS
     opendaq
 )
 
+# Static libraries linked into the SDK: an archive to build against, nothing to run.
+set(REQUIRED_DEVELOPMENT_COMPONENTS
+    opendaq_utils
+    discovery
+    discovery_common
+)
+
 set(OPTIONAL_COMPONENTS
     copendaq
     ref_device_module
@@ -242,6 +226,16 @@ foreach(COMPONENT IN LISTS REQUIRED_COMPONENTS)
             libopendaq-dev
         DEPENDS
             openDAQ_${COMPONENT}_Runtime
+    )
+endforeach()
+
+foreach(COMPONENT IN LISTS REQUIRED_DEVELOPMENT_COMPONENTS)
+    cpack_add_component(openDAQ_${COMPONENT}_Development
+        REQUIRED
+        DISPLAY_NAME
+            ${COMPONENT}
+        GROUP
+            libopendaq-dev
     )
 endforeach()
 

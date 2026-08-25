@@ -247,8 +247,12 @@ class OutputSignalRow(ttk.Frame):
             
             def show_menu(event):
                 menu = tk.Menu(text_widget, tearoff=0)
-                menu.add_command(label='Copy', command=handle_copy)
-                menu.add_command(label='Copy All', command=copy_all)
+                menu.add_command(label='Copy',
+                                 image=self.context.menu_icon('copy'), compound=tk.LEFT,
+                                 command=handle_copy)
+                menu.add_command(label='Copy All',
+                                 image=self.context.menu_icon('copy'), compound=tk.LEFT,
+                                 command=copy_all)
                 menu.tk_popup(event.x_root, event.y_root)
             
             text_widget.bind('<Button-3>', show_menu)
@@ -290,7 +294,9 @@ class OutputSignalRow(ttk.Frame):
             def show_menu(event):
                 utils.treeview_select_item(tree, event)
                 menu = tk.Menu(tree, tearoff=0)
-                menu.add_command(label='Copy', command=handle_copy)
+                menu.add_command(label='Copy',
+                                 image=self.context.menu_icon('copy'), compound=tk.LEFT,
+                                 command=handle_copy)
                 menu.tk_popup(event.x_root, event.y_root)
             
             tree.bind('<Button-3>', show_menu)

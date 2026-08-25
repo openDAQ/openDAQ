@@ -99,5 +99,7 @@ class MetadataDialog(Dialog):
     def handle_right_click(self, event):
         utils.treeview_select_item(self.tree, event)
         menu = tk.Menu(self, tearoff=0)
-        menu.add_command(label='Copy', command=self.handle_copy)
+        menu.add_command(label='Copy',
+                         image=self.context.menu_icon('copy'), compound=tk.LEFT,
+                         command=self.handle_copy)
         menu.tk_popup(event.x_root, event.y_root)

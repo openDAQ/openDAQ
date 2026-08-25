@@ -168,6 +168,9 @@ def load_icon(filename, scale=1):
         return img.zoom(scale, scale)
     return tk.PhotoImage(file=filename)
 
+def blank_icon(width, height):
+    return tk.PhotoImage(width=width, height=height)
+
 def signal_time_domain_check(sig):
     desc = sig.descriptor
     if desc is not None and desc.tick_resolution is not None:

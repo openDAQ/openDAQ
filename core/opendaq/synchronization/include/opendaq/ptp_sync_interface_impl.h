@@ -50,7 +50,7 @@ protected:
     void setTransportProtocolOptions(const ListPtr<IString>& options);
     void setPortDelayMechanismOptions(const ListPtr<IString>& options);
 
-    void setPortSyncStatus(const StringPtr& portName, SyncSourceStatus status, const StringPtr& message);
+    void setPortSyncStatus(const StringPtr& portName, SyncRoleStatus status, const StringPtr& message);
 
     void onConfigurationChanged(const StringPtr& name, const BaseObjectPtr& value) override;
 

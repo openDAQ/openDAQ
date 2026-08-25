@@ -516,19 +516,19 @@ TEST_F(PtpSyncInterfaceTest, PerPortStatus)
     impl->createPortProporties("eth1");
 
     // Each port starts Off, both as its own property and as a status container entry keyed by port name
-    ASSERT_EQ(propObj.getPropertyValue("Status.Ports.eth0.State"), SyncSourceStatus::Off);
-    ASSERT_EQ(propObj.getPropertyValue("Status.Ports.eth1.State"), SyncSourceStatus::Off);
+    ASSERT_EQ(propObj.getPropertyValue("Status.Ports.eth0.State"), SyncRoleStatus::Off);
+    ASSERT_EQ(propObj.getPropertyValue("Status.Ports.eth1.State"), SyncRoleStatus::Off);
     ASSERT_EQ(statusContainer.getStatus("eth0").getValue(), "Off");
     ASSERT_EQ(statusContainer.getStatus("eth1").getValue(), "Off");
 
     // Updating one port's status leaves the other port untouched
-    impl->setPortSyncStatus("eth0", SyncSourceStatus::Synced, "locked");
+    impl->setPortSyncStatus("eth0", SyncRoleStatus::Input, "Client");
 
-    ASSERT_EQ(propObj.getPropertyValue("Status.Ports.eth0.State"), SyncSourceStatus::Synced);
-    ASSERT_EQ(statusContainer.getStatus("eth0").getValue(), "Synced");
-    ASSERT_EQ(statusContainer.getStatusMessage("eth0"), "locked");
+    ASSERT_EQ(propObj.getPropertyValue("Status.Ports.eth0.State"), SyncRoleStatus::Input);
+    ASSERT_EQ(statusContainer.getStatus("eth0").getValue(), "Input");
+    ASSERT_EQ(statusContainer.getStatusMessage("eth0"), "Client");
 
-    ASSERT_EQ(propObj.getPropertyValue("Status.Ports.eth1.State"), SyncSourceStatus::Off);
+    ASSERT_EQ(propObj.getPropertyValue("Status.Ports.eth1.State"), SyncRoleStatus::Off);
     ASSERT_EQ(statusContainer.getStatus("eth1").getValue(), "Off");
 }
 
@@ -581,7 +581,7 @@ TEST_F(PtpSyncInterfaceTest, PortModeFollowsInterfaceModeAutomatically)
 
     // Initially a port can only be Off
     const DictPtr<IInteger, IString> initialOptions = portConfig0.getPropertyValue("ModeOptions");
-    ASSERT_EQ(initialOptions.getCount(), 1u);
+    ASSERT_EQ(initialOptions.getCount(), 3u);
     ASSERT_TRUE(initialOptions.hasKey(static_cast<Int>(PortSyncMode::Off)));
 
     // Switching the interface to Output makes ports selectable as Output too, but a port

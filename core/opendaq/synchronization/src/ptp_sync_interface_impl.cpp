@@ -52,17 +52,18 @@ void PtpSyncInterfaceBaseImpl::createGeneralProperties()
         ptpConfiguration = PropertyObject();
         configuration.addProperty(ObjectProperty(PtpPropertyNames::PtpConfiguration, ptpConfiguration));
 
-        const auto profileOptions = List<IString>("I558", "802_1AS", "None");
+        const auto profileOptions = List<IString>("None");
         const auto transportProtocolOptions = List<IString>("IEEE802_3", "UDP_IPV4", "UDP_IPV6");
 
-        ptpConfiguration.addProperty(ListPropertyBuilder     (PtpPropertyNames::PtpConfigProfileOptions,     profileOptions).setReadOnly(true).setVisible(false).build());
-        ptpConfiguration.addProperty(StringPropertyBuilder   (PtpPropertyNames::PtpConfigProfile,            "None").setSelectionValues(EvalValue("$ProfileOptions")).build());
-        ptpConfiguration.addProperty(BoolProperty            (PtpPropertyNames::PtpConfigTwoStepFlag,        true));
-        ptpConfiguration.addProperty(IntPropertyBuilder      (PtpPropertyNames::PtpConfigDomainNumber,       0).setMinValue(0).build());
-        ptpConfiguration.addProperty(IntPropertyBuilder      (PtpPropertyNames::PtpConfigUtcOffset,          37).setMinValue(0).build());
-        ptpConfiguration.addProperty(IntPropertyBuilder      (PtpPropertyNames::PtpConfigPriority1,          128).setMinValue(0).setMaxValue(255).build());
-        ptpConfiguration.addProperty(IntPropertyBuilder      (PtpPropertyNames::PtpConfigPriority2,          128).setMinValue(0).setMaxValue(255).build());
+        ptpConfiguration.addProperty(ListPropertyBuilder     (PtpPropertyNames::PtpConfigProfileOptions, profileOptions).setReadOnly(true).setVisible(false).build());
         ptpConfiguration.addProperty(ListPropertyBuilder     (PtpPropertyNames::PtpConfigTransportProtocolOptions, transportProtocolOptions).setReadOnly(true).setVisible(false).build());
+
+        ptpConfiguration.addProperty(StringPropertyBuilder   (PtpPropertyNames::PtpConfigProfile,           "None").setSelectionValues(EvalValue("$ProfileOptions")).build());
+        ptpConfiguration.addProperty(BoolProperty            (PtpPropertyNames::PtpConfigTwoStepFlag,       true));
+        ptpConfiguration.addProperty(IntPropertyBuilder      (PtpPropertyNames::PtpConfigDomainNumber,      0).setMinValue(0).build());
+        ptpConfiguration.addProperty(IntPropertyBuilder      (PtpPropertyNames::PtpConfigUtcOffset,         37).setMinValue(0).build());
+        ptpConfiguration.addProperty(IntPropertyBuilder      (PtpPropertyNames::PtpConfigPriority1,         128).setMinValue(0).setMaxValue(255).build());
+        ptpConfiguration.addProperty(IntPropertyBuilder      (PtpPropertyNames::PtpConfigPriority2,         128).setMinValue(0).setMaxValue(255).build());
         ptpConfiguration.addProperty(StringPropertyBuilder   (PtpPropertyNames::PtpConfigTransportProtocol, "IEEE802_3").setSelectionValues(EvalValue("$TransportProtocolOptions")).build());
 
         ptpConfiguration.setPropertyOrder(List<IString>(PtpPropertyNames::PtpConfigProfileOptions, PtpPropertyNames::PtpConfigTransportProtocolOptions));
@@ -80,22 +81,22 @@ void PtpSyncInterfaceBaseImpl::createPortProporties(const StringPtr& portName)
     {
         // creating status property
         const PropertyObjectPtr portStatus = PropertyObject();
-        const EnumerationTypePtr syncSourceStatusType = manager.getType("SynchronizationSourceStatusType");
-        portStatus.addProperty(SelectionPropertyBuilder(PtpPropertyNames::StatusPortState, syncSourceStatusType.getEnumeratorNames(), static_cast<Int>(SyncSourceStatus::Off)).setReadOnly(true).build());
+        const EnumerationTypePtr syncRoleStatusType = manager.getType("SynchronizationRoleStatusType");
+        portStatus.addProperty(SelectionPropertyBuilder(PtpPropertyNames::StatusPortState, syncRoleStatusType.getEnumeratorNames(), static_cast<Int>(SyncRoleStatus::Off)).setReadOnly(true).build());
 
         portsStatus.addProperty(ObjectPropertyBuilder(portName, portStatus).setReadOnly(true).build());
 
-        const auto syncSourceStatus = EnumerationWithIntValueAndType(syncSourceStatusType, static_cast<Int>(SyncSourceStatus::Off));
+        const auto syncRoleStatus = EnumerationWithIntValueAndType(syncRoleStatusType, static_cast<Int>(SyncRoleStatus::Off));
         const auto statusContainerPrivate = this->statusContainer.asPtr<IComponentStatusContainerPrivate>(true);
-        statusContainerPrivate.addStatus(portName, syncSourceStatus);
+        statusContainerPrivate.addStatus(portName, syncRoleStatus);
     }
 
     {
         // creating configuration property
         const auto modeOptions = Dict<IInteger, IString>({
-            {static_cast<Int>(PortSyncMode::Off), "Off"},
+            {static_cast<Int>(PortSyncMode::Off),    "Off"},
             {static_cast<Int>(PortSyncMode::Output), "Output"},
-            {static_cast<Int>(PortSyncMode::Auto), "Auto"}
+            {static_cast<Int>(PortSyncMode::Auto),   "Auto"}
         });
         const auto delayMechanismOptions = List<IString>("E2E", "P2P");
 
@@ -131,16 +132,16 @@ void PtpSyncInterfaceBaseImpl::setPortDelayMechanismOptions(const ListPtr<IStrin
     }
 }
 
-void PtpSyncInterfaceBaseImpl::setPortSyncStatus(const StringPtr& portName, SyncSourceStatus status, const StringPtr& message)
+void PtpSyncInterfaceBaseImpl::setPortSyncStatus(const StringPtr& portName, SyncRoleStatus status, const StringPtr& message)
 {
     PropertyObjectPtr portStatus = portsStatus.getPropertyValue(portName);
     portStatus.asPtr<IPropertyObjectProtected>(true).setProtectedPropertyValue(PtpPropertyNames::StatusPortState, static_cast<Int>(status));
 
-    const auto syncSourceStatus =
-        EnumerationWithIntValue("SynchronizationSourceStatusType", static_cast<Int>(status), manager);
+    const auto syncRoleStatus =
+        EnumerationWithIntValue("SynchronizationRoleStatusType", static_cast<Int>(status), manager);
 
     const auto statusContainerPrivate = this->statusContainer.asPtr<IComponentStatusContainerPrivate>(true);
-    statusContainerPrivate.setStatusWithMessage(portName, syncSourceStatus, message);
+    statusContainerPrivate.setStatusWithMessage(portName, syncRoleStatus, message);
 }
 
 void PtpSyncInterfaceBaseImpl::onConfigurationChanged(const StringPtr& name, const BaseObjectPtr& value)

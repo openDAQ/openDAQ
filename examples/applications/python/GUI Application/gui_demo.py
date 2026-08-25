@@ -582,7 +582,9 @@ class App(tk.Tk):
 
         # if component is alive and in treeview
         if node and self.tree.exists(desired_iid):
-            if desired_iid != current_iid:  # if component is not already selected
+            if self._is_default_folder(desired_iid):
+                self.tree.selection_set('')
+            elif desired_iid != current_iid:  # if component is not already selected
                 self.tree.selection_set(desired_iid)
                 self.tree.focus(desired_iid)
                 self.tree.see(desired_iid)

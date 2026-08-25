@@ -403,6 +403,9 @@ class PropertiesTreeview(ttk.Treeview):
     def save_simple_value(self, entry, path):
         new_value = entry.get()
         try:
+            prop = utils.get_property_for_path(self.context, path, self.node)
+            if prop is not None and prop.value_type == daq.CoreType.ctRatio:
+                new_value = utils.value_to_coretype(new_value, daq.CoreType.ctRatio)
             self.update_property(self.node, path, new_value)
             self.refresh()
         except Exception:
@@ -898,7 +901,9 @@ class PropertiesTreeview(ttk.Treeview):
         elif property_type in (daq.PropertyType.Dict, daq.PropertyType.List):
             EditContainerPropertyDialog(self, prop, self.context).show()
             self.refresh()
-        elif property_type in (daq.PropertyType.Int, daq.PropertyType.Float, daq.PropertyType.String):
+            return
+        elif property_type in (daq.PropertyType.Int, daq.PropertyType.Float,
+                               daq.PropertyType.String, daq.PropertyType.Ratio):
             if prop.suggested_values is not None and len(prop.suggested_values) > 0:
                 return  # handled by overlay combobox
             self.edit_simple_property(selected_item_id, prop.value, path)

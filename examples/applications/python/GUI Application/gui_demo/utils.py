@@ -1,4 +1,5 @@
 import os
+import re
 import tkinter as tk
 import enum
 from tkinter import ttk
@@ -248,7 +249,7 @@ def str_to_num_or_eval(num_str: str):
 def value_to_coretype(value, coretype: daq.CoreType):
     # removing unit symbols
     if coretype in (daq.CoreType.ctBool, daq.CoreType.ctInt, daq.CoreType.ctFloat):
-        value = str.split(str.strip(value), ' ')[0]
+        value = str.split(str.strip(str(value)), ' ')[0]
     if coretype == daq.CoreType.ctBool:
         value = value.lower()
         if value in yes_no_inv.keys():
@@ -261,6 +262,12 @@ def value_to_coretype(value, coretype: daq.CoreType):
         return daq.Float(float(value))
     if coretype == daq.CoreType.ctString:
         return daq.String(str(value))
+    if coretype == daq.CoreType.ctRatio:
+        match = re.match(r'\s*(-?\d+)\s*(?:/\s*(-?\d+))?', str(value))
+        if match is None:
+            raise ValueError(f'Not a ratio: {value}')
+        return daq.Ratio(int(match.group(1)),
+                         int(match.group(2)) if match.group(2) else 1)
     raise ValueError(f'Unsupported core type: {coretype}')
 
 

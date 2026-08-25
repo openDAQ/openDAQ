@@ -9,6 +9,7 @@ SyncInterfaceBaseImpl::SyncInterfaceBaseImpl(const TypeManagerPtr& manager, cons
     : Super(manager)
     , manager(manager)
     , name(name)
+    , referenceDomainId("")
 {
     initAvailiableModes(availableModes);
     initProperties();
@@ -96,7 +97,7 @@ ErrCode SyncInterfaceBaseImpl::getAvailableModes(IDict** availableModes)
 ErrCode SyncInterfaceBaseImpl::getReferenceDomainId(IString** referenceDomainId)
 {
     OPENDAQ_PARAM_NOT_NULL(referenceDomainId);
-    *referenceDomainId = status.getPropertyValue("ReferenceDomainId").as<IString>();
+    *referenceDomainId = this->referenceDomainId.addRefAndReturn();
     return OPENDAQ_SUCCESS;
 }
 
@@ -140,6 +141,12 @@ ErrCode SyncInterfaceBaseImpl::setAsSource(Bool source)
 
 void SyncInterfaceBaseImpl::onConfigurationChanged(const StringPtr& name, const BaseObjectPtr& value)
 {
+}
+
+void SyncInterfaceBaseImpl::setReferenceDomainId(const StringPtr& referenceDomainId)
+{
+    this->referenceDomainId = referenceDomainId.assigned() ? referenceDomainId : String("");
+    status.asPtr<IPropertyObjectProtected>(true).setProtectedPropertyValue("ReferenceDomainId", this->referenceDomainId);
 }
 
 void SyncInterfaceBaseImpl::setSyncSourceStatus(SyncSourceStatus status, const StringPtr& message)

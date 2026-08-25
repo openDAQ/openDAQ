@@ -99,6 +99,7 @@ protected:
     
     virtual void onConfigurationChanged(const StringPtr& name, const BaseObjectPtr& value);
 
+    void setReferenceDomainId(const StringPtr& referenceDomainId);
     void setSyncSourceStatus(SyncSourceStatus status, const StringPtr& message = "");
     void setSyncRoleStatus(SyncRoleStatus status, const StringPtr& message = "");
    
@@ -114,6 +115,7 @@ private:
 
     const StringPtr name;
     Bool isSource = False;
+    StringPtr referenceDomainId;
     DictPtr<IInteger, IString> sourceModes;
     DictPtr<IInteger, IString> outputModes;
 };

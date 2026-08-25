@@ -5,12 +5,12 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen ($GeneratorName$ $GeneratorVersion$) on $DateAndTime$.
+//     RTGen ($GeneratorName$ $GeneratorVersion$).
 // </auto-generated>
 //------------------------------------------------------------------------------
 
 /*
- * Copyright 2022-2025 openDAQ d.o.o.
+ * Copyright 2022-2026 openDAQ d.o.o.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.

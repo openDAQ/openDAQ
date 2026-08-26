@@ -102,9 +102,51 @@ After `configure` releases the facade mutex, every connected port gets `IConnect
 
 ## Remaining phases
 
-- **Phase 5 — data read path**: copy planning over staged packets (syncedStart anchor, frontOffset advance), `packetOffset` from main, sample-type conversion to ValueReadType, `readWithDomain` (buffer 0 = timestamps, #inputs+1 buffers), minReadCount enforcement, availableCount consistency with reads.
-- **Phase 5.5 — dividers**: common rate = main's; integer dividers else InvalidDomain; getDividers populated; requireSameRates honored; mixed tick resolutions.
-- **Phase 6 — hardening**: gap events (realignment or Gap error), DataLoss detection, callback-driven consumers (re-schedule pass loop), factories + rtgen bindings, acceptsSignal veto decision, >64 inputs.
+- **Phase 5 - data read path + callback consumers**: copy planning over staged packets
+  (syncedStart anchor, frontOffset advance), sample-type conversion to ValueReadType
+  (scaled values), `packetOffset` = aligned start tick in main ticks, `readWithDomain`
+  (buffer 0 = timestamps, #inputs+1 buffers), `minReadCount` enforcement, and the
+  **callback-driven notification loop** (the pass re-schedules itself while deliverable so
+  `onDataAvailable` keeps firing for callback consumers - required by the sum FB).
+  Also an **exported factory** for the reader/params (impl classes are not DLL-exported,
+  so module code cannot instantiate them today).
+
+- **Phase 6 - sum FB migration + functional tests**: port `sum_reader_fb` (ref_fb_module,
+  currently on the remove-ladder-system branch) to `IMultiReader2`, strictly on the canonical
+  usage pattern (dataAvailable -> read -> on Event: setUsed/setActive -> commitEvent -> read data):
+  - Dynamic input ports: always one spare disconnected port, handed to the reader as an
+    **unused** input via params.
+  - A `BadInputHandling` property with two modes: `Deactivate` (reader-wide `setActive(false)`
+    while inputs fail) vs `Exclude` (failing inputs get `setUsed(false)`); swapping the
+    property **reconfigures** the reader.
+  - `configure()` is called on every connect/disconnect (the port set changes) and on the
+    property swap; every other reaction goes through the event window.
+  - Functional test suite that exercises the multi reader end-to-end through the sum block:
+    connect/disconnect churn, descriptor changes, sync failures under both handling modes,
+    the spare unused port, property swaps mid-stream.
+
+  Features currently missing for the port (tracked as part of Phase 5/6 work):
+  1. The data path itself + conversion (Phase 5) - hard prerequisite.
+  2. Callback-driven dataAvailable loop (Phase 5).
+  3. Exported factory - a module cannot `createWithImplementation` a non-exported impl.
+  4. Port adoption without re-owning: the facade does `setOwner(portBinder)` on adopted
+     ports; FB input ports already have the FB as owner - the facade must skip owner
+     binding when the port has one.
+  5. Listener handoff: the reader takes `setListener` on adopted ports, so the FB's
+     `onConnected`/`onDisconnected` overrides never fire - the FB must subscribe to the
+     reader's `getOnConnected`/`getOnDisconnected` events instead (works today; noted
+     because it changes the usual FB pattern).
+  6. Reactivation quirk: `setActive(true)` is only legal inside an event window; in
+     `Deactivate` mode recovery therefore rides on the next event or on a reconfigure.
+     Acceptable for the FB (the property swap reconfigures) but worth revisiting.
+
+## Out of scope (parked)
+
+- **Dividers / multi-rate reads** - removed from the plan 2026-08-26; effective-rate
+  equality with tick scaling onto the main lattice stays.
+- **Gap events** - dropped at ingest; realignment/Gap errors parked.
+- Data-loss / producer-liveness monitoring (also removed on the remove-ladder-system branch).
+- rtgen bindings, acceptsSignal veto policy, >64 inputs, read timeouts.
 
 ## Notes / quirks
 

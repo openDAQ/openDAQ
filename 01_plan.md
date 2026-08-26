@@ -25,9 +25,10 @@ Run: `build/x64/msvc-26/full/bin/Release/test_reader.exe --gtest_filter="MultiRe
 
 ### Ingest and wake protocol (`addPacket`)
 
-- **Descriptor events are cache-only, never queued.** Only `DATA_DESCRIPTOR_CHANGED` is accepted; other event packets (gaps included) are dropped until Phase 6. Change packets carry deltas, so the producer keeps plain per-slot value/domain copies (single-writer) and exchanges a rebuilt **full-state merged packet** into the atomic cache (`lastEventPacket`), then bumps `eventVersion` and `pendingEvents`. Ownership transfers only by `exchange` on both sides — no load+addRef UAF.
+- **Descriptor events are cache-only, never queued.** Only `DATA_DESCRIPTOR_CHANGED` and `IMPLICIT_DOMAIN_GAP_DETECTED` are accepted; other event packets are dropped. Change packets carry deltas, so the producer keeps plain per-slot value/domain copies (single-writer) and exchanges a rebuilt **full-state merged packet** into the atomic cache (`lastEventPacket`), then bumps `eventVersion` and `pendingEvents`. A gap only bumps a per-slot `gapCount` (plus `pendingEvents`): the next read reports it as an Event with a `Gap` error, the gapped slot's staged data is dropped (it predates a discontinuity), and the commit resyncs. Ownership transfers only by `exchange` on both sides — no load+addRef UAF.
 - **Data packets**: dropped while any used input is disconnected, when the reader is inactive, or the slot unused; otherwise queued. Shared words are touched only on empty→non-empty transitions.
 - **Wake election**: `deliverable()` = not parked ∧ all used inputs connected ∧ (pendingEvents>0 ∨ (active ∧ all used slots ready)). One producer wins `armed.exchange(false)`; the facade schedules a coalesced notification pass on the openDAQ scheduler (inline single-shot fallback without one). `armDataAvailable` re-checks and reclaims the lost-wakeup window. The facade re-arms after `read`/`commitEvent` so consumption reopens the wake window.
+- **Ready-bit semantics**: a slot's ready bit means *fresh queued data* — the consumer lowers it when it drains the SPSC queue, so staged-but-unconsumable data never re-triggers passes (no spin during sync). The contract for callback consumers is therefore *consume until drained*: reads and commits re-arm, and only new packets wake again. While synchronizing, a flowing input wakes the consumer past the 2s deadline (`syncing` + `syncDeadlineTicks` atomics) so silent peers can time out without a background timer.
 
 ### Drop-rule table
 
@@ -48,7 +49,7 @@ Run: `build/x64/msvc-26/full/bin/Release/test_reader.exe --gtest_filter="MultiRe
 4. **Fresh disconnect** of a used input (vs `reportedDisconnectMask`) → discard all data, park Event with `Disconnected` errors (delivered descriptors merged in). Commit snapshots the mask, so a committed disconnect leaves the reader **waiting silently** until reconnect (the reconnect's descriptor event reopens the window — `connectInternal` fires `connected` before enqueuing the descriptor, so the last connect's descriptor is never dropped).
 5. **Delivered versions** → park Event (during sync: affected used inputs marked `SyncFailed` — they rejoin after commit since delivery refreshed them).
 6. **Sync** (when not waiting and not synced) — see below; failures park.
-7. Otherwise Data status, count 0 (data copying is Phase 5).
+7. Otherwise (synced) the data read: plan = min staged run over used, non-failed inputs, clamped to the request and gated by `minReadCount` (a non-zero request below the minimum is INVALIDPARAMETER; available below it reads 0). Samples are copied per slot with sample-type conversion to ValueReadType (scalar numeric sources only, validated at sync), `packetOffset` = main-tick timestamp of the first sample, `readWithDomain` fills buffer 0 with Int64 main-tick timestamps. Buffers of unused/failed inputs are never written (consumers zero them and sum everything).
 
 `getAvailableCount`: 0 while parked / events pending / waiting / not synced; else min of stagedSamples over used, non-failed slots.
 
@@ -101,62 +102,63 @@ After `configure` releases the facade mutex, every connected port gets `IConnect
 - **Phase 2 — event pipeline** ✅: producer descriptor cache w/ delta merge, versioned delivery, real `read` (handshake/re-report) + `commitEvent`, disconnect boundaries + waiting state, `Disconnected` error, bootstrap via `enqueueLastDescriptor`, re-arm on consumption.
 - **Phase 3 — available count** ✅: stagedSamples accounting in drain/delivery/discards, min-scan `getAvailableCount`.
 - **Phase 4 — synchronization** ✅: domain parsing + local/relational validation, incremental main-anchored alignment, 2s timeout, range-distance guard, event-during-sync, failure exclusion. All 48 MultiReader2 tests green; full reader suite 2060/2060.
+- **Phase 5 — data path + callback consumers** ✅: converted sample copies from the sync start, packetOffset, readWithDomain, minReadCount, gap boundaries (surfaced + resync), queue-based ready bits with consume-until-drained wakes, sync-deadline producer wakes, exported `MultiReader2`/`MultiReader2Params` factories, integer sample-rate validation, port adoption without re-owning.
+- **Phase 6 — sum FB migration** ✅: `sum_reader_fb` rewritten on `IMultiReader2` (spare unused port, `BadInputHandling` Exclude/Deactivate property, reconfigure on connect/disconnect/property swap, clean-handshake recovery evidence, zeroed-buffer summing); 9-test functional suite drives the reader end to end through the block. Module suite 81/81, reader suite 2068/2068 green.
 
-## Remaining phases
+## Remaining work
 
-- **Phase 5 - data read path + callback consumers**: copy planning over staged packets
-  (syncedStart anchor, frontOffset advance), sample-type conversion to ValueReadType
-  (scaled values), `packetOffset` = aligned start tick in main ticks, `readWithDomain`
-  (buffer 0 = timestamps, #inputs+1 buffers), `minReadCount` enforcement, and the
-  **callback-driven notification loop** (the pass re-schedules itself while deliverable so
-  `onDataAvailable` keeps firing for callback consumers - required by the sum FB).
-  Also an **exported factory** for the reader/params (impl classes are not DLL-exported,
-  so module code cannot instantiate them today).
-
-  Sync extensions accepted from the remove-ladder-system comparison (2026-08-26):
-  - **Epoch parsing**: parse ISO-8601 origins and fold the epoch difference into the tick
-    scaling so inputs with different absolute origins align; require matching origin *type*
-    (absolute vs relative), not equal strings.
-  - **Gap events surfaced**: an `IMPLICIT_DOMAIN_GAP_DETECTED` packet becomes a boundary —
-    read reports an Event with a `Gap` error for that input; at commit, if the gapped input
-    is still used, synchronization restarts (a commit restarts sync anyway, so the rule
-    costs nothing extra). Gaps on unused inputs are reported but do not force a resync.
-
-- **Phase 6 - sum FB migration + functional tests**: port `sum_reader_fb` (ref_fb_module,
-  currently on the remove-ladder-system branch) to `IMultiReader2`, strictly on the canonical
-  usage pattern (dataAvailable -> read -> on Event: setUsed/setActive -> commitEvent -> read data):
-  - Dynamic input ports: always one spare disconnected port, handed to the reader as an
-    **unused** input via params.
-  - A `BadInputHandling` property with two modes: `Deactivate` (reader-wide `setActive(false)`
-    while inputs fail) vs `Exclude` (failing inputs get `setUsed(false)`); swapping the
-    property **reconfigures** the reader.
-  - `configure()` is called on every connect/disconnect (the port set changes) and on the
-    property swap; every other reaction goes through the event window.
-  - Functional test suite that exercises the multi reader end-to-end through the sum block:
-    connect/disconnect churn, descriptor changes, sync failures under both handling modes,
-    the spare unused port, property swaps mid-stream.
-
-  Features currently missing for the port (notes accepted 2026-08-26, tracked as Phase 5/6 work):
-  1. The data path itself + conversion (Phase 5) - hard prerequisite.
-  2. Callback-driven dataAvailable loop (Phase 5).
-  3. Exported factory - a module cannot `createWithImplementation` a non-exported impl.
-  4. Port adoption without re-owning: the facade does `setOwner(portBinder)` on adopted
-     ports; FB input ports already have the FB as owner - the facade must skip owner
-     binding when the port has one.
-  5. Listener handoff: the reader takes `setListener` on adopted ports, so the FB's
-     `onConnected`/`onDisconnected` overrides never fire - the FB must subscribe to the
-     reader's `getOnConnected`/`getOnDisconnected` events instead (works today; noted
-     because it changes the usual FB pattern).
-  6. Reactivation quirk: `setActive(true)` is only legal inside an event window; in
-     `Deactivate` mode recovery therefore rides on the next event or on a reconfigure.
-     Acceptable for the FB (the property swap reconfigures) but worth revisiting.
+- **Epoch parsing** (accepted 2026-08-26, next up): parse ISO-8601 origins and fold the epoch
+  difference into the tick scaling so inputs with different absolute origins align; require a
+  matching origin *type* (absolute vs relative), not equal strings. Deliberately sequenced
+  after the sum FB - the FB reacts to per-input errors generically, so mixed origins already
+  degrade honestly (InvalidDomain -> parked input).
+- **Alignment tolerance decision** - see open questions; the sum FB dogfooding should inform it.
+- Backlog: rtgen bindings, acceptsSignal veto policy, >64 inputs, read timeouts,
+  `Disconnected`-vs-`setUsed` interplay polish, reactivation outside the event window.
 
 ## Out of scope (parked)
 
 - **Dividers / multi-rate reads** - removed from the plan 2026-08-26; effective-rate
   equality with tick scaling onto the main lattice stays.
 - Data-loss / producer-liveness monitoring (also removed on the remove-ladder-system branch).
-- rtgen bindings, acceptsSignal veto policy, >64 inputs, read timeouts.
+
+## Differences vs the remove-ladder-system rework
+
+Recorded 2026-08-26 against `refactor/remove-ladder-system` (openDAQ_Tomaz clone), the full
+rewrite of the existing multi reader (~85 files, +20k lines: QueueReader per input,
+SynchronizationManager, ReadCoordinator, NotificationCoordinator, lock-free callback gate;
+currently mid-migration between two state machines).
+
+What MultiReader2 gains:
+- ~1/4 the code; one consumer mutex plus a producer path auditable in one function, versus a
+  callback-gate/pass-epoch protocol whose data-first rule lives in four places and two live
+  state machines.
+- A transactional event contract: park -> setUsed/setActive inside the window -> commitEvent,
+  with the same status re-reported until committed. Theirs applies events at read time and
+  signals through a count==0 handshake convention.
+- One mutation path (params + configure = full reset) versus five incremental mutators with
+  bespoke invalidation.
+- Descriptor correctness decoupled from queue survival (versioned merged cache); theirs must
+  keep event packets alive in queues with exact O(1) connection counters.
+- Machine-readable per-input error codes versus an InputState enum plus a diagnostic string.
+
+What the rework has that MultiReader2 does not:
+- Multi-rate reads (LCM/required common rate, dividers, block quanta) - deliberately cut here.
+- Cross-domain unification: rational-GCD common resolution, earliest-common epoch with parsed
+  origins and absolute-time distance checks (our epoch parsing is accepted but not yet built;
+  we check distance in ticks).
+- Alignment tolerance: half-block attributability, startOnFullUnitOfDomain, latched sync
+  target; we require exact lattice hits.
+- Read timeouts, skipSamples, Scaled/Unscaled/RawValue modes, auto-resolved Undefined read
+  type, per-descriptor pre-resolved conversion functions, any-rank values, per-signal domain
+  outputs.
+- Status polish: synthesized main-descriptor packet, diagnostic message, allocation-free
+  cached status snapshots; plus benchmarks backing micro-decisions.
+- Sync failure there keeps the failed input's buffered data; we discard it.
+
+Closed since the comparison was first made: the data path, conversion, minReadCount,
+packetOffset, gap surfacing, callback-driven consumption, and the exported factories all
+now exist here. Neither implementation monitors producer liveness or resamples.
 
 ## Notes / quirks
 
@@ -166,6 +168,9 @@ After `configure` releases the facade mutex, every connected port gets `IConnect
 - `PacketPtr::Adopt(x).asPtr<T>(true)` dangles — keep the adopted ptr alive past the borrow.
 - Test binary has a leak detector: never capture the reader strongly in its own event handler; `daqClearErrorInfo()` after every expected-error assertion.
 - NullContext has no scheduler → notification passes run inline; a handler that reconfigures unconditionally recurses through the new bootstrap (guard test handlers).
+- Never write wider samples than the value descriptor's type into a packet (a Float64 fill on an Int32 packet is a heap overrun).
+- Property-write callbacks already hold the object lock (`getAcquisitionLock2`'s mutex) — do not re-take it there; reader event handlers come from outside and must take it.
+- Module builds: `-DDAQMODULES_REF_FB_MODULE=ON -DDAQMODULES_REF_FB_MODULE_ENABLE_RENDERER=OFF -DDAQMODULES_REF_FB_MODULE_ENABLE_EXAMPLE_APP=OFF`; target `test_ref_fb_module`.
 
 ## Open questions
 
@@ -174,8 +179,17 @@ After `configure` releases the facade mutex, every connected port gets `IConnect
   reader prefers an exact common tick but accepts inputs within half a block of the start
   (the phase offset stays visible in that signal's own domain output). Do we adopt a
   tolerance, and if so which — half-sample attributability or a configurable window?
-
-- `readWithDomain` timestamp buffer type: main input's raw domain type as-is (current lean) or normalized.
 - `getStatus` value when errors are present but data is readable (lean: Data, with errors dict populated).
 - Whether `requireSameRates` survives as a param or becomes a validation shortcut.
 - Struct/dimension value support (old spec allowed fixed-size block reads) — out of scope until conversion lands.
+
+Resolved: `readWithDomain` timestamps are Int64 main-input ticks (decided with Phase 5).
+
+## Note on tick alignment (musing, not a plan item)
+
+With decimal sample rates and epochs always rounded to a full second, tick misalignment
+cannot occur: every input's samples land on a common decimal sub-second grid, so the exact
+lattice requirement costs nothing. Non-decimal rates are the problematic case. The domain
+validation enforces the preconditions this relies on: the linear rule delta must be a whole
+number and the sample rate (resolution denominator / (numerator * delta)) must divide out to
+a whole number of samples per second.

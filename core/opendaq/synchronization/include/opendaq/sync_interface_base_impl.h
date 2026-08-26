@@ -86,7 +86,7 @@ public:
 
     // ISyncInterfaceInternal
     ErrCode INTERFACE_FUNC setAsSource(Bool source) override;
-    ErrCode INTERFACE_FUNC sourceClockTypeChanged(IString* clockType) override;
+    ErrCode INTERFACE_FUNC sourceChanged(ISyncInterface* source) override;
 
     // IPropertyObjectInternal
     ErrCode INTERFACE_FUNC clone(IPropertyObject** cloned) override;
@@ -98,9 +98,8 @@ protected:
     explicit SyncInterfaceBaseImpl(const TypeManagerPtr& manager,
                                    const StringPtr& name,
                                    const std::vector<SyncMode>& availableModes);
-    
+
     virtual void onConfigurationChanged(const StringPtr& name, const BaseObjectPtr& value);
-    virtual void onSourceClockTypeChanged(const StringPtr& clockType);
 
     void setReferenceDomainId(const StringPtr& referenceDomainId);
     void setClockType(const StringPtr& clockType);

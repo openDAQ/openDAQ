@@ -5,7 +5,9 @@ BEGIN_NAMESPACE_OPENDAQ
 
 template class GenericSyncInterfaceImpl<IPropertyObject, ISyncInterfaceInternal>;
 
-SyncInterfaceBaseImpl::SyncInterfaceBaseImpl(const TypeManagerPtr& manager, const StringPtr& name, const std::vector<SyncMode>& availableModes)
+SyncInterfaceBaseImpl::SyncInterfaceBaseImpl(const TypeManagerPtr& manager,
+                                             const StringPtr& name,
+                                             const std::vector<SyncMode>& availableModes)
     : Super(manager)
     , manager(manager)
     , name(name)
@@ -140,18 +142,13 @@ ErrCode SyncInterfaceBaseImpl::setAsSource(Bool source)
     return OPENDAQ_SUCCESS;
 }
 
-ErrCode SyncInterfaceBaseImpl::sourceClockTypeChanged(IString* clockType)
+ErrCode SyncInterfaceBaseImpl::sourceChanged(ISyncInterface* source)
 {
-    OPENDAQ_PARAM_NOT_NULL(clockType);
-    onSourceClockTypeChanged(StringPtr::Borrow(clockType));
+    OPENDAQ_PARAM_NOT_NULL(source);
     return OPENDAQ_SUCCESS;
 }
 
 void SyncInterfaceBaseImpl::onConfigurationChanged(const StringPtr& name, const BaseObjectPtr& value)
-{
-}
-
-void SyncInterfaceBaseImpl::onSourceClockTypeChanged(const StringPtr& clockType)
 {
 }
 

@@ -183,7 +183,7 @@ public:
     using Super = SyncInterfaceBaseImpl;
 
     TestSyncInterface(const TypeManagerPtr& manager,
-                      const StringPtr& name, 
+                      const StringPtr& name,
                       const std::vector<SyncMode> & availableModes)
         : Super(manager, name, availableModes)
     {
@@ -195,32 +195,6 @@ public:
     }
 
     using Super::setClockType;
-};
-
-// Records every clock type it is told about via ISyncInterfaceInternal::sourceClockTypeChanged,
-// so tests can verify Synchronization's broadcast to non-source interfaces.
-class RecordingSyncInterface : public SyncInterfaceBaseImpl
-{
-public:
-    using Super = SyncInterfaceBaseImpl;
-
-    RecordingSyncInterface(const TypeManagerPtr& manager, const StringPtr& name)
-        : Super(manager, name, {SyncMode::Off, SyncMode::Output})
-    {
-    }
-
-    static SyncInterfacePtr Create(const TypeManagerPtr& manager, const StringPtr& name = "RecordingInterface")
-    {
-        return createWithImplementation<ISyncInterface, RecordingSyncInterface>(manager, name);
-    }
-
-    std::vector<StringPtr> receivedClockTypes;
-
-protected:
-    void onSourceClockTypeChanged(const StringPtr& clockType) override
-    {
-        receivedClockTypes.push_back(clockType);
-    }
 };
 
 using SynchronizationTest = testing::Test;
@@ -415,8 +389,9 @@ TEST_F(SynchronizationTest, SyncInterfaceGetClockType)
 {
     const auto ctx = NullContext();
 
+    // Defaults to "Internal" unless a subclass overrides it (e.g. via setClockType in its own constructor)
     const auto syncInterface = TestSyncInterface::Create(ctx.getTypeManager(), "MyInterface");
-    ASSERT_EQ(syncInterface.getClockType(), "");
+    ASSERT_EQ(syncInterface.getClockType(), "Internal");
 }
 
 TEST_F(SynchronizationTest, SyncInterfaceSetClockType)
@@ -426,59 +401,13 @@ TEST_F(SynchronizationTest, SyncInterfaceSetClockType)
     const auto syncInterface = TestSyncInterface::Create(ctx.getTypeManager(), "MyInterface");
     auto* impl = dynamic_cast<TestSyncInterface*>(syncInterface.getObject());
 
+    // Clock type is intrinsic to an interface and never changes at runtime, so setClockType is
+    // meant to be called once, from the constructor of the concrete interface class.
     impl->setClockType("Gps");
 
     ASSERT_EQ(syncInterface.getClockType(), "Gps");
     const auto propObj = syncInterface.asPtr<IPropertyObject>(true);
     ASSERT_EQ(propObj.getPropertyValue("Status.ClockType"), "Gps");
-}
-
-TEST_F(SynchronizationTest, SourceClockTypeChangedDefaultIsNoOp)
-{
-    const auto ctx = NullContext();
-
-    const auto syncInterface = TestSyncInterface::Create(ctx.getTypeManager(), "MyInterface");
-    const auto internalPtr = syncInterface.asPtr<ISyncInterfaceInternal>(true);
-
-    ASSERT_NO_THROW(internalPtr.sourceClockTypeChanged(String("Gps")));
-
-    // Being told about someone else's clock type does not affect this interface's own
-    ASSERT_EQ(syncInterface.getClockType(), "");
-}
-
-TEST_F(SynchronizationTest, NotifiesInterfacesOnSourceClockTypeChanged)
-{
-    const auto ctx = NullContext();
-    const auto manager = ctx.getTypeManager();
-
-    const auto sync = Synchronization(manager);
-    const auto syncInternal = sync.asPtr<ISynchronizationInternal>(true);
-
-    const auto recorder = RecordingSyncInterface::Create(manager);
-    syncInternal.addInterface(recorder);
-    auto* recorderImpl = dynamic_cast<RecordingSyncInterface*>(recorder.getObject());
-
-    const auto newInterface = TestSyncInterface::Create(manager);
-    auto* newInterfaceImpl = dynamic_cast<TestSyncInterface*>(newInterface.getObject());
-    newInterfaceImpl->setClockType("Gps");
-    syncInternal.addInterface(newInterface);
-
-    // Switching to a source that already carries a clock type pushes it out immediately,
-    // even though no property-write event fires as part of the switch itself
-    sync.setSource("TestInterface");
-    ASSERT_EQ(recorderImpl->receivedClockTypes, std::vector<StringPtr>({"Gps"}));
-
-    // While active as source, further clock type changes are broadcast via the write-event subscription
-    newInterfaceImpl->setClockType("Ptp");
-    ASSERT_EQ(recorderImpl->receivedClockTypes, std::vector<StringPtr>({"Gps", "Ptp"}));
-
-    // Switching away pushes the new source's clock type ("Internal", ClockSyncInterface's own)...
-    sync.setSource("ClockSyncInterface");
-    ASSERT_EQ(recorderImpl->receivedClockTypes, std::vector<StringPtr>({"Gps", "Ptp", "Internal"}));
-
-    // ...and the old source's subscription is torn down, so it no longer reaches the recorder
-    newInterfaceImpl->setClockType("Ntp");
-    ASSERT_EQ(recorderImpl->receivedClockTypes, std::vector<StringPtr>({"Gps", "Ptp", "Internal"}));
 }
 
 TEST_F(SynchronizationTest, SyncInterfaceProperties)

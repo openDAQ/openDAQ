@@ -40,7 +40,7 @@ class PUBLIC_EXPORT PtpSyncInterfaceBaseImpl : public SyncInterfaceBaseImpl
 public:
     using Super = SyncInterfaceBaseImpl;
 protected:
-    PtpSyncInterfaceBaseImpl(const TypeManagerPtr& manager, 
+    PtpSyncInterfaceBaseImpl(const TypeManagerPtr& manager,
                              const StringPtr& name = "PtpSyncInterface",
                              const std::vector<SyncMode>& availableModes = {SyncMode::Off, SyncMode::Input, SyncMode::Output, SyncMode::Auto});
 

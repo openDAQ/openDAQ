@@ -33,11 +33,12 @@ namespace PtpPropertyNames
     constexpr const char* PortConfigLogSyncInterval = "LogSyncInterval";
 }
 
-PtpSyncInterfaceBaseImpl::PtpSyncInterfaceBaseImpl(const TypeManagerPtr& manager, 
+PtpSyncInterfaceBaseImpl::PtpSyncInterfaceBaseImpl(const TypeManagerPtr& manager,
                                                    const StringPtr& name,
                                                    const std::vector<SyncMode>& availableModes)
     : Super(manager, name, availableModes)
 {
+    setClockType("Ptp");
     createGeneralProperties();
 }
 

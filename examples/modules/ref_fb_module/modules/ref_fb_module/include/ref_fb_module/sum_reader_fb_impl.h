@@ -1,5 +1,5 @@
 /*
- * Copyright 2022-2025 openDAQ d.o.o.
+ * Copyright 2022-2026 openDAQ d.o.o.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -21,13 +21,29 @@
 #include <opendaq/function_block_impl.h>
 #include <opendaq/signal_config_ptr.h>
 #include <opendaq/data_packet_ptr.h>
-#include <opendaq/multi_reader_ptr.h>
+#include <opendaq/multi_reader2.h>
+#include <opendaq/multi_reader2_status.h>
+
+#include <vector>
 
 BEGIN_NAMESPACE_REF_FB_MODULE
 
 namespace SumReader
 {
 
+/*!
+ * Reference consumer of MultiReader2. Sums any number of equal-rate input signals into one
+ * output signal, driven by the reader's event protocol:
+ *
+ * - Dynamic ports: one spare disconnected port always exists and rides along in the reader
+ *   as an unused input. Connecting it promotes it and spawns a fresh spare.
+ * - Every connect, disconnect, and BadInputHandling swap rebuilds the params and calls
+ *   `configure` - the reader's single mutation path. Everything else goes through the
+ *   event window: read -> on Event: setUsed/setActive -> commitEvent -> read data.
+ * - `BadInputHandling` selects the reaction to per-input errors: `Exclude` parks the failing
+ *   inputs with setUsed(false), `Deactivate` stops the whole reader with setActive(false).
+ *   A clean descriptor handshake is the recovery evidence that lifts either reaction.
+ */
 class SumReaderFbImpl final : public FunctionBlock
 {
 public:
@@ -39,34 +55,32 @@ public:
 private:
     std::string getNextPortID() const;
 
+    void initProperties();
     void createSignals();
     void createDisconnectedPort();
-    bool updateInputPorts();
     void createReader();
-    void configure(const DataDescriptorPtr& domainDescriptor, const ListPtr<IDataDescriptor>& valueDescriptors);
-    void reconfigure();
+    void updateInputPortsLocked();
+    void reconfigureReaderLocked();
+    void badInputHandlingChanged();
 
-    /**
-     * @brief Returns true if reader is in valid state or successfully recovered. Doesn't replace a valid reader.
-     */
-    bool recoverReaderIfNecessary();
-
-    void onConnected(const InputPortPtr& inputPort) override;
-    void onDisconnected(const InputPortPtr& inputPort) override;
+    void onPortEventLocked();
     void onDataReceived();
+    void handleEventLocked(const ObjectPtr<IMultiReader2Status>& status);
+    void configureOutputLocked(const ObjectPtr<IMultiReader2Status>& status);
+    void emitSumLocked(const std::vector<std::vector<double>>& buffers, SizeT count, SizeT offset);
 
     std::vector<InputPortPtr> connectedPorts;
     InputPortPtr disconnectedPort;
 
-    std::unordered_map<std::string, DataDescriptorPtr> cachedDescriptors;
+    bool excludeBadInputs = true;
+
     DataDescriptorPtr sumDataDescriptor;
     DataDescriptorPtr sumDomainDataDescriptor;
 
     SignalConfigPtr sumSignal;
     SignalConfigPtr sumDomainSignal;
 
-    PacketReadyNotification notificationMode;
-    MultiReaderPtr reader;
+    ObjectPtr<IMultiReader2> reader;
 };
 }
 

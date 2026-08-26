@@ -1,16 +1,19 @@
-#include <opendaq/context_internal_ptr.h>
 #include <opendaq/instance_factory.h>
 #include <opendaq/module_ptr.h>
 #include <opendaq/opendaq.h>
 #include <ref_fb_module/module_dll.h>
 #include <testutils/memcheck_listener.h>
 
+#include <chrono>
+#include <thread>
+
 using namespace daq;
+
+// Functional suite driving MultiReader2 end to end through the sum function block
 
 static ModulePtr createModule(const ContextPtr& context)
 {
     ModulePtr module;
-    auto logger = Logger();
     createModule(&module, context);
     return module;
 }
@@ -21,310 +24,248 @@ static ContextPtr createContext()
     return Context(Scheduler(logger), logger, TypeManager(), nullptr, nullptr);
 }
 
-class SumTest: public testing::Test
+class SumTest : public testing::Test
 {
 public:
     ModulePtr module;
     FunctionBlockPtr fb;
     ContextPtr context;
 
-    DataDescriptorPtr validDescriptor;
-    DataDescriptorPtr invalidDescriptor;
-    DataDescriptorPtr timeDescriptor;
-
-    ListPtr<ISignalConfig> validSignals;
-    ListPtr<ISignalConfig> invalidSignals;
-    SignalConfigPtr timeSignal;
-
 protected:
     void SetUp() override
     {
-        // Create module
-
         context = createContext();
         module = createModule(context);
-
-        auto config = module.getAvailableFunctionBlockTypes().get("RefFBModuleSumReader").createDefaultConfig();
-        config.setPropertyValue("ReaderNotificationMode", 1);
-
-        // Create function block
-        fb = module.createFunctionBlock("RefFBModuleSumReader", nullptr, "fb", config);
-
-        validDescriptor = DataDescriptorBuilder().setSampleType(SampleType::Float64).build();
-        invalidDescriptor = DataDescriptorBuilder().setSampleType(SampleType::ComplexFloat32).build();
-        timeDescriptor = DataDescriptorBuilder()
-                         .setSampleType(SampleType::Int64)
-                         .setTickResolution(Ratio(1, 1000))
-                         .setOrigin("1970-01-01T00:00:00")
-                         .setRule(LinearDataRule(1, 0))
-                         .setUnit(Unit("s", -1, "seconds", "time"))
-                         .build();
-
-        validSignals = List<ISignal>();
-        invalidSignals = List<ISignal>();
-        timeSignal = SignalWithDescriptor(context, timeDescriptor, nullptr, "time_sig");
-
-        for (size_t i = 0; i < 10; ++i)
-        {
-            validSignals.pushBack(SignalWithDescriptor(context, validDescriptor, nullptr, fmt::format("sig{}", i)));
-            invalidSignals.pushBack(SignalWithDescriptor(context, invalidDescriptor, nullptr, fmt::format("sig{}", i)));
-
-            validSignals[i].setDomainSignal(timeSignal);
-            invalidSignals[i].setDomainSignal(timeSignal);
-        }
+        fb = module.createFunctionBlock("RefFBModuleSumReader", nullptr, "fb");
     }
 
-
-    void sendData(SizeT sampleCount,
-                  SizeT offset,
-                  bool sendInvalid,
-                  std::pair<size_t, size_t> signalRange,
-                  ListPtr<ISignalConfig> extraSignals = List<ISignalConfig>(),
-                  ListPtr<ISignalConfig> extraDomainSignals = List<ISignalConfig>())
+    DataDescriptorPtr domainDescriptor(Int delta = 1) const
     {
-        DataPacketPtr domainPacket = DataPacket(timeDescriptor, sampleCount, offset);
-        DataPacketPtr valuePacket = DataPacketWithDomain(domainPacket, validDescriptor, sampleCount);
+        return DataDescriptorBuilder()
+            .setSampleType(SampleType::Int64)
+            .setTickResolution(Ratio(1, 1000))
+            .setOrigin("1970-01-01T00:00:00")
+            .setRule(LinearDataRule(delta, 0))
+            .setUnit(Unit("s", -1, "seconds", "time"))
+            .build();
+    }
 
-        double* sumValueData = static_cast<double*>(valuePacket.getRawData());
-        for (size_t i = 0; i < sampleCount; ++i)
-            sumValueData[i] = 1;
+    SignalConfigPtr createSignal(const std::string& localId, Int delta = 1)
+    {
+        auto domainSignal = Signal(context, nullptr, localId + "_domain");
+        domainSignal.setDescriptor(domainDescriptor(delta));
+        auto signal = Signal(context, nullptr, localId);
+        signal.setDescriptor(DataDescriptorBuilder().setSampleType(SampleType::Float64).build());
+        signal.setDomainSignal(domainSignal);
+        return signal;
+    }
 
-        timeSignal.sendPacket(domainPacket);
-        for (size_t i = signalRange.first; i < signalRange.second; ++i)
-            validSignals[i].sendPacket(valuePacket);
+    // Sample at tick t carries the value `base` on every signal
+    static void sendData(const SignalConfigPtr& signal, Int offset, SizeT samples, double base = 1.0)
+    {
+        auto domainPacket = DataPacket(signal.getDomainSignal().getDescriptor(), samples, offset);
+        auto packet = DataPacketWithDomain(domainPacket, signal.getDescriptor(), samples);
+        const auto values = static_cast<double*>(packet.getData());
+        for (SizeT i = 0; i < samples; i++)
+            values[i] = base;
+        signal.sendPacket(packet);
+    }
 
-        if (sendInvalid)
+    // Reads the sum output until `expected` samples arrive or the timeout runs out
+    template <typename TReader>
+    static std::vector<double> readSum(TReader& reader, SizeT expected, SizeT timeoutMs = 2000)
+    {
+        std::vector<double> values;
+        const auto deadline = std::chrono::steady_clock::now() + std::chrono::milliseconds(timeoutMs);
+        while (values.size() < expected && std::chrono::steady_clock::now() < deadline)
         {
-            DataPacketPtr invalidValuePacket = DataPacketWithDomain(domainPacket, invalidDescriptor, sampleCount);
-            for (size_t i = signalRange.first; i < signalRange.second; ++i)
-                invalidSignals[i].sendPacket(valuePacket);
+            double buffer[256];
+            SizeT count = std::min<SizeT>(256, expected - values.size());
+            reader.read(buffer, &count, 50);
+            values.insert(values.end(), buffer, buffer + count);
         }
+        return values;
+    }
 
-        for (const auto& signal : extraSignals)
-        {
-            signal.sendPacket(valuePacket);
-        }
-
-        for (const auto& signal : extraDomainSignals)
-        {
-            signal.sendPacket(domainPacket);
-        }
+    template <typename TReader>
+    static SizeT drainSum(TReader& reader, SizeT timeoutMs = 300)
+    {
+        double buffer[256];
+        SizeT total = 0;
+        SizeT count = 256;
+        reader.read(buffer, &count, timeoutMs);
+        total += count;
+        return total;
     }
 };
 
-TEST_F(SumTest, Create)
+TEST_F(SumTest, CreateReportsWarning)
 {
-    const auto module = createModule(createContext());
-
-    auto fb = module.createFunctionBlock("RefFBModuleSumReader", nullptr, "id");
     ASSERT_TRUE(fb.assigned());
-    ASSERT_EQ(fb.getStatusContainer().getStatus("ComponentStatus"), ComponentStatus::Warning);
-}
-
-TEST_F(SumTest, ConnectSignal)
-{
-    ASSERT_NO_THROW(fb.getInputPorts()[0].connect(validSignals[0]));
-    ASSERT_EQ(fb.getStatusContainer().getStatus("ComponentStatus"), ComponentStatus::Ok);
-}
-
-TEST_F(SumTest, ConnectSignals)
-{
-    for (size_t i = 0; i < validSignals.getCount(); ++i)
-    {
-        ASSERT_NO_THROW(fb.getInputPorts()[0].connect(validSignals[i]));
-    }
-
-    ASSERT_EQ(fb.getStatusContainer().getStatus("ComponentStatus"), ComponentStatus::Ok);
-}
-
-TEST_F(SumTest, DisconnectSignals)
-{
-    for (size_t i = 0; i < validSignals.getCount(); ++i)
-        fb.getInputPorts()[i].connect(validSignals[i]);
-
-    ASSERT_EQ(fb.getInputPorts().getCount(), 11u);
-
-    for (const auto& ip : fb.getInputPorts())
-        ip.disconnect();
-
     ASSERT_EQ(fb.getStatusContainer().getStatus("ComponentStatus"), ComponentStatus::Warning);
     ASSERT_EQ(fb.getInputPorts().getCount(), 1u);
 }
 
-TEST_F(SumTest, InvalidSignals)
+TEST_F(SumTest, SpareUnusedPortAlwaysPresent)
 {
-    for (size_t i = 0; i < validSignals.getCount(); ++i)
-    {
-        fb.getInputPorts()[i * 2].connect(validSignals[i]);
-        fb.getInputPorts()[i * 2 + 1].connect(invalidSignals[i]);
-    }
+    auto sig1 = createSignal("sig1");
+    auto sig2 = createSignal("sig2");
 
-    ASSERT_EQ(fb.getInputPorts().getCount(), 21u);
+    fb.getInputPorts()[0].connect(sig1);
+    ASSERT_EQ(fb.getInputPorts().getCount(), 2u);
+    fb.getInputPorts()[1].connect(sig2);
+    ASSERT_EQ(fb.getInputPorts().getCount(), 3u);
+
+    fb.getInputPorts()[0].disconnect();
+    ASSERT_EQ(fb.getInputPorts().getCount(), 2u);
+    fb.getInputPorts()[0].disconnect();
+    ASSERT_EQ(fb.getInputPorts().getCount(), 1u);
     ASSERT_EQ(fb.getStatusContainer().getStatus("ComponentStatus"), ComponentStatus::Warning);
 }
 
-TEST_F(SumTest, InvalidSignalsRecovery)
+TEST_F(SumTest, SumsTwoSignals)
 {
-    for (size_t i = 0; i < validSignals.getCount(); ++i)
-    {
-        fb.getInputPorts()[i * 2].connect(validSignals[i]);
-        fb.getInputPorts()[i * 2 + 1].connect(invalidSignals[i]);
-    }
-
-    ASSERT_EQ(fb.getInputPorts().getCount(), 21u);
-    ASSERT_EQ(fb.getStatusContainer().getStatus("ComponentStatus"), ComponentStatus::Warning);
-
-    auto ip = fb.getInputPorts();
-    for (int i = static_cast<int>(fb.getInputPorts().getCount()) - 2; i > 0; i-=2)
-        ip[i].disconnect();
-
-    ASSERT_EQ(fb.getInputPorts().getCount(), 11u);
-    ASSERT_EQ(fb.getStatusContainer().getStatus("ComponentStatus"), ComponentStatus::Ok);
-}
-
-TEST_F(SumTest, SumSignals)
-{
-    for (size_t i = 0; i < validSignals.getCount(); ++i)
-        fb.getInputPorts()[i].connect(validSignals[i]);
+    auto sig1 = createSignal("sig1");
+    auto sig2 = createSignal("sig2");
+    fb.getInputPorts()[0].connect(sig1);
+    fb.getInputPorts()[1].connect(sig2);
 
     auto reader = StreamReader<double>(fb.getSignals()[0]);
 
-    sendData(100, 0, false, std::make_pair(0, 10));
+    sendData(sig1, 100, 50, 1.0);
+    sendData(sig2, 100, 50, 2.0);
 
-    SizeT count = reader.getAvailableCount();
-    ASSERT_EQ(count, 0u);
-
-    auto status = reader.read(nullptr, &count);
-    ASSERT_EQ(status.getReadStatus(), ReadStatus::Event);
-
-    count = reader.getAvailableCount();
-    ASSERT_EQ(count, 100u);
-
-    double data[100];
-    status = reader.read(&data, &count);
-    ASSERT_EQ(status.getReadStatus(), ReadStatus::Ok);
-
-    for (auto val : data)
-    {
-        ASSERT_DOUBLE_EQ(val, 10);
-    }
+    const auto values = readSum(reader, 50);
+    ASSERT_EQ(values.size(), 50u);
+    for (const auto value : values)
+        ASSERT_DOUBLE_EQ(value, 3.0);
+    ASSERT_EQ(fb.getStatusContainer().getStatus("ComponentStatus"), ComponentStatus::Ok);
 }
 
-TEST_F(SumTest, SumSignalsReconnect)
+TEST_F(SumTest, AlignsLateStarter)
 {
-    for (size_t i = 0; i < validSignals.getCount(); ++i)
-        fb.getInputPorts()[i].connect(validSignals[i]);
+    auto sig1 = createSignal("sig1");
+    auto sig2 = createSignal("sig2");
+    fb.getInputPorts()[0].connect(sig1);
+    fb.getInputPorts()[1].connect(sig2);
 
-    auto reader = StreamReaderBuilder().setSkipEvents(true).setValueReadType(SampleType::Float64).setSignal(fb.getSignals()[0]).build();
+    auto reader = StreamReader<double>(fb.getSignals()[0]);
 
-    auto ip = fb.getInputPorts();
-    for (size_t i = 0; i < 5; ++i)
-        ip[i].disconnect();
+    // The second input starts 20 ticks later: only the overlap is summed
+    sendData(sig1, 100, 50, 1.0);
+    sendData(sig2, 120, 30, 2.0);
 
-    sendData(100, 0, false, std::make_pair(5, 10));
-
-    SizeT count = reader.getAvailableCount();
-    ASSERT_EQ(count, 100u);
-    double data[100];
-    auto status = reader.read(&data, &count);
-    ASSERT_EQ(status.getReadStatus(), ReadStatus::Ok);
-
-    for (auto val : data)
-    {
-        ASSERT_DOUBLE_EQ(val, 5);
-    }
-
-    for (size_t i = 5; i < 10; ++i)
-        fb.getInputPorts()[i].connect(validSignals[i - 5]);
-
-    sendData(100, 100, false, std::make_pair(0, 10));
-
-    count = reader.getAvailableCount();
-    ASSERT_EQ(count, 100u);
-    status = reader.read(&data, &count);
-    ASSERT_EQ(status.getReadStatus(), ReadStatus::Ok);
-
-    for (auto val : data)
-    {
-        ASSERT_DOUBLE_EQ(val, 10);
-    }
+    const auto values = readSum(reader, 30);
+    ASSERT_EQ(values.size(), 30u);
+    for (const auto value : values)
+        ASSERT_DOUBLE_EQ(value, 3.0);
 }
 
-TEST_F(SumTest, SumSignalsInvalidRecovery)
+TEST_F(SumTest, DescriptorChangeKeepsSumming)
 {
-    for (size_t i = 0; i < validSignals.getCount(); ++i)
-    {
-        fb.getInputPorts()[i * 2].connect(validSignals[i]);
-        fb.getInputPorts()[i * 2 + 1].connect(invalidSignals[i]);
-    }
+    auto sig1 = createSignal("sig1");
+    auto sig2 = createSignal("sig2");
+    fb.getInputPorts()[0].connect(sig1);
+    fb.getInputPorts()[1].connect(sig2);
 
-    auto reader = StreamReaderBuilder().setSkipEvents(true).setValueReadType(SampleType::Float64).setSignal(fb.getSignals()[0]).build();
+    auto reader = StreamReader<double>(fb.getSignals()[0]);
+    sendData(sig1, 100, 20, 1.0);
+    sendData(sig2, 100, 20, 2.0);
+    ASSERT_EQ(readSum(reader, 20).size(), 20u);
 
-    sendData(100, 0, true, std::make_pair(0, 10));
+    // A unit change parks the reader; the block commits and resyncs on fresh data
+    sig1.setDescriptor(DataDescriptorBuilder().setSampleType(SampleType::Float64).setUnit(Unit("V", -1, "volts", "voltage")).build());
+    sendData(sig1, 200, 20, 5.0);
+    sendData(sig2, 200, 20, 2.0);
 
-    auto count = reader.getAvailableCount();
-    ASSERT_EQ(count, 0u);
-
-    // Disconnect invalid signals
-    auto ip = fb.getInputPorts();
-    for (int i = static_cast<int>(fb.getInputPorts().getCount()) - 2; i > 0; i-=2)
-        ip[i].disconnect();
-
-    sendData(100, 100, false, std::make_pair(0, 10));
-
-    count = reader.getAvailableCount();
-    ASSERT_EQ(count, 100u);
-
-    double data[100];
-    auto status = reader.read(&data, &count);
-    ASSERT_EQ(status.getReadStatus(), ReadStatus::Ok);
-
-    for (auto val : data)
-    {
-        ASSERT_DOUBLE_EQ(val, 10);
-    }
+    const auto values = readSum(reader, 20);
+    ASSERT_GE(values.size(), 20u);
+    ASSERT_DOUBLE_EQ(values.back(), 7.0);
 }
 
-TEST_F(SumTest, ReplaceValidWithInvalid)
+TEST_F(SumTest, ExcludeModeKeepsGoodInputs)
 {
-    for (size_t i = 0; i < validSignals.getCount(); ++i)
-        fb.getInputPorts()[i].connect(validSignals[i]);
+    auto good = createSignal("good");
+    auto bad = createSignal("bad", 2);  // half the rate: InvalidDomain against the main input
+    fb.getInputPorts()[0].connect(good);
+    fb.getInputPorts()[1].connect(bad);
 
-    ASSERT_NO_THROW(fb.getInputPorts()[0].connect(invalidSignals[0]));
+    auto reader = StreamReader<double>(fb.getSignals()[0]);
+
+    sendData(good, 100, 40, 1.0);
+    sendData(bad, 100, 40, 2.0);
+
+    // The bad input is excluded and the good one keeps summing alone
+    const auto values = readSum(reader, 40);
+    ASSERT_EQ(values.size(), 40u);
+    for (const auto value : values)
+        ASSERT_DOUBLE_EQ(value, 1.0);
 }
 
-TEST_F(SumTest, IncompatibleDomainsReconnect)
+TEST_F(SumTest, DeactivateModeStopsAndRecovers)
 {
-    auto incompatibleDomainDescriptor = DataDescriptorBuilder()
-                     .setSampleType(SampleType::Int64)
-                     .setTickResolution(Ratio(1, 1000))
-                     .setOrigin("1970-01-01T00:00:00")
-                     .setRule(LinearDataRule(2, 0))
-                     .setUnit(Unit("s", -1, "seconds", "time"))
-                     .build();
+    fb.setPropertyValue("BadInputHandling", 1);
 
-    auto incompatibleDomainSignal = SignalWithDescriptor(context, incompatibleDomainDescriptor, nullptr, "invalidDomainSig", nullptr);
-    auto incompatibleSignal = SignalWithDescriptor(context, validDescriptor, nullptr, "invalidSig", nullptr);
+    auto good = createSignal("good");
+    auto bad = createSignal("bad", 2);
+    fb.getInputPorts()[0].connect(good);
+    fb.getInputPorts()[1].connect(bad);
 
-    incompatibleSignal.setDomainSignal(incompatibleDomainSignal);
+    auto reader = StreamReader<double>(fb.getSignals()[0]);
 
-    fb.getInputPorts()[0].connect(validSignals[0]);
-    fb.getInputPorts()[1].connect(incompatibleSignal);
+    sendData(good, 100, 20, 1.0);
+    sendData(bad, 100, 20, 2.0);
 
-    auto reader = StreamReaderBuilder().setSkipEvents(true).setValueReadType(SampleType::Float64).setSignal(fb.getSignals()[0]).build();
-    sendData(100,
-             0,
-             false,
-             std::make_pair(0, 1),
-             List<ISignalConfig>(incompatibleSignal),
-             List<ISignalConfig>(incompatibleDomainSignal));
+    // The failing input deactivates the whole reader: fresh data goes nowhere
+    std::this_thread::sleep_for(std::chrono::milliseconds(300));
+    drainSum(reader);
+    sendData(good, 200, 20, 1.0);
+    ASSERT_EQ(drainSum(reader), 0u);
 
-    auto count = reader.getAvailableCount();
-    ASSERT_EQ(count, 0u);
+    // Removing the bad input reconfigures the reader and the output resumes
+    fb.getInputPorts()[1].disconnect();
+    sendData(good, 300, 20, 1.0);
+    const auto values = readSum(reader, 20);
+    ASSERT_EQ(values.size(), 20u);
+    for (const auto value : values)
+        ASSERT_DOUBLE_EQ(value, 1.0);
+}
 
-    fb.getInputPorts()[1].connect(validSignals[1]);
-    sendData(100, 100, false, std::make_pair(0, 2));
+TEST_F(SumTest, DisconnectReconfiguresAndContinues)
+{
+    auto sig1 = createSignal("sig1");
+    auto sig2 = createSignal("sig2");
+    fb.getInputPorts()[0].connect(sig1);
+    fb.getInputPorts()[1].connect(sig2);
 
-    count = reader.getAvailableCount();
-    ASSERT_EQ(count, 100u);
+    auto reader = StreamReader<double>(fb.getSignals()[0]);
+    sendData(sig1, 100, 20, 1.0);
+    sendData(sig2, 100, 20, 2.0);
+    ASSERT_EQ(readSum(reader, 20).size(), 20u);
+
+    fb.getInputPorts()[1].disconnect();
+    ASSERT_EQ(fb.getInputPorts().getCount(), 2u);
+
+    sendData(sig1, 200, 20, 1.0);
+    const auto values = readSum(reader, 20);
+    ASSERT_EQ(values.size(), 20u);
+    for (const auto value : values)
+        ASSERT_DOUBLE_EQ(value, 1.0);
+}
+
+TEST_F(SumTest, BadInputHandlingSwapReconfigures)
+{
+    auto sig1 = createSignal("sig1");
+    fb.getInputPorts()[0].connect(sig1);
+
+    auto reader = StreamReader<double>(fb.getSignals()[0]);
+    sendData(sig1, 100, 20, 1.0);
+    ASSERT_EQ(readSum(reader, 20).size(), 20u);
+
+    // Swapping the property reconfigures the reader; streaming resumes seamlessly
+    fb.setPropertyValue("BadInputHandling", 1);
+    sendData(sig1, 200, 20, 4.0);
+    const auto values = readSum(reader, 20);
+    ASSERT_EQ(values.size(), 20u);
+    ASSERT_DOUBLE_EQ(values.front(), 4.0);
 }

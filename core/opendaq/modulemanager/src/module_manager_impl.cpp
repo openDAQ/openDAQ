@@ -9,6 +9,7 @@
 #include <opendaq/orphaned_modules.h>
 #include <opendaq/device_info_config_ptr.h>
 #include <opendaq/device_info_internal_ptr.h>
+#include <coretypes/ctutils.h>
 #include <coretypes/validation.h>
 #include <opendaq/device_private.h>
 #include <string>
@@ -498,6 +499,8 @@ void ModuleManagerImpl::checkNetworkSettings(ListPtr<IDeviceInfo>& list)
 #endif
     {
         const auto icmp = IcmpPing::Create(ioContext, logger);
+        Finally stopPing([&icmp] { icmp->stop(); });
+
         icmp->setMaxHops(1);
         icmp->start(ipv4Addresses);
         icmp->waitSendAndReply();

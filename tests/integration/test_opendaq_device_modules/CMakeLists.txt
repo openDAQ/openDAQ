@@ -3,6 +3,7 @@ set(TEST_APP test_device_modules)
 set(TEST_HEADERS
     test_helpers/test_helpers.h
     test_helpers/device_modules.h
+    test_helpers/lt_tls.h
 )
 
 set(TEST_SOURCES test_native_device_modules.cpp
@@ -52,6 +53,22 @@ target_link_libraries(${TEST_APP}
 
 if (MSVC)
     target_compile_options(${TEST_APP} PRIVATE /bigobj)
+endif()
+
+# The LT streaming tests over the secure channel need TLS fixtures (CA, server and client
+# certificates/keys). Reuse the pre-generated ones from the LT streaming modules repository instead of
+# keeping a second copy here. The legacy LT modules have neither TLS support nor those fixtures.
+if (NOT DAQMODULES_LT_LEGACY_MODULES AND DEFINED LT_MODULES_SOURCE_DIR)
+    set(LT_TLS_SECRETS_DIR "${LT_MODULES_SOURCE_DIR}/tests/integration/secrets")
+    if (EXISTS "${LT_TLS_SECRETS_DIR}")
+        add_custom_command(TARGET ${TEST_APP} POST_BUILD
+            COMMAND ${CMAKE_COMMAND} -E copy_directory
+                    ${LT_TLS_SECRETS_DIR}
+                    $<TARGET_FILE_DIR:${TEST_APP}>/secrets)
+    else()
+        message(WARNING "TLS fixtures not found in ${LT_TLS_SECRETS_DIR}. "
+                        "The LT streaming tests over the secure channel will fail to load their secrets.")
+    endif()
 endif()
 
 add_test(NAME ${TEST_APP}

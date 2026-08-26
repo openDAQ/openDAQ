@@ -229,6 +229,8 @@ private:
 
     bool removeSignalSubscriberNoLock(const std::string& signalStringId, const std::string& subscribedClientId);
 
+    PacketStreamingServerPtr getPacketStreamingServerNoLock(const std::string& clientId);
+
     ContextPtr context;
     LoggerComponentPtr loggerComponent;
     SignalNumericIdType signalNumericIdCounter;

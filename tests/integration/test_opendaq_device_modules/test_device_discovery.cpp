@@ -226,6 +226,23 @@ protected:
         return connectedClients;
     }
 
+    // The advertised connected-clients info converges asynchronously (server-side connection
+    // handling plus mDNS re-advertisement), so poll instead of asserting a momentary snapshot.
+    ListPtr<IConnectedClientInfo> waitForConnectedClients(
+        size_t expectedCount,
+        std::chrono::milliseconds timeout = std::chrono::seconds(15))
+    {
+        const auto deadline = std::chrono::steady_clock::now() + timeout;
+
+        auto connectedClients = getConnectedClients();
+        while (connectedClients.getCount() != expectedCount && std::chrono::steady_clock::now() < deadline)
+        {
+            std::this_thread::sleep_for(std::chrono::milliseconds(100));
+            connectedClients = getConnectedClients();
+        }
+        return connectedClients;
+    }
+
     InstancePtr serverInstance;
     InstancePtr clientInstance;
 };
@@ -241,7 +258,7 @@ TEST_F(ConnectedClientsDiscoveryTest, NativeConnectedClients)
 
         // native streaming client
         auto device = clientInstance.addDevice("daq.ns://127.0.0.1");
-        auto connectedClientsInfo = getConnectedClients();
+        auto connectedClientsInfo = waitForConnectedClients(1);
         ASSERT_EQ(connectedClientsInfo.getCount(), 1u);
 
         ASSERT_EQ(connectedClientsInfo[0].getProtocolType(), ProtocolType::Streaming);
@@ -250,12 +267,12 @@ TEST_F(ConnectedClientsDiscoveryTest, NativeConnectedClients)
         ASSERT_TRUE(connectedClientsInfo[0].getAddress().toStdString().find("127.0.0.1") != std::string::npos);
 
         clientInstance.removeDevice(device);
-        ASSERT_EQ(getConnectedClients().getCount(), 0u);
+        ASSERT_EQ(waitForConnectedClients(0).getCount(), 0u);
     }
     {
         // native configuration & streaming client
         auto device = clientInstance.addDevice("daq.nd://127.0.0.1");
-        auto connectedClientsInfo = getConnectedClients();
+        auto connectedClientsInfo = waitForConnectedClients(2);
         ASSERT_EQ(connectedClientsInfo.getCount(), 2u);
 
         ASSERT_EQ(connectedClientsInfo[0].getProtocolType(), ProtocolType::Configuration);
@@ -271,7 +288,7 @@ TEST_F(ConnectedClientsDiscoveryTest, NativeConnectedClients)
         ASSERT_EQ(connectedClientsInfo[0].getHostName(), connectedClientsInfo[1].getHostName());
 
         clientInstance.removeDevice(device);
-        ASSERT_EQ(getConnectedClients().getCount(), 0u);
+        ASSERT_EQ(waitForConnectedClients(0).getCount(), 0u);
     }
     {
         // native configuration exclusive control client
@@ -280,7 +297,7 @@ TEST_F(ConnectedClientsDiscoveryTest, NativeConnectedClients)
 
         test_helpers::connectInstanceWithClientType(clientInstance, "daq.nd://127.0.0.1", ClientType::ExclusiveControl);
         auto device = clientInstance.getDevices()[0];
-        auto connectedClientsInfo = getConnectedClients();
+        auto connectedClientsInfo = waitForConnectedClients(2);
         ASSERT_EQ(connectedClientsInfo.getCount(), 2u);
 
         ASSERT_EQ(connectedClientsInfo[0].getProtocolType(), ProtocolType::Configuration);
@@ -318,8 +335,7 @@ TEST_F(ConnectedClientsDiscoveryTest, LtConnectedClients)
         }
 
         auto device = clientInstance.addDevice("daq.lt://127.0.0.1");
-        CONDITIONAL_SLEEP;
-        auto connectedClientsInfo = getConnectedClients();
+        auto connectedClientsInfo = waitForConnectedClients(1);
         ASSERT_EQ(connectedClientsInfo.getCount(), 1u);
 
         ASSERT_EQ(connectedClientsInfo[0].getProtocolType(), ProtocolType::Streaming);
@@ -328,7 +344,7 @@ TEST_F(ConnectedClientsDiscoveryTest, LtConnectedClients)
         ASSERT_TRUE(connectedClientsInfo[0].getAddress().toStdString().find("127.0.0.1") != std::string::npos);
 
         clientInstance.removeDevice(device);
-        ASSERT_EQ(getConnectedClients().getCount(), 0u);
+        ASSERT_EQ(waitForConnectedClients(0).getCount(), 0u);
     }
 }
 
@@ -355,13 +371,13 @@ TEST_F(ConnectedClientsDiscoveryTest, OpcuaConnectedClients)
         }
 
         auto device = clientInstance.addDevice("daq.opcua://127.0.0.1");
-        auto connectedClientsInfo = getConnectedClients();
+        auto connectedClientsInfo = waitForConnectedClients(1);
         ASSERT_EQ(connectedClientsInfo.getCount(), 1u);
 
         ASSERT_EQ(connectedClientsInfo[0].getProtocolType(), ProtocolType::Configuration);
         ASSERT_EQ(connectedClientsInfo[0].getProtocolName(), "OpenDAQOPCUA");
 
         clientInstance.removeDevice(device);
-        ASSERT_EQ(getConnectedClients().getCount(), 0u);
+        ASSERT_EQ(waitForConnectedClients(0).getCount(), 0u);
     }
 }

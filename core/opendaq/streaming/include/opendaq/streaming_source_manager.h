@@ -53,8 +53,8 @@ private:
 
     static ListPtr<IMirroredDeviceConfig> getAllDevicesRecursively(const MirroredDeviceConfigPtr& device);
 
-    AddressInfoPtr findMatchingAddress(const ListPtr<IAddressInfo>& availableAddresses,
-                                       const AddressInfoPtr& deviceConnectionAddress);
+    ListPtr<IAddressInfo> getSuitableAddressesInfo(const ListPtr<IAddressInfo>& availableAddressesInfo,
+                                                   const AddressInfoPtr& deviceConnectionAddress);
     static AddressInfoPtr getDeviceConnectionAddress(const DevicePtr& device);
     void completeStreamingConnections(const MirroredDeviceConfigPtr& topDevice);
     void attachStreamingsToDevice(const MirroredDeviceConfigPtr& device);
@@ -219,7 +219,7 @@ inline void StreamingSourceManager::enableStreamingForAddedComponent(const Compo
     if (allStreamingSources.empty())
         return;
 
-    auto setupStreamingForSignal = [this, &allStreamingSources](const SignalPtr& signal)
+    auto addSignalToStreamings = [this, &allStreamingSources](const SignalPtr& signal)
     {
         if (!signal.getPublic())
             return;
@@ -244,6 +244,12 @@ inline void StreamingSourceManager::enableStreamingForAddedComponent(const Compo
                 checkErrorInfo(errCode);
             }
         }
+    };
+
+    auto activateStreamingForSignal = [this, &allStreamingSources](const SignalPtr& signal)
+    {
+        if (!signal.getPublic())
+            return;
         auto mirroredSignalConfigPtr = signal.template asPtr<IMirroredSignalConfig>();
         if (!mirroredSignalConfigPtr.getActiveStreamingSource().assigned())
         {
@@ -265,16 +271,17 @@ inline void StreamingSourceManager::enableStreamingForAddedComponent(const Compo
     };
 
     // setup streaming sources for all signals of the new component
+    ListPtr<ISignal> addedSignals = List<ISignal>();
     if (auto addedSignal = addedComponent.asPtrOrNull<ISignal>(); addedSignal.assigned())
-    {
-        setupStreamingForSignal(addedSignal);
-    }
+        addedSignals.pushBack(addedSignal);
     else if (auto addedFolder = addedComponent.asPtrOrNull<IFolder>(); addedFolder.assigned())
-    {
-        ListPtr<ISignal> nestedSignals = addedFolder.getItems(search::Recursive(search::InterfaceId(ISignal::Id)));
-        for (const auto& nestedSignal : nestedSignals)
-            setupStreamingForSignal(nestedSignal);
-    }
+        addedSignals = addedFolder.getItems(search::Recursive(search::InterfaceId(ISignal::Id)));
+
+    // add all signals before activating any: activation may subscribe a listened signal along with its domain signal, which must already be added
+    for (const auto& signal : addedSignals)
+        addSignalToStreamings(signal);
+    for (const auto& signal : addedSignals)
+        activateStreamingForSignal(signal);
 
     auto setupStreamingForInputPort = [this, &allStreamingSources](const InputPortPtr& inputPort)
     {
@@ -395,35 +402,40 @@ inline ListPtr<IMirroredDeviceConfig> StreamingSourceManager::getAllDevicesRecur
     return result;
 }
 
-inline AddressInfoPtr StreamingSourceManager::findMatchingAddress(const ListPtr<IAddressInfo>& availableAddresses, const AddressInfoPtr& deviceConnectionAddress)
+inline ListPtr<IAddressInfo> StreamingSourceManager::getSuitableAddressesInfo(const ListPtr<IAddressInfo>& availableAddressesInfo,
+                                                                              const AddressInfoPtr& deviceConnectionAddress)
 {
+    
+    auto result = List<IAddressInfo>();
+
+    auto const addToResult = [&result, &deviceConnectionAddress](AddressInfoPtr addressInfo)
+    {
+        if (deviceConnectionAddress.assigned() && addressInfo.getAddress() == deviceConnectionAddress.getAddress())
+            result.pushFront(addressInfo);
+        else
+            result.pushBack(addressInfo);
+    };
+
     if (primaryAddressType == "IPv4" || primaryAddressType == "IPv6")
     {
-        // Attempt to reuse the address of device connection if it meets type constraints
-        if (deviceConnectionAddress.assigned() && deviceConnectionAddress.getType() == primaryAddressType)
-        {
-            for (const auto& addressInfo : availableAddresses)
-                if (addressInfo.getAddress() == deviceConnectionAddress.getAddress())
-                    return addressInfo;
-        }
-
-        // If the device connection address is unavailable for streaming, search for any address matching type constraints
-        for (const auto& addressInfo : availableAddresses)
+        for (const auto& addressInfo : availableAddressesInfo)
         {
             if (addressInfo.getType() == primaryAddressType)
-                return addressInfo;
+                addToResult(addressInfo);
         }
+
+        if (!result.empty())
+            return result;
+
         LOG_W("Server streaming capability does not provide any addresses of primary {} type", primaryAddressType);
     }
 
-    // Attempt to reuse the address of device connection
-    for (const auto& addressInfo : availableAddresses)
+    for (const auto& addressInfo : availableAddressesInfo)
     {
-        if (deviceConnectionAddress.assigned() && addressInfo.getAddress() == deviceConnectionAddress.getAddress())
-            return addressInfo;
+        addToResult(addressInfo);
     }
 
-    return nullptr;
+    return result;
 }
 
 inline AddressInfoPtr StreamingSourceManager::getDeviceConnectionAddress(const DevicePtr& device)
@@ -469,7 +481,7 @@ inline void StreamingSourceManager::completeStreamingConnections(const MirroredD
 
 inline void StreamingSourceManager::attachStreamingsToDevice(const MirroredDeviceConfigPtr& device)
 {
-    // Get the address used for device connection
+    // Get the full address information used for device configuration connection
     const auto deviceConnectionAddress = getDeviceConnectionAddress(device);
 
     const ModuleManagerUtilsPtr managerUtils = this->context.getModuleManager().template asPtr<IModuleManagerUtils>();
@@ -581,34 +593,45 @@ inline void StreamingSourceManager::attachStreamingsToDevice(const MirroredDevic
         ListPtr<IAddressInfo> addressesToUse =
             (discoveredAddrsByProtocol.count(protocolId) > 0) ? discoveredAddrsByProtocol.at(protocolId) : cap.getAddressInfo();
 
-        const auto streamingAddress = findMatchingAddress(addressesToUse, deviceConnectionAddress);
-        const auto connectionString = streamingAddress.assigned() ? streamingAddress.getConnectionString() : cap.getConnectionString();
+        // get the addresses of primary type giving the priority to known config connection address
+        const auto suitableAddressesInfo = getSuitableAddressesInfo(addressesToUse, deviceConnectionAddress);
 
-        if (!connectionString.assigned())
-            continue;
+        auto streamingConnectionStrings = List<IString>();
+        for (const auto& addressInfo : suitableAddressesInfo)
+            streamingConnectionStrings.pushBack(addressInfo.getConnectionString());
+        if (streamingConnectionStrings.empty())
+            streamingConnectionStrings.pushBack(cap.getConnectionString());
 
-        const auto sameConnectionString = [&connectionString](const StreamingPtr& item)
+        // try all suitable addresses until the first successful streaming connection
+        for (const auto& connectionString : streamingConnectionStrings)
         {
-            return connectionString == item.getConnectionString();
-        };
+            if (!connectionString.assigned())
+                continue;
 
-        if (anyStreamingMatches(addedStreamingSources, sameConnectionString))
-            continue;
-
-        StreamingPtr streaming;
-
-        auto errCode = daqTry(
-            [&]()
+            const auto sameConnectionString = [&connectionString](const StreamingPtr& item)
             {
-                streaming = managerUtils.createStreaming(connectionString, deviceConfig);
-                return OPENDAQ_SUCCESS;
-            });
-        if (OPENDAQ_FAILED(errCode))
-            daqClearErrorInfo();
-        if (!streaming.assigned())
-            continue;
+                return connectionString == item.getConnectionString();
+            };
 
-        prioritizedStreaming.emplace_back(*priority, streaming);
+            if (anyStreamingMatches(addedStreamingSources, sameConnectionString))
+                break;
+
+            StreamingPtr streaming;
+
+            auto errCode = daqTry(
+                [&]()
+                {
+                    streaming = managerUtils.createStreaming(connectionString, deviceConfig);
+                    return OPENDAQ_SUCCESS;
+                });
+            if (OPENDAQ_FAILED(errCode))
+                daqClearErrorInfo();
+            if (!streaming.assigned())
+                continue;
+
+            prioritizedStreaming.emplace_back(*priority, streaming);
+            break;
+        }
     }
 
     std::stable_sort(prioritizedStreaming.begin(),

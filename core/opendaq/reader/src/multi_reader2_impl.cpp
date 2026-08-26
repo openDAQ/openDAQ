@@ -8,6 +8,7 @@
 #include <opendaq/input_port_factory.h>
 #include <opendaq/multi_reader2_impl.h>
 #include <opendaq/tags_private_ptr.h>
+#include <opendaq/work_factory.h>
 
 #include <algorithm>
 #include <unordered_set>
@@ -158,6 +159,25 @@ ErrCode MultiReader2Impl::configure(IMultiReader2Params* params)
     slots = std::move(reordered);
     mainInputId = mainInput.assigned() ? mainInput.getGlobalId() : slots.front().inputId;
 
+    if (!notificationWork.assigned())
+    {
+        scheduler = context.assigned() ? context.getScheduler() : nullptr;
+        notificationWork = Work([this, thisRef = this->getWeakRefInternal<IMultiReader2>()]
+        {
+            const auto self = thisRef.getRef();
+            if (!self.assigned())
+                return;
+
+            InputPortPtr port;
+            EventArgsPtr<> args;
+            onDataAvailable(port, args);
+
+            // Re-schedule instead of looping: keeps tasks bounded and scheduler workers fair
+            if (dataManager.armDataAvailable())
+                scheduleNotificationPass();
+        });
+    }
+
     auto newWiring = std::make_shared<Wiring>();
     for (SizeT i = 0; i < slots.size(); i++)
         newWiring->portMap[slots[i].port.asPtr<IInputPort>(true)] = {i, slots[i].inputId};
@@ -181,6 +201,28 @@ ErrCode MultiReader2Impl::getMainInput(IString** inputId)
     std::scoped_lock lock(mutex);
     *inputId = mainInputId.addRefAndReturn();
     return OPENDAQ_SUCCESS;
+}
+
+void MultiReader2Impl::scheduleNotificationPass()
+{
+    if (scheduler.assigned() && notificationWork.assigned())
+    {
+        // A failed schedule (e.g. stopped scheduler) re-arms so a later packet can retry
+        if (OPENDAQ_FAILED(scheduler->scheduleWork(notificationWork)))
+        {
+            daqClearErrorInfo();
+            dataManager.armDataAvailable();
+        }
+        return;
+    }
+
+    // No scheduler in the context: degrade to running the pass inline
+    do
+    {
+        InputPortPtr port;
+        EventArgsPtr<> args;
+        onDataAvailable(port, args);
+    } while (dataManager.armDataAvailable());
 }
 
 ErrCode MultiReader2Impl::getAvailableCount(SizeT* count)
@@ -330,15 +372,9 @@ ErrCode MultiReader2Impl::packetReceived(IInputPort* port)
         }
     } while (count == batchCapacity);
 
-    // Notification pass: run the callback until the manager re-arms on an empty condition
+    // The pass runs on a scheduler worker; the producer only enqueues the coalesced task
     if (notify)
-    {
-        do
-        {
-            EventArgsPtr<> args;
-            onDataAvailable(portPtr, args);
-        } while (dataManager.armDataAvailable());
-    }
+        scheduleNotificationPass();
 
     return OPENDAQ_SUCCESS;
 }

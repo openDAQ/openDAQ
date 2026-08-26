@@ -23,6 +23,8 @@
 #include <opendaq/input_port_notifications.h>
 #include <opendaq/multi_reader2.h>
 #include <opendaq/multi_reader_data_manager.h>
+#include <opendaq/scheduler_ptr.h>
+#include <opendaq/work_ptr.h>
 
 #include <memory>
 #include <mutex>
@@ -77,6 +79,7 @@ private:
     };
 
     std::vector<Slot>::iterator findSlot(const StringPtr& inputId);
+    void scheduleNotificationPass();
     ErrCode addInputComponent(const ComponentPtr& component);
     void detachSlot(Slot& slot);
 
@@ -89,6 +92,8 @@ private:
     std::vector<Slot> slots;
     StringPtr mainInputId;
     std::shared_ptr<const Wiring> wiring;
+    SchedulerPtr scheduler;
+    WorkPtr notificationWork;
     MultiReaderDataManager dataManager;
 };
 

@@ -127,6 +127,9 @@ function(create_component_source_groups_${BASE_NAME})
     )
     
     source_group("reader//multi" FILES 
+        ${SDK_HEADERS_DIR}/multi_reader2.h
+        ${SDK_HEADERS_DIR}/multi_reader2_impl.h
+        ${SDK_SRC_DIR}/multi_reader2_impl.cpp
         ${SDK_HEADERS_DIR}/multi_reader_builder.h
         ${SDK_HEADERS_DIR}/multi_reader_builder_impl.h
         ${SDK_HEADERS_DIR}/multi_reader.h
@@ -142,6 +145,7 @@ function(create_component_source_groups_${BASE_NAME})
 endfunction()
 
 set(SRC_PublicHeaders_Component 
+    multi_reader2.h
     reader_factory.h
     reader_errors.h
     reader_exceptions.h
@@ -154,6 +158,7 @@ set(SRC_PublicHeaders_Component
 )
 
 set(SRC_PrivateHeaders_Component
+    multi_reader2_impl.h
     stream_reader_impl.h
     stream_reader_builder_impl.h
     block_reader_impl.h
@@ -182,6 +187,7 @@ set(SRC_Cpp_Component
     reader_impl.cpp
     typed_reader.cpp
     multi_reader_impl.cpp
+    multi_reader2_impl.cpp
     multi_reader_builder_impl.cpp
     signal_reader.cpp
     reader.natvis

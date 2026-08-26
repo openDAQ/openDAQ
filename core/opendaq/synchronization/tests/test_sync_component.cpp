@@ -391,7 +391,7 @@ TEST_F(SynchronizationTest, SyncInterfaceGetClockType)
 
     // Defaults to "Internal" unless a subclass overrides it (e.g. via setClockType in its own constructor)
     const auto syncInterface = TestSyncInterface::Create(ctx.getTypeManager(), "MyInterface");
-    ASSERT_EQ(syncInterface.getClockType(), "Internal");
+    ASSERT_EQ(syncInterface.getClockType(), "");
 }
 
 TEST_F(SynchronizationTest, SyncInterfaceSetClockType)

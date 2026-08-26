@@ -122,43 +122,164 @@ After `configure` releases the facade mutex, every connected port gets `IConnect
   equality with tick scaling onto the main lattice stays.
 - Data-loss / producer-liveness monitoring (also removed on the remove-ladder-system branch).
 
+## Size comparison
+
+Three implementations of the same component, counted over every file exclusive to the multi
+reader including its helper headers. `raw` is every line; `code` excludes blank and
+comment-only lines.
+
+| | files | headers raw/code | sources raw/code | **total raw** | **total code** |
+|---|---|---|---|---|---|
+| Old multi reader (`main`) | 11 | 1502 / 738 | 2670 / 2172 | **4172** | **2910** |
+| Rework (`refactor/remove-ladder-system`) | 30 | 3883 / 1698 | 6841 / 5067 | **10724** | **6765** |
+| MultiReader2 (this branch) | 13 | 778 / 354 | 1756 / 1425 | **2534** | **1779** |
+
+MultiReader2 is 61% of the old reader and 26% of the rework by code lines. The rework is 2.3x
+the reader it replaces.
+
+Files counted — old: `multi_reader{,_builder,_builder_impl,_impl,_status}.*`,
+`multi_typed_reader.h`, `signal_reader.{h,cpp}`, `reader_domain_info.h`. Rework: the same public
+set plus `multi_reader_status_builder*`, `domain_value.h` (435), `enum_flags.h`,
+`typed_reading_utils.{h,cpp}` (804), and the nine-header/seven-source `multi_reader/` directory.
+MultiReader2: `multi_reader2*.{h,cpp}` plus `multi_reader_data_manager.{h,cpp}`.
+
+Where the rework's bulk sits: `multi_reader_impl.cpp` 2291, `queue_reader.cpp` 1011,
+`state_machine.cpp` 988, `typed_reading_utils.cpp` 725, `synchronization_manager.cpp` 618,
+`domain_value.h` 435, `input.cpp` 397. MultiReader2's equivalents: `multi_reader_data_manager.cpp`
+1094 and `multi_reader2_impl.cpp` 441. There is no separate typed-reading unit here — conversion
+is 60 lines inside the manager — and no domain-value type family.
+
+Tests, for scale: old 5467 lines in one file; rework 8584 across ten files (4245 public, 4339
+white box, plus a 568-line benchmark); MultiReader2 4018 across four files (1284 unit, 2018
+migrated public + white-box ports, 347 catalogue, 369 sum-FB functional). Test-to-code ratio:
+1.9 old, 1.3 rework, 2.3 here.
+
 ## Differences vs the remove-ladder-system rework
 
-Recorded 2026-08-26 against `refactor/remove-ladder-system` (openDAQ_Tomaz clone), the full
-rewrite of the existing multi reader (~85 files, +20k lines: QueueReader per input,
-SynchronizationManager, ReadCoordinator, NotificationCoordinator, lock-free callback gate;
-currently mid-migration between two state machines).
+Recorded 2026-08-26 against `refactor/remove-ladder-system` (openDAQ_Tomaz clone) and refined
+by porting its test suites. Grouped below into behaviour differences (both readers do the job,
+differently), issues (defects in MultiReader2 found by the migration), missing features (theirs
+has it, we do not), and new features (ours has it, theirs does not).
 
-What MultiReader2 gains:
-- ~1/4 the code; one consumer mutex plus a producer path auditable in one function, versus a
-  callback-gate/pass-epoch protocol whose data-first rule lives in four places and two live
-  state machines.
-- A transactional event contract: park -> setUsed/setActive inside the window -> commitEvent,
-  with the same status re-reported until committed. Theirs applies events at read time and
-  signals through a count==0 handshake convention.
-- One mutation path (params + configure = full reset) versus five incremental mutators with
-  bespoke invalidation.
-- Descriptor correctness decoupled from queue survival (versioned merged cache); theirs must
-  keep event packets alive in queues with exact O(1) connection counters.
-- Machine-readable per-input error codes versus an InputState enum plus a diagnostic string.
+### Behaviour differences
 
-What the rework has that MultiReader2 does not:
-- Multi-rate reads (LCM/required common rate, dividers, block quanta) - deliberately cut here.
-- Cross-domain unification: rational-GCD common resolution, earliest-common epoch with parsed
-  origins and absolute-time distance checks (our epoch parsing is accepted but not yet built;
-  we check distance in ticks).
-- Alignment tolerance: half-block attributability, startOnFullUnitOfDomain, latched sync
-  target; we require exact lattice hits.
-- Read timeouts, skipSamples, Scaled/Unscaled/RawValue modes, auto-resolved Undefined read
-  type, per-descriptor pre-resolved conversion functions, any-rank values, per-signal domain
-  outputs.
-- Status polish: synthesized main-descriptor packet, diagnostic message, allocation-free
-  cached status snapshots; plus benchmarks backing micro-decisions.
-- Sync failure there keeps the failed input's buffered data; we discard it.
+1. **Event-first versus data-first.** The rework serves samples staged in front of a descriptor
+   boundary before reporting the event, and bounds `getAvailableCount` at the boundary.
+   MultiReader2 zeroes availability the moment an event is queued anywhere and discards the
+   staged samples on delivery. Ported as `DropOutdatedPacketSegments` and
+   `AvailabilityStopsAtEventBoundary`, both asserting our answer; the divergence is FINDING 16.
+2. **Connect on an unused input.** The rework answers it without disturbing alignment — an
+   excluded input cannot change a model built from the used ones. MultiReader2 treats every
+   connect as a wiring change and parks, so a mid-block reader stops to be reconciled. Ported
+   inverted as `ConnectingAnUnusedInputParksTheReader`.
+3. **Scope of a disconnect.** The rework discards only the disconnected slot's queue.
+   MultiReader2 restarts synchronization, so every surviving input's unread block goes too.
+   Ported widened as `DisconnectDiscardsWhatTheSlotHasAdopted`.
+4. **When a bad domain is diagnosed.** The rework classifies at model-build time and names the
+   input immediately. MultiReader2 classifies during synchronization, so the error surfaces one
+   read after the descriptor event is committed — and for a permanently missing domain
+   descriptor, only when the 2 s deadline expires (FINDING 18).
+5. **Sync failure and buffered data.** Theirs keeps the failed input's buffered data; we discard
+   it.
+6. **Mutation model.** One path here — params plus `configure`, a full reset — versus five
+   incremental mutators with bespoke invalidation.
+7. **Event application.** Transactional here: park, `setUsed`/`setActive` inside the window,
+   `commitEvent`, with the same status re-reported until committed. Theirs applies events at
+   read time and signals through a `count == 0` handshake convention.
+8. **Failure reporting.** Machine-readable per-input error codes here; an `InputState` enum plus
+   a human diagnostic string there.
+9. **Terminal state.** Theirs has a `markAsInvalid` no trigger can leave. Every failure here is
+   per-input and recoverable through a fresh descriptor.
+10. **Descriptor ownership.** Versioned merged cache here, so descriptor correctness is
+    decoupled from queue survival. Theirs keeps event packets alive in the queues with exact
+    O(1) connection counters.
+11. **Wake model.** Transition-triggered bitmasks and a single `armed` flag exchanged to elect
+    one waker, versus ready/used counters and a pass-epoch parity guard.
+12. **Blocking.** `read` never blocks here; theirs supports read timeouts.
 
-Closed since the comparison was first made: the data path, conversion, minReadCount,
-packetOffset, gap surfacing, callback-driven consumption, and the exported factories all
-now exist here. Neither implementation monitors producer liveness or resamples.
+### Issues found (all recorded as tests, none fixed — validation pass only)
+
+| # | Issue | Evidence |
+|---|---|---|
+| 1 | The sum block configures its output only when every input is healthy, so one bad input silences a block that could still sum the rest | `test_fb_sum.cpp` (DISABLED) |
+| 2 | An invalid **main** input is never surfaced: every committed event restarts sync, so the main input's own failure is reported as "waiting" forever | `test_fb_sum.cpp` (DISABLED) |
+| 3 | Gaps are counted, not queued, so the boundary position is unknown and post-gap data in the same window is discarded with the pre-gap data | `test_fb_sum.cpp` (DISABLED) |
+| 3b/4 | Consequences of 3: recovery after an offset jump is racy (~1 run in 3 fails) | `test_fb_sum.cpp` (DISABLED) |
+| 5 | Mixed epochs cannot align — origin strings are compared, never parsed | `DISABLED_MixedEpochsAlign` |
+| 6 | Mixed tick resolutions are rejected unless the effective rate matches exactly | `DISABLED_MixedResolutionsAlign` |
+| 7 | `read(nullptr, &count)` — every existing consumer's event probe — throws `ArgumentNull` | `DISABLED_NullBufferEventProbe` |
+| 8 | A callback-only consumer is never woken: the notification `Work` is single-shot and discards `armDataAvailable()`'s "another pass is owed" return, so the reader latches disarmed | `DISABLED_MultiReaderOnReadCallback`, `DISABLED_RequestDuringEvaluationSchedulesFollowUp` |
+| 9 | `setActive` is legal only inside an event window; the old reader accepted it any time | `MultiReaderActive` (adapted) |
+| 10 | `getAvailableCount` returns 0 until a read has run — synchronization is driven only from `read` — so the classic `if (available >= n) read()` loop never starts. With 8, neither standard consumption pattern works unaided | `DISABLED_AvailableCountBeforeFirstRead`; every ported availability assertion needs a `syncByRead` first |
+| 11 | `Config::requireSameRates` is written by the facade and never read: equal rates are unconditional, so the parameter is a lie | verified by grep; `ModelEqualRatePolicyViolation` is the test that would cover it |
+| 12 | `clear()` has zero callers and resets staged data but not `synced`, `syncStarted`, `nextReadTick` or `deliveredGaps` — a cleared reader still believes it is synchronized against a stale start tick | dead code with a latent bug |
+| 13 | `getAvailableCount` ignores `minReadCount`, so it can promise N samples `read` will then refuse | compounds 10 |
+| 14 | Three unguarded `Int` multiplications in the sync path (rate comparison, distance bound, tick scaling) overflow silently at nanosecond resolution with a large scaling factor | their `CheckedArithmetic` / `RealisticTimeStamp` guard exactly this |
+| 15 | `parseDomain` never inspects `getDimensions()`, so a dimensioned **domain** descriptor is accepted, while `convertibleValue` rejects dimensioned values — an asymmetry that looks like an oversight | their `DomainWithDimensionsRejected` |
+| 16 | Event-first policy discards buffered data in front of a boundary and zeroes availability (see behaviour difference 1) | `DropOutdatedPacketSegments`, `AvailabilityStopsAtEventBoundary` |
+| 17 | A fresh status object is allocated on every read; theirs re-issues one instance while the visible content is unchanged, so a polling consumer allocates once per poll | `StatusCachedWhileUnchangedNewOnChange` |
+| 18 | A permanently missing domain descriptor is diagnosed 2 s late rather than immediately | `ModelMissingDomainDescriptor` |
+
+Findings 11–15 are code defects found by mapping their tests onto our internals rather than by
+running anything; each was verified in the source. Findings 8 and 10 are the two that block
+real consumers and should be fixed first.
+
+### Missing features (rework has, MultiReader2 does not)
+
+- Multi-rate reads: LCM common rate, `requiredCommonSampleRate`, per-input dividers, block
+  quanta, `startOnFullUnitOfDomain`. Deliberately cut 2026-08-26.
+- Cross-domain unification: parsed ISO origins, earliest-common epoch, rational-GCD common
+  resolution, absolute-time distance checks. Epoch parsing is accepted but not built.
+- Alignment tolerance: half-block attributability, latched sync target. We require exact
+  lattice hits.
+- Read timeouts, `skipSamples`, `Scaled`/`Unscaled`/`RawValue` modes, auto-resolved `Undefined`
+  read type, per-descriptor pre-resolved conversion functions.
+- Any-rank values (vector, matrix, struct) and explicit domain rules.
+- A `DomainValue`/`DomainInfo` type family able to express a sample's absolute time.
+- Per-signal domain outputs; `getCommonSampleRate`/`getOffset`/`getTickResolution`/`getOrigin`
+  accessors; a synthesized main-descriptor event packet; a human-readable diagnostic message.
+- `MultiReaderFromExisting`, `dispose()`, configurable notification method.
+- Cached status snapshots (finding 17) and a benchmark suite.
+
+### New features (MultiReader2 has, rework does not)
+
+- A transactional event window: the reader parks on an event, `setUsed`/`setActive` are legal
+  only there, and `commitEvent` is the single point where wiring and synchronization restart.
+  Nothing else in openDAQ's readers has an atomic reconfigure point.
+- Machine-readable per-input error codes (`SyncFailed`, `DataLoss`, `Gap`, `InvalidDescriptor`,
+  `InvalidDomain`, `Disconnected`) instead of a state enum plus prose.
+- A single mutation path: an immutable params object plus `configure`, which cuts the wiring,
+  mutates under lock, rebuilds, and re-bootstraps outside the lock.
+- `readWithDomain` returning Int64 main-input ticks, and `packetOffset` from `read`, so a
+  consumer can place a block on the timeline without a domain buffer.
+- A versioned merged descriptor cache: the producer folds deltas into full-state packets, so
+  the consumer never depends on an event packet surviving in a queue.
+- Explicit `used` semantics as a first-class per-input concept, so a block with dynamic ports
+  can exclude an input without disconnecting it (this is what the sum FB's `BadInputHandling`
+  property switches between).
+- Integer-sample-rate validation (`resolutionDen % (resolutionNum * delta) == 0`) that rejects
+  domains no consumer could align, up front.
+- A lock-free producer path: `addPacket` takes no lock, publishing into an SPSC dummy-node
+  queue and electing a single waker by `armed.exchange(false)`.
+
+## Test migration results
+
+The public suite on `main` has 107 named cases; 33 port live, 74 are catalogued as out of scope
+or regressions in `test_multi_reader2_unsupported.cpp` (43 of those are the reference-domain
+family, which MultiReader2 has no notion of at all). The rework branch's public suite has 72
+cases — 60 shared with main, 12 new — of which 5 are ported.
+
+The rework's 117 white-box and utility cases were evaluated one by one: 1 maps directly, 60 can
+be adapted through the public API, 5 are expressible but currently fail, and 51 need a feature
+that does not exist here. 15 are ported. The reason only one maps directly is structural: their
+tests target six classes (`QueueReader`, `Input`, `CallbackGate`, `NotificationCoordinator`,
+`SynchronizationManager`, `ReadCoordinator`) and MultiReader2 has no white-box seam —
+`MultiReaderDataManager`'s public surface is twelve methods, every helper is private, and there
+is no `friend` and no test hook.
+
+Current state: reader suite 2116/2116 green with 8 disabled findings; module suite 81/81 with 4
+disabled. Suites: `MultiReader2Test` 28, `MultiReaderDataManagerTest` 28,
+`MultiReader2MigrationTest` 54.
 
 ## Notes / quirks
 

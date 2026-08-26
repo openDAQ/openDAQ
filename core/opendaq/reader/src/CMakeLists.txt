@@ -133,9 +133,11 @@ function(create_component_source_groups_${BASE_NAME})
         ${SDK_HEADERS_DIR}/multi_reader2_params_impl.h
         ${SDK_HEADERS_DIR}/multi_reader2_status.h
         ${SDK_HEADERS_DIR}/multi_reader2_status_impl.h
+        ${SDK_HEADERS_DIR}/multi_reader_data_manager.h
         ${SDK_SRC_DIR}/multi_reader2_impl.cpp
         ${SDK_SRC_DIR}/multi_reader2_params_impl.cpp
         ${SDK_SRC_DIR}/multi_reader2_status_impl.cpp
+        ${SDK_SRC_DIR}/multi_reader_data_manager.cpp
         ${SDK_HEADERS_DIR}/multi_reader_builder.h
         ${SDK_HEADERS_DIR}/multi_reader_builder_impl.h
         ${SDK_HEADERS_DIR}/multi_reader.h
@@ -169,6 +171,7 @@ set(SRC_PrivateHeaders_Component
     multi_reader2_impl.h
     multi_reader2_params_impl.h
     multi_reader2_status_impl.h
+    multi_reader_data_manager.h
     stream_reader_impl.h
     stream_reader_builder_impl.h
     block_reader_impl.h
@@ -200,6 +203,7 @@ set(SRC_Cpp_Component
     multi_reader2_impl.cpp
     multi_reader2_params_impl.cpp
     multi_reader2_status_impl.cpp
+    multi_reader_data_manager.cpp
     multi_reader_builder_impl.cpp
     signal_reader.cpp
     reader.natvis

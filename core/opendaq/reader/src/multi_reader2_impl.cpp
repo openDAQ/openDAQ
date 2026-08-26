@@ -2,6 +2,9 @@
 #include <coretypes/event_args_factory.h>
 #include <coreobjects/property_object_factory.h>
 #include <coretypes/validation.h>
+// packet.h must precede connection_internal.h, which uses IPacket without including it
+#include <opendaq/packet.h>
+#include <opendaq/connection_internal.h>
 #include <opendaq/input_port_factory.h>
 #include <opendaq/multi_reader2_impl.h>
 #include <opendaq/tags_private_ptr.h>
@@ -29,18 +32,6 @@ MultiReader2Impl::MultiReader2Impl(IMultiReader2Params* params)
 std::vector<MultiReader2Impl::Slot>::iterator MultiReader2Impl::findSlot(const StringPtr& inputId)
 {
     return std::find_if(slots.begin(), slots.end(), [&inputId](const Slot& slot) { return slot.inputId == inputId; });
-}
-
-// Maps a notifying port to its slot id; falls back to the port id for unknown ports
-StringPtr MultiReader2Impl::findSlotId(IInputPort* port)
-{
-    std::scoped_lock lock(mutex);
-    for (const auto& slot : slots)
-    {
-        if (slot.port == port)
-            return slot.inputId;
-    }
-    return InputPortPtr::Borrow(port).getGlobalId();
 }
 
 // Expects the reader lock to be held
@@ -126,6 +117,9 @@ ErrCode MultiReader2Impl::configure(IMultiReader2Params* params)
     if (mainInput.assigned() && newIds.count(mainInput.getGlobalId().toStdString()) == 0)
         return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDPARAMETER, R"(Main input "%s" is not in the input list)", mainInput.getGlobalId().getCharPtr());
 
+    // Cut the notification wire: callbacks turn into no-ops; in-flight ones keep the old snapshot alive
+    std::atomic_store(&wiring, std::shared_ptr<const Wiring>());
+
     std::scoped_lock lock(mutex);
 
     // Drop inputs missing from the new list
@@ -164,9 +158,18 @@ ErrCode MultiReader2Impl::configure(IMultiReader2Params* params)
     slots = std::move(reordered);
     mainInputId = mainInput.assigned() ? mainInput.getGlobalId() : slots.front().inputId;
 
-    // Cached only; nothing consumes these until the read path exists
-    minReadCount = newMinReadCount;
-    requireSameRates = newRequireSameRates;
+    auto newWiring = std::make_shared<Wiring>();
+    for (SizeT i = 0; i < slots.size(); i++)
+        newWiring->portMap[slots[i].port.asPtr<IInputPort>(true)] = {i, slots[i].inputId};
+    std::atomic_store(&wiring, std::shared_ptr<const Wiring>(std::move(newWiring)));
+
+    MultiReaderDataManager::Config managerConfig;
+    for (const auto& slot : slots)
+        managerConfig.inputIds.push_back(slot.inputId);
+    managerConfig.mainInputId = mainInputId;
+    managerConfig.minReadCount = newMinReadCount;
+    managerConfig.requireSameRates = newRequireSameRates;
+    dataManager.reconfigure(std::move(managerConfig));
 
     return OPENDAQ_SUCCESS;
 }
@@ -182,21 +185,12 @@ ErrCode MultiReader2Impl::getMainInput(IString** inputId)
 
 ErrCode MultiReader2Impl::getAvailableCount(SizeT* count)
 {
-    OPENDAQ_PARAM_NOT_NULL(count);
-
-    // Shell: no packet queues exist yet
-    *count = 0;
-    return OPENDAQ_SUCCESS;
+    return dataManager.getAvailableCount(count);
 }
 
 ErrCode MultiReader2Impl::read(IMultiReader2Status** status, void** data, SizeT* count, SizeT* packetOffset)
 {
-    OPENDAQ_PARAM_NOT_NULL(status);
-    OPENDAQ_PARAM_NOT_NULL(data);
-    OPENDAQ_PARAM_NOT_NULL(count);
-    OPENDAQ_PARAM_NOT_NULL(packetOffset);
-
-    return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOTIMPLEMENTED, "MultiReader2::read is not implemented yet");
+    return dataManager.read(status, data, count, packetOffset);
 }
 
 ErrCode MultiReader2Impl::readWithDomain(IMultiReader2Status** status, void** data, SizeT* count)
@@ -210,44 +204,17 @@ ErrCode MultiReader2Impl::readWithDomain(IMultiReader2Status** status, void** da
 
 ErrCode MultiReader2Impl::commitEvent()
 {
-    std::scoped_lock lock(mutex);
-
-    if (!eventPending)
-        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDSTATE, "No event to commit");
-
-    // Shell: the event queue does not exist yet, only the gate is tracked
-    eventPending = false;
-    return OPENDAQ_SUCCESS;
+    return dataManager.commitEvent();
 }
 
 ErrCode MultiReader2Impl::setUsed(IString* inputId, Bool used)
 {
-    OPENDAQ_PARAM_NOT_NULL(inputId);
-
-    const auto id = StringPtr::Borrow(inputId);
-
-    std::scoped_lock lock(mutex);
-
-    if (!eventPending)
-        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDSTATE, "setUsed is only valid between an event read and commitEvent");
-
-    const auto it = findSlot(id);
-    if (it == slots.end())
-        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOTFOUND, R"(Input "%s" was not added to the reader)", id.getCharPtr());
-
-    it->used = used;
-    return OPENDAQ_SUCCESS;
+    return dataManager.setUsed(inputId, used);
 }
 
 ErrCode MultiReader2Impl::setActive(Bool active)
 {
-    std::scoped_lock lock(mutex);
-
-    if (!eventPending)
-        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDSTATE, "setActive is only valid between an event read and commitEvent");
-
-    this->active = active;
-    return OPENDAQ_SUCCESS;
+    return dataManager.setActive(active);
 }
 
 ErrCode MultiReader2Impl::getOnConnected(IEvent** event)
@@ -286,8 +253,19 @@ ErrCode MultiReader2Impl::connected(IInputPort* port)
 {
     OPENDAQ_PARAM_NOT_NULL(port);
 
+    const auto wire = std::atomic_load(&wiring);
+    if (!wire)
+        return OPENDAQ_SUCCESS;
+
+    // Normalize through queryInterface so the key matches regardless of the caller's interface path
     auto portPtr = InputPortPtr::Borrow(port);
-    auto args = EventArgs(0, findSlotId(port));
+    const auto it = wire->portMap.find(portPtr.asPtrOrNull<IInputPort>(true));
+    if (it == wire->portMap.end())
+        return OPENDAQ_SUCCESS;
+
+    dataManager.connected(it->second.inputId);
+
+    auto args = EventArgs(0, it->second.inputId);
     onConnected(portPtr, args);
     return OPENDAQ_SUCCESS;
 }
@@ -296,14 +274,72 @@ ErrCode MultiReader2Impl::disconnected(IInputPort* port)
 {
     OPENDAQ_PARAM_NOT_NULL(port);
 
+    const auto wire = std::atomic_load(&wiring);
+    if (!wire)
+        return OPENDAQ_SUCCESS;
+
     auto portPtr = InputPortPtr::Borrow(port);
-    auto args = EventArgs(0, findSlotId(port));
+    const auto it = wire->portMap.find(portPtr.asPtrOrNull<IInputPort>(true));
+    if (it == wire->portMap.end())
+        return OPENDAQ_SUCCESS;
+
+    dataManager.disconnected(it->second.inputId);
+
+    auto args = EventArgs(0, it->second.inputId);
     onDisconnected(portPtr, args);
     return OPENDAQ_SUCCESS;
 }
 
-ErrCode MultiReader2Impl::packetReceived(IInputPort* /*port*/)
+ErrCode MultiReader2Impl::packetReceived(IInputPort* port)
 {
+    OPENDAQ_PARAM_NOT_NULL(port);
+
+    const auto wire = std::atomic_load(&wiring);
+    if (!wire)
+        return OPENDAQ_SUCCESS;
+
+    auto portPtr = InputPortPtr::Borrow(port);
+    const auto it = wire->portMap.find(portPtr.asPtrOrNull<IInputPort>(true));
+    if (it == wire->portMap.end())
+        return OPENDAQ_SUCCESS;
+
+    const auto connection = portPtr.getConnection();
+    if (!connection.assigned())
+        return OPENDAQ_SUCCESS;
+
+    const auto internal = connection.asPtrOrNull<IConnectionInternal>(true);
+    if (!internal.assigned())
+        return OPENDAQ_SUCCESS;
+
+    constexpr SizeT batchCapacity = 64;
+    IPacket* batch[batchCapacity];
+
+    bool notify = false;
+    SizeT count;
+    do
+    {
+        count = batchCapacity;
+        if (OPENDAQ_FAILED(internal->dequeueUpTo(batch, &count)))
+            break;
+
+        for (SizeT i = 0; i < count; i++)
+        {
+            const auto packet = PacketPtr::Adopt(batch[i]);
+            if (dataManager.addPacket(it->second.index, packet))
+                notify = true;
+        }
+    } while (count == batchCapacity);
+
+    // Notification pass: run the callback until the manager re-arms on an empty condition
+    if (notify)
+    {
+        do
+        {
+            EventArgsPtr<> args;
+            onDataAvailable(portPtr, args);
+        } while (dataManager.armDataAvailable());
+    }
+
     return OPENDAQ_SUCCESS;
 }
 

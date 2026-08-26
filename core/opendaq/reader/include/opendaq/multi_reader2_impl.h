@@ -22,8 +22,11 @@
 #include <opendaq/input_port_config_ptr.h>
 #include <opendaq/input_port_notifications.h>
 #include <opendaq/multi_reader2.h>
+#include <opendaq/multi_reader_data_manager.h>
 
+#include <memory>
 #include <mutex>
+#include <unordered_map>
 #include <vector>
 
 BEGIN_NAMESPACE_OPENDAQ
@@ -59,11 +62,21 @@ private:
         InputPortConfigPtr port;
         StringPtr inputId;
         bool ownsPort;
-        bool used = true;
+    };
+
+    // Immutable notification wiring; swapped atomically so port callbacks never take the reader lock
+    struct SlotRef
+    {
+        SizeT index;
+        StringPtr inputId;
+    };
+
+    struct Wiring
+    {
+        std::unordered_map<IInputPort*, SlotRef> portMap;
     };
 
     std::vector<Slot>::iterator findSlot(const StringPtr& inputId);
-    StringPtr findSlotId(IInputPort* port);
     ErrCode addInputComponent(const ComponentPtr& component);
     void detachSlot(Slot& slot);
 
@@ -75,10 +88,8 @@ private:
     PropertyObjectPtr portBinder;
     std::vector<Slot> slots;
     StringPtr mainInputId;
-    SizeT minReadCount = 1;
-    Bool requireSameRates = False;
-    Bool active = True;
-    bool eventPending = false;
+    std::shared_ptr<const Wiring> wiring;
+    MultiReaderDataManager dataManager;
 };
 
 END_NAMESPACE_OPENDAQ

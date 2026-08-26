@@ -1537,10 +1537,10 @@ TEST_F(MultiReader2MigrationTest, SyncNeedMoreDataThenSynchronized)
     ASSERT_DOUBLE_EQ(v1[0], 540.0);
 }
 
-// Port of SyncManagerTest::ModelMissingDomainDescriptor. The rework branch names the input that
-// never produced a domain descriptor as soon as the common model is built. MultiReader2 reaches
-// the same diagnosis, but only once the two second sync deadline expires - FINDING 18: a
-// permanently undiagnosable condition is reported two seconds late instead of immediately.
+// Port of SyncManagerTest::ModelMissingDomainDescriptor: the input that never produced a domain
+// descriptor is named as soon as its descriptor is delivered, not at the sync deadline. This is
+// the descriptor-level/sync-level split - a structurally unreadable descriptor is knowable on
+// arrival, and only silence has to wait for the timeout.
 TEST_F(MultiReader2MigrationTest, ModelMissingDomainDescriptor)
 {
     readSignals.reserve(2);
@@ -1559,10 +1559,10 @@ TEST_F(MultiReader2MigrationTest, ModelMissingDomainDescriptor)
 
     sig0.createAndSendPacket(0);
 
-    // Past the two second sync deadline, so anything the deadline would report has been reported
-    std::this_thread::sleep_for(std::chrono::milliseconds(2500));
+    // Well inside the two second deadline: the verdict does not wait for it
     count = 0;
     status = read(reader, nullptr, count);
+    ASSERT_EQ(statusType(status), MultiReader2StatusType::Event);
 
     const auto errors = errorsOf(status);
     ASSERT_EQ(errors.getCount(), 1u);

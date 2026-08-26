@@ -14,21 +14,81 @@ Run: `build/x64/msvc-26/full/bin/Release/test_reader.exe --gtest_filter="MultiRe
 - **`MultiReader2Impl`** (facade) — `ImplementationOfWeak<IMultiReader2, IInputPortNotifications>`. Owns ports (internal ports for signal inputs, portBinder-adopted external ports), all forced to `SameThread`. Forwards everything stateful to the manager.
 - **`MultiReaderDataManager`** — plain C++ engine, value member of the facade, lives for the reader's lifetime. Owns queues, masks, event staging, sync, and the read path.
 - **`IMultiReader2Params`** — get/setInputs (homogeneity validated in setter), MainInput, UnusedInputs, ValueReadType (**mandatory** — getter returns `NOTASSIGNED` until set), MinReadCount (>0), RequireSameRates. Setters store owning copies (never `Borrow` into members — ObjectPtr move propagates the borrowed flag).
-- **`IMultiReader2Status`** — immutable value object: `getStatus` (Data | Event), `getDomainDescriptor` (main's), `getDescriptors` (id→value descriptor), `getDividers` (id→int, empty until dividers phase), `getErrors` (id→`MultiReader2InputError`: SyncFailed, DataLoss, Gap, InvalidDescriptor, InvalidDomain, Disconnected).
+- **`IMultiReader2Status`** — immutable value object: `getStatus` (Data | Event), `getDomainDescriptor` (main's), `getDescriptors` (id→value descriptor), `getDividers` (id→int, empty until dividers phase), `getErrors` (id→`MultiReader2InputError`: SyncTimeout, SyncFailed, DataLoss, Gap, InvalidDescriptor, InvalidDomain, Disconnected).
+- `getErrors` reports the **current condition of every input, used or not**. Absence means healthy. Unused inputs are not synchronized, so their only possible conditions are the descriptor-level ones (`InvalidDescriptor`, `InvalidDomain`, `Disconnected`) — which is exactly what a consumer needs to decide whether to re-adopt one. **The event fires on the edge, the dict reports the level**, so a consumer handed the dict never has to remember anything.
 
 ### Threading model
 
 - **Facade notification paths are lock-free**: an immutable `Wiring` snapshot (`unordered_map<IInputPort*, {index, inputId}>`, queryInterface-normalized keys) swapped via `std::atomic_load/store` on `shared_ptr`. `configure` cuts the wire (null snapshot), mutates under the facade mutex, rewires. In-flight callbacks finish on the old snapshot.
-- **Manager producer paths are lock-free**: `State` snapshot (same atomic-shared_ptr pattern, swapped wholesale on reconfigure). Per slot an `alignas(64)` `SlotCell`: SPSC dummy-node queue (producer owns tail, consumer owns head), `dataPacketCount`, descriptor-event cache. Masks: `readyMask` / `usedMask` / `connectedMask`; counters `pendingEvents`; flags `parked` / `active` / `armed`. 64-input limit (asserted; widen masks to arrays later).
+- **Manager producer paths are lock-free**: `State` snapshot (same atomic-shared_ptr pattern, swapped wholesale on reconfigure). Per slot an `alignas(64)` `SlotCell`: SPSC dummy-node queue (producer owns tail, consumer owns head), `dataPacketCount`, descriptor-event cache, `failureKind` (`atomic<uint8_t>`, 0 = healthy). Masks: `readyMask` / `usedMask` / `connectedMask` / `failedMask`; counters `pendingEvents`; flags `parked` / `userActive` / `held` / `armed`. 64-input limit (asserted; widen masks to arrays later).
+- **`failureKind` is the single source of truth for a slot's condition.** The producer reads it in `addPacket` to evaluate the clearing table (one relaxed load and one branch, only on an already-failed slot — nothing on the healthy path); the consumer builds the errors dict from it. `failedMask` exists so "every used input is clear" is one load rather than N.
+- **Active is two bits.** `userActive` is written only by `setActive` and never by the reader; `held` is derived, recomputed at commit as `(failedMask & usedMask) != 0`. Effective active is `userActive && !held`. They must stay separate: a consumer can be holding for its own reason (a value descriptor its policy rejects) while the reader is held for a sync failure elsewhere, and a single bit would let one condition's recovery silently clear the other.
 - **Consumer calls** (read, commitEvent, getAvailableCount, setUsed/setActive, reconfigure, clear) share one `consumerMutex`. Consumer-side per-slot `SlotView`: staged deque (drained from SPSC), stagedSamples, frontOffset, delivered version, committed descriptors, parsed domain facts, failed flag.
 - **One producer thread per slot** is a precondition (SameThread ports). Producer-only plain members live inside SlotCell (descriptor merge copies).
 
 ### Ingest and wake protocol (`addPacket`)
 
 - **Descriptor events are cache-only, never queued.** Only `DATA_DESCRIPTOR_CHANGED` and `IMPLICIT_DOMAIN_GAP_DETECTED` are accepted; other event packets are dropped. Change packets carry deltas, so the producer keeps plain per-slot value/domain copies (single-writer) and exchanges a rebuilt **full-state merged packet** into the atomic cache (`lastEventPacket`), then bumps `eventVersion` and `pendingEvents`. A gap only bumps a per-slot `gapCount` (plus `pendingEvents`): the next read reports it as an Event with a `Gap` error, the gapped slot's staged data is dropped (it predates a discontinuity), and the commit resyncs. Ownership transfers only by `exchange` on both sides — no load+addRef UAF.
-- **Data packets**: dropped while any used input is disconnected, when the reader is inactive, or the slot unused; otherwise queued. Shared words are touched only on empty→non-empty transitions.
+- **Data packets**: dropped while any used input is disconnected, when the reader is not effectively active, or the slot unused; otherwise queued. Shared words are touched only on empty→non-empty transitions. A dropped packet still evaluates the clearing table first — that is how a held reader learns a silent input has come back.
 - **Wake election**: `deliverable()` = not parked ∧ all used inputs connected ∧ (pendingEvents>0 ∨ (active ∧ all used slots ready)). One producer wins `armed.exchange(false)`; the facade schedules a coalesced notification pass on the openDAQ scheduler (inline single-shot fallback without one). `armDataAvailable` re-checks and reclaims the lost-wakeup window. The facade re-arms after `read`/`commitEvent` so consumption reopens the wake window.
 - **Ready-bit semantics**: a slot's ready bit means *fresh queued data* — the consumer lowers it when it drains the SPSC queue, so staged-but-unconsumable data never re-triggers passes (no spin during sync). The contract for callback consumers is therefore *consume until drained*: reads and commits re-arm, and only new packets wake again. While synchronizing, a flowing input wakes the consumer past the 2s deadline (`syncing` + `syncDeadlineTicks` atomics) so silent peers can time out without a background timer.
+
+### Failure conditions and recovery
+
+A failed input clears on an **edge**, never on a level. That single rule is what keeps a held
+reader from spinning: an out-of-range input is streaming, so "any packet" would re-arm the reader
+on every packet forever, whereas a timed-out input is silent by definition and its first packet is
+a one-shot. State the rule as *what can fire once*, not *what could fix it*, and the table follows.
+
+| condition | raised when | cleared by |
+|---|---|---|
+| `SyncTimeout` | no data on a used input past the sync deadline | any data packet on that input |
+| `SyncFailed` | the input's range is further from main's than the distance bound, or its grid phase cannot meet main's | a gap, or a domain descriptor change |
+| `InvalidDomain` | domain descriptor breaks a local or relational constraint | a domain descriptor change |
+| `InvalidDescriptor` | value descriptor is unreadable, or the domain descriptor is missing | a value descriptor change |
+| `Disconnected` | a used input has no connection | connect (tracked by `connectedMask`, kept out of `failedMask`) |
+
+`Gap` and `DataLoss` are **boundaries, not conditions** — they resolve at the next commit and never
+enter `failedMask`. Keeping the failure set closed at four is what stops this design from sprawling:
+anything added to it needs a clearing condition of its own.
+
+Known wrinkle in `SyncFailed`: the range bound can in principle also be cured by the input's own
+later data, or by main advancing. Both are level-triggered and are therefore deliberately excluded,
+so a transiently lagging input stays out until a discontinuity.
+
+**Recovery raises an event.** Three of the four clearing conditions *are* event packets, and
+`addPacket` already bumps `pendingEvents` for descriptor changes and gaps unconditionally (events
+survive every dropping rule, inactive included), so those already park the reader. Only
+`SyncTimeout`'s data-packet trigger needs an explicit raise, and it is edge-triggered so it fires
+once. Recovery is treated as reading from scratch, which is already the commit semantics.
+
+**The reader holds itself; it never un-uses anything.** If any used input is still failed at commit,
+`held` becomes true and the reader is inactive until every used input's condition clears. A consumer
+never calls `setActive(false)` because of a sync failure — that is the reader's job. `used` stays a
+statement of consumer intent that the reader must not overwrite, which is why re-adoption is
+necessarily consumer-side (see the usage pattern below).
+
+**Main input failure blocks everything.** Every input anchors to the main lattice, so "synchronize
+the survivors" is impossible when main is the failing one. Main is reported like any other input
+(same conditions, same dict) and `held` follows; the only difference is the available remedies —
+`setUsed(false)` on main stays rejected, so the escape is `configure()` with a different main input.
+
+### Consumer usage pattern
+
+The reader owns the condition, the consumer owns the intent:
+
+```
+wanted(id)  = consumer policy over the descriptor       // e.g. unit must match the reference
+setUsed(id, wanted(id) && !inError(id))                 // per input, at every event
+setActive(every non-excludable wanted input is accepted) // consumer-side holds only
+```
+
+Reconciling on every event is not wasteful: the dict only arrives at an event and events fire on
+edges, so "every event" already means "only when something changed". `setActive(false)` remains the
+consumer's remedy for a rejection the reader cannot see — a healthy, readable, syncable input whose
+descriptor the consumer's policy refuses — and applies when the rejected input cannot simply be
+excluded, i.e. when it is the main input. The consumer's own criteria are descriptor predicates, so
+they re-evaluate on the same event edges as the reader's conditions; one loop covers both.
 
 ### Drop-rule table
 
@@ -36,7 +96,7 @@ Run: `build/x64/msvc-26/full/bin/Release/test_reader.exe --gtest_filter="MultiRe
 |---|---|---|
 | normal | queued | cached + version + wake |
 | unused input | dropped at ingest | cached + version + wake |
-| inactive reader | dropped at ingest | cached + version + wake |
+| not effectively active (`!userActive` or `held`) | dropped at ingest, **clearing table still evaluated** | cached + version + wake |
 | any used input disconnected (Waiting) | dropped at ingest | cached + version, **no wake** |
 | parked (event window) | queued (no wake) | cached + version (no wake) |
 | failed input (sync) | dropped at consumer drain | cached; delivery clears failed |
@@ -51,11 +111,11 @@ Run: `build/x64/msvc-26/full/bin/Release/test_reader.exe --gtest_filter="MultiRe
 6. **Sync** (when not waiting and not synced) — see below; failures park.
 7. Otherwise (synced) the data read: plan = min staged run over used, non-failed inputs, clamped to the request and gated by `minReadCount` (a non-zero request below the minimum is INVALIDPARAMETER; available below it reads 0). Samples are copied per slot with sample-type conversion to ValueReadType (scalar numeric sources only, validated at sync), `packetOffset` = main-tick timestamp of the first sample, `readWithDomain` fills buffer 0 with Int64 main-tick timestamps. Buffers of unused/failed inputs are never written (consumers zero them and sum everything).
 
-`getAvailableCount`: 0 while parked / events pending / waiting / not synced; else min of stagedSamples over used, non-failed slots.
+`getAvailableCount`: 0 while parked / events pending / waiting; otherwise it drains, **runs synchronization if not yet synced**, and returns the min of stagedSamples over used, non-failed slots, gated by `minReadCount` (below the minimum reports 0). Running sync from the query mirrors the reader on `main`, whose `getAvailableCount` calls `synchronize()` for exactly this reason: without it a polling consumer's `if (available >= n) read()` loop never starts, because nothing outside `read` sets `synced`. It is not a hot-path cost — once synced the sync call is skipped entirely — and the method already mutates via `drainSlots`. If the sync attempt parks on failure, the query reports 0 and the pending event surfaces on the next `read`.
 
 ### Event window
 
-`commitEvent` is the single transaction point: only state where `setUsed`/`setActive` are legal (INVALIDSTATE otherwise); mask writes apply immediately, `setUsed(false)`/`setActive(false)` discard the affected staged data, `setUsed(true)` clears `failed`. Commit clears the pending status, recomputes `reportedDisconnectMask`, and **restarts sync** with a fresh 2s window. Reconfigure XOR commitEvent: reconfigure cancels the window (fresh state, gates closed, new handshake pending). Reconfigure is legal inside every callback (tested).
+`commitEvent` is the single transaction point. `setUsed` is legal only inside the window because it changes the set of synchronization participants and therefore needs the transaction; `setActive` writes only `userActive`, which interacts with no sync state, so it needs no window. Mask writes apply immediately and `setUsed(false)`/`setActive(false)` discard the affected staged data. **`setUsed(true)` no longer clears `failed`** — recovery is the clearing table's job now, and leaving it in `setUsed` would make the consumer's idempotent reconcile loop re-adopt and re-fail an input on every event. Commit also recomputes `held`. Commit clears the pending status, recomputes `reportedDisconnectMask`, and **restarts sync** with a fresh 2s window. Reconfigure XOR commitEvent: reconfigure cancels the window (fresh state, gates closed, new handshake pending). Reconfigure is legal inside every callback (tested).
 
 ### Bootstrap
 
@@ -67,8 +127,9 @@ After `configure` releases the facade mutex, every connected port gets `IConnect
 - Relational (at sync, vs main): effective sample rate equal to main's (equal delta+resolution fast path, else rational period comparison; ticks scaled onto the main lattice), compatible origin, same tick grid (phase). Violations → `InvalidDomain`, immediate. Rate dividers are out of scope (rate must equal main's).
 - Origins (ACCEPTED 2026-08-26, not yet implemented — current code still requires equal origin strings): different origins are allowed as long as the origin *type* matches — all ISO-8601 absolute, or all unassigned/relative. Absolute origins are parsed and the epoch difference is converted into a tick offset during alignment; mixing absolute with relative is `InvalidDomain`.
 - Incremental, non-blocking, inside `read`: align every participant to the latest next-timestamp (target monotonically increases); discard below target (whole packets + partial via frontOffset). Staged data assumed gap-free (ranges derived from next + stagedSamples).
-- **2s hardcoded timeout** from commit: an input with no data past the deadline → `SyncFailed`. Range distance guard: closest points of the main range and an input's range further apart than 2s worth of ticks → `SyncFailed` immediately.
-- **Main always succeeds** — at worst synced to itself; with no data it just waits. Main locally invalid → park with main's error after the deadline.
+- **Two diagnosis times.** Descriptor-level failures (`InvalidDescriptor`, `InvalidDomain`) are decided at delivery, because a structurally unreadable descriptor is knowable on arrival. Only *silence* waits: sync-level failures are decided at the **2s deadline** from commit. Verified — a domainless input is named on the first read after the bootstrap commit, not two seconds later.
+- **Silence and misalignment are different failures.** No data on a used input past the deadline → `SyncTimeout` (remedy: wait, or exclude). Range distance guard — closest points of the main range and an input's range further apart than 2s worth of ticks → `SyncFailed` immediately (remedy: usually none until a discontinuity). Reporting both as `SyncFailed` leaves a consumer unable to tell a slow producer from a misconfigured one.
+- **Sync the rest, unless main is the one that failed.** At the deadline the failing inputs are marked and the survivors align. Main is reported exactly like any other input; because everything anchors to its lattice, a main failure means nothing aligns and the reader is `held` until main recovers or is reconfigured away.
 - Event during sync → that input reported `SyncFailed` in the boundary event; the new descriptor lets it rejoin after commit (failure is non-sticky).
 - **Failures park** (FB observes and reacts — e.g. setUsed(false)); after commit, failed inputs sit out (drain discards their data, counts skip them) until a new descriptor/reconfigure/setUsed(true) refreshes them.
 - Sync completion records `syncedStart` (Phase 5 read anchor). While syncing, read returns Data with count 0.
@@ -94,7 +155,13 @@ After `configure` releases the facade mutex, every connected port gets `IConnect
 | 2s sync timeout + 2s max range distance, hardcoded | pinned; parameterize later if needed |
 | Gaps become boundaries: Event with `Gap` error, resync at commit while the input is used | accepted 2026-08-26; surfacing matters, realignment falls out of the commit-restarts-sync rule |
 | Origin rule: matching origin type (absolute vs relative), epochs parsed and folded into tick offsets | accepted 2026-08-26; the equal-string requirement was too strict |
-| availableCount: min over used+unfailed, gated on synced | "may lag reality, never exceed it" |
+| availableCount: min over used+unfailed, runs sync, gated by minReadCount | "may lag reality, never exceed it"; a query that refuses to synchronize makes the standard polling loop unstartable (this is how `main` does it) |
+| Failure conditions clear on edges only, one predicate per kind | a level-triggered clearing condition makes a held reader spin; keeps the failure set closed at four kinds |
+| `held` is derived by the reader; `userActive` is the consumer's alone | a consumer must never call setActive(false) for a sync failure, and the reader must never overwrite a consumer's deliberate hold or exclusion |
+| Errors dict covers unused inputs | otherwise an excluded input's recovery is invisible and the consumer re-adopts it blindly on every event |
+| `setUsed(true)` no longer clears `failed` | makes the consumer's reconcile loop idempotent |
+| `setActive` legal outside the event window; `setUsed` is not | setActive touches no sync state; setUsed changes the participant set |
+| Main input failure blocks the whole reader | everything anchors to the main lattice; remedy is `configure()` with a different main, not `setUsed` |
 
 ## Progress
 
@@ -107,14 +174,83 @@ After `configure` releases the facade mutex, every connected port gets `IConnect
 
 ## Remaining work
 
-- **Epoch parsing** (accepted 2026-08-26, next up): parse ISO-8601 origins and fold the epoch
-  difference into the tick scaling so inputs with different absolute origins align; require a
-  matching origin *type* (absolute vs relative), not equal strings. Deliberately sequenced
-  after the sum FB - the FB reacts to per-input errors generically, so mixed origins already
-  degrade honestly (InvalidDomain -> parked input).
-- **Alignment tolerance decision** - see open questions; the sum FB dogfooding should inform it.
-- Backlog: rtgen bindings, acceptsSignal veto policy, >64 inputs, read timeouts,
-  `Disconnected`-vs-`setUsed` interplay polish, reactivation outside the event window.
+**Gate: code review of the current implementation before any of this is built.** The architecture
+above was revised 2026-08-26 after the sync/recovery discussion; phases 7 and 8 change the
+producer path and the active-state representation, so the review should happen against the current
+code while it is still unmodified.
+
+### Phase 7 — unblock consumers (findings 7, 8, 10, 13)
+
+Four small, independent changes. Neither standard consumption pattern works today, and phase 8
+depends on wakes working, so this goes first.
+
+- **8** — the notification `Work` is single-shot and discards `armDataAvailable()`'s "another pass
+  is owed" return. Reschedule while it returns true. Flip `DISABLED_MultiReaderOnReadCallback` and
+  `DISABLED_RequestDuringEvaluationSchedulesFollowUp`.
+- **10 + 13** — `getAvailableCount` drains, then runs `runSync` if not synced, then gates on
+  `minReadCount`. Flip `DISABLED_AvailableCountBeforeFirstRead`; remove the `syncByRead` scaffolding
+  from the ported tests and restore the old contract in the assertions that needed it.
+- **7** — accept a null buffer array when the request is zero. Flip `DISABLED_NullBufferEventProbe`.
+- Optional: run a sync pass at the end of `commitEvent`. It cannot fix 10 (the bootstrap commit
+  precedes the data) but it saves a read in the mid-stream case where data is already staged behind
+  the event.
+
+### Phase 8 — failure conditions and recovery (findings 2, 19, 20, 21, 22)
+
+The design agreed 2026-08-26, in the order the pieces depend on each other.
+
+1. `SlotCell::failureKind` + `State::failedMask`; consumer builds the errors dict from `failureKind`
+   instead of keeping its own `failed` bool. Single source of truth.
+2. Add `SyncTimeout`; split the deadline verdict from the range verdict in `runSync`.
+3. Report every input in the errors dict, used or not (19). Unused inputs carry only the
+   descriptor-level conditions.
+4. Remove the main-input exemption (2): main is reported like any other, `held` follows.
+5. Replace the uniform `view.failed = false` with the per-kind clearing table, evaluated in
+   `addPacket` (20); drop the clearing from `setUsed(true)` (21).
+6. Split `active` into `userActive` / `held` (22); `held` recomputed at commit; `setActive` becomes
+   legal outside the window (9).
+7. Raise an event on `SyncTimeout` clearing (the other three clearing conditions already park the
+   reader, since descriptor changes and gaps bump `pendingEvents` unconditionally).
+
+Tests: a recovery suite per condition — fail it, confirm `held`, deliver the clearing edge, confirm
+the event, confirm the reader resynchronizes on its own. Plus the negative cases: a value-only
+descriptor change must **not** clear `SyncFailed`, and a streaming out-of-range input must not
+re-arm the reader per packet.
+
+### Phase 9 — sum FB alignment (finding 1)
+
+Once phase 8 lands the FB gets smaller, not bigger:
+
+- Replace the shadow health state with `wanted(id) && !inError(id)`, reconciled per event.
+- Delete the sync-driven `setActive` call; keep `setActive` only for the case the reader cannot see
+  — a unit mismatch on the main input, which cannot be excluded.
+- `BadInputHandling` collapses to "run the reconcile loop, or don't": Deactivate mode becomes doing
+  nothing, since the reader holds itself.
+- Configure the output from the wanted set rather than requiring every input healthy (1).
+- Re-enable the DISABLED FB tests; 3b/4 stay disabled until gap positioning (finding 3) is decided.
+
+### Phase 10 — hygiene (findings 11, 12, 14, 15)
+
+Independent of everything above, can land any time: delete or implement `requireSameRates` (11),
+delete or fix `clear()` (12), guard the three `Int` multiplications in the sync path (14), validate
+domain dimensions in `parseDomain` (15). Finding 15 also makes their `DomainWithDimensionsRejected`
+portable.
+
+### Decisions still owed
+
+- **16 — event-first vs data-first.** Do buffered samples in front of a descriptor boundary get
+  served before the event, as both predecessors do? A contract choice, not a bug; it also changes
+  what `getAvailableCount` may report. Blocks nothing, but every consumer sees it.
+- **3 — gap positioning.** Counting gaps rather than queuing them means the boundary position is
+  unknown, so post-gap data is discarded with the pre-gap data. Fixing it means a positioned marker
+  in the SPSC queue, at some producer cost.
+- **6 — mixed tick resolutions.** Fold to a common resolution, or keep effective-rate equality?
+- **17 — status caching.** Re-issue one instance while the visible content is unchanged?
+- **5 — epoch parsing.** Accepted, unscheduled: parse ISO origins, require matching origin *type*,
+  fold the epoch difference into the tick offset.
+
+Backlog: rtgen bindings, acceptsSignal veto policy, >64 inputs (the mask ceiling), read timeouts
+(there is no consumer-side wait primitive at all), reactivation outside the event window.
 
 ## Out of scope (parked)
 
@@ -197,32 +333,39 @@ has it, we do not), and new features (ours has it, theirs does not).
     one waker, versus ready/used counters and a pass-epoch parity guard.
 12. **Blocking.** `read` never blocks here; theirs supports read timeouts.
 
-### Issues found (all recorded as tests, none fixed — validation pass only)
+### Issues found
 
-| # | Issue | Evidence |
-|---|---|---|
-| 1 | The sum block configures its output only when every input is healthy, so one bad input silences a block that could still sum the rest | `test_fb_sum.cpp` (DISABLED) |
-| 2 | An invalid **main** input is never surfaced: every committed event restarts sync, so the main input's own failure is reported as "waiting" forever | `test_fb_sum.cpp` (DISABLED) |
-| 3 | Gaps are counted, not queued, so the boundary position is unknown and post-gap data in the same window is discarded with the pre-gap data | `test_fb_sum.cpp` (DISABLED) |
-| 3b/4 | Consequences of 3: recovery after an offset jump is racy (~1 run in 3 fails) | `test_fb_sum.cpp` (DISABLED) |
-| 5 | Mixed epochs cannot align — origin strings are compared, never parsed | `DISABLED_MixedEpochsAlign` |
-| 6 | Mixed tick resolutions are rejected unless the effective rate matches exactly | `DISABLED_MixedResolutionsAlign` |
-| 7 | `read(nullptr, &count)` — every existing consumer's event probe — throws `ArgumentNull` | `DISABLED_NullBufferEventProbe` |
-| 8 | A callback-only consumer is never woken: the notification `Work` is single-shot and discards `armDataAvailable()`'s "another pass is owed" return, so the reader latches disarmed | `DISABLED_MultiReaderOnReadCallback`, `DISABLED_RequestDuringEvaluationSchedulesFollowUp` |
-| 9 | `setActive` is legal only inside an event window; the old reader accepted it any time | `MultiReaderActive` (adapted) |
-| 10 | `getAvailableCount` returns 0 until a read has run — synchronization is driven only from `read` — so the classic `if (available >= n) read()` loop never starts. With 8, neither standard consumption pattern works unaided | `DISABLED_AvailableCountBeforeFirstRead`; every ported availability assertion needs a `syncByRead` first |
-| 11 | `Config::requireSameRates` is written by the facade and never read: equal rates are unconditional, so the parameter is a lie | verified by grep; `ModelEqualRatePolicyViolation` is the test that would cover it |
-| 12 | `clear()` has zero callers and resets staged data but not `synced`, `syncStarted`, `nextReadTick` or `deliveredGaps` — a cleared reader still believes it is synchronized against a stale start tick | dead code with a latent bug |
-| 13 | `getAvailableCount` ignores `minReadCount`, so it can promise N samples `read` will then refuse | compounds 10 |
-| 14 | Three unguarded `Int` multiplications in the sync path (rate comparison, distance bound, tick scaling) overflow silently at nanosecond resolution with a large scaling factor | their `CheckedArithmetic` / `RealisticTimeStamp` guard exactly this |
-| 15 | `parseDomain` never inspects `getDimensions()`, so a dimensioned **domain** descriptor is accepted, while `convertibleValue` rejects dimensioned values — an asymmetry that looks like an oversight | their `DomainWithDimensionsRejected` |
-| 16 | Event-first policy discards buffered data in front of a boundary and zeroes availability (see behaviour difference 1) | `DropOutdatedPacketSegments`, `AvailabilityStopsAtEventBoundary` |
-| 17 | A fresh status object is allocated on every read; theirs re-issues one instance while the visible content is unchanged, so a polling consumer allocates once per poll | `StatusCachedWhileUnchangedNewOnChange` |
-| 18 | A permanently missing domain descriptor is diagnosed 2 s late rather than immediately | `ModelMissingDomainDescriptor` |
+Recorded as tests during the validation pass; none fixed in the reader. **Status** is against the
+design agreed 2026-08-26 (failure conditions, derived `held`, sync-in-query) — "design" means the
+decision is made and documented above but not yet built.
 
-Findings 11–15 are code defects found by mapping their tests onto our internals rather than by
-running anything; each was verified in the source. Findings 8 and 10 are the two that block
-real consumers and should be fixed first.
+| # | Issue | Status | Evidence |
+|---|---|---|---|
+| 1 | The sum block configures its output only when every input is healthy, so one bad input silences a block that could still sum the rest | open — the reconcile loop implies the fix (configure from the wanted set, not from all-healthy) but the FB change is unspecified | `test_fb_sum.cpp` (DISABLED) |
+| 2 | An invalid **main** input is never surfaced: `runSync` exempts main (`// The main input never fails`), so its own failure is reported as "waiting" forever | **design** — main is reported like any other input and `held` follows | `test_fb_sum.cpp` (DISABLED) |
+| 3 | Gaps are counted, not queued, so the boundary position is unknown and post-gap data in the same window is discarded with the pre-gap data | open | `test_fb_sum.cpp` (DISABLED) |
+| 3b/4 | Consequences of 3: recovery after an offset jump is racy (~1 run in 3 fails) | open | `test_fb_sum.cpp` (DISABLED) |
+| 5 | Mixed epochs cannot align — origin strings are compared, never parsed | open — accepted, planned | `DISABLED_MixedEpochsAlign` |
+| 6 | Mixed tick resolutions are rejected unless the effective rate matches exactly | open — undecided | `DISABLED_MixedResolutionsAlign` |
+| 7 | `read(nullptr, &count)` — every existing consumer's event probe — throws `ArgumentNull` | open | `DISABLED_NullBufferEventProbe` |
+| 8 | A callback-only consumer is never woken: the notification `Work` is single-shot and discards `armDataAvailable()`'s "another pass is owed" return, so the reader latches disarmed | open — **now a prerequisite**: the whole recovery design depends on a clearing event waking a held reader | `DISABLED_MultiReaderOnReadCallback`, `DISABLED_RequestDuringEvaluationSchedulesFollowUp` |
+| 9 | `setActive` is legal only inside an event window; the old reader accepted it any time | **design** — `setActive` writes only `userActive`, touches no sync state, so the window restriction is dropped | `MultiReaderActive` (adapted) |
+| 10 | `getAvailableCount` returns 0 until a read has run, so the classic `if (available >= n) read()` loop never starts | **design** — the query runs sync, as `main`'s does | `DISABLED_AvailableCountBeforeFirstRead`; every ported availability assertion needs a `syncByRead` first |
+| 11 | `Config::requireSameRates` is written by the facade and never read | open | verified by grep |
+| 12 | `clear()` has zero callers and resets staged data but not `synced`, `syncStarted`, `nextReadTick` or `deliveredGaps` | open | dead code with a latent bug |
+| 13 | `getAvailableCount` ignores `minReadCount`, so it can promise N samples `read` will then refuse | **design** — gated in the same edit as 10 | compounds 10 |
+| 14 | Three unguarded `Int` multiplications in the sync path overflow silently at nanosecond resolution | open | their `CheckedArithmetic` / `RealisticTimeStamp` |
+| 15 | `parseDomain` never inspects `getDimensions()`, so a dimensioned domain descriptor is accepted while dimensioned values are rejected | open | their `DomainWithDimensionsRejected` |
+| 16 | Event-first policy discards buffered data in front of a boundary and zeroes availability | open — needs a product call, not a bug fix | `DropOutdatedPacketSegments`, `AvailabilityStopsAtEventBoundary` |
+| 17 | A fresh status object is allocated on every read | open | `StatusCachedWhileUnchangedNewOnChange` |
+| 18 | ~~A missing domain descriptor is diagnosed 2 s late~~ | **withdrawn** — a test error, not a reader defect: the diagnosis is immediate on the first read after the bootstrap commit. The descriptor-level/sync-level split is now documented | `ModelMissingDomainDescriptor` (rewritten to assert the immediate verdict) |
+| 19 | The errors dict skips unused inputs, so an excluded input's recovery is invisible. The sum FB re-derives health from `errors`, reads the absent entry as healthy, re-adopts, fails sync and re-excludes — one flap per event | **design** — the dict reports every input's condition | [sum_reader_fb_impl.cpp:288](examples/modules/ref_fb_module/modules/ref_fb_module/src/sum_reader_fb_impl.cpp:288) |
+| 20 | `deliverEvents` clears `failed` on *any* descriptor change: it will not clear a `SyncTimeout` (which needs a data packet) and it wrongly clears a `SyncFailed` on a value-only change that has no bearing on alignment | **design** — replaced by the per-kind clearing table | `deliverEvents`, `view.failed = false` |
+| 21 | `setUsed(true)` clears `failed`, so a consumer's idempotent reconcile loop re-adopts and re-fails an input every event | **design** — `setUsed` stops clearing `failed` | follows from 19 |
+| 22 | `active` is a single bit, so a consumer hold and a reader hold are indistinguishable: the reader's recovery would silently clear the consumer's rejection | **design** — `userActive` / `held` | required by the sum FB's unit check |
+
+Nineteen open, four resolved by design and not yet built, one withdrawn. Findings 8 and 10 are the
+two that block real consumers, and 8 additionally gates the recovery design.
 
 ### Missing features (rework has, MultiReader2 does not)
 
@@ -300,8 +443,7 @@ disabled. Suites: `MultiReader2Test` 28, `MultiReaderDataManagerTest` 28,
   reader prefers an exact common tick but accepts inputs within half a block of the start
   (the phase offset stays visible in that signal's own domain output). Do we adopt a
   tolerance, and if so which — half-sample attributability or a configurable window?
-- `getStatus` value when errors are present but data is readable (lean: Data, with errors dict populated).
-- Whether `requireSameRates` survives as a param or becomes a validation shortcut.
+- `getStatus` value when errors are present but data is readable (lean: Data, with errors dict populated). Note the errors dict now always reports the full condition set, so this is only about the Data/Event flag.
 - Struct/dimension value support (old spec allowed fixed-size block reads) — out of scope until conversion lands.
 
 Resolved: `readWithDomain` timestamps are Int64 main-input ticks (decided with Phase 5).

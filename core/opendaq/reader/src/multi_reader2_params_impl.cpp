@@ -46,8 +46,9 @@ ErrCode MultiReader2ParamsImpl::setInputs(IList* inputs)
         }
     }
 
+    // Store an owning reference; assigning the borrowed ptr would leave the member borrowed
     std::scoped_lock lock(mutex);
-    this->inputs = list;
+    this->inputs = ListPtr<IComponent>(inputs);
     return OPENDAQ_SUCCESS;
 }
 
@@ -69,7 +70,7 @@ ErrCode MultiReader2ParamsImpl::setMainInput(IComponent* input)
         return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDPARAMETER, "Main input is neither a signal nor an input port");
 
     std::scoped_lock lock(mutex);
-    mainInput = component;
+    mainInput = ComponentPtr(input);
     return OPENDAQ_SUCCESS;
 }
 
@@ -88,7 +89,7 @@ ErrCode MultiReader2ParamsImpl::setUnusedInputs(IList* inputs)
 
     // Membership in the input list is validated by the reader's configure
     std::scoped_lock lock(mutex);
-    this->unusedInputs = ListPtr<IComponent>::Borrow(inputs);
+    this->unusedInputs = ListPtr<IComponent>(inputs);
     return OPENDAQ_SUCCESS;
 }
 

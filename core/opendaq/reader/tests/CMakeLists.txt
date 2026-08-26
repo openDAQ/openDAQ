@@ -12,6 +12,11 @@ set(TEST_SOURCES test_factories.cpp
                  test_block_reader.cpp
                  test_time_reader.cpp
                  test_multi_reader.cpp
+                 test_multi_reader2.cpp
+                 ../src/multi_reader2_impl.cpp
+                 ../src/multi_reader2_params_impl.cpp
+                 ../src/multi_reader2_status_impl.cpp
+                 ../src/multi_reader_data_manager.cpp
                  test_stream_reader_from_input_port.cpp
 )
 

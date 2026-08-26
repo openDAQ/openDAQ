@@ -94,11 +94,14 @@ private:
     };
 
     // Per-slot hot state, cache-line separated so producers of adjacent slots never share a line
+#pragma warning(push)
+#pragma warning(disable : 4324)
     struct alignas(64) SlotCell
     {
         SpscPacketQueue queue;
         std::atomic<SizeT> dataPacketCount{0};
     };
+#pragma warning(pop)
 
     // Producer-visible state, swapped wholesale on reconfigure; stragglers finish on the old block
     struct State

@@ -877,3 +877,547 @@ TEST_F(MultiReader2MigrationTest, BuriedEventSurfacesOnRead)
     auto status = read(reader, buffers, count);
     ASSERT_EQ(statusType(status), MultiReader2StatusType::Event);
 }
+
+// --- Batch port: every remaining public-API case that needs no cut feature ---------------
+// Where the original varied epochs purely as scaffolding, the port uses one shared origin:
+// the subject of those tests is ports, callbacks or activity, not epoch conversion. Cases whose
+// subject IS a cut feature stay in test_multi_reader2_unsupported.cpp.
+
+// Port of SignalStartRelativeOffset0: a blank origin is a legal relative domain
+TEST_F(MultiReader2MigrationTest, SignalStartRelativeOffset0)
+{
+    constexpr auto NUM_SIGNALS = 3;
+    readSignals.reserve(NUM_SIGNALS);
+
+    auto domain = createDomainSignal(" ");
+    auto& sig0 = addSignal(0, 523, domain);
+    auto& sig1 = addSignal(0, 732, domain);
+    auto& sig2 = addSignal(0, 843, domain);
+
+    auto reader = readerFromSignals();
+    SizeT count = 0;
+    auto status = read(reader, nullptr, count);
+    ASSERT_EQ(statusType(status), MultiReader2StatusType::Event);
+    ASSERT_EQ(availableCount(reader), 0u);
+    checkErrorInfo(reader->commitEvent());
+
+    for (Int i = 0; i < 3; i++)
+    {
+        sig0.createAndSendPacket(i);
+        sig1.createAndSendPacket(i);
+        sig2.createAndSendPacket(i);
+    }
+
+    constexpr SizeT SAMPLES = 5u;
+    std::array<double[SAMPLES], NUM_SIGNALS> values{};
+    void* buffers[NUM_SIGNALS]{values[0], values[1], values[2]};
+
+    count = SAMPLES;
+    auto data = readData(reader, buffers, count);
+    ASSERT_TRUE(data.assigned());
+    ASSERT_EQ(count, SAMPLES);
+    ASSERT_THAT(values[1], ElementsAreArray(values[0]));
+    ASSERT_THAT(values[2], ElementsAreArray(values[0]));
+}
+
+// Port of WithPacketOffsetNot0Relative
+TEST_F(MultiReader2MigrationTest, WithPacketOffsetNot0Relative)
+{
+    readSignals.reserve(2);
+    auto domain = createDomainSignal(" ");
+    auto& sig0 = addSignal(100, 100, domain);
+    auto& sig1 = addSignal(150, 100, domain);
+
+    auto reader = readerFromSignals();
+    SizeT count = 0;
+    read(reader, nullptr, count);
+    checkErrorInfo(reader->commitEvent());
+
+    sig0.createAndSendPacket(0);
+    sig1.createAndSendPacket(0);
+
+    double v0[16]{};
+    double v1[16]{};
+    void* buffers[2]{v0, v1};
+    count = 10;
+    SizeT offset = 0;
+    auto data = readData(reader, buffers, count, &offset);
+    ASSERT_TRUE(data.assigned());
+    ASSERT_EQ(offset, 150u);
+    ASSERT_DOUBLE_EQ(v0[0], 150.0);
+    ASSERT_DOUBLE_EQ(v1[0], 150.0);
+}
+
+// Port of Clock10kHzDelta10Relative
+TEST_F(MultiReader2MigrationTest, Clock10kHzDelta10Relative)
+{
+    readSignals.reserve(2);
+    auto domain = createDomainSignal(" ", Ratio(1, 10000), LinearDataRule(10, 0));
+    auto& sig0 = addSignal(0, 100, domain);
+    auto& sig1 = addSignal(0, 100, domain);
+
+    auto reader = readerFromSignals();
+    SizeT count = 0;
+    read(reader, nullptr, count);
+    checkErrorInfo(reader->commitEvent());
+
+    sig0.createAndSendPacket(0);
+    sig1.createAndSendPacket(0);
+
+    double v0[16]{};
+    double v1[16]{};
+    void* buffers[2]{v0, v1};
+    count = 16;
+    auto data = readData(reader, buffers, count);
+    ASSERT_TRUE(data.assigned());
+    ASSERT_EQ(count, 16u);
+    ASSERT_DOUBLE_EQ(v0[1] - v0[0], 10.0);
+}
+
+// Port of Clock10kHzDelta10WithAlignedOffset: offsets that sit on the grid need no discarding
+TEST_F(MultiReader2MigrationTest, Clock10kHzDelta10WithAlignedOffset)
+{
+    readSignals.reserve(2);
+    auto domain = createDomainSignal("2022-09-27T00:02:03+00:00", Ratio(1, 10000), LinearDataRule(10, 0));
+    auto& sig0 = addSignal(0, 100, domain);
+    auto& sig1 = addSignal(100, 100, domain);
+
+    auto reader = readerFromSignals();
+    SizeT count = 0;
+    read(reader, nullptr, count);
+    checkErrorInfo(reader->commitEvent());
+
+    sig0.createAndSendPacket(0);
+    sig1.createAndSendPacket(0);
+
+    double v0[16]{};
+    double v1[16]{};
+    void* buffers[2]{v0, v1};
+    count = 16;
+    SizeT offset = 0;
+    auto data = readData(reader, buffers, count, &offset);
+    ASSERT_TRUE(data.assigned());
+    ASSERT_EQ(offset, 100u);
+    ASSERT_DOUBLE_EQ(v0[0], 100.0);
+    ASSERT_DOUBLE_EQ(v1[0], 100.0);
+}
+
+// Port of Clock10kHzDelta10WithAlignedOffsetRelative
+TEST_F(MultiReader2MigrationTest, Clock10kHzDelta10WithAlignedOffsetRelative)
+{
+    readSignals.reserve(2);
+    auto domain = createDomainSignal(" ", Ratio(1, 10000), LinearDataRule(10, 0));
+    auto& sig0 = addSignal(0, 100, domain);
+    auto& sig1 = addSignal(100, 100, domain);
+
+    auto reader = readerFromSignals();
+    SizeT count = 0;
+    read(reader, nullptr, count);
+    checkErrorInfo(reader->commitEvent());
+
+    sig0.createAndSendPacket(0);
+    sig1.createAndSendPacket(0);
+
+    double v0[16]{};
+    double v1[16]{};
+    void* buffers[2]{v0, v1};
+    count = 16;
+    SizeT offset = 0;
+    auto data = readData(reader, buffers, count, &offset);
+    ASSERT_TRUE(data.assigned());
+    ASSERT_EQ(offset, 100u);
+}
+
+// Port of MultiReaderWithNotConnectedInputPort: ports may be connected after construction
+TEST_F(MultiReader2MigrationTest, MultiReaderWithNotConnectedInputPort)
+{
+    constexpr auto NUM_SIGNALS = 3;
+    readSignals.reserve(NUM_SIGNALS);
+
+    auto domain = createDomainSignal("2022-09-27T00:02:03+00:00");
+    auto& sig0 = addSignal(0, 20, domain);
+    auto& sig1 = addSignal(0, 20, domain);
+    auto& sig2 = addSignal(0, 20, domain);
+
+    auto ports = portsList();
+    auto reader = createReader(params(ports));
+    ASSERT_EQ(availableCount(reader), 0u);
+
+    for (SizeT i = 0; i < NUM_SIGNALS; i++)
+        ports[i].asPtr<IInputPortConfig>().connect(readSignals[i].signal);
+
+    SizeT count = 0;
+    read(reader, nullptr, count);
+    checkErrorInfo(reader->commitEvent());
+
+    sig0.createAndSendPacket(0);
+    sig1.createAndSendPacket(0);
+    sig2.createAndSendPacket(0);
+
+    std::array<double[16], NUM_SIGNALS> values{};
+    void* buffers[NUM_SIGNALS]{values[0], values[1], values[2]};
+    count = 16;
+    auto data = readData(reader, buffers, count);
+    ASSERT_TRUE(data.assigned());
+    ASSERT_EQ(count, 16u);
+}
+
+// Port of MultiReaderWithDifferentInputs / MultiReaderBuilderWithDifferentInputs:
+// signals and ports cannot be mixed in one reader
+TEST_F(MultiReader2MigrationTest, MultiReaderWithDifferentInputs)
+{
+    readSignals.reserve(2);
+    auto domain = createDomainSignal("2022-09-27T00:02:03+00:00");
+    addSignal(0, 20, domain);
+    auto& sig1 = addSignal(0, 20, domain);
+
+    auto ports = portsList();
+    auto mixed = List<IComponent>(ports[0], sig1.signal);
+    auto p = createWithImplementation<IMultiReader2Params, MultiReader2ParamsImpl>();
+    ASSERT_EQ(p->setInputs(mixed), OPENDAQ_ERR_INVALIDPARAMETER);
+    daqClearErrorInfo();
+}
+
+// Port of ReadWhilePortIsNotConnected: the boundary after the last connect carries every
+// input's descriptor. The original blocked on a timeout; this polls instead.
+TEST_F(MultiReader2MigrationTest, ReadWhilePortIsNotConnected)
+{
+    constexpr auto NUM_SIGNALS = 3;
+    readSignals.reserve(NUM_SIGNALS);
+
+    auto domain = createDomainSignal("2022-09-27T00:02:03+00:00");
+    auto& sig0 = addSignal(0, 20, domain);
+    auto& sig1 = addSignal(0, 30, domain);
+    auto& sig2 = addSignal(0, 40, domain);
+
+    auto ports = portsList();
+    auto reader = createReader(params(ports));
+    ports[0].asPtr<IInputPortConfig>().connect(sig0.signal);
+    ports[1].asPtr<IInputPortConfig>().connect(sig1.signal);
+
+    // Two of three connected: the missing input is reported as a Disconnected boundary
+    SizeT count = 0;
+    auto status = read(reader, nullptr, count);
+    ASSERT_EQ(statusType(status), MultiReader2StatusType::Event);
+    ASSERT_EQ(count, 0u);
+    ASSERT_EQ(static_cast<Int>(errorsOf(status).get(ports[2].getGlobalId())),
+              static_cast<Int>(MultiReader2InputError::Disconnected));
+    checkErrorInfo(reader->commitEvent());
+
+    ports[2].asPtr<IInputPortConfig>().connect(sig2.signal);
+
+    count = 0;
+    status = read(reader, nullptr, count);
+    ASSERT_EQ(statusType(status), MultiReader2StatusType::Event);
+
+    IDict* descriptorsRaw;
+    checkErrorInfo(status->getDescriptors(&descriptorsRaw));
+    const auto descriptors = DictPtr<IString, IDataDescriptor>(ObjectPtr<IDict>::Adopt(descriptorsRaw));
+    ASSERT_EQ(descriptors.getCount(), 3u);
+}
+
+// Port of ReconnectWhileReading: a disconnect and reconnect mid-stream is survivable
+TEST_F(MultiReader2MigrationTest, ReconnectWhileReading)
+{
+    constexpr auto NUM_SIGNALS = 3;
+    readSignals.reserve(NUM_SIGNALS);
+
+    auto domain = createDomainSignal("2022-09-27T00:02:03+00:00");
+    auto& sig0 = addSignal(0, 10, domain);
+    auto& sig1 = addSignal(0, 10, domain);
+    auto& sig2 = addSignal(0, 10, domain);
+
+    auto ports = portsList();
+    auto reader = createReader(params(ports));
+    for (SizeT i = 0; i < NUM_SIGNALS; i++)
+        ports[i].asPtr<IInputPortConfig>().connect(readSignals[i].signal);
+
+    SizeT count = 0;
+    read(reader, nullptr, count);
+    checkErrorInfo(reader->commitEvent());
+
+    ports[0].asPtr<IInputPortConfig>().disconnect();
+
+    // A disconnected used input is reported once and then waits silently
+    count = 0;
+    auto status = read(reader, nullptr, count);
+    ASSERT_EQ(statusType(status), MultiReader2StatusType::Event);
+    ASSERT_EQ(static_cast<Int>(errorsOf(status).get(ports[0].getGlobalId())),
+              static_cast<Int>(MultiReader2InputError::Disconnected));
+    checkErrorInfo(reader->commitEvent());
+
+    ports[0].asPtr<IInputPortConfig>().connect(sig0.signal);
+
+    // The reconnect descriptor reopens the window and streaming resumes
+    count = 0;
+    status = read(reader, nullptr, count);
+    ASSERT_EQ(statusType(status), MultiReader2StatusType::Event);
+    checkErrorInfo(reader->commitEvent());
+
+    sig0.createAndSendPacket(1);
+    sig1.createAndSendPacket(1);
+    sig2.createAndSendPacket(1);
+
+    std::array<double[32], NUM_SIGNALS> values{};
+    void* buffers[NUM_SIGNALS]{values[0], values[1], values[2]};
+    count = 32;
+    auto data = readData(reader, buffers, count);
+    ASSERT_TRUE(data.assigned());
+    ASSERT_EQ(count, 10u);
+}
+
+// Port of TestReaderWithConnectedPortConnectionEmpty: a port whose queued descriptor was
+// already drained by someone else still yields a full handshake
+TEST_F(MultiReader2MigrationTest, TestReaderWithConnectedPortConnectionEmpty)
+{
+    constexpr auto NUM_SIGNALS = 3;
+    readSignals.reserve(NUM_SIGNALS);
+
+    auto domain = createDomainSignal("2022-09-27T00:02:03+00:00");
+    auto& sig0 = addSignal(0, 20, domain);
+    auto& sig1 = addSignal(0, 20, domain);
+    auto& sig2 = addSignal(0, 20, domain);
+
+    auto ports = portsList();
+    for (SizeT i = 0; i < NUM_SIGNALS; i++)
+        ports[i].asPtr<IInputPortConfig>().connect(readSignals[i].signal);
+
+    // Drain each connection dry before the reader ever sees it
+    for (const auto& port : ports)
+    {
+        auto connection = port.asPtr<IInputPortConfig>().getConnection();
+        ASSERT_TRUE(connection.assigned());
+        while (connection.dequeue().assigned())
+        {
+        }
+    }
+
+    auto reader = createReader(params(ports));
+    SizeT count = 0;
+    auto status = read(reader, nullptr, count);
+    ASSERT_EQ(statusType(status), MultiReader2StatusType::Event);
+
+    IDict* descriptorsRaw;
+    checkErrorInfo(status->getDescriptors(&descriptorsRaw));
+    const auto descriptors = DictPtr<IString, IDataDescriptor>(ObjectPtr<IDict>::Adopt(descriptorsRaw));
+    ASSERT_EQ(descriptors.getCount(), 3u);
+    checkErrorInfo(reader->commitEvent());
+
+    sig0.createAndSendPacket(0);
+    sig1.createAndSendPacket(0);
+    sig2.createAndSendPacket(0);
+
+    std::array<double[32], NUM_SIGNALS> values{};
+    void* buffers[NUM_SIGNALS]{values[0], values[1], values[2]};
+    count = 32;
+    auto data = readData(reader, buffers, count);
+    ASSERT_TRUE(data.assigned());
+    ASSERT_EQ(count, 20u);
+}
+
+// Port of TestReaderWithConnectedPortConnectionNotEmpty: packets already queued on the port
+// before the reader is built are picked up
+TEST_F(MultiReader2MigrationTest, TestReaderWithConnectedPortConnectionNotEmpty)
+{
+    constexpr auto NUM_SIGNALS = 3;
+    readSignals.reserve(NUM_SIGNALS);
+
+    auto domain = createDomainSignal("2022-09-27T00:02:03+00:00");
+    auto& sig0 = addSignal(0, 20, domain);
+    auto& sig1 = addSignal(0, 20, domain);
+    auto& sig2 = addSignal(0, 20, domain);
+
+    auto ports = portsList();
+    for (SizeT i = 0; i < NUM_SIGNALS; i++)
+        ports[i].asPtr<IInputPortConfig>().connect(readSignals[i].signal);
+
+    sig0.createAndSendPacket(0);
+    sig1.createAndSendPacket(0);
+    sig2.createAndSendPacket(0);
+
+    auto reader = createReader(params(ports));
+    SizeT count = 0;
+    read(reader, nullptr, count);
+    checkErrorInfo(reader->commitEvent());
+
+    std::array<double[32], NUM_SIGNALS> values{};
+    void* buffers[NUM_SIGNALS]{values[0], values[1], values[2]};
+    count = 32;
+    auto data = readData(reader, buffers, count);
+    ASSERT_TRUE(data.assigned());
+    ASSERT_EQ(count, 20u);
+}
+
+// Port of MinReadCount, minus the timeout and skipSamples halves
+TEST_F(MultiReader2MigrationTest, MinReadCount)
+{
+    constexpr auto NUM_SIGNALS = 3;
+    readSignals.reserve(NUM_SIGNALS);
+
+    auto domain = createDomainSignal("2022-09-27T00:02:03+00:00");
+    auto& sig0 = addSignal(0, 10, domain);
+    auto& sig1 = addSignal(0, 10, domain);
+    auto& sig2 = addSignal(0, 10, domain);
+
+    auto p = params(signalsToList());
+    checkErrorInfo(p->setMinReadCount(20));
+    auto reader = createReader(p);
+
+    SizeT count = 0;
+    read(reader, nullptr, count);
+    checkErrorInfo(reader->commitEvent());
+
+    sig0.createAndSendPacket(0);
+    sig1.createAndSendPacket(0);
+    sig2.createAndSendPacket(0);
+
+    // One packet each is below the minimum: nothing is available and a short request is refused
+    ASSERT_EQ(availableCount(reader), 0u);
+
+    std::array<double[32], NUM_SIGNALS> values{};
+    void* buffers[NUM_SIGNALS]{values[0], values[1], values[2]};
+    IMultiReader2Status* statusRaw;
+    count = 10;
+    SizeT offset = 0;
+    ASSERT_EQ(reader->read(&statusRaw, buffers, &count, &offset), OPENDAQ_ERR_INVALIDPARAMETER);
+    daqClearErrorInfo();
+
+    sig0.createAndSendPacket(1);
+    sig1.createAndSendPacket(1);
+    sig2.createAndSendPacket(1);
+
+    // FINDING 10: the old reader reported 20 here. MultiReader2 reports 0 until a read has run,
+    // because synchronization is driven only from read() and getAvailableCount short-circuits
+    // while unsynchronized. DISABLED_AvailableCountBeforeFirstRead records the contract break.
+    ASSERT_EQ(availableCount(reader), 0u);
+
+    count = 20;
+    auto data = readData(reader, buffers, count);
+    ASSERT_TRUE(data.assigned());
+    ASSERT_EQ(count, 20u);
+}
+
+// Port of MultiReaderActiveGapPacket: a gap on one input is reported as a boundary
+TEST_F(MultiReader2MigrationTest, MultiReaderActiveGapPacket)
+{
+    constexpr auto NUM_SIGNALS = 3;
+    readSignals.reserve(NUM_SIGNALS);
+
+    auto domain = createDomainSignal("2022-09-27T00:02:03+00:00");
+    auto& sig0 = addSignal(0, 10, domain);
+    auto& sig1 = addSignal(0, 10, domain);
+    auto& sig2 = addSignal(0, 10, domain);
+
+    auto ports = portsList(true);
+    auto reader = createReader(params(ports));
+    for (SizeT i = 0; i < NUM_SIGNALS; i++)
+        ports[i].asPtr<IInputPortConfig>().connect(readSignals[i].signal);
+
+    SizeT count = 0;
+    read(reader, nullptr, count);
+    checkErrorInfo(reader->commitEvent());
+
+    sig0.createAndSendPacket(0);
+    sig1.createAndSendPacket(0);
+    sig2.createAndSendPacket(0);
+
+    std::array<double[32], NUM_SIGNALS> values{};
+    void* buffers[NUM_SIGNALS]{values[0], values[1], values[2]};
+    count = 32;
+    readData(reader, buffers, count);
+
+    // Skipping packet 1 on the first input leaves a hole the connection reports as a gap
+    sig0.createAndSendPacket(2);
+    sig1.createAndSendPacket(1);
+    sig2.createAndSendPacket(1);
+
+    count = 32;
+    auto status = read(reader, buffers, count);
+    ASSERT_EQ(statusType(status), MultiReader2StatusType::Event);
+    ASSERT_EQ(static_cast<Int>(errorsOf(status).get(ports[0].getGlobalId())),
+              static_cast<Int>(MultiReader2InputError::Gap));
+}
+
+// Port of MultiReaderActiveFromPorts: deactivating the reader
+TEST_F(MultiReader2MigrationTest, MultiReaderActiveFromPorts)
+{
+    constexpr auto NUM_SIGNALS = 3;
+    readSignals.reserve(NUM_SIGNALS);
+
+    auto domain = createDomainSignal("2022-09-27T00:02:03+00:00");
+    addSignal(0, 10, domain);
+    addSignal(0, 10, domain);
+    addSignal(0, 10, domain);
+
+    auto ports = portsList();
+    auto reader = createReader(params(ports));
+
+    // FINDING 9: the old reader accepted setActive at any time and propagated it to its ports.
+    // MultiReader2 only accepts it inside an event window and never touches port activity.
+    ASSERT_EQ(reader->setActive(False), OPENDAQ_ERR_INVALIDSTATE);
+    daqClearErrorInfo();
+
+    for (SizeT i = 0; i < NUM_SIGNALS; i++)
+        ports[i].asPtr<IInputPortConfig>().connect(readSignals[i].signal);
+
+    SizeT count = 0;
+    read(reader, nullptr, count);
+    checkErrorInfo(reader->setActive(False));
+    checkErrorInfo(reader->commitEvent());
+
+    for (const auto& port : ports)
+        ASSERT_TRUE(port.asPtr<IInputPortConfig>().getActive());
+}
+
+// Port of MultiReaderActiveDataAvailableCallback and MultiReaderFromPortOnReadCallback:
+// both are callback-driven and hit FINDING 8 (a callback-only consumer is never woken).
+TEST_F(MultiReader2MigrationTest, DISABLED_MultiReaderActiveDataAvailableCallback)
+{
+    constexpr auto NUM_SIGNALS = 3;
+    readSignals.reserve(NUM_SIGNALS);
+
+    auto domain = createDomainSignal("2022-09-27T00:02:03+00:00");
+    auto& sig0 = addSignal(0, 10, domain);
+    auto& sig1 = addSignal(0, 10, domain);
+    auto& sig2 = addSignal(0, 10, domain);
+
+    auto ports = portsList();
+    auto reader = createReader(params(ports));
+    for (SizeT i = 0; i < NUM_SIGNALS; i++)
+        ports[i].asPtr<IInputPortConfig>().connect(readSignals[i].signal);
+
+    std::atomic<int> fired{0};
+    IEvent* eventIntf;
+    checkErrorInfo(reader->getOnDataAvailable(&eventIntf));
+    Event<InputPortPtr, EventArgsPtr<>> onDataAvailable{ObjectPtr<IEvent>::Adopt(eventIntf)};
+    onDataAvailable += [&fired](InputPortPtr&, EventArgsPtr<>&) { fired++; };
+
+    sig0.createAndSendPacket(0);
+    sig1.createAndSendPacket(0);
+    sig2.createAndSendPacket(0);
+
+    ASSERT_TRUE(waitFor([&fired] { return fired.load() > 0; }));
+}
+
+// FINDING 10: a polling consumer using the classic `if (getAvailableCount() >= n) read()` loop
+// never reads. Synchronization runs only inside read(), and getAvailableCount returns 0 while
+// unsynchronized, so availability stays 0 until a blind read is issued first. Together with
+// FINDING 8 (callback consumers are never woken) neither standard consumption pattern works
+// unaided: every consumer must issue a read it does not know it needs.
+TEST_F(MultiReader2MigrationTest, DISABLED_AvailableCountBeforeFirstRead)
+{
+    readSignals.reserve(2);
+    auto domain = createDomainSignal("2022-09-27T00:02:03+00:00");
+    auto& sig0 = addSignal(0, 10, domain);
+    auto& sig1 = addSignal(0, 10, domain);
+
+    auto reader = readerFromSignals();
+    SizeT count = 0;
+    read(reader, nullptr, count);
+    checkErrorInfo(reader->commitEvent());
+
+    sig0.createAndSendPacket(0);
+    sig1.createAndSendPacket(0);
+
+    ASSERT_EQ(availableCount(reader), 10u);
+}

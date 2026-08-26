@@ -5,12 +5,14 @@
  * scope decision or an unclosed regression. Nothing here executes: the cases are recorded so
  * the cost of the new reader's narrower contract stays visible and countable.
  *
- * Counts refer to the 107 tests in the original suite.
+ * Counts refer to the 107 named tests in the original suite (108 declarations, 109 runnable:
+ * one TEST_P over two values, one TEST_F_UNSTABLE_SKIPPED). Of those, 33 are ported live in
+ * test_multi_reader2_migrated.cpp and 43 are the reference-domain family below.
  */
 #include <gtest/gtest.h>
 
 // ---------------------------------------------------------------------------
-// 1. Reference domain info - 60 tests - DELIBERATE (never in MultiReader2's scope)
+// 1. Reference domain info - 43 tests - DELIBERATE (never in MultiReader2's scope)
 //
 //    ReferenceDomainIdEquality01..05, ReferenceDomainIdInequality01..06,
 //    ReferenceDomainIdEqualityReferenceTimeProtocolEquality01..04,
@@ -65,10 +67,9 @@
 // ---------------------------------------------------------------------------
 
 // ---------------------------------------------------------------------------
-// 6. Builder surface - 5 tests - DELIBERATE (params + configure replaced the builder)
+// 6. Builder surface - 4 tests - DELIBERATE (params + configure replaced the builder)
 //
-//    MultiReaderBuilderGetSet, MultiReaderBuilderWithDifferentInputs,
-//    BuilderNotificationMethodsUnspecified, BuilderNotificationMethodDefault,
+//    MultiReaderBuilderGetSet, BuilderNotificationMethodsUnspecified, BuilderNotificationMethodDefault,
 //    BuilderNotificationMethodsOverride
 //
 //    Notification method is not configurable: MultiReader2 forces SameThread on every input.
@@ -83,11 +84,11 @@
 // ---------------------------------------------------------------------------
 
 // ---------------------------------------------------------------------------
-// 8. Epoch handling - 6 tests - REGRESSION, accepted for repair (epoch parsing is planned)
+// 8. Epoch handling - 5 tests - REGRESSION, accepted for repair (epoch parsing is planned)
 //
-//    SignalStartDomainFrom0 (original form, three distinct epochs), SignalStartRelativeOffset0,
-//    MaxTimeIsNotOnSignalWithMaxEpoch, Clock15MHzFromEpoch, EpochChanged,
-//    EpochChangedBeforeFirstData
+//    SignalStartDomainFrom0 (original form, three distinct epochs), MaxTimeIsNotOnSignalWithMaxEpoch,
+//    Clock15MHzFromEpoch, EpochChanged, EpochChangedBeforeFirstData
+//    (SignalStartRelativeOffset0 is ported live: a blank origin needs no conversion)
 //
 //    The old reader converted every input to absolute time and aligned across epochs.
 //    MultiReader2 compares origin strings, so any epoch difference fails the input. A live
@@ -95,10 +96,10 @@
 // ---------------------------------------------------------------------------
 
 // ---------------------------------------------------------------------------
-// 9. Tick resolution differences - 3 tests - REGRESSION, undecided
+// 9. Tick resolution differences - 2 tests - REGRESSION, undecided
 //
-//    ResolutionChanged, Clock10kHzDelta10WithIntersampleOffset,
-//    Clock10kHzDelta10WithAlignedOffsetRelative
+//    ResolutionChanged, Clock10kHzDelta10WithIntersampleOffset
+//    (Clock10kHzDelta10WithAlignedOffset and ...Relative are ported live: one resolution each)
 //
 //    The old reader folded differing resolutions into a rational-GCD common resolution.
 //    MultiReader2 accepts a different resolution only when the effective rate matches and every
@@ -150,5 +151,5 @@
 // Keeps the translation unit non-empty and the catalogue discoverable from a test run
 TEST(MultiReader2Unsupported, SeeFileCommentsForTheCatalogue)
 {
-    SUCCEED() << "97 of the 107 MultiReaderTest cases are catalogued here as out of scope or regressions";
+    SUCCEED() << "74 of the 107 MultiReaderTest cases are catalogued here as out of scope or regressions";
 }

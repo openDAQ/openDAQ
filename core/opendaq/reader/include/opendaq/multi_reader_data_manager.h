@@ -36,6 +36,7 @@ public:
     {
         std::vector<StringPtr> inputIds;
         std::vector<bool> usedFlags;
+        std::vector<bool> connectedFlags;
         StringPtr mainInputId;
         SampleType valueReadType = SampleType::Invalid;
         SizeT minReadCount = 1;
@@ -61,8 +62,9 @@ public:
     ErrCode setActive(Bool active);
     ErrCode setUsed(IString* inputId, Bool used);
 
-    void connected(const StringPtr& inputId);
-    void disconnected(const StringPtr& inputId);
+    // While any used input is disconnected nothing wakes and all packets are dropped; descriptors stay cached
+    void connected(SizeT slotIndex);
+    void disconnected(SizeT slotIndex);
 
     // True = data or an event became deliverable: run a notification pass, then call armDataAvailable
     // Data is dropped for unused inputs and inactive readers; event packets always flow
@@ -100,6 +102,7 @@ private:
     {
         SpscPacketQueue queue;
         std::atomic<SizeT> dataPacketCount{0};
+        std::atomic<IPacket*> lastEventPacket{nullptr};
     };
 #pragma warning(pop)
 
@@ -107,10 +110,12 @@ private:
     struct State
     {
         explicit State(SizeT slotCount);
+        ~State();
 
         std::vector<std::unique_ptr<SlotCell>> slots;
         std::atomic<uint64_t> readyMask{0};
         std::atomic<uint64_t> usedMask{0};
+        std::atomic<uint64_t> connectedMask{0};
         std::atomic<SizeT> queuedEventPackets{0};
         std::atomic<bool> parked{false};
         std::atomic<bool> active{true};

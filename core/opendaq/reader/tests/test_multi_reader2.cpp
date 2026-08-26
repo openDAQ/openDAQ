@@ -341,6 +341,30 @@ TEST_F(MultiReader2Test, ReconfigureDuringDataAvailableCallback)
     ASSERT_EQ(mainInputOf(reader), target.getGlobalId());
 }
 
+TEST_F(MultiReader2Test, WaitsForAllPortsConnected)
+{
+    auto sig1 = createSignal("sig1");
+    auto sig2 = createSignal("sig2");
+    auto port1 = InputPort(context, nullptr, "port1");
+    auto port2 = InputPort(context, nullptr, "port2");
+
+    auto reader = createReader(createParams(List<IComponent>(port1, port2)));
+
+    std::atomic<int> fired{0};
+    IEvent* eventIntf;
+    checkErrorInfo(reader->getOnDataAvailable(&eventIntf));
+    Event<InputPortPtr, EventArgsPtr<>> onDataAvailable{ObjectPtr<IEvent>::Adopt(eventIntf)};
+    onDataAvailable += [&fired](InputPortPtr&, EventArgsPtr<>&) { fired++; };
+
+    // One connected port is not enough: its initial descriptor event is dropped, nothing fires
+    port1.connect(sig1);
+    ASSERT_EQ(fired.load(), 0);
+
+    // The second connect completes the set; its initial descriptor event wakes the reader
+    port2.connect(sig2);
+    ASSERT_EQ(fired.load(), 1);
+}
+
 // --- Manager unit tests (plain C++, no ports involved) ---
 
 class MultiReaderDataManagerTest : public testing::Test
@@ -446,6 +470,32 @@ TEST_F(MultiReaderDataManagerTest, ReconfigureResetsQueues)
     manager.reconfigure(makeConfig(1));
 
     // Fresh state: armed again, queue empty, so one packet wakes again
+    ASSERT_TRUE(manager.addPacket(0, dataPacket()));
+}
+
+TEST_F(MultiReaderDataManagerTest, DisconnectedUsedInputSilencesEverything)
+{
+    MultiReaderDataManager manager;
+    manager.reconfigure(makeConfig(2));
+
+    manager.disconnected(0);
+
+    // All packets on all inputs are dropped, events included
+    ASSERT_FALSE(manager.addPacket(0, eventPacket()));
+    ASSERT_FALSE(manager.addPacket(1, dataPacket()));
+    ASSERT_FALSE(manager.addPacket(1, eventPacket()));
+
+    // Full reconnection restores waking
+    manager.connected(0);
+    ASSERT_TRUE(manager.addPacket(0, eventPacket()));
+}
+
+TEST_F(MultiReaderDataManagerTest, DisconnectedUnusedInputDoesNotBlock)
+{
+    MultiReaderDataManager manager;
+    manager.reconfigure(makeConfig(2, {true, false}));
+
+    manager.disconnected(1);
     ASSERT_TRUE(manager.addPacket(0, dataPacket()));
 }
 

@@ -45,12 +45,29 @@ MultiReaderDataManager::State::State(SizeT slotCount)
     slots.reserve(slotCount);
     for (SizeT i = 0; i < slotCount; i++)
         slots.push_back(std::make_unique<SlotCell>());
-    usedMask.store(slotCount >= 64 ? ~uint64_t(0) : (uint64_t(1) << slotCount) - 1, std::memory_order_relaxed);
+
+    const auto fullMask = slotCount >= 64 ? ~uint64_t(0) : (uint64_t(1) << slotCount) - 1;
+    usedMask.store(fullMask, std::memory_order_relaxed);
+    connectedMask.store(fullMask, std::memory_order_relaxed);
+}
+
+MultiReaderDataManager::State::~State()
+{
+    for (auto& slot : slots)
+    {
+        if (IPacket* packet = slot->lastEventPacket.exchange(nullptr, std::memory_order_acquire))
+            packet->releaseRef();
+    }
 }
 
 bool MultiReaderDataManager::deliverable(const State& state)
 {
     if (state.parked.load(std::memory_order_acquire))
+        return false;
+
+    // A disconnected used input silences everything until all used inputs are connected again
+    const auto usedForConnect = state.usedMask.load(std::memory_order_acquire);
+    if ((state.connectedMask.load(std::memory_order_acquire) & usedForConnect) != usedForConnect)
         return false;
 
     if (state.queuedEventPackets.load(std::memory_order_acquire) > 0)
@@ -84,6 +101,16 @@ void MultiReaderDataManager::reconfigure(Config config)
         }
         newState->usedMask.store(mask, std::memory_order_relaxed);
     }
+    if (!this->config.connectedFlags.empty())
+    {
+        uint64_t mask = 0;
+        for (SizeT i = 0; i < this->config.connectedFlags.size(); i++)
+        {
+            if (this->config.connectedFlags[i])
+                mask |= uint64_t(1) << i;
+        }
+        newState->connectedMask.store(mask, std::memory_order_relaxed);
+    }
     std::atomic_store(&state, std::move(newState));
 }
 
@@ -95,9 +122,10 @@ void MultiReaderDataManager::clear()
     if (!current)
         return;
 
-    // Fresh state block drops the queues; the used mask and active flag survive a clear
+    // Fresh state block drops the queues; used, connected, and active flags survive a clear
     auto fresh = std::make_shared<State>(current->slots.size());
     fresh->usedMask.store(current->usedMask.load(std::memory_order_acquire), std::memory_order_relaxed);
+    fresh->connectedMask.store(current->connectedMask.load(std::memory_order_acquire), std::memory_order_relaxed);
     fresh->active.store(current->active.load(std::memory_order_acquire), std::memory_order_relaxed);
     std::atomic_store(&state, std::move(fresh));
 }
@@ -173,12 +201,22 @@ ErrCode MultiReaderDataManager::setUsed(IString* inputId, Bool used)
     return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOTFOUND, R"(Input "%s" was not added to the reader)", id.getCharPtr());
 }
 
-void MultiReaderDataManager::connected(const StringPtr& /*inputId*/)
+void MultiReaderDataManager::connected(SizeT slotIndex)
 {
+    const auto current = std::atomic_load(&state);
+    if (!current || slotIndex >= current->slots.size())
+        return;
+
+    current->connectedMask.fetch_or(uint64_t(1) << slotIndex, std::memory_order_acq_rel);
 }
 
-void MultiReaderDataManager::disconnected(const StringPtr& /*inputId*/)
+void MultiReaderDataManager::disconnected(SizeT slotIndex)
 {
+    const auto current = std::atomic_load(&state);
+    if (!current || slotIndex >= current->slots.size())
+        return;
+
+    current->connectedMask.fetch_and(~(uint64_t(1) << slotIndex), std::memory_order_acq_rel);
 }
 
 Bool MultiReaderDataManager::addPacket(SizeT slotIndex, const PacketPtr& packet)
@@ -189,17 +227,31 @@ Bool MultiReaderDataManager::addPacket(SizeT slotIndex, const PacketPtr& packet)
 
     const bool isEvent = packet.getType() == PacketType::Event;
     const auto bit = uint64_t(1) << slotIndex;
+    auto& cell = *current->slots[slotIndex];
+
+    // The newest event packet is always cached so descriptors survive any dropping
+    if (isEvent)
+    {
+        IPacket* newPacket = packet;
+        newPacket->addRef();
+        if (IPacket* old = cell.lastEventPacket.exchange(newPacket, std::memory_order_acq_rel))
+            old->releaseRef();
+    }
+
+    // While any used input is disconnected everything is dropped from the queues
+    const auto used = current->usedMask.load(std::memory_order_acquire);
+    if ((current->connectedMask.load(std::memory_order_acquire) & used) != used)
+        return False;
 
     // Unused inputs and inactive readers drop data; events always flow
     if (!isEvent)
     {
         if (!current->active.load(std::memory_order_acquire))
             return False;
-        if ((current->usedMask.load(std::memory_order_acquire) & bit) == 0)
+        if ((used & bit) == 0)
             return False;
     }
 
-    auto& cell = *current->slots[slotIndex];
     cell.queue.push(packet);
 
     // Shared words are touched only on transitions and event packets, never per steady-state packet

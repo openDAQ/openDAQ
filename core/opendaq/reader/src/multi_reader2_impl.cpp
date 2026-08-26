@@ -211,6 +211,7 @@ ErrCode MultiReader2Impl::configure(IMultiReader2Params* params)
     {
         managerConfig.inputIds.push_back(slot.inputId);
         managerConfig.usedFlags.push_back(unusedIds.count(slot.inputId.toStdString()) == 0);
+        managerConfig.connectedFlags.push_back(slot.port.getConnection().assigned());
     }
     managerConfig.mainInputId = mainInputId;
     managerConfig.valueReadType = newValueReadType;
@@ -330,7 +331,7 @@ ErrCode MultiReader2Impl::connected(IInputPort* port)
     if (it == wire->portMap.end())
         return OPENDAQ_SUCCESS;
 
-    dataManager.connected(it->second.inputId);
+    dataManager.connected(it->second.index);
 
     auto args = EventArgs(0, it->second.inputId);
     onConnected(portPtr, args);
@@ -350,7 +351,7 @@ ErrCode MultiReader2Impl::disconnected(IInputPort* port)
     if (it == wire->portMap.end())
         return OPENDAQ_SUCCESS;
 
-    dataManager.disconnected(it->second.inputId);
+    dataManager.disconnected(it->second.index);
 
     auto args = EventArgs(0, it->second.inputId);
     onDisconnected(portPtr, args);

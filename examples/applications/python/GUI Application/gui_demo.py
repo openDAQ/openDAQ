@@ -97,6 +97,7 @@ class App(tk.Tk):
 
         self.context = AppContext(context_params)
         self.event_port = EventPort(self, event_callback=self.on_refresh_event)
+        self.tree_search_query = ''
 
         self.context.ui_scaling_factor = int(args.scale)
         self.context.include_reference_devices = bool(args.demo)
@@ -278,14 +279,29 @@ class App(tk.Tk):
         search_frame = ttk.Frame(frame)
         search_frame.pack(fill=tk.X, side=tk.TOP)
 
-        search_entry = ttk.Entry(search_frame)
+        # leave room on the right for the clear cross drawn inside the entry
+        entry_style = ttk.Style()
+        entry_style.configure('Search.TEntry', padding=(2, 2, 24, 2))
+
+        search_entry = ttk.Entry(search_frame, style='Search.TEntry')
         search_entry.pack(fill=tk.X, padx=(0,16), pady=(0,4), ipady=2)
         self.tree_search_default_foreground = search_entry.cget('foreground')
         search_entry.insert(0, "Filter tree by name, tag or local id")
         search_entry.configure(foreground='gray')
         search_entry.bind('<FocusIn>', self.handle_tree_search_focus_in)
         search_entry.bind('<FocusOut>', self.handle_tree_search_focus_out)
+        search_entry.bind('<KeyRelease>', self.handle_tree_search_changed)
+        search_entry.bind('<Escape>', self.handle_tree_search_clear)
         self.tree_search_entry = search_entry
+
+        clear_label = tk.Label(search_frame, text='×', bd=0, padx=4, cursor='hand2',
+                               font=('TkDefaultFont', 12), background='white',
+                               foreground='gray30')
+        clear_label.place(in_=search_entry, relx=1.0, rely=0.5, anchor=tk.E, x=-4)
+        clear_label.bind('<Button-1>', self.handle_tree_search_clear)
+        clear_label.bind('<Enter>', lambda e: clear_label.configure(background='gray85'))
+        clear_label.bind('<Leave>', lambda e: clear_label.configure(background='white'))
+        self.tree_search_clear_label = clear_label
 
         # define columns
         tree = ttk.Treeview(frame, columns=('name', 'hash'), displaycolumns=(
@@ -327,6 +343,77 @@ class App(tk.Tk):
             self.tree_search_entry.insert(0, "Filter tree by name, tag or local id")
             self.tree_search_entry.configure(foreground='gray')
 
+    def handle_tree_search_changed(self, event=None):
+        text = self.tree_search_entry.get()
+        if text == "Filter tree by name, tag or local id":
+            text = ''
+        query = text.strip().lower()
+        if query == self.tree_search_query:
+            return
+        self.tree_search_query = query
+        self.tree_update(self.context.selected_node)
+
+    def handle_tree_search_clear(self, event=None):
+        self.tree_search_entry.delete(0, tk.END)
+        self.tree_search_entry.configure(
+            foreground=self.tree_search_default_foreground)
+        self.handle_tree_search_changed()
+        # drop the focus so the entry shows the hint again instead of an empty field
+        self.focus_set()
+        self.handle_tree_search_focus_out(None)
+
+    def tree_item_matches_search(self, iid, query):
+        if query in self.tree.item(iid, 'text').lower():
+            return True
+
+        component = self.context.nodes.get(iid)
+        if component is None:
+            return False
+
+        for getter in (lambda: component.name, lambda: component.local_id):
+            try:
+                if query in str(getter()).lower():
+                    return True
+            except Exception:
+                pass
+
+        try:
+            for tag in component.tags.list:
+                if query in str(tag).lower():
+                    return True
+        except Exception:
+            pass
+
+        return False
+
+    def tree_apply_search_filter(self):
+        query = self.tree_search_query
+        if not query:
+            return
+
+        matches = []
+
+        def collect(parent):
+            for iid in self.tree.get_children(parent):
+                if self.tree_item_matches_search(iid, query):
+                    # keep the whole subtree of a match, do not look deeper
+                    matches.append(iid)
+                else:
+                    collect(iid)
+
+        collect('')
+        match_set = set(matches)
+
+        # pull matches out of their (non-matching) parents
+        for iid in matches:
+            self.tree.move(iid, '', tk.END)
+            self.tree.item(iid, open=True)
+
+        # whatever is left at the top level holds no match anymore
+        for iid in self.tree.get_children(''):
+            if iid not in match_set:
+                self.tree.delete(iid)
+
     def tree_update(self, new_selected_node=None):
         self.tree.delete(*self.tree.get_children())
         self.right_side_panel_clear()
@@ -350,10 +437,12 @@ class App(tk.Tk):
                 self.tree.insert('', tk.END, iid=mod_id,
                                  text=self._format_tree_item_text(display_name), open=False)
                 self.modules_map[mod_id] = mod
+            self.tree_apply_search_filter()
             return
 
         self.tree_traverse_components_recursive(
             self.context.instance, self.current_tab())
+        self.tree_apply_search_filter()
         self.tree_restore_selection(
             self.context.selected_node)  # reset in case the selected node outdates
         self.set_node_update_status()

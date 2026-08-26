@@ -304,11 +304,17 @@ class App(tk.Tk):
         tree.bind('<Button-3>', self.handle_tree_right_button)
         tree.bind('<Button-1>', self.handle_tree_click)
         tree.bind('<Double-1>', self._block_indicator_double_click)
+        tree.bind('<Motion>', self.handle_tree_motion)
+        tree.bind('<Leave>', self.handle_tree_leave)
+        tree.bind('<MouseWheel>', self.handle_tree_mousewheel, add='+')
 
         # add a scrollbar
         scroll_bar = ttk.Scrollbar(
             frame, orient=tk.VERTICAL, command=tree.yview)
-        tree.configure(yscroll=scroll_bar.set)
+        tree.configure(yscroll=lambda *a: (
+            scroll_bar.set(*a), self.after_idle(self.tree_root_buttons_sync)))
+        tree.bind('<Configure>',
+                  lambda e: self.after_idle(self.tree_root_buttons_sync), add='+')
         scroll_bar.pack(fill=tk.Y, side=tk.RIGHT)
 
         parent_frame.add(frame)
@@ -316,6 +322,29 @@ class App(tk.Tk):
         tree.tag_configure('error', foreground=utils.StatusColor.ERROR)
         tree.tag_configure('inactive', foreground='gray')
         self.tree = tree
+
+        # row action buttons, laid out from the right edge of the hovered row
+        tree_style = ttk.Style()
+        self.tree_row_background = tree_style.lookup(
+            'Treeview', 'background') or 'white'
+        self.tree_row_selected_background = tree_style.lookup(
+            'Treeview', 'background', ['selected']) or self.tree_row_background
+        self.tree_row_background_hover = self.darken_color(self.tree_row_background)
+        self.tree_row_selected_background_hover = self.darken_color(
+            self.tree_row_selected_background)
+
+        plus_icon = self.context.icons['plus']
+        self.tree_row_button_size = max(plus_icon.width(), plus_icon.height())
+        self.tree_row_button_hovered = None
+        self.tree_row_button_info = {}
+        self.tree_row_menu_open = False
+        self.tree_hover_buttons = self.tree_row_buttons_create(tree, pinned=False)
+        self.tree_hover_buttons_iid = None
+        # the root device keeps its buttons visible without hovering
+        self.tree_root_buttons = self.tree_row_buttons_create(tree, pinned=True)
+
+        tree.bind('<<TreeviewSelect>>',
+                  lambda e: self.tree_row_buttons_recolor(), add='+')
 
     def handle_tree_search_focus_in(self, event):
         if self.tree_search_entry.get() == "Filter tree by name, tag or local id":
@@ -400,6 +429,7 @@ class App(tk.Tk):
                 self.tree.delete(iid)
 
     def tree_update(self, new_selected_node=None):
+        self.tree_hover_buttons_hide()
         self.tree.delete(*self.tree.get_children())
         self.right_side_panel_clear()
 
@@ -423,6 +453,7 @@ class App(tk.Tk):
                                  text=self._format_tree_item_text(display_name), open=False)
                 self.modules_map[mod_id] = mod
             self.tree_apply_search_filter()
+            self.after_idle(self.tree_root_buttons_sync)
             return
 
         self.tree_traverse_components_recursive(
@@ -433,6 +464,7 @@ class App(tk.Tk):
         self.set_node_update_status()
         self.set_node_lock_status()
         self.set_node_active_status()
+        self.after_idle(self.tree_root_buttons_sync)
 
     def tree_traverse_components_recursive(
             self, component, display_type=DisplayType.UNSPECIFIED, tree_parent_id=None):
@@ -675,8 +707,8 @@ class App(tk.Tk):
         self.right_side_canvas = None
 
     # MARK: - Add device dialog
-    def add_device_dialog_show(self):
-        dialog = AddDeviceDialog(self, self.context, None)
+    def add_device_dialog_show(self, component=None):
+        dialog = AddDeviceDialog(self, self.context, component)
         dialog.show()
 
     # MARK: - Add function block dialog
@@ -781,6 +813,229 @@ class App(tk.Tk):
         if iid and iid == utils.treeview_get_first_selection(self.tree):
             self.tree.item(iid, open=not self.tree.item(iid, 'open'))
             return 'break'
+
+    def darken_color(self, color, factor=0.85):
+        return '#%04x%04x%04x' % tuple(
+            int(value * factor) for value in self.winfo_rgb(color))
+
+    # buttons are ordered right to left along the row
+    TREE_ROW_ACTIONS = ('add',)
+
+    def tree_row_buttons_create(self, tree, pinned):
+        handlers = {'add': self.handle_tree_add_button_clicked}
+        icons = {'add': 'plus'}
+
+        buttons = {}
+        for name in self.TREE_ROW_ACTIONS:
+            button = tk.Label(tree, image=self.context.icons[icons[name]], bd=0,
+                              cursor='hand2', background=self.tree_row_background)
+            button.bind('<Button-1>', handlers[name])
+            button.bind('<Enter>', self.handle_tree_row_button_enter)
+            button.bind('<Leave>', self.handle_tree_root_button_leave if pinned
+                        else self.handle_tree_row_button_leave)
+            self.tree_row_button_info[button] = (name, pinned)
+            buttons[name] = button
+        return buttons
+
+    def tree_row_button_iid(self, button):
+        _, pinned = self.tree_row_button_info[button]
+        return self.tree_root_row_iid() if pinned else self.tree_hover_buttons_iid
+
+    def tree_row_actions(self, iid):
+        """Which action buttons apply to a row, ordered right to left."""
+        target, _, _ = self.tree_add_menu_target(iid)
+        actions = []
+        if target is not None:
+            actions.append('add')
+        return actions
+
+    def tree_row_button_color(self, button, iid):
+        # the label cannot be transparent, so it has to carry the row's own colour,
+        # darkened while the pointer is on it
+        hovered = button is self.tree_row_button_hovered
+        if iid in self.tree.selection():
+            color = (self.tree_row_selected_background_hover if hovered
+                     else self.tree_row_selected_background)
+        else:
+            color = (self.tree_row_background_hover if hovered
+                     else self.tree_row_background)
+        button.configure(background=color)
+
+    def tree_row_buttons_place(self, buttons, iid):
+        row = self.tree.bbox(iid) if iid else None
+        actions = self.tree_row_actions(iid) if row else []
+        if not actions:
+            self.tree_row_buttons_hide(buttons)
+            return False
+
+        _, row_y, _, row_height = row
+        size = self.tree_row_button_size
+        y = row_y + max(0, (row_height - size) // 2)
+        x = self.tree.winfo_width() - size - 4
+
+        for name in self.TREE_ROW_ACTIONS:
+            button = buttons[name]
+            if name not in actions:
+                button.place_forget()
+                continue
+            button.place(x=x, y=y, width=size, height=size)
+            button.lift()
+            self.tree_row_button_color(button, iid)
+            x -= size + 2
+        return True
+
+    def tree_row_buttons_hide(self, buttons):
+        for button in buttons.values():
+            button.place_forget()
+
+    def tree_row_buttons_recolor(self):
+        for buttons, iid in ((self.tree_hover_buttons, self.tree_hover_buttons_iid),
+                             (self.tree_root_buttons, self.tree_root_row_iid())):
+            if iid is None:
+                continue
+            for button in buttons.values():
+                self.tree_row_button_color(button, iid)
+
+    def tree_root_row_iid(self):
+        instance = self.context.instance
+        if instance is None or self.current_tab() == DisplayType.MODULES:
+            return None
+        iid = instance.global_id
+        if not self.tree.exists(iid):
+            return None
+        return iid if self.tree_row_actions(iid) else None
+
+    def tree_root_buttons_sync(self):
+        buttons = getattr(self, 'tree_root_buttons', None)
+        if buttons is None:
+            return
+        self.tree_row_buttons_place(buttons, self.tree_root_row_iid())
+
+    def tree_hover_buttons_hide(self):
+        buttons = getattr(self, 'tree_hover_buttons', None)
+        if buttons is not None:
+            self.tree_row_buttons_hide(buttons)
+        self.tree_hover_buttons_iid = None
+
+    def tree_row_buttons_sync(self):
+        if self.tree_row_menu_open:
+            return
+        widget = self.winfo_containing(*self.winfo_pointerxy())
+        if widget not in self.tree_row_button_info:
+            self.tree_row_button_hovered = None
+        self.tree_row_buttons_recolor()
+        if widget is not self.tree and widget not in self.tree_row_button_info:
+            self.tree_hover_buttons_hide()
+
+    def tree_add_menu_target(self, iid):
+        """Component the add menu would act on, or None when it cannot add anything."""
+        if not iid or self.current_tab() == DisplayType.MODULES:
+            return None, False, False
+
+        node = utils.find_component(iid, self.context.instance)
+        if node is None:
+            return None, False, False
+
+        if daq.IDevice.can_cast_from(node):
+            target, is_device = daq.IDevice.cast_from(node), True
+        elif daq.IFunctionBlock.can_cast_from(node):
+            target, is_device = daq.IFunctionBlock.cast_from(node), False
+        else:
+            return None, False, False
+
+        try:
+            has_fb_types = bool(target.available_function_block_types)
+        except RuntimeError:
+            has_fb_types = False
+
+        # a function block only offers nested function blocks
+        if not is_device and not has_fb_types:
+            return None, False, False
+
+        return target, is_device, has_fb_types
+
+    def handle_tree_motion(self, event):
+        iid = self.tree.identify_row(event.y)
+        if iid == self.tree_hover_buttons_iid:
+            return
+
+        instance = self.context.instance
+        if instance is not None and iid == instance.global_id:
+            # the pinned buttons already sit on this row
+            self.tree_hover_buttons_hide()
+            return
+
+        if self.tree_row_buttons_place(self.tree_hover_buttons, iid):
+            self.tree_hover_buttons_iid = iid
+        else:
+            self.tree_hover_buttons_hide()
+
+    def handle_tree_leave(self, event):
+        # moving onto a button itself leaves the tree, keep them visible then
+        if self.tree_row_menu_open:
+            return
+        if self.winfo_containing(event.x_root,
+                                 event.y_root) not in self.tree_row_button_info:
+            self.tree_hover_buttons_hide()
+
+    def handle_tree_row_button_enter(self, event):
+        self.tree_row_button_hovered = event.widget
+        self.tree_row_buttons_recolor()
+
+    def handle_tree_row_button_leave(self, event):
+        # a popup opening under the cursor also counts as leaving the button
+        if self.tree_row_menu_open:
+            return
+        self.tree_row_button_hovered = None
+        self.tree_row_buttons_recolor()
+        if self.winfo_containing(event.x_root, event.y_root) is not self.tree:
+            self.tree_hover_buttons_hide()
+
+    def handle_tree_root_button_leave(self, event):
+        # pinned buttons, so only the hover shading goes away
+        if self.tree_row_menu_open:
+            return
+        self.tree_row_button_hovered = None
+        self.tree_row_buttons_recolor()
+
+    def handle_tree_mousewheel(self, event):
+        self.tree_hover_buttons_hide()
+        self.after_idle(self.tree_root_buttons_sync)
+
+    def handle_tree_add_button_clicked(self, event):
+        return self.tree_add_menu_popup(self.tree_row_button_iid(event.widget), event)
+
+    def tree_add_menu_popup(self, iid, event):
+        target, is_device, has_fb_types = self.tree_add_menu_target(iid)
+        if target is None:
+            return 'break'
+
+        self.tree.selection_set(iid)
+        self.tree_row_buttons_recolor()
+
+        popup = tk.Menu(self.tree, tearoff=0)
+        if is_device:
+            popup.add_command(label='Add device',
+                              image=self.context.menu_icon('device'), compound=tk.LEFT,
+                              command=lambda: self.add_device_dialog_show(target))
+        if has_fb_types:
+            popup.add_command(label='Add function block',
+                              image=self.context.menu_icon('add_fb'), compound=tk.LEFT,
+                              command=lambda: self.add_function_block_dialog_show(target))
+        # only the root device accepts servers, IDevice::onAddServer refuses the rest
+        if is_device and iid == self.context.instance.global_id:
+            popup.add_command(label='Add server',
+                              image=self.context.menu_icon('server'), compound=tk.LEFT,
+                              command=lambda: self.add_server_dialog_show(target))
+
+        self.tree_row_menu_open = True
+        try:
+            popup.tk_popup(event.x_root, event.y_root, 0)
+        finally:
+            popup.grab_release()
+            self.tree_row_menu_open = False
+            self.after(200, self.tree_row_buttons_sync)
+        return 'break'
 
     def create_property_object_menu(self, node):
         popup = tk.Menu(self.tree, tearoff=0)

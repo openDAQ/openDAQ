@@ -145,7 +145,7 @@ ErrCode MultiReader2Impl::configure(IMultiReader2Params* params)
     // Cut the notification wire: callbacks turn into no-ops; in-flight ones keep the old snapshot alive
     std::atomic_store(&wiring, std::shared_ptr<const Wiring>());
 
-    std::scoped_lock lock(mutex);
+    std::unique_lock lock(mutex);
 
     // Drop inputs missing from the new list
     for (auto it = slots.begin(); it != slots.end();)
@@ -219,6 +219,28 @@ ErrCode MultiReader2Impl::configure(IMultiReader2Params* params)
     managerConfig.requireSameRates = newRequireSameRates;
     dataManager.reconfigure(std::move(managerConfig));
 
+    std::vector<InputPortConfigPtr> bootstrapPorts;
+    for (const auto& slot : slots)
+        bootstrapPorts.push_back(slot.port);
+
+    // Bootstrap outside the lock: already-connected inputs re-emit their descriptors, and draining
+    // them can run the dataAvailable pass (and user callbacks) inline when there is no scheduler
+    lock.unlock();
+    for (const auto& port : bootstrapPorts)
+    {
+        const auto connection = port.getConnection();
+        if (!connection.assigned())
+            continue;
+
+        const auto internal = connection.asPtrOrNull<IConnectionInternal>(true);
+        if (!internal.assigned())
+            continue;
+
+        // enqueueLastDescriptor places the packet without notifying the listener, so drain explicitly
+        if (OPENDAQ_SUCCEEDED(internal->enqueueLastDescriptor()))
+            packetReceived(port);
+    }
+
     return OPENDAQ_SUCCESS;
 }
 
@@ -258,7 +280,11 @@ ErrCode MultiReader2Impl::getAvailableCount(SizeT* count)
 
 ErrCode MultiReader2Impl::read(IMultiReader2Status** status, void** data, SizeT* count, SizeT* packetOffset)
 {
-    return dataManager.read(status, data, count, packetOffset);
+    const ErrCode errCode = dataManager.read(status, data, count, packetOffset);
+    // Consumption can reopen the wake window for anything that queued while the reader was disarmed
+    if (dataManager.armDataAvailable())
+        scheduleNotificationPass();
+    return errCode;
 }
 
 ErrCode MultiReader2Impl::readWithDomain(IMultiReader2Status** status, void** data, SizeT* count)
@@ -272,7 +298,10 @@ ErrCode MultiReader2Impl::readWithDomain(IMultiReader2Status** status, void** da
 
 ErrCode MultiReader2Impl::commitEvent()
 {
-    return dataManager.commitEvent();
+    const ErrCode errCode = dataManager.commitEvent();
+    if (OPENDAQ_SUCCEEDED(errCode) && dataManager.armDataAvailable())
+        scheduleNotificationPass();
+    return errCode;
 }
 
 ErrCode MultiReader2Impl::setUsed(IString* inputId, Bool used)

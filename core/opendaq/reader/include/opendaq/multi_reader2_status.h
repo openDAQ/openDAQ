@@ -44,7 +44,8 @@ enum class MultiReader2InputError : EnumType
     DataLoss,
     Gap,
     InvalidDescriptor,
-    InvalidDomain
+    InvalidDomain,
+    Disconnected
 };
 
 /*!

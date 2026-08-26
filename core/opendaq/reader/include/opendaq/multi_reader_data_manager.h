@@ -14,12 +14,16 @@
  * limitations under the License.
  */
 #pragma once
+#include <coretypes/dictptr.h>
 #include <coretypes/stringobject_factory.h>
+#include <opendaq/data_descriptor_ptr.h>
 #include <opendaq/multi_reader2_status.h>
 #include <opendaq/packet_ptr.h>
 #include <opendaq/sample_type.h>
 
 #include <atomic>
+#include <chrono>
+#include <deque>
 #include <memory>
 #include <mutex>
 #include <vector>
@@ -46,7 +50,7 @@ public:
     // Full reset: applies the new input set and settings, all queued data and staged state is dropped
     void reconfigure(Config config);
 
-    // Drops all queued packets and staged event state
+    // Drops all queued packets and any pending event; committed descriptors survive
     void clear();
 
     // Samples readable from every used input; 0 while an event is pending
@@ -67,7 +71,7 @@ public:
     void disconnected(SizeT slotIndex);
 
     // True = data or an event became deliverable: run a notification pass, then call armDataAvailable
-    // Data is dropped for unused inputs and inactive readers; event packets always flow
+    // Data is dropped for unused inputs and inactive readers; descriptor events are always cached
     Bool addPacket(SizeT slotIndex, const PacketPtr& packet);
 
     // Re-arms notifications; true = more is already deliverable and the caller owes another pass now
@@ -100,9 +104,13 @@ private:
 #pragma warning(disable : 4324)
     struct alignas(64) SlotCell
     {
-        SpscPacketQueue queue;
+        SpscPacketQueue queue;  // data packets only; descriptor events are cache-only
         std::atomic<SizeT> dataPacketCount{0};
-        std::atomic<IPacket*> lastEventPacket{nullptr};
+        std::atomic<IPacket*> lastEventPacket{nullptr};  // merged full-state descriptor event, newest wins
+        std::atomic<uint64_t> eventVersion{0};
+        // Merge sources owned by the slot's single producer thread; never read by the consumer
+        DataDescriptorPtr producerValueDescriptor;
+        DataDescriptorPtr producerDomainDescriptor;
     };
 #pragma warning(pop)
 
@@ -116,18 +124,61 @@ private:
         std::atomic<uint64_t> readyMask{0};
         std::atomic<uint64_t> usedMask{0};
         std::atomic<uint64_t> connectedMask{0};
-        std::atomic<SizeT> queuedEventPackets{0};
+        std::atomic<SizeT> pendingEvents{0};  // cached descriptor events not yet delivered by a read
         std::atomic<bool> parked{false};
         std::atomic<bool> active{true};
         std::atomic<bool> armed{true};
     };
 
-    // Wake condition: an event packet is queued, or every used input has data; never while a commit is owed
+    // Consumer-side view of one slot: staged packets, committed descriptors, and parsed domain facts
+    struct SlotView
+    {
+        std::deque<PacketPtr> staged;
+        SizeT stagedSamples = 0;   // readable samples under the committed value descriptor
+        SizeT frontOffset = 0;     // samples already consumed from the front staged packet
+        uint64_t deliveredVersion = 0;
+        DataDescriptorPtr valueDescriptor;
+        DataDescriptorPtr domainDescriptor;
+        // Parsed from the committed domain descriptor; valid only under the pinned constraints
+        bool domainValid = false;
+        MultiReader2InputError domainError = MultiReader2InputError::InvalidDescriptor;
+        StringPtr origin;
+        Int delta = 1;
+        Int resolutionNum = 1;
+        Int resolutionDen = 1;
+        // A failed input sits out of sync and reading until a new descriptor or reconfigure refreshes it
+        bool failed = false;
+    };
+
+    // Wake condition: an event is undelivered, or every used input has data; never while a commit is owed
     static bool deliverable(const State& state);
+    static bool matchesDescriptor(const DataDescriptorPtr& committed, const PacketPtr& packet);
+
+    // Consumer helpers; all expect consumerMutex to be held
+    void drainSlots(State& state);
+    void discardAllData(State& state);
+    void discardSlotData(State& state, SizeT index);
+    void settleReadyBit(State& state, SizeT index);
+    bool deliverEvents(State& state, uint64_t& deliveredMask);
+    static void parseDomain(SlotView& view);
+    bool nextTimestamp(SlotView& view, Int& timestamp);
+    void discardBefore(SlotView& view, Int target);
+    bool runSync(State& state);
+    ObjectPtr<IMultiReader2Status> makeStatus(MultiReader2StatusType type, const DictPtr<IString, IInteger>& errors);
+    void park(State& state, MultiReader2StatusType type, const DictPtr<IString, IInteger>& errors);
 
     std::mutex consumerMutex;
     Config config;
     std::shared_ptr<State> state;
+    std::vector<SlotView> views;
+    ObjectPtr<IMultiReader2Status> pendingStatus;
+    uint64_t reportedDisconnectMask = 0;
+    SizeT mainIndex = 0;
+    // Synchronization progress; sync restarts after every committed event
+    bool synced = false;
+    bool syncStarted = false;
+    std::chrono::steady_clock::time_point syncDeadline;
+    Int syncedStart = 0;
 };
 
 END_NAMESPACE_OPENDAQ

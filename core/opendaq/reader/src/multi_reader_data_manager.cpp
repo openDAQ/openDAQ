@@ -1,7 +1,14 @@
+#include <coretypes/dictobject_factory.h>
+#include <coretypes/integer_factory.h>
 #include <coretypes/validation.h>
+#include <opendaq/data_packet_ptr.h>
+#include <opendaq/event_packet_utils.h>
+#include <opendaq/multi_reader2_status_impl.h>
 #include <opendaq/multi_reader_data_manager.h>
 
+#include <algorithm>
 #include <cassert>
+#include <limits>
 
 BEGIN_NAMESPACE_OPENDAQ
 
@@ -70,7 +77,7 @@ bool MultiReaderDataManager::deliverable(const State& state)
     if ((state.connectedMask.load(std::memory_order_acquire) & usedForConnect) != usedForConnect)
         return false;
 
-    if (state.queuedEventPackets.load(std::memory_order_acquire) > 0)
+    if (state.pendingEvents.load(std::memory_order_acquire) > 0)
         return true;
 
     // An inactive reader delivers only events
@@ -79,6 +86,19 @@ bool MultiReaderDataManager::deliverable(const State& state)
 
     const auto used = state.usedMask.load(std::memory_order_acquire);
     return used != 0 && (state.readyMask.load(std::memory_order_acquire) & used) == used;
+}
+
+bool MultiReaderDataManager::matchesDescriptor(const DataDescriptorPtr& committed, const PacketPtr& packet)
+{
+    const auto dataPacket = packet.asPtrOrNull<IDataPacket>(true);
+    if (!dataPacket.assigned() || !committed.assigned())
+        return false;
+
+    const auto descriptor = dataPacket.getDataDescriptor();
+    // Pointer equality is the common case: signals reuse one descriptor object until it changes
+    if (static_cast<IDataDescriptor*>(descriptor) == static_cast<IDataDescriptor*>(committed))
+        return true;
+    return descriptor.assigned() && committed == descriptor;
 }
 
 void MultiReaderDataManager::reconfigure(Config config)
@@ -112,6 +132,19 @@ void MultiReaderDataManager::reconfigure(Config config)
         newState->connectedMask.store(mask, std::memory_order_relaxed);
     }
     std::atomic_store(&state, std::move(newState));
+
+    views.assign(this->config.inputIds.size(), SlotView{});
+    pendingStatus = nullptr;
+    reportedDisconnectMask = 0;
+    synced = false;
+    syncStarted = false;
+    syncDeadline = std::chrono::steady_clock::now() + std::chrono::seconds(2);
+    mainIndex = 0;
+    for (SizeT i = 0; i < this->config.inputIds.size(); i++)
+    {
+        if (this->config.inputIds[i] == this->config.mainInputId)
+            mainIndex = i;
+    }
 }
 
 void MultiReaderDataManager::clear()
@@ -128,14 +161,421 @@ void MultiReaderDataManager::clear()
     fresh->connectedMask.store(current->connectedMask.load(std::memory_order_acquire), std::memory_order_relaxed);
     fresh->active.store(current->active.load(std::memory_order_acquire), std::memory_order_relaxed);
     std::atomic_store(&state, std::move(fresh));
+
+    for (auto& view : views)
+    {
+        view.staged.clear();
+        view.stagedSamples = 0;
+        view.frontOffset = 0;
+        view.deliveredVersion = 0;
+    }
+    pendingStatus = nullptr;
+}
+
+void MultiReaderDataManager::drainSlots(State& state)
+{
+    for (SizeT i = 0; i < state.slots.size(); i++)
+    {
+        auto& cell = *state.slots[i];
+        auto& view = views[i];
+
+        SizeT moved = 0;
+        for (;;)
+        {
+            auto packet = cell.queue.pop();
+            if (!packet.assigned())
+                break;
+            moved++;
+
+            // A failed input sits out until a new descriptor arrives; its data would only pile up
+            if (view.failed)
+                continue;
+
+            if (matchesDescriptor(view.valueDescriptor, packet))
+                view.stagedSamples += packet.asPtrOrNull<IDataPacket>(true).getSampleCount();
+            view.staged.push_back(std::move(packet));
+        }
+        // The ready bit stays set: the data still exists, it just moved consumer-side
+        if (moved > 0)
+            cell.dataPacketCount.fetch_sub(moved, std::memory_order_acq_rel);
+    }
+}
+
+void MultiReaderDataManager::settleReadyBit(State& state, SizeT index)
+{
+    if (!views[index].staged.empty())
+        return;
+
+    auto& cell = *state.slots[index];
+    const auto bit = uint64_t(1) << index;
+    state.readyMask.fetch_and(~bit, std::memory_order_acq_rel);
+    // A producer may have pushed between the drain and the clear; its 0->1 edge was consumed by us
+    if (cell.dataPacketCount.load(std::memory_order_acquire) > 0)
+        state.readyMask.fetch_or(bit, std::memory_order_acq_rel);
+}
+
+void MultiReaderDataManager::discardSlotData(State& state, SizeT index)
+{
+    views[index].staged.clear();
+    views[index].stagedSamples = 0;
+    views[index].frontOffset = 0;
+    settleReadyBit(state, index);
+}
+
+void MultiReaderDataManager::discardAllData(State& state)
+{
+    drainSlots(state);
+    for (SizeT i = 0; i < state.slots.size(); i++)
+        discardSlotData(state, i);
+}
+
+// Extracts the pinned domain constraints: integer samples, seconds unit, implicit linear rule
+void MultiReaderDataManager::parseDomain(SlotView& view)
+{
+    view.domainValid = false;
+    view.domainError = MultiReader2InputError::InvalidDescriptor;
+
+    const auto& descriptor = view.domainDescriptor;
+    if (!descriptor.assigned())
+        return;
+
+    view.domainError = MultiReader2InputError::InvalidDomain;
+    try
+    {
+        switch (descriptor.getSampleType())
+        {
+            case SampleType::Int8:
+            case SampleType::Int16:
+            case SampleType::Int32:
+            case SampleType::Int64:
+            case SampleType::UInt8:
+            case SampleType::UInt16:
+            case SampleType::UInt32:
+            case SampleType::UInt64:
+                break;
+            default:
+                return;
+        }
+
+        const auto unit = descriptor.getUnit();
+        if (!unit.assigned() || unit.getQuantity() != "time" || unit.getSymbol() != "s")
+            return;
+
+        const auto rule = descriptor.getRule();
+        if (!rule.assigned() || rule.getType() != DataRuleType::Linear)
+            return;
+        view.delta = rule.getParameters().get("delta");
+        if (view.delta <= 0)
+            return;
+
+        const auto resolution = descriptor.getTickResolution();
+        view.resolutionNum = resolution.assigned() ? static_cast<Int>(resolution.getNumerator()) : 1;
+        view.resolutionDen = resolution.assigned() ? static_cast<Int>(resolution.getDenominator()) : 1;
+        if (view.resolutionNum <= 0 || view.resolutionDen <= 0)
+            return;
+
+        view.origin = descriptor.getOrigin();
+    }
+    catch (...)
+    {
+        // A malformed descriptor stays invalid instead of tearing down the read path
+        return;
+    }
+    view.domainValid = true;
+}
+
+// Timestamp of the next readable sample; false while nothing interpretable is staged
+bool MultiReaderDataManager::nextTimestamp(SlotView& view, Int& timestamp)
+{
+    while (!view.staged.empty())
+    {
+        const auto& front = view.staged.front();
+        // A mismatching front is data behind an undelivered boundary: not readable yet
+        if (!matchesDescriptor(view.valueDescriptor, front))
+            return false;
+
+        const auto dataPacket = front.asPtrOrNull<IDataPacket>(true);
+        const auto domainPacket = dataPacket.getDomainPacket();
+        if (!domainPacket.assigned())
+        {
+            // Uninterpretable without a domain packet
+            view.stagedSamples -= dataPacket.getSampleCount() - view.frontOffset;
+            view.frontOffset = 0;
+            view.staged.pop_front();
+            continue;
+        }
+
+        timestamp = static_cast<Int>(domainPacket.getOffset()) + static_cast<Int>(view.frontOffset) * view.delta;
+        return true;
+    }
+    return false;
+}
+
+// Drops staged samples with timestamps below the target
+void MultiReaderDataManager::discardBefore(SlotView& view, Int target)
+{
+    Int timestamp;
+    while (nextTimestamp(view, timestamp) && timestamp < target)
+    {
+        const auto dataPacket = view.staged.front().asPtrOrNull<IDataPacket>(true);
+        const auto count = dataPacket.getSampleCount();
+        const Int start = static_cast<Int>(dataPacket.getDomainPacket().getOffset());
+        const Int end = start + static_cast<Int>(count - 1) * view.delta;
+        if (end < target)
+        {
+            view.stagedSamples -= count - view.frontOffset;
+            view.frontOffset = 0;
+            view.staged.pop_front();
+            continue;
+        }
+
+        const auto skip = static_cast<SizeT>((target - start + view.delta - 1) / view.delta);
+        view.stagedSamples -= skip - view.frontOffset;
+        view.frontOffset = skip;
+        return;
+    }
+}
+
+bool MultiReaderDataManager::deliverEvents(State& state, uint64_t& deliveredMask)
+{
+    bool delivered = false;
+    deliveredMask = 0;
+    for (SizeT i = 0; i < state.slots.size(); i++)
+    {
+        auto& cell = *state.slots[i];
+        auto& view = views[i];
+
+        // Snapshot before the exchange: the adopted content is always at least as new as the version
+        const auto version = cell.eventVersion.load(std::memory_order_acquire);
+        if (version == view.deliveredVersion)
+            continue;
+
+        if (IPacket* raw = cell.lastEventPacket.exchange(nullptr, std::memory_order_acq_rel))
+        {
+            const auto adopted = PacketPtr::Adopt(raw);
+            const auto eventPacket = adopted.asPtr<IEventPacket>(true);
+            const auto [valueChanged, domainChanged, value, domain] = parseDataDescriptorEventPacket(eventPacket);
+            if (valueChanged)
+                view.valueDescriptor = value;
+            if (domainChanged)
+                view.domainDescriptor = domain;
+            parseDomain(view);
+            // A fresh descriptor lets a failed input rejoin synchronization
+            view.failed = false;
+
+            // Data staged under a superseded descriptor is dropped; newer data behind it is recounted
+            while (!view.staged.empty() && !matchesDescriptor(view.valueDescriptor, view.staged.front()))
+                view.staged.pop_front();
+            view.stagedSamples = 0;
+            view.frontOffset = 0;
+            for (const auto& packet : view.staged)
+            {
+                if (matchesDescriptor(view.valueDescriptor, packet))
+                    view.stagedSamples += packet.asPtrOrNull<IDataPacket>(true).getSampleCount();
+            }
+            settleReadyBit(state, i);
+        }
+        view.deliveredVersion = version;
+        deliveredMask |= uint64_t(1) << i;
+        delivered = true;
+    }
+
+    if (delivered)
+    {
+        // Conservative reset: a version bumped mid-delivery re-raises the pending flag
+        state.pendingEvents.store(0, std::memory_order_release);
+        for (SizeT i = 0; i < state.slots.size(); i++)
+        {
+            if (state.slots[i]->eventVersion.load(std::memory_order_acquire) != views[i].deliveredVersion)
+            {
+                state.pendingEvents.fetch_add(1, std::memory_order_acq_rel);
+                break;
+            }
+        }
+    }
+    return delivered;
+}
+
+// One incremental synchronization pass; true = a failure event was parked
+// Staged data is assumed gap-free: a slot's range is its next timestamp plus its staged sample count
+bool MultiReaderDataManager::runSync(State& state)
+{
+    syncStarted = true;
+    const auto used = state.usedMask.load(std::memory_order_acquire);
+    const bool deadlinePassed = std::chrono::steady_clock::now() > syncDeadline;
+    auto errors = Dict<IString, IInteger>();
+    const auto failSlot = [this, &state, &errors](SizeT i, MultiReader2InputError error)
+    {
+        views[i].failed = true;
+        discardSlotData(state, i);
+        errors.set(config.inputIds[i], Integer(static_cast<Int>(error)));
+    };
+
+    // Everything anchors to the main input; without its domain nothing can align
+    auto& main = views[mainIndex];
+    if (!main.domainValid)
+    {
+        if (!deadlinePassed)
+            return false;
+        errors.set(config.inputIds[mainIndex], Integer(static_cast<Int>(main.domainError)));
+        park(state, MultiReader2StatusType::Event, errors);
+        return true;
+    }
+
+    // Relational validation against the main input; a broken relation fails immediately
+    const auto mainOrigin = main.origin.assigned() ? main.origin.toStdString() : std::string();
+    for (SizeT i = 0; i < views.size(); i++)
+    {
+        if (i == mainIndex || ((used >> i) & 1) == 0 || views[i].failed)
+            continue;
+
+        auto& view = views[i];
+        if (!view.valueDescriptor.assigned() && !view.domainDescriptor.assigned())
+            continue;  // nothing announced yet; the deadline below covers it
+        if (!view.domainValid)
+        {
+            failSlot(i, view.domainError);
+            continue;
+        }
+        // Dividers arrive in a later phase: the rate, resolution, and origin must equal the main input's
+        const auto origin = view.origin.assigned() ? view.origin.toStdString() : std::string();
+        if (view.delta != main.delta || view.resolutionNum != main.resolutionNum || view.resolutionDen != main.resolutionDen ||
+            origin != mainOrigin)
+            failSlot(i, MultiReader2InputError::InvalidDomain);
+    }
+
+    const Int delta = main.delta;
+    // The 2 second sync window expressed in domain ticks bounds how far ranges may sit apart
+    const Int maxDistance = 2 * main.resolutionDen / main.resolutionNum;
+
+    bool waiting = false;
+    for (int pass = 0; pass < 1000 && !waiting && !synced; pass++)
+    {
+        Int stamps[64];
+        uint64_t haveMask = 0;
+        Int target = std::numeric_limits<Int>::min();
+
+        for (SizeT i = 0; i < views.size(); i++)
+        {
+            if (((used >> i) & 1) == 0 || views[i].failed)
+                continue;
+
+            Int timestamp;
+            if (!nextTimestamp(views[i], timestamp))
+            {
+                // The main input never fails: at worst it stays synced only to itself
+                if (i != mainIndex && deadlinePassed)
+                    failSlot(i, MultiReader2InputError::SyncFailed);
+                else
+                    waiting = true;
+                continue;
+            }
+            stamps[i] = timestamp;
+            haveMask |= uint64_t(1) << i;
+            target = std::max(target, timestamp);
+        }
+        if (waiting || ((haveMask >> mainIndex) & 1) == 0)
+            break;
+
+        const Int mainLast = stamps[mainIndex] + static_cast<Int>(main.stagedSamples - 1) * delta;
+        for (SizeT i = 0; i < views.size(); i++)
+        {
+            if (((haveMask >> i) & 1) == 0 || i == mainIndex)
+                continue;
+
+            // The input must share the main grid and its range must be close enough to ever meet it
+            if (((stamps[i] - stamps[mainIndex]) % delta + delta) % delta != 0)
+            {
+                failSlot(i, MultiReader2InputError::InvalidDomain);
+                continue;
+            }
+            const Int last = stamps[i] + static_cast<Int>(views[i].stagedSamples - 1) * delta;
+            if (stamps[i] - mainLast > maxDistance || stamps[mainIndex] - last > maxDistance)
+                failSlot(i, MultiReader2InputError::SyncFailed);
+        }
+
+        bool aligned = true;
+        for (SizeT i = 0; i < views.size(); i++)
+        {
+            if (((haveMask >> i) & 1) == 0 || views[i].failed)
+                continue;
+            if (stamps[i] != target)
+            {
+                aligned = false;
+                discardBefore(views[i], target);
+                settleReadyBit(state, i);
+            }
+        }
+        if (aligned)
+        {
+            synced = true;
+            syncedStart = target;
+        }
+    }
+
+    if (errors.getCount() > 0)
+    {
+        park(state, MultiReader2StatusType::Event, errors);
+        return true;
+    }
+    return false;
+}
+
+ObjectPtr<IMultiReader2Status> MultiReaderDataManager::makeStatus(MultiReader2StatusType type, const DictPtr<IString, IInteger>& errors)
+{
+    auto descriptors = Dict<IString, IDataDescriptor>();
+    for (SizeT i = 0; i < views.size(); i++)
+    {
+        if (views[i].valueDescriptor.assigned())
+            descriptors.set(config.inputIds[i], views[i].valueDescriptor);
+    }
+    DataDescriptorPtr domain;
+    if (mainIndex < views.size())
+        domain = views[mainIndex].domainDescriptor;
+    return createWithImplementation<IMultiReader2Status, MultiReader2StatusImpl>(domain, type, descriptors, errors, nullptr);
+}
+
+void MultiReaderDataManager::park(State& state, MultiReader2StatusType type, const DictPtr<IString, IInteger>& errors)
+{
+    pendingStatus = makeStatus(type, errors);
+    state.parked.store(true, std::memory_order_release);
 }
 
 ErrCode MultiReaderDataManager::getAvailableCount(SizeT* count)
 {
     OPENDAQ_PARAM_NOT_NULL(count);
 
-    // Shell: sample accounting arrives with the read path
+    std::scoped_lock lock(consumerMutex);
     *count = 0;
+
+    const auto current = std::atomic_load(&state);
+    if (!current)
+        return OPENDAQ_SUCCESS;
+
+    // Nothing is readable while an event awaits its commit, is undelivered, or a used input is disconnected
+    const auto used = current->usedMask.load(std::memory_order_acquire);
+    if (used == 0 || current->parked.load(std::memory_order_acquire))
+        return OPENDAQ_SUCCESS;
+    if (current->pendingEvents.load(std::memory_order_acquire) > 0)
+        return OPENDAQ_SUCCESS;
+    if ((current->connectedMask.load(std::memory_order_acquire) & used) != used)
+        return OPENDAQ_SUCCESS;
+
+    if (!synced)
+        return OPENDAQ_SUCCESS;
+
+    drainSlots(*current);
+
+    SizeT available = std::numeric_limits<SizeT>::max();
+    bool any = false;
+    for (SizeT i = 0; i < views.size(); i++)
+    {
+        if (((used >> i) & 1) == 0 || views[i].failed)
+            continue;
+        available = std::min(available, views[i].stagedSamples);
+        any = true;
+    }
+    *count = any ? available : 0;
     return OPENDAQ_SUCCESS;
 }
 
@@ -146,7 +586,71 @@ ErrCode MultiReaderDataManager::read(IMultiReader2Status** status, void** data, 
     OPENDAQ_PARAM_NOT_NULL(count);
     OPENDAQ_PARAM_NOT_NULL(packetOffset);
 
-    return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOTIMPLEMENTED, "MultiReaderDataManager::read is not implemented yet");
+    std::scoped_lock lock(consumerMutex);
+
+    const auto current = std::atomic_load(&state);
+    if (!current)
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDSTATE, "The reader is not configured");
+
+    *count = 0;
+    *packetOffset = 0;
+
+    // A pending event is re-reported until committed
+    if (current->parked.load(std::memory_order_acquire))
+    {
+        *status = pendingStatus.addRefAndReturn();
+        return OPENDAQ_SUCCESS;
+    }
+
+    drainSlots(*current);
+
+    uint64_t deliveredMask = 0;
+    const bool delivered = deliverEvents(*current, deliveredMask);
+
+    // A fresh disconnect of a used input parks with a synthesized event; committed ones stay silent
+    const auto used = current->usedMask.load(std::memory_order_acquire);
+    const auto disconnected = used & ~current->connectedMask.load(std::memory_order_acquire);
+    if ((disconnected & ~reportedDisconnectMask) != 0)
+    {
+        discardAllData(*current);
+        auto errors = Dict<IString, IInteger>();
+        for (SizeT i = 0; i < views.size(); i++)
+        {
+            if ((disconnected >> i) & 1)
+                errors.set(config.inputIds[i], Integer(static_cast<Int>(MultiReader2InputError::Disconnected)));
+        }
+        park(*current, MultiReader2StatusType::Event, errors);
+        *status = pendingStatus.addRefAndReturn();
+        return OPENDAQ_SUCCESS;
+    }
+
+    if (delivered)
+    {
+        // An event during synchronization fails the affected inputs; they rejoin after the commit
+        DictPtr<IString, IInteger> errors;
+        if (syncStarted && !synced)
+        {
+            errors = Dict<IString, IInteger>();
+            for (SizeT i = 0; i < views.size(); i++)
+            {
+                if (((deliveredMask & used) >> i) & 1 && i != mainIndex)
+                    errors.set(config.inputIds[i], Integer(static_cast<Int>(MultiReader2InputError::SyncFailed)));
+            }
+        }
+        park(*current, MultiReader2StatusType::Event, errors);
+        *status = pendingStatus.addRefAndReturn();
+        return OPENDAQ_SUCCESS;
+    }
+
+    // While waiting for a reconnect nothing synchronizes or reads
+    if (disconnected == 0 && !synced && runSync(*current))
+    {
+        *status = pendingStatus.addRefAndReturn();
+        return OPENDAQ_SUCCESS;
+    }
+
+    *status = makeStatus(MultiReader2StatusType::Data, nullptr).detach();
+    return OPENDAQ_SUCCESS;
 }
 
 ErrCode MultiReaderDataManager::commitEvent()
@@ -157,7 +661,13 @@ ErrCode MultiReaderDataManager::commitEvent()
     if (!current || !current->parked.load(std::memory_order_acquire))
         return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDSTATE, "No event to commit");
 
-    // Event popping arrives with the read path; only the gate is released here
+    pendingStatus = nullptr;
+    // Disconnects reported by this event stay silent until the input reconnects
+    reportedDisconnectMask = current->usedMask.load(std::memory_order_acquire) & ~current->connectedMask.load(std::memory_order_acquire);
+    // Every committed event restarts synchronization with a fresh timeout window
+    synced = false;
+    syncStarted = false;
+    syncDeadline = std::chrono::steady_clock::now() + std::chrono::seconds(2);
     current->parked.store(false, std::memory_order_release);
     return OPENDAQ_SUCCESS;
 }
@@ -171,6 +681,9 @@ ErrCode MultiReaderDataManager::setActive(Bool active)
         return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDSTATE, "setActive is only valid between an event read and commitEvent");
 
     current->active.store(active, std::memory_order_release);
+    // Data staged before the deactivation would only go stale
+    if (!active)
+        discardAllData(*current);
     return OPENDAQ_SUCCESS;
 }
 
@@ -191,9 +704,16 @@ ErrCode MultiReaderDataManager::setUsed(IString* inputId, Bool used)
         {
             const auto bit = uint64_t(1) << i;
             if (used)
+            {
                 current->usedMask.fetch_or(bit, std::memory_order_acq_rel);
+                views[i].failed = false;
+            }
             else
+            {
                 current->usedMask.fetch_and(~bit, std::memory_order_acq_rel);
+                // Data staged for a now-unused input would only go stale
+                discardSlotData(*current, i);
+            }
             return OPENDAQ_SUCCESS;
         }
     }
@@ -225,40 +745,44 @@ Bool MultiReaderDataManager::addPacket(SizeT slotIndex, const PacketPtr& packet)
     if (!current || slotIndex >= current->slots.size() || !packet.assigned())
         return False;
 
-    const bool isEvent = packet.getType() == PacketType::Event;
     const auto bit = uint64_t(1) << slotIndex;
     auto& cell = *current->slots[slotIndex];
 
-    // The newest event packet is always cached so descriptors survive any dropping
-    if (isEvent)
+    if (packet.getType() == PacketType::Event)
     {
-        IPacket* newPacket = packet;
-        newPacket->addRef();
-        if (IPacket* old = cell.lastEventPacket.exchange(newPacket, std::memory_order_acq_rel))
+        // Descriptor events are cache-only and survive every dropping rule; other events arrive in a later phase
+        const auto eventPacket = packet.asPtrOrNull<IEventPacket>(true);
+        if (!eventPacket.assigned() || eventPacket.getEventId() != event_packet_id::DATA_DESCRIPTOR_CHANGED)
+            return False;
+
+        // Change packets carry deltas; merge into full state so newest-wins caching loses nothing
+        const auto [valueChanged, domainChanged, value, domain] = parseDataDescriptorEventPacket(eventPacket);
+        if (valueChanged)
+            cell.producerValueDescriptor = value;
+        if (domainChanged)
+            cell.producerDomainDescriptor = domain;
+        EventPacketPtr merged = DataDescriptorChangedEventPacket(descriptorToEventPacketParam(cell.producerValueDescriptor),
+                                                                 descriptorToEventPacketParam(cell.producerDomainDescriptor));
+        if (IPacket* old = cell.lastEventPacket.exchange(merged.detach(), std::memory_order_acq_rel))
             old->releaseRef();
+        cell.eventVersion.fetch_add(1, std::memory_order_release);
+        current->pendingEvents.fetch_add(1, std::memory_order_acq_rel);
     }
-
-    // While any used input is disconnected everything is dropped from the queues
-    const auto used = current->usedMask.load(std::memory_order_acquire);
-    if ((current->connectedMask.load(std::memory_order_acquire) & used) != used)
-        return False;
-
-    // Unused inputs and inactive readers drop data; events always flow
-    if (!isEvent)
+    else
     {
-        if (!current->active.load(std::memory_order_acquire))
+        // While any used input is disconnected all data is dropped; unused inputs and inactive readers drop too
+        const auto used = current->usedMask.load(std::memory_order_acquire);
+        if ((current->connectedMask.load(std::memory_order_acquire) & used) != used)
             return False;
-        if ((used & bit) == 0)
+        if (!current->active.load(std::memory_order_acquire) || (used & bit) == 0)
             return False;
+
+        cell.queue.push(packet);
+
+        // Shared words are touched only on empty-to-non-empty transitions, never per steady-state packet
+        if (cell.dataPacketCount.fetch_add(1, std::memory_order_acq_rel) == 0)
+            current->readyMask.fetch_or(bit, std::memory_order_release);
     }
-
-    cell.queue.push(packet);
-
-    // Shared words are touched only on transitions and event packets, never per steady-state packet
-    if (isEvent)
-        current->queuedEventPackets.fetch_add(1, std::memory_order_acq_rel);
-    else if (cell.dataPacketCount.fetch_add(1, std::memory_order_acq_rel) == 0)
-        current->readyMask.fetch_or(bit, std::memory_order_release);
 
     if (!deliverable(*current))
         return False;

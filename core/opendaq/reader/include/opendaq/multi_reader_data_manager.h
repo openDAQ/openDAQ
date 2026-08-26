@@ -18,13 +18,16 @@
 #include <opendaq/multi_reader2_status.h>
 #include <opendaq/packet_ptr.h>
 
-#include <deque>
+#include <atomic>
+#include <memory>
+#include <mutex>
 #include <vector>
 
 BEGIN_NAMESPACE_OPENDAQ
 
 // Internal engine of the multi reader: per-input packet queues, event staging, and the read path.
 // Plain C++ object fully owned by MultiReader2Impl; lives for the reader's whole lifetime.
+// Producer calls (addPacket, armDataAvailable) are lock-free; consumer calls share one mutex.
 class MultiReaderDataManager final
 {
 public:
@@ -59,22 +62,61 @@ public:
     void disconnected(const StringPtr& inputId);
 
     // True = data or an event became deliverable: run a notification pass, then call armDataAvailable
+    // Data is dropped for unused inputs and inactive readers; event packets always flow
     Bool addPacket(SizeT slotIndex, const PacketPtr& packet);
 
     // Re-arms notifications; true = more is already deliverable and the caller owes another pass now
     Bool armDataAvailable();
 
 private:
-    // Wake condition: an event packet is queued, or every used input has data; never while a commit is owed
-    bool deliverable() const;
+    // Unbounded SPSC queue with a dummy node: the slot's port thread pushes, the reader thread pops
+    class SpscPacketQueue final
+    {
+    public:
+        SpscPacketQueue();
+        ~SpscPacketQueue();
 
+        void push(PacketPtr packet);
+        PacketPtr pop();
+
+    private:
+        struct Node
+        {
+            PacketPtr packet;
+            std::atomic<Node*> next{nullptr};
+        };
+
+        Node* head;
+        Node* tail;
+    };
+
+    // Per-slot hot state, cache-line separated so producers of adjacent slots never share a line
+    struct alignas(64) SlotCell
+    {
+        SpscPacketQueue queue;
+        std::atomic<SizeT> dataPacketCount{0};
+    };
+
+    // Producer-visible state, swapped wholesale on reconfigure; stragglers finish on the old block
+    struct State
+    {
+        explicit State(SizeT slotCount);
+
+        std::vector<std::unique_ptr<SlotCell>> slots;
+        std::atomic<uint64_t> readyMask{0};
+        std::atomic<uint64_t> usedMask{0};
+        std::atomic<SizeT> queuedEventPackets{0};
+        std::atomic<bool> parked{false};
+        std::atomic<bool> active{true};
+        std::atomic<bool> armed{true};
+    };
+
+    // Wake condition: an event packet is queued, or every used input has data; never while a commit is owed
+    static bool deliverable(const State& state);
+
+    std::mutex consumerMutex;
     Config config;
-    std::vector<std::deque<PacketPtr>> queues;
-    std::vector<bool> usedFlags;
-    SizeT queuedEventPackets = 0;
-    Bool active = True;
-    bool eventPending = false;
-    bool notificationArmed = true;
+    std::shared_ptr<State> state;
 };
 
 END_NAMESPACE_OPENDAQ

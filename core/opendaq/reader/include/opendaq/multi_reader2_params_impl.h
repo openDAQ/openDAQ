@@ -32,6 +32,8 @@ public:
     ErrCode INTERFACE_FUNC setInputs(IList* inputs) override;
     ErrCode INTERFACE_FUNC getMainInput(IComponent** input) override;
     ErrCode INTERFACE_FUNC setMainInput(IComponent* input) override;
+    ErrCode INTERFACE_FUNC getUnusedInputs(IList** inputs) override;
+    ErrCode INTERFACE_FUNC setUnusedInputs(IList* inputs) override;
     ErrCode INTERFACE_FUNC getMinReadCount(SizeT* count) override;
     ErrCode INTERFACE_FUNC setMinReadCount(SizeT count) override;
     ErrCode INTERFACE_FUNC getRequireSameRates(Bool* requireSameRates) override;
@@ -40,6 +42,7 @@ public:
 private:
     std::mutex mutex;
     ListPtr<IComponent> inputs;
+    ListPtr<IComponent> unusedInputs;
     ComponentPtr mainInput;
     SizeT minReadCount = 1;
     Bool requireSameRates = False;

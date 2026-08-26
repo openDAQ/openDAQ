@@ -34,6 +34,7 @@ public:
     struct Config
     {
         std::vector<StringPtr> inputIds;
+        std::vector<bool> usedFlags;
         StringPtr mainInputId;
         SizeT minReadCount = 1;
         Bool requireSameRates = False;

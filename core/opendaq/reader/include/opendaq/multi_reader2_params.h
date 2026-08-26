@@ -56,6 +56,20 @@ DECLARE_OPENDAQ_INTERFACE(IMultiReader2Params, IBaseObject)
      */
     virtual ErrCode INTERFACE_FUNC setMainInput(IComponent* input) = 0;
 
+    // [templateType(inputs, IComponent)]
+    /*!
+     * @brief Gets the inputs that start out unused.
+     * @param[out] inputs The list of unused inputs.
+     */
+    virtual ErrCode INTERFACE_FUNC getUnusedInputs(IList** inputs) = 0;
+
+    // [templateType(inputs, IComponent)]
+    /*!
+     * @brief Sets the inputs that start out unused; each must be part of the input list and not the main input.
+     * @param inputs The list of unused inputs.
+     */
+    virtual ErrCode INTERFACE_FUNC setUnusedInputs(IList* inputs) = 0;
+
     /*!
      * @brief Gets the minimum number of samples a read operation returns; defaults to 1.
      * @param[out] count The minimum read count.

@@ -7,6 +7,7 @@ BEGIN_NAMESPACE_OPENDAQ
 
 MultiReader2ParamsImpl::MultiReader2ParamsImpl()
     : inputs(List<IComponent>())
+    , unusedInputs(List<IComponent>())
 {
 }
 
@@ -69,6 +70,25 @@ ErrCode MultiReader2ParamsImpl::setMainInput(IComponent* input)
 
     std::scoped_lock lock(mutex);
     mainInput = component;
+    return OPENDAQ_SUCCESS;
+}
+
+ErrCode MultiReader2ParamsImpl::getUnusedInputs(IList** inputs)
+{
+    OPENDAQ_PARAM_NOT_NULL(inputs);
+
+    std::scoped_lock lock(mutex);
+    *inputs = this->unusedInputs.addRefAndReturn();
+    return OPENDAQ_SUCCESS;
+}
+
+ErrCode MultiReader2ParamsImpl::setUnusedInputs(IList* inputs)
+{
+    OPENDAQ_PARAM_NOT_NULL(inputs);
+
+    // Membership in the input list is validated by the reader's configure
+    std::scoped_lock lock(mutex);
+    this->unusedInputs = ListPtr<IComponent>::Borrow(inputs);
     return OPENDAQ_SUCCESS;
 }
 

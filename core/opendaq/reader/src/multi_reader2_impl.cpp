@@ -99,6 +99,10 @@ ErrCode MultiReader2Impl::configure(IMultiReader2Params* params)
     errCode = params->getMainInput(&mainInput);
     OPENDAQ_RETURN_IF_FAILED(errCode);
 
+    ListPtr<IComponent> unusedInputs;
+    errCode = params->getUnusedInputs(&unusedInputs);
+    OPENDAQ_RETURN_IF_FAILED(errCode);
+
     SizeT newMinReadCount;
     errCode = params->getMinReadCount(&newMinReadCount);
     OPENDAQ_RETURN_IF_FAILED(errCode);
@@ -117,6 +121,22 @@ ErrCode MultiReader2Impl::configure(IMultiReader2Params* params)
     // The main input must be one of the params inputs; the first input is the default
     if (mainInput.assigned() && newIds.count(mainInput.getGlobalId().toStdString()) == 0)
         return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDPARAMETER, R"(Main input "%s" is not in the input list)", mainInput.getGlobalId().getCharPtr());
+
+    // Unused inputs must be part of the input list; the main input must stay used
+    const auto resolvedMainId = mainInput.assigned() ? mainInput.getGlobalId().toStdString() : inputs[0].getGlobalId().toStdString();
+    std::unordered_set<std::string> unusedIds;
+    if (unusedInputs.assigned())
+    {
+        for (const auto& component : unusedInputs)
+        {
+            const auto id = component.getGlobalId().toStdString();
+            if (newIds.count(id) == 0)
+                return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDPARAMETER, R"(Unused input "%s" is not in the input list)", component.getGlobalId().getCharPtr());
+            if (id == resolvedMainId)
+                return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDPARAMETER, "The main input cannot be unused");
+            unusedIds.insert(id);
+        }
+    }
 
     // Cut the notification wire: callbacks turn into no-ops; in-flight ones keep the old snapshot alive
     std::atomic_store(&wiring, std::shared_ptr<const Wiring>());
@@ -185,7 +205,10 @@ ErrCode MultiReader2Impl::configure(IMultiReader2Params* params)
 
     MultiReaderDataManager::Config managerConfig;
     for (const auto& slot : slots)
+    {
         managerConfig.inputIds.push_back(slot.inputId);
+        managerConfig.usedFlags.push_back(unusedIds.count(slot.inputId.toStdString()) == 0);
+    }
     managerConfig.mainInputId = mainInputId;
     managerConfig.minReadCount = newMinReadCount;
     managerConfig.requireSameRates = newRequireSameRates;

@@ -72,7 +72,19 @@ void MultiReaderDataManager::reconfigure(Config config)
     assert(config.inputIds.size() <= 64);
 
     this->config = std::move(config);
-    std::atomic_store(&state, std::make_shared<State>(this->config.inputIds.size()));
+
+    auto newState = std::make_shared<State>(this->config.inputIds.size());
+    if (!this->config.usedFlags.empty())
+    {
+        uint64_t mask = 0;
+        for (SizeT i = 0; i < this->config.usedFlags.size(); i++)
+        {
+            if (this->config.usedFlags[i])
+                mask |= uint64_t(1) << i;
+        }
+        newState->usedMask.store(mask, std::memory_order_relaxed);
+    }
+    std::atomic_store(&state, std::move(newState));
 }
 
 void MultiReaderDataManager::clear()

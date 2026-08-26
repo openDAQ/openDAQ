@@ -283,7 +283,7 @@ class App(tk.Tk):
         entry_style = ttk.Style()
         entry_style.configure('Search.TEntry', padding=(2, 2, 24, 2))
 
-        search_entry = ttk.Entry(search_frame, style='Search.TEntry')
+        search_entry = ttk.Entry(search_frame, style='Search.TEntry', takefocus=False)
         search_entry.pack(fill=tk.X, padx=(0,16), pady=(0,4), ipady=2)
         self.tree_search_default_foreground = search_entry.cget('foreground')
         search_entry.insert(0, "Filter tree by name, tag or local id")
@@ -358,8 +358,8 @@ class App(tk.Tk):
         self.tree_search_entry.configure(
             foreground=self.tree_search_default_foreground)
         self.handle_tree_search_changed()
-        # drop the focus so the entry shows the hint again instead of an empty field
-        self.focus_set()
+        # hand the focus to the tree, not the toplevel, so it cannot land back here
+        self.tree.focus_set()
         self.handle_tree_search_focus_out(None)
 
     def tree_item_matches_search(self, iid, query):

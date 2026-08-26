@@ -31,6 +31,9 @@ public:
     ErrCode INTERFACE_FUNC setReferenceDomainId(IString* referenceDomainId) override;
     ErrCode INTERFACE_FUNC getReferenceDomainId(IString** referenceDomainId) override;
 
+    ErrCode INTERFACE_FUNC setReferenceDomainIds(IList* referenceDomainIds) override;
+    ErrCode INTERFACE_FUNC getReferenceDomainIds(IList** referenceDomainIds) override;
+
     ErrCode INTERFACE_FUNC setReferenceDomainOffset(IInteger* referenceDomainOffset) override;
     ErrCode INTERFACE_FUNC getReferenceDomainOffset(IInteger** referenceDomainOffset) override;
 
@@ -42,6 +45,7 @@ public:
 
 protected:
     StringPtr referenceDomainId;
+    ListPtr<IString> referenceDomainIds;
     IntegerPtr referenceDomainOffset;
     TimeProtocol referenceTimeProtocol;
     UsesOffset usesOffset;

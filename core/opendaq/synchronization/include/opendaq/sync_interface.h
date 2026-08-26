@@ -78,15 +78,48 @@ DECLARE_OPENDAQ_INTERFACE(ISyncInterface, IBaseObject)
       */
     virtual ErrCode INTERFACE_FUNC getReferenceDomainId(IString** referenceDomainId) = 0;
 
+    /*!
+      * @brief Gets the clock type of the synchronization interface.
+      * @param[out] clockType The clock type string.
+      */
+    virtual ErrCode INTERFACE_FUNC getClockType(IString** clockType) = 0;
+
+    /*!
+      * @brief Sets the mode of the synchronization interface.
+      * @param mode The mode to set the synchronization interface to.
+      */
     virtual ErrCode INTERFACE_FUNC setMode(SyncMode mode) = 0;
+
+    /*!
+      * @brief Gets the current mode of the synchronization interface.
+      * @param[out] sourceMode The current mode of the synchronization interface.
+      */
     virtual ErrCode INTERFACE_FUNC getMode(SyncMode* sourceMode) = 0;
 
+    /*!
+      * @brief Gets the modes available to the synchronization interface, depending on whether
+      * it is currently selected as the synchronization source.
+      * @param[out] availableModes A dictionary mapping available `SyncMode` values to their names.
+      */
     // [templateType(availableModes, IInteger, IString)]
     virtual ErrCode INTERFACE_FUNC getAvailableModes(IDict** availableModes) = 0;
 
+    /*!
+      * @brief Gets the status property object of the synchronization interface.
+      * @param[out] status The status property object.
+      */
     virtual ErrCode INTERFACE_FUNC getStatus(IPropertyObject** status) = 0;
+
+    /*!
+      * @brief Gets the configuration property object of the synchronization interface.
+      * @param[out] configuration The configuration property object.
+      */
     virtual ErrCode INTERFACE_FUNC getConfiguration(IPropertyObject** configuration) = 0;
 
+    /*!
+      * @brief Gets the status container of the synchronization interface.
+      * @param[out] syncStatus The status container.
+      */
     virtual ErrCode INTERFACE_FUNC getStatusContainer(IComponentStatusContainer** syncStatus) = 0;
 };
 /*!@}*/

@@ -32,7 +32,19 @@ BEGIN_NAMESPACE_OPENDAQ
  */
 DECLARE_OPENDAQ_INTERFACE(ISyncInterfaceInternal, IBaseObject)
 {
+    /*!
+     * @brief Marks the synchronization interface as the currently selected synchronization source,
+     * or demotes it back to being an output-only interface.
+     * @param source True to select this interface as the synchronization source, False to demote it.
+     */
     virtual ErrCode INTERFACE_FUNC setAsSource(Bool source) = 0;
+
+    /*!
+     * @brief Notifies the synchronization interface that the clock type of the currently
+     * selected synchronization source has changed.
+     * @param clockType The clock type of the currently selected synchronization source.
+     */
+    virtual ErrCode INTERFACE_FUNC sourceClockTypeChanged(IString* clockType) = 0;
 };
 /*!@}*/
 

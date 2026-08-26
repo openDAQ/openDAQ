@@ -10,7 +10,7 @@
 //------------------------------------------------------------------------------
 
 /*
- * Copyright 2022-2025 openDAQ d.o.o.
+ * Copyright 2022-2026 openDAQ d.o.o.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -38,7 +38,7 @@ PyDaqIntf<daq::ISynchronization, daq::IBaseObject> declareISynchronization(pybin
 
 void defineISynchronization(pybind11::module_ m, PyDaqIntf<daq::ISynchronization, daq::IBaseObject> cls)
 {
-    cls.doc() = "Interface representing a Synchronization Component 2 in a Test & Measurement system.";
+    cls.doc() = "Interface representing the Synchronization of a device in a Test & Measurement system.";
 
     m.def("Synchronization", &daq::Synchronization_Create);
 
@@ -50,7 +50,7 @@ void defineISynchronization(pybind11::module_ m, PyDaqIntf<daq::ISynchronization
             return objectPtr.getSyncInterfaces().detach();
         },
         py::return_value_policy::take_ownership,
-        "");
+        "Gets all synchronization interfaces registered with this synchronization.");
     cls.def_property("source",
         [](daq::ISynchronization *object)
         {
@@ -65,7 +65,7 @@ void defineISynchronization(pybind11::module_ m, PyDaqIntf<daq::ISynchronization
             objectPtr.setSource(getVariantValue<daq::IString*>(sourceName));
         },
         py::return_value_policy::take_ownership,
-        "");
+        "Gets the currently selected synchronization source. / Selects the synchronization interface with the given name as the synchronization source.");
     cls.def_property_readonly("reference_domain_ids",
         [](daq::ISynchronization *object)
         {
@@ -74,5 +74,5 @@ void defineISynchronization(pybind11::module_ m, PyDaqIntf<daq::ISynchronization
             return objectPtr.getReferenceDomainIds().detach();
         },
         py::return_value_policy::take_ownership,
-        "");
+        "Gets the reference domain IDs of all registered synchronization interfaces that have one assigned.");
 }

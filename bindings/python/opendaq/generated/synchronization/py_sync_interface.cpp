@@ -10,7 +10,7 @@
 //------------------------------------------------------------------------------
 
 /*
- * Copyright 2022-2025 openDAQ d.o.o.
+ * Copyright 2022-2026 openDAQ d.o.o.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -38,6 +38,18 @@ PyDaqIntf<daq::ISyncInterface, daq::IBaseObject> declareISyncInterface(pybind11:
         .value("Input", daq::SyncMode::Input)
         .value("Output", daq::SyncMode::Output)
         .value("Auto", daq::SyncMode::Auto);
+    py::enum_<daq::SyncSourceStatus>(m, "SyncSourceStatus")
+        .value("Off", daq::SyncSourceStatus::Off)
+        .value("Listening", daq::SyncSourceStatus::Listening)
+        .value("Calibrating", daq::SyncSourceStatus::Calibrating)
+        .value("Synced", daq::SyncSourceStatus::Synced)
+        .value("Error", daq::SyncSourceStatus::Error)
+        .value("Unknown", daq::SyncSourceStatus::Unknown);
+    py::enum_<daq::SyncRoleStatus>(m, "SyncRoleStatus")
+        .value("Off", daq::SyncRoleStatus::Off)
+        .value("Input", daq::SyncRoleStatus::Input)
+        .value("Output", daq::SyncRoleStatus::Output)
+        .value("Unknown", daq::SyncRoleStatus::Unknown);
 
     return wrapInterface<daq::ISyncInterface, daq::IBaseObject>(m, "ISyncInterface");
 }
@@ -62,14 +74,28 @@ void defineISyncInterface(pybind11::module_ m, PyDaqIntf<daq::ISyncInterface, da
             return objectPtr.getReferenceDomainId().toStdString();
         },
         "Gets the reference domain ID of the synchronization interface.");
-    cls.def_property_readonly("mode",
+    cls.def_property_readonly("clock_type",
+        [](daq::ISyncInterface *object)
+        {
+            py::gil_scoped_release release;
+            const auto objectPtr = daq::SyncInterfacePtr::Borrow(object);
+            return objectPtr.getClockType().toStdString();
+        },
+        "Gets the clock type of the synchronization interface.");
+    cls.def_property("mode",
         [](daq::ISyncInterface *object)
         {
             py::gil_scoped_release release;
             const auto objectPtr = daq::SyncInterfacePtr::Borrow(object);
             return objectPtr.getMode();
         },
-        "");
+        [](daq::ISyncInterface *object, daq::SyncMode mode)
+        {
+            py::gil_scoped_release release;
+            const auto objectPtr = daq::SyncInterfacePtr::Borrow(object);
+            objectPtr.setMode(mode);
+        },
+        "Gets the current mode of the synchronization interface. / Sets the mode of the synchronization interface.");
     cls.def_property_readonly("available_modes",
         [](daq::ISyncInterface *object)
         {
@@ -78,16 +104,16 @@ void defineISyncInterface(pybind11::module_ m, PyDaqIntf<daq::ISyncInterface, da
             return objectPtr.getAvailableModes().detach();
         },
         py::return_value_policy::take_ownership,
-        "");
-    cls.def_property_readonly("status_container",
+        "Gets the modes available to the synchronization interface, depending on whether it is currently selected as the synchronization source.");
+    cls.def_property_readonly("status",
         [](daq::ISyncInterface *object)
         {
             py::gil_scoped_release release;
             const auto objectPtr = daq::SyncInterfacePtr::Borrow(object);
-            return objectPtr.getStatusContainer().detach();
+            return objectPtr.getStatus().detach();
         },
         py::return_value_policy::take_ownership,
-        "");
+        "Gets the status property object of the synchronization interface.");
     cls.def_property_readonly("configuration",
         [](daq::ISyncInterface *object)
         {
@@ -96,5 +122,14 @@ void defineISyncInterface(pybind11::module_ m, PyDaqIntf<daq::ISyncInterface, da
             return objectPtr.getConfiguration().detach();
         },
         py::return_value_policy::take_ownership,
-        "");
+        "Gets the configuration property object of the synchronization interface.");
+    cls.def_property_readonly("status_container",
+        [](daq::ISyncInterface *object)
+        {
+            py::gil_scoped_release release;
+            const auto objectPtr = daq::SyncInterfacePtr::Borrow(object);
+            return objectPtr.getStatusContainer().detach();
+        },
+        py::return_value_policy::take_ownership,
+        "Gets the status container of the synchronization interface.");
 }

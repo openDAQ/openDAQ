@@ -108,4 +108,19 @@ void defineIReferenceDomainInfoBuilder(pybind11::module_ m, PyDaqIntf<daq::IRefe
             objectPtr.setUsesOffset(usesOffset);
         },
         "Gets the value that indicates if offset is used. / Sets the value that indicates if offset is used.");
+    cls.def_property("reference_domain_ids",
+        [](daq::IReferenceDomainInfoBuilder *object)
+        {
+            py::gil_scoped_release release;
+            const auto objectPtr = daq::ReferenceDomainInfoBuilderPtr::Borrow(object);
+            return objectPtr.getReferenceDomainIds().detach();
+        },
+        [](daq::IReferenceDomainInfoBuilder *object, std::variant<daq::IList*, py::list, daq::IEvalValue*>& referenceDomainIds)
+        {
+            py::gil_scoped_release release;
+            const auto objectPtr = daq::ReferenceDomainInfoBuilderPtr::Borrow(object);
+            objectPtr.setReferenceDomainIds(getVariantValue<daq::IList*>(referenceDomainIds));
+        },
+        py::return_value_policy::take_ownership,
+        "Gets the list of Reference Domain IDs. / Sets the list of Reference Domain IDs.");
 }

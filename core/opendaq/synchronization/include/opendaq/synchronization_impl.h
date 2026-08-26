@@ -73,6 +73,10 @@ protected:
 
 private:
     void onSourceChanged(const StringPtr& sourceName);
+    void onSourceClockTypeChanged(PropertyObjectPtr& sender, PropertyValueEventArgsPtr& args);
+    void notifySourceClockTypeChanged(const StringPtr& clockType);
+    void subscribeSourceClockType(const SyncInterfacePtr& syncInterface);
+    void unsubscribeSourceClockType(const SyncInterfacePtr& syncInterface);
 };
 
 template <typename TInterface, typename... Interfaces>

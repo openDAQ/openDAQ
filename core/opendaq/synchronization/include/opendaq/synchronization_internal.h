@@ -23,17 +23,17 @@ BEGIN_NAMESPACE_OPENDAQ
 
 /*!
  * @ingroup opendaq_synchronization_path
- * @addtogroup opendaq_synchronization Sync Component 2
+ * @addtogroup opendaq_synchronization Synchronization
  * @{
  */
 
 /*!
- * @brief Internal interface for synchronization component 2 operations.
+ * @brief Internal interface for synchronization operations.
  */
 DECLARE_OPENDAQ_INTERFACE(ISynchronizationInternal, IBaseObject)
 {
     /*!
-     * @brief Adds an interface to the synchronization component 2.
+     * @brief Adds an interface to the synchronization
      * @param syncInterface The sync interface to be added.
      */
     virtual ErrCode INTERFACE_FUNC addInterface(ISyncInterface* syncInterface) = 0;

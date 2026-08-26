@@ -5,6 +5,7 @@ BEGIN_NAMESPACE_OPENDAQ
 ClockSyncInterfaceImpl::ClockSyncInterfaceImpl(const TypeManagerPtr& manager)
     : Super(manager, "ClockSyncInterface", {SyncMode::Off, SyncMode::Input})
 {
+    setClockType("Internal");
 }
 
 END_NAMESPACE_OPENDAQ

@@ -25,22 +25,39 @@ BEGIN_NAMESPACE_OPENDAQ
 
 /*!
  * @ingroup opendaq_synchronization_path
- * @addtogroup opendaq_synchronization Sync Component 2
+ * @addtogroup opendaq_synchronization Synchronization
  * @{
  */
 
 /*!
- * @brief Interface representing a Synchronization Component 2 in a Test & Measurement system.
+ * @brief Interface representing the Synchronization of a device in a Test & Measurement system.
  */
 DECLARE_OPENDAQ_INTERFACE(ISynchronization, IBaseObject)
 {
+    /*!
+     * @brief Gets all synchronization interfaces registered with this synchronization.
+     * @param[out] interfaces A dictionary mapping interface names to the sync interfaces themselves.
+     */
     // [templateType(interfaces, IString, ISyncInterface)]
     virtual ErrCode INTERFACE_FUNC getSyncInterfaces(IDict** interfaces) = 0;
 
+    /*!
+     * @brief Selects the synchronization interface with the given name as the synchronization source.
+     * @param sourceName The name of the synchronization interface to select as the source.
+     */
     virtual ErrCode INTERFACE_FUNC setSource(IString* sourceName) = 0;
 
+    /*!
+     * @brief Gets the currently selected synchronization source.
+     * @param[out] source The currently selected synchronization interface.
+     */
     virtual ErrCode INTERFACE_FUNC getSource(ISyncInterface** source) = 0;
 
+    /*!
+     * @brief Gets the reference domain IDs of all registered synchronization interfaces
+     * that have one assigned.
+     * @param[out] ids The list of reference domain IDs.
+     */
     // [templateType(ids, IString)]
     virtual ErrCode INTERFACE_FUNC getReferenceDomainIds(IList** ids) = 0;
 };

@@ -9,6 +9,7 @@ SynchronizationImpl::SynchronizationImpl(const TypeManagerPtr& manager)
 {
     source = createWithImplementation<ISyncInterface, ClockSyncInterfaceImpl>(manager);
     source.asPtr<ISyncInterfaceInternal>(true).setAsSource(true);
+    subscribeSourceClockType(source);
 
     auto interfaces = PropertyObject();
     interfaces.addProperty(ObjectProperty(source.getName(), source));
@@ -58,18 +59,52 @@ void SynchronizationImpl::onSourceChanged(const StringPtr& sourceName)
     const auto oldSourceMode = oldSource.getMode();
 
     oldSource.asPtr<ISyncInterfaceInternal>(true).setAsSource(False);
+    unsubscribeSourceClockType(oldSource);
 
     try
     {
         newSource.asPtr<ISyncInterfaceInternal>(true).setAsSource(True);
         source = newSource.detach();
+        subscribeSourceClockType(source);
+
+        // setAsSource can itself change the clock type (or it may never fire a write event at all),
+        // so push the current value once instead of relying solely on the subscription
+        const StringPtr clockType = source.asPtr<IPropertyObject>(true).getPropertyValue("Status.ClockType");
+        notifySourceClockTypeChanged(clockType);
     }
     catch(...)
     {
         oldSource.asPtr<ISyncInterfaceInternal>(true).setAsSource(True);
-        oldSource.asPtr<IPropertyObject>().setPropertyValue("Mode", static_cast<Int>(oldSourceMode));
+        subscribeSourceClockType(oldSource);
+        oldSource.asPtr<IPropertyObject>(true).setPropertyValue("Mode", static_cast<Int>(oldSourceMode));
         throw;
     }
+}
+
+void SynchronizationImpl::onSourceClockTypeChanged(PropertyObjectPtr& /*sender*/, PropertyValueEventArgsPtr& args)
+{
+    notifySourceClockTypeChanged(args.getValue());
+}
+
+void SynchronizationImpl::notifySourceClockTypeChanged(const StringPtr& clockType)
+{
+    const PropertyObjectPtr interfacesProperty = this->objPtr.getPropertyValue("Interfaces");
+    for (const auto& interfaceProp : interfacesProperty.getAllProperties())
+    {
+        const SyncInterfacePtr syncInterface = interfaceProp.getValue();
+        if (syncInterface != source)
+            syncInterface.asPtr<ISyncInterfaceInternal>(true).sourceClockTypeChanged(clockType);
+    }
+}
+
+void SynchronizationImpl::subscribeSourceClockType(const SyncInterfacePtr& syncInterface)
+{
+    syncInterface.asPtr<IPropertyObject>(true).getOnPropertyValueWrite("Status.ClockType") += event(&SynchronizationImpl::onSourceClockTypeChanged);
+}
+
+void SynchronizationImpl::unsubscribeSourceClockType(const SyncInterfacePtr& syncInterface)
+{
+    syncInterface.asPtr<IPropertyObject>(true).getOnPropertyValueWrite("Status.ClockType") -= event(&SynchronizationImpl::onSourceClockTypeChanged);
 }
 
 ErrCode SynchronizationImpl::clone(IPropertyObject** cloned)

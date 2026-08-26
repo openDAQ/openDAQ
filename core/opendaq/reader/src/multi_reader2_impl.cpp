@@ -58,9 +58,13 @@ ErrCode MultiReader2Impl::addInputComponent(const ComponentPtr& component)
     }
     else if (auto port = component.asPtrOrNull<IInputPortConfig>(); port.assigned())
     {
-        if (!portBinder.assigned())
-            portBinder = PropertyObject();
-        port.asPtr<IOwnable>().setOwner(portBinder);
+        // A port that already lives in a component tree (e.g. a function block port) keeps its owner
+        if (!port.getParent().assigned())
+        {
+            if (!portBinder.assigned())
+                portBinder = PropertyObject();
+            port.asPtr<IOwnable>().setOwner(portBinder);
+        }
 
         port.setListener(listener);
         port.setNotificationMethod(PacketReadyNotification::SameThread);
@@ -289,11 +293,11 @@ ErrCode MultiReader2Impl::read(IMultiReader2Status** status, void** data, SizeT*
 
 ErrCode MultiReader2Impl::readWithDomain(IMultiReader2Status** status, void** data, SizeT* count)
 {
-    OPENDAQ_PARAM_NOT_NULL(status);
-    OPENDAQ_PARAM_NOT_NULL(data);
-    OPENDAQ_PARAM_NOT_NULL(count);
-
-    return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOTIMPLEMENTED, "MultiReader2::readWithDomain is not implemented yet");
+    const ErrCode errCode = dataManager.readWithDomain(status, data, count);
+    // Consumption can reopen the wake window for anything that queued while the reader was disarmed
+    if (dataManager.armDataAvailable())
+        scheduleNotificationPass();
+    return errCode;
 }
 
 ErrCode MultiReader2Impl::commitEvent()

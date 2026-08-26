@@ -59,6 +59,9 @@ public:
     // Executes one read; while an event is pending it returns the last status and no data
     ErrCode read(IMultiReader2Status** status, void** data, SizeT* count, SizeT* packetOffset);
 
+    // Same as read, but the first buffer receives the timestamps in main input ticks (Int64)
+    ErrCode readWithDomain(IMultiReader2Status** status, void** data, SizeT* count);
+
     // Applies the pending event (staged setUsed/setActive included) and resumes past the boundary
     ErrCode commitEvent();
 
@@ -108,6 +111,7 @@ private:
         std::atomic<SizeT> dataPacketCount{0};
         std::atomic<IPacket*> lastEventPacket{nullptr};  // merged full-state descriptor event, newest wins
         std::atomic<uint64_t> eventVersion{0};
+        std::atomic<SizeT> gapCount{0};  // gap events seen; each one is a boundary
         // Merge sources owned by the slot's single producer thread; never read by the consumer
         DataDescriptorPtr producerValueDescriptor;
         DataDescriptorPtr producerDomainDescriptor;
@@ -128,6 +132,9 @@ private:
         std::atomic<bool> parked{false};
         std::atomic<bool> active{true};
         std::atomic<bool> armed{true};
+        // While synchronizing, a flowing input wakes past the deadline so silent peers can time out
+        std::atomic<bool> syncing{false};
+        std::atomic<int64_t> syncDeadlineTicks{0};
     };
 
     // Consumer-side view of one slot: staged packets, committed descriptors, and parsed domain facts
@@ -137,8 +144,10 @@ private:
         SizeT stagedSamples = 0;   // readable samples under the committed value descriptor
         SizeT frontOffset = 0;     // samples already consumed from the front staged packet
         uint64_t deliveredVersion = 0;
+        SizeT deliveredGaps = 0;
         DataDescriptorPtr valueDescriptor;
         DataDescriptorPtr domainDescriptor;
+        bool valueValid = false;  // scalar numeric value descriptor the read type can be produced from
         // Parsed from the committed domain descriptor; valid only under the pinned constraints
         bool domainValid = false;
         MultiReader2InputError domainError = MultiReader2InputError::InvalidDescriptor;
@@ -153,9 +162,10 @@ private:
         bool failed = false;
     };
 
-    // Wake condition: an event is undelivered, or every used input has data; never while a commit is owed
+    // Wake condition: an event is undelivered, or every used input has fresh queued data
     static bool deliverable(const State& state);
     static bool matchesDescriptor(const DataDescriptorPtr& committed, const PacketPtr& packet);
+    static bool convertibleValue(const DataDescriptorPtr& descriptor);
 
     // Consumer helpers; all expect consumerMutex to be held
     void drainSlots(State& state);
@@ -163,10 +173,15 @@ private:
     void discardSlotData(State& state, SizeT index);
     void settleReadyBit(State& state, SizeT index);
     bool deliverEvents(State& state, uint64_t& deliveredMask);
+    uint64_t deliverGaps(State& state);
+    void resetPendingEvents(State& state);
     static void parseDomain(SlotView& view);
     bool nextTimestamp(SlotView& view, Int& timestamp);
     void discardBefore(SlotView& view, Int target);
     bool runSync(State& state);
+    ErrCode doRead(IMultiReader2Status** status, void** data, SizeT* count, SizeT* packetOffset, bool withDomain);
+    void copySlot(SlotView& view, void* buffer, SizeT count);
+    void copyConvert(void* dst, SizeT dstOffset, const void* src, SampleType srcType, SizeT srcOffset, SizeT count) const;
     ObjectPtr<IMultiReader2Status> makeStatus(MultiReader2StatusType type, const DictPtr<IString, IInteger>& errors);
     void park(State& state, MultiReader2StatusType type, const DictPtr<IString, IInteger>& errors);
 
@@ -182,6 +197,7 @@ private:
     bool syncStarted = false;
     std::chrono::steady_clock::time_point syncDeadline;
     Int syncedStart = 0;
+    Int nextReadTick = 0;  // main-tick timestamp of the next unread sample
 };
 
 END_NAMESPACE_OPENDAQ

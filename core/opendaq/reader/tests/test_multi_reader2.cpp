@@ -96,10 +96,15 @@ protected:
         return signal;
     }
 
+    // Values mirror the timestamps so reads are verifiable: sample at tick t carries the value t
     static void sendData(const SignalConfigPtr& signal, Int offset, SizeT samples)
     {
         auto domainPacket = DataPacket(signal.getDomainSignal().getDescriptor(), samples, offset);
-        signal.sendPacket(DataPacketWithDomain(domainPacket, signal.getDescriptor(), samples));
+        auto packet = DataPacketWithDomain(domainPacket, signal.getDescriptor(), samples);
+        const auto values = static_cast<double*>(packet.getData());
+        for (SizeT i = 0; i < samples; i++)
+            values[i] = static_cast<double>(offset) + static_cast<double>(i);
+        signal.sendPacket(packet);
     }
 
     static ObjectPtr<IMultiReader2Params> createParams(const ListPtr<IComponent>& inputs,
@@ -267,16 +272,60 @@ TEST_F(MultiReader2Test, GatedCallsRequireEventWindow)
     daqClearErrorInfo();
 }
 
-TEST_F(MultiReader2Test, ReadWithDomainNotImplemented)
+TEST_F(MultiReader2Test, ReadsAlignedData)
 {
-    auto sig = createSignal("sig");
+    auto sig1 = createSignalWithDomain("sig1");
+    auto sig2 = createSignalWithDomain("sig2");
+    auto reader = createReader(createParams(List<IComponent>(sig1, sig2)));
+
+    ASSERT_EQ(typeOf(readStatus(reader)), MultiReader2StatusType::Event);
+    checkErrorInfo(reader->commitEvent());
+
+    sendData(sig1, 100, 10);
+    sendData(sig2, 104, 10);
+
+    double b1[16] = {};
+    double b2[16] = {};
+    void* buffers[2] = {b1, b2};
+    IMultiReader2Status* statusRaw;
+    SizeT count = 16;
+    SizeT offset = 0;
+    checkErrorInfo(reader->read(&statusRaw, buffers, &count, &offset));
+    auto status = ObjectPtr<IMultiReader2Status>::Adopt(statusRaw);
+
+    // Sync lands on the latest start; both buffers begin at the same timestamp
+    ASSERT_EQ(typeOf(status), MultiReader2StatusType::Data);
+    ASSERT_EQ(count, 6u);
+    ASSERT_EQ(offset, 104u);
+    ASSERT_DOUBLE_EQ(b1[0], 104.0);
+    ASSERT_DOUBLE_EQ(b2[0], 104.0);
+    ASSERT_DOUBLE_EQ(b1[5], 109.0);
+    ASSERT_DOUBLE_EQ(b2[5], 109.0);
+}
+
+TEST_F(MultiReader2Test, ReadWithDomainReturnsTimestamps)
+{
+    auto sig = createSignalWithDomain("sig");
     auto reader = createReader(createParams(List<IComponent>(sig)));
 
-    IMultiReader2Status* status;
-    void* data[2] = {};
-    SizeT count = 0;
-    ASSERT_EQ(reader->readWithDomain(&status, data, &count), OPENDAQ_ERR_NOTIMPLEMENTED);
-    daqClearErrorInfo();
+    ASSERT_EQ(typeOf(readStatus(reader)), MultiReader2StatusType::Event);
+    checkErrorInfo(reader->commitEvent());
+
+    sendData(sig, 50, 5);
+
+    int64_t timestamps[8] = {};
+    double values[8] = {};
+    void* buffers[2] = {timestamps, values};
+    IMultiReader2Status* statusRaw;
+    SizeT count = 8;
+    checkErrorInfo(reader->readWithDomain(&statusRaw, buffers, &count));
+    auto status = ObjectPtr<IMultiReader2Status>::Adopt(statusRaw);
+
+    ASSERT_EQ(typeOf(status), MultiReader2StatusType::Data);
+    ASSERT_EQ(count, 5u);
+    ASSERT_EQ(timestamps[0], 50);
+    ASSERT_EQ(timestamps[4], 54);
+    ASSERT_DOUBLE_EQ(values[2], 52.0);
 }
 
 // --- Event pipeline ---
@@ -390,7 +439,8 @@ TEST_F(MultiReader2Test, SyncEndToEnd)
     ASSERT_EQ(count, 6u);
 
     // A descriptor change parks, zeroes the count, and forces a resync after the commit
-    sig1.setDescriptor(DataDescriptorBuilder().setSampleType(SampleType::Int32).build());
+    // (Float64 width stays: sendData writes doubles into the packets)
+    sig1.setDescriptor(DataDescriptorBuilder().setSampleType(SampleType::Float64).setName("changed").build());
     checkErrorInfo(reader->getAvailableCount(&count));
     ASSERT_EQ(count, 0u);
     ASSERT_EQ(typeOf(readStatus(reader)), MultiReader2StatusType::Event);
@@ -445,9 +495,11 @@ TEST_F(MultiReader2Test, DataAvailableFiresOnceUntilRearmed)
     sig.sendPacket(DataPacket(descriptor(), 10));
     ASSERT_EQ(fired.load(), 1);
 
-    // Consuming the event re-arms; the queued data immediately wins a new pass
+    // Consuming the event re-arms; the next fresh packet wins a new pass
     ASSERT_EQ(typeOf(readStatus(reader)), MultiReader2StatusType::Event);
     checkErrorInfo(reader->commitEvent());
+    ASSERT_EQ(fired.load(), 1);
+    sig.sendPacket(DataPacket(descriptor(), 10));
     ASSERT_EQ(fired.load(), 2);
 }
 
@@ -864,6 +916,23 @@ TEST_F(MultiReaderDataManagerTest, SyncFailsOffLatticeTicks)
     ASSERT_EQ(errorOf(status, "input1"), static_cast<Int>(MultiReader2InputError::InvalidDomain));
 }
 
+TEST_F(MultiReaderDataManagerTest, RejectsNonIntegerSampleRate)
+{
+    MultiReaderDataManager manager;
+    manager.reconfigure(makeConfig(2));
+
+    // 1000 ticks per second at delta 3 is not a whole number of samples per second
+    auto value = valueDesc();
+    manager.addPacket(0, DataDescriptorChangedEventPacket(value, domainDesc(1, 1, 1000)));
+    manager.addPacket(1, DataDescriptorChangedEventPacket(value, domainDesc(3, 1, 1000)));
+    readStatus(manager);
+    checkErrorInfo(manager.commitEvent());
+
+    auto status = readStatus(manager);
+    ASSERT_EQ(typeOf(status), MultiReader2StatusType::Event);
+    ASSERT_EQ(errorOf(status, "input1"), static_cast<Int>(MultiReader2InputError::InvalidDomain));
+}
+
 TEST_F(MultiReaderDataManagerTest, SyncFailsOffGridInput)
 {
     MultiReaderDataManager manager;
@@ -920,15 +989,18 @@ TEST_F(MultiReaderDataManagerTest, SyncTimesOutSilentInput)
     manager.addPacket(0, alignedPacket(value, domain, 100, 10));
     ASSERT_EQ(typeOf(readStatus(manager)), MultiReader2StatusType::Data);
 
-    // The silent input fails once the 2 second window closes; the rest sync without it
+    // The silent input fails once the 2 second window closes; the rest sync without it.
+    // Past the deadline a flowing input wakes the consumer even though not all inputs are ready.
+    manager.armDataAvailable();
     std::this_thread::sleep_for(std::chrono::milliseconds(2100));
+    ASSERT_TRUE(manager.addPacket(0, alignedPacket(value, domain, 110, 5)));
     auto status = readStatus(manager);
     ASSERT_EQ(typeOf(status), MultiReader2StatusType::Event);
     ASSERT_EQ(errorOf(status, "input1"), static_cast<Int>(MultiReader2InputError::SyncFailed));
     checkErrorInfo(manager.commitEvent());
 
     ASSERT_EQ(typeOf(readStatus(manager)), MultiReader2StatusType::Data);
-    ASSERT_EQ(availableOf(manager), 10u);
+    ASSERT_EQ(availableOf(manager), 15u);
 }
 
 TEST_F(MultiReaderDataManagerTest, EventDuringSyncFailsInputUntilCommit)
@@ -957,6 +1029,149 @@ TEST_F(MultiReaderDataManagerTest, EventDuringSyncFailsInputUntilCommit)
     manager.addPacket(1, alignedPacket(value, domain, 100, 10));
     ASSERT_EQ(typeOf(readStatus(manager)), MultiReader2StatusType::Data);
     ASSERT_EQ(availableOf(manager), 10u);
+}
+
+TEST_F(MultiReaderDataManagerTest, ReadConvertsAndAdvances)
+{
+    MultiReaderDataManager manager;
+    manager.reconfigure(makeConfig(2));
+
+    auto value = DataDescriptorBuilder().setSampleType(SampleType::Int32).build();
+    auto domain = domainDesc();
+    manager.addPacket(0, DataDescriptorChangedEventPacket(value, domain));
+    manager.addPacket(1, DataDescriptorChangedEventPacket(value, domain));
+    readStatus(manager);
+    checkErrorInfo(manager.commitEvent());
+
+    const auto sendInt = [&](SizeT slot, Int offset, SizeT samples)
+    {
+        auto packet = DataPacketWithDomain(DataPacket(domain, samples, offset), value, samples);
+        const auto out = static_cast<int32_t*>(packet.getData());
+        for (SizeT i = 0; i < samples; i++)
+            out[i] = static_cast<int32_t>(offset) + static_cast<int32_t>(i);
+        manager.addPacket(slot, packet);
+    };
+    sendInt(0, 100, 10);
+    sendInt(1, 105, 10);
+
+    double b0[8] = {};
+    double b1[8] = {};
+    void* buffers[2] = {b0, b1};
+    IMultiReader2Status* statusRaw;
+    SizeT count = 4;
+    SizeT offset = 0;
+    checkErrorInfo(manager.read(&statusRaw, buffers, &count, &offset));
+    auto status = ObjectPtr<IMultiReader2Status>::Adopt(statusRaw);
+
+    // Int32 samples arrive as doubles, aligned to the latest start
+    ASSERT_EQ(typeOf(status), MultiReader2StatusType::Data);
+    ASSERT_EQ(count, 4u);
+    ASSERT_EQ(offset, 105u);
+    ASSERT_DOUBLE_EQ(b0[0], 105.0);
+    ASSERT_DOUBLE_EQ(b1[0], 105.0);
+    ASSERT_DOUBLE_EQ(b0[3], 108.0);
+
+    // The next read continues where the last one stopped
+    count = 8;
+    checkErrorInfo(manager.read(&statusRaw, buffers, &count, &offset));
+    status = ObjectPtr<IMultiReader2Status>::Adopt(statusRaw);
+    ASSERT_EQ(count, 1u);
+    ASSERT_EQ(offset, 109u);
+    ASSERT_DOUBLE_EQ(b0[0], 109.0);
+}
+
+TEST_F(MultiReaderDataManagerTest, MinReadCountGatesReads)
+{
+    MultiReaderDataManager manager;
+    auto config = makeConfig(1);
+    config.minReadCount = 5;
+    manager.reconfigure(std::move(config));
+
+    auto value = valueDesc();
+    auto domain = domainDesc();
+    manager.addPacket(0, DataDescriptorChangedEventPacket(value, domain));
+    readStatus(manager);
+    checkErrorInfo(manager.commitEvent());
+    manager.addPacket(0, alignedPacket(value, domain, 100, 4));
+
+    double buffer[16] = {};
+    void* buffers[1] = {buffer};
+    IMultiReader2Status* statusRaw;
+    SizeT count = 3;
+    SizeT offset = 0;
+    ASSERT_EQ(manager.read(&statusRaw, buffers, &count, &offset), OPENDAQ_ERR_INVALIDPARAMETER);
+    daqClearErrorInfo();
+
+    // Below the minimum nothing is returned; enough data satisfies the whole request at once
+    count = 16;
+    checkErrorInfo(manager.read(&statusRaw, buffers, &count, &offset));
+    ObjectPtr<IMultiReader2Status>::Adopt(statusRaw);
+    ASSERT_EQ(count, 0u);
+
+    manager.addPacket(0, alignedPacket(value, domain, 104, 3));
+    count = 16;
+    checkErrorInfo(manager.read(&statusRaw, buffers, &count, &offset));
+    ObjectPtr<IMultiReader2Status>::Adopt(statusRaw);
+    ASSERT_EQ(count, 7u);
+}
+
+TEST_F(MultiReaderDataManagerTest, GapParksAndResyncs)
+{
+    MultiReaderDataManager manager;
+    manager.reconfigure(makeConfig(1));
+
+    auto value = valueDesc();
+    auto domain = domainDesc();
+    manager.addPacket(0, DataDescriptorChangedEventPacket(value, domain));
+    readStatus(manager);
+    checkErrorInfo(manager.commitEvent());
+
+    manager.addPacket(0, alignedPacket(value, domain, 100, 5));
+    ASSERT_EQ(typeOf(readStatus(manager)), MultiReader2StatusType::Data);
+    ASSERT_EQ(availableOf(manager), 5u);
+
+    // The gap parks with a Gap error and sacrifices the pre-gap samples
+    manager.armDataAvailable();
+    ASSERT_TRUE(manager.addPacket(0, ImplicitDomainGapDetectedEventPacket(3)));
+    auto status = readStatus(manager);
+    ASSERT_EQ(typeOf(status), MultiReader2StatusType::Event);
+    ASSERT_EQ(errorOf(status, "input0"), static_cast<Int>(MultiReader2InputError::Gap));
+    checkErrorInfo(manager.commitEvent());
+
+    // Post-gap data realigns through the usual resync
+    manager.addPacket(0, alignedPacket(value, domain, 200, 5));
+    ASSERT_EQ(typeOf(readStatus(manager)), MultiReader2StatusType::Data);
+    ASSERT_EQ(availableOf(manager), 5u);
+}
+
+TEST_F(MultiReaderDataManagerTest, ReadWithDomainTimestampsInMainTicks)
+{
+    MultiReaderDataManager manager;
+    manager.reconfigure(makeConfig(1));
+
+    auto value = valueDesc();
+    auto domain = domainDesc();
+    manager.addPacket(0, DataDescriptorChangedEventPacket(value, domain));
+    readStatus(manager);
+    checkErrorInfo(manager.commitEvent());
+
+    auto packet = DataPacketWithDomain(DataPacket(domain, 5, 50), value, 5);
+    const auto out = static_cast<double*>(packet.getData());
+    for (SizeT i = 0; i < 5; i++)
+        out[i] = 50.0 + static_cast<double>(i);
+    manager.addPacket(0, packet);
+
+    int64_t timestamps[8] = {};
+    double values[8] = {};
+    void* buffers[2] = {timestamps, values};
+    IMultiReader2Status* statusRaw;
+    SizeT count = 8;
+    checkErrorInfo(manager.readWithDomain(&statusRaw, buffers, &count));
+    ObjectPtr<IMultiReader2Status>::Adopt(statusRaw);
+    ASSERT_EQ(count, 5u);
+    ASSERT_EQ(timestamps[0], 50);
+    ASSERT_EQ(timestamps[4], 54);
+    ASSERT_DOUBLE_EQ(values[3], 53.0);
 }
 
 TEST_F(MultiReaderDataManagerTest, RejectsOutOfRangeSlots)

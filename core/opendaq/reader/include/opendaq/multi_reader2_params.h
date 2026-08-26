@@ -16,6 +16,7 @@
 #pragma once
 #include <coretypes/baseobject.h>
 #include <coretypes/listobject.h>
+#include <opendaq/sample_type.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
@@ -69,6 +70,18 @@ DECLARE_OPENDAQ_INTERFACE(IMultiReader2Params, IBaseObject)
      * @param inputs The list of unused inputs.
      */
     virtual ErrCode INTERFACE_FUNC setUnusedInputs(IList* inputs) = 0;
+
+    /*!
+     * @brief Gets the read type value samples are converted to; mandatory, unset returns `OPENDAQ_ERR_NOTASSIGNED`.
+     * @param[out] valueReadType The value read type.
+     */
+    virtual ErrCode INTERFACE_FUNC getValueReadType(SampleType* valueReadType) = 0;
+
+    /*!
+     * @brief Sets the read type value samples are converted to; mandatory.
+     * @param valueReadType The value read type.
+     */
+    virtual ErrCode INTERFACE_FUNC setValueReadType(SampleType valueReadType) = 0;
 
     /*!
      * @brief Gets the minimum number of samples a read operation returns; defaults to 1.

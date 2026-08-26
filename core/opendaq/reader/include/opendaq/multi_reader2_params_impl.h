@@ -34,6 +34,8 @@ public:
     ErrCode INTERFACE_FUNC setMainInput(IComponent* input) override;
     ErrCode INTERFACE_FUNC getUnusedInputs(IList** inputs) override;
     ErrCode INTERFACE_FUNC setUnusedInputs(IList* inputs) override;
+    ErrCode INTERFACE_FUNC getValueReadType(SampleType* valueReadType) override;
+    ErrCode INTERFACE_FUNC setValueReadType(SampleType valueReadType) override;
     ErrCode INTERFACE_FUNC getMinReadCount(SizeT* count) override;
     ErrCode INTERFACE_FUNC setMinReadCount(SizeT count) override;
     ErrCode INTERFACE_FUNC getRequireSameRates(Bool* requireSameRates) override;
@@ -46,6 +48,8 @@ private:
     ComponentPtr mainInput;
     SizeT minReadCount = 1;
     Bool requireSameRates = False;
+    SampleType valueReadType = SampleType::Invalid;
+    bool valueReadTypeAssigned = false;
 };
 
 END_NAMESPACE_OPENDAQ

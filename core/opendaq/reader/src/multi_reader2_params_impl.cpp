@@ -92,6 +92,26 @@ ErrCode MultiReader2ParamsImpl::setUnusedInputs(IList* inputs)
     return OPENDAQ_SUCCESS;
 }
 
+ErrCode MultiReader2ParamsImpl::getValueReadType(SampleType* valueReadType)
+{
+    OPENDAQ_PARAM_NOT_NULL(valueReadType);
+
+    std::scoped_lock lock(mutex);
+    if (!valueReadTypeAssigned)
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOTASSIGNED, "Value read type is mandatory and was not set");
+
+    *valueReadType = this->valueReadType;
+    return OPENDAQ_SUCCESS;
+}
+
+ErrCode MultiReader2ParamsImpl::setValueReadType(SampleType valueReadType)
+{
+    std::scoped_lock lock(mutex);
+    this->valueReadType = valueReadType;
+    valueReadTypeAssigned = true;
+    return OPENDAQ_SUCCESS;
+}
+
 ErrCode MultiReader2ParamsImpl::getMinReadCount(SizeT* count)
 {
     OPENDAQ_PARAM_NOT_NULL(count);

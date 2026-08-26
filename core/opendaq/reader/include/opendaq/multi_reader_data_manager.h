@@ -17,6 +17,7 @@
 #include <coretypes/stringobject_factory.h>
 #include <opendaq/multi_reader2_status.h>
 #include <opendaq/packet_ptr.h>
+#include <opendaq/sample_type.h>
 
 #include <atomic>
 #include <memory>
@@ -36,6 +37,7 @@ public:
         std::vector<StringPtr> inputIds;
         std::vector<bool> usedFlags;
         StringPtr mainInputId;
+        SampleType valueReadType = SampleType::Invalid;
         SizeT minReadCount = 1;
         Bool requireSameRates = False;
     };

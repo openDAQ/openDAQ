@@ -43,7 +43,8 @@ enum class MultiReader2InputError : EnumType
     SyncFailed = 0,
     DataLoss,
     Gap,
-    InvalidDescriptor
+    InvalidDescriptor,
+    InvalidDomain
 };
 
 /*!

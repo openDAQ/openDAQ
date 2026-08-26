@@ -103,6 +103,10 @@ ErrCode MultiReader2Impl::configure(IMultiReader2Params* params)
     errCode = params->getUnusedInputs(&unusedInputs);
     OPENDAQ_RETURN_IF_FAILED(errCode);
 
+    SampleType newValueReadType;
+    errCode = params->getValueReadType(&newValueReadType);
+    OPENDAQ_RETURN_IF_FAILED(errCode);
+
     SizeT newMinReadCount;
     errCode = params->getMinReadCount(&newMinReadCount);
     OPENDAQ_RETURN_IF_FAILED(errCode);
@@ -192,9 +196,8 @@ ErrCode MultiReader2Impl::configure(IMultiReader2Params* params)
             EventArgsPtr<> args;
             onDataAvailable(port, args);
 
-            // Re-schedule instead of looping: keeps tasks bounded and scheduler workers fair
-            if (dataManager.armDataAvailable())
-                scheduleNotificationPass();
+            // Single-shot for polling consumers; re-schedule on armDataAvailable when callback-driven
+            dataManager.armDataAvailable();
         });
     }
 
@@ -210,6 +213,7 @@ ErrCode MultiReader2Impl::configure(IMultiReader2Params* params)
         managerConfig.usedFlags.push_back(unusedIds.count(slot.inputId.toStdString()) == 0);
     }
     managerConfig.mainInputId = mainInputId;
+    managerConfig.valueReadType = newValueReadType;
     managerConfig.minReadCount = newMinReadCount;
     managerConfig.requireSameRates = newRequireSameRates;
     dataManager.reconfigure(std::move(managerConfig));
@@ -239,13 +243,11 @@ void MultiReader2Impl::scheduleNotificationPass()
         return;
     }
 
-    // No scheduler in the context: degrade to running the pass inline
-    do
-    {
-        InputPortPtr port;
-        EventArgsPtr<> args;
-        onDataAvailable(port, args);
-    } while (dataManager.armDataAvailable());
+    // No scheduler in the context: degrade to running the pass inline, single-shot
+    InputPortPtr port;
+    EventArgsPtr<> args;
+    onDataAvailable(port, args);
+    dataManager.armDataAvailable();
 }
 
 ErrCode MultiReader2Impl::getAvailableCount(SizeT* count)

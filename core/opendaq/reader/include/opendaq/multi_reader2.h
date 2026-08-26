@@ -15,10 +15,11 @@
  */
 #pragma once
 #include <coretypes/baseobject.h>
+#include <coretypes/event.h>
+#include <opendaq/multi_reader2_params.h>
+#include <opendaq/multi_reader2_status.h>
 
 BEGIN_NAMESPACE_OPENDAQ
-
-struct IComponent;
 
 /*!
  * @ingroup opendaq_readers
@@ -27,30 +28,86 @@ struct IComponent;
  */
 
 /*!
- * @brief The kind of inputs a multi reader accepts; chosen at construction, signals and ports never mix.
- */
-enum class MultiReader2InputType : EnumType
-{
-    Signals = 0,
-    Ports
-};
-
-/*!
  * @brief Reads multiple signals at once.
  */
 DECLARE_OPENDAQ_INTERFACE(IMultiReader2, IBaseObject)
 {
     /*!
-     * @brief Adds a signal or an input port as a reader input, matching the constructed input type.
-     * @param input The signal or input port to add.
+     * @brief Applies the params: unused inputs are removed, new ones added, and slots follow the params list order.
+     * @param params The parameters holding the desired input list.
      */
-    virtual ErrCode INTERFACE_FUNC addInput(IComponent* input) = 0;
+    virtual ErrCode INTERFACE_FUNC configure(IMultiReader2Params* params) = 0;
 
     /*!
-     * @brief Removes a previously added signal or input port from the reader inputs.
-     * @param input The signal or input port to remove.
+     * @brief Gets the global id of the resolved main input (the explicit choice, or the first input).
+     * @param[out] inputId The main input id.
      */
-    virtual ErrCode INTERFACE_FUNC removeInput(IComponent* input) = 0;
+    virtual ErrCode INTERFACE_FUNC getMainInput(IString** inputId) = 0;
+
+    /*!
+     * @brief Gets the number of samples readable from every used input.
+     * @param[out] count The available sample count.
+     */
+    virtual ErrCode INTERFACE_FUNC getAvailableCount(SizeT* count) = 0;
+
+    // [arrayArg(data, count), arrayArg(count, 1)]
+    /*!
+     * @brief Copies at most `count` unread samples of each input into the data buffers.
+     * While an event is pending, the same event is reported again and no data is returned until `commitEvent`.
+     * @param[out] status The status of the read operation.
+     * @param[in] data Jagged array of one buffer per input, each at least `count` samples long.
+     * @param[in,out] count In: the requested sample count; out: the count actually read.
+     * @param[out] packetOffset The domain offset of the first read sample.
+     */
+    virtual ErrCode INTERFACE_FUNC read(IMultiReader2Status** status, void** data, SizeT* count, SizeT* packetOffset) = 0;
+
+    // [arrayArg(data, count), arrayArg(count, 1)]
+    /*!
+     * @brief Same as `read`, but the first buffer in `data` receives the timestamps.
+     * @param[out] status The status of the read operation.
+     * @param[in] data Jagged array of input count + 1 buffers; the first one is populated with timestamps.
+     * @param[in,out] count In: the requested sample count; out: the count actually read.
+     */
+    virtual ErrCode INTERFACE_FUNC readWithDomain(IMultiReader2Status** status, void** data, SizeT* count) = 0;
+
+    /*!
+     * @brief Commits the pending event: staged `setUsed`/`setActive` changes apply and reading resumes.
+     */
+    virtual ErrCode INTERFACE_FUNC commitEvent() = 0;
+
+    /*!
+     * @brief Marks an input as used or unused; only valid between an event read and `commitEvent`.
+     * @param inputId The global id of the input.
+     * @param used True when the input takes part in reading.
+     */
+    virtual ErrCode INTERFACE_FUNC setUsed(IString* inputId, Bool used) = 0;
+
+    /*!
+     * @brief Activates or deactivates the reader; only valid between an event read and `commitEvent`.
+     * @param active True to activate.
+     */
+    virtual ErrCode INTERFACE_FUNC setActive(Bool active) = 0;
+
+    // [templateType(event, IInputPort, IEventArgs)]
+    /*!
+     * @brief Gets the event triggered when a signal is connected to one of the reader ports.
+     * @param[out] event The connected event.
+     */
+    virtual ErrCode INTERFACE_FUNC getOnConnected(IEvent** event) = 0;
+
+    // [templateType(event, IInputPort, IEventArgs)]
+    /*!
+     * @brief Gets the event triggered when a signal is disconnected from one of the reader ports.
+     * @param[out] event The disconnected event.
+     */
+    virtual ErrCode INTERFACE_FUNC getOnDisconnected(IEvent** event) = 0;
+
+    // [templateType(event, IInputPort, IEventArgs)]
+    /*!
+     * @brief Gets the event triggered when data is available on all used inputs; not triggered yet.
+     * @param[out] event The data available event.
+     */
+    virtual ErrCode INTERFACE_FUNC getOnDataAvailable(IEvent** event) = 0;
 };
 
 /*!@}*/

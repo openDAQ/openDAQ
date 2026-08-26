@@ -117,25 +117,10 @@ class App(tk.Tk):
             int(1500 * self.context.ui_scaling_factor * self.context.dpi_factor),
             int(800 * self.context.ui_scaling_factor * self.context.dpi_factor)))
 
-        main_frame_top = ttk.Frame(self)
-        main_frame_top.pack(fill=tk.X)
-
         self.context.load_icons(os.path.join(
             os.path.dirname(__file__), 'gui_demo', 'icons'))
 
         self.menu_bar_create()
-
-        add_device_button = ttk.Button(
-            main_frame_top, text='Add device', command=self.handle_add_device_button_clicked)
-        add_device_button.pack(side=tk.LEFT, padx=5)
-
-        add_function_block_button = ttk.Button(
-            main_frame_top, text='Add function block', command=self.handle_add_function_block_button_clicked)
-        add_function_block_button.pack(side=tk.LEFT, padx=5)
-        
-        add_server_button = ttk.Button(
-            main_frame_top, text='Add server', command=self.handle_add_server_button_clicked)
-        add_server_button.pack(side=tk.LEFT, padx=5)
 
         main_frame_bottom = ttk.Frame(self)
         main_frame_bottom.pack(fill=tk.BOTH, expand=True)

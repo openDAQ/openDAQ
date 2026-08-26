@@ -42,6 +42,7 @@ extern "C"
     daqErrCode EXPORTED daqInteger_getValue(daqInteger* self, daqInt* value);
     daqErrCode EXPORTED daqInteger_equalsValue(daqInteger* self, daqInt value, daqBool* equals);
     daqErrCode EXPORTED daqInteger_createInteger(daqInteger** obj, daqInt value);
+    daqErrCode EXPORTED daqInteger_createIntegerFromPool(daqInteger** obj, daqInt value);
 
 #ifdef __cplusplus
 }

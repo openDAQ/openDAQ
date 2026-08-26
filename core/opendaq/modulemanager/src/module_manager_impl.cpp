@@ -9,6 +9,7 @@
 #include <opendaq/orphaned_modules.h>
 #include <opendaq/device_info_config_ptr.h>
 #include <opendaq/device_info_internal_ptr.h>
+#include <coretypes/ctutils.h>
 #include <coretypes/validation.h>
 #include <opendaq/device_private.h>
 #include <string>
@@ -498,6 +499,8 @@ void ModuleManagerImpl::checkNetworkSettings(ListPtr<IDeviceInfo>& list)
 #endif
     {
         const auto icmp = IcmpPing::Create(ioContext, logger);
+        Finally stopPing([&icmp] { icmp->stop(); });
+
         icmp->setMaxHops(1);
         icmp->start(ipv4Addresses);
         icmp->waitSendAndReply();
@@ -568,19 +571,25 @@ void ModuleManagerImpl::setAddressesReachable(const std::map<std::string, Addres
                 }
             }
 
+            // Prefer Reachable, otherwise the first Unknown. AddressInfo is populated IPv4-then-IPv6,
+            // so taking the first Unknown keeps IPv4 as the primary connection when ICMP ping is
+            // unavailable (non-root on macOS/Linux) instead of letting the last IPv6 Unknown win.
+            StringPtr unknownConnectionString;
+            bool primarySet = false;
             for (const auto& addressInfo : addressInfos)
             {
                 auto reachability = addressInfo.getReachabilityStatus();
-                if (reachability == AddressReachabilityStatus::Unknown)
+                if (reachability == AddressReachabilityStatus::Reachable)
                 {
                     cap.asPtr<IServerCapabilityConfig>(true).setConnectionString(addressInfo.getConnectionString());
-                }
-                else if (reachability == AddressReachabilityStatus::Reachable)
-                {
-                    cap.asPtr<IServerCapabilityConfig>(true).setConnectionString(addressInfo.getConnectionString());
+                    primarySet = true;
                     break;
                 }
+                if (reachability == AddressReachabilityStatus::Unknown && !unknownConnectionString.assigned())
+                    unknownConnectionString = addressInfo.getConnectionString();
             }
+            if (!primarySet && unknownConnectionString.assigned())
+                cap.asPtr<IServerCapabilityConfig>(true).setConnectionString(unknownConnectionString);
         }
     }
 }

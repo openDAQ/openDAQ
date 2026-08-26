@@ -30,7 +30,7 @@ using NativeDeviceModulesTest = testing::Test;
 
 using namespace daq;
 
-const uint16_t LATEST_CONFIG_PROTOCOL_VERSION = 24;
+const uint16_t LATEST_CONFIG_PROTOCOL_VERSION = 25;
 
 static InstancePtr CreateCustomServerInstance(AuthenticationProviderPtr authenticationProvider)
 {
@@ -1181,11 +1181,12 @@ TEST_F(NativeDeviceModulesTest, CheckDeviceInfoPopulatedWithProvider)
     ASSERT_TRUE(false) << "Device not found";
 }
 
-#ifdef _WIN32
-
 TEST_F(NativeDeviceModulesTest, TestDiscoveryReachability)
 {
     bool checkIPv6 = !test_helpers::Ipv6IsDisabled();
+    // ICMP ping (and thus active IPv4 reachability detection) requires root on Linux/macOS.
+    const auto expectedIpv4Reachability =
+        test_helpers::icmpPingAvailable() ? AddressReachabilityStatus::Reachable : AddressReachabilityStatus::Unknown;
     auto path = "/test/native_configurator/discovery_reachability/";
 
     auto server = InstanceBuilder().setModulePath("[[none]]").addDiscoveryServer("mdns").build();
@@ -1221,7 +1222,7 @@ TEST_F(NativeDeviceModulesTest, TestDiscoveryReachability)
                 if (addressInfo.getType() == "IPv4")
                 {
                     hasIPv4 = true;
-                    ASSERT_EQ(addressInfo.getReachabilityStatus(), AddressReachabilityStatus::Reachable);
+                    ASSERT_EQ(addressInfo.getReachabilityStatus(), expectedIpv4Reachability);
                 }
                 else if (addressInfo.getType() == "IPv6")
                 {
@@ -1305,8 +1306,6 @@ TEST_F(NativeDeviceModulesTest, TestDiscoveryReachabilityAfterConnectIPv6)
     }
     ASSERT_TRUE(false) << "Native streaming capability with connection string " << deviceConnectionString << " not found";
 }
-
-#endif
 
 DevicePtr FindNativeDeviceByPath(const InstancePtr& instance, const std::string& path, const PropertyObjectPtr& config = nullptr)
 {
@@ -1417,8 +1416,15 @@ TEST_F(NativeDeviceModulesTest, TestDiscoveryReachabilityAfterConnect)
             ASSERT_EQ(addressInfo.getAddress(), capability.getAddresses()[index]);
             if (addressInfo.getType() == "IPv4")
             {
-                ASSERT_EQ(addressInfo.getReachabilityStatus(), AddressReachabilityStatus::Reachable);
-                cnt++;
+                // Only the address actually used to connect is guaranteed Reachable - marked so by
+                // completeServerCapabilities() upon a successful connection. Verifying any other
+                // IPv4 address requires an ICMP ping, which needs root and is unavailable here, so
+                // on a multi-homed machine those legitimately stay Unknown.
+                if (addressInfo.getConnectionString() == capability.getConnectionString())
+                {
+                    ASSERT_EQ(addressInfo.getReachabilityStatus(), AddressReachabilityStatus::Reachable);
+                    cnt++;
+                }
             }
             else if (addressInfo.getType() == "IPv6")
             {
@@ -2839,6 +2845,225 @@ TEST_F(NativeDeviceModulesTest, TestAddressInfoGatewayDevice)
     ASSERT_EQ(nativeConfigAddressInfo.getReachabilityStatus(), AddressReachabilityStatus::Reachable);
     ASSERT_EQ(nativeStreamingAddressInfo.getReachabilityStatus(), AddressReachabilityStatus::Reachable);
     ASSERT_EQ(ltAddressInfo.getReachabilityStatus(), AddressReachabilityStatus::Reachable);
+}
+
+TEST_F(NativeDeviceModulesTest, TestLeafDeviceUnreachableIPv4Streaming)
+{
+    SKIP_TEST_MAC_CI;
+    if (test_helpers::Ipv6IsDisabled())
+    {
+        GTEST_SKIP();
+    }
+
+    auto server = Instance("[[none]]");
+    {
+        addRefDeviceModule(server);
+        server.setRootDevice("daqref://device0");
+
+        addNativeServerModule(server);
+        server.addServer("OpenDAQNativeStreaming", nullptr);
+    }
+    auto gateway = Instance("[[none]]", "gateway");
+    {
+        addNativeClientModule(gateway);
+        addNativeServerModule(gateway);
+
+        auto serverConfig = gateway.getAvailableServerTypes().get("OpenDAQNativeStreaming").createDefaultConfig();
+        serverConfig.setPropertyValue("NativeStreamingPort", 7421);
+
+        gateway.addServer("OpenDAQNativeStreaming", serverConfig);
+    }
+
+    auto client = Instance("[[none]]");
+    addNativeClientModule(client);
+
+    // register handler before adding the device so it should be called before the one in streaming manager
+    client.getContext().getOnCoreEvent() += [](const ComponentPtr& comp, const CoreEventArgsPtr& args) {
+        auto params = args.getParameters();
+        if (static_cast<CoreEventId>(args.getEventId()) == CoreEventId::ComponentAdded)
+        {
+            ComponentPtr component = params.get("Component");
+            if (auto addedDevice = component.asPtrOrNull<IDevice>(); addedDevice.assigned())
+            {
+                if (addedDevice.getGlobalId() == "/openDAQDevice/Dev/gateway/Dev/RefDev0")
+                {
+                    const auto addedDeviceInfo = addedDevice.getInfo();
+                    const auto addedDeviceInfoInternal = addedDeviceInfo.asPtr<IDeviceInfoInternal>();
+
+                    ServerCapabilityPtr streamingCapability;
+                    for (const auto& cap : addedDeviceInfo.getServerCapabilities())
+                    {
+                        if (cap.getProtocolType() == ProtocolType::Streaming)
+                            streamingCapability = cap;
+                    }
+                    ASSERT_TRUE(streamingCapability.assigned());
+                    addedDeviceInfoInternal.removeServerCapability(streamingCapability.getProtocolId());
+
+                    auto capReplacement =
+                            ServerCapability(streamingCapability.getProtocolId(), streamingCapability.getProtocolName(), streamingCapability.getProtocolType());
+
+                    {
+                        // Set fake port so streaming connection will fail
+                        auto ipv4Address = "127.0.0.1";
+                        auto connectionStringIpv4 =
+                                String(fmt::format("{}://{}:{}", "daq.ns", ipv4Address, 7425));
+                        capReplacement.addConnectionString(connectionStringIpv4);
+                        capReplacement.addAddress(ipv4Address);
+
+                        const auto addressInfo = AddressInfoBuilder().setAddress(ipv4Address)
+                                                                     .setReachabilityStatus(AddressReachabilityStatus::Unknown)
+                                                                     .setType("IPv4")
+                                                                     .setConnectionString(connectionStringIpv4)
+                                                                     .build();
+                        capReplacement.addAddressInfo(addressInfo);
+                    }
+                    {
+
+                        auto ipv6Address = "[::1]";
+                        auto connectionStringIpv6 =
+                                String(fmt::format("{}://{}:{}", "daq.ns", ipv6Address, 7420));
+                        capReplacement.addConnectionString(connectionStringIpv6);
+                        capReplacement.addAddress(ipv6Address);
+
+                        const auto addressInfo = AddressInfoBuilder().setAddress(ipv6Address)
+                                                                     .setReachabilityStatus(AddressReachabilityStatus::Unknown)
+                                                                     .setType("IPv6")
+                                                                     .setConnectionString(connectionStringIpv6)
+                                                                     .build();
+                        capReplacement.addAddressInfo(addressInfo);
+                    }
+
+                    addedDeviceInfoInternal.addServerCapability(capReplacement);
+                }
+            }
+        }
+    };
+
+    auto config = client.createDefaultAddDeviceConfig();
+    PropertyObjectPtr general = config.getPropertyValue("General");
+    general.setPropertyValue("StreamingConnectionHeuristic", 1); // MIN HOPS
+    //general.setPropertyValue("PrimaryAddressType", "IPv4"); // don't use this setting otherwise it will skip any v6 streaming connection
+    const auto dev = client.addDevice("daq.nd://127.0.0.1:7421/", config);
+
+    dev.addDevice("daq.nd://127.0.0.1");
+
+    MirroredSignalConfigPtr sig = dev.getSignalsRecursive()[0];
+
+    ASSERT_EQ(sig.getStreamingSources().getCount(), 2u); // 2 connections: client->gateway and client->leaf
+    auto activeStreaming = sig.getActiveStreamingSource();
+    ASSERT_TRUE(activeStreaming.assigned());
+    ASSERT_TRUE(activeStreaming.toStdString().find("[::1]:7420") != std::string::npos)
+        << "Active streaming expected to be IPv6 client->leaf but it is not" << activeStreaming;
+}
+
+
+TEST_F(NativeDeviceModulesTest, TestLeafDeviceUnreachableIPv6Streaming)
+{
+    SKIP_TEST_MAC_CI;
+    if (test_helpers::Ipv6IsDisabled())
+    {
+        GTEST_SKIP();
+    }
+
+    auto server = Instance("[[none]]");
+    {
+        addRefDeviceModule(server);
+        server.setRootDevice("daqref://device0");
+
+        addNativeServerModule(server);
+        server.addServer("OpenDAQNativeStreaming", nullptr);
+    }
+    auto gateway = Instance("[[none]]", "gateway");
+    {
+        addNativeClientModule(gateway);
+        addNativeServerModule(gateway);
+
+        auto serverConfig = gateway.getAvailableServerTypes().get("OpenDAQNativeStreaming").createDefaultConfig();
+        serverConfig.setPropertyValue("NativeStreamingPort", 7421);
+
+        gateway.addServer("OpenDAQNativeStreaming", serverConfig);
+    }
+
+    auto client = Instance("[[none]]");
+    addNativeClientModule(client);
+
+    // register handler before adding the device so it will be called before the one in streaming manager
+    client.getContext().getOnCoreEvent() += [](const ComponentPtr& comp, const CoreEventArgsPtr& args) {
+        auto params = args.getParameters();
+        if (static_cast<CoreEventId>(args.getEventId()) == CoreEventId::ComponentAdded)
+        {
+            ComponentPtr component = params.get("Component");
+            if (auto addedDevice = component.asPtrOrNull<IDevice>(); addedDevice.assigned())
+            {
+                if (addedDevice.getGlobalId() == "/openDAQDevice/Dev/gateway/Dev/RefDev0")
+                {
+                    const auto addedDeviceInfo = addedDevice.getInfo();
+                    const auto addedDeviceInfoInternal = addedDeviceInfo.asPtr<IDeviceInfoInternal>();
+
+                    ServerCapabilityPtr streamingCapability;
+                    for (const auto& cap : addedDeviceInfo.getServerCapabilities())
+                    {
+                        if (cap.getProtocolType() == ProtocolType::Streaming)
+                            streamingCapability = cap;
+                    }
+                    ASSERT_TRUE(streamingCapability.assigned());
+                    addedDeviceInfoInternal.removeServerCapability(streamingCapability.getProtocolId());
+
+                    auto capReplacement =
+                            ServerCapability(streamingCapability.getProtocolId(), streamingCapability.getProtocolName(), streamingCapability.getProtocolType());
+
+                    {
+                        // Set fake port so streaming connection will fail
+                        auto ipv6Address = "[::1]";
+                        auto connectionStringIpv6 =
+                                String(fmt::format("{}://{}:{}", "daq.ns", ipv6Address, 7425));
+                        capReplacement.addConnectionString(connectionStringIpv6);
+                        capReplacement.addAddress(ipv6Address);
+
+                        const auto addressInfo = AddressInfoBuilder().setAddress(ipv6Address)
+                                                                     .setReachabilityStatus(AddressReachabilityStatus::Unknown)
+                                                                     .setType("IPv6")
+                                                                     .setConnectionString(connectionStringIpv6)
+                                                                     .build();
+                        capReplacement.addAddressInfo(addressInfo);
+                    }
+                    {
+                        auto ipv4Address = "127.0.0.1";
+                        auto connectionStringIpv4 =
+                                String(fmt::format("{}://{}:{}", "daq.ns", ipv4Address, 7420));
+                        capReplacement.addConnectionString(connectionStringIpv4);
+                        capReplacement.addAddress(ipv4Address);
+
+                        const auto addressInfo = AddressInfoBuilder().setAddress(ipv4Address)
+                                                                     .setReachabilityStatus(AddressReachabilityStatus::Unknown)
+                                                                     .setType("IPv4")
+                                                                     .setConnectionString(connectionStringIpv4)
+                                                                     .build();
+                        capReplacement.addAddressInfo(addressInfo);
+                    }
+
+
+                    addedDeviceInfoInternal.addServerCapability(capReplacement);
+                }
+            }
+        }
+    };
+
+    auto config = client.createDefaultAddDeviceConfig();
+    PropertyObjectPtr general = config.getPropertyValue("General");
+    general.setPropertyValue("StreamingConnectionHeuristic", 1); // MIN HOPS
+    //general.setPropertyValue("PrimaryAddressType", "IPv6"); // don't use this setting otherwise it will skip any v4 streaming connection
+    const auto dev = client.addDevice("daq.nd://[::1]:7421/", config);
+
+    dev.addDevice("daq.nd://[::1]");
+
+    MirroredSignalConfigPtr sig = dev.getSignalsRecursive()[0];
+
+    ASSERT_EQ(sig.getStreamingSources().getCount(), 2u); // 2 connections: client->gateway and client->leaf
+    auto activeStreaming = sig.getActiveStreamingSource();
+    ASSERT_TRUE(activeStreaming.assigned());
+    ASSERT_TRUE(activeStreaming.toStdString().find("127.0.0.1:7420") != std::string::npos)
+        << "Active streaming expected to be IPv4 client->leaf but it is not: " << activeStreaming;
 }
 
 TEST_F(NativeDeviceModulesTest, MultiClientReadChangingSignal)

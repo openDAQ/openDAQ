@@ -193,7 +193,7 @@ jobs:
           retention-days: 1
 
   package_linux_wheels:
-    runs-on: ubuntu-latest
+    runs-on: ${{ matrix.runner }}
     name: ${{ matrix.name }}
 
     concurrency:
@@ -204,8 +204,16 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - name: manylinux_2_28 gcc Release
+          - name: manylinux_2_28 gcc x86_64 Release
+            runner: ubuntu-latest
             image: quay.io/pypa/manylinux_2_28_x86_64
+            cmake-generator: Ninja
+            cmake-build-type: Release
+            cmake-defines: >-
+              -DDAQMODULES_PARQUET_RECORDER_MODULE=ON
+          - name: manylinux_2_28 gcc armv8 Release
+            runner: ubuntu-24.04-arm
+            image: quay.io/pypa/manylinux_2_28_aarch64
             cmake-generator: Ninja
             cmake-build-type: Release
             cmake-defines: >-
@@ -249,6 +257,7 @@ jobs:
           build-path: ${{ steps.build-sdk.outputs.build-path }}
           cmake-build-type: ${{ matrix.cmake-build-type }}
           upload-artifact: true
+          package-artifact-name-include-arch: true
 
   package_macos_wheels:
     name: ${{ matrix.name }}
@@ -309,10 +318,17 @@ jobs:
           upload-artifact: true
           package-artifact-name-include-arch: true
 
-  package_macos_wheels_combined:
-    name: Combine macOS wheels
+  package_wheels_combined:
+    name: Combine ${{ matrix.os }} wheels
     runs-on: ubuntu-latest
-    needs: [package_macos_wheels]
+    needs: [package_linux_wheels, package_macos_wheels]
+    # combine whatever succeeded, even if the other platform failed
+    if: ${{ !cancelled() }}
+
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [linux, macos]
 
     steps:
       - name: Checkout
@@ -322,17 +338,17 @@ jobs:
         id: detect
         uses: ./.github/actions/package-version-detect
 
-      - name: Download macOS wheels
+      - name: Download ${{ matrix.os }} wheels
         uses: actions/download-artifact@v4
         with:
-          pattern: opendaq-*-python-wheels-macos-*
+          pattern: opendaq-*-python-wheels-${{ matrix.os }}-*
           path: wheels
           merge-multiple: true
 
       - name: Upload combined wheels
         uses: actions/upload-artifact@v4
         with:
-          name: opendaq-${{ steps.detect.outputs.version-full }}-python-wheels-macos
+          name: opendaq-${{ steps.detect.outputs.version-full }}-python-wheels-${{ matrix.os }}
           path: wheels/*.whl
 
   simulator-build:

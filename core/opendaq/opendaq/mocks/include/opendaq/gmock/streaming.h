@@ -40,6 +40,16 @@ struct MockStreaming : daq::StreamingImpl<IMockStreaming>
         const daq::ContextPtr&
     > Strict;
 
+    // Same mock, but with a caller-defined protocol group id
+    typedef MockPtr<
+        daq::IStreaming,
+        daq::StreamingPtr,
+        MockStreaming,
+        const daq::StringPtr&,
+        const daq::ContextPtr&,
+        const daq::StringPtr&
+    > StrictWithGroup;
+
     MOCK_METHOD(void, onSetActive, (bool active), (override));
     MOCK_METHOD(void, onAddSignal, (const daq::MirroredSignalConfigPtr& signal), (override));
     MOCK_METHOD(void, onRemoveSignal, (const daq::MirroredSignalConfigPtr& signal), (override));
@@ -62,8 +72,10 @@ struct MockStreaming : daq::StreamingImpl<IMockStreaming>
 
     daq::MirroredSignalConfigPtr signal;
 
-    MockStreaming(const daq::StringPtr& connectionString, const daq::ContextPtr& context)
-        : daq::StreamingImpl<IMockStreaming>(connectionString, context, false, "MockStreaming", true)
+    MockStreaming(const daq::StringPtr& connectionString,
+                  const daq::ContextPtr& context,
+                  const daq::StringPtr& protocolGroupId = nullptr)
+        : daq::StreamingImpl<IMockStreaming>(connectionString, context, false, "MockStreaming", true, protocolGroupId)
     {
         using namespace testing;
 

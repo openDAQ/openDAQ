@@ -196,11 +196,11 @@ protected:
     static bool validateComponentId(const std::string& id);
 
     // Initialize component status with "Ok" status
-    void initComponentStatus() const;
+    virtual void initComponentStatus() const;
     // Set component status with default message (empty string) and log status and message (if different from previous, and not OK)
-    void setComponentStatus(const ComponentStatus& status) const;
+    virtual void setComponentStatus(const ComponentStatus& status) const;
     // Set component status with message and log status and message (if different from previous, and not OK and empty string)
-    void setComponentStatusWithMessage(const ComponentStatus& status, const StringPtr& message) const;
+    virtual void setComponentStatusWithMessage(const ComponentStatus& status, const StringPtr& message) const;
 
     virtual void onOperationModeChanged(OperationModeType modeType);
 

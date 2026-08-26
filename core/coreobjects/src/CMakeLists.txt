@@ -300,6 +300,7 @@ set(SRC_PublicHeaders coreobjects.h
                       mutex_impl.h
                       property_object_core.h
                       property_object_utils.h
+                      permissions_internal.h
 )
 
 set(SRC_PrivateHeaders eval_value_impl.h
@@ -323,7 +324,6 @@ set(SRC_PrivateHeaders eval_value_impl.h
                        user_impl.h
                        authentication_provider_impl.h
                        permission_manager_impl.h
-                       permissions_internal.h
                        permissions_impl.h
                        permissions_builder_impl.h
                        permission_mask_builder_impl.h
@@ -368,6 +368,7 @@ list(APPEND SRC_PublicHeaders  ${ConfigHeader}
                                ${SRC_ObjectLockGuard}
                                ${SRC_PropertyMetadataReadArgs}
                                ${SRC_Mutex}
+                               ${SRC_PermisisonsInternal}
                                coreobjects.natvis
 )
 

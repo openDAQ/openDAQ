@@ -526,7 +526,24 @@ ErrCode ConfigClientPropertyObjectBaseImpl<Impl>::remoteUpdate(ISerializedObject
 {
     const ErrCode errCode = daqTry([&serialized, this]
     {
-        onRemoteUpdate(serialized);
+        // ComponentUpdateEnd sets deserializationComplete=false before calling onRemoteUpdate
+        // directly. Nested remoteUpdate (e.g. Dev folder → child device) must do the same —
+        // otherwise setProtectedPropertyValue issues RPCs while the server is still inside
+        // SendOutCoreEvents and deadlocks (worker count = 1).
+        const bool wasComplete = this->deserializationComplete;
+        this->deserializationComplete = false;
+
+        try
+        {
+            onRemoteUpdate(serialized);
+        }
+        catch (...)
+        {
+            this->deserializationComplete = wasComplete;
+            throw;
+        }
+
+        this->deserializationComplete = wasComplete;
         return OPENDAQ_SUCCESS;
     });
     OPENDAQ_RETURN_IF_FAILED(errCode);
@@ -607,16 +624,52 @@ void ConfigClientPropertyObjectBaseImpl<Impl>::updateProperties(const Serialized
     const auto propertyList = serObj.readSerializedList(keyStr);
     const TypeManagerPtr typeManager = this->getTypeManager();
     std::unordered_set<std::string> serializedProps{};
+    std::vector<StringPtr> serializedOrder{};
+
+    // Deserialize via the config-protocol factory so incoming properties are config-client
+    // properties.
+    const auto deserializeContext = createWithImplementation<IComponentDeserializeContext, ConfigProtocolDeserializeContextImpl>(
+        this->clientComm, this->remoteGlobalId, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, typeManager);
+    const FunctionPtr factoryCallback =
+        [this](const StringPtr& typeId, const SerializedObjectPtr& object, const BaseObjectPtr& context, const FunctionPtr& factoryCallback)
+        {
+            return clientComm->deserializeConfigComponent(typeId, object, context, factoryCallback);
+        };
+
+    bool propertyReplaced = false;
 
     for (SizeT i = 0; i < propertyList.getCount(); i++)
     {
-        const PropertyPtr prop = propertyList.readObject(typeManager);
+        const PropertyPtr prop = propertyList.readObject(deserializeContext, factoryCallback);
 
         const auto propName = prop.getName();
         serializedProps.insert(propName);
+        serializedOrder.push_back(propName);
 
         if (!thisPtr.hasProperty(propName))
+        {
             thisPtr.addProperty(prop);
+            propertyReplaced = true;
+            continue;
+        }
+
+        // Object-type properties are merged recursively in updatePropertyValues
+        const auto propInternal = prop.asPtrOrNull<IPropertyInternal>(true);
+        if (propInternal.assigned() && propInternal.getValueTypeUnresolved() == ctObject)
+            continue;
+
+        // Replace the property if its metadata changed on the server.
+        if (prop != thisPtr.getProperty(propName))
+        {
+            const ErrCode errCode = Impl::removeProperty(propName);
+            if (OPENDAQ_SUCCEEDED(errCode))
+            {
+                thisPtr.addProperty(prop);
+                propertyReplaced = true;
+            }
+            else
+                daqClearErrorInfo();
+        }
     }
 
     for (const auto& prop : thisPtr.getAllProperties())
@@ -629,6 +682,31 @@ void ConfigClientPropertyObjectBaseImpl<Impl>::updateProperties(const Serialized
                 daqClearErrorInfo();
         }
     }
+
+    // Replaced and added properties end up at the end of the insertion order, which determines
+    // the property order unless a custom order is defined.
+    if (propertyReplaced && Impl::customOrder.empty())
+    {
+        auto lock = Impl::getRecursiveConfigLock2();
+
+        PropertyOrderedMap orderedProps;
+        orderedProps.reserve(Impl::localProperties.size());
+        for (const auto& propName : serializedOrder)
+        {
+            const auto it = Impl::localProperties.find(propName);
+            if (it != Impl::localProperties.end())
+                orderedProps.insert(*it);
+        }
+
+        // Non-serialized leftovers keep their relative order after the serialized ones.
+        for (const auto& prop : Impl::localProperties)
+        {
+            if (orderedProps.find(prop.first) == orderedProps.end())
+                orderedProps.insert(prop);
+        }
+
+        Impl::localProperties = std::move(orderedProps);
+    }
 }
 
 template <class Impl>
@@ -637,31 +715,20 @@ void ConfigClientPropertyObjectBaseImpl<Impl>::updatePropertyValues(const Serial
     const auto hasKeyStr = String("propValues");
     const PropertyObjectPtr thisPtr = this->template borrowPtr<PropertyObjectPtr>();
 
+    ListPtr<IProperty> properties;
+    checkErrorInfo(Impl::getPropertiesInternal(true, true, &properties, true));
+
     if (!serObj.hasKey(hasKeyStr))
     {
-        for (const auto& prop : thisPtr.getAllProperties())
-        {
-            const auto propInternal = prop.asPtrOrNull<IPropertyInternal>(true);
-            if (propInternal.assigned())
-            {
-                const auto valueTypeUnresolved = propInternal.getValueTypeUnresolved();
-                if (propInternal.getReferencedPropertyUnresolved().assigned())
-                    continue;
-                if (valueTypeUnresolved == ctFunc || valueTypeUnresolved == ctProc)
-                    continue;
-            }
-
-            checkErrorInfo(Impl::clearProtectedPropertyValue(prop.getName()));
-        }
-
+        // Frozen nested objects are skipped inside clearPropertyValuesInternal.
+        checkErrorInfo(Impl::clearProtectedPropertyValues());
         return;
     }
     
     const TypeManagerPtr typeManager = this->getTypeManager();
     const auto propValues = serObj.readSerializedObject("propValues");
-    const auto protectedPropObjPtr = thisPtr.asPtr<IPropertyObjectProtected>();
 
-    for (const auto& prop : thisPtr.getAllProperties())
+    for (const auto& prop : properties)
     {
         const auto propName = prop.getName();
         const auto propInternal = prop.asPtrOrNull<IPropertyInternal>(true);
@@ -677,15 +744,24 @@ void ConfigClientPropertyObjectBaseImpl<Impl>::updatePropertyValues(const Serial
 
         if (!propValues.hasKey(propName))
         {
-            checkErrorInfo(Impl::clearProtectedPropertyValue(propName));
+            const ErrCode errCode = Impl::clearProtectedPropertyValue(propName);
+            if (OPENDAQ_FAILED(errCode))
+                daqClearErrorInfo();
             continue;
         }
 
         if (valueTypeUnresolved == ctObject)
         {
-            const ObjectPtr<IConfigClientObject> clientObj = thisPtr.getPropertyValue(propName);
+            const auto propValue = thisPtr.getPropertyValue(propName);
             const auto childSerObj = propValues.readSerializedObject(propName);
-            checkErrorInfo(clientObj->remoteUpdate(childSerObj));
+
+            // Nested property objects that are not networked config-client objects (eg. DeviceInfo's
+            // serverCapabilities/configurationConnectionInfo/activeClientConnections) are plain value
+            // snapshots without persistent identity - replace them wholesale instead of merging.
+            if (const auto clientObj = propValue.asPtrOrNull<IConfigClientObject>(true); clientObj.assigned())
+                checkErrorInfo(clientObj->remoteUpdate(childSerObj));
+            else
+                checkErrorInfo(Impl::setProtectedPropertyValue(propName, propValues.readObject(propName, typeManager)));
         }
         else
         {

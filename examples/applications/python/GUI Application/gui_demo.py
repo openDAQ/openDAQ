@@ -819,11 +819,12 @@ class App(tk.Tk):
             int(value * factor) for value in self.winfo_rgb(color))
 
     # buttons are ordered right to left along the row
-    TREE_ROW_ACTIONS = ('add',)
+    TREE_ROW_ACTIONS = ('add', 'lock')
 
     def tree_row_buttons_create(self, tree, pinned):
-        handlers = {'add': self.handle_tree_add_button_clicked}
-        icons = {'add': 'plus'}
+        handlers = {'add': self.handle_tree_add_button_clicked,
+                    'lock': self.handle_tree_lock_button_clicked}
+        icons = {'add': 'plus', 'lock': 'lock'}
 
         buttons = {}
         for name in self.TREE_ROW_ACTIONS:
@@ -843,11 +844,22 @@ class App(tk.Tk):
 
     def tree_row_actions(self, iid):
         """Which action buttons apply to a row, ordered right to left."""
-        target, _, _ = self.tree_add_menu_target(iid)
+        target, is_device, _ = self.tree_add_menu_target(iid)
         actions = []
         if target is not None:
             actions.append('add')
+        if is_device:
+            actions.append('lock')
         return actions
+
+    def tree_row_device_locked(self, iid):
+        component = utils.find_component(iid, self.context.instance) if iid else None
+        if component is None or not daq.IDevice.can_cast_from(component):
+            return False
+        try:
+            return bool(daq.IDevice.cast_from(component).locked)
+        except Exception:
+            return False
 
     def tree_row_button_color(self, button, iid):
         # the label cannot be transparent, so it has to carry the row's own colour,
@@ -878,6 +890,10 @@ class App(tk.Tk):
             if name not in actions:
                 button.place_forget()
                 continue
+            if name == 'lock':
+                # a single toggle, so the icon shows what the click will do
+                button.configure(image=self.context.icons[
+                    'unlock' if self.tree_row_device_locked(iid) else 'lock'])
             button.place(x=x, y=y, width=size, height=size)
             button.lift()
             self.tree_row_button_color(button, iid)
@@ -1004,6 +1020,23 @@ class App(tk.Tk):
 
     def handle_tree_add_button_clicked(self, event):
         return self.tree_add_menu_popup(self.tree_row_button_iid(event.widget), event)
+
+    def handle_tree_lock_button_clicked(self, event):
+        iid = self.tree_row_button_iid(event.widget)
+        if not iid:
+            return 'break'
+
+        self.tree.selection_set(iid)
+        # handle_lock / handle_unlock act on the selection, and handle_unlock keeps
+        # the force unlock fallback
+        if self.tree_row_device_locked(iid):
+            self.handle_unlock()
+        else:
+            self.handle_lock()
+
+        self.tree_row_buttons_place(self.tree_hover_buttons, self.tree_hover_buttons_iid)
+        self.tree_root_buttons_sync()
+        return 'break'
 
     def tree_add_menu_popup(self, iid, event):
         target, is_device, has_fb_types = self.tree_add_menu_target(iid)

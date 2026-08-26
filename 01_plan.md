@@ -63,7 +63,7 @@ After `configure` releases the facade mutex, every connected port gets `IConnect
 ### Synchronization (Phase 4, pinned requirements)
 
 - Domain constraints (local validation, at delivery): integer domain sample type, unit quantity "time" symbol "s", implicit **linear** rule only, positive delta/resolution. Missing domain descriptor → `InvalidDescriptor`; broken constraint → `InvalidDomain`.
-- Relational (at sync, vs main): equal delta, equal tick resolution, equal origin (mixed origins not allowed — main's wins), same tick grid (phase). Violations → `InvalidDomain`, immediate. Rate dividers deliberately deferred to Phase 5.5 (until then rate must equal main's).
+- Relational (at sync, vs main): effective sample rate equal to main's (equal delta+resolution fast path, else rational period comparison; ticks scaled onto the main lattice), equal origin (mixed origins not allowed — main's wins), same tick grid (phase). Violations → `InvalidDomain`, immediate. Rate dividers deliberately deferred to Phase 5.5 (until then rate must equal main's).
 - Incremental, non-blocking, inside `read`: align every participant to the latest next-timestamp (target monotonically increases); discard below target (whole packets + partial via frontOffset). Staged data assumed gap-free (ranges derived from next + stagedSamples).
 - **2s hardcoded timeout** from commit: an input with no data past the deadline → `SyncFailed`. Range distance guard: closest points of the main range and an input's range further apart than 2s worth of ticks → `SyncFailed` immediately.
 - **Main always succeeds** — at worst synced to itself; with no data it just waits. Main locally invalid → park with main's error after the deadline.
@@ -88,7 +88,7 @@ After `configure` releases the facade mutex, every connected port gets `IConnect
 | Wake = single-shot pass; facade re-arms after read/commit | polling consumers primary; hybrid stays live; callback-driven loop is Phase 6 |
 | Sync restarts after every committed event | boundary invalidates alignment by definition |
 | Failed inputs excluded until refreshed (non-sticky via new descriptor) | avoids park-commit-park loops on permanently broken inputs |
-| Equal delta+resolution required (no tick-unit conversion) | single-unit int64 math; dividers/mixed resolutions in Phase 5.5 |
+| Effective-rate equality vs main (equal fields fast path; delta=2 @ 1/2 == delta=1 @ 1/1), ticks scaled onto the main lattice | rate is what matters; off-lattice ticks are InvalidDomain; dividers (rate multiples) stay Phase 5.5 |
 | 2s sync timeout + 2s max range distance, hardcoded | pinned; parameterize later if needed |
 | Gap/unknown event packets dropped at ingest | gap realignment is Phase 6 |
 | availableCount: min over used+unfailed, gated on synced | "may lag reality, never exceed it" |

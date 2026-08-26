@@ -820,6 +820,50 @@ TEST_F(MultiReaderDataManagerTest, SyncFailsMismatchedDomains)
     ASSERT_EQ(availableOf(manager), 4u);
 }
 
+TEST_F(MultiReaderDataManagerTest, SyncScalesEqualRateResolutions)
+{
+    MultiReaderDataManager manager;
+    manager.reconfigure(makeConfig(2));
+
+    // delta=2 at resolution 1/2000 is the same rate as delta=1 at 1/1000
+    auto value = valueDesc();
+    auto domainMain = domainDesc(1, 1, 1000);
+    auto domainHalfTicks = domainDesc(2, 1, 2000);
+    manager.addPacket(0, DataDescriptorChangedEventPacket(value, domainMain));
+    manager.addPacket(1, DataDescriptorChangedEventPacket(value, domainHalfTicks));
+    readStatus(manager);
+    checkErrorInfo(manager.commitEvent());
+
+    // Main [100..109] ms; the second input starts at tick 210 = 105 ms
+    manager.addPacket(0, alignedPacket(value, domainMain, 100, 10));
+    manager.addPacket(1, alignedPacket(value, domainHalfTicks, 210, 10));
+
+    ASSERT_EQ(typeOf(readStatus(manager)), MultiReader2StatusType::Data);
+    ASSERT_EQ(availableOf(manager), 5u);
+}
+
+TEST_F(MultiReaderDataManagerTest, SyncFailsOffLatticeTicks)
+{
+    MultiReaderDataManager manager;
+    manager.reconfigure(makeConfig(2));
+
+    auto value = valueDesc();
+    auto domainMain = domainDesc(1, 1, 1000);
+    auto domainHalfTicks = domainDesc(2, 1, 2000);
+    manager.addPacket(0, DataDescriptorChangedEventPacket(value, domainMain));
+    manager.addPacket(1, DataDescriptorChangedEventPacket(value, domainHalfTicks));
+    readStatus(manager);
+    checkErrorInfo(manager.commitEvent());
+
+    // Tick 209 is 104.5 ms: off the main lattice for good
+    manager.addPacket(0, alignedPacket(value, domainMain, 100, 10));
+    manager.addPacket(1, alignedPacket(value, domainHalfTicks, 209, 10));
+
+    auto status = readStatus(manager);
+    ASSERT_EQ(typeOf(status), MultiReader2StatusType::Event);
+    ASSERT_EQ(errorOf(status, "input1"), static_cast<Int>(MultiReader2InputError::InvalidDomain));
+}
+
 TEST_F(MultiReaderDataManagerTest, SyncFailsOffGridInput)
 {
     MultiReaderDataManager manager;

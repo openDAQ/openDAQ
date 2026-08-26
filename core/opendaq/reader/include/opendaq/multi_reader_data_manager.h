@@ -146,6 +146,9 @@ private:
         Int delta = 1;
         Int resolutionNum = 1;
         Int resolutionDen = 1;
+        // Scales this input's ticks into main input ticks; set during sync validation
+        Int tickNum = 1;
+        Int tickDen = 1;
         // A failed input sits out of sync and reading until a new descriptor or reconfigure refreshes it
         bool failed = false;
     };

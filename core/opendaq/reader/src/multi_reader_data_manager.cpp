@@ -437,10 +437,27 @@ bool MultiReaderDataManager::runSync(State& state)
             failSlot(i, view.domainError);
             continue;
         }
-        // Dividers arrive in a later phase: the rate, resolution, and origin must equal the main input's
+        // Dividers arrive in a later phase: the effective rate and origin must equal the main input's.
+        // Equal fields are the fast path; delta=2 at resolution 1/2 equals delta=1 at resolution 1/1.
+        if (view.delta == main.delta && view.resolutionNum == main.resolutionNum && view.resolutionDen == main.resolutionDen)
+        {
+            view.tickNum = 1;
+            view.tickDen = 1;
+        }
+        else if (view.delta * view.resolutionNum * main.resolutionDen == main.delta * main.resolutionNum * view.resolutionDen)
+        {
+            // Same rate in different tick units: scale this input's ticks into main ticks
+            view.tickNum = view.resolutionNum * main.resolutionDen;
+            view.tickDen = view.resolutionDen * main.resolutionNum;
+        }
+        else
+        {
+            failSlot(i, MultiReader2InputError::InvalidDomain);
+            continue;
+        }
+
         const auto origin = view.origin.assigned() ? view.origin.toStdString() : std::string();
-        if (view.delta != main.delta || view.resolutionNum != main.resolutionNum || view.resolutionDen != main.resolutionDen ||
-            origin != mainOrigin)
+        if (origin != mainOrigin)
             failSlot(i, MultiReader2InputError::InvalidDomain);
     }
 
@@ -452,6 +469,7 @@ bool MultiReaderDataManager::runSync(State& state)
     for (int pass = 0; pass < 1000 && !waiting && !synced; pass++)
     {
         Int stamps[64];
+        Int rawStamps[64];
         uint64_t haveMask = 0;
         Int target = std::numeric_limits<Int>::min();
 
@@ -470,9 +488,18 @@ bool MultiReaderDataManager::runSync(State& state)
                     waiting = true;
                 continue;
             }
-            stamps[i] = timestamp;
+
+            // Scale into main ticks; a tick off the main lattice can never align
+            const Int scaled = timestamp * views[i].tickNum;
+            if (scaled % views[i].tickDen != 0)
+            {
+                failSlot(i, MultiReader2InputError::InvalidDomain);
+                continue;
+            }
+            stamps[i] = scaled / views[i].tickDen;
+            rawStamps[i] = timestamp;
             haveMask |= uint64_t(1) << i;
-            target = std::max(target, timestamp);
+            target = std::max(target, stamps[i]);
         }
         if (waiting || ((haveMask >> mainIndex) & 1) == 0)
             break;
@@ -502,7 +529,8 @@ bool MultiReaderDataManager::runSync(State& state)
             if (stamps[i] != target)
             {
                 aligned = false;
-                discardBefore(views[i], target);
+                // The grid check makes the distance to the target a whole number of samples in every unit
+                discardBefore(views[i], rawStamps[i] + (target - stamps[i]) / delta * views[i].delta);
                 settleReadyBit(state, i);
             }
         }

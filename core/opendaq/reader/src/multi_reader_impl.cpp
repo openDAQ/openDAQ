@@ -188,11 +188,8 @@ MultiReaderImpl::MultiReaderImpl(const MultiReaderBuilderPtr& builder)
 
 MultiReaderImpl::~MultiReaderImpl()
 {
-    if (!portBinder.assigned())
-    {
-        for (const auto& reader : signals)
-            reader.port.remove();
-    }
+    if (!this->disposeCalled)
+        internalDispose(false);
 }
 
 ListPtr<ISignal> MultiReaderImpl::getSignals() const
@@ -822,10 +819,25 @@ ErrCode INTERFACE_FUNC MultiReaderImpl::getInputUsed(IString* globalId, Bool* is
 
 ErrCode MultiReaderImpl::read(void* samples, SizeT* count, SizeT timeoutMs, IMultiReaderStatus** status)
 {
+    return readInternal(false, samples, nullptr, count, timeoutMs, status);
+}
+
+ErrCode MultiReaderImpl::readWithDomain(void* samples, void* domain, SizeT* count, SizeT timeoutMs, IMultiReaderStatus** status)
+{
+    return readInternal(true, samples, domain, count, timeoutMs, status);
+}
+
+ErrCode MultiReaderImpl::readInternal(
+    bool withDomain, void* samples, void* domain, SizeT* count, SizeT timeoutMs, IMultiReaderStatus** status)
+{
     OPENDAQ_PARAM_NOT_NULL(count);
     if (*count != 0)
     {
         OPENDAQ_PARAM_NOT_NULL(samples);
+        if (withDomain)
+        {
+            OPENDAQ_PARAM_NOT_NULL(domain);
+        }
 
         if (minReadCount > *count)
             return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDPARAMETER, "Count parameter has to be either 0 or larger than minReadCount.");
@@ -853,53 +865,14 @@ ErrCode MultiReaderImpl::read(void* samples, SizeT* count, SizeT timeoutMs, IMul
     }
 
     SizeT samplesToRead = (*count / sampleRateDividerLcm) * sampleRateDividerLcm;
-    prepare(static_cast<void**>(samples), samplesToRead, milliseconds(timeoutMs));
-
-    auto statusPtr = readPackets();
-    if (status)
-        *status = statusPtr.detach();
-
-    SizeT samplesRead = samplesToRead - remainingSamplesToRead;
-    *count = samplesRead;
-    return OPENDAQ_SUCCESS;
-}
-
-ErrCode MultiReaderImpl::readWithDomain(void* samples, void* domain, SizeT* count, SizeT timeoutMs, IMultiReaderStatus** status)
-{
-    OPENDAQ_PARAM_NOT_NULL(count);
-    if (*count != 0)
+    if (withDomain)
     {
-        OPENDAQ_PARAM_NOT_NULL(samples);
-        OPENDAQ_PARAM_NOT_NULL(domain);
-
-        if (minReadCount > *count)
-            return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDPARAMETER, "Count parameter has to be either 0 or larger than minReadCount.");
+        prepareWithDomain(static_cast<void**>(samples), static_cast<void**>(domain), samplesToRead, milliseconds(timeoutMs));
     }
-
-    std::scoped_lock lock(mutex);
-
-    MultiReaderStatusPtr earlyReturnStatus;
-    if (nextPacketIsEvent)
+    else
     {
-        earlyReturnStatus = readPackets();
+        prepare(static_cast<void**>(samples), samplesToRead, milliseconds(timeoutMs));
     }
-
-    if (invalid)
-    {
-        earlyReturnStatus = createReaderStatus();
-    }
-
-    if (earlyReturnStatus.assigned())
-    {
-        if (status)
-            *status = earlyReturnStatus.detach();
-
-        *count = 0;
-        return OPENDAQ_SUCCESS;
-    }
-
-    SizeT samplesToRead = (*count / sampleRateDividerLcm) * sampleRateDividerLcm;
-    prepareWithDomain((void**) samples, (void**) domain, samplesToRead, milliseconds(timeoutMs));
 
     auto statusPtr = readPackets();
     if (status)
@@ -1127,6 +1100,11 @@ MultiReaderStatusPtr MultiReaderImpl::readAndSynchronize(bool zeroDataRead, Size
     }
 
     ErrCode errCode = synchronize(availableSamples, syncStatus);
+    if (OPENDAQ_FAILED(errCode))
+    {
+        LOG_D("Multi reader failed to synchronize: {}", getErrorInfoMessage(errCode));
+        clearErrorInfo();
+    }
     if (OPENDAQ_FAILED(errCode) || eventPackets.getCount() != 0)
     {
         return createReaderStatus(eventPackets);
@@ -1612,13 +1590,29 @@ ErrCode MultiReaderImpl::getActive(Bool* isActive)
 
 void MultiReaderImpl::internalDispose(bool)
 {
-    this->portBinder = nullptr;
-    this->signals.clear();
-    this->externalListener = nullptr;
-    this->readCallback = nullptr;
-    this->invalid = true;
-    this->isActive = false;
-    this->portsConnected = false;
+    std::list<SignalReader> localSignals;
+    bool removePorts;
+
+    {
+        std::scoped_lock lock{mutex, notify.mutex};
+
+        removePorts = !this->portBinder.assigned();
+        localSignals = std::move(this->signals);
+        this->signals.clear();
+        this->portBinder = nullptr;
+        this->externalListener = nullptr;
+        this->readCallback = nullptr;
+        this->invalid = true;
+        this->isActive = false;
+        this->portsConnected = false;
+    }
+
+    // port removal locks the signals, which can deadlock with packet notifications waiting on notify.mutex, so it must happen outside the locks
+    if (removePorts)
+    {
+        for (const auto& reader : localSignals)
+            reader.port.remove();
+    }
 }
 
 #pragma region ReaderConfig

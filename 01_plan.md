@@ -63,7 +63,8 @@ After `configure` releases the facade mutex, every connected port gets `IConnect
 ### Synchronization (Phase 4, pinned requirements)
 
 - Domain constraints (local validation, at delivery): integer domain sample type, unit quantity "time" symbol "s", implicit **linear** rule only, positive delta/resolution. Missing domain descriptor → `InvalidDescriptor`; broken constraint → `InvalidDomain`.
-- Relational (at sync, vs main): effective sample rate equal to main's (equal delta+resolution fast path, else rational period comparison; ticks scaled onto the main lattice), equal origin (mixed origins not allowed — main's wins), same tick grid (phase). Violations → `InvalidDomain`, immediate. Rate dividers deliberately deferred to Phase 5.5 (until then rate must equal main's).
+- Relational (at sync, vs main): effective sample rate equal to main's (equal delta+resolution fast path, else rational period comparison; ticks scaled onto the main lattice), compatible origin, same tick grid (phase). Violations → `InvalidDomain`, immediate. Rate dividers are out of scope (rate must equal main's).
+- Origins (ACCEPTED 2026-08-26, not yet implemented — current code still requires equal origin strings): different origins are allowed as long as the origin *type* matches — all ISO-8601 absolute, or all unassigned/relative. Absolute origins are parsed and the epoch difference is converted into a tick offset during alignment; mixing absolute with relative is `InvalidDomain`.
 - Incremental, non-blocking, inside `read`: align every participant to the latest next-timestamp (target monotonically increases); discard below target (whole packets + partial via frontOffset). Staged data assumed gap-free (ranges derived from next + stagedSamples).
 - **2s hardcoded timeout** from commit: an input with no data past the deadline → `SyncFailed`. Range distance guard: closest points of the main range and an input's range further apart than 2s worth of ticks → `SyncFailed` immediately.
 - **Main always succeeds** — at worst synced to itself; with no data it just waits. Main locally invalid → park with main's error after the deadline.
@@ -90,7 +91,8 @@ After `configure` releases the facade mutex, every connected port gets `IConnect
 | Failed inputs excluded until refreshed (non-sticky via new descriptor) | avoids park-commit-park loops on permanently broken inputs |
 | Effective-rate equality vs main (equal fields fast path; delta=2 @ 1/2 == delta=1 @ 1/1), ticks scaled onto the main lattice | rate is what matters; off-lattice ticks are InvalidDomain; dividers (rate multiples) stay Phase 5.5 |
 | 2s sync timeout + 2s max range distance, hardcoded | pinned; parameterize later if needed |
-| Gap/unknown event packets dropped at ingest | gap realignment is Phase 6 |
+| Gaps become boundaries: Event with `Gap` error, resync at commit while the input is used | accepted 2026-08-26; surfacing matters, realignment falls out of the commit-restarts-sync rule |
+| Origin rule: matching origin type (absolute vs relative), epochs parsed and folded into tick offsets | accepted 2026-08-26; the equal-string requirement was too strict |
 | availableCount: min over used+unfailed, gated on synced | "may lag reality, never exceed it" |
 
 ## Progress
@@ -111,6 +113,15 @@ After `configure` releases the facade mutex, every connected port gets `IConnect
   Also an **exported factory** for the reader/params (impl classes are not DLL-exported,
   so module code cannot instantiate them today).
 
+  Sync extensions accepted from the remove-ladder-system comparison (2026-08-26):
+  - **Epoch parsing**: parse ISO-8601 origins and fold the epoch difference into the tick
+    scaling so inputs with different absolute origins align; require matching origin *type*
+    (absolute vs relative), not equal strings.
+  - **Gap events surfaced**: an `IMPLICIT_DOMAIN_GAP_DETECTED` packet becomes a boundary —
+    read reports an Event with a `Gap` error for that input; at commit, if the gapped input
+    is still used, synchronization restarts (a commit restarts sync anyway, so the rule
+    costs nothing extra). Gaps on unused inputs are reported but do not force a resync.
+
 - **Phase 6 - sum FB migration + functional tests**: port `sum_reader_fb` (ref_fb_module,
   currently on the remove-ladder-system branch) to `IMultiReader2`, strictly on the canonical
   usage pattern (dataAvailable -> read -> on Event: setUsed/setActive -> commitEvent -> read data):
@@ -125,7 +136,7 @@ After `configure` releases the facade mutex, every connected port gets `IConnect
     connect/disconnect churn, descriptor changes, sync failures under both handling modes,
     the spare unused port, property swaps mid-stream.
 
-  Features currently missing for the port (tracked as part of Phase 5/6 work):
+  Features currently missing for the port (notes accepted 2026-08-26, tracked as Phase 5/6 work):
   1. The data path itself + conversion (Phase 5) - hard prerequisite.
   2. Callback-driven dataAvailable loop (Phase 5).
   3. Exported factory - a module cannot `createWithImplementation` a non-exported impl.
@@ -144,7 +155,6 @@ After `configure` releases the facade mutex, every connected port gets `IConnect
 
 - **Dividers / multi-rate reads** - removed from the plan 2026-08-26; effective-rate
   equality with tick scaling onto the main lattice stays.
-- **Gap events** - dropped at ingest; realignment/Gap errors parked.
 - Data-loss / producer-liveness monitoring (also removed on the remove-ladder-system branch).
 - rtgen bindings, acceptsSignal veto policy, >64 inputs, read timeouts.
 
@@ -158,6 +168,12 @@ After `configure` releases the facade mutex, every connected port gets `IConnect
 - NullContext has no scheduler → notification passes run inline; a handler that reconfigures unconditionally recurses through the new bootstrap (guard test handlers).
 
 ## Open questions
+
+- **Alignment tolerance**: we currently require EXACT tick alignment on the main lattice
+  (off-lattice tick or phase-shifted grid → `InvalidDomain`). The remove-ladder-system
+  reader prefers an exact common tick but accepts inputs within half a block of the start
+  (the phase offset stays visible in that signal's own domain output). Do we adopt a
+  tolerance, and if so which — half-sample attributability or a configurable window?
 
 - `readWithDomain` timestamp buffer type: main input's raw domain type as-is (current lean) or normalized.
 - `getStatus` value when errors are present but data is readable (lean: Data, with errors dict populated).

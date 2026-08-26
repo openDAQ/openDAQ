@@ -147,6 +147,7 @@ jobs:
       DST_ROOT_DIR: releases
       SDK_DIR: SDK
       WHEELS_LINUX_X64_DIR: Python Wheels (Linux x86_64)
+      WHEELS_LINUX_ARM_DIR: Python Wheels (Linux ARM)
       WHEELS_WINDOWS_X64_DIR: Python Wheels (Windows amd64)
       WHEELS_MACOS_X64_DIR: Python Wheels (MacOS x86_64)
       WHEELS_MACOS_ARM_DIR: Python Wheels (MacOS ARM)
@@ -209,7 +210,10 @@ jobs:
 
           # Python Wheels
           aws s3 rm "${DST_URI}/${WHEELS_LINUX_X64_DIR}/" --recursive --exclude '*' --include '*.whl'
-          aws s3 cp "${SRC}"/opendaq-*-python-wheels-linux/ "${DST_URI}/${WHEELS_LINUX_X64_DIR}/" --recursive --exclude '*' --include '*.whl'
+          aws s3 cp "${SRC}"/opendaq-*-python-wheels-linux-x86_64/ "${DST_URI}/${WHEELS_LINUX_X64_DIR}/" --recursive --exclude '*' --include '*.whl'
+
+          aws s3 rm "${DST_URI}/${WHEELS_LINUX_ARM_DIR}/" --recursive --exclude '*' --include '*.whl'
+          aws s3 cp "${SRC}"/opendaq-*-python-wheels-linux-arm64/ "${DST_URI}/${WHEELS_LINUX_ARM_DIR}/" --recursive --exclude '*' --include '*.whl'
 
           aws s3 rm "${DST_URI}/${WHEELS_WINDOWS_X64_DIR}/" --recursive --exclude '*' --include '*.whl'
           aws s3 cp "${SRC}"/opendaq-*-python-wheels-windows/ "${DST_URI}/${WHEELS_WINDOWS_X64_DIR}/" --recursive --exclude '*' --include '*.whl'

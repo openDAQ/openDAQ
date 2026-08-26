@@ -157,6 +157,9 @@ public:
 
     explicit operator double() const
     {
+        if (this->object == nullptr)
+            DAQ_THROW_EXCEPTION(InvalidParameterException);
+
         Int denominator;
         checkErrorInfo(this->object->getDenominator(&denominator));
         Int numerator;

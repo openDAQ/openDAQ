@@ -432,7 +432,9 @@ void ConfigProtocolClient<TRootDeviceImpl>::reconnect(Bool restoreClientConfigOn
     protocolHandshake(clientComm->getProtocolVersion());
     enumerateTypes();
 
-    if (restoreClientConfigOnReconnect && !rootDevice.isLocked())
+    const bool restoreLocalConfig = restoreClientConfigOnReconnect && !rootDevice.isLocked();
+    StringPtr serializedClientRootDevice;
+    if (restoreLocalConfig)
     {
         SerializerPtr serializer;
         if (getProtocolVersion() < 10)
@@ -441,20 +443,21 @@ void ConfigProtocolClient<TRootDeviceImpl>::reconnect(Bool restoreClientConfigOn
             serializer = JsonSerializerWithVersion(2);
 
         rootDevice.asPtr<IUpdatable>().serializeForUpdate(serializer);
-        StringPtr serializedClientRootDevice = serializer.getOutput();
+        serializedClientRootDevice = serializer.getOutput();
+    }
 
+    const StringPtr serializedServerRootDevice = clientComm->requestSerializedRootDevice();
+
+    auto dict = Dict<IString, IBaseObject>();
+    dict.set("SerializedComponent", serializedServerRootDevice);
+
+    auto args = CoreEventArgs(CoreEventId::ComponentUpdateEnd, nullptr, dict);
+    rootDevice.asPtr<IConfigClientObject>()->handleRemoteCoreEvent(rootDevice, args);
+
+    if (restoreLocalConfig)
+    {
         const auto deserializer = JsonDeserializer();
         deserializer.update(rootDevice.asPtr<IUpdatable>(), serializedClientRootDevice);
-    }
-    else
-    {
-        const StringPtr serializedServerRootDevice = clientComm->requestSerializedRootDevice();
-
-        auto dict = Dict<IString, IBaseObject>();
-        dict.set("SerializedComponent", serializedServerRootDevice);
-
-        auto args = CoreEventArgs(CoreEventId::ComponentUpdateEnd, nullptr, dict);
-        rootDevice.asPtr<IConfigClientObject>()->handleRemoteCoreEvent(rootDevice, args);
     }
 }
 

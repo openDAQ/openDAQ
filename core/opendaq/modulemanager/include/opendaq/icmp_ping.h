@@ -15,8 +15,11 @@
  */
 #pragma once
 #include <boost/asio.hpp>
+#include <atomic>
 #include <chrono>
+#include <condition_variable>
 #include <mutex>
+#include <unordered_set>
 #include <opendaq/logger_ptr.h>
 #include <opendaq/logger_component_ptr.h>
 
@@ -72,7 +75,7 @@ private:
     std::atomic<std::size_t> numSent;
     std::mutex mutexRequests;
     std::condition_variable allRequestsSent;
-    std::mutex mutexReplies;
+    mutable std::mutex mutexReplies;
     std::condition_variable allRepliesReceived;
 
     uint16_t identifier;
@@ -87,7 +90,7 @@ private:
     boost::asio::streambuf replyBuffer{};
     uint16_t sequenceNumber;
 
-    std::size_t numReplies;
+    std::atomic<std::size_t> numReplies;
     std::unordered_set<std::string> responseAddresses;
 };
 

@@ -15,6 +15,7 @@
  */
 #pragma once
 #include <coretypes/formatter.h>
+#include <coretypes/ratio_factory.h>
 #include <opendaq/data_descriptor_ptr.h>
 #include <opendaq/sample_type_traits.h>
 
@@ -140,7 +141,8 @@ namespace reader
 
     inline std::int64_t getSampleRate(const DataDescriptorPtr& dataDescriptor)
     {
-        const auto resolution = dataDescriptor.getTickResolution().simplify();
+        const auto tickResolution = dataDescriptor.getTickResolution();
+        const auto resolution = tickResolution.assigned() ? tickResolution.simplify() : Ratio(1, 1);
 
         NumberPtr delta = 1;
         auto rule = dataDescriptor.getRule();

@@ -69,6 +69,11 @@ private:
     void configureOutputLocked(const ObjectPtr<IMultiReader2Status>& status);
     void emitSumLocked(const std::vector<std::vector<double>>& buffers, SizeT count, SizeT offset);
 
+    // Errors the block reacts to by excluding an input; liveness conditions resolve on their own
+    static bool isValidityError(MultiReader2InputError error);
+    StringPtr mainInputIdLocked() const;
+    UnitPtr referenceUnitLocked(const DictPtr<IString, IDataDescriptor>& descriptors) const;
+
     std::vector<InputPortPtr> connectedPorts;
     InputPortPtr disconnectedPort;
 

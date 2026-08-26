@@ -61,8 +61,9 @@ void SumReaderFbImpl::createSignals()
 
 void SumReaderFbImpl::createDisconnectedPort()
 {
-    // The reader forces SameThread on its inputs, so the port's own mode does not matter
-    disconnectedPort = createAndAddInputPort(getNextPortID(), PacketReadyNotification::SameThread);
+    // The reader forces SameThread on its inputs, so the port's own mode does not matter.
+    // Gap packets are requested so a discontinuity surfaces as a boundary instead of passing silently.
+    disconnectedPort = createAndAddInputPort(getNextPortID(), PacketReadyNotification::SameThread, nullptr, true);
 }
 
 // The reader owns the port notifications, so connectivity arrives through its events, not
@@ -161,6 +162,45 @@ void SumReaderFbImpl::badInputHandlingChanged()
     reconfigureReaderLocked();
 }
 
+// SyncFailed, InvalidDescriptor and InvalidDomain say the input cannot take part; Gap and
+// Disconnected are liveness conditions that the reader itself resolves by resynchronizing
+bool SumReaderFbImpl::isValidityError(MultiReader2InputError error)
+{
+    switch (error)
+    {
+        case MultiReader2InputError::SyncFailed:
+        case MultiReader2InputError::InvalidDescriptor:
+        case MultiReader2InputError::InvalidDomain:
+            return true;
+        default:
+            return false;
+    }
+}
+
+StringPtr SumReaderFbImpl::mainInputIdLocked() const
+{
+    StringPtr id;
+    if (OPENDAQ_FAILED(reader->getMainInput(&id)))
+    {
+        daqClearErrorInfo();
+        return nullptr;
+    }
+    return id;
+}
+
+// The main input defines the output grid, so its unit is the one every other input must match
+UnitPtr SumReaderFbImpl::referenceUnitLocked(const DictPtr<IString, IDataDescriptor>& descriptors) const
+{
+    const auto mainId = mainInputIdLocked();
+    if (mainId.assigned() && descriptors.hasKey(mainId))
+    {
+        const auto descriptor = descriptors.get(mainId);
+        if (descriptor.assigned())
+            return descriptor.getUnit();
+    }
+    return nullptr;
+}
+
 void SumReaderFbImpl::onPortEventLocked()
 {
     updateInputPortsLocked();
@@ -211,43 +251,62 @@ void SumReaderFbImpl::handleEventLocked(const ObjectPtr<IMultiReader2Status>& st
     checkErrorInfo(status->getErrors(&errorsRaw));
     const auto errors = DictPtr<IString, IInteger>(ObjectPtr<IDict>::Adopt(errorsRaw));
 
-    if (errors.getCount() > 0)
-    {
-        if (excludeBadInputs)
-        {
-            for (const auto& [inputId, error] : errors)
-            {
-                if (OPENDAQ_FAILED(reader->setUsed(inputId, False)))
-                    daqClearErrorInfo();
-            }
-        }
-        else if (OPENDAQ_FAILED(reader->setActive(False)))
-        {
-            daqClearErrorInfo();
-        }
+    IDict* descriptorsRaw;
+    checkErrorInfo(status->getDescriptors(&descriptorsRaw));
+    const auto descriptors = DictPtr<IString, IDataDescriptor>(ObjectPtr<IDict>::Adopt(descriptorsRaw));
 
-        std::string failing;
-        for (const auto& [inputId, error] : errors)
-            failing += (failing.empty() ? "" : ", ") + inputId.toStdString();
-        setComponentStatusWithMessage(ComponentStatus::Warning, fmt::format("Inputs failing: {}", failing));
+    const auto mainId = mainInputIdLocked();
+    const auto referenceUnit = referenceUnitLocked(descriptors);
+
+    // Descriptors drive the pass; errors are an overlay. An input is healthy when the reader
+    // reports no validity error for it and the block itself accepts its descriptor.
+    bool mainHealthy = true;
+    bool allHealthy = true;
+    std::string failing;
+    for (const auto& [inputId, descriptor] : descriptors)
+    {
+        bool healthy = true;
+        if (errors.hasKey(inputId) && isValidityError(static_cast<MultiReader2InputError>(static_cast<Int>(errors.get(inputId)))))
+            healthy = false;
+        else if (descriptor.assigned() && descriptor.getUnit() != referenceUnit)
+            healthy = false;  // summing different quantities would produce a meaningless signal
+
+        if (healthy)
+            continue;
+
+        allHealthy = false;
+        failing += (failing.empty() ? "" : ", ") + inputId.toStdString();
+        if (inputId == mainId)
+            mainHealthy = false;
+    }
+
+    // The main input can never be excluded: unusing it would leave the reader without a grid
+    // to align to, so a failing main input parks the whole block regardless of the policy.
+    if (excludeBadInputs && mainHealthy)
+    {
+        for (const auto& [inputId, descriptor] : descriptors)
+        {
+            const bool healthy = !(errors.hasKey(inputId) &&
+                                   isValidityError(static_cast<MultiReader2InputError>(static_cast<Int>(errors.get(inputId))))) &&
+                                 (!descriptor.assigned() || descriptor.getUnit() == referenceUnit);
+            if (inputId != mainId && OPENDAQ_FAILED(reader->setUsed(inputId, healthy ? True : False)))
+                daqClearErrorInfo();
+        }
+    }
+
+    // Symmetric: this parks on failure and recovers on the next event that comes back clean
+    const bool active = mainHealthy && (excludeBadInputs || allHealthy);
+    if (OPENDAQ_FAILED(reader->setActive(active ? True : False)))
+        daqClearErrorInfo();
+
+    if (allHealthy)
+    {
+        configureOutputLocked(status);
     }
     else
     {
-        // A clean descriptor handshake is the recovery evidence: everything rejoins
-        if (excludeBadInputs)
-        {
-            for (const auto& port : connectedPorts)
-            {
-                if (OPENDAQ_FAILED(reader->setUsed(port.getGlobalId(), True)))
-                    daqClearErrorInfo();
-            }
-        }
-        else if (OPENDAQ_FAILED(reader->setActive(True)))
-        {
-            daqClearErrorInfo();
-        }
-
-        configureOutputLocked(status);
+        setComponentStatusWithMessage(ComponentStatus::Warning,
+                                      fmt::format("Inputs failing{}: {}", mainHealthy ? "" : " (main input)", failing));
     }
 
     if (OPENDAQ_FAILED(reader->commitEvent()))
@@ -269,14 +328,12 @@ void SumReaderFbImpl::configureOutputLocked(const ObjectPtr<IMultiReader2Status>
     checkErrorInfo(status->getDescriptors(&descriptorsRaw));
     const auto descriptors = DictPtr<IString, IDataDescriptor>(ObjectPtr<IDict>::Adopt(descriptorsRaw));
 
-    // The sum range spans the summed input ranges; the unit follows the first input carrying one
-    UnitPtr unit;
+    // Every input matched the main input's unit to get here, so the sum carries it too
+    const UnitPtr unit = referenceUnitLocked(descriptors);
     double lowValue = 0;
     double highValue = 0;
     for (const auto& [inputId, descriptor] : descriptors)
     {
-        if (!unit.assigned())
-            unit = descriptor.getUnit();
         const auto range = descriptor.getValueRange();
         if (range.assigned())
         {

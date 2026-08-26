@@ -13,6 +13,8 @@ set(TEST_SOURCES test_factories.cpp
                  test_time_reader.cpp
                  test_multi_reader.cpp
                  test_multi_reader2.cpp
+                 test_multi_reader2_migrated.cpp
+                 test_multi_reader2_unsupported.cpp
                  ../src/multi_reader2_impl.cpp
                  ../src/multi_reader2_params_impl.cpp
                  ../src/multi_reader2_status_impl.cpp

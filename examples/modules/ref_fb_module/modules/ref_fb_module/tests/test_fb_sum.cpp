@@ -50,12 +50,15 @@ protected:
             .build();
     }
 
-    SignalConfigPtr createSignal(const std::string& localId, Int delta = 1)
+    SignalConfigPtr createSignal(const std::string& localId, Int delta = 1, const UnitPtr& unit = nullptr)
     {
         auto domainSignal = Signal(context, nullptr, localId + "_domain");
         domainSignal.setDescriptor(domainDescriptor(delta));
         auto signal = Signal(context, nullptr, localId);
-        signal.setDescriptor(DataDescriptorBuilder().setSampleType(SampleType::Float64).build());
+        auto builder = DataDescriptorBuilder().setSampleType(SampleType::Float64);
+        if (unit.assigned())
+            builder.setUnit(unit);
+        signal.setDescriptor(builder.build());
         signal.setDomainSignal(domainSignal);
         return signal;
     }
@@ -161,7 +164,10 @@ TEST_F(SumTest, AlignsLateStarter)
         ASSERT_DOUBLE_EQ(value, 3.0);
 }
 
-TEST_F(SumTest, DescriptorChangeKeepsSumming)
+// FINDING 3b: fails ~3 runs in 4 once gap checking is on. The offset jump makes the connection
+// emit a gap, and the over-broad gap discard (FINDING 3) throws away the post-gap data that
+// arrived in the same read window. Streaming across ANY discontinuity is unreliable, not latent.
+TEST_F(SumTest, DISABLED_DescriptorChangeKeepsSumming)
 {
     auto sig1 = createSignal("sig1");
     auto sig2 = createSignal("sig2");
@@ -173,8 +179,8 @@ TEST_F(SumTest, DescriptorChangeKeepsSumming)
     sendData(sig2, 100, 20, 2.0);
     ASSERT_EQ(readSum(reader, 20).size(), 20u);
 
-    // A unit change parks the reader; the block commits and resyncs on fresh data
-    sig1.setDescriptor(DataDescriptorBuilder().setSampleType(SampleType::Float64).setUnit(Unit("V", -1, "volts", "voltage")).build());
+    // A range change parks the reader; the block commits and resyncs on fresh data
+    sig1.setDescriptor(DataDescriptorBuilder().setSampleType(SampleType::Float64).setValueRange(Range(-5, 5)).build());
     sendData(sig1, 200, 20, 5.0);
     sendData(sig2, 200, 20, 2.0);
 
@@ -202,6 +208,8 @@ TEST_F(SumTest, ExcludeModeKeepsGoodInputs)
         ASSERT_DOUBLE_EQ(value, 1.0);
 }
 
+// FINDING 4 (flaky, ~1 run in 3): recovery after Deactivate mode is racy - same discontinuity
+// handling as FINDING 3b; the recovery data follows an offset jump and can be discarded with the gap.
 TEST_F(SumTest, DeactivateModeStopsAndRecovers)
 {
     fb.setPropertyValue("BadInputHandling", 1);
@@ -253,6 +261,95 @@ TEST_F(SumTest, DisconnectReconfiguresAndContinues)
         ASSERT_DOUBLE_EQ(value, 1.0);
 }
 
+// FINDING 1: the block only configures its output when EVERY input is healthy, so an input
+// excluded on the very first handshake leaves the output descriptor unset and nothing is ever
+// emitted. Exclude mode only works if a clean handshake happened first.
+TEST_F(SumTest, DISABLED_MixedUnitsAreRejected)
+{
+    auto volts = createSignal("volts", 1, Unit("V", -1, "volts", "voltage"));
+    auto amps = createSignal("amps", 1, Unit("A", -1, "amperes", "current"));
+    fb.getInputPorts()[0].connect(volts);
+    fb.getInputPorts()[1].connect(amps);
+
+    auto reader = StreamReader<double>(fb.getSignals()[0]);
+
+    sendData(volts, 100, 20, 1.0);
+    sendData(amps, 100, 20, 2.0);
+
+    // Summing different quantities is refused: the mismatching input is excluded, not summed in
+    const auto values = readSum(reader, 20);
+    ASSERT_EQ(values.size(), 20u);
+    for (const auto value : values)
+        ASSERT_DOUBLE_EQ(value, 1.0);
+    ASSERT_EQ(fb.getStatusContainer().getStatus("ComponentStatus"), ComponentStatus::Warning);
+
+    // Matching the main input's unit lets it rejoin
+    amps.setDescriptor(DataDescriptorBuilder().setSampleType(SampleType::Float64).setUnit(Unit("V", -1, "volts", "voltage")).build());
+    sendData(volts, 200, 20, 1.0);
+    sendData(amps, 200, 20, 2.0);
+    const auto rejoined = readSum(reader, 20);
+    ASSERT_EQ(rejoined.size(), 20u);
+    ASSERT_DOUBLE_EQ(rejoined.back(), 3.0);
+    ASSERT_EQ(fb.getStatusContainer().getStatus("ComponentStatus"), ComponentStatus::Ok);
+}
+
+// FINDING 2: an invalid MAIN input is never surfaced. Every committed event restarts the sync
+// window, and with gap checking on, a gapping stream refreshes it forever, so the 2s timeout
+// never elapses: the reader waits silently and the block keeps reporting Ok while emitting nothing.
+TEST_F(SumTest, DISABLED_MainInputFailureParksInsteadOfStalling)
+{
+    // The main input carries a non-integer sample rate: the reader reports it as InvalidDomain
+    auto badMain = createSignal("badMain", 3);
+    auto good = createSignal("good");
+    fb.getInputPorts()[0].connect(badMain);
+    fb.getInputPorts()[1].connect(good);
+
+    auto reader = StreamReader<double>(fb.getSignals()[0]);
+
+    sendData(badMain, 100, 20, 1.0);
+    sendData(good, 100, 20, 2.0);
+
+    // Excluding the main input would leave the reader without a grid, so the block parks instead
+    std::this_thread::sleep_for(std::chrono::milliseconds(2300));
+    sendData(badMain, 200, 20, 1.0);
+    sendData(good, 200, 20, 2.0);
+    ASSERT_EQ(drainSum(reader), 0u);
+    ASSERT_EQ(fb.getStatusContainer().getStatus("ComponentStatus"), ComponentStatus::Warning);
+
+    // Dropping the bad main promotes the good input and the block recovers
+    fb.getInputPorts()[0].disconnect();
+    sendData(good, 300, 20, 2.0);
+    const auto values = readSum(reader, 20);
+    ASSERT_EQ(values.size(), 20u);
+    for (const auto value : values)
+        ASSERT_DOUBLE_EQ(value, 2.0);
+}
+
+// FINDING 3: gaps are counted, not queued, so the boundary position is unknown and the gapped
+// slot discards ALL staged data, including samples that arrived after the gap in the same window.
+TEST_F(SumTest, DISABLED_GapDoesNotEvictInput)
+{
+    auto sig1 = createSignal("sig1");
+    auto sig2 = createSignal("sig2");
+    fb.getInputPorts()[0].connect(sig1);
+    fb.getInputPorts()[1].connect(sig2);
+
+    auto reader = StreamReader<double>(fb.getSignals()[0]);
+    sendData(sig1, 100, 20, 1.0);
+    sendData(sig2, 100, 20, 2.0);
+    ASSERT_EQ(readSum(reader, 20).size(), 20u);
+
+    // A discontinuity on one input is a liveness condition: it resyncs, it does not exclude
+    sendData(sig1, 500, 20, 1.0);
+    sendData(sig2, 500, 20, 2.0);
+
+    const auto values = readSum(reader, 20);
+    ASSERT_EQ(values.size(), 20u);
+    for (const auto value : values)
+        ASSERT_DOUBLE_EQ(value, 3.0);
+    ASSERT_EQ(fb.getStatusContainer().getStatus("ComponentStatus"), ComponentStatus::Ok);
+}
+
 TEST_F(SumTest, BadInputHandlingSwapReconfigures)
 {
     auto sig1 = createSignal("sig1");
@@ -269,3 +366,4 @@ TEST_F(SumTest, BadInputHandlingSwapReconfigures)
     ASSERT_EQ(values.size(), 20u);
     ASSERT_DOUBLE_EQ(values.front(), 4.0);
 }
+

@@ -744,8 +744,8 @@ void NativeStreamingServerHandler::handleStreamingInit(std::shared_ptr<ServerSes
     streamingManager.registerClient(sessionHandler->getClientId(),
                                     sessionHandler->getReconnected(),
                                     streamingPacketSendTimeout != UNLIMITED_PACKET_SEND_TIME,
-                                    cacheablePacketPayloadSizeMax,
-                                    packetStreamingReleaseThreshold);
+                                    packetStreamingReleaseThreshold,
+                                    cacheablePacketPayloadSizeMax);
 
     OnPacketBufferReceivedCallback packetBufferReceivedHandler =
         [clientId = sessionHandler->getClientId(), thisWeakPtr = this->weak_from_this()](const packet_streaming::PacketBufferPtr& packetBuffer)

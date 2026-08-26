@@ -39,6 +39,13 @@
 
 ## Bug fixes
 
+- [#1277](https://github.com/openDAQ/openDAQ/pull/1277) Fix MultiReader leaking its input ports when disposed before being released; readers treat a missing domain tick resolution as 1/1 instead of crashing
+- [#1273](https://github.com/openDAQ/openDAQ/pull/1273) Fix wrong packet-streaming optimization parameters order
+- [#1273](https://github.com/openDAQ/openDAQ/pull/1273) Fix native streaming server crash on access to non-existed packet server
+- [#1268](https://github.com/openDAQ/openDAQ/pull/1268) Fix IcmpPing leaking its object, socket and reply buffer.
+- [#1263](https://github.com/openDAQ/openDAQ/pull/1263) Fix client root device not being synchronized correctly after reconnect if "RestoreClientConfigOnReconnect" is enabled
+- [#1266](https://github.com/openDAQ/openDAQ/pull/1266) Native client updates `IProperty` metadata that changed on the server during `onUpdateEnded`
+- [#1266](https://github.com/openDAQ/openDAQ/pull/1266) Native client deserializes properties into their `ConfigClient` variant during `onUpdateEnded`
 - [#1219](https://github.com/openDAQ/openDAQ/pull/1219) Fixes reading vector signals with stream reader in python.
 - [#1214](https://github.com/openDAQ/openDAQ/pull/1214) Fixes the order in which packets are enqueued in sendPackets. They are now always correctly enqueued front-to-back.
 - [#1213](https://github.com/openDAQ/openDAQ/pull/1213) Forward device locked state core event in native client.
@@ -78,6 +85,7 @@
 
 ## Misc
 
+- [#1238](https://github.com/openDAQ/openDAQ/pull/1238), [#1235](https://github.com/openDAQ/openDAQ/pull/1235) Try all streaming connection addresses if first fails
 - [#1216](https://github.com/openDAQ/openDAQ/pull/1216) Speeds up comparison between end sentinel when iterating over openDAQ list and dictionary objects
 - [#1120](https://github.com/openDAQ/openDAQ/pull/1120) Change reachability status to a sparse selection property type.
 - [#1171](https://github.com/openDAQ/openDAQ/pull/1171) MDNS discovery ratelimiting

@@ -2,6 +2,9 @@
 #include <opendaq/scheduler_errors.h>
 #include <coretypes/objectptr.h>
 
+#include <chrono>
+#include <future>
+
 BEGIN_NAMESPACE_OPENDAQ
 
 template <typename TReturn>
@@ -43,11 +46,7 @@ template <typename TReturn>
 ErrCode AwaitableImpl<TReturn>::getResult(daq::IBaseObject** result)
 {
     OPENDAQ_PARAM_NOT_NULL(result);
-
-    if (!completed && !future.valid())
-    {
-        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_EMPTY_AWAITABLE);
-    }
+    OPENDAQ_RETURN_IF_FAILED(this->wait());
 
     if constexpr (std::is_void_v<TReturn>)
     {
@@ -60,14 +59,13 @@ ErrCode AwaitableImpl<TReturn>::getResult(daq::IBaseObject** result)
             // Mask exceptions from taskflow - don't rethrow
             // This matches the behavior expected by ScheduleGraphMasksExceptions test
         }
+
         *result = nullptr;
     }
     else
     {
         std::optional<BaseObjectPtr> optional;
         OPENDAQ_TRY(optional = future.get();)
-
-        completed = true;
 
         if (!optional.has_value())
         {
@@ -88,8 +86,8 @@ ErrCode AwaitableImpl<TReturn>::hasCompleted(Bool* finished)
 
     if (!future.valid())
         *finished = this->completed.load();
-
-    *finished = !future.valid();
+    else
+        *finished = future.wait_for(std::chrono::seconds(0)) == std::future_status::ready;
     return OPENDAQ_SUCCESS;
 }
 

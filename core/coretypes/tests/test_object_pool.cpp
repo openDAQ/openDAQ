@@ -106,6 +106,28 @@ TEST(ObjectPoolTest, Create)
     pool.cleanup();
 }
 
+TEST(ObjectPoolTest, DestructorFreesParkedObjects)
+{
+    ObjectPool<PoolObject> pool(2);
+
+    // Grow the pool past its pre-allocated objects, then release them all.
+    std::stack<PoolObject*> objects;
+    for (int i = 0; i < 10; ++i)
+    {
+        auto obj = pool.get(i);
+        obj->addRef();
+        objects.push(obj);
+    }
+
+    while (!objects.empty())
+    {
+        objects.top()->releaseRef();
+        objects.pop();
+    }
+
+    // No cleanup() call: the destructor frees the free list.
+}
+
 constexpr int ObjCount = 1000;
 
 TEST(ObjectPoolTest, SpeedNoPool)

@@ -59,6 +59,10 @@ ObjectPool<T>::ObjectPool(size_t initialCount)
 template <class T>
 ObjectPool<T>::~ObjectPool()
 {
+	// Destroy the objects on the free list; ones still handed out belong to their holders.
+	while (T* obj = static_cast<T*>(daqLockFreeStackPop(free_list)))
+		delete obj;
+
 	daqLockFreeStackDestroy(free_list);
 }
 

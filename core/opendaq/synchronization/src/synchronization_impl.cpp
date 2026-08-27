@@ -70,6 +70,15 @@ void SynchronizationImpl::onSourceChanged(const StringPtr& sourceName)
         oldSource.asPtr<IPropertyObject>(true).setPropertyValue("Mode", static_cast<Int>(oldSourceMode));
         throw;
     }
+
+    for (const auto& interfaceProp : interfacesProperty.getAllProperties())
+    {
+        SyncInterfacePtr interface = interfacesProperty.getPropertyValue(interfaceProp.getName());
+        const ErrCode errCode = interface.asPtr<ISyncInterfaceInternal>(true)->sourceChanged(source);
+        if (OPENDAQ_FAILED(errCode))
+            // should probably print
+            clearErrorInfo();
+    }
 }
 
 ErrCode SynchronizationImpl::clone(IPropertyObject** cloned)

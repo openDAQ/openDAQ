@@ -166,6 +166,8 @@ private:
     void disconnectInputPort(const ConnectionPtr& connection);
     void clearConnections(std::vector<ConnectionPtr>& connections);
     void setKeepLastPacket();
+    bool isConstantWithoutDomain();
+    DataPacketPtr createLastValuePacket();
     TypePtr addToTypeManagerRecursively(const TypeManagerPtr& typeManager,
                                         const DataDescriptorPtr& descriptor) const;
     void buildTempConnections(TempConnections& tempConnections);
@@ -409,6 +411,7 @@ ErrCode SignalBase<TInterface, Interfaces...>::setDescriptor(IDataDescriptor* de
         auto lock = this->getRecursiveConfigLock2();
 
         dataDescriptor = descriptorPtr;
+        setKeepLastPacket();
         const auto packet = DataDescriptorChangedEventPacket(descriptorToEventPacketParam(dataDescriptor), nullptr);
 
         // Should this return a failure error code or execute all sendPacket calls and return one of the errors?
@@ -507,6 +510,8 @@ ErrCode SignalBase<TInterface, Interfaces...>::setDomainSignal(ISignal* signal)
 
         if (domainSignal.assigned())
             domainSignal.asPtr<ISignalEvents>().domainSignalReferenceSet(this->template borrowPtr<SignalPtr>());
+
+        setKeepLastPacket();
     }
 
     if (!this->coreEventMuted && this->coreEvent.assigned())
@@ -887,6 +892,9 @@ ErrCode SignalBase<TInterface, Interfaces...>::listenerConnectedInternal(IConnec
     
     const auto packet = createDataDescriptorChangedEventPacket();
 
+    // A constant signal without a domain signal changes rarely, so hand the new listener the current value.
+    const auto lastValuePacket = createLastValuePacket();
+
     if (connections.empty())
     {
         const ErrCode errCode = wrapHandler(this, &Self::onListenedStatusChanged, true);
@@ -896,9 +904,17 @@ ErrCode SignalBase<TInterface, Interfaces...>::listenerConnectedInternal(IConnec
     connections.push_back(connectionPtr);
 
     if (!schedule)
+    {
         connectionPtr.enqueueOnThisThread(packet);
+        if (lastValuePacket.assigned())
+            connectionPtr.enqueueOnThisThread(lastValuePacket);
+    }
     else
+    {
         connectionPtr.enqueueWithScheduler(packet);
+        if (lastValuePacket.assigned())
+            connectionPtr.enqueueWithScheduler(lastValuePacket);
+    }
 
     return OPENDAQ_SUCCESS;
 }
@@ -1074,6 +1090,7 @@ ErrCode SignalBase<TInterface, Interfaces...>::clearDomainSignalWithoutNotificat
     auto lock = this->getRecursiveConfigLock2();
 
     domainSignal = nullptr;
+    setKeepLastPacket();
 
     return OPENDAQ_SUCCESS;
 }
@@ -1266,9 +1283,40 @@ ErrCode SignalBase<TInterface, Interfaces...>::enableKeepLastValue(Bool enabled)
 }
 
 template <typename TInterface, typename... Interfaces>
+bool SignalBase<TInterface, Interfaces...>::isConstantWithoutDomain()
+{
+    if (onGetDomainSignal().assigned())
+        return false;
+
+    const auto descriptor = onGetDescriptor();
+    if (!descriptor.assigned())
+        return false;
+
+    const auto rule = descriptor.getRule();
+    return rule.assigned() && rule.getType() == DataRuleType::Constant;
+}
+
+template <typename TInterface, typename... Interfaces>
+DataPacketPtr SignalBase<TInterface, Interfaces...>::createLastValuePacket()
+{
+    if (!this->active || !isConstantWithoutDomain())
+        return nullptr;
+
+    if (!lastValueCache.valueDescriptorCached())
+        return nullptr;
+
+    // A value captured under an older descriptor would contradict the descriptor announced on connect.
+    const auto& cachedDescriptor = lastValueCache.getValueDataDescriptor();
+    if (!BaseObjectPtr::Equals(cachedDescriptor, onGetDescriptor()))
+        return nullptr;
+
+    return ConstantDataPacketWithRawValue(cachedDescriptor, lastValueCache.getRawValueData());
+}
+
+template <typename TInterface, typename... Interfaces>
 void SignalBase<TInterface, Interfaces...>::setKeepLastPacket()
 {
-    keepLastPacket = keepLastValue && isPublic;
+    keepLastPacket = keepLastValue && (isPublic || isConstantWithoutDomain());
 
     if (!keepLastPacket)
     {

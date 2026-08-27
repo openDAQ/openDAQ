@@ -7,6 +7,9 @@
 #include <opendaq/data_descriptor_factory.h>
 #include <opendaq/sample_type_traits.h>
 #include <opendaq/event_packet_params.h>
+#include <opendaq/data_rule_factory.h>
+#include <opendaq/input_port_factory.h>
+#include <opendaq/signal_factory.h>
 
 using namespace daq;
 using namespace testing;
@@ -339,4 +342,24 @@ TYPED_TEST(GapCheckTest, MultiplePackets)
     connection.enqueue(packet7);
     pkt = connection.dequeue();
     ASSERT_EQ(pkt, packet7);
+}
+
+// A constant signal without a domain signal replays its value on connect; gap checking must
+// resolve to "not available" from the descriptor event rather than inspecting a domain packet.
+TEST(GapCheckConstantSignalTest, ConstantNoDomainReplayOnConnect)
+{
+    const auto ctx = NullContext();
+
+    const auto signal = Signal(ctx, nullptr, "sig");
+    const auto descriptor = DataDescriptorBuilder().setSampleType(SampleType::Int64).setRule(ConstantDataRule()).build();
+    signal.setDescriptor(descriptor);
+    signal.sendPacket(ConstantDataPacket(descriptor, int64_t{7}));
+
+    const auto port = InputPort(ctx, nullptr, "ip", true);
+    ASSERT_NO_THROW(port.connect(signal));
+
+    const auto packets = port.getConnection().dequeueAll();
+    ASSERT_EQ(packets.getCount(), 2u);
+    ASSERT_EQ(packets[0].getType(), PacketType::Event);
+    ASSERT_EQ(packets[1].asPtr<IDataPacket>().getLastValue(), 7);
 }

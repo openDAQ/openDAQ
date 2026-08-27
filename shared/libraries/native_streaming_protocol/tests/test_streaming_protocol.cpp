@@ -7,6 +7,8 @@
 
 #include <memory>
 #include <future>
+#include <thread>
+#include <chrono>
 
 using namespace daq;
 using namespace daq::opendaq_native_streaming_protocol;
@@ -899,6 +901,159 @@ TEST_P(StreamingProtocolTest, SendMultipleDataPackets)
         ASSERT_EQ(signalId, serverSignal.getGlobalId());
         ASSERT_EQ(serverDataPackets, packets);
     }
+}
+
+TEST_P(StreamingProtocolTest, ConstantValueReplayedToLateSubscriber)
+{
+    if (clients.size() < 2)
+        return;
+
+    const auto valueDescriptor = DataDescriptorBuilder().setSampleType(SampleType::Int64).setRule(ConstantDataRule()).build();
+    auto serverEventPacket = DataDescriptorChangedEventPacket(valueDescriptor, NullDataDescriptor());
+    auto serverDataPacket = ConstantDataPacket(valueDescriptor, int64_t{7});
+    auto serverSignal = SignalWithDescriptor(serverContext, valueDescriptor, nullptr, "signal");
+
+    startServer(List<ISignal>(serverSignal), serverEventPacket);
+
+    // the first subscriber gets the descriptor and then the value the signal produced
+    auto& firstClient = clients[0];
+    firstClient.clientHandler = createClient(firstClient, firstClient.signalAvailableHandler);
+    ASSERT_TRUE(firstClient.clientHandler->connect(SERVER_ADDRESS, NATIVE_STREAMING_LISTENING_PORT));
+    firstClient.clientHandler->sendStreamingRequest();
+    ASSERT_EQ(firstClient.streamingInitFuture.wait_for(timeout), std::future_status::ready);
+    ASSERT_EQ(firstClient.signalAvailableFuture.wait_for(timeout), std::future_status::ready);
+    const auto firstClientSignalId = std::get<0>(firstClient.signalAvailableFuture.get());
+
+    firstClient.clientHandler->subscribeSignal(firstClientSignalId);
+    ASSERT_EQ(firstClient.subscribedAckFuture.wait_for(timeout), std::future_status::ready);
+    ASSERT_EQ(signalSubscribedFuture.wait_for(timeout), std::future_status::ready);
+
+    ASSERT_EQ(firstClient.packetReceivedFuture.wait_for(timeout), std::future_status::ready);
+    ASSERT_EQ(std::get<1>(firstClient.packetReceivedFuture.get()), serverEventPacket);
+    firstClient.packetReceivedPromise = std::promise<std::tuple<StringPtr, PacketPtr>>();
+    firstClient.packetReceivedFuture = firstClient.packetReceivedPromise.get_future();
+
+    serverHandler->sendPacket(serverSignal.getGlobalId().toStdString(), serverDataPacket);
+    ASSERT_EQ(firstClient.packetReceivedFuture.wait_for(timeout), std::future_status::ready);
+    ASSERT_EQ(std::get<1>(firstClient.packetReceivedFuture.get()), serverDataPacket);
+
+    // every later subscriber gets the descriptor and the value without the server sending anything new
+    for (size_t i = 1; i < clients.size(); ++i)
+    {
+        auto& client = clients[i];
+        client.clientHandler = createClient(client, client.signalAvailableHandler);
+        ASSERT_TRUE(client.clientHandler->connect(SERVER_ADDRESS, NATIVE_STREAMING_LISTENING_PORT));
+        client.clientHandler->sendStreamingRequest();
+        ASSERT_EQ(client.streamingInitFuture.wait_for(timeout), std::future_status::ready);
+        ASSERT_EQ(client.signalAvailableFuture.wait_for(timeout), std::future_status::ready);
+        const auto clientSignalId = std::get<0>(client.signalAvailableFuture.get());
+
+        // both packets arrive back to back, so collect them instead of resetting a promise in between
+        auto packetsPromise = std::make_shared<std::promise<ListPtr<IPacket>>>();
+        auto packetsFuture = packetsPromise->get_future();
+        auto receivedPackets = List<IPacket>();
+        client.packetHandler =
+            [packetsPromise = packetsPromise, receivedPackets = receivedPackets](const StringPtr&, const PacketPtr& packet) mutable
+        {
+            receivedPackets.pushBack(packet);
+            if (receivedPackets.getCount() == 2)
+                packetsPromise->set_value(receivedPackets);
+        };
+        client.clientHandler->setStreamingHandlers(client.signalAvailableHandler,
+                                                   client.signalUnavailableHandler,
+                                                   client.packetHandler,
+                                                   client.signalSubscriptionAckHandler,
+                                                   client.connectionStatusChangedHandler,
+                                                   client.streamingInitDoneHandler);
+
+        client.clientHandler->subscribeSignal(clientSignalId);
+        ASSERT_EQ(client.subscribedAckFuture.wait_for(timeout), std::future_status::ready);
+
+        ASSERT_EQ(packetsFuture.wait_for(timeout), std::future_status::ready);
+        const auto packets = packetsFuture.get();
+        ASSERT_EQ(packets[0].getType(), PacketType::Event);
+
+        const auto dataPacket = packets[1].asPtr<IDataPacket>();
+        ASSERT_EQ(dataPacket.getSampleCount(), 1u);
+        ASSERT_FALSE(dataPacket.getDomainPacket().assigned());
+        ASSERT_EQ(dataPacket.getLastValue(), 7);
+    }
+}
+
+TEST_P(StreamingProtocolTest, ConstantValueNotReplayedAfterDescriptorChanged)
+{
+    if (clients.size() < 2)
+        return;
+
+    const auto valueDescriptor = DataDescriptorBuilder().setSampleType(SampleType::Int64).setRule(ConstantDataRule()).build();
+    auto serverEventPacket = DataDescriptorChangedEventPacket(valueDescriptor, NullDataDescriptor());
+    auto serverDataPacket = ConstantDataPacket(valueDescriptor, int64_t{7});
+    auto serverSignal = SignalWithDescriptor(serverContext, valueDescriptor, nullptr, "signal");
+
+    const auto newValueDescriptor = DataDescriptorBuilder().setSampleType(SampleType::Int32).setRule(ConstantDataRule()).build();
+    auto newEventPacket = DataDescriptorChangedEventPacket(newValueDescriptor, NullDataDescriptor());
+
+    startServer(List<ISignal>(serverSignal), serverEventPacket);
+
+    auto& firstClient = clients[0];
+    firstClient.clientHandler = createClient(firstClient, firstClient.signalAvailableHandler);
+    ASSERT_TRUE(firstClient.clientHandler->connect(SERVER_ADDRESS, NATIVE_STREAMING_LISTENING_PORT));
+    firstClient.clientHandler->sendStreamingRequest();
+    ASSERT_EQ(firstClient.streamingInitFuture.wait_for(timeout), std::future_status::ready);
+    ASSERT_EQ(firstClient.signalAvailableFuture.wait_for(timeout), std::future_status::ready);
+    const auto firstClientSignalId = std::get<0>(firstClient.signalAvailableFuture.get());
+
+    firstClient.clientHandler->subscribeSignal(firstClientSignalId);
+    ASSERT_EQ(firstClient.subscribedAckFuture.wait_for(timeout), std::future_status::ready);
+    ASSERT_EQ(signalSubscribedFuture.wait_for(timeout), std::future_status::ready);
+    ASSERT_EQ(firstClient.packetReceivedFuture.wait_for(timeout), std::future_status::ready);
+
+    // this client receives two more packets below, and its default handler fulfills a one-shot promise
+    firstClient.packetHandler = [](const StringPtr&, const PacketPtr&) {};
+    firstClient.clientHandler->setStreamingHandlers(firstClient.signalAvailableHandler,
+                                                    firstClient.signalUnavailableHandler,
+                                                    firstClient.packetHandler,
+                                                    firstClient.signalSubscriptionAckHandler,
+                                                    firstClient.connectionStatusChangedHandler,
+                                                    firstClient.streamingInitDoneHandler);
+
+    // a value, and then a descriptor the value does not belong to
+    serverHandler->sendPacket(serverSignal.getGlobalId().toStdString(), serverDataPacket);
+    serverHandler->sendPacket(serverSignal.getGlobalId().toStdString(), newEventPacket);
+
+    // the late subscriber gets the descriptor only - replaying the stale value would contradict it
+    auto& lateClient = clients[1];
+    lateClient.clientHandler = createClient(lateClient, lateClient.signalAvailableHandler);
+    ASSERT_TRUE(lateClient.clientHandler->connect(SERVER_ADDRESS, NATIVE_STREAMING_LISTENING_PORT));
+    lateClient.clientHandler->sendStreamingRequest();
+    ASSERT_EQ(lateClient.streamingInitFuture.wait_for(timeout), std::future_status::ready);
+    ASSERT_EQ(lateClient.signalAvailableFuture.wait_for(timeout), std::future_status::ready);
+    const auto lateClientSignalId = std::get<0>(lateClient.signalAvailableFuture.get());
+
+    auto firstPacketPromise = std::make_shared<std::promise<void>>();
+    auto firstPacketFuture = firstPacketPromise->get_future();
+    auto receivedPackets = List<IPacket>();
+    lateClient.packetHandler =
+        [firstPacketPromise = firstPacketPromise, receivedPackets = receivedPackets](const StringPtr&, const PacketPtr& packet) mutable
+    {
+        receivedPackets.pushBack(packet);
+        if (receivedPackets.getCount() == 1)
+            firstPacketPromise->set_value();
+    };
+    lateClient.clientHandler->setStreamingHandlers(lateClient.signalAvailableHandler,
+                                                   lateClient.signalUnavailableHandler,
+                                                   lateClient.packetHandler,
+                                                   lateClient.signalSubscriptionAckHandler,
+                                                   lateClient.connectionStatusChangedHandler,
+                                                   lateClient.streamingInitDoneHandler);
+
+    lateClient.clientHandler->subscribeSignal(lateClientSignalId);
+    ASSERT_EQ(lateClient.subscribedAckFuture.wait_for(timeout), std::future_status::ready);
+    ASSERT_EQ(firstPacketFuture.wait_for(timeout), std::future_status::ready);
+
+    std::this_thread::sleep_for(std::chrono::milliseconds(200));
+    ASSERT_EQ(receivedPackets.getCount(), 1u);
+    ASSERT_EQ(receivedPackets[0].getType(), PacketType::Event);
 }
 
 TEST_P(StreamingProtocolTest, AddNotPublicSignal)

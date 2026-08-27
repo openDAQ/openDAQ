@@ -26,6 +26,9 @@ public:
     using Super = SyncInterfaceBaseImpl;
 
     explicit ClockSyncInterfaceImpl(const TypeManagerPtr& manager);
+
+    ErrCode INTERFACE_FUNC getClockType(IString** clockType) override;
+
 };
 
 END_NAMESPACE_OPENDAQ

@@ -46,7 +46,6 @@ public:
     // ISyncInterface
     ErrCode INTERFACE_FUNC getName(IString** name) override;
     ErrCode INTERFACE_FUNC getReferenceDomainId(IString** referenceDomainId) override;
-    ErrCode INTERFACE_FUNC getClockType(IString** clockType) override;
     ErrCode INTERFACE_FUNC setMode(SyncMode mode) override;
     ErrCode INTERFACE_FUNC getMode(SyncMode* sourceMode) override;
     ErrCode INTERFACE_FUNC getAvailableModes(IDict** availableModes) override;
@@ -87,6 +86,7 @@ public:
     // ISyncInterfaceInternal
     ErrCode INTERFACE_FUNC setAsSource(Bool source) override;
     ErrCode INTERFACE_FUNC sourceChanged(ISyncInterface* source) override;
+    ErrCode INTERFACE_FUNC getClockType(IString** clockType) override;
 
     // IPropertyObjectInternal
     ErrCode INTERFACE_FUNC clone(IPropertyObject** cloned) override;
@@ -102,7 +102,6 @@ protected:
     virtual void onConfigurationChanged(const StringPtr& name, const BaseObjectPtr& value);
 
     void setReferenceDomainId(const StringPtr& referenceDomainId);
-    void setClockType(const StringPtr& clockType);
     void setSyncSourceStatus(SyncSourceStatus status, const StringPtr& message = "");
     void setSyncRoleStatus(SyncRoleStatus status, const StringPtr& message = "");
    
@@ -190,16 +189,6 @@ ErrCode GenericSyncInterfaceImpl<TInterface, Interfaces...>::getReferenceDomainI
     BaseObjectPtr objPtr;
     OPENDAQ_RETURN_IF_FAILED(this->getPropertyValue(String("Status.ReferenceDomainId"), &objPtr));
     *referenceDomainId = objPtr.asOrNull<IString>();
-    return OPENDAQ_SUCCESS;
-}
-
-template <typename TInterface, typename... Interfaces>
-ErrCode GenericSyncInterfaceImpl<TInterface, Interfaces...>::getClockType(IString** clockType)
-{
-    OPENDAQ_PARAM_NOT_NULL(clockType);
-    BaseObjectPtr objPtr;
-    OPENDAQ_RETURN_IF_FAILED(this->getPropertyValue(String("Status.ClockType"), &objPtr));
-    *clockType = objPtr.asOrNull<IString>();
     return OPENDAQ_SUCCESS;
 }
 

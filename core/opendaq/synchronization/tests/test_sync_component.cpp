@@ -194,7 +194,23 @@ public:
         return createWithImplementation<ISyncInterface, TestSyncInterface>(manager, name, availableModes);
     }
 
-    using Super::setClockType;
+    void setClockType(const StringPtr& clockType)
+    {
+        this->clockType = clockType;
+    }
+
+    ErrCode INTERFACE_FUNC getClockType(IString** clockType) override
+    {
+        if (!this->clockType.assigned())
+            return Super::getClockType(clockType);
+
+        OPENDAQ_PARAM_NOT_NULL(clockType);
+        *clockType = this->clockType.addRefAndReturn();
+        return OPENDAQ_SUCCESS;
+    }
+
+private:
+    StringPtr clockType;
 };
 
 using SynchronizationTest = testing::Test;
@@ -391,7 +407,7 @@ TEST_F(SynchronizationTest, SyncInterfaceGetClockType)
 
     // Defaults to "Internal" unless a subclass overrides it (e.g. via setClockType in its own constructor)
     const auto syncInterface = TestSyncInterface::Create(ctx.getTypeManager(), "MyInterface");
-    ASSERT_EQ(syncInterface.getClockType(), "");
+    ASSERT_EQ(syncInterface.asPtr<ISyncInterfaceInternal>(true).getClockType(), "");
 }
 
 TEST_F(SynchronizationTest, SyncInterfaceSetClockType)
@@ -405,9 +421,8 @@ TEST_F(SynchronizationTest, SyncInterfaceSetClockType)
     // meant to be called once, from the constructor of the concrete interface class.
     impl->setClockType("Gps");
 
-    ASSERT_EQ(syncInterface.getClockType(), "Gps");
+    ASSERT_EQ(syncInterface.asPtr<ISyncInterfaceInternal>(true).getClockType(), "Gps");
     const auto propObj = syncInterface.asPtr<IPropertyObject>(true);
-    ASSERT_EQ(propObj.getPropertyValue("Status.ClockType"), "Gps");
 }
 
 TEST_F(SynchronizationTest, SyncInterfaceProperties)

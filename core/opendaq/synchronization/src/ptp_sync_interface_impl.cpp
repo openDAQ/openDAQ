@@ -38,8 +38,14 @@ PtpSyncInterfaceBaseImpl::PtpSyncInterfaceBaseImpl(const TypeManagerPtr& manager
                                                    const std::vector<SyncMode>& availableModes)
     : Super(manager, name, availableModes)
 {
-    setClockType("Ptp");
     createGeneralProperties();
+}
+
+ErrCode PtpSyncInterfaceBaseImpl::getClockType(IString** clockType)
+{
+    OPENDAQ_PARAM_NOT_NULL(clockType);
+    *clockType = String("Ptp").detach();
+    return OPENDAQ_SUCCESS;
 }
 
 void PtpSyncInterfaceBaseImpl::createGeneralProperties()

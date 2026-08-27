@@ -79,12 +79,6 @@ DECLARE_OPENDAQ_INTERFACE(ISyncInterface, IBaseObject)
     virtual ErrCode INTERFACE_FUNC getReferenceDomainId(IString** referenceDomainId) = 0;
 
     /*!
-      * @brief Gets the clock type of the synchronization interface.
-      * @param[out] clockType The clock type string.
-      */
-    virtual ErrCode INTERFACE_FUNC getClockType(IString** clockType) = 0;
-
-    /*!
       * @brief Sets the mode of the synchronization interface.
       * @param mode The mode to set the synchronization interface to.
       */

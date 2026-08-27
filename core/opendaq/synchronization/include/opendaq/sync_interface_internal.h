@@ -45,6 +45,12 @@ DECLARE_OPENDAQ_INTERFACE(ISyncInterfaceInternal, IBaseObject)
      * @param source The newly selected synchronization source.
      */
     virtual ErrCode INTERFACE_FUNC sourceChanged(ISyncInterface* source) = 0;
+
+    /*!
+      * @brief Gets the clock type of the synchronization interface.
+      * @param[out] clockType The clock type string.
+      */
+    virtual ErrCode INTERFACE_FUNC getClockType(IString** clockType) = 0;
 };
 /*!@}*/
 

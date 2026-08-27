@@ -39,6 +39,9 @@ class PUBLIC_EXPORT PtpSyncInterfaceBaseImpl : public SyncInterfaceBaseImpl
 {
 public:
     using Super = SyncInterfaceBaseImpl;
+
+    ErrCode INTERFACE_FUNC getClockType(IString** clockType) override;
+
 protected:
     PtpSyncInterfaceBaseImpl(const TypeManagerPtr& manager,
                              const StringPtr& name = "PtpSyncInterface",

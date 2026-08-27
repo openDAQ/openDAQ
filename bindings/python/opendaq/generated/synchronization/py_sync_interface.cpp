@@ -74,14 +74,6 @@ void defineISyncInterface(pybind11::module_ m, PyDaqIntf<daq::ISyncInterface, da
             return objectPtr.getReferenceDomainId().toStdString();
         },
         "Gets the reference domain ID of the synchronization interface.");
-    cls.def_property_readonly("clock_type",
-        [](daq::ISyncInterface *object)
-        {
-            py::gil_scoped_release release;
-            const auto objectPtr = daq::SyncInterfacePtr::Borrow(object);
-            return objectPtr.getClockType().toStdString();
-        },
-        "Gets the clock type of the synchronization interface.");
     cls.def_property("mode",
         [](daq::ISyncInterface *object)
         {

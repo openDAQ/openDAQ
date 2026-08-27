@@ -54,7 +54,6 @@ void SyncInterfaceBaseImpl::initProperties()
     status.addProperty(SelectionPropertyBuilder("SynchronizationRoleStatus", syncRoleStatusType.getEnumeratorNames(), static_cast<Int>(SyncRoleStatus::Off)).setReadOnly(true).build());
     status.addProperty(SelectionPropertyBuilder("SynchronizationSourceStatus", syncSourceStatusType.getEnumeratorNames(), static_cast<Int>(SyncSourceStatus::Off)).setReadOnly(true).build());
     status.addProperty(StringPropertyBuilder("ReferenceDomainId", "").setReadOnly(true).build());
-    status.addProperty(StringPropertyBuilder("ClockType", "").setReadOnly(true).build());
     this->objPtr.addProperty(ObjectPropertyBuilder("Status", status).setReadOnly(true).build());
 
     configuration = PropertyObject();
@@ -118,6 +117,13 @@ ErrCode SyncInterfaceBaseImpl::getConfiguration(IPropertyObject** configuration)
     return OPENDAQ_SUCCESS;
 }
 
+ErrCode SyncInterfaceBaseImpl::getClockType(IString** clockType)
+{
+    OPENDAQ_PARAM_NOT_NULL(clockType);
+    *clockType = String("").detach();
+    return OPENDAQ_SUCCESS;
+}
+
 ErrCode SyncInterfaceBaseImpl::setAsSource(Bool source)
 {
     if (source)
@@ -156,11 +162,6 @@ void SyncInterfaceBaseImpl::setReferenceDomainId(const StringPtr& referenceDomai
 {
     this->referenceDomainId = referenceDomainId.assigned() ? referenceDomainId : String("");
     status.asPtr<IPropertyObjectProtected>(true).setProtectedPropertyValue("ReferenceDomainId", this->referenceDomainId);
-}
-
-void SyncInterfaceBaseImpl::setClockType(const StringPtr& clockType)
-{
-    status.asPtr<IPropertyObjectProtected>(true).setProtectedPropertyValue("ClockType", clockType.assigned() ? clockType : String(""));
 }
 
 void SyncInterfaceBaseImpl::setSyncSourceStatus(SyncSourceStatus status, const StringPtr& message)

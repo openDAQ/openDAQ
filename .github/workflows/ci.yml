@@ -35,8 +35,12 @@ jobs:
           {
             "pip-install": ["numpy"],
             "use-python-version": "3.14"
+          },
+          {
+            "choco-install": ["nsis"]
           }
         ]
+      cpack-presets: '[{"match-jobs": ["*"], "package": "NSIS"}]'
       cmake-presets: >
         [
           {

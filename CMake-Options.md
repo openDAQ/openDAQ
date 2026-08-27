@@ -20,6 +20,7 @@ The following options might be used to customize the build passing them in the *
 | `OPENDAQ_MIMALLOC_SUPPORT` | Bool | `OFF` | Enable MiMalloc-based packet allocator | - |
 | `OPENDAQ_USE_SYNCHRONOUS_LOGGER` | Bool | `OFF` | Output log messages immediately (blocks until finished) | - |
 | `OPENDAQ_ENABLE_WEBSOCKET_STREAMING` | Bool | `OFF` | Enable openDAQ websocket LT-protocol streaming | - |
+| `OPENDAQ_ENABLE_WEBSOCKET_STREAMING_WITH_TLS` | Bool | `OFF` | Enable the TLS (`daq.lts://`) channel of the LT streaming modules | Only relevant if `OPENDAQ_ENABLE_WEBSOCKET_STREAMING` is ON and `DAQMODULES_LT_LEGACY_MODULES` is OFF.<br>When OFF, the LT streaming modules are built without their OpenSSL dependency |
 | `OPENDAQ_ENABLE_NATIVE_STREAMING` | Bool | `OFF` | Enable openDAQ native protocol streaming | - |
 | `OPENDAQ_ENABLE_OPCUA` | Bool | `OFF` | Enable OpcUa | - |
 | `OPCUA_ENABLE_ENCRYPTION` | Bool | `OFF` | Enable OpcUa encryption | Only relevant if `OPENDAQ_ENABLE_OPCUA` is ON |

@@ -47,7 +47,8 @@ jobs:
               "OPENSSL_ROOT_DIR": "C:/vcpkg/installed/arm64-windows",
               "OPENDAQ_PYTHON_VERSION": "3.14",
               "Python_EXECUTABLE": "$env{pythonLocation}/python.exe",
-              "BOOST_CONTEXT_IMPLEMENTATION": "winfib"
+              "BOOST_CONTEXT_IMPLEMENTATION": "winfib",
+              "CMAKE_CXX_FLAGS_INIT": "/wd4324"
             }
           }
         ]

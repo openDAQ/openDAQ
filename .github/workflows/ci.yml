@@ -45,7 +45,8 @@ jobs:
             {
               "OPENDAQ_MSVC_SINGLE_PROCESS_BUILD": true,
               "OPENSSL_ROOT_DIR": "C:/vcpkg/installed/arm64-windows",
-              "OPENDAQ_PYTHON_VERSION": "3.14"
+              "OPENDAQ_PYTHON_VERSION": "3.14",
+              "Python_EXECUTABLE": "$env{pythonLocation}/python.exe"
             }
           }
         ]

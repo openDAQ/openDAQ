@@ -41,6 +41,7 @@ jobs:
         [
           {
             "configure-preset": "ci",
+            "test-preset": "run_tests",
             "cache-variables":
             {
               "OPENDAQ_MSVC_SINGLE_PROCESS_BUILD": true,

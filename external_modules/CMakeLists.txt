@@ -36,12 +36,14 @@ if (OPENDAQ_ENABLE_WEBSOCKET_STREAMING AND (DAQMODULES_OPENDAQ_CLIENT_MODULE OR 
         set(LT_MODULES_BINARY_DIR ${ltstreamingmoduleslegacy_BINARY_DIR} PARENT_SCOPE)
 		
     else()
+        set(DAQMODULES_LT_STREAMING_ENABLE_TLS ${OPENDAQ_ENABLE_WEBSOCKET_STREAMING_WITH_TLS} CACHE BOOL "" FORCE)
+
         opendaq_get_custom_fetch_content_params(LtStreamingModulesModern FC_PARAMS)
         
         FetchContent_Declare(
             LtStreamingModulesModern
             GIT_REPOSITORY https://github.com/openDAQ/LTStreamingModulesModern.git
-            GIT_TAG        1d7a684227c5406bd263defbfaa42b37c0ab6994
+            GIT_TAG        06a3a3d9c805b3a364868112682b03ae62d8bdde
             GIT_PROGRESS   ON
             GIT_SHALLOW    OFF
             SOURCE_SUBDIR  "INVALID"

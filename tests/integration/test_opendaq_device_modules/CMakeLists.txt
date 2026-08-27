@@ -57,8 +57,9 @@ endif()
 
 # The LT streaming tests over the secure channel need TLS fixtures (CA, server and client
 # certificates/keys). Reuse the pre-generated ones from the LT streaming modules repository instead of
-# keeping a second copy here. The legacy LT modules have neither TLS support nor those fixtures.
-if (NOT DAQMODULES_LT_LEGACY_MODULES AND DEFINED LT_MODULES_SOURCE_DIR)
+# keeping a second copy here. The legacy LT modules have neither TLS support nor those fixtures, and
+# neither has a modern build with the secure channel switched off.
+if (NOT DAQMODULES_LT_LEGACY_MODULES AND OPENDAQ_ENABLE_WEBSOCKET_STREAMING_WITH_TLS AND DEFINED LT_MODULES_SOURCE_DIR)
     set(LT_TLS_SECRETS_DIR "${LT_MODULES_SOURCE_DIR}/tests/integration/secrets")
     if (EXISTS "${LT_TLS_SECRETS_DIR}")
         add_custom_command(TARGET ${TEST_APP} POST_BUILD

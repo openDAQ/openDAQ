@@ -12,16 +12,15 @@ namespace PtpPropertyNames
     constexpr const char* StatusSynchronized = "Synchronized";
 
     // PTP Configuration properties
-    constexpr const char* PtpConfiguration = "PtpConfiguration";
     constexpr const char* PtpConfigMode = "Mode";
     constexpr const char* PtpConfigProfileOptions = "ProfileOptions";
+    constexpr const char* PtpConfigTransportProtocolOptions = "TransportProtocolOptions";
     constexpr const char* PtpConfigProfile = "Profile";
     constexpr const char* PtpConfigTwoStepFlag = "TwoStepFlag";
     constexpr const char* PtpConfigDomainNumber = "DomainNumber";
     constexpr const char* PtpConfigUtcOffset = "UtcOffset";
     constexpr const char* PtpConfigPriority1 = "Priority1";
     constexpr const char* PtpConfigPriority2 = "Priority2";
-    constexpr const char* PtpConfigTransportProtocolOptions = "TransportProtocolOptions";
     constexpr const char* PtpConfigTransportProtocol = "TransportProtocol";
 
     // Port Configuration properties
@@ -56,24 +55,20 @@ void PtpSyncInterfaceBaseImpl::createGeneralProperties()
 
     {
         // PTP Configuration
-        ptpConfiguration = PropertyObject();
-        configuration.addProperty(ObjectProperty(PtpPropertyNames::PtpConfiguration, ptpConfiguration));
 
         const auto profileOptions = List<IString>("None");
         const auto transportProtocolOptions = List<IString>("IEEE802_3", "UDP_IPV4", "UDP_IPV6");
 
-        ptpConfiguration.addProperty(ListPropertyBuilder     (PtpPropertyNames::PtpConfigProfileOptions, profileOptions).setReadOnly(true).setVisible(false).build());
-        ptpConfiguration.addProperty(ListPropertyBuilder     (PtpPropertyNames::PtpConfigTransportProtocolOptions, transportProtocolOptions).setReadOnly(true).setVisible(false).build());
+        configuration.addProperty(ListPropertyBuilder     (PtpPropertyNames::PtpConfigProfileOptions, profileOptions).setReadOnly(true).setVisible(false).build());
+        configuration.addProperty(ListPropertyBuilder     (PtpPropertyNames::PtpConfigTransportProtocolOptions, transportProtocolOptions).setReadOnly(true).setVisible(false).build());
 
-        ptpConfiguration.addProperty(StringPropertyBuilder   (PtpPropertyNames::PtpConfigProfile,           "None").setSelectionValues(EvalValue("$ProfileOptions")).build());
-        ptpConfiguration.addProperty(BoolProperty            (PtpPropertyNames::PtpConfigTwoStepFlag,       true));
-        ptpConfiguration.addProperty(IntPropertyBuilder      (PtpPropertyNames::PtpConfigDomainNumber,      0).setMinValue(0).build());
-        ptpConfiguration.addProperty(IntPropertyBuilder      (PtpPropertyNames::PtpConfigUtcOffset,         37).setMinValue(0).build());
-        ptpConfiguration.addProperty(IntPropertyBuilder      (PtpPropertyNames::PtpConfigPriority1,         128).setMinValue(0).setMaxValue(255).build());
-        ptpConfiguration.addProperty(IntPropertyBuilder      (PtpPropertyNames::PtpConfigPriority2,         128).setMinValue(0).setMaxValue(255).build());
-        ptpConfiguration.addProperty(StringPropertyBuilder   (PtpPropertyNames::PtpConfigTransportProtocol, "IEEE802_3").setSelectionValues(EvalValue("$TransportProtocolOptions")).build());
-
-        ptpConfiguration.setPropertyOrder(List<IString>(PtpPropertyNames::PtpConfigProfileOptions, PtpPropertyNames::PtpConfigTransportProtocolOptions));
+        configuration.addProperty(StringPropertyBuilder   (PtpPropertyNames::PtpConfigProfile,           "None").setSelectionValues(EvalValue("$ProfileOptions")).build());
+        configuration.addProperty(BoolProperty            (PtpPropertyNames::PtpConfigTwoStepFlag,       true));
+        configuration.addProperty(IntPropertyBuilder      (PtpPropertyNames::PtpConfigDomainNumber,      0).setMinValue(0).build());
+        configuration.addProperty(IntPropertyBuilder      (PtpPropertyNames::PtpConfigUtcOffset,         37).setMinValue(0).build());
+        configuration.addProperty(IntPropertyBuilder      (PtpPropertyNames::PtpConfigPriority1,         128).setMinValue(0).setMaxValue(255).build());
+        configuration.addProperty(IntPropertyBuilder      (PtpPropertyNames::PtpConfigPriority2,         128).setMinValue(0).setMaxValue(255).build());
+        configuration.addProperty(StringPropertyBuilder   (PtpPropertyNames::PtpConfigTransportProtocol, "IEEE802_3").setSelectionValues(EvalValue("$TransportProtocolOptions")).build());
     }
 
     {
@@ -122,12 +117,12 @@ void PtpSyncInterfaceBaseImpl::createPortProporties(const StringPtr& portName)
 
 void PtpSyncInterfaceBaseImpl::setProfileOptions(const ListPtr<IString>& options)
 {
-    ptpConfiguration.template asPtr<IPropertyObjectProtected>(true).setProtectedPropertyValue(PtpPropertyNames::PtpConfigProfileOptions, options);
+    configuration.template asPtr<IPropertyObjectProtected>(true).setProtectedPropertyValue(PtpPropertyNames::PtpConfigProfileOptions, options);
 }
 
 void PtpSyncInterfaceBaseImpl::setTransportProtocolOptions(const ListPtr<IString>& options)
 {
-    ptpConfiguration.template asPtr<IPropertyObjectProtected>(true).setProtectedPropertyValue(PtpPropertyNames::PtpConfigTransportProtocolOptions, options);
+    configuration.template asPtr<IPropertyObjectProtected>(true).setProtectedPropertyValue(PtpPropertyNames::PtpConfigTransportProtocolOptions, options);
 }
 
 void PtpSyncInterfaceBaseImpl::setPortDelayMechanismOptions(const ListPtr<IString>& options)

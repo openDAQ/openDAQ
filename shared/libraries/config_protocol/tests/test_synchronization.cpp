@@ -358,8 +358,8 @@ TEST_F(ConfigSynchronizationTest, PtpInterfaceNestedPropertiesVisibleOnClient)
     const auto serverConfig = serverInterface.getConfiguration();
     const auto clientConfig = clientInterface.getConfiguration();
 
-    ASSERT_EQ(serverConfig.getPropertyValue("PtpConfiguration.TransportProtocol"), clientConfig.getPropertyValue("PtpConfiguration.TransportProtocol"));
-    ASSERT_EQ(clientConfig.getPropertyValue("PtpConfiguration.TransportProtocol"), "IEEE802_3");
+    ASSERT_EQ(serverConfig.getPropertyValue("TransportProtocol"), clientConfig.getPropertyValue("TransportProtocol"));
+    ASSERT_EQ(clientConfig.getPropertyValue("TransportProtocol"), "IEEE802_3");
 
     ASSERT_EQ(serverConfig.getPropertyValue("PortConfiguration.eth0.DelayMechanism"), clientConfig.getPropertyValue("PortConfiguration.eth0.DelayMechanism"));
     ASSERT_EQ(clientConfig.getPropertyValue("PortConfiguration.eth0.DelayMechanism"), "E2E");
@@ -377,8 +377,8 @@ TEST_F(ConfigSynchronizationTest, PtpInterfaceNestedPropertyChangeFromClientProp
     const auto clientConfig = clientInterface.getConfiguration();
 
     clientConfig.setPropertyValue("PortConfiguration.eth0.DelayMechanism", "P2P");
-    clientConfig.setPropertyValue("PtpConfiguration.TransportProtocol", "UDP_IPV4");
+    clientConfig.setPropertyValue("TransportProtocol", "UDP_IPV4");
 
     ASSERT_EQ(serverConfig.getPropertyValue("PortConfiguration.eth0.DelayMechanism"), "P2P");
-    ASSERT_EQ(serverConfig.getPropertyValue("PtpConfiguration.TransportProtocol"), "UDP_IPV4");
+    ASSERT_EQ(serverConfig.getPropertyValue("TransportProtocol"), "UDP_IPV4");
 }

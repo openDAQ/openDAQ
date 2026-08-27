@@ -58,7 +58,6 @@ protected:
     void onConfigurationChanged(const StringPtr& name, const BaseObjectPtr& value) override;
 
     PropertyObjectPtr portsStatus;
-    PropertyObjectPtr ptpConfiguration;
     PropertyObjectPtr portsConfiguration;
 
 private:

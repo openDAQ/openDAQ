@@ -304,8 +304,6 @@ class App(tk.Tk):
         tree.bind('<Button-3>', self.handle_tree_right_button)
         tree.bind('<Button-1>', self.handle_tree_click)
         tree.bind('<Double-1>', self._block_indicator_double_click)
-        tree.bind('<Motion>', self.handle_tree_motion)
-        tree.bind('<Leave>', self.handle_tree_leave)
         tree.bind('<MouseWheel>', self.handle_tree_mousewheel, add='+')
 
         # add a scrollbar
@@ -338,10 +336,9 @@ class App(tk.Tk):
         self.tree_row_button_hovered = None
         self.tree_row_button_info = {}
         self.tree_row_menu_open = False
-        self.tree_hover_buttons = self.tree_row_buttons_create(tree, pinned=False)
-        self.tree_hover_buttons_iid = None
-        # the root device keeps its buttons visible without hovering
-        self.tree_root_buttons = self.tree_row_buttons_create(tree, pinned=True)
+        # only the root device carries buttons, and it keeps them visible
+        # without hovering, every other row is served by its context menu
+        self.tree_root_buttons = self.tree_row_buttons_create(tree)
 
         tree.bind('<<TreeviewSelect>>',
                   lambda e: self.tree_row_buttons_recolor(), add='+')
@@ -429,7 +426,7 @@ class App(tk.Tk):
                 self.tree.delete(iid)
 
     def tree_update(self, new_selected_node=None):
-        self.tree_hover_buttons_hide()
+        self.tree_root_buttons_hide()
         self.tree.delete(*self.tree.get_children())
         self.right_side_panel_clear()
 
@@ -819,12 +816,12 @@ class App(tk.Tk):
             int(value * factor) for value in self.winfo_rgb(color))
 
     # buttons are ordered right to left along the row
-    TREE_ROW_ACTIONS = ('add', 'lock')
+    TREE_ROW_ACTIONS = ('more', 'add')
 
-    def tree_row_buttons_create(self, tree, pinned):
+    def tree_row_buttons_create(self, tree):
         handlers = {'add': self.handle_tree_add_button_clicked,
-                    'lock': self.handle_tree_lock_button_clicked}
-        icons = {'add': 'plus', 'lock': 'lock'}
+                    'more': self.handle_tree_more_button_clicked}
+        icons = {'add': 'plus', 'more': 'dots'}
 
         buttons = {}
         for name in self.TREE_ROW_ACTIONS:
@@ -832,34 +829,10 @@ class App(tk.Tk):
                               cursor='hand2', background=self.tree_row_background)
             button.bind('<Button-1>', handlers[name])
             button.bind('<Enter>', self.handle_tree_row_button_enter)
-            button.bind('<Leave>', self.handle_tree_root_button_leave if pinned
-                        else self.handle_tree_row_button_leave)
-            self.tree_row_button_info[button] = (name, pinned)
+            button.bind('<Leave>', self.handle_tree_row_button_leave)
+            self.tree_row_button_info[button] = name
             buttons[name] = button
         return buttons
-
-    def tree_row_button_iid(self, button):
-        _, pinned = self.tree_row_button_info[button]
-        return self.tree_root_row_iid() if pinned else self.tree_hover_buttons_iid
-
-    def tree_row_actions(self, iid):
-        """Which action buttons apply to a row, ordered right to left."""
-        target, is_device, _ = self.tree_add_menu_target(iid)
-        actions = []
-        if target is not None:
-            actions.append('add')
-        if is_device:
-            actions.append('lock')
-        return actions
-
-    def tree_row_device_locked(self, iid):
-        component = utils.find_component(iid, self.context.instance) if iid else None
-        if component is None or not daq.IDevice.can_cast_from(component):
-            return False
-        try:
-            return bool(daq.IDevice.cast_from(component).locked)
-        except Exception:
-            return False
 
     def tree_row_button_color(self, button, iid):
         # the label cannot be transparent, so it has to carry the row's own colour,
@@ -875,8 +848,7 @@ class App(tk.Tk):
 
     def tree_row_buttons_place(self, buttons, iid):
         row = self.tree.bbox(iid) if iid else None
-        actions = self.tree_row_actions(iid) if row else []
-        if not actions:
+        if not row:
             self.tree_row_buttons_hide(buttons)
             return False
 
@@ -887,13 +859,6 @@ class App(tk.Tk):
 
         for name in self.TREE_ROW_ACTIONS:
             button = buttons[name]
-            if name not in actions:
-                button.place_forget()
-                continue
-            if name == 'lock':
-                # a single toggle, so the icon shows what the click will do
-                button.configure(image=self.context.icons[
-                    'unlock' if self.tree_row_device_locked(iid) else 'lock'])
             button.place(x=x, y=y, width=size, height=size)
             button.lift()
             self.tree_row_button_color(button, iid)
@@ -905,21 +870,20 @@ class App(tk.Tk):
             button.place_forget()
 
     def tree_row_buttons_recolor(self):
-        for buttons, iid in ((self.tree_hover_buttons, self.tree_hover_buttons_iid),
-                             (self.tree_root_buttons, self.tree_root_row_iid())):
-            if iid is None:
-                continue
-            for button in buttons.values():
-                self.tree_row_button_color(button, iid)
+        iid = self.tree_root_row_iid()
+        buttons = getattr(self, 'tree_root_buttons', None)
+        if iid is None or buttons is None:
+            return
+        for button in buttons.values():
+            self.tree_row_button_color(button, iid)
 
     def tree_root_row_iid(self):
+        """The instance row, the only row that carries inline buttons."""
         instance = self.context.instance
         if instance is None or self.current_tab() == DisplayType.MODULES:
             return None
         iid = instance.global_id
-        if not self.tree.exists(iid):
-            return None
-        return iid if self.tree_row_actions(iid) else None
+        return iid if self.tree.exists(iid) else None
 
     def tree_root_buttons_sync(self):
         buttons = getattr(self, 'tree_root_buttons', None)
@@ -927,72 +891,21 @@ class App(tk.Tk):
             return
         self.tree_row_buttons_place(buttons, self.tree_root_row_iid())
 
-    def tree_hover_buttons_hide(self):
-        buttons = getattr(self, 'tree_hover_buttons', None)
+    def tree_root_buttons_hide(self):
+        buttons = getattr(self, 'tree_root_buttons', None)
         if buttons is not None:
             self.tree_row_buttons_hide(buttons)
-        self.tree_hover_buttons_iid = None
 
     def tree_row_buttons_sync(self):
         if self.tree_row_menu_open:
             return
-        widget = self.winfo_containing(*self.winfo_pointerxy())
-        if widget not in self.tree_row_button_info:
+        if self.winfo_containing(
+                *self.winfo_pointerxy()) not in self.tree_row_button_info:
             self.tree_row_button_hovered = None
         self.tree_row_buttons_recolor()
-        if widget is not self.tree and widget not in self.tree_row_button_info:
-            self.tree_hover_buttons_hide()
 
-    def tree_add_menu_target(self, iid):
-        """Component the add menu would act on, or None when it cannot add anything."""
-        if not iid or self.current_tab() == DisplayType.MODULES:
-            return None, False, False
-
-        node = utils.find_component(iid, self.context.instance)
-        if node is None:
-            return None, False, False
-
-        if daq.IDevice.can_cast_from(node):
-            target, is_device = daq.IDevice.cast_from(node), True
-        elif daq.IFunctionBlock.can_cast_from(node):
-            target, is_device = daq.IFunctionBlock.cast_from(node), False
-        else:
-            return None, False, False
-
-        try:
-            has_fb_types = bool(target.available_function_block_types)
-        except RuntimeError:
-            has_fb_types = False
-
-        # a function block only offers nested function blocks
-        if not is_device and not has_fb_types:
-            return None, False, False
-
-        return target, is_device, has_fb_types
-
-    def handle_tree_motion(self, event):
-        iid = self.tree.identify_row(event.y)
-        if iid == self.tree_hover_buttons_iid:
-            return
-
-        instance = self.context.instance
-        if instance is not None and iid == instance.global_id:
-            # the pinned buttons already sit on this row
-            self.tree_hover_buttons_hide()
-            return
-
-        if self.tree_row_buttons_place(self.tree_hover_buttons, iid):
-            self.tree_hover_buttons_iid = iid
-        else:
-            self.tree_hover_buttons_hide()
-
-    def handle_tree_leave(self, event):
-        # moving onto a button itself leaves the tree, keep them visible then
-        if self.tree_row_menu_open:
-            return
-        if self.winfo_containing(event.x_root,
-                                 event.y_root) not in self.tree_row_button_info:
-            self.tree_hover_buttons_hide()
+    def handle_tree_mousewheel(self, event):
+        self.after_idle(self.tree_root_buttons_sync)
 
     def handle_tree_row_button_enter(self, event):
         self.tree_row_button_hovered = event.widget
@@ -1004,62 +917,28 @@ class App(tk.Tk):
             return
         self.tree_row_button_hovered = None
         self.tree_row_buttons_recolor()
-        if self.winfo_containing(event.x_root, event.y_root) is not self.tree:
-            self.tree_hover_buttons_hide()
-
-    def handle_tree_root_button_leave(self, event):
-        # pinned buttons, so only the hover shading goes away
-        if self.tree_row_menu_open:
-            return
-        self.tree_row_button_hovered = None
-        self.tree_row_buttons_recolor()
-
-    def handle_tree_mousewheel(self, event):
-        self.tree_hover_buttons_hide()
-        self.after_idle(self.tree_root_buttons_sync)
 
     def handle_tree_add_button_clicked(self, event):
-        return self.tree_add_menu_popup(self.tree_row_button_iid(event.widget), event)
+        # the plus offers only what the instance can add
+        return self.tree_root_menu_popup(event, add_only=True)
 
-    def handle_tree_lock_button_clicked(self, event):
-        iid = self.tree_row_button_iid(event.widget)
-        if not iid:
-            return 'break'
+    def handle_tree_more_button_clicked(self, event):
+        # the three dots stand in for a right click on the instance row
+        return self.tree_root_menu_popup(event, add_only=False)
 
-        self.tree.selection_set(iid)
-        # handle_lock / handle_unlock act on the selection, and handle_unlock keeps
-        # the force unlock fallback
-        if self.tree_row_device_locked(iid):
-            self.handle_unlock()
-        else:
-            self.handle_lock()
-
-        self.tree_row_buttons_place(self.tree_hover_buttons, self.tree_hover_buttons_iid)
-        self.tree_root_buttons_sync()
-        return 'break'
-
-    def tree_add_menu_popup(self, iid, event):
-        target, is_device, has_fb_types = self.tree_add_menu_target(iid)
-        if target is None:
+    def tree_root_menu_popup(self, event, add_only):
+        iid = self.tree_root_row_iid()
+        node = utils.find_component(iid, self.context.instance) if iid else None
+        if node is None:
             return 'break'
 
         self.tree.selection_set(iid)
         self.tree_row_buttons_recolor()
 
-        popup = tk.Menu(self.tree, tearoff=0)
-        if is_device:
-            popup.add_command(label='Add device',
-                              image=self.context.menu_icon('device'), compound=tk.LEFT,
-                              command=lambda: self.add_device_dialog_show(target))
-        if has_fb_types:
-            popup.add_command(label='Add function block',
-                              image=self.context.menu_icon('add_fb'), compound=tk.LEFT,
-                              command=lambda: self.add_function_block_dialog_show(target))
-        # only the root device accepts servers, IDevice::onAddServer refuses the rest
-        if is_device and iid == self.context.instance.global_id:
-            popup.add_command(label='Add server',
-                              image=self.context.menu_icon('server'), compound=tk.LEFT,
-                              command=lambda: self.add_server_dialog_show(target))
+        popup = (self.menu_build([self.menu_add_items(node)]) if add_only
+                 else self.create_node_menu(node, include_add=False))
+        if popup.index(tk.END) is None:
+            return 'break'
 
         self.tree_row_menu_open = True
         try:
@@ -1070,87 +949,108 @@ class App(tk.Tk):
             self.after(200, self.tree_row_buttons_sync)
         return 'break'
 
-    def create_property_object_menu(self, node):
+    # MARK: - Tree view context menus
+    def menu_build(self, groups):
+        """Build a popup from groups of items, with a separator drawn between the
+        groups so that actions sit alongside the others that do the same kind of
+        thing. Empty groups are skipped, no separator is left dangling."""
         popup = tk.Menu(self.tree, tearoff=0)
-
-        popup.add_command(label='Begin update',
-                          image=self.context.menu_icon('begin_update'), compound=tk.LEFT,
-                          command=self.handle_begin_update)
-        popup.add_command(label='End update',
-                          image=self.context.menu_icon('end_update'), compound=tk.LEFT,
-                          command=self.handle_end_update)
-        popup.add_command(label='Clear property values',
-                          image=self.context.menu_icon('clear_values'), compound=tk.LEFT,
-                          command=lambda: self.handle_tree_clear_property_values(node))
-
+        for group in groups:
+            if not group:
+                continue
+            if popup.index(tk.END) is not None:
+                popup.add_separator()
+            for label, icon, command in group:
+                popup.add_command(label=label, image=self.context.menu_icon(icon),
+                                  compound=tk.LEFT, command=command)
         return popup
 
-    def create_component_menu(self, node):
-        return self.create_property_object_menu(node)
+    def menu_add_items(self, node):
+        """What a component accepts: a function block only takes nested function
+        blocks, a device also takes devices, and only the instance takes servers."""
+        if node is None or self.current_tab() == DisplayType.MODULES:
+            return []
 
-    def create_function_block_menu(self, node):
-        popup = self.create_property_object_menu(node)
+        if daq.IDevice.can_cast_from(node):
+            target, is_device = daq.IDevice.cast_from(node), True
+        elif daq.IFunctionBlock.can_cast_from(node):
+            target, is_device = daq.IFunctionBlock.cast_from(node), False
+        else:
+            return []
 
         try:
-            has_fb_types = bool(node.available_function_block_types)
+            has_fb_types = bool(target.available_function_block_types)
         except RuntimeError:
             has_fb_types = False
+
+        items = []
+        if is_device:
+            items.append(('Add device', 'device',
+                          lambda: self.add_device_dialog_show(target)))
         if has_fb_types:
-            popup.add_command(
-                label='Add Function block',
-                image=self.context.menu_icon('add_fb'), compound=tk.LEFT,
-                command=lambda: self.add_function_block_dialog_show(node)
-            )
-        if not daq.IChannel.can_cast_from(node):
-            popup.add_command(
-                label='Remove',
-                image=self.context.menu_icon('trash'), compound=tk.LEFT,
-                command=lambda: self.handle_tree_menu_remove_function_block(node)
-            )
+            items.append(('Add function block', 'add_fb',
+                          lambda: self.add_function_block_dialog_show(target)))
+        # only the root device accepts servers, IDevice::onAddServer refuses the rest
+        if is_device and node.global_id == self.context.instance.global_id:
+            items.append(('Add server', 'server',
+                          lambda: self.add_server_dialog_show(target)))
+        return items
 
-        return popup
+    def menu_update_items(self, node):
+        return [('Begin update', 'begin_update', self.handle_begin_update),
+                ('End update', 'end_update', self.handle_end_update)]
 
-    def create_device_menu(self, node):
-        popup = self.create_property_object_menu(node)
+    def menu_property_items(self, node):
+        return [('Clear property values', 'clear_values',
+                 lambda: self.handle_tree_clear_property_values(node))]
 
-        popup.add_command(label='Lock',
-                          image=self.context.menu_icon('lock'), compound=tk.LEFT,
-                          command=self.handle_lock)
-        popup.add_command(label='Unlock',
-                          image=self.context.menu_icon('unlock'), compound=tk.LEFT,
-                          command=self.handle_unlock)
+    def menu_function_block_groups(self, node, add_items):
+        function_block = daq.IFunctionBlock.cast_from(node)
+        # a channel belongs to its device, it cannot be removed on its own
+        remove = [] if daq.IChannel.can_cast_from(node) else [
+            ('Remove', 'trash',
+             lambda: self.handle_tree_menu_remove_function_block(function_block))]
+        return [add_items,
+                self.menu_update_items(node),
+                self.menu_property_items(node),
+                remove]
 
-        try:
-            has_fb_types = bool(node.available_function_block_types)
-        except RuntimeError:
-            has_fb_types = False
-        if has_fb_types:
-            popup.add_command(
-                label='Add Function block',
-                image=self.context.menu_icon('add_fb'), compound=tk.LEFT,
-                command=lambda: self.add_function_block_dialog_show(node)
-            )
+    def menu_device_groups(self, node, add_items):
+        device = daq.IDevice.cast_from(node)
+        remove = [] if device.global_id == self.context.instance.global_id else [
+            ('Remove', 'trash',
+             lambda: self.handle_tree_menu_remove_device(device))]
+        return [add_items,
+                [('Lock', 'lock', self.handle_lock),
+                 ('Unlock', 'unlock', self.handle_unlock)],
+                self.menu_update_items(node),
+                self.menu_property_items(node),
+                remove]
 
-        if node.global_id != self.context.instance.global_id:
-            popup.add_command(
-                label='Remove',
-                image=self.context.menu_icon('trash'), compound=tk.LEFT,
-                command=lambda: self.handle_tree_menu_remove_device(node)
-            )
+    def menu_server_groups(self, node):
+        server = daq.IServer.cast_from(node)
+        return [[('Enable discovery', 'discovery',
+                  lambda: self.handle_enable_discovery(server)),
+                 ('Disable discovery', 'discovery_off',
+                  lambda: self.handle_disable_discovery(server))],
+                self.menu_update_items(node),
+                self.menu_property_items(node)]
 
-        return popup
-    
-    def create_server_menu(self, node):
-        popup = self.create_property_object_menu(node)
+    def menu_groups(self, node, include_add=True):
+        """Menu groups for a tree row, add actions first, then state, then removal.
+        include_add is dropped where a plus button already sits beside the menu."""
+        add_items = self.menu_add_items(node) if include_add else []
+        if node is not None:
+            if daq.IFunctionBlock.can_cast_from(node):
+                return self.menu_function_block_groups(node, add_items)
+            if daq.IDevice.can_cast_from(node):
+                return self.menu_device_groups(node, add_items)
+            if daq.IServer.can_cast_from(node):
+                return self.menu_server_groups(node)
+        return [self.menu_update_items(node), self.menu_property_items(node)]
 
-        popup.add_command(label='Enable discovery',
-                          image=self.context.menu_icon('discovery'), compound=tk.LEFT,
-                          command=lambda: self.handle_enable_discovery(node))
-        popup.add_command(label='Disable discovery',
-                          image=self.context.menu_icon('discovery_off'), compound=tk.LEFT,
-                          command=lambda: self.handle_disable_discovery(node))
-
-        return popup
+    def create_node_menu(self, node, include_add=True):
+        return self.menu_build(self.menu_groups(node, include_add))
 
     def handle_enable_discovery(self, node):
         if node is None:
@@ -1167,22 +1067,11 @@ class App(tk.Tk):
             return
 
         iid = utils.treeview_get_first_selection(self.tree)
+        node = utils.find_component(iid, self.context.instance) if iid else None
 
-        node = None
-        if iid:
-            node = utils.find_component(iid, self.context.instance)
-
-        popup = None
-        if node:
-            if daq.IFunctionBlock.can_cast_from(node):
-                popup = self.create_function_block_menu(daq.IFunctionBlock.cast_from(node))
-            elif daq.IDevice.can_cast_from(node):
-                popup = self.create_device_menu(daq.IDevice.cast_from(node))
-            elif daq.IServer.can_cast_from(node):
-                popup = self.create_server_menu(daq.IServer.cast_from(node))
-
-        if popup is None:
-            popup = self.create_property_object_menu(node)
+        popup = self.create_node_menu(node)
+        if popup.index(tk.END) is None:
+            return
 
         try:
             popup.tk_popup(event.x_root, event.y_root, 0)

@@ -69,6 +69,7 @@ void PtpSyncInterfaceBaseImpl::createGeneralProperties()
         configuration.addProperty(IntPropertyBuilder      (PtpPropertyNames::PtpConfigPriority1,         128).setMinValue(0).setMaxValue(255).build());
         configuration.addProperty(IntPropertyBuilder      (PtpPropertyNames::PtpConfigPriority2,         128).setMinValue(0).setMaxValue(255).build());
         configuration.addProperty(StringPropertyBuilder   (PtpPropertyNames::PtpConfigTransportProtocol, "IEEE802_3").setSelectionValues(EvalValue("$TransportProtocolOptions")).build());
+        configuration.setPropertyOrder({"ModeOptions", PtpPropertyNames::PtpConfigProfileOptions, PtpPropertyNames::PtpConfigTransportProtocolOptions});
     }
 
     {
@@ -104,12 +105,12 @@ void PtpSyncInterfaceBaseImpl::createPortProporties(const StringPtr& portName)
 
         const PropertyObjectPtr portConfiguration = PropertyObject();
         portConfiguration.addProperty(DictPropertyBuilder    (PtpPropertyNames::PortConfigModeOptions, modeOptions).setReadOnly(true).setVisible(false).build());
-        portConfiguration.addProperty(SparseSelectionProperty(PtpPropertyNames::PortConfigMode, EvalValue("$ModeOptions"), static_cast<Int>(PortSyncMode::Off)));
         portConfiguration.addProperty(ListPropertyBuilder    (PtpPropertyNames::PortConfigDelayMechanismOptions, delayMechanismOptions).setReadOnly(true).setVisible(false).build());
+        portConfiguration.addProperty(SparseSelectionProperty(PtpPropertyNames::PortConfigMode, EvalValue("$ModeOptions"), static_cast<Int>(PortSyncMode::Off)));
         portConfiguration.addProperty(StringPropertyBuilder  (PtpPropertyNames::PortConfigDelayMechanism, "E2E").setSelectionValues(EvalValue("$DelayMechanismOptions")).build());
         portConfiguration.addProperty(IntProperty            (PtpPropertyNames::PortConfigLogSyncInterval, 0));
 
-        portConfiguration.setPropertyOrder(List<IString>(PtpPropertyNames::PortConfigModeOptions, PtpPropertyNames::PortConfigDelayMechanismOptions));
+        portConfiguration.setPropertyOrder({PtpPropertyNames::PortConfigModeOptions, PtpPropertyNames::PortConfigDelayMechanismOptions});
 
         portsConfiguration.addProperty(ObjectProperty(portName, portConfiguration));
     }

@@ -60,6 +60,7 @@ void SyncInterfaceBaseImpl::initProperties()
     configuration.addProperty(DictPropertyBuilder("ModeOptions", outputModes).setReadOnly(true).setVisible(false).build());
     configuration.addProperty(SparseSelectionProperty("Mode", EvalValue("$ModeOptions"), Integer(SyncMode::Off)));
     configuration.setPropertyOrder(List<IString>("ModeOptions"));
+    configuration.setPropertyOrder("ModeOptions");
     this->objPtr.addProperty(ObjectProperty("Configuration", configuration));
 
     configuration.getOnAnyPropertyValueWrite() += [this](PropertyObjectPtr&, PropertyValueEventArgsPtr& arg)

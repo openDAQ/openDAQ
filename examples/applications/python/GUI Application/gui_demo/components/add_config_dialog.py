@@ -80,7 +80,13 @@ class AddConfigDialog(Dialog):
         streaming_protocols = []
         module_manager: daq.IModuleManager = parent_device.context.module_manager
         for _module in module_manager.modules:
-            for streaming in _module.available_streaming_types:
+            # Reporting streaming types is optional: a module may return OPENDAQ_ERR_NOTIMPLEMENTED.
+            # Skip such modules instead of letting one of them break the whole dialog.
+            try:
+                available_streaming_types = _module.available_streaming_types
+            except RuntimeError:
+                continue
+            for streaming in available_streaming_types:
                 streaming_protocols.append(streaming)
 
         if implied_protocol not in streaming_protocols:

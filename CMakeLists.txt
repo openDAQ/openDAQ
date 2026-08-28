@@ -88,6 +88,7 @@ opendaq_setup_project_specific_build_options(${SDK_OPTION_PREFIX})
 option(OPENDAQ_ENABLE_PARAMETER_VALIDATION "Enable parameter validation in functions" ON)
 option(OPENDAQ_ENABLE_WEBSOCKET_STREAMING "Enable ${SDK_NAME} websocket streaming" OFF)
 cmake_dependent_option(DAQMODULES_LT_LEGACY_MODULES "Use legacy LT streaming modules" ${OPENDAQ_CI_RUNNER} "OPENDAQ_ENABLE_WEBSOCKET_STREAMING" OFF)
+option(OPENDAQ_ENABLE_WEBSOCKET_STREAMING_WITH_TLS "Enable the TLS (daq.lts://) channel of the LT streaming modules" OFF)
 option(OPENDAQ_THREAD_SAFE "Enable thread-safe implementations where available" ON)
 option(OPENDAQ_MIMALLOC_SUPPORT "Enable MiMalloc-based packet allocator" OFF)
 option(OPENDAQ_ENABLE_NATIVE_STREAMING "Enable ${SDK_NAME} native streaming" OFF)
@@ -371,6 +372,20 @@ endif()
 if (OPENDAQ_ENABLE_WEBSOCKET_STREAMING AND (DAQMODULES_OPENDAQ_CLIENT_MODULE OR DAQMODULES_OPENDAQ_SERVER_MODULE) AND DAQMODULES_LT_LEGACY_MODULES)
     message(STATUS "Legacy LT streaming modules enabled")
 	add_compile_definitions(DAQMODULES_LT_LEGACY_MODULES)
+endif()
+
+# The secure channel lives in the modern LT streaming modules only, and turning it on there is what
+# pulls in their OpenSSL dependency. The option is a plain one, so the rest of the conditions are
+# checked here rather than in the option declaration: with the legacy modules it has no meaning and
+# is ignored.
+if (OPENDAQ_ENABLE_WEBSOCKET_STREAMING AND (DAQMODULES_OPENDAQ_CLIENT_MODULE OR DAQMODULES_OPENDAQ_SERVER_MODULE)
+        AND NOT DAQMODULES_LT_LEGACY_MODULES)
+    if (OPENDAQ_ENABLE_WEBSOCKET_STREAMING_WITH_TLS)
+        message(STATUS "LT streaming TLS channel enabled")
+        add_compile_definitions(OPENDAQ_ENABLE_WEBSOCKET_STREAMING_WITH_TLS)
+    else()
+        message(STATUS "LT streaming TLS channel disabled (no OpenSSL dependency)")
+    endif()
 endif()
 
 opendaq_setup_compiler_flags(${SDK_OPTION_PREFIX})

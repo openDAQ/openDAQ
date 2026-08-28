@@ -166,6 +166,8 @@ public:
     ErrCode INTERFACE_FUNC checkContainerType(CoreType keyType, CoreType itemType);
     ErrCode INTERFACE_FUNC toString(CharPtr* str) override;
 
+    ErrCode INTERFACE_FUNC equals(IBaseObject* other, Bool* equal) const override;
+
     //
     // ISerializable
     //

@@ -18,16 +18,16 @@
 #include <coretypes/string_ptr.h>
 #include <coretypes/validation.h>
 #include <opendaq/component_impl.h>
+#include <opendaq/connection_internal.h>
 #include <opendaq/connection_ptr.h>
 #include <opendaq/context_ptr.h>
 #include <opendaq/data_descriptor_factory.h>
 #include <opendaq/data_descriptor_ptr.h>
-#include <opendaq/data_packet_impl.h>
 #include <opendaq/event_packet_ptr.h>
 #include <opendaq/event_packet_utils.h>
+#include <opendaq/active_operation_tracker.h>
 #include <opendaq/input_port_private_ptr.h>
 #include <opendaq/last_value_cache.h>
-#include <opendaq/mem_pool_allocator.h>
 #include <opendaq/packet_factory.h>
 #include <opendaq/signal.h>
 #include <opendaq/signal_config.h>
@@ -37,6 +37,8 @@
 #include <opendaq/signal_events_ptr.h>
 #include <opendaq/signal_exceptions.h>
 #include <opendaq/signal_private_ptr.h>
+#include <atomic>
+#include <limits>
 #include <utility>
 
 BEGIN_NAMESPACE_OPENDAQ
@@ -55,9 +57,61 @@ class SignalBase;
 
 using SignalImpl = SignalBase<ISignalConfig>;
 
-using TempConnectionsAllocator = details::MemPoolAllocator<ConnectionPtr>;
-using TempConnectionsMemPool = details::StaticMemPool<ConnectionPtr, 8>;
-using TempConnections = std::vector<ConnectionPtr, TempConnectionsAllocator>;
+namespace details
+{
+
+/*
+ * Immutable snapshot of a signal's connections, published with an atomic pointer so the
+ * (single) producer thread can fan packets out without taking any lock. Entries hold
+ * strong references, so a pinned snapshot keeps every contained connection alive for the
+ * duration of a send even if it is disconnected concurrently.
+ */
+struct ConnectionsSnapshot
+{
+    std::vector<ConnectionPtr> connections;     // strong refs
+    mutable std::atomic<int> refCount{1};       // 1 = the publication reference
+
+    void addRef() const noexcept
+    {
+        refCount.fetch_add(1, std::memory_order_relaxed);
+    }
+
+    void release() const noexcept
+    {
+        if (refCount.fetch_sub(1, std::memory_order_acq_rel) == 1)
+            delete this;
+    }
+};
+
+// RAII holder of one reference to a pinned snapshot. The snapshot object itself cannot be
+// RAII-owned by anyone: it is shared between the publication slot and any number of
+// concurrent producers, so its lifetime is refcounted and each owned reference gets this
+// scoped wrapper instead (pinConnectionsSnapshot returns it by value).
+struct SnapshotPin
+{
+    explicit SnapshotPin(ConnectionsSnapshot* snapshot) noexcept
+        : snapshot(snapshot)
+    {
+    }
+
+    ~SnapshotPin()
+    {
+        snapshot->release();
+    }
+
+    SnapshotPin(const SnapshotPin&) = delete;
+    SnapshotPin& operator=(const SnapshotPin&) = delete;
+
+    const ConnectionsSnapshot& operator*() const noexcept
+    {
+        return *snapshot;
+    }
+
+private:
+    ConnectionsSnapshot* snapshot;
+};
+
+}
 
 template <typename TInterface, typename... Interfaces>
 class SignalBase : public ComponentImpl<TInterface, ISignalEvents, ISignalPrivate, Interfaces...>
@@ -145,7 +199,9 @@ protected:
 
     DataDescriptorPtr dataDescriptor;
     StringPtr deserializedDomainSignalId;
-    LastValueCache lastValueCache;
+    // all last-value state and handling (see last_value_cache.h); mutable because the
+    // producer publishes from the const sendPacketInternal path
+    mutable details::LastValueStore lastValueStore;
 
 private:
     bool isPublic{};
@@ -154,12 +210,17 @@ private:
     std::vector<ConnectionPtr> connections;
     std::vector<ConnectionPtr> remoteConnections;
     std::vector<WeakRefPtr<ISignalConfig>> domainSignalReferences;
-    bool keepLastPacket;
     bool keepLastValue;
     TypeManagerPtr typeManager;
 
+    // Lock-free data path state. `connections` above stays the canonical list, owned and
+    // mutated only under the config lock; the snapshot is a derived immutable copy that the
+    // single producer thread pins per send. See pinConnectionsSnapshot for the protocol.
+    std::atomic<details::ConnectionsSnapshot*> connectionsSnapshot;
+    mutable details::ActiveOperationTracker snapshotGate;
+
     ErrCode listenerConnectedInternal(IConnection* connection, bool schedule);
-    ErrCode sendPacketInner(IPacket* packet, bool recursiveLock);
+    ErrCode sendPacketInner(IPacket* packet);
     bool sendPacketInternal(const PacketPtr& packet, bool ignoreActive = false) const;
     bool sendPacketInternal(PacketPtr&& packet, bool ignoreActive = false) const;
     void triggerRelatedSignalsChanged();
@@ -168,24 +229,20 @@ private:
     void setKeepLastPacket();
     TypePtr addToTypeManagerRecursively(const TypeManagerPtr& typeManager,
                                         const DataDescriptorPtr& descriptor) const;
-    void buildTempConnections(TempConnections& tempConnections);
-    void checkKeepLastPacket(const PacketPtr& packet);
-    void enqueuePacketToConnections(const PacketPtr& packet, const TempConnections& tempConnections);
-    void enqueuePacketToConnections(PacketPtr&& packet, const TempConnections& tempConnections);
-    void enqueuePacketsToConnections(const ListPtr<IPacket>& packets, const TempConnections& tempConnections);
-    void enqueuePacketsToConnections(ListPtr<IPacket>&& packets, const TempConnections& tempConnections);
-    
+
+    details::SnapshotPin pinConnectionsSnapshot() const;
+    void publishConnectionsSnapshot();
+
+    void enqueuePacketToConnections(const PacketPtr& packet, const details::ConnectionsSnapshot& snapshot);
+    void enqueuePacketToConnections(PacketPtr&& packet, const details::ConnectionsSnapshot& snapshot);
+    void enqueuePacketsToConnections(const ListPtr<IPacket>& packets, const details::ConnectionsSnapshot& snapshot);
+    void enqueuePacketsToConnections(ListPtr<IPacket>&& packets, const details::ConnectionsSnapshot& snapshot);
+
     template <class Packet>
-    bool checkKeepLastPacketAndBuildConnections(Packet&& packet, TempConnections& tempConnections);
-    template <class Packet>
-    bool keepLastPacketAndEnqueue(Packet&& packet, bool recursiveLock = false);
+    bool keepLastPacketAndEnqueue(Packet&& packet);
 
     template <class ListOfPackets>
     bool keepLastPacketAndEnqueueMultiple(ListOfPackets&& packets);
-
-    void setLastValueFromPacket(const DataPacketPtr& packet = nullptr);
-    ErrCode getLastValueImpl(IBaseObject** value);
-    ErrCode getLastTimestampImpl(IBaseObject** timestamp);
 };
 
 #ifdef WORKAROUND_MEMBER_INLINE_VARIABLE
@@ -204,6 +261,7 @@ SignalBase<TInterface, Interfaces...>::SignalBase(const ContextPtr& context,
     , isPublic(true)
     , keepLastValue(true)
     , typeManager(context.getTypeManager())
+    , connectionsSnapshot(nullptr)
 {
     if (dataDescriptor.assigned() && dataDescriptor.getSampleType() == SampleType::Null)
         DAQ_THROW_EXCEPTION(InvalidSampleTypeException, "SampleType \"Null\" is reserved for \"DATA_DESCRIPTOR_CHANGED\" event packet.");
@@ -213,6 +271,12 @@ SignalBase<TInterface, Interfaces...>::SignalBase(const ContextPtr& context,
     {
         addToTypeManagerRecursively(typeManager, dataDescriptor);
     }
+
+    // Allocated last: this atomic holds a raw owning pointer released only in ~SignalBase,
+    // which never runs if the constructor throws. Every statement above can throw (invalid
+    // sample type, type-manager registration), so publishing the snapshot only after them
+    // keeps construction leak-free.
+    connectionsSnapshot.store(new details::ConnectionsSnapshot(), std::memory_order_relaxed);
 }
 
 template <typename TInterface, typename... Interfaces>
@@ -220,6 +284,10 @@ SignalBase<TInterface, Interfaces...>::~SignalBase()
 {
     if (domainSignal.assigned())
         domainSignal.asPtr<ISignalEvents>().domainSignalReferenceRemoved(this->template borrowPtr<SignalPtr>());
+
+    // no producer or reader can be active anymore: refcount reached zero
+    if (auto* snapshot = connectionsSnapshot.exchange(nullptr, std::memory_order_acquire))
+        snapshot->release();
 }
 
 template <typename TInterface, typename... Interfaces>
@@ -664,41 +732,45 @@ ErrCode SignalBase<TInterface, Interfaces...>::getConnections(IList** connection
 }
 
 template <typename TInterface, typename... Interfaces>
-void SignalBase<TInterface, Interfaces...>::buildTempConnections(TempConnections& tempConnections)
+details::SnapshotPin SignalBase<TInterface, Interfaces...>::pinConnectionsSnapshot() const
 {
-    tempConnections.reserve(connections.size());
-    for (const auto& connection : connections)
-        tempConnections.push_back(connection);
+    // reader side of the publication protocol (see active_operation_tracker.h): the tracker
+    // guarantees the publisher never releases the snapshot between our load and pin
+    details::ActiveOperationTracker::Scope reader(snapshotGate);
+    auto* snapshot = connectionsSnapshot.load(std::memory_order_seq_cst);
+    snapshot->addRef();
+    return details::SnapshotPin(snapshot);
 }
 
 template <typename TInterface, typename... Interfaces>
-void SignalBase<TInterface, Interfaces...>::checkKeepLastPacket(const PacketPtr& packet)
+void SignalBase<TInterface, Interfaces...>::publishConnectionsSnapshot()
 {
-    if (keepLastPacket)
-    {
-        auto dataPacket = packet.asPtrOrNull<IDataPacket>(true);
-        if (dataPacket.assigned() && dataPacket.getSampleCount() > 0)
-        {
-            setLastValueFromPacket(dataPacket);
-        }
-    }
+    // config paths only, always under the config lock (serializes writers against each other)
+    auto* snapshot = new details::ConnectionsSnapshot();
+    snapshot->connections = connections;
+
+    auto* old = connectionsSnapshot.exchange(snapshot, std::memory_order_seq_cst);
+    snapshotGate.waitUntilIdle();  // every reader of `old` has pinned it by now
+    old->release();
 }
 
 template <typename TInterface, typename... Interfaces>
-void SignalBase<TInterface, Interfaces...>::enqueuePacketToConnections(const PacketPtr& packet, const TempConnections& tempConnections)
+void SignalBase<TInterface, Interfaces...>::enqueuePacketToConnections(const PacketPtr& packet,
+                                                                       const details::ConnectionsSnapshot& snapshot)
 {
-    for (const auto& connection : tempConnections)
+    for (const auto& connection : snapshot.connections)
         connection.enqueue(packet);
 }
 
 template <typename TInterface, typename... Interfaces>
-void SignalBase<TInterface, Interfaces...>::enqueuePacketToConnections(PacketPtr&& packet, const TempConnections& tempConnections)
+void SignalBase<TInterface, Interfaces...>::enqueuePacketToConnections(PacketPtr&& packet,
+                                                                       const details::ConnectionsSnapshot& snapshot)
 {
-    if (tempConnections.empty())
+    if (snapshot.connections.empty())
         return;
 
-    auto startIt = tempConnections.begin();
-    const auto endIt = std::prev(tempConnections.end());
+    auto startIt = snapshot.connections.begin();
+    const auto endIt = std::prev(snapshot.connections.end());
 
     while (startIt != endIt)
         startIt++->enqueue(packet);
@@ -709,22 +781,22 @@ void SignalBase<TInterface, Interfaces...>::enqueuePacketToConnections(PacketPtr
 template <typename TInterface, typename... Interfaces>
 void SignalBase<TInterface, Interfaces...>::enqueuePacketsToConnections(
     const ListPtr<IPacket>& packets,
-    const TempConnections& tempConnections)
+    const details::ConnectionsSnapshot& snapshot)
 {
-    for (const auto& connection : tempConnections)
+    for (const auto& connection : snapshot.connections)
         connection.enqueueMultiple(packets);
 }
 
 template <typename TInterface, typename... Interfaces>
 void SignalBase<TInterface, Interfaces...>::enqueuePacketsToConnections(
     ListPtr<IPacket>&& packets,
-    const TempConnections& tempConnections)
+    const details::ConnectionsSnapshot& snapshot)
 {
-    if (tempConnections.empty())
+    if (snapshot.connections.empty())
         return;
 
-    auto startIt = tempConnections.begin();
-    const auto endIt = std::prev(tempConnections.end());
+    auto startIt = snapshot.connections.begin();
+    const auto endIt = std::prev(snapshot.connections.end());
 
     while (startIt != endIt)
         startIt++->enqueueMultiple(packets);
@@ -732,39 +804,20 @@ void SignalBase<TInterface, Interfaces...>::enqueuePacketsToConnections(
     (*startIt)->enqueueMultipleAndStealRef(packets.detach());
 }
 
-template <typename TInterface, typename ... Interfaces>
-template <class Packet>
-bool SignalBase<TInterface, Interfaces...>::checkKeepLastPacketAndBuildConnections(Packet&& packet, TempConnections& tempConnections)
-{
-    if (!this->active)
-        return false;
-
-    checkKeepLastPacket(packet);
-    buildTempConnections(tempConnections);
-    return true;
-}
-
 template <typename TInterface, typename... Interfaces>
 template <class Packet>
-bool SignalBase<TInterface, Interfaces...>::keepLastPacketAndEnqueue(Packet&& packet, bool recursiveLock)
+bool SignalBase<TInterface, Interfaces...>::keepLastPacketAndEnqueue(Packet&& packet)
 {
-    TempConnectionsMemPool memPool;
-    TempConnections tempConnections{TempConnectionsAllocator(memPool)};
+    // The data path takes no lock: `active` is atomic, the last value is copied into the
+    // lock-free store and the connection list is a pinned immutable snapshot.
+    if (!this->active.load(std::memory_order_relaxed))
+        return false;
 
-    if (!recursiveLock)
-    {
-        auto lock = this->getAcquisitionLock2();
-        if (!checkKeepLastPacketAndBuildConnections(packet, tempConnections))
-            return false;
-    }
-    else
-    {
-        auto lock = this->getRecursiveConfigLock2();
-        if (!checkKeepLastPacketAndBuildConnections(packet, tempConnections))
-            return false;
-    }
+    if (lastValueStore.isEnabled())
+        lastValueStore.publish(packet);
 
-    enqueuePacketToConnections(std::forward<Packet>(packet), tempConnections);
+    const auto pin = pinConnectionsSnapshot();
+    enqueuePacketToConnections(std::forward<Packet>(packet), *pin);
 
     return true;
 }
@@ -773,22 +826,16 @@ template <typename TInterface, typename... Interfaces>
 template <class ListOfPackets>
 bool SignalBase<TInterface, Interfaces...>::keepLastPacketAndEnqueueMultiple(ListOfPackets&& packets)
 {
-    TempConnectionsMemPool memPool;
-    TempConnections tempConnections{TempConnectionsAllocator(memPool)};
+    const size_t cnt = packets.getCount();
 
-    {
-        size_t cnt = packets.getCount();
+    if (!this->active.load(std::memory_order_relaxed) || cnt == 0)
+        return false;
 
-        auto lock = this->getAcquisitionLock2();
+    if (lastValueStore.isEnabled())
+        lastValueStore.publish(packets[cnt - 1]);
 
-        if (!this->active || cnt == 0)
-            return false;
-
-        checkKeepLastPacket(packets[cnt - 1]);
-        buildTempConnections(tempConnections);
-    }
-
-    enqueuePacketsToConnections(std::forward<ListOfPackets>(packets), tempConnections);
+    const auto pin = pinConnectionsSnapshot();
+    enqueuePacketsToConnections(std::forward<ListOfPackets>(packets), *pin);
 
     return true;
 }
@@ -796,7 +843,7 @@ bool SignalBase<TInterface, Interfaces...>::keepLastPacketAndEnqueueMultiple(Lis
 template <typename TInterface, typename... Interfaces>
 ErrCode SignalBase<TInterface, Interfaces...>::sendPacket(IPacket* packet)
 {
-    return sendPacketInner(packet, false);
+    return sendPacketInner(packet);
 }
 
 template <typename TInterface, typename... Interfaces>
@@ -855,10 +902,17 @@ ErrCode INTERFACE_FUNC SignalBase<TInterface, Interfaces...>::sendPacketsAndStea
 template <typename TInterface, typename ... Interfaces>
 ErrCode SignalBase<TInterface, Interfaces...>::setLastValue(IBaseObject* lastValue)
 {
-    auto lock = this->getAcquisitionLock2();
+    // producer-role call, owner-serialized with sendPacket - lock-free like the send path
+    // (the explicit value goes through the same staged-slot publication as sent packets)
 
-    setLastValueFromPacket(nullptr);
-    lastValueCache.setValue(BaseObjectPtr(lastValue));
+    // manual last values are only meaningful while automatic caching is off (see
+    // ISignalConfig::setLastValue docs) - otherwise the next sent packet would silently
+    // overwrite the explicit value
+    if (lastValueStore.isEnabled())
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDSTATE,
+                                   "setLastValue requires automatic last-value caching to be disabled (enableKeepLastValue(false)).");
+
+    lastValueStore.publishExplicit(BaseObjectPtr(lastValue));
     return OPENDAQ_SUCCESS;
 }
 
@@ -884,33 +938,53 @@ ErrCode SignalBase<TInterface, Interfaces...>::listenerConnectedInternal(IConnec
     const auto it = std::find(connections.begin(), connections.end(), connectionPtr);
     if (it != connections.end())
         return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_DUPLICATEITEM);
-    
+
     const auto packet = createDataDescriptorChangedEventPacket();
 
+    bool listenedStatusChanged = false;
     if (connections.empty())
     {
         const ErrCode errCode = wrapHandler(this, &Self::onListenedStatusChanged, true);
         OPENDAQ_RETURN_IF_FAILED(errCode);
+        listenedStatusChanged = true;
+    }
+
+    // Seed the new connection's queue with the descriptor event BEFORE publishing it to the
+    // producer: any producer snapshot that contains this connection then contains the event
+    // ahead of every data packet. This replaces the descriptor-event-before-data ordering
+    // that the shared sendPacket mutex used to provide. The listener's packet notification
+    // fires through the enqueue below exactly as for any packet, so connect still triggers
+    // onPacketReceived immediately.
+    const ErrCode enqueueErrCode = daqTry(
+        [&]
+        {
+            if (!schedule)
+                connectionPtr.enqueueOnThisThread(packet);
+            else
+                connectionPtr.enqueueWithScheduler(packet);
+        });
+    if (OPENDAQ_FAILED(enqueueErrCode))
+    {
+        // keep the empty <-> non-empty transitions of onListenedStatusChanged consistent
+        if (listenedStatusChanged)
+            wrapHandler(this, &Self::onListenedStatusChanged, false);
+        return enqueueErrCode;
     }
 
     connections.push_back(connectionPtr);
-
-    if (!schedule)
-        connectionPtr.enqueueOnThisThread(packet);
-    else
-        connectionPtr.enqueueWithScheduler(packet);
+    publishConnectionsSnapshot();
 
     return OPENDAQ_SUCCESS;
 }
 
 template <typename TInterface, typename ... Interfaces>
-ErrCode SignalBase<TInterface, Interfaces...>::sendPacketInner(IPacket* packet, bool recursiveLock)
+ErrCode SignalBase<TInterface, Interfaces...>::sendPacketInner(IPacket* packet)
 {
     OPENDAQ_PARAM_NOT_NULL(packet);
     const auto packetPtr = PacketPtr::Borrow(packet);
-    const ErrCode errCode = daqTry([this, &packetPtr, recursiveLock]
+    const ErrCode errCode = daqTry([this, &packetPtr]
     {
-        if (!keepLastPacketAndEnqueue(packetPtr, recursiveLock))
+        if (!keepLastPacketAndEnqueue(packetPtr))
             return OPENDAQ_IGNORED;
 
         return OPENDAQ_SUCCESS;
@@ -1015,7 +1089,15 @@ ErrCode SignalBase<TInterface, Interfaces...>::listenerDisconnected(IConnection*
     if (it == connections.end())
         return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOTFOUND);
 
+    const ConnectionPtr removedConnection = std::move(*it);
     connections.erase(it);
+    // unpublish first, then close: a producer pinning an older snapshot still holds a strong
+    // ref (no use-after-free); its in-flight enqueue either lands before the close (and is
+    // drained by it) or after (and is dropped) - either way nothing stays pinned in the
+    // orphaned queue and no new packet can enter it after this call returns
+    publishConnectionsSnapshot();
+    if (const auto internal = removedConnection.template asPtrOrNull<IConnectionInternal>(true); internal.assigned())
+        internal->closeQueue();
 
     if (connections.empty())
     {
@@ -1182,7 +1264,11 @@ template <typename TInterface, typename ... Interfaces>
 void SignalBase<TInterface, Interfaces...>::clearConnections(std::vector<ConnectionPtr>& connections)
 {
     for (auto& connection : connections)
+    {
+        if (const auto internal = connection.template asPtrOrNull<IConnectionInternal>(true); internal.assigned())
+            internal->closeQueue();
         disconnectInputPort(connection);
+    }
     connections.clear();
 }
 
@@ -1191,6 +1277,8 @@ void SignalBase<TInterface, Interfaces...>::removed()
 {
     clearConnections(connections);
     clearConnections(remoteConnections);
+    publishConnectionsSnapshot();  // now empty: producers can no longer reach any connection
+    lastValueStore.clear();
 
     for (auto it = begin(domainSignalReferences); it != end(domainSignalReferences); ++it)
     {
@@ -1268,12 +1356,7 @@ ErrCode SignalBase<TInterface, Interfaces...>::enableKeepLastValue(Bool enabled)
 template <typename TInterface, typename... Interfaces>
 void SignalBase<TInterface, Interfaces...>::setKeepLastPacket()
 {
-    keepLastPacket = keepLastValue && isPublic;
-
-    if (!keepLastPacket)
-    {
-        setLastValueFromPacket(nullptr);
-    }
+    lastValueStore.setEnabled(keepLastValue && isPublic);
 }
 
 template <typename TInterface, typename... Interfaces>
@@ -1281,7 +1364,7 @@ ErrCode SignalBase<TInterface, Interfaces...>::getLastValue(IBaseObject** value)
 {
     OPENDAQ_PARAM_NOT_NULL(value);
     auto lock = this->getRecursiveConfigLock2();
-    const ErrCode errCode = getLastValueImpl(value);
+    const ErrCode errCode = lastValueStore.getValue(value, this->context);
 
     OPENDAQ_RETURN_IF_FAILED(errCode);
     return errCode;
@@ -1293,11 +1376,11 @@ ErrCode SignalBase<TInterface, Interfaces...>::getLastValueWithTimestamp(IBaseOb
     OPENDAQ_PARAM_NOT_NULL(value);
     OPENDAQ_PARAM_NOT_NULL(timestamp);
     auto lock = this->getRecursiveConfigLock2();
-    const ErrCode valueErrCode = getLastValueImpl(value);
+    const ErrCode valueErrCode = lastValueStore.getValue(value, this->context);
 
     OPENDAQ_RETURN_IF_FAILED(valueErrCode);
 
-    const ErrCode tsErrCode = getLastTimestampImpl(timestamp);
+    const ErrCode tsErrCode = lastValueStore.getTimestamp(timestamp, this->context);
 
     OPENDAQ_RETURN_IF_FAILED(tsErrCode);
     if (valueErrCode == OPENDAQ_IGNORED || tsErrCode == OPENDAQ_IGNORED)
@@ -1326,7 +1409,9 @@ ErrCode SignalBase<TInterface, Interfaces...>::getKeepLastValue(Bool* keepLastVa
 template <typename TInterface, typename ... Interfaces>
 ErrCode SignalBase<TInterface, Interfaces...>::sendPacketRecursiveLock(IPacket* packet)
 {
-    return sendPacketInner(packet, true);
+    // kept for the frozen ISignalPrivate interface: the lock-free send path is safe to
+    // call from any lock context, so this is now identical to sendPacket
+    return sendPacketInner(packet);
 }
 
 template <typename TInterface, typename... Interfaces>
@@ -1335,67 +1420,6 @@ void SignalBase<TInterface, Interfaces...>::visibleChanged()
     setKeepLastPacket();
 }
 
-template <typename TInterface, typename... Interfaces>
-void SignalBase<TInterface, Interfaces...>::setLastValueFromPacket(const DataPacketPtr& packet)
-{
-    lastValueCache.cache(packet);
-}
-
-template <typename TInterface, typename... Interfaces>
-ErrCode SignalBase<TInterface, Interfaces...>::getLastValueImpl(IBaseObject** value)
-{
-    if (lastValueCache.valueCached())
-    {
-        *value = lastValueCache.getValue().detach();
-        return OPENDAQ_SUCCESS;
-    }
-
-    if (!lastValueCache.valueDescriptorCached())
-        return OPENDAQ_IGNORED;
-
-    const ErrCode errCode = daqTry(
-        [&value, this]
-        {
-            auto manager = this->context.getTypeManager();
-            void* rawValue = lastValueCache.getRawValueData();
-            lastValueCache.setValue(
-                PacketDetails::buildObjectFromDescriptor(rawValue, lastValueCache.getValueDataDescriptor(), manager, lastValueCache.getActualValueSampleSize()));
-            *value = lastValueCache.getValue().detach();
-        });
-    return errCode;
-}
-
-template <typename TInterface, typename... Interfaces>
-ErrCode SignalBase<TInterface, Interfaces...>::getLastTimestampImpl(IBaseObject** timestamp)
-{
-    if (lastValueCache.timestampCached())
-    {
-        *timestamp = lastValueCache.getTimestamp().detach();
-        return OPENDAQ_SUCCESS;
-    }
-
-    if (!lastValueCache.domainDescriptorCached())
-        return OPENDAQ_IGNORED;
-
-    const ErrCode errCode = daqTry(
-        [&timestamp, this]
-        {
-            auto manager = this->context.getTypeManager();
-            void* rawValue = lastValueCache.getRawTimestampData();
-            auto tsWithoutTweak = PacketDetails::buildObjectFromDescriptor(rawValue, lastValueCache.getDomainDataDescriptor(), manager, 0);
-
-            lastValueCache.calculateTimestamp(tsWithoutTweak);
-            *timestamp = lastValueCache.getTimestamp().detach();
-        });
-
-    if (OPENDAQ_FAILED(errCode))
-    {
-        daqClearErrorInfo();
-        lastValueCache.resetTimestamp();
-        return OPENDAQ_IGNORED;
-    }
-    return errCode;
-}
 
 OPENDAQ_REGISTER_DESERIALIZE_FACTORY(SignalImpl)
 

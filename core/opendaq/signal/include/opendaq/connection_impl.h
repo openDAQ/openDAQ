@@ -19,18 +19,32 @@
 #include <opendaq/connection_internal.h>
 #include <opendaq/input_port_config_ptr.h>
 #include <opendaq/context_ptr.h>
+#include <opendaq/active_operation_tracker.h>
 #include <coretypes/intfs.h>
 #include <coretypes/weakrefobj.h>
 #include <opendaq/event_packet_ptr.h>
 #include <opendaq/data_packet_ptr.h>
 
-#ifdef OPENDAQ_THREAD_SAFE
-    #include <mutex>
-#endif
-
-#include <queue>
+#include <atomic>
+#include <deque>
+#include <mutex>
 
 BEGIN_NAMESPACE_OPENDAQ
+
+/*
+ * Lock-free connection queue.
+ *
+ * Usage rule (not enforced): one producer role, one consumer role. All enqueues are
+ * serialized externally by the signal's owner; only closeQueue() (disconnect) and
+ * enqueueLastDescriptor() (setListener) may race everything else.
+ *
+ * The enqueuer CAS-pushes pooled nodes onto the `inboxTop` stack; the consumer takes the
+ * whole inbox with exchange(nullptr), reverses it to FIFO, runs gap checks + counters and
+ * appends to the consumer-owned `packets` deque that serves every query. Spent nodes
+ * recycle via `freeTop` (whole-list exchange on refill: no CAS-pop, no ABA). closeQueue()
+ * sets `closedFlag` and waits on `activeOps` until no operation is in flight, then owns
+ * all queue state exclusively (see active_operation_tracker.h).
+ */
 class ConnectionImpl : public ImplementationOfWeak<IConnection, IConnectionInternal>
 {
 public:
@@ -41,6 +55,8 @@ public:
         const SignalPtr& signal,
         ContextPtr context
     );
+    ~ConnectionImpl() override;
+
     ErrCode INTERFACE_FUNC enqueue(IPacket* packet) override;
     ErrCode INTERFACE_FUNC enqueueMultiple(IList* packets) override;
     ErrCode INTERFACE_FUNC enqueueAndStealRef(IPacket* packet) override;
@@ -68,23 +84,7 @@ public:
 
     // IConnectionInternal
     ErrCode INTERFACE_FUNC enqueueLastDescriptor() override;
-
-    [[nodiscard]] const std::deque<PacketPtr>& getPackets() const noexcept;
-
-#ifdef OPENDAQ_THREAD_SAFE
-    template <typename Func>
-    auto withLock(Func&& func) const
-    {
-        std::lock_guard guard(mutex);
-        return func();
-    }
-#else
-    template <typename Func>
-    auto withLock(Func&& func) const
-    {
-        return func();
-    }
-#endif
+    ErrCode INTERFACE_FUNC closeQueue() override;
 
 private:
     union DomainValue
@@ -95,25 +95,41 @@ private:
 
     enum class GapCheckState { disabled, uninitialized, not_available, initialized, running };
 
+    struct PacketNode
+    {
+        std::atomic<PacketNode*> next{nullptr};
+        IPacket* packet{nullptr};
+        bool gapCheck{true};
+    };
+
     InputPortConfigPtr port;
     WeakRefPtr<ISignal> signalRef;
     ContextPtr context;
-    bool queueEmpty;
     GapCheckState gapCheckState;
     DomainValue nextExpectedPacketOffset;
     DomainValue delta;
     SampleType domainSampleType;
     LoggerComponentPtr loggerComponent;
 
+    // Descriptor latch: written when DATA_DESCRIPTOR_CHANGED events are enqueued, read by
+    // enqueueLastDescriptor (setListener). Config paths only -> a plain mutex is fine here.
+    std::mutex latchMutex;
     DataDescriptorPtr valueDataDescriptor;
     DataDescriptorPtr domainDataDescriptor;
 
-#ifdef OPENDAQ_THREAD_SAFE
-    mutable std::mutex mutex;
-#endif
+    // lock-free producer -> consumer inbox
+    std::atomic<PacketNode*> inboxTop{nullptr};
+    std::atomic<PacketNode*> freeTop{nullptr};
+    PacketNode* nodeCache{nullptr};                  // enqueuer-private (enqueues are externally serialized)
+    details::ActiveOperationTracker activeOps;
+    std::atomic<bool> closedFlag{false};
+    std::atomic<bool> queueEmptyFlag{true};
+    std::atomic<IPacket*> pendingFrontDescriptor{nullptr};
+    PacketNode* pendingDrainChain{nullptr};          // consumer-owned; drain resumed after a gap-check throw
 
-    void onPacketEnqueued(const PacketPtr& packet);
+    void onPacketEnqueuedCounters(const PacketPtr& packet);
     void onPacketDequeued(const PacketPtr& packet);
+    void latchDescriptors(const EventPacketPtr& packet);
 
     void checkForGaps(const PacketPtr& packet);
     void enqueueGapPacket(const DomainValue& diff);
@@ -124,22 +140,33 @@ private:
 
     DomainValue numberToDomainValue(const NumberPtr& number);
 
+    PacketNode* acquireNode();
+    static PacketNode* reverseChain(PacketNode* chain);
+    void recycleNode(PacketNode* node);
+    static void destroyChain(PacketNode* chain);
+    // pushes an intact pre-linked chain (first is the newest element); returns false when closed
+    bool pushChain(PacketNode* first, PacketNode* last, bool& queueWasEmpty);
+    void drainInbox();  // consumer thread, inside the gate
+
     template <class P, class F>
     ErrCode enqueueInternal(P&& packet, const F& f);
 
-#if _MSC_VER < 1920
-    ErrCode enqueueMultipleInternal(const ListPtr<IPacket>& packets);
-    ErrCode enqueueMultipleInternal(ListPtr<IPacket>&& packets);
-#else
-    template <class P>
-    ErrCode enqueueMultipleInternal(P&& packets);
-#endif
+    template <class P, class F>
+    ErrCode enqueueMultipleInternal(P&& packets, const F& f);
+
+    // Every consumer-side op: track + closed check + inbox drain + body. closedBody must
+    // not touch any queue state - it can run concurrently with closeQueue()'s drain.
+    template <class ClosedF, class F>
+    ErrCode consumerOp(const ClosedF& closedBody, const F& body);
+
+    template <class ShortCircuit, class IsBoundary>
+    ErrCode samplesUntil(SizeT* samples, const ShortCircuit& shortCircuit, const IsBoundary& isBoundary);
 
 protected:
     SizeT samplesCnt{};
     SizeT eventPacketsCnt{};
     SizeT gapPacketsCnt{};
-    std::deque<PacketPtr> packets;
+    std::deque<PacketPtr> packets;                   // consumer-owned
 };
 
 END_NAMESPACE_OPENDAQ

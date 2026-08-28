@@ -932,7 +932,6 @@ class App(tk.Tk):
         if node is None:
             return 'break'
 
-        self.tree.selection_set(iid)
         self.tree_row_buttons_recolor()
 
         popup = (self.menu_build([self.menu_add_items(node)]) if add_only
@@ -997,8 +996,11 @@ class App(tk.Tk):
         return items
 
     def menu_update_items(self, node):
-        return [('Begin update', 'begin_update', self.handle_begin_update),
-                ('End update', 'end_update', self.handle_end_update)]
+        iid = node.global_id if node is not None else None
+        return [('Begin update', 'begin_update',
+                 lambda: self.handle_begin_update(iid)),
+                ('End update', 'end_update',
+                 lambda: self.handle_end_update(iid))]
 
     def menu_property_items(self, node):
         return [('Clear property values', 'clear_values',
@@ -1021,8 +1023,9 @@ class App(tk.Tk):
             ('Remove', 'trash',
              lambda: self.handle_tree_menu_remove_device(device))]
         return [add_items,
-                [('Lock', 'lock', self.handle_lock),
-                 ('Unlock', 'unlock', self.handle_unlock)],
+                [('Lock', 'lock', lambda: self.handle_lock(device.global_id)),
+                 ('Unlock', 'unlock',
+                  lambda: self.handle_unlock(device.global_id))],
                 self.menu_update_items(node),
                 self.menu_property_items(node),
                 remove]
@@ -1349,15 +1352,15 @@ class App(tk.Tk):
         return DisplayType.from_tab_index(self.nb.index(
             'current')) if self.nb is not None else DisplayType.UNSPECIFIED
 
-    def handle_begin_update(self):
-        selected_item = utils.treeview_get_first_selection(self.tree)
+    def handle_begin_update(self, iid=None):
+        selected_item = iid or utils.treeview_get_first_selection(self.tree)
         if selected_item:
             self.begin_update_on_node(selected_item)
             self.set_node_update_status()
             self.tree_update(self.context.selected_node)
 
-    def handle_end_update(self):
-        selected_item = utils.treeview_get_first_selection(self.tree)
+    def handle_end_update(self, iid=None):
+        selected_item = iid or utils.treeview_get_first_selection(self.tree)
         if selected_item:
             self.end_update_on_node(selected_item)
             self.set_node_update_status()
@@ -1376,8 +1379,8 @@ class App(tk.Tk):
         except RuntimeError:
             pass
 
-    def handle_lock(self):
-        node = utils.treeview_get_first_selection(self.tree)
+    def handle_lock(self, iid=None):
+        node = iid or utils.treeview_get_first_selection(self.tree)
         component = utils.find_component(node, self.context.instance)
 
         try:
@@ -1388,8 +1391,8 @@ class App(tk.Tk):
             utils.show_error('Lock failed', f'{component.name}: {e}', self)
             print(f'Lock failed: {str(e)}', file=sys.stderr)
 
-    def handle_unlock(self):
-        node = utils.treeview_get_first_selection(self.tree)
+    def handle_unlock(self, iid=None):
+        node = iid or utils.treeview_get_first_selection(self.tree)
         component = utils.find_component(node, self.context.instance)
 
         try:

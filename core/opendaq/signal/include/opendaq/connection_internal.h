@@ -17,6 +17,7 @@
 #pragma once
 #include <coretypes/common.h>
 #include <coretypes/baseobject.h>
+#include <opendaq/packet.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
@@ -33,6 +34,15 @@ DECLARE_OPENDAQ_INTERFACE(IConnectionInternal, IBaseObject)
      */
     virtual ErrCode INTERFACE_FUNC enqueueLastDescriptor() = 0;
 	virtual ErrCode INTERFACE_FUNC dequeueUpTo(IPacket** packetPtr, SizeT* count) = 0;
+
+    /*!
+     * @brief Permanently closes the queue: drops all queued packets and rejects all future
+     * enqueues. Called by the signal when the connection is disconnected so that no packet
+     * can remain pinned in (or be added to) an orphaned queue. Unlike the enqueue and
+     * dequeue methods, disconnection is not covered by the owner-serialization rule, so
+     * this call tolerates concurrent producer/consumer operations.
+     */
+    virtual ErrCode INTERFACE_FUNC closeQueue() = 0;
 };
 
 /*!@}*/

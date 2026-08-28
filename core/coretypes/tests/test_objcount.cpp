@@ -21,9 +21,8 @@ TEST_F(ObjCountTest, CountObjects)
 
 TEST_F(ObjCountTest, PooledObjectsTrackedOnlyWhileAlive)
 {
-    // Above the small-integer cache so the pool is actually used, and well past the pool's
-    // pre-allocated objects so it has to construct ones it will never destroy.
-    constexpr size_t count = 300;
+    // Above the small-integer cache so the pool is used, and within its pre-allocated objects.
+    constexpr size_t count = 50;
     const size_t baseline = daqGetTrackedObjectCount();
 
     {

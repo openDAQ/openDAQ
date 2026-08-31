@@ -53,3 +53,70 @@ class LogsDialog(Dialog):
         text.tag_configure('error', foreground=str(utils.StatusColor.ERROR))
         text.tag_configure('debug', foreground='gray40')
         self.text = text
+
+    def initial_update(self):
+        if not self.log_file_path:
+            self.set_status('No log file sink, logs are going to the console only')
+            return
+        if os.path.exists(self.log_file_path):
+            self.offset = max(0, os.path.getsize(self.log_file_path)
+                              - INITIAL_TAIL_BYTES)
+        self.poll()
+
+    def poll(self):
+        self.read_new_lines()
+        self.poll_id = self.after(POLL_INTERVAL_MS, self.poll)
+
+    def read_new_lines(self):
+        if not self.log_file_path or not os.path.exists(self.log_file_path):
+            self.set_status('Waiting for %s' % self.log_file_path)
+            return
+        try:
+            with open(self.log_file_path, 'rb') as handle:
+                handle.seek(self.offset)
+                chunk = handle.read()
+                self.offset = handle.tell()
+        except OSError as e:
+            self.set_status('Cannot read log file: %s' % e)
+            return
+        if chunk:
+            self.append_lines(chunk.decode('utf-8', errors='replace').splitlines())
+
+    def append_lines(self, lines):
+        self.text.configure(state=tk.NORMAL)
+        for line in lines:
+            self.text.insert(tk.END, line + '\n', self.tag_for_line(line))
+            self.line_count += 1
+        if self.line_count > MAX_LINES:
+            drop = self.line_count - MAX_LINES
+            self.text.delete('1.0', '%d.0' % (drop + 1))
+            self.line_count -= drop
+        self.text.configure(state=tk.DISABLED)
+        if self.follow_var.get():
+            self.text.see(tk.END)
+        self.set_status('%d lines  |  %s' % (self.line_count, self.log_file_path))
+
+    def tag_for_line(self, line):
+        lowered = line.lower()
+        if '[error]' in lowered or '[critical]' in lowered:
+            return 'error'
+        if '[warning]' in lowered or '[warn]' in lowered:
+            return 'warning'
+        if '[debug]' in lowered or '[trace]' in lowered:
+            return 'debug'
+        return ''
+
+    def set_status(self, text):
+        self.status_label.configure(text=text)
+
+    def handle_clear_clicked(self):
+        self.text.configure(state=tk.NORMAL)
+        self.text.delete('1.0', tk.END)
+        self.text.configure(state=tk.DISABLED)
+        self.line_count = 0
+
+    def close(self):
+        if self.poll_id is not None:
+            self.after_cancel(self.poll_id)
+            self.poll_id = None
+        super().close()

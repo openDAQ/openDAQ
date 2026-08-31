@@ -1,5 +1,6 @@
 import os
 import platform
+import tempfile
 
 import opendaq as daq
 
@@ -50,6 +51,15 @@ class AppContext(object):
 
         for protocol in getattr(params, 'discovery_servers', []):
             builder.add_discovery_server(protocol)
+
+        self.log_file_path = os.path.join(
+            tempfile.gettempdir(), 'opendaq_gui_demo_{}.log'.format(os.getpid()))
+        try:
+            if os.path.exists(self.log_file_path):
+                os.remove(self.log_file_path)
+            builder.add_logger_sink(daq.BasicFileLoggerSink(self.log_file_path))
+        except Exception:
+            self.log_file_path = None
 
         self.instance = daq.InstanceFromBuilder(builder)
         self.instance.context.on_core_event + daq.QueuedEventHandler(self.on_core_event)

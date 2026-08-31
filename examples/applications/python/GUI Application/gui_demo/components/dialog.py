@@ -40,6 +40,14 @@ class Dialog(tk.Toplevel):
         self.focus_set()
         self.grab_set()         # Prevent interaction with other windows
         self.wait_window(self)
+
+    def show_modeless(self):
+        self.initial_update()
+        self.deiconify()
+        self.center_window()
+        self.update_idletasks()
+        self.event_generate('<<DialogReady>>')
+        self.focus_set()
         
     def close(self):
         self.destroy()

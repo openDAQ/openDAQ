@@ -16,6 +16,7 @@
 ## Misc
 
 - [#1251](https://github.com/openDAQ/openDAQ/pull/1251), [#1269](https://github.com/openDAQ/openDAQ/pull/1269), [#1278](https://github.com/openDAQ/openDAQ/pull/1278) OpenSSL (>= 1.1.1) is a build dependency of the SDK when `OPENDAQ_ENABLE_WEBSOCKET_STREAMING_WITH_TLS` is on. Unlike most other dependencies it is not fetched automatically and has to be installed on the host system: `libssl-dev` on Debian/Ubuntu (`libssl-dev:i386` for 32-bit builds), `openssl-devel` on RHEL-based distributions. The build documentation and all CI, packaging and docs jobs were updated accordingly.
+- [#1276] (https://github.com/openDAQ/openDAQ/pull/1276) Move PropertyImpl methods to the cpp part. Replace ConfigClientProperty and TmsClientProperty with a gerneral Property
 
 ## Required application changes
 

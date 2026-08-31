@@ -143,6 +143,29 @@ DECLARE_OPENDAQ_INTERFACE(IReferenceDomainInfoBuilder, IBaseObject)
      * If False, a device will contain time jumps due to resync in the domain signal data.
      */
     virtual ErrCode INTERFACE_FUNC getUsesOffset(UsesOffset* usesOffset) = 0;
+
+    // [returnSelf]
+    /*!
+     * @brief Sets the list of Reference Domain IDs.
+     * @param referenceDomainIds The list of Reference Domain IDs.
+     *
+     * If set, gives the list of all Reference Domain IDs contributing to this domain, in
+     * cases where a signal's domain aggregates data synchronized from more than one
+     * Reference Domain (eg. after merging streams from multiple synchronization sources).
+     */
+    // [templateType(referenceDomainIds, IString)]
+    virtual ErrCode INTERFACE_FUNC setReferenceDomainIds(IList* referenceDomainIds) = 0;
+
+    /*!
+     * @brief Gets the list of Reference Domain IDs.
+     * @param[out] referenceDomainIds The list of Reference Domain IDs.
+     *
+     * If set, gives the list of all Reference Domain IDs contributing to this domain, in
+     * cases where a signal's domain aggregates data synchronized from more than one
+     * Reference Domain (eg. after merging streams from multiple synchronization sources).
+     */
+    // [templateType(referenceDomainIds, IString)]
+    virtual ErrCode INTERFACE_FUNC getReferenceDomainIds(IList** referenceDomainIds) = 0;
 };
 /*!@}*/
 

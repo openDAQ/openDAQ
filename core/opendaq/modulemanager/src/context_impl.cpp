@@ -325,6 +325,12 @@ void ContextImpl::registerOpenDaqTypes()
 
     const auto connectionStatusType = EnumerationType("ConnectionStatusType", List<IString>("Connected", "Reconnecting", "Unrecoverable", "Removed"));
     checkErrorInfoExcept(typeManager->addType(connectionStatusType), OPENDAQ_ERR_ALREADYEXISTS);
+
+    const auto synchronizationSourceStatusType = EnumerationType("SynchronizationSourceStatusType", List<IString>("Off", "Listening", "Calibrating", "Synced", "Error", "Unknown"));
+    checkErrorInfoExcept(typeManager->addType(synchronizationSourceStatusType), OPENDAQ_ERR_ALREADYEXISTS);
+
+    const auto synchronizationRoleStatusType = EnumerationType("SynchronizationRoleStatusType", List<IString>("Off", "Input", "Output", "Unknown"));
+    checkErrorInfoExcept(typeManager->addType(synchronizationRoleStatusType), OPENDAQ_ERR_ALREADYEXISTS);
 }
 
 OPENDAQ_DEFINE_CLASS_FACTORY(

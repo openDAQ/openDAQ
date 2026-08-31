@@ -42,6 +42,11 @@ daqErrCode daqReferenceDomainInfo_getUsesOffset(daqReferenceDomainInfo* self, da
     return reinterpret_cast<daq::IReferenceDomainInfo*>(self)->getUsesOffset(reinterpret_cast<daq::UsesOffset*>(usesOffset));
 }
 
+daqErrCode daqReferenceDomainInfo_getReferenceDomainIds(daqReferenceDomainInfo* self, daqList** referenceDomainIds)
+{
+    return reinterpret_cast<daq::IReferenceDomainInfo*>(self)->getReferenceDomainIds(reinterpret_cast<daq::IList**>(referenceDomainIds));
+}
+
 daqErrCode daqReferenceDomainInfo_createReferenceDomainInfoFromBuilder(daqReferenceDomainInfo** obj, daqReferenceDomainInfoBuilder* builder)
 {
     daq::IReferenceDomainInfo* ptr = nullptr;

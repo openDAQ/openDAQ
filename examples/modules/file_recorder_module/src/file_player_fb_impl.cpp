@@ -57,24 +57,38 @@ FilePlayerFbImpl::~FilePlayerFbImpl()
     stopPlayback();
 }
 
+EvalValuePtr FilePlayerFbImpl::lockedWhilePlaying()
+{
+    // EvalValueFunc resolves the bare identifier through the callback, which lets the flag read
+    // the playback state directly instead of needing a property to mirror it.
+    return EvalValueFunc("playing", Function([this](const BaseObjectPtr& /*name*/) { return BooleanPtr(playing.load()); }));
+}
+
 void FilePlayerFbImpl::initProperties()
 {
-    objPtr.addProperty(StringProperty(Props::FILE_PATH, ""));
-    objPtr.getOnPropertyValueWrite(Props::FILE_PATH) += std::bind(&FilePlayerFbImpl::onFilePathChanged, this);
+    objPtr.addProperty(StringPropertyBuilder(Props::FILE_PATH, "").setReadOnly(lockedWhilePlaying()).build());
 
-    objPtr.addProperty(SelectionProperty(Props::PLAYBACK_MODE, List<IString>("FixedSampleRate", "RecordedDomain"), 0));
+    objPtr.addProperty(SelectionPropertyBuilder(Props::PLAYBACK_MODE, List<IString>("FixedSampleRate", "RecordedDomain"), 0)
+                           .setReadOnly(lockedWhilePlaying())
+                           .build());
 
     objPtr.addProperty(FloatPropertyBuilder(Props::SAMPLE_RATE, 1000.0)
                            .setVisible(EvalValue("$PlaybackMode == 0"))
+                           .setReadOnly(lockedWhilePlaying())
                            .setMinValue(MIN_SAMPLE_RATE)
                            .build());
 
-    objPtr.addProperty(
-        BoolPropertyBuilder(Props::SHIFT_DOMAIN_TO_NOW, True).setVisible(EvalValue("$PlaybackMode == 1")).build());
+    objPtr.addProperty(BoolPropertyBuilder(Props::SHIFT_DOMAIN_TO_NOW, True)
+                           .setVisible(EvalValue("$PlaybackMode == 1"))
+                           .setReadOnly(lockedWhilePlaying())
+                           .build());
 
-    objPtr.addProperty(BoolProperty(Props::LOOP, False));
+    objPtr.addProperty(BoolPropertyBuilder(Props::LOOP, False).setReadOnly(lockedWhilePlaying()).build());
 
-    objPtr.addProperty(IntPropertyBuilder(Props::OUTPUT_PACKET_INTERVAL_MS, 20).setMinValue(1).build());
+    objPtr.addProperty(IntPropertyBuilder(Props::OUTPUT_PACKET_INTERVAL_MS, 20)
+                           .setMinValue(1)
+                           .setReadOnly(lockedWhilePlaying())
+                           .build());
 
     objPtr.addProperty(FunctionProperty(Props::START_PLAYBACK, ProcedureInfo()));
     objPtr.setPropertyValue(Props::START_PLAYBACK, Procedure([this] { this->startPlayback(); }));
@@ -100,21 +114,6 @@ void FilePlayerFbImpl::readProperties()
 
     const Int intervalMs = objPtr.getPropertyValue(Props::OUTPUT_PACKET_INTERVAL_MS);
     packetInterval = std::chrono::milliseconds(std::max<Int>(1, intervalMs));
-}
-
-void FilePlayerFbImpl::onFilePathChanged()
-{
-    auto lock = getRecursiveConfigLock();
-
-    if (!playing)
-    {
-        readProperties();
-        return;
-    }
-
-    // Pointing the player at another file while it runs replaces what is being replayed.
-    stopPlayback();
-    startPlayback();
 }
 
 void FilePlayerFbImpl::startPlayback()

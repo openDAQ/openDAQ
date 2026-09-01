@@ -51,6 +51,9 @@ BEGIN_NAMESPACE_OPENDAQ_FILE_RECORDER_MODULE
  * Samples are grouped into output packets no longer than OutputPacketIntervalMs, and a pause
  * longer than that always ends a packet, so a gap is reproduced as a wait between packets rather
  * than being smeared across one.
+ *
+ * All settings are latched when playback starts, so they are read-only while it runs and settable
+ * again once it is stopped.
  */
 class FilePlayerFbImpl final : public FunctionBlock
 {
@@ -183,16 +186,17 @@ private:
     void initSignals();
 
     /*!
-     * @brief Reads the properties into the cached members. Playback settings are latched when
-     *     playback starts, so changing them mid-playback takes effect at the next start.
+     * @brief Reads the properties into the cached members. Only ever called while stopped,
+     *     because the properties are read-only while playing.
      */
     void readProperties();
 
     /*!
-     * @brief Called when FilePath changes: restarts playback if it was running, so that the new
-     *     file replaces the old one.
+     * @brief Returns a condition which is true exactly while playing, for use as a property's
+     *     read-only flag. The flag is re-evaluated on every read, so the properties unlock again
+     *     when playback stops.
      */
-    void onFilePathChanged();
+    EvalValuePtr lockedWhilePlaying();
 
     /*!
      * @brief Builds the linear domain descriptor used by the `FixedSampleRate` mode.
@@ -273,9 +277,9 @@ private:
 
     /*!
      * @brief True between a successful start and the stop which follows it. Written under the
-     *     configuration lock.
+     *     configuration lock, and read without it by the properties' read-only condition.
      */
-    bool playing = false;
+    std::atomic_bool playing{false};
 
     // The members below belong to the playback thread and are not shared.
     std::unique_ptr<SignalFileReader> reader;

@@ -45,6 +45,9 @@ BEGIN_NAMESPACE_OPENDAQ_FILE_RECORDER_MODULE
  * A signal's recording is split across several files when the size limit set by MaxFileSizeMB is
  * reached, and also whenever the signal's descriptor changes. Every file repeats the full header
  * and can be replayed on its own by FilePlayerFbImpl.
+ *
+ * The properties become read-only while recording, so that a recording in progress cannot be
+ * redirected or resized underneath itself. They are settable again once it is stopped.
  */
 class FileRecorderFbImpl final : public FunctionBlockImpl<IFunctionBlock, IRecorder>
 {
@@ -73,6 +76,8 @@ public:
         /*!
          * @brief The path to the directory where recordings are written. It is created if it does
          *     not exist. Relative paths are interpreted against the process's working directory.
+         *
+         * Read-only while recording.
          */
         static constexpr const char* PATH = "Path";
 
@@ -80,6 +85,8 @@ public:
          * @brief The size in megabytes at which a file is closed and the recording continues in
          *     the next part, or 0 for no limit. The limit is checked after each packet, so a file
          *     may exceed it by up to one packet.
+         *
+         * Read-only while recording.
          */
         static constexpr const char* MAX_FILE_SIZE_MB = "MaxFileSizeMB";
     };
@@ -151,6 +158,13 @@ private:
     void initProperties();
 
     /*!
+     * @brief Returns a condition which is true exactly while recording, for use as a property's
+     *     read-only flag. The flag is re-evaluated on every read, so the properties unlock again
+     *     when the recording stops.
+     */
+    EvalValuePtr lockedWhileRecording();
+
+    /*!
      * @brief Removes input ports which no longer have a signal and appends a fresh unconnected
      *     one, so that exactly one port is always free to be connected.
      */
@@ -175,6 +189,10 @@ private:
      */
     std::shared_ptr<SignalFileWriter> findWriter(IInputPort* port);
 
+    /*!
+     * @brief Caches the properties into the members the writers are created from. Only ever
+     *     called while stopped, because the properties are read-only while recording.
+     */
     void readProperties();
 
     /*!

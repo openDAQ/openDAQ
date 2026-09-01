@@ -1,6 +1,8 @@
 #include <functional>
 #include <vector>
 
+#include <coreobjects/eval_value_factory.h>
+
 #include <opendaq/custom_log.h>
 #include <opendaq/opendaq.h>
 
@@ -141,12 +143,19 @@ void FileRecorderFbImpl::activeChanged()
         stopRecording();
 }
 
+EvalValuePtr FileRecorderFbImpl::lockedWhileRecording()
+{
+    // EvalValueFunc resolves the bare identifier through the callback, which lets the flag read
+    // the recording state directly instead of needing a property to mirror it.
+    return EvalValueFunc("recording", Function([this](const BaseObjectPtr& /*name*/) { return BooleanPtr(recording.load()); }));
+}
+
 void FileRecorderFbImpl::initProperties()
 {
-    objPtr.addProperty(StringProperty(Props::PATH, ""));
+    objPtr.addProperty(StringPropertyBuilder(Props::PATH, "").setReadOnly(lockedWhileRecording()).build());
     objPtr.getOnPropertyValueWrite(Props::PATH) += std::bind(&FileRecorderFbImpl::readProperties, this);
 
-    objPtr.addProperty(IntProperty(Props::MAX_FILE_SIZE_MB, 100));
+    objPtr.addProperty(IntPropertyBuilder(Props::MAX_FILE_SIZE_MB, 100).setReadOnly(lockedWhileRecording()).build());
     objPtr.getOnPropertyValueWrite(Props::MAX_FILE_SIZE_MB) += std::bind(&FileRecorderFbImpl::readProperties, this);
 }
 
@@ -206,24 +215,10 @@ void FileRecorderFbImpl::readProperties()
 {
     auto lock = getRecursiveConfigLock();
 
-    const auto newPath = fs::path(static_cast<std::string>(objPtr.getPropertyValue(Props::PATH))).lexically_normal();
+    path = fs::path(static_cast<std::string>(objPtr.getPropertyValue(Props::PATH))).lexically_normal();
 
     const Int maxFileSizeMb = objPtr.getPropertyValue(Props::MAX_FILE_SIZE_MB);
-    const auto newMaxFileSizeBytes = maxFileSizeMb > 0 ? static_cast<std::uint64_t>(maxFileSizeMb) * BYTES_PER_MEGABYTE : 0;
-
-    if (newPath == path && newMaxFileSizeBytes == maxFileSizeBytes)
-        return;
-
-    path = newPath;
-    maxFileSizeBytes = newMaxFileSizeBytes;
-
-    // Changing where or how large recordings are written while they are running continues the
-    // recording in fresh files under the new settings.
-    if (recording)
-    {
-        clearWriters();
-        createWriters();
-    }
+    maxFileSizeBytes = maxFileSizeMb > 0 ? static_cast<std::uint64_t>(maxFileSizeMb) * BYTES_PER_MEGABYTE : 0;
 }
 
 END_NAMESPACE_OPENDAQ_FILE_RECORDER_MODULE

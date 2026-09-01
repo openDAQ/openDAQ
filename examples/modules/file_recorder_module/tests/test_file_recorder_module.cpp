@@ -9,6 +9,7 @@
 
 #include <coretypes/common.h>
 #include <coretypes/errorinfo.h>
+#include <coretypes/exceptions.h>
 #include <coretypes/filesystem.h>
 #include <opendaq/context_factory.h>
 #include <opendaq/module_ptr.h>
@@ -333,6 +334,34 @@ TEST_F(FileRecorderModuleTest, RejectsRedundantStartAndStop)
     ASSERT_EQ(recordingsIn(scratch.get()).size(), 1u);
 }
 
+TEST_F(FileRecorderModuleTest, PropertiesAreReadOnlyWhileRecording)
+{
+    const ScratchDirectory scratch("file_recorder_readonly");
+
+    const auto module = createTestModule();
+    const auto fb = module.createFunctionBlock(RECORDER_ID, nullptr, "fb");
+    const auto signal = createSignal(fb.getContext(), linearDomainDescriptor(1000));
+
+    fb.getInputPorts().getItemAt(0).asPtr<IInputPortConfig>().connect(signal);
+    fb.setPropertyValue("Path", scratch.get().string());
+
+    const auto recorder = fb.asPtr<IRecorder>(true);
+    recorder->startRecording();
+
+    ASSERT_THROW(fb.setPropertyValue("Path", (scratch.get() / "elsewhere").string()), AccessDeniedException);
+    daqClearErrorInfo();
+    ASSERT_THROW(fb.setPropertyValue("MaxFileSizeMB", 1), AccessDeniedException);
+    daqClearErrorInfo();
+
+    ASSERT_EQ(fb.getPropertyValue("Path"), scratch.get().string());
+
+    recorder->stopRecording();
+
+    // Settable again once the recording is over.
+    ASSERT_NO_THROW(fb.setPropertyValue("MaxFileSizeMB", 1));
+    ASSERT_EQ(fb.getPropertyValue("MaxFileSizeMB"), 1);
+}
+
 TEST_F(FileRecorderModuleTest, RollsOverWhenMaxFileSizeReached)
 {
     const ScratchDirectory scratch("file_recorder_rollover");
@@ -579,6 +608,50 @@ TEST_F(FileRecorderModuleTest, LoopContinuesDomainForward)
         ASSERT_EQ(domain[i], expectedDomain[i]) << "at sample " << i;
         ASSERT_DOUBLE_EQ(values[i], static_cast<double>(i % ticks.size())) << "at sample " << i;
     }
+}
+
+TEST_F(FileRecorderModuleTest, PlayerPropertiesAreReadOnlyWhilePlaying)
+{
+    const ScratchDirectory scratch("file_recorder_player_readonly");
+
+    const auto module = createTestModule();
+
+    const auto recorderFb = module.createFunctionBlock(RECORDER_ID, nullptr, "recorder");
+    const auto signal = createSignal(recorderFb.getContext(), linearDomainDescriptor(1000));
+
+    recorderFb.getInputPorts().getItemAt(0).asPtr<IInputPortConfig>().connect(signal);
+    recorderFb.setPropertyValue("Path", scratch.get().string());
+
+    const auto recorder = recorderFb.asPtr<IRecorder>(true);
+    recorder->startRecording();
+    sendImplicitPacket(signal, 20000, 0.0, 0);
+    recorder->stopRecording();
+
+    const auto files = recordingsIn(scratch.get());
+    ASSERT_EQ(files.size(), 1u);
+
+    const auto playerFb = module.createFunctionBlock(PLAYER_ID, nullptr, "player");
+    playerFb.setPropertyValue("FilePath", files.front().string());
+    playerFb.setPropertyValue("SampleRate", 1000.0);
+
+    ProcedurePtr(playerFb.getPropertyValue("StartPlayback"))();
+
+    ASSERT_THROW(playerFb.setPropertyValue("FilePath", "somewhere_else.daqrec"), AccessDeniedException);
+    daqClearErrorInfo();
+    ASSERT_THROW(playerFb.setPropertyValue("SampleRate", 2000.0), AccessDeniedException);
+    daqClearErrorInfo();
+    ASSERT_THROW(playerFb.setPropertyValue("PlaybackMode", 1), AccessDeniedException);
+    daqClearErrorInfo();
+    ASSERT_THROW(playerFb.setPropertyValue("Loop", True), AccessDeniedException);
+    daqClearErrorInfo();
+
+    ASSERT_EQ(playerFb.getPropertyValue("FilePath"), files.front().string());
+
+    ProcedurePtr(playerFb.getPropertyValue("StopPlayback"))();
+
+    // Settable again once playback is over.
+    ASSERT_NO_THROW(playerFb.setPropertyValue("SampleRate", 2000.0));
+    ASSERT_EQ(playerFb.getPropertyValue("SampleRate"), 2000.0);
 }
 
 TEST_F(FileRecorderModuleTest, ReplayReportsMissingFile)

@@ -269,6 +269,7 @@ set(SRC_OpenDAQ_Headers
     include/copendaq/reader/tail_reader_builder.h
     include/copendaq/reader/tail_reader_status.h
     include/copendaq/reader/tail_reader.h
+    include/copendaq/reader/duration_tail_reader.h
 
     include/copendaq/scheduler/awaitable.h
     include/copendaq/scheduler/common.h
@@ -397,6 +398,7 @@ set(SRC_OpenDAQ_Cpp
     src/copendaq/reader/tail_reader_builder.cpp
     src/copendaq/reader/tail_reader_status.cpp
     src/copendaq/reader/tail_reader.cpp
+    src/copendaq/reader/duration_tail_reader.cpp
 
     src/copendaq/scheduler/awaitable.cpp
     src/copendaq/scheduler/graph_visualization.cpp

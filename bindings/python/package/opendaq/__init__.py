@@ -1,4 +1,6 @@
 from .opendaq import *
+from .module import Module
+from .function_block import FunctionBlock
 import os
 
 OPENDAQ_MODULES_DIR = os.path.dirname(os.path.abspath(__file__))

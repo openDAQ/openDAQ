@@ -197,6 +197,10 @@ shutil.copy(os.path.join(path_build_pip_source_dir, 'opendaq', '__init__.py'), p
 replace_opendaq_version_stub(os.path.join(path_stage_package, '__init__.py'))
 os.makedirs(os.path.join(path_stage_package, 'opendaq'))
 
+# plugin-authoring base classes (opendaq.Module / opendaq.FunctionBlock)
+shutil.copy(os.path.join(path_build_pip_source_dir, 'opendaq', 'module.py'), path_stage_package)
+shutil.copy(os.path.join(path_build_pip_source_dir, 'opendaq', 'function_block.py'), path_stage_package)
+
 
 def generate_stubs(use_cache):
     stubs_cache_path = os.path.join(build_dir, '..', 'stubs')

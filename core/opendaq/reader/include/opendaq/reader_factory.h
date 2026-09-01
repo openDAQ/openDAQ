@@ -36,6 +36,8 @@
 #include <opendaq/tail_reader_builder_ptr.h>
 #include <opendaq/tail_reader_status_ptr.h>
 
+#include <opendaq/duration_tail_reader_ptr.h>
+
 #include <opendaq/packet_reader_ptr.h>
 
 BEGIN_NAMESPACE_OPENDAQ
@@ -342,6 +344,33 @@ inline TailReaderBuilderPtr TailReaderBuilder()
 inline TailReaderPtr TailReaderFromBuilder(const TailReaderBuilderPtr& builder)
 {
     return TailReaderFromBuilder_Create(builder);
+}
+
+/*!
+ * @brief Creates a duration tail reader that reads from the given signal, keeping a trailing
+ * window of `historyDurationMs` milliseconds of history instead of a fixed sample count.
+ */
+inline DurationTailReaderPtr DurationTailReader(SignalPtr signal,
+                                                 UInt historyDurationMs,
+                                                 SampleType valueReadType,
+                                                 SampleType domainReadType,
+                                                 ReadMode mode = ReadMode::Scaled)
+{
+    return DurationTailReader_Create(signal, historyDurationMs, valueReadType, domainReadType, mode);
+}
+
+/*!
+ * @brief Creates a duration tail reader bound to an existing (unconnected) input port, keeping
+ * a trailing window of `historyDurationMs` milliseconds of history instead of a fixed sample
+ * count.
+ */
+inline DurationTailReaderPtr DurationTailReaderFromPort(InputPortConfigPtr port,
+                                                         UInt historyDurationMs,
+                                                         SampleType valueReadType,
+                                                         SampleType domainReadType,
+                                                         ReadMode mode = ReadMode::Scaled)
+{
+    return DurationTailReaderFromPort_Create(port, historyDurationMs, valueReadType, domainReadType, mode);
 }
 
 inline BlockReaderBuilderPtr BlockReaderBuilder()

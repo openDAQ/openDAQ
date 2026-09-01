@@ -83,15 +83,6 @@ void defineIInputPortConfig(pybind11::module_ m, PyDaqIntf<daq::IInputPortConfig
             objectPtr.notifyPacketEnqueuedOnThisThread();
         },
         "Gets called when a packet was enqueued in a connection.");
-    cls.def_property("listener",
-        nullptr,
-        [](daq::IInputPortConfig *object, daq::IInputPortNotifications* port)
-        {
-            py::gil_scoped_release release;
-            const auto objectPtr = daq::InputPortConfigPtr::Borrow(object);
-            objectPtr.setListener(port);
-        },
-        "Set the object receiving input-port related events and notifications.");
     cls.def_property("custom_data",
         [](daq::IInputPortConfig *object)
         {
@@ -132,4 +123,19 @@ void defineIInputPortConfig(pybind11::module_ m, PyDaqIntf<daq::IInputPortConfig
             objectPtr.notifyPacketEnqueuedWithScheduler();
         },
         "Gets called when a packet was enqueued in a connection.");
+    cls.def_property("listener",
+        [](daq::IInputPortConfig *object)
+        {
+            py::gil_scoped_release release;
+            const auto objectPtr = daq::InputPortConfigPtr::Borrow(object);
+            return objectPtr.getListener().detach();
+        },
+        [](daq::IInputPortConfig *object, daq::IInputPortNotifications* port)
+        {
+            py::gil_scoped_release release;
+            const auto objectPtr = daq::InputPortConfigPtr::Borrow(object);
+            objectPtr.setListener(port);
+        },
+        py::return_value_policy::take_ownership,
+        "Gets the object receiving input-port related events and notifications. / Set the object receiving input-port related events and notifications.");
 }

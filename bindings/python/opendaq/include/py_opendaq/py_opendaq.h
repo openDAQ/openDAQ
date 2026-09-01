@@ -59,6 +59,7 @@ PyDaqIntf<daq::ISampleReader, daq::IReader> declareISampleReader(pybind11::modul
 PyDaqIntf<daq::IBlockReader, daq::ISampleReader> declareIBlockReader(pybind11::module_ m);
 PyDaqIntf<daq::IStreamReader, daq::ISampleReader> declareIStreamReader(pybind11::module_ m);
 PyDaqIntf<daq::ITailReader, daq::ISampleReader> declareITailReader(pybind11::module_ m);
+PyDaqIntf<daq::IDurationTailReader, daq::ISampleReader> declareIDurationTailReader(pybind11::module_ m);
 PyDaqIntf<daq::IMultiReader, daq::ISampleReader> declareIMultiReader(pybind11::module_ m);
 PyDaqIntf<daq::IBlockReaderBuilder, daq::IBaseObject> declareIBlockReaderBuilder(pybind11::module_ m);
 PyDaqIntf<daq::ITailReaderBuilder, daq::IBaseObject> declareITailReaderBuilder(pybind11::module_ m);
@@ -172,6 +173,7 @@ void defineTimeTailReader(pybind11::module_ m, py::class_<daq::TimeReader<daq::T
 void defineTimeBlockReader(pybind11::module_ m, py::class_<daq::TimeReader<daq::BlockReaderPtr>> cls);
 void defineTimeMultiReader(pybind11::module_ m, py::class_<daq::TimeReader<daq::MultiReaderPtr>> cls);
 void defineITailReader(pybind11::module_ m, PyDaqIntf<daq::ITailReader, daq::ISampleReader> cls);
+void defineIDurationTailReader(pybind11::module_ m, PyDaqIntf<daq::IDurationTailReader, daq::ISampleReader> cls);
 void defineIBlockReaderBuilder(pybind11::module_ m, PyDaqIntf<daq::IBlockReaderBuilder, daq::IBaseObject> cls);
 void defineITailReaderBuilder(pybind11::module_ m, PyDaqIntf<daq::ITailReaderBuilder, daq::IBaseObject> cls);
 void defineIStreamReaderBuilder(pybind11::module_ m, PyDaqIntf<daq::IStreamReaderBuilder, daq::IBaseObject> cls);

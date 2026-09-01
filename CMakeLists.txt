@@ -129,6 +129,7 @@ cmake_dependent_option(OPENDAQ_ENABLE_PYTHON_BINDINGS_TESTS "Enable python bindi
 cmake_dependent_option(OPENDAQ_ENABLE_CSHARP_BINDINGS_TESTS "Enable csharp bindings tests" ON "OPENDAQ_GENERATE_CSHARP_BINDINGS;OPENDAQ_ENABLE_TESTS" OFF)
 cmake_dependent_option(OPENDAQ_ENABLE_C_BINDINGS_TESTS "Enable C bindings tests" ON "OPENDAQ_GENERATE_C_BINDINGS;OPENDAQ_ENABLE_TESTS" OFF)
 cmake_dependent_option(OPENDAQ_GENERATE_PYTHON_BINDINGS_STUBS "Generate python bindings stubs for auto-completion" OFF "OPENDAQ_GENERATE_PYTHON_BINDINGS" OFF)
+cmake_dependent_option(OPENDAQ_GENERATE_PYTHON_MODULE_BINDINGS "Generate C++ infrastructure for defining openDAQ modules and function blocks in Python" OFF "OPENDAQ_GENERATE_PYTHON_BINDINGS" OFF)
 cmake_dependent_option(OPENDAQ_SKIP_UNSTABLE_TESTS "Skip tests marked as unstable" ON "OPENDAQ_ENABLE_UNSTABLE_TEST_LABELS" ON)
 
 # Optional Modules
@@ -256,6 +257,11 @@ if (OPENDAQ_GENERATE_PYTHON_BINDINGS OR OPENDAQ_ENABLE_COVERAGE) #gcc coverage
     set(OPENDAQ_PYTHON_COMPONENTS Interpreter)
     if(OPENDAQ_GENERATE_PYTHON_BINDINGS)
         list(APPEND OPENDAQ_PYTHON_COMPONENTS Development.Module)
+    endif()
+    if(OPENDAQ_GENERATE_PYTHON_MODULE_BINDINGS)
+        # pybind11::embed needs the actual embeddable libpython (Development.Module alone is
+        # only enough to build an extension that a hosting interpreter dlopen()s).
+        list(APPEND OPENDAQ_PYTHON_COMPONENTS Development.Embed)
     endif()
     set(OPENDAQ_PYTHON_VERSION "" CACHE STRING "Exact Python version to use for bindings generation")
     if(OPENDAQ_PYTHON_VERSION)

@@ -21,6 +21,7 @@
 #include <date/date.h>
 #include <opendaq/signal_exceptions.h>
 #include <opendaq/tail_reader_ptr.h>
+#include <opendaq/duration_tail_reader_ptr.h>
 #include <opendaq/block_reader_ptr.h>
 #include <opendaq/multi_reader_ptr.h>
 #include <opendaq/reader_utils.h>
@@ -66,6 +67,13 @@ struct ReaderStatusType<BlockReaderPtr>
 
 template<>
 struct ReaderStatusType<TailReaderPtr>
+{
+    using Type = daq::TailReaderStatusPtr;
+    using IType = daq::ITailReaderStatus;
+};
+
+template<>
+struct ReaderStatusType<DurationTailReaderPtr>
 {
     using Type = daq::TailReaderStatusPtr;
     using IType = daq::ITailReaderStatus;

@@ -12,6 +12,7 @@ function(rtgen_component_${BASE_NAME})
     rtgen(SRC_BlockReaderBuilder block_reader_builder.h INTERNAL)
     rtgen(SRC_TailReader tail_reader.h)
     rtgen(SRC_TailReaderBuilder tail_reader_builder.h INTERNAL)
+    rtgen(SRC_DurationTailReader duration_tail_reader.h)
     rtgen(SRC_PacketReader packet_reader.h)
     rtgen(SRC_MultiReaderBuilder multi_reader_builder.h INTERNAL)
     rtgen(SRC_MultiReader multi_reader.h)
@@ -30,6 +31,7 @@ function(rtgen_component_${BASE_NAME})
         ${SRC_BlockReaderBuilder_PublicHeaders}
         ${SRC_TailReader_PublicHeaders}
         ${SRC_TailReaderBuilder_PublicHeaders}
+        ${SRC_DurationTailReader_PublicHeaders}
         ${SRC_PacketReader_PublicHeaders}
         ${SRC_MultiReader_PublicHeaders}
         ${SRC_MultiReaderBuilder_PublicHeaders}
@@ -50,6 +52,7 @@ function(rtgen_component_${BASE_NAME})
         ${SRC_BlockReaderBuilder_PrivateHeaders}
         ${SRC_TailReader_PrivateHeaders}
         ${SRC_TailReaderBuilder_PrivateHeaders}
+        ${SRC_DurationTailReader_PrivateHeaders}
         ${SRC_PacketReader_PrivateHeaders}
         ${SRC_MultiReader_PrivateHeaders}
         ${SRC_MultiReaderBuilder_PrivateHeaders}
@@ -63,6 +66,7 @@ function(rtgen_component_${BASE_NAME})
         ${SRC_StreamReader_Cpp}
         ${SRC_BlockReader_Cpp}
         ${SRC_TailReader_Cpp}
+        ${SRC_DurationTailReader_Cpp}
         ${SRC_PacketReader_Cpp}
         ${SRC_MultiReader_Cpp}
         PARENT_SCOPE
@@ -119,7 +123,13 @@ function(create_component_source_groups_${BASE_NAME})
         ${SDK_SRC_DIR}/tail_reader_impl.cpp
         ${SDK_SRC_DIR}/tail_reader_builder_impl.cpp
     )
-    
+
+    source_group("reader//duration_tail" FILES
+        ${SDK_HEADERS_DIR}/duration_tail_reader.h
+        ${SDK_HEADERS_DIR}/duration_tail_reader_impl.h
+        ${SDK_SRC_DIR}/duration_tail_reader_impl.cpp
+    )
+
     source_group("reader//packet" FILES 
         ${SDK_HEADERS_DIR}/packet_reader.h
         ${SDK_HEADERS_DIR}/packet_reader_impl.h
@@ -141,7 +151,7 @@ function(create_component_source_groups_${BASE_NAME})
     )
 endfunction()
 
-set(SRC_PublicHeaders_Component 
+set(SRC_PublicHeaders_Component
     reader_factory.h
     reader_errors.h
     reader_exceptions.h
@@ -167,10 +177,11 @@ set(SRC_PrivateHeaders_Component
     signal_reader.h
     reader_status_impl.h
     reader_impl.h
+    duration_tail_reader_impl.h
     PARENT_SCOPE
 )
 
-set(SRC_Cpp_Component 
+set(SRC_Cpp_Component
     stream_reader_impl.cpp
     stream_reader_builder_impl.cpp
     block_reader_impl.cpp
@@ -184,6 +195,7 @@ set(SRC_Cpp_Component
     multi_reader_impl.cpp
     multi_reader_builder_impl.cpp
     signal_reader.cpp
+    duration_tail_reader_impl.cpp
     reader.natvis
     PARENT_SCOPE
 )

@@ -6,6 +6,7 @@ set(TEST_HEADERS reader_common.h
 
 set(TEST_SOURCES test_factories.cpp
                  test_tail_reader.cpp
+                 test_duration_tail_reader.cpp
                  test_packet_reader.cpp
                  test_stream_reader.cpp
                  test_date.cpp

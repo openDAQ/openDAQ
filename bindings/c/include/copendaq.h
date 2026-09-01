@@ -164,6 +164,7 @@ extern "C"
 #include <copendaq/reader/tail_reader_builder.h>
 #include <copendaq/reader/tail_reader_status.h>
 #include <copendaq/reader/tail_reader.h>
+#include <copendaq/reader/duration_tail_reader.h>
 
 #include <copendaq/scheduler/awaitable.h>
 #include <copendaq/scheduler/graph_visualization.h>

@@ -1,0 +1,278 @@
+= Language Binding Internals
+
+This article is meant for developers who want to *create* (or maintain) openDAQ(TM) bindings for a programming
+language. If you only want to *use* openDAQ(TM) from an already-supported language, the quick-start guide or
+language-specific repositories are a better resource.
+
+This article explains:
+
+* the binary contract that lets non-C++ languages call into the C++ SDK at all,
+* the three strategies the existing bindings use to cross the language boundary, and how to choose one for
+  a new language,
+* the parts of openDAQ(TM) every binding has to deal with: reference counting, error codes, core-type conversion,
+  callbacks, polymorphic arguments, and sample buffers.
+
+The article builds on xref:interfaces_objects_wrappers.adoc[Interfaces, Objects and Wrappers], which describes the
+interface architecture from the C++ side; this article looks at the same architecture from the outside, as a
+foreign-language consumer.
+
+== The binary contract
+
+C++ compilers do not agree on a common ABI: symbol names are mangled differently, exception handling is
+implementation-specific, and the C++ standard does not even require virtual dispatch to be implemented with virtual
+method tables, let alone prescribe their layout. A general C++ API therefore cannot be consumed across a compiler
+boundary at all.
+
+openDAQ(TM) sidesteps this by restricting its public surface to a COM-like subset on which every mainstream ABI
+happens to agree:
+
+* Interfaces are pure-virtual structs with no data members, declared through `DECLARE_OPENDAQ_INTERFACE`
+  (`core/coretypes/include/coretypes/common.h`). They form single-inheritance chains rooted in `IBaseObject`, whose
+  first three entries -- `queryInterface`, `addRef`, `releaseRef` -- make it binary-compatible with COM's `IUnknown`.
+* Interfaces declare no overloaded methods and no virtual destructor. Both would shift virtual-table slots
+  differently between the Microsoft and Itanium C++ ABIs (MSVC lays out overload sets in reverse declaration order,
+  and gives a virtual destructor one slot where Itanium gives it two).
+* Every method returns an `ErrCode` and produces results through out-parameters (the sole exceptions are `addRef` /
+  `releaseRef`, which return the new reference count). No exception ever crosses the boundary, and no non-trivial
+  type is returned by value.
+* No standard-library type appears in a signature: strings cross as `IString`, containers as `IList` / `IDict`.
+* Object construction goes through factory functions exported with `extern "C"` linkage
+  (`OPENDAQ_DECLARE_CLASS_FACTORY`, `core/coretypes/include/coretypes/factory.h`), so no mangled symbol is ever
+  needed across the library boundary.
+* Runtime type discovery uses `queryInterface` with explicit `IntfID` values instead of RTTI; `dynamic_cast` and
+  `typeid` are never used across the boundary.
+* Objects are destroyed by the module that created them, behind `releaseRef`. Memory never crosses allocator
+  boundaries.
+* `INTERFACE_FUNC` expands to `__stdcall` on Windows (`common.h`) and to nothing elsewhere. This matters only on
+  32-bit x86 -- the one platform where calling conventions genuinely diverge; x64 ignores the annotation. With
+  `__stdcall`, `this` is passed as an ordinary first argument on the stack rather than in a register, so a
+  virtual-table slot can be called like a plain C function pointer taking the object pointer first.
+
+Under these constraints, the Microsoft and Itanium ABIs lay out an interface identically: the pointer to the virtual
+table sits at object offset zero, and the table contains one function pointer per method, in declaration order,
+base-interface methods first. Note that this is not guaranteed by the C++ standard, but it holds for every mainstream
+compiler on every platform openDAQ(TM) supports. The one practical caveat is Windows, which hosts two ABI families:
+binaries built with MSVC (or clang-cl) and binaries built with MinGW are not compatible at the C++ level, so a
+consumer must match the toolchain family of the openDAQ(TM) binaries it loads, or go through the C API below.
+
+== Three ways to consume openDAQ(TM)
+
+The existing bindings demonstrate three distinct strategies. New bindings will almost always be a variation of one of
+them.
+
+=== In-process C++ (the Python bindings)
+
+The Python bindings (`bindings/python`) are not a foreign-function interface at all. They are C++ source code --
+pybind11 wrapper classes, one `py_*.cpp` file per interface -- compiled with the SDK headers and linked against the
+openDAQ(TM) libraries as part of the openDAQ(TM) CMake build, producing a native Python extension module. Name
+mangling and virtual dispatch are handled by the C++ compiler like in any other C++ program.
+
+*Choose this when* the target runtime has a mature C++ embedding story (Python, Node.js, Ruby, Lua) and you are
+willing to build and ship a native artifact per platform and runtime version.
+
+*Trade-offs:* full access to C++-side conveniences (smart pointers, `daq::TimeReader`, templates), the best
+performance, and no ABI bookkeeping -- but the binding must be rebuilt for every platform and interpreter version,
+with a toolchain that is ABI-compatible with the openDAQ(TM) binaries.
+
+=== Going through the C API (the C bindings, and FFI bindings built on top of them)
+
+openDAQ(TM) also ships a flat C API: `bindings/c` is a generated C++ shim, compiled into a shared library of its own
+(`copendaq`), that wraps each interface method and factory in a plain exported C function (the virtual dispatch
+happens inside the shim, compiled as ordinary C++), e.g.:
+
+[source,c]
+----
+daqErrCode daqString_createString(daqString** obj, daqConstCharPtr str);
+daqErrCode daqString_getCharPtr(daqString* self, daqConstCharPtr* value);
+daqErrCode daqComponent_getVisible(daqComponent* self, daqBool* visible);
+----
+
+This one artifact plays two distinct roles:
+
+* *It is the C binding.* A C program includes the headers from `bindings/c/include`, links the shim library, and
+  uses openDAQ(TM) directly -- the same way it would use any C library.
+* *More importantly for this article: it is the foundation for other languages' bindings.* Because a C function ABI
+  is stable and universally supported, any language with a C foreign-function interface (which is essentially every
+  language) can call the same shim library at runtime, without compiling anything. A binding built this way is a
+  binding to the complete openDAQ(TM) SDK that uses the C symbols as its entry points. Out-of-tree bindings typically
+  machine-generate their FFI layer from the C headers; the community Common Lisp bindings, for example, parse those
+  headers with a small script and emit both a 1:1 FFI layer and an object-oriented layer above it.
+
+Note that the `copendaq` library is not built by default: configure openDAQ(TM) with `-DOPENDAQ_GENERATE_C_BINDINGS=ON`
+to build it. Each binding package must decide how to build or regenerate `copendaq` for its pinned openDAQ(TM)
+version and ship it alongside the binding in whatever form is idiomatic for the language's package ecosystem.
+
+*Choose this when* the target language has a C FFI but no reliable way to express C++ virtual tables, or when the
+binding should work against any openDAQ(TM) build regardless of toolchain.
+
+*Trade-offs:* maximum portability and safety -- an ABI mismatch becomes a missing-symbol error at load time instead
+of memory corruption -- at the cost of building and shipping `copendaq`, plus one extra indirection per call.
+
+=== Direct virtual-table access (the C# and Delphi bindings)
+
+The .NET bindings (`bindings/dotnet`) talk to the C++ objects directly, with no shim in between. For each interface
+they declare a structure that mirrors the virtual table -- one unmanaged function pointer per method, in declaration
+order:
+
+[source,csharp]
+----
+internal unsafe class RawBaseObject : RawIUnknown
+{
+    public delegate* unmanaged[Stdcall]<IntPtr, ref Guid, out IntPtr, ErrorCode> BorrowInterface;
+    public delegate* unmanaged[Stdcall]<IntPtr, ErrorCode> Dispose;
+    // ... one entry per method, in declaration order
+}
+----
+
+Wrapping a native object reads the virtual-table pointer from offset zero (`Marshal.ReadIntPtr(nativePointer, 0)`)
+and overlays the structure on it; a method call then invokes the slot with the object pointer as the first argument.
+Factories are ordinary `DllImport` bindings of the `extern "C"` create functions, and since `IBaseObject` is
+`IUnknown`-shaped, the C# code reuses .NET's built-in `Marshal.QueryInterface` / `AddRef` / `Release` on the raw
+pointer. The Delphi bindings (`core/*/bindings/delphi`) rely on the same layout through Delphi's native COM-style
+interface support.
+
+*Choose this when* the language has first-class support for structures of unmanaged function pointers (C#, Delphi,
+Rust) and you want a self-contained binding that loads stock openDAQ(TM) release binaries with no extra native
+library.
+
+*Trade-offs:* no shim to build or ship and one less indirection -- but the binding takes over responsibility for the
+ABI. A slot-order mistake, or version skew between the binding's slot tables and the installed library, produces
+silent memory corruption rather than a load-time error. The binding must also respect the platform split on Windows
+described above.
+
+== Calling back into the binding language
+
+openDAQ(TM) also invokes code written in the binding language: `IProcedure` / `IFunction` callables (function
+properties, custom search filters) and event handlers. The C API accepts plain function pointers for these
+(`bindings/c/include/ccommon.h`):
+
+[source,c]
+----
+typedef daqErrCode (*daqFuncCall)(daqBaseObject* params, daqBaseObject** result);
+typedef daqErrCode (*daqProcCall)(daqBaseObject* params);
+typedef void (*daqEventCall)(daqBaseObject* sender, daqBaseObject* args);
+----
+
+The contract:
+
+* *No user-data argument* -- each distinct closure needs its own native entry point (per-instance thunks where the
+  runtime provides them, e.g. .NET delegates or libffi closures; generated trampolines otherwise).
+* *Ownership*: `daqProcCall` / `daqFuncCall` receive `params` *borrowed*, and `daqFuncCall` writes an *owned*
+  reference into `*result`; the C-API event handler add-refs `sender` and `args` for the callback.
+* *Params encoding*: `NULL` for no arguments, the object itself for one, an `IList` for several.
+* *No unwinding across the boundary*: convert exceptions to an `ErrCode` (`OPENDAQ_ERR_GENERALERROR` at minimum)
+  before returning, and expect callbacks on openDAQ(TM) worker threads.
+
+== openDAQ(TM) characteristics relevant to binding creation
+
+Whichever strategy a binding uses to interact with openDAQ(TM), the following openDAQ(TM) traits additionally shape
+its design; how each is best handled depends on the target language.
+
+=== Reference counting
+
+Objects are created with a reference count of one, owned by the caller of the factory. Out-parameters of getters
+likewise return a reference the caller owns and must eventually release. Plain in-parameters are borrowed -- do not
+release them, and add-ref before storing them beyond the call. Garbage-collected languages typically attach a
+finalizer that calls `releaseRef` exactly once per owned reference; languages with deterministic destruction can tie
+the release to scope instead.
+
+=== Error handling
+
+Every `ErrCode` return must be checked and mapped to the language's error mechanism. A failing call stores extended
+error information in thread-local storage; the core library exports `daqGetErrorInfo` / `daqGetErrorInfoMessage` /
+`daqClearErrorInfo` with C linkage (`coretypes/errorinfo.h`) to retrieve it before the next failing call overwrites
+it. These exports come from `coretypes` itself, so they are available to every binding strategy, including ones that
+do not use `copendaq`.
+
+=== Core-type conversion and boxing
+
+The base step of any binding is converting openDAQ(TM) core types -- `IInteger`, `IFloat`, `IString`, `IBoolean`,
+`IRatio`, `IComplexNumber`, and the `IList` / `IDict` containers -- to and from the language's native types. Core-type
+objects are immutable: read them out, convert to a native value, and release the reference (for example, `IString`'s
+`getCharPtr` borrows storage owned by the string object, so the characters must be copied out before the string is
+released).
+
+The existing bindings expose this via two user-facing helpers:
+
+* an interface cast built on `queryInterface`, converting a wrapper to any interface the underlying object
+  implements -- not only along the inheritance chain (C++ `ObjectPtr::asPtr<T>()`, C# `BaseObject.Cast<T>()`,
+  Python's `cast_from` static on every class, Common Lisp `daq:as`), and
+* a conversion between core-type objects and native values (C# implicit conversion operators such as
+  `implicit operator long(BaseObject)`, Common Lisp `daq:unbox`; the Python bindings convert automatically at every
+  call boundary via `baseObjectToPyObject`).
+
+=== Polymorphic arguments and return values
+
+Some calls accept or return an `IBaseObject` or an abstract interface rather than one concrete type. The accepted
+set is usually small, but it is validated at runtime and can depend on system state -- sometimes deducible
+statically, sometimes only at the call. Examples: `IPropertyObject::getPropertyValue` / `setPropertyValue` (the
+type follows the property's value type), `IProperty::getSelectionValues` (a list or a dictionary),
+`INumber`-returning methods such as `IProperty::getMinValue` (an integer or a float), and
+`IContext::getModuleOptions` (a dictionary of heterogeneous values). These calls are where core-type boxing meets
+the user: setting an integer property means boxing a native integer into an `IInteger`, and reading it back means
+unboxing the returned `IBaseObject`.
+
+Every existing binding handles these through its general boxing/conversion mechanism and lets openDAQ(TM) validate
+the value at runtime: the dynamically typed Python bindings box whatever the user passes, and the statically typed
+C# bindings reach the same call-site ergonomics by accepting `BaseObject` with implicit conversions from native
+scalars.
+
+=== Sample buffers
+
+Sample data crosses the boundary as untyped memory whose element type is described at runtime by a data descriptor's
+`SampleType`. Data packets are the one place openDAQ(TM) exposes an object's raw memory directly: `IDataPacket::getData`
+and `getRawData` return a `void*` into buffer storage owned by the packet. The reader APIs instead copy samples into a
+caller-allocated `void*` buffer sized as `count * sample size`, with the sample size accounting for dimensioned
+(vector-valued) signals.
+
+This is the area where bindings legitimately differ the most, and it is critical to pick the representation natural
+to the language -- a NumPy array in Python, a typed array or span in C#, a specialized vector in Lisp -- rather than
+mirroring the C-level buffer handling. Conversion cost matters here more than anywhere else in the API, since sample
+buffers are the high-throughput path.
+
+=== `IntfID` passed by value
+
+`queryInterface` takes the 16-byte interface ID per the platform's struct-passing convention. Dynamic FFI layers
+that cannot express by-value structs portably must special-case this (the C API also exposes per-interface
+`daq<Interface>_getInterfaceId` helpers so IDs never need to be constructed by hand).
+
+== How the existing bindings are generated
+
+All in-tree bindings are generated by *RTGen* (`shared/tools/RTGen`), a C#/ANTLR tool that parses the annotated
+interface headers under `core/*/include` and emits per-interface binding files. It has backends for C
+(`--language=c`, producing `bindings/c`), Python (`--language=python`, producing the pybind11 `py_*.cpp` files), C#,
+Delphi, and C++ smart pointers; `bindings/c/run_rtgen.sh` and `bindings/python/run_rtgen.sh` show the invocations.
+Adding an RTGen backend is the natural path for a new in-tree binding, since the tool already understands the
+interface model (inheritance, factories, argument annotations, documentation comments).
+
+Out-of-tree bindings do not need RTGen: the generated C headers in `bindings/c/include` are themselves a complete,
+machine-readable description of the API surface (every interface, method, factory, enumeration, and callback
+typedef), and are considerably easier to parse than the C++ headers. Generating an FFI layer from them -- and
+regenerating whenever the pinned openDAQ(TM) version changes -- keeps a binding maintainable with a single script.
+
+== Choosing an approach for a new language
+
+As a decision guide:
+
+[cols="1,2,2"]
+|===
+|Language capability |Recommended strategy |Precedent
+
+|Has a C++ embedding API and per-platform builds are acceptable
+|In-process C++ wrapper compiled with the SDK
+|Python (pybind11)
+
+|Has a C FFI (dynamic or compiled)
+|Bind the flat C API in `bindings/c`; generate the FFI layer from its headers
+|C consumers; Common Lisp (community); recommended for Java via the Panama FFI and jextract
+
+|Can express structs of unmanaged function pointers and per-instance native callbacks
+|Direct virtual-table access against stock release binaries
+|C#/.NET, Delphi; a natural fit for Rust (`#[repr(C)]` virtual tables, as used by the Windows COM crates)
+|===
+
+Whichever strategy is chosen, users of the binding will judge it by the same high-level features, so plan for them:
+automatic reference management integrated with the language's memory model; scalar boxing/unboxing so plain native
+values can be passed where `IInteger` / `IString` / ... are expected; `ErrCode` mapped to idiomatic errors; the
+callable params convention hidden behind natural function calls in both directions; typed array access to reader and
+packet buffers; and a packaging story for the native openDAQ(TM) libraries themselves.

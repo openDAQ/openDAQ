@@ -76,6 +76,11 @@ if (DAQMODULES_BASIC_CSV_RECORDER_MODULE)
     add_subdirectory(basic_csv_recorder_module)
 endif()
 
+if (DAQMODULES_FILE_RECORDER_MODULE)
+    message(STATUS "File recorder module")
+    add_subdirectory(file_recorder_module)
+endif()
+
 if (DAQMODULES_PARQUET_RECORDER_MODULE)
     message(STATUS "Parquet recorder module")
     if (CMAKE_VERSION VERSION_LESS "4.0.0")

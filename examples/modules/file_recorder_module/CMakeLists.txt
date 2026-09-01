@@ -1,0 +1,9 @@
+cmake_minimum_required(VERSION 3.10)
+opendaq_set_cmake_folder_context(TARGET_FOLDER_NAME)
+project(FileRecorderModule VERSION ${OPENDAQ_PACKAGE_VERSION} LANGUAGES C CXX)
+
+add_subdirectory(src)
+
+if (OPENDAQ_ENABLE_TESTS)
+    add_subdirectory(tests)
+endif()

@@ -141,6 +141,7 @@ option(DAQMODULES_SIMULATOR_DEVICE_MODULE "Building of simulator device module" 
 option(DAQMODULES_REF_FB_MODULE "Building of reference function block module" OFF)
 option(DAQMODULES_BASIC_CSV_RECORDER_MODULE "Building of basic CSV recorder module" OFF)
 option(DAQMODULES_PARQUET_RECORDER_MODULE "Building of Parquet recorder module" OFF)
+option(DAQMODULES_FILE_RECORDER_MODULE "Building of binary file recorder and player module" OFF)
 option(DAQMODULES_LICENSING_MODULE "Enable licensing" OFF)
 
 if (APPLE)

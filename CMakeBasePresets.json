@@ -120,6 +120,7 @@
                 "DAQMODULES_REF_FB_MODULE": true,
                 "DAQMODULES_AUDIO_DEVICE_MODULE": true,
                 "DAQMODULES_BASIC_CSV_RECORDER_MODULE": true,
+                "DAQMODULES_FILE_RECORDER_MODULE": true,
                 "DAQMODULES_LICENSING_MODULE": true,
                 "OPENDAQ_ENABLE_WEBSOCKET_STREAMING": true,
                 "OPENDAQ_ENABLE_WEBSOCKET_STREAMING_WITH_TLS": true,

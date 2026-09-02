@@ -31,6 +31,8 @@ if (MSVC)
     target_compile_options(${TEST_APP} PRIVATE /bigobj)
 endif()
 
+opendaq_target_pch(${TEST_APP} <opendaq/opendaq.h> <gtest/gtest.h>)
+
 add_test(NAME ${TEST_APP}
          COMMAND $<TARGET_FILE_NAME:${TEST_APP}>
          WORKING_DIRECTORY $<TARGET_FILE_DIR:${TEST_APP}>

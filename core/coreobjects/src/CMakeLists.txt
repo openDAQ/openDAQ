@@ -418,6 +418,10 @@ target_compile_definitions(${LIB_NAME} PRIVATE BUILDING_SHARED_LIBRARY
 )
 set_target_properties(${LIB_NAME} PROPERTIES PUBLIC_HEADER "${SRC_PublicHeaders}")
 
+# Like coretypes, the coreobjects.h umbrella cannot be precompiled into this library itself:
+# its factory declarations collide with OPENDAQ_DEFINE_CLASS_FACTORY in the *_impl.cpp files.
+opendaq_target_pch(${LIB_NAME} <coretypes/coretypes.h>)
+
 opendaq_set_output_lib_name(${LIB_NAME} ${PROJECT_VERSION_MAJOR})
 opendaq_generate_version_header(${LIB_NAME} ONLY_RC)
 

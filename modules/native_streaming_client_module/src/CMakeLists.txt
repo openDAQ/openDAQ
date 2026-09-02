@@ -52,6 +52,8 @@ add_library(${LIB_NAME} SHARED ${SRC_Include}
 )
 add_library(${SDK_TARGET_NAMESPACE}::${LIB_NAME} ALIAS ${LIB_NAME})
 
+opendaq_target_pch(${LIB_NAME} <opendaq/opendaq.h> <boost/asio.hpp>)
+
 if (MSVC)
     target_compile_options(${LIB_NAME} PRIVATE /bigobj)
 endif()

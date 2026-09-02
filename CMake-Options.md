@@ -105,4 +105,5 @@ The following options might be used to customize the build passing them in the *
 | `OPENDAQ_DEBUG_WARNINGS_AS_ERRORS` | Bool | `OFF` | Treat debug warnings as errors | - |
 | `OPENDAQ_RELEASE_WARNINGS_AS_ERRORS` | Bool | `ON` | Treat release warnings as errors | - |
 | `OPENDAQ_USE_CCACHE` | Bool | `ON` | Use compiler cache driver if available | - |
+| `OPENDAQ_ENABLE_PCH` | Bool | `OFF` | Use precompiled headers to speed up SDK compilation | - |
 | `OPENDAQ_FORCE_LLD_LINKER` | Bool | `OFF` | Force the use of the fast LLVM LLD linker | - |

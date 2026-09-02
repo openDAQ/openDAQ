@@ -452,6 +452,8 @@ set(SRC_OpenDAQ_Cpp
 add_library(${LIB_NAME} SHARED ${SRC_CoreTypes_Headers} ${SRC_CoreTypes_Cpp} ${SRC_Private_Headers} ${SRC_Private_Cpp} ${SRC_CoreObjects_Headers} ${SRC_CoreObjects_Cpp} ${SRC_OpenDAQ_Headers} ${SRC_OpenDAQ_Cpp})
 add_library(${SDK_TARGET_NAMESPACE}::${LIB_NAME} ALIAS ${LIB_NAME})
 
+opendaq_target_pch(${LIB_NAME} <opendaq/opendaq.h>)
+
 target_sources(${LIB_NAME}
     INTERFACE
     FILE_SET copendaq_interface_headers TYPE HEADERS

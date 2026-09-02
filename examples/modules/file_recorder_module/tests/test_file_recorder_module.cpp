@@ -54,6 +54,20 @@ DataDescriptorPtr valueDescriptor()
         .build();
 }
 
+/*!
+ * A second value descriptor, differing from valueDescriptor() in everything but the sample type,
+ * so that a signal can change its descriptor without changing how its samples are written.
+ */
+DataDescriptorPtr otherValueDescriptor()
+{
+    return DataDescriptorBuilder()
+        .setName("TestSignalRescaled")
+        .setSampleType(SampleType::Float64)
+        .setRule(ExplicitDataRule())
+        .setUnit(Unit("A", -1, "amperes", "current"))
+        .build();
+}
+
 DataDescriptorPtr linearDomainDescriptor(Int delta)
 {
     return DataDescriptorBuilder()
@@ -282,12 +296,14 @@ void expectStoppedLikeAnExplicitStop(const FunctionBlockPtr& fb,
 std::vector<double> replayRecording(const ModulePtr& module,
                                     const fs::path& file,
                                     std::size_t expected,
-                                    double sampleRate = 100000.0)
+                                    double sampleRate = 100000.0,
+                                    bool continueIntoNextParts = true)
 {
     const auto playerFb = module.createFunctionBlock(PLAYER_ID, nullptr, "player");
     playerFb.setPropertyValue("FilePath", file.string());
     playerFb.setPropertyValue("PlaybackMode", 0);
     playerFb.setPropertyValue("SampleRate", sampleRate);
+    playerFb.setPropertyValue("ContinueIntoNextParts", continueIntoNextParts);
 
     const auto reader = StreamReader(playerFb.getSignals().getItemAt(0), SampleType::Float64, SampleType::Int64);
 
@@ -295,7 +311,13 @@ std::vector<double> replayRecording(const ModulePtr& module,
 
     std::vector<double> values(expected + 1);
     std::vector<Int> domain(expected + 1);
-    const auto read = readSamples(reader, values.data(), domain.data(), expected + 1, std::chrono::seconds(1));
+
+    auto read = readSamples(reader, values.data(), domain.data(), expected, std::chrono::seconds(1));
+
+    // Only once what was expected has arrived is there a reason to wait for more, and then only
+    // briefly: a recording longer than expected delivers its next packet within one interval.
+    if (read == expected)
+        read += readSamples(reader, values.data() + read, domain.data() + read, 1, std::chrono::milliseconds(200));
 
     ProcedurePtr(playerFb.getPropertyValue("StopPlayback"))();
 
@@ -864,6 +886,164 @@ TEST_F(FileRecorderModuleTest, RestartedRecordingKeepsTheEarlierFiles)
     EXPECT_DOUBLE_EQ(secondValues.front(), 1000.0);
 }
 
+TEST_F(FileRecorderModuleTest, DescriptorChangeStartsANewPart)
+{
+    const ScratchDirectory scratch("file_recorder_descriptor_change");
+    constexpr std::size_t sampleCount = 200;
+
+    const auto module = createTestModule();
+    const auto fb = module.createFunctionBlock(RECORDER_ID, nullptr, "fb");
+    const auto signal = createSignal(fb.getContext(), linearDomainDescriptor(1000));
+
+    fb.getInputPorts().getItemAt(0).asPtr<IInputPortConfig>().connect(signal);
+    fb.setPropertyValue("Path", scratch.get().string());
+
+    const auto recorder = fb.asPtr<IRecorder>(true);
+    recorder->startRecording();
+
+    sendImplicitPacket(signal, sampleCount, 0.0, 0);
+
+    // A file holds one layout, so a descriptor which changes mid-recording continues in the next
+    // part rather than being mixed into the one already open.
+    signal.setDescriptor(otherValueDescriptor());
+    sendImplicitPacket(signal, sampleCount, static_cast<double>(sampleCount), static_cast<Int>(sampleCount * 1000));
+
+    recorder->stopRecording();
+
+    const auto files = recordingsIn(scratch.get());
+    ASSERT_EQ(files.size(), 2u);
+
+    // Each part stands on its own, with the descriptor which was in force while it was written.
+    const auto firstPart = replayRecording(module, files.front(), sampleCount, 100000.0, false);
+    ASSERT_EQ(firstPart.size(), sampleCount);
+    EXPECT_DOUBLE_EQ(firstPart.front(), 0.0);
+
+    const auto secondPart = replayRecording(module, files.back(), sampleCount);
+    ASSERT_EQ(secondPart.size(), sampleCount);
+    EXPECT_DOUBLE_EQ(secondPart.front(), static_cast<double>(sampleCount));
+}
+
+TEST_F(FileRecorderModuleTest, ReplayingAcrossADescriptorChangeRepublishesIt)
+{
+    const ScratchDirectory scratch("file_recorder_descriptor_replay");
+    constexpr std::size_t sampleCount = 200;
+
+    const auto module = createTestModule();
+
+    const auto recorderFb = module.createFunctionBlock(RECORDER_ID, nullptr, "recorder");
+    const auto signal = createSignal(recorderFb.getContext(), linearDomainDescriptor(1000));
+
+    recorderFb.getInputPorts().getItemAt(0).asPtr<IInputPortConfig>().connect(signal);
+    recorderFb.setPropertyValue("Path", scratch.get().string());
+
+    const auto recorder = recorderFb.asPtr<IRecorder>(true);
+    recorder->startRecording();
+    sendImplicitPacket(signal, sampleCount, 0.0, 0);
+    signal.setDescriptor(otherValueDescriptor());
+    sendImplicitPacket(signal, sampleCount, static_cast<double>(sampleCount), static_cast<Int>(sampleCount * 1000));
+    recorder->stopRecording();
+
+    const auto files = recordingsIn(scratch.get());
+    ASSERT_EQ(files.size(), 2u);
+
+    const auto playerFb = module.createFunctionBlock(PLAYER_ID, nullptr, "player");
+    playerFb.setPropertyValue("FilePath", files.front().string());
+    playerFb.setPropertyValue("SampleRate", 100000.0);
+
+    const auto reader = StreamReader(playerFb.getSignals().getItemAt(0), SampleType::Float64, SampleType::Int64);
+
+    ProcedurePtr(playerFb.getPropertyValue("StartPlayback"))();
+
+    std::vector<double> values(sampleCount * 2);
+    std::vector<Int> domain(sampleCount * 2);
+    const auto read = readSamples(reader, values.data(), domain.data(), values.size());
+
+    ProcedurePtr(playerFb.getPropertyValue("StopPlayback"))();
+
+    // The part which follows describes its samples differently, and replaying carries on into it
+    // with that descriptor published on the output signal.
+    ASSERT_EQ(read, values.size());
+    ASSERT_EQ(playerFb.getSignals().getItemAt(0).getDescriptor().getUnit().getSymbol(), "A");
+
+    for (std::size_t i = 0; i < read; ++i)
+        ASSERT_DOUBLE_EQ(values[i], static_cast<double>(i)) << "at sample " << i;
+}
+
+TEST_F(FileRecorderModuleTest, SignalsCanBeConnectedAndDisconnectedWhileRecording)
+{
+    const ScratchDirectory scratch("file_recorder_hot_plug");
+    constexpr std::size_t sampleCount = 100;
+
+    const auto module = createTestModule();
+    const auto fb = module.createFunctionBlock(RECORDER_ID, nullptr, "fb");
+
+    const auto first = createSignal(fb.getContext(), linearDomainDescriptor(1000));
+    const auto second = createSignal(fb.getContext(), linearDomainDescriptor(1000));
+    first.setName("first_signal");
+    second.setName("second_signal");
+
+    fb.getInputPorts().getItemAt(0).asPtr<IInputPortConfig>().connect(first);
+    fb.setPropertyValue("Path", scratch.get().string());
+
+    const auto recorder = fb.asPtr<IRecorder>(true);
+    recorder->startRecording();
+
+    sendImplicitPacket(first, sampleCount, 0.0, 0);
+
+    // Connected while the recording is running: it gets a writer of its own.
+    fb.getInputPorts().getItemAt(1).asPtr<IInputPortConfig>().connect(second);
+    sendImplicitPacket(second, sampleCount, 1000.0, 0);
+
+    // Disconnected while the recording is running: its file is closed, and the recording of the
+    // other signal carries on.
+    fb.getInputPorts().getItemAt(0).asPtr<IInputPortConfig>().disconnect();
+    sendImplicitPacket(second, sampleCount, 1100.0, static_cast<Int>(sampleCount * 1000));
+
+    recorder->stopRecording();
+
+    const auto files = recordingsIn(scratch.get());
+    ASSERT_EQ(files.size(), 2u);
+
+    const auto firstValues = replayRecording(module, files.front(), sampleCount);
+    ASSERT_EQ(firstValues.size(), sampleCount);
+    EXPECT_DOUBLE_EQ(firstValues.front(), 0.0);
+
+    const auto secondValues = replayRecording(module, files.back(), sampleCount * 2);
+    ASSERT_EQ(secondValues.size(), sampleCount * 2);
+    EXPECT_DOUBLE_EQ(secondValues.front(), 1000.0);
+    EXPECT_DOUBLE_EQ(secondValues.back(), 1100.0 + static_cast<double>(sampleCount) - 1.0);
+}
+
+TEST_F(FileRecorderModuleTest, DeactivatingTheFunctionBlockStopsTheRecording)
+{
+    const ScratchDirectory scratch("file_recorder_deactivate");
+    constexpr std::size_t sampleCount = 100;
+
+    const auto module = createTestModule();
+    const auto fb = module.createFunctionBlock(RECORDER_ID, nullptr, "fb");
+    const auto signal = createSignal(fb.getContext(), linearDomainDescriptor(1000));
+
+    fb.getInputPorts().getItemAt(0).asPtr<IInputPortConfig>().connect(signal);
+    fb.setPropertyValue("Path", scratch.get().string());
+
+    const auto recorder = fb.asPtr<IRecorder>(true);
+    recorder->startRecording();
+    sendImplicitPacket(signal, sampleCount, 0.0, 0);
+
+    fb.setActive(False);
+
+    Bool isRecording = True;
+    recorder->getIsRecording(&isRecording);
+    ASSERT_FALSE(isRecording);
+
+    // Stopped like any other stop: the settings unlock and what was recorded is complete.
+    EXPECT_NO_THROW(fb.setPropertyValue("MaxFileSizeMB", 7));
+
+    const auto files = recordingsIn(scratch.get());
+    ASSERT_EQ(files.size(), 1u);
+    ASSERT_EQ(replayRecording(module, files.front(), sampleCount).size(), sampleCount);
+}
+
 TEST_F(FileRecorderModuleTest, RecordsSignalWithoutDomainSignal)
 {
     const ScratchDirectory scratch("file_recorder_no_domain");
@@ -1322,6 +1502,52 @@ TEST_F(FileRecorderModuleTest, PlaybackEndsLikeAnExplicitStopWhenTheRecordingRun
     ProcedurePtr(playerFb.getPropertyValue("StartPlayback"))();
     EXPECT_EQ(readSamples(reader, values.data(), domain.data(), sampleCount), sampleCount);
     ProcedurePtr(playerFb.getPropertyValue("StopPlayback"))();
+}
+
+TEST_F(FileRecorderModuleTest, RecordedDomainModeFallsBackWithoutADomain)
+{
+    const ScratchDirectory scratch("file_recorder_no_domain_replay");
+    constexpr std::size_t sampleCount = 200;
+
+    const auto module = createTestModule();
+
+    const auto recorderFb = module.createFunctionBlock(RECORDER_ID, nullptr, "recorder");
+    const auto signal = createSignal(recorderFb.getContext(), nullptr);
+
+    recorderFb.getInputPorts().getItemAt(0).asPtr<IInputPortConfig>().connect(signal);
+    recorderFb.setPropertyValue("Path", scratch.get().string());
+
+    const auto recorder = recorderFb.asPtr<IRecorder>(true);
+    recorder->startRecording();
+    sendPacketWithoutDomain(signal, sampleCount, 0.0);
+    recorder->stopRecording();
+
+    const auto files = recordingsIn(scratch.get());
+    ASSERT_EQ(files.size(), 1u);
+
+    const auto playerFb = module.createFunctionBlock(PLAYER_ID, nullptr, "player");
+    playerFb.setPropertyValue("FilePath", files.front().string());
+    playerFb.setPropertyValue("PlaybackMode", 1);
+    playerFb.setPropertyValue("SampleRate", 100000.0);
+
+    const auto reader = StreamReader(playerFb.getSignals().getItemAt(0), SampleType::Float64, SampleType::Int64);
+
+    ProcedurePtr(playerFb.getPropertyValue("StartPlayback"))();
+
+    std::vector<double> values(sampleCount);
+    std::vector<Int> domain(sampleCount);
+    const auto read = readSamples(reader, values.data(), domain.data(), sampleCount);
+
+    ProcedurePtr(playerFb.getPropertyValue("StopPlayback"))();
+
+    // There is no recorded timing to reproduce, so the configured rate paces it instead, and the
+    // player says so rather than refusing to replay.
+    EXPECT_THAT(playerFb.getStatusContainer().getStatusMessage("ComponentStatus").toStdString(),
+                testing::HasSubstr("no domain signal"));
+
+    ASSERT_EQ(read, sampleCount);
+    for (std::size_t i = 0; i < read; ++i)
+        ASSERT_DOUBLE_EQ(values[i], static_cast<double>(i)) << "at sample " << i;
 }
 
 TEST_F(FileRecorderModuleTest, PlayerPropertiesAreReadOnlyWhilePlaying)

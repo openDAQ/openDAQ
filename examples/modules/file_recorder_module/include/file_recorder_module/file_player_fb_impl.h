@@ -22,6 +22,7 @@
 #include <cstdint>
 #include <memory>
 #include <mutex>
+#include <optional>
 #include <thread>
 
 #include <coretypes/filesystem.h>
@@ -51,6 +52,11 @@ BEGIN_NAMESPACE_OPENDAQ_FILE_RECORDER_MODULE
  * Samples are grouped into output packets no longer than OutputPacketIntervalMs, and a pause
  * longer than that always ends a packet, so a gap is reproduced as a wait between packets rather
  * than being smeared across one.
+ *
+ * A recording split across several parts by FileRecorderFbImpl is replayed as one stream while
+ * ContinueIntoNextParts is set: when a part ends, the next one (the same name with the part
+ * number incremented) is picked up automatically, and Loop returns to the part playback started
+ * from. With the property cleared, only the file named by FilePath is replayed.
  *
  * All settings are latched when playback starts, so they are read-only while it runs and settable
  * again once it is stopped.
@@ -88,8 +94,20 @@ public:
     {
         /*!
          * @brief The path of the recording to replay.
+         *
+         * Read-only while playing.
          */
         static constexpr const char* FILE_PATH = "FilePath";
+
+        /*!
+         * @brief Whether replaying carries on into the parts following the one named by FilePath.
+         *
+         * A recording which reached its size limit, or whose signal descriptor changed, continues
+         * in further files numbered after the first. With this set they are replayed one after
+         * another as a single stream; with it cleared, playback ends at the named file. Loop
+         * returns to the named file either way.
+         */
+        static constexpr const char* CONTINUE_INTO_NEXT_PARTS = "ContinueIntoNextParts";
 
         /*!
          * @brief The PlaybackMode to replay with.
@@ -209,6 +227,70 @@ private:
      */
     DataDescriptorPtr buildRecordedDomainDescriptor(const DataDescriptorPtr& recorded) const;
 
+    /*!
+     * @brief The outcome of looking for the part following the one just finished.
+     */
+    enum class PartAdvance
+    {
+        /*!
+         * @brief The next part was opened and playback carries on into it.
+         */
+        Continued,
+
+        /*!
+         * @brief There is no next part; the recording is over.
+         */
+        NoMoreParts,
+
+        /*!
+         * @brief A next part exists but cannot be replayed. The component status says why.
+         */
+        Failed,
+    };
+
+    /*!
+     * @brief Returns the path of the part following @p current, if such a file exists.
+     *
+     * Parts are named by FileRecorderFbImpl with a zero-padded index before the extension, so the
+     * successor is found by incrementing that index rather than by scanning the directory.
+     */
+    static std::optional<fs::path> nextPartPath(const fs::path& current);
+
+    /*!
+     * @brief Opens @p path as the part being replayed, republishing whichever descriptors differ
+     *     from the ones currently on the output signals.
+     *
+     * A part whose domain descriptor differs describes its samples in different terms, so timing
+     * is re-anchored to the moment that part starts instead of being continued.
+     *
+     * @returns False, with the component status set, if the part cannot be replayed.
+     */
+    bool openPart(const fs::path& path);
+
+    /*!
+     * @brief Continues into the part following the one just finished, if there is one and
+     *     ContinueIntoNextParts allows it. Reports NoMoreParts when the property is cleared, so
+     *     that playback ends, or loops, at the file the user named.
+     */
+    PartAdvance advanceToNextPart();
+
+    /*!
+     * @brief Publishes the descriptors of the part currently open on the output signals, and
+     *     derives the domain state the playback thread works from.
+     */
+    void publishDescriptors();
+
+    /*!
+     * @brief Derives the emitted domain descriptor and the tick state from the recorded domain of
+     *     the part currently open.
+     */
+    void configureRecordedDomain();
+
+    /*!
+     * @brief Drops the timing anchor so that the next sample emitted starts a fresh one.
+     */
+    void resetPacing();
+
     void threadMain();
 
     /*!
@@ -254,20 +336,34 @@ private:
     double emitShiftDouble() const;
 
     /*!
-     * @brief Rewinds the reader and advances the domain and pacing offsets so that the next pass
-     *     continues where the previous one ended instead of jumping back in the domain.
+     * @brief Returns to the part playback started from and advances the domain and pacing offsets
+     *     so that the next pass continues where the previous one ended instead of jumping back in
+     *     the domain.
+     *
+     * @returns False, with the component status set, if the first part cannot be reopened.
      */
-    void beginNextLoop();
+    bool beginNextLoop();
 
     SignalConfigPtr outputSignal;
     SignalConfigPtr outputDomainSignal;
 
     // Latched from the properties when playback starts.
     fs::path filePath;
+
+    /*!
+     * @brief The part playback started from, which Loop returns to.
+     */
+    fs::path firstPartPath;
+
+    /*!
+     * @brief The part currently being replayed, which the successor's name is derived from.
+     */
+    fs::path currentPartPath;
     PlaybackMode playbackMode = PlaybackMode::FixedSampleRate;
     double sampleRate = 1000.0;
     bool shiftDomainToNow = true;
     bool loopPlayback = false;
+    bool continueIntoNextParts = true;
     std::chrono::nanoseconds packetInterval{};
 
     std::mutex threadMutex;
@@ -284,6 +380,14 @@ private:
     // The members below belong to the playback thread and are not shared.
     std::unique_ptr<SignalFileReader> reader;
     DataDescriptorPtr valueDescriptor;
+
+    /*!
+     * @brief The domain descriptor as recorded, kept so that a part can be compared against the
+     *     one before it. The descriptor actually published differs from it when ShiftDomainToNow
+     *     moves the origin.
+     */
+    DataDescriptorPtr recordedDomainDescriptor;
+
     DataDescriptorPtr domainDescriptor;
     SampleType domainSampleType = SampleType::Undefined;
     bool domainIsFloatingPoint = false;

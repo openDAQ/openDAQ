@@ -610,6 +610,136 @@ TEST_F(FileRecorderModuleTest, LoopContinuesDomainForward)
     }
 }
 
+TEST_F(FileRecorderModuleTest, ContinuesIntoFollowingParts)
+{
+    const ScratchDirectory scratch("file_recorder_parts");
+
+    // A 1 MiB limit holds about 131k Float64 samples, so this recording spans several parts.
+    constexpr std::size_t packetSamples = 10000;
+    constexpr std::size_t packets = 30;
+    constexpr std::size_t totalSamples = packetSamples * packets;
+
+    const auto module = createTestModule();
+
+    const auto recorderFb = module.createFunctionBlock(RECORDER_ID, nullptr, "recorder");
+    const auto signal = createSignal(recorderFb.getContext(), linearDomainDescriptor(1000));
+
+    recorderFb.getInputPorts().getItemAt(0).asPtr<IInputPortConfig>().connect(signal);
+    recorderFb.setPropertyValue("Path", scratch.get().string());
+    recorderFb.setPropertyValue("MaxFileSizeMB", 1);
+
+    const auto recorder = recorderFb.asPtr<IRecorder>(true);
+    recorder->startRecording();
+
+    for (std::size_t i = 0; i < packets; ++i)
+        sendImplicitPacket(signal, packetSamples, static_cast<double>(i * packetSamples), static_cast<Int>(i * packetSamples * 1000));
+
+    recorder->stopRecording();
+
+    const auto files = recordingsIn(scratch.get());
+    ASSERT_GE(files.size(), 2u) << "the recording is expected to span several parts";
+
+    // Only the first part is named; the rest have to be picked up automatically.
+    const auto playerFb = module.createFunctionBlock(PLAYER_ID, nullptr, "player");
+    playerFb.setPropertyValue("FilePath", files.front().string());
+    playerFb.setPropertyValue("PlaybackMode", 0);
+    playerFb.setPropertyValue("SampleRate", 2000000.0);
+
+    const auto reader = StreamReader(playerFb.getSignals().getItemAt(0), SampleType::Float64, SampleType::Int64);
+
+    ProcedurePtr(playerFb.getPropertyValue("StartPlayback"))();
+
+    std::vector<double> values(totalSamples);
+    std::vector<Int> domain(totalSamples);
+    const auto read = readSamples(reader, values.data(), domain.data(), totalSamples, std::chrono::seconds(20));
+
+    ProcedurePtr(playerFb.getPropertyValue("StopPlayback"))();
+
+    ASSERT_EQ(read, totalSamples);
+
+    // One unbroken ramp across the part boundaries, in order and with nothing dropped.
+    for (std::size_t i = 0; i < totalSamples; ++i)
+        ASSERT_DOUBLE_EQ(values[i], static_cast<double>(i)) << "at sample " << i;
+
+    // Looping a multi-part recording returns to the first part, not to the last one read.
+    constexpr std::size_t intoSecondPass = 100;
+
+    const auto loopingFb = module.createFunctionBlock(PLAYER_ID, nullptr, "looping_player");
+    loopingFb.setPropertyValue("FilePath", files.front().string());
+    loopingFb.setPropertyValue("PlaybackMode", 0);
+    loopingFb.setPropertyValue("SampleRate", 2000000.0);
+    loopingFb.setPropertyValue("Loop", True);
+
+    const auto loopingReader = StreamReader(loopingFb.getSignals().getItemAt(0), SampleType::Float64, SampleType::Int64);
+
+    ProcedurePtr(loopingFb.getPropertyValue("StartPlayback"))();
+
+    std::vector<double> loopedValues(totalSamples + intoSecondPass);
+    std::vector<Int> loopedDomain(totalSamples + intoSecondPass);
+    const auto loopedRead =
+        readSamples(loopingReader, loopedValues.data(), loopedDomain.data(), loopedValues.size(), std::chrono::seconds(20));
+
+    ProcedurePtr(loopingFb.getPropertyValue("StopPlayback"))();
+
+    ASSERT_EQ(loopedRead, loopedValues.size());
+
+    for (std::size_t i = 0; i < intoSecondPass; ++i)
+        ASSERT_DOUBLE_EQ(loopedValues[totalSamples + i], static_cast<double>(i)) << "at sample " << i << " of the second pass";
+}
+
+TEST_F(FileRecorderModuleTest, StopsAtNamedPartWhenContinuationDisabled)
+{
+    const ScratchDirectory scratch("file_recorder_single_part");
+
+    constexpr std::size_t packetSamples = 10000;
+    constexpr std::size_t packets = 30;
+    constexpr std::size_t totalSamples = packetSamples * packets;
+
+    const auto module = createTestModule();
+
+    const auto recorderFb = module.createFunctionBlock(RECORDER_ID, nullptr, "recorder");
+    const auto signal = createSignal(recorderFb.getContext(), linearDomainDescriptor(1000));
+
+    recorderFb.getInputPorts().getItemAt(0).asPtr<IInputPortConfig>().connect(signal);
+    recorderFb.setPropertyValue("Path", scratch.get().string());
+    recorderFb.setPropertyValue("MaxFileSizeMB", 1);
+
+    const auto recorder = recorderFb.asPtr<IRecorder>(true);
+    recorder->startRecording();
+
+    for (std::size_t i = 0; i < packets; ++i)
+        sendImplicitPacket(signal, packetSamples, static_cast<double>(i * packetSamples), static_cast<Int>(i * packetSamples * 1000));
+
+    recorder->stopRecording();
+
+    const auto files = recordingsIn(scratch.get());
+    ASSERT_GE(files.size(), 2u) << "the recording is expected to span several parts";
+
+    const auto playerFb = module.createFunctionBlock(PLAYER_ID, nullptr, "player");
+    playerFb.setPropertyValue("FilePath", files.front().string());
+    playerFb.setPropertyValue("PlaybackMode", 0);
+    playerFb.setPropertyValue("SampleRate", 2000000.0);
+    playerFb.setPropertyValue("ContinueIntoNextParts", False);
+
+    const auto reader = StreamReader(playerFb.getSignals().getItemAt(0), SampleType::Float64, SampleType::Int64);
+
+    ProcedurePtr(playerFb.getPropertyValue("StartPlayback"))();
+
+    // Asking for the whole recording; only the named part is expected to arrive, so the read
+    // runs out of samples and returns short.
+    std::vector<double> values(totalSamples);
+    std::vector<Int> domain(totalSamples);
+    const auto read = readSamples(reader, values.data(), domain.data(), totalSamples, std::chrono::seconds(1));
+
+    ProcedurePtr(playerFb.getPropertyValue("StopPlayback"))();
+
+    ASSERT_GE(read, packetSamples) << "the named part should still be replayed in full";
+    ASSERT_LT(read, totalSamples) << "playback should not have continued into the following parts";
+
+    for (std::size_t i = 0; i < read; ++i)
+        ASSERT_DOUBLE_EQ(values[i], static_cast<double>(i)) << "at sample " << i;
+}
+
 TEST_F(FileRecorderModuleTest, PlayerPropertiesAreReadOnlyWhilePlaying)
 {
     const ScratchDirectory scratch("file_recorder_player_readonly");

@@ -1,7 +1,10 @@
 #include <algorithm>
+#include <cctype>
 #include <cmath>
 #include <cstring>
 #include <functional>
+#include <iomanip>
+#include <sstream>
 #include <stdexcept>
 
 #include <coreobjects/callable_info_factory.h>
@@ -85,6 +88,9 @@ void FilePlayerFbImpl::initProperties()
 
     objPtr.addProperty(BoolPropertyBuilder(Props::LOOP, False).setReadOnly(lockedWhilePlaying()).build());
 
+    objPtr.addProperty(
+        BoolPropertyBuilder(Props::CONTINUE_INTO_NEXT_PARTS, True).setReadOnly(lockedWhilePlaying()).build());
+
     objPtr.addProperty(IntPropertyBuilder(Props::OUTPUT_PACKET_INTERVAL_MS, 20)
                            .setMinValue(1)
                            .setReadOnly(lockedWhilePlaying())
@@ -111,6 +117,7 @@ void FilePlayerFbImpl::readProperties()
     sampleRate = objPtr.getPropertyValue(Props::SAMPLE_RATE);
     shiftDomainToNow = static_cast<bool>(objPtr.getPropertyValue(Props::SHIFT_DOMAIN_TO_NOW));
     loopPlayback = static_cast<bool>(objPtr.getPropertyValue(Props::LOOP));
+    continueIntoNextParts = static_cast<bool>(objPtr.getPropertyValue(Props::CONTINUE_INTO_NEXT_PARTS));
 
     const Int intervalMs = objPtr.getPropertyValue(Props::OUTPUT_PACKET_INTERVAL_MS);
     packetInterval = std::chrono::milliseconds(std::max<Int>(1, intervalMs));
@@ -136,8 +143,6 @@ void FilePlayerFbImpl::startPlayback()
         return;
     }
 
-    const auto& header = reader->getHeader();
-
     if (playbackMode == PlaybackMode::RecordedDomain && !reader->hasDomain())
     {
         // Without a recorded domain there is nothing to take the intervals from, so the only
@@ -151,50 +156,28 @@ void FilePlayerFbImpl::startPlayback()
         setComponentStatus(ComponentStatus::Ok);
     }
 
-    valueDescriptor = header.valueDescriptor;
-
-    if (playbackMode == PlaybackMode::RecordedDomain)
-    {
-        domainDescriptor = buildRecordedDomainDescriptor(header.domainDescriptor);
-        domainSampleType = domainDescriptor.getSampleType();
-        domainIsFloatingPoint = isFloatingPointSampleType(domainSampleType);
-        tickResolutionSeconds = reader->getTickResolutionSeconds();
-
-        if (tickResolutionSeconds <= 0.0)
-        {
-            reader.reset();
-            setComponentStatusWithMessage(ComponentStatus::Error,
-                                          "The recording's domain has no tick resolution, so its timing cannot be reproduced");
-            return;
-        }
-    }
-    else
+    if (playbackMode == PlaybackMode::FixedSampleRate)
     {
         if (sampleRate < MIN_SAMPLE_RATE)
             sampleRate = MIN_SAMPLE_RATE;
 
         generatedDelta = std::max<Int>(1, static_cast<Int>(std::llround(GENERATED_TICKS_PER_SECOND / sampleRate)));
-        domainDescriptor = buildGeneratedDomainDescriptor();
-        domainSampleType = SampleType::Int64;
-        domainIsFloatingPoint = false;
-        tickResolutionSeconds = 1.0 / static_cast<double>(GENERATED_TICKS_PER_SECOND);
     }
 
-    outputDomainSignal.setDescriptor(domainDescriptor);
-    outputSignal.setDescriptor(valueDescriptor);
+    publishDescriptors();
 
-    // An implicit domain has one constant spacing, which is also the gap to leave between loop
-    // passes. An explicit one is measured as it is replayed.
-    recordedDeltaInt = reader->getDomainDeltaInt();
-    recordedDeltaDouble = reader->getDomainDeltaDouble();
-    lastStepInt = recordedDeltaInt;
-    lastStepDouble = recordedDeltaDouble;
+    if (playbackMode == PlaybackMode::RecordedDomain && tickResolutionSeconds <= 0.0)
+    {
+        reader.reset();
+        setComponentStatusWithMessage(ComponentStatus::Error,
+                                      "The recording's domain has no tick resolution, so its timing cannot be reproduced");
+        return;
+    }
 
-    anchored = false;
-    firstTick = 0.0;
-    firstTickInt = 0;
-    lastTick = 0.0;
-    lastTickInt = 0;
+    firstPartPath = filePath;
+    currentPartPath = filePath;
+
+    resetPacing();
     loopOffsetInt = 0;
     loopOffsetDouble = 0.0;
     emittedSamples = 0;
@@ -205,6 +188,164 @@ void FilePlayerFbImpl::startPlayback()
     thread = std::thread(&FilePlayerFbImpl::threadMain, this);
 
     LOG_I("File player: replaying {}", filePath.string())
+}
+
+void FilePlayerFbImpl::configureRecordedDomain()
+{
+    recordedDomainDescriptor = reader->getHeader().domainDescriptor;
+
+    domainDescriptor = buildRecordedDomainDescriptor(recordedDomainDescriptor);
+    domainSampleType = domainDescriptor.getSampleType();
+    domainIsFloatingPoint = isFloatingPointSampleType(domainSampleType);
+    tickResolutionSeconds = reader->getTickResolutionSeconds();
+
+    // An implicit domain has one constant spacing, which is also the gap to leave between loop
+    // passes. An explicit one is measured as it is replayed.
+    recordedDeltaInt = reader->getDomainDeltaInt();
+    recordedDeltaDouble = reader->getDomainDeltaDouble();
+    lastStepInt = recordedDeltaInt;
+    lastStepDouble = recordedDeltaDouble;
+}
+
+void FilePlayerFbImpl::publishDescriptors()
+{
+    valueDescriptor = reader->getHeader().valueDescriptor;
+
+    if (playbackMode == PlaybackMode::RecordedDomain)
+    {
+        configureRecordedDomain();
+    }
+    else
+    {
+        recordedDomainDescriptor = nullptr;
+        domainDescriptor = buildGeneratedDomainDescriptor();
+        domainSampleType = SampleType::Int64;
+        domainIsFloatingPoint = false;
+        tickResolutionSeconds = 1.0 / static_cast<double>(GENERATED_TICKS_PER_SECOND);
+    }
+
+    outputDomainSignal.setDescriptor(domainDescriptor);
+    outputSignal.setDescriptor(valueDescriptor);
+}
+
+void FilePlayerFbImpl::resetPacing()
+{
+    anchored = false;
+    firstTick = 0.0;
+    firstTickInt = 0;
+    lastTick = 0.0;
+    lastTickInt = 0;
+}
+
+std::optional<fs::path> FilePlayerFbImpl::nextPartPath(const fs::path& current)
+{
+    const auto stem = current.stem().string();
+
+    const auto separator = stem.find_last_of('_');
+    if (separator == std::string::npos)
+        return std::nullopt;
+
+    const auto digits = stem.substr(separator + 1);
+    if (digits.empty() || !std::all_of(digits.begin(), digits.end(), [](unsigned char ch) { return std::isdigit(ch) != 0; }))
+        return std::nullopt;
+
+    Int index = 0;
+    try
+    {
+        index = std::stoll(digits);
+    }
+    catch (const std::exception&)
+    {
+        return std::nullopt;
+    }
+
+    std::ostringstream filename;
+    filename << stem.substr(0, separator + 1) << std::setfill('0') << std::setw(static_cast<int>(digits.size())) << (index + 1)
+             << FILE_EXTENSION;
+
+    auto path = current.parent_path() / filename.str();
+
+    std::error_code error;
+    if (!fs::exists(path, error) || error)
+        return std::nullopt;
+
+    return path;
+}
+
+bool FilePlayerFbImpl::openPart(const fs::path& path)
+{
+    std::unique_ptr<SignalFileReader> nextReader;
+    try
+    {
+        nextReader = std::make_unique<SignalFileReader>(path);
+    }
+    catch (const std::exception& e)
+    {
+        LOG_W("File player: cannot open {}: {}", path.string(), e.what())
+        setComponentStatusWithMessage(ComponentStatus::Warning, fmt::format("Cannot open {}: {}", path.string(), e.what()));
+        return false;
+    }
+
+    if (playbackMode == PlaybackMode::RecordedDomain && !nextReader->hasDomain())
+    {
+        setComponentStatusWithMessage(ComponentStatus::Warning,
+                                      fmt::format("{} has no domain signal to take its timing from", path.string()));
+        return false;
+    }
+
+    const auto& header = nextReader->getHeader();
+
+    const bool valueChanged = header.valueDescriptor != valueDescriptor;
+    const bool domainChanged =
+        playbackMode == PlaybackMode::RecordedDomain && header.domainDescriptor != recordedDomainDescriptor;
+
+    reader = std::move(nextReader);
+    currentPartPath = path;
+
+    // A part is only ever a new file because of a size limit or because the signal changed, so
+    // most of the time there is nothing to republish and the stream carries on seamlessly.
+    if (valueChanged)
+    {
+        valueDescriptor = header.valueDescriptor;
+        outputSignal.setDescriptor(valueDescriptor);
+    }
+
+    if (domainChanged)
+    {
+        configureRecordedDomain();
+        outputDomainSignal.setDescriptor(domainDescriptor);
+
+        if (tickResolutionSeconds <= 0.0)
+        {
+            setComponentStatusWithMessage(ComponentStatus::Warning,
+                                          fmt::format("{} has a domain without a tick resolution", path.string()));
+            return false;
+        }
+
+        // The new domain may count in entirely different units, so continuing the old timeline
+        // would be meaningless. Time starts again from this part.
+        resetPacing();
+        loopOffsetInt = 0;
+        loopOffsetDouble = 0.0;
+    }
+
+    return true;
+}
+
+FilePlayerFbImpl::PartAdvance FilePlayerFbImpl::advanceToNextPart()
+{
+    if (!continueIntoNextParts)
+        return PartAdvance::NoMoreParts;
+
+    const auto next = nextPartPath(currentPartPath);
+    if (!next.has_value())
+        return PartAdvance::NoMoreParts;
+
+    if (!openPart(*next))
+        return PartAdvance::Failed;
+
+    LOG_D("File player: continuing into {}", next->string())
+    return PartAdvance::Continued;
 }
 
 void FilePlayerFbImpl::stopPlayback()
@@ -301,13 +442,21 @@ void FilePlayerFbImpl::threadMain()
 
         if (!read)
         {
+            const auto advance = advanceToNextPart();
+            if (advance == PartAdvance::Continued)
+                continue;
+            if (advance == PartAdvance::Failed)
+                break;
+
             if (!loopPlayback)
             {
-                LOG_I("File player: reached the end of {}", filePath.string())
+                LOG_I("File player: reached the end of {}", currentPartPath.string())
                 break;
             }
 
-            beginNextLoop();
+            if (!beginNextLoop())
+                break;
+
             continue;
         }
 
@@ -503,7 +652,7 @@ double FilePlayerFbImpl::emitShiftDouble() const
     return (shiftDomainToNow ? -firstTick : 0.0) + loopOffsetDouble;
 }
 
-void FilePlayerFbImpl::beginNextLoop()
+bool FilePlayerFbImpl::beginNextLoop()
 {
     if (playbackMode == PlaybackMode::RecordedDomain && anchored)
     {
@@ -516,9 +665,27 @@ void FilePlayerFbImpl::beginNextLoop()
             loopOffsetInt += lastTickInt - firstTickInt + (lastStepInt != 0 ? lastStepInt : 1);
     }
 
-    reader->rewind();
+    // A recording spanning several parts loops back to the part playback started from, not to the
+    // last one read. openPart() clears the offsets just accumulated when it re-anchors, so they
+    // are restored afterwards; a single-part recording rewinds in place instead.
+    if (currentPartPath != firstPartPath)
+    {
+        const auto loopOffsetIntBefore = loopOffsetInt;
+        const auto loopOffsetDoubleBefore = loopOffsetDouble;
 
-    LOG_D("File player: looping back to the start of {}", filePath.string())
+        if (!openPart(firstPartPath))
+            return false;
+
+        loopOffsetInt = loopOffsetIntBefore;
+        loopOffsetDouble = loopOffsetDoubleBefore;
+    }
+    else
+    {
+        reader->rewind();
+    }
+
+    LOG_D("File player: looping back to the start of {}", firstPartPath.string())
+    return true;
 }
 
 END_NAMESPACE_OPENDAQ_FILE_RECORDER_MODULE

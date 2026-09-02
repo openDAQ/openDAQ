@@ -133,6 +133,9 @@ public:
          * Filling past half of it is reported as a warning first, which is withdrawn once the
          * backlog has drained.
          *
+         * The limit is per signal, so a recorder with many signals connected may hold this much
+         * for each of them.
+         *
          * Read-only while recording.
          */
         static constexpr const char* MAX_BUFFER_MB = "MaxBufferMB";

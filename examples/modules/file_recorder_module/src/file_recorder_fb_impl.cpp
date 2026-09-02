@@ -241,7 +241,7 @@ void FileRecorderFbImpl::initProperties()
     objPtr.addProperty(IntPropertyBuilder(Props::MAX_FILE_SIZE_MB, 100).setReadOnly(lockedWhileRecording()).build());
     objPtr.getOnPropertyValueWrite(Props::MAX_FILE_SIZE_MB) += std::bind(&FileRecorderFbImpl::readProperties, this);
 
-    objPtr.addProperty(IntPropertyBuilder(Props::MAX_BUFFER_MB, 64).setMinValue(0).setReadOnly(lockedWhileRecording()).build());
+    objPtr.addProperty(IntPropertyBuilder(Props::MAX_BUFFER_MB, 4).setMinValue(0).setReadOnly(lockedWhileRecording()).build());
     objPtr.getOnPropertyValueWrite(Props::MAX_BUFFER_MB) += std::bind(&FileRecorderFbImpl::readProperties, this);
 
     objPtr.addProperty(SelectionPropertyBuilder(Props::RECORDING_MODE, List<IString>("Manual", "SampleCount", "Duration"), 0)

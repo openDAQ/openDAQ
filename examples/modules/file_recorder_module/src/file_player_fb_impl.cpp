@@ -418,8 +418,10 @@ void FilePlayerFbImpl::finishPlayback(PlaybackEnd end)
 
     LOG_I("File player: {}", describe(end))
 
-    // A failure has already reported what went wrong, and that is worth more than the summary.
-    if (end != PlaybackEnd::Failed)
+    // A playback which had something to report - a failure, or a setting it could not honour -
+    // keeps saying so, because that is worth more than the summary. Each start decides the status
+    // afresh, so nothing carries over into the next playback.
+    if (ComponentStatus::Ok == statusContainer.getStatus("ComponentStatus"))
         setComponentStatusWithMessage(ComponentStatus::Ok, describe(end));
 }
 

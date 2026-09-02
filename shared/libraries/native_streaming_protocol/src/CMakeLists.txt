@@ -34,6 +34,10 @@ add_library(${LIB_NAME} STATIC ${SRC_Cpp}
 
 add_library(${SDK_TARGET_NAMESPACE}::${BASE_NAME} ALIAS ${LIB_NAME})
 
+opendaq_target_pch(${LIB_NAME} <opendaq/opendaq.h> <boost/asio.hpp>)
+# opendaq.h makes daq::Client ambiguous with native_streaming's Client here.
+set_source_files_properties(native_streaming_client_handler.cpp PROPERTIES SKIP_PRECOMPILE_HEADERS ON)
+
 if(BUILD_64Bit OR BUILD_ARM)
     set_target_properties(${LIB_NAME} PROPERTIES POSITION_INDEPENDENT_CODE ON)
 else()

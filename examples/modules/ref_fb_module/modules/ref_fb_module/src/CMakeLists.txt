@@ -108,6 +108,11 @@ add_library(${LIB_NAME} SHARED ${SRC_Include}
 
 add_library(${OPENDAQ_SDK_TARGET_NAMESPACE}::${LIB_NAME} ALIAS ${LIB_NAME})
 
+# Guarded: the helper only exists when building inside the openDAQ super-build.
+if (COMMAND opendaq_target_pch)
+    opendaq_target_pch(${LIB_NAME} <opendaq/opendaq.h>)
+endif()
+
 target_link_libraries(${LIB_NAME}
     PUBLIC
         ${OPENDAQ_SDK_TARGET_NAMESPACE}::opendaq

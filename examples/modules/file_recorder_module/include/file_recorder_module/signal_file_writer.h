@@ -61,8 +61,9 @@ public:
      *     behind.
      *
      * @param directory The directory in which to create files. It is created if it does not exist.
-     * @param signal The signal being recorded. Its name is used to build filenames, and its global
-     *     ID is stored in the file header.
+     * @param signal The signal being recorded. Its global ID is stored in the file header.
+     * @param filenameStem What every one of this signal's parts is named after, from
+     *     buildFilenameStem() and made unique among the recording's signals by the recorder.
      * @param maxFileSizeBytes The size at which to roll over to a new file, or 0 for no limit. The
      *     limit is checked after each block, so a file may exceed it by up to one block.
      * @param sampleLimit The number of samples to record before finishing, or 0 to record until
@@ -74,6 +75,7 @@ public:
      */
     SignalFileWriter(const fs::path& directory,
                      const SignalPtr& signal,
+                     std::string filenameStem,
                      std::uint64_t maxFileSizeBytes,
                      std::uint64_t sampleLimit,
                      std::function<void()> onFinished,
@@ -87,6 +89,22 @@ public:
 
     SignalFileWriter(const SignalFileWriter&) = delete;
     SignalFileWriter& operator=(const SignalFileWriter&) = delete;
+
+    /*!
+     * @brief Builds what one signal's parts are named after: its name, reduced to characters a
+     *     filename can hold, and the time the recording started.
+     *
+     * Neither is unique on its own - two signals can share a name, and a recording restarted
+     * within the same second repeats the timestamp - so the recorder makes the stem unique before
+     * handing it over.
+     */
+    static std::string buildFilenameStem(const StringPtr& signalName);
+
+    /*!
+     * @brief The path of one part of a recording, and the only place a recording's filenames are
+     *     formed. The player finds the following part by incrementing the number this appends.
+     */
+    static fs::path partPath(const fs::path& directory, const std::string& filenameStem, Int partIndex);
 
     /*!
      * @brief Enqueues a packet to be recorded. A reference to the packet is held until the

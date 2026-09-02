@@ -22,8 +22,10 @@
 #include <cstdint>
 #include <memory>
 #include <mutex>
+#include <string>
 #include <thread>
 #include <unordered_map>
+#include <unordered_set>
 
 #include <coretypes/filesystem.h>
 #include <opendaq/function_block_impl.h>
@@ -246,6 +248,24 @@ private:
     bool allWritersFinished() const;
 
     /*!
+     * @brief Returns what @p signal's files are to be named after, made unique so that no two
+     *     recordings ever write to the same path.
+     *
+     * A signal's name and the time it started are not enough on their own: two signals of one
+     * recording can carry the same name, and a recording restarted within the same second
+     * repeats the timestamp, which would have the second writer truncate the first one's files.
+     * A stem already taken by this recording, or already on disk, is therefore given a
+     * discriminator until it is free.
+     */
+    std::string uniqueFilenameStem(const SignalPtr& signal);
+
+    /*!
+     * @brief Returns true if @p stem has not been handed out during this recording and no
+     *     recording on disk is using it.
+     */
+    bool isFilenameStemFree(const std::string& stem) const;
+
+    /*!
      * @brief The state one recording's auto-stop thread waits on.
      *
      * It is owned jointly by the thread, by the writers whose completion wakes it, and by the
@@ -362,6 +382,12 @@ private:
     std::unordered_map<IInputPort*, std::shared_ptr<SignalFileWriter>> writers;
 
     std::size_t portCount = 0;
+
+    /*!
+     * @brief The filename stems handed out to the writers of the current recording, which the
+     *     next one must not repeat.
+     */
+    std::unordered_set<std::string> usedFilenameStems;
 
     /*!
      * @brief Read by the acquisition thread on every packet, written under the configuration

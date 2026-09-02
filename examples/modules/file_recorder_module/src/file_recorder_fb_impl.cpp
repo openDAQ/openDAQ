@@ -1,5 +1,6 @@
 #include <algorithm>
 #include <functional>
+#include <string>
 #include <utility>
 #include <vector>
 
@@ -78,6 +79,10 @@ ErrCode FileRecorderFbImpl::startRecording()
 
     autoStop = recordingMode == RecordingMode::Manual ? nullptr : std::make_shared<AutoStop>();
     recording = true;
+
+    // Only the stems of this recording are reserved: those of earlier ones are protected by the
+    // files they left on disk, and one which wrote nothing is free to be reused.
+    usedFilenameStems.clear();
     createWriters();
 
     if (autoStop)
@@ -282,11 +287,43 @@ void FileRecorderFbImpl::createWriters()
         if (!signal.assigned())
             continue;
 
-        auto writer = std::make_shared<SignalFileWriter>(path, signal, maxFileSizeBytes, sampleLimit, onFinished, loggerComponent);
+        {
+            // Checked before a writer is built, because building one starts a thread and claims
+            // a filename stem which a discarded writer would waste.
+            std::lock_guard writersLock(writersMutex);
+            if (writers.count(port.getObject()) != 0)
+                continue;
+        }
+
+        auto writer = std::make_shared<SignalFileWriter>(
+            path, signal, uniqueFilenameStem(signal), maxFileSizeBytes, sampleLimit, onFinished, loggerComponent);
 
         std::lock_guard writersLock(writersMutex);
         writers.emplace(port.getObject(), std::move(writer));
     }
+}
+
+std::string FileRecorderFbImpl::uniqueFilenameStem(const SignalPtr& signal)
+{
+    const auto base = SignalFileWriter::buildFilenameStem(signal.getName());
+
+    auto stem = base;
+    for (int discriminator = 2; !isFilenameStemFree(stem); ++discriminator)
+        stem = base + "_" + std::to_string(discriminator);
+
+    usedFilenameStems.insert(stem);
+    return stem;
+}
+
+bool FileRecorderFbImpl::isFilenameStemFree(const std::string& stem) const
+{
+    if (usedFilenameStems.count(stem) != 0)
+        return false;
+
+    // A writer only ever creates its first part when its first packet arrives, so an earlier
+    // recording which wrote nothing leaves its stem free, as there is nothing to overwrite.
+    std::error_code error;
+    return !fs::exists(SignalFileWriter::partPath(path, stem, 1), error);
 }
 
 bool FileRecorderFbImpl::allWritersFinished() const

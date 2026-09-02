@@ -125,6 +125,23 @@ void FilePlayerFbImpl::readProperties()
 
 void FilePlayerFbImpl::startPlayback()
 {
+    std::thread previous;
+
+    {
+        auto lock = getRecursiveConfigLock();
+
+        if (playing)
+            return;
+
+        // A playback which ended on its own left its thread behind, because a thread cannot join
+        // itself. It is picked up here and joined below, with the configuration lock released,
+        // because that is the lock it needs to finish.
+        previous = std::move(thread);
+    }
+
+    if (previous.joinable())
+        previous.join();
+
     auto lock = getRecursiveConfigLock();
 
     if (playing)
@@ -379,19 +396,44 @@ void FilePlayerFbImpl::stopPlayback()
         stopping = std::move(thread);
     }
 
-    // Joined outside the function block's lock: the playback thread takes that same lock to send
-    // packets and to report status, so waiting for it while holding it would deadlock.
+    // Joined outside the function block's lock: the playback thread takes that same lock to
+    // finish, so waiting for it while holding the lock would deadlock.
     if (stopping.joinable())
         stopping.join();
 
+    // The very same ending a playback performs when it runs out by itself. It does nothing if
+    // the playback is already over.
+    finishPlayback(PlaybackEnd::Explicit);
+}
+
+void FilePlayerFbImpl::finishPlayback(PlaybackEnd end)
+{
     auto lock = getRecursiveConfigLock();
 
+    if (!playing)
+        return;
+
+    playing = false;
     reader.reset();
 
-    if (playing)
+    LOG_I("File player: {}", describe(end))
+
+    // A failure has already reported what went wrong, and that is worth more than the summary.
+    if (end != PlaybackEnd::Failed)
+        setComponentStatusWithMessage(ComponentStatus::Ok, describe(end));
+}
+
+const char* FilePlayerFbImpl::describe(PlaybackEnd end)
+{
+    switch (end)
     {
-        playing = false;
-        LOG_I("File player: playback stopped")
+        case PlaybackEnd::EndOfRecording:
+            return "Playback finished: the recording ran out";
+        case PlaybackEnd::Failed:
+            return "Playback stopped: the recording cannot be replayed any further";
+        case PlaybackEnd::Explicit:
+        default:
+            return "Playback stopped";
     }
 }
 
@@ -430,6 +472,16 @@ DataDescriptorPtr FilePlayerFbImpl::buildRecordedDomainDescriptor(const DataDesc
 
 void FilePlayerFbImpl::threadMain()
 {
+    const auto end = playbackLoop();
+
+    // An explicit stop is already ending the playback and is waiting to join this thread. Every
+    // other way out is this thread's to finish, so that it ends exactly as a stop would.
+    if (end != PlaybackEnd::Explicit)
+        finishPlayback(end);
+}
+
+FilePlayerFbImpl::PlaybackEnd FilePlayerFbImpl::playbackLoop()
+{
     SignalFileReader::Run run;
 
     while (true)
@@ -437,7 +489,7 @@ void FilePlayerFbImpl::threadMain()
         {
             std::lock_guard threadLock(threadMutex);
             if (stopRequested)
-                break;
+                return PlaybackEnd::Explicit;
         }
 
         bool read = false;
@@ -449,7 +501,7 @@ void FilePlayerFbImpl::threadMain()
         {
             LOG_W("File player: {}", e.what())
             setComponentStatusWithMessage(ComponentStatus::Warning, fmt::format("Playback stopped: {}", e.what()));
-            break;
+            return PlaybackEnd::Failed;
         }
 
         if (!read)
@@ -458,16 +510,16 @@ void FilePlayerFbImpl::threadMain()
             if (advance == PartAdvance::Continued)
                 continue;
             if (advance == PartAdvance::Failed)
-                break;
+                return PlaybackEnd::Failed;
 
             if (!loopPlayback)
             {
                 LOG_I("File player: reached the end of {}", currentPartPath.string())
-                break;
+                return PlaybackEnd::EndOfRecording;
             }
 
             if (!beginNextLoop())
-                break;
+                return PlaybackEnd::Failed;
 
             continue;
         }
@@ -477,7 +529,7 @@ void FilePlayerFbImpl::threadMain()
             const auto count = sliceLength(run, offset);
 
             if (!waitForSlice(run, offset))
-                return;
+                return PlaybackEnd::Explicit;
 
             emitSlice(run, offset, count);
             offset += count;

@@ -59,7 +59,7 @@ BEGIN_NAMESPACE_OPENDAQ_FILE_RECORDER_MODULE
  * from. With the property cleared, only the file named by FilePath is replayed.
  *
  * All settings are latched when playback starts, so they are read-only while it runs and settable
- * again once it is stopped.
+ * again once it is over, whether it was stopped or reached the end of the recording by itself.
  */
 class FilePlayerFbImpl final : public FunctionBlock
 {
@@ -188,7 +188,7 @@ public:
 
     /*!
      * @brief Stops playback and joins the playback thread. Does nothing if playback is not
-     *     running.
+     *     running, which includes a playback that has already ended on its own.
      */
     void stopPlayback();
 
@@ -296,7 +296,49 @@ private:
      */
     void resetPacing();
 
+    /*!
+     * @brief Why playback ended. Only what is logged and reported differs between them: what is
+     *     left behind is the same in every case.
+     */
+    enum class PlaybackEnd
+    {
+        /*!
+         * @brief Someone stopped it, and is waiting to join the playback thread.
+         */
+        Explicit,
+
+        /*!
+         * @brief The recording ran out, with no further part to continue into and no loop.
+         */
+        EndOfRecording,
+
+        /*!
+         * @brief It cannot go on. The component status already says why.
+         */
+        Failed,
+    };
+
     void threadMain();
+
+    /*!
+     * @brief Replays until there is nothing left to replay or someone stops it.
+     * @returns What ended the playback.
+     */
+    PlaybackEnd playbackLoop();
+
+    /*!
+     * @brief Ends the playback, whether it was stopped or ran out on its own, so that the two
+     *     leave the function block in exactly the same state: the properties unlock and the next
+     *     playback starts without having to be stopped first.
+     *
+     * Does nothing if the playback is already over.
+     */
+    void finishPlayback(PlaybackEnd end);
+
+    /*!
+     * @brief Describes @p end for the log and for the component status.
+     */
+    static const char* describe(PlaybackEnd end);
 
     /*!
      * @brief Emits @p count samples of @p run starting at @p offset as one value packet and one
@@ -381,11 +423,17 @@ private:
     std::mutex threadMutex;
     std::condition_variable threadCv;
     bool stopRequested = false;
+    /*!
+     * @brief The playback thread of the current playback, or of the last one if it ended on its
+     *     own and has not been joined yet. Such a thread is left here rather than joined by
+     *     itself; the next start, or a stop, joins it once the configuration lock is free.
+     */
     std::thread thread;
 
     /*!
-     * @brief True between a successful start and the stop which follows it. Written under the
-     *     configuration lock, and read without it by the properties' read-only condition.
+     * @brief True between a successful start and the end of that playback, whether it was
+     *     stopped or ran out on its own. Written under the configuration lock, and read without
+     *     it by the properties' read-only condition.
      */
     std::atomic_bool playing{false};
 

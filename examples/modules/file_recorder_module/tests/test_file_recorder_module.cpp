@@ -231,6 +231,28 @@ bool waitUntilStopped(const ObjectPtr<IRecorder>& recorder, std::chrono::millise
 }
 
 /*!
+ * Waits until @p component reports a status message containing @p substring, and returns whether
+ * it did so within @p timeout.
+ */
+bool waitUntilStatus(const ComponentPtr& component,
+                     const std::string& substring,
+                     std::chrono::milliseconds timeout = std::chrono::seconds(5))
+{
+    const auto deadline = std::chrono::steady_clock::now() + timeout;
+
+    while (std::chrono::steady_clock::now() < deadline)
+    {
+        const std::string message = component.getStatusContainer().getStatusMessage("ComponentStatus").toStdString();
+        if (message.find(substring) != std::string::npos)
+            return true;
+
+        std::this_thread::sleep_for(std::chrono::milliseconds(10));
+    }
+
+    return false;
+}
+
+/*!
  * Asserts that a recording which ended on its own left the function block exactly as an explicit
  * stop would: the reason reported as the component's status, unlocked properties, and a new
  * recording which starts without having to be stopped first.
@@ -675,6 +697,80 @@ TEST_F(FileRecorderModuleTest, StopEndsATimedRecordingEarly)
     ASSERT_EQ(recorder->stopRecording(), OPENDAQ_SUCCESS);
 }
 
+TEST_F(FileRecorderModuleTest, SignalsSharingANameGetSeparateFiles)
+{
+    const ScratchDirectory scratch("file_recorder_same_name");
+    constexpr std::size_t sampleCount = 100;
+
+    const auto module = createTestModule();
+    const auto fb = module.createFunctionBlock(RECORDER_ID, nullptr, "fb");
+
+    // Two signals of one recording may well carry the same name, and neither may lose its data
+    // to the other.
+    const auto first = createSignal(fb.getContext(), linearDomainDescriptor(1000));
+    const auto second = createSignal(fb.getContext(), linearDomainDescriptor(1000));
+    ASSERT_EQ(first.getName(), second.getName());
+
+    fb.getInputPorts().getItemAt(0).asPtr<IInputPortConfig>().connect(first);
+    fb.getInputPorts().getItemAt(1).asPtr<IInputPortConfig>().connect(second);
+    fb.setPropertyValue("Path", scratch.get().string());
+
+    const auto recorder = fb.asPtr<IRecorder>(true);
+    recorder->startRecording();
+
+    sendImplicitPacket(first, sampleCount, 0.0, 0);
+    sendImplicitPacket(second, sampleCount, 1000.0, 0);
+
+    recorder->stopRecording();
+
+    const auto files = recordingsIn(scratch.get());
+    ASSERT_EQ(files.size(), 2u);
+
+    const auto firstValues = replayRecording(module, files.front(), sampleCount);
+    const auto secondValues = replayRecording(module, files.back(), sampleCount);
+
+    ASSERT_EQ(firstValues.size(), sampleCount);
+    ASSERT_EQ(secondValues.size(), sampleCount);
+    EXPECT_DOUBLE_EQ(firstValues.front(), 0.0);
+    EXPECT_DOUBLE_EQ(secondValues.front(), 1000.0);
+}
+
+TEST_F(FileRecorderModuleTest, RestartedRecordingKeepsTheEarlierFiles)
+{
+    const ScratchDirectory scratch("file_recorder_restart");
+    constexpr std::size_t sampleCount = 100;
+
+    const auto module = createTestModule();
+    const auto fb = module.createFunctionBlock(RECORDER_ID, nullptr, "fb");
+    const auto signal = createSignal(fb.getContext(), linearDomainDescriptor(1000));
+
+    fb.getInputPorts().getItemAt(0).asPtr<IInputPortConfig>().connect(signal);
+    fb.setPropertyValue("Path", scratch.get().string());
+
+    const auto recorder = fb.asPtr<IRecorder>(true);
+
+    // Both recordings fall in the same second, so they would share a filename were the stem
+    // built from the timestamp alone.
+    recorder->startRecording();
+    sendImplicitPacket(signal, sampleCount, 0.0, 0);
+    recorder->stopRecording();
+
+    recorder->startRecording();
+    sendImplicitPacket(signal, sampleCount, 1000.0, 0);
+    recorder->stopRecording();
+
+    const auto files = recordingsIn(scratch.get());
+    ASSERT_EQ(files.size(), 2u);
+
+    const auto firstValues = replayRecording(module, files.front(), sampleCount);
+    const auto secondValues = replayRecording(module, files.back(), sampleCount);
+
+    ASSERT_EQ(firstValues.size(), sampleCount);
+    ASSERT_EQ(secondValues.size(), sampleCount);
+    EXPECT_DOUBLE_EQ(firstValues.front(), 0.0);
+    EXPECT_DOUBLE_EQ(secondValues.front(), 1000.0);
+}
+
 TEST_F(FileRecorderModuleTest, RecordsSignalWithoutDomainSignal)
 {
     const ScratchDirectory scratch("file_recorder_no_domain");
@@ -1087,6 +1183,52 @@ TEST_F(FileRecorderModuleTest, StopsAtNamedPartWhenContinuationDisabled)
 
     for (std::size_t i = 0; i < read; ++i)
         ASSERT_DOUBLE_EQ(values[i], static_cast<double>(i)) << "at sample " << i;
+}
+
+TEST_F(FileRecorderModuleTest, PlaybackEndsLikeAnExplicitStopWhenTheRecordingRunsOut)
+{
+    const ScratchDirectory scratch("file_recorder_playback_end");
+    constexpr std::size_t sampleCount = 200;
+
+    const auto module = createTestModule();
+
+    const auto recorderFb = module.createFunctionBlock(RECORDER_ID, nullptr, "recorder");
+    const auto signal = createSignal(recorderFb.getContext(), linearDomainDescriptor(1000));
+
+    recorderFb.getInputPorts().getItemAt(0).asPtr<IInputPortConfig>().connect(signal);
+    recorderFb.setPropertyValue("Path", scratch.get().string());
+
+    const auto recorder = recorderFb.asPtr<IRecorder>(true);
+    recorder->startRecording();
+    sendImplicitPacket(signal, sampleCount, 0.0, 0);
+    recorder->stopRecording();
+
+    const auto files = recordingsIn(scratch.get());
+    ASSERT_EQ(files.size(), 1u);
+
+    const auto playerFb = module.createFunctionBlock(PLAYER_ID, nullptr, "player");
+    playerFb.setPropertyValue("FilePath", files.front().string());
+    playerFb.setPropertyValue("SampleRate", 100000.0);
+
+    std::vector<double> values(sampleCount);
+    std::vector<Int> domain(sampleCount);
+
+    {
+        const auto reader = StreamReader(playerFb.getSignals().getItemAt(0), SampleType::Float64, SampleType::Int64);
+        ProcedurePtr(playerFb.getPropertyValue("StartPlayback"))();
+        ASSERT_EQ(readSamples(reader, values.data(), domain.data(), sampleCount), sampleCount);
+    }
+
+    // The recording runs out and the playback ends by itself, with nobody stopping it.
+    ASSERT_TRUE(waitUntilStatus(playerFb, "Playback finished"));
+
+    EXPECT_NO_THROW(playerFb.setPropertyValue("SampleRate", 50000.0));
+
+    // And the next playback starts without the finished one having to be stopped first.
+    const auto reader = StreamReader(playerFb.getSignals().getItemAt(0), SampleType::Float64, SampleType::Int64);
+    ProcedurePtr(playerFb.getPropertyValue("StartPlayback"))();
+    EXPECT_EQ(readSamples(reader, values.data(), domain.data(), sampleCount), sampleCount);
+    ProcedurePtr(playerFb.getPropertyValue("StopPlayback"))();
 }
 
 TEST_F(FileRecorderModuleTest, PlayerPropertiesAreReadOnlyWhilePlaying)

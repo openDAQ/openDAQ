@@ -140,8 +140,22 @@ bool SignalFileWriter::Layout::sameAs(const Layout& other) const
     return !header.domainDescriptor.assigned() || header.domainDescriptor == other.header.domainDescriptor;
 }
 
+std::string SignalFileWriter::buildFilenameStem(const StringPtr& signalName)
+{
+    return sanitizeForFilename(signalName) + "_" + localTimestamp();
+}
+
+fs::path SignalFileWriter::partPath(const fs::path& directory, const std::string& filenameStem, Int partIndex)
+{
+    std::ostringstream filename;
+    filename << filenameStem << '_' << std::setfill('0') << std::setw(4) << partIndex << FILE_EXTENSION;
+
+    return directory / filename.str();
+}
+
 SignalFileWriter::SignalFileWriter(const fs::path& directory,
                                    const SignalPtr& signal,
+                                   std::string filenameStem,
                                    std::uint64_t maxFileSizeBytes,
                                    std::uint64_t sampleLimit,
                                    std::function<void()> onFinished,
@@ -152,7 +166,7 @@ SignalFileWriter::SignalFileWriter(const fs::path& directory,
     , maxFileSizeBytes(maxFileSizeBytes)
     , sampleLimit(sampleLimit)
     , onFinished(std::move(onFinished))
-    , filenameStem(sanitizeForFilename(signal.getName()) + "_" + localTimestamp())
+    , filenameStem(std::move(filenameStem))
     , loggerComponent(loggerComponent)
 {
     thread = std::thread(&SignalFileWriter::threadMain, this);
@@ -374,9 +388,7 @@ void SignalFileWriter::openNextFile(const Layout& layout)
     nextLayout.header.partIndex = ++partIndex;
     nextLayout.header.createdAt = toIso8601(std::chrono::system_clock::now());
 
-    std::ostringstream filename;
-    filename << filenameStem << '_' << std::setfill('0') << std::setw(4) << partIndex << FILE_EXTENSION;
-    const fs::path path = directory / filename.str();
+    const fs::path path = partPath(directory, filenameStem, partIndex);
 
     file.exceptions(std::ios::failbit | std::ios::badbit);
     file.open(path, std::ios::binary | std::ios::trunc);

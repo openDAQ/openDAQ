@@ -738,6 +738,72 @@ TEST_F(FileRecorderModuleTest, RoundTripAtFixedSampleRate)
         ASSERT_DOUBLE_EQ(values[i], static_cast<double>(i)) << "at sample " << i;
 }
 
+TEST_F(FileRecorderModuleTest, FixedRateSplitsOutputByPacketInterval)
+{
+    const ScratchDirectory scratch("file_recorder_packet_interval");
+
+    // One recorded packet, longer than the interval the player is asked to emit.
+    constexpr std::size_t sampleCount = 2000;
+    constexpr double sampleRate = 10000.0;
+    constexpr Int intervalMs = 20;
+    constexpr std::size_t samplesPerInterval = static_cast<std::size_t>(sampleRate * intervalMs / 1000);
+
+    const auto module = createTestModule();
+
+    const auto recorderFb = module.createFunctionBlock(RECORDER_ID, nullptr, "recorder");
+    const auto signal = createSignal(recorderFb.getContext(), linearDomainDescriptor(1000));
+
+    recorderFb.getInputPorts().getItemAt(0).asPtr<IInputPortConfig>().connect(signal);
+    recorderFb.setPropertyValue("Path", scratch.get().string());
+
+    const auto recorder = recorderFb.asPtr<IRecorder>(true);
+    recorder->startRecording();
+    sendImplicitPacket(signal, sampleCount, 0.0, 0);
+    recorder->stopRecording();
+
+    const auto files = recordingsIn(scratch.get());
+    ASSERT_EQ(files.size(), 1u);
+
+    const auto playerFb = module.createFunctionBlock(PLAYER_ID, nullptr, "player");
+    playerFb.setPropertyValue("FilePath", files.front().string());
+    playerFb.setPropertyValue("PlaybackMode", 0);
+    playerFb.setPropertyValue("SampleRate", sampleRate);
+    playerFb.setPropertyValue("OutputPacketIntervalMs", intervalMs);
+
+    const auto packetReader = PacketReader(playerFb.getSignals().getItemAt(0));
+
+    ProcedurePtr(playerFb.getPropertyValue("StartPlayback"))();
+
+    std::size_t total = 0;
+    std::size_t packets = 0;
+    std::size_t longest = 0;
+
+    const auto deadline = std::chrono::steady_clock::now() + std::chrono::seconds(2);
+    while (total < sampleCount && std::chrono::steady_clock::now() < deadline)
+    {
+        for (const auto& packet : packetReader.readAll())
+        {
+            if (packet.getType() != PacketType::Data)
+                continue;
+
+            const auto count = static_cast<std::size_t>(packet.asPtr<IDataPacket>().getSampleCount());
+            total += count;
+            longest = std::max(longest, count);
+            ++packets;
+        }
+
+        std::this_thread::sleep_for(std::chrono::milliseconds(5));
+    }
+
+    ProcedurePtr(playerFb.getPropertyValue("StopPlayback"))();
+
+    ASSERT_EQ(total, sampleCount);
+
+    // The recorded packet is emitted in interval-sized pieces rather than in one burst.
+    EXPECT_LE(longest, samplesPerInterval);
+    EXPECT_GE(packets, sampleCount / samplesPerInterval);
+}
+
 TEST_F(FileRecorderModuleTest, ReplayPreservesRecordedDomainGaps)
 {
     const ScratchDirectory scratch("file_recorder_gaps");

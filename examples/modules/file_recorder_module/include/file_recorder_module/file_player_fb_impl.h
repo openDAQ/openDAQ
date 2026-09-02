@@ -139,6 +139,11 @@ public:
 
         /*!
          * @brief The longest span of samples to place in one output packet, in milliseconds.
+         *
+         * A packet is delivered to its consumers in one go, so this is the granularity at which
+         * replayed data arrives: a shorter interval means a smoother stream and less latency at
+         * the cost of more packets. In the RecordedDomain mode it is also what turns a recorded
+         * pause into a real wait, by ending the packet where the pause begins.
          */
         static constexpr const char* OUTPUT_PACKET_INTERVAL_MS = "OutputPacketIntervalMs";
 
@@ -365,6 +370,13 @@ private:
     bool loopPlayback = false;
     bool continueIntoNextParts = true;
     std::chrono::nanoseconds packetInterval{};
+
+    /*!
+     * @brief The number of samples asked of the reader at a time: one packet interval's worth in
+     *     the FixedSampleRate mode, where the run read is the packet emitted, and the reader's
+     *     buffer bound in the RecordedDomain mode, where the run is split by its own timing.
+     */
+    std::size_t runSampleLimit = 0;
 
     std::mutex threadMutex;
     std::condition_variable threadCv;

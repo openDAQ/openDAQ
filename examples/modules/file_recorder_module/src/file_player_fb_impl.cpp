@@ -29,8 +29,8 @@ namespace
 constexpr Int GENERATED_TICKS_PER_SECOND = 1000000000;
 
 /*!
- * The number of samples the reader is asked for at a time. It bounds the reader's buffers, not
- * the size of an output packet: a run this long is still split to fit the packet interval.
+ * The most samples the reader is ever asked for at a time, which bounds its buffers. The fixed
+ * rate mode asks for less than this when one packet interval is worth fewer samples.
  */
 constexpr std::size_t MAX_RUN_SAMPLES = 8192;
 
@@ -162,6 +162,18 @@ void FilePlayerFbImpl::startPlayback()
             sampleRate = MIN_SAMPLE_RATE;
 
         generatedDelta = std::max<Int>(1, static_cast<Int>(std::llround(GENERATED_TICKS_PER_SECOND / sampleRate)));
+
+        // The generated domain is evenly spaced, so an interval's worth of samples is a plain
+        // count and the run read is the packet emitted. In the recorded domain mode the spacing
+        // is whatever was recorded, so there the interval is applied to the run once it is read.
+        const double perInterval = sampleRate * std::chrono::duration<double>(packetInterval).count();
+        runSampleLimit = perInterval >= static_cast<double>(MAX_RUN_SAMPLES)
+                             ? MAX_RUN_SAMPLES
+                             : std::max<std::size_t>(1, static_cast<std::size_t>(perInterval));
+    }
+    else
+    {
+        runSampleLimit = MAX_RUN_SAMPLES;
     }
 
     publishDescriptors();
@@ -431,7 +443,7 @@ void FilePlayerFbImpl::threadMain()
         bool read = false;
         try
         {
-            read = reader->readRun(MAX_RUN_SAMPLES, run);
+            read = reader->readRun(runSampleLimit, run);
         }
         catch (const std::exception& e)
         {
@@ -477,8 +489,8 @@ std::size_t FilePlayerFbImpl::sliceLength(const SignalFileReader::Run& run, std:
 {
     const auto remaining = run.sampleCount - offset;
 
-    // In the fixed rate mode the reader was already asked for one interval's worth of samples,
-    // and the domain is regenerated, so the run is emitted as a single packet.
+    // In the fixed rate mode the reader was already asked for at most one interval's worth of
+    // samples, and the domain is regenerated, so the run is emitted as a single packet.
     if (playbackMode == PlaybackMode::FixedSampleRate || run.domainKind == DomainKind::None)
         return remaining;
 

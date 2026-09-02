@@ -143,11 +143,15 @@ bool SignalFileWriter::Layout::sameAs(const Layout& other) const
 SignalFileWriter::SignalFileWriter(const fs::path& directory,
                                    const SignalPtr& signal,
                                    std::uint64_t maxFileSizeBytes,
+                                   std::uint64_t sampleLimit,
+                                   std::function<void()> onFinished,
                                    const LoggerComponentPtr& loggerComponent)
     : directory(directory)
     , signalName(signal.getName())
     , signalGlobalId(signal.getGlobalId())
     , maxFileSizeBytes(maxFileSizeBytes)
+    , sampleLimit(sampleLimit)
+    , onFinished(std::move(onFinished))
     , filenameStem(sanitizeForFilename(signal.getName()) + "_" + localTimestamp())
     , loggerComponent(loggerComponent)
 {
@@ -170,7 +174,7 @@ void SignalFileWriter::post(const PacketPtr& packet)
 {
     {
         std::lock_guard lock(mutex);
-        if (failed || stopRequested)
+        if (finished || stopRequested)
             return;
         queue.push(packet);
     }
@@ -181,6 +185,12 @@ fs::path SignalFileWriter::getCurrentFilename() const
 {
     std::lock_guard lock(mutex);
     return currentFilename;
+}
+
+bool SignalFileWriter::isFinished() const
+{
+    std::lock_guard lock(mutex);
+    return finished;
 }
 
 void SignalFileWriter::threadMain()
@@ -210,7 +220,8 @@ void SignalFileWriter::threadMain()
 
 void SignalFileWriter::processPacket(const PacketPtr& packet)
 {
-    if (failed || !packet.assigned())
+    // finished is only ever written by this thread, so it is read here without the mutex.
+    if (failed || finished || !packet.assigned())
         return;
 
     try
@@ -244,9 +255,19 @@ void SignalFileWriter::processEventPacket(const EventPacketPtr& packet)
 
 void SignalFileWriter::processDataPacket(const DataPacketPtr& packet)
 {
-    const auto sampleCount = packet.getSampleCount();
+    auto sampleCount = static_cast<std::uint64_t>(packet.getSampleCount());
     if (sampleCount == 0)
         return;
+
+    if (sampleLimit != 0)
+    {
+        if (samplesWritten >= sampleLimit)
+            return;
+
+        // Only the samples still missing are taken from the packet crossing the limit, so that
+        // the recording holds exactly the requested number of them.
+        sampleCount = std::min(sampleCount, sampleLimit - samplesWritten);
+    }
 
     const Layout layout = buildLayout(packet);
 
@@ -256,7 +277,7 @@ void SignalFileWriter::processDataPacket(const DataPacketPtr& packet)
         openNextFile(layout);
     }
 
-    const BlockHeader blockHeader{layout.domainKind, static_cast<std::uint64_t>(sampleCount)};
+    const BlockHeader blockHeader{layout.domainKind, sampleCount};
     writeBlockHeader(file, blockHeader);
 
     const auto domainPacket = packet.getDomainPacket();
@@ -266,18 +287,27 @@ void SignalFileWriter::processDataPacket(const DataPacketPtr& packet)
 
     const auto* valueData = layout.materializeValues ? static_cast<const char*>(packet.getData())
                                                      : static_cast<const char*>(packet.getRawData());
-    const auto valueSize = sampleCount * layout.valueSampleSize;
+    const auto valueSize = static_cast<std::size_t>(sampleCount) * layout.valueSampleSize;
     file.write(valueData, static_cast<std::streamsize>(valueSize));
 
     if (layout.domainKind == DomainKind::Explicit)
     {
         const auto* domainData = layout.materializeDomain ? static_cast<const char*>(domainPacket.getData())
                                                           : static_cast<const char*>(domainPacket.getRawData());
-        file.write(domainData, static_cast<std::streamsize>(sampleCount * layout.domainSampleSize));
+        file.write(domainData, static_cast<std::streamsize>(static_cast<std::size_t>(sampleCount) * layout.domainSampleSize));
     }
 
     bytesWritten += sizeof(std::uint8_t) + sizeof(std::uint64_t) +
                     blockPayloadSize(blockHeader, layout.valueSampleSize, layout.domainSampleSize);
+    samplesWritten += sampleCount;
+
+    if (sampleLimit != 0 && samplesWritten >= sampleLimit)
+    {
+        LOG_I("File recorder: signal {} reached its limit of {} samples", signalGlobalId, sampleLimit)
+        closeFile();
+        finish();
+        return;
+    }
 
     if (maxFileSizeBytes != 0 && bytesWritten >= maxFileSizeBytes)
         closeFile();
@@ -390,13 +420,29 @@ void SignalFileWriter::fail(const std::string& message)
 
     closeFile();
 
-    std::lock_guard lock(mutex);
     failed = true;
+    finish();
+}
 
-    // Drop anything still queued: recording is over, and holding packet references would keep
-    // acquisition memory alive for no reason.
-    std::queue<PacketPtr> empty;
-    queue.swap(empty);
+void SignalFileWriter::finish()
+{
+    {
+        std::lock_guard lock(mutex);
+        if (finished)
+            return;
+
+        finished = true;
+
+        // Drop anything still queued: this signal is done, and holding packet references would
+        // keep acquisition memory alive for no reason.
+        std::queue<PacketPtr> empty;
+        queue.swap(empty);
+    }
+
+    // Called outside the mutex: the recorder reacts to it by destroying this writer, which joins
+    // the very thread running this callback only after it has returned.
+    if (onFinished)
+        onFinished();
 }
 
 END_NAMESPACE_OPENDAQ_FILE_RECORDER_MODULE

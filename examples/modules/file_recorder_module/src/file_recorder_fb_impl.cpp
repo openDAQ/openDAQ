@@ -1,4 +1,6 @@
+#include <algorithm>
 #include <functional>
+#include <utility>
 #include <vector>
 
 #include <coreobjects/eval_value_factory.h>
@@ -14,6 +16,12 @@ BEGIN_NAMESPACE_OPENDAQ_FILE_RECORDER_MODULE
 namespace
 {
 constexpr std::uint64_t BYTES_PER_MEGABYTE = 1024ull * 1024ull;
+
+/*!
+ * The shortest timed recording which can be asked for. It only keeps the property away from zero,
+ * where a recording would end before any data reached it.
+ */
+constexpr double MIN_DURATION_SECONDS = 0.001;
 }
 
 FunctionBlockTypePtr FileRecorderFbImpl::createType()
@@ -29,6 +37,7 @@ FileRecorderFbImpl::FileRecorderFbImpl(const ContextPtr& context,
 {
     tags.add(Tags::RECORDER);
 
+    initComponentStatus();
     initProperties();
     readProperties();
     updateInputPorts();
@@ -36,11 +45,30 @@ FileRecorderFbImpl::FileRecorderFbImpl(const ContextPtr& context,
 
 FileRecorderFbImpl::~FileRecorderFbImpl()
 {
+    {
+        auto lock = getRecursiveConfigLock();
+
+        // Cleared before the thread is joined, so that one already on its way into a stop finds
+        // nothing left to do rather than working on a function block being destroyed.
+        recording = false;
+        cancelAutoStop();
+    }
+
+    if (autoStopThread.joinable())
+        autoStopThread.join();
+
     clearWriters();
 }
 
 ErrCode FileRecorderFbImpl::startRecording()
 {
+    // The thread of the previous recording has already been cancelled and is only joined here,
+    // before the configuration lock is taken, because that is the lock it may still be waiting
+    // for on its way out.
+    auto previous = takeAutoStopThread();
+    if (previous.joinable())
+        previous.join();
+
     auto lock = getRecursiveConfigLock();
 
     if (recording)
@@ -48,27 +76,59 @@ ErrCode FileRecorderFbImpl::startRecording()
 
     readProperties();
 
+    autoStop = recordingMode == RecordingMode::Manual ? nullptr : std::make_shared<AutoStop>();
     recording = true;
     createWriters();
 
+    if (autoStop)
+        autoStopThread = std::thread(
+            &FileRecorderFbImpl::autoStopMain, this, autoStop, recordingMode, std::chrono::steady_clock::now() + duration);
+
     LOG_I("File recorder: recording to {}", path.string())
+    setComponentStatusWithMessage(ComponentStatus::Ok, fmt::format("Recording to {}", path.string()));
 
     return OPENDAQ_SUCCESS;
 }
 
 ErrCode FileRecorderFbImpl::stopRecording()
 {
-    auto lock = getRecursiveConfigLock();
-
-    if (!recording)
+    if (!stopRecording(StopReason::Explicit, nullptr))
         return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDSTATE, "Recording is not active.");
 
+    return OPENDAQ_SUCCESS;
+}
+
+bool FileRecorderFbImpl::stopRecording(StopReason reason, const std::shared_ptr<AutoStop>& from)
+{
+    auto lock = getRecursiveConfigLock();
+
+    // A thread which outlived its own recording finds a different state here and leaves the
+    // recording it is looking at alone.
+    if (!recording || (from && autoStop != from))
+        return false;
+
     recording = false;
+    cancelAutoStop();
     clearWriters();
 
-    LOG_I("File recorder: recording stopped")
+    LOG_I("File recorder: {}", describe(reason))
+    setComponentStatusWithMessage(ComponentStatus::Ok, describe(reason));
 
-    return OPENDAQ_SUCCESS;
+    return true;
+}
+
+const char* FileRecorderFbImpl::describe(StopReason reason)
+{
+    switch (reason)
+    {
+        case StopReason::SampleCountReached:
+            return "Recording stopped: every signal recorded the configured number of samples";
+        case StopReason::DurationElapsed:
+            return "Recording stopped: the configured duration elapsed";
+        case StopReason::Explicit:
+        default:
+            return "Recording stopped";
+    }
 }
 
 ErrCode FileRecorderFbImpl::getIsRecording(Bool* isRecording)
@@ -114,6 +174,9 @@ void FileRecorderFbImpl::onDisconnected(const InputPortPtr& port)
     closing.reset();
 
     updateInputPorts();
+
+    // One fewer signal to wait for, which may be the last one the recording was waiting on.
+    wakeAutoStop();
 }
 
 void FileRecorderFbImpl::onPacketReceived(const InputPortPtr& port)
@@ -139,8 +202,8 @@ void FileRecorderFbImpl::onPacketReceived(const InputPortPtr& port)
 
 void FileRecorderFbImpl::activeChanged()
 {
-    if (!active && recording)
-        stopRecording();
+    if (!active)
+        stopRecording(StopReason::Explicit, nullptr);
 }
 
 EvalValuePtr FileRecorderFbImpl::lockedWhileRecording()
@@ -157,6 +220,26 @@ void FileRecorderFbImpl::initProperties()
 
     objPtr.addProperty(IntPropertyBuilder(Props::MAX_FILE_SIZE_MB, 100).setReadOnly(lockedWhileRecording()).build());
     objPtr.getOnPropertyValueWrite(Props::MAX_FILE_SIZE_MB) += std::bind(&FileRecorderFbImpl::readProperties, this);
+
+    objPtr.addProperty(SelectionPropertyBuilder(Props::RECORDING_MODE, List<IString>("Manual", "SampleCount", "Duration"), 0)
+                           .setReadOnly(lockedWhileRecording())
+                           .build());
+    objPtr.getOnPropertyValueWrite(Props::RECORDING_MODE) += std::bind(&FileRecorderFbImpl::readProperties, this);
+
+    objPtr.addProperty(IntPropertyBuilder(Props::SAMPLE_COUNT, 10000)
+                           .setMinValue(1)
+                           .setVisible(EvalValue("$RecordingMode == 1"))
+                           .setReadOnly(lockedWhileRecording())
+                           .build());
+    objPtr.getOnPropertyValueWrite(Props::SAMPLE_COUNT) += std::bind(&FileRecorderFbImpl::readProperties, this);
+
+    objPtr.addProperty(FloatPropertyBuilder(Props::DURATION_SECONDS, 10.0)
+                           .setMinValue(MIN_DURATION_SECONDS)
+                           .setVisible(EvalValue("$RecordingMode == 2"))
+                           .setReadOnly(lockedWhileRecording())
+                           .setUnit(Unit("s", -1, "seconds", "time"))
+                           .build());
+    objPtr.getOnPropertyValueWrite(Props::DURATION_SECONDS) += std::bind(&FileRecorderFbImpl::readProperties, this);
 }
 
 void FileRecorderFbImpl::updateInputPorts()
@@ -176,17 +259,125 @@ void FileRecorderFbImpl::updateInputPorts()
 
 void FileRecorderFbImpl::createWriters()
 {
+    const auto sampleLimit = recordingMode == RecordingMode::SampleCount ? sampleCount : 0;
+
+    // Held by the callback rather than looked up when it runs, so that a writer outliving its
+    // recording wakes nothing, and so that the callback never reaches back into this object.
+    const auto state = autoStop;
+
+    std::function<void()> onFinished;
+    if (state)
+        onFinished = [state]
+        {
+            {
+                std::lock_guard lock(state->mutex);
+                state->wake = true;
+            }
+            state->cv.notify_all();
+        };
+
     for (const auto& port : borrowPtr<FunctionBlockPtr>().getInputPorts())
     {
         const auto signal = port.getSignal();
         if (!signal.assigned())
             continue;
 
-        auto writer = std::make_shared<SignalFileWriter>(path, signal, maxFileSizeBytes, loggerComponent);
+        auto writer = std::make_shared<SignalFileWriter>(path, signal, maxFileSizeBytes, sampleLimit, onFinished, loggerComponent);
 
         std::lock_guard writersLock(writersMutex);
         writers.emplace(port.getObject(), std::move(writer));
     }
+}
+
+bool FileRecorderFbImpl::allWritersFinished() const
+{
+    std::lock_guard writersLock(writersMutex);
+
+    if (writers.empty())
+        return false;
+
+    for (const auto& [port, writer] : writers)
+        if (!writer->isFinished())
+            return false;
+
+    return true;
+}
+
+void FileRecorderFbImpl::autoStopMain(std::shared_ptr<AutoStop> state,
+                                      RecordingMode mode,
+                                      std::chrono::steady_clock::time_point deadline)
+{
+    while (true)
+    {
+        {
+            std::unique_lock stopLock(state->mutex);
+
+            if (mode == RecordingMode::Duration)
+            {
+                // Returns the predicate, so a true result is a cancellation and a false one is
+                // the deadline the recording was waiting for.
+                if (state->cv.wait_until(stopLock, deadline, [&state] { return state->cancelled; }))
+                    return;
+            }
+            else
+            {
+                state->cv.wait(stopLock, [&state] { return state->cancelled || state->wake; });
+
+                if (state->cancelled)
+                    return;
+
+                state->wake = false;
+            }
+        }
+
+        // Checked outside the state's mutex, which a writer's thread takes to report itself done.
+        if (mode == RecordingMode::SampleCount && !allWritersFinished())
+            continue;
+
+        // The very same stop an explicit one performs, so that nothing is left behind for the
+        // user to stop a second time. It does nothing if the recording is already over.
+        stopRecording(mode == RecordingMode::Duration ? StopReason::DurationElapsed : StopReason::SampleCountReached, state);
+
+        return;
+    }
+}
+
+void FileRecorderFbImpl::cancelAutoStop()
+{
+    if (!autoStop)
+        return;
+
+    {
+        std::lock_guard stopLock(autoStop->mutex);
+        autoStop->cancelled = true;
+    }
+    autoStop->cv.notify_all();
+
+    // The thread's handle stays behind to be joined by the next start or by the destructor: this
+    // is also reached from the auto-stop thread itself, and from callbacks holding the lock it
+    // would need to notice the cancellation.
+    autoStop.reset();
+}
+
+std::thread FileRecorderFbImpl::takeAutoStopThread()
+{
+    auto lock = getRecursiveConfigLock();
+
+    cancelAutoStop();
+
+    return std::move(autoStopThread);
+}
+
+void FileRecorderFbImpl::wakeAutoStop()
+{
+    if (!autoStop)
+        return;
+
+    {
+        std::lock_guard stopLock(autoStop->mutex);
+        autoStop->wake = true;
+    }
+    autoStop->cv.notify_all();
 }
 
 void FileRecorderFbImpl::clearWriters()
@@ -219,6 +410,15 @@ void FileRecorderFbImpl::readProperties()
 
     const Int maxFileSizeMb = objPtr.getPropertyValue(Props::MAX_FILE_SIZE_MB);
     maxFileSizeBytes = maxFileSizeMb > 0 ? static_cast<std::uint64_t>(maxFileSizeMb) * BYTES_PER_MEGABYTE : 0;
+
+    recordingMode = static_cast<RecordingMode>(static_cast<Int>(objPtr.getPropertyValue(Props::RECORDING_MODE)));
+
+    const Int samples = objPtr.getPropertyValue(Props::SAMPLE_COUNT);
+    sampleCount = samples > 0 ? static_cast<std::uint64_t>(samples) : 0;
+
+    const double seconds = objPtr.getPropertyValue(Props::DURATION_SECONDS);
+    duration = std::chrono::duration_cast<std::chrono::steady_clock::duration>(
+        std::chrono::duration<double>(std::max(MIN_DURATION_SECONDS, seconds)));
 }
 
 END_NAMESPACE_OPENDAQ_FILE_RECORDER_MODULE

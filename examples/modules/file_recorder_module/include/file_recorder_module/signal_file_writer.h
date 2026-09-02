@@ -19,6 +19,7 @@
 #include <condition_variable>
 #include <cstdint>
 #include <fstream>
+#include <functional>
 #include <mutex>
 #include <queue>
 #include <string>
@@ -47,6 +48,9 @@ BEGIN_NAMESPACE_OPENDAQ_FILE_RECORDER_MODULE
  * If an I/O or data processing error occurs, the current file is closed, a warning is logged, and
  * all subsequent packets are ignored. This mirrors the behavior of the basic CSV recorder: one bad
  * signal does not disturb the recording of the others.
+ *
+ * A writer can be given a sample limit, which it records up to exactly - truncating the packet
+ * which crosses it - before closing its file and reporting itself finished.
  */
 class SignalFileWriter final
 {
@@ -61,11 +65,18 @@ public:
      *     ID is stored in the file header.
      * @param maxFileSizeBytes The size at which to roll over to a new file, or 0 for no limit. The
      *     limit is checked after each block, so a file may exceed it by up to one block.
+     * @param sampleLimit The number of samples to record before finishing, or 0 to record until
+     *     stopped. The packet crossing the limit is truncated, so exactly this many samples are
+     *     stored.
+     * @param onFinished Called once, from the background thread, when the sample limit is reached
+     *     or the writer gives up after an error. May be empty.
      * @param loggerComponent The openDAQ logger object to use.
      */
     SignalFileWriter(const fs::path& directory,
                      const SignalPtr& signal,
                      std::uint64_t maxFileSizeBytes,
+                     std::uint64_t sampleLimit,
+                     std::function<void()> onFinished,
                      const LoggerComponentPtr& loggerComponent);
 
     /*!
@@ -89,6 +100,12 @@ public:
      *     open. Intended for logging and tests.
      */
     fs::path getCurrentFilename() const;
+
+    /*!
+     * @brief Returns true once this writer has stopped accumulating samples, either because its
+     *     sample limit was reached or because it gave up after an error.
+     */
+    bool isFinished() const;
 
 private:
     /*!
@@ -146,10 +163,27 @@ private:
 
     void fail(const std::string& message);
 
+    /*!
+     * @brief Marks the writer as no longer accumulating samples, drops whatever is still queued
+     *     and reports the writer finished. Calling it a second time does nothing.
+     */
+    void finish();
+
     const fs::path directory;
     const StringPtr signalName;
     const StringPtr signalGlobalId;
     const std::uint64_t maxFileSizeBytes;
+
+    /*!
+     * @brief The number of samples to record before finishing, or 0 for no limit.
+     */
+    const std::uint64_t sampleLimit;
+
+    /*!
+     * @brief Invoked, outside #mutex, when the writer finishes on its own.
+     */
+    const std::function<void()> onFinished;
+
     const std::string filenameStem;
 
     LoggerComponentPtr loggerComponent;
@@ -159,12 +193,25 @@ private:
     std::queue<PacketPtr> queue;
     bool stopRequested = false;
 
+    /*!
+     * @brief Set once the writer has stopped accumulating samples. Read by isFinished() and by
+     *     post(), which drops packets arriving afterwards.
+     */
+    bool finished = false;
+
     // The members below are owned by the background thread and are not protected by the mutex,
     // except for currentFilename which getCurrentFilename() reads.
     std::ofstream file;
     fs::path currentFilename;
     Layout currentLayout;
     std::uint64_t bytesWritten = 0;
+
+    /*!
+     * @brief The number of samples recorded so far, counted across all of this signal's parts and
+     *     compared against #sampleLimit.
+     */
+    std::uint64_t samplesWritten = 0;
+
     Int partIndex = 0;
     bool failed = false;
 

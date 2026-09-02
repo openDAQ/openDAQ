@@ -208,6 +208,76 @@ std::size_t readSamples(const StreamReaderPtr& reader,
     return total;
 }
 
+/*!
+ * Waits until the recorder reports that it is no longer recording, and returns whether it did so
+ * within @p timeout.
+ */
+bool waitUntilStopped(const ObjectPtr<IRecorder>& recorder, std::chrono::milliseconds timeout = std::chrono::seconds(5))
+{
+    const auto deadline = std::chrono::steady_clock::now() + timeout;
+
+    while (std::chrono::steady_clock::now() < deadline)
+    {
+        Bool isRecording = False;
+        recorder->getIsRecording(&isRecording);
+
+        if (!isRecording)
+            return true;
+
+        std::this_thread::sleep_for(std::chrono::milliseconds(10));
+    }
+
+    return false;
+}
+
+/*!
+ * Asserts that a recording which ended on its own left the function block exactly as an explicit
+ * stop would: the reason reported as the component's status, unlocked properties, and a new
+ * recording which starts without having to be stopped first.
+ */
+void expectStoppedLikeAnExplicitStop(const FunctionBlockPtr& fb,
+                                     const ObjectPtr<IRecorder>& recorder,
+                                     const std::string& reason)
+{
+    Bool isRecording = True;
+    recorder->getIsRecording(&isRecording);
+    EXPECT_FALSE(isRecording);
+
+    const std::string status = fb.getStatusContainer().getStatusMessage("ComponentStatus").toStdString();
+    EXPECT_THAT(status, testing::HasSubstr("stopped"));
+    EXPECT_THAT(status, testing::HasSubstr(reason));
+
+    EXPECT_NO_THROW(fb.setPropertyValue("MaxFileSizeMB", 7));
+
+    EXPECT_EQ(recorder->startRecording(), OPENDAQ_SUCCESS);
+    EXPECT_EQ(recorder->stopRecording(), OPENDAQ_SUCCESS);
+}
+
+/*!
+ * Replays @p file and returns the samples it produced. One more sample than @p expected is asked
+ * for, so that a recording holding more than it should is detected rather than truncated.
+ */
+std::vector<double> replayRecording(const ModulePtr& module, const fs::path& file, std::size_t expected)
+{
+    const auto playerFb = module.createFunctionBlock(PLAYER_ID, nullptr, "player");
+    playerFb.setPropertyValue("FilePath", file.string());
+    playerFb.setPropertyValue("PlaybackMode", 0);
+    playerFb.setPropertyValue("SampleRate", 100000.0);
+
+    const auto reader = StreamReader(playerFb.getSignals().getItemAt(0), SampleType::Float64, SampleType::Int64);
+
+    ProcedurePtr(playerFb.getPropertyValue("StartPlayback"))();
+
+    std::vector<double> values(expected + 1);
+    std::vector<Int> domain(expected + 1);
+    const auto read = readSamples(reader, values.data(), domain.data(), expected + 1, std::chrono::seconds(1));
+
+    ProcedurePtr(playerFb.getPropertyValue("StopPlayback"))();
+
+    values.resize(read);
+    return values;
+}
+
 }
 
 using FileRecorderModuleTest = testing::Test;
@@ -352,6 +422,12 @@ TEST_F(FileRecorderModuleTest, PropertiesAreReadOnlyWhileRecording)
     daqClearErrorInfo();
     ASSERT_THROW(fb.setPropertyValue("MaxFileSizeMB", 1), AccessDeniedException);
     daqClearErrorInfo();
+    ASSERT_THROW(fb.setPropertyValue("RecordingMode", 1), AccessDeniedException);
+    daqClearErrorInfo();
+    ASSERT_THROW(fb.setPropertyValue("SampleCount", 10), AccessDeniedException);
+    daqClearErrorInfo();
+    ASSERT_THROW(fb.setPropertyValue("DurationSeconds", 1.0), AccessDeniedException);
+    daqClearErrorInfo();
 
     ASSERT_EQ(fb.getPropertyValue("Path"), scratch.get().string());
 
@@ -390,6 +466,213 @@ TEST_F(FileRecorderModuleTest, RollsOverWhenMaxFileSizeReached)
 
     for (const auto& file : files)
         ASSERT_GT(fs::file_size(file), 0u);
+}
+
+TEST_F(FileRecorderModuleTest, StopsAfterConfiguredSampleCount)
+{
+    const ScratchDirectory scratch("file_recorder_sample_count");
+    constexpr std::size_t limit = 250;
+
+    const auto module = createTestModule();
+    const auto fb = module.createFunctionBlock(RECORDER_ID, nullptr, "fb");
+    const auto signal = createSignal(fb.getContext(), linearDomainDescriptor(1000));
+
+    fb.getInputPorts().getItemAt(0).asPtr<IInputPortConfig>().connect(signal);
+    fb.setPropertyValue("Path", scratch.get().string());
+    fb.setPropertyValue("RecordingMode", 1);
+    fb.setPropertyValue("SampleCount", static_cast<Int>(limit));
+
+    const auto recorder = fb.asPtr<IRecorder>(true);
+    recorder->startRecording();
+
+    // Twice as many samples as asked for, sent in packets which do not line up with the limit,
+    // so that the packet crossing it has to be cut in half.
+    for (std::size_t i = 0; i < 5; ++i)
+        sendImplicitPacket(signal, 100, static_cast<double>(i * 100), static_cast<Int>(i * 100 * 1000));
+
+    ASSERT_TRUE(waitUntilStopped(recorder));
+
+    const auto files = recordingsIn(scratch.get());
+    ASSERT_EQ(files.size(), 1u);
+
+    const auto values = replayRecording(module, files.front(), limit);
+    ASSERT_EQ(values.size(), limit);
+
+    for (std::size_t i = 0; i < values.size(); ++i)
+        ASSERT_DOUBLE_EQ(values[i], static_cast<double>(i)) << "at sample " << i;
+}
+
+TEST_F(FileRecorderModuleTest, SampleCountModeWaitsForEverySignal)
+{
+    const ScratchDirectory scratch("file_recorder_sample_count_signals");
+    constexpr std::size_t limit = 100;
+
+    const auto module = createTestModule();
+    const auto fb = module.createFunctionBlock(RECORDER_ID, nullptr, "fb");
+
+    const auto first = createSignal(fb.getContext(), linearDomainDescriptor(1000));
+    const auto second = createSignal(fb.getContext(), linearDomainDescriptor(1000));
+
+    // The signals are recorded into files named after them, so they need different names.
+    first.setName("first_signal");
+    second.setName("second_signal");
+
+    fb.getInputPorts().getItemAt(0).asPtr<IInputPortConfig>().connect(first);
+    fb.getInputPorts().getItemAt(1).asPtr<IInputPortConfig>().connect(second);
+
+    fb.setPropertyValue("Path", scratch.get().string());
+    fb.setPropertyValue("RecordingMode", 1);
+    fb.setPropertyValue("SampleCount", static_cast<Int>(limit));
+
+    const auto recorder = fb.asPtr<IRecorder>(true);
+    recorder->startRecording();
+
+    sendImplicitPacket(first, limit, 0.0, 0);
+
+    // The limit is per signal, so the recording waits for the one which has not reached it.
+    ASSERT_FALSE(waitUntilStopped(recorder, std::chrono::milliseconds(300)));
+
+    sendImplicitPacket(second, limit, 0.0, 0);
+
+    ASSERT_TRUE(waitUntilStopped(recorder));
+    ASSERT_EQ(recordingsIn(scratch.get()).size(), 2u);
+}
+
+TEST_F(FileRecorderModuleTest, StopsAfterConfiguredDuration)
+{
+    const ScratchDirectory scratch("file_recorder_duration");
+    constexpr std::size_t sampleCount = 100;
+
+    const auto module = createTestModule();
+    const auto fb = module.createFunctionBlock(RECORDER_ID, nullptr, "fb");
+    const auto signal = createSignal(fb.getContext(), linearDomainDescriptor(1000));
+
+    fb.getInputPorts().getItemAt(0).asPtr<IInputPortConfig>().connect(signal);
+    fb.setPropertyValue("Path", scratch.get().string());
+    fb.setPropertyValue("RecordingMode", 2);
+    fb.setPropertyValue("DurationSeconds", 0.3);
+
+    const auto recorder = fb.asPtr<IRecorder>(true);
+    const auto started = std::chrono::steady_clock::now();
+    recorder->startRecording();
+
+    sendImplicitPacket(signal, sampleCount, 0.0, 0);
+
+    ASSERT_TRUE(waitUntilStopped(recorder));
+    ASSERT_GE(std::chrono::steady_clock::now() - started, std::chrono::milliseconds(300));
+
+    // Anything arriving after the recording ended is dropped rather than appended.
+    sendImplicitPacket(signal, sampleCount, static_cast<double>(sampleCount), static_cast<Int>(sampleCount * 1000));
+
+    const auto files = recordingsIn(scratch.get());
+    ASSERT_EQ(files.size(), 1u);
+    ASSERT_EQ(replayRecording(module, files.front(), sampleCount).size(), sampleCount);
+}
+
+TEST_F(FileRecorderModuleTest, TimedRecordingEndsLikeAnExplicitStop)
+{
+    const ScratchDirectory scratch("file_recorder_duration_state");
+
+    const auto module = createTestModule();
+    const auto fb = module.createFunctionBlock(RECORDER_ID, nullptr, "fb");
+    const auto signal = createSignal(fb.getContext(), linearDomainDescriptor(1000));
+
+    fb.getInputPorts().getItemAt(0).asPtr<IInputPortConfig>().connect(signal);
+    fb.setPropertyValue("Path", scratch.get().string());
+    fb.setPropertyValue("RecordingMode", 2);
+    fb.setPropertyValue("DurationSeconds", 0.2);
+
+    const auto recorder = fb.asPtr<IRecorder>(true);
+    recorder->startRecording();
+    sendImplicitPacket(signal, 100, 0.0, 0);
+
+    ASSERT_TRUE(waitUntilStopped(recorder));
+
+    expectStoppedLikeAnExplicitStop(fb, recorder, "duration");
+}
+
+TEST_F(FileRecorderModuleTest, SampleCountRecordingEndsLikeAnExplicitStop)
+{
+    const ScratchDirectory scratch("file_recorder_sample_count_state");
+
+    const auto module = createTestModule();
+    const auto fb = module.createFunctionBlock(RECORDER_ID, nullptr, "fb");
+    const auto signal = createSignal(fb.getContext(), linearDomainDescriptor(1000));
+
+    fb.getInputPorts().getItemAt(0).asPtr<IInputPortConfig>().connect(signal);
+    fb.setPropertyValue("Path", scratch.get().string());
+    fb.setPropertyValue("RecordingMode", 1);
+    fb.setPropertyValue("SampleCount", 100);
+
+    const auto recorder = fb.asPtr<IRecorder>(true);
+    recorder->startRecording();
+    sendImplicitPacket(signal, 100, 0.0, 0);
+
+    ASSERT_TRUE(waitUntilStopped(recorder));
+
+    expectStoppedLikeAnExplicitStop(fb, recorder, "samples");
+}
+
+TEST_F(FileRecorderModuleTest, ManualModeIgnoresTheLimits)
+{
+    const ScratchDirectory scratch("file_recorder_manual");
+    constexpr std::size_t sampleCount = 500;
+
+    const auto module = createTestModule();
+    const auto fb = module.createFunctionBlock(RECORDER_ID, nullptr, "fb");
+    const auto signal = createSignal(fb.getContext(), linearDomainDescriptor(1000));
+
+    fb.getInputPorts().getItemAt(0).asPtr<IInputPortConfig>().connect(signal);
+    fb.setPropertyValue("Path", scratch.get().string());
+    fb.setPropertyValue("RecordingMode", 0);
+    fb.setPropertyValue("SampleCount", 10);
+    fb.setPropertyValue("DurationSeconds", 0.05);
+
+    const auto recorder = fb.asPtr<IRecorder>(true);
+    recorder->startRecording();
+
+    sendImplicitPacket(signal, sampleCount, 0.0, 0);
+
+    ASSERT_FALSE(waitUntilStopped(recorder, std::chrono::milliseconds(300)));
+
+    recorder->stopRecording();
+
+    const auto files = recordingsIn(scratch.get());
+    ASSERT_EQ(files.size(), 1u);
+    ASSERT_EQ(replayRecording(module, files.front(), sampleCount).size(), sampleCount);
+}
+
+TEST_F(FileRecorderModuleTest, StopEndsATimedRecordingEarly)
+{
+    const ScratchDirectory scratch("file_recorder_duration_stop");
+
+    const auto module = createTestModule();
+    const auto fb = module.createFunctionBlock(RECORDER_ID, nullptr, "fb");
+    const auto signal = createSignal(fb.getContext(), linearDomainDescriptor(1000));
+
+    fb.getInputPorts().getItemAt(0).asPtr<IInputPortConfig>().connect(signal);
+    fb.setPropertyValue("Path", scratch.get().string());
+    fb.setPropertyValue("RecordingMode", 2);
+    fb.setPropertyValue("DurationSeconds", 30.0);
+
+    const auto recorder = fb.asPtr<IRecorder>(true);
+    recorder->startRecording();
+
+    sendImplicitPacket(signal, 100, 0.0, 0);
+
+    // The explicit stop returns without waiting for the deadline, and the properties unlock.
+    ASSERT_EQ(recorder->stopRecording(), OPENDAQ_SUCCESS);
+
+    Bool isRecording = True;
+    recorder->getIsRecording(&isRecording);
+    ASSERT_FALSE(isRecording);
+
+    ASSERT_NO_THROW(fb.setPropertyValue("RecordingMode", 0));
+
+    // A recording started again afterwards is unaffected by the abandoned deadline.
+    ASSERT_EQ(recorder->startRecording(), OPENDAQ_SUCCESS);
+    ASSERT_FALSE(waitUntilStopped(recorder, std::chrono::milliseconds(200)));
+    ASSERT_EQ(recorder->stopRecording(), OPENDAQ_SUCCESS);
 }
 
 TEST_F(FileRecorderModuleTest, RecordsSignalWithoutDomainSignal)

@@ -123,6 +123,21 @@ public:
         static constexpr const char* MAX_FILE_SIZE_MB = "MaxFileSizeMB";
 
         /*!
+         * @brief How much of a signal's data may wait to be written, in megabytes, or 0 for no
+         *     limit.
+         *
+         * Writing runs behind acquisition, so a filesystem which cannot keep up has data pile up
+         * in memory, holding on to the acquisition's own packets as it goes. This bounds that
+         * pile per signal: a signal which reaches the limit finishes writing what it has already
+         * accepted, then stops recording and reports the failure through the component status.
+         * Filling past half of it is reported as a warning first, which is withdrawn once the
+         * backlog has drained.
+         *
+         * Read-only while recording.
+         */
+        static constexpr const char* MAX_BUFFER_MB = "MaxBufferMB";
+
+        /*!
          * @brief The RecordingMode which decides what ends the recording, besides an explicit
          *     stop, which ends it in every mode.
          *
@@ -346,9 +361,32 @@ private:
     void wakeAutoStop();
 
     /*!
-     * @brief Destroys all writers, flushing and closing their files.
+     * @brief Reacts to a writer reporting something new about itself. Called from that writer's
+     *     thread, or from the acquisition thread posting to it, so it takes neither the
+     *     configuration lock nor anything else a writer's destructor waits for.
+     *
+     * @param state The auto-stop state of the recording the writer belongs to, held by the
+     *     callback itself rather than read from #autoStop, which only the configuration lock
+     *     makes safe to read.
      */
-    void clearWriters();
+    void onWriterStateChanged(const std::shared_ptr<AutoStop>& state);
+
+    /*!
+     * @brief Reports what the writers of the current recording add up to: a failure if any of
+     *     them gave up, a warning while any of them has a backlog, and the plain recording
+     *     message otherwise.
+     */
+    void updateRecordingStatus();
+
+    /*!
+     * @brief Closes and destroys all writers, flushing their files.
+     *
+     * @returns What went wrong with the first signal which failed, or an unassigned string if
+     *     every signal recorded to the end. It is read once the writers have been closed, because
+     *     a writer which ran out of room only reports itself failed after writing out its
+     *     backlog.
+     */
+    StringPtr clearWriters();
 
     /*!
      * @brief Looks up the writer recording @p port, holding #writersMutex only for the lookup
@@ -395,8 +433,17 @@ private:
      */
     std::atomic_bool recording{false};
 
+    /*!
+     * @brief Guards the component status against the several writer threads which report into it,
+     *     and the message a recording carries while nothing is wrong. It is only ever taken on
+     *     its own.
+     */
+    mutable std::mutex statusMutex;
+    std::string recordingStatusMessage;
+
     fs::path path;
     std::uint64_t maxFileSizeBytes = 0;
+    std::uint64_t maxBufferBytes = 0;
     RecordingMode recordingMode = RecordingMode::Manual;
     std::uint64_t sampleCount = 0;
     std::chrono::steady_clock::duration duration{};

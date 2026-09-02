@@ -49,6 +49,13 @@ BEGIN_NAMESPACE_OPENDAQ_FILE_RECORDER_MODULE
  * all subsequent packets are ignored. This mirrors the behavior of the basic CSV recorder: one bad
  * signal does not disturb the recording of the others.
  *
+ * The queue is bounded, because a filesystem which cannot keep up would otherwise have it grow
+ * without limit, holding on to the acquisition's packets as it goes. When it fills up the writer
+ * stops accepting packets and reports a failure, but still writes everything already queued, so
+ * that the recording ends at a clean boundary instead of losing what it had already accepted.
+ * Filling past a high water mark is reported before that happens, and the report is withdrawn
+ * once the queue has drained well below it again.
+ *
  * A writer can be given a sample limit, which it records up to exactly - truncating the packet
  * which crosses it - before closing its file and reporting itself finished.
  */
@@ -69,8 +76,11 @@ public:
      * @param sampleLimit The number of samples to record before finishing, or 0 to record until
      *     stopped. The packet crossing the limit is truncated, so exactly this many samples are
      *     stored.
-     * @param onFinished Called once, from the background thread, when the sample limit is reached
-     *     or the writer gives up after an error. May be empty.
+     * @param maxQueuedBytes How much data may wait to be written before the writer gives up, or 0
+     *     for no limit. A packet arriving at an empty queue is always accepted, so that a limit
+     *     smaller than one packet still makes progress.
+     * @param onStateChanged Called from the writer's own thread, and from the thread posting to
+     *     it, whenever getStatus() would report something new. May be empty.
      * @param loggerComponent The openDAQ logger object to use.
      */
     SignalFileWriter(const fs::path& directory,
@@ -78,14 +88,24 @@ public:
                      std::string filenameStem,
                      std::uint64_t maxFileSizeBytes,
                      std::uint64_t sampleLimit,
-                     std::function<void()> onFinished,
+                     std::uint64_t maxQueuedBytes,
+                     std::function<void()> onStateChanged,
                      const LoggerComponentPtr& loggerComponent);
+
+    /*!
+     * @brief Closes the writer, if close() has not already done it.
+     */
+    ~SignalFileWriter();
 
     /*!
      * @brief Stops the background thread and closes the current file. Packets still queued are
      *     written before the thread exits, so that stopping a recording does not truncate it.
+     *
+     * getStatus() only settles once this returns, because a writer which has run out of room
+     * finishes writing what it accepted before it reports itself failed. Calling it more than
+     * once does nothing.
      */
-    ~SignalFileWriter();
+    void close();
 
     SignalFileWriter(const SignalFileWriter&) = delete;
     SignalFileWriter& operator=(const SignalFileWriter&) = delete;
@@ -120,10 +140,38 @@ public:
     fs::path getCurrentFilename() const;
 
     /*!
-     * @brief Returns true once this writer has stopped accumulating samples, either because its
-     *     sample limit was reached or because it gave up after an error.
+     * @brief What a writer has to say about itself, taken in one piece so that a reader of it
+     *     never sees a half-updated writer.
      */
-    bool isFinished() const;
+    struct Status
+    {
+        /*!
+         * @brief True once the writer has stopped accumulating samples, because its sample limit
+         *     was reached, because its queue filled up, or because it gave up after an error.
+         */
+        bool finished = false;
+
+        /*!
+         * @brief True if what stopped it was a failure rather than the sample limit.
+         */
+        bool failed = false;
+
+        /*!
+         * @brief True while the queue is above its high water mark, and until it has drained
+         *     below the low one.
+         */
+        bool queueHigh = false;
+
+        /*!
+         * @brief What went wrong, when #failed is set.
+         */
+        std::string message;
+    };
+
+    /*!
+     * @brief Returns this writer's state.
+     */
+    Status getStatus() const;
 
 private:
     /*!
@@ -182,10 +230,29 @@ private:
     void fail(const std::string& message);
 
     /*!
-     * @brief Marks the writer as no longer accumulating samples, drops whatever is still queued
-     *     and reports the writer finished. Calling it a second time does nothing.
+     * @brief Marks the writer as no longer accumulating samples and reports the new state.
+     *     Calling it a second time does nothing.
+     *
+     * @param message What went wrong, or empty if the writer simply recorded everything it was
+     *     asked for.
+     * @param dropQueued Whether to let go of the packets still queued. They cannot be written
+     *     after an I/O error, but a queue which merely filled up is still written out in full.
      */
-    void finish();
+    void finish(const std::string& message, bool dropQueued);
+
+    /*!
+     * @brief Returns how many bytes of memory @p packet occupies while it waits in the queue.
+     *
+     * A packet holds a reference to the acquisition's own buffer, so this is what the queue costs
+     * the process, plus a fixed allowance per packet which also bounds a queue of packets that
+     * carry no buffer of their own.
+     */
+    static std::uint64_t queuedBytesOf(const PacketPtr& packet);
+
+    /*!
+     * @brief Reports the writer's state to its owner, and must be called with #mutex released.
+     */
+    void notifyStateChanged() const;
 
     const fs::path directory;
     const StringPtr signalName;
@@ -198,18 +265,61 @@ private:
     const std::uint64_t sampleLimit;
 
     /*!
-     * @brief Invoked, outside #mutex, when the writer finishes on its own.
+     * @brief How much queued data is allowed before the writer gives up, or 0 for no limit.
      */
-    const std::function<void()> onFinished;
+    const std::uint64_t maxQueuedBytes;
+
+    /*!
+     * @brief The amount of queued data at which the queue is reported as filling up, and the
+     *     amount it has to drain to before that report is withdrawn.
+     */
+    const std::uint64_t highWatermark;
+    const std::uint64_t lowWatermark;
+
+    /*!
+     * @brief Invoked, outside #mutex, whenever getStatus() would report something new.
+     */
+    const std::function<void()> onStateChanged;
 
     const std::string filenameStem;
 
     LoggerComponentPtr loggerComponent;
 
+    /*!
+     * @brief A packet waiting to be written, with what it costs to hold on to it.
+     */
+    struct QueuedPacket
+    {
+        PacketPtr packet;
+        std::uint64_t bytes = 0;
+    };
+
     mutable std::mutex mutex;
     std::condition_variable cv;
-    std::queue<PacketPtr> queue;
+    std::queue<QueuedPacket> queue;
     bool stopRequested = false;
+
+    /*!
+     * @brief What the packets in #queue add up to, kept against #maxQueuedBytes.
+     */
+    std::uint64_t queuedBytes = 0;
+
+    /*!
+     * @brief True once #queue passed #highWatermark, until it falls back to #lowWatermark. The
+     *     two differ so that a queue hovering around the mark does not report itself repeatedly.
+     */
+    bool queueHigh = false;
+
+    /*!
+     * @brief Set when a packet had to be turned away because the queue was full. What is already
+     *     queued is still written before the writer closes its file.
+     */
+    bool queueOverflowed = false;
+
+    /*!
+     * @brief What stopped this writer, when what stopped it was a failure.
+     */
+    std::string failureMessage;
 
     /*!
      * @brief Set once the writer has stopped accumulating samples. Read by isFinished() and by

@@ -90,7 +90,12 @@ ErrCode FileRecorderFbImpl::startRecording()
             &FileRecorderFbImpl::autoStopMain, this, autoStop, recordingMode, std::chrono::steady_clock::now() + duration);
 
     LOG_I("File recorder: recording to {}", path.string())
-    setComponentStatusWithMessage(ComponentStatus::Ok, fmt::format("Recording to {}", path.string()));
+
+    {
+        std::lock_guard statusLock(statusMutex);
+        recordingStatusMessage = fmt::format("Recording to {}", path.string());
+        setComponentStatusWithMessage(ComponentStatus::Ok, recordingStatusMessage);
+    }
 
     return OPENDAQ_SUCCESS;
 }
@@ -114,10 +119,20 @@ bool FileRecorderFbImpl::stopRecording(StopReason reason, const std::shared_ptr<
 
     recording = false;
     cancelAutoStop();
-    clearWriters();
+
+    // A signal which gave up mid-recording is still reported once the recording is over, rather
+    // than being tidied away by the stop.
+    const auto failure = clearWriters();
 
     LOG_I("File recorder: {}", describe(reason))
-    setComponentStatusWithMessage(ComponentStatus::Ok, describe(reason));
+
+    std::lock_guard statusLock(statusMutex);
+    recordingStatusMessage.clear();
+
+    if (failure.assigned())
+        setComponentStatusWithMessage(ComponentStatus::Error, failure);
+    else
+        setComponentStatusWithMessage(ComponentStatus::Ok, describe(reason));
 
     return true;
 }
@@ -226,6 +241,9 @@ void FileRecorderFbImpl::initProperties()
     objPtr.addProperty(IntPropertyBuilder(Props::MAX_FILE_SIZE_MB, 100).setReadOnly(lockedWhileRecording()).build());
     objPtr.getOnPropertyValueWrite(Props::MAX_FILE_SIZE_MB) += std::bind(&FileRecorderFbImpl::readProperties, this);
 
+    objPtr.addProperty(IntPropertyBuilder(Props::MAX_BUFFER_MB, 64).setMinValue(0).setReadOnly(lockedWhileRecording()).build());
+    objPtr.getOnPropertyValueWrite(Props::MAX_BUFFER_MB) += std::bind(&FileRecorderFbImpl::readProperties, this);
+
     objPtr.addProperty(SelectionPropertyBuilder(Props::RECORDING_MODE, List<IString>("Manual", "SampleCount", "Duration"), 0)
                            .setReadOnly(lockedWhileRecording())
                            .build());
@@ -266,20 +284,11 @@ void FileRecorderFbImpl::createWriters()
 {
     const auto sampleLimit = recordingMode == RecordingMode::SampleCount ? sampleCount : 0;
 
-    // Held by the callback rather than looked up when it runs, so that a writer outliving its
-    // recording wakes nothing, and so that the callback never reaches back into this object.
-    const auto state = autoStop;
-
-    std::function<void()> onFinished;
-    if (state)
-        onFinished = [state]
-        {
-            {
-                std::lock_guard lock(state->mutex);
-                state->wake = true;
-            }
-            state->cv.notify_all();
-        };
+    // Reaching back into the function block is safe because a writer's destructor joins the
+    // thread which calls this, and this function block outlives every writer it owns. The
+    // recording's auto-stop state travels with the callback, so that a writer never has to read
+    // a member the configuration lock guards.
+    const auto onStateChanged = [this, state = autoStop] { onWriterStateChanged(state); };
 
     for (const auto& port : borrowPtr<FunctionBlockPtr>().getInputPorts())
     {
@@ -295,8 +304,14 @@ void FileRecorderFbImpl::createWriters()
                 continue;
         }
 
-        auto writer = std::make_shared<SignalFileWriter>(
-            path, signal, uniqueFilenameStem(signal), maxFileSizeBytes, sampleLimit, onFinished, loggerComponent);
+        auto writer = std::make_shared<SignalFileWriter>(path,
+                                                        signal,
+                                                        uniqueFilenameStem(signal),
+                                                        maxFileSizeBytes,
+                                                        sampleLimit,
+                                                        maxBufferBytes,
+                                                        onStateChanged,
+                                                        loggerComponent);
 
         std::lock_guard writersLock(writersMutex);
         writers.emplace(port.getObject(), std::move(writer));
@@ -334,10 +349,63 @@ bool FileRecorderFbImpl::allWritersFinished() const
         return false;
 
     for (const auto& [port, writer] : writers)
-        if (!writer->isFinished())
+        if (!writer->getStatus().finished)
             return false;
 
     return true;
+}
+
+void FileRecorderFbImpl::onWriterStateChanged(const std::shared_ptr<AutoStop>& state)
+{
+    if (state)
+    {
+        {
+            std::lock_guard stopLock(state->mutex);
+            state->wake = true;
+        }
+        state->cv.notify_all();
+    }
+
+    updateRecordingStatus();
+}
+
+void FileRecorderFbImpl::updateRecordingStatus()
+{
+    // A recording which is over has already reported how it ended, and the writers being torn
+    // down have nothing to add to it.
+    if (!recording)
+        return;
+
+    std::vector<std::shared_ptr<SignalFileWriter>> current;
+    {
+        std::lock_guard writersLock(writersMutex);
+
+        current.reserve(writers.size());
+        for (const auto& [port, writer] : writers)
+            current.push_back(writer);
+    }
+
+    StringPtr failure;
+    bool backlog = false;
+
+    for (const auto& writer : current)
+    {
+        const auto status = writer->getStatus();
+
+        if (status.failed && !failure.assigned())
+            failure = String(status.message);
+
+        backlog = backlog || status.queueHigh;
+    }
+
+    std::lock_guard statusLock(statusMutex);
+
+    if (failure.assigned())
+        setComponentStatusWithMessage(ComponentStatus::Error, failure);
+    else if (backlog)
+        setComponentStatusWithMessage(ComponentStatus::Warning, "Data is being buffered faster than it can be written");
+    else
+        setComponentStatusWithMessage(ComponentStatus::Ok, recordingStatusMessage);
 }
 
 void FileRecorderFbImpl::autoStopMain(std::shared_ptr<AutoStop> state,
@@ -417,7 +485,7 @@ void FileRecorderFbImpl::wakeAutoStop()
     autoStop->cv.notify_all();
 }
 
-void FileRecorderFbImpl::clearWriters()
+StringPtr FileRecorderFbImpl::clearWriters()
 {
     decltype(writers) closing;
 
@@ -426,9 +494,20 @@ void FileRecorderFbImpl::clearWriters()
         closing.swap(writers);
     }
 
-    // Destroyed outside the lock: each destructor blocks until its writer has drained the queue,
-    // so no samples accepted before the stop are lost, and the data path is not held up by it.
+    // Closed outside the lock: each writer blocks until it has drained its queue, so no samples
+    // accepted before the stop are lost, and the data path is not held up by it.
+    StringPtr failure;
+    for (const auto& [port, writer] : closing)
+    {
+        writer->close();
+
+        const auto status = writer->getStatus();
+        if (status.failed && !failure.assigned())
+            failure = String(status.message);
+    }
+
     closing.clear();
+    return failure;
 }
 
 std::shared_ptr<SignalFileWriter> FileRecorderFbImpl::findWriter(IInputPort* port)
@@ -447,6 +526,9 @@ void FileRecorderFbImpl::readProperties()
 
     const Int maxFileSizeMb = objPtr.getPropertyValue(Props::MAX_FILE_SIZE_MB);
     maxFileSizeBytes = maxFileSizeMb > 0 ? static_cast<std::uint64_t>(maxFileSizeMb) * BYTES_PER_MEGABYTE : 0;
+
+    const Int maxBufferMb = objPtr.getPropertyValue(Props::MAX_BUFFER_MB);
+    maxBufferBytes = maxBufferMb > 0 ? static_cast<std::uint64_t>(maxBufferMb) * BYTES_PER_MEGABYTE : 0;
 
     recordingMode = static_cast<RecordingMode>(static_cast<Int>(objPtr.getPropertyValue(Props::RECORDING_MODE)));
 

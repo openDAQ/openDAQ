@@ -21,6 +21,22 @@ namespace
 {
 
 /*!
+ * The share of the queue's limit at which it is reported as filling up, and the share it has to
+ * drain back to before that report is withdrawn. The gap between them keeps a queue hovering
+ * around the mark from reporting itself over and over.
+ */
+constexpr double QUEUE_HIGH_WATERMARK_RATIO = 0.5;
+constexpr double QUEUE_LOW_WATERMARK_RATIO = 0.3;
+
+/*!
+ * What one queued packet is counted as costing besides its samples. It covers the packet's own
+ * bookkeeping, and it bounds the number of packets a queue can hold even when they carry no
+ * buffer of their own, as rule-generated packets do.
+ */
+constexpr std::uint64_t QUEUED_PACKET_OVERHEAD_BYTES = 256;
+
+
+/*!
  * Converts a signal name into something usable as a filename by replacing every character which
  * is not alphanumeric, a hyphen or a period with an underscore, and trimming the result. Falls
  * back to "signal" if nothing usable remains.
@@ -158,14 +174,18 @@ SignalFileWriter::SignalFileWriter(const fs::path& directory,
                                    std::string filenameStem,
                                    std::uint64_t maxFileSizeBytes,
                                    std::uint64_t sampleLimit,
-                                   std::function<void()> onFinished,
+                                   std::uint64_t maxQueuedBytes,
+                                   std::function<void()> onStateChanged,
                                    const LoggerComponentPtr& loggerComponent)
     : directory(directory)
     , signalName(signal.getName())
     , signalGlobalId(signal.getGlobalId())
     , maxFileSizeBytes(maxFileSizeBytes)
     , sampleLimit(sampleLimit)
-    , onFinished(std::move(onFinished))
+    , maxQueuedBytes(maxQueuedBytes)
+    , highWatermark(static_cast<std::uint64_t>(maxQueuedBytes * QUEUE_HIGH_WATERMARK_RATIO))
+    , lowWatermark(static_cast<std::uint64_t>(maxQueuedBytes * QUEUE_LOW_WATERMARK_RATIO))
+    , onStateChanged(std::move(onStateChanged))
     , filenameStem(std::move(filenameStem))
     , loggerComponent(loggerComponent)
 {
@@ -173,6 +193,11 @@ SignalFileWriter::SignalFileWriter(const fs::path& directory,
 }
 
 SignalFileWriter::~SignalFileWriter()
+{
+    close();
+}
+
+void SignalFileWriter::close()
 {
     {
         std::lock_guard lock(mutex);
@@ -184,15 +209,65 @@ SignalFileWriter::~SignalFileWriter()
         thread.join();
 }
 
+std::uint64_t SignalFileWriter::queuedBytesOf(const PacketPtr& packet)
+{
+    auto bytes = QUEUED_PACKET_OVERHEAD_BYTES;
+
+    if (packet.assigned() && packet.getType() == PacketType::Data)
+    {
+        const DataPacketPtr dataPacket = packet;
+        bytes += dataPacket.getRawDataSize();
+
+        const auto domainPacket = dataPacket.getDomainPacket();
+        if (domainPacket.assigned())
+            bytes += domainPacket.getRawDataSize();
+    }
+
+    return bytes;
+}
+
 void SignalFileWriter::post(const PacketPtr& packet)
 {
+    bool stateChanged = false;
+
     {
         std::lock_guard lock(mutex);
-        if (finished || stopRequested)
+
+        // Once the queue has overflowed the writer takes nothing more: what is already queued is
+        // being written out, and adding to it would only delay the end of a recording which has
+        // a hole in it either way.
+        if (finished || stopRequested || queueOverflowed)
             return;
-        queue.push(packet);
+
+        const auto bytes = queuedBytesOf(packet);
+
+        // A packet arriving at an empty queue is always taken, so that a limit smaller than a
+        // single packet still records something instead of failing on the first one.
+        if (maxQueuedBytes != 0 && !queue.empty() && queuedBytes + bytes > maxQueuedBytes)
+        {
+            if (!queueOverflowed)
+            {
+                queueOverflowed = true;
+                stateChanged = true;
+            }
+        }
+        else
+        {
+            queue.push({packet, bytes});
+            queuedBytes += bytes;
+
+            if (maxQueuedBytes != 0 && !queueHigh && queuedBytes >= highWatermark)
+            {
+                queueHigh = true;
+                stateChanged = true;
+            }
+        }
     }
+
     cv.notify_one();
+
+    if (stateChanged)
+        notifyStateChanged();
 }
 
 fs::path SignalFileWriter::getCurrentFilename() const
@@ -201,10 +276,23 @@ fs::path SignalFileWriter::getCurrentFilename() const
     return currentFilename;
 }
 
-bool SignalFileWriter::isFinished() const
+SignalFileWriter::Status SignalFileWriter::getStatus() const
 {
     std::lock_guard lock(mutex);
-    return finished;
+
+    Status status;
+    status.finished = finished;
+    status.failed = !failureMessage.empty();
+    status.queueHigh = queueHigh;
+    status.message = failureMessage;
+
+    return status;
+}
+
+void SignalFileWriter::notifyStateChanged() const
+{
+    if (onStateChanged)
+        onStateChanged();
 }
 
 void SignalFileWriter::threadMain()
@@ -212,24 +300,43 @@ void SignalFileWriter::threadMain()
     while (true)
     {
         PacketPtr packet;
+        bool stateChanged = false;
 
         {
             std::unique_lock lock(mutex);
-            cv.wait(lock, [this] { return stopRequested || !queue.empty(); });
+            cv.wait(lock, [this] { return stopRequested || queueOverflowed || !queue.empty(); });
 
-            // Drain whatever is still queued before exiting, so that stopping a recording does
-            // not truncate the packets already accepted from the acquisition thread.
+            // Drain whatever is still queued before exiting, so that neither stopping a recording
+            // nor a queue which filled up truncates the packets already accepted.
             if (queue.empty())
                 break;
 
-            packet = std::move(queue.front());
+            packet = std::move(queue.front().packet);
+            queuedBytes -= queue.front().bytes;
             queue.pop();
+
+            if (queueHigh && queuedBytes <= lowWatermark)
+            {
+                queueHigh = false;
+                stateChanged = true;
+            }
         }
+
+        if (stateChanged)
+            notifyStateChanged();
 
         processPacket(packet);
     }
 
     closeFile();
+
+    // The queue is empty by now, so everything accepted before it filled up has been written and
+    // the file ends at a packet boundary.
+    if (queueOverflowed)
+    {
+        LOG_W("File recorder: recording of signal {} stopped: more data was queued than could be written", signalGlobalId)
+        finish("More data was queued than could be written", false);
+    }
 }
 
 void SignalFileWriter::processPacket(const PacketPtr& packet)
@@ -319,7 +426,7 @@ void SignalFileWriter::processDataPacket(const DataPacketPtr& packet)
     {
         LOG_I("File recorder: signal {} reached its limit of {} samples", signalGlobalId, sampleLimit)
         closeFile();
-        finish();
+        finish("", false);
         return;
     }
 
@@ -433,10 +540,13 @@ void SignalFileWriter::fail(const std::string& message)
     closeFile();
 
     failed = true;
-    finish();
+
+    // Nothing more can be written, so the packets still queued are let go of rather than kept
+    // alive for a file which is closed for good.
+    finish(message, true);
 }
 
-void SignalFileWriter::finish()
+void SignalFileWriter::finish(const std::string& message, bool dropQueued)
 {
     {
         std::lock_guard lock(mutex);
@@ -444,17 +554,20 @@ void SignalFileWriter::finish()
             return;
 
         finished = true;
+        failureMessage = message;
 
-        // Drop anything still queued: this signal is done, and holding packet references would
-        // keep acquisition memory alive for no reason.
-        std::queue<PacketPtr> empty;
-        queue.swap(empty);
+        if (dropQueued)
+        {
+            std::queue<QueuedPacket> empty;
+            queue.swap(empty);
+            queuedBytes = 0;
+            queueHigh = false;
+        }
     }
 
     // Called outside the mutex: the recorder reacts to it by destroying this writer, which joins
     // the very thread running this callback only after it has returned.
-    if (onFinished)
-        onFinished();
+    notifyStateChanged();
 }
 
 END_NAMESPACE_OPENDAQ_FILE_RECORDER_MODULE

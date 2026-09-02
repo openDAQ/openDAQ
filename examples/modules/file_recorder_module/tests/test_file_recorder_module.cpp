@@ -279,12 +279,15 @@ void expectStoppedLikeAnExplicitStop(const FunctionBlockPtr& fb,
  * Replays @p file and returns the samples it produced. One more sample than @p expected is asked
  * for, so that a recording holding more than it should is detected rather than truncated.
  */
-std::vector<double> replayRecording(const ModulePtr& module, const fs::path& file, std::size_t expected)
+std::vector<double> replayRecording(const ModulePtr& module,
+                                    const fs::path& file,
+                                    std::size_t expected,
+                                    double sampleRate = 100000.0)
 {
     const auto playerFb = module.createFunctionBlock(PLAYER_ID, nullptr, "player");
     playerFb.setPropertyValue("FilePath", file.string());
     playerFb.setPropertyValue("PlaybackMode", 0);
-    playerFb.setPropertyValue("SampleRate", 100000.0);
+    playerFb.setPropertyValue("SampleRate", sampleRate);
 
     const auto reader = StreamReader(playerFb.getSignals().getItemAt(0), SampleType::Float64, SampleType::Int64);
 
@@ -443,6 +446,8 @@ TEST_F(FileRecorderModuleTest, PropertiesAreReadOnlyWhileRecording)
     ASSERT_THROW(fb.setPropertyValue("Path", (scratch.get() / "elsewhere").string()), AccessDeniedException);
     daqClearErrorInfo();
     ASSERT_THROW(fb.setPropertyValue("MaxFileSizeMB", 1), AccessDeniedException);
+    daqClearErrorInfo();
+    ASSERT_THROW(fb.setPropertyValue("MaxBufferMB", 8), AccessDeniedException);
     daqClearErrorInfo();
     ASSERT_THROW(fb.setPropertyValue("RecordingMode", 1), AccessDeniedException);
     daqClearErrorInfo();
@@ -695,6 +700,94 @@ TEST_F(FileRecorderModuleTest, StopEndsATimedRecordingEarly)
     ASSERT_EQ(recorder->startRecording(), OPENDAQ_SUCCESS);
     ASSERT_FALSE(waitUntilStopped(recorder, std::chrono::milliseconds(200)));
     ASSERT_EQ(recorder->stopRecording(), OPENDAQ_SUCCESS);
+}
+
+TEST_F(FileRecorderModuleTest, ASmallBufferRecordsEverythingWhenWritingKeepsUp)
+{
+    const ScratchDirectory scratch("file_recorder_small_buffer");
+
+    // Well past the 1 MiB the buffer is limited to, but slowly enough that at most a packet or
+    // two is ever waiting: the limit is on what is queued, not on what a recording may hold.
+    constexpr std::size_t packetSamples = 1000;
+    constexpr std::size_t packets = 300;
+    constexpr std::size_t totalSamples = packetSamples * packets;
+
+    const auto module = createTestModule();
+    const auto fb = module.createFunctionBlock(RECORDER_ID, nullptr, "fb");
+    const auto signal = createSignal(fb.getContext(), linearDomainDescriptor(1000));
+
+    fb.getInputPorts().getItemAt(0).asPtr<IInputPortConfig>().connect(signal);
+    fb.setPropertyValue("Path", scratch.get().string());
+    fb.setPropertyValue("MaxBufferMB", 1);
+
+    const auto recorder = fb.asPtr<IRecorder>(true);
+    recorder->startRecording();
+
+    for (std::size_t i = 0; i < packets; ++i)
+    {
+        sendImplicitPacket(signal, packetSamples, static_cast<double>(i * packetSamples), static_cast<Int>(i * packetSamples * 1000));
+        std::this_thread::sleep_for(std::chrono::milliseconds(1));
+    }
+
+    recorder->stopRecording();
+
+    const auto files = recordingsIn(scratch.get());
+    ASSERT_EQ(files.size(), 1u);
+
+    const auto values = replayRecording(module, files.front(), totalSamples, 1000000.0);
+    ASSERT_EQ(values.size(), totalSamples);
+
+    EXPECT_THAT(fb.getStatusContainer().getStatusMessage("ComponentStatus").toStdString(),
+                testing::HasSubstr("Recording stopped"));
+}
+
+TEST_F(FileRecorderModuleTest, AFullBufferStopsTheSignalAndKeepsTheFileConsistent)
+{
+    const ScratchDirectory scratch("file_recorder_full_buffer");
+
+    // Counting the per-packet allowance, 1 MiB holds some two thousand packets of this size, and
+    // they are posted as fast as the thread can build them.
+    constexpr std::size_t packetSamples = 32;
+    constexpr std::size_t packets = 4000;
+    constexpr std::size_t totalSamples = packetSamples * packets;
+
+    const auto module = createTestModule();
+    const auto fb = module.createFunctionBlock(RECORDER_ID, nullptr, "fb");
+    const auto signal = createSignal(fb.getContext(), linearDomainDescriptor(1000));
+
+    fb.getInputPorts().getItemAt(0).asPtr<IInputPortConfig>().connect(signal);
+    fb.setPropertyValue("Path", scratch.get().string());
+    fb.setPropertyValue("MaxBufferMB", 1);
+
+    const auto recorder = fb.asPtr<IRecorder>(true);
+    recorder->startRecording();
+
+    for (std::size_t i = 0; i < packets; ++i)
+        sendImplicitPacket(signal, packetSamples, static_cast<double>(i * packetSamples), static_cast<Int>(i * packetSamples * 1000));
+
+    recorder->stopRecording();
+
+    const auto files = recordingsIn(scratch.get());
+    ASSERT_EQ(files.size(), 1u);
+
+    const auto values = replayRecording(module, files.front(), totalSamples, 1000000.0);
+    const std::string status = fb.getStatusContainer().getStatusMessage("ComponentStatus").toStdString();
+
+    // Whether the filesystem kept up decides how much was recorded, but not what the file holds:
+    // it is always an unbroken run of what was sent, ending at a packet boundary.
+    ASSERT_FALSE(values.empty());
+    ASSERT_LE(values.size(), totalSamples);
+    ASSERT_EQ(values.size() % packetSamples, 0u);
+
+    for (std::size_t i = 0; i < values.size(); ++i)
+        ASSERT_DOUBLE_EQ(values[i], static_cast<double>(i)) << "at sample " << i;
+
+    if (values.size() < totalSamples)
+        EXPECT_THAT(status, testing::HasSubstr("More data was queued than could be written"));
+    else
+        EXPECT_THAT(status, testing::HasSubstr("Recording stopped"));
+
+    std::cout << "[ INFO     ] recorded " << values.size() << " of " << totalSamples << " samples\n";
 }
 
 TEST_F(FileRecorderModuleTest, SignalsSharingANameGetSeparateFiles)

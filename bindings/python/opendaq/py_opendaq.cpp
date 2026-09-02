@@ -85,6 +85,7 @@ void wrapDaqComponentOpenDaq(pybind11::module_ m)
     auto classIScheduler = declareIScheduler(m);
     auto classITask = declareITask(m);
     auto classITaskGraph = declareITaskGraph(m);
+    auto classIWork = declareIWork(m);
     auto classIDataDescriptor = declareIDataDescriptor(m);
     auto classIDataDescriptorBuilder = declareIDataDescriptorBuilder(m);
     auto classIConnection = declareIConnection(m);
@@ -166,6 +167,7 @@ void wrapDaqComponentOpenDaq(pybind11::module_ m)
     defineILoggerThreadPool(m, classILoggerThreadPool);
     defineIModule(m, classIModule);
     defineIModuleManager(m, classIModuleManager);
+    defineIModuleManagerCustomMethods(m, classIModuleManager);
     defineIDiscoveryServer(m, classIDiscoveryServer);
     defineIReader(m, classIReader);
     defineIPacketReader(m, classIPacketReader);
@@ -192,6 +194,7 @@ void wrapDaqComponentOpenDaq(pybind11::module_ m)
     defineIScheduler(m, classIScheduler);
     defineITask(m, classITask);
     defineITaskGraph(m, classITaskGraph);
+    defineIWork(m, classIWork);
     defineIDataDescriptor(m, classIDataDescriptor);
     defineIDataDescriptorBuilder(m, classIDataDescriptorBuilder);
     defineIConnection(m, classIConnection);

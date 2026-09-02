@@ -4,11 +4,8 @@ add_subdirectory(core_types)
 add_subdirectory(core_objects)
 add_subdirectory(opendaq)
 
+add_subdirectory(py_opendaq_module)
 add_subdirectory(py_opendaq_daq)
-
-if (OPENDAQ_GENERATE_PYTHON_MODULE_BINDINGS)
-    add_subdirectory(py_opendaq_module)
-endif()
 
 option(OPENDAQ_ENABLE_PYTHON_BINDINGS_TESTS_ONLY "Enable only the python bindings tests" OFF)
 

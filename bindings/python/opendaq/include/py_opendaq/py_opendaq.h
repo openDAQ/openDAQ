@@ -74,6 +74,7 @@ PyDaqIntf<daq::IGraphVisualization, daq::IBaseObject> declareIGraphVisualization
 PyDaqIntf<daq::IScheduler, daq::IBaseObject> declareIScheduler(pybind11::module_ m);
 PyDaqIntf<daq::ITask, daq::IBaseObject> declareITask(pybind11::module_ m);
 PyDaqIntf<daq::ITaskGraph, daq::ITask> declareITaskGraph(pybind11::module_ m);
+PyDaqIntf<daq::IWork, daq::IBaseObject> declareIWork(pybind11::module_ m);
 PyDaqIntf<daq::IDataDescriptor, daq::IBaseObject> declareIDataDescriptor(pybind11::module_ m);
 PyDaqIntf<daq::IDataDescriptorBuilder, daq::IBaseObject> declareIDataDescriptorBuilder(pybind11::module_ m);
 PyDaqIntf<daq::IConnection, daq::IBaseObject> declareIConnection(pybind11::module_ m);
@@ -161,6 +162,7 @@ void defineILoggerSink(pybind11::module_ m, PyDaqIntf<daq::ILoggerSink, daq::IBa
 void defineILoggerThreadPool(pybind11::module_ m, PyDaqIntf<daq::ILoggerThreadPool, daq::IBaseObject> cls);
 void defineIModule(pybind11::module_ m, PyDaqIntf<daq::IModule, daq::IBaseObject> cls);
 void defineIModuleManager(pybind11::module_ m, PyDaqIntf<daq::IModuleManager, daq::IBaseObject> cls);
+void defineIModuleManagerCustomMethods(pybind11::module_ m, PyDaqIntf<daq::IModuleManager, daq::IBaseObject> cls);
 void defineIDiscoveryServer(pybind11::module_ m, PyDaqIntf<daq::IDiscoveryServer, daq::IBaseObject> cls);
 void defineIReader(pybind11::module_ m, PyDaqIntf<daq::IReader, daq::IBaseObject> cls);
 void defineIPacketReader(pybind11::module_ m, PyDaqIntf<daq::IPacketReader, daq::IReader> cls);
@@ -187,6 +189,7 @@ void defineIGraphVisualization(pybind11::module_ m, PyDaqIntf<daq::IGraphVisuali
 void defineIScheduler(pybind11::module_ m, PyDaqIntf<daq::IScheduler, daq::IBaseObject> cls);
 void defineITask(pybind11::module_ m, PyDaqIntf<daq::ITask, daq::IBaseObject> cls);
 void defineITaskGraph(pybind11::module_ m, PyDaqIntf<daq::ITaskGraph, daq::ITask> cls);
+void defineIWork(pybind11::module_ m, PyDaqIntf<daq::IWork, daq::IBaseObject> cls);
 void defineIDataDescriptor(pybind11::module_ m, PyDaqIntf<daq::IDataDescriptor, daq::IBaseObject> cls);
 void defineIDataDescriptorBuilder(pybind11::module_ m, PyDaqIntf<daq::IDataDescriptorBuilder, daq::IBaseObject> cls);
 void defineIConnection(pybind11::module_ m, PyDaqIntf<daq::IConnection, daq::IBaseObject> cls);

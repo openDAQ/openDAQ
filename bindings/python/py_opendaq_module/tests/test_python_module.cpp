@@ -17,8 +17,10 @@
 #include <gtest/gtest.h>
 
 #include <py_opendaq_module/python_module.h>
+#include <py_opendaq_module/python_runtime.h>
 #include <opendaq/context_factory.h>
 
+namespace py = pybind11;
 using namespace daq;
 
 class PythonModuleTest : public testing::Test
@@ -26,7 +28,30 @@ class PythonModuleTest : public testing::Test
 protected:
     static ModulePtr loadMock(const std::string& fileName)
     {
-        return createWithImplementation<IModule, PythonModule>(NullContext(), std::string(MOCK_MODULE_DIR) + "/" + fileName);
+        return createPythonModule(NullContext(), std::string(MOCK_MODULE_DIR) + "/" + fileName);
+    }
+
+    // Builds a MockModule instance directly, the way a Python host that already has the
+    // instance in hand (rather than a file to load) would - see createPythonModule(context,
+    // instance). Must be called with the GIL not held on the calling thread. `context` is
+    // stored as-is by Module.__init__ and never used by it, so a real conversion to a Python
+    // IContext isn't needed here - py::none() stands in for it.
+    static py::object buildMockInstance()
+    {
+        return PythonRuntime::instance().run(
+            []() -> py::object
+            {
+                py::dict globals;
+                globals["opendaq"] = py::module_::import("opendaq");
+                py::exec(R"(
+class MockModule(opendaq.Module):
+    def __init__(self, context):
+        super().__init__(context, name="MockPythonModule", version=(1, 2, 3), id="MockPythonModuleId")
+)",
+                          globals);
+
+                return globals["MockModule"](py::none());
+            });
     }
 };
 
@@ -72,4 +97,27 @@ TEST_F(PythonModuleTest, ThrowsWhenPluginHasNoVersion)
 TEST_F(PythonModuleTest, ThrowsWhenPluginFileDoesNotExist)
 {
     ASSERT_ANY_THROW(loadMock("does_not_exist.py"));
+}
+
+TEST_F(PythonModuleTest, WrapsAlreadyConstructedInstance)
+{
+    py::object instance = buildMockInstance();
+    const ModulePtr module = createPythonModule(NullContext(), std::move(instance));
+    const auto info = module.getModuleInfo();
+
+    ASSERT_EQ(info.getName(), "MockPythonModule");
+    ASSERT_EQ(info.getId(), "MockPythonModuleId");
+
+    const auto version = info.getVersionInfo();
+    ASSERT_EQ(version.getMajor(), 1u);
+    ASSERT_EQ(version.getMinor(), 2u);
+    ASSERT_EQ(version.getPatch(), 3u);
+}
+
+TEST_F(PythonModuleTest, ThrowsWhenWrappedInstanceIsNone)
+{
+    // py::none() must itself be built under the GIL (via run()), same as any other py::object -
+    // constructing it directly on this thread would trip pybind11's GIL-held assertion.
+    py::object none = PythonRuntime::instance().run([]() -> py::object { return py::none(); });
+    ASSERT_THROW(createPythonModule(NullContext(), std::move(none)), InvalidParameterException);
 }

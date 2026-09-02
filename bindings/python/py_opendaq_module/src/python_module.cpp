@@ -31,6 +31,11 @@ PythonModule::PythonModule(const ContextPtr& context, const std::string& pathToP
 {
 }
 
+PythonModule::PythonModule(const ContextPtr& context, py::object instance)
+    : PythonModule(context, wrapInstance(std::move(instance)))
+{
+}
+
 PythonModule::PythonModule(const ContextPtr& context, PluginInfo&& info)
     : Module(info.name, info.version, context, info.id)
     , pyInstance(std::move(info.instance))
@@ -74,13 +79,30 @@ PythonModule::PluginInfo PythonModule::loadPlugin(const ContextPtr& context, con
             if (instance.is_none())
                 DAQ_THROW_EXCEPTION(InvalidParameterException, "create_module() in '{}' did not return a module instance", path);
 
-            PluginInfo info;
-            info.name = instance.attr("name").is_none() ? StringPtr("") : StringPtr(py::cast<std::string>(instance.attr("name")));
-            info.id = instance.attr("id").is_none() ? StringPtr("") : StringPtr(py::cast<std::string>(instance.attr("id")));
-            info.version = toVersionInfo(instance.attr("version"));
-            info.instance = std::move(instance);
-            return info;
+            return fromInstance(std::move(instance));
         });
+}
+
+PythonModule::PluginInfo PythonModule::wrapInstance(py::object instance)
+{
+    return PythonRuntime::instance().run(
+        [&instance]() -> PluginInfo
+        {
+            return fromInstance(std::move(instance));
+        });
+}
+
+PythonModule::PluginInfo PythonModule::fromInstance(py::object instance)
+{
+    if (instance.is_none())
+        DAQ_THROW_EXCEPTION(InvalidParameterException, "Python module instance must not be None");
+
+    PluginInfo info;
+    info.name = instance.attr("name").is_none() ? StringPtr("") : StringPtr(py::cast<std::string>(instance.attr("name")));
+    info.id = instance.attr("id").is_none() ? StringPtr("") : StringPtr(py::cast<std::string>(instance.attr("id")));
+    info.version = toVersionInfo(instance.attr("version"));
+    info.instance = std::move(instance);
+    return info;
 }
 
 VersionInfoPtr PythonModule::toVersionInfo(const py::object& pyVersion)
@@ -144,6 +166,16 @@ FunctionBlockPtr PythonModule::onCreateFunctionBlock(const StringPtr& id,
 
             return createPythonFunctionBlock(context, parent, localId, std::move(pyDelegate));
         });
+}
+
+ModulePtr createPythonModule(const ContextPtr& context, const std::string& pathToPythonFile)
+{
+    return createWithImplementation<IModule, PythonModule>(context, pathToPythonFile);
+}
+
+ModulePtr createPythonModule(const ContextPtr& context, py::object instance)
+{
+    return createWithImplementation<IModule, PythonModule>(context, std::move(instance));
 }
 
 END_NAMESPACE_OPENDAQ

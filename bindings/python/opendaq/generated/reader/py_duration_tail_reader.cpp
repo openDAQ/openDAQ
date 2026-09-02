@@ -44,6 +44,21 @@ void defineIDurationTailReader(pybind11::module_ m, PyDaqIntf<daq::IDurationTail
         "A tail reader that keeps only the samples within a trailing time window, measured in milliseconds, instead of a fixed "
         "sample count.");
 
+     m.def(
+        "DurationTailReaderFromPort",
+        [](daq::IInputPortConfig* port, const uint64_t historyDurationMs, daq::SampleType valueReadType, daq::SampleType domainReadType, daq::ReadMode mode)
+        {
+            PyTypedReader::checkTypes(valueReadType, domainReadType);
+            return daq::DurationTailReaderFromPort_Create(port, historyDurationMs, valueReadType, domainReadType, mode);
+        },
+        py::arg("port"),
+        py::arg("history_duration_ms"),
+        py::arg("value_type") = daq::SampleType::Float64,
+        py::arg("domain_type") = daq::SampleType::Int64,
+        py::arg("read_mode") = daq::ReadMode::Scaled,
+        "A tail reader that keeps only the samples within a trailing time window, measured in milliseconds, instead of a fixed "
+        "sample count.");
+
     cls.def(
         "read",
         [](daq::IDurationTailReader* object, size_t count, bool returnStatus)

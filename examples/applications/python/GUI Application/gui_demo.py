@@ -242,6 +242,8 @@ class App(tk.Tk):
                               command=self.handle_save_config_button_clicked)
         file_menu.add_command(label='Load module',
                               command=self.handle_load_modules_button_clicked)
+        file_menu.add_command(label='Load Python module',
+                              command=self.handle_load_python_module_button_clicked)
         file_menu.add_separator()
         file_menu.add_command(label='Exit', command=self.quit)
 
@@ -636,6 +638,24 @@ class App(tk.Tk):
         except Exception as e:
             print('Load module failed:', e, file=sys.stderr)
             utils.show_error('Load module failed', str(e), self)
+
+    def handle_load_python_module_button_clicked(self):
+        file_path = askopenfilename(
+            parent=self,
+            title='Load Python module',
+            defaultextension='.py',
+            filetypes=[('openDAQ Python module', '*.py')]
+        )
+
+        if not file_path:
+            return
+
+        try:
+            self.context.instance.module_manager.load_python_module(self.context.instance.context, file_path)
+            self.tree_update()
+        except Exception as e:
+            print('Load Python module failed:', e, file=sys.stderr)
+            utils.show_error('Load Python module failed', str(e), self)
 
     def handle_refresh_button_clicked(self):
         self.tree_update(self.context.selected_node)

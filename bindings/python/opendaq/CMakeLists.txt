@@ -7,6 +7,10 @@ set(SRC_Headers
 
 set(SRC_Cpp
     py_opendaq.cpp
+    #
+    src/py_work.cpp
+    src/py_module_manager.cpp
+    #
     generated/opendaq/py_instance.cpp
     generated/opendaq/py_instance_builder.cpp
     generated/opendaq/py_config_provider.cpp
@@ -122,6 +126,12 @@ target_link_libraries(${LIB_NAME}
         daq::py_core_types
         daq::py_core_objects
         daq::opendaq
+        # PythonRuntime/PythonModule (attached-interpreter mode), for
+        # IModuleManager.load_python_module() in py_opendaq.cpp - see the comment on
+        # daq::py_opendaq_module_core's target in bindings/python/py_opendaq_module/CMakeLists.txt.
+        # PUBLIC so its symbols also reach whichever final target links daq::py_opendaq (e.g.
+        # py_opendaq_daq), not just this static library's own compilation.
+        daq::py_opendaq_module_core
     PRIVATE
         pybind11::headers
         pybind11::module

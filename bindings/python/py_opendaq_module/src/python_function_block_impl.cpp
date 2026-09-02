@@ -87,7 +87,21 @@ static py::object createHandleObject(const WeakRefPtr<IPythonFunctionBlock>& wea
                     checkErrorInfo(resolveWeakFb(self)->setStatusMessage(status, messagePtr));
                 },
                 py::arg("status"),
-                py::arg("message") = "");
+                py::arg("message") = "")
+            .def_property_readonly(
+                "ref",
+                [](const WeakRefPtr<IPythonFunctionBlock>& self) -> IFunctionBlock*
+                {
+                    // Unlike every other method here, deliberately doesn't use resolveWeakFb()
+                    // (which throws) - this is the one meant for a plain liveness check (e.g.
+                    // `if self._cpp_fb.ref is None: return` at the top of a self-rescheduling
+                    // callback), mirroring Python's own weakref.ref() convention of resolving to
+                    // the referent or None rather than raising.
+                    auto fb = self.getRef();
+                    if (!fb.assigned())
+                        return nullptr;
+                    return fb.asPtr<IFunctionBlock>().detach();
+                });
         return true;
     }();
     (void) registered;

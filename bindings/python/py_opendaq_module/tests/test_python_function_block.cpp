@@ -31,8 +31,7 @@ class PythonFunctionBlockTest : public testing::Test
 protected:
     static ModulePtr loadMockModule()
     {
-        return createWithImplementation<IModule, PythonModule>(NullContext(),
-                                                                 std::string(MOCK_MODULE_DIR) + "/mock_module_fb.py");
+        return createPythonModule(NullContext(), std::string(MOCK_MODULE_DIR) + "/mock_module_fb.py");
     }
 
     // Async hooks (onConnected/onDisconnected/onPacketReceived) run on PythonRuntime's dispatch

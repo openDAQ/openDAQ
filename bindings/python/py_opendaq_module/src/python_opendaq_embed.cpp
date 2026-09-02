@@ -65,14 +65,8 @@ PYBIND11_EMBEDDED_MODULE(opendaq, m)
     py::exec(OPENDAQ_FUNCTION_BLOCK_PY, m.attr("__dict__"));
 }
 
-// PYBIND11_EMBEDDED_MODULE's registration is a side effect of a global object's constructor -
-// nothing else in this file is ever called. A translation unit like that, sitting in a static
-// library nothing links against, gets silently dropped by the linker (static archives only pull
-// in .o files that resolve an otherwise-unresolved symbol), and PyImport_AppendInittab() never
-// runs. This function exists purely to be called from PythonRuntime's constructor so the
-// linker has a reason to keep this whole translation unit.
-BEGIN_NAMESPACE_OPENDAQ
-void keepPythonOpenDaqEmbedLinked()
-{
-}
-END_NAMESPACE_OPENDAQ
+// PYBIND11_EMBEDDED_MODULE's registration above is a side effect of a global object's
+// constructor - nothing else in this file is ever called, so nothing naturally creates an
+// unresolved symbol reference pulling this .o file in from its static archive. Making sure it's
+// linked into any embedding host anyway is handled at the link level instead - see
+// py_opendaq_module's target_link_options in CMakeLists.txt (force-loading the whole archive).

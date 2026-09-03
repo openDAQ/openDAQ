@@ -7,6 +7,12 @@
 #include <functional>
 
 using namespace daq;
+    using namespace std::placeholders;
+
+// unity-safe namespace: keeps this file's test types file-local
+namespace test_function
+{
+
 
 using FunctionTest = testing::Test;
 
@@ -282,10 +288,9 @@ public:
 
 TEST_F(FunctionTest, BindWrapped)
 {
-    using namespace std::placeholders;
 
-    auto createGroupNull = Function(std::bind(&::TestBind::createNull, this));
-    auto createGroup = Function(std::bind(&::TestBind::createFromType, this, _1));
+    auto createGroupNull = Function(std::bind(&TestBind::createNull, this));
+    auto createGroup = Function(std::bind(&TestBind::createFromType, this, _1));
 }
 
 TEST_F(FunctionTest, Bind)
@@ -624,14 +629,16 @@ TEST_F(FunctionTest, ImplementationName)
     ASSERT_EQ(prefix, 0u);
 }
 
-static constexpr auto INTERFACE_ID = FromTemplatedTypeName("IFunction", "daq");
+static constexpr auto FUNCTION_INTERFACE_ID = FromTemplatedTypeName("IFunction", "daq");
 
 TEST_F(FunctionTest, InterfaceId)
 {
-    ASSERT_EQ(INTERFACE_ID, IFunction::Id);
+    ASSERT_EQ(FUNCTION_INTERFACE_ID, IFunction::Id);
 }
 
 TEST_F(FunctionTest, InterfaceIdString)
 {
     ASSERT_EQ(daqInterfaceIdString<IFunction>(), "{2EEACD91-0883-5FC8-8EB8-4F4C80CD8131}");
 }
+}
+// namespace test_function

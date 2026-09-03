@@ -1,9 +1,14 @@
 #include <testutils/testutils.h>
 #include <coretypes/callback.h>
 
+using namespace daq;
+
+// unity-safe namespace: keeps this file's test types file-local
+namespace test_callback
+{
+
 using CallbackTest = testing::Test;
 
-using namespace daq;
 
 ///////////////////////////
 ////  Procedure Lambda
@@ -314,3 +319,5 @@ TEST_F(CallbackTest, FunctionPtrRaw)
     ASSERT_NO_THROW(func());
     ASSERT_TRUE(!result.assigned());
 }
+}
+// namespace test_callback

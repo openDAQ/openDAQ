@@ -97,17 +97,17 @@ public:
     }
 };
 
-class TestDevice : public Device
+class TraversalTestDevice : public Device
 {
 public:
-    TestDevice(const ContextPtr& context, const ComponentPtr& parent, const StringPtr& id, Bool visible, Bool isRoot = true)
+    TraversalTestDevice(const ContextPtr& context, const ComponentPtr& parent, const StringPtr& id, Bool visible, Bool isRoot = true)
         : Device(context, parent, id)
     {
         this->visible = visible;
         if (isRoot)
         {
-            this->devices.addItem(createWithImplementation<IDevice, TestDevice>(context, this->devices, "devVis", true, false));
-            this->devices.addItem(createWithImplementation<IDevice, TestDevice>(context, this->devices, "devInvis", false, false));
+            this->devices.addItem(createWithImplementation<IDevice, TraversalTestDevice>(context, this->devices, "devVis", true, false));
+            this->devices.addItem(createWithImplementation<IDevice, TraversalTestDevice>(context, this->devices, "devInvis", false, false));
         }
         this->devices.addProperty(StringProperty("CommonProp", "DefaultValue"));
         this->servers.addProperty(StringProperty("CommonProp", "DefaultValue"));
@@ -137,7 +137,7 @@ public:
 
 TEST_F(TreeTraversalTest, SubDevices)
 {
-    auto device = createWithImplementation<IDevice, TestDevice>(NullContext(), nullptr, "dev", true);
+    auto device = createWithImplementation<IDevice, TraversalTestDevice>(NullContext(), nullptr, "dev", true);
     ASSERT_EQ(device.getDevices().getCount(), 1u);
     ASSERT_EQ(device.getDevices(Any()).getCount(), 2u);
     ASSERT_EQ(device.getDevices(Visible()).getCount(), 1u);
@@ -166,7 +166,7 @@ TEST_F(TreeTraversalTest, SubDevices)
 
 TEST_F(TreeTraversalTest, FunctionBlocks)
 {
-    auto device = createWithImplementation<IDevice, TestDevice>(NullContext(), nullptr, "dev", true);
+    auto device = createWithImplementation<IDevice, TraversalTestDevice>(NullContext(), nullptr, "dev", true);
     ASSERT_EQ(device.getFunctionBlocks().getCount(), 1u);
     ASSERT_EQ(device.getFunctionBlocks(Any()).getCount(), 2u);
     ASSERT_EQ(device.getFunctionBlocks(Recursive(Visible())).getCount(), 2u);
@@ -197,7 +197,7 @@ TEST_F(TreeTraversalTest, FunctionBlocks)
 
 TEST_F(TreeTraversalTest, Channels)
 {
-    auto device = createWithImplementation<IDevice, TestDevice>(NullContext(), nullptr, "dev", true);
+    auto device = createWithImplementation<IDevice, TraversalTestDevice>(NullContext(), nullptr, "dev", true);
     ASSERT_EQ(device.getChannels().getCount(), 2u);
     ASSERT_EQ(device.getChannels(Any()).getCount(), 12u);
     ASSERT_EQ(device.getChannels(Recursive(Visible())).getCount(), 4u);
@@ -227,7 +227,7 @@ TEST_F(TreeTraversalTest, Channels)
 
 TEST_F(TreeTraversalTest, Signals)
 {
-    auto device = createWithImplementation<IDevice, TestDevice>(NullContext(), nullptr, "dev", true);
+    auto device = createWithImplementation<IDevice, TraversalTestDevice>(NullContext(), nullptr, "dev", true);
     ASSERT_EQ(device.getSignals().getCount(), 1u);
     ASSERT_EQ(device.getSignals(Any()).getCount(), 2u);
     ASSERT_EQ(device.getSignalsRecursive().getCount(), 12u);
@@ -258,7 +258,7 @@ TEST_F(TreeTraversalTest, Signals)
 
 TEST_F(TreeTraversalTest, InputPorts)
 {
-    auto device = createWithImplementation<IDevice, TestDevice>(NullContext(), nullptr, "dev", true);
+    auto device = createWithImplementation<IDevice, TraversalTestDevice>(NullContext(), nullptr, "dev", true);
     auto fb = device.getFunctionBlocks()[0];
     ASSERT_EQ(fb.getInputPorts().getCount(), 1u);
     const auto inputPorts = device.getItems(Recursive(InterfaceId(IInputPort::Id)));
@@ -285,7 +285,7 @@ TEST_F(TreeTraversalTest, InputPorts)
 
 TEST_F(TreeTraversalTest, SetActive)
 {
-    auto device = createWithImplementation<IDevice, TestDevice>(NullContext(), nullptr, "dev", true);
+    auto device = createWithImplementation<IDevice, TraversalTestDevice>(NullContext(), nullptr, "dev", true);
     const auto components = device.getItems(Recursive(Any()));
 
     device.setActive(false);
@@ -299,7 +299,7 @@ TEST_F(TreeTraversalTest, SetActive)
 
 TEST_F(TreeTraversalTest, IncompatibleFilters)
 {
-    auto device = createWithImplementation<IDevice, TestDevice>(NullContext(), nullptr, "dev", true);
+    auto device = createWithImplementation<IDevice, TraversalTestDevice>(NullContext(), nullptr, "dev", true);
 
     ASSERT_THROW(device.findProperties(search::LocalId("id")), InvalidTypeException);
     ASSERT_THROW(device.findProperties(search::Any(), search::properties::Name("Name")), InvalidTypeException);
@@ -307,7 +307,7 @@ TEST_F(TreeTraversalTest, IncompatibleFilters)
 
 TEST_F(TreeTraversalTest, FindAndChangeCommonProperties)
 {
-    auto device = createWithImplementation<IDevice, TestDevice>(NullContext(), nullptr, "dev", true);
+    auto device = createWithImplementation<IDevice, TraversalTestDevice>(NullContext(), nullptr, "dev", true);
 
     ASSERT_GT(device.findProperties(search::properties::Visible()).getCount(), 0u);
     ASSERT_GT(device.findProperties(nullptr).getCount(), 0u);

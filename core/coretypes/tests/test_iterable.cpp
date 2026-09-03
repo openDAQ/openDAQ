@@ -4,6 +4,11 @@
 
 using namespace daq;
 
+// unity-safe namespace: keeps this file's test types file-local
+namespace test_iterable
+{
+
+
 using IterableTest = testing::Test;
 
 TEST_F(IterableTest, IterateList)
@@ -68,14 +73,16 @@ TEST_F(IterableTest, Guid)
     ASSERT_EQ(IIterable::Id, IterableGuid);
 }
 
-static constexpr auto INTERFACE_ID = FromTemplatedTypeName("IIterable", "daq");
+static constexpr auto ITERABLE_INTERFACE_ID = FromTemplatedTypeName("IIterable", "daq");
 
 TEST_F(IterableTest, InterfaceId)
 {
-    ASSERT_EQ(INTERFACE_ID, IIterable::Id);
+    ASSERT_EQ(ITERABLE_INTERFACE_ID, IIterable::Id);
 }
 
 TEST_F(IterableTest, InterfaceIdString)
 {
     ASSERT_EQ(daqInterfaceIdString<IIterable>(), "{EC09F2E5-614D-5780-81CB-ECE8ECB2655B}");
 }
+}
+// namespace test_iterable

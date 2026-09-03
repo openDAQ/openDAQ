@@ -4,6 +4,11 @@
 
 using namespace daq;
 
+// unity-safe namespace: keeps this file's test types file-local
+namespace test_version
+{
+
+
 using VersionTest = testing::Test;
 
 TEST_F(VersionTest, CheckVersion)
@@ -17,3 +22,5 @@ TEST_F(VersionTest, CheckVersion)
     ASSERT_EQ(minor, OPENDAQ_CORETYPES_MINOR_VERSION);
     ASSERT_EQ(revision, OPENDAQ_CORETYPES_PATCH_VERSION);
 }
+}
+// namespace test_version

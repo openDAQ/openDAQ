@@ -1,9 +1,14 @@
 #include <gtest/gtest.h>
 #include <coretypes/coretypes.h>
 
+using namespace daq;
+
+// unity-safe namespace: keeps this file's test types file-local
+namespace test_event_args
+{
+
 using EventArgsTest = testing::Test;
 
-using namespace daq;
 
 TEST_F(EventArgsTest, Test)
 {
@@ -39,14 +44,16 @@ TEST_F(EventArgsTest, ImplementationName)
     ASSERT_EQ(prefix, 0u);
 }
 
-static constexpr auto INTERFACE_ID = FromTemplatedTypeName("IEventArgs", "daq");
+static constexpr auto EVENT_ARGS_INTERFACE_ID = FromTemplatedTypeName("IEventArgs", "daq");
 
 TEST_F(EventArgsTest, InterfaceId)
 {
-    ASSERT_EQ(INTERFACE_ID, IEventArgs::Id);
+    ASSERT_EQ(EVENT_ARGS_INTERFACE_ID, IEventArgs::Id);
 }
 
 TEST_F(EventArgsTest, InterfaceIdString)
 {
     ASSERT_EQ(daqInterfaceIdString<IEventArgs>(), "{81D0979C-1FA7-51F8-80FB-44216A6F8D33}");
 }
+}
+// namespace test_event_args

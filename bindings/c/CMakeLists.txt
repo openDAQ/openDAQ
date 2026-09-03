@@ -453,6 +453,7 @@ add_library(${LIB_NAME} SHARED ${SRC_CoreTypes_Headers} ${SRC_CoreTypes_Cpp} ${S
 add_library(${SDK_TARGET_NAMESPACE}::${LIB_NAME} ALIAS ${LIB_NAME})
 
 opendaq_target_pch(${LIB_NAME} <opendaq/opendaq.h>)
+opendaq_target_unity_bindings(${LIB_NAME})
 
 target_sources(${LIB_NAME}
     INTERFACE

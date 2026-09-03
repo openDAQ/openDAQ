@@ -618,10 +618,10 @@ TEST_F(ConfigProtocolSerializationTest, FunctionBlockWithClassName)
     ASSERT_EQ(str1, str2);
 }
 
-class MockChannel final : public Channel
+class SerializationMockChannel final : public Channel
 {
 public:
-    MockChannel(const ContextPtr& ctx, const ComponentPtr& parent, const StringPtr& localId)
+    SerializationMockChannel(const ContextPtr& ctx, const ComponentPtr& parent, const StringPtr& localId)
         : Channel(FunctionBlockType("Ch", "", ""), ctx, parent, localId)
     {
         createAndAddSignal("sig_ch");
@@ -630,7 +630,7 @@ public:
 
 TEST_F(ConfigProtocolSerializationTest, Channel)
 {
-    const auto ch = createWithImplementation<IChannel, MockChannel>(NullContext(), nullptr, "Ch");
+    const auto ch = createWithImplementation<IChannel, SerializationMockChannel>(NullContext(), nullptr, "Ch");
     ch.setName("fb_name");
     ch.setDescription("fb_desc");
     ch.getTags().asPtr<ITagsPrivate>().add("fld_tag");
@@ -703,7 +703,7 @@ public:
         createAndAddSignal("sig_device");
 
         auto aiIoFolder = this->addIoFolder("AI", ioFolder);
-        createAndAddChannel<MockChannel>(aiIoFolder, "Ch");
+        createAndAddChannel<SerializationMockChannel>(aiIoFolder, "Ch");
 
         const auto fb = createWithImplementation<IFunctionBlock, MockFbImpl>(ctx, this->functionBlocks, "fb", nullptr, true);
         addNestedFunctionBlock(fb);

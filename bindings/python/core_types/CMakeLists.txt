@@ -60,8 +60,13 @@ add_library(${LIB_NAME} STATIC ${SRC_Headers} ${SRC_Cpp})
 add_library(${SDK_TARGET_NAMESPACE}::${LIB_NAME} ALIAS ${LIB_NAME})
 
 opendaq_target_pch(${LIB_NAME} <py_core_types/py_core_types.h>)
-# Include-order sensitive: fails to compile with the umbrella force-included first.
-set_source_files_properties(generated/py_event_handler.cpp PROPERTIES SKIP_PRECOMPILE_HEADERS ON)
+opendaq_target_unity_bindings(${LIB_NAME})
+# Include-order sensitive: fails to compile with the umbrella force-included first, or when
+# merged into a unity translation unit.
+set_source_files_properties(generated/py_event_handler.cpp PROPERTIES
+    SKIP_PRECOMPILE_HEADERS ON
+    SKIP_UNITY_BUILD_INCLUSION ON
+)
 
 target_link_libraries(${LIB_NAME}
     PUBLIC

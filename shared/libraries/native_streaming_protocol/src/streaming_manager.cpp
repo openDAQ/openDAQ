@@ -29,7 +29,7 @@ void StreamingManager::sendPacketToSubscribers(const std::string& signalStringId
     {
         auto& registeredSignal = iter->second;
 
-        if (packet.getType() == PacketType::Event)
+        if (packet.getType() == daq::PacketType::Event)
         {
             auto eventPacket = packet.asPtr<IEventPacket>();
             if (eventPacket.getEventId() == event_packet_id::DATA_DESCRIPTOR_CHANGED)
@@ -76,7 +76,7 @@ void StreamingManager::processPackets(const tsl::ordered_map<std::string, Packet
             {
                 auto packet = PacketPtr::Adopt(packets[i]);
                 
-                if (packet.getType() == PacketType::Event)
+                if (packet.getType() == daq::PacketType::Event)
                 {
                     const auto eventPacket = packet.asPtr<IEventPacket>(true);
                     if (eventPacket.getEventId() == event_packet_id::DATA_DESCRIPTOR_CHANGED)

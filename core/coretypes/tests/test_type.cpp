@@ -3,6 +3,11 @@
 
 using namespace daq;
 
+// unity-safe namespace: keeps this file's test types file-local
+namespace test_type
+{
+
+
 using TypeTest = testing::Test;
 
 TEST_F(TypeTest, SimpleTypes)
@@ -181,11 +186,11 @@ TEST_F(TypeTest, StructTypeSerializationNestedDefaultStructType)
     ASSERT_EQ(structType, structTypeDeserialized);
 }
 
-static constexpr auto INTERFACE_ID = FromTemplatedTypeName("IType", "daq");
+static constexpr auto TYPE_INTERFACE_ID = FromTemplatedTypeName("IType", "daq");
 
 TEST_F(TypeTest, InterfaceId)
 {
-    ASSERT_EQ(INTERFACE_ID, IType::Id);
+    ASSERT_EQ(TYPE_INTERFACE_ID, IType::Id);
 }
 
 TEST_F(TypeTest, InterfaceIdString)
@@ -204,3 +209,5 @@ TEST_F(TypeTest, SimpleTypeString)
 {
     ASSERT_EQ(daqInterfaceIdString<ISimpleType>(), "{0C4C5701-5051-549A-957C-21391854F6F4}");
 }
+}
+// namespace test_type

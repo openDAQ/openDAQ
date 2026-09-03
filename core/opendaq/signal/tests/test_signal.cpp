@@ -126,17 +126,17 @@ public:
         return OPENDAQ_SUCCESS;
     }
 
-    ErrCode INTERFACE_FUNC hasEventPacket(Bool* hasEventPacket) override
+    ErrCode INTERFACE_FUNC hasEventPacket(daq::Bool* hasEventPacket) override
     {
         return OPENDAQ_SUCCESS;
     }
 
-    ErrCode INTERFACE_FUNC hasGapPacket(Bool* hasGapPacket) override
+    ErrCode INTERFACE_FUNC hasGapPacket(daq::Bool* hasGapPacket) override
     {
         return OPENDAQ_SUCCESS;
     }
 
-    ErrCode INTERFACE_FUNC isRemote(Bool* remote) override
+    ErrCode INTERFACE_FUNC isRemote(daq::Bool* remote) override
     {
         *remote = False;
         return OPENDAQ_SUCCESS;
@@ -2121,7 +2121,7 @@ public:
     {
     }
 
-    ErrCode INTERFACE_FUNC acceptsSignal(IInputPort* port, ISignal* signal, Bool* accept) override
+    ErrCode INTERFACE_FUNC acceptsSignal(IInputPort* port, ISignal* signal, daq::Bool* accept) override
     {
         *accept = True;
         return OPENDAQ_SUCCESS;

@@ -3,6 +3,11 @@
 
 using namespace daq;
 
+// unity-safe namespace: keeps this file's test types file-local
+namespace integration_test
+{
+
+
 using IntegrationTest = testing::Test;
 
 TEST_F(IntegrationTest, List)
@@ -170,3 +175,5 @@ TEST_F(IntegrationTest, EqualToStruct)
     ASSERT_TRUE(std::equal_to<IntPtr>{}(obj0, obj1));
     ASSERT_FALSE(std::equal_to<IntPtr>{}(obj0, obj2));
 }
+}
+// namespace integration_test

@@ -113,6 +113,15 @@ if (COMMAND opendaq_target_pch)
     opendaq_target_pch(${LIB_NAME} <opendaq/opendaq.h>)
 endif()
 
+# Both include the generated arial.ttf.h, which defines its array without an include
+# guard, so they cannot share a translation unit.
+set_source_files_properties(renderer_fb_impl.cpp video_player_fb_impl.cpp
+                            PROPERTIES SKIP_UNITY_BUILD_INCLUSION ON
+)
+if (COMMAND opendaq_target_unity_libs)
+    opendaq_target_unity_libs(${LIB_NAME} BATCH_SIZE 4)
+endif()
+
 target_link_libraries(${LIB_NAME}
     PUBLIC
         ${OPENDAQ_SDK_TARGET_NAMESPACE}::opendaq

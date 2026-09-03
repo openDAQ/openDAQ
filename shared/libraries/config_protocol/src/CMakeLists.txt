@@ -83,6 +83,7 @@ opendaq_target_pch(${MODULE_NAME}
     <config_protocol/config_protocol_client.h>
     <config_protocol/config_protocol_server.h>
 )
+opendaq_target_unity_libs(${MODULE_NAME} BATCH_SIZE 4)
 
 if (MSVC)
     target_compile_options(${MODULE_NAME} PRIVATE /bigobj)

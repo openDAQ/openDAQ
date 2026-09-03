@@ -4,9 +4,14 @@
 #include <coretypes/json_deserializer_factory.h>
 #include <coretypes/integer_factory.h>
 
+using namespace daq;
+
+// unity-safe namespace: keeps this file's test types file-local
+namespace test_simplified_ratio
+{
+
 using SimplifiedRatioTest = testing::Test;
 
-using namespace daq;
 
 TEST_F(SimplifiedRatioTest, Create)
 {
@@ -326,3 +331,5 @@ TEST_F(SimplifiedRatioTest, RatioDivideBySimplifiedRatio)
 #if defined(_MSC_VER)
     #pragma warning(pop)
 #endif
+}
+// namespace test_simplified_ratio

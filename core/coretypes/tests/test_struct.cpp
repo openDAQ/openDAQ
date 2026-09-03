@@ -3,6 +3,11 @@
 
 using namespace daq;
 
+// unity-safe namespace: keeps this file's test types file-local
+namespace test_struct
+{
+
+
 using StructObjectTest = testing::Test;
 
 TEST_F(StructObjectTest, RatioStruct)
@@ -233,11 +238,11 @@ TEST_F(StructObjectTest, ComplexStructSerializationEmptyManager)
     ASSERT_EQ(nestedStruct, nestedStructDeserialized);
 }
 
-static constexpr auto INTERFACE_ID = FromTemplatedTypeName("IStruct", "daq");
+static constexpr auto STRUCT_INTERFACE_ID = FromTemplatedTypeName("IStruct", "daq");
 
 TEST_F(StructObjectTest, InterfaceId)
 {
-    ASSERT_EQ(INTERFACE_ID, IStruct::Id);
+    ASSERT_EQ(STRUCT_INTERFACE_ID, IStruct::Id);
 }
 
 TEST_F(StructObjectTest, InterfaceIdString)
@@ -397,3 +402,5 @@ TEST_F(StructObjectTest, PrintTrackedObjectWithoutDeadlock)
 
     daqPrintTrackedObjects();  // Struct::ToString should not create any new objects (deadlock)
 }
+}
+// namespace test_struct

@@ -3,6 +3,11 @@
 
 using namespace daq;
 
+// unity-safe namespace: keeps this file's test types file-local
+namespace test_objectptr_op
+{
+
+
 using ObjectPtrOpTest = testing::Test;
 
 TEST_F(ObjectPtrOpTest, IntSum)
@@ -178,3 +183,5 @@ TEST_F(ObjectPtrOpTest, AddScalarToList)
     }
     ASSERT_EQ(9, sum);
 }
+}
+// namespace test_objectptr_op

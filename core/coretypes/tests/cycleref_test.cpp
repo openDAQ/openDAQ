@@ -3,6 +3,11 @@
 
 using namespace daq;
 
+// unity-safe namespace: keeps this file's test types file-local
+namespace cycleref_test
+{
+
+
 using CylceRefTest = testing::Test;
 
 TEST_F(CylceRefTest, Leak)
@@ -23,3 +28,5 @@ TEST_F(CylceRefTest, ManualBreak)
     list2.pushBack(list1);
     list1.dispose();
 }
+}
+// namespace cycleref_test

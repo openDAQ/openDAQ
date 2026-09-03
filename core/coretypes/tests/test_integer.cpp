@@ -3,6 +3,11 @@
 
 using namespace daq;
 
+// unity-safe namespace: keeps this file's test types file-local
+namespace test_integer
+{
+
+
 using IntegerTest = testing::Test;
 
 TEST_F(IntegerTest, Basic)
@@ -206,11 +211,11 @@ TEST_F(IntegerTest, ImplementationName)
     ASSERT_EQ(prefix, 0u);
 }
 
-static constexpr auto INTERFACE_ID = FromTemplatedTypeName("IInteger", "daq");
+static constexpr auto INTEGER_INTERFACE_ID = FromTemplatedTypeName("IInteger", "daq");
 
 TEST_F(IntegerTest, InterfaceId)
 {
-    ASSERT_EQ(INTERFACE_ID, IInteger::Id);
+    ASSERT_EQ(INTEGER_INTERFACE_ID, IInteger::Id);
 }
 
 TEST_F(IntegerTest, InterfaceIdString)
@@ -249,3 +254,5 @@ TEST_F(IntegerTest, FromPool)
     const auto obj = IntegerFromPool(152);
     ASSERT_EQ(obj, 152);
 }
+}
+// namespace test_integer

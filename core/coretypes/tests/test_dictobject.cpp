@@ -4,13 +4,18 @@
 #include <gmock/gmock-matchers.h>
 #include <coretypes/cloneable.h>
 
+using namespace daq;
+
+// unity-safe namespace: keeps this file's test types file-local
+namespace test_dictobject
+{
+
 using DictObjectTest = testing::Test;
 
 DECLARE_OPENDAQ_INTERFACE(ITestObject, daq::IBaseObject)
 {
 };
 
-using namespace daq;
 
 class TestObjectImpl : public ImplementationOf<ITestObject>
 {
@@ -57,11 +62,11 @@ static ObjectPtr<ITestObject> TestObj(size_t hash)
 
 using TestObjectPtr = ObjectPtr<ITestObject>;
 
-static constexpr auto INTERFACE_ID = FromTemplatedTypeName("IDict", "daq");
+static constexpr auto DICTOBJECT_INTERFACE_ID = FromTemplatedTypeName("IDict", "daq");
 
 TEST_F(DictObjectTest, InterfaceId)
 {
-    ASSERT_EQ(INTERFACE_ID, IDict::Id);
+    ASSERT_EQ(DICTOBJECT_INTERFACE_ID, IDict::Id);
 }
 
 TEST_F(DictObjectTest, InterfaceIdString)
@@ -996,3 +1001,5 @@ TEST_F(DictObjectTest, ValuesEndType)
     ASSERT_TRUE(OPENDAQ_SUCCEEDED(errCode));
     ASSERT_EQ(id, IInteger::Id);
 }
+}
+// namespace test_dictobject

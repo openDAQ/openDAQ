@@ -7,6 +7,10 @@
 
 using namespace daq;
 
+// unity-safe namespace: keeps this file's helpers file-local
+namespace test_websocket_modules
+{
+
 class WebsocketModulesTest : public testing::Test
 {
 public:
@@ -891,3 +895,5 @@ TEST_P(WebsocketModulesChannelTest, UpdateRemoveSignals)
 }
 
 INSTANTIATE_TEST_SUITE_P(WebsocketModulesTestGroup, WebsocketModulesChannelTest, testing::ValuesIn(GetChannelSuite()), ChannelName);
+}
+// namespace test_websocket_modules

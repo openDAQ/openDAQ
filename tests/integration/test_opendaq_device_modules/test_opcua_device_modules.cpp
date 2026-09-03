@@ -8,6 +8,7 @@
 #include <opendaq/device_impl.h>
 #include <opendaq/module_info_factory.h>
 #include <opendaq/device_type_factory.h>
+#include <opendaq/sdk_package_version.h>
 #include <testutils/testutils.h>
 
 #include "test_helpers/device_modules.h"

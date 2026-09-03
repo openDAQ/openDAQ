@@ -32,6 +32,7 @@
 #include <coreobjects/property_object_factory.h>
 #include <opendaq/custom_log.h>
 #include <opendaq/mirrored_device.h>
+#include <opendaq/sdk_package_version.h>
 #include <set>
 #include <cctype>
 #include <coretypes/coretype_utils.h>

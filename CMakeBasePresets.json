@@ -57,7 +57,9 @@
             },
             "vendor": {
                 "microsoft.com/VisualStudioSettings/CMake/1.0": {
-                    "hostOS": [ "Windows" ]
+                    "hostOS": [
+                        "Windows"
+                    ]
                 }
             }
         },
@@ -88,7 +90,9 @@
             },
             "vendor": {
                 "microsoft.com/VisualStudioSettings/CMake/1.0": {
-                    "hostOS": [ "Windows" ]
+                    "hostOS": [
+                        "Windows"
+                    ]
                 }
             }
         },
@@ -103,7 +107,9 @@
             },
             "vendor": {
                 "microsoft.com/VisualStudioSettings/CMake/1.0": {
-                    "hostOS": [ "Windows" ]
+                    "hostOS": [
+                        "Windows"
+                    ]
                 }
             }
         },
@@ -127,6 +133,17 @@
                 "OPENDAQ_DOCUMENTATION_TESTS": true,
                 "OPENDAQ_ENABLE_NATIVE_STREAMING": true,
                 "OPENDAQ_ENABLE_OPCUA_INTEGRATION_TESTS": true
+            }
+        },
+        {
+            "name": "build-acceleration",
+            "hidden": true,
+            "description": "Precompiled headers and unity translation units. Trades disk space and incremental rebuild granularity for compile time.",
+            "cacheVariables": {
+                "OPENDAQ_ENABLE_PCH": true,
+                "OPENDAQ_ENABLE_UNITY_TESTS": true,
+                "OPENDAQ_ENABLE_UNITY_BINDINGS": true,
+                "OPENDAQ_ENABLE_UNITY_LIBS": true
             }
         },
         {
@@ -176,7 +193,8 @@
             "name": "ci",
             "hidden": false,
             "inherits": [
-                "full"
+                "full",
+                "build-acceleration"
             ],
             "cacheVariables": {
                 "OPENDAQ_CI_RUNNER": true,
@@ -330,6 +348,25 @@
                 "intel-llvm",
                 "ninja"
             ]
+        },
+        {
+            "name": "x64/msvc-26-ninja/full/measure",
+            "displayName": "[MSVC 26 + Ninja] Full - build time measurement",
+            "description": "Ninja with MSVC, bindings and build acceleration on and the compiler cache off, so build times are reproducible. Used for the numbers quoted in the build acceleration work.",
+            "inherits": [
+                "debug",
+                "full",
+                "build-acceleration"
+            ],
+            "generator": "Ninja",
+            "cacheVariables": {
+                "CMAKE_C_COMPILER": "cl",
+                "CMAKE_CXX_COMPILER": "cl",
+                "OPENDAQ_GENERATE_PYTHON_BINDINGS": true,
+                "OPENDAQ_GENERATE_C_BINDINGS": true,
+                "OPENDAQ_ENABLE_PYTHON_BINDINGS_TESTS": false,
+                "OPENDAQ_USE_CCACHE": false
+            }
         }
     ],
     "testPresets": [

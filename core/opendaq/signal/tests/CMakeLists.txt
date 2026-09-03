@@ -46,7 +46,7 @@ opendaq_prepare_test_runner(TEST_APP FOR ${MODULE_NAME}
                            ${TEST_HEADERS}
 )
 
-opendaq_target_pch(${TEST_APP} <opendaq/opendaq.h> <gtest/gtest.h>)
+opendaq_target_pch_group(${TEST_APP} opendaq_tests <opendaq/opendaq.h> <gtest/gtest.h>)
 opendaq_target_unity_tests(${TEST_APP})
 
 add_test(NAME ${TEST_APP}

@@ -23,6 +23,23 @@ function(opendaq_target_pch TARGET_NAME)
     endif()
 endfunction()
 
+# Precompiles a header set once per group: the first target to join builds the precompiled
+# header and later members reuse it. Members must compile with the same flags and definitions,
+# since the compiler validates the precompiled header against them.
+function(opendaq_target_pch_group TARGET_NAME GROUP_NAME)
+    if (NOT OPENDAQ_ENABLE_PCH)
+        return()
+    endif()
+
+    get_property(DONOR GLOBAL PROPERTY OPENDAQ_PCH_GROUP_${GROUP_NAME})
+    if (DONOR)
+        target_precompile_headers(${TARGET_NAME} REUSE_FROM ${DONOR})
+    else()
+        target_precompile_headers(${TARGET_NAME} PRIVATE ${ARGN})
+        set_property(GLOBAL PROPERTY OPENDAQ_PCH_GROUP_${GROUP_NAME} ${TARGET_NAME})
+    endif()
+endfunction()
+
 # Groups a target's sources into unity translation units.
 function(_opendaq_target_unity TARGET_NAME BATCH_SIZE)
     if (NOT DEFINED BATCH_SIZE OR BATCH_SIZE STREQUAL "")

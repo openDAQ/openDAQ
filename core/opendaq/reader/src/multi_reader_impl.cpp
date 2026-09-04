@@ -171,9 +171,8 @@ MultiReaderImpl::MultiReaderImpl(const MultiReaderBuilderPtr& builder)
 
 MultiReaderImpl::~MultiReaderImpl()
 {
-    if (!portBinder.assigned())
-        for (const auto& signal : signals)
-            signal.port.remove();
+    if (!this->disposeCalled)
+        internalDispose(false);
 }
 
 ListPtr<ISignal> MultiReaderImpl::getSignals() const
@@ -906,6 +905,11 @@ MultiReaderStatusPtr MultiReaderImpl::readAndSynchronize(bool zeroDataRead, Size
     }
 
     ErrCode errCode = synchronize(availableSamples, syncStatus);
+    if (OPENDAQ_FAILED(errCode))
+    {
+        LOG_D("Multi reader failed to synchronize: {}", getErrorInfoMessage(errCode));
+        clearErrorInfo();
+    }
     if (OPENDAQ_FAILED(errCode) || eventPackets.getCount() != 0)
     {
         return createReaderStatus(eventPackets);
@@ -1362,13 +1366,29 @@ ErrCode MultiReaderImpl::getActive(Bool* isActive)
 
 void MultiReaderImpl::internalDispose(bool)
 {
-    this->portBinder = nullptr;
-    this->signals.clear();
-    this->externalListener = nullptr;
-    this->readCallback = nullptr;
-    this->invalid = true;
-    this->isActive = false;
-    this->portsConnected = false;
+    std::vector<SignalReader> localSignals;
+    bool removePorts;
+
+    {
+        std::scoped_lock lock{mutex, notify.mutex};
+
+        removePorts = !this->portBinder.assigned();
+        localSignals = std::move(this->signals);
+        this->signals.clear();
+        this->portBinder = nullptr;
+        this->externalListener = nullptr;
+        this->readCallback = nullptr;
+        this->invalid = true;
+        this->isActive = false;
+        this->portsConnected = false;
+    }
+
+    // port removal locks the signals, which can deadlock with packet notifications waiting on notify.mutex, so it must happen outside the locks
+    if (removePorts)
+    {
+        for (const auto& signal : localSignals)
+            signal.port.remove();
+    }
 }
 
 #pragma region ReaderConfig

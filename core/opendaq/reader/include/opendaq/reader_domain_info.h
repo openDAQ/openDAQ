@@ -14,6 +14,7 @@
  * limitations under the License.
  */
 #pragma once
+#include <coretypes/ratio_factory.h>
 #include <opendaq/reader_utils.h>
 #include <opendaq/custom_log.h>
 #include <opendaq/logger_component_ptr.h>
@@ -63,7 +64,8 @@ struct ReaderDomainInfo
         LOG_T("Adj. offset: {}", offset)
     }
 
-    RatioPtr resolution{};
+    // a signal without a domain tick resolution is treated as having a resolution of 1/1
+    RatioPtr resolution = Ratio(1, 1);
     RatioPtr multiplier{};
     std::int64_t offset{};
     std::chrono::system_clock::time_point epoch{};

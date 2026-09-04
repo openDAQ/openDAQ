@@ -170,6 +170,8 @@ void SignalReader::handleDescriptorChanged(const EventPacketPtr& eventPacket)
         if (validDomain && newDomainDescriptor.assigned())
         {
             auto newResolution = newDomainDescriptor.getTickResolution();
+            if (!newResolution.assigned())
+                newResolution = Ratio(1, 1);
             if (domainInfo.resolution != newResolution)
             {
                 domainInfo.resolution = newResolution;

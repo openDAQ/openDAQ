@@ -15,6 +15,7 @@
  */
 #pragma once
 #include <coretypes/formatter.h>
+#include <coretypes/ratio_factory.h>
 
 #include <date/date.h>
 #include <chrono>
@@ -136,7 +137,8 @@ namespace reader
 
     inline std::int64_t getSampleRate(const DataDescriptorPtr& dataDescriptor)
     {
-        const auto resolution = dataDescriptor.getTickResolution().simplify();
+        const auto tickResolution = dataDescriptor.getTickResolution();
+        const auto resolution = tickResolution.assigned() ? tickResolution.simplify() : Ratio(1, 1);
 
         NumberPtr delta = 1;
         auto rule = dataDescriptor.getRule();

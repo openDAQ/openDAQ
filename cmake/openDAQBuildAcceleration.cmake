@@ -16,16 +16,29 @@
 # to be seen before anything instantiates the template, which the target's precompiled header
 # set is the reliable way to guarantee.
 
+# Compiler options every target that uses a precompiled header needs.
+function(_opendaq_pch_compile_options TARGET_NAME)
+    # GCC loses the system-header status of declarations that come from a precompiled header, so
+    # -Wdangling-reference then fires inside third-party code.
+    if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU" AND CMAKE_CXX_COMPILER_VERSION VERSION_GREATER_EQUAL 13)
+        target_compile_options(${TARGET_NAME} PRIVATE -Wno-dangling-reference)
+    endif()
+endfunction()
+
 # Applies precompiled headers to a target when OPENDAQ_ENABLE_PCH is ON.
 function(opendaq_target_pch TARGET_NAME)
     if (OPENDAQ_ENABLE_PCH)
         target_precompile_headers(${TARGET_NAME} PRIVATE ${ARGN})
+        _opendaq_pch_compile_options(${TARGET_NAME})
+    endif()
+endfunction()
 
-        # GCC loses the system-header status of declarations that come from a precompiled header, so
-        # -Wdangling-reference then fires inside third-party code.
-        if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU" AND CMAKE_CXX_COMPILER_VERSION VERSION_GREATER_EQUAL 13)
-            target_compile_options(${TARGET_NAME} PRIVATE -Wno-dangling-reference)
-        endif()
+# Reuses another target's precompiled header when OPENDAQ_ENABLE_PCH is ON. Both targets must compile
+# with the same flags and definitions.
+function(opendaq_target_pch_reuse TARGET_NAME DONOR_NAME)
+    if (OPENDAQ_ENABLE_PCH)
+        target_precompile_headers(${TARGET_NAME} REUSE_FROM ${DONOR_NAME})
+        _opendaq_pch_compile_options(${TARGET_NAME})
     endif()
 endfunction()
 
@@ -39,9 +52,9 @@ function(opendaq_target_pch_group TARGET_NAME GROUP_NAME)
 
     get_property(DONOR GLOBAL PROPERTY OPENDAQ_PCH_GROUP_${GROUP_NAME})
     if (DONOR)
-        target_precompile_headers(${TARGET_NAME} REUSE_FROM ${DONOR})
+        opendaq_target_pch_reuse(${TARGET_NAME} ${DONOR})
     else()
-        target_precompile_headers(${TARGET_NAME} PRIVATE ${ARGN})
+        opendaq_target_pch(${TARGET_NAME} ${ARGN})
         set_property(GLOBAL PROPERTY OPENDAQ_PCH_GROUP_${GROUP_NAME} ${TARGET_NAME})
     endif()
 endfunction()

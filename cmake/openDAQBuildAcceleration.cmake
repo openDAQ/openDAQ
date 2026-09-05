@@ -13,8 +13,9 @@
 #      reason, is excluded with the SKIP_UNITY_BUILD_INCLUSION source property.
 #
 # Explicit template specializations are the other thing to watch: the header declaring one has
-# to be seen before anything instantiates the template, which the target's precompiled header
-# set is the reliable way to guarantee.
+# to be seen before anything instantiates the template. The target's precompiled header set
+# guarantees that, and when no precompiled header is in use the same headers are placed at the
+# top of each unity file instead.
 
 # Whether precompiled headers are in use. Not with the Intel compiler: executables built from its
 # precompiled headers fail to catch exceptions at run time.
@@ -24,6 +25,15 @@ function(_opendaq_pch_in_use OUT_VAR)
     else()
         set(${OUT_VAR} FALSE PARENT_SCOPE)
     endif()
+endfunction()
+
+# Without a precompiled header, the unity files include the same headers before every source.
+function(_opendaq_unity_include_first TARGET_NAME)
+    set(CODE "")
+    foreach(HEADER IN LISTS ARGN)
+        string(APPEND CODE "#include ${HEADER}\n")
+    endforeach()
+    set_property(TARGET ${TARGET_NAME} APPEND_STRING PROPERTY UNITY_BUILD_CODE_BEFORE_INCLUDE "${CODE}")
 endfunction()
 
 # Compiler options every target that uses a precompiled header needs.
@@ -41,6 +51,8 @@ function(opendaq_target_pch TARGET_NAME)
     if (PCH_IN_USE)
         target_precompile_headers(${TARGET_NAME} PRIVATE ${ARGN})
         _opendaq_pch_compile_options(${TARGET_NAME})
+    else()
+        _opendaq_unity_include_first(${TARGET_NAME} ${ARGN})
     endif()
 endfunction()
 
@@ -60,6 +72,7 @@ endfunction()
 function(opendaq_target_pch_group TARGET_NAME GROUP_NAME)
     _opendaq_pch_in_use(PCH_IN_USE)
     if (NOT PCH_IN_USE)
+        _opendaq_unity_include_first(${TARGET_NAME} ${ARGN})
         return()
     endif()
 

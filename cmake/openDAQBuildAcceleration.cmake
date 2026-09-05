@@ -16,6 +16,16 @@
 # to be seen before anything instantiates the template, which the target's precompiled header
 # set is the reliable way to guarantee.
 
+# Whether precompiled headers are in use. Not with the Intel compiler: executables built from its
+# precompiled headers fail to catch exceptions at run time.
+function(_opendaq_pch_in_use OUT_VAR)
+    if (OPENDAQ_ENABLE_PCH AND NOT CMAKE_CXX_COMPILER_ID STREQUAL "IntelLLVM")
+        set(${OUT_VAR} TRUE PARENT_SCOPE)
+    else()
+        set(${OUT_VAR} FALSE PARENT_SCOPE)
+    endif()
+endfunction()
+
 # Compiler options every target that uses a precompiled header needs.
 function(_opendaq_pch_compile_options TARGET_NAME)
     # GCC loses the system-header status of declarations that come from a precompiled header, so
@@ -27,7 +37,8 @@ endfunction()
 
 # Applies precompiled headers to a target when OPENDAQ_ENABLE_PCH is ON.
 function(opendaq_target_pch TARGET_NAME)
-    if (OPENDAQ_ENABLE_PCH)
+    _opendaq_pch_in_use(PCH_IN_USE)
+    if (PCH_IN_USE)
         target_precompile_headers(${TARGET_NAME} PRIVATE ${ARGN})
         _opendaq_pch_compile_options(${TARGET_NAME})
     endif()
@@ -36,7 +47,8 @@ endfunction()
 # Reuses another target's precompiled header when OPENDAQ_ENABLE_PCH is ON. Both targets must compile
 # with the same flags and definitions.
 function(opendaq_target_pch_reuse TARGET_NAME DONOR_NAME)
-    if (OPENDAQ_ENABLE_PCH)
+    _opendaq_pch_in_use(PCH_IN_USE)
+    if (PCH_IN_USE)
         target_precompile_headers(${TARGET_NAME} REUSE_FROM ${DONOR_NAME})
         _opendaq_pch_compile_options(${TARGET_NAME})
     endif()
@@ -46,7 +58,8 @@ endfunction()
 # header and later members reuse it. Members must compile with the same flags and definitions,
 # since the compiler validates the precompiled header against them.
 function(opendaq_target_pch_group TARGET_NAME GROUP_NAME)
-    if (NOT OPENDAQ_ENABLE_PCH)
+    _opendaq_pch_in_use(PCH_IN_USE)
+    if (NOT PCH_IN_USE)
         return()
     endif()
 

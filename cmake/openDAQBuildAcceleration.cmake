@@ -20,6 +20,12 @@
 function(opendaq_target_pch TARGET_NAME)
     if (OPENDAQ_ENABLE_PCH)
         target_precompile_headers(${TARGET_NAME} PRIVATE ${ARGN})
+
+        # GCC loses the system-header status of declarations that come from a precompiled header, so
+        # -Wdangling-reference then fires inside third-party code.
+        if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU" AND CMAKE_CXX_COMPILER_VERSION VERSION_GREATER_EQUAL 13)
+            target_compile_options(${TARGET_NAME} PRIVATE -Wno-dangling-reference)
+        endif()
     endif()
 endfunction()
 
@@ -54,6 +60,12 @@ function(_opendaq_target_unity TARGET_NAME BATCH_SIZE)
     if (MSVC)
         # Merged translation units run into the object file section limit (C1128).
         target_compile_options(${TARGET_NAME} PRIVATE /bigobj)
+    endif()
+
+    # GCC raises -Wsubobject-linkage for classes defined outside the main input file, which every
+    # source is once it is included into a unity translation unit.
+    if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
+        target_compile_options(${TARGET_NAME} PRIVATE -Wno-subobject-linkage)
     endif()
 endfunction()
 

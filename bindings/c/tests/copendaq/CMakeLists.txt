@@ -109,15 +109,17 @@ add_test(NAME test_copendaq_synchronization COMMAND $<TARGET_FILE_NAME:test_cope
 
 # Shared precompiled header for the two-source test runners in this directory.
 if (OPENDAQ_ENABLE_PCH)
-    file(WRITE ${CMAKE_CURRENT_BINARY_DIR}/copendaq_tests_pch_stub.cpp "")
-    add_library(copendaq_tests_pch STATIC ${CMAKE_CURRENT_BINARY_DIR}/copendaq_tests_pch_stub.cpp)
+    # An executable like its consumers, so that the precompiled header is built with the same flags.
+    file(WRITE ${CMAKE_CURRENT_BINARY_DIR}/copendaq_tests_pch_stub.cpp "int main()\n{\n    return 0;\n}\n")
+    add_executable(copendaq_tests_pch ${CMAKE_CURRENT_BINARY_DIR}/copendaq_tests_pch_stub.cpp)
+    set_target_properties(copendaq_tests_pch PROPERTIES RUNTIME_OUTPUT_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR})
     target_link_libraries(copendaq_tests_pch PRIVATE daq::copendaq daq::test_utils daq::opendaq_mocks daq::opendaq)
     target_precompile_headers(copendaq_tests_pch PRIVATE <copendaq.h> <gtest/gtest.h>)
 
     get_property(COPENDAQ_TEST_TARGETS DIRECTORY PROPERTY BUILDSYSTEM_TARGETS)
     foreach(COPENDAQ_TEST_TARGET IN LISTS COPENDAQ_TEST_TARGETS)
         get_target_property(COPENDAQ_TEST_TARGET_TYPE ${COPENDAQ_TEST_TARGET} TYPE)
-        if (COPENDAQ_TEST_TARGET_TYPE STREQUAL "EXECUTABLE")
+        if (COPENDAQ_TEST_TARGET_TYPE STREQUAL "EXECUTABLE" AND NOT COPENDAQ_TEST_TARGET STREQUAL "copendaq_tests_pch")
             target_precompile_headers(${COPENDAQ_TEST_TARGET} REUSE_FROM copendaq_tests_pch)
         endif()
     endforeach()

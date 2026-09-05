@@ -296,15 +296,17 @@ endif()
 # small to justify its own PCH, so they all reuse one built against daq::opendaq.
 # c_application_tutorial is a C target and cannot reuse a C++ PCH.
 if (OPENDAQ_ENABLE_PCH)
-    file(WRITE ${CMAKE_CURRENT_BINARY_DIR}/examples_pch_stub.cpp "")
-    add_library(examples_pch STATIC ${CMAKE_CURRENT_BINARY_DIR}/examples_pch_stub.cpp)
+    # An executable like its consumers, so that the precompiled header is built with the same flags.
+    file(WRITE ${CMAKE_CURRENT_BINARY_DIR}/examples_pch_stub.cpp "int main()\n{\n    return 0;\n}\n")
+    add_executable(examples_pch ${CMAKE_CURRENT_BINARY_DIR}/examples_pch_stub.cpp)
+    set_target_properties(examples_pch PROPERTIES RUNTIME_OUTPUT_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR})
     target_link_libraries(examples_pch PRIVATE daq::opendaq)
     target_precompile_headers(examples_pch PRIVATE <opendaq/opendaq.h>)
 
     get_property(EXAMPLE_TARGETS DIRECTORY PROPERTY BUILDSYSTEM_TARGETS)
     foreach(EXAMPLE_TARGET IN LISTS EXAMPLE_TARGETS)
         get_target_property(EXAMPLE_TARGET_TYPE ${EXAMPLE_TARGET} TYPE)
-        if (EXAMPLE_TARGET_TYPE STREQUAL "EXECUTABLE" AND NOT EXAMPLE_TARGET STREQUAL "c_application_tutorial")
+        if (EXAMPLE_TARGET_TYPE STREQUAL "EXECUTABLE" AND NOT EXAMPLE_TARGET MATCHES "^(examples_pch|c_application_tutorial)$")
             target_precompile_headers(${EXAMPLE_TARGET} REUSE_FROM examples_pch)
         endif()
     endforeach()

@@ -72,6 +72,11 @@ if (NOT DAQMODULES_LT_LEGACY_MODULES AND OPENDAQ_ENABLE_WEBSOCKET_STREAMING_WITH
     endif()
 endif()
 
+opendaq_target_pch(${TEST_APP} <opendaq/opendaq.h> <gtest/gtest.h>)
+# Too large to merge into a unity translation unit: MSVC hits an internal compiler error.
+set_source_files_properties(test_native_device_modules.cpp PROPERTIES SKIP_UNITY_BUILD_INCLUSION ON)
+opendaq_target_unity_tests(${TEST_APP} BATCH_SIZE 4)
+
 add_test(NAME ${TEST_APP}
          COMMAND $<TARGET_FILE_NAME:${TEST_APP}>
          WORKING_DIRECTORY $<TARGET_FILE_DIR:${TEST_APP}>

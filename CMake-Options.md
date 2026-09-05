@@ -105,4 +105,8 @@ The following options might be used to customize the build passing them in the *
 | `OPENDAQ_DEBUG_WARNINGS_AS_ERRORS` | Bool | `OFF` | Treat debug warnings as errors | - |
 | `OPENDAQ_RELEASE_WARNINGS_AS_ERRORS` | Bool | `ON` | Treat release warnings as errors | - |
 | `OPENDAQ_USE_CCACHE` | Bool | `ON` | Use compiler cache driver if available | - |
+| `OPENDAQ_ENABLE_PCH` | Bool | `OFF` | Use precompiled headers to speed up SDK compilation. Not applied with the Intel compiler.  | - |
+| `OPENDAQ_ENABLE_UNITY_TESTS` | Bool | `OFF` | Compile test sources in unity (jumbo) translation units | Only affects test targets, so it needs `OPENDAQ_ENABLE_TESTS` to be ON |
+| `OPENDAQ_ENABLE_UNITY_BINDINGS` | Bool | `OFF` | Compile generated binding sources in unity (jumbo) translation units | Only affects the Python and C binding libraries, so it needs the matching `OPENDAQ_GENERATE_*_BINDINGS` option to be ON |
+| `OPENDAQ_ENABLE_UNITY_LIBS` | Bool | `OFF` | Compile library sources in unity (jumbo) translation units | Trades incremental rebuild granularity in library code, so it is separate from the test and binding unity options |
 | `OPENDAQ_FORCE_LLD_LINKER` | Bool | `OFF` | Force the use of the fast LLVM LLD linker | - |

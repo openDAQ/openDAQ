@@ -5,6 +5,11 @@
 
 using namespace daq;
 
+// unity-safe namespace: keeps this file's test types file-local
+namespace test_json_deserializer
+{
+
+
 static ErrCode serializedObjectFactory(ISerializedObject*, IBaseObject*, IFunction*, IBaseObject**)
 {
     return OPENDAQ_SUCCESS;
@@ -462,14 +467,16 @@ TEST_F(JsonDeserializerTest, ImplementationName)
     ASSERT_EQ(className, "daq::JsonDeserializerImpl");
 }
 
-static constexpr auto INTERFACE_ID = FromTemplatedTypeName("IDeserializer", "daq");
+static constexpr auto JSON_DESERIALIZER_INTERFACE_ID = FromTemplatedTypeName("IDeserializer", "daq");
 
 TEST_F(JsonDeserializerTest, InterfaceId)
 {
-    ASSERT_EQ(INTERFACE_ID, IDeserializer::Id);
+    ASSERT_EQ(JSON_DESERIALIZER_INTERFACE_ID, IDeserializer::Id);
 }
 
 TEST_F(JsonDeserializerTest, InterfaceIdString)
 {
     ASSERT_EQ(daqInterfaceIdString<IDeserializer>(), "{66DEEEF9-2B0D-5A49-A050-2820C4738AE7}");
 }
+}
+// namespace test_json_deserializer

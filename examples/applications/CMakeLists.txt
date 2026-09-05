@@ -291,3 +291,23 @@ if (APP_ENABLE_WEBPAGE_EXAMPLES)
     endif()
 
 endif()
+
+# Shared precompiled header for the example apps: each example is a single source file, too
+# small to justify its own PCH, so they all reuse one built against daq::opendaq.
+# c_application_tutorial is a C target and cannot reuse a C++ PCH.
+if (OPENDAQ_ENABLE_PCH)
+    # An executable like its consumers, so that the precompiled header is built with the same flags.
+    file(WRITE ${CMAKE_CURRENT_BINARY_DIR}/examples_pch_stub.cpp "int main()\n{\n    return 0;\n}\n")
+    add_executable(examples_pch ${CMAKE_CURRENT_BINARY_DIR}/examples_pch_stub.cpp)
+    set_target_properties(examples_pch PROPERTIES RUNTIME_OUTPUT_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR})
+    target_link_libraries(examples_pch PRIVATE daq::opendaq)
+    opendaq_target_pch(examples_pch <opendaq/opendaq.h>)
+
+    get_property(EXAMPLE_TARGETS DIRECTORY PROPERTY BUILDSYSTEM_TARGETS)
+    foreach(EXAMPLE_TARGET IN LISTS EXAMPLE_TARGETS)
+        get_target_property(EXAMPLE_TARGET_TYPE ${EXAMPLE_TARGET} TYPE)
+        if (EXAMPLE_TARGET_TYPE STREQUAL "EXECUTABLE" AND NOT EXAMPLE_TARGET MATCHES "^(examples_pch|c_application_tutorial)$")
+            opendaq_target_pch_reuse(${EXAMPLE_TARGET} examples_pch)
+        endif()
+    endforeach()
+endif()

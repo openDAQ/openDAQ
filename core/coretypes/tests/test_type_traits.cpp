@@ -2,6 +2,12 @@
 #include <coretypes/string_ptr.h>
 #include <coretypes/constexpr_utils.h>
 
+using namespace daq;
+
+// unity-safe namespace: keeps this file's test types file-local
+namespace test_type_traits
+{
+
 using TypeTraitsTest = testing::Test;
 
 ////////////////////////////////////////
@@ -50,7 +56,6 @@ struct NotTemplateStruct
 {
 };
 
-using namespace daq;
 
 //////////////////////////////////////////////////////////
 ///                 Literal
@@ -113,3 +118,5 @@ TEST_F(TypeTraitsTest, IsDerivedFromTemplate)
 {
     ASSERT_TRUE((IsDerivedFromTemplate<StringPtr, ObjectPtr>::Value));
 }
+}
+// namespace test_type_traits

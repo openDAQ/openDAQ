@@ -41,6 +41,9 @@ add_dependencies(${TEST_APP} daq::ref_fb_module
                              daq::native_stream_srv_module
 )
 
+opendaq_target_pch(${TEST_APP} <opendaq/opendaq.h> <gtest/gtest.h>)
+opendaq_target_unity_tests(${TEST_APP})
+
 add_test(NAME ${TEST_APP}
          COMMAND $<TARGET_FILE_NAME:${TEST_APP}>
          WORKING_DIRECTORY $<TARGET_FILE_DIR:${TEST_APP}>

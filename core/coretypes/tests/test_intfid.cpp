@@ -17,8 +17,13 @@
 #include <coretypes/updatable.h>
 #include <coretypes/version_info.h>
 
-using IntfIdTest = testing::Test;
 using namespace daq;
+
+// unity-safe namespace: keeps this file's test types file-local
+namespace test_intfid
+{
+
+using IntfIdTest = testing::Test;
 
 struct IBaseObjectTest : IUnknown
 {
@@ -285,3 +290,5 @@ TEST_F(IntfIdTest, TestInterfaceToStringConversion)
     testInterfaceToStringConversion(IVersionInfo::Id);
     testInterfaceToStringConversion(IInspectable::Id);
 }
+}
+// namespace test_intfid

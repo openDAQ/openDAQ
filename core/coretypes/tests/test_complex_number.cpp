@@ -4,6 +4,11 @@
 
 using namespace daq;
 
+// unity-safe namespace: keeps this file's test types file-local
+namespace test_complex_number
+{
+
+
 using ComplexNumberTest = testing::Test;
 
 TEST_F(ComplexNumberTest, Basic)
@@ -180,14 +185,16 @@ TEST_F(ComplexNumberTest, StructNames)
 {
 }
 
-static constexpr auto INTERFACE_ID = FromTemplatedTypeName("IComplexNumber", "daq");
+static constexpr auto COMPLEX_NUMBER_INTERFACE_ID = FromTemplatedTypeName("IComplexNumber", "daq");
 
 TEST_F(ComplexNumberTest, InterfaceId)
 {
-    ASSERT_EQ(INTERFACE_ID, IComplexNumber::Id);
+    ASSERT_EQ(COMPLEX_NUMBER_INTERFACE_ID, IComplexNumber::Id);
 }
 
 TEST_F(ComplexNumberTest, InterfaceIdString)
 {
     ASSERT_EQ(daqInterfaceIdString<IComplexNumber>(), "{FB9C2303-3E0E-5213-8C9B-3BD39B0EA61C}");
 }
+}
+// namespace test_complex_number

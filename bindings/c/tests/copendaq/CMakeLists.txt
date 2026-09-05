@@ -106,3 +106,21 @@ add_test(NAME test_copendaq_server COMMAND $<TARGET_FILE_NAME:test_copendaq_serv
 add_test(NAME test_copendaq_signal COMMAND $<TARGET_FILE_NAME:test_copendaq_signal> WORKING_DIRECTORY $<TARGET_FILE_DIR:test_copendaq_signal>)
 add_test(NAME test_copendaq_streaming COMMAND $<TARGET_FILE_NAME:test_copendaq_streaming> WORKING_DIRECTORY $<TARGET_FILE_DIR:test_copendaq_streaming>)
 add_test(NAME test_copendaq_synchronization COMMAND $<TARGET_FILE_NAME:test_copendaq_synchronization> WORKING_DIRECTORY $<TARGET_FILE_DIR:test_copendaq_synchronization>)
+
+# Shared precompiled header for the two-source test runners in this directory.
+if (OPENDAQ_ENABLE_PCH)
+    # An executable like its consumers, so that the precompiled header is built with the same flags.
+    file(WRITE ${CMAKE_CURRENT_BINARY_DIR}/copendaq_tests_pch_stub.cpp "int main()\n{\n    return 0;\n}\n")
+    add_executable(copendaq_tests_pch ${CMAKE_CURRENT_BINARY_DIR}/copendaq_tests_pch_stub.cpp)
+    set_target_properties(copendaq_tests_pch PROPERTIES RUNTIME_OUTPUT_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR})
+    target_link_libraries(copendaq_tests_pch PRIVATE daq::copendaq daq::test_utils daq::opendaq_mocks daq::opendaq)
+    opendaq_target_pch(copendaq_tests_pch <copendaq.h> <gtest/gtest.h>)
+
+    get_property(COPENDAQ_TEST_TARGETS DIRECTORY PROPERTY BUILDSYSTEM_TARGETS)
+    foreach(COPENDAQ_TEST_TARGET IN LISTS COPENDAQ_TEST_TARGETS)
+        get_target_property(COPENDAQ_TEST_TARGET_TYPE ${COPENDAQ_TEST_TARGET} TYPE)
+        if (COPENDAQ_TEST_TARGET_TYPE STREQUAL "EXECUTABLE" AND NOT COPENDAQ_TEST_TARGET STREQUAL "copendaq_tests_pch")
+            opendaq_target_pch_reuse(${COPENDAQ_TEST_TARGET} copendaq_tests_pch)
+        endif()
+    endforeach()
+endif()

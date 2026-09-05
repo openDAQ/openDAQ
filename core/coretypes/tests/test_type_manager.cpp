@@ -6,6 +6,11 @@
 
 using namespace daq;
 
+// unity-safe namespace: keeps this file's test types file-local
+namespace test_type_manager
+{
+
+
 using TypeManagerTest = testing::Test;
 
 TEST_F(TypeManagerTest, AddType)
@@ -126,11 +131,11 @@ TEST_F(TypeManagerTest, Serialization)
     ASSERT_EQ(manager.getTypes(), typeManagerDeserialized.getTypes());
 }
 
-static constexpr auto INTERFACE_ID = FromTemplatedTypeName("ITypeManager", "daq");
+static constexpr auto TYPE_MANAGER_INTERFACE_ID = FromTemplatedTypeName("ITypeManager", "daq");
 
 TEST_F(TypeManagerTest, InterfaceId)
 {
-    ASSERT_EQ(INTERFACE_ID, ITypeManager::Id);
+    ASSERT_EQ(TYPE_MANAGER_INTERFACE_ID, ITypeManager::Id);
 }
 
 TEST_F(TypeManagerTest, InterfaceIdString)
@@ -168,3 +173,5 @@ TEST_F(TypeManagerTest, ProtectedStructNames)
         ASSERT_THROW(typeManager.addType(type2), ReservedTypeNameException);
     }
 }
+}
+// namespace test_type_manager

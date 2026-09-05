@@ -37,6 +37,8 @@ add_library(${LIB_NAME} SHARED ${SRC_Include}
 
 add_library(${SDK_TARGET_NAMESPACE}::${LIB_NAME} ALIAS ${LIB_NAME})
 
+opendaq_target_pch(${LIB_NAME} <opendaq/opendaq.h> <boost/asio.hpp>)
+
 target_link_libraries(${LIB_NAME} PUBLIC  daq::opendaq
                                   PRIVATE daq::native_streaming_protocol
                                           daq::config_protocol

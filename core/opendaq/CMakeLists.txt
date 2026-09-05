@@ -81,11 +81,30 @@ foreach(DAQ_COMPONENT ${DAQ_COMPONENTS})
     list(APPEND SRC_Cpp ${SRC_Cpp_Component_Generated})
 endforeach()
 
+# Refreshed on every build, so a new revision hash never needs a reconfigure.
+set(SDK_PACKAGE_VERSION_HEADER ${CMAKE_CURRENT_BINARY_DIR}/opendaq/include/${MAIN_TARGET}/sdk_package_version.h)
+add_custom_target(${MAIN_TARGET}_sdk_package_version
+    COMMAND ${CMAKE_COMMAND}
+        -DPACKAGE_VERSION=${OPENDAQ_PACKAGE_VERSION}
+        -DSOURCE_DIR=${OPENDAQ_SOURCE_DIR}
+        -DGIT_EXECUTABLE=${GIT_EXECUTABLE}
+        -DBRANCH_OVERRIDE=${CI_GIT_BRANCH}
+        -DTEMPLATE=${CMAKE_CURRENT_SOURCE_DIR}/sdk_package_version.h.in
+        -DOUTPUT=${SDK_PACKAGE_VERSION_HEADER}
+        -P ${OPENDAQ_SOURCE_DIR}/cmake/SdkPackageVersion.cmake
+    BYPRODUCTS ${SDK_PACKAGE_VERSION_HEADER}
+    COMMENT "Refreshing ${MAIN_TARGET}/sdk_package_version.h"
+    VERBATIM
+)
+list(APPEND SRC_PublicHeaders ${SDK_PACKAGE_VERSION_HEADER})
+
 add_library(${MAIN_TARGET} SHARED
             ${SRC_Cpp}
             ${SRC_PrivateHeaders}
             ${SRC_PublicHeaders}
 )
+
+add_dependencies(${MAIN_TARGET} ${MAIN_TARGET}_sdk_package_version)
 
 set(MAIN_TARGET_ALIAS1 ${SDK_TARGET_NAMESPACE}_${MAIN_TARGET})
 set(MAIN_TARGET_ALIAS2 ${SDK_TARGET_NAMESPACE}::${MAIN_TARGET})
@@ -151,6 +170,11 @@ target_compile_options(${MAIN_TARGET}
     PRIVATE
         ${SRC_PrivateCompileOptions}
         ${MSVC_PRIVATE_COMPILE_OPTIONS}
+)
+
+opendaq_target_pch(${MAIN_TARGET}
+    <coretypes/coretypes.h>
+    <coreobjects/coreobjects.h>
 )
 
 opendaq_set_output_lib_name(${MAIN_TARGET} ${PROJECT_VERSION_MAJOR})

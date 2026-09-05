@@ -8,6 +8,7 @@
 #include <opendaq/device_impl.h>
 #include <opendaq/module_info_factory.h>
 #include <opendaq/device_type_factory.h>
+#include <opendaq/sdk_package_version.h>
 #include <testutils/testutils.h>
 
 #include "test_helpers/device_modules.h"
@@ -15,6 +16,10 @@
 using OpcuaDeviceModulesTest = testing::Test;
 
 using namespace daq;
+
+// unity-safe namespace: keeps this file's helpers file-local
+namespace test_opcua_device_modules
+{
 
 static InstancePtr CreateServerInstance(const AuthenticationProviderPtr& authenticationProvider)
 {
@@ -1858,3 +1863,5 @@ TEST_F(OpcuaDeviceModulesTest, SaveLoadFunctionBlockConfig)
     ASSERT_TRUE(fbConfig.hasProperty("UseMultiThreadedScheduler"));
     ASSERT_FALSE(fbConfig.getPropertyValue("UseMultiThreadedScheduler"));
 }
+}
+// namespace test_opcua_device_modules

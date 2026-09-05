@@ -5,6 +5,11 @@
 
 using namespace daq;
 
+// unity-safe namespace: keeps this file's test types file-local
+namespace test_binary_data
+{
+
+
 using BinaryDataTest = testing::Test;
 
 TEST_F(BinaryDataTest, Create)
@@ -12,11 +17,11 @@ TEST_F(BinaryDataTest, Create)
     ASSERT_NO_THROW(BinaryData(5));
 }
 
-static constexpr auto INTERFACE_ID = FromTemplatedTypeName("IBinaryData", "daq");
+static constexpr auto BINARY_DATA_INTERFACE_ID = FromTemplatedTypeName("IBinaryData", "daq");
 
 TEST_F(BinaryDataTest, InterfaceId)
 {
-    ASSERT_EQ(INTERFACE_ID, IBinaryData::Id);
+    ASSERT_EQ(BINARY_DATA_INTERFACE_ID, IBinaryData::Id);
 }
 
 TEST_F(BinaryDataTest, InterfaceIdString)
@@ -97,3 +102,5 @@ TEST_F(BinaryDataTest, ImplementationName)
     StringPtr className = obj.asPtr<IInspectable>(true).getRuntimeClassName();
     ASSERT_EQ(className, "daq::BinaryDataImpl");
 }
+}
+// namespace test_binary_data

@@ -3,6 +3,11 @@
 
 using namespace daq;
 
+// unity-safe namespace: keeps this file's test types file-local
+namespace test_json_serialized_list
+{
+
+
 // TODO: Test suite might fail due to memory leaks if registering a new factory requires factory map to allocate more memory
 
 class JsonSerializedListTest : public testing::Test
@@ -487,14 +492,16 @@ TEST_F(JsonSerializedListTest, ImplementationName)
     ASSERT_EQ(className, "daq::JsonSerializedList");
 }
 
-static constexpr auto INTERFACE_ID = FromTemplatedTypeName("ISerializedList", "daq");
+static constexpr auto JSON_SERIALIZED_LIST_INTERFACE_ID = FromTemplatedTypeName("ISerializedList", "daq");
 
 TEST_F(JsonSerializedListTest, InterfaceId)
 {
-    ASSERT_EQ(INTERFACE_ID, ISerializedList::Id);
+    ASSERT_EQ(JSON_SERIALIZED_LIST_INTERFACE_ID, ISerializedList::Id);
 }
 
 TEST_F(JsonSerializedListTest, InterfaceIdString)
 {
     ASSERT_EQ(daqInterfaceIdString<ISerializedList>(), "{A9E1FD59-8AD5-5F3C-B4F8-2A9CDE66E598}");
 }
+}
+// namespace test_json_serialized_list

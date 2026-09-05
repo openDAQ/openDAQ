@@ -55,6 +55,7 @@ endif()
 list(APPEND CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake
 )
 include(DeprecatedCommands)
+include(openDAQBuildAcceleration)
 
 get_filename_component(PROJ_DIR ${PROJECT_SOURCE_DIR} REALPATH)
 
@@ -66,19 +67,8 @@ if (COMMAND GIT_WC_INFO)
     endif()
 
     message(STATUS "Git branch: ${OPENDAQ_WC_BRANCH_NAME} | ${OPENDAQ_WC_REVISION_HASH}")
-    if (NOT ${OPENDAQ_WC_BRANCH_NAME} MATCHES "^release\/[0-9]+\.[0-9]+(\.[0-9])?(\.[0-9])?(-[a-z|A-Z|0-9]*)?$")
-        set (OPENDAQ_PACKAGE_VERSION_WITH_SHA "${OPENDAQ_PACKAGE_VERSION}_${OPENDAQ_WC_REVISION_HASH}")
-    endif()
 else()
     set(OPENDAQ_WC_REVISION "NA")
-endif()
-
-if (NOT ${OPENDAQ_PACKAGE_VERSION_WITH_SHA} STREQUAL "")
-    message(STATUS "openDAQ package version: ${OPENDAQ_PACKAGE_VERSION_WITH_SHA}")
-    add_compile_definitions(OPENDAQ_PACKAGE_VERSION="${OPENDAQ_PACKAGE_VERSION_WITH_SHA}")
-else()
-    message(STATUS "openDAQ package version: ${OPENDAQ_PACKAGE_VERSION}")
-    add_compile_definitions(OPENDAQ_PACKAGE_VERSION="${OPENDAQ_PACKAGE_VERSION}")
 endif()
 
 opendaq_setup_common_build_options()
@@ -95,6 +85,10 @@ option(OPENDAQ_ENABLE_NATIVE_STREAMING "Enable ${SDK_NAME} native streaming" OFF
 option(OPENDAQ_ENABLE_ACCESS_CONTROL "Enable object-level access control" ON)
 option(OPENDAQ_RTGEN_ON_CMAKE_CONFIG "Run RT gen as part of the CMake configuration process to make sure the files exist during development" OFF)
 option(OPENDAQ_ENABLE_OBJECT_POOLS "Enable object pools for integer and float base objects" OFF)
+option(OPENDAQ_ENABLE_PCH "Use precompiled headers to speed up SDK compilation" OFF)
+option(OPENDAQ_ENABLE_UNITY_TESTS "Compile test sources in unity (jumbo) translation units" OFF)
+option(OPENDAQ_ENABLE_UNITY_BINDINGS "Compile generated binding sources in unity (jumbo) translation units" OFF)
+option(OPENDAQ_ENABLE_UNITY_LIBS "Compile library sources in unity (jumbo) translation units" OFF)
 
 option(OPENDAQ_ENABLE_OPCUA "Enable OpcUa" OFF)
 

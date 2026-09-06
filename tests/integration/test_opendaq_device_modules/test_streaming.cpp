@@ -1181,16 +1181,11 @@ TEST_P(StreamingTestForModernLt, MultipleSignalsConcurrent)
 {
     // Subscribe 3 signals with different sample types/rules at once (ByteStep: Int8 explicit, IntStep: Int32 explicit,
     // Sine: Float64 + post-scaling) and verify each stream arrives complete and independent
-    // +1 signal initial descriptor changed event packet for server side
-    // +2 signal descriptor changed event packets for client side for daq.lt (workaround)
-    // +1 signal initial descriptor changed event packet for client side for other connections
-    // These additional event packets are triggered by client reader creation in this test and
-    // they are not expected to be transmitted over LT streaming, but they are triggered on client side
-    // and received by client reader, so they are included in expected packet count and compared in packet comparison
+    // The server reader and the LT pseudo-device client reader each see one initial descriptor event before the data
     const std::vector<std::string> signalNames = {"ByteStep", "IntStep", "Sine"};
     const size_t packetsToGenerate = 10;
     const size_t packetsToReadServer = packetsToGenerate + 1;
-    const size_t packetsToReadClient = packetsToGenerate + (usingLTPseudoDevice ? 1 : 2);
+    const size_t packetsToReadClient = packetsToGenerate + 1;
 
     // Give the client time to do async work related to signal creation
     // Otherwise getSignal() on the client may not find it yet
@@ -1251,8 +1246,7 @@ TEST_P(StreamingTestForModernLt, MultipleSignalsConcurrent)
         {
             // Config devices (daq.nd/daq.opcua) deliver the initial descriptor through both the config core
             // event and the streaming subscribe. The number of data packets is always packetsToGenerate.
-            auto clientReceivedPackets =
-                test_helpers::tryReadPackets(clientReaders[i], packetsToReadClient);
+            auto clientReceivedPackets = test_helpers::tryReadDataPackets(clientReaders[i], packetsToGenerate);
             EXPECT_EQ(countDataPackets(clientReceivedPackets), packetsToGenerate) << "signal " << signalNames[i];
             EXPECT_TRUE(test_helpers::packetBehaviorComparison(
                 serverReceivedPackets, clientReceivedPackets, compareDataPackets, compareDescriptors))

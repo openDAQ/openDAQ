@@ -1904,21 +1904,14 @@ public:
         auto config = instance.createDefaultAddDeviceConfig();
         PropertyObjectPtr general = config.getPropertyValue("General");
 
-        bool isLt = false;
         auto prioritizedStreamingProtocols = List<IString>();
         for (const auto& protocolId : GetParam())
-        {
-            isLt |= (protocolId == "OpenDAQLTStreaming");
             prioritizedStreamingProtocols.pushBack(protocolId);
-        }
 
         general.setPropertyValue("PrioritizedStreamingProtocols", prioritizedStreamingProtocols);
 
-        instance.addDevice("daq.nd://127.0.0.1", config);
-        if (isLt)
-        {
-            CONDITIONAL_SLEEP;
-        }
+        const auto device = instance.addDevice("daq.nd://127.0.0.1", config);
+        EXPECT_TRUE(test_helpers::waitForStreamingSources(device, prioritizedStreamingProtocols.getCount()));
 
         return instance;
     }

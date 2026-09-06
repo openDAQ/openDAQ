@@ -19,6 +19,7 @@
 #include <chrono>
 #include <thread>
 #include <future>
+#include <functional>
 #include <optional>
 #include <fstream>
 #include <boost/asio/ip/tcp.hpp>
@@ -45,17 +46,6 @@
 #   else
 #       define SKIP_TEST_MAC_CI
 #   endif
-#endif
-
-// In Modern LT module operations are processed asynchronously.
-// We have to give the client time to complete asynchronous processing related to signal creation.
-// Otherwise getSignal() on the client may not find it yet.
-#if defined(DAQMODULES_LT_LEGACY_MODULES)
-#   define CONDITIONAL_SLEEP
-#elif defined(__APPLE__)
-#   define CONDITIONAL_SLEEP std::this_thread::sleep_for(std::chrono::seconds(5))
-#else
-#   define CONDITIONAL_SLEEP std::this_thread::sleep_for(std::chrono::seconds(1))
 #endif
 
 BEGIN_NAMESPACE_OPENDAQ
@@ -324,6 +314,47 @@ namespace test_helpers
         }
 
         return allPackets;
+    }
+
+    // Polls the condition every 20 ms until it holds or the timeout passes; returns whether it held.
+    [[maybe_unused]]
+    inline bool waitFor(const std::function<bool()>& condition, std::chrono::milliseconds timeout = std::chrono::seconds(10))
+    {
+        const auto deadline = std::chrono::steady_clock::now() + timeout;
+        while (!condition())
+        {
+            if (std::chrono::steady_clock::now() >= deadline)
+                return false;
+            std::this_thread::sleep_for(std::chrono::milliseconds(20));
+        }
+        return true;
+    }
+
+    // Whether every visible signal under the device is mirrored with the given number of streaming sources and an active one.
+    // Signals of a streaming pseudo-device are created asynchronously, so no signals at all counts as not attached yet.
+    [[maybe_unused]]
+    inline bool streamingSourcesAttached(const DevicePtr& device, size_t streamingSourceCount)
+    {
+        const auto signals = device.getSignals(search::Recursive(search::Visible()));
+        if (signals.getCount() == 0)
+            return false;
+        for (const auto& signal : signals)
+        {
+            const auto mirrored = signal.asPtrOrNull<IMirroredSignalConfig>();
+            if (!mirrored.assigned() || mirrored.getStreamingSources().getCount() != streamingSourceCount ||
+                !mirrored.getActiveStreamingSource().assigned())
+                return false;
+        }
+        return true;
+    }
+
+    // Waits until the client has attached the given number of streaming sources to every visible signal under the device.
+    [[maybe_unused]]
+    inline bool waitForStreamingSources(const DevicePtr& device,
+                                        size_t streamingSourceCount,
+                                        std::chrono::milliseconds timeout = std::chrono::seconds(10))
+    {
+        return waitFor([&] { return streamingSourcesAttached(device, streamingSourceCount); }, timeout);
     }
 
     // Reads until dataPacketCount data packets have arrived, however many event packets accompany them.

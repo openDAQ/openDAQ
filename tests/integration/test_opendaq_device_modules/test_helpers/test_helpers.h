@@ -326,6 +326,38 @@ namespace test_helpers
         return allPackets;
     }
 
+    // Reads until dataPacketCount data packets have arrived, however many event packets accompany them.
+    [[maybe_unused]]
+    inline ListPtr<IPacket> tryReadDataPackets(const PacketReaderPtr& reader,
+                                               size_t dataPacketCount,
+                                               std::chrono::seconds timeout = std::chrono::seconds(60))
+    {
+        auto allPackets = List<IPacket>();
+        size_t dataPackets = 0;
+        auto startPoint = std::chrono::system_clock::now();
+
+        while (dataPackets < dataPacketCount)
+        {
+            if (reader.getAvailableCount() == 0)
+            {
+                if (std::chrono::system_clock::now() - startPoint > timeout)
+                    break;
+
+                std::this_thread::sleep_for(std::chrono::milliseconds(20));
+                continue;
+            }
+
+            for (const auto& packet : reader.readAll())
+            {
+                allPackets.pushBack(packet);
+                if (packet.getType() == PacketType::Data)
+                    ++dataPackets;
+            }
+        }
+
+        return allPackets;
+    }
+
     [[maybe_unused]]
     inline bool packetsEqual(const ListPtr<IPacket>& listA, const ListPtr<IPacket>& listB, bool skipEventPackets = false)
     {

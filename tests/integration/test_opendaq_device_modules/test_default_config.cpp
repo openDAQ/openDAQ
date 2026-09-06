@@ -8,7 +8,7 @@ using namespace daq;
 
 TEST_F(ModulesDefaultConfigTest, Create)
 {
-    const auto instance = Instance("[[none]]");
+    const auto instance = test_helpers::createInstance("[[none]]");
     const auto config = instance.createDefaultAddDeviceConfig();
     ASSERT_TRUE(config.hasProperty("General"));
     ASSERT_TRUE(config.hasProperty("Device"));
@@ -17,7 +17,7 @@ TEST_F(ModulesDefaultConfigTest, Create)
 
 TEST_F(ModulesDefaultConfigTest, GeneralConfig)
 {
-    const auto instance = Instance("[[none]]");
+    const auto instance = test_helpers::createInstance("[[none]]");
     const auto config = instance.createDefaultAddDeviceConfig();
     const PropertyObjectPtr general = config.getPropertyValue("General");
     ASSERT_TRUE(general.hasProperty("PrioritizedStreamingProtocols"));
@@ -29,7 +29,7 @@ TEST_F(ModulesDefaultConfigTest, GeneralConfig)
 
 TEST_F(ModulesDefaultConfigTest, AddDeviceWithoutConfig)
 {
-    const auto instance = Instance("[[none]]");
+    const auto instance = test_helpers::createInstance("[[none]]");
     const ModulePtr deviceModule(MockDeviceModule_Create(instance.getContext()));
     instance.getModuleManager().addModule(deviceModule);
 
@@ -43,7 +43,7 @@ TEST_F(ModulesDefaultConfigTest, AddDeviceWithoutConfig)
 
 TEST_F(ModulesDefaultConfigTest, AddDeviceWithDefConfigFromDeviceType)
 {
-    const auto instance = Instance("[[none]]");
+    const auto instance = test_helpers::createInstance("[[none]]");
     const ModulePtr deviceModule(MockDeviceModule_Create(instance.getContext()));
     instance.getModuleManager().addModule(deviceModule);
 
@@ -60,7 +60,7 @@ TEST_F(ModulesDefaultConfigTest, AddDeviceWithDefConfigFromDeviceType)
 
 TEST_F(ModulesDefaultConfigTest, NativeConfigDevice)
 {
-    const auto instance = Instance("[[none]]");
+    const auto instance = test_helpers::createInstance("[[none]]");
     addNativeClientModule(instance);
 
     const auto config = instance.createDefaultAddDeviceConfig();
@@ -75,14 +75,14 @@ TEST_F(ModulesDefaultConfigTest, NativeConfigDevice)
 
 TEST_F(ModulesDefaultConfigTest, NativeConfigDeviceConnect)
 {
-    const auto serverInstance = Instance("[[none]]");
+    const auto serverInstance = test_helpers::createInstance("[[none]]");
     addNativeServerModule(serverInstance);
 
     const auto serverConfig = PropertyObject();
     serverConfig.addProperty(IntProperty("NativeStreamingPort", 7421));
     serverInstance.addServer("OpenDAQNativeStreaming", serverConfig);
 
-    const auto instance = Instance("[[none]]");
+    const auto instance = test_helpers::createInstance("[[none]]");
     addNativeClientModule(instance);
 
     const auto config = instance.createDefaultAddDeviceConfig();
@@ -100,7 +100,7 @@ TEST_F(ModulesDefaultConfigTest, NativeConfigDeviceConnect)
 
 TEST_F(ModulesDefaultConfigTest, NativeStreaming)
 {
-    const auto instance = Instance("[[none]]");
+    const auto instance = test_helpers::createInstance("[[none]]");
     addNativeClientModule(instance);
 
     const auto config = instance.createDefaultAddDeviceConfig();
@@ -116,7 +116,7 @@ TEST_F(ModulesDefaultConfigTest, NativeStreaming)
 
 TEST_F(ModulesDefaultConfigTest, NativeStreamingDevice)
 {
-    const auto instance = Instance("[[none]]");
+    const auto instance = test_helpers::createInstance("[[none]]");
     addNativeClientModule(instance);
 
     const auto config = instance.createDefaultAddDeviceConfig();
@@ -132,14 +132,14 @@ TEST_F(ModulesDefaultConfigTest, NativeStreamingDevice)
 
 TEST_F(ModulesDefaultConfigTest, NativeStreamingDeviceConnect)
 {
-    const auto serverInstance = Instance("[[none]]");
+    const auto serverInstance = test_helpers::createInstance("[[none]]");
     addNativeServerModule(serverInstance);
 
     const auto serverConfig = PropertyObject();
     serverConfig.addProperty(IntProperty("NativeStreamingPort", 7415));
     serverInstance.addServer("OpenDAQNativeStreaming", serverConfig);
 
-    const auto instance = Instance("[[none]]");
+    const auto instance = test_helpers::createInstance("[[none]]");
     addNativeClientModule(instance);
 
     const auto config = instance.createDefaultAddDeviceConfig();
@@ -157,7 +157,7 @@ TEST_F(ModulesDefaultConfigTest, NativeStreamingDeviceConnect)
 
 TEST_F(ModulesDefaultConfigTest, LTStreamingDevice)
 {
-    const auto instance = Instance("[[none]]");
+    const auto instance = test_helpers::createInstance("[[none]]");
     addLtClientModule(instance);
 
     const auto config = instance.createDefaultAddDeviceConfig();
@@ -168,14 +168,14 @@ TEST_F(ModulesDefaultConfigTest, LTStreamingDevice)
 
 TEST_F(ModulesDefaultConfigTest, LTStreamingDeviceConnect)
 {
-    const auto serverInstance = Instance("[[none]]");
+    const auto serverInstance = test_helpers::createInstance("[[none]]");
     addLtServerModule(serverInstance);
 
     const auto serverConfig = PropertyObject();
     serverConfig.addProperty(IntProperty("WebsocketStreamingPort", 7415));
     serverInstance.addServer("OpenDAQLTStreaming", serverConfig);
 
-    const auto instance = Instance("[[none]]");
+    const auto instance = test_helpers::createInstance("[[none]]");
     addLtClientModule(instance);
 
     const auto config = instance.createDefaultAddDeviceConfig();
@@ -193,7 +193,7 @@ TEST_F(ModulesDefaultConfigTest, LTStreamingDeviceConnect)
 
 TEST_F(ModulesDefaultConfigTest, OPCUAConfigDevice)
 {
-    const auto instance = Instance("[[none]]");
+    const auto instance = test_helpers::createInstance("[[none]]");
     addOpcuaClientModule(instance);
 
     const auto config = instance.createDefaultAddDeviceConfig();
@@ -204,14 +204,14 @@ TEST_F(ModulesDefaultConfigTest, OPCUAConfigDevice)
 
 TEST_F(ModulesDefaultConfigTest, OPCUAConfigDeviceConnect)
 {
-    const auto serverInstance = Instance("[[none]]");
+    const auto serverInstance = test_helpers::createInstance("[[none]]");
     addOpcuaServerModule(serverInstance);
 
     const auto serverConfig = PropertyObject();
     serverConfig.addProperty(IntProperty("Port", 4841));
     serverInstance.addServer("OpenDAQOPCUA", serverConfig);
 
-    const auto instance = Instance("[[none]]");
+    const auto instance = test_helpers::createInstance("[[none]]");
     addOpcuaClientModule(instance);
 
     const auto config = instance.createDefaultAddDeviceConfig();
@@ -229,7 +229,7 @@ TEST_F(ModulesDefaultConfigTest, OPCUAConfigDeviceConnect)
 
 TEST_F(ModulesDefaultConfigTest, NativeConfigDeviceNativeStreamingConnect)
 {
-    const auto serverInstance = Instance("[[none]]");
+    const auto serverInstance = test_helpers::createInstance("[[none]]");
     addNativeServerModule(serverInstance);
     addLtServerModule(serverInstance);
 
@@ -238,7 +238,7 @@ TEST_F(ModulesDefaultConfigTest, NativeConfigDeviceNativeStreamingConnect)
     serverInstance.addServer("OpenDAQNativeStreaming", serverConfig);
     serverInstance.addServer("OpenDAQLTStreaming", nullptr);
 
-    const auto instance = Instance("[[none]]");
+    const auto instance = test_helpers::createInstance("[[none]]");
     addNativeClientModule(instance);
 
     const auto config = instance.createDefaultAddDeviceConfig();
@@ -264,7 +264,7 @@ TEST_F(ModulesDefaultConfigTest, NativeConfigDeviceNativeStreamingConnect)
 
 TEST_F(ModulesDefaultConfigTest, NativeConfigDeviceAnyStreamingConnect)
 {
-    const auto serverInstance = Instance("[[none]]");
+    const auto serverInstance = test_helpers::createInstance("[[none]]");
 
     const auto serverConfig = PropertyObject();
     serverConfig.addProperty(IntProperty("NativeStreamingPort", 7415));
@@ -275,7 +275,7 @@ TEST_F(ModulesDefaultConfigTest, NativeConfigDeviceAnyStreamingConnect)
     addLtServerModule(serverInstance);
     serverInstance.addServer("OpenDAQLTStreaming", nullptr);
 
-    const auto instance = Instance("[[none]]");
+    const auto instance = test_helpers::createInstance("[[none]]");
     addNativeClientModule(instance);
     addLtClientModule(instance);
 
@@ -303,14 +303,14 @@ TEST_F(ModulesDefaultConfigTest, NativeConfigDeviceAnyStreamingConnect)
 
 TEST_F(ModulesDefaultConfigTest, NativeConfigDeviceNoStreamingConnect)
 {
-    const auto serverInstance = Instance("[[none]]");
+    const auto serverInstance = test_helpers::createInstance("[[none]]");
     addNativeServerModule(serverInstance);
 
     const auto serverConfig = PropertyObject();
     serverConfig.addProperty(IntProperty("NativeStreamingPort", 7415));
     serverInstance.addServer("OpenDAQNativeStreaming", serverConfig);
 
-    const auto instance = Instance("[[none]]");
+    const auto instance = test_helpers::createInstance("[[none]]");
     addNativeClientModule(instance);
 
     const auto config = instance.createDefaultAddDeviceConfig();
@@ -331,7 +331,7 @@ TEST_F(ModulesDefaultConfigTest, NativeConfigDeviceNoStreamingConnect)
 
 TEST_F(ModulesDefaultConfigTest, OPCUAConfigLTStreamingConnect)
 {
-    const auto serverInstance = Instance("[[none]]");
+    const auto serverInstance = test_helpers::createInstance("[[none]]");
 
     addLtServerModule(serverInstance);
     const auto ltServerConfig = PropertyObject();
@@ -346,7 +346,7 @@ TEST_F(ModulesDefaultConfigTest, OPCUAConfigLTStreamingConnect)
     opcuaServerConfig.addProperty(IntProperty("Port", 4841));
     serverInstance.addServer("OpenDAQOPCUA", opcuaServerConfig);
 
-    const auto instance = Instance("[[none]]");
+    const auto instance = test_helpers::createInstance("[[none]]");
     addOpcuaClientModule(instance);
     addLtClientModule(instance);
 
@@ -373,7 +373,7 @@ TEST_F(ModulesDefaultConfigTest, OPCUAConfigLTStreamingConnect)
 
 TEST_F(ModulesDefaultConfigTest, OPCUAConfigAnyStreamingConnect)
 {
-    const auto serverInstance = Instance("[[none]]");
+    const auto serverInstance = test_helpers::createInstance("[[none]]");
     addLtServerModule(serverInstance);
     addNativeServerModule(serverInstance);
     addOpcuaServerModule(serverInstance);
@@ -390,7 +390,7 @@ TEST_F(ModulesDefaultConfigTest, OPCUAConfigAnyStreamingConnect)
     opcuaServerConfig.addProperty(IntProperty("Port", 4841));
     serverInstance.addServer("OpenDAQOPCUA", opcuaServerConfig);
 
-    const auto instance = Instance("[[none]]");
+    const auto instance = test_helpers::createInstance("[[none]]");
     addOpcuaClientModule(instance);
     addLtClientModule(instance);
     addNativeClientModule(instance);
@@ -421,7 +421,7 @@ TEST_F(ModulesDefaultConfigTest, OPCUAConfigAnyStreamingConnect)
 
 TEST_F(ModulesDefaultConfigTest, SmartConnectWithIpVerNative)
 {
-    const auto serverInstance = InstanceBuilder()
+    const auto serverInstance = test_helpers::instanceBuilder()
                                     .setModulePath("[[none]]")
                                     .addDiscoveryServer("mdns")
                                     .build();
@@ -443,7 +443,7 @@ TEST_F(ModulesDefaultConfigTest, SmartConnectWithIpVerNative)
     for (const auto& server : serverInstance.getServers())
         server.enableDiscovery();
 
-    const auto instance = Instance("[[none]]");
+    const auto instance = test_helpers::createInstance("[[none]]");
     addNativeClientModule(instance);
 
     const auto config = instance.createDefaultAddDeviceConfig();
@@ -487,7 +487,7 @@ TEST_F(ModulesDefaultConfigTest, SmartConnectWithIpVerNative)
 
 TEST_F(ModulesDefaultConfigTest, SmartConnectWithIpVerOpcUa)
 {
-    const auto serverInstance = InstanceBuilder()
+    const auto serverInstance = test_helpers::instanceBuilder()
                                     .setModulePath("[[none]]")
                                     .addDiscoveryServer("mdns")
                                     .build();
@@ -509,7 +509,7 @@ TEST_F(ModulesDefaultConfigTest, SmartConnectWithIpVerOpcUa)
     for (const auto& server : serverInstance.getServers())
         server.enableDiscovery();
 
-    const auto instance = Instance("[[none]]");
+    const auto instance = test_helpers::createInstance("[[none]]");
     addOpcuaClientModule(instance);
 
     const auto config = instance.createDefaultAddDeviceConfig();
@@ -555,7 +555,7 @@ TEST_F(ModulesDefaultConfigTest, SmartConnectWithIpVerOpcUa)
 
 TEST_F(ModulesDefaultConfigTest, SmartConnectWithIpVerLt)
 {
-    const auto serverInstance = InstanceBuilder()
+    const auto serverInstance = test_helpers::instanceBuilder()
                                     .setModulePath("[[none]]")
                                     .addDiscoveryServer("mdns")
                                     .build();
@@ -574,7 +574,7 @@ TEST_F(ModulesDefaultConfigTest, SmartConnectWithIpVerLt)
     for (const auto& server : serverInstance.getServers())
         server.enableDiscovery();
 
-    const auto instance = Instance("[[none]]");
+    const auto instance = test_helpers::createInstance("[[none]]");
     addLtClientModule(instance);
 
     const auto config = instance.createDefaultAddDeviceConfig();

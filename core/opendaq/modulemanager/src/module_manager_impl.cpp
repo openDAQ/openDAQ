@@ -60,6 +60,7 @@ ModuleManagerImpl::ModuleManagerImpl(const BaseObjectPtr& path)
     , work(ioContext.get_executor())
     , rescanTimer(DefaultrescanTimer)
     , safeLoadingMode(False)
+    , addDeviceScan(True)
 {
     if (const StringPtr pathStr = path.asPtrOrNull<IString>(true); pathStr.assigned())
     {
@@ -180,6 +181,10 @@ ErrCode ModuleManagerImpl::loadModules(IContext* context)
             if (inner.hasKey("SafeLoadingMode"))
             {
                 this->safeLoadingMode = static_cast<bool>(inner.get("SafeLoadingMode"));
+            }
+            if (inner.hasKey("AddDeviceScan"))
+            {
+                this->addDeviceScan = static_cast<bool>(inner.get("AddDeviceScan"));
             }
         }
 
@@ -801,6 +806,15 @@ ErrCode ModuleManagerImpl::createDevice(IDevice** device, IString* connectionStr
         if (!connectionStringPtr.assigned() || connectionStringPtr.getLength() == 0)
             return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_ARGUMENT_NULL, "Connection string is not set or empty");
 
+        // Connection strings with the "daq" prefix automatically choose the best method of connection
+        const bool useSmartConnection = connectionStringPtr.toStdString().find("daq://") == 0;
+
+        // Explicit connection strings scan only when asked to; smart ones always need the device list
+        bool scanForDevices = addDeviceScan;
+        if (generalConfig.assigned() && generalConfig.hasProperty("AddDeviceScan"))
+            scanForDevices = static_cast<bool>(generalConfig.getPropertyValue("AddDeviceScan"));
+
+        if (useSmartConnection || scanForDevices)
         {
             auto lock = std::lock_guard(availableDevicesSearchSync);
             // Scan for devices if not yet done so, or timeout is exceeded
@@ -812,8 +826,6 @@ ErrCode ModuleManagerImpl::createDevice(IDevice** device, IString* connectionStr
             }
         }
 
-        // Connection strings with the "daq" prefix automatically choose the best method of connection
-        const bool useSmartConnection = connectionStringPtr.toStdString().find("daq://") == 0;
         DeviceInfoPtr discoveredDeviceInfo;
         if (useSmartConnection)
         {
@@ -1236,7 +1248,7 @@ ErrCode ModuleManagerImpl::createDefaultAddDeviceConfig(IPropertyObject** defaul
 
     config.addProperty(ObjectProperty("Device", deviceConfig.detach()));
     config.addProperty(ObjectProperty("Streaming", streamingConfig.detach()));
-    config.addProperty(ObjectProperty("General", CreateGeneralConfig().detach()));
+    config.addProperty(ObjectProperty("General", CreateGeneralConfig(addDeviceScan).detach()));
 
     *defaultConfig = config.detach();
     return OPENDAQ_SUCCESS;
@@ -1372,6 +1384,9 @@ DeviceInfoPtr ModuleManagerImpl::getDiscoveredDeviceInfo(const DeviceInfoPtr& de
     auto manufacturer = deviceInfo.getManufacturer();
 
     if (!serialNumber.getLength() || !manufacturer.getLength())
+        return nullptr;
+
+    if (!availableDevicesGroup.assigned())
         return nullptr;
 
     DeviceInfoPtr localInfo;
@@ -1644,7 +1659,7 @@ void ModuleManagerImpl::completeServerCapabilities(const DevicePtr& device) cons
 }
 
 
-PropertyObjectPtr ModuleManagerImpl::CreateGeneralConfig()
+PropertyObjectPtr ModuleManagerImpl::CreateGeneralConfig(Bool addDeviceScan)
 {
     auto obj = PropertyObject();
 
@@ -1661,6 +1676,14 @@ PropertyObjectPtr ModuleManagerImpl::CreateGeneralConfig()
     obj.addProperty(ListProperty("AllowedStreamingProtocols", List<IString>()));
 
     obj.addProperty(BoolProperty("AutomaticallyConnectStreaming", true));
+
+    obj.addProperty(
+        BoolPropertyBuilder("AddDeviceScan", addDeviceScan)
+            .setDescription("Scans for available devices before connecting, so that server capabilities discovered on the "
+                            "network are merged into the device info. Defaults to the \"AddDeviceScan\" module manager option. "
+                            "Smart connection strings with the \"daq://\" prefix always scan.")
+            .build()
+    );
 
     obj.addProperty(StringProperty("Username", ""));
     obj.addProperty(StringProperty("Password", ""));

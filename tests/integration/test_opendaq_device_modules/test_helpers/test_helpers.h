@@ -316,6 +316,25 @@ namespace test_helpers
         return allPackets;
     }
 
+    // Test instances skip the network scan on addDevice; tests that need discovery call getAvailableDevices themselves.
+    [[maybe_unused]]
+    inline DictPtr<IString, IBaseObject> instanceOptions()
+    {
+        return Dict<IString, IBaseObject>({{"ModuleManager", Dict<IString, IBaseObject>({{"AddDeviceScan", False}})}});
+    }
+
+    [[maybe_unused]]
+    inline InstanceBuilderPtr instanceBuilder()
+    {
+        return InstanceBuilder().addConfigProvider(CmdLineArgsConfigProvider(List<IString>("-CModuleManager_AddDeviceScan=false")));
+    }
+
+    [[maybe_unused]]
+    inline InstancePtr createInstance(const std::string& modulePath = "", const std::string& localId = "")
+    {
+        return InstanceFromBuilder(instanceBuilder().setModulePath(modulePath).setDefaultRootDeviceLocalId(localId));
+    }
+
     // Polls the condition every 20 ms until it holds or the timeout passes; returns whether it held.
     [[maybe_unused]]
     inline bool waitFor(const std::function<bool()>& condition, std::chrono::milliseconds timeout = std::chrono::seconds(10))
@@ -838,7 +857,7 @@ namespace test_helpers
     [[maybe_unused]]
     inline InstancePtr connectInstanceWithClientType(const std::string& connectionString, ClientType clientType, bool dropOthers = false)
     {
-        return connectInstanceWithClientType(Instance(), connectionString, clientType, dropOthers);
+        return connectInstanceWithClientType(test_helpers::createInstance(), connectionString, clientType, dropOthers);
     }
 
 

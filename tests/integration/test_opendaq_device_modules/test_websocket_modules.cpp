@@ -172,7 +172,7 @@ public:
         auto moduleManager = ModuleManager("[[none]]");
         auto typeManager = TypeManager();
         auto authenticationProvider = AuthenticationProvider();
-        auto context = Context(scheduler, logger, typeManager, moduleManager, authenticationProvider);
+        auto context = Context(scheduler, logger, typeManager, moduleManager, authenticationProvider, test_helpers::instanceOptions());
 
         auto server = InstanceCustom(context, "local");
         addRefDeviceModule(server);
@@ -190,7 +190,7 @@ public:
 
     InstancePtr CreateClientInstance()
     {
-        auto client = Instance("[[none]]");
+        auto client = test_helpers::createInstance("[[none]]");
         addLtClientModule(client);
 
         client.addDevice(connectionString(), deviceConfig(client));
@@ -235,7 +235,7 @@ TEST_P(WebsocketModulesChannelTest, ConnectAndDisconnectBackwardCompatibility)
 {
     auto server = CreateServerInstance();
 
-    auto client = Instance("[[none]]");
+    auto client = test_helpers::createInstance("[[none]]");
     addLtClientModule(client);
 
     // daq.ws:// is the legacy alias of the plaintext daq.lt:// channel. The secure channel was introduced
@@ -259,7 +259,7 @@ TEST_P(WebsocketModulesChannelTest, ConnectViaIpv6)
 
     auto server = CreateServerInstance();
 
-    auto client = Instance("[[none]]");
+    auto client = test_helpers::createInstance("[[none]]");
     addLtClientModule(client);
     client.addDevice(connectionString("[::1]", ""), deviceConfig(client));
 }
@@ -282,7 +282,7 @@ TEST_F(WebsocketModulesTest, PopulateDefaultConfigFromProvider)
     auto finally = test_helpers::CreateConfigFile(filename, json);
 
     auto provider = JsonConfigProvider(filename);
-    auto instance = InstanceBuilder()
+    auto instance = test_helpers::instanceBuilder()
         .setModulePath("[[none]]")
         .addConfigProvider(provider)
         .build();
@@ -296,7 +296,7 @@ TEST_F(WebsocketModulesTest, PopulateDefaultConfigFromProvider)
 
 TEST_P(WebsocketModulesChannelTest, DiscoveringServer)
 {
-    auto server = InstanceBuilder()
+    auto server = test_helpers::instanceBuilder()
         .setModulePath("[[none]]")
         .addDiscoveryServer("mdns")
         .setDefaultRootDeviceLocalId("local")
@@ -311,7 +311,7 @@ TEST_P(WebsocketModulesChannelTest, DiscoveringServer)
     config.setPropertyValue("Path", path);
     server.addServer("OpenDAQLTStreaming", config).enableDiscovery();
 
-    auto client = Instance("[[none]]");
+    auto client = test_helpers::createInstance("[[none]]");
     addLtClientModule(client);
 
     DevicePtr device;
@@ -359,7 +359,7 @@ TEST_P(WebsocketModulesChannelTest, CheckDeviceInfoPopulatedWithProvider)
     rootInfo.setSerialNumber("TestSerialNumber");
 
     auto provider = JsonConfigProvider(filename);
-    auto instance = InstanceBuilder()
+    auto instance = test_helpers::instanceBuilder()
         .setModulePath("[[none]]")
         .addDiscoveryServer("mdns")
         .addConfigProvider(provider)
@@ -373,7 +373,7 @@ TEST_P(WebsocketModulesChannelTest, CheckDeviceInfoPopulatedWithProvider)
     auto config = serverConfigWithDefaults(instance);
     instance.addServer("OpenDAQLTStreaming", config).enableDiscovery();
 
-    auto client = Instance("[[none]]");
+    auto client = test_helpers::createInstance("[[none]]");
     addLtClientModule(client);
 
     for (const auto & deviceInfo : client.getAvailableDevices())
@@ -407,7 +407,7 @@ TEST_P(WebsocketModulesChannelTest, TestDiscoveryReachability)
     const auto expectedIpv4Reachability =
         test_helpers::icmpPingAvailable() ? AddressReachabilityStatus::Reachable : AddressReachabilityStatus::Unknown;
 
-    auto instance = InstanceBuilder()
+    auto instance = test_helpers::instanceBuilder()
         .setModulePath("[[none]]")
         .addDiscoveryServer("mdns")
         .build();
@@ -420,7 +420,7 @@ TEST_P(WebsocketModulesChannelTest, TestDiscoveryReachability)
 
     instance.addServer("OpenDAQLTStreaming", config).enableDiscovery();
 
-    auto client = Instance("[[none]]");
+    auto client = test_helpers::createInstance("[[none]]");
     addLtClientModule(client);
 
     for (const auto & deviceInfo : client.getAvailableDevices())
@@ -475,7 +475,7 @@ TEST_F(WebsocketModulesTest, DiscoveringBothChannels)
     rootInfo.setManufacturer("TestManufacturer");
     rootInfo.setSerialNumber("TestSerialNumberBothChannels");
 
-    auto server = InstanceBuilder()
+    auto server = test_helpers::instanceBuilder()
         .setModulePath("[[none]]")
         .addDiscoveryServer("mdns")
         .setDefaultRootDeviceInfo(rootInfo)
@@ -489,7 +489,7 @@ TEST_F(WebsocketModulesTest, DiscoveringBothChannels)
     config.setPropertyValue("Path", path);
     server.addServer("OpenDAQLTStreaming", config).enableDiscovery();
 
-    auto client = Instance("[[none]]");
+    auto client = test_helpers::createInstance("[[none]]");
     addLtClientModule(client);
 
     DeviceInfoPtr discovered;
@@ -562,7 +562,7 @@ TEST_P(WebsocketModulesChannelTest, RemoveDevice)
 {
     auto server = CreateServerInstance();
 
-    auto client = Instance("[[none]]");
+    auto client = test_helpers::createInstance("[[none]]");
 
     addLtClientModule(client);
     auto device = client.addDevice(connectionString(), deviceConfig(client));
@@ -675,7 +675,7 @@ TEST_P(WebsocketModulesChannelTest, GetConfigurationConnectionInfoIPv6)
     // SKIP_TEST_MAC_CI;
     auto server = CreateServerInstance();
 
-    auto client = Instance("[[none]]");
+    auto client = test_helpers::createInstance("[[none]]");
     addLtClientModule(client);
     client.addDevice(connectionString("[::1]", ""), deviceConfig(client));
 

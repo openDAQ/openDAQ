@@ -46,7 +46,7 @@ public:
 
     InstancePtr connectClientInstance(const std::string& username, const std::string& password)
     {
-        auto instance = Instance("[[none]]");
+        auto instance = test_helpers::createInstance("[[none]]");
         {
             auto context = instance.getContext();
 

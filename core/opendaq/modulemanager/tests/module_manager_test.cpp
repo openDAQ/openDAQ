@@ -278,6 +278,71 @@ TEST_F(ModuleManagerTest, TestRescanTimer2)
     ASSERT_EQ(impl->scanCount, 2);
 }
 
+TEST_F(ModuleManagerTest, AddDeviceScanDisabled)
+{
+    auto manager = ModuleManager("[[none]]");
+    auto options = Dict<IString, IBaseObject>({{"ModuleManager", Dict<IString, IBaseObject>({{"AddDeviceScan", False}})}});
+    const auto context = Context(nullptr, Logger(), nullptr, manager, nullptr, options);
+
+    auto module = createWithImplementation<IModule, MockModuleInternal>();
+    manager.addModule(module);
+    auto impl = reinterpret_cast<MockModuleInternal*>(module.getObject());
+    auto utils = manager.asPtr<IModuleManagerUtils>();
+
+    utils.createDevice("daqmock", nullptr);
+    ASSERT_EQ(impl->scanCount, 0);
+
+    // smart connection strings need the device list regardless of the option
+    ASSERT_ANY_THROW(utils.createDevice("daq://openDAQ_missing", nullptr));
+    ASSERT_EQ(impl->scanCount, 1);
+}
+
+TEST_F(ModuleManagerTest, AddDeviceScanConfigProperty)
+{
+    auto manager = ModuleManager("[[none]]");
+    auto options = Dict<IString, IBaseObject>({{"ModuleManager", Dict<IString, IBaseObject>({{"AddDeviceScan", False}})}});
+    const auto context = Context(nullptr, Logger(), nullptr, manager, nullptr, options);
+
+    auto module = createWithImplementation<IModule, MockModuleInternal>();
+    manager.addModule(module);
+    auto impl = reinterpret_cast<MockModuleInternal*>(module.getObject());
+    auto utils = manager.asPtr<IModuleManagerUtils>();
+
+    // the default config follows the option; the property overrides it per call
+    auto config = utils.createDefaultAddDeviceConfig();
+    PropertyObjectPtr general = config.getPropertyValue("General");
+    ASSERT_EQ(static_cast<bool>(general.getPropertyValue("AddDeviceScan")), false);
+
+    utils.createDevice("daqmock", nullptr, config);
+    ASSERT_EQ(impl->scanCount, 0);
+
+    general.setPropertyValue("AddDeviceScan", True);
+    utils.createDevice("daqmock", nullptr, config);
+    ASSERT_EQ(impl->scanCount, 1);
+}
+
+TEST_F(ModuleManagerTest, AddDeviceScanDefaultEnabled)
+{
+    auto manager = ModuleManager("[[none]]");
+    const auto context = Context(nullptr, Logger(), nullptr, manager, nullptr);
+
+    auto module = createWithImplementation<IModule, MockModuleInternal>();
+    manager.addModule(module);
+    auto impl = reinterpret_cast<MockModuleInternal*>(module.getObject());
+    auto utils = manager.asPtr<IModuleManagerUtils>();
+
+    auto config = utils.createDefaultAddDeviceConfig();
+    PropertyObjectPtr general = config.getPropertyValue("General");
+    ASSERT_EQ(static_cast<bool>(general.getPropertyValue("AddDeviceScan")), true);
+
+    general.setPropertyValue("AddDeviceScan", False);
+    utils.createDevice("daqmock", nullptr, config);
+    ASSERT_EQ(impl->scanCount, 0);
+
+    utils.createDevice("daqmock", nullptr);
+    ASSERT_EQ(impl->scanCount, 1);
+}
+
 TEST_F(ModuleManagerTest, ParallelDeviceCreationSuccess)
 {
     auto manager = ModuleManager("[[none]]");

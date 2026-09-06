@@ -243,6 +243,28 @@ public:
         }
     }
 
+    static bool inputPortSourcesAttached(const DevicePtr& device, size_t sourceCount)
+    {
+        for (const auto& port : device.getItems(search::Recursive(search::InterfaceId(IInputPort::Id))))
+        {
+            const auto mirrored = port.template asPtrOrNull<IMirroredInputPortConfig>();
+            if (!mirrored.assigned() || mirrored.getStreamingSources().getCount() != sourceCount ||
+                !mirrored.getActiveStreamingSource().assigned())
+                return false;
+        }
+        return true;
+    }
+
+    // The streaming sources of mirrored signals and input ports are attached asynchronously after connecting
+    static bool waitForStreamingSources(const DevicePtr& device, size_t signalSourceCount, size_t inputPortSourceCount)
+    {
+        return test_helpers::waitFor([&]
+        {
+            return test_helpers::streamingSourcesAttached(device, signalSourceCount) &&
+                   inputPortSourcesAttached(device, inputPortSourceCount);
+        });
+    }
+
     InstancePtr CreateLeafDeviceInstance(uint16_t leafDeviceIndex)
     {
         auto logger = Logger();
@@ -317,8 +339,8 @@ public:
                                         ? List<IString>("OpenDAQNativeStreaming", "OpenDAQLTStreaming")
                                         : List<IString>("OpenDAQLTStreaming", "OpenDAQNativeStreaming");
         const auto config = createDeviceConfig(gatewayInstance, streamingProtocolIds, MIN_CONNECTIONS);
-        gatewayInstance.addDevice(createStructureDeviceConnectionString(leafDeviceIndex), config);
-        CONDITIONAL_SLEEP;
+        const auto leafDevice = gatewayInstance.addDevice(createStructureDeviceConnectionString(leafDeviceIndex), config);
+        ASSERT_TRUE(waitForStreamingSources(leafDevice, 2, 1)) << "leaf device " << leafDeviceIndex;
     }
 
     InstancePtr addSecondLeafDevice(const InstancePtr& gatewayInstance, const InstancePtr& clientInstance, bool& success)
@@ -353,7 +375,7 @@ public:
         return secondLeafDevice;
     }
 
-    InstancePtr CreateClientInstance(const IntegerPtr& heuristicValue)
+    InstancePtr CreateClientInstance(uint16_t heuristicValue)
     {
         auto logger = Logger();
         auto scheduler = Scheduler(logger);
@@ -374,7 +396,8 @@ public:
                                         : List<IString>("OpenDAQLTStreaming", "OpenDAQNativeStreaming");
         auto config = createDeviceConfig(instance, streamingProtocolIds, heuristicValue);
         auto gatewayDevice = instance.addDevice(createStructureDeviceConnectionString(0), config);
-        CONDITIONAL_SLEEP;
+        const bool minHops = heuristicValue == MIN_HOPS;
+        EXPECT_TRUE(waitForStreamingSources(gatewayDevice, minHops ? 4 : 2, minHops ? 2 : 1)) << "gateway device";
         return instance;
     }
 };
@@ -391,7 +414,7 @@ TEST_P(SubDevicesTest, RootStreamingToClient)
     InstancePtr secondLeafDevice = addSecondLeafDevice(gateway, client, success);
     ASSERT_TRUE(success);
 
-    CONDITIONAL_SLEEP;
+    ASSERT_TRUE(waitForStreamingSources(client, 2, 1));
     testSignalStreamingSources(client, gateway, false);
     testInputPortStreamingSources(client, gateway, false);
 

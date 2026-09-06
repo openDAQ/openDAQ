@@ -379,6 +379,14 @@
             }
         },
         {
+            "name": "run_tests_parallel",
+            "description": "Run all tests excluding unstable ones, four at a time; RESOURCE_LOCK keeps port and mDNS users apart",
+            "inherits": "run_tests",
+            "execution": {
+                "jobs": 4
+            }
+        },
+        {
             "name": "run_unstable_test_repeatedly",
             "description": "Run only unstable tests multiple times",
             "configurePreset": "unstable_tests_ci",

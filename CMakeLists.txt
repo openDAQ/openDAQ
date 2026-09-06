@@ -56,6 +56,7 @@ list(APPEND CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake
 )
 include(DeprecatedCommands)
 include(openDAQBuildAcceleration)
+include(openDAQTestResources)
 
 get_filename_component(PROJ_DIR ${PROJECT_SOURCE_DIR} REALPATH)
 
@@ -406,6 +407,7 @@ endif()
 if (DEFINED OPCUA_MODULES_SOURCE_DIR)
     add_subdirectory("${OPCUA_MODULES_SOURCE_DIR}" "${OPCUA_MODULES_BINARY_DIR}")
 endif()
+opendaq_lock_external_module_tests()
 
 add_subdirectory(shared)
 add_subdirectory(examples)

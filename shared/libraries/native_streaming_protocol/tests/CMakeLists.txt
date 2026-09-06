@@ -28,6 +28,7 @@ add_test(NAME ${TEST_APP}
          COMMAND $<TARGET_FILE_NAME:${TEST_APP}>
          WORKING_DIRECTORY $<TARGET_FILE_DIR:${TEST_APP}>
 )
+opendaq_test_resource_lock(${TEST_APP} network_native)
 
 if (OPENDAQ_ENABLE_COVERAGE)
     setup_target_for_coverage(${MODULE_NAME}coverage ${TEST_APP} ${MODULE_NAME}coverage)

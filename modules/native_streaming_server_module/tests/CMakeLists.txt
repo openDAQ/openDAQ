@@ -20,6 +20,7 @@ add_test(NAME ${TEST_APP}
          COMMAND $<TARGET_FILE_NAME:${TEST_APP}>
          WORKING_DIRECTORY $<TARGET_FILE_DIR:${TEST_APP}>
 )
+opendaq_test_resource_lock(${TEST_APP} network_native mdns)
 
 if (MSVC) # Ignoring warning for the Taskflow
     target_compile_options(${TEST_APP} PRIVATE /wd4324)

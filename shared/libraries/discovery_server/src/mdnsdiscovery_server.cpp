@@ -1154,16 +1154,24 @@ int MDNSDiscoveryServer::discoveryCallback(
     if (recordTypeName == "UNKNOWN")
         return 0;
 
-    std::lock_guard lock(mx);
-    if (services.empty())
+    // Answer from a copy of the services so their property objects are read without holding the mutex
+    std::vector<MdnsDiscoveredService> registeredServices;
     {
-        running = false;
-        return 0;
+        std::lock_guard lock(mx);
+        if (services.empty())
+        {
+            running = false;
+            return 0;
+        }
+
+        registeredServices.reserve(services.size());
+        for (const auto& [_, service] : services)
+            registeredServices.push_back(service);
     }
 
     uint16_t unicast = (rclass & MDNS_UNICAST_RESPONSE);
 
-    for (const auto& [_, service]: services)
+    for (const auto& service : registeredServices)
     {
         auto serviceName = service.serviceName;
         if (name == dns_sd) 

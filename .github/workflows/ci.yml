@@ -77,10 +77,6 @@ jobs:
             "cache-variables": {"OPENDAQ_PYTHON_VERSION": "3.14"}
           },
           {
-            "match-jobs": ["windows-*-msvs-*"],
-            "cache-variables": {"OPENDAQ_MSVC_SINGLE_PROCESS_BUILD": true}
-          },
-          {
             "match-jobs": ["windows-*-x86-*"],
             "cache-variables": {"OPENSSL_ROOT_DIR": "C:/vcpkg/installed/x86-windows"}
           },

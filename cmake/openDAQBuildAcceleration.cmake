@@ -17,8 +17,10 @@
 # guarantees that, and when no precompiled header is in use the same headers are placed at the
 # top of each unity file instead.
 
-# Whether precompiled headers are in use. Not with the Intel compiler: executables built from its
-# precompiled headers fail to catch exceptions at run time.
+# Whether precompiled headers are in use. Not with the Intel compiler: icx emits the exception
+# catchable-type records of a translation unit without the copy constructor when the throw was
+# instantiated inside the precompiled header, so std::exception_ptr copies such exceptions bitwise
+# and their message buffer is freed twice.
 function(_opendaq_pch_in_use OUT_VAR)
     if (OPENDAQ_ENABLE_PCH AND NOT CMAKE_CXX_COMPILER_ID STREQUAL "IntelLLVM")
         set(${OUT_VAR} TRUE PARENT_SCOPE)

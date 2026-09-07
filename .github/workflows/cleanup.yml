@@ -15,7 +15,7 @@ jobs:
     name: Stagings and installers
     permissions:
       packages: write
-    uses: openDAQ/openDAQ-CI/.github/workflows/staging-cleanup.yml@jira/TBBAS-3293-staging-cleanup
+    uses: openDAQ/openDAQ-CI/.github/workflows/staging-cleanup.yml@jira/TBBAS-3440-pinned-configs
     with:
       dry-run: ${{ inputs.dry-run || false }}
       staging-retentions: >-

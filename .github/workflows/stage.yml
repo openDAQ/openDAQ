@@ -13,7 +13,7 @@ jobs:
     outputs:
       channel: ${{ steps.channel.outputs.channel }}
     steps:
-      - uses: openDAQ/openDAQ-CI/.github/actions/resolve-channel@jira/TBBAS-3477-staging-check
+      - uses: openDAQ/openDAQ-CI/.github/actions/resolve-channel@jira/TBBAS-3440-pinned-configs
         id: channel
 
   stage:
@@ -22,18 +22,18 @@ jobs:
     permissions:
       contents: read
       packages: write
-    uses: openDAQ/openDAQ-CI/.github/workflows/stage.yml@jira/TBBAS-3439-multi-staging
+    uses: openDAQ/openDAQ-CI/.github/workflows/stage.yml@jira/TBBAS-3440-pinned-configs
     with:
       timeout: '[{"timeout-minutes": 180}]'
       include-jobs: >
         [
           "windows-2022-x86_64-msvs-v143-release",
           "windows-2022-x86-msvs-v143-release",
-          "manylinux_2_28-x86_64-ninja-gcc-release",
+          "manylinux_2_28-x86_64-ninja-gcc-14-release",
           "ubuntu-22.04-x86_64-ninja-gcc-release",
           "ubuntu-22.04-armv8-ninja-gcc-release",
-          "macos-26-x86_64-ninja-appleclang-release",
-          "macos-26-armv8-ninja-appleclang-release"
+          "macos-26-x86_64-ninja-appleclang-21-release",
+          "macos-26-armv8-ninja-appleclang-21-release"
         ]
       cmake-presets: >
         [

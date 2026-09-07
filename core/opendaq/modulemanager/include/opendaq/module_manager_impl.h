@@ -113,6 +113,7 @@ private:
 
     DictPtr<IString, IDeviceInfo> discoverDevicesWithIpModification();
     std::pair<StringPtr, DeviceInfoPtr> populateDiscoveredDevice(const discovery::MdnsDiscoveredDevice& discoveredDevice);
+    static bool DiscoveryCanEnrich(const DeviceInfoPtr& deviceInfo);
     void onCompleteCapabilities(const DevicePtr& device, const DeviceInfoPtr& discoveredDeviceInfo);
 
     ErrCode tryLoadAndAddModule(const StringPtr& path, IModule** module);

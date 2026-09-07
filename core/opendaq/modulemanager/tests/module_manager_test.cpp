@@ -11,6 +11,8 @@
 #include <opendaq/device_info_config_ptr.h>
 #include <opendaq/device_info_factory.h>
 #include <opendaq/module_manager_utils_ptr.h>
+#include <opendaq/device_impl.h>
+#include <opendaq/server_capability_config_ptr.h>
 
 using namespace daq;
 
@@ -188,6 +190,33 @@ TEST_F(ModuleManagerTest, RegisterDaqTypes)
     ASSERT_TRUE(typeManager.hasType("InterfaceClockSync"));
 }
 
+// Reports itself as connected over a protocol or as a local device, which decides whether adding it scans
+class ScanTestDevice : public Device
+{
+public:
+    ScanTestDevice(const ContextPtr& ctx, const ComponentPtr& parent, const StringPtr& localId, bool networked)
+        : Device(ctx, parent, localId)
+        , info(DeviceInfo("daqmock://dev"))
+    {
+        info.setManufacturer("openDAQ");
+        info.setSerialNumber("scan_test");
+        if (networked)
+        {
+            ServerCapabilityConfigPtr connectionInfo = info.getConfigurationConnectionInfo();
+            connectionInfo.setProtocolType(ProtocolType::Configuration);
+        }
+    }
+
+protected:
+    DeviceInfoPtr onGetInfo() override
+    {
+        return info;
+    }
+
+private:
+    DeviceInfoConfigPtr info;
+};
+
 class MockModuleInternal : public MockModuleImpl
 {
 public:
@@ -200,6 +229,7 @@ public:
     DeviceInfoConfigPtr info;
     DeviceTypePtr type;
     int scanCount = 0;
+    bool networked = true;
 };
 
 MockModuleInternal::MockModuleInternal()
@@ -236,7 +266,8 @@ daq::ErrCode MockModuleInternal::createDevice(daq::IDevice** device,
     else if (connectionStringPtr == "daqmock://general_error")
         return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_GENERALERROR, "abc123");
 
-    *device = DevicePtr();
+    // A context of its own keeps the device out of the module manager's ownership cycle
+    *device = createWithImplementation<IDevice, ScanTestDevice>(NullContext(), nullptr, String("dev"), networked).detach();
     return OPENDAQ_SUCCESS;
 }
 
@@ -343,6 +374,27 @@ TEST_F(ModuleManagerTest, AddDeviceScanDefaultEnabled)
     utils.createDevice("daqmock", nullptr, config);
     ASSERT_EQ(impl->scanCount, 0);
 
+    utils.createDevice("daqmock", nullptr);
+    ASSERT_EQ(impl->scanCount, 1);
+}
+
+TEST_F(ModuleManagerTest, AddDeviceScanSkipsLocalDevices)
+{
+    auto manager = ModuleManager("[[none]]");
+    const auto context = Context(nullptr, Logger(), nullptr, manager, nullptr);
+
+    auto module = createWithImplementation<IModule, MockModuleInternal>();
+    manager.addModule(module);
+    auto impl = reinterpret_cast<MockModuleInternal*>(module.getObject());
+    impl->networked = false;
+    auto utils = manager.asPtr<IModuleManagerUtils>();
+
+    // a device that is not connected over a network protocol gains nothing from discovery
+    const auto device = utils.createDevice("daqmock", nullptr);
+    ASSERT_TRUE(device.assigned());
+    ASSERT_EQ(impl->scanCount, 0);
+
+    impl->networked = true;
     utils.createDevice("daqmock", nullptr);
     ASSERT_EQ(impl->scanCount, 1);
 }

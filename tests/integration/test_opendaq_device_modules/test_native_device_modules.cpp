@@ -4822,7 +4822,7 @@ TEST_P(NativeC2DStreamingTest, StreamingData)
     const std::size_t packetsToGenerate = 10;
     const std::size_t packetsToRead = packetsToGenerate + 1;
 
-    clientLocalDevice.setPropertyValue("GeneratePackets", packetsToRead);
+    clientLocalDevice.setPropertyValue("GeneratePackets", packetsToGenerate);
 
     auto serverReceivedPackets = test_helpers::tryReadPackets(serverReader, packetsToRead);
     auto clientReceivedPackets = test_helpers::tryReadPackets(clientReader, packetsToRead);

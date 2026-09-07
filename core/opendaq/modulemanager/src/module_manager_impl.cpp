@@ -1331,6 +1331,9 @@ ErrCode ModuleManagerImpl::getDiscoveryInfo(IDeviceInfo** deviceInfo, IString* m
 
     if (!availableDevicesGroup.assigned())
     {
+        if (!addDeviceScan)
+            return OPENDAQ_NOTFOUND;
+
         auto lock = std::lock_guard(availableDevicesSearchSync);
         const auto errCode = getAvailableDevices(&ListPtr<IDeviceInfo>());
         OPENDAQ_RETURN_IF_FAILED(errCode, "Failed getting available devices");
@@ -1679,9 +1682,10 @@ PropertyObjectPtr ModuleManagerImpl::CreateGeneralConfig(Bool addDeviceScan)
 
     obj.addProperty(
         BoolPropertyBuilder("AddDeviceScan", addDeviceScan)
-            .setDescription("Scans for available devices before connecting, so that server capabilities discovered on the "
-                            "network are merged into the device info. Defaults to the \"AddDeviceScan\" module manager option. "
-                            "Smart connection strings with the \"daq://\" prefix always scan.")
+            .setDescription("Scans for available devices before connecting and when a connected device's streaming addresses "
+                            "are resolved, so that server capabilities discovered on the network are merged into the device "
+                            "info. Defaults to the \"AddDeviceScan\" module manager option. Smart connection strings with the "
+                            "\"daq://\" prefix always scan.")
             .build()
     );
 

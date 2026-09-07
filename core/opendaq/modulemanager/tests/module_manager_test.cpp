@@ -292,6 +292,10 @@ TEST_F(ModuleManagerTest, AddDeviceScanDisabled)
     utils.createDevice("daqmock", nullptr);
     ASSERT_EQ(impl->scanCount, 0);
 
+    // a discovery lookup does not scan either
+    ASSERT_FALSE(utils.getDiscoveryInfo("openDAQ", "missing").assigned());
+    ASSERT_EQ(impl->scanCount, 0);
+
     // smart connection strings need the device list regardless of the option
     ASSERT_ANY_THROW(utils.createDevice("daq://openDAQ_missing", nullptr));
     ASSERT_EQ(impl->scanCount, 1);

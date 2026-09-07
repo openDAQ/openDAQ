@@ -26,6 +26,7 @@
 #include <opendaq/signal_ptr.h>
 #include <coreobjects/unit_ptr.h>
 #include <coretypes/utility_sync.h>
+#include <coretypes/ctutils.h>
 #include <opendaq/search_filter_factory.h>
 #include <opendaq/io_folder_factory.h>
 #include <coreobjects/property_object_impl.h>
@@ -183,6 +184,7 @@ protected:
     bool isRootDevice;
     UserLockPtr userLock;
     ConnectionStatusContainerPrivatePtr connectionStatusContainer;
+    ListPtr<IDeviceInfo> availableDevicesForUpdate;  // one discovery result for all devices of a configuration load
 
     template <class ChannelImpl, class... Params>
     ChannelPtr createAndAddChannel(const FolderConfigPtr& parentFolder, const StringPtr& localId, Params&&... params);
@@ -2179,7 +2181,9 @@ void GenericDevice<TInterface, Interfaces...>::updateDevice(const std::string& d
 
         if (manufacturer.assigned() && manufacturer != "" && serialNumber.assigned() && serialNumber != "")
         {
-            for (const auto& availableDevice : onGetAvailableDevices())
+            if (!availableDevicesForUpdate.assigned())
+                availableDevicesForUpdate = onGetAvailableDevices();
+            for (const auto& availableDevice : availableDevicesForUpdate)
             {
                 const auto capabilities = availableDevice.getServerCapabilities();
                 if (!capabilities.assigned() || !capabilities.getCount())
@@ -2489,6 +2493,7 @@ void GenericDevice<TInterface, Interfaces...>::updateObject(const SerializedObje
 
         auto remapping = contextPtr.getInternalState().get("DeviceMapping").asPtr<IDict, DictPtr<IString, IString>>();
 
+        Finally clearAvailableDevices([this] { availableDevicesForUpdate.release(); });
         this->updateFolder(devicesFolder,
                            "Folder",
                            "Device",

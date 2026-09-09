@@ -23,7 +23,7 @@ jobs:
   ci:
     if: ${{ ! github.event.pull_request.draft }}
     name: openDAQ
-    uses: openDAQ/openDAQ-CI/.github/workflows/reusable.yml@jira/TBBAS-3440-pinned-configs
+    uses: openDAQ/openDAQ-CI/.github/workflows/reusable.yml@v3
     with:
       timeout: '[{"timeout-minutes": 270}]'
       include-jobs: >

@@ -19,6 +19,7 @@
 #include <opendaq/opendaq.h>
 
 #include <native_streaming_protocol/native_streaming_client_handler.h>
+#include <native_streaming_protocol/native_streaming_constants.h>
 #include <native_streaming_protocol/native_streaming_server_handler.h>
 
 #include <memory>
@@ -79,8 +80,8 @@ public:
 class ProtocolTestBase : public testing::TestWithParam<std::tuple<ClientCountType, bool>>
 {
 public:
-    const uint16_t NATIVE_STREAMING_SERVER_PORT = 7420;
-    const std::string NATIVE_STREAMING_LISTENING_PORT = "7420";
+    const uint16_t NATIVE_STREAMING_SERVER_PORT = daq::opendaq_native_streaming_protocol::DEFAULT_PORT;
+    const std::string NATIVE_STREAMING_LISTENING_PORT = std::to_string(NATIVE_STREAMING_SERVER_PORT);
     const std::string SERVER_ADDRESS = "127.0.0.1";
     const std::chrono::milliseconds timeout = std::chrono::milliseconds(500);
 

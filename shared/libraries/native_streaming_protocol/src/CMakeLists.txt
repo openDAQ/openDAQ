@@ -11,6 +11,7 @@ set(SRC_Cpp native_streaming_client_handler.cpp
 )
 
 set(SRC_PublicHeaders native_streaming_protocol.h
+                      native_streaming_constants.h
                       native_streaming_client_handler.h
                       native_streaming_server_handler.h
                       native_streaming_protocol_types.h

@@ -11,6 +11,7 @@
 #include <opendaq/device_info_factory.h>
 #include <opendaq/device_info_internal_ptr.h>
 #include <native_streaming_protocol/native_streaming_server_handler.h>
+#include <native_streaming_protocol/native_streaming_constants.h>
 #include <config_protocol/config_protocol_server.h>
 
 #include <boost/asio/dispatch.hpp>
@@ -30,7 +31,7 @@ static constexpr size_t DEFAULT_POLLING_PERIOD = 20;
 NativeStreamingServerImpl::NativeStreamingServerImpl(const DevicePtr& rootDevice,
                                                      const PropertyObjectPtr& config,
                                                      const ContextPtr& context)
-    : Server("OpenDAQNativeStreaming", config, rootDevice, context)
+    : Server(CONST_NATIVE_SERVER_TYPE_ID, config, rootDevice, context)
     , readThreadActive(false)
     , readThreadSleepTime(std::chrono::milliseconds(20))
     , transportIOContextPtr(std::make_shared<boost::asio::io_context>())
@@ -43,9 +44,9 @@ NativeStreamingServerImpl::NativeStreamingServerImpl(const DevicePtr& rootDevice
     , workerPool(nullptr)
 {
     auto info = rootDevice.getInfo();
-    if (info.hasServerCapability("OpenDAQNativeStreaming"))
+    if (info.hasServerCapability(CONST_NATIVE_STREAMING_ID))
         DAQ_THROW_EXCEPTION(InvalidStateException, fmt::format("Device \"{}\" already has an OpenDAQNativeStreaming server capability.", info.getName()));
-    if (info.hasServerCapability("OpenDAQNativeConfiguration"))
+    if (info.hasServerCapability(CONST_NATIVE_CONFIG_ID))
         DAQ_THROW_EXCEPTION(InvalidStateException, fmt::format("Device \"{}\" already has an OpenDAQNativeConfiguration server capability.", info.getName()));
 
     initWorkerPool();
@@ -57,14 +58,14 @@ NativeStreamingServerImpl::NativeStreamingServerImpl(const DevicePtr& rootDevice
     streaming.asPtr<INativeServerStreamingPrivate>()->upgradeToSafeProcessingCallbacks();
     streaming.setActive(true);
 
-    const uint16_t port = config.getPropertyValue("NativeStreamingPort");
+    const uint16_t port = config.getPropertyValue(PROPERTY_PORT_SERVER);
     serverHandler->startServer(port);
 
-    StringPtr path = config.getPropertyValue("Path");
+    StringPtr path = config.getPropertyValue(PROPERTY_PATH_SERVER);
 
     ServerCapabilityConfigPtr serverCapabilityStreaming =
-        ServerCapability("OpenDAQNativeStreaming", "OpenDAQNativeStreaming", ProtocolType::Streaming)
-        .setPrefix("daq.ns")
+        ServerCapability(CONST_NATIVE_STREAMING_ID, CONST_NATIVE_STREAMING_ID, ProtocolType::Streaming)
+        .setPrefix(CONST_NATIVE_STREAMING_PREFIX)
         .setConnectionType("TCP/IP")
         .setPort(port);
 
@@ -72,8 +73,8 @@ NativeStreamingServerImpl::NativeStreamingServerImpl(const DevicePtr& rootDevice
     info.asPtr<IDeviceInfoInternal>(true).addServerCapability(serverCapabilityStreaming);
 
     ServerCapabilityConfigPtr serverCapabilityConfig =
-        ServerCapability("OpenDAQNativeConfiguration", "OpenDAQNativeConfiguration", ProtocolType::ConfigurationAndStreaming)
-        .setPrefix("daq.nd")
+        ServerCapability(CONST_NATIVE_CONFIG_ID, CONST_NATIVE_CONFIG_ID, ProtocolType::ConfigurationAndStreaming)
+        .setPrefix(CONST_NATIVE_CONFIG_PREFIX)
         .setConnectionType("TCP/IP")
         .setPort(port)
         .setProtocolVersion(std::to_string(GetLatestConfigProtocolVersion()));
@@ -284,10 +285,10 @@ void NativeStreamingServerImpl::stopServerInternal()
     {
         const auto info = rootDevice.getInfo();
         const auto infoInternal = info.asPtr<IDeviceInfoInternal>();
-        if (info.hasServerCapability("OpenDAQNativeStreaming"))
-            infoInternal.removeServerCapability("OpenDAQNativeStreaming");
-        if (info.hasServerCapability("OpenDAQNativeConfiguration"))
-            infoInternal.removeServerCapability("OpenDAQNativeConfiguration");
+        if (info.hasServerCapability(CONST_NATIVE_STREAMING_ID))
+            infoInternal.removeServerCapability(CONST_NATIVE_STREAMING_ID);
+        if (info.hasServerCapability(CONST_NATIVE_CONFIG_ID))
+            infoInternal.removeServerCapability(CONST_NATIVE_CONFIG_ID);
         for (const auto& [_, clientNumber] : registeredClientIds)
         {
             if (clientNumber != 0)
@@ -364,8 +365,8 @@ void NativeStreamingServerImpl::prepareServerHandler()
         {
             const auto clientInfo =
                 isStreamingConnection
-                    ? ConnectedClientInfo(address, ProtocolType::Streaming, "OpenDAQNativeStreaming", "", hostName)
-                    : ConnectedClientInfo(address, ProtocolType::Configuration, "OpenDAQNativeConfiguration", ClientTypeTools::ClientTypeToString(clientType), hostName);
+                    ? ConnectedClientInfo(address, ProtocolType::Streaming, CONST_NATIVE_STREAMING_ID, "", hostName)
+                    : ConnectedClientInfo(address, ProtocolType::Configuration, CONST_NATIVE_CONFIG_ID, ClientTypeTools::ClientTypeToString(clientType), hostName);
             clientInfo.addProperty(StringProperty("Reconnected", reconnected ? "Yes" : "No"));
             rootDevice.getInfo().asPtr<IDeviceInfoInternal>(true).addConnectedClient(&clientNumber, clientInfo);
         }
@@ -536,10 +537,10 @@ PropertyObjectPtr NativeStreamingServerImpl::populateDefaultConfig(const Propert
 PropertyObjectPtr NativeStreamingServerImpl::getDiscoveryConfig()
 {
     auto discoveryConfig = PropertyObject();
-    discoveryConfig.addProperty(StringProperty("ServiceName", "_opendaq-streaming-native._tcp.local."));
-    discoveryConfig.addProperty(StringProperty("ServiceCap", "OPENDAQ_NS"));
-    discoveryConfig.addProperty(StringProperty("Path", config.getPropertyValue("Path")));
-    discoveryConfig.addProperty(IntProperty("Port", config.getPropertyValue("NativeStreamingPort")));
+    discoveryConfig.addProperty(StringProperty("ServiceName", CONST_NATIVE_SERVICE_NAME));
+    discoveryConfig.addProperty(StringProperty("ServiceCap", CONST_NATIVE_SERVICE_CAPABILITY));
+    discoveryConfig.addProperty(StringProperty("Path", config.getPropertyValue(PROPERTY_PATH_SERVER)));
+    discoveryConfig.addProperty(IntProperty("Port", config.getPropertyValue(PROPERTY_PORT_SERVER)));
     discoveryConfig.addProperty(StringProperty("ProtocolVersion", std::to_string(GetLatestConfigProtocolVersion())));
     return discoveryConfig;
 }
@@ -547,7 +548,7 @@ PropertyObjectPtr NativeStreamingServerImpl::getDiscoveryConfig()
 ServerTypePtr NativeStreamingServerImpl::createType(const ContextPtr& context)
 {
     return ServerType(
-        "OpenDAQNativeStreaming",
+        CONST_NATIVE_SERVER_TYPE_ID,
         "openDAQ Native Streaming server",
         "Publishes device structure over openDAQ native configuration protocol and streams data over openDAQ native streaming protocol",
         NativeStreamingServerImpl::createDefaultConfig(context));

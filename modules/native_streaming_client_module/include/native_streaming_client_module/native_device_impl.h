@@ -30,10 +30,6 @@
 
 BEGIN_NAMESPACE_OPENDAQ_NATIVE_STREAMING_CLIENT_MODULE
 
-static const char* NativeConfigurationDeviceTypeId = "OpenDAQNativeConfiguration";
-static const char* NativeStreamingTypeId = "OpenDAQNativeStreaming";
-static const char* NativeConfigurationDevicePrefix = "daq.nd";
-
 class NativeDeviceImpl;
 
 class NativeDeviceHelper : public std::enable_shared_from_this<NativeDeviceHelper>

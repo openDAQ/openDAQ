@@ -3,6 +3,7 @@
 #include <opendaq/connected_client_info.h>
 #include <coreobjects/authentication_provider_factory.h>
 #include <opendaq/device_info_internal_ptr.h>
+#include <native_streaming_protocol/native_streaming_constants.h>
 #include "test_helpers/test_helpers.h"
 #include "test_helpers/device_modules.h"
 
@@ -26,7 +27,7 @@ enum class StructureProtocolType
 class SubDevicesTest : public testing::TestWithParam<std::tuple<StructureProtocolType, StreamingProtocolType, StreamingProtocolType>>
 {
 public:
-    const uint16_t NATIVE_PORT = 7420;
+    const uint16_t NATIVE_PORT = daq::opendaq_native_streaming_protocol::DEFAULT_PORT;
     const uint16_t WEBSOCKET_STREAMING_PORT = 7414;
     const uint16_t OPCUA_PORT = 4840;
     const uint16_t WEBSOCKET_CONTROL_PORT = 7438;

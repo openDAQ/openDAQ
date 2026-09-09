@@ -1,4 +1,5 @@
 #include <native_streaming_client_module/native_streaming_client_module_impl.h>
+#include <native_streaming_protocol/native_streaming_constants.h>
 #include <native_streaming_client_module/version.h>
 #include <coretypes/version_info_factory.h>
 #include <opendaq/device_type_factory.h>
@@ -31,7 +32,7 @@ NativeStreamingClientModule::NativeStreamingClientModule(ContextPtr context)
     , pseudoDeviceIndex(0)
     , transportClientIndex(0)
     , discoveryClient(
-        {"OPENDAQ_NS"}
+        {CONST_NATIVE_SERVICE_CAPABILITY}
     )
 {
     loggerComponent = this->context.getLogger().getOrAddComponent("NativeClient");
@@ -40,7 +41,7 @@ NativeStreamingClientModule::NativeStreamingClientModule(ContextPtr context)
     const auto uuidBoost = gen();
     transportClientUuidBase = boost::uuids::to_string(uuidBoost);
 
-    discoveryClient.initMdnsClient(List<IString>("_opendaq-streaming-native._tcp.local."));
+    discoveryClient.initMdnsClient(List<IString>(CONST_NATIVE_SERVICE_NAME));
 }
 
 NativeStreamingClientModule::~NativeStreamingClientModule()
@@ -334,9 +335,9 @@ DevicePtr NativeStreamingClientModule::onCreateDevice(const StringPtr& connectio
         DAQ_THROW_EXCEPTION(ArgumentNullException);
 
     NativeType nativeType;
-    if (ConnectionStringHasPrefix(connectionString, NativeStreamingDevicePrefix))
+    if (ConnectionStringHasPrefix(connectionString, CONST_NATIVE_STREAMING_PREFIX))
         nativeType = NativeType::streaming;
-    else if (ConnectionStringHasPrefix(connectionString, NativeConfigurationDevicePrefix))
+    else if (ConnectionStringHasPrefix(connectionString, CONST_NATIVE_CONFIG_PREFIX))
         nativeType = NativeType::config;
     else
         DAQ_THROW_EXCEPTION(InvalidParameterException, "Invalid connection string prefix");
@@ -393,13 +394,13 @@ DevicePtr NativeStreamingClientModule::onCreateDevice(const StringPtr& connectio
                                      .setConnectionString(connectionString)
                                      .build();
 
-        connectionInfo.setProtocolId(NativeStreamingDeviceTypeId)
-            .setProtocolName("OpenDAQNativeStreaming")
+        connectionInfo.setProtocolId(CONST_NATIVE_STREAMING_ID)
+            .setProtocolName(CONST_NATIVE_STREAMING_ID)
             .setProtocolType(ProtocolType::Streaming)
             .setConnectionType("TCP/IP")
             .addAddress(host)
             .setPort(std::stoi(port.toStdString()))
-            .setPrefix("daq.ns")
+            .setPrefix(CONST_NATIVE_STREAMING_PREFIX)
             .setConnectionString(connectionString)
             .addAddressInfo(addressInfo)
             .freeze();
@@ -463,8 +464,8 @@ PropertyObjectPtr NativeStreamingClientModule::createConnectionDefaultConfig(Nat
 bool NativeStreamingClientModule::acceptsConnectionParameters(const StringPtr& connectionString,
                                                               const PropertyObjectPtr& config)
 {
-    auto pseudoDevicePrefixFound = ConnectionStringHasPrefix(connectionString, NativeStreamingDevicePrefix);
-    auto devicePrefixFound = ConnectionStringHasPrefix(connectionString, NativeConfigurationDevicePrefix);
+    auto pseudoDevicePrefixFound = ConnectionStringHasPrefix(connectionString, CONST_NATIVE_STREAMING_PREFIX);
+    auto devicePrefixFound = ConnectionStringHasPrefix(connectionString, CONST_NATIVE_CONFIG_PREFIX);
 
     if ((!devicePrefixFound && !pseudoDevicePrefixFound) || !ValidateConnectionString(connectionString))
     {
@@ -488,7 +489,7 @@ bool NativeStreamingClientModule::acceptsStreamingConnectionParameters(const Str
 {
     if (connectionString.assigned() && connectionString != "")
     {
-        return ConnectionStringHasPrefix(connectionString, NativeStreamingPrefix) && ValidateConnectionString(connectionString);
+        return ConnectionStringHasPrefix(connectionString, CONST_NATIVE_STREAMING_PREFIX) && ValidateConnectionString(connectionString);
     }
     return false;
 }
@@ -626,8 +627,8 @@ StreamingPtr NativeStreamingClientModule::onCreateStreaming(const StringPtr& con
 
 Bool NativeStreamingClientModule::onCompleteServerCapability(const ServerCapabilityPtr& source, const ServerCapabilityConfigPtr& target)
 {
-    if (target.getProtocolId() != "OpenDAQNativeStreaming" &&
-        target.getProtocolId() != "OpenDAQNativeConfiguration")
+    if (target.getProtocolId() != CONST_NATIVE_STREAMING_ID &&
+        target.getProtocolId() != CONST_NATIVE_CONFIG_ID)
         return false;
 
     if (source.getConnectionType() != "TCP/IP")
@@ -703,10 +704,10 @@ StringPtr NativeStreamingClientModule::CreateUrlConnectionString(std::string pre
 DeviceTypePtr NativeStreamingClientModule::createPseudoDeviceType()
 {
     return DeviceTypeBuilder()
-        .setId(NativeStreamingDeviceTypeId)
+        .setId(CONST_NATIVE_STREAMING_ID)
         .setName("PseudoDevice")
         .setDescription("Pseudo device, provides only signals of the remote device as flat list")
-        .setConnectionStringPrefix("daq.ns")
+        .setConnectionStringPrefix(CONST_NATIVE_STREAMING_PREFIX)
         .setDefaultConfig(NativeStreamingClientModule::createConnectionDefaultConfig(NativeType::streaming))
         .build();
 }
@@ -714,10 +715,10 @@ DeviceTypePtr NativeStreamingClientModule::createPseudoDeviceType()
 DeviceTypePtr NativeStreamingClientModule::createDeviceType()
 {
     return DeviceTypeBuilder()
-        .setId(NativeConfigurationDeviceTypeId)
+        .setId(CONST_NATIVE_CONFIG_ID)
         .setName("Device")
         .setDescription("Network device connected over Native configuration protocol")
-        .setConnectionStringPrefix("daq.nd")
+        .setConnectionStringPrefix(CONST_NATIVE_CONFIG_PREFIX)
         .setDefaultConfig(NativeStreamingClientModule::createConnectionDefaultConfig(NativeType::config))
         .build();
 }
@@ -725,10 +726,10 @@ DeviceTypePtr NativeStreamingClientModule::createDeviceType()
 StreamingTypePtr NativeStreamingClientModule::createStreamingType()
 {
     return StreamingTypeBuilder()
-        .setId(NativeStreamingTypeId)
+        .setId(CONST_NATIVE_STREAMING_ID)
         .setName("NativeStreaming")
         .setDescription("openDAQ native streaming protocol client")
-        .setConnectionStringPrefix("daq.ns")
+        .setConnectionStringPrefix(CONST_NATIVE_STREAMING_PREFIX)
         .setDefaultConfig(NativeStreamingClientModule::createConnectionDefaultConfig(NativeType::streaming))
         .build();
 }
@@ -782,9 +783,9 @@ bool NativeStreamingClientModule::ValidateConnectionString(const StringPtr& conn
 
 DeviceInfoPtr NativeStreamingClientModule::populateDiscoveredConfigurationDevice(const MdnsDiscoveredDevice& discoveredDevice)
 {
-    auto cap = ServerCapability(NativeConfigurationDeviceTypeId, "OpenDAQNativeConfiguration", ProtocolType::ConfigurationAndStreaming);
+    auto cap = ServerCapability(CONST_NATIVE_CONFIG_ID, CONST_NATIVE_CONFIG_ID, ProtocolType::ConfigurationAndStreaming);
 
-    SetupProtocolAddresses(discoveredDevice, cap, "daq.nd");
+    SetupProtocolAddresses(discoveredDevice, cap, CONST_NATIVE_CONFIG_PREFIX);
     cap.setCoreEventsEnabled(true);
     cap.setProtocolVersion(discoveredDevice.getPropertyOrDefault("protocolVersion", ""));
 
@@ -793,9 +794,9 @@ DeviceInfoPtr NativeStreamingClientModule::populateDiscoveredConfigurationDevice
 
 DeviceInfoPtr NativeStreamingClientModule::populateDiscoveredStreamingDevice(const MdnsDiscoveredDevice& discoveredDevice)
 {
-    auto cap = ServerCapability(NativeStreamingDeviceTypeId, "OpenDAQNativeStreaming", ProtocolType::Streaming);
+    auto cap = ServerCapability(CONST_NATIVE_STREAMING_ID, CONST_NATIVE_STREAMING_ID, ProtocolType::Streaming);
 
-    SetupProtocolAddresses(discoveredDevice, cap, "daq.ns");
+    SetupProtocolAddresses(discoveredDevice, cap, CONST_NATIVE_STREAMING_PREFIX);
     if (discoveredDevice.servicePort > 0)
         cap.setPort(discoveredDevice.servicePort);
 

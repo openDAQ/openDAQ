@@ -1,4 +1,5 @@
 #include <native_streaming_client_module/native_streaming_impl.h>
+#include <native_streaming_protocol/native_streaming_constants.h>
 #include <native_streaming_client_module/native_device_utils.h>
 
 #include <opendaq/signal_config_ptr.h>
@@ -25,7 +26,7 @@ NativeStreamingImpl::NativeStreamingImpl(
     const ProcedurePtr& onDeviceSignalUnavailableCallback,
     OnConnectionStatusChangedCallback onDeviceConnectionStatusChangedCb,
     bool isClientToDeviceStreamingSupported)
-    : Super(connectionString, context, false, String(NativeStreamingID), isClientToDeviceStreamingSupported)
+    : Super(connectionString, context, false, String(CONST_NATIVE_STREAMING_ID), isClientToDeviceStreamingSupported)
     , transportClientHandler(transportClientHandler)
     , onDeviceSignalAvailableCallback(onDeviceSignalAvailableCallback)
     , onDeviceSignalUnavailableCallback(onDeviceSignalUnavailableCallback)
@@ -75,7 +76,7 @@ ErrCode NativeStreamingImpl::setOwnerDevice(const DevicePtr& device)
         ListPtr<IString> alternativeAddresses;
         const ErrCode errCode = collectAlternativeAddresses(componentConfig, 
                                                             deviceInfo,
-                                                            "OpenDAQNativeStreaming", 
+                                                            CONST_NATIVE_STREAMING_ID, 
                                                             alternativeAddresses);
 
         OPENDAQ_RETURN_IF_FAILED(errCode);

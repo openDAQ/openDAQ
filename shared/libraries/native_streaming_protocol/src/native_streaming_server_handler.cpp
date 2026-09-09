@@ -14,6 +14,7 @@
 
 #include <coreobjects/property_object_factory.h>
 #include <coreobjects/property_factory.h>
+#include <coreobjects/eval_value_factory.h>
 
 BEGIN_NAMESPACE_OPENDAQ_NATIVE_STREAMING_PROTOCOL
 
@@ -63,8 +64,11 @@ NativeStreamingServerHandler::NativeStreamingServerHandler(const ContextPtr& con
     }
 }
 
-void NativeStreamingServerHandler::startServer(uint16_t port)
+void NativeStreamingServerHandler::ensureServer()
 {
+    if (server)
+        return;
+
     OnNewSessionCallback onNewSessionCallback =
         [thisWeakPtr = this->weak_from_this()](std::shared_ptr<Session> session)
     {
@@ -90,8 +94,36 @@ void NativeStreamingServerHandler::startServer(uint16_t port)
     };
 
     server = std::make_shared<daq::native_streaming::Server>(onNewSessionCallback, onAuthenticateCallback, ioContextPtr, logCallback);
-    server->start(port);
 }
+
+void NativeStreamingServerHandler::startServer(uint16_t port)
+{
+    ensureServer();
+
+    if (const auto ec = server->start(port); ec)
+        DAQ_THROW_EXCEPTION(GeneralErrorException,
+                            "Native streaming server failed to listen on port {}: {}",
+                            port,
+                            ec.message());
+}
+
+#if NATIVE_STREAMING_ENABLE_TLS
+
+void NativeStreamingServerHandler::startTlsServer(uint16_t port,
+                                                  const std::string& certFile,
+                                                  const std::string& keyFile,
+                                                  const std::string& caFile)
+{
+    ensureServer();
+
+    if (const auto ec = server->startTls(port, certFile, keyFile, caFile); ec)
+        DAQ_THROW_EXCEPTION(GeneralErrorException,
+                            "Native streaming server failed to listen on TLS port {}: {}",
+                            port,
+                            ec.message());
+}
+
+#endif
 
 void NativeStreamingServerHandler::stopServer()
 {
@@ -281,13 +313,56 @@ PropertyObjectPtr NativeStreamingServerHandler::createDefaultConfig()
 
     auto defaultConfig = PropertyObject();
     {
+        defaultConfig.addProperty(BoolProperty(PROPERTY_ENABLE_PORT_SERVER, DEFAULT_ENABLE_PORT));
+
         const auto portProp = IntPropertyBuilder(PROPERTY_PORT_SERVER, DEFAULT_PORT)
                                   .setMinValue(minPortValue)
                                   .setMaxValue(maxPortValue)
+                                  .setVisible(EvalValue(std::string("$") + PROPERTY_ENABLE_PORT_SERVER + " == 1"))
                                   .build();
         defaultConfig.addProperty(portProp);
         defaultConfig.addProperty(StringProperty(PROPERTY_PATH_SERVER, "/"));
     }
+#if NATIVE_STREAMING_ENABLE_TLS
+    {
+        const std::string tlsEnabled = std::string("$") + PROPERTY_ENABLE_TLS_PORT_SERVER + " == 1";
+
+        defaultConfig.addProperty(BoolProperty(PROPERTY_ENABLE_TLS_PORT_SERVER, DEFAULT_ENABLE_TLS_PORT));
+
+        const auto tlsPortProp = IntPropertyBuilder(PROPERTY_TLS_PORT_SERVER, DEFAULT_TLS_PORT)
+                                     .setMinValue(minPortValue)
+                                     .setMaxValue(maxPortValue)
+                                     .setVisible(EvalValue(tlsEnabled))
+                                     .build();
+        defaultConfig.addProperty(tlsPortProp);
+
+        const auto mutualTlsProp = BoolPropertyBuilder(PROPERTY_ENABLE_MTLS_SERVER, DEFAULT_ENABLE_MTLS)
+                                       .setDescription("Requires clients to present a certificate signed by one of the authorities "
+                                                       "in the CA certificate file. Clients without one are rejected.")
+                                       .setVisible(EvalValue(tlsEnabled))
+                                       .build();
+        defaultConfig.addProperty(mutualTlsProp);
+
+        const auto certProp = StringPropertyBuilder(PROPERTY_CERT_FILE_PATH_SERVER, DEFAULT_CERT_FILE_PATH)
+                                  .setDescription("Path to the server certificate chain in PEM format. Required when the TLS port is enabled.")
+                                  .setVisible(EvalValue(tlsEnabled))
+                                  .build();
+        defaultConfig.addProperty(certProp);
+
+        const auto keyProp = StringPropertyBuilder(PROPERTY_KEY_FILE_PATH_SERVER, DEFAULT_KEY_FILE_PATH)
+                                 .setDescription("Path to the server private key in PEM format. Required when the TLS port is enabled.")
+                                 .setVisible(EvalValue(tlsEnabled))
+                                 .build();
+        defaultConfig.addProperty(keyProp);
+
+        const auto caProp = StringPropertyBuilder(PROPERTY_CA_CERT_FILE_PATH_SERVER, DEFAULT_CA_CERT_FILE_PATH)
+                                .setDescription("Path to the trusted CA certificates in PEM format, used to verify client certificates. "
+                                                "Required when mutual TLS is enabled.")
+                                .setVisible(EvalValue("(" + tlsEnabled + ") && ($" + std::string(PROPERTY_ENABLE_MTLS_SERVER) + " == 1)"))
+                                .build();
+        defaultConfig.addProperty(caProp);
+    }
+#endif
     {
         // default value "UNLIMITED_CONFIGURATION_CONNECTIONS = 0" stands for unlimited count of concurrent connections
         const auto configConnectionsLimitProp = IntPropertyBuilder("MaxAllowedConfigConnections", UNLIMITED_CONFIGURATION_CONNECTIONS)

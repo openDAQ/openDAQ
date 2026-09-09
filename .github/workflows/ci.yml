@@ -65,7 +65,7 @@ jobs:
           },
           {
             "match-jobs": ["manylinux*"],
-            "yum-install": ["openssl-devel", "libX11-devel", "mesa-libGL-devel", "systemd-devel", "freetype-devel", "mono-core"],
+            "yum-install": ["openssl-devel", "libX11-devel", "libXrandr-devel", "libXcursor-devel", "libXi-devel", "mesa-libGL-devel", "systemd-devel", "freetype-devel", "mono-core"],
             "run": "/opt/python/cp314-cp314/bin/python -m pip install numpy"
           },
           {

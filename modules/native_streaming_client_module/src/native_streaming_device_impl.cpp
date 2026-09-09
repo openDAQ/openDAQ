@@ -1,4 +1,5 @@
 #include <native_streaming_client_module/native_streaming_device_impl.h>
+#include <native_streaming_protocol/native_streaming_constants.h>
 #include <native_streaming_client_module/native_streaming_signal_impl.h>
 #include <native_streaming_client_module/native_streaming_impl.h>
 #include <native_streaming_client_module/native_device_utils.h>
@@ -52,7 +53,7 @@ ErrCode NativeStreamingDeviceImpl::setComponentConfig(IPropertyObject* config)
     ListPtr<IString> alternativeAddresses;
     const ErrCode errCode = collectAlternativeAddresses(componentConfig, 
                                                         deviceInfo,
-                                                        NativeStreamingDeviceTypeId, 
+                                                        CONST_NATIVE_STREAMING_ID, 
                                                         alternativeAddresses);
     
     OPENDAQ_RETURN_IF_FAILED(errCode);

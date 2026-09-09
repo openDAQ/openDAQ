@@ -1,4 +1,5 @@
 #include <native_streaming_protocol/native_streaming_server_handler.h>
+#include <native_streaming_protocol/native_streaming_constants.h>
 
 #include <opendaq/custom_log.h>
 #include <opendaq/search_filter_factory.h>
@@ -280,12 +281,12 @@ PropertyObjectPtr NativeStreamingServerHandler::createDefaultConfig()
 
     auto defaultConfig = PropertyObject();
     {
-        const auto portProp = IntPropertyBuilder("NativeStreamingPort", 7420)
+        const auto portProp = IntPropertyBuilder(PROPERTY_PORT_SERVER, DEFAULT_PORT)
                                   .setMinValue(minPortValue)
                                   .setMaxValue(maxPortValue)
                                   .build();
         defaultConfig.addProperty(portProp);
-        defaultConfig.addProperty(StringProperty("Path", "/"));
+        defaultConfig.addProperty(StringProperty(PROPERTY_PATH_SERVER, "/"));
     }
     {
         // default value "UNLIMITED_CONFIGURATION_CONNECTIONS = 0" stands for unlimited count of concurrent connections

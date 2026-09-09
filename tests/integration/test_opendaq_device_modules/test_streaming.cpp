@@ -5,6 +5,7 @@
 
 #include "test_helpers/device_modules.h"
 #include "test_helpers/lt_tls.h"
+#include "test_helpers/test_ports.h"
 
 #ifdef DAQMODULES_LT_LEGACY_MODULES
     #define ENABLE_COMMON_LT_STREAMING_TESTS
@@ -167,10 +168,10 @@ protected:
 
         const auto mockDevice = instance.addDevice("daqmock://phys_device");
 
-        instance.addServer("OpenDAQLTStreaming", nullptr);
-        instance.addServer("OpenDAQNativeStreaming", nullptr);
+        test_helpers::addServer(instance, "OpenDAQLTStreaming");
+        test_helpers::addServer(instance, "OpenDAQNativeStreaming");
         // streaming servers added first, so registered device streaming options is published over opcua
-        instance.addServer("OpenDAQOPCUA", nullptr);
+        test_helpers::addServer(instance, "OpenDAQOPCUA");
 
         return instance;
     }
@@ -193,7 +194,7 @@ protected:
             test_helpers::lt_tls::applySecureClientConfig(config);
 #endif
 
-        auto device = instance.addDevice(connectionString, config);
+        auto device = instance.addDevice(test_helpers::connectionStringWithPort(connectionString), config);
         return instance;
     }
 
@@ -649,9 +650,9 @@ protected:
         statisticsFb.getInputPorts()[0].connect(getSignal(instance, "ByteStep"));
 
         auto streamingServer = std::get<0>(GetParam());
-        instance.addServer(streamingServer, nullptr);
+        test_helpers::addServer(instance, streamingServer);
         // streaming server added first, so registered device streaming options is published over opcua
-        instance.addServer("OpenDAQOPCUA", nullptr);
+        test_helpers::addServer(instance, "OpenDAQOPCUA");
 
         return instance;
     }
@@ -712,9 +713,9 @@ protected:
         const auto mockDevice = instance.addDevice("daqmock://phys_device");
 
         auto streamingServerName = std::get<0>(GetParam());
-        streamingServer = instance.addServer(streamingServerName, nullptr);
+        streamingServer = test_helpers::addServer(instance, streamingServerName);
         // streaming server added first, so registered device streaming options is published over opcua
-        instance.addServer("OpenDAQOPCUA", nullptr);
+        test_helpers::addServer(instance, "OpenDAQOPCUA");
 
         return instance;
     }
@@ -727,7 +728,7 @@ protected:
     void restoreStreamingServer()
     {
         auto streamingServerName = std::get<0>(GetParam());
-        streamingServer = serverInstance.addServer(streamingServerName, nullptr);
+        streamingServer = test_helpers::addServer(serverInstance, streamingServerName);
     }
 
     ServerPtr streamingServer;
@@ -798,7 +799,7 @@ TEST_F_UNSTABLE_SKIPPED(NativeDeviceStreamingTest, ChangedDataDescriptorBeforeSu
     serverInstance.setRootDevice("daqmock://phys_device");
 
     addNativeServerModule(serverInstance);
-    serverInstance.addServer("OpenDAQNativeStreaming", nullptr);
+    test_helpers::addServer(serverInstance, "OpenDAQNativeStreaming");
 
     const auto channels = serverInstance.getChannelsRecursive();
     Int sigCount = 0;
@@ -808,7 +809,7 @@ TEST_F_UNSTABLE_SKIPPED(NativeDeviceStreamingTest, ChangedDataDescriptorBeforeSu
     const auto clientInstance = test_helpers::createInstance("[[none]]");
 
     addNativeClientModule(clientInstance);
-    clientInstance.addDevice("daq.nd://127.0.0.1");
+    clientInstance.addDevice(test_helpers::connectionStringWithPort("daq.nd://127.0.0.1"));
 
 
     int callCount = 0;
@@ -1065,9 +1066,9 @@ protected:
 
         const auto mockDevice = instance.addDevice("daqmock://phys_device");
 
-        instance.addServer("OpenDAQLTStreaming", ltServerConfig(instance));
-        instance.addServer("OpenDAQNativeStreaming", nullptr);
-        instance.addServer("OpenDAQOPCUA", nullptr);
+        test_helpers::addServer(instance, "OpenDAQLTStreaming", ltServerConfig(instance));
+        test_helpers::addServer(instance, "OpenDAQNativeStreaming");
+        test_helpers::addServer(instance, "OpenDAQOPCUA");
 
         return instance;
     }
@@ -1606,14 +1607,14 @@ protected:
 
         const auto mockDevice = instance.addDevice("daqmock://phys_device");
 
-        streamingServer = instance.addServer("OpenDAQLTStreaming", ltServerConfig(instance));
+        streamingServer = test_helpers::addServer(instance, "OpenDAQLTStreaming", ltServerConfig(instance));
 #if defined(OPENDAQ_ENABLE_NATIVE_STREAMING)
         // native server provides the config channel for daq.nd:// clients (streaming itself stays on LT,
         // which is the only prioritized streaming protocol on the client side)
-        instance.addServer("OpenDAQNativeStreaming", nullptr);
+        test_helpers::addServer(instance, "OpenDAQNativeStreaming");
 #endif
         // streaming server added first, so registered device streaming options is published over opcua
-        instance.addServer("OpenDAQOPCUA", nullptr);
+        test_helpers::addServer(instance, "OpenDAQOPCUA");
 
         return instance;
     }
@@ -1625,7 +1626,7 @@ protected:
 
     void restoreStreamingServer()
     {
-        streamingServer = serverInstance.addServer("OpenDAQLTStreaming", ltServerConfig(serverInstance));
+        streamingServer = test_helpers::addServer(serverInstance, "OpenDAQLTStreaming", ltServerConfig(serverInstance));
     }
 
     ServerPtr streamingServer;

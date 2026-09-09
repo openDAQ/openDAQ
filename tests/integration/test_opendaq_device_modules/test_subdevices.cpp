@@ -5,6 +5,7 @@
 #include <opendaq/device_info_internal_ptr.h>
 #include "test_helpers/test_helpers.h"
 #include "test_helpers/device_modules.h"
+#include "test_helpers/test_ports.h"
 
 using namespace daq;
 
@@ -26,10 +27,10 @@ enum class StructureProtocolType
 class SubDevicesTest : public testing::TestWithParam<std::tuple<StructureProtocolType, StreamingProtocolType, StreamingProtocolType>>
 {
 public:
-    const uint16_t NATIVE_PORT = 7420;
-    const uint16_t WEBSOCKET_STREAMING_PORT = 7414;
-    const uint16_t OPCUA_PORT = 4840;
-    const uint16_t WEBSOCKET_CONTROL_PORT = 7438;
+    const uint16_t NATIVE_PORT = test_helpers::testPort(test_helpers::NativePortBase);
+    const uint16_t WEBSOCKET_STREAMING_PORT = test_helpers::testPort(test_helpers::LtStreamingPortBase);
+    const uint16_t OPCUA_PORT = test_helpers::testPort(test_helpers::OpcuaPortBase);
+    const uint16_t WEBSOCKET_CONTROL_PORT = test_helpers::testPort(test_helpers::LtControlPortBase);
 
     const uint16_t MIN_CONNECTIONS = 0;
     const uint16_t MIN_HOPS = 1;

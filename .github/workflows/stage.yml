@@ -13,7 +13,7 @@ jobs:
     outputs:
       channel: ${{ steps.channel.outputs.channel }}
     steps:
-      - uses: openDAQ/openDAQ-CI/.github/actions/resolve-channel@jira/TBBAS-3440-pinned-configs
+      - uses: openDAQ/openDAQ-CI/.github/actions/resolve-channel@v3
         id: channel
 
   stage:
@@ -22,7 +22,7 @@ jobs:
     permissions:
       contents: read
       packages: write
-    uses: openDAQ/openDAQ-CI/.github/workflows/stage.yml@jira/TBBAS-3440-pinned-configs
+    uses: openDAQ/openDAQ-CI/.github/workflows/stage.yml@v3
     with:
       timeout: '[{"timeout-minutes": 180}]'
       include-jobs: >

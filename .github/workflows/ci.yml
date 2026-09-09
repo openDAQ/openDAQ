@@ -33,18 +33,17 @@ jobs:
           "windows-2022-x86_64-ninja-clang-release",
           "windows-2022-x86_64-ninja-intel-cc-release",
           "ubuntu-20.04-x86-ninja-gcc-7-release",
-          "ubuntu-20.04-x86_64-ninja-clang-9-release",
-          "ubuntu-24.04-x86_64-ninja-gcc-14-debug",
-          "ubuntu-24.04-x86_64-ninja-gcc-14-release",
+          "ubuntu-20.04-armv8-ninja-clang-9-release",
+          "ubuntu-24.04-armv8-ninja-gcc-14-debug",
           "ubuntu-24.04-x86_64-ninja-clang-18-release",
+          "manylinux_2_28-x86_64-ninja-gcc-14-release",
           "macos-26-x86_64-ninja-appleclang-17-debug",
-          "macos-26-armv8-ninja-appleclang-21-release",
-          "macos-26-x86_64-ninja-appleclang-17-release"
+          "macos-26-armv8-ninja-appleclang-21-release"
         ]
       packages: >
         [
           {
-            "match-jobs": ["ubuntu-*-x86_64-*"],
+            "match-jobs": ["ubuntu-*-x86_64-*", "ubuntu-*-armv8-*"],
             "apt-install": ["lld", "libssl-dev", "libx11-dev", "libxi-dev", "libxcursor-dev", "libxrandr-dev", "libgl-dev", "libudev-dev", "libfreetype6-dev"]
           },
           {
@@ -60,9 +59,14 @@ jobs:
             "run": "vcpkg install openssl:x64-windows; Add-Content -Path $env:GITHUB_PATH -Value C:\\vcpkg\\installed\\x64-windows\\bin -Encoding utf8"
           },
           {
-            "match-jobs": ["windows-*", "*-x86_64-*", "macos-*"],
+            "match-jobs": ["windows-*", "ubuntu-*-x86_64-*", "ubuntu-*-armv8-*", "macos-*"],
             "pip-install": ["numpy"],
             "use-python-version": "3.14"
+          },
+          {
+            "match-jobs": ["manylinux*"],
+            "yum-install": ["openssl-devel", "libX11-devel", "mesa-libGL-devel", "systemd-devel", "freetype-devel", "mono-core"],
+            "run": "/opt/python/cp314-cp314/bin/python -m pip install numpy"
           },
           {
             "match-jobs": ["ubuntu-20.04-*-clang-9-*"],
@@ -87,6 +91,10 @@ jobs:
           {
             "match-jobs": ["windows-*-x86_64-*"],
             "cache-variables": {"OPENSSL_ROOT_DIR": "C:/vcpkg/installed/x64-windows"}
+          },
+          {
+            "match-jobs": ["manylinux*"],
+            "cache-variables": {"Python_EXECUTABLE": "/opt/python/cp314-cp314/bin/python"}
           },
           {
             "match-jobs": ["macos-*"],

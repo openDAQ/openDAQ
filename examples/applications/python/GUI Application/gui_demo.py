@@ -437,7 +437,6 @@ class App(tk.Tk):
         def collect(parent):
             for iid in self.tree.get_children(parent):
                 if self.tree_item_matches_search(iid, query):
-                    # keep the whole subtree of a match, do not look deeper
                     matches.append(iid)
                 else:
                     collect(iid)
@@ -445,15 +444,42 @@ class App(tk.Tk):
         collect('')
         match_set = set(matches)
 
-        # pull matches out of their (non-matching) parents
-        for iid in matches:
-            self.tree.move(iid, '', tk.END)
-            self.tree.item(iid, open=True)
+        def prune(parent):
+            kept = False
+            for iid in self.tree.get_children(parent):
+                if iid in match_set:
+                    kept = True
+                elif prune(iid):
+                    self.tree.item(iid, open=True)
+                    kept = True
+                else:
+                    self.tree.delete(iid)
+            return kept
 
-        # whatever is left at the top level holds no match anymore
+        prune('')
+
+        roots = []
+        for iid in matches:
+            row = self.tree_nearest_device_row(iid) or iid
+            if row not in roots:
+                roots.append(row)
+
+        for iid in roots:
+            self.tree.move(iid, '', tk.END)
+
+        root_set = set(roots)
         for iid in self.tree.get_children(''):
-            if iid not in match_set:
+            if iid not in root_set:
                 self.tree.delete(iid)
+
+    def tree_nearest_device_row(self, iid):
+        parent = self.tree.parent(iid)
+        while parent:
+            component = self.context.nodes.get(parent)
+            if component is not None and daq.IDevice.can_cast_from(component):
+                return parent
+            parent = self.tree.parent(parent)
+        return None
 
     def tree_update(self, new_selected_node=None):
         self.tree_root_buttons_hide()

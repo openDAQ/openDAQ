@@ -28,6 +28,7 @@
 
 ## Bug fixes
 
+- [#1277](https://github.com/openDAQ/openDAQ/pull/1277) Fix MultiReader leaking its input ports when disposed before being released; readers treat a missing domain tick resolution as 1/1 instead of crashing
 - [#1186](https://github.com/openDAQ/openDAQ/pull/1186) Add device discovery fixes and workarounds, including: device address discovering when no A / AAAA records provided, excluding malformed IPv6 addresses, thread-safer collecting of connected clients info.
 - [#1144](https://github.com/openDAQ/openDAQ/pull/1144) Return error code instead of throwing exceptions from module info.
 - [#1133](https://github.com/openDAQ/openDAQ/pull/1133) Backport LLVM and cpp20 build fixes

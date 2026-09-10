@@ -25,8 +25,14 @@ NativeStreamingImpl::NativeStreamingImpl(
     const ProcedurePtr& onDeviceSignalAvailableCallback,
     const ProcedurePtr& onDeviceSignalUnavailableCallback,
     OnConnectionStatusChangedCallback onDeviceConnectionStatusChangedCb,
-    bool isClientToDeviceStreamingSupported)
-    : Super(connectionString, context, false, String(CONST_NATIVE_STREAMING_ID), isClientToDeviceStreamingSupported)
+    bool isClientToDeviceStreamingSupported,
+    bool secure)
+    : Super(connectionString,
+            context,
+            false,
+            String(secure ? CONST_NATIVE_STREAMING_SECURE_ID : CONST_NATIVE_STREAMING_ID),
+            isClientToDeviceStreamingSupported,
+            String(CONST_NATIVE_PROTOCOL_GROUP_ID))
     , transportClientHandler(transportClientHandler)
     , onDeviceSignalAvailableCallback(onDeviceSignalAvailableCallback)
     , onDeviceSignalUnavailableCallback(onDeviceSignalUnavailableCallback)
@@ -368,7 +374,8 @@ NativeStreamingToDeviceImpl::NativeStreamingToDeviceImpl(const StringPtr& connec
                                                          const ContextPtr& context,
                                                          opendaq_native_streaming_protocol::NativeStreamingClientHandlerPtr transportClientHandler,
                                                          std::shared_ptr<boost::asio::io_context> processingIOContextPtr,
-                                                         Int streamingInitTimeout)
+                                                         Int streamingInitTimeout,
+                                                         bool secure)
     : Super(connectionString,
             context,
             transportClientHandler,
@@ -377,7 +384,8 @@ NativeStreamingToDeviceImpl::NativeStreamingToDeviceImpl(const StringPtr& connec
             nullptr,
             nullptr,
             nullptr,
-            true)
+            true,
+            secure)
     , readThreadRunning(false)
     , readThreadSleepTime(std::chrono::milliseconds(20))
 {

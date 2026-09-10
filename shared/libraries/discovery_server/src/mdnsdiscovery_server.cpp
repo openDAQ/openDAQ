@@ -324,14 +324,20 @@ void MDNSDiscoveryServer::announceService(const MdnsDiscoveredService& service, 
 
 bool MDNSDiscoveryServer::registerService(const std::string& id, MdnsDiscoveredService& service)
 {
-    std::string deviceId = hostName;
+    // The service is named after the device, which is what lets a client tell two of them apart. Without a
+    // device to name it after, the listening port stands in: it belongs to this process alone, while the
+    // host name is shared with every other instance on the machine.
+    std::string deviceId = hostName + "-" + std::to_string(service.servicePort);
 
     const auto manufacturer = service.properties["manufacturer"];
     const auto serialNumber = service.properties["serialNumber"];
     if (!manufacturer.empty() && !serialNumber.empty())
         deviceId = manufacturer + "_" + serialNumber;
     else
-        fprintf(stderr, "MDNSDiscoveryServer: Manufacturer and serial number not provided for service %s. It can cause mdns conflict\n", id.c_str());
+        fprintf(stderr,
+                "MDNSDiscoveryServer: Manufacturer and serial number not provided for service %s. Clients cannot address "
+                "the device by them\n",
+                id.c_str());
 
     service.serviceInstance = deviceId + "." + service.serviceName;
     service.serviceQualified = deviceId + ".local.";

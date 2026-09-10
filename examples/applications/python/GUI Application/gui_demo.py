@@ -340,9 +340,9 @@ class App(tk.Tk):
         scroll_bar = ttk.Scrollbar(
             frame, orient=tk.VERTICAL, command=tree.yview)
         tree.configure(yscroll=lambda *a: (
-            scroll_bar.set(*a), self.after_idle(self.tree_root_buttons_sync)))
+            scroll_bar.set(*a), self.after_idle(self.tree_row_buttons_sync)))
         tree.bind('<Configure>',
-                  lambda e: self.after_idle(self.tree_root_buttons_sync), add='+')
+                  lambda e: self.after_idle(self.tree_row_buttons_sync), add='+')
         scroll_bar.pack(fill=tk.Y, side=tk.RIGHT)
 
         parent_frame.add(frame)
@@ -364,14 +364,17 @@ class App(tk.Tk):
         plus_icon = self.context.icons['plus']
         self.tree_row_button_size = max(plus_icon.width(), plus_icon.height())
         self.tree_row_button_hovered = None
-        self.tree_row_button_info = {}
+        self.tree_row_button_pool = []
+        self.tree_row_button_rows = {}
+        self.tree_row_can_add_rows = {}
         self.tree_row_menu_open = False
-        # only the root device carries buttons, and it keeps them visible
-        # without hovering, every other row is served by its context menu
-        self.tree_root_buttons = self.tree_row_buttons_create(tree)
 
         tree.bind('<<TreeviewSelect>>',
                   lambda e: self.tree_row_buttons_recolor(), add='+')
+        tree.bind('<<TreeviewOpen>>',
+                  lambda e: self.after_idle(self.tree_row_buttons_sync), add='+')
+        tree.bind('<<TreeviewClose>>',
+                  lambda e: self.after_idle(self.tree_row_buttons_sync), add='+')
 
     def handle_tree_search_focus_in(self, event):
         if self.tree_search_entry.get() == "Filter tree by name, tag or local id":
@@ -482,7 +485,8 @@ class App(tk.Tk):
         return None
 
     def tree_update(self, new_selected_node=None):
-        self.tree_root_buttons_hide()
+        self.tree_row_buttons_hide(self.tree_row_button_pool)
+        self.tree_row_can_add_rows.clear()
         self.tree.delete(*self.tree.get_children())
         self.right_side_panel_clear()
 
@@ -506,7 +510,7 @@ class App(tk.Tk):
                                  text=self._format_tree_item_text(display_name), open=False)
                 self.modules_map[mod_id] = mod
             self.tree_apply_search_filter()
-            self.after_idle(self.tree_root_buttons_sync)
+            self.after_idle(self.tree_row_buttons_sync)
             return
 
         self.tree_traverse_components_recursive(
@@ -517,7 +521,7 @@ class App(tk.Tk):
         self.set_node_update_status()
         self.set_node_lock_status()
         self.set_node_active_status()
-        self.after_idle(self.tree_root_buttons_sync)
+        self.after_idle(self.tree_row_buttons_sync)
 
     def tree_traverse_components_recursive(
             self, component, display_type=DisplayType.UNSPECIFIED, tree_parent_id=None):
@@ -897,7 +901,6 @@ class App(tk.Tk):
             button.bind('<Button-1>', handlers[name])
             button.bind('<Enter>', self.handle_tree_row_button_enter)
             button.bind('<Leave>', self.handle_tree_row_button_leave)
-            self.tree_row_button_info[button] = name
             buttons[name] = button
         return buttons
 
@@ -913,66 +916,82 @@ class App(tk.Tk):
                      else self.tree_row_background)
         button.configure(background=color)
 
-    def tree_row_buttons_place(self, buttons, iid):
-        row = self.tree.bbox(iid) if iid else None
-        if not row:
-            self.tree_row_buttons_hide(buttons)
-            return False
+    def tree_row_actions(self, iid):
+        if iid not in self.tree_row_can_add_rows:
+            self.tree_row_can_add_rows[iid] = bool(
+                self.menu_add_items(self.context.nodes.get(iid)))
 
-        _, row_y, _, row_height = row
+        actions = ['add'] if self.tree_row_can_add_rows[iid] else []
+        if iid == self.tree_root_row_iid():
+            actions.append('more')
+        return actions
+
+    def tree_row_buttons_place(self, buttons, iid):
+        _, row_y, _, row_height = self.tree.bbox(iid)
+        actions = self.tree_row_actions(iid)
         size = self.tree_row_button_size
         y = row_y + max(0, (row_height - size) // 2)
         x = self.tree.winfo_width() - size - 4
 
         for name in self.TREE_ROW_ACTIONS:
             button = buttons[name]
+            if name not in actions:
+                button.place_forget()
+                continue
             button.place(x=x, y=y, width=size, height=size)
             button.lift()
+            self.tree_row_button_rows[button] = iid
             self.tree_row_button_color(button, iid)
             x -= size + 2
-        return True
 
-    def tree_row_buttons_hide(self, buttons):
-        for button in buttons.values():
-            button.place_forget()
+    def tree_row_buttons_hide(self, pool):
+        for buttons in pool:
+            for button in buttons.values():
+                button.place_forget()
+        self.tree_row_button_rows.clear()
 
     def tree_row_buttons_recolor(self):
-        iid = self.tree_root_row_iid()
-        buttons = getattr(self, 'tree_root_buttons', None)
-        if iid is None or buttons is None:
-            return
-        for button in buttons.values():
+        for button, iid in self.tree_row_button_rows.items():
             self.tree_row_button_color(button, iid)
 
     def tree_root_row_iid(self):
-        """The instance row, the only row that carries inline buttons."""
+        """The instance row, the only row that carries the three dots."""
         instance = self.context.instance
         if instance is None or self.current_tab() == DisplayType.MODULES:
             return None
         iid = instance.global_id
         return iid if self.tree.exists(iid) else None
 
-    def tree_root_buttons_sync(self):
-        buttons = getattr(self, 'tree_root_buttons', None)
-        if buttons is None:
-            return
-        self.tree_row_buttons_place(buttons, self.tree_root_row_iid())
-
-    def tree_root_buttons_hide(self):
-        buttons = getattr(self, 'tree_root_buttons', None)
-        if buttons is not None:
-            self.tree_row_buttons_hide(buttons)
+    def tree_visible_rows(self):
+        stack = list(reversed(self.tree.get_children('')))
+        drawn = False
+        while stack:
+            iid = stack.pop()
+            if self.tree.bbox(iid):
+                drawn = True
+                yield iid
+            elif drawn:
+                return
+            if self.tree.item(iid, 'open'):
+                stack.extend(reversed(self.tree.get_children(iid)))
 
     def tree_row_buttons_sync(self):
         if self.tree_row_menu_open:
             return
         if self.winfo_containing(
-                *self.winfo_pointerxy()) not in self.tree_row_button_info:
+                *self.winfo_pointerxy()) not in self.tree_row_button_rows:
             self.tree_row_button_hovered = None
-        self.tree_row_buttons_recolor()
+
+        rows = [iid for iid in self.tree_visible_rows() if self.tree_row_actions(iid)]
+        while len(self.tree_row_button_pool) < len(rows):
+            self.tree_row_button_pool.append(self.tree_row_buttons_create(self.tree))
+
+        self.tree_row_buttons_hide(self.tree_row_button_pool[len(rows):])
+        for buttons, iid in zip(self.tree_row_button_pool, rows):
+            self.tree_row_buttons_place(buttons, iid)
 
     def handle_tree_mousewheel(self, event):
-        self.after_idle(self.tree_root_buttons_sync)
+        self.after_idle(self.tree_row_buttons_sync)
 
     def handle_tree_row_button_enter(self, event):
         self.tree_row_button_hovered = event.widget
@@ -985,24 +1004,23 @@ class App(tk.Tk):
         self.tree_row_button_hovered = None
         self.tree_row_buttons_recolor()
 
+    def tree_row_button_node(self, button):
+        iid = self.tree_row_button_rows.get(button)
+        return utils.find_component(iid, self.context.instance) if iid else None
+
     def handle_tree_add_button_clicked(self, event):
-        # the plus offers only what the instance can add
-        return self.tree_root_menu_popup(event, add_only=True)
+        node = self.tree_row_button_node(event.widget)
+        return self.tree_row_menu_popup(
+            event, self.menu_build([self.menu_add_items(node)]))
 
     def handle_tree_more_button_clicked(self, event):
-        # the three dots stand in for a right click on the instance row
-        return self.tree_root_menu_popup(event, add_only=False)
-
-    def tree_root_menu_popup(self, event, add_only):
-        iid = self.tree_root_row_iid()
-        node = utils.find_component(iid, self.context.instance) if iid else None
+        node = self.tree_row_button_node(event.widget)
         if node is None:
             return 'break'
+        return self.tree_row_menu_popup(
+            event, self.create_node_menu(node, include_add=False))
 
-        self.tree_row_buttons_recolor()
-
-        popup = (self.menu_build([self.menu_add_items(node)]) if add_only
-                 else self.create_node_menu(node, include_add=False))
+    def tree_row_menu_popup(self, event, popup):
         if popup.index(tk.END) is None:
             return 'break'
 
@@ -1044,16 +1062,11 @@ class App(tk.Tk):
         else:
             return []
 
-        try:
-            has_fb_types = bool(target.available_function_block_types)
-        except RuntimeError:
-            has_fb_types = False
-
         items = []
-        if is_device:
+        if is_device and self.component_has_types(target, 'available_device_types'):
             items.append(('Add device', 'device',
                           lambda: self.add_device_dialog_show(target)))
-        if has_fb_types:
+        if self.component_has_types(target, 'available_function_block_types'):
             items.append(('Add function block', 'add_fb',
                           lambda: self.add_function_block_dialog_show(target)))
         # only the root device accepts servers, IDevice::onAddServer refuses the rest
@@ -1061,6 +1074,12 @@ class App(tk.Tk):
             items.append(('Add server', 'server',
                           lambda: self.add_server_dialog_show(target)))
         return items
+
+    def component_has_types(self, component, attribute):
+        try:
+            return bool(getattr(component, attribute))
+        except Exception:
+            return False
 
     def menu_update_items(self, node):
         iid = node.global_id if node is not None else None

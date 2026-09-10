@@ -571,15 +571,22 @@ void NativeDeviceImpl::updateDeviceInfo(const StringPtr& connectionString)
                                     .setConnectionString(connectionString)
                                     .build();
 
-    ServerCapabilityConfigPtr connectionInfo = ServerCapability(CONST_NATIVE_CONFIG_ID,
-                                                                CONST_NATIVE_CONFIG_ID,
+    // the connection string is the only thing here which knows which channel was used
+    const std::string secureScheme = std::string(CONST_NATIVE_CONFIG_SECURE_PREFIX) + "://";
+    const bool secure = connectionString.toStdString().rfind(secureScheme, 0) == 0;
+    const auto protocolId = secure ? CONST_NATIVE_CONFIG_SECURE_ID : CONST_NATIVE_CONFIG_ID;
+
+    ServerCapabilityConfigPtr connectionInfo = ServerCapability(protocolId,
+                                                                protocolId,
                                                                 ProtocolType::ConfigurationAndStreaming);
     connectionInfo.setConnectionType("TCP/IP")
                   .addAddress(host)
                   .setPort(std::stoi(ConnectionStringUtils::GetPort(connectionString).toStdString()))
-                  .setPrefix(CONST_NATIVE_CONFIG_PREFIX)
+                  .setPrefix(secure ? CONST_NATIVE_CONFIG_SECURE_PREFIX : CONST_NATIVE_CONFIG_PREFIX)
                   .setConnectionString(connectionString)
                   .setProtocolVersion(std::to_string(configProtocolVersion))
+                  .setProtocolGroupId(CONST_NATIVE_PROTOCOL_GROUP_ID)
+                  .setProtocolSecurityLevel(secure ? CONST_NATIVE_SECURE_SECURITY_LVL : CONST_NATIVE_SECURITY_LVL)
                   .addAddressInfo(addressInfo)
                   .freeze();
 

@@ -61,6 +61,7 @@ static constexpr const char* PROPERTY_CA_CERT_FILE_PATH_CLIENT = "CaCertificateF
 static constexpr bool DEFAULT_ENABLE_PORT = true;
 static constexpr bool DEFAULT_ENABLE_TLS_PORT = false;
 static constexpr bool DEFAULT_ENABLE_MTLS = true;
+static constexpr bool DEFAULT_ENABLE_MTLS_CLIENT = false;
 static constexpr bool DEFAULT_VERIFY_SERVER_CERT = true;
 static constexpr uint16_t DEFAULT_PORT = 7420;
 static constexpr uint16_t DEFAULT_TLS_PORT = 7422;

@@ -17,6 +17,16 @@
 using NativeStreamingClientModuleTest = testing::Test;
 using namespace daq;
 
+// the module offers a plaintext and a secure variant of each device type; the secure ones only
+// exist in a build with the TLS channel
+#ifdef OPENDAQ_ENABLE_NATIVE_STREAMING_WITH_TLS
+static constexpr SizeT ExpectedDeviceTypeCount = 4u;
+static constexpr SizeT ExpectedStreamingTypeCount = 2u;
+#else
+static constexpr SizeT ExpectedDeviceTypeCount = 2u;
+static constexpr SizeT ExpectedStreamingTypeCount = 1u;
+#endif
+
 static ModulePtr CreateModule()
 {
     ModulePtr module;
@@ -155,18 +165,27 @@ TEST_F(NativeStreamingClientModuleTest, GetAvailableComponentTypes)
 
     DictPtr<IString, IDeviceType> deviceTypes;
     ASSERT_NO_THROW(deviceTypes = module.getAvailableDeviceTypes());
-    ASSERT_EQ(deviceTypes.getCount(), 2u);
+    ASSERT_EQ(deviceTypes.getCount(), ExpectedDeviceTypeCount);
     ASSERT_TRUE(deviceTypes.hasKey("OpenDAQNativeStreaming"));
     ASSERT_EQ(deviceTypes.get("OpenDAQNativeStreaming").getId(), "OpenDAQNativeStreaming");
     ASSERT_EQ(deviceTypes.get("OpenDAQNativeStreaming").getDeviceKind(), DeviceKind::Adapter);
     ASSERT_TRUE(deviceTypes.hasKey("OpenDAQNativeConfiguration"));
     ASSERT_EQ(deviceTypes.get("OpenDAQNativeConfiguration").getId(), "OpenDAQNativeConfiguration");
     ASSERT_EQ(deviceTypes.get("OpenDAQNativeConfiguration").getDeviceKind(), DeviceKind::Mirrored);
+#ifdef OPENDAQ_ENABLE_NATIVE_STREAMING_WITH_TLS
+    ASSERT_TRUE(deviceTypes.hasKey("OpenDAQNativeStreamingSecure"));
+    ASSERT_EQ(deviceTypes.get("OpenDAQNativeStreamingSecure").getId(), "OpenDAQNativeStreamingSecure");
+    ASSERT_TRUE(deviceTypes.hasKey("OpenDAQNativeConfigurationSecure"));
+    ASSERT_EQ(deviceTypes.get("OpenDAQNativeConfigurationSecure").getId(), "OpenDAQNativeConfigurationSecure");
+#endif
 
     DictPtr<IString, IStreamingType> streamingTypes;
     ASSERT_NO_THROW(streamingTypes = module.getAvailableStreamingTypes());
-    ASSERT_EQ(streamingTypes.getCount(), 1u);
+    ASSERT_EQ(streamingTypes.getCount(), ExpectedStreamingTypeCount);
     ASSERT_EQ(streamingTypes.get("OpenDAQNativeStreaming").getLinkedDeviceType().getId(), "OpenDAQNativeConfiguration");
+#ifdef OPENDAQ_ENABLE_NATIVE_STREAMING_WITH_TLS
+    ASSERT_EQ(streamingTypes.get("OpenDAQNativeStreamingSecure").getLinkedDeviceType().getId(), "OpenDAQNativeConfigurationSecure");
+#endif
 
     DictPtr<IString, IServerType> serverTypes;
     ASSERT_NO_THROW(serverTypes = module.getAvailableServerTypes());
@@ -211,15 +230,13 @@ TEST_F(NativeStreamingClientModuleTest, DefaultDeviceConfig)
 
     DictPtr<IString, IDeviceType> deviceTypes;
     ASSERT_NO_THROW(deviceTypes = module.getAvailableDeviceTypes());
-    ASSERT_EQ(deviceTypes.getCount(), 2u);
+    ASSERT_EQ(deviceTypes.getCount(), ExpectedDeviceTypeCount);
 
-    ASSERT_TRUE(deviceTypes.hasKey("OpenDAQNativeConfiguration"));
-    auto deviceConfig = deviceTypes.get("OpenDAQNativeConfiguration").createDefaultConfig();
-    ASSERT_TRUE(deviceConfig.assigned());
-
-    ASSERT_TRUE(deviceTypes.hasKey("OpenDAQNativeStreaming"));
-    auto pseudoDeviceConfig = deviceTypes.get("OpenDAQNativeStreaming").createDefaultConfig();
-    ASSERT_TRUE(pseudoDeviceConfig.assigned());
+    for (const auto& [id, deviceType] : deviceTypes)
+    {
+        auto config = deviceType.createDefaultConfig();
+        ASSERT_TRUE(config.assigned()) << "no default config for device type " << id;
+    }
 }
 
 TEST_F(NativeStreamingClientModuleTest, ModuleLoadsFromPathWithLinkedTypes)
@@ -228,7 +245,7 @@ TEST_F(NativeStreamingClientModuleTest, ModuleLoadsFromPathWithLinkedTypes)
     ModulePtr module;
     ASSERT_NO_THROW(module = instance.getModuleManager().loadModule(NATIVE_STREAM_CL_MODULE_PATH));
     ASSERT_EQ(module.getModuleInfo().getId(), "OpenDAQNativeStreamingClientModule");
-    ASSERT_EQ(instance.getModuleManager().asPtr<IModuleManagerUtils>().getAvailableStreamingTypes().getCount(), 1u);
+    ASSERT_EQ(instance.getModuleManager().asPtr<IModuleManagerUtils>().getAvailableStreamingTypes().getCount(), ExpectedStreamingTypeCount);
 }
 
 class ConnectionStringTest : public NativeStreamingClientModuleTest,

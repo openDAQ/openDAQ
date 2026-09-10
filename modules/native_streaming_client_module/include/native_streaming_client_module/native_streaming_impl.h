@@ -41,7 +41,8 @@ public:
         const ProcedurePtr& onDeviceSignalAvailableCallback,
         const ProcedurePtr& onDeviceSignalUnavailableCallback,
         opendaq_native_streaming_protocol::OnConnectionStatusChangedCallback onDeviceConnectionStatusChangedCb,
-        bool isClientToDeviceStreamingSupported = false);
+        bool isClientToDeviceStreamingSupported = false,
+        bool secure = false);
 
     ~NativeStreamingImpl();
 
@@ -99,7 +100,8 @@ public:
                                          const ContextPtr& context,
                                          opendaq_native_streaming_protocol::NativeStreamingClientHandlerPtr transportClientHandler,
                                          std::shared_ptr<boost::asio::io_context> processingIOContextPtr,
-                                         Int streamingInitTimeout);
+                                         Int streamingInitTimeout,
+                                         bool secure = false);
 
     ~NativeStreamingToDeviceImpl();
 

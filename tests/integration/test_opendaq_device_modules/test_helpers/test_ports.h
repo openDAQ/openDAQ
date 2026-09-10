@@ -16,11 +16,17 @@
 
 #pragma once
 
-// Ports for the tests that build into test_device_modules_streaming. They shift every port they serve on
-// by PortOffset, which keeps them off the ports of the other device module tests and lets ctest run both
-// binaries at the same time. Only the sources of that binary include this header.
+// Ports for the device module tests that ctest runs at the same time. Each such binary gets its own id
+// through the OPENDAQ_TEST_ID environment variable and shifts every port it serves on by that id, so two
+// binaries cannot ask for the same one. Without the variable the id is 0 and the ports keep the values a
+// single binary would use, which is what a binary started by hand gets.
+//
+// Shifted ports let a binary run without the network resource locks, but only if it announces no device
+// over mDNS: announcements reach every process on the machine, and the tests that look up devices read
+// whatever else is on the network as their own.
 
 #include <cstdint>
+#include <cstdlib>
 #include <string>
 
 #include <opendaq/opendaq.h>
@@ -29,7 +35,15 @@ BEGIN_NAMESPACE_OPENDAQ
 
 namespace test_helpers
 {
-    inline constexpr uint16_t PortOffset = 100;
+    inline uint16_t testId()
+    {
+        static const uint16_t id = []() -> uint16_t
+        {
+            const char* const value = std::getenv("OPENDAQ_TEST_ID");
+            return value != nullptr ? static_cast<uint16_t>(std::atoi(value)) : uint16_t{0};
+        }();
+        return id;
+    }
 
     // Ports the server modules listen on unless a configuration names another one
     inline constexpr uint16_t NativePortBase = 7420;
@@ -38,10 +52,13 @@ namespace test_helpers
     inline constexpr uint16_t LtSecureStreamingPortBase = 7415;
     inline constexpr uint16_t LtControlPortBase = 7438;
 
-    // The port this binary serves on in place of a module default
-    inline constexpr uint16_t testPort(uint16_t basePort)
+    // The port this binary serves on in place of a module default. The shifted ports sit above the
+    // range of registered services and below the ephemeral one, so that nothing already listening on the
+    // machine answers in a server's place, and 100 apart, so that two ids cannot meet.
+    inline uint16_t testPort(int basePort)
     {
-        return static_cast<uint16_t>(basePort + PortOffset);
+        const auto id = testId();
+        return static_cast<uint16_t>(id == 0 ? basePort : basePort + 16000 + (id - 1) * 100);
     }
 
     // Shifts every port a server configuration carries. The switches that enable those ports are named
@@ -49,7 +66,7 @@ namespace test_helpers
     [[maybe_unused]]
     inline void offsetPorts(const PropertyObjectPtr& config)
     {
-        if (!config.assigned())
+        if (!config.assigned() || testId() == 0)
             return;
 
         for (const auto& property : config.getAllProperties())
@@ -63,7 +80,7 @@ namespace test_helpers
 
             const Int port = config.getPropertyValue(name);
             if (port > 0)
-                config.setPropertyValue(name, port + PortOffset);
+                config.setPropertyValue(name, testPort(static_cast<int>(port)));
         }
     }
 
@@ -83,7 +100,7 @@ namespace test_helpers
     inline StringPtr connectionStringWithPort(const std::string& url)
     {
         const auto schemeEnd = url.find("://");
-        if (schemeEnd == std::string::npos)
+        if (testId() == 0 || schemeEnd == std::string::npos)
             return String(url);
 
         uint16_t base;

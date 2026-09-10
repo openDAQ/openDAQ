@@ -404,6 +404,6 @@ inline StringPtr ConnectionStatusContainerImpl::getStreamingStatusNameAlias(cons
     return String(fmt::format("StreamingStatus_{}", streamingConnectionsCounter));
 }
 
-OPENDAQ_REGISTER_DESERIALIZE_FACTORY( ConnectionStatusContainerImpl)
+OPENDAQ_REGISTER_DESERIALIZE_FACTORY(ConnectionStatusContainerImpl)
 
 END_NAMESPACE_OPENDAQ

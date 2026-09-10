@@ -7,6 +7,7 @@ BEGIN_NAMESPACE_OPENDAQ
 
 ReferenceDomainInfoBuilderImpl::ReferenceDomainInfoBuilderImpl()
     : referenceDomainId(nullptr)
+    , referenceDomainIds(nullptr)
     , referenceDomainOffset(nullptr)
     , referenceTimeProtocol(TimeProtocol::Unknown)
     , usesOffset(UsesOffset::Unknown)
@@ -15,6 +16,7 @@ ReferenceDomainInfoBuilderImpl::ReferenceDomainInfoBuilderImpl()
 
 ReferenceDomainInfoBuilderImpl::ReferenceDomainInfoBuilderImpl(const ReferenceDomainInfoPtr& infoCopy)
     : referenceDomainId(infoCopy.getReferenceDomainId())
+    , referenceDomainIds(infoCopy.getReferenceDomainIds())
     , referenceDomainOffset(infoCopy.getReferenceDomainOffset())
     , referenceTimeProtocol(infoCopy.getReferenceTimeProtocol())
     , usesOffset(infoCopy.getUsesOffset())
@@ -45,6 +47,19 @@ ErrCode ReferenceDomainInfoBuilderImpl::getReferenceDomainId(IString** reference
 {
     OPENDAQ_PARAM_NOT_NULL(referenceDomainId);
     *referenceDomainId = this->referenceDomainId.addRefAndReturn();
+    return OPENDAQ_SUCCESS;
+}
+
+ErrCode ReferenceDomainInfoBuilderImpl::setReferenceDomainIds(IList* referenceDomainIds)
+{
+    this->referenceDomainIds = referenceDomainIds;
+    return OPENDAQ_SUCCESS;
+}
+
+ErrCode ReferenceDomainInfoBuilderImpl::getReferenceDomainIds(IList** referenceDomainIds)
+{
+    OPENDAQ_PARAM_NOT_NULL(referenceDomainIds);
+    *referenceDomainIds = this->referenceDomainIds.addRefAndReturn();
     return OPENDAQ_SUCCESS;
 }
 

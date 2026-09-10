@@ -1,0 +1,121 @@
+/*
+ * Copyright 2022-2026 openDAQ d.o.o.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+#pragma once
+
+#include <coretypes/baseobject.h>
+#include <coretypes/stringobject.h>
+#include <coretypes/listobject.h>
+#include <opendaq/component_status_container.h>
+#include <coreobjects/property_object.h>
+
+BEGIN_NAMESPACE_OPENDAQ
+
+/*#
+ * [interfaceSmartPtr(IInteger, IntegerPtr, "<coretypes/integer.h>")]
+ * [interfaceLibrary(IPropertyObject, CoreObjects)]
+ */
+
+/*!
+ * @ingroup opendaq_synchronization_path
+ * @addtogroup opendaq_sync_interface Sync Interface
+ * @{
+ */
+
+enum class SyncMode : EnumType
+{
+    Off = 0,  ///> Interface is disabled.
+    Input,    ///> Interface can only receive a synchronization reference.
+    Output,   ///> Interface can only distribute the device clock.
+    Auto      ///> Interface automatically selects its active role.
+};
+
+enum class SyncSourceStatus : EnumType
+{
+    Off = 0,
+    Listening,
+    Calibrating,
+    Synced,
+    Error,
+    Unknown
+};
+
+enum class SyncRoleStatus : EnumType
+{
+    Off = 0,
+    Input,
+    Output,
+    Unknown
+};
+
+/*!
+ * @brief Interface representing a Synchronization Interface.
+ */
+DECLARE_OPENDAQ_INTERFACE(ISyncInterface, IBaseObject)
+{
+    /*!
+      * @brief Gets the name of the synchronization interface.
+      * @param[out] name The name of the synchronization interface.
+      */
+    virtual ErrCode INTERFACE_FUNC getName(IString** name) = 0;
+
+    /*!
+      * @brief Gets the reference domain ID of the synchronization interface.
+      * @param[out] referenceDomainId The reference domain ID string.
+      */
+    virtual ErrCode INTERFACE_FUNC getReferenceDomainId(IString** referenceDomainId) = 0;
+
+    /*!
+      * @brief Sets the mode of the synchronization interface.
+      * @param mode The mode to set the synchronization interface to.
+      */
+    virtual ErrCode INTERFACE_FUNC setMode(SyncMode mode) = 0;
+
+    /*!
+      * @brief Gets the current mode of the synchronization interface.
+      * @param[out] sourceMode The current mode of the synchronization interface.
+      */
+    virtual ErrCode INTERFACE_FUNC getMode(SyncMode* sourceMode) = 0;
+
+    /*!
+      * @brief Gets the modes available to the synchronization interface, depending on whether
+      * it is currently selected as the synchronization source.
+      * @param[out] availableModes A dictionary mapping available `SyncMode` values to their names.
+      */
+    // [templateType(availableModes, IInteger, IString)]
+    virtual ErrCode INTERFACE_FUNC getAvailableModes(IDict** availableModes) = 0;
+
+    /*!
+      * @brief Gets the status property object of the synchronization interface.
+      * @param[out] status The status property object.
+      */
+    virtual ErrCode INTERFACE_FUNC getStatus(IPropertyObject** status) = 0;
+
+    /*!
+      * @brief Gets the configuration property object of the synchronization interface.
+      * @param[out] configuration The configuration property object.
+      */
+    virtual ErrCode INTERFACE_FUNC getConfiguration(IPropertyObject** configuration) = 0;
+
+    /*!
+      * @brief Gets the status container of the synchronization interface.
+      * @param[out] syncStatus The status container.
+      */
+    virtual ErrCode INTERFACE_FUNC getStatusContainer(IComponentStatusContainer** syncStatus) = 0;
+};
+/*!@}*/
+
+END_NAMESPACE_OPENDAQ

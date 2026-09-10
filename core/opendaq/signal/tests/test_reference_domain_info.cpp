@@ -20,6 +20,20 @@ TEST_F(ReferenceDomainInfoTest, ValueDescriptorSetGet)
     ASSERT_EQ(info.getUsesOffset(), UsesOffset::True);
 }
 
+TEST_F(ReferenceDomainInfoTest, ReferenceDomainIdsSetGet)
+{
+    auto info = ReferenceDomainInfoBuilder()
+                    .setReferenceDomainIds(List<IString>("domainA", "domainB"))
+                    .build();
+    ASSERT_EQ(info.getReferenceDomainIds(), List<IString>("domainA", "domainB"));
+}
+
+TEST_F(ReferenceDomainInfoTest, ReferenceDomainIdsDefaultUnassigned)
+{
+    auto info = ReferenceDomainInfoBuilder().build();
+    ASSERT_FALSE(info.getReferenceDomainIds().assigned());
+}
+
 TEST_F(ReferenceDomainInfoTest, ValueDescriptorCopyFactory)
 {
     auto info = ReferenceDomainInfoBuilder()
@@ -35,6 +49,16 @@ TEST_F(ReferenceDomainInfoTest, ValueDescriptorCopyFactory)
     ASSERT_EQ(copy.getReferenceDomainOffset(), 53);
     ASSERT_EQ(copy.getReferenceTimeProtocol(), TimeProtocol::Gps);
     ASSERT_EQ(copy.getUsesOffset(), UsesOffset::True);
+}
+
+TEST_F(ReferenceDomainInfoTest, ReferenceDomainIdsCopyFactory)
+{
+    auto info = ReferenceDomainInfoBuilder()
+                    .setReferenceDomainIds(List<IString>("domainA", "domainB"))
+                    .build();
+
+    auto copy = ReferenceDomainInfoBuilderCopy(info).build();
+    ASSERT_EQ(copy.getReferenceDomainIds(), List<IString>("domainA", "domainB"));
 }
 
 TEST_F(ReferenceDomainInfoTest, SerializeDeserialize)
@@ -55,6 +79,33 @@ TEST_F(ReferenceDomainInfoTest, SerializeDeserialize)
     auto info1 = deserializer.deserialize(serialized.toStdString()).asPtr<IReferenceDomainInfo>();
 
     ASSERT_EQ(info, info1);
+}
+
+TEST_F(ReferenceDomainInfoTest, ReferenceDomainIdsSerializeDeserialize)
+{
+    auto info = ReferenceDomainInfoBuilder()
+                    .setReferenceDomainId("testReferenceDomainId")
+                    .setReferenceDomainIds(List<IString>("domainA", "domainB"))
+                    .build();
+
+    auto serializer = JsonSerializer(False);
+    info.serialize(serializer);
+
+    auto serialized = serializer.getOutput();
+
+    auto deserializer = JsonDeserializer();
+    auto info1 = deserializer.deserialize(serialized.toStdString()).asPtr<IReferenceDomainInfo>();
+
+    ASSERT_EQ(info, info1);
+    ASSERT_EQ(info1.getReferenceDomainIds(), List<IString>("domainA", "domainB"));
+}
+
+TEST_F(ReferenceDomainInfoTest, ReferenceDomainIdsAffectEquals)
+{
+    auto infoA = ReferenceDomainInfoBuilder().setReferenceDomainIds(List<IString>("domainA")).build();
+    auto infoB = ReferenceDomainInfoBuilder().setReferenceDomainIds(List<IString>("domainB")).build();
+
+    ASSERT_NE(infoA, infoB);
 }
 
 TEST_F(ReferenceDomainInfoTest, StructType)
@@ -79,6 +130,15 @@ TEST_F(ReferenceDomainInfoTest, StructFields)
     ASSERT_EQ(info.get("UsesOffset"), UsesOffset::True);
 }
 
+TEST_F(ReferenceDomainInfoTest, ReferenceDomainIdsStructField)
+{
+    const StructPtr info = ReferenceDomainInfoBuilder()
+                               .setReferenceDomainIds(List<IString>("domainA", "domainB"))
+                               .build();
+
+    ASSERT_EQ(info.get("ReferenceDomainIds"), List<IString>("domainA", "domainB"));
+}
+
 TEST_F(ReferenceDomainInfoTest, StructNames)
 {
     const auto structType = ReferenceDomainInfoStructType();
@@ -98,6 +158,14 @@ TEST_F(ReferenceDomainInfoTest, ReferenceDomainInfoBuilderSetGet)
     ASSERT_EQ(infoBuilder.getReferenceDomainOffset(), 53);
     ASSERT_EQ(infoBuilder.getReferenceTimeProtocol(), TimeProtocol::Gps);
     ASSERT_EQ(infoBuilder.getUsesOffset(), UsesOffset::True);
+}
+
+TEST_F(ReferenceDomainInfoTest, ReferenceDomainInfoBuilderReferenceDomainIdsSetGet)
+{
+    const auto infoBuilder = ReferenceDomainInfoBuilder()
+                                 .setReferenceDomainIds(List<IString>("domainA", "domainB"));
+
+    ASSERT_EQ(infoBuilder.getReferenceDomainIds(), List<IString>("domainA", "domainB"));
 }
 
 TEST_F(ReferenceDomainInfoTest, ReferenceDomainInfoCreateFactory)

@@ -5,6 +5,9 @@ BEGIN_NAMESPACE_OPENDAQ
 
 using FolderInternalImpl = FolderImpl<IFolderConfig>;
 
+// Explicit template instantiation
+template class FolderImpl<IFolderConfig>;
+
 OPENDAQ_DEFINE_CLASS_FACTORY_WITH_INTERFACE_AND_CREATEFUNC(
     LIBRARY_FACTORY, FolderInternal, IFolderConfig, createFolder,
     IContext*, context,

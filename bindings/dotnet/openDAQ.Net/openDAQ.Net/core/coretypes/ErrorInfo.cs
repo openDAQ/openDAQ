@@ -224,6 +224,95 @@ public class ErrorInfo : BaseObject
         }
     }
 
+    /// <summary>Gets or sets the file name where the error occurred.</summary>
+    public string FileName
+    {
+        get
+        {
+            //native output argument
+            IntPtr fileNamePtr;
+
+            unsafe //use native function pointer
+            {
+                //call native function
+                ErrorCode errorCode = (ErrorCode)_rawErrorInfo.GetFileName(base.NativePointer, out fileNamePtr);
+
+                if (Result.Failed(errorCode))
+                {
+                    throw new OpenDaqException(errorCode);
+                }
+            }
+
+            // validate pointer
+            if (fileNamePtr == IntPtr.Zero)
+            {
+                return default;
+            }
+
+            return Marshal.PtrToStringAnsi(fileNamePtr);
+        }
+        set
+        {
+            if (string.IsNullOrEmpty(value))
+                return;
+
+            IntPtr fileNamePtr = Marshal.StringToHGlobalAnsi(value);
+            try
+            {
+                unsafe //use native method pointer
+                {
+                    //call native method
+                    ErrorCode errorCode = (ErrorCode)_rawErrorInfo.SetFileName(base.NativePointer, fileNamePtr);
+
+                    if (Result.Failed(errorCode))
+                    {
+                        throw new OpenDaqException(errorCode);
+                    }
+                }
+            }
+            finally
+            {
+                Marshal.FreeHGlobal(fileNamePtr);
+            }
+        }
+    }
+
+    /// <summary>Gets or sets the line number where the error occurred.</summary>
+    public int FileLine
+    {
+        get
+        {
+            //native output argument
+            int lineNumber;
+
+            unsafe //use native function pointer
+            {
+                //call native function
+                ErrorCode errorCode = (ErrorCode)_rawErrorInfo.GetFileLine(base.NativePointer, out lineNumber);
+
+                if (Result.Failed(errorCode))
+                {
+                    throw new OpenDaqException(errorCode);
+                }
+            }
+
+            return lineNumber;
+        }
+        set
+        {
+            unsafe //use native method pointer
+            {
+                //call native method
+                ErrorCode errorCode = (ErrorCode)_rawErrorInfo.SetFileLine(base.NativePointer, value);
+
+                if (Result.Failed(errorCode))
+                {
+                    throw new OpenDaqException(errorCode);
+                }
+            }
+        }
+    }
+
     #endregion properties
 }
 
@@ -274,7 +363,9 @@ public static partial class CoreTypesFactory
         return new ErrorInfo(objPtr, incrementReference: false);
     }
 
-    public static ErrorCode MakeErrorInfo(ErrorCode errorCode, string message = null)
+    public static ErrorCode MakeErrorInfo(ErrorCode errorCode, string message = null,
+        [System.Runtime.CompilerServices.CallerFilePath] string filePath = "",
+        [System.Runtime.CompilerServices.CallerLineNumber] int lineNumber = 0)
     {
         //create ErrorInfo object
         ErrorInfo errorInfo = CreateErrorInfo();
@@ -282,6 +373,16 @@ public static partial class CoreTypesFactory
         //set message and error code
         errorInfo.Message = message;
         errorInfo.ErrorCodeValue = errorCode;
+
+        //set file name and line number automatically
+        if (!string.IsNullOrEmpty(filePath))
+        {
+            errorInfo.FileName = filePath;
+            if (lineNumber > 0)
+            {
+                errorInfo.FileLine = lineNumber;
+            }
+        }
 
         //set error code
         DaqSetErrorInfo(errorInfo);

@@ -85,4 +85,13 @@ void defineIReferenceDomainInfo(pybind11::module_ m, PyDaqIntf<daq::IReferenceDo
             return objectPtr.getUsesOffset();
         },
         "Gets the value that indicates if offset is used.");
+    cls.def_property_readonly("reference_domain_ids",
+        [](daq::IReferenceDomainInfo *object)
+        {
+            py::gil_scoped_release release;
+            const auto objectPtr = daq::ReferenceDomainInfoPtr::Borrow(object);
+            return objectPtr.getReferenceDomainIds().detach();
+        },
+        py::return_value_policy::take_ownership,
+        "Gets the list of Reference Domain IDs.");
 }

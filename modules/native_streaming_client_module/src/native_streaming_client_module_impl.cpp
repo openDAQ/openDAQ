@@ -938,6 +938,8 @@ DeviceInfoPtr NativeStreamingClientModule::populateDiscoveredConfigurationDevice
     auto cap = ServerCapability(protocolId, protocolId, ProtocolType::ConfigurationAndStreaming);
 
     SetupProtocolAddresses(discoveredDevice, cap, secure ? CONST_NATIVE_CONFIG_SECURE_PREFIX : CONST_NATIVE_CONFIG_PREFIX);
+    if (discoveredDevice.servicePort > 0)
+        cap.setPort(discoveredDevice.servicePort);
     cap.setCoreEventsEnabled(true);
     cap.setProtocolVersion(discoveredDevice.getPropertyOrDefault("protocolVersion", ""));
     cap.setProtocolGroupId(CONST_NATIVE_PROTOCOL_GROUP_ID);

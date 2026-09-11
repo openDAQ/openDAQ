@@ -23,7 +23,7 @@ using namespace daq;
 
 // the module offers a plaintext and a secure variant of each device type; the secure ones only
 // exist in a build with the TLS channel
-#ifdef OPENDAQ_ENABLE_NATIVE_STREAMING_WITH_TLS
+#if NATIVE_STREAMING_ENABLE_TLS
 static constexpr SizeT ExpectedDeviceTypeCount = 4u;
 static constexpr SizeT ExpectedStreamingTypeCount = 2u;
 #else
@@ -176,7 +176,7 @@ TEST_F(NativeStreamingClientModuleTest, GetAvailableComponentTypes)
     ASSERT_TRUE(deviceTypes.hasKey("OpenDAQNativeConfiguration"));
     ASSERT_EQ(deviceTypes.get("OpenDAQNativeConfiguration").getId(), "OpenDAQNativeConfiguration");
     ASSERT_EQ(deviceTypes.get("OpenDAQNativeConfiguration").getDeviceKind(), DeviceKind::Mirrored);
-#ifdef OPENDAQ_ENABLE_NATIVE_STREAMING_WITH_TLS
+#if NATIVE_STREAMING_ENABLE_TLS
     ASSERT_TRUE(deviceTypes.hasKey("OpenDAQNativeStreamingSecure"));
     ASSERT_EQ(deviceTypes.get("OpenDAQNativeStreamingSecure").getId(), "OpenDAQNativeStreamingSecure");
     ASSERT_TRUE(deviceTypes.hasKey("OpenDAQNativeConfigurationSecure"));
@@ -187,7 +187,7 @@ TEST_F(NativeStreamingClientModuleTest, GetAvailableComponentTypes)
     ASSERT_NO_THROW(streamingTypes = module.getAvailableStreamingTypes());
     ASSERT_EQ(streamingTypes.getCount(), ExpectedStreamingTypeCount);
     ASSERT_EQ(streamingTypes.get("OpenDAQNativeStreaming").getLinkedDeviceType().getId(), "OpenDAQNativeConfiguration");
-#ifdef OPENDAQ_ENABLE_NATIVE_STREAMING_WITH_TLS
+#if NATIVE_STREAMING_ENABLE_TLS
     ASSERT_EQ(streamingTypes.get("OpenDAQNativeStreamingSecure").getLinkedDeviceType().getId(), "OpenDAQNativeConfigurationSecure");
 #endif
 
@@ -260,7 +260,7 @@ TEST_F(NativeStreamingClientModuleTest, StreamingTypes)
     ASSERT_NO_THROW(streamingTypes = module.getAvailableStreamingTypes());
     ASSERT_EQ(streamingTypes.getCount(), ExpectedStreamingTypeCount);
     ASSERT_TRUE(streamingTypes.hasKey("OpenDAQNativeStreaming"));
-#ifdef OPENDAQ_ENABLE_NATIVE_STREAMING_WITH_TLS
+#if NATIVE_STREAMING_ENABLE_TLS
     ASSERT_TRUE(streamingTypes.hasKey("OpenDAQNativeStreamingSecure"));
 #endif
 }
@@ -272,13 +272,13 @@ TEST_F(NativeStreamingClientModuleTest, ConnectionStringPrefixes)
 
     ASSERT_EQ(deviceTypes.get("OpenDAQNativeStreaming").getConnectionStringPrefix(), "daq.ns");
     ASSERT_EQ(deviceTypes.get("OpenDAQNativeConfiguration").getConnectionStringPrefix(), "daq.nd");
-#ifdef OPENDAQ_ENABLE_NATIVE_STREAMING_WITH_TLS
+#if NATIVE_STREAMING_ENABLE_TLS
     ASSERT_EQ(deviceTypes.get("OpenDAQNativeStreamingSecure").getConnectionStringPrefix(), "daq.nss");
     ASSERT_EQ(deviceTypes.get("OpenDAQNativeConfigurationSecure").getConnectionStringPrefix(), "daq.nds");
 #endif
 }
 
-#ifdef OPENDAQ_ENABLE_NATIVE_STREAMING_WITH_TLS
+#if NATIVE_STREAMING_ENABLE_TLS
 
 TEST_F(NativeStreamingClientModuleTest, SecureDefaultConfig)
 {
@@ -354,7 +354,7 @@ TEST_F(NativeStreamingClientModuleTest, CompleteCapabilityPortDefaultsPerChannel
         {"OpenDAQNativeStreaming", "daq.ns", 7420},
         {"OpenDAQNativeConfiguration", "daq.nd", 7420},
     };
-#ifdef OPENDAQ_ENABLE_NATIVE_STREAMING_WITH_TLS
+#if NATIVE_STREAMING_ENABLE_TLS
     expected.emplace_back("OpenDAQNativeStreamingSecure", "daq.nss", 7422);
     expected.emplace_back("OpenDAQNativeConfigurationSecure", "daq.nds", 7422);
 #endif
@@ -389,7 +389,7 @@ TEST_F(NativeStreamingClientModuleTest, CompleteCapabilityKeepsGivenPort)
                             .addAddress("127.0.0.1")
                             .addAddressInfo(sourceAddressInfo);
 
-#ifdef OPENDAQ_ENABLE_NATIVE_STREAMING_WITH_TLS
+#if NATIVE_STREAMING_ENABLE_TLS
     const std::string protocolId = "OpenDAQNativeConfigurationSecure";
     const std::string prefix = "daq.nds";
 #else

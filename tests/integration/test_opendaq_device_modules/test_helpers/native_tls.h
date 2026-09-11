@@ -16,7 +16,7 @@
 
 #pragma once
 
-#ifdef OPENDAQ_ENABLE_NATIVE_STREAMING_WITH_TLS
+#if NATIVE_STREAMING_ENABLE_TLS
 
 #include <native_streaming_protocol/native_streaming_constants.h>
 #include <opendaq/opendaq.h>

@@ -8,8 +8,11 @@ set(TEST_SOURCES test_native_streaming_server_module.cpp
 add_executable(${TEST_APP} ${TEST_SOURCES}
 )
 
+# the protocol library is linked for the NATIVE_STREAMING_ENABLE_TLS definition it carries, which the
+# module keeps to itself
 target_link_libraries(${TEST_APP} PRIVATE daq::test_utils
                                           daq::opendaq_mocks
+                                          daq::native_streaming_protocol
                                           ${SDK_TARGET_NAMESPACE}::${MODULE_NAME}
                                           Taskflow
 )

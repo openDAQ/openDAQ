@@ -141,6 +141,9 @@ public:
     static StringPtr GetHost(const StringPtr& url);
     static StringPtr GetPort(const StringPtr& url, const PropertyObjectPtr& config = nullptr);
     static StringPtr GetPath(const StringPtr& url);
+
+    /// @brief tells the encrypted channel from the plaintext one by the connection string prefix
+    static bool IsSecure(const StringPtr& url);
 };
 
 END_NAMESPACE_OPENDAQ_NATIVE_STREAMING_CLIENT_MODULE

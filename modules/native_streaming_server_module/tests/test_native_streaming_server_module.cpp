@@ -167,6 +167,60 @@ TEST_F(NativeStreamingServerModuleTest, ServerConfig)
 
     ASSERT_TRUE(config.hasProperty("ConfigurationRpcWorkerCount"));
     ASSERT_EQ(config.getPropertyValue("ConfigurationRpcWorkerCount"), 1);
+
+    ASSERT_TRUE(config.hasProperty("EnablePort"));
+    ASSERT_EQ(config.getPropertyValue("EnablePort"), True);
+}
+
+TEST_F(NativeStreamingServerModuleTest, TlsServerConfig)
+{
+    auto module = CreateModule();
+    auto config = module.getAvailableServerTypes().get("OpenDAQNativeStreaming").createDefaultConfig();
+
+#ifdef OPENDAQ_ENABLE_NATIVE_STREAMING_WITH_TLS
+    ASSERT_TRUE(config.hasProperty("EnableTlsPort"));
+    ASSERT_EQ(config.getPropertyValue("EnableTlsPort"), False);
+
+    ASSERT_TRUE(config.hasProperty("NativeStreamingTlsPort"));
+    ASSERT_EQ(config.getPropertyValue("NativeStreamingTlsPort"), 7422);
+
+    ASSERT_TRUE(config.hasProperty("EnableMutualTls"));
+    ASSERT_EQ(config.getPropertyValue("EnableMutualTls"), True);
+
+    ASSERT_TRUE(config.hasProperty("CertificateFilePath"));
+    ASSERT_TRUE(config.hasProperty("KeyFilePath"));
+    ASSERT_TRUE(config.hasProperty("CaCertificateFilePath"));
+#else
+    // without the option the TLS channel does not exist
+    ASSERT_FALSE(config.hasProperty("EnableTlsPort"));
+    ASSERT_FALSE(config.hasProperty("NativeStreamingTlsPort"));
+    ASSERT_FALSE(config.hasProperty("CertificateFilePath"));
+    ASSERT_FALSE(config.hasProperty("KeyFilePath"));
+    ASSERT_FALSE(config.hasProperty("CaCertificateFilePath"));
+#endif
+}
+
+TEST_F(NativeStreamingServerModuleTest, RefusesConfigurationWithoutAnyListener)
+{
+    auto device = CreateTestInstance();
+    auto config = CreateServerConfig(device);
+    config.setPropertyValue("EnablePort", False);
+
+    ASSERT_THROW(device.addServer("OpenDAQNativeStreaming", config), InvalidParameterException);
+}
+
+TEST_F(NativeStreamingServerModuleTest, PlaintextServerPublishesTwoCapabilities)
+{
+    auto device = CreateTestInstance();
+    device.addServer("OpenDAQNativeStreaming", CreateServerConfig(device));
+
+    const auto capabilities = device.getInfo().getServerCapabilities();
+    ASSERT_EQ(capabilities.getCount(), 2u);
+    for (const auto& capability : capabilities)
+    {
+        ASSERT_EQ(capability.getProtocolGroupId(), "NativeStreaming");
+        ASSERT_EQ(capability.getProtocolSecurityLevel(), 0);
+    }
 }
 
 TEST_F(NativeStreamingServerModuleTest, CreateServer)

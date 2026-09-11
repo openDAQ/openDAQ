@@ -153,8 +153,8 @@ class PropertiesTreeview(ttk.Treeview):
                 return 'N/A'
             if value_type == daq.CoreType.ctBool:
                 return utils.yes_no[value]
-            elif value_type == daq.CoreType.ctFloat:
-                return self._format_value(value) 
+            elif value_type in (daq.CoreType.ctFloat, daq.CoreType.ctEnumeration):
+                return self._format_value(value)
             else:
                 return value
         
@@ -739,7 +739,11 @@ class PropertiesTreeview(ttk.Treeview):
         enum = daq.IEnumeration.cast_from(prop.value)
         enum_type = enum.enumeration_type
         keys = [k for k, _ in enum_type.as_dictionary.items()]
-        current_key = keys[enum.value] if 0 <= enum.value < len(keys) else keys[0]
+        if not keys:
+            return
+        # Enumerator values need not be a 0-based range, so the current one is
+        # matched by name rather than used as an index into the names.
+        current_key = enum.name if enum.name in keys else keys[0]
         cb = self._make_combobox(iid, keys, current_key)
         if cb is None:
             return
@@ -917,6 +921,10 @@ class PropertiesTreeview(ttk.Treeview):
 
     @staticmethod
     def _format_value(value):
+        if isinstance(value, daq.IEnumeration):
+            # An Enumeration converts to its integer value, so it has to be
+            # named before the numeric formatting below gets to it.
+            return value.name
         try:
             f = float(value)
             if f == int(f):

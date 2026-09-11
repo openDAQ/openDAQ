@@ -28,6 +28,7 @@ try:
     from gui_demo.components.add_server_dialog import AddServerDialog
     from gui_demo.components.add_function_block_dialog import AddFunctionBlockDialog
     from gui_demo.components.load_instance_config_dialog import LoadInstanceConfigDialog
+    from gui_demo.components.logs_dialog import LogsDialog
     from gui_demo.app_context import AppContext
     from gui_demo import utils
     from gui_demo.event_port import EventPort
@@ -38,6 +39,7 @@ except Exception as e:
     from opendaq.gui_demo.components.add_server_dialog import AddServerDialog
     from opendaq.gui_demo.components.add_function_block_dialog import AddFunctionBlockDialog
     from opendaq.gui_demo.components.load_instance_config_dialog import LoadInstanceConfigDialog
+    from opendaq.gui_demo.components.logs_dialog import LogsDialog
     from opendaq.gui_demo.app_context import AppContext
     from opendaq.gui_demo import utils
     from opendaq.gui_demo.event_port import EventPort
@@ -139,10 +141,13 @@ class App(tk.Tk):
         nb.pack(fill=tk.X, side=tk.LEFT, expand=True)
         self.nb = nb
 
-        refresh_button = ttk.Button(
-            nb_row, image=self.context.menu_icon('refresh'),
-            command=self.handle_refresh_button_clicked)
-        refresh_button.pack(side=tk.RIGHT, padx=5)
+        refresh_button = self.toolbar_button_create(
+            nb_row, 'refresh', self.handle_refresh_button_clicked)
+        refresh_button.pack(side=tk.RIGHT, padx=(0, 5))
+
+        logs_button = self.toolbar_button_create(
+            nb_row, 'logs', self.logs_dialog_show)
+        logs_button.pack(side=tk.RIGHT)
 
         main_frame_navigator = ttk.PanedWindow(
             main_frame_bottom, orient=tk.HORIZONTAL)
@@ -220,6 +225,31 @@ class App(tk.Tk):
         self.tree_update()
 
     # MARK: - Menu bar
+    # MARK: - Toolbar
+    def toolbar_button_create(self, parent, icon, command=None):
+        background = (ttk.Style().lookup('TFrame', 'background')
+                      or self.cget('background'))
+        hover = self.darken_color(background)
+        pressed = self.darken_color(background, 0.7)
+
+        size = self.context.menu_icon(icon).width() + 8
+        button = tk.Label(parent, image=self.context.menu_icon(icon), bd=0,
+                          width=size, height=size, cursor='hand2',
+                          background=background)
+
+        def on_release(event):
+            inside = (0 <= event.x < button.winfo_width()
+                      and 0 <= event.y < button.winfo_height())
+            button.configure(background=hover if inside else background)
+            if inside and command is not None:
+                command()
+
+        button.bind('<Enter>', lambda e: button.configure(background=hover))
+        button.bind('<Leave>', lambda e: button.configure(background=background))
+        button.bind('<Button-1>', lambda e: button.configure(background=pressed))
+        button.bind('<ButtonRelease-1>', on_release)
+        return button
+
     def menu_bar_create(self):
         menu_bar = tk.Menu(self)
         self.config(menu=menu_bar)
@@ -702,6 +732,17 @@ class App(tk.Tk):
 
         self.right_side_panel = sframe
         self.right_side_canvas = None
+
+    # MARK: - Logs dialog
+    def logs_dialog_show(self):
+        dialog = getattr(self, 'logs_dialog', None)
+        if dialog is not None and dialog.winfo_exists():
+            dialog.deiconify()
+            dialog.lift()
+            dialog.focus_set()
+            return
+        self.logs_dialog = LogsDialog(self, self.context)
+        self.logs_dialog.show_modeless()
 
     # MARK: - Add device dialog
     def add_device_dialog_show(self, component=None):

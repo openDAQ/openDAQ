@@ -1,6 +1,7 @@
 #include <coretypes/intfs.h>
 #include <coretypes/customalloc.h>
 #include <mutex>
+#include <vector>
 #include <cstring>
 #include <fmt/core.h>
 
@@ -66,8 +67,15 @@ extern "C"
 PUBLIC_EXPORT void daqPrintTrackedObjects()
 {
 #ifndef NDEBUG
-    std::lock_guard<std::mutex> lock(getObjectsMutex());
-    for (auto obj : getObjects())
+    // Print from a copy and outside the lock: converting an object to a string creates objects of its own,
+    // which are tracked in turn, and tracking them takes this lock and writes to this container.
+    std::vector<IBaseObject*> tracked;
+    {
+        std::lock_guard<std::mutex> lock(getObjectsMutex());
+        tracked.assign(getObjects().cbegin(), getObjects().cend());
+    }
+
+    for (auto obj : tracked)
     {
         assert(obj != nullptr);
         fmt::print("{:p}: {}\n", (void*) obj, objectToString(obj));

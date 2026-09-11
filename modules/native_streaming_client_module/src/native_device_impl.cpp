@@ -1,4 +1,5 @@
 #include <native_streaming_client_module/native_device_impl.h>
+#include <native_streaming_protocol/native_streaming_constants.h>
 #include <native_streaming_client_module/native_streaming_impl.h>
 #include <native_streaming_client_module/native_device_utils.h>
 
@@ -481,7 +482,7 @@ ErrCode NativeDeviceImpl::setComponentConfig(IPropertyObject* config)
     ListPtr<IString> alternativeAddresses;
     const ErrCode errCode = collectAlternativeAddresses(componentConfig, 
                                                         deviceInfo,
-                                                        NativeConfigurationDeviceTypeId, 
+                                                        CONST_NATIVE_CONFIG_ID, 
                                                         alternativeAddresses);
     OPENDAQ_RETURN_IF_FAILED(errCode);
 
@@ -570,15 +571,21 @@ void NativeDeviceImpl::updateDeviceInfo(const StringPtr& connectionString)
                                     .setConnectionString(connectionString)
                                     .build();
 
-    ServerCapabilityConfigPtr connectionInfo = ServerCapability(NativeConfigurationDeviceTypeId,
-                                                                "OpenDAQNativeConfiguration",
+    // the connection string is the only thing here which knows which channel was used
+    const bool secure = ConnectionStringUtils::IsSecure(connectionString);
+    const auto protocolId = secure ? CONST_NATIVE_CONFIG_SECURE_ID : CONST_NATIVE_CONFIG_ID;
+
+    ServerCapabilityConfigPtr connectionInfo = ServerCapability(protocolId,
+                                                                protocolId,
                                                                 ProtocolType::ConfigurationAndStreaming);
     connectionInfo.setConnectionType("TCP/IP")
                   .addAddress(host)
                   .setPort(std::stoi(ConnectionStringUtils::GetPort(connectionString).toStdString()))
-                  .setPrefix("daq.nd")
+                  .setPrefix(secure ? CONST_NATIVE_CONFIG_SECURE_PREFIX : CONST_NATIVE_CONFIG_PREFIX)
                   .setConnectionString(connectionString)
                   .setProtocolVersion(std::to_string(configProtocolVersion))
+                  .setProtocolGroupId(CONST_NATIVE_PROTOCOL_GROUP_ID)
+                  .setProtocolSecurityLevel(secure ? CONST_NATIVE_SECURE_SECURITY_LVL : CONST_NATIVE_SECURITY_LVL)
                   .addAddressInfo(addressInfo)
                   .freeze();
 
@@ -613,26 +620,37 @@ StringPtr ConnectionStringUtils::GetHost(const StringPtr& url)
 
 StringPtr ConnectionStringUtils::GetPort(const StringPtr& url, const PropertyObjectPtr& config)
 {
-    std::string outPort;
     std::string urlString = url.toStdString();
     std::smatch match;
 
     std::string host = GetHost(url).toStdString();
     std::string suffix = urlString.substr(urlString.find(host) + host.size());
 
-    if (std::regex_search(suffix, match, RegexPort))
-        outPort = match[1];
-    else
-        outPort = "7420";
+    Int port = IsSecure(url) ? DEFAULT_TLS_PORT : DEFAULT_PORT;
 
-    if (config.assigned())
+    if (std::regex_search(suffix, match, RegexPort))
+        port = std::stoi(match[1]);
+
+    if (config.assigned() && config.hasProperty("Port"))
     {
-        std::string ctxPort = config.getPropertyValue("Port");
-        if (ctxPort != "7420")
-            outPort = ctxPort;
+        const Int configuredPort = config.getPropertyValue("Port");
+        const Int defaultPort = config.getProperty("Port").getDefaultValue();
+        if (configuredPort != defaultPort)
+            port = configuredPort;
     }
 
-    return outPort;
+    return String(std::to_string(port));
+}
+
+bool ConnectionStringUtils::IsSecure(const StringPtr& url)
+{
+    const std::string urlString = url.toStdString();
+    for (const auto& prefix : {CONST_NATIVE_CONFIG_SECURE_PREFIX, CONST_NATIVE_STREAMING_SECURE_PREFIX})
+    {
+        if (urlString.find(std::string(prefix) + "://") == 0)
+            return true;
+    }
+    return false;
 }
 
 StringPtr ConnectionStringUtils::GetPath(const StringPtr& url)

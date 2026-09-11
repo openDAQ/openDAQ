@@ -1,4 +1,5 @@
 #include <native_streaming_client_module/native_streaming_impl.h>
+#include <native_streaming_protocol/native_streaming_constants.h>
 #include <native_streaming_client_module/native_device_utils.h>
 
 #include <opendaq/signal_config_ptr.h>
@@ -24,8 +25,14 @@ NativeStreamingImpl::NativeStreamingImpl(
     const ProcedurePtr& onDeviceSignalAvailableCallback,
     const ProcedurePtr& onDeviceSignalUnavailableCallback,
     OnConnectionStatusChangedCallback onDeviceConnectionStatusChangedCb,
-    bool isClientToDeviceStreamingSupported)
-    : Super(connectionString, context, false, String(NativeStreamingID), isClientToDeviceStreamingSupported)
+    bool isClientToDeviceStreamingSupported,
+    bool secure)
+    : Super(connectionString,
+            context,
+            false,
+            String(secure ? CONST_NATIVE_STREAMING_SECURE_ID : CONST_NATIVE_STREAMING_ID),
+            isClientToDeviceStreamingSupported,
+            String(CONST_NATIVE_PROTOCOL_GROUP_ID))
     , transportClientHandler(transportClientHandler)
     , onDeviceSignalAvailableCallback(onDeviceSignalAvailableCallback)
     , onDeviceSignalUnavailableCallback(onDeviceSignalUnavailableCallback)
@@ -75,7 +82,7 @@ ErrCode NativeStreamingImpl::setOwnerDevice(const DevicePtr& device)
         ListPtr<IString> alternativeAddresses;
         const ErrCode errCode = collectAlternativeAddresses(componentConfig, 
                                                             deviceInfo,
-                                                            "OpenDAQNativeStreaming", 
+                                                            CONST_NATIVE_STREAMING_ID, 
                                                             alternativeAddresses);
 
         OPENDAQ_RETURN_IF_FAILED(errCode);
@@ -367,7 +374,8 @@ NativeStreamingToDeviceImpl::NativeStreamingToDeviceImpl(const StringPtr& connec
                                                          const ContextPtr& context,
                                                          opendaq_native_streaming_protocol::NativeStreamingClientHandlerPtr transportClientHandler,
                                                          std::shared_ptr<boost::asio::io_context> processingIOContextPtr,
-                                                         Int streamingInitTimeout)
+                                                         Int streamingInitTimeout,
+                                                         bool secure)
     : Super(connectionString,
             context,
             transportClientHandler,
@@ -376,7 +384,8 @@ NativeStreamingToDeviceImpl::NativeStreamingToDeviceImpl(const StringPtr& connec
             nullptr,
             nullptr,
             nullptr,
-            true)
+            true,
+            secure)
     , readThreadRunning(false)
     , readThreadSleepTime(std::chrono::milliseconds(20))
 {

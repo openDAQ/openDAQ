@@ -126,6 +126,7 @@
                 "APP_ENABLE_WEBPAGE_EXAMPLES": true,
                 "OPENDAQ_DOCUMENTATION_TESTS": true,
                 "OPENDAQ_ENABLE_NATIVE_STREAMING": true,
+                "OPENDAQ_ENABLE_NATIVE_STREAMING_WITH_TLS": true,
                 "OPENDAQ_ENABLE_OPCUA_INTEGRATION_TESTS": true
             }
         },
@@ -148,6 +149,7 @@
                 "OPENDAQ_ENABLE_WEBSOCKET_STREAMING": true,
                 "OPENDAQ_ENABLE_WEBSOCKET_STREAMING_WITH_TLS": true,
                 "OPENDAQ_ENABLE_NATIVE_STREAMING": true,
+                "OPENDAQ_ENABLE_NATIVE_STREAMING_WITH_TLS": true,
                 "DAQSIMULATOR_ENABLE_SIMULATOR_APP": true
             }
         },
@@ -169,7 +171,8 @@
                 "OPENDAQ_ENABLE_OPCUA": true,
                 "OPENDAQ_ENABLE_WEBSOCKET_STREAMING": true,
                 "OPENDAQ_ENABLE_WEBSOCKET_STREAMING_WITH_TLS": true,
-                "OPENDAQ_ENABLE_NATIVE_STREAMING": true
+                "OPENDAQ_ENABLE_NATIVE_STREAMING": true,
+                "OPENDAQ_ENABLE_NATIVE_STREAMING_WITH_TLS": true
             }
         },
         {

@@ -73,49 +73,58 @@ NativeStreamingServerImpl::NativeStreamingServerImpl(const DevicePtr& rootDevice
     }
 
     initWorkerPool();
-    startProcessingOperations();
-    startTransportOperations();
 
-    prepareServerHandler();
-    streaming = createWithImplementation<IStreaming, NativeServerStreamingImpl>(serverHandler, processingIOContextPtr, context);
-    streaming.asPtr<INativeServerStreamingPrivate>()->upgradeToSafeProcessingCallbacks();
-    streaming.setActive(true);
-
-    const StringPtr path = config.getPropertyValue(PROPERTY_PATH_SERVER);
-    const auto infoInternal = info.asPtr<IDeviceInfoInternal>(true);
-
-    if (plainChannelEnabled)
+    try
     {
-        const uint16_t port = config.getPropertyValue(PROPERTY_PORT_SERVER);
-        serverHandler->startServer(port);
-        addServerCapabilities(infoInternal, port, path, false);
-    }
+        startProcessingOperations();
+        startTransportOperations();
+
+        prepareServerHandler();
+        streaming = createWithImplementation<IStreaming, NativeServerStreamingImpl>(serverHandler, processingIOContextPtr, context);
+        streaming.asPtr<INativeServerStreamingPrivate>()->upgradeToSafeProcessingCallbacks();
+        streaming.setActive(true);
+
+        const StringPtr path = config.getPropertyValue(PROPERTY_PATH_SERVER);
+        const auto infoInternal = info.asPtr<IDeviceInfoInternal>(true);
+
+        if (plainChannelEnabled)
+        {
+            const uint16_t port = config.getPropertyValue(PROPERTY_PORT_SERVER);
+            serverHandler->startServer(port);
+            addServerCapabilities(infoInternal, port, path, false);
+        }
 
 #if NATIVE_STREAMING_ENABLE_TLS
-    if (tlsChannelEnabled)
-    {
-        const uint16_t tlsPort = config.getPropertyValue(PROPERTY_TLS_PORT_SERVER);
-        const bool mutualTls = config.getPropertyValue(PROPERTY_ENABLE_MTLS_SERVER);
-        const auto readPath = [&config](const char* name)
-        { return StringPtr(config.getPropertyValue(name)).toStdString(); };
+        if (tlsChannelEnabled)
+        {
+            const uint16_t tlsPort = config.getPropertyValue(PROPERTY_TLS_PORT_SERVER);
+            const bool mutualTls = config.getPropertyValue(PROPERTY_ENABLE_MTLS_SERVER);
+            const auto readPath = [&config](const char* name)
+            { return StringPtr(config.getPropertyValue(name)).toStdString(); };
 
-        // an empty CA file is how the transport is told not to ask clients for a certificate
-        serverHandler->startTlsServer(tlsPort,
-                                      readPath(PROPERTY_CERT_FILE_PATH_SERVER),
-                                      readPath(PROPERTY_KEY_FILE_PATH_SERVER),
-                                      mutualTls ? readPath(PROPERTY_CA_CERT_FILE_PATH_SERVER) : std::string());
-        addServerCapabilities(infoInternal, tlsPort, path, true);
-    }
+            // an empty CA file is how the transport is told not to ask clients for a certificate
+            serverHandler->startTlsServer(tlsPort,
+                                          readPath(PROPERTY_CERT_FILE_PATH_SERVER),
+                                          readPath(PROPERTY_KEY_FILE_PATH_SERVER),
+                                          mutualTls ? readPath(PROPERTY_CA_CERT_FILE_PATH_SERVER) : std::string());
+            addServerCapabilities(infoInternal, tlsPort, path, true);
+        }
 #endif
 
-    this->context.getOnCoreEvent() += event(&NativeStreamingServerImpl::coreEventCallback);
+        this->context.getOnCoreEvent() += event(&NativeStreamingServerImpl::coreEventCallback);
 
-    const uint16_t pollingPeriod = config.getPropertyValue("StreamingDataPollingPeriod");
-    readThreadSleepTime = std::chrono::milliseconds(pollingPeriod);
+        const uint16_t pollingPeriod = config.getPropertyValue("StreamingDataPollingPeriod");
+        readThreadSleepTime = std::chrono::milliseconds(pollingPeriod);
 
-    maxPacketReadCount = config.getPropertyValue("MaxPacketReadCount");
-    packetBuf.resize(maxPacketReadCount);
-    startReading();
+        maxPacketReadCount = config.getPropertyValue("MaxPacketReadCount");
+        packetBuf.resize(maxPacketReadCount);
+        startReading();
+    }
+    catch (...)
+    {
+        stopServerInternal();
+        throw;
+    }
 }
 
 void NativeStreamingServerImpl::validateChannelConfig(const PropertyObjectPtr& config) const
@@ -414,7 +423,9 @@ void NativeStreamingServerImpl::stopServerInternal()
     registeredClientIds.clear();
     disconnectedClientIds.clear();
 
-    serverHandler->stopServer();
+    // absent when the constructor failed before creating it
+    if (serverHandler)
+        serverHandler->stopServer();
     stopTransportOperations();
     stopProcessingOperations();
 }

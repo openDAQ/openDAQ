@@ -277,19 +277,6 @@ inline void checkErrorGuard(IErrorGuard* errorGuard)
 }
 
 template <typename... Params>
-[[deprecated("This function will be deprecated in release 3.30.")]]
-void setErrorInfoWithSource(IBaseObject* source, const std::string& message, Params... params)
-{
-    IErrorInfo* errorInfo = nullptr;
-    const ErrCode err = createErrorInfoObjectWithSource(&errorInfo, source, message, std::forward<Params>(params)...);
-    if (OPENDAQ_FAILED(err))
-        return;
-    
-    daqSetErrorInfo(errorInfo);
-    errorInfo->releaseRef();
-}
-
-template <typename... Params>
 ErrCode makeErrorInfo(ErrCode errCode, IBaseObject* source, const std::string& message, Params... params)
 {
     IErrorInfo* errorInfo = nullptr;

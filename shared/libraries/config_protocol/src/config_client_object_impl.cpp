@@ -13,4 +13,10 @@ void ConfigClientObjectImpl::setRemoteGlobalId(const std::string newId)
 {
     this->remoteGlobalId = newId;
 }
+
+const std::string& ConfigClientObjectImpl::getRemoteGlobalId()
+{
+    return this->remoteGlobalId;
+}
+
 }

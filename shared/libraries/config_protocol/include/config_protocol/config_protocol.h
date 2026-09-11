@@ -178,6 +178,7 @@ public:
     ClientType connectionType = ClientType::Control;
 };
 
+// TODO: dont forget to upate the version ConfigProtocolServer::ConfigProtocolServer (supportedServerVersions)
 inline constexpr uint16_t GetLatestConfigProtocolVersion()
 {
     return 25;
@@ -185,7 +186,7 @@ inline constexpr uint16_t GetLatestConfigProtocolVersion()
 
 inline std::set<uint16_t> GetSupportedConfigProtocolVersions()
 {
-    const std::set<uint16_t> supportedVersions = []() -> std::set<uint16_t>
+    static const std::set<uint16_t> supportedVersions = []() -> std::set<uint16_t>
     {
         std::set<uint16_t> versions;
         for (uint16_t i = 0; i <= GetLatestConfigProtocolVersion(); ++i)

@@ -145,6 +145,11 @@ DECLARE_OPENDAQ_INTERFACE(IPropertyInternal, IBaseObject)
     virtual ErrCode INTERFACE_FUNC getHasOnReadListeners(Bool* hasListeners) = 0;
     virtual ErrCode INTERFACE_FUNC getHasOnGetSuggestedValuesListeners(Bool* hasListeners) = 0;
     virtual ErrCode INTERFACE_FUNC getHasOnGetSelectionValuesListeners(Bool* hasListeners) = 0;
+
+    /*!
+     * @brief Gets the owner of the Property, or nullptr if the Property does not have an owner assigned.
+     */
+    virtual ErrCode INTERFACE_FUNC getOwner(IPropertyObject** owner) = 0;
 };
 /*!@}*/
 

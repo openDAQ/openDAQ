@@ -15,7 +15,7 @@
  */
 
 // The secure (daq.nss:// and daq.nds://) channel of the native streaming modules.
-#ifdef OPENDAQ_ENABLE_NATIVE_STREAMING_WITH_TLS
+#if NATIVE_STREAMING_ENABLE_TLS
 
 #include "test_helpers/device_modules.h"
 #include "test_helpers/native_tls.h"

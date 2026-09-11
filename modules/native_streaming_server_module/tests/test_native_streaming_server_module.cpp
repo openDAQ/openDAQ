@@ -177,7 +177,7 @@ TEST_F(NativeStreamingServerModuleTest, TlsServerConfig)
     auto module = CreateModule();
     auto config = module.getAvailableServerTypes().get("OpenDAQNativeStreaming").createDefaultConfig();
 
-#ifdef OPENDAQ_ENABLE_NATIVE_STREAMING_WITH_TLS
+#if NATIVE_STREAMING_ENABLE_TLS
     ASSERT_TRUE(config.hasProperty("EnableTlsPort"));
     ASSERT_EQ(config.getPropertyValue("EnableTlsPort"), False);
 

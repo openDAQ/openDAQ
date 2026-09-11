@@ -164,7 +164,7 @@ class PropertiesTreeview(ttk.Treeview):
 
             property_type = property_info.property_type
 
-            if property_type in (daq.PropertyType.IndexSelection, daq.PropertyType.SparseSelection):
+            if self._is_keyed_selection(property_type):
                 if len(property_info.selection_values) > 0:
                     property_value = printed_value(
                         property_info.item_type, node.get_property_selection_value(property_info.name))
@@ -210,8 +210,7 @@ class PropertiesTreeview(ttk.Treeview):
                 values=(property_value, *meta_fields))
 
             is_single_value_selection = (
-                property_type in (daq.PropertyType.Selection, daq.PropertyType.IndexSelection,
-                                  daq.PropertyType.SparseSelection)
+                self._is_selection(property_type)
                 and len(property_info.selection_values) == 1
             )
             if property_type not in (daq.PropertyType.Procedure, daq.PropertyType.Function):
@@ -689,14 +688,10 @@ class PropertiesTreeview(ttk.Treeview):
                     self._overlay_items[iid] = prop
                 elif not prop.read_only:
                     if (property_type == daq.PropertyType.Bool
-                            or (property_type in (daq.PropertyType.Selection,
-                                                 daq.PropertyType.IndexSelection,
-                                                 daq.PropertyType.SparseSelection)
+                            or (self._is_selection(property_type)
                                 and len(prop.selection_values) > 1)
                             or property_type == daq.PropertyType.Enumeration
-                            or (property_type in (daq.PropertyType.Int, daq.PropertyType.Float,
-                                                 daq.PropertyType.String)
-                                and prop.suggested_values is not None and len(prop.suggested_values) > 0)):
+                            or self._has_suggested_values(prop)):
                         self._overlay_items[iid] = prop
             self._collect_overlay_items(iid)
 
@@ -706,14 +701,12 @@ class PropertiesTreeview(ttk.Treeview):
             self._place_method_button(iid, prop)
         elif property_type == daq.PropertyType.Bool:
             self._place_bool_checkbox(iid, prop)
-        elif (property_type in (daq.PropertyType.Selection, daq.PropertyType.IndexSelection,
-                                daq.PropertyType.SparseSelection)
+        elif (self._is_selection(property_type)
               and len(prop.selection_values) > 0):
             self._place_selection_combobox(iid, prop)
         elif property_type == daq.PropertyType.Enumeration:
             self._place_enum_combobox(iid, prop)
-        elif (property_type in (daq.PropertyType.Int, daq.PropertyType.Float, daq.PropertyType.String)
-              and prop.suggested_values is not None and len(prop.suggested_values) > 0):
+        elif self._has_suggested_values(prop):
             self._place_suggested_combobox(iid, prop)
 
     def _sync_overlays(self):
@@ -894,8 +887,7 @@ class PropertiesTreeview(ttk.Treeview):
             labels = [f'{l} {unit_symbol}' for l in labels]
         if not labels:
             return
-        is_keyed_selection = prop.property_type in (daq.PropertyType.IndexSelection,
-                                                    daq.PropertyType.SparseSelection)
+        is_keyed_selection = self._is_keyed_selection(prop.property_type)
         if is_keyed_selection:
             current_idx = prop.value
             current_label = labels[indices.index(current_idx)] if current_idx in indices else labels[0]
@@ -1175,13 +1167,12 @@ class PropertiesTreeview(ttk.Treeview):
 
         if property_type == daq.PropertyType.Bool:
             return  # handled by overlay combobox
-        elif property_type in (daq.PropertyType.Selection, daq.PropertyType.IndexSelection,
-                               daq.PropertyType.SparseSelection):
+        elif self._is_selection(property_type):
             return  # handled by overlay combobox
         elif property_type in (daq.PropertyType.Dict, daq.PropertyType.List):
             return
-        elif property_type in (daq.PropertyType.Int, daq.PropertyType.Float,
-                               daq.PropertyType.String, daq.PropertyType.Ratio):
+        elif (self._takes_suggested_values(property_type)
+              or property_type == daq.PropertyType.Ratio):
             if prop.suggested_values is not None and len(prop.suggested_values) > 0:
                 return  # handled by overlay combobox
             self.edit_simple_property(selected_item_id, prop.value, path)
@@ -1192,6 +1183,29 @@ class PropertiesTreeview(ttk.Treeview):
                 self.winfo_toplevel().unbind('<<DialogReady>>', self._toplevel_bind_id)
             except Exception:
                 pass
+
+    @staticmethod
+    def _is_selection(property_type):
+        return property_type in (daq.PropertyType.Selection,
+                                 daq.PropertyType.IndexSelection,
+                                 daq.PropertyType.SparseSelection)
+
+    @staticmethod
+    def _is_keyed_selection(property_type):
+        return property_type in (daq.PropertyType.IndexSelection,
+                                 daq.PropertyType.SparseSelection)
+
+    @staticmethod
+    def _takes_suggested_values(property_type):
+        return property_type in (daq.PropertyType.Int,
+                                 daq.PropertyType.Float,
+                                 daq.PropertyType.String)
+
+    @staticmethod
+    def _has_suggested_values(prop):
+        return (PropertiesTreeview._takes_suggested_values(prop.property_type)
+                and prop.suggested_values is not None
+                and len(prop.suggested_values) > 0)
 
     @staticmethod
     def _format_value(value):

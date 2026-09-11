@@ -1,3 +1,4 @@
+import glob
 import os
 import platform
 import tempfile
@@ -55,8 +56,7 @@ class AppContext(object):
         self.log_file_path = os.path.join(
             tempfile.gettempdir(), 'opendaq_gui_demo_{}.log'.format(os.getpid()))
         try:
-            if os.path.exists(self.log_file_path):
-                os.remove(self.log_file_path)
+            self._remove_demo_log_files()
             builder.add_logger_sink(daq.BasicFileLoggerSink(self.log_file_path))
         except Exception:
             self.log_file_path = None
@@ -66,6 +66,16 @@ class AppContext(object):
         self.connection_string = ''
         self.signals = {}
         self.needs_refresh = False
+
+    @staticmethod
+    def _remove_demo_log_files():
+        """Clear the map of temporary log files."""
+        pattern = os.path.join(tempfile.gettempdir(), 'opendaq_gui_demo_*.log')
+        for path in glob.glob(pattern):
+            try:
+                os.remove(path)
+            except OSError:
+                pass
 
     def _detect_dpi_factor(self) -> float:
         """Detect system DPI scaling factor (1.0 = 96 DPI). Used to scale UI elements on high-DPI displays."""

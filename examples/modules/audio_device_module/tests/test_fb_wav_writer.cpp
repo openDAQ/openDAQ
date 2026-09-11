@@ -64,6 +64,12 @@ protected:
         writerFb = module.createFunctionBlock("AudioDeviceModuleWavWriter", nullptr, "writer");
         writerRe = writerFb;
     }
+
+    void TearDown() override
+    {
+        // Drain and join the scheduler before the fixture releases its objects.
+        context.getScheduler().stop();
+    }
 };
 
 TEST_F(WavWriterTest, ValidWriteToFile)

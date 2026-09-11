@@ -1,4 +1,5 @@
 import os
+import re
 import tkinter as tk
 import enum
 from tkinter import ttk
@@ -248,7 +249,7 @@ def str_to_num_or_eval(num_str: str):
 def value_to_coretype(value, coretype: daq.CoreType):
     # removing unit symbols
     if coretype in (daq.CoreType.ctBool, daq.CoreType.ctInt, daq.CoreType.ctFloat):
-        value = str.split(str.strip(value), ' ')[0]
+        value = str.split(str.strip(str(value)), ' ')[0]
     if coretype == daq.CoreType.ctBool:
         value = value.lower()
         if value in yes_no_inv.keys():
@@ -261,7 +262,43 @@ def value_to_coretype(value, coretype: daq.CoreType):
         return daq.Float(float(value))
     if coretype == daq.CoreType.ctString:
         return daq.String(str(value))
+    if coretype == daq.CoreType.ctRatio:
+        match = re.match(r'\s*(-?\d+)\s*(?:/\s*(-?\d+))?', str(value))
+        if match is None:
+            raise ValueError(f'Not a ratio: {value}')
+        return daq.Ratio(int(match.group(1)),
+                         int(match.group(2)) if match.group(2) else 1)
     raise ValueError(f'Unsupported core type: {coretype}')
+
+
+def mousewheel_steps(event) -> int:
+    '''
+    Scroll steps for a mouse wheel event: negative scrolls up, positive down.
+    Covers both the Windows <MouseWheel> delta and X11 <Button-4>/<Button-5>.
+    '''
+    if event.num == 4:
+        return -1
+    if event.num == 5:
+        return 1
+    return int(-event.delta / 120) or (-1 if event.delta > 0 else 1)
+
+
+def bind_mousewheel_to(widget, scrollable, after_scroll=None):
+    '''
+    Scroll `scrollable` when the wheel is used over `widget`.
+
+    A widget placed on top of a scrollable one keeps the wheel to itself, so the
+    scroll has to be passed on by hand. `after_scroll` is called once the view
+    has moved, for callers that have to reposition anything placed on top of it.
+    '''
+    def on_mousewheel(event):
+        scrollable.yview_scroll(mousewheel_steps(event), 'units')
+        if after_scroll is not None:
+            after_scroll()
+        return 'break'
+
+    for sequence in ('<MouseWheel>', '<Button-4>', '<Button-5>'):
+        widget.bind(sequence, on_mousewheel)
 
 
 def get_item_path(tree, item_id):
@@ -353,13 +390,14 @@ def update_properties(target: daq.IPropertyObject, source: daq.IPropertyObject):
         source_prop = source.get_property(prop_name)
         target_prop = target.get_property(prop_name)
 
-        if source_prop.value_type != target_prop.value_type:
+        source_property_type = source_prop.property_type
+        if source_property_type != target_prop.property_type:
             continue
 
         if target_prop.read_only:
             continue
 
-        if source_prop.value_type == daq.CoreType.ctObject:
+        if source_property_type == daq.PropertyType.Object:
             update_properties(target_prop.value, source_prop.value)
         else:
             target.set_property_value(prop_name, source_prop.value)

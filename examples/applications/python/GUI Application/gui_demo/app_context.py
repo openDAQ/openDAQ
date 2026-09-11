@@ -32,6 +32,7 @@ class AppContext(object):
         self.ui_scaling_factor = 1.0
         self.dpi_factor = self._detect_dpi_factor()
         self.icons = {}
+        self.blank_icon = None
         # daq
         builder = daq.InstanceBuilder()
         builder.scheduler_worker_num = 0
@@ -115,6 +116,14 @@ class AppContext(object):
             image = utils.load_icon(os.path.join(directory, file), scale=scale)
             images[file.split('.')[0]] = image
         self.icons = images
+        if images:
+            sample = next(iter(images.values()))
+            self.blank_icon = utils.blank_icon(sample.width(), sample.height())
+
+    def menu_icon(self, name=None):
+        if name is None:
+            return self.blank_icon
+        return self.icons.get(name, self.blank_icon)
 
     def is_server(self, device_id):
         if not device_id:

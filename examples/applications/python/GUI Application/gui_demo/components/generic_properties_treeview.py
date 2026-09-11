@@ -248,7 +248,7 @@ class PropertiesTreeview(ttk.Treeview):
             return
 
         path = utils.get_item_path(self, selected_item)
-        prop = utils.get_property_for_path(self.context, path, self.node)
+        prop, _ = self.nearest_property_with_path(path)
         if not prop:
             return
 
@@ -502,6 +502,7 @@ class PropertiesTreeview(ttk.Treeview):
         if region == 'heading':
             menu.add_command(
                 label='Select columns',
+                image=self.context.menu_icon('settings'), compound=tk.LEFT,
                 command=lambda: MetadataFieldsSelectorDialog(self, self.context).show()
             )
         else:
@@ -524,6 +525,7 @@ class PropertiesTreeview(ttk.Treeview):
             if self._can_edit_container(prop):
                 menu.add_command(
                     label='Add item',
+                    image=self.context.menu_icon('plus'), compound=tk.LEFT,
                     command=lambda: self.handle_container_add(path, None))
                 menu.add_separator()
             elif self._can_edit_container(owner):
@@ -531,32 +533,46 @@ class PropertiesTreeview(ttk.Treeview):
                 if owner.property_type == daq.PropertyType.List:
                     menu.add_command(
                         label='Add item above',
+                        image=self.context.menu_icon('add_above'), compound=tk.LEFT,
                         command=lambda: self.handle_container_add(owner_path, item_index))
                     menu.add_command(
                         label='Add item below',
+                        image=self.context.menu_icon('add_below'), compound=tk.LEFT,
                         command=lambda: self.handle_container_add(owner_path, item_index + 1))
                 else:
                     menu.add_command(
                         label='Add item',
+                        image=self.context.menu_icon('plus'), compound=tk.LEFT,
                         command=lambda: self.handle_container_add(owner_path, None))
                 menu.add_command(
                     label='Remove item',
+                    image=self.context.menu_icon('trash'), compound=tk.LEFT,
                     command=lambda: self.handle_container_remove(owner_path, selected_item_id))
                 menu.add_separator()
 
             is_readonly = 'readonly' in self.item(selected_item_id, 'tags')
             if not is_container:
-                menu.add_command(label='Copy', command=self.handle_copy)
+                menu.add_command(label='Copy',
+                                 image=self.context.menu_icon('copy'), compound=tk.LEFT,
+                                 command=self.handle_copy)
             if not self.read_only and not is_readonly and not is_container:
-                menu.add_command(label='Paste', command=self.handle_paste)
+                menu.add_command(label='Paste',
+                                 image=self.context.menu_icon('paste'), compound=tk.LEFT,
+                                 command=self.handle_paste)
             if not self.read_only and not is_container and not is_readonly:
-                menu.add_command(label='Clear property value', command=self.handle_clear_property_value)
+                menu.add_command(label='Clear property value',
+                                 image=self.context.menu_icon('clear_values'), compound=tk.LEFT,
+                                 command=self.handle_clear_property_value)
             if not self.read_only and is_container:
-                menu.add_command(label='Clear property values', command=self.handle_clear_property_values)
+                menu.add_command(label='Clear property values',
+                                 image=self.context.menu_icon('clear_values'), compound=tk.LEFT,
+                                 command=self.handle_clear_property_values)
             if not is_container:
                 menu.add_separator()
                 
-            menu.add_command(label='Metadata', command=self.handle_show_metadata)
+            menu.add_command(label='Metadata',
+                             image=self.context.menu_icon('logs'), compound=tk.LEFT,
+                             command=self.handle_show_metadata)
             
         menu.tk_popup(event.x_root, event.y_root)
 

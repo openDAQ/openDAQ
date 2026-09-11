@@ -225,11 +225,14 @@ class AddDeviceDialog(Dialog):
 
         menu = tk.Menu(self, tearoff=0)
         menu.add_command(label='Add',
+                         image=self.context.menu_icon('add'), compound=tk.LEFT,
                          command=lambda: self.process_add_device(open_config_dialog=False))
         menu.add_command(label='Add with config',
+                         image=self.context.menu_icon('settings'), compound=tk.LEFT,
                          command=lambda: self.process_add_device(open_config_dialog=True))
         menu.add_separator()
         menu.add_command(label='Device Info',
+                         image=self.context.menu_icon('device'), compound=tk.LEFT,
                          command=self.handle_show_device_info)
         menu.tk_popup(event.x_root, event.y_root)
 

@@ -392,9 +392,10 @@ endif()
 if (OPENDAQ_ENABLE_NATIVE_STREAMING)
     set(NATIVE_STREAMING_ENABLE_TLS ${OPENDAQ_ENABLE_NATIVE_STREAMING_WITH_TLS} CACHE BOOL "" FORCE)
 
+    # No compile definition of openDAQ's own: the code keys off NATIVE_STREAMING_ENABLE_TLS, which the
+    # library exports to whatever links it
     if (OPENDAQ_ENABLE_NATIVE_STREAMING_WITH_TLS)
         message(STATUS "Native streaming TLS channel enabled")
-        add_compile_definitions(OPENDAQ_ENABLE_NATIVE_STREAMING_WITH_TLS)
     else()
         message(STATUS "Native streaming TLS channel disabled (no OpenSSL dependency)")
     endif()

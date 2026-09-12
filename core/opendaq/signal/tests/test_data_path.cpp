@@ -758,46 +758,50 @@ TEST_F(DataPathTest, StressSendVariantsUnderChurn)
     const auto sigDesc = plainDescriptor(SampleType::Int64);
     const auto signal = makeSignal(sigDesc);
 
+    // Fixed count: an open-ended producer outruns the bursty drains below and the queue grows by gigabytes.
+    constexpr int64_t iterations = 50000;
     std::atomic<int64_t> sent{0};
-    BackgroundLoop producer(
-        [&, i = 0]() mutable
+    std::thread producer(
+        [&]
         {
-            switch (i % 4)
+            for (int64_t i = 0; i < iterations; ++i)
             {
-                case 0:  // single, by const ref
+                switch (i % 4)
                 {
-                    auto p = DataPacket(sigDesc, 4);
-                    signal.sendPacket(p);
-                    break;
+                    case 0:  // single, by const ref
+                    {
+                        auto p = DataPacket(sigDesc, 4);
+                        signal.sendPacket(p);
+                        break;
+                    }
+                    case 1:  // multiple, by const ref
+                    {
+                        auto list = List<IPacket>();
+                        list.pushBack(DataPacket(sigDesc, 4));
+                        list.pushBack(DataPacket(sigDesc, 4));
+                        signal.sendPackets(list);
+                        break;
+                    }
+                    case 2:  // single, steal ref (rvalue overload)
+                        signal.sendPacket(DataPacket(sigDesc, 4));
+                        break;
+                    case 3:  // multiple, steal ref
+                    {
+                        auto list = List<IPacket>();
+                        list.pushBack(DataPacket(sigDesc, 4));
+                        list.pushBack(DataPacket(sigDesc, 4));
+                        signal.sendPackets(std::move(list));
+                        break;
+                    }
                 }
-                case 1:  // multiple, by const ref
-                {
-                    auto list = List<IPacket>();
-                    list.pushBack(DataPacket(sigDesc, 4));
-                    list.pushBack(DataPacket(sigDesc, 4));
-                    signal.sendPackets(list);
-                    break;
-                }
-                case 2:  // single, steal ref (rvalue overload)
-                    signal.sendPacket(DataPacket(sigDesc, 4));
-                    break;
-                case 3:  // multiple, steal ref
-                {
-                    auto list = List<IPacket>();
-                    list.pushBack(DataPacket(sigDesc, 4));
-                    list.pushBack(DataPacket(sigDesc, 4));
-                    signal.sendPackets(std::move(list));
-                    break;
-                }
+                sent.fetch_add(1, std::memory_order_relaxed);
             }
-            ++i;
-            sent.fetch_add(1, std::memory_order_relaxed);
         });
 
     while (sent.load(std::memory_order_relaxed) == 0)
         std::this_thread::yield();
 
-    for (int round = 0; round < 150; ++round)
+    for (int round = 0; round < 150 || sent.load(std::memory_order_relaxed) < iterations; ++round)
     {
         auto ep = attach(signal);
         for (int d = 0; d < 20; ++d)
@@ -806,7 +810,7 @@ TEST_F(DataPathTest, StressSendVariantsUnderChurn)
     }
 
     producer.join();
-    ASSERT_GT(sent.load(), 0);
+    ASSERT_EQ(sent.load(), iterations);
 }
 
 // ===== Tier 2: semantic edges of the new designs =====

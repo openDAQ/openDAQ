@@ -4,6 +4,7 @@
 #include <chrono>
 #include <thread>
 #include <future>
+#include <memory>
 #include <opendaq/work_factory.h>
 
 #include <opendaq/logger_factory.h>
@@ -195,6 +196,45 @@ TEST_F(SchedulerTestCommon, StartsAndStopsFromWork)
     scheduler.scheduleWorkOnMainLoop(work);
     scheduler.runMainLoop();
     ASSERT_TRUE(called);
+}
+
+// A callback can drop the last reference to the scheduler, which is then destroyed on one of its
+// own workers. That release has to return: an executor waiting for the task that is destroying it
+// never finishes.
+TEST_F(SchedulerTestCommon, LastReferenceReleasedFromWorker)
+{
+    using namespace std::chrono_literals;
+
+    const auto logger = Logger();
+
+    std::promise<void> mainReleased;
+    auto mainReleasedFuture = mainReleased.get_future().share();
+    std::promise<void> workerReleased;
+    auto workerReleasedFuture = workerReleased.get_future();
+
+    // dies with the callback, i.e. once the worker has finished the task
+    auto token = std::make_shared<int>(0);
+    std::weak_ptr<int> callbackAlive = token;
+
+    {
+        auto scheduler = Scheduler(logger, 2);
+        auto work = Work([scheduler, token = std::move(token), mainReleasedFuture, &workerReleased]() mutable
+        {
+            mainReleasedFuture.wait();
+            scheduler.release();  // the last reference: ~SchedulerImpl runs on this worker
+            workerReleased.set_value();
+        });
+        scheduler.scheduleWork(work);
+    }
+    mainReleased.set_value();
+
+    ASSERT_EQ(workerReleasedFuture.wait_for(5s), std::future_status::ready)
+        << "destroying the scheduler from its own worker deadlocked";
+
+    const auto deadline = std::chrono::steady_clock::now() + 5s;
+    while (!callbackAlive.expired() && std::chrono::steady_clock::now() < deadline)
+        std::this_thread::sleep_for(1ms);
+    ASSERT_TRUE(callbackAlive.expired());
 }
 
 TEST_F(SchedulerTestCommon, ExecutesOneTimeWorkWithTimeLoop)

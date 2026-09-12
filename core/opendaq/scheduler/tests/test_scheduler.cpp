@@ -198,9 +198,7 @@ TEST_F(SchedulerTestCommon, StartsAndStopsFromWork)
     ASSERT_TRUE(called);
 }
 
-// A callback can drop the last reference to the scheduler, which is then destroyed on one of its
-// own workers. That release has to return: an executor waiting for the task that is destroying it
-// never finishes.
+// Releasing the last reference from a work callback destroys the scheduler on its own worker.
 TEST_F(SchedulerTestCommon, LastReferenceReleasedFromWorker)
 {
     using namespace std::chrono_literals;
@@ -212,7 +210,7 @@ TEST_F(SchedulerTestCommon, LastReferenceReleasedFromWorker)
     std::promise<void> workerReleased;
     auto workerReleasedFuture = workerReleased.get_future();
 
-    // dies with the callback, i.e. once the worker has finished the task
+    // destroyed with the callback, once the worker is done with the task
     auto token = std::make_shared<int>(0);
     std::weak_ptr<int> callbackAlive = token;
 

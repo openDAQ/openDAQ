@@ -209,8 +209,7 @@ ErrCode SchedulerImpl::stop()
     LOGP_T("Stopping scheduler")
     if (executor && executor->this_worker_id() != -1)
     {
-        // Destroyed by one of its own workers (a scheduled callback released the last reference to
-        // the context): the executor cannot join the calling thread, so let another thread do it.
+        // Running on one of the executor's own workers, which it cannot join: another thread destroys it.
         std::thread([executor = std::move(executor)]() mutable { executor.reset(); }).detach();
     }
     else

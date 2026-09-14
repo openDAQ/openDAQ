@@ -64,10 +64,7 @@ opendaq_target_pch(${TEST_APP}
 set_source_files_properties(test_app.cpp PROPERTIES SKIP_UNITY_BUILD_INCLUSION ON)
 opendaq_target_unity_tests(${TEST_APP} BATCH_SIZE 4)
 
-add_test(NAME ${TEST_APP}
-    COMMAND $<TARGET_FILE_NAME:${TEST_APP}>
-    WORKING_DIRECTORY $<TARGET_FILE_DIR:${TEST_APP}>
-)
+opendaq_add_sharded_test(${TEST_APP} 8)
 
 if (MSVC)
     target_compile_options(${TEST_APP} PRIVATE /bigobj)

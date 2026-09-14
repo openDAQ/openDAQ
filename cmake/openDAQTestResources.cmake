@@ -53,3 +53,18 @@ function(opendaq_lock_external_module_tests)
         opendaq_test_resource_lock(test_ws_stream_srv_module network_lt DIRECTORY ${LT}/modules/websocket_streaming_server_module/tests)
     endif()
 endfunction()
+
+# Registers a test binary as COUNT ctest entries that each run one GoogleTest shard of it, so that ctest -j
+# runs the binary's tests side by side. Only for binaries whose tests share no machine-wide resource, such
+# as a port or the mDNS namespace, since the shards run at the same time.
+function(opendaq_add_sharded_test TEST_APP COUNT)
+    math(EXPR LAST_SHARD "${COUNT} - 1")
+    foreach(SHARD RANGE ${LAST_SHARD})
+        add_test(NAME ${TEST_APP}_${SHARD}
+                 COMMAND $<TARGET_FILE_NAME:${TEST_APP}>
+                 WORKING_DIRECTORY $<TARGET_FILE_DIR:${TEST_APP}>
+        )
+        set_tests_properties(${TEST_APP}_${SHARD} PROPERTIES
+                             ENVIRONMENT "GTEST_TOTAL_SHARDS=${COUNT};GTEST_SHARD_INDEX=${SHARD}")
+    endforeach()
+endfunction()

@@ -39,6 +39,8 @@ class BlockView(ttk.Frame):
         self.channel_img = None
         self.function_block_img = None
         self.folder_img = None
+        self.server_img = None
+        self.input_port_img = None
         self.component_img = None
         self.sync_component_img = None
 
@@ -56,6 +58,10 @@ class BlockView(ttk.Frame):
                 self.function_block_img = context.icons['function_block']
             if 'folder' in context.icons:
                 self.folder_img = context.icons['folder']
+            if 'server' in context.icons:
+                self.server_img = context.icons['server']
+            if 'input_port' in context.icons:
+                self.input_port_img = context.icons['input_port']
             if 'circle' in context.icons:
                 self.component_img = context.icons['circle']
             if 'link' in context.icons:
@@ -97,7 +103,7 @@ class BlockView(ttk.Frame):
                 self.output_signals.pack(fill=tk.X)
                     
                 self.label_icon.config(image=self.device_img)
-                self.edit_button.pack_configure(padx=(6, 19))
+                self.edit_button.pack_configure(padx=(6, 27))
                 
                 self.cols = [0, 1]
                 self.rows = [0]
@@ -188,11 +194,21 @@ class BlockView(ttk.Frame):
                 
                 self._bind_mousewheel_recursive(self.right_stack)
                 
+            elif daq.IServer.can_cast_from(self.node):
+                self.node = daq.IServer.cast_from(self.node)
+                self.properties = PropertiesView(
+                    self.expanded_frame, self.node, self.context)
+                self.label_icon.config(image=self.server_img)
+                self.cols = [0]
+                self.rows = [0]
             elif daq.IFolder.can_cast_from(self.node):
                 self.node = daq.IFolder.cast_from(self.node)
                 self.properties = PropertiesView(
                     self.expanded_frame, self.node, self.context)
-                self.label_icon.config(image=self.folder_img)
+                if self.node.name == 'IP':
+                    self.label_icon.config(image=self.input_port_img)
+                else:
+                    self.label_icon.config(image=self.folder_img)
                 self.cols = [0]
                 self.rows = [0]
             elif daq.ISyncComponent.can_cast_from(self.node):
@@ -200,7 +216,7 @@ class BlockView(ttk.Frame):
                 self.properties = PropertiesView(
                     self.expanded_frame, self.node, self.context)
                 self.label_icon.config(image=self.sync_component_img)
-                self.edit_button.pack_configure(padx=(6, 10))
+                self.edit_button.pack_configure(padx=(6, 27))
                 self.cols = [0]
                 self.rows = [0]
             elif daq.ISignal.can_cast_from(self.node):

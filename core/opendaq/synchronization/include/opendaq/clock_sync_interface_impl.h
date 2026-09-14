@@ -27,8 +27,7 @@ public:
 
     explicit ClockSyncInterfaceImpl(const TypeManagerPtr& manager);
 
-    ErrCode INTERFACE_FUNC getClockType(IString** clockType) override;
-
+    ErrCode INTERFACE_FUNC getSyncType(IString** syncType) override;
 };
 
 END_NAMESPACE_OPENDAQ

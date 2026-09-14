@@ -36,6 +36,9 @@ public:
                                   const std::string& remoteGlobalId,
                                   const TypeManagerPtr& manager);
 
+    // ISyncInterface
+    ErrCode INTERFACE_FUNC getSyncType(IString** syncType) override;
+
     // IPropertyObject
     ErrCode INTERFACE_FUNC setPropertyValue(IString* propertyName, IBaseObject* value) override;
     ErrCode INTERFACE_FUNC setProtectedPropertyValue(IString* propertyName, IBaseObject* value) override;
@@ -56,6 +59,8 @@ protected:
     void handleRemoteCoreObjectInternal(const ComponentPtr& sender, const CoreEventArgsPtr& args) override;
 private:
     void statusChanged(const CoreEventArgsPtr& args);
+
+    StringPtr syncType;
 };
 
 } // namespace daq::config_protocol

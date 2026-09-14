@@ -56,7 +56,9 @@ class AttributesTreeview(ttk.Treeview):
         utils.treeview_select_item(self, event)
 
         menu = tk.Menu(self, tearoff=0)
-        menu.add_command(label='Copy', command=lambda: self.handle_copy())
+        menu.add_command(label='Copy',
+                         image=self.context.menu_icon('copy'), compound=tk.LEFT,
+                         command=lambda: self.handle_copy())
         menu.tk_popup(event.x_root, event.y_root)
 
     def handle_double_click(self):
@@ -202,7 +204,7 @@ class AttributesTreeview(ttk.Treeview):
         # for user to see property value without expanding the tree
         if isinstance(value, daq.IProperty):
             display_value = value.value
-            if value.value_type == daq.CoreType.ctBool:
+            if value.property_type == daq.PropertyType.Bool:
                 display_value = utils.yes_no[display_value]
         else:
             display_value = utils.metadata_converters[key](

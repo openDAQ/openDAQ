@@ -11,10 +11,10 @@ SynchronizationImpl::SynchronizationImpl(const TypeManagerPtr& manager)
     source.asPtr<ISyncInterfaceInternal>(true).setAsSource(true);
 
     auto interfaces = PropertyObject();
-    interfaces.addProperty(ObjectProperty(source.getName(), source));
+    interfaces.addProperty(ObjectProperty(source.getId(), source));
     this->addProperty(ObjectProperty("Interfaces", interfaces));
 
-    const auto souceProperty = StringPropertyBuilder("Source", source.getName())
+    const auto souceProperty = StringPropertyBuilder("Source", source.getId())
                                                         .setSelectionValues(EvalValue("%Interfaces:PropertyNames"))
                                                         .build();
     this->addProperty(souceProperty);
@@ -45,7 +45,7 @@ ErrCode SynchronizationImpl::addInterface(ISyncInterface* syncInterface)
 
         const PropertyObjectPtr interfacesProperty = this->objPtr.getPropertyValue("Interfaces");
 
-        interfacesProperty.addProperty(ObjectProperty(interfacePtr.getName(), interfacePtr));
+        interfacesProperty.addProperty(ObjectProperty(interfacePtr.getId(), interfacePtr));
     });
 }
 
@@ -54,6 +54,10 @@ void SynchronizationImpl::onSourceChanged(const StringPtr& sourceName)
     auto lock = this->getRecursiveConfigLock2();
     const PropertyObjectPtr interfacesProperty = this->objPtr.getPropertyValue("Interfaces");
     SyncInterfacePtr newSource = interfacesProperty.getPropertyValue(sourceName);
+
+    if (!newSource.canBeSource())
+        DAQ_THROW_EXCEPTION(InvalidOperationException, "Sync interface \"{}\" can not be selected as source", sourceName);
+
     SyncInterfacePtr oldSource = source;
     const auto oldSourceMode = oldSource.getMode();
 

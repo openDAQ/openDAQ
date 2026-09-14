@@ -38,7 +38,7 @@ class DataDescriptorTreeview(ttk.Treeview):
         # for user to see property value without expanding the tree
         if isinstance(value, daq.IProperty):
             display_value = value.value
-            if value.value_type == daq.CoreType.ctBool:
+            if value.property_type == daq.PropertyType.Bool:
                 display_value = utils.yes_no[display_value]
         else:
             display_value = utils.metadata_converters[key](

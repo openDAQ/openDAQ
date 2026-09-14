@@ -7,10 +7,10 @@ ClockSyncInterfaceImpl::ClockSyncInterfaceImpl(const TypeManagerPtr& manager)
 {
 }
 
-ErrCode ClockSyncInterfaceImpl::getClockType(IString** clockType)
+ErrCode ClockSyncInterfaceImpl::getSyncType(IString** syncType)
 {
-    OPENDAQ_PARAM_NOT_NULL(clockType);
-    *clockType = String("Internal").detach();
+    OPENDAQ_PARAM_NOT_NULL(syncType);
+    *syncType = String("local").detach();
     return OPENDAQ_SUCCESS;
 }
 

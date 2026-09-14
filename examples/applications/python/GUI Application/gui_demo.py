@@ -29,6 +29,7 @@ try:
     from gui_demo.components.add_function_block_dialog import AddFunctionBlockDialog
     from gui_demo.components.load_instance_config_dialog import LoadInstanceConfigDialog
     from gui_demo.components.synchronization_dialog import SynchronizationDialog
+    from gui_demo.components.logs_dialog import LogsDialog
     from gui_demo.app_context import AppContext
     from gui_demo import utils
     from gui_demo.event_port import EventPort
@@ -40,6 +41,7 @@ except Exception as e:
     from opendaq.gui_demo.components.add_function_block_dialog import AddFunctionBlockDialog
     from opendaq.gui_demo.components.load_instance_config_dialog import LoadInstanceConfigDialog
     from opendaq.gui_demo.components.synchronization_dialog import SynchronizationDialog
+    from opendaq.gui_demo.components.logs_dialog import LogsDialog
     from opendaq.gui_demo.app_context import AppContext
     from opendaq.gui_demo import utils
     from opendaq.gui_demo.event_port import EventPort
@@ -99,6 +101,7 @@ class App(tk.Tk):
 
         self.context = AppContext(context_params)
         self.event_port = EventPort(self, event_callback=self.on_refresh_event)
+        self.tree_search_query = ''
 
         self.context.ui_scaling_factor = int(args.scale)
         self.context.include_reference_devices = bool(args.demo)
@@ -118,31 +121,18 @@ class App(tk.Tk):
             int(1500 * self.context.ui_scaling_factor * self.context.dpi_factor),
             int(800 * self.context.ui_scaling_factor * self.context.dpi_factor)))
 
-        main_frame_top = ttk.Frame(self)
-        main_frame_top.pack(fill=tk.X)
+        self.context.load_icons(os.path.join(
+            os.path.dirname(__file__), 'gui_demo', 'icons'))
 
         self.menu_bar_create()
-
-        add_device_button = ttk.Button(
-            main_frame_top, text='Add device', command=self.handle_add_device_button_clicked)
-        add_device_button.pack(side=tk.LEFT, padx=5)
-
-        add_function_block_button = ttk.Button(
-            main_frame_top, text='Add function block', command=self.handle_add_function_block_button_clicked)
-        add_function_block_button.pack(side=tk.LEFT, padx=5)
-        
-        add_server_button = ttk.Button(
-            main_frame_top, text='Add server', command=self.handle_add_server_button_clicked)
-        add_server_button.pack(side=tk.LEFT, padx=5)
-
-        refresh_button = ttk.Button(
-            main_frame_top, text='Refresh', command=self.handle_refresh_button_clicked)
-        refresh_button.pack(side=tk.LEFT, padx=5)
 
         main_frame_bottom = ttk.Frame(self)
         main_frame_bottom.pack(fill=tk.BOTH, expand=True)
 
-        nb = ttk.Notebook(main_frame_bottom)
+        nb_row = ttk.Frame(main_frame_bottom)
+        nb_row.pack(fill=tk.X)
+
+        nb = ttk.Notebook(nb_row)
         nb.add(ttk.Frame(nb), text='System Overview')
         nb.add(ttk.Frame(nb), text='Signals')
         nb.add(ttk.Frame(nb), text='Channels')
@@ -150,8 +140,16 @@ class App(tk.Tk):
         nb.add(ttk.Frame(nb), text='Full Topology')
         nb.add(ttk.Frame(nb), text='Modules')
         nb.bind('<<NotebookTabChanged>>', self.on_tab_change)
-        nb.pack(fill=tk.X)
+        nb.pack(fill=tk.X, side=tk.LEFT, expand=True)
         self.nb = nb
+
+        refresh_button = self.toolbar_button_create(
+            nb_row, 'refresh', self.handle_refresh_button_clicked)
+        refresh_button.pack(side=tk.RIGHT, padx=(0, 5))
+
+        logs_button = self.toolbar_button_create(
+            nb_row, 'logs', self.logs_dialog_show)
+        logs_button.pack(side=tk.RIGHT)
 
         main_frame_navigator = ttk.PanedWindow(
             main_frame_bottom, orient=tk.HORIZONTAL)
@@ -194,9 +192,6 @@ class App(tk.Tk):
         default_font = tkfont.nametofont('TkDefaultFont')
         default_font.configure(size=9 * self.context.ui_scaling_factor)
 
-        self.context.load_icons(os.path.join(
-            os.path.dirname(__file__), 'gui_demo', 'icons'))
-
         self.init_opendaq()
 
         if args.config != '':
@@ -232,6 +227,31 @@ class App(tk.Tk):
         self.tree_update()
 
     # MARK: - Menu bar
+    # MARK: - Toolbar
+    def toolbar_button_create(self, parent, icon, command=None):
+        background = (ttk.Style().lookup('TFrame', 'background')
+                      or self.cget('background'))
+        hover = self.darken_color(background)
+        pressed = self.darken_color(background, 0.7)
+
+        size = self.context.menu_icon(icon).width() + 8
+        button = tk.Label(parent, image=self.context.menu_icon(icon), bd=0,
+                          width=size, height=size, cursor='hand2',
+                          background=background)
+
+        def on_release(event):
+            inside = (0 <= event.x < button.winfo_width()
+                      and 0 <= event.y < button.winfo_height())
+            button.configure(background=hover if inside else background)
+            if inside and command is not None:
+                command()
+
+        button.bind('<Enter>', lambda e: button.configure(background=hover))
+        button.bind('<Leave>', lambda e: button.configure(background=background))
+        button.bind('<Button-1>', lambda e: button.configure(background=pressed))
+        button.bind('<ButtonRelease-1>', on_release)
+        return button
+
     def menu_bar_create(self):
         menu_bar = tk.Menu(self)
         self.config(menu=menu_bar)
@@ -239,13 +259,18 @@ class App(tk.Tk):
         file_menu = tk.Menu(menu_bar, tearoff=0)
         menu_bar.add_cascade(label='File', menu=file_menu)
         file_menu.add_command(label='Load configuration',
+                              image=self.context.menu_icon('load_config'), compound=tk.LEFT,
                               command=self.handle_load_config_button_clicked)
         file_menu.add_command(label='Save configuration',
+                              image=self.context.menu_icon('save_config'), compound=tk.LEFT,
                               command=self.handle_save_config_button_clicked)
         file_menu.add_command(label='Load module',
+                              image=self.context.menu_icon('load_module'), compound=tk.LEFT,
                               command=self.handle_load_modules_button_clicked)
         file_menu.add_separator()
-        file_menu.add_command(label='Exit', command=self.quit)
+        file_menu.add_command(label='Exit',
+                              image=self.context.menu_icon('exit_app'), compound=tk.LEFT,
+                              command=self.quit)
 
         view_menu = tk.Menu(menu_bar, tearoff=0)
         menu_bar.add_cascade(label='View', menu=view_menu)
@@ -268,6 +293,33 @@ class App(tk.Tk):
     def tree_widget_create(self, parent_frame):
         frame = ttk.Frame(parent_frame)
 
+        search_frame = ttk.Frame(frame)
+        search_frame.pack(fill=tk.X, side=tk.TOP)
+
+        # leave room on the right for the clear cross drawn inside the entry
+        entry_style = ttk.Style()
+        entry_style.configure('Search.TEntry', padding=(2, 2, 24, 2))
+
+        search_entry = ttk.Entry(search_frame, style='Search.TEntry', takefocus=False)
+        search_entry.pack(fill=tk.X, padx=(0,16), pady=(0,4), ipady=2)
+        self.tree_search_default_foreground = search_entry.cget('foreground')
+        search_entry.insert(0, "Filter tree by name, tag or local id")
+        search_entry.configure(foreground='gray')
+        search_entry.bind('<FocusIn>', self.handle_tree_search_focus_in)
+        search_entry.bind('<FocusOut>', self.handle_tree_search_focus_out)
+        search_entry.bind('<KeyRelease>', self.handle_tree_search_changed)
+        search_entry.bind('<Escape>', self.handle_tree_search_clear)
+        self.tree_search_entry = search_entry
+
+        clear_label = tk.Label(search_frame, text='×', bd=0, padx=4, cursor='hand2',
+                               font=('TkDefaultFont', 12), background='white',
+                               foreground='gray30')
+        clear_label.place(in_=search_entry, relx=1.0, rely=0.5, anchor=tk.E, x=-4)
+        clear_label.bind('<Button-1>', self.handle_tree_search_clear)
+        clear_label.bind('<Enter>', lambda e: clear_label.configure(background='gray85'))
+        clear_label.bind('<Leave>', lambda e: clear_label.configure(background='white'))
+        self.tree_search_clear_label = clear_label
+
         # define columns
         tree = ttk.Treeview(frame, columns=('name', 'hash'), displaycolumns=(
             'name'), show='tree', selectmode=tk.BROWSE)
@@ -284,11 +336,15 @@ class App(tk.Tk):
         tree.bind('<Button-3>', self.handle_tree_right_button)
         tree.bind('<Button-1>', self.handle_tree_click)
         tree.bind('<Double-1>', self._block_indicator_double_click)
+        tree.bind('<MouseWheel>', self.handle_tree_mousewheel, add='+')
 
         # add a scrollbar
         scroll_bar = ttk.Scrollbar(
             frame, orient=tk.VERTICAL, command=tree.yview)
-        tree.configure(yscroll=scroll_bar.set)
+        tree.configure(yscroll=lambda *a: (
+            scroll_bar.set(*a), self.after_idle(self.tree_row_buttons_sync)))
+        tree.bind('<Configure>',
+                  lambda e: self.after_idle(self.tree_row_buttons_sync), add='+')
         scroll_bar.pack(fill=tk.Y, side=tk.RIGHT)
 
         parent_frame.add(frame)
@@ -297,7 +353,142 @@ class App(tk.Tk):
         tree.tag_configure('inactive', foreground='gray')
         self.tree = tree
 
+        # row action buttons, laid out from the right edge of the hovered row
+        tree_style = ttk.Style()
+        self.tree_row_background = tree_style.lookup(
+            'Treeview', 'background') or 'white'
+        self.tree_row_selected_background = tree_style.lookup(
+            'Treeview', 'background', ['selected']) or self.tree_row_background
+        self.tree_row_background_hover = self.darken_color(self.tree_row_background)
+        self.tree_row_selected_background_hover = self.darken_color(
+            self.tree_row_selected_background)
+
+        plus_icon = self.context.icons['plus']
+        self.tree_row_button_size = max(plus_icon.width(), plus_icon.height())
+        self.tree_row_button_hovered = None
+        self.tree_row_button_pool = []
+        self.tree_row_button_rows = {}
+        self.tree_row_can_add_rows = {}
+        self.tree_row_menu_open = False
+
+        tree.bind('<<TreeviewSelect>>',
+                  lambda e: self.tree_row_buttons_recolor(), add='+')
+        tree.bind('<<TreeviewOpen>>',
+                  lambda e: self.after_idle(self.tree_row_buttons_sync), add='+')
+        tree.bind('<<TreeviewClose>>',
+                  lambda e: self.after_idle(self.tree_row_buttons_sync), add='+')
+
+    def handle_tree_search_focus_in(self, event):
+        if self.tree_search_entry.get() == "Filter tree by name, tag or local id":
+            self.tree_search_entry.delete(0, tk.END)
+            self.tree_search_entry.configure(
+                foreground=self.tree_search_default_foreground)
+
+    def handle_tree_search_focus_out(self, event):
+        if not self.tree_search_entry.get():
+            self.tree_search_entry.insert(0, "Filter tree by name, tag or local id")
+            self.tree_search_entry.configure(foreground='gray')
+
+    def handle_tree_search_changed(self, event=None):
+        text = self.tree_search_entry.get()
+        if text == "Filter tree by name, tag or local id":
+            text = ''
+        query = text.strip().lower()
+        if query == self.tree_search_query:
+            return
+        self.tree_search_query = query
+        self.tree_update(self.context.selected_node)
+
+    def handle_tree_search_clear(self, event=None):
+        self.tree_search_entry.delete(0, tk.END)
+        self.tree_search_entry.configure(
+            foreground=self.tree_search_default_foreground)
+        self.handle_tree_search_changed()
+        # hand the focus to the tree, not the toplevel, so it cannot land back here
+        self.tree.focus_set()
+        self.handle_tree_search_focus_out(None)
+
+    def tree_item_matches_search(self, iid, query):
+        if query in self.tree.item(iid, 'text').lower():
+            return True
+
+        component = self.context.nodes.get(iid)
+        if component is None:
+            return False
+
+        for getter in (lambda: component.name, lambda: component.local_id):
+            try:
+                if query in str(getter()).lower():
+                    return True
+            except Exception:
+                pass
+
+        try:
+            for tag in component.tags.list:
+                if query in str(tag).lower():
+                    return True
+        except Exception:
+            pass
+
+        return False
+
+    def tree_apply_search_filter(self):
+        query = self.tree_search_query
+        if not query:
+            return
+
+        matches = []
+
+        def collect(parent):
+            for iid in self.tree.get_children(parent):
+                if self.tree_item_matches_search(iid, query):
+                    matches.append(iid)
+                else:
+                    collect(iid)
+
+        collect('')
+        match_set = set(matches)
+
+        def prune(parent):
+            kept = False
+            for iid in self.tree.get_children(parent):
+                if iid in match_set:
+                    kept = True
+                elif prune(iid):
+                    self.tree.item(iid, open=True)
+                    kept = True
+                else:
+                    self.tree.delete(iid)
+            return kept
+
+        prune('')
+
+        roots = []
+        for iid in matches:
+            row = self.tree_nearest_device_row(iid) or iid
+            if row not in roots:
+                roots.append(row)
+
+        for iid in roots:
+            self.tree.move(iid, '', tk.END)
+
+        root_set = set(roots)
+        for iid in self.tree.get_children(''):
+            if iid not in root_set:
+                self.tree.delete(iid)
+
+    def tree_nearest_device_row(self, iid):
+        parent = self.tree.parent(iid)
+        while parent:
+            component = self.context.nodes.get(parent)
+            if component is not None and daq.IDevice.can_cast_from(component):
+                return parent
+            parent = self.tree.parent(parent)
+        return None
+
     def tree_update(self, new_selected_node=None):
+        self.tree_row_buttons_hide(self.tree_row_button_pool)
+        self.tree_row_can_add_rows.clear()
         self.tree.delete(*self.tree.get_children())
         self.right_side_panel_clear()
 
@@ -320,15 +511,19 @@ class App(tk.Tk):
                 self.tree.insert('', tk.END, iid=mod_id,
                                  text=self._format_tree_item_text(display_name), open=False)
                 self.modules_map[mod_id] = mod
+            self.tree_apply_search_filter()
+            self.after_idle(self.tree_row_buttons_sync)
             return
 
         self.tree_traverse_components_recursive(
             self.context.instance, self.current_tab())
+        self.tree_apply_search_filter()
         self.tree_restore_selection(
             self.context.selected_node)  # reset in case the selected node outdates
         self.set_node_update_status()
         self.set_node_lock_status()
         self.set_node_active_status()
+        self.after_idle(self.tree_row_buttons_sync)
 
     def tree_traverse_components_recursive(
             self, component, display_type=DisplayType.UNSPECIFIED, tree_parent_id=None):
@@ -422,6 +617,8 @@ class App(tk.Tk):
             icon = self.context.icons['input_port']
         elif daq.IDevice.can_cast_from(component):
             icon = self.context.icons['device']
+        elif daq.IServer.can_cast_from(component):
+            icon = self.context.icons['server']
         elif daq.IFolder.can_cast_from(component):
             icon = self.context.icons['folder']
             component_name = self.get_component_tree_name(component)
@@ -550,7 +747,9 @@ class App(tk.Tk):
 
         # if component is alive and in treeview
         if node and self.tree.exists(desired_iid):
-            if desired_iid != current_iid:  # if component is not already selected
+            if self._is_default_folder(desired_iid):
+                self.tree.selection_set('')
+            elif desired_iid != current_iid:  # if component is not already selected
                 self.tree.selection_set(desired_iid)
                 self.tree.focus(desired_iid)
                 self.tree.see(desired_iid)
@@ -566,9 +765,20 @@ class App(tk.Tk):
         self.right_side_panel = sframe
         self.right_side_canvas = None
 
+    # MARK: - Logs dialog
+    def logs_dialog_show(self):
+        dialog = getattr(self, 'logs_dialog', None)
+        if dialog is not None and dialog.winfo_exists():
+            dialog.deiconify()
+            dialog.lift()
+            dialog.focus_set()
+            return
+        self.logs_dialog = LogsDialog(self, self.context)
+        self.logs_dialog.show_modeless()
+
     # MARK: - Add device dialog
-    def add_device_dialog_show(self):
-        dialog = AddDeviceDialog(self, self.context, None)
+    def add_device_dialog_show(self, component=None):
+        dialog = AddDeviceDialog(self, self.context, component)
         dialog.show()
 
     # MARK: - Add function block dialog
@@ -674,77 +884,268 @@ class App(tk.Tk):
             self.tree.item(iid, open=not self.tree.item(iid, 'open'))
             return 'break'
 
-    def create_property_object_menu(self, node):
+    def darken_color(self, color, factor=0.85):
+        return '#%04x%04x%04x' % tuple(
+            int(value * factor) for value in self.winfo_rgb(color))
+
+    # buttons are ordered right to left along the row
+    TREE_ROW_ACTIONS = ('more', 'add')
+
+    def tree_row_buttons_create(self, tree):
+        handlers = {'add': self.handle_tree_add_button_clicked,
+                    'more': self.handle_tree_more_button_clicked}
+        icons = {'add': 'plus', 'more': 'dots'}
+
+        buttons = {}
+        for name in self.TREE_ROW_ACTIONS:
+            button = tk.Label(tree, image=self.context.icons[icons[name]], bd=0,
+                              cursor='hand2', background=self.tree_row_background)
+            button.bind('<Button-1>', handlers[name])
+            button.bind('<Enter>', self.handle_tree_row_button_enter)
+            button.bind('<Leave>', self.handle_tree_row_button_leave)
+            buttons[name] = button
+        return buttons
+
+    def tree_row_button_color(self, button, iid):
+        # the label cannot be transparent, so it has to carry the row's own colour,
+        # darkened while the pointer is on it
+        hovered = button is self.tree_row_button_hovered
+        if iid in self.tree.selection():
+            color = (self.tree_row_selected_background_hover if hovered
+                     else self.tree_row_selected_background)
+        else:
+            color = (self.tree_row_background_hover if hovered
+                     else self.tree_row_background)
+        button.configure(background=color)
+
+    def tree_row_actions(self, iid):
+        if iid not in self.tree_row_can_add_rows:
+            self.tree_row_can_add_rows[iid] = bool(
+                self.menu_add_items(self.context.nodes.get(iid)))
+
+        actions = ['add'] if self.tree_row_can_add_rows[iid] else []
+        if iid == self.tree_root_row_iid():
+            actions.append('more')
+        return actions
+
+    def tree_row_buttons_place(self, buttons, iid):
+        _, row_y, _, row_height = self.tree.bbox(iid)
+        actions = self.tree_row_actions(iid)
+        size = self.tree_row_button_size
+        y = row_y + max(0, (row_height - size) // 2)
+        x = self.tree.winfo_width() - size - 4
+
+        for name in self.TREE_ROW_ACTIONS:
+            button = buttons[name]
+            if name not in actions:
+                button.place_forget()
+                continue
+            button.place(x=x, y=y, width=size, height=size)
+            button.lift()
+            self.tree_row_button_rows[button] = iid
+            self.tree_row_button_color(button, iid)
+            x -= size + 2
+
+    def tree_row_buttons_hide(self, pool):
+        for buttons in pool:
+            for button in buttons.values():
+                button.place_forget()
+        self.tree_row_button_rows.clear()
+
+    def tree_row_buttons_recolor(self):
+        for button, iid in self.tree_row_button_rows.items():
+            self.tree_row_button_color(button, iid)
+
+    def tree_root_row_iid(self):
+        """The instance row, the only row that carries the three dots."""
+        instance = self.context.instance
+        if instance is None or self.current_tab() == DisplayType.MODULES:
+            return None
+        iid = instance.global_id
+        return iid if self.tree.exists(iid) else None
+
+    def tree_visible_rows(self):
+        stack = list(reversed(self.tree.get_children('')))
+        drawn = False
+        while stack:
+            iid = stack.pop()
+            if self.tree.bbox(iid):
+                drawn = True
+                yield iid
+            elif drawn:
+                return
+            if self.tree.item(iid, 'open'):
+                stack.extend(reversed(self.tree.get_children(iid)))
+
+    def tree_row_buttons_sync(self):
+        if self.tree_row_menu_open:
+            return
+        if self.winfo_containing(
+                *self.winfo_pointerxy()) not in self.tree_row_button_rows:
+            self.tree_row_button_hovered = None
+
+        rows = [iid for iid in self.tree_visible_rows() if self.tree_row_actions(iid)]
+        while len(self.tree_row_button_pool) < len(rows):
+            self.tree_row_button_pool.append(self.tree_row_buttons_create(self.tree))
+
+        self.tree_row_buttons_hide(self.tree_row_button_pool[len(rows):])
+        for buttons, iid in zip(self.tree_row_button_pool, rows):
+            self.tree_row_buttons_place(buttons, iid)
+
+    def handle_tree_mousewheel(self, event):
+        self.after_idle(self.tree_row_buttons_sync)
+
+    def handle_tree_row_button_enter(self, event):
+        self.tree_row_button_hovered = event.widget
+        self.tree_row_buttons_recolor()
+
+    def handle_tree_row_button_leave(self, event):
+        # a popup opening under the cursor also counts as leaving the button
+        if self.tree_row_menu_open:
+            return
+        self.tree_row_button_hovered = None
+        self.tree_row_buttons_recolor()
+
+    def tree_row_button_node(self, button):
+        iid = self.tree_row_button_rows.get(button)
+        return utils.find_component(iid, self.context.instance) if iid else None
+
+    def handle_tree_add_button_clicked(self, event):
+        node = self.tree_row_button_node(event.widget)
+        return self.tree_row_menu_popup(
+            event, self.menu_build([self.menu_add_items(node)]))
+
+    def handle_tree_more_button_clicked(self, event):
+        node = self.tree_row_button_node(event.widget)
+        if node is None:
+            return 'break'
+        return self.tree_row_menu_popup(
+            event, self.create_node_menu(node, include_add=False))
+
+    def tree_row_menu_popup(self, event, popup):
+        if popup.index(tk.END) is None:
+            return 'break'
+
+        self.tree_row_menu_open = True
+        try:
+            popup.tk_popup(event.x_root, event.y_root, 0)
+        finally:
+            popup.grab_release()
+            self.tree_row_menu_open = False
+            self.after(200, self.tree_row_buttons_sync)
+        return 'break'
+
+    # MARK: - Tree view context menus
+    def menu_build(self, groups):
+        """Build a popup from groups of items, with a separator drawn between the
+        groups so that actions sit alongside the others that do the same kind of
+        thing. Empty groups are skipped, no separator is left dangling."""
         popup = tk.Menu(self.tree, tearoff=0)
-
-        popup.add_command(label='Begin update', command=self.handle_begin_update)
-        popup.add_command(label='End update', command=self.handle_end_update)
-        popup.add_command(label='Clear property values', command=lambda: self.handle_tree_clear_property_values(node))
-
+        for group in groups:
+            if not group:
+                continue
+            if popup.index(tk.END) is not None:
+                popup.add_separator()
+            for label, icon, command in group:
+                popup.add_command(label=label, image=self.context.menu_icon(icon),
+                                  compound=tk.LEFT, command=command)
         return popup
 
-    def create_component_menu(self, node):
-        return self.create_property_object_menu(node)
+    def menu_add_items(self, node):
+        """What a component accepts: a function block only takes nested function
+        blocks, a device also takes devices, and only the instance takes servers."""
+        if node is None or self.current_tab() == DisplayType.MODULES:
+            return []
 
-    def create_function_block_menu(self, node):
-        popup = self.create_property_object_menu(node)
+        if daq.IDevice.can_cast_from(node):
+            target, is_device = daq.IDevice.cast_from(node), True
+        elif daq.IFunctionBlock.can_cast_from(node):
+            target, is_device = daq.IFunctionBlock.cast_from(node), False
+        else:
+            return []
 
+        items = []
+        if is_device and self.component_has_types(target, 'available_device_types'):
+            items.append(('Add device', 'device',
+                          lambda: self.add_device_dialog_show(target)))
+        if self.component_has_types(target, 'available_function_block_types'):
+            items.append(('Add function block', 'add_fb',
+                          lambda: self.add_function_block_dialog_show(target)))
+        # only the root device accepts servers, IDevice::onAddServer refuses the rest
+        if is_device and node.global_id == self.context.instance.global_id:
+            items.append(('Add server', 'server',
+                          lambda: self.add_server_dialog_show(target)))
+        return items
+
+    def component_has_types(self, component, attribute):
         try:
-            has_fb_types = bool(node.available_function_block_types)
-        except RuntimeError:
-            has_fb_types = False
-        if has_fb_types:
-            popup.add_command(
-                label='Add Function block',
-                command=lambda: self.add_function_block_dialog_show(node)
-            )
-        if not daq.IChannel.can_cast_from(node):
-            popup.add_command(
-                label='Remove',
-                command=lambda: self.handle_tree_menu_remove_function_block(node)
-            )
+            return bool(getattr(component, attribute))
+        except Exception:
+            return False
 
-        return popup
+    def menu_update_items(self, node):
+        iid = node.global_id if node is not None else None
+        return [('Begin update', 'begin_update',
+                 lambda: self.handle_begin_update(iid)),
+                ('End update', 'end_update',
+                 lambda: self.handle_end_update(iid))]
 
-    def create_device_menu(self, node):
-        popup = self.create_property_object_menu(node)
+    def menu_property_items(self, node):
+        return [('Clear property values', 'clear_values',
+                 lambda: self.handle_tree_clear_property_values(node))]
 
-        popup.add_command(label='Lock', command=self.handle_lock)
-        popup.add_command(label='Unlock', command=self.handle_unlock)
+    def menu_function_block_groups(self, node, add_items):
+        function_block = daq.IFunctionBlock.cast_from(node)
+        # a channel belongs to its device, it cannot be removed on its own
+        remove = [] if daq.IChannel.can_cast_from(node) else [
+            ('Remove', 'trash',
+             lambda: self.handle_tree_menu_remove_function_block(function_block))]
+        return [add_items,
+                self.menu_update_items(node),
+                self.menu_property_items(node),
+                remove]
 
-        if node.synchronization is not None:
-            popup.add_command(
-                label='Get synchronization',
-                command=lambda: self.handle_show_synchronization(node)
-            )
+    def menu_device_groups(self, node, add_items):
+        device = daq.IDevice.cast_from(node)
+        remove = [] if device.global_id == self.context.instance.global_id else [
+            ('Remove', 'trash',
+             lambda: self.handle_tree_menu_remove_device(device))]
+        synchronization = [] if device.synchronization is None else [
+            ('Get synchronization', 'link',
+             lambda: self.handle_show_synchronization(device))]
+        return [add_items,
+                [('Lock', 'lock', lambda: self.handle_lock(device.global_id)),
+                 ('Unlock', 'unlock',
+                  lambda: self.handle_unlock(device.global_id))],
+                self.menu_update_items(node),
+                self.menu_property_items(node),
+                synchronization,
+                remove]
 
-        try:
-            has_fb_types = bool(node.available_function_block_types)
-        except RuntimeError:
-            has_fb_types = False
-        if has_fb_types:
-            popup.add_command(
-                label='Add Function block',
-                command=lambda: self.add_function_block_dialog_show(node)
-            )
+    def menu_server_groups(self, node):
+        server = daq.IServer.cast_from(node)
+        return [[('Enable discovery', 'discovery',
+                  lambda: self.handle_enable_discovery(server)),
+                 ('Disable discovery', 'discovery_off',
+                  lambda: self.handle_disable_discovery(server))],
+                self.menu_update_items(node),
+                self.menu_property_items(node)]
 
-        if node.global_id != self.context.instance.global_id:
-            popup.add_command(
-                label='Remove',
-                command=lambda: self.handle_tree_menu_remove_device(node)
-            )
+    def menu_groups(self, node, include_add=True):
+        """Menu groups for a tree row, add actions first, then state, then removal.
+        include_add is dropped where a plus button already sits beside the menu."""
+        add_items = self.menu_add_items(node) if include_add else []
+        if node is not None:
+            if daq.IFunctionBlock.can_cast_from(node):
+                return self.menu_function_block_groups(node, add_items)
+            if daq.IDevice.can_cast_from(node):
+                return self.menu_device_groups(node, add_items)
+            if daq.IServer.can_cast_from(node):
+                return self.menu_server_groups(node)
+        return [self.menu_update_items(node), self.menu_property_items(node)]
 
-        return popup
-    
-    def create_server_menu(self, node):
-        popup = self.create_property_object_menu(node)
-
-        popup.add_command(label='Enable discovery',
-                          command=lambda: self.handle_enable_discovery(node))
-        popup.add_command(label='Disable discovery',
-                          command=lambda: self.handle_disable_discovery(node))
-
-        return popup
+    def create_node_menu(self, node, include_add=True):
+        return self.menu_build(self.menu_groups(node, include_add))
 
     def handle_enable_discovery(self, node):
         if node is None:
@@ -757,23 +1158,15 @@ class App(tk.Tk):
         node.disable_discovery()
 
     def handle_tree_right_button_release(self, event):
+        if self.current_tab() == DisplayType.MODULES:
+            return
+
         iid = utils.treeview_get_first_selection(self.tree)
+        node = utils.find_component(iid, self.context.instance) if iid else None
 
-        node = None
-        if iid:
-            node = utils.find_component(iid, self.context.instance)
-
-        popup = None
-        if node:
-            if daq.IFunctionBlock.can_cast_from(node):
-                popup = self.create_function_block_menu(daq.IFunctionBlock.cast_from(node))
-            elif daq.IDevice.can_cast_from(node):
-                popup = self.create_device_menu(daq.IDevice.cast_from(node))
-            elif daq.IServer.can_cast_from(node):
-                popup = self.create_server_menu(daq.IServer.cast_from(node))
-
-        if popup is None:
-            popup = self.create_property_object_menu(node)
+        popup = self.create_node_menu(node)
+        if popup.index(tk.END) is None:
+            return
 
         try:
             popup.tk_popup(event.x_root, event.y_root, 0)
@@ -1061,15 +1454,15 @@ class App(tk.Tk):
         return DisplayType.from_tab_index(self.nb.index(
             'current')) if self.nb is not None else DisplayType.UNSPECIFIED
 
-    def handle_begin_update(self):
-        selected_item = utils.treeview_get_first_selection(self.tree)
+    def handle_begin_update(self, iid=None):
+        selected_item = iid or utils.treeview_get_first_selection(self.tree)
         if selected_item:
             self.begin_update_on_node(selected_item)
             self.set_node_update_status()
             self.tree_update(self.context.selected_node)
 
-    def handle_end_update(self):
-        selected_item = utils.treeview_get_first_selection(self.tree)
+    def handle_end_update(self, iid=None):
+        selected_item = iid or utils.treeview_get_first_selection(self.tree)
         if selected_item:
             self.end_update_on_node(selected_item)
             self.set_node_update_status()
@@ -1088,8 +1481,8 @@ class App(tk.Tk):
         except RuntimeError:
             pass
 
-    def handle_lock(self):
-        node = utils.treeview_get_first_selection(self.tree)
+    def handle_lock(self, iid=None):
+        node = iid or utils.treeview_get_first_selection(self.tree)
         component = utils.find_component(node, self.context.instance)
 
         try:
@@ -1100,8 +1493,8 @@ class App(tk.Tk):
             utils.show_error('Lock failed', f'{component.name}: {e}', self)
             print(f'Lock failed: {str(e)}', file=sys.stderr)
 
-    def handle_unlock(self):
-        node = utils.treeview_get_first_selection(self.tree)
+    def handle_unlock(self, iid=None):
+        node = iid or utils.treeview_get_first_selection(self.tree)
         component = utils.find_component(node, self.context.instance)
 
         try:

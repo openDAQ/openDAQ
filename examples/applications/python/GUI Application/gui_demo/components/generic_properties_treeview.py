@@ -7,7 +7,6 @@ import opendaq as daq
 from .. import utils
 from ..app_context import AppContext
 from .function_dialog import FunctionDialog
-from .edit_container_property import EditContainerPropertyDialog
 from .metadata_dialog import MetadataDialog
 from .metadata_fields_selector_dialog import MetadataFieldsSelectorDialog
 
@@ -70,7 +69,7 @@ class PropertiesTreeview(ttk.Treeview):
 
         # bind double-click to editing (if not read_only)
         if not self.read_only:
-            self.bind('<Double-1>', lambda event=None: self.edit_value())
+            self.bind('<Double-1>', lambda event: self.edit_value(event))
         self.bind('<Button-3>', lambda event: self.show_menu(event))
         self.bind('<MouseWheel>', lambda e=None: self.after_idle(self._sync_overlays))
         self.bind('<ButtonRelease-1>', lambda e=None: self.after(10, self._sync_overlays), add='+')
@@ -153,8 +152,8 @@ class PropertiesTreeview(ttk.Treeview):
                 return 'N/A'
             if value_type == daq.CoreType.ctBool:
                 return utils.yes_no[value]
-            elif value_type == daq.CoreType.ctFloat:
-                return self._format_value(value) 
+            elif value_type in (daq.CoreType.ctFloat, daq.CoreType.ctEnumeration):
+                return self._format_value(value)
             else:
                 return value
         
@@ -163,22 +162,22 @@ class PropertiesTreeview(ttk.Treeview):
                 # This property was marked as hidden
                 continue
 
-            if property_info.selection_values is not None and property_info.item_type != daq.CoreType.ctUndefined:
+            property_type = property_info.property_type
+
+            if self._is_keyed_selection(property_type):
                 if len(property_info.selection_values) > 0:
                     property_value = printed_value(
                         property_info.item_type, node.get_property_selection_value(property_info.name))
                 else:
                     property_value = 'Selection list is empty'
-            elif property_info.value_type == daq.CoreType.ctProc:
+            elif property_type in (daq.PropertyType.Procedure, daq.PropertyType.Function):
                 property_value = self._last_method_results.get(property_info.name, '')
-            elif property_info.value_type == daq.CoreType.ctFunc:
-                property_value = self._last_method_results.get(property_info.name, '')
-            elif property_info.value_type == daq.CoreType.ctStruct:
+            elif property_type in (daq.PropertyType.Struct, daq.PropertyType.Object):
                 property_value = ''
-            elif property_info.value_type == daq.CoreType.ctObject:
-                property_value = ''
-            elif property_info.value_type in (daq.CoreType.ctList, daq.CoreType.ctDict):
+            elif property_type == daq.PropertyType.List:
                 property_value = str(node.get_property_value(property_info.name))
+            elif property_type == daq.PropertyType.Dict:
+                property_value = ''
             else:
                 property_value = printed_value(
                     property_info.value_type, node.get_property_value(property_info.name))
@@ -198,7 +197,7 @@ class PropertiesTreeview(ttk.Treeview):
                 print(e)
 
             # Insert a treeview entry widget for the property
-            if property_info.value_type in (daq.CoreType.ctFunc, daq.CoreType.ctProc):
+            if property_type in (daq.PropertyType.Procedure, daq.PropertyType.Function):
                 display_name = '          ' + property_info.name
             else:
                 display_name = property_info.name
@@ -210,26 +209,26 @@ class PropertiesTreeview(ttk.Treeview):
                 text=display_name,
                 values=(property_value, *meta_fields))
 
-            container_types = (daq.CoreType.ctObject, daq.CoreType.ctStruct, daq.CoreType.ctList, daq.CoreType.ctDict)
             is_single_value_selection = (
-                property_info.selection_values is not None
+                self._is_selection(property_type)
                 and len(property_info.selection_values) == 1
             )
-            if property_info.value_type not in (daq.CoreType.ctFunc, daq.CoreType.ctProc):
-                if property_info.value_type not in container_types:
+            if property_type not in (daq.PropertyType.Procedure, daq.PropertyType.Function):
+                if property_type not in (daq.PropertyType.Object, daq.PropertyType.Struct,
+                                         daq.PropertyType.List, daq.PropertyType.Dict):
                     if property_info.read_only or self.read_only or is_single_value_selection:
                         self.item(iid, tags=('readonly',))
 
-            if property_info.value_type == daq.CoreType.ctObject:
+            if property_type == daq.PropertyType.Object:
                 hidden_children = [s.removeprefix(f"{property_info.name}.") for s in hidden if s.startswith(f"{property_info.name}.")]
                 self.fill_properties(
                     iid, node.get_property_value(property_info.name), hidden_children)  
-            elif property_info.value_type == daq.CoreType.ctStruct:
+            elif property_type == daq.PropertyType.Struct:
                 self.fill_struct(
                     iid, node.get_property_value(property_info.name), property_info.read_only)
-            elif property_info.value_type == daq.CoreType.ctList:
+            elif property_type == daq.PropertyType.List:
                 self.fill_list(iid, node.get_property_value(property_info.name), property_info.read_only)
-            elif property_info.value_type == daq.CoreType.ctDict:
+            elif property_type == daq.PropertyType.Dict:
                 self.fill_dict(iid, node.get_property_value(property_info.name), property_info.read_only)
 
     def handle_copy(self):
@@ -248,7 +247,7 @@ class PropertiesTreeview(ttk.Treeview):
             return
 
         path = utils.get_item_path(self, selected_item)
-        prop = utils.get_property_for_path(self.context, path, self.node)
+        prop, _ = self.nearest_property_with_path(path)
         if not prop:
             return
 
@@ -277,20 +276,21 @@ class PropertiesTreeview(ttk.Treeview):
             return
 
         value = prop.value
+        property_type = prop.property_type
         try:
-            if prop.value_type == daq.CoreType.ctObject:
+            if property_type == daq.PropertyType.Object:
                 pass  # ignoring paste to objects
-            elif prop.value_type == daq.CoreType.ctStruct:
+            elif property_type == daq.PropertyType.Struct:
                 field_type = [
                     field for field in prop.struct_type.field_types if field.name == path_diff[0]][0].core_type
                 setattr(value, path_diff[0], utils.value_to_coretype(
                     self.clipboard_get(), field_type))
                 prop.value = value
-            elif prop.value_type == daq.CoreType.ctList:
+            elif property_type == daq.PropertyType.List:
                 value[int(path_diff[0])] = utils.value_to_coretype(
                     self.clipboard_get(), prop.item_type)
                 prop.value = value
-            elif prop.value_type == daq.CoreType.ctDict:
+            elif property_type == daq.PropertyType.Dict:
                 value[utils.value_to_coretype(path_diff[0], prop.key_type)] = utils.value_to_coretype(
                     self.clipboard_get(), prop.item_type)
                 prop.value = value
@@ -302,6 +302,153 @@ class PropertiesTreeview(ttk.Treeview):
 
         except Exception as e:
             utils.show_error('Paste error', f'Can\'t paste: {e}', parent=self)
+
+    @staticmethod
+    def _default_value_for(core_type):
+        if core_type == daq.CoreType.ctBool:
+            return daq.Boolean(False)
+        if core_type == daq.CoreType.ctInt:
+            return daq.Integer(0)
+        if core_type == daq.CoreType.ctFloat:
+            return daq.Float(0.0)
+        if core_type == daq.CoreType.ctString:
+            return daq.String('')
+        return None
+
+    def _can_edit_container(self, prop):
+        if prop is None or self.read_only or prop.read_only:
+            return False
+        if prop.property_type not in (daq.PropertyType.List, daq.PropertyType.Dict):
+            return False
+        if self._default_value_for(prop.item_type) is None:
+            return False
+        if prop.property_type == daq.PropertyType.Dict:
+            return self._default_value_for(prop.key_type) is not None
+        return True
+
+    def container_item_owner(self, path):
+        prop, prop_path = self.nearest_property_with_path(path)
+        if prop is None or len(path) != len(prop_path) + 1:
+            return None, None
+        if prop.property_type not in (daq.PropertyType.List, daq.PropertyType.Dict):
+            return None, None
+        return prop, prop_path
+
+    def _new_dict_key(self, container, key_type):
+        existing = list(container.keys())
+        if key_type in (daq.CoreType.ctInt, daq.CoreType.ctFloat):
+            numbers = [float(k) for k in existing]
+            nxt = int(max(numbers)) + 1 if numbers else 0
+            return daq.Integer(nxt) if key_type == daq.CoreType.ctInt else daq.Float(float(nxt))
+        if key_type == daq.CoreType.ctString:
+            labels = {str(k) for k in existing}
+            candidate, n = 'key', 2
+            while candidate in labels:
+                candidate = f'key {n}'
+                n += 1
+            return daq.String(candidate)
+        if key_type == daq.CoreType.ctBool:
+            labels = {bool(k) for k in existing}
+            for option in (False, True):
+                if option not in labels:
+                    return daq.Boolean(option)
+        return None
+
+    @staticmethod
+    def _rebuilt_list(items):
+        new_value = daq.List()
+        for item in items:
+            new_value.append(item)
+        return new_value
+
+    def item_for_path(self, path):
+        parent = ''
+        for segment in path:
+            for iid in self.get_children(parent):
+                if self.item(iid, 'text').strip() == segment:
+                    parent = iid
+                    break
+            else:
+                return None
+        return parent
+
+    def added_item_id(self, container_path, added):
+        container_iid = self.item_for_path(container_path)
+        if container_iid is None:
+            return None
+
+        children = self.get_children(container_iid)
+        if isinstance(added, int):
+            return children[added] if 0 <= added < len(children) else None
+        return next((iid for iid in children
+                     if self.item(iid, 'text').strip() == added), None)
+
+    def edit_added_item(self, container_path, added):
+        item_iid = self.added_item_id(container_path, added)
+        if item_iid is None:
+            return
+
+        self.see(item_iid)
+        self.selection_set(item_iid)
+        self.after_idle(lambda: self.edit_resolved_item(container_path, added))
+
+    def edit_resolved_item(self, container_path, added):
+        item_iid = self.added_item_id(container_path, added)
+        if item_iid is not None:
+            self.edit_container_item(item_iid, container_path, False)
+
+    def handle_container_add(self, container_path, index):
+        prop = utils.get_property_for_path(self.context, container_path, self.node)
+        if not self._can_edit_container(prop):
+            return
+
+        try:
+            value = prop.value
+            item = self._default_value_for(prop.item_type)
+
+            if prop.property_type == daq.PropertyType.List:
+                items = list(value)
+                at = len(items) if index is None else max(0, min(index, len(items)))
+                items.insert(at, item)
+                prop.value = self._rebuilt_list(items)
+                added = at
+            else:
+                key = self._new_dict_key(value, prop.key_type)
+                if key is None:
+                    return
+                value[key] = item
+                prop.value = value
+                added = str(key)
+
+            self.refresh()
+            self.after_idle(lambda: self.edit_added_item(container_path, added))
+        except Exception as e:
+            utils.show_error('Add item error', f'Can\'t add item: {e}', parent=self)
+
+    def handle_container_remove(self, container_path, item_iid):
+        prop = utils.get_property_for_path(self.context, container_path, self.node)
+        if not self._can_edit_container(prop):
+            return
+
+        try:
+            value = prop.value
+
+            if prop.property_type == daq.PropertyType.List:
+                index = self.index(item_iid)
+                if not 0 <= index < len(value):
+                    return
+                del value[index]
+                prop.value = value
+            else:
+                key = utils.value_to_coretype(
+                    self.item(item_iid, 'text').strip(), prop.key_type)
+                del value[key]
+                prop.value = value
+
+            self.refresh()
+        except Exception as e:
+            utils.show_error('Remove item error',
+                             f'Can\'t remove item: {e}', parent=self)
 
     def handle_clear_property_value(self):
         selected_item_id = utils.treeview_get_first_selection(self)
@@ -332,7 +479,7 @@ class PropertiesTreeview(ttk.Treeview):
         if prop is None:
             return
 
-        if prop.value_type == daq.CoreType.ctObject and daq.IPropertyObject.can_cast_from(prop.value):
+        if prop.property_type == daq.PropertyType.Object and daq.IPropertyObject.can_cast_from(prop.value):
             obj = daq.IPropertyObject.cast_from(prop.value)
             obj.clear_property_values()
         elif daq.IPropertyObject.can_cast_from(self.node):
@@ -354,6 +501,7 @@ class PropertiesTreeview(ttk.Treeview):
         if region == 'heading':
             menu.add_command(
                 label='Select columns',
+                image=self.context.menu_icon('settings'), compound=tk.LEFT,
                 command=lambda: MetadataFieldsSelectorDialog(self, self.context).show()
             )
         else:
@@ -367,23 +515,63 @@ class PropertiesTreeview(ttk.Treeview):
             
             is_container = False
             if prop:
-                container_types = (daq.CoreType.ctObject, daq.CoreType.ctStruct, 
-                                   daq.CoreType.ctList, daq.CoreType.ctDict)
-                is_container = prop.value_type in container_types
+                is_container = prop.property_type in (
+                    daq.PropertyType.Object, daq.PropertyType.Struct,
+                    daq.PropertyType.List, daq.PropertyType.Dict)
+
+            owner, owner_path = self.container_item_owner(path)
+
+            if self._can_edit_container(prop):
+                menu.add_command(
+                    label='Add item',
+                    image=self.context.menu_icon('plus'), compound=tk.LEFT,
+                    command=lambda: self.handle_container_add(path, None))
+                menu.add_separator()
+            elif self._can_edit_container(owner):
+                item_index = self.index(selected_item_id)
+                if owner.property_type == daq.PropertyType.List:
+                    menu.add_command(
+                        label='Add item above',
+                        image=self.context.menu_icon('add_above'), compound=tk.LEFT,
+                        command=lambda: self.handle_container_add(owner_path, item_index))
+                    menu.add_command(
+                        label='Add item below',
+                        image=self.context.menu_icon('add_below'), compound=tk.LEFT,
+                        command=lambda: self.handle_container_add(owner_path, item_index + 1))
+                else:
+                    menu.add_command(
+                        label='Add item',
+                        image=self.context.menu_icon('plus'), compound=tk.LEFT,
+                        command=lambda: self.handle_container_add(owner_path, None))
+                menu.add_command(
+                    label='Remove item',
+                    image=self.context.menu_icon('trash'), compound=tk.LEFT,
+                    command=lambda: self.handle_container_remove(owner_path, selected_item_id))
+                menu.add_separator()
 
             is_readonly = 'readonly' in self.item(selected_item_id, 'tags')
             if not is_container:
-                menu.add_command(label='Copy', command=self.handle_copy)
+                menu.add_command(label='Copy',
+                                 image=self.context.menu_icon('copy'), compound=tk.LEFT,
+                                 command=self.handle_copy)
             if not self.read_only and not is_readonly and not is_container:
-                menu.add_command(label='Paste', command=self.handle_paste)
+                menu.add_command(label='Paste',
+                                 image=self.context.menu_icon('paste'), compound=tk.LEFT,
+                                 command=self.handle_paste)
             if not self.read_only and not is_container and not is_readonly:
-                menu.add_command(label='Clear property value', command=self.handle_clear_property_value)
+                menu.add_command(label='Clear property value',
+                                 image=self.context.menu_icon('clear_values'), compound=tk.LEFT,
+                                 command=self.handle_clear_property_value)
             if not self.read_only and is_container:
-                menu.add_command(label='Clear property values', command=self.handle_clear_property_values)
+                menu.add_command(label='Clear property values',
+                                 image=self.context.menu_icon('clear_values'), compound=tk.LEFT,
+                                 command=self.handle_clear_property_values)
             if not is_container:
                 menu.add_separator()
                 
-            menu.add_command(label='Metadata', command=self.handle_show_metadata)
+            menu.add_command(label='Metadata',
+                             image=self.context.menu_icon('logs'), compound=tk.LEFT,
+                             command=self.handle_show_metadata)
             
         menu.tk_popup(event.x_root, event.y_root)
 
@@ -401,6 +589,9 @@ class PropertiesTreeview(ttk.Treeview):
     def save_simple_value(self, entry, path):
         new_value = entry.get()
         try:
+            prop = utils.get_property_for_path(self.context, path, self.node)
+            if prop is not None and prop.value_type == daq.CoreType.ctRatio:
+                new_value = utils.value_to_coretype(new_value, daq.CoreType.ctRatio)
             self.update_property(self.node, path, new_value)
             self.refresh()
         except Exception:
@@ -492,28 +683,30 @@ class PropertiesTreeview(ttk.Treeview):
             path = utils.get_item_path(self, iid)
             prop = utils.get_property_for_path(self.context, path, self.node)
             if prop:
-                if prop.value_type in (daq.CoreType.ctFunc, daq.CoreType.ctProc):
+                property_type = prop.property_type
+                if property_type in (daq.PropertyType.Procedure, daq.PropertyType.Function):
                     self._overlay_items[iid] = prop
                 elif not prop.read_only:
-                    if (prop.value_type == daq.CoreType.ctBool
-                            or (prop.selection_values is not None and len(prop.selection_values) > 1)
-                            or prop.value_type == daq.CoreType.ctEnumeration
-                            or (prop.value_type in (daq.CoreType.ctString, daq.CoreType.ctFloat, daq.CoreType.ctInt)
-                                and prop.suggested_values is not None and len(prop.suggested_values) > 0)):
+                    if (property_type == daq.PropertyType.Bool
+                            or (self._is_selection(property_type)
+                                and len(prop.selection_values) > 1)
+                            or property_type == daq.PropertyType.Enumeration
+                            or self._has_suggested_values(prop)):
                         self._overlay_items[iid] = prop
             self._collect_overlay_items(iid)
 
     def _create_overlay_for_item(self, iid, prop):
-        if prop.value_type in (daq.CoreType.ctFunc, daq.CoreType.ctProc):
+        property_type = prop.property_type
+        if property_type in (daq.PropertyType.Procedure, daq.PropertyType.Function):
             self._place_method_button(iid, prop)
-        elif prop.value_type == daq.CoreType.ctBool:
+        elif property_type == daq.PropertyType.Bool:
             self._place_bool_checkbox(iid, prop)
-        elif prop.selection_values is not None and len(prop.selection_values) > 0:
+        elif (self._is_selection(property_type)
+              and len(prop.selection_values) > 0):
             self._place_selection_combobox(iid, prop)
-        elif prop.value_type == daq.CoreType.ctEnumeration:
+        elif property_type == daq.PropertyType.Enumeration:
             self._place_enum_combobox(iid, prop)
-        elif (prop.value_type in (daq.CoreType.ctString, daq.CoreType.ctFloat, daq.CoreType.ctInt)
-              and prop.suggested_values is not None and len(prop.suggested_values) > 0):
+        elif self._has_suggested_values(prop):
             self._place_suggested_combobox(iid, prop)
 
     def _sync_overlays(self):
@@ -530,7 +723,8 @@ class PropertiesTreeview(ttk.Treeview):
             visible_h = self.winfo_height() - sb_x_h
 
             for iid, item_prop in self._overlay_items.items():
-                is_method = item_prop.value_type in (daq.CoreType.ctFunc, daq.CoreType.ctProc)
+                is_method = item_prop.property_type in (daq.PropertyType.Procedure,
+                                                        daq.PropertyType.Function)
                 bbox = self.bbox(iid, '#0' if is_method else '#1')
                 if bbox:
                     if iid not in self._overlay_comboboxes:
@@ -607,9 +801,7 @@ class PropertiesTreeview(ttk.Treeview):
             cb.bind('<FocusOut>', _clear_active_if_needed)
             cb.bind('<KeyPress>', lambda e : 'break')
 
-        cb.bind('<MouseWheel>', lambda e: 'break')
-        cb.bind('<Button-4>', lambda e: 'break')
-        cb.bind('<Button-5>', lambda e: 'break')
+        utils.bind_mousewheel_to(cb, self, self._sync_overlays)
         return cb
 
     def _place_bool_checkbox(self, iid, prop):
@@ -630,12 +822,7 @@ class PropertiesTreeview(ttk.Treeview):
             self.refresh()
 
         cb.configure(command=on_change)
-        def _on_mousewheel(e):
-            self.yview_scroll(int(-1 * (e.delta / 120)), 'units')
-            self._sync_overlays()
-            return 'break'
-
-        cb.bind('<MouseWheel>', _on_mousewheel)
+        utils.bind_mousewheel_to(cb, self, self._sync_overlays)
         self._overlay_comboboxes[iid] = cb
 
     def _place_method_button(self, iid, prop):
@@ -648,11 +835,13 @@ class PropertiesTreeview(ttk.Treeview):
         x += indent
         width = max(1, width - indent)
 
-        def execute(_prop=prop, _iid=iid):
+        is_function = prop.property_type == daq.PropertyType.Function
+
+        def execute(_prop=prop, _iid=iid, _is_function=is_function):
             result = None
             has_args = bool(_prop.callable_info.arguments)
             
-            method_class = daq.IFunction if _prop.value_type == daq.CoreType.ctFunc else daq.IProcedure
+            method_class = daq.IFunction if _is_function else daq.IProcedure
             method = method_class.cast_from(_prop.value)
 
             if has_args:
@@ -662,7 +851,7 @@ class PropertiesTreeview(ttk.Treeview):
             else:
                 try:
                     res = method()
-                    result = res if _prop.value_type == daq.CoreType.ctFunc else True
+                    result = res if _is_function else True
                 except Exception as e:
                     result = e
 
@@ -681,6 +870,7 @@ class PropertiesTreeview(ttk.Treeview):
                 
         btn = ttk.Button(self, text=prop.name, command=execute)
         btn.place(x=x, y=y, width=width, height=height)
+        utils.bind_mousewheel_to(btn, self, self._sync_overlays)
         self._overlay_comboboxes[iid] = btn
         
     def _tree_indent(self):
@@ -697,7 +887,8 @@ class PropertiesTreeview(ttk.Treeview):
             labels = [f'{l} {unit_symbol}' for l in labels]
         if not labels:
             return
-        if prop.item_type != daq.CoreType.ctUndefined:
+        is_keyed_selection = self._is_keyed_selection(prop.property_type)
+        if is_keyed_selection:
             current_idx = prop.value
             current_label = labels[indices.index(current_idx)] if current_idx in indices else labels[0]
         else:
@@ -707,9 +898,9 @@ class PropertiesTreeview(ttk.Treeview):
         if cb is None:
             return
 
-        def on_change(event, _prop=prop, _labels=labels, _indices=indices, _cb=cb):
+        def on_change(event, _prop=prop, _labels=labels, _indices=indices, _cb=cb, _is_keyed=is_keyed_selection):
             try:
-                if _prop.item_type != daq.CoreType.ctUndefined:
+                if _is_keyed:
                     _prop.value = _indices[_labels.index(_cb.get())]
                 else:
                     _prop.value = _cb.get()
@@ -727,7 +918,11 @@ class PropertiesTreeview(ttk.Treeview):
         enum = daq.IEnumeration.cast_from(prop.value)
         enum_type = enum.enumeration_type
         keys = [k for k, _ in enum_type.as_dictionary.items()]
-        current_key = keys[enum.value] if 0 <= enum.value < len(keys) else keys[0]
+        if not keys:
+            return
+        # Enumerator values need not be a 0-based range, so the current one is
+        # matched by name rather than used as an index into the names.
+        current_key = enum.name if enum.name in keys else keys[0]
         cb = self._make_combobox(iid, keys, current_key)
         if cb is None:
             return
@@ -803,6 +998,89 @@ class PropertiesTreeview(ttk.Treeview):
         entry.bind('<Return>', lambda e: self.save_struct_value(entry, parent, name))
         entry.bind('<FocusOut>', lambda e: self.save_struct_value(entry, parent, name))
 
+    def edit_container_item(self, item_iid, owner_path, edit_key):
+        if not self.exists(item_iid):
+            return
+
+        prop = utils.get_property_for_path(self.context, owner_path, self.node)
+        if not self._can_edit_container(prop):
+            return
+
+        bbox = self.bbox(item_iid, '#0' if edit_key else '#1')
+        if not bbox:
+            return
+
+        if prop.property_type == daq.PropertyType.List:
+            locator = self.index(item_iid)
+        else:
+            locator = self.item(item_iid, 'text').strip()
+
+        x, y, width, height = bbox
+        current = self.item(item_iid, 'text') if edit_key else self.set(item_iid, 'value')
+
+        entry = ttk.Entry(self)
+        entry.place(x=x, y=y, width=width, height=height)
+        entry.insert(0, current)
+        entry.select_range(0, tk.END)
+        entry.focus()
+
+        def commit(_event=None):
+            self.save_container_item(entry, owner_path, locator, edit_key)
+
+        entry.bind('<Return>', commit)
+        entry.bind('<FocusOut>', commit)
+        entry.bind('<Escape>', lambda e: entry.destroy())
+
+    def save_container_item(self, entry, owner_path, locator, edit_key):
+        if not entry.winfo_exists():
+            return
+
+        text = entry.get()
+        entry.destroy()
+
+        prop = utils.get_property_for_path(self.context, owner_path, self.node)
+        if not self._can_edit_container(prop):
+            return
+
+        try:
+            value = prop.value
+
+            if prop.property_type == daq.PropertyType.List:
+                if not 0 <= locator < len(value):
+                    return
+                value[locator] = utils.value_to_coretype(text, prop.item_type)
+                prop.value = value
+            else:
+                old_key = utils.value_to_coretype(locator, prop.key_type)
+                if edit_key:
+                    prop.value = self._renamed_key(
+                        value, old_key, utils.value_to_coretype(text, prop.key_type))
+                else:
+                    value[old_key] = utils.value_to_coretype(text, prop.item_type)
+                    prop.value = value
+
+            self.refresh()
+        except Exception as e:
+            utils.show_error('Edit item error', f'Can\'t edit item: {e}', parent=self)
+
+    @staticmethod
+    def _renamed_key(container, old_key, new_key):
+        if str(old_key) == str(new_key):
+            return container
+
+        # daq.Dict has no hasKey binding; a missing key raises from __getitem__
+        try:
+            container[new_key]
+        except RuntimeError:
+            pass
+        else:
+            raise ValueError(f'key "{new_key}" already exists')
+
+        # set on an absent key appends, so the renamed entry moves to the end
+        container[new_key] = container[old_key]
+        del container[old_key]
+        return container
+
     def edit_simple_property(self, selected_item_id, property_value, path):
         x, y, width, height = self.bbox(selected_item_id, '#1')
         entry = ttk.Entry(self)
@@ -812,7 +1090,7 @@ class PropertiesTreeview(ttk.Treeview):
         entry.bind('<Return>', lambda e: self.save_simple_value(entry, path))
         entry.bind('<FocusOut>', lambda e: self.save_simple_value(entry, path))
 
-    def edit_value(self):
+    def edit_value(self, event):
         selected_item_id = utils.treeview_get_first_selection(self)
         if selected_item_id is None:
             return
@@ -822,19 +1100,27 @@ class PropertiesTreeview(ttk.Treeview):
 
         # handle struct
         if len(path) > 1:
-            parent = utils.get_property_for_path(self.context, path[:-1], self.node)
-            
             if 'readonly' in self.item(selected_item_id, 'tags'):
                 return
- 
+
+            owner, owner_path = self.container_item_owner(path)
+            if owner is not None:
+                if self._can_edit_container(owner):
+                    edit_key = (owner.property_type == daq.PropertyType.Dict
+                                and self.identify_column(event.x) == '#0')
+                    self.edit_container_item(selected_item_id, owner_path, edit_key)
+                return
+
+            parent = utils.get_property_for_path(self.context, path[:-1], self.node)
+            if parent is None:
+                return
+
+            parent_property_type = parent.property_type
+
             if type(parent.value) is complex or type(parent.value) is Fraction:
                 return 
-            elif parent.value_type == daq.CoreType.ctStruct:
+            elif parent_property_type == daq.PropertyType.Struct:
                 self.edit_struct_property(selected_item_id, name, parent)
-                return
-            elif parent.value_type == daq.CoreType.ctList:
-                EditContainerPropertyDialog(self, parent, self.context).show()
-                self.refresh()
                 return
 
         prop = utils.get_property_for_path(self.context, path, self.node)
@@ -842,11 +1128,13 @@ class PropertiesTreeview(ttk.Treeview):
         if not prop:
             return
 
-        if prop.value_type == daq.CoreType.ctEnumeration:
+        property_type = prop.property_type
+
+        if property_type == daq.PropertyType.Enumeration:
             return  # handled by overlay combobox
 
-        if prop.value_type in (daq.CoreType.ctFunc, daq.CoreType.ctProc):
-            method_class = daq.IFunction if prop.value_type == daq.CoreType.ctFunc else daq.IProcedure
+        if property_type in (daq.PropertyType.Procedure, daq.PropertyType.Function):
+            method_class = daq.IFunction if property_type == daq.PropertyType.Function else daq.IProcedure
             method = method_class.cast_from(prop.value)
             
             if prop.callable_info.arguments:
@@ -856,7 +1144,7 @@ class PropertiesTreeview(ttk.Treeview):
             else:
                 try:
                     res = method()
-                    result = res if prop.value_type == daq.CoreType.ctFunc else True
+                    result = res if property_type == daq.PropertyType.Function else True
                 except Exception as e:
                     result = e
 
@@ -877,14 +1165,14 @@ class PropertiesTreeview(ttk.Treeview):
         if prop.read_only:
             return
 
-        if prop.value_type == daq.CoreType.ctBool:
+        if property_type == daq.PropertyType.Bool:
             return  # handled by overlay combobox
-        elif prop.selection_values is not None:
+        elif self._is_selection(property_type):
             return  # handled by overlay combobox
-        elif prop.value_type in (daq.CoreType.ctDict, daq.CoreType.ctList):
-            EditContainerPropertyDialog(self, prop, self.context).show()
-            self.refresh()
-        elif prop.value_type in (daq.CoreType.ctString, daq.CoreType.ctFloat, daq.CoreType.ctInt):
+        elif property_type in (daq.PropertyType.Dict, daq.PropertyType.List):
+            return
+        elif (self._takes_suggested_values(property_type)
+              or property_type == daq.PropertyType.Ratio):
             if prop.suggested_values is not None and len(prop.suggested_values) > 0:
                 return  # handled by overlay combobox
             self.edit_simple_property(selected_item_id, prop.value, path)
@@ -897,7 +1185,34 @@ class PropertiesTreeview(ttk.Treeview):
                 pass
 
     @staticmethod
+    def _is_selection(property_type):
+        return property_type in (daq.PropertyType.Selection,
+                                 daq.PropertyType.IndexSelection,
+                                 daq.PropertyType.SparseSelection)
+
+    @staticmethod
+    def _is_keyed_selection(property_type):
+        return property_type in (daq.PropertyType.IndexSelection,
+                                 daq.PropertyType.SparseSelection)
+
+    @staticmethod
+    def _takes_suggested_values(property_type):
+        return property_type in (daq.PropertyType.Int,
+                                 daq.PropertyType.Float,
+                                 daq.PropertyType.String)
+
+    @staticmethod
+    def _has_suggested_values(prop):
+        return (PropertiesTreeview._takes_suggested_values(prop.property_type)
+                and prop.suggested_values is not None
+                and len(prop.suggested_values) > 0)
+
+    @staticmethod
     def _format_value(value):
+        if isinstance(value, daq.IEnumeration):
+            # An Enumeration converts to its integer value, so it has to be
+            # named before the numeric formatting below gets to it.
+            return value.name
         try:
             f = float(value)
             if f == int(f):

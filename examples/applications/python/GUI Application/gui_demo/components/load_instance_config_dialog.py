@@ -93,8 +93,8 @@ class LoadInstanceConfigDialog(Dialog):
     # Display helpers
     # ----------------------------
 
-    def _printed_value(self, value_type, value):
-        if value_type == daq.CoreType.ctBool:
+    def _printed_value(self, property_type, value):
+        if property_type == daq.PropertyType.Bool:
             return ''
         if value is None:
             return ''
@@ -130,12 +130,7 @@ class LoadInstanceConfigDialog(Dialog):
             self.refresh()
 
         cb.configure(command=on_change)
-        def _on_mousewheel(e):
-            self.yview_scroll(int(-1 * (e.delta / 120)), 'units')
-            self._sync_overlays()
-            return 'break'
-
-        cb.bind('<MouseWheel>', _on_mousewheel)
+        utils.bind_mousewheel_to(cb, self.tree, self._sync_overlays)
         self._overlay_widgets[iid] = cb
 
     def _make_combobox(self, iid, values, current_value, column, editable=False):
@@ -180,9 +175,7 @@ class LoadInstanceConfigDialog(Dialog):
             cb.bind('<Escape>', _clear_active_if_needed)
             cb.bind('<FocusOut>', _clear_active_if_needed)
 
-        cb.bind('<MouseWheel>', lambda e: 'break')
-        cb.bind('<Button-4>', lambda e: 'break')
-        cb.bind('<Button-5>', lambda e: 'break')
+        utils.bind_mousewheel_to(cb, self.tree, self._sync_overlays)
         return cb
 
     def _place_enum_combobox(self, iid, option, meta):
@@ -211,7 +204,7 @@ class LoadInstanceConfigDialog(Dialog):
         return x, place_y, width, place_height
 
     def _sync_option(self, iid, meta):
-        # Filter - only IDeviceOption.update_mode and IProperty.value_type == ctBool get overlays
+        # Filter - only IDeviceOption.update_mode and IProperty.property_type == Bool get overlays
         if meta['kind'] not in ['device_option', 'property']:
             return
         is_property = meta['kind'] == 'property'
@@ -284,13 +277,15 @@ class LoadInstanceConfigDialog(Dialog):
         # Show PropertyObject contents
         for property in self.context.properties_of_component(prop_object):
             prop = prop_object.get_property_value(property.name)
-            if isinstance(prop, daq.IBaseObject) and daq.IPropertyObject.can_cast_from(prop):
+            property_type = property.property_type
+            if (property_type == daq.PropertyType.Object
+                    and isinstance(prop, daq.IBaseObject) and daq.IPropertyObject.can_cast_from(prop)):
                 cast_property = daq.IPropertyObject.cast_from(prop)
                 node_id = self.tree.insert(
                     parent_node, tk.END, text=property.name, open=True)
                 self.display_config_options(node_id, cast_property)
             else:
-                property_value = self._printed_value(property.item_type, prop)
+                property_value = self._printed_value(property_type, prop)
                 item_id = self.tree.insert(parent_node, tk.END,
                                            text=property.name, values=(property_value, '')
                 )
@@ -298,7 +293,7 @@ class LoadInstanceConfigDialog(Dialog):
                     'kind': 'property',
                     'path': utils.get_item_path(self.tree, item_id),
                     'editable_column': '#1',
-                    'type': 'bool' if property.value_type == daq.CoreType.ctBool else 'other',
+                    'type': 'bool' if property_type == daq.PropertyType.Bool else 'other',
                     'readonly': property.read_only
                 }
 
@@ -487,11 +482,13 @@ class LoadInstanceConfigDialog(Dialog):
             path = meta['path']
             prop = utils.get_property_for_path(self.context, path, self.update_params)
 
-            if prop.value_type in (daq.CoreType.ctDict, daq.CoreType.ctList):
+            property_type = prop.property_type
+
+            if property_type in (daq.PropertyType.Dict, daq.PropertyType.List):
                 EditContainerPropertyDialog(self, prop, self.update_params).show()
                 return
 
-            if prop.value_type == daq.CoreType.ctBool:
+            if property_type == daq.PropertyType.Bool:
                 prop.value = not prop.value
                 self.tree.set(row_id, column, str(prop.value))
                 return

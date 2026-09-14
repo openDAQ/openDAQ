@@ -6,7 +6,7 @@ function(rtgen_component_${BASE_NAME})
     rtgen(SRC_SyncInterface sync_interface.h)
     rtgen(SRC_SyncInterfaceInternal sync_interface_internal.h INTERNAL)
     rtgen(SRC_Synchronization synchronization.h)
-    rtgen(SRC_SynchronizationInternal synchronization_internal.h INTERNAL)
+    rtgen(SRC_SynchronizationPrivate synchronization_private.h INTERNAL)
     
     set(SRC_PublicHeaders_Component_Generated
         ${SRC_SyncComponent_PublicHeaders}
@@ -14,7 +14,7 @@ function(rtgen_component_${BASE_NAME})
         ${SRC_SyncInterface_PublicHeaders}
         ${SRC_SyncInterfaceInternal_PublicHeaders}
         ${SRC_Synchronization_PublicHeaders}
-        ${SRC_SynchronizationInternal_PublicHeaders}
+        ${SRC_SynchronizationPrivate_PublicHeaders}
         PARENT_SCOPE
     )
     
@@ -24,7 +24,7 @@ function(rtgen_component_${BASE_NAME})
         ${SRC_SyncInterface_PrivateHeaders}
         ${SRC_SyncInterfaceInternal_PrivateHeaders}
         ${SRC_Synchronization_PrivateHeaders}
-        ${SRC_SynchronizationInternal_PrivateHeaders}
+        ${SRC_SynchronizationPrivate_PrivateHeaders}
         PARENT_SCOPE
     )
     
@@ -34,7 +34,7 @@ function(rtgen_component_${BASE_NAME})
         ${SRC_SyncInterface_Cpp}
         ${SRC_SyncInterfaceInternal_Cpp}
         ${SRC_Synchronization_Cpp}
-        ${SRC_SynchronizationInternal_Cpp}
+        ${SRC_SynchronizationPrivate_Cpp}
         PARENT_SCOPE
     )
 endfunction()
@@ -51,7 +51,7 @@ function(create_component_source_groups_${BASE_NAME})
         ${SDK_HEADERS_DIR}/sync_interface.h
         ${SDK_HEADERS_DIR}/sync_interface_internal.h
         ${SDK_HEADERS_DIR}/synchronization.h
-        ${SDK_HEADERS_DIR}/synchronization_internal.h
+        ${SDK_HEADERS_DIR}/synchronization_private.h
         ${SDK_HEADERS_DIR}/synchronization_impl.h
         ${SDK_HEADERS_DIR}/sync_interface_base_impl.h
         ${SDK_HEADERS_DIR}/clock_sync_interface_impl.h
@@ -73,7 +73,7 @@ set(SRC_PublicHeaders_Component
     sync_interface.h
     sync_interface_internal.h
     synchronization.h
-    synchronization_internal.h
+    synchronization_private.h
     PARENT_SCOPE
 )
 

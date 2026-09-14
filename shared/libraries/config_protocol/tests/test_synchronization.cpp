@@ -9,7 +9,7 @@
 #include <opendaq/device_impl.h>
 #include <opendaq/synchronization.h>
 #include <opendaq/synchronization_impl.h>
-#include <opendaq/synchronization_internal_ptr.h>
+#include <opendaq/synchronization_private_ptr.h>
 #include <opendaq/sync_interface_base_impl.h>
 #include <opendaq/sync_interface_ptr.h>
 #include <opendaq/ptp_sync_interface_impl.h>
@@ -71,12 +71,12 @@ public:
         const auto testSyncInterface = createWithImplementation<ISyncInterface, TestSyncInterface>(manager, "TestInterface");
         auto* impl = dynamic_cast<TestSyncInterface*>(testSyncInterface.getObject());
         impl->setSyncSourceStatus(SyncSourceStatus::Synced, "boot");
-        sync.asPtr<ISynchronizationInternal>(true).addInterface(testSyncInterface);
+        sync.asPtr<ISynchronizationPrivate>(true).addInterface(testSyncInterface);
 
         const auto ptpInterface = createWithImplementation<ISyncInterface, TestPtpSyncInterface>(manager);
         auto* ptpImpl = dynamic_cast<TestPtpSyncInterface*>(ptpInterface.getObject());
         ptpImpl->createPortProporties("eth0");
-        sync.asPtr<ISynchronizationInternal>(true).addInterface(ptpInterface);
+        sync.asPtr<ISynchronizationPrivate>(true).addInterface(ptpInterface);
 
         setSynchronization(sync);
     }
@@ -177,7 +177,7 @@ TEST_F(ConfigSynchronizationTest, getSource)
     auto serverSource = serverSync.getSource();
     auto clientSource = clientSync.getSource();
 
-    ASSERT_EQ(serverSource.getName(), clientSource.getName());
+    ASSERT_EQ(serverSource.getId(), clientSource.getId());
 }
 
 TEST_F(ConfigSynchronizationTest, setSourceFromClient)
@@ -189,8 +189,8 @@ TEST_F(ConfigSynchronizationTest, setSourceFromClient)
     clientSync.setSource("TestInterface");
 
     // Verify server has the new selected source
-    ASSERT_EQ(clientSync.getSource().getName(), "TestInterface");
-    ASSERT_EQ(serverSync.getSource().getName(), "TestInterface");
+    ASSERT_EQ(clientSync.getSource().getId(), "TestInterface");
+    ASSERT_EQ(serverSync.getSource().getId(), "TestInterface");
 }
 
 TEST_F(ConfigSynchronizationTest, GetSourceReferenceDomainId)
@@ -205,12 +205,24 @@ TEST_F(ConfigSynchronizationTest, GetSourceReferenceDomainId)
     ASSERT_EQ(serverDomainId, clientDomainId);
 }
 
-TEST_F(ConfigSynchronizationTest, SyncInterfaceGetName)
+TEST_F(ConfigSynchronizationTest, SyncInterfaceGetId)
 {
     auto clientSync = getClientSyncComponent();
     auto clientSource = clientSync.getSource();
 
-    ASSERT_EQ(clientSource.getName(), "ClockSyncInterface");
+    ASSERT_EQ(clientSource.getId(), "ClockSyncInterface");
+}
+
+TEST_F(ConfigSynchronizationTest, SyncInterfaceGetSyncType)
+{
+    auto serverSync = getServerSyncComponent();
+    auto clientSync = getClientSyncComponent();
+
+    auto serverSource = serverSync.getSource();
+    auto clientSource = clientSync.getSource();
+
+    ASSERT_EQ(serverSource.getSyncType(), "local");
+    ASSERT_EQ(clientSource.getSyncType(), "local");
 }
 
 TEST_F(ConfigSynchronizationTest, SyncInterfaceGetReferenceDomainId)
@@ -231,10 +243,9 @@ TEST_F(ConfigSynchronizationTest, SyncInterfacePropertyAccess)
     auto propObj = clientSource.asPtr<IPropertyObject>(true);
 
     // Test reading properties via property object interface
-    ASSERT_EQ(propObj.getPropertyValue("Name"), "ClockSyncInterface");
+    ASSERT_EQ(propObj.getPropertyValue("Id"), "ClockSyncInterface");
     ASSERT_NO_THROW(propObj.getPropertyValue("Configuration.Mode"));
-    ASSERT_NO_THROW(propObj.getPropertyValue("Status.SynchronizationSourceStatus"));
-    ASSERT_NO_THROW(propObj.getPropertyValue("Status.ReferenceDomainId"));
+    ASSERT_NO_THROW(propObj.getPropertyValue("ReferenceDomainId"));
 }
 
 TEST_F(ConfigSynchronizationTest, SetSyncInterfaceModeViaProperty)
@@ -246,7 +257,7 @@ TEST_F(ConfigSynchronizationTest, SetSyncInterfaceModeViaProperty)
     const auto serverSource = serverSync.getSource();
     const auto clientSource = clientSync.getSource();
 
-    ASSERT_EQ(serverSource.getName(), clientSource.getName());
+    ASSERT_EQ(serverSource.getId(), clientSource.getId());
 
     // Get initial mode
     ASSERT_EQ(serverSource.getMode(), SyncMode::Auto);
@@ -305,23 +316,23 @@ TEST_F(ConfigSynchronizationTest, SaveLoadFromClient)
     auto clientSync = getClientSyncComponent();
     const auto clientSyncUpdatable = clientSync.asPtr<IUpdatable>(true);
 
-    ASSERT_EQ(clientSync.getSource().getName(), "ClockSyncInterface");
-    ASSERT_EQ(serverSync.getSource().getName(), "ClockSyncInterface");
+    ASSERT_EQ(clientSync.getSource().getId(), "ClockSyncInterface");
+    ASSERT_EQ(serverSync.getSource().getId(), "ClockSyncInterface");
 
     auto serializer = JsonSerializer();
     ASSERT_ERROR_CODE_EQ(clientSyncUpdatable->serializeForUpdate(serializer), OPENDAQ_SUCCESS);
 
     // Change the source from the client, verify the server followed
     clientSync.setSource("TestInterface");
-    ASSERT_EQ(clientSync.getSource().getName(), "TestInterface");
-    ASSERT_EQ(serverSync.getSource().getName(), "TestInterface");
+    ASSERT_EQ(clientSync.getSource().getId(), "TestInterface");
+    ASSERT_EQ(serverSync.getSource().getId(), "TestInterface");
 
     // Restore from the client - the server should be driven back to its saved state too
     const auto deserializer = JsonDeserializer();
     deserializer.update(clientSyncUpdatable, serializer.getOutput(), nullptr);
 
-    ASSERT_EQ(clientSync.getSource().getName(), "ClockSyncInterface");
-    ASSERT_EQ(serverSync.getSource().getName(), "ClockSyncInterface");
+    ASSERT_EQ(clientSync.getSource().getId(), "ClockSyncInterface");
+    ASSERT_EQ(serverSync.getSource().getId(), "ClockSyncInterface");
 }
 
 TEST_F(ConfigSynchronizationTest, RoleStatusChangedPropagatesToClient)

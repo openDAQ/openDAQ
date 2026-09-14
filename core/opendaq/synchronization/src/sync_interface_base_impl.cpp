@@ -6,11 +6,11 @@ BEGIN_NAMESPACE_OPENDAQ
 template class GenericSyncInterfaceImpl<IPropertyObject, ISyncInterfaceInternal>;
 
 SyncInterfaceBaseImpl::SyncInterfaceBaseImpl(const TypeManagerPtr& manager,
-                                             const StringPtr& name,
+                                             const StringPtr& id,
                                              const std::vector<SyncMode>& availableModes)
     : Super(manager)
     , manager(manager)
-    , name(name)
+    , id(id)
     , referenceDomainId("")
 {
     initAvailiableModes(availableModes);
@@ -45,16 +45,9 @@ void SyncInterfaceBaseImpl::initAvailiableModes(const std::vector<SyncMode>& ava
 
 void SyncInterfaceBaseImpl::initProperties()
 {
-    this->objPtr.addProperty(StringPropertyBuilder("Name", name).setReadOnly(true).build());
-
-    status = PropertyObject();
-    const EnumerationTypePtr syncRoleStatusType = manager.getType("SynchronizationRoleStatusType");
-    const EnumerationTypePtr syncSourceStatusType = manager.getType("SynchronizationSourceStatusType");
-
-    status.addProperty(SelectionPropertyBuilder("SynchronizationRoleStatus", syncRoleStatusType.getEnumeratorNames(), static_cast<Int>(SyncRoleStatus::Off)).setReadOnly(true).build());
-    status.addProperty(SelectionPropertyBuilder("SynchronizationSourceStatus", syncSourceStatusType.getEnumeratorNames(), static_cast<Int>(SyncSourceStatus::Off)).setReadOnly(true).build());
-    status.addProperty(StringPropertyBuilder("ReferenceDomainId", "").setReadOnly(true).build());
-    this->objPtr.addProperty(ObjectPropertyBuilder("Status", status).setReadOnly(true).build());
+    this->objPtr.addProperty(StringPropertyBuilder("Id", id).setReadOnly(true).build());
+    this->objPtr.addProperty(StringPropertyBuilder("ReferenceDomainId", "").setReadOnly(true).build());
+    this->objPtr.addProperty(BoolPropertyBuilder("CanBeSource", sourceModes.getCount() > 0).setReadOnly(true).build());
 
     configuration = PropertyObject();
     configuration.addProperty(DictPropertyBuilder("ModeOptions", outputModes).setReadOnly(true).setVisible(false).build());
@@ -82,10 +75,17 @@ void SyncInterfaceBaseImpl::initSynchronizationStatus()
     statusContainerPrivate.addStatus("SynchronizationSourceStatus", syncSourceStatus);
 }
 
-ErrCode SyncInterfaceBaseImpl::getName(IString** name)
+ErrCode SyncInterfaceBaseImpl::getId(IString** id)
 {
-    OPENDAQ_PARAM_NOT_NULL(name);
-    *name = this->name.addRefAndReturn();
+    OPENDAQ_PARAM_NOT_NULL(id);
+    *id = this->id.addRefAndReturn();
+    return OPENDAQ_SUCCESS;
+}
+
+ErrCode SyncInterfaceBaseImpl::getSyncType(IString** syncType)
+{
+    OPENDAQ_PARAM_NOT_NULL(syncType);
+    *syncType = String("").detach();
     return OPENDAQ_SUCCESS;
 }
 
@@ -96,17 +96,17 @@ ErrCode SyncInterfaceBaseImpl::getAvailableModes(IDict** availableModes)
     return OPENDAQ_SUCCESS;
 }
 
+ErrCode SyncInterfaceBaseImpl::canBeSource(Bool* canBeSource)
+{
+    OPENDAQ_PARAM_NOT_NULL(canBeSource);
+    *canBeSource = sourceModes.getCount() > 0;
+    return OPENDAQ_SUCCESS;
+}
+
 ErrCode SyncInterfaceBaseImpl::getReferenceDomainId(IString** referenceDomainId)
 {
     OPENDAQ_PARAM_NOT_NULL(referenceDomainId);
     *referenceDomainId = this->referenceDomainId.addRefAndReturn();
-    return OPENDAQ_SUCCESS;
-}
-
-ErrCode SyncInterfaceBaseImpl::getStatus(IPropertyObject** status)
-{
-    OPENDAQ_PARAM_NOT_NULL(status);
-    *status = this->status.addRefAndReturn();
     return OPENDAQ_SUCCESS;
 }
 
@@ -117,19 +117,12 @@ ErrCode SyncInterfaceBaseImpl::getConfiguration(IPropertyObject** configuration)
     return OPENDAQ_SUCCESS;
 }
 
-ErrCode SyncInterfaceBaseImpl::getClockType(IString** clockType)
-{
-    OPENDAQ_PARAM_NOT_NULL(clockType);
-    *clockType = String("").detach();
-    return OPENDAQ_SUCCESS;
-}
-
 ErrCode SyncInterfaceBaseImpl::setAsSource(Bool source)
 {
     if (source)
     {
         if (sourceModes.getCount() == 0)
-            return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALID_OPERATION, "Current sync interface can not be chossen as source");
+            return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_ACCESSDENIED, "Current sync interface can not be chossen as source");
 
         OPENDAQ_RETURN_IF_FAILED(this->setProtectedPropertyValue(String("Configuration.ModeOptions"), sourceModes));
 
@@ -161,12 +154,11 @@ void SyncInterfaceBaseImpl::onConfigurationChanged(const StringPtr& name, const 
 void SyncInterfaceBaseImpl::setReferenceDomainId(const StringPtr& referenceDomainId)
 {
     this->referenceDomainId = referenceDomainId.assigned() ? referenceDomainId : String("");
-    status.asPtr<IPropertyObjectProtected>(true).setProtectedPropertyValue("ReferenceDomainId", this->referenceDomainId);
+    checkErrorInfo(this->setProtectedPropertyValue(String("ReferenceDomainId"), this->referenceDomainId));
 }
 
 void SyncInterfaceBaseImpl::setSyncSourceStatus(SyncSourceStatus status, const StringPtr& message)
 {
-    this->status.asPtr<IPropertyObjectProtected>(true).setProtectedPropertyValue("SynchronizationSourceStatus", static_cast<Int>(status));
     const auto syncSourceStatus =
         EnumerationWithIntValue("SynchronizationSourceStatusType", static_cast<Int>(status), manager);
 
@@ -176,7 +168,6 @@ void SyncInterfaceBaseImpl::setSyncSourceStatus(SyncSourceStatus status, const S
 
 void SyncInterfaceBaseImpl::setSyncRoleStatus(SyncRoleStatus status, const StringPtr& message)
 {
-    this->status.asPtr<IPropertyObjectProtected>(true).setProtectedPropertyValue("SynchronizationRoleStatus", static_cast<Int>(status));
     const auto syncRoleStatus =
         EnumerationWithIntValue("SynchronizationRoleStatusType", static_cast<Int>(status), manager);
     
@@ -199,6 +190,11 @@ ErrCode SyncInterfaceBaseImpl::serializeCustomValues(ISerializer* serializer, bo
         serializer->key("SyncStatus");
         auto serializable = statusContainer.asOrNull<ISerializable>(true);
         OPENDAQ_RETURN_IF_FAILED(serializable->serialize(serializer));
+
+        StringPtr syncType;
+        OPENDAQ_RETURN_IF_FAILED(this->getSyncType(&syncType));
+        serializer->key("SyncType");
+        serializer->writeString(syncType.getCharPtr(), syncType.getLength());
     }
     return OPENDAQ_SUCCESS;
 }

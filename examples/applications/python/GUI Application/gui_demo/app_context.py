@@ -1,5 +1,7 @@
+import glob
 import os
 import platform
+import tempfile
 
 import opendaq as daq
 
@@ -32,6 +34,7 @@ class AppContext(object):
         self.ui_scaling_factor = 1.0
         self.dpi_factor = self._detect_dpi_factor()
         self.icons = {}
+        self.blank_icon = None
         # daq
         builder = daq.InstanceBuilder()
         builder.scheduler_worker_num = 0
@@ -50,11 +53,29 @@ class AppContext(object):
         for protocol in getattr(params, 'discovery_servers', []):
             builder.add_discovery_server(protocol)
 
+        self.log_file_path = os.path.join(
+            tempfile.gettempdir(), 'opendaq_gui_demo_{}.log'.format(os.getpid()))
+        try:
+            self._remove_demo_log_files()
+            builder.add_logger_sink(daq.BasicFileLoggerSink(self.log_file_path))
+        except Exception:
+            self.log_file_path = None
+
         self.instance = daq.InstanceFromBuilder(builder)
         self.instance.context.on_core_event + daq.QueuedEventHandler(self.on_core_event)
         self.connection_string = ''
         self.signals = {}
         self.needs_refresh = False
+
+    @staticmethod
+    def _remove_demo_log_files():
+        """Clear the map of temporary log files."""
+        pattern = os.path.join(tempfile.gettempdir(), 'opendaq_gui_demo_*.log')
+        for path in glob.glob(pattern):
+            try:
+                os.remove(path)
+            except OSError:
+                pass
 
     def _detect_dpi_factor(self) -> float:
         """Detect system DPI scaling factor (1.0 = 96 DPI). Used to scale UI elements on high-DPI displays."""
@@ -115,6 +136,14 @@ class AppContext(object):
             image = utils.load_icon(os.path.join(directory, file), scale=scale)
             images[file.split('.')[0]] = image
         self.icons = images
+        if images:
+            sample = next(iter(images.values()))
+            self.blank_icon = utils.blank_icon(sample.width(), sample.height())
+
+    def menu_icon(self, name=None):
+        if name is None:
+            return self.blank_icon
+        return self.icons.get(name, self.blank_icon)
 
     def is_server(self, device_id):
         if not device_id:

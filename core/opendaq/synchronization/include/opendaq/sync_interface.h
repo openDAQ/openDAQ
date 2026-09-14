@@ -67,53 +67,61 @@ enum class SyncRoleStatus : EnumType
 DECLARE_OPENDAQ_INTERFACE(ISyncInterface, IBaseObject)
 {
     /*!
-      * @brief Gets the name of the synchronization interface.
-      * @param[out] name The name of the synchronization interface.
-      */
-    virtual ErrCode INTERFACE_FUNC getName(IString** name) = 0;
+     * @brief Gets the ID of the synchronization interface.
+     * @param[out] id The ID of the synchronization interface.
+     */
+    virtual ErrCode INTERFACE_FUNC getId(IString** id) = 0;
 
     /*!
-      * @brief Gets the reference domain ID of the synchronization interface.
-      * @param[out] referenceDomainId The reference domain ID string.
-      */
+     * @brief Gets the synchronization type of the interface (eg. "ptp", "ntp", "local").
+     * @param[out] syncType The synchronization type string.
+     *
+     * The returned string matches the prefix of the interface's reference domain ID.
+     */
+    virtual ErrCode INTERFACE_FUNC getSyncType(IString** syncType) = 0;
+
+    /*!
+     * @brief Gets the reference domain ID of the synchronization interface.
+     * @param[out] referenceDomainId The reference domain ID string.
+     */
     virtual ErrCode INTERFACE_FUNC getReferenceDomainId(IString** referenceDomainId) = 0;
 
     /*!
-      * @brief Sets the mode of the synchronization interface.
-      * @param mode The mode to set the synchronization interface to.
-      */
+     * @brief Gets whether the synchronization interface can be selected as the synchronization source.
+     * @param[out] canBeSource True if the interface can act as a synchronization source; False otherwise.
+     */
+    virtual ErrCode INTERFACE_FUNC canBeSource(Bool* canBeSource) = 0;
+
+    /*!
+     * @brief Sets the mode of the synchronization interface.
+     * @param mode The mode to set the synchronization interface to.
+     */
     virtual ErrCode INTERFACE_FUNC setMode(SyncMode mode) = 0;
 
     /*!
-      * @brief Gets the current mode of the synchronization interface.
-      * @param[out] sourceMode The current mode of the synchronization interface.
-      */
+     * @brief Gets the current mode of the synchronization interface.
+     * @param[out] sourceMode The current mode of the synchronization interface.
+     */
     virtual ErrCode INTERFACE_FUNC getMode(SyncMode* sourceMode) = 0;
 
     /*!
-      * @brief Gets the modes available to the synchronization interface, depending on whether
-      * it is currently selected as the synchronization source.
-      * @param[out] availableModes A dictionary mapping available `SyncMode` values to their names.
-      */
+     * @brief Gets the modes available to the synchronization interface, depending on whether
+     * it is currently selected as the synchronization source.
+     * @param[out] availableModes A dictionary mapping available `SyncMode` values to their names.
+     */
     // [templateType(availableModes, IInteger, IString)]
     virtual ErrCode INTERFACE_FUNC getAvailableModes(IDict** availableModes) = 0;
 
     /*!
-      * @brief Gets the status property object of the synchronization interface.
-      * @param[out] status The status property object.
-      */
-    virtual ErrCode INTERFACE_FUNC getStatus(IPropertyObject** status) = 0;
-
-    /*!
-      * @brief Gets the configuration property object of the synchronization interface.
-      * @param[out] configuration The configuration property object.
-      */
+     * @brief Gets the configuration property object of the synchronization interface.
+     * @param[out] configuration The configuration property object.
+     */
     virtual ErrCode INTERFACE_FUNC getConfiguration(IPropertyObject** configuration) = 0;
 
     /*!
-      * @brief Gets the status container of the synchronization interface.
-      * @param[out] syncStatus The status container.
-      */
+     * @brief Gets the status container of the synchronization interface.
+     * @param[out] syncStatus The status container.
+     */
     virtual ErrCode INTERFACE_FUNC getStatusContainer(IComponentStatusContainer** syncStatus) = 0;
 };
 /*!@}*/

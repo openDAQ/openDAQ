@@ -288,6 +288,80 @@ sf::Color RendererFbImpl::getColor(const SignalContext& signalContext)
     }
 }
 
+static SampleType packetSampleType(const DataPacketPtr& packet, SampleType fallback)
+{
+    const auto descriptor = packet.getDataDescriptor();
+    if (descriptor.assigned())
+        return descriptor.getSampleType();
+
+    return fallback;
+}
+
+static double readSampleValue(const void* data, SampleType sampleType, size_t index)
+{
+    switch (sampleType)
+    {
+        case (SampleType::Float32):
+            return static_cast<const float*>(data)[index];
+        case (SampleType::Float64):
+            return static_cast<const double*>(data)[index];
+        case (SampleType::UInt8):
+            return static_cast<const uint8_t*>(data)[index];
+        case (SampleType::Int8):
+            return static_cast<const int8_t*>(data)[index];
+        case (SampleType::UInt16):
+            return static_cast<const uint16_t*>(data)[index];
+        case (SampleType::Int16):
+            return static_cast<const int16_t*>(data)[index];
+        case (SampleType::UInt32):
+            return static_cast<const uint32_t*>(data)[index];
+        case (SampleType::Int32):
+            return static_cast<const int32_t*>(data)[index];
+        case (SampleType::UInt64):
+            return static_cast<double>(static_cast<const uint64_t*>(data)[index]);
+        case (SampleType::Int64):
+            return static_cast<double>(static_cast<const int64_t*>(data)[index]);
+        default:
+            return 0.0;
+    }
+}
+
+template <typename T>
+static T readDomainSample(const void* data, SampleType sampleType, size_t index)
+{
+    switch (sampleType)
+    {
+        case (SampleType::Float32):
+            return static_cast<T>(static_cast<const float*>(data)[index]);
+        case (SampleType::Float64):
+            return static_cast<T>(static_cast<const double*>(data)[index]);
+        case (SampleType::UInt8):
+            return static_cast<T>(static_cast<const uint8_t*>(data)[index]);
+        case (SampleType::Int8):
+            return static_cast<T>(static_cast<const int8_t*>(data)[index]);
+        case (SampleType::UInt16):
+            return static_cast<T>(static_cast<const uint16_t*>(data)[index]);
+        case (SampleType::Int16):
+            return static_cast<T>(static_cast<const int16_t*>(data)[index]);
+        case (SampleType::UInt32):
+            return static_cast<T>(static_cast<const uint32_t*>(data)[index]);
+        case (SampleType::Int32):
+            return static_cast<T>(static_cast<const int32_t*>(data)[index]);
+        case (SampleType::UInt64):
+            return static_cast<T>(static_cast<const uint64_t*>(data)[index]);
+        case (SampleType::Int64):
+            return static_cast<T>(static_cast<const int64_t*>(data)[index]);
+        default:
+            return T{};
+    }
+}
+
+template <typename T>
+static T domainStampAs(const DomainStamp& stamp)
+{
+    return std::visit([](auto value) { return static_cast<T>(value); }, stamp);
+}
+
 template <SampleType DST>
 void RendererFbImpl::renderPacket(
     SignalContext& signalContext,
@@ -325,7 +399,6 @@ void RendererFbImpl::renderPacketImplicitAndExplicit(
     std::unique_ptr<Polyline>& line,
     bool& end)
 {
-    using SourceDomainType = typename SampleTypeToType<DST>::Type;
     using DestDomainType = typename SampleTypeToType<DomainTypeCast<DST>::DomainSampleType>::Type;
 
     const float xSize = signalContext.bottomRight.x - signalContext.topLeft.x;
@@ -345,7 +418,8 @@ void RendererFbImpl::renderPacketImplicitAndExplicit(
     DestDomainType firstDomainPacketValue{};
     DestDomainType delta{};
     DestDomainType start{};
-    SourceDomainType* domainData{};
+    const void* domainData{};
+    const auto domainSampleType = packetSampleType(domainPacket, signalContext.domainSampleType);
 
     auto referenceDomainInfo = domainDataDescriptor.getReferenceDomainInfo();
     DestDomainType referenceDomainOffset = 0;
@@ -370,11 +444,13 @@ void RendererFbImpl::renderPacketImplicitAndExplicit(
     else
     {
         domainPacketSampleCount = domainPacket.getSampleCount();
-        domainData = static_cast<SourceDomainType*>(domainPacket.getData());
-        firstDomainPacketValue = static_cast<DestDomainType>(*domainData) + referenceDomainOffset;
-
-        domainData += domainPacket.getSampleCount() - 1;
-        curDomainPacketValue = static_cast<DestDomainType>(*domainData) + referenceDomainOffset;
+        domainData = domainPacket.getData();
+        if (domainPacketSampleCount > 0)
+        {
+            firstDomainPacketValue = readDomainSample<DestDomainType>(domainData, domainSampleType, 0) + referenceDomainOffset;
+            curDomainPacketValue =
+                readDomainSample<DestDomainType>(domainData, domainSampleType, domainPacketSampleCount - 1) + referenceDomainOffset;
+        }
         gap = havePrevPacket && domainPacketSampleCount == 0;
     }
 
@@ -382,13 +458,13 @@ void RendererFbImpl::renderPacketImplicitAndExplicit(
     DestDomainType lastDomainValue;
     if (singleXAxis)
     {
-        firstDomainValue = std::get<DestDomainType>(signalContext.singleAxisFirstDomainStamp);
-        lastDomainValue = std::get<DestDomainType>(signalContext.singleAxisLastDomainStamp);
+        firstDomainValue = domainStampAs<DestDomainType>(signalContext.singleAxisFirstDomainStamp);
+        lastDomainValue = domainStampAs<DestDomainType>(signalContext.singleAxisLastDomainStamp);
     }
     else
     {
-        firstDomainValue = std::get<DestDomainType>(signalContext.firstDomainStamp);
-        lastDomainValue = std::get<DestDomainType>(signalContext.lastDomainStamp);
+        firstDomainValue = domainStampAs<DestDomainType>(signalContext.firstDomainStamp);
+        lastDomainValue = domainStampAs<DestDomainType>(signalContext.lastDomainStamp);
     }
 
     auto domainFactor = (lastDomainValue - firstDomainValue) / static_cast<double>(xSize);
@@ -410,8 +486,9 @@ void RendererFbImpl::renderPacketImplicitAndExplicit(
     if (domainRuleType == DataRuleType::Explicit && domainPacketSampleCount == 0)
         return;
 
-    size_t sampleSize = getSampleSize(signalContext.sampleType);
-    auto data = reinterpret_cast<uint8_t*>(packet.getData()) + samplesInPacket * sampleSize;
+    // Get sample type from the packet directly
+    const auto sampleType = packetSampleType(packet, signalContext.sampleType);
+    const void* data = packet.getData();
 
     size_t i = 0;
     while (i < samplesInPacket)
@@ -419,43 +496,7 @@ void RendererFbImpl::renderPacketImplicitAndExplicit(
         if (curDomainPacketValue < firstDomainValue)
             break;
 
-        data -= sampleSize;
-        double value;
-        switch (signalContext.sampleType)
-        {
-            case (SampleType::Float32):
-                value = *(reinterpret_cast<float*>(data));
-                break;
-            case (SampleType::Float64):
-                value = *(reinterpret_cast<double*>(data));
-                break;
-            case (SampleType::UInt8):
-                value = *(reinterpret_cast<uint8_t*>(data));
-                break;
-            case (SampleType::Int8):
-                value = *(reinterpret_cast<int8_t*>(data));
-                break;
-            case (SampleType::UInt16):
-                value = *(reinterpret_cast<uint16_t*>(data));
-                break;
-            case (SampleType::Int16):
-                value = *(reinterpret_cast<int16_t*>(data));
-                break;
-            case (SampleType::UInt32):
-                value = *(reinterpret_cast<uint32_t*>(data));
-                break;
-            case (SampleType::Int32):
-                value = *(reinterpret_cast<int32_t*>(data));
-                break;
-            case (SampleType::UInt64):
-                value = *(reinterpret_cast<uint64_t*>(data));
-                break;
-            case (SampleType::Int64):
-                value = *(reinterpret_cast<int64_t*>(data));
-                break;
-            default:
-                value = 0.0;
-        }
+        const double value = readSampleValue(data, sampleType, samplesInPacket - 1 - i);
         if (!signalContext.lastValueSet)
         {
             signalContext.lastValue = value;
@@ -473,8 +514,9 @@ void RendererFbImpl::renderPacketImplicitAndExplicit(
         line->addPoint(xPos, yPos);
         if (domainRuleType == DataRuleType::Linear)
             curDomainPacketValue -= delta;
-        else
-            curDomainPacketValue = static_cast<DestDomainType>(*(--domainData)) + referenceDomainOffset;
+        else if (i + 1 < domainPacketSampleCount)
+            curDomainPacketValue =
+                readDomainSample<DestDomainType>(domainData, domainSampleType, domainPacketSampleCount - 2 - i) + referenceDomainOffset;
         i++;
     }
     if (i == 0)
@@ -523,50 +565,18 @@ void RendererFbImpl::renderArrayPacketImplicitAndExplicit(
 
     end = true;
     havePrevPacket = false;
-    auto data = reinterpret_cast<uint8_t*>(packet.getData());
+
+    // Get sample type from the packet directly
+    const auto sampleType = packetSampleType(packet, signalContext.sampleType);
+    const void* data = packet.getData();
 
     if (samplesInPacket == 0)
         return;
 
-    double value;
     for (size_t i = 0; i < xTickCount; i++)
     {
-        size_t idx = i + xTickOffset;
-        switch (signalContext.sampleType)
-        {
-            case (SampleType::Float32):
-                value = reinterpret_cast<float*>(data)[idx];
-                break;
-            case (SampleType::Float64):
-                value = reinterpret_cast<double*>(data)[idx];
-                break;
-            case (SampleType::UInt8):
-                value = reinterpret_cast<uint8_t*>(data)[idx];
-                break;
-            case (SampleType::Int8):
-                value = reinterpret_cast<int8_t*>(data)[idx];
-                break;
-            case (SampleType::UInt16):
-                value = reinterpret_cast<uint16_t*>(data)[idx];
-                break;
-            case (SampleType::Int16):
-                value = reinterpret_cast<int16_t*>(data)[idx];
-                break;
-            case (SampleType::UInt32):
-                value = reinterpret_cast<uint32_t*>(data)[idx];
-                break;
-            case (SampleType::Int32):
-                value = reinterpret_cast<int32_t*>(data)[idx];
-                break;
-            case (SampleType::UInt64):
-                value = reinterpret_cast<uint64_t*>(data)[idx];
-                break;
-            case (SampleType::Int64):
-                value = reinterpret_cast<int64_t*>(data)[idx];
-                break;
-            default:
-                value = 0.0;
-        }
+        const size_t idx = i + xTickOffset;
+        const double value = readSampleValue(data, sampleType, idx);
 
         float xPos = xOffset + static_cast<float>(1.0 * i / domainFactor);
         float yPos = yOffset - static_cast<float>((value - yMin) / valueFactor);
@@ -944,7 +954,7 @@ template <SampleType DST>
 void RendererFbImpl::domainStampToDomainValue(Float& lastDomainValue, const SignalContext& signalContext, DomainStamp domainStamp)
 {
     using Type = typename SampleTypeToType<DomainTypeCast<DST>::DomainSampleType>::Type;
-    lastDomainValue = std::get<Type>(domainStamp) * signalContext.domainResNum * 1.0 / signalContext.domainResDen;
+    lastDomainValue = domainStampAs<Type>(domainStamp) * signalContext.domainResNum * 1.0 / signalContext.domainResDen;
 }
 
 void RendererFbImpl::prepareSingleXAxis()
@@ -1525,7 +1535,6 @@ void RendererFbImpl::processDataPacket(SignalContext& signalContext, const DataP
 template <SampleType DST>
 void RendererFbImpl::setLastDomainStamp(SignalContext& signalContext, const DataPacketPtr& domainPacket)
 {
-    using SourceDomainType = typename SampleTypeToType<DST>::Type;
     using DestDomainType = typename SampleTypeToType<DomainTypeCast<DST>::DomainSampleType>::Type;
 
     const auto domainDataDescriptor = domainPacket.getDataDescriptor();
@@ -1545,8 +1554,9 @@ void RendererFbImpl::setLastDomainStamp(SignalContext& signalContext, const Data
     DestDomainType lastDomainStamp;
     if (signalContext.isExplicit)
     {
-        const auto domainDataPtr = static_cast<SourceDomainType*>(domainPacket.getData());
-        lastDomainStamp = referenceDomainOffset + static_cast<DestDomainType>(*(domainDataPtr + sampleCount - 1));
+        const auto domainSampleType = packetSampleType(domainPacket, signalContext.domainSampleType);
+        lastDomainStamp =
+            referenceDomainOffset + readDomainSample<DestDomainType>(domainPacket.getData(), domainSampleType, sampleCount - 1);
     }
     else
     {

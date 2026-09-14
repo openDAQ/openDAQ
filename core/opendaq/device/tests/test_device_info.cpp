@@ -313,7 +313,6 @@ TEST_F(DeviceInfoTest, ServerCapabilities)
 
 TEST_F(DeviceInfoTest, NetworkInterfaces)
 {
-    MemCheckListener::expectMemoryLeak = true;// memory leak in module manager
     const auto moduleManager = ModuleManager("[[none]]");
 
     DeviceInfoPtr info = DeviceInfo("", "");

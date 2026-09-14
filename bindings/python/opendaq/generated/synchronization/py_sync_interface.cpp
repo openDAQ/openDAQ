@@ -58,14 +58,22 @@ void defineISyncInterface(pybind11::module_ m, PyDaqIntf<daq::ISyncInterface, da
 {
     cls.doc() = "Interface representing a Synchronization Interface.";
 
-    cls.def_property_readonly("name",
+    cls.def_property_readonly("id",
         [](daq::ISyncInterface *object)
         {
             py::gil_scoped_release release;
             const auto objectPtr = daq::SyncInterfacePtr::Borrow(object);
-            return objectPtr.getName().toStdString();
+            return objectPtr.getId().toStdString();
         },
-        "Gets the name of the synchronization interface.");
+        "Gets the ID of the synchronization interface.");
+    cls.def_property_readonly("sync_type",
+        [](daq::ISyncInterface *object)
+        {
+            py::gil_scoped_release release;
+            const auto objectPtr = daq::SyncInterfacePtr::Borrow(object);
+            return objectPtr.getSyncType().toStdString();
+        },
+        "Gets the synchronization type of the interface (eg. \"ptp\", \"ntp\", \"local\").");
     cls.def_property_readonly("reference_domain_id",
         [](daq::ISyncInterface *object)
         {
@@ -97,15 +105,14 @@ void defineISyncInterface(pybind11::module_ m, PyDaqIntf<daq::ISyncInterface, da
         },
         py::return_value_policy::take_ownership,
         "Gets the modes available to the synchronization interface, depending on whether it is currently selected as the synchronization source.");
-    cls.def_property_readonly("status",
+    cls.def_property_readonly("can_be_source",
         [](daq::ISyncInterface *object)
         {
             py::gil_scoped_release release;
             const auto objectPtr = daq::SyncInterfacePtr::Borrow(object);
-            return objectPtr.getStatus().detach();
+            return objectPtr.canBeSource();
         },
-        py::return_value_policy::take_ownership,
-        "Gets the status property object of the synchronization interface.");
+        "Gets whether the synchronization interface can be selected as the synchronization source.");
     cls.def_property_readonly("configuration",
         [](daq::ISyncInterface *object)
         {

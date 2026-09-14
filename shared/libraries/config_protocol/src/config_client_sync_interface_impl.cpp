@@ -13,7 +13,15 @@ ConfigClientSyncInterfaceImpl::ConfigClientSyncInterfaceImpl(const ConfigProtoco
                                                              const std::string& remoteGlobalId,
                                                              const TypeManagerPtr& manager)
     : Super(configProtocolClientComm, remoteGlobalId, manager)
+    , syncType("")
 {
+}
+
+ErrCode ConfigClientSyncInterfaceImpl::getSyncType(IString** syncType)
+{
+    OPENDAQ_PARAM_NOT_NULL(syncType);
+    *syncType = this->syncType.addRefAndReturn();
+    return OPENDAQ_SUCCESS;
 }
 
 ErrCode ConfigClientSyncInterfaceImpl::setPropertyValue(IString* propertyName, IBaseObject* value)
@@ -78,9 +86,19 @@ ErrCode ConfigClientSyncInterfaceImpl::deserializeValues(ISerializedObject* seri
     {
         BaseObjectPtr objPtr;
         OPENDAQ_RETURN_IF_FAILED(serializedObject->readObject(String("SyncStatus"), context, callbackFactory, &objPtr));
-        
+
         if (const auto newStatusContainer = objPtr.asPtrOrNull<IComponentStatusContainer>(); newStatusContainer.assigned())
             statusContainer = newStatusContainer;
+    }
+
+    Bool hasSyncType{False};
+    OPENDAQ_RETURN_IF_FAILED(serializedObject->hasKey(String("SyncType"), &hasSyncType));
+
+    if (hasSyncType)
+    {
+        StringPtr newSyncType;
+        OPENDAQ_RETURN_IF_FAILED(serializedObject->readString(String("SyncType"), &newSyncType));
+        syncType = newSyncType;
     }
 
     return OPENDAQ_SUCCESS;

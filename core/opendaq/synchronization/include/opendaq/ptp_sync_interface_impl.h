@@ -40,7 +40,7 @@ class PUBLIC_EXPORT PtpSyncInterfaceBaseImpl : public SyncInterfaceBaseImpl
 public:
     using Super = SyncInterfaceBaseImpl;
 
-    ErrCode INTERFACE_FUNC getClockType(IString** clockType) override;
+    ErrCode INTERFACE_FUNC getSyncType(IString** syncType) override;
 
 protected:
     PtpSyncInterfaceBaseImpl(const TypeManagerPtr& manager,
@@ -57,7 +57,6 @@ protected:
 
     void onConfigurationChanged(const StringPtr& name, const BaseObjectPtr& value) override;
 
-    PropertyObjectPtr portsStatus;
     PropertyObjectPtr portsConfiguration;
 
 private:

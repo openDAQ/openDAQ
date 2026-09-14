@@ -1,7 +1,7 @@
 #include <testutils/testutils.h>
 #include <opendaq/sync_component_factory.h>
 #include <opendaq/sync_component_private_ptr.h>
-#include <opendaq/synchronization_internal_ptr.h>
+#include <opendaq/synchronization_private_ptr.h>
 #include <opendaq/sync_interface_base_impl.h>
 #include <opendaq/sync_interface_internal_ptr.h>
 #include <opendaq/ptp_sync_interface_impl.h>
@@ -189,28 +189,30 @@ public:
     {
     }
 
-    static SyncInterfacePtr Create(const TypeManagerPtr& manager, const StringPtr& name = "TestInterface", const std::vector<SyncMode> & availableModes = {SyncMode::Off, SyncMode::Input, SyncMode::Output, SyncMode::Auto})
+    static SyncInterfacePtr Create(const TypeManagerPtr& manager,
+                                   const StringPtr& name = "TestInterface",
+                                   const std::vector<SyncMode> & availableModes = {SyncMode::Off, SyncMode::Input, SyncMode::Output, SyncMode::Auto})
     {
         return createWithImplementation<ISyncInterface, TestSyncInterface>(manager, name, availableModes);
     }
 
-    void setClockType(const StringPtr& clockType)
+    void setSyncType(const StringPtr& syncType)
     {
-        this->clockType = clockType;
+        this->syncType = syncType;
     }
 
-    ErrCode INTERFACE_FUNC getClockType(IString** clockType) override
+    ErrCode INTERFACE_FUNC getSyncType(IString** syncType) override
     {
-        if (!this->clockType.assigned())
-            return Super::getClockType(clockType);
+        if (!this->syncType.assigned())
+            return Super::getSyncType(syncType);
 
-        OPENDAQ_PARAM_NOT_NULL(clockType);
-        *clockType = this->clockType.addRefAndReturn();
+        OPENDAQ_PARAM_NOT_NULL(syncType);
+        *syncType = this->syncType.addRefAndReturn();
         return OPENDAQ_SUCCESS;
     }
 
 private:
-    StringPtr clockType;
+    StringPtr syncType;
 };
 
 using SynchronizationTest = testing::Test;
@@ -230,6 +232,7 @@ TEST_F(SynchronizationTest, getSyncInterfaces)
     const auto interfaces = sync.getSyncInterfaces();
     ASSERT_EQ(interfaces.getCount(), 1u);
     ASSERT_TRUE(interfaces.hasKey("ClockSyncInterface"));
+    ASSERT_EQ(sync.getSource().getSyncType(), "local");
 }
 
 TEST_F(SynchronizationTest, setSource)
@@ -239,7 +242,7 @@ TEST_F(SynchronizationTest, setSource)
 
     const auto selectedSource = sync.getSource();
     ASSERT_TRUE(selectedSource.assigned());
-    ASSERT_EQ(selectedSource.getName(), "ClockSyncInterface");
+    ASSERT_EQ(selectedSource.getId(), "ClockSyncInterface");
 }
 
 TEST_F(SynchronizationTest, AddTwoTheSameInterfaces)
@@ -248,17 +251,17 @@ TEST_F(SynchronizationTest, AddTwoTheSameInterfaces)
     const auto manager = ctx.getTypeManager();
 
     const auto sync = Synchronization(manager);
-    const auto syncInternal = sync.asPtr<ISynchronizationInternal>(true);
+    const auto syncPrivate = sync.asPtr<ISynchronizationPrivate>(true);
 
     const auto newInterface = TestSyncInterface::Create(manager);
-    ASSERT_NO_THROW(syncInternal.addInterface(newInterface));
+    ASSERT_NO_THROW(syncPrivate.addInterface(newInterface));
     ASSERT_EQ(sync.getSyncInterfaces().getCount(), 2u);
 
-    ASSERT_ANY_THROW(syncInternal.addInterface(newInterface));
+    ASSERT_ANY_THROW(syncPrivate.addInterface(newInterface));
     ASSERT_EQ(sync.getSyncInterfaces().getCount(), 2u);
 
     const auto newInterfaceWithTheSameName = TestSyncInterface::Create(manager);
-    ASSERT_ANY_THROW(syncInternal.addInterface(newInterfaceWithTheSameName));
+    ASSERT_ANY_THROW(syncPrivate.addInterface(newInterfaceWithTheSameName));
     ASSERT_EQ(sync.getSyncInterfaces().getCount(), 2u);
 }
 
@@ -268,11 +271,11 @@ TEST_F(SynchronizationTest, SetSelectedSource)
     const auto manager = ctx.getTypeManager();
 
     const auto sync = Synchronization(manager);
-    const auto syncInternal = sync.asPtr<ISynchronizationInternal>(true);
+    const auto syncPrivate = sync.asPtr<ISynchronizationPrivate>(true);
 
     // Add another interface
     const auto newInterface = TestSyncInterface::Create(manager);
-    syncInternal.addInterface(newInterface);
+    syncPrivate.addInterface(newInterface);
 
     // Verify we have 2 interfaces
     const auto interfaces = sync.getSyncInterfaces();
@@ -282,7 +285,7 @@ TEST_F(SynchronizationTest, SetSelectedSource)
     sync.setSource("TestInterface");
     
     const auto selectedSource = sync.getSource();
-    ASSERT_EQ(selectedSource.getName(), "TestInterface");
+    ASSERT_EQ(selectedSource.getId(), "TestInterface");
     ASSERT_EQ(selectedSource.getMode(), SyncMode::Auto);
 }
 
@@ -292,17 +295,17 @@ TEST_F(SynchronizationTest, SetSelectedSourceRevertsOldSource)
     const auto manager = ctx.getTypeManager();
 
     const auto sync = Synchronization(manager);
-    const auto syncInternal = sync.asPtr<ISynchronizationInternal>(true);
+    const auto syncPrivate = sync.asPtr<ISynchronizationPrivate>(true);
 
     // Default source is ClockSyncInterface, which has no Auto mode so it starts as Input
     const auto oldSource = sync.getSource();
-    ASSERT_EQ(oldSource.getName(), "ClockSyncInterface");
+    ASSERT_EQ(oldSource.getId(), "ClockSyncInterface");
     ASSERT_EQ(oldSource.getMode(), SyncMode::Input);
 
     const auto newInterface = TestSyncInterface::Create(manager);
-    syncInternal.addInterface(newInterface);
+    syncPrivate.addInterface(newInterface);
     sync.setSource("TestInterface");
-    ASSERT_EQ(sync.getSource().getName(), "TestInterface");
+    ASSERT_EQ(sync.getSource().getId(), "TestInterface");
 
     // The old source should have been demoted: Mode back to Off, and no longer selectable
     // as an input/output source (ModeOptions switched back to the output-only set)
@@ -319,20 +322,20 @@ TEST_F(SynchronizationTest, SetSourceRollsBackOnFailure)
     const auto manager = ctx.getTypeManager();
 
     const auto sync = Synchronization(manager);
-    const auto syncInternal = sync.asPtr<ISynchronizationInternal>(true);
+    const auto syncPrivate = sync.asPtr<ISynchronizationPrivate>(true);
 
     // An interface that can never act as a source (no Input/Auto mode available)
     const auto outputOnlyInterface = TestSyncInterface::Create(manager, "OutputOnlyInterface", {SyncMode::Off, SyncMode::Output});
-    syncInternal.addInterface(outputOnlyInterface);
+    syncPrivate.addInterface(outputOnlyInterface);
 
     const auto originalSource = sync.getSource();
-    ASSERT_EQ(originalSource.getName(), "ClockSyncInterface");
+    ASSERT_EQ(originalSource.getId(), "ClockSyncInterface");
     ASSERT_EQ(originalSource.getMode(), SyncMode::Input);
 
     ASSERT_ANY_THROW(sync.setSource("OutputOnlyInterface"));
 
     // Original source should be fully restored, not left demoted mid-switch
-    ASSERT_EQ(sync.getSource().getName(), "ClockSyncInterface");
+    ASSERT_EQ(sync.getSource().getId(), "ClockSyncInterface");
     ASSERT_EQ(sync.getSource().getMode(), SyncMode::Input);
 
     const auto restoredModes = sync.getSource().getAvailableModes();
@@ -347,13 +350,13 @@ TEST_F(SynchronizationTest, SetSourceUnknownNameFails)
     const auto sync = Synchronization(manager);
 
     const auto originalSource = sync.getSource();
-    ASSERT_EQ(originalSource.getName(), "ClockSyncInterface");
+    ASSERT_EQ(originalSource.getId(), "ClockSyncInterface");
     ASSERT_EQ(originalSource.getMode(), SyncMode::Input);
 
     ASSERT_ANY_THROW(sync.setSource("DoesNotExist"));
 
     // Failing to resolve the requested interface should leave the current source untouched
-    ASSERT_EQ(sync.getSource().getName(), "ClockSyncInterface");
+    ASSERT_EQ(sync.getSource().getId(), "ClockSyncInterface");
     ASSERT_EQ(sync.getSource().getMode(), SyncMode::Input);
 }
 
@@ -363,7 +366,7 @@ TEST_F(SynchronizationTest, AddInterfaceFailsAfterAttached)
     const auto manager = ctx.getTypeManager();
 
     const auto sync = Synchronization(manager);
-    const auto syncInternal = sync.asPtr<ISynchronizationInternal>(true);
+    const auto syncPrivate = sync.asPtr<ISynchronizationPrivate>(true);
 
     // Attach the Synchronization component to a parent, the same way Device does internally
     auto parent = PropertyObject();
@@ -371,7 +374,7 @@ TEST_F(SynchronizationTest, AddInterfaceFailsAfterAttached)
     parent.asPtr<IPropertyObjectProtected>(true).setProtectedPropertyValue("Sync", sync);
 
     const auto newInterface = TestSyncInterface::Create(manager);
-    ASSERT_ERROR_CODE_EQ(syncInternal->addInterface(newInterface), OPENDAQ_ERR_INVALID_OPERATION);
+    ASSERT_ERROR_CODE_EQ(syncPrivate->addInterface(newInterface), OPENDAQ_ERR_INVALID_OPERATION);
 }
 
 TEST_F(SynchronizationTest, GetSourceReferenceDomainId)
@@ -384,14 +387,29 @@ TEST_F(SynchronizationTest, GetSourceReferenceDomainId)
     ASSERT_EQ(referenceDomainId.getCount(), 0);
 }
 
-TEST_F(SynchronizationTest, SyncInterfaceGetName)
+TEST_F(SynchronizationTest, SyncInterfaceGetId)
 {
     const auto ctx = NullContext();
 
     const auto syncInterface = TestSyncInterface::Create(ctx.getTypeManager(), "MyInterface");
-    ASSERT_EQ(syncInterface.getName(), "MyInterface");
+    ASSERT_EQ(syncInterface.getId(), "MyInterface");
 }
 
+TEST_F(SynchronizationTest, SyncInterfaceCanBeSourceTrue)
+{
+    const auto ctx = NullContext();
+
+    const auto syncInterface = TestSyncInterface::Create(ctx.getTypeManager(), "MyInterface", {SyncMode::Off, SyncMode::Input});
+    ASSERT_TRUE(syncInterface.canBeSource());
+}
+
+TEST_F(SynchronizationTest, SyncInterfaceCanBeSourceFalse)
+{
+    const auto ctx = NullContext();
+
+    const auto syncInterface = TestSyncInterface::Create(ctx.getTypeManager(), "MyInterface", {SyncMode::Off, SyncMode::Output});
+    ASSERT_FALSE(syncInterface.canBeSource());
+}
 
 TEST_F(SynchronizationTest, SyncInterfaceGetReferenceDomainId)
 {
@@ -401,28 +419,27 @@ TEST_F(SynchronizationTest, SyncInterfaceGetReferenceDomainId)
     ASSERT_EQ(syncInterface.getReferenceDomainId(), "");
 }
 
-TEST_F(SynchronizationTest, SyncInterfaceGetClockType)
+TEST_F(SynchronizationTest, SyncInterfaceGetSyncType)
 {
     const auto ctx = NullContext();
 
-    // Defaults to "Internal" unless a subclass overrides it (e.g. via setClockType in its own constructor)
+    // Defaults to "" unless a subclass overrides it (e.g. via setSyncType in its own constructor)
     const auto syncInterface = TestSyncInterface::Create(ctx.getTypeManager(), "MyInterface");
-    ASSERT_EQ(syncInterface.asPtr<ISyncInterfaceInternal>(true).getClockType(), "");
+    ASSERT_EQ(syncInterface.getSyncType(), "");
 }
 
-TEST_F(SynchronizationTest, SyncInterfaceSetClockType)
+TEST_F(SynchronizationTest, SyncInterfaceSetSyncType)
 {
     const auto ctx = NullContext();
 
     const auto syncInterface = TestSyncInterface::Create(ctx.getTypeManager(), "MyInterface");
     auto* impl = dynamic_cast<TestSyncInterface*>(syncInterface.getObject());
 
-    // Clock type is intrinsic to an interface and never changes at runtime, so setClockType is
+    // Sync type is intrinsic to an interface and never changes at runtime, so setSyncType is
     // meant to be called once, from the constructor of the concrete interface class.
-    impl->setClockType("Gps");
+    impl->setSyncType("gps");
 
-    ASSERT_EQ(syncInterface.asPtr<ISyncInterfaceInternal>(true).getClockType(), "Gps");
-    const auto propObj = syncInterface.asPtr<IPropertyObject>(true);
+    ASSERT_EQ(syncInterface.getSyncType(), "gps");
 }
 
 TEST_F(SynchronizationTest, SyncInterfaceProperties)
@@ -433,14 +450,16 @@ TEST_F(SynchronizationTest, SyncInterfaceProperties)
     const auto propObj = syncInterface.asPtr<IPropertyObject>(true);
 
     // Check Name property
-    ASSERT_EQ(propObj.getPropertyValue("Name"), "MyInterface");
+    ASSERT_EQ(propObj.getPropertyValue("Id"), "MyInterface");
 
     // Check Mode property (default is Off)
     ASSERT_EQ(propObj.getPropertySelectionValue("Configuration.Mode"), "Off");
 
-    // Check Status properties
-    ASSERT_EQ(propObj.getPropertyValue("Status.SynchronizationSourceStatus"), SyncSourceStatus::Off);
-    ASSERT_EQ(propObj.getPropertyValue("Status.ReferenceDomainId"), "");
+    // Check ReferenceDomainId property
+    ASSERT_EQ(propObj.getPropertyValue("ReferenceDomainId"), "");
+
+    // Check status container entries
+    ASSERT_EQ(syncInterface.getStatusContainer().getStatus("SynchronizationSourceStatus").getValue(), "Off");
 }
 
 // =====================================================
@@ -479,12 +498,20 @@ TEST_F(PtpSyncInterfaceTest, Create)
     ASSERT_TRUE(iface.assigned());
 }
 
-TEST_F(PtpSyncInterfaceTest, GetName)
+TEST_F(PtpSyncInterfaceTest, GetId)
 {
     const auto ctx = NullContext();
 
     const auto iface = TestPtpSyncInterface::Create(ctx.getTypeManager());
-    ASSERT_EQ(iface.getName(), "PtpSyncInterface");
+    ASSERT_EQ(iface.getId(), "PtpSyncInterface");
+}
+
+TEST_F(PtpSyncInterfaceTest, GetSyncType)
+{
+    const auto ctx = NullContext();
+
+    const auto iface = TestPtpSyncInterface::Create(ctx.getTypeManager());
+    ASSERT_EQ(iface.getSyncType(), "ptp");
 }
 
 TEST_F(PtpSyncInterfaceTest, GetReferenceDomainId)
@@ -527,14 +554,11 @@ TEST_F(PtpSyncInterfaceTest, CreatePortProperties)
 
     const auto iface = TestPtpSyncInterface::Create(ctx.getTypeManager());
     auto* impl = dynamic_cast<TestPtpSyncInterface*>(iface.getObject());
-    const auto propObj = iface.asPtr<IPropertyObject>(true);
 
     impl->createPortProporties("eth0");
 
-    // Status port entry should exist
-    const PropertyObjectPtr portStatus = propObj.getPropertyValue("Status.Ports.eth0");
-    ASSERT_TRUE(portStatus.assigned());
-    ASSERT_EQ(portStatus.getPropertyValue("State"), SyncSourceStatus::Off);
+    // Status container entry should exist
+    ASSERT_EQ(iface.getStatusContainer().getStatus("eth0").getValue(), "Off");
 
     // Configuration port entry should exist
     const auto configuration = iface.getConfiguration();
@@ -551,26 +575,21 @@ TEST_F(PtpSyncInterfaceTest, PerPortStatus)
 
     const auto iface = TestPtpSyncInterface::Create(ctx.getTypeManager());
     auto* impl = dynamic_cast<TestPtpSyncInterface*>(iface.getObject());
-    const auto propObj = iface.asPtr<IPropertyObject>(true);
     const auto statusContainer = iface.getStatusContainer();
 
     impl->createPortProporties("eth0");
     impl->createPortProporties("eth1");
 
-    // Each port starts Off, both as its own property and as a status container entry keyed by port name
-    ASSERT_EQ(propObj.getPropertyValue("Status.Ports.eth0.State"), SyncRoleStatus::Off);
-    ASSERT_EQ(propObj.getPropertyValue("Status.Ports.eth1.State"), SyncRoleStatus::Off);
+    // Each port starts Off, as a status container entry keyed by port name
     ASSERT_EQ(statusContainer.getStatus("eth0").getValue(), "Off");
     ASSERT_EQ(statusContainer.getStatus("eth1").getValue(), "Off");
 
     // Updating one port's status leaves the other port untouched
     impl->setPortSyncStatus("eth0", SyncRoleStatus::Input, "Client");
 
-    ASSERT_EQ(propObj.getPropertyValue("Status.Ports.eth0.State"), SyncRoleStatus::Input);
     ASSERT_EQ(statusContainer.getStatus("eth0").getValue(), "Input");
     ASSERT_EQ(statusContainer.getStatusMessage("eth0"), "Client");
 
-    ASSERT_EQ(propObj.getPropertyValue("Status.Ports.eth1.State"), SyncRoleStatus::Off);
     ASSERT_EQ(statusContainer.getStatus("eth1").getValue(), "Off");
 }
 
@@ -678,7 +697,7 @@ TEST_F(PtpSyncInterfaceTest, SaveLoad)
     const auto manager = ctx.getTypeManager();
 
     const auto sync = Synchronization(manager);
-    const auto syncInternal = sync.asPtr<ISynchronizationInternal>(true);
+    const auto syncPrivate = sync.asPtr<ISynchronizationPrivate>(true);
     const auto updateableSync = sync.asPtr<IUpdatable>(true);
 
     const auto iface = TestPtpSyncInterface::Create(manager);
@@ -687,10 +706,10 @@ TEST_F(PtpSyncInterfaceTest, SaveLoad)
     auto* impl = dynamic_cast<TestPtpSyncInterface*>(iface.getObject());
     impl->createPortProporties("eth0");
 
-    ASSERT_NO_THROW(syncInternal.addInterface(iface));
+    ASSERT_NO_THROW(syncPrivate.addInterface(iface));
 
     // Check default values
-    ASSERT_EQ(sync.getSource().getName(), "ClockSyncInterface");
+    ASSERT_EQ(sync.getSource().getId(), "ClockSyncInterface");
     ASSERT_EQ(iface.getMode(), SyncMode::Off);
     ASSERT_EQ(configuration.getPropertyValue("TransportProtocol"), "IEEE802_3");
     ASSERT_EQ(configuration.getPropertyValue("PortConfiguration.eth0.DelayMechanism"), "E2E");
@@ -705,7 +724,7 @@ TEST_F(PtpSyncInterfaceTest, SaveLoad)
     configuration.setPropertyValue("PortConfiguration.eth0.DelayMechanism", "P2P");
 
     // Check that changes are applied
-    ASSERT_EQ(sync.getSource().getName(), "PtpSyncInterface");
+    ASSERT_EQ(sync.getSource().getId(), "PtpSyncInterface");
     ASSERT_EQ(iface.getMode(), SyncMode::Auto);
     ASSERT_EQ(configuration.getPropertyValue("TransportProtocol"), "UDP_IPV4");
     ASSERT_EQ(configuration.getPropertyValue("PortConfiguration.eth0.DelayMechanism"), "P2P");
@@ -715,7 +734,7 @@ TEST_F(PtpSyncInterfaceTest, SaveLoad)
     deserializer.update(updateableSync, serializer.getOutput(), nullptr);
 
     // Verify that values are restored to defaults
-    ASSERT_EQ(sync.getSource().getName(), "ClockSyncInterface");
+    ASSERT_EQ(sync.getSource().getId(), "ClockSyncInterface");
     ASSERT_EQ(iface.getMode(), SyncMode::Off);
     ASSERT_EQ(configuration.getPropertyValue("TransportProtocol"), "IEEE802_3");
     ASSERT_EQ(configuration.getPropertyValue("PortConfiguration.eth0.DelayMechanism"), "E2E");

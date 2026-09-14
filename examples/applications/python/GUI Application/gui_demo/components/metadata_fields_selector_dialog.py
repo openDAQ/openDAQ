@@ -60,7 +60,7 @@ class MetadataFieldsSelectorDialog(Dialog):
         self.tree.bind('<Double-1>', self._on_tree_double_click, add='+')
 
         bottom_button_frame = ttk.Frame(self)
-        ttk.Button(bottom_button_frame, text='OK', command=self.ok).pack(side=tk.RIGHT)
+        ttk.Button(bottom_button_frame, text='Save', command=self.ok).pack(side=tk.RIGHT)
         bottom_button_frame.pack(side=tk.BOTTOM, fill=tk.X, padx=10, pady=(5, 0))
 
         for field in self.fields:

@@ -6,8 +6,6 @@ BEGIN_NAMESPACE_OPENDAQ
 namespace PtpPropertyNames
 {
     // Status properties
-    constexpr const char* StatusPorts = "Ports";
-    constexpr const char* StatusPortState = "State";
     constexpr const char* StatusReferenceDomainId = "ReferenceDomainId";
     constexpr const char* StatusSynchronized = "Synchronized";
 
@@ -40,19 +38,15 @@ PtpSyncInterfaceBaseImpl::PtpSyncInterfaceBaseImpl(const TypeManagerPtr& manager
     createGeneralProperties();
 }
 
-ErrCode PtpSyncInterfaceBaseImpl::getClockType(IString** clockType)
+ErrCode PtpSyncInterfaceBaseImpl::getSyncType(IString** syncType)
 {
-    OPENDAQ_PARAM_NOT_NULL(clockType);
-    *clockType = String("Ptp").detach();
+    OPENDAQ_PARAM_NOT_NULL(syncType);
+    *syncType = String("ptp").detach();
     return OPENDAQ_SUCCESS;
 }
 
 void PtpSyncInterfaceBaseImpl::createGeneralProperties()
 {
-    // Status
-    portsStatus = PropertyObject();
-    status.addProperty(ObjectPropertyBuilder(PtpPropertyNames::StatusPorts, portsStatus).setReadOnly(true).build());
-
     {
         // PTP Configuration
 
@@ -82,13 +76,8 @@ void PtpSyncInterfaceBaseImpl::createGeneralProperties()
 void PtpSyncInterfaceBaseImpl::createPortProporties(const StringPtr& portName)
 {
     {
-        // creating status property
-        const PropertyObjectPtr portStatus = PropertyObject();
+        // creating status container entry
         const EnumerationTypePtr syncRoleStatusType = manager.getType("SynchronizationRoleStatusType");
-        portStatus.addProperty(SelectionPropertyBuilder(PtpPropertyNames::StatusPortState, syncRoleStatusType.getEnumeratorNames(), static_cast<Int>(SyncRoleStatus::Off)).setReadOnly(true).build());
-
-        portsStatus.addProperty(ObjectPropertyBuilder(portName, portStatus).setReadOnly(true).build());
-
         const auto syncRoleStatus = EnumerationWithIntValueAndType(syncRoleStatusType, static_cast<Int>(SyncRoleStatus::Off));
         const auto statusContainerPrivate = this->statusContainer.asPtr<IComponentStatusContainerPrivate>(true);
         statusContainerPrivate.addStatus(portName, syncRoleStatus);
@@ -137,9 +126,6 @@ void PtpSyncInterfaceBaseImpl::setPortDelayMechanismOptions(const ListPtr<IStrin
 
 void PtpSyncInterfaceBaseImpl::setPortSyncStatus(const StringPtr& portName, SyncRoleStatus status, const StringPtr& message)
 {
-    PropertyObjectPtr portStatus = portsStatus.getPropertyValue(portName);
-    portStatus.asPtr<IPropertyObjectProtected>(true).setProtectedPropertyValue(PtpPropertyNames::StatusPortState, static_cast<Int>(status));
-
     const auto syncRoleStatus =
         EnumerationWithIntValue("SynchronizationRoleStatusType", static_cast<Int>(status), manager);
 

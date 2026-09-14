@@ -21,7 +21,7 @@
 #include <coretypes/dictobject.h>
 #include <coretypes/dictobject_factory.h>
 #include <opendaq/synchronization.h>
-#include <opendaq/synchronization_internal.h>
+#include <opendaq/synchronization_private.h>
 #include <opendaq/sync_interface_ptr.h>
 #include <opendaq/sync_interface_internal_ptr.h>
 #include <opendaq/clock_sync_interface_impl.h>
@@ -52,17 +52,17 @@ public:
     ErrCode INTERFACE_FUNC getSerializeId(ConstCharPtr* id) const override;
 };
 
-class SynchronizationImpl : public GenericSynchronizationImpl<IPropertyObject, ISynchronizationInternal>
+class SynchronizationImpl : public GenericSynchronizationImpl<IPropertyObject, ISynchronizationPrivate>
 {
 public:
-    using Super = GenericSynchronizationImpl<IPropertyObject, ISynchronizationInternal>;
+    using Super = GenericSynchronizationImpl<IPropertyObject, ISynchronizationPrivate>;
 
     explicit SynchronizationImpl(const TypeManagerPtr& manager);
 
     // ISynchronization
     ErrCode INTERFACE_FUNC getSource(ISyncInterface** source) override;
 
-    // ISynchronizationInternal
+    // ISynchronizationPrivate
     ErrCode INTERFACE_FUNC addInterface(ISyncInterface* syncInterface) override;
 
     // IPropertyObjectInternal

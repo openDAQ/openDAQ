@@ -2067,6 +2067,9 @@ ModuleLibrary loadModuleInternal(const LoggerComponentPtr& loggerComponent, cons
 {
     LOG_T("Loading module \"{}\".", path.string());
 
+    // The statics a module library builds live as long as the library does.
+    [[maybe_unused]] const UntrackedAllocations untracked;
+
     std::error_code libraryErrCode;
     boost::dll::shared_library moduleLibrary(path, libraryErrCode, safeLoadingMode ? boost::dll::load_mode::rtld_now : boost::dll::load_mode::default_mode);
 

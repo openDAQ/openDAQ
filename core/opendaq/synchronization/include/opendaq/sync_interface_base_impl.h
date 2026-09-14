@@ -44,12 +44,12 @@ public:
     GenericSyncInterfaceImpl(const TypeManagerPtr& manager);
 
     // ISyncInterface
-    ErrCode INTERFACE_FUNC getName(IString** name) override;
+    ErrCode INTERFACE_FUNC getId(IString** id) override;
     ErrCode INTERFACE_FUNC getReferenceDomainId(IString** referenceDomainId) override;
     ErrCode INTERFACE_FUNC setMode(SyncMode mode) override;
     ErrCode INTERFACE_FUNC getMode(SyncMode* sourceMode) override;
     ErrCode INTERFACE_FUNC getAvailableModes(IDict** availableModes) override;
-    ErrCode INTERFACE_FUNC getStatus(IPropertyObject** status) override;
+    ErrCode INTERFACE_FUNC canBeSource(Bool* canBeSource) override;
     ErrCode INTERFACE_FUNC getConfiguration(IPropertyObject** configuration) override;
     ErrCode INTERFACE_FUNC getStatusContainer(IComponentStatusContainer** syncStatus) override;
 
@@ -77,16 +77,16 @@ public:
     using Super = GenericSyncInterfaceImpl<IPropertyObject, ISyncInterfaceInternal>;
 
     // ISyncInterface
-    ErrCode INTERFACE_FUNC getName(IString** name) override;
+    ErrCode INTERFACE_FUNC getId(IString** id) override;
+    ErrCode INTERFACE_FUNC getSyncType(IString** syncType) override;
     ErrCode INTERFACE_FUNC getReferenceDomainId(IString** referenceDomainId) override;
     ErrCode INTERFACE_FUNC getAvailableModes(IDict** availableModes) override;
-    ErrCode INTERFACE_FUNC getStatus(IPropertyObject** status) override;
+    ErrCode INTERFACE_FUNC canBeSource(Bool* canBeSource) override;
     ErrCode INTERFACE_FUNC getConfiguration(IPropertyObject** configuration) override;
 
     // ISyncInterfaceInternal
     ErrCode INTERFACE_FUNC setAsSource(Bool source) override;
     ErrCode INTERFACE_FUNC sourceChanged(ISyncInterface* source) override;
-    ErrCode INTERFACE_FUNC getClockType(IString** clockType) override;
 
     // IPropertyObjectInternal
     ErrCode INTERFACE_FUNC clone(IPropertyObject** cloned) override;
@@ -96,7 +96,7 @@ public:
 
 protected:
     explicit SyncInterfaceBaseImpl(const TypeManagerPtr& manager,
-                                   const StringPtr& name,
+                                   const StringPtr& id,
                                    const std::vector<SyncMode>& availableModes);
 
     virtual void onConfigurationChanged(const StringPtr& name, const BaseObjectPtr& value);
@@ -106,7 +106,6 @@ protected:
     void setSyncRoleStatus(SyncRoleStatus status, const StringPtr& message = "");
    
     PropertyObjectPtr configuration;
-    PropertyObjectPtr status;
     TypeManagerPtr manager;
 
 private:
@@ -115,7 +114,7 @@ private:
     void initProperties();
     void initSynchronizationStatus();
 
-    const StringPtr name;
+    const StringPtr id;
     Bool isSource = False;
     StringPtr referenceDomainId;
     DictPtr<IInteger, IString> sourceModes;
@@ -138,12 +137,12 @@ GenericSyncInterfaceImpl<TInterface, Interfaces...>::GenericSyncInterfaceImpl(co
 }
 
 template <typename TInterface, typename... Interfaces>
-ErrCode GenericSyncInterfaceImpl<TInterface, Interfaces...>::getName(IString** name)
+ErrCode GenericSyncInterfaceImpl<TInterface, Interfaces...>::getId(IString** id)
 {
-    OPENDAQ_PARAM_NOT_NULL(name);
+    OPENDAQ_PARAM_NOT_NULL(id);
     return daqTry([&]
     {
-        *name = this->objPtr.getPropertyValue("Name").template as<IString>();
+        *id = this->objPtr.getPropertyValue("Id").template as<IString>();
     });
 }
 
@@ -183,22 +182,29 @@ ErrCode GenericSyncInterfaceImpl<TInterface, Interfaces...>::getAvailableModes(I
 }
 
 template <typename TInterface, typename... Interfaces>
-ErrCode GenericSyncInterfaceImpl<TInterface, Interfaces...>::getReferenceDomainId(IString** referenceDomainId)
+ErrCode GenericSyncInterfaceImpl<TInterface, Interfaces...>::canBeSource(Bool* canBeSource)
 {
-    OPENDAQ_PARAM_NOT_NULL(referenceDomainId);
+    OPENDAQ_PARAM_NOT_NULL(canBeSource);
+
     BaseObjectPtr objPtr;
-    OPENDAQ_RETURN_IF_FAILED(this->getPropertyValue(String("Status.ReferenceDomainId"), &objPtr));
-    *referenceDomainId = objPtr.asOrNull<IString>();
+    OPENDAQ_RETURN_IF_FAILED(this->getPropertyValue(String("CanBeSource"), &objPtr));
+
+    Bool value = False;
+    const BooleanPtr canBeSourceValue = objPtr.asPtrOrNull<IBoolean>();
+    if (canBeSourceValue.assigned())
+        OPENDAQ_RETURN_IF_FAILED(canBeSourceValue->getValue(&value));
+
+    *canBeSource = value;
     return OPENDAQ_SUCCESS;
 }
 
 template <typename TInterface, typename... Interfaces>
-ErrCode GenericSyncInterfaceImpl<TInterface, Interfaces...>::getStatus(IPropertyObject** status)
+ErrCode GenericSyncInterfaceImpl<TInterface, Interfaces...>::getReferenceDomainId(IString** referenceDomainId)
 {
-    OPENDAQ_PARAM_NOT_NULL(status);
+    OPENDAQ_PARAM_NOT_NULL(referenceDomainId);
     BaseObjectPtr objPtr;
-    OPENDAQ_RETURN_IF_FAILED(this->getPropertyValue(String("Status"), &objPtr));
-    *status = objPtr.asOrNull<IPropertyObject>();
+    OPENDAQ_RETURN_IF_FAILED(this->getPropertyValue(String("ReferenceDomainId"), &objPtr));
+    *referenceDomainId = objPtr.asOrNull<IString>();
     return OPENDAQ_SUCCESS;
 }
 

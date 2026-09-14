@@ -28,9 +28,9 @@ BEGIN_NAMESPACE_OPENDAQ
  */
 
 /*!
- * @brief Internal interface for synchronization operations.
+ * @brief Private interface for synchronization operations.
  */
-DECLARE_OPENDAQ_INTERFACE(ISynchronizationInternal, IBaseObject)
+DECLARE_OPENDAQ_INTERFACE(ISynchronizationPrivate, IBaseObject)
 {
     /*!
      * @brief Adds an interface to the synchronization

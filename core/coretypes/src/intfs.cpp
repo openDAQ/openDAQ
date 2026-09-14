@@ -19,9 +19,9 @@ using namespace daq;
         return *objects;
     }
 
-    std::mutex& getObjectsMutex()
+    std::recursive_mutex& getObjectsMutex()
     {
-        static std::mutex mtx;
+        static std::recursive_mutex mtx;
         return mtx;
     }
 
@@ -36,7 +36,7 @@ extern "C"
 PUBLIC_EXPORT void daqTrackObject(IBaseObject* obj)
 {
 #ifndef NDEBUG
-    std::lock_guard<std::mutex> lock(getObjectsMutex());
+    std::lock_guard<std::recursive_mutex> lock(getObjectsMutex());
     if (getIsObjectTrackingEnabled()) getObjects().insert(obj);
 #endif
 }
@@ -45,7 +45,7 @@ extern "C"
 PUBLIC_EXPORT void daqUntrackObject(IBaseObject* obj)
 {
 #ifndef NDEBUG
-    std::lock_guard<std::mutex> lock(getObjectsMutex());
+    std::lock_guard<std::recursive_mutex> lock(getObjectsMutex());
     const auto it = getObjects().find(obj);
     if (it != getObjects().end())
         getObjects().erase(it);
@@ -56,7 +56,7 @@ extern "C"
 PUBLIC_EXPORT size_t daqGetTrackedObjectCount()
 {
 #ifndef NDEBUG
-    std::lock_guard<std::mutex> lock(getObjectsMutex());
+    std::lock_guard<std::recursive_mutex> lock(getObjectsMutex());
     return getObjects().size();
 #else
     return 0;
@@ -67,13 +67,11 @@ extern "C"
 PUBLIC_EXPORT void daqPrintTrackedObjects()
 {
 #ifndef NDEBUG
-    // Print from a copy and outside the lock: converting an object to a string creates objects of its own,
-    // which are tracked in turn, and tracking them takes this lock and writes to this container.
-    std::vector<IBaseObject*> tracked;
-    {
-        std::lock_guard<std::mutex> lock(getObjectsMutex());
-        tracked.assign(getObjects().cbegin(), getObjects().cend());
-    }
+    // Hold the lock throughout, so that no other thread releases an object while it is printed, and print
+    // from a copy, because converting an object to a string creates objects of its own that are tracked in
+    // turn and would change the container being walked.
+    std::lock_guard<std::recursive_mutex> lock(getObjectsMutex());
+    const std::vector<IBaseObject*> tracked(getObjects().cbegin(), getObjects().cend());
 
     for (auto obj : tracked)
     {
@@ -87,7 +85,7 @@ extern "C"
 PUBLIC_EXPORT void daqClearTrackedObjects()
 {
 #ifndef NDEBUG
-    std::lock_guard<std::mutex> lock(getObjectsMutex());
+    std::lock_guard<std::recursive_mutex> lock(getObjectsMutex());
     getObjects().clear();
 #endif
 }
@@ -96,7 +94,7 @@ extern "C"
 PUBLIC_EXPORT daq::Bool daqIsTrackingObjects()
 {
 #ifndef NDEBUG
-    std::lock_guard<std::mutex> lock(getObjectsMutex());
+    std::lock_guard<std::recursive_mutex> lock(getObjectsMutex());
     return getIsObjectTrackingEnabled();
 #else
     return false;
@@ -106,7 +104,7 @@ PUBLIC_EXPORT daq::Bool daqIsTrackingObjects()
 extern "C" PUBLIC_EXPORT void daqDisableObjectTracking()
 {
 #ifndef NDEBUG
-    std::lock_guard<std::mutex> lock(getObjectsMutex());
+    std::lock_guard<std::recursive_mutex> lock(getObjectsMutex());
     getIsObjectTrackingEnabled() = false;
     printf("Object tracking disabled.\n");
 #endif
@@ -115,7 +113,7 @@ extern "C" PUBLIC_EXPORT void daqDisableObjectTracking()
 extern "C" PUBLIC_EXPORT void daqEnableObjectTracking()
 {
 #ifndef NDEBUG
-    std::lock_guard<std::mutex> lock(getObjectsMutex());
+    std::lock_guard<std::recursive_mutex> lock(getObjectsMutex());
     getIsObjectTrackingEnabled() = true;
     printf("Object tracking enabled.\n");
 #endif

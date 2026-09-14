@@ -5,6 +5,7 @@
 #include <opendaq/mock/mock_device_module.h>
 #include "test_helpers/device_modules.h"
 #include "test_helpers/test_helpers.h"
+#include "test_helpers/test_ports.h"
 
 using NativeStreamingModulesTest = testing::Test;
 
@@ -27,7 +28,7 @@ static InstancePtr CreateServerInstance(const AuthenticationProviderPtr& authent
 
     const auto refDevice = instance.addDevice("daqref://device1");
 
-    instance.addServer("OpenDAQNativeStreaming", nullptr);
+    test_helpers::addServer(instance, "OpenDAQNativeStreaming", nullptr);
 
     return instance;
 }
@@ -48,7 +49,7 @@ static InstancePtr CreateClientInstance(const std::string& username, const std::
     general.setPropertyValue("Username", username);
     general.setPropertyValue("Password", password);
 
-    auto refDevice = instance.addDevice("daq.ns://127.0.0.1/", config);
+    auto refDevice = instance.addDevice(test_helpers::connectionStringWithPort("daq.ns://127.0.0.1/"), config);
     return instance;
 }
 
@@ -57,7 +58,7 @@ static InstancePtr CreateClientInstance()
     auto instance = test_helpers::createInstance("[[none]]");
     addNativeClientModule(instance);
 
-    auto refDevice = instance.addDevice("daq.ns://127.0.0.1/");
+    auto refDevice = instance.addDevice(test_helpers::connectionStringWithPort("daq.ns://127.0.0.1/"));
     return instance;
 }
 
@@ -83,7 +84,7 @@ TEST_F(NativeStreamingModulesTest, ConnectViaIpv6)
         auto client = test_helpers::createInstance("[[none]]");
         addNativeClientModule(client);
 
-        ASSERT_NO_THROW(client.addDevice("daq.ns://[::1]", nullptr));
+        ASSERT_NO_THROW(client.addDevice(test_helpers::connectionStringWithPort("daq.ns://[::1]"), nullptr));
     }
 }
 
@@ -131,7 +132,7 @@ TEST_F(NativeStreamingModulesTest, DiscoveringServer)
     auto serverConfig = server.getAvailableServerTypes().get("OpenDAQNativeStreaming").createDefaultConfig();
     auto path = "/test/native_streaming/discovery/";
     serverConfig.setPropertyValue("Path", path);
-    server.addServer("OpenDAQNativeStreaming", serverConfig).enableDiscovery();
+    test_helpers::addServer(server, "OpenDAQNativeStreaming", serverConfig).enableDiscovery();
 
     auto client = test_helpers::createInstance("[[none]]");
     addNativeClientModule(client);
@@ -166,7 +167,7 @@ TEST_F(NativeStreamingModulesTest, DiscoveringServerUsernameLocation)
         .build();
     {
         addRefDeviceModule(server);
-        server.setRootDevice("daqref://device1");
+        server.setRootDevice("daqref://device1", test_helpers::rootDeviceConfig("DevSer1"));
 
         // set initial username and location
         server.setPropertyValue("userName", "testUser1");
@@ -182,7 +183,7 @@ TEST_F(NativeStreamingModulesTest, DiscoveringServerUsernameLocation)
         addNativeServerModule(server);
         auto serverConfig = server.getAvailableServerTypes().get("OpenDAQNativeStreaming").createDefaultConfig();
         serverConfig.setPropertyValue("Path", path);
-        server.addServer("OpenDAQNativeStreaming", serverConfig).enableDiscovery();
+        test_helpers::addServer(server, "OpenDAQNativeStreaming", serverConfig).enableDiscovery();
 
         // update the username and location after server creation
         server.setPropertyValue("userName", "testUser2");
@@ -230,7 +231,7 @@ TEST_F(NativeStreamingModulesTest, TestDiscoveryReachability)
     auto path = "/test/native_streaming/discovery_reachability/";
     serverConfig.setPropertyValue("Path", path);
 
-    instance.addServer("OpenDAQNativeStreaming", serverConfig).enableDiscovery();
+    test_helpers::addServer(instance, "OpenDAQNativeStreaming", serverConfig).enableDiscovery();
 
     auto client = test_helpers::createInstance("[[none]]");
     addNativeClientModule(client);
@@ -296,7 +297,7 @@ TEST_F(NativeStreamingModulesTest, CheckDeviceInfoPopulatedWithProvider)
     rootInfo.setName("TestName");
     rootInfo.setManufacturer("TestManufacturer");
     rootInfo.setModel("TestModel");
-    rootInfo.setSerialNumber("TestSerialNumber");
+    rootInfo.setSerialNumber(String(test_helpers::testSerial("TestSerialNumber")));
 
     auto provider = JsonConfigProvider(filename);
     auto instance = test_helpers::instanceBuilder()
@@ -309,7 +310,7 @@ TEST_F(NativeStreamingModulesTest, CheckDeviceInfoPopulatedWithProvider)
     addNativeServerModule(instance);
 
     auto serverConfig = instance.getAvailableServerTypes().get("OpenDAQNativeStreaming").createDefaultConfig();
-    instance.addServer("OpenDAQNativeStreaming", serverConfig).enableDiscovery();
+    test_helpers::addServer(instance, "OpenDAQNativeStreaming", serverConfig).enableDiscovery();
 
     auto client = test_helpers::createInstance("[[none]]");
     addNativeClientModule(client);
@@ -393,7 +394,7 @@ TEST_F(NativeStreamingModulesTest, GetRemoteDeviceObjects)
     DeviceInfoPtr info;
     ASSERT_NO_THROW(info = client.getDevices()[0].getInfo());
     ASSERT_TRUE(info.assigned());
-    ASSERT_EQ(info.getConnectionString(), "daq.ns://127.0.0.1/");
+    ASSERT_EQ(info.getConnectionString(), test_helpers::connectionStringWithPort("daq.ns://127.0.0.1/"));
     ASSERT_EQ(info.getName(), "NativeStreamingClientPseudoDevice");
 }
 
@@ -403,7 +404,7 @@ TEST_F(NativeStreamingModulesTest, RemoveDevice)
     auto client = test_helpers::createInstance("[[none]]");
 
     addNativeClientModule(client);
-    auto device = client.addDevice("daq.ns://127.0.0.1/");
+    auto device = client.addDevice(test_helpers::connectionStringWithPort("daq.ns://127.0.0.1/"));
 
     ASSERT_NO_THROW(client.removeDevice(device));
     ASSERT_TRUE(device.isRemoved());
@@ -499,7 +500,7 @@ TEST_F(NativeStreamingModulesTest, GetRemoteDeviceObjectsAfterReconnect)
             ASSERT_TRUE(args.getParameters().hasKey("StatusName"));
             EXPECT_TRUE(args.getParameters().get("StatusName").assigned());
             ASSERT_TRUE(args.getParameters().hasKey("ConnectionString"));
-            EXPECT_EQ(args.getParameters().get("ConnectionString"), "daq.ns://127.0.0.1/");
+            EXPECT_EQ(args.getParameters().get("ConnectionString"), test_helpers::connectionStringWithPort("daq.ns://127.0.0.1/"));
             ASSERT_TRUE(args.getParameters().hasKey("StreamingObject"));
             EXPECT_TRUE(args.getParameters().get("StreamingObject").assigned());
             ASSERT_TRUE(args.getParameters().hasKey("StatusValue"));
@@ -586,7 +587,7 @@ TEST_F_UNSTABLE_SKIPPED(NativeStreamingModulesTest, ReconnectWhileRead)
             ASSERT_TRUE(args.getParameters().hasKey("StatusName"));
             EXPECT_TRUE(args.getParameters().get("StatusName").assigned());
             ASSERT_TRUE(args.getParameters().hasKey("ConnectionString"));
-            EXPECT_EQ(args.getParameters().get("ConnectionString"), "daq.ns://127.0.0.1/");
+            EXPECT_EQ(args.getParameters().get("ConnectionString"), test_helpers::connectionStringWithPort("daq.ns://127.0.0.1/"));
             ASSERT_TRUE(args.getParameters().hasKey("StreamingObject"));
             EXPECT_TRUE(args.getParameters().get("StreamingObject").assigned());
             ASSERT_TRUE(args.getParameters().hasKey("StatusValue"));
@@ -792,9 +793,9 @@ TEST_F(NativeStreamingModulesTest, GetConfigurationConnectionInfoIPv4)
     ASSERT_EQ(connectionInfo.getProtocolType(), ProtocolType::Streaming);
     ASSERT_EQ(connectionInfo.getConnectionType(), "TCP/IP");
     ASSERT_EQ(connectionInfo.getAddresses()[0], "127.0.0.1");
-    ASSERT_EQ(connectionInfo.getPort(), 7420);
+    ASSERT_EQ(connectionInfo.getPort(), test_helpers::testPort(7420));
     ASSERT_EQ(connectionInfo.getPrefix(), "daq.ns");
-    ASSERT_EQ(connectionInfo.getConnectionString(), "daq.ns://127.0.0.1/");
+    ASSERT_EQ(connectionInfo.getConnectionString(), test_helpers::connectionStringWithPort("daq.ns://127.0.0.1/"));
 }
 
 TEST_F(NativeStreamingModulesTest, GetConfigurationConnectionInfoIPv6)
@@ -806,7 +807,7 @@ TEST_F(NativeStreamingModulesTest, GetConfigurationConnectionInfoIPv6)
     auto client = test_helpers::createInstance("[[none]]");
 
     addNativeClientModule(client);
-    client.addDevice("daq.ns://[::1]", nullptr);
+    client.addDevice(test_helpers::connectionStringWithPort("daq.ns://[::1]"), nullptr);
 
     auto devices = client.getDevices();
     ASSERT_EQ(devices.getCount(), 1u);
@@ -817,9 +818,9 @@ TEST_F(NativeStreamingModulesTest, GetConfigurationConnectionInfoIPv6)
     ASSERT_EQ(connectionInfo.getProtocolType(), ProtocolType::Streaming);
     ASSERT_EQ(connectionInfo.getConnectionType(), "TCP/IP");
     ASSERT_EQ(connectionInfo.getAddresses()[0], "[::1]");
-    ASSERT_EQ(connectionInfo.getPort(), 7420);
+    ASSERT_EQ(connectionInfo.getPort(), test_helpers::testPort(7420));
     ASSERT_EQ(connectionInfo.getPrefix(), "daq.ns");
-    ASSERT_EQ(connectionInfo.getConnectionString(), "daq.ns://[::1]");
+    ASSERT_EQ(connectionInfo.getConnectionString(), test_helpers::connectionStringWithPort("daq.ns://[::1]"));
 }
 
 TEST_F(NativeStreamingModulesTest, ProtectedSignals)
@@ -967,13 +968,13 @@ TEST_F(NativeStreamingModulesTest, StreamDataLowMaxPacketReadCount)
         config.addProperty(IntProperty("MaxPacketReadCount", 1));
 
         addNativeServerModule(server);
-        server.addServer("OpenDAQNativeStreaming", config);
+        test_helpers::addServer(server, "OpenDAQNativeStreaming", config);
     }
 
     auto client = test_helpers::createInstance("[[none]]");
 
     addNativeClientModule(client);
-    auto clientDevice = client.addDevice("daq.nd://127.0.0.1");
+    auto clientDevice = client.addDevice(test_helpers::connectionStringWithPort("daq.nd://127.0.0.1"));
 
     auto clientSignal = clientDevice.getSignals(search::Recursive(search::LocalId("ByteStep")))[0];
     auto serverSignal = serverDevice.getSignals(search::Recursive(search::LocalId("ByteStep")))[0];

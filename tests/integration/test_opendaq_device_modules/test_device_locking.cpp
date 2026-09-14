@@ -1,4 +1,5 @@
 #include "test_helpers/test_helpers.h"
+#include "test_helpers/test_ports.h"
 #include <opendaq/instance_factory.h>
 #include <opendaq/mock/mock_device_module.h>
 #include <coreobjects/user_factory.h>
@@ -39,7 +40,7 @@ public:
 
         auto instance = InstanceCustom(context, "clientInstance");
         instance.addDevice("daqmock://phys_device");
-        instance.addServer("OpenDAQNativeStreaming", nullptr);
+        test_helpers::addServer(instance, "OpenDAQNativeStreaming", nullptr);
 
         return instance;
     }
@@ -66,7 +67,7 @@ public:
         generalConfig.setPropertyValue("Username", username);
         generalConfig.setPropertyValue("Password", password);
 
-        instance.addDevice("daq.nd://127.0.0.1", config);
+        instance.addDevice(test_helpers::connectionStringWithPort("daq.nd://127.0.0.1"), config);
         instance.addDevice("daqmock://phys_device");
         instance.addDevice("daqmock://phys_device");
         return instance;

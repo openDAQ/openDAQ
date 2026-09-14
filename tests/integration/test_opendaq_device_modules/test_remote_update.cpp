@@ -1,5 +1,6 @@
 #include "test_helpers/device_modules.h"
 #include "test_helpers/test_helpers.h"
+#include "test_helpers/test_ports.h"
 #include <opendaq/update_parameters_factory.h>
 
 using namespace daq;
@@ -29,7 +30,7 @@ protected:
     static void setupInstanceTree(const InstancePtr& instance, const StringPtr& serialNumber, bool addFunctionBlocks, bool addDevices = true)
     {
         auto deviceConfig = instance.getAvailableDeviceTypes().get("daqref").createDefaultConfig();
-        deviceConfig.setPropertyValue("SerialNumber", serialNumber);
+        deviceConfig.setPropertyValue("SerialNumber", String(test_helpers::testSerial(serialNumber.toStdString())));
         deviceConfig.setPropertyValue("LocalId", "openDAQ_" + serialNumber);
 
         instance.setRootDevice("daqref://device0", deviceConfig);
@@ -51,14 +52,14 @@ protected:
         {
             auto serverConfig = instance.getAvailableServerTypes().get("OpenDAQNativeStreaming").createDefaultConfig();
             serverConfig.setPropertyValue("NativeStreamingPort", nativePort);
-            instance.addServer("OpenDAQNativeStreaming", serverConfig).enableDiscovery();
+            test_helpers::addServer(instance, "OpenDAQNativeStreaming", serverConfig).enableDiscovery();
         }
 
         if (opcuaPort > 0)
         {
             auto serverConfig = instance.getAvailableServerTypes().get("OpenDAQOPCUA").createDefaultConfig();
             serverConfig.setPropertyValue("Port", opcuaPort);
-            instance.addServer("OpenDAQOPCUA", serverConfig).enableDiscovery();
+            test_helpers::addServer(instance, "OpenDAQOPCUA", serverConfig).enableDiscovery();
         }
     }
 
@@ -86,9 +87,10 @@ protected:
             transportLayerConfig.setPropertyValue("HeartbeatPeriod", 100000);
             transportLayerConfig.setPropertyValue("InactivityTimeout", 150000);
             transportLayerConfig.setPropertyValue("ConnectionTimeout", 100000);
+            deviceConfig.setPropertyValue("ConfigProtocolRequestTimeout", 60000);
         }
 
-        instance.addDevice(connectionString, deviceConfig);
+        instance.addDevice(test_helpers::connectionStringWithPort(connectionString), deviceConfig);
     }
 
     static void clearConnections(const InstancePtr& instance)
@@ -151,11 +153,11 @@ TEST_F(RemoteModulesUpdateTest, RemapCheckIPConnectionsNative)
 
     test1Options.setUpdateMode(DeviceUpdateMode::Remap);
     test1Options.setNewManufacturer("openDAQ");
-    test1Options.setNewSerialNumber("Test3");
+    test1Options.setNewSerialNumber(String(test_helpers::testSerial("Test3")));
 
     test2Options.setUpdateMode(DeviceUpdateMode::Remap);
     test2Options.setNewManufacturer("openDAQ");
-    test2Options.setNewSerialNumber("Test1");
+    test2Options.setNewSerialNumber(String(test_helpers::testSerial("Test1")));
 
     auto params = UpdateParameters();
     params.setDeviceUpdateOptions(options);
@@ -196,11 +198,11 @@ TEST_F(RemoteModulesUpdateTest, RemapCheckIPConnectionsNativeNewInstanceNative)
 
     test1Options.setUpdateMode(DeviceUpdateMode::Remap);
     test1Options.setNewManufacturer("openDAQ");
-    test1Options.setNewSerialNumber("Test3");
+    test1Options.setNewSerialNumber(String(test_helpers::testSerial("Test3")));
 
     test2Options.setUpdateMode(DeviceUpdateMode::Remap);
     test2Options.setNewManufacturer("openDAQ");
-    test2Options.setNewSerialNumber("Test1");
+    test2Options.setNewSerialNumber(String(test_helpers::testSerial("Test1")));
 
     auto freshInstance = setupBaseInstance();
 
@@ -243,11 +245,11 @@ TEST_F(RemoteModulesUpdateTest, RemapCheckIPConnectionsOpcua)
 
     test1Options.setUpdateMode(DeviceUpdateMode::Remap);
     test1Options.setNewManufacturer("openDAQ");
-    test1Options.setNewSerialNumber("Test3");
+    test1Options.setNewSerialNumber(String(test_helpers::testSerial("Test3")));
 
     test2Options.setUpdateMode(DeviceUpdateMode::Remap);
     test2Options.setNewManufacturer("openDAQ");
-    test2Options.setNewSerialNumber("Test1");
+    test2Options.setNewSerialNumber(String(test_helpers::testSerial("Test1")));
 
     auto params = UpdateParameters();
     params.setDeviceUpdateOptions(options);
@@ -288,11 +290,11 @@ TEST_F(RemoteModulesUpdateTest, RemapCheckIPConnectionsNativeNewInstanceOpcua)
 
     test1Options.setUpdateMode(DeviceUpdateMode::Remap);
     test1Options.setNewManufacturer("openDAQ");
-    test1Options.setNewSerialNumber("Test3");
+    test1Options.setNewSerialNumber(String(test_helpers::testSerial("Test3")));
 
     test2Options.setUpdateMode(DeviceUpdateMode::Remap);
     test2Options.setNewManufacturer("openDAQ");
-    test2Options.setNewSerialNumber("Test1");
+    test2Options.setNewSerialNumber(String(test_helpers::testSerial("Test1")));
 
     auto freshInstance = setupBaseInstance();
 
@@ -326,7 +328,7 @@ TEST_F(RemoteModulesUpdateTest, GatewayDeviceRemapNative)
     addServers(gateway, 4843, -1);
 
     auto client = setupBaseInstance();
-    client.setRootDevice("daqref://device0");
+    client.setRootDevice("daqref://device0", test_helpers::rootDeviceConfig("DevSer0"));
     auto clientFb = client.addFunctionBlock("RefFBModuleScaling");
     addDevice(client, ConnectionType::Native, 4843);
 
@@ -346,11 +348,11 @@ TEST_F(RemoteModulesUpdateTest, GatewayDeviceRemapNative)
 
     test1Options.setUpdateMode(DeviceUpdateMode::Remap);
     test1Options.setNewManufacturer("openDAQ");
-    test1Options.setNewSerialNumber("Test3");
+    test1Options.setNewSerialNumber(String(test_helpers::testSerial("Test3")));
 
     test2Options.setUpdateMode(DeviceUpdateMode::Remap);
     test2Options.setNewManufacturer("openDAQ");
-    test2Options.setNewSerialNumber("Test1");
+    test2Options.setNewSerialNumber(String(test_helpers::testSerial("Test1")));
     
     auto params = UpdateParameters();
     params.setDeviceUpdateOptions(options);
@@ -401,10 +403,10 @@ TEST_F(RemoteModulesUpdateTest, RemapWithConnectionStringNative)
     auto test2Options = rootChildOptions[1];
 
     test1Options.setUpdateMode(DeviceUpdateMode::Remap);
-    test1Options.setNewConnectionString("daq://openDAQ_Test3");
+    test1Options.setNewConnectionString(test_helpers::smartConnectionString("openDAQ", "Test3"));
 
     test2Options.setUpdateMode(DeviceUpdateMode::Remap);
-    test2Options.setNewConnectionString("daq://openDAQ_Test1");
+    test2Options.setNewConnectionString(test_helpers::smartConnectionString("openDAQ", "Test1"));
 
     auto freshInstance = setupBaseInstance();
 
@@ -440,10 +442,10 @@ TEST_F(RemoteModulesUpdateTest, RemapWithConnectionStringOPCUA)
     auto test2Options = rootChildOptions[1];
 
     test1Options.setUpdateMode(DeviceUpdateMode::Remap);
-    test1Options.setNewConnectionString("daq.opcua://127.0.0.1:4842");
+    test1Options.setNewConnectionString(test_helpers::connectionStringWithPort("daq.opcua://127.0.0.1:4842"));
 
     test2Options.setUpdateMode(DeviceUpdateMode::Remap);
-    test2Options.setNewConnectionString("daq.opcua://127.0.0.1:4840");
+    test2Options.setNewConnectionString(test_helpers::connectionStringWithPort("daq.opcua://127.0.0.1:4840"));
 
     auto freshInstance = setupBaseInstance();
 
@@ -532,7 +534,7 @@ TEST_F(RemoteModulesUpdateTest, RemoveOldKeepDeviceNotInConfiguration)
     addServers(gateway, 4843, -1);
 
     auto client = setupBaseInstance();
-    client.setRootDevice("daqref://device0");
+    client.setRootDevice("daqref://device0", test_helpers::rootDeviceConfig("DevSer0"));
     addDevice(client, ConnectionType::Native, 4843);
 
     ASSERT_EQ(client.getDevices().getCount(), 1u);
@@ -569,7 +571,7 @@ TEST_F(RemoteModulesUpdateTest, RemoveOldRemoveDeviceNotInConfiguration)
     addServers(gateway, 4843, -1);
 
     auto client = setupBaseInstance();
-    client.setRootDevice("daqref://device0");
+    client.setRootDevice("daqref://device0", test_helpers::rootDeviceConfig("DevSer0"));
     addDevice(client, ConnectionType::Native, 4843);
 
     ASSERT_EQ(client.getDevices().getCount(), 1u);
@@ -616,7 +618,7 @@ TEST_F(RemoteModulesUpdateTest, RemoveOldRemapToExistingSibling)
     addServers(gateway, 4843, -1);
 
     auto client = setupBaseInstance();
-    client.setRootDevice("daqref://device0");
+    client.setRootDevice("daqref://device0", test_helpers::rootDeviceConfig("DevSer0"));
     addDevice(client, ConnectionType::Native, 4843);
 
     ASSERT_EQ(client.getDevices().getCount(), 1u);
@@ -645,7 +647,7 @@ TEST_F(RemoteModulesUpdateTest, RemoveOldRemapToExistingSibling)
     auto leaf1Options = gatewayChildOptions[0];
     leaf1Options.setUpdateMode(DeviceUpdateMode::Remap);
     leaf1Options.setNewManufacturer("openDAQ"); // NOTE
-    leaf1Options.setNewSerialNumber("Test3");
+    leaf1Options.setNewSerialNumber(String(test_helpers::testSerial("Test3")));
     // Configuration:
     // client:
     //   - gateway:

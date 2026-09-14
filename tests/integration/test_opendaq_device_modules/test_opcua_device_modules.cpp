@@ -3,6 +3,7 @@
 #include <opendaq/logger_sink_last_message_private_ptr.h>
 #include <opcuashared/opcuaexception.h>
 #include "test_helpers/test_helpers.h"
+#include "test_helpers/test_ports.h"
 #include <coreobjects/authentication_provider_factory.h>
 #include <coreobjects/user_factory.h>
 #include <opendaq/device_impl.h>
@@ -47,7 +48,7 @@ static InstancePtr CreateServerInstance(const AuthenticationProviderPtr& authent
     statistics.getInputPorts()[0].connect(Signal(context, nullptr, "foo"));
 
     addOpcuaServerModule(instance);
-    instance.addServer("OpenDAQOPCUA", nullptr);
+    test_helpers::addServer(instance, "OpenDAQOPCUA", nullptr);
 
     return instance;
 }
@@ -72,7 +73,7 @@ static InstancePtr CreateClientInstance(const InstanceBuilderPtr& builder = test
     PropertyObjectPtr general = config.getPropertyValue("General");
     general.setPropertyValue("StreamingConnectionHeuristic", 2);
 
-    auto refDevice = instance.addDevice("daq.opcua://127.0.0.1", config);
+    auto refDevice = instance.addDevice(test_helpers::connectionStringWithPort("daq.opcua://127.0.0.1"), config);
     return instance;
 }
 
@@ -96,7 +97,7 @@ TEST_F(OpcuaDeviceModulesTest, FailedToSetAsRoot)
     auto client = test_helpers::createInstance("[[none]]");
     addOpcuaClientModule(client);
 
-    ASSERT_THROW(client.setRootDevice("daq.opcua://127.0.0.1"), InvalidParameterException);
+    ASSERT_THROW(client.setRootDevice(test_helpers::connectionStringWithPort("daq.opcua://127.0.0.1")), InvalidParameterException);
 }
 
 TEST_F(OpcuaDeviceModulesTest, ConnectViaIpv6)
@@ -111,7 +112,7 @@ TEST_F(OpcuaDeviceModulesTest, ConnectViaIpv6)
     auto client = test_helpers::createInstance("[[none]]");
     addOpcuaClientModule(client);
 
-    client.addDevice("daq.opcua://[::1]");
+    client.addDevice(test_helpers::connectionStringWithPort("daq.opcua://[::1]"));
 }
 
 TEST_F(OpcuaDeviceModulesTest, PopulateDefaultConfigFromProvider)
@@ -159,7 +160,7 @@ TEST_F(OpcuaDeviceModulesTest, DiscoveringServer)
     auto serverConfig = server.getAvailableServerTypes().get("OpenDAQOPCUA").createDefaultConfig();
     auto path = "/test/opcua/discoveryServer/";
     serverConfig.setPropertyValue("Path", path);
-    server.addServer("OpenDAQOPCUA", serverConfig).enableDiscovery();
+    test_helpers::addServer(server, "OpenDAQOPCUA", serverConfig).enableDiscovery();
 
     auto client = test_helpers::createInstance("[[none]]");
     addOpcuaClientModule(client);
@@ -202,7 +203,7 @@ TEST_F(OpcuaDeviceModulesTest, CheckDeviceInfoPopulatedWithProvider)
     rootInfo.setName("TestName");
     rootInfo.setManufacturer("TestManufacturer");
     rootInfo.setModel("TestModel");
-    rootInfo.setSerialNumber("TestSerialNumber");
+    rootInfo.setSerialNumber(String(test_helpers::testSerial("TestSerialNumber")));
 
     auto provider = JsonConfigProvider(filename);
     auto instance = test_helpers::instanceBuilder()
@@ -217,7 +218,7 @@ TEST_F(OpcuaDeviceModulesTest, CheckDeviceInfoPopulatedWithProvider)
 
         addOpcuaServerModule(instance);
         auto serverConfig = instance.getAvailableServerTypes().get("OpenDAQOPCUA").createDefaultConfig();
-        instance.addServer("OpenDAQOPCUA", serverConfig).enableDiscovery();
+        test_helpers::addServer(instance, "OpenDAQOPCUA", serverConfig).enableDiscovery();
     }
 
     auto client = test_helpers::createInstance("[[none]]");
@@ -260,11 +261,11 @@ TEST_F(OpcuaDeviceModulesTest, ServerEnableDisableDiscovery)
     auto serverConfig = serverInstance.getAvailableServerTypes().get("OpenDAQOPCUA").createDefaultConfig();
     auto path = "/test/opcua/enableDisableDiscovery/";
     serverConfig.setPropertyValue("Path", path);
-    serverInstance.addServer("OpenDAQOPCUA", serverConfig);
+    test_helpers::addServer(serverInstance, "OpenDAQOPCUA", serverConfig);
 
     auto connectedClient = test_helpers::createInstance("[[none]]");
     addOpcuaClientModule(connectedClient);
-    auto device = connectedClient.addDevice("daq.opcua://127.0.0.1");
+    auto device = connectedClient.addDevice(test_helpers::connectionStringWithPort("daq.opcua://127.0.0.1"));
     ASSERT_GT(device.getServers().getCount(), 0u);
     auto mirroredServer = device.getServers()[0];
 
@@ -357,7 +358,7 @@ TEST_F(OpcuaDeviceModulesTest, TestDiscoveryReachability)
         auto serverConfig = instance.getAvailableServerTypes().get("OpenDAQOPCUA").createDefaultConfig();
         serverConfig.setPropertyValue("Path", path);
 
-        instance.addServer("OpenDAQOPCUA", serverConfig).enableDiscovery();
+        test_helpers::addServer(instance, "OpenDAQOPCUA", serverConfig).enableDiscovery();
     }
 
     auto client = test_helpers::createInstance("[[none]]");
@@ -411,7 +412,7 @@ TEST_F(OpcuaDeviceModulesTest, TestDiscoveryReachabilityAfterConnectIPv6)
 
     auto deviceInfo = DeviceInfo("testdevice://");
     deviceInfo.setManufacturer("openDAQ");
-    deviceInfo.setSerialNumber("TestSerial");
+    deviceInfo.setSerialNumber(String(test_helpers::testSerial("TestSerial")));
 
     auto path = "/test/opcua/discoveryReachabilityAfterConnectIPv6/";
 
@@ -426,13 +427,13 @@ TEST_F(OpcuaDeviceModulesTest, TestDiscoveryReachabilityAfterConnectIPv6)
         auto serverConfig = instance.getAvailableServerTypes().get("OpenDAQOPCUA").createDefaultConfig();
         serverConfig.setPropertyValue("Path", path);
 
-        instance.addServer("OpenDAQOPCUA", serverConfig).enableDiscovery();
+        test_helpers::addServer(instance, "OpenDAQOPCUA", serverConfig).enableDiscovery();
     }
 
     auto client = test_helpers::createInstance("[[none]]");
     addOpcuaClientModule(client);
 
-    StringPtr deviceConnectionString = std::string("daq.opcua://[::1]") + path;
+    StringPtr deviceConnectionString = std::string(test_helpers::connectionStringWithPort("daq.opcua://[::1]")) + path;
     DevicePtr device = client.addDevice(deviceConnectionString);
 
     ASSERT_TRUE(device.assigned());
@@ -490,7 +491,7 @@ TEST_F(OpcuaDeviceModulesTest, TestDiscoveryReachabilityAfterConnect)
 {
     auto deviceInfo = DeviceInfo("testdevice://");
     deviceInfo.setManufacturer("openDAQ");
-    deviceInfo.setSerialNumber("TestSerial");
+    deviceInfo.setSerialNumber(String(test_helpers::testSerial("TestSerial")));
 
     auto path = "/test/opcua/discoveryReachabilityAfterConnect/";
 
@@ -504,7 +505,7 @@ TEST_F(OpcuaDeviceModulesTest, TestDiscoveryReachabilityAfterConnect)
         auto serverConfig = server.getAvailableServerTypes().get("OpenDAQOPCUA").createDefaultConfig();
 
         serverConfig.setPropertyValue("Path", path);
-        server.addServer("OpenDAQOPCUA", serverConfig).enableDiscovery();
+        test_helpers::addServer(server, "OpenDAQOPCUA", serverConfig).enableDiscovery();
     }
     
     auto client = test_helpers::createInstance("[[none]]");
@@ -569,7 +570,7 @@ TEST_F(OpcuaDeviceModulesTest, TestProtocolVersion)
         auto serverConfig = server.getAvailableServerTypes().get("OpenDAQOPCUA").createDefaultConfig();
         serverConfig.setPropertyValue("Path", path);
 
-        server.addServer("OpenDAQOPCUA", serverConfig).enableDiscovery();
+        test_helpers::addServer(server, "OpenDAQOPCUA", serverConfig).enableDiscovery();
     }
 
     auto client = test_helpers::createInstance("[[none]]");
@@ -1045,7 +1046,7 @@ TEST_F(OpcuaDeviceModulesTest, DISABLED_PublicProp)
     const auto refDevice = server.addDevice("daqref://device1");
     refDevice.getSignals(search::Recursive(search::Visible()))[0].setPublic(false);
     auto id = refDevice.getSignals(search::Recursive(search::Visible()))[0].getLocalId();
-    server.addServer("OpenDAQOPCUA", nullptr);
+    test_helpers::addServer(server, "OpenDAQOPCUA", nullptr);
     auto client = CreateClientInstance();
 
     ASSERT_NE(client.getDevices()[0].getDevices()[0].getSignals(search::Recursive(search::Visible()))[0].getLocalId(), id);
@@ -1111,11 +1112,11 @@ TEST_F(OpcuaDeviceModulesTest, FunctionBlocksOnClient)
         addOpcuaServerModule(server);
 
         addRefDeviceModule(server);
-        server.setRootDevice("daqref://device1");
+        server.setRootDevice("daqref://device1", test_helpers::rootDeviceConfig("DevSer1"));
 
         addRefFBModule(server);
         const auto statistics = server.addFunctionBlock("RefFBModuleStatistics");
-        server.addServer("OpenDAQOPCUA", nullptr);
+        test_helpers::addServer(server, "OpenDAQOPCUA", nullptr);
     }
 
     auto client = CreateClientInstance();
@@ -1138,9 +1139,9 @@ TEST_F(OpcuaDeviceModulesTest, AddedRemovedSignalsStreaming)
         addNativeServerModule(instance);
         addOpcuaServerModule(instance);
 
-        instance.setRootDevice("daqref://device1");
-        instance.addServer("OpenDAQNativeStreaming", nullptr);
-        instance.addServer("OpenDAQOPCUA", nullptr);        
+        instance.setRootDevice("daqref://device1", test_helpers::rootDeviceConfig("DevSer1"));
+        test_helpers::addServer(instance, "OpenDAQNativeStreaming", nullptr);
+        test_helpers::addServer(instance, "OpenDAQOPCUA", nullptr);        
     }
 
     auto client = test_helpers::instanceBuilder()
@@ -1150,7 +1151,7 @@ TEST_F(OpcuaDeviceModulesTest, AddedRemovedSignalsStreaming)
     addRefFBModule(client);
     addOpcuaClientModule(client);
     addNativeClientModule(client);
-    auto clientDevice = client.addDevice("daq.opcua://127.0.0.1");
+    auto clientDevice = client.addDevice(test_helpers::connectionStringWithPort("daq.opcua://127.0.0.1"));
 
     const auto newFb = clientDevice.addFunctionBlock("RefFBModuleScaling");
     const auto fbSignals = newFb.getSignals(search::Recursive(search::Any()));
@@ -1180,7 +1181,7 @@ TEST_F(OpcuaDeviceModulesTest, SdkPackageVersion)
         .build();
 
     addOpcuaServerModule(instance);
-    instance.addServer("OpenDAQOPCUA", nullptr);
+    test_helpers::addServer(instance, "OpenDAQOPCUA", nullptr);
 
     auto client = CreateClientInstance();
     ASSERT_EQ(client.getDevices()[0].getInfo().getSdkVersion(), "custom");
@@ -1206,7 +1207,7 @@ TEST_F(OpcuaDeviceModulesTest, AuthenticationDefault)
     config.setPropertyValue("Username", "");
     config.setPropertyValue("Password", "");
 
-    auto device = clientInstance.addDevice("daq.opcua://127.0.0.1", config);
+    auto device = clientInstance.addDevice(test_helpers::connectionStringWithPort("daq.opcua://127.0.0.1"), config);
     ASSERT_TRUE(device.assigned());
 }
 
@@ -1230,25 +1231,28 @@ TEST_F(OpcuaDeviceModulesTest, AuthenticationDefinedUsers)
         .get("OpenDAQOPCUAConfiguration")
         .createDefaultConfig();
 
-    ASSERT_THROW(clientInstance.addDevice("daq.opcua://127.0.0.1", config), AuthenticationFailedException);
+    ASSERT_THROW(clientInstance.addDevice(test_helpers::connectionStringWithPort("daq.opcua://127.0.0.1"), config),
+                 AuthenticationFailedException);
 
     config.setPropertyValue("Username", "jure");
     config.setPropertyValue("Password", "wrongPass");
-    ASSERT_THROW(clientInstance.addDevice("daq.opcua://127.0.0.1", config), AuthenticationFailedException);
+    ASSERT_THROW(clientInstance.addDevice(test_helpers::connectionStringWithPort("daq.opcua://127.0.0.1"), config),
+                 AuthenticationFailedException);
 
     config.setPropertyValue("Username", "andrej");
     config.setPropertyValue("Password", "andrej123");
-    ASSERT_THROW(clientInstance.addDevice("daq.opcua://127.0.0.1", config), AuthenticationFailedException);
+    ASSERT_THROW(clientInstance.addDevice(test_helpers::connectionStringWithPort("daq.opcua://127.0.0.1"), config),
+                 AuthenticationFailedException);
 
     config.setPropertyValue("Username", "jure");
     config.setPropertyValue("Password", "jure123");
-    auto device = clientInstance.addDevice("daq.opcua://127.0.0.1", config);
+    auto device = clientInstance.addDevice(test_helpers::connectionStringWithPort("daq.opcua://127.0.0.1"), config);
     ASSERT_TRUE(device.assigned());
     clientInstance.removeDevice(device);
 
     config.setPropertyValue("Username", "tomaz");
     config.setPropertyValue("Password", "tomaz123");
-    device = clientInstance.addDevice("daq.opcua://127.0.0.1", config);
+    device = clientInstance.addDevice(test_helpers::connectionStringWithPort("daq.opcua://127.0.0.1"), config);
     ASSERT_TRUE(device.assigned());
     clientInstance.removeDevice(device);
 }
@@ -1268,11 +1272,13 @@ TEST_F(OpcuaDeviceModulesTest, AuthenticationAllowNoOne)
         .get("OpenDAQOPCUAConfiguration")
         .createDefaultConfig();
 
-    ASSERT_THROW(clientInstance.addDevice("daq.opcua://127.0.0.1", config), AuthenticationFailedException);
+    ASSERT_THROW(clientInstance.addDevice(test_helpers::connectionStringWithPort("daq.opcua://127.0.0.1"), config),
+                 AuthenticationFailedException);
 
     config.setPropertyValue("Username", "jure");
     config.setPropertyValue("Password", "jure123");
-    ASSERT_THROW(clientInstance.addDevice("daq.opcua://127.0.0.1", config), AuthenticationFailedException);
+    ASSERT_THROW(clientInstance.addDevice(test_helpers::connectionStringWithPort("daq.opcua://127.0.0.1"), config),
+                 AuthenticationFailedException);
 }
 
 TEST_F(OpcuaDeviceModulesTest, AddStreamingPostConnection)
@@ -1294,11 +1300,11 @@ TEST_F(OpcuaDeviceModulesTest, AddStreamingPostConnection)
     }
 
     addLtServerModule(server);
-    server.addServer("OpenDAQLTStreaming", nullptr);
+    test_helpers::addServer(server, "OpenDAQLTStreaming", nullptr);
 
     StreamingPtr streaming;
     addLtClientModule(client);
-    ASSERT_NO_THROW(streaming = client.getDevices()[0].addStreaming("daq.lt://127.0.0.1"));
+    ASSERT_NO_THROW(streaming = client.getDevices()[0].addStreaming(test_helpers::connectionStringWithPort("daq.lt://127.0.0.1")));
     ASSERT_EQ(clientMirroredDevice.getStreamingSources().getCount(), 1u);
     ASSERT_EQ(streaming, clientMirroredDevice.getStreamingSources()[0]);
 
@@ -1326,9 +1332,9 @@ TEST_F(OpcuaDeviceModulesTest, GetConfigurationConnectionInfoIPv4)
     ASSERT_EQ(connectionInfo.getProtocolType(), ProtocolType::Configuration);
     ASSERT_EQ(connectionInfo.getConnectionType(), "TCP/IP");
     ASSERT_EQ(connectionInfo.getAddresses()[0], "127.0.0.1");
-    ASSERT_EQ(connectionInfo.getPort(), 4840);
+    ASSERT_EQ(connectionInfo.getPort(), test_helpers::testPort(4840));
     ASSERT_EQ(connectionInfo.getPrefix(), "daq.opcua");
-    ASSERT_EQ(connectionInfo.getConnectionString(), "daq.opcua://127.0.0.1");
+    ASSERT_EQ(connectionInfo.getConnectionString(), test_helpers::connectionStringWithPort("daq.opcua://127.0.0.1"));
 }
 
 TEST_F(OpcuaDeviceModulesTest, GetConfigurationConnectionInfoIPv6)
@@ -1338,7 +1344,7 @@ TEST_F(OpcuaDeviceModulesTest, GetConfigurationConnectionInfoIPv6)
 
     auto client = test_helpers::createInstance("[[none]]");
     addOpcuaClientModule(client);
-    client.addDevice("daq.opcua://[::1]");
+    client.addDevice(test_helpers::connectionStringWithPort("daq.opcua://[::1]"));
 
     auto devices = client.getDevices();
     ASSERT_EQ(devices.getCount(), 1u);
@@ -1349,9 +1355,9 @@ TEST_F(OpcuaDeviceModulesTest, GetConfigurationConnectionInfoIPv6)
     ASSERT_EQ(connectionInfo.getProtocolType(), ProtocolType::Configuration);
     ASSERT_EQ(connectionInfo.getConnectionType(), "TCP/IP");
     ASSERT_EQ(connectionInfo.getAddresses()[0], "[::1]");
-    ASSERT_EQ(connectionInfo.getPort(), 4840);
+    ASSERT_EQ(connectionInfo.getPort(), test_helpers::testPort(4840));
     ASSERT_EQ(connectionInfo.getPrefix(), "daq.opcua");
-    ASSERT_EQ(connectionInfo.getConnectionString(), "daq.opcua://[::1]");
+    ASSERT_EQ(connectionInfo.getConnectionString(), test_helpers::connectionStringWithPort("daq.opcua://[::1]"));
 }
 
 TEST_F(OpcuaDeviceModulesTest, TestAddressInfoIPv4)
@@ -1361,16 +1367,16 @@ TEST_F(OpcuaDeviceModulesTest, TestAddressInfoIPv4)
         .build();
     {
         addRefDeviceModule(server);
-        server.setRootDevice("daqref://device0");
+        server.setRootDevice("daqref://device0", test_helpers::rootDeviceConfig("DevSer0"));
 
         addNativeServerModule(server);
-        server.addServer("OpenDAQNativeStreaming", nullptr);
+        test_helpers::addServer(server, "OpenDAQNativeStreaming", nullptr);
 
         addLtServerModule(server);
-        server.addServer("OpenDAQLTStreaming", nullptr);
+        test_helpers::addServer(server, "OpenDAQLTStreaming", nullptr);
 
         addOpcuaServerModule(server);
-        server.addServer("OpenDAQOPCUA", nullptr);
+        test_helpers::addServer(server, "OpenDAQOPCUA", nullptr);
     }
 
     auto client = test_helpers::createInstance("[[none]]");
@@ -1380,7 +1386,7 @@ TEST_F(OpcuaDeviceModulesTest, TestAddressInfoIPv4)
         addLtClientModule(client);
     }
 
-    const auto dev = client.addDevice("daq.opcua://127.0.0.1");
+    const auto dev = client.addDevice(test_helpers::connectionStringWithPort("daq.opcua://127.0.0.1"));
     const auto info = dev.getInfo();
 
     ASSERT_TRUE(info.hasServerCapability("OpenDAQNativeConfiguration"));
@@ -1433,16 +1439,16 @@ TEST_F(OpcuaDeviceModulesTest, TestAddressInfoIPv6)
         .build();
     {
         addRefDeviceModule(server);
-        server.setRootDevice("daqref://device0");
+        server.setRootDevice("daqref://device0", test_helpers::rootDeviceConfig("DevSer0"));
 
         addNativeServerModule(server);
-        server.addServer("OpenDAQNativeStreaming", nullptr);
+        test_helpers::addServer(server, "OpenDAQNativeStreaming", nullptr);
 
         addLtServerModule(server);
-        server.addServer("OpenDAQLTStreaming", nullptr);
+        test_helpers::addServer(server, "OpenDAQLTStreaming", nullptr);
 
         addOpcuaServerModule(server);
-        server.addServer("OpenDAQOPCUA", nullptr);
+        test_helpers::addServer(server, "OpenDAQOPCUA", nullptr);
     }
 
     auto client = test_helpers::createInstance("[[none]]");
@@ -1451,7 +1457,7 @@ TEST_F(OpcuaDeviceModulesTest, TestAddressInfoIPv6)
         addNativeClientModule(client);
         addLtClientModule(client);
     }
-    const auto dev = client.addDevice("daq.opcua://[::1]");
+    const auto dev = client.addDevice(test_helpers::connectionStringWithPort("daq.opcua://[::1]"));
     const auto info = dev.getInfo();
 
     ASSERT_TRUE(info.hasServerCapability("OpenDAQNativeConfiguration"));
@@ -1487,19 +1493,19 @@ TEST_F(OpcuaDeviceModulesTest, TestAddressInfoIPv6)
 
 TEST_F(OpcuaDeviceModulesTest, DISABLED_TestAddressInfoGatewayDevice)
 {
-    auto server = test_helpers::instanceBuilder().setRootDevice("daqref://device0").build();
-    server.addServer("OpenDAQNativeStreaming", nullptr);
-    server.addServer("OpenDAQLTStreaming", nullptr);
-    server.addServer("OpenDAQOPCUA", nullptr);
+    auto server = test_helpers::instanceBuilder().setRootDevice("daqref://device0", test_helpers::rootDeviceConfig("DevSer0")).build();
+    test_helpers::addServer(server, "OpenDAQNativeStreaming", nullptr);
+    test_helpers::addServer(server, "OpenDAQLTStreaming", nullptr);
+    test_helpers::addServer(server, "OpenDAQOPCUA", nullptr);
     
     auto gateway = test_helpers::createInstance();
     auto serverConfig = gateway.getAvailableServerTypes().get("OpenDAQOPCUA").createDefaultConfig();
-    serverConfig.setPropertyValue("Port", 4841);
-    gateway.addDevice("daq.opcua://127.0.0.1");
-    gateway.addServer("OpenDAQOPCUA", serverConfig);
+    serverConfig.setPropertyValue("Port", test_helpers::testPort(4841));
+    gateway.addDevice(test_helpers::connectionStringWithPort("daq.opcua://127.0.0.1"));
+    test_helpers::addServer(gateway, "OpenDAQOPCUA", serverConfig);
 
     auto client = test_helpers::createInstance();
-    const auto dev = client.addDevice("daq.opcua://127.0.0.1:4841/");
+    const auto dev = client.addDevice(test_helpers::connectionStringWithPort("daq.opcua://127.0.0.1:4841/"));
     const auto info = dev.getDevices()[0].getInfo();
 
     ASSERT_TRUE(info.hasServerCapability("OpenDAQNativeConfiguration"));
@@ -1732,11 +1738,11 @@ TEST_F(OpcuaDeviceModulesTest, GetSetNonCheangableUserNameLocation)
     auto serverDevice = serverInstance.addDevice("daqtest://test_device");
 
     addOpcuaServerModule(serverInstance);
-    serverInstance.addServer("OpenDAQOPCUA", nullptr);
+    test_helpers::addServer(serverInstance, "OpenDAQOPCUA", nullptr);
 
     auto clientInstance = CreateTestDeviceInstance();
     addOpcuaClientModule(clientInstance);
-    auto clientDevice = clientInstance.addDevice("daq.opcua://127.0.0.1").getDevices()[0];
+    auto clientDevice = clientInstance.addDevice(test_helpers::connectionStringWithPort("daq.opcua://127.0.0.1")).getDevices()[0];
 
     auto serverDeviceInfo = serverDevice.getInfo();
     auto clientDeviceInfo = clientDevice.getInfo();

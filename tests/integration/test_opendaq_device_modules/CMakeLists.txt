@@ -8,9 +8,8 @@ set(TEST_HEADERS
 # The tests come in two binaries so that ctest can run them side by side. A binary with a TEST_ID receives
 # it as OPENDAQ_TEST_ID and shifts every port it serves on by that id (see test_helpers/test_ports.h), which
 # is what lets it run without the network resource locks, and with SHARDS it runs as that many GoogleTest
-# shards at once, each on ports of its own. Only tests that announce no device over mDNS can move into such
-# a binary: announcements reach every process, and the tests that look up devices read whatever else is on
-# the network as their own. Everything that announces stays with the locked binary.
+# shards at once, each on ports of its own. A binary that announces devices over mDNS marks their serial
+# numbers with its id and shard as well, since announcements reach every process on the machine.
 function(opendaq_add_device_modules_test TEST_APP)
     cmake_parse_arguments(ARG "" "TEST_ID;SHARDS" "SOURCES;RESOURCE_LOCKS" ${ARGN})
 
@@ -96,7 +95,8 @@ function(opendaq_add_device_modules_test TEST_APP)
 endfunction()
 
 opendaq_add_device_modules_test(test_device_modules
-    RESOURCE_LOCKS network_native network_lt network_opcua mdns
+    TEST_ID 2
+    SHARDS 8
     SOURCES test_native_device_modules.cpp
             test_opcua_device_modules.cpp
             test_default_config.cpp

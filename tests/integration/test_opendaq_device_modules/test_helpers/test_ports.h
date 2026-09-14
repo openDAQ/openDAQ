@@ -22,9 +22,10 @@
 // Without the variable the id is 0 and the ports keep the values a single binary would use, which is what
 // a binary started by hand gets.
 //
-// Shifted ports let a binary run without the network resource locks, but only if it announces no device
-// over mDNS: announcements reach every process on the machine, and the tests that look up devices read
-// whatever else is on the network as their own.
+// Shifted ports let a binary run without the network resource locks. Announcements over mDNS reach every
+// process on the machine, so a binary that announces devices also marks their serial numbers with its id
+// and shard: a discovered device is addressed by its manufacturer and serial number, and the tests that
+// look up devices filter what they find by them.
 
 #include <cstdint>
 #include <cstdlib>
@@ -74,8 +75,39 @@ namespace test_helpers
         return static_cast<uint16_t>(id == 0 ? basePort : basePort + 16000 + (id - 1) * 1000 + testShard() * 50);
     }
 
-    // Shifts every port a server configuration carries. The switches that enable those ports are named
-    // after them, so only integers are shifted.
+    // The serial number this binary announces in place of a plain one
+    inline std::string testSerial(const std::string& serialNumber)
+    {
+        if (testId() == 0)
+            return serialNumber;
+        return serialNumber + "_t" + std::to_string(testId()) + "s" + std::to_string(testShard());
+    }
+
+    // The smart connection string of a device this binary announces
+    [[maybe_unused]]
+    inline StringPtr smartConnectionString(const std::string& manufacturer, const std::string& serialNumber)
+    {
+        return String("daq://" + manufacturer + "_" + testSerial(serialNumber));
+    }
+
+    // A root device configuration carrying this binary's serial number
+    [[maybe_unused]]
+    inline PropertyObjectPtr rootDeviceConfig(const std::string& serialNumber)
+    {
+        auto config = PropertyObject();
+        config.addProperty(StringProperty("SerialNumber", String(testSerial(serialNumber))));
+        return config;
+    }
+
+    // Whether a property names a port. The switches that enable the ports are named after them, so only
+    // integers count.
+    inline bool isPortProperty(const PropertyPtr& property)
+    {
+        const std::string name = property.getName().toStdString();
+        return name.size() >= 4 && name.compare(name.size() - 4, 4, "Port") == 0 && property.getValueType() == ctInt;
+    }
+
+    // Shifts every port a server configuration carries
     [[maybe_unused]]
     inline void offsetPorts(const PropertyObjectPtr& config)
     {
@@ -84,31 +116,39 @@ namespace test_helpers
 
         for (const auto& property : config.getAllProperties())
         {
-            const auto name = property.getName();
-            const std::string nameStr = name.toStdString();
-            if (nameStr.size() < 4 || nameStr.compare(nameStr.size() - 4, 4, "Port") != 0)
-                continue;
-            if (property.getValueType() != ctInt)
+            if (!isPortProperty(property))
                 continue;
 
+            const auto name = property.getName();
             const Int port = config.getPropertyValue(name);
             if (port > 0)
                 config.setPropertyValue(name, testPort(static_cast<int>(port)));
         }
     }
 
-    // Adds a server listening on this binary's ports
+    // Adds a server listening on this binary's ports. A configuration that names no port gets the module
+    // default, shifted like the rest.
     [[maybe_unused]]
     inline ServerPtr addServer(const InstancePtr& instance, const StringPtr& typeId, const PropertyObjectPtr& config = nullptr)
     {
-        const auto serverConfig =
-            config.assigned() ? config : instance.getAvailableServerTypes().get(typeId).createDefaultConfig();
+        PropertyObjectPtr serverConfig = config;
+        const auto types = instance.getAvailableServerTypes();
+        if (types.hasKey(typeId))
+        {
+            const auto defaults = types.get(typeId).createDefaultConfig();
+            if (!serverConfig.assigned())
+                serverConfig = defaults;
+            else
+                for (const auto& property : defaults.getAllProperties())
+                    if (isPortProperty(property) && !serverConfig.hasProperty(property.getName()))
+                        serverConfig.addProperty(IntProperty(property.getName(), defaults.getPropertyValue(property.getName())));
+        }
         offsetPorts(serverConfig);
         return instance.addServer(typeId, serverConfig);
     }
 
-    // Names this binary's port in a connection string that carries none, so that it reaches the servers
-    // added by addServer()
+    // Names this binary's port in a connection string, shifting the one it carries or inserting the module
+    // default when it carries none, so that it reaches the servers added by addServer()
     [[maybe_unused]]
     inline StringPtr connectionStringWithPort(const std::string& url)
     {
@@ -122,7 +162,7 @@ namespace test_helpers
             base = NativePortBase;
         else if (scheme == "daq.opcua")
             base = OpcuaPortBase;
-        else if (scheme == "daq.lt")
+        else if (scheme == "daq.lt" || scheme == "daq.ws")  // daq.ws is the legacy alias of daq.lt
             base = LtStreamingPortBase;
         else if (scheme == "daq.lts")
             base = LtSecureStreamingPortBase;
@@ -136,9 +176,14 @@ namespace test_helpers
         else if (url[hostEnd] == ']')
             ++hostEnd;
 
-        // a connection string that already names a port keeps it
         if (hostEnd < url.size() && url[hostEnd] == ':')
-            return String(url);
+        {
+            auto portEnd = url.find_first_not_of("0123456789", hostEnd + 1);
+            if (portEnd == std::string::npos)
+                portEnd = url.size();
+            const auto port = std::stoi(url.substr(hostEnd + 1, portEnd - hostEnd - 1));
+            return String(url.substr(0, hostEnd) + ":" + std::to_string(testPort(port)) + url.substr(portEnd));
+        }
 
         return String(url.substr(0, hostEnd) + ":" + std::to_string(testPort(base)) + url.substr(hostEnd));
     }

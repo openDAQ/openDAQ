@@ -1,4 +1,5 @@
 #include "test_helpers/test_helpers.h"
+#include "test_helpers/test_ports.h"
 #include <coreobjects/authentication_provider_factory.h>
 #include <thread>
 
@@ -120,7 +121,7 @@ public:
 
     std::string connectionString(const std::string& host = "127.0.0.1", const std::string& path = "/") const
     {
-        return (secure() ? "daq.lts://" : "daq.lt://") + host + path;
+        return test_helpers::connectionStringWithPort((secure() ? "daq.lts://" : "daq.lt://") + host + path).toStdString();
     }
 
     std::string expectedProtocolId() const
@@ -135,7 +136,7 @@ public:
 
     Int expectedPort() const
     {
-        return secure() ? 7415 : 7414;
+        return test_helpers::testPort(secure() ? 7415 : 7414);
     }
 
     PropertyObjectPtr serverConfig([[maybe_unused]] const InstancePtr& server) const
@@ -181,9 +182,11 @@ public:
         const auto refDevice = server.addDevice("daqref://device1");
 
         if (secure())
-            server.addServer("OpenDAQLTStreaming", serverConfig(server));
+            test_helpers::addServer(server, "OpenDAQLTStreaming", serverConfig(server));
         else
-            server.addServer("openDAQ LT Streaming", nullptr);
+            test_helpers::addServer(server,
+                                    "openDAQ LT Streaming",
+                                    server.getAvailableServerTypes().get("OpenDAQLTStreaming").createDefaultConfig());
 
         return server;
     }
@@ -247,7 +250,7 @@ TEST_P(WebsocketModulesChannelTest, ConnectAndDisconnectBackwardCompatibility)
         return;
     }
 
-    client.addDevice("daq.ws://127.0.0.1/", deviceConfig(client));
+    client.addDevice(test_helpers::connectionStringWithPort("daq.ws://127.0.0.1/"), deviceConfig(client));
 }
 
 TEST_P(WebsocketModulesChannelTest, ConnectViaIpv6)
@@ -309,7 +312,7 @@ TEST_P(WebsocketModulesChannelTest, DiscoveringServer)
     auto config = serverConfigWithDefaults(server);
     auto path = "/test/streaming_lt/discovery/";
     config.setPropertyValue("Path", path);
-    server.addServer("OpenDAQLTStreaming", config).enableDiscovery();
+    test_helpers::addServer(server, "OpenDAQLTStreaming", config).enableDiscovery();
 
     auto client = test_helpers::createInstance("[[none]]");
     addLtClientModule(client);
@@ -356,7 +359,7 @@ TEST_P(WebsocketModulesChannelTest, CheckDeviceInfoPopulatedWithProvider)
     rootInfo.setName("TestName");
     rootInfo.setManufacturer("TestManufacturer");
     rootInfo.setModel("TestModel");
-    rootInfo.setSerialNumber("TestSerialNumber");
+    rootInfo.setSerialNumber(String(test_helpers::testSerial("TestSerialNumber")));
 
     auto provider = JsonConfigProvider(filename);
     auto instance = test_helpers::instanceBuilder()
@@ -371,7 +374,7 @@ TEST_P(WebsocketModulesChannelTest, CheckDeviceInfoPopulatedWithProvider)
 
     addLtServerModule(instance);
     auto config = serverConfigWithDefaults(instance);
-    instance.addServer("OpenDAQLTStreaming", config).enableDiscovery();
+    test_helpers::addServer(instance, "OpenDAQLTStreaming", config).enableDiscovery();
 
     auto client = test_helpers::createInstance("[[none]]");
     addLtClientModule(client);
@@ -415,10 +418,10 @@ TEST_P(WebsocketModulesChannelTest, TestDiscoveryReachability)
     addLtServerModule(instance);
 
     auto config = serverConfigWithDefaults(instance);
-    auto path = "/test/native_configurator/discovery_reachability/";
+    auto path = "/test/streaming_lt/discovery_reachability/";
     config.setPropertyValue("Path", path);
 
-    instance.addServer("OpenDAQLTStreaming", config).enableDiscovery();
+    test_helpers::addServer(instance, "OpenDAQLTStreaming", config).enableDiscovery();
 
     auto client = test_helpers::createInstance("[[none]]");
     addLtClientModule(client);
@@ -473,7 +476,7 @@ TEST_F(WebsocketModulesTest, DiscoveringBothChannels)
     auto rootInfo = DeviceInfo("");
     rootInfo.setName("TestName");
     rootInfo.setManufacturer("TestManufacturer");
-    rootInfo.setSerialNumber("TestSerialNumberBothChannels");
+    rootInfo.setSerialNumber(String(test_helpers::testSerial("TestSerialNumberBothChannels")));
 
     auto server = test_helpers::instanceBuilder()
         .setModulePath("[[none]]")
@@ -487,7 +490,7 @@ TEST_F(WebsocketModulesTest, DiscoveringBothChannels)
     addLtServerModule(server);
     auto config = test_helpers::lt_tls::secureServerConfig(server);
     config.setPropertyValue("Path", path);
-    server.addServer("OpenDAQLTStreaming", config).enableDiscovery();
+    test_helpers::addServer(server, "OpenDAQLTStreaming", config).enableDiscovery();
 
     auto client = test_helpers::createInstance("[[none]]");
     addLtClientModule(client);
@@ -518,8 +521,8 @@ TEST_F(WebsocketModulesTest, DiscoveringBothChannels)
     ASSERT_EQ(secureCap.getProtocolType(), ProtocolType::Streaming);
     ASSERT_EQ(plainCap.getPrefix(), "daq.lt");
     ASSERT_EQ(secureCap.getPrefix(), "daq.lts");
-    ASSERT_EQ(plainCap.getPort(), 7414);
-    ASSERT_EQ(secureCap.getPort(), 7415);
+    ASSERT_EQ(plainCap.getPort(), test_helpers::testPort(7414));
+    ASSERT_EQ(secureCap.getPort(), test_helpers::testPort(7415));
     // both channels belong to the same protocol group, so a client can pick either of them
     ASSERT_EQ(secureCap.getProtocolGroupId(), plainCap.getProtocolGroupId());
     // and the secure one wins whenever protocols are ordered by their security level
@@ -528,7 +531,7 @@ TEST_F(WebsocketModulesTest, DiscoveringBothChannels)
     auto device = client.addDevice(secureCap.getConnectionString(), test_helpers::lt_tls::secureDeviceConfig(client));
     const auto connectionInfo = device.getInfo().getConfigurationConnectionInfo();
     ASSERT_EQ(connectionInfo.getProtocolId(), test_helpers::lt_tls::SecureProtocolId);
-    ASSERT_EQ(connectionInfo.getPort(), 7415);
+    ASSERT_EQ(connectionInfo.getPort(), test_helpers::testPort(7415));
 }
 #endif
 

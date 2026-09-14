@@ -48,6 +48,7 @@ ErrCode MockDeviceModuleImpl::getAvailableDeviceTypes(IDict** deviceTypes)
     auto mockConfig = PropertyObject();
     mockConfig.addProperty(StringProperty("message", ""));
 
+    mockConfig.addProperty(StringProperty("SerialNumber", ""));
     mockConfig.addProperty(BoolProperty("netConfigEnabled", False));
     mockConfig.addProperty(ListProperty("ifaceNames", List<IString>()));
 

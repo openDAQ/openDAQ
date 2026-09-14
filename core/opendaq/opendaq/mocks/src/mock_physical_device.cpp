@@ -98,7 +98,8 @@ DeviceInfoPtr MockPhysicalDeviceImpl::onGetInfo()
     deviceInfo.setSoftwareRevision("software_revision");
     deviceInfo.setDeviceManual("device_manual");
     deviceInfo.setDeviceClass("device_class");
-    deviceInfo.setSerialNumber("serial_number");
+    const StringPtr serialNumber = config.assigned() && config.hasProperty("SerialNumber") ? config.getPropertyValue("SerialNumber") : "";
+    deviceInfo.setSerialNumber(serialNumber.getLength() > 0 ? serialNumber : "serial_number");
     deviceInfo.setProductInstanceUri("product_instance_uri");
     deviceInfo.setRevisionCounter(123);
     deviceInfo.addProperty(StringPropertyBuilder("custom_string", "custom_string").setReadOnly(true).build());

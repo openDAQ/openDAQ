@@ -8,6 +8,7 @@
 #include "opendaq/mock/mock_device_module.h"
 #include "test_helpers/device_modules.h"
 #include "test_helpers/test_helpers.h"
+#include "test_helpers/test_ports.h"
 
 using ModulesDeviceDiscoveryTest = testing::Test;
 
@@ -54,8 +55,9 @@ TEST_F(ModulesDeviceDiscoveryTest, ChangeIpConfig)
         .asPtrOrNull<IPropertyObjectProtected>(true)
         .setProtectedPropertyValue("onSubmitConfig", modifyIpConfigCallback);
 
+    mockDeviceConfig.setPropertyValue("SerialNumber", String(test_helpers::testSerial("serial_number")));
     serverInstance.setRootDevice("daqmock://phys_device", mockDeviceConfig);
-    serverInstance.addServer("OpenDAQNativeStreaming", nullptr);
+    test_helpers::addServer(serverInstance, "OpenDAQNativeStreaming", nullptr);
 
     for (const auto& server : serverInstance.getServers())
         server.enableDiscovery();
@@ -67,7 +69,7 @@ TEST_F(ModulesDeviceDiscoveryTest, ChangeIpConfig)
 
     for (const auto& devInfo : availableDevices)
     {
-        if (devInfo.getConnectionString() == "daq://manufacturer_serial_number")
+        if (devInfo.getConnectionString() == test_helpers::smartConnectionString("manufacturer", "serial_number"))
         {
             EXPECT_TRUE(devInfo.getNetworkInterfaces().hasKey("eth0"));
             EXPECT_TRUE(devInfo.getNetworkInterfaces().hasKey("eth1"));
@@ -98,10 +100,11 @@ TEST_F(ModulesDeviceDiscoveryTest, ChangeIpConfigError)
     auto mockDeviceConfig = deviceTypes.get("mock_phys_device").createDefaultConfig();
     mockDeviceConfig.setPropertyValue("netConfigEnabled", True);
     mockDeviceConfig.setPropertyValue("ifaceNames", List<IString>("eth0"));
+    mockDeviceConfig.setPropertyValue("SerialNumber", String(test_helpers::testSerial("serial_number")));
     serverInstance.setRootDevice("daqmock://phys_device", mockDeviceConfig);
 
     addNativeServerModule(serverInstance);
-    serverInstance.addServer("OpenDAQNativeStreaming", nullptr);
+    test_helpers::addServer(serverInstance, "OpenDAQNativeStreaming", nullptr);
 
     // Truncated error message with disallowed symbols replaced.
     auto retrievedErrorMessage = "This Is An Extremely Long Test String With Invalid Characters Like  Tabs, NewLines , "
@@ -118,7 +121,7 @@ TEST_F(ModulesDeviceDiscoveryTest, ChangeIpConfigError)
 
     for (const auto& devInfo : availableDevices)
     {
-        if (devInfo.getConnectionString() == "daq://manufacturer_serial_number")
+        if (devInfo.getConnectionString() == test_helpers::smartConnectionString("manufacturer", "serial_number"))
         {
             EXPECT_TRUE(devInfo.getNetworkInterfaces().hasKey("eth0"));
             EXPECT_FALSE(devInfo.getNetworkInterfaces().hasKey("eth1"));
@@ -173,10 +176,11 @@ TEST_F(ModulesDeviceDiscoveryTest, RetrieveIpConfig)
     protectedMockDeviceConfig.setProtectedPropertyValue("onSubmitConfig", Procedure([](StringPtr, PropertyObjectPtr) {}));
     protectedMockDeviceConfig.setProtectedPropertyValue("onRetrieveConfig", retrieveIpConfigCallback);
 
+    mockDeviceConfig.setPropertyValue("SerialNumber", String(test_helpers::testSerial("serial_number")));
     serverInstance.setRootDevice("daqmock://phys_device", mockDeviceConfig);
 
     addNativeServerModule(serverInstance);
-    serverInstance.addServer("OpenDAQNativeStreaming", nullptr).enableDiscovery();
+    test_helpers::addServer(serverInstance, "OpenDAQNativeStreaming", nullptr).enableDiscovery();
 
     const auto client = test_helpers::createInstance("[[none]]");
     addNativeClientModule(client);
@@ -184,7 +188,7 @@ TEST_F(ModulesDeviceDiscoveryTest, RetrieveIpConfig)
     auto availableDevices = client.getAvailableDevices();
     for (const auto& devInfo : availableDevices)
     {
-        if (devInfo.getConnectionString() == "daq://manufacturer_serial_number")
+        if (devInfo.getConnectionString() == test_helpers::smartConnectionString("manufacturer", "serial_number"))
         {
             EXPECT_TRUE(devInfo.getNetworkInterfaces().hasKey("eth0"));
             EXPECT_TRUE(devInfo.getNetworkInterfaces().hasKey("eth1"));
@@ -211,7 +215,7 @@ public:
 
         const ModulePtr deviceModule(MockDeviceModule_Create(serverInstance.getContext()));
         serverInstance.getModuleManager().addModule(deviceModule);
-        serverInstance.setRootDevice("daqmock://phys_device");
+        serverInstance.setRootDevice("daqmock://phys_device", test_helpers::rootDeviceConfig("serial_number"));
 
         clientInstance = test_helpers::createInstance("[[none]]");
     }
@@ -221,7 +225,7 @@ protected:
     {
         ListPtr<IConnectedClientInfo> connectedClients = List<IConnectedClientInfo>();
         for (const auto& deviceInfo : clientInstance.getAvailableDevices())
-            if (deviceInfo.getConnectionString() == "daq://manufacturer_serial_number")
+            if (deviceInfo.getConnectionString() == test_helpers::smartConnectionString("manufacturer", "serial_number"))
                 connectedClients = deviceInfo.getConnectedClientsInfo();
         return connectedClients;
     }
@@ -250,14 +254,14 @@ protected:
 TEST_F(ConnectedClientsDiscoveryTest, NativeConnectedClients)
 {
     addNativeServerModule(serverInstance);
-    serverInstance.addServer("OpenDAQNativeStreaming", nullptr).enableDiscovery();
+    test_helpers::addServer(serverInstance, "OpenDAQNativeStreaming", nullptr).enableDiscovery();
 
     ASSERT_EQ(getConnectedClients().getCount(), 0u);
     {
         addNativeClientModule(clientInstance);
 
         // native streaming client
-        auto device = clientInstance.addDevice("daq.ns://127.0.0.1");
+        auto device = clientInstance.addDevice(test_helpers::connectionStringWithPort("daq.ns://127.0.0.1"));
         auto connectedClientsInfo = waitForConnectedClients(1);
         ASSERT_EQ(connectedClientsInfo.getCount(), 1u);
 
@@ -271,7 +275,7 @@ TEST_F(ConnectedClientsDiscoveryTest, NativeConnectedClients)
     }
     {
         // native configuration & streaming client
-        auto device = clientInstance.addDevice("daq.nd://127.0.0.1");
+        auto device = clientInstance.addDevice(test_helpers::connectionStringWithPort("daq.nd://127.0.0.1"));
         auto connectedClientsInfo = waitForConnectedClients(2);
         ASSERT_EQ(connectedClientsInfo.getCount(), 2u);
 
@@ -295,7 +299,9 @@ TEST_F(ConnectedClientsDiscoveryTest, NativeConnectedClients)
         clientInstance = test_helpers::createInstance("[[none]]");
         addNativeClientModule(clientInstance);
 
-        test_helpers::connectInstanceWithClientType(clientInstance, "daq.nd://127.0.0.1", ClientType::ExclusiveControl);
+        test_helpers::connectInstanceWithClientType(clientInstance,
+                                                    test_helpers::connectionStringWithPort("daq.nd://127.0.0.1"),
+                                                    ClientType::ExclusiveControl);
         auto device = clientInstance.getDevices()[0];
         auto connectedClientsInfo = waitForConnectedClients(2);
         ASSERT_EQ(connectedClientsInfo.getCount(), 2u);
@@ -322,7 +328,7 @@ TEST_F(ConnectedClientsDiscoveryTest, LtConnectedClients)
         serverInstance.getModuleManager().addModule(ltServerModule);
     }
 
-    serverInstance.addServer("OpenDAQLTStreaming", nullptr).enableDiscovery();
+    test_helpers::addServer(serverInstance, "OpenDAQLTStreaming", nullptr).enableDiscovery();
 
     ASSERT_EQ(getConnectedClients().getCount(), 0u);
     {
@@ -334,7 +340,7 @@ TEST_F(ConnectedClientsDiscoveryTest, LtConnectedClients)
             clientInstance.getModuleManager().addModule(ltClientModule);
         }
 
-        auto device = clientInstance.addDevice("daq.lt://127.0.0.1");
+        auto device = clientInstance.addDevice(test_helpers::connectionStringWithPort("daq.lt://127.0.0.1"));
         auto connectedClientsInfo = waitForConnectedClients(1);
         ASSERT_EQ(connectedClientsInfo.getCount(), 1u);
 
@@ -358,7 +364,7 @@ TEST_F(ConnectedClientsDiscoveryTest, OpcuaConnectedClients)
         serverInstance.getModuleManager().addModule(opcuaServerModule);
     }
 
-    serverInstance.addServer("OpenDAQOPCUA", nullptr).enableDiscovery();
+    test_helpers::addServer(serverInstance, "OpenDAQOPCUA", nullptr).enableDiscovery();
 
     ASSERT_EQ(getConnectedClients().getCount(), 0u);
     {
@@ -370,7 +376,7 @@ TEST_F(ConnectedClientsDiscoveryTest, OpcuaConnectedClients)
             clientInstance.getModuleManager().addModule(opcuaClientModule);
         }
 
-        auto device = clientInstance.addDevice("daq.opcua://127.0.0.1");
+        auto device = clientInstance.addDevice(test_helpers::connectionStringWithPort("daq.opcua://127.0.0.1"));
         auto connectedClientsInfo = waitForConnectedClients(1);
         ASSERT_EQ(connectedClientsInfo.getCount(), 1u);
 

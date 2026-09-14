@@ -1,5 +1,6 @@
 #include "opendaq/mock/mock_device_module.h"
 #include "test_helpers/test_helpers.h"
+#include "test_helpers/test_ports.h"
 #include "test_helpers/device_modules.h"
 
 using ModulesDefaultConfigTest = testing::Test;
@@ -80,7 +81,7 @@ TEST_F(ModulesDefaultConfigTest, NativeConfigDeviceConnect)
 
     const auto serverConfig = PropertyObject();
     serverConfig.addProperty(IntProperty("NativeStreamingPort", 7421));
-    serverInstance.addServer("OpenDAQNativeStreaming", serverConfig);
+    test_helpers::addServer(serverInstance, "OpenDAQNativeStreaming", serverConfig);
 
     const auto instance = test_helpers::createInstance("[[none]]");
     addNativeClientModule(instance);
@@ -88,7 +89,7 @@ TEST_F(ModulesDefaultConfigTest, NativeConfigDeviceConnect)
     const auto config = instance.createDefaultAddDeviceConfig();
     const PropertyObjectPtr deviceConfig = config.getPropertyValue("Device");
     const PropertyObjectPtr nativeDeviceConfig = deviceConfig.getPropertyValue("OpenDAQNativeConfiguration");
-    nativeDeviceConfig.setPropertyValue("Port", 7421);
+    nativeDeviceConfig.setPropertyValue("Port", test_helpers::testPort(7421));
 
     auto device = instance.addDevice("daq.nd://127.0.0.1", config);
     ASSERT_TRUE(device.assigned());
@@ -137,7 +138,7 @@ TEST_F(ModulesDefaultConfigTest, NativeStreamingDeviceConnect)
 
     const auto serverConfig = PropertyObject();
     serverConfig.addProperty(IntProperty("NativeStreamingPort", 7415));
-    serverInstance.addServer("OpenDAQNativeStreaming", serverConfig);
+    test_helpers::addServer(serverInstance, "OpenDAQNativeStreaming", serverConfig);
 
     const auto instance = test_helpers::createInstance("[[none]]");
     addNativeClientModule(instance);
@@ -145,7 +146,7 @@ TEST_F(ModulesDefaultConfigTest, NativeStreamingDeviceConnect)
     const auto config = instance.createDefaultAddDeviceConfig();
     const PropertyObjectPtr deviceConfig = config.getPropertyValue("Device");
     const PropertyObjectPtr nativeDeviceConfig = deviceConfig.getPropertyValue("OpenDAQNativeConfiguration");
-    nativeDeviceConfig.setPropertyValue("Port", 7415);
+    nativeDeviceConfig.setPropertyValue("Port", test_helpers::testPort(7415));
 
     auto device = instance.addDevice("daq.nd://127.0.0.1", config);
     ASSERT_TRUE(device.assigned());
@@ -173,7 +174,7 @@ TEST_F(ModulesDefaultConfigTest, LTStreamingDeviceConnect)
 
     const auto serverConfig = PropertyObject();
     serverConfig.addProperty(IntProperty("WebsocketStreamingPort", 7415));
-    serverInstance.addServer("OpenDAQLTStreaming", serverConfig);
+    test_helpers::addServer(serverInstance, "OpenDAQLTStreaming", serverConfig);
 
     const auto instance = test_helpers::createInstance("[[none]]");
     addLtClientModule(instance);
@@ -181,7 +182,7 @@ TEST_F(ModulesDefaultConfigTest, LTStreamingDeviceConnect)
     const auto config = instance.createDefaultAddDeviceConfig();
     const PropertyObjectPtr deviceConfig = config.getPropertyValue("Device");
     const PropertyObjectPtr ltDeviceConfig = deviceConfig.getPropertyValue("OpenDAQLTStreaming");
-    ltDeviceConfig.setPropertyValue("Port", 7415);
+    ltDeviceConfig.setPropertyValue("Port", test_helpers::testPort(7415));
 
     auto device = instance.addDevice("daq.lt://127.0.0.1", config);
     ASSERT_TRUE(device.assigned());
@@ -209,7 +210,7 @@ TEST_F(ModulesDefaultConfigTest, OPCUAConfigDeviceConnect)
 
     const auto serverConfig = PropertyObject();
     serverConfig.addProperty(IntProperty("Port", 4841));
-    serverInstance.addServer("OpenDAQOPCUA", serverConfig);
+    test_helpers::addServer(serverInstance, "OpenDAQOPCUA", serverConfig);
 
     const auto instance = test_helpers::createInstance("[[none]]");
     addOpcuaClientModule(instance);
@@ -217,7 +218,7 @@ TEST_F(ModulesDefaultConfigTest, OPCUAConfigDeviceConnect)
     const auto config = instance.createDefaultAddDeviceConfig();
     const PropertyObjectPtr deviceConfig = config.getPropertyValue("Device");
     const PropertyObjectPtr opcuaDeviceConfig = deviceConfig.getPropertyValue("OpenDAQOPCUAConfiguration");
-    opcuaDeviceConfig .setPropertyValue("Port", 4841);
+    opcuaDeviceConfig .setPropertyValue("Port", test_helpers::testPort(4841));
 
     auto device = instance.addDevice("daq.opcua://127.0.0.1", config);
     ASSERT_TRUE(device.assigned());
@@ -235,8 +236,8 @@ TEST_F(ModulesDefaultConfigTest, NativeConfigDeviceNativeStreamingConnect)
 
     const auto serverConfig = PropertyObject();
     serverConfig.addProperty(IntProperty("NativeStreamingPort", 7415));
-    serverInstance.addServer("OpenDAQNativeStreaming", serverConfig);
-    serverInstance.addServer("OpenDAQLTStreaming", nullptr);
+    test_helpers::addServer(serverInstance, "OpenDAQNativeStreaming", serverConfig);
+    test_helpers::addServer(serverInstance, "OpenDAQLTStreaming", nullptr);
 
     const auto instance = test_helpers::createInstance("[[none]]");
     addNativeClientModule(instance);
@@ -245,11 +246,11 @@ TEST_F(ModulesDefaultConfigTest, NativeConfigDeviceNativeStreamingConnect)
 
     const PropertyObjectPtr deviceConfig = config.getPropertyValue("Device");
     const PropertyObjectPtr nativeDeviceConfig = deviceConfig.getPropertyValue("OpenDAQNativeConfiguration");
-    nativeDeviceConfig.setPropertyValue("Port", 7415);
+    nativeDeviceConfig.setPropertyValue("Port", test_helpers::testPort(7415));
 
     const PropertyObjectPtr streamingConfig = config.getPropertyValue("Streaming");
     const PropertyObjectPtr nativeStreamingConfig = streamingConfig.getPropertyValue("OpenDAQNativeStreaming");
-    nativeStreamingConfig.setPropertyValue("Port", 7415);
+    nativeStreamingConfig.setPropertyValue("Port", test_helpers::testPort(7415));
     
     const PropertyObjectPtr generalConfig = config.getPropertyValue("General");
     generalConfig.setPropertyValue("AllowedStreamingProtocols", List<IString>("OpenDAQNativeStreaming"));
@@ -270,10 +271,10 @@ TEST_F(ModulesDefaultConfigTest, NativeConfigDeviceAnyStreamingConnect)
     serverConfig.addProperty(IntProperty("NativeStreamingPort", 7415));
 
     addNativeServerModule(serverInstance);
-    serverInstance.addServer("OpenDAQNativeStreaming", serverConfig);
+    test_helpers::addServer(serverInstance, "OpenDAQNativeStreaming", serverConfig);
 
     addLtServerModule(serverInstance);
-    serverInstance.addServer("OpenDAQLTStreaming", nullptr);
+    test_helpers::addServer(serverInstance, "OpenDAQLTStreaming", nullptr);
 
     const auto instance = test_helpers::createInstance("[[none]]");
     addNativeClientModule(instance);
@@ -282,11 +283,11 @@ TEST_F(ModulesDefaultConfigTest, NativeConfigDeviceAnyStreamingConnect)
     const auto config = instance.createDefaultAddDeviceConfig();
     const PropertyObjectPtr deviceConfig = config.getPropertyValue("Device");
     const PropertyObjectPtr nativeDeviceConfig = deviceConfig.getPropertyValue("OpenDAQNativeConfiguration");
-    nativeDeviceConfig.setPropertyValue("Port", 7415);
+    nativeDeviceConfig.setPropertyValue("Port", test_helpers::testPort(7415));
 
     const PropertyObjectPtr streamingConfig = config.getPropertyValue("Streaming");
     const PropertyObjectPtr nativeStreamingConfig = streamingConfig.getPropertyValue("OpenDAQNativeStreaming");
-    nativeStreamingConfig.setPropertyValue("Port", 7415);
+    nativeStreamingConfig.setPropertyValue("Port", test_helpers::testPort(7415));
     
     const PropertyObjectPtr generalConfig = config.getPropertyValue("General");
     generalConfig.setPropertyValue("AllowedStreamingProtocols", List<IString>());
@@ -308,7 +309,7 @@ TEST_F(ModulesDefaultConfigTest, NativeConfigDeviceNoStreamingConnect)
 
     const auto serverConfig = PropertyObject();
     serverConfig.addProperty(IntProperty("NativeStreamingPort", 7415));
-    serverInstance.addServer("OpenDAQNativeStreaming", serverConfig);
+    test_helpers::addServer(serverInstance, "OpenDAQNativeStreaming", serverConfig);
 
     const auto instance = test_helpers::createInstance("[[none]]");
     addNativeClientModule(instance);
@@ -316,7 +317,7 @@ TEST_F(ModulesDefaultConfigTest, NativeConfigDeviceNoStreamingConnect)
     const auto config = instance.createDefaultAddDeviceConfig();
     const PropertyObjectPtr deviceConfig = config.getPropertyValue("Device");
     const PropertyObjectPtr nativeDeviceConfig = deviceConfig.getPropertyValue("OpenDAQNativeConfiguration");
-    nativeDeviceConfig.setPropertyValue("Port", 7415);
+    nativeDeviceConfig.setPropertyValue("Port", test_helpers::testPort(7415));
 
     const PropertyObjectPtr generalConfig = config.getPropertyValue("General");
     generalConfig.setPropertyValue("AutomaticallyConnectStreaming", false);
@@ -336,15 +337,15 @@ TEST_F(ModulesDefaultConfigTest, OPCUAConfigLTStreamingConnect)
     addLtServerModule(serverInstance);
     const auto ltServerConfig = PropertyObject();
     ltServerConfig.addProperty(IntProperty("WebsocketStreamingPort", 7415));
-    serverInstance.addServer("OpenDAQLTStreaming", ltServerConfig);
+    test_helpers::addServer(serverInstance, "OpenDAQLTStreaming", ltServerConfig);
 
     addNativeServerModule(serverInstance);
-    serverInstance.addServer("OpenDAQNativeStreaming", nullptr);
+    test_helpers::addServer(serverInstance, "OpenDAQNativeStreaming", nullptr);
 
     addOpcuaServerModule(serverInstance);
     const auto opcuaServerConfig = PropertyObject();
     opcuaServerConfig.addProperty(IntProperty("Port", 4841));
-    serverInstance.addServer("OpenDAQOPCUA", opcuaServerConfig);
+    test_helpers::addServer(serverInstance, "OpenDAQOPCUA", opcuaServerConfig);
 
     const auto instance = test_helpers::createInstance("[[none]]");
     addOpcuaClientModule(instance);
@@ -354,11 +355,11 @@ TEST_F(ModulesDefaultConfigTest, OPCUAConfigLTStreamingConnect)
 
     const PropertyObjectPtr deviceConfig = config.getPropertyValue("Device");
     const PropertyObjectPtr opcuaDeviceConfig = deviceConfig.getPropertyValue("OpenDAQOPCUAConfiguration");
-    opcuaDeviceConfig.setPropertyValue("Port", 4841);
+    opcuaDeviceConfig.setPropertyValue("Port", test_helpers::testPort(4841));
 
     const PropertyObjectPtr streamingConfig = config.getPropertyValue("Streaming");
     const PropertyObjectPtr ltStreamingConfig = streamingConfig.getPropertyValue("OpenDAQLTStreaming");
-    ltStreamingConfig.setPropertyValue("Port", 7415);
+    ltStreamingConfig.setPropertyValue("Port", test_helpers::testPort(7415));
     
     const PropertyObjectPtr generalConfig = config.getPropertyValue("General");
     generalConfig.setPropertyValue("AllowedStreamingProtocols", List<IString>("OpenDAQLTStreaming"));
@@ -380,15 +381,15 @@ TEST_F(ModulesDefaultConfigTest, OPCUAConfigAnyStreamingConnect)
 
     const auto ltServerConfig = PropertyObject();
     ltServerConfig.addProperty(IntProperty("WebsocketStreamingPort", 7415));
-    serverInstance.addServer("OpenDAQLTStreaming", ltServerConfig);
+    test_helpers::addServer(serverInstance, "OpenDAQLTStreaming", ltServerConfig);
     
     const auto nativeServerConfig = PropertyObject();
     nativeServerConfig.addProperty(IntProperty("NativeStreamingPort", 7416));
-    serverInstance.addServer("OpenDAQNativeStreaming", nativeServerConfig);
+    test_helpers::addServer(serverInstance, "OpenDAQNativeStreaming", nativeServerConfig);
 
     const auto opcuaServerConfig = PropertyObject();
     opcuaServerConfig.addProperty(IntProperty("Port", 4841));
-    serverInstance.addServer("OpenDAQOPCUA", opcuaServerConfig);
+    test_helpers::addServer(serverInstance, "OpenDAQOPCUA", opcuaServerConfig);
 
     const auto instance = test_helpers::createInstance("[[none]]");
     addOpcuaClientModule(instance);
@@ -399,14 +400,14 @@ TEST_F(ModulesDefaultConfigTest, OPCUAConfigAnyStreamingConnect)
 
     const PropertyObjectPtr deviceConfig = config.getPropertyValue("Device");
     const PropertyObjectPtr nativeDeviceConfig = deviceConfig.getPropertyValue("OpenDAQOPCUAConfiguration");
-    nativeDeviceConfig.setPropertyValue("Port", 4841);
+    nativeDeviceConfig.setPropertyValue("Port", test_helpers::testPort(4841));
     
     const PropertyObjectPtr streamingConfig = config.getPropertyValue("Streaming");
     const PropertyObjectPtr ltStreamingConfig = streamingConfig.getPropertyValue("OpenDAQLTStreaming");
-    ltStreamingConfig.setPropertyValue("Port", 7415);
+    ltStreamingConfig.setPropertyValue("Port", test_helpers::testPort(7415));
 
     const PropertyObjectPtr nativeStreamingConfig = streamingConfig.getPropertyValue("OpenDAQNativeStreaming");
-    nativeStreamingConfig.setPropertyValue("Port", 7416);
+    nativeStreamingConfig.setPropertyValue("Port", test_helpers::testPort(7416));
 
     const PropertyObjectPtr generalConfig = config.getPropertyValue("General");
     generalConfig.setPropertyValue("AllowedStreamingProtocols", List<IString>());
@@ -429,16 +430,16 @@ TEST_F(ModulesDefaultConfigTest, SmartConnectWithIpVerNative)
     PropertyObjectPtr refDevConfig = PropertyObject();
     refDevConfig.addProperty(StringProperty("Name", "Reference device simulator"));
     refDevConfig.addProperty(StringProperty("LocalId", "RefDevSimulator"));
-    refDevConfig.addProperty(StringProperty("SerialNumber", "sim01_native"));
+    refDevConfig.addProperty(StringProperty("SerialNumber", String(test_helpers::testSerial("sim01_native"))));
 
     addRefDeviceModule(serverInstance);
     serverInstance.setRootDevice("daqref://device1", refDevConfig);
 
     addLtServerModule(serverInstance);
-    serverInstance.addServer("OpenDAQLTStreaming", nullptr);
+    test_helpers::addServer(serverInstance, "OpenDAQLTStreaming", nullptr);
 
     addNativeServerModule(serverInstance);
-    serverInstance.addServer("OpenDAQNativeStreaming", nullptr);
+    test_helpers::addServer(serverInstance, "OpenDAQNativeStreaming", nullptr);
 
     for (const auto& server : serverInstance.getServers())
         server.enableDiscovery();
@@ -451,7 +452,7 @@ TEST_F(ModulesDefaultConfigTest, SmartConnectWithIpVerNative)
 
     generalConfig.setPropertyValue("PrimaryAddressType", "IPv4");
     {
-        const auto device = instance.addDevice("daq://openDAQ_sim01_native", config);
+        const auto device = instance.addDevice(test_helpers::smartConnectionString("openDAQ", "sim01_native"), config);
         auto devConnStr = device.getInfo().getConfigurationConnectionInfo().getConnectionString();
         EXPECT_TRUE(test_helpers::isIpv4ConnectionString(devConnStr)) << devConnStr;
         devConnStr = device.getInfo().getConnectionString();
@@ -471,7 +472,7 @@ TEST_F(ModulesDefaultConfigTest, SmartConnectWithIpVerNative)
 
     generalConfig.setPropertyValue("PrimaryAddressType", "IPv6");
     {
-        const auto device = instance.addDevice("daq://openDAQ_sim01_native", config);
+        const auto device = instance.addDevice(test_helpers::smartConnectionString("openDAQ", "sim01_native"), config);
         auto devConnStr = device.getInfo().getConfigurationConnectionInfo().getConnectionString();
         EXPECT_TRUE(test_helpers::isIpv6ConnectionString(devConnStr)) << devConnStr;
         devConnStr = device.getInfo().getConnectionString();
@@ -495,16 +496,16 @@ TEST_F(ModulesDefaultConfigTest, SmartConnectWithIpVerOpcUa)
     PropertyObjectPtr refDevConfig = PropertyObject();
     refDevConfig.addProperty(StringProperty("Name", "Reference device simulator"));
     refDevConfig.addProperty(StringProperty("LocalId", "RefDevSimulator"));
-    refDevConfig.addProperty(StringProperty("SerialNumber", "sim01_opcua"));
+    refDevConfig.addProperty(StringProperty("SerialNumber", String(test_helpers::testSerial("sim01_opcua"))));
 
     addRefDeviceModule(serverInstance);
     serverInstance.setRootDevice("daqref://device1", refDevConfig);
 
     addLtServerModule(serverInstance);
-    serverInstance.addServer("OpenDAQLTStreaming", nullptr);
+    test_helpers::addServer(serverInstance, "OpenDAQLTStreaming", nullptr);
 
     addOpcuaServerModule(serverInstance);
-    serverInstance.addServer("OpenDAQOPCUA", nullptr);
+    test_helpers::addServer(serverInstance, "OpenDAQOPCUA", nullptr);
 
     for (const auto& server : serverInstance.getServers())
         server.enableDiscovery();
@@ -517,7 +518,7 @@ TEST_F(ModulesDefaultConfigTest, SmartConnectWithIpVerOpcUa)
 
     generalConfig.setPropertyValue("PrimaryAddressType", "IPv4");
     {
-        const auto device = instance.addDevice("daq://openDAQ_sim01_opcua", config);
+        const auto device = instance.addDevice(test_helpers::smartConnectionString("openDAQ", "sim01_opcua"), config);
         auto devConnStr = device.getInfo().getConfigurationConnectionInfo().getConnectionString();
         EXPECT_TRUE(test_helpers::isIpv4ConnectionString(devConnStr)) << devConnStr;
         devConnStr = device.getInfo().getConnectionString();
@@ -538,7 +539,7 @@ TEST_F(ModulesDefaultConfigTest, SmartConnectWithIpVerOpcUa)
 
     generalConfig.setPropertyValue("PrimaryAddressType", "IPv6");
     {
-        const auto device = instance.addDevice("daq://openDAQ_sim01_opcua", config);
+        const auto device = instance.addDevice(test_helpers::smartConnectionString("openDAQ", "sim01_opcua"), config);
         auto devConnStr = device.getInfo().getConfigurationConnectionInfo().getConnectionString();
         EXPECT_TRUE(test_helpers::isIpv6ConnectionString(devConnStr)) << devConnStr;
         devConnStr = device.getInfo().getConnectionString();
@@ -563,13 +564,13 @@ TEST_F(ModulesDefaultConfigTest, SmartConnectWithIpVerLt)
     PropertyObjectPtr refDevConfig = PropertyObject();
     refDevConfig.addProperty(StringProperty("Name", "Reference device simulator"));
     refDevConfig.addProperty(StringProperty("LocalId", "RefDevSimulator"));
-    refDevConfig.addProperty(StringProperty("SerialNumber", "sim01_lt"));
+    refDevConfig.addProperty(StringProperty("SerialNumber", String(test_helpers::testSerial("sim01_lt"))));
 
     addRefDeviceModule(serverInstance);
     serverInstance.setRootDevice("daqref://device1", refDevConfig);
 
     addLtServerModule(serverInstance);
-    serverInstance.addServer("OpenDAQLTStreaming", nullptr);
+    test_helpers::addServer(serverInstance, "OpenDAQLTStreaming", nullptr);
 
     for (const auto& server : serverInstance.getServers())
         server.enableDiscovery();
@@ -582,7 +583,7 @@ TEST_F(ModulesDefaultConfigTest, SmartConnectWithIpVerLt)
 
     generalConfig.setPropertyValue("PrimaryAddressType", "IPv4");
     {
-        const auto device = instance.addDevice("daq://openDAQ_sim01_lt", config);
+        const auto device = instance.addDevice(test_helpers::smartConnectionString("openDAQ", "sim01_lt"), config);
         auto devConnStr = device.getInfo().getConfigurationConnectionInfo().getConnectionString();
         EXPECT_TRUE(test_helpers::isIpv4ConnectionString(devConnStr)) << devConnStr;
         devConnStr = device.getInfo().getConnectionString();
@@ -597,7 +598,7 @@ TEST_F(ModulesDefaultConfigTest, SmartConnectWithIpVerLt)
 
     generalConfig.setPropertyValue("PrimaryAddressType", "IPv6");
     {
-        const auto device = instance.addDevice("daq://openDAQ_sim01_lt", config);
+        const auto device = instance.addDevice(test_helpers::smartConnectionString("openDAQ", "sim01_lt"), config);
         auto devConnStr = device.getInfo().getConfigurationConnectionInfo().getConnectionString();
         EXPECT_TRUE(test_helpers::isIpv6ConnectionString(devConnStr)) << devConnStr;
         devConnStr = device.getInfo().getConnectionString();

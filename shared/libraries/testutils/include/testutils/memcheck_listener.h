@@ -79,19 +79,28 @@ protected:
 #ifdef _MSC_VER
             _CrtMemState state2, state3;
             _CrtMemCheckpoint(&state2);
+            _CrtMemDifference(&state3, &state1, &state2);
 
-            int crtMemDifference = _CrtMemDifference(&state3, &state1, &state2);
+            // Only growth counts: blocks allocated before the test and freed during it make the difference
+            // negative, and the counts are unsigned.
+            const auto grew = [&state3](int blockType)
+            {
+                return static_cast<ptrdiff_t>(state3.lCounts[blockType]) > 0 || static_cast<ptrdiff_t>(state3.lSizes[blockType]) > 0;
+            };
+            const bool leaked = grew(_NORMAL_BLOCK) || grew(_CLIENT_BLOCK);
+
             if (expectMemoryLeak)
             {
-                if (!crtMemDifference)
+                if (!leaked)
                 {
-                    FAIL() << "Memory leaks expected, but not detected";
+                    FAIL() << "Memory leaks expected, but not detected (" << static_cast<ptrdiff_t>(state3.lCounts[_NORMAL_BLOCK]) << " blocks, " << static_cast<ptrdiff_t>(state3.lSizes[_NORMAL_BLOCK]) << " bytes; crt " << static_cast<ptrdiff_t>(state3.lCounts[_CRT_BLOCK]) << ", ignore " << static_cast<ptrdiff_t>(state3.lCounts[_IGNORE_BLOCK]) << ")";
                 }
             }
-            else if (crtMemDifference)
+            else if (leaked)
             {
                 //            _CrtMemDumpAllObjectsSince(&state1);
-                FAIL() << "Memory leaks detected (" << state3.lTotalCount << " allocations)";
+                FAIL() << "Memory leaks detected (" << static_cast<ptrdiff_t>(state3.lCounts[_NORMAL_BLOCK]) << " blocks, "
+                       << static_cast<ptrdiff_t>(state3.lSizes[_NORMAL_BLOCK]) << " bytes)";
             }
 #elif defined(__MINGW32__)
             /*if (expectMemoryLeak)

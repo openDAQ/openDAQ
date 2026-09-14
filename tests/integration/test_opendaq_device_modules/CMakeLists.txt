@@ -7,11 +7,12 @@ set(TEST_HEADERS
 
 # The tests come in two binaries so that ctest can run them side by side. A binary with a TEST_ID receives
 # it as OPENDAQ_TEST_ID and shifts every port it serves on by that id (see test_helpers/test_ports.h), which
-# is what lets it run without the network resource locks. Only tests that announce no device over mDNS can
-# move into such a binary: announcements reach every process, and the tests that look up devices read
-# whatever else is on the network as their own. Everything that announces stays with the locked binary.
+# is what lets it run without the network resource locks, and with SHARDS it runs as that many GoogleTest
+# shards at once, each on ports of its own. Only tests that announce no device over mDNS can move into such
+# a binary: announcements reach every process, and the tests that look up devices read whatever else is on
+# the network as their own. Everything that announces stays with the locked binary.
 function(opendaq_add_device_modules_test TEST_APP)
-    cmake_parse_arguments(ARG "" "TEST_ID" "SOURCES;RESOURCE_LOCKS" ${ARGN})
+    cmake_parse_arguments(ARG "" "TEST_ID;SHARDS" "SOURCES;RESOURCE_LOCKS" ${ARGN})
 
     add_executable(${TEST_APP}
         ${TEST_HEADERS}
@@ -70,15 +71,19 @@ function(opendaq_add_device_modules_test TEST_APP)
     opendaq_target_pch_group(${TEST_APP} device_modules_tests <opendaq/opendaq.h> <gtest/gtest.h>)
     opendaq_target_unity_tests(${TEST_APP} BATCH_SIZE 4)
 
-    add_test(NAME ${TEST_APP}
-             COMMAND $<TARGET_FILE_NAME:${TEST_APP}>
-             WORKING_DIRECTORY $<TARGET_FILE_DIR:${TEST_APP}>
-    )
-    if (ARG_RESOURCE_LOCKS)
-        opendaq_test_resource_lock(${TEST_APP} ${ARG_RESOURCE_LOCKS})
-    endif()
-    if (DEFINED ARG_TEST_ID)
-        set_tests_properties(${TEST_APP} PROPERTIES ENVIRONMENT "OPENDAQ_TEST_ID=${ARG_TEST_ID}")
+    if (DEFINED ARG_SHARDS)
+        opendaq_add_sharded_test(${TEST_APP} ${ARG_SHARDS} ENVIRONMENT "OPENDAQ_TEST_ID=${ARG_TEST_ID}")
+    else()
+        add_test(NAME ${TEST_APP}
+                 COMMAND $<TARGET_FILE_NAME:${TEST_APP}>
+                 WORKING_DIRECTORY $<TARGET_FILE_DIR:${TEST_APP}>
+        )
+        if (ARG_RESOURCE_LOCKS)
+            opendaq_test_resource_lock(${TEST_APP} ${ARG_RESOURCE_LOCKS})
+        endif()
+        if (DEFINED ARG_TEST_ID)
+            set_tests_properties(${TEST_APP} PROPERTIES ENVIRONMENT "OPENDAQ_TEST_ID=${ARG_TEST_ID}")
+        endif()
     endif()
 
     target_compile_definitions(${TEST_APP} PRIVATE OPENDAQ_SKIP_DLL_IMPORT)
@@ -105,6 +110,7 @@ opendaq_add_device_modules_test(test_device_modules
 
 opendaq_add_device_modules_test(test_device_modules_streaming
     TEST_ID 1
+    SHARDS 8
     SOURCES test_streaming.cpp
             test_subdevices.cpp
             test_app.cpp

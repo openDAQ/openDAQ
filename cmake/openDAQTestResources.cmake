@@ -61,8 +61,10 @@ endfunction()
 
 # Registers a test binary as COUNT ctest entries that each run one GoogleTest shard of it, so that ctest -j
 # runs the binary's tests side by side. Only for binaries whose tests share no machine-wide resource, such
-# as a port or the mDNS namespace, since the shards run at the same time.
+# as a port or the mDNS namespace, since the shards run at the same time. ENVIRONMENT names further
+# variables every shard receives.
 function(opendaq_add_sharded_test TEST_APP COUNT)
+    cmake_parse_arguments(ARG "" "" "ENVIRONMENT" ${ARGN})
     set_property(GLOBAL PROPERTY OPENDAQ_TEST_SHARDED_${TEST_APP} TRUE)
     math(EXPR LAST_SHARD "${COUNT} - 1")
     foreach(SHARD RANGE ${LAST_SHARD})
@@ -71,6 +73,6 @@ function(opendaq_add_sharded_test TEST_APP COUNT)
                  WORKING_DIRECTORY $<TARGET_FILE_DIR:${TEST_APP}>
         )
         set_tests_properties(${TEST_APP}_${SHARD} PROPERTIES
-                             ENVIRONMENT "GTEST_TOTAL_SHARDS=${COUNT};GTEST_SHARD_INDEX=${SHARD}")
+                             ENVIRONMENT "${ARG_ENVIRONMENT};GTEST_TOTAL_SHARDS=${COUNT};GTEST_SHARD_INDEX=${SHARD}")
     endforeach()
 endfunction()

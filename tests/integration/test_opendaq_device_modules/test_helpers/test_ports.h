@@ -17,9 +17,10 @@
 #pragma once
 
 // Ports for the device module tests that ctest runs at the same time. Each such binary gets its own id
-// through the OPENDAQ_TEST_ID environment variable and shifts every port it serves on by that id, so two
-// binaries cannot ask for the same one. Without the variable the id is 0 and the ports keep the values a
-// single binary would use, which is what a binary started by hand gets.
+// through the OPENDAQ_TEST_ID environment variable and shifts every port it serves on by that id, and each
+// GoogleTest shard of it shifts them further by its shard index, so no two of them ask for the same port.
+// Without the variable the id is 0 and the ports keep the values a single binary would use, which is what
+// a binary started by hand gets.
 //
 // Shifted ports let a binary run without the network resource locks, but only if it announces no device
 // over mDNS: announcements reach every process on the machine, and the tests that look up devices read
@@ -45,6 +46,17 @@ namespace test_helpers
         return id;
     }
 
+    // The GoogleTest shard this process runs, 0 when it runs the whole binary
+    inline uint16_t testShard()
+    {
+        static const uint16_t shard = []() -> uint16_t
+        {
+            const char* const value = std::getenv("GTEST_SHARD_INDEX");
+            return value != nullptr ? static_cast<uint16_t>(std::atoi(value)) : uint16_t{0};
+        }();
+        return shard;
+    }
+
     // Ports the server modules listen on unless a configuration names another one
     inline constexpr uint16_t NativePortBase = 7420;
     inline constexpr uint16_t OpcuaPortBase = 4840;
@@ -54,11 +66,12 @@ namespace test_helpers
 
     // The port this binary serves on in place of a module default. The shifted ports sit above the
     // range of registered services and below the ephemeral one, so that nothing already listening on the
-    // machine answers in a server's place, and 100 apart, so that two ids cannot meet.
+    // machine answers in a server's place. Ids sit 1000 apart and shards 50 apart, while the ports a test
+    // derives from one base spread over less than 30, so no two of them can meet.
     inline uint16_t testPort(int basePort)
     {
         const auto id = testId();
-        return static_cast<uint16_t>(id == 0 ? basePort : basePort + 16000 + (id - 1) * 100);
+        return static_cast<uint16_t>(id == 0 ? basePort : basePort + 16000 + (id - 1) * 1000 + testShard() * 50);
     }
 
     // Shifts every port a server configuration carries. The switches that enable those ports are named

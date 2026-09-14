@@ -191,27 +191,27 @@ TEST_F(NativeStreamingModulesTest, DiscoveringServerUsernameLocation)
         serverInfo.setPropertyValue("SetupDate", "2025-01-17T08:23:22Z");
     }
 
-    std::this_thread::sleep_for(std::chrono::milliseconds(100));
-
     auto client = test_helpers::createInstance("[[none]]");
     addNativeClientModule(client);
 
-    DevicePtr device;
-    for (const auto& deviceInfo : client.getAvailableDevices())
+    // The changed fields reach the announcement asynchronously
+    DeviceInfoPtr announced;
+    const auto announcedWithNewUser = [&]
     {
-        for (const auto& capability : deviceInfo.getServerCapabilities())
-        {
-            if (!test_helpers::isSufix(capability.getConnectionString(), path))
-                break;
-
-            ASSERT_EQ(deviceInfo.getPropertyValue("userName"), "testUser2");
-            ASSERT_EQ(deviceInfo.getPropertyValue("location"), "testLocation2");
-            ASSERT_EQ(deviceInfo.getPropertyValue("SetupDate"), "2025-01-17T08:23:22Z");
-            if (capability.getProtocolName() == "OpenDAQNativeStreaming")
-                return;
-        }
-    }
-    ASSERT_TRUE(false) << "Device not found";
+        for (const auto& deviceInfo : client.getAvailableDevices())
+            for (const auto& capability : deviceInfo.getServerCapabilities())
+                if (test_helpers::isSufix(capability.getConnectionString(), path) &&
+                    capability.getProtocolName() == "OpenDAQNativeStreaming")
+                {
+                    announced = deviceInfo;
+                    return "testUser2" == announced.getPropertyValue("userName");
+                }
+        return false;
+    };
+    ASSERT_TRUE(test_helpers::waitFor(announcedWithNewUser)) << "Device not found with the updated fields";
+    ASSERT_EQ(announced.getPropertyValue("userName"), "testUser2");
+    ASSERT_EQ(announced.getPropertyValue("location"), "testLocation2");
+    ASSERT_EQ(announced.getPropertyValue("SetupDate"), "2025-01-17T08:23:22Z");
 }
 
 TEST_F(NativeStreamingModulesTest, TestDiscoveryReachability)

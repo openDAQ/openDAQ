@@ -861,9 +861,32 @@ namespace test_helpers
     }
 
 
+    // Whether the device and, unless skipped, its channels and their signals reflect the operation mode
+    inline bool deviceInOperationMode(const daq::DevicePtr& device, OperationModeType expected, bool skipChannelAndSignalCheck)
+    {
+        if (device.getOperationMode() != expected)
+            return false;
+        if (skipChannelAndSignalCheck)
+            return true;
+
+        const Bool active = expected != OperationModeType::Idle;
+        for (const auto& ch : device.getChannels())
+        {
+            if (ch.getActive() != active)
+                return false;
+            for (const auto& sig : ch.getSignals())
+                if (sig.getActive() != active)
+                    return false;
+        }
+        return true;
+    }
+
+    // A mode set on the other side of a connection arrives asynchronously, so the check waits for it first
     [[maybe_unused]]
     inline void checkDeviceOperationMode(const daq::DevicePtr& device, OperationModeType expected, bool isServer = false, bool skipChannelAndSignalCheck = false)
     {
+        waitFor([&] { return deviceInOperationMode(device, expected, skipChannelAndSignalCheck); });
+
         ASSERT_EQ(device.getOperationMode(), expected) << "Device: " << device.getGlobalId();
         bool active = expected != OperationModeType::Idle;
         std::string messagePrefix = isServer ? "Server: " : "Client: ";

@@ -269,8 +269,8 @@ TEST_F(OpcuaDeviceModulesTest, ServerEnableDisableDiscovery)
     ASSERT_GT(device.getServers().getCount(), 0u);
     auto mirroredServer = device.getServers()[0];
 
-    // enable discovery from client and check that server is discoverable
-    mirroredServer.enableDiscovery();
+    // Scans with a fresh client and counts the servers announced under the given paths
+    const auto discoveredServers = [](const std::vector<std::string>& paths)
     {
         auto client = test_helpers::createInstance("[[none]]");
         addOpcuaClientModule(client);
@@ -280,64 +280,28 @@ TEST_F(OpcuaDeviceModulesTest, ServerEnableDisableDiscovery)
         {
             for (const auto& capability : deviceInfo.getServerCapabilities())
             {
-                if (!test_helpers::isSufix(capability.getConnectionString(), path))
+                const auto underPath = [&](const std::string& p) { return test_helpers::isSufix(capability.getConnectionString(), p); };
+                if (std::none_of(paths.begin(), paths.end(), underPath))
                     break;
 
                 if (capability.getProtocolName() == "OpenDAQOPCUA")
-                {
                     deviceFound += 1;
-                }
             }
         }
-        ASSERT_EQ(deviceFound, 1u);
-    }
+        return deviceFound;
+    };
+
+    // enable discovery from client and check that server is discoverable
+    mirroredServer.enableDiscovery();
+    ASSERT_TRUE(test_helpers::waitFor([&] { return discoveredServers({path}) == 1; })) << "the server is not announced";
 
     // disable discovery from client and check that server now is not discoverable
     mirroredServer.disableDiscovery();
-    std::this_thread::sleep_for(std::chrono::milliseconds(1000));
-    {
-        auto client = test_helpers::createInstance("[[none]]");
-        addOpcuaClientModule(client);
-
-        size_t deviceFound = 0;
-        for (const auto& deviceInfo : client.getAvailableDevices())
-        {
-            for (const auto& capability : deviceInfo.getServerCapabilities())
-            {
-                if (!test_helpers::isSufix(capability.getConnectionString(), path))
-                    break;
-
-                if (capability.getProtocolName() == "OpenDAQOPCUA")
-                {
-                    deviceFound += 1;
-                }
-            }
-        }
-        ASSERT_EQ(deviceFound, 0u);
-    }
+    ASSERT_TRUE(test_helpers::waitFor([&] { return discoveredServers({path}) == 0; })) << "the server is still announced";
 
     // enable discovery from client again and check that server is discoverable
     mirroredServer.enableDiscovery();
-    {
-        auto client = test_helpers::createInstance("[[none]]");
-        addOpcuaClientModule(client);
-
-        size_t deviceFound = 0;
-        for (const auto& deviceInfo : client.getAvailableDevices())
-        {
-            for (const auto& capability : deviceInfo.getServerCapabilities())
-            {
-                if (!test_helpers::isSufix(capability.getConnectionString(), path))
-                    break;
-
-                if (capability.getProtocolName() == "OpenDAQOPCUA")
-                {
-                    deviceFound += 1;
-                }
-            }
-        }
-        ASSERT_EQ(deviceFound, 1u);
-    }
+    ASSERT_TRUE(test_helpers::waitFor([&] { return discoveredServers({path}) == 1; })) << "the server is not announced again";
 }
 
 TEST_F(OpcuaDeviceModulesTest, TestDiscoveryReachability)

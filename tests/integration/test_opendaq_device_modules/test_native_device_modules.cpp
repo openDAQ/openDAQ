@@ -19,7 +19,10 @@
 #include <testutils/testutils.h>
 #include <websocket_streaming_client_module/module_dll.h>
 #include <websocket_streaming_server_module/module_dll.h>
+#include <algorithm>
+#include <atomic>
 #include <chrono>
+#include <vector>
 #include <iomanip>
 #include "opendaq/mock/mock_device_module.h"
 #include "test_helpers/test_helpers.h"
@@ -939,7 +942,8 @@ TEST_F(NativeDeviceModulesTest, RemoveServer)
     auto server1 = test_helpers::addServer(server, "OpenDAQNativeStreaming", serverConfig);
     server1.enableDiscovery();
 
-    // check that server is discoverable
+    // Scans with a fresh client and counts the servers announced under the given paths
+    const auto discoveredServers = [](const std::vector<std::string>& paths)
     {
         auto client = test_helpers::createInstance("[[none]]");
         addNativeClientModule(client);
@@ -949,69 +953,30 @@ TEST_F(NativeDeviceModulesTest, RemoveServer)
         {
             for (const auto& capability : deviceInfo.getServerCapabilities())
             {
-                if (!test_helpers::isSufix(capability.getConnectionString(), path))
+                const auto underPath = [&](const std::string& p) { return test_helpers::isSufix(capability.getConnectionString(), p); };
+                if (std::none_of(paths.begin(), paths.end(), underPath))
                     break;
 
                 if (capability.getProtocolName() == "OpenDAQNativeConfiguration")
-                {
                     deviceFound += 1;
-                }
             }
         }
-        ASSERT_EQ(deviceFound, 1u);
-    }
+        return deviceFound;
+    };
+
+    // check that server is discoverable
+    ASSERT_TRUE(test_helpers::waitFor([&] { return discoveredServers({path}) == 1; })) << "the server is not announced";
 
     // remove device and check that server now is not discoverable
     server.removeServer(server1);
-    std::this_thread::sleep_for(std::chrono::milliseconds(1000));
-    {
-        auto client = test_helpers::createInstance("[[none]]");
-        addNativeClientModule(client);
-
-        size_t deviceFound = 0;
-        for (const auto& deviceInfo : client.getAvailableDevices())
-        {
-            for (const auto& capability : deviceInfo.getServerCapabilities())
-            {
-                if (!test_helpers::isSufix(capability.getConnectionString(), path))
-                    break;
-
-                if (capability.getProtocolName() == "OpenDAQNativeConfiguration")
-                {
-                    deviceFound += 1;
-                }
-            }
-        }
-        ASSERT_EQ(deviceFound, 0u);
-    }
+    ASSERT_TRUE(test_helpers::waitFor([&] { return discoveredServers({path}) == 0; })) << "the removed server is still announced";
 
     // add server again and check that server is discoverable
     auto path2 = "/test/native_configuration/removeServer2/";
     serverConfig.setPropertyValue("Path", path2);
     auto server2 = test_helpers::addServer(server, "OpenDAQNativeStreaming", serverConfig);
     server2.enableDiscovery();
-    {
-        auto client = test_helpers::createInstance("[[none]]");
-        addNativeClientModule(client);
-
-        size_t deviceFound = 0;
-        for (const auto& deviceInfo : client.getAvailableDevices())
-        {
-            for (const auto& capability : deviceInfo.getServerCapabilities())
-            {
-                bool isRemovedServer = test_helpers::isSufix(capability.getConnectionString(), path);
-                bool isNewServer = test_helpers::isSufix(capability.getConnectionString(), path2);
-                if (!isRemovedServer && !isNewServer)
-                    break;
-
-                if (capability.getProtocolName() == "OpenDAQNativeConfiguration")
-                {
-                    deviceFound += 1;
-                }
-            }
-        }
-        ASSERT_EQ(deviceFound, 1u);
-    }
+    ASSERT_TRUE(test_helpers::waitFor([&] { return discoveredServers({path, path2}) == 1; })) << "the new server is not announced alone";
 }
 
 TEST_F(NativeDeviceModulesTest, ServerEnableDisableDiscovery)
@@ -1037,8 +1002,8 @@ TEST_F(NativeDeviceModulesTest, ServerEnableDisableDiscovery)
     ASSERT_GT(device.getServers().getCount(), 0u);
     auto mirroredServer = device.getServers()[0];
 
-    // enable discovery from client and check that server is discoverable
-    mirroredServer.enableDiscovery();
+    // Scans with a fresh client and counts the servers announced under the given paths
+    const auto discoveredServers = [](const std::vector<std::string>& paths)
     {
         auto client = test_helpers::createInstance("[[none]]");
         addNativeClientModule(client);
@@ -1048,64 +1013,28 @@ TEST_F(NativeDeviceModulesTest, ServerEnableDisableDiscovery)
         {
             for (const auto& capability : deviceInfo.getServerCapabilities())
             {
-                if (!test_helpers::isSufix(capability.getConnectionString(), path))
+                const auto underPath = [&](const std::string& p) { return test_helpers::isSufix(capability.getConnectionString(), p); };
+                if (std::none_of(paths.begin(), paths.end(), underPath))
                     break;
 
                 if (capability.getProtocolName() == "OpenDAQNativeConfiguration")
-                {
                     deviceFound += 1;
-                }
             }
         }
-        ASSERT_EQ(deviceFound, 1u);
-    }
+        return deviceFound;
+    };
+
+    // enable discovery from client and check that server is discoverable
+    mirroredServer.enableDiscovery();
+    ASSERT_TRUE(test_helpers::waitFor([&] { return discoveredServers({path}) == 1; })) << "the server is not announced";
 
     // disable discovery from client and check that server now is not discoverable
     mirroredServer.disableDiscovery();
-    std::this_thread::sleep_for(std::chrono::milliseconds(1000));
-    {
-        auto client = test_helpers::createInstance("[[none]]");
-        addNativeClientModule(client);
-
-        size_t deviceFound = 0;
-        for (const auto& deviceInfo : client.getAvailableDevices())
-        {
-            for (const auto& capability : deviceInfo.getServerCapabilities())
-            {
-                if (!test_helpers::isSufix(capability.getConnectionString(), path))
-                    break;
-
-                if (capability.getProtocolName() == "OpenDAQNativeConfiguration")
-                {
-                    deviceFound += 1;
-                }
-            }
-        }
-        ASSERT_EQ(deviceFound, 0u);
-    }
+    ASSERT_TRUE(test_helpers::waitFor([&] { return discoveredServers({path}) == 0; })) << "the server is still announced";
 
     // enable discovery from client again and check that server is discoverable
     mirroredServer.enableDiscovery();
-    {
-        auto client = test_helpers::createInstance("[[none]]");
-        addNativeClientModule(client);
-
-        size_t deviceFound = 0;
-        for (const auto& deviceInfo : client.getAvailableDevices())
-        {
-            for (const auto& capability : deviceInfo.getServerCapabilities())
-            {
-                if (!test_helpers::isSufix(capability.getConnectionString(), path))
-                    break;
-
-                if (capability.getProtocolName() == "OpenDAQNativeConfiguration")
-                {
-                    deviceFound += 1;
-                }
-            }
-        }
-        ASSERT_EQ(deviceFound, 1u);
-    }
+    ASSERT_TRUE(test_helpers::waitFor([&] { return discoveredServers({path}) == 1; })) << "the server is not announced again";
 }
 
 TEST_F(NativeDeviceModulesTest, CheckDeviceInfoPopulatedWithProvider)
@@ -3136,9 +3065,12 @@ TEST_F(NativeDeviceModulesTest, ReadLastValue)
 
     const auto ip = InputPort(client.getContext(), nullptr, "ip");
     ip.connect(clientSignal);
-    std::this_thread::sleep_for(std::chrono::milliseconds(200));
-    ASSERT_NO_THROW(value = clientSignal.getLastValue());
-    ASSERT_TRUE(value.assigned());
+    ASSERT_TRUE(test_helpers::waitFor(
+        [&]
+        {
+            value = clientSignal.getLastValue();
+            return value.assigned();
+        }));
 }
 
 class MockNativeModule : public Module
@@ -3236,11 +3168,20 @@ TEST_F(NativeDeviceModulesTest, LimitConfigConnections)
     // Disconnect the first client, reducing the number of active connections
     client1.removeDevice(dev);
 
-    // Give the server some time to process the disconnection
-    std::this_thread::sleep_for(std::chrono::seconds(2));
-
-    // Reattempt the second connection, now under the allowed limit
-    ASSERT_NO_THROW(client2.addDevice(test_helpers::connectionStringWithPort("daq.nd://127.0.0.1")));
+    // Reattempt the second connection until the server has processed the disconnection and admits it
+    ASSERT_TRUE(test_helpers::waitFor(
+        [&]
+        {
+            try
+            {
+                client2.addDevice(test_helpers::connectionStringWithPort("daq.nd://127.0.0.1"));
+                return true;
+            }
+            catch (const ConnectionLimitReachedException&)
+            {
+                return false;
+            }
+        }));
 
     // Attempt to reconnect the first client, exceeding the limit again
     ASSERT_THROW(client1.addDevice(test_helpers::connectionStringWithPort("daq.nd://127.0.0.1")), ConnectionLimitReachedException);
@@ -3778,7 +3719,6 @@ TEST_F_UNSTABLE_SKIPPED(NativeDeviceModulesTest, SettingOperationMode)
 
     // setting the operation mode for server root device
     ASSERT_NO_THROW(server.setOperationModeRecursive(daq::OperationModeType::Idle));
-    std::this_thread::sleep_for(std::chrono::milliseconds(100));
     test_helpers::checkDeviceOperationMode(server.getRootDevice(), daq::OperationModeType::Idle, true);
     test_helpers::checkDeviceOperationMode(server.getDevices()[0], daq::OperationModeType::Idle, true);
 
@@ -3788,7 +3728,6 @@ TEST_F_UNSTABLE_SKIPPED(NativeDeviceModulesTest, SettingOperationMode)
 
     // setting the operation mode for server sub device
     ASSERT_NO_THROW(server.getDevices()[0].setOperationModeRecursive(daq::OperationModeType::Operation));
-    std::this_thread::sleep_for(std::chrono::milliseconds(100));
     test_helpers::checkDeviceOperationMode(server.getRootDevice(), daq::OperationModeType::Idle, true);
     test_helpers::checkDeviceOperationMode(server.getDevices()[0], daq::OperationModeType::Operation, true);
 
@@ -3798,7 +3737,6 @@ TEST_F_UNSTABLE_SKIPPED(NativeDeviceModulesTest, SettingOperationMode)
 
     // setting the operation mode for client sub device
     ASSERT_NO_THROW(client.getDevices()[0].getDevices()[0].setOperationModeRecursive(daq::OperationModeType::SafeOperation));
-    std::this_thread::sleep_for(std::chrono::milliseconds(100));
     test_helpers::checkDeviceOperationMode(server.getRootDevice(), daq::OperationModeType::Idle, true);
     test_helpers::checkDeviceOperationMode(server.getDevices()[0], daq::OperationModeType::SafeOperation, true);
 
@@ -3808,7 +3746,6 @@ TEST_F_UNSTABLE_SKIPPED(NativeDeviceModulesTest, SettingOperationMode)
 
     // setting the operation mode for client device not recursively
     ASSERT_NO_THROW(client.getDevices()[0].setOperationMode(daq::OperationModeType::Operation));
-    std::this_thread::sleep_for(std::chrono::milliseconds(100));
     test_helpers::checkDeviceOperationMode(server.getRootDevice(), daq::OperationModeType::Operation, true);
     test_helpers::checkDeviceOperationMode(server.getDevices()[0], daq::OperationModeType::SafeOperation, true);
 
@@ -3818,7 +3755,6 @@ TEST_F_UNSTABLE_SKIPPED(NativeDeviceModulesTest, SettingOperationMode)
 
     // setting the operation mode for client device
     ASSERT_NO_THROW(client.setOperationModeRecursive(daq::OperationModeType::Idle));
-    std::this_thread::sleep_for(std::chrono::milliseconds(100));
     test_helpers::checkDeviceOperationMode(server.getRootDevice(), daq::OperationModeType::Idle, true);
     test_helpers::checkDeviceOperationMode(server.getDevices()[0], daq::OperationModeType::Idle, true);
 
@@ -3867,7 +3803,6 @@ TEST_F_UNSTABLE_SKIPPED(NativeDeviceModulesTest, SettingOperationModeWithoutPerm
     {
         // reset all devices to Operation for the following tests
         ASSERT_NO_THROW(server.setOperationModeRecursive(OMT::Operation));
-        std::this_thread::sleep_for(std::chrono::milliseconds(100));
         test_helpers::checkDeviceOperationMode(server, OMT::Operation, true);
         test_helpers::checkDeviceOperationMode(server.getDevices()[0], OMT::Operation, true);
         test_helpers::checkDeviceOperationMode(server.getDevices()[0].getDevices()[0], OMT::Operation, true);
@@ -3880,7 +3815,6 @@ TEST_F_UNSTABLE_SKIPPED(NativeDeviceModulesTest, SettingOperationModeWithoutPerm
         // setting the operation mode for server root device recurcively
         // check the operation mode for all server and client devices, which should be changed to Idle
         ASSERT_NO_THROW(server.setOperationModeRecursive(OMT::Idle));
-        std::this_thread::sleep_for(std::chrono::milliseconds(100));
         test_helpers::checkDeviceOperationMode(server.getRootDevice(), OMT::Idle, true);
         test_helpers::checkDeviceOperationMode(server.getDevices()[0], OMT::Idle, true);
         test_helpers::checkDeviceOperationMode(server.getDevices()[0].getDevices()[0], OMT::Idle, true);
@@ -3894,7 +3828,6 @@ TEST_F_UNSTABLE_SKIPPED(NativeDeviceModulesTest, SettingOperationModeWithoutPerm
     {
         // setting the operation mode for server sub device
         ASSERT_NO_THROW(server.getDevices()[0].setOperationModeRecursive(OMT::SafeOperation));
-        std::this_thread::sleep_for(std::chrono::milliseconds(100));
         test_helpers::checkDeviceOperationMode(server.getRootDevice(), OMT::Idle, true);
         test_helpers::checkDeviceOperationMode(server.getDevices()[0], OMT::SafeOperation, true);
         test_helpers::checkDeviceOperationMode(server.getDevices()[0].getDevices()[0], OMT::SafeOperation, true);
@@ -3940,7 +3873,6 @@ TEST_F_UNSTABLE_SKIPPED(NativeDeviceModulesTest, SettingOperationModeWithoutPerm
     {
         // reset all devices to SafeOperation for the following tests
         ASSERT_NO_THROW(server.setOperationModeRecursive(OMT::SafeOperation));
-        std::this_thread::sleep_for(std::chrono::milliseconds(100));
         test_helpers::checkDeviceOperationMode(server, OMT::SafeOperation, true);
         test_helpers::checkDeviceOperationMode(server.getDevices()[0], OMT::SafeOperation, true);
         test_helpers::checkDeviceOperationMode(server.getDevices()[0].getDevices()[0], OMT::SafeOperation, true);
@@ -4002,7 +3934,6 @@ TEST_F_UNSTABLE_SKIPPED(NativeDeviceModulesTest, SettingOperationModeWithPermiss
     {
         // reset all devices to Operation for the following tests
         ASSERT_NO_THROW(server.setOperationModeRecursive(OMT::Operation));
-        std::this_thread::sleep_for(std::chrono::milliseconds(100));
         test_helpers::checkDeviceOperationMode(server, OMT::Operation, true);
         test_helpers::checkDeviceOperationMode(server.getDevices()[0], OMT::Operation, true);
         test_helpers::checkDeviceOperationMode(server.getDevices()[0].getDevices()[0], OMT::Operation, true);
@@ -4025,7 +3956,6 @@ TEST_F_UNSTABLE_SKIPPED(NativeDeviceModulesTest, SettingOperationModeWithPermiss
 
     {
         ASSERT_NO_THROW(client.setOperationModeRecursive(OMT::Idle));
-        std::this_thread::sleep_for(std::chrono::milliseconds(100));
         test_helpers::checkDeviceOperationMode(server.getRootDevice(), OMT::Idle, true);
         test_helpers::checkDeviceOperationMode(server.getDevices()[0], OMT::Idle, true);
         test_helpers::checkDeviceOperationMode(server.getDevices()[0].getDevices()[0], OMT::Idle, true);
@@ -4088,7 +4018,6 @@ TEST_F_UNSTABLE_SKIPPED(NativeDeviceModulesTest, SettingOperationModeWithPermiss
     {
         // reset all devices to Operation for the following tests
         ASSERT_NO_THROW(server.setOperationModeRecursive(OMT::Operation));
-        std::this_thread::sleep_for(std::chrono::milliseconds(100));
         test_helpers::checkDeviceOperationMode(server, OMT::Operation, true);
         test_helpers::checkDeviceOperationMode(server.getDevices(search::Any())[0], OMT::Operation, true);
         test_helpers::checkDeviceOperationMode(server.getDevices(search::Any())[0].getDevices(search::Any())[0], OMT::Operation, true);
@@ -4111,7 +4040,6 @@ TEST_F_UNSTABLE_SKIPPED(NativeDeviceModulesTest, SettingOperationModeWithPermiss
 
     {
         ASSERT_NO_THROW(client.setOperationModeRecursive(OMT::Idle));
-        std::this_thread::sleep_for(std::chrono::milliseconds(100));
         test_helpers::checkDeviceOperationMode(server.getRootDevice(), OMT::Idle, true);
         test_helpers::checkDeviceOperationMode(server.getDevices(search::Any())[0], OMT::Idle, true);
         test_helpers::checkDeviceOperationMode(server.getDevices(search::Any())[0].getDevices(search::Any())[0], OMT::Idle, true);
@@ -4163,7 +4091,6 @@ TEST_F_UNSTABLE_SKIPPED(NativeDeviceModulesTest, SettingOperationModeWithPermiss
     {
         // reset all devices to Operation for the following tests
         ASSERT_NO_THROW(server.setOperationModeRecursive(OMT::Operation));
-        std::this_thread::sleep_for(std::chrono::milliseconds(100));
         test_helpers::checkDeviceOperationMode(server, OMT::Operation, true);
         test_helpers::checkDeviceOperationMode(server.getDevices()[0], OMT::Operation, true);
         test_helpers::checkDeviceOperationMode(server.getDevices()[0].getDevices()[0], OMT::Operation, true);
@@ -4176,7 +4103,6 @@ TEST_F_UNSTABLE_SKIPPED(NativeDeviceModulesTest, SettingOperationModeWithPermiss
         // setting the operation mode for server root device recurcively
         // check the operation mode for all server and client devices, which should be changed to SafeOperation
         ASSERT_NO_THROW(server.setOperationModeRecursive(OMT::SafeOperation));
-        std::this_thread::sleep_for(std::chrono::milliseconds(100));
         test_helpers::checkDeviceOperationMode(server.getRootDevice(), OMT::SafeOperation, true);
         test_helpers::checkDeviceOperationMode(server.getDevices()[0], OMT::SafeOperation, true);
         test_helpers::checkDeviceOperationMode(server.getDevices()[0].getDevices()[0], OMT::SafeOperation, true);
@@ -4192,7 +4118,6 @@ TEST_F_UNSTABLE_SKIPPED(NativeDeviceModulesTest, SettingOperationModeWithPermiss
         // it should affect the operation mode of server root device but not the sub devices
         ASSERT_NO_THROW(client.setOperationMode(OMT::Idle));
         ASSERT_NO_THROW(client.getDevices()[0].setOperationMode(OMT::Idle));
-        std::this_thread::sleep_for(std::chrono::milliseconds(100));
         test_helpers::checkDeviceOperationMode(server.getRootDevice(), OMT::Idle, true);
         test_helpers::checkDeviceOperationMode(server.getDevices()[0], OMT::SafeOperation, true);
         test_helpers::checkDeviceOperationMode(server.getDevices()[0].getDevices()[0], OMT::SafeOperation, true);
@@ -4206,7 +4131,6 @@ TEST_F_UNSTABLE_SKIPPED(NativeDeviceModulesTest, SettingOperationModeWithPermiss
     {
         // reset all devices to SafeOperation for the following tests
         ASSERT_NO_THROW(server.setOperationModeRecursive(OMT::SafeOperation));
-        std::this_thread::sleep_for(std::chrono::milliseconds(100));
         test_helpers::checkDeviceOperationMode(server, OMT::SafeOperation, true);
         test_helpers::checkDeviceOperationMode(server.getDevices()[0], OMT::SafeOperation, true);
         test_helpers::checkDeviceOperationMode(server.getDevices()[0].getDevices()[0], OMT::SafeOperation, true);
@@ -4215,7 +4139,6 @@ TEST_F_UNSTABLE_SKIPPED(NativeDeviceModulesTest, SettingOperationModeWithPermiss
     {
         // setting the operation mode for client sub device without recursively, which should only affect the operation mode of itself but not the parent device and child devices
         ASSERT_NO_THROW(client.getDevices()[0].getDevices()[0].setOperationMode(OMT::Idle));
-        std::this_thread::sleep_for(std::chrono::milliseconds(100));
         test_helpers::checkDeviceOperationMode(client.getDevices()[0], OMT::SafeOperation);
         test_helpers::checkDeviceOperationMode(server, OMT::SafeOperation, true);
 
@@ -4229,7 +4152,6 @@ TEST_F_UNSTABLE_SKIPPED(NativeDeviceModulesTest, SettingOperationModeWithPermiss
     {
         // reset all devices to SafeOperation for the following tests
         ASSERT_NO_THROW(server.setOperationModeRecursive(OMT::SafeOperation));
-        std::this_thread::sleep_for(std::chrono::milliseconds(100));
         test_helpers::checkDeviceOperationMode(server, OMT::SafeOperation, true);
         test_helpers::checkDeviceOperationMode(server.getDevices()[0], OMT::SafeOperation, true);
         test_helpers::checkDeviceOperationMode(server.getDevices()[0].getDevices()[0], OMT::SafeOperation, true);
@@ -4260,7 +4182,12 @@ TEST_F(NativeDeviceModulesTest, UpdateEditableFiledsDeviceInfo)
 
     server.setPropertyValue("userName", "user1");
     server.setPropertyValue("location", "location1");
-    std::this_thread::sleep_for(std::chrono::milliseconds(100));
+    ASSERT_TRUE(test_helpers::waitFor(
+        [&]
+        {
+            return "user1" == clientDevice.getPropertyValue("userName") && "location1" == clientDevice.getPropertyValue("location") &&
+                   "user1" == clientInfo.getPropertyValue("userName") && "location1" == clientInfo.getPropertyValue("location");
+        }));
 
     ASSERT_EQ(server.getPropertyValue("userName"), "user1");
     ASSERT_EQ(server.getPropertyValue("location"), "location1");
@@ -5142,13 +5069,15 @@ TEST_F(NativeDeviceModulesTest, GatewayStreamingConnection)
 TEST_F(NativeDeviceModulesTest, ParallelRpcCalls)
 {
     std::vector<Int> propertyWriteHistory;
+    std::atomic<bool> callbackEntered{false};
 
-    auto createServerInstance = [&propertyWriteHistory]()
+    auto createServerInstance = [&propertyWriteHistory, &callbackEntered]()
     {
         const InstancePtr instance = test_helpers::instanceBuilder().addModulePath("").build();
 
-        auto propertyWriteCallback = [&propertyWriteHistory](PropertyObjectPtr& obj, PropertyValueEventArgsPtr& args)
+        auto propertyWriteCallback = [&propertyWriteHistory, &callbackEntered](PropertyObjectPtr& obj, PropertyValueEventArgsPtr& args)
         {
+            callbackEntered = true;
             Int sleepMs = args.getValue();
             std::this_thread::sleep_for(std::chrono::milliseconds(sleepMs));
             propertyWriteHistory.push_back(sleepMs);
@@ -5184,7 +5113,7 @@ TEST_F(NativeDeviceModulesTest, ParallelRpcCalls)
     std::vector<std::thread> threads;
 
     threads.push_back(std::thread([devices]() { devices[0].setPropertyValue("SleepAndAppend", 500); }));
-    std::this_thread::sleep_for(std::chrono::milliseconds(100));
+    ASSERT_TRUE(test_helpers::waitFor([&] { return callbackEntered.load(); }));
     threads.push_back(std::thread([devices]() { devices[1].setPropertyValue("SleepAndAppend", 100); }));
 
     for (auto& thread : threads)
@@ -5199,13 +5128,15 @@ TEST_F(NativeDeviceModulesTest, ParallelRpcCalls)
 TEST_F(NativeDeviceModulesTest, ParallelRpcCallsDefault)
 {
     std::vector<Int> propertyWriteHistory;
+    std::atomic<bool> callbackEntered{false};
 
-    auto createServerInstance = [&propertyWriteHistory]()
+    auto createServerInstance = [&propertyWriteHistory, &callbackEntered]()
     {
         const InstancePtr instance = test_helpers::instanceBuilder().addModulePath("").build();
 
-        auto propertyWriteCallback = [&propertyWriteHistory](PropertyObjectPtr& obj, PropertyValueEventArgsPtr& args)
+        auto propertyWriteCallback = [&propertyWriteHistory, &callbackEntered](PropertyObjectPtr& obj, PropertyValueEventArgsPtr& args)
         {
+            callbackEntered = true;
             Int sleepMs = args.getValue();
             std::this_thread::sleep_for(std::chrono::milliseconds(sleepMs));
             propertyWriteHistory.push_back(sleepMs);
@@ -5239,7 +5170,7 @@ TEST_F(NativeDeviceModulesTest, ParallelRpcCallsDefault)
     std::vector<std::thread> threads;
 
     threads.push_back(std::thread([devices]() { devices[0].setPropertyValue("SleepAndAppend", 500); }));
-    std::this_thread::sleep_for(std::chrono::milliseconds(100));
+    ASSERT_TRUE(test_helpers::waitFor([&] { return callbackEntered.load(); }));
     threads.push_back(std::thread([devices]() { devices[1].setPropertyValue("SleepAndAppend", 100); }));
 
     for (auto& thread : threads)

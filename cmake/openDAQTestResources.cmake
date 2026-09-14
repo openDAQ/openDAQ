@@ -12,6 +12,11 @@
 # Sets RESOURCE_LOCK on a test; DIRECTORY names the source directory of a test defined by another project.
 function(opendaq_test_resource_lock TEST_NAME)
     cmake_parse_arguments(ARG "" "DIRECTORY" "" ${ARGN})
+    # A test that runs as shards shares no resource with anything, or it could not run as shards
+    get_property(SHARDED GLOBAL PROPERTY OPENDAQ_TEST_SHARDED_${TEST_NAME})
+    if(SHARDED)
+        return()
+    endif()
 
     if(NOT ARG_DIRECTORY)
         set_tests_properties(${TEST_NAME} PROPERTIES RESOURCE_LOCK "${ARG_UNPARSED_ARGUMENTS}")
@@ -58,6 +63,7 @@ endfunction()
 # runs the binary's tests side by side. Only for binaries whose tests share no machine-wide resource, such
 # as a port or the mDNS namespace, since the shards run at the same time.
 function(opendaq_add_sharded_test TEST_APP COUNT)
+    set_property(GLOBAL PROPERTY OPENDAQ_TEST_SHARDED_${TEST_APP} TRUE)
     math(EXPR LAST_SHARD "${COUNT} - 1")
     foreach(SHARD RANGE ${LAST_SHARD})
         add_test(NAME ${TEST_APP}_${SHARD}

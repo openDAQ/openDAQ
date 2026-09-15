@@ -153,6 +153,11 @@ target_compile_options(${MAIN_TARGET}
         ${MSVC_PRIVATE_COMPILE_OPTIONS}
 )
 
+opendaq_target_pch(${MAIN_TARGET}
+    <coretypes/coretypes.h>
+    <coreobjects/coreobjects.h>
+)
+
 opendaq_set_output_lib_name(${MAIN_TARGET} ${PROJECT_VERSION_MAJOR})
 opendaq_generate_version_header(${MAIN_TARGET} ONLY_RC)
 

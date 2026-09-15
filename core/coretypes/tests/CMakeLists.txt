@@ -66,6 +66,8 @@ target_link_libraries(${TEST_APP}
                 ${SDK_TARGET_NAMESPACE}::test_utils
 )
 
+opendaq_target_pch(${TEST_APP} <coretypes/coretypes.h> <gtest/gtest.h>)
+
 add_test(NAME ${TEST_APP}
          COMMAND $<TARGET_FILE_NAME:${TEST_APP}>
          WORKING_DIRECTORY $<TARGET_FILE_DIR:${TEST_APP}>

@@ -55,7 +55,7 @@ endif()
 list(APPEND CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake
 )
 include(DeprecatedCommands)
-include(openDAQPCH)
+include(openDAQBuildAcceleration)
 
 get_filename_component(PROJ_DIR ${PROJECT_SOURCE_DIR} REALPATH)
 
@@ -97,6 +97,9 @@ option(OPENDAQ_ENABLE_ACCESS_CONTROL "Enable object-level access control" ON)
 option(OPENDAQ_RTGEN_ON_CMAKE_CONFIG "Run RT gen as part of the CMake configuration process to make sure the files exist during development" OFF)
 option(OPENDAQ_ENABLE_OBJECT_POOLS "Enable object pools for integer and float base objects" OFF)
 option(OPENDAQ_ENABLE_PCH "Use precompiled headers to speed up SDK compilation" OFF)
+option(OPENDAQ_ENABLE_UNITY_TESTS "Compile test sources in unity (jumbo) translation units" OFF)
+option(OPENDAQ_ENABLE_UNITY_BINDINGS "Compile generated binding sources in unity (jumbo) translation units" OFF)
+option(OPENDAQ_ENABLE_UNITY_LIBS "Compile library sources in unity (jumbo) translation units" OFF)
 
 option(OPENDAQ_ENABLE_OPCUA "Enable OpcUa" OFF)
 

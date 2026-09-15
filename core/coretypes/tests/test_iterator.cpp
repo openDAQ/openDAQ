@@ -3,6 +3,11 @@
 
 using namespace daq;
 
+// unity-safe namespace: keeps this file's test types file-local
+namespace test_iterator
+{
+
+
 using IteratorTest = testing::Test;
 
 TEST_F(IteratorTest, Guid)
@@ -11,14 +16,16 @@ TEST_F(IteratorTest, Guid)
     ASSERT_EQ(IIterator::Id, IteratorGuid);
 }
 
-static constexpr auto INTERFACE_ID = FromTemplatedTypeName("IIterator", "daq");
+static constexpr auto ITERATOR_INTERFACE_ID = FromTemplatedTypeName("IIterator", "daq");
 
 TEST_F(IteratorTest, InterfaceId)
 {
-    ASSERT_EQ(INTERFACE_ID, IIterator::Id);
+    ASSERT_EQ(ITERATOR_INTERFACE_ID, IIterator::Id);
 }
 
 TEST_F(IteratorTest, InterfaceIdString)
 {
     ASSERT_EQ(daqInterfaceIdString<IIterator>(), "{F3B87158-F4CD-5890-9476-3C0E315C56D9}");
 }
+}
+// namespace test_iterator

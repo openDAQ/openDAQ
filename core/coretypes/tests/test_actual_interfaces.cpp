@@ -7,6 +7,12 @@
 #include <coretypes/serializable.h>
 #include <coretypes/updatable.h>
 
+using namespace daq;
+
+// unity-safe namespace: keeps this file's test types file-local
+namespace test_actual_interfaces
+{
+
 DECLARE_OPENDAQ_INTERFACE(ITestObject, daq::IBaseObject)
 {
 };
@@ -21,7 +27,6 @@ DECLARE_OPENDAQ_INTERFACE(ITestObjectNested, ITestObjectDerived)
 
 using ActualInterfacesTest = testing::Test;
 
-using namespace daq;
 
 TEST_F(ActualInterfacesTest, HasBase)
 {
@@ -145,3 +150,5 @@ TEST_F(ActualInterfacesTest, ImplementationNested)
     ASSERT_TRUE((std::is_same_v<Interfaces, ExpectedInterfaces>));
     ASSERT_TRUE((std::is_same_v<SupportsInterface<Interfaces>, ImplementationIds>));
 }
+}
+// namespace test_actual_interfaces

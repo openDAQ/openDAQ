@@ -64,6 +64,7 @@ target_include_directories(${TEST_APP} PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/inclu
 )
 
 opendaq_target_pch(${TEST_APP} <coreobjects/coreobjects.h> <gtest/gtest.h>)
+opendaq_target_unity_tests(${TEST_APP})
 
 add_test(NAME ${TEST_APP}
          COMMAND $<TARGET_FILE_NAME:${TEST_APP}>

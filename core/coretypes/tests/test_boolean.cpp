@@ -4,6 +4,11 @@
 
 using namespace daq;
 
+// unity-safe namespace: keeps this file's test types file-local
+namespace test_boolean
+{
+
+
 using BooleanTest = testing::Test;
 
 TEST_F(BooleanTest, Basic)
@@ -154,14 +159,16 @@ TEST_F(BooleanTest, ImplementationName)
     ASSERT_EQ(prefix, 0u);
 }
 
-static constexpr auto INTERFACE_ID = FromTemplatedTypeName("IBoolean", "daq");
+static constexpr auto BOOLEAN_INTERFACE_ID = FromTemplatedTypeName("IBoolean", "daq");
 
 TEST_F(BooleanTest, InterfaceId)
 {
-    ASSERT_EQ(INTERFACE_ID, IBoolean::Id);
+    ASSERT_EQ(BOOLEAN_INTERFACE_ID, IBoolean::Id);
 }
 
 TEST_F(BooleanTest, InterfaceIdString)
 {
     ASSERT_EQ(daqInterfaceIdString<IBoolean>(), "{9F20E31A-D0FB-5679-A188-4942B3FED6E2}");
 }
+}
+// namespace test_boolean

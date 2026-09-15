@@ -8,6 +8,11 @@
 
 using namespace daq;
 
+// unity-safe namespace: keeps this file's test types file-local
+namespace test_procedure
+{
+
+
 using ProcedureTest = testing::Test;
 
 TEST_F(ProcedureTest, Basic)
@@ -558,14 +563,16 @@ TEST_F(ProcedureTest, ImplementationName)
     ASSERT_EQ(prefix, 0u);
 }
 
-static constexpr auto INTERFACE_ID = FromTemplatedTypeName("IProcedure", "daq");
+static constexpr auto PROCEDURE_INTERFACE_ID = FromTemplatedTypeName("IProcedure", "daq");
 
 TEST_F(ProcedureTest, InterfaceId)
 {
-    ASSERT_EQ(INTERFACE_ID, IProcedure::Id);
+    ASSERT_EQ(PROCEDURE_INTERFACE_ID, IProcedure::Id);
 }
 
 TEST_F(ProcedureTest, InterfaceIdString)
 {
     ASSERT_EQ(daqInterfaceIdString<IProcedure>(), "{36247E6D-6BDD-5964-857D-0FD296EEB5C3}");
 }
+}
+// namespace test_procedure

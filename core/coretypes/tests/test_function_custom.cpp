@@ -6,6 +6,11 @@
 
 using namespace daq;
 
+// unity-safe namespace: keeps this file's test types file-local
+namespace test_function_custom
+{
+
+
 using CustomFunctionTest = testing::Test;
 
 TEST_F(CustomFunctionTest, Basic)
@@ -189,3 +194,5 @@ TEST_F(CustomFunctionTest, ImplementationName)
     auto prefix = className.find("daq::CustomFunctionImpl<");
     ASSERT_EQ(prefix, 0u);
 }
+}
+// namespace test_function_custom

@@ -43,6 +43,10 @@ if (COMMAND opendaq_target_pch)
     opendaq_target_pch(${LIB_NAME} <opendaq/opendaq.h>)
 endif()
 
+if (COMMAND opendaq_target_unity_libs)
+    opendaq_target_unity_libs(${LIB_NAME} BATCH_SIZE 4)
+endif()
+
 if (MSVC)
     target_compile_options(${LIB_NAME} PRIVATE /bigobj)
 endif()

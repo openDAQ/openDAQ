@@ -154,7 +154,7 @@ protected:
         auto moduleManager = ModuleManager("[[none]]");
         auto typeManager = TypeManager();
         auto authenticationProvider = AuthenticationProvider();
-        auto context = Context(scheduler, logger, typeManager, moduleManager, authenticationProvider);
+        auto context = Context(scheduler, logger, typeManager, moduleManager, authenticationProvider, test_helpers::instanceOptions());
 
         const ModulePtr deviceModule(MockDeviceModule_Create(context));
         moduleManager.addModule(deviceModule);
@@ -176,7 +176,7 @@ protected:
 
     InstancePtr CreateClientInstance()
     {
-        auto instance = Instance("[[none]]");
+        auto instance = test_helpers::createInstance("[[none]]");
         addLtClientModule(instance);
         addNativeClientModule(instance);
         addOpcuaClientModule(instance);
@@ -630,7 +630,7 @@ protected:
         auto moduleManager = ModuleManager("[[none]]");
         auto typeManager = TypeManager();
         auto authenticationProvider = AuthenticationProvider();
-        auto context = Context(scheduler, logger, typeManager, moduleManager, authenticationProvider);
+        auto context = Context(scheduler, logger, typeManager, moduleManager, authenticationProvider, test_helpers::instanceOptions());
 
         const ModulePtr deviceModule(MockDeviceModule_Create(context));
         moduleManager.addModule(deviceModule);
@@ -698,7 +698,7 @@ protected:
         auto moduleManager = ModuleManager("[[none]]");
         auto typeManager = TypeManager();
         auto authenticationProvider = AuthenticationProvider();
-        auto context = Context(scheduler, logger, typeManager, moduleManager, authenticationProvider);
+        auto context = Context(scheduler, logger, typeManager, moduleManager, authenticationProvider, test_helpers::instanceOptions());
 
         const ModulePtr deviceModule(MockDeviceModule_Create(context));
         moduleManager.addModule(deviceModule);
@@ -791,7 +791,7 @@ TEST_F_UNSTABLE_SKIPPED(NativeDeviceStreamingTest, ChangedDataDescriptorBeforeSu
 {
     SKIP_TEST_MAC_CI;
     const auto moduleManager = ModuleManager("[[none]]");
-    auto serverInstance = InstanceBuilder().setModuleManager(moduleManager).build();
+    auto serverInstance = test_helpers::instanceBuilder().setModuleManager(moduleManager).build();
     const ModulePtr deviceModule(MockDeviceModule_Create(serverInstance.getContext()));
     moduleManager.addModule(deviceModule);
     serverInstance.setRootDevice("daqmock://phys_device");
@@ -804,7 +804,7 @@ TEST_F_UNSTABLE_SKIPPED(NativeDeviceStreamingTest, ChangedDataDescriptorBeforeSu
     for (const auto& ch : channels)
         sigCount += ch.getSignalsRecursive().getCount();
 
-    const auto clientInstance = Instance("[[none]]");
+    const auto clientInstance = test_helpers::createInstance("[[none]]");
 
     addNativeClientModule(clientInstance);
     clientInstance.addDevice("daq.nd://127.0.0.1");
@@ -1052,7 +1052,7 @@ protected:
         auto moduleManager = ModuleManager("[[none]]");
         auto typeManager = TypeManager();
         auto authenticationProvider = AuthenticationProvider();
-        auto context = Context(scheduler, logger, typeManager, moduleManager, authenticationProvider);
+        auto context = Context(scheduler, logger, typeManager, moduleManager, authenticationProvider, test_helpers::instanceOptions());
 
         const ModulePtr deviceModule(MockDeviceModule_Create(context));
         moduleManager.addModule(deviceModule);
@@ -1591,7 +1591,7 @@ protected:
         auto moduleManager = ModuleManager("[[none]]");
         auto typeManager = TypeManager();
         auto authenticationProvider = AuthenticationProvider();
-        auto context = Context(scheduler, logger, typeManager, moduleManager, authenticationProvider);
+        auto context = Context(scheduler, logger, typeManager, moduleManager, authenticationProvider, test_helpers::instanceOptions());
 
         const ModulePtr deviceModule(MockDeviceModule_Create(context));
         moduleManager.addModule(deviceModule);

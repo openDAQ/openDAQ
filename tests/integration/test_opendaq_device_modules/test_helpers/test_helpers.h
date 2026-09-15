@@ -336,6 +336,25 @@ namespace test_helpers
         return allPackets;
     }
 
+    // Test instances skip the network scan on addDevice; tests that need discovery call getAvailableDevices themselves.
+    [[maybe_unused]]
+    inline DictPtr<IString, IBaseObject> instanceOptions()
+    {
+        return Dict<IString, IBaseObject>({{"ModuleManager", Dict<IString, IBaseObject>({{"ScanOnAdd", False}})}});
+    }
+
+    [[maybe_unused]]
+    inline InstanceBuilderPtr instanceBuilder()
+    {
+        return InstanceBuilder().addConfigProvider(CmdLineArgsConfigProvider(List<IString>("-CModuleManager_ScanOnAdd=false")));
+    }
+
+    [[maybe_unused]]
+    inline InstancePtr createInstance(const std::string& modulePath = "", const std::string& localId = "")
+    {
+        return InstanceFromBuilder(instanceBuilder().setModulePath(modulePath).setDefaultRootDeviceLocalId(localId));
+    }
+
     // Whether every visible signal under the device is mirrored with the given number of streaming sources and an active one.
     // Signals of a streaming pseudo-device are created asynchronously, so no signals at all counts as not attached yet.
     [[maybe_unused]]
@@ -844,7 +863,7 @@ namespace test_helpers
     [[maybe_unused]]
     inline InstancePtr connectInstanceWithClientType(const std::string& connectionString, ClientType clientType, bool dropOthers = false)
     {
-        return connectInstanceWithClientType(Instance(), connectionString, clientType, dropOthers);
+        return connectInstanceWithClientType(test_helpers::createInstance(), connectionString, clientType, dropOthers);
     }
 
 

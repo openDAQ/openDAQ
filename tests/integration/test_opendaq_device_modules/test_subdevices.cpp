@@ -272,7 +272,7 @@ public:
         auto moduleManager = ModuleManager("[[none]]");
         auto typeManager = TypeManager();
         auto authenticationProvider = AuthenticationProvider();
-        auto context = Context(scheduler, logger, typeManager, moduleManager, authenticationProvider);
+        auto context = Context(scheduler, logger, typeManager, moduleManager, authenticationProvider, test_helpers::instanceOptions());
         auto instance = InstanceCustom(context, fmt::format("subdevice{}", leafDeviceIndex));
 
         addRefDeviceModule(instance);
@@ -305,7 +305,7 @@ public:
         auto moduleManager = ModuleManager("[[none]]");
         auto typeManager = TypeManager();
         auto authenticationProvider = AuthenticationProvider();
-        auto context = Context(scheduler, logger, typeManager, moduleManager, authenticationProvider);
+        auto context = Context(scheduler, logger, typeManager, moduleManager, authenticationProvider, test_helpers::instanceOptions());
 
         auto instance = InstanceCustom(context, "gateway");
 
@@ -382,7 +382,7 @@ public:
         auto moduleManager = ModuleManager("[[none]]");
         auto typeManager = TypeManager();
         auto authenticationProvider = AuthenticationProvider();
-        auto context = Context(scheduler, logger, typeManager, moduleManager, authenticationProvider);
+        auto context = Context(scheduler, logger, typeManager, moduleManager, authenticationProvider, test_helpers::instanceOptions());
         auto instance = InstanceCustom(context, "client");
 
         addLtClientModule(instance);

@@ -18,6 +18,7 @@
 - [#1296](https://github.com/openDAQ/openDAQ/pull/1296) Module libraries are loaded with MSVC debug heap tracking off, so debug test runs no longer report their statics as memory leaks.
 - [#1295](https://github.com/openDAQ/openDAQ/pull/1295) Fix an intermittent deadlock between `setOperationModeRecursive` and a sub-device's acquisition thread. The device tree lock taken while the operation mode changes no longer locks signals and input ports.
 - [#TBD](https://github.com/openDAQ/openDAQ/pull/TBD) Name the mDNS service of a device that provides no manufacturer and serial number after the port it listens on instead of the host name alone, so that two such devices on one host no longer announce themselves under the same name.
+- [#TBD](https://github.com/openDAQ/openDAQ/pull/TBD) Stop the mDNS discovery server's service thread before an instance releases its root device. A request the thread was answering through the device could keep the device tree alive past the instance's destruction and then destroy the context from the service thread itself, which joined its own thread and terminated the process.
 
 ## Misc
 

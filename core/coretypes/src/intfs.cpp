@@ -76,7 +76,16 @@ PUBLIC_EXPORT void daqPrintTrackedObjects()
     for (auto obj : tracked)
     {
         assert(obj != nullptr);
-        fmt::print("{:p}: {}\n", (void*) obj, objectToString(obj));
+        std::string description;
+        try
+        {
+            description = objectToString(obj);
+        }
+        catch (...)
+        {
+            description = "<not convertible to a string>";  // an object another thread is still taking apart
+        }
+        fmt::print("{:p}: {}\n", (void*) obj, description);
     }
 #endif
 }

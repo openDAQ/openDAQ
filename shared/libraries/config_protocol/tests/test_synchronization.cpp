@@ -66,7 +66,7 @@ public:
     void initSynchronization()
     {
         const auto manager = this->context.getTypeManager();
-        auto sync = Synchronization(manager);
+        auto sync = Synchronization(manager, "testDevice");
 
         const auto testSyncInterface = createWithImplementation<ISyncInterface, TestSyncInterface>(manager, "TestInterface");
         auto* impl = dynamic_cast<TestSyncInterface*>(testSyncInterface.getObject());

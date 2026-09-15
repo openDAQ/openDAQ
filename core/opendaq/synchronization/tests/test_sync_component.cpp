@@ -220,14 +220,14 @@ using SynchronizationTest = testing::Test;
 TEST_F(SynchronizationTest, Create)
 {
     const auto ctx = NullContext();
-    const auto sync = Synchronization(ctx.getTypeManager());
+    const auto sync = Synchronization(ctx.getTypeManager(), "testDevice");
     ASSERT_TRUE(sync.assigned());
 }
 
 TEST_F(SynchronizationTest, getSyncInterfaces)
 {
     const auto ctx = NullContext();
-    const auto sync = Synchronization(ctx.getTypeManager());
+    const auto sync = Synchronization(ctx.getTypeManager(), "testDevice");
 
     const auto interfaces = sync.getSyncInterfaces();
     ASSERT_EQ(interfaces.getCount(), 1u);
@@ -238,7 +238,7 @@ TEST_F(SynchronizationTest, getSyncInterfaces)
 TEST_F(SynchronizationTest, setSource)
 {
     const auto ctx = NullContext();
-    const auto sync = Synchronization(ctx.getTypeManager());
+    const auto sync = Synchronization(ctx.getTypeManager(), "testDevice");
 
     const auto selectedSource = sync.getSource();
     ASSERT_TRUE(selectedSource.assigned());
@@ -250,7 +250,7 @@ TEST_F(SynchronizationTest, AddTwoTheSameInterfaces)
     const auto ctx = NullContext();
     const auto manager = ctx.getTypeManager();
 
-    const auto sync = Synchronization(manager);
+    const auto sync = Synchronization(manager, "testDevice");
     const auto syncPrivate = sync.asPtr<ISynchronizationPrivate>(true);
 
     const auto newInterface = TestSyncInterface::Create(manager);
@@ -270,7 +270,7 @@ TEST_F(SynchronizationTest, SetSelectedSource)
     const auto ctx = NullContext();
     const auto manager = ctx.getTypeManager();
 
-    const auto sync = Synchronization(manager);
+    const auto sync = Synchronization(manager, "testDevice");
     const auto syncPrivate = sync.asPtr<ISynchronizationPrivate>(true);
 
     // Add another interface
@@ -294,7 +294,7 @@ TEST_F(SynchronizationTest, SetSelectedSourceRevertsOldSource)
     const auto ctx = NullContext();
     const auto manager = ctx.getTypeManager();
 
-    const auto sync = Synchronization(manager);
+    const auto sync = Synchronization(manager, "testDevice");
     const auto syncPrivate = sync.asPtr<ISynchronizationPrivate>(true);
 
     // Default source is ClockSyncInterface, which has no Auto mode so it starts as Input
@@ -321,7 +321,7 @@ TEST_F(SynchronizationTest, SetSourceRollsBackOnFailure)
     const auto ctx = NullContext();
     const auto manager = ctx.getTypeManager();
 
-    const auto sync = Synchronization(manager);
+    const auto sync = Synchronization(manager, "testDevice");
     const auto syncPrivate = sync.asPtr<ISynchronizationPrivate>(true);
 
     // An interface that can never act as a source (no Input/Auto mode available)
@@ -347,7 +347,7 @@ TEST_F(SynchronizationTest, SetSourceUnknownNameFails)
     const auto ctx = NullContext();
     const auto manager = ctx.getTypeManager();
 
-    const auto sync = Synchronization(manager);
+    const auto sync = Synchronization(manager, "testDevice");
 
     const auto originalSource = sync.getSource();
     ASSERT_EQ(originalSource.getId(), "ClockSyncInterface");
@@ -365,7 +365,7 @@ TEST_F(SynchronizationTest, AddInterfaceFailsAfterAttached)
     const auto ctx = NullContext();
     const auto manager = ctx.getTypeManager();
 
-    const auto sync = Synchronization(manager);
+    const auto sync = Synchronization(manager, "testDevice");
     const auto syncPrivate = sync.asPtr<ISynchronizationPrivate>(true);
 
     // Attach the Synchronization component to a parent, the same way Device does internally
@@ -380,11 +380,37 @@ TEST_F(SynchronizationTest, AddInterfaceFailsAfterAttached)
 TEST_F(SynchronizationTest, GetSourceReferenceDomainId)
 {
     const auto ctx = NullContext();
-    const auto sync = Synchronization(ctx.getTypeManager());
+    const auto sync = Synchronization(ctx.getTypeManager(), "testDevice");
 
     ListPtr<IString> referenceDomainId;
     ASSERT_ERROR_CODE_EQ(sync->getReferenceDomainIds(&referenceDomainId), OPENDAQ_SUCCESS);
-    ASSERT_EQ(referenceDomainId.getCount(), 0);
+    ASSERT_EQ(referenceDomainId.getCount(), 1u);
+    ASSERT_EQ(referenceDomainId[0], "local:testDevice");
+}
+
+TEST_F(SynchronizationTest, ClockSyncInterfaceReferenceDomainIdEmptyWhenNotSource)
+{
+    const auto ctx = NullContext();
+    const auto manager = ctx.getTypeManager();
+
+    const auto sync = Synchronization(manager, "testDevice");
+    const auto syncPrivate = sync.asPtr<ISynchronizationPrivate>(true);
+
+    // ClockSyncInterface starts out as the selected source
+    const DictPtr<IString, ISyncInterface> interfaces = sync.getSyncInterfaces();
+    const SyncInterfacePtr clockSyncInterface = interfaces.get("ClockSyncInterface");
+    ASSERT_EQ(clockSyncInterface.getReferenceDomainId(), "local:testDevice");
+
+    // Demote it by switching the source to another interface
+    const auto newInterface = TestSyncInterface::Create(manager);
+    syncPrivate.addInterface(newInterface);
+    sync.setSource("TestInterface");
+
+    ASSERT_EQ(clockSyncInterface.getReferenceDomainId(), "");
+
+    ListPtr<IString> referenceDomainIds;
+    ASSERT_ERROR_CODE_EQ(sync->getReferenceDomainIds(&referenceDomainIds), OPENDAQ_SUCCESS);
+    ASSERT_EQ(referenceDomainIds.getCount(), 0u);
 }
 
 TEST_F(SynchronizationTest, SyncInterfaceGetId)
@@ -696,7 +722,7 @@ TEST_F(PtpSyncInterfaceTest, SaveLoad)
     const auto ctx = NullContext();
     const auto manager = ctx.getTypeManager();
 
-    const auto sync = Synchronization(manager);
+    const auto sync = Synchronization(manager, "testDevice");
     const auto syncPrivate = sync.asPtr<ISynchronizationPrivate>(true);
     const auto updateableSync = sync.asPtr<IUpdatable>(true);
 

@@ -65,6 +65,7 @@ DECLARE_OPENDAQ_INTERFACE(ISynchronization, IBaseObject)
 
 OPENDAQ_DECLARE_CLASS_FACTORY_WITH_INTERFACE(
     LIBRARY_FACTORY, Synchronization, ISynchronization,
-    ITypeManager*, manager)
+    ITypeManager*, manager,
+    IString*, deviceId)
 
 END_NAMESPACE_OPENDAQ

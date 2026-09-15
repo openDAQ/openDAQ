@@ -42,9 +42,9 @@ inline SyncComponentPtr SyncComponent(const ContextPtr& context, const Component
 /*!
  * @brief Creates a synchronization component 2.
  */
-inline SynchronizationPtr Synchronization(const TypeManagerPtr& manager)
+inline SynchronizationPtr Synchronization(const TypeManagerPtr& manager, const StringPtr& deviceId)
 {
-    return { Synchronization_Create(manager) };
+    return { Synchronization_Create(manager, deviceId) };
 }
 
 /*!@}*/

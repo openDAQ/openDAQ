@@ -25,9 +25,12 @@ class ClockSyncInterfaceImpl : public SyncInterfaceBaseImpl
 public:
     using Super = SyncInterfaceBaseImpl;
 
-    explicit ClockSyncInterfaceImpl(const TypeManagerPtr& manager);
+    explicit ClockSyncInterfaceImpl(const TypeManagerPtr& manager, const StringPtr& deviceId);
 
     ErrCode INTERFACE_FUNC getSyncType(IString** syncType) override;
+    ErrCode INTERFACE_FUNC setAsSource(Bool source) override;
+private:
+    StringPtr referenceDomainId;
 };
 
 END_NAMESPACE_OPENDAQ

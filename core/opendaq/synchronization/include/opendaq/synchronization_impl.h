@@ -57,7 +57,7 @@ class SynchronizationImpl : public GenericSynchronizationImpl<IPropertyObject, I
 public:
     using Super = GenericSynchronizationImpl<IPropertyObject, ISynchronizationPrivate>;
 
-    explicit SynchronizationImpl(const TypeManagerPtr& manager);
+    explicit SynchronizationImpl(const TypeManagerPtr& manager, const StringPtr& deviceId);
 
     // ISynchronization
     ErrCode INTERFACE_FUNC getSource(ISyncInterface** source) override;

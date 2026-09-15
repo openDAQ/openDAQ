@@ -4,10 +4,10 @@ BEGIN_NAMESPACE_OPENDAQ
 
 template class GenericSynchronizationImpl<IPropertyObject>;
 
-SynchronizationImpl::SynchronizationImpl(const TypeManagerPtr& manager)
+SynchronizationImpl::SynchronizationImpl(const TypeManagerPtr& manager, const StringPtr& deviceId)
     : Super(manager)
 {
-    source = createWithImplementation<ISyncInterface, ClockSyncInterfaceImpl>(manager);
+    source = createWithImplementation<ISyncInterface, ClockSyncInterfaceImpl>(manager, deviceId);
     source.asPtr<ISyncInterfaceInternal>(true).setAsSource(true);
 
     auto interfaces = PropertyObject();
@@ -94,7 +94,8 @@ ErrCode SynchronizationImpl::clone(IPropertyObject** cloned)
 OPENDAQ_DEFINE_CLASS_FACTORY_WITH_INTERFACE_AND_CREATEFUNC_OBJ(
     LIBRARY_FACTORY, SynchronizationImpl,
     ISynchronization, createSynchronization,
-    ITypeManager*, manager
+    ITypeManager*, manager,
+    IString*, deviceId
 )
 
 END_NAMESPACE_OPENDAQ

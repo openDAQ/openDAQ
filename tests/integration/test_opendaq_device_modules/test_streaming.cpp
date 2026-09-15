@@ -65,20 +65,40 @@ public:
         }
     }
 
-    SignalPtr getSignal(const DevicePtr& device, const std::string& signalName)
+    SignalPtr findSignal(const DevicePtr& device, const std::string& signalName)
     {
-        auto signals = device.getSignals(search::Recursive(search::Visible()));
-
-        for (const auto& signal : signals)
+        for (const auto& signal : device.getSignals(search::Recursive(search::Visible())))
         {
             const auto descriptor = signal.getDescriptor();
             if (descriptor.assigned() && descriptor.getName() == signalName)
-            {
                 return signal;
-            }
         }
+        return nullptr;
+    }
 
-        throw NotFoundException();
+    SignalPtr getSignal(const DevicePtr& device, const std::string& signalName)
+    {
+        const auto signal = findSignal(device, signalName);
+        if (!signal.assigned())
+            throw NotFoundException();
+        return signal;
+    }
+
+    // The client creates mirrored signals and attaches their streaming sources asynchronously after connecting.
+    SignalPtr waitForSignal(const DevicePtr& device, const std::string& signalName)
+    {
+        SignalPtr signal;
+        const bool ready = test_helpers::waitFor([&]
+        {
+            signal = findSignal(device, signalName);
+            return signal.assigned() && signal.asPtr<IMirroredSignalConfig>().getActiveStreamingSource().assigned();
+        });
+        if (!ready)
+        {
+            ADD_FAILURE() << "client signal " << signalName << " was not streamed within the timeout";
+            throw NotFoundException();
+        }
+        return signal;
     }
 
     PacketReaderPtr createServerReader(const std::string& signalName)
@@ -1075,10 +1095,7 @@ TEST_P(StreamingTestForModernLt, SignalDescriptorEvents)
     const size_t packetsToRead = initialEventPackets + packetsToGenerate + (packetsToGenerate - 1) * packetsPerChange;
 
     auto serverSignal = getSignal(serverInstance, "ChangingSignal");
-    // Give the client time to do async work related to signal creation
-    // Otherwise getSignal() on the client may not find it yet.
-    CONDITIONAL_SLEEP;
-    auto clientSignal = getSignal(clientInstance, "ChangingSignal");
+    auto clientSignal = waitForSignal(clientInstance, "ChangingSignal");
 
     auto mirroredSignalPtr = clientSignal.template asPtr<IMirroredSignalConfig>();
     test_helpers::SignalAckListener acks(mirroredSignalPtr);
@@ -1137,10 +1154,7 @@ TEST_P(StreamingTestForModernLt, DataPackets)
     // and received by client reader, so they are included in expected packet count and compared in packet comparison
     const size_t packetsToReadServer = packetsToGenerate + 1;
     const size_t packetsToReadClient = packetsToGenerate + (usingLTPseudoDevice ? 1 : 2);
-    // Give the client time to do async work related to signal creation
-    // Otherwise getSignal() on the client may not find it yet.
-    CONDITIONAL_SLEEP;
-    auto mirroredSignalPtr = getSignal(clientInstance, "ByteStep").template asPtr<IMirroredSignalConfig>();
+    auto mirroredSignalPtr = waitForSignal(clientInstance, "ByteStep").template asPtr<IMirroredSignalConfig>();
 
     test_helpers::SignalAckListener acks(mirroredSignalPtr);
 
@@ -1181,20 +1195,11 @@ TEST_P(StreamingTestForModernLt, MultipleSignalsConcurrent)
 {
     // Subscribe 3 signals with different sample types/rules at once (ByteStep: Int8 explicit, IntStep: Int32 explicit,
     // Sine: Float64 + post-scaling) and verify each stream arrives complete and independent
-    // +1 signal initial descriptor changed event packet for server side
-    // +2 signal descriptor changed event packets for client side for daq.lt (workaround)
-    // +1 signal initial descriptor changed event packet for client side for other connections
-    // These additional event packets are triggered by client reader creation in this test and
-    // they are not expected to be transmitted over LT streaming, but they are triggered on client side
-    // and received by client reader, so they are included in expected packet count and compared in packet comparison
+    // The server reader and the LT pseudo-device client reader each see one initial descriptor event before the data
     const std::vector<std::string> signalNames = {"ByteStep", "IntStep", "Sine"};
     const size_t packetsToGenerate = 10;
     const size_t packetsToReadServer = packetsToGenerate + 1;
-    const size_t packetsToReadClient = packetsToGenerate + (usingLTPseudoDevice ? 1 : 2);
-
-    // Give the client time to do async work related to signal creation
-    // Otherwise getSignal() on the client may not find it yet
-    CONDITIONAL_SLEEP;
+    const size_t packetsToReadClient = packetsToGenerate + 1;
 
     std::vector<MirroredSignalConfigPtr> mirroredSignals;
     std::vector<PacketReaderPtr> serverReaders;
@@ -1204,13 +1209,13 @@ TEST_P(StreamingTestForModernLt, MultipleSignalsConcurrent)
     std::list<test_helpers::SignalAckListener> ackListeners;
     for (size_t i = 0; i < signalNames.size(); ++i)
     {
-        auto mirrored = getSignal(clientInstance, signalNames[i]).template asPtr<IMirroredSignalConfig>();
+        auto mirrored = waitForSignal(clientInstance, signalNames[i]).template asPtr<IMirroredSignalConfig>();
         mirroredSignals.push_back(mirrored);
         ackListeners.emplace_back(mirroredSignals[i]);
 
         serverReaders.push_back(createServerReader(signalNames[i]));
 
-        auto signal = getSignal(clientInstance, signalNames[i]);
+        auto signal = waitForSignal(clientInstance, signalNames[i]);
         auto port = InputPort(clientInstance.getContext(), nullptr, "readsig_" + signalNames[i]);
         PacketReaderPtr reader = PacketReaderFromPort(port);
         port.connect(signal);
@@ -1251,8 +1256,7 @@ TEST_P(StreamingTestForModernLt, MultipleSignalsConcurrent)
         {
             // Config devices (daq.nd/daq.opcua) deliver the initial descriptor through both the config core
             // event and the streaming subscribe. The number of data packets is always packetsToGenerate.
-            auto clientReceivedPackets =
-                test_helpers::tryReadPackets(clientReaders[i], packetsToReadClient);
+            auto clientReceivedPackets = test_helpers::tryReadDataPackets(clientReaders[i], packetsToGenerate);
             EXPECT_EQ(countDataPackets(clientReceivedPackets), packetsToGenerate) << "signal " << signalNames[i];
             EXPECT_TRUE(test_helpers::packetBehaviorComparison(
                 serverReceivedPackets, clientReceivedPackets, compareDataPackets, compareDescriptors))
@@ -1269,10 +1273,7 @@ TEST_P(StreamingTestForModernLt, ActiveStreamingSource)
 {
     const std::string expectedPrefix = usingSecureLTStreaming ? "daq.lts://" : "daq.lt://";
 
-    // Give the client time to do async work related to signal creation
-    // Otherwise getSignal() on the client may not find it yet
-    CONDITIONAL_SLEEP;
-    auto mirroredSignalPtr = getSignal(clientInstance, "ByteStep").template asPtr<IMirroredSignalConfig>();
+    auto mirroredSignalPtr = waitForSignal(clientInstance, "ByteStep").template asPtr<IMirroredSignalConfig>();
 
     const StringPtr activeSource = mirroredSignalPtr.getActiveStreamingSource();
     ASSERT_TRUE(activeSource.assigned());
@@ -1292,10 +1293,6 @@ TEST_P(StreamingTestForModernLt, LastValue)
     // Config-enabled transports (daq.nd://, daq.opcua://) fall back to a config-protocol RPC and keep returning it
     const bool isStreamingOnly = usingLTPseudoDevice;
 
-    // Give the client time to do async work related to signal creation
-    // Otherwise getSignal() on the client may not find it yet.
-    CONDITIONAL_SLEEP;
-
     // Flaky on IPv6 OPC UA endpoints: phase-3 lastValue mismatch after unsubscribe
     // (mirror keeps a stale streaming-cached value instead of reading via the config channel).
     if (std::get<1>(GetParam()) == "daq.opcua://[::1]/")
@@ -1304,7 +1301,7 @@ TEST_P(StreamingTestForModernLt, LastValue)
     }
 
     auto serverSignal = getSignal(serverInstance, "IntStep");
-    auto mirroredSignalPtr = getSignal(clientInstance, "IntStep").template asPtr<IMirroredSignalConfig>();
+    auto mirroredSignalPtr = waitForSignal(clientInstance, "IntStep").template asPtr<IMirroredSignalConfig>();
 
     test_helpers::SignalAckListener acks(mirroredSignalPtr);
 
@@ -1392,10 +1389,7 @@ TEST_P(StreamingTestForModernLt, DISABLED_SetNullDescriptor)
         const size_t packetsToRead = 2;
 
         auto serverSignalPtr = getSignal(serverInstance, "ByteStep").template asPtr<ISignalConfig>();
-        // Give the client time to do async work related to signal creation
-        // Otherwise getSignal() on the client may not find it yet
-        CONDITIONAL_SLEEP;
-        auto mirroredSignalPtr = getSignal(clientInstance, "ByteStep").template asPtr<IMirroredSignalConfig>();
+        auto mirroredSignalPtr = waitForSignal(clientInstance, "ByteStep").template asPtr<IMirroredSignalConfig>();
         test_helpers::SignalAckListener acks(mirroredSignalPtr);
 
         auto serverReader = createServerReader("ByteStep");
@@ -1428,10 +1422,7 @@ TEST_P(StreamingTestForModernLt, DISABLED_SetNullDescriptor)
     else // usingLTPseudoDevice true
     {
         auto serverSignalPtr = getSignal(serverInstance, "ByteStep").template asPtr<ISignalConfig>();
-        // Give the client time to do async work related to signal creation
-        // Otherwise getSignal() on the client may not find it yet.
-        CONDITIONAL_SLEEP;
-        auto mirroredOrigSignalPtr = getSignal(clientInstance, "ByteStep").template asPtr<IMirroredSignalConfig>();
+        auto mirroredOrigSignalPtr = waitForSignal(clientInstance, "ByteStep").template asPtr<IMirroredSignalConfig>();
 
         test_helpers::SignalAckListener origSigAcks(mirroredOrigSignalPtr);
         auto clientOrigSigReader = createClientReader("ByteStep");
@@ -1486,10 +1477,6 @@ TEST_P(StreamingTestForModernLt, DISABLED_SetNullDescriptor)
 
 TEST_P(StreamingTestForModernLt, ChangedDataDescriptorBeforeSubscribe)
 {
-    // Give the client time to do async work related to signal creation
-    // Otherwise getSignal() on the client may not find it yet.
-    CONDITIONAL_SLEEP;
-
     // daq.nd:// is not supported by this test.
     // A native configuration device mirrors the whole component tree and actively pushes signal descriptor
     // changes to the client as DataDescriptorChanged core events. So with daq.nd the descriptor change reaches the client through two
@@ -1505,7 +1492,7 @@ TEST_P(StreamingTestForModernLt, ChangedDataDescriptorBeforeSubscribe)
     SKIP_TEST_MAC_CI;
 
     SignalConfigPtr serverSignalPtr = getSignal(serverInstance, "ByteStep");
-    MirroredSignalConfigPtr clientSignalPtr = getSignal(clientInstance, "ByteStep");
+    MirroredSignalConfigPtr clientSignalPtr = waitForSignal(clientInstance, "ByteStep");
     MirroredSignalConfigPtr clientDomainSignalPtr = clientSignalPtr.getDomainSignal();
 
     // consume the initial-fetch hold so every iteration below subscribes over the wire
@@ -1670,10 +1657,7 @@ protected:
 
 TEST_P(StreamingReconnectionTestForModernLt, DISABLED_Reconnection)
 {
-    // Give the client time to do async work related to signal creation
-    // Otherwise getSignal() on the client may not find it yet
-    CONDITIONAL_SLEEP;
-    auto mirroredSignalPtr = getSignal(clientInstance, "ByteStep").template asPtr<IMirroredSignalConfig>();
+    auto mirroredSignalPtr = waitForSignal(clientInstance, "ByteStep").template asPtr<IMirroredSignalConfig>();
     std::promise<StringPtr> subscribeCompletePromise;
     std::future<StringPtr> subscribeCompleteFuture;
 

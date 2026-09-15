@@ -60,6 +60,7 @@ ModuleManagerImpl::ModuleManagerImpl(const BaseObjectPtr& path)
     , work(ioContext.get_executor())
     , rescanTimer(DefaultrescanTimer)
     , safeLoadingMode(False)
+    , addDeviceScan(True)
 {
     if (const StringPtr pathStr = path.asPtrOrNull<IString>(true); pathStr.assigned())
     {
@@ -180,6 +181,10 @@ ErrCode ModuleManagerImpl::loadModules(IContext* context)
             if (inner.hasKey("SafeLoadingMode"))
             {
                 this->safeLoadingMode = static_cast<bool>(inner.get("SafeLoadingMode"));
+            }
+            if (inner.hasKey("AddDeviceScan"))
+            {
+                this->addDeviceScan = static_cast<bool>(inner.get("AddDeviceScan"));
             }
         }
 
@@ -801,19 +806,34 @@ ErrCode ModuleManagerImpl::createDevice(IDevice** device, IString* connectionStr
         if (!connectionStringPtr.assigned() || connectionStringPtr.getLength() == 0)
             return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_ARGUMENT_NULL, "Connection string is not set or empty");
 
-        {
-            auto lock = std::lock_guard(availableDevicesSearchSync);
-            // Scan for devices if not yet done so, or timeout is exceeded
-            auto currentTime = std::chrono::steady_clock::now();
-            if (!availableDevicesGroup.assigned() || currentTime - lastScanTime > rescanTimer)
-            {
-                const auto errCode = getAvailableDevices(&ListPtr<IDeviceInfo>());
-                OPENDAQ_RETURN_IF_FAILED(errCode, "Failed getting available devices");
-            }
-        }
-
         // Connection strings with the "daq" prefix automatically choose the best method of connection
         const bool useSmartConnection = connectionStringPtr.toStdString().find("daq://") == 0;
+
+        // Explicit connection strings scan only when asked to, and only once the created device shows that
+        // discovery can add to it; smart ones always need the device list up front
+        bool scanForDevices = addDeviceScan;
+        if (generalConfig.assigned() && generalConfig.hasProperty("AddDeviceScan"))
+            scanForDevices = static_cast<bool>(generalConfig.getPropertyValue("AddDeviceScan"));
+
+        // Scan for devices if not yet done so, or timeout is exceeded
+        const auto refreshAvailableDevices = [this]() -> ErrCode
+        {
+            auto lock = std::lock_guard(availableDevicesSearchSync);
+            const auto currentTime = std::chrono::steady_clock::now();
+            if (!availableDevicesGroup.assigned() || currentTime - lastScanTime > rescanTimer)
+            {
+                const ErrCode errCode = getAvailableDevices(&ListPtr<IDeviceInfo>());
+                OPENDAQ_RETURN_IF_FAILED(errCode, "Failed getting available devices");
+            }
+            return OPENDAQ_SUCCESS;
+        };
+
+        if (useSmartConnection)
+        {
+            const ErrCode errCode = refreshAvailableDevices();
+            OPENDAQ_RETURN_IF_FAILED(errCode);
+        }
+
         DeviceInfoPtr discoveredDeviceInfo;
         if (useSmartConnection)
         {
@@ -837,6 +857,11 @@ ErrCode ModuleManagerImpl::createDevice(IDevice** device, IString* connectionStr
             const auto devicePtr = DevicePtr::Borrow(*device);
             if (devicePtr.assigned())
             {
+                if (scanForDevices && !discoveredDeviceInfo.assigned() && DiscoveryCanEnrich(devicePtr.getInfo()))
+                {
+                    const ErrCode errCode = refreshAvailableDevices();
+                    OPENDAQ_RETURN_IF_FAILED(errCode);
+                }
                 onCompleteCapabilities(devicePtr, discoveredDeviceInfo);
                 if (const auto & componentPrivate = devicePtr.asPtrOrNull<IComponentPrivate>(true); componentPrivate.assigned())
                     componentPrivate.setComponentConfig(addDeviceConfig);
@@ -1236,7 +1261,7 @@ ErrCode ModuleManagerImpl::createDefaultAddDeviceConfig(IPropertyObject** defaul
 
     config.addProperty(ObjectProperty("Device", deviceConfig.detach()));
     config.addProperty(ObjectProperty("Streaming", streamingConfig.detach()));
-    config.addProperty(ObjectProperty("General", CreateGeneralConfig().detach()));
+    config.addProperty(ObjectProperty("General", CreateGeneralConfig(addDeviceScan).detach()));
 
     *defaultConfig = config.detach();
     return OPENDAQ_SUCCESS;
@@ -1319,6 +1344,9 @@ ErrCode ModuleManagerImpl::getDiscoveryInfo(IDeviceInfo** deviceInfo, IString* m
 
     if (!availableDevicesGroup.assigned())
     {
+        if (!addDeviceScan)
+            return OPENDAQ_NOTFOUND;
+
         auto lock = std::lock_guard(availableDevicesSearchSync);
         const auto errCode = getAvailableDevices(&ListPtr<IDeviceInfo>());
         OPENDAQ_RETURN_IF_FAILED(errCode, "Failed getting available devices");
@@ -1372,6 +1400,9 @@ DeviceInfoPtr ModuleManagerImpl::getDiscoveredDeviceInfo(const DeviceInfoPtr& de
     auto manufacturer = deviceInfo.getManufacturer();
 
     if (!serialNumber.getLength() || !manufacturer.getLength())
+        return nullptr;
+
+    if (!availableDevicesGroup.assigned())
         return nullptr;
 
     DeviceInfoPtr localInfo;
@@ -1644,7 +1675,7 @@ void ModuleManagerImpl::completeServerCapabilities(const DevicePtr& device) cons
 }
 
 
-PropertyObjectPtr ModuleManagerImpl::CreateGeneralConfig()
+PropertyObjectPtr ModuleManagerImpl::CreateGeneralConfig(Bool addDeviceScan)
 {
     auto obj = PropertyObject();
 
@@ -1661,6 +1692,15 @@ PropertyObjectPtr ModuleManagerImpl::CreateGeneralConfig()
     obj.addProperty(ListProperty("AllowedStreamingProtocols", List<IString>()));
 
     obj.addProperty(BoolProperty("AutomaticallyConnectStreaming", true));
+
+    obj.addProperty(
+        BoolPropertyBuilder("AddDeviceScan", addDeviceScan)
+            .setDescription("Scans for available devices when a device connected over a network protocol is added and when "
+                            "its streaming addresses are resolved, so that server capabilities discovered on the network are "
+                            "merged into the device info. Local devices never scan. Defaults to the \"AddDeviceScan\" module "
+                            "manager option. Smart connection strings with the \"daq://\" prefix always scan.")
+            .build()
+    );
 
     obj.addProperty(StringProperty("Username", ""));
     obj.addProperty(StringProperty("Password", ""));
@@ -1753,13 +1793,24 @@ std::pair<StringPtr, DeviceInfoPtr> ModuleManagerImpl::populateDiscoveredDevice(
     return {nullptr, nullptr};
 }
 
+// Discovery results are matched by manufacturer and serial number and only describe devices reached over a
+// network protocol, so nothing they hold applies to a local device
+bool ModuleManagerImpl::DiscoveryCanEnrich(const DeviceInfoPtr& deviceInfo)
+{
+    if (!deviceInfo.assigned() || !deviceInfo.getManufacturer().getLength() || !deviceInfo.getSerialNumber().getLength())
+        return false;
+    const auto connectionInfo = deviceInfo.getConfigurationConnectionInfo();
+    return connectionInfo.assigned() && connectionInfo.getProtocolType() != ProtocolType::Unknown;
+}
+
 void ModuleManagerImpl::onCompleteCapabilities(const DevicePtr& device, const DeviceInfoPtr& discoveredDeviceInfo)
 {
     ReplaceSubDeviceOldProtocolIds(device);
+    const auto deviceInfo = device.getInfo();
     mergeDiscoveryAndDeviceCapabilities(device,
                                         discoveredDeviceInfo.assigned()
                                             ? discoveredDeviceInfo
-                                            : getDiscoveredDeviceInfo(device.getInfo()));
+                                            : (DiscoveryCanEnrich(deviceInfo) ? getDiscoveredDeviceInfo(deviceInfo) : nullptr));
     completeServerCapabilities(device);
 }
 

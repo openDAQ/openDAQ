@@ -10,7 +10,7 @@ protected:
 
     static InstancePtr setupBaseInstance()
     {
-        auto instance = InstanceBuilder()
+        auto instance = test_helpers::instanceBuilder()
             .setModulePath("[[none]]")
             .setGlobalLogLevel(LogLevel::Warn)
             .addDiscoveryServer("mdns")

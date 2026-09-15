@@ -108,11 +108,12 @@ private:
 
     StreamingPtr onCreateStreaming(const StringPtr& connectionString, const PropertyObjectPtr& config) const;
 
-    static PropertyObjectPtr CreateGeneralConfig();
+    static PropertyObjectPtr CreateGeneralConfig(Bool addDeviceScan);
     static void OverrideConfigProperties(PropertyObjectPtr& targetConfig, const PropertyObjectPtr& sourceConfig);
 
     DictPtr<IString, IDeviceInfo> discoverDevicesWithIpModification();
     std::pair<StringPtr, DeviceInfoPtr> populateDiscoveredDevice(const discovery::MdnsDiscoveredDevice& discoveredDevice);
+    static bool DiscoveryCanEnrich(const DeviceInfoPtr& deviceInfo);
     void onCompleteCapabilities(const DevicePtr& device, const DeviceInfoPtr& discoveredDeviceInfo);
 
     ErrCode tryLoadAndAddModule(const StringPtr& path, IModule** module);
@@ -145,6 +146,7 @@ private:
     std::chrono::time_point<std::chrono::steady_clock> lastScanTime;
     std::chrono::milliseconds rescanTimer;
     Bool safeLoadingMode;
+    Bool addDeviceScan;
 };
 
 END_NAMESPACE_OPENDAQ

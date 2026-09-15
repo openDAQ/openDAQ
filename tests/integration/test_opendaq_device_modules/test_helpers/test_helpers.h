@@ -157,6 +157,26 @@ namespace test_helpers
         return acknowledgementFuture.wait_for(timeout) == std::future_status::ready;
     }
 
+    // Polls until the predicate holds or the timeout expires; returns the final state of the predicate.
+    // Use for state that is pushed asynchronously (e.g. core events propagating to a mirrored component),
+    // where the call that triggers the change does not wait for it to arrive.
+    template <typename Predicate>
+    [[maybe_unused]]
+    inline bool waitFor(
+        Predicate&& predicate,
+        std::chrono::milliseconds timeout = std::chrono::milliseconds(5000),
+        std::chrono::milliseconds interval = std::chrono::milliseconds(10))
+    {
+        const auto deadline = std::chrono::steady_clock::now() + timeout;
+        while (!predicate())
+        {
+            if (std::chrono::steady_clock::now() >= deadline)
+                return false;
+            std::this_thread::sleep_for(interval);
+        }
+        return true;
+    }
+
     // Listens for one signal's subscribe/unsubscribe acks and detaches its handlers on scope exit; create one per subscribe/unsubscribe cycle
     class SignalAckListener
     {

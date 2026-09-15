@@ -82,6 +82,14 @@ void defineISyncInterface(pybind11::module_ m, PyDaqIntf<daq::ISyncInterface, da
             return objectPtr.getReferenceDomainId().toStdString();
         },
         "Gets the reference domain ID of the synchronization interface.");
+    cls.def("can_be_source",
+        [](daq::ISyncInterface *object)
+        {
+            py::gil_scoped_release release;
+            const auto objectPtr = daq::SyncInterfacePtr::Borrow(object);
+            return objectPtr.canBeSource();
+        },
+        "Gets whether the synchronization interface can be selected as the synchronization source.");
     cls.def_property("mode",
         [](daq::ISyncInterface *object)
         {
@@ -105,14 +113,6 @@ void defineISyncInterface(pybind11::module_ m, PyDaqIntf<daq::ISyncInterface, da
         },
         py::return_value_policy::take_ownership,
         "Gets the modes available to the synchronization interface, depending on whether it is currently selected as the synchronization source.");
-    cls.def_property_readonly("can_be_source",
-        [](daq::ISyncInterface *object)
-        {
-            py::gil_scoped_release release;
-            const auto objectPtr = daq::SyncInterfacePtr::Borrow(object);
-            return objectPtr.canBeSource();
-        },
-        "Gets whether the synchronization interface can be selected as the synchronization source.");
     cls.def_property_readonly("configuration",
         [](daq::ISyncInterface *object)
         {

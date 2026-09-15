@@ -40,7 +40,10 @@ void defineISynchronization(pybind11::module_ m, PyDaqIntf<daq::ISynchronization
 {
     cls.doc() = "Interface representing the Synchronization of a device in a Test & Measurement system.";
 
-    m.def("Synchronization", &daq::Synchronization_Create);
+    m.def("Synchronization", [](daq::ITypeManager* manager, std::variant<daq::IString*, py::str, daq::IEvalValue*>& deviceId){
+        return daq::Synchronization_Create(manager, getVariantValue<daq::IString*>(deviceId));
+    }, py::arg("manager"), py::arg("device_id"));
+
 
     cls.def_property_readonly("sync_interfaces",
         [](daq::ISynchronization *object)
@@ -51,6 +54,15 @@ void defineISynchronization(pybind11::module_ m, PyDaqIntf<daq::ISynchronization
         },
         py::return_value_policy::take_ownership,
         "Gets all synchronization interfaces registered with this synchronization.");
+    cls.def_property_readonly("available_sync_sources",
+        [](daq::ISynchronization *object)
+        {
+            py::gil_scoped_release release;
+            const auto objectPtr = daq::SynchronizationPtr::Borrow(object);
+            return objectPtr.getAvailableSyncSources().detach();
+        },
+        py::return_value_policy::take_ownership,
+        "Gets the registered synchronization interfaces that can currently be selected as the synchronization source.");
     cls.def_property("source",
         [](daq::ISynchronization *object)
         {

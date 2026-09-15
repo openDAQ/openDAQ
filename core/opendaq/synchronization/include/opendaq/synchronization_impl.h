@@ -44,6 +44,7 @@ public:
 
     // ISynchronization
     ErrCode INTERFACE_FUNC getSyncInterfaces(IDict** interfaces) override;
+    ErrCode INTERFACE_FUNC getAvailableSyncSources(IDict** sources) override;
     ErrCode INTERFACE_FUNC setSource(IString* sourceName) override;
     ErrCode INTERFACE_FUNC getSource(ISyncInterface** source) override;
     ErrCode INTERFACE_FUNC getReferenceDomainIds(IList** ids) override;
@@ -73,6 +74,8 @@ protected:
 
 private:
     void onSourceChanged(const StringPtr& sourceName);
+
+    ListPtr<IString> sourceInterfaces;
 };
 
 template <typename TInterface, typename... Interfaces>
@@ -138,6 +141,26 @@ ErrCode GenericSynchronizationImpl<TInterface, Interfaces...>::getSyncInterfaces
             interfacesDict.set(prop.getName(), prop.getValue());
 
         *interfaces = interfacesDict.detach();
+        return OPENDAQ_SUCCESS;
+    });
+}
+
+template <typename TInterface, typename... Interfaces>
+ErrCode GenericSynchronizationImpl<TInterface, Interfaces...>::getAvailableSyncSources(IDict** sources)
+{
+    OPENDAQ_PARAM_NOT_NULL(sources);
+    return daqTry([&]
+    {
+        auto sourcesDict = Dict<IString, ISyncInterface>();
+
+        auto lock = this->getRecursiveConfigLock2();
+        const PropertyObjectPtr interfacesProperty = this->objPtr.getPropertyValue("Interfaces");
+        const ListPtr<IString> sourceInterfaceIds = this->objPtr.getPropertyValue("SourceInterfaces");
+
+        for (const auto& id : sourceInterfaceIds)
+            sourcesDict.set(id, interfacesProperty.getPropertyValue(id));
+
+        *sources = sourcesDict.detach();
         return OPENDAQ_SUCCESS;
     });
 }

@@ -235,6 +235,32 @@ TEST_F(SynchronizationTest, getSyncInterfaces)
     ASSERT_EQ(sync.getSource().getSyncType(), "local");
 }
 
+TEST_F(SynchronizationTest, getAvailableSyncSources)
+{
+    const auto ctx = NullContext();
+    const auto manager = ctx.getTypeManager();
+
+    const auto sync = Synchronization(manager, "testDevice");
+    const auto syncPrivate = sync.asPtr<ISynchronizationPrivate>(true);
+
+    // ClockSyncInterface can be a source by default
+    const auto sourcesBefore = sync.getAvailableSyncSources();
+    ASSERT_EQ(sourcesBefore.getCount(), 1u);
+    ASSERT_TRUE(sourcesBefore.hasKey("ClockSyncInterface"));
+
+    // An interface that can never act as a source (no Input/Auto mode available)
+    const auto outputOnlyInterface = TestSyncInterface::Create(manager, "OutputOnlyInterface", {SyncMode::Off, SyncMode::Output});
+    syncPrivate.addInterface(outputOnlyInterface);
+
+    // getSyncInterfaces returns both, getAvailableSyncSources only the one that can be a source
+    ASSERT_EQ(sync.getSyncInterfaces().getCount(), 2u);
+
+    const auto sourcesAfter = sync.getAvailableSyncSources();
+    ASSERT_EQ(sourcesAfter.getCount(), 1u);
+    ASSERT_TRUE(sourcesAfter.hasKey("ClockSyncInterface"));
+    ASSERT_FALSE(sourcesAfter.hasKey("OutputOnlyInterface"));
+}
+
 TEST_F(SynchronizationTest, setSource)
 {
     const auto ctx = NullContext();

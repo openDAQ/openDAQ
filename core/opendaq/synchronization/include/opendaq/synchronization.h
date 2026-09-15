@@ -42,6 +42,15 @@ DECLARE_OPENDAQ_INTERFACE(ISynchronization, IBaseObject)
     virtual ErrCode INTERFACE_FUNC getSyncInterfaces(IDict** interfaces) = 0;
 
     /*!
+     * @brief Gets the registered synchronization interfaces that can currently be selected as the
+     * synchronization source.
+     * @param[out] sources A dictionary mapping interface names to the sync interfaces that can be
+     * selected as the synchronization source.
+     */
+    // [templateType(sources, IString, ISyncInterface)]
+    virtual ErrCode INTERFACE_FUNC getAvailableSyncSources(IDict** sources) = 0;
+
+    /*!
      * @brief Selects the synchronization interface with the given name as the synchronization source.
      * @param sourceName The name of the synchronization interface to select as the source.
      */

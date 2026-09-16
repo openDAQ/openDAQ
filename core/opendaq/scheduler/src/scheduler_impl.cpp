@@ -10,6 +10,7 @@
 #include <opendaq/work_factory.h>
 #include <coretypes/function_ptr.h>
 #include <coretypes/validation.h>
+#include <thread>
 #include <utility>
 #include <opendaq/thread_name.h>
 
@@ -206,7 +207,15 @@ ErrCode SchedulerImpl::stop()
     stopped = true;
 
     LOGP_T("Stopping scheduler")
-    executor.reset();
+    if (executor && executor->this_worker_id() != -1)
+    {
+        // Running on one of the executor's own workers, which it cannot join: another thread destroys it.
+        std::thread([executor = std::move(executor)]() mutable { executor.reset(); }).detach();
+    }
+    else
+    {
+        executor.reset();
+    }
 
     LOGP_T("Stopping main thread worker")
     mainThreadWorker.reset();

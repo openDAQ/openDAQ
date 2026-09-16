@@ -261,12 +261,12 @@ void NativeStreamingServerImpl::stopProcessingOperations()
         }
         else
         {
-            LOG_W("Native server - processing thread is not joinable");
+            LOG_E("Native server - processing thread is not joinable");
         }
     }
     else
     {
-        LOG_C("Native server - processing thread cannot join itself");
+        LOG_E("Native server - processing thread cannot join itself");
     }
 }
 

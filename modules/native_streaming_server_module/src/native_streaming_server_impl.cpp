@@ -261,12 +261,12 @@ void NativeStreamingServerImpl::stopProcessingOperations()
         }
         else
         {
-            LOG_W("Native server - processing thread is not joinable");
+            LOG_E("Native server - processing thread is not joinable");
         }
     }
     else
     {
-        LOG_C("Native server - processing thread cannot join itself");
+        LOG_E("Native server - processing thread cannot join itself");
     }
 }
 
@@ -279,27 +279,39 @@ void NativeStreamingServerImpl::stopServerInternal()
     serverStopped = true;
 
     this->context.getOnCoreEvent() -= event(&NativeStreamingServerImpl::coreEventCallback);
-    if (const DevicePtr rootDevice = this->rootDeviceRef.assigned() ? this->rootDeviceRef.getRef() : nullptr;
-        rootDevice.assigned() && !rootDevice.isRemoved())
-    {
-        const auto info = rootDevice.getInfo();
-        const auto infoInternal = info.asPtr<IDeviceInfoInternal>();
-        if (info.hasServerCapability("OpenDAQNativeStreaming"))
-            infoInternal.removeServerCapability("OpenDAQNativeStreaming");
-        if (info.hasServerCapability("OpenDAQNativeConfiguration"))
-            infoInternal.removeServerCapability("OpenDAQNativeConfiguration");
-        for (const auto& [_, clientNumber] : registeredClientIds)
-        {
-            if (clientNumber != 0)
-                infoInternal.removeConnectedClient(clientNumber);
-        }
-    }
-    registeredClientIds.clear();
-    disconnectedClientIds.clear();
 
     serverHandler->stopServer();
     stopTransportOperations();
     stopProcessingOperations();
+
+    if (const DevicePtr rootDevice = this->rootDeviceRef.assigned() ? this->rootDeviceRef.getRef() : nullptr;
+        rootDevice.assigned() && !rootDevice.isRemoved())
+    {
+        try
+        {
+            const auto info = rootDevice.getInfo();
+            const auto infoInternal = info.asPtr<IDeviceInfoInternal>();
+            if (info.hasServerCapability("OpenDAQNativeStreaming"))
+                infoInternal.removeServerCapability("OpenDAQNativeStreaming");
+            if (info.hasServerCapability("OpenDAQNativeConfiguration"))
+                infoInternal.removeServerCapability("OpenDAQNativeConfiguration");
+            for (const auto& [_, clientNumber] : registeredClientIds)
+            {
+                if (clientNumber != 0)
+                    infoInternal.removeConnectedClient(clientNumber);
+            }
+        }
+        catch (const std::exception& e)
+        {
+            LOG_W("Native server - exception occurred on shutdown: {}", e.what());
+        }
+        catch (...)
+        {
+            LOG_W("Native server - unknown exception on shutdown");
+        }
+    }
+    registeredClientIds.clear();
+    disconnectedClientIds.clear();
 }
 
 void NativeStreamingServerImpl::prepareServerHandler()

@@ -422,9 +422,7 @@ TEST_F(NativeDeviceModulesTest, ConnectUsernameDeviceAndStreamingConfig)
     ASSERT_TRUE(device.assigned());
 }
 
-// Flaky: connected-clients info propagates asynchronously, so on slow runners the assertion
-// can race the propagation and see one fewer client than expected.
-TEST_F_UNSTABLE_SKIPPED(NativeDeviceModulesTest, GetConnectedClientsInfo)
+TEST_F(NativeDeviceModulesTest, GetConnectedClientsInfo)
 {
     auto server = CreateServerInstance();
     auto client = CreateClientInstance();
@@ -438,6 +436,12 @@ TEST_F_UNSTABLE_SKIPPED(NativeDeviceModulesTest, GetConnectedClientsInfo)
     ASSERT_EQ(serverSideClientsInfo[1].getClientTypeName(), "");
     ASSERT_EQ(serverSideClientsInfo[1].getProtocolType(), ProtocolType::Streaming);
 
+    // Client side info only updates after the core event for a property changed arrives.
+    // Because this happens asynchronously, there is a race between the test thread and
+    // event thread to update the clients. The event must come, but there is no way to
+    // guarantee when exactly it will arrive.
+    test_helpers::waitFor(
+        [&] { return client.getDevices()[0].getInfo().getConnectedClientsInfo().getCount() == 2u; });
     auto clientSideClientsInfo = client.getDevices()[0].getInfo().getConnectedClientsInfo();
     ASSERT_EQ(clientSideClientsInfo.getCount(), 2u);
     ASSERT_EQ(clientSideClientsInfo[0].getProtocolName(), "OpenDAQNativeConfiguration");
@@ -459,6 +463,8 @@ TEST_F_UNSTABLE_SKIPPED(NativeDeviceModulesTest, GetConnectedClientsInfo)
     auto clientInfo2 = serverSideClientsInfo[2];
     auto clientInfo3 = serverSideClientsInfo[3];
 
+    test_helpers::waitFor(
+        [&] { return client.getDevices()[0].getInfo().getConnectedClientsInfo().getCount() == 4u; });
     clientSideClientsInfo = client.getDevices()[0].getInfo().getConnectedClientsInfo();
     ASSERT_EQ(clientSideClientsInfo.getCount(), 4u);
     ASSERT_EQ(clientSideClientsInfo[2].getProtocolName(), "OpenDAQNativeConfiguration");
@@ -469,11 +475,19 @@ TEST_F_UNSTABLE_SKIPPED(NativeDeviceModulesTest, GetConnectedClientsInfo)
     ASSERT_EQ(clientSideClientsInfo[3].getProtocolType(), ProtocolType::Streaming);
 
     client.release();
+    // During destruction, the callback that handles client removal is async, thus it may or may not
+    // have run before we check the number of clients. Thus a periodic wait is needed.
+    test_helpers::waitFor(
+        [&] { return server.getRootDevice().getInfo().getConnectedClientsInfo().getCount() == 2u; });
     serverSideClientsInfo = server.getRootDevice().getInfo().getConnectedClientsInfo();
     ASSERT_EQ(serverSideClientsInfo.getCount(), 2u);
     ASSERT_EQ(serverSideClientsInfo[0], clientInfo2);
     ASSERT_EQ(serverSideClientsInfo[1], clientInfo3);
 
+    // There is a time window between the point where a client entry is dropped on the server and
+    // where the client side is updated. This assert may run in that window and fail.
+    test_helpers::waitFor(
+        [&] { return newClient.getDevices()[0].getInfo().getConnectedClientsInfo().getCount() == 2u; });
     clientSideClientsInfo = newClient.getDevices()[0].getInfo().getConnectedClientsInfo();
     ASSERT_EQ(clientSideClientsInfo.getCount(), 2u);
 }

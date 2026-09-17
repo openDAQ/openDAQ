@@ -342,6 +342,16 @@
             }
         },
         {
+            "name": "run_tests_nightly",
+            "description": "Run all tests excluding unstable ones, streaming test output live",
+            "inherits": [
+                "run_tests"
+            ],
+            "output": {
+                "verbosity": "verbose"
+            }
+        },
+        {
             "name": "run_unstable_test_repeatedly",
             "description": "Run only unstable tests multiple times",
             "configurePreset": "unstable_tests_ci",

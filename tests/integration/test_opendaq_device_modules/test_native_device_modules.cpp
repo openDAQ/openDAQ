@@ -3776,11 +3776,7 @@ TEST_F(NativeDeviceModulesTest, GetAvailableDevicesCheck)
     }
 }
 
-// Hangs: lock-order inversion between setOperationMode → getTreeLockGuard
-// (signal-lock then device-lock via items+InheritLock) and RefDevice::acqLoop →
-// Signal::getDescriptor (device-lock then signal-lock). Shared mechanism for all
-// SettingOperationMode* variants below.
-TEST_F_UNSTABLE_SKIPPED(NativeDeviceModulesTest, SettingOperationMode)
+TEST_F(NativeDeviceModulesTest, SettingOperationMode)
 {
     auto server = CreateServerInstance();
     auto client = CreateClientInstance();
@@ -3842,8 +3838,7 @@ TEST_F_UNSTABLE_SKIPPED(NativeDeviceModulesTest, SettingOperationMode)
     test_helpers::checkDeviceOperationMode(client.getDevices()[0].getDevices()[0], daq::OperationModeType::Idle);
 }
 
-// Hangs: same setOperationMode / RefDevice::acqLoop lock-order inversion as SettingOperationMode.
-TEST_F_UNSTABLE_SKIPPED(NativeDeviceModulesTest, SettingOperationModeWithoutPermissions)
+TEST_F(NativeDeviceModulesTest, SettingOperationModeWithoutPermissions)
 {
     auto CreateUsers = []()
     {
@@ -3977,8 +3972,7 @@ TEST_F_UNSTABLE_SKIPPED(NativeDeviceModulesTest, SettingOperationModeWithoutPerm
     }
 }
 
-// Hangs: same setOperationMode / RefDevice::acqLoop lock-order inversion as SettingOperationMode.
-TEST_F_UNSTABLE_SKIPPED(NativeDeviceModulesTest, SettingOperationModeWithPermissions)
+TEST_F(NativeDeviceModulesTest, SettingOperationModeWithPermissions)
 {
     auto CreateUsers = []()
     {
@@ -4052,8 +4046,7 @@ TEST_F_UNSTABLE_SKIPPED(NativeDeviceModulesTest, SettingOperationModeWithPermiss
     }
 }
 
-// Hangs: same setOperationMode / RefDevice::acqLoop lock-order inversion as SettingOperationMode.
-TEST_F_UNSTABLE_SKIPPED(NativeDeviceModulesTest, SettingOperationModeWithPermissionsForInvisibleDevice)
+TEST_F(NativeDeviceModulesTest, SettingOperationModeWithPermissionsForInvisibleDevice)
 {
     auto CreateUsers = []()
     {
@@ -4138,8 +4131,7 @@ TEST_F_UNSTABLE_SKIPPED(NativeDeviceModulesTest, SettingOperationModeWithPermiss
     }
 }
 
-// Hangs: same setOperationMode / RefDevice::acqLoop lock-order inversion as SettingOperationMode.
-TEST_F_UNSTABLE_SKIPPED(NativeDeviceModulesTest, SettingOperationModeWithPermissionsNestedDevice)
+TEST_F(NativeDeviceModulesTest, SettingOperationModeWithPermissionsNestedDevice)
 {
     auto CreateUsers = []()
     {

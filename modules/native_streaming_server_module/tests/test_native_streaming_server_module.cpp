@@ -12,6 +12,10 @@
 #include <opendaq/mock/mock_fb_module.h>
 #include <coreobjects/authentication_provider_factory.h>
 
+#include <boost/asio/io_context.hpp>
+#include <boost/asio/ip/tcp.hpp>
+#include <boost/asio/ip/v6_only.hpp>
+
 using NativeStreamingServerModuleTest = testing::Test;
 using namespace daq;
 
@@ -53,6 +57,66 @@ static PropertyObjectPtr CreateServerConfig(const InstancePtr& instance)
     auto config = instance.getAvailableServerTypes().get("OpenDAQNativeStreaming").createDefaultConfig();
     config.setPropertyValue("NativeStreamingPort", 0);
     return config;
+}
+
+// Holds a port the way another process listening on it would. Both address families are taken, since
+// the server gives up only when it can open neither; the IPv6 one is best effort, as without IPv6 the
+// server cannot open it either. The server binds with reuse_address, which on Windows would let it
+// bind over a holder that did not claim the port exclusively.
+class PortHolder
+{
+public:
+    PortHolder()
+        : v4(ioContext)
+        , v6(ioContext)
+    {
+        using boost::asio::ip::tcp;
+
+        v4.open(tcp::v4());
+        claimExclusively(v4);
+        v4.bind(tcp::endpoint(tcp::v4(), 0));
+        v4.listen();
+        port = v4.local_endpoint().port();
+
+        boost::system::error_code ec;
+        v6.open(tcp::v6(), ec);
+        if (!ec)
+            v6.set_option(boost::asio::ip::v6_only(true), ec);
+        if (!ec)
+            claimExclusively(v6);
+        if (!ec)
+            v6.bind(tcp::endpoint(tcp::v6(), port), ec);
+        if (!ec)
+            v6.listen(boost::asio::socket_base::max_listen_connections, ec);
+    }
+
+    uint16_t getPort() const
+    {
+        return port;
+    }
+
+private:
+    static void claimExclusively([[maybe_unused]] boost::asio::ip::tcp::acceptor& acceptor)
+    {
+#ifdef _WIN32
+        acceptor.set_option(boost::asio::detail::socket_option::boolean<SOL_SOCKET, SO_EXCLUSIVEADDRUSE>(true));
+#endif
+    }
+
+    boost::asio::io_context ioContext;
+    boost::asio::ip::tcp::acceptor v4;
+    boost::asio::ip::tcp::acceptor v6;
+    uint16_t port = 0;
+};
+
+// a port which was free a moment ago, for a test which needs to name the same one twice
+static uint16_t FindFreePort()
+{
+    using boost::asio::ip::tcp;
+
+    boost::asio::io_context ioContext;
+    tcp::acceptor acceptor(ioContext, tcp::endpoint(tcp::v4(), 0));
+    return acceptor.local_endpoint().port();
 }
 
 TEST_F(NativeStreamingServerModuleTest, CreateModule)
@@ -167,7 +231,125 @@ TEST_F(NativeStreamingServerModuleTest, ServerConfig)
 
     ASSERT_TRUE(config.hasProperty("ConfigurationRpcWorkerCount"));
     ASSERT_EQ(config.getPropertyValue("ConfigurationRpcWorkerCount"), 1);
+
+    ASSERT_TRUE(config.hasProperty("EnablePort"));
+    ASSERT_EQ(config.getPropertyValue("EnablePort"), True);
 }
+
+TEST_F(NativeStreamingServerModuleTest, TlsServerConfig)
+{
+    auto module = CreateModule();
+    auto config = module.getAvailableServerTypes().get("OpenDAQNativeStreaming").createDefaultConfig();
+
+#if NATIVE_STREAMING_ENABLE_TLS
+    ASSERT_TRUE(config.hasProperty("EnableTlsPort"));
+    ASSERT_EQ(config.getPropertyValue("EnableTlsPort"), False);
+
+    ASSERT_TRUE(config.hasProperty("NativeStreamingTlsPort"));
+    ASSERT_EQ(config.getPropertyValue("NativeStreamingTlsPort"), 7422);
+
+    ASSERT_TRUE(config.hasProperty("EnableMutualTls"));
+    ASSERT_EQ(config.getPropertyValue("EnableMutualTls"), True);
+
+    ASSERT_TRUE(config.hasProperty("CertificateFilePath"));
+    ASSERT_TRUE(config.hasProperty("KeyFilePath"));
+    ASSERT_TRUE(config.hasProperty("CaCertificateFilePath"));
+#else
+    // without the option the TLS channel does not exist
+    ASSERT_FALSE(config.hasProperty("EnableTlsPort"));
+    ASSERT_FALSE(config.hasProperty("NativeStreamingTlsPort"));
+    ASSERT_FALSE(config.hasProperty("CertificateFilePath"));
+    ASSERT_FALSE(config.hasProperty("KeyFilePath"));
+    ASSERT_FALSE(config.hasProperty("CaCertificateFilePath"));
+#endif
+}
+
+TEST_F(NativeStreamingServerModuleTest, RefusesConfigurationWithoutAnyListener)
+{
+    auto device = CreateTestInstance();
+    auto config = CreateServerConfig(device);
+    config.setPropertyValue("EnablePort", False);
+
+    ASSERT_THROW(device.addServer("OpenDAQNativeStreaming", config), InvalidParameterException);
+}
+
+TEST_F(NativeStreamingServerModuleTest, PlaintextServerPublishesTwoCapabilities)
+{
+    auto device = CreateTestInstance();
+    device.addServer("OpenDAQNativeStreaming", CreateServerConfig(device));
+
+    const auto capabilities = device.getInfo().getServerCapabilities();
+    ASSERT_EQ(capabilities.getCount(), 2u);
+    for (const auto& capability : capabilities)
+    {
+        ASSERT_EQ(capability.getProtocolGroupId(), "NativeStreaming");
+        ASSERT_EQ(capability.getProtocolSecurityLevel(), 0);
+    }
+}
+
+// Opening the listener fails after the server has started its threads. The failure has to reach the
+// caller as an exception, rather than end the process on a still joinable thread, and leave nothing
+// published behind.
+TEST_F(NativeStreamingServerModuleTest, RefusesPortInUse)
+{
+    PortHolder holder;
+
+    auto device = CreateTestInstance();
+    auto config = CreateServerConfig(device);
+    config.setPropertyValue("NativeStreamingPort", holder.getPort());
+
+    ASSERT_THROW(device.addServer("OpenDAQNativeStreaming", config), GeneralErrorException);
+    ASSERT_EQ(device.getInfo().getServerCapabilities().getCount(), 0u);
+
+    // nothing of the failed server is left in the way of one on a port which is free
+    ASSERT_NO_THROW(device.addServer("OpenDAQNativeStreaming", CreateServerConfig(device)));
+    ASSERT_EQ(device.getInfo().getServerCapabilities().getCount(), 2u);
+}
+
+#if NATIVE_STREAMING_ENABLE_TLS
+
+// a secret which fails to load is found only when the listener opens, after the threads have started
+TEST_F(NativeStreamingServerModuleTest, RefusesTlsWithUnreadableCertificate)
+{
+    auto device = CreateTestInstance();
+    auto config = CreateServerConfig(device);
+    config.setPropertyValue("EnablePort", False);
+    config.setPropertyValue("EnableTlsPort", True);
+    config.setPropertyValue("NativeStreamingTlsPort", 0);
+    config.setPropertyValue("CertificateFilePath", "nonexistent/server.crt");
+    config.setPropertyValue("KeyFilePath", "nonexistent/server.key");
+    config.setPropertyValue("EnableMutualTls", False);
+
+    ASSERT_THROW(device.addServer("OpenDAQNativeStreaming", config), GeneralErrorException);
+    ASSERT_EQ(device.getInfo().getServerCapabilities().getCount(), 0u);
+}
+
+// The plaintext channel opens and publishes its capabilities before the secure one fails. Both have
+// to be withdrawn: a server which failed to construct must not keep listening or stay advertised.
+TEST_F(NativeStreamingServerModuleTest, WithdrawsPlaintextChannelWhenTlsFails)
+{
+    const auto plainPort = FindFreePort();
+
+    auto device = CreateTestInstance();
+    auto config = CreateServerConfig(device);
+    config.setPropertyValue("NativeStreamingPort", plainPort);
+    config.setPropertyValue("EnableTlsPort", True);
+    config.setPropertyValue("NativeStreamingTlsPort", 0);
+    config.setPropertyValue("CertificateFilePath", "nonexistent/server.crt");
+    config.setPropertyValue("KeyFilePath", "nonexistent/server.key");
+    config.setPropertyValue("EnableMutualTls", False);
+
+    ASSERT_THROW(device.addServer("OpenDAQNativeStreaming", config), GeneralErrorException);
+    ASSERT_EQ(device.getInfo().getServerCapabilities().getCount(), 0u);
+
+    // the plaintext listener is gone too: a server can open the same port again
+    auto plainOnly = CreateServerConfig(device);
+    plainOnly.setPropertyValue("NativeStreamingPort", plainPort);
+    ASSERT_NO_THROW(device.addServer("OpenDAQNativeStreaming", plainOnly));
+    ASSERT_EQ(device.getInfo().getServerCapabilities().getCount(), 2u);
+}
+
+#endif
 
 TEST_F(NativeStreamingServerModuleTest, CreateServer)
 {

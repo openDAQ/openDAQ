@@ -4,6 +4,7 @@ set(TEST_HEADERS
     test_helpers/test_helpers.h
     test_helpers/device_modules.h
     test_helpers/lt_tls.h
+    test_helpers/native_tls.h
 )
 
 set(TEST_SOURCES test_native_device_modules.cpp
@@ -17,6 +18,7 @@ set(TEST_SOURCES test_native_device_modules.cpp
                  test_streaming.cpp
                  test_device_discovery.cpp
                  test_remote_update.cpp
+                 test_native_device_modules_tls.cpp
 )
 
 add_executable(${TEST_APP}
@@ -29,6 +31,7 @@ target_link_libraries(${TEST_APP} PRIVATE daq::test_utils
                                           daq::opcuatms_client
                                           daq::native_stream_cl_module
                                           daq::opendaq_mocks
+                                          daq::native_streaming_protocol
 )
 
 # Should link only what you need $<BUILD_INTERFACE:Boost::asio>
@@ -69,6 +72,21 @@ if (NOT DAQMODULES_LT_LEGACY_MODULES AND OPENDAQ_ENABLE_WEBSOCKET_STREAMING_WITH
     else()
         message(WARNING "TLS fixtures not found in ${LT_TLS_SECRETS_DIR}. "
                         "The LT streaming tests over the secure channel will fail to load their secrets.")
+    endif()
+endif()
+
+# The native streaming tests over the secure channel need their own fixtures. libNativeStreaming ships pre-generated
+# ones, and its source directory is a cache variable.
+if (OPENDAQ_ENABLE_NATIVE_STREAMING AND OPENDAQ_ENABLE_NATIVE_STREAMING_WITH_TLS AND DEFINED native_streaming_SOURCE_DIR)
+    set(NATIVE_TLS_SECRETS_DIR "${native_streaming_SOURCE_DIR}/test/secrets")
+    if (EXISTS "${NATIVE_TLS_SECRETS_DIR}")
+        add_custom_command(TARGET ${TEST_APP} POST_BUILD
+            COMMAND ${CMAKE_COMMAND} -E copy_directory
+                    ${NATIVE_TLS_SECRETS_DIR}
+                    $<TARGET_FILE_DIR:${TEST_APP}>/native_secrets)
+    else()
+        message(WARNING "TLS fixtures not found in ${NATIVE_TLS_SECRETS_DIR}. "
+                        "The native streaming tests over the secure channel will fail to load their secrets.")
     endif()
 endif()
 

@@ -90,7 +90,7 @@ DECLARE_OPENDAQ_INTERFACE(ISyncInterface, IBaseObject)
      * @brief Gets whether the synchronization interface can be selected as the synchronization source.
      * @param[out] canBeSource True if the interface can act as a synchronization source; False otherwise.
      */
-    virtual ErrCode INTERFACE_FUNC canBeSource(Bool* canBeSource) = 0;
+    virtual ErrCode INTERFACE_FUNC getSourceSupported(Bool* canBeSource) = 0;
 
     /*!
      * @brief Sets the mode of the synchronization interface.

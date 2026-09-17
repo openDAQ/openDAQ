@@ -82,12 +82,12 @@ void defineISyncInterface(pybind11::module_ m, PyDaqIntf<daq::ISyncInterface, da
             return objectPtr.getReferenceDomainId().toStdString();
         },
         "Gets the reference domain ID of the synchronization interface.");
-    cls.def("can_be_source",
+    cls.def_property_readonly("source_supported",
         [](daq::ISyncInterface *object)
         {
             py::gil_scoped_release release;
             const auto objectPtr = daq::SyncInterfacePtr::Borrow(object);
-            return objectPtr.canBeSource();
+            return objectPtr.getSourceSupported();
         },
         "Gets whether the synchronization interface can be selected as the synchronization source.");
     cls.def_property("mode",

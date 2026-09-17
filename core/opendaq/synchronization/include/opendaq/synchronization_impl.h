@@ -43,8 +43,8 @@ public:
     explicit GenericSynchronizationImpl(const TypeManagerPtr& manager);
 
     // ISynchronization
-    ErrCode INTERFACE_FUNC getSyncInterfaces(IDict** interfaces) override;
-    ErrCode INTERFACE_FUNC getAvailableSyncSources(IDict** sources) override;
+    ErrCode INTERFACE_FUNC getInterfaces(IDict** interfaces) override;
+    ErrCode INTERFACE_FUNC getAvailableSources(IDict** sources) override;
     ErrCode INTERFACE_FUNC setSource(IString* sourceName) override;
     ErrCode INTERFACE_FUNC getSource(ISyncInterface** source) override;
     ErrCode INTERFACE_FUNC getReferenceDomainIds(IList** ids) override;
@@ -127,7 +127,7 @@ ErrCode GenericSynchronizationImpl<TInterface, Interfaces...>::getReferenceDomai
 }
 
 template <typename TInterface, typename... Interfaces>
-ErrCode GenericSynchronizationImpl<TInterface, Interfaces...>::getSyncInterfaces(IDict** interfaces)
+ErrCode GenericSynchronizationImpl<TInterface, Interfaces...>::getInterfaces(IDict** interfaces)
 {
     OPENDAQ_PARAM_NOT_NULL(interfaces);
     return daqTry([&]
@@ -146,7 +146,7 @@ ErrCode GenericSynchronizationImpl<TInterface, Interfaces...>::getSyncInterfaces
 }
 
 template <typename TInterface, typename... Interfaces>
-ErrCode GenericSynchronizationImpl<TInterface, Interfaces...>::getAvailableSyncSources(IDict** sources)
+ErrCode GenericSynchronizationImpl<TInterface, Interfaces...>::getAvailableSources(IDict** sources)
 {
     OPENDAQ_PARAM_NOT_NULL(sources);
     return daqTry([&]

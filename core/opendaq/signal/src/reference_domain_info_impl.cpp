@@ -18,7 +18,6 @@ DictPtr<IString, IBaseObject> ReferenceDomainInfoImpl::PackBuilder(IReferenceDom
     params.set("ReferenceDomainId", builderPtr.getReferenceDomainId());
     params.set("ReferenceDomainOffset", builderPtr.getReferenceDomainOffset());
     params.set("ReferenceTimeProtocol", static_cast<Int>(builderPtr.getReferenceTimeProtocol()));
-    params.set("UsesOffset", static_cast<Int>(builderPtr.getUsesOffset()));
     params.set("ReferenceDomainIds", builderPtr.getReferenceDomainIds());
     return params;
 }
@@ -31,7 +30,6 @@ ReferenceDomainInfoImpl::ReferenceDomainInfoImpl(IReferenceDomainInfoBuilder* re
     this->referenceDomainIds = dataDescriptorBuilderPtr.getReferenceDomainIds();
     this->referenceDomainOffset = dataDescriptorBuilderPtr.getReferenceDomainOffset();
     this->referenceTimeProtocol = dataDescriptorBuilderPtr.getReferenceTimeProtocol();
-    this->usesOffset = dataDescriptorBuilderPtr.getUsesOffset();
 }
 
 ErrCode INTERFACE_FUNC ReferenceDomainInfoImpl::getReferenceDomainId(IString** referenceDomainId)

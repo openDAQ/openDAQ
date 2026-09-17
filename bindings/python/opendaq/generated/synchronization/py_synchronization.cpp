@@ -45,21 +45,21 @@ void defineISynchronization(pybind11::module_ m, PyDaqIntf<daq::ISynchronization
     }, py::arg("manager"), py::arg("device_id"));
 
 
-    cls.def_property_readonly("sync_interfaces",
+    cls.def_property_readonly("interfaces",
         [](daq::ISynchronization *object)
         {
             py::gil_scoped_release release;
             const auto objectPtr = daq::SynchronizationPtr::Borrow(object);
-            return objectPtr.getSyncInterfaces().detach();
+            return objectPtr.getInterfaces().detach();
         },
         py::return_value_policy::take_ownership,
         "Gets all synchronization interfaces registered with this synchronization.");
-    cls.def_property_readonly("available_sync_sources",
+    cls.def_property_readonly("available_sources",
         [](daq::ISynchronization *object)
         {
             py::gil_scoped_release release;
             const auto objectPtr = daq::SynchronizationPtr::Borrow(object);
-            return objectPtr.getAvailableSyncSources().detach();
+            return objectPtr.getAvailableSources().detach();
         },
         py::return_value_policy::take_ownership,
         "Gets the registered synchronization interfaces that can currently be selected as the synchronization source.");

@@ -48,7 +48,7 @@ ErrCode SynchronizationImpl::addInterface(ISyncInterface* syncInterface)
 
         interfacesProperty.addProperty(ObjectProperty(interfacePtr.getId(), interfacePtr));
 
-        if (interfacePtr.canBeSource())
+        if (interfacePtr.getSourceSupported())
         {
             sourceInterfaces.pushBack(interfacePtr.getId());
             OPENDAQ_RETURN_IF_FAILED(this->setProtectedPropertyValue(String("SourceInterfaces"), sourceInterfaces));

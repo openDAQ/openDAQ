@@ -49,7 +49,7 @@ public:
     ErrCode INTERFACE_FUNC setMode(SyncMode mode) override;
     ErrCode INTERFACE_FUNC getMode(SyncMode* sourceMode) override;
     ErrCode INTERFACE_FUNC getAvailableModes(IDict** availableModes) override;
-    ErrCode INTERFACE_FUNC canBeSource(Bool* canBeSource) override;
+    ErrCode INTERFACE_FUNC getSourceSupported(Bool* canBeSource) override;
     ErrCode INTERFACE_FUNC getConfiguration(IPropertyObject** configuration) override;
     ErrCode INTERFACE_FUNC getStatusContainer(IComponentStatusContainer** syncStatus) override;
 
@@ -81,7 +81,7 @@ public:
     ErrCode INTERFACE_FUNC getSyncType(IString** syncType) override;
     ErrCode INTERFACE_FUNC getReferenceDomainId(IString** referenceDomainId) override;
     ErrCode INTERFACE_FUNC getAvailableModes(IDict** availableModes) override;
-    ErrCode INTERFACE_FUNC canBeSource(Bool* canBeSource) override;
+    ErrCode INTERFACE_FUNC getSourceSupported(Bool* canBeSource) override;
     ErrCode INTERFACE_FUNC getConfiguration(IPropertyObject** configuration) override;
 
     // ISyncInterfaceInternal
@@ -182,7 +182,7 @@ ErrCode GenericSyncInterfaceImpl<TInterface, Interfaces...>::getAvailableModes(I
 }
 
 template <typename TInterface, typename... Interfaces>
-ErrCode GenericSyncInterfaceImpl<TInterface, Interfaces...>::canBeSource(Bool* canBeSource)
+ErrCode GenericSyncInterfaceImpl<TInterface, Interfaces...>::getSourceSupported(Bool* canBeSource)
 {
     OPENDAQ_PARAM_NOT_NULL(canBeSource);
 

@@ -39,7 +39,7 @@ DECLARE_OPENDAQ_INTERFACE(ISynchronization, IBaseObject)
      * @param[out] interfaces A dictionary mapping interface names to the sync interfaces themselves.
      */
     // [templateType(interfaces, IString, ISyncInterface)]
-    virtual ErrCode INTERFACE_FUNC getSyncInterfaces(IDict** interfaces) = 0;
+    virtual ErrCode INTERFACE_FUNC getInterfaces(IDict** interfaces) = 0;
 
     /*!
      * @brief Gets the registered synchronization interfaces that can currently be selected as the
@@ -48,7 +48,7 @@ DECLARE_OPENDAQ_INTERFACE(ISynchronization, IBaseObject)
      * selected as the synchronization source.
      */
     // [templateType(sources, IString, ISyncInterface)]
-    virtual ErrCode INTERFACE_FUNC getAvailableSyncSources(IDict** sources) = 0;
+    virtual ErrCode INTERFACE_FUNC getAvailableSources(IDict** sources) = 0;
 
     /*!
      * @brief Selects the synchronization interface with the given name as the synchronization source.

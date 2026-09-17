@@ -224,18 +224,18 @@ TEST_F(SynchronizationTest, Create)
     ASSERT_TRUE(sync.assigned());
 }
 
-TEST_F(SynchronizationTest, getSyncInterfaces)
+TEST_F(SynchronizationTest, getInterfaces)
 {
     const auto ctx = NullContext();
     const auto sync = Synchronization(ctx.getTypeManager(), "testDevice");
 
-    const auto interfaces = sync.getSyncInterfaces();
+    const auto interfaces = sync.getInterfaces();
     ASSERT_EQ(interfaces.getCount(), 1u);
     ASSERT_TRUE(interfaces.hasKey("ClockSyncInterface"));
     ASSERT_EQ(sync.getSource().getSyncType(), "local");
 }
 
-TEST_F(SynchronizationTest, getAvailableSyncSources)
+TEST_F(SynchronizationTest, getAvailableSources)
 {
     const auto ctx = NullContext();
     const auto manager = ctx.getTypeManager();
@@ -244,7 +244,7 @@ TEST_F(SynchronizationTest, getAvailableSyncSources)
     const auto syncPrivate = sync.asPtr<ISynchronizationPrivate>(true);
 
     // ClockSyncInterface can be a source by default
-    const auto sourcesBefore = sync.getAvailableSyncSources();
+    const auto sourcesBefore = sync.getAvailableSources();
     ASSERT_EQ(sourcesBefore.getCount(), 1u);
     ASSERT_TRUE(sourcesBefore.hasKey("ClockSyncInterface"));
 
@@ -252,10 +252,10 @@ TEST_F(SynchronizationTest, getAvailableSyncSources)
     const auto outputOnlyInterface = TestSyncInterface::Create(manager, "OutputOnlyInterface", {SyncMode::Off, SyncMode::Output});
     syncPrivate.addInterface(outputOnlyInterface);
 
-    // getSyncInterfaces returns both, getAvailableSyncSources only the one that can be a source
-    ASSERT_EQ(sync.getSyncInterfaces().getCount(), 2u);
+    // getInterfaces returns both, getAvailableSources only the one that can be a source
+    ASSERT_EQ(sync.getInterfaces().getCount(), 2u);
 
-    const auto sourcesAfter = sync.getAvailableSyncSources();
+    const auto sourcesAfter = sync.getAvailableSources();
     ASSERT_EQ(sourcesAfter.getCount(), 1u);
     ASSERT_TRUE(sourcesAfter.hasKey("ClockSyncInterface"));
     ASSERT_FALSE(sourcesAfter.hasKey("OutputOnlyInterface"));
@@ -281,14 +281,14 @@ TEST_F(SynchronizationTest, AddTwoTheSameInterfaces)
 
     const auto newInterface = TestSyncInterface::Create(manager);
     ASSERT_NO_THROW(syncPrivate.addInterface(newInterface));
-    ASSERT_EQ(sync.getSyncInterfaces().getCount(), 2u);
+    ASSERT_EQ(sync.getInterfaces().getCount(), 2u);
 
     ASSERT_ANY_THROW(syncPrivate.addInterface(newInterface));
-    ASSERT_EQ(sync.getSyncInterfaces().getCount(), 2u);
+    ASSERT_EQ(sync.getInterfaces().getCount(), 2u);
 
     const auto newInterfaceWithTheSameName = TestSyncInterface::Create(manager);
     ASSERT_ANY_THROW(syncPrivate.addInterface(newInterfaceWithTheSameName));
-    ASSERT_EQ(sync.getSyncInterfaces().getCount(), 2u);
+    ASSERT_EQ(sync.getInterfaces().getCount(), 2u);
 }
 
 TEST_F(SynchronizationTest, SetSelectedSource)
@@ -304,7 +304,7 @@ TEST_F(SynchronizationTest, SetSelectedSource)
     syncPrivate.addInterface(newInterface);
 
     // Verify we have 2 interfaces
-    const auto interfaces = sync.getSyncInterfaces();
+    const auto interfaces = sync.getInterfaces();
     ASSERT_EQ(interfaces.getCount(), 2u);
 
     // Change selected source
@@ -423,7 +423,7 @@ TEST_F(SynchronizationTest, ClockSyncInterfaceReferenceDomainIdEmptyWhenNotSourc
     const auto syncPrivate = sync.asPtr<ISynchronizationPrivate>(true);
 
     // ClockSyncInterface starts out as the selected source
-    const DictPtr<IString, ISyncInterface> interfaces = sync.getSyncInterfaces();
+    const DictPtr<IString, ISyncInterface> interfaces = sync.getInterfaces();
     const SyncInterfacePtr clockSyncInterface = interfaces.get("ClockSyncInterface");
     ASSERT_EQ(clockSyncInterface.getReferenceDomainId(), "local:testDevice");
 
@@ -452,7 +452,7 @@ TEST_F(SynchronizationTest, SyncInterfaceCanBeSourceTrue)
     const auto ctx = NullContext();
 
     const auto syncInterface = TestSyncInterface::Create(ctx.getTypeManager(), "MyInterface", {SyncMode::Off, SyncMode::Input});
-    ASSERT_TRUE(syncInterface.canBeSource());
+    ASSERT_TRUE(syncInterface.getSourceSupported());
 }
 
 TEST_F(SynchronizationTest, SyncInterfaceCanBeSourceFalse)
@@ -460,7 +460,7 @@ TEST_F(SynchronizationTest, SyncInterfaceCanBeSourceFalse)
     const auto ctx = NullContext();
 
     const auto syncInterface = TestSyncInterface::Create(ctx.getTypeManager(), "MyInterface", {SyncMode::Off, SyncMode::Output});
-    ASSERT_FALSE(syncInterface.canBeSource());
+    ASSERT_FALSE(syncInterface.getSourceSupported());
 }
 
 TEST_F(SynchronizationTest, SyncInterfaceGetReferenceDomainId)
@@ -475,9 +475,9 @@ TEST_F(SynchronizationTest, SyncInterfaceGetSyncType)
 {
     const auto ctx = NullContext();
 
-    // Defaults to "" unless a subclass overrides it (e.g. via setSyncType in its own constructor)
+    // A concrete sync interface must override getSyncType (e.g. via setSyncType in its own constructor)
     const auto syncInterface = TestSyncInterface::Create(ctx.getTypeManager(), "MyInterface");
-    ASSERT_EQ(syncInterface.getSyncType(), "");
+    ASSERT_THROW(syncInterface.getSyncType(), NotImplementedException);
 }
 
 TEST_F(SynchronizationTest, SyncInterfaceSetSyncType)

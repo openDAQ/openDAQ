@@ -5,10 +5,6 @@ BEGIN_NAMESPACE_OPENDAQ
 
 namespace PtpPropertyNames
 {
-    // Status properties
-    constexpr const char* StatusReferenceDomainId = "ReferenceDomainId";
-    constexpr const char* StatusSynchronized = "Synchronized";
-
     // PTP Configuration properties
     constexpr const char* PtpConfigMode = "Mode";
     constexpr const char* PtpConfigProfileOptions = "ProfileOptions";

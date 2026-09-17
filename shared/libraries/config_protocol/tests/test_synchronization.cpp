@@ -48,6 +48,13 @@ public:
             : Super(manager, name, availableModes)
         {
         }
+
+        ErrCode INTERFACE_FUNC getSyncType(IString** syncType) override
+        {
+            OPENDAQ_PARAM_NOT_NULL(syncType);
+            *syncType = String("test").detach();
+            return OPENDAQ_SUCCESS;
+        }
     };
 
     class TestPtpSyncInterface : public PtpSyncInterfaceBaseImpl
@@ -157,13 +164,13 @@ TEST_F(ConfigSynchronizationTest, Connect)
     ASSERT_TRUE(clientSync.assigned());
 }
 
-TEST_F(ConfigSynchronizationTest, getSyncInterfaces)
+TEST_F(ConfigSynchronizationTest, getInterfaces)
 {
     auto serverSync = getServerSyncComponent();
     auto clientSync = getClientSyncComponent();
 
-    auto serverInterfaces = serverSync.getSyncInterfaces();
-    auto clientInterfaces = clientSync.getSyncInterfaces();
+    auto serverInterfaces = serverSync.getInterfaces();
+    auto clientInterfaces = clientSync.getInterfaces();
 
     ASSERT_EQ(serverInterfaces.getCount(), clientInterfaces.getCount());
     ASSERT_EQ(serverInterfaces.getKeyList(), clientInterfaces.getKeyList());
@@ -277,8 +284,8 @@ TEST_F(ConfigSynchronizationTest, InitialStatusMatchesOnConnect)
     auto serverSync = getServerSyncComponent();
     auto clientSync = getClientSyncComponent();
 
-    const SyncInterfacePtr serverInterface = serverSync.getSyncInterfaces().get("TestInterface");
-    const SyncInterfacePtr clientInterface = clientSync.getSyncInterfaces().get("TestInterface");
+    const SyncInterfacePtr serverInterface = serverSync.getInterfaces().get("TestInterface");
+    const SyncInterfacePtr clientInterface = clientSync.getInterfaces().get("TestInterface");
 
     const auto serverStatus = serverInterface.getStatusContainer().getStatus("SynchronizationSourceStatus");
     const auto clientStatus = clientInterface.getStatusContainer().getStatus("SynchronizationSourceStatus");
@@ -292,8 +299,8 @@ TEST_F(ConfigSynchronizationTest, StatusChangedPropagatesToClient)
     auto serverSync = getServerSyncComponent();
     auto clientSync = getClientSyncComponent();
 
-    const SyncInterfacePtr serverInterface = serverSync.getSyncInterfaces().get("TestInterface");
-    const SyncInterfacePtr clientInterface = clientSync.getSyncInterfaces().get("TestInterface");
+    const SyncInterfacePtr serverInterface = serverSync.getInterfaces().get("TestInterface");
+    const SyncInterfacePtr clientInterface = clientSync.getInterfaces().get("TestInterface");
 
     auto* impl = dynamic_cast<TestDeviceWithSync2Impl::TestSyncInterface*>(serverInterface.getObject());
     ASSERT_NE(impl, nullptr);
@@ -340,8 +347,8 @@ TEST_F(ConfigSynchronizationTest, RoleStatusChangedPropagatesToClient)
     auto serverSync = getServerSyncComponent();
     auto clientSync = getClientSyncComponent();
 
-    const SyncInterfacePtr serverInterface = serverSync.getSyncInterfaces().get("TestInterface");
-    const SyncInterfacePtr clientInterface = clientSync.getSyncInterfaces().get("TestInterface");
+    const SyncInterfacePtr serverInterface = serverSync.getInterfaces().get("TestInterface");
+    const SyncInterfacePtr clientInterface = clientSync.getInterfaces().get("TestInterface");
 
     auto* impl = dynamic_cast<TestDeviceWithSync2Impl::TestSyncInterface*>(serverInterface.getObject());
     ASSERT_NE(impl, nullptr);
@@ -363,8 +370,8 @@ TEST_F(ConfigSynchronizationTest, PtpInterfaceNestedPropertiesVisibleOnClient)
     auto serverSync = getServerSyncComponent();
     auto clientSync = getClientSyncComponent();
 
-    const SyncInterfacePtr serverInterface = serverSync.getSyncInterfaces().get("PtpSyncInterface");
-    const SyncInterfacePtr clientInterface = clientSync.getSyncInterfaces().get("PtpSyncInterface");
+    const SyncInterfacePtr serverInterface = serverSync.getInterfaces().get("PtpSyncInterface");
+    const SyncInterfacePtr clientInterface = clientSync.getInterfaces().get("PtpSyncInterface");
 
     const auto serverConfig = serverInterface.getConfiguration();
     const auto clientConfig = clientInterface.getConfiguration();
@@ -381,8 +388,8 @@ TEST_F(ConfigSynchronizationTest, PtpInterfaceNestedPropertyChangeFromClientProp
     auto serverSync = getServerSyncComponent();
     auto clientSync = getClientSyncComponent();
 
-    const SyncInterfacePtr serverInterface = serverSync.getSyncInterfaces().get("PtpSyncInterface");
-    const SyncInterfacePtr clientInterface = clientSync.getSyncInterfaces().get("PtpSyncInterface");
+    const SyncInterfacePtr serverInterface = serverSync.getInterfaces().get("PtpSyncInterface");
+    const SyncInterfacePtr clientInterface = clientSync.getInterfaces().get("PtpSyncInterface");
 
     const auto serverConfig = serverInterface.getConfiguration();
     const auto clientConfig = clientInterface.getConfiguration();

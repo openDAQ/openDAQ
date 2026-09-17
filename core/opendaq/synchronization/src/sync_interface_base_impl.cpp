@@ -84,9 +84,7 @@ ErrCode SyncInterfaceBaseImpl::getId(IString** id)
 
 ErrCode SyncInterfaceBaseImpl::getSyncType(IString** syncType)
 {
-    OPENDAQ_PARAM_NOT_NULL(syncType);
-    *syncType = String("").detach();
-    return OPENDAQ_SUCCESS;
+    return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOTIMPLEMENTED, "Sync interface did not override the method getSyncType");
 }
 
 ErrCode SyncInterfaceBaseImpl::getAvailableModes(IDict** availableModes)
@@ -96,7 +94,7 @@ ErrCode SyncInterfaceBaseImpl::getAvailableModes(IDict** availableModes)
     return OPENDAQ_SUCCESS;
 }
 
-ErrCode SyncInterfaceBaseImpl::canBeSource(Bool* canBeSource)
+ErrCode SyncInterfaceBaseImpl::getSourceSupported(Bool* canBeSource)
 {
     OPENDAQ_PARAM_NOT_NULL(canBeSource);
     *canBeSource = sourceModes.getCount() > 0;

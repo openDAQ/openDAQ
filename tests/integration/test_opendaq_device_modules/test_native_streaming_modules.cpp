@@ -10,6 +10,9 @@ using NativeStreamingModulesTest = testing::Test;
 
 using namespace daq;
 
+namespace test_native_streaming_modules
+{
+
 static InstancePtr CreateServerInstance(const AuthenticationProviderPtr& authenticationProvider)
 {
     auto logger = Logger();
@@ -996,3 +999,5 @@ TEST_F(NativeStreamingModulesTest, StreamDataLowMaxPacketReadCount)
     EXPECT_EQ(clientReceivedPackets.getCount(), packetsToRead);
     EXPECT_TRUE(test_helpers::packetsEqual(serverReceivedPackets, clientReceivedPackets));
 }
+}
+// namespace test_native_streaming_modules

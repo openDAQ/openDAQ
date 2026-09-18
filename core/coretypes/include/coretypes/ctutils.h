@@ -717,13 +717,13 @@ template <typename T>
 using IsEnumTypeEnum = std::enable_if<std::is_enum_v<T> && std::is_same_v<std::underlying_type_t<T>, EnumType>, int>;
 
 template <typename T, typename IsEnumTypeEnum<T>::type = 0>
-T operator|(T lhs, T rhs)
+constexpr T operator|(T lhs, T rhs)
 {
     return T(EnumType(lhs) | EnumType(rhs));
 }
 
 template <typename T, typename IsEnumTypeEnum<T>::type = 0>
-bool operator&(T lhs, T rhs)
+constexpr bool operator&(T lhs, T rhs)
 {
     return EnumType(lhs) & EnumType(rhs);
 }

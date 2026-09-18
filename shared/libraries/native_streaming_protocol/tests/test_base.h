@@ -14,6 +14,8 @@
  * limitations under the License.
  */
 
+#pragma once
+
 #include <gtest/gtest.h>
 
 #include <opendaq/opendaq.h>

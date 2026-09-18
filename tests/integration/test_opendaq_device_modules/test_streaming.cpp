@@ -23,6 +23,9 @@
 using namespace daq;
 using namespace std::chrono_literals;
 
+namespace test_streaming
+{
+
 // first param: streaming server type / streaming protocol
 // second param: client device connection string
 class StreamingTest : public testing::TestWithParam<std::tuple<std::string, std::string>>
@@ -1717,3 +1720,5 @@ INSTANTIATE_TEST_SUITE_P(
     testing::ValuesIn(StreamingTestForModernLt::GetLtTestSuite())
     );
 #endif
+}
+// namespace test_streaming

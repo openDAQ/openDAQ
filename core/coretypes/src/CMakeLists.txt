@@ -352,6 +352,14 @@ target_compile_features(${LIB_NAME} PRIVATE cxx_thread_local
                                     PUBLIC cxx_std_17
 )
 
+# The full coretypes.h umbrella cannot be precompiled here: it declares the class factories,
+# which the *_impl.cpp files re-declare via OPENDAQ_DEFINE_CLASS_FACTORY (C2572 on default args).
+opendaq_target_pch(${LIB_NAME}
+    <coretypes/intfs.h>
+    <coretypes/objectptr.h>
+    <coretypes/factory.h>
+)
+
 set_target_properties(${LIB_NAME} PROPERTIES PUBLIC_HEADER "${SRC_PublicHeaders}")
 set_target_properties(${LIB_NAME} PROPERTIES LIB_MAJOR_VERSION ${PROJECT_VERSION_MAJOR})
 

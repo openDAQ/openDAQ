@@ -77,6 +77,14 @@ list(APPEND SRC_PrivateHeaders ${SRC_ConfigClientObject_PrivateHeaders}
 add_library(${MODULE_NAME} STATIC ${SRC_HEADERS} ${SRC_Cpp} ${SRC_PublicHeaders} ${SRC_PrivateHeaders})
 add_library(${SDK_TARGET_NAMESPACE}::${BASE_NAME} ALIAS ${MODULE_NAME})
 
+# The protocol's own headers rather than opendaq.h: daq::PacketType would be ambiguous
+# with config_protocol::PacketType in TUs that pull both namespaces in.
+opendaq_target_pch(${MODULE_NAME}
+    <config_protocol/config_protocol_client.h>
+    <config_protocol/config_protocol_server.h>
+)
+opendaq_target_unity_libs(${MODULE_NAME} BATCH_SIZE 4)
+
 if (MSVC)
     target_compile_options(${MODULE_NAME} PRIVATE /bigobj)
 elseif (MINGW AND CMAKE_COMPILER_IS_GNUCXX)

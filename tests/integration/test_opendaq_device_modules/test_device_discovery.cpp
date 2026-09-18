@@ -9,6 +9,12 @@
 #include "test_helpers/device_modules.h"
 #include "test_helpers/test_helpers.h"
 
+#include <chrono>
+#include <future>
+#include <cstdlib>
+#include <mutex>
+#include <thread>
+
 using ModulesDeviceDiscoveryTest = testing::Test;
 
 using namespace daq;
@@ -380,4 +386,56 @@ TEST_F(ConnectedClientsDiscoveryTest, OpcuaConnectedClients)
         clientInstance.removeDevice(device);
         ASSERT_EQ(waitForConnectedClients(0).getCount(), 0u);
     }
+}
+
+// Removing a server unregisters its service under the device lock, while a query being answered
+// reads the device info; the answer must not hold the discovery server mutex over those reads.
+TEST_F(ModulesDeviceDiscoveryTest, RemoveServerWhileAnsweringQuery)
+{
+    struct Gate
+    {
+        std::once_flag once;
+        std::promise<void> answering;
+    };
+    const auto gate = std::make_shared<Gate>();
+    auto answering = gate->answering.get_future();
+
+    const auto serverInstance = InstanceBuilder()
+        .setModulePath("[[none]]")
+        .addDiscoveryServer("mdns")
+        .build();
+    addNativeServerModule(serverInstance);
+    const auto server = serverInstance.addServer("OpenDAQNativeStreaming", nullptr);
+    server.enableDiscovery();
+
+    // First device info read of an answer: let the remover take the device lock before the next read
+    serverInstance.getInfo().getOnPropertyValueRead("activeClientConnections") +=
+        [gate](PropertyObjectPtr&, PropertyValueEventArgsPtr&)
+        {
+            std::call_once(gate->once, [&]
+            {
+                gate->answering.set_value();
+                std::this_thread::sleep_for(std::chrono::milliseconds(500));
+            });
+        };
+
+    const auto clientInstance = Instance("[[none]]");
+    addNativeClientModule(clientInstance);
+    std::thread query([&clientInstance] { clientInstance.getAvailableDevices(); });
+
+    const bool queried = answering.wait_for(std::chrono::seconds(10)) == std::future_status::ready;
+    if (queried)
+    {
+        auto remover = std::async(std::launch::async, [&] { serverInstance.removeServer(server); });
+        if (remover.wait_for(std::chrono::seconds(10)) != std::future_status::ready)
+        {
+            // The remover and the mDNS thread wait for each other; nothing can unwind this process.
+            ADD_FAILURE() << "removeServer deadlocked with the query answer";
+            std::fflush(stdout);
+            std::_Exit(EXIT_FAILURE);
+        }
+    }
+    query.join();
+
+    ASSERT_TRUE(queried) << "no mDNS query reached the server";
 }

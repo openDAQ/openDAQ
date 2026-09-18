@@ -51,7 +51,21 @@ TEST_F(DevicesTest, SettingSyncComponent)
     InstancePtr instance = docs_test_helpers::setupInstance();
     TypeManagerPtr typeManager = instance.getContext().getTypeManager();
     DevicePtr device = instance.getRootDevice();
+#if defined(__GNUC__)
+    #pragma GCC diagnostic push
+    #pragma GCC diagnostic ignored "-Wdeprecated-declarations"
+#endif
+#ifdef _MSC_VER
+    #pragma warning(push)
+    #pragma warning(disable : 4996)
+#endif
     SyncComponentPtr syncComponent = device.getSyncComponent();
+#ifdef _MSC_VER
+    #pragma warning(pop)
+#endif
+#if defined(__GNUC__)
+    #pragma GCC diagnostic pop
+#endif
     SyncComponentPrivatePtr syncComponentPrivate = syncComponent.asPtr<ISyncComponentPrivate>(true);
 
     // The root device is a reference device which has a sync component with a PTP interface and a clock sync interface

@@ -39,3 +39,11 @@ daqErrCode daqInteger_createInteger(daqInteger** obj, daqInt value)
     *obj = reinterpret_cast<daqInteger*>(ptr);
     return err;
 }
+
+daqErrCode daqInteger_createIntegerFromPool(daqInteger** obj, daqInt value)
+{
+    daq::IInteger* ptr = nullptr;
+    daqErrCode err = daq::createIntegerFromPool(&ptr, value);
+    *obj = reinterpret_cast<daqInteger*>(ptr);
+    return err;
+}

@@ -18,6 +18,7 @@
 #include <coretypes/boolean.h>
 #include <coretypes/integer.h>
 #include <coretypes/stringobject.h>
+#include <coretypes/listobject.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
@@ -27,13 +28,6 @@ enum class TimeProtocol : EnumType
     Tai,
     Gps,
     Utc
-};
-
-enum class UsesOffset : EnumType
-{
-    Unknown,
-    True,
-    False
 };
 
 struct IReferenceDomainInfoBuilder;
@@ -96,12 +90,16 @@ DECLARE_OPENDAQ_INTERFACE(IReferenceDomainInfo, IBaseObject)
     virtual ErrCode INTERFACE_FUNC getReferenceTimeProtocol(TimeProtocol* referenceTimeProtocol) = 0;
 
     /*!
-     * @brief Gets the value that indicates if offset is used.
-     * @param[out] usesOffset The value that indicates if offset is used.
+     * @brief Gets the list of Reference Domain IDs.
+     * @param[out] referenceDomainIds The list of Reference Domain IDs.
      *
-     * If False, a device will contain time jumps due to resync in the domain signal data.
+     * If set, gives the list of all Reference Domain IDs contributing to this domain, in
+     * cases where a signal's domain aggregates data synchronized from more than one
+     * Reference Domain (eg. after merging streams from multiple synchronization sources).
      */
-    virtual ErrCode INTERFACE_FUNC getUsesOffset(UsesOffset * usesOffset) = 0;
+    // [templateType(referenceDomainIds, IString)]
+    virtual ErrCode INTERFACE_FUNC getReferenceDomainIds(IList** referenceDomainIds) = 0;
+
 };
 /*!@}*/
 

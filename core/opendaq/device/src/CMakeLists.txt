@@ -232,6 +232,7 @@ set(SRC_PrivateHeaders_Component
 
 set(SRC_Cpp_Component 
     device_info_impl.cpp
+    device_impl.cpp
     io_folder_impl.cpp
     device_type_impl.cpp
     core_opendaq_event_args_impl.cpp

@@ -18,18 +18,19 @@ DictPtr<IString, IBaseObject> ReferenceDomainInfoImpl::PackBuilder(IReferenceDom
     params.set("ReferenceDomainId", builderPtr.getReferenceDomainId());
     params.set("ReferenceDomainOffset", builderPtr.getReferenceDomainOffset());
     params.set("ReferenceTimeProtocol", static_cast<Int>(builderPtr.getReferenceTimeProtocol()));
-    params.set("UsesOffset", static_cast<Int>(builderPtr.getUsesOffset()));
+    params.set("UsesOffset", static_cast<Int>(0));
+    params.set("ReferenceDomainIds", builderPtr.getReferenceDomainIds());
     return params;
 }
 
 ReferenceDomainInfoImpl::ReferenceDomainInfoImpl(IReferenceDomainInfoBuilder* referenceDomainInfoBuilder)
     : Super(detail::referenceDomainInfoStructType, PackBuilder(referenceDomainInfoBuilder))
 {
-    const auto dataDescriptorBuilderPtr = ReferenceDomainInfoBuilderPtr(referenceDomainInfoBuilder);
+    const auto dataDescriptorBuilderPtr = ReferenceDomainInfoBuilderPtr::Borrow(referenceDomainInfoBuilder);
     this->referenceDomainId = dataDescriptorBuilderPtr.getReferenceDomainId();
+    this->referenceDomainIds = dataDescriptorBuilderPtr.getReferenceDomainIds();
     this->referenceDomainOffset = dataDescriptorBuilderPtr.getReferenceDomainOffset();
     this->referenceTimeProtocol = dataDescriptorBuilderPtr.getReferenceTimeProtocol();
-    this->usesOffset = dataDescriptorBuilderPtr.getUsesOffset();
 }
 
 ErrCode INTERFACE_FUNC ReferenceDomainInfoImpl::getReferenceDomainId(IString** referenceDomainId)
@@ -37,6 +38,15 @@ ErrCode INTERFACE_FUNC ReferenceDomainInfoImpl::getReferenceDomainId(IString** r
     OPENDAQ_PARAM_NOT_NULL(referenceDomainId);
 
     *referenceDomainId = this->referenceDomainId.addRefAndReturn();
+
+    return OPENDAQ_SUCCESS;
+}
+
+ErrCode INTERFACE_FUNC ReferenceDomainInfoImpl::getReferenceDomainIds(IList** referenceDomainIds)
+{
+    OPENDAQ_PARAM_NOT_NULL(referenceDomainIds);
+
+    *referenceDomainIds = this->referenceDomainIds.addRefAndReturn();
 
     return OPENDAQ_SUCCESS;
 }
@@ -59,15 +69,6 @@ ErrCode INTERFACE_FUNC ReferenceDomainInfoImpl::getReferenceTimeProtocol(TimePro
     return OPENDAQ_SUCCESS;
 }
 
-ErrCode INTERFACE_FUNC ReferenceDomainInfoImpl::getUsesOffset(UsesOffset* usesOffset)
-{
-    OPENDAQ_PARAM_NOT_NULL(usesOffset);
-
-    *usesOffset = this->usesOffset;
-
-    return OPENDAQ_SUCCESS;
-}
-
 ErrCode INTERFACE_FUNC ReferenceDomainInfoImpl::equals(IBaseObject* other, Bool* equals) const
 {
     const ErrCode errCode = daqTry([this, &other, &equals]()
@@ -85,11 +86,11 @@ ErrCode INTERFACE_FUNC ReferenceDomainInfoImpl::equals(IBaseObject* other, Bool*
 
         if (!BaseObjectPtr::Equals(referenceDomainId, info.getReferenceDomainId()))
             return OPENDAQ_SUCCESS;
+        if (!BaseObjectPtr::Equals(referenceDomainIds, info.getReferenceDomainIds()))
+            return OPENDAQ_SUCCESS;
         if (!BaseObjectPtr::Equals(referenceDomainOffset, info.getReferenceDomainOffset()))
             return OPENDAQ_SUCCESS;
         if (referenceTimeProtocol != info.getReferenceTimeProtocol())
-            return OPENDAQ_SUCCESS;
-        if (usesOffset != info.getUsesOffset())
             return OPENDAQ_SUCCESS;
 
         *equals = true;
@@ -111,6 +112,15 @@ ErrCode ReferenceDomainInfoImpl::serialize(ISerializer* serializer)
             serializer->writeString(referenceDomainId.getCharPtr(), referenceDomainId.getLength());
         }
 
+        if (referenceDomainIds.assigned())
+        {
+            serializer->key("referenceDomainIds");
+            serializer->startList();
+            for (const auto& id : referenceDomainIds)
+                serializer->writeString(id.getCharPtr(), id.getLength());
+            serializer->endList();
+        }
+
         if (referenceDomainOffset.assigned())
         {
             serializer->key("referenceDomainOffset");
@@ -119,9 +129,6 @@ ErrCode ReferenceDomainInfoImpl::serialize(ISerializer* serializer)
 
         serializer->key("referenceTimeSource");
         serializer->writeInt(static_cast<Int>(referenceTimeProtocol));
-
-        serializer->key("usesOffset");
-        serializer->writeInt(static_cast<Int>(usesOffset));
     }
     serializer->endObject();
 
@@ -159,6 +166,12 @@ ErrCode ReferenceDomainInfoImpl::Deserialize(ISerializedObject* serialized, IBas
         dataDescriptor.setReferenceDomainId(referenceDomainId);
     }
 
+    if (serializedObj.hasKey("referenceDomainIds"))
+    {
+        auto referenceDomainIds = serializedObj.readList<IString>("referenceDomainIds");
+        dataDescriptor.setReferenceDomainIds(referenceDomainIds);
+    }
+
     if (serializedObj.hasKey("referenceDomainOffset"))
     {
         auto referenceDomainOffset = serializedObj.readInt("referenceDomainOffset");
@@ -169,12 +182,6 @@ ErrCode ReferenceDomainInfoImpl::Deserialize(ISerializedObject* serialized, IBas
     {
         auto referenceTimeProtocol = static_cast<TimeProtocol>(serializedObj.readInt("referenceTimeSource"));
         dataDescriptor.setReferenceTimeProtocol(referenceTimeProtocol);
-    }
-
-    if (serializedObj.hasKey("usesOffset"))
-    {
-        auto usesOffset = static_cast<UsesOffset>(serializedObj.readInt("usesOffset"));
-        dataDescriptor.setUsesOffset(usesOffset);
     }
 
     *obj = dataDescriptor.build().as<IBaseObject>();

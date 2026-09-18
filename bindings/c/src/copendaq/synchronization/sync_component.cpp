@@ -42,10 +42,10 @@ daqErrCode daqSyncComponent_getInterfaces(daqSyncComponent* self, daqDict** inte
     return reinterpret_cast<daq::ISyncComponent*>(self)->getInterfaces(reinterpret_cast<daq::IDict**>(interfaces));
 }
 
-daqErrCode daqSyncComponent_createSyncComponent(daqSyncComponent** obj, daqContext* context, daqComponent* ParseFailedException, daqString* localId)
+daqErrCode daqSyncComponent_createSyncComponent(daqSyncComponent** obj, daqContext* context, daqComponent* parent, daqString* localId)
 {
     daq::ISyncComponent* ptr = nullptr;
-    daqErrCode err = daq::createSyncComponent(&ptr, reinterpret_cast<daq::IContext*>(context), reinterpret_cast<daq::IComponent*>(ParseFailedException), reinterpret_cast<daq::IString*>(localId));
+    daqErrCode err = daq::createSyncComponent(&ptr, reinterpret_cast<daq::IContext*>(context), reinterpret_cast<daq::IComponent*>(parent), reinterpret_cast<daq::IString*>(localId));
     *obj = reinterpret_cast<daqSyncComponent*>(ptr);
     return err;
 }

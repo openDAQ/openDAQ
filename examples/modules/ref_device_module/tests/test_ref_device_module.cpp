@@ -213,17 +213,6 @@ TEST_F(RefDeviceModuleTest, DeviceDomainReferenceTimeProtocol)
     ASSERT_EQ(res, TimeProtocol::Unknown);
 }
 
-TEST_F(RefDeviceModuleTest, DeviceDomainUsesOffset)
-{
-    auto module = CreateModule();
-
-    auto device = module.createDevice("daqref://device1", nullptr);
-    auto domain = device.getDomain();
-
-    auto res = domain.getReferenceDomainInfo().getUsesOffset();
-    ASSERT_EQ(res, UsesOffset::Unknown);
-}
-
 TEST_F(RefDeviceModuleTest, DeviceDomainSignal)
 {
     const auto module = CreateModule();

@@ -294,7 +294,22 @@ void defineIDevice(pybind11::module_ m, PyDaqIntf<daq::IDevice, daq::IFolder> cl
         {
             py::gil_scoped_release release;
             const auto objectPtr = daq::DevicePtr::Borrow(object);
+            // getSyncComponent() is deprecated on the C++ side, but the Python property still needs to forward to it
+#if defined(__GNUC__)
+    #pragma GCC diagnostic push
+    #pragma GCC diagnostic ignored "-Wdeprecated-declarations"
+#endif
+#ifdef _MSC_VER
+    #pragma warning(push)
+    #pragma warning(disable : 4996)
+#endif
             return objectPtr.getSyncComponent().detach();
+#ifdef _MSC_VER
+    #pragma warning(pop)
+#endif
+#if defined(__GNUC__)
+    #pragma GCC diagnostic pop
+#endif
         },
         py::return_value_policy::take_ownership,
         "Gets the sync component of the device.");

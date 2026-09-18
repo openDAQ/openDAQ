@@ -8,6 +8,10 @@
 
 using namespace daq;
 
+namespace test_baseobject
+{
+
+
 using BaseObjectTest = testing::Test;
 
 TEST_F(BaseObjectTest, Create)
@@ -35,11 +39,11 @@ TEST_F(BaseObjectTest, CreateNullParam)
     ASSERT_ERROR_CODE_EQ(res, OPENDAQ_ERR_ARGUMENT_NULL);
 }
 
-static constexpr auto INTERFACE_ID = FromTemplatedTypeName("IBaseObject", "daq");
+static constexpr auto BASEOBJECT_INTERFACE_ID = FromTemplatedTypeName("IBaseObject", "daq");
 
 TEST_F(BaseObjectTest, InterfaceId)
 {
-    ASSERT_EQ(INTERFACE_ID, IBaseObject::Id);
+    ASSERT_EQ(BASEOBJECT_INTERFACE_ID, IBaseObject::Id);
 }
 
 TEST_F(BaseObjectTest, InterfaceIdString)
@@ -221,3 +225,5 @@ TEST_F(BaseObjectTest, ImplementationName)
     StringPtr className = obj.asPtr<IInspectable>(true).getRuntimeClassName();
     ASSERT_EQ(className, "daq::BaseObjectImpl");
 }
+}
+// namespace test_baseobject

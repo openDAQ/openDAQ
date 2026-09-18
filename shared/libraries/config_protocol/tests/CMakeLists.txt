@@ -60,6 +60,10 @@ opendaq_target_pch(${TEST_APP}
     <config_protocol/config_client_object_ptr.h>
 )
 
+# test_app.cpp defines main() and must stay its own translation unit.
+set_source_files_properties(test_app.cpp PROPERTIES SKIP_UNITY_BUILD_INCLUSION ON)
+opendaq_target_unity_tests(${TEST_APP} BATCH_SIZE 4)
+
 add_test(NAME ${TEST_APP}
     COMMAND $<TARGET_FILE_NAME:${TEST_APP}>
     WORKING_DIRECTORY $<TARGET_FILE_DIR:${TEST_APP}>

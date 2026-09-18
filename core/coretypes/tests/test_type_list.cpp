@@ -7,6 +7,10 @@
 
 using namespace daq;
 
+namespace test_type_list
+{
+
+
 using TypeListTest = testing::Test;
 using TypeList = Args<int, bool, float>;
 
@@ -283,3 +287,5 @@ TEST_F(TypeListTest, Flatten)
 
     ASSERT_TRUE((std::is_same_v<Expected, Flat>));
 }
+}
+// namespace test_type_list

@@ -4,6 +4,10 @@
 
 using namespace daq::object_pool;
 
+namespace test_object_pool
+{
+
+
 static unsigned int g_seed = 656121;
 
 inline int fast_rand(void)
@@ -195,3 +199,5 @@ TEST(ObjectPoolTest, SpeedWithPool)
 
     pool.cleanup();
 }
+}
+// namespace test_object_pool

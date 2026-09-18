@@ -13,7 +13,7 @@ class InputPortNotifications : public ImplementationOfWeak<IInputPortNotificatio
 {
 public:
 
-    ErrCode INTERFACE_FUNC acceptsSignal(IInputPort* port, ISignal* signal, Bool* accept) override
+    ErrCode INTERFACE_FUNC acceptsSignal(IInputPort* port, ISignal* signal, daq::Bool* accept) override
     {
         OPENDAQ_PARAM_NOT_NULL(port);
         OPENDAQ_PARAM_NOT_NULL(signal);

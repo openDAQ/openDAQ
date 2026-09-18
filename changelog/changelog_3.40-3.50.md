@@ -29,6 +29,7 @@
 - [#1251](https://github.com/openDAQ/openDAQ/pull/1251), [#1269](https://github.com/openDAQ/openDAQ/pull/1269), [#1278](https://github.com/openDAQ/openDAQ/pull/1278) OpenSSL (>= 1.1.1) is a build dependency of the SDK when `OPENDAQ_ENABLE_WEBSOCKET_STREAMING_WITH_TLS` is on. Unlike most other dependencies it is not fetched automatically and has to be installed on the host system: `libssl-dev` on Debian/Ubuntu (`libssl-dev:i386` for 32-bit builds), `openssl-devel` on RHEL-based distributions. The build documentation and all CI, packaging and docs jobs were updated accordingly.
 - [#1307](https://github.com/openDAQ/openDAQ/pull/1307) Precompiled headers and unity builds through opendaq-cmake-utils v1.1.0, on by default.
 - [#1310](https://github.com/openDAQ/openDAQ/pull/1310) Provide `OPENDAQ_PACKAGE_VERSION` through a generated header. Use `/MP` for VS CI jobs.
+- [#1314](https://github.com/openDAQ/openDAQ/pull/1314) Cache the FetchContent sources between CI runs.
 
 ## Required application changes
 

@@ -22,6 +22,8 @@
 #include <functional>
 #include <optional>
 #include <fstream>
+#include <cstdlib>
+#include <map>
 #include <boost/asio/ip/tcp.hpp>
 #include <boost/asio/io_service.hpp>
 
@@ -353,6 +355,77 @@ namespace test_helpers
     inline InstancePtr createInstance(const std::string& modulePath = "", const std::string& localId = "")
     {
         return InstanceFromBuilder(instanceBuilder().setModulePath(modulePath).setDefaultRootDeviceLocalId(localId));
+    }
+
+    // Port offset of this test process. The ctest shard entries set OPENDAQ_TEST_PORT_OFFSET so that concurrent
+    // shards, and the tests on the default ports, never share a port. Unset, the module defaults stay untouched.
+    [[maybe_unused]]
+    inline int portOffset()
+    {
+        static const int offset = []
+        {
+            const char* value = std::getenv("OPENDAQ_TEST_PORT_OFFSET");
+            return value ? std::atoi(value) : 0;
+        }();
+        return offset;
+    }
+
+    [[maybe_unused]]
+    inline uint16_t serverPort(uint16_t defaultPort)
+    {
+        return static_cast<uint16_t>(defaultPort + portOffset());
+    }
+
+    // The server config with every port property shifted by the offset; a null config starts from the server defaults
+    [[maybe_unused]]
+    inline PropertyObjectPtr serverConfig(const InstancePtr& instance, const std::string& serverType, PropertyObjectPtr config = nullptr)
+    {
+        if (portOffset() == 0)
+            return config;
+
+        if (!config.assigned())
+            config = instance.getAvailableServerTypes().get(serverType).createDefaultConfig();
+
+        for (const char* name : {"NativeStreamingPort", "WebsocketStreamingPort", "WebsocketControlPort", "TlsWebsocketStreamingPort", "Port"})
+            if (config.hasProperty(name))
+                config.setPropertyValue(name, static_cast<Int>(config.getPropertyValue(name)) + portOffset());
+
+        return config;
+    }
+
+    [[maybe_unused]]
+    inline ServerPtr addServer(const InstancePtr& instance, const std::string& serverType, const PropertyObjectPtr& config = nullptr)
+    {
+        return instance.addServer(serverType, serverConfig(instance, serverType, config));
+    }
+
+    // Puts the shifted default port into a connection string that has none: daq.nd://[::1]/ -> daq.nd://[::1]:7520/
+    [[maybe_unused]]
+    inline std::string withPort(const std::string& connectionString)
+    {
+        if (portOffset() == 0)
+            return connectionString;
+
+        static const std::map<std::string, uint16_t> defaultPorts{
+            {"daq.nd", 7420}, {"daq.ns", 7420}, {"daq.lt", 7414}, {"daq.lts", 7415}, {"daq.opcua", 4840}};
+
+        const auto schemeEnd = connectionString.find("://");
+        if (schemeEnd == std::string::npos)
+            return connectionString;
+        const auto port = defaultPorts.find(connectionString.substr(0, schemeEnd));
+        if (port == defaultPorts.end())
+            return connectionString;
+
+        const auto hostStart = schemeEnd + 3;
+        auto hostEnd = connectionString[hostStart] == '['
+                           ? connectionString.find(']', hostStart) + 1
+                           : connectionString.find_first_of(":/", hostStart);
+        if (hostEnd == std::string::npos)
+            hostEnd = connectionString.size();
+        if (hostEnd < connectionString.size() && connectionString[hostEnd] == ':')
+            return connectionString;
+
+        return connectionString.substr(0, hostEnd) + ":" + std::to_string(serverPort(port->second)) + connectionString.substr(hostEnd);
     }
 
     // Whether every visible signal under the device is mirrored with the given number of streaming sources and an active one.

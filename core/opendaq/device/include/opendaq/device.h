@@ -287,6 +287,7 @@ DECLARE_OPENDAQ_INTERFACE(IDevice, IFolder)
     /*!
      * @brief Gets the sync component of the device.
      * @param[out] sync The sync component.
+     * @deprecated ISyncComponent and getSyncComponent are deprecated and will be removed in a future release.
      */
     virtual ErrCode INTERFACE_FUNC getSyncComponent(ISyncComponent** sync) = 0;
 

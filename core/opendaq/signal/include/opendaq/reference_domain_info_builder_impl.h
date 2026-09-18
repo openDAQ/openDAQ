@@ -40,15 +40,11 @@ public:
     ErrCode INTERFACE_FUNC setReferenceTimeProtocol(TimeProtocol referenceTimeProtocol) override;
     ErrCode INTERFACE_FUNC getReferenceTimeProtocol(TimeProtocol* referenceTimeProtocol) override;
 
-    ErrCode INTERFACE_FUNC setUsesOffset(UsesOffset referenceTimeProtocol) override;
-    ErrCode INTERFACE_FUNC getUsesOffset(UsesOffset* referenceTimeProtocol) override;
-
 protected:
     StringPtr referenceDomainId;
     ListPtr<IString> referenceDomainIds;
     IntegerPtr referenceDomainOffset;
     TimeProtocol referenceTimeProtocol;
-    UsesOffset usesOffset;
 };
 
 END_NAMESPACE_OPENDAQ

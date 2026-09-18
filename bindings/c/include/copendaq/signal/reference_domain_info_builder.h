@@ -50,8 +50,6 @@ extern "C"
     daqErrCode EXPORTED daqReferenceDomainInfoBuilder_getReferenceDomainOffset(daqReferenceDomainInfoBuilder* self, daqInteger** referenceDomainOffset);
     daqErrCode EXPORTED daqReferenceDomainInfoBuilder_setReferenceTimeProtocol(daqReferenceDomainInfoBuilder* self, daqTimeProtocol referenceTimeProtocol);
     daqErrCode EXPORTED daqReferenceDomainInfoBuilder_getReferenceTimeProtocol(daqReferenceDomainInfoBuilder* self, daqTimeProtocol* referenceTimeProtocol);
-    daqErrCode EXPORTED daqReferenceDomainInfoBuilder_setUsesOffset(daqReferenceDomainInfoBuilder* self, daqUsesOffset usesOffset);
-    daqErrCode EXPORTED daqReferenceDomainInfoBuilder_getUsesOffset(daqReferenceDomainInfoBuilder* self, daqUsesOffset* usesOffset);
     daqErrCode EXPORTED daqReferenceDomainInfoBuilder_setReferenceDomainIds(daqReferenceDomainInfoBuilder* self, daqList* referenceDomainIds);
     daqErrCode EXPORTED daqReferenceDomainInfoBuilder_getReferenceDomainIds(daqReferenceDomainInfoBuilder* self, daqList** referenceDomainIds);
     daqErrCode EXPORTED daqReferenceDomainInfoBuilder_createReferenceDomainInfoBuilder(daqReferenceDomainInfoBuilder** obj);

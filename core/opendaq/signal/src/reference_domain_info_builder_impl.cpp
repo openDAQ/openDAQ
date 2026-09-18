@@ -10,7 +10,6 @@ ReferenceDomainInfoBuilderImpl::ReferenceDomainInfoBuilderImpl()
     , referenceDomainIds(nullptr)
     , referenceDomainOffset(nullptr)
     , referenceTimeProtocol(TimeProtocol::Unknown)
-    , usesOffset(UsesOffset::Unknown)
 {
 }
 
@@ -19,7 +18,6 @@ ReferenceDomainInfoBuilderImpl::ReferenceDomainInfoBuilderImpl(const ReferenceDo
     , referenceDomainIds(infoCopy.getReferenceDomainIds())
     , referenceDomainOffset(infoCopy.getReferenceDomainOffset())
     , referenceTimeProtocol(infoCopy.getReferenceTimeProtocol())
-    , usesOffset(infoCopy.getUsesOffset())
 {
 }
 
@@ -86,19 +84,6 @@ ErrCode ReferenceDomainInfoBuilderImpl::getReferenceTimeProtocol(TimeProtocol* r
 {
     OPENDAQ_PARAM_NOT_NULL(referenceTimeProtocol);
     *referenceTimeProtocol = this->referenceTimeProtocol;
-    return OPENDAQ_SUCCESS;
-}
-
-ErrCode ReferenceDomainInfoBuilderImpl::setUsesOffset(UsesOffset usesOffset)
-{
-    this->usesOffset = usesOffset;
-    return OPENDAQ_SUCCESS;
-}
-
-ErrCode ReferenceDomainInfoBuilderImpl::getUsesOffset(UsesOffset* usesOffset)
-{
-    OPENDAQ_PARAM_NOT_NULL(usesOffset);
-    *usesOffset = this->usesOffset;
     return OPENDAQ_SUCCESS;
 }
 

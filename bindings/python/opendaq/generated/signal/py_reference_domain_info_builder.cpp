@@ -94,20 +94,6 @@ void defineIReferenceDomainInfoBuilder(pybind11::module_ m, PyDaqIntf<daq::IRefe
             objectPtr.setReferenceTimeProtocol(referenceTimeProtocol);
         },
         "Gets the value that indicates the Reference Time Source. / Sets the value that indicates the Reference Time Source.");
-    cls.def_property("uses_offset",
-        [](daq::IReferenceDomainInfoBuilder *object)
-        {
-            py::gil_scoped_release release;
-            const auto objectPtr = daq::ReferenceDomainInfoBuilderPtr::Borrow(object);
-            return objectPtr.getUsesOffset();
-        },
-        [](daq::IReferenceDomainInfoBuilder *object, daq::UsesOffset usesOffset)
-        {
-            py::gil_scoped_release release;
-            const auto objectPtr = daq::ReferenceDomainInfoBuilderPtr::Borrow(object);
-            objectPtr.setUsesOffset(usesOffset);
-        },
-        "Gets the value that indicates if offset is used. / Sets the value that indicates if offset is used.");
     cls.def_property("reference_domain_ids",
         [](daq::IReferenceDomainInfoBuilder *object)
         {

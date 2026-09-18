@@ -11,7 +11,6 @@ TEST_F(DeviceDomainTest, DeviceDomainGetters)
                     .setReferenceDomainId("ReferenceDomainId")
                     .setReferenceDomainOffset(666)
                     .setReferenceTimeProtocol(TimeProtocol::Tai)
-                    .setUsesOffset(UsesOffset::True)
                     .build();
     auto deviceDomain = DeviceDomain(Ratio(1, 3), "1993", Unit("Symbol", -1, "Name", "Quantity"), info);
 
@@ -38,7 +37,6 @@ TEST_F(DeviceDomainTest, SerializeDeserialize)
                     .setReferenceDomainId("ReferenceDomainId")
                     .setReferenceDomainOffset(666)
                     .setReferenceTimeProtocol(TimeProtocol::Tai)
-                    .setUsesOffset(UsesOffset::True)
                     .build();
     auto deviceDomain = DeviceDomain(Ratio(1, 3), "1993", Unit("Symbol", -1, "Name", "Quantity"), info);
     auto serializer = JsonSerializer(False);

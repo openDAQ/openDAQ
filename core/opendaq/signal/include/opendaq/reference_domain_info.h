@@ -30,13 +30,6 @@ enum class TimeProtocol : EnumType
     Utc
 };
 
-enum class UsesOffset : EnumType
-{
-    Unknown,
-    True,
-    False
-};
-
 struct IReferenceDomainInfoBuilder;
 
 /*#
@@ -95,14 +88,6 @@ DECLARE_OPENDAQ_INTERFACE(IReferenceDomainInfo, IBaseObject)
      * both driven through GPS can be read together, as their absolute time is the same).
      */
     virtual ErrCode INTERFACE_FUNC getReferenceTimeProtocol(TimeProtocol* referenceTimeProtocol) = 0;
-
-    /*!
-     * @brief Gets the value that indicates if offset is used.
-     * @param[out] usesOffset The value that indicates if offset is used.
-     *
-     * If False, a device will contain time jumps due to resync in the domain signal data.
-     */
-    virtual ErrCode INTERFACE_FUNC getUsesOffset(UsesOffset * usesOffset) = 0;
 
     /*!
      * @brief Gets the list of Reference Domain IDs.

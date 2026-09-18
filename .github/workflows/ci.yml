@@ -23,8 +23,9 @@ jobs:
   ci:
     if: ${{ ! github.event.pull_request.draft }}
     name: openDAQ
-    uses: openDAQ/openDAQ-CI/.github/workflows/reusable.yml@v2
+    uses: openDAQ/openDAQ-CI/.github/workflows/reusable.yml@v3
     with:
+      cache-externals: true
       timeout: '[{"timeout-minutes": 270}]'
       include-jobs: >
         [
@@ -37,9 +38,9 @@ jobs:
           "ubuntu-24.04-x86_64-ninja-gcc-14-debug",
           "ubuntu-24.04-x86_64-ninja-gcc-14-release",
           "ubuntu-24.04-x86_64-ninja-clang-18-release",
-          "macos-26-x86_64-ninja-appleclang-debug",
-          "macos-26-armv8-ninja-appleclang-release",
-          "macos-15-x86_64-ninja-appleclang-release"
+          "macos-26-x86_64-ninja-appleclang-17-debug",
+          "macos-26-armv8-ninja-appleclang-21-release",
+          "macos-26-x86_64-ninja-appleclang-21-release"
         ]
       packages: >
         [

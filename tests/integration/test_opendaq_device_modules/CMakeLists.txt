@@ -81,6 +81,7 @@ add_test(NAME ${TEST_APP}
          COMMAND $<TARGET_FILE_NAME:${TEST_APP}>
          WORKING_DIRECTORY $<TARGET_FILE_DIR:${TEST_APP}>
 )
+opendaq_test_resource_lock(${TEST_APP} network_native network_lt network_opcua mdns)
 
 target_compile_definitions(${TEST_APP} PRIVATE OPENDAQ_SKIP_DLL_IMPORT)
 

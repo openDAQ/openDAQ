@@ -23,7 +23,7 @@ jobs:
   ci:
     if: ${{ ! github.event.pull_request.draft }}
     name: openDAQ
-    uses: openDAQ/openDAQ-CI/.github/workflows/reusable.yml@v3
+    uses: openDAQ/openDAQ-CI/.github/workflows/reusable.yml@ci/cache-externals
     with:
       cache-externals: true
       timeout: '[{"timeout-minutes": 270}]'

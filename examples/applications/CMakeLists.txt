@@ -291,3 +291,11 @@ if (APP_ENABLE_WEBPAGE_EXAMPLES)
     endif()
 
 endif()
+
+# Shared precompiled header for the example apps: each example is a single source file, too
+# small to justify its own PCH, so they all reuse one built against daq::opendaq.
+# c_application_tutorial is a C target and cannot reuse a C++ PCH.
+opendaq_directory_pch(examples
+    HEADERS <opendaq/opendaq.h>
+    EXCLUDE "^c_application_tutorial$"
+)

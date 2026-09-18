@@ -49,6 +49,17 @@ endif()
 
 set_target_properties(${TEST_APP} PROPERTIES DEBUG_POSTFIX _debug)
 
+# opendaq.h would make daq::PacketType ambiguous with config_protocol::PacketType in the tests.
+opendaq_target_pch(${TEST_APP}
+    <coreobjects/coreobjects.h>
+    <gtest/gtest.h>
+    # config_client_object.h names IComponent without including it, so the component
+    # pointer header has to come first; the config pointer header itself has to be seen
+    # before anything instantiates ObjectPtr<IConfigClientObject>.
+    <opendaq/component_ptr.h>
+    <config_protocol/config_client_object_ptr.h>
+)
+
 add_test(NAME ${TEST_APP}
     COMMAND $<TARGET_FILE_NAME:${TEST_APP}>
     WORKING_DIRECTORY $<TARGET_FILE_DIR:${TEST_APP}>

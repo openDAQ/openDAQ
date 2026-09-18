@@ -17,6 +17,11 @@ opendaq_prepare_test_runner(TEST_APP FOR ${MODULE_NAME}
                            ${TEST_HEADERS}
 )
 
+opendaq_target_pch_group(${TEST_APP} opendaq_tests <opendaq/opendaq.h> <gtest/gtest.h>)
+
+# Sets OPENDAQ_LOG_LEVEL before its includes, which the PCH would pre-empt.
+set_source_files_properties(test_logger_component.cpp PROPERTIES SKIP_PRECOMPILE_HEADERS ON)
+
 add_test(NAME ${TEST_APP}
          COMMAND $<TARGET_FILE_NAME:${TEST_APP}>
          WORKING_DIRECTORY $<TARGET_FILE_DIR:${TEST_APP}>

@@ -34,6 +34,8 @@ add_library(${LIB_NAME} STATIC ${SRC_Cpp}
 
 add_library(${SDK_TARGET_NAMESPACE}::${BASE_NAME} ALIAS ${LIB_NAME})
 
+opendaq_target_pch(${LIB_NAME} <opendaq/opendaq.h> <boost/asio.hpp>)
+
 if(BUILD_64Bit OR BUILD_ARM)
     set_target_properties(${LIB_NAME} PROPERTIES POSITION_INDEPENDENT_CODE ON)
 else()

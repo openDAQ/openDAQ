@@ -116,6 +116,8 @@ set(SRC_Cpp
 add_library(${LIB_NAME} STATIC ${SRC_Headers} ${SRC_Cpp})
 add_library(${SDK_TARGET_NAMESPACE}::${LIB_NAME} ALIAS ${LIB_NAME})
 
+opendaq_target_pch(${LIB_NAME} <py_opendaq/py_opendaq.h>)
+
 target_link_libraries(${LIB_NAME}
     PUBLIC
         daq::py_core_types

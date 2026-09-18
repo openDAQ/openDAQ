@@ -105,4 +105,6 @@ The following options might be used to customize the build passing them in the *
 | `OPENDAQ_DEBUG_WARNINGS_AS_ERRORS` | Bool | `OFF` | Treat debug warnings as errors | - |
 | `OPENDAQ_RELEASE_WARNINGS_AS_ERRORS` | Bool | `ON` | Treat release warnings as errors | - |
 | `OPENDAQ_USE_CCACHE` | Bool | `ON` | Use compiler cache driver if available | - |
+| `OPENDAQ_ENABLE_BUILD_ACCELERATION` | Bool | `ON` | Precompiled headers and unity builds (from opendaq-cmake-utils). Costs disk space (several GB of PCH in a full build) and incremental rebuild granularity | OFF overrides the options below |
+| `OPENDAQ_ENABLE_PCH` | Bool | `ON` | Use precompiled headers. Not applied with the Intel compiler (breaks `std::exception_ptr` copies) | Needs `OPENDAQ_ENABLE_BUILD_ACCELERATION` |
 | `OPENDAQ_FORCE_LLD_LINKER` | Bool | `OFF` | Force the use of the fast LLVM LLD linker | - |

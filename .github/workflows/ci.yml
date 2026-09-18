@@ -2,6 +2,15 @@ name: Build and Test openDAQ
 
 on:
   workflow_dispatch:
+    inputs:
+      cmake_preset:
+        type: string
+        required: false
+        default: "ci"
+      ctest_preset:
+        type: string
+        required: false
+        default: "run_tests"
   pull_request:
     types: [opened, reopened, synchronize, ready_for_review]
   workflow_call:

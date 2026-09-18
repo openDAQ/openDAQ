@@ -399,10 +399,10 @@
         },
         {
             "name": "run_tests_parallel",
-            "description": "Run all tests excluding unstable ones, four at a time; RESOURCE_LOCK keeps port and mDNS users apart",
+            "description": "Run all tests excluding unstable ones, six at a time; RESOURCE_LOCK keeps port and mDNS users apart",
             "inherits": "run_tests",
             "execution": {
-                "jobs": 4
+                "jobs": 6
             }
         },
         {

@@ -22,7 +22,7 @@ namespace test_opcua_device_modules
 
 static InstancePtr CreateServerInstance(const AuthenticationProviderPtr& authenticationProvider)
 {
-    auto instance = InstanceBuilder()
+    auto instance = test_helpers::instanceBuilder()
         .setDefaultRootDeviceLocalId("local")
         .setModulePath("[[none]]")
         .setAuthenticationProvider(authenticationProvider)
@@ -56,7 +56,7 @@ static InstancePtr CreateServerInstance()
     return CreateServerInstance(AuthenticationProvider());
 }
 
-static InstancePtr CreateClientInstance(const InstanceBuilderPtr& builder = InstanceBuilder())
+static InstancePtr CreateClientInstance(const InstanceBuilderPtr& builder = test_helpers::instanceBuilder())
 {
     const auto deviceInfo = DeviceInfoWithChanegableFields(List<IString>("userName", "location"));
 
@@ -92,7 +92,7 @@ TEST_F(OpcuaDeviceModulesTest, FailedToSetAsRoot)
 {
     auto server = CreateServerInstance();
 
-    auto client = Instance("[[none]]");
+    auto client = test_helpers::createInstance("[[none]]");
     addOpcuaClientModule(client);
 
     ASSERT_THROW(client.setRootDevice("daq.opcua://127.0.0.1"), InvalidParameterException);
@@ -107,7 +107,7 @@ TEST_F(OpcuaDeviceModulesTest, ConnectViaIpv6)
 
     auto server = CreateServerInstance();
 
-    auto client = Instance("[[none]]");
+    auto client = test_helpers::createInstance("[[none]]");
     addOpcuaClientModule(client);
 
     client.addDevice("daq.opcua://[::1]");
@@ -131,7 +131,7 @@ TEST_F(OpcuaDeviceModulesTest, PopulateDefaultConfigFromProvider)
     auto finally = test_helpers::CreateConfigFile(filename, json);
 
     auto provider = JsonConfigProvider(filename);
-    auto instance = InstanceBuilder()
+    auto instance = test_helpers::instanceBuilder()
         .setModulePath("[[none]]")
         .addConfigProvider(provider)
         .build();
@@ -145,7 +145,7 @@ TEST_F(OpcuaDeviceModulesTest, PopulateDefaultConfigFromProvider)
 
 TEST_F(OpcuaDeviceModulesTest, DiscoveringServer)
 {
-    auto server = InstanceBuilder()
+    auto server = test_helpers::instanceBuilder()
         .setModulePath("[[none]]")
         .addDiscoveryServer("mdns")
         .setDefaultRootDeviceLocalId("local")
@@ -160,7 +160,7 @@ TEST_F(OpcuaDeviceModulesTest, DiscoveringServer)
     serverConfig.setPropertyValue("Path", path);
     server.addServer("OpenDAQOPCUA", serverConfig).enableDiscovery();
 
-    auto client = Instance("[[none]]");
+    auto client = test_helpers::createInstance("[[none]]");
     addOpcuaClientModule(client);
 
     DevicePtr device;
@@ -204,7 +204,7 @@ TEST_F(OpcuaDeviceModulesTest, CheckDeviceInfoPopulatedWithProvider)
     rootInfo.setSerialNumber("TestSerialNumber");
 
     auto provider = JsonConfigProvider(filename);
-    auto instance = InstanceBuilder()
+    auto instance = test_helpers::instanceBuilder()
         .setModulePath("[[none]]")
         .addDiscoveryServer("mdns")
         .addConfigProvider(provider)
@@ -219,7 +219,7 @@ TEST_F(OpcuaDeviceModulesTest, CheckDeviceInfoPopulatedWithProvider)
         instance.addServer("OpenDAQOPCUA", serverConfig).enableDiscovery();
     }
 
-    auto client = Instance("[[none]]");
+    auto client = test_helpers::createInstance("[[none]]");
     addOpcuaClientModule(client);
     
     for (const auto & deviceInfo : client.getAvailableDevices())
@@ -245,7 +245,7 @@ TEST_F(OpcuaDeviceModulesTest, CheckDeviceInfoPopulatedWithProvider)
 
 TEST_F(OpcuaDeviceModulesTest, ServerEnableDisableDiscovery)
 {
-    auto serverInstance = InstanceBuilder()
+    auto serverInstance = test_helpers::instanceBuilder()
     .setModulePath("[[none]]")
         .addDiscoveryServer("mdns")
         .setDefaultRootDeviceLocalId("local")
@@ -261,7 +261,7 @@ TEST_F(OpcuaDeviceModulesTest, ServerEnableDisableDiscovery)
     serverConfig.setPropertyValue("Path", path);
     serverInstance.addServer("OpenDAQOPCUA", serverConfig);
 
-    auto connectedClient = Instance("[[none]]");
+    auto connectedClient = test_helpers::createInstance("[[none]]");
     addOpcuaClientModule(connectedClient);
     auto device = connectedClient.addDevice("daq.opcua://127.0.0.1");
     ASSERT_GT(device.getServers().getCount(), 0u);
@@ -270,7 +270,7 @@ TEST_F(OpcuaDeviceModulesTest, ServerEnableDisableDiscovery)
     // enable discovery from client and check that server is discoverable
     mirroredServer.enableDiscovery();
     {
-        auto client = Instance("[[none]]");
+        auto client = test_helpers::createInstance("[[none]]");
         addOpcuaClientModule(client);
 
         size_t deviceFound = 0;
@@ -294,7 +294,7 @@ TEST_F(OpcuaDeviceModulesTest, ServerEnableDisableDiscovery)
     mirroredServer.disableDiscovery();
     std::this_thread::sleep_for(std::chrono::milliseconds(1000));
     {
-        auto client = Instance("[[none]]");
+        auto client = test_helpers::createInstance("[[none]]");
         addOpcuaClientModule(client);
 
         size_t deviceFound = 0;
@@ -317,7 +317,7 @@ TEST_F(OpcuaDeviceModulesTest, ServerEnableDisableDiscovery)
     // enable discovery from client again and check that server is discoverable
     mirroredServer.enableDiscovery();
     {
-        auto client = Instance("[[none]]");
+        auto client = test_helpers::createInstance("[[none]]");
         addOpcuaClientModule(client);
 
         size_t deviceFound = 0;
@@ -346,7 +346,7 @@ TEST_F(OpcuaDeviceModulesTest, TestDiscoveryReachability)
         test_helpers::icmpPingAvailable() ? AddressReachabilityStatus::Reachable : AddressReachabilityStatus::Unknown;
     auto path = "/test/opcua/discovery_reachability/";
 
-    auto instance = InstanceBuilder()
+    auto instance = test_helpers::instanceBuilder()
         .setModulePath("[[none]]")
         .addDiscoveryServer("mdns")
         .build();
@@ -359,7 +359,7 @@ TEST_F(OpcuaDeviceModulesTest, TestDiscoveryReachability)
         instance.addServer("OpenDAQOPCUA", serverConfig).enableDiscovery();
     }
 
-    auto client = Instance("[[none]]");
+    auto client = test_helpers::createInstance("[[none]]");
     addOpcuaClientModule(client);
 
     for (const auto & deviceInfo : client.getAvailableDevices())
@@ -414,7 +414,7 @@ TEST_F(OpcuaDeviceModulesTest, TestDiscoveryReachabilityAfterConnectIPv6)
 
     auto path = "/test/opcua/discoveryReachabilityAfterConnectIPv6/";
 
-    auto instance = InstanceBuilder()
+    auto instance = test_helpers::instanceBuilder()
         .setModulePath("[[none]]")
         .setDefaultRootDeviceInfo(deviceInfo)
         .addDiscoveryServer("mdns")
@@ -428,7 +428,7 @@ TEST_F(OpcuaDeviceModulesTest, TestDiscoveryReachabilityAfterConnectIPv6)
         instance.addServer("OpenDAQOPCUA", serverConfig).enableDiscovery();
     }
 
-    auto client = Instance("[[none]]");
+    auto client = test_helpers::createInstance("[[none]]");
     addOpcuaClientModule(client);
 
     StringPtr deviceConnectionString = std::string("daq.opcua://[::1]") + path;
@@ -493,7 +493,7 @@ TEST_F(OpcuaDeviceModulesTest, TestDiscoveryReachabilityAfterConnect)
 
     auto path = "/test/opcua/discoveryReachabilityAfterConnect/";
 
-    auto server = InstanceBuilder()
+    auto server = test_helpers::instanceBuilder()
         .setModulePath("[[none]]")
         .setDefaultRootDeviceInfo(deviceInfo)
         .addDiscoveryServer("mdns")
@@ -506,7 +506,7 @@ TEST_F(OpcuaDeviceModulesTest, TestDiscoveryReachabilityAfterConnect)
         server.addServer("OpenDAQOPCUA", serverConfig).enableDiscovery();
     }
     
-    auto client = Instance("[[none]]");
+    auto client = test_helpers::createInstance("[[none]]");
     addOpcuaClientModule(client);
 
     DevicePtr device = FindOpcuaDeviceByPath(client, path);
@@ -558,7 +558,7 @@ TEST_F(OpcuaDeviceModulesTest, TestProtocolVersion)
 {
     auto path = "/test/opcua/test_protocol_version/";
 
-    auto server = InstanceBuilder()
+    auto server = test_helpers::instanceBuilder()
         .setModulePath("[[none]]")
         .addDiscoveryServer("mdns")
         .build();
@@ -571,7 +571,7 @@ TEST_F(OpcuaDeviceModulesTest, TestProtocolVersion)
         server.addServer("OpenDAQOPCUA", serverConfig).enableDiscovery();
     }
 
-    auto client = Instance("[[none]]");
+    auto client = test_helpers::createInstance("[[none]]");
     addOpcuaClientModule(client);
 
     DevicePtr device = FindOpcuaDeviceByPath(client, path);
@@ -697,7 +697,7 @@ TEST_F(OpcuaDeviceModulesTest, ChangePropAfterRemove)
     auto logger = LoggerWithSinks(sinks);
 
     auto server = CreateServerInstance();
-    auto client = CreateClientInstance(InstanceBuilder().setLogger(logger));
+    auto client = CreateClientInstance(test_helpers::instanceBuilder().setLogger(logger));
 
     auto device = client.getDevices()[0];
     auto mirroredRefDevice = client.getDevices()[0].getDevices()[0];
@@ -745,7 +745,7 @@ TEST_F(OpcuaDeviceModulesTest, GetSetDeviceProperties)
     auto logger = LoggerWithSinks(sinks);
 
     auto server = CreateServerInstance();
-    auto client = CreateClientInstance(InstanceBuilder().setLogger(logger));
+    auto client = CreateClientInstance(test_helpers::instanceBuilder().setLogger(logger));
 
     auto refDevice = client.getDevices()[0].getDevices()[0];
     auto serverRefDevice = server.getDevices()[0];
@@ -992,7 +992,7 @@ TEST_F(OpcuaDeviceModulesTest, FunctionBlockProperties)
     auto logger = LoggerWithSinks(sinks);
 
     auto server = CreateServerInstance();
-    auto client = CreateClientInstance(InstanceBuilder().setLogger(logger));
+    auto client = CreateClientInstance(test_helpers::instanceBuilder().setLogger(logger));
 
     auto fb = client.getDevices()[0].getFunctionBlocks()[0];
     auto serverFb = server.getFunctionBlocks()[0];
@@ -1040,7 +1040,7 @@ TEST_F(OpcuaDeviceModulesTest, DISABLED_InputPort)
 
 TEST_F(OpcuaDeviceModulesTest, DISABLED_PublicProp)
 {
-    auto server = Instance();
+    auto server = test_helpers::createInstance();
     const auto refDevice = server.addDevice("daqref://device1");
     refDevice.getSignals(search::Recursive(search::Visible()))[0].setPublic(false);
     auto id = refDevice.getSignals(search::Recursive(search::Visible()))[0].getLocalId();
@@ -1103,7 +1103,7 @@ TEST_F(OpcuaDeviceModulesTest, FunctionBlocksOnClient)
     auto moduleManager = ModuleManager("[[none]]");
     auto typeManager = TypeManager();
     auto authenticationProvider = AuthenticationProvider();
-    auto context = Context(scheduler, logger, typeManager, moduleManager, authenticationProvider);
+    auto context = Context(scheduler, logger, typeManager, moduleManager, authenticationProvider, test_helpers::instanceOptions());
 
     auto server = InstanceCustom(context, "local");
     {
@@ -1128,7 +1128,7 @@ TEST_F(OpcuaDeviceModulesTest, AddedRemovedSignalsStreaming)
     auto moduleManager = ModuleManager("[[none]]");
     auto typeManager = TypeManager();
     auto authenticationProvider = AuthenticationProvider();
-    auto context = Context(scheduler, logger, typeManager, moduleManager, authenticationProvider);
+    auto context = Context(scheduler, logger, typeManager, moduleManager, authenticationProvider, test_helpers::instanceOptions());
 
     auto instance = InstanceCustom(context, "local");
     {
@@ -1142,7 +1142,7 @@ TEST_F(OpcuaDeviceModulesTest, AddedRemovedSignalsStreaming)
         instance.addServer("OpenDAQOPCUA", nullptr);        
     }
 
-    auto client = InstanceBuilder()
+    auto client = test_helpers::instanceBuilder()
         .setModulePath("[[none]]")
         .build();
 
@@ -1173,7 +1173,7 @@ TEST_F(OpcuaDeviceModulesTest, AddedRemovedSignalsStreaming)
 
 TEST_F(OpcuaDeviceModulesTest, SdkPackageVersion)
 {
-    auto instance = InstanceBuilder()
+    auto instance = test_helpers::instanceBuilder()
         .setModulePath("[[none]]")
         .setDefaultRootDeviceInfo(DeviceInfo("", "dev", "custom"))
         .build();
@@ -1196,7 +1196,7 @@ TEST_F(OpcuaDeviceModulesTest, SdkPackageVersion1)
 TEST_F(OpcuaDeviceModulesTest, AuthenticationDefault)
 {
     auto serverInstance = CreateServerInstance();
-    auto clientInstance = InstanceBuilder()
+    auto clientInstance = test_helpers::instanceBuilder()
         .setModulePath("[[none]]")
         .build();
 
@@ -1218,7 +1218,7 @@ TEST_F(OpcuaDeviceModulesTest, AuthenticationDefinedUsers)
     auto authenticationProvider = StaticAuthenticationProvider(false, users);
     auto serverInstance = CreateServerInstance(authenticationProvider);
 
-    auto clientInstance = InstanceBuilder()
+    auto clientInstance = test_helpers::instanceBuilder()
         .setModulePath("[[none]]")
         .build();
 
@@ -1257,7 +1257,7 @@ TEST_F(OpcuaDeviceModulesTest, AuthenticationAllowNoOne)
     auto authenticationProvider = AuthenticationProvider(false);
     auto serverInstance = CreateServerInstance(authenticationProvider);
 
-    auto clientInstance = InstanceBuilder()
+    auto clientInstance = test_helpers::instanceBuilder()
         .setModulePath("[[none]]")
         .build();
     addOpcuaClientModule(clientInstance);
@@ -1335,7 +1335,7 @@ TEST_F(OpcuaDeviceModulesTest, GetConfigurationConnectionInfoIPv6)
     SKIP_TEST_MAC_CI;
     auto server = CreateServerInstance();
 
-    auto client = Instance("[[none]]");
+    auto client = test_helpers::createInstance("[[none]]");
     addOpcuaClientModule(client);
     client.addDevice("daq.opcua://[::1]");
 
@@ -1355,7 +1355,7 @@ TEST_F(OpcuaDeviceModulesTest, GetConfigurationConnectionInfoIPv6)
 
 TEST_F(OpcuaDeviceModulesTest, TestAddressInfoIPv4)
 {
-    auto server = InstanceBuilder()
+    auto server = test_helpers::instanceBuilder()
         .setModulePath("[[none]]")
         .build();
     {
@@ -1372,7 +1372,7 @@ TEST_F(OpcuaDeviceModulesTest, TestAddressInfoIPv4)
         server.addServer("OpenDAQOPCUA", nullptr);
     }
 
-    auto client = Instance("[[none]]");
+    auto client = test_helpers::createInstance("[[none]]");
     {
         addOpcuaClientModule(client);
         addNativeClientModule(client);
@@ -1427,7 +1427,7 @@ TEST_F(OpcuaDeviceModulesTest, TestAddressInfoIPv6)
         GTEST_SKIP() << "Ipv6 is disabled";
     }
 
-    auto server = InstanceBuilder()
+    auto server = test_helpers::instanceBuilder()
         .setModulePath("[[none]]")
         .build();
     {
@@ -1444,7 +1444,7 @@ TEST_F(OpcuaDeviceModulesTest, TestAddressInfoIPv6)
         server.addServer("OpenDAQOPCUA", nullptr);
     }
 
-    auto client = Instance("[[none]]");
+    auto client = test_helpers::createInstance("[[none]]");
     {
         addOpcuaClientModule(client);
         addNativeClientModule(client);
@@ -1486,18 +1486,18 @@ TEST_F(OpcuaDeviceModulesTest, TestAddressInfoIPv6)
 
 TEST_F(OpcuaDeviceModulesTest, DISABLED_TestAddressInfoGatewayDevice)
 {
-    auto server = InstanceBuilder().setRootDevice("daqref://device0").build();
+    auto server = test_helpers::instanceBuilder().setRootDevice("daqref://device0").build();
     server.addServer("OpenDAQNativeStreaming", nullptr);
     server.addServer("OpenDAQLTStreaming", nullptr);
     server.addServer("OpenDAQOPCUA", nullptr);
     
-    auto gateway = Instance();
+    auto gateway = test_helpers::createInstance();
     auto serverConfig = gateway.getAvailableServerTypes().get("OpenDAQOPCUA").createDefaultConfig();
     serverConfig.setPropertyValue("Port", 4841);
     gateway.addDevice("daq.opcua://127.0.0.1");
     gateway.addServer("OpenDAQOPCUA", serverConfig);
 
-    auto client = Instance();
+    auto client = test_helpers::createInstance();
     const auto dev = client.addDevice("daq.opcua://127.0.0.1:4841/");
     const auto info = dev.getDevices()[0].getInfo();
 
@@ -1586,7 +1586,7 @@ TEST_F(OpcuaDeviceModulesTest, SaveLoadDeviceInfo)
 
     auto server = CreateServerInstance();
     
-    auto restoredClient = Instance("[[none]]");
+    auto restoredClient = test_helpers::createInstance("[[none]]");
     addOpcuaClientModule(restoredClient);
 
     ASSERT_NO_THROW(restoredClient.loadConfiguration(config));
@@ -1719,7 +1719,7 @@ private:
 
 InstancePtr CreateTestDeviceInstance()
 {
-    auto instance = Instance("[[none]]");
+    auto instance = test_helpers::createInstance("[[none]]");
     auto moduleManager = instance.getModuleManager();
     moduleManager.addModule(daq::createWithImplementation<daq::IModule, TestDeviceModuleImpl>(instance.getContext()));
     return instance;
@@ -1846,7 +1846,7 @@ TEST_F(OpcuaDeviceModulesTest, SaveLoadFunctionBlockConfig)
 
     auto server = CreateServerInstance();
     
-    auto restoredClient = Instance("[[none]]");
+    auto restoredClient = test_helpers::createInstance("[[none]]");
     addOpcuaClientModule(restoredClient);
     ASSERT_NO_THROW(restoredClient.loadConfiguration(config));
 

@@ -25,11 +25,14 @@ A Config Provider is an interface that enriches the input options dictionary wit
 == Instance Configuration with JSON Provider
 JSON Config Provider is a *default provider* that tries to get configuration from a path set in the `OPENDAQ_CONFIG_PATH` environment variable, otherwise, it reads `opendaq-config.json` from the same folder from which the file was run. An example of a JSON file is listed below. JSON keys are case-sensitive, so the keys "MODULEMANAGER", "modulemanager", and "ModuleManager" are recognized as different keys. Meantime, provider expected keys in *PascalCase*. If a value has the wrong type, or there are additional key-value pairs, they will be ignored. If a provider is overriding a list value, the old list items will be erased.
 
+`ModuleManager.ScanOnAdd` (default `true`) controls whether the module manager scans the network for available devices when `addDevice` is called, so that server capabilities discovered on the network are merged into the device info. With it off nothing is scanned: an explicit connection string connects without the scan, and a smart `daq://` connection string fails unless an earlier scan already listed the device. The same switch is available per call as the `ScanOnAdd` property of the `General` add-device config.
+
 [source,json]
 ----
 {
   "ModuleManager": {
-    "ModulesPath": ""
+    "ModulesPath": "",
+    "ScanOnAdd": true
   },
   "Scheduler": {
     "WorkersNum": 0

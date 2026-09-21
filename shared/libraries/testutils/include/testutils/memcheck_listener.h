@@ -24,6 +24,7 @@
 #endif // !NDEBUG
 
 #include <testutils/base_test_listener.h>
+#include <testutils/crash_dump.h>
 
 #ifndef NDEBUG
 #ifdef _MSC_VER
@@ -42,6 +43,12 @@ class MemCheckListener : public BaseTestListener
 {
 public:
     inline static bool expectMemoryLeak = false;
+
+    MemCheckListener()
+    {
+        daq::test_utils::installCrashDumpHandler();
+    }
+
 
 protected:
     void OnTestStart(const testing::TestInfo& info) override

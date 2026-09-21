@@ -30,6 +30,9 @@ using NativeDeviceModulesTest = testing::Test;
 
 using namespace daq;
 
+namespace test_native_device_modules
+{
+
 const uint16_t LATEST_CONFIG_PROTOCOL_VERSION = 25;
 
 static InstancePtr CreateCustomServerInstance(AuthenticationProviderPtr authenticationProvider)
@@ -5452,3 +5455,5 @@ TEST_F(NativeDeviceModulesTest, NonDefaultOpMode)
     ASSERT_EQ(server.getOperationMode(), OperationModeType::Idle);
     ASSERT_EQ(client.getDevices()[0].getOperationMode(), OperationModeType::Idle);
 }
+}
+// namespace test_native_device_modules

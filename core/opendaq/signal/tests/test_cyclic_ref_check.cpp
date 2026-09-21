@@ -71,7 +71,7 @@ TEST_F(CyclicRefCheckTest, NoCycleDetection)
     auto testFb2 = static_cast<TestFunctionBlock*>(fb2.getObject());
 
     // Test no cycle - should return false
-    Bool hasCycle = true;
+    daq::Bool hasCycle = true;
     ASSERT_EQ(daqHasCyclicReferenceIfConnected(
         testFb1->getOutputSignal(), 
         testFb2->getInputPort(), 
@@ -95,7 +95,7 @@ TEST_F(CyclicRefCheckTest, CycleDetection)
     testFb2->getInputPort().connect(testFb1->getOutputSignal());
 
     // Test cycle - fb2 output connecting to fb1 input should detect a cycle
-    Bool hasCycle = false;
+    daq::Bool hasCycle = false;
     ASSERT_EQ(daqHasCyclicReferenceIfConnected(
         testFb2->getOutputSignal(), 
         testFb1->getInputPort(), 
@@ -113,7 +113,7 @@ TEST_F(CyclicRefCheckTest, NullParameterHandling)
     auto fb1 = createWithImplementation<IFunctionBlock, TestFunctionBlock>(context, nullptr, "fb1");
     auto testFb1 = static_cast<TestFunctionBlock*>(fb1.getObject());
 
-    Bool hasCycle = false;
+    daq::Bool hasCycle = false;
 
     // Test null signal parameter
     ASSERT_EQ(daqHasCyclicReferenceIfConnected(nullptr, testFb1->getInputPort(), &hasCycle), OPENDAQ_ERR_ARGUMENT_NULL);
@@ -134,7 +134,7 @@ TEST_F(CyclicRefCheckTest, SelfLoopDetection)
     auto testFb1 = static_cast<TestFunctionBlock*>(fb1.getObject());
 
     // Test connecting function block output to its own input (self-loop)
-    Bool hasCycle = false;
+    daq::Bool hasCycle = false;
     ASSERT_EQ(daqHasCyclicReferenceIfConnected(
         testFb1->getOutputSignal(), 
         testFb1->getInputPort(), 
@@ -160,7 +160,7 @@ TEST_F(CyclicRefCheckTest, ComplexLinearChain)
     testFb3->getInputPort1().connect(testFb2->getOutputSignal1());
 
     // Test that adding another linear connection doesn't create a cycle
-    Bool hasCycle = true;
+    daq::Bool hasCycle = true;
     ASSERT_EQ(daqHasCyclicReferenceIfConnected(
         testFb1->getOutputSignal2(), 
         testFb2->getInputPort2(), 
@@ -197,7 +197,7 @@ TEST_F(CyclicRefCheckTest, ComplexMultipleConnectionsCycle)
     testFb3->getInputPort2().connect(testFb1->getOutputSignal2());
 
     // Test that connecting FB3.out1 -> FB1.in1 would create a cycle
-    Bool hasCycle = false;
+    daq::Bool hasCycle = false;
     ASSERT_EQ(daqHasCyclicReferenceIfConnected(
         testFb3->getOutputSignal1(), 
         testFb1->getInputPort1(), 
@@ -236,7 +236,7 @@ TEST_F(CyclicRefCheckTest, ComplexParallelPaths)
     testFb4->getInputPort2().connect(testFb3->getOutputSignal1());
 
     // Test that connecting FB4 back to FB1 would create a cycle
-    Bool hasCycle = false;
+    daq::Bool hasCycle = false;
     ASSERT_EQ(daqHasCyclicReferenceIfConnected(
         testFb4->getOutputSignal1(), 
         testFb1->getInputPort1(), 

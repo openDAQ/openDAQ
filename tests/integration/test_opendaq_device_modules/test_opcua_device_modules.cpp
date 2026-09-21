@@ -16,6 +16,9 @@ using OpcuaDeviceModulesTest = testing::Test;
 
 using namespace daq;
 
+namespace test_opcua_device_modules
+{
+
 static InstancePtr CreateServerInstance(const AuthenticationProviderPtr& authenticationProvider)
 {
     auto instance = InstanceBuilder()
@@ -1856,3 +1859,5 @@ TEST_F(OpcuaDeviceModulesTest, SaveLoadFunctionBlockConfig)
     ASSERT_TRUE(fbConfig.hasProperty("UseMultiThreadedScheduler"));
     ASSERT_FALSE(fbConfig.getPropertyValue("UseMultiThreadedScheduler"));
 }
+}
+// namespace test_opcua_device_modules

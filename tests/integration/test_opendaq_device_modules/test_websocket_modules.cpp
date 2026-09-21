@@ -7,6 +7,9 @@
 
 using namespace daq;
 
+namespace test_websocket_modules
+{
+
 class WebsocketModulesTest : public testing::Test
 {
 public:
@@ -891,3 +894,5 @@ TEST_P(WebsocketModulesChannelTest, UpdateRemoveSignals)
 }
 
 INSTANTIATE_TEST_SUITE_P(WebsocketModulesTestGroup, WebsocketModulesChannelTest, testing::ValuesIn(GetChannelSuite()), ChannelName);
+}
+// namespace test_websocket_modules

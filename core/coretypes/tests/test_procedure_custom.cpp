@@ -5,6 +5,10 @@
 
 using namespace daq;
 
+namespace test_procedure_custom
+{
+
+
 using CustomProcedureTest = testing::Test;
 
 TEST_F(CustomProcedureTest, Basic)
@@ -152,3 +156,5 @@ TEST_F(CustomProcedureTest, ImplementationName)
     auto prefix = className.find("daq::CustomProcedureImpl<");
     ASSERT_EQ(prefix, 0u);
 }
+}
+// namespace test_procedure_custom

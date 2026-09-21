@@ -330,6 +330,24 @@
                 "intel-llvm",
                 "ninja"
             ]
+        },
+        {
+            "name": "x64/msvc-26-ninja/full/measure",
+            "displayName": "[MSVC 26 + Ninja] Full - build time measurement",
+            "description": "Ninja with MSVC, bindings on, compiler cache off for reproducible build times. Pass -DOPENDAQ_ENABLE_BUILD_ACCELERATION=OFF for the baseline.",
+            "inherits": [
+                "debug",
+                "full"
+            ],
+            "generator": "Ninja",
+            "cacheVariables": {
+                "CMAKE_C_COMPILER": "cl",
+                "CMAKE_CXX_COMPILER": "cl",
+                "OPENDAQ_GENERATE_PYTHON_BINDINGS": true,
+                "OPENDAQ_GENERATE_C_BINDINGS": true,
+                "OPENDAQ_ENABLE_PYTHON_BINDINGS_TESTS": false,
+                "OPENDAQ_USE_CCACHE": false
+            }
         }
     ],
     "testPresets": [

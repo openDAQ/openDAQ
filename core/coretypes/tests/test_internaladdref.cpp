@@ -3,6 +3,11 @@
 #include <coretypes/impl.h>
 #include <coretypes/objectptr.h>
 
+using namespace daq;
+
+namespace test_internaladdref
+{
+
 DECLARE_OPENDAQ_INTERFACE(ITest, daq::IBaseObject)
 {
 };
@@ -16,7 +21,6 @@ public:
     }
 };
 
-using namespace daq;
 
 using InternalAddRefTest = testing::Test;
 
@@ -25,3 +29,5 @@ TEST_F(InternalAddRefTest, Create)
     ObjectPtr<ITest> intf;
     checkErrorInfo(createObject<ITest, TestImpl>(&intf));
 }
+}
+// namespace test_internaladdref

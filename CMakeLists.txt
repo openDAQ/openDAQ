@@ -81,6 +81,7 @@ else()
     add_compile_definitions(OPENDAQ_PACKAGE_VERSION="${OPENDAQ_PACKAGE_VERSION}")
 endif()
 
+set(OPENDAQ_ENABLE_UNITY_LIBS ON CACHE BOOL "Unity builds for libraries")
 opendaq_setup_common_build_options()
 opendaq_setup_project_specific_build_options(${SDK_OPTION_PREFIX})
 

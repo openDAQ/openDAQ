@@ -3,6 +3,10 @@
 
 using namespace daq;
 
+namespace test_cycle_detector
+{
+
+
 using CycleDetectorTest = testing::Test;
 
 TEST_F(CycleDetectorTest, EnterLeave)
@@ -50,4 +54,5 @@ TEST_F(CycleDetectorTest, TwoObjects)
     baseObject1->releaseRef();
     baseObject2->releaseRef();
 }
-
+}
+// namespace test_cycle_detector

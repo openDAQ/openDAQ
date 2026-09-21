@@ -3,6 +3,10 @@
 
 using namespace daq;
 
+namespace test_callback_factory_deserialization
+{
+
+
 using TestCallbackFactoryDeserialization = testing::Test;
 
 TEST_F(TestCallbackFactoryDeserialization, RatioFactory)
@@ -62,3 +66,5 @@ TEST_F(TestCallbackFactoryDeserialization, RatioInList)
     ASSERT_EQ(ptr, list);
     ASSERT_TRUE(ratioConstructed);
 }
+}
+// namespace test_callback_factory_deserialization

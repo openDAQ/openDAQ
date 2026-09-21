@@ -47,8 +47,12 @@ jobs:
             "cache-variables": {"OPENDAQ_MSVC_SINGLE_PROCESS_BUILD": true}
           },
           {
-            "match-jobs": ["macos-*"],
+            "match-jobs": ["macos-*-x86_64-*"],
             "cache-variables": {"CMAKE_OSX_DEPLOYMENT_TARGET": "10.15"}
+          },
+          {
+            "match-jobs": ["macos-*-armv8-*"],
+            "cache-variables": {"CMAKE_OSX_DEPLOYMENT_TARGET": "11.0"}
           }
         ]
       packages: >

@@ -94,8 +94,15 @@ jobs:
           },
           {
             "match-jobs": ["macos-*"],
-            "run-tests-priv": true,
+            "run-tests-priv": true
+          },
+          {
+            "match-jobs": ["macos-*-x86_64-*"],
             "cache-variables": {"CMAKE_OSX_DEPLOYMENT_TARGET": "10.15"}
+          },
+          {
+            "match-jobs": ["macos-*-armv8-*"],
+            "cache-variables": {"CMAKE_OSX_DEPLOYMENT_TARGET": "11.0"}
           },
           {
             "match-jobs": ["ubuntu-20.04-*-gcc-7-*", "ubuntu-20.04-*-clang-9-*"],

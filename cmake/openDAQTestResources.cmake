@@ -64,7 +64,7 @@ function(opendaq_add_test_shards TARGET COUNT)
     math(EXPR last "${COUNT} - 1")
     foreach(index RANGE ${last})
         set(name ${TARGET}_${index})
-        math(EXPR offset "(${index} + 1) * 100")
+        math(EXPR offset "(${index} + 1) * 1000")  # 1000 apart: +100 lands on ports Windows services listen on (5040)
         add_test(NAME ${name}
                  COMMAND $<TARGET_FILE_NAME:${TARGET}>
                  WORKING_DIRECTORY $<TARGET_FILE_DIR:${TARGET}>

@@ -26,6 +26,7 @@ jobs:
     uses: openDAQ/openDAQ-CI/.github/workflows/reusable.yml@v3
     with:
       cache-externals: true
+      cache-vcpkg: true
       timeout: '[{"timeout-minutes": 270}]'
       include-jobs: >
         [

@@ -46,8 +46,10 @@ if(APPLE)
     # productbuild only accepts .txt, .rtf, .html, .rtfd for license/readme/welcome (not LICENSE or README.md).
     set(_CPACK_APPLE_STAGED "${CMAKE_BINARY_DIR}/CPack_apple_resources")
     file(MAKE_DIRECTORY "${_CPACK_APPLE_STAGED}")
-    configure_file("${CMAKE_SOURCE_DIR}/LICENSE" "${_CPACK_APPLE_STAGED}/LICENSE.txt" COPYONLY)
-    configure_file("${CMAKE_SOURCE_DIR}/README.md" "${_CPACK_APPLE_STAGED}/README.txt" COPYONLY)
+    # From the openDAQ tree, not ${CMAKE_SOURCE_DIR}: as a fetched subproject that is the consuming repository,
+    # which need not carry either file.
+    configure_file("${OPENDAQ_SOURCE_DIR}/LICENSE" "${_CPACK_APPLE_STAGED}/LICENSE.txt" COPYONLY)
+    configure_file("${OPENDAQ_SOURCE_DIR}/README.md" "${_CPACK_APPLE_STAGED}/README.txt" COPYONLY)
     file(WRITE "${_CPACK_APPLE_STAGED}/WELCOME.txt" "openDAQ SDK\n")
     set(CPACK_RESOURCE_FILE_LICENSE "${_CPACK_APPLE_STAGED}/LICENSE.txt")
     set(CPACK_RESOURCE_FILE_README "${_CPACK_APPLE_STAGED}/README.txt")

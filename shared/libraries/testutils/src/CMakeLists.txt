@@ -1,6 +1,7 @@
 set(SRC_CommonHeaders daq_memcheck_listener.h
                       testutils.h
                       memcheck_listener.h
+                      crash_dump.h
                       ut_logging.h
                       test_comparators.h
 )

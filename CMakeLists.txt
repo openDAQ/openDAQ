@@ -97,7 +97,6 @@ option(OPENDAQ_GENERATE_C_BINDINGS "Generate C bindings" OFF)
 
 # Testing and coverage options
 option(OPENDAQ_ENABLE_TESTS "Enable testing" ON)
-option(OPENDAQ_ENABLE_TEST_UTILS "Enable testing utils library" ON)
 option(OPENDAQ_ENABLE_OPTIONAL_TESTS "Enable optional (debugging) tests" OFF)
 option(OPENDAQ_ENABLE_COVERAGE "Enable code coverage in testing" OFF)
 option(OPENDAQ_ENABLE_REGRESSION_TESTS "Enable regression testing" OFF)
@@ -115,6 +114,7 @@ if (OPENDAQ_ENABLE_ERROR_GUARD)
 endif()
 
 # Dependent options
+cmake_dependent_option(OPENDAQ_ENABLE_TEST_UTILS "Enable testing utils library" ON "NOT OPENDAQ_ENABLE_TESTS" ON)
 cmake_dependent_option(OPENDAQ_ENABLE_DELPHI_BINDINGS_TESTS "Enable delphi bindings tests" ON "OPENDAQ_GENERATE_DELPHI_BINDINGS;OPENDAQ_ENABLE_TESTS" OFF)
 cmake_dependent_option(OPENDAQ_ENABLE_PYTHON_BINDINGS_TESTS "Enable python bindings tests" ON "OPENDAQ_GENERATE_PYTHON_BINDINGS;OPENDAQ_ENABLE_TESTS" OFF)
 cmake_dependent_option(OPENDAQ_ENABLE_CSHARP_BINDINGS_TESTS "Enable csharp bindings tests" ON "OPENDAQ_GENERATE_CSHARP_BINDINGS;OPENDAQ_ENABLE_TESTS" OFF)
@@ -479,6 +479,7 @@ if (DEFINED mdns_SOURCE_DIR)
     install(
         FILES "${mdns_SOURCE_DIR}/mdns.h"
         DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
+        COMPONENT ${SDK_NAME}_discovery_Development
     )
 else()
     message(ERROR "missing mdns dependency")

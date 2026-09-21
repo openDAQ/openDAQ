@@ -55,6 +55,11 @@ add_library(${SDK_TARGET_NAMESPACE}::${LIB_NAME} ALIAS ${LIB_NAME})
 opendaq_target_pch(${LIB_NAME} <opendaq/opendaq.h> <boost/asio.hpp>)
 opendaq_target_unity_libs(${LIB_NAME} BATCH_SIZE 4)
 
+# GCC misreports an overflow in date's integer parser once the PCH and the unity batch inline it.
+if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
+    target_compile_options(${LIB_NAME} PRIVATE -Wno-stringop-overflow)
+endif()
+
 if (MSVC)
     target_compile_options(${LIB_NAME} PRIVATE /bigobj)
 endif()

@@ -23,7 +23,7 @@
 #include <optional>
 #include <fstream>
 #include <cstdlib>
-#include <map>
+#include <algorithm>
 #include <boost/asio/ip/tcp.hpp>
 #include <boost/asio/io_service.hpp>
 
@@ -406,14 +406,16 @@ namespace test_helpers
         if (portOffset() == 0)
             return connectionString;
 
-        static const std::map<std::string, uint16_t> defaultPorts{
+        // A plain array, not a static map: the debug memcheck listener would report a map built on first use as a leak
+        constexpr std::pair<const char*, uint16_t> defaultPorts[]{
             {"daq.nd", 7420}, {"daq.ns", 7420}, {"daq.lt", 7414}, {"daq.lts", 7415}, {"daq.opcua", 4840}};
 
         const auto schemeEnd = connectionString.find("://");
         if (schemeEnd == std::string::npos)
             return connectionString;
-        const auto port = defaultPorts.find(connectionString.substr(0, schemeEnd));
-        if (port == defaultPorts.end())
+        const auto scheme = connectionString.substr(0, schemeEnd);
+        const auto port = std::find_if(std::begin(defaultPorts), std::end(defaultPorts), [&](const auto& entry) { return scheme == entry.first; });
+        if (port == std::end(defaultPorts))
             return connectionString;
 
         const auto hostStart = schemeEnd + 3;

@@ -104,5 +104,6 @@ add_test(NAME ${TEST_APP}
          WORKING_DIRECTORY $<TARGET_FILE_DIR:${TEST_APP}>
 )
 opendaq_test_resource_lock(${TEST_APP} network_native network_lt network_opcua mdns)
+set_tests_properties(${TEST_APP} PROPERTIES PROCESSORS 2)
 
 opendaq_add_test_shards(${STREAMING_TEST_APP} ${STREAMING_TEST_SHARDS})

@@ -69,9 +69,11 @@ function(opendaq_add_test_shards TARGET COUNT)
                  COMMAND $<TARGET_FILE_NAME:${TARGET}>
                  WORKING_DIRECTORY $<TARGET_FILE_DIR:${TARGET}>
         )
+        # PROCESSORS 2: a shard runs a server and a client instance, so ctest schedules fewer of them at once
         set_tests_properties(${name} PROPERTIES
             ENVIRONMENT "GTEST_TOTAL_SHARDS=${COUNT};GTEST_SHARD_INDEX=${index};OPENDAQ_TEST_PORT_OFFSET=${offset}"
             ENVIRONMENT_MODIFICATION "GTEST_OUTPUT=string_append:${name}.xml"
+            PROCESSORS 2
         )
     endforeach()
 endfunction()

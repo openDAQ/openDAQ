@@ -93,6 +93,7 @@ jobs:
           },
           {
             "match-jobs": ["macos-*"],
+            "test-preset": "${{ inputs.ctest_preset != 'run_tests_parallel' && inputs.ctest_preset || 'run_tests_parallel_macos' }}",
             "run-tests-priv": true
           },
           {

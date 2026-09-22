@@ -3,26 +3,14 @@ name: Build and Test openDAQ
 on:
   workflow_dispatch:
     inputs:
-      cmake_preset:
-        type: string
-        required: false
-        default: "ci"
       ctest_preset:
         type: string
-        required: false
-        default: "run_tests"
   pull_request:
     types: [opened, reopened, synchronize, ready_for_review]
   workflow_call:
     inputs:
-      cmake_preset:
-        type: string
-        required: false
-        default: "ci"
       ctest_preset:
         type: string
-        required: false
-        default: "run_tests"
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -85,7 +73,7 @@ jobs:
       cmake-presets: >
         [
           {
-            "configure-preset": "${{ inputs.cmake_preset || 'ci' }}",
+            "configure-preset": "ci",
             "test-preset": "${{ inputs.ctest_preset || 'run_tests' }}",
             "cache-variables": {"OPENDAQ_PYTHON_VERSION": "3.14"}
           },

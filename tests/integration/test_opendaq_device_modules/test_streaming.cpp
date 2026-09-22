@@ -1,6 +1,7 @@
 #include "test_helpers/test_helpers.h"
 #include <opendaq/mock/mock_device_module.h>
 #include <coreobjects/authentication_provider_factory.h>
+#include <algorithm>
 #include <list>
 
 #include "test_helpers/device_modules.h"
@@ -64,15 +65,34 @@ public:
         }
     }
 
+    // The LT and native pseudo-devices encode the remote path in the local id with '#' or '*' instead of '/'
+    static bool isMockCh1Signal(const SignalPtr& signal, const std::string& signalName)
+    {
+        std::string id = signal.getGlobalId();
+        std::replace_if(id.begin(), id.end(), [](char c) { return c == '#' || c == '*'; }, '/');
+        const std::string suffix = "/mockch1/Sig/" + signalName;
+        return id.size() >= suffix.size() && id.compare(id.size() - suffix.size(), suffix.size(), suffix) == 0;
+    }
+
+    // Several channels carry identically named signals and only mockch1 generates packets: a mockch1 signal is matched
+    // by its id, any other signal by its descriptor name, which then has to be unique
     SignalPtr findSignal(const DevicePtr& device, const std::string& signalName)
     {
+        SignalPtr byName;
+        size_t byNameCount = 0;
         for (const auto& signal : device.getSignals(search::Recursive(search::Visible())))
         {
-            const auto descriptor = signal.getDescriptor();
-            if (descriptor.assigned() && descriptor.getName() == signalName)
+            if (!signal.getDescriptor().assigned())
+                continue;
+            if (isMockCh1Signal(signal, signalName))
                 return signal;
+            if (signal.getDescriptor().getName() == signalName)
+            {
+                byName = signal;
+                ++byNameCount;
+            }
         }
-        return nullptr;
+        return byNameCount == 1 ? byName : nullptr;
     }
 
     SignalPtr getSignal(const DevicePtr& device, const std::string& signalName)
@@ -105,13 +125,17 @@ public:
         return PacketReader(getSignal(serverInstance, signalName));
     }
 
-    PacketReaderPtr createClientReader(const std::string& signalName)
+    PacketReaderPtr createClientReaderOn(const SignalPtr& signal)
     {
-        auto signal = getSignal(clientInstance, signalName);
         readerInputPort = InputPort(clientInstance.getContext(), nullptr, "readsig");
         PacketReaderPtr reader = PacketReaderFromPort(readerInputPort);
         readerInputPort.connect(signal);
         return reader;
+    }
+
+    PacketReaderPtr createClientReader(const std::string& signalName)
+    {
+        return createClientReaderOn(getSignal(clientInstance, signalName));
     }
 
     static std::vector<std::tuple<std::string, std::string>> GetNativeTestSuite()
@@ -246,7 +270,7 @@ TEST_P(StreamingTest, SignalDescriptorEvents)
                                            std::get<0>(GetParam()) == "OpenDAQLTStreaming"));
 
     // recreate client reader and test initial event packet
-    clientReader = createClientReader(clientSignal.getDescriptor().getName());
+    clientReader = createClientReaderOn(clientSignal);
     clientReceivedPackets = test_helpers::tryReadPackets(clientReader, 1);
 
     ASSERT_EQ(clientReceivedPackets.getCount(), 1u);
@@ -1117,7 +1141,7 @@ TEST_P(StreamingTestForModernLt, SignalDescriptorEvents)
 
     // Recreate the client reader on the same signal: a freshly created reader always replays the current
     // descriptor as its first initial event packet, which we inspect below
-    clientReader = createClientReader(clientSignal.getDescriptor().getName());
+    clientReader = createClientReaderOn(clientSignal);
     clientReceivedPackets = test_helpers::tryReadPackets(clientReader, 1);
 
     ASSERT_EQ(clientReceivedPackets.getCount(), 1u);

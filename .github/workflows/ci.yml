@@ -52,12 +52,8 @@ jobs:
             "apt-install": ["lld", "libssl-dev:i386", "libx11-dev:i386", "libxi-dev:i386", "libxcursor-dev:i386", "libxrandr-dev:i386", "libgl-dev:i386", "libudev-dev:i386", "libfreetype6-dev:i386"]
           },
           {
-            "match-jobs": ["windows-*-x86-*"],
-            "run": "vcpkg install openssl:x86-windows; Add-Content -Path $env:GITHUB_PATH -Value C:\\vcpkg\\installed\\x86-windows\\bin -Encoding utf8"
-          },
-          {
-            "match-jobs": ["windows-*-x86_64-*"],
-            "run": "vcpkg install openssl:x64-windows; Add-Content -Path $env:GITHUB_PATH -Value C:\\vcpkg\\installed\\x64-windows\\bin -Encoding utf8"
+            "match-jobs": ["windows-*"],
+            "vcpkg-install": ["openssl"]
           },
           {
             "match-jobs": ["windows-*", "ubuntu-*-x86_64-*", "ubuntu-*-armv8-*", "macos-*"],
@@ -79,7 +75,8 @@ jobs:
           {
             "configure-preset": "${{ inputs.cmake_preset || 'ci' }}",
             "test-preset": "${{ inputs.ctest_preset || 'run_tests' }}",
-            "cache-variables": {"OPENDAQ_PYTHON_VERSION": "3.14"}
+            "cache-variables": {"OPENDAQ_PYTHON_VERSION": "3.14"},
+            "cache-externals": true
           },
           {
             "match-jobs": ["windows-*-x86-*"],

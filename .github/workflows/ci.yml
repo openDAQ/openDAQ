@@ -37,6 +37,7 @@ jobs:
           "ubuntu-24.04-armv8-ninja-gcc-14-debug",
           "ubuntu-24.04-x86_64-ninja-clang-18-release",
           "manylinux_2_28-x86_64-ninja-gcc-14-release",
+          "manylinux_2_28-armv8-ninja-gcc-14-release",
           "macos-26-x86_64-ninja-appleclang-17-debug",
           "macos-26-armv8-ninja-appleclang-21-release"
         ]

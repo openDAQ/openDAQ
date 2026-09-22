@@ -36,6 +36,7 @@ jobs:
           "ubuntu-24.04-armv8-ninja-gcc-14-debug",
           "ubuntu-24.04-x86_64-ninja-clang-18-release",
           "manylinux_2_28-x86_64-ninja-gcc-14-release",
+          "manylinux_2_28-armv8-ninja-gcc-14-release",
           "macos-26-x86_64-ninja-appleclang-17-debug",
           "macos-26-armv8-ninja-appleclang-21-release"
         ]
@@ -50,12 +51,8 @@ jobs:
             "apt-install": ["lld", "libssl-dev:i386", "libx11-dev:i386", "libxi-dev:i386", "libxcursor-dev:i386", "libxrandr-dev:i386", "libgl-dev:i386", "libudev-dev:i386", "libfreetype6-dev:i386"]
           },
           {
-            "match-jobs": ["windows-*-x86-*"],
-            "run": "vcpkg install openssl:x86-windows; Add-Content -Path $env:GITHUB_PATH -Value C:\\vcpkg\\installed\\x86-windows\\bin -Encoding utf8"
-          },
-          {
-            "match-jobs": ["windows-*-x86_64-*"],
-            "run": "vcpkg install openssl:x64-windows; Add-Content -Path $env:GITHUB_PATH -Value C:\\vcpkg\\installed\\x64-windows\\bin -Encoding utf8"
+            "match-jobs": ["windows-*"],
+            "vcpkg-install": ["openssl"]
           },
           {
             "match-jobs": ["windows-*", "ubuntu-*-x86_64-*", "ubuntu-*-armv8-*", "macos-*"],
@@ -75,9 +72,10 @@ jobs:
       cmake-presets: >
         [
           {
-            "configure-preset": "ci",
+            "configure-preset": "${{ inputs.cmake_preset || 'ci' }}",
             "test-preset": "${{ inputs.ctest_preset || 'run_tests_parallel' }}",
-            "cache-variables": {"OPENDAQ_PYTHON_VERSION": "3.14"}
+            "cache-variables": {"OPENDAQ_PYTHON_VERSION": "3.14"},
+            "cache-externals": true
           },
           {
             "match-jobs": ["windows-*-x86-*"],

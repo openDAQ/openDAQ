@@ -5,12 +5,14 @@ on:
     inputs:
       ctest_preset:
         type: string
+        default: "run_tests_parallel"
   pull_request:
     types: [opened, reopened, synchronize, ready_for_review]
   workflow_call:
     inputs:
       ctest_preset:
         type: string
+        default: "run_tests_parallel"
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}

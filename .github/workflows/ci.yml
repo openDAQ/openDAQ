@@ -74,7 +74,7 @@ jobs:
         [
           {
             "configure-preset": "ci",
-            "test-preset": "${{ inputs.ctest_preset || 'run_tests' }}",
+            "test-preset": "${{ inputs.ctest_preset || 'run_tests_parallel' }}",
             "cache-variables": {"OPENDAQ_PYTHON_VERSION": "3.14"}
           },
           {

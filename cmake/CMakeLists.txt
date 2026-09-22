@@ -8,7 +8,7 @@ include(FetchContent)
 FetchContent_Declare(
     opendaq-cmake-utils
     GIT_REPOSITORY  https://github.com/openDAQ/opendaq-cmake-utils.git
-    GIT_TAG         fix/gcc-stringop-overflow-false-positive
+    GIT_TAG         v1.1.1
     GIT_PROGRESS    ON
 )
 FetchContent_MakeAvailable(opendaq-cmake-utils)

@@ -95,11 +95,21 @@ public:
         return byNameCount == 1 ? byName : nullptr;
     }
 
+    // The global ids of the visible signals whose descriptor carries this name, for failure messages
+    static std::string sameNamedSignals(const DevicePtr& device, const std::string& signalName)
+    {
+        std::string ids;
+        for (const auto& candidate : device.getSignals(search::Recursive(search::Visible())))
+            if (candidate.getDescriptor().assigned() && candidate.getDescriptor().getName() == signalName)
+                ids += " " + candidate.getGlobalId().toStdString();
+        return ids.empty() ? " none" : ids;
+    }
+
     SignalPtr getSignal(const DevicePtr& device, const std::string& signalName)
     {
         const auto signal = findSignal(device, signalName);
         if (!signal.assigned())
-            throw NotFoundException();
+            DAQ_THROW_EXCEPTION(NotFoundException, "signal {} not found or ambiguous; signals named {}:{}", signalName, signalName, sameNamedSignals(device, signalName));
         return signal;
     }
 
@@ -114,7 +124,8 @@ public:
         }, std::chrono::seconds(10));
         if (!ready)
         {
-            ADD_FAILURE() << "client signal " << signalName << " was not streamed within the timeout";
+            ADD_FAILURE() << "client signal " << signalName << " was not streamed within the timeout; signals named " << signalName
+                          << ":" << sameNamedSignals(device, signalName);
             throw NotFoundException();
         }
         return signal;

@@ -70,6 +70,22 @@ TEST_F(EnumerationTypeTest, Serialization)
     ASSERT_EQ(enumerationType, enumerationTypeDeserialized);
 }
 
+TEST_F(EnumerationTypeTest, DeserializeConflictingKeepsRegistered)
+{
+    const auto typeManager = TypeManager();
+    const auto registered = EnumerationType("enumType", List<IString>("zero", "one"));
+    typeManager.addType(registered);
+
+    const auto conflicting = EnumerationType("enumType", List<IString>("zero", "one", "two"));
+    const auto serializer = JsonSerializer();
+    conflicting.serialize(serializer);
+
+    const auto deserializer = JsonDeserializer();
+    ASSERT_NO_THROW(deserializer.deserialize(serializer.getOutput(), typeManager));
+    ASSERT_EQ(typeManager.getType("enumType"), registered);
+    ASSERT_NE(typeManager.getType("enumType"), conflicting);
+}
+
 static constexpr auto ENUMERATION_TYPE_ID = FromTemplatedTypeName("IEnumerationType", "daq");
 
 TEST_F(EnumerationTypeTest, EnumerationTypeId)

@@ -235,6 +235,22 @@ TEST_F(StructObjectTest, ComplexStructSerializationEmptyManager)
 
 static constexpr auto INTERFACE_ID = FromTemplatedTypeName("IStruct", "daq");
 
+TEST_F(StructObjectTest, StructTypeDeserializeConflictingKeepsRegistered)
+{
+    const auto typeManager = TypeManager();
+    const auto registered = StructType("foo", List<IString>("field"), List<IType>(SimpleType(ctString)));
+    typeManager.addType(registered);
+
+    const auto conflicting = StructType("foo", List<IString>("field"), List<IType>(SimpleType(ctInt)));
+    const auto serializer = JsonSerializer();
+    conflicting.serialize(serializer);
+
+    const auto deserializer = JsonDeserializer();
+    ASSERT_NO_THROW(deserializer.deserialize(serializer.getOutput(), typeManager));
+    ASSERT_EQ(typeManager.getType("foo"), registered);
+    ASSERT_NE(typeManager.getType("foo"), conflicting);
+}
+
 TEST_F(StructObjectTest, InterfaceId)
 {
     ASSERT_EQ(INTERFACE_ID, IStruct::Id);

@@ -762,18 +762,15 @@ TEST_F(STGAmplifierTest, Deserialize)
 
     auto deserializer = JsonDeserializer();
 
+    // StgAmp is already registered in objManager, which must not fail the deserialization
     BaseObjectPtr deserialized;
-    // TODO: should add comparing of Itype
     ErrCode errCode = deserializer->deserialize(str, objManager, nullptr, &deserialized);
-    ASSERT_ERROR_CODE_FAILED(errCode);
+    ASSERT_SUCCEEDED(errCode);
 
-    /*    ASSERT_FALSE(OPENDAQ_FAILED(errCode));
-
-        serializer.reset();
-        deserialized.serialize(serializer);
-
-        StringPtr str2 = serializer.toString();
-    */
+    const PropertyObjectClassPtr deserializedAmpl = deserialized;
+    serializer.reset();
+    deserializedAmpl.serialize(serializer);
+    ASSERT_EQ(serializer.getOutput(), str);
 }
 
 TEST_F(STGAmplifierTest, GetRefPropAfterChange)

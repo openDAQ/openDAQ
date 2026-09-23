@@ -212,7 +212,16 @@ ErrCode StructTypeImpl::Deserialize(ISerializedObject* ser, IBaseObject* context
         if (typeManager.assigned())
         {
             errCode = typeManager->addType(structType);
-            OPENDAQ_RETURN_IF_FAILED_EXCEPT(errCode, OPENDAQ_ERR_RESERVED_TYPE_NAME);
+
+            // Keep the registered definition if it already exists rather than failing the whole deserialization.
+            if (errCode == OPENDAQ_ERR_ALREADYEXISTS)
+            {
+                daqClearErrorInfo();
+            }
+            else
+            {
+                OPENDAQ_RETURN_IF_FAILED_EXCEPT(errCode, OPENDAQ_ERR_RESERVED_TYPE_NAME);
+            }
         }
         *obj = structType.detach();
         return OPENDAQ_SUCCESS;

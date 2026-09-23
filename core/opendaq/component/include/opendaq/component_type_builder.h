@@ -126,7 +126,7 @@ DECLARE_OPENDAQ_INTERFACE(IComponentTypeBuilder, IBaseObject)
     virtual ErrCode INTERFACE_FUNC getDescription(IString** description) = 0;
 
     // [returnSelf]
-    /*
+    /*!
      * @brief Sets the prefix found in connection strings used to establish a streaming connection of
      * this type.
      * @param[out] prefix The connection string prefix.
@@ -135,7 +135,7 @@ DECLARE_OPENDAQ_INTERFACE(IComponentTypeBuilder, IBaseObject)
      */
     virtual ErrCode INTERFACE_FUNC setConnectionStringPrefix(IString* prefix) = 0;
 
-    /*
+    /*!
      * @brief Gets the prefix found in connection strings used to establish a streaming connection of
      * this type.
      * @param[out] prefix The connection string prefix.
@@ -166,15 +166,70 @@ DECLARE_OPENDAQ_INTERFACE(IComponentTypeBuilder, IBaseObject)
     virtual ErrCode INTERFACE_FUNC getDefaultConfig(IPropertyObject** defaultConfig) = 0;
 
     // [returnSelf]
+    /*!
+     * @brief Sets the alwaysEmptyInput flag. The provided value is only used in building
+     * a function block type. Is False by default.
+     * @param alwaysEmpty The flag value.
+     *
+     * alwaysEmptyInput flag means that function block will always create an empty input
+     * port for additional input connections.
+     */
     virtual ErrCode INTERFACE_FUNC setAlwaysEmptyInput(Bool alwaysEmpty) = 0;
+
+    /*!
+     * @brief Gets the alwaysEmptyInput flag for function block type. The provided value
+     * is only used in building a function block type. Is False by default.
+     * @param[out] alwaysEmpty The flag value.
+     *
+     * alwaysEmptyInput flag means that function block will always create an empty input
+     * port for additional input connections.
+     */
     virtual ErrCode INTERFACE_FUNC getAlwaysEmptyInput(Bool* alwaysEmpty) = 0;
 
     // [returnSelf]
+    /*!
+     * @brief Sets the singleton flag. The provided value is only used in building
+     * a function block type. Is False by default.
+     * @param singleton The flag value.
+     *
+     * singleton flag means that only one function block of the type is allowed under a
+     * single parent.
+     */
     virtual ErrCode INTERFACE_FUNC setSingleton(Bool singleton) = 0;
+
+    /*!
+     * @brief Gets the singleton flag. The provided value is only used in building
+     * a function block type. Is False by default.
+     * @param[out] singleton The flag value.
+     *
+     * singleton flag means that only one function block of the type is allowed under a
+     * single parent.
+     */
     virtual ErrCode INTERFACE_FUNC getSingleton(Bool* singleton) = 0;
 
     // [returnSelf]
+    /*!
+     * @brief Sets the commonSettingsTypeId string property for a function block type.
+     * The provided value is only used in building a function block type. Is unassigned
+     * by default.
+     * @param typeId The id of the function block type the settings apply to.
+     *
+     * The function block type with typeId set as commonSettingsTypeId will act as
+     * a common settings object to multiple nested function blocks of the type defined
+     * by typeId.
+     */
     virtual ErrCode INTERFACE_FUNC setCommonSettingsTypeId(IString* typeId) = 0;
+
+    /*!
+     * @brief Gets the commonSettingsTypeId string property for a function block type.
+     * The provided value is only used in building a function block type. Is unassigned
+     * by default.
+     * @param[out] typeId The id of the function block type the settings apply to.
+     *
+     * The function block type with typeId set as commonSettingsTypeId will act as
+     * a common settings object to multiple nested function blocks of the type defined
+     * by typeId.
+     */
     virtual ErrCode INTERFACE_FUNC getCommonSettingsTypeId(IString** typeId) = 0;
 };
 /*!@}*/

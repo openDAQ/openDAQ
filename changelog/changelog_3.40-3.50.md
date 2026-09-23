@@ -9,6 +9,7 @@
 - [#1251](https://github.com/openDAQ/openDAQ/pull/1251) TLS encrypted channel for the LT streaming module. With `EnableTlsStreamingPort` the server serves the secure channel alongside the plaintext one, registering both the `OpenDAQLTStreaming` and `OpenDAQLTStreamingSecure` capabilities and advertising the `_streaming-lt._tcp` and `_streaming-lts._tcp` mDNS services. Mutual TLS is enabled by default. LT capabilities now carry the `LTStreaming` protocol group ID and a protocol security level (`0` plaintext / `10` secure), so a client ordering streaming protocols by security level prefers the secure channel on its own. The channel is opt-in: without `EnableTlsStreamingPort` the server behaves as before. It is opt-in at build time as well: see [#1278](https://github.com/openDAQ/openDAQ/pull/1278).
 - [#1278](https://github.com/openDAQ/openDAQ/pull/1278) Building the TLS channel of the LT streaming modules is controlled by the new CMake option `OPENDAQ_ENABLE_WEBSOCKET_STREAMING_WITH_TLS`, off by default and on in the `full`, `package` and `simulator_package` presets. With it off the LT streaming modules are built without their OpenSSL dependency and the `daq.lts://` channel is absent. The option has no meaning for the legacy LT streaming modules (`DAQMODULES_LT_LEGACY_MODULES`) and is ignored there.
 - [#1311](https://github.com/openDAQ/openDAQ/pull/1311) Add the `ScanOnAdd` option to skip the network scan on `addDevice`; tests wait for state instead of sleeping; declare `RESOURCE_LOCK` for parallel ctest; write a minidump on access violations.
+- [#1322](https://github.com/openDAQ/openDAQ/pull/1322) Add the `AlwaysEmptyInput`, `Singleton` and `CommonSettingsTypeId` flags to function block types. A type can now declare that its blocks always keep a free input port, that at most one instance may exist under a single parent, and that its properties act as common settings for nested blocks of another type. The options are set through `IComponentTypeBuilder` and read back from `IFunctionBlockType`; they are serialized with the type, so they survive the config protocol.
 
 ## Python
 
@@ -34,6 +35,20 @@
 ## Required application changes
 
 ## Required module changes
+
+### [#XXXX](https://github.com/openDAQ/openDAQ/pull/XXXX) Function block type options
+
+`IFunctionBlockType` and `IComponentTypeBuilder` each gained new methods. Interface IDs in openDAQ are derived
+from the interface name alone, so a module built against an older SDK still passes `queryInterface` while its
+vtable is missing the new slots. Modules must be rebuilt against this SDK version.
+
+Modules that construct function block types through the `FunctionBlockType()` factory or `FunctionBlockTypeBuilder()`
+need no source changes; the defaults (`False`, `False`, unassigned) preserve the previous behaviour. Any module that
+implements `IFunctionBlockType` itself must add `getAlwaysEmptyInput`, `getSingleton` and `getCommonSettingsTypeId`.
+
+The serialized form stays compatible in both directions: a newer SDK reading an older payload falls back to the
+defaults, and an older SDK reading a newer payload ignores the three new keys. Note that an older peer therefore
+drops the values silently - it will not enforce a `Singleton` constraint declared by a newer server.
 
 ## Interface API changes
 
@@ -68,4 +83,21 @@
 #### `IStreaming`
 ```diff
 + IStreaming::getProtocolGroupId(IString** protocolGroupId);
+```
+
+#### `IFunctionBlockType`
+```diff
++ IFunctionBlockType::getAlwaysEmptyInput(Bool* alwaysEmpty);
++ IFunctionBlockType::getSingleton(Bool* singleton);
++ IFunctionBlockType::getCommonSettingsTypeId(IString** typeId);
+```
+
+#### `IComponentTypeBuilder`
+```diff
++ IComponentTypeBuilder::setAlwaysEmptyInput(Bool alwaysEmpty);
++ IComponentTypeBuilder::getAlwaysEmptyInput(Bool* alwaysEmpty);
++ IComponentTypeBuilder::setSingleton(Bool singleton);
++ IComponentTypeBuilder::getSingleton(Bool* singleton);
++ IComponentTypeBuilder::setCommonSettingsTypeId(IString* typeId);
++ IComponentTypeBuilder::getCommonSettingsTypeId(IString** typeId);
 ```

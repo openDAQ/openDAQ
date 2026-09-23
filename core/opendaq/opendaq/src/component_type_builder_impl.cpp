@@ -125,6 +125,51 @@ ErrCode ComponentTypeBuilderImpl::getDefaultConfig(IPropertyObject** defaultConf
     return OPENDAQ_SUCCESS;
 }
 
+ErrCode ComponentTypeBuilderImpl::setAlwaysEmptyInput(Bool alwaysEmpty)
+{
+    this->alwaysEmptyInput = alwaysEmpty;
+    return OPENDAQ_SUCCESS;
+}
+
+ErrCode ComponentTypeBuilderImpl::getAlwaysEmptyInput(Bool* alwaysEmpty)
+{
+    OPENDAQ_PARAM_NOT_NULL(alwaysEmpty);
+
+    *alwaysEmpty = this->alwaysEmptyInput;
+    return OPENDAQ_SUCCESS;
+}
+
+
+ErrCode ComponentTypeBuilderImpl::setSingleton(Bool singleton)
+{
+    this->isSingleton = singleton;
+    return OPENDAQ_SUCCESS;
+}
+
+ErrCode ComponentTypeBuilderImpl::getSingleton(Bool* singleton)
+{
+    OPENDAQ_PARAM_NOT_NULL(singleton);
+
+    *singleton = this->isSingleton;
+    return OPENDAQ_SUCCESS;
+}
+
+
+ErrCode ComponentTypeBuilderImpl::setCommonSettingsTypeId(IString* typeId)
+{
+    this->commonSettingsTypeId = typeId;
+    return OPENDAQ_SUCCESS;
+}
+
+ErrCode ComponentTypeBuilderImpl::getCommonSettingsTypeId(IString** typeId)
+{
+    OPENDAQ_PARAM_NOT_NULL(typeId);
+
+    *typeId = this->commonSettingsTypeId.addRefAndReturn();
+    return OPENDAQ_SUCCESS;
+}
+
+
 #if !defined(BUILDING_STATIC_LIBRARY)
 
 extern "C"

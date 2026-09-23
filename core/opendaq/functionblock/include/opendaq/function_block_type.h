@@ -35,6 +35,13 @@ BEGIN_NAMESPACE_OPENDAQ
  */
 DECLARE_OPENDAQ_INTERFACE(IFunctionBlockType, IComponentType)
 {
+    virtual ErrCode INTERFACE_FUNC getAlwaysEmptyInput(Bool* alwaysEmpty) = 0;
+
+    // True: at most one instance can exist under a parent; adding a second fails.
+    virtual ErrCode INTERFACE_FUNC getSingleton(Bool* singleton) = 0;
+
+    // Assigned: the block's properties are common settings for nested blocks of this type.
+    virtual ErrCode INTERFACE_FUNC getCommonSettingsTypeId(IString** typeId) = 0;
 };
 /*!@}*/
 

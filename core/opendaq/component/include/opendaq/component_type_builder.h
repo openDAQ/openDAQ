@@ -164,6 +164,18 @@ DECLARE_OPENDAQ_INTERFACE(IComponentTypeBuilder, IBaseObject)
      * For example: Port=1000, OutputRate=5000, ...
      */
     virtual ErrCode INTERFACE_FUNC getDefaultConfig(IPropertyObject** defaultConfig) = 0;
+
+    // [returnSelf]
+    virtual ErrCode INTERFACE_FUNC setAlwaysEmptyInput(Bool alwaysEmpty) = 0;
+    virtual ErrCode INTERFACE_FUNC getAlwaysEmptyInput(Bool* alwaysEmpty) = 0;
+
+    // [returnSelf]
+    virtual ErrCode INTERFACE_FUNC setSingleton(Bool singleton) = 0;
+    virtual ErrCode INTERFACE_FUNC getSingleton(Bool* singleton) = 0;
+
+    // [returnSelf]
+    virtual ErrCode INTERFACE_FUNC setCommonSettingsTypeId(IString* typeId) = 0;
+    virtual ErrCode INTERFACE_FUNC getCommonSettingsTypeId(IString** typeId) = 0;
 };
 /*!@}*/
 

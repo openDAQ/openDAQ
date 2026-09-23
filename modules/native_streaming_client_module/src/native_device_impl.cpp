@@ -381,7 +381,20 @@ void NativeDeviceHelper::processConfigPacket(PacketBuffer&& packet)
         // allow server notifications only if connected / reconnection started
         if (acceptNotificationPackets)
         {
-            configProtocolClient->triggerNotificationPacket(packet);
+            // a malformed or unsupported notification must not tear down the client,
+            // so failures are logged and the notification is dropped
+            try
+            {
+                configProtocolClient->triggerNotificationPacket(packet);
+            }
+            catch (const std::exception& e)
+            {
+                LOG_E("Failed to process notification packet from server: {}\n{}\n", e.what(), packet.parseServerNotification());
+            }
+            catch (...)
+            {
+                LOG_E("Failed to process notification packet from server: \n{}\n", packet.parseServerNotification());
+            }
         }
         else
         {

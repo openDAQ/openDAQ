@@ -11,6 +11,7 @@
 #include <opendaq/device_info_factory.h>
 #include <opendaq/device_info_internal_ptr.h>
 #include <native_streaming_protocol/native_streaming_server_handler.h>
+#include <native_streaming_protocol/async_exception_guard.h>
 #include <config_protocol/config_protocol_server.h>
 
 #include <boost/asio/dispatch.hpp>
@@ -203,7 +204,7 @@ void NativeStreamingServerImpl::startTransportOperations()
             daqNameThread("NatSrvStreamTrans");
             using namespace boost::asio;
             auto workGuard = make_work_guard(*transportIOContextPtr);
-            transportIOContextPtr->run();
+            runGuardedEventLoop(*transportIOContextPtr, loggerComponent, "Transport IO thread");
             LOG_I("Transport IO thread finished");
         });
 }
@@ -238,7 +239,7 @@ void NativeStreamingServerImpl::startProcessingOperations()
 
             using namespace boost::asio;
             auto workGuard = make_work_guard(*processingIOContextPtr);
-            processingIOContextPtr->run();
+            runGuardedEventLoop(*processingIOContextPtr, loggerComponent, "Processing thread");
             LOG_I("Processing thread finished");
         }
     );
@@ -468,9 +469,19 @@ void NativeStreamingServerImpl::processClientConfigRequest(const ConfigServerPtr
             // as client waits for server's reply anyway before triggering subsequent RPC
             boost::asio::dispatch(
                 *workerPool,
-                [configServerPtr, packetBufferPtr, sendConfigPacketCb] ()
+                [configServerPtr, packetBufferPtr, sendConfigPacketCb, loggerComponent = this->loggerComponent] ()
                 {
-                    processConfigRequestAndSendReply(configServerPtr, packetBufferPtr, sendConfigPacketCb);
+                    // an exception escaping a worker-pool handler would terminate the whole process,
+                    // so a failed request is logged and dropped instead
+                    runGuarded(
+                        loggerComponent,
+                        [&]()
+                        {
+                            processConfigRequestAndSendReply(configServerPtr, packetBufferPtr, sendConfigPacketCb);
+                        },
+                        "Config protocol request id {}",
+                        packetBufferPtr->getId()
+                    );
                 }
             );
         }

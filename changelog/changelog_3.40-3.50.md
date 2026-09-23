@@ -36,7 +36,7 @@
 
 ## Required module changes
 
-### [#XXXX](https://github.com/openDAQ/openDAQ/pull/XXXX) Function block type options
+### [#1322](https://github.com/openDAQ/openDAQ/pull/1322) Function block type options
 
 `IFunctionBlockType` and `IComponentTypeBuilder` each gained new methods. Interface IDs in openDAQ are derived
 from the interface name alone, so a module built against an older SDK still passes `queryInterface` while its

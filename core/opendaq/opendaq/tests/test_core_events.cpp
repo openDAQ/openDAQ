@@ -1227,6 +1227,32 @@ TEST_F(CoreEventTest, ActiveChanged)
     ASSERT_GE(changeCount, 4);
 }
 
+TEST_F(CoreEventTest, VisibleChanged)
+{
+    const auto context = NullContext();
+    const auto component = Component(context, nullptr, "comp");
+    component.asPtrOrNull<IPropertyObjectInternal>().enableCoreEventTrigger();
+    component.asPtr<IComponentPrivate>().unlockAttributes(List<IString>("Visible"));
+
+    int changeCount = 0;
+    context.getOnCoreEvent() +=
+        [&](const ComponentPtr& comp, const CoreEventArgsPtr& args)
+        {
+            ASSERT_EQ(args.getEventId(), static_cast<int>(CoreEventId::AttributeChanged));
+            ASSERT_EQ(args.getEventName(), "AttributeChanged");
+            ASSERT_EQ(comp, component);
+            ASSERT_TRUE(args.getParameters().hasKey("Visible"));
+            changeCount++;
+        };
+
+    component.setVisible(false);
+    component.setVisible(false);
+    component.setVisible(true);
+    component.setVisible(true);
+
+    ASSERT_EQ(changeCount, 2);
+}
+
 TEST_F(CoreEventTest, DomainSignalChanged)
 {
     const auto domainSig1 = Signal(instance.getContext(), instance.getDevices()[0], "testDomainSig1");

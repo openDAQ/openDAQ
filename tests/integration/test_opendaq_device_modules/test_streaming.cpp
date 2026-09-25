@@ -1,6 +1,7 @@
 #include "test_helpers/test_helpers.h"
 #include <opendaq/mock/mock_device_module.h>
 #include <coreobjects/authentication_provider_factory.h>
+#include <algorithm>
 #include <list>
 
 #include "test_helpers/device_modules.h"
@@ -64,22 +65,51 @@ public:
         }
     }
 
+    // The LT and native pseudo-devices encode the remote path in the local id with '#' or '*' instead of '/'
+    static bool isMockCh1Signal(const SignalPtr& signal, const std::string& signalName)
+    {
+        std::string id = signal.getGlobalId();
+        std::replace_if(id.begin(), id.end(), [](char c) { return c == '#' || c == '*'; }, '/');
+        const std::string suffix = "/mockch1/Sig/" + signalName;
+        return id.size() >= suffix.size() && id.compare(id.size() - suffix.size(), suffix.size(), suffix) == 0;
+    }
+
+    // Several channels carry identically named signals and only mockch1 generates packets: a mockch1 signal is matched
+    // by its id, any other signal by its descriptor name, which then has to be unique
     SignalPtr findSignal(const DevicePtr& device, const std::string& signalName)
     {
+        SignalPtr byName;
+        size_t byNameCount = 0;
         for (const auto& signal : device.getSignals(search::Recursive(search::Visible())))
         {
-            const auto descriptor = signal.getDescriptor();
-            if (descriptor.assigned() && descriptor.getName() == signalName)
+            if (!signal.getDescriptor().assigned())
+                continue;
+            if (isMockCh1Signal(signal, signalName))
                 return signal;
+            if (signal.getDescriptor().getName() == signalName)
+            {
+                byName = signal;
+                ++byNameCount;
+            }
         }
-        return nullptr;
+        return byNameCount == 1 ? byName : nullptr;
+    }
+
+    // The global ids of the visible signals whose descriptor carries this name, for failure messages
+    static std::string sameNamedSignals(const DevicePtr& device, const std::string& signalName)
+    {
+        std::string ids;
+        for (const auto& candidate : device.getSignals(search::Recursive(search::Visible())))
+            if (candidate.getDescriptor().assigned() && candidate.getDescriptor().getName() == signalName)
+                ids += " " + candidate.getGlobalId().toStdString();
+        return ids.empty() ? " none" : ids;
     }
 
     SignalPtr getSignal(const DevicePtr& device, const std::string& signalName)
     {
         const auto signal = findSignal(device, signalName);
         if (!signal.assigned())
-            throw NotFoundException();
+            DAQ_THROW_EXCEPTION(NotFoundException, "signal {} not found or ambiguous; signals named {}:{}", signalName, signalName, sameNamedSignals(device, signalName));
         return signal;
     }
 
@@ -94,7 +124,8 @@ public:
         }, std::chrono::seconds(10));
         if (!ready)
         {
-            ADD_FAILURE() << "client signal " << signalName << " was not streamed within the timeout";
+            ADD_FAILURE() << "client signal " << signalName << " was not streamed within the timeout; signals named " << signalName
+                          << ":" << sameNamedSignals(device, signalName);
             throw NotFoundException();
         }
         return signal;
@@ -105,13 +136,17 @@ public:
         return PacketReader(getSignal(serverInstance, signalName));
     }
 
-    PacketReaderPtr createClientReader(const std::string& signalName)
+    PacketReaderPtr createClientReaderOn(const SignalPtr& signal)
     {
-        auto signal = getSignal(clientInstance, signalName);
         readerInputPort = InputPort(clientInstance.getContext(), nullptr, "readsig");
         PacketReaderPtr reader = PacketReaderFromPort(readerInputPort);
         readerInputPort.connect(signal);
         return reader;
+    }
+
+    PacketReaderPtr createClientReader(const std::string& signalName)
+    {
+        return createClientReaderOn(getSignal(clientInstance, signalName));
     }
 
     static std::vector<std::tuple<std::string, std::string>> GetNativeTestSuite()
@@ -166,10 +201,10 @@ protected:
 
         const auto mockDevice = instance.addDevice("daqmock://phys_device");
 
-        instance.addServer("OpenDAQLTStreaming", nullptr);
-        instance.addServer("OpenDAQNativeStreaming", nullptr);
+        test_helpers::addServer(instance, "OpenDAQLTStreaming");
+        test_helpers::addServer(instance, "OpenDAQNativeStreaming");
         // streaming servers added first, so registered device streaming options is published over opcua
-        instance.addServer("OpenDAQOPCUA", nullptr);
+        test_helpers::addServer(instance, "OpenDAQOPCUA");
 
         return instance;
     }
@@ -192,7 +227,7 @@ protected:
             test_helpers::lt_tls::applySecureClientConfig(config);
 #endif
 
-        auto device = instance.addDevice(connectionString, config);
+        auto device = instance.addDevice(test_helpers::withPort(connectionString), config);
         return instance;
     }
 
@@ -246,7 +281,7 @@ TEST_P(StreamingTest, SignalDescriptorEvents)
                                            std::get<0>(GetParam()) == "OpenDAQLTStreaming"));
 
     // recreate client reader and test initial event packet
-    clientReader = createClientReader(clientSignal.getDescriptor().getName());
+    clientReader = createClientReaderOn(clientSignal);
     clientReceivedPackets = test_helpers::tryReadPackets(clientReader, 1);
 
     ASSERT_EQ(clientReceivedPackets.getCount(), 1u);
@@ -648,9 +683,9 @@ protected:
         statisticsFb.getInputPorts()[0].connect(getSignal(instance, "ByteStep"));
 
         auto streamingServer = std::get<0>(GetParam());
-        instance.addServer(streamingServer, nullptr);
+        test_helpers::addServer(instance, streamingServer);
         // streaming server added first, so registered device streaming options is published over opcua
-        instance.addServer("OpenDAQOPCUA", nullptr);
+        test_helpers::addServer(instance, "OpenDAQOPCUA");
 
         return instance;
     }
@@ -711,9 +746,9 @@ protected:
         const auto mockDevice = instance.addDevice("daqmock://phys_device");
 
         auto streamingServerName = std::get<0>(GetParam());
-        streamingServer = instance.addServer(streamingServerName, nullptr);
+        streamingServer = test_helpers::addServer(instance, streamingServerName);
         // streaming server added first, so registered device streaming options is published over opcua
-        instance.addServer("OpenDAQOPCUA", nullptr);
+        test_helpers::addServer(instance, "OpenDAQOPCUA");
 
         return instance;
     }
@@ -726,7 +761,7 @@ protected:
     void restoreStreamingServer()
     {
         auto streamingServerName = std::get<0>(GetParam());
-        streamingServer = serverInstance.addServer(streamingServerName, nullptr);
+        streamingServer = test_helpers::addServer(serverInstance, streamingServerName);
     }
 
     ServerPtr streamingServer;
@@ -797,7 +832,7 @@ TEST_F_UNSTABLE_SKIPPED(NativeDeviceStreamingTest, ChangedDataDescriptorBeforeSu
     serverInstance.setRootDevice("daqmock://phys_device");
 
     addNativeServerModule(serverInstance);
-    serverInstance.addServer("OpenDAQNativeStreaming", nullptr);
+    test_helpers::addServer(serverInstance, "OpenDAQNativeStreaming");
 
     const auto channels = serverInstance.getChannelsRecursive();
     Int sigCount = 0;
@@ -807,7 +842,7 @@ TEST_F_UNSTABLE_SKIPPED(NativeDeviceStreamingTest, ChangedDataDescriptorBeforeSu
     const auto clientInstance = test_helpers::createInstance("[[none]]");
 
     addNativeClientModule(clientInstance);
-    clientInstance.addDevice("daq.nd://127.0.0.1");
+    clientInstance.addDevice(test_helpers::withPort("daq.nd://127.0.0.1"));
 
 
     int callCount = 0;
@@ -1064,9 +1099,9 @@ protected:
 
         const auto mockDevice = instance.addDevice("daqmock://phys_device");
 
-        instance.addServer("OpenDAQLTStreaming", ltServerConfig(instance));
-        instance.addServer("OpenDAQNativeStreaming", nullptr);
-        instance.addServer("OpenDAQOPCUA", nullptr);
+        test_helpers::addServer(instance, "OpenDAQLTStreaming", ltServerConfig(instance));
+        test_helpers::addServer(instance, "OpenDAQNativeStreaming");
+        test_helpers::addServer(instance, "OpenDAQOPCUA");
 
         return instance;
     }
@@ -1117,7 +1152,7 @@ TEST_P(StreamingTestForModernLt, SignalDescriptorEvents)
 
     // Recreate the client reader on the same signal: a freshly created reader always replays the current
     // descriptor as its first initial event packet, which we inspect below
-    clientReader = createClientReader(clientSignal.getDescriptor().getName());
+    clientReader = createClientReaderOn(clientSignal);
     clientReceivedPackets = test_helpers::tryReadPackets(clientReader, 1);
 
     ASSERT_EQ(clientReceivedPackets.getCount(), 1u);
@@ -1605,14 +1640,14 @@ protected:
 
         const auto mockDevice = instance.addDevice("daqmock://phys_device");
 
-        streamingServer = instance.addServer("OpenDAQLTStreaming", ltServerConfig(instance));
+        streamingServer = test_helpers::addServer(instance, "OpenDAQLTStreaming", ltServerConfig(instance));
 #if defined(OPENDAQ_ENABLE_NATIVE_STREAMING)
         // native server provides the config channel for daq.nd:// clients (streaming itself stays on LT,
         // which is the only prioritized streaming protocol on the client side)
-        instance.addServer("OpenDAQNativeStreaming", nullptr);
+        test_helpers::addServer(instance, "OpenDAQNativeStreaming");
 #endif
         // streaming server added first, so registered device streaming options is published over opcua
-        instance.addServer("OpenDAQOPCUA", nullptr);
+        test_helpers::addServer(instance, "OpenDAQOPCUA");
 
         return instance;
     }
@@ -1624,7 +1659,7 @@ protected:
 
     void restoreStreamingServer()
     {
-        streamingServer = serverInstance.addServer("OpenDAQLTStreaming", ltServerConfig(serverInstance));
+        streamingServer = test_helpers::addServer(serverInstance, "OpenDAQLTStreaming", ltServerConfig(serverInstance));
     }
 
     ServerPtr streamingServer;

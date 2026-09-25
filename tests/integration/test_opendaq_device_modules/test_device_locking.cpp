@@ -39,7 +39,7 @@ public:
 
         auto instance = InstanceCustom(context, "clientInstance");
         instance.addDevice("daqmock://phys_device");
-        instance.addServer("OpenDAQNativeStreaming", nullptr);
+        test_helpers::addServer(instance, "OpenDAQNativeStreaming");
 
         return instance;
     }
@@ -66,7 +66,7 @@ public:
         generalConfig.setPropertyValue("Username", username);
         generalConfig.setPropertyValue("Password", password);
 
-        instance.addDevice("daq.nd://127.0.0.1", config);
+        instance.addDevice(test_helpers::withPort("daq.nd://127.0.0.1"), config);
         instance.addDevice("daqmock://phys_device");
         instance.addDevice("daqmock://phys_device");
         return instance;

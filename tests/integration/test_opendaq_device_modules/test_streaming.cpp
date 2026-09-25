@@ -787,7 +787,7 @@ INSTANTIATE_TEST_SUITE_P(
 class NativeDeviceStreamingTest : public testing::Test
 {};
 
-TEST_F_UNSTABLE_SKIPPED(NativeDeviceStreamingTest, ChangedDataDescriptorBeforeSubscribeNativeDevice)
+TEST_F(NativeDeviceStreamingTest, ChangedDataDescriptorBeforeSubscribeNativeDevice)
 {
     SKIP_TEST_MAC_CI;
     const auto moduleManager = ModuleManager("[[none]]");
@@ -810,12 +810,22 @@ TEST_F_UNSTABLE_SKIPPED(NativeDeviceStreamingTest, ChangedDataDescriptorBeforeSu
     clientInstance.addDevice("daq.nd://127.0.0.1");
 
 
+    // ChangingSignal/ChangingTime on mockch1 mutate their own descriptor on a background timer
+    // (see MockChannelImpl::addChangingSignal), independently of the ChangeDescriptors property
+    // below. Those autonomous changes are tagged with a "color" metadata key that ChangeDescriptors
+    // never sets, so exclude only those events; ChangeDescriptors-triggered changes on the same
+    // two signals still count normally.
     int callCount = 0;
     clientInstance.getContext().getOnCoreEvent() +=
         [&](const ComponentPtr& /*comp*/, const CoreEventArgsPtr& args)
         {
-            if (args.getEventId() == static_cast<Int>(CoreEventId::DataDescriptorChanged))  
-                callCount++;
+            if (args.getEventId() == static_cast<Int>(CoreEventId::DataDescriptorChanged))
+            {
+                const DataDescriptorPtr desc = args.getParameters().get("DataDescriptor");
+                const bool fromBackgroundGenerator = desc.assigned() && desc.getMetadata().hasKey("color");
+                if (!fromBackgroundGenerator)
+                    callCount++;
+            }
         };
 
     SignalConfigPtr serverSignalPtr = serverInstance.getSignalsRecursive(search::LocalId("ByteStep"))[0];

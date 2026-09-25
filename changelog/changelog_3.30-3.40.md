@@ -39,6 +39,7 @@
 
 ## Bug fixes
 
+- [#1325](https://github.com/openDAQ/openDAQ/pull/1325) Fix a data race in the native configuration protocol streaming consumer that could crash the server when a client connects and removes external signals concurrently
 - [#1277](https://github.com/openDAQ/openDAQ/pull/1277) Fix MultiReader leaking its input ports when disposed before being released; readers treat a missing domain tick resolution as 1/1 instead of crashing
 - [#1273](https://github.com/openDAQ/openDAQ/pull/1273) Fix wrong packet-streaming optimization parameters order
 - [#1273](https://github.com/openDAQ/openDAQ/pull/1273) Fix native streaming server crash on access to non-existed packet server

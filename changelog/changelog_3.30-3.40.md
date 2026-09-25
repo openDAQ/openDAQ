@@ -39,6 +39,9 @@
 
 ## Bug fixes
 
+- [#1326](https://github.com/openDAQ/openDAQ/pull/1326) Fix an exception in a native streaming handler aborting the process; it is logged instead
+- [#1326](https://github.com/openDAQ/openDAQ/pull/1326) Fix adding a sub-device failing when a property object class, enumeration or struct type of the same name is already registered on the client
+- [#1326](https://github.com/openDAQ/openDAQ/pull/1326) Native client logs a warning when a type received from the server differs from the local definition
 - [#1277](https://github.com/openDAQ/openDAQ/pull/1277) Fix MultiReader leaking its input ports when disposed before being released; readers treat a missing domain tick resolution as 1/1 instead of crashing
 - [#1273](https://github.com/openDAQ/openDAQ/pull/1273) Fix wrong packet-streaming optimization parameters order
 - [#1273](https://github.com/openDAQ/openDAQ/pull/1273) Fix native streaming server crash on access to non-existed packet server

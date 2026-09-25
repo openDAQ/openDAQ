@@ -23,6 +23,10 @@
 #include <coreobjects/user_factory.h>
 #include <opendaq/mock/mock_streaming_factory.h>
 #include <opendaq/mock/mock_physical_device.h>
+#include <opendaq/logger_factory.h>
+#include <opendaq/logger_sink_factory.h>
+#include <opendaq/logger_sink_last_message_private_ptr.h>
+#include <coreobjects/property_object_class_factory.h>
 
 using namespace daq;
 using namespace daq::config_protocol;
@@ -32,9 +36,26 @@ class ConfigCoreEventTest : public testing::Test
 public:
     void SetUp() override
     {
-        const auto anonymousUser = User("", "");
-
         serverDevice = test_utils::createTestDevice();
+        clientContext = createClientContext();
+        connectClient();
+    }
+
+    // Creates a client context whose warnings are captured by clientLogSink.
+    ContextPtr createClientContext()
+    {
+        const auto logSink = LastMessageLoggerSink();
+        logSink.setLevel(LogLevel::Warn);
+        auto logSinks = DefaultSinks(nullptr);
+        logSinks.pushBack(logSink);
+        clientLogSink = logSink;
+        return NullContext(LoggerWithSinks(logSinks));
+    }
+
+    // (Re)creates the server and a client using clientContext, and connects the client.
+    void connectClient()
+    {
+        const auto anonymousUser = User("", "");
         server =
             std::make_unique<ConfigProtocolServer>(serverDevice,
                                                    std::bind(&ConfigCoreEventTest::serverNotificationReady, this, std::placeholders::_1),
@@ -42,7 +63,6 @@ public:
                                                    ClientType::Control,
                                                    test_utils::dummyExtSigFolder(serverDevice.getContext()));
 
-        clientContext = NullContext();
         client =
             std::make_unique<ConfigProtocolClient<ConfigClientDeviceImpl>>(
                 clientContext,
@@ -63,6 +83,9 @@ protected:
     std::unique_ptr<ConfigProtocolServer> server;
     std::unique_ptr<ConfigProtocolClient<ConfigClientDeviceImpl>> client;
     ContextPtr clientContext;
+    // The logger passes messages to its sinks on a thread of its own, so a warning arrives some time after the call
+    // that logged it: wait for it with a timeout.
+    LastMessageLoggerSinkPrivatePtr clientLogSink;
     BaseObjectPtr notificationObj;
 
     //To simulate disconnected server - notifications from server are dropped
@@ -1105,6 +1128,106 @@ TEST_F(ConfigCoreEventTest, TypeAdded)
     ASSERT_TRUE(clientTypeManager.hasType("StatusType1"));
     ASSERT_TRUE(clientTypeManager.hasType("StructType1"));
     ASSERT_TRUE(clientTypeManager.hasType("StructType2"));
+}
+
+TEST_F(ConfigCoreEventTest, TypeAddedConflictingKeepsLocalAndWarns)
+{
+    const auto clientTypeManager = clientContext.getTypeManager();
+    const auto localClass = PropertyObjectClassBuilder(clientTypeManager, "ConflictingClass")
+                                .addProperty(StringProperty("LocalProp", ""))
+                                .build();
+    clientTypeManager.addType(localClass);
+
+    const auto serverTypeManager = serverDevice.getContext().getTypeManager();
+    const auto serverClass = PropertyObjectClassBuilder(serverTypeManager, "ConflictingClass")
+                                 .addProperty(StringProperty("ServerProp", ""))
+                                 .build();
+
+    clientLogSink.waitForMessage(0);
+    serverTypeManager.addType(serverClass);
+
+    ASSERT_TRUE(clientTypeManager.getType("ConflictingClass") == localClass);
+    ASSERT_TRUE(clientLogSink.waitForMessage(5000));
+    const std::string message = clientLogSink.getLastMessage();
+    ASSERT_NE(message.find("Type ConflictingClass received from the server differs from the local definition"), std::string::npos);
+}
+
+TEST_F(ConfigCoreEventTest, TypeAddedConflictingEnumerationKeepsLocalAndWarns)
+{
+    const auto clientTypeManager = clientContext.getTypeManager();
+    const auto localEnum = EnumerationType("ConflictingEnum", List<IString>("A", "B"));
+    clientTypeManager.addType(localEnum);
+
+    clientLogSink.waitForMessage(0);
+    const auto serverTypeManager = serverDevice.getContext().getTypeManager();
+    serverTypeManager.addType(EnumerationType("ConflictingEnum", List<IString>("A", "B", "C")));
+
+    ASSERT_TRUE(clientTypeManager.getType("ConflictingEnum") == localEnum);
+    ASSERT_TRUE(clientLogSink.waitForMessage(5000));
+    const std::string message = clientLogSink.getLastMessage();
+    ASSERT_NE(message.find("Type ConflictingEnum received from the server differs from the local definition"), std::string::npos);
+}
+
+TEST_F(ConfigCoreEventTest, TypeAddedIdenticalToLocalDoesNotWarn)
+{
+    const auto clientTypeManager = clientContext.getTypeManager();
+    const auto localClass = PropertyObjectClassBuilder(clientTypeManager, "IdenticalClass")
+                                .addProperty(StringProperty("Prop", ""))
+                                .build();
+    clientTypeManager.addType(localClass);
+
+    const auto serverTypeManager = serverDevice.getContext().getTypeManager();
+    const auto serverClass = PropertyObjectClassBuilder(serverTypeManager, "IdenticalClass")
+                                 .addProperty(StringProperty("Prop", ""))
+                                 .build();
+
+    clientLogSink.waitForMessage(0);
+    serverTypeManager.addType(serverClass);
+
+    ASSERT_TRUE(clientTypeManager.getType("IdenticalClass") == localClass);
+    ASSERT_FALSE(clientLogSink.waitForMessage(200));
+}
+
+TEST_F(ConfigCoreEventTest, ConnectWithConflictingLocalTypeKeepsLocalAndWarns)
+{
+    const auto serverTypeManager = serverDevice.getContext().getTypeManager();
+    serverTypeManager.addType(PropertyObjectClassBuilder(serverTypeManager, "ConflictingClass")
+                                  .addProperty(StringProperty("ServerProp", ""))
+                                  .build());
+
+    clientContext = createClientContext();
+    const auto clientTypeManager = clientContext.getTypeManager();
+    const auto localClass = PropertyObjectClassBuilder(clientTypeManager, "ConflictingClass")
+                                .addProperty(StringProperty("LocalProp", ""))
+                                .build();
+    clientTypeManager.addType(localClass);
+
+    connectClient();
+
+    ASSERT_TRUE(clientTypeManager.getType("ConflictingClass") == localClass);
+    ASSERT_TRUE(clientLogSink.waitForMessage(5000));
+    const std::string message = clientLogSink.getLastMessage();
+    ASSERT_NE(message.find("Type ConflictingClass received from the server differs from the local definition"), std::string::npos);
+}
+
+TEST_F(ConfigCoreEventTest, ConnectWithIdenticalLocalTypeDoesNotWarn)
+{
+    const auto serverTypeManager = serverDevice.getContext().getTypeManager();
+    serverTypeManager.addType(PropertyObjectClassBuilder(serverTypeManager, "IdenticalClass")
+                                  .addProperty(StringProperty("Prop", ""))
+                                  .build());
+
+    clientContext = createClientContext();
+    const auto clientTypeManager = clientContext.getTypeManager();
+    const auto localClass = PropertyObjectClassBuilder(clientTypeManager, "IdenticalClass")
+                                .addProperty(StringProperty("Prop", ""))
+                                .build();
+    clientTypeManager.addType(localClass);
+
+    connectClient();
+
+    ASSERT_TRUE(clientTypeManager.getType("IdenticalClass") == localClass);
+    ASSERT_FALSE(clientLogSink.waitForMessage(200));
 }
 
 TEST_F(ConfigCoreEventTest, TypeRemoved)

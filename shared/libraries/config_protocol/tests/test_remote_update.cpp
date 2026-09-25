@@ -2,6 +2,10 @@
 #include <opendaq/context_factory.h>
 #include <coreobjects/property_factory.h>
 #include <gtest/gtest.h>
+#include <functional>
+#include <stdexcept>
+#include <string>
+#include <vector>
 #include <coreobjects/property_object_internal_ptr.h>
 #include <opendaq/mock/mock_fb_module.h>
 #include <opendaq/data_descriptor_factory.h>
@@ -54,19 +58,59 @@ protected:
     ContextPtr clientContext;
     BaseObjectPtr notificationObj;
     bool muteNotifications = false;
+    // JSON of every RPC request the client sent through sendRequestAndGetReply
+    mutable std::vector<std::string> rpcRequests;
+    // Requests the client sent while it was handling a server notification. The native client
+    // handles notifications and delivers replies on one thread, so such a request can never be
+    // answered there; the fixture answers it with an error instead of re-entering the server.
+    mutable std::vector<std::string> requestsDuringNotification;
+    mutable bool deliveringNotification = false;
+    // Optional hook that replaces a server notification packet before the client sees it
+    std::function<PacketBuffer(const PacketBuffer&)> notificationRewriter;
 
     // server handling
     void serverNotificationReady(const PacketBuffer& notificationPacket) const
     {
-        if (!muteNotifications)
-            client->triggerNotificationPacket(notificationPacket);
+        if (muteNotifications)
+            return;
+
+        deliveringNotification = true;
+        try
+        {
+            if (notificationRewriter)
+                client->triggerNotificationPacket(notificationRewriter(notificationPacket));
+            else
+                client->triggerNotificationPacket(notificationPacket);
+        }
+        catch (...)
+        {
+            deliveringNotification = false;
+            throw;
+        }
+        deliveringNotification = false;
     }
 
     // client handling
     PacketBuffer sendRequestAndGetReply(const PacketBuffer& requestPacket) const
     {
-        auto replyPacket = server->processRequestAndGetReply(requestPacket);
-        return replyPacket;
+        if (requestPacket.getPacketType() == config_protocol::PacketType::Rpc)
+        {
+            const auto json = requestPacket.parseRpcRequestOrReply().toStdString();
+            rpcRequests.push_back(json);
+
+            if (deliveringNotification)
+            {
+                requestsDuringNotification.push_back(json);
+                auto error = Dict<IString, IBaseObject>();
+                error.set("ErrorCode", static_cast<Int>(OPENDAQ_ERR_GENERALERROR));
+                error.set("ErrorMessage", "Request sent while the client was handling a notification");
+                const auto serializer = JsonSerializer();
+                error.serialize(serializer);
+                const auto reply = serializer.getOutput();
+                return PacketBuffer::createRpcRequestOrReply(requestPacket.getId(), reply.getCharPtr(), reply.getLength());
+            }
+        }
+        return server->processRequestAndGetReply(requestPacket);
     }
 
     void sendNoReplyRequest(const PacketBuffer& requestPacket) const
@@ -279,4 +323,150 @@ TEST_F(ConfigRemoteUpdateTest, UpdateHierarchicalActive)
 
     ASSERT_TRUE(serverChannel.getActive());
     ASSERT_TRUE(clientChannel.getActive());
+}
+
+// Rewrites the escaped JSON of a ComponentUpdateEnd notification so every serialized device looks
+// like one sent by a server older than config protocol version 25: "DaqDeviceInfo" is removed from
+// "propValues" and from "properties", and the device info object is placed under the dedicated
+// legacy "deviceInfo" key of the device instead. Braces are matched textually; the mock device
+// tree has no braces inside string values.
+static std::string toLegacyDeviceInfoFormat(std::string json, size_t& rewritten)
+{
+    const std::string key = R"(\"DaqDeviceInfo\":)";
+    const std::string propValuesKey = R"(\"propValues\":)";
+    rewritten = 0;
+
+    const auto findMatchingClose = [&json](size_t open)
+    {
+        size_t depth = 0;
+        size_t close = open;
+        for (; close < json.size(); ++close)
+        {
+            if (json[close] == '{')
+                ++depth;
+            else if (json[close] == '}' && --depth == 0)
+                break;
+        }
+        return close;
+    };
+
+    // The first unmatched '{' before "pos"
+    const auto findEnclosingOpen = [&json](size_t pos)
+    {
+        int balance = 0;
+        size_t open = pos;
+        while (open > 0)
+        {
+            --open;
+            if (json[open] == '}')
+                ++balance;
+            else if (json[open] == '{')
+            {
+                if (balance == 0)
+                    break;
+                --balance;
+            }
+        }
+        return open;
+    };
+
+    const auto eraseWithComma = [&json](size_t begin, size_t end)
+    {
+        if (end < json.size() && json[end] == ',')
+            ++end;
+        else if (begin > 0 && json[begin - 1] == ',')
+            --begin;
+        json.erase(begin, end - begin);
+        return begin;
+    };
+
+    size_t pos = 0;
+    while ((pos = json.find(key, pos)) != std::string::npos)
+    {
+        const size_t objStart = pos + key.size();
+        if (json[objStart] != '{')
+            throw std::runtime_error("DaqDeviceInfo value is not an object");
+
+        const size_t objEnd = findMatchingClose(objStart);
+        const std::string infoObj = json.substr(objStart, objEnd - objStart + 1);
+        const size_t erasedAt = eraseWithComma(pos, objEnd + 1);
+
+        const size_t open = findEnclosingOpen(erasedAt);
+        if (open < propValuesKey.size() || json.compare(open - propValuesKey.size(), propValuesKey.size(), propValuesKey) != 0)
+            throw std::runtime_error("DaqDeviceInfo is not a direct entry of propValues");
+
+        const std::string legacyEntry = R"(\"deviceInfo\":)" + infoObj + ",";
+        const size_t insertAt = open - propValuesKey.size();
+        json.insert(insertAt, legacyEntry);
+        pos = insertAt + legacyEntry.size();
+        ++rewritten;
+    }
+
+    const std::string propEntryKey = R"(\"name\":\"DaqDeviceInfo\")";
+    pos = 0;
+    while ((pos = json.find(propEntryKey, pos)) != std::string::npos)
+    {
+        const size_t open = findEnclosingOpen(pos);
+        const size_t close = findMatchingClose(open);
+        pos = eraseWithComma(open, close + 1);
+    }
+    return json;
+}
+
+static size_t countDevices(const DevicePtr& device)
+{
+    size_t count = 1;
+    for (const auto& sub : device.getDevices())
+        count += countDevices(sub);
+    return count;
+}
+
+// Regression: a server older than protocol version 25 does not serialize DaqDeviceInfo as a
+// property value. When the client mirror rebuilds itself from ComponentUpdateEnd it clears the
+// property locally; that clear must not turn into a ClearProtectedPropertyValue request, because
+// it is issued from the notification handler and could never be answered by the native client.
+TEST_F(ConfigRemoteUpdateTest, UpdateFromServerWithoutDaqDeviceInfoSendsNoRequests)
+{
+    const auto serverInfo = serverDevice.getInfo();
+    const auto serverSubInfo = serverDevice.getDevices()[0].getInfo();
+    ASSERT_EQ(serverInfo.getName(), "root_dev");
+    ASSERT_EQ(serverInfo.getLocation(), "loc");
+    ASSERT_FALSE(serverSubInfo.getName().toStdString().empty());
+
+    size_t rewrittenDevices = 0;
+    std::string rewriteError;
+    notificationRewriter = [&rewrittenDevices, &rewriteError](const PacketBuffer& packet)
+    {
+        const auto original = packet.parseServerNotification();
+        try
+        {
+            size_t rewritten = 0;
+            const std::string json = toLegacyDeviceInfoFormat(original.toStdString(), rewritten);
+            rewrittenDevices += rewritten;
+            return PacketBuffer::createServerNotification(json.c_str(), json.size());
+        }
+        catch (const std::exception& e)
+        {
+            // Must not throw into the server's notification callback
+            rewriteError = e.what();
+            return PacketBuffer::createServerNotification(original.getCharPtr(), original.getLength());
+        }
+    };
+
+    rpcRequests.clear();
+    updateHelper(clientDevice, serializeHelper(referenceDevice));
+
+    ASSERT_TRUE(rewriteError.empty()) << rewriteError;
+    ASSERT_EQ(rewrittenDevices, countDevices(serverDevice));
+
+    // Nothing may be requested from the server while the notification is being handled
+    ASSERT_TRUE(requestsDuringNotification.empty()) << requestsDuringNotification.front();
+    for (const auto& request : rpcRequests)
+        ASSERT_EQ(request.find("ClearProtectedPropertyValue"), std::string::npos) << request;
+
+    // Device info of the mirrors is taken from the legacy key and keeps the server values
+    ASSERT_EQ(clientDevice.getInfo().getName(), serverInfo.getName());
+    ASSERT_EQ(clientDevice.getInfo().getLocation(), serverInfo.getLocation());
+    ASSERT_EQ(clientDevice.getDevices()[0].getInfo().getName(), serverSubInfo.getName());
+    ASSERT_EQ(clientDevice.getDevices()[0].getInfo().getManufacturer(), serverSubInfo.getManufacturer());
 }

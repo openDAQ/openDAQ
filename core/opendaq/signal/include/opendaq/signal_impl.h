@@ -227,6 +227,9 @@ private:
     void disconnectInputPort(const ConnectionPtr& connection);
     void clearConnections(std::vector<ConnectionPtr>& connections);
     void setKeepLastPacket();
+    bool isConstantWithoutDomain();
+    bool replaysLastValueOnConnect();
+    DataPacketPtr createLastValuePacket();
     TypePtr addToTypeManagerRecursively(const TypeManagerPtr& typeManager,
                                         const DataDescriptorPtr& descriptor) const;
 
@@ -477,6 +480,7 @@ ErrCode SignalBase<TInterface, Interfaces...>::setDescriptor(IDataDescriptor* de
         auto lock = this->getRecursiveConfigLock2();
 
         dataDescriptor = descriptorPtr;
+        setKeepLastPacket();
         const auto packet = DataDescriptorChangedEventPacket(descriptorToEventPacketParam(dataDescriptor), nullptr);
 
         // Should this return a failure error code or execute all sendPacket calls and return one of the errors?
@@ -575,6 +579,8 @@ ErrCode SignalBase<TInterface, Interfaces...>::setDomainSignal(ISignal* signal)
 
         if (domainSignal.assigned())
             domainSignal.asPtr<ISignalEvents>().domainSignalReferenceSet(this->template borrowPtr<SignalPtr>());
+
+        setKeepLastPacket();
     }
 
     if (!this->coreEventMuted && this->coreEvent.assigned())
@@ -955,13 +961,27 @@ ErrCode SignalBase<TInterface, Interfaces...>::listenerConnectedInternal(IConnec
     // that the shared sendPacket mutex used to provide. The listener's packet notification
     // fires through the enqueue below exactly as for any packet, so connect still triggers
     // onPacketReceived immediately.
+    //
+    // A constant signal without a domain signal changes rarely, so hand the new listener the current value.
+    DataPacketPtr lastValuePacket;
+    if (replaysLastValueOnConnect())
+        lastValuePacket = createLastValuePacket();
+
     const ErrCode enqueueErrCode = daqTry(
         [&]
         {
             if (!schedule)
+            {
                 connectionPtr.enqueueOnThisThread(packet);
+                if (lastValuePacket.assigned())
+                    connectionPtr.enqueueOnThisThread(lastValuePacket);
+            }
             else
+            {
                 connectionPtr.enqueueWithScheduler(packet);
+                if (lastValuePacket.assigned())
+                    connectionPtr.enqueueWithScheduler(lastValuePacket);
+            }
         });
     if (OPENDAQ_FAILED(enqueueErrCode))
     {
@@ -1156,6 +1176,7 @@ ErrCode SignalBase<TInterface, Interfaces...>::clearDomainSignalWithoutNotificat
     auto lock = this->getRecursiveConfigLock2();
 
     domainSignal = nullptr;
+    setKeepLastPacket();
 
     return OPENDAQ_SUCCESS;
 }
@@ -1354,9 +1375,45 @@ ErrCode SignalBase<TInterface, Interfaces...>::enableKeepLastValue(Bool enabled)
 }
 
 template <typename TInterface, typename... Interfaces>
+bool SignalBase<TInterface, Interfaces...>::isConstantWithoutDomain()
+{
+    if (onGetDomainSignal().assigned())
+        return false;
+
+    const auto descriptor = onGetDescriptor();
+    if (!descriptor.assigned())
+        return false;
+
+    const auto rule = descriptor.getRule();
+    return rule.assigned() && rule.getType() == DataRuleType::Constant;
+}
+
+template <typename TInterface, typename... Interfaces>
+bool SignalBase<TInterface, Interfaces...>::replaysLastValueOnConnect()
+{
+    return this->active.load(std::memory_order_relaxed) && isConstantWithoutDomain();
+}
+
+// Null when no value is cached or the cached value belongs to a superseded descriptor.
+template <typename TInterface, typename... Interfaces>
+DataPacketPtr SignalBase<TInterface, Interfaces...>::createLastValuePacket()
+{
+    void* rawValue = nullptr;
+    const auto cachedDescriptor = lastValueStore.getRawValue(&rawValue);
+    if (!cachedDescriptor.assigned())
+        return nullptr;
+
+    // A value captured under an older descriptor would contradict the descriptor announced on connect.
+    if (!BaseObjectPtr::Equals(cachedDescriptor, onGetDescriptor()))
+        return nullptr;
+
+    return ConstantDataPacketWithRawValue(cachedDescriptor, rawValue);
+}
+
+template <typename TInterface, typename... Interfaces>
 void SignalBase<TInterface, Interfaces...>::setKeepLastPacket()
 {
-    lastValueStore.setEnabled(keepLastValue && isPublic);
+    lastValueStore.setEnabled(keepLastValue && (isPublic || isConstantWithoutDomain()));
 }
 
 template <typename TInterface, typename... Interfaces>

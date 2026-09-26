@@ -26,6 +26,10 @@
 #include <packet_streaming/packet_streaming_server.h>
 #include <packet_streaming/packet_streaming_client.h>
 
+#include <cstdint>
+#include <memory>
+#include <vector>
+
 BEGIN_NAMESPACE_OPENDAQ_NATIVE_STREAMING_PROTOCOL
 
 struct PacketBufferData
@@ -206,6 +210,10 @@ private:
         std::unordered_set<std::string> subscribedClientsIds;
         DataDescriptorPtr lastDataDescriptorParam;
         DataDescriptorPtr lastDomainDescriptorParam;
+        // Raw last value of a constant signal without a domain signal, replayed to late subscribers.
+        // Holds one sample of the descriptor it was captured under, or nothing when there is no value to replay.
+        std::unique_ptr<uint8_t[]> lastValueRawData;
+        bool constantWithoutDomain{false};
     };
 
     struct RegisteredClientSignal
@@ -222,6 +230,9 @@ private:
                               PacketPtr&& packet,
                               const std::string& clientId,
                               SignalNumericIdType singalNumericId);
+
+    static void onDescriptorChanged(RegisteredServerSignal& registeredSignal);
+    static void snapshotConstantValue(RegisteredServerSignal& registeredSignal, const PacketPtr& packet);
 
     static native_streaming::WriteTask cachePacketsToLinearBuffer(const PacketStreamingServerPtr& packetStreamingServer,
                                                                   size_t cacheableGroupId,

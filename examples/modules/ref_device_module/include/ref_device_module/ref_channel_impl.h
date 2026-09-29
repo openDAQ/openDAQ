@@ -18,6 +18,7 @@
 #include <ref_device_module/common.h>
 #include <opendaq/channel_impl.h>
 #include <opendaq/signal_config_ptr.h>
+#include <opendaq/reference_domain_info_ptr.h>
 #include <opendaq/packet_buffer_ptr.h>
 #include <opendaq/packet_buffer_builder_ptr.h>
 
@@ -42,7 +43,7 @@ struct RefChannelInit
     double globalSampleRate;
     std::chrono::microseconds startTime;
     std::chrono::microseconds microSecondsFromEpochToStartTime;
-    StringPtr referenceDomainId;
+    ReferenceDomainInfoPtr referenceDomainInfo;
     bool usePacketBuffer;
 };
 
@@ -89,7 +90,7 @@ private:
     bool needsSignalTypeChanged;
     bool fixedPacketSize;
     uint64_t packetSize;
-    StringPtr referenceDomainId;
+    ReferenceDomainInfoPtr referenceDomainInfo;
     PacketBufferPtr packetBuffer;
     bool acqActive;
 

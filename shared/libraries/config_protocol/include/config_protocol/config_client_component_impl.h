@@ -403,10 +403,13 @@ void ConfigClientComponentBaseImpl<Impl>::tagsChanged(const CoreEventArgsPtr& ar
 template <class Impl>
 void ConfigClientComponentBaseImpl<Impl>::statusChanged(const CoreEventArgsPtr& args)
 {
+    const DictPtr<IString, IBaseObject> params = args.getParameters();
+    if (params.hasKey("Path"))
+        return;
+
     ComponentStatusContainerPtr statusContainer;
     checkErrorInfo(Impl::getStatusContainer(&statusContainer));
 
-    const DictPtr<IString, IBaseObject> params = args.getParameters();
     StringPtr msg = params.getOrDefault("Message", "");
 
     for (const auto& [key, value] : params)

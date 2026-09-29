@@ -188,7 +188,7 @@ TEST_F(RefDeviceModuleTest, DeviceDomainReferenceDomainId)
     auto domain = device.getDomain();
 
     auto res = domain.getReferenceDomainInfo().getReferenceDomainId();
-    ASSERT_EQ(res, "openDAQ_DevSer1");
+    ASSERT_EQ(res, "local:openDAQ_DevSer1");
 }
 
 TEST_F(RefDeviceModuleTest, DeviceDomainReferenceDomainOffset)
@@ -210,18 +210,55 @@ TEST_F(RefDeviceModuleTest, DeviceDomainReferenceTimeProtocol)
     auto domain = device.getDomain();
 
     auto res = domain.getReferenceDomainInfo().getReferenceTimeProtocol();
-    ASSERT_EQ(res, TimeProtocol::Unknown);
+    ASSERT_EQ(res, TimeProtocol::Utc);
 }
 
-TEST_F(RefDeviceModuleTest, DeviceDomainUsesOffset)
+TEST_F(RefDeviceModuleTest, DeviceDomainReferenceDomainIds)
 {
     auto module = CreateModule();
 
     auto device = module.createDevice("daqref://device1", nullptr);
     auto domain = device.getDomain();
 
-    auto res = domain.getReferenceDomainInfo().getUsesOffset();
-    ASSERT_EQ(res, UsesOffset::Unknown);
+    auto res = domain.getReferenceDomainInfo().getReferenceDomainIds();
+    ASSERT_EQ(res, List<IString>("local:openDAQ_DevSer1"));
+}
+
+TEST_F(RefDeviceModuleTest, Synchronization)
+{
+    auto module = CreateModule();
+
+    auto device = module.createDevice("daqref://device1", nullptr);
+    auto sync = device.getSynchronization();
+    ASSERT_TRUE(sync.assigned());
+
+    const auto interfaces = sync.getInterfaces();
+    ASSERT_EQ(interfaces.getCount(), 1u);
+    ASSERT_TRUE(interfaces.hasKey("ClockSyncInterface"));
+
+    auto source = sync.getSource();
+    ASSERT_EQ(source.getId(), "ClockSyncInterface");
+    ASSERT_EQ(source.getMode(), SyncMode::Input);
+    ASSERT_EQ(source.getReferenceDomainId(), "local:openDAQ_DevSer1");
+    ASSERT_EQ(source.getStatusContainer().getStatus("SynchronizationSourceStatus").getValue(), "Synced");
+    ASSERT_EQ(sync.getReferenceDomainIds(), List<IString>("local:openDAQ_DevSer1"));
+}
+
+TEST_F(RefDeviceModuleTest, DomainSignalsMatchDeviceDomain)
+{
+    auto module = CreateModule();
+
+    auto device = module.createDevice("daqref://device1", nullptr);
+    device.setPropertyValue("EnableCANChannel", True);
+    const auto deviceInfo = device.getDomain().getReferenceDomainInfo();
+
+    for (const auto& signal : device.getSignals(search::Recursive(search::Any())))
+    {
+        const auto domainSignal = signal.getDomainSignal();
+        if (!domainSignal.assigned())
+            continue;
+        ASSERT_EQ(domainSignal.getDescriptor().getReferenceDomainInfo(), deviceInfo) << domainSignal.getGlobalId();
+    }
 }
 
 TEST_F(RefDeviceModuleTest, DeviceDomainSignal)

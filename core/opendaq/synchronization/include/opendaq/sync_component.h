@@ -87,7 +87,7 @@ DECLARE_OPENDAQ_INTERFACE(ISyncComponent, IComponent)
 OPENDAQ_DECLARE_CLASS_FACTORY_WITH_INTERFACE(
     LIBRARY_FACTORY, SyncComponent, ISyncComponent,
     IContext*, context,
-    IComponent*, ParseFailedException,
+    IComponent*, parent,
     IString*, localId
 )
 

@@ -47,7 +47,7 @@ extern "C"
     daqErrCode EXPORTED daqSyncComponent_getSelectedSource(daqSyncComponent* self, daqInt* selectedSource);
     daqErrCode EXPORTED daqSyncComponent_setSelectedSource(daqSyncComponent* self, daqInt selectedSource);
     daqErrCode EXPORTED daqSyncComponent_getInterfaces(daqSyncComponent* self, daqDict** interfaces);
-    daqErrCode EXPORTED daqSyncComponent_createSyncComponent(daqSyncComponent** obj, daqContext* context, daqComponent* ParseFailedException, daqString* localId);
+    daqErrCode EXPORTED daqSyncComponent_createSyncComponent(daqSyncComponent** obj, daqContext* context, daqComponent* parent, daqString* localId);
 
 #ifdef __cplusplus
 }

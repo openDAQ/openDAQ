@@ -53,6 +53,8 @@ DECLARE_OPENDAQ_INTERFACE(IReferenceDomainInfoBuilder, IBaseObject)
      * or are synchronized using a protocol, such as PTP, NTP, IRIG, etc.).
      * Those signals can always be read together, implying that a Multi Reader
      * can be used to read the signals if their sampling rates are compatible.
+     * The ID has the form <reference-type>[:<type-specific-identity>], eg. "ptp:0:001122fffe334455".
+     * While the device runs on its own clock, the ID is "local:<device-local-id>".
      */
     virtual ErrCode INTERFACE_FUNC setReferenceDomainId(IString* referenceDomainId) = 0;
 
@@ -66,6 +68,8 @@ DECLARE_OPENDAQ_INTERFACE(IReferenceDomainInfoBuilder, IBaseObject)
      * or are synchronized using a protocol, such as PTP, NTP, IRIG, etc.).
      * Those signals can always be read together, implying that a Multi Reader
      * can be used to read the signals if their sampling rates are compatible.
+     * The ID has the form <reference-type>[:<type-specific-identity>], eg. "ptp:0:001122fffe334455".
+     * While the device runs on its own clock, the ID is "local:<device-local-id>".
      */
     virtual ErrCode INTERFACE_FUNC getReferenceDomainId(IString** referenceDomainId) = 0;
 
@@ -74,14 +78,13 @@ DECLARE_OPENDAQ_INTERFACE(IReferenceDomainInfoBuilder, IBaseObject)
      * @brief Sets the Reference Domain Offset.
      * @param referenceDomainOffset The Reference Domain Offset.
      *
-     * If set, denotes the offset in ticks that must be added to the domain values of the signal
-     * for them to be equal to that of the sync source. The sync source will always have an offset of 0.
-     * This offset is changed only if the sync source changes and should be kept at 0 otherwise,
-     * allowing clients to differentiate between data loss and resync events.
-     * Any device can choose to always keep the offset at 0, representing changes in the offset in
-     * the domain packet values instead. This implementation prevents clients from differentiating
-     * between errors (data loss) and resync events. Additionally, if the offset is not configured,
-     * clients have no way of detecting a resync event in the case of asynchronous signals.
+     * If set, denotes the cumulative offset in ticks of the jumps that resynchronizations caused in the
+     * domain values of the signal. The offset is 0 when the device boots and changes only when a
+     * resynchronization causes a discontinuity; the difference between the new and the previous value
+     * is the size of the latest jump. The domain values are absolute; the offset is not added to them.
+     * Adding the difference to the next expected domain value allows clients to differentiate between
+     * data loss and resync events. If the offset is not configured, clients have no way of detecting
+     * a resync event in the case of asynchronous signals.
      */
     virtual ErrCode INTERFACE_FUNC setReferenceDomainOffset(IInteger* referenceDomainOffset) = 0;
 
@@ -89,14 +92,13 @@ DECLARE_OPENDAQ_INTERFACE(IReferenceDomainInfoBuilder, IBaseObject)
      * @brief Gets the Reference Domain Offset.
      * @param[out] referenceDomainOffset The Reference Domain Offset.
      *
-     * If set, denotes the offset in ticks that must be added to the domain values of the signal
-     * for them to be equal to that of the sync source. The sync source will always have an offset of 0.
-     * This offset is changed only if the sync source changes and should be kept at 0 otherwise,
-     * allowing clients to differentiate between data loss and resync events.
-     * Any device can choose to always keep the offset at 0, representing changes in the offset in
-     * the domain packet values instead. This implementation prevents clients from differentiating
-     * between errors (data loss) and resync events. Additionally, if the offset is not configured,
-     * clients have no way of detecting a resync event in the case of asynchronous signals.
+     * If set, denotes the cumulative offset in ticks of the jumps that resynchronizations caused in the
+     * domain values of the signal. The offset is 0 when the device boots and changes only when a
+     * resynchronization causes a discontinuity; the difference between the new and the previous value
+     * is the size of the latest jump. The domain values are absolute; the offset is not added to them.
+     * Adding the difference to the next expected domain value allows clients to differentiate between
+     * data loss and resync events. If the offset is not configured, clients have no way of detecting
+     * a resync event in the case of asynchronous signals.
      */
     virtual ErrCode INTERFACE_FUNC getReferenceDomainOffset(IInteger** referenceDomainOffset) = 0;
 
@@ -132,9 +134,9 @@ DECLARE_OPENDAQ_INTERFACE(IReferenceDomainInfoBuilder, IBaseObject)
      * @brief Sets the list of Reference Domain IDs.
      * @param referenceDomainIds The list of Reference Domain IDs.
      *
-     * If set, gives the list of all Reference Domain IDs contributing to this domain, in
-     * cases where a signal's domain aggregates data synchronized from more than one
-     * Reference Domain (eg. after merging streams from multiple synchronization sources).
+     * If set, gives the list of Reference Domain IDs of this domain: the applied Reference Domain ID
+     * and the IDs of the other synchronization interfaces that are not Off and whose
+     * SynchronizationSourceStatus is Synced, such as the outputs the device distributes its clock on.
      */
     // [templateType(referenceDomainIds, IString)]
     virtual ErrCode INTERFACE_FUNC setReferenceDomainIds(IList* referenceDomainIds) = 0;
@@ -143,9 +145,9 @@ DECLARE_OPENDAQ_INTERFACE(IReferenceDomainInfoBuilder, IBaseObject)
      * @brief Gets the list of Reference Domain IDs.
      * @param[out] referenceDomainIds The list of Reference Domain IDs.
      *
-     * If set, gives the list of all Reference Domain IDs contributing to this domain, in
-     * cases where a signal's domain aggregates data synchronized from more than one
-     * Reference Domain (eg. after merging streams from multiple synchronization sources).
+     * If set, gives the list of Reference Domain IDs of this domain: the applied Reference Domain ID
+     * and the IDs of the other synchronization interfaces that are not Off and whose
+     * SynchronizationSourceStatus is Synced, such as the outputs the device distributes its clock on.
      */
     // [templateType(referenceDomainIds, IString)]
     virtual ErrCode INTERFACE_FUNC getReferenceDomainIds(IList** referenceDomainIds) = 0;

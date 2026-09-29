@@ -40,7 +40,9 @@ inline SyncComponentPtr SyncComponent(const ContextPtr& context, const Component
 }
 
 /*!
- * @brief Creates a synchronization component 2.
+ * @brief Creates a synchronization object that holds a ClockSyncInterface selected as the source.
+ * @param manager The type manager.
+ * @param deviceId The device-local ID; the ClockSyncInterface reference domain ID is "local:<deviceId>".
  */
 inline SynchronizationPtr Synchronization(const TypeManagerPtr& manager, const StringPtr& deviceId)
 {

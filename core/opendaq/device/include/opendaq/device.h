@@ -410,6 +410,8 @@ DECLARE_OPENDAQ_INTERFACE(IDevice, IFolder)
     /*!
      * @brief Gets the synchronization object of the device.
      * @param[out] sync The synchronization object.
+     *
+     * @return OPENDAQ_IGNORED if the device has no clock; sync is set to nullptr.
      */
     virtual ErrCode INTERFACE_FUNC getSynchronization(ISynchronization** sync) = 0;
 };

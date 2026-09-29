@@ -68,10 +68,6 @@ TEST_F(DevicesTest, SettingSyncComponent)
 #endif
     SyncComponentPrivatePtr syncComponentPrivate = syncComponent.asPtr<ISyncComponentPrivate>(true);
 
-    // The root device is a reference device which has a sync component with a PTP interface and a clock sync interface
-    // lets clean it up and create a new PTP interface
-    syncComponentPrivate.removeInterface("PtpSyncInterface");
-    syncComponentPrivate.removeInterface("InterfaceClockSync");
     ASSERT_EQ(syncComponent.getInterfaces().getCount(), 0u);
 
     // Create a new PTP interface from property objects class `PtpSyncInterface`

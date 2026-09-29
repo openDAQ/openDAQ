@@ -132,6 +132,13 @@ TEST_F(ReferenceDomainInfoTest, ReferenceDomainIdsStructField)
     ASSERT_EQ(info.get("ReferenceDomainIds"), List<IString>("domainA", "domainB"));
 }
 
+TEST_F(ReferenceDomainInfoTest, StructFieldNames)
+{
+    const auto structType = ReferenceDomainInfoStructType();
+    ASSERT_EQ(structType.getFieldNames(),
+              List<IString>("ReferenceDomainId", "ReferenceDomainOffset", "ReferenceTimeProtocol", "ReferenceDomainIds"));
+}
+
 TEST_F(ReferenceDomainInfoTest, StructNames)
 {
     const auto structType = ReferenceDomainInfoStructType();

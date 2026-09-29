@@ -18,7 +18,6 @@ DictPtr<IString, IBaseObject> ReferenceDomainInfoImpl::PackBuilder(IReferenceDom
     params.set("ReferenceDomainId", builderPtr.getReferenceDomainId());
     params.set("ReferenceDomainOffset", builderPtr.getReferenceDomainOffset());
     params.set("ReferenceTimeProtocol", static_cast<Int>(builderPtr.getReferenceTimeProtocol()));
-    params.set("UsesOffset", static_cast<Int>(0));
     params.set("ReferenceDomainIds", builderPtr.getReferenceDomainIds());
     return params;
 }

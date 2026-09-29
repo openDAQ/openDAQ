@@ -108,11 +108,11 @@ class SyncView(ttk.Frame):
 
         self.dot_size = int(10 * self.context.dpi_factor)
 
-        columns = ('source', 'in_use', 'mode', 'status', 'dot')
+        columns = ('source', 'in_use', 'mode', 'role', 'status', 'dot')
         tree = ttk.Treeview(frame, columns=columns, show='tree headings', selectmode=tk.BROWSE)
         tree.heading('#0', anchor=tk.W, text='Name')
         tree.column('#0', anchor=tk.W, width=int(260 * self.context.dpi_factor), stretch=False)
-        for column, width, heading in zip(columns, (170, 55, 80, 75), ('Source', 'In use', 'Mode', 'Status')):
+        for column, width, heading in zip(columns, (170, 55, 80, 65, 75), ('Source', 'In use', 'Mode', 'Role', 'Status')):
             tree.heading(column, anchor=tk.W, text=heading)
             tree.column(column, anchor=tk.W, width=int(width * self.context.dpi_factor), stretch=column == 'source')
         tree.column('dot', width=self.dot_size + 6, minwidth=self.dot_size + 6, stretch=False)
@@ -123,7 +123,6 @@ class SyncView(ttk.Frame):
         tree.pack(fill=tk.BOTH, expand=True)
 
         tree.tag_configure('group', font=('TkDefaultFont', 9, 'bold'))
-        tree.tag_configure('follower', font=('TkDefaultFont', 9, 'italic'))
 
         style = ttk.Style(self)
         self.row_background = style.lookup('Treeview', 'background') or 'white'
@@ -162,7 +161,7 @@ class SyncView(ttk.Frame):
         local = [members[0] for domain, members in domains.items()
                  if domain.startswith('local:') and len(members) == 1]
         if local:
-            yield LOCAL_CLOCKS, LOCAL_CLOCKS, local, sorted(local, key=self.tree_order)
+            yield LOCAL_CLOCKS, LOCAL_CLOCKS, sorted(local, key=self.tree_order)
 
         for domain in sorted(domains, key=lambda d: (d == NO_DOMAIN, d)):
             members = sorted(domains[domain], key=self.tree_order)
@@ -170,9 +169,9 @@ class SyncView(ttk.Frame):
                 continue
             owner = None if domain == NO_DOMAIN else self.clock_owner(domain, members)
             if owner is None:
-                yield domain, domain if domain == NO_DOMAIN else f'{domain} (external clock)', [], members
+                yield domain, domain if domain == NO_DOMAIN else f'{domain} (external clock)', members
             else:
-                yield domain, domain, [owner], [owner, *(record for record in members if record is not owner)]
+                yield domain, domain, [owner, *(record for record in members if record is not owner)]
 
     @staticmethod
     def tree_order(record):
@@ -196,7 +195,7 @@ class SyncView(ttk.Frame):
         self.dot_colors = {}
         self.editors = {}
 
-        for key, title, clocks, members in self.groups():
+        for key, title, members in self.groups():
             visible = [record for record in members if self.matches(record)]
             if not visible:
                 continue
@@ -206,7 +205,7 @@ class SyncView(ttk.Frame):
             self.rows[group] = (visible[0], None)
 
             for record in visible:
-                self.device_row_insert(group, record, record in clocks)
+                self.device_row_insert(group, record)
 
         for iid in opened & self.rows.keys():
             self.tree.item(iid, open=True)
@@ -221,14 +220,14 @@ class SyncView(ttk.Frame):
 
         self.after_idle(self.overlays_sync)
 
-    def device_row_insert(self, group, record, is_clock):
+    def device_row_insert(self, group, record):
         iid = f'{group}|{record.device.global_id}'
         sources = {name: name for name in record.synchronization.available_sources.keys()}
         source = self.editor_register(iid, 'source', record, record.source.id, sources,
                                       lambda name: setattr(record.synchronization, 'source', name))
         mode = self.mode_editor_register(iid, record, record.source)
-        self.tree.insert(group, tk.END, iid=iid, text=record.device.name, tags=() if is_clock else ('follower',),
-                         values=(source, record.source.sync_type, mode, record.status))
+        self.tree.insert(group, tk.END, iid=iid, text=record.device.name,
+                         values=(source, record.source.sync_type, mode, role_status(record.source), record.status))
         self.rows[iid] = (record, record.source)
         self.dot_colors[iid] = STATUS_COLORS[record.status]
 
@@ -238,7 +237,7 @@ class SyncView(ttk.Frame):
             child = f'{iid}|{name}'
             mode = self.mode_editor_register(child, record, interface)
             self.tree.insert(iid, tk.END, iid=child, text=text,
-                             values=('', interface.sync_type, mode, status))
+                             values=('', interface.sync_type, mode, role_status(interface), status))
             self.rows[child] = (record, interface)
             self.dot_colors[child] = STATUS_COLORS[status]
 

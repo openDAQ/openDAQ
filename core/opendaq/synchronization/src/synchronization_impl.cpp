@@ -65,6 +65,7 @@ void SynchronizationImpl::onSourceChanged(const StringPtr& sourceName)
 
     SyncInterfacePtr oldSource = source;
     const auto oldSourceMode = oldSource.getMode();
+    const auto newSourceMode = newSource.getMode();
 
     oldSource.asPtr<ISyncInterfaceInternal>(true).setAsSource(False);
 
@@ -75,8 +76,13 @@ void SynchronizationImpl::onSourceChanged(const StringPtr& sourceName)
     }
     catch(...)
     {
+        if (OPENDAQ_FAILED(newSource.asPtr<ISyncInterfaceInternal>(true)->setAsSource(False)))
+            clearErrorInfo();
+        else if (newSourceMode != SyncMode::Off && OPENDAQ_FAILED(newSource->setMode(newSourceMode)))
+            clearErrorInfo();
+
         oldSource.asPtr<ISyncInterfaceInternal>(true).setAsSource(True);
-        oldSource.asPtr<IPropertyObject>(true).setPropertyValue("Mode", static_cast<Int>(oldSourceMode));
+        oldSource.setMode(oldSourceMode);
         throw;
     }
 

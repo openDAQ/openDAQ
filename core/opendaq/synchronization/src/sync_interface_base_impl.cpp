@@ -58,7 +58,15 @@ void SyncInterfaceBaseImpl::initProperties()
     configuration.getOnAnyPropertyValueWrite() += [this](PropertyObjectPtr&, PropertyValueEventArgsPtr& arg)
     {
         auto lock = this->getRecursiveConfigLock2();
-        onConfigurationChanged(arg.getProperty().getName(), arg.getValue());
+        const StringPtr name = arg.getProperty().getName();
+        onConfigurationChanged(name, arg.getValue());
+
+        if (name == "Mode")
+        {
+            const Int mode = arg.getValue();
+            if (mode == static_cast<Int>(SyncMode::Off))
+                setReferenceDomainId("");
+        }
     };
 }
 

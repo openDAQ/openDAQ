@@ -211,8 +211,24 @@ public:
         return OPENDAQ_SUCCESS;
     }
 
+    using Super::setReferenceDomainId;
+
 private:
     StringPtr syncType;
+};
+
+class FailingSourceSyncInterface : public TestSyncInterface
+{
+public:
+    using TestSyncInterface::TestSyncInterface;
+
+    ErrCode INTERFACE_FUNC setAsSource(Bool source) override
+    {
+        OPENDAQ_RETURN_IF_FAILED(TestSyncInterface::setAsSource(source));
+        if (source)
+            return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_GENERALERROR, "The sync service refused the source role");
+        return OPENDAQ_SUCCESS;
+    }
 };
 
 using SynchronizationTest = testing::Test;
@@ -437,6 +453,89 @@ TEST_F(SynchronizationTest, ClockSyncInterfaceReferenceDomainIdEmptyWhenNotSourc
     ListPtr<IString> referenceDomainIds;
     ASSERT_ERROR_CODE_EQ(sync->getReferenceDomainIds(&referenceDomainIds), OPENDAQ_SUCCESS);
     ASSERT_EQ(referenceDomainIds.getCount(), 0u);
+}
+
+TEST_F(SynchronizationTest, SetSourceRestoresBothInterfacesWhenPromotionFails)
+{
+    const auto ctx = NullContext();
+    const auto manager = ctx.getTypeManager();
+
+    const auto sync = Synchronization(manager, "testDevice");
+    const auto syncPrivate = sync.asPtr<ISynchronizationPrivate>(true);
+
+    const auto oldSource = TestSyncInterface::Create(manager, "OldSource");
+    const SyncInterfacePtr failingSource = createWithImplementation<ISyncInterface, FailingSourceSyncInterface>(
+        manager, "FailingSource", std::vector<SyncMode>{SyncMode::Off, SyncMode::Input, SyncMode::Output, SyncMode::Auto});
+    syncPrivate.addInterface(oldSource);
+    syncPrivate.addInterface(failingSource);
+
+    sync.setSource("OldSource");
+    oldSource.setMode(SyncMode::Input);
+    failingSource.setMode(SyncMode::Output);
+
+    ASSERT_ERROR_CODE_EQ(sync->setSource(String("FailingSource")), OPENDAQ_ERR_GENERALERROR);
+
+    ASSERT_EQ(sync.getSource().getId(), "OldSource");
+    ASSERT_EQ(oldSource.getMode(), SyncMode::Input);
+    ASSERT_TRUE(oldSource.getAvailableModes().hasKey(static_cast<Int>(SyncMode::Input)));
+
+    ASSERT_EQ(failingSource.getMode(), SyncMode::Output);
+    ASSERT_FALSE(failingSource.getAvailableModes().hasKey(static_cast<Int>(SyncMode::Auto)));
+    const DictPtr<IInteger, IString> modeOptions = failingSource.asPtr<IPropertyObject>(true).getPropertyValue("Configuration.ModeOptions");
+    ASSERT_TRUE(modeOptions.hasKey(static_cast<Int>(SyncMode::Output)));
+    ASSERT_FALSE(modeOptions.hasKey(static_cast<Int>(SyncMode::Auto)));
+}
+
+TEST_F(SynchronizationTest, ClockSyncInterfaceStatusesFollowMode)
+{
+    const auto ctx = NullContext();
+    const auto manager = ctx.getTypeManager();
+
+    const auto sync = Synchronization(manager, "testDevice");
+    sync.asPtr<ISynchronizationPrivate>(true).addInterface(TestSyncInterface::Create(manager));
+
+    const SyncInterfacePtr clockSyncInterface = sync.getInterfaces().get("ClockSyncInterface");
+    const auto statuses = clockSyncInterface.getStatusContainer();
+    ASSERT_EQ(clockSyncInterface.getMode(), SyncMode::Input);
+    ASSERT_EQ(statuses.getStatus("SynchronizationRoleStatus").getValue(), "Input");
+    ASSERT_EQ(statuses.getStatus("SynchronizationSourceStatus").getValue(), "Synced");
+
+    sync.setSource("TestInterface");
+    ASSERT_EQ(clockSyncInterface.getMode(), SyncMode::Off);
+    ASSERT_EQ(statuses.getStatus("SynchronizationRoleStatus").getValue(), "Off");
+    ASSERT_EQ(statuses.getStatus("SynchronizationSourceStatus").getValue(), "Off");
+
+    sync.setSource("ClockSyncInterface");
+    ASSERT_EQ(statuses.getStatus("SynchronizationRoleStatus").getValue(), "Input");
+    ASSERT_EQ(statuses.getStatus("SynchronizationSourceStatus").getValue(), "Synced");
+}
+
+TEST_F(SynchronizationTest, InterfaceInOffHasNoReferenceDomainId)
+{
+    const auto ctx = NullContext();
+    const auto manager = ctx.getTypeManager();
+
+    const auto sync = Synchronization(manager, "testDevice");
+    const auto syncInterface = TestSyncInterface::Create(manager);
+    sync.asPtr<ISynchronizationPrivate>(true).addInterface(syncInterface);
+    auto* impl = dynamic_cast<TestSyncInterface*>(syncInterface.getObject());
+
+    sync.setSource("TestInterface");
+    impl->setReferenceDomainId("ptp:0:001122fffe334455");
+    ASSERT_EQ(syncInterface.getReferenceDomainId(), "ptp:0:001122fffe334455");
+
+    sync.setSource("ClockSyncInterface");
+    ASSERT_EQ(syncInterface.getMode(), SyncMode::Off);
+    ASSERT_EQ(syncInterface.getReferenceDomainId(), "");
+
+    const ListPtr<IString> ids = sync.getReferenceDomainIds();
+    ASSERT_EQ(ids.getCount(), 1u);
+    ASSERT_EQ(ids[0], "local:testDevice");
+
+    syncInterface.setMode(SyncMode::Output);
+    impl->setReferenceDomainId("ptp:0:0a0b0cfffe0d0e0f");
+    syncInterface.setMode(SyncMode::Off);
+    ASSERT_EQ(syncInterface.getReferenceDomainId(), "");
 }
 
 TEST_F(SynchronizationTest, SyncInterfaceGetId)

@@ -22,9 +22,17 @@ ErrCode ClockSyncInterfaceImpl::setAsSource(Bool source)
     return daqTry([&]()
     {
         if (source)
+        {
             this->setReferenceDomainId(referenceDomainId);
+            this->setSyncRoleStatus(SyncRoleStatus::Input);
+            this->setSyncSourceStatus(SyncSourceStatus::Synced);
+        }
         else
+        {
             this->setReferenceDomainId(String(""));
+            this->setSyncRoleStatus(SyncRoleStatus::Off);
+            this->setSyncSourceStatus(SyncSourceStatus::Off);
+        }
     });
 }
 

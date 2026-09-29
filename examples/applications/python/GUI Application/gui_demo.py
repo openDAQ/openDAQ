@@ -29,6 +29,7 @@ try:
     from gui_demo.components.add_function_block_dialog import AddFunctionBlockDialog
     from gui_demo.components.load_instance_config_dialog import LoadInstanceConfigDialog
     from gui_demo.components.synchronization_dialog import SynchronizationDialog
+    from gui_demo.components.sync_view import SyncView
     from gui_demo.components.logs_dialog import LogsDialog
     from gui_demo.app_context import AppContext
     from gui_demo import utils
@@ -41,6 +42,7 @@ except Exception as e:
     from opendaq.gui_demo.components.add_function_block_dialog import AddFunctionBlockDialog
     from opendaq.gui_demo.components.load_instance_config_dialog import LoadInstanceConfigDialog
     from opendaq.gui_demo.components.synchronization_dialog import SynchronizationDialog
+    from opendaq.gui_demo.components.sync_view import SyncView
     from opendaq.gui_demo.components.logs_dialog import LogsDialog
     from opendaq.gui_demo.app_context import AppContext
     from opendaq.gui_demo import utils
@@ -55,6 +57,7 @@ class DisplayType(enum.Enum):
     TOPOLOGY = 4
     TOPOLOGY_CUSTOM_COMPONENTS = 5
     MODULES = 6
+    SYNCHRONIZATION = 7
     UNSPECIFIED = 99
 
     def from_tab_index(index):
@@ -70,6 +73,8 @@ class DisplayType(enum.Enum):
             return DisplayType.TOPOLOGY
         elif index == 5:
             return DisplayType.MODULES
+        elif index == 6:
+            return DisplayType.SYNCHRONIZATION
         return DisplayType.UNSPECIFIED
 
 class ContextParams:
@@ -114,6 +119,7 @@ class App(tk.Tk):
             self.context.connection_string = None
 
         self.modules_map = {}
+        self.sync_view = None
         self._indicator_click = False
 
         self.title('openDAQ demo')
@@ -139,6 +145,7 @@ class App(tk.Tk):
         nb.add(ttk.Frame(nb), text='Function blocks')
         nb.add(ttk.Frame(nb), text='Full Topology')
         nb.add(ttk.Frame(nb), text='Modules')
+        nb.add(ttk.Frame(nb), text='Synchronization')
         nb.bind('<<NotebookTabChanged>>', self.on_tab_change)
         nb.pack(fill=tk.X, side=tk.LEFT, expand=True)
         self.nb = nb
@@ -163,6 +170,7 @@ class App(tk.Tk):
         main_frame_navigator.add(frame_navigator_for_properties)
 
         main_frame_navigator.pack(side=tk.LEFT, expand=1, fill=tk.BOTH)
+        self.main_frame_navigator = main_frame_navigator
 
         self.frame_navigator_for_properties = frame_navigator_for_properties
 
@@ -348,6 +356,7 @@ class App(tk.Tk):
         scroll_bar.pack(fill=tk.Y, side=tk.RIGHT)
 
         parent_frame.add(frame)
+        self.tree_frame = frame
         tree.tag_configure('warning', foreground=utils.StatusColor.WARNING)
         tree.tag_configure('error', foreground=utils.StatusColor.ERROR)
         tree.tag_configure('inactive', foreground='gray')
@@ -487,6 +496,11 @@ class App(tk.Tk):
         return None
 
     def tree_update(self, new_selected_node=None):
+        if self.current_tab() == DisplayType.SYNCHRONIZATION:
+            self.sync_view_show()
+            return
+        self.sync_view_hide()
+
         self.tree_row_buttons_hide(self.tree_row_button_pool)
         self.tree_row_can_add_rows.clear()
         self.tree.delete(*self.tree.get_children())
@@ -1441,6 +1455,22 @@ class App(tk.Tk):
             synchronization = daq.IPropertyObject.cast_from(synchronization)
 
         SynchronizationDialog(self, node, synchronization, self.context).show()
+
+    def sync_view_show(self):
+        if self.sync_view is not None:
+            self.sync_view.refresh()
+            return
+        self.main_frame_navigator.forget(self.tree_frame)
+        self.right_side_panel_clear()
+        self.sync_view = SyncView(self.right_side_panel, self.context)
+        self.sync_view.pack(fill=tk.BOTH, expand=True)
+
+    def sync_view_hide(self):
+        if self.sync_view is None:
+            return
+        self.sync_view.destroy()
+        self.sync_view = None
+        self.main_frame_navigator.insert(0, self.tree_frame)
 
     # MARK: - Other
 

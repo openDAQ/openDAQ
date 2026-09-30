@@ -177,7 +177,6 @@ public:
     ClientType connectionType = ClientType::Control;
 };
 
-// TODO: dont forget to upate the version ConfigProtocolServer::ConfigProtocolServer (supportedServerVersions)
 inline constexpr uint16_t GetLatestConfigProtocolVersion()
 {
     return 25;

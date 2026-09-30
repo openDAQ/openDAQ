@@ -29,6 +29,7 @@ TEST_F(DevicesTest, DeviceComponents)
     FolderPtr inputsOutputsFolder = device.getInputsOutputsFolder();
     ListPtr<IChannel> channels =  device.getChannels();
     ListPtr<IComponent> customComponents = device.getCustomComponents();
+    SynchronizationPtr synchronization = device.getSynchronization();
 
     ASSERT_TRUE(functionBlocks.assigned());
     ASSERT_TRUE(signals.assigned());
@@ -36,6 +37,7 @@ TEST_F(DevicesTest, DeviceComponents)
     ASSERT_TRUE(inputsOutputsFolder.assigned());
     ASSERT_TRUE(channels.assigned());
     ASSERT_TRUE(customComponents.assigned());
+    ASSERT_TRUE(synchronization.assigned());
 }
 
 // Corresponding document: Antora/modules/explanation/pages/device.adoc

@@ -20,7 +20,7 @@ BEGIN_NAMESPACE_OPENDAQ_NATIVE_STREAMING_CLIENT_MODULE
 using namespace opendaq_native_streaming_protocol;
 using namespace config_protocol;
 
-static const std::regex RegexIpv6Hostname(R"(^(.+://)?(\[[a-fA-F0-9:]+(?:\%[a-zA-Z0-9_\.-~]+)?\])(?::(\d+))?(/.*)?$)");
+static const std::regex RegexIpv6Hostname(R"(^(.+://)?(\[[a-fA-F0-9:]+(?:\%[a-zA-Z0-9_\.~-]+)?\])(?::(\d+))?(/.*)?$)");
 static const std::regex RegexIpv4Hostname(R"(^(.+://)([^:/\s]+))");
 static const std::regex RegexPort(":(\\d+)");
 

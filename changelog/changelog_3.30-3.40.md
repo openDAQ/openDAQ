@@ -39,6 +39,7 @@
 
 ## Bug fixes
 
+- [#1327](https://github.com/openDAQ/openDAQ/pull/1327) Fix events not being synchronized: `removeHandler` and `clear` now wait for a handler running on another thread, and handlers are called without the event lock held
 - [#1325](https://github.com/openDAQ/openDAQ/pull/1325) Fix a data race in the native configuration protocol streaming consumer that could crash the server when a client connects and removes external signals concurrently
 - [#1277](https://github.com/openDAQ/openDAQ/pull/1277) Fix MultiReader leaking its input ports when disposed before being released; readers treat a missing domain tick resolution as 1/1 instead of crashing
 - [#1273](https://github.com/openDAQ/openDAQ/pull/1273) Fix wrong packet-streaming optimization parameters order
@@ -115,6 +116,12 @@
 
 ## Required application changes
 
+### [#1327](https://github.com/openDAQ/openDAQ/pull/1327) Event handler removal waits for running handlers
+
+`IEvent::removeHandler` and `IEvent::clear` now return only once the removed handlers are no longer running on another thread. Don't call them while holding a lock that such a handler needs, or the call waits forever.
+
+`daq::RecursiveMutex` was removed from `coretypes/utility_sync.h`. Use `std::recursive_mutex` or `daq::mutex` instead.
+
 ### [#1051](https://github.com/openDAQ/openDAQ/pull/1051) Removed function block wrapper
 
 The IFunctionBlockWrapper interface was removed as it was never used. Similarly, the base implementation headers were removed. The wrapper objects should no longer be used.
@@ -124,6 +131,12 @@ The IFunctionBlockWrapper interface was removed as it was never used. Similarly,
 On load configuration, all non-static function blocks will be removed and recreated if they are in the load config
 
 ## Required module changes
+
+### [#1327](https://github.com/openDAQ/openDAQ/pull/1327) Event handler removal waits for running handlers
+
+`IEvent::removeHandler` and `IEvent::clear` now return only once the removed handlers are no longer running on another thread. Don't call them while holding a lock that such a handler needs, or the call waits forever.
+
+`daq::RecursiveMutex` was removed from `coretypes/utility_sync.h`. Use `std::recursive_mutex` or `daq::mutex` instead.
 
 ### [#1214](https://github.com/openDAQ/openDAQ/pull/1214) Fix packet enqueue order in sendPackets
 

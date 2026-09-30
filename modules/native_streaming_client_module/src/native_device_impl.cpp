@@ -121,7 +121,7 @@ void NativeDeviceHelper::closeConnectionOnRemoval()
 void NativeDeviceHelper::componentUpdated(const ComponentPtr& sender, const CoreEventArgsPtr& eventArgs)
 {
     auto deviceSelf = deviceRef.assigned() ? deviceRef.getRef() : nullptr;
-    if (!deviceSelf.assigned())
+    if (!deviceSelf.assigned() || deviceSelf.isRemoved())
         return;
 
     ComponentPtr updatedComponent = sender;
@@ -479,7 +479,8 @@ void NativeDeviceImpl::completeInitialization(std::shared_ptr<NativeDeviceHelper
 
 void NativeDeviceImpl::removed()
 {
-    disconnectAndCleanUp();
+    if (this->deviceHelper)
+        this->deviceHelper->closeConnectionOnRemoval();
     Super::removed();
 }
 
@@ -504,6 +505,15 @@ ErrCode NativeDeviceImpl::setComponentConfig(IPropertyObject* config)
         deviceHelper->getTransportClientHandler()->setAlternativeAddresses(alternativeAddresses);
 
     return OPENDAQ_SUCCESS;
+}
+
+void NativeDeviceImpl::removedNoLock()
+{
+    // Unsubscribing waits for a core event handled on another thread. That call can need this device's lock,
+    // so it happens only after the lock is released.
+    if (this->deviceHelper)
+        this->deviceHelper->unsubscribeFromCoreEvent(this->context);
+    Super::removedNoLock();
 }
 
 // retrieves the local configuration object without triggering an RPC call

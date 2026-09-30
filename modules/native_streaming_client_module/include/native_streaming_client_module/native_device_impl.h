@@ -129,6 +129,7 @@ public:
 
 protected:
     void removed() override;
+    void removedNoLock() override;
     bool isAddedToLocalComponentTree() override;
 
 private:

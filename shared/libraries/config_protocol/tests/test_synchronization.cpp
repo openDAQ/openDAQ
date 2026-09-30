@@ -67,7 +67,7 @@ public:
         {
         }
 
-        using Super::createPortProporties;
+        using Super::createPortProperties;
     };
 
     void initSynchronization()
@@ -82,7 +82,7 @@ public:
 
         const auto ptpInterface = createWithImplementation<ISyncInterface, TestPtpSyncInterface>(manager);
         auto* ptpImpl = dynamic_cast<TestPtpSyncInterface*>(ptpInterface.getObject());
-        ptpImpl->createPortProporties("eth0");
+        ptpImpl->createPortProperties("eth0");
         sync.asPtr<ISynchronizationPrivate>(true).addInterface(ptpInterface);
 
         setSynchronization(sync);

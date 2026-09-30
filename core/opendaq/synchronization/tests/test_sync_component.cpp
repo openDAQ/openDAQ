@@ -627,7 +627,7 @@ public:
     {
     }
 
-    using Super::createPortProporties;
+    using Super::createPortProperties;
     using Super::setProfileOptions;
     using Super::setTransportProtocolOptions;
     using Super::setPortDelayMechanismOptions;
@@ -706,7 +706,7 @@ TEST_F(PtpSyncInterfaceTest, CreatePortProperties)
     const auto iface = TestPtpSyncInterface::Create(ctx.getTypeManager());
     auto* impl = dynamic_cast<TestPtpSyncInterface*>(iface.getObject());
 
-    impl->createPortProporties("eth0");
+    impl->createPortProperties("eth0");
 
     // Status container entry should exist
     ASSERT_EQ(iface.getStatusContainer().getStatus("eth0").getValue(), "Off");
@@ -728,8 +728,8 @@ TEST_F(PtpSyncInterfaceTest, PerPortStatus)
     auto* impl = dynamic_cast<TestPtpSyncInterface*>(iface.getObject());
     const auto statusContainer = iface.getStatusContainer();
 
-    impl->createPortProporties("eth0");
-    impl->createPortProporties("eth1");
+    impl->createPortProperties("eth0");
+    impl->createPortProperties("eth1");
 
     // Each port starts Off, as a status container entry keyed by port name
     ASSERT_EQ(statusContainer.getStatus("eth0").getValue(), "Off");
@@ -785,8 +785,8 @@ TEST_F(PtpSyncInterfaceTest, PortModeFollowsInterfaceModeAutomatically)
     auto* impl = dynamic_cast<TestPtpSyncInterface*>(iface.getObject());
     const auto configuration = iface.getConfiguration();
 
-    impl->createPortProporties("eth0");
-    impl->createPortProporties("eth1");
+    impl->createPortProperties("eth0");
+    impl->createPortProperties("eth1");
 
     const PropertyObjectPtr portConfig0 = configuration.getPropertyValue("PortConfiguration.eth0");
     const PropertyObjectPtr portConfig1 = configuration.getPropertyValue("PortConfiguration.eth1");
@@ -830,7 +830,7 @@ TEST_F(PtpSyncInterfaceTest, SetPortDelayMechanismOptions)
     auto* impl = dynamic_cast<TestPtpSyncInterface*>(iface.getObject());
     const auto configuration = iface.getConfiguration();
 
-    impl->createPortProporties("eth0");
+    impl->createPortProperties("eth0");
 
     const auto newOptions = List<IString>("P2P");
     impl->setPortDelayMechanismOptions(newOptions);
@@ -855,7 +855,7 @@ TEST_F(PtpSyncInterfaceTest, SaveLoad)
     const auto configuration = iface.getConfiguration();
 
     auto* impl = dynamic_cast<TestPtpSyncInterface*>(iface.getObject());
-    impl->createPortProporties("eth0");
+    impl->createPortProperties("eth0");
 
     ASSERT_NO_THROW(syncPrivate.addInterface(iface));
 

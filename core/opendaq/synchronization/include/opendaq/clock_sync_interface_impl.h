@@ -30,7 +30,7 @@ public:
     ErrCode INTERFACE_FUNC getSyncType(IString** syncType) override;
     ErrCode INTERFACE_FUNC setAsSource(Bool source) override;
 private:
-    StringPtr referenceDomainId;
+    StringPtr localReferenceDomainId;
 };
 
 END_NAMESPACE_OPENDAQ

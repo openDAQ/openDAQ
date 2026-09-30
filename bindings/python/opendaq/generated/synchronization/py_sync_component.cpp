@@ -44,6 +44,15 @@ void defineISyncComponent(pybind11::module_ m, PyDaqIntf<daq::ISyncComponent, da
         return daq::SyncComponent_Create(context, parent, getVariantValue<daq::IString*>(localId));
     }, py::arg("context"), py::arg("parent"), py::arg("local_id"));
 
+    // ISyncComponent is deprecated on the C++ side, but the Python properties still need to forward to it
+#if defined(__GNUC__)
+    #pragma GCC diagnostic push
+    #pragma GCC diagnostic ignored "-Wdeprecated-declarations"
+#endif
+#ifdef _MSC_VER
+    #pragma warning(push)
+    #pragma warning(disable : 4996)
+#endif
 
     cls.def_property_readonly("sync_locked",
         [](daq::ISyncComponent *object)
@@ -76,4 +85,11 @@ void defineISyncComponent(pybind11::module_ m, PyDaqIntf<daq::ISyncComponent, da
         },
         py::return_value_policy::take_ownership,
         "Retrieves the list of interfaces associated with this synchronization component.");
+
+#ifdef _MSC_VER
+    #pragma warning(pop)
+#endif
+#if defined(__GNUC__)
+    #pragma GCC diagnostic pop
+#endif
 }

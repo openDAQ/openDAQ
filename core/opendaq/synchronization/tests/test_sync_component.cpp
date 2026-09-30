@@ -17,6 +17,16 @@ using SyncComponentTest = testing::Test;
 
 BEGIN_NAMESPACE_OPENDAQ
 
+// These tests exercise the still-functional but deprecated ISyncComponent API
+#if defined(__GNUC__)
+    #pragma GCC diagnostic push
+    #pragma GCC diagnostic ignored "-Wdeprecated-declarations"
+#endif
+#ifdef _MSC_VER
+    #pragma warning(push)
+    #pragma warning(disable : 4996)
+#endif
+
 TEST_F(SyncComponentTest, testGetSyncLocked)
 {
     const auto ctx = daq::NullContext();
@@ -173,6 +183,13 @@ TEST_F(SyncComponentTest, Serialization)
     ASSERT_EQ(syncComponent.getSyncLocked(), syncComponentDeserialized.getSyncLocked());
     ASSERT_EQ(syncComponent.getInterfaces().getKeyList(), syncComponentDeserialized.getInterfaces().getKeyList());
 }
+
+#ifdef _MSC_VER
+    #pragma warning(pop)
+#endif
+#if defined(__GNUC__)
+    #pragma GCC diagnostic pop
+#endif
 
 // =====================================================
 // sync and SyncInterface Tests

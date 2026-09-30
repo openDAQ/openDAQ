@@ -60,12 +60,6 @@ TEST_F(DevicesTest, SettingSyncComponent)
     #pragma warning(disable : 4996)
 #endif
     SyncComponentPtr syncComponent = device.getSyncComponent();
-#ifdef _MSC_VER
-    #pragma warning(pop)
-#endif
-#if defined(__GNUC__)
-    #pragma GCC diagnostic pop
-#endif
     SyncComponentPrivatePtr syncComponentPrivate = syncComponent.asPtr<ISyncComponentPrivate>(true);
 
     ASSERT_EQ(syncComponent.getInterfaces().getCount(), 0u);
@@ -118,6 +112,12 @@ TEST_F(DevicesTest, SettingSyncComponent)
 
     // We can edit the existing PTP interface as well
     newPtpSyncInterface.setPropertyValue("Mode", 3); // set the mode to `Input`
+#ifdef _MSC_VER
+    #pragma warning(pop)
+#endif
+#if defined(__GNUC__)
+    #pragma GCC diagnostic pop
+#endif
 }
 
 END_NAMESPACE_OPENDAQ

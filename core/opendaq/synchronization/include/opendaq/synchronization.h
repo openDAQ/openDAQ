@@ -31,28 +31,35 @@ BEGIN_NAMESPACE_OPENDAQ
 
 /*!
  * @brief Interface representing the Synchronization of a device in a Test & Measurement system.
+ *
+ * The device holds it as the hidden property "daqSynchronization". IDevice::getSynchronization
+ * returns null when the device is not clocked.
  */
 DECLARE_OPENDAQ_INTERFACE(ISynchronization, IBaseObject)
 {
     /*!
      * @brief Gets all synchronization interfaces registered with this synchronization.
-     * @param[out] interfaces A dictionary mapping interface names to the sync interfaces themselves.
+     * @param[out] interfaces A dictionary mapping interface IDs to the sync interfaces themselves.
      */
     // [templateType(interfaces, IString, ISyncInterface)]
     virtual ErrCode INTERFACE_FUNC getInterfaces(IDict** interfaces) = 0;
 
     /*!
-     * @brief Gets the registered synchronization interfaces that can currently be selected as the
-     * synchronization source.
-     * @param[out] sources A dictionary mapping interface names to the sync interfaces that can be
+     * @brief Gets the registered synchronization interfaces that can be selected as the
+     * synchronization source, which are those whose `getSourceSupported` is true.
+     * @param[out] sources A dictionary mapping interface IDs to the sync interfaces that can be
      * selected as the synchronization source.
      */
     // [templateType(sources, IString, ISyncInterface)]
     virtual ErrCode INTERFACE_FUNC getAvailableSources(IDict** sources) = 0;
 
     /*!
-     * @brief Selects the synchronization interface with the given name as the synchronization source.
-     * @param sourceName The name of the synchronization interface to select as the source.
+     * @brief Selects the synchronization interface with the given ID as the synchronization source.
+     * @param sourceName The ID of the synchronization interface to select as the source.
+     *
+     * The new source is set to `Auto`, or to `Input` if `Auto` is unavailable, and the previous
+     * source is set to `Off`. Fails if `sourceName` is not the ID of an available source. On
+     * failure the previous source is restored.
      */
     virtual ErrCode INTERFACE_FUNC setSource(IString* sourceName) = 0;
 
@@ -63,9 +70,12 @@ DECLARE_OPENDAQ_INTERFACE(ISynchronization, IBaseObject)
     virtual ErrCode INTERFACE_FUNC getSource(ISyncInterface** source) = 0;
 
     /*!
-     * @brief Gets the reference domain IDs of all registered synchronization interfaces
-     * that have one assigned.
+     * @brief Gets the reference domain IDs of all interfaces not in `Off`: the source and the
+     * active outputs.
      * @param[out] ids The list of reference domain IDs.
+     *
+     * Interfaces without a reference domain ID are left out. Describes the synchronization
+     * service; for the state applied to data use IReferenceDomainInfo::getReferenceDomainIds.
      */
     // [templateType(ids, IString)]
     virtual ErrCode INTERFACE_FUNC getReferenceDomainIds(IList** ids) = 0;

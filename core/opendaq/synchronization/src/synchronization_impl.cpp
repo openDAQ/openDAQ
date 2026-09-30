@@ -89,9 +89,9 @@ void SynchronizationImpl::onSourceChanged(const StringPtr& sourceName)
     for (const auto& interfaceProp : interfacesProperty.getAllProperties())
     {
         SyncInterfacePtr interface = interfacesProperty.getPropertyValue(interfaceProp.getName());
+        // The return value of sourceChanged is ignored
         const ErrCode errCode = interface.asPtr<ISyncInterfaceInternal>(true)->sourceChanged(source);
         if (OPENDAQ_FAILED(errCode))
-            // should probably print
             clearErrorInfo();
     }
 }

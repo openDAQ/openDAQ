@@ -33,8 +33,11 @@ BEGIN_NAMESPACE_OPENDAQ
 DECLARE_OPENDAQ_INTERFACE(ISynchronizationPrivate, IBaseObject)
 {
     /*!
-     * @brief Adds an interface to the synchronization
+     * @brief Adds an interface to the synchronization.
      * @param syncInterface The sync interface to be added.
+     *
+     * Interface IDs must be unique. Allowed only before the synchronization object is set on the
+     * device; afterwards it fails with OPENDAQ_ERR_INVALID_OPERATION.
      */
     virtual ErrCode INTERFACE_FUNC addInterface(ISyncInterface* syncInterface) = 0;
 };

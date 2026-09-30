@@ -249,6 +249,20 @@ public:
     }
 };
 
+// Keeps its reference domain ID in every mode, unlike interfaces derived from SyncInterfaceBaseImpl
+class FixedIdSyncInterface : public TestSyncInterface
+{
+public:
+    using TestSyncInterface::TestSyncInterface;
+
+    ErrCode INTERFACE_FUNC getReferenceDomainId(IString** referenceDomainId) override
+    {
+        OPENDAQ_PARAM_NOT_NULL(referenceDomainId);
+        *referenceDomainId = String("test:fixed").detach();
+        return OPENDAQ_SUCCESS;
+    }
+};
+
 using SynchronizationTest = testing::Test;
 
 TEST_F(SynchronizationTest, Create)
@@ -554,6 +568,27 @@ TEST_F(SynchronizationTest, InterfaceInOffHasNoReferenceDomainId)
     impl->setReferenceDomainId("ptp:0:0a0b0cfffe0d0e0f");
     syncInterface.setMode(SyncMode::Off);
     ASSERT_EQ(syncInterface.getReferenceDomainId(), "");
+}
+
+TEST_F(SynchronizationTest, InterfaceInOffIsLeftOutOfReferenceDomainIds)
+{
+    const auto ctx = NullContext();
+    const auto manager = ctx.getTypeManager();
+
+    const auto sync = Synchronization(manager, "testDevice");
+    const auto syncInterface = createWithImplementation<ISyncInterface, FixedIdSyncInterface>(
+        manager, "FixedIdInterface", std::vector<SyncMode>{SyncMode::Off, SyncMode::Input, SyncMode::Output, SyncMode::Auto});
+    sync.asPtr<ISynchronizationPrivate>(true).addInterface(syncInterface);
+
+    ASSERT_EQ(syncInterface.getMode(), SyncMode::Off);
+    ASSERT_EQ(syncInterface.getReferenceDomainId(), "test:fixed");
+
+    const ListPtr<IString> ids = sync.getReferenceDomainIds();
+    ASSERT_EQ(ids.getCount(), 1u);
+    ASSERT_EQ(ids[0], "local:testDevice");
+
+    syncInterface.setMode(SyncMode::Output);
+    ASSERT_EQ(sync.getReferenceDomainIds(), List<IString>("local:testDevice", "test:fixed"));
 }
 
 TEST_F(SynchronizationTest, SyncInterfaceGetId)

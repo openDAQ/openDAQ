@@ -111,19 +111,25 @@ template <typename TInterface, typename... Interfaces>
 ErrCode GenericSynchronizationImpl<TInterface, Interfaces...>::getReferenceDomainIds(IList** ids)
 {
     OPENDAQ_PARAM_NOT_NULL(ids);
-    auto idList = List<IString>();
-
-    const PropertyObjectPtr interfacesProperty = this->objPtr.getPropertyValue("Interfaces");
-    for (const auto & intefaceProp : interfacesProperty.getAllProperties())
+    return daqTry([&]
     {
-        SyncInterfacePtr interface = intefaceProp.getValue();
-        const auto referenceDomainID = interface.getReferenceDomainId();
-        if (referenceDomainID.assigned() && referenceDomainID.getLength() != 0)
-            idList.pushBack(interface.getReferenceDomainId());
-    }
+        auto idList = List<IString>();
 
-    *ids = idList.detach();
-    return OPENDAQ_SUCCESS;
+        const PropertyObjectPtr interfacesProperty = this->objPtr.getPropertyValue("Interfaces");
+        for (const auto & intefaceProp : interfacesProperty.getAllProperties())
+        {
+            SyncInterfacePtr interface = intefaceProp.getValue();
+            if (interface.getMode() == SyncMode::Off)
+                continue;
+
+            const auto referenceDomainID = interface.getReferenceDomainId();
+            if (referenceDomainID.assigned() && referenceDomainID.getLength() != 0)
+                idList.pushBack(referenceDomainID);
+        }
+
+        *ids = idList.detach();
+        return OPENDAQ_SUCCESS;
+    });
 }
 
 template <typename TInterface, typename... Interfaces>

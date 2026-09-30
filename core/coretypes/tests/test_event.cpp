@@ -4,6 +4,7 @@
 #include <coretypes/delegate.hpp>
 #include <atomic>
 #include <chrono>
+#include <functional>
 #include <future>
 #include <mutex>
 #include <thread>
@@ -617,6 +618,124 @@ TEST_F(EventTest, MutingDuringTriggerAppliesFromTheNextTrigger)
     // ...and is skipped from the next trigger on.
     hasEvent->triggerEvent();
     ASSERT_EQ(secondCalls, 1);
+}
+
+// Runs a callback when the event calls it, asks for its hash code or destroys it: the tests use it to act on the event
+// from inside those calls.
+class CallbackEventHandlerImpl : public ImplementationOf<IEventHandler>
+{
+public:
+    CallbackEventHandlerImpl(SizeT hashCode,
+                             std::function<void()> onHandleEvent,
+                             std::function<void()> onGetHashCode,
+                             std::function<void()> onDestroy)
+        : hashCode(hashCode)
+        , onHandleEvent(std::move(onHandleEvent))
+        , onGetHashCode(std::move(onGetHashCode))
+        , onDestroy(std::move(onDestroy))
+    {
+    }
+
+    ~CallbackEventHandlerImpl()
+    {
+        if (onDestroy)
+            onDestroy();
+    }
+
+    ErrCode INTERFACE_FUNC handleEvent(IBaseObject* /*sender*/, IEventArgs* /*eventArgs*/) override
+    {
+        if (onHandleEvent)
+            onHandleEvent();
+        return OPENDAQ_SUCCESS;
+    }
+
+    ErrCode INTERFACE_FUNC getHashCode(SizeT* hashCode) override
+    {
+        if (onGetHashCode)
+            onGetHashCode();
+        *hashCode = this->hashCode;
+        return OPENDAQ_SUCCESS;
+    }
+
+private:
+    SizeT hashCode;
+    std::function<void()> onHandleEvent;
+    std::function<void()> onGetHashCode;
+    std::function<void()> onDestroy;
+};
+
+TEST_F(EventTest, RemovedHandlerCanUseTheEventWhenDestroyed)
+{
+    const auto event = EventObject<BaseObjectPtr, EventArgsPtr<>>();
+    int destroyed = 0;
+    SizeT countWhenDestroyed = 1;
+    {
+        const auto handler = createWithImplementation<IEventHandler, CallbackEventHandlerImpl>(
+            SizeT{1},
+            nullptr,
+            nullptr,
+            [&event, &destroyed, &countWhenDestroyed]
+            {
+                ++destroyed;
+                event->getSubscriberCount(&countWhenDestroyed);
+            });
+        ASSERT_EQ(event->addHandler(handler), OPENDAQ_SUCCESS);
+    }
+
+    // Removing by another object with the same hash code leaves the event holding the last reference to the handler,
+    // so removeHandler() destroys it.
+    const auto sameHashCode = createWithImplementation<IEventHandler, CallbackEventHandlerImpl>(SizeT{1}, nullptr, nullptr, nullptr);
+    ASSERT_EQ(event->removeHandler(sameHashCode), OPENDAQ_SUCCESS);
+
+    ASSERT_EQ(destroyed, 1);
+    ASSERT_EQ(countWhenDestroyed, 0u);
+}
+
+TEST_F(EventTest, ClearedHandlerCanUseTheEventWhenDestroyed)
+{
+    const auto event = EventObject<BaseObjectPtr, EventArgsPtr<>>();
+    int destroyed = 0;
+    SizeT countWhenDestroyed = 1;
+    {
+        const auto handler = createWithImplementation<IEventHandler, CallbackEventHandlerImpl>(
+            SizeT{1},
+            nullptr,
+            nullptr,
+            [&event, &destroyed, &countWhenDestroyed]
+            {
+                ++destroyed;
+                event->getSubscriberCount(&countWhenDestroyed);
+            });
+        ASSERT_EQ(event->addHandler(handler), OPENDAQ_SUCCESS);
+    }
+
+    // The event holds the last reference to the handler, so clear() destroys it.
+    ASSERT_EQ(event->clear(), OPENDAQ_SUCCESS);
+
+    ASSERT_EQ(destroyed, 1);
+    ASSERT_EQ(countWhenDestroyed, 0u);
+}
+
+TEST_F(EventTest, MutingListenerWhoseHashCodeUsesTheEvent)
+{
+    const auto event = EventObject<BaseObjectPtr, EventArgsPtr<>>();
+    int calls = 0;
+    SizeT countFromHashCode = 0;
+    const auto handler = createWithImplementation<IEventHandler, CallbackEventHandlerImpl>(
+        SizeT{1},
+        [&calls] { ++calls; },
+        [&event, &countFromHashCode] { event->getSubscriberCount(&countFromHashCode); },
+        nullptr);
+    ASSERT_EQ(event->addHandler(handler), OPENDAQ_SUCCESS);
+
+    ASSERT_EQ(event->muteListener(handler), OPENDAQ_SUCCESS);
+    ASSERT_EQ(event->trigger(nullptr, nullptr), OPENDAQ_SUCCESS);
+    ASSERT_EQ(calls, 0);
+
+    ASSERT_EQ(event->unmuteListener(handler), OPENDAQ_SUCCESS);
+    ASSERT_EQ(event->trigger(nullptr, nullptr), OPENDAQ_SUCCESS);
+    ASSERT_EQ(calls, 1);
+    ASSERT_EQ(countFromHashCode, 1u);
 }
 
 TEST_F(EventTest, DelegateMemberEquality)

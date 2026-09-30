@@ -1,6 +1,7 @@
 #include <testutils/testutils.h>
 #include <opendaq/sync_component_factory.h>
 #include <opendaq/sync_component_private_ptr.h>
+#include <opendaq/synchronization_factory.h>
 #include <opendaq/synchronization_private_ptr.h>
 #include <opendaq/sync_interface_base_impl.h>
 #include <opendaq/sync_interface_internal_ptr.h>

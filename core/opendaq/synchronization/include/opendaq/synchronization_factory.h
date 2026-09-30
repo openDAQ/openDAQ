@@ -14,27 +14,25 @@
  * limitations under the License.
  */
 #pragma once
-#include <opendaq/sync_component_ptr.h>
-#include <opendaq/context_ptr.h>
-#include <opendaq/component_ptr.h>
+#include <opendaq/synchronization_ptr.h>
+#include <coretypes/type_manager_ptr.h>
 #include <coretypes/string_ptr.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 /*!
  * @ingroup opendaq_synchronization_path
- * @addtogroup opendaq_sync_component_factories Factories
+ * @addtogroup opendaq_synchronization_factories Factories
  * @{
  */
 
 /*!
- * @brief Creates a synchronization component.
- * @param context The Context. Most often the creating function-block/device passes its own Context to the SyncComponent.
- * @param parent The parent component.
- * @param localId The local ID of the component.
+ * @brief Creates a synchronization object that holds a ClockSyncInterface selected as the source.
+ * @param manager The type manager.
+ * @param deviceId The device-local ID; the ClockSyncInterface reference domain ID is "local:<deviceId>".
  */
-inline SyncComponentPtr SyncComponent(const ContextPtr& context, const ComponentPtr& parent, const StringPtr& localId)
+inline SynchronizationPtr Synchronization(const TypeManagerPtr& manager, const StringPtr& deviceId)
 {
-    return { SyncComponent_Create(context, parent, localId) };
+    return { Synchronization_Create(manager, deviceId) };
 }
 
 /*!@}*/

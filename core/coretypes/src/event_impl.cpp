@@ -100,6 +100,9 @@ ErrCode EventImpl::removeHandler(IEventHandler* eventHandler)
     const ErrCode errCode = eventHandler->getHashCode(&hashCode);
     OPENDAQ_RETURN_IF_FAILED(errCode);
 
+    // Declared before the lock, so that the removed handler is destroyed after the lock is released:
+    // destroying it can release objects that use this event.
+    std::vector<std::shared_ptr<Handler>> removedHandlers;
     std::unique_lock lock(sync);
 
     if (frozen)
@@ -118,7 +121,7 @@ ErrCode EventImpl::removeHandler(IEventHandler* eventHandler)
         return OPENDAQ_SUCCESS;
     }
 
-    const std::vector<std::shared_ptr<Handler>> removedHandlers{iterator->handler};
+    removedHandlers.push_back(iterator->handler);
     iterator->handler->removed = true;
 
     auto newHandlers = std::make_shared<HandlerList>(*handlers);
@@ -133,6 +136,9 @@ ErrCode EventImpl::removeHandler(IEventHandler* eventHandler)
 
 ErrCode EventImpl::clear()
 {
+    // Declared before the lock, so that the removed handlers are destroyed after the lock is released:
+    // destroying them can release objects that use this event.
+    std::vector<std::shared_ptr<Handler>> removedHandlers;
     std::unique_lock lock(sync);
 
     if (frozen)
@@ -140,7 +146,6 @@ ErrCode EventImpl::clear()
         return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_FROZEN);
     }
 
-    std::vector<std::shared_ptr<Handler>> removedHandlers;
     removedHandlers.reserve(handlers->size());
     for (const auto& entry : *handlers)
     {
@@ -285,15 +290,11 @@ ErrCode EventImpl::unmute()
 
 ErrCode EventImpl::muteListener(IEventHandler* eventHandler)
 {
-    std::scoped_lock lock(sync);
-
     return setMuted(eventHandler, true);
 }
 
 ErrCode EventImpl::unmuteListener(IEventHandler* eventHandler)
 {
-    std::scoped_lock lock(sync);
-
     return setMuted(eventHandler, false);
 }
 
@@ -301,10 +302,12 @@ ErrCode EventImpl::setMuted(IEventHandler* eventHandler, bool muted)
 {
     OPENDAQ_PARAM_NOT_NULL(eventHandler);
 
+    // Asked before the lock is taken, because a handler's getHashCode() can use this event.
     SizeT hashCode;
-    ErrCode errCode = eventHandler->getHashCode(&hashCode);
-
+    const ErrCode errCode = eventHandler->getHashCode(&hashCode);
     OPENDAQ_RETURN_IF_FAILED(errCode);
+
+    std::scoped_lock lock(sync);
 
     const auto iterator = std::find_if(handlers->begin(),
                                        handlers->end(),

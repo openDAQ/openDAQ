@@ -62,7 +62,7 @@ private:
     void componentUpdateEnd(const CoreEventArgsPtr& args);
     void attributeChanged(const CoreEventArgsPtr& args);
     void tagsChanged(const CoreEventArgsPtr& args);
-    void statusChanged(const CoreEventArgsPtr& args);
+    void statusChanged(const ComponentPtr& sender, const CoreEventArgsPtr& args);
 };
 
 template <class Impl>
@@ -224,7 +224,7 @@ void ConfigClientComponentBaseImpl<Impl>::handleRemoteCoreObjectInternal(const C
             tagsChanged(args);
             break;
         case CoreEventId::StatusChanged:
-            statusChanged(args);
+            statusChanged(sender, args);
             break;
         case CoreEventId::PropertyValueChanged:
         case CoreEventId::PropertyObjectUpdateEnd:
@@ -401,11 +401,18 @@ void ConfigClientComponentBaseImpl<Impl>::tagsChanged(const CoreEventArgsPtr& ar
 }
 
 template <class Impl>
-void ConfigClientComponentBaseImpl<Impl>::statusChanged(const CoreEventArgsPtr& args)
+void ConfigClientComponentBaseImpl<Impl>::statusChanged(const ComponentPtr& sender, const CoreEventArgsPtr& args)
 {
     const DictPtr<IString, IBaseObject> params = args.getParameters();
-    if (params.hasKey("Path"))
+
+    // The status belongs to a nested property object, such as an ISyncInterface, so the event goes to that object
+    if (const StringPtr path = params.getOrDefault("Path"); path.assigned() && path.getLength() != 0)
+    {
+        const PropertyObjectPtr thisPtr = this->template borrowPtr<PropertyObjectPtr>();
+        if (const auto configObj = thisPtr.getPropertyValue(path).asPtrOrNull<IConfigClientObject>(); configObj.assigned())
+            configObj->handleRemoteCoreEvent(sender, args);
         return;
+    }
 
     ComponentStatusContainerPtr statusContainer;
     checkErrorInfo(Impl::getStatusContainer(&statusContainer));

@@ -647,6 +647,9 @@ ErrCode ComponentImpl<Intf, Intfs...>::setVisible(Bool visible)
         if (this->isComponentRemoved)
             return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_COMPONENT_REMOVED);
 
+        if (static_cast<bool>(visible) == this->visible)
+            return OPENDAQ_IGNORED;
+
         if (lockedAttributes.count("Visible"))
         {
             if (context.assigned() && context.getLogger().assigned())

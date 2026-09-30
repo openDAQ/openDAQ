@@ -3,7 +3,10 @@ opendaq_set_cmake_folder_context(TARGET_FOLDER_NAME types)
 project(CoreTypes VERSION ${OPENDAQ_CORE_VERSION} LANGUAGES CXX)
 
 add_subdirectory(src)
-add_subdirectory(mocks)
+
+if (OPENDAQ_ENABLE_TEST_UTILS)
+    add_subdirectory(mocks)
+endif()
 
 if (OPENDAQ_ENABLE_TESTS)
     add_subdirectory(tests)

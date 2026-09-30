@@ -94,7 +94,7 @@ struct ClassifierTestHelper
         if (!domainIsSync)
         {
             auto outputData = static_cast<UInt*>(domainPacket.getData());
-            static std::uniform_int_distribution<size_t> d(0, 1000);
+            static std::uniform_int_distribution<size_t> d(0, 999);
             for (size_t i = 0; i < numSamples; i++)
                 outputData[i] = (sentSamples + i) * 1000 + d(random);
 

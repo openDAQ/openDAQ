@@ -60,6 +60,7 @@ ModuleManagerImpl::ModuleManagerImpl(const BaseObjectPtr& path)
     , work(ioContext.get_executor())
     , rescanTimer(DefaultrescanTimer)
     , safeLoadingMode(False)
+    , scanOnAdd(True)
 {
     if (const StringPtr pathStr = path.asPtrOrNull<IString>(true); pathStr.assigned())
     {
@@ -180,6 +181,10 @@ ErrCode ModuleManagerImpl::loadModules(IContext* context)
             if (inner.hasKey("SafeLoadingMode"))
             {
                 this->safeLoadingMode = static_cast<bool>(inner.get("SafeLoadingMode"));
+            }
+            if (inner.hasKey("ScanOnAdd"))
+            {
+                this->scanOnAdd = static_cast<bool>(inner.get("ScanOnAdd"));
             }
         }
 
@@ -801,19 +806,25 @@ ErrCode ModuleManagerImpl::createDevice(IDevice** device, IString* connectionStr
         if (!connectionStringPtr.assigned() || connectionStringPtr.getLength() == 0)
             return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_ARGUMENT_NULL, "Connection string is not set or empty");
 
+        // Connection strings with the "daq" prefix automatically choose the best method of connection
+        const bool useSmartConnection = connectionStringPtr.toStdString().find("daq://") == 0;
+
+        bool scanForDevices = scanOnAdd;
+        if (generalConfig.assigned() && generalConfig.hasProperty("ScanOnAdd"))
+            scanForDevices = static_cast<bool>(generalConfig.getPropertyValue("ScanOnAdd"));
+
+        // Scan for devices if not yet done so, or timeout is exceeded
+        if (scanForDevices)
         {
             auto lock = std::lock_guard(availableDevicesSearchSync);
-            // Scan for devices if not yet done so, or timeout is exceeded
-            auto currentTime = std::chrono::steady_clock::now();
+            const auto currentTime = std::chrono::steady_clock::now();
             if (!availableDevicesGroup.assigned() || currentTime - lastScanTime > rescanTimer)
             {
-                const auto errCode = getAvailableDevices(&ListPtr<IDeviceInfo>());
+                const ErrCode errCode = getAvailableDevices(&ListPtr<IDeviceInfo>());
                 OPENDAQ_RETURN_IF_FAILED(errCode, "Failed getting available devices");
             }
         }
 
-        // Connection strings with the "daq" prefix automatically choose the best method of connection
-        const bool useSmartConnection = connectionStringPtr.toStdString().find("daq://") == 0;
         DeviceInfoPtr discoveredDeviceInfo;
         if (useSmartConnection)
         {
@@ -1236,7 +1247,7 @@ ErrCode ModuleManagerImpl::createDefaultAddDeviceConfig(IPropertyObject** defaul
 
     config.addProperty(ObjectProperty("Device", deviceConfig.detach()));
     config.addProperty(ObjectProperty("Streaming", streamingConfig.detach()));
-    config.addProperty(ObjectProperty("General", CreateGeneralConfig().detach()));
+    config.addProperty(ObjectProperty("General", CreateGeneralConfig(scanOnAdd).detach()));
 
     *defaultConfig = config.detach();
     return OPENDAQ_SUCCESS;
@@ -1319,6 +1330,9 @@ ErrCode ModuleManagerImpl::getDiscoveryInfo(IDeviceInfo** deviceInfo, IString* m
 
     if (!availableDevicesGroup.assigned())
     {
+        if (!scanOnAdd)
+            return OPENDAQ_NOTFOUND;
+
         auto lock = std::lock_guard(availableDevicesSearchSync);
         const auto errCode = getAvailableDevices(&ListPtr<IDeviceInfo>());
         OPENDAQ_RETURN_IF_FAILED(errCode, "Failed getting available devices");
@@ -1372,6 +1386,9 @@ DeviceInfoPtr ModuleManagerImpl::getDiscoveredDeviceInfo(const DeviceInfoPtr& de
     auto manufacturer = deviceInfo.getManufacturer();
 
     if (!serialNumber.getLength() || !manufacturer.getLength())
+        return nullptr;
+
+    if (!availableDevicesGroup.assigned())
         return nullptr;
 
     DeviceInfoPtr localInfo;
@@ -1644,7 +1661,7 @@ void ModuleManagerImpl::completeServerCapabilities(const DevicePtr& device) cons
 }
 
 
-PropertyObjectPtr ModuleManagerImpl::CreateGeneralConfig()
+PropertyObjectPtr ModuleManagerImpl::CreateGeneralConfig(Bool scanOnAdd)
 {
     auto obj = PropertyObject();
 
@@ -1661,6 +1678,10 @@ PropertyObjectPtr ModuleManagerImpl::CreateGeneralConfig()
     obj.addProperty(ListProperty("AllowedStreamingProtocols", List<IString>()));
 
     obj.addProperty(BoolProperty("AutomaticallyConnectStreaming", true));
+
+    obj.addProperty(BoolPropertyBuilder("ScanOnAdd", scanOnAdd)
+                        .setDescription("Scans the network when adding the device; when off, a daq:// connection string needs an earlier scan")
+                        .build());
 
     obj.addProperty(StringProperty("Username", ""));
     obj.addProperty(StringProperty("Password", ""));

@@ -7,6 +7,9 @@
 
 using namespace daq;
 
+namespace test_websocket_modules
+{
+
 class WebsocketModulesTest : public testing::Test
 {
 public:
@@ -168,7 +171,7 @@ public:
         auto moduleManager = ModuleManager("[[none]]");
         auto typeManager = TypeManager();
         auto authenticationProvider = AuthenticationProvider();
-        auto context = Context(scheduler, logger, typeManager, moduleManager, authenticationProvider);
+        auto context = Context(scheduler, logger, typeManager, moduleManager, authenticationProvider, test_helpers::instanceOptions());
 
         auto server = InstanceCustom(context, "local");
         addRefDeviceModule(server);
@@ -184,16 +187,34 @@ public:
         return server;
     }
 
-    InstancePtr CreateClientInstance(const bool withDelay = true)
+    InstancePtr CreateClientInstance()
     {
-        auto client = Instance("[[none]]");
+        auto client = test_helpers::createInstance("[[none]]");
         addLtClientModule(client);
 
-        auto refDevice = client.addDevice(connectionString(), deviceConfig(client));
-        if (withDelay)
+        client.addDevice(connectionString(), deviceConfig(client));
+        return client;
+    }
+
+    // The pseudo-device creates its signals asynchronously; waits until all server signals are mirrored on the client
+    InstancePtr CreateClientInstance(const InstancePtr& server)
+    {
+        auto client = CreateClientInstance();
+
+        const auto serverSignalCount = server.getSignals(search::Recursive(search::Any())).getCount();
+        const bool mirrored = test_helpers::waitFor([&]
         {
-            CONDITIONAL_SLEEP;
-        }
+            const auto clientSignals = client.getSignals(search::Recursive(search::Any()));
+            if (clientSignals.getCount() != serverSignalCount)
+                return false;
+            for (const auto& signal : clientSignals)
+            {
+                if (!signal.asPtr<IMirroredSignalConfig>().getActiveStreamingSource().assigned())
+                    return false;
+            }
+            return true;
+        }, std::chrono::seconds(10));
+        EXPECT_TRUE(mirrored) << "client did not mirror all " << serverSignalCount << " server signals";
         return client;
     }
 };
@@ -206,14 +227,14 @@ TEST_P(WebsocketModulesChannelTest, ConnectFail)
 TEST_P(WebsocketModulesChannelTest, ConnectAndDisconnect)
 {
     auto server = CreateServerInstance();
-    auto client = CreateClientInstance(false);
+    auto client = CreateClientInstance();
 }
 
 TEST_P(WebsocketModulesChannelTest, ConnectAndDisconnectBackwardCompatibility)
 {
     auto server = CreateServerInstance();
 
-    auto client = Instance("[[none]]");
+    auto client = test_helpers::createInstance("[[none]]");
     addLtClientModule(client);
 
     // daq.ws:// is the legacy alias of the plaintext daq.lt:// channel. The secure channel was introduced
@@ -237,7 +258,7 @@ TEST_P(WebsocketModulesChannelTest, ConnectViaIpv6)
 
     auto server = CreateServerInstance();
 
-    auto client = Instance("[[none]]");
+    auto client = test_helpers::createInstance("[[none]]");
     addLtClientModule(client);
     client.addDevice(connectionString("[::1]", ""), deviceConfig(client));
 }
@@ -260,7 +281,7 @@ TEST_F(WebsocketModulesTest, PopulateDefaultConfigFromProvider)
     auto finally = test_helpers::CreateConfigFile(filename, json);
 
     auto provider = JsonConfigProvider(filename);
-    auto instance = InstanceBuilder()
+    auto instance = test_helpers::instanceBuilder()
         .setModulePath("[[none]]")
         .addConfigProvider(provider)
         .build();
@@ -274,7 +295,7 @@ TEST_F(WebsocketModulesTest, PopulateDefaultConfigFromProvider)
 
 TEST_P(WebsocketModulesChannelTest, DiscoveringServer)
 {
-    auto server = InstanceBuilder()
+    auto server = test_helpers::instanceBuilder()
         .setModulePath("[[none]]")
         .addDiscoveryServer("mdns")
         .setDefaultRootDeviceLocalId("local")
@@ -289,7 +310,7 @@ TEST_P(WebsocketModulesChannelTest, DiscoveringServer)
     config.setPropertyValue("Path", path);
     server.addServer("OpenDAQLTStreaming", config).enableDiscovery();
 
-    auto client = Instance("[[none]]");
+    auto client = test_helpers::createInstance("[[none]]");
     addLtClientModule(client);
 
     DevicePtr device;
@@ -337,7 +358,7 @@ TEST_P(WebsocketModulesChannelTest, CheckDeviceInfoPopulatedWithProvider)
     rootInfo.setSerialNumber("TestSerialNumber");
 
     auto provider = JsonConfigProvider(filename);
-    auto instance = InstanceBuilder()
+    auto instance = test_helpers::instanceBuilder()
         .setModulePath("[[none]]")
         .addDiscoveryServer("mdns")
         .addConfigProvider(provider)
@@ -351,7 +372,7 @@ TEST_P(WebsocketModulesChannelTest, CheckDeviceInfoPopulatedWithProvider)
     auto config = serverConfigWithDefaults(instance);
     instance.addServer("OpenDAQLTStreaming", config).enableDiscovery();
 
-    auto client = Instance("[[none]]");
+    auto client = test_helpers::createInstance("[[none]]");
     addLtClientModule(client);
 
     for (const auto & deviceInfo : client.getAvailableDevices())
@@ -385,7 +406,7 @@ TEST_P(WebsocketModulesChannelTest, TestDiscoveryReachability)
     const auto expectedIpv4Reachability =
         test_helpers::icmpPingAvailable() ? AddressReachabilityStatus::Reachable : AddressReachabilityStatus::Unknown;
 
-    auto instance = InstanceBuilder()
+    auto instance = test_helpers::instanceBuilder()
         .setModulePath("[[none]]")
         .addDiscoveryServer("mdns")
         .build();
@@ -398,7 +419,7 @@ TEST_P(WebsocketModulesChannelTest, TestDiscoveryReachability)
 
     instance.addServer("OpenDAQLTStreaming", config).enableDiscovery();
 
-    auto client = Instance("[[none]]");
+    auto client = test_helpers::createInstance("[[none]]");
     addLtClientModule(client);
 
     for (const auto & deviceInfo : client.getAvailableDevices())
@@ -453,7 +474,7 @@ TEST_F(WebsocketModulesTest, DiscoveringBothChannels)
     rootInfo.setManufacturer("TestManufacturer");
     rootInfo.setSerialNumber("TestSerialNumberBothChannels");
 
-    auto server = InstanceBuilder()
+    auto server = test_helpers::instanceBuilder()
         .setModulePath("[[none]]")
         .addDiscoveryServer("mdns")
         .setDefaultRootDeviceInfo(rootInfo)
@@ -467,7 +488,7 @@ TEST_F(WebsocketModulesTest, DiscoveringBothChannels)
     config.setPropertyValue("Path", path);
     server.addServer("OpenDAQLTStreaming", config).enableDiscovery();
 
-    auto client = Instance("[[none]]");
+    auto client = test_helpers::createInstance("[[none]]");
     addLtClientModule(client);
 
     DeviceInfoPtr discovered;
@@ -513,7 +534,7 @@ TEST_F(WebsocketModulesTest, DiscoveringBothChannels)
 TEST_P(WebsocketModulesChannelTest, GetConnectedClientsInfo)
 {
     auto server = CreateServerInstance();
-    auto client = CreateClientInstance();
+    auto client = CreateClientInstance(server);
 
     // one streaming connection
     auto serverSideClientsInfo = server.getRootDevice().getInfo().getConnectedClientsInfo();
@@ -529,7 +550,7 @@ TEST_P(WebsocketModulesChannelTest, GetConnectedClientsInfo)
 TEST_P(WebsocketModulesChannelTest, GetRemoteDeviceObjects)
 {
     auto server = CreateServerInstance();
-    auto client = CreateClientInstance();
+    auto client = CreateClientInstance(server);
 
     ASSERT_EQ(client.getDevices().getCount(), 1u);
     auto signals = client.getSignals(search::Recursive(search::Visible()));
@@ -540,7 +561,7 @@ TEST_P(WebsocketModulesChannelTest, RemoveDevice)
 {
     auto server = CreateServerInstance();
 
-    auto client = Instance("[[none]]");
+    auto client = test_helpers::createInstance("[[none]]");
 
     addLtClientModule(client);
     auto device = client.addDevice(connectionString(), deviceConfig(client));
@@ -559,7 +580,7 @@ TEST_P(WebsocketModulesChannelTest, SignalConfig_Server)
     auto serverSignalDataDescriptor = DataDescriptorBuilderCopy(serverSignal.getDescriptor()).setName(newSignalName).build();
     serverSignal.setDescriptor(serverSignalDataDescriptor);
 
-    auto client = CreateClientInstance();
+    auto client = CreateClientInstance(server);
     auto clientSignals = client.getDevices()[0].getSignals(search::Recursive(search::Any()));
     auto clientSignal = getSignalByName(clientSignals, "AI0").asPtr<ISignalConfig>();
 
@@ -573,7 +594,7 @@ TEST_P(WebsocketModulesChannelTest, SignalConfig_Server)
 TEST_P(WebsocketModulesChannelTest, DataDescriptor)
 {
     auto server = CreateServerInstance();
-    auto client = CreateClientInstance();
+    auto client = CreateClientInstance(server);
     testSignalDescriptorsByLocalId({"AI0", "AI1"},
                                    client.getSignals(search::Recursive(search::Any())),
                                    server.getSignals(search::Recursive(search::Any())));
@@ -583,7 +604,7 @@ TEST_P(WebsocketModulesChannelTest, SubscribeReadUnsubscribe)
 {
     SKIP_TEST_MAC_CI;
     auto server = CreateServerInstance();
-    auto client = CreateClientInstance();
+    auto client = CreateClientInstance(server);
     auto signal = getSignalByName(client.getSignals(search::Recursive(search::Any())), "AI0")
                       .template asPtr<IMirroredSignalConfig>();
 
@@ -619,7 +640,7 @@ TEST_P(WebsocketModulesChannelTest, SubscribeReadUnsubscribe)
 TEST_P(WebsocketModulesChannelTest, DISABLED_RenderSignal)
 {
     auto server = CreateServerInstance();
-    auto client = CreateClientInstance();
+    auto client = CreateClientInstance(server);
 
     auto signals = client.getSignals(search::Recursive(search::Visible()));
     const auto renderer = client.addFunctionBlock("RefFBModuleRenderer");
@@ -632,7 +653,7 @@ TEST_P(WebsocketModulesChannelTest, GetConfigurationConnectionInfoIPv4)
 {
     SKIP_TEST_MAC_CI;
     auto server = CreateServerInstance();
-    auto client = CreateClientInstance(false);
+    auto client = CreateClientInstance();
 
     auto devices = client.getDevices();
     ASSERT_EQ(devices.getCount(), 1u);
@@ -653,7 +674,7 @@ TEST_P(WebsocketModulesChannelTest, GetConfigurationConnectionInfoIPv6)
     // SKIP_TEST_MAC_CI;
     auto server = CreateServerInstance();
 
-    auto client = Instance("[[none]]");
+    auto client = test_helpers::createInstance("[[none]]");
     addLtClientModule(client);
     client.addDevice(connectionString("[::1]", ""), deviceConfig(client));
 
@@ -675,7 +696,7 @@ TEST_P(WebsocketModulesChannelTest, AddSignals)
 {
     SKIP_TEST_MAC_CI;
     auto server = CreateServerInstance();
-    auto client = CreateClientInstance();
+    auto client = CreateClientInstance(server);
     size_t addedSignalsCount = 0;
     std::promise<void> addSignalsPromise;
     std::future<void> addSignalsFuture = addSignalsPromise.get_future();
@@ -720,7 +741,7 @@ TEST_P(WebsocketModulesChannelTest, RemoveSignals)
 {
     SKIP_TEST_MAC_CI;
     auto server = CreateServerInstance();
-    auto client = CreateClientInstance();
+    auto client = CreateClientInstance(server);
     auto clientSignals = client.getSignals(search::Recursive(search::Any()));
 
     auto removedValueSignal = getSignalByName(clientSignals, "AI1");
@@ -783,7 +804,7 @@ TEST_P(WebsocketModulesChannelTest, UpdateAddSignals)
     // remove channel
     serverRefDevice.setPropertyValue("NumberOfChannels", 1);
 
-    auto client = CreateClientInstance();
+    auto client = CreateClientInstance(server);
 
     size_t addedSignalsCount = 0;
     std::promise<void> addSignalsPromise;
@@ -840,7 +861,7 @@ TEST_P(WebsocketModulesChannelTest, UpdateRemoveSignals)
     // add extra channel
     serverRefDevice.setPropertyValue("NumberOfChannels", 3);
 
-    auto client = CreateClientInstance();
+    auto client = CreateClientInstance(server);
     auto clientSignals = client.getSignals(search::Recursive(search::Any()));
 
     auto removedValueSignal = getSignalByName(clientSignals, "AI2");
@@ -891,3 +912,5 @@ TEST_P(WebsocketModulesChannelTest, UpdateRemoveSignals)
 }
 
 INSTANTIATE_TEST_SUITE_P(WebsocketModulesTestGroup, WebsocketModulesChannelTest, testing::ValuesIn(GetChannelSuite()), ChannelName);
+}
+// namespace test_websocket_modules

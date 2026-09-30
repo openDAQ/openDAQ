@@ -20,7 +20,7 @@ BEGIN_NAMESPACE_OPENDAQ_NATIVE_STREAMING_CLIENT_MODULE
 using namespace opendaq_native_streaming_protocol;
 using namespace config_protocol;
 
-static const std::regex RegexIpv6Hostname(R"(^(.+://)?(\[[a-fA-F0-9:]+(?:\%[a-zA-Z0-9_\.-~]+)?\])(?::(\d+))?(/.*)?$)");
+static const std::regex RegexIpv6Hostname(R"(^(.+://)?(\[[a-fA-F0-9:]+(?:\%[a-zA-Z0-9_\.~-]+)?\])(?::(\d+))?(/.*)?$)");
 static const std::regex RegexIpv4Hostname(R"(^(.+://)([^:/\s]+))");
 static const std::regex RegexPort(":(\\d+)");
 
@@ -448,8 +448,23 @@ NativeDeviceImpl::~NativeDeviceImpl()
 // INativeDevicePrivate
 void NativeDeviceImpl::publishConnectionStatus(const EnumerationPtr& status, const StringPtr& statusMessage)
 {
-    this->statusContainer.asPtr<IComponentStatusContainerPrivate>().setStatusWithMessage("ConnectionStatus", status, statusMessage);
-    this->connectionStatusContainer.updateConnectionStatusWithMessage(deviceInfo.getConnectionString(), status, nullptr, statusMessage);
+    // Called from the transport thread; the statuses are already gone when the device is being torn down
+    const StringPtr statusName = "ConnectionStatus";
+    ErrCode errCode = this->statusContainer.asPtr<IComponentStatusContainerPrivate>()->setStatusWithMessage(statusName, status, statusMessage);
+    if (errCode == OPENDAQ_ERR_NOTFOUND)
+    {
+        daqClearErrorInfo();
+        return;
+    }
+    checkErrorInfo(errCode);
+
+    errCode = this->connectionStatusContainer->updateConnectionStatusWithMessage(deviceInfo.getConnectionString(), status, nullptr, statusMessage);
+    if (errCode == OPENDAQ_ERR_NOTFOUND)
+    {
+        daqClearErrorInfo();
+        return;
+    }
+    checkErrorInfo(errCode);
 }
 
 void NativeDeviceImpl::completeInitialization(std::shared_ptr<NativeDeviceHelper> deviceHelper, const StringPtr& connectionString)

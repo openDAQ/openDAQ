@@ -3,6 +3,10 @@
 
 using namespace daq;
 
+namespace test_json_serialized_object
+{
+
+
 class JsonSerializedObjectTest : public testing::Test
 {
 protected:
@@ -445,14 +449,16 @@ TEST_F(JsonSerializedObjectTest, readListInvalidType)
     ASSERT_THROW(deserializer.deserialize(json.data()), InvalidTypeException);
 }
 
-static constexpr auto INTERFACE_ID = FromTemplatedTypeName("ISerializedObject", "daq");
+static constexpr auto JSON_SERIALIZED_OBJECT_INTERFACE_ID = FromTemplatedTypeName("ISerializedObject", "daq");
 
 TEST_F(JsonSerializedObjectTest, InterfaceId)
 {
-    ASSERT_EQ(INTERFACE_ID, ISerializedObject::Id);
+    ASSERT_EQ(JSON_SERIALIZED_OBJECT_INTERFACE_ID, ISerializedObject::Id);
 }
 
 TEST_F(JsonSerializedObjectTest, InterfaceIdString)
 {
     ASSERT_EQ(daqInterfaceIdString<ISerializedObject>(), "{EC052FCE-7ADC-5335-9929-66731EA35698}");
 }
+}
+// namespace test_json_serialized_object

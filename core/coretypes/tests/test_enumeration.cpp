@@ -3,6 +3,10 @@
 
 using namespace daq;
 
+namespace test_enumeration
+{
+
+
 using EnumerationTypeTest = testing::Test;
 
 TEST_F(EnumerationTypeTest, InvalidParameters)
@@ -247,14 +251,16 @@ TEST_F(EnumerationObjectTest, Inspectable)
     ASSERT_EQ(ids[0], IEnumeration::Id);
 }
 
-static constexpr auto INTERFACE_ID = FromTemplatedTypeName("IEnumeration", "daq");
+static constexpr auto ENUMERATION_INTERFACE_ID = FromTemplatedTypeName("IEnumeration", "daq");
 
 TEST_F(EnumerationObjectTest, InterfaceId)
 {
-    ASSERT_EQ(INTERFACE_ID, IEnumeration::Id);
+    ASSERT_EQ(ENUMERATION_INTERFACE_ID, IEnumeration::Id);
 }
 
 TEST_F(EnumerationObjectTest, InterfaceIdString)
 {
     ASSERT_EQ(daqInterfaceIdString<IEnumeration>(), "{5E7D128C-87ED-5FE3-9480-CCB7E7CF8F49}");
 }
+}
+// namespace test_enumeration

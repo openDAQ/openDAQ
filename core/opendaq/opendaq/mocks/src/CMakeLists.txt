@@ -46,6 +46,9 @@ source_group("mock" FILES ${MOCK_HEADERS}
 add_library(${MOCK_LIB_NAME} STATIC ${GMOCK_HEADERS} ${MOCK_HEADERS} ${MOCK_SOURCES})
 add_library(${SDK_TARGET_NAMESPACE}::${MOCK_LIB_NAME} ALIAS ${MOCK_LIB_NAME})
 
+opendaq_target_pch(${MOCK_LIB_NAME} <opendaq/opendaq.h>)
+opendaq_target_unity_tests(${MOCK_LIB_NAME})
+
 if (MSVC)
     target_compile_options(${MOCK_LIB_NAME} PRIVATE /bigobj)
 endif()

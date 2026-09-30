@@ -16,7 +16,11 @@
 #include <coreobjects/argument_info_factory.h>
 #include <coreobjects/property_object_internal_ptr.h>
 #include <coretypes/listobject_factory.h>
+#include <atomic>
+#include <chrono>
 #include <list>
+#include <string>
+#include <thread>
 
 using namespace daq;
 
@@ -2947,4 +2951,37 @@ TEST_F(PropertyObjectTest, ClearPropertyValuesNestedMixedTypes)
     ASSERT_EQ(root.getPropertyValue("child1.Bool"), False);
     ASSERT_EQ(root.getPropertyValue("child2.Int"), 2);
     ASSERT_EQ(root.getPropertyValue("child2.Str"), "b");
+}
+
+TEST_F(PropertyObjectTest, ConcurrentSerializeAndSetPropertyValue)
+{
+    constexpr int propertyCount = 50;
+    const auto propObj = PropertyObject();
+    for (int i = 0; i < propertyCount; ++i)
+        propObj.addProperty(IntProperty("Int" + std::to_string(i), 0));
+
+    // The first pass over the properties inserts their values, later passes overwrite them.
+    std::atomic<bool> stop{false};
+    std::thread writer([&] {
+        for (Int value = 1; !stop; ++value)
+            for (int i = 0; i < propertyCount; ++i)
+                propObj.setPropertyValue("Int" + std::to_string(i), value);
+    });
+
+    const auto deadline = std::chrono::steady_clock::now() + std::chrono::milliseconds(300);
+    SizeT serializations = 0;
+    bool emptyOutput = false;
+    while (!emptyOutput && std::chrono::steady_clock::now() < deadline)
+    {
+        const auto serializer = JsonSerializer();
+        propObj.serialize(serializer);
+        emptyOutput = serializer.getOutput().toStdString().empty();
+        ++serializations;
+    }
+
+    stop = true;
+    writer.join();
+
+    ASSERT_FALSE(emptyOutput);
+    ASSERT_GT(serializations, 0u);
 }

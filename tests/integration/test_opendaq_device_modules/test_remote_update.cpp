@@ -8,9 +8,10 @@ class RemoteModulesUpdateTest : public testing::Test
 {
 protected:
 
-    static InstancePtr setupBaseInstance()
+    // scanOnAdd: a daq:// connection string needs the scan, which the test instances turn off
+    static InstancePtr setupBaseInstance(bool scanOnAdd = false)
     {
-        auto instance = InstanceBuilder()
+        auto instance = (scanOnAdd ? InstanceBuilder() : test_helpers::instanceBuilder())
             .setModulePath("[[none]]")
             .setGlobalLogLevel(LogLevel::Warn)
             .addDiscoveryServer("mdns")
@@ -406,7 +407,7 @@ TEST_F(RemoteModulesUpdateTest, RemapWithConnectionStringNative)
     test2Options.setUpdateMode(DeviceUpdateMode::Remap);
     test2Options.setNewConnectionString("daq://openDAQ_Test1");
 
-    auto freshInstance = setupBaseInstance();
+    auto freshInstance = setupBaseInstance(true);
 
     auto params = UpdateParameters();
     params.setDeviceUpdateOptions(options);

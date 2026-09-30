@@ -78,6 +78,11 @@ InstanceImpl::InstanceImpl(IInstanceBuilder* instanceBuilder)
 InstanceImpl::~InstanceImpl()
 {
     stopAndRemoveServers();
+
+    // Retire the discovery servers while the root device is still held: their service threads answer for it
+    for (const auto& [_, discoveryServer] : context.getDiscoveryServers())
+        discoveryServer.asPtr<IDiscoveryServer>(true)->setRootDevice(nullptr);
+
     rootDevice.remove();
     rootDevice.release();
 }

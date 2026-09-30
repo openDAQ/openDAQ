@@ -55,6 +55,7 @@ endif()
 list(APPEND CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake
 )
 include(DeprecatedCommands)
+include(openDAQTestResources)
 
 get_filename_component(PROJ_DIR ${PROJECT_SOURCE_DIR} REALPATH)
 
@@ -66,21 +67,11 @@ if (COMMAND GIT_WC_INFO)
     endif()
 
     message(STATUS "Git branch: ${OPENDAQ_WC_BRANCH_NAME} | ${OPENDAQ_WC_REVISION_HASH}")
-    if (NOT ${OPENDAQ_WC_BRANCH_NAME} MATCHES "^release\/[0-9]+\.[0-9]+(\.[0-9])?(\.[0-9])?(-[a-z|A-Z|0-9]*)?$")
-        set (OPENDAQ_PACKAGE_VERSION_WITH_SHA "${OPENDAQ_PACKAGE_VERSION}_${OPENDAQ_WC_REVISION_HASH}")
-    endif()
 else()
     set(OPENDAQ_WC_REVISION "NA")
 endif()
 
-if (NOT ${OPENDAQ_PACKAGE_VERSION_WITH_SHA} STREQUAL "")
-    message(STATUS "openDAQ package version: ${OPENDAQ_PACKAGE_VERSION_WITH_SHA}")
-    add_compile_definitions(OPENDAQ_PACKAGE_VERSION="${OPENDAQ_PACKAGE_VERSION_WITH_SHA}")
-else()
-    message(STATUS "openDAQ package version: ${OPENDAQ_PACKAGE_VERSION}")
-    add_compile_definitions(OPENDAQ_PACKAGE_VERSION="${OPENDAQ_PACKAGE_VERSION}")
-endif()
-
+set(OPENDAQ_ENABLE_UNITY_LIBS ON CACHE BOOL "Unity builds for libraries")
 opendaq_setup_common_build_options()
 opendaq_setup_project_specific_build_options(${SDK_OPTION_PREFIX})
 
@@ -106,7 +97,6 @@ option(OPENDAQ_GENERATE_C_BINDINGS "Generate C bindings" OFF)
 
 # Testing and coverage options
 option(OPENDAQ_ENABLE_TESTS "Enable testing" ON)
-option(OPENDAQ_ENABLE_TEST_UTILS "Enable testing utils library" ON)
 option(OPENDAQ_ENABLE_OPTIONAL_TESTS "Enable optional (debugging) tests" OFF)
 option(OPENDAQ_ENABLE_COVERAGE "Enable code coverage in testing" OFF)
 option(OPENDAQ_ENABLE_REGRESSION_TESTS "Enable regression testing" OFF)
@@ -124,6 +114,7 @@ if (OPENDAQ_ENABLE_ERROR_GUARD)
 endif()
 
 # Dependent options
+cmake_dependent_option(OPENDAQ_ENABLE_TEST_UTILS "Enable testing utils library" ON "NOT OPENDAQ_ENABLE_TESTS" ON)
 cmake_dependent_option(OPENDAQ_ENABLE_DELPHI_BINDINGS_TESTS "Enable delphi bindings tests" ON "OPENDAQ_GENERATE_DELPHI_BINDINGS;OPENDAQ_ENABLE_TESTS" OFF)
 cmake_dependent_option(OPENDAQ_ENABLE_PYTHON_BINDINGS_TESTS "Enable python bindings tests" ON "OPENDAQ_GENERATE_PYTHON_BINDINGS;OPENDAQ_ENABLE_TESTS" OFF)
 cmake_dependent_option(OPENDAQ_ENABLE_CSHARP_BINDINGS_TESTS "Enable csharp bindings tests" ON "OPENDAQ_GENERATE_CSHARP_BINDINGS;OPENDAQ_ENABLE_TESTS" OFF)
@@ -420,6 +411,7 @@ add_compile_options(
 if (DEFINED OPCUA_MODULES_SOURCE_DIR)
     add_subdirectory("${OPCUA_MODULES_SOURCE_DIR}" "${OPCUA_MODULES_BINARY_DIR}")
 endif()
+opendaq_lock_external_module_tests()
 
 set_directory_properties(PROPERTIES COMPILE_OPTIONS "${_opendaq_saved_compile_options}")
 
@@ -497,6 +489,7 @@ if (DEFINED mdns_SOURCE_DIR)
     install(
         FILES "${mdns_SOURCE_DIR}/mdns.h"
         DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
+        COMPONENT ${SDK_NAME}_discovery_Development
     )
 else()
     message(ERROR "missing mdns dependency")

@@ -121,10 +121,12 @@ public:
                                        const RetrieveIpConfigCallback& retrieveIpConfigCb);
     bool unregisterIpModificationService();
     bool isServiceRegistered(const std::string& id);
-    
+
+    // Joins the service thread and says goodbye for the registered services; registering a service starts it again
+    void stop();
+
 private:
     void start();
-    void stop();
     void serviceLoop();
 
     void goodbyeMulticast(const MdnsDiscoveredService& service) const;

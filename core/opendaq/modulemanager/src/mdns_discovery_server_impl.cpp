@@ -114,6 +114,12 @@ ErrCode MdnsDiscoveryServerImpl::setRootDevice(IDevice* device)
     const ErrCode errCode = daqTry([&]()
     {
         using namespace discovery_common;
+
+        // Without a root device there is nothing left to answer for. Stop the service thread before the
+        // callbacks go, so that a request it is handling through the device cannot outlive either.
+        if (!devicePtr.assigned())
+            discoveryServer.stop();
+
         if (discoveryServer.isServiceRegistered(IpModificationUtils::DAQ_IP_MODIFICATION_SERVICE_ID))
             discoveryServer.unregisterIpModificationService();
 

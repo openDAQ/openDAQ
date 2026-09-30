@@ -4,6 +4,10 @@
 
 using namespace daq;
 
+namespace test_objcount
+{
+
+
 using ObjCountTest = testing::Test;
 
 #ifndef NDEBUG
@@ -42,3 +46,5 @@ TEST_F(ObjCountTest, PooledObjectsTrackedOnlyWhileAlive)
 }
 
 #endif
+}
+// namespace test_objcount

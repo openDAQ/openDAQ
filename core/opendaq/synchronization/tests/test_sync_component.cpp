@@ -844,10 +844,12 @@ TEST_F(PtpSyncInterfaceTest, PortModeFollowsInterfaceModeAutomatically)
     const PropertyObjectPtr portConfig0 = configuration.getPropertyValue("PortConfiguration.eth0");
     const PropertyObjectPtr portConfig1 = configuration.getPropertyValue("PortConfiguration.eth1");
 
-    // Initially a port can only be Off
+    // A new port offers every port mode while the interface is Off
     const DictPtr<IInteger, IString> initialOptions = portConfig0.getPropertyValue("ModeOptions");
     ASSERT_EQ(initialOptions.getCount(), 3u);
     ASSERT_TRUE(initialOptions.hasKey(static_cast<Int>(PortSyncMode::Off)));
+    ASSERT_TRUE(initialOptions.hasKey(static_cast<Int>(PortSyncMode::Output)));
+    ASSERT_TRUE(initialOptions.hasKey(static_cast<Int>(PortSyncMode::Auto)));
 
     // Switching the interface to Output makes ports selectable as Output too, but a port
     // that is still Off is left untouched

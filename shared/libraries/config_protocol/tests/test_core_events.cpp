@@ -1834,6 +1834,41 @@ TEST_F(ConfigCoreEventTest, ReconnectComponentUpdateEndDeviceInfo)
     ASSERT_EQ(clientDevice.getInfo().getManufacturer(), "test");
 }
 
+TEST_F(ConfigCoreEventTest, ReconnectComponentUpdateEndSubDeviceAddedProperty)
+{
+    const auto serverSubDevice = serverDevice.getDevices(search::Recursive(search::LocalId("mock_phys_dev")))[0];
+    serverSubDevice.asPtr<IPropertyObjectInternal>().disableCoreEventTrigger();
+    serverSubDevice.addProperty(StringProperty("AddedOnServer", "foo"));
+
+    const auto clientSubDevice = clientDevice.getDevices(search::Recursive(search::LocalId("mock_phys_dev")))[0];
+    ASSERT_FALSE(clientSubDevice.hasProperty("AddedOnServer"));
+
+    client->reconnect(False);
+
+    ASSERT_TRUE(clientSubDevice.hasProperty("AddedOnServer"));
+    ASSERT_EQ(clientSubDevice.getPropertyValue("AddedOnServer"), "foo");
+}
+
+TEST_F(ConfigCoreEventTest, ReconnectComponentUpdateEndSubDeviceReplacedProperty)
+{
+    // Added while core events flow, so the client already holds the original property before the reconnect.
+    const auto serverSubDevice = serverDevice.getDevices(search::Recursive(search::LocalId("mock_phys_dev")))[0];
+    serverSubDevice.addProperty(StringProperty("ReplacedOnServer", "foo"));
+
+    const auto clientSubDevice = clientDevice.getDevices(search::Recursive(search::LocalId("mock_phys_dev")))[0];
+    ASSERT_EQ(clientSubDevice.getProperty("ReplacedOnServer").getValueType(), ctString);
+
+    serverSubDevice.asPtr<IPropertyObjectInternal>().disableCoreEventTrigger();
+    serverSubDevice.removeProperty("ReplacedOnServer");
+    serverSubDevice.addProperty(IntProperty("ReplacedOnServer", 5));
+
+    client->reconnect(False);
+
+    ASSERT_TRUE(clientSubDevice.hasProperty("ReplacedOnServer"));
+    ASSERT_EQ(clientSubDevice.getProperty("ReplacedOnServer").getValueType(), ctInt);
+    ASSERT_EQ(clientSubDevice.getPropertyValue("ReplacedOnServer"), 5);
+}
+
 TEST_F(ConfigCoreEventTest, ComponentSetActiveWithParentNonActive)
 {
     serverDevice.asPtr<IComponentPrivate>().unlockAllAttributes();

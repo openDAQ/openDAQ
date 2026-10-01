@@ -29,6 +29,7 @@
 #include "py_core_types/py_core_types.h"
 #include "py_core_types/py_converter.h"
 #include <pybind11/stl.h>
+#include <pybind11/typing.h>
 
 
 PyDaqIntf<daq::ITypeManager, daq::IBaseObject> declareITypeManager(pybind11::module_ m)
@@ -67,7 +68,7 @@ void defineITypeManager(pybind11::module_ m, PyDaqIntf<daq::ITypeManager, daq::I
         py::arg("type_name"),
         "Removes the type from the manager.");
     cls.def("get_type",
-        [](daq::ITypeManager *object, const std::string& typeName) -> py::object
+        [](daq::ITypeManager *object, const std::string& typeName) -> py::typing::Union<daq::IEnumerationType, daq::IType>
         {
             const auto objectPtr = daq::TypeManagerPtr::Borrow(object);
             auto type = objectPtr.getType(typeName);

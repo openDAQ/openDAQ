@@ -506,7 +506,7 @@ void GenericConfigClientDeviceImpl<TDeviceBase>::onRemoteUpdate(const Serialized
         else
         {
             const auto serObj = serialized.readSerializedObject(id);
-            comp.template asPtr<IConfigClientObject>()->remoteUpdate(serObj);
+            this->remoteUpdateChild(comp, serObj);
         }
     }
 
@@ -525,7 +525,7 @@ void GenericConfigClientDeviceImpl<TDeviceBase>::onRemoteUpdate(const Serialized
         auto compIterator = std::find_if(this->components.begin(), this->components.end(), [&key](const ComponentPtr& comp) { return comp.getLocalId() == key; });
         if (compIterator != this->components.end())
         {
-            compIterator->template asPtr<IConfigClientObject>()->remoteUpdate(obj);
+            this->remoteUpdateChild(*compIterator, obj);
         }
         else
         {

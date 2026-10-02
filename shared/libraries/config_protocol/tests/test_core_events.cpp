@@ -23,6 +23,9 @@
 #include <coreobjects/user_factory.h>
 #include <opendaq/mock/mock_streaming_factory.h>
 #include <opendaq/mock/mock_physical_device.h>
+#include <opendaq/logger_factory.h>
+#include <opendaq/logger_sink_factory.h>
+#include <opendaq/logger_sink_last_message_private_ptr.h>
 
 using namespace daq;
 using namespace daq::config_protocol;
@@ -1867,6 +1870,53 @@ TEST_F(ConfigCoreEventTest, ReconnectComponentUpdateEndSubDeviceReplacedProperty
     ASSERT_TRUE(clientSubDevice.hasProperty("ReplacedOnServer"));
     ASSERT_EQ(clientSubDevice.getProperty("ReplacedOnServer").getValueType(), ctInt);
     ASSERT_EQ(clientSubDevice.getPropertyValue("ReplacedOnServer"), 5);
+}
+
+TEST_F(ConfigCoreEventTest, ReconnectComponentUpdateEndLogsSubDeviceThatFails)
+{
+    // A type the client already has locally wins over the server's definition of the same name. A value only
+    // the server's definition knows then makes the sub-device's update throw on reconnect.
+    const auto serverTypeManager = serverDevice.getContext().getTypeManager();
+    serverTypeManager.addType(EnumerationType("SubDeviceEnum", List<IString>("A", "B", "C")));
+
+    const auto serverSubDevice = serverDevice.getDevices(search::Recursive(search::LocalId("mock_phys_dev")))[0];
+    serverSubDevice.addProperty(EnumerationProperty("EnumProp", Enumeration("SubDeviceEnum", "A", serverTypeManager)));
+
+    const auto logSink = LastMessageLoggerSink();
+    logSink.setLevel(LogLevel::Warn);
+    auto logSinks = DefaultSinks(nullptr);
+    logSinks.pushBack(logSink);
+    const auto logger = LoggerWithSinks(logSinks);
+    const LastMessageLoggerSinkPrivatePtr lastMessage = logSink.asPtr<ILastMessageLoggerSinkPrivate>();
+
+    // Connect a new client whose context already has the conflicting type.
+    clientContext = NullContext(logger);
+    clientContext.getTypeManager().addType(EnumerationType("SubDeviceEnum", List<IString>("A", "B")));
+    client = std::make_unique<ConfigProtocolClient<ConfigClientDeviceImpl>>(
+        clientContext,
+        [this](const PacketBuffer& requestPacket) { return sendRequestAndGetReply(requestPacket); },
+        [this](const PacketBuffer& requestPacket) { sendNoReplyRequest(requestPacket); },
+        nullptr,
+        nullptr,
+        nullptr);
+    clientDevice = client->connect();
+
+    const auto clientSubDevice = clientDevice.getDevices(search::Recursive(search::LocalId("mock_phys_dev")))[0];
+    ASSERT_EQ(clientSubDevice.getPropertyValue("EnumProp").asPtr<IEnumeration>().getValue(), "A");
+
+    serverSubDevice.asPtr<IPropertyObjectInternal>().disableCoreEventTrigger();
+    serverSubDevice.setPropertyValue("EnumProp", Enumeration("SubDeviceEnum", "C", serverTypeManager));
+
+    logger.flush();
+    lastMessage.waitForMessage(0);
+
+    client->reconnect(False);
+
+    logger.flush();
+    ASSERT_TRUE(lastMessage.waitForMessage(2000));
+    const std::string message = lastMessage.getLastMessage();
+    ASSERT_NE(message.find(clientSubDevice.getGlobalId().toStdString()), std::string::npos) << message;
+    ASSERT_NE(message.find("failed to apply the server's update"), std::string::npos) << message;
 }
 
 TEST_F(ConfigCoreEventTest, ComponentSetActiveWithParentNonActive)

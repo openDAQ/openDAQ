@@ -58,6 +58,10 @@ protected:
     void remoteUpdateStatuses(const SerializedObjectPtr& serializedStatuses);
     void onRemoteUpdate(const SerializedObjectPtr& serialized) override;
 
+    // Applies the server's update to a child component. A child that fails is logged and left as it was,
+    // so that its siblings and the rest of this component still update.
+    void remoteUpdateChild(const ComponentPtr& child, const SerializedObjectPtr& serialized);
+
 private:
     void componentUpdateEnd(const CoreEventArgsPtr& args);
     void attributeChanged(const CoreEventArgsPtr& args);
@@ -272,6 +276,20 @@ void ConfigClientComponentBaseImpl<Impl>::remoteUpdateStatuses(const SerializedO
             else
                 statusContainerPrivate.addStatusWithMessage(name, value, msg);
         }
+    }
+}
+
+template <class Impl>
+void ConfigClientComponentBaseImpl<Impl>::remoteUpdateChild(const ComponentPtr& child, const SerializedObjectPtr& serialized)
+{
+    const ErrCode errCode = child.template asPtr<IConfigClientObject>()->remoteUpdate(serialized);
+    if (OPENDAQ_FAILED(errCode))
+    {
+        const auto loggerComponent = this->clientComm->getDaqContext().getLogger().getOrAddComponent("ConfigClient");
+        LOG_W("Component {} failed to apply the server's update (0x{:08X}): {}",
+              child.getGlobalId(),
+              static_cast<uint32_t>(errCode),
+              getErrorInfoMessage(errCode, true));
     }
 }
 

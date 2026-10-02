@@ -50,6 +50,7 @@ set(SRC_PrivateHeaders_Component
 
 set(SRC_Cpp_Component 
     server_type_impl.cpp
+    server_impl.cpp
     server.natvis
     PARENT_SCOPE
 )

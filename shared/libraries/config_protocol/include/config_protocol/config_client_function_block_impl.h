@@ -186,7 +186,7 @@ void ConfigClientBaseFunctionBlockImpl<Impl>::onRemoteUpdate(const SerializedObj
         if (serialized.hasKey(id))
         {
             const auto serObj = serialized.readSerializedObject(id);
-            comp.template asPtr<IConfigClientObject>()->remoteUpdate(serObj);
+            this->remoteUpdateChild(comp, serObj);
         }
     }
 }

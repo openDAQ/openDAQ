@@ -27,6 +27,7 @@ RefCANChannelImpl::RefCANChannelImpl(const ContextPtr& context,
     : ChannelImpl(FunctionBlockType("RefCANChannel",  "CAN", ""), context, parent, localId)
     , microSecondsFromEpochToStartTime(init.microSecondsFromEpochToStartTime)
     , lastCollectTime(0)
+    , referenceDomainInfo(init.referenceDomainInfo)
 {
     objPtr.asPtr<IPropertyObjectInternal>().setLockingStrategy(LockingStrategy::InheritLock);
 
@@ -142,6 +143,7 @@ void RefCANChannelImpl::buildSignalDescriptors()
                                 .setUnit(Unit("s", -1, "seconds", "time"))
                                 .setTickResolution(getResolution())
                                 .setOrigin(getEpoch())
+                                .setReferenceDomainInfo(referenceDomainInfo)
                                 .setName("Time CAN");
 
     timeSignal.setDescriptor(timeDescriptor.build());

@@ -9,7 +9,7 @@
 #include <opendaq/device_type_factory.h>
 #include <opendaq/log_file_info_factory.h>
 #include <opendaq/packet_factory.h>
-#include <opendaq/sync_component_private_ptr.h>
+#include <opendaq/synchronization_factory.h>
 #include <ref_device_module/ref_can_channel_impl.h>
 #include <ref_device_module/ref_channel_impl.h>
 #include <ref_device_module/ref_device_impl.h>
@@ -70,7 +70,7 @@ RefDeviceImpl::RefDeviceImpl(const ModuleInfoPtr& moduleInfo,
     }
 
     initIoFolder();
-    initSyncComponent();
+    initSynchronization();
     initClock();
     initProperties(config);
     createSignals();
@@ -207,15 +207,24 @@ void RefDeviceImpl::initClock()
     startTime = std::chrono::steady_clock::now();
     startTimeInMs = std::chrono::duration_cast<std::chrono::microseconds>(startTime.time_since_epoch());
     auto startAbsTime = std::chrono::system_clock::now();
-    refDomainId = "openDAQ_" + serialNumber;
 
     microSecondsFromEpochToDeviceStart = std::chrono::duration_cast<std::chrono::microseconds>(startAbsTime.time_since_epoch());
+
+    SynchronizationPtr synchronization;
+    checkErrorInfo(this->getSynchronization(&synchronization));
+    refDomainId = synchronization.getSource().getReferenceDomainId();
+    refDomainInfo = ReferenceDomainInfoBuilder()
+                        .setReferenceDomainId(refDomainId)
+                        .setReferenceDomainIds(List<IString>(refDomainId))
+                        .setReferenceDomainOffset(0)
+                        .setReferenceTimeProtocol(TimeProtocol::Utc)
+                        .build();
 
     this->setDeviceDomain(
         DeviceDomain(RefChannelImpl::getResolution(),
                      RefChannelImpl::getEpoch(),
                      UnitBuilder().setName("seconds").setSymbol("s").setQuantity("time").build(),
-                     ReferenceDomainInfoBuilder().setReferenceDomainId(refDomainId).setReferenceDomainOffset(0).build()));
+                     refDomainInfo));
 }
 
 void RefDeviceImpl::initIoFolder()
@@ -224,16 +233,9 @@ void RefDeviceImpl::initIoFolder()
     canFolder = this->addIoFolder("CAN", ioFolder, LockingStrategy::InheritLock);
 }
 
-void RefDeviceImpl::initSyncComponent()
+void RefDeviceImpl::initSynchronization()
 {
-    SyncComponentPtr syncComponent;
-    this->getSyncComponent(&syncComponent);
-    SyncComponentPrivatePtr syncComponentPrivate = syncComponent.asPtr<ISyncComponentPrivate>(true);
-
-    syncComponentPrivate.addInterface(PropertyObject(this->context.getTypeManager(), "PtpSyncInterface"));
-    syncComponentPrivate.addInterface(PropertyObject(this->context.getTypeManager(), "InterfaceClockSync"));
-    syncComponent.setSelectedSource(1);
-    syncComponentPrivate.setSyncLocked(true);
+    setSynchronization(Synchronization(this->context.getTypeManager(), "openDAQ_" + serialNumber));
 }
 
 void RefDeviceImpl::acqLoop()
@@ -401,7 +403,7 @@ void RefDeviceImpl::updateNumberOfChannels()
     auto microSecondsSinceDeviceStart = getMicroSecondsSinceDeviceStart();
     for (auto i = channels.size(); i < num; i++)
     {
-        RefChannelInit init{i, globalSampleRate, microSecondsSinceDeviceStart, microSecondsFromEpochToDeviceStart, localId, usePacketBuffer};
+        RefChannelInit init{i, globalSampleRate, microSecondsSinceDeviceStart, microSecondsFromEpochToDeviceStart, refDomainInfo, usePacketBuffer};
         auto chLocalId = fmt::format("RefCh{}", i);
         auto ch = createAndAddChannel<RefChannelImpl>(aiFolder, chLocalId, init);
         channels.push_back(std::move(ch));
@@ -422,7 +424,7 @@ void RefDeviceImpl::enableCANChannel()
     else
     {
         auto microSecondsSinceDeviceStart = getMicroSecondsSinceDeviceStart();
-        RefCANChannelInit init{microSecondsSinceDeviceStart, microSecondsFromEpochToDeviceStart};
+        RefCANChannelInit init{microSecondsSinceDeviceStart, microSecondsFromEpochToDeviceStart, refDomainInfo};
         canChannel = createAndAddChannel<RefCANChannelImpl>(canFolder, "refcanch", init);
     }
 }
@@ -444,7 +446,7 @@ void RefDeviceImpl::enableProtectedChannel()
         auto microSecondsSinceDeviceStart = getMicroSecondsSinceDeviceStart();
         size_t index = channels.size();
 
-        RefChannelInit init{index, globalSampleRate, microSecondsSinceDeviceStart, microSecondsFromEpochToDeviceStart, localId, usePacketBuffer};
+        RefChannelInit init{index, globalSampleRate, microSecondsSinceDeviceStart, microSecondsFromEpochToDeviceStart, refDomainInfo, usePacketBuffer};
         const auto channelLocalId = "ProtectedChannel";
 
         auto permissions = PermissionsBuilder()
@@ -492,7 +494,7 @@ void RefDeviceImpl::configureTimeSignal()
             .setRule(LinearDataRule(deltaT, 0))
             .setOrigin(RefChannelImpl::getEpoch())
             .setName("Time")
-            .setReferenceDomainInfo(ReferenceDomainInfoBuilder().setReferenceDomainId(refDomainId).setReferenceDomainOffset(0).build())
+            .setReferenceDomainInfo(refDomainInfo)
             .build();
 
     timeSignal.setDescriptor(timeDescriptor);

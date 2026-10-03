@@ -58,6 +58,12 @@ public:
             return false;
         if (a.getDescription() != b.getDescription())
             return false;
+        if (a.getAlwaysEmptyInput() != b.getAlwaysEmptyInput())
+            return false;
+        if (a.getSingleton() != b.getSingleton())
+            return false;
+        if (a.getCommonSettingsTypeId() != b.getCommonSettingsTypeId())
+            return false;
 
         const auto configA = a.createDefaultConfig();
         const auto configB = b.createDefaultConfig();

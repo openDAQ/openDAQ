@@ -75,7 +75,7 @@ void defineITypeManager(pybind11::module_ m, PyDaqIntf<daq::ITypeManager, daq::I
 
             auto enumTypePtr = type.asPtrOrNull<daq::IEnumerationType>();
             if(enumTypePtr.assigned()) {
-                auto pyObject = py::cast(InterfaceWrapper<daq::IEnumerationType>(enumTypePtr));
+                auto pyObject = py::cast(InterfaceWrapper<daq::IEnumerationType>(enumTypePtr.addRefAndReturn()));
                 pyObject.attr("__type_manager") = object;
                 result = enumTypePtr.detach();
                 return result;

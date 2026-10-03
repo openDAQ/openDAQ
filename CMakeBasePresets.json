@@ -399,10 +399,18 @@
         },
         {
             "name": "run_tests_parallel",
-            "description": "Run all tests excluding unstable ones, four at a time; RESOURCE_LOCK keeps port and mDNS users apart",
+            "description": "Run all tests excluding unstable ones, six at a time; RESOURCE_LOCK keeps port and mDNS users apart",
             "inherits": "run_tests",
             "execution": {
-                "jobs": 4
+                "jobs": 6
+            }
+        },
+        {
+            "name": "run_tests_parallel_macos",
+            "description": "run_tests_parallel three at a time: the macOS runners have three or four cores and the LT streaming client races under heavier load",
+            "inherits": "run_tests_parallel",
+            "execution": {
+                "jobs": 3
             }
         },
         {

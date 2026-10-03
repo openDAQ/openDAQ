@@ -26,10 +26,10 @@ enum class StructureProtocolType
 class SubDevicesTest : public testing::TestWithParam<std::tuple<StructureProtocolType, StreamingProtocolType, StreamingProtocolType>>
 {
 public:
-    const uint16_t NATIVE_PORT = 7420;
-    const uint16_t WEBSOCKET_STREAMING_PORT = 7414;
-    const uint16_t OPCUA_PORT = 4840;
-    const uint16_t WEBSOCKET_CONTROL_PORT = 7438;
+    const uint16_t NATIVE_PORT = test_helpers::serverPort(7420);
+    const uint16_t WEBSOCKET_STREAMING_PORT = test_helpers::serverPort(7414);
+    const uint16_t OPCUA_PORT = test_helpers::serverPort(4840);
+    const uint16_t WEBSOCKET_CONTROL_PORT = test_helpers::serverPort(7438);
 
     const uint16_t MIN_CONNECTIONS = 0;
     const uint16_t MIN_HOPS = 1;

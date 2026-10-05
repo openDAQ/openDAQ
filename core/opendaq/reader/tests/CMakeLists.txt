@@ -2,6 +2,7 @@ opendaq_set_cmake_folder_context(TARGET_FOLDER_NAME)
 set(MODULE_NAME reader)
 
 set(TEST_HEADERS reader_common.h
+                 test_multi_reader2_common.h
 )
 
 set(TEST_SOURCES test_factories.cpp

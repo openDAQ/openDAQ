@@ -13,6 +13,14 @@ set(TEST_SOURCES test_factories.cpp
                  test_time_reader.cpp
                  test_multi_reader.cpp
                  test_stream_reader_from_input_port.cpp
+                 # MultiReader2 suites compile the implementation directly for white-box access
+                 test_multi_reader2.cpp
+                 test_multi_reader2_migrated.cpp
+                 test_multi_reader2_unsupported.cpp
+                 ../src/multi_reader2_impl.cpp
+                 ../src/multi_reader2_params_impl.cpp
+                 ../src/multi_reader2_status_impl.cpp
+                 ../src/multi_reader_data_manager.cpp
 )
 
 opendaq_prepare_test_runner(TEST_APP FOR ${MODULE_NAME}

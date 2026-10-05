@@ -10,8 +10,12 @@ using namespace std::chrono_literals;
 // samples first and handles the status after. A read never waits for data.
 void readDataSameRatesSignals(const ListPtr<ISignal>& signals)
 {
+    auto inputs = List<IComponent>();
+    for (const auto& signal : signals)
+        inputs.pushBack(signal);
+
     auto params = MultiReader2Params();
-    params.setInputs(List<IComponent>(signals));
+    params.setInputs(inputs);
     params.setValueReadType(SampleType::Float64);  // the default; Invalidate is the default error policy
     auto reader = MultiReader2(params);
 

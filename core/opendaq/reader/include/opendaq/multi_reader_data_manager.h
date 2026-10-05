@@ -85,9 +85,10 @@ public:
 
     // Producer side. Connection edges and event packets queue as boundaries. Data packets queue while the slot can
     // deliver, as of the last read, and are dropped at the door otherwise
-    NotifyOwed connected(SizeT slot);
+    // A connect carries the signal's current descriptors so the input is whole on the status that reports it
+    NotifyOwed connected(SizeT slot, const DataDescriptorPtr& value = nullptr, const DataDescriptorPtr& domain = nullptr);
     NotifyOwed disconnected(SizeT slot);
-    NotifyOwed setConnected(SizeT slot, bool connected);  // the edge, if the state differs from the last one seen
+    NotifyOwed setConnected(SizeT slot, bool connected, const DataDescriptorPtr& value = nullptr, const DataDescriptorPtr& domain = nullptr);
     NotifyOwed addPacket(SizeT slot, const PacketPtr& packet);
 
     // Incremented whenever a producer call owed a wake; the reader re-evaluates after the consumer's handler returns

@@ -210,7 +210,7 @@ TEST_F(MultiReader2Test, ReadsAlignedData)
     addSignal(0, 5, domain);
     addSignal(0, 7, domain);
     addSignal(0, 9, domain);
-    auto reader = createReader(params(signalsToList()));
+    auto reader = createReaderProbed(params(signalsToList()));
 
     sendPackets(0);
     sendPackets(1);
@@ -222,7 +222,7 @@ TEST_F(MultiReader2Test, ReadsAlignedData)
     auto status = read(reader, values, count, &offset);
     ASSERT_EQ(count, 10u);
     ASSERT_EQ(offset, 0u);
-    ASSERT_TRUE(status.getHasChanges());  // the first status
+    ASSERT_FALSE(status.getHasChanges());  // the first status was taken by createReaderProbed
     for (SizeT i = 0; i < 3; i++)
         for (SizeT k = 0; k < 10; k++)
             ASSERT_DOUBLE_EQ(values[i][k], static_cast<double>(k));
@@ -247,7 +247,7 @@ TEST_F(MultiReader2Test, AlignsDifferentOriginsAndStarts)
     addSignal(0, 500, createDomainSignal("2022-09-27T00:02:03+00:00"));
     addSignal(0, 500, createDomainSignal("2022-09-27T00:02:04+00:00"));
     addSignal(200, 500, createDomainSignal("2022-09-27T00:02:03+00:00"));
-    auto reader = createReader(params(signalsToList()));
+    auto reader = createReaderProbed(params(signalsToList()));
 
     for (Int i = 0; i < 4; i++)
         sendPackets(i);
@@ -272,7 +272,7 @@ TEST_F(MultiReader2Test, AlignsDifferentResolutionsAtEqualRate)
     readSignals.reserve(2);
     addSignal(0, 100, createDomainSignal("", Ratio(1, 1000), LinearDataRule(1, 0)));
     addSignal(0, 100, createDomainSignal("", Ratio(1, 2000), LinearDataRule(2, 0)));
-    auto reader = createReader(params(signalsToList()));
+    auto reader = createReaderProbed(params(signalsToList()));
     sendPackets(0);
     ASSERT_EQ(reader.getAvailableCount(), 100u);
 
@@ -325,7 +325,7 @@ TEST_F(MultiReader2Test, PacketOffsetIsRelativeToRuleStart)
     auto domain = createDomainSignal("", Ratio(1, 1000), LinearDataRule(1, 500));
     addSignal(0, 10, domain);
     addSignal(0, 10, domain);
-    auto reader = createReader(params(signalsToList()));
+    auto reader = createReaderProbed(params(signalsToList()));
     sendPackets(0);
 
     std::array<std::array<double, 10>, 2> values{};
@@ -345,7 +345,7 @@ TEST_F(MultiReader2Test, ReadWithDomainGivesMainTicks)
     readSignals.reserve(2);
     addSignal(0, 10, createDomainSignal("2022-09-27T00:02:03+00:00", Ratio(1, 1000), LinearDataRule(1, 7)));
     addSignal(0, 10, createDomainSignal("2022-09-27T00:02:03+00:00", Ratio(1, 1000), LinearDataRule(1, 7)));
-    auto reader = createReader(params(signalsToList()));
+    auto reader = createReaderProbed(params(signalsToList()));
     sendPackets(0);
 
     std::array<std::int64_t, 10> ticks{};
@@ -473,7 +473,7 @@ TEST_F(MultiReader2Test, ConvertsSampleTypes)
     addSignal(0, 4, domain, SampleType::Int32);
     addSignal(0, 4, domain, SampleType::Float64);
     auto p = params(signalsToList(), SampleType::Int16);
-    auto reader = createReader(p);
+    auto reader = createReaderProbed(p);
     readSignals[0].createAndSendPacket<int32_t>(0);
     readSignals[1].createAndSendPacket<double>(0);
     scheduler.waitAll();
@@ -495,7 +495,7 @@ TEST_F(MultiReader2Test, UndefinedReadTypeCopiesAsIs)
     auto domain = createDomainSignal();
     addSignal(0, 4, domain, SampleType::Int32);
     addSignal(0, 4, domain, SampleType::Float32);
-    auto reader = createReader(params(signalsToList(), SampleType::Undefined));
+    auto reader = createReaderProbed(params(signalsToList(), SampleType::Undefined));
     readSignals[0].createAndSendPacket<int32_t>(0);
     readSignals[1].createAndSendPacket<float>(0);
     scheduler.waitAll();
@@ -538,7 +538,7 @@ TEST_F(MultiReader2Test, DimensionedValuesConvertElementWise)
     vec.setDomainSignal(domain);
     readSignals.emplace_back(vec, 0, 3);
     addSignal(0, 3, domain);
-    auto reader = createReader(params(signalsToList()));
+    auto reader = createReaderProbed(params(signalsToList()));
 
     {
         auto domainPacket = DataPacket(domain.getDescriptor(), 3, 0);
@@ -568,7 +568,7 @@ TEST_F(MultiReader2Test, MainDomainChangeReconfiguresAndResynchronizes)
     readSignals.reserve(2);
     addSignal(0, 10, createDomainSignal());
     addSignal(0, 10, createDomainSignal());
-    auto reader = createReader(params(signalsToList()));
+    auto reader = createReaderProbed(params(signalsToList()));
     sendPackets(0);
     std::array<std::array<double, 10>, 2> values{};
     SizeT count = 10;
@@ -604,7 +604,7 @@ TEST_F(MultiReader2Test, NonMainDomainChangeOnlyResynchronizes)
     readSignals.reserve(2);
     addSignal(0, 10, createDomainSignal());
     addSignal(0, 10, createDomainSignal());
-    auto reader = createReader(params(signalsToList()));
+    auto reader = createReaderProbed(params(signalsToList()));
     sendPackets(0);
     std::array<std::array<double, 10>, 2> values{};
     SizeT count = 10;
@@ -636,7 +636,7 @@ TEST_F(MultiReader2Test, GapResynchronizesAndOffsetJumps)
     auto domain = createDomainSignal();
     addSignal(0, 10, domain);
     addSignal(0, 10, domain);
-    auto reader = createReader(params(signalsToList()));
+    auto reader = createReaderProbed(params(signalsToList()));
     sendPackets(0);
     std::array<std::array<double, 10>, 2> values{};
     SizeT count = 10;
@@ -672,7 +672,7 @@ TEST_F(MultiReader2Test, GapEventPacketResynchronizes)
     auto domain = createDomainSignal();
     addSignal(0, 10, domain);
     addSignal(0, 10, domain);
-    auto reader = createReader(params(signalsToList()));
+    auto reader = createReaderProbed(params(signalsToList()));
     sendPackets(0);
     std::array<std::array<double, 10>, 2> values{};
     SizeT count = 10;
@@ -691,7 +691,7 @@ TEST_F(MultiReader2Test, InvalidValueDescriptorInvalidatesAndRecovers)
     auto domain = createDomainSignal();
     addSignal(0, 10, domain);
     addSignal(0, 10, domain);
-    auto reader = createReader(params(signalsToList()));
+    auto reader = createReaderProbed(params(signalsToList()));
     sendPackets(0);
 
     readSignals[1].signal.setDescriptor(setupDescriptor(SampleType::ComplexFloat32));
@@ -743,7 +743,7 @@ TEST_F(MultiReader2Test, UnusedInputDoesNotGateButIsReported)
     addSignal(0, 10, domain, SampleType::ComplexFloat32);  // would be invalid if used
     auto p = params(signalsToList());
     p.setInputUsed(readSignals[2].signal, false);
-    auto reader = createReader(p);
+    auto reader = createReaderProbed(p);
 
     readSignals[0].createAndSendPacket(0);
     readSignals[1].createAndSendPacket(0);
@@ -772,6 +772,7 @@ TEST_F(MultiReader2Test, UnusedInputDoesNotGateButIsReported)
     // Taking it into use reconfigures; it then delivers
     p.setInputUsed(readSignals[2].signal, true);
     reader.configure(p);
+    probe(reader);
     sendPackets(2);
     count = 10;
     status = read(reader, values, count);

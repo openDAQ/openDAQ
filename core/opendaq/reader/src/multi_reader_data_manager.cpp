@@ -654,6 +654,19 @@ void MultiReaderDataManager::applyBoundary(SizeT index, const Boundary& boundary
             break;
         case Boundary::Kind::Connected:
             slot.connected = true;
+            if (boundary.hasValue && !sameDescriptor(boundary.value, slot.value))
+            {
+                slot.value = boundary.value;
+                slot.descriptorChanged = true;
+            }
+            if (boundary.hasDomain && !sameDescriptor(boundary.domain, slot.domain))
+            {
+                slot.domain = boundary.domain;
+                if (mainSlot.has_value() && *mainSlot == index)
+                    domainChanged = true;
+                else if (contributes(index))
+                    resynchronized = true;
+            }
             slot.syncFailed = false;
             slot.offGrid = false;
             break;
@@ -1057,7 +1070,7 @@ ObjectPtr<IMultiReader2Status> MultiReaderDataManager::makeStatus()
 
 // ---------------------------------------------------------------- producer side
 
-MultiReaderDataManager::NotifyOwed MultiReaderDataManager::connected(SizeT index)
+MultiReaderDataManager::NotifyOwed MultiReaderDataManager::connected(SizeT index, const DataDescriptorPtr& value, const DataDescriptorPtr& domain)
 {
     std::scoped_lock lock(mutex);
     if (index >= slots.size())
@@ -1069,6 +1082,14 @@ MultiReaderDataManager::NotifyOwed MultiReaderDataManager::connected(SizeT index
     Entry entry;
     entry.isBoundary = true;
     entry.boundary.kind = Boundary::Kind::Connected;
+    entry.boundary.hasValue = value.assigned() && !sameDescriptor(value, slot.latestValue);
+    entry.boundary.hasDomain = domain.assigned() && !sameDescriptor(domain, slot.latestDomain);
+    entry.boundary.value = value;
+    entry.boundary.domain = domain;
+    if (entry.boundary.hasValue)
+        slot.latestValue = value;
+    if (entry.boundary.hasDomain)
+        slot.latestDomain = domain;
     slot.push(std::move(entry));
     wakeGeneration++;
     return {true};
@@ -1091,9 +1112,9 @@ MultiReaderDataManager::NotifyOwed MultiReaderDataManager::disconnected(SizeT in
     return {true};
 }
 
-MultiReaderDataManager::NotifyOwed MultiReaderDataManager::setConnected(SizeT index, bool isConnected)
+MultiReaderDataManager::NotifyOwed MultiReaderDataManager::setConnected(SizeT index, bool isConnected, const DataDescriptorPtr& value, const DataDescriptorPtr& domain)
 {
-    return isConnected ? connected(index) : disconnected(index);
+    return isConnected ? connected(index, value, domain) : disconnected(index);
 }
 
 MultiReaderDataManager::NotifyOwed MultiReaderDataManager::addPacket(SizeT index, const PacketPtr& packet)

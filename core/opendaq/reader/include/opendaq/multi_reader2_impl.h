@@ -69,6 +69,8 @@ private:
         ComponentPtr input;
         InputPortConfigPtr port;
         bool ownsPort;  // true for the port the reader created around a signal input
+        ObjectPtr<IInputPortNotifications> previousListener;  // what an external port had before; restored on release
+        PacketReadyNotification previousMethod = PacketReadyNotification::None;
     };
 
     struct Wiring

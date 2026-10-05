@@ -5,6 +5,9 @@
 #include <ref_fb_module/module_dll.h>
 #include <testutils/memcheck_listener.h>
 #include <gmock/gmock.h>
+
+#include <chrono>
+#include <thread>
 #include <opendaq/search_filter_factory.h>
 
 using namespace daq;
@@ -86,12 +89,11 @@ TEST_F(StructDecoderTest, ConnectAndReadStruct)
 
     ASSERT_EQ(statusContainer.getStatus("InputStatus").getValue(), "Connected");
 
-    const auto multiReader = MultiReaderBuilder()
-        .setReadTimeoutType(ReadTimeoutType::All)
-        .setValueReadType(SampleType::Undefined)
-        .addSignal(signals[0])
-        .addSignal(signals[1])
-        .build();
+    // The decoded fields are read as-is, in their own sample types
+    const auto params = MultiReader2Params();
+    params.setInputs(List<IComponent>(signals[0], signals[1]));
+    params.setValueReadType(SampleType::Undefined);
+    const auto multiReader = MultiReader2(params);
 
     const auto timePacket = DataPacket(timeSignal.getDescriptor(), 2, 0);
     const auto valuePacket = DataPacketWithDomain(timePacket, valueSignal.getDescriptor(), 2);
@@ -118,13 +120,18 @@ TEST_F(StructDecoderTest, ConnectAndReadStruct)
     void* valuesPerSignal[2]{valuesFloat.data(), valuesIntArray.data()};
 
     SizeT count = 0;
-    auto status = multiReader.read(nullptr, &count, 0);
-    ASSERT_EQ(status.getReadStatus(), ReadStatus::Event);
+    SizeT offset = 0;
+    auto status = multiReader.read(nullptr, &count, offset);
+    ASSERT_TRUE(status.getHasChanges());
+    ASSERT_TRUE(status.getValid());
+
+    // The reader evaluates on the scheduler: wait for the two decoded samples to become readable
+    const auto deadline = std::chrono::steady_clock::now() + std::chrono::seconds(5);
+    while (multiReader.getAvailableCount() < 2 && std::chrono::steady_clock::now() < deadline)
+        std::this_thread::sleep_for(std::chrono::milliseconds(5));
 
     count = 2;
-    status = multiReader.read(valuesPerSignal, &count, 5000);
-    ASSERT_EQ(status.getReadStatus(), ReadStatus::Ok);
-
+    status = multiReader.read(valuesPerSignal, &count, offset);
     ASSERT_EQ(count, 2u);
     ASSERT_THAT(valuesFloat, testing::ElementsAre(2.0, 3.0));
     ASSERT_EQ(valuesIntArray[0][0], 21);

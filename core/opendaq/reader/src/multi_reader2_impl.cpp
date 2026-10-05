@@ -133,9 +133,12 @@ MultiReader2Impl::Slot MultiReader2Impl::makeSlot(const ComponentPtr& input)
             portBinder = PropertyObject();
         port.asPtr<IOwnable>(true).setOwner(portBinder);
     }
+    Slot slot{input, port, false};
+    slot.previousListener = port.getListener();
+    slot.previousMethod = port.getNotificationMethod();
     port.setListener(listener);
     port.setNotificationMethod(PacketReadyNotification::Scheduler);
-    return {input, port, false};
+    return slot;
 }
 
 void MultiReader2Impl::releaseSlot(Slot& slot)
@@ -143,10 +146,17 @@ void MultiReader2Impl::releaseSlot(Slot& slot)
     if (!slot.port.assigned())
         return;
     if (slot.ownsPort)
+    {
         slot.port.disconnect();
-    // A port in Scheduler mode without a listener cannot take packets, so notifications are switched off first
-    slot.port.setNotificationMethod(PacketReadyNotification::None);
-    slot.port.setListener(nullptr);
+        slot.port.setNotificationMethod(PacketReadyNotification::None);
+        slot.port.setListener(nullptr);
+    }
+    else
+    {
+        // The port goes back to the listener it had; a port in Scheduler mode without a listener cannot take packets
+        slot.port.setNotificationMethod(slot.previousListener.assigned() ? slot.previousMethod : PacketReadyNotification::None);
+        slot.port.setListener(slot.previousListener);
+    }
     slot.port.release();
 }
 
@@ -262,7 +272,15 @@ ErrCode MultiReader2Impl::configure(IMultiReader2Params* params)
         const auto& slot = snapshot[i];
         const auto connection = slot.port.getConnection();
         // A connection edge that fell into the window without wiring is re-derived from the port
-        if (dataManager.setConnected(i, connection.assigned()).wake)
+        DataDescriptorPtr value;
+        DataDescriptorPtr domain;
+        if (const SignalPtr signal = slot.port.getSignal(); connection.assigned() && signal.assigned())
+        {
+            value = signal.getDescriptor();
+            if (const auto domainSignal = signal.getDomainSignal(); domainSignal.assigned())
+                domain = domainSignal.getDescriptor();
+        }
+        if (dataManager.setConnected(i, connection.assigned(), value, domain).wake)
             wake = true;
         if (!connection.assigned())
             continue;
@@ -399,7 +417,16 @@ ErrCode MultiReader2Impl::connected(IInputPort* port)
     const auto slot = slotOf(port);
     if (!slot.has_value())
         return OPENDAQ_SUCCESS;
-    if (dataManager.connected(*slot).wake)
+    // The signal's descriptors travel with the connect, so the status reporting it shows a whole input
+    DataDescriptorPtr value;
+    DataDescriptorPtr domain;
+    if (const SignalPtr signal = InputPortPtr::Borrow(port).getSignal(); signal.assigned())
+    {
+        value = signal.getDescriptor();
+        if (const auto domainSignal = signal.getDomainSignal(); domainSignal.assigned())
+            domain = domainSignal.getDescriptor();
+    }
+    if (dataManager.connected(*slot, value, domain).wake)
         scheduleWake();
     return OPENDAQ_SUCCESS;
 }

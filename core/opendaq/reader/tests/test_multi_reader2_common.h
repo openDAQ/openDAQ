@@ -143,6 +143,15 @@ public:
         return MultiReader2Ptr(createWithImplementation<IMultiReader2, MultiReader2Impl>(static_cast<IMultiReader2Params*>(p)));
     }
 
+    // The first status reports everything as new and delivers no data; tests that start with data take it here
+    MultiReader2Ptr createReaderProbed(const MultiReader2ParamsPtr& p)
+    {
+        auto reader = createReader(p);
+        scheduler.waitAll();
+        probe(reader);
+        return reader;
+    }
+
     static MultiReaderDataManager& manager(const MultiReader2Ptr& reader)
     {
         return dynamic_cast<MultiReader2Impl*>(reader.getObject())->getDataManager();

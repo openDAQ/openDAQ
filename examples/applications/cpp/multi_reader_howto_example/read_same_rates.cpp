@@ -1,4 +1,3 @@
-#include <opendaq/event_packet_params.h>
 #include <opendaq/opendaq.h>
 #include <iostream>
 #include <thread>
@@ -6,56 +5,58 @@
 using namespace daq;
 using namespace std::chrono_literals;
 
+// Reads equal-rate signals with MultiReader2 in a loop. Every read returns one status: the data belongs to the
+// descriptors reported on earlier statuses, the changes apply from the next read on, so the loop processes the
+// samples first and handles the status after. A read never waits for data.
 void readDataSameRatesSignals(const ListPtr<ISignal>& signals)
 {
-    // Create reader that converts values to `double` and time data to `int64`
-    auto multiReaderBuilder = MultiReaderBuilder().setValueReadType(SampleType::Float64).setDomainReadType(SampleType::Int64);
-    for (const auto& signal : signals)
-        multiReaderBuilder.addSignal(signal);
-    auto multiReader = multiReaderBuilder.build();
+    auto params = MultiReader2Params();
+    params.setInputs(List<IComponent>(signals));
+    params.setValueReadType(SampleType::Float64);  // the default; Invalidate is the default error policy
+    auto reader = MultiReader2(params);
 
-    // Allocate buffers for each signal
-    auto signalsCount = signals.getCount();
-    auto kBufferSize = SizeT{0};
-    auto domainBuffers = std::vector<void*>(signalsCount, nullptr);
-    auto dataBuffers = std::vector<void*>(signalsCount, nullptr);
+    // One buffer per signal, 100 ms worth of samples once the rate is known
+    const auto signalsCount = signals.getCount();
+    auto bufferSize = SizeT{0};
+    auto dataBuffers = std::vector<std::vector<double>>(signalsCount);
+    auto buffers = std::vector<void*>(signalsCount, nullptr);
 
-    // read data every 50ms, up to a maximum of kBufferSize samples
     for (size_t readCount = 0; readCount < 20; readCount++)
     {
-        auto dataAvailable = multiReader.getAvailableCount();
-        auto count = std::min(kBufferSize, dataAvailable);
-        auto status = multiReader.readWithDomain(dataBuffers.data(), domainBuffers.data(), &count);
+        auto count = std::min(bufferSize, reader.getAvailableCount());
+        SizeT offset = 0;
+        const auto status = reader.read(count > 0 ? buffers.data() : nullptr, &count, offset);
 
-        if (status.getReadStatus() == ReadStatus::Event)
+        if (count > 0)
         {
-            // Set buffer size based on sample rate, allocate buffers
-            // Buffers have 100ms worth of memory for each signal
-            auto sampleRate = reader::getSampleRate(
-                status.getMainDescriptor().getParameters().get(event_packet_param::DOMAIN_DATA_DESCRIPTOR));
-            kBufferSize = static_cast<SizeT>(sampleRate / 10);
-
-            for (size_t i = 0; i < signalsCount; ++i)
-            {
-                dataBuffers[i] = std::calloc(kBufferSize, getSampleSize(SampleType::Float64));
-                domainBuffers[i] = std::calloc(kBufferSize, getSampleSize(SampleType::Int64));
-            }
-        }
-        else if (status.getReadStatus() == ReadStatus::Ok && count > 0)
-        {
-            std::cout << "Data: ";
-            for (const auto& buf : dataBuffers)
-                std::cout << std::to_string(static_cast<double*>(buf)[0]) << "; ";
+            std::cout << "Data at " << offset << ": ";
+            for (const auto& buffer : dataBuffers)
+                std::cout << buffer[0] << "; ";
             std::cout << "\n";
         }
 
-        std::this_thread::sleep_for(50ms);
-    }
+        if (status.getHasChanges())
+        {
+            if (!status.getValid())
+            {
+                for (const MultiReader2InputStatusPtr input : status.getInputs())
+                    if (input.getError() != MultiReader2InputError::None)
+                        std::cout << "Waiting for " << input.getInput().getGlobalId() << "\n";
+            }
+            else if (status.getDomainDescriptorChanged())
+            {
+                // Size the buffers from the main domain: 100 ms per signal
+                const auto sampleRate = reader::getSampleRate(status.getDomainDescriptor());
+                bufferSize = static_cast<SizeT>(sampleRate / 10);
+                for (size_t i = 0; i < signalsCount; ++i)
+                {
+                    dataBuffers[i].assign(bufferSize, 0.0);
+                    buffers[i] = dataBuffers[i].data();
+                }
+            }
+        }
 
-    for (size_t i = 0; i < signalsCount; ++i)
-    {
-        free(dataBuffers[i]);
-        free(domainBuffers[i]);
+        std::this_thread::sleep_for(50ms);
     }
 }
 
@@ -64,11 +65,14 @@ int main()
     auto instance = Instance();
     auto refDevice = instance.addDevice("daqref://device0");
     refDevice.setPropertyValue("NumberOfChannels", 4);
-    auto signals = refDevice.getSignalsRecursive();
+    auto signals = List<ISignal>();
+    for (const auto& signal : refDevice.getSignalsRecursive())
+        if (signal.getDomainSignal().assigned())
+            signals.pushBack(signal);
 
     std::cout << "Same rate data, signals, read in a loop:\n";
     readDataSameRatesSignals(signals);
-    
+
     std::cout << "Press \"enter\" to exit the application..." << std::endl;
     std::cin.get();
     return 0;

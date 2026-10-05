@@ -312,9 +312,11 @@ bool MultiCsvRecorderImpl::onChanges(const MultiReader2StatusPtr& status)
     bool headerChanged = false;
     if (status.getDomainDescriptorChanged())
     {
-        headerChanged |= !recorderDomainDataDescriptor.assigned() ||
-                         !(MultiCsvWriter::getDomainMetadata(status.getDomainDescriptor()) == MultiCsvWriter::getDomainMetadata(recorderDomainDataDescriptor));
-        recorderDomainDataDescriptor = status.getDomainDescriptor();
+        // Valid with nothing used has no main domain: the descriptor is then unassigned
+        const auto domain = status.getDomainDescriptor();
+        headerChanged |= !domain.assigned() || !recorderDomainDataDescriptor.assigned() ||
+                         !(MultiCsvWriter::getDomainMetadata(domain) == MultiCsvWriter::getDomainMetadata(recorderDomainDataDescriptor));
+        recorderDomainDataDescriptor = domain;
     }
     for (const MultiReader2InputStatusPtr in : inputs)
     {

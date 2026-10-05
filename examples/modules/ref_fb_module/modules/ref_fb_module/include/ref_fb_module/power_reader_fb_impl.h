@@ -1,5 +1,5 @@
 /*
- * Copyright 2022-2025 openDAQ d.o.o.
+ * Copyright 2022-2026 openDAQ d.o.o.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -13,79 +13,48 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 #pragma once
-#include <ref_fb_module/common.h>
-#include <opendaq/function_block_ptr.h>
+#include <ref_fb_module/reader_fb_base.h>
 #include <opendaq/function_block_type_factory.h>
-#include <opendaq/function_block_impl.h>
 #include <opendaq/signal_config_ptr.h>
-#include <opendaq/data_packet_ptr.h>
-#include <opendaq/multi_reader_ptr.h>
 
 BEGIN_NAMESPACE_REF_FB_MODULE
 
 namespace PowerReader
 {
 
-class PowerReaderFbImpl final : public FunctionBlock
+// Power from two fixed ports, voltage and current, with the voltage port pinned as the main input. Both inputs
+// are needed, so an erroring port stops the block until it recovers.
+class PowerReaderFbImpl final : public ReaderFbBase
 {
 public:
-    explicit PowerReaderFbImpl(const ModuleInfoPtr& moduleInfo,
-                               const ContextPtr& ctx,
-                               const ComponentPtr& parent,
-                               const StringPtr& localId);
+    explicit PowerReaderFbImpl(const ModuleInfoPtr& moduleInfo, const ContextPtr& ctx, const ComponentPtr& parent, const StringPtr& localId);
     ~PowerReaderFbImpl() override = default;
 
     static FunctionBlockTypePtr CreateType(const ModuleInfoPtr& moduleInfo);
-    static bool descriptorNotNull(const DataDescriptorPtr& descriptor);
-    static void getDataDescriptors(const EventPacketPtr& eventPacket, DataDescriptorPtr& valueDesc, DataDescriptorPtr& domainDesc);
-    static bool getDataDescriptor(const EventPacketPtr& eventPacket, DataDescriptorPtr& valueDesc);
-    static bool getDomainDescriptor(const EventPacketPtr& eventPacket, DataDescriptorPtr& domainDesc);
 
 private:
-    InputPortPtr voltageInputPort;
-    InputPortPtr currentInputPort;
+    void initProperties();
+    void readProperties();
+    RangePtr getValueRange(const DataDescriptorPtr& voltageDescriptor, const DataDescriptorPtr& currentDescriptor) const;
 
-    DataDescriptorPtr voltageDescriptor;
-    DataDescriptorPtr currentDescriptor;
-    DataDescriptorPtr domainDescriptor;
-    RangePtr powerRange;
+    void processAndSend(SizeT count, SizeT packetOffset) override;
+    void rebuildOutputDescriptor() override;
 
-    DataDescriptorPtr powerDataDescriptor;
-    DataDescriptorPtr powerDomainDataDescriptor;
-
+    InputPortConfigPtr voltageInputPort;
+    InputPortConfigPtr currentInputPort;
     SignalConfigPtr powerSignal;
     SignalConfigPtr powerDomainSignal;
 
-    Float voltageScale;
-    Float voltageOffset;
-    Float currentScale;
-    Float currentOffset;
-    Float powerHighValue;
-    Float powerLowValue;
-    Bool useCustomOutputRange;
-    std::chrono::milliseconds tickOffsetToleranceUs;
-
-    MultiReaderPtr reader;
-
-    void createInputPorts();
-    void createReader();
-    void createSignals();
-    RangePtr getValueRange(const DataDescriptorPtr& voltageDataDescriptor, const DataDescriptorPtr& currentDataDescriptor);
-    void onDataReceived();
-
-    void checkPortConnections() const;
-    void onConnected(const InputPortPtr& inputPort) override;
-    void onDisconnected(const InputPortPtr& inputPort) override;
-
-    void configure(const DataDescriptorPtr& domainDescriptor,
-                   const DataDescriptorPtr& voltageDescriptor,
-                   const DataDescriptorPtr& currentDescriptor);
-
-    void initProperties();
-    void propertyChanged(bool configure);
-    void readProperties();
+    Float voltageScale = 1.0;
+    Float voltageOffset = 0.0;
+    Float currentScale = 1.0;
+    Float currentOffset = 0.0;
+    Float powerHighValue = 10.0;
+    Float powerLowValue = -10.0;
+    Bool useCustomOutputRange = False;
+    RangePtr powerRange;
+    bool outputValid = false;
 };
 
 }

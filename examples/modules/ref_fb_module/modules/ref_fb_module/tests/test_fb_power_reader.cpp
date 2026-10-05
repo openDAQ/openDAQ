@@ -23,6 +23,23 @@ static ContextPtr createContext()
     return Context(Scheduler(logger), logger, TypeManager(), nullptr, nullptr);
 }
 
+// The reader evaluates on the scheduler, so the component status follows a connect asynchronously
+static bool waitForComponentStatus(const FunctionBlockPtr& fb, const std::string& value, const char* message = nullptr, int timeoutMs = 3000)
+{
+    const auto deadline = std::chrono::steady_clock::now() + std::chrono::milliseconds(timeoutMs);
+    for (;;)
+    {
+        const auto container = fb.getStatusContainer();
+        const bool statusMatches = container.getStatus("ComponentStatus").getValue() == value;
+        const bool messageMatches = message == nullptr || container.getStatusMessage("ComponentStatus") == message;
+        if (statusMatches && messageMatches)
+            return true;
+        if (std::chrono::steady_clock::now() > deadline)
+            return false;
+        std::this_thread::sleep_for(std::chrono::milliseconds(5));
+    }
+}
+
 class PowerReaderTestStatus : public testing::Test
 {
 public:
@@ -101,6 +118,8 @@ TEST_F(PowerReaderTest, Connect)
 
     fb.getInputPorts()[0].connect(voltageSignal);
     fb.getInputPorts()[1].connect(currentSignal);
+
+    ASSERT_TRUE(waitForComponentStatus(fb, "Ok"));
 }
 
 TEST_F(PowerReaderTest, ConnectOneSignal)
@@ -143,6 +162,8 @@ TEST_F(PowerReaderTest, Simple)
 
     fb.getInputPorts()[0].connect(voltageSignal);
     fb.getInputPorts()[1].connect(currentSignal);
+
+    ASSERT_TRUE(waitForComponentStatus(fb, "Ok"));
 
     const auto powerSignal = fb.getSignals()[0];
 
@@ -213,6 +234,8 @@ TEST_F(PowerReaderTest, MultiplePackets)
 
     fb.getInputPorts()[0].connect(voltageSignal);
     fb.getInputPorts()[1].connect(currentSignal);
+
+    ASSERT_TRUE(waitForComponentStatus(fb, "Ok"));
 
     const auto powerSignal = fb.getSignals()[0];
 
@@ -319,6 +342,8 @@ TEST_F(PowerReaderTest, DisconnectReconnect)
     fb.getInputPorts()[0].connect(voltageSignal);
     fb.getInputPorts()[1].connect(currentSignal);
 
+    ASSERT_TRUE(waitForComponentStatus(fb, "Ok"));
+
     const auto powerSignal = fb.getSignals()[0];
 
     auto timePacket = DataPacket(timeSignal.getDescriptor(), 100, 0);
@@ -424,6 +449,8 @@ TEST_F(PowerReaderTest, Gap)
     fb.getInputPorts()[0].connect(voltageSignal);
     fb.getInputPorts()[1].connect(currentSignal);
 
+    ASSERT_TRUE(waitForComponentStatus(fb, "Ok"));
+
     const auto powerSignal = fb.getSignals()[0];
 
     auto timePacket = DataPacket(timeSignal.getDescriptor(), 100, 0);
@@ -507,6 +534,8 @@ TEST_F(PowerReaderTest, InvalidateVoltageSignal)
 
     fb.getInputPorts()[0].connect(voltageSignal);
     fb.getInputPorts()[1].connect(currentSignal);
+
+    ASSERT_TRUE(waitForComponentStatus(fb, "Ok"));
 
     const auto powerSignal = fb.getSignals()[0];
 
@@ -648,7 +677,7 @@ TEST_F(PowerReaderTest, InvalidateVoltageSignal)
 TEST_F(PowerReaderTestStatus, StatisticsStatusOk1)
 {
     // ComponentStatus is Ok
-    ASSERT_EQ(fb.getStatusContainer().getStatus("ComponentStatus"), Enumeration("ComponentStatusType", "Warning", context.getTypeManager()));
+    ASSERT_TRUE(waitForComponentStatus(fb, "Warning"));
 }
 
 TEST_F(PowerReaderTestStatus, StatisticsStatusOk2)
@@ -670,9 +699,7 @@ TEST_F(PowerReaderTestStatus, StatisticsStatusOk2)
     fb.getInputPorts()[1].connect(signal);
 
     // Incomplete input signal descriptors
-    ASSERT_EQ(fb.getStatusContainer().getStatus("ComponentStatus"),
-              Enumeration("ComponentStatusType", "Ok", context.getTypeManager()));
-    ASSERT_EQ(fb.getStatusContainer().getStatusMessage("ComponentStatus"), "");
+    ASSERT_TRUE(waitForComponentStatus(fb, "Ok", ""));
 }
 
 TEST_F(PowerReaderTestStatus, StatisticsStatusException1)
@@ -699,9 +726,7 @@ TEST_F(PowerReaderTestStatus, StatisticsStatusException1)
     fb.getInputPorts()[1].connect(signal);
 
     // Incomplete input signal descriptors
-    ASSERT_EQ(fb.getStatusContainer().getStatus("ComponentStatus"),
-              Enumeration("ComponentStatusType", "Warning", context.getTypeManager()));
-    ASSERT_EQ(fb.getStatusContainer().getStatusMessage("ComponentStatus"), "Failed to set descriptor for power signal: Invalid voltage signal unit");
+    ASSERT_TRUE(waitForComponentStatus(fb, "Warning", "Failed to set descriptor for power signal: Invalid voltage signal unit"));
 }
 
 TEST_F(PowerReaderTest, StatisticsStatusConnectedSignals)
@@ -714,20 +739,20 @@ TEST_F(PowerReaderTest, StatisticsStatusConnectedSignals)
 
     createSignals(ctx);
 
-    ASSERT_EQ(fb.getStatusContainer().getStatus("ComponentStatus").getValue(), "Warning");
+    ASSERT_TRUE(waitForComponentStatus(fb, "Warning"));
     fb.getInputPorts()[0].connect(voltageSignal);
-    ASSERT_EQ(fb.getStatusContainer().getStatus("ComponentStatus").getValue(), "Warning");
+    ASSERT_TRUE(waitForComponentStatus(fb, "Warning"));
     fb.getInputPorts()[1].connect(currentSignal);
-    ASSERT_EQ(fb.getStatusContainer().getStatus("ComponentStatus").getValue(), "Ok");
+    ASSERT_TRUE(waitForComponentStatus(fb, "Ok"));
     fb.getInputPorts()[0].disconnect();
-    ASSERT_EQ(fb.getStatusContainer().getStatus("ComponentStatus").getValue(), "Warning");
+    ASSERT_TRUE(waitForComponentStatus(fb, "Warning"));
     fb.getInputPorts()[0].connect(voltageSignal);
-    ASSERT_EQ(fb.getStatusContainer().getStatus("ComponentStatus").getValue(), "Ok");
+    ASSERT_TRUE(waitForComponentStatus(fb, "Ok"));
 
     fb.getInputPorts()[1].connect(voltageSignal);
-    ASSERT_EQ(fb.getStatusContainer().getStatus("ComponentStatus").getValue(), "Ok");
+    ASSERT_TRUE(waitForComponentStatus(fb, "Ok"));
     fb.getInputPorts()[1].disconnect();
-    ASSERT_EQ(fb.getStatusContainer().getStatus("ComponentStatus").getValue(), "Warning");
+    ASSERT_TRUE(waitForComponentStatus(fb, "Warning"));
     fb.getInputPorts()[1].connect(currentSignal);
-    ASSERT_EQ(fb.getStatusContainer().getStatus("ComponentStatus").getValue(), "Ok");
+    ASSERT_TRUE(waitForComponentStatus(fb, "Ok"));
 }

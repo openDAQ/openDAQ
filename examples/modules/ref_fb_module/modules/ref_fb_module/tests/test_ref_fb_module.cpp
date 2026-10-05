@@ -425,15 +425,14 @@ TEST_F(RefFbModuleTest, PowerReaderWithReferenceDomainOffset)
     // Check domain data
 
     // input data:             2x 0, 1, 2, 3, 4
-    // input domain:           104, 109, 114, 119, 124
-    // output domain:          109, 114, 119, 124 (offset = 1, start = 3, reference domain offset = 100, delta = 5)
-    // starts later probably due to a philosohpical decision, however reference domain offset is certainly applied
-    // also 1 fewer sample is provided in the output domain
+    // input domain:           104, 109, 114, 119, 124 (offset = 1, start = 3, reference domain offset = 100, delta = 5)
+    // output domain:          the same; the reader starts at the first common sample and the reference domain offset
+    // travels with the descriptor
 
-    ASSERT_EQ(domainData[0], 109);
-    ASSERT_EQ(domainData[1], 114);
-    ASSERT_EQ(domainData[2], 119);
-    ASSERT_EQ(domainData[3], 124);
+    ASSERT_EQ(domainData[0], 104);
+    ASSERT_EQ(domainData[1], 109);
+    ASSERT_EQ(domainData[2], 114);
+    ASSERT_EQ(domainData[3], 119);
 }
 
 TEST_F(RefFbModuleTest, StatisticsWithReferenceDomainOffset)

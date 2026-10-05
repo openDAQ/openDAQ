@@ -1,5 +1,5 @@
 /*
- * Copyright 2022-2025 openDAQ d.o.o.
+ * Copyright 2022-2026 openDAQ d.o.o.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -13,22 +13,21 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 #pragma once
-#include <ref_fb_module/common.h>
-#include <opendaq/function_block_ptr.h>
+#include <ref_fb_module/reader_fb_base.h>
 #include <opendaq/function_block_type_factory.h>
-#include <opendaq/function_block_impl.h>
 #include <opendaq/signal_config_ptr.h>
-#include <opendaq/data_packet_ptr.h>
-#include <opendaq/multi_reader_ptr.h>
 
 BEGIN_NAMESPACE_REF_FB_MODULE
 
 namespace SumReader
 {
 
-class SumReaderFbImpl final : public FunctionBlock
+// Sums equal-rate inputs. The block always offers one free port, kept unused so its missing signal touches
+// nothing. When a signal connects to it the block judges the descriptor, offers the next port, and configures
+// once. A used port that loses its signal is removed. Inputs whose descriptor the block does not accept are set
+// unused and reported in the component status.
+class SumReaderFbImpl final : public ReaderFbBase
 {
 public:
     explicit SumReaderFbImpl(const ContextPtr& ctx, const ComponentPtr& parent, const StringPtr& localId, const PropertyObjectPtr& config);
@@ -37,37 +36,21 @@ public:
     static FunctionBlockTypePtr CreateType();
 
 private:
-    std::string getNextPortID() const;
+    void addFreePort();
+    ListPtr<IComponent> portList() const;
+    UnitPtr referenceUnit() const;
 
-    void createSignals();
-    void createDisconnectedPort();
-    bool updateInputPorts();
-    void createReader();
-    void configure(const DataDescriptorPtr& domainDescriptor, const ListPtr<IDataDescriptor>& valueDescriptors);
-    void reconfigure();
+    bool onChanges(const MultiReader2StatusPtr& status) override;
+    bool accepts(const DataDescriptorPtr& descriptor) override;
+    void processAndSend(SizeT count, SizeT packetOffset) override;
+    void rebuildOutputDescriptor() override;
 
-    /**
-     * @brief Returns true if reader is in valid state or successfully recovered. Doesn't replace a valid reader.
-     */
-    bool recoverReaderIfNecessary();
-
-    void onConnected(const InputPortPtr& inputPort) override;
-    void onDisconnected(const InputPortPtr& inputPort) override;
-    void onDataReceived();
-
-    std::vector<InputPortPtr> connectedPorts;
-    InputPortPtr disconnectedPort;
-
-    std::unordered_map<std::string, DataDescriptorPtr> cachedDescriptors;
-    DataDescriptorPtr sumDataDescriptor;
-    DataDescriptorPtr sumDomainDataDescriptor;
-
+    InputPortConfigPtr freePort;
+    int nextPortId = 1;
     SignalConfigPtr sumSignal;
     SignalConfigPtr sumDomainSignal;
-
-    PacketReadyNotification notificationMode;
-    MultiReaderPtr reader;
 };
+
 }
 
 END_NAMESPACE_REF_FB_MODULE

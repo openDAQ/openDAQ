@@ -87,6 +87,7 @@ public:
     // deliver, as of the last read, and are dropped at the door otherwise
     NotifyOwed connected(SizeT slot);
     NotifyOwed disconnected(SizeT slot);
+    NotifyOwed setConnected(SizeT slot, bool connected);  // the edge, if the state differs from the last one seen
     NotifyOwed addPacket(SizeT slot, const PacketPtr& packet);
 
     // Incremented whenever a producer call owed a wake; the reader re-evaluates after the consumer's handler returns

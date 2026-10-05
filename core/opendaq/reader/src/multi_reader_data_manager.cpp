@@ -12,6 +12,7 @@
 #include <opendaq/sample_type_traits.h>
 
 #include <algorithm>
+#include <cctype>
 #include <cstring>
 #include <limits>
 #include <numeric>
@@ -163,6 +164,7 @@ void MultiReaderDataManager::reconfigure(Config newConfig)
     slots = std::move(newSlots);
     firstStatus = true;
     internalReconfigure();
+    wakeGeneration++;  // the first status after a configure carries changes, so a wake is owed
 }
 
 void MultiReaderDataManager::internalReconfigure()
@@ -270,8 +272,14 @@ void MultiReaderDataManager::parseDomain(Slot& slot)
         const StringPtr origin = descriptor.getOrigin();
         if (origin.assigned() && origin.getLength() > 0)
         {
+            // A date alone is an origin on a full second too: "1970" and "1970-01" pad to the first day
+            std::string text = origin.toStdString();
+            if (text.size() == 4 && std::all_of(text.begin(), text.end(), ::isdigit))
+                text += "-01-01";
+            else if (text.size() == 7 && text[4] == '-')
+                text += "-01";
             bool ok = false;
-            const auto epoch = reader::parseEpoch(origin.toStdString(), &ok);
+            const auto epoch = reader::parseEpoch(text, &ok);
             if (!ok)
                 return;
             const auto sinceEpoch = epoch.time_since_epoch();
@@ -907,7 +915,13 @@ ErrCode MultiReaderDataManager::doRead(void** data, SizeT* count, SizeT* packetO
 
     trySync();
 
-    if (state == State::Streaming && requested > 0)
+    // Changes not yet reported go out before the data that follows them, so the consumer processes every sample
+    // under descriptors it has already seen
+    bool pendingChanges = firstStatus || domainChanged || resynchronized;
+    for (SizeT i = 0; i < slots.size() && !pendingChanges; i++)
+        pendingChanges = slots[i].descriptorChanged && slots[i].error == MultiReader2InputError::None;
+
+    if (state == State::Streaming && requested > 0 && !pendingChanges)
     {
         // The aligned run: the shortest run over the contributing inputs, and whether that input stopped at a boundary
         SizeT plan = requested;
@@ -1075,6 +1089,11 @@ MultiReaderDataManager::NotifyOwed MultiReaderDataManager::disconnected(SizeT in
     slot.push(std::move(entry));
     wakeGeneration++;
     return {true};
+}
+
+MultiReaderDataManager::NotifyOwed MultiReaderDataManager::setConnected(SizeT index, bool isConnected)
+{
+    return isConnected ? connected(index) : disconnected(index);
 }
 
 MultiReaderDataManager::NotifyOwed MultiReaderDataManager::addPacket(SizeT index, const PacketPtr& packet)

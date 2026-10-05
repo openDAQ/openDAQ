@@ -1,90 +1,74 @@
 #include <ref_fb_module/power_reader_fb_impl.h>
-#include <opendaq/function_block_ptr.h>
-#include <opendaq/data_descriptor_ptr.h>
-
-#include <opendaq/event_packet_ptr.h>
-#include <opendaq/signal_factory.h>
-
-#include <opendaq/event_packet_params.h>
-
+#include <coreobjects/eval_value_factory.h>
 #include <coreobjects/unit_factory.h>
-#include <opendaq/data_packet_ptr.h>
+#include <opendaq/component_type_private.h>
+#include <opendaq/custom_log.h>
+#include <opendaq/data_descriptor_factory.h>
 #include <opendaq/packet_factory.h>
 #include <opendaq/range_factory.h>
-#include <opendaq/sample_type_traits.h>
-#include <coreobjects/eval_value_factory.h>
-#include <opendaq/reader_factory.h>
-#include <opendaq/reader_config_ptr.h>
-#include <opendaq/component_type_private.h>
+#include <opendaq/signal_factory.h>
+
+#include <algorithm>
 
 BEGIN_NAMESPACE_REF_FB_MODULE
+
 namespace PowerReader
 {
 
-PowerReaderFbImpl::PowerReaderFbImpl(const ModuleInfoPtr& moduleInfo,
-                                     const ContextPtr& ctx,
-                                     const ComponentPtr& parent,
-                                     const StringPtr& localId)
-    : FunctionBlock(CreateType(moduleInfo), ctx, parent, localId)
+PowerReaderFbImpl::PowerReaderFbImpl(const ModuleInfoPtr& moduleInfo, const ContextPtr& ctx, const ComponentPtr& parent, const StringPtr& localId)
+    : ReaderFbBase(CreateType(moduleInfo), ctx, parent, localId)
 {
-    initComponentStatus();
-    createInputPorts();
-    createSignals();
+    voltageInputPort = createAndAddInputPort("Voltage", PacketReadyNotification::Scheduler, nullptr, true);
+    currentInputPort = createAndAddInputPort("Current", PacketReadyNotification::Scheduler, nullptr, true);
+    setComponentStatusWithMessage(ComponentStatus::Warning, fmt::format("Port {} is not connected!", voltageInputPort.getLocalId()));
+
+    powerSignal = createAndAddSignal("Power");
+    powerSignal.setName("Power");
+    powerDomainSignal = createAndAddSignal("PowerDomain", nullptr, false);
+    powerDomainSignal.setName("PowerDomain");
+    powerSignal.setDomainSignal(powerDomainSignal);
+
     initProperties();
+
+    params.setInputs(List<IComponent>(voltageInputPort, currentInputPort));
+    params.setMainInput(voltageInputPort);  // pinned: its error stops the block
+    params.setValueReadType(SampleType::Float64);
     createReader();
+}
+
+FunctionBlockTypePtr PowerReaderFbImpl::CreateType(const ModuleInfoPtr& moduleInfo)
+{
+    auto fbType = FunctionBlockType("RefFBModulePowerReader", "Power with reader", "Calculates power using multi reader");
+    checkErrorInfo(fbType.asPtr<IComponentTypePrivate>(true)->setModuleInfo(moduleInfo));
+    return fbType;
 }
 
 void PowerReaderFbImpl::initProperties()
 {
-    const auto voltageScaleProp = FloatProperty("VoltageScale", 1.0);
-    objPtr.addProperty(voltageScaleProp);
-    objPtr.getOnPropertyValueWrite("VoltageScale") +=
-        [this](PropertyObjectPtr& obj, PropertyValueEventArgsPtr& args) { propertyChanged(false); };
+    // Property callbacks run under the object lock already held by the writer
+    const auto onValueChange = [this](PropertyObjectPtr&, PropertyValueEventArgsPtr&) { readProperties(); };
+    const auto onRangeChange = [this](PropertyObjectPtr&, PropertyValueEventArgsPtr&)
+    {
+        readProperties();
+        rebuildOutputDescriptor();
+    };
 
-    const auto voltageOffsetProp = FloatProperty("VoltageOffset", 0.0);
-    objPtr.addProperty(voltageOffsetProp);
-    objPtr.getOnPropertyValueWrite("VoltageOffset") +=
-        [this](PropertyObjectPtr& obj, PropertyValueEventArgsPtr& args) { propertyChanged(false); };
-
-    const auto currentScaleProp = FloatProperty("CurrentScale", 1.0);
-    objPtr.addProperty(currentScaleProp);
-    objPtr.getOnPropertyValueWrite("CurrentScale") +=
-        [this](PropertyObjectPtr& obj, PropertyValueEventArgsPtr& args) { propertyChanged(false); };
-
-    const auto currentOffsetProp = FloatProperty("CurrentOffset", 0.0);
-    objPtr.addProperty(currentOffsetProp);
-    objPtr.getOnPropertyValueWrite("CurrentOffset") +=
-        [this](PropertyObjectPtr& obj, PropertyValueEventArgsPtr& args) { propertyChanged(false); };
-
-    const auto customHighValueProp = FloatProperty("CustomHighValue", 10.0, EvalValue("$UseCustomOutputRange"));
-    objPtr.addProperty(customHighValueProp);
-    objPtr.getOnPropertyValueWrite("CustomHighValue") +=
-        [this](PropertyObjectPtr& obj, PropertyValueEventArgsPtr& args) { propertyChanged(true); };
-
-    const auto customLowValueProp = FloatProperty("CustomLowValue", -10.0, EvalValue("$UseCustomOutputRange"));
-    objPtr.addProperty(customLowValueProp);
-    objPtr.getOnPropertyValueWrite("CustomLowValue") +=
-        [this](PropertyObjectPtr& obj, PropertyValueEventArgsPtr& args) { propertyChanged(true); };
-
-    const auto useCustomOutputRangeProp = BoolProperty("UseCustomOutputRange", False);
-    objPtr.addProperty(useCustomOutputRangeProp);
-    objPtr.getOnPropertyValueWrite("UseCustomOutputRange") +=
-        [this](PropertyObjectPtr& obj, PropertyValueEventArgsPtr& args) { propertyChanged(true); };
-
-    const auto tickOffsetToleranceUsProp = IntProperty("TickOffsetToleranceUs", 0.0);
-    objPtr.addProperty(tickOffsetToleranceUsProp);
-    objPtr.getOnPropertyValueWrite("TickOffsetToleranceUs") +=
-        [this](PropertyObjectPtr& obj, PropertyValueEventArgsPtr& args) { propertyChanged(true); createReader(); };
+    objPtr.addProperty(FloatProperty("VoltageScale", 1.0));
+    objPtr.getOnPropertyValueWrite("VoltageScale") += onValueChange;
+    objPtr.addProperty(FloatProperty("VoltageOffset", 0.0));
+    objPtr.getOnPropertyValueWrite("VoltageOffset") += onValueChange;
+    objPtr.addProperty(FloatProperty("CurrentScale", 1.0));
+    objPtr.getOnPropertyValueWrite("CurrentScale") += onValueChange;
+    objPtr.addProperty(FloatProperty("CurrentOffset", 0.0));
+    objPtr.getOnPropertyValueWrite("CurrentOffset") += onValueChange;
+    objPtr.addProperty(FloatProperty("CustomHighValue", 10.0, EvalValue("$UseCustomOutputRange")));
+    objPtr.getOnPropertyValueWrite("CustomHighValue") += onRangeChange;
+    objPtr.addProperty(FloatProperty("CustomLowValue", -10.0, EvalValue("$UseCustomOutputRange")));
+    objPtr.getOnPropertyValueWrite("CustomLowValue") += onRangeChange;
+    objPtr.addProperty(BoolProperty("UseCustomOutputRange", False));
+    objPtr.getOnPropertyValueWrite("UseCustomOutputRange") += onRangeChange;
 
     readProperties();
-}
-
-void PowerReaderFbImpl::propertyChanged(bool configure)
-{
-    auto lock = getRecursiveConfigLock();
-    readProperties();
-    if (configure)
-        this->configure(nullptr, nullptr, nullptr);
 }
 
 void PowerReaderFbImpl::readProperties()
@@ -96,140 +80,12 @@ void PowerReaderFbImpl::readProperties()
     useCustomOutputRange = objPtr.getPropertyValue("UseCustomOutputRange");
     powerHighValue = objPtr.getPropertyValue("CustomHighValue");
     powerLowValue = objPtr.getPropertyValue("CustomLowValue");
-    tickOffsetToleranceUs = std::chrono::milliseconds(objPtr.getPropertyValue("TickOffsetToleranceUs"));
 }
 
-FunctionBlockTypePtr PowerReaderFbImpl::CreateType(const ModuleInfoPtr& moduleInfo)
+RangePtr PowerReaderFbImpl::getValueRange(const DataDescriptorPtr& voltageDescriptor, const DataDescriptorPtr& currentDescriptor) const
 {
-    auto fbType = FunctionBlockType("RefFBModulePowerReader", "Power with reader", "Calculates power using multi reader");
-    checkErrorInfo(fbType.asPtr<IComponentTypePrivate>(true)->setModuleInfo(moduleInfo));
-    return fbType;
-}
-
-bool PowerReaderFbImpl::descriptorNotNull(const DataDescriptorPtr& descriptor)
-{
-    return descriptor.assigned() && descriptor != NullDataDescriptor();
-}
-
-void PowerReaderFbImpl::getDataDescriptors(const EventPacketPtr& eventPacket, DataDescriptorPtr& valueDesc, DataDescriptorPtr& domainDesc)
-{
-    if (eventPacket.getEventId() == event_packet_id::DATA_DESCRIPTOR_CHANGED)
-    {
-        valueDesc = eventPacket.getParameters().get(event_packet_param::DATA_DESCRIPTOR);
-        domainDesc = eventPacket.getParameters().get(event_packet_param::DOMAIN_DATA_DESCRIPTOR);
-    }
-}
-
-bool PowerReaderFbImpl::getDataDescriptor(const EventPacketPtr& eventPacket, DataDescriptorPtr& valueDesc)
-{
-    if (eventPacket.getEventId() == event_packet_id::DATA_DESCRIPTOR_CHANGED)
-    {
-        valueDesc = eventPacket.getParameters().get(event_packet_param::DATA_DESCRIPTOR);
-        return true;
-    }
-    return false;
-}
-
-bool PowerReaderFbImpl::getDomainDescriptor(const EventPacketPtr& eventPacket, DataDescriptorPtr& domainDesc)
-{
-    if (eventPacket.getEventId() == event_packet_id::DATA_DESCRIPTOR_CHANGED)
-    {
-        domainDesc = eventPacket.getParameters().get(event_packet_param::DOMAIN_DATA_DESCRIPTOR);
-        return true;
-    }
-    return false;
-}
-
-void PowerReaderFbImpl::onDataReceived()
-{
-    auto lock = this->getAcquisitionLock();
-
-    SizeT cnt = reader.getAvailableCount();
-    const auto voltageData = std::make_unique<double[]>(cnt);
-    const auto currentData = std::make_unique<double[]>(cnt);
-    std::array<double*, 2> data{voltageData.get(), currentData.get()};
-
-    const MultiReaderStatusPtr status = reader.read(data.data(), &cnt);
-
-    if (cnt > 0)
-    {
-        const auto powerDomainPacket = DataPacket(powerDomainSignal.getDescriptor(), cnt, status.getOffset());
-        const auto powerValuePacket = DataPacketWithDomain(powerDomainPacket, powerSignal.getDescriptor(), cnt);
-        double* powerValueData = static_cast<double*>(powerValuePacket.getRawData());
-
-        for (size_t i = 0; i < cnt; i++)
-            *powerValueData++ = (voltageScale * voltageData[i] + voltageOffset) * currentData[i];
-
-        powerDomainSignal.sendPacket(powerDomainPacket);
-        powerSignal.sendPacket(powerValuePacket);
-    }
-
-    if (status.getReadStatus() == ReadStatus::Event)
-    {
-        const auto eventPackets = status.getEventPackets();
-        if (eventPackets.getCount() > 0)
-        {
-            DataDescriptorPtr domainDescriptor;
-            DataDescriptorPtr voltageDescriptor;
-            DataDescriptorPtr currentDescriptor;
-
-            bool domainChanged = false;
-            if (eventPackets.hasKey(voltageInputPort.getGlobalId()))
-            {
-                getDataDescriptors(eventPackets.get(voltageInputPort.getGlobalId()), voltageDescriptor, domainDescriptor);
-                domainChanged = descriptorNotNull(domainDescriptor);
-            }
-
-
-            if (eventPackets.hasKey(currentInputPort.getGlobalId()))
-            {
-                getDataDescriptors(eventPackets.get(currentInputPort.getGlobalId()), currentDescriptor, domainDescriptor);
-                domainChanged |= descriptorNotNull(domainDescriptor);
-            }
-                
-            getDomainDescriptor(status.getMainDescriptor(), domainDescriptor);
-
-            if (voltageDescriptor.assigned() || currentDescriptor.assigned() || domainChanged)
-                configure(domainDescriptor, voltageDescriptor, currentDescriptor);
-        }
-
-        if (!status.getValid())
-        {
-            reader = MultiReaderFromExisting(reader, SampleType::Float64, SampleType::Int64);
-        }
-    }
-}
-
-void PowerReaderFbImpl::checkPortConnections() const
-{
-    for (const auto& port : reader.asPtr<IReaderConfig>().getInputPorts())
-    {
-        if (!port.getConnection().assigned())
-        {
-            setComponentStatusWithMessage(ComponentStatus::Warning, fmt::format("Port {} is not connected!", port.getLocalId()));
-            return;
-        }
-    }
-    
-    setComponentStatus(ComponentStatus::Ok);
-}
-
-void PowerReaderFbImpl::onConnected(const InputPortPtr& inputPort)
-{
-    LOG_D("Power Reader FB: Input port {} connected", inputPort.getLocalId())
-    checkPortConnections();
-}
-
-void PowerReaderFbImpl::onDisconnected(const InputPortPtr& inputPort)
-{
-    LOG_D("Power Reader FB: Input port {} disconnected", inputPort.getLocalId())
-    checkPortConnections();
-}
-
-RangePtr PowerReaderFbImpl::getValueRange(const DataDescriptorPtr& voltageDataDescriptor, const DataDescriptorPtr& currentDataDescriptor)
-{
-    const auto voltageRange = voltageDataDescriptor.getValueRange();
-    const auto currentRange = currentDataDescriptor.getValueRange();
+    const auto voltageRange = voltageDescriptor.getValueRange();
+    const auto currentRange = currentDescriptor.getValueRange();
     if (!voltageRange.assigned() || !currentRange.assigned())
         return powerRange;
 
@@ -237,116 +93,58 @@ RangePtr PowerReaderFbImpl::getValueRange(const DataDescriptorPtr& voltageDataDe
     const Float voltageLow = voltageRange.getLowValue();
     const Float currentHigh = currentRange.getHighValue();
     const Float currentLow = currentRange.getLowValue();
-
-    Float val1 = voltageHigh * currentHigh;
-    Float val2 = voltageHigh * currentLow;
-    Float val3 = voltageLow * currentHigh;
-    Float val4 = voltageLow * currentLow;
-
-    const Float powerHigh = std::max({val1, val2, val3, val4});
-    const Float powerLow = std::min({val1, val2, val3, val4});
-
-    return Range(powerLow, powerHigh);
+    const Float corners[]{voltageHigh * currentHigh, voltageHigh * currentLow, voltageLow * currentHigh, voltageLow * currentLow};
+    return Range(*std::min_element(std::begin(corners), std::end(corners)), *std::max_element(std::begin(corners), std::end(corners)));
 }
 
-void PowerReaderFbImpl::configure(const DataDescriptorPtr& domainDescriptor, const DataDescriptorPtr& voltageDescriptor, const DataDescriptorPtr& currentDescriptor)
+void PowerReaderFbImpl::processAndSend(SizeT count, SizeT packetOffset)
 {
+    if (!outputValid || !contributes(0) || !contributes(1))
+        return;
+
+    const auto powerDomainPacket = DataPacket(powerDomainSignal.getDescriptor(), count, packetOffset);
+    const auto powerValuePacket = DataPacketWithDomain(powerDomainPacket, powerSignal.getDescriptor(), count);
+    const auto powerValueData = static_cast<double*>(powerValuePacket.getRawData());
+    const auto voltageData = static_cast<const double*>(buffers[0]);
+    const auto currentData = static_cast<const double*>(buffers[1]);
+    for (SizeT i = 0; i < count; i++)
+        powerValueData[i] = (voltageScale * voltageData[i] + voltageOffset) * (currentScale * currentData[i] + currentOffset);
+
+    powerDomainSignal.sendPacket(powerDomainPacket);
+    powerSignal.sendPacket(powerValuePacket);
+}
+
+void PowerReaderFbImpl::rebuildOutputDescriptor()
+{
+    const auto voltageIt = cached.find(voltageInputPort.getGlobalId().toStdString());
+    const auto currentIt = cached.find(currentInputPort.getGlobalId().toStdString());
+    if (voltageIt == cached.end() || currentIt == cached.end() || !voltageIt->second.assigned() || !currentIt->second.assigned() || !outputDomain.assigned())
+        return;
+
     try
     {
-        if (domainDescriptor.assigned())
-            this->domainDescriptor = domainDescriptor;
-        if (voltageDescriptor.assigned())
-            this->voltageDescriptor = voltageDescriptor;
-        if (currentDescriptor.assigned())
-            this->currentDescriptor = currentDescriptor;
-
-        if (this->domainDescriptor == NullDataDescriptor())
-        {
-            throw std::runtime_error("Input domain descriptor is not set");
-        }
-        if (this->voltageDescriptor == NullDataDescriptor())
-        {
-            throw std::runtime_error("Input voltage descriptor is not set");
-        }
-            
-        if (this->currentDescriptor == NullDataDescriptor())
-        {
-            throw std::runtime_error("Input current descriptor is not set");
-        }
-
-        if (this->voltageDescriptor.assigned() && this->voltageDescriptor.getUnit().assigned() &&
-            this->voltageDescriptor.getUnit().getSymbol() != "V")
-        {
+        const auto& voltageDescriptor = voltageIt->second;
+        const auto& currentDescriptor = currentIt->second;
+        if (voltageDescriptor.getUnit().assigned() && voltageDescriptor.getUnit().getSymbol() != "V")
             throw std::runtime_error("Invalid voltage signal unit");
-        }
 
-        const auto powerDataDescriptorBuilder =
-            DataDescriptorBuilder().setSampleType(SampleType::Float64).setUnit(Unit("W", -1, "watt", "power"));
-
-        if (useCustomOutputRange)
-            powerRange = Range(powerLowValue, powerHighValue);
-        else
-            powerRange = getValueRange(this->voltageDescriptor, this->currentDescriptor);
-
-        powerDataDescriptor = powerDataDescriptorBuilder.setValueRange(powerRange).build();
-        powerDomainDataDescriptor = this->domainDescriptor;
-
-        powerSignal.setDescriptor(powerDataDescriptor);
-        powerDomainSignal.setDescriptor(powerDomainDataDescriptor);
-
-        setComponentStatus(ComponentStatus::Ok);
-        reader.setActive(True);
+        powerRange = useCustomOutputRange ? Range(powerLowValue, powerHighValue) : getValueRange(voltageDescriptor, currentDescriptor);
+        powerSignal.setDescriptor(DataDescriptorBuilder()
+                                      .setSampleType(SampleType::Float64)
+                                      .setUnit(Unit("W", -1, "watt", "power"))
+                                      .setValueRange(powerRange)
+                                      .build());
+        powerDomainSignal.setDescriptor(outputDomain);
+        outputValid = true;
+        outputError.clear();
     }
     catch (const std::exception& e)
     {
-        setComponentStatusWithMessage(ComponentStatus::Warning, fmt::format("Failed to set descriptor for power signal: {}", e.what()));
-        reader.setActive(False);
+        outputValid = false;
+        outputError = fmt::format("Failed to set descriptor for power signal: {}", e.what());
     }
 }
 
-void PowerReaderFbImpl::createInputPorts()
-{
-    voltageInputPort = createAndAddInputPort("Voltage", PacketReadyNotification::Scheduler, nullptr, true);
-    currentInputPort = createAndAddInputPort("Current", PacketReadyNotification::Scheduler, nullptr, true);
-    
-    setComponentStatusWithMessage(ComponentStatus::Warning, fmt::format("Port {} is not connected!", voltageInputPort.getLocalId()));
-}
-
-void PowerReaderFbImpl::createReader()
-{
-    auto tolerance = SimplifiedRatio(tickOffsetToleranceUs.count(), 1'000'000);
-    tolerance = tolerance.simplify();
-
-    reader.release();
-
-    reader = MultiReaderBuilder()
-        .addInputPort(voltageInputPort)
-        .addInputPort(currentInputPort)
-        .setDomainReadType(SampleType::Int64)
-        .setValueReadType(SampleType::Float64)
-        .setTickOffsetTolerance(tolerance)
-        .setAllowDifferentSamplingRates(false)
-        .setInputPortNotificationMethod(PacketReadyNotification::Unspecified)
-        .build();
-
-    reader.setExternalListener(this->objPtr);
-    auto thisWeakRef = this->template getWeakRefInternal<IFunctionBlock>();
-    reader.setOnDataAvailable([this, thisWeakRef = std::move(thisWeakRef)]
-    {
-        const auto thisFb = thisWeakRef.getRef();
-        if (thisFb.assigned())
-            this->onDataReceived();
-    });
-}
-
-void PowerReaderFbImpl::createSignals()
-{
-    powerSignal = createAndAddSignal("Power");
-    powerSignal.setName("Power");
-    powerDomainSignal = createAndAddSignal("PowerDomain", nullptr, false);
-    powerDomainSignal.setName("PowerDomain");
-    powerSignal.setDomainSignal(powerDomainSignal);
-}
 }
 
 END_NAMESPACE_REF_FB_MODULE

@@ -14,6 +14,7 @@ set(SRC_Include common.h
                 dispatch.h
                 trigger_fb_impl.h
                 fft_fb_impl.h
+                reader_fb_base.h
                 power_reader_fb_impl.h
                 sum_reader_fb_impl.h
                 struct_decoder_fb_impl.h
@@ -28,6 +29,7 @@ set(SRC_Srcs module_dll.cpp
              scaling_fb_impl.cpp
              trigger_fb_impl.cpp
              fft_fb_impl.cpp
+             reader_fb_base.cpp
              power_reader_fb_impl.cpp
              sum_reader_fb_impl.cpp
              struct_decoder_fb_impl.cpp
@@ -66,6 +68,8 @@ set(MODULE_FILES ${MODULE_HEADERS_DIR}/ref_fb_module_common.h
                             ${MODULE_HEADERS_DIR}/trigger_fb_impl.h
                             ${MODULE_HEADERS_DIR}/classifier_fb_impl.h
                             ${MODULE_HEADERS_DIR}/fft_fb_impl.h
+                            ${MODULE_HEADERS_DIR}/reader_fb_base.h
+                            ${MODULE_HEADERS_DIR}/sum_reader_fb_impl.h
                             ${MODULE_HEADERS_DIR}/power_reader_fb_impl.h
                             ${MODULE_HEADERS_DIR}/struct_decoder_fb_impl.h
                             ${MODULE_HEADERS_DIR}/time_delay_fb_impl.h
@@ -76,6 +80,8 @@ set(MODULE_FILES ${MODULE_HEADERS_DIR}/ref_fb_module_common.h
                             classifier_fb_impl.cpp
                             trigger_fb_impl.cpp
                             fft_fb_impl.cpp
+                            reader_fb_base.cpp
+                            sum_reader_fb_impl.cpp
                             power_reader_fb_impl.cpp
                             struct_decoder_fb_impl.cpp
                             time_delay_fb_impl.cpp)

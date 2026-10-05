@@ -1,5 +1,5 @@
 /*
- * Copyright 2022-2025 openDAQ d.o.o.
+ * Copyright 2022-2026 openDAQ d.o.o.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -13,18 +13,18 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 #pragma once
 
-#include <fstream>
-#include <map>
 #include <memory>
 #include <optional>
-#include <queue>
-#include <thread>
+#include <string>
+#include <unordered_map>
+#include <unordered_set>
+#include <vector>
 
 #include <coretypes/filesystem.h>
 #include <opendaq/function_block_impl.h>
+#include <opendaq/multi_reader2_factory.h>
 #include <opendaq/opendaq.h>
 
 #include <basic_csv_recorder_module/common.h>
@@ -33,7 +33,12 @@
 BEGIN_NAMESPACE_OPENDAQ_BASIC_CSV_RECORDER_MODULE
 
 /*!
- * @brief A basic recorder function block which records data from its input signals into a CSV file.
+ * @brief A basic recorder function block which records aligned data from its input signals into a CSV file.
+ *
+ * The block always offers one free input port, kept unused in the reader so its missing signal touches nothing.
+ * When a signal connects the block judges its descriptor, offers the next port and configures the reader once;
+ * a used port that loses its signal is removed. The reader is the only listener of the ports and the block reads
+ * from its onDataAvailable event until drained.
  */
 class MultiCsvRecorderImpl final : public FunctionBlockImpl<IFunctionBlock, IRecorder>
 {
@@ -53,15 +58,7 @@ public:
         static constexpr const char* WRITE_DOMAIN = "WriteDomain";
     };
 
-    /*!
-     * @brief Creates a new function block.
-     * @param context The openDAQ context object.
-     * @param parent The component object which will contain this function block.
-     * @param localId The local identifier of this function block.
-     * @param config A property object containing configuration data for this function block.
-     */
     MultiCsvRecorderImpl(const ContextPtr& context, const ComponentPtr& parent, const StringPtr& localId, const PropertyObjectPtr& config);
-
     ~MultiCsvRecorderImpl() = default;
 
     static FunctionBlockTypePtr createType();
@@ -71,60 +68,49 @@ public:
     ErrCode INTERFACE_FUNC getIsRecording(Bool* isRecording) override;
 
 protected:
-    virtual void activeChanged() override;
+    void activeChanged() override;
+    void removed() override;
 
 private:
     void initProperties();
-
-    std::string getNextPortID() const;
-
-    bool updateInputPorts();
-    void createReader();
-
-    /**
-     * @brief Attempts to open a new CSV writer with provided data.
-     */
-    void configureWriter(const DataDescriptorPtr& domainDescriptor,
-                         const ListPtr<IDataDescriptor>& valueDescriptors,
-                         const ListPtr<IString>& signalNames);
-
-    /**
-     * @brief Collects cached data and calls configure writer.
-     */
-    void reconfigureWriter();
     void onPropertiesChanged();
 
-    /**
-     * @brief Returns true if reader is in valid state or successfully recovered. Doesn't replace a valid reader.
-     */
-    bool recoverReaderIfNecessary();
-    void createDisconnectedPort();
+    void addFreePort();
+    ListPtr<IComponent> portList() const;
+    void createReader();
+    void drain();
+    bool onChanges(const MultiReader2StatusPtr& status);
+    static bool accepts(const DataDescriptorPtr& descriptor);
+    void writeSamples(SizeT count, SizeT packetOffset);
 
-    void onConnected(const InputPortPtr& inputPort) override;
-    void onDisconnected(const InputPortPtr& inputPort) override;
-    void onDataReceived();
+    /**
+     * @brief Opens a new CSV writer from the cached descriptors; fails into a warning when something is missing.
+     */
+    void configureWriter();
     void stopRecordingInternal(bool recover);
     void startRecordingInternal();
 
-    MultiReaderStatusPtr attemptReadData();
+    InputPortConfigPtr freePort;
+    int nextPortId = 1;
 
-    std::vector<InputPortPtr> connectedPorts;
-    InputPortPtr disconnectedPort;
-
+    MultiReader2ParamsPtr params;
+    MultiReader2Ptr reader;
+    std::vector<std::vector<double>> storage;
+    std::vector<void*> buffers;
+    std::vector<ComponentPtr> slotInputs;      // slot order as of the last status
+    std::vector<bool> activeSlots;             // per slot: used and healthy as of the last status
     std::unordered_map<std::string, DataDescriptorPtr> cachedDescriptors;
     std::unordered_map<std::string, StringPtr> cachedSignalNames;
+    std::unordered_set<std::string> rejected;
     DataDescriptorPtr recorderDomainDataDescriptor;
-
-    PacketReadyNotification notificationMode;
-    MultiReaderPtr reader;
 
     bool recordingActive = false;
     bool recoverToActive = false;
 
     std::optional<fs::path> filePath = std::nullopt;
     std::string fileBasename;
-    bool timestampEnabled;
-    bool writeDomain;
+    bool timestampEnabled = true;
+    bool writeDomain = false;
 
     std::optional<MultiCsvWriter> writer = std::nullopt;
 };

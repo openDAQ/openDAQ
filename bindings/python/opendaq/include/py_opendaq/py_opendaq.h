@@ -68,6 +68,10 @@ PyDaqIntf<daq::IReaderStatus, daq::IBaseObject> declareIReaderStatus(pybind11::m
 PyDaqIntf<daq::IBlockReaderStatus, daq::IReaderStatus> declareIBlockReaderStatus(pybind11::module_ m);
 PyDaqIntf<daq::ITailReaderStatus, daq::IReaderStatus> declareITailReaderStatus(pybind11::module_ m);
 PyDaqIntf<daq::IMultiReaderStatus, daq::IReaderStatus> declareIMultiReaderStatus(pybind11::module_ m);
+PyDaqIntf<daq::IMultiReader2Params, daq::IBaseObject> declareIMultiReader2Params(pybind11::module_ m);
+PyDaqIntf<daq::IMultiReader2, daq::IBaseObject> declareIMultiReader2(pybind11::module_ m);
+PyDaqIntf<daq::IMultiReader2InputStatus, daq::IBaseObject> declareIMultiReader2InputStatus(pybind11::module_ m);
+PyDaqIntf<daq::IMultiReader2Status, daq::IBaseObject> declareIMultiReader2Status(pybind11::module_ m);
 PyDaqIntf<daq::IAwaitable, daq::IBaseObject> declareIAwaitable(pybind11::module_ m);
 PyDaqIntf<daq::IGraphVisualization, daq::IBaseObject> declareIGraphVisualization(pybind11::module_ m);
 PyDaqIntf<daq::IScheduler, daq::IBaseObject> declareIScheduler(pybind11::module_ m);
@@ -180,6 +184,10 @@ void defineIReaderStatus(pybind11::module_ m, PyDaqIntf<daq::IReaderStatus, daq:
 void defineIBlockReaderStatus(pybind11::module_ m, PyDaqIntf<daq::IBlockReaderStatus, daq::IReaderStatus> cls);
 void defineITailReaderStatus(pybind11::module_ m, PyDaqIntf<daq::ITailReaderStatus, daq::IReaderStatus> cls);
 void defineIMultiReaderStatus(pybind11::module_ m, PyDaqIntf<daq::IMultiReaderStatus, daq::IReaderStatus> cls);
+void defineIMultiReader2Params(pybind11::module_ m, PyDaqIntf<daq::IMultiReader2Params, daq::IBaseObject> cls);
+void defineIMultiReader2(pybind11::module_ m, PyDaqIntf<daq::IMultiReader2, daq::IBaseObject> cls);
+void defineIMultiReader2InputStatus(pybind11::module_ m, PyDaqIntf<daq::IMultiReader2InputStatus, daq::IBaseObject> cls);
+void defineIMultiReader2Status(pybind11::module_ m, PyDaqIntf<daq::IMultiReader2Status, daq::IBaseObject> cls);
 void defineIAwaitable(pybind11::module_ m, PyDaqIntf<daq::IAwaitable, daq::IBaseObject> cls);
 void defineIGraphVisualization(pybind11::module_ m, PyDaqIntf<daq::IGraphVisualization, daq::IBaseObject> cls);
 void defineIScheduler(pybind11::module_ m, PyDaqIntf<daq::IScheduler, daq::IBaseObject> cls);

@@ -144,6 +144,8 @@ void MultiReader2Impl::releaseSlot(Slot& slot)
         return;
     if (slot.ownsPort)
         slot.port.disconnect();
+    // A port in Scheduler mode without a listener cannot take packets, so notifications are switched off first
+    slot.port.setNotificationMethod(PacketReadyNotification::None);
     slot.port.setListener(nullptr);
     slot.port.release();
 }
@@ -254,9 +256,14 @@ ErrCode MultiReader2Impl::configure(IMultiReader2Params* params)
         if (slot.ownsPort && !slot.port.getConnection().assigned())
             slot.port.connect(slot.input.asPtr<ISignal>(true));
     }
-    for (const auto& slot : snapshot)
+    bool wake = false;
+    for (SizeT i = 0; i < snapshot.size(); i++)
     {
+        const auto& slot = snapshot[i];
         const auto connection = slot.port.getConnection();
+        // A connection edge that fell into the window without wiring is re-derived from the port
+        if (dataManager.setConnected(i, connection.assigned()).wake)
+            wake = true;
         if (!connection.assigned())
             continue;
         const auto internal = connection.asPtrOrNull<IConnectionInternal>(true);
@@ -268,6 +275,7 @@ ErrCode MultiReader2Impl::configure(IMultiReader2Params* params)
     }
 
     // The first status after a configure always carries changes
+    (void) wake;
     scheduleWake();
     return OPENDAQ_SUCCESS;
 }

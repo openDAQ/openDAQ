@@ -9,6 +9,7 @@ opendaq_dependency(
     EXPECT_TARGET       mdns::mdns
     PATCH_FILES
         ${CMAKE_CURRENT_SOURCE_DIR}/patches/0001-Multicast-commands-ip6-ifindex.patch
+        ${CMAKE_CURRENT_SOURCE_DIR}/patches/0003-mdns-mingw-compatibility.patch
 )
 
 install(

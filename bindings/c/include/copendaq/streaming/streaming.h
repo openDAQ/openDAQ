@@ -53,6 +53,7 @@ extern "C"
     daqErrCode EXPORTED daqStreaming_removeInputPorts(daqStreaming* self, daqList* inputPorts);
     daqErrCode EXPORTED daqStreaming_removeAllInputPorts(daqStreaming* self);
     daqErrCode EXPORTED daqStreaming_getOwnerDeviceRemoteId(daqStreaming* self, daqString** deviceRemoteId);
+    daqErrCode EXPORTED daqStreaming_getProtocolGroupId(daqStreaming* self, daqString** protocolGroupId);
     daqErrCode EXPORTED daqStreaming_getProtocolId(daqStreaming* self, daqString** protocolId);
     daqErrCode EXPORTED daqStreaming_getClientToDeviceStreamingEnabled(daqStreaming* self, daqBool* enabled);
 

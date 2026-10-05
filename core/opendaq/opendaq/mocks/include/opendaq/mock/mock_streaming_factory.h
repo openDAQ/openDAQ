@@ -25,4 +25,13 @@ inline StreamingPtr MockStreaming(const daq::StringPtr& connectionString, const 
     return obj;
 }
 
+inline StreamingPtr MockStreamingWithProtocol(const daq::StringPtr& connectionString,
+                                              const ContextPtr& context,
+                                              const daq::StringPtr& protocolId,
+                                              const daq::StringPtr& protocolGroupId)
+{
+    StreamingPtr obj(MockStreamingWithProtocol_Create(connectionString, context, protocolId, protocolGroupId));
+    return obj;
+}
+
 END_NAMESPACE_OPENDAQ

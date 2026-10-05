@@ -383,16 +383,12 @@ ErrCode MirroredSignalBase<Interfaces...>::unsubscribeCompletedInternal(IString*
         mirroredDomainDataDescriptor = nullptr;
     }
 
-    if (syncLock)
     {
-        auto lock = this->getRecursiveConfigLock2();
-        this->lastDataValue = nullptr;
-        this->lastDataDescriptor = nullptr;
-    }
-    else
-    {
-        this->lastDataValue = nullptr;
-        this->lastDataDescriptor = nullptr;
+        LockGuardPtr lock;
+        if (syncLock)
+            lock = this->getRecursiveConfigLock2();
+
+        this->lastValueStore.resetCachedValue();
     }
 
     if (onUnsubscribeCompleteEvent.hasListeners())

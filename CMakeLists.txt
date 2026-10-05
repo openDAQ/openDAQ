@@ -55,6 +55,7 @@ endif()
 list(APPEND CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake
 )
 include(DeprecatedCommands)
+include(openDAQTestResources)
 
 get_filename_component(PROJ_DIR ${PROJECT_SOURCE_DIR} REALPATH)
 
@@ -66,21 +67,11 @@ if (COMMAND GIT_WC_INFO)
     endif()
 
     message(STATUS "Git branch: ${OPENDAQ_WC_BRANCH_NAME} | ${OPENDAQ_WC_REVISION_HASH}")
-    if (NOT ${OPENDAQ_WC_BRANCH_NAME} MATCHES "^release\/[0-9]+\.[0-9]+(\.[0-9])?(\.[0-9])?(-[a-z|A-Z|0-9]*)?$")
-        set (OPENDAQ_PACKAGE_VERSION_WITH_SHA "${OPENDAQ_PACKAGE_VERSION}_${OPENDAQ_WC_REVISION_HASH}")
-    endif()
 else()
     set(OPENDAQ_WC_REVISION "NA")
 endif()
 
-if (NOT ${OPENDAQ_PACKAGE_VERSION_WITH_SHA} STREQUAL "")
-    message(STATUS "openDAQ package version: ${OPENDAQ_PACKAGE_VERSION_WITH_SHA}")
-    add_compile_definitions(OPENDAQ_PACKAGE_VERSION="${OPENDAQ_PACKAGE_VERSION_WITH_SHA}")
-else()
-    message(STATUS "openDAQ package version: ${OPENDAQ_PACKAGE_VERSION}")
-    add_compile_definitions(OPENDAQ_PACKAGE_VERSION="${OPENDAQ_PACKAGE_VERSION}")
-endif()
-
+set(OPENDAQ_ENABLE_UNITY_LIBS ON CACHE BOOL "Unity builds for libraries")
 opendaq_setup_common_build_options()
 opendaq_setup_project_specific_build_options(${SDK_OPTION_PREFIX})
 
@@ -88,11 +79,13 @@ opendaq_setup_project_specific_build_options(${SDK_OPTION_PREFIX})
 option(OPENDAQ_ENABLE_PARAMETER_VALIDATION "Enable parameter validation in functions" ON)
 option(OPENDAQ_ENABLE_WEBSOCKET_STREAMING "Enable ${SDK_NAME} websocket streaming" OFF)
 cmake_dependent_option(DAQMODULES_LT_LEGACY_MODULES "Use legacy LT streaming modules" ${OPENDAQ_CI_RUNNER} "OPENDAQ_ENABLE_WEBSOCKET_STREAMING" OFF)
+option(OPENDAQ_ENABLE_WEBSOCKET_STREAMING_WITH_TLS "Enable the TLS (daq.lts://) channel of the LT streaming modules" OFF)
 option(OPENDAQ_THREAD_SAFE "Enable thread-safe implementations where available" ON)
 option(OPENDAQ_MIMALLOC_SUPPORT "Enable MiMalloc-based packet allocator" OFF)
 option(OPENDAQ_ENABLE_NATIVE_STREAMING "Enable ${SDK_NAME} native streaming" OFF)
 option(OPENDAQ_ENABLE_ACCESS_CONTROL "Enable object-level access control" ON)
 option(OPENDAQ_RTGEN_ON_CMAKE_CONFIG "Run RT gen as part of the CMake configuration process to make sure the files exist during development" OFF)
+option(OPENDAQ_ENABLE_OBJECT_POOLS "Enable object pools for integer and float base objects" OFF)
 
 option(OPENDAQ_ENABLE_OPCUA "Enable OpcUa" OFF)
 
@@ -104,7 +97,6 @@ option(OPENDAQ_GENERATE_C_BINDINGS "Generate C bindings" OFF)
 
 # Testing and coverage options
 option(OPENDAQ_ENABLE_TESTS "Enable testing" ON)
-option(OPENDAQ_ENABLE_TEST_UTILS "Enable testing utils library" ON)
 option(OPENDAQ_ENABLE_OPTIONAL_TESTS "Enable optional (debugging) tests" OFF)
 option(OPENDAQ_ENABLE_COVERAGE "Enable code coverage in testing" OFF)
 option(OPENDAQ_ENABLE_REGRESSION_TESTS "Enable regression testing" OFF)
@@ -122,6 +114,7 @@ if (OPENDAQ_ENABLE_ERROR_GUARD)
 endif()
 
 # Dependent options
+cmake_dependent_option(OPENDAQ_ENABLE_TEST_UTILS "Enable testing utils library" ON "NOT OPENDAQ_ENABLE_TESTS" ON)
 cmake_dependent_option(OPENDAQ_ENABLE_DELPHI_BINDINGS_TESTS "Enable delphi bindings tests" ON "OPENDAQ_GENERATE_DELPHI_BINDINGS;OPENDAQ_ENABLE_TESTS" OFF)
 cmake_dependent_option(OPENDAQ_ENABLE_PYTHON_BINDINGS_TESTS "Enable python bindings tests" ON "OPENDAQ_GENERATE_PYTHON_BINDINGS;OPENDAQ_ENABLE_TESTS" OFF)
 cmake_dependent_option(OPENDAQ_ENABLE_CSHARP_BINDINGS_TESTS "Enable csharp bindings tests" ON "OPENDAQ_GENERATE_CSHARP_BINDINGS;OPENDAQ_ENABLE_TESTS" OFF)
@@ -296,7 +289,7 @@ endif()
 set(RTGEN_NAMESPACE ${SDK_TARGET_NAMESPACE})
 include(RTGen)
 
-if(NOT WIN32)
+if(NOT CMAKE_HOST_WIN32)
     # Make sure mono is found properly and exists
     find_program(MONO_C
         NAMES "mono"
@@ -372,6 +365,20 @@ if (OPENDAQ_ENABLE_WEBSOCKET_STREAMING AND (DAQMODULES_OPENDAQ_CLIENT_MODULE OR 
 	add_compile_definitions(DAQMODULES_LT_LEGACY_MODULES)
 endif()
 
+# The secure channel lives in the modern LT streaming modules only, and turning it on there is what
+# pulls in their OpenSSL dependency. The option is a plain one, so the rest of the conditions are
+# checked here rather than in the option declaration: with the legacy modules it has no meaning and
+# is ignored.
+if (OPENDAQ_ENABLE_WEBSOCKET_STREAMING AND (DAQMODULES_OPENDAQ_CLIENT_MODULE OR DAQMODULES_OPENDAQ_SERVER_MODULE)
+        AND NOT DAQMODULES_LT_LEGACY_MODULES)
+    if (OPENDAQ_ENABLE_WEBSOCKET_STREAMING_WITH_TLS)
+        message(STATUS "LT streaming TLS channel enabled")
+        add_compile_definitions(OPENDAQ_ENABLE_WEBSOCKET_STREAMING_WITH_TLS)
+    else()
+        message(STATUS "LT streaming TLS channel disabled (no OpenSSL dependency)")
+    endif()
+endif()
+
 opendaq_setup_compiler_flags(${SDK_OPTION_PREFIX})
 
 if (CMAKE_CXX_COMPILER_ID MATCHES "Clang|AppleClang" AND CMAKE_CXX_COMPILER_VERSION VERSION_LESS 10)
@@ -396,6 +403,7 @@ endif()
 if (DEFINED OPCUA_MODULES_SOURCE_DIR)
     add_subdirectory("${OPCUA_MODULES_SOURCE_DIR}" "${OPCUA_MODULES_BINARY_DIR}")
 endif()
+opendaq_lock_external_module_tests()
 
 add_subdirectory(shared)
 add_subdirectory(examples)
@@ -471,6 +479,7 @@ if (DEFINED mdns_SOURCE_DIR)
     install(
         FILES "${mdns_SOURCE_DIR}/mdns.h"
         DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
+        COMPONENT ${SDK_NAME}_discovery_Development
     )
 else()
     message(ERROR "missing mdns dependency")

@@ -87,7 +87,7 @@ ConfigProtocolServer::ConfigProtocolServer(DevicePtr rootDevice,
     , user(user)
     , connectionType(connectionType)
     , protocolVersion(0)
-    , supportedServerVersions(std::set<uint16_t>({17, 18, 19, 20, 21, 22, 23, 24}))
+    , supportedServerVersions(std::set<uint16_t>({17, 18, 19, 20, 21, 22, 23, 24, 25}))
     , streamingConsumer(this->daqContext, externalSignalsFolder)
     , packedCoreEvents(List<IBaseObject>())
 {
@@ -179,6 +179,7 @@ void ConfigProtocolServer::buildRpcDispatchStructure()
     addHandler<DevicePtr>("GetDefaultAddDeviceConfig", &ConfigServerDevice::getDefaultAddDeviceConfig);
 
     addHandler<SignalPtr>("GetLastValue", &ConfigServerSignal::getLastValue);
+    addHandler<SignalPtr>("GetLastValueWithTimestamp", &ConfigServerSignal::getLastValueWithTimestamp);
 
     addHandler<InputPortPtr>("ConnectSignal", std::bind(&ConfigProtocolServer::connectSignal, this, _1, _2, _3));
     addHandler<InputPortPtr>("ConnectExternalSignal", std::bind(&ConfigProtocolServer::connectExternalSignal, this, _1, _2, _3));

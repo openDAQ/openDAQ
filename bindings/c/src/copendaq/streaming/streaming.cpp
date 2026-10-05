@@ -77,6 +77,11 @@ daqErrCode daqStreaming_getOwnerDeviceRemoteId(daqStreaming* self, daqString** d
     return reinterpret_cast<daq::IStreaming*>(self)->getOwnerDeviceRemoteId(reinterpret_cast<daq::IString**>(deviceRemoteId));
 }
 
+daqErrCode daqStreaming_getProtocolGroupId(daqStreaming* self, daqString** protocolGroupId)
+{
+    return reinterpret_cast<daq::IStreaming*>(self)->getProtocolGroupId(reinterpret_cast<daq::IString**>(protocolGroupId));
+}
+
 daqErrCode daqStreaming_getProtocolId(daqStreaming* self, daqString** protocolId)
 {
     return reinterpret_cast<daq::IStreaming*>(self)->getProtocolId(reinterpret_cast<daq::IString**>(protocolId));

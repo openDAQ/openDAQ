@@ -45,6 +45,7 @@ extern "C"
     daqErrCode EXPORTED daqServerCapability_getConnectionString(daqServerCapability* self, daqString** connectionString);
     daqErrCode EXPORTED daqServerCapability_getConnectionStrings(daqServerCapability* self, daqList** connectionStrings);
     daqErrCode EXPORTED daqServerCapability_getProtocolName(daqServerCapability* self, daqString** protocolName);
+    daqErrCode EXPORTED daqServerCapability_getProtocolGroupId(daqServerCapability* self, daqString** protocolGroupId);
     daqErrCode EXPORTED daqServerCapability_getProtocolId(daqServerCapability* self, daqString** protocolId);
     daqErrCode EXPORTED daqServerCapability_getProtocolType(daqServerCapability* self, daqProtocolType* type);
     daqErrCode EXPORTED daqServerCapability_getPrefix(daqServerCapability* self, daqString** prefix);
@@ -54,6 +55,7 @@ extern "C"
     daqErrCode EXPORTED daqServerCapability_getPort(daqServerCapability* self, daqInteger** port);
     daqErrCode EXPORTED daqServerCapability_getAddressInfo(daqServerCapability* self, daqList** addressInfo);
     daqErrCode EXPORTED daqServerCapability_getProtocolVersion(daqServerCapability* self, daqString** version);
+    daqErrCode EXPORTED daqServerCapability_getProtocolSecurityLevel(daqServerCapability* self, daqInteger** securityLevel);
 
 #ifdef __cplusplus
 }

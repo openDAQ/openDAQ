@@ -9,6 +9,12 @@
 #include "test_helpers/device_modules.h"
 #include "test_helpers/test_helpers.h"
 
+#include <chrono>
+#include <future>
+#include <cstdlib>
+#include <mutex>
+#include <thread>
+
 using ModulesDeviceDiscoveryTest = testing::Test;
 
 using namespace daq;
@@ -35,7 +41,7 @@ TEST_F(ModulesDeviceDiscoveryTest, ChangeIpConfig)
         EXPECT_EQ(config.getPropertyValue("gateway6"), gateway6);
     });
 
-    const auto serverInstance = InstanceBuilder()
+    const auto serverInstance = test_helpers::instanceBuilder()
         .setModulePath("[[none]]")
         .addDiscoveryServer("mdns")
         .build();
@@ -60,7 +66,7 @@ TEST_F(ModulesDeviceDiscoveryTest, ChangeIpConfig)
     for (const auto& server : serverInstance.getServers())
         server.enableDiscovery();
 
-    const auto client = Instance("[[none]]");
+    const auto client = test_helpers::createInstance("[[none]]");
     addNativeClientModule(client);
 
     auto availableDevices = client.getAvailableDevices();
@@ -87,7 +93,7 @@ TEST_F(ModulesDeviceDiscoveryTest, ChangeIpConfig)
 
 TEST_F(ModulesDeviceDiscoveryTest, ChangeIpConfigError)
 {
-    const auto serverInstance = InstanceBuilder()
+    const auto serverInstance = test_helpers::instanceBuilder()
         .setModulePath("[[none]]")
         .addDiscoveryServer("mdns")
         .build();
@@ -111,7 +117,7 @@ TEST_F(ModulesDeviceDiscoveryTest, ChangeIpConfigError)
     for (const auto& server : serverInstance.getServers())
         server.enableDiscovery();
 
-    const auto instance = Instance("[[none]]");
+    const auto instance = test_helpers::createInstance("[[none]]");
     addNativeClientModule(instance);
 
     auto availableDevices = instance.getAvailableDevices();
@@ -155,7 +161,7 @@ TEST_F(ModulesDeviceDiscoveryTest, RetrieveIpConfig)
         return config;
     });
 
-    const auto serverInstance = InstanceBuilder()
+    const auto serverInstance = test_helpers::instanceBuilder()
         .setModulePath("[[none]]")
         .addDiscoveryServer("mdns")
         .build();
@@ -178,7 +184,7 @@ TEST_F(ModulesDeviceDiscoveryTest, RetrieveIpConfig)
     addNativeServerModule(serverInstance);
     serverInstance.addServer("OpenDAQNativeStreaming", nullptr).enableDiscovery();
 
-    const auto client = Instance("[[none]]");
+    const auto client = test_helpers::createInstance("[[none]]");
     addNativeClientModule(client);
 
     auto availableDevices = client.getAvailableDevices();
@@ -207,13 +213,13 @@ class ConnectedClientsDiscoveryTest : public ModulesDeviceDiscoveryTest
 public:
     void SetUp() override
     {
-        serverInstance = InstanceBuilder().setModulePath("[[none]]").addDiscoveryServer("mdns").build();
+        serverInstance = test_helpers::instanceBuilder().setModulePath("[[none]]").addDiscoveryServer("mdns").build();
 
         const ModulePtr deviceModule(MockDeviceModule_Create(serverInstance.getContext()));
         serverInstance.getModuleManager().addModule(deviceModule);
         serverInstance.setRootDevice("daqmock://phys_device");
 
-        clientInstance = Instance("[[none]]");
+        clientInstance = test_helpers::createInstance("[[none]]");
     }
 
 protected:
@@ -292,7 +298,7 @@ TEST_F(ConnectedClientsDiscoveryTest, NativeConnectedClients)
     }
     {
         // native configuration exclusive control client
-        clientInstance = Instance("[[none]]");
+        clientInstance = test_helpers::createInstance("[[none]]");
         addNativeClientModule(clientInstance);
 
         test_helpers::connectInstanceWithClientType(clientInstance, "daq.nd://127.0.0.1", ClientType::ExclusiveControl);
@@ -380,4 +386,83 @@ TEST_F(ConnectedClientsDiscoveryTest, OpcuaConnectedClients)
         clientInstance.removeDevice(device);
         ASSERT_EQ(waitForConnectedClients(0).getCount(), 0u);
     }
+}
+
+// Removing a server unregisters its service under the device lock, while a query being answered
+// reads the device info; the answer must not hold the discovery server mutex over those reads.
+TEST_F(ModulesDeviceDiscoveryTest, RemoveServerWhileAnsweringQuery)
+{
+    struct Gate
+    {
+        std::once_flag once;
+        std::promise<void> answering;
+    };
+    const auto gate = std::make_shared<Gate>();
+    auto answering = gate->answering.get_future();
+
+    const auto serverInstance = InstanceBuilder()
+        .setModulePath("[[none]]")
+        .addDiscoveryServer("mdns")
+        .build();
+    addNativeServerModule(serverInstance);
+    const auto server = serverInstance.addServer("OpenDAQNativeStreaming", nullptr);
+    server.enableDiscovery();
+
+    // First device info read of an answer: let the remover take the device lock before the next read
+    serverInstance.getInfo().getOnPropertyValueRead("activeClientConnections") +=
+        [gate](PropertyObjectPtr&, PropertyValueEventArgsPtr&)
+        {
+            std::call_once(gate->once, [&]
+            {
+                gate->answering.set_value();
+                std::this_thread::sleep_for(std::chrono::milliseconds(500));
+            });
+        };
+
+    const auto clientInstance = Instance("[[none]]");
+    addNativeClientModule(clientInstance);
+    std::thread query([&clientInstance] { clientInstance.getAvailableDevices(); });
+
+    const bool queried = answering.wait_for(std::chrono::seconds(10)) == std::future_status::ready;
+    if (queried)
+    {
+        auto remover = std::async(std::launch::async, [&] { serverInstance.removeServer(server); });
+        if (remover.wait_for(std::chrono::seconds(10)) != std::future_status::ready)
+        {
+            // The remover and the mDNS thread wait for each other; nothing can unwind this process.
+            ADD_FAILURE() << "removeServer deadlocked with the query answer";
+            std::fflush(stdout);
+            std::_Exit(EXIT_FAILURE);
+        }
+    }
+    query.join();
+
+    ASSERT_TRUE(queried) << "no mDNS query reached the server";
+}
+
+
+// With ScanOnAdd on, addDevice scans and resolves a smart connection string; with it off nothing is scanned
+TEST_F(ModulesDeviceDiscoveryTest, ScanOnAddSmartConnectionString)
+{
+    auto deviceInfo = DeviceInfo("testdevice://");
+    deviceInfo.setManufacturer("openDAQ");
+    deviceInfo.setSerialNumber("scan_on_add");
+
+    const auto serverInstance = test_helpers::instanceBuilder()
+        .setModulePath("[[none]]")
+        .addDiscoveryServer("mdns")
+        .setDefaultRootDeviceInfo(deviceInfo)
+        .build();
+    addNativeServerModule(serverInstance);
+    serverInstance.addServer("OpenDAQNativeStreaming", nullptr).enableDiscovery();
+
+    const auto scanningClient = Instance("[[none]]");
+    addNativeClientModule(scanningClient);
+    const auto device = scanningClient.addDevice("daq://openDAQ_scan_on_add");
+    ASSERT_TRUE(device.assigned());
+    ASSERT_EQ(device.getInfo().getConnectionString().toStdString().rfind("daq.nd://", 0), 0u);
+
+    const auto client = test_helpers::createInstance("[[none]]");
+    addNativeClientModule(client);
+    ASSERT_THROW(client.addDevice("daq://openDAQ_scan_on_add"), NotFoundException);
 }

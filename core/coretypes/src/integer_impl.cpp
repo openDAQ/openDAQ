@@ -1,7 +1,17 @@
 ﻿#include <coretypes/integer_impl.h>
 #include <coretypes/impl.h>
+#include <coretypes/object_pool.h>
+#include <coretypes/pooled_object.h>
 
 BEGIN_NAMESPACE_OPENDAQ
+
+using namespace object_pool;
+
+class PooledIntegerImpl: public OrdinalPooledObject<Int, PooledIntegerImpl, IntegerImpl>
+{
+public:
+    using OrdinalPooledObject<Int, PooledIntegerImpl, IntegerImpl>::OrdinalPooledObject;
+};
 
 class StaticInts
 {
@@ -15,6 +25,10 @@ public:
     IInteger* sixValue;
     IInteger* sevenValue;
     IInteger* minusOneValue;
+
+#ifdef OPENDAQ_ENABLE_OBJECT_POOLS
+    ObjectPool<PooledIntegerImpl> integerPool{100};
+#endif
 
     StaticInts()
     {
@@ -44,9 +58,9 @@ public:
 
 } staticInts;
 
-extern "C" daq::ErrCode LIBRARY_FACTORY createInteger(IInteger** objTmp, const Int value)
+daq::ErrCode createIntegerFromCache(IInteger** objTmp, const Int value)
 {
-    OPENDAQ_PARAM_NOT_NULL(objTmp);
+    assert(objTmp != nullptr);
 
     switch (value)
     {
@@ -87,8 +101,43 @@ extern "C" daq::ErrCode LIBRARY_FACTORY createInteger(IInteger** objTmp, const I
             *objTmp = staticInts.sevenValue;
             return OPENDAQ_SUCCESS;
         default:
-            return daq::createObject<IInteger, IntegerImpl, const Int>(objTmp, value);
+            return OPENDAQ_ERR_NOTFOUND;
     }
 }
+
+extern "C" daq::ErrCode LIBRARY_FACTORY createInteger(IInteger** objTmp, const Int value)
+{
+    OPENDAQ_PARAM_NOT_NULL(objTmp);
+
+    auto errCode = createIntegerFromCache(objTmp, value);
+    if (errCode == OPENDAQ_ERR_NOTFOUND)
+        errCode = daq::createObject<IInteger, IntegerImpl, const Int>(objTmp, value);
+    return errCode;
+}
+
+#ifdef OPENDAQ_ENABLE_OBJECT_POOLS
+
+extern "C" daq::ErrCode LIBRARY_FACTORY createIntegerFromPool(IInteger** objTmp, const Int value)
+{
+    OPENDAQ_PARAM_NOT_NULL(objTmp);
+
+    auto errCode = createIntegerFromCache(objTmp, value);
+    if (errCode == OPENDAQ_ERR_NOTFOUND)
+    {
+        *objTmp = staticInts.integerPool.get(value);
+        (*objTmp)->addRef();
+        errCode = OPENDAQ_SUCCESS;
+    }
+    return errCode;
+}
+
+#else
+
+extern "C" daq::ErrCode LIBRARY_FACTORY createIntegerFromPool(IInteger** objTmp, const Int value)
+{
+    return createInteger(objTmp, value);
+}
+
+#endif
 
 END_NAMESPACE_OPENDAQ

@@ -39,12 +39,12 @@ protected:
     }
 };
 
-Int generatePacketId();
+PUBLIC_EXPORT Int daqGeneratePacketId();
 
 template <typename TInterface, typename... TInterfaces>
 GenericDataPacketImpl<TInterface, TInterfaces...>::GenericDataPacketImpl(IDataPacket* domainPacket)
     : domainPacket(domainPacket)
-    , packetId(generatePacketId())
+    , packetId(daqGeneratePacketId())
 {
     this->type = PacketType::Data;
 }

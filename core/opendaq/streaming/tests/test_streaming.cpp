@@ -31,6 +31,27 @@ TEST_F(StreamingTest, ConnectionString)
     ASSERT_EQ(streaming.ptr.getConnectionString(), "MockStreaming");
 }
 
+TEST_F(StreamingTest, ProtocolId)
+{
+    ASSERT_EQ(streaming.ptr.getProtocolId(), "MockStreaming");
+}
+
+TEST_F(StreamingTest, ProtocolGroupIdDefaultsToEmpty)
+{
+    ASSERT_EQ(streaming.ptr.getProtocolGroupId(), "");
+}
+
+TEST_F(StreamingTest, ProtocolGroupId)
+{
+    MockStreaming::StrictWithGroup grouped("MockStreamingGrouped", context, "MockStreamingGroup");
+    ASSERT_EQ(grouped.ptr.getProtocolGroupId(), "MockStreamingGroup");
+}
+
+TEST_F(StreamingTest, ProtocolGroupIdNullOutParam)
+{
+    ASSERT_ERROR_CODE_EQ(streaming.ptr->getProtocolGroupId(nullptr), OPENDAQ_ERR_ARGUMENT_NULL);
+}
+
 TEST_F(StreamingTest, InactiveByDefault)
 {
     daq::Bool active;

@@ -5,9 +5,13 @@
 #include <coretypes/integer_factory.h>
 #include <coretypes/inspectable_ptr.h>
 
+using namespace daq;
+
+namespace test_ratio
+{
+
 using RatioTest = testing::Test;
 
-using namespace daq;
 
 TEST_F(RatioTest, Create)
 {
@@ -337,14 +341,16 @@ TEST_F(RatioTest, StructNames)
 {
 }
 
-static constexpr auto INTERFACE_ID = FromTemplatedTypeName("IRatio", "daq");
+static constexpr auto RATIO_INTERFACE_ID = FromTemplatedTypeName("IRatio", "daq");
 
 TEST_F(RatioTest, InterfaceId)
 {
-    ASSERT_EQ(INTERFACE_ID, IRatio::Id);
+    ASSERT_EQ(RATIO_INTERFACE_ID, IRatio::Id);
 }
 
 TEST_F(RatioTest, InterfaceIdString)
 {
     ASSERT_EQ(daqInterfaceIdString<IRatio>(), "{08D28C13-55A6-5FE5-A0F0-19A3F8707C15}");
 }
+}
+// namespace test_ratio

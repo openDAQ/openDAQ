@@ -46,6 +46,7 @@ set(TEST_SOURCES test_objectptr.cpp
                  test_type_manager.cpp
                  test_callback_factory_deserialization.cpp
                  test_enumeration.cpp
+                 test_object_pool.cpp
 )
 
 set(TEST_HEADERS event_test.h
@@ -64,6 +65,22 @@ target_link_libraries(${TEST_APP}
         PRIVATE ${SDK_TARGET_NAMESPACE}::${MODULE_NAME}
                 ${SDK_TARGET_NAMESPACE}::test_utils
 )
+
+opendaq_target_pch(${TEST_APP} <coretypes/coretypes.h> <gtest/gtest.h>)
+
+# Files kept out of the unity translation units: the two type_name ones define the same
+# daq::operator<< for ConstexprString, the rest declare their test interfaces inside
+# namespace daq, which a file-local namespace cannot wrap.
+set_source_files_properties(test_type_name.cpp
+                            test_type_name_complex.cpp
+                            test_objectptr.cpp
+                            test_errorinfo.cpp
+                            test_stringobject.cpp
+                            test_weakref.cpp
+                            PROPERTIES SKIP_UNITY_BUILD_INCLUSION ON
+)
+
+opendaq_target_unity_tests(${TEST_APP})
 
 add_test(NAME ${TEST_APP}
          COMMAND $<TARGET_FILE_NAME:${TEST_APP}>

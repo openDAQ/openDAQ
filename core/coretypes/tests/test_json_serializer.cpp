@@ -4,6 +4,10 @@
 
 using namespace daq;
 
+namespace test_json_serializer
+{
+
+
 class JsonSerializerTest : public testing::Test
 {
 public:
@@ -373,11 +377,11 @@ TEST_F(JsonSerializerTest, ImplementationName)
     ASSERT_EQ(prefix, 0u);
 }
 
-static constexpr auto INTERFACE_ID = FromTemplatedTypeName("ISerializer", "daq");
+static constexpr auto JSON_SERIALIZER_INTERFACE_ID = FromTemplatedTypeName("ISerializer", "daq");
 
 TEST_F(JsonSerializerTest, InterfaceId)
 {
-    ASSERT_EQ(INTERFACE_ID, ISerializer::Id);
+    ASSERT_EQ(JSON_SERIALIZER_INTERFACE_ID, ISerializer::Id);
 }
 
 TEST_F(JsonSerializerTest, InterfaceIdString)
@@ -404,3 +408,5 @@ TEST_F(JsonSerializerTest, UserContext)
     auto userContextOut = serializer.getUser();
     ASSERT_EQ(userContext, userContextOut);
 }
+}
+// namespace test_json_serializer

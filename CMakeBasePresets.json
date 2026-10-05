@@ -122,6 +122,7 @@
                 "DAQMODULES_BASIC_CSV_RECORDER_MODULE": true,
                 "DAQMODULES_LICENSING_MODULE": true,
                 "OPENDAQ_ENABLE_WEBSOCKET_STREAMING": true,
+                "OPENDAQ_ENABLE_WEBSOCKET_STREAMING_WITH_TLS": true,
                 "APP_ENABLE_WEBPAGE_EXAMPLES": true,
                 "OPENDAQ_DOCUMENTATION_TESTS": true,
                 "OPENDAQ_ENABLE_NATIVE_STREAMING": true,
@@ -145,8 +146,37 @@
                 "DAQMODULES_BASIC_CSV_RECORDER_MODULE": true,
                 "OPENDAQ_ENABLE_OPCUA": true,
                 "OPENDAQ_ENABLE_WEBSOCKET_STREAMING": true,
+                "OPENDAQ_ENABLE_WEBSOCKET_STREAMING_WITH_TLS": true,
                 "OPENDAQ_ENABLE_NATIVE_STREAMING": true,
                 "DAQSIMULATOR_ENABLE_SIMULATOR_APP": true
+            }
+        },
+        {
+            "name": "stage",
+            "hidden": true,
+            "cacheVariables": {
+                "OPENDAQ_ENABLE_TESTS": false,
+                "OPENDAQ_ENABLE_TEST_UTILS": false,
+                "OPENDAQ_GENERATE_C_BINDINGS": false,
+                "OPENDAQ_GENERATE_PYTHON_BINDINGS": false,
+                "OPENDAQ_GENERATE_CSHARP_BINDINGS": false,
+                "OPENDAQ_GENERATE_DELPHI_BINDINGS": false,
+                "OPENDAQ_ENABLE_OPCUA": false,
+                "OPENDAQ_ENABLE_WEBSOCKET_STREAMING": false,
+                "OPENDAQ_ENABLE_NATIVE_STREAMING": false,
+                "DAQMODULES_OPENDAQ_CLIENT_MODULE": false,
+                "DAQMODULES_OPENDAQ_SERVER_MODULE": false,
+                "DAQMODULES_EMPTY_MODULE": false,
+                "DAQMODULES_AUDIO_DEVICE_MODULE": false,
+                "DAQMODULES_REF_DEVICE_MODULE": false,
+                "DAQMODULES_SIMULATOR_DEVICE_MODULE": false,
+                "DAQMODULES_REF_FB_MODULE": false,
+                "DAQMODULES_BASIC_CSV_RECORDER_MODULE": false,
+                "DAQMODULES_PARQUET_RECORDER_MODULE": false,
+                "DAQMODULES_LICENSING_MODULE": false,
+                "APP_ENABLE_WEBPAGE_EXAMPLES": false,
+                "DAQSIMULATOR_ENABLE_SIMULATOR_APP": false,
+                "OPENDAQ_BUILD_DOCUMENTATION": false
             }
         },
         {
@@ -166,6 +196,7 @@
                 "DAQMODULES_BASIC_CSV_RECORDER_MODULE": true,
                 "OPENDAQ_ENABLE_OPCUA": true,
                 "OPENDAQ_ENABLE_WEBSOCKET_STREAMING": true,
+                "OPENDAQ_ENABLE_WEBSOCKET_STREAMING_WITH_TLS": true,
                 "OPENDAQ_ENABLE_NATIVE_STREAMING": true
             }
         },
@@ -187,6 +218,7 @@
                 "DAQSIMULATOR_ENABLE_SIMULATOR_APP": true,
                 "OPENDAQ_ENABLE_UNSTABLE_TEST_LABELS": true,
                 "OPENDAQ_SKIP_UNSTABLE_TESTS": true,
+                "OPENDAQ_ENABLE_OBJECT_POOLS": true,
                 "DAQMODULES_LT_LEGACY_MODULES": false
             }
         },
@@ -326,6 +358,24 @@
                 "intel-llvm",
                 "ninja"
             ]
+        },
+        {
+            "name": "x64/msvc-26-ninja/full/measure",
+            "displayName": "[MSVC 26 + Ninja] Full - build time measurement",
+            "description": "Ninja with MSVC, bindings on, compiler cache off for reproducible build times. Pass -DOPENDAQ_ENABLE_BUILD_ACCELERATION=OFF for the baseline.",
+            "inherits": [
+                "debug",
+                "full"
+            ],
+            "generator": "Ninja",
+            "cacheVariables": {
+                "CMAKE_C_COMPILER": "cl",
+                "CMAKE_CXX_COMPILER": "cl",
+                "OPENDAQ_GENERATE_PYTHON_BINDINGS": true,
+                "OPENDAQ_GENERATE_C_BINDINGS": true,
+                "OPENDAQ_ENABLE_PYTHON_BINDINGS_TESTS": false,
+                "OPENDAQ_USE_CCACHE": false
+            }
         }
     ],
     "testPresets": [
@@ -335,6 +385,24 @@
             "configurePreset": "ci",
             "output": {
                 "outputOnFailure": true
+            }
+        },
+        {
+            "name": "run_tests_nightly",
+            "description": "Run all tests excluding unstable ones, streaming test output live",
+            "inherits": [
+                "run_tests"
+            ],
+            "output": {
+                "verbosity": "verbose"
+            }
+        },
+        {
+            "name": "run_tests_parallel",
+            "description": "Run all tests excluding unstable ones, four at a time; RESOURCE_LOCK keeps port and mDNS users apart",
+            "inherits": "run_tests",
+            "execution": {
+                "jobs": 4
             }
         },
         {

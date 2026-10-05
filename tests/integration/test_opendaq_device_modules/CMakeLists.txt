@@ -3,6 +3,7 @@ set(TEST_APP test_device_modules)
 set(TEST_HEADERS
     test_helpers/test_helpers.h
     test_helpers/device_modules.h
+    test_helpers/lt_tls.h
 )
 
 set(TEST_SOURCES test_native_device_modules.cpp
@@ -54,10 +55,33 @@ if (MSVC)
     target_compile_options(${TEST_APP} PRIVATE /bigobj)
 endif()
 
+# The LT streaming tests over the secure channel need TLS fixtures (CA, server and client
+# certificates/keys). Reuse the pre-generated ones from the LT streaming modules repository instead of
+# keeping a second copy here. The legacy LT modules have neither TLS support nor those fixtures, and
+# neither has a modern build with the secure channel switched off.
+if (NOT DAQMODULES_LT_LEGACY_MODULES AND OPENDAQ_ENABLE_WEBSOCKET_STREAMING_WITH_TLS AND DEFINED LT_MODULES_SOURCE_DIR)
+    set(LT_TLS_SECRETS_DIR "${LT_MODULES_SOURCE_DIR}/tests/integration/secrets")
+    if (EXISTS "${LT_TLS_SECRETS_DIR}")
+        add_custom_command(TARGET ${TEST_APP} POST_BUILD
+            COMMAND ${CMAKE_COMMAND} -E copy_directory
+                    ${LT_TLS_SECRETS_DIR}
+                    $<TARGET_FILE_DIR:${TEST_APP}>/secrets)
+    else()
+        message(WARNING "TLS fixtures not found in ${LT_TLS_SECRETS_DIR}. "
+                        "The LT streaming tests over the secure channel will fail to load their secrets.")
+    endif()
+endif()
+
+opendaq_target_pch(${TEST_APP} <opendaq/opendaq.h> <gtest/gtest.h>)
+# Too large to merge into a unity translation unit: MSVC hits an internal compiler error.
+set_source_files_properties(test_native_device_modules.cpp PROPERTIES SKIP_UNITY_BUILD_INCLUSION ON)
+opendaq_target_unity_tests(${TEST_APP} BATCH_SIZE 4)
+
 add_test(NAME ${TEST_APP}
          COMMAND $<TARGET_FILE_NAME:${TEST_APP}>
          WORKING_DIRECTORY $<TARGET_FILE_DIR:${TEST_APP}>
 )
+opendaq_test_resource_lock(${TEST_APP} network_native network_lt network_opcua mdns)
 
 target_compile_definitions(${TEST_APP} PRIVATE OPENDAQ_SKIP_DLL_IMPORT)
 

@@ -158,6 +158,13 @@ DECLARE_OPENDAQ_INTERFACE(IStreaming, IBaseObject)
     virtual ErrCode INTERFACE_FUNC getOwnerDeviceRemoteId(IString** deviceRemoteId) const = 0;
 
     /*!
+     * @brief Gets the group identifier of the data transfer protocol (e.g., "OpenDAQNativeStreamingGroup", "OpenDAQLTStreamingGroup")
+     * used by this streaming object.
+     * @param[out] protocolId The string representing the protocol ID.
+     */
+    virtual ErrCode INTERFACE_FUNC getProtocolGroupId(IString** protocolGroupId) const = 0;
+
+    /*!
      * @brief Gets the identifier of the data transfer protocol (e.g., "OpenDAQNativeStreaming", "OpenDAQLTStreaming")
      * used by this streaming object.
      * @param[out] protocolId The string representing the protocol ID.

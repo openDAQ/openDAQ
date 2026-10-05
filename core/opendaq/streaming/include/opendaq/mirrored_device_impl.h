@@ -43,6 +43,9 @@ public:
                                 const StringPtr& name = nullptr);
     ~MirroredDeviceBase() override;
 
+    // IDevice
+    ErrCode INTERFACE_FUNC getInfo(IDeviceInfo** info) override;
+
     // IMirroredDevice
     ErrCode INTERFACE_FUNC getStreamingSources(IList** streamingSources) override;
     ErrCode INTERFACE_FUNC getRemoteId(IString** id) const override;
@@ -225,11 +228,41 @@ ErrCode MirroredDeviceBase<Interfaces...>::removeStreamingSource(IString* stream
 }
 
 template <typename ... Interfaces>
+ErrCode MirroredDeviceBase<Interfaces...>::getInfo(IDeviceInfo** info)
+{
+    const ErrCode errCode = Super::getInfo(info);
+    OPENDAQ_RETURN_IF_FAILED(errCode);
+
+    // MirroredDeviceType may be deserialized before DeviceInfo is materialized (propValues /
+    // getInfo). Re-apply it whenever DeviceInfo becomes available.
+    if (mirroredDeviceType.assigned() && this->deviceInfo.assigned() && !this->deviceInfo.getDeviceType().assigned())
+    {
+        const ErrCode setErr =
+            this->deviceInfo.template asPtr<IDeviceInfoConfig>(true)->setDeviceType(mirroredDeviceType);
+        if (OPENDAQ_FAILED(setErr))
+            daqClearErrorInfo();
+    }
+
+    return errCode;
+}
+
+template <typename ... Interfaces>
 ErrCode MirroredDeviceBase<Interfaces...>::setMirroredDeviceType(IDeviceType* type)
 {
     mirroredDeviceType = type;
-    if (this->deviceInfo.assigned())
-        this->deviceInfo.template asPtr<IDeviceInfoConfig>(true).setDeviceType(DeviceTypePtr::Borrow(type));
+
+    DeviceInfoPtr info = this->deviceInfo;
+    if (!info.assigned() && this->objPtr.hasProperty("DaqDeviceInfo"))
+        info = this->objPtr.getPropertyValue("DaqDeviceInfo").template asPtrOrNull<IDeviceInfo>(true);
+
+    if (info.assigned())
+    {
+        this->deviceInfo = info;
+        const ErrCode setErr = info.template asPtr<IDeviceInfoConfig>(true)->setDeviceType(DeviceTypePtr::Borrow(type));
+        if (OPENDAQ_FAILED(setErr))
+            daqClearErrorInfo();
+    }
+
     return OPENDAQ_SUCCESS;
 }
 

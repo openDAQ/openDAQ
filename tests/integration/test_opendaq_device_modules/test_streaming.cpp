@@ -4,6 +4,14 @@
 #include <list>
 
 #include "test_helpers/device_modules.h"
+#include "test_helpers/lt_tls.h"
+
+#ifdef DAQMODULES_LT_LEGACY_MODULES
+    #define ENABLE_COMMON_LT_STREAMING_TESTS
+#else
+    #define ENABLE_ALTERNATIVE_LT_STREAMING_TESTS
+#endif
+#define ENABLE_COMMON_NATIVE_STREAMING_TESTS
 
 #ifdef DAQMODULES_LT_LEGACY_MODULES
     #define ENABLE_COMMON_LT_STREAMING_TESTS
@@ -14,6 +22,9 @@
 
 using namespace daq;
 using namespace std::chrono_literals;
+
+namespace test_streaming
+{
 
 // first param: streaming server type / streaming protocol
 // second param: client device connection string
@@ -28,11 +39,13 @@ public:
             GTEST_SKIP() << "Ipv6 is disabled";
         }
 
+        usingNativePseudoDevice = std::get<0>(GetParam()) == "OpenDAQNativeStreaming" && (std::get<1>(GetParam()).find("daq.ns://") == 0);
+        usingSecureLTStreaming = std::get<0>(GetParam()) == "OpenDAQLTStreamingSecure";
+        usingLTPseudoDevice = (std::get<0>(GetParam()) == "OpenDAQLTStreaming" && std::get<1>(GetParam()).find("daq.lt://") == 0) ||
+                              (usingSecureLTStreaming && std::get<1>(GetParam()).find("daq.lts://") == 0);
+
         serverInstance = CreateServerInstance();
         clientInstance = CreateClientInstance();
-
-        usingNativePseudoDevice = std::get<0>(GetParam()) == "OpenDAQNativeStreaming" && (std::get<1>(GetParam()).find("daq.ns://") == 0);
-        usingLTPseudoDevice = std::get<0>(GetParam()) == "OpenDAQLTStreaming" && (std::get<1>(GetParam()).find("daq.lt://") == 0);
     }
 
     void TearDown() override
@@ -51,20 +64,40 @@ public:
         }
     }
 
-    SignalPtr getSignal(const DevicePtr& device, const std::string& signalName)
+    SignalPtr findSignal(const DevicePtr& device, const std::string& signalName)
     {
-        auto signals = device.getSignals(search::Recursive(search::Visible()));
-
-        for (const auto& signal : signals)
+        for (const auto& signal : device.getSignals(search::Recursive(search::Visible())))
         {
             const auto descriptor = signal.getDescriptor();
             if (descriptor.assigned() && descriptor.getName() == signalName)
-            {
                 return signal;
-            }
         }
+        return nullptr;
+    }
 
-        throw NotFoundException();
+    SignalPtr getSignal(const DevicePtr& device, const std::string& signalName)
+    {
+        const auto signal = findSignal(device, signalName);
+        if (!signal.assigned())
+            throw NotFoundException();
+        return signal;
+    }
+
+    // The client creates mirrored signals and attaches their streaming sources asynchronously after connecting.
+    SignalPtr waitForSignal(const DevicePtr& device, const std::string& signalName)
+    {
+        SignalPtr signal;
+        const bool ready = test_helpers::waitFor([&]
+        {
+            signal = findSignal(device, signalName);
+            return signal.assigned() && signal.asPtr<IMirroredSignalConfig>().getActiveStreamingSource().assigned();
+        }, std::chrono::seconds(10));
+        if (!ready)
+        {
+            ADD_FAILURE() << "client signal " << signalName << " was not streamed within the timeout";
+            throw NotFoundException();
+        }
+        return signal;
     }
 
     PacketReaderPtr createServerReader(const std::string& signalName)
@@ -121,7 +154,7 @@ protected:
         auto moduleManager = ModuleManager("[[none]]");
         auto typeManager = TypeManager();
         auto authenticationProvider = AuthenticationProvider();
-        auto context = Context(scheduler, logger, typeManager, moduleManager, authenticationProvider);
+        auto context = Context(scheduler, logger, typeManager, moduleManager, authenticationProvider, test_helpers::instanceOptions());
 
         const ModulePtr deviceModule(MockDeviceModule_Create(context));
         moduleManager.addModule(deviceModule);
@@ -143,7 +176,7 @@ protected:
 
     InstancePtr CreateClientInstance()
     {
-        auto instance = Instance("[[none]]");
+        auto instance = test_helpers::createInstance("[[none]]");
         addLtClientModule(instance);
         addNativeClientModule(instance);
         addOpcuaClientModule(instance);
@@ -153,6 +186,11 @@ protected:
         auto config = instance.createDefaultAddDeviceConfig();
         PropertyObjectPtr general = config.getPropertyValue("General");
         general.setPropertyValue("PrioritizedStreamingProtocols", List<IString>(std::get<0>(GetParam())));
+
+#ifdef OPENDAQ_ENABLE_WEBSOCKET_STREAMING_WITH_TLS
+        if (usingSecureLTStreaming)
+            test_helpers::lt_tls::applySecureClientConfig(config);
+#endif
 
         auto device = instance.addDevice(connectionString, config);
         return instance;
@@ -164,13 +202,15 @@ protected:
 
     bool usingNativePseudoDevice{false};
     bool usingLTPseudoDevice{false};
+    bool usingSecureLTStreaming{false};
 };
 
 TEST_P(StreamingTest, SignalDescriptorEvents)
 {
-    // LT streaming subscribe-completion ack is intermittently dropped — waitForAcknowledgement
-    // below would time out at 5 s. Skip just the daq.lt:// param; other transports still run.
-    if (std::get<1>(GetParam()).find("daq.lt://") == 0)
+    // LT streaming: subscribe-completion ack is intermittently dropped on daq.lt://, and over
+    // opcua/nd the mirrored config descriptor (with post-scaling) diverges from incomplete LT
+    // event-packet descriptors / extra events. Native streaming params still cover those transports.
+    if (std::get<0>(GetParam()) == "OpenDAQLTStreaming")
         GTEST_SKIP();
 
     const size_t packetsToGenerate = 5;
@@ -229,8 +269,8 @@ TEST_P(StreamingTest, SignalDescriptorEvents)
 
 TEST_P(StreamingTest, DataPackets)
 {
-    // Same dropped LT streaming subscribe-completion ack as SignalDescriptorEvents.
-    if (std::get<1>(GetParam()).find("daq.lt://") == 0)
+    // Same LT streaming gaps as SignalDescriptorEvents (extra/incomplete event packets).
+    if (std::get<0>(GetParam()) == "OpenDAQLTStreaming")
         GTEST_SKIP();
 
     const size_t packetsToGenerate = 10;
@@ -318,8 +358,8 @@ TEST_P(StreamingTest, LastValue)
 
 TEST_P(StreamingTest, SetNullDescriptor)
 {
-    // Same dropped LT streaming subscribe-completion ack as SignalDescriptorEvents.
-    if (std::get<1>(GetParam()).find("daq.lt://") == 0)
+    // Same LT streaming gaps as SignalDescriptorEvents (extra/incomplete event packets).
+    if (std::get<0>(GetParam()) == "OpenDAQLTStreaming")
         GTEST_SKIP();
 
     if (!usingLTPseudoDevice)
@@ -414,10 +454,10 @@ TEST_P(StreamingTest, SetNullDescriptor)
 
 TEST_P(StreamingTest, ChangedDataDescriptorBeforeSubscribe)
 {
-    // daq.nd:// is not supported by this test. daq.lt:// hits the same dropped LT streaming
-    // subscribe-completion ack as SignalDescriptorEvents.
+    // daq.nd:// is not supported by this test. OpenDAQLTStreaming has the same event-packet gaps
+    // as SignalDescriptorEvents (including when preferred over opcua).
     if (std::get<1>(GetParam()).find("daq.nd://") == 0 ||
-        std::get<1>(GetParam()).find("daq.lt://") == 0)
+        std::get<0>(GetParam()) == "OpenDAQLTStreaming")
     {
         GTEST_SKIP();
     }
@@ -590,7 +630,7 @@ protected:
         auto moduleManager = ModuleManager("[[none]]");
         auto typeManager = TypeManager();
         auto authenticationProvider = AuthenticationProvider();
-        auto context = Context(scheduler, logger, typeManager, moduleManager, authenticationProvider);
+        auto context = Context(scheduler, logger, typeManager, moduleManager, authenticationProvider, test_helpers::instanceOptions());
 
         const ModulePtr deviceModule(MockDeviceModule_Create(context));
         moduleManager.addModule(deviceModule);
@@ -658,7 +698,7 @@ protected:
         auto moduleManager = ModuleManager("[[none]]");
         auto typeManager = TypeManager();
         auto authenticationProvider = AuthenticationProvider();
-        auto context = Context(scheduler, logger, typeManager, moduleManager, authenticationProvider);
+        auto context = Context(scheduler, logger, typeManager, moduleManager, authenticationProvider, test_helpers::instanceOptions());
 
         const ModulePtr deviceModule(MockDeviceModule_Create(context));
         moduleManager.addModule(deviceModule);
@@ -747,11 +787,11 @@ INSTANTIATE_TEST_SUITE_P(
 class NativeDeviceStreamingTest : public testing::Test
 {};
 
-TEST_F_UNSTABLE_SKIPPED(NativeDeviceStreamingTest, ChangedDataDescriptorBeforeSubscribeNativeDevice)
+TEST_F(NativeDeviceStreamingTest, ChangedDataDescriptorBeforeSubscribeNativeDevice)
 {
     SKIP_TEST_MAC_CI;
     const auto moduleManager = ModuleManager("[[none]]");
-    auto serverInstance = InstanceBuilder().setModuleManager(moduleManager).build();
+    auto serverInstance = test_helpers::instanceBuilder().setModuleManager(moduleManager).build();
     const ModulePtr deviceModule(MockDeviceModule_Create(serverInstance.getContext()));
     moduleManager.addModule(deviceModule);
     serverInstance.setRootDevice("daqmock://phys_device");
@@ -764,18 +804,28 @@ TEST_F_UNSTABLE_SKIPPED(NativeDeviceStreamingTest, ChangedDataDescriptorBeforeSu
     for (const auto& ch : channels)
         sigCount += ch.getSignalsRecursive().getCount();
 
-    const auto clientInstance = Instance("[[none]]");
+    const auto clientInstance = test_helpers::createInstance("[[none]]");
 
     addNativeClientModule(clientInstance);
     clientInstance.addDevice("daq.nd://127.0.0.1");
 
 
+    // ChangingSignal/ChangingTime on mockch1 mutate their own descriptor on a background timer
+    // (see MockChannelImpl::addChangingSignal), independently of the ChangeDescriptors property
+    // below. Those autonomous changes are tagged with a "color" metadata key that ChangeDescriptors
+    // never sets, so exclude only those events; ChangeDescriptors-triggered changes on the same
+    // two signals still count normally.
     int callCount = 0;
     clientInstance.getContext().getOnCoreEvent() +=
         [&](const ComponentPtr& /*comp*/, const CoreEventArgsPtr& args)
         {
-            if (args.getEventId() == static_cast<Int>(CoreEventId::DataDescriptorChanged))  
-                callCount++;
+            if (args.getEventId() == static_cast<Int>(CoreEventId::DataDescriptorChanged))
+            {
+                const DataDescriptorPtr desc = args.getParameters().get("DataDescriptor");
+                const bool fromBackgroundGenerator = desc.assigned() && desc.getMetadata().hasKey("color");
+                if (!fromBackgroundGenerator)
+                    callCount++;
+            }
         };
 
     SignalConfigPtr serverSignalPtr = serverInstance.getSignalsRecursive(search::LocalId("ByteStep"))[0];
@@ -862,6 +912,17 @@ public:
 #endif
         suite.push_back(std::make_tuple("OpenDAQLTStreaming", "daq.opcua://127.0.0.1/"));
         suite.push_back(std::make_tuple("OpenDAQLTStreaming", "daq.opcua://[::1]/"));
+
+#ifdef OPENDAQ_ENABLE_WEBSOCKET_STREAMING_WITH_TLS
+        suite.push_back(std::make_tuple("OpenDAQLTStreamingSecure", "daq.lts://127.0.0.1/"));
+        suite.push_back(std::make_tuple("OpenDAQLTStreamingSecure", "daq.lts://[::1]/"));
+#if defined(OPENDAQ_ENABLE_NATIVE_STREAMING)
+        suite.push_back(std::make_tuple("OpenDAQLTStreamingSecure", "daq.nd://127.0.0.1/"));
+        suite.push_back(std::make_tuple("OpenDAQLTStreamingSecure", "daq.nd://[::1]/"));
+#endif
+        suite.push_back(std::make_tuple("OpenDAQLTStreamingSecure", "daq.opcua://127.0.0.1/"));
+        suite.push_back(std::make_tuple("OpenDAQLTStreamingSecure", "daq.opcua://[::1]/"));
+#endif
         return suite;
     }
 
@@ -992,6 +1053,42 @@ public:
 
         return result;
     };
+
+protected:
+    InstancePtr CreateServerInstance() override
+    {
+        auto logger = Logger();
+        auto scheduler = Scheduler(logger);
+        auto moduleManager = ModuleManager("[[none]]");
+        auto typeManager = TypeManager();
+        auto authenticationProvider = AuthenticationProvider();
+        auto context = Context(scheduler, logger, typeManager, moduleManager, authenticationProvider, test_helpers::instanceOptions());
+
+        const ModulePtr deviceModule(MockDeviceModule_Create(context));
+        moduleManager.addModule(deviceModule);
+
+        auto instance = InstanceCustom(context, "local");
+        addLtServerModule(instance);
+        addNativeServerModule(instance);
+        addOpcuaServerModule(instance);
+
+        const auto mockDevice = instance.addDevice("daqmock://phys_device");
+
+        instance.addServer("OpenDAQLTStreaming", ltServerConfig(instance));
+        instance.addServer("OpenDAQNativeStreaming", nullptr);
+        instance.addServer("OpenDAQOPCUA", nullptr);
+
+        return instance;
+    }
+
+    PropertyObjectPtr ltServerConfig([[maybe_unused]] const InstancePtr& instance)
+    {
+#ifdef OPENDAQ_ENABLE_WEBSOCKET_STREAMING_WITH_TLS
+        if (usingSecureLTStreaming)
+            return test_helpers::lt_tls::secureServerConfig(instance);
+#endif
+        return nullptr;
+    }
 };
 
 TEST_P(StreamingTestForModernLt, SignalDescriptorEvents)
@@ -1007,10 +1104,7 @@ TEST_P(StreamingTestForModernLt, SignalDescriptorEvents)
     const size_t packetsToRead = initialEventPackets + packetsToGenerate + (packetsToGenerate - 1) * packetsPerChange;
 
     auto serverSignal = getSignal(serverInstance, "ChangingSignal");
-    // Give the client time to do async work related to signal creation
-    // Otherwise getSignal() on the client may not find it yet.
-    CONDITIONAL_SLEEP;
-    auto clientSignal = getSignal(clientInstance, "ChangingSignal");
+    auto clientSignal = waitForSignal(clientInstance, "ChangingSignal");
 
     auto mirroredSignalPtr = clientSignal.template asPtr<IMirroredSignalConfig>();
     test_helpers::SignalAckListener acks(mirroredSignalPtr);
@@ -1068,11 +1162,8 @@ TEST_P(StreamingTestForModernLt, DataPackets)
     // they are not expected to be transmitted over LT streaming, but they are triggered on client side
     // and received by client reader, so they are included in expected packet count and compared in packet comparison
     const size_t packetsToReadServer = packetsToGenerate + 1;
-    const size_t packetsToReadClient = packetsToGenerate + ((std::get<1>(GetParam()).find("daq.lt://") == 0) ? 1 : 2);
-    // Give the client time to do async work related to signal creation
-    // Otherwise getSignal() on the client may not find it yet.
-    CONDITIONAL_SLEEP;
-    auto mirroredSignalPtr = getSignal(clientInstance, "ByteStep").template asPtr<IMirroredSignalConfig>();
+    const size_t packetsToReadClient = packetsToGenerate + (usingLTPseudoDevice ? 1 : 2);
+    auto mirroredSignalPtr = waitForSignal(clientInstance, "ByteStep").template asPtr<IMirroredSignalConfig>();
 
     test_helpers::SignalAckListener acks(mirroredSignalPtr);
 
@@ -1091,7 +1182,7 @@ TEST_P(StreamingTestForModernLt, DataPackets)
 
     EXPECT_EQ(serverReceivedPackets.getCount(), packetsToReadServer);
     EXPECT_EQ(clientReceivedPackets.getCount(), packetsToReadClient);
-    if (std::get<1>(GetParam()).find("daq.lt://") == 0)
+    if (usingLTPseudoDevice)
     {
         // Pure LT pseudo-device: server and client packet streams line up one-to-one, so compare them
         // pairwise with the LT-aware comparators (LT transmits only a subset of descriptor fields)
@@ -1113,20 +1204,11 @@ TEST_P(StreamingTestForModernLt, MultipleSignalsConcurrent)
 {
     // Subscribe 3 signals with different sample types/rules at once (ByteStep: Int8 explicit, IntStep: Int32 explicit,
     // Sine: Float64 + post-scaling) and verify each stream arrives complete and independent
-    // +1 signal initial descriptor changed event packet for server side
-    // +2 signal descriptor changed event packets for client side for daq.lt (workaround)
-    // +1 signal initial descriptor changed event packet for client side for other connections
-    // These additional event packets are triggered by client reader creation in this test and
-    // they are not expected to be transmitted over LT streaming, but they are triggered on client side
-    // and received by client reader, so they are included in expected packet count and compared in packet comparison
+    // The server reader and the LT pseudo-device client reader each see one initial descriptor event before the data
     const std::vector<std::string> signalNames = {"ByteStep", "IntStep", "Sine"};
     const size_t packetsToGenerate = 10;
     const size_t packetsToReadServer = packetsToGenerate + 1;
-    const size_t packetsToReadClient = packetsToGenerate + ((std::get<1>(GetParam()).find("daq.lt://") == 0) ? 1 : 2);
-
-    // Give the client time to do async work related to signal creation
-    // Otherwise getSignal() on the client may not find it yet
-    CONDITIONAL_SLEEP;
+    const size_t packetsToReadClient = packetsToGenerate + 1;
 
     std::vector<MirroredSignalConfigPtr> mirroredSignals;
     std::vector<PacketReaderPtr> serverReaders;
@@ -1136,13 +1218,13 @@ TEST_P(StreamingTestForModernLt, MultipleSignalsConcurrent)
     std::list<test_helpers::SignalAckListener> ackListeners;
     for (size_t i = 0; i < signalNames.size(); ++i)
     {
-        auto mirrored = getSignal(clientInstance, signalNames[i]).template asPtr<IMirroredSignalConfig>();
+        auto mirrored = waitForSignal(clientInstance, signalNames[i]).template asPtr<IMirroredSignalConfig>();
         mirroredSignals.push_back(mirrored);
         ackListeners.emplace_back(mirroredSignals[i]);
 
         serverReaders.push_back(createServerReader(signalNames[i]));
 
-        auto signal = getSignal(clientInstance, signalNames[i]);
+        auto signal = waitForSignal(clientInstance, signalNames[i]);
         auto port = InputPort(clientInstance.getContext(), nullptr, "readsig_" + signalNames[i]);
         PacketReaderPtr reader = PacketReaderFromPort(port);
         port.connect(signal);
@@ -1165,14 +1247,12 @@ TEST_P(StreamingTestForModernLt, MultipleSignalsConcurrent)
         return n;
     };
 
-    const bool isLtPseudoDevice = std::get<1>(GetParam()).find("daq.lt://") == 0;
-
     for (size_t i = 0; i < signalNames.size(); ++i)
     {
         auto serverReceivedPackets = test_helpers::tryReadPackets(serverReaders[i], packetsToReadServer);
         EXPECT_EQ(serverReceivedPackets.getCount(), packetsToReadServer) << "signal " << signalNames[i];
 
-        if (isLtPseudoDevice)
+        if (usingLTPseudoDevice)
         {
             // LT pseudo-device: descriptors arrive only via streaming, so the server/client streams line up one-to-one.
             auto clientReceivedPackets = test_helpers::tryReadPackets(clientReaders[i], packetsToReadClient);
@@ -1185,8 +1265,7 @@ TEST_P(StreamingTestForModernLt, MultipleSignalsConcurrent)
         {
             // Config devices (daq.nd/daq.opcua) deliver the initial descriptor through both the config core
             // event and the streaming subscribe. The number of data packets is always packetsToGenerate.
-            auto clientReceivedPackets =
-                test_helpers::tryReadPackets(clientReaders[i], packetsToReadClient);
+            auto clientReceivedPackets = test_helpers::tryReadDataPackets(clientReaders[i], packetsToGenerate);
             EXPECT_EQ(countDataPackets(clientReceivedPackets), packetsToGenerate) << "signal " << signalNames[i];
             EXPECT_TRUE(test_helpers::packetBehaviorComparison(
                 serverReceivedPackets, clientReceivedPackets, compareDataPackets, compareDescriptors))
@@ -1195,16 +1274,33 @@ TEST_P(StreamingTestForModernLt, MultipleSignalsConcurrent)
     }
 }
 
+// The client must end up on the channel it prioritized. With the TLS channel enabled the server publishes
+// both the plaintext and the secure capability (see WsStreamingServer::addCapability()), so behind a config
+// channel (daq.nd:// / daq.opcua://) picking the wrong one would silently downgrade the connection to
+// plaintext while every other test still passes
+TEST_P(StreamingTestForModernLt, ActiveStreamingSource)
+{
+    const std::string expectedPrefix = usingSecureLTStreaming ? "daq.lts://" : "daq.lt://";
+
+    auto mirroredSignalPtr = waitForSignal(clientInstance, "ByteStep").template asPtr<IMirroredSignalConfig>();
+
+    const StringPtr activeSource = mirroredSignalPtr.getActiveStreamingSource();
+    ASSERT_TRUE(activeSource.assigned());
+    EXPECT_EQ(activeSource.toStdString().rfind(expectedPrefix, 0), 0u) << "active streaming source: " << activeSource;
+
+    // MinConnections (the default heuristic) connects the single prioritized protocol only
+    const auto sources = mirroredSignalPtr.getStreamingSources();
+    EXPECT_EQ(sources.getCount(), 1u);
+    for (const StringPtr& source : sources)
+        EXPECT_EQ(source.toStdString().rfind(expectedPrefix, 0), 0u) << "streaming source: " << source;
+}
+
 TEST_P(StreamingTestForModernLt, LastValue)
 {
-    // daq.lt:// is a streaming-only transport (no config channel), so while unsubscribed the client
-    // signal has no way to fetch the last value and getLastValue() stays unassigned
+    // daq.lt:// and daq.lts:// are streaming-only transports (no config channel), so while unsubscribed the
+    // client signal has no way to fetch the last value and getLastValue() stays unassigned
     // Config-enabled transports (daq.nd://, daq.opcua://) fall back to a config-protocol RPC and keep returning it
-    const bool isStreamingOnly = (std::get<1>(GetParam()).find("daq.lt://") == 0);
-
-    // Give the client time to do async work related to signal creation
-    // Otherwise getSignal() on the client may not find it yet.
-    CONDITIONAL_SLEEP;
+    const bool isStreamingOnly = usingLTPseudoDevice;
 
     // Flaky on IPv6 OPC UA endpoints: phase-3 lastValue mismatch after unsubscribe
     // (mirror keeps a stale streaming-cached value instead of reading via the config channel).
@@ -1214,7 +1310,7 @@ TEST_P(StreamingTestForModernLt, LastValue)
     }
 
     auto serverSignal = getSignal(serverInstance, "IntStep");
-    auto mirroredSignalPtr = getSignal(clientInstance, "IntStep").template asPtr<IMirroredSignalConfig>();
+    auto mirroredSignalPtr = waitForSignal(clientInstance, "IntStep").template asPtr<IMirroredSignalConfig>();
 
     test_helpers::SignalAckListener acks(mirroredSignalPtr);
 
@@ -1302,10 +1398,7 @@ TEST_P(StreamingTestForModernLt, DISABLED_SetNullDescriptor)
         const size_t packetsToRead = 2;
 
         auto serverSignalPtr = getSignal(serverInstance, "ByteStep").template asPtr<ISignalConfig>();
-        // Give the client time to do async work related to signal creation
-        // Otherwise getSignal() on the client may not find it yet
-        CONDITIONAL_SLEEP;
-        auto mirroredSignalPtr = getSignal(clientInstance, "ByteStep").template asPtr<IMirroredSignalConfig>();
+        auto mirroredSignalPtr = waitForSignal(clientInstance, "ByteStep").template asPtr<IMirroredSignalConfig>();
         test_helpers::SignalAckListener acks(mirroredSignalPtr);
 
         auto serverReader = createServerReader("ByteStep");
@@ -1333,15 +1426,12 @@ TEST_P(StreamingTestForModernLt, DISABLED_SetNullDescriptor)
 
         EXPECT_TRUE(test_helpers::packetsEqual(serverReceivedPackets,
                                                clientReceivedPackets,
-                                               std::get<0>(GetParam()) == "OpenDAQLTStreaming"));
+                                               std::get<0>(GetParam()).find("OpenDAQLTStreaming") == 0));
     }
     else // usingLTPseudoDevice true
     {
         auto serverSignalPtr = getSignal(serverInstance, "ByteStep").template asPtr<ISignalConfig>();
-        // Give the client time to do async work related to signal creation
-        // Otherwise getSignal() on the client may not find it yet.
-        CONDITIONAL_SLEEP;
-        auto mirroredOrigSignalPtr = getSignal(clientInstance, "ByteStep").template asPtr<IMirroredSignalConfig>();
+        auto mirroredOrigSignalPtr = waitForSignal(clientInstance, "ByteStep").template asPtr<IMirroredSignalConfig>();
 
         test_helpers::SignalAckListener origSigAcks(mirroredOrigSignalPtr);
         auto clientOrigSigReader = createClientReader("ByteStep");
@@ -1396,10 +1486,6 @@ TEST_P(StreamingTestForModernLt, DISABLED_SetNullDescriptor)
 
 TEST_P(StreamingTestForModernLt, ChangedDataDescriptorBeforeSubscribe)
 {
-    // Give the client time to do async work related to signal creation
-    // Otherwise getSignal() on the client may not find it yet.
-    CONDITIONAL_SLEEP;
-
     // daq.nd:// is not supported by this test.
     // A native configuration device mirrors the whole component tree and actively pushes signal descriptor
     // changes to the client as DataDescriptorChanged core events. So with daq.nd the descriptor change reaches the client through two
@@ -1415,7 +1501,7 @@ TEST_P(StreamingTestForModernLt, ChangedDataDescriptorBeforeSubscribe)
     SKIP_TEST_MAC_CI;
 
     SignalConfigPtr serverSignalPtr = getSignal(serverInstance, "ByteStep");
-    MirroredSignalConfigPtr clientSignalPtr = getSignal(clientInstance, "ByteStep");
+    MirroredSignalConfigPtr clientSignalPtr = waitForSignal(clientInstance, "ByteStep");
     MirroredSignalConfigPtr clientDomainSignalPtr = clientSignalPtr.getDomainSignal();
 
     // consume the initial-fetch hold so every iteration below subscribes over the wire
@@ -1515,7 +1601,7 @@ protected:
         auto moduleManager = ModuleManager("[[none]]");
         auto typeManager = TypeManager();
         auto authenticationProvider = AuthenticationProvider();
-        auto context = Context(scheduler, logger, typeManager, moduleManager, authenticationProvider);
+        auto context = Context(scheduler, logger, typeManager, moduleManager, authenticationProvider, test_helpers::instanceOptions());
 
         const ModulePtr deviceModule(MockDeviceModule_Create(context));
         moduleManager.addModule(deviceModule);
@@ -1529,7 +1615,7 @@ protected:
 
         const auto mockDevice = instance.addDevice("daqmock://phys_device");
 
-        streamingServer = instance.addServer("OpenDAQLTStreaming", nullptr);
+        streamingServer = instance.addServer("OpenDAQLTStreaming", ltServerConfig(instance));
 #if defined(OPENDAQ_ENABLE_NATIVE_STREAMING)
         // native server provides the config channel for daq.nd:// clients (streaming itself stays on LT,
         // which is the only prioritized streaming protocol on the client side)
@@ -1548,7 +1634,7 @@ protected:
 
     void restoreStreamingServer()
     {
-        streamingServer = serverInstance.addServer("OpenDAQLTStreaming", nullptr);
+        streamingServer = serverInstance.addServer("OpenDAQLTStreaming", ltServerConfig(serverInstance));
     }
 
     ServerPtr streamingServer;
@@ -1580,10 +1666,7 @@ protected:
 
 TEST_P(StreamingReconnectionTestForModernLt, DISABLED_Reconnection)
 {
-    // Give the client time to do async work related to signal creation
-    // Otherwise getSignal() on the client may not find it yet
-    CONDITIONAL_SLEEP;
-    auto mirroredSignalPtr = getSignal(clientInstance, "ByteStep").template asPtr<IMirroredSignalConfig>();
+    auto mirroredSignalPtr = waitForSignal(clientInstance, "ByteStep").template asPtr<IMirroredSignalConfig>();
     std::promise<StringPtr> subscribeCompletePromise;
     std::future<StringPtr> subscribeCompleteFuture;
 
@@ -1631,3 +1714,5 @@ INSTANTIATE_TEST_SUITE_P(
     testing::ValuesIn(StreamingTestForModernLt::GetLtTestSuite())
     );
 #endif
+}
+// namespace test_streaming

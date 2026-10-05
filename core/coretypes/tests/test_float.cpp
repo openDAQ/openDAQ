@@ -5,6 +5,10 @@
 
 using namespace daq;
 
+namespace test_float
+{
+
+
 using FloatTest = testing::Test;
 
 TEST_F(FloatTest, Basic)
@@ -166,14 +170,22 @@ TEST_F(FloatTest, ImplementationName)
     ASSERT_EQ(prefix, 0u);
 }
 
-static constexpr auto INTERFACE_ID = FromTemplatedTypeName("IFloat", "daq");
+static constexpr auto FLOAT_INTERFACE_ID = FromTemplatedTypeName("IFloat", "daq");
 
 TEST_F(FloatTest, InterfaceId)
 {
-    ASSERT_EQ(INTERFACE_ID, IFloat::Id);
+    ASSERT_EQ(FLOAT_INTERFACE_ID, IFloat::Id);
 }
 
 TEST_F(FloatTest, InterfaceIdString)
 {
     ASSERT_EQ(daqInterfaceIdString<IFloat>(), "{D1E14646-B7B0-5D3D-9553-BE6F1CD4F0D8}");
 }
+
+TEST_F(FloatTest, FromPool)
+{
+    const auto obj = FloatingFromPool(152.2);
+    ASSERT_DOUBLE_EQ(static_cast<Float>(obj), 152.2);
+}
+}
+// namespace test_float

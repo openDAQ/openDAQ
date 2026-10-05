@@ -431,6 +431,17 @@ BaseObjectPtr ConfigProtocolClientComm::getLastValue(const std::string& globalId
     return parseRpcOrRejectReply(getPropertyValueRpcReplyPacketBuffer.parseRpcRequestOrReply(), deserializeContext);
 }
 
+ListPtr<IBaseObject> ConfigProtocolClientComm::getLastValueWithTimestamp(const std::string& globalId)
+{
+    auto dict = Dict<IString, IBaseObject>();
+    dict.set("ComponentGlobalId", String(globalId));
+    auto rpcRequestPacketBuffer = createRpcRequestPacketBuffer(generateId(), "GetLastValueWithTimestamp", dict);
+    const auto rpcReplyPacketBuffer = sendRequestCallback(rpcRequestPacketBuffer);
+
+    const auto deserializeContext = createDeserializeContext(std::string{}, daqContext);
+    return parseRpcOrRejectReply(rpcReplyPacketBuffer.parseRpcRequestOrReply(), deserializeContext);
+}
+
 void ConfigProtocolClientComm::lock(const std::string& globalId)
 {
     auto params = Dict<IString, IBaseObject>();

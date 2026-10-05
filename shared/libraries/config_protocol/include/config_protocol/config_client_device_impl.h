@@ -74,6 +74,8 @@ public:
     ErrCode INTERFACE_FUNC setParentActive(Bool parentActive, Bool onUpdate) override;
     ErrCode INTERFACE_FUNC setAsRoot() override;
 
+    DeviceInfoPtr onGetInfo() override;
+
     template <class Implementation>
     static ErrCode Deserialize(ISerializedObject* serialized, IBaseObject* context, IFunction* factoryCallback, IBaseObject** obj);
 
@@ -406,6 +408,12 @@ ErrCode GenericConfigClientDeviceImpl<TDeviceBase>::setAsRoot()
 }
 
 template <class TDeviceBase>
+DeviceInfoPtr GenericConfigClientDeviceImpl<TDeviceBase>::onGetInfo()
+{
+    return this->objPtr.getPropertyValue("DaqDeviceInfo").template asPtrOrNull<IDeviceInfo>(true);
+}
+
+template <class TDeviceBase>
 template <class Implementation>
 ErrCode GenericConfigClientDeviceImpl<TDeviceBase>::Deserialize(ISerializedObject* serialized,
                                                                 IBaseObject* context,
@@ -506,7 +514,7 @@ void GenericConfigClientDeviceImpl<TDeviceBase>::onRemoteUpdate(const Serialized
         else
         {
             const auto serObj = serialized.readSerializedObject(id);
-            comp.template asPtr<IConfigClientObject>()->remoteUpdate(serObj);
+            this->remoteUpdateChild(comp, serObj);
         }
     }
 
@@ -525,7 +533,7 @@ void GenericConfigClientDeviceImpl<TDeviceBase>::onRemoteUpdate(const Serialized
         auto compIterator = std::find_if(this->components.begin(), this->components.end(), [&key](const ComponentPtr& comp) { return comp.getLocalId() == key; });
         if (compIterator != this->components.end())
         {
-            compIterator->template asPtr<IConfigClientObject>()->remoteUpdate(obj);
+            this->remoteUpdateChild(*compIterator, obj);
         }
         else
         {

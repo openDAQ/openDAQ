@@ -9,7 +9,7 @@ class PropertiesView(ttk.Frame):
     def __init__(self, parent: ttk.Frame, node=None, context: AppContext = None, read_only: bool = False, **kwargs):
         ttk.Frame.__init__(self, parent, **kwargs)
         self.context = context
-        self.configure(padding=(10, 5))
+        self.configure(padding=(10, 5, 27, 5))
 
         header_frame = ttk.Frame(self)
 

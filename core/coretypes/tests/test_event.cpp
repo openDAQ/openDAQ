@@ -5,6 +5,10 @@
 
 using namespace daq;
 
+namespace test_event
+{
+
+
 using EventDelegate = delegate<void(BaseObjectPtr&, EventArgsPtr<>&)>;
 
 class EventTest : public testing::Test
@@ -458,14 +462,16 @@ TEST_F(EventTest, DelegateGlobalDifference)
     ASSERT_FALSE(d1 == d2);
 }
 
-static constexpr auto INTERFACE_ID = FromTemplatedTypeName("IEvent", "daq");
+static constexpr auto EVENT_INTERFACE_ID = FromTemplatedTypeName("IEvent", "daq");
 
 TEST_F(EventTest, InterfaceId)
 {
-    ASSERT_EQ(INTERFACE_ID, IEvent::Id);
+    ASSERT_EQ(EVENT_INTERFACE_ID, IEvent::Id);
 }
 
 TEST_F(EventTest, InterfaceIdString)
 {
     ASSERT_EQ(daqInterfaceIdString<IEvent>(), "{82774C35-1638-5228-9A72-8DDDFDF10C10}");
 }
+}
+// namespace test_event

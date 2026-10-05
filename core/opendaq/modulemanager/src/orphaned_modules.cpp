@@ -2,13 +2,49 @@
 
 #include "coretypes/errors.h"
 
+#if defined(_MSC_VER) && !defined(NDEBUG)
+    #include <crtdbg.h>
+#endif
+
 BEGIN_NAMESPACE_OPENDAQ
 
 static constexpr char daqGetObjectCount[] = "daqGetObjectCount";
 
+#if defined(_MSC_VER) && !defined(NDEBUG)
+
+// Constructed on first use: the orphaned module list opens a scope during static initialization.
+static std::mutex& untrackedSync()
+{
+    static std::mutex sync;
+    return sync;
+}
+
+static int untrackedDepth = 0;
+static int untrackedFlags = 0;
+
+UntrackedAllocations::UntrackedAllocations()
+{
+    std::scoped_lock lock(untrackedSync());
+    if (untrackedDepth++ == 0)
+    {
+        untrackedFlags = _CrtSetDbgFlag(_CRTDBG_REPORT_FLAG);
+        _CrtSetDbgFlag(untrackedFlags & ~_CRTDBG_ALLOC_MEM_DF);
+    }
+}
+
+UntrackedAllocations::~UntrackedAllocations()
+{
+    std::scoped_lock lock(untrackedSync());
+    if (--untrackedDepth == 0)
+        _CrtSetDbgFlag(untrackedFlags);
+}
+
+#endif
+
 OrphanedModules::OrphanedModules()
 {
-    moduleSharedLibs.reserve(20); // To prevent false positive memory leaks in tests
+    [[maybe_unused]] const UntrackedAllocations untracked;
+    moduleSharedLibs.reserve(20);
 }
 
 OrphanedModules::~OrphanedModules()
@@ -19,6 +55,9 @@ OrphanedModules::~OrphanedModules()
 void OrphanedModules::add(boost::dll::shared_library sharedLib)
 {
     std::scoped_lock lock(sync);
+
+    // The buffer this grows into lives as long as the process.
+    [[maybe_unused]] const UntrackedAllocations untracked;
     moduleSharedLibs.push_back(std::move(sharedLib));
 }
 
@@ -33,8 +72,6 @@ void OrphanedModules::tryUnload()
         else
             ++it;
     }
-
-    moduleSharedLibs.shrink_to_fit();
 }
 
 bool OrphanedModules::canUnloadModule(const boost::dll::shared_library& moduleSharedLib)

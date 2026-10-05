@@ -75,9 +75,6 @@ $MoveEventWrappers$
     
     $PtrNameOnly$& operator=(const $PtrName$& other)
     {
-        if (this == &other)
-            return *this;
-
         $BasePtrNameFull$$BasePtrInterfaceTemplate$::operator =(other);
 
 $EventWrappersCopyAssign$
@@ -86,11 +83,6 @@ $EventWrappersCopyAssign$
 
     $PtrNameOnly$& operator=($PtrName$&& other) noexcept
     {
-        if (this == std::addressof(other))
-        {
-            return *this;
-        }
-
 $EventWrappersMoveAssign$
         $BasePtrNameFull$$BasePtrInterfaceTemplate$::operator =(std::move(other));
 $EventWrappersMoveAssignRebind$

@@ -78,9 +78,12 @@ Linux::
 * Ninja-build: https://ninja-build.org/
 * {gpp}
 * X11
+* OpenSSL (>= 1.1.1)
 * LLD (optional)
 
 Ninja is used as the default build system in the `"gcc/full"` preset. X11 is needed for data visualization.
+OpenSSL is needed for the TLS streaming support and, unlike most other dependencies, it is not
+fetched automatically: it has to be installed on the host system.
 LLD speeds up the linker step when building openDAQ(TM).
 
 On Ubuntu and Debian distributions we can run the following terminal commands to install all requirements:
@@ -89,7 +92,7 @@ On Ubuntu and Debian distributions we can run the following terminal commands to
 ----
 sudo apt-get update
 sudo apt-get install -y git build-essential lld cmake ninja-build mono-complete python3
-sudo apt-get install -y libx11-dev libxi-dev libxcursor-dev libxrandr-dev libgl-dev libudev-dev libfreetype6-dev
+sudo apt-get install -y libssl-dev libx11-dev libxi-dev libxcursor-dev libxrandr-dev libgl-dev libudev-dev libfreetype6-dev
 ----
 
 **2. Clone the openDAQ(TM) repository**

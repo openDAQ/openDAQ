@@ -130,6 +130,14 @@ runs:
       shell: pwsh
       run: choco install ${{ inputs.additional-dependencies }} -y --no-progress
 
+    - name: Install 32-bit OpenSSL (for 32-bit build)
+      if: runner.os == 'Windows' && inputs.enable-32bit == 'true'
+      shell: pwsh
+      run: |
+        vcpkg install openssl:x86-windows
+        Add-Content -Path $env:GITHUB_ENV -Value "OPENSSL_ROOT_DIR=C:/vcpkg/installed/x86-windows" -Encoding utf8
+        Add-Content -Path $env:GITHUB_PATH -Value "C:\vcpkg\installed\x86-windows\bin" -Encoding utf8
+
     - name: Remove conflicting packages (for 32-bit build)
       if: steps.detect-linux.outputs.pkg-manager == 'apt' && inputs.enable-32bit == 'true'
       shell: bash

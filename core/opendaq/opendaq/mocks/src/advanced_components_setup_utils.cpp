@@ -200,9 +200,10 @@ FolderPtr dummyExtSigFolder(const ContextPtr& ctx)
 MockFb1Impl::MockFb1Impl(const ContextPtr& ctx, const ComponentPtr& parent, const StringPtr& localId)
     : FunctionBlock(FunctionBlockType("test_uid", "test_name", "test_description"), ctx, parent, localId, "MockClass")
 {
-    const auto sig1 = createAndAddSignal("sig1");
-    const auto sig2 = createAndAddSignal("sig2");
-    const auto sigDomain = createAndAddSignal("sig_domain");
+    const auto sig1 = createAndAddSignal("sig1", DataDescriptorBuilder().setSampleType(SampleType::UInt64).build());
+    const auto sig2 = createAndAddSignal("sig2", DataDescriptorBuilder().setSampleType(SampleType::Int64).build());
+    const auto sigDomain = createAndAddSignal(
+        "sig_domain", DataDescriptorBuilder().setOrigin("1970-01-01T00:00:00").setUnit(Unit("s")).setSampleType(SampleType::UInt64).build());
     sig1.setDomainSignal(sigDomain);
     sig2.setDomainSignal(sigDomain);
 

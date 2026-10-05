@@ -6,6 +6,10 @@
 
 using namespace daq;
 
+namespace test_listobject
+{
+
+
 using ListObjectTest = testing::Test;
 
 TEST_F(ListObjectTest, Pushing)
@@ -443,6 +447,22 @@ TEST_F(ListObjectTest, SerializeDeserializeV2)
     ASSERT_EQ(id, IString::Id);
 }
 
+TEST_F(ListObjectTest, SerializeDeserializeWithNullElement)
+{
+    auto ser = JsonSerializerWithVersion(2);
+    auto list = List<IString>("e1", nullptr);
+    list.serialize(ser);
+    auto str = ser.getOutput();
+
+    auto deser = JsonDeserializer();
+    auto obj = deser.deserialize(str);
+    ASSERT_EQ(obj, list);
+
+    IntfID id;
+    obj.asPtr<IListElementType>()->getElementInterfaceId(&id);
+    ASSERT_EQ(id, IString::Id);
+}
+
 TEST_F(ListObjectTest, FromVectorInt)
 {
     std::vector<int> vec = { 1, 2, 3, 4, 5, 6 };
@@ -853,11 +873,11 @@ TEST_F(ListObjectTest, IteratorEndType)
     ASSERT_EQ(id, IInteger::Id);
 }
 
-static constexpr auto INTERFACE_ID = FromTemplatedTypeName("IList", "daq");
+static constexpr auto LISTOBJECT_INTERFACE_ID = FromTemplatedTypeName("IList", "daq");
 
 TEST_F(ListObjectTest, InterfaceId)
 {
-    ASSERT_EQ(INTERFACE_ID, IList::Id);
+    ASSERT_EQ(LISTOBJECT_INTERFACE_ID, IList::Id);
 }
 
 TEST_F(ListObjectTest, InterfaceIdString)
@@ -875,3 +895,5 @@ TEST_F(ListObjectTest, ToVector)
     ASSERT_EQ(obj1Vector[1], 2);
     ASSERT_EQ(obj1Vector[2], 3);
 }
+}
+// namespace test_listobject

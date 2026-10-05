@@ -87,7 +87,7 @@ ErrCode JsonDeserializerImpl::Deserialize(JsonValue& document, IBaseObject* cont
     switch (document.GetType())
     {
         case rapidjson::kNullType:
-            object = nullptr;
+            *object = nullptr;
             break;
         case rapidjson::kObjectType:
             errCode = DeserializeTagged(document, context, factoryCallback, object);

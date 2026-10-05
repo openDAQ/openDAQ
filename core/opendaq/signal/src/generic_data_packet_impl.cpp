@@ -4,7 +4,7 @@ BEGIN_NAMESPACE_OPENDAQ
 
 std::atomic<Int> globalPacketId {0};
 
-Int generatePacketId()
+Int daqGeneratePacketId()
 {
     return std::atomic_fetch_add_explicit(&globalPacketId, Int(1), std::memory_order_relaxed);
 }

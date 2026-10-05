@@ -13,7 +13,7 @@ ClientImpl::ClientImpl(const ContextPtr ctx, const StringPtr& localId, const Dev
                           ? this->logger.getOrAddComponent("Client")
                           : throw ArgumentNullException("Logger must not be null"))
 {
-    this->name = "OpenDAQClient";
+    this->name = "OpenDAQClient";    
     this->deviceInfo = deviceInfo;
 
     auto syncComponentPrivate = this->syncComponent.asPtr<IComponentPrivate>(true);

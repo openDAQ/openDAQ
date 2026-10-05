@@ -106,3 +106,8 @@ add_test(NAME test_copendaq_server COMMAND $<TARGET_FILE_NAME:test_copendaq_serv
 add_test(NAME test_copendaq_signal COMMAND $<TARGET_FILE_NAME:test_copendaq_signal> WORKING_DIRECTORY $<TARGET_FILE_DIR:test_copendaq_signal>)
 add_test(NAME test_copendaq_streaming COMMAND $<TARGET_FILE_NAME:test_copendaq_streaming> WORKING_DIRECTORY $<TARGET_FILE_DIR:test_copendaq_streaming>)
 add_test(NAME test_copendaq_synchronization COMMAND $<TARGET_FILE_NAME:test_copendaq_synchronization> WORKING_DIRECTORY $<TARGET_FILE_DIR:test_copendaq_synchronization>)
+
+# Shared precompiled header for the two-source test runners in this directory.
+opendaq_directory_pch(copendaq_tests
+    HEADERS <copendaq.h> <gtest/gtest.h>
+    )

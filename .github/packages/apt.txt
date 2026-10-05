@@ -1,4 +1,5 @@
 lld
+libssl-dev
 mono-runtime
 libmono-system-json-microsoft4.0-cil
 libmono-system-data4.0-cil

@@ -466,6 +466,46 @@ TEST_F(DataPacketTest, ReuseSameDescriptorOffsetAndSampleCount)
     ASSERT_EQ(packet.getDataDescriptor(), descriptor);
 }
 
+TEST_F(DataPacketTest, ReuseInvalidatesComputedImplicitData)
+{
+    // An implicit descriptor has a raw sample size of 0, so the reused packet never needs more
+    // memory and reuse() takes the path that does not touch the previously computed values.
+    const auto descriptor = setupDescriptor(SampleType::Int64, LinearDataRule(1, 0), nullptr);
+    const auto packet = DataPacket(descriptor, 5, 100);
+
+    const auto* const before = static_cast<const int64_t*>(packet.getData());
+    ASSERT_EQ(before[0], 100);
+    ASSERT_EQ(before[4], 104);
+
+    const bool success = packet.asPtr<IReusableDataPacket>(true).reuse(nullptr, 5, 200, nullptr, false);
+    ASSERT_TRUE(success);
+
+    // The offset changed, so every computed sample must change with it.
+    const auto* const after = static_cast<const int64_t*>(packet.getData());
+    ASSERT_EQ(after[0], 200);
+    ASSERT_EQ(after[4], 204);
+}
+
+TEST_F(DataPacketTest, ReuseRefreshesCalculatorFlags)
+{
+    // Post-scaled to begin with, so getData() has to compute and cache.
+    const auto scaledDescriptor =
+        setupDescriptor(SampleType::Float64, ExplicitDataRule(), LinearScaling(2, 1, SampleType::Int32, ScaledSampleType::Float64));
+    const auto packet = createExplicitPacket<int32_t, 4>(scaledDescriptor);
+
+    ASSERT_NE(packet.getData(), packet.getRawData()) << "post-scaling must compute into a separate buffer";
+
+    // Reused with a descriptor that needs no calculation at all. Its raw sample size matches, so
+    // reuse() again takes its non-reallocating path.
+    const auto rawDescriptor = setupDescriptor(SampleType::Int32, ExplicitDataRule(), nullptr);
+    const bool success = packet.asPtr<IReusableDataPacket>(true).reuse(rawDescriptor, 4, nullptr, nullptr, false);
+    ASSERT_TRUE(success);
+
+    // There is nothing left to compute, so getData() must hand back the raw buffer itself. This
+    // only holds if reuse() re-derived hasScalingCalc/hasRawDataOnly from the new descriptor.
+    ASSERT_EQ(packet.getData(), packet.getRawData());
+}
+
 TEST_F(DataPacketTest, ReuseDenyBiggerSampleType)
 {
     auto descriptor = setupDescriptor(SampleType::Float32, ExplicitDataRule(), nullptr);

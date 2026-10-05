@@ -40,6 +40,7 @@ set(SRC_Cpp version.cpp
             struct_builder_impl.cpp
             enumeration_impl.cpp
             enumeration_type_impl.cpp
+            lock_free_stack.cpp
             search_filter_impl.cpp
 )
 
@@ -241,6 +242,8 @@ set(SRC_PublicHeaders
     filesystem.h
 
     utility_sync.h
+    
+    lock_free_stack.h
 
     search_filter.h
     search_filter_ptr.h
@@ -275,6 +278,8 @@ set(SRC_PrivateHeaders baseobject_impl.h
                        enumeration_impl.h
                        enumeration_type_impl.h
                        search_filter_impl.h
+                       object_pool.h
+                       pooled_object.h
 )
 
 opendaq_prepend_include(${TARGET_FOLDER_NAME} SRC_PrivateHeaders)
@@ -295,6 +300,7 @@ add_library(${SDK_TARGET_NAMESPACE}::${BASE_NAME} ALIAS ${LIB_NAME})
 target_link_libraries(${LIB_NAME} PRIVATE daq::core_containers
                                           rapidjson
                                           tsl::ordered_map
+                                          $<BUILD_INTERFACE:Boost::lockfree>
                                   PUBLIC xxHash::xxhash
                                          $<BUILD_INTERFACE:fmt::fmt>
                                          $<INSTALL_INTERFACE:fmt::fmt-header-only>
@@ -321,6 +327,10 @@ if (OPENDAQ_THREAD_SAFE)
     target_compile_definitions(${LIB_NAME} PUBLIC OPENDAQ_THREAD_SAFE)
 endif()
 
+if (OPENDAQ_ENABLE_OBJECT_POOLS)
+    target_compile_definitions(${LIB_NAME} PUBLIC OPENDAQ_ENABLE_OBJECT_POOLS)
+endif()
+
 target_compile_definitions(${LIB_NAME} PUBLIC OPENDAQ_SKIP_LIB_LINK
                                        PRIVATE BUILDING_SHARED_LIBRARY
                                                coretypes_EXPORTS
@@ -340,6 +350,14 @@ endif()
 
 target_compile_features(${LIB_NAME} PRIVATE cxx_thread_local
                                     PUBLIC cxx_std_17
+)
+
+# The full coretypes.h umbrella cannot be precompiled here: it declares the class factories,
+# which the *_impl.cpp files re-declare via OPENDAQ_DEFINE_CLASS_FACTORY (C2572 on default args).
+opendaq_target_pch(${LIB_NAME}
+    <coretypes/intfs.h>
+    <coretypes/objectptr.h>
+    <coretypes/factory.h>
 )
 
 set_target_properties(${LIB_NAME} PROPERTIES PUBLIC_HEADER "${SRC_PublicHeaders}")

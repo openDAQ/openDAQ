@@ -33,7 +33,7 @@ SimulatorDeviceImpl::SimulatorDeviceImpl(const PropertyObjectPtr& config, const 
 {
     this->loggerComponent = this->context.getLogger().getOrAddComponent(SIMULATOR_MODULE_NAME);
     this->deviceInfo = info;
-    
+
     initProperties();
     initClock();
     createTimeSignal();

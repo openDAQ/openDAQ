@@ -23,6 +23,27 @@
 
 BEGIN_NAMESPACE_OPENDAQ
 
+#if defined(_MSC_VER) && !defined(NDEBUG)
+
+// Allocations made while any of these is in scope are not registered with the debug heap.
+class UntrackedAllocations
+{
+public:
+    UntrackedAllocations();
+    ~UntrackedAllocations();
+
+    UntrackedAllocations(const UntrackedAllocations&) = delete;
+    UntrackedAllocations& operator=(const UntrackedAllocations&) = delete;
+};
+
+#else
+
+class UntrackedAllocations
+{
+};
+
+#endif
+
 class OrphanedModules
 {
 public:

@@ -21,6 +21,7 @@
 #include <coreobjects/property_object_core.h>
 #include <coreobjects/property_object_internal.h>
 #include <coreobjects/property_object_utils.h>
+#include <atomic>
 #include <thread>
 
 BEGIN_NAMESPACE_OPENDAQ
@@ -49,7 +50,9 @@ public:
 
 private:
     NullMutex nullSync;
-    std::thread::id externalCallThreadId{};
+    // read outside the mutex in getRecursiveLockGuard to detect same-thread re-entry, so it
+    // must be atomic; writes happen under the mutex inside RecursiveLockGuardImpl
+    std::atomic<std::thread::id> externalCallThreadId{};
     int externalCallDepth = 0;
 };
 
@@ -68,13 +71,13 @@ template <typename TMutex>
 class RecursiveLockGuardImpl : public ImplementationOf<ILockGuard>
 {
 public:
-    RecursiveLockGuardImpl(IPropertyObjectCore* owner, const TMutex& lock, std::thread::id* threadId, int* depth);
+    RecursiveLockGuardImpl(IPropertyObjectCore* owner, const TMutex& lock, std::atomic<std::thread::id>* threadId, int* depth);
     ~RecursiveLockGuardImpl() override;
 
 private:
     // to ensure that owner is destroyed after lock
     ObjectPtr<IPropertyObjectCore> owner;
-    std::thread::id* id;
+    std::atomic<std::thread::id>* id;
     int* depth;
     TMutex mutex;
     std::lock_guard<TMutex> lockGuard;

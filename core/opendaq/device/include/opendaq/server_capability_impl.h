@@ -44,6 +44,9 @@ public:
     ErrCode INTERFACE_FUNC getProtocolName(IString** protocolName) override;
     ErrCode INTERFACE_FUNC setProtocolName(IString* protocolName) override;
 
+    ErrCode INTERFACE_FUNC getProtocolGroupId(IString** protocolGroupId) override;
+    ErrCode INTERFACE_FUNC setProtocolGroupId(IString* protocolGroupId) override;
+
     ErrCode INTERFACE_FUNC getProtocolId(IString** protocolId) override;
     ErrCode INTERFACE_FUNC setProtocolId(IString* protocolId) override;
     
@@ -71,6 +74,9 @@ public:
     ErrCode INTERFACE_FUNC getAddressInfo(IList** addressesInfo) override;
     ErrCode INTERFACE_FUNC addAddressInfo(IAddressInfo* addressInfo) override;
 
+    ErrCode INTERFACE_FUNC getProtocolSecurityLevel(IInteger** securityLevel) override;
+    ErrCode INTERFACE_FUNC setProtocolSecurityLevel(IInteger* securityLevel) override;
+
     ErrCode INTERFACE_FUNC getInterfaceIds(SizeT* idCount, IntfID** ids) override;
 
     ErrCode INTERFACE_FUNC clone(IPropertyObject** cloned) override;
@@ -87,11 +93,13 @@ private:
     const char* ProtocolVersonName = "ProtocolVersion";
     const char* ConnectionType = "ConnectionType";
     const char* CoreEventsEnabled = "CoreEventsEnabled"; 
+    const char* ProtocolGroupId = "ProtocolGroupId";
     const char* ProtocolId = "protocolId";
     const char* Prefix = "Prefix";
     const char* Addresses = "Addresses";
     const char* AddressInfo = "AddressInfo";
     const char* Port = "Port";
+    const char* SecurityLevel = "SecurityLevel";
 
 
     template <typename T>
@@ -134,6 +142,7 @@ inline ServerCapabilityConfigImpl::ServerCapabilityConfigImpl(const StringPtr& p
     Super::addProperty(StringProperty(PrimaryConnectionString, ""));
     Super::addProperty(ListProperty(ConnectionStrings, List<IString>()));
     Super::addProperty(StringProperty(ProtocolName, ""));
+    Super::addProperty(StringProperty(ProtocolGroupId, ""));
     Super::addProperty(StringProperty(ProtocolId, ""));
     Super::addProperty(StringProperty(ProtocolTypeName, ProtocolTypeToString(ProtocolType::Unknown)));
     Super::addProperty(StringProperty(ProtocolVersonName, ""));
@@ -143,6 +152,7 @@ inline ServerCapabilityConfigImpl::ServerCapabilityConfigImpl(const StringPtr& p
     Super::addProperty(ListProperty(Addresses, List<IString>()));
     Super::addProperty(IntProperty(Port, -1));
     Super::addProperty(ObjectProperty(AddressInfo, PropertyObject()));
+    Super::addProperty(IntProperty(SecurityLevel, -1));
 
     Super::setPropertyValue(String(ProtocolId), protocolId);
     Super::setPropertyValue(String(ProtocolName), protocolName);
@@ -219,6 +229,21 @@ inline ErrCode ServerCapabilityConfigImpl::setProtocolName(IString* protocolName
 {
     OPENDAQ_PARAM_NOT_NULL(protocolName);
     return Super::setPropertyValue(String(ProtocolName), protocolName);
+}
+
+inline ErrCode ServerCapabilityConfigImpl::getProtocolGroupId(IString** protocolGroupId)
+{
+    return daqTry([&]
+                  {
+                      *protocolGroupId = getTypedProperty<IString>(ProtocolGroupId).detach();
+                      return OPENDAQ_SUCCESS;
+                  });
+}
+
+inline ErrCode ServerCapabilityConfigImpl::setProtocolGroupId(IString* protocolGroupId)
+{
+    OPENDAQ_PARAM_NOT_NULL(protocolGroupId);
+    return Super::setPropertyValue(String(ProtocolGroupId), protocolGroupId);
 }
 
 inline ErrCode ServerCapabilityConfigImpl::getProtocolId(IString** protocolId)
@@ -466,6 +491,23 @@ inline ErrCode ServerCapabilityConfigImpl::clone(IPropertyObject** cloned)
         *cloned = obj.detach();
         return OPENDAQ_SUCCESS;
     });
+}
+
+inline ErrCode ServerCapabilityConfigImpl::getProtocolSecurityLevel(IInteger** securityLevel)
+{
+    OPENDAQ_PARAM_NOT_NULL(securityLevel);
+
+    return daqTry([&]
+                  {
+                      *securityLevel = getTypedProperty<IInteger>(SecurityLevel).detach();
+                      return OPENDAQ_SUCCESS;
+                  });
+}
+
+inline ErrCode ServerCapabilityConfigImpl::setProtocolSecurityLevel(IInteger* securityLevel)
+{
+    OPENDAQ_PARAM_NOT_NULL(securityLevel);
+    return Super::setPropertyValue(String(SecurityLevel), securityLevel);
 }
 
 OPENDAQ_REGISTER_DESERIALIZE_FACTORY(ServerCapabilityConfigImpl)

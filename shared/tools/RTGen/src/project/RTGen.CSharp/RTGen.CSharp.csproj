@@ -92,6 +92,9 @@
     <None Include="Templates\csharp.method.impl.ret.template">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
+    <None Include="Templates\csharp.method.impl.multiret.template">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
     <None Include="Templates\csharp.method.impl.template">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>

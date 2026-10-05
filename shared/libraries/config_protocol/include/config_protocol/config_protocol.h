@@ -42,7 +42,6 @@ inline auto ParamsDict(std::initializer_list<std::pair<const StringPtr, ObjectPt
     return Dict<IString, IBaseObject>(init);
 }
 
-
 enum PacketType: uint8_t
 {
     GetProtocolInfo = 0x80,
@@ -180,12 +179,12 @@ public:
 
 inline constexpr uint16_t GetLatestConfigProtocolVersion()
 {
-    return 24;
+    return 25;
 }
 
 inline std::set<uint16_t> GetSupportedConfigProtocolVersions()
 {
-    const std::set<uint16_t> supportedVersions = []() -> std::set<uint16_t>
+    static const std::set<uint16_t> supportedVersions = []() -> std::set<uint16_t>
     {
         std::set<uint16_t> versions;
         for (uint16_t i = 0; i <= GetLatestConfigProtocolVersion(); ++i)

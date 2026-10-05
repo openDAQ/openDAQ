@@ -8,6 +8,20 @@ MockStreamingImpl::MockStreamingImpl(const StringPtr& connectionString, const Co
 {
 }
 
+MockStreamingImpl::MockStreamingImpl(const StringPtr& connectionString,
+                                     const ContextPtr& context,
+                                     const StringPtr& protocolId,
+                                     const StringPtr& protocolGroupId)
+    // client-to-device streaming requires a protocol id, so it is only enabled when one is given
+    : Streaming(connectionString,
+                context,
+                false,
+                protocolId,
+                protocolId.assigned() && protocolId.getLength() > 0,
+                protocolGroupId)
+{
+}
+
 void MockStreamingImpl::onSetActive(bool /*active*/)
 {
 }
@@ -41,4 +55,14 @@ OPENDAQ_DEFINE_CLASS_FACTORY_WITH_INTERFACE(
     MockStreaming, IStreaming,
     IString*, connectionString,
     IContext*, context
+)
+
+OPENDAQ_DEFINE_CLASS_FACTORY_WITH_INTERFACE_AND_CREATEFUNC_OBJ(
+    INTERNAL_FACTORY,
+    MockStreamingImpl, IStreaming,
+    createMockStreamingWithProtocol,
+    IString*, connectionString,
+    IContext*, context,
+    IString*, protocolId,
+    IString*, protocolGroupId
 )

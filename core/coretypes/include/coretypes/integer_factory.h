@@ -26,6 +26,12 @@ inline ObjectPtr<IInteger> Integer(const Int value)
     return obj;
 }
 
+inline ObjectPtr<IInteger> IntegerFromPool(const Int value)
+{
+    ObjectPtr<IInteger> obj(IntegerFromPool_Create(value));
+    return obj;
+}
+
 using IntPtr = ObjectPtr<IInteger>;
 using IntegerPtr = ObjectPtr<IInteger>;
 

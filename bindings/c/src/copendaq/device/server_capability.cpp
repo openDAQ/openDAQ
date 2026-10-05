@@ -37,6 +37,11 @@ daqErrCode daqServerCapability_getProtocolName(daqServerCapability* self, daqStr
     return reinterpret_cast<daq::IServerCapability*>(self)->getProtocolName(reinterpret_cast<daq::IString**>(protocolName));
 }
 
+daqErrCode daqServerCapability_getProtocolGroupId(daqServerCapability* self, daqString** protocolGroupId)
+{
+    return reinterpret_cast<daq::IServerCapability*>(self)->getProtocolGroupId(reinterpret_cast<daq::IString**>(protocolGroupId));
+}
+
 daqErrCode daqServerCapability_getProtocolId(daqServerCapability* self, daqString** protocolId)
 {
     return reinterpret_cast<daq::IServerCapability*>(self)->getProtocolId(reinterpret_cast<daq::IString**>(protocolId));
@@ -80,4 +85,9 @@ daqErrCode daqServerCapability_getAddressInfo(daqServerCapability* self, daqList
 daqErrCode daqServerCapability_getProtocolVersion(daqServerCapability* self, daqString** version)
 {
     return reinterpret_cast<daq::IServerCapability*>(self)->getProtocolVersion(reinterpret_cast<daq::IString**>(version));
+}
+
+daqErrCode daqServerCapability_getProtocolSecurityLevel(daqServerCapability* self, daqInteger** securityLevel)
+{
+    return reinterpret_cast<daq::IServerCapability*>(self)->getProtocolSecurityLevel(reinterpret_cast<daq::IInteger**>(securityLevel));
 }

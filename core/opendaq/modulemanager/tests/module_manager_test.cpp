@@ -11,6 +11,7 @@
 #include <opendaq/device_info_config_ptr.h>
 #include <opendaq/device_info_factory.h>
 #include <opendaq/module_manager_utils_ptr.h>
+#include <opendaq/device_impl.h>
 
 using namespace daq;
 
@@ -188,6 +189,28 @@ TEST_F(ModuleManagerTest, RegisterDaqTypes)
     ASSERT_TRUE(typeManager.hasType("InterfaceClockSync"));
 }
 
+// Carries a manufacturer and serial number, so that discovery results can be matched to it
+class ScanTestDevice : public Device
+{
+public:
+    ScanTestDevice(const ContextPtr& ctx, const ComponentPtr& parent, const StringPtr& localId)
+        : Device(ctx, parent, localId)
+        , info(DeviceInfo("daqmock://dev"))
+    {
+        info.setManufacturer("openDAQ");
+        info.setSerialNumber("scan_test");
+    }
+
+protected:
+    DeviceInfoPtr onGetInfo() override
+    {
+        return info;
+    }
+
+private:
+    DeviceInfoConfigPtr info;
+};
+
 class MockModuleInternal : public MockModuleImpl
 {
 public:
@@ -236,7 +259,8 @@ daq::ErrCode MockModuleInternal::createDevice(daq::IDevice** device,
     else if (connectionStringPtr == "daqmock://general_error")
         return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_GENERALERROR, "abc123");
 
-    *device = DevicePtr();
+    // A context of its own keeps the device out of the module manager's ownership cycle
+    *device = createWithImplementation<IDevice, ScanTestDevice>(NullContext(), nullptr, String("dev")).detach();
     return OPENDAQ_SUCCESS;
 }
 
@@ -276,6 +300,75 @@ TEST_F(ModuleManagerTest, TestRescanTimer2)
     std::this_thread::sleep_for(1s);
     utils.createDevice("daqmock", nullptr);
     ASSERT_EQ(impl->scanCount, 2);
+}
+
+TEST_F(ModuleManagerTest, ScanOnAddDisabled)
+{
+    auto manager = ModuleManager("[[none]]");
+    auto options = Dict<IString, IBaseObject>({{"ModuleManager", Dict<IString, IBaseObject>({{"ScanOnAdd", False}})}});
+    const auto context = Context(nullptr, Logger(), nullptr, manager, nullptr, options);
+
+    auto module = createWithImplementation<IModule, MockModuleInternal>();
+    manager.addModule(module);
+    auto impl = reinterpret_cast<MockModuleInternal*>(module.getObject());
+    auto utils = manager.asPtr<IModuleManagerUtils>();
+
+    utils.createDevice("daqmock", nullptr);
+    ASSERT_EQ(impl->scanCount, 0);
+
+    // a discovery lookup does not scan either
+    ASSERT_FALSE(utils.getDiscoveryInfo("openDAQ", "missing").assigned());
+    ASSERT_EQ(impl->scanCount, 0);
+
+    // a smart connection string cannot be resolved without a scan
+    ASSERT_THROW(utils.createDevice("daq://openDAQ_missing", nullptr), NotFoundException);
+    ASSERT_EQ(impl->scanCount, 0);
+}
+
+TEST_F(ModuleManagerTest, ScanOnAddConfigProperty)
+{
+    auto manager = ModuleManager("[[none]]");
+    auto options = Dict<IString, IBaseObject>({{"ModuleManager", Dict<IString, IBaseObject>({{"ScanOnAdd", False}})}});
+    const auto context = Context(nullptr, Logger(), nullptr, manager, nullptr, options);
+
+    auto module = createWithImplementation<IModule, MockModuleInternal>();
+    manager.addModule(module);
+    auto impl = reinterpret_cast<MockModuleInternal*>(module.getObject());
+    auto utils = manager.asPtr<IModuleManagerUtils>();
+
+    // the default config follows the option; the property overrides it per call
+    auto config = utils.createDefaultAddDeviceConfig();
+    PropertyObjectPtr general = config.getPropertyValue("General");
+    ASSERT_EQ(static_cast<bool>(general.getPropertyValue("ScanOnAdd")), false);
+
+    utils.createDevice("daqmock", nullptr, config);
+    ASSERT_EQ(impl->scanCount, 0);
+
+    general.setPropertyValue("ScanOnAdd", True);
+    utils.createDevice("daqmock", nullptr, config);
+    ASSERT_EQ(impl->scanCount, 1);
+}
+
+TEST_F(ModuleManagerTest, ScanOnAddDefaultEnabled)
+{
+    auto manager = ModuleManager("[[none]]");
+    const auto context = Context(nullptr, Logger(), nullptr, manager, nullptr);
+
+    auto module = createWithImplementation<IModule, MockModuleInternal>();
+    manager.addModule(module);
+    auto impl = reinterpret_cast<MockModuleInternal*>(module.getObject());
+    auto utils = manager.asPtr<IModuleManagerUtils>();
+
+    auto config = utils.createDefaultAddDeviceConfig();
+    PropertyObjectPtr general = config.getPropertyValue("General");
+    ASSERT_EQ(static_cast<bool>(general.getPropertyValue("ScanOnAdd")), true);
+
+    general.setPropertyValue("ScanOnAdd", False);
+    utils.createDevice("daqmock", nullptr, config);
+    ASSERT_EQ(impl->scanCount, 0);
+
+    utils.createDevice("daqmock", nullptr);
+    ASSERT_EQ(impl->scanCount, 1);
 }
 
 TEST_F(ModuleManagerTest, ParallelDeviceCreationSuccess)

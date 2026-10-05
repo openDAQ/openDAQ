@@ -659,7 +659,7 @@ ErrCode TypedReader<TReadType>::readValues(void* inputBuffer, SizeT offset, void
             }
 
             // Set the pointer to the value after the last copied one
-            *outputBuffer = &dataOut[toRead];
+            *outputBuffer = &dataOut[toRead * valuesPerSample];
         }
 
         return OPENDAQ_SUCCESS;
@@ -696,7 +696,7 @@ ErrCode TypedReader<ClockTick>::readValues<ClockRange>(void* inputBuffer, SizeT 
     }
 
     // Set the pointer to the value after the last copied one
-    *outputBuffer = &dataOut[toRead];
+    *outputBuffer = &dataOut[toRead * valuesPerSample];
     return OPENDAQ_SUCCESS;
 }
 
@@ -733,9 +733,15 @@ bool TypedReader<ReadType>::handleDescriptorChanged(DataDescriptorPtr& descripto
 
         rawSampleSize = descriptor.getRawSampleSize();
         auto dimensions = descriptor.getDimensions();
-        if (dimensions.assigned() && dimensions.getCount() == 1)
+        if (dimensions.assigned() && dimensions.getCount() >= 1)
         {
-            valuesPerSample = dimensions[0].getSize();
+            SizeT count = 1;
+            for (SizeT i = 0; i < dimensions.getCount(); ++i)
+            {
+                count *= dimensions[i].getSize();
+            }
+
+            valuesPerSample = count;
         }
 
         dataDescriptor = descriptor;

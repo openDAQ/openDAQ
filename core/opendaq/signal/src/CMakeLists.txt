@@ -137,7 +137,7 @@ function(create_component_source_groups_${BASE_NAME})
     set(SDK_HEADERS_DIR "signal/include/opendaq")
     set(SDK_SRC_DIR "signal/src")
     
-    source_group("signal//signal" FILES 
+    source_group("signal//signal" FILES
         ${SDK_HEADERS_DIR}/signal.h
         ${SDK_HEADERS_DIR}/signal_impl.h
         ${SDK_HEADERS_DIR}/signal_container_impl.h
@@ -145,6 +145,7 @@ function(create_component_source_groups_${BASE_NAME})
         ${SDK_HEADERS_DIR}/signal_events.h
         ${SDK_HEADERS_DIR}/signal_private.h
         ${SDK_HEADERS_DIR}/signal_config.h
+        ${SDK_HEADERS_DIR}/last_value_cache.h
         ${SDK_SRC_DIR}/signal_impl.cpp
     )
     
@@ -176,11 +177,12 @@ function(create_component_source_groups_${BASE_NAME})
         ${SDK_SRC_DIR}/range_impl.cpp
     )
     
-    source_group("signal//connection" FILES 
+    source_group("signal//connection" FILES
         ${SDK_HEADERS_DIR}/connection.h
         ${SDK_HEADERS_DIR}/connection_internal.h
         ${SDK_HEADERS_DIR}/connection_impl.h
         ${SDK_HEADERS_DIR}/connection_factory.h
+        ${SDK_HEADERS_DIR}/active_operation_tracker.h
         ${SDK_SRC_DIR}/connection_impl.cpp
     )
     
@@ -354,8 +356,10 @@ set(SRC_PublicHeaders_Component
     packet_destruct_callback_impl.h
     packet_destruct_callback_factory.h
     signal_impl.h
+    last_value_cache.h
     input_port_impl.h
     connection_internal.h
+    active_operation_tracker.h
     input_port_private.h
     reference_domain_info_factory.h
     reference_domain_offset_adder.h
@@ -428,6 +432,11 @@ set(SRC_Cpp_Component
 if (WIN32)
     set(BCRYPT_LIB bcrypt.dll)
 endif()
+
+set(SRC_PublicLinkLibraries_Component
+    date::date
+    PARENT_SCOPE
+)
 
 set(SRC_PrivateLinkLibraries_Component
     tsl::ordered_map

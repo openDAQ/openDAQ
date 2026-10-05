@@ -42,7 +42,6 @@ public:
     static ErrCode Deserialize(ISerializedObject* serialized, IBaseObject* context, IFunction* factoryCallback, IBaseObject** obj);
 
 protected:
-
     ErrCode setValueInternal(IString* propertyName, IBaseObject* value) override;
 };
 
@@ -110,7 +109,8 @@ inline ErrCode ConfigClientDeviceInfoImpl::Deserialize(ISerializedObject* serial
     {
         ComponentDeserializeContextPtr deserializeContextPtr = ComponentDeserializeContextPtr::Borrow(context);
         const auto ctx = deserializeContextPtr.asPtr<IConfigProtocolDeserializeContext>();
-        PropertyObjectPtr propObj = createWithImplementation<IDeviceInfoConfig, ConfigClientDeviceInfoImpl>(ctx->getClientComm(), ctx->getRemoteGlobalId());
+        PropertyObjectPtr propObj = createWithImplementation<IDeviceInfoConfig, ConfigClientDeviceInfoImpl>(
+            ctx->getClientComm(), ctx->getRemoteGlobalId(), ctx->getTypeManager().getObject());
 
         Super::DeserializePropertyOrder(serialized, context, nullptr, propObj);
 

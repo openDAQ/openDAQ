@@ -5,7 +5,6 @@
 #include <coretypes/impl.h>
 #include <coretypes/string_ptr.h>
 #include <iostream>
-#include <memory>
 #include <stdexcept>
 #include <algorithm>
 
@@ -14,6 +13,11 @@ BEGIN_NAMESPACE_OPENDAQ
 thread_local ErrorInfoHolder errorInfoHolder;
 
 // InitialErrorGuard
+//
+// The sentinel scope that collects errors raised outside of any explicit error guard. Its lifetime
+// is owned by the ErrorInfoHolder; it must never destroy itself via releaseRef from within a holder
+// call, as that reenters removeScopeEntry and would mutate the scope list while the holder is still
+// using it. It is freed deterministically by removeInitialGuard when its errors are consumed.
 class InitialErrorGuard : public ErrorGuardImpl
 {
 public:
@@ -22,21 +26,6 @@ public:
     InitialErrorGuard()
         : ErrorGuardImpl(nullptr, -1)
     {
-    }
-
-    ErrCode INTERFACE_FUNC getErrorInfoList(IList** errorInfos) override
-    {
-        const ErrCode errCode = Super::getErrorInfoList(errorInfos);
-        this->releaseRef();
-        return errCode;
-    }
-
-    ErrCode clearLastErrorInfo() override
-    {
-        ErrCode errCode = Super::clearLastErrorInfo();
-        if (this->empty())
-            this->releaseRef();
-        return errCode;
     }
 
     bool isInitial() const override
@@ -70,69 +59,103 @@ IErrorInfo* ErrorInfoWrapper::borrow() const
 }
 
 // ErrorInfoHolder
+//
+// ErrorInfoHolder is intentionally trivially destructible (raw pointer members, no user-declared
+// destructor). It is used as a `thread_local`, and on mingw-w64 the emutls storage backing a
+// thread_local can be freed and reused before a registered thread-local destructor runs at thread
+// exit - running a non-trivial destructor then dereferences freed/recycled memory and crashes (seen
+// with worker threads that touch the error guard). By keeping the type trivially destructible, no
+// thread-exit destructor is registered at all.
+//
+// Because there is no destructor, cleanup happens eagerly during normal operation instead: the scope
+// list is freed as soon as it becomes empty (removeScopeEntry) and the sentinel guard is released as
+// soon as its errors are consumed (removeInitialGuard). So a thread that exits with a balanced scope
+// stack - the common case, including all worker threads that never raise a top-level error - leaves
+// nothing behind. Only a thread that exits with an error still pending (never checked/cleared) leaks
+// its (small) scope list and sentinel, which the exiting thread would otherwise have freed.
 
-ErrorInfoHolder::~ErrorInfoHolder()
+ErrorGuardImpl* ErrorInfoHolder::currentScope() const
 {
-    if (!errorScopeList || errorScopeList->empty())
-        return;
-
-    for (auto& scope : *errorScopeList)
-    {
-        if (scope->isInitial())
-        {
-            scope->releaseRef();  // only dummy
-            return;
-        }
-    }
+    if (errorScopeList && !errorScopeList->empty())
+        return errorScopeList->back();
+    return nullptr;
 }
 
-ErrorInfoHolder::ContainerT* ErrorInfoHolder::getOrCreateList()
+ErrorGuardImpl* ErrorInfoHolder::getOrCreateBack()
 {
-    if (!errorScopeList)
+    // A scope is needed to attach the error to. If none is active, create the owned sentinel guard;
+    // its constructor pushes itself onto the scope list (creating the list if needed). The addRef
+    // makes the holder its sole owner (refCount starts at 0), balanced by removeInitialGuard when the
+    // sentinel's errors are consumed.
+    if (currentScope() == nullptr)
     {
-        errorScopeList = std::make_unique<ContainerT>();
-        auto entry = new InitialErrorGuard();
-        entry->addRef();
+        initialGuard = new InitialErrorGuard();
+        initialGuard->addRef();
     }
-    return errorScopeList.get();
+    return errorScopeList->back();
+}
+
+void ErrorInfoHolder::removeInitialGuard()
+{
+    if (!initialGuard)
+        return;
+
+    // Clear the member first so the reentrant removeScopeEntry (invoked from ~ErrorGuardImpl during
+    // releaseRef) removes the sentinel from the list exactly once and cannot re-enter here.
+    ErrorGuardImpl* guard = initialGuard;
+    initialGuard = nullptr;
+    guard->releaseRef();
 }
 
 void ErrorInfoHolder::setErrorInfo(IErrorInfo* errorInfo)
 {
     if (errorInfo)
-        getOrCreateList()->back()->setErrorInfo(errorInfo);
+        getOrCreateBack()->setErrorInfo(errorInfo);
 }
 
 void ErrorInfoHolder::extendErrorInfo(IErrorInfo* errorInfo)
 {
     if (errorInfo)
-        getOrCreateList()->back()->extendErrorInfo(errorInfo);
+        getOrCreateBack()->extendErrorInfo(errorInfo);
 }
 
 ErrCode ErrorInfoHolder::clearErrorInfo()
 {
-    if (errorScopeList)
-        return errorScopeList->back()->clearLastErrorInfo();
-    return OPENDAQ_SUCCESS;
+    ErrorGuardImpl* scope = currentScope();
+    if (!scope)
+        return OPENDAQ_SUCCESS;
+
+    const ErrCode errCode = scope->clearLastErrorInfo();
+    // Once the sentinel's errors are cleared, drop it so stale errors don't leak into later
+    // operations and so it is not left as a tracked object.
+    if (scope == initialGuard && scope->empty())
+        removeInitialGuard();
+    return errCode;
 }
 
 ErrCode ErrorInfoHolder::getErrorInfo(IErrorInfo** errorInfo) const
 {
-    if (errorScopeList)
-        return errorScopeList->back()->getLastErrorInfo(errorInfo);
+    if (ErrorGuardImpl* scope = currentScope())
+        return scope->getLastErrorInfo(errorInfo);
 
     return OPENDAQ_SUCCESS;
 }
 
 IList* ErrorInfoHolder::getErrorInfoList()
 {
-    if (!errorScopeList)
+    ErrorGuardImpl* scope = currentScope();
+    if (!scope)
         return nullptr;
 
     IList* list = nullptr;
-    const ErrCode errCode = errorScopeList->back()->getErrorInfoList(&list);
+    const ErrCode errCode = scope->getErrorInfoList(&list);
     if (OPENDAQ_FAILED(errCode))
         throw std::runtime_error("Failed to get error info list");
+
+    // Retrieving the sentinel's list consumes it: drop the sentinel so its errors don't leak into
+    // later operations (matches the previous behavior) and so it is not left as a tracked object.
+    if (scope == initialGuard)
+        removeInitialGuard();
     return list;
 }
 
@@ -140,10 +163,10 @@ ErrCode ErrorInfoHolder::getFormattedMessage(IString** message) const
 {
     if (message == nullptr)
         return OPENDAQ_IGNORED;
-    if (!errorScopeList)
-        return OPENDAQ_SUCCESS;
 
-    return errorScopeList->back()->getFormattedMessage(message);
+    if (ErrorGuardImpl* scope = currentScope())
+        return scope->getFormattedMessage(message);
+    return OPENDAQ_SUCCESS;
 }
 
 void ErrorInfoHolder::setScopeEntry(ErrorGuardImpl* entry)
@@ -152,7 +175,7 @@ void ErrorInfoHolder::setScopeEntry(ErrorGuardImpl* entry)
         throw std::invalid_argument("ErrorGuardImpl entry must not be null");
 
     if (!errorScopeList)
-        errorScopeList = std::make_unique<ContainerT>();
+        errorScopeList = new ContainerT();
     errorScopeList->push_back(entry);
 }
 
@@ -170,21 +193,27 @@ void ErrorInfoHolder::removeScopeEntry(ErrorGuardImpl* entry)
         return;
     }
 
-    auto backEntry = errorScopeList->back();
-    if (backEntry != entry)
+    // Fast path: strict LIFO nesting. Otherwise (e.g. the sentinel removed while regular guards are
+    // still on top) fall back to removing the specific entry by value.
+    if (!errorScopeList->empty() && errorScopeList->back() == entry)
     {
-        std::cerr << "ErrorGuard scope entry mismatch. Expected: " << backEntry << ", got: " << entry << std::endl;
+        errorScopeList->pop_back();
+    }
+    else
+    {
         auto it = std::find(errorScopeList->begin(), errorScopeList->end(), entry);
         if (it != errorScopeList->end())
             errorScopeList->erase(it);
     }
-    else
-    {
-        errorScopeList->pop_back();
-    }
 
+    // Free the container once it is empty so it is not leaked when the thread exits (the holder has
+    // no destructor - see the class comment). This runs during normal operation on a valid holder;
+    // callers never touch errorScopeList after a call that can empty it. It is recreated on next use.
     if (errorScopeList->empty())
-        errorScopeList.reset();
+    {
+        delete errorScopeList;
+        errorScopeList = nullptr;
+    }
 }
 
 // ErrorGuardImpl

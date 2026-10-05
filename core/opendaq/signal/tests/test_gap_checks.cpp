@@ -69,7 +69,10 @@ TYPED_TEST(GapCheckTest, NoEventPacket)
     const auto domainPacket = DataPacket(domainDesc, 10, 0);
     const auto valuePacket = DataPacketWithDomain(domainPacket, valueDesc, 10);
 
-    ASSERT_THROW(connection.enqueue(valuePacket), InvalidStateException);
+    // gap checking runs on the consumer side: the protocol violation surfaces on the
+    // first consumer operation, not on enqueue
+    ASSERT_NO_THROW(connection.enqueue(valuePacket));
+    ASSERT_THROW(connection.dequeue(), InvalidStateException);
 }
 
 TYPED_TEST(GapCheckTest, NotAvailableNoDomainPacket)

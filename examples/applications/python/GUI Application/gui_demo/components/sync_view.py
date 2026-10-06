@@ -108,11 +108,11 @@ class SyncView(ttk.Frame):
 
         self.dot_size = int(10 * self.context.dpi_factor)
 
-        columns = ('source', 'in_use', 'mode', 'role', 'status', 'dot')
+        columns = ('source', 'mode', 'role', 'status', 'dot')
         tree = ttk.Treeview(frame, columns=columns, show='tree headings', selectmode=tk.BROWSE)
         tree.heading('#0', anchor=tk.W, text='Name')
         tree.column('#0', anchor=tk.W, width=int(260 * self.context.dpi_factor), stretch=False)
-        for column, width, heading in zip(columns, (170, 55, 80, 65, 75), ('Source', 'In use', 'Mode', 'Role', 'Status')):
+        for column, width, heading in zip(columns, (170, 80, 65, 75), ('Source', 'Mode', 'Role', 'Status')):
             tree.heading(column, anchor=tk.W, text=heading)
             tree.column(column, anchor=tk.W, width=int(width * self.context.dpi_factor), stretch=column == 'source')
         tree.column('dot', width=self.dot_size + 6, minwidth=self.dot_size + 6, stretch=False)
@@ -227,7 +227,7 @@ class SyncView(ttk.Frame):
                                       lambda name: setattr(record.synchronization, 'source', name))
         mode = self.mode_editor_register(iid, record, record.source)
         self.tree.insert(group, tk.END, iid=iid, text=record.device.name,
-                         values=(source, record.source.sync_type, mode, role_status(record.source), record.status))
+                         values=(source, mode, role_status(record.source), record.status))
         self.rows[iid] = (record, record.source)
         self.dot_colors[iid] = STATUS_COLORS[record.status]
 
@@ -237,7 +237,7 @@ class SyncView(ttk.Frame):
             child = f'{iid}|{name}'
             mode = self.mode_editor_register(child, record, interface)
             self.tree.insert(iid, tk.END, iid=child, text=text,
-                             values=('', interface.sync_type, mode, role_status(interface), status))
+                             values=('', mode, role_status(interface), status))
             self.rows[child] = (record, interface)
             self.dot_colors[child] = STATUS_COLORS[status]
 

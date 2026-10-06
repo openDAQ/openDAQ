@@ -33,7 +33,7 @@ enum class MultiReader2InputError : EnumType
 {
     None = 0,
     Disconnected,             ///< No signal connected to the port.
-    ValueDescriptorInvalid,   ///< Not convertible to the read type.
+    ValueDescriptorInvalid,   ///< Not convertible to the read type, or declined by the owner's acceptsDescriptor.
     DomainDescriptorInvalid,  ///< Fails the input assumptions or mismatches the main input.
     SyncFailed                ///< Could not reach the common start: too far from the main input, or not before the deadline.
 };
@@ -50,22 +50,15 @@ DECLARE_OPENDAQ_INTERFACE(IMultiReader2InputStatus, IBaseObject)
     virtual ErrCode INTERFACE_FUNC getInput(IComponent** input) = 0;
 
     /*!
-     * @brief Gets whether the input is used, as configured; an unused input is watched and reported but never read.
-     * @param[out] used True when the input takes part in reading.
-     */
-    virtual ErrCode INTERFACE_FUNC getUsed(Bool* used) = 0;
-
-    /*!
-     * @brief Gets the input's error; None while healthy, persists while the cause holds. An error on an unused
-     * input never invalidates the reader; under Exclude an error on a used input means it is set aside.
+     * @brief Gets the input's error; None while healthy, persists while the cause holds. Under Invalidate an error
+     * invalidates the reader; under Exclude the input is set aside.
      * @param[out] error The error kind.
      */
     virtual ErrCode INTERFACE_FUNC getError(MultiReader2InputError* error) = 0;
 
     /*!
      * @brief Gets whether the value descriptor is new since the previous status. Only while the reader is valid and
-     * the input has no error; reported for unused inputs too. True on every healthy input on the first status
-     * after a configure or a recovery.
+     * the input has no error. True on every healthy input on the first status after a configure or a recovery.
      * @param[out] changed True when the descriptor is new.
      */
     virtual ErrCode INTERFACE_FUNC getDescriptorChanged(Bool* changed) = 0;

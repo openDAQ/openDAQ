@@ -10,16 +10,6 @@ MultiReader2ParamsImpl::MultiReader2ParamsImpl()
 {
 }
 
-bool MultiReader2ParamsImpl::contains(const std::string& globalId) const
-{
-    for (const auto& component : inputs)
-    {
-        if (component.getGlobalId().toStdString() == globalId)
-            return true;
-    }
-    return false;
-}
-
 ErrCode MultiReader2ParamsImpl::getInputs(IList** inputs)
 {
     OPENDAQ_PARAM_NOT_NULL(inputs);
@@ -34,9 +24,6 @@ ErrCode MultiReader2ParamsImpl::setInputs(IList* inputs)
     OPENDAQ_PARAM_NOT_NULL(inputs);
 
     const auto list = ListPtr<IComponent>::Borrow(inputs);
-    if (list.getCount() == 0)
-        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDPARAMETER, "The input list must not be empty");
-
     bool expectSignals = false;
     std::unordered_set<std::string> ids;
     for (SizeT i = 0; i < list.getCount(); i++)
@@ -59,14 +46,6 @@ ErrCode MultiReader2ParamsImpl::setInputs(IList* inputs)
     }
 
     std::scoped_lock lock(mutex);
-    // Used flags of inputs that stay in the list are kept; the others are forgotten
-    for (auto it = unusedIds.begin(); it != unusedIds.end();)
-    {
-        if (ids.count(*it) == 0)
-            it = unusedIds.erase(it);
-        else
-            ++it;
-    }
     this->inputs = ListPtr<IComponent>(inputs);
     return OPENDAQ_SUCCESS;
 }
@@ -87,51 +66,19 @@ ErrCode MultiReader2ParamsImpl::setMainInput(IComponent* input)
     return OPENDAQ_SUCCESS;
 }
 
-ErrCode MultiReader2ParamsImpl::getInputUsed(IComponent* input, Bool* used)
+ErrCode MultiReader2ParamsImpl::getAcceptsDescriptor(IFunction** acceptsDescriptor)
 {
-    OPENDAQ_PARAM_NOT_NULL(input);
-    OPENDAQ_PARAM_NOT_NULL(used);
+    OPENDAQ_PARAM_NOT_NULL(acceptsDescriptor);
 
     std::scoped_lock lock(mutex);
-    const auto id = ComponentPtr::Borrow(input).getGlobalId().toStdString();
-    if (!contains(id))
-        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDPARAMETER, R"(Input "%s" is not in the input list)", id.c_str());
-
-    *used = unusedIds.count(id) == 0;
+    *acceptsDescriptor = this->acceptsDescriptor.addRefAndReturn();
     return OPENDAQ_SUCCESS;
 }
 
-ErrCode MultiReader2ParamsImpl::setInputUsed(IComponent* input, Bool used)
-{
-    OPENDAQ_PARAM_NOT_NULL(input);
-
-    std::scoped_lock lock(mutex);
-    const auto id = ComponentPtr::Borrow(input).getGlobalId().toStdString();
-    if (!contains(id))
-        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDPARAMETER, R"(Input "%s" is not in the input list)", id.c_str());
-    if (!used && mainInput.assigned() && mainInput.getGlobalId().toStdString() == id)
-        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDPARAMETER, "The pinned main input cannot be unused");
-
-    if (used)
-        unusedIds.erase(id);
-    else
-        unusedIds.insert(id);
-    return OPENDAQ_SUCCESS;
-}
-
-ErrCode MultiReader2ParamsImpl::getUsed(Bool* used)
-{
-    OPENDAQ_PARAM_NOT_NULL(used);
-
-    std::scoped_lock lock(mutex);
-    *used = this->used;
-    return OPENDAQ_SUCCESS;
-}
-
-ErrCode MultiReader2ParamsImpl::setUsed(Bool used)
+ErrCode MultiReader2ParamsImpl::setAcceptsDescriptor(IFunction* acceptsDescriptor)
 {
     std::scoped_lock lock(mutex);
-    this->used = used;
+    this->acceptsDescriptor = FunctionPtr(acceptsDescriptor);
     return OPENDAQ_SUCCESS;
 }
 

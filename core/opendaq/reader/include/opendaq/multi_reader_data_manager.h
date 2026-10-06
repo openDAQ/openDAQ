@@ -18,16 +18,19 @@
 #include <opendaq/component_ptr.h>
 #include <opendaq/data_descriptor_ptr.h>
 #include <opendaq/data_packet_ptr.h>
+#include <coretypes/function_ptr.h>
 #include <opendaq/multi_reader2_params.h>
 #include <opendaq/multi_reader2_status.h>
 #include <opendaq/packet_ptr.h>
 #include <opendaq/sample_type.h>
 
+#include <atomic>
 #include <chrono>
 #include <cstdint>
 #include <deque>
 #include <mutex>
 #include <optional>
+#include <thread>
 #include <vector>
 
 BEGIN_NAMESPACE_OPENDAQ
@@ -48,11 +51,10 @@ public:
     {
         std::vector<ComponentPtr> inputs;  // slot order; the input statuses hand these back
         std::vector<bool> connected;       // connection state per slot at configure time; always true for signals
-        std::vector<bool> inputUsed;
         std::vector<DataDescriptorPtr> valueDescriptors;   // what new slots start from; retained slots keep what they saw
         std::vector<DataDescriptorPtr> domainDescriptors;
         std::optional<SizeT> mainSlot;     // pinned main input; unset = the reader chooses
-        bool used = true;
+        FunctionPtr acceptsDescriptor;     // the owner's judgement of (input, value, domain); null accepts everything
         SampleType readType = SampleType::Float64;
         SizeT minReadCount = 1;
         MultiReader2ErrorPolicy errorPolicy = MultiReader2ErrorPolicy::Invalidate;
@@ -97,6 +99,9 @@ public:
     // The synchronization guards: a silent input fails after the deadline, an input whose data ends further than
     // the distance behind the others fails at once. Both default to 2 seconds
     void setSyncLimits(std::chrono::milliseconds deadline, std::chrono::milliseconds maxDistance);
+
+    // True on the thread that is inside acceptsDescriptor right now; the reader refuses its calls there
+    bool inCallback() const;
 
 private:
     enum class State
@@ -179,7 +184,7 @@ private:
         bool connected = false;
         DomainInfo dom;
         bool valueValid = false;
-        bool used = true;
+        bool accepted = true;  // the owner's verdict on the current descriptors; false is ValueDescriptorInvalid
         MultiReader2InputError error = MultiReader2InputError::None;
         bool syncFailed = false;  // cleared by the next boundary, by data showing up, or by a reconfigure
         bool offGrid = false;     // a sample position off the main lattice; cleared by the next boundary or a reconfigure
@@ -189,7 +194,6 @@ private:
 
         // Level snapshot of the last status
         MultiReader2InputError reportedError = MultiReader2InputError::None;
-        bool reportedUsed = true;
     };
 
     // Position and length of the deliverable run in front of a slot, in main ticks
@@ -215,7 +219,9 @@ private:
     void copyRun(SizeT index, void* buffer, SizeT samples) const;
 
     void consumeBoundaries();
-    void settle(bool wasValid, std::optional<SizeT> oldMain, const std::vector<MultiReader2InputError>& oldErrors, bool domainWasPending, bool resyncWasPending);
+    void settle(bool wasValid, std::optional<SizeT> oldMain, const std::vector<bool>& oldContributes, bool domainWasPending, bool resyncWasPending);
+    std::vector<bool> contributions() const;
+    bool askAccepts(SizeT index, const DataDescriptorPtr& value, const DataDescriptorPtr& domain);
     void applyBoundary(SizeT index, const Boundary& boundary);
     void evaluate();
     void chooseMain();
@@ -239,9 +245,11 @@ private:
     bool reportedValid = false;
     ObjectPtr<IMultiReader2Status> lastStatus;  // handed out again while nothing changes; statuses are immutable
     std::chrono::steady_clock::time_point syncDeadline;
+    bool deadlineArmed = false;  // set by the first data seen while synchronizing
     std::chrono::milliseconds deadline{2000};
     std::chrono::milliseconds maxDistance{2000};
     std::uint64_t wakeGeneration = 0;
+    std::atomic<std::thread::id> callbackThread{};
 };
 
 END_NAMESPACE_OPENDAQ

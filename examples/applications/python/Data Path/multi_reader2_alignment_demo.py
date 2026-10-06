@@ -41,7 +41,7 @@ def show(status):
     print(f'  status: valid {status.valid}, changes {status.has_changes}, domain changed {status.domain_descriptor_changed}, '
           f'resynchronized {status.resynchronized}')
     for s in status.inputs:
-        print(f'    {s.input.name}: used {s.used}, {s.error}, descriptor changed {s.descriptor_changed}')
+        print(f'    {s.input.name}: {s.error}, descriptor changed {s.descriptor_changed}')
 
 
 sig0 = demo_signal('sig0', '2022-09-27T00:02:03+00:00')

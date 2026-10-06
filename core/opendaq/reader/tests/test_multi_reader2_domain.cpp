@@ -136,16 +136,15 @@ TEST_P(MultiReader2InvalidDomainCaseTest, InvalidDescriptorDoesNotMarkTheNeighbo
     ASSERT_EQ(input(status, 1).getError(), MultiReader2InputError::DomainDescriptorInvalid);
     ASSERT_EQ(reader.getMainInput(), "");
 
-    // Setting the bad input unused makes the reader whole again
+    // Under Exclude the bad input is set aside and the reader is whole again
     auto p = params(signalsToList());
-    p.setInputUsed(readSignals[1].signal, false);
+    p.setErrorPolicy(MultiReader2ErrorPolicy::Exclude);
     reader.configure(p);
     scheduler.waitAll();
     status = probe(reader);
     ASSERT_TRUE(status.getValid());
     ASSERT_EQ(reader.getMainInput(), readSignals[0].signal.getGlobalId());
     ASSERT_EQ(input(status, 1).getError(), MultiReader2InputError::DomainDescriptorInvalid);
-    ASSERT_FALSE(input(status, 1).getUsed());
 }
 
 static std::vector<DomainCase> domainCases()

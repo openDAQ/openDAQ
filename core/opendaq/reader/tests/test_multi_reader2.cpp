@@ -19,10 +19,8 @@ TEST_F(MultiReader2Test, ParamsDefaults)
     ASSERT_EQ(p.getValueReadType(), SampleType::Float64);
     ASSERT_EQ(p.getMinReadCount(), 1u);
     ASSERT_EQ(p.getErrorPolicy(), MultiReader2ErrorPolicy::Invalidate);
-    ASSERT_TRUE(p.getUsed());
     ASSERT_FALSE(p.getMainInput().assigned());
-    ASSERT_TRUE(p.getInputUsed(readSignals[0].signal));
-    ASSERT_TRUE(p.getInputUsed(readSignals[1].signal));
+    ASSERT_FALSE(p.getAcceptsDescriptor().assigned());
 }
 
 TEST_F(MultiReader2Test, ParamsRejectMixedInputs)
@@ -35,13 +33,11 @@ TEST_F(MultiReader2Test, ParamsRejectMixedInputs)
     daqClearErrorInfo();
 }
 
-TEST_F(MultiReader2Test, ParamsRejectEmptyDuplicateAndBadValues)
+TEST_F(MultiReader2Test, ParamsRejectDuplicateAndBadValues)
 {
     readSignals.reserve(1);
     addSignal(0, 10, createDomainSignal());
     MultiReader2ParamsPtr p = createWithImplementation<IMultiReader2Params, MultiReader2ParamsImpl>();
-    ASSERT_EQ(p->setInputs(List<IComponent>()), OPENDAQ_ERR_INVALIDPARAMETER);
-    daqClearErrorInfo();
     ASSERT_EQ(p->setInputs(List<IComponent>(readSignals[0].signal, readSignals[0].signal)), OPENDAQ_ERR_DUPLICATEITEM);
     daqClearErrorInfo();
     ASSERT_EQ(p->setMinReadCount(0), OPENDAQ_ERR_INVALIDPARAMETER);
@@ -52,32 +48,16 @@ TEST_F(MultiReader2Test, ParamsRejectEmptyDuplicateAndBadValues)
     daqClearErrorInfo();
 }
 
-TEST_F(MultiReader2Test, ParamsUsedFlagsFollowTheList)
+TEST_F(MultiReader2Test, ParamsAcceptsDescriptorIsStoredAndCleared)
 {
-    readSignals.reserve(3);
+    readSignals.reserve(1);
     addSignal(0, 10, createDomainSignal());
-    addSignal(0, 10, createDomainSignal());
-    addSignal(0, 10, createDomainSignal());
-    auto p = params(List<IComponent>(readSignals[0].signal, readSignals[1].signal));
-    p.setInputUsed(readSignals[1].signal, false);
-    ASSERT_FALSE(p.getInputUsed(readSignals[1].signal));
-
-    // An input not in the list is rejected
-    ASSERT_EQ(p->setInputUsed(readSignals[2].signal, false), OPENDAQ_ERR_INVALIDPARAMETER);
-    daqClearErrorInfo();
-    daq::Bool used;
-    ASSERT_EQ(p->getInputUsed(readSignals[2].signal, &used), OPENDAQ_ERR_INVALIDPARAMETER);
-    daqClearErrorInfo();
-
-    // Flags of retained inputs survive a new list
-    p.setInputs(List<IComponent>(readSignals[1].signal, readSignals[2].signal));
-    ASSERT_FALSE(p.getInputUsed(readSignals[1].signal));
-    ASSERT_TRUE(p.getInputUsed(readSignals[2].signal));
-
-    // A pinned main input cannot be unused
-    p.setMainInput(readSignals[2].signal);
-    ASSERT_EQ(p->setInputUsed(readSignals[2].signal, false), OPENDAQ_ERR_INVALIDPARAMETER);
-    daqClearErrorInfo();
+    auto p = params(signalsToList());
+    const auto judgement = rejectingAll();
+    p.setAcceptsDescriptor(judgement);
+    ASSERT_EQ(p.getAcceptsDescriptor(), judgement);
+    p.setAcceptsDescriptor(nullptr);
+    ASSERT_FALSE(p.getAcceptsDescriptor().assigned());
 }
 
 // ---------------------------------------------------------------- construction and configure
@@ -102,13 +82,13 @@ TEST_F(MultiReader2Test, PinnedMainInput)
     ASSERT_EQ(reader.getMainInput(), readSignals[1].signal.getGlobalId());
 }
 
-TEST_F(MultiReader2Test, CreateRejectsEmptyListAndForeignMain)
+TEST_F(MultiReader2Test, CreateAcceptsAnEmptyListAndRejectsAForeignMain)
 {
     readSignals.reserve(2);
     addSignal(0, 10, createDomainSignal());
     addSignal(0, 10, createDomainSignal());
     MultiReader2ParamsPtr empty = createWithImplementation<IMultiReader2Params, MultiReader2ParamsImpl>();
-    ASSERT_THROW(createReader(empty), InvalidParameterException);
+    ASSERT_NO_THROW(createReader(empty));
 
     auto p = params(List<IComponent>(readSignals[0].signal));
     p.setMainInput(readSignals[1].signal);
@@ -149,7 +129,6 @@ TEST_F(MultiReader2Test, FirstStatusMarksEverythingNew)
         ASSERT_TRUE(input(status, i).getDescriptorChanged());
         ASSERT_EQ(input(status, i).getDescriptor(), readSignals[i].signal.getDescriptor());
         ASSERT_EQ(input(status, i).getError(), MultiReader2InputError::None);
-        ASSERT_TRUE(input(status, i).getUsed());
         ASSERT_EQ(input(status, i).getInput(), readSignals[i].signal);
     }
 
@@ -734,15 +713,16 @@ TEST_F(MultiReader2Test, InvalidValueDescriptorInvalidatesAndRecovers)
     ASSERT_EQ(offset, 20u);
 }
 
-TEST_F(MultiReader2Test, UnusedInputDoesNotGateButIsReported)
+TEST_F(MultiReader2Test, RejectedInputIsSetAsideUnderExcludeAndRejoinsWhenAccepted)
 {
     readSignals.reserve(3);
     auto domain = createDomainSignal();
     addSignal(0, 10, domain);
     addSignal(0, 10, domain);
-    addSignal(0, 10, domain, SampleType::ComplexFloat32);  // would be invalid if used
+    addSignal(0, 10, domain, SampleType::ComplexFloat32);  // not readable, and not accepted by the owner either
     auto p = params(signalsToList());
-    p.setInputUsed(readSignals[2].signal, false);
+    p.setAcceptsDescriptor(Function([](ComponentPtr, DataDescriptorPtr value, DataDescriptorPtr) -> bool { return value.getSampleType() == SampleType::Float64; }));
+    p.setErrorPolicy(MultiReader2ErrorPolicy::Exclude);
     auto reader = createReaderProbed(p);
 
     readSignals[0].createAndSendPacket(0);
@@ -755,46 +735,43 @@ TEST_F(MultiReader2Test, UnusedInputDoesNotGateButIsReported)
     auto status = read(reader, values, count);
     ASSERT_EQ(count, 10u);
     ASSERT_TRUE(status.getValid());
-    ASSERT_FALSE(input(status, 2).getUsed());
     ASSERT_EQ(input(status, 2).getError(), MultiReader2InputError::ValueDescriptorInvalid);
 
-    // Its descriptor change is reported with the others' data
+    // Its descriptor becomes one the owner accepts: judged again on the boundary, it rejoins on its own
     readSignals[2].signal.setDescriptor(setupDescriptor(SampleType::Float64));
     sendPackets(1);
     count = 10;
     status = read(reader, values, count);
-    ASSERT_EQ(count, 10u);
+    ASSERT_EQ(count, 10u);  // the others' data in front of the boundary
     ASSERT_TRUE(status.getHasChanges());
     ASSERT_EQ(input(status, 2).getError(), MultiReader2InputError::None);
     ASSERT_TRUE(input(status, 2).getDescriptorChanged());
-    ASSERT_EQ(input(status, 2).getDescriptor().getSampleType(), SampleType::Float64);
+    ASSERT_TRUE(status.getResynchronized());
 
-    // Taking it into use reconfigures; it then delivers
-    p.setInputUsed(readSignals[2].signal, true);
-    reader.configure(p);
-    probe(reader);
     sendPackets(2);
     count = 10;
-    status = read(reader, values, count);
+    SizeT offset = 0;
+    status = read(reader, values, count, &offset);
     ASSERT_EQ(count, 10u);
-    ASSERT_TRUE(input(status, 2).getUsed());
+    ASSERT_EQ(offset, 20u);
     ASSERT_THAT(values[2], ElementsAre(20, 21, 22, 23, 24, 25, 26, 27, 28, 29));
 }
 
-TEST_F(MultiReader2Test, SetUsedFalseReadsNothingButStaysValid)
+TEST_F(MultiReader2Test, RejectingEveryInputInvalidatesTheReader)
 {
     readSignals.reserve(2);
     auto domain = createDomainSignal();
     addSignal(0, 10, domain);
     addSignal(0, 10, domain);
     auto p = params(signalsToList());
-    p.setUsed(false);
+    p.setAcceptsDescriptor(rejectingAll());
     auto reader = createReader(p);
     sendPackets(0);
     ASSERT_EQ(reader.getAvailableCount(), 0u);
     auto status = probe(reader);
-    ASSERT_TRUE(status.getValid());
-    ASSERT_FALSE(input(status, 0).getUsed());
+    ASSERT_FALSE(status.getValid());
+    ASSERT_EQ(input(status, 0).getError(), MultiReader2InputError::ValueDescriptorInvalid);
+    ASSERT_EQ(input(status, 1).getError(), MultiReader2InputError::ValueDescriptorInvalid);
     ASSERT_EQ(reader.getMainInput(), "");
 }
 
@@ -828,43 +805,6 @@ TEST_F(MultiReader2Test, DisconnectedPortIsAnError)
 
     sendPackets(0);
     ASSERT_EQ(reader.getAvailableCount(), 10u);
-}
-
-TEST_F(MultiReader2Test, UnusedFreePortDoesNotGate)
-{
-    readSignals.reserve(2);
-    auto domain = createDomainSignal();
-    addSignal(0, 10, domain);
-    addSignal(0, 10, domain);
-    portsList();
-    auto freePort = InputPort(context, nullptr, "free");
-    auto p = params(List<IComponent>(ports[0], ports[1], freePort));
-    p.setInputUsed(freePort, false);
-    auto reader = createReader(p);
-    connectAll(reader);
-    sendPackets(0);
-
-    std::array<std::array<double, 10>, 3> values{};
-    SizeT count = 10;
-    auto status = read(reader, values, count);
-    ASSERT_EQ(count, 10u);
-    ASSERT_TRUE(status.getValid());
-    ASSERT_EQ(status.getInputStatus(freePort).getError(), MultiReader2InputError::Disconnected);
-    ASSERT_FALSE(status.getInputStatus(freePort).getUsed());
-
-    // A signal connects to the free port: the error clears, the descriptor is reported, nothing else moves
-    auto third = Signal(context, nullptr, "third");
-    third.setDescriptor(setupDescriptor(SampleType::Float64));
-    third.setDomainSignal(domain);
-    freePort.connect(third);
-    sendPackets(1);
-    count = 10;
-    status = read(reader, values, count);
-    ASSERT_EQ(count, 10u);
-    ASSERT_TRUE(status.getHasChanges());
-    ASSERT_EQ(status.getInputStatus(freePort).getError(), MultiReader2InputError::None);
-    ASSERT_TRUE(status.getInputStatus(freePort).getDescriptorChanged());
-    ASSERT_FALSE(status.getResynchronized());
 }
 
 TEST_F(MultiReader2Test, DisconnectDeliversQueuedDataThenInvalidates)
@@ -924,7 +864,6 @@ TEST_F(MultiReader2Test, ExcludeSetsAsideAndTakesBack)
     ASSERT_TRUE(status.getHasChanges());
     ASSERT_TRUE(status.getValid());
     ASSERT_EQ(input(status, 2).getError(), MultiReader2InputError::Disconnected);
-    ASSERT_TRUE(input(status, 2).getUsed());
     ASSERT_FALSE(status.getResynchronized());
 
     count = 10;
@@ -1078,8 +1017,8 @@ TEST_F(MultiReader2Test, ConfigureFromInsideTheHandler)
         auto status = probe(reader);
         if (!status.getValid() && reconfigured == 0)
         {
-            // Set the offending input unused from within the handler
-            p.setInputUsed(readSignals[2].signal, false);
+            // Drop the offending input from within the handler
+            p.setInputs(List<IComponent>(readSignals[0].signal, readSignals[1].signal));
             reader.configure(p);
             reconfigured++;
         }
@@ -1092,7 +1031,7 @@ TEST_F(MultiReader2Test, ConfigureFromInsideTheHandler)
     sendPackets(1);
     auto status = probe(reader);
     ASSERT_TRUE(status.getValid());
-    ASSERT_FALSE(input(status, 2).getUsed());
+    ASSERT_EQ(status.getInputs().getCount(), 2u);
 }
 
 // ---------------------------------------------------------------- synchronization limits

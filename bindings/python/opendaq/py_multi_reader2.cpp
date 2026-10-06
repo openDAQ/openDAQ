@@ -24,10 +24,14 @@
 #include "py_opendaq/py_opendaq.h"
 #include "py_core_types/py_converter.h"
 #include "py_core_objects/py_variant_extractor.h"
+#include <coretypes/function_factory.h>
+#include <opendaq/data_descriptor_ptr.h>
 
 #include <opendaq/input_port_ptr.h>
 #include <opendaq/multi_reader2_factory.h>
 #include <opendaq/sample_type_traits.h>
+
+#include <memory>
 #include <opendaq/signal_ptr.h>
 
 namespace
@@ -132,7 +136,7 @@ void defineIMultiReader2Params(pybind11::module_ m, PyDaqIntf<daq::IMultiReader2
     cls.doc() = "Parameters applied to a multi reader via configure; read at configure time and not retained.";
 
     m.def("MultiReader2Params", []() { return daq::MultiReader2Params_Create(); },
-          "Creates a params object with the defaults: every input used, automatic main input, Float64 read type, MinReadCount 1, Invalidate error policy.");
+          "Creates a params object with the defaults: every descriptor accepted, automatic main input, Float64 read type, MinReadCount 1, Invalidate error policy.");
 
     cls.def_property("inputs",
         [](daq::IMultiReader2Params* object)
@@ -146,7 +150,7 @@ void defineIMultiReader2Params(pybind11::module_ m, PyDaqIntf<daq::IMultiReader2
             objectPtr.setInputs(getVariantValue<daq::IList*>(inputs));
         },
         py::return_value_policy::take_ownership,
-        "The inputs in slot order; non-empty, no duplicates, all signals or all input ports. Used flags of inputs that stay in the list are kept.");
+        "The inputs in slot order; non-empty, no duplicates, all signals or all input ports.");
     cls.def_property("main_input",
         [](daq::IMultiReader2Params* object)
         {
@@ -159,35 +163,50 @@ void defineIMultiReader2Params(pybind11::module_ m, PyDaqIntf<daq::IMultiReader2
             objectPtr.setMainInput(input);
         },
         py::return_value_policy::take_ownership,
-        "What everything else aligns against. None: the reader chooses the first used healthy input. Set: pinned, must be in the list and used, its error invalidates the reader.");
-    cls.def("get_input_used",
-        [](daq::IMultiReader2Params* object, daq::IComponent* input)
-        {
-            const auto objectPtr = daq::MultiReader2ParamsPtr::Borrow(object);
-            return static_cast<bool>(objectPtr.getInputUsed(input));
-        },
-        py::arg("input"),
-        "Whether an input takes part in reading; true by default.");
-    cls.def("set_input_used",
-        [](daq::IMultiReader2Params* object, daq::IComponent* input, bool used)
-        {
-            const auto objectPtr = daq::MultiReader2ParamsPtr::Borrow(object);
-            objectPtr.setInputUsed(input, used);
-        },
-        py::arg("input"), py::arg("used"),
-        "Sets whether an input takes part in reading. An unused input keeps its slot, delivers no data, cannot invalidate the reader, and its state is reported. A pinned main input cannot be unused.");
-    cls.def_property("used",
+        "What everything else aligns against. None: the reader chooses the first healthy input. Set: pinned, must be in the list, its error invalidates the reader.");
+    cls.def_property("accepts_descriptor",
         [](daq::IMultiReader2Params* object)
         {
             const auto objectPtr = daq::MultiReader2ParamsPtr::Borrow(object);
-            return static_cast<bool>(objectPtr.getUsed());
+            return objectPtr.getAcceptsDescriptor().detach();
         },
-        [](daq::IMultiReader2Params* object, bool used)
+        [](daq::IMultiReader2Params* object, py::object function)
         {
             const auto objectPtr = daq::MultiReader2ParamsPtr::Borrow(object);
-            objectPtr.setUsed(used);
+            if (function.is_none())
+            {
+                objectPtr.setAcceptsDescriptor(nullptr);
+                return;
+            }
+            if (py::isinstance<daq::IFunction>(function))
+            {
+                objectPtr.setAcceptsDescriptor(py::cast<daq::IFunction*>(function));
+                return;
+            }
+            // A Python callable: the arguments are handed over as their own binding types, and the reader may call
+            // from a read that released the GIL or from a configure that holds it
+            auto callable = std::make_shared<py::object>(function);
+            objectPtr.setAcceptsDescriptor(daq::Function(
+                [callable](daq::ComponentPtr input, daq::DataDescriptorPtr value, daq::DataDescriptorPtr domain) -> bool
+                {
+                    py::gil_scoped_acquire acquire;
+                    try
+                    {
+                        py::object pyInput = py::cast(input.addRefAndReturn(), py::return_value_policy::take_ownership);
+                        py::object pyValue = py::cast(value.addRefAndReturn(), py::return_value_policy::take_ownership);
+                        py::object pyDomain = domain.assigned() ? py::cast(domain.addRefAndReturn(), py::return_value_policy::take_ownership) : py::none();
+                        return py::cast<bool>((*callable)(pyInput, pyValue, pyDomain));
+                    }
+                    catch (py::error_already_set& e)
+                    {
+                        e.restore();
+                        PyErr_Clear();
+                        return false;  // a failing judgement rejects
+                    }
+                }));
         },
-        "Whether the reader reads at all; false behaves as if every input were unused.");
+        py::return_value_policy::take_ownership,
+        "The owner's judgement of an input's descriptors: a callable of (input, value_descriptor, domain_descriptor) returning bool, or None to accept everything. Called inside read and configure when a descriptor takes effect; a rejected input is in error with ValueDescriptorInvalid, under the error policy like any other error. It must not call the reader.");
     cls.def_property("value_read_type",
         [](daq::IMultiReader2Params* object)
         {
@@ -250,13 +269,6 @@ void defineIMultiReader2InputStatus(pybind11::module_ m, PyDaqIntf<daq::IMultiRe
         },
         py::return_value_policy::take_ownership,
         "The signal or input port this entry describes.");
-    cls.def_property_readonly("used",
-        [](daq::IMultiReader2InputStatus* object)
-        {
-            const auto objectPtr = daq::MultiReader2InputStatusPtr::Borrow(object);
-            return static_cast<bool>(objectPtr.getUsed());
-        },
-        "Whether the input takes part in reading, as configured.");
     cls.def_property_readonly("error",
         [](daq::IMultiReader2InputStatus* object)
         {
@@ -333,7 +345,7 @@ void defineIMultiReader2Status(pybind11::module_ m, PyDaqIntf<daq::IMultiReader2
             return objectPtr.getInputs().detach();
         },
         py::return_value_policy::take_ownership,
-        "Every input in slot order, unused ones included.");
+        "Every input in slot order.");
     cls.def("get_input_status",
         [](daq::IMultiReader2Status* object, daq::IComponent* input)
         {
@@ -383,7 +395,7 @@ void defineIMultiReader2(pybind11::module_ m, PyDaqIntf<daq::IMultiReader2, daq:
             const auto objectPtr = daq::MultiReader2Ptr::Borrow(object);
             return objectPtr.getMainInput().toStdString();
         },
-        "The global id of the main input in effect; empty when no used input is healthy.");
+        "The global id of the main input in effect; empty while the reader is invalid or there are no inputs.");
     cls.def_property_readonly("available_count",
         [](daq::IMultiReader2* object)
         {
@@ -408,7 +420,7 @@ void defineIMultiReader2(pybind11::module_ m, PyDaqIntf<daq::IMultiReader2, daq:
             return py::make_tuple(truncate(buffers, 0, read), offset, status.detach());
         },
         py::arg("count"),
-        "Reads at most count aligned samples. Returns (values, packet_offset, status): one array per input in slot order, cut to the count read; arrays of unused or erroring inputs hold nothing meaningful. count 0 is the status probe.");
+        "Reads at most count aligned samples. Returns (values, packet_offset, status): one array per input in slot order, cut to the count read; arrays of erroring inputs hold nothing meaningful. count 0 is the status probe.");
     cls.def("read_with_domain",
         [](py::object self, size_t count)
         {

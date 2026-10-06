@@ -238,9 +238,10 @@ TEST_P(MultiReader2NonNumericTest, InvalidForNumericReadAcceptedByUndefined)
     ASSERT_EQ(input(status, 1).getError(), MultiReader2InputError::None);
     ASSERT_EQ(input(status, 1).getDescriptor().getSampleType(), GetParam());
 
-    // Unused, it is reported but does not matter
+    // Rejected by the owner under Exclude, it is set aside like any erroring input
     p.setValueReadType(SampleType::Int16);
-    p.setInputUsed(odd, false);
+    p.setErrorPolicy(MultiReader2ErrorPolicy::Exclude);
+    p.setAcceptsDescriptor(rejecting({odd}));
     reader.configure(p);
     scheduler.waitAll();
     status = probe(reader);

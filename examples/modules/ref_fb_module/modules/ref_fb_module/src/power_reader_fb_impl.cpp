@@ -97,10 +97,20 @@ RangePtr PowerReaderFbImpl::getValueRange(const DataDescriptorPtr& voltageDescri
     return Range(*std::min_element(std::begin(corners), std::end(corners)), *std::max_element(std::begin(corners), std::end(corners)));
 }
 
+// Volts on the voltage port. The port is the pinned main, so a rejected unit makes the reader invalid and the data
+// is dropped by the reader, never read and discarded here
+bool PowerReaderFbImpl::accepts(const ComponentPtr& input, const DataDescriptorPtr& descriptor)
+{
+    if (input.getGlobalId() != voltageInputPort.getGlobalId())
+        return true;
+    const auto unit = descriptor.getUnit();
+    return !unit.assigned() || unit.getSymbol() == "V";
+}
+
 void PowerReaderFbImpl::processAndSend(SizeT count, SizeT packetOffset)
 {
-    if (!outputValid || !contributes(0) || !contributes(1))
-        return;
+    if (!outputValid)
+        return;  // Invalidate and a judgement only on the main input: data means both inputs contributed
 
     const auto powerDomainPacket = DataPacket(powerDomainSignal.getDescriptor(), count, packetOffset);
     const auto powerValuePacket = DataPacketWithDomain(powerDomainPacket, powerSignal.getDescriptor(), count);
@@ -125,9 +135,6 @@ void PowerReaderFbImpl::rebuildOutputDescriptor()
     {
         const auto& voltageDescriptor = voltageIt->second;
         const auto& currentDescriptor = currentIt->second;
-        if (voltageDescriptor.getUnit().assigned() && voltageDescriptor.getUnit().getSymbol() != "V")
-            throw std::runtime_error("Invalid voltage signal unit");
-
         powerRange = useCustomOutputRange ? Range(powerLowValue, powerHighValue) : getValueRange(voltageDescriptor, currentDescriptor);
         powerSignal.setDescriptor(DataDescriptorBuilder()
                                       .setSampleType(SampleType::Float64)

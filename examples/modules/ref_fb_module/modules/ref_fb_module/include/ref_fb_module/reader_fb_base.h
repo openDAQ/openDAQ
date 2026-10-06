@@ -20,59 +20,63 @@
 
 #include <string>
 #include <unordered_map>
-#include <unordered_set>
 #include <vector>
 
 BEGIN_NAMESPACE_REF_FB_MODULE
 
-// Shared handling for blocks built on MultiReader2. The reader is the only listener of the block's ports: the
-// block implements no port callbacks and reads from onDataAvailable until drained. Every read processes `count`
-// first, under the descriptors cached from earlier statuses, and handles the status after. A block overrides
-// onChanges when it has more to do than reject, cache and wait, and accepts when it rejects descriptors.
+// Shared handling for blocks built on MultiReader2. The reader is the only listener of the ports it reads: the
+// block reads from onDataAvailable until drained, processes `count` first, under the descriptors cached from
+// earlier statuses, and handles the status after. Descriptors are judged by `accepts`, which the reader calls
+// inside read and configure; a block overrides onChanges when it has more to do than cache and wait. A block
+// that always offers one free port keeps that port as its own listener: a connect adds the port to the reader
+// and offers the next one.
 class ReaderFbBase : public FunctionBlock
 {
 protected:
     ReaderFbBase(const FunctionBlockTypePtr& type, const ContextPtr& ctx, const ComponentPtr& parent, const StringPtr& localId);
 
-    // Builds the reader from params and subscribes drain to onDataAvailable
+    // Builds the reader from params, wires accepts into them and subscribes drain to onDataAvailable
     void createReader();
 
     // Reads until nothing is deliverable and nothing changed
     void drain();
 
-    // Default: reject, then cache while valid or wait while invalid. Returns true when it reconfigured
+    // Default: cache while valid or wait while invalid. Returns true when it reconfigured
     virtual bool onChanges(const MultiReader2StatusPtr& status);
 
-    // Sets rejected inputs unused and accepted ones used; a pinned main input is left alone
-    bool applyRejections(const MultiReader2StatusPtr& status);
-
-    // Caches the descriptors marked new and rebuilds the output descriptor from the cache
+    // Keeps `cached` at the descriptors of the contributing inputs and rebuilds the output descriptor from it
     void cacheDescriptors(const MultiReader2StatusPtr& status);
 
-    virtual bool accepts(const DataDescriptorPtr& descriptor);
+    // The owner's judgement of an input's value descriptor; runs inside the reader on the block's thread and
+    // must not call the reader. Default: everything is accepted
+    virtual bool accepts(const ComponentPtr& input, const DataDescriptorPtr& descriptor);
 
-    // `count` samples per slot sit in buffers as Float64; slots that did not contribute hold nothing
+    // The free-port pattern: one port with the block as listener, outside the reader until a signal connects
+    void addFreePort(const std::string& prefix);
+    void onConnected(const InputPortPtr& port) override;
+    ListPtr<IComponent> readerPorts() const;
+
+    // `count` samples per slot sit in buffers as Float64; the buffer of a slot that did not contribute is null
     virtual void processAndSend(SizeT count, SizeT packetOffset) = 0;
 
     // Builds the output descriptor from `cached` and `outputDomain`; fills `outputError` on failure
     virtual void rebuildOutputDescriptor() = 0;
 
-    // Component status from the reader's validity and the owner's rejections
+    // Component status from the reader's validity and the erroring inputs
     void reportStatus(const MultiReader2StatusPtr& status);
 
-    bool contributes(SizeT slot) const;
     void removed() override;
 
     MultiReader2ParamsPtr params;
     MultiReader2Ptr reader;
     std::vector<std::vector<double>> storage;
     std::vector<void*> buffers;
-    std::vector<bool> active;                                    // per slot, as of the last status: used and healthy
-    std::vector<ComponentPtr> slotInputs;                        // slot order as of the last status
     DataDescriptorPtr outputDomain;
     std::string outputError;  // why the output descriptor could not be built; reported as a Warning
-    std::unordered_map<std::string, DataDescriptorPtr> cached;   // value descriptors by global id
-    std::unordered_set<std::string> rejected;                    // inputs the owner set unused
+    std::unordered_map<std::string, DataDescriptorPtr> cached;   // value descriptors of the contributing inputs, by global id
+    InputPortConfigPtr freePort;
+    std::string freePortPrefix;
+    int nextPortId = 1;
 };
 
 END_NAMESPACE_REF_FB_MODULE

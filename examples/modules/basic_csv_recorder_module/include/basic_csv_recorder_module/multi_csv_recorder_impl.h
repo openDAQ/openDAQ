@@ -19,7 +19,6 @@
 #include <optional>
 #include <string>
 #include <unordered_map>
-#include <unordered_set>
 #include <vector>
 
 #include <coretypes/filesystem.h>
@@ -35,10 +34,10 @@ BEGIN_NAMESPACE_OPENDAQ_BASIC_CSV_RECORDER_MODULE
 /*!
  * @brief A basic recorder function block which records aligned data from its input signals into a CSV file.
  *
- * The block always offers one free input port, kept unused in the reader so its missing signal touches nothing.
- * When a signal connects the block judges its descriptor, offers the next port and configures the reader once;
- * a used port that loses its signal is removed. The reader is the only listener of the ports and the block reads
- * from its onDataAvailable event until drained.
+ * The block always offers one free input port outside the reader, with the block as its listener. When a signal
+ * connects the port joins the reader, which judges the descriptor through the block's `accepts`, and the next
+ * port is offered; a port that loses its signal is removed. The reader is the only listener of the ports it
+ * reads and the block reads from its onDataAvailable event until drained.
  */
 class MultiCsvRecorderImpl final : public FunctionBlockImpl<IFunctionBlock, IRecorder>
 {
@@ -70,13 +69,14 @@ public:
 protected:
     void activeChanged() override;
     void removed() override;
+    void onConnected(const InputPortPtr& port) override;
 
 private:
     void initProperties();
     void onPropertiesChanged();
 
     void addFreePort();
-    ListPtr<IComponent> portList() const;
+    ListPtr<IComponent> readerPorts() const;
     void createReader();
     void drain();
     bool onChanges(const MultiReader2StatusPtr& status);
@@ -98,10 +98,9 @@ private:
     std::vector<std::vector<double>> storage;
     std::vector<void*> buffers;
     std::vector<ComponentPtr> slotInputs;      // slot order as of the last status
-    std::vector<bool> activeSlots;             // per slot: used and healthy as of the last status
+    std::vector<bool> activeSlots;             // per slot: healthy as of the last status
     std::unordered_map<std::string, DataDescriptorPtr> cachedDescriptors;
     std::unordered_map<std::string, StringPtr> cachedSignalNames;
-    std::unordered_set<std::string> rejected;
     DataDescriptorPtr recorderDomainDataDescriptor;
 
     bool recordingActive = false;

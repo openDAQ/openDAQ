@@ -29,21 +29,18 @@ class MultiReader2InputStatusImpl : public ImplementationOf<IMultiReader2InputSt
 {
 public:
     MultiReader2InputStatusImpl(const ComponentPtr& input,
-                                bool used,
                                 MultiReader2InputError error,
                                 bool descriptorChanged,
                                 const DataDescriptorPtr& descriptor);
 
     // IMultiReader2InputStatus
     ErrCode INTERFACE_FUNC getInput(IComponent** input) override;
-    ErrCode INTERFACE_FUNC getUsed(Bool* used) override;
     ErrCode INTERFACE_FUNC getError(MultiReader2InputError* error) override;
     ErrCode INTERFACE_FUNC getDescriptorChanged(Bool* changed) override;
     ErrCode INTERFACE_FUNC getDescriptor(IDataDescriptor** descriptor) override;
 
 private:
     ComponentPtr input;
-    bool used;
     MultiReader2InputError error;
     bool descriptorChanged;
     DataDescriptorPtr descriptor;

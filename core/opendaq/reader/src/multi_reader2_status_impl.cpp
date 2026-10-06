@@ -4,12 +4,10 @@
 BEGIN_NAMESPACE_OPENDAQ
 
 MultiReader2InputStatusImpl::MultiReader2InputStatusImpl(const ComponentPtr& input,
-                                                         bool used,
                                                          MultiReader2InputError error,
                                                          bool descriptorChanged,
                                                          const DataDescriptorPtr& descriptor)
     : input(input)
-    , used(used)
     , error(error)
     , descriptorChanged(descriptorChanged)
     , descriptor(descriptor)
@@ -20,13 +18,6 @@ ErrCode MultiReader2InputStatusImpl::getInput(IComponent** input)
 {
     OPENDAQ_PARAM_NOT_NULL(input);
     *input = this->input.addRefAndReturn();
-    return OPENDAQ_SUCCESS;
-}
-
-ErrCode MultiReader2InputStatusImpl::getUsed(Bool* used)
-{
-    OPENDAQ_PARAM_NOT_NULL(used);
-    *used = this->used;
     return OPENDAQ_SUCCESS;
 }
 

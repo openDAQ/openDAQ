@@ -25,9 +25,11 @@ SumReaderFbImpl::SumReaderFbImpl(const ContextPtr& ctx, const ComponentPtr& pare
     sumDomainSignal.setName("SumDomain");
     sumSignal.setDomainSignal(sumDomainSignal);
 
-    addFreePort();
+    params.setInputs(List<IComponent>());
     params.setValueReadType(SampleType::Float64);
+    params.setErrorPolicy(MultiReader2ErrorPolicy::Exclude);  // an input that cannot align is set aside, the sum goes on
     createReader();
+    addFreePort("SumPort");
 }
 
 FunctionBlockTypePtr SumReaderFbImpl::CreateType()
@@ -35,35 +37,20 @@ FunctionBlockTypePtr SumReaderFbImpl::CreateType()
     return FunctionBlockType("RefFBModuleSumReader", "Sum with reader", "Calculates equal-rate signal sum using multi reader");
 }
 
-void SumReaderFbImpl::addFreePort()
+// The unit every input has to carry: that of any contributing input, as of the last status, other than the one
+// being judged
+UnitPtr SumReaderFbImpl::referenceUnit(const ComponentPtr& judged) const
 {
-    freePort = createAndAddInputPort(fmt::format("SumPort_{}", nextPortId++), PacketReadyNotification::Scheduler);
-    params.setInputs(portList());                 // used flags of the other ports are kept
-    params.setInputUsed(freePort, false);         // not connected, but unused, so it touches nothing
-}
-
-ListPtr<IComponent> SumReaderFbImpl::portList() const
-{
-    auto list = List<IComponent>();
-    for (const auto& port : inputPorts.getItems())
-        list.pushBack(port);
-    return list;
-}
-
-// The unit every input has to carry: that of the first used input with a cached descriptor
-UnitPtr SumReaderFbImpl::referenceUnit() const
-{
-    for (const auto& port : inputPorts.getItems())
+    const auto judgedId = judged.getGlobalId().toStdString();
+    for (const auto& [id, descriptor] : cached)
     {
-        const auto id = port.getGlobalId().toStdString();
-        if (port == freePort || !params.getInputUsed(port) || cached.count(id) == 0 || !cached.at(id).assigned())
-            continue;
-        return cached.at(id).getUnit();
+        if (id != judgedId && descriptor.assigned())
+            return descriptor.getUnit();
     }
     return nullptr;
 }
 
-bool SumReaderFbImpl::accepts(const DataDescriptorPtr& descriptor)
+bool SumReaderFbImpl::accepts(const ComponentPtr& input, const DataDescriptorPtr& descriptor)
 {
     if (!descriptor.assigned())
         return false;
@@ -72,36 +59,22 @@ bool SumReaderFbImpl::accepts(const DataDescriptorPtr& descriptor)
         return false;  // scalar numeric types only
     if (const auto dimensions = descriptor.getDimensions(); dimensions.assigned() && dimensions.getCount() > 0)
         return false;
-    const auto reference = referenceUnit();
+    const auto reference = referenceUnit(input);
     return !reference.assigned() || reference == descriptor.getUnit();
 }
 
 bool SumReaderFbImpl::onChanges(const MultiReader2StatusPtr& status)
 {
-    const auto free = status.getInputStatus(freePort);
-    if (free.getError() != MultiReader2InputError::Disconnected)
-    {
-        // A signal connected to the free port: judge it before using it, then offer the next port
-        const bool accepted = free.getError() == MultiReader2InputError::None && accepts(free.getDescriptor());
-        if (!accepted)
-            rejected.insert(freePort.getGlobalId().toStdString());
-        params.setInputUsed(freePort, accepted);
-        addFreePort();
-        reader.configure(params);
-        return true;
-    }
-
     for (const MultiReader2InputStatusPtr in : status.getInputs())
     {
         const InputPortConfigPtr port = in.getInput().asPtr<IInputPortConfig>(true);
-        if (port != freePort && in.getError() == MultiReader2InputError::Disconnected)
+        if (in.getError() == MultiReader2InputError::Disconnected)
         {
             // A port lost its signal: the block offers one free port only, so this one goes
             LOG_D("Sum Reader FB: Input port {} disconnected, removing it", port.getLocalId())
-            rejected.erase(port.getGlobalId().toStdString());
             cached.erase(port.getGlobalId().toStdString());
             removeInputPort(port);
-            params.setInputs(portList());
+            params.setInputs(readerPorts());
             reader.configure(params);
             return true;
         }
@@ -122,7 +95,7 @@ void SumReaderFbImpl::processAndSend(SizeT count, SizeT packetOffset)
 
     for (SizeT slot = 0; slot < buffers.size(); slot++)
     {
-        if (!contributes(slot))
+        if (buffers[slot] == nullptr)
             continue;
         const auto data = static_cast<const double*>(buffers[slot]);
         for (SizeT i = 0; i < count; i++)
@@ -139,17 +112,14 @@ void SumReaderFbImpl::rebuildOutputDescriptor()
     double lowValue = 0;
     double highValue = 0;
     bool anyInput = false;
-    for (SizeT slot = 0; slot < slotInputs.size(); slot++)
+    for (const auto& [id, descriptor] : cached)
     {
-        if (!contributes(slot))
-            continue;
-        const auto it = cached.find(slotInputs[slot].getGlobalId().toStdString());
-        if (it == cached.end() || !it->second.assigned())
+        if (!descriptor.assigned())
             continue;
         anyInput = true;
         if (!unit.assigned())
-            unit = it->second.getUnit();
-        if (const auto range = it->second.getValueRange(); range.assigned())
+            unit = descriptor.getUnit();
+        if (const auto range = descriptor.getValueRange(); range.assigned())
         {
             lowValue += range.getLowValue().getFloatValue();
             highValue += range.getHighValue().getFloatValue();

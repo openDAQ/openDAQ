@@ -33,7 +33,7 @@ TEST_F(MultiReader2ParamsTest, FactoryCreatesDefaults)
     ASSERT_TRUE(p.getInputs().assigned());
     ASSERT_EQ(p.getInputs().getCount(), 0u);
     ASSERT_FALSE(p.getMainInput().assigned());
-    ASSERT_TRUE(p.getUsed());
+    ASSERT_FALSE(p.getAcceptsDescriptor().assigned());
     ASSERT_EQ(p.getValueReadType(), SampleType::Float64);
     ASSERT_EQ(p.getMinReadCount(), 1u);
     ASSERT_EQ(p.getErrorPolicy(), MultiReader2ErrorPolicy::Invalidate);
@@ -48,18 +48,13 @@ TEST_F(MultiReader2ParamsTest, GettersRejectNullOutput)
     daqClearErrorInfo();
     ASSERT_EQ(p->getMainInput(nullptr), OPENDAQ_ERR_ARGUMENT_NULL);
     daqClearErrorInfo();
-    ASSERT_EQ(p->getUsed(nullptr), OPENDAQ_ERR_ARGUMENT_NULL);
-    daqClearErrorInfo();
     ASSERT_EQ(p->getValueReadType(nullptr), OPENDAQ_ERR_ARGUMENT_NULL);
     daqClearErrorInfo();
     ASSERT_EQ(p->getMinReadCount(nullptr), OPENDAQ_ERR_ARGUMENT_NULL);
     daqClearErrorInfo();
     ASSERT_EQ(p->getErrorPolicy(nullptr), OPENDAQ_ERR_ARGUMENT_NULL);
     daqClearErrorInfo();
-    ASSERT_EQ(p->getInputUsed(readSignals[0].signal, nullptr), OPENDAQ_ERR_ARGUMENT_NULL);
-    daqClearErrorInfo();
-    daq::Bool used;
-    ASSERT_EQ(p->getInputUsed(nullptr, &used), OPENDAQ_ERR_ARGUMENT_NULL);
+    ASSERT_EQ(p->getAcceptsDescriptor(nullptr), OPENDAQ_ERR_ARGUMENT_NULL);
     daqClearErrorInfo();
 }
 
@@ -67,8 +62,6 @@ TEST_F(MultiReader2ParamsTest, SettersRejectNullInput)
 {
     auto p = freshParams();
     ASSERT_EQ(p->setInputs(nullptr), OPENDAQ_ERR_ARGUMENT_NULL);
-    daqClearErrorInfo();
-    ASSERT_EQ(p->setInputUsed(nullptr, True), OPENDAQ_ERR_ARGUMENT_NULL);
     daqClearErrorInfo();
 }
 
@@ -112,11 +105,11 @@ TEST_F(MultiReader2ParamsTest, LargeInputListIsAccepted)
     ASSERT_EQ(p.getInputs().getCount(), 64u);
 }
 
-TEST_F(MultiReader2ParamsTest, SetInputsRejectsEmptyList)
+TEST_F(MultiReader2ParamsTest, SetInputsAcceptsAnEmptyList)
 {
     auto p = freshParams();
-    ASSERT_EQ(p->setInputs(List<IComponent>()), OPENDAQ_ERR_INVALIDPARAMETER);
-    daqClearErrorInfo();
+    ASSERT_EQ(p->setInputs(List<IComponent>()), OPENDAQ_SUCCESS);
+    ASSERT_EQ(p.getInputs().getCount(), 0u);
 }
 
 TEST_F(MultiReader2ParamsTest, SetInputsRejectsNullElement)
@@ -188,121 +181,238 @@ TEST_F(MultiReader2ParamsTest, RejectedSetInputsKeepsThePreviousList)
     ASSERT_EQ(p.getInputs()[0].getGlobalId(), readSignals[0].signal.getGlobalId());
 }
 
-TEST_F(MultiReader2ParamsTest, ReplacingTheListForgetsFlagsOfRemovedInputs)
+// ---------------------------------------------------------------- the judgement
+
+TEST_F(MultiReader2ParamsTest, AcceptsDescriptorIsNullByDefaultAndStoredAsGiven)
+{
+    auto p = freshParams();
+    ASSERT_FALSE(p.getAcceptsDescriptor().assigned());
+    const auto judgement = rejectingAll();
+    ASSERT_EQ(p->setAcceptsDescriptor(judgement), OPENDAQ_SUCCESS);
+    ASSERT_EQ(p.getAcceptsDescriptor(), judgement);
+    ASSERT_EQ(p->setAcceptsDescriptor(nullptr), OPENDAQ_SUCCESS);
+    ASSERT_FALSE(p.getAcceptsDescriptor().assigned());
+}
+
+TEST_F(MultiReader2ParamsTest, JudgementIsCalledWithTheInputAndBothDescriptors)
+{
+    addSignals(2);
+    std::vector<std::string> seen;
+    auto p = params(signalsToList());
+    p.setAcceptsDescriptor(Function(
+        [&seen](ComponentPtr input, DataDescriptorPtr value, DataDescriptorPtr domain) -> bool
+        {
+            seen.push_back(input.getGlobalId().toStdString() + " " + std::to_string(static_cast<int>(value.getSampleType())) + " " +
+                           (domain.assigned() ? domain.getOrigin().toStdString() : "no domain"));
+            return true;
+        }));
+    auto reader = createReader(p);
+    scheduler.waitAll();
+    auto status = probe(reader);
+    ASSERT_TRUE(status.getValid());
+
+    // Once per input at the configure, with the signal's value descriptor and its domain descriptor
+    ASSERT_EQ(seen.size(), 2u);
+    for (SizeT i = 0; i < 2; i++)
+        ASSERT_EQ(seen[i],
+                  readSignals[i].signal.getGlobalId().toStdString() + " " + std::to_string(static_cast<int>(SampleType::Float64)) +
+                      " 2022-09-27T00:02:03+00:00");
+}
+
+TEST_F(MultiReader2ParamsTest, JudgementIsAskedAgainOnEveryDescriptorChange)
+{
+    addSignals(2);
+    std::atomic<int> calls{0};
+    auto p = params(signalsToList());
+    p.setErrorPolicy(MultiReader2ErrorPolicy::Exclude);
+    // The owner rejects volts
+    p.setAcceptsDescriptor(Function(
+        [&calls](ComponentPtr, DataDescriptorPtr value, DataDescriptorPtr) -> bool
+        {
+            calls++;
+            return !value.getUnit().assigned() || value.getUnit().getSymbol() != "V";
+        }));
+    auto reader = createReaderProbed(p);
+    ASSERT_EQ(calls.load(), 2);
+
+    readSignals[1].signal.setDescriptor(DataDescriptorBuilder().setSampleType(SampleType::Float64).setUnit(Unit("V")).build());
+    scheduler.waitAll();
+    auto status = probe(reader);
+    ASSERT_EQ(calls.load(), 3);
+    ASSERT_TRUE(status.getHasChanges());
+    ASSERT_TRUE(status.getValid());
+    ASSERT_EQ(input(status, 1).getError(), MultiReader2InputError::ValueDescriptorInvalid);
+    ASSERT_FALSE(input(status, 1).getDescriptor().assigned());  // judged and set aside, not reported
+
+    readSignals[1].signal.setDescriptor(setupDescriptor(SampleType::Float64));
+    scheduler.waitAll();
+    status = probe(reader);
+    ASSERT_EQ(calls.load(), 4);
+    ASSERT_EQ(input(status, 1).getError(), MultiReader2InputError::None);
+    ASSERT_TRUE(input(status, 1).getDescriptorChanged());  // new to the consumer again
+}
+
+TEST_F(MultiReader2ParamsTest, RejectedInputUnderExcludeDeliversNothingAndTheOthersStream)
 {
     addSignals(3);
-    auto p = freshParams();
-    p.setInputs(List<IComponent>(readSignals[0].signal, readSignals[1].signal));
-    p.setInputUsed(readSignals[0].signal, false);
-
-    // Signal 0 leaves the list and comes back: it is used again
-    p.setInputs(List<IComponent>(readSignals[1].signal, readSignals[2].signal));
-    p.setInputs(List<IComponent>(readSignals[0].signal, readSignals[1].signal));
-    ASSERT_TRUE(p.getInputUsed(readSignals[0].signal));
+    auto domain = readSignals[0].signal.getDomainSignal();
+    for (auto& read : readSignals)
+        read.signal.setDomainSignal(domain);
+    auto p = params(signalsToList());
+    p.setErrorPolicy(MultiReader2ErrorPolicy::Exclude);
+    p.setAcceptsDescriptor(rejecting({readSignals[1].signal}));
+    auto reader = createReaderProbed(p);
+    sendPackets(0);
+    ASSERT_EQ(reader.getAvailableCount(), 10u);
+    std::array<std::array<double, 10>, 3> values{};
+    for (auto& v : values)
+        v.fill(-1.0);
+    SizeT count = 10;
+    auto status = read(reader, values, count);
+    ASSERT_EQ(count, 10u);
+    ASSERT_EQ(values[0][9], 9.0);
+    ASSERT_EQ(values[1][0], -1.0);  // untouched
+    ASSERT_EQ(values[2][9], 9.0);
+    ASSERT_EQ(input(status, 1).getError(), MultiReader2InputError::ValueDescriptorInvalid);
 }
 
-TEST_F(MultiReader2ParamsTest, ReplacingTheListKeepsFlagsOfRetainedPorts)
-{
-    addSignals(3);
-    portsList();
-    auto p = freshParams();
-    p.setInputs(List<IComponent>(ports[0], ports[1]));
-    p.setInputUsed(ports[1], false);
-    p.setInputs(List<IComponent>(ports[1], ports[2]));
-    ASSERT_FALSE(p.getInputUsed(ports[1]));
-    ASSERT_TRUE(p.getInputUsed(ports[2]));
-}
-
-// ---------------------------------------------------------------- used flags
-
-TEST_F(MultiReader2ParamsTest, InputUsedDefaultsToTrueForEveryInput)
-{
-    addSignals(4);
-    auto p = freshParams();
-    p.setInputs(signalsToList());
-    for (const auto& read : readSignals)
-        ASSERT_TRUE(p.getInputUsed(read.signal));
-}
-
-TEST_F(MultiReader2ParamsTest, SetInputUsedIsIdempotent)
-{
-    addSignals(1);
-    auto p = freshParams();
-    p.setInputs(signalsToList());
-    ASSERT_EQ(p->setInputUsed(readSignals[0].signal, False), OPENDAQ_SUCCESS);
-    ASSERT_EQ(p->setInputUsed(readSignals[0].signal, False), OPENDAQ_SUCCESS);
-    ASSERT_FALSE(p.getInputUsed(readSignals[0].signal));
-    ASSERT_EQ(p->setInputUsed(readSignals[0].signal, True), OPENDAQ_SUCCESS);
-    ASSERT_EQ(p->setInputUsed(readSignals[0].signal, True), OPENDAQ_SUCCESS);
-    ASSERT_TRUE(p.getInputUsed(readSignals[0].signal));
-}
-
-TEST_F(MultiReader2ParamsTest, SetInputUsedRejectsForeignInput)
-{
-    addSignals(2);
-    auto p = freshParams();
-    p.setInputs(List<IComponent>(readSignals[0].signal));
-    ASSERT_EQ(p->setInputUsed(readSignals[1].signal, False), OPENDAQ_ERR_INVALIDPARAMETER);
-    daqClearErrorInfo();
-}
-
-TEST_F(MultiReader2ParamsTest, GetInputUsedRejectsForeignInput)
-{
-    addSignals(2);
-    auto p = freshParams();
-    p.setInputs(List<IComponent>(readSignals[0].signal));
-    daq::Bool used;
-    ASSERT_EQ(p->getInputUsed(readSignals[1].signal, &used), OPENDAQ_ERR_INVALIDPARAMETER);
-    daqClearErrorInfo();
-}
-
-TEST_F(MultiReader2ParamsTest, UsedFlagsBeforeAnyListAreForeign)
-{
-    addSignals(1);
-    auto p = freshParams();
-    ASSERT_EQ(p->setInputUsed(readSignals[0].signal, False), OPENDAQ_ERR_INVALIDPARAMETER);
-    daqClearErrorInfo();
-}
-
-TEST_F(MultiReader2ParamsTest, PinnedMainCannotBeSetUnused)
-{
-    addSignals(2);
-    auto p = freshParams();
-    p.setInputs(signalsToList());
-    p.setMainInput(readSignals[1].signal);
-    ASSERT_EQ(p->setInputUsed(readSignals[1].signal, False), OPENDAQ_ERR_INVALIDPARAMETER);
-    daqClearErrorInfo();
-    ASSERT_TRUE(p.getInputUsed(readSignals[1].signal));
-    // The other input is free to change
-    ASSERT_EQ(p->setInputUsed(readSignals[0].signal, False), OPENDAQ_SUCCESS);
-}
-
-TEST_F(MultiReader2ParamsTest, PinnedMainCanBeSetUsedAgain)
-{
-    addSignals(2);
-    auto p = freshParams();
-    p.setInputs(signalsToList());
-    p.setMainInput(readSignals[1].signal);
-    ASSERT_EQ(p->setInputUsed(readSignals[1].signal, True), OPENDAQ_SUCCESS);
-}
-
-TEST_F(MultiReader2ParamsTest, PinningAnUnusedInputIsRejectedAtCreate)
+TEST_F(MultiReader2ParamsTest, ExceptionInTheJudgementRejects)
 {
     addSignals(2);
     auto p = params(signalsToList());
-    p.setInputUsed(readSignals[1].signal, false);
-    // The params take the pin; the reader rejects the combination
-    ASSERT_EQ(p->setMainInput(readSignals[1].signal), OPENDAQ_SUCCESS);
-    ASSERT_THROW(createReader(p), InvalidParameterException);
+    p.setAcceptsDescriptor(Function(
+        [](ComponentPtr input, DataDescriptorPtr, DataDescriptorPtr) -> bool
+        {
+            if (input.getLocalId() == "sig1")
+                throw std::runtime_error("no");
+            return true;
+        }));
+    auto reader = createReader(p);
+    scheduler.waitAll();
+    auto status = probe(reader);
+    ASSERT_FALSE(status.getValid());
+    ASSERT_EQ(input(status, 0).getError(), MultiReader2InputError::None);
+    ASSERT_EQ(input(status, 1).getError(), MultiReader2InputError::ValueDescriptorInvalid);
 }
 
-TEST_F(MultiReader2ParamsTest, SetUsedToggles)
+TEST_F(MultiReader2ParamsTest, AnIntegerVerdictCounts)
 {
+    addSignals(2);
+    auto p = params(signalsToList());
+    p.setAcceptsDescriptor(
+        Function([](ComponentPtr input, DataDescriptorPtr, DataDescriptorPtr) -> Int { return input.getLocalId() == "sig0" ? 1 : 0; }));
+    auto reader = createReader(p);
+    scheduler.waitAll();
+    auto status = probe(reader);
+    ASSERT_FALSE(status.getValid());
+    ASSERT_EQ(input(status, 0).getError(), MultiReader2InputError::None);
+    ASSERT_EQ(input(status, 1).getError(), MultiReader2InputError::ValueDescriptorInvalid);
+}
+
+TEST_F(MultiReader2ParamsTest, ReaderCallsFromInsideTheJudgementFail)
+{
+    addSignals(2);
+    MultiReader2Ptr reader;
+    std::vector<ErrCode> seen;
+    auto p = params(signalsToList());
+    p.setAcceptsDescriptor(Function(
+        [&](ComponentPtr, DataDescriptorPtr, DataDescriptorPtr) -> bool
+        {
+            if (!reader.assigned())
+                return true;  // the construction's own configure
+            SizeT available = 0;
+            seen.push_back(reader->getAvailableCount(&available));
+            daqClearErrorInfo();
+            IString* id = nullptr;
+            seen.push_back(reader->getMainInput(&id));
+            daqClearErrorInfo();
+            SizeT count = 0;
+            IMultiReader2Status* status = nullptr;
+            seen.push_back(reader->read(nullptr, &count, nullptr, &status));
+            daqClearErrorInfo();
+            seen.push_back(reader->configure(p));
+            daqClearErrorInfo();
+            return true;
+        }));
+    reader = createReaderProbed(p);
+
+    readSignals[0].signal.setDescriptor(DataDescriptorBuilder().setSampleType(SampleType::Float64).setUnit(Unit("V")).build());
+    scheduler.waitAll();
+    auto status = probe(reader);
+    ASSERT_EQ(seen.size(), 4u);
+    for (const auto code : seen)
+        ASSERT_EQ(code, OPENDAQ_ERR_INVALIDSTATE);
+    // The reader is untouched by the refused calls
+    ASSERT_TRUE(status.getValid());
+    sendPackets(0);
+    ASSERT_EQ(reader.getAvailableCount(), 10u);
+}
+
+TEST_F(MultiReader2ParamsTest, RejectedPinnedMainInvalidatesTheReader)
+{
+    addSignals(2);
+    auto p = params(signalsToList());
+    p.setMainInput(readSignals[1].signal);
+    p.setAcceptsDescriptor(rejecting({readSignals[1].signal}));
+    auto reader = createReader(p);
+    scheduler.waitAll();
+    auto status = probe(reader);
+    ASSERT_FALSE(status.getValid());
+    ASSERT_EQ(input(status, 1).getError(), MultiReader2InputError::ValueDescriptorInvalid);
+    ASSERT_EQ(reader.getMainInput(), readSignals[1].signal.getGlobalId());  // a pin is always named
+
+    p.setAcceptsDescriptor(nullptr);
+    reader.configure(p);
+    scheduler.waitAll();
+    status = probe(reader);
+    ASSERT_TRUE(status.getValid());
+    sendPackets(0);
+    ASSERT_EQ(reader.getAvailableCount(), 10u);
+}
+
+TEST_F(MultiReader2ParamsTest, ANewJudgementObjectReconfiguresTheSameOneDoesNot)
+{
+    addSignals(2);
+    auto domain = readSignals[0].signal.getDomainSignal();
+    readSignals[1].signal.setDomainSignal(domain);
+    auto p = params(signalsToList());
+    p.setAcceptsDescriptor(Function([](ComponentPtr, DataDescriptorPtr, DataDescriptorPtr) -> bool { return true; }));
+    auto reader = createReaderProbed(p);
+    sendPackets(0);
+    ASSERT_EQ(reader.getAvailableCount(), 10u);
+
+    ASSERT_EQ(reader->configure(p), OPENDAQ_SUCCESS);
+    ASSERT_EQ(reader.getAvailableCount(), 10u);  // the same function object: nothing to do
+
+    p.setAcceptsDescriptor(Function([](ComponentPtr, DataDescriptorPtr, DataDescriptorPtr) -> bool { return true; }));
+    ASSERT_EQ(reader->configure(p), OPENDAQ_SUCCESS);
+    scheduler.waitAll();
+    ASSERT_EQ(reader.getAvailableCount(), 0u);  // another judgement: every descriptor is judged anew
+    ASSERT_TRUE(probe(reader).getHasChanges());
+}
+
+TEST_F(MultiReader2ParamsTest, EmptyInputListIsAValidReaderWithoutAMain)
+{
+    addSignals(2);
     auto p = freshParams();
-    p.setUsed(false);
-    ASSERT_FALSE(p.getUsed());
-    p.setUsed(true);
-    ASSERT_TRUE(p.getUsed());
+    p.setInputs(List<IComponent>());
+    auto reader = createReader(p);
+    auto status = probe(reader);
+    ASSERT_TRUE(status.getValid());
+    ASSERT_TRUE(status.getHasChanges());
+    ASSERT_EQ(status.getInputs().getCount(), 0u);
+    ASSERT_EQ(reader.getMainInput(), "");
+    ASSERT_FALSE(status.getDomainDescriptor().assigned());
+    ASSERT_EQ(reader.getAvailableCount(), 0u);
+
+    // Inputs arrive later through configure
+    p.setInputs(signalsToList());
+    reader.configure(p);
+    scheduler.waitAll();
+    status = probe(reader);
+    ASSERT_TRUE(status.getValid());
+    ASSERT_EQ(status.getInputs().getCount(), 2u);
+    ASSERT_EQ(reader.getMainInput(), readSignals[0].signal.getGlobalId());
 }
 
 // ---------------------------------------------------------------- main input

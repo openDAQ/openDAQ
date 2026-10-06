@@ -23,10 +23,10 @@ BEGIN_NAMESPACE_REF_FB_MODULE
 namespace SumReader
 {
 
-// Sums equal-rate inputs. The block always offers one free port, kept unused so its missing signal touches
-// nothing. When a signal connects to it the block judges the descriptor, offers the next port, and configures
-// once. A used port that loses its signal is removed. Inputs whose descriptor the block does not accept are set
-// unused and reported in the component status.
+// Sums equal-rate inputs. The block always offers one free port outside the reader; when a signal connects to it
+// the port joins the reader and the next free port is offered. The reader asks the block to judge every value
+// descriptor: scalar numeric, and the unit of the inputs already summed. A port that loses its signal is removed.
+// Inputs set aside by the reader, rejected ones included, are reported in the component status.
 class SumReaderFbImpl final : public ReaderFbBase
 {
 public:
@@ -36,17 +36,13 @@ public:
     static FunctionBlockTypePtr CreateType();
 
 private:
-    void addFreePort();
-    ListPtr<IComponent> portList() const;
-    UnitPtr referenceUnit() const;
+    UnitPtr referenceUnit(const ComponentPtr& judged) const;
 
     bool onChanges(const MultiReader2StatusPtr& status) override;
-    bool accepts(const DataDescriptorPtr& descriptor) override;
+    bool accepts(const ComponentPtr& input, const DataDescriptorPtr& descriptor) override;
     void processAndSend(SizeT count, SizeT packetOffset) override;
     void rebuildOutputDescriptor() override;
 
-    InputPortConfigPtr freePort;
-    int nextPortId = 1;
     SignalConfigPtr sumSignal;
     SignalConfigPtr sumDomainSignal;
 };

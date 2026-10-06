@@ -38,6 +38,7 @@ private:
     void readProperties();
     RangePtr getValueRange(const DataDescriptorPtr& voltageDescriptor, const DataDescriptorPtr& currentDescriptor) const;
 
+    bool accepts(const ComponentPtr& input, const DataDescriptorPtr& descriptor) override;
     void processAndSend(SizeT count, SizeT packetOffset) override;
     void rebuildOutputDescriptor() override;
 

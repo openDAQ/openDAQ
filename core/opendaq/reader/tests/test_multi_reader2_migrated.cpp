@@ -601,26 +601,25 @@ TEST_F(MultiReader2MigrationTest, MultiReaderActive)
     auto status = readWithDomain(reader, ticks, values, count);
     ASSERT_EQ(count, 10u);
 
-    // Unused: data is dropped, the reader stays valid
-    p.setUsed(false);
+    // Everything rejected: data is dropped, the reader is invalid
+    p.setAcceptsDescriptor(rejectingAll());
     reader.configure(p);
     sendPackets(packetIndex++);
     count = 10;
     status = readWithDomain(reader, ticks, values, count);
     ASSERT_EQ(count, 0u);
-    ASSERT_TRUE(status.getValid());
+    ASSERT_FALSE(status.getValid());
 
-    // A value descriptor change while unused is still reported
+    // A value descriptor change while rejected is judged again and changes nothing
     readSignals[0].signal.setDescriptor(DataDescriptorBuilder().setSampleType(SampleType::Float64).setUnit(Unit("A")).build());
     sendPackets(packetIndex++);
     count = 10;
     status = readWithDomain(reader, ticks, values, count);
     ASSERT_EQ(count, 0u);
-    ASSERT_TRUE(status.getHasChanges());
-    ASSERT_TRUE(input(status, 0).getDescriptorChanged());
+    ASSERT_FALSE(status.getHasChanges());
 
-    // Used again: data flows
-    p.setUsed(true);
+    // Accepted again: data flows
+    p.setAcceptsDescriptor(nullptr);
     reader.configure(p);
     probe(reader);
     sendPackets(packetIndex++);
@@ -829,29 +828,27 @@ TEST_F(MultiReader2MigrationTest, UsedUnusedInput)
     addSignal(0, 20, createDomainSignal(EPOCH_04, resolution, rule));
     addSignal(0, 10, createDomainSignal(EPOCH_04, resolution, rule));
     auto p = params(portsList());
-    p.setInputUsed(ports[2], false);
+    p.setErrorPolicy(MultiReader2ErrorPolicy::Exclude);
+    p.setAcceptsDescriptor(rejecting({ports[2]}));
     auto reader = createReader(p);
-    ports[0].connect(readSignals[0].signal);
-    ports[1].connect(readSignals[1].signal);
-    scheduler.waitAll();
+    connectAll(reader);
     auto status = probe(reader);
     ASSERT_TRUE(status.getValid());
-    ASSERT_EQ(input(status, 2).getError(), MultiReader2InputError::Disconnected);
+    ASSERT_EQ(input(status, 2).getError(), MultiReader2InputError::ValueDescriptorInvalid);
 
     readSignals[0].createAndSendPacket(0);
     readSignals[1].createAndSendPacket(0);
     readSignals[2].createAndSendPacket(0);
     scheduler.waitAll();
-    ASSERT_EQ(reader.getAvailableCount(), 20u);  // the unused input gates nothing
+    ASSERT_EQ(reader.getAvailableCount(), 20u);  // the rejected input gates nothing
 
-    ports[2].connect(readSignals[2].signal);
     readSignals[2].createAndSendPacket(1);
     scheduler.waitAll();
-    p.setInputUsed(ports[2], true);
+    p.setAcceptsDescriptor(nullptr);
     reader.configure(p);
     status = probe(reader);
     ASSERT_TRUE(status.getValid());
-    ASSERT_TRUE(input(status, 2).getUsed());
+    ASSERT_EQ(input(status, 2).getError(), MultiReader2InputError::None);
     ASSERT_EQ(reader.getAvailableCount(), 0u);
 
     readSignals[0].createAndSendPacket(1);
@@ -1067,12 +1064,13 @@ TEST_F(MultiReader2MigrationTest, MultipleMultiReaderToInputPort)
 
 TEST_F(MultiReader2MigrationTest, MultiReaderActiveFromPorts)
 {
-    // The old reader deactivated its ports when set inactive; the new one keeps the ports active and drops the data
+    // The old reader deactivated its ports when set inactive; the new one has no such state: a block that is
+    // inactive has inactive ports, and an owner that wants nothing rejects everything, which keeps the ports active
     readSignals.reserve(3);
     for (int i = 0; i < 3; i++)
         addSignal(0, 10, createDomainSignal());
     auto p = params(portsList());
-    p.setUsed(false);
+    p.setAcceptsDescriptor(rejectingAll());
     auto reader = createReader(p);
     connectAll(reader);
     for (const auto& port : ports)
@@ -1080,8 +1078,8 @@ TEST_F(MultiReader2MigrationTest, MultiReaderActiveFromPorts)
     sendPackets(0);
     ASSERT_EQ(reader.getAvailableCount(), 0u);
     auto status = probe(reader);
-    ASSERT_TRUE(status.getValid());
-    ASSERT_FALSE(input(status, 0).getUsed());
+    ASSERT_FALSE(status.getValid());
+    ASSERT_EQ(input(status, 0).getError(), MultiReader2InputError::ValueDescriptorInvalid);
 }
 
 TEST_F(MultiReader2MigrationTest, ReadWhilePortIsNotConnected)

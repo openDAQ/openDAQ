@@ -216,14 +216,15 @@ TEST_F(MultiReader2ReadApiTest, NullBufferForAUsedInputIsRejectedAndNothingIsCon
     ASSERT_THAT(b, ElementsAre(0, 1, 2, 3, 4, 5, 6, 7, 8, 9));
 }
 
-TEST_F(MultiReader2ReadApiTest, NullBufferForAnUnusedInputIsAccepted)
+TEST_F(MultiReader2ReadApiTest, NullBufferForARejectedInputIsAccepted)
 {
     readSignals.reserve(2);
     auto domain = createDomainSignal();
     addSignal(0, 10, domain);
     addSignal(0, 10, domain);
     auto p = params(signalsToList());
-    p.setInputUsed(readSignals[1].signal, false);
+    p.setErrorPolicy(MultiReader2ErrorPolicy::Exclude);
+    p.setAcceptsDescriptor(rejecting({readSignals[1].signal}));
     auto reader = createReaderProbed(p);
     sendPackets(0);
     std::array<double, 10> a{};
@@ -617,7 +618,7 @@ TEST_F(MultiReader2ReadApiTest, AvailableIsTheMinimumOverTheInputs)
     ASSERT_EQ(reader.getAvailableCount(), 30u);
 }
 
-TEST_F(MultiReader2ReadApiTest, AvailableIgnoresUnusedInputs)
+TEST_F(MultiReader2ReadApiTest, AvailableIgnoresRejectedInputs)
 {
     readSignals.reserve(3);
     auto domain = createDomainSignal();
@@ -625,7 +626,8 @@ TEST_F(MultiReader2ReadApiTest, AvailableIgnoresUnusedInputs)
     addSignal(0, 10, domain);
     addSignal(0, 10, domain);
     auto p = params(signalsToList());
-    p.setInputUsed(readSignals[2].signal, false);
+    p.setErrorPolicy(MultiReader2ErrorPolicy::Exclude);
+    p.setAcceptsDescriptor(rejecting({readSignals[2].signal}));
     auto reader = createReaderProbed(p);
     readSignals[0].createAndSendPacket(0);
     readSignals[1].createAndSendPacket(0);
@@ -688,14 +690,14 @@ TEST_F(MultiReader2ReadApiTest, AvailableIsZeroWhileInvalid)
     ASSERT_EQ(reader.getAvailableCount(), 0u);
 }
 
-TEST_F(MultiReader2ReadApiTest, AvailableIsZeroWhenTheReaderIsUnused)
+TEST_F(MultiReader2ReadApiTest, AvailableIsZeroWhenEverythingIsRejected)
 {
     readSignals.reserve(2);
     auto domain = createDomainSignal();
     addSignal(0, 10, domain);
     addSignal(0, 10, domain);
     auto p = params(signalsToList());
-    p.setUsed(false);
+    p.setAcceptsDescriptor(rejectingAll());
     auto reader = createReaderProbed(p);
     sendPackets(0);
     ASSERT_EQ(reader.getAvailableCount(), 0u);
@@ -842,8 +844,6 @@ TEST_F(MultiReader2ReadApiTest, StatusGettersRejectNullOutput)
     auto inputStatus = input(status, 0);
     ASSERT_EQ(inputStatus->getInput(nullptr), OPENDAQ_ERR_ARGUMENT_NULL);
     daqClearErrorInfo();
-    ASSERT_EQ(inputStatus->getUsed(nullptr), OPENDAQ_ERR_ARGUMENT_NULL);
-    daqClearErrorInfo();
     ASSERT_EQ(inputStatus->getError(nullptr), OPENDAQ_ERR_ARGUMENT_NULL);
     daqClearErrorInfo();
     ASSERT_EQ(inputStatus->getDescriptorChanged(nullptr), OPENDAQ_ERR_ARGUMENT_NULL);
@@ -869,6 +869,5 @@ TEST_F(MultiReader2ReadApiTest, QuietStatusCarriesLevelsOnly)
         ASSERT_FALSE(input(status, i).getDescriptorChanged());
         ASSERT_TRUE(input(status, i).getDescriptor().assigned());
         ASSERT_EQ(input(status, i).getError(), MultiReader2InputError::None);
-        ASSERT_TRUE(input(status, i).getUsed());
     }
 }

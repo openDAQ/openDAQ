@@ -86,6 +86,7 @@ private:
     void runWake();
 
     std::mutex mutex;
+    std::mutex intakeMutex;  // a scheduler-mode port notifies on several threads at once; its packets must reach the manager in order
     EventEmitter<InputPortPtr, EventArgsPtr<>> onDataAvailable;
     ContextPtr context;
     SchedulerPtr scheduler;

@@ -195,7 +195,6 @@ public:
     {
         bool valid = false;
         std::vector<MultiReader2InputError> errors;
-        std::vector<bool> used;
         bool hadData = false;
         std::int64_t lastTick = 0;
         std::int64_t delta = 1;
@@ -237,7 +236,7 @@ public:
                 anyDescriptorChanged = true;
                 ASSERT_TRUE(healthy) << "a descriptor edge on an unhealthy input " << i;
             }
-            if (!last.first && (in.getError() != last.errors[i] || static_cast<bool>(in.getUsed()) != last.used[i]))
+            if (!last.first && in.getError() != last.errors[i])
                 diffs = true;
         }
         const bool edges = domainChanged || resynchronized || anyDescriptorChanged;
@@ -272,8 +271,8 @@ public:
                 {
                     const MultiReader2InputStatusPtr in = inputs[i];
                     const bool written = !std::isnan(values[i][k]);
-                    const bool healthyNow = in.getUsed() && in.getError() == MultiReader2InputError::None;
-                    const bool healthyBefore = !last.first && last.valid && last.used[i] && last.errors[i] == MultiReader2InputError::None;
+                    const bool healthyNow = in.getError() == MultiReader2InputError::None;
+                    const bool healthyBefore = !last.first && last.valid && last.errors[i] == MultiReader2InputError::None;
                     // The samples were copied before the boundaries of this read took effect: the previous status
                     // says who contributed; an error reported now rides behind the data
                     if (written)
@@ -295,8 +294,7 @@ public:
         for (SizeT i = 0; i < n; i++)
         {
             const MultiReader2InputStatusPtr in = inputs[i];
-            trace << static_cast<int>(in.getError()) << static_cast<int>(static_cast<bool>(in.getUsed()))
-                  << static_cast<int>(static_cast<bool>(in.getDescriptorChanged())) << ',';
+            trace << static_cast<int>(in.getError()) << static_cast<int>(static_cast<bool>(in.getDescriptorChanged())) << ',';
         }
         if (got > 0)
             trace << " @" << ticks[0];
@@ -306,12 +304,10 @@ public:
         last.valid = valid;
         last.domain = valid ? status.getDomainDescriptor() : nullptr;
         last.errors.assign(n, MultiReader2InputError::None);
-        last.used.assign(n, true);
         for (SizeT i = 0; i < n; i++)
         {
             const MultiReader2InputStatusPtr in = inputs[i];
             last.errors[i] = in.getError();
-            last.used[i] = in.getUsed();
         }
         // A flagged jump materializes in a later read, so continuity is checked again only from the next data on
         if (resynchronized || domainChanged || !valid)

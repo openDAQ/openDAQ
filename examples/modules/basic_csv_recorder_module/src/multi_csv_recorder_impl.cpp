@@ -76,9 +76,11 @@ MultiCsvRecorderImpl::MultiCsvRecorderImpl(const ContextPtr& context,
     fileBasename = static_cast<std::string>(objPtr.getPropertyValue(Props::BASENAME));
     timestampEnabled = static_cast<bool>(objPtr.getPropertyValue(Props::FILE_TIMESTAMP_ENABLED));
 
-    addFreePort();
+    params.setInputs(List<IComponent>());
     params.setValueReadType(SampleType::Float64);
+    params.setErrorPolicy(MultiReader2ErrorPolicy::Exclude);  // a rejected or misaligned input is set aside, the others are recorded
     createReader();
+    addFreePort();
 }
 
 ErrCode MultiCsvRecorderImpl::startRecording()
@@ -150,20 +152,36 @@ void MultiCsvRecorderImpl::onPropertiesChanged()
 void MultiCsvRecorderImpl::addFreePort()
 {
     freePort = createAndAddInputPort(fmt::format("CsvRecorderPort_{}", nextPortId++), PacketReadyNotification::Scheduler);
-    params.setInputs(portList());            // used flags of the other ports are kept
-    params.setInputUsed(freePort, false);    // not connected, but unused, so it touches nothing
 }
 
-ListPtr<IComponent> MultiCsvRecorderImpl::portList() const
+ListPtr<IComponent> MultiCsvRecorderImpl::readerPorts() const
 {
     auto list = List<IComponent>();
     for (const auto& port : inputPorts.getItems())
-        list.pushBack(port);
+    {
+        if (port != freePort)
+            list.pushBack(port);
+    }
     return list;
+}
+
+// A signal connected to the free port: the port joins the reader, which judges the descriptor, and the next free
+// port is offered. Under the block's lock, since drain reconfigures and reads under the same lock
+void MultiCsvRecorderImpl::onConnected(const InputPortPtr& port)
+{
+    auto lock = this->getAcquisitionLock2();
+    if (!reader.assigned() || port != freePort)
+        return;
+    if (const SignalPtr signal = freePort.getSignal(); signal.assigned())
+        cachedSignalNames[freePort.getGlobalId().toStdString()] = signal.getName();
+    addFreePort();
+    params.setInputs(readerPorts());
+    reader.configure(params);
 }
 
 void MultiCsvRecorderImpl::createReader()
 {
+    params.setAcceptsDescriptor(Function([](ComponentPtr, DataDescriptorPtr value, DataDescriptorPtr) -> bool { return accepts(value); }));
     reader = MultiReader2(params);
     reader.getOnDataAvailable() += [this, thisWeakRef = this->getWeakRefInternal<IFunctionBlock>()](InputPortPtr&, EventArgsPtr<>&)
     {
@@ -222,62 +240,17 @@ void MultiCsvRecorderImpl::drain()
 
 bool MultiCsvRecorderImpl::onChanges(const MultiReader2StatusPtr& status)
 {
-    const auto free = status.getInputStatus(freePort);
-    if (free.getError() != MultiReader2InputError::Disconnected)
-    {
-        // A signal connected to the free port: judge it before using it, then offer the next port
-        const bool accepted = free.getError() == MultiReader2InputError::None && accepts(free.getDescriptor());
-        const auto id = freePort.getGlobalId().toStdString();
-        if (!accepted)
-            rejected.insert(id);
-        if (const SignalPtr signal = freePort.getSignal(); signal.assigned())
-            cachedSignalNames[id] = signal.getName();
-        params.setInputUsed(freePort, accepted);
-        addFreePort();
-        reader.configure(params);
-        return true;
-    }
-
     for (const MultiReader2InputStatusPtr in : status.getInputs())
     {
         const InputPortConfigPtr port = in.getInput().asPtr<IInputPortConfig>(true);
-        if (port != freePort && in.getError() == MultiReader2InputError::Disconnected)
+        if (in.getError() == MultiReader2InputError::Disconnected)
         {
             LOG_I("Multi CSV Recorder: Input port {} disconnected, removing it", port.getLocalId())
             const auto id = port.getGlobalId().toStdString();
-            rejected.erase(id);
             cachedDescriptors.erase(id);
             cachedSignalNames.erase(id);
             removeInputPort(port);
-            params.setInputs(portList());
-            reader.configure(params);
-            return true;
-        }
-    }
-
-    // Re-evaluate rejected inputs whose descriptor changed
-    bool reconfigure = false;
-    if (status.getValid())
-    {
-        for (const MultiReader2InputStatusPtr in : status.getInputs())
-        {
-            const InputPortConfigPtr port = in.getInput().asPtr<IInputPortConfig>(true);
-            if (port == freePort || !in.getDescriptorChanged())
-                continue;
-            const bool wantUsed = accepts(in.getDescriptor());
-            const auto id = port.getGlobalId().toStdString();
-            if (wantUsed)
-                rejected.erase(id);
-            else
-                rejected.insert(id);
-            if (static_cast<bool>(in.getUsed()) != wantUsed)
-            {
-                params.setInputUsed(port, wantUsed);
-                reconfigure = true;
-            }
-        }
-        if (reconfigure)
-        {
+            params.setInputs(readerPorts());
             reader.configure(params);
             return true;
         }
@@ -293,13 +266,10 @@ bool MultiCsvRecorderImpl::onChanges(const MultiReader2StatusPtr& status)
     {
         const MultiReader2InputStatusPtr in = inputs[i];
         slotInputs.push_back(in.getInput());
-        activeSlots[i] = status.getValid() && in.getUsed() && in.getError() == MultiReader2InputError::None;
+        activeSlots[i] = status.getValid() && in.getError() == MultiReader2InputError::None;
         anyActive = anyActive || activeSlots[i];
-        const auto id = in.getInput().getGlobalId().toStdString();
-        if (!status.getValid() && in.getUsed() && in.getError() != MultiReader2InputError::None)
+        if (in.getError() != MultiReader2InputError::None)
             message << (message.tellp() > 0 ? "; " : "") << in.getInput().getLocalId() << " " << errorName(in.getError());
-        else if (rejected.count(id) > 0)
-            message << (message.tellp() > 0 ? "; " : "") << in.getInput().getLocalId() << " rejected";
     }
 
     if (!status.getValid())
@@ -332,7 +302,7 @@ bool MultiCsvRecorderImpl::onChanges(const MultiReader2StatusPtr& status)
     if (!anyActive)
         setComponentStatusWithMessage(ComponentStatus::Warning, "No signals connected!");
     else if (message.tellp() > 0)
-        setComponentStatusWithMessage(ComponentStatus::Warning, "Inputs not accepted: " + message.str());
+        setComponentStatusWithMessage(ComponentStatus::Warning, "Inputs set aside: " + message.str());
     else
         setComponentStatus(ComponentStatus::Ok);
 

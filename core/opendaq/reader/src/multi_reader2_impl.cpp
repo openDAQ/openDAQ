@@ -48,14 +48,14 @@ ErrCode MultiReader2Impl::resolveParams(IMultiReader2Params* params, MultiReader
     ListPtr<IComponent> inputs;
     ErrCode errCode = params->getInputs(&inputs);
     OPENDAQ_RETURN_IF_FAILED(errCode);
-    if (!inputs.assigned() || inputs.getCount() == 0)
-        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDPARAMETER, "The input list must not be empty");
+    if (!inputs.assigned())
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDPARAMETER, "The input list is not assigned");
 
     errCode = params->getMainInput(&mainInput);
     OPENDAQ_RETURN_IF_FAILED(errCode);
 
-    Bool used;
-    errCode = params->getUsed(&used);
+    FunctionPtr acceptsDescriptor;
+    errCode = params->getAcceptsDescriptor(&acceptsDescriptor);
     OPENDAQ_RETURN_IF_FAILED(errCode);
 
     SampleType readType;
@@ -88,25 +88,16 @@ ErrCode MultiReader2Impl::resolveParams(IMultiReader2Params* params, MultiReader
         if (!ids.insert(component.getGlobalId().toStdString()).second)
             return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_DUPLICATEITEM, R"(Input "%s" appears more than once)", component.getGlobalId().getCharPtr());
 
-        Bool inputUsed;
-        errCode = params->getInputUsed(component, &inputUsed);
-        OPENDAQ_RETURN_IF_FAILED(errCode);
-
         config.inputs.push_back(component);
-        config.inputUsed.push_back(inputUsed);
         if (mainInput.assigned() && mainInput.getGlobalId() == component.getGlobalId())
-        {
-            if (!inputUsed)
-                return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDPARAMETER, "The pinned main input cannot be unused");
             config.mainSlot = i;
-        }
     }
 
     if (mainInput.assigned() && !config.mainSlot.has_value())
         return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDPARAMETER, R"(Main input "%s" is not in the input list)", mainInput.getGlobalId().getCharPtr());
 
     config.connected.assign(config.inputs.size(), false);
-    config.used = used;
+    config.acceptsDescriptor = acceptsDescriptor;
     config.readType = readType;
     config.minReadCount = minReadCount;
     config.errorPolicy = errorPolicy;
@@ -160,9 +151,18 @@ void MultiReader2Impl::releaseSlot(Slot& slot)
     slot.port.release();
 }
 
+// Calls from inside the owner's acceptsDescriptor would re-enter the data manager under its own mutex
+#define MULTI_READER2_NOT_FROM_CALLBACK() \
+    do \
+    { \
+        if (dataManager.inCallback()) \
+            return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDSTATE, "The reader cannot be called from acceptsDescriptor"); \
+    } while (0)
+
 ErrCode MultiReader2Impl::configure(IMultiReader2Params* params)
 {
     OPENDAQ_PARAM_NOT_NULL(params);
+    MULTI_READER2_NOT_FROM_CALLBACK();
 
     MultiReaderDataManager::Config config;
     ComponentPtr mainInput;
@@ -174,7 +174,7 @@ ErrCode MultiReader2Impl::configure(IMultiReader2Params* params)
     if (dataManager.isSameConfig(config))
         return OPENDAQ_SUCCESS;
 
-    if (!context.assigned())
+    if (!context.assigned() && !config.inputs.empty())
     {
         context = config.inputs.front().getContext();
         if (context.assigned())
@@ -303,6 +303,7 @@ ErrCode MultiReader2Impl::configure(IMultiReader2Params* params)
 ErrCode MultiReader2Impl::getMainInput(IString** inputId)
 {
     OPENDAQ_PARAM_NOT_NULL(inputId);
+    MULTI_READER2_NOT_FROM_CALLBACK();
     *inputId = dataManager.getMainInputId().detach();
     return OPENDAQ_SUCCESS;
 }
@@ -310,22 +311,26 @@ ErrCode MultiReader2Impl::getMainInput(IString** inputId)
 ErrCode MultiReader2Impl::getAvailableCount(SizeT* count)
 {
     OPENDAQ_PARAM_NOT_NULL(count);
+    MULTI_READER2_NOT_FROM_CALLBACK();
     *count = dataManager.getAvailableCount();
     return OPENDAQ_SUCCESS;
 }
 
 ErrCode MultiReader2Impl::read(void* data, SizeT* count, SizeT* packetOffset, IMultiReader2Status** status)
 {
+    MULTI_READER2_NOT_FROM_CALLBACK();
     return dataManager.read(static_cast<void**>(data), count, packetOffset, status);
 }
 
 ErrCode MultiReader2Impl::readWithDomain(void* data, SizeT* count, IMultiReader2Status** status)
 {
+    MULTI_READER2_NOT_FROM_CALLBACK();
     return dataManager.readWithDomain(static_cast<void**>(data), count, status);
 }
 
 ErrCode MultiReader2Impl::skipSamples(SizeT* count, IMultiReader2Status** status)
 {
+    MULTI_READER2_NOT_FROM_CALLBACK();
     return dataManager.skipSamples(count, status);
 }
 
@@ -457,6 +462,8 @@ ErrCode MultiReader2Impl::packetReceived(IInputPort* port)
     if (!internal.assigned())
         return OPENDAQ_SUCCESS;
 
+    // Dequeue and ingest under one lock: two notifications for the same port would otherwise interleave its packets
+    std::scoped_lock intake(intakeMutex);
     constexpr SizeT batchCapacity = 64;
     IPacket* batch[batchCapacity];
     bool wake = false;

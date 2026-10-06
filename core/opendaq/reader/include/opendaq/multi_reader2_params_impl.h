@@ -14,13 +14,12 @@
  * limitations under the License.
  */
 #pragma once
+#include <coretypes/function_ptr.h>
 #include <coretypes/intfs.h>
 #include <opendaq/component_ptr.h>
 #include <opendaq/multi_reader2_params.h>
 
 #include <mutex>
-#include <string>
-#include <unordered_set>
 
 BEGIN_NAMESPACE_OPENDAQ
 
@@ -34,10 +33,8 @@ public:
     ErrCode INTERFACE_FUNC setInputs(IList* inputs) override;
     ErrCode INTERFACE_FUNC getMainInput(IComponent** input) override;
     ErrCode INTERFACE_FUNC setMainInput(IComponent* input) override;
-    ErrCode INTERFACE_FUNC getInputUsed(IComponent* input, Bool* used) override;
-    ErrCode INTERFACE_FUNC setInputUsed(IComponent* input, Bool used) override;
-    ErrCode INTERFACE_FUNC getUsed(Bool* used) override;
-    ErrCode INTERFACE_FUNC setUsed(Bool used) override;
+    ErrCode INTERFACE_FUNC getAcceptsDescriptor(IFunction** acceptsDescriptor) override;
+    ErrCode INTERFACE_FUNC setAcceptsDescriptor(IFunction* acceptsDescriptor) override;
     ErrCode INTERFACE_FUNC getValueReadType(SampleType* valueReadType) override;
     ErrCode INTERFACE_FUNC setValueReadType(SampleType valueReadType) override;
     ErrCode INTERFACE_FUNC getMinReadCount(SizeT* count) override;
@@ -46,13 +43,10 @@ public:
     ErrCode INTERFACE_FUNC setErrorPolicy(MultiReader2ErrorPolicy policy) override;
 
 private:
-    bool contains(const std::string& globalId) const;
-
     std::mutex mutex;
     ListPtr<IComponent> inputs;
     ComponentPtr mainInput;
-    std::unordered_set<std::string> unusedIds;  // every input not listed here is used
-    bool used = true;
+    FunctionPtr acceptsDescriptor;
     SampleType valueReadType = SampleType::Float64;
     SizeT minReadCount = 1;
     MultiReader2ErrorPolicy errorPolicy = MultiReader2ErrorPolicy::Invalidate;

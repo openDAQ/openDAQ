@@ -163,7 +163,6 @@ TEST_P(MultiReader2PositionTest, DisconnectExcludes)
     ASSERT_TRUE(status.getValid());
     ASSERT_TRUE(status.getHasChanges());
     ASSERT_EQ(input(status, at).getError(), MultiReader2InputError::Disconnected);
-    ASSERT_TRUE(input(status, at).getUsed());
     ASSERT_EQ(status.getDomainDescriptorChanged(), at == 0);
     ASSERT_EQ(reader.getMainInput(), ports[at == 0 ? 1 : 0].getGlobalId());
 
@@ -343,7 +342,7 @@ TEST_F(MultiReader2LifecycleTest, AutomaticMainReturnsToTheFirstInputWhenItRecov
     ASSERT_TRUE(status.getResynchronized());
 }
 
-TEST_F(MultiReader2LifecycleTest, AutomaticMainSkipsUnusedInputs)
+TEST_F(MultiReader2LifecycleTest, AutomaticMainSkipsRejectedInputs)
 {
     readSignals.reserve(3);
     auto domain = createDomainSignal();
@@ -351,7 +350,7 @@ TEST_F(MultiReader2LifecycleTest, AutomaticMainSkipsUnusedInputs)
         addSignal(0, 10, domain);
     auto p = params(portsList());
     p.setErrorPolicy(MultiReader2ErrorPolicy::Exclude);
-    p.setInputUsed(ports[0], false);
+    p.setAcceptsDescriptor(rejecting({ports[0]}));
     auto reader = createReader(p);
     connectAll(reader);
     ASSERT_EQ(reader.getMainInput(), ports[1].getGlobalId());
@@ -381,61 +380,65 @@ TEST_F(MultiReader2LifecycleTest, MainDisconnectUnderInvalidateInvalidatesAndRec
     ASSERT_EQ(reader.getMainInput(), ports[0].getGlobalId());
 }
 
-// ---------------------------------------------------------------- used flags over time
+// ---------------------------------------------------------------- judgements over time
 
-TEST_F(MultiReader2LifecycleTest, AllInputsUnusedIsValidWithoutAMain)
+TEST_F(MultiReader2LifecycleTest, AllInputsRejectedIsInvalid)
 {
     readSignals.reserve(2);
     auto domain = createDomainSignal();
     addSignal(0, 10, domain);
     addSignal(0, 10, domain, SampleType::ComplexFloat32);
     auto p = params(signalsToList());
-    p.setInputUsed(readSignals[0].signal, false);
-    p.setInputUsed(readSignals[1].signal, false);
+    p.setAcceptsDescriptor(rejectingAll());
     auto reader = createReader(p);
     scheduler.waitAll();
     auto status = probe(reader);
-    ASSERT_TRUE(status.getValid());
+    ASSERT_FALSE(status.getValid());
     ASSERT_EQ(reader.getMainInput(), "");
     ASSERT_FALSE(status.getDomainDescriptor().assigned());
+    ASSERT_EQ(input(status, 0).getError(), MultiReader2InputError::ValueDescriptorInvalid);
     ASSERT_EQ(input(status, 1).getError(), MultiReader2InputError::ValueDescriptorInvalid);
     sendPackets(0);
     ASSERT_EQ(reader.getAvailableCount(), 0u);
 }
 
-TEST_F(MultiReader2LifecycleTest, UnusedReaderIgnoresErrorsAndData)
+TEST_F(MultiReader2LifecycleTest, AcceptingAgainClearsOnlyTheRejection)
 {
     readSignals.reserve(2);
     auto domain = createDomainSignal();
     addSignal(0, 10, domain);
     addSignal(0, 10, domain, SampleType::ComplexFloat32);
     auto p = params(signalsToList());
-    p.setUsed(false);
+    p.setErrorPolicy(MultiReader2ErrorPolicy::Exclude);
+    p.setAcceptsDescriptor(rejectingAll());
     auto reader = createReader(p);
     scheduler.waitAll();
     auto status = probe(reader);
-    ASSERT_TRUE(status.getValid());
-    ASSERT_FALSE(input(status, 0).getUsed());
+    ASSERT_FALSE(status.getValid());  // nothing is healthy
+    ASSERT_EQ(input(status, 0).getError(), MultiReader2InputError::ValueDescriptorInvalid);
     ASSERT_EQ(input(status, 1).getError(), MultiReader2InputError::ValueDescriptorInvalid);
     sendPackets(0);
     ASSERT_EQ(reader.getAvailableCount(), 0u);
 
-    // Taking the reader into use surfaces the error
-    p.setUsed(true);
+    // Accepting everything clears the rejection; the unreadable input stays in error and is set aside
+    p.setAcceptsDescriptor(nullptr);
     reader.configure(p);
     scheduler.waitAll();
     status = probe(reader);
-    ASSERT_FALSE(status.getValid());
+    ASSERT_TRUE(status.getValid());
+    ASSERT_EQ(input(status, 0).getError(), MultiReader2InputError::None);
+    ASSERT_EQ(input(status, 1).getError(), MultiReader2InputError::ValueDescriptorInvalid);
 }
 
-TEST_F(MultiReader2LifecycleTest, UnusedInputDisconnectIsReportedWithoutResynchronization)
+TEST_F(MultiReader2LifecycleTest, RejectedInputDisconnectIsReportedWithoutResynchronization)
 {
     readSignals.reserve(3);
     auto domain = createDomainSignal();
     for (int i = 0; i < 3; i++)
         addSignal(0, 10, domain);
     auto p = params(portsList());
-    p.setInputUsed(ports[2], false);
+    p.setErrorPolicy(MultiReader2ErrorPolicy::Exclude);
+    p.setAcceptsDescriptor(rejecting({ports[2]}));
     auto reader = createReader(p);
     connectAll(reader);
     sendPackets(0);
@@ -451,14 +454,15 @@ TEST_F(MultiReader2LifecycleTest, UnusedInputDisconnectIsReportedWithoutResynchr
     ASSERT_EQ(input(status, 2).getError(), MultiReader2InputError::Disconnected);
 }
 
-TEST_F(MultiReader2LifecycleTest, GapOnAnUnusedInputChangesNothing)
+TEST_F(MultiReader2LifecycleTest, GapOnARejectedInputChangesNothing)
 {
     readSignals.reserve(3);
     auto domain = createDomainSignal();
     for (int i = 0; i < 3; i++)
         addSignal(0, 10, domain);
     auto p = params(signalsToList());
-    p.setInputUsed(readSignals[2].signal, false);
+    p.setErrorPolicy(MultiReader2ErrorPolicy::Exclude);
+    p.setAcceptsDescriptor(rejecting({readSignals[2].signal}));
     auto reader = createReaderProbed(p);
     sendPackets(0);
     readSignals[2].signal.sendPacket(ImplicitDomainGapDetectedEventPacket(5));

@@ -1,4 +1,5 @@
 #include <ref_fb_module/reader_fb_base.h>
+#include <coretypes/function_factory.h>
 #include <opendaq/custom_log.h>
 
 #include <sstream>
@@ -29,6 +30,12 @@ ReaderFbBase::ReaderFbBase(const FunctionBlockTypePtr& type, const ContextPtr& c
 
 void ReaderFbBase::createReader()
 {
+    // The judgement runs inside read and configure, both called by this block under its own lock
+    params.setAcceptsDescriptor(Function([this, thisWeakRef = this->getWeakRefInternal<IFunctionBlock>()](ComponentPtr input, DataDescriptorPtr value, DataDescriptorPtr) -> bool
+    {
+        const auto thisFb = thisWeakRef.getRef();
+        return !thisFb.assigned() || accepts(input, value);
+    }));
     reader = MultiReader2(params);
     reader.getOnDataAvailable() += [this, thisWeakRef = this->getWeakRefInternal<IFunctionBlock>()](InputPortPtr&, EventArgsPtr<>&)
     {
@@ -38,15 +45,41 @@ void ReaderFbBase::createReader()
     };
 }
 
+// ---------------------------------------------------------------- the free port
+
+void ReaderFbBase::addFreePort(const std::string& prefix)
+{
+    freePortPrefix = prefix;
+    freePort = createAndAddInputPort(fmt::format("{}_{}", prefix, nextPortId++), PacketReadyNotification::Scheduler);
+}
+
+ListPtr<IComponent> ReaderFbBase::readerPorts() const
+{
+    auto list = List<IComponent>();
+    for (const auto& port : inputPorts.getItems())
+    {
+        if (port != freePort)
+            list.pushBack(port);
+    }
+    return list;
+}
+
+// A signal connected to the free port: the port joins the reader, which judges the descriptor, and the next
+// free port is offered. Under the block's lock, since drain reconfigures and reads under the same lock
+void ReaderFbBase::onConnected(const InputPortPtr& port)
+{
+    auto lock = this->getAcquisitionLock2();
+    if (!reader.assigned() || !freePort.assigned() || port != freePort)
+        return;
+    addFreePort(freePortPrefix);
+    params.setInputs(readerPorts());
+    reader.configure(params);
+}
+
 void ReaderFbBase::removed()
 {
     reader.release();
     FunctionBlock::removed();
-}
-
-bool ReaderFbBase::contributes(SizeT slot) const
-{
-    return slot < active.size() && active[slot];
 }
 
 void ReaderFbBase::drain()
@@ -58,11 +91,17 @@ void ReaderFbBase::drain()
     for (;;)
     {
         SizeT count = reader.getAvailableCount();
-        const SizeT slots = params.getInputs().getCount();
-        storage.resize(slots);
-        buffers.resize(slots);
-        for (SizeT i = 0; i < slots; i++)
+        const auto inputs = params.getInputs();
+        storage.resize(inputs.getCount());
+        buffers.resize(inputs.getCount());
+        for (SizeT i = 0; i < inputs.getCount(); i++)
         {
+            // Only contributing inputs are written; the others get no buffer
+            if (cached.count(inputs[i].getGlobalId().toStdString()) == 0)
+            {
+                buffers[i] = nullptr;
+                continue;
+            }
             storage[i].resize(count);
             buffers[i] = storage[i].data();
         }
@@ -86,57 +125,11 @@ void ReaderFbBase::drain()
 
 bool ReaderFbBase::onChanges(const MultiReader2StatusPtr& status)
 {
-    if (applyRejections(status))
-        return true;
-
-    // The slot order and the contributing set, for the data that follows this status
-    const auto inputs = status.getInputs();
-    slotInputs.clear();
-    active.assign(inputs.getCount(), false);
-    for (SizeT i = 0; i < inputs.getCount(); i++)
-    {
-        const MultiReader2InputStatusPtr in = inputs[i];
-        slotInputs.push_back(in.getInput());
-        active[i] = status.getValid() && in.getUsed() && in.getError() == MultiReader2InputError::None;
-    }
-
     // The output descriptors are in place before the status says Ok, so a reader on the output sees them first
     if (status.getValid())
         cacheDescriptors(status);
     reportStatus(status);
     return false;
-}
-
-bool ReaderFbBase::applyRejections(const MultiReader2StatusPtr& status)
-{
-    if (!status.getValid())
-        return false;
-
-    const auto mainInput = params.getMainInput();
-    bool changed = false;
-    for (const MultiReader2InputStatusPtr in : status.getInputs())
-    {
-        if (!in.getDescriptorChanged())
-            continue;
-        const auto input = in.getInput();
-        if (mainInput.assigned() && mainInput.getGlobalId() == input.getGlobalId())
-            continue;  // a pinned main input is left alone
-
-        const bool wantUsed = accepts(in.getDescriptor());
-        const auto id = input.getGlobalId().toStdString();
-        if (wantUsed)
-            rejected.erase(id);
-        else
-            rejected.insert(id);
-        if (static_cast<bool>(in.getUsed()) != wantUsed)
-        {
-            params.setInputUsed(input, wantUsed);
-            changed = true;
-        }
-    }
-    if (changed)
-        reader.configure(params);
-    return changed;
 }
 
 void ReaderFbBase::cacheDescriptors(const MultiReader2StatusPtr& status)
@@ -145,13 +138,16 @@ void ReaderFbBase::cacheDescriptors(const MultiReader2StatusPtr& status)
         outputDomain = status.getDomainDescriptor();
     for (const MultiReader2InputStatusPtr in : status.getInputs())
     {
-        if (in.getDescriptorChanged())
-            cached[in.getInput().getGlobalId().toStdString()] = in.getDescriptor();
+        const auto id = in.getInput().getGlobalId().toStdString();
+        if (in.getError() != MultiReader2InputError::None)
+            cached.erase(id);
+        else if (in.getDescriptorChanged())
+            cached[id] = in.getDescriptor();
     }
     rebuildOutputDescriptor();
 }
 
-bool ReaderFbBase::accepts(const DataDescriptorPtr& /*descriptor*/)
+bool ReaderFbBase::accepts(const ComponentPtr& /*input*/, const DataDescriptorPtr& /*descriptor*/)
 {
     return true;
 }
@@ -162,12 +158,9 @@ void ReaderFbBase::reportStatus(const MultiReader2StatusPtr& status)
     bool anyActive = false;
     for (const MultiReader2InputStatusPtr in : status.getInputs())
     {
-        const auto id = in.getInput().getGlobalId().toStdString();
-        anyActive = anyActive || (status.getValid() && in.getUsed() && in.getError() == MultiReader2InputError::None);
-        if (!status.getValid() && in.getUsed() && in.getError() != MultiReader2InputError::None)
+        anyActive = anyActive || (status.getValid() && in.getError() == MultiReader2InputError::None);
+        if (in.getError() != MultiReader2InputError::None)
             message << (message.tellp() > 0 ? "; " : "") << in.getInput().getLocalId() << " " << errorName(in.getError());
-        else if (rejected.count(id) > 0)
-            message << (message.tellp() > 0 ? "; " : "") << in.getInput().getLocalId() << " rejected";
     }
 
     if (!status.getValid())
@@ -175,7 +168,7 @@ void ReaderFbBase::reportStatus(const MultiReader2StatusPtr& status)
     else if (!anyActive)
         setComponentStatusWithMessage(ComponentStatus::Warning, "No signals connected!");
     else if (message.tellp() > 0)
-        setComponentStatusWithMessage(ComponentStatus::Warning, "Inputs not accepted: " + message.str());
+        setComponentStatusWithMessage(ComponentStatus::Warning, "Inputs set aside: " + message.str());
     else if (!outputError.empty())
         setComponentStatusWithMessage(ComponentStatus::Warning, outputError);
     else

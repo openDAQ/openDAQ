@@ -610,13 +610,15 @@ TEST_F(PowerReaderTest, InvalidateVoltageSignal)
     currentSignal.sendPacket(currentPacket1);
 
     constexpr size_t samplesToRead1 = 100;
-    ASSERT_EQ(reader.getAvailableCount(), 0u); // no data available when FB internal multireader is inactive
+    ASSERT_EQ(reader.getAvailableCount(), 0u);  // the voltage port is rejected, an error under Invalidate: the reader is invalid and drops the data
 
     // Set correct Unit
     voltageSignal.setDescriptor(
         DataDescriptorBuilderCopy(voltageSignal.getDescriptor()).setUnit(Unit("V", -1, "volts", "voltage")).build());
 
-    std::this_thread::sleep_for(std::chrono::milliseconds(2000));
+    // Well below the reader's 2 s synchronization deadline: the current packet sent under the wrong unit may reach the
+    // reader after the recovery and arm the deadline, and a pause of the deadline's length then fails the voltage port
+    std::this_thread::sleep_for(std::chrono::milliseconds(500));
 
     const auto timePacket2 = DataPacket(timeSignal.getDescriptor(), 50, 200);
     timeSignal.sendPacket(timePacket2);
@@ -721,7 +723,7 @@ TEST_F(PowerReaderTestStatus, StatisticsStatusException1)
     fb.getInputPorts()[1].connect(signal);
 
     // Incomplete input signal descriptors
-    ASSERT_TRUE(waitForComponentStatus(fb, "Warning", "Failed to set descriptor for power signal: Invalid voltage signal unit"));
+    ASSERT_TRUE(waitForComponentStatus(fb, "Warning", "Waiting for inputs: Voltage value descriptor not readable"));
 }
 
 TEST_F(PowerReaderTest, StatisticsStatusConnectedSignals)

@@ -1,11 +1,12 @@
 ##
-# MultiReader2, example E3: constant inputs, Invalidate error policy, reading from the callback, built from
-# signals, value descriptors rejected by unit, main input chosen through a property.
+# MultiReader2, example E3: constant inputs, Exclude error policy, reading from the callback, built from
+# signals, value descriptors judged by unit, main input chosen through a property.
 #
-# Rejecting a descriptor is the owner's job: the reader reports every descriptor change, unused inputs included,
-# and the application sets an input unused when it rejects the descriptor and used again when a later descriptor
-# is acceptable. A settings object lets the user pick the main input; a pinned main input is left alone by the
-# rejection logic and its error invalidates the reader.
+# The owner states its criterion once, as accepts_descriptor on the params: the reader asks it whenever a
+# descriptor takes effect, inside read and configure on the owner's thread. A rejected input is in error
+# (ValueDescriptorInvalid) like an unreadable one: under Exclude it is set aside and delivers nothing, and it is
+# asked again when its descriptor changes. The judgement must not call the reader. A settings object lets the
+# user pick the main input; a pinned main input that the owner rejects invalidates the reader.
 ##
 
 import threading
@@ -17,8 +18,15 @@ instance = daq.Instance()
 device = instance.add_device('daqref://device0')
 signals = [s for s in device.get_signals_recursive() if s.domain_signal is not None][0:3]
 
+
+def accepts(signal, descriptor, domain_descriptor):
+    return descriptor.unit is not None and descriptor.unit.symbol == 'V'
+
+
 params = daq.MultiReader2Params()
 params.inputs = signals
+params.error_policy = daq.MultiReader2ErrorPolicy.Exclude   # a rejected or erroring input is set aside
+params.accepts_descriptor = accepts
 reader = daq.MultiReader2(params)
 lock = threading.Lock()
 
@@ -35,35 +43,17 @@ def apply_settings(sender, args):
 settings.get_on_property_value_write('MainInput') + daq.EventHandler(apply_settings)
 
 
-def accepts(descriptor):
-    return descriptor.unit is not None and descriptor.unit.symbol == 'V'
-
-
-def apply_rejections(status):
-    """A rejected input goes unused and comes back when its descriptor changes to one we accept.
-    Returns True when the reader was reconfigured."""
-    if not status.valid:
-        return False
-    main = params.main_input
-    changed = False
-    for s in status.inputs:
-        if not s.descriptor_changed or (main is not None and s.input.global_id == main.global_id):
-            continue
-        want_used = accepts(s.descriptor)
-        if s.used != want_used:
-            print(f'{"using" if want_used else "rejecting"} {s.input.global_id}, unit {s.descriptor.unit}')
-            params.set_input_used(s.input, want_used)
-            changed = True
-    if changed:
-        reader.configure(params)
-    return changed
-
-
 def handle(status):
     if not status.valid:
         print('waiting: ' + ', '.join(f'{s.input.global_id} {s.error}' for s in status.inputs if s.error != daq.MultiReader2InputError.None_))
-    elif status.domain_descriptor_changed:
-        print(f'main input is {reader.main_input}')
+    else:
+        for s in status.inputs:
+            if s.descriptor_changed:
+                print(f'using {s.input.global_id}, unit {s.descriptor.unit}')
+            elif s.error != daq.MultiReader2InputError.None_:
+                print(f'set aside {s.input.global_id}: {s.error}')
+        if status.domain_descriptor_changed:
+            print(f'main input is {reader.main_input}')
 
 
 def on_data_available(sender, args):
@@ -73,8 +63,6 @@ def on_data_available(sender, args):
             values, offset, status = reader.read(count)
             count = len(values[0])  # the count read; 0 when changes are reported first
             if status.has_changes:
-                if apply_rejections(status):
-                    return                               # reconfigured; start over on the next wake
                 handle(status)
             elif count == 0:
                 return

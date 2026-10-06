@@ -1,4 +1,6 @@
 #include <coreobjects/unit_ptr.h>
+#include <coretypes/boolean_factory.h>
+#include <coretypes/integer_factory.h>
 #include <coretypes/ratio_ptr.h>
 #include <coretypes/validation.h>
 #include <opendaq/data_rule_ptr.h>
@@ -117,12 +119,13 @@ bool MultiReaderDataManager::isSameConfig(const Config& other)
     std::scoped_lock lock(mutex);
     if (slots.empty() && config.inputs.empty())
         return false;
-    if (other.inputs.size() != config.inputs.size() || other.mainSlot != config.mainSlot || other.used != config.used ||
-        other.readType != config.readType || other.minReadCount != config.minReadCount || other.errorPolicy != config.errorPolicy)
+    if (other.inputs.size() != config.inputs.size() || other.mainSlot != config.mainSlot ||
+        other.acceptsDescriptor.getObject() != config.acceptsDescriptor.getObject() || other.readType != config.readType ||
+        other.minReadCount != config.minReadCount || other.errorPolicy != config.errorPolicy)
         return false;
     for (SizeT i = 0; i < config.inputs.size(); i++)
     {
-        if (!sameComponent(other.inputs[i], config.inputs[i]) || other.inputUsed[i] != config.inputUsed[i])
+        if (!sameComponent(other.inputs[i], config.inputs[i]))
             return false;
     }
     return true;
@@ -156,8 +159,6 @@ void MultiReaderDataManager::reconfigure(Config newConfig)
                 target.latestDomain = newConfig.domainDescriptors[i];
         }
         target.latestConnected = newConfig.connected[i];
-        target.used = newConfig.inputUsed[i];
-        target.reportedUsed = target.used;
     }
 
     config = std::move(newConfig);
@@ -169,13 +170,17 @@ void MultiReaderDataManager::reconfigure(Config newConfig)
 
 void MultiReaderDataManager::internalReconfigure()
 {
-    for (auto& slot : slots)
+    // The queues go, boundaries included, so every slot restarts from the descriptors ingest saw last; the owner
+    // judges them again, since a boundary that was still queued may have carried the verdict's descriptor
+    for (SizeT i = 0; i < slots.size(); i++)
     {
+        Slot& slot = slots[i];
         slot.clear();
         slot.value = slot.latestValue;
         slot.domain = slot.latestDomain;
         slot.connected = slot.latestConnected;
         slot.descriptorChanged = true;
+        slot.accepted = askAccepts(i, slot.value, slot.domain);
     }
     evaluate();
     domainChanged = true;
@@ -189,7 +194,7 @@ void MultiReaderDataManager::setSyncLimits(std::chrono::milliseconds newDeadline
     std::scoped_lock lock(mutex);
     deadline = newDeadline;
     maxDistance = newMaxDistance;
-    if (state == State::Syncing)
+    if (state == State::Syncing && deadlineArmed)
         syncDeadline = std::chrono::steady_clock::now() + deadline;
 }
 
@@ -197,6 +202,42 @@ std::uint64_t MultiReaderDataManager::getWakeGeneration()
 {
     std::scoped_lock lock(mutex);
     return wakeGeneration;
+}
+
+bool MultiReaderDataManager::inCallback() const
+{
+    return callbackThread.load() == std::this_thread::get_id();
+}
+
+// The owner's judgement, under the manager mutex on the consumer's thread; nothing to judge is accepted
+bool MultiReaderDataManager::askAccepts(SizeT index, const DataDescriptorPtr& value, const DataDescriptorPtr& domain)
+{
+    if (!config.acceptsDescriptor.assigned() || !value.assigned())
+        return true;
+    bool accepted = false;
+    callbackThread = std::this_thread::get_id();
+    try
+    {
+        const BaseObjectPtr verdict = config.acceptsDescriptor.call(config.inputs[index], value, domain);
+        if (const auto boolean = verdict.asPtrOrNull<IBoolean>(true); boolean.assigned())
+        {
+            Bool flag = False;
+            checkErrorInfo(boolean->getValue(&flag));
+            accepted = flag != False;
+        }
+        else if (const auto integer = verdict.asPtrOrNull<IInteger>(true); integer.assigned())
+        {
+            Int number = 0;
+            checkErrorInfo(integer->getValue(&number));
+            accepted = number != 0;
+        }
+    }
+    catch (...)
+    {
+        accepted = false;  // a failing judgement rejects
+    }
+    callbackThread = std::thread::id();
+    return accepted;
 }
 
 StringPtr MultiReaderDataManager::getMainInputId()
@@ -351,7 +392,7 @@ void MultiReaderDataManager::chooseMain()
     for (SizeT i = 0; i < slots.size(); i++)
     {
         const Slot& slot = slots[i];
-        if (config.used && slot.used && slot.connected && slot.valueValid && slot.dom.valid && !slot.offGrid && !slot.syncFailed)
+        if (slot.connected && slot.valueValid && slot.accepted && slot.dom.valid && !slot.offGrid && !slot.syncFailed)
         {
             mainSlot = i;
             return;
@@ -369,16 +410,15 @@ void MultiReaderDataManager::evaluate()
 
     chooseMain();
 
-    bool anyUsed = false;
-    bool anyUsedHealthy = false;
-    bool allUsedHealthy = true;
+    bool anyHealthy = false;
+    bool allHealthy = true;
     for (SizeT i = 0; i < slots.size(); i++)
     {
         Slot& slot = slots[i];
         relateToMain(i);
         if (!slot.connected)
             slot.error = MultiReader2InputError::Disconnected;
-        else if (!slot.valueValid)
+        else if (!slot.valueValid || !slot.accepted)
             slot.error = MultiReader2InputError::ValueDescriptorInvalid;
         else if (!slot.dom.valid || slot.offGrid)
             slot.error = MultiReader2InputError::DomainDescriptorInvalid;
@@ -387,23 +427,20 @@ void MultiReaderDataManager::evaluate()
         else
             slot.error = MultiReader2InputError::None;
 
-        if (config.used && slot.used)
-        {
-            anyUsed = true;
-            if (slot.error == MultiReader2InputError::None)
-                anyUsedHealthy = true;
-            else
-                allUsedHealthy = false;
-        }
+        if (slot.error == MultiReader2InputError::None)
+            anyHealthy = true;
+        else
+            allHealthy = false;
     }
 
+    // No inputs at all is a valid reader with nothing to read
     bool valid;
-    if (!anyUsed)
+    if (slots.empty())
         valid = true;
     else if (config.errorPolicy == MultiReader2ErrorPolicy::Invalidate)
-        valid = allUsedHealthy;
+        valid = allHealthy;
     else
-        valid = anyUsedHealthy && (!config.mainSlot.has_value() || slots[*config.mainSlot].error == MultiReader2InputError::None);
+        valid = anyHealthy && (!config.mainSlot.has_value() || slots[*config.mainSlot].error == MultiReader2InputError::None);
 
     if (valid && mainSlot.has_value() && slots[*mainSlot].error != MultiReader2InputError::None)
         valid = false;
@@ -416,15 +453,20 @@ void MultiReaderDataManager::evaluate()
 
 bool MultiReaderDataManager::contributes(SizeT index) const
 {
-    const Slot& slot = slots[index];
-    return config.used && slot.used && slot.error == MultiReader2InputError::None;
+    return slots[index].error == MultiReader2InputError::None;
+}
+
+std::vector<bool> MultiReaderDataManager::contributions() const
+{
+    std::vector<bool> out(slots.size());
+    for (SizeT i = 0; i < slots.size(); i++)
+        out[i] = contributes(i);
+    return out;
 }
 
 bool MultiReaderDataManager::dropsData(SizeT index) const
 {
     const Slot& slot = slots[index];
-    if (!config.used || !slot.used)
-        return true;
     // A synchronization failure clears when data shows up again, so that data has to get in
     if (slot.error == MultiReader2InputError::SyncFailed)
         return false;
@@ -636,6 +678,9 @@ void MultiReaderDataManager::applyBoundary(SizeT index, const Boundary& boundary
     switch (boundary.kind)
     {
         case Boundary::Kind::Descriptor:
+        case Boundary::Kind::Connected:
+            if (boundary.kind == Boundary::Kind::Connected)
+                slot.connected = true;
             if (boundary.hasValue && !sameDescriptor(boundary.value, slot.value))
             {
                 slot.value = boundary.value;
@@ -649,24 +694,8 @@ void MultiReaderDataManager::applyBoundary(SizeT index, const Boundary& boundary
                 else if (contributes(index))
                     resynchronized = true;  // an input that gates nothing moves nothing
             }
-            slot.syncFailed = false;
-            slot.offGrid = false;
-            break;
-        case Boundary::Kind::Connected:
-            slot.connected = true;
-            if (boundary.hasValue && !sameDescriptor(boundary.value, slot.value))
-            {
-                slot.value = boundary.value;
-                slot.descriptorChanged = true;
-            }
-            if (boundary.hasDomain && !sameDescriptor(boundary.domain, slot.domain))
-            {
-                slot.domain = boundary.domain;
-                if (mainSlot.has_value() && *mainSlot == index)
-                    domainChanged = true;
-                else if (contributes(index))
-                    resynchronized = true;
-            }
+            if (boundary.hasValue || boundary.hasDomain)
+                slot.accepted = askAccepts(index, slot.value, slot.domain);
             slot.syncFailed = false;
             slot.offGrid = false;
             break;
@@ -688,9 +717,7 @@ void MultiReaderDataManager::consumeBoundaries()
     const auto oldMain = mainSlot;
     const bool domainWasPending = domainChanged;
     const bool resyncWasPending = resynchronized;
-    std::vector<MultiReader2InputError> oldErrors(slots.size());
-    for (SizeT i = 0; i < slots.size(); i++)
-        oldErrors[i] = slots[i].error;
+    const std::vector<bool> oldContributes = contributions();
 
     bool applied = false;
     for (SizeT i = 0; i < slots.size(); i++)
@@ -738,28 +765,28 @@ void MultiReaderDataManager::consumeBoundaries()
     if (!applied)
         return;
 
-    settle(wasValid, oldMain, oldErrors, domainWasPending, resyncWasPending);
+    settle(wasValid, oldMain, oldContributes, domainWasPending, resyncWasPending);
 }
 
 // Moves the reader after boundaries were applied or synchronization failed: evaluate, then recover, resynchronize
 // or just drop what inputs that no longer contribute still hold
 void MultiReaderDataManager::settle(bool wasValid,
                                     std::optional<SizeT> oldMain,
-                                    const std::vector<MultiReader2InputError>& oldErrors,
+                                    const std::vector<bool>& oldContributes,
                                     bool domainWasPending,
                                     bool resyncWasPending)
 {
     evaluate();
     const bool nowValid = state != State::Invalid;
 
+    // An input that starts contributing, healthy again, is new to the consumer
     bool rejoined = false;
     for (SizeT i = 0; i < slots.size(); i++)
     {
-        if (oldErrors[i] != MultiReader2InputError::None && slots[i].error == MultiReader2InputError::None)
+        if (!oldContributes[i] && contributes(i))
         {
             slots[i].descriptorChanged = true;
-            if (contributes(i))
-                rejoined = true;
+            rejoined = true;
         }
     }
 
@@ -790,7 +817,7 @@ void MultiReaderDataManager::startSync()
 {
     state = State::Syncing;
     resynchronized = true;
-    syncDeadline = std::chrono::steady_clock::now() + deadline;
+    deadlineArmed = false;
 }
 
 bool MultiReaderDataManager::trySync()
@@ -798,12 +825,25 @@ bool MultiReaderDataManager::trySync()
     if (state != State::Syncing || !mainSlot.has_value())
         return false;
 
-    const bool deadlinePassed = std::chrono::steady_clock::now() > syncDeadline;
     const std::int64_t mainDelta = slots[*mainSlot].dom.delta;
     const std::int64_t mainTicksPerSecond = slots[*mainSlot].dom.resDen / slots[*mainSlot].dom.resNum;
     const std::int64_t distanceTicks = std::max<std::int64_t>(1, maxDistance.count() * mainTicksPerSecond / 1000);
 
     std::vector<Run> runs(slots.size());
+    for (SizeT i = 0; i < slots.size(); i++)
+    {
+        if (contributes(i))
+            runs[i] = runOf(i);
+    }
+
+    // A silent input is late only relative to data on another input: the deadline counts from the first data seen
+    if (!deadlineArmed && std::any_of(runs.begin(), runs.end(), [](const Run& run) { return run.hasData; }))
+    {
+        deadlineArmed = true;
+        syncDeadline = std::chrono::steady_clock::now() + deadline;
+    }
+    const bool deadlinePassed = deadlineArmed && std::chrono::steady_clock::now() > syncDeadline;
+
     bool waiting = false;
     std::int64_t target = std::numeric_limits<std::int64_t>::min();
     bool failed = false;
@@ -811,7 +851,6 @@ bool MultiReaderDataManager::trySync()
     {
         if (!contributes(i))
             continue;
-        runs[i] = runOf(i);
         if (runs[i].offGrid)
         {
             slots[i].offGrid = true;
@@ -868,10 +907,7 @@ bool MultiReaderDataManager::trySync()
 
     if (failed)
     {
-        std::vector<MultiReader2InputError> oldErrors(slots.size());
-        for (SizeT i = 0; i < slots.size(); i++)
-            oldErrors[i] = slots[i].error;
-        settle(true, mainSlot, oldErrors, domainChanged, resynchronized);
+        settle(true, mainSlot, contributions(), domainChanged, resynchronized);
         return true;
     }
 
@@ -1031,7 +1067,7 @@ ObjectPtr<IMultiReader2Status> MultiReaderDataManager::makeStatus()
     for (const auto& slot : slots)
     {
         const bool healthy = valid && slot.error == MultiReader2InputError::None;
-        if (slot.error != slot.reportedError || slot.used != slot.reportedUsed || (healthy && slot.descriptorChanged))
+        if (slot.error != slot.reportedError || (healthy && slot.descriptorChanged))
             changes = true;
     }
     if (!changes && lastStatus.assigned())
@@ -1043,9 +1079,8 @@ ObjectPtr<IMultiReader2Status> MultiReaderDataManager::makeStatus()
         const bool healthy = valid && slot.error == MultiReader2InputError::None;
         const bool descriptorChanged = healthy && slot.descriptorChanged;
         inputs.pushBack(createWithImplementation<IMultiReader2InputStatus, MultiReader2InputStatusImpl>(
-            config.inputs[&slot - slots.data()], slot.used && config.used, slot.error, descriptorChanged, healthy ? slot.value : nullptr));
+            config.inputs[&slot - slots.data()], slot.error, descriptorChanged, healthy ? slot.value : nullptr));
         slot.reportedError = slot.error;
-        slot.reportedUsed = slot.used;
         if (healthy)
             slot.descriptorChanged = false;
     }

@@ -16,6 +16,13 @@ set(TEST_SOURCES test_factories.cpp
                  test_stream_reader_from_input_port.cpp
                  # MultiReader2 suites compile the implementation directly for white-box access
                  test_multi_reader2.cpp
+                 test_multi_reader2_params.cpp
+                 test_multi_reader2_configure.cpp
+                 test_multi_reader2_read_api.cpp
+                 test_multi_reader2_domain.cpp
+                 test_multi_reader2_values.cpp
+                 test_multi_reader2_lifecycle.cpp
+                 test_multi_reader2_event_stress.cpp
                  test_multi_reader2_migrated.cpp
                  test_multi_reader2_unsupported.cpp
                  ../src/multi_reader2_impl.cpp

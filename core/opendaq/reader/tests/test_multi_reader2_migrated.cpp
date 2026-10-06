@@ -909,3 +909,210 @@ TEST_F(MultiReader2MigrationTest, MultiReaderGapDetection)
     ASSERT_EQ(count, 5u);
     ASSERT_EQ(offset, 15u);
 }
+
+// --- Later ports: synchronization state, clocks and relative domains ---------------------------------------
+
+TEST_F(MultiReader2MigrationTest, IsSynchronized)
+{
+    // The old getIsSynchronized is the available count: zero until the common start is reached
+    addClassicSignals(0, 0, 0, EPOCH_04, EPOCH_04);
+    auto reader = createReader(params(signalsToList()));
+    probe(reader);
+    ASSERT_EQ(reader.getAvailableCount(), 0u);
+    for (Int i = 0; i < 3; i++)
+        sendPackets(i);
+    ASSERT_EQ(reader.getAvailableCount(), 569u);
+
+    std::array<std::int64_t, 5> ticks{};
+    std::array<std::array<double, 5>, 3> values{};
+    SizeT count = 5;
+    readWithDomain(reader, ticks, values, count);
+    ASSERT_EQ(count, 5u);
+    ASSERT_EQ(reader.getAvailableCount(), 564u);
+    ASSERT_THAT(ticks, ElementsAre(1000, 1001, 1002, 1003, 1004));
+    ASSERT_THAT(values[1], ElementsAre(0, 1, 2, 3, 4));
+    ASSERT_THAT(values[2], ElementsAre(0, 1, 2, 3, 4));
+}
+
+TEST_F(MultiReader2MigrationTest, Clock15MHzFromEpoch)
+{
+    readSignals.reserve(3);
+    const Int clock = 15000000;
+    const Int startOffset = 1781269748ll * clock;
+    addSignal(startOffset, 60937, createDomainSignal("1970-01-01T00:00:00+00:00", Ratio(1, clock)));
+    addSignal(startOffset, 28125, createDomainSignal("1970-01-01T00:00:00+00:00", Ratio(1, clock)));
+    addSignal(startOffset, 37500, createDomainSignal("1970-01-01T00:00:00+00:00", Ratio(1, clock)));
+    auto reader = createReader(params(signalsToList()));
+    probe(reader);
+    ASSERT_EQ(reader.getAvailableCount(), 0u);
+    for (Int i = 0; i < 3; i++)
+        sendPackets(i);
+    ASSERT_EQ(reader.getAvailableCount(), 28125u * 3);
+
+    std::array<std::int64_t, 5> ticks{};
+    std::array<std::array<double, 5>, 3> values{};
+    SizeT count = 5;
+    auto status = readWithDomain(reader, ticks, values, count);
+    ASSERT_EQ(count, 5u);
+    ASSERT_EQ(ticks[0], startOffset);
+    ASSERT_EQ(ticks[4], startOffset + 4);
+    ASSERT_EQ(status.getDomainDescriptor().getTickResolution().getDenominator(), clock);
+}
+
+TEST_F(MultiReader2MigrationTest, Clock10kHzDelta10Relative)
+{
+    readSignals.reserve(3);
+    addSignal(0, 523, createDomainSignal(""));
+    addSignal(0, 732, createDomainSignal("", Ratio(1, 10000), LinearDataRule(10, 0)));
+    addSignal(0, 843, createDomainSignal(""));
+    for (auto& read : readSignals)
+        read.signal.getDomainSignal().asPtr<ISignalConfig>().setDescriptor(DataDescriptorBuilderCopy(read.domainDescriptor()).setOrigin("").build());
+    auto reader = createReader(params(signalsToList()));
+    probe(reader);
+    for (Int i = 0; i < 3; i++)
+        sendPackets(i);
+    ASSERT_EQ(reader.getAvailableCount(), 523u * 3);
+
+    std::array<std::int64_t, 5> ticks{};
+    std::array<std::array<double, 5>, 3> values{};
+    SizeT count = 5;
+    readWithDomain(reader, ticks, values, count);
+    ASSERT_EQ(count, 5u);
+    ASSERT_THAT(ticks, ElementsAre(0, 1, 2, 3, 4));
+    ASSERT_THAT(values[0], ElementsAre(0, 1, 2, 3, 4));
+    ASSERT_THAT(values[1], ElementsAre(0, 10, 20, 30, 40));
+    ASSERT_THAT(values[2], ElementsAre(0, 1, 2, 3, 4));
+}
+
+TEST_F(MultiReader2MigrationTest, Clock10kHzDelta10WithAlignedOffsetRelative)
+{
+    readSignals.reserve(3);
+    addSignal(1240, 523, createDomainSignal(""));
+    addSignal(130, 732, createDomainSignal("", Ratio(1, 10000), LinearDataRule(10, 0)));
+    addSignal(111, 843, createDomainSignal(""));
+    for (auto& read : readSignals)
+        read.signal.getDomainSignal().asPtr<ISignalConfig>().setDescriptor(DataDescriptorBuilderCopy(read.domainDescriptor()).setOrigin("").build());
+    auto reader = createReader(params(signalsToList()));
+    probe(reader);
+    for (Int i = 0; i < 3; i++)
+        sendPackets(i);
+    // Firsts at 1240, 13 and 111 main ticks; signal 1 ends at 13 + 2195
+    ASSERT_EQ(reader.getAvailableCount(), 969u);
+
+    std::array<std::int64_t, 5> ticks{};
+    std::array<std::array<double, 5>, 3> values{};
+    SizeT count = 5;
+    readWithDomain(reader, ticks, values, count);
+    ASSERT_EQ(count, 5u);
+    ASSERT_THAT(ticks, ElementsAre(1240, 1241, 1242, 1243, 1244));
+    ASSERT_THAT(values[0], ElementsAre(1240, 1241, 1242, 1243, 1244));
+    ASSERT_THAT(values[1], ElementsAre(12400, 12410, 12420, 12430, 12440));
+    ASSERT_THAT(values[2], ElementsAre(1240, 1241, 1242, 1243, 1244));
+}
+
+TEST_F(MultiReader2MigrationTest, ResolutionChanged)
+{
+    readSignals.reserve(3);
+    addSignal(123, 523, createDomainSignal(EPOCH_03));
+    auto& sig1 = addSignal(134, 732, createDomainSignal(EPOCH_04));
+    addSignal(111, 843, createDomainSignal(EPOCH_04));
+    auto reader = createReader(params(signalsToList()));
+    probe(reader);
+
+    sendPackets(0);
+    ASSERT_EQ(reader.getAvailableCount(), 0u);  // signal 0 ends before the others start
+
+    // Signal 1 moves to a finer tick at the same rate; its later packets are in the new ticks
+    sig1.signal.getDomainSignal().asPtr<ISignalConfig>().setDescriptor(createDomainDescriptor(EPOCH_04, Ratio(1, 10000), LinearDataRule(10, 0)));
+    sig1.packetOffset *= 10;
+    for (Int i = 1; i < 4; i++)
+        sendPackets(i);
+
+    // The first packet of signal 1 gates the first run: 732 samples from the common start at tick 1134
+    ASSERT_EQ(reader.getAvailableCount(), 732u);
+    std::array<std::int64_t, 733> ticks{};
+    std::array<std::array<double, 733>, 3> values{};
+    SizeT count = 733;
+    auto status = readWithDomain(reader, ticks, values, count);
+    ASSERT_EQ(count, 732u);
+    ASSERT_EQ(ticks[0], 1134);
+    ASSERT_TRUE(status.getHasChanges());
+    ASSERT_TRUE(status.getResynchronized());
+    ASSERT_FALSE(status.getDomainDescriptorChanged());
+
+    // The data in the new ticks continues where the old left off: tick 8660 of the finer clock is 866 ms, one
+    // second after the main's origin, so main tick 1866
+    ASSERT_EQ(reader.getAvailableCount(), 349u);
+    count = 5;
+    readWithDomain(reader, ticks, values, count);
+    ASSERT_EQ(count, 5u);
+    ASSERT_EQ(ticks[0], 1866);
+    ASSERT_EQ(values[0][0], 1866);
+    ASSERT_EQ(values[1][0], 8660);
+    ASSERT_EQ(values[2][0], 866);  // on the same one-second-later clock, in millisecond ticks
+}
+
+TEST_F(MultiReader2MigrationTest, MultipleMultiReaderToInputPort)
+{
+    // A parentless port is owned by the reader using it; a second reader cannot take it while the first lives
+    readSignals.reserve(1);
+    addSignal(0, 523, createDomainSignal(EPOCH_03));
+    auto list = portsList();
+    auto first = createReader(params(list));
+    connectAll(first);
+    ASSERT_THROW(createReader(params(list)), AlreadyExistsException);
+    sendPackets(0);
+    ASSERT_EQ(first.getAvailableCount(), 523u);
+}
+
+TEST_F(MultiReader2MigrationTest, MultiReaderActiveFromPorts)
+{
+    // The old reader deactivated its ports when set inactive; the new one keeps the ports active and drops the data
+    readSignals.reserve(3);
+    for (int i = 0; i < 3; i++)
+        addSignal(0, 10, createDomainSignal());
+    auto p = params(portsList());
+    p.setUsed(false);
+    auto reader = createReader(p);
+    connectAll(reader);
+    for (const auto& port : ports)
+        ASSERT_TRUE(port.getActive());
+    sendPackets(0);
+    ASSERT_EQ(reader.getAvailableCount(), 0u);
+    auto status = probe(reader);
+    ASSERT_TRUE(status.getValid());
+    ASSERT_FALSE(input(status, 0).getUsed());
+}
+
+TEST_F(MultiReader2MigrationTest, ReadWhilePortIsNotConnected)
+{
+    readSignals.reserve(3);
+    auto domain = createDomainSignal(EPOCH_03);
+    addSignal(0, 20, domain);
+    addSignal(0, 30, domain);
+    addSignal(0, 40, domain);
+    auto reader = createReader(params(portsList()));
+    ports[0].connect(readSignals[0].signal);
+    ports[1].connect(readSignals[1].signal);
+    scheduler.waitAll();
+    auto status = probe(reader);
+    ASSERT_FALSE(status.getValid());
+
+    // A read never waits; the connect from another thread shows up on a later status
+    auto connecting = std::async(std::launch::async, [&]
+    {
+        std::this_thread::sleep_for(std::chrono::milliseconds(50));
+        ports[2].connect(readSignals[2].signal);
+    });
+    std::array<std::array<double, 10>, 3> values{};
+    SizeT count = 10;
+    status = read(reader, values, count);
+    ASSERT_EQ(count, 0u);
+    connecting.wait();
+    scheduler.waitAll();
+    status = probe(reader);
+    ASSERT_TRUE(status.getValid());
+    ASSERT_EQ(status.getInputs().getCount(), 3u);
+    for (SizeT i = 0; i < 3; i++)
+        ASSERT_EQ(input(status, i).getError(), MultiReader2InputError::None);
+}

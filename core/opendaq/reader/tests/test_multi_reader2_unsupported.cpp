@@ -65,13 +65,14 @@
 // ---------------------------------------------------------------------------------------------------------------
 
 // ---------------------------------------------------------------------------------------------------------------
-// 7. Fractional origins and resolution folding - 4 tests - MVP domain assumptions
+// 7. Fractional origins - 3 tests - MVP domain assumptions
 //
 //    SignalStartDomainFrom0 (original form with a .123 s origin), MaxTimeIsNotOnSignalWithMaxEpoch,
-//    Clock15MHzFromEpoch, Clock10kHzDelta10WithIntersampleOffset, ResolutionChanged
+//    Clock10kHzDelta10WithIntersampleOffset
 //
 //    Origins are ISO 8601 on a full second; an origin with a fraction is DomainDescriptorInvalid. Resolutions may
-//    differ only when delta and resolution give the same rate and every tick lands on the main grid.
+//    differ only when delta and resolution give the same rate and every tick lands on the main grid; the clock
+//    and resolution tests themselves (Clock15MHzFromEpoch, ResolutionChanged) are ported with full-second origins.
 // ---------------------------------------------------------------------------------------------------------------
 
 // ---------------------------------------------------------------------------------------------------------------

@@ -13,34 +13,28 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 #pragma once
-
-#include <coretypes/baseobject.h>
-#include <opendaq/sync_interface.h>
+#include <opendaq/synchronization_ptr.h>
+#include <coretypes/type_manager_ptr.h>
+#include <coretypes/string_ptr.h>
 
 BEGIN_NAMESPACE_OPENDAQ
-
 /*!
  * @ingroup opendaq_synchronization_path
- * @addtogroup opendaq_synchronization Synchronization
+ * @addtogroup opendaq_synchronization_factories Factories
  * @{
  */
 
 /*!
- * @brief Private interface for synchronization operations.
+ * @brief Creates a synchronization object that holds a ClockSyncInterface selected as the source.
+ * @param manager The type manager.
+ * @param deviceId The device-local ID; the ClockSyncInterface reference domain ID is "local:<deviceId>".
  */
-DECLARE_OPENDAQ_INTERFACE(ISynchronizationPrivate, IBaseObject)
+inline SynchronizationPtr Synchronization(const TypeManagerPtr& manager, const StringPtr& deviceId)
 {
-    /*!
-     * @brief Adds an interface to the synchronization.
-     * @param syncInterface The sync interface to be added.
-     *
-     * Interface IDs must be unique. Allowed only before the synchronization object is set on the
-     * device; afterwards it fails with OPENDAQ_ERR_INVALID_OPERATION.
-     */
-    virtual ErrCode INTERFACE_FUNC addInterface(ISyncInterface* syncInterface) = 0;
-};
+    return { Synchronization_Create(manager, deviceId) };
+}
+
 /*!@}*/
 
 END_NAMESPACE_OPENDAQ

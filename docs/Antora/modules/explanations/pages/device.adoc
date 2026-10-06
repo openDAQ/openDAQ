@@ -80,8 +80,8 @@ ListPtr<IChannel> channels =  device.getChannels();
 // Gets all custom Components of the Device
 ListPtr<IComponent> customComponents = device.getCustomComponents();
 
-// Gets the SyncComponent of the Device
-SyncComponentPtr syncComponent = device.getSyncComponent();
+// Gets the Synchronization of the Device; null when the Device is not clocked
+SynchronizationPtr synchronization = device.getSynchronization();
 ----
 Python::
 +
@@ -94,7 +94,7 @@ def access_device_components(device: opendaq.IDevice):
     io_folder = device.inputs_outputs_folder
     channels = device.channels
     custom_components = device.custom_components
-    sync_component = device.sync_component
+    synchronization = device.synchronization
 ----
 C#::
 +

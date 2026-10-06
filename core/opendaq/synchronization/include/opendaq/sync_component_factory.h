@@ -15,8 +15,6 @@
  */
 #pragma once
 #include <opendaq/sync_component_ptr.h>
-#include <opendaq/synchronization_ptr.h>
-#include <opendaq/sync_interface_ptr.h>
 #include <opendaq/context_ptr.h>
 #include <opendaq/component_ptr.h>
 #include <coretypes/string_ptr.h>
@@ -37,16 +35,6 @@ BEGIN_NAMESPACE_OPENDAQ
 inline SyncComponentPtr SyncComponent(const ContextPtr& context, const ComponentPtr& parent, const StringPtr& localId)
 {
     return { SyncComponent_Create(context, parent, localId) };
-}
-
-/*!
- * @brief Creates a synchronization object that holds a ClockSyncInterface selected as the source.
- * @param manager The type manager.
- * @param deviceId The device-local ID; the ClockSyncInterface reference domain ID is "local:<deviceId>".
- */
-inline SynchronizationPtr Synchronization(const TypeManagerPtr& manager, const StringPtr& deviceId)
-{
-    return { Synchronization_Create(manager, deviceId) };
 }
 
 /*!@}*/

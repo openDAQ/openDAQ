@@ -36,6 +36,10 @@ DECLARE_OPENDAQ_INTERFACE(ISyncInterfaceInternal, IBaseObject)
      * @brief Marks the synchronization interface as the currently selected synchronization source,
      * or demotes it back to being an output-only interface.
      * @param source True to select this interface as the synchronization source, False to demote it.
+     *
+     * True: the available modes become `Auto` and `Input`, and the mode is set to `Auto`, or to
+     * `Input` if `Auto` is unavailable. False: the available modes become `Off` and `Output`, and
+     * the mode is set to `Off`.
      */
     virtual ErrCode INTERFACE_FUNC setAsSource(Bool source) = 0;
 
@@ -43,6 +47,8 @@ DECLARE_OPENDAQ_INTERFACE(ISyncInterfaceInternal, IBaseObject)
      * @brief Notifies the synchronization interface that the currently selected
      * synchronization source has changed.
      * @param source The newly selected synchronization source.
+     *
+     * Called on every interface after a source change. The return value is ignored.
      */
     virtual ErrCode INTERFACE_FUNC sourceChanged(ISyncInterface* source) = 0;
 };

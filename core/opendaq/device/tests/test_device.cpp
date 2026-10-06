@@ -20,6 +20,9 @@
 #include <opendaq/mock/mock_streaming_factory.h>
 #include <opendaq/device_network_config_ptr.h>
 #include <opendaq/component_private_ptr.h>
+#include <opendaq/synchronization_factory.h>
+#include <opendaq/synchronization_private_ptr.h>
+#include <opendaq/sync_interface_base_impl.h>
 #include "testutils/testutils.h"
 
 using DeviceTest = testing::Test;
@@ -676,4 +679,66 @@ TEST_F(DeviceTest, DefaultFolderLockingStrategy)
         if (defaultComponents.count(component.getName()))
             ASSERT_EQ(component.asPtr<daq::IPropertyObjectInternal>().getLockingStrategy(), daq::LockingStrategy::ForwardOwnerLockOwn);
     }
+}
+
+class TestSyncInterface : public daq::SyncInterfaceBaseImpl
+{
+public:
+    explicit TestSyncInterface(const daq::TypeManagerPtr& manager)
+        : daq::SyncInterfaceBaseImpl(manager, "TestInterface", {daq::SyncMode::Off, daq::SyncMode::Input, daq::SyncMode::Output, daq::SyncMode::Auto})
+    {
+    }
+};
+
+class TestDeviceWithSynchronization : public daq::Device
+{
+public:
+    TestDeviceWithSynchronization(const daq::ContextPtr& ctx = daq::NullContext(), const daq::ComponentPtr& parent = nullptr, const daq::StringPtr& localId = "dev")
+        : daq::Device(ctx, parent, localId)
+    {
+        const auto manager = this->context.getTypeManager();
+        const auto synchronization = daq::Synchronization(manager, "testDevice");
+        synchronization.asPtr<daq::ISynchronizationPrivate>(true).addInterface(
+            daq::createWithImplementation<daq::ISyncInterface, TestSyncInterface>(manager));
+        setSynchronization(synchronization);
+    }
+};
+
+TEST_F(DeviceTest, GetSynchronizationWithoutClock)
+{
+    const auto device = daq::createWithImplementation<daq::IDevice, TestDevice>();
+
+    daq::SynchronizationPtr synchronization;
+    ASSERT_EQ(device->getSynchronization(&synchronization), OPENDAQ_IGNORED);
+    ASSERT_FALSE(synchronization.assigned());
+    ASSERT_FALSE(device.getSynchronization().assigned());
+}
+
+TEST_F(DeviceTest, GetSynchronization)
+{
+    const auto device = daq::createWithImplementation<daq::IDevice, TestDeviceWithSynchronization>();
+
+    daq::SynchronizationPtr synchronization;
+    ASSERT_EQ(device->getSynchronization(&synchronization), OPENDAQ_SUCCESS);
+    ASSERT_TRUE(synchronization.assigned());
+    ASSERT_EQ(synchronization.getInterfaces().getCount(), 2u);
+    ASSERT_EQ(synchronization.getSource().getId(), "ClockSyncInterface");
+}
+
+TEST_F(DeviceTest, SynchronizationSaveLoad)
+{
+    const auto device = daq::createWithImplementation<daq::IDevice, TestDeviceWithSynchronization>();
+    device.getSynchronization().setSource("TestInterface");
+    const auto config = device.saveConfiguration();
+
+    const auto newDevice = daq::createWithImplementation<daq::IDevice, TestDeviceWithSynchronization>();
+    ASSERT_EQ(newDevice.getSynchronization().getSource().getId(), "ClockSyncInterface");
+
+    newDevice.loadConfiguration(config);
+
+    const auto synchronization = newDevice.getSynchronization();
+    const auto interfaces = synchronization.getInterfaces();
+    ASSERT_EQ(synchronization.getSource().getId(), "TestInterface");
+    ASSERT_EQ(interfaces.get("TestInterface").getMode(), daq::SyncMode::Auto);
+    ASSERT_EQ(interfaces.get("ClockSyncInterface").getMode(), daq::SyncMode::Off);
 }

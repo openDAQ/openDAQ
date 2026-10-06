@@ -94,7 +94,6 @@ private:
     void deviceLockStatusChanged(const CoreEventArgsPtr& args);
     void connectionStatusChanged(const CoreEventArgsPtr& args);
     void operationModeChanged(const CoreEventArgsPtr& args);
-    void statusChanged(const ComponentPtr& sender, const CoreEventArgsPtr& args);
 };
 
 template <class TDeviceBase>
@@ -454,9 +453,6 @@ void GenericConfigClientDeviceImpl<TDeviceBase>::handleRemoteCoreObjectInternal(
         case CoreEventId::DeviceOperationModeChanged:
             operationModeChanged(args);
             break;
-        case CoreEventId::StatusChanged:
-            statusChanged(sender, args);
-            break;
         case CoreEventId::PropertyObjectUpdateEnd:
         case CoreEventId::SignalConnected:
         case CoreEventId::SignalDisconnected:
@@ -464,6 +460,7 @@ void GenericConfigClientDeviceImpl<TDeviceBase>::handleRemoteCoreObjectInternal(
         case CoreEventId::ComponentUpdateEnd:
         case CoreEventId::AttributeChanged:
         case CoreEventId::TagsChanged:
+        case CoreEventId::StatusChanged:
         case CoreEventId::TypeAdded:
         case CoreEventId::TypeRemoved:
         default:
@@ -648,22 +645,6 @@ void GenericConfigClientDeviceImpl<TDeviceBase>::operationModeChanged(const Core
 {
     const Int mode = args.getParameters().get("OperationMode");
     this->updateOperationModeInternal(static_cast<OperationModeType>(mode));
-}
-
-template <class TDeviceBase>
-void GenericConfigClientDeviceImpl<TDeviceBase>::statusChanged(const ComponentPtr& sender, const CoreEventArgsPtr& args)
-{
-    // we have a neasted property ISyncInterface, which has a status container. We should propogate this event to the neasted property directly
-    const DictPtr<IString, IBaseObject> params = args.getParameters();
-    if (const StringPtr path = params.getOrDefault("Path"); path.assigned())
-    {
-        PropertyObjectPtr thisPtr = this->template borrowPtr<PropertyObjectPtr>();
-        if (const auto configObj = thisPtr.getPropertyValue(path).asPtrOrNull<IConfigClientObject>(); configObj.assigned())
-            configObj->handleRemoteCoreEvent(sender,args);
-        return;
-    }
-
-    Super::handleRemoteCoreObjectInternal(sender, args);
 }
 
 }

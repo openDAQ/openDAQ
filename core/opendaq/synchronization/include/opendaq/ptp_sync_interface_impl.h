@@ -47,7 +47,7 @@ protected:
                              const StringPtr& name = "PtpSyncInterface",
                              const std::vector<SyncMode>& availableModes = {SyncMode::Off, SyncMode::Input, SyncMode::Output, SyncMode::Auto});
 
-    void createPortProporties(const StringPtr& portName);
+    void createPortProperties(const StringPtr& portName);
 
     void setProfileOptions(const ListPtr<IString>& options);
     void setTransportProtocolOptions(const ListPtr<IString>& options);

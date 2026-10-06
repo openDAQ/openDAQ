@@ -9,6 +9,7 @@
 #include <opendaq/device_type_factory.h>
 #include <opendaq/log_file_info_factory.h>
 #include <opendaq/packet_factory.h>
+#include <opendaq/synchronization_factory.h>
 #include <ref_device_module/ref_can_channel_impl.h>
 #include <ref_device_module/ref_channel_impl.h>
 #include <ref_device_module/ref_device_impl.h>

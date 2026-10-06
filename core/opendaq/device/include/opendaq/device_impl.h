@@ -40,6 +40,7 @@
 #include <opendaq/module_manager_ptr.h>
 #include <opendaq/module_manager_utils_ptr.h>
 #include <opendaq/sync_component_factory.h>
+#include <opendaq/synchronization_factory.h>
 #include <opendaq/component_update_context_ptr.h>
 #include <set>
 #include <coreobjects/user_internal_ptr.h>

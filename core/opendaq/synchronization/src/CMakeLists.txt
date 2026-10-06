@@ -53,6 +53,7 @@ function(create_component_source_groups_${BASE_NAME})
         ${SDK_HEADERS_DIR}/synchronization.h
         ${SDK_HEADERS_DIR}/synchronization_private.h
         ${SDK_HEADERS_DIR}/synchronization_impl.h
+        ${SDK_HEADERS_DIR}/synchronization_factory.h
         ${SDK_HEADERS_DIR}/sync_interface_base_impl.h
         ${SDK_HEADERS_DIR}/clock_sync_interface_impl.h
         ${SDK_HEADERS_DIR}/ptp_sync_interface_impl.h
@@ -74,13 +75,15 @@ set(SRC_PublicHeaders_Component
     sync_interface_internal.h
     synchronization.h
     synchronization_private.h
+    synchronization_factory.h
+    sync_interface_base_impl.h
+    ptp_sync_interface_impl.h
     PARENT_SCOPE
 )
 
-set(SRC_PrivateHeaders_Component 
+set(SRC_PrivateHeaders_Component
     sync_component_impl.h
     synchronization_impl.h
-    sync_interface_base_impl.h
     clock_sync_interface_impl.h
     PARENT_SCOPE
 )

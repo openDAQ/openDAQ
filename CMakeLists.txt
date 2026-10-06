@@ -397,15 +397,17 @@ add_subdirectory(external)
 add_subdirectory(core)
 add_subdirectory(modules)
 
+if (DEFINED LT_MODULES_SOURCE_DIR)
+    add_subdirectory("${LT_MODULES_SOURCE_DIR}" "${LT_MODULES_BINARY_DIR}")
+endif()
+
+# The OPC UA modules still serve the deprecated ISyncComponent until they move to ISynchronization
 get_directory_property(_opendaq_saved_compile_options COMPILE_OPTIONS)
 add_compile_options(
     $<$<OR:$<CXX_COMPILER_ID:GNU>,$<CXX_COMPILER_ID:Clang>,$<CXX_COMPILER_ID:AppleClang>>:-Wno-deprecated-declarations>
     $<$<CXX_COMPILER_ID:MSVC>:/wd4996>
 )
 
-if (DEFINED LT_MODULES_SOURCE_DIR)
-    add_subdirectory("${LT_MODULES_SOURCE_DIR}" "${LT_MODULES_BINARY_DIR}")
-endif()
 if (DEFINED OPCUA_MODULES_SOURCE_DIR)
     add_subdirectory("${OPCUA_MODULES_SOURCE_DIR}" "${OPCUA_MODULES_BINARY_DIR}")
 endif()

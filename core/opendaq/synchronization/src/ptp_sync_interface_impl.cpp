@@ -69,7 +69,7 @@ void PtpSyncInterfaceBaseImpl::createGeneralProperties()
     }
 }
 
-void PtpSyncInterfaceBaseImpl::createPortProporties(const StringPtr& portName)
+void PtpSyncInterfaceBaseImpl::createPortProperties(const StringPtr& portName)
 {
     {
         // creating status container entry

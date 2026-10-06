@@ -7,6 +7,7 @@
 #include <opendaq/device_type_factory.h>
 #include <opendaq/packet_factory.h>
 #include <opendaq/sync_component_private_ptr.h>
+#include <opendaq/synchronization_factory.h>
 #include <simulator_device_module/simulator_channel_impl.h>
 #include <simulator_device_module/simulator_device_impl.h>
 #include <chrono>

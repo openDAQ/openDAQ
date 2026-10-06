@@ -3834,6 +3834,8 @@ TEST_F(NativeDeviceModulesTest, SettingOperationMode)
     test_helpers::checkDeviceOperationMode(client.getDevices()[0].getDevices()[0], daq::OperationModeType::Idle);
 }
 
+#ifdef OPENDAQ_ENABLE_ACCESS_CONTROL
+
 TEST_F(NativeDeviceModulesTest, SettingOperationModeWithoutPermissions)
 {
     auto CreateUsers = []()
@@ -3967,6 +3969,8 @@ TEST_F(NativeDeviceModulesTest, SettingOperationModeWithoutPermissions)
         test_helpers::checkDeviceOperationMode(client.getDevices()[0].getDevices()[0].getDevices()[0], OMT::SafeOperation);
     }
 }
+
+#endif
 
 TEST_F(NativeDeviceModulesTest, SettingOperationModeWithPermissions)
 {
@@ -4127,6 +4131,8 @@ TEST_F(NativeDeviceModulesTest, SettingOperationModeWithPermissionsForInvisibleD
     }
 }
 
+#ifdef OPENDAQ_ENABLE_ACCESS_CONTROL
+
 TEST_F(NativeDeviceModulesTest, SettingOperationModeWithPermissionsNestedDevice)
 {
     auto CreateUsers = []()
@@ -4249,6 +4255,8 @@ TEST_F(NativeDeviceModulesTest, SettingOperationModeWithPermissionsNestedDevice)
         test_helpers::checkDeviceOperationMode(client.getDevices()[0].getDevices()[0].getDevices()[0], daq::OperationModeType::SafeOperation, false, true);
     }
 }
+
+#endif
 
 TEST_F(NativeDeviceModulesTest, UpdateEditableFiledsDeviceInfo)
 {

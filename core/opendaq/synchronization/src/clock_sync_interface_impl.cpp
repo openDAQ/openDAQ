@@ -6,7 +6,7 @@ ClockSyncInterfaceImpl::ClockSyncInterfaceImpl(const TypeManagerPtr& manager, co
     : Super(manager, "ClockSyncInterface", {SyncMode::Off, SyncMode::Input})
 {
     if (deviceId.assigned() && deviceId.getLength() != 0)
-        referenceDomainId = fmt::format("local:{}", deviceId);
+        localReferenceDomainId = fmt::format("local:{}", deviceId);
 }
 
 ErrCode ClockSyncInterfaceImpl::getSyncType(IString** syncType)
@@ -23,7 +23,7 @@ ErrCode ClockSyncInterfaceImpl::setAsSource(Bool source)
     {
         if (source)
         {
-            this->setReferenceDomainId(referenceDomainId);
+            this->setReferenceDomainId(localReferenceDomainId);
             this->setSyncRoleStatus(SyncRoleStatus::Input);
             this->setSyncSourceStatus(SyncSourceStatus::Synced);
         }

@@ -349,20 +349,18 @@ ErrCode ModuleManagerImpl::tryLoadAndAddModule(const StringPtr& path, IModule** 
         }
     }
 
+    StringPtr moduleKey;
+    if (authenticatedModulesOnly)
+    {
+        Bool valid = false;
+        auto authErrCode = moduleAuthenticator->authenticateModuleBinary(&valid, &moduleKey, path);
+        OPENDAQ_RETURN_IF_FAILED(authErrCode, fmt::format(R"(Error authenticating module "{}" [{:#x}])", path, authErrCode));
+        if (!valid)
+            return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_ACCESSDENIED, fmt::format(R"(Module ({}) authentication failed!)", path));
+    }
+
     try
     {
-        StringPtr moduleKey;
-        if (authenticatedModulesOnly)
-        {
-            Bool valid;
-            moduleAuthenticator->authenticateModuleBinary(&valid, &moduleKey, path);
-
-            if (!valid)
-            {
-                return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_ACCESSDENIED, fmt::format(R"(Module ({}) authentication failed!)", path));
-            }
-        }
-
         auto moduleLibrary = loadModuleInternal(loggerComponent, fileSystemPath, context, safeLoadingMode);
         const auto loadedModule = moduleLibrary.module;
         const StringPtr moduleId = loadedModule.getModuleInfo().getId();

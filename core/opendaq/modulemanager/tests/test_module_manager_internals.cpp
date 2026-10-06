@@ -5,13 +5,13 @@
 #include <opendaq/context_factory.h>
 #include <opendaq/custom_log.h>
 #include <opendaq/context_internal_ptr.h>
+#include <opendaq/module_authenticator_factory.h>
 
 #include <chrono>
 #include <thread>
 #include <opendaq/boost_dll.h>
 
 #include "mock/mock_module.h"
-#include "mock/mock_module_authenticator.h"
 
 using namespace daq;
 
@@ -280,18 +280,68 @@ TEST_F(ModuleManagerInternalsTest, LoadModuleWithNullOrEmptyIdAfterAddedFromMemo
 
 TEST_F(ModuleManagerInternalsTest, TestAuthenticator)
 {
-    StringPtr certPath = StringPtr("mock/path");
-    auto authenticator = createWithImplementation<IModuleAuthenticator, MockModuleAuthenticatorImpl>(certPath);
-    auto manager = ModuleManager("[[none]]");
+    StringPtr fName;
+    auto pathAuth = std::map<std::string, DictPtr<IString, IBaseObject>>();
+
+    const auto authF = Function(
+        [&](const StringPtr& f, const DictPtr<IString, IBaseObject>& params)
+        {
+            fName = f;
+            auto path = StringPtr(params["BinaryPath"]);
+            auto it = pathAuth.find(path);
+            if (it != pathAuth.end())
+                return it->second;
+            return Dict<IString, IBaseObject>();  // implicit BinaryValid false
+        });
+
+    auto manager = ModuleManager((exePath / fs::path(MODULE_TEST_DIR)).string());
     manager->setAuthenticatedOnly(true);
-    manager->setModuleAuthenticator(authenticator);
+    // all modules access denied
+    manager->setModuleAuthenticator(FunctionModuleAuthenticator(authF));
     manager.loadModules(NullContext());
-
-    fs::path modulePath = GetMockModulePath(DEPENDENCIES_SUCCEEDED_MODULE_NAME);
-    LOG_I("Load module: \"{}\"", modulePath.string());
-
-    ModulePtr module;
-    ASSERT_NO_THROW(module = manager.loadModule(modulePath.string()));
-    ASSERT_EQ(manager.getModules().getCount(), 1u);
-    ASSERT_EQ(manager.getModules()[0], module);
+    ASSERT_EQ(manager.getModules().getCount(), 0u);
+    // valid auth, valid module
+    auto authorizedMods = std::array<ModulePtr, 2>();
+    auto modPath = GetMockModulePath(NULL_STRING_ID_MODULE_NAME).string();
+    pathAuth[modPath] = Dict<IString, IBaseObject>({{"BinaryValid", true}});
+    ASSERT_NO_THROW(authorizedMods[0] = manager.loadModule(modPath));
+    // invalid auth, valid module
+    ModulePtr unauthorizedMod;
+    modPath = GetMockModulePath(DEPENDENCIES_SUCCEEDED_MODULE_NAME).string();
+    const auto testVendorKey = "test";
+    pathAuth[modPath] = Dict<IString, IBaseObject>({{"VendorKey", testVendorKey}});
+    ASSERT_THROW(unauthorizedMod = manager.loadModule(modPath), AccessDeniedException);  // implicit BinaryValid false
+    pathAuth[modPath]["BinaryValid"] = true;
+    ASSERT_NO_THROW(authorizedMods[1] = manager.loadModule(modPath));
+    // invalid auth, invalid module
+    modPath = GetMockModulePath(EMPTY_MODULE_FILE_NAME).string();
+    pathAuth[modPath] = Dict<IString, IBaseObject>({{"BinaryValid", false}});  // auth should be the first step to take place
+    ASSERT_THROW(unauthorizedMod = manager.loadModule(modPath), AccessDeniedException);
+    // invalid return from auth function
+    modPath = GetMockModulePath(DEPENDENCIES_FAILED_MODULE_NAME).string();
+    pathAuth[modPath] = Dict<IString, IBaseObject>({{"BinaryValid", "True"}});  // should fail
+    ASSERT_THROW(unauthorizedMod = manager.loadModule(modPath), NoInterfaceException);
+    // error propagation from auth function
+    const auto errCode = OPENDAQ_ERR_INVALIDSTATE;
+    const auto errMsg = "Test Error Message";
+    modPath = GetMockModulePath(EMPTY_STRING_ID_MODULE_NAME).string();
+    pathAuth[modPath] = Dict<IString, IBaseObject>({{"ErrorCode", errCode}, {"ErrorMessage", errMsg}, {"BinaryValid", true}});
+    try
+    {
+        unauthorizedMod = manager.loadModule(modPath);
+        FAIL();
+    }
+    catch (const DaqException& e)
+    {
+        ASSERT_EQ(e.getErrCode(), errCode);
+        ASSERT_NE(e.getErrorMessage().find(errMsg), std::string::npos);
+    }
+    // vendor keys
+    auto keys = manager.getVendorKeys();
+    ASSERT_EQ(keys[authorizedMods[1].getModuleInfo().getId()], testVendorKey);
+    // misc
+    ASSERT_EQ(fName, "authenticateModuleBinary");
+    ASSERT_EQ(manager.getModules().getCount(), 2u);
+    ASSERT_EQ(manager.getModules()[0], authorizedMods[0]);
+    ASSERT_EQ(manager.getModules()[1], authorizedMods[1]);
 }

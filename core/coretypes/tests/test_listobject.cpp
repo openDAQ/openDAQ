@@ -775,6 +775,13 @@ TEST_F(ListObjectTest, EqualsDifferentSize)
     ASSERT_FALSE(eq);
 }
 
+TEST_F(ListObjectTest, EqualsNullOrdering)
+{
+    ASSERT_EQ(List<IBaseObject>("a", nullptr), List<IBaseObject>("a", nullptr));
+    ASSERT_NE(List<IBaseObject>(nullptr, "a"), List<IBaseObject>("b", "a"));
+    ASSERT_NE(List<IBaseObject>("b", "a"), List<IBaseObject>(nullptr, "a"));
+}
+
 TEST_F(ListObjectTest, Inspectable)
 {
     auto obj = List<IBaseObject>();

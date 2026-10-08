@@ -4,6 +4,7 @@
 #include <coretypes/serialized_object_ptr.h>
 #include <coretypes/function_ptr.h>
 #include <coretypes/objectptr.h>
+#include <opendaq/custom_log.h>
 
 namespace daq::config_protocol
 {
@@ -45,6 +46,10 @@ ErrCode ConfigClientSynchronizationImpl::setRemoteValue(IString* propertyName, I
             return errCode;
         }
 
+        // Once "SourceInterfaces" has arrived, a rejected source is a real error.
+        if (sourceInterfacesReceived)
+            return errCode;
+
         // Not in "SourceInterfaces" yet; applied when the list arrives.
         daqClearErrorInfo();
         pendingSource = value;
@@ -53,18 +58,35 @@ ErrCode ConfigClientSynchronizationImpl::setRemoteValue(IString* propertyName, I
 
     OPENDAQ_RETURN_IF_FAILED(errCode);
     if (name == "SourceInterfaces")
-        return applyPendingSource();
+    {
+        sourceInterfacesReceived = true;
+        applyPendingSource();
+    }
     return errCode;
 }
 
-ErrCode ConfigClientSynchronizationImpl::applyPendingSource()
+void ConfigClientSynchronizationImpl::applyPendingSource()
 {
     if (!pendingSource.assigned())
-        return OPENDAQ_SUCCESS;
+        return;
 
     const BaseObjectPtr source = pendingSource;
     pendingSource.release();
-    return Impl::setPropertyValue(String("Source"), source);
+
+    // Failing here would abort adding the whole device, so the client keeps its current
+    // source and the log says which source the device reported.
+    try
+    {
+        checkErrorInfo(Impl::setPropertyValue(String("Source"), source));
+    }
+    catch (const DaqException& e)
+    {
+        const auto loggerComponent = clientComm->getDaqContext().getLogger().getOrAddComponent("ConfigProtocolClient");
+        LOG_W("The device reports synchronization source \"{}\", which the client could not apply, so the client shows \"{}\": {}",
+              source,
+              this->objPtr.getPropertyValue("Source"),
+              e.what());
+    }
 }
 
 ErrCode ConfigClientSynchronizationImpl::clearPropertyValue(IString* propertyName)

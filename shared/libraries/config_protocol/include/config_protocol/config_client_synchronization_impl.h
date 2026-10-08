@@ -50,11 +50,12 @@ public:
 
 private:
     ErrCode setRemoteValue(IString* propertyName, IBaseObject* value, bool isProtected);
-    ErrCode applyPendingSource();
+    void applyPendingSource();
 
     // "Source" received before "SourceInterfaces" holds it. Servers without a property
     // order on Synchronization serialize "Source" first, since values go in name order.
     BaseObjectPtr pendingSource;
+    bool sourceInterfacesReceived = false;
 };
 
 } // namespace daq::config_protocol

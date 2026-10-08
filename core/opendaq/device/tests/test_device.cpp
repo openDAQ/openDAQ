@@ -688,6 +688,13 @@ public:
         : daq::SyncInterfaceBaseImpl(manager, "TestInterface", {daq::SyncMode::Off, daq::SyncMode::Input, daq::SyncMode::Output, daq::SyncMode::Auto})
     {
     }
+
+    daq::ErrCode INTERFACE_FUNC getSyncType(daq::IString** syncType) override
+    {
+        OPENDAQ_PARAM_NOT_NULL(syncType);
+        *syncType = daq::String("test").detach();
+        return OPENDAQ_SUCCESS;
+    }
 };
 
 class TestDeviceWithSynchronization : public daq::Device

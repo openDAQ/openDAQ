@@ -90,11 +90,6 @@ ErrCode SyncInterfaceBaseImpl::getId(IString** id)
     return OPENDAQ_SUCCESS;
 }
 
-ErrCode SyncInterfaceBaseImpl::getSyncType(IString** syncType)
-{
-    return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOTIMPLEMENTED, "Sync interface did not override the method getSyncType");
-}
-
 ErrCode SyncInterfaceBaseImpl::getAvailableModes(IDict** availableModes)
 {
     OPENDAQ_PARAM_NOT_NULL(availableModes);

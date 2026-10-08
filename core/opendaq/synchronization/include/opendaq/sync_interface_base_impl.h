@@ -78,7 +78,7 @@ public:
 
     // ISyncInterface
     ErrCode INTERFACE_FUNC getId(IString** id) override;
-    ErrCode INTERFACE_FUNC getSyncType(IString** syncType) override;
+    ErrCode INTERFACE_FUNC getSyncType(IString** syncType) override = 0;
     ErrCode INTERFACE_FUNC getReferenceDomainId(IString** referenceDomainId) override;
     ErrCode INTERFACE_FUNC getAvailableModes(IDict** availableModes) override;
     ErrCode INTERFACE_FUNC getSourceSupported(Bool* canBeSource) override;

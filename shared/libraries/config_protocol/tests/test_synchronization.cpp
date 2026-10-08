@@ -146,6 +146,22 @@ public:
         return clientDevice.getSynchronization();
     }
 
+    // Connects another client, which deserializes the server device in its current state.
+    DevicePtr connectNewClient()
+    {
+        auto newClient = std::make_unique<ConfigProtocolClient<ConfigClientDeviceImpl>>(
+            NullContext(),
+            std::bind(&ConfigSynchronizationTest::sendRequestAndGetReply, this, std::placeholders::_1),
+            std::bind(&ConfigSynchronizationTest::sendNoReplyRequest, this, std::placeholders::_1),
+            nullptr,
+            nullptr,
+            nullptr);
+
+        DevicePtr device = newClient->connect();
+        extraClients.push_back(std::move(newClient));
+        return device;
+    }
+
 protected:
     ContextPtr serverContext;
     ContextPtr clientContext;
@@ -153,6 +169,7 @@ protected:
     DevicePtr clientDevice;
     std::unique_ptr<ConfigProtocolServer> server;
     std::unique_ptr<ConfigProtocolClient<ConfigClientDeviceImpl>> client;
+    std::vector<std::unique_ptr<ConfigProtocolClient<ConfigClientDeviceImpl>>> extraClients;
 };
 
 TEST_F(ConfigSynchronizationTest, Connect)
@@ -399,4 +416,29 @@ TEST_F(ConfigSynchronizationTest, PtpInterfaceNestedPropertyChangeFromClientProp
 
     ASSERT_EQ(serverConfig.getPropertyValue("PortConfiguration.eth0.DelayMechanism"), "P2P");
     ASSERT_EQ(serverConfig.getPropertyValue("TransportProtocol"), "UDP_IPV4");
+}
+
+TEST_F(ConfigSynchronizationTest, ConnectWithNonDefaultSource)
+{
+    getServerSyncComponent().setSource("PtpSyncInterface");
+
+    // "Source" sorts before "SourceInterfaces", so the server sends SourceInterfaces first
+    // for a new client to accept a source other than the clock.
+    DevicePtr newClientDevice;
+    ASSERT_NO_THROW(newClientDevice = connectNewClient()) << "A client failed to add a device whose source is PtpSyncInterface";
+    ASSERT_EQ(newClientDevice.getSynchronization().getSource().getId(), "PtpSyncInterface");
+}
+
+TEST_F(ConfigSynchronizationTest, ConnectWithSourceSerializedBeforeSourceInterfaces)
+{
+    auto serverSync = getServerSyncComponent();
+    serverSync.setSource("PtpSyncInterface");
+
+    // Without the property order, values serialize by name, as on servers built before it was
+    // added: the client receives Source before the SourceInterfaces list it selects from.
+    ASSERT_ERROR_CODE_EQ(serverSync.asPtr<IPropertyObject>(true)->setPropertyOrder(nullptr), OPENDAQ_SUCCESS);
+
+    DevicePtr newClientDevice;
+    ASSERT_NO_THROW(newClientDevice = connectNewClient()) << "A client failed to add a device that sends Source before SourceInterfaces";
+    ASSERT_EQ(newClientDevice.getSynchronization().getSource().getId(), "PtpSyncInterface");
 }

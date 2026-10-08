@@ -45,10 +45,10 @@ internal unsafe class RawErrorInfo : RawBaseObject
     public delegate* unmanaged[Stdcall]<IntPtr, IntPtr, ErrorCode> SetFileName;
     // ErrorCode getFileName(daq.ConstCharPtr* fileName); stdcall;
     public delegate* unmanaged[Stdcall]<IntPtr, out IntPtr, ErrorCode> GetFileName;
-    // ErrorCode setFileLine(int line); stdcall;
-    public delegate* unmanaged[Stdcall]<IntPtr, int, ErrorCode> SetFileLine;
-    // ErrorCode getFileLine(int* line); stdcall;
-    public delegate* unmanaged[Stdcall]<IntPtr, out int, ErrorCode> GetFileLine;
+    // ErrorCode setFileLine(daq.Int fileLine); stdcall;
+    public delegate* unmanaged[Stdcall]<IntPtr, long, ErrorCode> SetFileLine;
+    // ErrorCode getFileLine(daq.Int* fileLine); stdcall;
+    public delegate* unmanaged[Stdcall]<IntPtr, out long, ErrorCode> GetFileLine;
     // ErrorCode setErrorCode(ErrCode errorCode); stdcall;
     public delegate* unmanaged[Stdcall]<IntPtr, ErrorCode, ErrorCode> SetErrorCode;
     // ErrorCode GetErrorCode(ErrCode* errorCode); stdcall;
@@ -278,12 +278,12 @@ public class ErrorInfo : BaseObject
     }
 
     /// <summary>Gets or sets the line number where the error occurred.</summary>
-    public int FileLine
+    public long FileLine
     {
         get
         {
             //native output argument
-            int lineNumber;
+            long lineNumber;
 
             unsafe //use native function pointer
             {

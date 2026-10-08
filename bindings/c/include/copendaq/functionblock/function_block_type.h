@@ -41,6 +41,9 @@ extern "C"
     EXPORTED extern const daqIntfID DAQ_FUNCTION_BLOCK_TYPE_INTF_ID;
     void EXPORTED daqFunctionBlockType_getInterfaceId(daqIntfID* intfId);
 
+    daqErrCode EXPORTED daqFunctionBlockType_getAlwaysEmptyInput(daqFunctionBlockType* self, daqBool* alwaysEmpty);
+    daqErrCode EXPORTED daqFunctionBlockType_getSingleton(daqFunctionBlockType* self, daqBool* singleton);
+    daqErrCode EXPORTED daqFunctionBlockType_getCommonSettingsTypeId(daqFunctionBlockType* self, daqString** typeId);
     daqErrCode EXPORTED daqFunctionBlockType_createFunctionBlockType(daqFunctionBlockType** obj, daqString* id, daqString* name, daqString* description, daqPropertyObject* defaultConfig);
 
 #ifdef __cplusplus

@@ -14,6 +14,7 @@
 
 ## Bug fixes
 
+- [#1336](https://github.com/openDAQ/openDAQ/pull/1336) Config protocol client logs a child component that fails to apply the server's update
 - [#1308](https://github.com/openDAQ/openDAQ/pull/1308) Fixes a deadlock between mDNS query answering and server removal
 - [#1305](https://github.com/openDAQ/openDAQ/pull/1305) Fix async races in native streaming shutdown process.
 - [#1304](https://github.com/openDAQ/openDAQ/pull/1304) Fix flaky test NativeDeviceModulesTest.GetConnectedClientsInfo by periodically polling instead of racing asynchronous events.
@@ -23,9 +24,11 @@
 - [#1295](https://github.com/openDAQ/openDAQ/pull/1295) Fix an intermittent deadlock between `setOperationModeRecursive` and a sub-device's acquisition thread. The device tree lock taken while the operation mode changes no longer locks signals and input ports.
 - [#1309](https://github.com/openDAQ/openDAQ/pull/1309) No longer throws `NotFound` on transport status change before connection statuses are published.
 - [#1321](https://github.com/openDAQ/openDAQ/pull/1321) Take the property object's lock while serializing its values and local properties, so serialization no longer reads containers that a concurrent property write is modifying.
+- [#1324](https://github.com/openDAQ/openDAQ/pull/1324) `setVisible` returns `OPENDAQ_IGNORED` and fires no `AttributeChanged` when the value is unchanged, as `setActive`, `setName` and `setDescription` already do.
 
 ## Misc
 
+- [#1323](https://github.com/openDAQ/openDAQ/pull/1323) Fix classifier FB flaky tests
 - [#1313](https://github.com/openDAQ/openDAQ/pull/1313) Bump libNativeStreaming to v1.0.21 (precompiled headers and unity builds).
 - [#1251](https://github.com/openDAQ/openDAQ/pull/1251), [#1269](https://github.com/openDAQ/openDAQ/pull/1269), [#1278](https://github.com/openDAQ/openDAQ/pull/1278) OpenSSL (>= 1.1.1) is a build dependency of the SDK when `OPENDAQ_ENABLE_WEBSOCKET_STREAMING_WITH_TLS` is on. Unlike most other dependencies it is not fetched automatically and has to be installed on the host system: `libssl-dev` on Debian/Ubuntu (`libssl-dev:i386` for 32-bit builds), `openssl-devel` on RHEL-based distributions. The build documentation and all CI, packaging and docs jobs were updated accordingly.
 - [#1307](https://github.com/openDAQ/openDAQ/pull/1307) Precompiled headers and unity builds through opendaq-cmake-utils v1.1.0, on by default.

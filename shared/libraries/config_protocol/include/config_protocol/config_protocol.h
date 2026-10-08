@@ -42,7 +42,6 @@ inline auto ParamsDict(std::initializer_list<std::pair<const StringPtr, ObjectPt
     return Dict<IString, IBaseObject>(init);
 }
 
-
 enum PacketType: uint8_t
 {
     GetProtocolInfo = 0x80,

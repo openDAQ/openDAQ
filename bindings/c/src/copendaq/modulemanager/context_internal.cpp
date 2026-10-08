@@ -26,3 +26,8 @@ daqErrCode daqContextInternal_moveModuleManager(daqContextInternal* self, daqMod
 {
     return reinterpret_cast<daq::IContextInternal*>(self)->moveModuleManager(reinterpret_cast<daq::IModuleManager**>(manager));
 }
+
+daqErrCode daqContextInternal_setRootDevice(daqContextInternal* self, daqBaseObject* device)
+{
+    return reinterpret_cast<daq::IContextInternal*>(self)->setRootDevice(reinterpret_cast<daq::IBaseObject*>(device));
+}

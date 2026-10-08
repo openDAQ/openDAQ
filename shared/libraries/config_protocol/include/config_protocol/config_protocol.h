@@ -184,7 +184,7 @@ inline constexpr uint16_t GetLatestConfigProtocolVersion()
 
 inline std::set<uint16_t> GetSupportedConfigProtocolVersions()
 {
-    static const std::set<uint16_t> supportedVersions = []() -> std::set<uint16_t>
+    const std::set<uint16_t> supportedVersions = []() -> std::set<uint16_t>
     {
         std::set<uint16_t> versions;
         for (uint16_t i = 0; i <= GetLatestConfigProtocolVersion(); ++i)

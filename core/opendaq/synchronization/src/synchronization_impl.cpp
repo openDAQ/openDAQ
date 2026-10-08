@@ -20,6 +20,9 @@ SynchronizationImpl::SynchronizationImpl(const TypeManagerPtr& manager, const St
                                                         .build();
     this->addProperty(sourceProperty);
 
+    // Values serialize in name order, which puts "Source" before the list it selects from.
+    this->objPtr.setPropertyOrder({"SourceInterfaces"});
+
     this->objPtr.getOnPropertyValueWrite("Source") += [&](PropertyObjectPtr&, PropertyValueEventArgsPtr& args)
     {
        onSourceChanged(args.getValue());

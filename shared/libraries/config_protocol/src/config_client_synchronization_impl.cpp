@@ -18,15 +18,53 @@ ConfigClientSynchronizationImpl::ConfigClientSynchronizationImpl(const ConfigPro
 ErrCode ConfigClientSynchronizationImpl::setPropertyValue(IString* propertyName, IBaseObject* value)
 {
     if (this->remoteUpdating)
-        return Impl::setPropertyValue(propertyName, value);
+        return setRemoteValue(propertyName, value, false);
     return Super::setPropertyValue(propertyName, value);
 }
 
 ErrCode ConfigClientSynchronizationImpl::setProtectedPropertyValue(IString* propertyName, IBaseObject* value)
 {
     if (this->remoteUpdating)
-        return Impl::setProtectedPropertyValue(propertyName, value);
+        return setRemoteValue(propertyName, value, true);
     return Super::setProtectedPropertyValue(propertyName, value);
+}
+
+ErrCode ConfigClientSynchronizationImpl::setRemoteValue(IString* propertyName, IBaseObject* value, bool isProtected)
+{
+    OPENDAQ_PARAM_NOT_NULL(propertyName);
+
+    const auto name = StringPtr::Borrow(propertyName);
+    const ErrCode errCode = isProtected ? Impl::setProtectedPropertyValue(propertyName, value)
+                                        : Impl::setPropertyValue(propertyName, value);
+
+    if (name == "Source")
+    {
+        if (OPENDAQ_SUCCEEDED(errCode))
+        {
+            pendingSource.release();
+            return errCode;
+        }
+
+        // Not in "SourceInterfaces" yet; applied when the list arrives.
+        daqClearErrorInfo();
+        pendingSource = value;
+        return OPENDAQ_SUCCESS;
+    }
+
+    OPENDAQ_RETURN_IF_FAILED(errCode);
+    if (name == "SourceInterfaces")
+        return applyPendingSource();
+    return errCode;
+}
+
+ErrCode ConfigClientSynchronizationImpl::applyPendingSource()
+{
+    if (!pendingSource.assigned())
+        return OPENDAQ_SUCCESS;
+
+    const BaseObjectPtr source = pendingSource;
+    pendingSource.release();
+    return Impl::setPropertyValue(String("Source"), source);
 }
 
 ErrCode ConfigClientSynchronizationImpl::clearPropertyValue(IString* propertyName)

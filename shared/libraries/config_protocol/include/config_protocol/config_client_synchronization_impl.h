@@ -47,6 +47,14 @@ public:
     ErrCode INTERFACE_FUNC getDeserializedParameter(IString* parameter, IBaseObject** value) override;
 
     static ErrCode Deserialize(ISerializedObject* serialized, IBaseObject* context, IFunction* factoryCallback, IBaseObject** obj);
+
+private:
+    ErrCode setRemoteValue(IString* propertyName, IBaseObject* value, bool isProtected);
+    ErrCode applyPendingSource();
+
+    // "Source" received before "SourceInterfaces" holds it. Servers without a property
+    // order on Synchronization serialize "Source" first, since values go in name order.
+    BaseObjectPtr pendingSource;
 };
 
 } // namespace daq::config_protocol

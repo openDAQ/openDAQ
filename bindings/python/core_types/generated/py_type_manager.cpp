@@ -68,7 +68,7 @@ void defineITypeManager(pybind11::module_ m, PyDaqIntf<daq::ITypeManager, daq::I
         py::arg("type_name"),
         "Removes the type from the manager.");
     cls.def("get_type",
-        [](daq::ITypeManager *object, const std::string& typeName) -> py::typing::Union<daq::IEnumerationType, daq::IType>
+        [](daq::ITypeManager *object, const std::string& typeName) -> py::typing::Union<daq::IEnumerationType, daq::IStructType, daq::IType>
         {
             const auto objectPtr = daq::TypeManagerPtr::Borrow(object);
             auto type = objectPtr.getType(typeName);
@@ -80,7 +80,11 @@ void defineITypeManager(pybind11::module_ m, PyDaqIntf<daq::ITypeManager, daq::I
                 return pyObject;
             }
 
-            return py::cast(type.detach(), py::return_value_policy::take_ownership);
+            auto structTypePtr = type.asPtrOrNull<daq::IStructType>();
+            if(structTypePtr.assigned())
+                return baseObjectToPyObjectUsingType<daq::IStructType>(structTypePtr);
+
+            return baseObjectToPyObjectUsingType<daq::IType>(type);
         },
         py::arg("type_name"),
         "Gets an added Type by name.");

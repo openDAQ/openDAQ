@@ -21,8 +21,7 @@ class TypeManager(opendaq_test.TestCase):
         self.assertTrue(type_manager.has_type("PtpConfigurationStructure"))
         ptp_config_type = type_manager.get_type("PtpConfigurationStructure")
         self.assertIsNotNone(ptp_config_type)
-        # TODO: self.assertIsInstance(ptp_config_type, daq.IStructType)
-        self.assertIsInstance(ptp_config_type, daq.IType)
+        self.assertIsInstance(ptp_config_type, daq.IStructType)
 
     def test_find_nonexistent_type(self):
         instance = daq.Instance()

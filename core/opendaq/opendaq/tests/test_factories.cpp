@@ -43,6 +43,7 @@ TEST_F(OpenDaqFactoriesTest, DeviceTypeBuilder)
     ASSERT_EQ(type.getName(), "Name");
     ASSERT_EQ(type.getDescription(), "Desc");
     ASSERT_EQ(type.getConnectionStringPrefix(), "Prefix");
+    ASSERT_EQ(type.asPtr<IStruct>().get("Prefix"), "Prefix");
     ASSERT_EQ(type.createDefaultConfig().getPropertyValue("foo"), "bar");
 }
 
@@ -100,6 +101,7 @@ TEST_F(OpenDaqFactoriesTest, StreamingTypeBuilder)
     ASSERT_EQ(type.getName(), "Name");
     ASSERT_EQ(type.getDescription(), "Desc");
     ASSERT_EQ(type.getConnectionStringPrefix(), "Prefix");
+    ASSERT_EQ(type.asPtr<IStruct>().get("Prefix"), "Prefix");
     ASSERT_EQ(type.createDefaultConfig().getPropertyValue("foo"), "bar");
 }
 

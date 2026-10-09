@@ -39,12 +39,84 @@ TEST_F(FunctionBlockTest, FunctionBlockTypeStructFields)
     ASSERT_EQ(structPtr.get("Id"), "Id");
     ASSERT_EQ(structPtr.get("Name"), "Name");
     ASSERT_EQ(structPtr.get("Description"), "Desc");
+    ASSERT_EQ(structPtr.get("AlwaysEmptyInput"), false);
+    ASSERT_EQ(structPtr.get("Singleton"), false);
+    ASSERT_FALSE(structPtr.get("CommonSettingsTypeId").assigned());
+}
+
+TEST_F(FunctionBlockTest, FunctionBlockTypeStructFieldsWithOptions)
+{
+    const daq::StructPtr structPtr = daq::FunctionBlockTypeBuilder()
+                                         .setId("Id")
+                                         .setName("Name")
+                                         .setDescription("Desc")
+                                         .setAlwaysEmptyInput(daq::True)
+                                         .setSingleton(daq::True)
+                                         .setCommonSettingsTypeId("SettingsId")
+                                         .build();
+
+    ASSERT_EQ(structPtr.get("AlwaysEmptyInput"), true);
+    ASSERT_EQ(structPtr.get("Singleton"), true);
+    ASSERT_EQ(structPtr.get("CommonSettingsTypeId"), "SettingsId");
+}
+
+TEST_F(FunctionBlockTest, FunctionBlockTypeStructFieldCoreTypes)
+{
+    const daq::StructPtr structPtr = daq::FunctionBlockTypeBuilder()
+                                         .setId("Id")
+                                         .setName("Name")
+                                         .setDescription("Desc")
+                                         .setAlwaysEmptyInput(daq::True)
+                                         .setCommonSettingsTypeId("SettingsId")
+                                         .build();
+
+    ASSERT_EQ(structPtr.get("AlwaysEmptyInput").getCoreType(), daq::ctBool);
+    ASSERT_EQ(structPtr.get("Singleton").getCoreType(), daq::ctBool);
+    ASSERT_EQ(structPtr.get("CommonSettingsTypeId").getCoreType(), daq::ctString);
+}
+
+TEST_F(FunctionBlockTest, FunctionBlockTypeEqualityRespectsOptions)
+{
+    const auto createType = [](daq::Bool alwaysEmpty, daq::Bool singleton, const daq::StringPtr& settingsId)
+    {
+        return daq::FunctionBlockTypeBuilder()
+            .setId("Id")
+            .setName("Name")
+            .setDescription("Desc")
+            .setAlwaysEmptyInput(alwaysEmpty)
+            .setSingleton(singleton)
+            .setCommonSettingsTypeId(settingsId)
+            .build();
+    };
+
+    const auto reference = createType(daq::True, daq::True, "SettingsId");
+
+    ASSERT_EQ(reference, createType(daq::True, daq::True, "SettingsId"));
+    ASSERT_NE(reference, createType(daq::False, daq::True, "SettingsId"));
+    ASSERT_NE(reference, createType(daq::True, daq::False, "SettingsId"));
+    ASSERT_NE(reference, createType(daq::True, daq::True, "OtherId"));
+    ASSERT_NE(reference, createType(daq::True, daq::True, nullptr));
 }
 
 TEST_F(FunctionBlockTest, FunctionBlockTypeStructNames)
 {
     const auto structType = daq::FunctionBlockTypeStructType();
     const daq::StructPtr structPtr = daq::FunctionBlockType("Id", "Name", "Desc");
+    ASSERT_EQ(structType.getFieldNames(), structPtr.getFieldNames());
+}
+
+TEST_F(FunctionBlockTest, FunctionBlockTypeStructNamesWithOptions)
+{
+    const auto structType = daq::FunctionBlockTypeStructType();
+    const daq::StructPtr structPtr = daq::FunctionBlockTypeBuilder()
+                                         .setId("Id")
+                                         .setName("Name")
+                                         .setDescription("Desc")
+                                         .setSingleton(daq::True)
+                                         .setCommonSettingsTypeId("SettingsId")
+                                         .build();
+
+    ASSERT_EQ(structType, structPtr.getStructType());
     ASSERT_EQ(structType.getFieldNames(), structPtr.getFieldNames());
 }
 
@@ -104,6 +176,12 @@ TEST_F(FunctionBlockTest, FunctionBlockTypeOptionsSerializationDeserialization)
     ASSERT_TRUE(newFbType.getAlwaysEmptyInput());
     ASSERT_TRUE(newFbType.getSingleton());
     ASSERT_EQ(newFbType.getCommonSettingsTypeId(), "SettingsId");
+
+    const daq::StructPtr newStruct = newFbType;
+    ASSERT_EQ(newStruct.get("AlwaysEmptyInput"), true);
+    ASSERT_EQ(newStruct.get("Singleton"), true);
+    ASSERT_EQ(newStruct.get("CommonSettingsTypeId"), "SettingsId");
+    ASSERT_EQ(newFbType, fbType);
 }
 
 

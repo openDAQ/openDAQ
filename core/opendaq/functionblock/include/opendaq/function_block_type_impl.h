@@ -76,7 +76,10 @@ inline FunctionBlockTypeImpl::FunctionBlockTypeImpl(const StringPtr& id,
                                                     Bool alwaysEmpty,
                                                     Bool singleton,
                                                     const StringPtr& commonSettingsType)
-    : Super(FunctionBlockTypeStructType(), id, name, description, defaultConfig)
+    : Super(FunctionBlockTypeStructType(), id, name, description, defaultConfig,
+            Dict<IString, IBaseObject>({{"AlwaysEmptyInput", alwaysEmpty},
+                                        {"Singleton", singleton},
+                                        {"CommonSettingsTypeId", commonSettingsType}}))
     , alwaysEmptyInput(alwaysEmpty)
     , isSingleton(singleton)
     , commonSettingsTypeId(commonSettingsType)

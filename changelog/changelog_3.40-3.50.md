@@ -9,12 +9,13 @@
 - [#1251](https://github.com/openDAQ/openDAQ/pull/1251) TLS encrypted channel for the LT streaming module. With `EnableTlsStreamingPort` the server serves the secure channel alongside the plaintext one, registering both the `OpenDAQLTStreaming` and `OpenDAQLTStreamingSecure` capabilities and advertising the `_streaming-lt._tcp` and `_streaming-lts._tcp` mDNS services. Mutual TLS is enabled by default. LT capabilities now carry the `LTStreaming` protocol group ID and a protocol security level (`0` plaintext / `10` secure), so a client ordering streaming protocols by security level prefers the secure channel on its own. The channel is opt-in: without `EnableTlsStreamingPort` the server behaves as before. It is opt-in at build time as well: see [#1278](https://github.com/openDAQ/openDAQ/pull/1278).
 - [#1278](https://github.com/openDAQ/openDAQ/pull/1278) Building the TLS channel of the LT streaming modules is controlled by the new CMake option `OPENDAQ_ENABLE_WEBSOCKET_STREAMING_WITH_TLS`, off by default and on in the `full`, `package` and `simulator_package` presets. With it off the LT streaming modules are built without their OpenSSL dependency and the `daq.lts://` channel is absent. The option has no meaning for the legacy LT streaming modules (`DAQMODULES_LT_LEGACY_MODULES`) and is ignored there.
 - [#1311](https://github.com/openDAQ/openDAQ/pull/1311) Add the `ScanOnAdd` option to skip the network scan on `addDevice`; tests wait for state instead of sleeping; declare `RESOURCE_LOCK` for parallel ctest; write a minidump on access violations.
-- [#1322](https://github.com/openDAQ/openDAQ/pull/1322) Add the `AlwaysEmptyInput`, `Singleton` and `CommonSettingsTypeId` flags to function block types. A type can now declare that its blocks always keep a free input port, that at most one instance may exist under a single parent, and that its properties act as common settings for nested blocks of another type. The options are set through `IComponentTypeBuilder` and read back from `IFunctionBlockType`; they are serialized with the type, so they survive the config protocol.
+- [#1322](https://github.com/openDAQ/openDAQ/pull/1322) Add the `AlwaysEmptyInput`, `Singleton` and `CommonSettingsTypeId` flags to function block types. A type can now declare that its blocks always keep a free input port, that at most one instance may exist under a single parent, and that its properties act as common settings for nested blocks of another type. The options are set through `IComponentTypeBuilder` and read back from `IFunctionBlockType`; they are serialized with the type, so they survive the config protocol. The options are also fields of the `FunctionBlockType` struct, so they are visible through `IStruct` and take part in equality: two types that differ only in their options no longer compare equal.
 
 ## Python
 
 ## Bug fixes
 
+- [#1322](https://github.com/openDAQ/openDAQ/pull/1322) `IList::equals` no longer dereferences a null element when only one of the two lists holds `nullptr` at a position. The comparison crashed or returned the right answer depending on operand order; it is now symmetric and reports the lists as not equal. Structs compare their field values as lists, so this also fixes crashes when comparing structs with unassigned fields, such as a device type without a connection string prefix.
 - [#1308](https://github.com/openDAQ/openDAQ/pull/1308) Fixes a deadlock between mDNS query answering and server removal
 - [#1305](https://github.com/openDAQ/openDAQ/pull/1305) Fix async races in native streaming shutdown process.
 - [#1304](https://github.com/openDAQ/openDAQ/pull/1304) Fix flaky test NativeDeviceModulesTest.GetConnectedClientsInfo by periodically polling instead of racing asynchronous events.
@@ -49,6 +50,15 @@ implements `IFunctionBlockType` itself must add `getAlwaysEmptyInput`, `getSingl
 The serialized form stays compatible in both directions: a newer SDK reading an older payload falls back to the
 defaults, and an older SDK reading a newer payload ignores the three new keys. Note that an older peer therefore
 drops the values silently - it will not enforce a `Singleton` constraint declared by a newer server.
+
+`GenericComponentTypeImpl` now has a single constructor, `(type, id, name, description, defaultConfig, extraFields = nullptr)`.
+The overload taking a connection string prefix was removed, and `prefix` is no longer a member of the base class; device
+and streaming types store it themselves. A component type implementation deriving from `GenericComponentTypeImpl` must
+pass any fields beyond `Id`, `Name` and `Description` through `extraFields`, in the order its struct type declares them:
+```diff
+- : Super(structType, id, name, description, prefix, defaultConfig)
++ : Super(structType, id, name, description, defaultConfig, Dict<IString, IBaseObject>({{"Field1", value1}, {"Field2", value2}}))
+```
 
 ## Interface API changes
 

@@ -20,6 +20,7 @@
 #include <websocket_streaming_client_module/module_dll.h>
 #include <websocket_streaming_server_module/module_dll.h>
 #include <chrono>
+#include <future>
 #include <iomanip>
 #include "opendaq/mock/mock_device_module.h"
 #include "test_helpers/test_helpers.h"
@@ -5456,6 +5457,49 @@ TEST_F(NativeDeviceModulesTest, NonDefaultOpMode)
 
     ASSERT_EQ(server.getOperationMode(), OperationModeType::Idle);
     ASSERT_EQ(client.getDevices()[0].getOperationMode(), OperationModeType::Idle);
+}
+
+// Fires ComponentUpdateEnd on another thread, as ComponentImpl::update() does after an update, without holding the sender's lock.
+static std::future<void> triggerUpdateEnd(const InstancePtr& instance, const ComponentPtr& sender)
+{
+    return std::async(std::launch::async, [instance, sender]
+    {
+        ObjectPtr<IEvent> coreEvent;
+        checkErrorInfo(instance.getContext()->getOnCoreEvent(&coreEvent));
+        checkErrorInfo(coreEvent->trigger(sender, CoreEventArgsComponentUpdateEnd()));
+    });
+}
+
+static void waitUntilRemoved(const ComponentPtr& component)
+{
+    const auto deadline = std::chrono::steady_clock::now() + std::chrono::seconds(5);
+    while (!component.isRemoved() && std::chrono::steady_clock::now() < deadline)
+        std::this_thread::yield();
+}
+
+TEST_F(NativeDeviceModulesTest, RemoveServerWhileRootUpdateIsHandled)
+{
+    // Declared before the instance, which can fire core events while it is destroyed.
+    ServerPtr nativeServer;
+    std::atomic<bool> armed{false};
+
+    auto server = CreateDefaultServerInstance();
+    const auto rootDevice = server.getRootDevice();
+    server.getContext().getOnCoreEvent() += [&](const ComponentPtr& /*sender*/, const CoreEventArgsPtr& args)
+    {
+        if (static_cast<CoreEventId>(args.getEventId()) == CoreEventId::ComponentUpdateEnd && armed.exchange(false))
+            waitUntilRemoved(nativeServer);
+    };
+    nativeServer = server.addServer("OpenDAQNativeStreaming", nullptr);
+
+    // The first handler holds the event until the removal runs, so the server's handler lists the root's items during it.
+    armed = true;
+    auto updated = triggerUpdateEnd(server, rootDevice);
+    auto removed = std::async(std::launch::async, [&] { server.removeServer(nativeServer); });
+
+    ASSERT_EQ(removed.wait_for(std::chrono::seconds(10)), std::future_status::ready) << "removeServer deadlocked with the core event handler";
+    ASSERT_EQ(updated.wait_for(std::chrono::seconds(10)), std::future_status::ready);
+    removed.get();
 }
 }
 // namespace test_native_device_modules

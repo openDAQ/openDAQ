@@ -2476,19 +2476,20 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::getPropertie
     if (objectClass.assigned())
     {
         auto propList = objectClass.getProperties(True);
-        allProperties.reserve(propList.getCount() + localProperties.size());
+        allProperties.reserve(propList.getCount());
         for (const auto& prop : propList)
             allProperties.push_back(prop);
     }
-    else
-    {
-        allProperties.reserve(localProperties.size());
-    }
 
-    for (const auto& [propName, prop] : localProperties)
     {
-        if (includeCoreProperties || corePropertyNames.count(propName) == 0)
-            allProperties.push_back(prop);
+        // addProperty and removeProperty move the entries of localProperties under this lock
+        auto lock = getRecursiveConfigLock2();
+        allProperties.reserve(allProperties.size() + localProperties.size());
+        for (const auto& [propName, prop] : localProperties)
+        {
+            if (includeCoreProperties || corePropertyNames.count(propName) == 0)
+                allProperties.push_back(prop);
+        }
     }
 
     PropertyOrderedMap lookup;

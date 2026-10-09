@@ -1,4 +1,5 @@
 #include <copendaq.h>
+#include <coretypes/errorinfo.h>
 
 #include <gtest/gtest.h>
 
@@ -144,6 +145,7 @@ TEST_F(COpendaqSynchronizationTest, Synchronization)
     daqString* unknownSource = nullptr;
     daqString_createString(&unknownSource, "DoesNotExist");
     ASSERT_NE(daqSynchronization_setSource(synchronization, unknownSource), 0u);
+    daqClearErrorInfo();
 
     daqBaseObject_releaseRef(unknownSource);
     daqBaseObject_releaseRef(referenceDomainId);

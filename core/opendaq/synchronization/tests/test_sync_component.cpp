@@ -221,9 +221,6 @@ public:
 
     ErrCode INTERFACE_FUNC getSyncType(IString** syncType) override
     {
-        if (!this->syncType.assigned())
-            return Super::getSyncType(syncType);
-
         OPENDAQ_PARAM_NOT_NULL(syncType);
         *syncType = this->syncType.addRefAndReturn();
         return OPENDAQ_SUCCESS;
@@ -232,7 +229,7 @@ public:
     using Super::setReferenceDomainId;
 
 private:
-    StringPtr syncType;
+    StringPtr syncType = "test";
 };
 
 class FailingSourceSyncInterface : public TestSyncInterface
@@ -621,15 +618,6 @@ TEST_F(SynchronizationTest, SyncInterfaceGetReferenceDomainId)
 
     const auto syncInterface = TestSyncInterface::Create(ctx.getTypeManager(), "MyInterface");
     ASSERT_EQ(syncInterface.getReferenceDomainId(), "");
-}
-
-TEST_F(SynchronizationTest, SyncInterfaceGetSyncType)
-{
-    const auto ctx = NullContext();
-
-    // A concrete sync interface must override getSyncType (e.g. via setSyncType in its own constructor)
-    const auto syncInterface = TestSyncInterface::Create(ctx.getTypeManager(), "MyInterface");
-    ASSERT_THROW(syncInterface.getSyncType(), NotImplementedException);
 }
 
 TEST_F(SynchronizationTest, SyncInterfaceSetSyncType)

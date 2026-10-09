@@ -147,10 +147,9 @@ public:
     ScopedRemoteUpdate(ScopedRemoteUpdate&&) = delete;
 
     explicit ScopedRemoteUpdate(const PropertyObjectPtr& obj)
-        : configClientObj(obj.asPtrOrNull<IConfigClientObject>(true))
+        : obj(obj)
     {
-        if (configClientObj.assigned())
-            checkErrorInfo(configClientObj->setRemoteUpdating(True));
+        checkErrorInfo(obj.asPtr<IConfigClientObject>(true)->setRemoteUpdating(True));
     }
 
     ScopedRemoteUpdate operator=(const ScopedRemoteUpdate&) = delete;
@@ -158,12 +157,11 @@ public:
 
     ~ScopedRemoteUpdate()
     {
-        if (configClientObj.assigned())
-            checkErrorInfo(configClientObj->setRemoteUpdating(False));
+        checkErrorInfo(obj.asPtr<IConfigClientObject>(true)->setRemoteUpdating(False));
     }
 
 private:
-    ObjectPtr<IConfigClientObject> configClientObj;
+    BaseObjectPtr obj;
 };
 
 
@@ -248,6 +246,7 @@ ErrCode ConfigClientPropertyObjectBaseImpl<Impl>::getPropertyValue(IString* prop
 
     const ErrCode errCode = daqTry([this, &propertyNamePtr, &value]()
     {
+
         PropertyPtr prop;
         checkErrorInfo(Impl::getProperty(propertyNamePtr, &prop));
 

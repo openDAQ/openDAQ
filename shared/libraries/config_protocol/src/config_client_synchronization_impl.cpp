@@ -4,6 +4,7 @@
 #include <coretypes/serialized_object_ptr.h>
 #include <coretypes/function_ptr.h>
 #include <coretypes/objectptr.h>
+#include <opendaq/custom_log.h>
 
 namespace daq::config_protocol
 {
@@ -18,15 +19,74 @@ ConfigClientSynchronizationImpl::ConfigClientSynchronizationImpl(const ConfigPro
 ErrCode ConfigClientSynchronizationImpl::setPropertyValue(IString* propertyName, IBaseObject* value)
 {
     if (this->remoteUpdating)
-        return Impl::setPropertyValue(propertyName, value);
+        return setRemoteValue(propertyName, value, false);
     return Super::setPropertyValue(propertyName, value);
 }
 
 ErrCode ConfigClientSynchronizationImpl::setProtectedPropertyValue(IString* propertyName, IBaseObject* value)
 {
     if (this->remoteUpdating)
-        return Impl::setProtectedPropertyValue(propertyName, value);
+        return setRemoteValue(propertyName, value, true);
     return Super::setProtectedPropertyValue(propertyName, value);
+}
+
+ErrCode ConfigClientSynchronizationImpl::setRemoteValue(IString* propertyName, IBaseObject* value, bool isProtected)
+{
+    OPENDAQ_PARAM_NOT_NULL(propertyName);
+
+    const auto name = StringPtr::Borrow(propertyName);
+    const ErrCode errCode = isProtected ? Impl::setProtectedPropertyValue(propertyName, value)
+                                        : Impl::setPropertyValue(propertyName, value);
+
+    if (name == "Source")
+    {
+        if (OPENDAQ_SUCCEEDED(errCode))
+        {
+            pendingSource.release();
+            return errCode;
+        }
+
+        // Once "SourceInterfaces" has arrived, a rejected source is a real error.
+        if (sourceInterfacesReceived)
+            return errCode;
+
+        // Not in "SourceInterfaces" yet; applied when the list arrives.
+        daqClearErrorInfo();
+        pendingSource = value;
+        return OPENDAQ_SUCCESS;
+    }
+
+    OPENDAQ_RETURN_IF_FAILED(errCode);
+    if (name == "SourceInterfaces")
+    {
+        sourceInterfacesReceived = true;
+        applyPendingSource();
+    }
+    return errCode;
+}
+
+void ConfigClientSynchronizationImpl::applyPendingSource()
+{
+    if (!pendingSource.assigned())
+        return;
+
+    const BaseObjectPtr source = pendingSource;
+    pendingSource.release();
+
+    // Failing here would abort adding the whole device, so the client keeps its current
+    // source and the log says which source the device reported.
+    try
+    {
+        checkErrorInfo(Impl::setPropertyValue(String("Source"), source));
+    }
+    catch (const DaqException& e)
+    {
+        const auto loggerComponent = clientComm->getDaqContext().getLogger().getOrAddComponent("ConfigProtocolClient");
+        LOG_W("The device reports synchronization source \"{}\", which the client could not apply, so the client shows \"{}\": {}",
+              source,
+              this->objPtr.getPropertyValue("Source"),
+              e.what());
+    }
 }
 
 ErrCode ConfigClientSynchronizationImpl::clearPropertyValue(IString* propertyName)

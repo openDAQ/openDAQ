@@ -1687,7 +1687,10 @@ void GenericDevice<TInterface, Interfaces...>::setSynchronization(const Synchron
         return;
 
     const auto syncPropName = String("daqSynchronization");
-    this->addCoreProperty(ObjectPropertyBuilder(syncPropName, PropertyObject()).setVisible(false).build());
+    if (this->objPtr.hasProperty(syncPropName))
+        DAQ_THROW_EXCEPTION(AlreadyExistsException, "The device synchronization is already set");
+
+    checkErrorInfo(this->addCoreProperty(ObjectPropertyBuilder(syncPropName, PropertyObject()).setVisible(false).build()));
     checkErrorInfo(this->setProtectedPropertyValue(syncPropName, synchronization));
 }
 

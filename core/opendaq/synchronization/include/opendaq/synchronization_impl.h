@@ -69,6 +69,9 @@ public:
     // IPropertyObjectInternal
     ErrCode INTERFACE_FUNC clone(IPropertyObject** cloned) override;
 
+    // IUpdatable
+    ErrCode INTERFACE_FUNC update(ISerializedObject* obj, IBaseObject* config) override;
+
 protected:
     SyncInterfacePtr source;
 
@@ -113,6 +116,7 @@ ErrCode GenericSynchronizationImpl<TInterface, Interfaces...>::getReferenceDomai
     OPENDAQ_PARAM_NOT_NULL(ids);
     return daqTry([&]
     {
+        auto lock = this->getRecursiveConfigLock2();
         auto idList = List<IString>();
 
         const PropertyObjectPtr interfacesProperty = this->objPtr.getPropertyValue("Interfaces");

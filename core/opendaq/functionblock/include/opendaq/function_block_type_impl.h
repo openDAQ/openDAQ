@@ -128,11 +128,17 @@ inline ErrCode FunctionBlockTypeImpl::serialize(ISerializer* serializer)
                 moduleInfo.serialize(serializerPtr);
             }
 
-            serializerPtr.key("alwaysEmptyInput");
-            serializerPtr.writeBool(alwaysEmptyInput);
+            if (alwaysEmptyInput)
+            {
+                serializerPtr.key("alwaysEmptyInput");
+                serializerPtr.writeBool(alwaysEmptyInput);
+            }
 
-            serializerPtr.key("singleton");
-            serializerPtr.writeBool(isSingleton);
+            if (isSingleton)
+            {
+                serializerPtr.key("singleton");
+                serializerPtr.writeBool(isSingleton);
+            }
 
             if (commonSettingsTypeId.assigned())
             {

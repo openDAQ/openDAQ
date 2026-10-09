@@ -59,6 +59,7 @@ pass any fields beyond `Id`, `Name` and `Description` through `extraFields`, in 
 - : Super(structType, id, name, description, prefix, defaultConfig)
 + : Super(structType, id, name, description, defaultConfig, Dict<IString, IBaseObject>({{"Field1", value1}, {"Field2", value2}}))
 ```
+Passing `Id`, `Name` or `Description` in `extraFields` throws `InvalidParameterException`, and debug builds also throw `InvalidTypeException` when the resulting fields do not match the struct type's field names and order.
 
 ## Interface API changes
 

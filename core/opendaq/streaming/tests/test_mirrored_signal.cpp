@@ -6,6 +6,8 @@
 #include <opendaq/context_factory.h>
 #include <opendaq/mirrored_signal_config_ptr.h>
 #include <opendaq/mirrored_signal_private_ptr.h>
+#include <opendaq/input_port_factory.h>
+#include <opendaq/streaming_private.h>
 #include "mock/mock_mirrored_signal.h"
 
 
@@ -226,6 +228,45 @@ TEST_F(MirroredSignalTest, Remove)
     ASSERT_EQ(signal.getStreamingSources().getCount(), 0u);
     ASSERT_EQ(signal.getActiveStreamingSource(), nullptr);
     ASSERT_TRUE(signal.isRemoved());
+}
+
+// The domain signal of a mirrored signal can change while a port listens to it. Unsubscribing has to release the domain
+// signal the subscription took, not the one the signal has by then.
+TEST_F(MirroredSignalTest, DomainSignalSetWhileSubscribed)
+{
+    auto signal = createMirroredSignal("signal");
+    auto domainSignal = createMirroredSignal("time");
+    auto streaming = MockStreaming(connStr, NullContext());
+    streaming.addSignals({signal, domainSignal});
+    signal.setActiveStreamingSource(connStr);
+
+    auto port = InputPort(NullContext(), nullptr, "port");
+    port.connect(signal);
+
+    signal.asPtr<IMirroredSignalPrivate>().setMirroredDomainSignal(domainSignal);
+
+    ASSERT_EQ(signal->setStreamed(False), OPENDAQ_SUCCESS);
+}
+
+TEST_F(MirroredSignalTest, DomainSignalClearedWhileSubscribed)
+{
+    auto signal = createMirroredSignal("signal");
+    auto domainSignal = createMirroredSignal("time");
+    auto streaming = MockStreaming(connStr, NullContext());
+    streaming.addSignals({signal, domainSignal});
+    signal.setActiveStreamingSource(connStr);
+    signal.asPtr<IMirroredSignalPrivate>().setMirroredDomainSignal(domainSignal);
+
+    auto port = InputPort(NullContext(), nullptr, "port");
+    port.connect(signal);
+
+    signal.asPtr<IMirroredSignalPrivate>().setMirroredDomainSignal(nullptr);
+
+    ASSERT_EQ(signal->setStreamed(False), OPENDAQ_SUCCESS);
+
+    // Unsubscribing the signal released the domain signal too, so there is no subscription left to release.
+    const auto streamingPrivate = streaming.asPtr<IStreamingPrivate>(true);
+    ASSERT_ERROR_CODE_EQ(streamingPrivate->unsubscribeSignal(String("time"), nullptr), OPENDAQ_ERR_INVALIDSTATE);
 }
 
 END_NAMESPACE_OPENDAQ

@@ -15,6 +15,11 @@ StringPtr MockMirroredSignalImpl::onGetRemoteId() const
     return streamingId;
 }
 
+SignalPtr MockMirroredSignalImpl::onGetDomainSignal()
+{
+    return mirroredDomainSignal;
+}
+
 Bool MockMirroredSignalImpl::onTriggerEvent(const EventPacketPtr& eventPacket)
 {
     return MirroredSignal::onTriggerEvent(eventPacket);

@@ -1,4 +1,5 @@
 #include <opendaq/synchronization_impl.h>
+#include <coretypes/serialized_object_ptr.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
@@ -21,7 +22,8 @@ SynchronizationImpl::SynchronizationImpl(const TypeManagerPtr& manager, const St
     this->addProperty(sourceProperty);
 
     // Values serialize in name order, which puts "Source" before the list it selects from.
-    this->objPtr.setPropertyOrder({"SourceInterfaces"});
+    // "Source" goes before "Interfaces" so that a load sets the source before the source's own mode.
+    this->objPtr.setPropertyOrder({"SourceInterfaces", "Source"});
 
     this->objPtr.getOnPropertyValueWrite("Source") += [&](PropertyObjectPtr&, PropertyValueEventArgsPtr& args)
     {
@@ -97,6 +99,28 @@ void SynchronizationImpl::onSourceChanged(const StringPtr& sourceName)
         if (OPENDAQ_FAILED(errCode))
             clearErrorInfo();
     }
+}
+
+ErrCode SynchronizationImpl::update(ISerializedObject* obj, IBaseObject* config)
+{
+    OPENDAQ_PARAM_NOT_NULL(obj);
+
+    // update() holds this object's own values until endUpdate but applies the interfaces at once,
+    // so the saved source is set first; otherwise the source's saved mode is checked against the
+    // modes of a non-source interface and rejected.
+    const ErrCode errCode = daqTry([&]
+    {
+        const auto serialized = SerializedObjectPtr::Borrow(obj);
+        if (!serialized.hasKey("propValues"))
+            return;
+
+        const auto values = serialized.readSerializedObject("propValues");
+        if (values.hasKey("Source"))
+            checkErrorInfo(this->setPropertyValue(String("Source"), values.readString("Source")));
+    });
+    OPENDAQ_RETURN_IF_FAILED(errCode);
+
+    return Super::update(obj, config);
 }
 
 ErrCode SynchronizationImpl::clone(IPropertyObject** cloned)

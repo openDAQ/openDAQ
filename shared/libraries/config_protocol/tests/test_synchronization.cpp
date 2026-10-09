@@ -359,6 +359,43 @@ TEST_F(ConfigSynchronizationTest, SaveLoadFromClient)
     ASSERT_EQ(serverSync.getSource().getId(), "ClockSyncInterface");
 }
 
+TEST_F(ConfigSynchronizationTest, SaveLoadSourceModeFromClient)
+{
+    auto serverSync = getServerSyncComponent();
+    auto clientSync = getClientSyncComponent();
+    const auto clientSyncUpdatable = clientSync.asPtr<IUpdatable>(true);
+
+    clientSync.setSource("TestInterface");
+    clientSync.getInterfaces().get("TestInterface").setMode(SyncMode::Input);
+    ASSERT_EQ(serverSync.getInterfaces().get("TestInterface").getMode(), SyncMode::Input);
+
+    auto serializer = JsonSerializer();
+    ASSERT_ERROR_CODE_EQ(clientSyncUpdatable->serializeForUpdate(serializer), OPENDAQ_SUCCESS);
+
+    clientSync.setSource("ClockSyncInterface");
+    ASSERT_EQ(serverSync.getSource().getId(), "ClockSyncInterface");
+
+    const auto deserializer = JsonDeserializer();
+    deserializer.update(clientSyncUpdatable, serializer.getOutput(), nullptr);
+
+    ASSERT_EQ(serverSync.getSource().getId(), "TestInterface");
+    ASSERT_EQ(serverSync.getInterfaces().get("TestInterface").getMode(), SyncMode::Input) << "The server did not restore the saved mode of the source";
+    ASSERT_EQ(clientSync.getInterfaces().get("TestInterface").getMode(), SyncMode::Input) << "The client did not follow the restored mode of the source";
+}
+
+TEST_F(ConfigSynchronizationTest, ConnectWithSourceInInputMode)
+{
+    auto serverSync = getServerSyncComponent();
+    serverSync.setSource("PtpSyncInterface");
+    serverSync.getInterfaces().get("PtpSyncInterface").setMode(SyncMode::Input);
+
+    const DevicePtr newClientDevice = connectNewClient();
+    const auto newClientSync = newClientDevice.getSynchronization();
+    ASSERT_EQ(newClientSync.getSource().getId(), "PtpSyncInterface");
+    ASSERT_EQ(newClientSync.getInterfaces().get("PtpSyncInterface").getMode(), SyncMode::Input);
+    ASSERT_EQ(newClientSync.getInterfaces().get("ClockSyncInterface").getMode(), SyncMode::Off);
+}
+
 TEST_F(ConfigSynchronizationTest, RoleStatusChangedPropagatesToClient)
 {
     auto serverSync = getServerSyncComponent();

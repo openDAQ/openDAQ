@@ -69,6 +69,9 @@ public:
     // IPropertyObjectInternal
     ErrCode INTERFACE_FUNC clone(IPropertyObject** cloned) override;
 
+    // IUpdatable
+    ErrCode INTERFACE_FUNC update(ISerializedObject* obj, IBaseObject* config) override;
+
 protected:
     SyncInterfacePtr source;
 

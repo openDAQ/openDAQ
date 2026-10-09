@@ -30,6 +30,7 @@
 #include <opendaq/component_private_ptr.h>
 #include <config_protocol/config_protocol_streaming_producer.h>
 #include <coreobjects/property_object_class_internal_ptr.h>
+#include <coreobjects/property_object_class_ptr.h>
 #include <opendaq/mirrored_input_port_private_ptr.h>
 #include <algorithm>
 #include <opendaq/component_update_context_ptr.h>
@@ -615,19 +616,18 @@ bool ConfigProtocolClient<TRootDeviceImpl>::IsSameTypeDefinition(const TypePtr& 
     if (lhs == rhs)
         return true;
 
-    // A property object class compares by pointer, so types that do not compare equal
-    // are compared by their serialized definitions.
-    const auto lhsSerializable = lhs.asPtrOrNull<ISerializable>(true);
-    const auto rhsSerializable = rhs.asPtrOrNull<ISerializable>(true);
-    if (!lhsSerializable.assigned() || !rhsSerializable.assigned())
+    // A property object class compares by pointer, so classes are compared by their serialized definitions
+    const auto lhsClass = lhs.asPtrOrNull<IPropertyObjectClass>(true);
+    const auto rhsClass = rhs.asPtrOrNull<IPropertyObjectClass>(true);
+    if (!lhsClass.assigned() || !rhsClass.assigned())
         return false;
 
     const auto serializer = JsonSerializer();
-    checkErrorInfo(lhsSerializable->serialize(serializer));
+    lhsClass.serialize(serializer);
     const auto lhsDefinition = serializer.getOutput();
 
     serializer.reset();
-    checkErrorInfo(rhsSerializable->serialize(serializer));
+    rhsClass.serialize(serializer);
     return lhsDefinition == serializer.getOutput();
 }
 

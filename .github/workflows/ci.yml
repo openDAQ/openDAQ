@@ -23,7 +23,7 @@ jobs:
   ci:
     if: ${{ ! github.event.pull_request.draft }}
     name: openDAQ
-    uses: openDAQ/openDAQ-CI/.github/workflows/reusable.yml@v3
+    uses: openDAQ/openDAQ-CI/.github/workflows/reusable.yml@jira/TBBAS-3547-staging-pull-by-annotations
     with:
       timeout: '[{"timeout-minutes": 270}]'
       include-jobs: >

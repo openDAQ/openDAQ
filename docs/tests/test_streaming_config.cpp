@@ -137,8 +137,10 @@ TEST_F(StreamingConfigTest, WebsocketStreamingRead)
     double samples[100];
     for (int i = 0; i < 5; ++i)
     {
+        // a read stops at a descriptor event, which is not data: read again
         SizeT count = 100;
-        reader.read(samples, &count, 1000);
+        while (reader.read(samples, &count, 1000).getReadStatus() == ReadStatus::Event)
+            count = 100;
         ASSERT_GT(count, 0u);
     }
 }

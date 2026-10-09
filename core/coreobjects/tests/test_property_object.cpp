@@ -2985,3 +2985,40 @@ TEST_F(PropertyObjectTest, ConcurrentSerializeAndSetPropertyValue)
     ASSERT_FALSE(emptyOutput);
     ASSERT_GT(serializations, 0u);
 }
+
+TEST_F(PropertyObjectTest, ConcurrentGetAllPropertiesAndRemoveProperty)
+{
+    constexpr int propertyCount = 50;
+    const auto propObj = PropertyObject();
+    for (int i = 0; i < propertyCount; ++i)
+        propObj.addProperty(IntProperty("Int" + std::to_string(i), 0));
+
+    // Removing the first property moves every later entry of the property map.
+    std::atomic<bool> stop{false};
+    std::thread writer([&] {
+        while (!stop)
+        {
+            propObj.removeProperty("Int0");
+            propObj.addProperty(IntProperty("Int0", 0));
+        }
+    });
+
+    const auto deadline = std::chrono::steady_clock::now() + std::chrono::milliseconds(300);
+    bool failed = false;
+    while (!failed && std::chrono::steady_clock::now() < deadline)
+    {
+        try
+        {
+            propObj.getAllProperties();
+        }
+        catch (const DaqException&)
+        {
+            failed = true;
+        }
+    }
+
+    stop = true;
+    writer.join();
+
+    ASSERT_FALSE(failed);
+}

@@ -305,12 +305,6 @@ TEST_P(StreamingTest, LastValue)
     {
         GTEST_SKIP();
     }
-    // Flaky on IPv6 OPC UA endpoints: phase-3 lastValue mismatch after unsubscribe
-    // (mirror keeps a stale streaming-cached value instead of reading via the config channel).
-    if (std::get<1>(GetParam()) == "daq.opcua://[::1]/")
-    {
-        GTEST_SKIP();
-    }
 
     auto serverSignal = getSignal(serverInstance, "IntStep");
     auto mirroredSignalPtr = getSignal(clientInstance, "IntStep").template asPtr<IMirroredSignalConfig>();
@@ -346,6 +340,7 @@ TEST_P(StreamingTest, LastValue)
         auto serverReader = PacketReader(serverSignal);
         generatePackets(3);
 
+        // a new reader receives a descriptor event before the 3 data packets
         auto serverReceivedPackets = test_helpers::tryReadPackets(serverReader, 4);
 
         ASSERT_TRUE(serverSignal.getLastValue().assigned());
@@ -1302,13 +1297,6 @@ TEST_P(StreamingTestForModernLt, LastValue)
     // Config-enabled transports (daq.nd://, daq.opcua://) fall back to a config-protocol RPC and keep returning it
     const bool isStreamingOnly = usingLTPseudoDevice;
 
-    // Flaky on IPv6 OPC UA endpoints: phase-3 lastValue mismatch after unsubscribe
-    // (mirror keeps a stale streaming-cached value instead of reading via the config channel).
-    if (std::get<1>(GetParam()) == "daq.opcua://[::1]/")
-    {
-        GTEST_SKIP();
-    }
-
     auto serverSignal = getSignal(serverInstance, "IntStep");
     auto mirroredSignalPtr = waitForSignal(clientInstance, "IntStep").template asPtr<IMirroredSignalConfig>();
 
@@ -1364,6 +1352,7 @@ TEST_P(StreamingTestForModernLt, LastValue)
         auto serverReader = PacketReader(serverSignal);
         generatePackets(3);
 
+        // a new reader receives a descriptor event before the 3 data packets
         auto serverReceivedPackets = test_helpers::tryReadPackets(serverReader, 4);
 
         ASSERT_TRUE(serverSignal.getLastValue().assigned());

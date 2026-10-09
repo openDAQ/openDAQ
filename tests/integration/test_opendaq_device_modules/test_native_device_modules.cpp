@@ -1432,17 +1432,11 @@ TEST_F(NativeDeviceModulesTest, TestDiscoveryReachabilityAfterConnect)
         {
             ASSERT_EQ(addressInfo.getConnectionString(), capability.getConnectionStrings()[index]);
             ASSERT_EQ(addressInfo.getAddress(), capability.getAddresses()[index]);
-            if (addressInfo.getType() == "IPv4")
+            // The address used to connect is Reachable; other IPv4 ones depend on the ICMP ping, which needs root
+            if (addressInfo.getConnectionString() == capability.getConnectionString())
             {
-                // Only the address actually used to connect is guaranteed Reachable - marked so by
-                // completeServerCapabilities() upon a successful connection. Verifying any other
-                // IPv4 address requires an ICMP ping, which needs root and is unavailable here, so
-                // on a multi-homed machine those legitimately stay Unknown.
-                if (addressInfo.getConnectionString() == capability.getConnectionString())
-                {
-                    ASSERT_EQ(addressInfo.getReachabilityStatus(), AddressReachabilityStatus::Reachable);
-                    cnt++;
-                }
+                ASSERT_EQ(addressInfo.getReachabilityStatus(), AddressReachabilityStatus::Reachable);
+                cnt++;
             }
             else if (addressInfo.getType() == "IPv6")
             {

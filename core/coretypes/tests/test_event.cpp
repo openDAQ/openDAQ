@@ -2,6 +2,13 @@
 #include <coretypes/event_args_ptr.h>
 #include "event_test.h"
 #include <coretypes/delegate.hpp>
+#include <atomic>
+#include <chrono>
+#include <functional>
+#include <future>
+#include <mutex>
+#include <thread>
+#include <vector>
 
 using namespace daq;
 
@@ -335,6 +342,404 @@ TEST_F(EventTest, EventSubscriptionFreeRemove2)
     hasEvent->triggerEvent();
 
     ASSERT_EQ(hasEvent->onEvent.getListenerCount(), 1u);
+}
+
+TEST_F(EventTest, RemoveHandlerWaitsForHandlerRunningOnAnotherThread)
+{
+    std::promise<void> handlerEntered;
+    std::promise<void> releaseHandler;
+    std::shared_future<void> handlerReleased = releaseHandler.get_future().share();
+    std::atomic<bool> handlerFinished{false};
+
+    MemberTest handler([&handlerEntered, handlerReleased, &handlerFinished](BaseObjectPtr& /*sender*/, EventArgsPtr<>& /*args*/)
+    {
+        handlerEntered.set_value();
+        handlerReleased.wait();
+        handlerFinished = true;
+    });
+    hasEvent->onEvent += ::event(&handler, &MemberTest::trigger);
+
+    std::thread triggerThread([this] { hasEvent->triggerEvent(); });
+    handlerEntered.get_future().wait();
+
+    // The handler is still running on the trigger thread. Unsubscribing must wait for it to finish.
+    auto removed = std::async(std::launch::async, [this, &handler] { hasEvent->onEvent -= ::event(&handler, &MemberTest::trigger); });
+    const bool removeWaited = removed.wait_for(std::chrono::milliseconds(200)) == std::future_status::timeout;
+
+    releaseHandler.set_value();
+    removed.get();
+    triggerThread.join();
+
+    ASSERT_TRUE(removeWaited) << "removeHandler returned while the handler was still running on another thread";
+    ASSERT_TRUE(handlerFinished);
+    ASSERT_EQ(hasEvent->onEvent.getListenerCount(), 0u);
+}
+
+TEST_F(EventTest, ClearWaitsForHandlerRunningOnAnotherThread)
+{
+    std::promise<void> handlerEntered;
+    std::promise<void> releaseHandler;
+    std::shared_future<void> handlerReleased = releaseHandler.get_future().share();
+    std::atomic<bool> handlerFinished{false};
+
+    MemberTest handler([&handlerEntered, handlerReleased, &handlerFinished](BaseObjectPtr& /*sender*/, EventArgsPtr<>& /*args*/)
+    {
+        handlerEntered.set_value();
+        handlerReleased.wait();
+        handlerFinished = true;
+    });
+    hasEvent->onEvent += ::event(&handler, &MemberTest::trigger);
+
+    std::thread triggerThread([this] { hasEvent->triggerEvent(); });
+    handlerEntered.get_future().wait();
+
+    auto cleared = std::async(std::launch::async, [this] { hasEvent->onEvent = nullptr; });
+    const bool clearWaited = cleared.wait_for(std::chrono::milliseconds(200)) == std::future_status::timeout;
+
+    releaseHandler.set_value();
+    cleared.get();
+    triggerThread.join();
+
+    ASSERT_TRUE(clearWaited) << "clear returned while a handler was still running on another thread";
+    ASSERT_TRUE(handlerFinished);
+}
+
+TEST_F(EventTest, HandlerRunsWithEventUnlocked)
+{
+    std::promise<void> handlerEntered;
+    std::promise<void> releaseHandler;
+    std::shared_future<void> handlerReleased = releaseHandler.get_future().share();
+    std::atomic<bool> blocked{false};
+
+    // Only the first call blocks, so the trigger from the other thread below doesn't.
+    MemberTest blocking([&handlerEntered, handlerReleased, &blocked](BaseObjectPtr& /*sender*/, EventArgsPtr<>& /*args*/)
+    {
+        if (!blocked.exchange(true))
+        {
+            handlerEntered.set_value();
+            handlerReleased.wait();
+        }
+    });
+    hasEvent->onEvent += ::event(&blocking, &MemberTest::trigger);
+
+    std::thread triggerThread([this] { hasEvent->triggerEvent(); });
+    handlerEntered.get_future().wait();
+
+    // While that handler runs, another thread can subscribe to and trigger the same event.
+    std::atomic<int> otherCalls{0};
+    MemberTest other([&otherCalls](BaseObjectPtr& /*sender*/, EventArgsPtr<>& /*args*/) { ++otherCalls; });
+    auto done = std::async(std::launch::async, [this, &other]
+    {
+        hasEvent->onEvent += ::event(&other, &MemberTest::trigger);
+        hasEvent->triggerEvent();
+    });
+    const bool completedWhileHandlerRuns = done.wait_for(std::chrono::seconds(5)) == std::future_status::ready;
+
+    releaseHandler.set_value();
+    done.get();
+    triggerThread.join();
+
+    ASSERT_TRUE(completedWhileHandlerRuns) << "subscribing to or triggering the event blocked while a handler was running";
+    ASSERT_EQ(otherCalls, 1);
+}
+
+TEST_F(EventTest, HandlerRemovedOnAnotherThreadBeforeItsTurnIsNotCalled)
+{
+    std::promise<void> handlerEntered;
+    std::promise<void> releaseHandler;
+    std::shared_future<void> handlerReleased = releaseHandler.get_future().share();
+
+    MemberTest first([&handlerEntered, handlerReleased](BaseObjectPtr& /*sender*/, EventArgsPtr<>& /*args*/)
+    {
+        handlerEntered.set_value();
+        handlerReleased.wait();
+    });
+    std::atomic<int> secondCalls{0};
+    MemberTest second([&secondCalls](BaseObjectPtr& /*sender*/, EventArgsPtr<>& /*args*/) { ++secondCalls; });
+    hasEvent->onEvent += ::event(&first, &MemberTest::trigger);
+    hasEvent->onEvent += ::event(&second, &MemberTest::trigger);
+
+    std::thread triggerThread([this] { hasEvent->triggerEvent(); });
+    handlerEntered.get_future().wait();
+
+    // The second handler hasn't started yet: removing it doesn't wait, and the running trigger must skip it.
+    auto removed = std::async(std::launch::async, [this, &second] { hasEvent->onEvent -= ::event(&second, &MemberTest::trigger); });
+    const bool removeReturned = removed.wait_for(std::chrono::seconds(5)) == std::future_status::ready;
+
+    releaseHandler.set_value();
+    removed.get();
+    triggerThread.join();
+
+    ASSERT_TRUE(removeReturned) << "removing a handler that wasn't running blocked";
+    ASSERT_EQ(secondCalls, 0);
+}
+
+TEST_F(EventTest, HandlerCanRemoveItself)
+{
+    int calls = 0;
+    MemberTest handler;
+    handler.setHandler([this, &calls, &handler](BaseObjectPtr& /*sender*/, EventArgsPtr<>& /*args*/)
+    {
+        ++calls;
+        hasEvent->onEvent -= ::event(&handler, &MemberTest::trigger);
+    });
+    hasEvent->onEvent += ::event(&handler, &MemberTest::trigger);
+
+    hasEvent->triggerEvent();
+    hasEvent->triggerEvent();
+
+    ASSERT_EQ(calls, 1);
+    ASSERT_EQ(hasEvent->onEvent.getListenerCount(), 0u);
+}
+
+namespace
+{
+    thread_local bool isLockTakingThread = false;
+}
+
+TEST_F(EventTest, HandlerCanTakeLockHeldByThreadTriggeringSameEvent)
+{
+    // Models a lock cycle between an object lock and the event. This thread holds the object lock and triggers the event,
+    // while another thread is inside a handler of the same event and needs the object lock.
+    std::timed_mutex objectLock;
+    std::promise<void> handlerEntered;
+    std::promise<void> triggeringWithLock;
+    std::shared_future<void> triggeringWithLockFuture = triggeringWithLock.get_future().share();
+    std::atomic<bool> gotObjectLock{false};
+
+    MemberTest handler([&](BaseObjectPtr& /*sender*/, EventArgsPtr<>& /*args*/)
+    {
+        if (!isLockTakingThread)
+            return;
+
+        handlerEntered.set_value();
+        triggeringWithLockFuture.wait();
+        std::unique_lock<std::timed_mutex> lock(objectLock, std::defer_lock);
+        gotObjectLock = lock.try_lock_for(std::chrono::seconds(5));
+    });
+    hasEvent->onEvent += ::event(&handler, &MemberTest::trigger);
+
+    std::thread lockTakingThread([this]
+    {
+        isLockTakingThread = true;
+        hasEvent->triggerEvent();
+    });
+    handlerEntered.get_future().wait();
+
+    {
+        std::lock_guard<std::timed_mutex> lock(objectLock);
+        triggeringWithLock.set_value();
+        hasEvent->triggerEvent();
+    }
+    lockTakingThread.join();
+
+    ASSERT_TRUE(gotObjectLock) << "triggering the event while holding the object lock waited for a handler that needs it";
+}
+
+TEST_F(EventTest, RemovedHandlerIsNeverCalledAfterRemoveHandlerReturns)
+{
+    std::atomic<bool> removeReturned{false};
+    std::atomic<bool> calledAfterRemove{false};
+    std::atomic<bool> stop{false};
+
+    MemberTest handler([&removeReturned, &calledAfterRemove](BaseObjectPtr& /*sender*/, EventArgsPtr<>& /*args*/)
+    {
+        if (removeReturned)
+            calledAfterRemove = true;
+    });
+
+    std::vector<std::thread> triggerThreads;
+    for (int t = 0; t < 2; ++t)
+        triggerThreads.emplace_back([this, &stop] { while (!stop) hasEvent->triggerEvent(); });
+
+    for (int i = 0; i < 2000 && !calledAfterRemove; ++i)
+    {
+        removeReturned = false;
+        hasEvent->onEvent += ::event(&handler, &MemberTest::trigger);
+        std::this_thread::yield();
+        hasEvent->onEvent -= ::event(&handler, &MemberTest::trigger);
+        removeReturned = true;
+    }
+
+    stop = true;
+    for (auto& thread : triggerThreads)
+        thread.join();
+
+    ASSERT_FALSE(calledAfterRemove) << "a handler call started after removeHandler returned";
+}
+
+TEST_F(EventTest, ConcurrentSubscribeUnsubscribeAndTrigger)
+{
+    std::atomic<bool> stop{false};
+    std::atomic<long> steadyCalls{0};
+    MemberTest steady([&steadyCalls](BaseObjectPtr& /*sender*/, EventArgsPtr<>& /*args*/) { ++steadyCalls; });
+    hasEvent->onEvent += ::event(&steady, &MemberTest::trigger);
+
+    std::vector<std::thread> triggerThreads;
+    for (int t = 0; t < 4; ++t)
+        triggerThreads.emplace_back([this, &stop] { while (!stop) hasEvent->triggerEvent(); });
+
+    // Each subscriber's handler is destroyed right after it is unsubscribed, so a call running after that would use a destroyed object.
+    std::vector<std::thread> subscriberThreads;
+    for (int t = 0; t < 2; ++t)
+    {
+        subscriberThreads.emplace_back([this]
+        {
+            for (int i = 0; i < 1000; ++i)
+            {
+                MemberTest transient([](BaseObjectPtr& /*sender*/, EventArgsPtr<>& /*args*/) {});
+                hasEvent->onEvent += ::event(&transient, &MemberTest::trigger);
+                hasEvent->onEvent -= ::event(&transient, &MemberTest::trigger);
+            }
+        });
+    }
+
+    for (auto& thread : subscriberThreads)
+        thread.join();
+    stop = true;
+    for (auto& thread : triggerThreads)
+        thread.join();
+
+    ASSERT_EQ(hasEvent->onEvent.getListenerCount(), 1u);
+    ASSERT_GT(steadyCalls.load(), 0);
+}
+
+TEST_F(EventTest, MutingDuringTriggerAppliesFromTheNextTrigger)
+{
+    int secondCalls = 0;
+    MemberTest second([&secondCalls](BaseObjectPtr& /*sender*/, EventArgsPtr<>& /*args*/) { ++secondCalls; });
+    MemberTest first([this, &second](BaseObjectPtr& /*sender*/, EventArgsPtr<>& /*args*/)
+    {
+        hasEvent->onEvent.muteListener(::event(&second, &MemberTest::trigger));
+    });
+    hasEvent->onEvent += ::event(&first, &MemberTest::trigger);
+    hasEvent->onEvent += ::event(&second, &MemberTest::trigger);
+
+    // A trigger uses the muted state it started with, so the second handler still runs this time...
+    hasEvent->triggerEvent();
+    ASSERT_EQ(secondCalls, 1);
+
+    // ...and is skipped from the next trigger on.
+    hasEvent->triggerEvent();
+    ASSERT_EQ(secondCalls, 1);
+}
+
+// Runs a callback when the event calls it, asks for its hash code or destroys it: the tests use it to act on the event
+// from inside those calls.
+class CallbackEventHandlerImpl : public ImplementationOf<IEventHandler>
+{
+public:
+    CallbackEventHandlerImpl(SizeT hashCode,
+                             std::function<void()> onHandleEvent,
+                             std::function<void()> onGetHashCode,
+                             std::function<void()> onDestroy)
+        : hashCode(hashCode)
+        , onHandleEvent(std::move(onHandleEvent))
+        , onGetHashCode(std::move(onGetHashCode))
+        , onDestroy(std::move(onDestroy))
+    {
+    }
+
+    ~CallbackEventHandlerImpl()
+    {
+        if (onDestroy)
+            onDestroy();
+    }
+
+    ErrCode INTERFACE_FUNC handleEvent(IBaseObject* /*sender*/, IEventArgs* /*eventArgs*/) override
+    {
+        if (onHandleEvent)
+            onHandleEvent();
+        return OPENDAQ_SUCCESS;
+    }
+
+    ErrCode INTERFACE_FUNC getHashCode(SizeT* hashCode) override
+    {
+        if (onGetHashCode)
+            onGetHashCode();
+        *hashCode = this->hashCode;
+        return OPENDAQ_SUCCESS;
+    }
+
+private:
+    SizeT hashCode;
+    std::function<void()> onHandleEvent;
+    std::function<void()> onGetHashCode;
+    std::function<void()> onDestroy;
+};
+
+TEST_F(EventTest, RemovedHandlerCanUseTheEventWhenDestroyed)
+{
+    const auto event = EventObject<BaseObjectPtr, EventArgsPtr<>>();
+    int destroyed = 0;
+    SizeT countWhenDestroyed = 1;
+    {
+        const auto handler = createWithImplementation<IEventHandler, CallbackEventHandlerImpl>(
+            SizeT{1},
+            nullptr,
+            nullptr,
+            [&event, &destroyed, &countWhenDestroyed]
+            {
+                ++destroyed;
+                event->getSubscriberCount(&countWhenDestroyed);
+            });
+        ASSERT_EQ(event->addHandler(handler), OPENDAQ_SUCCESS);
+    }
+
+    // Removing by another object with the same hash code leaves the event holding the last reference to the handler,
+    // so removeHandler() destroys it.
+    const auto sameHashCode = createWithImplementation<IEventHandler, CallbackEventHandlerImpl>(SizeT{1}, nullptr, nullptr, nullptr);
+    ASSERT_EQ(event->removeHandler(sameHashCode), OPENDAQ_SUCCESS);
+
+    ASSERT_EQ(destroyed, 1);
+    ASSERT_EQ(countWhenDestroyed, 0u);
+}
+
+TEST_F(EventTest, ClearedHandlerCanUseTheEventWhenDestroyed)
+{
+    const auto event = EventObject<BaseObjectPtr, EventArgsPtr<>>();
+    int destroyed = 0;
+    SizeT countWhenDestroyed = 1;
+    {
+        const auto handler = createWithImplementation<IEventHandler, CallbackEventHandlerImpl>(
+            SizeT{1},
+            nullptr,
+            nullptr,
+            [&event, &destroyed, &countWhenDestroyed]
+            {
+                ++destroyed;
+                event->getSubscriberCount(&countWhenDestroyed);
+            });
+        ASSERT_EQ(event->addHandler(handler), OPENDAQ_SUCCESS);
+    }
+
+    // The event holds the last reference to the handler, so clear() destroys it.
+    ASSERT_EQ(event->clear(), OPENDAQ_SUCCESS);
+
+    ASSERT_EQ(destroyed, 1);
+    ASSERT_EQ(countWhenDestroyed, 0u);
+}
+
+TEST_F(EventTest, MutingListenerWhoseHashCodeUsesTheEvent)
+{
+    const auto event = EventObject<BaseObjectPtr, EventArgsPtr<>>();
+    int calls = 0;
+    SizeT countFromHashCode = 0;
+    const auto handler = createWithImplementation<IEventHandler, CallbackEventHandlerImpl>(
+        SizeT{1},
+        [&calls] { ++calls; },
+        [&event, &countFromHashCode] { event->getSubscriberCount(&countFromHashCode); },
+        nullptr);
+    ASSERT_EQ(event->addHandler(handler), OPENDAQ_SUCCESS);
+
+    ASSERT_EQ(event->muteListener(handler), OPENDAQ_SUCCESS);
+    ASSERT_EQ(event->trigger(nullptr, nullptr), OPENDAQ_SUCCESS);
+    ASSERT_EQ(calls, 0);
+
+    ASSERT_EQ(event->unmuteListener(handler), OPENDAQ_SUCCESS);
+    ASSERT_EQ(event->trigger(nullptr, nullptr), OPENDAQ_SUCCESS);
+    ASSERT_EQ(calls, 1);
+    ASSERT_EQ(countFromHashCode, 1u);
 }
 
 TEST_F(EventTest, DelegateMemberEquality)

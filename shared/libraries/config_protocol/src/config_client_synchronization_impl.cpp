@@ -1,0 +1,188 @@
+#include <config_protocol/config_client_synchronization_impl.h>
+#include <opendaq/synchronization.h>
+#include <opendaq/component_deserialize_context_ptr.h>
+#include <coretypes/serialized_object_ptr.h>
+#include <coretypes/function_ptr.h>
+#include <coretypes/objectptr.h>
+#include <opendaq/custom_log.h>
+
+namespace daq::config_protocol
+{
+
+ConfigClientSynchronizationImpl::ConfigClientSynchronizationImpl(const ConfigProtocolClientCommPtr& configProtocolClientComm,
+                                                                 const std::string& remoteGlobalId,
+                                                                 const TypeManagerPtr& manager)
+    : Super(configProtocolClientComm, remoteGlobalId, manager)
+{
+}
+
+ErrCode ConfigClientSynchronizationImpl::setPropertyValue(IString* propertyName, IBaseObject* value)
+{
+    if (this->remoteUpdating)
+        return setRemoteValue(propertyName, value, false);
+    return Super::setPropertyValue(propertyName, value);
+}
+
+ErrCode ConfigClientSynchronizationImpl::setProtectedPropertyValue(IString* propertyName, IBaseObject* value)
+{
+    if (this->remoteUpdating)
+        return setRemoteValue(propertyName, value, true);
+    return Super::setProtectedPropertyValue(propertyName, value);
+}
+
+ErrCode ConfigClientSynchronizationImpl::setRemoteValue(IString* propertyName, IBaseObject* value, bool isProtected)
+{
+    OPENDAQ_PARAM_NOT_NULL(propertyName);
+
+    const auto name = StringPtr::Borrow(propertyName);
+    const ErrCode errCode = isProtected ? Impl::setProtectedPropertyValue(propertyName, value)
+                                        : Impl::setPropertyValue(propertyName, value);
+
+    if (name == "Source")
+    {
+        if (OPENDAQ_SUCCEEDED(errCode))
+        {
+            pendingSource.release();
+            return errCode;
+        }
+
+        // Once "SourceInterfaces" has arrived, a rejected source is a real error.
+        if (sourceInterfacesReceived)
+            return errCode;
+
+        // Not in "SourceInterfaces" yet; applied when the list arrives.
+        daqClearErrorInfo();
+        pendingSource = value;
+        return OPENDAQ_SUCCESS;
+    }
+
+    OPENDAQ_RETURN_IF_FAILED(errCode);
+    if (name == "SourceInterfaces")
+    {
+        sourceInterfacesReceived = true;
+        applyPendingSource();
+    }
+    return errCode;
+}
+
+void ConfigClientSynchronizationImpl::applyPendingSource()
+{
+    if (!pendingSource.assigned())
+        return;
+
+    const BaseObjectPtr source = pendingSource;
+    pendingSource.release();
+
+    // Failing here would abort adding the whole device, so the client keeps its current
+    // source and the log says which source the device reported.
+    try
+    {
+        checkErrorInfo(Impl::setPropertyValue(String("Source"), source));
+    }
+    catch (const DaqException& e)
+    {
+        const auto loggerComponent = clientComm->getDaqContext().getLogger().getOrAddComponent("ConfigProtocolClient");
+        LOG_W("The device reports synchronization source \"{}\", which the client could not apply, so the client shows \"{}\": {}",
+              source,
+              this->objPtr.getPropertyValue("Source"),
+              e.what());
+    }
+}
+
+ErrCode ConfigClientSynchronizationImpl::clearPropertyValue(IString* propertyName)
+{
+    if (this->remoteUpdating)
+        return Impl::clearPropertyValue(propertyName);
+    return Super::clearPropertyValue(propertyName);
+}
+
+ErrCode ConfigClientSynchronizationImpl::addProperty(IProperty* property)
+{
+    if (this->remoteUpdating)
+        return Impl::addProperty(property);
+    return Super::addProperty(property);
+}
+
+ErrCode ConfigClientSynchronizationImpl::removeProperty(IString* propertyName)
+{
+    if (this->remoteUpdating)
+        return Impl::removeProperty(propertyName);
+    return Super::removeProperty(propertyName);
+}
+
+ErrCode ConfigClientSynchronizationImpl::beginUpdate()
+{
+    if (this->remoteUpdating)
+        return Impl::beginUpdate();
+    return Super::beginUpdate();
+}
+
+ErrCode ConfigClientSynchronizationImpl::endUpdate()
+{
+    if (this->remoteUpdating)
+        return Impl::endUpdate();
+    return Super::endUpdate();
+}
+
+ErrCode ConfigClientSynchronizationImpl::deserializeValues(ISerializedObject* /*serializedObject*/,
+                                                           IBaseObject* /*context*/,
+                                                           IFunction* /*callbackFactory*/)
+{
+    return OPENDAQ_SUCCESS;
+}
+
+ErrCode ConfigClientSynchronizationImpl::getDeserializedParameter(IString* parameter, IBaseObject** value)
+{
+    OPENDAQ_PARAM_NOT_NULL(parameter);
+    OPENDAQ_PARAM_NOT_NULL(value);
+    return OPENDAQ_NOTFOUND;
+}
+
+ErrCode ConfigClientSynchronizationImpl::Deserialize(ISerializedObject* serialized,
+                                                     IBaseObject* context,
+                                                     IFunction* factoryCallback,
+                                                     IBaseObject** obj)
+{
+    OPENDAQ_PARAM_NOT_NULL(obj);
+    OPENDAQ_PARAM_NOT_NULL(context);
+
+    const ErrCode errCode = daqTry([&obj, &serialized, &context, &factoryCallback]
+    {
+        const auto contextPtr = BaseObjectPtr::Borrow(context);
+        if (!contextPtr.assigned())
+            return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_ARGUMENT_NULL, "Deserialization context not assigned");
+
+        const auto componentDeserializeContext = contextPtr.asPtrOrNull<IComponentDeserializeContext>(true);
+        if (!componentDeserializeContext.assigned())
+            return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_ARGUMENT_NULL, "Invalid deserialization context");
+
+        const auto serializedPtr = SerializedObjectPtr::Borrow(serialized);
+        const auto factoryCallbackPtr = FunctionPtr::Borrow(factoryCallback);
+
+        PropertyObjectPtr propObj = Super::DeserializePropertyObject(
+            serializedPtr,
+            contextPtr,
+            factoryCallbackPtr,
+            [](const SerializedObjectPtr&, const BaseObjectPtr& deserializeContext, const StringPtr&)
+            {
+                const auto ctx = deserializeContext.asPtr<IConfigProtocolDeserializeContext>(true);
+                auto syncComponent = createWithImplementation<ISynchronization, ConfigClientSynchronizationImpl>(
+                    ctx->getClientComm(),
+                    ctx->getRemoteGlobalId(),
+                    ctx->getTypeManager());
+                syncComponent.as<IConfigClientObject>(true)->setRemoteUpdating(true);
+                return syncComponent;
+            });
+
+        propObj.as<IConfigClientObject>(true)->setRemoteUpdating(false);
+        const auto deserializeComponent = propObj.asPtr<IDeserializeComponent>(true);
+        deserializeComponent.complete();
+
+        *obj = propObj.detach();
+        return OPENDAQ_SUCCESS;
+    });
+    OPENDAQ_RETURN_IF_FAILED(errCode);
+    return errCode;
+}
+
+} // namespace daq::config_protocol

@@ -573,6 +573,21 @@ namespace RTGen.Cpp.Generators
             return sb.ToString();
         }
 
+        private static string GenerateDeprecatedAttribute(IDocComment doc)
+        {
+            IDocAttribute tag = doc?.Tags.OfType<IDocAttribute>()
+                                    .FirstOrDefault(t => string.Equals(t.TagName, "deprecated", StringComparison.OrdinalIgnoreCase));
+            if (tag == null)
+            {
+                return string.Empty;
+            }
+
+            string message = string.Join(" ", tag.Lines.Select(line => line.FullText)).Trim();
+            return message.Length != 0
+                       ? $"[[deprecated(\"{message.Replace("\"", "\\\"")}\")]]\n    "
+                       : "[[deprecated]]\n    ";
+        }
+
         private string GenerateWrapperTypeDoc(IDocComment doc)
         {
             StringBuilder sb = new StringBuilder();
@@ -611,6 +626,8 @@ namespace RTGen.Cpp.Generators
                     return overload.Method.Documentation != null
                                ? GenerateWrapperDoc(overload)
                                : "";
+                case "Deprecated":
+                    return GenerateDeprecatedAttribute(overload.Method.Documentation);
                 case "ExitReturnArgName":
                 {
                     IArgument arg = overload.GetLastByRefArgument();

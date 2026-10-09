@@ -12,6 +12,9 @@
 #include <testutils/memcheck_listener.h>
 #include <coretypes/updatable_ptr.h>
 #include <opendaq/device_impl.h>
+#include <atomic>
+#include <chrono>
+#include <thread>
 
 using DeviceInfoTest = testing::Test;
 
@@ -384,6 +387,47 @@ TEST_F(DeviceInfoTest, ConnectedClientsInfo)
     ASSERT_EQ(client2Number, 2u);
     internalInfo.addConnectedClient(&client1Number, clientInfo1);
     ASSERT_EQ(client1Number, 1u);
+}
+
+TEST_F(DeviceInfoTest, ConcurrentGetConnectedClientsInfoAndRemoveClient)
+{
+    const DeviceInfoPtr info = DeviceInfo("", "");
+    const DeviceInfoInternalPtr internalInfo = info;
+    for (int i = 0; i < 10; ++i)
+    {
+        SizeT clientNumber = 0;
+        internalInfo.addConnectedClient(&clientNumber, ConnectedClientInfo("url", ProtocolType::Streaming, "Protocol name", "", "Host name"));
+    }
+
+    // Clients removed between listing the clients and reading them must not fail the read.
+    std::atomic<bool> stop{false};
+    std::thread writer([&] {
+        while (!stop)
+        {
+            SizeT clientNumber = 0;
+            internalInfo.addConnectedClient(&clientNumber, ConnectedClientInfo("url", ProtocolType::Streaming, "Protocol name", "", "Host name"));
+            internalInfo.removeConnectedClient(clientNumber);
+        }
+    });
+
+    const auto deadline = std::chrono::steady_clock::now() + std::chrono::milliseconds(300);
+    bool failed = false;
+    while (!failed && std::chrono::steady_clock::now() < deadline)
+    {
+        try
+        {
+            info.getConnectedClientsInfo();
+        }
+        catch (const DaqException&)
+        {
+            failed = true;
+        }
+    }
+
+    stop = true;
+    writer.join();
+
+    ASSERT_FALSE(failed);
 }
 
 TEST_F(DeviceInfoTest, PropertyWriteAfterOwnerSet)

@@ -732,6 +732,38 @@ TEST_F(DeviceTest, GetSynchronization)
     ASSERT_EQ(synchronization.getSource().getId(), "ClockSyncInterface");
 }
 
+class TestDeviceSettingSynchronizationTwice : public daq::Device
+{
+public:
+    TestDeviceSettingSynchronizationTwice()
+        : daq::Device(daq::NullContext(), nullptr, "dev")
+    {
+        const auto manager = this->context.getTypeManager();
+        setSynchronization(daq::Synchronization(manager, "first"));
+        second = daq::Synchronization(manager, "second");
+        try
+        {
+            setSynchronization(second);
+        }
+        catch (const daq::AlreadyExistsException&)
+        {
+            secondRejected = true;
+        }
+    }
+
+    daq::SynchronizationPtr second;
+    bool secondRejected = false;
+};
+
+TEST_F(DeviceTest, SetSynchronizationTwice)
+{
+    const auto device = daq::createWithImplementation<daq::IDevice, TestDeviceSettingSynchronizationTwice>();
+    const auto impl = dynamic_cast<TestDeviceSettingSynchronizationTwice*>(device.getObject());
+
+    ASSERT_TRUE(impl->secondRejected);
+    ASSERT_NE(device.getSynchronization(), impl->second);
+}
+
 TEST_F(DeviceTest, SynchronizationSaveLoad)
 {
     const auto device = daq::createWithImplementation<daq::IDevice, TestDeviceWithSynchronization>();

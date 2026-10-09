@@ -53,3 +53,5 @@ add_test(
 )
 
 set_tests_properties(test_py_opendaq PROPERTIES LABELS "python_bindings")
+# The python tests start the standard servers on the default ports
+opendaq_test_resource_lock(${PYTHON_TESTS} network_native network_lt network_opcua mdns)

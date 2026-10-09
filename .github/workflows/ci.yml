@@ -2,18 +2,17 @@ name: Build and Test openDAQ
 
 on:
   workflow_dispatch:
+    inputs:
+      ctest_preset:
+        type: string
+        default: "run_tests_parallel"
   pull_request:
     types: [opened, reopened, synchronize, ready_for_review]
   workflow_call:
     inputs:
-      cmake_preset:
-        type: string
-        required: false
-        default: "ci"
       ctest_preset:
         type: string
-        required: false
-        default: "run_tests"
+        default: "run_tests_parallel"
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -74,7 +73,7 @@ jobs:
         [
           {
             "configure-preset": "${{ inputs.cmake_preset || 'ci' }}",
-            "test-preset": "${{ inputs.ctest_preset || 'run_tests' }}",
+            "test-preset": "${{ inputs.ctest_preset || 'run_tests_parallel' }}",
             "cache-variables": {"OPENDAQ_PYTHON_VERSION": "3.14"},
             "cache-externals": true
           },
@@ -92,6 +91,7 @@ jobs:
           },
           {
             "match-jobs": ["macos-*"],
+            "test-preset": "${{ inputs.ctest_preset != 'run_tests_parallel' && inputs.ctest_preset || 'run_tests_parallel_macos' }}",
             "run-tests-priv": true
           },
           {

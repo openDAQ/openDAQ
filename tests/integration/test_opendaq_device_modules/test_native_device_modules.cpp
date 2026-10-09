@@ -3397,8 +3397,9 @@ TEST_F(NativeDeviceModulesTest, ConnectedClientsInfoNotSavedLoaded)
         auto client = CreateClientInstance();
         auto client2 = CreateClientInstance();
 
-        auto clientSideClientsInfo = client.getDevices()[0].getInfo().getConnectedClientsInfo();
-        ASSERT_EQ(clientSideClientsInfo.getCount(), 4u);
+        // the client's list mirrors the server's and receives client2's entry asynchronously
+        const auto clientDeviceInfo = client.getDevices()[0].getInfo();
+        ASSERT_TRUE(test_helpers::waitFor([&] { return clientDeviceInfo.getConnectedClientsInfo().getCount() == 4u; }));
 
         config = client.saveConfiguration();
     }
@@ -3409,8 +3410,9 @@ TEST_F(NativeDeviceModulesTest, ConnectedClientsInfoNotSavedLoaded)
     addNativeClientModule(restoredClient);
     ASSERT_NO_THROW(restoredClient.loadConfiguration(config));
 
-    auto clientSideClientsInfo = restoredClient.getDevices()[0].getInfo().getConnectedClientsInfo();
-    ASSERT_EQ(clientSideClientsInfo.getCount(), 2u);
+    const auto restoredDeviceInfo = restoredClient.getDevices()[0].getInfo();
+    ASSERT_TRUE(test_helpers::waitFor([&] { return restoredDeviceInfo.getConnectedClientsInfo().getCount() == 2u; }));
+    auto clientSideClientsInfo = restoredDeviceInfo.getConnectedClientsInfo();
 
     auto serverSideClientsInfo = server.getRootDevice().getInfo().getConnectedClientsInfo();
     ASSERT_EQ(serverSideClientsInfo.getCount(), 2u);

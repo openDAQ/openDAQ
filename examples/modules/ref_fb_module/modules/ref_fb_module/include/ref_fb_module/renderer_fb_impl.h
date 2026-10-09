@@ -39,6 +39,7 @@
 #include <thread>
 #include <condition_variable>
 #include <queue>
+#include <string>
 #include <variant>
 
 BEGIN_NAMESPACE_REF_FB_MODULE
@@ -82,6 +83,10 @@ struct SignalContext
     std::deque<DataPacketPtr> dataPacketsInFreezeMode;
 
     bool valid{ false };
+    bool domainless{ false };
+    bool constantValueSet{ false };
+    double constantValue{ 0 };
+    std::string constantValueText;
     double max{ 0 };
     double min{ 0 };
     int64_t durationInTicks;
@@ -185,6 +190,15 @@ private:
     template <SampleType DST>
     void renderSignal(SignalContext& signalContext, sf::RenderTarget& renderTarget, const sf::Font& renderFont);
 
+    void renderDomainlessSignal(SignalContext& signalContext, sf::RenderTarget& renderTarget, const sf::Font& renderFont);
+    void renderValueStrip(SignalContext& signalContext, sf::RenderTarget& renderTarget, const sf::Font& renderFont);
+    void renderValueProfile(SignalContext& signalContext, sf::RenderTarget& renderTarget);
+    void renderValueLine(SignalContext& signalContext, sf::RenderTarget& renderTarget);
+    void renderValueLabel(SignalContext& signalContext,
+                          sf::RenderTarget& renderTarget,
+                          const sf::Font& renderFont,
+                          const std::string& valueText);
+
     template <SampleType DST>
     void renderPacket(SignalContext& signalContext,
                       sf::RenderTarget& renderTarget,
@@ -207,17 +221,9 @@ private:
         std::unique_ptr<Polyline>& line,
         bool& end);
 
-    template <SampleType DST>
-    void renderArrayPacketImplicitAndExplicit(
-        SignalContext& signalContext,
-        DataRuleType domainRuleType,
-        sf::RenderTarget& renderTarget,
-        const  sf::Font& renderFont,
-        const DataPacketPtr& packet,
-        bool& havePrevPacket,
-        typename SampleTypeToType<DomainTypeCast<DST>::DomainSampleType>::Type& nextExpectedDomainPacketValue,
-        std::unique_ptr<Polyline>& line,
-        bool& end);
+    // The elements of a sample against their index; the domain says which sample to draw, never where.
+    void renderArrayPacket(
+        SignalContext& signalContext, const DataPacketPtr& packet, bool& havePrevPacket, std::unique_ptr<Polyline>& line, bool& end);
 
     void renderLoop();
     void processSignalContexts();
@@ -238,6 +244,9 @@ private:
     void subscribeToSignalCoreEvent(const SignalPtr& signal);
     void processCoreEvent(ComponentPtr& component, CoreEventArgsPtr& args);
     void configureSignalContext(SignalContext& signalContext);
+    void configureDomainlessSignalContext(SignalContext& signalContext);
+    void updateDomainlessValueRange(SignalContext& signalContext, const DataPacketPtr& dataPacket);
+    void captureDomainlessValue(SignalContext& signalContext, const DataPacketPtr& dataPacket);
     void setSignalContextCaption(SignalContext& signalContext, const std::string& caption = std::string {});
     void processDataPacket(SignalContext& signalContext, const DataPacketPtr& dataPacket);
 
@@ -259,8 +268,6 @@ private:
 
     static std::chrono::system_clock::duration timeValueToDuration(Float timeValue);
 
-    template <typename Iter, typename Cont>
-    bool isLastIter(Iter iter, const Cont& cont);
     void rendererStopRequesteding();
 
     void updateSingleXAxis();

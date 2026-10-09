@@ -14,6 +14,7 @@
 
 ## Bug fixes
 
+- [#1340](https://github.com/openDAQ/openDAQ/pull/1340) Saving and loading a setup no longer stores or restores the device user lock
 - [#1327](https://github.com/openDAQ/openDAQ/pull/1327) Fix events not being synchronized: `removeHandler` and `clear` now wait for a handler running on another thread, and handlers are called without the event lock held
 - [#1336](https://github.com/openDAQ/openDAQ/pull/1336) Config protocol client logs a child component that fails to apply the server's update
 - [#1308](https://github.com/openDAQ/openDAQ/pull/1308) Fixes a deadlock between mDNS query answering and server removal

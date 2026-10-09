@@ -2095,8 +2095,11 @@ void GenericDevice<TInterface, Interfaces...>::serializeCustomObjectValues(const
             syncComponent.serialize(serializer);
     }
 
-    serializer.key("UserLock");
-    userLock.serialize(serializer);
+    if (!forUpdate)
+    {
+        serializer.key("UserLock");
+        userLock.serialize(serializer);
+    }
 
     if (connectionStatusContainer.asPtr<IComponentStatusContainer>().getStatuses().getCount() > 0)
     {
@@ -2552,9 +2555,6 @@ void GenericDevice<TInterface, Interfaces...>::updateObject(const SerializedObje
 
     if (obj.hasKey("deviceDomain"))
         deviceDomain = obj.readObject("deviceDomain");
-
-    if (obj.hasKey("UserLock"))
-        userLock = obj.readObject("UserLock", context);
 
     // Backward compatibility with older update payloads that used a dedicated "deviceInfo" key.
     // New updates carry DeviceInfo via the normal DaqDeviceInfo property value.

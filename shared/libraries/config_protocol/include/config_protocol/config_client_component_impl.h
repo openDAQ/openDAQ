@@ -426,8 +426,17 @@ void ConfigClientComponentBaseImpl<Impl>::statusChanged(const ComponentPtr& send
     // The status belongs to a nested property object, such as an ISyncInterface, so the event goes to that object
     if (const StringPtr path = params.getOrDefault("Path"); path.assigned() && path.getLength() != 0)
     {
-        const PropertyObjectPtr thisPtr = this->template borrowPtr<PropertyObjectPtr>();
-        if (const auto configObj = thisPtr.getPropertyValue(path).asPtrOrNull<IConfigClientObject>(); configObj.assigned())
+        // The object can be missing on the client, for example after it was removed on the server
+        BaseObjectPtr obj;
+        if (const ErrCode errCode = this->getPropertyValue(path, &obj); OPENDAQ_FAILED(errCode))
+        {
+            daqClearErrorInfo();
+            const auto loggerComponent = this->clientComm->getDaqContext().getLogger().getOrAddComponent("ConfigClient");
+            LOG_D("Status change for \"{}\" ignored, the client has no such object", path);
+            return;
+        }
+
+        if (const auto configObj = obj.asPtrOrNull<IConfigClientObject>(); configObj.assigned())
             configObj->handleRemoteCoreEvent(sender, args);
         return;
     }

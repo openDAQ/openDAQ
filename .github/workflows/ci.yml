@@ -57,6 +57,10 @@ jobs:
             "apt-install": ["libfreetype-dev"]
           },
           {
+            "match-jobs": ["ubuntu-*-clang-22-*"],
+            "apt-install": ["lld-22"]
+          },
+          {
             "match-jobs": ["ubuntu-*-x86-*"],
             "apt-install": ["lld", "libssl-dev:i386", "libx11-dev:i386", "libxi-dev:i386", "libxcursor-dev:i386", "libxrandr-dev:i386", "libgl-dev:i386", "libudev-dev:i386", "libfreetype6-dev:i386"]
           },

@@ -71,20 +71,20 @@ void defineITypeManager(pybind11::module_ m, PyDaqIntf<daq::ITypeManager, daq::I
         [](daq::ITypeManager *object, const std::string& typeName) -> py::typing::Union<daq::IEnumerationType, daq::IStructType, daq::IType>
         {
             const auto objectPtr = daq::TypeManagerPtr::Borrow(object);
-            auto type = objectPtr.getType(typeName);
+            const auto type = objectPtr.getType(typeName);
 
-            auto enumTypePtr = type.asPtrOrNull<daq::IEnumerationType>();
-            if(enumTypePtr.assigned()) {
-                auto pyObject = py::cast(InterfaceWrapper<daq::IEnumerationType>(enumTypePtr.addRefAndReturn()));
+            // Types implement ICoreType (e.g. ctStruct), so baseObjectToPyObject would convert them as values
+            const daq::IntfID typeId = type.asPtr<daq::IInspectable>(true).getInterfaceIds()[0];
+            const auto it = daqInterfaceIdToClass.find(typeId);
+            py::object pyObject = it != daqInterfaceIdToClass.end()
+                ? it->second(type)
+                : baseObjectToPyObjectUsingType<daq::IType>(type);
+
+            // Enumeration types need the type manager to create enumerations
+            if (type.supportsInterface<daq::IEnumerationType>())
                 pyObject.attr("__type_manager") = object;
-                return pyObject;
-            }
 
-            auto structTypePtr = type.asPtrOrNull<daq::IStructType>();
-            if(structTypePtr.assigned())
-                return baseObjectToPyObjectUsingType<daq::IStructType>(structTypePtr);
-
-            return baseObjectToPyObjectUsingType<daq::IType>(type);
+            return pyObject;
         },
         py::arg("type_name"),
         "Gets an added Type by name.");

@@ -15,6 +15,13 @@ class TypeManager(opendaq_test.TestCase):
         self.assertIsNotNone(component_status_type)
         self.assertIsInstance(component_status_type, daq.IEnumerationType)
 
+    def test_create_enum_from_type(self):
+        instance = daq.Instance()
+        component_status_type = instance.context.type_manager.get_type("ComponentStatusType")
+        self.assertEqual(component_status_type.Ok.name, "Ok")
+        self.assertEqual(component_status_type["Warning"].name, "Warning")
+        self.assertEqual(component_status_type(2).name, "Error")
+
     def test_find_struct_type(self):
         instance = daq.Instance()
         type_manager = instance.context.type_manager

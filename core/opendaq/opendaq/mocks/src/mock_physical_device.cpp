@@ -85,6 +85,19 @@ MockPhysicalDeviceImpl::~MockPhysicalDeviceImpl()
     stopAcq();
 }
 
+ErrCode MockPhysicalDeviceImpl::remove()
+{
+    // a tick that runs after removal works on removed signals, so stop generating first
+    {
+        std::scoped_lock lock(generateMutex);
+        generateStopped = true;
+    }
+    generateCv.notify_all();
+    stopAcq();
+
+    return Device::remove();
+}
+
 DeviceInfoPtr MockPhysicalDeviceImpl::onGetInfo()
 {
     auto deviceInfo = DeviceInfoWithChanegableFields({"userName", "location"});
@@ -154,7 +167,11 @@ void MockPhysicalDeviceImpl::generatePackets(size_t packetCount)
     for (size_t i = 1; i <= packetCount; i++)
     {
         // we want tick values to be 100 % reproducable even if they do not reperesnt the exact real time
-        std::this_thread::sleep_for(std::chrono::milliseconds(tickDelta));
+        {
+            std::unique_lock lock(generateMutex);
+            if (generateCv.wait_for(lock, std::chrono::milliseconds(tickDelta), [this] { return generateStopped; }))
+                return;
+        }
         time = time + i * tickDelta;
 
         for (const auto& channel : ioFolder.getItems())

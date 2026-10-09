@@ -55,13 +55,32 @@ TEST_F(OpenDaqFactoriesTest, FBTypeBuilder)
                                .setId("Id")
                                .setName("Name")
                                .setDescription("Desc")
+                               .setAlwaysEmptyInput(True)
+                               .setSingleton(True)
+                               .setCommonSettingsTypeId("SettingsId")
                                .setDefaultConfig(defConfig)
                                .build();
 
     ASSERT_EQ(type.getId(), "Id");
     ASSERT_EQ(type.getName(), "Name");
     ASSERT_EQ(type.getDescription(), "Desc");
+    ASSERT_TRUE(type.getAlwaysEmptyInput());
+    ASSERT_TRUE(type.getSingleton());
+    ASSERT_EQ(type.getCommonSettingsTypeId(), "SettingsId");
     ASSERT_EQ(type.createDefaultConfig().getPropertyValue("foo"), "bar");
+}
+
+TEST_F(OpenDaqFactoriesTest, FBTypeBuilderDefaults)
+{
+    const FunctionBlockTypePtr type = FunctionBlockTypeBuilder()
+                               .setId("Id")
+                               .setName("Name")
+                               .setDescription("Desc")
+                               .build();
+
+    ASSERT_FALSE(type.getAlwaysEmptyInput());
+    ASSERT_FALSE(type.getSingleton());
+    ASSERT_FALSE(type.getCommonSettingsTypeId().assigned());
 }
 
 TEST_F(OpenDaqFactoriesTest, StreamingTypeBuilder)

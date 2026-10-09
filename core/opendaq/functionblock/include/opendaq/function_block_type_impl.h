@@ -33,6 +33,14 @@ public:
                                    const StringPtr& description,
                                    const PropertyObjectPtr& defaultConfig);
 
+    explicit FunctionBlockTypeImpl(const StringPtr& id,
+                                   const StringPtr& name,
+                                   const StringPtr& description,
+                                   const PropertyObjectPtr& defaultConfig,
+                                   Bool alwaysEmpty,
+                                   Bool singleton,
+                                   const StringPtr& commonSettingsType);
+
     explicit FunctionBlockTypeImpl(const ComponentTypeBuilderPtr& builder);
 
     // ISerializable
@@ -41,6 +49,15 @@ public:
 
     static ConstCharPtr SerializeId();
     static ErrCode Deserialize(ISerializedObject* serialized, IBaseObject* context, IFunction* factoryCallback, IBaseObject** obj);
+
+    ErrCode INTERFACE_FUNC getAlwaysEmptyInput(Bool* alwaysEmpty) override;
+    ErrCode INTERFACE_FUNC getSingleton(Bool* singleton) override;
+    ErrCode INTERFACE_FUNC getCommonSettingsTypeId(IString** typeId) override;
+
+private:
+    Bool alwaysEmptyInput = False;
+    Bool isSingleton = False;
+    StringPtr commonSettingsTypeId = nullptr;
 };
 
 
@@ -48,12 +65,26 @@ inline FunctionBlockTypeImpl::FunctionBlockTypeImpl(const StringPtr& id,
                                                     const StringPtr& name,
                                                     const StringPtr& description,
                                                     const PropertyObjectPtr& defaultConfig)
+    : FunctionBlockTypeImpl(id, name, description, defaultConfig, False, False, nullptr)
+{
+}
+
+inline FunctionBlockTypeImpl::FunctionBlockTypeImpl(const StringPtr& id,
+                                                    const StringPtr& name,
+                                                    const StringPtr& description,
+                                                    const PropertyObjectPtr& defaultConfig,
+                                                    Bool alwaysEmpty,
+                                                    Bool singleton,
+                                                    const StringPtr& commonSettingsType)
     : Super(FunctionBlockTypeStructType(), id, name, description, defaultConfig)
+    , alwaysEmptyInput(alwaysEmpty)
+    , isSingleton(singleton)
+    , commonSettingsTypeId(commonSettingsType)
 {
 }
 
 inline FunctionBlockTypeImpl::FunctionBlockTypeImpl(const ComponentTypeBuilderPtr& builder)
-    : FunctionBlockTypeImpl(builder.getId(), builder.getName(), builder.getDescription(), builder.getDefaultConfig())
+    : FunctionBlockTypeImpl(builder.getId(), builder.getName(), builder.getDescription(), builder.getDefaultConfig(), builder.getAlwaysEmptyInput(), builder.getSingleton(), builder.getCommonSettingsTypeId())
 {
 }
 
@@ -92,6 +123,18 @@ inline ErrCode FunctionBlockTypeImpl::serialize(ISerializer* serializer)
             {
                 serializerPtr.key("moduleInfo");
                 moduleInfo.serialize(serializerPtr);
+            }
+
+            serializerPtr.key("alwaysEmptyInput");
+            serializerPtr.writeBool(alwaysEmptyInput);
+
+            serializerPtr.key("singleton");
+            serializerPtr.writeBool(isSingleton);
+
+            if (commonSettingsTypeId.assigned())
+            {
+                serializerPtr.key("commonSettingsTypeId");
+                serializerPtr.writeString(commonSettingsTypeId);
             }
         }
 
@@ -142,8 +185,26 @@ inline ErrCode FunctionBlockTypeImpl::Deserialize(ISerializedObject* serialized,
         if (serializedObj.hasKey("defaultConfig"))
             defaultConfig = serializedObj.readObject("defaultConfig", contextPtr, factoryCallbackPtr);
 
+        Bool alwaysEmpty = False;
+        if (serializedObj.hasKey("alwaysEmptyInput"))
+        {
+            alwaysEmpty = serializedObj.readBool("alwaysEmptyInput");
+        }
+
+        Bool isSingleton = False;
+        if (serializedObj.hasKey("singleton"))
+        {
+            isSingleton = serializedObj.readBool("singleton");
+        }
+
+        StringPtr commonSettingsTypeId = nullptr;
+        if (serializedObj.hasKey("commonSettingsTypeId"))
+        {
+            commonSettingsTypeId = serializedObj.readString("commonSettingsTypeId");
+        }
+
         auto functionBlockType =
-            createWithImplementation<IFunctionBlockType, FunctionBlockTypeImpl>(id, name, description, defaultConfig);
+            createWithImplementation<IFunctionBlockType, FunctionBlockTypeImpl>(id, name, description, defaultConfig, alwaysEmpty, isSingleton, commonSettingsTypeId);
 
         ModuleInfoPtr moduleInfo;
         if (serializedObj.hasKey("moduleInfo"))
@@ -157,6 +218,30 @@ inline ErrCode FunctionBlockTypeImpl::Deserialize(ISerializedObject* serialized,
     });
     OPENDAQ_RETURN_IF_FAILED(errCode);
     return errCode;
+}
+
+inline ErrCode FunctionBlockTypeImpl::getAlwaysEmptyInput(Bool* alwaysEmpty)
+{
+    OPENDAQ_PARAM_NOT_NULL(alwaysEmpty);
+
+    *alwaysEmpty = this->alwaysEmptyInput;
+    return OPENDAQ_SUCCESS;
+}
+
+inline ErrCode FunctionBlockTypeImpl::getSingleton(Bool* singleton)
+{
+    OPENDAQ_PARAM_NOT_NULL(singleton);
+
+    *singleton = this->isSingleton;
+    return OPENDAQ_SUCCESS;
+}
+
+inline ErrCode FunctionBlockTypeImpl::getCommonSettingsTypeId(IString** typeId)
+{
+    OPENDAQ_PARAM_NOT_NULL(typeId);
+
+    *typeId = this->commonSettingsTypeId.addRefAndReturn();
+    return OPENDAQ_SUCCESS;
 }
 
 OPENDAQ_REGISTER_DESERIALIZE_FACTORY(FunctionBlockTypeImpl)

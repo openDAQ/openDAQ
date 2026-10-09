@@ -3,6 +3,7 @@
 #include <gtest/gtest.h>
 #include <opendaq/context_factory.h>
 #include <opendaq/function_block_type_factory.h>
+#include <opendaq/component_type_builder_factory.h>
 #include <opendaq/component_deserialize_context_factory.h>
 #include <opendaq/input_port_config_ptr.h>
 #include <opendaq/tags_private_ptr.h>
@@ -68,6 +69,41 @@ TEST_F(FunctionBlockTest, FunctionBlockTypeSerializationDeserialization)
 
     const auto newDefConfig = newFbType.createDefaultConfig();
     ASSERT_EQ(defConfig.getPropertyValue("cfg"), newDefConfig.getPropertyValue("cfg"));
+
+    ASSERT_EQ(newFbType.getAlwaysEmptyInput(), fbType.getAlwaysEmptyInput());
+    ASSERT_EQ(newFbType.getSingleton(), fbType.getSingleton());
+    ASSERT_EQ(newFbType.getCommonSettingsTypeId(), fbType.getCommonSettingsTypeId());
+}
+
+TEST_F(FunctionBlockTest, FunctionBlockTypeDefaults)
+{
+    const daq::FunctionBlockTypePtr fbType = daq::FunctionBlockType("Id", "Name", "Desc");
+
+    ASSERT_FALSE(fbType.getAlwaysEmptyInput());
+    ASSERT_FALSE(fbType.getSingleton());
+    ASSERT_FALSE(fbType.getCommonSettingsTypeId().assigned());
+}
+
+TEST_F(FunctionBlockTest, FunctionBlockTypeOptionsSerializationDeserialization)
+{
+    const daq::FunctionBlockTypePtr fbType = daq::FunctionBlockTypeBuilder()
+                                                 .setId("Id")
+                                                 .setName("Name")
+                                                 .setDescription("Desc")
+                                                 .setAlwaysEmptyInput(daq::True)
+                                                 .setSingleton(daq::True)
+                                                 .setCommonSettingsTypeId("SettingsId")
+                                                 .build();
+
+    const auto serializer = daq::JsonSerializer();
+    fbType.serialize(serializer);
+
+    const auto deserializer = daq::JsonDeserializer();
+    const daq::FunctionBlockTypePtr newFbType = deserializer.deserialize(serializer.getOutput());
+
+    ASSERT_TRUE(newFbType.getAlwaysEmptyInput());
+    ASSERT_TRUE(newFbType.getSingleton());
+    ASSERT_EQ(newFbType.getCommonSettingsTypeId(), "SettingsId");
 }
 
 

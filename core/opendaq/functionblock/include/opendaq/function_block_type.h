@@ -35,6 +35,38 @@ BEGIN_NAMESPACE_OPENDAQ
  */
 DECLARE_OPENDAQ_INTERFACE(IFunctionBlockType, IComponentType)
 {
+    /*!
+     * @brief Gets the alwaysEmptyInput flag value.
+     * @param[out] alwaysEmpty The flag value.
+     *
+     * When alwaysEmptyInput flag is true, the function blocks of that type guarantee that they
+     * will always have an empty input port available for further connections. Defaults to false
+     * (i.e. when not set by the FB type provider).
+     */
+    virtual ErrCode INTERFACE_FUNC getAlwaysEmptyInput(Bool* alwaysEmpty) = 0;
+
+    /*!
+     * @brief Gets the singleton flag value.
+     * @param[out] singleton The flag value.
+     *
+     * When singleton flag is true, the function block type guarantees that at most one instance
+     * of the function block type can exist under a single parent and adding a second function
+     * block of the same type will fail. Defaults to false (i.e. when not set by the FB type
+     * provider).
+     */
+    virtual ErrCode INTERFACE_FUNC getSingleton(Bool* singleton) = 0;
+
+    /*!
+     * @brief Gets the commonSettingsTypeId - the Id for which this FB type acts as a common
+     * settings folder.
+     * @param[out] typeId The Id of the function block type.
+     *
+     * When assigned, the function block type declares that it acts as a common settings holder
+     * for nested function blocks of the type specified by commonSettingsTypeId (provided via
+     * the typeId output parameter). When unassigned, the function block does not declare such
+     * a relationship.
+     */
+    virtual ErrCode INTERFACE_FUNC getCommonSettingsTypeId(IString** typeId) = 0;
 };
 /*!@}*/
 

@@ -359,9 +359,13 @@ ErrCode PropertyObjectClassImpl::Deserialize(ISerializedObject* serialized,
 
         if (typeManager.assigned())
         {
-            typeManager.addType(serilizedObj);
+            const ErrCode addTypeErrCode = typeManager->addType(serilizedObj);
+
+            // Keep the registered definition if it already exists rather than failing the whole deserialization.
+            OPENDAQ_RETURN_IF_FAILED_EXCEPT(addTypeErrCode, OPENDAQ_ERR_ALREADYEXISTS);
         }
         *obj = serilizedObj.detach();
+        return OPENDAQ_SUCCESS;
     });
     OPENDAQ_RETURN_IF_FAILED(errCode);
     return errCode;

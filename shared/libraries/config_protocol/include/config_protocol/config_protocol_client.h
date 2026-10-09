@@ -30,6 +30,7 @@
 #include <opendaq/component_private_ptr.h>
 #include <config_protocol/config_protocol_streaming_producer.h>
 #include <coreobjects/property_object_class_internal_ptr.h>
+#include <coreobjects/property_object_class_ptr.h>
 #include <opendaq/mirrored_input_port_private_ptr.h>
 #include <algorithm>
 #include <opendaq/component_update_context_ptr.h>
@@ -275,6 +276,8 @@ private:
     void triggerNotificationObject(const BaseObjectPtr& object);
     CoreEventArgsPtr unpackCoreEvents(const CoreEventArgsPtr& args);
     void handleNonComponentEvent(const CoreEventArgsPtr& args) const;
+    static bool IsSameTypeDefinition(const TypePtr& lhs, const TypePtr& rhs);
+    void warnTypeDefinitionConflict(const StringPtr& typeName) const;
 };
 
 template<class TRootDeviceImpl>
@@ -384,8 +387,15 @@ void ConfigProtocolClient<TRootDeviceImpl>::enumerateTypes()
         {
             if (localTypeManager.hasType(typeName))
             {
-                const auto loggerComponent = daqContext.getLogger().getOrAddComponent("ConfigProtocolClient");
-                LOG_D("Type {} already exists in local type manager", typeName);
+                if (IsSameTypeDefinition(localTypeManager.getType(typeName), type))
+                {
+                    const auto loggerComponent = daqContext.getLogger().getOrAddComponent("ConfigProtocolClient");
+                    LOG_D("Type {} already exists in local type manager", typeName);
+                }
+                else
+                {
+                    warnTypeDefinitionConflict(typeName);
+                }
                 continue;
             }
 
@@ -575,14 +585,57 @@ void ConfigProtocolClient<TRootDeviceImpl>::handleNonComponentEvent(const CoreEv
     switch (static_cast<CoreEventId>(args.getEventId()))
     {
         case CoreEventId::TypeAdded:
-            daqContext.getTypeManager().addType(params.get("Type"));
+        {
+            const TypePtr type = params.get("Type");
+            const auto typeManager = daqContext.getTypeManager();
+            const auto typeName = type.getName();
+
+            if (!typeManager.hasType(typeName))
+            {
+                typeManager.addType(type);
+                break;
+            }
+
+            // Deserializing the event normally registers the type already, unless one of the same name
+            // was registered from another source (a locally loaded module or another connected device).
+            if (!IsSameTypeDefinition(typeManager.getType(typeName), type))
+                warnTypeDefinitionConflict(typeName);
             break;
+        }
         case CoreEventId::TypeRemoved:
             daqContext.getTypeManager().removeType(params.get("TypeName"));
             break;
         default:
             break;
     }
+}
+
+template <class TRootDeviceImpl>
+bool ConfigProtocolClient<TRootDeviceImpl>::IsSameTypeDefinition(const TypePtr& lhs, const TypePtr& rhs)
+{
+    if (lhs == rhs)
+        return true;
+
+    // A property object class compares by pointer, so classes are compared by their serialized definitions
+    const auto lhsClass = lhs.asPtrOrNull<IPropertyObjectClass>(true);
+    const auto rhsClass = rhs.asPtrOrNull<IPropertyObjectClass>(true);
+    if (!lhsClass.assigned() || !rhsClass.assigned())
+        return false;
+
+    const auto serializer = JsonSerializer();
+    lhsClass.serialize(serializer);
+    const auto lhsDefinition = serializer.getOutput();
+
+    serializer.reset();
+    rhsClass.serialize(serializer);
+    return lhsDefinition == serializer.getOutput();
+}
+
+template <class TRootDeviceImpl>
+void ConfigProtocolClient<TRootDeviceImpl>::warnTypeDefinitionConflict(const StringPtr& typeName) const
+{
+    const auto loggerComponent = daqContext.getLogger().getOrAddComponent("ConfigProtocolClient");
+    LOG_W("Type {} received from the server differs from the local definition; the local definition is kept", typeName);
 }
 
 template<class TRootDeviceImpl>

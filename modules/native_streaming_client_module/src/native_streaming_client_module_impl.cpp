@@ -15,6 +15,7 @@
 #include <opendaq/address_info_factory.h>
 #include <opendaq/client_type.h>
 #include <opendaq/thread_name.h>
+#include <native_streaming_protocol/async_exception_guard.h>
 
 BEGIN_NAMESPACE_OPENDAQ_NATIVE_STREAMING_CLIENT_MODULE
 using namespace discovery;
@@ -164,7 +165,7 @@ DevicePtr NativeStreamingClientModule::createNativeDevice(const ContextPtr& cont
             daqNameThread("NatCliDevCfgProc");
             using namespace boost::asio;
             auto workGuard = make_work_guard(*processingIOContextPtr);
-            processingIOContextPtr->run();
+            runGuardedEventLoop(*processingIOContextPtr, loggerComponent, "Native device config processing thread");
             LOG_I("Native device config processing thread finished");
         }
     );
@@ -176,7 +177,7 @@ DevicePtr NativeStreamingClientModule::createNativeDevice(const ContextPtr& cont
             daqNameThread("NatCliDevReconnProc");
             using namespace boost::asio;
             auto workGuard = make_work_guard(*reconnectionProcessingIOContextPtr);
-            reconnectionProcessingIOContextPtr->run();
+            runGuardedEventLoop(*reconnectionProcessingIOContextPtr, loggerComponent, "Native device reconnection processing thread");
             LOG_I("Native device reconnection processing thread finished");
         }
     );
@@ -502,7 +503,7 @@ std::shared_ptr<boost::asio::io_context> NativeStreamingClientModule::addStreami
             daqNameThread("NatCliStreamProc");
             using namespace boost::asio;
             auto workGuard = make_work_guard(*processingIOContextPtr);
-            processingIOContextPtr->run();
+            runGuardedEventLoop(*processingIOContextPtr, loggerComponent, "Streaming " + connectionString.toStdString() + " processing thread");
             LOG_I("Streaming {}: processing thread finished", connectionString);
         }
     );

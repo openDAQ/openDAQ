@@ -27,6 +27,9 @@ public:
     daq::StringPtr onGetRemoteId() const override;
     daq::Bool onTriggerEvent(const daq::EventPacketPtr& eventPacket) override;
 
+    // Stands in for the domain signal a server reports, which a client signal cannot set itself.
+    daq::SignalPtr onGetDomainSignal() override;
+
 private:
     daq::StringPtr streamingId;
 };

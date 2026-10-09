@@ -113,6 +113,7 @@ ErrCode GenericSynchronizationImpl<TInterface, Interfaces...>::getReferenceDomai
     OPENDAQ_PARAM_NOT_NULL(ids);
     return daqTry([&]
     {
+        auto lock = this->getRecursiveConfigLock2();
         auto idList = List<IString>();
 
         const PropertyObjectPtr interfacesProperty = this->objPtr.getPropertyValue("Interfaces");

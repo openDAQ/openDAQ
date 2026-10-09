@@ -39,6 +39,9 @@
 
 ## Bug fixes
 
+- [#1345](https://github.com/openDAQ/openDAQ/pull/1345) Fix a stream reader writing past the caller's buffer or never returning when a data packet arrives without its domain packet; the read fails instead
+- [#1345](https://github.com/openDAQ/openDAQ/pull/1345) Fix an input port aborting the process when its signal fails to handle a disconnect; the failure is logged instead
+- [#1345](https://github.com/openDAQ/openDAQ/pull/1345) Fix a mirrored signal unsubscribing a different domain signal than it subscribed with after its domain signal changed
 - [#1325](https://github.com/openDAQ/openDAQ/pull/1325) Fix a data race in the native configuration protocol streaming consumer that could crash the server when a client connects and removes external signals concurrently
 - [#1277](https://github.com/openDAQ/openDAQ/pull/1277) Fix MultiReader leaking its input ports when disposed before being released; readers treat a missing domain tick resolution as 1/1 instead of crashing
 - [#1273](https://github.com/openDAQ/openDAQ/pull/1273) Fix wrong packet-streaming optimization parameters order

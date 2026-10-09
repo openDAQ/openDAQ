@@ -23,15 +23,15 @@ jobs:
   ci:
     if: ${{ ! github.event.pull_request.draft }}
     name: openDAQ
-    uses: openDAQ/openDAQ-CI/.github/workflows/reusable.yml@newest-runners
+    uses: openDAQ/openDAQ-CI/.github/workflows/reusable.yml@v3
     with:
       timeout: '[{"timeout-minutes": 270}]'
       include-jobs: >
         [
-          "windows-2025-vs2026-x86_64-msvs-v142-release",
-          "windows-2025-vs2026-x86_64-msvs-v145-debug",
-          "windows-2025-vs2026-x86-msvs-v145-release",
-          "windows-2025-vs2026-x86_64-ninja-clang-20-release",
+          "windows-2025-x86_64-msvs-v142-release",
+          "windows-2025-x86_64-msvs-v145-debug",
+          "windows-2025-x86-msvs-v145-release",
+          "windows-2025-x86_64-ninja-clang-20-release",
           "windows-2022-x86_64-ninja-intel-cc-release",
           "ubuntu-20.04-x86-ninja-gcc-7-release",
           "ubuntu-20.04-armv8-ninja-clang-9-release",

@@ -390,10 +390,16 @@ void NativeDeviceHelper::processConfigPacket(PacketBuffer&& packet)
             catch (const std::exception& e)
             {
                 LOG_E("Failed to process notification packet from server: {}\n{}\n", e.what(), packet.parseServerNotification());
+#ifdef DS_CI_RUNNER
+                throw;
+#endif
             }
             catch (...)
             {
                 LOG_E("Failed to process notification packet from server: \n{}\n", packet.parseServerNotification());
+#ifdef DS_CI_RUNNER
+                throw;
+#endif
             }
         }
         else

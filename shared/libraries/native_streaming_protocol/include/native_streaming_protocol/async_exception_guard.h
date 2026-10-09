@@ -36,6 +36,8 @@ BEGIN_NAMESPACE_OPENDAQ_NATIVE_STREAMING_PROTOCOL
  * so that nothing is formatted or allocated unless the callable actually throws. This matters on
  * call sites invoked per request.
  *
+ * In CI builds (DS_CI_RUNNER) the exception is logged and rethrown, so a throwing handler fails the run.
+ *
  * @param loggerComponent The logger component to report the failure to.
  * @param callable The callable to invoke.
  * @param descriptionFormat Describes the operation, used as the log message prefix.
@@ -58,12 +60,21 @@ bool runGuarded(const LoggerComponentPtr& loggerComponent,
         LOG_E("{}: unhandled exception: {}",
               fmt::format(descriptionFormat, std::forward<DescriptionArgs>(descriptionArgs)...),
               e.what());
+#ifdef DS_CI_RUNNER
+        throw;
+#else
+        return false;
+#endif
     }
     catch (...)
     {
         LOG_E("{}: unhandled exception", fmt::format(descriptionFormat, std::forward<DescriptionArgs>(descriptionArgs)...));
+#ifdef DS_CI_RUNNER
+        throw;
+#else
+        return false;
+#endif
     }
-    return false;
 }
 
 /*!

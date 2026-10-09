@@ -23,27 +23,24 @@ jobs:
   ci:
     if: ${{ ! github.event.pull_request.draft }}
     name: openDAQ
-    uses: openDAQ/openDAQ-CI/.github/workflows/reusable.yml@jobs-by-runner-and-compiler
+    uses: openDAQ/openDAQ-CI/.github/workflows/reusable.yml@newest-runners
     with:
       timeout: '[{"timeout-minutes": 270}]'
       include-jobs: >
         [
+          "windows-2025-vs2026-x86_64-msvs-v142-release",
+          "windows-2025-vs2026-x86_64-msvs-v145-debug",
+          "windows-2025-vs2026-x86-msvs-v145-release",
+          "windows-2025-vs2026-x86_64-ninja-clang-20-release",
           "windows-2022-x86_64-ninja-intel-cc-release",
           "ubuntu-20.04-x86-ninja-gcc-7-release",
           "ubuntu-20.04-armv8-ninja-clang-9-release",
+          "ubuntu-26.04-armv8-ninja-gcc-15-debug",
+          "ubuntu-26.04-x86_64-ninja-clang-22-release",
           "manylinux_2_28-x86_64-ninja-gcc-14-release",
           "manylinux_2_28-armv8-ninja-gcc-14-release",
-          "macos-26-x86_64-ninja-appleclang-17-debug"
-        ]
-      jobs: >
-        [
-          {"runner": "windows-2025-vs2026", "arch": "x86_64", "compiler": "msvc-v142"},
-          {"runner": "windows-2025-vs2026", "arch": "x86_64", "compiler": "msvc-v145", "build-type": "debug"},
-          {"runner": "windows-2025-vs2026", "arch": "x86", "compiler": "msvc-v145"},
-          {"runner": "windows-2025-vs2026", "arch": "x86_64", "compiler": "clang-20"},
-          {"runner": "ubuntu-26.04-arm", "image": "ubuntu:26.04", "arch": "armv8", "compiler": "gcc-15", "build-type": "debug"},
-          {"runner": "ubuntu-26.04", "image": "ubuntu:26.04", "arch": "x86_64", "compiler": "clang-22"},
-          {"name": "macos-27-armv8-ninja-xcode-27.0-release", "runner": "xcode-27", "arch": "armv8", "compiler": "xcode-27.0"}
+          "macos-26-x86_64-ninja-appleclang-17-debug",
+          "macos-27-armv8-ninja-appleclang-21-release"
         ]
       packages: >
         [
@@ -57,11 +54,7 @@ jobs:
           },
           {
             "match-jobs": ["ubuntu-26.04-*"],
-            "apt-install": ["libfreetype-dev", "mono-runtime", "mono-libraries"]
-          },
-          {
-            "match-jobs": ["macos-27-*"],
-            "brew-install": ["mono"]
+            "apt-install": ["libfreetype-dev"]
           },
           {
             "match-jobs": ["ubuntu-*-x86-*"],

@@ -5501,5 +5501,30 @@ TEST_F(NativeDeviceModulesTest, RemoveServerWhileRootUpdateIsHandled)
     ASSERT_EQ(updated.wait_for(std::chrono::seconds(10)), std::future_status::ready);
     removed.get();
 }
+
+TEST_F(NativeDeviceModulesTest, RemoveDeviceWhileItsCoreEventHandlerWaitsForTheDeviceLock)
+{
+    auto server = CreateServerInstance();
+    auto client = test_helpers::createInstance("[[none]]");
+    addNativeClientModule(client);
+
+    // Which of the two threads waiting for the device lock gets it first is up to the OS, so the order is repeated.
+    for (int i = 0; i < 10; ++i)
+    {
+        const auto device = client.addDevice("daq.nd://127.0.0.1");
+
+        // The device's core event handlers wait for the device lock first, then the removal waits for it too.
+        auto deviceLock = device.asPtr<IPropertyObjectInternal>().getRecursiveLockGuard();
+        auto updated = triggerUpdateEnd(client, device);
+        std::this_thread::sleep_for(std::chrono::milliseconds(100));
+        auto removed = std::async(std::launch::async, [&] { client.removeDevice(device); });
+        std::this_thread::sleep_for(std::chrono::milliseconds(100));
+        deviceLock = nullptr;
+
+        ASSERT_EQ(removed.wait_for(std::chrono::seconds(10)), std::future_status::ready) << "removeDevice deadlocked with the core event handler";
+        ASSERT_EQ(updated.wait_for(std::chrono::seconds(10)), std::future_status::ready);
+        removed.get();
+    }
+}
 }
 // namespace test_native_device_modules

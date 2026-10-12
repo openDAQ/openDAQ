@@ -526,7 +526,24 @@ ErrCode ConfigClientPropertyObjectBaseImpl<Impl>::remoteUpdate(ISerializedObject
 {
     const ErrCode errCode = daqTry([&serialized, this]
     {
-        onRemoteUpdate(serialized);
+        // ComponentUpdateEnd sets deserializationComplete=false before calling onRemoteUpdate
+        // directly. Nested remoteUpdate (e.g. Dev folder → child device) must do the same —
+        // otherwise setProtectedPropertyValue issues RPCs while the server is still inside
+        // SendOutCoreEvents and deadlocks (worker count = 1).
+        const bool wasComplete = this->deserializationComplete;
+        this->deserializationComplete = false;
+
+        try
+        {
+            onRemoteUpdate(serialized);
+        }
+        catch (...)
+        {
+            this->deserializationComplete = wasComplete;
+            throw;
+        }
+
+        this->deserializationComplete = wasComplete;
         return OPENDAQ_SUCCESS;
     });
     OPENDAQ_RETURN_IF_FAILED(errCode);

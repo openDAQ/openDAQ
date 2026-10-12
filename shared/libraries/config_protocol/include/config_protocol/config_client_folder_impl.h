@@ -260,7 +260,7 @@ void ConfigClientBaseFolderImpl<Impl>::onRemoteUpdate(const SerializedObjectPtr&
         {
             ComponentPtr child;
             this->getItem(key, &child);
-            child.asPtr<IConfigClientObject>()->remoteUpdate(obj);
+            this->remoteUpdateChild(child, obj);
         }
         else
         {

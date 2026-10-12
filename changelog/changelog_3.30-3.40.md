@@ -39,6 +39,8 @@
 
 ## Bug fixes
 
+- [#1335](https://github.com/openDAQ/openDAQ/pull/1335) Fix a reconnect leaving a sub-device with stale properties and device info when the server added a property to it; the property is no longer lost when its metadata changed
+- [#1335](https://github.com/openDAQ/openDAQ/pull/1335) Config protocol client logs a child component that fails to apply the server's update
 - [#1325](https://github.com/openDAQ/openDAQ/pull/1325) Fix a data race in the native configuration protocol streaming consumer that could crash the server when a client connects and removes external signals concurrently
 - [#1277](https://github.com/openDAQ/openDAQ/pull/1277) Fix MultiReader leaking its input ports when disposed before being released; readers treat a missing domain tick resolution as 1/1 instead of crashing
 - [#1273](https://github.com/openDAQ/openDAQ/pull/1273) Fix wrong packet-streaming optimization parameters order

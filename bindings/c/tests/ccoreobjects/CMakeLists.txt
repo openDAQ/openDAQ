@@ -15,6 +15,12 @@ add_executable(${TEST_APP} ${CMAKE_CURRENT_LIST_DIR}/../test_app.cpp
 )
 
 target_compile_definitions(${TEST_APP} PRIVATE ${OPENDAQ_TEST_COMPILE_DEFINES})
+
+# copendaq links coreobjects privately, so its access control define does not propagate here
+if (OPENDAQ_ENABLE_ACCESS_CONTROL)
+    target_compile_definitions(${TEST_APP} PRIVATE OPENDAQ_ENABLE_ACCESS_CONTROL)
+endif()
+
 set_target_properties(${TEST_APP} PROPERTIES DEBUG_POSTFIX _debug)
 
 target_link_libraries(${TEST_APP}

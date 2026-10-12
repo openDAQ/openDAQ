@@ -3238,6 +3238,7 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::serializePro
 template <class PropObjInterface, class... Interfaces>
 ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::serializePropertyValues(ISerializer* serializer, bool forUpdate)
 {
+    auto lock = getRecursiveConfigLock2();
     auto serializerPtr = SerializerPtr::Borrow(serializer);
 
     const auto numOfSerializablePropertyValues =
@@ -3289,6 +3290,7 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::serializeLoc
 {
     const ErrCode errCode = daqTry([&serializer, this]
     {
+        auto lock = getRecursiveConfigLock2();
         if (localProperties.size() == 0)
             return OPENDAQ_NOTFOUND;
 

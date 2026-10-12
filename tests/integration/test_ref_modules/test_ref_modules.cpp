@@ -1040,7 +1040,7 @@ TEST_F(RefModulesTest, ClassifierAsyncData)
     ASSERT_EQ(outputData[0], 1.0);
 }
 
-TEST_F_UNSTABLE_SKIPPED(RefModulesTest, ClassifierCheckAsyncMultiData)
+TEST_F(RefModulesTest, ClassifierCheckAsyncMultiData)
 {
     using InputSignalType = Int;
     using OutputSignalType = Float;

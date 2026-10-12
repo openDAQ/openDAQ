@@ -91,7 +91,7 @@ protected:
     void notifyActiveChanged(bool onUpdate) override;
 
 private:
-    bool removeItemWithLocalIdInternal(const std::string& str);
+    ErrCode removeItemWithLocalIdInternal(const std::string& str);
     void clearInternal();
 
     IntfID itemId;
@@ -265,32 +265,7 @@ ErrCode FolderImpl<Intf, Intfs...>::removeItem(IComponent* item)
 {
     OPENDAQ_PARAM_NOT_NULL(item);
 
-    const auto str = ComponentPtr::Borrow(item).getLocalId().toStdString();
-
-    {
-        auto lock = this->getRecursiveConfigLock2();
-
-        const ErrCode err = daqTry([this, &str]
-        {
-            if (!removeItemWithLocalIdInternal(str))
-                return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOTFOUND);
-
-            return OPENDAQ_SUCCESS;
-        });
-
-        OPENDAQ_RETURN_IF_FAILED(err);
-    }
-    
-    if (!this->coreEventMuted && this->coreEvent.assigned())
-    {
-        const auto args = createWithImplementation<ICoreEventArgs, CoreEventArgsImpl>(
-                CoreEventId::ComponentRemoved,
-                Dict<IString, IBaseObject>({{"Id", str}}));
-        
-        this->triggerCoreEvent(args);
-    }
-
-    return OPENDAQ_SUCCESS;
+    return removeItemWithLocalIdInternal(ComponentPtr::Borrow(item).getLocalId().toStdString());
 }
 
 template <class Intf, class... Intfs>
@@ -298,32 +273,7 @@ ErrCode FolderImpl<Intf, Intfs...>::removeItemWithLocalId(IString* localId)
 {
     OPENDAQ_PARAM_NOT_NULL(localId);
 
-    const auto str = StringPtr::Borrow(localId).toStdString();
-
-    {
-        auto lock = this->getRecursiveConfigLock2();
-
-        const ErrCode err = daqTry([this, &str]
-        {
-            if (!removeItemWithLocalIdInternal(str))
-                return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOTFOUND);
-
-            return OPENDAQ_SUCCESS;
-        });
-
-        OPENDAQ_RETURN_IF_FAILED(err);
-    }
-
-    if (!this->coreEventMuted && this->coreEvent.assigned())
-    {
-        const auto args = createWithImplementation<ICoreEventArgs, CoreEventArgsImpl>(
-                CoreEventId::ComponentRemoved,
-                Dict<IString, IBaseObject>({{"Id", str}}));
-        
-        this->triggerCoreEvent(args);
-    }
-
-    return OPENDAQ_SUCCESS;
+    return removeItemWithLocalIdInternal(StringPtr::Borrow(localId).toStdString());
 }
 
 template <class Intf, class... Intfs>
@@ -594,17 +544,39 @@ ErrCode FolderImpl<Intf, Intfs...>::updateOperationMode(OperationModeType modeTy
     return OPENDAQ_SUCCESS;
 }
 
+// The item is removed after the folder lock is released: its removal can wait for event handlers that need this lock.
 template <class Intf, class... Intfs>
-bool FolderImpl<Intf, Intfs...>::removeItemWithLocalIdInternal(const std::string& str)
+ErrCode FolderImpl<Intf, Intfs...>::removeItemWithLocalIdInternal(const std::string& str)
 {
-    const auto it = items.find(str);
-    if (it == items.end())
-        return false;
+    ComponentPtr item;
+    {
+        auto lock = this->getRecursiveConfigLock2();
 
-    it->second.template asPtr<IPropertyObjectInternal>(true).disableCoreEventTrigger();
-    it->second.remove();
-    items.erase(it);
-    return true;
+        const auto it = items.find(str);
+        if (it == items.end())
+            return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOTFOUND);
+
+        item = it->second;
+        items.erase(it);
+    }
+
+    const ErrCode err = daqTry([&item]
+    {
+        item.template asPtr<IPropertyObjectInternal>(true).disableCoreEventTrigger();
+        item.remove();
+    });
+    OPENDAQ_RETURN_IF_FAILED(err);
+
+    if (!this->coreEventMuted && this->coreEvent.assigned())
+    {
+        const auto args = createWithImplementation<ICoreEventArgs, CoreEventArgsImpl>(
+                CoreEventId::ComponentRemoved,
+                Dict<IString, IBaseObject>({{"Id", str}}));
+
+        this->triggerCoreEvent(args);
+    }
+
+    return OPENDAQ_SUCCESS;
 }
 
 using StandardFolder = FolderImpl<>;

@@ -84,7 +84,7 @@ public:
     ErrCode INTERFACE_FUNC getContext(IContext** context) override;
     ErrCode INTERFACE_FUNC getParent(IComponent** parent) override;
     ErrCode INTERFACE_FUNC getName(IString** name) override;
-    virtual ErrCode INTERFACE_FUNC setName(IString* name) override;
+    ErrCode INTERFACE_FUNC setName(IString* name) override;
     ErrCode INTERFACE_FUNC getDescription(IString** description) override;
     ErrCode INTERFACE_FUNC setDescription(IString* description) override;
     ErrCode INTERFACE_FUNC getTags(ITags** tags) override;
@@ -646,6 +646,9 @@ ErrCode ComponentImpl<Intf, Intfs...>::setVisible(Bool visible)
 
         if (this->isComponentRemoved)
             return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_COMPONENT_REMOVED);
+
+        if (static_cast<bool>(visible) == this->visible)
+            return OPENDAQ_IGNORED;
 
         if (lockedAttributes.count("Visible"))
         {

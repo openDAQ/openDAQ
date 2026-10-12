@@ -245,6 +245,8 @@ TEST_F(CCoreobjectsTest, Ownable)
     daqBaseObject_releaseRef(parentObj);
 }
 
+#ifdef OPENDAQ_ENABLE_ACCESS_CONTROL
+
 TEST_F(CCoreobjectsTest, Permissions)
 {
     daqList* adminGroups = nullptr;
@@ -315,6 +317,8 @@ TEST_F(CCoreobjectsTest, Permissions)
     daqBaseObject_releaseRef(adminGroups);
     daqBaseObject_releaseRef(guestGroups);
 }
+
+#endif
 
 TEST_F(CCoreobjectsTest, Property)
 {

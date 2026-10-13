@@ -70,6 +70,11 @@ class SyncView(ttk.Frame):
 
         left = ttk.Frame(panes)
         self.details = ttk.Frame(panes)
+        self.details_header = ttk.Frame(self.details)
+        self.details_header.pack(fill=tk.X)
+        self.details_body = ttk.Frame(self.details)
+        self.details_body.pack(fill=tk.BOTH, expand=True)
+        self.details_key = None
         panes.add(left, weight=3)
         panes.add(self.details, weight=2)
         panes.bind('<Map>', lambda e: self.after_idle(lambda: panes.sashpos(0, int(panes.winfo_width() * 0.62))))
@@ -346,15 +351,22 @@ class SyncView(ttk.Frame):
         self.after_idle(self.overlays_sync)
 
     def details_draw(self, record, interface):
-        for widget in list(self.details.children.values()):
+        for widget in list(self.details_header.children.values()):
             widget.destroy()
-        self.properties = None
+
+        # A refresh redraws the status header but keeps an open property editor
+        key = (record.device.global_id, interface.id) if record is not None else None
+        if key != self.details_key:
+            for widget in list(self.details_body.children.values()):
+                widget.destroy()
+            self.properties = None
+        self.details_key = key
 
         if record is None:
-            ttk.Label(self.details, text='No devices expose synchronization').pack(anchor=tk.W, padx=8, pady=8)
+            ttk.Label(self.details_header, text='No devices expose synchronization').pack(anchor=tk.W, padx=8, pady=8)
             return
 
-        header = ttk.Frame(self.details)
+        header = ttk.Frame(self.details_header)
         header.pack(fill=tk.X, padx=(8, 0), pady=(4, 6))
         background = ttk.Style(self).lookup('TFrame', 'background')
         ttk.Label(header, text=record.device.name, style='SyncHeader.TLabel').pack(side=tk.LEFT)
@@ -383,8 +395,10 @@ class SyncView(ttk.Frame):
             widget.bind('<Enter>', lambda e: [w.configure(background='#e0e0e0') for w in widgets])
             widget.bind('<Leave>', lambda e: [w.configure(background=background) for w in widgets])
 
-        ttk.Label(self.details, text=f'{interface.id} configuration', style='SyncGroup.TLabel').pack(anchor=tk.W, padx=(8, 0))
-        frame = ttk.Frame(self.details)
+        if self.properties is not None:
+            return
+        ttk.Label(self.details_body, text=f'{interface.id} configuration', style='SyncGroup.TLabel').pack(anchor=tk.W, padx=(8, 0))
+        frame = ttk.Frame(self.details_body)
         frame.pack(fill=tk.BOTH, expand=True)
         self.properties = PropertiesTreeview(frame, interface.configuration, self.context)
 
@@ -397,6 +411,12 @@ class SyncView(ttk.Frame):
 
     def on_core_event(self, sender, args: daq.IEventArgs):
         if args.event_name not in ('PropertyValueChanged', 'StatusChanged') or self.refresh_job is not None:
+            return
+        if not daq.ICoreEventArgs.can_cast_from(args):
+            return
+        # Only events from a synchronization, whose path starts at the device's daqSynchronization
+        params = daq.ICoreEventArgs.cast_from(args).parameters
+        if 'Path' not in params or not str(params['Path']).startswith('daqSynchronization'):
             return
         self.refresh_job = self.after(100, self.refresh)
 

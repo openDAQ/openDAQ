@@ -55,8 +55,14 @@ void SyncInterfaceBaseImpl::initProperties()
     configuration.setPropertyOrder({"ModeOptions"});
     this->objPtr.addProperty(ObjectProperty("Configuration", configuration));
 
-    configuration.getOnAnyPropertyValueWrite() += [this](PropertyObjectPtr&, PropertyValueEventArgsPtr& arg)
+    // The configuration object can outlive this interface.
+    const auto weakThis = this->template getWeakRefInternal<IPropertyObject>();
+    configuration.getOnAnyPropertyValueWrite() += [this, weakThis](PropertyObjectPtr&, PropertyValueEventArgsPtr& arg)
     {
+        const auto self = weakThis.getRef();
+        if (!self.assigned())
+            return;
+
         auto lock = this->getRecursiveConfigLock2();
         const StringPtr name = arg.getProperty().getName();
         onConfigurationChanged(name, arg.getValue());

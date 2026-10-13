@@ -760,7 +760,9 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::callProperty
 
     if (valueWriteEvents[AnyWriteEventName].hasListeners())
     {
-        valueWriteEvents[AnyWriteEventName](objPtr, args);
+        const ErrCode anyWriteErr = daqTry([&] { valueWriteEvents[AnyWriteEventName](objPtr, args); });
+        if (OPENDAQ_SUCCEEDED(errCode))
+            errCode = anyWriteErr;
     }
 
     bool shouldUpdate = updatePropertyStack.unregisterPropertyUpdating(name);

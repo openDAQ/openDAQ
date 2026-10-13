@@ -72,22 +72,24 @@ void SynchronizationImpl::onSourceChanged(const StringPtr& sourceName)
     const auto oldSourceMode = oldSource.getMode();
     const auto newSourceMode = newSource.getMode();
 
-    oldSource.asPtr<ISyncInterfaceInternal>(true).setAsSource(False);
-
     try
     {
+        oldSource.asPtr<ISyncInterfaceInternal>(true).setAsSource(False);
         newSource.asPtr<ISyncInterfaceInternal>(true).setAsSource(True);
         source = newSource.detach();
     }
     catch(...)
     {
+        // The rollback must not throw, or its error replaces the one the caller should see
         if (OPENDAQ_FAILED(newSource.asPtr<ISyncInterfaceInternal>(true)->setAsSource(False)))
             clearErrorInfo();
         else if (newSourceMode != SyncMode::Off && OPENDAQ_FAILED(newSource->setMode(newSourceMode)))
             clearErrorInfo();
 
-        oldSource.asPtr<ISyncInterfaceInternal>(true).setAsSource(True);
-        oldSource.setMode(oldSourceMode);
+        if (OPENDAQ_FAILED(oldSource.asPtr<ISyncInterfaceInternal>(true)->setAsSource(True)))
+            clearErrorInfo();
+        else if (OPENDAQ_FAILED(oldSource->setMode(oldSourceMode)))
+            clearErrorInfo();
         throw;
     }
 

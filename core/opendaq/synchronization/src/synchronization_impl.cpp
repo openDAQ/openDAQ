@@ -103,24 +103,50 @@ void SynchronizationImpl::onSourceChanged(const StringPtr& sourceName)
 
 ErrCode SynchronizationImpl::update(ISerializedObject* obj, IBaseObject* config)
 {
+    // update() holds this object's own values until endUpdate but applies the interfaces at once,
+    // so the saved source is set before the update block starts.
+    OPENDAQ_RETURN_IF_FAILED(applySavedSource(obj));
+    return Super::update(obj, config);
+}
+
+ErrCode SynchronizationImpl::updateInternal(ISerializedObject* obj, IBaseObject* context)
+{
+    OPENDAQ_RETURN_IF_FAILED(applySavedSource(obj));
+    return Super::updateInternal(obj, context);
+}
+
+// The source is set before the interfaces, otherwise the source's saved mode is checked against the
+// modes of a non-source interface and rejected. A source equal to the default is not saved, and the
+// clear that would restore it is ignored, so a missing source is set to the default here.
+ErrCode SynchronizationImpl::applySavedSource(ISerializedObject* obj)
+{
     OPENDAQ_PARAM_NOT_NULL(obj);
 
-    // update() holds this object's own values until endUpdate but applies the interfaces at once,
-    // so the saved source is set first; otherwise the source's saved mode is checked against the
-    // modes of a non-source interface and rejected.
-    const ErrCode errCode = daqTry([&]
+    return daqTry([&]
     {
+        StringPtr savedSource = this->objPtr.getProperty("Source").getDefaultValue();
+
         const auto serialized = SerializedObjectPtr::Borrow(obj);
-        if (!serialized.hasKey("propValues"))
-            return;
+        if (serialized.hasKey("propValues"))
+        {
+            const auto values = serialized.readSerializedObject("propValues");
+            if (values.hasKey("Source"))
+                savedSource = values.readString("Source");
+        }
 
-        const auto values = serialized.readSerializedObject("propValues");
-        if (values.hasKey("Source"))
-            checkErrorInfo(this->setPropertyValue(String("Source"), values.readString("Source")));
+        checkErrorInfo(this->setPropertyValue(String("Source"), savedSource));
     });
-    OPENDAQ_RETURN_IF_FAILED(errCode);
+}
 
-    return Super::update(obj, config);
+// The values derive from the interfaces and the selected source; a clear would leave no valid source.
+ErrCode SynchronizationImpl::clearPropertyValue(IString* /*propertyName*/)
+{
+    return OPENDAQ_IGNORED;
+}
+
+ErrCode SynchronizationImpl::clearProtectedPropertyValue(IString* /*propertyName*/)
+{
+    return OPENDAQ_IGNORED;
 }
 
 ErrCode SynchronizationImpl::clone(IPropertyObject** cloned)

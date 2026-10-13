@@ -799,6 +799,26 @@ TEST_F(DeviceTest, SynchronizationSaveLoadSourceMode)
     ASSERT_EQ(interfaces.get("ClockSyncInterface").getMode(), daq::SyncMode::Off);
 }
 
+TEST_F(DeviceTest, SynchronizationLoadConfigurationWithoutSynchronization)
+{
+    // Saved from a device without synchronization, as are configurations saved before it existed
+    const auto oldDevice = daq::createWithImplementation<daq::IDevice, TestDevice>();
+    const auto config = oldDevice.saveConfiguration();
+
+    const auto device = daq::createWithImplementation<daq::IDevice, TestDeviceWithSynchronization>();
+    const auto synchronization = device.getSynchronization();
+    synchronization.setSource("TestInterface");
+    synchronization.getInterfaces().get("TestInterface").setMode(daq::SyncMode::Input);
+    const auto sourcesBefore = synchronization.getAvailableSources().getCount();
+
+    device.loadConfiguration(config);
+
+    ASSERT_EQ(synchronization.getSource().getId(), "TestInterface");
+    ASSERT_EQ(synchronization.getInterfaces().get("TestInterface").getMode(), daq::SyncMode::Input);
+    ASSERT_EQ(synchronization.getAvailableSources().getCount(), sourcesBefore) << "Loading cleared SourceInterfaces";
+    ASSERT_NO_THROW(synchronization.setSource("ClockSyncInterface"));
+}
+
 TEST_F(DeviceTest, SynchronizationUpdateSourceMode)
 {
     const auto device = daq::createWithImplementation<daq::IDevice, TestDeviceWithSynchronization>();

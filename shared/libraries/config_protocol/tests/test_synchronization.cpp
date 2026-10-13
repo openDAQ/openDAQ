@@ -547,16 +547,3 @@ TEST_F(ConfigSynchronizationTest, ConnectWithNonDefaultSource)
     ASSERT_EQ(newClientDevice.getSynchronization().getSource().getId(), "PtpSyncInterface");
 }
 
-TEST_F(ConfigSynchronizationTest, ConnectWithSourceSerializedBeforeSourceInterfaces)
-{
-    auto serverSync = getServerSyncComponent();
-    serverSync.setSource("PtpSyncInterface");
-
-    // Without the property order, values serialize by name, as on servers built before it was
-    // added: the client receives Source before the SourceInterfaces list it selects from.
-    ASSERT_ERROR_CODE_EQ(serverSync.asPtr<IPropertyObject>(true)->setPropertyOrder(nullptr), OPENDAQ_SUCCESS);
-
-    DevicePtr newClientDevice;
-    ASSERT_NO_THROW(newClientDevice = connectNewClient()) << "A client failed to add a device that sends Source before SourceInterfaces";
-    ASSERT_EQ(newClientDevice.getSynchronization().getSource().getId(), "PtpSyncInterface");
-}

@@ -42,33 +42,4 @@ typedef std::mutex mutex;
 
 #endif
 
-class RecursiveMutex
-{
-public:
-    RecursiveMutex(mutex* mt)
-        : mt(mt)
-    {
-    }
-
-    RecursiveMutex()
-        : mt(nullptr)
-    {
-    }
-
-    void lock() const
-    {
-        if (mt != nullptr)
-            mt->lock();
-    };
-
-    void unlock() const
-    {
-        if (mt != nullptr)
-            mt->unlock();
-    };
-
-private:
-    mutex* mt;
-};
-
 END_NAMESPACE_OPENDAQ

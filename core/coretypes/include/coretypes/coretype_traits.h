@@ -273,13 +273,13 @@ struct CoreTypeHelper<std::wstring>
 
     static std::wstring ToWString(IString* string)
     {
-#if defined(__clang__)
-    #pragma clang diagnostic push
-    #pragma clang diagnostic ignored "-Wdeprecated-declarations"
+#if defined(__GNUC__) || defined(__clang__)
+    #pragma GCC diagnostic push
+    #pragma GCC diagnostic ignored "-Wdeprecated-declarations"
 #endif
         std::wstring_convert<std::codecvt_utf8_utf16<wchar_t>, wchar_t> converter;
-#if defined(__clang__)
-    #pragma clang diagnostic pop
+#if defined(__GNUC__) || defined(__clang__)
+    #pragma GCC diagnostic pop
 #endif
 
         ConstCharPtr data;
@@ -309,14 +309,14 @@ struct CoreTypeHelper<std::wstring>
         mbstowcs(dest, t_str.c_str(), l);
         return dest;
 #else
-#if defined(__clang__)
-    #pragma clang diagnostic push
-    #pragma clang diagnostic ignored "-Wdeprecated-declarations"
+#if defined(__GNUC__) || defined(__clang__)
+    #pragma GCC diagnostic push
+    #pragma GCC diagnostic ignored "-Wdeprecated-declarations"
 #endif
         typedef std::codecvt_utf8<wchar_t> ConvertType;
         std::wstring_convert<ConvertType, wchar_t> converter;
-#if defined(__clang__)
-    #pragma clang diagnostic pop
+#if defined(__GNUC__) || defined(__clang__)
+    #pragma GCC diagnostic pop
 #endif
         return converter.from_bytes(t_str);
 #endif
@@ -324,16 +324,16 @@ struct CoreTypeHelper<std::wstring>
 
     static std::string wstringToString(const std::wstring& t_str)
     {
-#if defined(__clang__)
-    #pragma clang diagnostic push
-    #pragma clang diagnostic ignored "-Wdeprecated-declarations"
+#if defined(__GNUC__) || defined(__clang__)
+    #pragma GCC diagnostic push
+    #pragma GCC diagnostic ignored "-Wdeprecated-declarations"
 #endif
         //setup converter
         typedef std::codecvt_utf8<wchar_t> ConvertType;
         std::wstring_convert<ConvertType, wchar_t> converter;
 
-#if defined(__clang__)
-    #pragma clang diagnostic pop
+#if defined(__GNUC__) || defined(__clang__)
+    #pragma GCC diagnostic pop
 #endif
 
         //use converter (.to_bytes: wstr->str, .from_bytes: str->wstr)

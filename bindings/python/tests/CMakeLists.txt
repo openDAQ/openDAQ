@@ -17,6 +17,7 @@ set(PYHTON_TEST_SRC
     test_how_to_last_value.py
     test_freezable.py
     test_synchronization.py
+    test_type_manager.py
 )
 
 option(OPENDAQ_VENV_PYTHON_EXECUTABLE_TESTS "Use python executable from virtual environment for tests" OFF)

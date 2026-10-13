@@ -346,7 +346,7 @@ TEST_P(StreamingTest, LastValue)
         auto serverReader = PacketReader(serverSignal);
         generatePackets(3);
 
-        auto serverReceivedPackets = test_helpers::tryReadPackets(serverReader, 3);
+        auto serverReceivedPackets = test_helpers::tryReadPackets(serverReader, 4);
 
         ASSERT_TRUE(serverSignal.getLastValue().assigned());
         ASSERT_TRUE(mirroredSignalPtr.getLastValue().assigned());
@@ -1364,7 +1364,7 @@ TEST_P(StreamingTestForModernLt, LastValue)
         auto serverReader = PacketReader(serverSignal);
         generatePackets(3);
 
-        auto serverReceivedPackets = test_helpers::tryReadPackets(serverReader, 3);
+        auto serverReceivedPackets = test_helpers::tryReadPackets(serverReader, 4);
 
         ASSERT_TRUE(serverSignal.getLastValue().assigned());
         if (isStreamingOnly)

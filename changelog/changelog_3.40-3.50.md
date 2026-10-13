@@ -50,6 +50,15 @@
 
 `daq::RecursiveMutex` was removed from `coretypes/utility_sync.h`. Use `std::recursive_mutex` or `daq::mutex` instead.
 
+### [#1045](https://github.com/openDAQ/openDAQ/pull/1045) ISynchronization replaces ISyncComponent
+
+- `UsesOffset`, `IReferenceDomainInfo::getUsesOffset` and `IReferenceDomainInfoBuilder::setUsesOffset`/`getUsesOffset` are removed in C++, C, Python and .NET; `getReferenceDomainIds` lists the reference domains instead.
+- The reference device reports the reference domain ID `local:openDAQ_<serial>` instead of `openDAQ_<serial>`, the simulator device `local:<localId>` instead of `<localId>`, and both report the time protocol `Utc`.
+- The reference device's deprecated `SyncComponent` holds no interfaces; `IDevice::getSynchronization` replaces it.
+- Calls to `getSyncComponent` and the `SyncComponentPtr` methods produce deprecation warnings, which fail builds that treat warnings as errors.
+- Python: the `opendaq.SyncComponent` argument `parse_failed_exception` is renamed to `parent`.
+- Clients built before this change cannot add a device that exposes `ISynchronization`, which includes the reference and simulator devices.
+
 
 ## Required module changes
 
@@ -59,13 +68,46 @@
 
 `daq::RecursiveMutex` was removed from `coretypes/utility_sync.h`. Use `std::recursive_mutex` or `daq::mutex` instead.
 
+### [#1045](https://github.com/openDAQ/openDAQ/pull/1045) ISynchronization replaces ISyncComponent
+
+- `IDevice` implementations not derived from `GenericDevice` implement `getSynchronization`.
+- Modules that set `UsesOffset` remove it and set `ReferenceDomainIds`.
+- `IReferenceDomainInfo::getReferenceDomainIds` takes the interface slot of the removed `getUsesOffset`; modules built against older headers must be rebuilt.
+
 ## Interface API changes
 
 ### New interfaces
 
+```diff
++ [interface] ISynchronization
++ [interface] ISynchronizationPrivate
++ [interface] ISyncInterface
++ [interface] ISyncInterfaceInternal
++ [enum] SyncMode, SyncSourceStatus, SyncRoleStatus
+```
+
 ### Removed interfaces
 
 ### Modified interfaces
+
+#### `IDevice`
+```diff
++ IDevice::getSynchronization(ISynchronization** sync);
+```
+
+#### `IReferenceDomainInfo`
+```diff
+- IReferenceDomainInfo::getUsesOffset(UsesOffset* usesOffset);
++ IReferenceDomainInfo::getReferenceDomainIds(IList** referenceDomainIds);
+```
+
+#### `IReferenceDomainInfoBuilder`
+```diff
+- IReferenceDomainInfoBuilder::setUsesOffset(UsesOffset usesOffset);
+- IReferenceDomainInfoBuilder::getUsesOffset(UsesOffset* usesOffset);
++ IReferenceDomainInfoBuilder::setReferenceDomainIds(IList* referenceDomainIds);
++ IReferenceDomainInfoBuilder::getReferenceDomainIds(IList** referenceDomainIds);
+```
 
 #### `Context`
 ```diff

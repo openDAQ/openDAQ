@@ -311,6 +311,46 @@ TEST_F(ConfigSynchronizationTest, InitialStatusMatchesOnConnect)
     ASSERT_EQ(clientStatus.getValue(), "Synced");
 }
 
+TEST_F(ConfigSynchronizationTest, StatusChangeRaisesCoreEventOnClient)
+{
+    const SyncInterfacePtr serverInterface = getServerSyncComponent().getInterfaces().get("TestInterface");
+    auto* impl = dynamic_cast<TestDeviceWithSync2Impl::TestSyncInterface*>(serverInterface.getObject());
+    ASSERT_NE(impl, nullptr);
+
+    StringPtr eventPath;
+    clientContext.getOnCoreEvent() += [&](const ComponentPtr& /*comp*/, const CoreEventArgsPtr& args)
+    {
+        if (args.getEventName() == "StatusChanged")
+            eventPath = args.getParameters().getOrDefault("Path");
+    };
+
+    impl->setSyncSourceStatus(SyncSourceStatus::Error, "cable unplugged");
+
+    ASSERT_TRUE(eventPath.assigned()) << "No StatusChanged event was raised on the client";
+    ASSERT_EQ(eventPath, serverInterface.asPtr<IPropertyObjectInternal>(true).getPath());
+}
+
+TEST_F(ConfigSynchronizationTest, ReconnectReadsChangedStatus)
+{
+    const SyncInterfacePtr serverInterface = getServerSyncComponent().getInterfaces().get("TestInterface");
+    auto* impl = dynamic_cast<TestDeviceWithSync2Impl::TestSyncInterface*>(serverInterface.getObject());
+    ASSERT_NE(impl, nullptr);
+
+    // The client misses the change and reads it only on reconnect
+    serverDevice.asPtr<IPropertyObjectInternal>().disableCoreEventTrigger();
+    impl->setSyncSourceStatus(SyncSourceStatus::Error, "cable unplugged");
+    serverDevice.asPtr<IPropertyObjectInternal>().enableCoreEventTrigger();
+
+    const auto clientStatuses = getClientSyncComponent().getInterfaces().get("TestInterface").getStatusContainer();
+    ASSERT_EQ(clientStatuses.getStatus("SynchronizationSourceStatus").getValue(), "Synced");
+
+    client->reconnect(False);
+
+    const auto statusesAfter = getClientSyncComponent().getInterfaces().get("TestInterface").getStatusContainer();
+    ASSERT_EQ(statusesAfter.getStatus("SynchronizationSourceStatus").getValue(), "Error");
+    ASSERT_EQ(statusesAfter.getStatusMessage("SynchronizationSourceStatus"), "cable unplugged");
+}
+
 TEST_F(ConfigSynchronizationTest, StatusChangedPropagatesToClient)
 {
     auto serverSync = getServerSyncComponent();

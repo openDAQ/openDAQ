@@ -87,8 +87,9 @@ ErrCode ConfigClientSyncInterfaceImpl::deserializeValues(ISerializedObject* seri
         BaseObjectPtr objPtr;
         OPENDAQ_RETURN_IF_FAILED(serializedObject->readObject(String("SyncStatus"), context, callbackFactory, &objPtr));
 
+        // The constructor's container raises the core events; the deserialized one would not
         if (const auto newStatusContainer = objPtr.asPtrOrNull<IComponentStatusContainer>(); newStatusContainer.assigned())
-            statusContainer = newStatusContainer;
+            OPENDAQ_RETURN_IF_FAILED(daqTry([&] { copyStatuses(newStatusContainer); }));
     }
 
     Bool hasSyncType{False};
@@ -173,6 +174,31 @@ void ConfigClientSyncInterfaceImpl::handleRemoteCoreObjectInternal(const Compone
     }
 
     Super::handleRemoteCoreObjectInternal(sender, args);
+}
+
+void ConfigClientSyncInterfaceImpl::onRemoteUpdate(const SerializedObjectPtr& serialized)
+{
+    Super::onRemoteUpdate(serialized);
+    if (!serialized.hasKey("SyncStatus"))
+        return;
+
+    const auto context = createWithImplementation<IComponentDeserializeContext, ConfigProtocolDeserializeContextImpl>(
+        clientComm, std::string{}, clientComm->getDaqContext(), nullptr, nullptr, nullptr, nullptr);
+    copyStatuses(serialized.readObject("SyncStatus", context));
+}
+
+void ConfigClientSyncInterfaceImpl::copyStatuses(const ComponentStatusContainerPtr& source)
+{
+    const auto target = statusContainer.asPtr<IComponentStatusContainerPrivate>(true);
+    const auto current = statusContainer.getStatuses();
+    for (const auto& [name, value] : source.getStatuses())
+    {
+        const auto message = source.getStatusMessage(name);
+        if (current.hasKey(name))
+            target.setStatusWithMessage(name, value, message);
+        else
+            target.addStatusWithMessage(name, value, message);
+    }
 }
 
 void ConfigClientSyncInterfaceImpl::statusChanged(const CoreEventArgsPtr& args)

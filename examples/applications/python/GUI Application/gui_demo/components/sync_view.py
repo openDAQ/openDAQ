@@ -24,12 +24,17 @@ STATUS_COLORS = {
 }
 
 
+def status_name(interface, name):
+    statuses = interface.status_container.statuses
+    return statuses[name].name if name in statuses else 'Unknown'
+
+
 def source_status(interface):
-    return interface.status_container.get_status(SOURCE_STATUS).name
+    return status_name(interface, SOURCE_STATUS)
 
 
 def role_status(interface):
-    return interface.status_container.get_status(ROLE_STATUS).name
+    return status_name(interface, ROLE_STATUS)
 
 
 class SyncRecord:
@@ -144,7 +149,7 @@ class SyncView(ttk.Frame):
         self.refresh_job = None
         root = self.context.instance
         devices = [root, *self.devices_of(root)]
-        self.records = [SyncRecord(device) for device in devices if device.synchronization is not None]
+        self.records = [record for record in map(self.record_create, devices) if record is not None]
 
         types = sorted({record.source.sync_type for record in self.records})
         self.type_combo.configure(values=[ALL, *types])
@@ -152,6 +157,14 @@ class SyncView(ttk.Frame):
             self.type_filter.set(ALL)
 
         self.tree_fill()
+
+    @staticmethod
+    def record_create(device):
+        try:
+            return SyncRecord(device) if device.synchronization is not None else None
+        except RuntimeError as e:
+            print(f'Synchronization of {device.name} could not be read:', e)
+            return None
 
     def devices_of(self, device):
         for child in device.devices:
@@ -234,7 +247,7 @@ class SyncView(ttk.Frame):
         self.tree.insert(group, tk.END, iid=iid, text=record.device.name,
                          values=(source, mode, role_status(record.source), record.status))
         self.rows[iid] = (record, record.source)
-        self.dot_colors[iid] = STATUS_COLORS[record.status]
+        self.dot_colors[iid] = STATUS_COLORS.get(record.status, 'gray')
 
         for name, interface in record.interfaces.items():
             status = source_status(interface)
@@ -244,7 +257,7 @@ class SyncView(ttk.Frame):
             self.tree.insert(iid, tk.END, iid=child, text=text,
                              values=('', mode, role_status(interface), status))
             self.rows[child] = (record, interface)
-            self.dot_colors[child] = STATUS_COLORS[status]
+            self.dot_colors[child] = STATUS_COLORS.get(status, 'gray')
 
     def mode_editor_register(self, iid, record, interface):
         modes = {name: daq.SyncMode(value) for value, name in interface.available_modes.items()}
@@ -384,7 +397,7 @@ class SyncView(ttk.Frame):
                 tk.Label(statuses, text=' | ', background=background).pack(side=tk.LEFT)
             label = labels.get(name, name)
             if name == SOURCE_STATUS:
-                self.dot_create(statuses, STATUS_COLORS[value.name], background).pack(side=tk.LEFT, padx=(4, 4))
+                self.dot_create(statuses, STATUS_COLORS.get(value.name, 'gray'), background).pack(side=tk.LEFT, padx=(4, 4))
             tk.Label(statuses, background=background,
                      text=f'{label}: {value.name}' if label else value.name).pack(side=tk.LEFT, padx=(0, 4))
 

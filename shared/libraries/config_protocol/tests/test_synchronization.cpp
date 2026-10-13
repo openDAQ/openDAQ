@@ -351,6 +351,47 @@ TEST_F(ConfigSynchronizationTest, ReconnectReadsChangedStatus)
     ASSERT_EQ(statusesAfter.getStatusMessage("SynchronizationSourceStatus"), "cable unplugged");
 }
 
+TEST_F(ConfigSynchronizationTest, StatusesAndSyncTypeReachClientBehindGateway)
+{
+    // Server device -> gateway, which mirrors it and serves it again -> far client
+    const auto gatewayContext = NullContext();
+    const auto gatewayClient = std::make_unique<ConfigProtocolClient<ConfigClientDeviceImpl>>(
+        gatewayContext,
+        [this](const PacketBuffer& request) { return server->processRequestAndGetReply(request); },
+        [](const PacketBuffer&) {},
+        nullptr,
+        nullptr,
+        nullptr);
+
+    const DevicePtr gatewayDevice = createWithImplementation<IDevice, Device>(gatewayContext, nullptr, "GatewayDevice");
+    const FolderConfigPtr gatewayDevices = gatewayDevice.asPtr<IFolder>().getItem("Dev");
+    gatewayDevices.addItem(gatewayClient->connect(gatewayDevices));
+
+    const auto gatewayServer = std::make_unique<ConfigProtocolServer>(
+        gatewayDevice,
+        [](const PacketBuffer&) {},
+        User("", ""),
+        ClientType::Control,
+        test_utils::dummyExtSigFolder(gatewayContext));
+
+    const auto farClient = std::make_unique<ConfigProtocolClient<ConfigClientDeviceImpl>>(
+        NullContext(),
+        [&gatewayServer](const PacketBuffer& request) { return gatewayServer->processRequestAndGetReply(request); },
+        [](const PacketBuffer&) {},
+        nullptr,
+        nullptr,
+        nullptr);
+    const DevicePtr farDevice = farClient->connect();
+
+    const SyncInterfacePtr farInterface = farDevice.getDevices()[0].getSynchronization().getInterfaces().get("TestInterface");
+    ASSERT_EQ(farInterface.getSyncType(), "test");
+
+    const auto farStatuses = farInterface.getStatusContainer();
+    ASSERT_TRUE(farStatuses.getStatuses().hasKey("SynchronizationSourceStatus")) << "The gateway did not pass the statuses on";
+    ASSERT_EQ(farStatuses.getStatus("SynchronizationSourceStatus").getValue(), "Synced");
+    ASSERT_EQ(farStatuses.getStatusMessage("SynchronizationSourceStatus"), "boot");
+}
+
 TEST_F(ConfigSynchronizationTest, StatusChangedPropagatesToClient)
 {
     auto serverSync = getServerSyncComponent();

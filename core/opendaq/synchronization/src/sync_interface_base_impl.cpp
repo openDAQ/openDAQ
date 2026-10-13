@@ -188,22 +188,4 @@ ErrCode SyncInterfaceBaseImpl::clone(IPropertyObject** cloned)
     return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOT_CLONEABLE);
 }
 
-ErrCode SyncInterfaceBaseImpl::serializeCustomValues(ISerializer* serializer, bool forUpdate)
-{
-    OPENDAQ_RETURN_IF_FAILED(Super::serializeCustomValues(serializer, forUpdate));
-
-    if (!forUpdate)
-    {
-        serializer->key("SyncStatus");
-        auto serializable = statusContainer.asOrNull<ISerializable>(true);
-        OPENDAQ_RETURN_IF_FAILED(serializable->serialize(serializer));
-
-        StringPtr syncType;
-        OPENDAQ_RETURN_IF_FAILED(this->getSyncType(&syncType));
-        serializer->key("SyncType");
-        serializer->writeString(syncType.getCharPtr(), syncType.getLength());
-    }
-    return OPENDAQ_SUCCESS;
-}
-
 END_NAMESPACE_OPENDAQ

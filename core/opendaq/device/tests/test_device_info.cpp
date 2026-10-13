@@ -430,6 +430,43 @@ TEST_F(DeviceInfoTest, ConcurrentGetConnectedClientsInfoAndRemoveClient)
     ASSERT_FALSE(failed);
 }
 
+TEST_F(DeviceInfoTest, ConcurrentGetServerCapabilitiesAndRemoveCapability)
+{
+    const DeviceInfoPtr info = DeviceInfo("", "");
+    const DeviceInfoInternalPtr internalInfo = info;
+    for (int i = 0; i < 10; ++i)
+        internalInfo.addServerCapability(ServerCapability("protocol" + std::to_string(i), "Protocol name", ProtocolType::Streaming));
+
+    // Capabilities removed between listing the capabilities and reading them must not fail the read.
+    std::atomic<bool> stop{false};
+    std::thread writer([&] {
+        while (!stop)
+        {
+            internalInfo.addServerCapability(ServerCapability("protocol", "Protocol name", ProtocolType::Streaming));
+            internalInfo.removeServerCapability("protocol");
+        }
+    });
+
+    const auto deadline = std::chrono::steady_clock::now() + std::chrono::milliseconds(300);
+    bool failed = false;
+    while (!failed && std::chrono::steady_clock::now() < deadline)
+    {
+        try
+        {
+            info.getServerCapabilities();
+        }
+        catch (const DaqException&)
+        {
+            failed = true;
+        }
+    }
+
+    stop = true;
+    writer.join();
+
+    ASSERT_FALSE(failed);
+}
+
 TEST_F(DeviceInfoTest, PropertyWriteAfterOwnerSet)
 {
     DeviceInfoConfigPtr info = DeviceInfo("", "foo");

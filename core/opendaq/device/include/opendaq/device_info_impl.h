@@ -788,6 +788,8 @@ ErrCode DeviceInfoConfigImpl<TInterface, Interfaces...>::addServerCapability(ISe
     OPENDAQ_RETURN_IF_FAILED(err);
 
     const auto serverCapabilitiesPtr = serverCapabilities.asPtr<IPropertyObject>(true);
+    // Keeps a concurrent add or remove out between the duplicate check and the add
+    const auto lock = serverCapabilitiesPtr.asPtr<IPropertyObjectInternal>(true).getRecursiveLockGuard();
     for (const auto& prop : serverCapabilitiesPtr.getAllProperties())
     {
         if (prop.getValueType() != ctObject)
@@ -892,6 +894,8 @@ ErrCode DeviceInfoConfigImpl<TInterface, Interfaces...>::getServerCapabilities(I
     OPENDAQ_RETURN_IF_FAILED(err);
 
     const auto serverCapabilitiesPtr = obj.asPtr<IPropertyObject>(true);
+    // Capabilities are added and removed on other threads between listing the properties and reading their values
+    const auto lock = serverCapabilitiesPtr.asPtr<IPropertyObjectInternal>(true).getRecursiveLockGuard();
     for (const auto& prop : serverCapabilitiesPtr.getAllProperties())
     {
         if (prop.getValueType() == ctObject)

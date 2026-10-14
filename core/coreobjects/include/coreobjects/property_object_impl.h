@@ -2593,14 +2593,15 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::getPropertie
         }
 
         auto boundProp = prop.asPtr<IPropertyInternal>(true).cloneWithOwner(objPtr);
-        if (!includeInvisible && boundProp.getIsReferenced())
+        const auto boundInternal = boundProp.template asPtr<IPropertyInternal>(true);
+        if (!includeInvisible && (lock ? boundProp.getIsReferenced() : boundInternal.getIsReferencedNoLock()))
         {
             continue;
         }
 
         try
         {
-            if (!includeInvisible && !boundProp.getVisible())
+            if (!includeInvisible && !(lock ? boundProp.getVisible() : boundInternal.getVisibleNoLock()))
             {
                 continue;
             }

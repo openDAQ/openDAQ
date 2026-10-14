@@ -19,3 +19,9 @@ daq::Bool MockMirroredSignalImpl::onTriggerEvent(const EventPacketPtr& eventPack
 {
     return MirroredSignal::onTriggerEvent(eventPacket);
 }
+
+// the real client signals resolve their domain from the mirrored domain signal
+daq::SignalPtr MockMirroredSignalImpl::onGetDomainSignal()
+{
+    return mirroredDomainSignal;
+}

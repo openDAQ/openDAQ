@@ -26,6 +26,7 @@ public:
 
     daq::StringPtr onGetRemoteId() const override;
     daq::Bool onTriggerEvent(const daq::EventPacketPtr& eventPacket) override;
+    daq::SignalPtr onGetDomainSignal() override;
 
 private:
     daq::StringPtr streamingId;

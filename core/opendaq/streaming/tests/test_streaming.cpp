@@ -4,6 +4,7 @@
 #include <opendaq/signal_factory.h>
 #include <opendaq/context_factory.h>
 #include <opendaq/input_port_factory.h>
+#include <opendaq/reader_factory.h>
 #include "mock/mock_mirrored_signal.h"
 #include <opendaq/component_factory.h>
 #include "mock/mock_mirrored_input_port.h"
@@ -711,6 +712,104 @@ TEST_F(TriggeredSubscriptionTest, ByMultipleStreamingSources)
     EXPECT_CALL(streaming1.mock(), onUnsubscribeSignal(signal.getRemoteId())).Times(Exactly(1));
     EXPECT_CALL(streaming2.mock(), onSubscribeSignal(signal.getRemoteId())).Times(Exactly(1));
     signal.setActiveStreamingSource(streaming2.ptr.getConnectionString());
+}
+
+// value signal added and available, domain signal set on it but never added to the streaming (issue #1293)
+static MirroredSignalConfigPtr createSignalWithMissingDomain(TriggeredSubscriptionTest& test, MirroredSignalConfigPtr& domainSignal)
+{
+    auto signal = test.createAndAddSignal("Signal");
+    domainSignal = createWithImplementation<IMirroredSignalConfig, MockMirroredSignalImpl>(test.context, nullptr, "Time");
+    domainSignal.asPtr<IMirroredSignalPrivate>().setMirroredDataDescriptor(DataDescriptorBuilder().build());
+    signal.asPtr<IMirroredSignalPrivate>().setMirroredDomainSignal(domainSignal);
+    signal.setActiveStreamingSource(test.streaming.ptr.getConnectionString());
+    return signal;
+}
+
+TEST_F(TriggeredSubscriptionTest, FailedSubscribeDoesNotStickListened)
+{
+    MirroredSignalConfigPtr domainSignal;
+    auto signal = createSignalWithMissingDomain(*this, domainSignal);
+    auto inputPort1 = InputPort(context, nullptr, "TestPort1");
+    auto inputPort2 = InputPort(context, nullptr, "TestPort2");
+
+    EXPECT_CALL(streaming.mock(), onSubscribeSignal(_)).Times(Exactly(0));
+    ASSERT_THROW(inputPort1.connect(signal), NotFoundException);
+
+    // the signal must retry the subscribe on the next listener, not stay "listened" without one
+    ASSERT_THROW(inputPort2.connect(signal), NotFoundException);
+}
+
+TEST_F(TriggeredSubscriptionTest, DisconnectAfterFailedSubscribeDoesNotThrow)
+{
+    MirroredSignalConfigPtr domainSignal;
+    auto signal = createSignalWithMissingDomain(*this, domainSignal);
+    auto inputPort1 = InputPort(context, nullptr, "TestPort1");
+    auto inputPort2 = InputPort(context, nullptr, "TestPort2");
+
+    EXPECT_CALL(streaming.mock(), onSubscribeSignal(_)).Times(Exactly(0));
+    ASSERT_THROW(inputPort1.connect(signal), NotFoundException);
+    inputPort2->connect(signal);
+    daqClearErrorInfo();
+
+    EXPECT_CALL(streaming.mock(), onUnsubscribeSignal(_)).Times(Exactly(0));
+    ASSERT_NO_THROW(inputPort2.disconnect());
+}
+
+TEST_F(TriggeredSubscriptionTest, TeardownUnsubscribeFailureDoesNotThrow)
+{
+    auto signal = createAndAddSignal("Signal");
+    auto domainSignal = createAndAddSignal("Time");
+    signal.asPtr<IMirroredSignalPrivate>().setMirroredDomainSignal(domainSignal);
+    signal.setActiveStreamingSource(streaming.ptr.getConnectionString());
+    auto inputPort = InputPort(context, nullptr, "TestPort");
+
+    EXPECT_CALL(streaming.mock(), onSubscribeSignal(domainSignal.getRemoteId())).Times(Exactly(1));
+    EXPECT_CALL(streaming.mock(), onSubscribeSignal(signal.getRemoteId())).Times(Exactly(1));
+    inputPort.connect(signal);
+
+    // the domain signal leaves the streaming while the value signal is still listened
+    EXPECT_CALL(streaming.mock(), onRemoveSignal(domainSignal)).Times(Exactly(1));
+    streaming.ptr.removeSignals({domainSignal});
+
+    EXPECT_CALL(streaming.mock(), onUnsubscribeSignal(_)).Times(AnyNumber());
+    ASSERT_NO_THROW(inputPort.disconnect());
+}
+
+TEST_F(TriggeredSubscriptionTest, SubscribeSkipsPrivateDomain)
+{
+    MirroredSignalConfigPtr domainSignal;
+    auto signal = createSignalWithMissingDomain(*this, domainSignal);
+    domainSignal.setPublic(false);
+    ASSERT_FALSE(domainSignal.getPublic());
+    auto inputPort = InputPort(context, nullptr, "TestPort");
+
+    EXPECT_CALL(streaming.mock(), onSubscribeSignal(signal.getRemoteId())).Times(Exactly(1));
+    ASSERT_NO_THROW(inputPort.connect(signal));
+
+    EXPECT_CALL(streaming.mock(), onUnsubscribeSignal(signal.getRemoteId())).Times(Exactly(1));
+    ASSERT_NO_THROW(inputPort.disconnect());
+}
+
+TEST_F(TriggeredSubscriptionTest, SubscribesAfterDomainBecomesAdded)
+{
+    MirroredSignalConfigPtr domainSignal;
+    auto signal = createSignalWithMissingDomain(*this, domainSignal);
+    auto inputPort = InputPort(context, nullptr, "TestPort");
+
+    EXPECT_CALL(streaming.mock(), onSubscribeSignal(_)).Times(Exactly(0));
+    ASSERT_THROW(inputPort.connect(signal), NotFoundException);
+
+    streaming.mock().makeSignalAvailable("Time");
+    EXPECT_CALL(streaming.mock(), onAddSignal(domainSignal)).Times(Exactly(1));
+    streaming.ptr.addSignals({domainSignal});
+
+    EXPECT_CALL(streaming.mock(), onSubscribeSignal(domainSignal.getRemoteId())).Times(Exactly(1));
+    EXPECT_CALL(streaming.mock(), onSubscribeSignal(signal.getRemoteId())).Times(Exactly(1));
+    ASSERT_NO_THROW(inputPort.connect(signal));
+
+    EXPECT_CALL(streaming.mock(), onUnsubscribeSignal(domainSignal.getRemoteId())).Times(Exactly(1));
+    EXPECT_CALL(streaming.mock(), onUnsubscribeSignal(signal.getRemoteId())).Times(Exactly(1));
+    ASSERT_NO_THROW(inputPort.disconnect());
 }
 
 END_NAMESPACE_OPENDAQ

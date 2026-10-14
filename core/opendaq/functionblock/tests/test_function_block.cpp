@@ -14,6 +14,10 @@
 
 #include "opendaq/exceptions.h"
 
+#include <atomic>
+#include <chrono>
+#include <thread>
+
 using FunctionBlockTest = testing::Test;
 
 TEST_F(FunctionBlockTest, Folders)
@@ -196,8 +200,9 @@ namespace
     class SingletonTestParentFbImpl : public daq::FunctionBlock
     {
     public:
-        SingletonTestParentFbImpl(const daq::ContextPtr& ctx, const daq::StringPtr& localId)
+        SingletonTestParentFbImpl(const daq::ContextPtr& ctx, const daq::StringPtr& localId, std::chrono::milliseconds addDelay)
             : daq::FunctionBlock(daq::FunctionBlockType("Parent", "Parent", ""), ctx, nullptr, localId)
+            , addDelay(addDelay)
         {
         }
 
@@ -215,18 +220,23 @@ namespace
             const auto type = onGetAvailableFunctionBlockTypes().get(typeId);
             const auto localId = typeId.toStdString() + std::to_string(nestedCount++);
 
+            // widens the window between the singleton check and the addition for concurrency tests
+            std::this_thread::sleep_for(addDelay);
+
             auto fb = daq::createWithImplementation<daq::IFunctionBlock, daq::FunctionBlock>(type, context, functionBlocks, localId);
             addNestedFunctionBlock(fb);
             return fb;
         }
 
     private:
-        int nestedCount = 0;
+        std::atomic<int> nestedCount = 0;
+        std::chrono::milliseconds addDelay;
     };
 
-    daq::FunctionBlockPtr createSingletonTestParent(const daq::StringPtr& localId = "parent")
+    daq::FunctionBlockPtr createSingletonTestParent(const daq::StringPtr& localId = "parent",
+                                                    std::chrono::milliseconds addDelay = std::chrono::milliseconds(0))
     {
-        return daq::createWithImplementation<daq::IFunctionBlock, SingletonTestParentFbImpl>(daq::NullContext(), localId);
+        return daq::createWithImplementation<daq::IFunctionBlock, SingletonTestParentFbImpl>(daq::NullContext(), localId, addDelay);
     }
 }
 
@@ -278,6 +288,33 @@ TEST_F(FunctionBlockTest, SingletonDoesNotLimitOtherTypes)
     ASSERT_NO_THROW(parent.addFunctionBlock("Multi"));
     ASSERT_NO_THROW(parent.addFunctionBlock("Multi"));
     ASSERT_EQ(parent.getFunctionBlocks().getCount(), 3u);
+}
+
+TEST_F(FunctionBlockTest, SingletonFunctionBlockConcurrentAdd)
+{
+    const auto parent = createSingletonTestParent("parent", std::chrono::milliseconds(50));
+
+    std::atomic<int> added = 0;
+    std::atomic<int> refused = 0;
+    const auto addSingle = [&parent, &added, &refused]
+    {
+        daq::FunctionBlockPtr fb;
+        const daq::ErrCode errCode = parent->addFunctionBlock(&fb, daq::String("Single"), nullptr);
+        if (OPENDAQ_SUCCEEDED(errCode))
+            ++added;
+        else if (errCode == OPENDAQ_ERR_ALREADYEXISTS)
+            ++refused;
+        daqClearErrorInfo();
+    };
+
+    std::thread first(addSingle);
+    std::thread second(addSingle);
+    first.join();
+    second.join();
+
+    ASSERT_EQ(added, 1);
+    ASSERT_EQ(refused, 1);
+    ASSERT_EQ(parent.getFunctionBlocks().getCount(), 1u);
 }
 
 TEST_F(FunctionBlockTest, HasItem)

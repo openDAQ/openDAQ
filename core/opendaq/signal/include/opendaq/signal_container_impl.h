@@ -123,6 +123,13 @@ protected:
     ErrCode removeFunctionBlockInternal(IFunctionBlock* functionBlock);
     void validateSingletonFunctionBlock(const StringPtr& typeId);
 
+    // Whether this container validates and serializes function block additions itself. Representations
+    // of remote components return false: the server side validates and serializes the addition.
+    // Override to return false only in protocol client representations whose onAddFunctionBlock forwards
+    // the addition to a remote side that runs openDAQ. Containers that create their function blocks
+    // locally, or forward to a remote side that does not run openDAQ, must keep the default.
+    virtual bool validatesAddFunctionBlock();
+
     virtual DictPtr<IString, IFunctionBlockType> onGetAvailableFunctionBlockTypes();
     virtual FunctionBlockPtr onAddFunctionBlock(const StringPtr& typeId, const PropertyObjectPtr& config);
     virtual void onRemoveFunctionBlock(const FunctionBlockPtr& functionBlock);
@@ -620,15 +627,22 @@ ErrCode GenericSignalContainerImpl<Intf, Intfs...>::addFunctionBlockInternal(IFu
     if (this->isComponentRemoved)
         return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_COMPONENT_REMOVED);
 
-    const ErrCode validateErrCode = daqTry([this, &typeId]
+    FunctionBlockPtr functionBlockPtr;
+    const ErrCode errCode = daqTry([this, &typeId, &config, &functionBlockPtr]
     {
         const StringPtr typeIdPtr = typeId;
-        validateSingletonFunctionBlock(typeIdPtr);
-    });
-    OPENDAQ_RETURN_IF_FAILED(validateErrCode);
+        if (!validatesAddFunctionBlock())
+        {
+            functionBlockPtr = onAddFunctionBlock(typeIdPtr, config);
+            return;
+        }
 
-    FunctionBlockPtr functionBlockPtr;
-    const ErrCode errCode = wrapHandlerReturn(this, &Self::onAddFunctionBlock, functionBlockPtr, typeId, config);
+        // Held across the check and the addition, so two concurrent additions of a singleton type
+        // cannot both pass the check before either of them has added its instance
+        auto lock = this->getRecursiveConfigLock2();
+        validateSingletonFunctionBlock(typeIdPtr);
+        functionBlockPtr = onAddFunctionBlock(typeIdPtr, config);
+    });
     OPENDAQ_RETURN_IF_FAILED(errCode);
 
     *functionBlock = functionBlockPtr.detach();
@@ -757,6 +771,12 @@ DictPtr<IString, IFunctionBlockType> GenericSignalContainerImpl<Intf, Intfs...>:
 }
 
 template <class Intf, class ... Intfs>
+bool GenericSignalContainerImpl<Intf, Intfs...>::validatesAddFunctionBlock()
+{
+    return true;
+}
+
+template <class Intf, class ... Intfs>
 FunctionBlockPtr GenericSignalContainerImpl<Intf, Intfs...>::onAddFunctionBlock(const StringPtr& /*typeId*/, const PropertyObjectPtr& /*config*/)
 {
     DAQ_THROW_EXCEPTION(NotSupportedException, "Component does not support adding nested function blocks");
@@ -868,18 +888,6 @@ void GenericSignalContainerImpl<Intf, Intfs...>::updateFunctionBlock(const std::
         return;
     }
 
-    try
-    {
-        validateSingletonFunctionBlock(typeId);
-    }
-    catch (const AlreadyExistsException& e)
-    {
-        // a second instance of a singleton type in the loaded setup, log and skip it
-        auto loggerComponent = signalContainerLoggerComponent;
-        LOG_W("Failed to add FB with ID {} while updating parent FB with ID {}: {}", fbId, this->localId, e.what())
-        return;
-    }
-    
     const FunctionBlockTypePtr functionBlockType = availableTypes.get(typeId);
     PropertyObjectPtr functionConfig = functionBlockType.createDefaultConfig();
 
@@ -894,7 +902,28 @@ void GenericSignalContainerImpl<Intf, Intfs...>::updateFunctionBlock(const std::
     else
         functionConfig.setPropertyValue("LocalId", fbId);
 
-    auto fb = onAddFunctionBlock(typeId, functionConfig);
+    FunctionBlockPtr fb;
+    {
+        // Held across the check and the addition, see addFunctionBlockInternal
+        LockGuardPtr lock;
+        if (validatesAddFunctionBlock())
+        {
+            lock = this->getRecursiveConfigLock2();
+            try
+            {
+                validateSingletonFunctionBlock(typeId);
+            }
+            catch (const AlreadyExistsException& e)
+            {
+                // a second instance of a singleton type in the loaded setup, log and skip it
+                auto loggerComponent = signalContainerLoggerComponent;
+                LOG_W("Failed to add FB with ID {} while updating parent FB with ID {}: {}", fbId, this->localId, e.what())
+                return;
+            }
+        }
+
+        fb = onAddFunctionBlock(typeId, functionConfig);
+    }
 
     const UpdatablePtr updatableFb = fb.template asPtr<IUpdatable>(true);
     updatableFb.updateInternal(serializedFunctionBlock, context);    

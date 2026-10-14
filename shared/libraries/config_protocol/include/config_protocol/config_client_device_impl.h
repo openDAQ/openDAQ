@@ -49,6 +49,7 @@ public:
     DictPtr<IString, IFunctionBlockType> onGetAvailableFunctionBlockTypes() override;
     FunctionBlockPtr onAddFunctionBlock(const StringPtr& typeId, const PropertyObjectPtr& config) override;
     void onRemoveFunctionBlock(const FunctionBlockPtr& functionBlock) override;
+    bool validatesAddFunctionBlock() override;
     uint64_t onGetTicksSinceOrigin() override;
     ListPtr<IDeviceInfo> onGetAvailableDevices() override;
     DictPtr<IString, IDeviceType> onGetAvailableDeviceTypes() override;
@@ -116,6 +117,13 @@ template <class TDeviceBase>
 DictPtr<IString, IFunctionBlockType> GenericConfigClientDeviceImpl<TDeviceBase>::onGetAvailableFunctionBlockTypes()
 {
     return this->clientComm->getAvailableFunctionBlockTypes(this->remoteGlobalId);
+}
+
+template <class TDeviceBase>
+bool GenericConfigClientDeviceImpl<TDeviceBase>::validatesAddFunctionBlock()
+{
+    // the server validates and serializes the addition
+    return false;
 }
 
 template <class TDeviceBase>

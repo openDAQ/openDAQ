@@ -2775,7 +2775,8 @@ TEST_F(PropertyObjectTest, InheritedLocking1)
     objInternal2.setLockingStrategy(LockingStrategy::InheritLock);
     propObj1.addProperty(ObjectProperty("child", propObj2));
 
-    ASSERT_EQ(objInternal.getLockingStrategy(), LockingStrategy::OwnLock);
+    // Property objects inherit by default; the root has no owner, so it locks its own mutex
+    ASSERT_EQ(objInternal.getLockingStrategy(), LockingStrategy::InheritLock);
     ASSERT_EQ(objInternal1.getLockingStrategy(), LockingStrategy::InheritLock);
     ASSERT_EQ(objInternal2.getLockingStrategy(), LockingStrategy::InheritLock);
 
@@ -2819,7 +2820,7 @@ TEST_F(PropertyObjectTest, InheritedLocking2)
     ASSERT_NE(mutex, objInternal1.getMutex());
     ASSERT_EQ(mutex, objInternal2.getMutex());
     
-    ASSERT_EQ(objInternal.getLockingStrategy(), LockingStrategy::OwnLock);
+    ASSERT_EQ(objInternal.getLockingStrategy(), LockingStrategy::InheritLock);
     ASSERT_EQ(objInternal1.getLockingStrategy(), LockingStrategy::ForwardOwnerLockOwn);
     ASSERT_EQ(objInternal2.getLockingStrategy(), LockingStrategy::InheritLock);
 
@@ -3196,10 +3197,36 @@ TEST_F(PropertyObjectTest, NoLockMethodsTakeNoLock)
                                         propObjInternal.getPropertySelectionValueNoLock("Chosen");
                                         propObjInternal.getPropertyNoLock("Int");
                                         propObjInternal.getPropertyNoLock("Child.Value");
+                                        propObjInternal.getAllPropertiesNoLock();
+                                        // The child shares the object's lock, so its paths must not take it either
+                                        propObjInternal.setPropertyValueNoLock("Child.Value", 1);
+                                        propObjInternal.getPropertyValueNoLock("Child.Value");
+                                        propObjInternal.clearPropertyValueNoLock("Child.Value");
+                                        propObjInternal.clearPropertyValueNoLock("Child");
                                     },
                                     std::chrono::seconds(1)));
 }
 
+TEST_F(PropertyObjectTest, NestedPropertyObjectsShareTheOwnersLock)
+{
+    // Built bottom-up: the inner object gets its owner before the outer one is attached
+    const auto inner = PropertyObject();
+    inner.addProperty(IntProperty("Value", 0));
+    const auto outer = PropertyObject();
+    outer.addProperty(ObjectProperty("Inner", inner));
+    const auto root = PropertyObject();
+    root.addProperty(ObjectProperty("Outer", outer));
+
+    const PropertyObjectPtr outerValue = root.getPropertyValue("Outer");
+    const PropertyObjectPtr innerValue = outerValue.getPropertyValue("Inner");
+    const auto rootMutex = root.asPtr<IPropertyObjectInternal>().getMutex();
+
+    ASSERT_EQ(outerValue.asPtr<IPropertyObjectInternal>().getMutex().getObject(), rootMutex.getObject());
+    ASSERT_EQ(innerValue.asPtr<IPropertyObjectInternal>().getMutex().getObject(), rootMutex.getObject());
+    ASSERT_FALSE(finishesWhileLocked(root.asPtr<IPropertyObjectInternal>(),
+                                     [&] { innerValue.setPropertyValue("Value", 1); },
+                                     std::chrono::milliseconds(100)));
+}
 
 TEST_F(PropertyObjectTest, PropertyGettersWaitForTheObjectLock)
 {

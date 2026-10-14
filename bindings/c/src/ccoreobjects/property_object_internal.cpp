@@ -136,3 +136,8 @@ daqErrCode daqPropertyObjectInternal_getPropertyNoLock(daqPropertyObjectInternal
 {
     return reinterpret_cast<daq::IPropertyObjectInternal*>(self)->getPropertyNoLock(reinterpret_cast<daq::IString*>(propertyName), reinterpret_cast<daq::IProperty**>(property));
 }
+
+daqErrCode daqPropertyObjectInternal_getAllPropertiesNoLock(daqPropertyObjectInternal* self, daqList** properties)
+{
+    return reinterpret_cast<daq::IPropertyObjectInternal*>(self)->getAllPropertiesNoLock(reinterpret_cast<daq::IList**>(properties));
+}

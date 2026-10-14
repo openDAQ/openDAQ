@@ -41,6 +41,7 @@ extern "C"
     typedef struct daqString daqString;
     typedef struct daqLockGuard daqLockGuard;
     typedef struct daqMutex daqMutex;
+    typedef struct daqList daqList;
 
     EXPORTED extern const daqIntfID DAQ_PROPERTY_OBJECT_INTERNAL_INTF_ID;
     void EXPORTED daqPropertyObjectInternal_getInterfaceId(daqIntfID* intfId);
@@ -68,6 +69,7 @@ extern "C"
     daqErrCode EXPORTED daqPropertyObjectInternal_getMutex(daqPropertyObjectInternal* self, daqMutex** mutex);
     daqErrCode EXPORTED daqPropertyObjectInternal_getMutexOwner(daqPropertyObjectInternal* self, daqPropertyObjectInternal** owner);
     daqErrCode EXPORTED daqPropertyObjectInternal_getPropertyNoLock(daqPropertyObjectInternal* self, daqString* propertyName, daqProperty** property);
+    daqErrCode EXPORTED daqPropertyObjectInternal_getAllPropertiesNoLock(daqPropertyObjectInternal* self, daqList** properties);
 
 #ifdef __cplusplus
 }

@@ -99,6 +99,15 @@ DECLARE_OPENDAQ_INTERFACE(IPropertyObjectInternal, IBaseObject)
      * Call it only while holding the object's lock.
      */
     virtual ErrCode INTERFACE_FUNC getPropertyNoLock(IString* propertyName, IProperty** property) = 0;
+
+    // [elementType(properties, IProperty)]
+    /*!
+     * @brief Gets all properties as `IPropertyObject::getAllProperties` does, without locking the object's mutex.
+     * @param[out] properties The list of properties, bound to the object.
+     *
+     * Call it only while holding the object's lock.
+     */
+    virtual ErrCode INTERFACE_FUNC getAllPropertiesNoLock(IList** properties) = 0;
 };
 
 /*!@}*/

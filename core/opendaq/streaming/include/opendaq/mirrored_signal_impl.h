@@ -483,15 +483,17 @@ void MirroredSignalBase<Interfaces...>::onListenedStatusChanged(bool listened)
 {
     if (this->listened == listened)
         return;
-    this->listened = listened;
 
-    if (this->listened)
+    if (listened)
     {
+        // listened is set only after the subscribe succeeded, so a failed connect is retried by the next listener
         if (streamed)
             checkErrorInfo(subscribeInternal());
+        this->listened = true;
     }
     else
     {
+        this->listened = false;
         if (streamed)
             checkErrorInfo(unsubscribeInternal());
     }

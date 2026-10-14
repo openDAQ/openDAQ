@@ -2842,6 +2842,23 @@ TEST_F(PropertyObjectTest, InheritedLocking2)
     ASSERT_EQ(objInternal, objInternal1.getMutexOwner());
     ASSERT_EQ(objInternal, objInternal2.getMutexOwner());
 }
+
+TEST_F(PropertyObjectTest, CloneKeepsLockingStrategy)
+{
+    const auto propObj = PropertyObject();
+    const auto objInternal = propObj.asPtr<IPropertyObjectInternal>();
+    objInternal.setLockingStrategy(LockingStrategy::OwnLock);
+
+    const auto cloned = objInternal.clone().asPtr<IPropertyObjectInternal>();
+    ASSERT_EQ(cloned.getLockingStrategy(), LockingStrategy::OwnLock);
+
+    // The value of an object property is cloned from the property default, so it keeps the strategy too
+    const auto parent = PropertyObject();
+    parent.addProperty(ObjectProperty("child", propObj));
+    const auto child = parent.getPropertyValue("child").asPtr<IPropertyObjectInternal>();
+    ASSERT_EQ(child.getLockingStrategy(), LockingStrategy::OwnLock);
+    ASSERT_NE(child.getMutex(), parent.asPtr<IPropertyObjectInternal>().getMutex());
+}
 // --- clearPropertyValues / clearPropertyValue on nested property objects ---
 
 TEST_F(PropertyObjectTest, ClearPropertyValuesRecursiveNestedObject)

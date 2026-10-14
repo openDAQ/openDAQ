@@ -3159,6 +3159,8 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::clone(IPrope
                                         customOrder,
                                         permissionManager,
                                         corePropertyNames);
+        // A clone keeps the strategy chosen for its source, so class default objects keep it on every instance
+        obj.template asPtr<IPropertyObjectInternal>(true).setLockingStrategy(lockingStrategy);
 
         *cloned = obj.detach();
         return OPENDAQ_SUCCESS;

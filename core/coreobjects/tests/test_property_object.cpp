@@ -3215,6 +3215,9 @@ TEST_F(PropertyObjectTest, NoLockMethodsTakeNoLock)
                                         propObjInternal.getPropertyNoLock("Int");
                                         propObjInternal.getPropertyNoLock("Child.Value");
                                         propObjInternal.getAllPropertiesNoLock();
+                                        propObjInternal.getVisiblePropertiesNoLock();
+                                        propObjInternal.hasPropertyNoLock("Int");
+                                        propObjInternal.hasPropertyNoLock("Child.Value");
                                         // The child shares the object's lock, so its paths must not take it either
                                         propObjInternal.setPropertyValueNoLock("Child.Value", 1);
                                         propObjInternal.getPropertyValueNoLock("Child.Value");

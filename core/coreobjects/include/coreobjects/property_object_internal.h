@@ -62,8 +62,8 @@ DECLARE_OPENDAQ_INTERFACE(IPropertyObjectInternal, IBaseObject)
      *  @brief Gets a lock guard that locks the object's mutex without recursion.
      *
      *  While it is held, the thread must not call a method that takes the object's lock: the property value
-     *  getters and setters, `getProperty`, `hasProperty`, `getAllProperties`, `getVisibleProperties` and `clone`
-     *  all do, so only their `NoLock` variants may be used.
+     *  getters and setters, `getProperty`, `hasProperty`, `getAllProperties` and `getVisibleProperties` all do,
+     *  so only their `NoLock` variants may be used. `clone` has no `NoLock` variant.
      */
     virtual ErrCode INTERFACE_FUNC getLockGuard(ILockGuard** lockGuard) = 0;
 
@@ -114,6 +114,24 @@ DECLARE_OPENDAQ_INTERFACE(IPropertyObjectInternal, IBaseObject)
      * Call it only while holding the object's lock.
      */
     virtual ErrCode INTERFACE_FUNC getAllPropertiesNoLock(IList** properties) = 0;
+
+    /*!
+     * @brief Checks for a property as `IPropertyObject::hasProperty` does, without locking the object's mutex.
+     * @param propertyName The name of the property. Child properties are addressed with a dot ("Child.Value").
+     * @param[out] hasProperty True if the property exists.
+     *
+     * Call it only while holding the object's lock.
+     */
+    virtual ErrCode INTERFACE_FUNC hasPropertyNoLock(IString* propertyName, Bool* hasProperty) = 0;
+
+    // [elementType(properties, IProperty)]
+    /*!
+     * @brief Gets the visible properties as `IPropertyObject::getVisibleProperties` does, without locking the object's mutex.
+     * @param[out] properties The list of visible properties, bound to the object.
+     *
+     * Call it only while holding the object's lock.
+     */
+    virtual ErrCode INTERFACE_FUNC getVisiblePropertiesNoLock(IList** properties) = 0;
 };
 
 /*!@}*/

@@ -70,6 +70,8 @@ extern "C"
     daqErrCode EXPORTED daqPropertyObjectInternal_getMutexOwner(daqPropertyObjectInternal* self, daqPropertyObjectInternal** owner);
     daqErrCode EXPORTED daqPropertyObjectInternal_getPropertyNoLock(daqPropertyObjectInternal* self, daqString* propertyName, daqProperty** property);
     daqErrCode EXPORTED daqPropertyObjectInternal_getAllPropertiesNoLock(daqPropertyObjectInternal* self, daqList** properties);
+    daqErrCode EXPORTED daqPropertyObjectInternal_hasPropertyNoLock(daqPropertyObjectInternal* self, daqString* propertyName, daqBool* hasProperty);
+    daqErrCode EXPORTED daqPropertyObjectInternal_getVisiblePropertiesNoLock(daqPropertyObjectInternal* self, daqList** properties);
 
 #ifdef __cplusplus
 }

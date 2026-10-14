@@ -93,6 +93,8 @@ Nested property objects share their owner's lock, so a handler on a nested objec
 ```diff
 + IPropertyObjectInternal::getPropertyNoLock(IString* propertyName, IProperty** property);
 + IPropertyObjectInternal::getAllPropertiesNoLock(IList** properties);
++ IPropertyObjectInternal::hasPropertyNoLock(IString* propertyName, Bool* hasProperty);
++ IPropertyObjectInternal::getVisiblePropertiesNoLock(IList** properties);
 ```
 
 #### `IServerCapability`

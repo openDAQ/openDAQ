@@ -45,6 +45,9 @@ private:
     void addExternalSignal(const MirroredSignalConfigPtr& signal, SignalNumericIdType signalNumericId);
     void removeExternalSignal(const MirroredSignalConfigPtr& signal, SignalNumericIdType signalNumericId);
 
+    // Looks up a mirrored external signal by numeric ID under sync; returns nullptr if there is none.
+    MirroredSignalConfigPtr findExternalSignal(SignalNumericIdType signalNumericId);
+
     bool isSignalOfConnectedClient(const StringPtr& signalId);
 
     MirroredSignalConfigPtr getExternalSignal(const StringPtr& signalId);

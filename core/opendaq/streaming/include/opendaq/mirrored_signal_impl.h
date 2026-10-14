@@ -697,7 +697,16 @@ ErrCode MirroredSignalBase<Interfaces...>::subscribeInternal()
 
         StringPtr domainSignalRemoteId;
         if (domainSignal.assigned() && !domainSignal.isRemoved())
-            domainSignalRemoteId = domainSignal.template asPtr<IMirroredSignalConfig>().getRemoteId();
+        {
+            if (domainSignal.getPublic())
+                domainSignalRemoteId = domainSignal.template asPtr<IMirroredSignalConfig>().getRemoteId();
+            else
+            {
+                const auto loggerComponent = context.getLogger().getOrAddComponent("Component");
+                LOG_W("Signal \"{}\" has a private domain signal; the server is misconfigured, subscribing the value signal alone",
+                      this->globalId);
+            }
+        }
         return activeStreamingSource.template asPtr<IStreamingPrivate>()->subscribeSignal(signalRemoteId, domainSignalRemoteId);
     }
     else
@@ -721,7 +730,7 @@ ErrCode MirroredSignalBase<Interfaces...>::unsubscribeInternal()
         OPENDAQ_RETURN_IF_FAILED(errCode);
 
         StringPtr domainSignalRemoteId;
-        if (domainSignal.assigned() && !domainSignal.isRemoved())
+        if (domainSignal.assigned() && !domainSignal.isRemoved() && domainSignal.getPublic())
             domainSignalRemoteId = domainSignal.template asPtr<IMirroredSignalConfig>().getRemoteId();
         return activeStreamingSource.template asPtr<IStreamingPrivate>()->unsubscribeSignal(signalRemoteId, domainSignalRemoteId);
     }

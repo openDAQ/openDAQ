@@ -15,6 +15,8 @@
  */
 
 #pragma once
+#include <condition_variable>
+#include <mutex>
 #include <thread>
 #include <opendaq/device_impl.h>
 #include <opendaq/context_ptr.h>
@@ -28,6 +30,8 @@ class MockPhysicalDeviceImpl : public Device
 public:
     MockPhysicalDeviceImpl(const ContextPtr& ctx, const ComponentPtr& parent, const StringPtr& localId, const PropertyObjectPtr& config);
     ~MockPhysicalDeviceImpl();
+
+    ErrCode INTERFACE_FUNC remove() override;
 
     daq::DeviceInfoPtr onGetInfo() override;
     uint64_t onGetTicksSinceOrigin() override;
@@ -57,6 +61,9 @@ protected:
     ChannelPtr mockChannelB1; // InputsOutputs/mockFolderB/mockChannelB1
     ChannelPtr mockChannelB2; // InputsOutputs/mockFolderB/mockChannelB1
     std::thread generateThread;
+    std::mutex generateMutex;
+    std::condition_variable generateCv;
+    bool generateStopped = false;
     DeviceInfoConfigPtr deviceInfo;
 
     FolderPtr componentA;

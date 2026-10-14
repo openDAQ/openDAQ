@@ -14,6 +14,7 @@
 
 ## Bug fixes
 
+- [#1349](https://github.com/openDAQ/openDAQ/pull/1349) Property getters take the object's lock, and nested property objects share their owner's lock, fixing crashes when properties are read while another thread adds, removes or reorders them
 - [#1326](https://github.com/openDAQ/openDAQ/pull/1326) Fix an exception in a native streaming handler aborting the process; it is logged instead
 - [#1326](https://github.com/openDAQ/openDAQ/pull/1326) Fix adding a sub-device failing when a property object class, enumeration or struct type of the same name is already registered on the client
 - [#1326](https://github.com/openDAQ/openDAQ/pull/1326) Native client logs a warning when a type received from the server differs from the local definition
@@ -59,6 +60,10 @@
 
 `daq::RecursiveMutex` was removed from `coretypes/utility_sync.h`. Use `std::recursive_mutex` or `daq::mutex` instead.
 
+### [#1349](https://github.com/openDAQ/openDAQ/pull/1349) Property getters take the object's lock
+
+A thread holding `getLockGuard`, `getAcquisitionLock2` or `getUniqueLock2` deadlocks if it calls `getProperty`, `hasProperty`, `getAllProperties`, `getVisibleProperties` or `clone` on that object, so it must use the NoLock variants.
+
 ## Interface API changes
 
 ### New interfaces
@@ -75,6 +80,12 @@
 #### `IContextInternal`
 ```diff
 + IContextInternal::setRootDevice(IBaseObject* device);
+```
+
+#### `IPropertyObjectInternal`
+```diff
++ IPropertyObjectInternal::getPropertyNoLock(IString* propertyName, IProperty** property);
++ IPropertyObjectInternal::getAllPropertiesNoLock(IList** properties);
 ```
 
 #### `IServerCapability`

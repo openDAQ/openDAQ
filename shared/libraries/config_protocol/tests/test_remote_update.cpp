@@ -288,8 +288,8 @@ TEST_F(ConfigRemoteUpdateTest, UpdateHierarchicalActive)
     ASSERT_TRUE(clientChannel.getActive());
 }
 
-// Servers before DaqDeviceInfo became a device property (3.40 and older) send the device info as "deviceInfo"
-TEST_F(ConfigRemoteUpdateTest, RemoteUpdateWithLegacyDeviceInfoSendsNoRequests)
+// 3.40 servers send the device info as "deviceInfo"; the client must apply it without sending a request
+TEST_F(ConfigRemoteUpdateTest, RemoteUpdateWithLegacyDeviceInfo)
 {
     const auto serverSubDevice = serverDevice.getDevices()[0];
     const auto clientSubDevice = clientDevice.getDevices()[0];
@@ -298,6 +298,8 @@ TEST_F(ConfigRemoteUpdateTest, RemoteUpdateWithLegacyDeviceInfoSendsNoRequests)
     doc.Parse(serializeHelper(serverSubDevice).toStdString().c_str());
     ASSERT_TRUE(doc["propValues"].HasMember("DaqDeviceInfo"));
     rapidjson::Value deviceInfo(doc["propValues"]["DaqDeviceInfo"], doc.GetAllocator());
+    ASSERT_FALSE(deviceInfo["propValues"].HasMember("serialNumber"));
+    deviceInfo["propValues"].AddMember("serialNumber", "legacy_sn", doc.GetAllocator());
     doc["propValues"].RemoveMember("DaqDeviceInfo");
     doc.AddMember("deviceInfo", deviceInfo, doc.GetAllocator());
     rapidjson::StringBuffer buffer;
@@ -312,6 +314,6 @@ TEST_F(ConfigRemoteUpdateTest, RemoteUpdateWithLegacyDeviceInfoSendsNoRequests)
     requestCount = 0;
     clientSubDevice.asPtr<IConfigClientObject>()->handleRemoteCoreEvent(clientSubDevice, args);
     ASSERT_EQ(requestCount, 0u);
-    ASSERT_EQ(clientSubDevice.getInfo().getSerialNumber(), serverSubDevice.getInfo().getSerialNumber());
+    ASSERT_EQ(clientSubDevice.getInfo().getSerialNumber(), "legacy_sn");
     ASSERT_EQ(clientSubDevice.getInfo().getName(), serverSubDevice.getInfo().getName());
 }

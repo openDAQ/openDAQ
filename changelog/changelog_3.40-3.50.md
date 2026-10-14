@@ -30,7 +30,7 @@
 - [#1309](https://github.com/openDAQ/openDAQ/pull/1309) No longer throws `NotFound` on transport status change before connection statuses are published.
 - [#1321](https://github.com/openDAQ/openDAQ/pull/1321) Take the property object's lock while serializing its values and local properties, so serialization no longer reads containers that a concurrent property write is modifying.
 - [#1324](https://github.com/openDAQ/openDAQ/pull/1324) `setVisible` returns `OPENDAQ_IGNORED` and fires no `AttributeChanged` when the value is unchanged, as `setActive`, `setName` and `setDescription` already do.
-- [#1350](https://github.com/openDAQ/openDAQ/pull/1350) Fixes timeout during device update when connecting to 3.40 and older servers, which send the device info under the old `deviceInfo` key instead of in `DaqDeviceInfo`.
+- [#1350](https://github.com/openDAQ/openDAQ/pull/1350) The client no longer sends requests while applying a server update.
 
 ## Misc
 

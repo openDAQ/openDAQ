@@ -18,6 +18,8 @@
 #include <coretypes/listobject_factory.h>
 #include <atomic>
 #include <chrono>
+#include <functional>
+#include <future>
 #include <list>
 #include <string>
 #include <thread>
@@ -2984,4 +2986,228 @@ TEST_F(PropertyObjectTest, ConcurrentSerializeAndSetPropertyValue)
 
     ASSERT_FALSE(emptyOutput);
     ASSERT_GT(serializations, 0u);
+}
+
+TEST_F(PropertyObjectTest, ConcurrentGetAllPropertiesAndRemoveProperty)
+{
+    constexpr int propertyCount = 50;
+    const auto propObj = PropertyObject();
+    for (int i = 0; i < propertyCount; ++i)
+        propObj.addProperty(IntProperty("Int" + std::to_string(i), 0));
+
+    // Removing the first property moves every later entry of the property map.
+    std::atomic<bool> stop{false};
+    std::thread writer([&] {
+        while (!stop)
+        {
+            propObj.removeProperty("Int0");
+            propObj.addProperty(IntProperty("Int0", 0));
+        }
+    });
+
+    const auto deadline = std::chrono::steady_clock::now() + std::chrono::milliseconds(300);
+    bool failed = false;
+    while (!failed && std::chrono::steady_clock::now() < deadline)
+    {
+        try
+        {
+            propObj.getAllProperties();
+        }
+        catch (const DaqException&)
+        {
+            failed = true;
+        }
+    }
+
+    stop = true;
+    writer.join();
+
+    ASSERT_FALSE(failed);
+}
+
+TEST_F(PropertyObjectTest, ConcurrentGetAllPropertiesAndSetPropertyOrder)
+{
+    constexpr int propertyCount = 50;
+    const auto propObj = PropertyObject();
+    auto ascending = List<IString>();
+    auto descending = List<IString>();
+    for (int i = 0; i < propertyCount; ++i)
+    {
+        propObj.addProperty(IntProperty("Int" + std::to_string(i), 0));
+        ascending.pushBack("Int" + std::to_string(i));
+        descending.pushBack("Int" + std::to_string(propertyCount - 1 - i));
+    }
+
+    // Each order replaces the custom order the property list is sorted by.
+    std::atomic<bool> stop{false};
+    std::thread writer([&] {
+        while (!stop)
+        {
+            propObj.setPropertyOrder(ascending);
+            propObj.setPropertyOrder(descending);
+        }
+    });
+
+    const auto deadline = std::chrono::steady_clock::now() + std::chrono::milliseconds(300);
+    bool failed = false;
+    while (!failed && std::chrono::steady_clock::now() < deadline)
+    {
+        try
+        {
+            failed = propObj.getAllProperties().getCount() != static_cast<SizeT>(propertyCount);
+        }
+        catch (const DaqException&)
+        {
+            failed = true;
+        }
+    }
+
+    stop = true;
+    writer.join();
+
+    ASSERT_FALSE(failed);
+}
+
+TEST_F(PropertyObjectTest, ConcurrentGetPropertyAndRemoveProperty)
+{
+    constexpr int propertyCount = 50;
+    const auto propObj = PropertyObject();
+    for (int i = 0; i < propertyCount; ++i)
+        propObj.addProperty(IntProperty("Int" + std::to_string(i), 0));
+    const auto child = PropertyObject();
+    child.addProperty(IntProperty("Value", 0));
+    propObj.addProperty(ObjectProperty("Child", child));
+
+    // Removing the first property moves every later entry of the property map.
+    std::atomic<bool> stop{false};
+    std::thread writer([&] {
+        while (!stop)
+        {
+            propObj.removeProperty("Int0");
+            propObj.addProperty(IntProperty("Int0", 0));
+        }
+    });
+
+    const auto deadline = std::chrono::steady_clock::now() + std::chrono::milliseconds(300);
+    bool failed = false;
+    while (!failed && std::chrono::steady_clock::now() < deadline)
+    {
+        try
+        {
+            failed = !propObj.hasProperty("Int25") || !propObj.getProperty("Int25").assigned() ||
+                     !propObj.getProperty("Child.Value").assigned();
+        }
+        catch (const DaqException&)
+        {
+            failed = true;
+        }
+    }
+
+    stop = true;
+    writer.join();
+
+    ASSERT_FALSE(failed);
+}
+
+TEST_F(PropertyObjectTest, ConcurrentGetChildPropertyAndSetPropertyValue)
+{
+    constexpr int propertyCount = 50;
+    const auto propObj = PropertyObject();
+    for (int i = 0; i < propertyCount; ++i)
+        propObj.addProperty(IntProperty("Int" + std::to_string(i), 0));
+    const auto child = PropertyObject();
+    child.addProperty(IntProperty("Value", 0));
+    propObj.addProperty(ObjectProperty("Child", child));
+
+    // Writing and clearing values inserts and erases entries of the value map that holds the child object.
+    std::atomic<bool> stop{false};
+    std::thread writer([&] {
+        while (!stop)
+        {
+            for (int i = 0; i < propertyCount; ++i)
+                propObj.setPropertyValue("Int" + std::to_string(i), 1);
+            for (int i = 0; i < propertyCount; ++i)
+                propObj.clearPropertyValue("Int" + std::to_string(i));
+        }
+    });
+
+    const auto deadline = std::chrono::steady_clock::now() + std::chrono::milliseconds(300);
+    bool failed = false;
+    while (!failed && std::chrono::steady_clock::now() < deadline)
+    {
+        try
+        {
+            failed = !propObj.getProperty("Child.Value").assigned();
+        }
+        catch (const DaqException&)
+        {
+            failed = true;
+        }
+    }
+
+    stop = true;
+    writer.join();
+
+    ASSERT_FALSE(failed);
+}
+
+// Runs op on another thread while a third thread holds the object's lock; returns whether op finished within the wait
+static bool finishesWhileLocked(const PropertyObjectInternalPtr& propObjInternal, const std::function<void()>& op, std::chrono::milliseconds wait)
+{
+    std::promise<void> locked;
+    std::promise<void> release;
+    std::thread holder([&] {
+        const auto lock = propObjInternal.getLockGuard();
+        locked.set_value();
+        release.get_future().wait();
+    });
+    locked.get_future().wait();
+
+    auto result = std::async(std::launch::async, op);
+    const bool finished = result.wait_for(wait) == std::future_status::ready;
+
+    release.set_value();
+    holder.join();
+    result.get();
+    return finished;
+}
+
+TEST_F(PropertyObjectTest, NoLockMethodsTakeNoLock)
+{
+    const auto propObj = PropertyObject();
+    propObj.addProperty(IntProperty("Int", 0));
+    propObj.addProperty(ReferenceProperty("Ref", EvalValue("%Int")));
+    const auto child = PropertyObject();
+    child.addProperty(IntProperty("Value", 0));
+    propObj.addProperty(ObjectProperty("Child", child));
+    propObj.addProperty(ReferenceProperty("RefChild", EvalValue("%Child.Value")));
+    propObj.addProperty(SelectionProperty("Chosen", EvalValue("%Child:PropertyNames"), 0));
+    const auto propObjInternal = propObj.asPtr<IPropertyObjectInternal>();
+
+    // Writing a default value looks the property up; reference and selection properties resolve their targets through eval values
+    ASSERT_TRUE(finishesWhileLocked(propObjInternal,
+                                    [&]
+                                    {
+                                        propObjInternal.setPropertyValueNoLock("Int", 0);
+                                        propObjInternal.setPropertyValueNoLock("Ref", 0);
+                                        propObjInternal.setPropertyValueNoLock("RefChild", 0);
+                                        propObjInternal.setPropertyValueNoLock("Chosen", 0);
+                                        propObjInternal.getPropertyValueNoLock("RefChild");
+                                        propObjInternal.getPropertySelectionValueNoLock("Chosen");
+                                        propObjInternal.getPropertyNoLock("Int");
+                                        propObjInternal.getPropertyNoLock("Child.Value");
+                                    },
+                                    std::chrono::seconds(1)));
+}
+
+
+TEST_F(PropertyObjectTest, PropertyGettersWaitForTheObjectLock)
+{
+    const auto propObj = PropertyObject();
+    propObj.addProperty(IntProperty("Int", 0));
+    const auto propObjInternal = propObj.asPtr<IPropertyObjectInternal>();
+
+    ASSERT_FALSE(finishesWhileLocked(propObjInternal, [&] { propObj.getProperty("Int"); }, std::chrono::milliseconds(100)));
+    ASSERT_FALSE(finishesWhileLocked(propObjInternal, [&] { propObj.hasProperty("Int"); }, std::chrono::milliseconds(100)));
+    ASSERT_FALSE(finishesWhileLocked(propObjInternal, [&] { propObj.getAllProperties(); }, std::chrono::milliseconds(100)));
 }

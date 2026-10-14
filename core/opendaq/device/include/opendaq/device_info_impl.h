@@ -1113,8 +1113,9 @@ ErrCode DeviceInfoConfigImpl<TInterface, Interfaces...>::updateInternal(ISeriali
 template <typename TInterface, typename ... Interfaces>
 PropertyObjectPtr DeviceInfoConfigImpl<TInterface, Interfaces...>::getOwnerOfProperty(const StringPtr& propertyName)
 {
+    // The NoLock overrides reach here, so the lookup takes no lock
     if (propertyName == "userName" || propertyName == "location")
-        if (!this->objPtr.getProperty(propertyName).getReadOnly())
+        if (!this->objPtr.template asPtr<IPropertyObjectInternal>(true).getPropertyNoLock(propertyName).template asPtr<IPropertyInternal>(true).getReadOnlyNoLock())
             return Super::getPropertyObjectParent();
     return nullptr;
 }

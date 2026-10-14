@@ -131,3 +131,8 @@ daqErrCode daqPropertyObjectInternal_getMutexOwner(daqPropertyObjectInternal* se
 {
     return reinterpret_cast<daq::IPropertyObjectInternal*>(self)->getMutexOwner(reinterpret_cast<daq::IPropertyObjectInternal**>(owner));
 }
+
+daqErrCode daqPropertyObjectInternal_getPropertyNoLock(daqPropertyObjectInternal* self, daqString* propertyName, daqProperty** property)
+{
+    return reinterpret_cast<daq::IPropertyObjectInternal*>(self)->getPropertyNoLock(reinterpret_cast<daq::IString*>(propertyName), reinterpret_cast<daq::IProperty**>(property));
+}

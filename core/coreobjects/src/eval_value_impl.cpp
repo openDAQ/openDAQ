@@ -145,7 +145,7 @@ BaseObjectPtr EvalValueImpl::getReferenceFromPrefix(const PropertyObjectPtr& pro
 
     if (refType == RefType::Property)
     {
-        value = propObject.getProperty(str);
+        value = lock ? propObject.getProperty(str) : propObject.asPtr<IPropertyObjectInternal>().getPropertyNoLock(str);
     }
     else if (refType == RefType::Value)
     {

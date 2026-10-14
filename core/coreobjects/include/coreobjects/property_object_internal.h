@@ -90,6 +90,15 @@ DECLARE_OPENDAQ_INTERFACE(IPropertyObjectInternal, IBaseObject)
      * strategy is not `OwnLock`, returns the closest ancestor with the `OwnLock` strategy.
      */
     virtual ErrCode INTERFACE_FUNC getMutexOwner(IPropertyObjectInternal** owner) = 0;
+
+    /*!
+     * @brief Gets a property as `IPropertyObject::getProperty` does, without locking the object's mutex.
+     * @param propertyName The name of the property. Child properties are addressed with a dot ("Child.Value").
+     * @param[out] property The property, bound to the object.
+     *
+     * Call it only while holding the object's lock.
+     */
+    virtual ErrCode INTERFACE_FUNC getPropertyNoLock(IString* propertyName, IProperty** property) = 0;
 };
 
 /*!@}*/

@@ -101,6 +101,7 @@ protected:
 private:
     ErrCode subscribeInternal();
     ErrCode unsubscribeInternal();
+    void unsubscribeOnTeardown();
     ErrCode unsubscribeCompletedInternal(IString* streamingConnectionString, bool syncLock);
 
     // vector is used as the order of adding & accessing sources is important
@@ -184,7 +185,7 @@ template <typename... Interfaces>
 void MirroredSignalBase<Interfaces...>::removed()
 {
     if (listened && streamed)
-        unsubscribeInternal();
+        unsubscribeOnTeardown();
     activeStreamingSourceRef = nullptr;
 
     StringPtr signalRemoteId;
@@ -495,8 +496,19 @@ void MirroredSignalBase<Interfaces...>::onListenedStatusChanged(bool listened)
     {
         this->listened = false;
         if (streamed)
-            checkErrorInfo(unsubscribeInternal());
+            unsubscribeOnTeardown();
     }
+}
+
+// teardown has no caller that can act on a failed unsubscribe, so it is logged and cleared, never thrown
+template <typename... Interfaces>
+void MirroredSignalBase<Interfaces...>::unsubscribeOnTeardown()
+{
+    if (OPENDAQ_SUCCEEDED(unsubscribeInternal()))
+        return;
+    const auto loggerComponent = context.getLogger().getOrAddComponent("Component");
+    LOG_W("Signal \"{}\" failed to unsubscribe from its active streaming source", this->globalId);
+    daqClearErrorInfo();
 }
 
 template <typename... Interfaces>

@@ -69,8 +69,10 @@ TEST_F(ExamplesTest, FunctionBlock)
         sineChannel.setPropertyValue("Amplitude", ampl + ampl_step);
         ASSERT_EQ(sineChannel.getPropertyValue("Amplitude"), ampl + ampl_step);
 
+        // a read stops at a descriptor event, which is not data: read again
         SizeT count = 5000;
-        reader.read(samples, &count, 100);
+        while (reader.read(samples, &count, 100).getReadStatus() == ReadStatus::Event)
+            count = 5000;
         ASSERT_GT(count, 0u);
     }
 }

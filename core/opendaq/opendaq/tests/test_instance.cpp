@@ -601,6 +601,31 @@ TEST_F(InstanceTest, SaveLoadRestoreDevice)
     }
 }
 
+TEST_F(InstanceTest, LoadLegacySetupIgnoresUserLock)
+{
+    auto instance = test_helpers::setupInstance("localIntanceId");
+    instance.addDevice("daqmock://phys_device");
+    const auto setup = instance.saveConfiguration().toStdString();
+
+    // Setups saved by older versions carry a "UserLock" entry in the root device object
+    const auto rootDeviceBodyPos = setup.find('{', setup.find('{', setup.find("\"rootDevice\"")) + 1) + 1;
+    const auto head = setup.substr(0, rootDeviceBodyPos);
+    const auto tail = setup.substr(rootDeviceBodyPos);
+    auto lockedSetup = head + R"("UserLock":{"__type":"UserLock","locked":true},)" + tail;
+    auto unlockedSetup = head + R"("UserLock":{"__type":"UserLock","locked":false},)" + tail;
+
+    auto unlockedInstance = test_helpers::setupInstance("localIntanceId");
+    unlockedInstance.loadConfiguration(lockedSetup);
+    ASSERT_FALSE(unlockedInstance.isLocked());
+    ASSERT_EQ(unlockedInstance.getDevices().getCount(), 1u);
+
+    auto lockedInstance = test_helpers::setupInstance("localIntanceId");
+    lockedInstance.lock();
+    lockedInstance.loadConfiguration(unlockedSetup);
+    ASSERT_TRUE(lockedInstance.isLocked());
+    ASSERT_EQ(lockedInstance.getDevices().getCount(), 1u);
+}
+
 TEST_F(InstanceTest, SaveLoadLocked)
 {
     std::map<std::string, std::string> devicesNames;
@@ -614,12 +639,12 @@ TEST_F(InstanceTest, SaveLoadLocked)
     auto instance2 = test_helpers::setupInstance("localIntanceId");
     instance2.loadConfiguration(config);
 
-    ASSERT_TRUE(instance2.isLocked());
+    ASSERT_FALSE(instance2.isLocked());
     ASSERT_EQ(instance2.getDevices().getCount(), devicesNames.size());
 
     for (const auto& device : instance2.getDevices())
     {
-        ASSERT_TRUE(device.isLocked());
+        ASSERT_FALSE(device.isLocked());
         ASSERT_TRUE(devicesNames.find(device.getName()) != devicesNames.end());
         ASSERT_EQ(devicesNames[device.getName()], device.getInfo().getConnectionString());
     }
@@ -1239,4 +1264,19 @@ TEST_F(InstanceTest, SetRootDeviceUpdatesContextRootDevice)
     instance.setRootDevice("daqmock://phys_device");
     ASSERT_EQ(instance.getRootDevice(), instance.getContext().getRootDevice());
 }
+
+// Removing the mock device stops its generator; otherwise ticks run on removed signals until it is destroyed
+TEST_F(InstanceTest, ReleaseStopsMockDeviceGenerator)
+{
+    auto instance = Instance("[[none]]");
+    instance.getModuleManager().addModule(MockDeviceModule_Create(instance.getContext()));
+    instance.addDevice("daqmock://phys_device").setPropertyValue("GeneratePackets", 100);
+    std::this_thread::sleep_for(std::chrono::milliseconds(250));
+
+    const auto start = std::chrono::steady_clock::now();
+    instance.release();
+    const auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - start);
+    EXPECT_LT(elapsed.count(), 5000);
+}
+
 END_NAMESPACE_OPENDAQ

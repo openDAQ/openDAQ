@@ -165,10 +165,14 @@ ErrCode EnumerationTypeImpl::Deserialize(ISerializedObject* ser, IBaseObject* co
         // Therefore, we need to add enumeration type while deserializing.
         if (typeManager.assigned())
         {
-            typeManager.addType(enumerationType);
+            const ErrCode addTypeErrCode = typeManager->addType(enumerationType);
+
+            // Keep the registered definition if it already exists rather than failing the whole deserialization.
+            OPENDAQ_RETURN_IF_FAILED_EXCEPT(addTypeErrCode, OPENDAQ_ERR_ALREADYEXISTS);
         }
 
         *obj = enumerationType.detach();
+        return OPENDAQ_SUCCESS;
     });
     OPENDAQ_RETURN_IF_FAILED(errCode, "Failed to deserialize EnumerationType");
     return errCode;

@@ -2286,7 +2286,11 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::getProperty(
         }
         else
         {
-            prop = getUnboundProperty(propName);
+            {
+                // addProperty and removeProperty move the entries of localProperties under this lock
+                auto lock = getRecursiveConfigLock2();
+                prop = getUnboundProperty(propName);
+            }
             prop = prop.asPtr<IPropertyInternal>().cloneWithOwner(objPtr);
         }
 
@@ -2473,22 +2477,25 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::getPropertie
         return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDPARAMETER);
 
     std::vector<PropertyPtr> allProperties;
+    std::vector<StringPtr> order;
     if (objectClass.assigned())
     {
         auto propList = objectClass.getProperties(True);
-        allProperties.reserve(propList.getCount() + localProperties.size());
+        allProperties.reserve(propList.getCount());
         for (const auto& prop : propList)
             allProperties.push_back(prop);
     }
-    else
-    {
-        allProperties.reserve(localProperties.size());
-    }
 
-    for (const auto& [propName, prop] : localProperties)
     {
-        if (includeCoreProperties || corePropertyNames.count(propName) == 0)
-            allProperties.push_back(prop);
+        // addProperty, removeProperty and setPropertyOrder change localProperties and customOrder under this lock
+        auto lock = getRecursiveConfigLock2();
+        allProperties.reserve(allProperties.size() + localProperties.size());
+        for (const auto& [propName, prop] : localProperties)
+        {
+            if (includeCoreProperties || corePropertyNames.count(propName) == 0)
+                allProperties.push_back(prop);
+        }
+        order = customOrder;
     }
 
     PropertyOrderedMap lookup;
@@ -2534,10 +2541,10 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::getPropertie
     }
 
     auto properties = List<IProperty>();
-    if (!customOrder.empty())
+    if (!order.empty())
     {
         // Add properties with explicit order
-        for (auto& propName : customOrder)
+        for (auto& propName : order)
         {
             const auto iter = lookup.find(propName);
             if (iter != lookup.cend())
@@ -3238,6 +3245,7 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::serializePro
 template <class PropObjInterface, class... Interfaces>
 ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::serializePropertyValues(ISerializer* serializer, bool forUpdate)
 {
+    auto lock = getRecursiveConfigLock2();
     auto serializerPtr = SerializerPtr::Borrow(serializer);
 
     const auto numOfSerializablePropertyValues =
@@ -3289,6 +3297,7 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::serializeLoc
 {
     const ErrCode errCode = daqTry([&serializer, this]
     {
+        auto lock = getRecursiveConfigLock2();
         if (localProperties.size() == 0)
             return OPENDAQ_NOTFOUND;
 
@@ -3601,10 +3610,14 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::hasProperty(
         return obj->hasProperty(childStr, hasProperty);
     }
     
-    if (localProperties.find(propertyName) != localProperties.cend())
     {
-        *hasProperty = true;
-        return OPENDAQ_SUCCESS;
+        // addProperty and removeProperty move the entries of localProperties under this lock
+        auto lock = getRecursiveConfigLock2();
+        if (localProperties.find(propertyName) != localProperties.cend())
+        {
+            *hasProperty = true;
+            return OPENDAQ_SUCCESS;
+        }
     }
 
     if (objectClass.assigned())

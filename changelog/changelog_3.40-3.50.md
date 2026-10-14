@@ -14,6 +14,12 @@
 
 ## Bug fixes
 
+- [#1326](https://github.com/openDAQ/openDAQ/pull/1326) Fix an exception in a native streaming handler aborting the process; it is logged instead
+- [#1326](https://github.com/openDAQ/openDAQ/pull/1326) Fix adding a sub-device failing when a property object class, enumeration or struct type of the same name is already registered on the client
+- [#1326](https://github.com/openDAQ/openDAQ/pull/1326) Native client logs a warning when a type received from the server differs from the local definition
+- [#1340](https://github.com/openDAQ/openDAQ/pull/1340) Saving and loading a setup no longer stores or restores the device user lock
+- [#1327](https://github.com/openDAQ/openDAQ/pull/1327) Fix events not being synchronized: `removeHandler` and `clear` now wait for a handler running on another thread, and handlers are called without the event lock held
+- [#1336](https://github.com/openDAQ/openDAQ/pull/1336) Config protocol client logs a child component that fails to apply the server's update
 - [#1308](https://github.com/openDAQ/openDAQ/pull/1308) Fixes a deadlock between mDNS query answering and server removal
 - [#1305](https://github.com/openDAQ/openDAQ/pull/1305) Fix async races in native streaming shutdown process.
 - [#1304](https://github.com/openDAQ/openDAQ/pull/1304) Fix flaky test NativeDeviceModulesTest.GetConnectedClientsInfo by periodically polling instead of racing asynchronous events.
@@ -22,19 +28,38 @@
 - [#1296](https://github.com/openDAQ/openDAQ/pull/1296) Module libraries are loaded with MSVC debug heap tracking off, so debug test runs no longer report their statics as memory leaks.
 - [#1295](https://github.com/openDAQ/openDAQ/pull/1295) Fix an intermittent deadlock between `setOperationModeRecursive` and a sub-device's acquisition thread. The device tree lock taken while the operation mode changes no longer locks signals and input ports.
 - [#1309](https://github.com/openDAQ/openDAQ/pull/1309) No longer throws `NotFound` on transport status change before connection statuses are published.
+- [#1321](https://github.com/openDAQ/openDAQ/pull/1321) Take the property object's lock while serializing its values and local properties, so serialization no longer reads containers that a concurrent property write is modifying.
+- [#1324](https://github.com/openDAQ/openDAQ/pull/1324) `setVisible` returns `OPENDAQ_IGNORED` and fires no `AttributeChanged` when the value is unchanged, as `setActive`, `setName` and `setDescription` already do.
+- [#1341](https://github.com/openDAQ/openDAQ/pull/1341) Take the property object's lock while copying its property list, and hold the connected clients lock while listing and reading them, so `getAllProperties` and `getConnectedClientsInfo` no longer crash or throw while properties or clients are added and removed on other threads.
 
 ## Misc
 
+- [#1343](https://github.com/openDAQ/openDAQ/pull/1343) Test the oldest and newest supported compilers on the newest GitHub runners (Visual Studio 2026, Ubuntu 26.04, macOS 27).
+- [#1323](https://github.com/openDAQ/openDAQ/pull/1323) Fix classifier FB flaky tests
 - [#1313](https://github.com/openDAQ/openDAQ/pull/1313) Bump libNativeStreaming to v1.0.21 (precompiled headers and unity builds).
 - [#1251](https://github.com/openDAQ/openDAQ/pull/1251), [#1269](https://github.com/openDAQ/openDAQ/pull/1269), [#1278](https://github.com/openDAQ/openDAQ/pull/1278) OpenSSL (>= 1.1.1) is a build dependency of the SDK when `OPENDAQ_ENABLE_WEBSOCKET_STREAMING_WITH_TLS` is on. Unlike most other dependencies it is not fetched automatically and has to be installed on the host system: `libssl-dev` on Debian/Ubuntu (`libssl-dev:i386` for 32-bit builds), `openssl-devel` on RHEL-based distributions. The build documentation and all CI, packaging and docs jobs were updated accordingly.
 - [#1307](https://github.com/openDAQ/openDAQ/pull/1307) Precompiled headers and unity builds through opendaq-cmake-utils v1.1.0, on by default.
 - [#1310](https://github.com/openDAQ/openDAQ/pull/1310) Provide `OPENDAQ_PACKAGE_VERSION` through a generated header. Use `/MP` for VS CI jobs.
 - [#1265](https://github.com/openDAQ/openDAQ/pull/1265) Publish the SDK staging weekly. Add ARM Linux and manylinux CI runners and pin the compilers.
 - [#1318](https://github.com/openDAQ/openDAQ/pull/1318) Runs the discovery-free device module tests as four gtest shards on separate ports so ctest can run them in parallel.
+- [#1342](https://github.com/openDAQ/openDAQ/pull/1342) Skip the macOS CI tests only on macOS instead of on every clang build.
 
 ## Required application changes
 
+### [#1327](https://github.com/openDAQ/openDAQ/pull/1327) Event handler removal waits for running handlers
+
+`IEvent::removeHandler` and `IEvent::clear` now return only once the removed handlers are no longer running on another thread. Don't call them while holding a lock that such a handler needs, or the call waits forever.
+
+`daq::RecursiveMutex` was removed from `coretypes/utility_sync.h`. Use `std::recursive_mutex` or `daq::mutex` instead.
+
+
 ## Required module changes
+
+### [#1327](https://github.com/openDAQ/openDAQ/pull/1327) Event handler removal waits for running handlers
+
+`IEvent::removeHandler` and `IEvent::clear` now return only once the removed handlers are no longer running on another thread. Don't call them while holding a lock that such a handler needs, or the call waits forever.
+
+`daq::RecursiveMutex` was removed from `coretypes/utility_sync.h`. Use `std::recursive_mutex` or `daq::mutex` instead.
 
 ## Interface API changes
 

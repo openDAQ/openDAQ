@@ -94,9 +94,6 @@ private:
     void deviceLockStatusChanged(const CoreEventArgsPtr& args);
     void connectionStatusChanged(const CoreEventArgsPtr& args);
     void operationModeChanged(const CoreEventArgsPtr& args);
-    bool handleDeviceInfoPropertyValueChanged(const CoreEventArgsPtr& args);
-    bool handleDeviceInfoPropertyAdded(const CoreEventArgsPtr& args);
-    bool handleDeviceInfoPropertyRemoved(const CoreEventArgsPtr& args);
 };
 
 template <class TDeviceBase>
@@ -456,24 +453,6 @@ void GenericConfigClientDeviceImpl<TDeviceBase>::handleRemoteCoreObjectInternal(
         case CoreEventId::DeviceOperationModeChanged:
             operationModeChanged(args);
             break;
-        case CoreEventId::PropertyValueChanged:
-        {
-            if (handleDeviceInfoPropertyValueChanged(args))
-                return;
-            break;
-        }
-        case CoreEventId::PropertyAdded:
-        {
-            if (handleDeviceInfoPropertyAdded(args))
-                return;
-            break;
-        }
-        case CoreEventId::PropertyRemoved:
-        {
-            if (handleDeviceInfoPropertyRemoved(args))
-                return;
-            break;
-        }
         case CoreEventId::PropertyObjectUpdateEnd:
         case CoreEventId::SignalConnected:
         case CoreEventId::SignalDisconnected:
@@ -514,7 +493,7 @@ void GenericConfigClientDeviceImpl<TDeviceBase>::onRemoteUpdate(const Serialized
         else
         {
             const auto serObj = serialized.readSerializedObject(id);
-            comp.template asPtr<IConfigClientObject>()->remoteUpdate(serObj);
+            this->remoteUpdateChild(comp, serObj);
         }
     }
 
@@ -533,7 +512,7 @@ void GenericConfigClientDeviceImpl<TDeviceBase>::onRemoteUpdate(const Serialized
         auto compIterator = std::find_if(this->components.begin(), this->components.end(), [&key](const ComponentPtr& comp) { return comp.getLocalId() == key; });
         if (compIterator != this->components.end())
         {
-            compIterator->template asPtr<IConfigClientObject>()->remoteUpdate(obj);
+            this->remoteUpdateChild(*compIterator, obj);
         }
         else
         {
@@ -666,90 +645,6 @@ void GenericConfigClientDeviceImpl<TDeviceBase>::operationModeChanged(const Core
 {
     const Int mode = args.getParameters().get("OperationMode");
     this->updateOperationModeInternal(static_cast<OperationModeType>(mode));
-}
-
-template <class TDeviceBase>
-bool GenericConfigClientDeviceImpl<TDeviceBase>::handleDeviceInfoPropertyValueChanged(const CoreEventArgsPtr& args)
-{
-    const auto params = args.getParameters();
-    const std::string path = params.get("Path");
-
-    const std::string prefix = "DaqDeviceInfo";
-    if (path.find(prefix) == std::string::npos)
-        return false;
-
-    std::string propName = params.get("Name");
-    if (path.size() != prefix.size())
-        propName = path.substr(prefix.size() + 1) + "." + propName;
-
-    const auto val = params.get("Value");
-
-    ScopedRemoteUpdate update(this->deviceInfo);
-    this->deviceInfo.setPropertyValue(propName, val);
-    return true;
-}
-
-template <class TDeviceBase>
-bool GenericConfigClientDeviceImpl<TDeviceBase>::handleDeviceInfoPropertyAdded(const CoreEventArgsPtr& args)
-{
-    const auto params = args.getParameters();
-    std::string path = params.get("Path");
-
-    const std::string prefix = "DaqDeviceInfo";
-    if (path.find(prefix) == std::string::npos)
-        return false;
-
-    PropertyObjectPtr propObjPtr;
-    if (path.size() != prefix.size())
-    {
-        path = path.substr(prefix.size() + 1);
-        propObjPtr = this->deviceInfo.getPropertyValue(path);
-    }
-    else
-    {
-        propObjPtr = this->deviceInfo;
-    }
-    const PropertyPtr prop = params.get("Property");
-    if (propObjPtr.hasProperty(prop.getName()))
-        return true;
-
-    if (auto configObj = dynamic_cast<ConfigClientPropertyImpl*>(prop.getObject()); configObj)
-        configObj->setRemoteGlobalId(this->remoteGlobalId);
-
-    // fixme - nested property objects of DeviceInfo do not support IConfigClientObject interface
-    //ScopedRemoteUpdate update(propObjPtr);
-    propObjPtr.addProperty(prop);
-    return true;
-}
-
-template <class TDeviceBase>
-bool GenericConfigClientDeviceImpl<TDeviceBase>::handleDeviceInfoPropertyRemoved(const CoreEventArgsPtr& args)
-{
-    const auto params = args.getParameters();
-    std::string path = params.get("Path");
-
-    const std::string prefix = "DaqDeviceInfo";
-    if (path.find(prefix) == std::string::npos)
-        return false;
-
-    PropertyObjectPtr propObjPtr;
-    if (path.size() != prefix.size())
-    {
-        path = path.substr(prefix.size() + 1);
-        propObjPtr = this->deviceInfo.getPropertyValue(path);
-    }
-    else
-    {
-        propObjPtr = this->deviceInfo;
-    }
-    const std::string propName = params.get("Name");
-    if (!propObjPtr.hasProperty(propName))
-        return true;
-
-    // fixme - nested property objects of DeviceInfo do not support IConfigClientObject interface
-    //ScopedRemoteUpdate update(propObjPtr);
-    propObjPtr.removeProperty(propName);
-    return true;
 }
 
 }

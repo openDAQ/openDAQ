@@ -1,4 +1,5 @@
 #include <native_streaming_protocol/native_streaming_client_handler.h>
+#include <native_streaming_protocol/async_exception_guard.h>
 #include <native_streaming/client.hpp>
 #include <boost/asio/ip/host_name.hpp>
 #include "native_streaming_protocol/streaming_manager.h"
@@ -829,7 +830,7 @@ void NativeStreamingClientHandler::startTransportOperations()
 
                         using namespace boost::asio;
                         executor_work_guard<io_context::executor_type> workGuard(ioContextPtr->get_executor());
-                        ioContextPtr->run();
+                        runGuardedEventLoop(*ioContextPtr, loggerComponent, "Native transport IO thread");
                         LOG_I("Native transport IO thread finished");
                     });
 }

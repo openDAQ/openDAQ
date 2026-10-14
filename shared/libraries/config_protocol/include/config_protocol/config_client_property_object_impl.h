@@ -80,6 +80,8 @@ public:
 protected:
     bool deserializationComplete;
 
+    // True when the server sends this property's value under an older key, which a derived class applies itself
+    virtual bool valueUnderLegacyKey(const SerializedObjectPtr& serialized, const StringPtr& propName) const;
     virtual void handleRemoteCoreObjectInternal(const ComponentPtr& sender, const CoreEventArgsPtr& args);
     virtual void onRemoteUpdate(const SerializedObjectPtr& serialized);
     PropertyObjectPtr cloneChildPropertyObject(const PropertyPtr& prop) override;
@@ -745,6 +747,9 @@ void ConfigClientPropertyObjectBaseImpl<Impl>::updatePropertyValues(const Serial
 
         if (!propValues.hasKey(propName))
         {
+            if (valueUnderLegacyKey(serObj, propName))
+                continue;
+
             const ErrCode errCode = Impl::clearProtectedPropertyValue(propName);
             if (OPENDAQ_FAILED(errCode))
                 daqClearErrorInfo();
@@ -802,6 +807,12 @@ void ConfigClientPropertyObjectBaseImpl<Impl>::onRemoteUpdate(const SerializedOb
 {
     updateProperties(serialized);
     updatePropertyValues(serialized);
+}
+
+template <class Impl>
+bool ConfigClientPropertyObjectBaseImpl<Impl>::valueUnderLegacyKey(const SerializedObjectPtr& /*serialized*/, const StringPtr& /*propName*/) const
+{
+    return false;
 }
 
 template <class Impl>

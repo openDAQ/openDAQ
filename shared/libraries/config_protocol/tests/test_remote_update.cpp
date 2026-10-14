@@ -10,6 +10,11 @@
 #include <config_protocol/config_protocol_client.h>
 #include <config_protocol/config_client_device_impl.h>
 #include <coreobjects/user_factory.h>
+#include <coreobjects/core_event_args_factory.h>
+#include <config_protocol/config_client_object.h>
+#include <rapidjson/document.h>
+#include <rapidjson/stringbuffer.h>
+#include <rapidjson/writer.h>
 
 using namespace daq;
 using namespace daq::config_protocol;
@@ -54,6 +59,7 @@ protected:
     ContextPtr clientContext;
     BaseObjectPtr notificationObj;
     bool muteNotifications = false;
+    mutable size_t requestCount = 0;
 
     // server handling
     void serverNotificationReady(const PacketBuffer& notificationPacket) const
@@ -65,6 +71,7 @@ protected:
     // client handling
     PacketBuffer sendRequestAndGetReply(const PacketBuffer& requestPacket) const
     {
+        requestCount++;
         auto replyPacket = server->processRequestAndGetReply(requestPacket);
         return replyPacket;
     }
@@ -279,4 +286,32 @@ TEST_F(ConfigRemoteUpdateTest, UpdateHierarchicalActive)
 
     ASSERT_TRUE(serverChannel.getActive());
     ASSERT_TRUE(clientChannel.getActive());
+}
+
+// Servers before DaqDeviceInfo became a device property (3.40 and older) send the device info as "deviceInfo"
+TEST_F(ConfigRemoteUpdateTest, RemoteUpdateWithLegacyDeviceInfoSendsNoRequests)
+{
+    const auto serverSubDevice = serverDevice.getDevices()[0];
+    const auto clientSubDevice = clientDevice.getDevices()[0];
+
+    rapidjson::Document doc;
+    doc.Parse(serializeHelper(serverSubDevice).toStdString().c_str());
+    ASSERT_TRUE(doc["propValues"].HasMember("DaqDeviceInfo"));
+    rapidjson::Value deviceInfo(doc["propValues"]["DaqDeviceInfo"], doc.GetAllocator());
+    doc["propValues"].RemoveMember("DaqDeviceInfo");
+    doc.AddMember("deviceInfo", deviceInfo, doc.GetAllocator());
+    rapidjson::StringBuffer buffer;
+    rapidjson::Writer<rapidjson::StringBuffer> writer(buffer);
+    doc.Accept(writer);
+
+    const auto args = CoreEventArgs(CoreEventId::ComponentUpdateEnd,
+                                    "ComponentUpdateEnd",
+                                    Dict<IString, IBaseObject>({{"SerializedComponent", String(buffer.GetString())}}));
+
+    // Over the native transport a request sent while applying a notification waits for the 10 s request timeout
+    requestCount = 0;
+    clientSubDevice.asPtr<IConfigClientObject>()->handleRemoteCoreEvent(clientSubDevice, args);
+    ASSERT_EQ(requestCount, 0u);
+    ASSERT_EQ(clientSubDevice.getInfo().getSerialNumber(), serverSubDevice.getInfo().getSerialNumber());
+    ASSERT_EQ(clientSubDevice.getInfo().getName(), serverSubDevice.getInfo().getName());
 }

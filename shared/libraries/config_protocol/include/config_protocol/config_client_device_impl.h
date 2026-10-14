@@ -82,6 +82,7 @@ public:
 protected:
     void handleRemoteCoreObjectInternal(const ComponentPtr& sender, const CoreEventArgsPtr& args) override;
     void onRemoteUpdate(const SerializedObjectPtr& serialized) override;
+    bool valueUnderLegacyKey(const SerializedObjectPtr& serialized, const StringPtr& propName) const override;
     StringPtr onGetRemoteId() const override;
     void deserializeCustomObjectValues(const SerializedObjectPtr& serializedObject,
                                        const BaseObjectPtr& context,
@@ -557,6 +558,13 @@ void GenericConfigClientDeviceImpl<TDeviceBase>::onRemoteUpdate(const Serialized
         Int mode = serialized.readInt("OperationMode");
         this->updateOperationModeNoCoreEvent(static_cast<OperationModeType>(mode));
     }
+}
+
+// Servers before DaqDeviceInfo became a device property (3.40 and older) send it as "deviceInfo", which onRemoteUpdate applies
+template <class TDeviceBase>
+bool GenericConfigClientDeviceImpl<TDeviceBase>::valueUnderLegacyKey(const SerializedObjectPtr& serialized, const StringPtr& propName) const
+{
+    return propName == "DaqDeviceInfo" && serialized.hasKey("deviceInfo");
 }
 
 template <class TDeviceBase>

@@ -121,7 +121,7 @@ protected:
     ErrCode getAvailableFunctionBlockTypesInternal(IDict** functionBlockTypes);
     ErrCode addFunctionBlockInternal(IFunctionBlock** functionBlock, IString* typeId, IPropertyObject* config = nullptr);
     ErrCode removeFunctionBlockInternal(IFunctionBlock* functionBlock);
-    void validateSingletonFunctionBlock(const StringPtr& typeId, const FunctionBlockTypePtr& type);
+    void validateSingletonFunctionBlock(const StringPtr& typeId);
 
     virtual DictPtr<IString, IFunctionBlockType> onGetAvailableFunctionBlockTypes();
     virtual FunctionBlockPtr onAddFunctionBlock(const StringPtr& typeId, const PropertyObjectPtr& config);
@@ -623,9 +623,7 @@ ErrCode GenericSignalContainerImpl<Intf, Intfs...>::addFunctionBlockInternal(IFu
     const ErrCode validateErrCode = daqTry([this, &typeId]
     {
         const StringPtr typeIdPtr = typeId;
-        const auto availableTypes = onGetAvailableFunctionBlockTypes();
-        if (availableTypes.hasKey(typeIdPtr))
-            validateSingletonFunctionBlock(typeIdPtr, availableTypes.get(typeIdPtr));
+        validateSingletonFunctionBlock(typeIdPtr);
     });
     OPENDAQ_RETURN_IF_FAILED(validateErrCode);
 
@@ -638,20 +636,21 @@ ErrCode GenericSignalContainerImpl<Intf, Intfs...>::addFunctionBlockInternal(IFu
 }
 
 template <class Intf, class... Intfs>
-void GenericSignalContainerImpl<Intf, Intfs...>::validateSingletonFunctionBlock(const StringPtr& typeId, const FunctionBlockTypePtr& type)
+void GenericSignalContainerImpl<Intf, Intfs...>::validateSingletonFunctionBlock(const StringPtr& typeId)
 {
-    if (!type.assigned() || !type.getSingleton())
-        return;
-
-    // Hidden function blocks count as well, so search with a filter that accepts all of them
     for (const FunctionBlockPtr& fb : this->functionBlocks.getItems(search::Any()))
     {
         const auto fbType = fb.getFunctionBlockType();
-        if (fbType.assigned() && fbType.getId() == typeId)
+        if (!fbType.assigned())
+            continue;
+
+        if (fbType.getId() == typeId && fbType.getSingleton())
+        {
             DAQ_THROW_EXCEPTION(AlreadyExistsException,
-                                "Function block type \"{}\" is a singleton and an instance of it already exists under \"{}\"",
-                                typeId,
-                                this->globalId);
+                "Function block type \"{}\" is a singleton and an instance of it already exists under \"{}\"",
+                typeId,
+                this->globalId);
+        }
     }
 }
 
@@ -847,16 +846,16 @@ void GenericSignalContainerImpl<Intf, Intfs...>::updateFunctionBlock(const std::
                                                                      const BaseObjectPtr& context)
 {
     // we are now removing all existing functions block excluding the static ones
-    // so for the dynamic function blocks we dont need to check if the function block is already exist or not
+    // so for the dynamic function blocks we dont need to check if the function block already exists or not
     const auto availableTypes = onGetAvailableFunctionBlockTypes();
     const auto typeId = serializedFunctionBlock.readString("typeId");
 
-    // handle the function block which are not availble to add
+    // handle the function block which are not available to add
     if (!availableTypes.hasKey(typeId))
     {
         if (this->functionBlocks.hasItem(fbId))
         {
-            // handaling static function block
+            // handling static function block
             const UpdatablePtr updatableFb = this->functionBlocks.getItem(fbId).template asPtr<IUpdatable>(true);
             updatableFb.updateInternal(serializedFunctionBlock, context);
         }
@@ -869,10 +868,9 @@ void GenericSignalContainerImpl<Intf, Intfs...>::updateFunctionBlock(const std::
         return;
     }
 
-    const FunctionBlockTypePtr functionBlockType = availableTypes.get(typeId);
     try
     {
-        validateSingletonFunctionBlock(typeId, functionBlockType);
+        validateSingletonFunctionBlock(typeId);
     }
     catch (const AlreadyExistsException& e)
     {
@@ -881,7 +879,8 @@ void GenericSignalContainerImpl<Intf, Intfs...>::updateFunctionBlock(const std::
         LOG_W("Failed to add FB with ID {} while updating parent FB with ID {}: {}", fbId, this->localId, e.what())
         return;
     }
-
+    
+    const FunctionBlockTypePtr functionBlockType = availableTypes.get(typeId);
     PropertyObjectPtr functionConfig = functionBlockType.createDefaultConfig();
 
     if (serializedFunctionBlock.hasKey("ComponentConfig"))

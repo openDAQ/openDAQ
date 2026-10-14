@@ -13,6 +13,7 @@
 #include <opendaq/component_status_container_private_ptr.h>
 #include <opendaq/component_exceptions.h>
 #include <opendaq/component_impl.h>
+#include <opendaq/component_type_impl.h>
 #include <testutils/testutils.h>
 
 using namespace daq;
@@ -317,3 +318,72 @@ TEST_F(ComponentTest, InitThenSetComponentStatus)
 
     ASSERT_EQ(container.getStatus("ComponentStatus"), Enumeration("ComponentStatusType", "Warning", component.getContext().getTypeManager()));
 }
+
+using ComponentTypeTest = Test;
+
+static StructTypePtr createTestComponentTypeStructType()
+{
+    return StructType("TestComponentType",
+                      List<IString>("Id", "Name", "Description", "Extra"),
+                      List<IBaseObject>("", "", "", ""),
+                      List<IType>(SimpleType(ctString), SimpleType(ctString), SimpleType(ctString), SimpleType(ctString)));
+}
+
+TEST_F(ComponentTypeTest, ExtraFields)
+{
+    const StructPtr type = createWithImplementation<IComponentType, GenericComponentTypeImpl<>>(
+        createTestComponentTypeStructType(), "Id", "Name", "Desc", nullptr, Dict<IString, IBaseObject>({{"Extra", "Value"}}));
+
+    ASSERT_EQ(type.getFieldNames(), createTestComponentTypeStructType().getFieldNames());
+    ASSERT_EQ(type.get("Id"), "Id");
+    ASSERT_EQ(type.get("Extra"), "Value");
+}
+
+TEST_F(ComponentTypeTest, ReservedExtraFieldThrows)
+{
+    const auto structType = StructType("TestComponentType",
+                                       List<IString>("Id", "Name", "Description"),
+                                       List<IBaseObject>("", "", ""),
+                                       List<IType>(SimpleType(ctString), SimpleType(ctString), SimpleType(ctString)));
+
+    for (const auto& reserved : {"Id", "Name", "Description"})
+    {
+        ASSERT_THROW((createWithImplementation<IComponentType, GenericComponentTypeImpl<>>(
+                         structType, "Id", "Name", "Desc", nullptr, Dict<IString, IBaseObject>({{reserved, "Other"}}))),
+                     InvalidParameterException);
+    }
+}
+
+#ifndef NDEBUG
+TEST_F(ComponentTypeTest, MismatchedExtraFieldsThrow)
+{
+    const auto structType = createTestComponentTypeStructType();
+
+    // Missing field
+    ASSERT_THROW((createWithImplementation<IComponentType, GenericComponentTypeImpl<>>(structType, "Id", "Name", "Desc", nullptr)),
+                 InvalidTypeException);
+
+    // Misspelled field
+    ASSERT_THROW((createWithImplementation<IComponentType, GenericComponentTypeImpl<>>(
+                     structType, "Id", "Name", "Desc", nullptr, Dict<IString, IBaseObject>({{"Extar", "Value"}}))),
+                 InvalidTypeException);
+
+    // Field not declared by the struct type
+    ASSERT_THROW((createWithImplementation<IComponentType, GenericComponentTypeImpl<>>(
+                     structType, "Id", "Name", "Desc", nullptr, Dict<IString, IBaseObject>({{"Extra", "Value"}, {"Other", "Value"}}))),
+                 InvalidTypeException);
+}
+
+TEST_F(ComponentTypeTest, MisorderedExtraFieldsThrow)
+{
+    const auto structType = StructType("TestComponentType",
+                                       List<IString>("Id", "Name", "Description", "First", "Second"),
+                                       List<IBaseObject>("", "", "", "", ""),
+                                       List<IType>(SimpleType(ctString), SimpleType(ctString), SimpleType(ctString),
+                                                   SimpleType(ctString), SimpleType(ctString)));
+
+    ASSERT_THROW((createWithImplementation<IComponentType, GenericComponentTypeImpl<>>(
+                     structType, "Id", "Name", "Desc", nullptr, Dict<IString, IBaseObject>({{"Second", "2"}, {"First", "1"}}))),
+                 InvalidTypeException);
+}
+#endif

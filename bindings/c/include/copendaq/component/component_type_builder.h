@@ -55,6 +55,12 @@ extern "C"
     daqErrCode EXPORTED daqComponentTypeBuilder_getConnectionStringPrefix(daqComponentTypeBuilder* self, daqString** prefix);
     daqErrCode EXPORTED daqComponentTypeBuilder_setDefaultConfig(daqComponentTypeBuilder* self, daqPropertyObject* defaultConfig);
     daqErrCode EXPORTED daqComponentTypeBuilder_getDefaultConfig(daqComponentTypeBuilder* self, daqPropertyObject** defaultConfig);
+    daqErrCode EXPORTED daqComponentTypeBuilder_setAlwaysEmptyInput(daqComponentTypeBuilder* self, daqBool alwaysEmpty);
+    daqErrCode EXPORTED daqComponentTypeBuilder_getAlwaysEmptyInput(daqComponentTypeBuilder* self, daqBool* alwaysEmpty);
+    daqErrCode EXPORTED daqComponentTypeBuilder_setSingleton(daqComponentTypeBuilder* self, daqBool singleton);
+    daqErrCode EXPORTED daqComponentTypeBuilder_getSingleton(daqComponentTypeBuilder* self, daqBool* singleton);
+    daqErrCode EXPORTED daqComponentTypeBuilder_setCommonSettingsTypeId(daqComponentTypeBuilder* self, daqString* typeId);
+    daqErrCode EXPORTED daqComponentTypeBuilder_getCommonSettingsTypeId(daqComponentTypeBuilder* self, daqString** typeId);
     daqErrCode EXPORTED daqComponentTypeBuilder_createComponentTypeBuilder(daqComponentTypeBuilder** obj);
     daqErrCode EXPORTED daqComponentTypeBuilder_createDeviceTypeBuilder(daqComponentTypeBuilder** obj);
     daqErrCode EXPORTED daqComponentTypeBuilder_createStreamingTypeBuilder(daqComponentTypeBuilder** obj);

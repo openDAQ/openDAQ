@@ -51,9 +51,10 @@ inline FunctionBlockTypePtr FunctionBlockType(const StringPtr& id,
 inline StructTypePtr FunctionBlockTypeStructType()
 {
     return StructType("FunctionBlockType",
-                      List<IString>("Id", "Name", "Description"),
-                      List<IString>("", "", ""),
-                      List<IType>(SimpleType(ctString), SimpleType(ctString), SimpleType(ctString)));
+                      List<IString>("Id", "Name", "Description", "AlwaysEmptyInput", "Singleton", "CommonSettingsTypeId"),
+                      List<IBaseObject>("", "", "", False, False, nullptr),
+                      List<IType>(SimpleType(ctString), SimpleType(ctString), SimpleType(ctString),
+                                  SimpleType(ctBool), SimpleType(ctBool), SimpleType(ctString)));
 }
 
 /*!@}*/

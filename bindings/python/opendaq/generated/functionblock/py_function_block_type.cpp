@@ -44,4 +44,29 @@ void defineIFunctionBlockType(pybind11::module_ m, PyDaqIntf<daq::IFunctionBlock
         return daq::FunctionBlockType_Create(getVariantValue<daq::IString*>(id), getVariantValue<daq::IString*>(name), getVariantValue<daq::IString*>(description), defaultConfig);
     }, py::arg("id"), py::arg("name"), py::arg("description"), py::arg("default_config"));
 
+
+    cls.def_property_readonly("always_empty_input",
+        [](daq::IFunctionBlockType *object)
+        {
+            py::gil_scoped_release release;
+            const auto objectPtr = daq::FunctionBlockTypePtr::Borrow(object);
+            return objectPtr.getAlwaysEmptyInput();
+        },
+        "Gets the alwaysEmptyInput flag value.");
+    cls.def_property_readonly("singleton",
+        [](daq::IFunctionBlockType *object)
+        {
+            py::gil_scoped_release release;
+            const auto objectPtr = daq::FunctionBlockTypePtr::Borrow(object);
+            return objectPtr.getSingleton();
+        },
+        "Gets the singleton flag value.");
+    cls.def_property_readonly("common_settings_type_id",
+        [](daq::IFunctionBlockType *object)
+        {
+            py::gil_scoped_release release;
+            const auto objectPtr = daq::FunctionBlockTypePtr::Borrow(object);
+            return objectPtr.getCommonSettingsTypeId().toStdString();
+        },
+        "Gets the commonSettingsTypeId - the Id for which this FB type acts as a common settings folder.");
 }

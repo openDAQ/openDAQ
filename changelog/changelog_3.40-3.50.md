@@ -9,11 +9,13 @@
 - [#1251](https://github.com/openDAQ/openDAQ/pull/1251) TLS encrypted channel for the LT streaming module. With `EnableTlsStreamingPort` the server serves the secure channel alongside the plaintext one, registering both the `OpenDAQLTStreaming` and `OpenDAQLTStreamingSecure` capabilities and advertising the `_streaming-lt._tcp` and `_streaming-lts._tcp` mDNS services. Mutual TLS is enabled by default. LT capabilities now carry the `LTStreaming` protocol group ID and a protocol security level (`0` plaintext / `10` secure), so a client ordering streaming protocols by security level prefers the secure channel on its own. The channel is opt-in: without `EnableTlsStreamingPort` the server behaves as before. It is opt-in at build time as well: see [#1278](https://github.com/openDAQ/openDAQ/pull/1278).
 - [#1278](https://github.com/openDAQ/openDAQ/pull/1278) Building the TLS channel of the LT streaming modules is controlled by the new CMake option `OPENDAQ_ENABLE_WEBSOCKET_STREAMING_WITH_TLS`, off by default and on in the `full`, `package` and `simulator_package` presets. With it off the LT streaming modules are built without their OpenSSL dependency and the `daq.lts://` channel is absent. The option has no meaning for the legacy LT streaming modules (`DAQMODULES_LT_LEGACY_MODULES`) and is ignored there.
 - [#1311](https://github.com/openDAQ/openDAQ/pull/1311) Add the `ScanOnAdd` option to skip the network scan on `addDevice`; tests wait for state instead of sleeping; declare `RESOURCE_LOCK` for parallel ctest; write a minidump on access violations.
+- [#1322](https://github.com/openDAQ/openDAQ/pull/1322) Add the `AlwaysEmptyInput`, `Singleton` and `CommonSettingsTypeId` flags to function block types. A type can now declare that its blocks always keep a free input port, that at most one instance may exist under a single parent, and that its properties act as common settings for nested blocks of another type. The options are set through `IComponentTypeBuilder` and read back from `IFunctionBlockType`; they are serialized with the type, so they survive the config protocol. The options are also fields of the `FunctionBlockType` struct, so they are visible through `IStruct` and take part in equality: two types that differ only in their options no longer compare equal. The `Singleton` flag is enforced by the core: adding a function block of a singleton type to a device or function block that already holds an instance of that type fails with `OPENDAQ_ERR_ALREADYEXISTS`, and a duplicate found while loading a configuration is skipped with a warning.
 
 ## Python
 
 ## Bug fixes
 
+- [#1322](https://github.com/openDAQ/openDAQ/pull/1322) `IList::equals` no longer dereferences a null element when only one of the two lists holds `nullptr` at a position. The comparison crashed or returned the right answer depending on operand order; it is now symmetric and reports the lists as not equal. Structs compare their field values as lists, so this also fixes crashes when comparing structs with unassigned fields, such as a device type without a connection string prefix.
 - [#1326](https://github.com/openDAQ/openDAQ/pull/1326) Fix an exception in a native streaming handler aborting the process; it is logged instead
 - [#1326](https://github.com/openDAQ/openDAQ/pull/1326) Fix adding a sub-device failing when a property object class, enumeration or struct type of the same name is already registered on the client
 - [#1326](https://github.com/openDAQ/openDAQ/pull/1326) Native client logs a warning when a type received from the server differs from the local definition
@@ -59,6 +61,42 @@
 
 `daq::RecursiveMutex` was removed from `coretypes/utility_sync.h`. Use `std::recursive_mutex` or `daq::mutex` instead.
 
+### [#1322](https://github.com/openDAQ/openDAQ/pull/1322) Function block type options
+
+`IFunctionBlockType` and `IComponentTypeBuilder` each gained new methods. Interface IDs in openDAQ are derived
+from the interface name alone, so a module built against an older SDK still passes `queryInterface` while its
+vtable is missing the new slots. Modules must be rebuilt against this SDK version.
+
+Modules that construct function block types through the `FunctionBlockType()` factory or `FunctionBlockTypeBuilder()`
+need no source changes; the defaults (`False`, `False`, unassigned) preserve the previous behaviour. Any module that
+implements `IFunctionBlockType` itself must add `getAlwaysEmptyInput`, `getSingleton` and `getCommonSettingsTypeId`.
+
+The serialized form stays compatible in both directions: a newer SDK reading an older payload falls back to the
+defaults, and an older SDK reading a newer payload ignores the three new keys. Note that an older peer therefore
+drops the values silently - it will not enforce a `Singleton` constraint declared by a newer server.
+
+`GenericComponentTypeImpl` now has a single constructor, `(type, id, name, description, defaultConfig, extraFields = nullptr)`.
+The overload taking a connection string prefix was removed, and `prefix` is no longer a member of the base class; device
+and streaming types store it themselves. A component type implementation deriving from `GenericComponentTypeImpl` must
+pass any fields beyond `Id`, `Name` and `Description` through `extraFields`, in the order its struct type declares them:
+```diff
+- : Super(structType, id, name, description, prefix, defaultConfig)
++ : Super(structType, id, name, description, defaultConfig, Dict<IString, IBaseObject>({{"Field1", value1}, {"Field2", value2}}))
+```
+Passing `Id`, `Name` or `Description` in `extraFields` throws `InvalidParameterException`, and debug builds also throw `InvalidTypeException` when the resulting fields do not match the struct type's field names and order.
+
+The `Singleton` flag is enforced by `addFunctionBlock` of devices and function blocks, which puts three requirements on modules:
+- Create function block instances with the same type, including its flags, that the module advertises through
+  `onGetAvailableFunctionBlockTypes`. The check reads the types of the instances that already exist under the parent, so an
+  instance created with a separately built type that lacks the flag is not counted.
+- `onAddFunctionBlock` is now called with the parent's recursive config lock held, so a concurrent addition cannot pass the
+  check before the first one has added its instance. An implementation must not wait for another thread that needs the
+  parent's config lock, for example by posting work to a worker thread and blocking until it completes.
+- Protocol client representations whose `onAddFunctionBlock` forwards the addition to a remote side that runs openDAQ must
+  override `validatesAddFunctionBlock()` to return `false`. The remote side then validates and serializes the addition, and
+  the client does not hold its config lock across the remote call. Containers that create their function blocks locally,
+  or forward to a remote side that does not run openDAQ, keep the default `true`.
+
 ## Interface API changes
 
 ### New interfaces
@@ -92,4 +130,21 @@
 #### `IStreaming`
 ```diff
 + IStreaming::getProtocolGroupId(IString** protocolGroupId);
+```
+
+#### `IFunctionBlockType`
+```diff
++ IFunctionBlockType::getAlwaysEmptyInput(Bool* alwaysEmpty);
++ IFunctionBlockType::getSingleton(Bool* singleton);
++ IFunctionBlockType::getCommonSettingsTypeId(IString** typeId);
+```
+
+#### `IComponentTypeBuilder`
+```diff
++ IComponentTypeBuilder::setAlwaysEmptyInput(Bool alwaysEmpty);
++ IComponentTypeBuilder::getAlwaysEmptyInput(Bool* alwaysEmpty);
++ IComponentTypeBuilder::setSingleton(Bool singleton);
++ IComponentTypeBuilder::getSingleton(Bool* singleton);
++ IComponentTypeBuilder::setCommonSettingsTypeId(IString* typeId);
++ IComponentTypeBuilder::getCommonSettingsTypeId(IString** typeId);
 ```

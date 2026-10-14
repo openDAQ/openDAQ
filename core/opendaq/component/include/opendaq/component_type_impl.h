@@ -36,14 +36,8 @@ public:
                                       const StringPtr& id,
                                       const StringPtr& name,
                                       const StringPtr& description,
-                                      const PropertyObjectPtr& defaultConfig);
-
-    explicit GenericComponentTypeImpl(const StructTypePtr& type,
-                                      const StringPtr& id,
-                                      const StringPtr& name,
-                                      const StringPtr& description,
-                                      const StringPtr& prefix,
-                                      const PropertyObjectPtr& defaultConfig);
+                                      const PropertyObjectPtr& defaultConfig,
+                                      const DictPtr<IString, IBaseObject>& extraFields = nullptr);
 
     ErrCode INTERFACE_FUNC getId(IString** id) override;
     ErrCode INTERFACE_FUNC getName(IString** name) override;
@@ -54,44 +48,64 @@ public:
     // IComponentTypePrivate
     ErrCode INTERFACE_FUNC setModuleInfo(IModuleInfo* info) override;
 
+private:
+    static DictPtr<IString, IBaseObject> createFields(const StructTypePtr& type,
+                                                      const StringPtr& id,
+                                                      const StringPtr& name,
+                                                      const StringPtr& description,
+                                                      const DictPtr<IString, IBaseObject>& extraFields);
+
 protected:
     StringPtr id;
     StringPtr name;
     StringPtr description;
-    StringPtr prefix;
     PropertyObjectPtr defaultConfig;
     ModuleInfoPtr moduleInfo;
 };
+
+template <class Intf, class... Interfaces>
+DictPtr<IString, IBaseObject> GenericComponentTypeImpl<Intf, Interfaces...>::createFields([[maybe_unused]] const StructTypePtr& type,
+    const StringPtr& id,
+    const StringPtr& name,
+    const StringPtr& description,
+    const DictPtr<IString, IBaseObject>& extraFields)
+{
+    auto fields = Dict<IString, IBaseObject>({{"Id", id}, {"Name", name}, {"Description", description}});
+
+    if (extraFields.assigned())
+    {
+        for (const auto& [key, value] : extraFields)
+        {
+            // Id, Name and Description are owned by the base and must not be overwritten by a derived type
+            if (fields.hasKey(key))
+                DAQ_THROW_EXCEPTION(InvalidParameterException, "Extra component type field \"{}\" is reserved", key);
+
+            fields.set(key, value);
+        }
+    }
+
+#ifndef NDEBUG
+    // GenericStructImpl does not validate the fields against the struct type, so a misspelled
+    // or misordered extra field would otherwise go unnoticed
+    if (fields.getKeyList() != type.getFieldNames())
+        DAQ_THROW_EXCEPTION(InvalidTypeException, "Component type fields do not match the fields of struct type \"{}\"", type.getName());
+#endif
+
+    return fields;
+}
 
 template <class Intf, class... Interfaces>
 GenericComponentTypeImpl<Intf, Interfaces...>::GenericComponentTypeImpl(const StructTypePtr& type,
                                                                         const StringPtr& id,
                                                                         const StringPtr& name,
                                                                         const StringPtr& description,
-                                                                        const PropertyObjectPtr& defaultConfig)
+                                                                        const PropertyObjectPtr& defaultConfig,
+                                                                        const DictPtr<IString, IBaseObject>& extraFields)
     : GenericStructImpl<Intf, IStruct, IComponentTypePrivate, Interfaces...>(
-          type, Dict<IString, IBaseObject>({{"Id", id}, {"Name", name}, {"Description", description}}))
+          type, createFields(type, id, name, description, extraFields))
     , id(id)
     , name(name)
     , description(description)
-    , prefix("")
-    , defaultConfig(defaultConfig)
-{
-}
-
-template <typename Intf, typename... Interfaces>
-GenericComponentTypeImpl<Intf, Interfaces...>::GenericComponentTypeImpl(const StructTypePtr& type,
-                                                                        const StringPtr& id,
-                                                                        const StringPtr& name,
-                                                                        const StringPtr& description,
-                                                                        const StringPtr& prefix,
-                                                                        const PropertyObjectPtr& defaultConfig)
-    : GenericStructImpl<Intf, IStruct, IComponentTypePrivate, Interfaces...>(
-          type, Dict<IString, IBaseObject>({{"Id", id}, {"Name", name}, {"Description", description}, {"Prefix", prefix}}))
-    , id(id)
-    , name(name)
-    , description(description)
-    , prefix(prefix)
     , defaultConfig(defaultConfig)
 {
 }

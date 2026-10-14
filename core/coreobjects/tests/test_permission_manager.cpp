@@ -4,6 +4,10 @@
 #include <coreobjects/user_factory.h>
 #include <coreobjects/permissions_builder_factory.h>
 #include <coreobjects/permission_mask_builder_factory.h>
+#include <atomic>
+#include <chrono>
+#include <thread>
+#include <vector>
 
 using namespace daq;
 
@@ -297,6 +301,41 @@ TEST_F(PermissionManagerTest, CreateDisabledPermissionManager)
     ASSERT_TRUE(permissionManager.isAuthorized(nullptr, Permission::Read));
     ASSERT_TRUE(permissionManager.isAuthorized(nullptr, Permission::Write));
     ASSERT_TRUE(permissionManager.isAuthorized(nullptr, Permission::Execute));
+}
+
+TEST_F(PermissionManagerTest, ConcurrentChildCreateDestroyAndParentUpdate)
+{
+    const auto user = User("user", "password", List<IString>("user"));
+    const auto readOnly = PermissionsBuilder().assign("user", PermissionMaskBuilder().read()).build();
+    const auto readWrite = PermissionsBuilder().assign("user", PermissionMaskBuilder().read().write()).build();
+
+    auto managerRoot = PermissionManager();
+    managerRoot.setPermissions(readOnly);
+    auto manager = PermissionManager(managerRoot);
+    manager.setPermissions(PermissionsBuilder().inherit(true).build());
+
+    // Children register with the root on the creating thread and unregister on the destroying one
+    std::atomic<bool> stop{false};
+    std::vector<std::thread> threads;
+    for (int i = 0; i < 4; ++i)
+    {
+        threads.emplace_back([&] {
+            while (!stop)
+                PermissionManager(managerRoot).setPermissions(PermissionsBuilder().inherit(true).build());
+        });
+    }
+    threads.emplace_back([&] {
+        for (int i = 0; !stop; ++i)
+            managerRoot.setPermissions(i % 2 ? readWrite : readOnly);
+    });
+
+    std::this_thread::sleep_for(std::chrono::milliseconds(300));
+    stop = true;
+    for (auto& thread : threads)
+        thread.join();
+
+    managerRoot.setPermissions(readWrite);
+    ASSERT_TRUE(manager.isAuthorized(user, Permission::Write));
 }
 
 #endif

@@ -51,6 +51,11 @@
 
 `daq::RecursiveMutex` was removed from `coretypes/utility_sync.h`. Use `std::recursive_mutex` or `daq::mutex` instead.
 
+### [#1349](https://github.com/openDAQ/openDAQ/pull/1349) Property getters take the object's lock
+
+`getProperty`, `hasProperty`, `getAllProperties`, `getVisibleProperties` and `clone` now take the object's recursive lock, so they wait while another thread holds it (an `addDevice` on the parent, a slow write handler).
+
+Nested property objects share their owner's lock, so a handler on a nested object runs under the owning component's lock. To keep a separate lock, set `LockingStrategy::OwnLock` before the object is assigned; clones keep the strategy.
 
 ## Required module changes
 
@@ -62,7 +67,9 @@
 
 ### [#1349](https://github.com/openDAQ/openDAQ/pull/1349) Property getters take the object's lock
 
-A thread holding `getLockGuard`, `getAcquisitionLock2` or `getUniqueLock2` deadlocks if it calls `getProperty`, `hasProperty`, `getAllProperties`, `getVisibleProperties` or `clone` on that object, so it must use the NoLock variants.
+`getProperty`, `hasProperty`, `getAllProperties`, `getVisibleProperties` and `clone` now take the object's recursive lock. Under the non-recursive `getLockGuard` use the `NoLock` variants. Under another mutex, such as the acquisition lock, they take the property lock second, which inverts the order of a write handler that takes that mutex under the property lock; read property metadata before taking the acquisition lock.
+
+Nested property objects share their owner's lock, so a handler on a nested object runs under the owning component's lock. To keep a separate lock, set `LockingStrategy::OwnLock` before the object is assigned; clones keep the strategy.
 
 ## Interface API changes
 

@@ -255,7 +255,19 @@ void GenericInputPortImpl<TInterface, Interfaces...>::disconnectSignalInternal(C
         {
             const SignalEventsPtr events = signal.asPtrOrNull<ISignalEvents>(true);
             if (events.assigned())
-                events.listenerDisconnected(connection);
+            {
+                // listenerDisconnected only tells the signal that this port stopped listening. If the signal fails to
+                // handle it, the port still has to finish disconnecting. Readers remove their port in their destructor,
+                // and an exception leaving a destructor terminates the process.
+                try
+                {
+                    events.listenerDisconnected(connection);
+                }
+                catch (const std::exception& e)
+                {
+                    LOG_W("Input port \"{}\" disconnected, but its signal failed to handle it: {}", this->globalId, e.what());
+                }
+            }
         }
     }
 

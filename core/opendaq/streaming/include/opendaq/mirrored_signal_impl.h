@@ -506,7 +506,7 @@ void MirroredSignalBase<Interfaces...>::unsubscribeOnTeardown()
 {
     if (OPENDAQ_SUCCEEDED(unsubscribeInternal()))
         return;
-    const auto loggerComponent = context.getLogger().getOrAddComponent("Component");
+    const auto loggerComponent = this->context.getLogger().getOrAddComponent("Component");
     LOG_W("Signal \"{}\" failed to unsubscribe from its active streaming source", this->globalId);
     daqClearErrorInfo();
 }
@@ -702,7 +702,7 @@ ErrCode MirroredSignalBase<Interfaces...>::subscribeInternal()
                 domainSignalRemoteId = domainSignal.template asPtr<IMirroredSignalConfig>().getRemoteId();
             else
             {
-                const auto loggerComponent = context.getLogger().getOrAddComponent("Component");
+                const auto loggerComponent = this->context.getLogger().getOrAddComponent("Component");
                 LOG_W("Signal \"{}\" has a private domain signal; the server is misconfigured, subscribing the value signal alone",
                       this->globalId);
             }

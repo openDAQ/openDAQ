@@ -400,10 +400,10 @@
         },
         {
             "name": "run_tests_parallel",
-            "description": "Run all tests excluding unstable ones, four at a time; RESOURCE_LOCK keeps port and mDNS users apart",
+            "description": "Run all tests excluding unstable ones, one job per core (CMake 3.29+, serial before); RESOURCE_LOCK keeps port and mDNS users apart",
             "inherits": "run_tests",
-            "execution": {
-                "jobs": 4
+            "environment": {
+                "CTEST_PARALLEL_LEVEL": ""
             }
         },
         {

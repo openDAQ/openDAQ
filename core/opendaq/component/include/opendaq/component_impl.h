@@ -250,6 +250,9 @@ ComponentImpl<Intf, Intfs...>::ComponentImpl(
                   triggerCoreEvent(args);
           }))
 {
+    // Plain property objects inherit their owner's lock; a component has its own unless its container sets otherwise
+    checkErrorInfo(this->setLockingStrategy(LockingStrategy::OwnLock));
+
     if (!localId.assigned() || localId.toStdString().empty())
         DAQ_THROW_EXCEPTION(GeneralErrorException, "Local id not assigned");
 

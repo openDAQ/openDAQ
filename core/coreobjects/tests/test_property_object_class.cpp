@@ -213,3 +213,45 @@ TEST_F(PropertyObjectClassTest, DeserializeWithParent)
 
     ASSERT_EQ(str, newStr);
 }
+
+TEST_F(PropertyObjectClassTest, DeserializeAlreadyRegistered)
+{
+    const auto typeManager = TypeManager();
+    typeManager.addType(propObjClass);
+
+    auto serializer = JsonSerializer();
+    propObjClass.serialize(serializer);
+    const auto str = serializer.getOutput();
+
+    // Deserializing registers the class as a side effect. A class compares by pointer, so the
+    // deserialized copy never matches the registered one and must not fail as a duplicate.
+    const auto deserializer = JsonDeserializer();
+    PropertyObjectClassPtr newPropObjClass;
+    ASSERT_NO_THROW(newPropObjClass = deserializer.deserialize(str, typeManager));
+
+    ASSERT_TRUE(typeManager.getType("PropertyObject") == propObjClass);
+
+    serializer.reset();
+    newPropObjClass.serialize(serializer);
+    ASSERT_EQ(serializer.getOutput(), str);
+}
+
+TEST_F(PropertyObjectClassTest, DeserializeConflictingKeepsRegistered)
+{
+    const auto typeManager = TypeManager();
+    typeManager.addType(propObjClass);
+
+    const auto conflictingPropObjClass = PropertyObjectClassBuilder("PropertyObject")
+                                             .addProperty(StringPropertyBuilder("OtherProp", "").build())
+                                             .build();
+
+    auto serializer = JsonSerializer();
+    conflictingPropObjClass.serialize(serializer);
+
+    const auto deserializer = JsonDeserializer();
+    ASSERT_NO_THROW(deserializer.deserialize(serializer.getOutput(), typeManager));
+
+    const PropertyObjectClassPtr registered = typeManager.getType("PropertyObject");
+    ASSERT_TRUE(registered == propObjClass);
+    ASSERT_FALSE(registered.hasProperty("OtherProp"));
+}

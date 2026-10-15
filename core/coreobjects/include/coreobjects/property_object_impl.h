@@ -143,6 +143,10 @@ public:
     virtual ErrCode INTERFACE_FUNC getLockingStrategy(LockingStrategy* strategy) override;
     virtual ErrCode INTERFACE_FUNC getMutex(IMutex** mutex) override;
     virtual ErrCode INTERFACE_FUNC getMutexOwner(IPropertyObjectInternal** owner) override;
+    virtual ErrCode INTERFACE_FUNC getPropertyNoLock(IString* propertyName, IProperty** property) override;
+    virtual ErrCode INTERFACE_FUNC getAllPropertiesNoLock(IList** properties) override;
+    virtual ErrCode INTERFACE_FUNC hasPropertyNoLock(IString* propertyName, Bool* hasProperty) override;
+    virtual ErrCode INTERFACE_FUNC getVisiblePropertiesNoLock(IList** properties) override;
 
     // IUpdatable
     virtual ErrCode INTERFACE_FUNC updateInternal(ISerializedObject* obj, IBaseObject* context) override;
@@ -282,6 +286,10 @@ protected:
 
     void setMutex(const MutexPtr& mutex);
     void setLockOwner(const PropertyObjectInternalPtr& owner);
+    // The mutex the object's lock guards lock: the lock owner's when inheriting, as the owner may have been attached later
+    MutexPtr getLockedMutex();
+    // True when obj locks the same mutex, so holding this object's lock also covers obj
+    bool sharesLock(const BaseObjectPtr& obj);
     void internalDispose(bool) override;
     ErrCode setPropertyOrderInternal(IList* orderedPropertyNames, bool isUpdating = false);
 
@@ -402,7 +410,10 @@ private:
 
     // Gets the property, as well as its value. Gets the referenced property, if the property is a refProp
     ErrCode getPropertyAndValueInternal(const StringPtr& name, BaseObjectPtr& value, PropertyPtr& property, bool triggerEvent = true, bool retrieveUpdatingValue = false);
-    ErrCode getPropertiesInternal(Bool includeInvisible, Bool bind, IList** list, Bool includeCoreProperties = false);
+    // NoLock paths pass lock = false and must not reach anything that takes the object's lock
+    ErrCode getPropertiesInternal(Bool includeInvisible, Bool bind, IList** list, Bool includeCoreProperties = false, bool lock = true);
+    ErrCode getPropertyInternal(IString* propertyName, IProperty** property, bool lock);
+    ErrCode hasPropertyInternal(IString* propertyName, Bool* hasProperty, bool lock);
 
     // Gets the property value, if stored in local value dictionary (propValues)
     // Parses brackets, if the property is a list
@@ -479,7 +490,8 @@ template <class PropObjInterface, class... Interfaces>
 GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::GenericPropertyObjectImpl()
     : coreEventMuted(true)
     , sync(Mutex())
-    , lockingStrategy(LockingStrategy::OwnLock)
+    // A nested property object is part of its owner's state and is guarded by the owner's lock; components set OwnLock
+    , lockingStrategy(LockingStrategy::InheritLock)
     , className(nullptr)
     , objectClass(nullptr)
     , updateCount(0)
@@ -586,6 +598,25 @@ template <typename PropObjInterface, typename ... Interfaces>
 void GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::setLockOwner(const PropertyObjectInternalPtr& owner)
 {
     this->lockOwner = owner;
+}
+
+template <typename PropObjInterface, typename ... Interfaces>
+MutexPtr GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::getLockedMutex()
+{
+    if (lockingStrategy == LockingStrategy::InheritLock)
+    {
+        if (const auto lockOwnerPtr = lockOwner.assigned() ? lockOwner.getRef() : nullptr; lockOwnerPtr.assigned())
+            return lockOwnerPtr.getMutex();
+    }
+
+    return sync;
+}
+
+template <typename PropObjInterface, typename ... Interfaces>
+bool GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::sharesLock(const BaseObjectPtr& obj)
+{
+    const auto objInternal = obj.asPtrOrNull<IPropertyObjectInternal>(true);
+    return objInternal.assigned() && objInternal.getMutex().getObject() == getLockedMutex().getObject();
 }
 
 template <class PropObjInterface, class... Interfaces>
@@ -696,10 +727,13 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::getChildProp
     err = getPropertyValueInternal(name, &childProp);
     OPENDAQ_RETURN_IF_FAILED(err);
 
+    // Our lock is held here; it covers a child that shares our mutex, any other child is read through its locking getter
     err = daqTry([&]() -> auto
     {
-        const auto childPropAsPropertyObject = childProp.template asPtr<IPropertyObject, PropertyObjectPtr>(true);
-        value = childPropAsPropertyObject.getPropertyValue(subName);
+        if (sharesLock(childProp))
+            value = childProp.template asPtr<IPropertyObjectInternal>(true).getPropertyValueNoLock(subName);
+        else
+            value = childProp.template asPtr<IPropertyObject, PropertyObjectPtr>(true).getPropertyValue(subName);
     });
     OPENDAQ_RETURN_IF_FAILED(err);
     return err;
@@ -1132,7 +1166,16 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::setPropertyV
             const ErrCode err = getPropertyValueInternal(propName, &childProp);
             OPENDAQ_RETURN_IF_FAILED(err);
 
-            if (protectedAccess)
+            // Our lock is held here; it covers a child that shares our mutex, any other child is written through its locking setter
+            if (sharesLock(childProp))
+            {
+                const auto childInternal = childProp.template asPtr<IPropertyObjectInternal>(true);
+                if (protectedAccess)
+                    childInternal.setProtectedPropertyValueNoLock(subName, valuePtr);
+                else
+                    childInternal.setPropertyValueNoLock(subName, valuePtr);
+            }
+            else if (protectedAccess)
             {
                 const auto childPropAsPropertyObject = childProp.template asPtr<IPropertyObjectProtected>(true);
                 childPropAsPropertyObject.setProtectedPropertyValue(subName, valuePtr);
@@ -1262,7 +1305,8 @@ bool GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::shouldWriteLoca
     {
         try
         {
-            return objPtr.getProperty(name).template asPtr<IPropertyInternal>().getDefaultValueNoLock() != value;
+            // Reached from setPropertyValueNoLock, so the lookup takes no lock
+            return objPtr.template asPtr<IPropertyObjectInternal>(true).getPropertyNoLock(name).template asPtr<IPropertyInternal>().getDefaultValueNoLock() != value;
         }
         catch(...)
         {
@@ -1290,7 +1334,7 @@ bool GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::writeLocalValue
         bool shouldWrite = true;
         try
         {
-            shouldWrite = objPtr.getProperty(name).template asPtr<IPropertyInternal>().getDefaultValueNoLock() != value;
+            shouldWrite = objPtr.template asPtr<IPropertyObjectInternal>(true).getPropertyNoLock(name).template asPtr<IPropertyInternal>().getDefaultValueNoLock() != value;
         }
         catch (...)
         {
@@ -2086,10 +2130,16 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::clearPropert
             const ErrCode err = getPropertyValueInternal(propName, &childProp);
             OPENDAQ_RETURN_IF_FAILED(err);
 
+            // Our lock is held here; it covers a child that shares our mutex. Protected clears come only through
+            // clearProtectedPropertyValue's recursive lock, so the child's locking call re-enters it
             if (protectedAccess)
             {
                 const auto childPropAsPropertyObject = childProp.template asPtr<IPropertyObjectProtected>(true);
                 childPropAsPropertyObject.clearProtectedPropertyValue(subName);
+            }
+            else if (sharesLock(childProp))
+            {
+                childProp.template asPtr<IPropertyObjectInternal>(true).clearPropertyValueNoLock(subName);
             }
             else
             {
@@ -2119,6 +2169,12 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::clearPropert
                         {
                             objProtected.clearProtectedPropertyValue(childProp.getName());
                         }
+                    }
+                    else if (sharesLock(it->second))
+                    {
+                        auto objInternal = it->second.template asPtr<IPropertyObjectInternal>(true);
+                        for (const auto& childProp: objInternal.getAllPropertiesNoLock())
+                            objInternal.clearPropertyValueNoLock(childProp.getName());
                     }
                     else
                     {
@@ -2265,11 +2321,27 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::getPropertyS
 template <class PropObjInterface, class... Interfaces>
 ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::getProperty(IString* propertyName, IProperty** property)
 {
+    return getPropertyInternal(propertyName, property, true);
+}
+
+template <class PropObjInterface, class... Interfaces>
+ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::getPropertyNoLock(IString* propertyName, IProperty** property)
+{
+    return getPropertyInternal(propertyName, property, false);
+}
+
+template <class PropObjInterface, class... Interfaces>
+ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::getPropertyInternal(IString* propertyName, IProperty** property, bool lock)
+{
     OPENDAQ_PARAM_NOT_NULL(propertyName);
     OPENDAQ_PARAM_NOT_NULL(property);
 
     const ErrCode errCode = daqTry([&]() -> auto
     {
+        LockGuardPtr lockGuard;
+        if (lock)
+            lockGuard = getRecursiveConfigLock2();
+
         StringPtr propName = propertyName;
         PropertyPtr prop;
 
@@ -2282,8 +2354,11 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::getProperty(
             const ErrCode err = getPropertyValueInternal(propName, &childProp);
             OPENDAQ_RETURN_IF_FAILED(err);
 
-            const auto childPropAsPropertyObject = childProp.template asPtr<IPropertyObject, PropertyObjectPtr>(true);
-            prop = childPropAsPropertyObject.getProperty(subName);
+            // Our lock is held here; it covers a child that shares our mutex, any other child is read through its locking getter
+            if (sharesLock(childProp))
+                prop = childProp.template asPtr<IPropertyObjectInternal>(true).getPropertyNoLock(subName);
+            else
+                prop = childProp.template asPtr<IPropertyObject, PropertyObjectPtr>(true).getProperty(subName);
         }
         else
         {
@@ -2438,6 +2513,18 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::getAllProper
     return getPropertiesInternal(true, true, properties, false);
 }
 
+template <class PropObjInterface, class... Interfaces>
+ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::getAllPropertiesNoLock(IList** properties)
+{
+    return getPropertiesInternal(true, true, properties, false, false);
+}
+
+template <class PropObjInterface, class... Interfaces>
+ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::getVisiblePropertiesNoLock(IList** properties)
+{
+    return getPropertiesInternal(false, true, properties, false, false);
+}
+
 template <class PropObjInterface, typename... Interfaces>
 ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::setPropertyOrderInternal(IList* orderedPropertyNames, bool isUpdating)
 {
@@ -2466,12 +2553,17 @@ template <class PropObjInterface, class... Interfaces>
 ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::getPropertiesInternal(Bool includeInvisible,
                                                                                           Bool bind,
                                                                                           IList** list,
-                                                                                          Bool includeCoreProperties)
+                                                                                          Bool includeCoreProperties,
+                                                                                          bool lock)
 {
     OPENDAQ_PARAM_NOT_NULL(list);
 
     if (!includeInvisible && !bind)
         return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDPARAMETER);
+
+    LockGuardPtr lockGuard;
+    if (lock)
+        OPENDAQ_RETURN_IF_FAILED(getRecursiveLockGuard(&lockGuard));
 
     std::vector<PropertyPtr> allProperties;
     if (objectClass.assigned())
@@ -2502,14 +2594,15 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::getPropertie
         }
 
         auto boundProp = prop.asPtr<IPropertyInternal>(true).cloneWithOwner(objPtr);
-        if (!includeInvisible && boundProp.getIsReferenced())
+        const auto boundInternal = boundProp.template asPtr<IPropertyInternal>(true);
+        if (!includeInvisible && (lock ? boundProp.getIsReferenced() : boundInternal.getIsReferencedNoLock()))
         {
             continue;
         }
 
         try
         {
-            if (!includeInvisible && !boundProp.getVisible())
+            if (!includeInvisible && !(lock ? boundProp.getVisible() : boundInternal.getVisibleNoLock()))
             {
                 continue;
             }
@@ -3066,6 +3159,7 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::clone(IPrope
 
     const ErrCode errCode = daqTry([this, &obj, &cloned]()
     {
+        auto lock = getRecursiveConfigLock2();
         auto implPtr = static_cast<PropertyObjectImpl*>(obj.getObject());
         implPtr->configureClonedMembers(valueWriteEvents,
                                         valueReadEvents,
@@ -3076,6 +3170,8 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::clone(IPrope
                                         customOrder,
                                         permissionManager,
                                         corePropertyNames);
+        // A clone keeps the strategy chosen for its source, so class default objects keep it on every instance
+        obj.template asPtr<IPropertyObjectInternal>(true).setLockingStrategy(lockingStrategy);
 
         *cloned = obj.detach();
         return OPENDAQ_SUCCESS;
@@ -3128,6 +3224,10 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::hasUserReadA
 template <typename PropObjInterface, typename... Interfaces>
 ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::getLockGuard(ILockGuard** lockGuard)
 {
+    auto lockOwnerPtr = lockOwner.assigned() ? lockOwner.getRef() : nullptr;
+    if (lockOwnerPtr.assigned() && lockingStrategy == LockingStrategy::InheritLock)
+        return lockOwnerPtr->getLockGuard(lockGuard);
+
     return propObjCore->getLockGuard(lockGuard, sync);
 }
 
@@ -3166,8 +3266,9 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::getMutex(IMu
 {
     OPENDAQ_PARAM_NOT_NULL(mutex);
 
-    *mutex = this->sync.addRefAndReturn();
-    return OPENDAQ_SUCCESS;
+    const ErrCode errCode = daqTry([&] { *mutex = getLockedMutex().detach(); });
+    OPENDAQ_RETURN_IF_FAILED(errCode);
+    return errCode;
 }
 
 template <typename PropObjInterface, typename ... Interfaces>
@@ -3575,8 +3676,24 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::isFrozen(Boo
 template <class PropObjInterface, class... Interfaces>
 ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::hasProperty(IString* propertyName, Bool* hasProperty)
 {
+    return hasPropertyInternal(propertyName, hasProperty, true);
+}
+
+template <class PropObjInterface, class... Interfaces>
+ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::hasPropertyNoLock(IString* propertyName, Bool* hasProperty)
+{
+    return hasPropertyInternal(propertyName, hasProperty, false);
+}
+
+template <class PropObjInterface, class... Interfaces>
+ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::hasPropertyInternal(IString* propertyName, Bool* hasProperty, bool lock)
+{
     OPENDAQ_PARAM_NOT_NULL(propertyName);
     OPENDAQ_PARAM_NOT_NULL(hasProperty);
+
+    LockGuardPtr lockGuard;
+    if (lock)
+        OPENDAQ_RETURN_IF_FAILED(getRecursiveLockGuard(&lockGuard));
 
     auto propName = StringPtr::Borrow(propertyName);
 
@@ -3586,7 +3703,7 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::hasProperty(
         StringPtr childStr;
         splitOnLastDot(propName, propName, childStr);
 
-        ErrCode err = getPropertyValue(propName, &val);
+        ErrCode err = getPropertyValueInternal(propName, &val);
         OPENDAQ_RETURN_IF_FAILED_EXCEPT(err, OPENDAQ_ERR_NOTFOUND, fmt::format(R"(Failed to retrieve child object with name {})", propName));
         if (err == OPENDAQ_ERR_NOTFOUND)
         {
@@ -3601,6 +3718,9 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::hasProperty(
             return OPENDAQ_SUCCESS;
         }
 
+        // Our lock is held here; it covers a child that shares our mutex, any other child is read through its locking method
+        if (sharesLock(val))
+            return obj.template asPtr<IPropertyObjectInternal>(true)->hasPropertyNoLock(childStr, hasProperty);
         return obj->hasProperty(childStr, hasProperty);
     }
     

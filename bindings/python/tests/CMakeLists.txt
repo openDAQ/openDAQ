@@ -16,6 +16,7 @@ set(PYHTON_TEST_SRC
     test_property_system.py
     test_how_to_last_value.py
     test_freezable.py
+    test_type_manager.py
 )
 
 option(OPENDAQ_VENV_PYTHON_EXECUTABLE_TESTS "Use python executable from virtual environment for tests" OFF)
@@ -53,3 +54,5 @@ add_test(
 )
 
 set_tests_properties(test_py_opendaq PROPERTIES LABELS "python_bindings")
+# The python tests start the standard servers on the default ports
+opendaq_test_resource_lock(${PYTHON_TESTS} network_native network_lt network_opcua mdns)

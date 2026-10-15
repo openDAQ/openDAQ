@@ -19,6 +19,9 @@
 #include <coretypes/cloneable.h>
 #include <coretypes/event_handler_ptr.h>
 #include <coretypes/utility_sync.h>
+#include <atomic>
+#include <condition_variable>
+#include <memory>
 #include <vector>
 
 namespace std
@@ -60,9 +63,23 @@ class EventImpl : public ImplementationOf<IEvent, IFreezable, ICloneable>
 {
     struct Handler
     {
-        EventHandler eventHandler;
+        Handler(EventHandler eventHandler, SizeT hashCode);
+
+        const EventHandler eventHandler;
+        const SizeT hashCode;
+        std::atomic<bool> removed{false}; // Lets an event trigger that is still walking an older list skip a handler that was removed after.
+        std::atomic<SizeT> inFlight{0};   // Lets removeHandler() and clear() return only once the handler has stopped running on other threads.
+    };
+
+    // Muted state is taken at the trigger time instead of just before handler invocation
+    struct HandlerEntry
+    {
+        std::shared_ptr<Handler> handler;
         bool muted;
     };
+    using HandlerList = std::vector<HandlerEntry>;
+
+    class CallInProgress;
 public:
     EventImpl();
 
@@ -95,12 +112,22 @@ private:
     using Iterator = std::vector<Handler>::iterator;
 
     ErrCode setMuted(IEventHandler* eventHandler, bool muted);
+    std::shared_ptr<const HandlerList> getHandlers() const;
+    void finishCall(Handler& handler);
+    void waitForCallsOnOtherThreads(std::unique_lock<daq::mutex>& lock, const std::vector<std::shared_ptr<Handler>>& removedHandlers);
 
     std::atomic<bool> muted{};
     std::atomic<bool> frozen{};
-    std::vector<Handler> handlers;
 
-    mutable daq::RecursiveMutex sync;
+    // Replaced as a whole when handlers are added or removed, so trigger() iterates a list without holding the lock.
+    // Handlers are called with the lock released so they can use any event and take other locks without making this lock part of a cycle.
+    std::shared_ptr<const HandlerList> handlers;
+
+    // Lets a finishing call take the lock to notify only when removeHandler() or clear() is waiting.
+    std::atomic<SizeT> waitingForCalls{0};
+
+    mutable daq::mutex sync;
+    std::condition_variable_any callFinished;
 };
 
 END_NAMESPACE_OPENDAQ

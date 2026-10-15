@@ -540,7 +540,6 @@ TEST_P(DirectSubscriptionTest, InvalidParameters)
     ASSERT_ERROR_CODE_EQ(streamingPrivate->unsubscribeSignal(nullptr, domainSignal.getRemoteId()), OPENDAQ_ERR_ARGUMENT_NULL);
     ASSERT_ERROR_CODE_EQ(streamingPrivate->unsubscribeSignal(signal.getRemoteId(), signal.getRemoteId()), OPENDAQ_ERR_INVALIDPARAMETER);
     ASSERT_ERROR_CODE_EQ(streamingPrivate->unsubscribeSignal("OtherSignalId", nullptr), OPENDAQ_ERR_NOTFOUND);
-    ASSERT_ERROR_CODE_EQ(streamingPrivate->unsubscribeSignal(signal.getRemoteId(), "OtherSignalId"), OPENDAQ_ERR_NOTFOUND);
 }
 
 TEST_P(DirectSubscriptionTest, InvalidState)
@@ -773,6 +772,25 @@ TEST_F(TriggeredSubscriptionTest, TeardownUnsubscribeFailureDoesNotThrow)
 
     EXPECT_CALL(streaming.mock(), onUnsubscribeSignal(_)).Times(AnyNumber());
     ASSERT_NO_THROW(inputPort.disconnect());
+}
+
+TEST_F(TriggeredSubscriptionTest, UnsubscribeValueSignalAfterDomainSignalRemoved)
+{
+    auto signal = createAndAddSignal("Signal");
+    auto domainSignal = createAndAddSignal("DomainSignal");
+    signal.asPtr<IMirroredSignalPrivate>().setMirroredDomainSignal(domainSignal);
+    signal.setActiveStreamingSource(streaming.ptr.getConnectionString());
+    auto inputPort = InputPort(context, nullptr, "TestPort");
+
+    EXPECT_CALL(streaming.mock(), onSubscribeSignal(signal.getRemoteId())).Times(Exactly(1));
+    EXPECT_CALL(streaming.mock(), onSubscribeSignal(domainSignal.getRemoteId())).Times(Exactly(1));
+    inputPort.connect(signal);
+
+    EXPECT_CALL(streaming.mock(), onRemoveSignal(domainSignal)).Times(Exactly(1));
+    streaming.ptr.removeSignals({domainSignal});
+
+    EXPECT_CALL(streaming.mock(), onUnsubscribeSignal(signal.getRemoteId())).Times(Exactly(1));
+    inputPort.disconnect();
 }
 
 TEST_F(TriggeredSubscriptionTest, SubscribeSkipsPrivateDomain)

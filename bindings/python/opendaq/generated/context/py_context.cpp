@@ -126,4 +126,13 @@ void defineIContext(pybind11::module_ m, PyDaqIntf<daq::IContext, daq::IBaseObje
         },
         py::return_value_policy::take_ownership,
         "Gets the dictionary of available discovery servers.");
+    cls.def_property_readonly("root_device",
+        [](daq::IContext *object)
+        {
+            py::gil_scoped_release release;
+            const auto objectPtr = daq::ContextPtr::Borrow(object);
+            return baseObjectToPyObject(objectPtr.getRootDevice());
+        },
+        py::return_value_policy::take_ownership,
+        "Gets the root device of the openDAQ instance.");
 }

@@ -7,6 +7,7 @@
 #include <opendaq/device_type_factory.h>
 #include <opendaq/packet_factory.h>
 #include <opendaq/sync_component_private_ptr.h>
+#include <opendaq/synchronization_factory.h>
 #include <simulator_device_module/simulator_channel_impl.h>
 #include <simulator_device_module/simulator_device_impl.h>
 #include <chrono>
@@ -158,7 +159,16 @@ void SimulatorDeviceImpl::initClock()
     auto startAbsTime = std::chrono::system_clock::now();
     packetOffset = std::chrono::duration_cast<std::chrono::microseconds>(startAbsTime.time_since_epoch()).count();
 
-    auto referenceDomainInfo = ReferenceDomainInfoBuilder().setReferenceDomainId(this->localId).setReferenceDomainOffset(0).build();
+    const auto synchronization = Synchronization(this->context.getTypeManager(), this->localId);
+    setSynchronization(synchronization);
+
+    const StringPtr referenceDomainId = synchronization.getSource().getReferenceDomainId();
+    auto referenceDomainInfo = ReferenceDomainInfoBuilder()
+                                   .setReferenceDomainId(referenceDomainId)
+                                   .setReferenceDomainIds(List<IString>(referenceDomainId))
+                                   .setReferenceDomainOffset(0)
+                                   .setReferenceTimeProtocol(TimeProtocol::Utc)
+                                   .build();
     this->setDeviceDomain(DeviceDomain(resolution, epoch, domainUnit, referenceDomainInfo));
 }
 

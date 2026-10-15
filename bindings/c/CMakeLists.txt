@@ -324,6 +324,8 @@ set(SRC_OpenDAQ_Headers
     include/copendaq/synchronization/common.h
     include/copendaq/synchronization/sync_component_private.h
     include/copendaq/synchronization/sync_component.h
+    include/copendaq/synchronization/sync_interface.h
+    include/copendaq/synchronization/synchronization.h
 	
     include/copendaq/utility/device_update_options.h
 )
@@ -445,6 +447,8 @@ set(SRC_OpenDAQ_Cpp
 
     src/copendaq/synchronization/sync_component_private.cpp
     src/copendaq/synchronization/sync_component.cpp
+    src/copendaq/synchronization/sync_interface.cpp
+    src/copendaq/synchronization/synchronization.cpp
 	
     src/copendaq/utility/device_update_options.cpp
 )

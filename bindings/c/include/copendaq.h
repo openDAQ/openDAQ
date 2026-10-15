@@ -210,8 +210,11 @@ extern "C"
 #include <copendaq/streaming/streaming.h>
 #include <copendaq/streaming/subscription_event_args.h>
 
+#include <copendaq/synchronization/common.h>
 #include <copendaq/synchronization/sync_component_private.h>
 #include <copendaq/synchronization/sync_component.h>
+#include <copendaq/synchronization/sync_interface.h>
+#include <copendaq/synchronization/synchronization.h>
 
 #ifdef __cplusplus
 }

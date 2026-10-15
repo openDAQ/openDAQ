@@ -36,9 +36,11 @@
 #include <opendaq/component_keys.h>
 #include <opendaq/core_opendaq_event_args_factory.h>
 #include <coreobjects/property_object_factory.h>
+#include <coreobjects/property_factory.h>
 #include <opendaq/module_manager_ptr.h>
 #include <opendaq/module_manager_utils_ptr.h>
 #include <opendaq/sync_component_factory.h>
+#include <opendaq/synchronization_factory.h>
 #include <opendaq/component_update_context_ptr.h>
 #include <set>
 #include <coreobjects/user_internal_ptr.h>
@@ -106,6 +108,7 @@ public:
     ErrCode INTERFACE_FUNC getChannels(IList** channels, ISearchFilter* searchFilter = nullptr) override;
     ErrCode INTERFACE_FUNC getChannelsRecursive(IList** channels, ISearchFilter* searchFilter = nullptr) override;
     ErrCode INTERFACE_FUNC getSyncComponent(ISyncComponent** syncComponent) override;
+    ErrCode INTERFACE_FUNC getSynchronization(ISynchronization** synchronization) override;
 
     ErrCode INTERFACE_FUNC addServer(IString* typeId, IPropertyObject* config, IServer** server) override;
     ErrCode INTERFACE_FUNC removeServer(IServer* server) override;
@@ -250,6 +253,8 @@ protected:
 
     DevicePtr getParentDevice();
     OperationModeType getOperationMode();
+
+    void setSynchronization(const SynchronizationPtr& sync);
 
     class DeviceInfoPtrWrapper : public DeviceInfoPtr
     {
@@ -1676,6 +1681,46 @@ ErrCode GenericDevice<TInterface, Interfaces...>::getSyncComponent(ISyncComponen
 }
 
 template <typename TInterface, typename... Interfaces>
+void GenericDevice<TInterface, Interfaces...>::setSynchronization(const SynchronizationPtr& synchronization)
+{
+    if (!synchronization.assigned())
+        return;
+
+    const auto syncPropName = String("daqSynchronization");
+    if (this->objPtr.hasProperty(syncPropName))
+        DAQ_THROW_EXCEPTION(AlreadyExistsException, "The device synchronization is already set");
+
+    checkErrorInfo(this->addCoreProperty(ObjectPropertyBuilder(syncPropName, PropertyObject()).setVisible(false).build()));
+    checkErrorInfo(this->setProtectedPropertyValue(syncPropName, synchronization));
+}
+
+template <typename TInterface, typename... Interfaces>
+ErrCode GenericDevice<TInterface, Interfaces...>::getSynchronization(ISynchronization** sync)
+{
+    OPENDAQ_PARAM_NOT_NULL(sync);
+
+    if (this->isComponentRemoved)
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_COMPONENT_REMOVED);
+
+    const auto syncPropName = String("daqSynchronization");
+
+    Bool syncFound = False;
+    OPENDAQ_RETURN_IF_FAILED(this->hasProperty(syncPropName, &syncFound));
+
+    if (syncFound)
+    {
+        BaseObjectPtr objPtr;
+        OPENDAQ_RETURN_IF_FAILED(this->getPropertyValue(syncPropName, &objPtr));
+
+        *sync = objPtr.asPtrOrNull<ISynchronization>().detach();
+        return OPENDAQ_SUCCESS;
+    }
+
+    *sync = nullptr;
+    return OPENDAQ_IGNORED;
+}
+
+template <typename TInterface, typename... Interfaces>
 ErrCode GenericDevice<TInterface, Interfaces...>::getDeviceConfig(IPropertyObject** config)
 {
     return this->getComponentConfig(config);
@@ -2569,6 +2614,7 @@ void GenericDevice<TInterface, Interfaces...>::updateObject(const SerializedObje
             updatableDeviceInfo.updateInternal(deviceInfoObject, context);
         }
     }
+
 }
 
 template <typename TInterface, typename ... Interfaces>

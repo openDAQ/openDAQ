@@ -229,9 +229,8 @@ TEST_F(SchedulerTestCommon, LastReferenceReleasedFromWorker)
     ASSERT_EQ(workerReleasedFuture.wait_for(5s), std::future_status::ready)
         << "destroying the scheduler from its own worker deadlocked";
 
-    const auto deadline = std::chrono::steady_clock::now() + 5s;
-    while (!callbackAlive.expired() && std::chrono::steady_clock::now() < deadline)
-        std::this_thread::sleep_for(1ms);
+    // stopping a scheduler on this thread joins the hand-off that destroys the first one
+    Scheduler(logger, 1);
     ASSERT_TRUE(callbackAlive.expired());
 }
 

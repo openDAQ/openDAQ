@@ -14,11 +14,49 @@
 #include <utility>
 #include <opendaq/thread_name.h>
 
+namespace
+{
+    thread_local bool onSchedulerWorker = false;
+
+    // Destroys executors released on a scheduler worker; each thread joins its predecessor, so one join covers all.
+    struct ExecutorHandOff
+    {
+        std::mutex mutex;
+        std::thread thread;
+
+        void start(std::unique_ptr<tf::Executor> executor)
+        {
+            std::lock_guard lock(mutex);
+            thread = std::thread([executor = std::move(executor), previous = std::move(thread)]() mutable
+            {
+                if (previous.joinable())
+                    previous.join();
+                executor.reset();
+            });
+        }
+
+        void join()
+        {
+            std::unique_lock lock(mutex);
+            auto last = std::move(thread);
+            lock.unlock();
+            if (last.joinable())
+                last.join();
+        }
+
+        ~ExecutorHandOff()
+        {
+            join();
+        }
+    } executorHandOff;
+}
+
 class CustomWorkerInterface : public tf::WorkerInterface
 {
 public:
     void scheduler_prologue(tf::Worker& worker) override
     {
+        onSchedulerWorker = true;
         daqNameThread(fmt::format("Scheduler{}", worker.id()).c_str());
     }
 
@@ -207,13 +245,12 @@ ErrCode SchedulerImpl::stop()
     stopped = true;
 
     LOGP_T("Stopping scheduler")
-    if (executor && executor->this_worker_id() != -1)
-    {
-        // Running on one of the executor's own workers, which it cannot join: another thread destroys it.
-        std::thread([executor = std::move(executor)]() mutable { executor.reset(); }).detach();
-    }
+    // A worker cannot join its own executor; any other thread first waits for executors handed off earlier.
+    if (executor && onSchedulerWorker)
+        executorHandOff.start(std::move(executor));
     else
     {
+        executorHandOff.join();
         executor.reset();
     }
 

@@ -14,6 +14,8 @@
 #include <opendaq/component_exceptions.h>
 #include <opendaq/component_impl.h>
 #include <testutils/testutils.h>
+#include <coreobjects/property_object_factory.h>
+#include <coreobjects/property_object_internal_ptr.h>
 
 using namespace daq;
 using namespace testing;
@@ -316,4 +318,18 @@ TEST_F(ComponentTest, InitThenSetComponentStatus)
                   "ComponentStatusType", static_cast<Int>(ComponentStatus::Warning), component.getContext().getTypeManager()));
 
     ASSERT_EQ(container.getStatus("ComponentStatus"), Enumeration("ComponentStatusType", "Warning", component.getContext().getTypeManager()));
+}
+
+TEST_F(ComponentTest, OwnsItsLockAndNestedPropertyObjectsShareIt)
+{
+    const auto component = Component(NullContext(), nullptr, "Temp");
+    const auto componentInternal = component.asPtr<IPropertyObjectInternal>();
+    ASSERT_EQ(componentInternal.getLockingStrategy(), LockingStrategy::OwnLock);
+
+    const auto obj = PropertyObject();
+    obj.addProperty(IntProperty("Value", 0));
+    component.addProperty(ObjectProperty("Obj", obj));
+
+    const PropertyObjectPtr nested = component.getPropertyValue("Obj");
+    ASSERT_EQ(nested.asPtr<IPropertyObjectInternal>().getMutex().getObject(), componentInternal.getMutex().getObject());
 }

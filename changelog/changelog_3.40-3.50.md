@@ -14,6 +14,7 @@
 
 ## Bug fixes
 
+- [#1349](https://github.com/openDAQ/openDAQ/pull/1349) Property getters take the object's lock, and nested property objects share their owner's lock, fixing crashes when properties are read while another thread adds, removes or reorders them
 - [#1326](https://github.com/openDAQ/openDAQ/pull/1326) Fix an exception in a native streaming handler aborting the process; it is logged instead
 - [#1326](https://github.com/openDAQ/openDAQ/pull/1326) Fix adding a sub-device failing when a property object class, enumeration or struct type of the same name is already registered on the client
 - [#1326](https://github.com/openDAQ/openDAQ/pull/1326) Native client logs a warning when a type received from the server differs from the local definition
@@ -51,6 +52,11 @@
 
 `daq::RecursiveMutex` was removed from `coretypes/utility_sync.h`. Use `std::recursive_mutex` or `daq::mutex` instead.
 
+### [#1349](https://github.com/openDAQ/openDAQ/pull/1349) Property getters take the object's lock
+
+`getProperty`, `hasProperty`, `getAllProperties`, `getVisibleProperties` and `clone` now take the object's recursive lock, so they wait while another thread holds it (an `addDevice` on the parent, a slow write handler).
+
+Nested property objects share their owner's lock, so a handler on a nested object runs under the owning component's lock. To keep a separate lock, set `LockingStrategy::OwnLock` before the object is assigned; clones keep the strategy.
 
 ## Required module changes
 
@@ -59,6 +65,12 @@
 `IEvent::removeHandler` and `IEvent::clear` now return only once the removed handlers are no longer running on another thread. Don't call them while holding a lock that such a handler needs, or the call waits forever.
 
 `daq::RecursiveMutex` was removed from `coretypes/utility_sync.h`. Use `std::recursive_mutex` or `daq::mutex` instead.
+
+### [#1349](https://github.com/openDAQ/openDAQ/pull/1349) Property getters take the object's lock
+
+`getProperty`, `hasProperty`, `getAllProperties`, `getVisibleProperties` and `clone` now take the object's recursive lock. Under the non-recursive `getLockGuard` use the `NoLock` variants. Under another mutex, such as the acquisition lock, they take the property lock second, which inverts the order of a write handler that takes that mutex under the property lock; read property metadata before taking the acquisition lock.
+
+Nested property objects share their owner's lock, so a handler on a nested object runs under the owning component's lock. To keep a separate lock, set `LockingStrategy::OwnLock` before the object is assigned; clones keep the strategy.
 
 ## Interface API changes
 
@@ -76,6 +88,14 @@
 #### `IContextInternal`
 ```diff
 + IContextInternal::setRootDevice(IBaseObject* device);
+```
+
+#### `IPropertyObjectInternal`
+```diff
++ IPropertyObjectInternal::getPropertyNoLock(IString* propertyName, IProperty** property);
++ IPropertyObjectInternal::getAllPropertiesNoLock(IList** properties);
++ IPropertyObjectInternal::hasPropertyNoLock(IString* propertyName, Bool* hasProperty);
++ IPropertyObjectInternal::getVisiblePropertiesNoLock(IList** properties);
 ```
 
 #### `IServerCapability`

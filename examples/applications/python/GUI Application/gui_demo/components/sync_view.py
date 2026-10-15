@@ -176,16 +176,21 @@ class SyncView(ttk.Frame):
         for record in self.records:
             domains.setdefault(record.domain, []).append(record)
 
-        local = [members[0] for domain, members in domains.items()
-                 if domain.startswith('local:') and len(members) == 1]
+        groups = []
+        for domain in sorted(domains, key=lambda d: (d == NO_DOMAIN, d)):
+            members = sorted(domains[domain], key=self.tree_order)
+            owner = None if domain == NO_DOMAIN else self.clock_owner(domain, members)
+            groups.append((domain, owner, members))
+
+        feeding = [owner for domain, owner, members in groups if owner is not None and owner not in members]
+        alone = [members[0] for domain, owner, members in groups if domain.startswith('local:') and len(members) == 1]
+        local = [record for record in alone if record not in feeding]
         if local:
             yield LOCAL_CLOCKS, LOCAL_CLOCKS, sorted(local, key=self.tree_order)
 
-        for domain in sorted(domains, key=lambda d: (d == NO_DOMAIN, d)):
-            members = sorted(domains[domain], key=self.tree_order)
-            if members[0] in local:
+        for domain, owner, members in groups:
+            if members[0] in alone and len(members) == 1:
                 continue
-            owner = None if domain == NO_DOMAIN else self.clock_owner(domain, members)
             if owner is None:
                 yield domain, domain if domain == NO_DOMAIN else f'{domain} (external clock)', members
             else:

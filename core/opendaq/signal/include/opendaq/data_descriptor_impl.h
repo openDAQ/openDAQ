@@ -99,6 +99,7 @@ private:
 
     static DictPtr<IString, IBaseObject> PackBuilder(IDataDescriptorBuilder* dataDescriptorBuilder);
     void calculateSampleMemSize();
+    SizeT calculateElementCount() const;
 };
 
 OPENDAQ_REGISTER_DESERIALIZE_FACTORY(DataDescriptorImpl)

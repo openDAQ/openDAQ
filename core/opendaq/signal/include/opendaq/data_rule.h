@@ -72,7 +72,8 @@ enum class DataRuleType
  *
  * @subsubsection data_rule_linear Constant rule
  * The parameters contain a `constant` number member. The value described by the constant rule is always equal to the
- * constant.
+ * constant. A signal with a constant rule and no domain signal assigned replays its current value to every input
+ * port that connects to it - see `IInputPort::connect`.
  */
 DECLARE_OPENDAQ_INTERFACE(IDataRule, IBaseObject)
 {

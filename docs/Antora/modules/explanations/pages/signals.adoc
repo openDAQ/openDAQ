@@ -126,6 +126,14 @@ calculated depending on the Rule type. Currently, two rules are available in ope
 
 * **Constant Rule**: All values of the signal are equal to the `constant` defined in the packet.
 
+A Signal with a _Constant_ Data Rule and no Domain Signal assigned carries a value that changes rarely, so a newly
+connected Input Port would otherwise have no way of learning the current value until the next change. Such a Signal
+therefore replays its current value on connect: right after the "Data descriptor changed" event packet, it enqueues a
+single-sample constant Data Packet with no domain packet, before `connect` returns. Nothing is replayed if the Signal
+has not produced a value yet, if the value predates the Signal's current Data Descriptor, or if either the Signal or
+the Input Port is inactive. Over Native Streaming the same value reaches every subscribing client, including clients
+that subscribe after the value was produced.
+
 For Domain Signals that have either _Explicit_ and _Linear_ Data rule, Reference Domain Offset is added to each sample if available in Reference Domain Info of the Domain Signal's Data Descriptor.
 
 === Dimensions

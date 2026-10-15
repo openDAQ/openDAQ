@@ -366,6 +366,19 @@ public:
         cache.resetTimestamp();
     }
 
+    // returns the descriptor of the published last sample and points rawValue at its bytes;
+    // a null descriptor means nothing readable is published (explicit values carry none)
+    DataDescriptorPtr getRawValue(void** rawValue)
+    {
+        refreshCache();
+
+        if (!cache.valueDescriptorCached())
+            return nullptr;
+
+        *rawValue = cache.getRawValueData();
+        return cache.getValueDataDescriptor();
+    }
+
     // drops the published value and reclaims retired nodes; the byte cache is not touched
     void clear()
     {

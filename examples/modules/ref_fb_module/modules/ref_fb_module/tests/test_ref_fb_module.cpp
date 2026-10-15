@@ -157,11 +157,11 @@ TEST_F(RefFbModuleTest, GetAvailableComponentTypes)
     ASSERT_TRUE(functionBlockTypes.assigned());
 
 #ifdef OPENDAQ_ENABLE_RENDERER
-    ASSERT_EQ(functionBlockTypes.getCount(), 12u);
+    ASSERT_EQ(functionBlockTypes.getCount(), 13u);
     ASSERT_TRUE(functionBlockTypes.hasKey("RefFBModuleRenderer"));
     ASSERT_EQ("RefFBModuleRenderer", functionBlockTypes.get("RefFBModuleRenderer").getId());
 #else
-    ASSERT_EQ(functionBlockTypes.getCount(), 10u);
+    ASSERT_EQ(functionBlockTypes.getCount(), 11u);
 #endif
 
     ASSERT_TRUE(functionBlockTypes.hasKey("RefFBModuleStatistics"));
@@ -195,6 +195,9 @@ TEST_F(RefFbModuleTest, GetAvailableComponentTypes)
 
     ASSERT_TRUE(functionBlockTypes.hasKey("RefFBModuleTimeDelay"));
     ASSERT_EQ("RefFBModuleTimeDelay", functionBlockTypes.get("RefFBModuleTimeDelay").getId());
+
+    ASSERT_TRUE(functionBlockTypes.hasKey("RefFBModuleConstantValue"));
+    ASSERT_EQ("RefFBModuleConstantValue", functionBlockTypes.get("RefFBModuleConstantValue").getId());
 
     // Check module info for module
     ModuleInfoPtr moduleInfo;

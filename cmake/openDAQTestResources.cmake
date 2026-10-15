@@ -3,7 +3,6 @@
 #   network_native  TCP ports of the native streaming / configuration servers (7420-7422)
 #   network_lt      TCP ports of the LT streaming servers (7414, 7415)
 #   network_opcua   TCP ports of the OPC UA servers (4840-4843)
-#   network_opcua_tms  port 4860 of the OPC UA library test servers (TMS_TEST_OPCUA_PORT in OpcUaModules)
 #   mdns            advertises servers over mDNS or asserts on discovery results
 #
 # Tests without any of these run concurrently with everything else.
@@ -41,8 +40,8 @@ function(opendaq_lock_external_module_tests)
         opendaq_test_resource_lock(test_opcuaserver         network_opcua DIRECTORY ${OPCUA}/shared/libraries/opcua/opcuaserver/tests)
         opendaq_test_resource_lock(test_opcuashared         network_opcua DIRECTORY ${OPCUA}/shared/libraries/opcua/opcuashared/tests)
         opendaq_test_resource_lock(test_opcuatms_client     network_opcua DIRECTORY ${OPCUA}/shared/libraries/opcuatms/opcuatms_client/tests)
-        opendaq_test_resource_lock(test_opcuatms_server     network_opcua_tms DIRECTORY ${OPCUA}/shared/libraries/opcuatms/opcuatms_server/tests)
-        opendaq_test_resource_lock(test_opcuatms_integration network_opcua_tms DIRECTORY ${OPCUA}/shared/libraries/opcuatms/tests/opcuatms_integration)
+        opendaq_test_resource_lock(test_opcuatms_server     network_opcua DIRECTORY ${OPCUA}/shared/libraries/opcuatms/opcuatms_server/tests)
+        opendaq_test_resource_lock(test_opcuatms_integration network_opcua DIRECTORY ${OPCUA}/shared/libraries/opcuatms/tests/opcuatms_integration)
         opendaq_test_resource_lock(test_opcua_client_module network_opcua mdns DIRECTORY ${OPCUA}/modules/opcua_client_module/tests)
         opendaq_test_resource_lock(test_opcua_server_module network_opcua mdns DIRECTORY ${OPCUA}/modules/opcua_server_module/tests)
     endif()

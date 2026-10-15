@@ -1264,4 +1264,19 @@ TEST_F(InstanceTest, SetRootDeviceUpdatesContextRootDevice)
     instance.setRootDevice("daqmock://phys_device");
     ASSERT_EQ(instance.getRootDevice(), instance.getContext().getRootDevice());
 }
+
+// Removing the mock device stops its generator; otherwise ticks run on removed signals until it is destroyed
+TEST_F(InstanceTest, ReleaseStopsMockDeviceGenerator)
+{
+    auto instance = Instance("[[none]]");
+    instance.getModuleManager().addModule(MockDeviceModule_Create(instance.getContext()));
+    instance.addDevice("daqmock://phys_device").setPropertyValue("GeneratePackets", 100);
+    std::this_thread::sleep_for(std::chrono::milliseconds(250));
+
+    const auto start = std::chrono::steady_clock::now();
+    instance.release();
+    const auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - start);
+    EXPECT_LT(elapsed.count(), 5000);
+}
+
 END_NAMESPACE_OPENDAQ

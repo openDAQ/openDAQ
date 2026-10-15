@@ -91,3 +91,8 @@ daqErrCode daqServerCapability_getProtocolSecurityLevel(daqServerCapability* sel
 {
     return reinterpret_cast<daq::IServerCapability*>(self)->getProtocolSecurityLevel(reinterpret_cast<daq::IInteger**>(securityLevel));
 }
+
+daqErrCode daqServerCapability_getAuthenticationMethods(daqServerCapability* self, daqList** methods)
+{
+    return reinterpret_cast<daq::IServerCapability*>(self)->getAuthenticationMethods(reinterpret_cast<daq::IList**>(methods));
+}

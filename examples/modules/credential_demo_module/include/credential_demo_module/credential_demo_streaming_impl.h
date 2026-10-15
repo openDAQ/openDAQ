@@ -20,7 +20,7 @@
 #include <opendaq/streaming_impl.h>
 #include <opendaq/streaming_type_ptr.h>
 #include <opendaq/credential_request_ptr.h>
-#include <coreobjects/property_object_ptr.h>
+#include <coretypes/dict_ptr.h>
 
 /*
  * A dummy streaming connection - it never transports any data and its callbacks are no-ops. Authenticates
@@ -36,7 +36,7 @@ public:
     explicit CredentialDemoStreamingImpl(const StringPtr& connectionString,
                                          const ContextPtr& ctx,
                                          const StringPtr& authenticationMethodId,
-                                         const PropertyObjectPtr& credentials);
+                                         const DictPtr<IString, IString>& credentials);
 
     static constexpr const char* Prefix = "daq.credential_demo_streaming";
 

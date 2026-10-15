@@ -387,5 +387,5 @@ void defineIInstanceBuilder(pybind11::module_ m, PyDaqIntf<daq::IInstanceBuilder
             objectPtr.setCredentialProvider(provider);
         },
         py::return_value_policy::take_ownership,
-        "Gets or sets the credential provider to be registered on the built instance's `Context`. At most one can ever be registered.");
+        "Gets or sets the credential provider to be registered on the built instance's `IModuleManager`. At most one can ever be registered. Fails at build time if a custom `IModuleManager` was also set via `module_manager` - set the credential provider directly on that custom instance instead.");
 }

@@ -19,6 +19,7 @@
 #include <coreobjects/property_object_impl.h>
 #include <coretypes/dictobject_factory.h>
 #include <coretypes/listobject_factory.h>
+#include <coretypes/serialized_object.h>
 #include <opendaq/authentication_method_ptr.h>
 
 BEGIN_NAMESPACE_OPENDAQ
@@ -31,17 +32,11 @@ public:
     // The first entry of `authenticationMethods` (in dict iteration order) starts out selected.
     explicit AuthenticationConfigImpl(const DictPtr<IString, IAuthenticationMethod>& authenticationMethods);
 
-    // Stub constructor used only by `Deserialize` (mirrors `DeviceInfoConfigImpl`'s own default constructor) -
-    // produces an object with no properties at all yet, not even "AuthenticationMethod", so the generic
-    // PropertyObject deserialization pipeline can add it back fresh from its own serialized definition, the
-    // same way it would for any other Property. None of the typed getters/setters are valid on an object built
-    // this way until that happens - not meant for direct use otherwise.
-    AuthenticationConfigImpl();
-
-    ErrCode INTERFACE_FUNC getSelectedAuthenticationMethodId(IString** authenticationMethodId) override;
-    ErrCode INTERFACE_FUNC setAuthenticationMethodId(IString* authenticationMethodId) override;
-    ErrCode INTERFACE_FUNC getSupportedAuthenticationMethods(IDict** authenticationMethods) override;
-    ErrCode INTERFACE_FUNC getSuppliedCredential(IPropertyObject** credential) override;
+    ErrCode INTERFACE_FUNC getSelectedAuthenticationMethod(IAuthenticationMethod** authenticationMethod) override;
+    ErrCode INTERFACE_FUNC setAuthenticationMethod(IString* authenticationMethodId) override;
+    ErrCode INTERFACE_FUNC getAuthenticationMethods(IDict** authenticationMethods) override;
+    ErrCode INTERFACE_FUNC setSuppliedCredential(IDict* credential) override;
+    ErrCode INTERFACE_FUNC getSuppliedCredential(IDict** credential) override;
 
     // An `IAuthenticationConfig` needs to be nestable as an ordinary Object-type property value, but
     // `GenericPropertyObjectImpl::checkContainerType` only allows a nested value whose own
@@ -59,17 +54,13 @@ public:
     ErrCode INTERFACE_FUNC setPropertySelectionValue(IString* propertyName, IBaseObject* value) override;
     ErrCode INTERFACE_FUNC setProtectedPropertyValue(IString* propertyName, IBaseObject* value) override;
 
-    // Relies on the generic PropertyObject serialization for "AuthenticationMethod" (its candidates and
-    // selected value round-trip through it correctly on their own - see `serializeProperty`/
-    // `serializePropertyValue`) but not for "SuppliedCredential" - a credential, so it must never be persisted at all
-    // (same two overrides, excluding it).
-    // Deserializing builds a bare stub first (the constructor above), then runs the entirely generic
-    // PropertyObject pipeline on it: `DeserializePropertyOrder`/`DeserializeLocalProperties`/
-    // `DeserializePropertyValues` add "AuthenticationMethod" back from its own serialized definition (candidates
-    // and all) and restore its saved selection override, if one was saved - routed through
-    // `setProtectedPropertyValue` (see above). No manual JSON parsing of its own.
-    ErrCode serializeProperty(const PropertyPtr& property, ISerializer* serializer) override;
-    ErrCode serializePropertyValue(const StringPtr& name, const ObjectPtr<IBaseObject>& value, ISerializer* serializer, bool forUpdate) override;
+    // Serialization is entirely custom (replaces the inherited generic `IPropertyObject` one, like
+    // `DeviceTypeImpl`'s own pattern) - writes only `supportedAuthenticationMethods` (the real
+    // `IAuthenticationMethod` objects this config was built from - format/parameters included, not just
+    // ids) and the currently selected id. Never writes `"SuppliedCredential"`. `Deserialize` rebuilds the
+    // config directly from those two pieces via the real constructor, then restores the saved selection -
+    // fully self-contained, no module/type registry re-consultation needed.
+    ErrCode INTERFACE_FUNC serialize(ISerializer* serializer) override;
     ErrCode INTERFACE_FUNC getSerializeId(ConstCharPtr* id) const override;
     static ConstCharPtr SerializeId();
     static ErrCode Deserialize(ISerializedObject* serialized, IBaseObject* context, IFunction* factoryCallback, IBaseObject** obj);
@@ -77,22 +68,19 @@ public:
 private:
     static constexpr const char* AuthenticationMethodPropertyName = "AuthenticationMethod";
     static constexpr const char* SuppliedCredentialPropertyName = "SuppliedCredential";
+    static constexpr const char* SupportedAuthenticationMethodsSerializedKey = "SupportedAuthenticationMethods";
 
     void initProperties(const DictPtr<IString, IAuthenticationMethod>& authenticationMethods);
 
     // Shared tail of `setPropertyValue`/`setPropertySelectionValue`/`setProtectedPropertyValue`, run after the
-    // write itself already succeeded: auto-clears an incompatible "SuppliedCredential" on an "AuthenticationMethod"
+    // write itself already succeeded: resets "SuppliedCredential" on an "AuthenticationMethod"
     // write.
     ErrCode onPropertyValueChanged(const StringPtr& name);
+    AuthenticationMethodPtr onGetSelectedAuthenticationMethod() const;
 
-    void clearSuppliedCredentialIfIncompatible(const AuthenticationMethodPtr& selectedMethod);
-
-    // Structural check: does `credential` have exactly the property names `selectedMethod.createEmptyCredential()`
-    // would produce? The blessed workflow is to build from that template and fill it in, but this doesn't
-    // check provenance, only shape.
-    static bool IsSuppliedCredentialShapeValid(const PropertyObjectPtr& credential, const AuthenticationMethodPtr& selectedMethod);
-
-    static DictPtr<IString, IAuthenticationMethod> ToAuthenticationMethodDict(const ListPtr<IStruct>& candidates);
+    // The real `IAuthenticationMethod` objects this config was built from/deserialized with, keyed by their
+    // own id - "AuthenticationMethod"'s candidates are just these same keys, as plain strings.
+    DictPtr<IString, IAuthenticationMethod> supportedAuthenticationMethods;
 };
 
 END_NAMESPACE_OPENDAQ

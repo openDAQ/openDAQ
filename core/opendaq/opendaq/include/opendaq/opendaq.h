@@ -104,7 +104,9 @@
 
 #include <opendaq/credential_provider_factory.h>
 #include <opendaq/credential_request_factory.h>
-#include <opendaq/authentication_config_factory.h>
+#include <opendaq/authentication_config_ptr.h>
+#include <opendaq/authentication_method_factory.h>
+#include <opendaq/login_parameters_factory.h>
 
 #include <opendaq/exceptions.h>
 

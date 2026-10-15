@@ -21,13 +21,12 @@ extern "C"
 {
 #endif
 
-    typedef enum daqCredentialFormat
+    typedef enum daqCredentialFieldKind
     {
-        daqCredentialFormatNone = 0,
-        daqCredentialFormatKeyValuePairs,
-        daqCredentialFormatString,
-        daqCredentialFormatFilePath,
-    } daqCredentialFormat;
+        daqCredentialFieldKindText = 0,
+        daqCredentialFieldKindSecret,
+        daqCredentialFieldKindFilePath,
+    } daqCredentialFieldKind;
 
 #ifdef __cplusplus
 }

@@ -63,10 +63,8 @@ DECLARE_OPENDAQ_INTERFACE(IDeviceType, IComponentType)
  * configuration object. This way each instance of the device has its own configuration object.
  * @param prefix The prefix of the connection string used when adding the device (the part before the
  * "://" delimiter in the connection string).
- * @param supportedAuthenticationMethods The authentication methods this device type supports authenticating
- * with, keyed by their own id.
- * @param defaultAuthenticationMethodId The id of the authentication method this device type supports by
- * default.
+ * @param supportedAuthenticationMethods The authentication methods this device type supports authenticating with, keyed by
+ * their own id. The first entry, in dict iteration order, is the one a built `IAuthenticationConfig` starts out selected on.
  */
 OPENDAQ_DECLARE_CLASS_FACTORY(
     LIBRARY_FACTORY, DeviceType,
@@ -75,8 +73,7 @@ OPENDAQ_DECLARE_CLASS_FACTORY(
     IString*, description,
     IPropertyObject*, defaultConfig,
     IString*, prefix,
-    IDict*, supportedAuthenticationMethods,
-    IString*, defaultAuthenticationMethodId
+    IDict*, supportedAuthenticationMethods
 )
 
 /*!@}*/

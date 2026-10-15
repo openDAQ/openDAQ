@@ -19,9 +19,13 @@
 
 BEGIN_NAMESPACE_OPENDAQ
 
+struct IDeviceType;
+
 /*#
  * [interfaceSmartPtr(IComponentType, GenericComponentTypePtr, "<opendaq/component_type_ptr.h>")]
  * [interfaceLibrary(IComponentType, "opendaq")]
+ * [interfaceLibrary(IDeviceType, "opendaq")]
+ * [interfaceSmartPtr(IDeviceType, DeviceTypePtr, "<opendaq/device_type_ptr.h>")]
  */
 
 /*!
@@ -45,6 +49,16 @@ DECLARE_OPENDAQ_INTERFACE(IStreamingType, IComponentType)
      * The prefix is always found at the start of the connection string, before the "://" delimiter.
      */
     virtual ErrCode INTERFACE_FUNC getConnectionStringPrefix(IString** prefix) = 0;
+
+    /*!
+     * @brief Gets the device type this streaming type shares its connection parameters with - including the same
+     * authentication methods a device of that type uses, since in practice a streaming connection is
+     * typically established to the same endpoint, with the same parameters, as the device it accompanies.
+     * Unassigned if this streaming type doesn't share its parameters with any specific device type.
+     * @param[out] deviceType The device type this streaming type shares its connection parameters with, or
+     * unassigned if none.
+     */
+    virtual ErrCode INTERFACE_FUNC getLinkedDeviceType(IDeviceType** deviceType) = 0;
 };
 /*!@}*/
 
@@ -62,10 +76,11 @@ DECLARE_OPENDAQ_INTERFACE(IStreamingType, IComponentType)
  * @param prefix The prefix of the connection string used to add this streaming connection to a device.
  * @param defaultConfig The property object, to be cloned and returned, each time user creates default
  * configuration object. This way each instance of the Streaming has its own configuration object.
- * @param supportedAuthenticationMethods The authentication methods this streaming type supports authenticating
- * with, keyed by their own id.
- * @param defaultAuthenticationMethodId The id of the authentication method this streaming type supports by
- * default.
+ * @param supportedAuthenticationMethods The authentication methods this streaming type supports authenticating with, keyed
+ * by their own id. The first entry, in dict iteration order, is the one a built `IAuthenticationConfig` starts out selected on.
+ * @param linkedDeviceType The device type this streaming type shares its connection parameters with (including
+ * supported authentication methods). Left unset, this streaming type doesn't share its parameters with any
+ * specific device type.
  */
 OPENDAQ_DECLARE_CLASS_FACTORY(
     LIBRARY_FACTORY, StreamingType,
@@ -75,7 +90,7 @@ OPENDAQ_DECLARE_CLASS_FACTORY(
     IString*, prefix,
     IPropertyObject*, defaultConfig,
     IDict*, supportedAuthenticationMethods,
-    IString*, defaultAuthenticationMethodId
+    IDeviceType*, linkedDeviceType
 )
 
 /*!@}*/

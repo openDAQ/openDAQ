@@ -40,6 +40,23 @@ ErrCode MockModuleImpl::createDevice(IDevice** device, IString* connectionString
     return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOTFOUND);
 }
 
+ErrCode MockModuleImpl::createAuthenticatedDevice(IDevice** /*device*/,
+                                                  IString* /*connectionString*/,
+                                                  IComponent* /*parent*/,
+                                                  IPropertyObject* /*config*/,
+                                                  ILoginParameters* /*loginParameters*/)
+{
+    return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOTIMPLEMENTED);
+}
+
+ErrCode MockModuleImpl::getCanonicalConnectionString(IString* connectionString, IString** canonicalConnectionString)
+{
+    OPENDAQ_PARAM_NOT_NULL(canonicalConnectionString);
+
+    *canonicalConnectionString = StringPtr(connectionString).addRefAndReturn();
+    return OPENDAQ_SUCCESS;
+}
+
 ErrCode MockModuleImpl::getAvailableFunctionBlockTypes(IDict** functionBlockTypes)
 {
     OPENDAQ_PARAM_NOT_NULL(functionBlockTypes);
@@ -75,11 +92,15 @@ ErrCode MockModuleImpl::getModuleInfo(IModuleInfo** info)
     return OPENDAQ_SUCCESS;
 }
 
-ErrCode MockModuleImpl::createStreaming(IStreaming** /*streaming*/,
-                                        IString* /*connectionString*/,
-                                        IPropertyObject* /*config*/,
-                                        IString* /*manufacturer*/,
-                                        IString* /*serialNumber*/)
+ErrCode MockModuleImpl::createStreaming(IStreaming** /*streaming*/, IString* /*connectionString*/, IPropertyObject* /*config*/)
+{
+    return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOTIMPLEMENTED);
+}
+
+ErrCode MockModuleImpl::createAuthenticatedStreaming(IStreaming** /*streaming*/,
+                                                     IString* /*connectionString*/,
+                                                     IPropertyObject* /*config*/,
+                                                     ILoginParameters* /*loginParameters*/)
 {
     return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOTIMPLEMENTED);
 }

@@ -67,14 +67,24 @@ daqErrCode daqCredentialRequestBuilder_getSerialNumber(daqCredentialRequestBuild
     return reinterpret_cast<daq::ICredentialRequestBuilder*>(self)->getSerialNumber(reinterpret_cast<daq::IString**>(serialNumber));
 }
 
-daqErrCode daqCredentialRequestBuilder_addMetaDataProperty(daqCredentialRequestBuilder* self, daqProperty* property)
+daqErrCode daqCredentialRequestBuilder_setModel(daqCredentialRequestBuilder* self, daqString* model)
 {
-    return reinterpret_cast<daq::ICredentialRequestBuilder*>(self)->addMetaDataProperty(reinterpret_cast<daq::IProperty*>(property));
+    return reinterpret_cast<daq::ICredentialRequestBuilder*>(self)->setModel(reinterpret_cast<daq::IString*>(model));
 }
 
-daqErrCode daqCredentialRequestBuilder_getMetaData(daqCredentialRequestBuilder* self, daqPropertyObject** property)
+daqErrCode daqCredentialRequestBuilder_getModel(daqCredentialRequestBuilder* self, daqString** model)
 {
-    return reinterpret_cast<daq::ICredentialRequestBuilder*>(self)->getMetaData(reinterpret_cast<daq::IPropertyObject**>(property));
+    return reinterpret_cast<daq::ICredentialRequestBuilder*>(self)->getModel(reinterpret_cast<daq::IString**>(model));
+}
+
+daqErrCode daqCredentialRequestBuilder_setDisplayName(daqCredentialRequestBuilder* self, daqString* displayName)
+{
+    return reinterpret_cast<daq::ICredentialRequestBuilder*>(self)->setDisplayName(reinterpret_cast<daq::IString*>(displayName));
+}
+
+daqErrCode daqCredentialRequestBuilder_getDisplayName(daqCredentialRequestBuilder* self, daqString** displayName)
+{
+    return reinterpret_cast<daq::ICredentialRequestBuilder*>(self)->getDisplayName(reinterpret_cast<daq::IString**>(displayName));
 }
 
 daqErrCode daqCredentialRequestBuilder_setAuthenticationMethod(daqCredentialRequestBuilder* self, daqAuthenticationMethod* authenticationMethod)

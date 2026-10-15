@@ -70,7 +70,7 @@ namespace crypto
 namespace authentication
 {
 
-void Authenticate(const ContextPtr& ctx, const PropertyObjectPtr& credentials, const StringPtr& authenticationMethodId)
+void Authenticate(const ContextPtr& ctx, const DictPtr<IString, IString>& credentials, const StringPtr& authenticationMethodId)
 {
     const std::string authenticationMethodIdStr = authenticationMethodId.toStdString();
 
@@ -81,26 +81,17 @@ void Authenticate(const ContextPtr& ctx, const PropertyObjectPtr& credentials, c
         return;
     }
 
-    if (!credentials.assigned())
-    {
-        DAQ_THROW_EXCEPTION(AuthenticationFailedException, "Failed to authenticate - no credentials provided");
-    }
-
     if (authenticationMethodIdStr == StandardPinId)
     {
-        const StringPtr pin = credentials.hasProperty("Pin") ? credentials.getPropertyValue("Pin") : nullptr;
-        if (!pin.assigned() || pin != "1234")
+        const StringPtr pin = credentials.get("Pin");
+        if (pin != "1234")
         {
             DAQ_THROW_EXCEPTION(AuthenticationFailedException, "Failed to authenticate - wrong pin-code");
         }
     }
     else if (authenticationMethodIdStr == StandardPrivateKeyFileId)
     {
-        const StringPtr privateKeyPath = credentials.hasProperty("PrivateKeyFilePath") ? credentials.getPropertyValue("PrivateKeyFilePath") : nullptr;
-        if (!privateKeyPath.assigned() || privateKeyPath.getLength() == 0)
-        {
-            DAQ_THROW_EXCEPTION(AuthenticationFailedException, "Failed to authenticate - no private key file path provided");
-        }
+        const StringPtr privateKeyPath = credentials.get("PrivateKeyFilePath");
 
         crypto::EvpPkeyPtr privateKey = crypto::ReadPemKeyFile(privateKeyPath.toStdString(), /*isPrivateKey*/ true);
 
@@ -124,9 +115,9 @@ void Authenticate(const ContextPtr& ctx, const PropertyObjectPtr& credentials, c
     }
     else if (authenticationMethodIdStr == StandardUserNamePasswordId)
     {
-        const StringPtr userName = credentials.hasProperty("UserName") ? credentials.getPropertyValue("UserName") : nullptr;
-        const StringPtr password = credentials.hasProperty("Password") ? credentials.getPropertyValue("Password") : nullptr;
-        if (!userName.assigned() || userName != "user" || !password.assigned() || password != "pass")
+        const StringPtr userName = credentials.get("UserName");
+        const StringPtr password = credentials.get("Password");
+        if (userName != "user" || password != "pass")
         {
             DAQ_THROW_EXCEPTION(AuthenticationFailedException, "Failed to authenticate - wrong username or password");
         }

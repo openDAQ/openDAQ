@@ -6,6 +6,7 @@
 #include <opendaq/instance_impl.h>
 #include <opendaq/input_port_private_ptr.h>
 #include <coretypes/validation.h>
+#include <coretypes/exceptions.h>
 #include <boost/uuid/uuid.hpp>
 #include <boost/uuid/uuid_generators.hpp>
 #include <boost/uuid/uuid_io.hpp>
@@ -150,9 +151,10 @@ static ContextPtr ContextFromInstanceBuilder(IInstanceBuilder* instanceBuilder)
     }
 
     // Configure moduleManager
+    const auto credentialProvider = builderPtr.getCredentialProvider();
     if (!moduleManager.assigned())
     {
-        moduleManager = ModuleManagerMultiplePaths(builderPtr.getModulePathsList());
+        moduleManager = ModuleManagerMultiplePaths(builderPtr.getModulePathsList(), credentialProvider);
         moduleManager.setAuthenticatedOnly(loadAuthenticatedModulesOnly);
         if (moduleAuthenticator != nullptr)
         {
@@ -161,6 +163,16 @@ static ContextPtr ContextFromInstanceBuilder(IInstanceBuilder* instanceBuilder)
         }
 
         builderPtr.setModuleManager(moduleManager);
+    }
+    else if (credentialProvider.assigned())
+    {
+        // The module manager now owns the credential provider, set at its own construction time - a custom
+        // module manager was already supplied, so there is no longer a module manager construction for the
+        // builder's own credential provider to apply to.
+        DAQ_THROW_EXCEPTION(AlreadyExistsException,
+                            "A credential provider was set on the instance builder, but a custom module manager "
+                            "was also provided - set the credential provider directly on the custom module "
+                            "manager instead");
     }
 
     auto discoveryServers = Dict<IString, IDiscoveryServer>();
@@ -171,7 +183,7 @@ static ContextPtr ContextFromInstanceBuilder(IInstanceBuilder* instanceBuilder)
             discoveryServers.set(serverName, server);
     }
 
-    return Context(scheduler, logger, typeManager, moduleManager, authenticationProvider, options, discoveryServers, builderPtr.getCredentialProvider());
+    return Context(scheduler, logger, typeManager, moduleManager, authenticationProvider, options, discoveryServers);
 }
 
 void InstanceImpl::stopAndRemoveServers() const

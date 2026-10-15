@@ -16,14 +16,12 @@
 
 #pragma once
 #include <coretypes/baseobject.h>
-#include <coreobjects/property_object_ptr.h>
+#include <coretypes/string_ptr.h>
 #include <opendaq/authentication_method.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
 /*#
- * [interfaceLibrary(IPropertyObject, "coreobjects")]
- * [interfaceSmartPtr(IPropertyObject, PropertyObjectPtr, "<coreobjects/property_object_ptr.h>")]
  * [interfaceLibrary(IAuthenticationMethod, "opendaq")]
  * [interfaceSmartPtr(IAuthenticationMethod, AuthenticationMethodPtr, "<opendaq/authentication_method_ptr.h>")]
  * [interfaceLibrary(IComponentType, "opendaq")]
@@ -59,11 +57,11 @@ DECLARE_OPENDAQ_INTERFACE(ICredentialRequest, IBaseObject)
     virtual ErrCode INTERFACE_FUNC getConnectionString(IString** connectionString) = 0;
 
     /*!
-     * @brief Gets additional metadata describing the request, primarily for the credential provider to show
-     * to the user. Optional - empty (no properties) if the caller added none via `addMetaDataProperty`.
-     * @param[out] metaData The metadata property object.
+     * @brief Gets the device's name (e.g. obtained from its info or the add config), is a context for the provider, to show
+     * the user. Optional - unassigned when unknown.
+     * @param[out] displayName The device's display name.
      */
-    virtual ErrCode INTERFACE_FUNC getMetaData(IPropertyObject** metaData) = 0;
+    virtual ErrCode INTERFACE_FUNC getDisplayName(IString** displayName) = 0;
 
     /*!
      * @brief Gets the manufacturer of the device the connection is being established to or for - a request
@@ -82,11 +80,27 @@ DECLARE_OPENDAQ_INTERFACE(ICredentialRequest, IBaseObject)
     virtual ErrCode INTERFACE_FUNC getSerialNumber(IString** serialNumber) = 0;
 
     /*!
+     * @brief Gets the model of the device the connection is being established to or for - a request can be
+     * for a direct connection to that device, or for a streaming connection attached to it. Optional -
+     * unassigned if the model isn't known for this connection.
+     * @param[out] model The device model.
+     */
+    virtual ErrCode INTERFACE_FUNC getModel(IString** model) = 0;
+
+    /*!
      * @brief Gets the authentication method the provider must provide a credential for, read from
      * `IAuthenticationConfig` when the request was built.
      * @param[out] authenticationMethod The authentication method.
      */
     virtual ErrCode INTERFACE_FUNC getAuthenticationMethod(IAuthenticationMethod** authenticationMethod) = 0;
+
+    /*!
+     * @brief Helper method to get a generic-form key usable by any vault - e.g.
+     * "componentTypeId|methodId|connectionString"; equal for equal keys, and unambiguous, since type and
+     * method ids contain no '|'. What a vault stores this request's credential under.
+     * @param[out] key The generic-form key.
+     */
+    virtual ErrCode INTERFACE_FUNC getKey(IString** key) = 0;
 };
 
 /*!

@@ -25,6 +25,7 @@
 #include <opendaq/server_capability_config.h>
 #include <opendaq/module_info.h>
 #include <opendaq/authentication_method.h>
+#include <opendaq/login_parameters.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
@@ -32,6 +33,8 @@ BEGIN_NAMESPACE_OPENDAQ
  * [interfaceLibrary(IPropertyObject, "coreobjects")]
  * [interfaceLibrary(IAuthenticationMethod, "opendaq")]
  * [interfaceSmartPtr(IAuthenticationMethod, AuthenticationMethodPtr, "<opendaq/authentication_method_ptr.h>")]
+ * [interfaceLibrary(ILoginParameters, "opendaq")]
+ * [interfaceSmartPtr(ILoginParameters, LoginParametersPtr, "<opendaq/login_parameters_ptr.h>")]
  */
 
 /*!
@@ -71,6 +74,8 @@ DECLARE_OPENDAQ_INTERFACE(IModule, IBaseObject)
     /*!
      * @brief Creates a device object that can communicate with the device described in the specified connection string.
      * The device object is not automatically added as a sub-device of the caller, but only returned by reference.
+     * Only valid for a device type with no supported authentication method - use `createAuthenticatedDevice` for one
+     * that has at least one.
      * @param[out] device The device object created to communicate with and control the device.
      * @param connectionString Describes the connection info of the device to connect to.
      * @param parent The parent component/device to which the device attaches.
@@ -114,21 +119,17 @@ DECLARE_OPENDAQ_INTERFACE(IModule, IBaseObject)
 
 
     /*!
-     * @brief Creates and returns a streaming object using the specified connection string and config object,
-     * optionally authenticating the connection by obtaining credentials - as specified by the given authentication
-     * configuration - from a compatible registered credential provider.
+     * @brief Creates and returns a streaming object using the specified connection string and config object.
+     * Only valid for a streaming type with no supported authentication method - use `createAuthenticatedStreaming`
+     * for one that has at least one.
      * @param connectionString Typically a connection string usually has a well known prefix, such as `daq.lt//`.
      * @param config A config object that contains parameters used to configure a streaming connection.
      * In case of a null value, implementation should use default configuration.
-     * @param manufacturer The manufacturer of the device the streaming connection belongs to, if known.
-     * @param serialNumber The serial number of the device the streaming connection belongs to, if known.
      * @param[out] streaming The created streaming object.
      */
     virtual ErrCode INTERFACE_FUNC createStreaming(IStreaming** streaming,
                                                    IString* connectionString,
-                                                   IPropertyObject* config = nullptr,
-                                                   IString* manufacturer = nullptr,
-                                                   IString* serialNumber = nullptr) = 0;
+                                                   IPropertyObject* config = nullptr) = 0;
 
     virtual ErrCode INTERFACE_FUNC completeServerCapability(Bool* succeeded, IServerCapability* source, IServerCapabilityConfig* target) = 0;
 
@@ -162,6 +163,59 @@ DECLARE_OPENDAQ_INTERFACE(IModule, IBaseObject)
      * Always return True if no license is required by the module.
      */
     virtual ErrCode INTERFACE_FUNC licenseLoaded(Bool* loaded) = 0;
+
+    /*!
+     * @brief Creates a device object that can communicate with the device described in the specified connection
+     * string, authenticating the connection with the method and credentials carried by `loginParameters` - already resolved
+     * by the module manager (from a supplied credential or a credential provider) before this is called, so the
+     * implementation only needs to verify them, never to resolve them itself.
+     * The device object is not automatically added as a sub-device of the caller, but only returned by reference.
+     * @param[out] device The device object created to communicate with and control the device.
+     * @param connectionString Describes the connection info of the device to connect to.
+     * @param parent The parent component/device to which the device attaches.
+     * @param config A configuration object that contains parameters used to configure a device in the form of
+     * key-value pairs - the type config, same as for `createDevice`.
+     * @param loginParameters The authentication method and resolved credentials to authenticate the connection with.
+     * @retval OPENDAQ_ERR_AUTHENTICATION_FAILED only when the endpoint itself rejected the credentials.
+     * @retval OPENDAQ_ERR_NOT_SUPPORTED when the device type has no supported authentication method.
+     */
+    virtual ErrCode INTERFACE_FUNC createAuthenticatedDevice(IDevice** device,
+                                                             IString* connectionString,
+                                                             IComponent* parent,
+                                                             IPropertyObject* config,
+                                                             ILoginParameters* loginParameters) = 0;
+
+    /*!
+     * @brief Creates and returns a streaming object using the specified connection string and config object,
+     * authenticating the connection with the method and credentials carried by `loginParameters` - already resolved
+     * by the module manager (from a supplied credential or a credential provider) before this is called, so
+     * the implementation only needs to verify them, never to resolve them itself.
+     * @param[out] streaming The created streaming object.
+     * @param connectionString Typically a connection string usually has a well known prefix, such as `daq.lt//`.
+     * @param config A config object that contains parameters used to configure a streaming connection, same
+     * as for `createStreaming`.
+     * @param loginParameters The authentication method and resolved credentials to authenticate the connection with.
+     * @retval OPENDAQ_ERR_AUTHENTICATION_FAILED only when the endpoint itself rejected the credentials.
+     * @retval OPENDAQ_ERR_NOT_SUPPORTED when the streaming type has no supported authentication method.
+     */
+    virtual ErrCode INTERFACE_FUNC createAuthenticatedStreaming(IStreaming** streaming,
+                                                                IString* connectionString,
+                                                                IPropertyObject* config,
+                                                                ILoginParameters* loginParameters) = 0;
+
+    /*!
+     * @brief Returns the canonical form of `connectionString` - the module's own connection-string prefix
+     * trimmed off, and every connection parameter (port, path, etc.) made explicit, even ones the original
+     * string left unspecified and the module fell back to a default for. Used by the module manager as a
+     * stable identifier for caching authentication credentials against a specific connection within a
+     * credential provider - two connection strings that differ only in how much they left implicit still
+     * resolve to the exact same canonical string, and so the same cache entry.
+     * @param connectionString The connection string to canonicalize.
+     * @param[out] canonicalConnectionString The canonical connection string. The base implementation performs
+     * no canonicalization at all - it returns `connectionString` unchanged - so a module that doesn't yet
+     * support authentication (and so has no need for a caching identifier) doesn't need to override it.
+     */
+    virtual ErrCode INTERFACE_FUNC getCanonicalConnectionString(IString* connectionString, IString** canonicalConnectionString) = 0;
 };
 /*!@}*/
 

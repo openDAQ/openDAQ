@@ -38,8 +38,6 @@ extern "C"
     typedef struct daqCredentialRequest daqCredentialRequest;
     typedef struct daqComponentType daqComponentType;
     typedef struct daqString daqString;
-    typedef struct daqProperty daqProperty;
-    typedef struct daqPropertyObject daqPropertyObject;
     typedef struct daqAuthenticationMethod daqAuthenticationMethod;
 
     EXPORTED extern const daqIntfID DAQ_CREDENTIAL_REQUEST_BUILDER_INTF_ID;
@@ -54,8 +52,10 @@ extern "C"
     daqErrCode EXPORTED daqCredentialRequestBuilder_getManufacturer(daqCredentialRequestBuilder* self, daqString** manufacturer);
     daqErrCode EXPORTED daqCredentialRequestBuilder_setSerialNumber(daqCredentialRequestBuilder* self, daqString* serialNumber);
     daqErrCode EXPORTED daqCredentialRequestBuilder_getSerialNumber(daqCredentialRequestBuilder* self, daqString** serialNumber);
-    daqErrCode EXPORTED daqCredentialRequestBuilder_addMetaDataProperty(daqCredentialRequestBuilder* self, daqProperty* property);
-    daqErrCode EXPORTED daqCredentialRequestBuilder_getMetaData(daqCredentialRequestBuilder* self, daqPropertyObject** property);
+    daqErrCode EXPORTED daqCredentialRequestBuilder_setModel(daqCredentialRequestBuilder* self, daqString* model);
+    daqErrCode EXPORTED daqCredentialRequestBuilder_getModel(daqCredentialRequestBuilder* self, daqString** model);
+    daqErrCode EXPORTED daqCredentialRequestBuilder_setDisplayName(daqCredentialRequestBuilder* self, daqString* displayName);
+    daqErrCode EXPORTED daqCredentialRequestBuilder_getDisplayName(daqCredentialRequestBuilder* self, daqString** displayName);
     daqErrCode EXPORTED daqCredentialRequestBuilder_setAuthenticationMethod(daqCredentialRequestBuilder* self, daqAuthenticationMethod* authenticationMethod);
     daqErrCode EXPORTED daqCredentialRequestBuilder_getAuthenticationMethod(daqCredentialRequestBuilder* self, daqAuthenticationMethod** authenticationMethod);
     daqErrCode EXPORTED daqCredentialRequestBuilder_createCredentialRequestBuilder(daqCredentialRequestBuilder** obj);

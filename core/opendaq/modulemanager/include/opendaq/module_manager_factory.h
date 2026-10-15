@@ -17,6 +17,7 @@
 #include <opendaq/module_manager_ptr.h>
 #include <opendaq/logger_ptr.h>
 #include <opendaq/context_ptr.h>
+#include <opendaq/credential_provider_ptr.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
@@ -31,10 +32,12 @@ BEGIN_NAMESPACE_OPENDAQ
  * it searches the executable folder and its subfolders. Otherwise, it searches the for the relative directory
  * based on the current working directory.
  * @param searchPath The location of the module libraries.
+ * @param credentialProvider The credential provider this manager consults when a module needs to authenticate
+ * a connection attempt.
  */
-inline ModuleManagerPtr ModuleManager(const StringPtr& searchPath)
+inline ModuleManagerPtr ModuleManager(const StringPtr& searchPath, const CredentialProviderPtr& credentialProvider = nullptr)
 {
-    ModuleManagerPtr obj(ModuleManager_Create(searchPath));
+    ModuleManagerPtr obj(ModuleManager_Create(searchPath, credentialProvider));
     return obj;
 }
 
@@ -43,10 +46,12 @@ inline ModuleManagerPtr ModuleManager(const StringPtr& searchPath)
  * it searches the executable folder and its subfolders. Otherwise, it searches the for the relative directory
  * based on the current working directory.
  * @param paths The locations of the module libraries.
+ * @param credentialProvider The credential provider this manager consults when a module needs to authenticate
+ * a connection attempt.
  */
-inline ModuleManagerPtr ModuleManagerMultiplePaths(const ListPtr<IString>& paths)
+inline ModuleManagerPtr ModuleManagerMultiplePaths(const ListPtr<IString>& paths, const CredentialProviderPtr& credentialProvider = nullptr)
 {
-    ModuleManagerPtr obj(ModuleManagerMultiplePaths_Create(paths));
+    ModuleManagerPtr obj(ModuleManagerMultiplePaths_Create(paths, credentialProvider));
     return obj;
 }
 

@@ -38,7 +38,7 @@ extern "C"
     typedef struct daqString daqString;
     typedef struct daqPropertyObject daqPropertyObject;
     typedef struct daqModuleInfo daqModuleInfo;
-    typedef struct daqDict daqDict;
+    typedef struct daqAuthenticationConfig daqAuthenticationConfig;
 
     EXPORTED extern const daqIntfID DAQ_COMPONENT_TYPE_INTF_ID;
     void EXPORTED daqComponentType_getInterfaceId(daqIntfID* intfId);
@@ -48,8 +48,7 @@ extern "C"
     daqErrCode EXPORTED daqComponentType_getDescription(daqComponentType* self, daqString** description);
     daqErrCode EXPORTED daqComponentType_createDefaultConfig(daqComponentType* self, daqPropertyObject** defaultConfig);
     daqErrCode EXPORTED daqComponentType_getModuleInfo(daqComponentType* self, daqModuleInfo** info);
-    daqErrCode EXPORTED daqComponentType_getSupportedAuthenticationMethods(daqComponentType* self, daqDict** authenticationMethods);
-    daqErrCode EXPORTED daqComponentType_getDefaultAuthenticationMethodId(daqComponentType* self, daqString** defaultAuthenticationMethodId);
+    daqErrCode EXPORTED daqComponentType_createAuthenticationConfig(daqComponentType* self, daqAuthenticationConfig** config);
 
 #ifdef __cplusplus
 }

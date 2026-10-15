@@ -16,58 +16,22 @@
 
 #pragma once
 #include <opendaq/authentication_method.h>
+#include <opendaq/credential_field_ptr.h>
 #include <coretypes/impl.h>
-#include <coretypes/dict_ptr.h>
-#include <coretypes/boolean_factory.h>
-#include <coretypes/struct_impl.h>
-#include <coreobjects/property_object_ptr.h>
+#include <coretypes/dictobject_factory.h>
+#include <coretypes/serializable.h>
+#include <coretypes/serialized_object.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
-/*!
- * @brief `IStruct` impl for the parameter set nested inside a `AuthenticationMethodImpl`.
- */
-class AuthenticationMethodParametersImpl final : public GenericStructImpl<IStruct>
+class AuthenticationMethodImpl final : public ImplementationOf<IAuthenticationMethod, ISerializable>
 {
 public:
-    AuthenticationMethodParametersImpl(const StructTypePtr& structType, const DictPtr<IString, IBaseObject>& fields);
-};
-
-/*!
- * @brief `IAuthenticationMethod` impl for all four formats.
- */
-class AuthenticationMethodImpl final : public GenericStructImpl<IAuthenticationMethod, IStruct>
-{
-public:
-    // `credentialClassName`, if given and registered with `typeManager`, is the `IPropertyObjectClass`
-    // `createEmptyCredential()` builds the returned credential from. `None` has none - there is no credential to build -
-    // and, unlike the other three formats, its Struct type is never registered with a type manager either.
-
-    // KeyValuePairs
-    AuthenticationMethodImpl(const StringPtr& id,
-                             const DictPtr<IString, IBoolean>& keys,
-                             const StringPtr& description,
-                             const TypeManagerPtr& typeManager,
-                             const StringPtr& credentialClassName);
-    // String
-    AuthenticationMethodImpl(const StringPtr& id,
-                             const StringPtr& description,
-                             Bool hidden,
-                             const TypeManagerPtr& typeManager,
-                             const StringPtr& credentialClassName);
-    // FilePath
-    AuthenticationMethodImpl(const StringPtr& id,
-                             const StringPtr& description,
-                             const TypeManagerPtr& typeManager,
-                             const StringPtr& credentialClassName);
-    // None
-    AuthenticationMethodImpl(const StringPtr& id, const StringPtr& description);
+    AuthenticationMethodImpl(const StringPtr& id, const DictPtr<IString, ICredentialField>& fields, const StringPtr& description);
 
     ErrCode INTERFACE_FUNC getId(IString** id) override;
-    ErrCode INTERFACE_FUNC getFormat(CredentialFormat* format) override;
-    ErrCode INTERFACE_FUNC getParameters(IStruct** parameters) override;
+    ErrCode INTERFACE_FUNC getFields(IDict** fields) override;
     ErrCode INTERFACE_FUNC getDescription(IString** description) override;
-    ErrCode INTERFACE_FUNC createEmptyCredential(IPropertyObject** credential) override;
 
     ErrCode INTERFACE_FUNC serialize(ISerializer* serializer) override;
     ErrCode INTERFACE_FUNC getSerializeId(ConstCharPtr* id) const override;
@@ -75,31 +39,9 @@ public:
     static ErrCode Deserialize(ISerializedObject* serialized, IBaseObject* context, IFunction* factoryCallback, IBaseObject** obj);
 
 private:
-    static constexpr const char* CredentialClassNameSerializedKey = "CredentialClassName";
-
-    // Shared implementation constructor the four format-specific constructors above delegate to.
-    AuthenticationMethodImpl(CredentialFormat format,
-                             const StructTypePtr& structType,
-                             const DictPtr<IString, IBaseObject>& fields,
-                             const TypeManagerPtr& typeManager,
-                             const StringPtr& credentialClassName);
-
-    static DictPtr<IString, IBaseObject> BuildFields(const StringPtr& id,
-                                                     const DictPtr<IString, IBoolean>& keys,
-                                                     const StringPtr& description,
-                                                     const StructTypePtr& parametersType);
-    static DictPtr<IString, IBaseObject> BuildFields(const StringPtr& id, const StringPtr& description, Bool hidden, const StructTypePtr& parametersType);
-    // For a format with no format-specific parameters - "AuthenticationMethodId"/"Description" only, no "Parameters" field.
-    static DictPtr<IString, IBaseObject> BuildFields(const StringPtr& id, const StringPtr& description);
-
-    CredentialFormat format;
-    TypeManagerPtr typeManager;
-    StringPtr credentialClassName;
+    StringPtr id;
+    DictPtr<IString, ICredentialField> fields;
+    StringPtr description;
 };
-
-using KeyValueAuthenticationMethodImpl = AuthenticationMethodImpl;
-using StringAuthenticationMethodImpl = AuthenticationMethodImpl;
-using FilePathAuthenticationMethodImpl = AuthenticationMethodImpl;
-using NoneAuthenticationMethodImpl = AuthenticationMethodImpl;
 
 END_NAMESPACE_OPENDAQ

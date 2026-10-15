@@ -27,14 +27,9 @@ daqErrCode daqAuthenticationMethod_getId(daqAuthenticationMethod* self, daqStrin
     return reinterpret_cast<daq::IAuthenticationMethod*>(self)->getId(reinterpret_cast<daq::IString**>(id));
 }
 
-daqErrCode daqAuthenticationMethod_getFormat(daqAuthenticationMethod* self, daqCredentialFormat* format)
+daqErrCode daqAuthenticationMethod_getFields(daqAuthenticationMethod* self, daqDict** fields)
 {
-    return reinterpret_cast<daq::IAuthenticationMethod*>(self)->getFormat(reinterpret_cast<daq::CredentialFormat*>(format));
-}
-
-daqErrCode daqAuthenticationMethod_getParameters(daqAuthenticationMethod* self, daqStruct** parameters)
-{
-    return reinterpret_cast<daq::IAuthenticationMethod*>(self)->getParameters(reinterpret_cast<daq::IStruct**>(parameters));
+    return reinterpret_cast<daq::IAuthenticationMethod*>(self)->getFields(reinterpret_cast<daq::IDict**>(fields));
 }
 
 daqErrCode daqAuthenticationMethod_getDescription(daqAuthenticationMethod* self, daqString** description)
@@ -42,39 +37,10 @@ daqErrCode daqAuthenticationMethod_getDescription(daqAuthenticationMethod* self,
     return reinterpret_cast<daq::IAuthenticationMethod*>(self)->getDescription(reinterpret_cast<daq::IString**>(description));
 }
 
-daqErrCode daqAuthenticationMethod_createEmptyCredential(daqAuthenticationMethod* self, daqPropertyObject** credential)
-{
-    return reinterpret_cast<daq::IAuthenticationMethod*>(self)->createEmptyCredential(reinterpret_cast<daq::IPropertyObject**>(credential));
-}
-
-daqErrCode daqAuthenticationMethod_createKeyValueAuthenticationMethod(daqAuthenticationMethod** obj, daqString* id, daqDict* keys, daqString* description, daqTypeManager* typeManager, daqString* credentialClassName)
+daqErrCode daqAuthenticationMethod_createAuthenticationMethod(daqAuthenticationMethod** obj, daqString* id, daqDict* fields, daqString* description)
 {
     daq::IAuthenticationMethod* ptr = nullptr;
-    daqErrCode err = daq::createKeyValueAuthenticationMethod(&ptr, reinterpret_cast<daq::IString*>(id), reinterpret_cast<daq::IDict*>(keys), reinterpret_cast<daq::IString*>(description), reinterpret_cast<daq::ITypeManager*>(typeManager), reinterpret_cast<daq::IString*>(credentialClassName));
-    *obj = reinterpret_cast<daqAuthenticationMethod*>(ptr);
-    return err;
-}
-
-daqErrCode daqAuthenticationMethod_createStringAuthenticationMethod(daqAuthenticationMethod** obj, daqString* id, daqString* description, daqBool hidden, daqTypeManager* typeManager, daqString* credentialClassName)
-{
-    daq::IAuthenticationMethod* ptr = nullptr;
-    daqErrCode err = daq::createStringAuthenticationMethod(&ptr, reinterpret_cast<daq::IString*>(id), reinterpret_cast<daq::IString*>(description), hidden, reinterpret_cast<daq::ITypeManager*>(typeManager), reinterpret_cast<daq::IString*>(credentialClassName));
-    *obj = reinterpret_cast<daqAuthenticationMethod*>(ptr);
-    return err;
-}
-
-daqErrCode daqAuthenticationMethod_createFilePathAuthenticationMethod(daqAuthenticationMethod** obj, daqString* id, daqString* description, daqTypeManager* typeManager, daqString* credentialClassName)
-{
-    daq::IAuthenticationMethod* ptr = nullptr;
-    daqErrCode err = daq::createFilePathAuthenticationMethod(&ptr, reinterpret_cast<daq::IString*>(id), reinterpret_cast<daq::IString*>(description), reinterpret_cast<daq::ITypeManager*>(typeManager), reinterpret_cast<daq::IString*>(credentialClassName));
-    *obj = reinterpret_cast<daqAuthenticationMethod*>(ptr);
-    return err;
-}
-
-daqErrCode daqAuthenticationMethod_createNoneAuthenticationMethod(daqAuthenticationMethod** obj, daqString* id, daqString* description)
-{
-    daq::IAuthenticationMethod* ptr = nullptr;
-    daqErrCode err = daq::createNoneAuthenticationMethod(&ptr, reinterpret_cast<daq::IString*>(id), reinterpret_cast<daq::IString*>(description));
+    daqErrCode err = daq::createAuthenticationMethod(&ptr, reinterpret_cast<daq::IString*>(id), reinterpret_cast<daq::IDict*>(fields), reinterpret_cast<daq::IString*>(description));
     *obj = reinterpret_cast<daqAuthenticationMethod*>(ptr);
     return err;
 }

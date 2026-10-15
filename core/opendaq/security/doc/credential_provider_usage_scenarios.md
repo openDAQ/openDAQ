@@ -44,14 +44,14 @@ As an application developer, I want to check whether a given device/streaming ty
 
 ### 1.2 — Is authentication actually *usable* right now, given the registered provider?
 
-As an application developer, I want to know not just whether a type *supports* authentication, but whether I can actually *complete* it with whatever's registered on my instance - these are different questions, and the API doesn't collapse them into one boolean. Unlike an earlier design, there is no per-config property to inspect for this - the only source of truth is the registered provider itself.
+As an application developer, I want to know not just whether a type *supports* authentication, but whether I can actually *complete* it with whatever's registered on my instance - these are different questions. There is no client-side way to check the second one in advance - a provider declares no supported field kinds up front (deliberately: see the API reference, §1) - so the only way to find out is to actually attempt the connection and see whether `requestCredentials`/`cacheCredentials` fails.
 
-- **Given** a type supporting only a `String`-format method (e.g. `"Pin"`), and either no credential provider registered, or one registered that doesn't declare `String` among `getSupportedFormats()`
-  **When** I call `instance.getContext().getCredentialProvider()` and inspect its `getSupportedFormats()` (or its absence) against the method's format, entirely client-side
-  **Then** I can tell, without ever attempting a connection, that authentication would fail before ever calling `addAuthenticatedDevice`.
 - **Given** zero credential providers registered on the instance at all
   **When** I build the default config and call `addAuthenticatedDevice`
   **Then** it fails with `AuthenticationFailedException` ("no credential provider is registered") - a good negative-path example distinct from 1.1's "type doesn't support auth" case: here the *type* supports it, the *instance* just can't currently serve it.
+- **Given** a registered provider that can't actually handle one of the method's field kinds (a custom provider, not `CmdLineCredentialProvider` - that one handles every kind)
+  **When** I call `addAuthenticatedDevice`
+  **Then** whatever `ErrCode`/exception that provider's own `requestCredentials` fails with propagates all the way up through the add-device call chain to the caller, unmodified - `Module` never pre-checks this itself.
 
 ---
 
@@ -104,11 +104,14 @@ As an application developer, I want the simplest possible path to work: get the 
 
 ### 3.4 — Malformed supplied credential (robustness)
 
-As an application developer, I want a clear failure, not a confusing one, if I get the supplied-credential shape wrong.
+As an application developer, I want a clear failure, not a confusing one, if I get the supplied-credential keys wrong.
 
-- **Given** a supplied credential property object missing an expected property (e.g. a `KeyValuePairs` credential missing `"Password"`), or with an extra/misnamed one
+- **Given** a supplied credential dictionary missing a *required* field (e.g. a `UserNamePassword` credential missing `"Password"`, or carrying it with an empty value)
+  **When** I call `setPropertyValue("SuppliedCredential", ...)`
+  **Then** the write itself throws (per `CredentialSatisfiesMethod`), before `addAuthenticatedDevice` is ever reached - confirming the shape check happens at write time, not deferred to connection time.
+- **Given** a supplied credential dictionary carrying an extra, unrecognized key (one that names no field of the currently selected method) alongside every required field correctly filled in
   **When** I call `addAuthenticatedDevice`
-  **Then** document (via the example) exactly what happens today - does it throw a clear, actionable error, or fail cryptically deep inside verification? This is worth an explicit example even if the answer turns out to be "not very friendly today," since it tells us whether `createEmptyCredential()` really needs to be used as the template (as documented) rather than treated as optional guidance.
+  **Then** authentication still succeeds - a dictionary is loose by design, only required fields are checked; an unrecognized key is simply never read by the authenticator, not an error.
 
 ---
 
@@ -118,39 +121,39 @@ Between "use the unmodified default" (§2) and "supply a credential directly" (�
 
 ### 4.1 — An incompatible `"SuppliedCredential"` write is rejected
 
-- **Given** a config with `"AuthenticationMethod"` selected to a `KeyValuePairs`-format method (e.g. `UserNamePassword`)
-  **When** I call `setPropertyValue("SuppliedCredential", ...)` with an object shaped for a *different* format (e.g. a single `"Pin"` property, matching `String`/`FilePath` instead)
-  **Then** the write throws and `"SuppliedCredential"` is not set - confirming validation happens against the object's actual property names/count, not just "any object goes."
+- **Given** a config with `"AuthenticationMethod"` selected to a two-field method (e.g. `UserNamePassword`)
+  **When** I call `setPropertyValue("SuppliedCredential", ...)` with a non-empty dictionary shaped for a *different* method (e.g. a single `"Pin"` entry, matching `Pin`/`PrivateKeyFile` instead - so missing both `"UserName"` and `"Password"`, the currently selected method's required fields)
+  **Then** the write throws and `"SuppliedCredential"` keeps its previous value - confirming validation happens against the *currently selected* method's required fields, not just "any non-empty dictionary goes."
 
-### 4.2 — Changing the selected authentication method silently clears an incompatible `"SuppliedCredential"`
+### 4.2 — Changing the selected authentication method always resets `"SuppliedCredential"`
 
-- **Given** a config with a valid `"SuppliedCredential"` set for the currently-selected `"AuthenticationMethod"`
-  **When** I switch `"AuthenticationMethod"` to a different method whose `createEmptyCredential()` shape doesn't match the existing credential
-  **Then** the selection change succeeds (no exception) and `hasProperty("SuppliedCredential")` becomes `false` afterward - the stale credential is silently cleared, not left in place mismatched with the new selection, and not blocking the method switch. Calling `addAuthenticatedDevice` afterward with no credential re-supplied falls through to the normal provider-based path (§2).
+- **Given** a config with a valid, non-empty `"SuppliedCredential"` set for the currently-selected `"AuthenticationMethod"`
+  **When** I switch `"AuthenticationMethod"` to a *different* method - even one whose required fields the existing credential happens to still satisfy (e.g. two methods that coincidentally share a required field name)
+  **Then** the selection change succeeds (no exception) and `getSuppliedCredential()` is an empty dictionary afterward regardless - the reset is unconditional on a method change, never contingent on whether the old value would still "fit" the new method. Calling `addAuthenticatedDevice` afterward with no credential re-supplied falls through to the normal provider-based path (§2).
 
 ---
 
 ## 5. Credential provider caching
 
-### 5.1 — Same context, same format → cache hit
+### 5.1 — Same context, same method → cache hit
 
-- **Given** a device authenticated via a caching-capable provider and format (e.g. `CmdLineCredentialProvider` + `FilePath`)
-  **When** a *second* connection sharing the same manufacturer/serial (or, absent those, the same canonical connection string - e.g. a streaming attach to the same device) is authenticated via the same format
-  **Then** no prompt occurs the second time - this is the scenario `demoCachedFilePathCredentialAcrossDeviceAndStreaming` already demonstrates; worth keeping as a named, minimal example independent of the bigger demo.
+- **Given** a device authenticated via `CmdLineCredentialProvider` for a given method (e.g. `UserNamePassword`)
+  **When** a *second* connection sharing the same manufacturer/serial (or, absent those, the same canonical connection string - e.g. a streaming attach to the same device) is authenticated via the same method
+  **Then** no prompt occurs the second time, for *any* of the method's fields - including `Secret` ones like the password - since every field value cached for a (device, method) pair is replayed together, not just `FilePath` ones. `demoCachedFilePathCredentialAcrossDeviceAndStreaming` already demonstrates this for a `FilePath` method; worth an equivalent minimal example for a method that also has a `Secret` field, to make the "every kind, not just FilePath" behavior explicit.
 
 ### 5.2 — Different context → cache miss (isolation)
 
 The inverse of 5.1, and just as important to verify explicitly.
 
 - **Given** the same setup as 5.1
-  **When** a connection with a *different* manufacturer/serial pair (or a different canonical connection string) is authenticated via the same format
+  **When** a connection with a *different* manufacturer/serial pair (or a different canonical connection string) is authenticated via the same method
   **Then** it prompts independently - confirming the cache key genuinely discriminates by connection identity and doesn't leak credentials across unrelated devices.
 
-### 5.3 — Non-caching format
+### 5.3 — Different method, same device → cache miss (isolation across methods)
 
-- **Given** a `KeyValuePairs`/`String` request against `CmdLineCredentialProvider` (only `FilePath` is cached)
-  **When** the same context is authenticated twice
-  **Then** it prompts both times - confirming caching is opt-in per format, not a blanket assumption an application can rely on for every combination.
+- **Given** a device already authenticated once via one method (e.g. `UserNamePassword`), caching that method's fields
+  **When** the same device is instead authenticated via a *different* method (e.g. `Pin`)
+  **Then** it prompts for the new method's own fields regardless - confirming the cache key includes the authentication method id, so switching methods for the same device never serves stale values cached under a different method.
 
 ---
 
@@ -210,30 +213,30 @@ The custom persistence model: `AuthenticationConfigImpl`'s serialization writes 
 
 ---
 
-## 9. Anonymous / `None`-format authentication
+## 9. Anonymous / field-less authentication
 
-A `None`-format method needs no credentials at all - selecting it is the entire authentication step, with no provider and no supplied credential involved anywhere.
+A method with no fields at all needs no credentials - selecting it is the entire authentication step, with no provider and no supplied credential involved anywhere.
 
-### 9.1 — Selecting a `None`-format method needs no registered provider
+### 9.1 — Selecting a field-less method needs no registered provider
 
-- **Given** a type whose module offers a `None`-format method (e.g. `"Anonymous"`) among its supported authentication methods, and *no* credential provider registered on the instance at all
+- **Given** a type whose module offers a field-less method (e.g. `"Anonymous"`) among its supported authentication methods, and *no* credential provider registered on the instance at all
   **When** I select that method (`SelectAuthenticationMethod(config, "Anonymous")`) and call `addAuthenticatedDevice`
   **Then** it succeeds - unlike §2.3, the absence of any registered provider doesn't matter here, since none is ever consulted for this method.
 
-### 9.2 — A `"SuppliedCredential"` write is rejected while a `None`-format method is selected
+### 9.2 — A non-empty `"SuppliedCredential"` write is rejected while a field-less method is selected
 
-- **Given** a config with a `None`-format method currently selected
-  **When** I call `setPropertyValue("SuppliedCredential", credential)` for any property object at all, including an empty one
-  **Then** the write throws - `None` has no `createEmptyCredential()` template to match against, so no object is ever a valid shape for it (compare §4.1, the analogous rejection for a real format).
+- **Given** a config with a field-less method currently selected
+  **When** I call `setPropertyValue("SuppliedCredential", credential)` with any *non-empty* dictionary at all, even one that happens to carry no key any method actually uses
+  **Then** the write throws - `CredentialSatisfiesMethod` returns `false` for a field-less method regardless of what the dictionary contains, since there's nothing for one to legitimately supply (compare §4.1, the analogous rejection for a method with fields). Writing an *empty* dictionary, however, succeeds trivially - it's simply the property's own default value.
 
-### 9.3 — Switching *to* a `None`-format method clears an existing `"SuppliedCredential"`
+### 9.3 — Switching *to* a field-less method resets an existing `"SuppliedCredential"`
 
-- **Given** a config with a valid `"SuppliedCredential"` set for the currently-selected, non-`None` `"AuthenticationMethod"`
-  **When** I switch the selection to a `None`-format method
-  **Then** the selection change succeeds and `hasProperty("SuppliedCredential")` becomes `false` afterward - the same clearing behavior as §4.2, here covering the case where the new selection accepts no credential at all.
+- **Given** a config with a valid, non-empty `"SuppliedCredential"` set for the currently-selected method (one with fields)
+  **When** I switch the selection to a field-less method
+  **Then** the selection change succeeds and `getSuppliedCredential()` is an empty dictionary afterward - the same resetting behavior as §4.2, here covering the case where the new selection accepts no credential at all.
 
 ### 9.4 — Connecting via `None` behaves like the plain, unauthenticated path
 
-- **Given** a type offering both a `None`-format method and the plain `addDevice` path
+- **Given** a type offering both a field-less method and the plain `addDevice` path
   **When** I connect once via `addDevice(connectionString)` and once via `addAuthenticatedDevice(connectionString, nullptr, anonymousConfig)`
   **Then** both succeed identically from the caller's perspective - no prompt, no provider interaction, the same resulting device. (`credential_demo_module` implements this literally: connecting via its `"Anonymous"` method takes the same construction path as its own unauthenticated `addDevice`.)

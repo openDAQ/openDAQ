@@ -25,7 +25,6 @@ BEGIN_NAMESPACE_OPENDAQ
 
 struct IScheduler;
 struct IModuleManager;
-struct ICredentialProvider;
 
 /*!
  * @ingroup opendaq_utility
@@ -119,15 +118,6 @@ DECLARE_OPENDAQ_INTERFACE(IContext, IBaseObject)
      * @param[out] device The root device.
      */
     virtual ErrCode INTERFACE_FUNC getRootDevice(IBaseObject** device) = 0;
-
-    /*!
-     * @brief Gets the credential provider registered on this context.
-     * @param[out] provider The registered credential provider, or `nullptr` if none is registered.
-     *
-     * At most one credential provider can ever be registered, and only at instance-build time (see
-     * `IInstanceBuilder::setCredentialProvider`).
-     */
-    virtual ErrCode INTERFACE_FUNC getCredentialProvider(ICredentialProvider** provider) = 0;
 };
 /*!@}*/
 
@@ -147,8 +137,7 @@ OPENDAQ_DECLARE_CLASS_FACTORY(
     IModuleManager*, moduleManager,
     IAuthenticationProvider*, authenticationProvider,
     IDict*, options,
-    IDict*, discoveryServers,
-    ICredentialProvider*, credentialProvider
+    IDict*, discoveryServers
 )
 
 /*!@}*/

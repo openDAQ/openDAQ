@@ -24,7 +24,7 @@ TEST_F(COpendaqContextTest, Context)
     daqDict_createDict(&options);
     daqDict_createDict(&discoveryServers);
 
-    daqContext_createContext(&ctx, nullptr, logger, typeManager, nullptr, nullptr, options, discoveryServers, nullptr);
+    daqContext_createContext(&ctx, nullptr, logger, typeManager, nullptr, nullptr, options, discoveryServers);
 
     daqLogger* outLogger = nullptr;
     daqTypeManager* outTm = nullptr;

@@ -15,21 +15,27 @@
  */
 
 #pragma once
-#include <opendaq/authentication_config_ptr.h>
-#include <opendaq/authentication_method_ptr.h>
-#include <opendaq/component_type_ptr.h>
-#include <coretypes/dictobject_factory.h>
+
+#include <opendaq/login_parameters_builder_ptr.h>
+#include <opendaq/login_parameters_ptr.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
 /*!
- * @brief Builds an `AuthenticationConfig` for `componentType`, out of its own
- * `IComponentType::getSupportedAuthenticationMethods()`.
- * @param componentType The device or streaming type to build the config for.
+ * @brief Creates a `LoginParametersBuilder` with no values set.
  */
-inline AuthenticationConfigPtr AuthenticationConfig(const ComponentTypePtr& componentType)
+inline LoginParametersBuilderPtr LoginParametersBuilder()
 {
-    AuthenticationConfigPtr obj(AuthenticationConfig_Create(componentType.getSupportedAuthenticationMethods()));
+    LoginParametersBuilderPtr obj(LoginParametersBuilder_Create());
+    return obj;
+}
+
+/*!
+ * @brief Creates a `LoginParameters` from a `ILoginParametersBuilder`'s currently configured values.
+ */
+inline LoginParametersPtr LoginParametersFromBuilder(const LoginParametersBuilderPtr& builder)
+{
+    LoginParametersPtr obj(LoginParametersFromBuilder_Create(builder));
     return obj;
 }
 

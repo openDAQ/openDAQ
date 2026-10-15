@@ -333,7 +333,6 @@ public static partial class OpenDAQFactory
     /// <param name="authenticationProvider">The authentication provider.</param>
     /// <param name="options">The options.</param>
     /// <param name="discoveryServices">The discovery servers.</param>
-    /// <param name="credentialProvider">The credential provider registered on the context, or <c>null</c> if none.</param>
     /// <returns>The Context instance.</returns>
     public static Context Context(Scheduler scheduler,
                                   Logger logger,
@@ -341,8 +340,7 @@ public static partial class OpenDAQFactory
                                   ModuleManager moduleManager,
                                   AuthenticationProvider authenticationProvider,
                                   IDictObject<StringObject, BaseObject> options = null,
-                                  IDictObject<StringObject, DiscoveryServer> discoveryServices = null,
-                                  CredentialProvider credentialProvider = null)
+                                  IDictObject<StringObject, DiscoveryServer> discoveryServices = null)
     {
         /*
             inline ContextPtr Context(const SchedulerPtr& scheduler,
@@ -366,7 +364,7 @@ public static partial class OpenDAQFactory
             discoveryServices = CoreTypesFactory.CreateDict<StringObject, DiscoveryServer>();
         }
 
-        return CreateContext(scheduler, logger, typeManager, moduleManager, authenticationProvider, options, discoveryServices, credentialProvider);
+        return CreateContext(scheduler, logger, typeManager, moduleManager, authenticationProvider, options, discoveryServices);
     }
 
     /// <summary>
@@ -465,21 +463,22 @@ public static partial class OpenDAQFactory
     /// based on the current working directory.
     /// </summary>
     /// <param name="searchPath">The location of the module libraries.</param>
+    /// <param name="credentialProvider">The credential provider this manager consults when a module needs to authenticate a connection attempt, or <c>null</c> if it should never ask for credentials.</param>
     /// <returns>The ModuleManager instance.</returns>
     /// <remarks></remarks>
-    public static ModuleManager ModuleManager(string searchPath)
+    public static ModuleManager ModuleManager(string searchPath, CredentialProvider credentialProvider = null)
     {
         /*
-            inline ModuleManagerPtr ModuleManager(const StringPtr& searchPath)
+            inline ModuleManagerPtr ModuleManager(const StringPtr& searchPath, const CredentialProviderPtr& credentialProvider = nullptr)
             {
-                ModuleManagerPtr obj(ModuleManager_Create(searchPath));
+                ModuleManagerPtr obj(ModuleManager_Create(searchPath, credentialProvider));
                 return obj;
             }
         */
 
         using StringObject searchPathStr = string.IsNullOrWhiteSpace(searchPath) ? "." : searchPath;
 
-        return CreateModuleManager(searchPathStr);
+        return CreateModuleManager(searchPathStr, credentialProvider);
     }
 
     /// <summary>Creates a new Type manager.</summary>

@@ -1,8 +1,7 @@
 #include <credential_demo_module/credential_demo_streaming_impl.h>
+#include <credential_demo_module/credential_demo_device_impl.h>
 
 #include <opendaq/streaming_type_factory.h>
-#include <opendaq/authentication_method_factory.h>
-#include <coretypes/dictobject_factory.h>
 
 BEGIN_NAMESPACE_CREDENTIAL_DEMO_MODULE
 
@@ -11,7 +10,7 @@ static const std::string CredentialDemoStreamingTypeId = "CredentialDemoStreamin
 CredentialDemoStreamingImpl::CredentialDemoStreamingImpl(const StringPtr& connectionString,
                                                           const ContextPtr& ctx,
                                                           const StringPtr& authenticationMethodId,
-                                                          const PropertyObjectPtr& credentials)
+                                                          const DictPtr<IString, IString>& credentials)
     : Streaming(connectionString, ctx, /*skipDomainSignalSubscribe*/ true)
 {
     authentication::Authenticate(ctx, credentials, authenticationMethodId);
@@ -19,26 +18,15 @@ CredentialDemoStreamingImpl::CredentialDemoStreamingImpl(const StringPtr& connec
 
 StreamingTypePtr CredentialDemoStreamingImpl::CreateType(const ContextPtr& context)
 {
-    auto userNamePasswordMethod = StandardUserNamePasswordAuthenticationMethod(context.getTypeManager());
-    auto pinMethod = StandardPinAuthenticationMethod(context.getTypeManager());
-    auto privateKeyMethod = StandardPrivateKeyFileAuthenticationMethod(context.getTypeManager());
-    auto anonymousMethod = StandardAnonymousAuthenticationMethod();
-
-    // Showcases the same four authentication methods as the device, defaulting to PIN.
-    auto supportedMethods =
-        Dict<IString, IAuthenticationMethod>({{userNamePasswordMethod.getId(), userNamePasswordMethod},
-                                              {pinMethod.getId(), pinMethod},
-                                              {privateKeyMethod.getId(), privateKeyMethod},
-                                              {anonymousMethod.getId(), anonymousMethod}});
-
+    // Shares its connection parameters - including the device's four authentication methods - with the device
+    // type, rather than declaring its own.
     return StreamingTypeBuilder()
         .setId(CredentialDemoStreamingTypeId)
         .setName("Credential demo streaming")
         .setDescription("Dummy streaming connection, authenticated via the same credential framework and "
                          "auth methods as the device")
         .setConnectionStringPrefix(Prefix)
-        .setSupportedAuthenticationMethods(supportedMethods)
-        .setDefaultAuthenticationMethodId(StandardPinId)
+        .setLinkedDeviceType(CredentialDemoDeviceImpl::CreateType(context))
         .build();
 }
 

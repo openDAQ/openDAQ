@@ -31,18 +31,22 @@ public:
 
     ErrCode INTERFACE_FUNC getComponentType(IComponentType** componentType) override;
     ErrCode INTERFACE_FUNC getConnectionString(IString** connectionString) override;
-    ErrCode INTERFACE_FUNC getMetaData(IPropertyObject** metaData) override;
+    ErrCode INTERFACE_FUNC getDisplayName(IString** displayName) override;
     ErrCode INTERFACE_FUNC getManufacturer(IString** manufacturer) override;
     ErrCode INTERFACE_FUNC getSerialNumber(IString** serialNumber) override;
+    ErrCode INTERFACE_FUNC getModel(IString** model) override;
     ErrCode INTERFACE_FUNC getAuthenticationMethod(IAuthenticationMethod** authenticationMethod) override;
+    ErrCode INTERFACE_FUNC getKey(IString** key) override;
 
 private:
     ComponentTypePtr componentType;
     StringPtr connectionString;
-    PropertyObjectPtr metaData;
+    StringPtr displayName;
     StringPtr manufacturer;
     StringPtr serialNumber;
+    StringPtr model;
     AuthenticationMethodPtr authenticationMethod;
+    StringPtr key;
 };
 
 END_NAMESPACE_OPENDAQ

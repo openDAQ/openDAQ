@@ -27,19 +27,14 @@ daqErrCode daqCredentialProvider_getDescription(daqCredentialProvider* self, daq
     return reinterpret_cast<daq::ICredentialProvider*>(self)->getDescription(reinterpret_cast<daq::IString**>(description));
 }
 
-daqErrCode daqCredentialProvider_requestCredentials(daqCredentialProvider* self, daqCredentialRequest* request, daqPropertyObject** credentials)
+daqErrCode daqCredentialProvider_requestCredentials(daqCredentialProvider* self, daqCredentialRequest* request, daqDict** credentials)
 {
-    return reinterpret_cast<daq::ICredentialProvider*>(self)->requestCredentials(reinterpret_cast<daq::ICredentialRequest*>(request), reinterpret_cast<daq::IPropertyObject**>(credentials));
+    return reinterpret_cast<daq::ICredentialProvider*>(self)->requestCredentials(reinterpret_cast<daq::ICredentialRequest*>(request), reinterpret_cast<daq::IDict**>(credentials));
 }
 
-daqErrCode daqCredentialProvider_cacheCredentials(daqCredentialProvider* self, daqCredentialRequest* request, daqPropertyObject* credential)
+daqErrCode daqCredentialProvider_cacheCredentials(daqCredentialProvider* self, daqCredentialRequest* request, daqDict* credentials)
 {
-    return reinterpret_cast<daq::ICredentialProvider*>(self)->cacheCredentials(reinterpret_cast<daq::ICredentialRequest*>(request), reinterpret_cast<daq::IPropertyObject*>(credential));
-}
-
-daqErrCode daqCredentialProvider_getSupportedFormats(daqCredentialProvider* self, daqList** formats)
-{
-    return reinterpret_cast<daq::ICredentialProvider*>(self)->getSupportedFormats(reinterpret_cast<daq::IList**>(formats));
+    return reinterpret_cast<daq::ICredentialProvider*>(self)->cacheCredentials(reinterpret_cast<daq::ICredentialRequest*>(request), reinterpret_cast<daq::IDict*>(credentials));
 }
 
 daqErrCode daqCredentialProvider_createCmdLineCredentialProvider(daqCredentialProvider** obj)

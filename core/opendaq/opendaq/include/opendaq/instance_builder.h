@@ -380,16 +380,19 @@ DECLARE_OPENDAQ_INTERFACE(IInstanceBuilder, IBaseObject)
     virtual ErrCode INTERFACE_FUNC getLoadAuthenticatedModulesOnly(Bool* authOnly) = 0;
 
     /*!
-     * @brief Gets the credential provider to be registered on the built instance's `Context`.
+     * @brief Gets the credential provider to be registered on the built instance's `IModuleManager`.
      * @param[out] provider The credential provider to be registered, or `nullptr` if none has been set.
      */
     virtual ErrCode INTERFACE_FUNC getCredentialProvider(ICredentialProvider** provider) = 0;
 
     // [returnSelf]
     /*!
-     * @brief Sets the credential provider to be registered on the built instance's `Context`, replacing
+     * @brief Sets the credential provider to be registered on the built instance's `IModuleManager`, replacing
      * whatever was set before. Only one credential provider can ever be registered on an instance.
      * @param provider The credential provider to register.
+     * @throws AlreadyExistsException at build time if a custom `IModuleManager` was also set via
+     * `setModuleManager` - the module manager, not the builder, owns the credential provider once it exists,
+     * so set it directly on that custom instance instead.
      */
     virtual ErrCode INTERFACE_FUNC setCredentialProvider(ICredentialProvider* provider) = 0;
 };

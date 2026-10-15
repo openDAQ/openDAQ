@@ -23,7 +23,6 @@
 #include <coretypes/type_manager_ptr.h>
 #include <coreobjects/authentication_provider_ptr.h>
 #include <opendaq/discovery_server_ptr.h>
-#include <opendaq/credential_provider_ptr.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
@@ -36,8 +35,7 @@ public:
                          ModuleManagerPtr moduleManager,
                          AuthenticationProviderPtr authenticationProvider,
                          DictPtr<IString, IBaseObject> options,
-                         DictPtr<IString, IDiscoveryServer> discoveryServices,
-                         CredentialProviderPtr credentialProvider);
+                         DictPtr<IString, IDiscoveryServer> discoveryServices);
     ~ContextImpl();
 
     // IContext interface
@@ -51,7 +49,6 @@ public:
     ErrCode INTERFACE_FUNC getModuleOptions(IString* moduleId, IDict** options) override;
     ErrCode INTERFACE_FUNC getDiscoveryServers(IDict** servers) override;
     ErrCode INTERFACE_FUNC getRootDevice(IBaseObject** device) override;
-    ErrCode INTERFACE_FUNC getCredentialProvider(ICredentialProvider** provider) override;
 
     // IContextInternal interface
     ErrCode INTERFACE_FUNC moveModuleManager(IModuleManager** manager) override;
@@ -71,7 +68,6 @@ private:
     DictPtr<IString, IBaseObject> options;
     DictPtr<IString, IDiscoveryServer> discoveryServers;
     WeakRefPtr<IBaseObject> rootDeviceWeakRef;
-    CredentialProviderPtr credentialProvider;
 };
 
 END_NAMESPACE_OPENDAQ

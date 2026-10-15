@@ -37,16 +37,14 @@ extern "C"
     typedef struct daqCredentialProvider daqCredentialProvider;
     typedef struct daqString daqString;
     typedef struct daqCredentialRequest daqCredentialRequest;
-    typedef struct daqPropertyObject daqPropertyObject;
-    typedef struct daqList daqList;
+    typedef struct daqDict daqDict;
 
     EXPORTED extern const daqIntfID DAQ_CREDENTIAL_PROVIDER_INTF_ID;
     void EXPORTED daqCredentialProvider_getInterfaceId(daqIntfID* intfId);
 
     daqErrCode EXPORTED daqCredentialProvider_getDescription(daqCredentialProvider* self, daqString** description);
-    daqErrCode EXPORTED daqCredentialProvider_requestCredentials(daqCredentialProvider* self, daqCredentialRequest* request, daqPropertyObject** credentials);
-    daqErrCode EXPORTED daqCredentialProvider_cacheCredentials(daqCredentialProvider* self, daqCredentialRequest* request, daqPropertyObject* credential);
-    daqErrCode EXPORTED daqCredentialProvider_getSupportedFormats(daqCredentialProvider* self, daqList** formats);
+    daqErrCode EXPORTED daqCredentialProvider_requestCredentials(daqCredentialProvider* self, daqCredentialRequest* request, daqDict** credentials);
+    daqErrCode EXPORTED daqCredentialProvider_cacheCredentials(daqCredentialProvider* self, daqCredentialRequest* request, daqDict* credentials);
     daqErrCode EXPORTED daqCredentialProvider_createCmdLineCredentialProvider(daqCredentialProvider** obj);
 
 #ifdef __cplusplus

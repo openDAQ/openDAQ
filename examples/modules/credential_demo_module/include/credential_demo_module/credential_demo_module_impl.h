@@ -40,15 +40,13 @@ public:
     DevicePtr onCreateAuthenticatedDevice(const StringPtr& connectionString,
                                           const ComponentPtr& parent,
                                           const PropertyObjectPtr& config,
-                                          const StringPtr& authenticationMethodId,
-                                          const PropertyObjectPtr& credentials) override;
+                                          const LoginParametersPtr& loginParameters) override;
 
     DictPtr<IString, IStreamingType> onGetAvailableStreamingTypes() override;
     StreamingPtr onCreateStreaming(const StringPtr& connectionString, const PropertyObjectPtr& config) override;
     StreamingPtr onCreateAuthenticatedStreaming(const StringPtr& connectionString,
                                                 const PropertyObjectPtr& config,
-                                                const StringPtr& authenticationMethodId,
-                                                const PropertyObjectPtr& credentials) override;
+                                                const LoginParametersPtr& loginParameters) override;
 
 private:
     static DictPtr<IString, IBaseObject> populateDefaultModuleOptions(const DictPtr<IString, IBaseObject>& inputOptions);

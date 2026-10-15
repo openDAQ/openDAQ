@@ -40,20 +40,18 @@ BEGIN_NAMESPACE_OPENDAQ
  * @param defaultConfig The property object, to be cloned and returned, each time user creates default
  * configuration object. This way each instance of the device has its own configuration object.
  * @param supportedAuthenticationMethods The authentication methods this device type supports authenticating
- * with, keyed by their own id. Left unset, the device type defaults to supporting only the standard `"Anonymous"` method - no credentials required.
- * @param defaultAuthenticationMethodId The id of the authentication method this device type supports by
- * default. Left unset, defaults to the standard `"Anonymous"` id.
+ * with, keyed by their own id. The first entry, in dict iteration order, is the one a built `IAuthenticationConfig` starts out selected on.
+ * Left unset, the device type supports none at all - the openDAQ core treats it as not supporting authentication.
  */
 inline DeviceTypePtr DeviceType(const StringPtr& id,
                                 const StringPtr& name,
                                 const StringPtr& description,
                                 const StringPtr& prefix,
                                 const PropertyObjectPtr& defaultConfig = PropertyObject(),
-                                const DictPtr<IString, IAuthenticationMethod>& supportedAuthenticationMethods = AnonymousOnlySupportedAuthenticationMethods(),
-                                const StringPtr& defaultAuthenticationMethodId = StandardAnonymousId)
+                                const DictPtr<IString, IAuthenticationMethod>& supportedAuthenticationMethods = nullptr)
 {
     DeviceTypePtr obj(
-        DeviceType_Create(id, name, description, defaultConfig, prefix, supportedAuthenticationMethods, defaultAuthenticationMethodId));
+        DeviceType_Create(id, name, description, defaultConfig, prefix, supportedAuthenticationMethods));
     return obj;
 }
 
@@ -63,13 +61,11 @@ inline DeviceTypePtr DeviceType(const StringPtr& id,
 inline StructTypePtr DeviceTypeStructType()
 {
     return StructType("DeviceType",
-                      List<IString>("Id", "Name", "Description", "Prefix", "SupportedAuthenticationMethods", "DefaultAuthenticationMethodId"),
-                      List<IBaseObject>("", "", "", "", Dict<IString, IBaseObject>(), ""),
+                      List<IString>("Id", "Name", "Description", "Prefix"),
+                      List<IBaseObject>("", "", "", ""),
                       List<IType>(SimpleType(ctString),
                                  SimpleType(ctString),
                                  SimpleType(ctString),
-                                 SimpleType(ctString),
-                                 SimpleType(ctDict),
                                  SimpleType(ctString)));
 }
 

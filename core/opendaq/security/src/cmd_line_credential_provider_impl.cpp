@@ -1,7 +1,5 @@
 #include <opendaq/cmd_line_credential_provider_impl.h>
 #include <coreobjects/exceptions.h>
-#include <coretypes/listobject_factory.h>
-#include <coretypes/dictobject_factory.h>
 #include <fmt/format.h>
 #include <iostream>
 #include <fstream>
@@ -18,7 +16,6 @@
 BEGIN_NAMESPACE_OPENDAQ
 
 static const std::string CmdLineCredentialProviderDescription = "Prompts for credentials interactively via the command line.";
-static constexpr int MaxFilePathAttempts = 3;
 
 CmdLineCredentialProviderImpl::CmdLineCredentialProviderImpl()
 {
@@ -32,20 +29,7 @@ ErrCode CmdLineCredentialProviderImpl::getDescription(IString** description)
     return OPENDAQ_SUCCESS;
 }
 
-ErrCode CmdLineCredentialProviderImpl::getSupportedFormats(IList** formats)
-{
-    OPENDAQ_PARAM_NOT_NULL(formats);
-
-    auto supportedFormats = List<IInteger>();
-    supportedFormats.pushBack(static_cast<Int>(CredentialFormat::KeyValuePairs));
-    supportedFormats.pushBack(static_cast<Int>(CredentialFormat::String));
-    supportedFormats.pushBack(static_cast<Int>(CredentialFormat::FilePath));
-
-    *formats = supportedFormats.detach();
-    return OPENDAQ_SUCCESS;
-}
-
-ErrCode CmdLineCredentialProviderImpl::requestCredentials(ICredentialRequest* request, IPropertyObject** credentials)
+ErrCode CmdLineCredentialProviderImpl::requestCredentials(ICredentialRequest* request, IDict** credentials)
 {
     OPENDAQ_PARAM_NOT_NULL(credentials);
     OPENDAQ_PARAM_NOT_NULL(request);
@@ -55,86 +39,83 @@ ErrCode CmdLineCredentialProviderImpl::requestCredentials(ICredentialRequest* re
     if (!authenticationMethod.assigned())
         return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDPARAMETER, "Credential request has no authentication method set");
 
-    switch (authenticationMethod.getFormat())
-    {
-        case CredentialFormat::KeyValuePairs:
-        {
-            printRequestDetails(requestPtr);
-            *credentials = readKeyValuePairs(authenticationMethod).detach();
-            return OPENDAQ_SUCCESS;
-        }
-        case CredentialFormat::String:
-        {
-            printRequestDetails(requestPtr);
-            *credentials = readStringCredential(authenticationMethod).detach();
-            return OPENDAQ_SUCCESS;
-        }
-        case CredentialFormat::FilePath:
-        {
-            *credentials = readFilePathCredentialCached(requestPtr, authenticationMethod).detach();
-            return OPENDAQ_SUCCESS;
-        }
-        default:
-            return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOT_SUPPORTED, "Unsupported credential format");
-    }
+    *credentials = readCredential(requestPtr, authenticationMethod.getFields()).detach();
+    return OPENDAQ_SUCCESS;
 }
 
-ErrCode CmdLineCredentialProviderImpl::cacheCredentials(ICredentialRequest* request, IPropertyObject* credential)
+ErrCode CmdLineCredentialProviderImpl::cacheCredentials(ICredentialRequest* request, IDict* credentials)
 {
     OPENDAQ_PARAM_NOT_NULL(request);
-    OPENDAQ_PARAM_NOT_NULL(credential);
+    OPENDAQ_PARAM_NOT_NULL(credentials);
 
     const auto requestPtr = CredentialRequestPtr::Borrow(request);
     const auto authenticationMethod = requestPtr.getAuthenticationMethod();
     if (!authenticationMethod.assigned())
         return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDPARAMETER, "Credential request has no authentication method set");
 
-    // Only FilePath credentials are cached (see `readFilePathCredentialCached`) - other formats are a no-op here,
-    // since this provider never caches them either when obtaining them interactively.
-    if (authenticationMethod.getFormat() == CredentialFormat::FilePath)
-    {
-        const auto credentialObj = PropertyObjectPtr::Borrow(credential);
-        const StringPtr propertyName = authenticationMethod.createEmptyCredential().getAllProperties()[0].getName();
-        if (!credentialObj.hasProperty(propertyName))
-            return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDTYPE, "Provided credential is not shaped like a FilePath-format credential");
+    // Every field of `credentials` is cached, whatever its kind - folded into the same per-(device, method) cache entry.
+    const DictPtr<IString, IString> credentialObj = credentials;
+    auto& cached = credentialCache[MakeCacheKey(requestPtr)];
+    if (!cached.assigned())
+        cached = Dict<IString, IString>();
 
-        const StringPtr path = credentialObj.getPropertyValue(propertyName);
-        filePathCredentialCache[MakeFilePathCacheKey(requestPtr)] = path.assigned() ? path.toStdString() : std::string();
-    }
+    for (const auto& [name, value] : credentialObj)
+        cached.set(name, value);
 
     return OPENDAQ_SUCCESS;
 }
 
-PropertyObjectPtr CmdLineCredentialProviderImpl::readKeyValuePairs(const AuthenticationMethodPtr& authenticationMethod)
+DictPtr<IString, IString> CmdLineCredentialProviderImpl::readCredential(const CredentialRequestPtr& request, const DictPtr<IString, ICredentialField>& fields)
 {
-    const DictPtr<IString, IBoolean> keys = authenticationMethod.getParameters().get("Keys");
+    auto credential = Dict<IString, IString>();
+    bool printedDetails = false;
 
-    auto credential = authenticationMethod.createEmptyCredential();
-    for (const auto& [key, hidden] : keys)
-        credential.setPropertyValue(key, String(readLine(fmt::format("{}: ", key.toStdString()), hidden)));
+    auto& cached = credentialCache[MakeCacheKey(request)];
+    if (!cached.assigned())
+        cached = Dict<IString, IString>();
+
+    for (const auto& [name, field] : fields)
+    {
+        const bool isFilePath = field.getKind() == CredentialFieldKind::FilePath;
+
+        StringPtr value;
+        if (cached.hasKey(name))
+            value = cached.get(name);
+
+        if (!value.assigned())
+        {
+            if (!printedDetails)
+            {
+                printRequestDetails(request);
+                printedDetails = true;
+            }
+
+            // Read exactly once, like every other field kind - no retry - but a `FilePath` is still validated
+            // locally right after it's freshly read (not on a cache hit): the module reading it back expects a
+            // real, readable file.
+            value = String(readLine(fmt::format("{}: ", name.toStdString()), field.getKind() == CredentialFieldKind::Secret));
+
+            if (isFilePath && !isFileAccessible(value.toStdString()))
+                DAQ_THROW_EXCEPTION(AuthenticationFailedException, "File \"{}\" does not exist or is not accessible", value);
+
+            cached.set(name, value);
+        }
+
+        credential.set(name, value);
+    }
 
     return credential;
 }
 
-PropertyObjectPtr CmdLineCredentialProviderImpl::readStringCredential(const AuthenticationMethodPtr& authenticationMethod)
-{
-    const StringPtr description = authenticationMethod.getDescription();
-    const auto parameters = authenticationMethod.getParameters();
-    const bool hidden = parameters.assigned() && parameters.hasField("Hidden") && (bool) parameters.get("Hidden");
-
-    auto credentialValue = readLine(fmt::format("{}: ", description.assigned() ? description.toStdString() : "Credential"), hidden);
-
-    auto credential = authenticationMethod.createEmptyCredential();
-    credential.setPropertyValue(credential.getAllProperties()[0].getName(), String(credentialValue));
-    return credential;
-}
-
-CmdLineCredentialProviderImpl::CacheKey CmdLineCredentialProviderImpl::MakeFilePathCacheKey(const CredentialRequestPtr& request)
+CmdLineCredentialProviderImpl::CacheKey CmdLineCredentialProviderImpl::MakeCacheKey(const CredentialRequestPtr& request)
 {
     const StringPtr manufacturer = request.getManufacturer();
     const StringPtr serialNumber = request.getSerialNumber();
+    const StringPtr model = request.getModel();
     const bool hasManufacturer = manufacturer.assigned() && manufacturer.getLength() > 0;
     const bool hasSerialNumber = serialNumber.assigned() && serialNumber.getLength() > 0;
+    const bool hasModel = model.assigned() && model.getLength() > 0;
+    const StringPtr methodId = request.getAuthenticationMethod().getId();
 
     if (!hasManufacturer && !hasSerialNumber)
     {
@@ -145,57 +126,16 @@ CmdLineCredentialProviderImpl::CacheKey CmdLineCredentialProviderImpl::MakeFileP
         // see `Module::onGetCanonicalConnectionString`), so it stays a stable identifier regardless of how
         // much of it the caller originally left implicit.
         const StringPtr connectionString = request.getConnectionString();
-        return std::make_pair(connectionString.assigned() ? connectionString.toStdString() : std::string(), std::string());
+        return std::make_tuple(connectionString.assigned() ? connectionString.toStdString() : std::string(),
+                               std::string(),
+                               hasModel ? model.toStdString() : std::string(),
+                               methodId.toStdString());
     }
 
-    return std::make_pair(hasManufacturer ? manufacturer.toStdString() : std::string(),
-                          hasSerialNumber ? serialNumber.toStdString() : std::string());
-}
-
-PropertyObjectPtr CmdLineCredentialProviderImpl::readFilePathCredentialCached(const CredentialRequestPtr& request, const AuthenticationMethodPtr& authenticationMethod)
-{
-    const auto cacheKey = MakeFilePathCacheKey(request);
-
-    if (const auto it = filePathCredentialCache.find(cacheKey); it != filePathCredentialCache.end())
-    {
-        auto credential = authenticationMethod.createEmptyCredential();
-        credential.setPropertyValue(credential.getAllProperties()[0].getName(), String(it->second));
-        return credential;
-    }
-
-    printRequestDetails(request);
-    const auto credential = readFilePathCredential(authenticationMethod);
-    const StringPtr credentialValue = credential.getPropertyValue(credential.getAllProperties()[0].getName());
-    filePathCredentialCache[cacheKey] = credentialValue.toStdString();
-    return credential;
-}
-
-PropertyObjectPtr CmdLineCredentialProviderImpl::readFilePathCredential(const AuthenticationMethodPtr& authenticationMethod)
-{
-    const StringPtr description = authenticationMethod.getDescription();
-    const std::string prompt = fmt::format("{}: ", description.assigned() ? description.toStdString() : "File path");
-
-    for (int attempt = 1; attempt <= MaxFilePathAttempts; ++attempt)
-    {
-        const std::string value = readLine(prompt, false);
-
-        if (isFileAccessible(value))
-        {
-            auto credential = authenticationMethod.createEmptyCredential();
-            credential.setPropertyValue(credential.getAllProperties()[0].getName(), String(value));
-            return credential;
-        }
-
-        const int attemptsLeft = MaxFilePathAttempts - attempt;
-        std::cout << "File \"" << value << "\" does not exist or is not accessible.";
-        if (attemptsLeft > 0)
-            std::cout << " " << attemptsLeft << " attempt(s) left.\n";
-        else
-            std::cout << '\n';
-    }
-
-    DAQ_THROW_EXCEPTION(AuthenticationFailedException,
-                         "Credential provider could not obtain an accessible file path after {} attempts", MaxFilePathAttempts);
+    return std::make_tuple(hasManufacturer ? manufacturer.toStdString() : std::string(),
+                           hasSerialNumber ? serialNumber.toStdString() : std::string(),
+                           hasModel ? model.toStdString() : std::string(),
+                           methodId.toStdString());
 }
 
 bool CmdLineCredentialProviderImpl::isFileAccessible(const std::string& path)
@@ -213,11 +153,8 @@ void CmdLineCredentialProviderImpl::printRequestDetails(const CredentialRequestP
     std::cout << "Component type : " << request.getComponentType().getName() << '\n';
     std::cout << "Connection string : " << request.getConnectionString() << '\n';
 
-    if (const auto metaData = request.getMetaData(); metaData.assigned())
-    {
-        for (const auto& property : metaData.getAllProperties())
-            std::cout << property.getDescription() << " (" << property.getName() << ") : " << metaData.getPropertyValue(property.getName()) << '\n';
-    }
+    if (const StringPtr displayName = request.getDisplayName(); displayName.assigned() && displayName.getLength() > 0)
+        std::cout << "Device : " << displayName << '\n';
 
     std::cout << '\n';
 }

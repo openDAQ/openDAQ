@@ -24,7 +24,7 @@ TEST_F(COpendaqSynchronizationTest, SyncComponent)
     daqDict_createDict(&discoveryServers);
 
     daqContext* context = nullptr;
-    daqContext_createContext(&context, nullptr, logger, typeManager, nullptr, nullptr, options, discoveryServers, nullptr);
+    daqContext_createContext(&context, nullptr, logger, typeManager, nullptr, nullptr, options, discoveryServers);
 
     daqSyncComponent* syncComponent = nullptr;
     daqString* localId = nullptr;

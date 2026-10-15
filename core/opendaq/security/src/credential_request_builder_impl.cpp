@@ -1,12 +1,10 @@
 #include <opendaq/credential_request_builder_impl.h>
-#include <coreobjects/property_object_factory.h>
 #include <opendaq/credential_request_factory.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 CredentialRequestBuilderImpl::CredentialRequestBuilderImpl()
     : componentType(nullptr)
     , connectionString(nullptr)
-    , metaData(PropertyObject())
 {
 }
 
@@ -42,11 +40,6 @@ ErrCode CredentialRequestBuilderImpl::setConnectionString(IString* connectionStr
 {
     this->connectionString = connectionString;
     return OPENDAQ_SUCCESS;
-}
-
-ErrCode CredentialRequestBuilderImpl::addMetaDataProperty(IProperty* property)
-{
-    return metaData->addProperty(property);
 }
 
 ErrCode CredentialRequestBuilderImpl::getConnectionString(IString** connectionString)
@@ -85,11 +78,31 @@ ErrCode CredentialRequestBuilderImpl::getSerialNumber(IString** serialNumber)
     return OPENDAQ_SUCCESS;
 }
 
-ErrCode CredentialRequestBuilderImpl::getMetaData(IPropertyObject** metaData)
+ErrCode CredentialRequestBuilderImpl::setModel(IString* model)
 {
-    OPENDAQ_PARAM_NOT_NULL(metaData);
+    this->model = model;
+    return OPENDAQ_SUCCESS;
+}
 
-    *metaData = this->metaData.addRefAndReturn();
+ErrCode CredentialRequestBuilderImpl::getModel(IString** model)
+{
+    OPENDAQ_PARAM_NOT_NULL(model);
+
+    *model = this->model.addRefAndReturn();
+    return OPENDAQ_SUCCESS;
+}
+
+ErrCode CredentialRequestBuilderImpl::setDisplayName(IString* displayName)
+{
+    this->displayName = displayName;
+    return OPENDAQ_SUCCESS;
+}
+
+ErrCode CredentialRequestBuilderImpl::getDisplayName(IString** displayName)
+{
+    OPENDAQ_PARAM_NOT_NULL(displayName);
+
+    *displayName = this->displayName.addRefAndReturn();
     return OPENDAQ_SUCCESS;
 }
 

@@ -16,6 +16,7 @@
 
 #pragma once
 #include <coretypes/baseobject.h>
+#include <coretypes/dictobject.h>
 #include <coreobjects/property_object.h>
 #include <opendaq/authentication_method.h>
 
@@ -24,6 +25,8 @@ BEGIN_NAMESPACE_OPENDAQ
 /*#
  * [interfaceLibrary(IPropertyObject, "coreobjects")]
  * [interfaceSmartPtr(IPropertyObject, GenericPropertyObjectPtr, "<coreobjects/property_object_ptr.h>", true)]
+ * [interfaceLibrary(IAuthenticationMethod, "opendaq")]
+ * [interfaceSmartPtr(IAuthenticationMethod, AuthenticationMethodPtr, "<opendaq/authentication_method_ptr.h>")]
  */
 
 /*!
@@ -33,57 +36,71 @@ BEGIN_NAMESPACE_OPENDAQ
  * `IComponentPrivate::setAuthenticationConfig`), so that reloading it later goes through the same
  * credential-request process again.
  *
- * Is itself a Property object - the authentication method id and the `IAuthenticationMethod` it corresponds to
- * are bound together as one `"AuthenticationMethod"` Selection property (its selection value is the
- * `IAuthenticationMethod` Struct itself, so the two can never be set out of sync - the authentication
- * method id is simply the selected authentication method's own `IAuthenticationMethod::getId()`).
- * A directly-supplied credential is carried, when present, as a `"SuppliedCredential"` property, validated on every
- * write against whatever `"AuthenticationMethod"` is currently selected (its property names must match
- * the selected authentication method's `createEmptyCredential()`'s exactly - the blessed workflow is to build from that template, fill
- * it in, and submit it) - a mismatched write is rejected, and an already-set `"SuppliedCredential"` that a
- * `"AuthenticationMethod"` change leaves incompatible is silently cleared. The typed getters/setters below
- * are an equal, typed alternative to tuning the config through these properties directly - a caller can
- * customize it either way, entirely through `IAuthenticationConfig` itself or entirely through the generic
- * `IPropertyObject` interface this object also implements; `"SuppliedCredential"` and `"AuthenticationMethod"`
- * can both equally be read and set through either.
+ * Is itself a Property object - `"AuthenticationMethod"` is a Selection property whose candidates are the
+ * supported methods' own ids, as plain strings (the real `IAuthenticationMethod` objects themselves - fields
+ * and all - are reachable via `getAuthenticationMethods()`, keyed by that same id).
+ * A directly-supplied credential is carried as a `"SuppliedCredential"` property - a dictionary of field
+ * value(s), keyed by their own field id (see `ICredentialField::getId`); its default value is an empty
+ * dictionary, which means "none supplied" (the module asks the registered credential provider instead). A
+ * non-empty value counts as supplied, and must carry a non-empty value for every field the currently selected
+ * `"AuthenticationMethod"` marks required (see `ICredentialField::isRequired`) - a write that doesn't is
+ * rejected. Changing `"AuthenticationMethod"` unconditionally resets `"SuppliedCredential"` back to empty.
+ * The typed getters/setters below are an equal, typed alternative to tuning the
+ * config through these properties directly - a caller can customize it either way, entirely through
+ * `IAuthenticationConfig` itself or entirely through the generic `IPropertyObject` interface this object also
+ * implements; `"SuppliedCredential"` and `"AuthenticationMethod"` can both equally be read and set through
+ * either.
  */
 DECLARE_OPENDAQ_INTERFACE(IAuthenticationConfig, IPropertyObject)
 {
     /*!
-     * @brief Gets the id of the authentication method currently selected - the selected
-     * `"AuthenticationMethod"` property value's own `IAuthenticationMethod::getId()`.
-     * @param[out] authenticationMethodId The authentication method id.
+     * @brief Gets the authentication method currently selected - the one of `getAuthenticationMethods()`
+     * whose own id matches the selected `"AuthenticationMethod"` property value.
+     * @param[out] authenticationMethod The currently selected authentication method.
      */
-    virtual ErrCode INTERFACE_FUNC getSelectedAuthenticationMethodId(IString** authenticationMethodId) = 0;
+    virtual ErrCode INTERFACE_FUNC getSelectedAuthenticationMethod(IAuthenticationMethod** authenticationMethod) = 0;
 
     /*!
      * @brief Selects the authentication method to use, by its own id - the typed equivalent of
-     * `setPropertySelectionValue("AuthenticationMethod", authenticationMethod)`: looks the matching
-     * authentication method up among `getSupportedAuthenticationMethods()` internally, so the caller only ever needs
-     * to name the id, never the Struct itself. Selecting a new method may clear an incompatible
-     * `"SuppliedCredential"`.
-     * @param authenticationMethodId The id of one of `getSupportedAuthenticationMethods()`'s own keys.
+     * `setPropertySelectionValue("AuthenticationMethod", authenticationMethodId)`. Selecting a new method always
+     * resets `"SuppliedCredential"` back to empty.
+     * @param authenticationMethodId The id of one of `getAuthenticationMethods()`'s own keys.
      * @throws NotFoundException if `authenticationMethodId` doesn't match any of this config's supported
      * authentication methods.
      */
-    virtual ErrCode INTERFACE_FUNC setAuthenticationMethodId(IString* authenticationMethodId) = 0;
+    virtual ErrCode INTERFACE_FUNC setAuthenticationMethod(IString* authenticationMethodId) = 0;
 
     /*!
      * @brief Gets every authentication method this config supports, keyed by their own id - the full set of
-     * `"AuthenticationMethod"` selection candidates, i.e. the same shape `IComponentType::getSupportedAuthenticationMethods()`
+     * `"AuthenticationMethod"` selection candidates, i.e. the same shape `IComponentTypePrivate::getSupportedAuthenticationMethods()`
      * has, since this config was built from exactly that set. An equal, typed alternative to reading the
      * candidates generically off the `"AuthenticationMethod"` property.
      * @param[out] authenticationMethods The supported authentication methods, keyed by their own id.
      */
     // [templateType(authenticationMethods, IString, IAuthenticationMethod)]
-    virtual ErrCode INTERFACE_FUNC getSupportedAuthenticationMethods(IDict** authenticationMethods) = 0;
+    virtual ErrCode INTERFACE_FUNC getAuthenticationMethods(IDict** authenticationMethods) = 0;
 
+    // [templateType(credential, IString, IString)]
     /*!
-     * @brief Gets the credential supplied directly by the caller - the value of the corresponding property.
-     * @param[out] credential The supplied credential, or `nullptr` if the config has no such property
-     * at all - in which case the module obtains one from the registered credential provider instead.
+     * @brief Sets the credential supplied directly by the caller - the typed equivalent of
+     * `setPropertyValue("SuppliedCredential", credential)`. Must carry a non-empty value for every field the
+     * currently selected `"AuthenticationMethod"` marks required (see `ICredentialField::isRequired`), unless
+     * `credential` itself is empty, which clears it back to the default "none supplied" state.
+     * @param credential The supplied credential - pass empty to clear it back to "none supplied".
+     * @throws InvalidParameterException if `credential` is missing one or more fields required by the
+     * currently selected authentication method.
      */
-    virtual ErrCode INTERFACE_FUNC getSuppliedCredential(IPropertyObject** credential) = 0;
+    virtual ErrCode INTERFACE_FUNC setSuppliedCredential(IDict* credential) = 0;
+
+    // [templateType(credential, IString, IString)]
+    /*!
+     * @brief Gets the credential supplied directly by the caller - the value of the `"SuppliedCredential"`
+     * property, a dictionary of field value(s) keyed by their own field id. Always assigned - empty (the
+     * property's default value) means none was supplied, in which case the module obtains one from the
+     * registered credential provider instead.
+     * @param[out] credential The supplied credential - empty if none was supplied.
+     */
+    virtual ErrCode INTERFACE_FUNC getSuppliedCredential(IDict** credential) = 0;
 };
 
 /*!

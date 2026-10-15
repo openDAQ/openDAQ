@@ -21,7 +21,7 @@
 BEGIN_NAMESPACE_OPENDAQ
 
 /*!
- * @brief Creates a CredentialProvider that prompts the user for secrets via the command line - supporting every `CredentialFormat`.
+ * @brief Creates a CredentialProvider that prompts the user for credentials via the command line - supporting every `CredentialFieldKind`.
  */
 inline CredentialProviderPtr CmdLineCredentialProvider()
 {

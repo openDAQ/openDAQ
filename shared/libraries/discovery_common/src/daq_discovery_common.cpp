@@ -3,9 +3,11 @@
 #include <iostream>
 #include <map>
 #include <set>
+#include <sstream>
 #include <algorithm>
 #include <coreobjects/property_object_protected_ptr.h>
 #include <coreobjects/property_object_internal_ptr.h>
+#include <coretypes/listobject_factory.h>
 
 BEGIN_NAMESPACE_DISCOVERY_COMMON
 
@@ -241,6 +243,43 @@ void DiscoveryUtils::populateConnectedClientsInfo(PropertyObjectPtr& deviceInfo,
     clientsInfo.setPropertyOrder(propertyOrder);
 
     setProtectedPropertyValue(deviceInfo, "activeClientConnections", clientsInfo);
+}
+
+// Joins `authenticationMethods` (e.g. `IServerCapability::getAuthenticationMethods()`, or an
+// "AuthenticationMethods" list property of the same shape) into a single comma-separated value suitable
+// for one TXT record - server side. Empty if `authenticationMethods` is unassigned or empty.
+std::string DiscoveryUtils::authenticationMethodsToTxt(const ListPtr<IString>& authenticationMethodsIds)
+{
+    if (!authenticationMethodsIds.assigned())
+        return "";
+
+    std::string result;
+    for (const auto& id : authenticationMethodsIds)
+    {
+        if (!result.empty())
+            result += ",";
+        result += id.toStdString();
+    }
+    return result;
+}
+
+// Splits a comma-separated "authMethods" TXT value back into a list of authentication method ids - client
+// side. Empty for an empty `txtValue`.
+ListPtr<IString> DiscoveryUtils::populateAuthenticationMethods(const std::string& txtValue)
+{
+    auto methods = List<IString>();
+    if (txtValue.empty())
+        return methods;
+
+    std::stringstream ss(txtValue);
+    std::string id;
+    while (std::getline(ss, id, ','))
+    {
+        if (!id.empty())
+            methods.pushBack(id);
+    }
+
+    return methods;
 }
 
 END_NAMESPACE_DISCOVERY_COMMON

@@ -9,8 +9,9 @@ StreamingTypeImpl::StreamingTypeImpl(const StringPtr& id,
                                             const StringPtr& prefix,
                                             const PropertyObjectPtr& defaultConfig,
                                             const DictPtr<IString, IAuthenticationMethod>& supportedAuthenticationMethods,
-                                            const StringPtr& defaultAuthenticationMethodId)
-    : Super(StreamingTypeStructType(), id, name, description, prefix, defaultConfig, supportedAuthenticationMethods, defaultAuthenticationMethodId)
+                                            const DeviceTypePtr& linkedDeviceType)
+    : Super(StreamingTypeStructType(), id, name, description, prefix, defaultConfig, supportedAuthenticationMethods)
+    , linkedDeviceType(linkedDeviceType)
 {
 }
 
@@ -21,7 +22,7 @@ StreamingTypeImpl::StreamingTypeImpl(const ComponentTypeBuilderPtr& builder)
                         builder.getConnectionStringPrefix(),
                         builder.getDefaultConfig(),
                         builder.getSupportedAuthenticationMethods(),
-                        builder.getDefaultAuthenticationMethodId())
+                        builder.getLinkedDeviceType())
 {
 }
 
@@ -31,6 +32,44 @@ ErrCode StreamingTypeImpl::getConnectionStringPrefix(IString** prefix)
 
     *prefix = this->prefix.addRefAndReturn();
     return OPENDAQ_SUCCESS;
+}
+
+ErrCode StreamingTypeImpl::getLinkedDeviceType(IDeviceType** deviceType)
+{
+    OPENDAQ_PARAM_NOT_NULL(deviceType);
+
+    *deviceType = this->linkedDeviceType.addRefAndReturn();
+    return OPENDAQ_SUCCESS;
+}
+
+ErrCode StreamingTypeImpl::createDefaultConfig(IPropertyObject** defaultConfig)
+{
+    OPENDAQ_PARAM_NOT_NULL(defaultConfig);
+
+    if (linkedDeviceType.assigned())
+        return linkedDeviceType->createDefaultConfig(defaultConfig);
+
+    return Super::createDefaultConfig(defaultConfig);
+}
+
+ErrCode StreamingTypeImpl::createAuthenticationConfig(IAuthenticationConfig** config)
+{
+    OPENDAQ_PARAM_NOT_NULL(config);
+
+    if (linkedDeviceType.assigned())
+        return linkedDeviceType->createAuthenticationConfig(config);
+
+    return Super::createAuthenticationConfig(config);
+}
+
+ErrCode StreamingTypeImpl::getSupportedAuthenticationMethods(IDict** authenticationMethods)
+{
+    OPENDAQ_PARAM_NOT_NULL(authenticationMethods);
+
+    if (linkedDeviceType.assigned())
+        return linkedDeviceType.asPtr<IComponentTypePrivate>()->getSupportedAuthenticationMethods(authenticationMethods);
+
+    return Super::getSupportedAuthenticationMethods(authenticationMethods);
 }
 
 ErrCode INTERFACE_FUNC StreamingTypeImpl::serialize(ISerializer* serializer)
@@ -76,10 +115,10 @@ ErrCode INTERFACE_FUNC StreamingTypeImpl::serialize(ISerializer* serializer)
                 supportedAuthenticationMethods.serialize(serializerPtr);
             }
 
-            if (defaultAuthenticationMethodId.assigned())
+            if (linkedDeviceType.assigned())
             {
-                serializerPtr.key("defaultAuthenticationMethodId");
-                serializerPtr.writeString(defaultAuthenticationMethodId);
+                serializerPtr.key("linkedDeviceType");
+                linkedDeviceType.serialize(serializerPtr);
             }
 
             if (moduleInfo.assigned())
@@ -137,16 +176,16 @@ ErrCode StreamingTypeImpl::Deserialize(ISerializedObject* serialized, IBaseObjec
         if (serializedObj.hasKey("defaultConfig"))
             defaultConfig = serializedObj.readObject("defaultConfig", contextPtr, factoryCallbackPtr);
 
-        DictPtr<IString, IAuthenticationMethod> supportedAuthenticationMethods = AnonymousOnlySupportedAuthenticationMethods();
+        DictPtr<IString, IAuthenticationMethod> supportedAuthenticationMethods;
         if (serializedObj.hasKey("supportedAuthenticationMethods"))
             supportedAuthenticationMethods = serializedObj.readObject("supportedAuthenticationMethods", contextPtr, factoryCallbackPtr).asPtr<IDict>();
 
-        StringPtr defaultAuthenticationMethodId = StandardAnonymousId;
-        if (serializedObj.hasKey("defaultAuthenticationMethodId"))
-            defaultAuthenticationMethodId = serializedObj.readString("defaultAuthenticationMethodId");
+        DeviceTypePtr linkedDeviceType;
+        if (serializedObj.hasKey("linkedDeviceType"))
+            linkedDeviceType = serializedObj.readObject("linkedDeviceType", contextPtr, factoryCallbackPtr).asPtr<IDeviceType>();
 
         auto streamingType = createWithImplementation<IStreamingType, StreamingTypeImpl>(
-            id, name, description, prefix, defaultConfig, supportedAuthenticationMethods, defaultAuthenticationMethodId);
+            id, name, description, prefix, defaultConfig, supportedAuthenticationMethods, linkedDeviceType);
 
         ModuleInfoPtr moduleInfo;
         if (serializedObj.hasKey("moduleInfo"))
@@ -178,8 +217,8 @@ OPENDAQ_DEFINE_CLASS_FACTORY(
     defaultConfig,
     IDict*,
     supportedAuthenticationMethods,
-    IString*,
-    defaultAuthenticationMethodId
+    IDeviceType*,
+    linkedDeviceType
     )
 
 END_NAMESPACE_OPENDAQ

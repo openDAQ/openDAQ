@@ -26,7 +26,7 @@ daqContext* createContext()
     daqDict_createDict(&options);
     daqDict_createDict(&discoveryServers);
 
-    daqContext_createContext(&ctx, nullptr, logger, typeManager, nullptr, nullptr, options, discoveryServers, nullptr);
+    daqContext_createContext(&ctx, nullptr, logger, typeManager, nullptr, nullptr, options, discoveryServers);
 
     daqBaseObject_releaseRef(discoveryServers);
     daqBaseObject_releaseRef(options);

@@ -31,8 +31,7 @@ public:
                             const StringPtr& description,
                             const PropertyObjectPtr& defaultConfig,
                             const StringPtr& prefix,
-                            const DictPtr<IString, IAuthenticationMethod>& supportedAuthenticationMethods,
-                            const StringPtr& defaultAuthenticationMethodId);
+                            const DictPtr<IString, IAuthenticationMethod>& supportedAuthenticationMethods);
 
     explicit DeviceTypeImpl(const ComponentTypeBuilderPtr& builder);
 

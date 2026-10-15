@@ -15,9 +15,8 @@ DeviceTypeImpl::DeviceTypeImpl(const StringPtr& id,
                                const StringPtr& description,
                                const PropertyObjectPtr& defaultConfig,
                                const StringPtr& prefix,
-                               const DictPtr<IString, IAuthenticationMethod>& supportedAuthenticationMethods,
-                               const StringPtr& defaultAuthenticationMethodId)
-    : Super(detail::deviceTypeStructType, id, name, description, prefix, defaultConfig, supportedAuthenticationMethods, defaultAuthenticationMethodId)
+                               const DictPtr<IString, IAuthenticationMethod>& supportedAuthenticationMethods)
+    : Super(detail::deviceTypeStructType, id, name, description, prefix, defaultConfig, supportedAuthenticationMethods)
 {
 }
 
@@ -27,8 +26,7 @@ DeviceTypeImpl::DeviceTypeImpl(const ComponentTypeBuilderPtr& builder)
                      builder.getDescription(),
                      builder.getDefaultConfig(),
                      builder.getConnectionStringPrefix(),
-                     builder.getSupportedAuthenticationMethods(),
-                     builder.getDefaultAuthenticationMethodId())
+                     builder.getSupportedAuthenticationMethods())
 {
 }
 
@@ -81,12 +79,6 @@ ErrCode INTERFACE_FUNC DeviceTypeImpl::serialize(ISerializer* serializer)
             {
                 serializerPtr.key("supportedAuthenticationMethods");
                 supportedAuthenticationMethods.serialize(serializerPtr);
-            }
-
-            if (defaultAuthenticationMethodId.assigned())
-            {
-                serializerPtr.key("defaultAuthenticationMethodId");
-                serializerPtr.writeString(defaultAuthenticationMethodId);
             }
 
             if (moduleInfo.assigned())
@@ -144,16 +136,12 @@ ErrCode DeviceTypeImpl::Deserialize(ISerializedObject* serialized, IBaseObject* 
         if (serializedObj.hasKey("defaultConfig"))
             defaultConfig = serializedObj.readObject("defaultConfig", contextPtr, factoryCallbackPtr);
 
-        DictPtr<IString, IAuthenticationMethod> supportedAuthenticationMethods = AnonymousOnlySupportedAuthenticationMethods();
+        DictPtr<IString, IAuthenticationMethod> supportedAuthenticationMethods;
         if (serializedObj.hasKey("supportedAuthenticationMethods"))
             supportedAuthenticationMethods = serializedObj.readObject("supportedAuthenticationMethods", contextPtr, factoryCallbackPtr).asPtr<IDict>();
 
-        StringPtr defaultAuthenticationMethodId = StandardAnonymousId;
-        if (serializedObj.hasKey("defaultAuthenticationMethodId"))
-            defaultAuthenticationMethodId = serializedObj.readString("defaultAuthenticationMethodId");
-
         auto deviceType = createWithImplementation<IDeviceType, DeviceTypeImpl>(
-            id, name, description, defaultConfig, prefix, supportedAuthenticationMethods, defaultAuthenticationMethodId);
+            id, name, description, defaultConfig, prefix, supportedAuthenticationMethods);
 
         ModuleInfoPtr moduleInfo;
         if (serializedObj.hasKey("moduleInfo"))
@@ -184,9 +172,7 @@ OPENDAQ_DEFINE_CLASS_FACTORY(
     IString*,
     prefix,
     IDict*,
-    supportedAuthenticationMethods,
-    IString*,
-    defaultAuthenticationMethodId
+    supportedAuthenticationMethods
     )
 
 END_NAMESPACE_OPENDAQ

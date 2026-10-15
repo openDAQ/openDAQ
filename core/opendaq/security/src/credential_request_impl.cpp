@@ -1,7 +1,8 @@
 #include <opendaq/credential_request_impl.h>
 #include <opendaq/credential_request_builder_ptr.h>
 #include <opendaq/credential_request_factory.h>
-#include <coreobjects/property_object_factory.h>
+#include <coretypes/formatter.h>
+#include <fmt/format.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
@@ -10,9 +11,10 @@ CredentialRequestImpl::CredentialRequestImpl(ICredentialRequestBuilder* credenti
     const auto builderPtr = CredentialRequestBuilderPtr::Borrow(credentialRequestBuilder);
     componentType = builderPtr.getComponentType();
     connectionString = builderPtr.getConnectionString();
-    metaData = builderPtr.getMetaData();
+    displayName = builderPtr.getDisplayName();
     manufacturer = builderPtr.getManufacturer();
     serialNumber = builderPtr.getSerialNumber();
+    model = builderPtr.getModel();
     authenticationMethod = builderPtr.getAuthenticationMethod();
 
     if (!componentType.assigned())
@@ -23,6 +25,8 @@ CredentialRequestImpl::CredentialRequestImpl(ICredentialRequestBuilder* credenti
 
     if (!authenticationMethod.assigned())
         DAQ_THROW_EXCEPTION(InvalidParameterException, "Authentication method must be assigned when creating a credential request");
+
+    key = String(fmt::format("{}|{}|{}", componentType.getId(), authenticationMethod.getId(), connectionString));
 }
 
 ErrCode CredentialRequestImpl::getComponentType(IComponentType** componentType)
@@ -41,11 +45,11 @@ ErrCode CredentialRequestImpl::getConnectionString(IString** connectionString)
     return OPENDAQ_SUCCESS;
 }
 
-ErrCode CredentialRequestImpl::getMetaData(IPropertyObject** metaData)
+ErrCode CredentialRequestImpl::getDisplayName(IString** displayName)
 {
-    OPENDAQ_PARAM_NOT_NULL(metaData);
+    OPENDAQ_PARAM_NOT_NULL(displayName);
 
-    *metaData = this->metaData.addRefAndReturn();
+    *displayName = this->displayName.addRefAndReturn();
     return OPENDAQ_SUCCESS;
 }
 
@@ -65,11 +69,27 @@ ErrCode CredentialRequestImpl::getSerialNumber(IString** serialNumber)
     return OPENDAQ_SUCCESS;
 }
 
+ErrCode CredentialRequestImpl::getModel(IString** model)
+{
+    OPENDAQ_PARAM_NOT_NULL(model);
+
+    *model = this->model.addRefAndReturn();
+    return OPENDAQ_SUCCESS;
+}
+
 ErrCode CredentialRequestImpl::getAuthenticationMethod(IAuthenticationMethod** authenticationMethod)
 {
     OPENDAQ_PARAM_NOT_NULL(authenticationMethod);
 
     *authenticationMethod = this->authenticationMethod.addRefAndReturn();
+    return OPENDAQ_SUCCESS;
+}
+
+ErrCode CredentialRequestImpl::getKey(IString** key)
+{
+    OPENDAQ_PARAM_NOT_NULL(key);
+
+    *key = this->key.addRefAndReturn();
     return OPENDAQ_SUCCESS;
 }
 

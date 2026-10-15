@@ -65,8 +65,7 @@ StringPtr CredentialDemoModule::onGetCanonicalConnectionString(const StringPtr& 
 DevicePtr CredentialDemoModule::onCreateAuthenticatedDevice(const StringPtr& connectionString,
                                                             const ComponentPtr& parent,
                                                             const PropertyObjectPtr& config,
-                                                            const StringPtr& authenticationMethodId,
-                                                            const PropertyObjectPtr& credentials)
+                                                            const LoginParametersPtr& loginParameters)
 {
     const auto options = populateDefaultModuleOptions(this->context.getModuleOptions(CREDENTIAL_DEMO_MODULE_ID));
     auto info = CredentialDemoDeviceImpl::CreateDeviceInfo(options, context);
@@ -75,7 +74,7 @@ DevicePtr CredentialDemoModule::onCreateAuthenticatedDevice(const StringPtr& con
     // The device is never connected to anonymously via this path, only ever authenticated with the given
     // credentials.
     return createWithImplementation<IDevice, CredentialDemoDeviceImpl>(
-        config, context, parent, info, /*authenticated*/true, authenticationMethodId, credentials).detach();
+        config, context, parent, info, /*authenticated*/true, loginParameters.getAuthenticationMethod().getId(), loginParameters.getCredentials()).detach();
 }
 
 DictPtr<IString, IStreamingType> CredentialDemoModule::onGetAvailableStreamingTypes()
@@ -93,10 +92,10 @@ StreamingPtr CredentialDemoModule::onCreateStreaming(const StringPtr& connection
 
 StreamingPtr CredentialDemoModule::onCreateAuthenticatedStreaming(const StringPtr& connectionString,
                                                                    const PropertyObjectPtr& /*config*/,
-                                                                   const StringPtr& authenticationMethodId,
-                                                                   const PropertyObjectPtr& credentials)
+                                                                   const LoginParametersPtr& loginParameters)
 {
-    return createWithImplementation<IStreaming, CredentialDemoStreamingImpl>(connectionString, context, authenticationMethodId, credentials);
+    return createWithImplementation<IStreaming, CredentialDemoStreamingImpl>(
+        connectionString, context, loginParameters.getAuthenticationMethod().getId(), loginParameters.getCredentials());
 }
 
 DictPtr<IString, IBaseObject> CredentialDemoModule::populateDefaultModuleOptions(const DictPtr<IString, IBaseObject>& inputOptions)

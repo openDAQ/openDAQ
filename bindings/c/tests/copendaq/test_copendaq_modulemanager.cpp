@@ -23,7 +23,7 @@ class COpendaqModuleManagerTest : public testing::Test
         daqDict_createDict(&options);
         daqDict_createDict(&discoveryServers);
 
-        daqContext_createContext(&ctx, nullptr, logger, typeManager, nullptr, nullptr, options, discoveryServers, nullptr);
+        daqContext_createContext(&ctx, nullptr, logger, typeManager, nullptr, nullptr, options, discoveryServers);
 
         daqBaseObject_releaseRef(discoveryServers);
         daqBaseObject_releaseRef(options);
@@ -49,7 +49,7 @@ TEST_F(COpendaqModuleManagerTest, DISABLED_ModuleManager)
 
     daqString* path = nullptr;
     daqString_createString(&path, ".");
-    daqModuleManager_createModuleManager(&moduleManager, path);
+    daqModuleManager_createModuleManager(&moduleManager, path, nullptr);
     ASSERT_NE(moduleManager, nullptr);
 
     daqModuleManager_loadModules(moduleManager, ctx);

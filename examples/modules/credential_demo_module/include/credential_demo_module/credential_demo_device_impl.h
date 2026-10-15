@@ -22,6 +22,7 @@
 #include <opendaq/credential_request_ptr.h>
 #include <opendaq/authentication_method_ptr.h>
 #include <coreobjects/property_object_ptr.h>
+#include <coretypes/dict_ptr.h>
 
 /*
  * Minimal mirrored device implementation with no signals or channels. When connected to via the
@@ -43,7 +44,7 @@ public:
                                       const DeviceInfoPtr& info,
                                       bool authenticated,
                                       const StringPtr& authenticationMethodId = nullptr,
-                                      const PropertyObjectPtr& credentials = nullptr);
+                                      const DictPtr<IString, IString>& credentials = nullptr);
 
     static constexpr const char* Prefix = "daq.credential_demo";
 

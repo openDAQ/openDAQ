@@ -22,14 +22,14 @@
 
 BEGIN_NAMESPACE_OPENDAQ
 
-struct IAuthenticationMethod;
+struct IAuthenticationConfig;
 
 /*#
  * [templated(defaultAliasName: ComponentTypePtr)]
  * [interfaceSmartPtr(IComponentType, GenericComponentTypePtr)]
  * [interfaceLibrary(IPropertyObject, CoreObjects)]
- * [interfaceLibrary(IAuthenticationMethod, "opendaq")]
- * [interfaceSmartPtr(IAuthenticationMethod, AuthenticationMethodPtr, "<opendaq/authentication_method_ptr.h>")]
+ * [interfaceLibrary(IAuthenticationConfig, "opendaq")]
+ * [interfaceSmartPtr(IAuthenticationConfig, AuthenticationConfigPtr, "<opendaq/authentication_config_ptr.h>")]
  */
 
 /*!
@@ -88,18 +88,12 @@ DECLARE_OPENDAQ_INTERFACE(IComponentType, IBaseObject)
     virtual ErrCode INTERFACE_FUNC getModuleInfo(IModuleInfo** info) = 0;
 
     /*!
-     * @brief Gets the authentication methods this component type supports authenticating with, keyed by their
-     * own authentication method id.
-     * @param[out] authenticationMethods The supported authentication methods, keyed by their own id.
+     * @brief Builds an `AuthenticationConfig` listing every authentication method this component type
+     * supports, as a candidate of its `"AuthenticationMethod"` selection property.
+     * @param[out] config The built authentication config.
+     * @retval OPENDAQ_ERR_NOT_SUPPORTED when this component type supports no authentication method.
      */
-    // [templateType(authenticationMethods, IString, IAuthenticationMethod)]
-    virtual ErrCode INTERFACE_FUNC getSupportedAuthenticationMethods(IDict** authenticationMethods) = 0;
-
-    /*!
-     * @brief Gets the id of the authentication method this component type supports by default.
-     * @param[out] defaultAuthenticationMethodId The default authentication method id.
-     */
-    virtual ErrCode INTERFACE_FUNC getDefaultAuthenticationMethodId(IString** defaultAuthenticationMethodId) = 0;
+    virtual ErrCode INTERFACE_FUNC createAuthenticationConfig(IAuthenticationConfig** config) = 0;
 };
 /*!@}*/
 

@@ -27,10 +27,15 @@ daqErrCode daqStreamingType_getConnectionStringPrefix(daqStreamingType* self, da
     return reinterpret_cast<daq::IStreamingType*>(self)->getConnectionStringPrefix(reinterpret_cast<daq::IString**>(prefix));
 }
 
-daqErrCode daqStreamingType_createStreamingType(daqStreamingType** obj, daqString* id, daqString* name, daqString* description, daqString* prefix, daqPropertyObject* defaultConfig, daqDict* supportedAuthenticationMethods, daqString* defaultAuthenticationMethodId)
+daqErrCode daqStreamingType_getLinkedDeviceType(daqStreamingType* self, daqDeviceType** deviceType)
+{
+    return reinterpret_cast<daq::IStreamingType*>(self)->getLinkedDeviceType(reinterpret_cast<daq::IDeviceType**>(deviceType));
+}
+
+daqErrCode daqStreamingType_createStreamingType(daqStreamingType** obj, daqString* id, daqString* name, daqString* description, daqString* prefix, daqPropertyObject* defaultConfig, daqDict* supportedAuthenticationMethods, daqDeviceType* linkedDeviceType)
 {
     daq::IStreamingType* ptr = nullptr;
-    daqErrCode err = daq::createStreamingType(&ptr, reinterpret_cast<daq::IString*>(id), reinterpret_cast<daq::IString*>(name), reinterpret_cast<daq::IString*>(description), reinterpret_cast<daq::IString*>(prefix), reinterpret_cast<daq::IPropertyObject*>(defaultConfig), reinterpret_cast<daq::IDict*>(supportedAuthenticationMethods), reinterpret_cast<daq::IString*>(defaultAuthenticationMethodId));
+    daqErrCode err = daq::createStreamingType(&ptr, reinterpret_cast<daq::IString*>(id), reinterpret_cast<daq::IString*>(name), reinterpret_cast<daq::IString*>(description), reinterpret_cast<daq::IString*>(prefix), reinterpret_cast<daq::IPropertyObject*>(defaultConfig), reinterpret_cast<daq::IDict*>(supportedAuthenticationMethods), reinterpret_cast<daq::IDeviceType*>(linkedDeviceType));
     *obj = reinterpret_cast<daqStreamingType*>(ptr);
     return err;
 }

@@ -55,7 +55,6 @@
 #include <opendaq/component_type_private.h>
 #include <opendaq/mirrored_device_ptr.h>
 #include <opendaq/authentication_config_ptr.h>
-#include <opendaq/authentication_config_factory.h>
 #include <coreobjects/property_factory.h>
 #include <coretypes/function_ptr.h>
 

@@ -27,10 +27,10 @@ daqErrCode daqDeviceType_getConnectionStringPrefix(daqDeviceType* self, daqStrin
     return reinterpret_cast<daq::IDeviceType*>(self)->getConnectionStringPrefix(reinterpret_cast<daq::IString**>(prefix));
 }
 
-daqErrCode daqDeviceType_createDeviceType(daqDeviceType** obj, daqString* id, daqString* name, daqString* description, daqPropertyObject* defaultConfig, daqString* prefix, daqDict* supportedAuthenticationMethods, daqString* defaultAuthenticationMethodId)
+daqErrCode daqDeviceType_createDeviceType(daqDeviceType** obj, daqString* id, daqString* name, daqString* description, daqPropertyObject* defaultConfig, daqString* prefix, daqDict* supportedAuthenticationMethods)
 {
     daq::IDeviceType* ptr = nullptr;
-    daqErrCode err = daq::createDeviceType(&ptr, reinterpret_cast<daq::IString*>(id), reinterpret_cast<daq::IString*>(name), reinterpret_cast<daq::IString*>(description), reinterpret_cast<daq::IPropertyObject*>(defaultConfig), reinterpret_cast<daq::IString*>(prefix), reinterpret_cast<daq::IDict*>(supportedAuthenticationMethods), reinterpret_cast<daq::IString*>(defaultAuthenticationMethodId));
+    daqErrCode err = daq::createDeviceType(&ptr, reinterpret_cast<daq::IString*>(id), reinterpret_cast<daq::IString*>(name), reinterpret_cast<daq::IString*>(description), reinterpret_cast<daq::IPropertyObject*>(defaultConfig), reinterpret_cast<daq::IString*>(prefix), reinterpret_cast<daq::IDict*>(supportedAuthenticationMethods));
     *obj = reinterpret_cast<daqDeviceType*>(ptr);
     return err;
 }

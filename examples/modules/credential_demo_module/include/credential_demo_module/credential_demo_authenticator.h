@@ -17,7 +17,7 @@
 #pragma once
 #include <credential_demo_module/common.h>
 #include <opendaq/context_ptr.h>
-#include <coreobjects/property_object_ptr.h>
+#include <coretypes/dict_ptr.h>
 
 BEGIN_NAMESPACE_CREDENTIAL_DEMO_MODULE
 
@@ -28,7 +28,7 @@ namespace authentication
      * PrivateKeyFile, Anonymous). Shared by both the device (authenticating a connection to it) and the
      * streaming implementation (authenticating a streaming connection).
      */
-    void Authenticate(const ContextPtr& ctx, const PropertyObjectPtr& credentials, const StringPtr& authenticationMethodId);
+    void Authenticate(const ContextPtr& ctx, const DictPtr<IString, IString>& credentials, const StringPtr& authenticationMethodId);
 }
 
 END_NAMESPACE_CREDENTIAL_DEMO_MODULE

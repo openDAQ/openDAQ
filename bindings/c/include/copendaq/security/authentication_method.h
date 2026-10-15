@@ -36,23 +36,15 @@ extern "C"
 
     typedef struct daqAuthenticationMethod daqAuthenticationMethod;
     typedef struct daqString daqString;
-    typedef struct daqStruct daqStruct;
-    typedef struct daqPropertyObject daqPropertyObject;
     typedef struct daqDict daqDict;
-    typedef struct daqTypeManager daqTypeManager;
 
     EXPORTED extern const daqIntfID DAQ_AUTHENTICATION_METHOD_INTF_ID;
     void EXPORTED daqAuthenticationMethod_getInterfaceId(daqIntfID* intfId);
 
     daqErrCode EXPORTED daqAuthenticationMethod_getId(daqAuthenticationMethod* self, daqString** id);
-    daqErrCode EXPORTED daqAuthenticationMethod_getFormat(daqAuthenticationMethod* self, daqCredentialFormat* format);
-    daqErrCode EXPORTED daqAuthenticationMethod_getParameters(daqAuthenticationMethod* self, daqStruct** parameters);
+    daqErrCode EXPORTED daqAuthenticationMethod_getFields(daqAuthenticationMethod* self, daqDict** fields);
     daqErrCode EXPORTED daqAuthenticationMethod_getDescription(daqAuthenticationMethod* self, daqString** description);
-    daqErrCode EXPORTED daqAuthenticationMethod_createEmptyCredential(daqAuthenticationMethod* self, daqPropertyObject** credential);
-    daqErrCode EXPORTED daqAuthenticationMethod_createKeyValueAuthenticationMethod(daqAuthenticationMethod** obj, daqString* id, daqDict* keys, daqString* description, daqTypeManager* typeManager, daqString* credentialClassName);
-    daqErrCode EXPORTED daqAuthenticationMethod_createStringAuthenticationMethod(daqAuthenticationMethod** obj, daqString* id, daqString* description, daqBool hidden, daqTypeManager* typeManager, daqString* credentialClassName);
-    daqErrCode EXPORTED daqAuthenticationMethod_createFilePathAuthenticationMethod(daqAuthenticationMethod** obj, daqString* id, daqString* description, daqTypeManager* typeManager, daqString* credentialClassName);
-    daqErrCode EXPORTED daqAuthenticationMethod_createNoneAuthenticationMethod(daqAuthenticationMethod** obj, daqString* id, daqString* description);
+    daqErrCode EXPORTED daqAuthenticationMethod_createAuthenticationMethod(daqAuthenticationMethod** obj, daqString* id, daqDict* fields, daqString* description);
 
 #ifdef __cplusplus
 }

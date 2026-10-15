@@ -40,9 +40,9 @@ void defineIDeviceType(pybind11::module_ m, PyDaqIntf<daq::IDeviceType, daq::ICo
 {
     cls.doc() = "Provides information on what device type can be created by a given module. Can be used to obtain the default configuration used when either adding/creating a new device.";
 
-    m.def("DeviceType", [](std::variant<daq::IString*, py::str, daq::IEvalValue*>& id, std::variant<daq::IString*, py::str, daq::IEvalValue*>& name, std::variant<daq::IString*, py::str, daq::IEvalValue*>& description, daq::IPropertyObject* defaultConfig, std::variant<daq::IString*, py::str, daq::IEvalValue*>& prefix, std::variant<daq::IDict*, py::dict>& supportedAuthenticationMethods, std::variant<daq::IString*, py::str, daq::IEvalValue*>& defaultAuthenticationMethodId){
-        return daq::DeviceType_Create(getVariantValue<daq::IString*>(id), getVariantValue<daq::IString*>(name), getVariantValue<daq::IString*>(description), defaultConfig, getVariantValue<daq::IString*>(prefix), getVariantValue<daq::IDict*>(supportedAuthenticationMethods), getVariantValue<daq::IString*>(defaultAuthenticationMethodId));
-    }, py::arg("id"), py::arg("name"), py::arg("description"), py::arg("default_config"), py::arg("prefix"), py::arg("supported_authentication_methods"), py::arg("default_authentication_method_id"));
+    m.def("DeviceType", [](std::variant<daq::IString*, py::str, daq::IEvalValue*>& id, std::variant<daq::IString*, py::str, daq::IEvalValue*>& name, std::variant<daq::IString*, py::str, daq::IEvalValue*>& description, daq::IPropertyObject* defaultConfig, std::variant<daq::IString*, py::str, daq::IEvalValue*>& prefix, std::variant<daq::IDict*, py::dict>& supportedAuthenticationMethods){
+        return daq::DeviceType_Create(getVariantValue<daq::IString*>(id), getVariantValue<daq::IString*>(name), getVariantValue<daq::IString*>(description), defaultConfig, getVariantValue<daq::IString*>(prefix), getVariantValue<daq::IDict*>(supportedAuthenticationMethods));
+    }, py::arg("id"), py::arg("name"), py::arg("description"), py::arg("default_config"), py::arg("prefix"), py::arg("supported_authentication_methods"));
 
 
     cls.def_property_readonly("connection_string_prefix",

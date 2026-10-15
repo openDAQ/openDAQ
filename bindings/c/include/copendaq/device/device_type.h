@@ -43,7 +43,7 @@ extern "C"
     void EXPORTED daqDeviceType_getInterfaceId(daqIntfID* intfId);
 
     daqErrCode EXPORTED daqDeviceType_getConnectionStringPrefix(daqDeviceType* self, daqString** prefix);
-    daqErrCode EXPORTED daqDeviceType_createDeviceType(daqDeviceType** obj, daqString* id, daqString* name, daqString* description, daqPropertyObject* defaultConfig, daqString* prefix, daqDict* supportedAuthenticationMethods, daqString* defaultAuthenticationMethodId);
+    daqErrCode EXPORTED daqDeviceType_createDeviceType(daqDeviceType** obj, daqString* id, daqString* name, daqString* description, daqPropertyObject* defaultConfig, daqString* prefix, daqDict* supportedAuthenticationMethods);
 
 #ifdef __cplusplus
 }

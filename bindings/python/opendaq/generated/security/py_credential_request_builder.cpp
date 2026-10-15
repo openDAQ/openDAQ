@@ -107,24 +107,34 @@ void defineICredentialRequestBuilder(pybind11::module_ m, PyDaqIntf<daq::ICreden
             objectPtr.setSerialNumber(getVariantValue<daq::IString*>(serialNumber));
         },
         "Gets the serial number currently set on the builder. / Sets the serial number of the device the connection is being established to or for - a request can be for a direct connection to that device, or for a streaming connection attached to it. Optional - leave unset if not known.");
-    cls.def("add_meta_data_property",
-        [](daq::ICredentialRequestBuilder *object, daq::IProperty* property)
-        {
-            py::gil_scoped_release release;
-            const auto objectPtr = daq::CredentialRequestBuilderPtr::Borrow(object);
-            objectPtr.addMetaDataProperty(property);
-        },
-        py::arg("property"),
-        "Adds a property to the request's metadata, describing additional, request-specific information primarily for the credential provider to show to the user. Optional - never called at all if there's nothing extra to describe, leaving the built request's metadata empty.");
-    cls.def_property_readonly("meta_data",
+    cls.def_property("model",
         [](daq::ICredentialRequestBuilder *object)
         {
             py::gil_scoped_release release;
             const auto objectPtr = daq::CredentialRequestBuilderPtr::Borrow(object);
-            return objectPtr.getMetaData().detach();
+            return objectPtr.getModel().toStdString();
         },
-        py::return_value_policy::take_ownership,
-        "Gets the metadata property object accumulated via `addMetaDataProperty`.");
+        [](daq::ICredentialRequestBuilder *object, std::variant<daq::IString*, py::str, daq::IEvalValue*>& model)
+        {
+            py::gil_scoped_release release;
+            const auto objectPtr = daq::CredentialRequestBuilderPtr::Borrow(object);
+            objectPtr.setModel(getVariantValue<daq::IString*>(model));
+        },
+        "Gets the model currently set on the builder. / Sets the model of the device the connection is being established to or for - a request can be for a direct connection to that device, or for a streaming connection attached to it. Optional - leave unset if not known.");
+    cls.def_property("display_name",
+        [](daq::ICredentialRequestBuilder *object)
+        {
+            py::gil_scoped_release release;
+            const auto objectPtr = daq::CredentialRequestBuilderPtr::Borrow(object);
+            return objectPtr.getDisplayName().toStdString();
+        },
+        [](daq::ICredentialRequestBuilder *object, std::variant<daq::IString*, py::str, daq::IEvalValue*>& displayName)
+        {
+            py::gil_scoped_release release;
+            const auto objectPtr = daq::CredentialRequestBuilderPtr::Borrow(object);
+            objectPtr.setDisplayName(getVariantValue<daq::IString*>(displayName));
+        },
+        "Gets the display name currently set on the builder. / Sets the device's name to show the user. Optional - leave unset when unknown.");
     cls.def_property("authentication_method",
         [](daq::ICredentialRequestBuilder *object)
         {

@@ -1,6 +1,5 @@
 #include <credential_demo_module/credential_demo_device_impl.h>
 #include <credential_demo_module/credential_demo_streaming_impl.h>
-
 #include <opendaq/device_info_factory.h>
 #include <opendaq/device_type_factory.h>
 #include <opendaq/component_type_builder_factory.h>
@@ -8,6 +7,7 @@
 #include <opendaq/authentication_method_factory.h>
 #include <opendaq/server_capability_config.h>
 #include <opendaq/device_info_internal.h>
+#include <opendaq/component_type_private.h>
 #include <opendaq/streaming_ptr.h>
 #include <coretypes/dictobject_factory.h>
 #include <fmt/format.h>
@@ -23,7 +23,7 @@ CredentialDemoDeviceImpl::CredentialDemoDeviceImpl(const PropertyObjectPtr& conf
                                                    const DeviceInfoPtr& info,
                                                    bool authenticated,
                                                    const StringPtr& authenticationMethodId,
-                                                   const PropertyObjectPtr& credentials)
+                                                   const DictPtr<IString, IString>& credentials)
     : MirroredDevice(ctx, parent, fmt::format("{}_{}", info.getManufacturer(), info.getSerialNumber()), nullptr, info.getName())
 {
     if (authenticated)
@@ -57,19 +57,29 @@ DeviceInfoPtr CredentialDemoDeviceImpl::CreateDeviceInfo(const DictPtr<IString, 
     devInfo.setManufacturer(manufacturer);
     devInfo.setModel("Credential demo device");
     devInfo.setSerialNumber(serialNumber);
-    devInfo.setDeviceType(CreateType(context));
+    auto deviceType = CreateType(context);
+    devInfo.setDeviceType(deviceType);
 
     auto capability = ServerCapability("CredentialDemo", "Credential Demo", ProtocolType::Configuration)
                            .setPrefix(Prefix)
                            .setConnectionString(connectionString);
+    DictPtr<IString, IAuthenticationMethod> methods;
+    checkErrorInfo(deviceType.asPtr<IComponentTypePrivate>()->getSupportedAuthenticationMethods(&methods));
+    for (const auto& [id, method] : methods)
+        capability.addAuthenticationMethod(id);
     devInfo.asPtr<IDeviceInfoInternal>(true).addServerCapability(capability);
 
     // The`addDevice`'s automatic streaming attach (`PrioritizedStreamingProtocols`)
     // can pick "CredentialDemoStreaming" up for this device without any manual `addStreaming` call.
     auto streamingConnectionString = fmt::format("{}://{}", CredentialDemoStreamingImpl::Prefix, GenericDeviceAddress);
+    auto streamingType = CredentialDemoStreamingImpl::CreateType(context);
     auto streamingCapability = ServerCapability("CredentialDemoStreaming", "Credential Demo Streaming", ProtocolType::Streaming)
                                     .setPrefix(CredentialDemoStreamingImpl::Prefix)
                                     .setConnectionString(streamingConnectionString);
+    methods = nullptr;
+    checkErrorInfo(streamingType.asPtr<IComponentTypePrivate>()->getSupportedAuthenticationMethods(&methods));
+    for (const auto& [id, method] : methods)
+        streamingCapability.addAuthenticationMethod(id);
     devInfo.asPtr<IDeviceInfoInternal>(true).addServerCapability(streamingCapability);
 
     return devInfo;
@@ -77,26 +87,17 @@ DeviceInfoPtr CredentialDemoDeviceImpl::CreateDeviceInfo(const DictPtr<IString, 
 
 DeviceTypePtr CredentialDemoDeviceImpl::CreateType(const ContextPtr& context)
 {
-    auto userNamePasswordMethod = StandardUserNamePasswordAuthenticationMethod(context.getTypeManager());
-    auto pinMethod = StandardPinAuthenticationMethod(context.getTypeManager());
-    auto privateKeyMethod = StandardPrivateKeyFileAuthenticationMethod(context.getTypeManager());
-    auto anonymousMethod = StandardAnonymousAuthenticationMethod();
-
     // Showcases all four authentication methods - UserName/Password, PIN, PrivateKeyFile, Anonymous -
-    // defaulting to UserName/Password.
-    auto supportedMethods =
-        Dict<IString, IAuthenticationMethod>({{userNamePasswordMethod.getId(), userNamePasswordMethod},
-                                              {pinMethod.getId(), pinMethod},
-                                              {privateKeyMethod.getId(), privateKeyMethod},
-                                              {anonymousMethod.getId(), anonymousMethod}});
-
+    // defaulting to Anonymous, the first one added.
     return DeviceTypeBuilder()
         .setId("CredentialDemoDevice")
         .setName("Credential demo device")
         .setDescription("openDAQ authentication/credential framework showcase device")
         .setConnectionStringPrefix(Prefix)
-        .setSupportedAuthenticationMethods(supportedMethods)
-        .setDefaultAuthenticationMethodId(StandardUserNamePasswordId)
+        .addAuthenticationMethod(StandardAnonymousAuthenticationMethod())
+        .addAuthenticationMethod(StandardUserNamePasswordAuthenticationMethod())
+        .addAuthenticationMethod(StandardPinAuthenticationMethod())
+        .addAuthenticationMethod(StandardPrivateKeyFileAuthenticationMethod())
         .build();
 }
 

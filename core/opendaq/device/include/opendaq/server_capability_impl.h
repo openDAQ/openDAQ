@@ -77,6 +77,9 @@ public:
     ErrCode INTERFACE_FUNC getProtocolSecurityLevel(IInteger** securityLevel) override;
     ErrCode INTERFACE_FUNC setProtocolSecurityLevel(IInteger* securityLevel) override;
 
+    ErrCode INTERFACE_FUNC getAuthenticationMethods(IList** methods) override;
+    ErrCode INTERFACE_FUNC addAuthenticationMethod(IString* methodId) override;
+
     ErrCode INTERFACE_FUNC getInterfaceIds(SizeT* idCount, IntfID** ids) override;
 
     ErrCode INTERFACE_FUNC clone(IPropertyObject** cloned) override;
@@ -100,6 +103,7 @@ private:
     const char* AddressInfo = "AddressInfo";
     const char* Port = "Port";
     const char* SecurityLevel = "SecurityLevel";
+    const char* AuthenticationMethods = "AuthenticationMethods";
 
 
     template <typename T>
@@ -153,6 +157,7 @@ inline ServerCapabilityConfigImpl::ServerCapabilityConfigImpl(const StringPtr& p
     Super::addProperty(IntProperty(Port, -1));
     Super::addProperty(ObjectProperty(AddressInfo, PropertyObject()));
     Super::addProperty(IntProperty(SecurityLevel, -1));
+    Super::addProperty(ListProperty(AuthenticationMethods, List<IString>()));
 
     Super::setPropertyValue(String(ProtocolId), protocolId);
     Super::setPropertyValue(String(ProtocolName), protocolName);
@@ -508,6 +513,33 @@ inline ErrCode ServerCapabilityConfigImpl::setProtocolSecurityLevel(IInteger* se
 {
     OPENDAQ_PARAM_NOT_NULL(securityLevel);
     return Super::setPropertyValue(String(SecurityLevel), securityLevel);
+}
+
+inline ErrCode ServerCapabilityConfigImpl::getAuthenticationMethods(IList** methods)
+{
+    return daqTry([&]
+    {
+        *methods = getTypedProperty<IList>(AuthenticationMethods).detach();
+        return OPENDAQ_SUCCESS;
+    });
+}
+
+inline ErrCode ServerCapabilityConfigImpl::addAuthenticationMethod(IString* methodId)
+{
+    OPENDAQ_PARAM_NOT_NULL(methodId);
+    return daqTry([&]
+    {
+        ListPtr<IString> methods = getTypedProperty<IList>(AuthenticationMethods);
+        StringPtr methodIdPtr = StringPtr::Borrow(methodId);
+        for (const auto& id : methods)
+        {
+            if (id == methodIdPtr)
+                return OPENDAQ_IGNORED;
+        }
+
+        methods.pushBack(methodId);
+        return Super::setPropertyValue(String(AuthenticationMethods), methods);
+    });
 }
 
 OPENDAQ_REGISTER_DESERIALIZE_FACTORY(ServerCapabilityConfigImpl)

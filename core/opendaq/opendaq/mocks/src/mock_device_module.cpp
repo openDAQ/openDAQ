@@ -74,6 +74,23 @@ ErrCode MockDeviceModuleImpl::getAvailableDeviceTypes(IDict** deviceTypes)
     return OPENDAQ_SUCCESS;
 }
 
+ErrCode MockDeviceModuleImpl::createAuthenticatedDevice(IDevice** /*device*/,
+                                                        IString* /*connectionString*/,
+                                                        IComponent* /*parent*/,
+                                                        IPropertyObject* /*config*/,
+                                                        ILoginParameters* /*loginParameters*/)
+{
+    return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOTIMPLEMENTED);
+}
+
+ErrCode MockDeviceModuleImpl::getCanonicalConnectionString(IString* connectionString, IString** canonicalConnectionString)
+{
+    OPENDAQ_PARAM_NOT_NULL(canonicalConnectionString);
+
+    *canonicalConnectionString = StringPtr(connectionString).addRefAndReturn();
+    return OPENDAQ_SUCCESS;
+}
+
 ErrCode MockDeviceModuleImpl::createDevice(IDevice** device,
                                            IString* connectionString,
                                            IComponent* parent,
@@ -148,11 +165,15 @@ ErrCode MockDeviceModuleImpl::getModuleInfo(daq::IModuleInfo** info)
     return OPENDAQ_SUCCESS;
 }
 
-ErrCode MockDeviceModuleImpl::createStreaming(IStreaming** /*streaming*/,
-                                              IString* /*connectionString*/,
-                                              IPropertyObject* /*config*/,
-                                              IString* /*manufacturer*/,
-                                              IString* /*serialNumber*/)
+ErrCode MockDeviceModuleImpl::createStreaming(IStreaming** /*streaming*/, IString* /*connectionString*/, IPropertyObject* /*config*/)
+{
+    return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOTIMPLEMENTED);
+}
+
+ErrCode MockDeviceModuleImpl::createAuthenticatedStreaming(IStreaming** /*streaming*/,
+                                                           IString* /*connectionString*/,
+                                                           IPropertyObject* /*config*/,
+                                                           ILoginParameters* /*loginParameters*/)
 {
     return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOTIMPLEMENTED);
 }

@@ -4,6 +4,7 @@
 #include <opendaq/update_parameters_factory.h>
 #include <opendaq/device_info_internal_ptr.h>
 #include <opendaq/module_impl.h>
+#include <opendaq/work_factory.h>
 #include <testutils/testutils.h>
 
 using InstanceTest = testing::Test;
@@ -490,6 +491,24 @@ TEST_F(InstanceTest, InstanceBuilderSetContext)
     ASSERT_EQ(instance.getContext().getScheduler(), context.getScheduler());
     ASSERT_EQ(instance.getContext().getAuthenticationProvider(), authenticationProvider);
     ASSERT_NO_THROW(instance.addDevice("daqmock://phys_device"));
+}
+
+TEST_F(InstanceTest, StopsSchedulerItCreated)
+{
+    SchedulerPtr scheduler;
+    {
+        const auto instance = InstanceBuilder().build();
+        scheduler = instance.getContext().getScheduler();
+    }
+    ASSERT_ERROR_CODE_EQ(scheduler->scheduleWork(Work([] {})), OPENDAQ_ERR_SCHEDULER_STOPPED);
+}
+
+TEST_F(InstanceTest, KeepsSchedulerSuppliedThroughBuilder)
+{
+    const auto scheduler = Scheduler(Logger(), 1);
+    InstanceBuilder().setScheduler(scheduler).build();
+    ASSERT_NO_THROW(scheduler.scheduleWork(Work([] {})));
+    scheduler.waitAll();
 }
 
 TEST_F(InstanceTest, InstanceBuilderRootDeviceConfig)

@@ -44,6 +44,7 @@ InstanceImpl::InstanceImpl(IInstanceBuilder* instanceBuilder)
     , rootDeviceSet(false)
 {
     const auto builderPtr = InstanceBuilderPtr::Borrow(instanceBuilder);
+    ownsScheduler = !builderPtr.getContext().assigned() && !builderPtr.getScheduler().assigned();
     loggerComponent = this->context.getLogger().getOrAddComponent("Instance");
 
     auto connectionString = builderPtr.getRootDevice();
@@ -85,6 +86,10 @@ InstanceImpl::~InstanceImpl()
 
     rootDevice.remove();
     rootDevice.release();
+
+    // Drain and join the scheduler here, so its last reference is not released on one of its own workers
+    if (ownsScheduler)
+        context.getScheduler().stop();
 }
 
 static StringPtr DefineLocalId(const StringPtr& localId)

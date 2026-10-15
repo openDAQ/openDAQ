@@ -177,6 +177,7 @@ private:
     LoggerComponentPtr loggerComponent;
 
     bool rootDeviceSet;
+    bool ownsScheduler = false;
 
     void stopAndRemoveServers() const;
     DevicePtr createDevice(const StringPtr& connectionString, const PropertyObjectPtr& config = nullptr);

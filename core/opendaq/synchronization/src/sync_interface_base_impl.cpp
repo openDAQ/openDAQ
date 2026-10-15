@@ -55,8 +55,14 @@ void SyncInterfaceBaseImpl::initProperties()
     configuration.setPropertyOrder({"ModeOptions"});
     this->objPtr.addProperty(ObjectProperty("Configuration", configuration));
 
-    configuration.getOnAnyPropertyValueWrite() += [this](PropertyObjectPtr&, PropertyValueEventArgsPtr& arg)
+    // The configuration object can outlive this interface.
+    const auto weakThis = this->template getWeakRefInternal<IPropertyObject>();
+    configuration.getOnAnyPropertyValueWrite() += [this, weakThis](PropertyObjectPtr&, PropertyValueEventArgsPtr& arg)
     {
+        const auto self = weakThis.getRef();
+        if (!self.assigned())
+            return;
+
         auto lock = this->getRecursiveConfigLock2();
         const StringPtr name = arg.getProperty().getName();
         onConfigurationChanged(name, arg.getValue());
@@ -180,24 +186,6 @@ ErrCode SyncInterfaceBaseImpl::clone(IPropertyObject** cloned)
 {
     OPENDAQ_PARAM_NOT_NULL(cloned);
     return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOT_CLONEABLE);
-}
-
-ErrCode SyncInterfaceBaseImpl::serializeCustomValues(ISerializer* serializer, bool forUpdate)
-{
-    OPENDAQ_RETURN_IF_FAILED(Super::serializeCustomValues(serializer, forUpdate));
-
-    if (!forUpdate)
-    {
-        serializer->key("SyncStatus");
-        auto serializable = statusContainer.asOrNull<ISerializable>(true);
-        OPENDAQ_RETURN_IF_FAILED(serializable->serialize(serializer));
-
-        StringPtr syncType;
-        OPENDAQ_RETURN_IF_FAILED(this->getSyncType(&syncType));
-        serializer->key("SyncType");
-        serializer->writeString(syncType.getCharPtr(), syncType.getLength());
-    }
-    return OPENDAQ_SUCCESS;
 }
 
 END_NAMESPACE_OPENDAQ

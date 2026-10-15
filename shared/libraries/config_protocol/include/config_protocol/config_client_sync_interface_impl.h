@@ -57,8 +57,10 @@ public:
 
 protected:
     void handleRemoteCoreObjectInternal(const ComponentPtr& sender, const CoreEventArgsPtr& args) override;
+    void onRemoteUpdate(const SerializedObjectPtr& serialized) override;
 private:
     void statusChanged(const CoreEventArgsPtr& args);
+    void copyStatuses(const ComponentStatusContainerPtr& source);
 
     StringPtr syncType;
 };

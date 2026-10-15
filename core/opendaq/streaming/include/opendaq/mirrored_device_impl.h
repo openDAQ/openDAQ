@@ -66,6 +66,7 @@ protected:
                                        const FunctionPtr& factoryCallback) override;
 
     void removed() override;
+    void removedNoLock() override;
 
     StreamingPtr onAddStreaming(const StringPtr& connectionString, const PropertyObjectPtr& config) override;
 
@@ -301,12 +302,23 @@ void MirroredDeviceBase<Interfaces...>::removed()
         checkErrorInfo(streamingSource.template asPtr<IStreamingPrivate>()->setOwnerDevice(nullptr));
     }
 
+    if (streamingSourceManager)
+        streamingSourceManager->stop();
+
     // disconnects all streaming connections
     streamingSources.clear();
 
+    Super::removed();
+}
+
+template <typename... Interfaces>
+void MirroredDeviceBase<Interfaces...>::removedNoLock()
+{
+    // Destroying the manager unsubscribes it from the core event, which waits for a call running on another thread.
+    // That call can need this device's lock, so the manager is destroyed only after the lock is released.
     streamingSourceManager.reset();
 
-    Super::removed();
+    Super::removedNoLock();
 }
 
 template <typename... Interfaces>

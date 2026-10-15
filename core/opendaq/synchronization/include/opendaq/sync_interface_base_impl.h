@@ -60,6 +60,9 @@ private:
     void triggerCoreEvent(const CoreEventArgsPtr& args);
 
 protected:
+    // Written by the server object and by the client mirror, so a gateway passes them on
+    ErrCode serializeCustomValues(ISerializer* serializer, bool forUpdate) override;
+
     ComponentStatusContainerPtr statusContainer;
 };
 
@@ -90,9 +93,6 @@ public:
 
     // IPropertyObjectInternal
     ErrCode INTERFACE_FUNC clone(IPropertyObject** cloned) override;
-
-    // Serialization
-    ErrCode serializeCustomValues(ISerializer* serializer, bool forUpdate) override;
 
 protected:
     explicit SyncInterfaceBaseImpl(const TypeManagerPtr& manager,
@@ -231,6 +231,23 @@ ErrCode GenericSyncInterfaceImpl<TInterface, Interfaces...>::getSerializeId(Cons
 {
     OPENDAQ_PARAM_NOT_NULL(id);
     *id = "SyncInterface";
+    return OPENDAQ_SUCCESS;
+}
+
+template <typename TInterface, typename... Interfaces>
+ErrCode GenericSyncInterfaceImpl<TInterface, Interfaces...>::serializeCustomValues(ISerializer* serializer, bool forUpdate)
+{
+    OPENDAQ_RETURN_IF_FAILED(Super::serializeCustomValues(serializer, forUpdate));
+    if (forUpdate)
+        return OPENDAQ_SUCCESS;
+
+    serializer->key("SyncStatus");
+    OPENDAQ_RETURN_IF_FAILED(statusContainer.template asPtr<ISerializable>(true)->serialize(serializer));
+
+    StringPtr syncType;
+    OPENDAQ_RETURN_IF_FAILED(this->getSyncType(&syncType));
+    serializer->key("SyncType");
+    serializer->writeString(syncType.getCharPtr(), syncType.getLength());
     return OPENDAQ_SUCCESS;
 }
 

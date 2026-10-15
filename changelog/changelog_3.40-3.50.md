@@ -15,6 +15,11 @@
 
 ## Bug fixes
 
+- [#1326](https://github.com/openDAQ/openDAQ/pull/1326) Fix an exception in a native streaming handler aborting the process; it is logged instead
+- [#1326](https://github.com/openDAQ/openDAQ/pull/1326) Fix adding a sub-device failing when a property object class, enumeration or struct type of the same name is already registered on the client
+- [#1326](https://github.com/openDAQ/openDAQ/pull/1326) Native client logs a warning when a type received from the server differs from the local definition
+- [#1340](https://github.com/openDAQ/openDAQ/pull/1340) Saving and loading a setup no longer stores or restores the device user lock
+- [#1327](https://github.com/openDAQ/openDAQ/pull/1327) Fix events not being synchronized: `removeHandler` and `clear` now wait for a handler running on another thread, and handlers are called without the event lock held
 - [#1336](https://github.com/openDAQ/openDAQ/pull/1336) Config protocol client logs a child component that fails to apply the server's update
 - [#1308](https://github.com/openDAQ/openDAQ/pull/1308) Fixes a deadlock between mDNS query answering and server removal
 - [#1305](https://github.com/openDAQ/openDAQ/pull/1305) Fix async races in native streaming shutdown process.
@@ -29,6 +34,7 @@
 
 ## Misc
 
+- [#1343](https://github.com/openDAQ/openDAQ/pull/1343) Test the oldest and newest supported compilers on the newest GitHub runners (Visual Studio 2026, Ubuntu 26.04, macOS 27).
 - [#1323](https://github.com/openDAQ/openDAQ/pull/1323) Fix classifier FB flaky tests
 - [#1313](https://github.com/openDAQ/openDAQ/pull/1313) Bump libNativeStreaming to v1.0.21 (precompiled headers and unity builds).
 - [#1251](https://github.com/openDAQ/openDAQ/pull/1251), [#1269](https://github.com/openDAQ/openDAQ/pull/1269), [#1278](https://github.com/openDAQ/openDAQ/pull/1278) OpenSSL (>= 1.1.1) is a build dependency of the SDK when `OPENDAQ_ENABLE_WEBSOCKET_STREAMING_WITH_TLS` is on. Unlike most other dependencies it is not fetched automatically and has to be installed on the host system: `libssl-dev` on Debian/Ubuntu (`libssl-dev:i386` for 32-bit builds), `openssl-devel` on RHEL-based distributions. The build documentation and all CI, packaging and docs jobs were updated accordingly.
@@ -38,15 +44,70 @@
 
 ## Required application changes
 
+### [#1327](https://github.com/openDAQ/openDAQ/pull/1327) Event handler removal waits for running handlers
+
+`IEvent::removeHandler` and `IEvent::clear` now return only once the removed handlers are no longer running on another thread. Don't call them while holding a lock that such a handler needs, or the call waits forever.
+
+`daq::RecursiveMutex` was removed from `coretypes/utility_sync.h`. Use `std::recursive_mutex` or `daq::mutex` instead.
+
+### [#1045](https://github.com/openDAQ/openDAQ/pull/1045) ISynchronization replaces ISyncComponent
+
+- `UsesOffset`, `IReferenceDomainInfo::getUsesOffset` and `IReferenceDomainInfoBuilder::setUsesOffset`/`getUsesOffset` are removed in C++, C, Python and .NET; `getReferenceDomainIds` lists the reference domains instead.
+- The reference device reports the reference domain ID `local:openDAQ_<serial>` instead of `openDAQ_<serial>`, the simulator device `local:<localId>` instead of `<localId>`, and both report the time protocol `Utc`.
+- The reference device's deprecated `SyncComponent` holds no interfaces; `IDevice::getSynchronization` replaces it.
+- Calls to `getSyncComponent` and the `SyncComponentPtr` methods produce deprecation warnings, which fail builds that treat warnings as errors.
+- Python: the `opendaq.SyncComponent` argument `parse_failed_exception` is renamed to `parent`.
+- Clients built before this change cannot add a device that exposes `ISynchronization`, which includes the reference and simulator devices.
+
+
 ## Required module changes
+
+### [#1327](https://github.com/openDAQ/openDAQ/pull/1327) Event handler removal waits for running handlers
+
+`IEvent::removeHandler` and `IEvent::clear` now return only once the removed handlers are no longer running on another thread. Don't call them while holding a lock that such a handler needs, or the call waits forever.
+
+`daq::RecursiveMutex` was removed from `coretypes/utility_sync.h`. Use `std::recursive_mutex` or `daq::mutex` instead.
+
+### [#1045](https://github.com/openDAQ/openDAQ/pull/1045) ISynchronization replaces ISyncComponent
+
+- `IDevice` implementations not derived from `GenericDevice` implement `getSynchronization`.
+- Modules that set `UsesOffset` remove it and set `ReferenceDomainIds`.
+- `IReferenceDomainInfo::getReferenceDomainIds` takes the interface slot of the removed `getUsesOffset`; modules built against older headers must be rebuilt.
 
 ## Interface API changes
 
 ### New interfaces
 
+```diff
++ [interface] ISynchronization
++ [interface] ISynchronizationPrivate
++ [interface] ISyncInterface
++ [interface] ISyncInterfaceInternal
++ [enum] SyncMode, SyncSourceStatus, SyncRoleStatus
+```
+
 ### Removed interfaces
 
 ### Modified interfaces
+
+#### `IDevice`
+```diff
++ IDevice::getSynchronization(ISynchronization** sync);
+```
+
+#### `IReferenceDomainInfo`
+```diff
+- IReferenceDomainInfo::getUsesOffset(UsesOffset* usesOffset);
++ IReferenceDomainInfo::getReferenceDomainIds(IList** referenceDomainIds);
+```
+
+#### `IReferenceDomainInfoBuilder`
+```diff
+- IReferenceDomainInfoBuilder::setUsesOffset(UsesOffset usesOffset);
+- IReferenceDomainInfoBuilder::getUsesOffset(UsesOffset* usesOffset);
++ IReferenceDomainInfoBuilder::setReferenceDomainIds(IList* referenceDomainIds);
++ IReferenceDomainInfoBuilder::getReferenceDomainIds(IList** referenceDomainIds);
+```
 
 #### `Context`
 ```diff

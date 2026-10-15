@@ -69,14 +69,22 @@ public:
     // IPropertyObjectInternal
     ErrCode INTERFACE_FUNC clone(IPropertyObject** cloned) override;
 
+    // IPropertyObject
+    ErrCode INTERFACE_FUNC clearPropertyValue(IString* propertyName) override;
+
+    // IPropertyObjectProtected
+    ErrCode INTERFACE_FUNC clearProtectedPropertyValue(IString* propertyName) override;
+
     // IUpdatable
     ErrCode INTERFACE_FUNC update(ISerializedObject* obj, IBaseObject* config) override;
+    ErrCode INTERFACE_FUNC updateInternal(ISerializedObject* obj, IBaseObject* context) override;
 
 protected:
     SyncInterfacePtr source;
 
 private:
     void onSourceChanged(const StringPtr& sourceName);
+    ErrCode applySavedSource(ISerializedObject* obj);
 
     ListPtr<IString> sourceInterfaces;
 };

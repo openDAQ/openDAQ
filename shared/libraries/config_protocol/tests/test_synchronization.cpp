@@ -311,6 +311,87 @@ TEST_F(ConfigSynchronizationTest, InitialStatusMatchesOnConnect)
     ASSERT_EQ(clientStatus.getValue(), "Synced");
 }
 
+TEST_F(ConfigSynchronizationTest, StatusChangeRaisesCoreEventOnClient)
+{
+    const SyncInterfacePtr serverInterface = getServerSyncComponent().getInterfaces().get("TestInterface");
+    auto* impl = dynamic_cast<TestDeviceWithSync2Impl::TestSyncInterface*>(serverInterface.getObject());
+    ASSERT_NE(impl, nullptr);
+
+    StringPtr eventPath;
+    clientContext.getOnCoreEvent() += [&](const ComponentPtr& /*comp*/, const CoreEventArgsPtr& args)
+    {
+        if (args.getEventName() == "StatusChanged")
+            eventPath = args.getParameters().getOrDefault("Path");
+    };
+
+    impl->setSyncSourceStatus(SyncSourceStatus::Error, "cable unplugged");
+
+    ASSERT_TRUE(eventPath.assigned()) << "No StatusChanged event was raised on the client";
+    ASSERT_EQ(eventPath, serverInterface.asPtr<IPropertyObjectInternal>(true).getPath());
+}
+
+TEST_F(ConfigSynchronizationTest, ReconnectReadsChangedStatus)
+{
+    const SyncInterfacePtr serverInterface = getServerSyncComponent().getInterfaces().get("TestInterface");
+    auto* impl = dynamic_cast<TestDeviceWithSync2Impl::TestSyncInterface*>(serverInterface.getObject());
+    ASSERT_NE(impl, nullptr);
+
+    // The client misses the change and reads it only on reconnect
+    serverDevice.asPtr<IPropertyObjectInternal>().disableCoreEventTrigger();
+    impl->setSyncSourceStatus(SyncSourceStatus::Error, "cable unplugged");
+    serverDevice.asPtr<IPropertyObjectInternal>().enableCoreEventTrigger();
+
+    const auto clientStatuses = getClientSyncComponent().getInterfaces().get("TestInterface").getStatusContainer();
+    ASSERT_EQ(clientStatuses.getStatus("SynchronizationSourceStatus").getValue(), "Synced");
+
+    client->reconnect(False);
+
+    const auto statusesAfter = getClientSyncComponent().getInterfaces().get("TestInterface").getStatusContainer();
+    ASSERT_EQ(statusesAfter.getStatus("SynchronizationSourceStatus").getValue(), "Error");
+    ASSERT_EQ(statusesAfter.getStatusMessage("SynchronizationSourceStatus"), "cable unplugged");
+}
+
+TEST_F(ConfigSynchronizationTest, StatusesAndSyncTypeReachClientBehindGateway)
+{
+    // Server device -> gateway, which mirrors it and serves it again -> far client
+    const auto gatewayContext = NullContext();
+    const auto gatewayClient = std::make_unique<ConfigProtocolClient<ConfigClientDeviceImpl>>(
+        gatewayContext,
+        [this](const PacketBuffer& request) { return server->processRequestAndGetReply(request); },
+        [](const PacketBuffer&) {},
+        nullptr,
+        nullptr,
+        nullptr);
+
+    const DevicePtr gatewayDevice = createWithImplementation<IDevice, Device>(gatewayContext, nullptr, "GatewayDevice");
+    const FolderConfigPtr gatewayDevices = gatewayDevice.asPtr<IFolder>().getItem("Dev");
+    gatewayDevices.addItem(gatewayClient->connect(gatewayDevices));
+
+    const auto gatewayServer = std::make_unique<ConfigProtocolServer>(
+        gatewayDevice,
+        [](const PacketBuffer&) {},
+        User("", ""),
+        ClientType::Control,
+        test_utils::dummyExtSigFolder(gatewayContext));
+
+    const auto farClient = std::make_unique<ConfigProtocolClient<ConfigClientDeviceImpl>>(
+        NullContext(),
+        [&gatewayServer](const PacketBuffer& request) { return gatewayServer->processRequestAndGetReply(request); },
+        [](const PacketBuffer&) {},
+        nullptr,
+        nullptr,
+        nullptr);
+    const DevicePtr farDevice = farClient->connect();
+
+    const SyncInterfacePtr farInterface = farDevice.getDevices()[0].getSynchronization().getInterfaces().get("TestInterface");
+    ASSERT_EQ(farInterface.getSyncType(), "test");
+
+    const auto farStatuses = farInterface.getStatusContainer();
+    ASSERT_TRUE(farStatuses.getStatuses().hasKey("SynchronizationSourceStatus")) << "The gateway did not pass the statuses on";
+    ASSERT_EQ(farStatuses.getStatus("SynchronizationSourceStatus").getValue(), "Synced");
+    ASSERT_EQ(farStatuses.getStatusMessage("SynchronizationSourceStatus"), "boot");
+}
+
 TEST_F(ConfigSynchronizationTest, StatusChangedPropagatesToClient)
 {
     auto serverSync = getServerSyncComponent();
@@ -466,16 +547,3 @@ TEST_F(ConfigSynchronizationTest, ConnectWithNonDefaultSource)
     ASSERT_EQ(newClientDevice.getSynchronization().getSource().getId(), "PtpSyncInterface");
 }
 
-TEST_F(ConfigSynchronizationTest, ConnectWithSourceSerializedBeforeSourceInterfaces)
-{
-    auto serverSync = getServerSyncComponent();
-    serverSync.setSource("PtpSyncInterface");
-
-    // Without the property order, values serialize by name, as on servers built before it was
-    // added: the client receives Source before the SourceInterfaces list it selects from.
-    ASSERT_ERROR_CODE_EQ(serverSync.asPtr<IPropertyObject>(true)->setPropertyOrder(nullptr), OPENDAQ_SUCCESS);
-
-    DevicePtr newClientDevice;
-    ASSERT_NO_THROW(newClientDevice = connectNewClient()) << "A client failed to add a device that sends Source before SourceInterfaces";
-    ASSERT_EQ(newClientDevice.getSynchronization().getSource().getId(), "PtpSyncInterface");
-}

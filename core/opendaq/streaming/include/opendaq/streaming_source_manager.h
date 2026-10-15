@@ -17,6 +17,7 @@
 #pragma once
 
 #include <opendaq/mirrored_device_config_ptr.h>
+#include <atomic>
 #include <map>
 #include <optional>
 #include <unordered_set>
@@ -41,6 +42,11 @@ public:
                                     const PropertyObjectPtr& deviceConfig);
 
     ~StreamingSourceManager();
+
+    // Makes the manager ignore further core events. The owner device calls it when it is removed.
+    // The device destroys the manager only after its own lock is released, because destroying it waits for a core event
+    // handled on another thread.
+    void stop();
 
 private:
     void coreEventCallback(ComponentPtr& sender, CoreEventArgsPtr& eventArgs);
@@ -69,6 +75,7 @@ private:
     std::unordered_set<std::string> allowedProtocolsOnly;
     std::map<StringPtr, SizeT> prioritizedProtocolsMap; // protocol Id as a key, protocol priority as a value
     StringPtr primaryAddressType;
+    std::atomic<bool> stopped{false};
 };
 
 inline StreamingSourceManager::StreamingSourceManager(const ContextPtr& context, const DevicePtr& ownerDevice, const PropertyObjectPtr& deviceConfig)
@@ -97,8 +104,16 @@ inline StreamingSourceManager::~StreamingSourceManager()
     this->context.getOnCoreEvent() -= event(this, &StreamingSourceManager::coreEventCallback);
 }
 
+inline void StreamingSourceManager::stop()
+{
+    stopped = true;
+}
+
 inline void StreamingSourceManager::coreEventCallback(ComponentPtr& sender, CoreEventArgsPtr& eventArgs)
 {
+    if (stopped)
+        return;
+
     switch (static_cast<CoreEventId>(eventArgs.getEventId()))
     {
         case CoreEventId::ComponentAdded:

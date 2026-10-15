@@ -246,6 +246,22 @@ public:
     }
 };
 
+// Rejects being switched Off, as a module hook would when its service refuses to stop
+class RefusesOffSyncInterface : public TestSyncInterface
+{
+public:
+    using TestSyncInterface::TestSyncInterface;
+
+    bool refuseOff = false;
+
+protected:
+    void onConfigurationChanged(const StringPtr& name, const BaseObjectPtr& value) override
+    {
+        if (refuseOff && name == "Mode" && static_cast<Int>(value) == static_cast<Int>(SyncMode::Off))
+            DAQ_THROW_EXCEPTION(InvalidOperationException, "The sync service refused to stop");
+    }
+};
+
 // Keeps its reference domain ID in every mode, unlike interfaces derived from SyncInterfaceBaseImpl
 class FixedIdSyncInterface : public TestSyncInterface
 {
@@ -513,6 +529,33 @@ TEST_F(SynchronizationTest, SetSourceRestoresBothInterfacesWhenPromotionFails)
     const DictPtr<IInteger, IString> modeOptions = failingSource.asPtr<IPropertyObject>(true).getPropertyValue("Configuration.ModeOptions");
     ASSERT_TRUE(modeOptions.hasKey(static_cast<Int>(SyncMode::Output)));
     ASSERT_FALSE(modeOptions.hasKey(static_cast<Int>(SyncMode::Auto)));
+}
+
+TEST_F(SynchronizationTest, SetSourceRestoresOldSourceWhenDemotionFails)
+{
+    const auto ctx = NullContext();
+    const auto manager = ctx.getTypeManager();
+
+    const auto sync = Synchronization(manager, "testDevice");
+    const auto syncPrivate = sync.asPtr<ISynchronizationPrivate>(true);
+
+    const SyncInterfacePtr refusing = createWithImplementation<ISyncInterface, RefusesOffSyncInterface>(
+        manager, "Refusing", std::vector<SyncMode>{SyncMode::Off, SyncMode::Input, SyncMode::Output, SyncMode::Auto});
+    syncPrivate.addInterface(refusing);
+
+    sync.setSource("Refusing");
+    refusing.setMode(SyncMode::Input);
+    dynamic_cast<RefusesOffSyncInterface*>(refusing.getObject())->refuseOff = true;
+
+    ASSERT_THROW(sync.setSource("ClockSyncInterface"), InvalidOperationException) << "The rollback replaced the original error";
+
+    ASSERT_EQ(sync.getSource().getId(), "Refusing");
+    ASSERT_EQ(static_cast<StringPtr>(sync.asPtr<IPropertyObject>(true).getPropertyValue("Source")), "Refusing");
+    ASSERT_EQ(refusing.getMode(), SyncMode::Input);
+    ASSERT_TRUE(refusing.getAvailableModes().hasKey(static_cast<Int>(SyncMode::Input)));
+    ASSERT_FALSE(refusing.getAvailableModes().hasKey(static_cast<Int>(SyncMode::Off)));
+
+    ASSERT_EQ(sync.getInterfaces().get("ClockSyncInterface").getMode(), SyncMode::Off);
 }
 
 TEST_F(SynchronizationTest, ClockSyncInterfaceStatusesFollowMode)

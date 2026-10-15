@@ -373,7 +373,7 @@ class SyncView(ttk.Frame):
             widget.destroy()
 
         # A refresh redraws the status header but keeps an open property editor
-        key = (record.device.global_id, interface.id) if record is not None else None
+        key = record.device.global_id if record is not None else None
         if key != self.details_key:
             for widget in list(self.details_body.children.values()):
                 widget.destroy()
@@ -415,10 +415,9 @@ class SyncView(ttk.Frame):
 
         if self.properties is not None:
             return
-        ttk.Label(self.details_body, text=f'{interface.id} configuration', style='SyncGroup.TLabel').pack(anchor=tk.W, padx=(8, 0))
         frame = ttk.Frame(self.details_body)
         frame.pack(fill=tk.BOTH, expand=True)
-        self.properties = PropertiesTreeview(frame, interface.configuration, self.context)
+        self.properties = PropertiesTreeview(frame, daq.IPropertyObject.cast_from(record.synchronization), self.context)
 
     def change(self, record, apply, value):
         try:

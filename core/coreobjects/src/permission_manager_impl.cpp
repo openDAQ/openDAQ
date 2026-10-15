@@ -141,12 +141,14 @@ ErrCode INTERFACE_FUNC PermissionManagerImpl::setParent(IPermissionManager* pare
 
 ErrCode INTERFACE_FUNC PermissionManagerImpl::addChildManager(IPermissionManager* childManager)
 {
+    std::lock_guard lock(childrenSync);
     children.insert(childManager);
     return OPENDAQ_SUCCESS;
 }
 
 ErrCode INTERFACE_FUNC PermissionManagerImpl::removeChildManager(IPermissionManager* childManager)
 {
+    std::lock_guard lock(childrenSync);
     children.erase(childManager);
     return OPENDAQ_SUCCESS;
 }
@@ -169,11 +171,10 @@ ErrCode INTERFACE_FUNC PermissionManagerImpl::updateInheritedPermissions()
 
 void PermissionManagerImpl::updateChildPermissions()
 {
+    // A child in its destructor waits in removeChildManager, so it is borrowed rather than referenced
+    std::lock_guard lock(childrenSync);
     for (auto child : children)
-    {
-        PermissionManagerPtr childPtr = child;
-        childPtr.asPtr<IPermissionManagerInternal>(true)->updateInheritedPermissions();
-    }
+        PermissionManagerPtr::Borrow(child).asPtr<IPermissionManagerInternal>(true)->updateInheritedPermissions();
 }
 
 PermissionManagerInternalPtr PermissionManagerImpl::getParentManager()

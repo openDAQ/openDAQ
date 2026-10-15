@@ -107,7 +107,13 @@ private:
     // vector is used as the order of adding & accessing sources is important
     // store a pair string + weak reference to manage the removal of destroyed sources
     std::vector<std::pair<StringPtr, WeakRefPtr<IStreaming>>> streamingSourcesRefs;
+
     WeakRefPtr<IStreaming> activeStreamingSourceRef;
+
+    // The domain signal can change while this signal is subscribed. Unsubscribing has to release the domain signal
+    // that was subscribed, not the current one.
+    WeakRefPtr<ISignal> subscribedDomainSignalRef;
+
     bool listened;
     bool streamed;
     EventEmitter<MirroredSignalConfigPtr, SubscriptionEventArgsPtr> onSubscribeCompleteEvent;
@@ -707,7 +713,20 @@ ErrCode MirroredSignalBase<Interfaces...>::subscribeInternal()
                       this->globalId);
             }
         }
-        return activeStreamingSource.template asPtr<IStreamingPrivate>()->subscribeSignal(signalRemoteId, domainSignalRemoteId);
+
+        errCode = activeStreamingSource.template asPtr<IStreamingPrivate>()->subscribeSignal(signalRemoteId, domainSignalRemoteId);
+        OPENDAQ_RETURN_IF_FAILED(errCode);
+
+        if (domainSignalRemoteId.assigned())
+        {
+            subscribedDomainSignalRef = WeakRefPtr<ISignal>(domainSignal);
+        }
+        else
+        {
+            subscribedDomainSignalRef = nullptr;
+        }
+
+        return errCode;
     }
     else
     {
@@ -725,12 +744,14 @@ ErrCode MirroredSignalBase<Interfaces...>::unsubscribeInternal()
         ErrCode errCode = wrapHandlerReturn(this, &Self::onGetRemoteId, signalRemoteId);
         OPENDAQ_RETURN_IF_FAILED(errCode);
 
-        SignalPtr domainSignal;
-        errCode = wrapHandlerReturn(this, &Self::onGetDomainSignal, domainSignal);
-        OPENDAQ_RETURN_IF_FAILED(errCode);
+        const SignalPtr domainSignal = subscribedDomainSignalRef.assigned()
+            ? subscribedDomainSignalRef.getRef()
+            : nullptr;
+
+        subscribedDomainSignalRef = nullptr;
 
         StringPtr domainSignalRemoteId;
-        if (domainSignal.assigned() && !domainSignal.isRemoved() && domainSignal.getPublic())
+        if (domainSignal.assigned() && !domainSignal.isRemoved())
             domainSignalRemoteId = domainSignal.template asPtr<IMirroredSignalConfig>().getRemoteId();
         return activeStreamingSource.template asPtr<IStreamingPrivate>()->unsubscribeSignal(signalRemoteId, domainSignalRemoteId);
     }

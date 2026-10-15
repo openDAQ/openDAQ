@@ -318,7 +318,7 @@ template <class Impl>
 ErrCode ConfigClientPropertyObjectBaseImpl<Impl>::clearProtectedPropertyValue(IString* propertyName)
 {
     OPENDAQ_PARAM_NOT_NULL(propertyName);
-    if (!deserializationComplete)
+    if (!deserializationComplete || remoteUpdating)
         return Impl::clearProtectedPropertyValue(propertyName);
 
     const auto propertyNamePtr = StringPtr::Borrow(propertyName);
@@ -527,12 +527,12 @@ ErrCode ConfigClientPropertyObjectBaseImpl<Impl>::remoteUpdate(ISerializedObject
 {
     const ErrCode errCode = daqTry([&serialized, this]
     {
-        // ComponentUpdateEnd sets deserializationComplete=false before calling onRemoteUpdate
-        // directly. Nested remoteUpdate (e.g. Dev folder → child device) must do the same —
-        // otherwise setProtectedPropertyValue issues RPCs while the server is still inside
-        // SendOutCoreEvents and deadlocks (worker count = 1).
+        // Nothing written while applying a server update may go back to the server: it is still
+        // inside SendOutCoreEvents (worker count = 1) and the request waits for the timeout.
         const bool wasComplete = this->deserializationComplete;
+        const bool wasUpdating = this->remoteUpdating;
         this->deserializationComplete = false;
+        checkErrorInfo(setRemoteUpdating(true));
 
         try
         {
@@ -540,10 +540,12 @@ ErrCode ConfigClientPropertyObjectBaseImpl<Impl>::remoteUpdate(ISerializedObject
         }
         catch (...)
         {
+            setRemoteUpdating(wasUpdating);
             this->deserializationComplete = wasComplete;
             throw;
         }
 
+        checkErrorInfo(setRemoteUpdating(wasUpdating));
         this->deserializationComplete = wasComplete;
         return OPENDAQ_SUCCESS;
     });
@@ -556,16 +558,13 @@ ErrCode ConfigClientPropertyObjectBaseImpl<Impl>::setRemoteUpdating(Bool remoteU
 {
     auto errCode = daqTry([this, &remoteUpdating]()
     {
-        // calling 'Impl::' methods guarantees that RPCs are not involved
-        ListPtr<IProperty> allPropertiesFromClient;
-        checkErrorInfo(Impl::getAllProperties(&allPropertiesFromClient));
-
-        for (const auto& prop : allPropertiesFromClient)
+        // Stored values only: reading through getPropertyValue would run read callbacks and clone defaults
+        auto lock = Impl::getRecursiveConfigLock2();
+        for (const auto& [_, value] : Impl::propValues)
         {
-            BaseObjectPtr propValueFromClient;
-            checkErrorInfo(Impl::getPropertyValue(prop.getName(), &propValueFromClient));
-
-            const auto configClientPropObj = propValueFromClient.asPtrOrNull<IConfigClientObject>(true);
+            if (!value.assigned())
+                continue;
+            const auto configClientPropObj = value.template asPtrOrNull<IConfigClientObject>(true);
             if (configClientPropObj.assigned())
                 checkErrorInfo(configClientPropObj->setRemoteUpdating(remoteUpdating));
         }

@@ -15,13 +15,12 @@ StringPtr MockMirroredSignalImpl::onGetRemoteId() const
     return streamingId;
 }
 
+SignalPtr MockMirroredSignalImpl::onGetDomainSignal()
+{
+    return mirroredDomainSignal;
+}
+
 daq::Bool MockMirroredSignalImpl::onTriggerEvent(const EventPacketPtr& eventPacket)
 {
     return MirroredSignal::onTriggerEvent(eventPacket);
-}
-
-// the real client signals resolve their domain from the mirrored domain signal
-daq::SignalPtr MockMirroredSignalImpl::onGetDomainSignal()
-{
-    return mirroredDomainSignal;
 }

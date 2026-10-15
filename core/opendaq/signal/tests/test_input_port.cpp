@@ -83,6 +83,36 @@ TEST_F(InputPortTest, ConnectAndDisconnect)
     EXPECT_EQ(signal->getConnections().getCount(), 0u);
 }
 
+TEST_F(InputPortTest, DisconnectWhenSignalFailsToHandleIt)
+{
+    EXPECT_CALL(notifications.mock(), connected(inputPort.getObject())).WillOnce(Return(OPENDAQ_SUCCESS));
+    EXPECT_CALL(signal.mock(), listenerConnected).Times(1);
+    EXPECT_CALL(signal.mock(), isRemoved(_)).WillRepeatedly(DoAll(SetArgPointee<0>(False), Return(OPENDAQ_SUCCESS)));
+    inputPort.connect(signal);
+    auto connection = inputPort.getConnection();
+
+    EXPECT_CALL(notifications.mock(), disconnected(inputPort.getObject())).WillOnce(Return(OPENDAQ_SUCCESS));
+    EXPECT_CALL(signal.mock(), listenerDisconnected(connection.getObject())).WillOnce(Return(OPENDAQ_ERR_INVALIDSTATE));
+    EXPECT_NO_THROW(inputPort.disconnect());
+    EXPECT_EQ(inputPort.getConnection(), nullptr);
+    EXPECT_EQ(inputPort.getSignal(), nullptr);
+}
+
+// A reader removes its port from its destructor, so removing the port must not fail either.
+TEST_F(InputPortTest, RemoveWhenSignalFailsToHandleTheDisconnect)
+{
+    EXPECT_CALL(notifications.mock(), connected(inputPort.getObject())).WillOnce(Return(OPENDAQ_SUCCESS));
+    EXPECT_CALL(signal.mock(), listenerConnected).Times(1);
+    EXPECT_CALL(signal.mock(), isRemoved(_)).WillRepeatedly(DoAll(SetArgPointee<0>(False), Return(OPENDAQ_SUCCESS)));
+    inputPort.connect(signal);
+    auto connection = inputPort.getConnection();
+
+    EXPECT_CALL(signal.mock(), listenerDisconnected(connection.getObject())).WillOnce(Return(OPENDAQ_ERR_INVALIDSTATE));
+    ASSERT_EQ(inputPort.asPtr<IRemovable>()->remove(), OPENDAQ_SUCCESS);
+    EXPECT_TRUE(inputPort.isRemoved());
+    EXPECT_EQ(inputPort.getConnection(), nullptr);
+}
+
 TEST_F(InputPortTest, ChangeCustomData)
 {
     inputPort.setCustomData(2);

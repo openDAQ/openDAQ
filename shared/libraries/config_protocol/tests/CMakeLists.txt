@@ -33,6 +33,7 @@ target_link_libraries(${TEST_APP}
         daq::opendaq
         daq::opendaq_mocks
         daq::opendaq_gmocks
+        rapidjson
 )
 
 if (DAQMODULES_REF_FB_MODULE AND DAQMODULES_REF_DEVICE_MODULE)

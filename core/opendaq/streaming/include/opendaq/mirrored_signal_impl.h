@@ -705,7 +705,9 @@ ErrCode MirroredSignalBase<Interfaces...>::subscribeInternal()
         if (domainSignal.assigned() && !domainSignal.isRemoved())
         {
             if (domainSignal.getPublic())
+            {
                 domainSignalRemoteId = domainSignal.template asPtr<IMirroredSignalConfig>().getRemoteId();
+            }
             else
             {
                 const auto loggerComponent = this->context.getLogger().getOrAddComponent("Component");

@@ -196,10 +196,21 @@ void NativeDeviceHelper::tryConfigProtocolReconnect()
         return;
     }
 
+    {
+        std::scoped_lock lock(requestReplySync);
+        configConnectionError = nullptr;
+    }
+
     // use tmp var to implicitly copy the enumeration type
     auto tmpStatusValue = connectionStatus;
     tmpStatusValue = "Connected";
     updateConnectionStatus(tmpStatusValue, "");
+}
+
+bool NativeDeviceHelper::isConfigConnectionUsable()
+{
+    std::scoped_lock lock(requestReplySync);
+    return !configConnectionError;
 }
 
 void NativeDeviceHelper::startAcceptNotificationPackets()
@@ -313,15 +324,6 @@ PacketBuffer NativeDeviceHelper::doConfigRequestAndGetReply(const PacketBuffer& 
     // register the request first to ensure connection loss or device removal will be reported
     auto future = registerConfigRequest(reqId);
 
-    // using a thread id is a hacky way to disable all config requests
-    // except those related to reconnection until reconnection is finished
-    if (connectionStatus != "Connected" &&
-        std::this_thread::get_id() != reconnectionProcessingThreadId)
-    {
-        unregisterConfigRequest(reqId);
-        DAQ_THROW_EXCEPTION(ConnectionLostException);
-    }
-
     // send packet using a temporary copy of the transport client
     // to allow safe disposal of the member variable during device removal.
     if (auto transportClientHandlerTemp = this->transportClientHandler; transportClientHandlerTemp)
@@ -342,18 +344,32 @@ PacketBuffer NativeDeviceHelper::doConfigRequestAndGetReply(const PacketBuffer& 
     {
         unregisterConfigRequest(reqId);
         LOG_E("Native configuration protocol request id {} timed out", reqId);
-        if (connectionStatus == "Connected")
+        if (isConfigConnectionUsable())
+        {
             DAQ_THROW_EXCEPTION(GeneralErrorException, "Native configuration protocol request id {} timed out", reqId);
+        }
         else
+        {
             DAQ_THROW_EXCEPTION(ConnectionLostException, "Native configuration protocol request id {} timed out due to disconnection", reqId);
+        }
     }
 }
 
 std::future<PacketBuffer> NativeDeviceHelper::registerConfigRequest(uint64_t requestId)
 {
     std::scoped_lock lock(requestReplySync);
+    throwIfConfigConnectionUnusable();
     replyPackets.insert({requestId, std::promise<PacketBuffer>()});
     return replyPackets.at(requestId).get_future();
+}
+
+// requestReplySync has to be held by the caller
+void NativeDeviceHelper::throwIfConfigConnectionUnusable()
+{
+    // using a thread id is a hacky way to disable all config requests
+    // except those related to reconnection until reconnection is finished
+    if (configConnectionError && std::this_thread::get_id() != reconnectionProcessingThreadId)
+        std::rethrow_exception(configConnectionError);
 }
 
 void NativeDeviceHelper::unregisterConfigRequest(uint64_t requestId)
@@ -365,11 +381,12 @@ void NativeDeviceHelper::unregisterConfigRequest(uint64_t requestId)
 void NativeDeviceHelper::cancelPendingConfigRequests(const DaqException& e)
 {
     std::scoped_lock lock(requestReplySync);
+    configConnectionError = std::make_exception_ptr(e);
     for (auto it = replyPackets.begin(); it != replyPackets.end(); )
     {
         auto& replyPromise = it->second;
         LOG_W("Cancel config request id {}: {}", it->first, e.what());
-        replyPromise.set_exception(std::make_exception_ptr(e));
+        replyPromise.set_exception(configConnectionError);
         it = replyPackets.erase(it);
     }
 }
@@ -433,12 +450,9 @@ void NativeDeviceHelper::doConfigNoReplyRequest(const config_protocol::PacketBuf
 
 void NativeDeviceHelper::sendConfigRequest(const config_protocol::PacketBuffer& reqPacket)
 {
-    // using a thread id is a hacky way to disable all config requests
-    // except those related to reconnection until reconnection is finished
-    if (connectionStatus != "Connected" &&
-        std::this_thread::get_id() != reconnectionProcessingThreadId)
     {
-        DAQ_THROW_EXCEPTION(ConnectionLostException);
+        std::scoped_lock lock(requestReplySync);
+        throwIfConfigConnectionUnusable();
     }
 
     // send packet using a temporary copy of the transport client

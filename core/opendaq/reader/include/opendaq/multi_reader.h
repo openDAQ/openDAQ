@@ -182,7 +182,7 @@ DECLARE_OPENDAQ_INTERFACE(IMultiReader, ISampleReader)
     /*!
      * @brief Set whether input with matching global ID is used in synchronization and reading.
      * @param id Global ID of a component previously added into the MultiReader.
-     * @param unused If true, the component won't be synchronized or read from. An unused component cannot cause the MultiReader to enter
+     * @param isUsed If false, the component won't be synchronized or read from. An unused (isUsed=false) component cannot cause the MultiReader to enter
      * invalid state. In reading operations, provide buffers for ALL inputs, even the unused ones.
      */
     virtual ErrCode INTERFACE_FUNC setInputUsed(IString* id, Bool isUsed) = 0;
@@ -190,7 +190,7 @@ DECLARE_OPENDAQ_INTERFACE(IMultiReader, ISampleReader)
     /*!
      * @brief Get the used flag for the input component. If the result is false, the input is not used (ignored) by the MultiReader.
      * @param id Global ID of a component previously added into the MultiReader.
-     * @param unused Output parameter
+     * @param isUsed Output parameter
      */
     virtual ErrCode INTERFACE_FUNC getInputUsed(IString* id, Bool* isUsed) = 0;
 };

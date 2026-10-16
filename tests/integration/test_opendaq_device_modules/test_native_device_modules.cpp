@@ -19,9 +19,11 @@
 #include <testutils/testutils.h>
 #include <websocket_streaming_client_module/module_dll.h>
 #include <websocket_streaming_server_module/module_dll.h>
+#include <atomic>
 #include <chrono>
 #include <future>
 #include <iomanip>
+#include <thread>
 #include "opendaq/mock/mock_device_module.h"
 #include "test_helpers/test_helpers.h"
 
@@ -157,7 +159,8 @@ static InstancePtr CreateServerInstance(InstancePtr instance = CreateDefaultServ
 }
 
 static InstancePtr CreateClientInstance(uint16_t nativeConfigProtocolVersion = std::numeric_limits<uint16_t>::max(),
-                                        Bool restoreClientConfigOnReconnect = False)
+                                        Bool restoreClientConfigOnReconnect = False,
+                                        Int configProtocolRequestTimeoutMs = 0)
 {
     auto logger = Logger();
     auto scheduler = Scheduler(logger);
@@ -181,6 +184,8 @@ static InstancePtr CreateClientInstance(uint16_t nativeConfigProtocolVersion = s
         nativeDeviceConfig.setPropertyValue("ProtocolVersion", nativeConfigProtocolVersion);
 
     nativeDeviceConfig.setPropertyValue("RestoreClientConfigOnReconnect", restoreClientConfigOnReconnect);
+    if (configProtocolRequestTimeoutMs > 0)
+        nativeDeviceConfig.setPropertyValue("ConfigProtocolRequestTimeout", configProtocolRequestTimeoutMs);
 
     PropertyObjectPtr general = config.getPropertyValue("General");
     general.setPropertyValue("PrioritizedStreamingProtocols", List<IString>("OpenDAQNativeStreaming"));
@@ -2421,6 +2426,77 @@ TEST_F(NativeDeviceModulesTest, Reconnection)
     ASSERT_TRUE(info.assigned());
     ASSERT_EQ(info.getConnectionString(), "daq.nd://127.0.0.1");
     ASSERT_TRUE(info.hasProperty("NativeConfigProtocolVersion"));
+}
+
+// requests issued while the transport drops fail with ConnectionLostException at once, not after the request timeout
+TEST_F(NativeDeviceModulesTest, RequestsAfterDisconnectFailFast)
+{
+    SKIP_TEST_MAC_CI;
+    using namespace std::chrono;
+    constexpr Int requestTimeoutMs = 10000;
+    constexpr auto maxCallDuration = seconds(2);
+    constexpr size_t workerCount = 4;
+
+    auto server = CreateServerInstance();
+    auto client = CreateClientInstance(std::numeric_limits<uint16_t>::max(), False, requestTimeoutMs);
+    auto nestedDevice = client.getDevices()[0].getDevices()[0];
+
+    struct WorkerResult
+    {
+        milliseconds longestCall{0};
+        size_t connectionLostCount{0};
+        std::string otherError;
+    };
+
+    std::atomic<bool> stop{false};
+    const auto worker = [&stop, &nestedDevice](WorkerResult& result)
+    {
+        Int value = 0;
+        while (!stop)
+        {
+            const auto start = steady_clock::now();
+            try
+            {
+                nestedDevice.setPropertyValue("CustomProp", ++value);
+            }
+            catch (const ConnectionLostException&)
+            {
+                ++result.connectionLostCount;
+            }
+            catch (const std::exception& e)
+            {
+                result.otherError = e.what();
+            }
+            result.longestCall = std::max(result.longestCall, duration_cast<milliseconds>(steady_clock::now() - start));
+
+            // the request right after the first failure still goes out immediately
+            if (result.connectionLostCount > 1)
+                std::this_thread::sleep_for(milliseconds(10));
+        }
+    };
+
+    std::vector<WorkerResult> results(workerCount);
+    std::vector<std::thread> workers;
+    for (auto& result : results)
+        workers.emplace_back(worker, std::ref(result));
+
+    std::this_thread::sleep_for(milliseconds(200));
+
+    // destroy server to emulate disconnection
+    server.release();
+
+    std::this_thread::sleep_for(maxCallDuration + seconds(1));
+    stop = true;
+    for (auto& workerThread : workers)
+        workerThread.join();
+
+    for (size_t i = 0; i < workerCount; ++i)
+    {
+        EXPECT_EQ(results[i].otherError, "") << "worker " << i;
+        EXPECT_GT(results[i].connectionLostCount, 0u) << "worker " << i;
+        EXPECT_LT(results[i].longestCall.count(), duration_cast<milliseconds>(maxCallDuration).count())
+            << "worker " << i << ": a request issued at the moment of disconnection waited for the request timeout";
+    }
 }
 
 TEST_F(NativeDeviceModulesTest, ReconnectionRestoreClientConfig)

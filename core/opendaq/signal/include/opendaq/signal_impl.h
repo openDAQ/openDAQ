@@ -180,6 +180,7 @@ protected:
 
     virtual EventPacketPtr createDataDescriptorChangedEventPacket();
     virtual void onListenedStatusChanged(bool listened);
+    ErrCode setDomainSignalInternal(ISignal* signal);
     virtual SignalPtr onGetDomainSignal();
     virtual DataDescriptorPtr onGetDescriptor();
 
@@ -307,6 +308,19 @@ ErrCode SignalBase<TInterface, Interfaces...>::setPublic(Bool isPublic)
     if (this->isFrozen())
         return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_FROZEN);
 
+    // locks: value signal before domain signal, never the reverse; the reference check therefore runs unlocked on a copy
+    if (!isPublic)
+    {
+        std::vector<WeakRefPtr<ISignalConfig>> references;
+        {
+            auto lock = this->getRecursiveConfigLock2();
+            references = domainSignalReferences;
+        }
+        for (const auto& ref : references)
+            if (const auto valueSignal = ref.getRef(); valueSignal.assigned() && valueSignal.getPublic())
+                return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDPARAMETER, "A domain signal of a public signal cannot be made private");
+    }
+
     {
         auto lock = this->getRecursiveConfigLock2();
 
@@ -322,6 +336,9 @@ ErrCode SignalBase<TInterface, Interfaces...>::setPublic(Bool isPublic)
 
             return OPENDAQ_IGNORED;
         }
+
+        if (isPublic && domainSignal.assigned() && !domainSignal.getPublic())
+            return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDPARAMETER, "A signal with a private domain signal cannot be made public");
 
         this->isPublic = isPublic;
         setKeepLastPacket();
@@ -548,6 +565,15 @@ ErrCode SignalBase<TInterface, Interfaces...>::getDomainSignal(ISignal** signal)
 
 template <typename TInterface, typename... Interfaces>
 ErrCode SignalBase<TInterface, Interfaces...>::setDomainSignal(ISignal* signal)
+{
+    if (signal != nullptr && isPublic && !SignalPtr::Borrow(signal).getPublic())
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDPARAMETER, "The domain signal of a public signal must be public");
+    return setDomainSignalInternal(signal);
+}
+
+// applies a domain signal without the public/private check; used by mirrored signals that reflect a server's state
+template <typename TInterface, typename... Interfaces>
+ErrCode SignalBase<TInterface, Interfaces...>::setDomainSignalInternal(ISignal* signal)
 {
     {
         auto lock = this->getRecursiveConfigLock2();

@@ -22,6 +22,8 @@
 - [#1327](https://github.com/openDAQ/openDAQ/pull/1327) Fix events not being synchronized: `removeHandler` and `clear` now wait for a handler running on another thread, and handlers are called without the event lock held
 - [#1336](https://github.com/openDAQ/openDAQ/pull/1336) Config protocol client logs a child component that fails to apply the server's update
 - [#1308](https://github.com/openDAQ/openDAQ/pull/1308) Fixes a deadlock between mDNS query answering and server removal
+- [#1352](https://github.com/openDAQ/openDAQ/pull/1352) Fix process termination on mirrored signal teardown after a failed subscribe: a mirrored signal is marked as listened only once its subscribe succeeded, a failed teardown unsubscribe is logged instead of thrown, `ComponentImpl::remove` returns an error code instead of letting exceptions escape, and reader destructors no longer throw
+- [#1352](https://github.com/openDAQ/openDAQ/pull/1352) A streaming unsubscribes the value signal even when its domain signal is no longer in the streaming, so the value signal does not stay subscribed after its reader is gone
 - [#1305](https://github.com/openDAQ/openDAQ/pull/1305) Fix async races in native streaming shutdown process.
 - [#1304](https://github.com/openDAQ/openDAQ/pull/1304) Fix flaky test NativeDeviceModulesTest.GetConnectedClientsInfo by periodically polling instead of racing asynchronous events.
 - [#1303](https://github.com/openDAQ/openDAQ/pull/1303) Stop the mDNS discovery server's service thread before an instance releases its root device. A request the thread was answering through the device could keep the device tree alive past the instance's destruction and then destroy the context from the service thread itself, which joined its own thread and terminated the process.
@@ -60,6 +62,10 @@
 Nested property objects share their owner's lock, so a handler on a nested object runs under the owning component's lock. To keep a separate lock, set `LockingStrategy::OwnLock` before the object is assigned; clones keep the strategy.
 
 ## Required module changes
+
+### [#1352](https://github.com/openDAQ/openDAQ/pull/1352) A public value signal cannot have a private domain signal
+
+`setDomainSignal` returns `OPENDAQ_ERR_INVALIDPARAMETER` when the signal is public and the domain signal is private, and `setPublic` returns it for either change that would create that pair. Make the domain signal public, or the value signal private. Such value signals could not subscribe over native streaming before this change; a client connected to an older server that still serves the pair subscribes the value signal alone and logs a warning.
 
 ### [#1327](https://github.com/openDAQ/openDAQ/pull/1327) Event handler removal waits for running handlers
 

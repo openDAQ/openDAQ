@@ -154,8 +154,8 @@ StreamReaderImpl::StreamReaderImpl(const StreamReaderBuilderPtr& builder)
 
 StreamReaderImpl::~StreamReaderImpl()
 {
-    if (inputPort.assigned() && !portBinder.assigned())
-        inputPort.remove();
+    if (inputPort.assigned() && !portBinder.assigned() && OPENDAQ_FAILED(inputPort.asPtr<IRemovable>(true)->remove()))
+        daqClearErrorInfo();
 }
 
 void StreamReaderImpl::readDescriptorFromPort()

@@ -628,7 +628,14 @@ ErrCode StreamingImpl<Interfaces...>::unsubscribeSignal(const StringPtr& signalR
     if (domainSignalRemoteId.assigned() && !skipDomainSignalSubscribe)
     {
         ErrCode errCode = doUnsubscribeSignal(domainSignalRemoteId);
-        OPENDAQ_RETURN_IF_FAILED(errCode);
+        if (OPENDAQ_FAILED(errCode))
+        {
+            LOG_W(R"(Domain signal with remote Id "{}" failed to unsubscribe within streaming "{}", unsubscribing signal "{}" anyway)",
+                  domainSignalRemoteId,
+                  connectionString,
+                  signalRemoteId);
+            daqClearErrorInfo();
+        }
     }
 
     ErrCode errCode = doUnsubscribeSignal(signalRemoteId);

@@ -162,7 +162,9 @@ inline void ConfigClientSignalImpl::assignDomainSignal(const SignalPtr& domainSi
 
     this->coreEventMuted = true;
 
-    checkErrorInfo(SignalBase<IMirroredSignalConfig, IMirroredSignalPrivate, IConfigClientObject, IConfigClientSignalPrivate>::setDomainSignal(domainSignal));
+    checkErrorInfo(
+        SignalBase<IMirroredSignalConfig, IMirroredSignalPrivate, IConfigClientObject, IConfigClientSignalPrivate>::setDomainSignalInternal(
+            domainSignal));
 
     if (relock)
         this->lockedAttributes.insert("DomainSignal");
@@ -223,7 +225,8 @@ inline void ConfigClientSignalImpl::attributeChanged(const CoreEventArgsPtr& arg
     else if (attrName == "DomainSignal")
     {
         const SignalPtr domainSignal = args.getParameters().get("DomainSignal");
-        checkErrorInfo(SignalBase<IMirroredSignalConfig, IMirroredSignalPrivate, IConfigClientObject, IConfigClientSignalPrivate>::setDomainSignal(domainSignal));
+        checkErrorInfo(SignalBase<IMirroredSignalConfig, IMirroredSignalPrivate, IConfigClientObject, IConfigClientSignalPrivate>::
+                           setDomainSignalInternal(domainSignal));
     }
 
     if (relock)

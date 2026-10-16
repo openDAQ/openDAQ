@@ -103,8 +103,8 @@ public:
 
     ~ReaderImpl() override
     {
-        if (port.assigned() && !portBinder.assigned())
-            port.remove();
+        if (port.assigned() && !portBinder.assigned() && OPENDAQ_FAILED(port.asPtr<IRemovable>(true)->remove()))
+            daqClearErrorInfo();
     }
 
     /*!

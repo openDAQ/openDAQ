@@ -27,6 +27,8 @@
 #include <opendaq/streaming_ptr.h>
 
 #include <future>
+#include <mutex>
+#include <optional>
 
 BEGIN_NAMESPACE_OPENDAQ_NATIVE_STREAMING_CLIENT_MODULE
 
@@ -75,6 +77,8 @@ private:
     void tryConfigProtocolReconnect();
     void startAcceptNotificationPackets();
     void stopAcceptNotificationPackets();
+    bool isConfigConnectionUsable();
+    void throwIfConfigConnectionUnusable(const std::unique_lock<std::mutex>& requestReplyLock);
 
     std::shared_ptr<boost::asio::io_context> processingIOContextPtr;
     std::shared_ptr<boost::asio::io_context> reconnectionProcessingIOContextPtr;
@@ -84,6 +88,8 @@ private:
     std::unique_ptr<config_protocol::ConfigProtocolClient<NativeDeviceImpl>> configProtocolClient;
     opendaq_native_streaming_protocol::NativeStreamingClientHandlerPtr transportClientHandler;
     std::unordered_map<uint64_t, std::promise<config_protocol::PacketBuffer>> replyPackets;
+    // exception the pending requests were cancelled with, until the config protocol reconnects; guarded by requestReplySync
+    std::optional<DaqException> configConnectionError;
     WeakRefPtr<IDevice> deviceRef;
     EnumerationPtr connectionStatus;
     bool acceptNotificationPackets;

@@ -1,0 +1,2 @@
+The JSON generator does not use a template; this file only satisfies the
+template lookup rtgen performs for every language before generation starts.

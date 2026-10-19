@@ -43,6 +43,7 @@ namespace test_helpers::native_tls
     // kept apart from the LT fixtures: the file names coincide, the authorities do not
     inline constexpr const char* CaCert = "native_secrets/ca.crt";
     inline constexpr const char* OtherCaCert = "native_secrets/other-ca.crt";
+    inline constexpr const char* OtherCaKey = "native_secrets/other-ca.key";
     inline constexpr const char* ServerCert = "native_secrets/server.crt";
     inline constexpr const char* ServerKey = "native_secrets/server.key";
     inline constexpr const char* ClientCert = "native_secrets/client.crt";
@@ -50,6 +51,7 @@ namespace test_helpers::native_tls
 
     /// @brief server configuration with the TLS listener on
     /// @param mutualTls requires clients to present a certificate signed by CaCert
+    /// Under NATIVE_STREAMING_TLS_WITHOUT_SIGN the server has no such setting, and asking for it throws
     /// @param plainPortEnabled keeps the plaintext listener alongside; false serves TLS only
     [[maybe_unused]]
     inline PropertyObjectPtr secureServerConfig(const InstancePtr& serverInstance,
@@ -61,11 +63,41 @@ namespace test_helpers::native_tls
         config.setPropertyValue("EnableTlsPort", True);
         config.setPropertyValue("CertificateFilePath", ServerCert);
         config.setPropertyValue("KeyFilePath", ServerKey);
+#ifdef NATIVE_STREAMING_TLS_WITHOUT_SIGN
+        if (mutualTls)
+            DAQ_THROW_EXCEPTION(InvalidParameterException, "The native server has no mutual TLS in this build");
+#else
         config.setPropertyValue("EnableMutualTls", mutualTls);
         if (mutualTls)
             config.setPropertyValue("CaCertificateFilePath", CaCert);
+#endif
         return config;
     }
+
+#ifdef NATIVE_STREAMING_TLS_WITHOUT_SIGN
+
+    // The client has no certificate settings, so the helpers below hand out the configuration as it is.
+    // They keep their signatures so that the tests which only need a working secure connection stay
+    // as they are; the tests which depend on the certificate settings are left out of this build.
+
+    /// @brief client configuration for a secure connection, which never verifies the server
+    [[maybe_unused]]
+    inline PropertyObjectPtr secureClientConfig(const InstancePtr& clientInstance,
+                                                const char* deviceTypeId,
+                                                bool /*mutualTls*/ = false,
+                                                const char* /*caCert*/ = CaCert)
+    {
+        return clientInstance.getAvailableDeviceTypes().get(deviceTypeId).createDefaultConfig();
+    }
+
+    [[maybe_unused]]
+    inline void applySecureClientConfig(const PropertyObjectPtr& /*addDeviceConfig*/,
+                                        bool /*mutualTls*/ = false,
+                                        const char* /*caCert*/ = CaCert)
+    {
+    }
+
+#else
 
     /// @brief client configuration which authenticates the server against the given authority
     /// @param deviceTypeId which of the secure types to configure, device or streaming
@@ -117,6 +149,8 @@ namespace test_helpers::native_tls
             }
         }
     }
+
+#endif
 
     [[maybe_unused]]
     inline std::string connectionString(const char* prefix, uint16_t port)

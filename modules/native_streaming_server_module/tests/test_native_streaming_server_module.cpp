@@ -11,6 +11,7 @@
 #include <opendaq/mock/mock_device_module.h>
 #include <opendaq/mock/mock_fb_module.h>
 #include <coreobjects/authentication_provider_factory.h>
+#include <native_streaming_protocol/native_streaming_constants.h>
 
 #include <boost/asio/io_context.hpp>
 #include <boost/asio/ip/tcp.hpp>
@@ -248,12 +249,17 @@ TEST_F(NativeStreamingServerModuleTest, TlsServerConfig)
     ASSERT_TRUE(config.hasProperty("NativeStreamingTlsPort"));
     ASSERT_EQ(config.getPropertyValue("NativeStreamingTlsPort"), 7422);
 
-    ASSERT_TRUE(config.hasProperty("EnableMutualTls"));
-    ASSERT_EQ(config.getPropertyValue("EnableMutualTls"), True);
-
     ASSERT_TRUE(config.hasProperty("CertificateFilePath"));
     ASSERT_TRUE(config.hasProperty("KeyFilePath"));
+
+#ifdef NATIVE_STREAMING_TLS_WITHOUT_SIGN
+    ASSERT_FALSE(config.hasProperty("EnableMutualTls"));
+    ASSERT_FALSE(config.hasProperty("CaCertificateFilePath"));
+#else
+    ASSERT_TRUE(config.hasProperty("EnableMutualTls"));
+    ASSERT_EQ(config.getPropertyValue("EnableMutualTls"), True);
     ASSERT_TRUE(config.hasProperty("CaCertificateFilePath"));
+#endif
 #else
     // without the option the TLS channel does not exist
     ASSERT_FALSE(config.hasProperty("EnableTlsPort"));
@@ -318,7 +324,9 @@ TEST_F(NativeStreamingServerModuleTest, RefusesTlsWithUnreadableCertificate)
     config.setPropertyValue("NativeStreamingTlsPort", 0);
     config.setPropertyValue("CertificateFilePath", "nonexistent/server.crt");
     config.setPropertyValue("KeyFilePath", "nonexistent/server.key");
+#ifndef NATIVE_STREAMING_TLS_WITHOUT_SIGN
     config.setPropertyValue("EnableMutualTls", False);
+#endif
 
     ASSERT_THROW(device.addServer("OpenDAQNativeStreaming", config), GeneralErrorException);
     ASSERT_EQ(device.getInfo().getServerCapabilities().getCount(), 0u);
@@ -337,7 +345,9 @@ TEST_F(NativeStreamingServerModuleTest, WithdrawsPlaintextChannelWhenTlsFails)
     config.setPropertyValue("NativeStreamingTlsPort", 0);
     config.setPropertyValue("CertificateFilePath", "nonexistent/server.crt");
     config.setPropertyValue("KeyFilePath", "nonexistent/server.key");
+#ifndef NATIVE_STREAMING_TLS_WITHOUT_SIGN
     config.setPropertyValue("EnableMutualTls", False);
+#endif
 
     ASSERT_THROW(device.addServer("OpenDAQNativeStreaming", config), GeneralErrorException);
     ASSERT_EQ(device.getInfo().getServerCapabilities().getCount(), 0u);

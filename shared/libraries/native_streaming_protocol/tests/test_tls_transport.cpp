@@ -39,6 +39,15 @@ constexpr const char* ClientCert = "native_secrets/client.crt";
 constexpr const char* ClientKey = "native_secrets/client.key";
 constexpr const char* OtherCaKey = "native_secrets/other-ca.key";
 
+#ifdef NATIVE_STREAMING_TLS_WITHOUT_SIGN
+
+PropertyObjectPtr createTlsConfig(const char* /*caCert*/, bool /*mutualTls*/)
+{
+    return PropertyObject();
+}
+
+#else
+
 PropertyObjectPtr createTlsConfig(const char* caCert, bool mutualTls)
 {
     auto config = PropertyObject();
@@ -49,6 +58,8 @@ PropertyObjectPtr createTlsConfig(const char* caCert, bool mutualTls)
     config.addProperty(StringProperty(PROPERTY_KEY_FILE_PATH_CLIENT, mutualTls ? ClientKey : ""));
     return config;
 }
+
+#endif
 
 }
 
@@ -154,6 +165,18 @@ TEST_F(TlsTransportTest, Connect)
     ASSERT_TRUE(clientHandler->connect(SERVER_ADDRESS, TLS_LISTENING_PORT));
 }
 
+#ifdef NATIVE_STREAMING_TLS_WITHOUT_SIGN
+
+TEST_F(TlsTransportTest, ConnectsRegardlessOfCertificateAuthority)
+{
+    startServer(/*mutualTls*/ false, OtherCaCert, OtherCaKey);
+    createClient();
+
+    ASSERT_TRUE(clientHandler->connect(SERVER_ADDRESS, TLS_LISTENING_PORT));
+}
+
+#else
+
 TEST_F(TlsTransportTest, ConnectMutualTls)
 {
     startServer(/*mutualTls*/ true);
@@ -177,6 +200,8 @@ TEST_F(TlsTransportTest, RejectedByWrongCertificateAuthority)
 
     ASSERT_FALSE(clientHandler->connect(SERVER_ADDRESS, TLS_LISTENING_PORT));
 }
+
+#endif
 
 TEST_F(TlsTransportTest, RejectedByMutualTlsWithoutClientCertificate)
 {
@@ -222,8 +247,8 @@ TEST_F(TlsTransportTest, Reconnection)
 
 // the mirror image of Reconnection: a failure of the secure handshake is not something another
 // attempt can fix, so the client has to give up rather than retry forever. The server comes back
-// with credentials the client's authority never signed, which is what a swapped or misconfigured
-// server looks like from here.
+// configured in a way the client cannot get past, which is what a swapped or misconfigured server
+// looks like from here.
 TEST_F(TlsTransportTest, ReconnectionRejectedBySecurity)
 {
     startServer();
@@ -237,7 +262,14 @@ TEST_F(TlsTransportTest, ReconnectionRejectedBySecurity)
     connectionStatusPromise = std::promise<EnumerationPtr>();
     connectionStatusFuture = connectionStatusPromise.get_future();
 
+#ifdef NATIVE_STREAMING_TLS_WITHOUT_SIGN
+    // the client takes any server certificate, so the refusal has to come from the server: it now
+    // asks for a client certificate the client has no way to present. The module of this build
+    // offers no such setting, but a server built without the define still does
+    startServer(/*mutualTls*/ true);
+#else
     startServer(/*mutualTls*/ false, OtherCaCert, OtherCaKey);
+#endif
 
     ASSERT_EQ(connectionStatusFuture.wait_for(std::chrono::seconds(20)), std::future_status::ready);
     ASSERT_EQ(connectionStatusFuture.get(), "Unrecoverable");

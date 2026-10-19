@@ -52,6 +52,7 @@ public:
 
     /// @brief constructs a client which connects over TLS
     /// @param tlsProperties the certificate paths and the verification settings
+    /// Under NATIVE_STREAMING_TLS_WITHOUT_SIGN its contents are ignored and the server is never verified
     explicit NativeStreamingClientImpl(const ContextPtr& context,
                                        const PropertyObjectPtr& transportLayerProperties,
                                        const PropertyObjectPtr& authenticationObject,
@@ -228,6 +229,7 @@ public:
 
     /// @brief constructs a handler whose client connects over TLS
     /// @param tlsProperties the certificate paths and the verification settings
+    /// Under NATIVE_STREAMING_TLS_WITHOUT_SIGN its contents are ignored and the server is never verified
     explicit NativeStreamingClientHandler(const ContextPtr& context,
                                           const PropertyObjectPtr& transportLayerProperties,
                                           const PropertyObjectPtr& authenticationObject,

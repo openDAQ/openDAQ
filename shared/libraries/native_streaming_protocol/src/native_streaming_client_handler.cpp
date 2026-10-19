@@ -613,6 +613,10 @@ std::optional<daq::native_streaming::ClientTlsConfig> NativeStreamingClientImpl:
         return std::nullopt;
 
     daq::native_streaming::ClientTlsConfig tlsConfig;
+
+#ifdef NATIVE_STREAMING_TLS_WITHOUT_SIGN
+    tlsConfig.verifyServer = false;
+#else
     tlsConfig.verifyServer = tlsProperties.hasProperty(PROPERTY_VERIFY_SERVER_CERT_CLIENT)
                                  ? static_cast<bool>(tlsProperties.getPropertyValue(PROPERTY_VERIFY_SERVER_CERT_CLIENT))
                                  : DEFAULT_VERIFY_SERVER_CERT;
@@ -658,6 +662,7 @@ std::optional<daq::native_streaming::ClientTlsConfig> NativeStreamingClientImpl:
                   "has not been authenticated would disclose it to whoever answered.",
                   PROPERTY_VERIFY_SERVER_CERT_CLIENT);
     }
+#endif
 
     return tlsConfig;
 }

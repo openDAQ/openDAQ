@@ -276,6 +276,9 @@ PropertyObjectPtr NativeStreamingClientModule::parseTlsConfig(const PropertyObje
     if (!secure)
         return nullptr;
 
+#ifdef NATIVE_STREAMING_TLS_WITHOUT_SIGN
+    return PropertyObject();
+#else
     // values only: the visibility conditions of the originals refer to their siblings, which would
     // not survive being lifted into an object of their own
     auto tlsConfig = PropertyObject();
@@ -303,6 +306,7 @@ PropertyObjectPtr NativeStreamingClientModule::parseTlsConfig(const PropertyObje
     copyPath(PROPERTY_KEY_FILE_PATH_CLIENT);
 
     return tlsConfig;
+#endif
 }
 
 #endif
@@ -509,7 +513,7 @@ PropertyObjectPtr NativeStreamingClientModule::createConnectionDefaultConfig(Nat
 
     daq::ClientTypeTools::DefineConfigProperties(defaultConfig);
 
-#if NATIVE_STREAMING_ENABLE_TLS
+#if NATIVE_STREAMING_ENABLE_TLS && !defined(NATIVE_STREAMING_TLS_WITHOUT_SIGN)
     if (secure)
     {
         const std::string verifyingServer = std::string("$") + PROPERTY_VERIFY_SERVER_CERT_CLIENT + " == 1";

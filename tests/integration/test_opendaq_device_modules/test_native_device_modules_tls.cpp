@@ -201,6 +201,44 @@ TEST_F(NativeTlsTest, ConnectPseudoDevice)
     ASSERT_GT(device.getSignals(search::Recursive(search::Any())).getCount(), 0u);
 }
 
+#ifdef NATIVE_STREAMING_TLS_WITHOUT_SIGN
+
+// the client accepts whatever certificate the server presents
+TEST_F(NativeTlsTest, AcceptsServerOfAnyAuthority)
+{
+    auto server = Instance("[[none]]");
+    addRefDeviceModule(server);
+    addNativeServerModule(server);
+    server.addDevice("daqref://device1");
+
+    // signed by an authority the client has never been told about
+    auto serverConfig = secureServerConfig(server);
+    serverConfig.setPropertyValue("CertificateFilePath", OtherCaCert);
+    serverConfig.setPropertyValue("KeyFilePath", OtherCaKey);
+    server.addServer(ServerTypeId, serverConfig);
+
+    auto client = createClientInstance();
+    auto device = client.addDevice(connectionString("daq.nds", TlsPort),
+                                   secureClientConfig(client, SecureConfigId));
+
+    ASSERT_TRUE(device.assigned());
+    ASSERT_GT(device.getSignalsRecursive().getCount(), 0u);
+}
+
+// nothing has to be configured on the client for a secure connection
+TEST_F(NativeTlsTest, ConnectsWithDefaultConfig)
+{
+    auto server = createServerInstance();
+    auto client = createClientInstance();
+
+    auto device = client.addDevice(connectionString("daq.nds", TlsPort));
+
+    ASSERT_TRUE(device.assigned());
+    ASSERT_GT(device.getSignalsRecursive().getCount(), 0u);
+}
+
+#else
+
 TEST_F(NativeTlsTest, ConnectMutualTls)
 {
     auto server = createServerInstance(/*mutualTls*/ true);
@@ -252,6 +290,8 @@ TEST_F(NativeTlsTest, RejectedByMutualTlsWithoutClientCertificate)
     ASSERT_ANY_THROW(client.addDevice(connectionString("daq.nds", TlsPort),
                                       secureClientConfig(client, SecureConfigId, /*mutualTls*/ false)));
 }
+
+#endif
 
 TEST_F(NativeTlsTest, PlaintextChannelStillWorksAlongside)
 {
@@ -318,6 +358,8 @@ TEST_F(NativeTlsTest, ServerRefusesTlsWithoutSecrets)
     ASSERT_THROW(instance.addServer(ServerTypeId, config), InvalidParameterException);
 }
 
+#ifndef NATIVE_STREAMING_TLS_WITHOUT_SIGN
+
 TEST_F(NativeTlsTest, ServerRefusesMutualTlsWithoutCertificateAuthority)
 {
     auto instance = Instance("[[none]]");
@@ -331,6 +373,8 @@ TEST_F(NativeTlsTest, ServerRefusesMutualTlsWithoutCertificateAuthority)
 
     ASSERT_THROW(instance.addServer(ServerTypeId, config), InvalidParameterException);
 }
+
+#endif
 
 TEST_F(NativeTlsTest, ServerRefusesConfigurationWithoutAnyListener)
 {

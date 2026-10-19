@@ -12,6 +12,7 @@
 #include <opendaq/device_info_factory.h>
 #include <opendaq/instance_factory.h>
 #include <opendaq/address_info_factory.h>
+#include <native_streaming_protocol/native_streaming_constants.h>
 
 #include <tuple>
 #include <vector>
@@ -268,6 +269,13 @@ TEST_F(NativeStreamingClientModuleTest, SecureDefaultConfig)
     {
         auto config = deviceTypes.get(id).createDefaultConfig();
 
+#ifdef NATIVE_STREAMING_TLS_WITHOUT_SIGN
+        ASSERT_FALSE(config.hasProperty("VerifyServerCertificate")) << id;
+        ASSERT_FALSE(config.hasProperty("CaCertificateFilePath")) << id;
+        ASSERT_FALSE(config.hasProperty("EnableMutualTls")) << id;
+        ASSERT_FALSE(config.hasProperty("CertificateFilePath")) << id;
+        ASSERT_FALSE(config.hasProperty("KeyFilePath")) << id;
+#else
         ASSERT_TRUE(config.hasProperty("VerifyServerCertificate")) << id;
         ASSERT_EQ(config.getPropertyValue("VerifyServerCertificate"), True) << id;
         ASSERT_TRUE(config.hasProperty("CaCertificateFilePath")) << id;
@@ -276,6 +284,7 @@ TEST_F(NativeStreamingClientModuleTest, SecureDefaultConfig)
 
         ASSERT_TRUE(config.hasProperty("EnableMutualTls")) << id;
         ASSERT_EQ(config.getPropertyValue("EnableMutualTls"), False) << id;
+#endif
 
         ASSERT_EQ(config.getPropertyValue("Port"), 7422) << id;
 

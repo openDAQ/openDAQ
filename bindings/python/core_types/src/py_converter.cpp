@@ -64,6 +64,15 @@ daq::ObjectPtr<daq::IBaseObject> pyObjectToBaseObject(const py::object& handle, 
         }
         return daqList;
     }
+    else if (py::isinstance<py::dict>(handle))
+    {
+        auto pyDict = handle.cast<py::dict>();
+        auto daqDict = daq::Dict<daq::IBaseObject, daq::IBaseObject>();
+        for (const auto& it : pyDict)
+            daqDict.set(pyObjectToBaseObject(py::reinterpret_borrow<py::object>(it.first), false),
+                        pyObjectToBaseObject(py::reinterpret_borrow<py::object>(it.second), false));
+        return daqDict;
+    }
 
     auto obj = py::reinterpret_borrow<py::object>(handle);
     return wrapPyObject(std::move(obj));

@@ -380,6 +380,14 @@ class TestDict(opendaq_test.TestCase):
         for key, value in dict.items():
             self.assertEqual(key.upper(), value)
 
+    def test_implicit_conversion(self):
+        func = daq.Function(lambda: {'name': 'value', 'nested': {'number': 2.5}})
+        value = func()
+
+        self.assertIsInstance(value, daq.IDict)
+        self.assertEqual(value['name'], 'value')
+        self.assertEqual(dict(value['nested']), {'number': 2.5})
+
 class TestLeaks(opendaq_test.TestCase):
 
     def test_leak1(self):

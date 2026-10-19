@@ -99,15 +99,21 @@ NativeStreamingServerImpl::NativeStreamingServerImpl(const DevicePtr& rootDevice
         if (tlsChannelEnabled)
         {
             const uint16_t tlsPort = config.getPropertyValue(PROPERTY_TLS_PORT_SERVER);
-            const bool mutualTls = config.getPropertyValue(PROPERTY_ENABLE_MTLS_SERVER);
             const auto readPath = [&config](const char* name)
             { return StringPtr(config.getPropertyValue(name)).toStdString(); };
+
+#ifdef NATIVE_STREAMING_TLS_WITHOUT_SIGN
+            const std::string caFile;
+#else
+            const bool mutualTls = config.getPropertyValue(PROPERTY_ENABLE_MTLS_SERVER);
+            const std::string caFile = mutualTls ? readPath(PROPERTY_CA_CERT_FILE_PATH_SERVER) : std::string();
+#endif
 
             // an empty CA file is how the transport is told not to ask clients for a certificate
             serverHandler->startTlsServer(tlsPort,
                                           readPath(PROPERTY_CERT_FILE_PATH_SERVER),
                                           readPath(PROPERTY_KEY_FILE_PATH_SERVER),
-                                          mutualTls ? readPath(PROPERTY_CA_CERT_FILE_PATH_SERVER) : std::string());
+                                          caFile);
             addServerCapabilities(infoInternal, tlsPort, path, true);
         }
 #endif
@@ -159,6 +165,7 @@ void NativeStreamingServerImpl::validateChannelConfig(const PropertyObjectPtr& c
                             PROPERTY_KEY_FILE_PATH_SERVER,
                             PROPERTY_ENABLE_TLS_PORT_SERVER);
 
+#ifndef NATIVE_STREAMING_TLS_WITHOUT_SIGN
     const bool mutualTls = config.getPropertyValue(PROPERTY_ENABLE_MTLS_SERVER);
     if (mutualTls && isEmpty(PROPERTY_CA_CERT_FILE_PATH_SERVER))
         DAQ_THROW_EXCEPTION(InvalidParameterException,
@@ -166,6 +173,7 @@ void NativeStreamingServerImpl::validateChannelConfig(const PropertyObjectPtr& c
                             "stop asking clients for one.",
                             PROPERTY_CA_CERT_FILE_PATH_SERVER,
                             PROPERTY_ENABLE_MTLS_SERVER);
+#endif
 #endif
 }
 

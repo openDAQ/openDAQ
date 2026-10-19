@@ -336,12 +336,14 @@ PropertyObjectPtr NativeStreamingServerHandler::createDefaultConfig()
                                      .build();
         defaultConfig.addProperty(tlsPortProp);
 
+#ifndef NATIVE_STREAMING_TLS_WITHOUT_SIGN
         const auto mutualTlsProp = BoolPropertyBuilder(PROPERTY_ENABLE_MTLS_SERVER, DEFAULT_ENABLE_MTLS)
                                        .setDescription("Requires clients to present a certificate signed by one of the authorities "
                                                        "in the CA certificate file. Clients without one are rejected.")
                                        .setVisible(EvalValue(tlsEnabled))
                                        .build();
         defaultConfig.addProperty(mutualTlsProp);
+#endif
 
         const auto certProp = StringPropertyBuilder(PROPERTY_CERT_FILE_PATH_SERVER, DEFAULT_CERT_FILE_PATH)
                                   .setDescription("Path to the server certificate chain in PEM format. Required when the TLS port is enabled.")
@@ -355,12 +357,14 @@ PropertyObjectPtr NativeStreamingServerHandler::createDefaultConfig()
                                  .build();
         defaultConfig.addProperty(keyProp);
 
+#ifndef NATIVE_STREAMING_TLS_WITHOUT_SIGN
         const auto caProp = StringPropertyBuilder(PROPERTY_CA_CERT_FILE_PATH_SERVER, DEFAULT_CA_CERT_FILE_PATH)
                                 .setDescription("Path to the trusted CA certificates in PEM format, used to verify client certificates. "
                                                 "Required when mutual TLS is enabled.")
                                 .setVisible(EvalValue("(" + tlsEnabled + ") && ($" + std::string(PROPERTY_ENABLE_MTLS_SERVER) + " == 1)"))
                                 .build();
         defaultConfig.addProperty(caProp);
+#endif
     }
 #endif
     {

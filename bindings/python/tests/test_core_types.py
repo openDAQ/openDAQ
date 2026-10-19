@@ -424,6 +424,16 @@ class TestProcedure(opendaq_test.TestCase):
 
         self.assertEqual(value, 20)
 
+    # Small ints are immortal, so this uses strings and floats that are freed when over-released
+    def test_params_outlive_call(self):
+
+        received = []
+        proc = daq.Procedure(lambda *args: received.append(args))
+        for i in range(10):
+            proc(f'string {i}', i + 0.5)
+
+        self.assertEqual(received, [(f'string {i}', i + 0.5) for i in range(10)])
+
 class TestFunction(opendaq_test.TestCase):
 
     def test_no_params(self):
@@ -452,6 +462,23 @@ class TestFunction(opendaq_test.TestCase):
         value = func(20, 10)
 
         self.assertEqual(value, 10)
+
+    # Small ints are immortal, so these use strings and floats that are freed when over-released
+    def test_one_string_param(self):
+
+        func = daq.Function(lambda v: v.upper())
+        value = func('value' * 10)
+
+        self.assertEqual(value, 'VALUE' * 10)
+
+    def test_params_outlive_call(self):
+
+        received = []
+        func = daq.Function(lambda *args: received.append(args))
+        for i in range(10):
+            func(f'string {i}', i + 0.5)
+
+        self.assertEqual(received, [(f'string {i}', i + 0.5) for i in range(10)])
 
 class TestStruct(opendaq_test.TestCase):
 

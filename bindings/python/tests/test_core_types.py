@@ -269,6 +269,15 @@ class TestList(opendaq_test.TestCase):
         list.push_back(1)
         self.assertEqual(list[-1], 1)
 
+    def test_implicit_conversion(self):
+        func = daq.Function(lambda: [0.5, "test", ["nested"]])
+        value = func()
+
+        self.assertIsInstance(value, daq.IList)
+        self.assertEqual(value[0], 0.5)
+        self.assertEqual(value[1], "test")
+        self.assertEqual(value[2][0], "nested")
+
 class TestIterable(opendaq_test.TestCase):
     def test_from_iterable(self):
         l = daq.List()

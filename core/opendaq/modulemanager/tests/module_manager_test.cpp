@@ -374,7 +374,7 @@ TEST_F(ModuleManagerTest, ScanOnAddDefaultEnabled)
 TEST_F(ModuleManagerTest, ParallelDeviceCreationSuccess)
 {
     auto manager = ModuleManager("[[none]]");
-    auto options = Dict<IString, IBaseObject>({{"ModuleManager", Dict<IString, IBaseObject>({{"AddDeviceRescanTimer", 10}})}});
+    auto options = Dict<IString, IBaseObject>({{"ModuleManager", Dict<IString, IBaseObject>({{"AddDeviceRescanTimer", 100000}})}});
     const auto context = Context(nullptr, Logger(), nullptr, manager, nullptr, options);
 
     auto module = createWithImplementation<IModule, MockModuleInternal>();
@@ -407,7 +407,7 @@ TEST_F(ModuleManagerTest, ParallelDeviceCreationSuccess)
 TEST_F(ModuleManagerTest, ParallelDeviceCreationPartialSuccess)
 {
     auto manager = ModuleManager("[[none]]");
-    auto options = Dict<IString, IBaseObject>({{"ModuleManager", Dict<IString, IBaseObject>({{"AddDeviceRescanTimer", 10}})}});
+    auto options = Dict<IString, IBaseObject>({{"ModuleManager", Dict<IString, IBaseObject>({{"AddDeviceRescanTimer", 100000}})}});
     const auto context = Context(nullptr, Logger(), nullptr, manager, nullptr, options);
 
     auto module = createWithImplementation<IModule, MockModuleInternal>();
@@ -444,7 +444,7 @@ TEST_F(ModuleManagerTest, ParallelDeviceCreationPartialSuccess)
 TEST_F(ModuleManagerTest, ParallelDeviceCreationFailure)
 {
     auto manager = ModuleManager("[[none]]");
-    auto options = Dict<IString, IBaseObject>({{"ModuleManager", Dict<IString, IBaseObject>({{"AddDeviceRescanTimer", 10}})}});
+    auto options = Dict<IString, IBaseObject>({{"ModuleManager", Dict<IString, IBaseObject>({{"AddDeviceRescanTimer", 100000}})}});
     const auto context = Context(nullptr, Logger(), nullptr, manager, nullptr, options);
 
     auto module = createWithImplementation<IModule, MockModuleInternal>();

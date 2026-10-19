@@ -145,7 +145,7 @@ BaseObjectPtr EvalValueImpl::getReferenceFromPrefix(const PropertyObjectPtr& pro
 
     if (refType == RefType::Property)
     {
-        value = propObject.getProperty(str);
+        value = lock ? propObject.getProperty(str) : propObject.asPtr<IPropertyObjectInternal>().getPropertyNoLock(str);
     }
     else if (refType == RefType::Value)
     {
@@ -161,7 +161,11 @@ BaseObjectPtr EvalValueImpl::getReferenceFromPrefix(const PropertyObjectPtr& pro
     {
         auto propNames = List<IString>();
         const PropertyObjectPtr child = lock ? propObject.getPropertyValue(str) : propObject.asPtr<IPropertyObjectInternal>().getPropertyValueNoLock(str);
-        for (const auto& prop : child.getAllProperties())
+        // Without lock the caller holds the owner's lock, which covers the child only when the child shares the owner's mutex
+        const auto childInternal = child.asPtr<IPropertyObjectInternal>();
+        const bool sharesLock = !lock && childInternal.getMutex().getObject() == propObject.asPtr<IPropertyObjectInternal>().getMutex().getObject();
+        const auto properties = sharesLock ? childInternal.getAllPropertiesNoLock() : child.getAllProperties();
+        for (const auto& prop : properties)
         {
             propNames.pushBack(prop.getName());
         }

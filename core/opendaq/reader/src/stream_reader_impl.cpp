@@ -154,8 +154,8 @@ StreamReaderImpl::StreamReaderImpl(const StreamReaderBuilderPtr& builder)
 
 StreamReaderImpl::~StreamReaderImpl()
 {
-    if (inputPort.assigned() && !portBinder.assigned())
-        inputPort.remove();
+    if (inputPort.assigned() && !portBinder.assigned() && OPENDAQ_FAILED(inputPort.asPtr<IRemovable>(true)->remove()))
+        daqClearErrorInfo();
 }
 
 void StreamReaderImpl::readDescriptorFromPort()
@@ -599,7 +599,18 @@ ReaderStatusPtr StreamReaderImpl::readPackets()
                     offset = 0;
                 }
             }
-            readPacketData();
+
+            // A failed readPacketData leaves the packet unconsumed: readWithDomain fails on a packet without a domain packet.
+            // It may already have copied the values and moved info.values on. Retrying the packet would copy them again
+            // past the end of the caller's buffer, or spin forever when nothing was copied.
+            ErrCode errCode = readPacketData();
+            if (OPENDAQ_FAILED(errCode))
+            {
+                daqClearErrorInfo();
+                info.reset();
+                invalid = true;
+                return ReaderStatus(nullptr, !invalid, offset);
+            }
         }
     }
 

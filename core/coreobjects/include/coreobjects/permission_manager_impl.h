@@ -22,6 +22,8 @@
 #include <coreobjects/permission_manager_internal_ptr.h>
 #include <coretypes/weakrefptr.h>
 #include <coretypes/cloneable.h>
+#include <mutex>
+#include <unordered_set>
 
 BEGIN_NAMESPACE_OPENDAQ
 
@@ -49,6 +51,8 @@ private:
     PermissionManagerInternalPtr getParentManager();
 
     WeakRefPtr<IPermissionManager> parent;
+    // Children register and unregister on the threads that create and destroy them
+    std::mutex childrenSync;
     std::unordered_set<IPermissionManager*> children;
     PermissionsPtr permissions;
     PermissionsPtr localPermissions;

@@ -101,12 +101,19 @@ protected:
 private:
     ErrCode subscribeInternal();
     ErrCode unsubscribeInternal();
+    void unsubscribeOnTeardown();
     ErrCode unsubscribeCompletedInternal(IString* streamingConnectionString, bool syncLock);
 
     // vector is used as the order of adding & accessing sources is important
     // store a pair string + weak reference to manage the removal of destroyed sources
     std::vector<std::pair<StringPtr, WeakRefPtr<IStreaming>>> streamingSourcesRefs;
+
     WeakRefPtr<IStreaming> activeStreamingSourceRef;
+
+    // The domain signal can change while this signal is subscribed. Unsubscribing has to release the domain signal
+    // that was subscribed, not the current one.
+    WeakRefPtr<ISignal> subscribedDomainSignalRef;
+
     bool listened;
     bool streamed;
     EventEmitter<MirroredSignalConfigPtr, SubscriptionEventArgsPtr> onSubscribeCompleteEvent;
@@ -184,7 +191,7 @@ template <typename... Interfaces>
 void MirroredSignalBase<Interfaces...>::removed()
 {
     if (listened && streamed)
-        unsubscribeInternal();
+        unsubscribeOnTeardown();
     activeStreamingSourceRef = nullptr;
 
     StringPtr signalRemoteId;
@@ -483,18 +490,31 @@ void MirroredSignalBase<Interfaces...>::onListenedStatusChanged(bool listened)
 {
     if (this->listened == listened)
         return;
-    this->listened = listened;
 
-    if (this->listened)
+    if (listened)
     {
+        // listened is set only after the subscribe succeeded, so a failed connect is retried by the next listener
         if (streamed)
             checkErrorInfo(subscribeInternal());
+        this->listened = true;
     }
     else
     {
+        this->listened = false;
         if (streamed)
-            checkErrorInfo(unsubscribeInternal());
+            unsubscribeOnTeardown();
     }
+}
+
+// teardown has no caller that can act on a failed unsubscribe, so it is logged and cleared, never thrown
+template <typename... Interfaces>
+void MirroredSignalBase<Interfaces...>::unsubscribeOnTeardown()
+{
+    if (OPENDAQ_SUCCEEDED(unsubscribeInternal()))
+        return;
+    const auto loggerComponent = this->context.getLogger().getOrAddComponent("Component");
+    LOG_W("Signal \"{}\" failed to unsubscribe from its active streaming source", this->globalId);
+    daqClearErrorInfo();
 }
 
 template <typename... Interfaces>
@@ -683,8 +703,32 @@ ErrCode MirroredSignalBase<Interfaces...>::subscribeInternal()
 
         StringPtr domainSignalRemoteId;
         if (domainSignal.assigned() && !domainSignal.isRemoved())
-            domainSignalRemoteId = domainSignal.template asPtr<IMirroredSignalConfig>().getRemoteId();
-        return activeStreamingSource.template asPtr<IStreamingPrivate>()->subscribeSignal(signalRemoteId, domainSignalRemoteId);
+        {
+            if (domainSignal.getPublic())
+            {
+                domainSignalRemoteId = domainSignal.template asPtr<IMirroredSignalConfig>().getRemoteId();
+            }
+            else
+            {
+                const auto loggerComponent = this->context.getLogger().getOrAddComponent("Component");
+                LOG_W("Signal \"{}\" has a private domain signal; the server is misconfigured, subscribing the value signal alone",
+                      this->globalId);
+            }
+        }
+
+        errCode = activeStreamingSource.template asPtr<IStreamingPrivate>()->subscribeSignal(signalRemoteId, domainSignalRemoteId);
+        OPENDAQ_RETURN_IF_FAILED(errCode);
+
+        if (domainSignalRemoteId.assigned())
+        {
+            subscribedDomainSignalRef = WeakRefPtr<ISignal>(domainSignal);
+        }
+        else
+        {
+            subscribedDomainSignalRef = nullptr;
+        }
+
+        return errCode;
     }
     else
     {
@@ -702,9 +746,11 @@ ErrCode MirroredSignalBase<Interfaces...>::unsubscribeInternal()
         ErrCode errCode = wrapHandlerReturn(this, &Self::onGetRemoteId, signalRemoteId);
         OPENDAQ_RETURN_IF_FAILED(errCode);
 
-        SignalPtr domainSignal;
-        errCode = wrapHandlerReturn(this, &Self::onGetDomainSignal, domainSignal);
-        OPENDAQ_RETURN_IF_FAILED(errCode);
+        const SignalPtr domainSignal = subscribedDomainSignalRef.assigned()
+            ? subscribedDomainSignalRef.getRef()
+            : nullptr;
+
+        subscribedDomainSignalRef = nullptr;
 
         StringPtr domainSignalRemoteId;
         if (domainSignal.assigned() && !domainSignal.isRemoved())

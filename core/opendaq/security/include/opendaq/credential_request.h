@@ -93,14 +93,6 @@ DECLARE_OPENDAQ_INTERFACE(ICredentialRequest, IBaseObject)
      * @param[out] authenticationMethod The authentication method.
      */
     virtual ErrCode INTERFACE_FUNC getAuthenticationMethod(IAuthenticationMethod** authenticationMethod) = 0;
-
-    /*!
-     * @brief Helper method to get a generic-form key usable by any vault - e.g.
-     * "componentTypeId|methodId|connectionString"; equal for equal keys, and unambiguous, since type and
-     * method ids contain no '|'. What a vault stores this request's credential under.
-     * @param[out] key The generic-form key.
-     */
-    virtual ErrCode INTERFACE_FUNC getKey(IString** key) = 0;
 };
 
 /*!

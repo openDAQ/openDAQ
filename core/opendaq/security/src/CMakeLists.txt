@@ -6,6 +6,7 @@ function(rtgen_component_${BASE_NAME})
     rtgen(SRC_CredentialRequestBuilder credential_request_builder.h)
     rtgen(SRC_AuthenticationConfig authentication_config.h)
     rtgen(SRC_AuthenticationMethod authentication_method.h)
+    rtgen(SRC_AuthenticationMethodInternal authentication_method_internal.h INTERNAL)
     rtgen(SRC_CredentialField credential_field.h)
     rtgen(SRC_LoginParameters login_parameters.h)
     rtgen(SRC_LoginParametersBuilder login_parameters_builder.h)
@@ -16,6 +17,7 @@ function(rtgen_component_${BASE_NAME})
         ${SRC_CredentialRequestBuilder_PublicHeaders}
         ${SRC_AuthenticationConfig_PublicHeaders}
         ${SRC_AuthenticationMethod_PublicHeaders}
+        ${SRC_AuthenticationMethodInternal_PublicHeaders}
         ${SRC_CredentialField_PublicHeaders}
         ${SRC_LoginParameters_PublicHeaders}
         ${SRC_LoginParametersBuilder_PublicHeaders}
@@ -28,6 +30,7 @@ function(rtgen_component_${BASE_NAME})
         ${SRC_CredentialRequestBuilder_PrivateHeaders}
         ${SRC_AuthenticationConfig_PrivateHeaders}
         ${SRC_AuthenticationMethod_PrivateHeaders}
+        ${SRC_AuthenticationMethodInternal_PrivateHeaders}
         ${SRC_CredentialField_PrivateHeaders}
         ${SRC_LoginParameters_PrivateHeaders}
         ${SRC_LoginParametersBuilder_PrivateHeaders}
@@ -40,6 +43,7 @@ function(rtgen_component_${BASE_NAME})
         ${SRC_CredentialRequestBuilder_Cpp}
         ${SRC_AuthenticationConfig_Cpp}
         ${SRC_AuthenticationMethod_Cpp}
+        ${SRC_AuthenticationMethodInternal_Cpp}
         ${SRC_CredentialField_Cpp}
         ${SRC_LoginParameters_Cpp}
         ${SRC_LoginParametersBuilder_Cpp}
@@ -63,6 +67,7 @@ function(create_component_source_groups_${BASE_NAME})
         ${SDK_HEADERS_DIR}/authentication_config.h
         ${SDK_HEADERS_DIR}/authentication_config_impl.h
         ${SDK_HEADERS_DIR}/authentication_method.h
+        ${SDK_HEADERS_DIR}/authentication_method_internal.h
         ${SDK_HEADERS_DIR}/authentication_method_factory.h
         ${SDK_HEADERS_DIR}/authentication_method_impl.h
         ${SDK_HEADERS_DIR}/credential_field.h
@@ -97,6 +102,7 @@ set(SRC_PublicHeaders_Component
     credential_request_factory.h
     authentication_config.h
     authentication_method.h
+    authentication_method_internal.h
     authentication_method_factory.h
     credential_field.h
     credential_field_factory.h

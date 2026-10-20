@@ -45,7 +45,7 @@ DECLARE_OPENDAQ_INTERFACE(ILoginParameters, IBaseObject)
     // [templateType(credentials, IString, IString)]
     /*!
      * @brief Gets the resolved credentials - a value for each of the authentication method's mandatory
-     * fields; empty for a method with none (e.g. "Anonymous").
+     * fields. Always assigned - empty for a method with none (e.g. "Anonymous").
      * @param[out] credentials The resolved credentials.
      */
     virtual ErrCode INTERFACE_FUNC getCredentials(IDict** credentials) = 0;

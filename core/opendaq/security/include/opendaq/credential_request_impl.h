@@ -36,7 +36,6 @@ public:
     ErrCode INTERFACE_FUNC getSerialNumber(IString** serialNumber) override;
     ErrCode INTERFACE_FUNC getModel(IString** model) override;
     ErrCode INTERFACE_FUNC getAuthenticationMethod(IAuthenticationMethod** authenticationMethod) override;
-    ErrCode INTERFACE_FUNC getKey(IString** key) override;
 
 private:
     ComponentTypePtr componentType;
@@ -46,7 +45,6 @@ private:
     StringPtr serialNumber;
     StringPtr model;
     AuthenticationMethodPtr authenticationMethod;
-    StringPtr key;
 };
 
 END_NAMESPACE_OPENDAQ

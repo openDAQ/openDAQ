@@ -5,6 +5,7 @@
 #include <coretypes/serializer_ptr.h>
 #include <coretypes/function_ptr.h>
 #include <coretypes/ctutils.h>
+#include <coretypes/exceptions.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
@@ -13,6 +14,18 @@ AuthenticationMethodImpl::AuthenticationMethodImpl(const StringPtr& id, const Di
     , fields(fields)
     , description(description)
 {
+    if (!this->id.assigned())
+    {
+        DAQ_THROW_EXCEPTION(InvalidParameterException, "Authentication method id must be assigned");
+    }
+    if (!this->fields.assigned())
+    {
+        DAQ_THROW_EXCEPTION(InvalidParameterException, "Authentication method fields must be assigned");
+    }
+    if (!this->description.assigned())
+    {
+        DAQ_THROW_EXCEPTION(InvalidParameterException, "Authentication method description must be assigned");
+    }
 }
 
 ErrCode AuthenticationMethodImpl::getId(IString** id)
@@ -37,6 +50,46 @@ ErrCode AuthenticationMethodImpl::getDescription(IString** description)
 
     *description = this->description.addRefAndReturn();
     return OPENDAQ_SUCCESS;
+}
+
+ErrCode AuthenticationMethodImpl::acceptsCredentials(IDict* credentials, Bool* accepts)
+{
+    OPENDAQ_PARAM_NOT_NULL(accepts);
+    OPENDAQ_PARAM_NOT_NULL(credentials);
+
+    return daqTry([&]
+    {
+        const DictPtr<IString, IString> credentialsPtr = DictPtr<IString, IString>::Borrow(credentials);
+
+        if (fields.getCount() == 0)
+        {
+            DAQ_THROW_EXCEPTION(NotSupportedException,
+                                "Authentication method \"{}\" has no credential fields - credential values do not apply to it",
+                                id);
+        }
+
+        for (const auto& [fieldId, field] : fields)
+        {
+            if (!field.isRequired())
+                continue;
+
+            if (!credentialsPtr.hasKey(fieldId))
+            {
+                *accepts = False;
+                return OPENDAQ_SUCCESS;
+            }
+
+            const StringPtr value = credentialsPtr.get(fieldId);
+            if (!value.assigned() || value.getLength() == 0)
+            {
+                *accepts = False;
+                return OPENDAQ_SUCCESS;
+            }
+        }
+
+        *accepts = True;
+        return OPENDAQ_SUCCESS;
+    });
 }
 
 ErrCode AuthenticationMethodImpl::serialize(ISerializer* serializer)

@@ -16,6 +16,7 @@
 
 #pragma once
 #include <opendaq/authentication_method.h>
+#include <opendaq/authentication_method_internal.h>
 #include <opendaq/credential_field_ptr.h>
 #include <coretypes/impl.h>
 #include <coretypes/dictobject_factory.h>
@@ -24,7 +25,7 @@
 
 BEGIN_NAMESPACE_OPENDAQ
 
-class AuthenticationMethodImpl final : public ImplementationOf<IAuthenticationMethod, ISerializable>
+class AuthenticationMethodImpl final : public ImplementationOf<IAuthenticationMethod, IAuthenticationMethodInternal, ISerializable>
 {
 public:
     AuthenticationMethodImpl(const StringPtr& id, const DictPtr<IString, ICredentialField>& fields, const StringPtr& description);
@@ -37,6 +38,9 @@ public:
     ErrCode INTERFACE_FUNC getSerializeId(ConstCharPtr* id) const override;
     static ConstCharPtr SerializeId();
     static ErrCode Deserialize(ISerializedObject* serialized, IBaseObject* context, IFunction* factoryCallback, IBaseObject** obj);
+
+    // IAuthenticationMethodInternal
+    ErrCode INTERFACE_FUNC acceptsCredentials(IDict* credentials, Bool* accepts) override;
 
 private:
     StringPtr id;

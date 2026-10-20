@@ -98,12 +98,4 @@ void defineICredentialRequest(pybind11::module_ m, PyDaqIntf<daq::ICredentialReq
         },
         py::return_value_policy::take_ownership,
         "Gets the authentication method the provider must provide a credential for, read from `IAuthenticationConfig` when the request was built.");
-    cls.def_property_readonly("key",
-        [](daq::ICredentialRequest *object)
-        {
-            py::gil_scoped_release release;
-            const auto objectPtr = daq::CredentialRequestPtr::Borrow(object);
-            return objectPtr.getKey().toStdString();
-        },
-        "Helper method to get a generic-form key usable by any vault - e.g. \"componentTypeId|methodId|connectionString\"; equal for equal keys, and unambiguous, since type and method ids contain no '|'. What a vault stores this request's credential under.");
 }

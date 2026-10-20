@@ -60,13 +60,4 @@ void defineICredentialProvider(pybind11::module_ m, PyDaqIntf<daq::ICredentialPr
         py::arg("request"),
         py::return_value_policy::take_ownership,
         "Requests credentials for the given request, in the shape described by its authentication method - a dictionary of field value(s), keyed by their own field id.");
-    cls.def("cache_credentials",
-        [](daq::ICredentialProvider *object, daq::ICredentialRequest* request, daq::IDict* credentials)
-        {
-            py::gil_scoped_release release;
-            const auto objectPtr = daq::CredentialProviderPtr::Borrow(object);
-            objectPtr.cacheCredentials(request, credentials);
-        },
-        py::arg("request"), py::arg("credentials"),
-        "Accepts a credential already known in advance - e.g. supplied directly via `IAuthenticationConfig`'s `\"SuppliedCredential\"` property - so an implementation that caches values it obtains interactively caches this one the same way. A later interactive `requestCredentials` call for the same context then reuses it instead of prompting again. Does not itself produce a credential - the caller already has it and uses it directly. Implementations for which caching doesn't apply may treat this as a no-op.");
 }

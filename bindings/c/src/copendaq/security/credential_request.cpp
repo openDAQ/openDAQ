@@ -56,8 +56,3 @@ daqErrCode daqCredentialRequest_getAuthenticationMethod(daqCredentialRequest* se
 {
     return reinterpret_cast<daq::ICredentialRequest*>(self)->getAuthenticationMethod(reinterpret_cast<daq::IAuthenticationMethod**>(authenticationMethod));
 }
-
-daqErrCode daqCredentialRequest_getKey(daqCredentialRequest* self, daqString** key)
-{
-    return reinterpret_cast<daq::ICredentialRequest*>(self)->getKey(reinterpret_cast<daq::IString**>(key));
-}

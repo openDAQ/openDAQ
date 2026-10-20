@@ -3,15 +3,19 @@
 
 #include <opendaq/authentication_method_factory.h>
 #include <coreobjects/exceptions.h>
+
+#ifdef DAQMODULES_CREDENTIAL_DEMO_MODULE_ENABLE_PRIVATE_KEY_AUTH
 #include <vector>
 #include <memory>
 
 #include <openssl/evp.h>
 #include <openssl/pem.h>
 #include <openssl/rand.h>
+#endif
 
 BEGIN_NAMESPACE_CREDENTIAL_DEMO_MODULE
 
+#ifdef DAQMODULES_CREDENTIAL_DEMO_MODULE_ENABLE_PRIVATE_KEY_AUTH
 namespace crypto
 {
     using EvpPkeyPtr = std::unique_ptr<EVP_PKEY, decltype(&EVP_PKEY_free)>;
@@ -66,6 +70,7 @@ namespace crypto
         return EVP_DigestVerify(verifyCtx.get(), signature.data(), signatureLength, challenge, sizeof(challenge)) == 1;
     }
 }
+#endif
 
 namespace authentication
 {
@@ -89,6 +94,7 @@ void Authenticate(const ContextPtr& ctx, const DictPtr<IString, IString>& creden
             DAQ_THROW_EXCEPTION(AuthenticationFailedException, "Failed to authenticate - wrong pin-code");
         }
     }
+#ifdef DAQMODULES_CREDENTIAL_DEMO_MODULE_ENABLE_PRIVATE_KEY_AUTH
     else if (authenticationMethodIdStr == StandardPrivateKeyFileId)
     {
         const StringPtr privateKeyPath = credentials.get("PrivateKeyFilePath");
@@ -113,6 +119,7 @@ void Authenticate(const ContextPtr& ctx, const DictPtr<IString, IString>& creden
             DAQ_THROW_EXCEPTION(AuthenticationFailedException, "Failed to authenticate - private key challenge verification failed");
         }
     }
+#endif
     else if (authenticationMethodIdStr == StandardUserNamePasswordId)
     {
         const StringPtr userName = credentials.get("UserName");

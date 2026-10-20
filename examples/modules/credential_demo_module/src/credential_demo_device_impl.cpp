@@ -87,18 +87,23 @@ DeviceInfoPtr CredentialDemoDeviceImpl::CreateDeviceInfo(const DictPtr<IString, 
 
 DeviceTypePtr CredentialDemoDeviceImpl::CreateType(const ContextPtr& context)
 {
-    // Showcases all four authentication methods - UserName/Password, PIN, PrivateKeyFile, Anonymous -
-    // defaulting to Anonymous, the first one added.
-    return DeviceTypeBuilder()
+    // Showcases UserName/Password, PIN, Anonymous, and (when the OpenSSL-backed
+    // `DAQMODULES_CREDENTIAL_DEMO_MODULE_ENABLE_PRIVATE_KEY_AUTH` build option is on) PrivateKeyFile
+    // authentication - defaulting to Anonymous, the first one added.
+    auto builder = DeviceTypeBuilder()
         .setId("CredentialDemoDevice")
         .setName("Credential demo device")
         .setDescription("openDAQ authentication/credential framework showcase device")
         .setConnectionStringPrefix(Prefix)
         .addAuthenticationMethod(StandardAnonymousAuthenticationMethod())
         .addAuthenticationMethod(StandardUserNamePasswordAuthenticationMethod())
-        .addAuthenticationMethod(StandardPinAuthenticationMethod())
-        .addAuthenticationMethod(StandardPrivateKeyFileAuthenticationMethod())
-        .build();
+        .addAuthenticationMethod(StandardPinAuthenticationMethod());
+
+#ifdef DAQMODULES_CREDENTIAL_DEMO_MODULE_ENABLE_PRIVATE_KEY_AUTH
+    builder.addAuthenticationMethod(StandardPrivateKeyFileAuthenticationMethod());
+#endif
+
+    return builder.build();
 }
 
 void CredentialDemoDeviceImpl::ValidateConnectionString(const StringPtr& connectionString)

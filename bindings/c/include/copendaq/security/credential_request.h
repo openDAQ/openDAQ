@@ -49,7 +49,6 @@ extern "C"
     daqErrCode EXPORTED daqCredentialRequest_getSerialNumber(daqCredentialRequest* self, daqString** serialNumber);
     daqErrCode EXPORTED daqCredentialRequest_getModel(daqCredentialRequest* self, daqString** model);
     daqErrCode EXPORTED daqCredentialRequest_getAuthenticationMethod(daqCredentialRequest* self, daqAuthenticationMethod** authenticationMethod);
-    daqErrCode EXPORTED daqCredentialRequest_getKey(daqCredentialRequest* self, daqString** key);
 
 #ifdef __cplusplus
 }

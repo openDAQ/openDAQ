@@ -37,7 +37,7 @@
 #include <opendaq/component_private_ptr.h>
 #include <opendaq/component_type_private_ptr.h>
 #include <opendaq/authentication_method_ptr.h>
-#include <opendaq/authentication_method_factory.h>
+#include <opendaq/authentication_method_internal_ptr.h>
 #include <opendaq/authentication_config_ptr.h>
 #include <opendaq/credential_provider_ptr.h>
 #include <opendaq/credential_request_factory.h>
@@ -819,103 +819,29 @@ AuthenticationConfigPtr ModuleManagerImpl::resolveDefaultAuthenticationConfig(co
     return componentType.createAuthenticationConfig();
 }
 
-DictPtr<IString, IString> ModuleManagerImpl::obtainCredentials(const AuthenticationConfigPtr& authenticationConfig,
-                                                               const StringPtr& canonicalConnectionString,
-                                                               const StringPtr& manufacturer,
-                                                               const StringPtr& serialNumber,
-                                                               const StringPtr& model,
-                                                               const StringPtr& displayName,
-                                                               const ComponentTypePtr& componentType) const
-{
-    if (!authenticationConfig.assigned())
-        DAQ_THROW_EXCEPTION(InvalidParameterException, "Authentication is required but no authentication config was provided");
-
-    if (authenticationConfig.getSelectedAuthenticationMethod().getFields().getCount() == 0)
-        return nullptr;
-
-    const auto credentialRequest = buildCredentialRequest(
-        authenticationConfig, canonicalConnectionString, manufacturer, serialNumber, model, displayName, componentType);
-    return resolveCredentials(authenticationConfig, credentialRequest);
-}
-
-CredentialRequestPtr ModuleManagerImpl::buildCredentialRequest(const AuthenticationConfigPtr& authenticationConfig,
-                                                                const StringPtr& canonicalConnectionString,
-                                                                const StringPtr& manufacturer,
-                                                                const StringPtr& serialNumber,
-                                                                const StringPtr& model,
-                                                                const StringPtr& displayName,
-                                                                const ComponentTypePtr& componentType) const
-{
-    auto requestBuilder = CredentialRequestBuilder();
-    requestBuilder.setConnectionString(canonicalConnectionString);
-    requestBuilder.setManufacturer(manufacturer);
-    requestBuilder.setSerialNumber(serialNumber);
-    requestBuilder.setModel(model);
-    requestBuilder.setDisplayName(displayName);
-    requestBuilder.setAuthenticationMethod(authenticationConfig.getSelectedAuthenticationMethod());
-    requestBuilder.setComponentType(componentType);
-
-    return requestBuilder.build();
-}
-
 DictPtr<IString, IString> ModuleManagerImpl::resolveCredentials(const AuthenticationConfigPtr& authenticationConfig, const CredentialRequestPtr& credentialRequest) const
 {
     const DictPtr<IString, IString> suppliedCredential = authenticationConfig.getSuppliedCredential();
 
     if (suppliedCredential.assigned() && suppliedCredential.getCount() > 0)
     {
-        if (!CredentialSatisfiesMethod(credentialRequest.getAuthenticationMethod(), suppliedCredential))
-            DAQ_THROW_EXCEPTION(InvalidParameterException, "Supplied credential is missing one or more required fields");
-
-        // Already has a non-empty value for every field the method requires (filled in by the caller), so
-        // it is used directly as the credential, no provider asked to obtain anything. If one is registered
-        // too, it still gets a chance to cache the credential, so a later interactive request for the same
-        // context reuses it.
-        if (credentialProvider.assigned())
-            credentialProvider.cacheCredentials(credentialRequest, suppliedCredential);
-
+        // Already has a non-empty value for every field the method requires (filled in by the caller), so it
+        // is used directly as the credential, no provider asked to obtain anything.
         return suppliedCredential;
     }
 
     if (!credentialProvider.assigned())
-        DAQ_THROW_EXCEPTION(CredentialsRequiredException, "Authentication is required but no credential provider is registered");
+    {
+        DAQ_THROW_EXCEPTION(CredentialsRequiredException, "Authentication credentials are required but no credential provider is registered");
+    }
 
     const DictPtr<IString, IString> credentials = credentialProvider.requestCredentials(credentialRequest);
-    if (!CredentialSatisfiesMethod(credentialRequest.getAuthenticationMethod(), credentials))
+    if (!credentialRequest.getAuthenticationMethod().asPtr<IAuthenticationMethodInternal>().acceptsCredentials(credentials))
+    {
         DAQ_THROW_EXCEPTION(CredentialsRequiredException, "Credential provider returned credentials missing one or more required fields");
+    }
 
     return credentials;
-}
-
-void ModuleManagerImpl::recacheCredentialsWithDeviceInfo(const DevicePtr& device,
-                                                         const AuthenticationConfigPtr& authenticationConfig,
-                                                         const StringPtr& canonicalConnectionString,
-                                                         const ComponentTypePtr& componentType,
-                                                         const DictPtr<IString, IString>& credentials) const
-{
-    const DeviceInfoPtr deviceInfo = device.getInfo();
-    if (!credentialProvider.assigned() || !deviceInfo.assigned() || !deviceInfo.getManufacturer().assigned() || !deviceInfo.getSerialNumber().assigned())
-        return;
-
-    try
-    {
-        const auto enrichedRequest = buildCredentialRequest(authenticationConfig,
-                                                            canonicalConnectionString,
-                                                            deviceInfo.getManufacturer(),
-                                                            deviceInfo.getSerialNumber(),
-                                                            deviceInfo.getModel(),
-                                                            deviceInfo.getName(),
-                                                            componentType);
-        credentialProvider.cacheCredentials(enrichedRequest, credentials);
-    }
-    catch (const DaqException& e)
-    {
-        LOG_W("Failed to re-cache credentials with resolved manufacturer/serial number: {}", e.what())
-    }
-    catch (const std::exception& e)
-    {
-        LOG_W("Failed to re-cache credentials with resolved manufacturer/serial number: {}", e.what())
-    }
 }
 
 ErrCode ModuleManagerImpl::createDeviceInternal(IDevice** device, IString* connectionString, IComponent* parent, IPropertyObject* config)
@@ -1016,13 +942,12 @@ ErrCode ModuleManagerImpl::createDeviceInternal(IDevice** device, IString* conne
             ErrCode err;
             if (authenticated)
             {
-                credentials = obtainCredentials(resolvedAuthConfig,
-                                                library.module.getCanonicalConnectionString(connectionStringPtr),
-                                                nullptr,
-                                                nullptr,
-                                                nullptr,
-                                                nullptr,
-                                                deviceType);
+                const auto credentialRequest = CredentialRequestBuilder()
+                                                   .setConnectionString(library.module.getCanonicalConnectionString(connectionStringPtr))
+                                                   .setAuthenticationMethod(resolvedAuthConfig.getSelectedAuthenticationMethod())
+                                                   .setComponentType(deviceType)
+                                                   .build();
+                credentials = resolveCredentials(resolvedAuthConfig, credentialRequest);
 
                 auto loginParameters = LoginParametersBuilder()
                                            .setAuthenticationMethod(resolvedAuthConfig.getSelectedAuthenticationMethod())
@@ -1060,11 +985,8 @@ ErrCode ModuleManagerImpl::createDeviceInternal(IDevice** device, IString* conne
                     if (const auto& componentPrivate = devicePtr.asPtrOrNull<IComponentPrivate>(true); componentPrivate.assigned())
                         componentPrivate.setAuthenticationConfig(resolvedAuthConfig);
 
-                    recacheCredentialsWithDeviceInfo(devicePtr,
-                                                     resolvedAuthConfig,
-                                                     library.module.getCanonicalConnectionString(connectionStringPtr),
-                                                     deviceType,
-                                                     credentials);
+                    // TODO: cache `credentials` with the device's own resolved manufacturer/serial number/model here when a caching
+                    // mechanism (e.g. a vault) is ready.
                 }
             }
 
@@ -1832,18 +1754,24 @@ StreamingPtr ModuleManagerImpl::onCreateStreaming(const StringPtr& connectionStr
                     }
                 }
 
-                const DictPtr<IString, IString> credentials = obtainCredentials(resolvedAuthConfig,
-                                                                                module.getCanonicalConnectionString(connectionString),
-                                                                                manufacturer,
-                                                                                serialNumber,
-                                                                                model,
-                                                                                displayName,
-                                                                                streamingType);
+                const auto credentialRequest = CredentialRequestBuilder()
+                                                   .setConnectionString(module.getCanonicalConnectionString(connectionString))
+                                                   .setManufacturer(manufacturer)
+                                                   .setSerialNumber(serialNumber)
+                                                   .setModel(model)
+                                                   .setDisplayName(displayName)
+                                                   .setAuthenticationMethod(resolvedAuthConfig.getSelectedAuthenticationMethod())
+                                                   .setComponentType(streamingType)
+                                                   .build();
+                const DictPtr<IString, IString> credentials = resolveCredentials(resolvedAuthConfig, credentialRequest);
+
                 const auto loginParameters = LoginParametersBuilder()
                                                  .setAuthenticationMethod(resolvedAuthConfig.getSelectedAuthenticationMethod())
                                                  .setCredentials(credentials)
                                                  .build();
                 streaming = module.createAuthenticatedStreaming(connectionString, streamingTypeConfig, loginParameters);
+
+                // TODO: cache `credentials` keyed by `credentialRequest` here when a caching mechanism (e.g. a vault) is ready.
             }
             else
             {

@@ -1,5 +1,5 @@
 #include <opendaq/cmd_line_credential_provider_impl.h>
-#include <coreobjects/exceptions.h>
+#include <opendaq/security_exceptions.h>
 #include <fmt/format.h>
 #include <iostream>
 #include <fstream>
@@ -43,99 +43,32 @@ ErrCode CmdLineCredentialProviderImpl::requestCredentials(ICredentialRequest* re
     return OPENDAQ_SUCCESS;
 }
 
-ErrCode CmdLineCredentialProviderImpl::cacheCredentials(ICredentialRequest* request, IDict* credentials)
-{
-    OPENDAQ_PARAM_NOT_NULL(request);
-    OPENDAQ_PARAM_NOT_NULL(credentials);
-
-    const auto requestPtr = CredentialRequestPtr::Borrow(request);
-    const auto authenticationMethod = requestPtr.getAuthenticationMethod();
-    if (!authenticationMethod.assigned())
-        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDPARAMETER, "Credential request has no authentication method set");
-
-    // Every field of `credentials` is cached, whatever its kind - folded into the same per-(device, method) cache entry.
-    const DictPtr<IString, IString> credentialObj = credentials;
-    auto& cached = credentialCache[MakeCacheKey(requestPtr)];
-    if (!cached.assigned())
-        cached = Dict<IString, IString>();
-
-    for (const auto& [name, value] : credentialObj)
-        cached.set(name, value);
-
-    return OPENDAQ_SUCCESS;
-}
-
 DictPtr<IString, IString> CmdLineCredentialProviderImpl::readCredential(const CredentialRequestPtr& request, const DictPtr<IString, ICredentialField>& fields)
 {
     auto credential = Dict<IString, IString>();
     bool printedDetails = false;
 
-    auto& cached = credentialCache[MakeCacheKey(request)];
-    if (!cached.assigned())
-        cached = Dict<IString, IString>();
-
     for (const auto& [name, field] : fields)
     {
         const bool isFilePath = field.getKind() == CredentialFieldKind::FilePath;
 
-        StringPtr value;
-        if (cached.hasKey(name))
-            value = cached.get(name);
-
-        if (!value.assigned())
+        if (!printedDetails)
         {
-            if (!printedDetails)
-            {
-                printRequestDetails(request);
-                printedDetails = true;
-            }
+            printRequestDetails(request);
+            printedDetails = true;
+        }
 
-            // Read exactly once, like every other field kind - no retry - but a `FilePath` is still validated
-            // locally right after it's freshly read (not on a cache hit): the module reading it back expects a
-            // real, readable file.
-            value = String(readLine(fmt::format("{}: ", name.toStdString()), field.getKind() == CredentialFieldKind::Secret));
+        const StringPtr value = String(readLine(fmt::format("{}: ", name.toStdString()), field.getKind() == CredentialFieldKind::Secret));
 
-            if (isFilePath && !isFileAccessible(value.toStdString()))
-                DAQ_THROW_EXCEPTION(AuthenticationFailedException, "File \"{}\" does not exist or is not accessible", value);
-
-            cached.set(name, value);
+        if (isFilePath && !isFileAccessible(value.toStdString()))
+        {
+            DAQ_THROW_EXCEPTION(NotFoundException, "File \"{}\" does not exist or is not accessible", value);
         }
 
         credential.set(name, value);
     }
 
     return credential;
-}
-
-CmdLineCredentialProviderImpl::CacheKey CmdLineCredentialProviderImpl::MakeCacheKey(const CredentialRequestPtr& request)
-{
-    const StringPtr manufacturer = request.getManufacturer();
-    const StringPtr serialNumber = request.getSerialNumber();
-    const StringPtr model = request.getModel();
-    const bool hasManufacturer = manufacturer.assigned() && manufacturer.getLength() > 0;
-    const bool hasSerialNumber = serialNumber.assigned() && serialNumber.getLength() > 0;
-    const bool hasModel = model.assigned() && model.getLength() > 0;
-    const StringPtr methodId = request.getAuthenticationMethod().getId();
-
-    if (!hasManufacturer && !hasSerialNumber)
-    {
-        // Neither is available to identify the connection by - e.g. a streaming connection, which (unlike
-        // a device's `daq://manufacturer_serial` smart string) isn't resolved through manufacturer/serial
-        // discovery. Fall back to the connection string itself - the module that formed this request is
-        // expected to have already canonicalized it (routing prefix trimmed, every parameter made explicit;
-        // see `Module::onGetCanonicalConnectionString`), so it stays a stable identifier regardless of how
-        // much of it the caller originally left implicit.
-        const StringPtr connectionString = request.getConnectionString();
-        return std::make_tuple(connectionString.assigned() ? connectionString.toStdString() : std::string(),
-                               std::string(),
-                               hasModel ? model.toStdString() : std::string(),
-                               methodId.toStdString());
-    }
-
-    return std::make_tuple(hasManufacturer ? manufacturer.toStdString() : std::string(),
-                           hasSerialNumber ? serialNumber.toStdString() : std::string(),
-                           hasModel ? model.toStdString() : std::string(),
-                           methodId.toStdString());
 }
 
 bool CmdLineCredentialProviderImpl::isFileAccessible(const std::string& path)
@@ -156,6 +89,12 @@ void CmdLineCredentialProviderImpl::printRequestDetails(const CredentialRequestP
     if (const StringPtr displayName = request.getDisplayName(); displayName.assigned() && displayName.getLength() > 0)
         std::cout << "Device : " << displayName << '\n';
 
+#ifdef _WIN32
+    std::cout << "\nPress Ctrl+Z then Enter to cancel.\n";
+#else
+    std::cout << "\nPress Ctrl+D to cancel.\n";
+#endif
+
     std::cout << '\n';
 }
 
@@ -168,7 +107,9 @@ std::string CmdLineCredentialProviderImpl::readLine(const std::string& prompt, b
     {
         std::string value;
         if (!std::getline(std::cin, value))
-            throw std::runtime_error("Input cancelled");
+        {
+            DAQ_THROW_EXCEPTION(ProviderCancelledException);
+        }
 
         return value;
     }
@@ -197,8 +138,9 @@ std::string CmdLineCredentialProviderImpl::readLine(const std::string& prompt, b
                 return converter.to_bytes(value);
             }
 
-            case 3: // Ctrl+C
-                throw std::runtime_error("Input cancelled.");
+            case 3:    // Ctrl+C
+            case 0x1A: // Ctrl+Z (the conventional Windows console EOF/cancel keystroke)
+                DAQ_THROW_EXCEPTION(ProviderCancelledException);
 
             case L'\b': // Backspace
                 if (!value.empty())
@@ -246,7 +188,9 @@ std::string CmdLineCredentialProviderImpl::readLine(const std::string& prompt, b
     std::string value;
 
     if (!std::getline(std::cin, value))
-        throw std::runtime_error("Input cancelled.");
+    {
+        DAQ_THROW_EXCEPTION(ProviderCancelledException);
+    }
 
     std::cout << std::endl;
 

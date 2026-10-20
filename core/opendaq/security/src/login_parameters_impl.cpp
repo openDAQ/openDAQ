@@ -1,6 +1,8 @@
 #include <opendaq/login_parameters_impl.h>
 #include <opendaq/login_parameters_builder_ptr.h>
 #include <opendaq/login_parameters_factory.h>
+#include <opendaq/authentication_method_internal_ptr.h>
+#include <coretypes/dictobject_factory.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
@@ -11,10 +13,18 @@ LoginParametersImpl::LoginParametersImpl(ILoginParametersBuilder* loginParameter
     credentials = builderPtr.getCredentials();
 
     if (!authenticationMethod.assigned())
+    {
         DAQ_THROW_EXCEPTION(InvalidParameterException, "Authentication method must be assigned when creating login parameters");
+    }
 
     if (!credentials.assigned())
-        DAQ_THROW_EXCEPTION(InvalidParameterException, "Credentials must be assigned when creating login parameters");
+        credentials = Dict<IString, IString>();
+
+    if (authenticationMethod.getFields().getCount() > 0 &&
+        !authenticationMethod.asPtr<IAuthenticationMethodInternal>().acceptsCredentials(credentials))
+    {
+        DAQ_THROW_EXCEPTION(InvalidParameterException, "Credentials do not satisfy the authentication method's required fields");
+    }
 }
 
 ErrCode LoginParametersImpl::getAuthenticationMethod(IAuthenticationMethod** method)

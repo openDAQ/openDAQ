@@ -44,7 +44,6 @@ extern "C"
 
     daqErrCode EXPORTED daqCredentialProvider_getDescription(daqCredentialProvider* self, daqString** description);
     daqErrCode EXPORTED daqCredentialProvider_requestCredentials(daqCredentialProvider* self, daqCredentialRequest* request, daqDict** credentials);
-    daqErrCode EXPORTED daqCredentialProvider_cacheCredentials(daqCredentialProvider* self, daqCredentialRequest* request, daqDict* credentials);
     daqErrCode EXPORTED daqCredentialProvider_createCmdLineCredentialProvider(daqCredentialProvider** obj);
 
 #ifdef __cplusplus

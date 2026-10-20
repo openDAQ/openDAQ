@@ -1,8 +1,6 @@
 #include <opendaq/credential_request_impl.h>
 #include <opendaq/credential_request_builder_ptr.h>
 #include <opendaq/credential_request_factory.h>
-#include <coretypes/formatter.h>
-#include <fmt/format.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
@@ -25,8 +23,6 @@ CredentialRequestImpl::CredentialRequestImpl(ICredentialRequestBuilder* credenti
 
     if (!authenticationMethod.assigned())
         DAQ_THROW_EXCEPTION(InvalidParameterException, "Authentication method must be assigned when creating a credential request");
-
-    key = String(fmt::format("{}|{}|{}", componentType.getId(), authenticationMethod.getId(), connectionString));
 }
 
 ErrCode CredentialRequestImpl::getComponentType(IComponentType** componentType)
@@ -82,14 +78,6 @@ ErrCode CredentialRequestImpl::getAuthenticationMethod(IAuthenticationMethod** a
     OPENDAQ_PARAM_NOT_NULL(authenticationMethod);
 
     *authenticationMethod = this->authenticationMethod.addRefAndReturn();
-    return OPENDAQ_SUCCESS;
-}
-
-ErrCode CredentialRequestImpl::getKey(IString** key)
-{
-    OPENDAQ_PARAM_NOT_NULL(key);
-
-    *key = this->key.addRefAndReturn();
     return OPENDAQ_SUCCESS;
 }
 

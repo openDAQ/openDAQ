@@ -4,6 +4,7 @@
 #include <coretypes/serializer_ptr.h>
 #include <coretypes/function_ptr.h>
 #include <coretypes/ctutils.h>
+#include <coretypes/exceptions.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
@@ -43,6 +44,18 @@ CredentialFieldImpl::CredentialFieldImpl(IString* id, CredentialFieldKind kind, 
     , metadata(metadata)
     , required(required)
 {
+    if (!this->id.assigned())
+    {
+        DAQ_THROW_EXCEPTION(InvalidParameterException, "Credential field id must be assigned");
+    }
+    if (!this->name.assigned())
+    {
+        DAQ_THROW_EXCEPTION(InvalidParameterException, "Credential field name must be assigned");
+    }
+    if (!this->metadata.assigned())
+    {
+        DAQ_THROW_EXCEPTION(InvalidParameterException, "Credential field metadata must be assigned");
+    }
 }
 
 ErrCode CredentialFieldImpl::getId(IString** idOut)

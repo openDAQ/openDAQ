@@ -123,45 +123,11 @@ private:
     // `componentType`, or unassigned if `componentType` doesn't support authentication.
     AuthenticationConfigPtr resolveDefaultAuthenticationConfig(const AuthenticationConfigPtr& authenticationConfig, const ComponentTypePtr& componentType) const;
 
-    // Builds an `ICredentialRequest` for `authenticationConfig`'s currently selected authentication method,
-    // then resolves credentials for it via `resolveCredentials`. Throws `InvalidParameterException` if
-    // `authenticationConfig` is unassigned. `canonicalConnectionString` must already be canonicalized
-    // via the originating module's own `getCanonicalConnectionString`.
-    DictPtr<IString, IString> obtainCredentials(const AuthenticationConfigPtr& authenticationConfig,
-                                                const StringPtr& canonicalConnectionString,
-                                                const StringPtr& manufacturer,
-                                                const StringPtr& serialNumber,
-                                                const StringPtr& model,
-                                                const StringPtr& displayName,
-                                                const ComponentTypePtr& componentType) const;
-
-    // Builds an `ICredentialRequest` for `authenticationConfig`'s currently selected authentication method,
-    // `canonicalConnectionString`, `manufacturer`/`serialNumber`/`model`/`displayName`, and `componentType`.
-    // `canonicalConnectionString` must already be canonicalized (via the originating module's own
-    // `getCanonicalConnectionString`).
-    CredentialRequestPtr buildCredentialRequest(const AuthenticationConfigPtr& authenticationConfig,
-                                                const StringPtr& canonicalConnectionString,
-                                                const StringPtr& manufacturer,
-                                                const StringPtr& serialNumber,
-                                                const StringPtr& model,
-                                                const StringPtr& displayName,
-                                                const ComponentTypePtr& componentType) const;
-
     // Resolves the credentials for `credentialRequest` - for auth method with at least one field. Consumes
     // whichever single credential provider this manager was constructed with. If
     // `authenticationConfig.getSuppliedCredential()` returns one, it is used directly instead of asking the
-    // provider to obtain one - though the provider, if registered, is still handed the credential via
-    // `cacheCredentials`, so a later request for the same context can be served from its cache.
+    // provider to obtain one.
     DictPtr<IString, IString> resolveCredentials(const AuthenticationConfigPtr& authenticationConfig, const CredentialRequestPtr& credentialRequest) const;
-
-    // Manufacturer/serial number (and model, if available) are usually known only once `device` is created - if
-    // `device`'s own info now supplies them, hands the already-obtained `credentials` to the registered credential
-    // provider again, keyed by them too. Any failure are logged.
-    void recacheCredentialsWithDeviceInfo(const DevicePtr& device,
-                                          const AuthenticationConfigPtr& authenticationConfig,
-                                          const StringPtr& canonicalConnectionString,
-                                          const ComponentTypePtr& componentType,
-                                          const DictPtr<IString, IString>& credentials) const;
 
     static PropertyObjectPtr CreateGeneralConfig(Bool scanOnAdd);
     static void OverrideConfigProperties(PropertyObjectPtr& targetConfig, const PropertyObjectPtr& sourceConfig);

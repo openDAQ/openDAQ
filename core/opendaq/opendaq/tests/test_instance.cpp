@@ -433,6 +433,7 @@ TEST_F(InstanceTest, InstanceBuilderSetGet)
     const auto moduleManager = ModuleManager("./modulePath1");
     const auto defaultRootDeviceInfo = DeviceInfo("daqref://device0");
     const auto authenticationProvider = AuthenticationProvider();
+    const auto credentialProvider = CmdLineCredentialProvider();
 
     const auto instanceBuilder = InstanceBuilder()
                                 .setLogger(logger)
@@ -446,7 +447,8 @@ TEST_F(InstanceTest, InstanceBuilderSetGet)
                                 .setDefaultRootDeviceLocalId("OpenDAQClient")
                                 .setRootDevice("test")
                                 .setDefaultRootDeviceInfo(defaultRootDeviceInfo)
-                                .setAuthenticationProvider(authenticationProvider);
+                                .setAuthenticationProvider(authenticationProvider)
+                                .setCredentialProvider(credentialProvider);
 
     ASSERT_EQ(instanceBuilder.getLogger(), logger);
     ASSERT_EQ(instanceBuilder.getGlobalLogLevel(), LogLevel::Debug);
@@ -467,6 +469,32 @@ TEST_F(InstanceTest, InstanceBuilderSetGet)
     ASSERT_EQ(instanceBuilder.getRootDevice(), "test");
     ASSERT_EQ(instanceBuilder.getDefaultRootDeviceInfo(), defaultRootDeviceInfo);
     ASSERT_EQ(instanceBuilder.getAuthenticationProvider(), authenticationProvider);
+    ASSERT_EQ(instanceBuilder.getCredentialProvider(), credentialProvider);
+}
+
+TEST_F(InstanceTest, InstanceBuilderCredentialProviderConflictsWithCustomModuleManager)
+{
+    const auto moduleManager = ModuleManager("[[none]]");
+    const auto credentialProvider = CmdLineCredentialProvider();
+
+    const auto instanceBuilder = InstanceBuilder().setModuleManager(moduleManager).setCredentialProvider(credentialProvider);
+
+    ASSERT_THROW(instanceBuilder.build(), AlreadyExistsException);
+}
+
+TEST_F(InstanceTest, InstanceBuilderCredentialProviderAppliesWithoutCustomModuleManager)
+{
+    const auto credentialProvider = CmdLineCredentialProvider();
+
+    ASSERT_NO_THROW(InstanceBuilder().setCredentialProvider(credentialProvider).build());
+}
+
+TEST_F(InstanceTest, InstanceBuilderAcceptsCustomModuleManagerWithItsOwnCredentialProvider)
+{
+    // The credential provider goes directly on the custom module manager.
+    const auto moduleManager = ModuleManager("[[none]]", CmdLineCredentialProvider());
+
+    ASSERT_NO_THROW(InstanceBuilder().setModuleManager(moduleManager).build());
 }
 
 TEST_F(InstanceTest, InstanceBuilderSetContext)

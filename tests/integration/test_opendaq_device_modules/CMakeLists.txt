@@ -23,6 +23,9 @@ set(STREAMING_TEST_SOURCES test_app.cpp
                            test_subdevices.cpp
                            test_device_locking.cpp
 )
+if (DAQMODULES_CREDENTIAL_DEMO_MODULE)
+    list(APPEND STREAMING_TEST_SOURCES test_credentials_integration.cpp)
+endif()
 set(STREAMING_TEST_SHARDS 4)
 
 function(add_device_modules_test_app APP)
@@ -79,6 +82,10 @@ set_source_files_properties(test_native_device_modules.cpp PROPERTIES SKIP_UNITY
 
 add_device_modules_test_app(${TEST_APP} ${TEST_SOURCES})
 add_device_modules_test_app(${STREAMING_TEST_APP} ${STREAMING_TEST_SOURCES})
+
+if (DAQMODULES_CREDENTIAL_DEMO_MODULE)
+    target_link_libraries(${STREAMING_TEST_APP} PRIVATE daq::credential_demo_module)
+endif()
 
 # The LT streaming tests over the secure channel need TLS fixtures (CA, server and client
 # certificates/keys). Reuse the pre-generated ones from the LT streaming modules repository instead of

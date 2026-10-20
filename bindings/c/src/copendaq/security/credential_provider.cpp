@@ -32,11 +32,6 @@ daqErrCode daqCredentialProvider_requestCredentials(daqCredentialProvider* self,
     return reinterpret_cast<daq::ICredentialProvider*>(self)->requestCredentials(reinterpret_cast<daq::ICredentialRequest*>(request), reinterpret_cast<daq::IDict**>(credentials));
 }
 
-daqErrCode daqCredentialProvider_cacheCredentials(daqCredentialProvider* self, daqCredentialRequest* request, daqDict* credentials)
-{
-    return reinterpret_cast<daq::ICredentialProvider*>(self)->cacheCredentials(reinterpret_cast<daq::ICredentialRequest*>(request), reinterpret_cast<daq::IDict*>(credentials));
-}
-
 daqErrCode daqCredentialProvider_createCmdLineCredentialProvider(daqCredentialProvider** obj)
 {
     daq::ICredentialProvider* ptr = nullptr;

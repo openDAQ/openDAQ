@@ -10,7 +10,7 @@
 #include <coretypes/formatter.h>
 #include <fmt/format.h>
 #include <opendaq/authentication_config_ptr.h>
-#include <opendaq/authentication_method_factory.h>
+#include <opendaq/authentication_method_internal_ptr.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
@@ -144,12 +144,12 @@ ErrCode AuthenticationConfigImpl::setPropertyValue(IString* propertyName, IBaseO
             if (credential.getCount() > 0)
             {
                 const AuthenticationMethodPtr selected = onGetSelectedAuthenticationMethod();
-                if (!CredentialSatisfiesMethod(selected, credential))
+                if (!selected.asPtr<IAuthenticationMethodInternal>().acceptsCredentials(credential))
                 {
                     DAQ_THROW_EXCEPTION(InvalidParameterException,
-                                         "Supplied credential is missing one or more fields required by the currently selected "
-                                         "authentication method \"{}\"",
-                                         selected.assigned() ? selected.getId() : StringPtr(""));
+                                        "Supplied credential is missing one or more fields required by the currently selected "
+                                        "authentication method \"{}\"",
+                                        selected.getId());
                 }
             }
 

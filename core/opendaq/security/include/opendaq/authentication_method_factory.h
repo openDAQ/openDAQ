@@ -27,47 +27,12 @@ BEGIN_NAMESPACE_OPENDAQ
  * @param id The id that uniquely identifies this authentication method at least within the module that offers it.
  * @param fields The credential fields this method expects, keyed by their own name, in declaration order.
  * @param description A human-readable description of the authentication method, for the user.
+ * @throws InvalidParameterException if `id`, `fields`, or `description` is unassigned.
  */
 inline AuthenticationMethodPtr AuthenticationMethod(const StringPtr& id, const DictPtr<IString, ICredentialField>& fields, const StringPtr& description)
 {
     AuthenticationMethodPtr obj(AuthenticationMethod_Create(id, fields, description));
     return obj;
-}
-
-/*!
- * @brief Checks whether `credential` is usable as-is for `authenticationMethod` - every field the method marks
- * required (`ICredentialField::isRequired`) is present among `credential`'s keys with a non-empty value. A
- * field that isn't required is never checked, whether present or not. `false` if `authenticationMethod` itself
- * is unassigned, or if it has no fields at all (a method with no fields needs no credential, so none - empty
- * or not - is ever considered to satisfy it; callers that reach here with an actual, non-empty `credential`
- * only ever do so for a method that does have fields - a field-less one never gets this far via the normal
- * resolution path, see `Module::obtainCredentials`).
- * @param authenticationMethod The authentication method to check `credential` against.
- * @param credential A credential - a dictionary of field value(s), keyed by their own field id.
- */
-inline bool CredentialSatisfiesMethod(const AuthenticationMethodPtr& authenticationMethod, const DictPtr<IString, IString>& credential)
-{
-    if (!authenticationMethod.assigned())
-        return false;
-
-    const auto fields = authenticationMethod.getFields();
-    if (fields.getCount() == 0)
-        return false;
-
-    for (const auto& [fieldId, field] : fields)
-    {
-        if (!field.isRequired())
-            continue;
-
-        if (!credential.assigned() || !credential.hasKey(fieldId))
-            return false;
-
-        const StringPtr value = credential.get(fieldId);
-        if (!value.assigned() || value.getLength() == 0)
-            return false;
-    }
-
-    return true;
 }
 
 /*!

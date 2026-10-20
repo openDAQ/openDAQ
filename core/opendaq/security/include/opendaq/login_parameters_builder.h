@@ -29,19 +29,20 @@ BEGIN_NAMESPACE_OPENDAQ
 /*!
  * @brief Builds `ILoginParameters` objects with the parameters needed to authenticate
  * a connection attempt, such as the selected authentication method and the resolved credentials.
+ * The `credentials` defaults to empty if never set.
  */
 DECLARE_OPENDAQ_INTERFACE(ILoginParametersBuilder, IBaseObject)
 {
     /*!
      * @brief Builds and returns a `LoginParameters` using the currently configured values. Fails unless
-     * `authenticationMethod` and `credentials` were both set.
+     * `authenticationMethod` was set, and `credentials` satisfies its required fields.
      * @param[out] parameters The built login parameters.
      */
     virtual ErrCode INTERFACE_FUNC build(ILoginParameters** parameters) = 0;
 
     /*!
      * @brief Sets the resolved credentials - a value for each of the authentication method's mandatory
-     * fields; empty for a method with none (e.g. "Anonymous"). Required - `build()` fails if never set.
+     * fields; empty for a method with none (e.g. "Anonymous"). Defaults to empty if never set.
      * @param credentials The resolved credentials.
      */
     // [returnSelf]

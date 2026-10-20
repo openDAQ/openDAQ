@@ -97,7 +97,7 @@ There is no "additional config" on `IAuthenticationConfig` itself - settings lik
 
 ### `ICredentialRequest`
 
-Carries the details of a credential request (but never the credential itself), handed to `ICredentialProvider::requestCredentials`/`cacheCredentials`. Built via `ICredentialRequestBuilder`.
+Carries the details of a credential request (but never the credential itself), handed to `ICredentialProvider::requestCredentials`. Built via `ICredentialRequestBuilder`.
 
 | Member | Description |
 |---|---|
@@ -109,7 +109,7 @@ Carries the details of a credential request (but never the credential itself), h
 | `getModel(IString**)` | The model of the device the connection is being established to or for - a request can be for a direct connection to that device, or for a streaming connection attached to it. Optional - unassigned if not known for this connection. |
 | `getAuthenticationMethod(IAuthenticationMethod**)` | The authentication method the provider must provide a credential for, read from `IAuthenticationConfig` when the request was built. Its own id names the negotiated authentication method. |
 
-**Why canonical?** A provider identifies which connection a request belongs to primarily by `(manufacturer, serialNumber, model)` - e.g. `CmdLineCredentialProvider`'s in-session `FilePath` caching (see [§5](#5-credential-provider-selection--supplied-credentials)). When neither manufacturer nor serial number is available, a provider falls back to the connection string itself as the identifying key instead (model alone is never enough to identify a specific device) - which only works reliably if it's canonical, so the same connection always identifies itself the same way no matter how the caller originally wrote it.
+**Why canonical?** A provider can identify which connection a request belongs to primarily by `(manufacturer, serialNumber, model)`. When neither manufacturer nor serial number is available, a provider falls back to the connection string itself as the identifying key instead (model alone is never enough to identify a specific device) - which only works reliably if it's canonical, so the same connection always identifies itself the same way no matter how the caller originally wrote it.
 
 **Factory:** `CredentialRequestFromBuilder(builder)` — hidden factory, built from a `ICredentialRequestBuilder`.
 
@@ -144,16 +144,15 @@ A method with no fields needs no credentials at all - an empty dictionary always
 
 ### `ICredentialProvider`
 
-Supplies the credentials requested via an `ICredentialRequest` — by prompting the user, reading a file, or fetching from a credential store. Declares no supported field kinds up front - if a request needs a field kind an implementation can't handle, `requestCredentials`/`cacheCredentials` is expected to fail on its own (an ordinary failed call, propagated like any other failure from them, all the way back to the original `addDevice`/`addStreaming` caller), rather than being pre-checked by `Module`.
+Supplies the credentials requested via an `ICredentialRequest` — by prompting the user, reading a file, or fetching from a credential store. Declares no supported field kinds up front - if a request needs a field kind an implementation can't handle, `requestCredentials` is expected to fail on its own (an ordinary failed call, propagated like any other failure from it, all the way back to the original `addDevice`/`addStreaming` caller), rather than being pre-checked by `Module`. No caching of any kind - every call is resolved fresh.
 
 | Member | Description |
 |---|---|
 | `getDescription(IString**)` | A human-readable description of the provider - e.g. for identifying it in a log message or an error. Not an id - not expected to be unique, or stable across implementations. |
-| `requestCredentials(ICredentialRequest*, IDict**)` | Requests credentials for the given request, in the shape described by its authentication method — obtaining them interactively (prompting, reading a file, etc.) unless a cached value from an earlier `cacheCredentials`/`requestCredentials` call for the same context already covers it. Returns a dictionary of field value(s), keyed by their own field id. Fails if this implementation can't actually collect one of the request's field kinds. |
-| `cacheCredentials(ICredentialRequest*, IDict* credential)` | Accepts a credential already known in advance (see `IAuthenticationConfig`'s `"SuppliedCredential"` property) - a dictionary of field value(s), keyed by their own field id - so an implementation that would otherwise cache a value obtained interactively caches this one the same way — a later `requestCredentials` call for the same context then reuses it instead of prompting. Produces nothing itself; the caller already has it and uses it directly. Implementations for which caching doesn't apply may treat this as a no-op. |
+| `requestCredentials(ICredentialRequest*, IDict**)` | Requests credentials for the given request, in the shape described by its authentication method — obtaining them interactively (prompting, reading a file, etc.) every time. Returns a dictionary of field value(s), keyed by their own field id. Fails if this implementation can't actually collect one of the request's field kinds. |
 
 **Factory:**
-- `CmdLineCredentialProvider()` — the only credential provider implementation the SDK ships. Prompts the user for credentials via the command line, supporting every `CredentialFieldKind`: `Text`/`Secret` fields are read as plain (or masked) input; `FilePath` is read exactly the same way as `Text` - no local validation or retry of its own on a cache hit - but is validated locally (must name an existing, accessible file) right after being freshly read. Every field, whatever its kind, is cached in-memory for its own lifetime (i.e. for the active session), as one entry per `(manufacturer, serialNumber, model, authentication method id)` carrying every field value cached so far for that method - not one independent entry per field - so a second interactive request for the same device via the same method reuses every value already entered (or supplied via `cacheCredentials`) instead of prompting again, `Secret` fields included.
+- `CmdLineCredentialProvider()` — the only credential provider implementation the SDK ships. Prompts the user for credentials via the command line, supporting every `CredentialFieldKind`: `Text`/`Secret` fields are read as plain (or masked) input; `FilePath` is read exactly the same way as `Text`, then validated locally (must name an existing, accessible file) right after being read. Every call prompts fresh - nothing is remembered between calls.
 
 ---
 
@@ -263,29 +262,7 @@ config.setPropertyValue("SuppliedCredential", credential);
 auto device = instance.addAuthenticatedDevice("daq://openDAQ_1234", nullptr, config);
 ```
 
-- **No credential provider registered:** the module uses the supplied credential directly and authenticates with it, with no prompt of any kind.
-- **A provider is registered:** the module still uses the supplied credential directly for this connection, but first hands both it and the credential request to that provider via `ICredentialProvider::cacheCredentials`, so the provider can remember it the same way it would one obtained interactively.
-
-The second case is what makes it possible for a *later*, ordinary `requestCredentials` call — e.g. authenticating a streaming connection attached to the same device — to be served from the provider's cache instead of prompting, provided the provider actually caches for that field kind (see `CmdLineCredentialProvider`'s `FilePath` caching) and the two requests share the same `(manufacturer, serialNumber, model)`:
-
-```cpp
-auto deviceConfig = deviceType.createAuthenticationConfig();
-SelectAuthenticationMethod(deviceConfig, "PrivateKeyFile");
-
-auto deviceCredential = Dict<IString, IString>();
-deviceCredential.set("PrivateKeyFilePath", "/path/to/private_key.pem");
-deviceConfig.setPropertyValue("SuppliedCredential", deviceCredential);
-
-auto device = instance.addAuthenticatedDevice("daq://openDAQ_1234", nullptr, deviceConfig);
-
-// Same device, same FilePath field - no path prompt this time; the registered provider serves
-// it from the cache `cacheCredentials` populated above.
-auto streamingConfig = streamingType.createAuthenticationConfig();
-SelectAuthenticationMethod(streamingConfig, "PrivateKeyFile");
-device.addStreaming("daq.credential_demo_streaming://credential_demo_device", nullptr, streamingConfig);
-```
-
-For the credential-demo module specifically, `MirroredDeviceBase::onAddStreaming` forwards the device itself (as `createStreaming`'s `owner`) into the streaming connection attempt - the module resolves manufacturer/serial number/model from its own `IDeviceInfo` - so a manually-attached streaming connection for the same device naturally lands in the same cache bucket.
+Whether or not a credential provider is registered, the module uses the supplied credential directly and authenticates with it, with no prompt of any kind - the provider is never consulted at all when a credential is supplied this way.
 
 ---
 
@@ -387,7 +364,7 @@ See [§4](#4-streaming-authentication) for authenticating a streaming connection
 
 ### Save and reload
 
-Saving an instance persists the connected device's `AuthenticationConfig` as part of the tree - but only in its reduced, serialized form (see [Serialization](#serialization) in [§1](#1-core-interfaces)): every candidate authentication method and the selected method's id. No credential (supplied or obtained interactively) is ever saved. Reloading that saved configuration into a new instance rebuilds the config directly from the saved authentication methods and method id - it never re-consults the module/type registry. The device then re-authenticates from scratch through the same provider-resolution path a fresh connection would (see [§8](#8-module-level-implementation)): the new instance must have its own compatible credential provider registered, or the reload fails, and that provider is asked for credentials again exactly like it would for a first-time connection - a prompt-free reload only happens if that provider itself already has something cached for this context (see `cacheCredentials`/`requestCredentials` in [§1](#1-core-interfaces)), never because the saved config carried a credential.
+Saving an instance persists the connected device's `AuthenticationConfig` as part of the tree - but only in its reduced, serialized form (see [Serialization](#serialization) in [§1](#1-core-interfaces)): every candidate authentication method and the selected method's id. No credential (supplied or obtained interactively) is ever saved. Reloading that saved configuration into a new instance rebuilds the config directly from the saved authentication methods and method id - it never re-consults the module/type registry. The device then re-authenticates from scratch through the same provider-resolution path a fresh connection would (see [§8](#8-module-level-implementation)): the new instance must have its own compatible credential provider registered, or the reload fails, and that provider is asked for credentials again exactly like it would for a first-time connection - prompting fresh every time, since nothing is ever cached.
 
 See "Phase 4" of the sequence diagram in [§8](#8-module-level-implementation) (Diagram 3) for this end to end, alongside the rest of the device's lifecycle.
 
@@ -406,8 +383,8 @@ A method with no fields (e.g. `"Anonymous"`) skips steps 2–3 entirely: `Module
 2. **Build the credential request.** `Module::requestCredentials` builds a new `ICredentialRequest` via `ICredentialRequestBuilder`, populating connection string (canonicalized via the module's own `onGetCanonicalConnectionString` override), manufacturer/serial number/model/display name (the display name resolved from the device's own info, once it exists), the authentication method, and component type - the same way whether this is a fresh connection or a reload, since the request is always built fresh from whichever `IAuthenticationConfig` is in hand (a freshly-built one, or one reconstructed from its reduced saved form - see step 5 and [Serialization](#serialization) in [§1](#1-core-interfaces)).
 
 3. **Resolve the credentials.** `Module::obtainCredentials` reads `context.getCredentialProvider()` and the authentication config's `getSuppliedCredential()`, and branches on whether the latter is non-empty (supplied) or empty (not supplied):
-   - **A credential is supplied (non-empty):** no provider obtains anything — the supplied dictionary (already carrying a non-empty value for every required field, per `CredentialSatisfiesMethod`) is used directly as the credential. If a provider is registered, it is handed the credential via `provider.cacheCredentials(request, credential)`, so it can remember it the same way it would one obtained interactively — but the credential used for *this* connection is always the one the caller supplied, regardless of whether caching succeeds.
-   - **No credential supplied (empty):** failing immediately if no provider is registered at all; otherwise the registered provider is asked via `provider.requestCredentials(request)`, obtaining credentials - a dictionary of field value(s), keyed by their own field id - interactively, or served from that provider's own cache if a matching entry exists (e.g. from an earlier `cacheCredentials` call, or an earlier interactive request for the same context). No field-kind compatibility is pre-checked - if the provider can't actually handle one of the request's fields, whatever it fails `requestCredentials` with propagates up unmodified.
+   - **A credential is supplied (non-empty):** no provider is consulted at all — the supplied dictionary (already carrying a non-empty value for every required field, per `CredentialSatisfiesMethod`) is used directly as the credential for this connection.
+   - **No credential supplied (empty):** failing immediately if no provider is registered at all; otherwise the registered provider is asked via `provider.requestCredentials(request)`, obtaining credentials - a dictionary of field value(s), keyed by their own field id - interactively, fresh every time. No field-kind compatibility is pre-checked - if the provider can't actually handle one of the request's fields, whatever it fails `requestCredentials` with propagates up unmodified.
 
 > **Note:** retry/fallback behavior on failure is `Module`'s own policy, not prescribed by the core interfaces themselves - `requestCredentials`/`obtainCredentials`/`resolveDefaultAuthenticationConfig` are ordinary (non-virtual) `Module` methods a subclass can call directly for finer control, though `onCreateAuthenticatedDevice`/`onCreateStreaming` don't need to. Which provider gets used, however, is never `Module`'s own policy at all - there is only ever the one registered on `Context` (see [§5](#5-credential-provider-selection--supplied-credentials)), if any.
 
@@ -416,4 +393,4 @@ A method with no fields (e.g. `"Anonymous"`) skips steps 2–3 entirely: `Module
 5. **Persist the authentication config for later reload (devices only).** Also handled by `Module::createAuthenticatedDevice` itself, after the hook returns a device: it stores the *original* authentication config it was given on the newly created device (`IComponentPrivate::setAuthenticationConfig`) — its custom serialization then reduces this, on save, to every candidate authentication method and the selected method id (see [Serialization](#serialization) in [§1](#1-core-interfaces)) — so a future reload can repeat this same resolution process (see [Save and reload](#save-and-reload)) rather than needing the credential itself, or how it was obtained, to be saved anywhere. The module implementation never sees this happen.
 
 ![Application / Module / Credential Provider — sequence view of the same steps](credential_flow_diagram_sequence.png)
-*Diagram 3 — the same steps as above, as a sequence diagram across the three parties involved, now covering the full device lifecycle rather than just the module-level resolution step: the Application creates the self-contained default config (`componentType.createAuthenticationConfig()`) and, if needed, tunes it - a different supported method, or a supplied credential; the Module then either resolves credentials through the registered Credential Provider (`requestCredentials`/`cacheCredentials`) or uses a supplied credential directly, matching the branching in Diagram 1; finally the config is saved and reloaded, re-authenticating the device from scratch through the same provider-resolution path - a prompt-free reload only happens if the provider itself already has something cached for this context, never because a credential was saved. Each phase's note names exactly which actors participate in it. Building the config is a single, direct call - `componentType` is already in the Application's hands (see [§2](#2-extensions-to-existing-interfaces)), no `ParentDevice`/`Instance` hop needed. As in Diagram 1, the pink/orange notes are `Module`'s own shared base-class code for consuming the single registered provider (steps 1-3 and 5, running around a module's own hook rather than inside it) - not core-mandated behavior, and not something a module implementation performs or even observes directly. Only the per-method verification (step 4) is truly specific to the credential-demo module.*
+*Diagram 3 — the same steps as above, as a sequence diagram across the three parties involved, now covering the full device lifecycle rather than just the module-level resolution step: the Application creates the self-contained default config (`componentType.createAuthenticationConfig()`) and, if needed, tunes it - a different supported method, or a supplied credential; the Module then either resolves credentials through the registered Credential Provider (`requestCredentials`) or uses a supplied credential directly, matching the branching in Diagram 1; finally the config is saved and reloaded, re-authenticating the device from scratch through the same provider-resolution path - prompting fresh every time, since nothing is ever cached, never because a credential was saved. Each phase's note names exactly which actors participate in it. Building the config is a single, direct call - `componentType` is already in the Application's hands (see [§2](#2-extensions-to-existing-interfaces)), no `ParentDevice`/`Instance` hop needed. As in Diagram 1, the pink/orange notes are `Module`'s own shared base-class code for consuming the single registered provider (steps 1-3 and 5, running around a module's own hook rather than inside it) - not core-mandated behavior, and not something a module implementation performs or even observes directly. Only the per-method verification (step 4) is truly specific to the credential-demo module.*

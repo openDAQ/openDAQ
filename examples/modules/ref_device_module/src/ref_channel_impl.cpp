@@ -41,7 +41,7 @@ RefChannelImpl::RefChannelImpl(const ContextPtr& context,
     , samplesGenerated(0)
     , re(std::random_device()())
     , needsSignalTypeChanged(false)
-    , referenceDomainId(init.referenceDomainId)
+    , referenceDomainInfo(init.referenceDomainInfo)
     , acqActive(true)
 {
     objPtr.asPtr<IPropertyObjectInternal>().setLockingStrategy(LockingStrategy::InheritLock);
@@ -486,8 +486,7 @@ void RefChannelImpl::buildSignalDescriptors()
             .setRule(LinearDataRule(deltaT, offset))
             .setOrigin(getEpoch())
             .setName("Time AI " + std::to_string(index + 1))
-            .setReferenceDomainInfo(
-                ReferenceDomainInfoBuilder().setReferenceDomainId(referenceDomainId).setReferenceDomainOffset(0).build());
+            .setReferenceDomainInfo(referenceDomainInfo);
 
     timeSignal.setDescriptor(timeDescriptor.build());
 }

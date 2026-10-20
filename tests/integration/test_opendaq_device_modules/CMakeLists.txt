@@ -36,6 +36,7 @@ function(add_device_modules_test_app APP)
                                          daq::opcuatms_client
                                          daq::native_stream_cl_module
                                          daq::opendaq_mocks
+                                         daq::config_protocol
     )
 
     # Should link only what you need $<BUILD_INTERFACE:Boost::asio>

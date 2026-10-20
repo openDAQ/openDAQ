@@ -29,6 +29,7 @@ TEST_F(DevicesTest, DeviceComponents)
     FolderPtr inputsOutputsFolder = device.getInputsOutputsFolder();
     ListPtr<IChannel> channels =  device.getChannels();
     ListPtr<IComponent> customComponents = device.getCustomComponents();
+    SynchronizationPtr synchronization = device.getSynchronization();
 
     ASSERT_TRUE(functionBlocks.assigned());
     ASSERT_TRUE(signals.assigned());
@@ -36,6 +37,7 @@ TEST_F(DevicesTest, DeviceComponents)
     ASSERT_TRUE(inputsOutputsFolder.assigned());
     ASSERT_TRUE(channels.assigned());
     ASSERT_TRUE(customComponents.assigned());
+    ASSERT_TRUE(synchronization.assigned());
 }
 
 // Corresponding document: Antora/modules/explanation/pages/device.adoc
@@ -51,13 +53,17 @@ TEST_F(DevicesTest, SettingSyncComponent)
     InstancePtr instance = docs_test_helpers::setupInstance();
     TypeManagerPtr typeManager = instance.getContext().getTypeManager();
     DevicePtr device = instance.getRootDevice();
+#if defined(__GNUC__)
+    #pragma GCC diagnostic push
+    #pragma GCC diagnostic ignored "-Wdeprecated-declarations"
+#endif
+#ifdef _MSC_VER
+    #pragma warning(push)
+    #pragma warning(disable : 4996)
+#endif
     SyncComponentPtr syncComponent = device.getSyncComponent();
     SyncComponentPrivatePtr syncComponentPrivate = syncComponent.asPtr<ISyncComponentPrivate>(true);
 
-    // The root device is a reference device which has a sync component with a PTP interface and a clock sync interface
-    // lets clean it up and create a new PTP interface
-    syncComponentPrivate.removeInterface("PtpSyncInterface");
-    syncComponentPrivate.removeInterface("InterfaceClockSync");
     ASSERT_EQ(syncComponent.getInterfaces().getCount(), 0u);
 
     // Create a new PTP interface from property objects class `PtpSyncInterface`
@@ -108,6 +114,12 @@ TEST_F(DevicesTest, SettingSyncComponent)
 
     // We can edit the existing PTP interface as well
     newPtpSyncInterface.setPropertyValue("Mode", 3); // set the mode to `Input`
+#ifdef _MSC_VER
+    #pragma warning(pop)
+#endif
+#if defined(__GNUC__)
+    #pragma GCC diagnostic pop
+#endif
 }
 
 END_NAMESPACE_OPENDAQ

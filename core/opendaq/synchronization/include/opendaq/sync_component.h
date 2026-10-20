@@ -54,24 +54,29 @@ BEGIN_NAMESPACE_OPENDAQ
  *
  * @note A CLK interface can be used to let a device run in Fre-Run mode, where the device
  * syncs internally to an internal quartz.
+ *
+ * @deprecated ISyncComponent is deprecated and will be removed in a future release. Use ISynchronization through IDevice::getSynchronization instead.
  */
 DECLARE_OPENDAQ_INTERFACE(ISyncComponent, IComponent)
 {
     /*!
      * @brief Retrieves the synchronization lock status.
      * @param[out] synchronizationLocked True if synchronization is locked; false otherwise.
+     * @deprecated ISyncComponent is deprecated and will be removed in a future release. Use ISynchronization through IDevice::getSynchronization instead.
      */
     virtual ErrCode INTERFACE_FUNC getSyncLocked(Bool* synchronizationLocked) = 0;
 
     /*!
      * @brief Retrieves the selected sync source interface.
      * @param[out] selectedSource The selected sync source interface.
+     * @deprecated ISyncComponent is deprecated and will be removed in a future release. Use ISynchronization through IDevice::getSynchronization instead.
      */
     virtual ErrCode INTERFACE_FUNC getSelectedSource(Int* selectedSource) = 0;
 
     /*!
      * @brief Sets the selected sync source interface.
      * @param selectedSource The selected sync source interface.
+     * @deprecated ISyncComponent is deprecated and will be removed in a future release. Use ISynchronization through IDevice::getSynchronization instead.
      */
     virtual ErrCode INTERFACE_FUNC setSelectedSource(Int selectedSource) = 0;
 
@@ -79,6 +84,7 @@ DECLARE_OPENDAQ_INTERFACE(ISyncComponent, IComponent)
     /*!
      * @brief Retrieves the list of interfaces associated with this synchronization component.
      * @param[out] interfaces List of interfaces associated with this component.
+     * @deprecated ISyncComponent is deprecated and will be removed in a future release. Use ISynchronization through IDevice::getSynchronization instead.
      */
     virtual ErrCode INTERFACE_FUNC getInterfaces(IDict** interfaces) = 0;
 };
@@ -87,7 +93,7 @@ DECLARE_OPENDAQ_INTERFACE(ISyncComponent, IComponent)
 OPENDAQ_DECLARE_CLASS_FACTORY_WITH_INTERFACE(
     LIBRARY_FACTORY, SyncComponent, ISyncComponent,
     IContext*, context,
-    IComponent*, ParseFailedException,
+    IComponent*, parent,
     IString*, localId
 )
 

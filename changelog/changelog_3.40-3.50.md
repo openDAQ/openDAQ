@@ -38,6 +38,7 @@
 
 ## Misc
 
+- [#1339](https://github.com/openDAQ/openDAQ/pull/1339) Publish the core stagings tagged by the run that published them, with the revision on every package.
 - [#1343](https://github.com/openDAQ/openDAQ/pull/1343) Test the oldest and newest supported compilers on the newest GitHub runners (Visual Studio 2026, Ubuntu 26.04, macOS 27).
 - [#1323](https://github.com/openDAQ/openDAQ/pull/1323) Fix classifier FB flaky tests
 - [#1313](https://github.com/openDAQ/openDAQ/pull/1313) Bump libNativeStreaming to v1.0.21 (precompiled headers and unity builds).

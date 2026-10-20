@@ -164,7 +164,7 @@ auto wrapInterface(pybind11::module_ m, const char* name, const Extra&... extra)
 {
     registerClassConverter<Interface>();
 
-    PyDaqIntf<Interface, ParentInterface> cls(m, name, extra...);
+    PyDaqIntf<Interface, ParentInterface> cls(m, name, py::release_gil_before_calling_cpp_dtor(), extra...);
     cls.def_static("cast_from", [](daq::IBaseObject* obj) { return castFrom<Interface>(obj); });
     cls.def_static("convert_from", [](daq::IBaseObject* obj) { return convertFrom<Interface>(obj); });
     cls.def_static("can_cast_from", [](daq::IBaseObject* obj) { return canCastFrom<Interface>(obj); });

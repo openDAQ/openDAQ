@@ -2,7 +2,7 @@
 
 void declareAndDefineIBaseObject(pybind11::module_ m)
 {
-    auto cls = py::class_<daq::IBaseObject, InterfaceWrapper<daq::IBaseObject>>(m, "IBaseObject");
+    auto cls = py::class_<daq::IBaseObject, InterfaceWrapper<daq::IBaseObject>>(m, "IBaseObject", py::release_gil_before_calling_cpp_dtor());
 
     cls.doc() = "Extends `IUnknown` by providing additional methods for borrowing interfaces, hashing, and equality comparison. "
                 "All openDAQ objects implement `IBaseObject` interface or its descendants. "

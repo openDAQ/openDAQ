@@ -33,6 +33,12 @@ public:
                             const PropertyObjectPtr& defaultConfig);
 
     explicit ServerTypeImpl(const ComponentTypeBuilderPtr& builder);
+
+    // IComponentType
+    ErrCode INTERFACE_FUNC createAuthenticationConfig(IAuthenticationConfig** config) override;
+
+    // IComponentTypePrivate
+    ErrCode INTERFACE_FUNC getSupportedAuthenticationMethods(IDict** authenticationMethods) override;
 };
 
 END_NAMESPACE_OPENDAQ

@@ -78,14 +78,6 @@ inline AuthenticationConfigPtr ExtractAuthenticationConfig(const PropertyObjectP
     return config.getPropertyValue(AuthenticationConfigConfigKey).asPtrOrNull<IAuthenticationConfig>();
 }
 
-inline bool ComponentTypeSupportsAuthentication(const ComponentTypePtr& componentType)
-{
-    if (!componentType.assigned())
-        return false;
-    const auto supportedMethods = componentType.asPtr<IComponentTypePrivate>().getSupportedAuthenticationMethods();
-    return supportedMethods.assigned() && supportedMethods.getCount() > 0;
-}
-
 ModuleManagerImpl::ModuleManagerImpl(const BaseObjectPtr& path, const CredentialProviderPtr& credentialProvider)
     : authenticatedModulesOnly(false)
     , moduleAuthenticator(nullptr)
@@ -814,7 +806,7 @@ AuthenticationConfigPtr ModuleManagerImpl::resolveDefaultAuthenticationConfig(co
 {
     if (authenticationConfig.assigned())
         return authenticationConfig;
-    if (!ComponentTypeSupportsAuthentication(componentType))
+    if (!componentType.asPtr<IComponentTypePrivate>().getSupportedAuthenticationMethods().getCount())
         return nullptr;
     return componentType.createAuthenticationConfig();
 }
@@ -923,7 +915,7 @@ ErrCode ModuleManagerImpl::createDeviceInternal(IDevice** device, IString* conne
             if (!deviceType.assigned())
                 continue;
 
-            const bool authenticationSupported = ComponentTypeSupportsAuthentication(deviceType);
+            const bool authenticationSupported = deviceType.asPtr<IComponentTypePrivate>().getSupportedAuthenticationMethods().getCount() > 0;
 
             if (authenticationConfigSupplied && !authenticationSupported)
             {
@@ -1729,7 +1721,7 @@ StreamingPtr ModuleManagerImpl::onCreateStreaming(const StringPtr& connectionStr
             streamingTypeConfig = inputConfig;
         }
 
-        if (authenticationConfig.assigned() && !ComponentTypeSupportsAuthentication(streamingType))
+        if (authenticationConfig.assigned() && !streamingType.asPtr<IComponentTypePrivate>().getSupportedAuthenticationMethods().getCount())
         {
             LOG_W("Streaming with given connection string '{}' does not support authentication; creating it without authentication.", connectionString);
         }

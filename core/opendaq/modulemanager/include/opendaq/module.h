@@ -127,9 +127,7 @@ DECLARE_OPENDAQ_INTERFACE(IModule, IBaseObject)
      * In case of a null value, implementation should use default configuration.
      * @param[out] streaming The created streaming object.
      */
-    virtual ErrCode INTERFACE_FUNC createStreaming(IStreaming** streaming,
-                                                   IString* connectionString,
-                                                   IPropertyObject* config = nullptr) = 0;
+    virtual ErrCode INTERFACE_FUNC createStreaming(IStreaming** streaming, IString* connectionString, IPropertyObject* config = nullptr) = 0;
 
     virtual ErrCode INTERFACE_FUNC completeServerCapability(Bool* succeeded, IServerCapability* source, IServerCapabilityConfig* target) = 0;
 

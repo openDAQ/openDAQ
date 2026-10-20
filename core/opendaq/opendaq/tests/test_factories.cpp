@@ -231,4 +231,31 @@ TEST_F(OpenDaqFactoriesTest, StreamingWithLinkedDeviceTypeRedirects)
     ASSERT_EQ(streamingType.createDefaultConfig().getPropertyValue("foo"), "bar");
 }
 
+TEST_F(OpenDaqFactoriesTest, ServerTypeDoesNotImplementAuthentication)
+{
+    const auto serverType = ServerTypeBuilder().setId("Id").setName("Name").setDescription("Desc").build();
+
+    ASSERT_THROW(serverType.createAuthenticationConfig(), NotImplementedException);
+    ASSERT_THROW(serverType.asPtr<IComponentTypePrivate>().getSupportedAuthenticationMethods(), NotImplementedException);
+}
+
+TEST_F(OpenDaqFactoriesTest, FunctionBlockTypeDoesNotImplementAuthentication)
+{
+    const auto fbType = FunctionBlockTypeBuilder().setId("Id").setName("Name").setDescription("Desc").build();
+
+    ASSERT_THROW(fbType.createAuthenticationConfig(), NotImplementedException);
+    ASSERT_THROW(fbType.asPtr<IComponentTypePrivate>().getSupportedAuthenticationMethods(), NotImplementedException);
+}
+
+TEST_F(OpenDaqFactoriesTest, DeviceTypeWithNoMethodsAddedDoesNotSupportAuthentication)
+{
+    const auto deviceType = DeviceTypeBuilder().setId("Id").setName("Name").setDescription("Desc").setConnectionStringPrefix("daq.prefix").build();
+
+    ASSERT_THROW(deviceType.createAuthenticationConfig(), NotSupportedException);
+
+    DictPtr<IString, IAuthenticationMethod> methods;
+    ASSERT_NO_THROW(methods = deviceType.asPtr<IComponentTypePrivate>().getSupportedAuthenticationMethods());
+    ASSERT_TRUE(methods.getCount() == 0);
+}
+
 END_NAMESPACE_OPENDAQ

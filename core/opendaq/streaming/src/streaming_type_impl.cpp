@@ -109,7 +109,7 @@ ErrCode INTERFACE_FUNC StreamingTypeImpl::serialize(ISerializer* serializer)
                 defaultConfig.serialize(serializerPtr);
             }
 
-            if (supportedAuthenticationMethods.assigned() && supportedAuthenticationMethods.getCount() > 0)
+            if (supportedAuthenticationMethods.getCount() > 0)
             {
                 serializerPtr.key("supportedAuthenticationMethods");
                 supportedAuthenticationMethods.serialize(serializerPtr);

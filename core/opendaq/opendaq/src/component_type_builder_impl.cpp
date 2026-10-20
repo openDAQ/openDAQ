@@ -10,6 +10,7 @@ BEGIN_NAMESPACE_OPENDAQ
 
 ComponentTypeBuilderImpl::ComponentTypeBuilderImpl(ComponentTypeSort sort)
     : sort(sort)
+    , supportedAuthenticationMethods((sort == ComponentTypeSort::Device || sort == ComponentTypeSort::Streaming) ?  Dict<IString, IAuthenticationMethod>() : nullptr)
 {
 }
 
@@ -147,9 +148,6 @@ ErrCode ComponentTypeBuilderImpl::addAuthenticationMethod(IAuthenticationMethod*
 
     const auto methodPtr = AuthenticationMethodPtr::Borrow(method);
     const StringPtr id = methodPtr.getId();
-
-    if (!this->supportedAuthenticationMethods.assigned())
-        this->supportedAuthenticationMethods = Dict<IString, IAuthenticationMethod>();
 
     if (this->supportedAuthenticationMethods.hasKey(id))
         return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_ALREADYEXISTS, "An authentication method with the same id was already added");

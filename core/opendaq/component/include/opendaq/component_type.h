@@ -41,8 +41,8 @@ struct IAuthenticationConfig;
 /*!
  * @brief Provides information about the component types.
  *
- * Is a Struct core type, and has access to Struct methods internally. Note that the default config is not
- * part of the Struct fields.
+ * Is a Struct core type, and has access to Struct methods internally. Note that the default config
+ * and authentication methods are not parts of the Struct fields.
  */
 
 DECLARE_OPENDAQ_INTERFACE(IComponentType, IBaseObject)
@@ -91,7 +91,7 @@ DECLARE_OPENDAQ_INTERFACE(IComponentType, IBaseObject)
      * @brief Builds an `AuthenticationConfig` listing every authentication method this component type
      * supports, as a candidate of its `"AuthenticationMethod"` selection property.
      * @param[out] config The built authentication config.
-     * @retval OPENDAQ_ERR_NOT_SUPPORTED when this component type supports no authentication method.
+     * @retval OPENDAQ_ERR_NOT_SUPPORTED when this component type sort (server-, FB-types) does not upports authentication.
      */
     virtual ErrCode INTERFACE_FUNC createAuthenticationConfig(IAuthenticationConfig** config) = 0;
 };

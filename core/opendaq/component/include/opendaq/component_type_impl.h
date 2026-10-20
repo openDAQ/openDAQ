@@ -60,16 +60,6 @@ public:
     ErrCode INTERFACE_FUNC setModuleInfo(IModuleInfo* info) override;
     ErrCode INTERFACE_FUNC getSupportedAuthenticationMethods(IDict** authenticationMethods) override;
 
-private:
-    // `supportedAuthenticationMethods` is deliberately not a Struct field - like `defaultConfig`, it holds
-    // plain (non-value-comparable) objects, so it's kept as a private member instead, outside the Struct's
-    // own field-by-field equality.
-    static DictPtr<IString, IBaseObject> BuildFields(const StringPtr& id, const StringPtr& name, const StringPtr& description);
-    static DictPtr<IString, IBaseObject> BuildFields(const StringPtr& id,
-                                                      const StringPtr& name,
-                                                      const StringPtr& description,
-                                                      const StringPtr& prefix);
-
 protected:
     StringPtr id;
     StringPtr name;
@@ -87,7 +77,7 @@ GenericComponentTypeImpl<Intf, Interfaces...>::GenericComponentTypeImpl(const St
                                                                         const StringPtr& description,
                                                                         const PropertyObjectPtr& defaultConfig,
                                                                         const DictPtr<IString, IAuthenticationMethod>& supportedAuthenticationMethods)
-    : GenericStructImpl<Intf, IStruct, IComponentTypePrivate, Interfaces...>(type, BuildFields(id, name, description))
+    : GenericStructImpl<Intf, IStruct, IComponentTypePrivate, Interfaces...>(type, Dict<IString, IBaseObject>({{"Id", id}, {"Name", name}, {"Description", description}}))
     , id(id)
     , name(name)
     , description(description)
@@ -105,7 +95,7 @@ GenericComponentTypeImpl<Intf, Interfaces...>::GenericComponentTypeImpl(const St
                                                                         const StringPtr& prefix,
                                                                         const PropertyObjectPtr& defaultConfig,
                                                                         const DictPtr<IString, IAuthenticationMethod>& supportedAuthenticationMethods)
-    : GenericStructImpl<Intf, IStruct, IComponentTypePrivate, Interfaces...>(type, BuildFields(id, name, description, prefix))
+    : GenericStructImpl<Intf, IStruct, IComponentTypePrivate, Interfaces...>(type, Dict<IString, IBaseObject>({{"Id", id}, {"Name", name}, {"Description", description}, {"Prefix", prefix}}))
     , id(id)
     , name(name)
     , description(description)
@@ -113,20 +103,6 @@ GenericComponentTypeImpl<Intf, Interfaces...>::GenericComponentTypeImpl(const St
     , defaultConfig(defaultConfig)
     , supportedAuthenticationMethods(supportedAuthenticationMethods)
 {
-}
-
-template <class Intf, class... Interfaces>
-DictPtr<IString, IBaseObject> GenericComponentTypeImpl<Intf, Interfaces...>::BuildFields(
-    const StringPtr& id, const StringPtr& name, const StringPtr& description)
-{
-    return Dict<IString, IBaseObject>({{"Id", id}, {"Name", name}, {"Description", description}});
-}
-
-template <class Intf, class... Interfaces>
-DictPtr<IString, IBaseObject> GenericComponentTypeImpl<Intf, Interfaces...>::BuildFields(
-    const StringPtr& id, const StringPtr& name, const StringPtr& description, const StringPtr& prefix)
-{
-    return Dict<IString, IBaseObject>({{"Id", id}, {"Name", name}, {"Description", description}, {"Prefix", prefix}});
 }
 
 template <class Intf, class... Interfaces>
@@ -173,7 +149,7 @@ ErrCode GenericComponentTypeImpl<Intf, Interfaces...>::createAuthenticationConfi
 {
     OPENDAQ_PARAM_NOT_NULL(config);
 
-    if (!this->supportedAuthenticationMethods.assigned() || this->supportedAuthenticationMethods.getCount() == 0)
+    if (this->supportedAuthenticationMethods.getCount() == 0)
         return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOT_SUPPORTED, "This component type supports no authentication method");
 
     return daqTry([&]()

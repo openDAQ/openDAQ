@@ -38,6 +38,7 @@ extern "C"
     typedef struct daqString daqString;
     typedef struct daqInteger daqInteger;
     typedef struct daqAddressInfo daqAddressInfo;
+    typedef struct daqDict daqDict;
 
     EXPORTED extern const daqIntfID DAQ_SERVER_CAPABILITY_CONFIG_INTF_ID;
     void EXPORTED daqServerCapabilityConfig_getInterfaceId(daqIntfID* intfId);
@@ -57,6 +58,7 @@ extern "C"
     daqErrCode EXPORTED daqServerCapabilityConfig_setProtocolVersion(daqServerCapabilityConfig* self, daqString* version);
     daqErrCode EXPORTED daqServerCapabilityConfig_setProtocolSecurityLevel(daqServerCapabilityConfig* self, daqInteger* securityLevel);
     daqErrCode EXPORTED daqServerCapabilityConfig_addAuthenticationMethod(daqServerCapabilityConfig* self, daqString* methodId);
+    daqErrCode EXPORTED daqServerCapabilityConfig_setAvailableTransports(daqServerCapabilityConfig* self, daqDict* transports);
     daqErrCode EXPORTED daqServerCapabilityConfig_createServerCapability(daqServerCapabilityConfig** obj, daqString* protocolId, daqString* protocolName, daqProtocolType protocolType);
 
 #ifdef __cplusplus

@@ -52,7 +52,7 @@ inline StreamingTypePtr StreamingType(const StringPtr& id,
                                               const StringPtr& description,
                                               const StringPtr& prefix,
                                               const PropertyObjectPtr& defaultConfig = PropertyObject(),
-                                              const DictPtr<IString, IAuthenticationMethod>& supportedAuthenticationMethods = nullptr,
+                                              const DictPtr<IString, IAuthenticationMethod>& supportedAuthenticationMethods = Dict<IString, IAuthenticationMethod>(),
                                               const DeviceTypePtr& linkedDeviceType = nullptr)
 {
     StreamingTypePtr obj(

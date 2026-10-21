@@ -116,7 +116,7 @@ TEST_F(AuthenticationMethodTest, CredentialAcceptionNonRequiredFieldIgnored)
 {
     const auto fields = Dict<IString, ICredentialField>(
         {{"UserName", CredentialField("UserName", CredentialFieldKind::Text, "User name")},
-         {"Field", CredentialField("Field", CredentialFieldKind::Text, "Field", Dict<IString, IString>(), False)}});
+         {"Field", CredentialField("Field", CredentialFieldKind::Text, "Field", False)}});
     const auto method = AuthenticationMethod("CustomTest", fields, "Custom method").asPtr<IAuthenticationMethodInternal>();
 
     ASSERT_TRUE(method.acceptsCredentials(Dict<IString, IString>({{"UserName", "john"}})));
@@ -126,7 +126,7 @@ TEST_F(AuthenticationMethodTest, CredentialAcceptionNonRequiredFieldIgnored)
 TEST_F(AuthenticationMethodTest, CredentialAcceptionAllFieldsOptional)
 {
     const auto fields = Dict<IString, ICredentialField>(
-        {{"Field", CredentialField("Field", CredentialFieldKind::Text, "Field", Dict<IString, IString>(), False)}});
+        {{"Field", CredentialField("Field", CredentialFieldKind::Text, "Field", False)}});
     const auto method = AuthenticationMethod("AllOptionalTest", fields, "All fields optional").asPtr<IAuthenticationMethodInternal>();
 
     ASSERT_TRUE(method.acceptsCredentials(Dict<IString, IString>()));

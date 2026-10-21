@@ -75,7 +75,7 @@ inline AuthenticationMethodPtr StandardPrivateKeyFileAuthenticationMethod()
         StandardPrivateKeyFileId,
         Dict<IString, ICredentialField>(
             {{"PrivateKeyFilePath",
-              CredentialField("PrivateKeyFilePath", CredentialFieldKind::FilePath, "Private key file", Dict<IString, IString>({{"Extensions", "pem,key"}}))}}),
+              CredentialField("PrivateKeyFilePath", CredentialFieldKind::FilePath, "Private key file", True, Dict<IString, IString>({{"Extensions", "pem,key"}}))}}),
         "Path to the PEM-encoded private key file");
 }
 

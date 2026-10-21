@@ -6,6 +6,7 @@
 #include <coretypes/version_info_factory.h>
 #include <coretypes/stringobject_factory.h>
 #include <coretypes/dictobject_factory.h>
+#include <coretypes/exceptions.h>
 #include <opendaq/authentication_method_factory.h>
 
 BEGIN_NAMESPACE_CREDENTIAL_DEMO_MODULE
@@ -32,16 +33,14 @@ DictPtr<IString, IDeviceType> CredentialDemoModule::onGetAvailableDeviceTypes()
     return Dict<IString, IBaseObject>({{deviceType.getId(), deviceType}});
 }
 
-DevicePtr CredentialDemoModule::onCreateDevice(const StringPtr& connectionString,
-                                               const ComponentPtr& parent,
-                                               const PropertyObjectPtr& config)
+DevicePtr CredentialDemoModule::onCreateDevice(const StringPtr& /*connectionString*/,
+                                               const ComponentPtr& /*parent*/,
+                                               const PropertyObjectPtr& /*config*/)
 {
-    const auto options = populateDefaultModuleOptions(this->context.getModuleOptions(CREDENTIAL_DEMO_MODULE_ID));
-    auto info = CredentialDemoDeviceImpl::CreateDeviceInfo(options, context);
-    CredentialDemoDeviceImpl::ValidateConnectionString(connectionString);
-
-    // The plain, non-authenticated path doesn't request credentials - the device is "connected" to anonymously.
-    return createWithImplementation<IDevice, CredentialDemoDeviceImpl>(config, context, parent, info, /*authenticated*/false).detach();
+    // Deliberately not implemented - this module's device type always adds authentication methods
+    // ("Anonymous" first), so `ModuleManagerImpl` only ever calls `createAuthenticatedDevice` for it, never
+    // this plain entry point (see onCreateAuthenticatedDevice for how an "Anonymous" connection is handled).
+    DAQ_THROW_EXCEPTION(NotImplementedException, "CredentialDemoDevice only connects through the authenticated path");
 }
 
 StringPtr CredentialDemoModule::onGetCanonicalConnectionString(const StringPtr& connectionString)
@@ -83,11 +82,13 @@ DictPtr<IString, IStreamingType> CredentialDemoModule::onGetAvailableStreamingTy
     return Dict<IString, IBaseObject>({{streamingType.getId(), streamingType}});
 }
 
-StreamingPtr CredentialDemoModule::onCreateStreaming(const StringPtr& connectionString, const PropertyObjectPtr& /*config*/)
+StreamingPtr CredentialDemoModule::onCreateStreaming(const StringPtr& /*connectionString*/, const PropertyObjectPtr& /*config*/)
 {
-    // Only reached for the "Anonymous" method (or no authentication support at all, which never applies to
-    // this module's own streaming type) - no real credentials to verify either way.
-    return createWithImplementation<IStreaming, CredentialDemoStreamingImpl>(connectionString, context, StandardAnonymousId, nullptr);
+    // Deliberately not implemented - this streaming type's methods are inherited from the device type above
+    // (which always adds "Anonymous" first), so `ModuleManagerImpl` only ever calls
+    // `createAuthenticatedStreaming` for it, never this plain entry point (see onCreateAuthenticatedStreaming
+    // for how an "Anonymous" streaming attach is handled).
+    DAQ_THROW_EXCEPTION(NotImplementedException, "CredentialDemoStreaming only connects through the authenticated path");
 }
 
 StreamingPtr CredentialDemoModule::onCreateAuthenticatedStreaming(const StringPtr& connectionString,

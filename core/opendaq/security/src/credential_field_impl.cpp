@@ -37,7 +37,7 @@ namespace detail
     }
 }
 
-CredentialFieldImpl::CredentialFieldImpl(IString* id, CredentialFieldKind kind, IString* name, IDict* metadata, Bool required)
+CredentialFieldImpl::CredentialFieldImpl(IString* id, CredentialFieldKind kind, IString* name, Bool required, IDict* metadata)
     : id(id)
     , kind(kind)
     , name(name)
@@ -149,13 +149,13 @@ ErrCode CredentialFieldImpl::Deserialize(ISerializedObject* serialized, IBaseObj
         const DictPtr<IString, IString> metadata = serializedObj.readObject("metadata", BaseObjectPtr::Borrow(context), FunctionPtr::Borrow(factoryCallback)).asPtr<IDict>();
         const Bool required = serializedObj.readBool("required");
 
-        *obj = CredentialField(id, kind, name, metadata, required).detach();
+        *obj = CredentialField(id, kind, name, required, metadata).detach();
         return OPENDAQ_SUCCESS;
     });
 }
 
 OPENDAQ_DEFINE_CLASS_FACTORY_WITH_INTERFACE(LIBRARY_FACTORY, CredentialField, ICredentialField,
-                                             IString*, id, CredentialFieldKind, kind, IString*, name, IDict*, metadata, Bool, required)
+                                             IString*, id, CredentialFieldKind, kind, IString*, name, Bool, required, IDict*, metadata)
 
 OPENDAQ_REGISTER_DESERIALIZE_FACTORY(CredentialFieldImpl)
 

@@ -46,14 +46,14 @@ void defineICredentialField(pybind11::module_ m, PyDaqIntf<daq::ICredentialField
 {
     cls.doc() = "Describes a single named credential field of an authentication method.";
 
-    m.def("CredentialField", [](daq::IString* id, daq::CredentialFieldKind kind, daq::IString* name, daq::IDict* metadata, bool required){
+    m.def("CredentialField", [](daq::IString* id, daq::CredentialFieldKind kind, daq::IString* name, bool required, daq::IDict* metadata){
         daq::DictPtr<daq::IString, daq::IString> metadataPtr;
         if (metadata != nullptr)
             metadataPtr = daq::DictPtr<daq::IString, daq::IString>::Borrow(metadata);
         else
             metadataPtr = daq::Dict<daq::IString, daq::IString>();
-        return daq::CredentialField_Create(id, kind, name, metadataPtr, required);
-    }, py::arg("id"), py::arg("kind"), py::arg("name"), py::arg("metadata") = nullptr, py::arg("required") = true);
+        return daq::CredentialField_Create(id, kind, name, required, metadataPtr);
+    }, py::arg("id"), py::arg("kind"), py::arg("name"), py::arg("required") = true, py::arg("metadata") = nullptr);
 
     cls.def_property_readonly("id",
         [](daq::ICredentialField *object)

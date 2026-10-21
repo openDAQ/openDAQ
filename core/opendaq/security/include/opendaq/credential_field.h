@@ -72,6 +72,6 @@ DECLARE_OPENDAQ_INTERFACE(ICredentialField, IBaseObject)
 };
 
 OPENDAQ_DECLARE_CLASS_FACTORY_WITH_INTERFACE(LIBRARY_FACTORY, CredentialField, ICredentialField,
-                                              IString*, id, CredentialFieldKind, kind, IString*, name, IDict*, metadata, Bool, required)
+                                              IString*, id, CredentialFieldKind, kind, IString*, name, Bool, required, IDict*, metadata)
 
 END_NAMESPACE_OPENDAQ

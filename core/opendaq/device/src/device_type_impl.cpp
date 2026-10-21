@@ -136,7 +136,7 @@ ErrCode DeviceTypeImpl::Deserialize(ISerializedObject* serialized, IBaseObject* 
         if (serializedObj.hasKey("defaultConfig"))
             defaultConfig = serializedObj.readObject("defaultConfig", contextPtr, factoryCallbackPtr);
 
-        DictPtr<IString, IAuthenticationMethod> supportedAuthenticationMethods;
+        DictPtr<IString, IAuthenticationMethod> supportedAuthenticationMethods = Dict<IString, IAuthenticationMethod>();
         if (serializedObj.hasKey("supportedAuthenticationMethods"))
             supportedAuthenticationMethods = serializedObj.readObject("supportedAuthenticationMethods", contextPtr, factoryCallbackPtr).asPtr<IDict>();
 

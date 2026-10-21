@@ -46,7 +46,7 @@ extern "C"
     daqErrCode EXPORTED daqCredentialField_getName(daqCredentialField* self, daqString** name);
     daqErrCode EXPORTED daqCredentialField_getMetadata(daqCredentialField* self, daqDict** metadata);
     daqErrCode EXPORTED daqCredentialField_isRequired(daqCredentialField* self, daqBool* required);
-    daqErrCode EXPORTED daqCredentialField_createCredentialField(daqCredentialField** obj, daqString* id, daqCredentialFieldKind kind, daqString* name, daqDict* metadata, daqBool required);
+    daqErrCode EXPORTED daqCredentialField_createCredentialField(daqCredentialField** obj, daqString* id, daqCredentialFieldKind kind, daqString* name, daqBool required, daqDict* metadata);
 
 #ifdef __cplusplus
 }

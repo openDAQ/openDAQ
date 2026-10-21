@@ -813,6 +813,11 @@ AuthenticationConfigPtr ModuleManagerImpl::resolveDefaultAuthenticationConfig(co
 
 DictPtr<IString, IString> ModuleManagerImpl::resolveCredentials(const AuthenticationConfigPtr& authenticationConfig, const CredentialRequestPtr& credentialRequest) const
 {
+    // A field-less method (e.g. "Anonymous") needs no credentials at all - no provider consultation, no
+    // supplied-credential check, regardless of whether one is registered.
+    if (authenticationConfig.getSelectedAuthenticationMethod().getFields().getCount() == 0)
+        return Dict<IString, IString>();
+
     const DictPtr<IString, IString> suppliedCredential = authenticationConfig.getSuppliedCredential();
 
     if (suppliedCredential.assigned() && suppliedCredential.getCount() > 0)
@@ -925,14 +930,14 @@ ErrCode ModuleManagerImpl::createDeviceInternal(IDevice** device, IString* conne
             // copy props from input config and connection string to device type config
             const auto deviceTypeConfig = PopulateDeviceTypeConfig(addDeviceConfig, inputConfig, deviceType, connectionStringOptions);
 
+            // Any supported authentication method - field-less (e.g. "Anonymous") included - goes through
+            // `createAuthenticatedDevice`; `createDevice` is only for a type with none supported at all.
             const AuthenticationConfigPtr resolvedAuthConfig =
                 authenticationSupported ? resolveDefaultAuthenticationConfig(authenticationConfig, deviceType) : nullptr;
-            const bool authenticated =
-                resolvedAuthConfig.assigned() && resolvedAuthConfig.getSelectedAuthenticationMethod().getFields().getCount() > 0;
 
             DictPtr<IString, IString> credentials;
             ErrCode err;
-            if (authenticated)
+            if (authenticationSupported)
             {
                 const auto credentialRequest = CredentialRequestBuilder()
                                                    .setConnectionString(library.module.getCanonicalConnectionString(connectionStringPtr))
@@ -972,7 +977,7 @@ ErrCode ModuleManagerImpl::createDeviceInternal(IDevice** device, IString* conne
                         deviceInfoType.asPtr<IComponentTypePrivate>().setModuleInfo(moduleInfo);
                 }
 
-                if (authenticated)
+                if (authenticationSupported)
                 {
                     if (const auto& componentPrivate = devicePtr.asPtrOrNull<IComponentPrivate>(true); componentPrivate.assigned())
                         componentPrivate.setAuthenticationConfig(resolvedAuthConfig);
@@ -1727,8 +1732,9 @@ StreamingPtr ModuleManagerImpl::onCreateStreaming(const StringPtr& connectionStr
         }
 
         const AuthenticationConfigPtr resolvedAuthConfig = resolveDefaultAuthenticationConfig(authenticationConfig, streamingType);
-        const bool authenticated =
-            resolvedAuthConfig.assigned() && resolvedAuthConfig.getSelectedAuthenticationMethod().getFields().getCount() > 0;
+        // Any supported authentication method - field-less (e.g. "Anonymous") included - goes through
+        // `createAuthenticatedStreaming`; `createStreaming` is only for a type with none supported at all.
+        const bool authenticated = resolvedAuthConfig.assigned();
 
         try
         {

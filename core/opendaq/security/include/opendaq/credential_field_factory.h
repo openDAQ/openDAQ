@@ -25,17 +25,17 @@ BEGIN_NAMESPACE_OPENDAQ
  * @param id The key this field is stored under in the credential - e.g. "Username".
  * @param kind How this field's value should be collected/presented.
  * @param name A human-readable name for this field, for the user - e.g. "User name".
- * @param metadata Hints for whoever collects this field's value (see `ICredentialField::getMetadata`). Empty by default.
  * @param required Whether this field cannot be left unset or empty. `True` by default.
+ * @param metadata Hints for whoever collects this field's value (see `ICredentialField::getMetadata`). Empty by default.
  * @throws InvalidParameterException if `id`, `name`, or `metadata` is unassigned.
  */
 inline CredentialFieldPtr CredentialField(const StringPtr& id,
                                           CredentialFieldKind kind,
                                           const StringPtr& name,
-                                          const DictPtr<IString, IString>& metadata = Dict<IString, IString>(),
-                                          Bool required = True)
+                                          Bool required = True,
+                                          const DictPtr<IString, IString>& metadata = Dict<IString, IString>())
 {
-    CredentialFieldPtr obj(CredentialField_Create(id, kind, name, metadata, required));
+    CredentialFieldPtr obj(CredentialField_Create(id, kind, name, required, metadata));
     return obj;
 }
 

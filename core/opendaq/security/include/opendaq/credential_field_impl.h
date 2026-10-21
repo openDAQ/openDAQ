@@ -27,7 +27,7 @@ BEGIN_NAMESPACE_OPENDAQ
 class CredentialFieldImpl final : public ImplementationOf<ICredentialField, ISerializable>
 {
 public:
-    CredentialFieldImpl(IString* id, CredentialFieldKind kind, IString* name, IDict* metadata, Bool required);
+    CredentialFieldImpl(IString* id, CredentialFieldKind kind, IString* name, Bool required, IDict* metadata);
 
     ErrCode INTERFACE_FUNC getId(IString** id) override;
     ErrCode INTERFACE_FUNC getKind(CredentialFieldKind* kind) override;

@@ -48,7 +48,7 @@ inline DeviceTypePtr DeviceType(const StringPtr& id,
                                 const StringPtr& description,
                                 const StringPtr& prefix,
                                 const PropertyObjectPtr& defaultConfig = PropertyObject(),
-                                const DictPtr<IString, IAuthenticationMethod>& supportedAuthenticationMethods = nullptr)
+                                const DictPtr<IString, IAuthenticationMethod>& supportedAuthenticationMethods = Dict<IString, IAuthenticationMethod>())
 {
     DeviceTypePtr obj(
         DeviceType_Create(id, name, description, defaultConfig, prefix, supportedAuthenticationMethods));

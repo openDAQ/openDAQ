@@ -178,6 +178,25 @@ TEST_F(CredentialDemoModuleTest, CreateDeviceConnectionStringNull)
     ASSERT_THROW(device = module.createDevice(nullptr, nullptr), ArgumentNullException);
 }
 
+// `onCreateDevice` is deliberately not implemented - this module's device type always adds authentication
+// methods, so `createDevice` is never actually reached via the normal `addDevice` flow.
+TEST_F(CredentialDemoModuleTest, CreateDeviceNotImplemented)
+{
+    auto module = createModule();
+
+    DevicePtr device;
+    ASSERT_THROW(device = module.createDevice(DeviceConnectionString, nullptr), NotImplementedException);
+}
+
+// `onCreateStreaming` is deliberately not implemented either, for the same reason.
+TEST_F(CredentialDemoModuleTest, CreateStreamingNotImplemented)
+{
+    auto module = createModule();
+
+    StreamingPtr streaming;
+    ASSERT_THROW(streaming = module.createStreaming(StreamingConnectionString, nullptr), NotImplementedException);
+}
+
 TEST_F(CredentialDemoModuleTest, AuthenticatedDeviceSucceedsAnonymously)
 {
     auto module = createModule();

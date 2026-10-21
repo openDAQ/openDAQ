@@ -23,7 +23,7 @@ TEST_F(CredentialFieldTest, FactoryWithParams)
     const auto metadata = Dict<IString, IString>({{"Extensions", "pem,key"}});
 
     const CredentialFieldPtr field =
-        CredentialField("PrivateKeyFilePath", CredentialFieldKind::FilePath, "Private key file", metadata, False);
+        CredentialField("PrivateKeyFilePath", CredentialFieldKind::FilePath, "Private key file", False, metadata);
 
     ASSERT_EQ(field.getId(), "PrivateKeyFilePath");
     ASSERT_EQ(field.getKind(), CredentialFieldKind::FilePath);
@@ -36,12 +36,12 @@ TEST_F(CredentialFieldTest, FactoryThrowsOnUnassignedParams)
 {
     ASSERT_THROW(CredentialField(nullptr, CredentialFieldKind::Text, "User name"), InvalidParameterException);
     ASSERT_THROW(CredentialField("Username", CredentialFieldKind::Text, nullptr), InvalidParameterException);
-    ASSERT_THROW(CredentialField("Username", CredentialFieldKind::Text, "User name", nullptr), InvalidParameterException);
+    ASSERT_THROW(CredentialField("Username", CredentialFieldKind::Text, "User name", True, nullptr), InvalidParameterException);
 }
 
 TEST_F(CredentialFieldTest, SecretKind)
 {
-    const CredentialFieldPtr field = CredentialField("Password", CredentialFieldKind::Secret, "Password", Dict<IString, IString>(), False);
+    const CredentialFieldPtr field = CredentialField("Password", CredentialFieldKind::Secret, "Password", False);
 
     ASSERT_EQ(field.getKind(), CredentialFieldKind::Secret);
     ASSERT_FALSE(field.isRequired());
@@ -51,7 +51,7 @@ TEST_F(CredentialFieldTest, SerializeDeserializeWithMetadata)
 {
     const auto metadata = Dict<IString, IString>({{"Extensions", "pem,key"}});
     const CredentialFieldPtr field =
-        CredentialField("PrivateKeyFilePath", CredentialFieldKind::FilePath, "Private key file", metadata, False);
+        CredentialField("PrivateKeyFilePath", CredentialFieldKind::FilePath, "Private key file", False, metadata);
 
     const auto serializer = JsonSerializer();
     field.serialize(serializer);
@@ -80,7 +80,7 @@ TEST_P(CredentialFieldAllKindsTest, SerializeDeserialize)
 {
     const auto kind = std::get<0>(GetParam());
     const Bool required = std::get<1>(GetParam());
-    const CredentialFieldPtr field = CredentialField("Id", kind, "Name", Dict<IString, IString>(), required);
+    const CredentialFieldPtr field = CredentialField("Id", kind, "Name", required);
 
     const auto serializer = JsonSerializer();
     field.serialize(serializer);

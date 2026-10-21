@@ -416,14 +416,41 @@ inline ErrCode ServerCapabilityConfigImpl::getPort(IInteger** port)
     
     return daqTry([&]
     {
-        *port = getTypedProperty<IInteger>(Port).detach();
+        const DictPtr<IString, IInteger> transports = objPtr.getPropertyValue(AvailableTransports);
+        if (transports.assigned() && transports.getCount() > 0)
+            *port = transports.getValueList().getItemAt(0).detach();
+        else
+            *port = getTypedProperty<IInteger>(Port).detach();
+
         return OPENDAQ_SUCCESS;
     });
 }
 
 inline ErrCode ServerCapabilityConfigImpl::setPort(IInteger* port)
 {
-    return Super::setPropertyValue(String(Port), port);
+    if (port == nullptr)
+        return Super::setPropertyValue(String(Port), port);
+
+    return daqTry([&]
+    {
+        // Keeps the default transport in step with the port
+        const DictPtr<IString, IInteger> transports = objPtr.getPropertyValue(AvailableTransports);
+        if (transports.assigned() && transports.getCount() > 0)
+        {
+            auto updated = Dict<IString, IInteger>();
+            for (const auto& [name, transportPort] : transports)
+            {
+                if (updated.getCount() == 0)
+                    updated.set(name, port);
+                else
+                    updated.set(name, transportPort);
+            }
+
+            OPENDAQ_RETURN_IF_FAILED(Super::setPropertyValue(String(AvailableTransports), updated));
+        }
+
+        return Super::setPropertyValue(String(Port), port);
+    });
 }
 
 inline ErrCode ServerCapabilityConfigImpl::getAddressInfo(IList** addressesInfo)
@@ -561,7 +588,20 @@ inline ErrCode ServerCapabilityConfigImpl::setAvailableTransports(IDict* transpo
 {
     OPENDAQ_PARAM_NOT_NULL(transports);
 
-    return Super::setPropertyValue(String(AvailableTransports), transports);
+    return daqTry([&]
+    {
+        OPENDAQ_RETURN_IF_FAILED(Super::setPropertyValue(String(AvailableTransports), transports));
+
+        // Older clients read the Port property. A write that only reorders the entries is dropped,
+        // so the port is taken from the stored value rather than the argument.
+        const DictPtr<IString, IInteger> stored = objPtr.getPropertyValue(AvailableTransports);
+        if (stored.assigned() && stored.getCount() > 0)
+        {
+            OPENDAQ_RETURN_IF_FAILED(Super::setPropertyValue(String(Port), stored.getValueList().getItemAt(0)));
+        }
+
+        return OPENDAQ_SUCCESS;
+    });
 }
 
 OPENDAQ_REGISTER_DESERIALIZE_FACTORY(ServerCapabilityConfigImpl)

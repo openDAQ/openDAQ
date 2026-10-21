@@ -198,7 +198,6 @@ TEST_F(ServerCapabilityTest, AvailableTransportsAreCopied)
 TEST_F(ServerCapabilityTest, SerializeDeserializeAvailableTransports)
 {
     ServerCapabilityConfigPtr capability = ServerCapability("protocol_id", "Protocol name", ProtocolType::Streaming)
-                                               .setPort(7420)
                                                .setAvailableTransports(Dict<IString, IInteger>({{"wss", 7443}, {"tls", 7421}, {"plain", 7420}}));
 
     const auto serializer = JsonSerializer();
@@ -211,7 +210,9 @@ TEST_F(ServerCapabilityTest, SerializeDeserializeAvailableTransports)
     const auto transports = newCapability.getAvailableTransports();
     ASSERT_EQ(transports.getKeyList(), List<IString>("wss", "tls", "plain"));
     ASSERT_EQ(transports.get("tls"), 7421);
-    ASSERT_EQ(newCapability.getPort(), 7420);
+    ASSERT_EQ(newCapability.getPort(), 7443);
+    // What an older client reads
+    ASSERT_EQ(newCapability.getPropertyValue("Port"), 7443);
 
     serializer.reset();
     newCapability.serialize(serializer);
@@ -244,6 +245,60 @@ TEST_F(ServerCapabilityTest, CloneAvailableTransports)
     const ServerCapabilityPtr cloned = capability.asPtr<IPropertyObjectInternal>().clone();
 
     ASSERT_EQ(cloned.getAvailableTransports().getKeyList(), List<IString>("tls", "plain"));
+}
+
+TEST_F(ServerCapabilityTest, PortWithoutTransports)
+{
+    ServerCapabilityConfigPtr capability = ServerCapability("protocol_id", "Protocol name", ProtocolType::Streaming).setPort(7420);
+
+    ASSERT_EQ(capability.getPort(), 7420);
+    ASSERT_EQ(capability.getAvailableTransports().getCount(), 0u);
+}
+
+TEST_F(ServerCapabilityTest, SetAvailableTransportsMirrorsPort)
+{
+    ServerCapabilityConfigPtr capability = ServerCapability("protocol_id", "Protocol name", ProtocolType::Streaming)
+                                               .setPort(1234)
+                                               .setAvailableTransports(Dict<IString, IInteger>({{"tls", 7421}, {"plain", 7420}}));
+
+    ASSERT_EQ(capability.getPort(), 7421);
+    ASSERT_EQ(capability.getPropertyValue("Port"), 7421);
+}
+
+TEST_F(ServerCapabilityTest, SetEmptyAvailableTransportsKeepsPort)
+{
+    ServerCapabilityConfigPtr capability = ServerCapability("protocol_id", "Protocol name", ProtocolType::Streaming)
+                                               .setPort(7420)
+                                               .setAvailableTransports(Dict<IString, IInteger>());
+
+    ASSERT_EQ(capability.getPort(), 7420);
+    ASSERT_EQ(capability.getPropertyValue("Port"), 7420);
+}
+
+TEST_F(ServerCapabilityTest, SetPortUpdatesDefaultTransport)
+{
+    ServerCapabilityConfigPtr capability = ServerCapability("protocol_id", "Protocol name", ProtocolType::Streaming)
+                                               .setAvailableTransports(Dict<IString, IInteger>({{"tls", 7421}, {"plain", 7420}}))
+                                               .setPort(8000);
+
+    const auto transports = capability.getAvailableTransports();
+    ASSERT_EQ(transports.getKeyList(), List<IString>("tls", "plain"));
+    ASSERT_EQ(transports.get("tls"), 8000);
+    ASSERT_EQ(transports.get("plain"), 7420);
+    ASSERT_EQ(capability.getPort(), 8000);
+    ASSERT_EQ(capability.getPropertyValue("Port"), 8000);
+}
+
+// Dict equality ignores order, so a reordering write is dropped and the port must follow the stored order
+TEST_F(ServerCapabilityTest, ReorderedTransportsKeepPortInStep)
+{
+    ServerCapabilityConfigPtr capability = ServerCapability("protocol_id", "Protocol name", ProtocolType::Streaming)
+                                               .setAvailableTransports(Dict<IString, IInteger>({{"tls", 7421}, {"plain", 7420}}))
+                                               .setAvailableTransports(Dict<IString, IInteger>({{"plain", 7420}, {"tls", 7421}}));
+
+    const auto defaultTransport = capability.getAvailableTransports().getKeyList().getItemAt(0);
+    ASSERT_EQ(capability.getPort(), capability.getAvailableTransports().get(defaultTransport));
+    ASSERT_EQ(capability.getPropertyValue("Port"), capability.getPort());
 }
 
 END_NAMESPACE_OPENDAQ

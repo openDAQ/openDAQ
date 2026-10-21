@@ -131,7 +131,8 @@ DECLARE_OPENDAQ_INTERFACE(IServerCapability, IPropertyObject)
      * @param[out] port The port of the device.
      *
      * @deprecated Use getAvailableTransports instead.
-     * Returns the port assigned to the first (default) entry of getAvailableTransports.
+     * Returns the port assigned to the first (default) entry of getAvailableTransports,
+     * or the stored port when no transports are set.
      */
     virtual ErrCode INTERFACE_FUNC getPort(IInteger** port) = 0;
     

@@ -6,6 +6,8 @@
 #include <coreobjects/property_object_factory.h>
 #include <coreobjects/property_factory.h>
 #include <opendaq/streaming_type_factory.h>
+#include <opendaq/add_streaming_config_factory.h>
+#include <coreobjects/property_object_internal_ptr.h>
 #include <coretypes/json_serializer_factory.h>
 #include <coretypes/json_deserializer_factory.h>
 
@@ -348,6 +350,105 @@ TEST_F(OpenDaqFactoriesTest, FBTypeDoesNotSupportTransports)
 
     const FunctionBlockTypePtr fbType = FunctionBlockTypeBuilder().setId("Id").build();
     ASSERT_THROW(fbType.getAvailableTransports(), NotImplementedException);
+}
+
+TEST_F(OpenDaqFactoriesTest, AddStreamingConfig)
+{
+    const AddStreamingConfigPtr config = AddStreamingConfig(List<IString>("wss", "plain"));
+    ASSERT_EQ(config.getAvailableTransports(), List<IString>("wss", "plain"));
+    ASSERT_EQ(config.getTransport(), "wss");
+
+    config.setTransport("plain");
+    ASSERT_EQ(config.getPropertySelectionValue("Transport"), "plain");
+    ASSERT_THROW(config.setTransport("tls"), NotFoundException);
+
+    const PropertyObjectPtr cloned = config.asPtr<IPropertyObjectInternal>().clone();
+    ASSERT_EQ(cloned.asPtr<IAddStreamingConfig>().getTransport(), "plain");
+
+    const auto serializer = JsonSerializer();
+    config.serialize(serializer);
+    const BaseObjectPtr deserialized = JsonDeserializer().deserialize(serializer.getOutput(), nullptr, nullptr);
+    const auto newConfig = deserialized.asPtrOrNull<IAddStreamingConfig>();
+    ASSERT_TRUE(newConfig.assigned());
+    ASSERT_EQ(newConfig.getAvailableTransports(), List<IString>("wss", "plain"));
+    ASSERT_EQ(newConfig.getTransport(), "plain");
+}
+
+TEST_F(OpenDaqFactoriesTest, StreamingTypeDefaultConfigCarriesAddStreamingConfig)
+{
+    auto moduleConfig = PropertyObject();
+    moduleConfig.addProperty(IntProperty("Port", 7420));
+
+    const StreamingTypePtr type = StreamingTypeBuilder()
+                                      .setId("Id")
+                                      .setConnectionStringPrefix("Prefix")
+                                      .setDefaultConfig(moduleConfig)
+                                      .setAvailableTransports(Dict<IString, IInteger>({{"plain", 7420}, {"tls", 7421}}))
+                                      .build();
+
+    const PropertyObjectPtr config = type.createDefaultConfig();
+    ASSERT_EQ(config.getPropertyValue("Port"), 7420);
+
+    const auto addStreamingConfig = config.getPropertyValue("AddStreamingConfig").asPtrOrNull<IAddStreamingConfig>();
+    ASSERT_TRUE(addStreamingConfig.assigned());
+    ASSERT_EQ(addStreamingConfig.getAvailableTransports(), List<IString>("plain", "tls"));
+    ASSERT_EQ(addStreamingConfig.getTransport(), "plain");
+    ASSERT_FALSE(config.hasProperty("AddDeviceConfig"));
+
+    ASSERT_FALSE(StreamingType("Id", "Name", "Desc", "Prefix").createDefaultConfig().hasProperty("AddStreamingConfig"));
+}
+
+// A linked streaming type takes over the device's config, but keeps its own transport selection
+TEST_F(OpenDaqFactoriesTest, LinkedStreamingTypeDefaultConfigCarriesOwnAddStreamingConfig)
+{
+    auto moduleConfig = PropertyObject();
+    moduleConfig.addProperty(IntProperty("Port", 7420));
+
+    const DeviceTypePtr deviceType = DeviceTypeBuilder()
+                                         .setId("DeviceId")
+                                         .setConnectionStringPrefix("daq.device")
+                                         .setDefaultConfig(moduleConfig)
+                                         .setAvailableTransports(Dict<IString, IInteger>({{"tls", 7421}, {"plain", 7420}}))
+                                         .build();
+    ASSERT_TRUE(deviceType.createDefaultConfig().hasProperty("AddDeviceConfig"));
+
+    const StreamingTypePtr type = StreamingTypeBuilder()
+                                      .setId("Id")
+                                      .setConnectionStringPrefix("Prefix")
+                                      .setLinkedDeviceType(deviceType)
+                                      .setAvailableTransports(Dict<IString, IInteger>({{"plain", 7420}, {"tls", 7421}}))
+                                      .build();
+
+    const PropertyObjectPtr config = type.createDefaultConfig();
+    ASSERT_EQ(config.getPropertyValue("Port"), 7420);
+    ASSERT_FALSE(config.hasProperty("AddDeviceConfig"));
+
+    const auto addStreamingConfig = config.getPropertyValue("AddStreamingConfig").asPtrOrNull<IAddStreamingConfig>();
+    ASSERT_TRUE(addStreamingConfig.assigned());
+    ASSERT_EQ(addStreamingConfig.getAvailableTransports(), List<IString>("plain", "tls"));
+    ASSERT_EQ(addStreamingConfig.getTransport(), "plain");
+
+    const StreamingTypePtr withoutTransports = StreamingTypeBuilder()
+                                                   .setId("Id")
+                                                   .setConnectionStringPrefix("Prefix")
+                                                   .setLinkedDeviceType(deviceType)
+                                                   .build();
+
+    const PropertyObjectPtr configWithoutTransports = withoutTransports.createDefaultConfig();
+    ASSERT_FALSE(configWithoutTransports.hasProperty("AddDeviceConfig"));
+    ASSERT_FALSE(configWithoutTransports.hasProperty("AddStreamingConfig"));
+}
+
+TEST_F(OpenDaqFactoriesTest, ServerTypeDefaultConfigHasNoAddConfig)
+{
+    const ServerTypePtr type = ServerTypeBuilder()
+                                   .setId("Id")
+                                   .setAvailableTransports(Dict<IString, IInteger>({{"plain", 7420}}))
+                                   .build();
+
+    const PropertyObjectPtr config = type.createDefaultConfig();
+    ASSERT_FALSE(config.hasProperty("AddDeviceConfig"));
+    ASSERT_FALSE(config.hasProperty("AddStreamingConfig"));
 }
 
 END_NAMESPACE_OPENDAQ

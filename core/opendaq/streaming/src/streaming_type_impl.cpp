@@ -1,4 +1,6 @@
 #include <opendaq/streaming_type_impl.h>
+#include <opendaq/add_streaming_config_factory.h>
+#include <coreobjects/property_factory.h>
 #include <coretypes/validation.h>
 
 BEGIN_NAMESPACE_OPENDAQ
@@ -48,10 +50,27 @@ ErrCode StreamingTypeImpl::createDefaultConfig(IPropertyObject** defaultConfig)
 {
     OPENDAQ_PARAM_NOT_NULL(defaultConfig);
 
+    PropertyObjectPtr config;
     if (linkedDeviceType.assigned())
-        return linkedDeviceType->createDefaultConfig(defaultConfig);
+        OPENDAQ_RETURN_IF_FAILED(linkedDeviceType->createDefaultConfig(&config));
+    else
+        OPENDAQ_RETURN_IF_FAILED(Super::createDefaultConfig(&config));
 
-    return Super::createDefaultConfig(defaultConfig);
+    const ErrCode errCode = daqTry([this, &config]
+    {
+        // The config lent by a linked device type carries the device's transport selection, while the streaming
+        // selects its own
+        if (linkedDeviceType.assigned() && config.hasProperty("AddDeviceConfig"))
+            config.removeProperty("AddDeviceConfig");
+
+        // Temporary bridge: carries the transport selection until the add-streaming config replaces this plain config
+        if (transports.getCount() > 0 && !config.hasProperty("AddStreamingConfig"))
+            config.addProperty(ObjectProperty("AddStreamingConfig", AddStreamingConfig(transports.getKeyList())));
+    });
+    OPENDAQ_RETURN_IF_FAILED(errCode);
+
+    *defaultConfig = config.detach();
+    return OPENDAQ_SUCCESS;
 }
 
 ErrCode StreamingTypeImpl::createAuthenticationConfig(IAuthenticationConfig** config)

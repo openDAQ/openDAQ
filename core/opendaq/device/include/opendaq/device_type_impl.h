@@ -38,6 +38,9 @@ public:
 
     ErrCode INTERFACE_FUNC getConnectionStringPrefix(IString** prefix) override;
 
+    // Adds the "AddDeviceConfig" object property when the type lists transports
+    ErrCode INTERFACE_FUNC createDefaultConfig(IPropertyObject** defaultConfig) override;
+
     // ISerializable
     ErrCode INTERFACE_FUNC serialize(ISerializer* serializer) override;
     ErrCode INTERFACE_FUNC getSerializeId(ConstCharPtr* serializedId) const override;

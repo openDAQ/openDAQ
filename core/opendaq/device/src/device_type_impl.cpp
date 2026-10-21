@@ -1,6 +1,8 @@
 #include <opendaq/device_type_impl.h>
 #include <opendaq/device_type_factory.h>
 #include <opendaq/authentication_method_factory.h>
+#include <opendaq/add_device_config_factory.h>
+#include <coreobjects/property_factory.h>
 #include <coretypes/validation.h>
 
 BEGIN_NAMESPACE_OPENDAQ
@@ -37,6 +39,25 @@ ErrCode DeviceTypeImpl::getConnectionStringPrefix(IString** prefix)
     OPENDAQ_PARAM_NOT_NULL(prefix);
 
     *prefix = this->prefix.addRefAndReturn();
+    return OPENDAQ_SUCCESS;
+}
+
+ErrCode DeviceTypeImpl::createDefaultConfig(IPropertyObject** defaultConfig)
+{
+    OPENDAQ_PARAM_NOT_NULL(defaultConfig);
+
+    PropertyObjectPtr config;
+    OPENDAQ_RETURN_IF_FAILED(Super::createDefaultConfig(&config));
+
+    const ErrCode errCode = daqTry([this, &config]
+    {
+        // Temporary bridge: carries the transport selection until the add-device config replaces this plain config
+        if (transports.getCount() > 0 && !config.hasProperty("AddDeviceConfig"))
+            config.addProperty(ObjectProperty("AddDeviceConfig", AddDeviceConfig(transports.getKeyList())));
+    });
+    OPENDAQ_RETURN_IF_FAILED(errCode);
+
+    *defaultConfig = config.detach();
     return OPENDAQ_SUCCESS;
 }
 

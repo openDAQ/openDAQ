@@ -44,6 +44,7 @@ public:
     ErrCode INTERFACE_FUNC getLinkedDeviceType(IDeviceType** deviceType) override;
 
     // IComponentType
+    // Adds the "AddStreamingConfig" object property when the type lists transports
     ErrCode INTERFACE_FUNC createDefaultConfig(IPropertyObject** defaultConfig) override;
     ErrCode INTERFACE_FUNC createAuthenticationConfig(IAuthenticationConfig** config) override;
 

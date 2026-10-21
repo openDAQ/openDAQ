@@ -46,6 +46,7 @@ enum class ComponentTypeSort
  * [interfaceSmartPtr(IAuthenticationMethod, AuthenticationMethodPtr, "<opendaq/authentication_method_ptr.h>")]
  * [interfaceLibrary(IDeviceType, "opendaq")]
  * [interfaceSmartPtr(IDeviceType, DeviceTypePtr, "<opendaq/device_type_ptr.h>")]
+ * [interfaceSmartPtr(IInteger, IntegerPtr, "<coretypes/integer.h>")]
  */
 
 /*!
@@ -225,6 +226,24 @@ DECLARE_OPENDAQ_INTERFACE(IComponentTypeBuilder, IBaseObject)
      * @param[out] deviceType The linked device type, or unassigned if none was set.
      */
     virtual ErrCode INTERFACE_FUNC getLinkedDeviceType(IDeviceType** deviceType) = 0;
+
+    // [templateType(transports, IString, IInteger), returnSelf]
+    /*!
+     * @brief Sets the transports a component of the built type can be connected over, with the default port of each.
+     * Only valid when the "Type" builder parameter is "Device", "Streaming" or "Server".
+     * @param[in] transports A dictionary mapping a transport name (e.g. "plain", "tls", "https", "wss") to its default port.
+     * @retval OPENDAQ_ERR_NOT_SUPPORTED for a Function block sort.
+     *
+     * Replaces any previously set transports. The first entry becomes the transport used by default.
+     */
+    virtual ErrCode INTERFACE_FUNC setAvailableTransports(IDict* transports) = 0;
+
+    // [templateType(transports, IString, IInteger)]
+    /*!
+     * @brief Gets the transports a component of the built type can be connected over, with the default port of each.
+     * @param[out] transports A dictionary mapping a transport name (e.g. "plain", "tls", "https", "wss") to its default port.
+     */
+    virtual ErrCode INTERFACE_FUNC getAvailableTransports(IDict** transports) = 0;
 };
 /*!@}*/
 

@@ -136,4 +136,114 @@ TEST_F(ServerCapabilityTest, Clone)
     ASSERT_EQ(cloned.getProtocolSecurityLevel(), 3);
 }
 
+TEST_F(ServerCapabilityTest, AvailableTransportsDefault)
+{
+    ServerCapabilityPtr capability = ServerCapability("protocol_id", "Protocol name", ProtocolType::Streaming);
+
+    ASSERT_EQ(capability.getAvailableTransports().getCount(), 0u);
+}
+
+TEST_F(ServerCapabilityTest, SetGetAvailableTransports)
+{
+    ServerCapabilityConfigPtr capability = ServerCapability("protocol_id", "Protocol name", ProtocolType::Streaming)
+                                               .setAvailableTransports(Dict<IString, IInteger>({{"wss", 7443}, {"tls", 7421}, {"plain", 7420}}));
+
+    const auto transports = capability.getAvailableTransports();
+    ASSERT_EQ(transports.getKeyList(), List<IString>("wss", "tls", "plain"));
+    ASSERT_EQ(transports.get("wss"), 7443);
+    ASSERT_EQ(transports.get("tls"), 7421);
+    ASSERT_EQ(transports.get("plain"), 7420);
+}
+
+TEST_F(ServerCapabilityTest, SetAvailableTransportsReplaces)
+{
+    ServerCapabilityConfigPtr capability = ServerCapability("protocol_id", "Protocol name", ProtocolType::Streaming);
+
+    capability.setAvailableTransports(Dict<IString, IInteger>({{"plain", 7420}, {"tls", 7421}}));
+    capability.setAvailableTransports(Dict<IString, IInteger>({{"https", 443}}));
+
+    ASSERT_EQ(capability.getAvailableTransports().getKeyList(), List<IString>("https"));
+}
+
+TEST_F(ServerCapabilityTest, SetAvailableTransportsInvalid)
+{
+    ServerCapabilityConfigPtr capability = ServerCapability("protocol_id", "Protocol name", ProtocolType::Streaming);
+
+    ASSERT_THROW(capability.setAvailableTransports(nullptr), ArgumentNullException);
+    ASSERT_THROW(capability.setAvailableTransports(Dict<IString, IString>({{"plain", "7420"}})), InvalidTypeException);
+    ASSERT_THROW(capability.setAvailableTransports(Dict<IInteger, IInteger>({{1, 7420}})), InvalidTypeException);
+    ASSERT_EQ(capability.getAvailableTransports().getCount(), 0u);
+}
+
+TEST_F(ServerCapabilityTest, SetAvailableTransportsFrozen)
+{
+    ServerCapabilityConfigPtr capability = ServerCapability("protocol_id", "Protocol name", ProtocolType::Streaming);
+    capability.freeze();
+
+    ASSERT_THROW(capability.setAvailableTransports(Dict<IString, IInteger>({{"plain", 7420}})), FrozenException);
+}
+
+TEST_F(ServerCapabilityTest, AvailableTransportsAreCopied)
+{
+    auto transports = Dict<IString, IInteger>({{"plain", 7420}});
+    ServerCapabilityConfigPtr capability = ServerCapability("protocol_id", "Protocol name", ProtocolType::Streaming)
+                                               .setAvailableTransports(transports);
+
+    transports.set("tls", 7421);
+    capability.getAvailableTransports().set("wss", 7443);
+
+    ASSERT_EQ(capability.getAvailableTransports().getKeyList(), List<IString>("plain"));
+}
+
+TEST_F(ServerCapabilityTest, SerializeDeserializeAvailableTransports)
+{
+    ServerCapabilityConfigPtr capability = ServerCapability("protocol_id", "Protocol name", ProtocolType::Streaming)
+                                               .setPort(7420)
+                                               .setAvailableTransports(Dict<IString, IInteger>({{"wss", 7443}, {"tls", 7421}, {"plain", 7420}}));
+
+    const auto serializer = JsonSerializer();
+    capability.serialize(serializer);
+    const auto serializedCapability = serializer.getOutput();
+
+    const auto deserializer = JsonDeserializer();
+    const ServerCapabilityPtr newCapability = deserializer.deserialize(serializedCapability, nullptr, nullptr);
+
+    const auto transports = newCapability.getAvailableTransports();
+    ASSERT_EQ(transports.getKeyList(), List<IString>("wss", "tls", "plain"));
+    ASSERT_EQ(transports.get("tls"), 7421);
+    ASSERT_EQ(newCapability.getPort(), 7420);
+
+    serializer.reset();
+    newCapability.serialize(serializer);
+    ASSERT_EQ(serializedCapability, serializer.getOutput());
+}
+
+// A capability serialized by an older SDK has no available transports property
+TEST_F(ServerCapabilityTest, DeserializeWithoutAvailableTransports)
+{
+    ServerCapabilityConfigPtr capability = ServerCapability("protocol_id", "Protocol name", ProtocolType::Streaming).setPort(7420);
+    capability.removeProperty("AvailableTransports");
+
+    const auto serializer = JsonSerializer();
+    capability.serialize(serializer);
+    const auto serializedCapability = serializer.getOutput();
+    ASSERT_EQ(std::string(serializedCapability).find("AvailableTransports"), std::string::npos);
+
+    const auto deserializer = JsonDeserializer();
+    const ServerCapabilityPtr newCapability = deserializer.deserialize(serializedCapability, nullptr, nullptr);
+
+    ASSERT_EQ(newCapability.getAvailableTransports().getCount(), 0u);
+    ASSERT_EQ(newCapability.getPort(), 7420);
+}
+
+TEST_F(ServerCapabilityTest, CloneAvailableTransports)
+{
+    ServerCapabilityConfigPtr capability = ServerCapability("protocol_id", "Protocol name", ProtocolType::Streaming)
+                                               .setAvailableTransports(Dict<IString, IInteger>({{"tls", 7421}, {"plain", 7420}}));
+
+    const ServerCapabilityPtr cloned = capability.asPtr<IPropertyObjectInternal>().clone();
+
+    ASSERT_EQ(cloned.getAvailableTransports().getKeyList(), List<IString>("tls", "plain"));
+}
+
 END_NAMESPACE_OPENDAQ

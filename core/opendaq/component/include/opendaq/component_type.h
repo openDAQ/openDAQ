@@ -30,6 +30,7 @@ struct IAuthenticationConfig;
  * [interfaceLibrary(IPropertyObject, CoreObjects)]
  * [interfaceLibrary(IAuthenticationConfig, "opendaq")]
  * [interfaceSmartPtr(IAuthenticationConfig, AuthenticationConfigPtr, "<opendaq/authentication_config_ptr.h>")]
+ * [interfaceSmartPtr(IInteger, IntegerPtr, "<coretypes/integer.h>")]
  */
 
 /*!
@@ -94,6 +95,17 @@ DECLARE_OPENDAQ_INTERFACE(IComponentType, IBaseObject)
      * @retval OPENDAQ_ERR_NOT_SUPPORTED when this component type sort (server-, FB-types) does not upports authentication.
      */
     virtual ErrCode INTERFACE_FUNC createAuthenticationConfig(IAuthenticationConfig** config) = 0;
+
+    // [templateType(transports, IString, IInteger)]
+    /*!
+     * @brief Gets the transports a component of this type can be connected over, with the default port of each.
+     * @param[out] transports A dictionary mapping a transport name (e.g. "plain", "tls", "https", "wss") to its default port.
+     * @retval OPENDAQ_ERR_NOTIMPLEMENTED for Function block types, which do not support transports.
+     *
+     * The dictionary preserves insertion order. The first entry is the transport used
+     * by default when connecting to a component of this type.
+     */
+    virtual ErrCode INTERFACE_FUNC getAvailableTransports(IDict** transports) = 0;
 };
 /*!@}*/
 

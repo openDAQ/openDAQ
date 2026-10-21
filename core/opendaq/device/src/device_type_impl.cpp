@@ -15,8 +15,9 @@ DeviceTypeImpl::DeviceTypeImpl(const StringPtr& id,
                                const StringPtr& description,
                                const PropertyObjectPtr& defaultConfig,
                                const StringPtr& prefix,
-                               const DictPtr<IString, IAuthenticationMethod>& supportedAuthenticationMethods)
-    : Super(detail::deviceTypeStructType, id, name, description, prefix, defaultConfig, supportedAuthenticationMethods)
+                               const DictPtr<IString, IAuthenticationMethod>& supportedAuthenticationMethods,
+                               const DictPtr<IString, IInteger>& transports)
+    : Super(detail::deviceTypeStructType, id, name, description, prefix, defaultConfig, supportedAuthenticationMethods, transports)
 {
 }
 
@@ -26,7 +27,8 @@ DeviceTypeImpl::DeviceTypeImpl(const ComponentTypeBuilderPtr& builder)
                      builder.getDescription(),
                      builder.getDefaultConfig(),
                      builder.getConnectionStringPrefix(),
-                     builder.getSupportedAuthenticationMethods())
+                     builder.getSupportedAuthenticationMethods(),
+                     builder.getAvailableTransports())
 {
 }
 
@@ -67,6 +69,12 @@ ErrCode INTERFACE_FUNC DeviceTypeImpl::serialize(ISerializer* serializer)
             {
                 serializerPtr.key("prefix");
                 serializerPtr.writeString(prefix);
+            }
+
+            if (transports.getCount() > 0)
+            {
+                serializerPtr.key("availableTransports");
+                transports.serialize(serializerPtr);
             }
 
             if (defaultConfig.assigned())
@@ -140,8 +148,12 @@ ErrCode DeviceTypeImpl::Deserialize(ISerializedObject* serialized, IBaseObject* 
         if (serializedObj.hasKey("supportedAuthenticationMethods"))
             supportedAuthenticationMethods = serializedObj.readObject("supportedAuthenticationMethods", contextPtr, factoryCallbackPtr).asPtr<IDict>();
 
+        DictPtr<IString, IInteger> transports;
+        if (serializedObj.hasKey("availableTransports"))
+            transports = serializedObj.readObject("availableTransports", contextPtr, factoryCallbackPtr);
+
         auto deviceType = createWithImplementation<IDeviceType, DeviceTypeImpl>(
-            id, name, description, defaultConfig, prefix, supportedAuthenticationMethods);
+            id, name, description, defaultConfig, prefix, supportedAuthenticationMethods, transports);
 
         ModuleInfoPtr moduleInfo;
         if (serializedObj.hasKey("moduleInfo"))

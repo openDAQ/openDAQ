@@ -133,6 +133,16 @@ DECLARE_OPENDAQ_INTERFACE(IServerCapabilityConfig, IServerCapability)
      * @param methodId The authentication method id to add.
      */
     virtual ErrCode INTERFACE_FUNC addAuthenticationMethod(IString* methodId) = 0;
+
+    // [templateType(transports, IString, IInteger), returnSelf]
+    /*!
+     * @brief Sets the transports the server accepts connections over, with the port assigned to each.
+     * @param[in] transports A dictionary mapping a transport name (e.g. "plain", "tls", "https", "wss") to its port.
+     *
+     * Replaces any previously set transports. The first entry becomes the default transport,
+     * and its port is the one returned by getPort.
+     */
+    virtual ErrCode INTERFACE_FUNC setAvailableTransports(IDict* transports) = 0;
 };
 
 OPENDAQ_DECLARE_CLASS_FACTORY_WITH_INTERFACE(

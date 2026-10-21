@@ -39,7 +39,8 @@ public:
                                       const StringPtr& name,
                                       const StringPtr& description,
                                       const PropertyObjectPtr& defaultConfig,
-                                      const DictPtr<IString, IAuthenticationMethod>& supportedAuthenticationMethods = Dict<IString, IAuthenticationMethod>());
+                                      const DictPtr<IString, IAuthenticationMethod>& supportedAuthenticationMethods = Dict<IString, IAuthenticationMethod>(),
+                                      const DictPtr<IString, IInteger>& transports = nullptr);
 
     explicit GenericComponentTypeImpl(const StructTypePtr& type,
                                       const StringPtr& id,
@@ -47,7 +48,8 @@ public:
                                       const StringPtr& description,
                                       const StringPtr& prefix,
                                       const PropertyObjectPtr& defaultConfig,
-                                      const DictPtr<IString, IAuthenticationMethod>& supportedAuthenticationMethods = Dict<IString, IAuthenticationMethod>());
+                                      const DictPtr<IString, IAuthenticationMethod>& supportedAuthenticationMethods = Dict<IString, IAuthenticationMethod>(),
+                                      const DictPtr<IString, IInteger>& transports = nullptr);
 
     ErrCode INTERFACE_FUNC getId(IString** id) override;
     ErrCode INTERFACE_FUNC getName(IString** name) override;
@@ -55,6 +57,7 @@ public:
     ErrCode INTERFACE_FUNC createDefaultConfig(IPropertyObject** defaultConfig) override;
     ErrCode INTERFACE_FUNC getModuleInfo(IModuleInfo** moduleInfo) override;
     ErrCode INTERFACE_FUNC createAuthenticationConfig(IAuthenticationConfig** config) override;
+    ErrCode INTERFACE_FUNC getAvailableTransports(IDict** transports) override;
 
     // IComponentTypePrivate
     ErrCode INTERFACE_FUNC setModuleInfo(IModuleInfo* info) override;
@@ -68,6 +71,10 @@ protected:
     PropertyObjectPtr defaultConfig;
     ModuleInfoPtr moduleInfo;
     DictPtr<IString, IAuthenticationMethod> supportedAuthenticationMethods;
+    DictPtr<IString, IInteger> transports;
+
+private:
+    static DictPtr<IString, IInteger> FrozenTransportsCopy(const DictPtr<IString, IInteger>& transports);
 };
 
 template <class Intf, class... Interfaces>
@@ -76,7 +83,8 @@ GenericComponentTypeImpl<Intf, Interfaces...>::GenericComponentTypeImpl(const St
                                                                         const StringPtr& name,
                                                                         const StringPtr& description,
                                                                         const PropertyObjectPtr& defaultConfig,
-                                                                        const DictPtr<IString, IAuthenticationMethod>& supportedAuthenticationMethods)
+                                                                        const DictPtr<IString, IAuthenticationMethod>& supportedAuthenticationMethods,
+                                                                        const DictPtr<IString, IInteger>& transports)
     : GenericStructImpl<Intf, IStruct, IComponentTypePrivate, Interfaces...>(type, Dict<IString, IBaseObject>({{"Id", id}, {"Name", name}, {"Description", description}}))
     , id(id)
     , name(name)
@@ -84,6 +92,7 @@ GenericComponentTypeImpl<Intf, Interfaces...>::GenericComponentTypeImpl(const St
     , prefix("")
     , defaultConfig(defaultConfig)
     , supportedAuthenticationMethods(supportedAuthenticationMethods)
+    , transports(FrozenTransportsCopy(transports))
 {
 }
 
@@ -94,7 +103,8 @@ GenericComponentTypeImpl<Intf, Interfaces...>::GenericComponentTypeImpl(const St
                                                                         const StringPtr& description,
                                                                         const StringPtr& prefix,
                                                                         const PropertyObjectPtr& defaultConfig,
-                                                                        const DictPtr<IString, IAuthenticationMethod>& supportedAuthenticationMethods)
+                                                                        const DictPtr<IString, IAuthenticationMethod>& supportedAuthenticationMethods,
+                                                                        const DictPtr<IString, IInteger>& transports)
     : GenericStructImpl<Intf, IStruct, IComponentTypePrivate, Interfaces...>(type, Dict<IString, IBaseObject>({{"Id", id}, {"Name", name}, {"Description", description}, {"Prefix", prefix}}))
     , id(id)
     , name(name)
@@ -102,7 +112,22 @@ GenericComponentTypeImpl<Intf, Interfaces...>::GenericComponentTypeImpl(const St
     , prefix(prefix)
     , defaultConfig(defaultConfig)
     , supportedAuthenticationMethods(supportedAuthenticationMethods)
+    , transports(FrozenTransportsCopy(transports))
 {
+}
+
+template <class Intf, class... Interfaces>
+DictPtr<IString, IInteger> GenericComponentTypeImpl<Intf, Interfaces...>::FrozenTransportsCopy(const DictPtr<IString, IInteger>& transports)
+{
+    auto copy = Dict<IString, IInteger>();
+    if (transports.assigned())
+    {
+        for (const auto& [name, port] : transports)
+            copy.set(name, port);
+    }
+
+    copy.freeze();
+    return copy;
 }
 
 template <class Intf, class... Interfaces>
@@ -183,6 +208,15 @@ inline ErrCode INTERFACE_FUNC GenericComponentTypeImpl<Intf, Interfaces...>::get
     OPENDAQ_PARAM_NOT_NULL(moduleInfo);
 
     *moduleInfo = this->moduleInfo.addRefAndReturn();
+    return OPENDAQ_SUCCESS;
+}
+
+template <typename Intf, typename... Interfaces>
+ErrCode GenericComponentTypeImpl<Intf, Interfaces...>::getAvailableTransports(IDict** transports)
+{
+    OPENDAQ_PARAM_NOT_NULL(transports);
+
+    *transports = this->transports.addRefAndReturn();
     return OPENDAQ_SUCCESS;
 }
 

@@ -9,8 +9,9 @@ StreamingTypeImpl::StreamingTypeImpl(const StringPtr& id,
                                             const StringPtr& prefix,
                                             const PropertyObjectPtr& defaultConfig,
                                             const DictPtr<IString, IAuthenticationMethod>& supportedAuthenticationMethods,
-                                            const DeviceTypePtr& linkedDeviceType)
-    : Super(StreamingTypeStructType(), id, name, description, prefix, defaultConfig, supportedAuthenticationMethods)
+                                            const DeviceTypePtr& linkedDeviceType,
+                                            const DictPtr<IString, IInteger>& transports)
+    : Super(StreamingTypeStructType(), id, name, description, prefix, defaultConfig, supportedAuthenticationMethods, transports)
     , linkedDeviceType(linkedDeviceType)
 {
 }
@@ -22,7 +23,8 @@ StreamingTypeImpl::StreamingTypeImpl(const ComponentTypeBuilderPtr& builder)
                         builder.getConnectionStringPrefix(),
                         builder.getDefaultConfig(),
                         builder.getSupportedAuthenticationMethods(),
-                        builder.getLinkedDeviceType())
+                        builder.getLinkedDeviceType(),
+                        builder.getAvailableTransports())
 {
 }
 
@@ -103,6 +105,12 @@ ErrCode INTERFACE_FUNC StreamingTypeImpl::serialize(ISerializer* serializer)
                 serializerPtr.writeString(prefix);
             }
 
+            if (transports.getCount() > 0)
+            {
+                serializerPtr.key("availableTransports");
+                transports.serialize(serializerPtr);
+            }
+
             if (defaultConfig.assigned())
             {
                 serializerPtr.key("defaultConfig");
@@ -172,6 +180,10 @@ ErrCode StreamingTypeImpl::Deserialize(ISerializedObject* serialized, IBaseObjec
         if (serializedObj.hasKey("prefix"))
             prefix = serializedObj.readString("prefix");
 
+        DictPtr<IString, IInteger> transports;
+        if (serializedObj.hasKey("availableTransports"))
+            transports = serializedObj.readObject("availableTransports", contextPtr, factoryCallbackPtr);
+
         PropertyObjectPtr defaultConfig;
         if (serializedObj.hasKey("defaultConfig"))
             defaultConfig = serializedObj.readObject("defaultConfig", contextPtr, factoryCallbackPtr);
@@ -185,7 +197,7 @@ ErrCode StreamingTypeImpl::Deserialize(ISerializedObject* serialized, IBaseObjec
             linkedDeviceType = serializedObj.readObject("linkedDeviceType", contextPtr, factoryCallbackPtr).asPtr<IDeviceType>();
 
         auto streamingType = createWithImplementation<IStreamingType, StreamingTypeImpl>(
-            id, name, description, prefix, defaultConfig, supportedAuthenticationMethods, linkedDeviceType);
+            id, name, description, prefix, defaultConfig, supportedAuthenticationMethods, linkedDeviceType, transports);
 
         ModuleInfoPtr moduleInfo;
         if (serializedObj.hasKey("moduleInfo"))

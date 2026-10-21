@@ -5,6 +5,9 @@
 #include <gtest/gtest.h>
 #include <coreobjects/property_object_factory.h>
 #include <coreobjects/property_factory.h>
+#include <opendaq/streaming_type_factory.h>
+#include <coretypes/json_serializer_factory.h>
+#include <coretypes/json_deserializer_factory.h>
 
 using OpenDaqFactoriesTest = testing::Test;
 
@@ -256,6 +259,95 @@ TEST_F(OpenDaqFactoriesTest, DeviceTypeWithNoMethodsAddedDoesNotSupportAuthentic
     DictPtr<IString, IAuthenticationMethod> methods;
     ASSERT_NO_THROW(methods = deviceType.asPtr<IComponentTypePrivate>().getSupportedAuthenticationMethods());
     ASSERT_TRUE(methods.getCount() == 0);
+}
+
+// Dict equality ignores order, so the order is checked through the key list
+TEST_F(OpenDaqFactoriesTest, StreamingTypeAvailableTransports)
+{
+    const StreamingTypePtr type = StreamingTypeBuilder()
+                                  .setId("Id")
+                                  .setConnectionStringPrefix("Prefix")
+                                  .setAvailableTransports(Dict<IString, IInteger>({{"tls", 7421}, {"plain", 7420}}))
+                                  .build();
+
+    ASSERT_EQ(type.getAvailableTransports().getKeyList(), List<IString>("tls", "plain"));
+    ASSERT_EQ(type.getAvailableTransports().get("tls"), 7421);
+    ASSERT_EQ(StreamingType("Id", "Name", "Desc", "Prefix").getAvailableTransports().getCount(), 0u);
+}
+
+TEST_F(OpenDaqFactoriesTest, StreamingTypeSerializeDeserialize)
+{
+    const StreamingTypePtr type = StreamingTypeBuilder()
+                                  .setId("Id")
+                                  .setName("Name")
+                                  .setDescription("Desc")
+                                  .setConnectionStringPrefix("Prefix")
+                                  .setAvailableTransports(Dict<IString, IInteger>({{"wss", 7443}, {"tls", 7421}}))
+                                  .build();
+
+    const auto serializer = JsonSerializer();
+    type.serialize(serializer);
+    const auto serializedType = serializer.getOutput();
+
+    const StreamingTypePtr newType = JsonDeserializer().deserialize(serializedType, nullptr, nullptr);
+
+    ASSERT_EQ(newType.getId(), "Id");
+    ASSERT_EQ(newType.getName(), "Name");
+    ASSERT_EQ(newType.getDescription(), "Desc");
+    ASSERT_EQ(newType.getConnectionStringPrefix(), "Prefix");
+    ASSERT_EQ(newType.getAvailableTransports().getKeyList(), List<IString>("wss", "tls"));
+
+    serializer.reset();
+    newType.serialize(serializer);
+    ASSERT_EQ(serializedType, serializer.getOutput());
+}
+
+TEST_F(OpenDaqFactoriesTest, ServerTypeAvailableTransports)
+{
+    const ServerTypePtr type = ServerTypeBuilder()
+                               .setId("Id")
+                               .setAvailableTransports(Dict<IString, IInteger>({{"tls", 7421}, {"plain", 7420}}))
+                               .build();
+
+    ASSERT_EQ(type.getAvailableTransports().getKeyList(), List<IString>("tls", "plain"));
+    ASSERT_EQ(type.getAvailableTransports().get("plain"), 7420);
+    ASSERT_EQ(ServerTypeBuilder().setId("Id").build().getAvailableTransports().getCount(), 0u);
+}
+
+TEST_F(OpenDaqFactoriesTest, ServerTypeSerializeDeserialize)
+{
+    const ServerTypePtr type = ServerTypeBuilder()
+                               .setId("Id")
+                               .setName("Name")
+                               .setDescription("Desc")
+                               .setAvailableTransports(Dict<IString, IInteger>({{"https", 443}, {"plain", 7420}}))
+                               .build();
+
+    const auto serializer = JsonSerializer();
+    type.serialize(serializer);
+    const auto serializedType = serializer.getOutput();
+
+    const ServerTypePtr newType = JsonDeserializer().deserialize(serializedType, nullptr, nullptr);
+
+    ASSERT_EQ(newType.getId(), "Id");
+    ASSERT_EQ(newType.getName(), "Name");
+    ASSERT_EQ(newType.getDescription(), "Desc");
+    ASSERT_EQ(newType.getAvailableTransports().getKeyList(), List<IString>("https", "plain"));
+
+    serializer.reset();
+    newType.serialize(serializer);
+    ASSERT_EQ(serializedType, serializer.getOutput());
+}
+
+TEST_F(OpenDaqFactoriesTest, FBTypeDoesNotSupportTransports)
+{
+    const auto transports = Dict<IString, IInteger>({{"plain", 7420}});
+
+    ASSERT_THROW(FunctionBlockTypeBuilder().setAvailableTransports(transports), NotSupportedException);
+    ASSERT_THROW(DeviceTypeBuilder().setTypeSort(ComponentTypeSort::Undefined).setAvailableTransports(transports), NotSupportedException);
+
+    const FunctionBlockTypePtr fbType = FunctionBlockTypeBuilder().setId("Id").build();
+    ASSERT_THROW(fbType.getAvailableTransports(), NotImplementedException);
 }
 
 END_NAMESPACE_OPENDAQ

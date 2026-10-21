@@ -79,6 +79,8 @@ public:
 
     ErrCode INTERFACE_FUNC getAuthenticationMethods(IList** methods) override;
     ErrCode INTERFACE_FUNC addAuthenticationMethod(IString* methodId) override;
+    ErrCode INTERFACE_FUNC getAvailableTransports(IDict** transports) override;
+    ErrCode INTERFACE_FUNC setAvailableTransports(IDict* transports) override;
 
     ErrCode INTERFACE_FUNC getInterfaceIds(SizeT* idCount, IntfID** ids) override;
 
@@ -104,6 +106,7 @@ private:
     const char* Port = "Port";
     const char* SecurityLevel = "SecurityLevel";
     const char* AuthenticationMethods = "AuthenticationMethods";
+    const char* AvailableTransports = "AvailableTransports";
 
 
     template <typename T>
@@ -158,6 +161,7 @@ inline ServerCapabilityConfigImpl::ServerCapabilityConfigImpl(const StringPtr& p
     Super::addProperty(ObjectProperty(AddressInfo, PropertyObject()));
     Super::addProperty(IntProperty(SecurityLevel, -1));
     Super::addProperty(ListProperty(AuthenticationMethods, List<IString>()));
+    Super::addProperty(DictProperty(AvailableTransports, Dict<IString, IInteger>()));
 
     Super::setPropertyValue(String(ProtocolId), protocolId);
     Super::setPropertyValue(String(ProtocolName), protocolName);
@@ -540,6 +544,24 @@ inline ErrCode ServerCapabilityConfigImpl::addAuthenticationMethod(IString* meth
         methods.pushBack(methodId);
         return Super::setPropertyValue(String(AuthenticationMethods), methods);
     });
+}
+
+inline ErrCode ServerCapabilityConfigImpl::getAvailableTransports(IDict** transports)
+{
+    OPENDAQ_PARAM_NOT_NULL(transports);
+
+    return daqTry([&]
+                  {
+                      *transports = getTypedProperty<IDict>(AvailableTransports).detach();
+                      return OPENDAQ_SUCCESS;
+                  });
+}
+
+inline ErrCode ServerCapabilityConfigImpl::setAvailableTransports(IDict* transports)
+{
+    OPENDAQ_PARAM_NOT_NULL(transports);
+
+    return Super::setPropertyValue(String(AvailableTransports), transports);
 }
 
 OPENDAQ_REGISTER_DESERIALIZE_FACTORY(ServerCapabilityConfigImpl)

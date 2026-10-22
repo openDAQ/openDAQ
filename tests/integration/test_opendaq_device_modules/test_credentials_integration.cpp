@@ -232,10 +232,11 @@ TEST_F(CredentialDemoModuleIntegrationTest, AddStreamingThrowsWhenProviderSuppli
     ASSERT_THROW(device.addStreaming(StreamingConnectionString, WithAuthenticationConfig(streamingAuthConfig)), AuthenticationFailedException);
 }
 
-TEST_F(CredentialDemoModuleIntegrationTest, SuppliedCredentialViaUpdateOptionsSucceeds)
+TEST_F(CredentialDemoModuleIntegrationTest, AuthenticationSettingsViaUpdateOptionsSucceeds)
 {
     auto instance = createClientInstance(); // No credential provider registered.
 
+    // Saved authenticated with UserNamePassword.
     const auto deviceType = instance.getAvailableDeviceTypes().get("CredentialDemoDevice");
     auto authConfig = deviceType.createAuthenticationConfig();
     authConfig.setPropertySelectionValue("AuthenticationMethod", "UserNamePassword");
@@ -252,14 +253,44 @@ TEST_F(CredentialDemoModuleIntegrationTest, SuppliedCredentialViaUpdateOptionsSu
     const auto options = DeviceUpdateOptions(str);
     const auto savedAuthConfig = options.getChildDeviceOptions()[0].getAuthenticationConfig();
     ASSERT_TRUE(savedAuthConfig.assigned());
-    savedAuthConfig.setSuppliedCredential(Dict<IString, IString>({{"UserName", "user"}, {"Password", "pass"}}));
+    ASSERT_EQ(savedAuthConfig.getSelectedAuthenticationMethod().getId(), "UserNamePassword");
+
+    savedAuthConfig.setAuthenticationMethod("Pin");
+    savedAuthConfig.setSuppliedCredential(Dict<IString, IString>({{"Pin", "1234"}}));
 
     auto params = UpdateParameters();
     params.setDeviceUpdateOptions(options);
 
-    // Would normally fail with CredentialsRequiredException (no provider registered, no credential saved) -
-    // supplying it directly through the parsed update options bypasses the need for a provider entirely.
     ASSERT_NO_THROW(instance.loadConfiguration(str, params));
     ASSERT_EQ(instance.getDevices().getCount(), 1u);
     ASSERT_EQ(instance.getDevices()[0].getLocalId(), localId);
+}
+
+TEST_F(CredentialDemoModuleIntegrationTest, AuthenticationSettingsViaUpdateOptionsWithWrongCredentialFails)
+{
+    auto instance = createClientInstance(); // No credential provider registered.
+
+    const auto deviceType = instance.getAvailableDeviceTypes().get("CredentialDemoDevice");
+    auto authConfig = deviceType.createAuthenticationConfig();
+    authConfig.setPropertySelectionValue("AuthenticationMethod", "UserNamePassword");
+    authConfig.setSuppliedCredential(Dict<IString, IString>({{"UserName", "user"}, {"Password", "pass"}}));
+
+    auto device = instance.addDevice(DeviceConnectionString, WithAuthenticationConfig(authConfig));
+    ASSERT_TRUE(device.assigned());
+
+    const auto str = instance.saveConfiguration();
+    instance.removeDevice(device);
+
+    const auto options = DeviceUpdateOptions(str);
+    const auto savedAuthConfig = options.getChildDeviceOptions()[0].getAuthenticationConfig();
+    savedAuthConfig.setAuthenticationMethod("Pin");
+    savedAuthConfig.setSuppliedCredential(Dict<IString, IString>({{"Pin", "0000"}})); // Wrong PIN.
+
+    auto params = UpdateParameters();
+    params.setDeviceUpdateOptions(options);
+
+    // A per-device reload failure (AuthenticationFailedException here, from the module's own PIN check) is
+    // caught and logged - loadConfiguration itself does not throw, the device is simply absent afterward.
+    ASSERT_NO_THROW(instance.loadConfiguration(str, params));
+    ASSERT_EQ(instance.getDevices().getCount(), 0u);
 }

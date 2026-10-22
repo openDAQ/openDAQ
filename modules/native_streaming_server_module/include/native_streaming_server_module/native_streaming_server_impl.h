@@ -38,7 +38,8 @@ public:
                                        const ContextPtr& context);
     ~NativeStreamingServerImpl() override;
     static PropertyObjectPtr createDefaultConfig(const ContextPtr& context);
-    static ServerTypePtr createType(const ContextPtr& context);
+    /// @param availableTransports the transports the type lists, built once by the module
+    static ServerTypePtr createType(const ContextPtr& context, const DictPtr<IString, IInteger>& availableTransports);
     static PropertyObjectPtr populateDefaultConfig(const PropertyObjectPtr& config, const ContextPtr& context);
 
 protected:
@@ -55,12 +56,11 @@ protected:
     /// which turns the TLS listener on without the secrets it needs
     void validateChannelConfig(const PropertyObjectPtr& config) const;
 
-    /// @brief publishes the streaming and the configuration capability of one channel
-    /// @param secure selects the secure identifiers, prefixes and security level
+    /// @brief publishes the streaming and the configuration capability, shared by the open channels
+    /// @param transports the open channels with their ports, plain first; the first one is the default
     void addServerCapabilities(const DeviceInfoInternalPtr& infoInternal,
-                               uint16_t port,
-                               const StringPtr& path,
-                               bool secure) const;
+                               const DictPtr<IString, IInteger>& transports,
+                               const StringPtr& path) const;
 
     std::shared_ptr<opendaq_native_streaming_protocol::NativeStreamingServerHandler> serverHandler;
 

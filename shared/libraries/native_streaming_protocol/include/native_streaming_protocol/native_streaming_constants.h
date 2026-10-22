@@ -27,14 +27,14 @@
 BEGIN_NAMESPACE_OPENDAQ_NATIVE_STREAMING_PROTOCOL
 
 static constexpr const char* CONST_NATIVE_STREAMING_PREFIX = "daq.ns";
-static constexpr const char* CONST_NATIVE_STREAMING_SECURE_PREFIX = "daq.nss";
 static constexpr const char* CONST_NATIVE_CONFIG_PREFIX = "daq.nd";
-static constexpr const char* CONST_NATIVE_CONFIG_SECURE_PREFIX = "daq.nds";
 
 static constexpr const char* CONST_NATIVE_STREAMING_ID = "OpenDAQNativeStreaming";
-static constexpr const char* CONST_NATIVE_STREAMING_SECURE_ID = "OpenDAQNativeStreamingSecure";
 static constexpr const char* CONST_NATIVE_CONFIG_ID = "OpenDAQNativeConfiguration";
-static constexpr const char* CONST_NATIVE_CONFIG_SECURE_ID = "OpenDAQNativeConfigurationSecure";
+
+// Names of the available transports of the native types and capabilities
+static constexpr const char* CONST_NATIVE_TRANSPORT_PLAIN = "plain";
+static constexpr const char* CONST_NATIVE_TRANSPORT_TLS = "tls";
 
 static constexpr const char* CONST_NATIVE_SERVER_TYPE_ID = "OpenDAQNativeStreaming";
 
@@ -43,7 +43,6 @@ static constexpr const int64_t CONST_NATIVE_SECURITY_LVL = 0;
 static constexpr const int64_t CONST_NATIVE_SECURE_SECURITY_LVL = 10;
 
 static constexpr const char* CONST_NATIVE_SERVICE_NAME = "_opendaq-streaming-native._tcp.local.";
-static constexpr const char* CONST_NATIVE_TLS_SERVICE_NAME = "_opendaq-streaming-native-tls._tcp.local.";
 static constexpr const char* CONST_NATIVE_SERVICE_CAPABILITY = "OPENDAQ_NS";
 
 static constexpr const char* PROPERTY_ENABLE_PORT_SERVER = "EnablePort";

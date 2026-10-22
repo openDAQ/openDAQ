@@ -237,6 +237,20 @@ TEST_F(NativeStreamingServerModuleTest, ServerConfig)
     ASSERT_EQ(config.getPropertyValue("EnablePort"), True);
 }
 
+TEST_F(NativeStreamingServerModuleTest, ServerTypeListsTransports)
+{
+    auto module = CreateModule();
+
+    const auto transports = module.getAvailableServerTypes().get("OpenDAQNativeStreaming").getAvailableTransports();
+#if NATIVE_STREAMING_ENABLE_TLS
+    ASSERT_EQ(transports.getKeyList(), List<IString>("plain", "tls"));
+    ASSERT_EQ(transports.get("tls"), 7422);
+#else
+    ASSERT_EQ(transports.getKeyList(), List<IString>("plain"));
+#endif
+    ASSERT_EQ(transports.get("plain"), 7420);
+}
+
 TEST_F(NativeStreamingServerModuleTest, TlsServerConfig)
 {
     auto module = CreateModule();

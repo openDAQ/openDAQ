@@ -25,12 +25,11 @@ NativeStreamingImpl::NativeStreamingImpl(
     const ProcedurePtr& onDeviceSignalAvailableCallback,
     const ProcedurePtr& onDeviceSignalUnavailableCallback,
     OnConnectionStatusChangedCallback onDeviceConnectionStatusChangedCb,
-    bool isClientToDeviceStreamingSupported,
-    bool secure)
+    bool isClientToDeviceStreamingSupported)
     : Super(connectionString,
             context,
             false,
-            String(secure ? CONST_NATIVE_STREAMING_SECURE_ID : CONST_NATIVE_STREAMING_ID),
+            String(CONST_NATIVE_STREAMING_ID),
             isClientToDeviceStreamingSupported,
             String(CONST_NATIVE_PROTOCOL_GROUP_ID))
     , transportClientHandler(transportClientHandler)
@@ -374,8 +373,7 @@ NativeStreamingToDeviceImpl::NativeStreamingToDeviceImpl(const StringPtr& connec
                                                          const ContextPtr& context,
                                                          opendaq_native_streaming_protocol::NativeStreamingClientHandlerPtr transportClientHandler,
                                                          std::shared_ptr<boost::asio::io_context> processingIOContextPtr,
-                                                         Int streamingInitTimeout,
-                                                         bool secure)
+                                                         Int streamingInitTimeout)
     : Super(connectionString,
             context,
             transportClientHandler,
@@ -384,8 +382,7 @@ NativeStreamingToDeviceImpl::NativeStreamingToDeviceImpl(const StringPtr& connec
             nullptr,
             nullptr,
             nullptr,
-            true,
-            secure)
+            true)
     , readThreadRunning(false)
     , readThreadSleepTime(std::chrono::milliseconds(20))
 {

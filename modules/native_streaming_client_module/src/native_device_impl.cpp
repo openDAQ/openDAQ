@@ -33,6 +33,7 @@ NativeDeviceHelper::NativeDeviceHelper(const ContextPtr& context,
                                        std::shared_ptr<boost::asio::io_context> reconnectionProcessingIOContextPtr,
                                        std::thread::id reconnectionProcessingThreadId,
                                        const StringPtr& connectionString,
+                                       bool secure,
                                        Int reconnectionPeriod)
     : processingIOContextPtr(processingIOContextPtr)
     , reconnectionProcessingIOContextPtr(reconnectionProcessingIOContextPtr)
@@ -45,6 +46,7 @@ NativeDeviceHelper::NativeDeviceHelper(const ContextPtr& context,
     , configProtocolRequestTimeout(std::chrono::milliseconds(configProtocolRequestTimeout))
     , restoreClientConfigOnReconnect(restoreClientConfigOnReconnect)
     , connectionString(connectionString)
+    , secure(secure)
     , configProtocolReconnectionRetryTimer(std::make_shared<boost::asio::steady_timer>(*reconnectionProcessingIOContextPtr))
     , reconnectionPeriod(std::chrono::milliseconds(reconnectionPeriod))
 {
@@ -560,6 +562,11 @@ NativeStreamingClientHandlerPtr NativeDeviceHelper::getTransportClientHandler() 
     return transportClientHandler;
 }
 
+bool NativeDeviceHelper::isSecure() const
+{
+    return secure;
+}
+
 void NativeDeviceImpl::disconnectAndCleanUp()
 {
     if (this->deviceHelper)
@@ -615,17 +622,19 @@ void NativeDeviceImpl::updateDeviceInfo(const StringPtr& connectionString)
                                     .setConnectionString(connectionString)
                                     .build();
 
-    // the connection string is the only thing here which knows which channel was used
-    const bool secure = ConnectionStringUtils::IsSecure(connectionString);
-    const auto protocolId = secure ? CONST_NATIVE_CONFIG_SECURE_ID : CONST_NATIVE_CONFIG_ID;
+    // only the transport the device is connected over
+    const bool secure = deviceHelper && deviceHelper->isSecure();
+    const auto port = ConnectionStringUtils::GetPort(connectionString, nullptr, secure ? DEFAULT_TLS_PORT : DEFAULT_PORT);
+    auto transports = Dict<IString, IInteger>();
+    transports.set(secure ? CONST_NATIVE_TRANSPORT_TLS : CONST_NATIVE_TRANSPORT_PLAIN, std::stoi(port.toStdString()));
 
-    ServerCapabilityConfigPtr connectionInfo = ServerCapability(protocolId,
-                                                                protocolId,
+    ServerCapabilityConfigPtr connectionInfo = ServerCapability(CONST_NATIVE_CONFIG_ID,
+                                                                CONST_NATIVE_CONFIG_ID,
                                                                 ProtocolType::ConfigurationAndStreaming);
     connectionInfo.setConnectionType("TCP/IP")
                   .addAddress(host)
-                  .setPort(std::stoi(ConnectionStringUtils::GetPort(connectionString).toStdString()))
-                  .setPrefix(secure ? CONST_NATIVE_CONFIG_SECURE_PREFIX : CONST_NATIVE_CONFIG_PREFIX)
+                  .setAvailableTransports(transports)
+                  .setPrefix(CONST_NATIVE_CONFIG_PREFIX)
                   .setConnectionString(connectionString)
                   .setProtocolVersion(std::to_string(configProtocolVersion))
                   .setProtocolGroupId(CONST_NATIVE_PROTOCOL_GROUP_ID)
@@ -662,7 +671,7 @@ StringPtr ConnectionStringUtils::GetHost(const StringPtr& url)
     DAQ_THROW_EXCEPTION(InvalidParameterException, "Host name not found in url: {}", url);
 }
 
-StringPtr ConnectionStringUtils::GetPort(const StringPtr& url, const PropertyObjectPtr& config)
+StringPtr ConnectionStringUtils::GetPort(const StringPtr& url, const PropertyObjectPtr& config, Int defaultPort)
 {
     std::string urlString = url.toStdString();
     std::smatch match;
@@ -670,7 +679,7 @@ StringPtr ConnectionStringUtils::GetPort(const StringPtr& url, const PropertyObj
     std::string host = GetHost(url).toStdString();
     std::string suffix = urlString.substr(urlString.find(host) + host.size());
 
-    Int port = IsSecure(url) ? DEFAULT_TLS_PORT : DEFAULT_PORT;
+    Int port = defaultPort;
 
     if (std::regex_search(suffix, match, RegexPort))
         port = std::stoi(match[1]);
@@ -684,17 +693,6 @@ StringPtr ConnectionStringUtils::GetPort(const StringPtr& url, const PropertyObj
     }
 
     return String(std::to_string(port));
-}
-
-bool ConnectionStringUtils::IsSecure(const StringPtr& url)
-{
-    const std::string urlString = url.toStdString();
-    for (const auto& prefix : {CONST_NATIVE_CONFIG_SECURE_PREFIX, CONST_NATIVE_STREAMING_SECURE_PREFIX})
-    {
-        if (urlString.find(std::string(prefix) + "://") == 0)
-            return true;
-    }
-    return false;
 }
 
 StringPtr ConnectionStringUtils::GetPath(const StringPtr& url)

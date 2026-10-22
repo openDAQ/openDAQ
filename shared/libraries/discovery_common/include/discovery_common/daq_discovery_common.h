@@ -17,6 +17,7 @@
 #pragma once
 #include <coreobjects/property_object_factory.h>
 #include <coreobjects/property_factory.h>
+#include <coretypes/dictobject_factory.h>
 #include <mdns.h>
 
 #define BEGIN_NAMESPACE_DISCOVERY_COMMON namespace daq { namespace discovery_common {
@@ -60,6 +61,12 @@ public:
 
     static std::string authenticationMethodsToTxt(const ListPtr<IString>& authenticationMethodsIds);
     static ListPtr<IString> populateAuthenticationMethods(const std::string& txtValue);
+
+    // the "transports" TXT value: transport names with their ports, in order, e.g. "plain:7420,tls:7422"
+    static constexpr const char* TRANSPORTS_KEY = "transports";
+    static std::string transportsToTxt(const DictPtr<IString, IInteger>& transports);
+    static DictPtr<IString, IInteger> populateTransports(const std::string& txtValue);
+
 private:
     static size_t getTxtRecordsCount(const void* buffer, size_t size, size_t offset, size_t length);
 };

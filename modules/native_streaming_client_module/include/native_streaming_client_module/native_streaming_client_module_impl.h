@@ -29,13 +29,6 @@ BEGIN_NAMESPACE_OPENDAQ_NATIVE_STREAMING_CLIENT_MODULE
 
 enum class NativeType {config, streaming};
 
-/// @brief which of the four connection string prefixes was given.
-struct NativeConnectionKind
-{
-    NativeType type;
-    bool secure;
-};
-
 class NativeStreamingClientModule final : public Module
 {
 public:
@@ -52,16 +45,21 @@ public:
     Bool onCompleteServerCapability(const ServerCapabilityPtr& source, const ServerCapabilityConfigPtr& target) override;
 
 private:
-    DeviceTypePtr createPseudoDeviceType(bool secure);
-    DeviceTypePtr createDeviceType(bool secure);
-    StreamingTypePtr createStreamingType(bool secure);
+    DeviceTypePtr createPseudoDeviceType();
+    DeviceTypePtr createDeviceType();
+    StreamingTypePtr createStreamingType();
+
+    /// @brief reads the transport selected in the add-device or add-streaming config carried by `config`
+    /// @param addConfigName "AddDeviceConfig" or "AddStreamingConfig"
+    /// @return true if TLS is selected; false for plain, or when the config carries no selection
+    static bool IsTlsSelected(const PropertyObjectPtr& config, const char* addConfigName);
 
     static bool ConnectionStringHasPrefix(const StringPtr& connectionString, const char* prefix);
     static bool ValidateConnectionString(const StringPtr& connectionString);
 
     /// @brief recognises the connection string prefix
-    /// @return the kind, or nothing if the prefix belongs to some other module
-    static std::optional<NativeConnectionKind> ParseConnectionKind(const StringPtr& connectionString);
+    /// @return the type, or nothing if the prefix belongs to some other module
+    static std::optional<NativeType> ParseConnectionType(const StringPtr& connectionString);
 
 #if NATIVE_STREAMING_ENABLE_TLS
     /// @brief collects the TLS settings the transport handler needs out of the connection config
@@ -69,10 +67,17 @@ private:
     static PropertyObjectPtr parseTlsConfig(const PropertyObjectPtr& config, bool secure);
 #endif
 
-    static bool IsSecureService(const discovery::MdnsDiscoveredDevice& discoveredDevice);
-    DeviceInfoPtr populateDiscoveredConfigurationDevice(const discovery::MdnsDiscoveredDevice& discoveredDevice);
-    DeviceInfoPtr populateDiscoveredStreamingDevice(const discovery::MdnsDiscoveredDevice& discoveredDevice);
-    static void SetupProtocolAddresses(const discovery::MdnsDiscoveredDevice& discoveredDevice, ServerCapabilityConfigPtr& cap, std::string protocolPrefix);
+    /// @brief the transports a discovered server lists that this module supports too, in the server's order
+    /// @return empty if the two have none in common
+    DictPtr<IString, IInteger> SupportedDiscoveredTransports(const discovery::MdnsDiscoveredDevice& discoveredDevice) const;
+    DeviceInfoPtr populateDiscoveredConfigurationDevice(const discovery::MdnsDiscoveredDevice& discoveredDevice,
+                                                        const DictPtr<IString, IInteger>& transports);
+    DeviceInfoPtr populateDiscoveredStreamingDevice(const discovery::MdnsDiscoveredDevice& discoveredDevice,
+                                                    const DictPtr<IString, IInteger>& transports);
+    static void SetupProtocolAddresses(const discovery::MdnsDiscoveredDevice& discoveredDevice,
+                                       ServerCapabilityConfigPtr& cap,
+                                       std::string protocolPrefix,
+                                       const IntegerPtr& port);
 
     static StringPtr CreateUrlConnectionString(std::string prefix,
                                                const StringPtr& host,
@@ -91,8 +96,7 @@ private:
 
     StreamingPtr createNativeStreaming(const StringPtr& connectionString,
                                        opendaq_native_streaming_protocol::NativeStreamingClientHandlerPtr transportClientHandler,
-                                       Int streamingInitTimeout,
-                                       bool secure);
+                                       Int streamingInitTimeout);
 
     DevicePtr createNativeDevice(const ContextPtr& context,
                                  const ComponentPtr& parent,
@@ -104,12 +108,12 @@ private:
                                  uint16_t& protocolVersion,
                                  bool secure);
 
-    PropertyObjectPtr createConnectionDefaultConfig(NativeType nativeConfigType, bool secure);
+    PropertyObjectPtr createConnectionDefaultConfig(NativeType nativeConfigType);
     bool acceptsConnectionParameters(const StringPtr& connectionString, const PropertyObjectPtr& config);
     bool acceptsStreamingConnectionParameters(const StringPtr& connectionString, const PropertyObjectPtr& config);
     void populateDeviceConfigFromContext(PropertyObjectPtr deviceConfig);
     void populateTransportLayerConfigFromContext(PropertyObjectPtr transportLayerConfig);
-    PropertyObjectPtr populateDefaultConfig(const PropertyObjectPtr& config, NativeType nativeType, bool secure);
+    PropertyObjectPtr populateDefaultConfig(const PropertyObjectPtr& config, NativeType nativeType);
     void populateDefaultTransportLayerConfig(PropertyObjectPtr& defaultConfig, const PropertyObjectPtr& config);
     PropertyObjectPtr createTransportLayerDefaultConfig();
     bool validateDeviceConfig(const PropertyObjectPtr& config);
@@ -121,6 +125,9 @@ private:
     size_t transportClientIndex;
     std::string transportClientUuidBase;
     discovery::DiscoveryClient discoveryClient;
+    // the transports every native type lists, with the default port of each; plain comes first.
+    // Fixed at build time, so it is built once and frozen
+    const DictPtr<IString, IInteger> availableTransports;
 
     using ProcessingContext = std::tuple<StringPtr, std::thread, std::shared_ptr<boost::asio::io_context>>;
     std::vector<ProcessingContext> processingContextPool;

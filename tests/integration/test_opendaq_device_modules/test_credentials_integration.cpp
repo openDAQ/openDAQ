@@ -3,6 +3,8 @@
 #include <opendaq/authentication_method_factory.h>
 #include <opendaq/security_exceptions.h>
 #include <opendaq/module_manager_utils_ptr.h>
+#include <opendaq/device_update_options_factory.h>
+#include <opendaq/update_parameters_factory.h>
 
 using namespace daq;
 
@@ -228,4 +230,36 @@ TEST_F(CredentialDemoModuleIntegrationTest, AddStreamingThrowsWhenProviderSuppli
     streamingAuthConfig.setPropertySelectionValue("AuthenticationMethod", "UserNamePassword");
 
     ASSERT_THROW(device.addStreaming(StreamingConnectionString, WithAuthenticationConfig(streamingAuthConfig)), AuthenticationFailedException);
+}
+
+TEST_F(CredentialDemoModuleIntegrationTest, SuppliedCredentialViaUpdateOptionsSucceeds)
+{
+    auto instance = createClientInstance(); // No credential provider registered.
+
+    const auto deviceType = instance.getAvailableDeviceTypes().get("CredentialDemoDevice");
+    auto authConfig = deviceType.createAuthenticationConfig();
+    authConfig.setPropertySelectionValue("AuthenticationMethod", "UserNamePassword");
+    authConfig.setSuppliedCredential(Dict<IString, IString>({{"UserName", "user"}, {"Password", "pass"}}));
+
+    auto device = instance.addDevice(DeviceConnectionString, WithAuthenticationConfig(authConfig));
+    ASSERT_TRUE(device.assigned());
+    const auto localId = device.getLocalId();
+
+    const auto str = instance.saveConfiguration();
+    instance.removeDevice(device);
+    ASSERT_EQ(instance.getDevices().getCount(), 0u);
+
+    const auto options = DeviceUpdateOptions(str);
+    const auto savedAuthConfig = options.getChildDeviceOptions()[0].getAuthenticationConfig();
+    ASSERT_TRUE(savedAuthConfig.assigned());
+    savedAuthConfig.setSuppliedCredential(Dict<IString, IString>({{"UserName", "user"}, {"Password", "pass"}}));
+
+    auto params = UpdateParameters();
+    params.setDeviceUpdateOptions(options);
+
+    // Would normally fail with CredentialsRequiredException (no provider registered, no credential saved) -
+    // supplying it directly through the parsed update options bypasses the need for a provider entirely.
+    ASSERT_NO_THROW(instance.loadConfiguration(str, params));
+    ASSERT_EQ(instance.getDevices().getCount(), 1u);
+    ASSERT_EQ(instance.getDevices()[0].getLocalId(), localId);
 }

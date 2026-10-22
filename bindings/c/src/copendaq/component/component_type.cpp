@@ -46,3 +46,8 @@ daqErrCode daqComponentType_getModuleInfo(daqComponentType* self, daqModuleInfo*
 {
     return reinterpret_cast<daq::IComponentType*>(self)->getModuleInfo(reinterpret_cast<daq::IModuleInfo**>(info));
 }
+
+daqErrCode daqComponentType_createAuthenticationConfig(daqComponentType* self, daqAuthenticationConfig** config)
+{
+    return reinterpret_cast<daq::IComponentType*>(self)->createAuthenticationConfig(reinterpret_cast<daq::IAuthenticationConfig**>(config));
+}

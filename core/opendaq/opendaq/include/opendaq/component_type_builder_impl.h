@@ -20,6 +20,9 @@
 #include <coretypes/intfs.h>
 #include <coretypes/string_ptr.h>
 #include <opendaq/module_info_ptr.h>
+#include <opendaq/authentication_method_ptr.h>
+#include <coretypes/dict_ptr.h>
+#include <opendaq/device_type_ptr.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 class ComponentTypeBuilderImpl : public ImplementationOf<IComponentTypeBuilder>
@@ -28,7 +31,7 @@ public:
     explicit ComponentTypeBuilderImpl(ComponentTypeSort sort);
 
     ErrCode INTERFACE_FUNC build(IComponentType** componentType) override;
-    
+
     ErrCode INTERFACE_FUNC setId(IString* id) override;
     ErrCode INTERFACE_FUNC getId(IString** id) override;
 
@@ -47,6 +50,12 @@ public:
     ErrCode INTERFACE_FUNC setDefaultConfig(IPropertyObject* defaultConfig) override;
     ErrCode INTERFACE_FUNC getDefaultConfig(IPropertyObject** defaultConfig) override;
 
+    ErrCode INTERFACE_FUNC addAuthenticationMethod(IAuthenticationMethod* method) override;
+    ErrCode INTERFACE_FUNC getSupportedAuthenticationMethods(IDict** authenticationMethods) override;
+
+    ErrCode INTERFACE_FUNC setLinkedDeviceType(IDeviceType* deviceType) override;
+    ErrCode INTERFACE_FUNC getLinkedDeviceType(IDeviceType** deviceType) override;
+
 private:
     ComponentTypeSort sort;
     StringPtr id;
@@ -55,6 +64,8 @@ private:
     StringPtr description;
     PropertyObjectPtr defaultConfig;
     ModuleInfoPtr moduleInfo;
+    DictPtr<IString, IAuthenticationMethod> supportedAuthenticationMethods;
+    DeviceTypePtr linkedDeviceType;
 };
 
 END_NAMESPACE_OPENDAQ

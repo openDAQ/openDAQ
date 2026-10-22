@@ -15,6 +15,9 @@ set(TEST_SOURCES test_native_device_modules.cpp
                  test_device_discovery.cpp
                  test_remote_update.cpp
 )
+if (DAQMODULES_CREDENTIAL_DEMO_MODULE)
+    list(APPEND TEST_SOURCES test_credentials_integration.cpp)
+endif()
 
 # The tests that never touch mDNS: gtest shards on shifted ports, running concurrently with everything else
 set(STREAMING_TEST_APP test_device_modules_streaming)
@@ -79,6 +82,10 @@ set_source_files_properties(test_native_device_modules.cpp PROPERTIES SKIP_UNITY
 
 add_device_modules_test_app(${TEST_APP} ${TEST_SOURCES})
 add_device_modules_test_app(${STREAMING_TEST_APP} ${STREAMING_TEST_SOURCES})
+
+if (DAQMODULES_CREDENTIAL_DEMO_MODULE)
+    target_link_libraries(${TEST_APP} PRIVATE daq::credential_demo_module)
+endif()
 
 # The LT streaming tests over the secure channel need TLS fixtures (CA, server and client
 # certificates/keys). Reuse the pre-generated ones from the LT streaming modules repository instead of

@@ -279,6 +279,16 @@ set(SRC_OpenDAQ_Headers
     include/copendaq/scheduler/task.h
     include/copendaq/scheduler/work.h
 
+    include/copendaq/security/authentication_config.h
+    include/copendaq/security/common.h
+    include/copendaq/security/authentication_method.h
+    include/copendaq/security/credential_field.h
+    include/copendaq/security/credential_provider.h
+    include/copendaq/security/credential_request_builder.h
+    include/copendaq/security/credential_request.h
+    include/copendaq/security/login_parameters.h
+    include/copendaq/security/login_parameters_builder.h
+
     include/copendaq/server/common.h
     include/copendaq/server/server_type.h
     include/copendaq/server/server.h
@@ -404,6 +414,15 @@ set(SRC_OpenDAQ_Cpp
     src/copendaq/scheduler/task_graph.cpp
     src/copendaq/scheduler/task.cpp
     src/copendaq/scheduler/work.cpp
+
+    src/copendaq/security/authentication_config.cpp
+    src/copendaq/security/authentication_method.cpp
+    src/copendaq/security/credential_field.cpp
+    src/copendaq/security/credential_provider.cpp
+    src/copendaq/security/credential_request_builder.cpp
+    src/copendaq/security/credential_request.cpp
+    src/copendaq/security/login_parameters.cpp
+    src/copendaq/security/login_parameters_builder.cpp
 
     src/copendaq/server/server_type.cpp
     src/copendaq/server/server.cpp

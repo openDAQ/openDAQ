@@ -564,6 +564,17 @@ PropertyObjectPtr NativeStreamingServerImpl::getDiscoveryConfig()
     discoveryConfig.addProperty(StringProperty("Path", config.getPropertyValue("Path")));
     discoveryConfig.addProperty(IntProperty("Port", config.getPropertyValue("NativeStreamingPort")));
     discoveryConfig.addProperty(StringProperty("ProtocolVersion", std::to_string(GetLatestConfigProtocolVersion())));
+
+    if (const DevicePtr rootDevice = rootDeviceRef.assigned() ? rootDeviceRef.getRef() : nullptr; rootDevice.assigned())
+    {
+        const DeviceInfoPtr info = rootDevice.getInfo();
+        if (info.assigned() && info.hasServerCapability("OpenDAQNativeConfiguration"))
+        {
+            ServerCapabilityPtr serverCapabilityConfig = info.getServerCapability("OpenDAQNativeConfiguration");
+            discoveryConfig.addProperty(ListProperty(
+                "AuthenticationMethods", serverCapabilityConfig.getAuthenticationMethods()));
+        }
+    }
     return discoveryConfig;
 }
 

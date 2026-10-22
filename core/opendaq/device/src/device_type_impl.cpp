@@ -1,5 +1,6 @@
 #include <opendaq/device_type_impl.h>
 #include <opendaq/device_type_factory.h>
+#include <opendaq/authentication_method_factory.h>
 #include <coretypes/validation.h>
 
 BEGIN_NAMESPACE_OPENDAQ
@@ -13,13 +14,19 @@ DeviceTypeImpl::DeviceTypeImpl(const StringPtr& id,
                                const StringPtr& name,
                                const StringPtr& description,
                                const PropertyObjectPtr& defaultConfig,
-                               const StringPtr& prefix)
-    : Super(detail::deviceTypeStructType, id, name, description, prefix, defaultConfig)
+                               const StringPtr& prefix,
+                               const DictPtr<IString, IAuthenticationMethod>& supportedAuthenticationMethods)
+    : Super(detail::deviceTypeStructType, id, name, description, prefix, defaultConfig, supportedAuthenticationMethods)
 {
 }
 
 DeviceTypeImpl::DeviceTypeImpl(const ComponentTypeBuilderPtr& builder)
-    : DeviceTypeImpl(builder.getId(), builder.getName(), builder.getDescription(), builder.getDefaultConfig(), builder.getConnectionStringPrefix())
+    : DeviceTypeImpl(builder.getId(),
+                     builder.getName(),
+                     builder.getDescription(),
+                     builder.getDefaultConfig(),
+                     builder.getConnectionStringPrefix(),
+                     builder.getSupportedAuthenticationMethods())
 {
 }
 
@@ -56,7 +63,7 @@ ErrCode INTERFACE_FUNC DeviceTypeImpl::serialize(ISerializer* serializer)
                 serializerPtr.writeString(description);
             }
 
-            if (description.assigned())
+            if (prefix.assigned())
             {
                 serializerPtr.key("prefix");
                 serializerPtr.writeString(prefix);
@@ -66,6 +73,12 @@ ErrCode INTERFACE_FUNC DeviceTypeImpl::serialize(ISerializer* serializer)
             {
                 serializerPtr.key("defaultConfig");
                 defaultConfig.serialize(serializerPtr);
+            }
+
+            if (supportedAuthenticationMethods.getCount() > 0)
+            {
+                serializerPtr.key("supportedAuthenticationMethods");
+                supportedAuthenticationMethods.serialize(serializerPtr);
             }
 
             if (moduleInfo.assigned())
@@ -123,7 +136,12 @@ ErrCode DeviceTypeImpl::Deserialize(ISerializedObject* serialized, IBaseObject* 
         if (serializedObj.hasKey("defaultConfig"))
             defaultConfig = serializedObj.readObject("defaultConfig", contextPtr, factoryCallbackPtr);
 
-        auto deviceType = createWithImplementation<IDeviceType, DeviceTypeImpl>(id, name, description, defaultConfig, prefix);
+        DictPtr<IString, IAuthenticationMethod> supportedAuthenticationMethods = Dict<IString, IAuthenticationMethod>();
+        if (serializedObj.hasKey("supportedAuthenticationMethods"))
+            supportedAuthenticationMethods = serializedObj.readObject("supportedAuthenticationMethods", contextPtr, factoryCallbackPtr).asPtr<IDict>();
+
+        auto deviceType = createWithImplementation<IDeviceType, DeviceTypeImpl>(
+            id, name, description, defaultConfig, prefix, supportedAuthenticationMethods);
 
         ModuleInfoPtr moduleInfo;
         if (serializedObj.hasKey("moduleInfo"))
@@ -152,7 +170,9 @@ OPENDAQ_DEFINE_CLASS_FACTORY(
     IPropertyObject*,
     defaultConfig,
     IString*,
-    prefix
+    prefix,
+    IDict*,
+    supportedAuthenticationMethods
     )
 
 END_NAMESPACE_OPENDAQ

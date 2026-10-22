@@ -4,11 +4,13 @@
 #include <opendaq/function_block_type_impl.h>
 #include <opendaq/streaming_type_impl.h>
 #include <coretypes/validation.h>
+#include <coretypes/dictobject_factory.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
 ComponentTypeBuilderImpl::ComponentTypeBuilderImpl(ComponentTypeSort sort)
     : sort(sort)
+    , supportedAuthenticationMethods((sort == ComponentTypeSort::Device || sort == ComponentTypeSort::Streaming) ?  Dict<IString, IAuthenticationMethod>() : nullptr)
 {
 }
 
@@ -113,6 +115,12 @@ ErrCode ComponentTypeBuilderImpl::getConnectionStringPrefix(IString** prefix)
 
 ErrCode ComponentTypeBuilderImpl::setDefaultConfig(IPropertyObject* defaultConfig)
 {
+    if (this->linkedDeviceType.assigned())
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALID_OPERATION,
+                                   "setDefaultConfig cannot be used together with a linked device type - the "
+                                   "built Streaming type's default config is redirected to the linked device "
+                                   "type's own instead");
+
     this->defaultConfig = defaultConfig;
     return OPENDAQ_SUCCESS;
 }
@@ -122,6 +130,59 @@ ErrCode ComponentTypeBuilderImpl::getDefaultConfig(IPropertyObject** defaultConf
     OPENDAQ_PARAM_NOT_NULL(defaultConfig);
 
     *defaultConfig = this->defaultConfig.addRefAndReturn();
+    return OPENDAQ_SUCCESS;
+}
+
+ErrCode ComponentTypeBuilderImpl::addAuthenticationMethod(IAuthenticationMethod* method)
+{
+    OPENDAQ_PARAM_NOT_NULL(method);
+
+    if (sort != ComponentTypeSort::Device && sort != ComponentTypeSort::Streaming)
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOT_SUPPORTED, "addAuthenticationMethod only applies to a Device or Streaming type");
+
+    if (this->linkedDeviceType.assigned())
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALID_OPERATION,
+                                   "addAuthenticationMethod cannot be used together with a linked device type - "
+                                   "the built Streaming type's supported authentication methods are redirected "
+                                   "to the linked device type's own instead");
+
+    const auto methodPtr = AuthenticationMethodPtr::Borrow(method);
+    const StringPtr id = methodPtr.getId();
+
+    if (this->supportedAuthenticationMethods.hasKey(id))
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_ALREADYEXISTS, "An authentication method with the same id was already added");
+
+    this->supportedAuthenticationMethods.set(id, methodPtr);
+    return OPENDAQ_SUCCESS;
+}
+
+ErrCode ComponentTypeBuilderImpl::getSupportedAuthenticationMethods(IDict** authenticationMethods)
+{
+    OPENDAQ_PARAM_NOT_NULL(authenticationMethods);
+
+    *authenticationMethods = this->supportedAuthenticationMethods.addRefAndReturn();
+    return OPENDAQ_SUCCESS;
+}
+
+ErrCode ComponentTypeBuilderImpl::setLinkedDeviceType(IDeviceType* deviceType)
+{
+    if (sort != ComponentTypeSort::Streaming)
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOT_SUPPORTED, "setLinkedDeviceType only applies to a Streaming type");
+
+    if (this->defaultConfig.assigned() || (this->supportedAuthenticationMethods.assigned() && this->supportedAuthenticationMethods.getCount() > 0))
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALID_OPERATION,
+                                   "setLinkedDeviceType cannot be used together with a default config already "
+                                   "set or authentication methods already added");
+
+    this->linkedDeviceType = deviceType;
+    return OPENDAQ_SUCCESS;
+}
+
+ErrCode ComponentTypeBuilderImpl::getLinkedDeviceType(IDeviceType** deviceType)
+{
+    OPENDAQ_PARAM_NOT_NULL(deviceType);
+
+    *deviceType = this->linkedDeviceType.addRefAndReturn();
     return OPENDAQ_SUCCESS;
 }
 

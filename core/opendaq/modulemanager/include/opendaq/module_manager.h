@@ -21,6 +21,8 @@
 
 BEGIN_NAMESPACE_OPENDAQ
 
+struct ICredentialProvider;
+
 /*!
  * @ingroup opendaq_modules
  * @addtogroup opendaq_module_manager Module manager
@@ -88,9 +90,9 @@ DECLARE_OPENDAQ_INTERFACE(IModuleManager, IBaseObject)
 /*!@}*/
 
 OPENDAQ_DECLARE_CLASS_FACTORY(
-    LIBRARY_FACTORY, ModuleManager, IString*, path)
+    LIBRARY_FACTORY, ModuleManager, IString*, path, ICredentialProvider*, credentialProvider)
 
 OPENDAQ_DECLARE_CLASS_FACTORY_WITH_INTERFACE(LIBRARY_FACTORY,
-    ModuleManagerMultiplePaths, IModuleManager, IList*, paths)
+    ModuleManagerMultiplePaths, IModuleManager, IList*, paths, ICredentialProvider*, credentialProvider)
 
 END_NAMESPACE_OPENDAQ

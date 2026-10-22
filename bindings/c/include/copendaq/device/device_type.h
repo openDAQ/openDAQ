@@ -37,12 +37,13 @@ extern "C"
     typedef struct daqDeviceType daqDeviceType;
     typedef struct daqString daqString;
     typedef struct daqPropertyObject daqPropertyObject;
+    typedef struct daqDict daqDict;
 
     EXPORTED extern const daqIntfID DAQ_DEVICE_TYPE_INTF_ID;
     void EXPORTED daqDeviceType_getInterfaceId(daqIntfID* intfId);
 
     daqErrCode EXPORTED daqDeviceType_getConnectionStringPrefix(daqDeviceType* self, daqString** prefix);
-    daqErrCode EXPORTED daqDeviceType_createDeviceType(daqDeviceType** obj, daqString* id, daqString* name, daqString* description, daqPropertyObject* defaultConfig, daqString* prefix);
+    daqErrCode EXPORTED daqDeviceType_createDeviceType(daqDeviceType** obj, daqString* id, daqString* name, daqString* description, daqPropertyObject* defaultConfig, daqString* prefix, daqDict* supportedAuthenticationMethods);
 
 #ifdef __cplusplus
 }

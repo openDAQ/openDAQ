@@ -78,7 +78,9 @@ private:
     std::atomic<bool> stopped{false};
 };
 
-inline StreamingSourceManager::StreamingSourceManager(const ContextPtr& context, const DevicePtr& ownerDevice, const PropertyObjectPtr& deviceConfig)
+inline StreamingSourceManager::StreamingSourceManager(const ContextPtr& context,
+                                                       const DevicePtr& ownerDevice,
+                                                       const PropertyObjectPtr& deviceConfig)
     : context(context)
     , ownerDeviceRef(ownerDevice)
     , deviceConfig(deviceConfig)

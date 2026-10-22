@@ -1,0 +1,37 @@
+/*
+ * Copyright 2022-2026 openDAQ d.o.o.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+#pragma once
+#include <opendaq/security_errors.h>
+#include <coretypes/exceptions.h>
+
+BEGIN_NAMESPACE_OPENDAQ
+
+class SecurityException : public DaqException
+{
+public:
+    using DaqException::DaqException;
+};
+
+#define DEFINE_SECURITY_EXCEPTION(excName, errCode, excMsg) DEFINE_EXCEPTION_BASE(daq::SecurityException, excName, errCode, excMsg)
+
+/*
+ * Should be in the order of the error's numerical value
+ */
+
+DEFINE_SECURITY_EXCEPTION(CredentialsRequired, OPENDAQ_ERR_CREDENTIALS_REQUIRED, "No credentials were supplied for an authentication method that requires them")
+DEFINE_SECURITY_EXCEPTION(ProviderCancelled, OPENDAQ_ERR_PROVIDER_CANCELLED, "The credential provider's prompt was user cancelled")
+
+END_NAMESPACE_OPENDAQ

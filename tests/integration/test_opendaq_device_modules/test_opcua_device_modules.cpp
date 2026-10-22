@@ -1671,6 +1671,17 @@ public:
         }
         return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDPARAMETER);
     }
+    daq::ErrCode INTERFACE_FUNC createAuthenticatedDevice(daq::IDevice**, daq::IString*, daq::IComponent*, daq::IPropertyObject*, daq::ILoginParameters*) override
+    {
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOTIMPLEMENTED);
+    }
+    daq::ErrCode INTERFACE_FUNC getCanonicalConnectionString(daq::IString* connectionString, daq::IString** canonicalConnectionString) override
+    {
+        OPENDAQ_PARAM_NOT_NULL(canonicalConnectionString);
+
+        *canonicalConnectionString = StringPtr(connectionString).addRefAndReturn();
+        return OPENDAQ_SUCCESS;
+    }
 
     daq::ErrCode INTERFACE_FUNC getAvailableFunctionBlockTypes(daq::IDict**) override
     {
@@ -1689,6 +1700,10 @@ public:
         return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOTIMPLEMENTED);
     }
     daq::ErrCode INTERFACE_FUNC createStreaming(daq::IStreaming**, daq::IString*, daq::IPropertyObject*) override
+    {
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOTIMPLEMENTED);
+    }
+    daq::ErrCode INTERFACE_FUNC createAuthenticatedStreaming(daq::IStreaming**, daq::IString*, daq::IPropertyObject*, daq::ILoginParameters*) override
     {
         return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOTIMPLEMENTED);
     }

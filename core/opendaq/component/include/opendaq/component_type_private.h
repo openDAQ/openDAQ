@@ -16,11 +16,21 @@
 
 #pragma once
 #include "opendaq/module_info.h"
+#include <coretypes/dictobject.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
+struct IAuthenticationMethod;
+
+/*#
+ * [interfaceLibrary(IAuthenticationMethod, "opendaq")]
+ * [interfaceSmartPtr(IAuthenticationMethod, AuthenticationMethodPtr, "<opendaq/authentication_method_ptr.h>")]
+ */
+
 /*!
- * @brief Private interface to component type. Allows for setting the module information.
+ * @brief Private interface to component type. Allows for setting the module information, and reading the
+ * raw authentication method dict a public `IComponentType::createAuthenticationConfig()` call builds its
+ * config from.
  */
 DECLARE_OPENDAQ_INTERFACE(IComponentTypePrivate, IBaseObject)
 {
@@ -30,6 +40,14 @@ DECLARE_OPENDAQ_INTERFACE(IComponentTypePrivate, IBaseObject)
      * @param info The module information.
      */
     virtual ErrCode INTERFACE_FUNC setModuleInfo(IModuleInfo* info) = 0;
+
+    /*!
+     * @brief Gets the authentication methods this component type supports authenticating with, keyed by their
+     * own authentication method id.
+     * @param[out] authenticationMethods The supported authentication methods, keyed by their own id.
+     */
+    // [templateType(authenticationMethods, IString, IAuthenticationMethod)]
+    virtual ErrCode INTERFACE_FUNC getSupportedAuthenticationMethods(IDict** authenticationMethods) = 0;
 };
 
 /*!@}*/

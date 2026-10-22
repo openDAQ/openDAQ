@@ -31,6 +31,7 @@
 #include <opendaq/io_folder_factory.h>
 #include <coreobjects/property_object_impl.h>
 #include <coretypes/validation.h>
+#include <coretypes/ctutils.h>
 #include <opendaq/device_private.h>
 #include <tsl/ordered_set.h>
 #include <opendaq/component_keys.h>
@@ -38,6 +39,7 @@
 #include <coreobjects/property_object_factory.h>
 #include <opendaq/module_manager_ptr.h>
 #include <opendaq/module_manager_utils_ptr.h>
+#include <opendaq/streaming_type_ptr.h>
 #include <opendaq/sync_component_factory.h>
 #include <opendaq/component_update_context_ptr.h>
 #include <set>
@@ -52,6 +54,9 @@
 #include <opendaq/module_info_factory.h>
 #include <opendaq/component_type_private.h>
 #include <opendaq/mirrored_device_ptr.h>
+#include <opendaq/authentication_config_ptr.h>
+#include <coreobjects/property_factory.h>
+#include <coretypes/function_ptr.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 template <typename TInterface = IDevice, typename... Interfaces>
@@ -2168,6 +2173,13 @@ void GenericDevice<TInterface, Interfaces...>::updateDevice(const std::string& d
             updatetableDeviceConfig.updateInternal(serializedDevice.readSerializedObject("deviceConfig"), context);
         else if (serializedDevice.hasKey("ComponentConfig"))
             updatetableDeviceConfig.updateInternal(serializedDevice.readSerializedObject("ComponentConfig"), context);
+
+        // Stashed under "__AuthenticationConfig" as an ordinary Object-type property.
+        if (serializedDevice.hasKey("AuthenticationConfig"))
+        {
+            const AuthenticationConfigPtr authenticationConfig = serializedDevice.readObject("AuthenticationConfig", context);
+            deviceConfig.addProperty(ObjectProperty("__AuthenticationConfig", authenticationConfig));
+        }
 
         DeviceInfoPtr discoveredDeviceInfo;
         StringPtr manufacturer;

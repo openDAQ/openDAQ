@@ -296,6 +296,14 @@ run_rtgen copendaq/scheduler opendaq/scheduler opendaq work work
 # run_rtgen copendaq/scheduler opendaq/scheduler opendaq task_flow task_flow #C++
 # run_rtgen copendaq/scheduler opendaq/scheduler opendaq task_internal task_internal #C++
 
+# opendaq security
+
+run_rtgen copendaq/security opendaq/security opendaq authentication_config authentication_config
+run_rtgen copendaq/security opendaq/security opendaq credential_descriptor credential_descriptor
+run_rtgen copendaq/security opendaq/security opendaq credential_provider credential_provider
+run_rtgen copendaq/security opendaq/security opendaq credential_request credential_request
+run_rtgen copendaq/security opendaq/security opendaq credential_request_builder credential_request_builder
+
 # opendaq server
 
 run_rtgen copendaq/server opendaq/server opendaq server server

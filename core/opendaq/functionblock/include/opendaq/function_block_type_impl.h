@@ -35,6 +35,12 @@ public:
 
     explicit FunctionBlockTypeImpl(const ComponentTypeBuilderPtr& builder);
 
+    // IComponentType
+    ErrCode INTERFACE_FUNC createAuthenticationConfig(IAuthenticationConfig** config) override;
+
+    // IComponentTypePrivate
+    ErrCode INTERFACE_FUNC getSupportedAuthenticationMethods(IDict** authenticationMethods) override;
+
     // ISerializable
     ErrCode INTERFACE_FUNC serialize(ISerializer* serializer) override;
     ErrCode INTERFACE_FUNC getSerializeId(ConstCharPtr* id) const override;
@@ -55,6 +61,16 @@ inline FunctionBlockTypeImpl::FunctionBlockTypeImpl(const StringPtr& id,
 inline FunctionBlockTypeImpl::FunctionBlockTypeImpl(const ComponentTypeBuilderPtr& builder)
     : FunctionBlockTypeImpl(builder.getId(), builder.getName(), builder.getDescription(), builder.getDefaultConfig())
 {
+}
+
+inline ErrCode FunctionBlockTypeImpl::createAuthenticationConfig(IAuthenticationConfig** /*config*/)
+{
+    return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOTIMPLEMENTED, "Function block types do not support authentication");
+}
+
+inline ErrCode FunctionBlockTypeImpl::getSupportedAuthenticationMethods(IDict** /*authenticationMethods*/)
+{
+    return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOTIMPLEMENTED, "Function block types do not support authentication");
 }
 
 inline ErrCode FunctionBlockTypeImpl::serialize(ISerializer* serializer)

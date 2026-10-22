@@ -41,6 +41,7 @@ extern "C"
     typedef struct daqString daqString;
     typedef struct daqModuleAuthenticator daqModuleAuthenticator;
     typedef struct daqDict daqDict;
+    typedef struct daqCredentialProvider daqCredentialProvider;
 
     EXPORTED extern const daqIntfID DAQ_MODULE_MANAGER_INTF_ID;
     void EXPORTED daqModuleManager_getInterfaceId(daqIntfID* intfId);
@@ -52,8 +53,8 @@ extern "C"
     daqErrCode EXPORTED daqModuleManager_setAuthenticatedOnly(daqModuleManager* self, daqBool authenticatedOnly);
     daqErrCode EXPORTED daqModuleManager_setModuleAuthenticator(daqModuleManager* self, daqModuleAuthenticator* authenticator);
     daqErrCode EXPORTED daqModuleManager_getVendorKeys(daqModuleManager* self, daqDict** vendorKeys);
-    daqErrCode EXPORTED daqModuleManager_createModuleManager(daqModuleManager** obj, daqString* path);
-    daqErrCode EXPORTED daqModuleManager_createModuleManagerMultiplePaths(daqModuleManager** obj, daqList* paths);
+    daqErrCode EXPORTED daqModuleManager_createModuleManager(daqModuleManager** obj, daqString* path, daqCredentialProvider* credentialProvider);
+    daqErrCode EXPORTED daqModuleManager_createModuleManagerMultiplePaths(daqModuleManager** obj, daqList* paths, daqCredentialProvider* credentialProvider);
 
 #ifdef __cplusplus
 }

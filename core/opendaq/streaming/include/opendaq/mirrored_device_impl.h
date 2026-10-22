@@ -74,6 +74,9 @@ protected:
     virtual StringPtr onGetRemoteId() const = 0;
 
 private:
+    void checkDuplicateStreamingSource(const StringPtr& connectionString) const;
+    StreamingPtr registerStreamingSource(const StreamingPtr& streamingPtr);
+
     std::vector<StreamingPtr> streamingSources;
     StreamingSourceManagerPtr streamingSourceManager;
     DeviceTypePtr mirroredDeviceType;
@@ -334,7 +337,8 @@ ErrCode MirroredDeviceBase<Interfaces...>::setComponentConfig(IPropertyObject* c
         bool automaticallyConnectStreamings = generalConfig.getPropertyValue("AutomaticallyConnectStreaming");
         if (automaticallyConnectStreamings &&
             !(generalConfig.getPropertyValue("StreamingConnectionHeuristic") == 2)) // is not "NotConnected"
-            streamingSourceManager = std::make_shared<StreamingSourceManager>(this->context, deviceSelf, this->componentConfig);
+            streamingSourceManager =
+                std::make_shared<StreamingSourceManager>(this->context, deviceSelf, this->componentConfig);
     }
 
     return errCode;
@@ -344,7 +348,19 @@ template <typename... Interfaces>
 StreamingPtr MirroredDeviceBase<Interfaces...>::onAddStreaming(const StringPtr& connectionString, const PropertyObjectPtr& config)
 {
     auto lock = this->getRecursiveConfigLock2();
+    checkDuplicateStreamingSource(connectionString);
 
+    // Manufacturer/serial number/model all come from this device's own `IDeviceInfo` - handing the device
+    // itself down lets the module resolve them.
+    const auto thisPtr = this->template borrowPtr<DevicePtr>();
+
+    const ModuleManagerUtilsPtr managerUtils = this->context.getModuleManager().template asPtr<IModuleManagerUtils>();
+    return registerStreamingSource(managerUtils.createStreaming(connectionString, config, thisPtr));
+}
+
+template <typename... Interfaces>
+void MirroredDeviceBase<Interfaces...>::checkDuplicateStreamingSource(const StringPtr& connectionString) const
+{
     auto it = std::find_if(streamingSources.begin(),
                            streamingSources.end(),
                            [&connectionString](const StreamingPtr& item)
@@ -360,9 +376,11 @@ StreamingPtr MirroredDeviceBase<Interfaces...>::onAddStreaming(const StringPtr& 
                             connectionString
         );
     }
+}
 
-    const ModuleManagerUtilsPtr managerUtils = this->context.getModuleManager().template asPtr<IModuleManagerUtils>();
-    auto streamingPtr = managerUtils.createStreaming(connectionString, config);
+template <typename... Interfaces>
+StreamingPtr MirroredDeviceBase<Interfaces...>::registerStreamingSource(const StreamingPtr& streamingPtr)
+{
     streamingSources.push_back(streamingPtr);
 
     this->connectionStatusContainer.addStreamingConnectionStatus(streamingPtr.getConnectionString(),

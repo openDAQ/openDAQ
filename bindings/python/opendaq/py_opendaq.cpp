@@ -133,6 +133,14 @@ void wrapDaqComponentOpenDaq(pybind11::module_ m)
     auto classILogFileInfo = declareILogFileInfo(m);
     auto classILogFileInfoBuilder = declareILogFileInfoBuilder(m);
     auto classIDeviceUpdateOptions = declareIDeviceUpdateOptions(m);
+    auto classIAuthenticationMethod = declareIAuthenticationMethod(m);
+    auto classICredentialField = declareICredentialField(m);
+    auto classIAuthenticationConfig = declareIAuthenticationConfig(m);
+    auto classICredentialProvider = declareICredentialProvider(m);
+    auto classICredentialRequest = declareICredentialRequest(m);
+    auto classICredentialRequestBuilder = declareICredentialRequestBuilder(m);
+    auto classILoginParameters = declareILoginParameters(m);
+    auto classILoginParametersBuilder = declareILoginParametersBuilder(m);
 
     defineIModuleInfo(m, classIModuleInfo);
     defineIComponentType(m, classIComponentType);
@@ -239,6 +247,14 @@ void wrapDaqComponentOpenDaq(pybind11::module_ m)
     defineILogFileInfo(m, classILogFileInfo);
     defineILogFileInfoBuilder(m, classILogFileInfoBuilder);
     defineIDeviceUpdateOptions(m, classIDeviceUpdateOptions);
+    defineIAuthenticationMethod(m, classIAuthenticationMethod);
+    defineICredentialField(m, classICredentialField);
+    defineIAuthenticationConfig(m, classIAuthenticationConfig);
+    defineICredentialProvider(m, classICredentialProvider);
+    defineICredentialRequest(m, classICredentialRequest);
+    defineICredentialRequestBuilder(m, classICredentialRequestBuilder);
+    defineILoginParameters(m, classILoginParameters);
+    defineILoginParametersBuilder(m, classILoginParametersBuilder);
 
     defineComponentSearchFilterFactories(m);
 

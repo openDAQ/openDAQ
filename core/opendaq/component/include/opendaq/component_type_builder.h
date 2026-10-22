@@ -21,6 +21,9 @@
 
 BEGIN_NAMESPACE_OPENDAQ
 
+struct IAuthenticationMethod;
+struct IDeviceType;
+
 /*!
  * @ingroup objects_utility
  * @addtogroup objects_component_type Component type builder
@@ -39,6 +42,10 @@ enum class ComponentTypeSort
 /*#
  * [interfaceLibrary(IPropertyObject, "coreobjects")]
  * [interfaceLibrary(IComponentType, "opendaq")]
+ * [interfaceLibrary(IAuthenticationMethod, "opendaq")]
+ * [interfaceSmartPtr(IAuthenticationMethod, AuthenticationMethodPtr, "<opendaq/authentication_method_ptr.h>")]
+ * [interfaceLibrary(IDeviceType, "opendaq")]
+ * [interfaceSmartPtr(IDeviceType, DeviceTypePtr, "<opendaq/device_type_ptr.h>")]
  */
 
 /*!
@@ -46,7 +53,16 @@ enum class ComponentTypeSort
  * `build` method that builds the object.
  *
  * Depending on the set "Type" builder parameter, a different Component type is created - eg. Streaming type,
- * Device type, Function block type, or Server type
+ * Device type, Function block type, or Server type.
+ * `addAuthenticationMethod` only applies to a "Device" or "Streaming" sort - fails with
+ * `OPENDAQ_ERR_NOT_SUPPORTED` for any other sort. If never called, the built type ends up with no supported
+ * authentication methods - so the core treats it as not supporting authentication, going through the plain
+ * `createDevice`/`createStreaming` module path instead of `createAuthenticatedDevice`/`createAuthenticatedStreaming`.
+ * `setLinkedDeviceType` only applies to a "Streaming" sort - fails with `OPENDAQ_ERR_NOT_SUPPORTED` for any
+ * other sort, "Device" included. It is also mutually exclusive with `setDefaultConfig`/`addAuthenticationMethod`
+ * - whichever is called second fails with `OPENDAQ_ERR_INVALID_OPERATION` - since a linked device type
+ * redirects the built Streaming type's default config and supported authentication methods to that device
+ * type's own instead.
  */
 DECLARE_OPENDAQ_INTERFACE(IComponentTypeBuilder, IBaseObject)
 {
@@ -55,7 +71,7 @@ DECLARE_OPENDAQ_INTERFACE(IComponentTypeBuilder, IBaseObject)
      * @param[out] componentType The built Component type.
      *
      * Depending on the set "sort" builder parameter, a different Component type is created - eg. Streaming type,
-     * Device type, Function block type, or Server type
+     * Device type, Function block type, or Server type.
      */
     virtual ErrCode INTERFACE_FUNC build(IComponentType** componentType) = 0;
     
@@ -152,6 +168,9 @@ DECLARE_OPENDAQ_INTERFACE(IComponentTypeBuilder, IBaseObject)
      *
      * Configuration objects are property object with user-defined key-value pairs.
      * For example: Port=1000, OutputRate=5000, ...
+     * @retval OPENDAQ_ERR_INVALID_OPERATION if a device type was already linked via `setLinkedDeviceType` - the
+     * built Streaming type's default config is redirected to that device type's own instead, so the two are
+     * mutually exclusive.
      */
     virtual ErrCode INTERFACE_FUNC setDefaultConfig(IPropertyObject* defaultConfig) = 0;
 
@@ -164,6 +183,48 @@ DECLARE_OPENDAQ_INTERFACE(IComponentTypeBuilder, IBaseObject)
      * For example: Port=1000, OutputRate=5000, ...
      */
     virtual ErrCode INTERFACE_FUNC getDefaultConfig(IPropertyObject** defaultConfig) = 0;
+
+    // [returnSelf]
+    /*!
+     * @brief Adds an authentication method the built Component type will support authenticating with,
+     * appended after any already added. Kept in the order added, which a default selection follows -
+     * selecting the first one added. Only valid when the "Type" builder parameter is "Device" or
+     * "Streaming".
+     * @param method The authentication method to add.
+     * @retval OPENDAQ_ERR_ALREADYEXISTS for a second method with the same id.
+     * @retval OPENDAQ_ERR_NOT_SUPPORTED for a Server or Function block sort.
+     * @retval OPENDAQ_ERR_INVALID_OPERATION if a device type was already linked via `setLinkedDeviceType` - the
+     * built Streaming type's supported authentication methods are redirected to that device type's own instead,
+     * so the two are mutually exclusive.
+     */
+    virtual ErrCode INTERFACE_FUNC addAuthenticationMethod(IAuthenticationMethod* method) = 0;
+
+    /*!
+     * @brief Gets the authentication methods currently added to the builder - see `addAuthenticationMethod`
+     * for when they take effect on the built Component type.
+     * @param[out] authenticationMethods The supported authentication methods, keyed by their own id.
+     */
+    // [templateType(authenticationMethods, IString, IAuthenticationMethod)]
+    virtual ErrCode INTERFACE_FUNC getSupportedAuthenticationMethods(IDict** authenticationMethods) = 0;
+
+    // [returnSelf]
+    /*!
+     * @brief Sets the device type the built Streaming type shares its connection parameters with (including
+     * supported authentication methods). Only valid when the "Type" builder parameter is "Streaming".
+     * @param deviceType The device type to link.
+     * @retval OPENDAQ_ERR_NOT_SUPPORTED for any sort other than "Streaming".
+     * @retval OPENDAQ_ERR_INVALID_OPERATION if a default config was already set via `setDefaultConfig`, or an
+     * authentication method was already added via `addAuthenticationMethod` - a linked device type redirects
+     * both instead, so it is mutually exclusive with either already being set.
+     */
+    virtual ErrCode INTERFACE_FUNC setLinkedDeviceType(IDeviceType* deviceType) = 0;
+
+    /*!
+     * @brief Gets the device type currently set on the builder - see `setLinkedDeviceType` for when it takes
+     * effect on the built Streaming type.
+     * @param[out] deviceType The linked device type, or unassigned if none was set.
+     */
+    virtual ErrCode INTERFACE_FUNC getLinkedDeviceType(IDeviceType** deviceType) = 0;
 };
 /*!@}*/
 

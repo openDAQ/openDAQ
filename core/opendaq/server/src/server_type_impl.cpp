@@ -21,6 +21,16 @@ ServerTypeImpl::ServerTypeImpl(const ComponentTypeBuilderPtr& builder)
 {
 }
 
+ErrCode ServerTypeImpl::createAuthenticationConfig(IAuthenticationConfig** /*config*/)
+{
+    return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOTIMPLEMENTED, "Server types do not support authentication");
+}
+
+ErrCode ServerTypeImpl::getSupportedAuthenticationMethods(IDict** /*authenticationMethods*/)
+{
+    return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOTIMPLEMENTED, "Server types do not support authentication");
+}
+
 OPENDAQ_DEFINE_CLASS_FACTORY(
     LIBRARY_FACTORY,
     ServerType,

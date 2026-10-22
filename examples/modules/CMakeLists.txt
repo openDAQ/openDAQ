@@ -66,6 +66,11 @@ if (DAQMODULES_SIMULATOR_DEVICE_MODULE)
     add_subdirectory(simulator_device_module)
 endif()
 
+if (DAQMODULES_CREDENTIAL_DEMO_MODULE)
+    message(STATUS "Credential demo module")
+    add_subdirectory(credential_demo_module)
+endif()
+
 if (DAQMODULES_AUDIO_DEVICE_MODULE)
     message(STATUS "Audio device module")
     add_subdirectory(audio_device_module)

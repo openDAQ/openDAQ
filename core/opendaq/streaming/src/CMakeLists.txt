@@ -85,7 +85,7 @@ function(create_component_source_groups_${BASE_NAME})
         ${SDK_SRC_DIR}/streaming.natvis
     )
     
-    source_group("streaming_type" FILES 
+    source_group("streaming_type" FILES
         ${SDK_HEADERS_DIR}/streaming_type.h
         ${SDK_HEADERS_DIR}/streaming_type_factory.h
         ${SDK_HEADERS_DIR}/streaming_type_impl.h

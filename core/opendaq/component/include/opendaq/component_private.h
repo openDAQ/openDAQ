@@ -18,12 +18,15 @@
 
 #include <coretypes/listobject.h>
 #include <opendaq/component.h>
+#include <opendaq/authentication_config.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
 /*#
  * [interfaceLibrary(ICoreEventArgs, "coreobjects")]
  * [interfaceLibrary(IPropertyObject, "coreobjects")]
+ * [interfaceLibrary(IAuthenticationConfig, "opendaq")]
+ * [interfaceSmartPtr(IAuthenticationConfig, AuthenticationConfigPtr, "<opendaq/authentication_config_ptr.h>")]
  */
 
 /*!
@@ -92,6 +95,27 @@ DECLARE_OPENDAQ_INTERFACE(IComponentPrivate, IBaseObject)
      * Container components (folders, devices) propagate this call to their children.
      */
     virtual ErrCode INTERFACE_FUNC setParentActive(Bool parentActive, Bool onUpdate) = 0;
+
+    /*!
+     * @brief Sets the authentication config the module was given when the component was created with
+     * authentication, if any.
+     * @param authenticationConfig The authentication config that named the method - and, if supplied
+     * directly rather than obtained from a provider, the credentials - used to authenticate the component.
+     *
+     * Kept alongside the component so a reload can re-request credentials for it. Note that this stores the
+     * config exactly as given - including a directly-supplied credential (`IAuthenticationConfig`'s
+     * `"SuppliedCredential"` property), if the caller set one - though `IAuthenticationConfig`'s own
+     * serialization never writes that credential out.
+     */
+    virtual ErrCode INTERFACE_FUNC setAuthenticationConfig(IAuthenticationConfig* authenticationConfig) = 0;
+
+    /*!
+     * @brief Retrieves the authentication config the module was given when the component was created with
+     * authentication.
+     * @param authenticationConfig The authentication config, or `nullptr` if the component was not created
+     * with authentication.
+     */
+    virtual ErrCode INTERFACE_FUNC getAuthenticationConfig(IAuthenticationConfig** authenticationConfig) = 0;
 };
 
 END_NAMESPACE_OPENDAQ

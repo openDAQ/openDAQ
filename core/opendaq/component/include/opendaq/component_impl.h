@@ -34,6 +34,7 @@
 #include <coreobjects/core_event_args_impl.h>
 #include <coretypes/recursive_search_ptr.h>
 #include <opendaq/component_private_ptr.h>
+#include <opendaq/authentication_config_ptr.h>
 #include <opendaq/tags_impl.h>
 #include <cctype>
 #include <coretypes/coretype_utils.h>
@@ -107,6 +108,8 @@ public:
     ErrCode INTERFACE_FUNC setComponentConfig(IPropertyObject* config) override;
     ErrCode INTERFACE_FUNC getComponentConfig(IPropertyObject** config) override;
     ErrCode INTERFACE_FUNC setParentActive(Bool parentActive, Bool onUpdate) override;
+    ErrCode INTERFACE_FUNC setAuthenticationConfig(IAuthenticationConfig* authenticationConfig) override;
+    ErrCode INTERFACE_FUNC getAuthenticationConfig(IAuthenticationConfig** authenticationConfig) override;
 
     // IRemovable
     ErrCode INTERFACE_FUNC remove() override;
@@ -168,6 +171,7 @@ protected:
     StringPtr description;
     ComponentStatusContainerPtr statusContainer;
     PropertyObjectPtr componentConfig;
+    AuthenticationConfigPtr authenticationConfig;
 
     ErrCode serializeCustomValues(ISerializer* serializer, bool forUpdate) override;
 
@@ -898,6 +902,21 @@ ErrCode ComponentImpl<Intf, Intfs...>::getComponentConfig(IPropertyObject** conf
 }
 
 template <class Intf, class ... Intfs>
+ErrCode ComponentImpl<Intf, Intfs...>::setAuthenticationConfig(IAuthenticationConfig* authenticationConfig)
+{
+    this->authenticationConfig = authenticationConfig;
+    return OPENDAQ_SUCCESS;
+}
+
+template <class Intf, class ... Intfs>
+ErrCode ComponentImpl<Intf, Intfs...>::getAuthenticationConfig(IAuthenticationConfig** authenticationConfig)
+{
+    OPENDAQ_PARAM_NOT_NULL(authenticationConfig);
+    *authenticationConfig = this->authenticationConfig.addRefAndReturn();
+    return OPENDAQ_SUCCESS;
+}
+
+template <class Intf, class ... Intfs>
 ErrCode ComponentImpl<Intf, Intfs...>::getOnComponentCoreEvent(IEvent** event)
 {
     OPENDAQ_PARAM_NOT_NULL(event);
@@ -1334,6 +1353,12 @@ void ComponentImpl<Intf, Intfs...>::serializeCustomObjectValues(const Serializer
             componentConfig.template asPtr<IUpdatable>(true).serializeForUpdate(serializer);
         else
             componentConfig.serialize(serializer);
+    }
+
+    if (authenticationConfig.assigned())
+    {
+        serializer.key("AuthenticationConfig");
+        authenticationConfig.serialize(serializer);
     }
 }
 

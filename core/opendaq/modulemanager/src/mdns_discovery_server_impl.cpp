@@ -85,6 +85,15 @@ ErrCode MdnsDiscoveryServerImpl::registerService(IString* id, IPropertyObject* c
     properties["path"] = GetPropertyValueOrDefault(configPtr, "Path", "/");
     properties["protocolVersion"] = GetPropertyValueOrDefault(configPtr, "ProtocolVersion", "");
 
+    // Joins `configPtr`'s optional "AuthenticationMethods" list property into one TXT value. Left out of the
+    // TXT record entirely when the capability supports none.
+    if (configPtr.hasProperty("AuthenticationMethods"))
+    {
+        const ListPtr<IString> authenticationMethods = configPtr.getPropertyValue("AuthenticationMethods");
+        if (const auto authMethods = DiscoveryUtils::authenticationMethodsToTxt(authenticationMethods); !authMethods.empty())
+            properties["authMethods"] = authMethods;
+    }
+
     MdnsDiscoveredService service(serviceName, servicePort, properties, PropertyObjectPtr::Borrow(deviceInfo));
     if (discoveryServer.registerService(serviceId, service))
     {

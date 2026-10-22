@@ -36,6 +36,11 @@
 #include <opendaq/device_info_internal_ptr.h>
 #include <coreobjects/property_object_protected_ptr.h>
 #include <coretypes/dictobject_factory.h>
+#include <opendaq/authentication_method_ptr.h>
+#include <opendaq/login_parameters_ptr.h>
+#include <coreobjects/exceptions.h>
+#include <opendaq/component_type_ptr.h>
+#include <coreobjects/property_factory.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
@@ -97,9 +102,10 @@ public:
     /*!
      * @brief Creates a device object that can communicate with the device described in the specified connection string.
      * The device object is not automatically added as a sub-device of the caller, but only returned by reference.
-     * @param connectionString Describes the connection info of the device to connect to. 
+     * @param connectionString Describes the connection info of the device to connect to.
      * If connection string starts with `daq://`, module chooses the optimal server capability based on protocol type
      * @param parent The parent component/device to which the device attaches.
+     * @param config A configuration object that contains parameters used to configure a connection and/or device.
      * @param[out] device The device object created to communicate with and control the device.
      */
     ErrCode INTERFACE_FUNC createDevice(IDevice** device, IString* connectionString, IComponent* parent, IPropertyObject* config) override
@@ -111,28 +117,86 @@ public:
         ErrCode errCode = wrapHandlerReturn(this, &Module::onGetAvailableDeviceTypes, types);
         OPENDAQ_RETURN_IF_FAILED_EXCEPT(errCode, OPENDAQ_ERR_NOTIMPLEMENTED);
 
-        ComponentTypePtr deviceType;
-        const StringPtr prefix = getPrefixFromConnectionString(connectionString);
-        if (prefix.assigned() && prefix.getLength() != 0)
-        {
-            for (const auto& [_, type] : types)
-            {
-                if (type.getConnectionStringPrefix() == prefix)
-                {
-                    deviceType = type;
-                    break;
-                }
-            }
-        }
+        ComponentTypePtr deviceType = findTypeByConnectionStringPrefix(connectionString, types);
 
         DevicePtr createdDevice;
         errCode = wrapHandlerReturn(this, &Module::onCreateDevice, createdDevice, connectionString, parent, mergeConfig(config, deviceType));
         OPENDAQ_RETURN_IF_FAILED(errCode);
 
+        // trigger device info initialization
         if (createdDevice.assigned())
             createdDevice.getInfo();
 
         *device = createdDevice.detach();
+        return errCode;
+    }
+
+    /*!
+     * @brief Creates a device object that can communicate with the device described in the specified connection
+     * string, authenticating the connection with the method and credentials carried by `loginParameters`.
+     * The device object is not automatically added as a sub-device of the caller, but only returned by reference.
+     * @param connectionString Describes the connection info of the device to connect to.
+     * @param parent The parent component/device to which the device attaches.
+     * @param config A configuration object that contains parameters used to configure a connection and/or device.
+     * @param loginParameters The authentication method and resolved credentials to authenticate the connection with - the
+     * module manager has already obtained this (via `requestCredentials`, from a supplied credential or a
+     * credential provider) before calling this method, so the implementation only needs to verify it, never to
+     * resolve it itself.
+     * @param[out] device The device object created to communicate with and control the device.
+     */
+    ErrCode INTERFACE_FUNC createAuthenticatedDevice(IDevice** device,
+                                                     IString* connectionString,
+                                                     IComponent* parent,
+                                                     IPropertyObject* config,
+                                                     ILoginParameters* loginParameters) override
+    {
+        OPENDAQ_PARAM_NOT_NULL(connectionString);
+        OPENDAQ_PARAM_NOT_NULL(device);
+        OPENDAQ_PARAM_NOT_NULL(loginParameters);
+
+        DictPtr<IString, IDeviceType> types;
+        ErrCode errCode = wrapHandlerReturn(this, &Module::onGetAvailableDeviceTypes, types);
+        OPENDAQ_RETURN_IF_FAILED_EXCEPT(errCode, OPENDAQ_ERR_NOTIMPLEMENTED);
+
+        ComponentTypePtr deviceType = findTypeByConnectionStringPrefix(connectionString, types);
+
+        const auto loginParametersPtr = LoginParametersPtr::Borrow(loginParameters);
+
+        DevicePtr createdDevice;
+        errCode = wrapHandlerReturn(this,
+                                    &Module::onCreateAuthenticatedDevice,
+                                    createdDevice,
+                                    connectionString,
+                                    parent,
+                                    mergeConfig(config, deviceType),
+                                    loginParametersPtr);
+        OPENDAQ_RETURN_IF_FAILED(errCode);
+
+        // trigger device info initialization
+        if (createdDevice.assigned())
+            createdDevice.getInfo();
+
+        *device = createdDevice.detach();
+        return errCode;
+    }
+
+    /*!
+     * @brief Returns the canonical form of `connectionString` - the module's own connection-string prefix
+     * trimmed off, and every connection parameter made explicit, even ones the original string left implicit.
+     * Used by the module manager as a stable identifier for caching authentication credentials against a
+     * specific connection within a credential provider.
+     * @param connectionString The connection string to canonicalize.
+     * @param[out] canonicalConnectionString The canonical connection string.
+     */
+    ErrCode INTERFACE_FUNC getCanonicalConnectionString(IString* connectionString, IString** canonicalConnectionString) override
+    {
+        OPENDAQ_PARAM_NOT_NULL(canonicalConnectionString);
+
+        StringPtr canonical;
+        const ErrCode errCode = wrapHandlerReturn(this, &Module::onGetCanonicalConnectionString, canonical, connectionString);
+        OPENDAQ_RETURN_IF_FAILED(errCode);
+
+        *canonicalConnectionString = canonical.detach();
         return errCode;
     }
 
@@ -244,6 +308,8 @@ public:
 
     /*!
      * @brief Creates and returns a streaming object using the specified connection string and config object.
+     * Only valid for a streaming type with no supported authentication method - use `createAuthenticatedStreaming`
+     * for one that has at least one.
      * @param connectionString Typically a connection string usually has a well known prefix, such as `daq.lt//`.
      * @param config A config object that contains parameters used to configure a streaming connection.
      * In case of a null value, implementation should use default configuration.
@@ -253,27 +319,61 @@ public:
     {
         OPENDAQ_PARAM_NOT_NULL(streaming);
         OPENDAQ_PARAM_NOT_NULL(connectionString);
-        
+
         DictPtr<IString, IStreamingType> types;
         ErrCode errCode = wrapHandlerReturn(this, &Module::onGetAvailableStreamingTypes, types);
         OPENDAQ_RETURN_IF_FAILED_EXCEPT(errCode, OPENDAQ_ERR_NOTIMPLEMENTED);
 
-        ComponentTypePtr streamingType;
-        const StringPtr prefix = getPrefixFromConnectionString(connectionString);
-        if (prefix.assigned() && prefix.getLength() != 0)
-        {
-            for (const auto& [_, type] : types)
-            {
-                if (type.getConnectionStringPrefix() == prefix)
-                {
-                    streamingType = type;
-                    break;
-                }
-            }
-        }
+        const ComponentTypePtr streamingType = findTypeByConnectionStringPrefix(connectionString, types);
+        if (!streamingType.assigned())
+            return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDPARAMETER, "No streaming type matching connection string was found");
 
         StreamingPtr createdStreaming;
-        errCode = wrapHandlerReturn(this, &Module::onCreateStreaming, createdStreaming, connectionString, mergeConfig(config, streamingType));
+        errCode = wrapHandlerReturn(
+            this, &Module::onCreateStreaming, createdStreaming, connectionString, mergeConfig(config, streamingType));
+        OPENDAQ_RETURN_IF_FAILED(errCode);
+
+        *streaming = createdStreaming.detach();
+        return errCode;
+    }
+
+    /*!
+     * @brief Creates and returns a streaming object using the specified connection string and config object,
+     * authenticating the connection with the method and credentials carried by `loginParameters`.
+     * @param connectionString Typically a connection string usually has a well known prefix, such as `daq.lt//`.
+     * @param config A config object that contains parameters used to configure a streaming connection.
+     * @param loginParameters The authentication method and resolved credentials to authenticate the connection with - the
+     * module manager has already obtained this (via `requestCredentials`, from a supplied credential or a
+     * credential provider) before calling this method, so the implementation only needs to verify it, never to
+     * resolve it itself.
+     * @param[out] streaming The created streaming object.
+     */
+    ErrCode INTERFACE_FUNC createAuthenticatedStreaming(IStreaming** streaming,
+                                                        IString* connectionString,
+                                                        IPropertyObject* config,
+                                                        ILoginParameters* loginParameters) override
+    {
+        OPENDAQ_PARAM_NOT_NULL(streaming);
+        OPENDAQ_PARAM_NOT_NULL(connectionString);
+        OPENDAQ_PARAM_NOT_NULL(loginParameters);
+
+        DictPtr<IString, IStreamingType> types;
+        ErrCode errCode = wrapHandlerReturn(this, &Module::onGetAvailableStreamingTypes, types);
+        OPENDAQ_RETURN_IF_FAILED_EXCEPT(errCode, OPENDAQ_ERR_NOTIMPLEMENTED);
+
+        const ComponentTypePtr streamingType = findTypeByConnectionStringPrefix(connectionString, types);
+        if (!streamingType.assigned())
+            return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDPARAMETER, "No streaming type matching connection string was found");
+
+        const auto loginParametersPtr = LoginParametersPtr::Borrow(loginParameters);
+
+        StreamingPtr createdStreaming;
+        errCode = wrapHandlerReturn(this,
+                                    &Module::onCreateAuthenticatedStreaming,
+                                    createdStreaming,
+                                    connectionString,
+                                    mergeConfig(config, streamingType),
+                                    loginParametersPtr);
         OPENDAQ_RETURN_IF_FAILED(errCode);
 
         *streaming = createdStreaming.detach();
@@ -310,7 +410,6 @@ public:
         return errCode;
     }
 
-
     // Helpers
 
     /*!
@@ -341,6 +440,42 @@ public:
      * @returns The device object created to communicate with and control the device.
      */
     virtual DevicePtr onCreateDevice(const StringPtr& connectionString, const ComponentPtr& parent, const PropertyObjectPtr& config)
+    {
+        return nullptr;
+    }
+
+    /*!
+     * @brief Returns the canonical form of `connectionString` - the module's own connection-string prefix
+     * trimmed off, and every connection parameter (port, path, etc.) made explicit, even ones the original
+     * string left unspecified and the module fell back to a default for. Meant to be used as a stable
+     * identifier for caching authentication credentials against a specific connection within a credential
+     * provider - two connection strings that differ only in how much they left implicit still resolve
+     * to the exact same canonical string, and so the same cache entry.
+     * @param connectionString The connection string to canonicalize.
+     * @returns The canonical connection string. The base implementation performs no canonicalization at
+     * all - it returns `connectionString` unchanged - so a module that doesn't yet support authentication
+     * (and so has no need for a caching identifier) doesn't need to override this.
+     */
+    virtual StringPtr onGetCanonicalConnectionString(const StringPtr& connectionString)
+    {
+        return connectionString;
+    }
+
+    /*!
+     * @brief Creates a device object that can communicate with the device described in the specified connection string,
+     * authenticating the connection with the given, already-resolved credentials.
+     * The device object is not automatically added as a sub-device of the caller, but only returned by reference.
+     * @param connectionString Describes the connection info of the device to connect to.
+     * @param parent The parent component/device to which the device attaches.
+     * @param config A configuration object that contains parameters used to configure a device in the form of key-value pairs.
+     * @param loginParameters The authentication parameters (method, resolved credentials etc.) to authenticate with - the
+     * core has already obtained, so the implementation only needs to verify it, never to resolve it itself.
+     * @returns The device object created to communicate with and control the device.
+     */
+    virtual DevicePtr onCreateAuthenticatedDevice(const StringPtr& connectionString,
+                                                  const ComponentPtr& parent,
+                                                  const PropertyObjectPtr& config,
+                                                  const LoginParametersPtr& loginParameters)
     {
         return nullptr;
     }
@@ -385,7 +520,29 @@ public:
         return nullptr;
     }
 
+    /*!
+     * @brief Creates and returns a streaming object using the specified connection string and config object.
+     * @param connectionString Typically a connection string usually has a well known prefix, such as `daq.lt//`.
+     * @param config A config object that contains parameters used to configure a streaming connection.
+     * @returns The created streaming object.
+     */
     virtual StreamingPtr onCreateStreaming(const StringPtr& connectionString, const PropertyObjectPtr& config)
+    {
+        return nullptr;
+    }
+
+    /*!
+     * @brief Creates and returns a streaming object using the specified connection string and config object,
+     * authenticating the connection with the given, already-resolved credentials.
+     * @param connectionString Typically a connection string usually has a well known prefix, such as `daq.lt//`.
+     * @param config A config object that contains parameters used to configure a streaming connection.
+     * @param loginParameters The authentication parameters (method, resolved credentials etc.) to authenticate with - the
+     * core has already obtained, so the implementation only needs to verify it, never to resolve it itself.
+     * @returns The created streaming object.
+     */
+    virtual StreamingPtr onCreateAuthenticatedStreaming(const StringPtr& connectionString,
+                                                        const PropertyObjectPtr& config,
+                                                        const LoginParametersPtr& loginParameters)
     {
         return nullptr;
     }
@@ -483,6 +640,24 @@ protected:
     }
 
 private:
+    // Looks up `types` for the one whose `getConnectionStringPrefix()` matches `connectionString`'s own prefix -
+    // unassigned if `connectionString` has none, or no entry's prefix matches. Shared by `createDevice`/
+    // `createAuthenticatedDevice` (over device types) and `createStreaming`/`createAuthenticatedStreaming`
+    // (over streaming types).
+    template <typename ComponentTypeT>
+    ComponentTypePtr findTypeByConnectionStringPrefix(const StringPtr& connectionString, const DictPtr<IString, ComponentTypeT>& types) const
+    {
+        const StringPtr prefix = getPrefixFromConnectionString(connectionString);
+        if (prefix.assigned() && prefix.getLength() != 0)
+        {
+            for (const auto& [_, type] : types)
+            {
+                if (type.getConnectionStringPrefix() == prefix)
+                    return type;
+            }
+        }
+        return nullptr;
+    }
 
     StringPtr getPrefixFromConnectionString(const StringPtr& connectionString) const
     {

@@ -2174,11 +2174,18 @@ void GenericDevice<TInterface, Interfaces...>::updateDevice(const std::string& d
         else if (serializedDevice.hasKey("ComponentConfig"))
             updatetableDeviceConfig.updateInternal(serializedDevice.readSerializedObject("ComponentConfig"), context);
 
-        // Stashed under "__AuthenticationConfig" as an ordinary Object-type property.
-        if (serializedDevice.hasKey("AuthenticationConfig"))
         {
-            const AuthenticationConfigPtr authenticationConfig = serializedDevice.readObject("AuthenticationConfig", context);
-            deviceConfig.addProperty(ObjectProperty("__AuthenticationConfig", authenticationConfig));
+            // Stashed under "__AuthenticationConfig" as an ordinary Object-type property. Prefer the one already
+            // parsed onto the matching DeviceUpdateOptions node, if any - a caller may have changed the authentication method or/and called
+            // `setSuppliedCredential` on it directly, to bulk-supply credentials across a whole device tree
+            // without needing a registered ICredentialProvider.
+            AuthenticationConfigPtr authenticationConfig;
+            if (options.assigned())
+                authenticationConfig = options.getAuthenticationConfig();
+            if (!authenticationConfig.assigned() && serializedDevice.hasKey("AuthenticationConfig"))
+                authenticationConfig = serializedDevice.readObject("AuthenticationConfig", context);
+            if (authenticationConfig.assigned())
+                deviceConfig.addProperty(ObjectProperty("__AuthenticationConfig", authenticationConfig));
         }
 
         DeviceInfoPtr discoveredDeviceInfo;

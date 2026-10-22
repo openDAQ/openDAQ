@@ -19,6 +19,7 @@
 #include <rapidjson/document.h>
 #include <coreobjects/property_object_ptr.h>
 #include <opendaq/device_update_options_ptr.h>
+#include <opendaq/authentication_config_ptr.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
@@ -51,7 +52,8 @@ public:
     ErrCode INTERFACE_FUNC getUpdateMode(DeviceUpdateMode* mode) override;
     ErrCode INTERFACE_FUNC setUpdateMode(DeviceUpdateMode mode) override;
     ErrCode INTERFACE_FUNC getChildDeviceOptions(IList** childDeviceOptions) override;
-    
+    ErrCode INTERFACE_FUNC getAuthenticationConfig(IAuthenticationConfig** authenticationConfig) override;
+
     ErrCode INTERFACE_FUNC equals(IBaseObject* other, Bool* equals) const override;
     
     // ISerializable
@@ -82,6 +84,8 @@ public:
 
     DeviceUpdateMode mode;
     ListPtr<IDeviceUpdateOptions> children;
+
+    AuthenticationConfigPtr authenticationConfig;
 };
 
 OPENDAQ_REGISTER_DESERIALIZE_FACTORY(DeviceUpdateOptionsImpl)

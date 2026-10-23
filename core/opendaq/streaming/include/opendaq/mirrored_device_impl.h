@@ -335,8 +335,36 @@ ErrCode MirroredDeviceBase<Interfaces...>::setComponentConfig(IPropertyObject* c
         auto deviceSelf = this->template borrowPtr<DevicePtr>();
         PropertyObjectPtr generalConfig = this->componentConfig.getPropertyValue("General");
         bool automaticallyConnectStreamings = generalConfig.getPropertyValue("AutomaticallyConnectStreaming");
-        if (automaticallyConnectStreamings &&
-            !(generalConfig.getPropertyValue("StreamingConnectionHeuristic") == 2)) // is not "NotConnected"
+        ListPtr<IString> allowedStreamingProtocols = generalConfig.getPropertyValue("AllowedStreamingProtocols");
+        ListPtr<IString> prioritizedStreamingProtocols = generalConfig.getPropertyValue("PrioritizedStreamingProtocols");
+
+        StringPtr streamingProtocol;
+        if (prioritizedStreamingProtocols.empty())
+            return errCode;
+
+        if (allowedStreamingProtocols.empty())
+        {
+            streamingProtocol = prioritizedStreamingProtocols[0];
+        }
+        else
+        {
+            for (const auto& protocolId : prioritizedStreamingProtocols)
+            {
+                for (const auto& allowedProtocol : allowedStreamingProtocols)
+                {
+                    if (protocolId == allowedProtocol)
+                    {
+                        streamingProtocol = protocolId;
+                        break;
+                    }
+                }
+                if (streamingProtocol.assigned())
+                    break;
+            }
+        }
+        if (automaticallyConnectStreamings
+            && !(generalConfig.getPropertyValue("StreamingConnectionHeuristic") == 2) // is not "NotConnected"
+            && streamingProtocol.assigned())
             streamingSourceManager =
                 std::make_shared<StreamingSourceManager>(this->context, deviceSelf, this->componentConfig);
     }

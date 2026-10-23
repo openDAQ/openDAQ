@@ -194,3 +194,7 @@ run_rtgen opendaq opendaq/security        opendaq opendaq/generated/security    
 run_rtgen opendaq opendaq/security        opendaq opendaq/generated/security         credential_request
 run_rtgen opendaq opendaq/security        opendaq opendaq/generated/security         credential_request_builder
 run_rtgen opendaq opendaq/security        opendaq opendaq/generated/security         credential_payload
+run_rtgen opendaq opendaq/component       opendaq opendaq/generated/component        add_component_config
+run_rtgen opendaq opendaq/device          opendaq opendaq/generated/device           add_device_config
+run_rtgen opendaq opendaq/streaming       opendaq opendaq/generated/streaming        add_streaming_config
+

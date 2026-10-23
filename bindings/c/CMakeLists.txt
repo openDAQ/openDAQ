@@ -186,6 +186,7 @@ set(SRC_CoreObjects_Cpp
 )
 
 set(SRC_OpenDAQ_Headers
+    include/copendaq/component/add_component_config.h
     include/copendaq/component/common.h
     include/copendaq/component/component_errors.h
     include/copendaq/component/component_private.h
@@ -205,6 +206,7 @@ set(SRC_OpenDAQ_Headers
     include/copendaq/context/common.h
     include/copendaq/context/context.h
 
+    include/copendaq/device/add_device_config.h
     include/copendaq/device/address_info_builder.h
     include/copendaq/device/address_info.h
     include/copendaq/device/common.h
@@ -322,6 +324,7 @@ set(SRC_OpenDAQ_Headers
     include/copendaq/signal/signal_events.h
     include/copendaq/signal/signal.h
 
+    include/copendaq/streaming/add_streaming_config.h
     include/copendaq/streaming/common.h
     include/copendaq/streaming/mirrored_device_config.h
     include/copendaq/streaming/mirrored_device.h
@@ -339,6 +342,7 @@ set(SRC_OpenDAQ_Headers
 )
 
 set(SRC_OpenDAQ_Cpp
+    src/copendaq/component/add_component_config.cpp
     src/copendaq/component/component_private.cpp
     src/copendaq/component/component_status_container_private.cpp
     src/copendaq/component/component_status_container.cpp
@@ -355,6 +359,7 @@ set(SRC_OpenDAQ_Cpp
 
     src/copendaq/context/context.cpp
 
+    src/copendaq/device/add_device_config.cpp
     src/copendaq/device/address_info_builder.cpp
     src/copendaq/device/address_info.cpp
     src/copendaq/device/connected_client_info.cpp
@@ -454,6 +459,7 @@ set(SRC_OpenDAQ_Cpp
     src/copendaq/signal/signal_events.cpp
     src/copendaq/signal/signal.cpp
 
+    src/copendaq/streaming/add_streaming_config.cpp
     src/copendaq/streaming/mirrored_device_config.cpp
     src/copendaq/streaming/mirrored_device.cpp
     src/copendaq/streaming/mirrored_signal_config.cpp

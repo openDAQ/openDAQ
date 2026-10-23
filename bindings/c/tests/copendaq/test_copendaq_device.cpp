@@ -99,3 +99,53 @@ TEST_F(COpendaqDeviceTest, IoFolderConfig)
     daqBaseObject_releaseRef(folderConfig);
     daqBaseObject_releaseRef(ctx);
 }
+
+TEST_F(COpendaqDeviceTest, AddDeviceConfig)
+{
+    daqList* transports = nullptr;
+    daqList_createList(&transports);
+    daqString* plain = nullptr;
+    daqString_createString(&plain, "plain");
+    daqList_pushBack(transports, plain);
+    daqString* tls = nullptr;
+    daqString_createString(&tls, "tls");
+    daqList_pushBack(transports, tls);
+
+    daqAddDeviceConfig* config = nullptr;
+    ASSERT_EQ(daqAddDeviceConfig_createAddDeviceConfig(&config, transports), DAQ_SUCCESS);
+    ASSERT_NE(config, nullptr);
+
+    daqAddComponentConfig* componentConfig = nullptr;
+    daqBaseObject_borrowInterface(config, DAQ_ADD_COMPONENT_CONFIG_INTF_ID, (daqBaseObject**) &componentConfig);
+    ASSERT_NE(componentConfig, nullptr);
+
+    daqList* availableTransports = nullptr;
+    daqAddComponentConfig_getAvailableTransports(componentConfig, &availableTransports);
+    daqSizeT count = 0;
+    daqList_getCount(availableTransports, &count);
+    ASSERT_EQ(count, 2u);
+
+    daqString* transport = nullptr;
+    daqAddComponentConfig_getTransport(componentConfig, &transport);
+    daqConstCharPtr transportStr = nullptr;
+    daqString_getCharPtr(transport, &transportStr);
+    ASSERT_STREQ(transportStr, "plain");
+    daqBaseObject_releaseRef(transport);
+
+    ASSERT_EQ(daqAddComponentConfig_setTransport(componentConfig, tls), DAQ_SUCCESS);
+    daqAddComponentConfig_getTransport(componentConfig, &transport);
+    daqString_getCharPtr(transport, &transportStr);
+    ASSERT_STREQ(transportStr, "tls");
+    daqBaseObject_releaseRef(transport);
+
+    daqString* unknown = nullptr;
+    daqString_createString(&unknown, "wss");
+    ASSERT_EQ(daqAddComponentConfig_setTransport(componentConfig, unknown), DAQ_ERR_NOTFOUND);
+    daqBaseObject_releaseRef(unknown);
+
+    daqBaseObject_releaseRef(availableTransports);
+    daqBaseObject_releaseRef(config);
+    daqBaseObject_releaseRef(tls);
+    daqBaseObject_releaseRef(plain);
+    daqBaseObject_releaseRef(transports);
+}

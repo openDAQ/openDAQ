@@ -36,3 +36,37 @@ TEST_F(COpendaqStreamingTest, SubscriptionEventArgs)
     daqBaseObject_releaseRef(subscriptionEventArgs);
     daqBaseObject_releaseRef(streamingConnectionString);
 }
+
+TEST_F(COpendaqStreamingTest, AddStreamingConfig)
+{
+    daqList* transports = nullptr;
+    daqList_createList(&transports);
+    daqString* plain = nullptr;
+    daqString_createString(&plain, "plain");
+    daqList_pushBack(transports, plain);
+    daqString* tls = nullptr;
+    daqString_createString(&tls, "tls");
+    daqList_pushBack(transports, tls);
+
+    daqAddStreamingConfig* config = nullptr;
+    ASSERT_EQ(daqAddStreamingConfig_createAddStreamingConfig(&config, transports), DAQ_SUCCESS);
+    ASSERT_NE(config, nullptr);
+
+    daqAddComponentConfig* componentConfig = nullptr;
+    daqBaseObject_borrowInterface(config, DAQ_ADD_COMPONENT_CONFIG_INTF_ID, (daqBaseObject**) &componentConfig);
+    ASSERT_NE(componentConfig, nullptr);
+
+    ASSERT_EQ(daqAddComponentConfig_setTransport(componentConfig, tls), DAQ_SUCCESS);
+
+    daqString* transport = nullptr;
+    daqAddComponentConfig_getTransport(componentConfig, &transport);
+    daqConstCharPtr transportStr = nullptr;
+    daqString_getCharPtr(transport, &transportStr);
+    ASSERT_STREQ(transportStr, "tls");
+
+    daqBaseObject_releaseRef(transport);
+    daqBaseObject_releaseRef(config);
+    daqBaseObject_releaseRef(tls);
+    daqBaseObject_releaseRef(plain);
+    daqBaseObject_releaseRef(transports);
+}

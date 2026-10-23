@@ -181,6 +181,9 @@ public:
 
     void testSignalStreamingSources(const InstancePtr& client, const InstancePtr& gateway, bool minHops)
     {
+        auto subdeviceStreamingType = std::get<1>(GetParam());
+        auto gatewayStreamingType = std::get<2>(GetParam());
+
         auto clientSignals = client.getSignals(search::Recursive(search::Visible()));
         auto gatewaySignals = gateway.getSignals(search::Recursive(search::Visible()));
         ASSERT_EQ(clientSignals.getCount(), gatewaySignals.getCount());
@@ -191,28 +194,36 @@ public:
 
             if (minHops)
             {
-                ASSERT_EQ(clientSignal.getStreamingSources().getCount(), 4u) << clientSignal.getGlobalId();
-                ASSERT_EQ(gatewaySignal.getStreamingSources().getCount(), 2u) << gatewaySignal.getGlobalId();
+                ASSERT_EQ(clientSignal.getStreamingSources().getCount(), 2u) << clientSignal.getGlobalId();
+                ASSERT_EQ(gatewaySignal.getStreamingSources().getCount(), 1u) << gatewaySignal.getGlobalId();
                 ASSERT_TRUE(clientSignal.getActiveStreamingSource().assigned());
-                ASSERT_TRUE(clientSignal.getActiveStreamingSource() == gatewaySignal.getStreamingSources()[0] ||
-                            clientSignal.getActiveStreamingSource() == gatewaySignal.getStreamingSources()[1])
-                    << "client sig " << clientSignal.getGlobalId() << " streaming source " << clientSignal.getActiveStreamingSource();
+                if (gatewayStreamingType == subdeviceStreamingType)
+                {
+                    ASSERT_TRUE(clientSignal.getActiveStreamingSource() == gatewaySignal.getStreamingSources()[0])
+                        << "client sig " << clientSignal.getGlobalId() << " streaming source " << clientSignal.getActiveStreamingSource()
+                        << "gateway sig " << gatewaySignal.getGlobalId() << " streaming source " << gatewaySignal.getActiveStreamingSource();
+                }
             }
             else
             {
-                ASSERT_EQ(clientSignal.getStreamingSources().getCount(), 2u) << clientSignal.getGlobalId();
-                ASSERT_EQ(gatewaySignal.getStreamingSources().getCount(), 2u) << gatewaySignal.getGlobalId();
+                ASSERT_EQ(clientSignal.getStreamingSources().getCount(), 1u) << clientSignal.getGlobalId();
+                ASSERT_EQ(gatewaySignal.getStreamingSources().getCount(), 1u) << gatewaySignal.getGlobalId();
                 ASSERT_TRUE(clientSignal.getActiveStreamingSource().assigned());
-                ASSERT_NE(clientSignal.getActiveStreamingSource(), gatewaySignal.getStreamingSources()[0])
-                    << "client sig " << clientSignal.getGlobalId() << " streaming source " << clientSignal.getActiveStreamingSource();
-                ASSERT_NE(clientSignal.getActiveStreamingSource(), gatewaySignal.getStreamingSources()[1])
-                    << "client sig " << clientSignal.getGlobalId() << " streaming source " << clientSignal.getActiveStreamingSource();
+                if (gatewayStreamingType == subdeviceStreamingType)
+                {
+                    ASSERT_NE(clientSignal.getActiveStreamingSource(), gatewaySignal.getStreamingSources()[0])
+                        << "client sig " << clientSignal.getGlobalId() << " streaming source " << clientSignal.getActiveStreamingSource()
+                        << "gateway sig " << gatewaySignal.getGlobalId() << " streaming source " << gatewaySignal.getActiveStreamingSource();
+                }
             }
         }
     }
 
     void testInputPortStreamingSources(const InstancePtr& client, const InstancePtr& gateway, bool minHops)
     {
+        auto subdeviceStreamingType = std::get<1>(GetParam());
+        auto gatewayStreamingType = std::get<2>(GetParam());
+
         auto clientInputPorts = client.getItems(search::Recursive(search::InterfaceId(IInputPort::Id)));
         auto gatewayInputPorts = gateway.getItems(search::Recursive(search::InterfaceId(IInputPort::Id)));
         ASSERT_GT(clientInputPorts.getCount(), 0u);
@@ -224,21 +235,37 @@ public:
 
             if (minHops)
             {
-                ASSERT_EQ(clientInputPort.getStreamingSources().getCount(), 2u) << clientInputPort.getGlobalId();
-                ASSERT_EQ(gatewayInputPort.getStreamingSources().getCount(), 1u) << gatewayInputPort.getGlobalId();
-                ASSERT_TRUE(clientInputPort.getActiveStreamingSource().assigned());
-                ASSERT_TRUE(clientInputPort.getActiveStreamingSource() == gatewayInputPort.getStreamingSources()[0])
-                    << "client input port " << clientInputPort.getGlobalId() << " streaming source "
-                    << clientInputPort.getActiveStreamingSource();
+                ASSERT_EQ(clientInputPort.getStreamingSources().getCount(), (gatewayStreamingType == StreamingProtocolType::NativeStreaming) ? 2u : 0u)
+                    << clientInputPort.getGlobalId();
+                ASSERT_EQ(gatewayInputPort.getStreamingSources().getCount(), (subdeviceStreamingType == StreamingProtocolType::NativeStreaming) ? 1u : 0u)
+                    << gatewayInputPort.getGlobalId();
+                if (gatewayStreamingType == StreamingProtocolType::NativeStreaming)
+                {
+                    ASSERT_TRUE(clientInputPort.getActiveStreamingSource().assigned());
+                    if (subdeviceStreamingType == StreamingProtocolType::NativeStreaming)
+                    {
+                        ASSERT_TRUE(clientInputPort.getActiveStreamingSource() == gatewayInputPort.getStreamingSources()[0])
+                            << "client input port " << clientInputPort.getGlobalId() << " streaming source "
+                            << clientInputPort.getActiveStreamingSource();
+                    }
+                }
             }
             else
             {
-                ASSERT_EQ(clientInputPort.getStreamingSources().getCount(), 1u) << clientInputPort.getGlobalId();
-                ASSERT_EQ(gatewayInputPort.getStreamingSources().getCount(), 1u) << gatewayInputPort.getGlobalId();
-                ASSERT_TRUE(clientInputPort.getActiveStreamingSource().assigned());
-                ASSERT_NE(clientInputPort.getActiveStreamingSource(), gatewayInputPort.getStreamingSources()[0])
-                    << "client input port " << clientInputPort.getGlobalId() << " streaming source "
-                    << clientInputPort.getActiveStreamingSource();
+                ASSERT_EQ(clientInputPort.getStreamingSources().getCount(), (gatewayStreamingType == StreamingProtocolType::NativeStreaming) ? 1u : 0u)
+                    << clientInputPort.getGlobalId();
+                ASSERT_EQ(gatewayInputPort.getStreamingSources().getCount(), (subdeviceStreamingType == StreamingProtocolType::NativeStreaming) ? 1u : 0u)
+                    << gatewayInputPort.getGlobalId();
+                if (gatewayStreamingType == StreamingProtocolType::NativeStreaming)
+                {
+                    ASSERT_TRUE(clientInputPort.getActiveStreamingSource().assigned());
+                    if (subdeviceStreamingType == StreamingProtocolType::NativeStreaming)
+                    {
+                        ASSERT_NE(clientInputPort.getActiveStreamingSource(), gatewayInputPort.getStreamingSources()[0])
+                            << "client input port " << clientInputPort.getGlobalId() << " streaming source "
+                            << clientInputPort.getActiveStreamingSource();
+                    }
+                }
             }
         }
     }
@@ -249,7 +276,7 @@ public:
         {
             const auto mirrored = port.template asPtrOrNull<IMirroredInputPortConfig>();
             if (!mirrored.assigned() || mirrored.getStreamingSources().getCount() != sourceCount ||
-                !mirrored.getActiveStreamingSource().assigned())
+                (!mirrored.getActiveStreamingSource().assigned() && sourceCount > 0))
                 return false;
         }
         return true;
@@ -336,11 +363,12 @@ public:
         auto subdeviceStreamingType = std::get<1>(GetParam());
 
         auto streamingProtocolIds = (subdeviceStreamingType == StreamingProtocolType::NativeStreaming)
-                                        ? List<IString>("OpenDAQNativeStreaming", "OpenDAQLTStreaming")
-                                        : List<IString>("OpenDAQLTStreaming", "OpenDAQNativeStreaming");
+                                        ? List<IString>("OpenDAQNativeStreaming"/*, "OpenDAQLTStreaming"*/)  // the second has no effect
+                                        : List<IString>("OpenDAQLTStreaming"/*, "OpenDAQNativeStreaming"*/); // the second has no effect
         const auto config = createDeviceConfig(gatewayInstance, streamingProtocolIds, MIN_CONNECTIONS);
         const auto leafDevice = gatewayInstance.addDevice(createStructureDeviceConnectionString(leafDeviceIndex), config);
-        ASSERT_TRUE(waitForStreamingSources(leafDevice, 2, 1)) << "leaf device " << leafDeviceIndex;
+        ASSERT_TRUE(waitForStreamingSources(leafDevice, 1, (subdeviceStreamingType == StreamingProtocolType::NativeStreaming) ? 1 : 0))
+            << "leaf device " << leafDeviceIndex;
     }
 
     InstancePtr addSecondLeafDevice(const InstancePtr& gatewayInstance, const InstancePtr& clientInstance, bool& success)
@@ -392,12 +420,21 @@ public:
         auto gatewayStreamingType = std::get<2>(GetParam());
 
         auto streamingProtocolIds = (gatewayStreamingType == StreamingProtocolType::NativeStreaming)
-                                        ? List<IString>("OpenDAQNativeStreaming", "OpenDAQLTStreaming")
-                                        : List<IString>("OpenDAQLTStreaming", "OpenDAQNativeStreaming");
+                                        ? List<IString>("OpenDAQNativeStreaming"/*, "OpenDAQLTStreaming"*/)  // the second has no effect
+                                        : List<IString>("OpenDAQLTStreaming"/*, "OpenDAQNativeStreaming"*/); // the second has no effect
         auto config = createDeviceConfig(instance, streamingProtocolIds, heuristicValue);
         auto gatewayDevice = instance.addDevice(createStructureDeviceConnectionString(0), config);
         const bool minHops = heuristicValue == MIN_HOPS;
-        EXPECT_TRUE(waitForStreamingSources(gatewayDevice, minHops ? 4 : 2, minHops ? 2 : 1)) << "gateway device";
+        size_t expectedInputPortStreamingCnt = 0;
+        if (gatewayStreamingType == StreamingProtocolType::NativeStreaming) // only native supports client-to-device streaming
+        {
+            if (minHops)
+                expectedInputPortStreamingCnt = 2;
+            else
+                expectedInputPortStreamingCnt = 1;
+        }
+
+        EXPECT_TRUE(waitForStreamingSources(gatewayDevice, minHops ? 2 : 1, expectedInputPortStreamingCnt)) << "gateway device";
         return instance;
     }
 };
@@ -414,7 +451,8 @@ TEST_P(SubDevicesTest, RootStreamingToClient)
     InstancePtr secondLeafDevice = addSecondLeafDevice(gateway, client, success);
     ASSERT_TRUE(success);
 
-    ASSERT_TRUE(waitForStreamingSources(client, 2, 1));
+    auto gatewayStreamingType = std::get<2>(GetParam());
+    ASSERT_TRUE(waitForStreamingSources(client, 1, (gatewayStreamingType == StreamingProtocolType::NativeStreaming) ? 1 : 0));
     testSignalStreamingSources(client, gateway, false);
     testInputPortStreamingSources(client, gateway, false);
 

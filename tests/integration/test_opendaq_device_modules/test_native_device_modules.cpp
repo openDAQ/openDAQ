@@ -1926,7 +1926,7 @@ public:
 
     size_t getStreamingSourcesCount()
     {
-        return GetParam().size();
+        return 1u;
     }
 
     std::string getActiveStreamingSource()
@@ -2189,9 +2189,7 @@ TEST_F(NativeDeviceModulesTest, RemoveSubDevice)
 INSTANTIATE_TEST_SUITE_P(DynamicComponentsTestGroup,
                          AddComponentsTest,
                          testing::Values(std::vector<std::string>({"OpenDAQNativeStreaming"}),
-                                         std::vector<std::string>({"OpenDAQLTStreaming"}),
-                                         std::vector<std::string>({"OpenDAQLTStreaming", "OpenDAQNativeStreaming"}),
-                                         std::vector<std::string>({"OpenDAQNativeStreaming", "OpenDAQLTStreaming"})));
+                                         std::vector<std::string>({"OpenDAQLTStreaming"})));
 
 TEST_F(NativeDeviceModulesTest, SdkPackageVersion)
 {

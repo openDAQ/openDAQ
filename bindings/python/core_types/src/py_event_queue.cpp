@@ -68,12 +68,12 @@ void PyEventQueue::clearQueue()
     callbackQueue = {};
 }
 
-pybind11::class_<PyEventQueue, std::shared_ptr<PyEventQueue>> declarePyEventQueue(pybind11::module_ m)
+PyDaqClass<PyEventQueue, std::shared_ptr<PyEventQueue>> declarePyEventQueue(pybind11::module_ m)
 {
-    return pybind11::class_<PyEventQueue, std::shared_ptr<PyEventQueue>>(m, "EventQueue");
+    return wrapDaqClass<PyEventQueue, std::shared_ptr<PyEventQueue>>(m, "EventQueue");
 }
 
-void definePyEventQueue(pybind11::module_ m, pybind11::class_<PyEventQueue, std::shared_ptr<PyEventQueue>> cls)
+void definePyEventQueue(pybind11::module_ m, PyDaqClass<PyEventQueue, std::shared_ptr<PyEventQueue>> cls)
 {
     cls.def("enqueue_event", &PyEventQueue::enqueueEvent);
     cls.def("process_events", &PyEventQueue::processEvents);

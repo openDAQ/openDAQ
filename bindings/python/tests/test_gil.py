@@ -79,6 +79,48 @@ class TestGil(opendaq_test.TestCase):
         ''')
         self.assertIn('freed on worker thread', out)
 
+    def test_scheduler_released_while_worker_releases_py_function(self):
+        out = self.run_scenario('''
+            import threading
+
+            for _ in range(100):
+                scheduler = opendaq.Scheduler(opendaq.Logger(opendaq.List(), opendaq.LogLevel.Info), 1)
+                references_dropped = threading.Event()
+
+                class Callback:
+                    def __call__(self):
+                        references_dropped.wait()
+
+                awaitable = scheduler.schedule_function(opendaq.Function(Callback()))
+                references_dropped.set()
+                scheduler.wait_all()
+                del awaitable
+                # Joins the worker, which may still be releasing the last reference to the function
+                del scheduler
+            print('completed')
+        ''')
+        self.assertIn('completed', out)
+
+    def test_scheduler_released_while_py_function_runs(self):
+        out = self.run_scenario('''
+            import time
+
+            for _ in range(20):
+                scheduler = opendaq.Scheduler(opendaq.Logger(opendaq.List(), opendaq.LogLevel.Info), 1)
+
+                class Callback:
+                    def __call__(self):
+                        # Drops the GIL and needs it back to finish
+                        time.sleep(0.01)
+
+                awaitable = scheduler.schedule_function(opendaq.Function(Callback()))
+                del awaitable
+                # Joins the worker while the callback is still running
+                del scheduler
+            print('completed')
+        ''')
+        self.assertIn('completed', out)
+
 
 if __name__ == '__main__':
     unittest.main()

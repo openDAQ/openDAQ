@@ -226,6 +226,7 @@ DevicePtr NativeStreamingClientModule::createNativeDevice(const ContextPtr& cont
                                                                  reconnectionProcessingThread.get_id(),
                                                                  connectionString,
                                                                  secure,
+                                                                 std::stoi(port.toStdString()),
                                                                  reconnectionPeriod);
         deviceHelper->setupProtocolClients(context);
         auto device = deviceHelper->connectAndGetDevice(parent, protocolVersion);
@@ -805,7 +806,15 @@ Bool NativeStreamingClientModule::onCompleteServerCapability(const ServerCapabil
         target.setPort(port);
         LOG_W("Native server capability is missing port. Defaulting to {}.", port)
     }
-    
+
+    // a server which does not list its transports serves plain on the capability port
+    if (target.getAvailableTransports().getCount() == 0)
+    {
+        auto transports = Dict<IString, IInteger>();
+        transports.set(CONST_NATIVE_TRANSPORT_PLAIN, port);
+        target.setAvailableTransports(transports);
+    }
+
     const auto path = target.hasProperty("Path") ? target.getPropertyValue("Path") : "";
     const auto targetAddress = target.getAddresses();
     for (const auto& addrInfo : addrInfos)

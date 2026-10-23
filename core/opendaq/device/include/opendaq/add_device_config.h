@@ -35,6 +35,11 @@ BEGIN_NAMESPACE_OPENDAQ
  * A device type that lists transports (see `IComponentType::getAvailableTransports`) puts this object into
  * the config returned by `IComponentType::createDefaultConfig`, as the `"AddDeviceConfig"` object property.
  * The module reads the selected transport from it when the device is created.
+ *
+ * Only the configuration connection follows this selection. The streaming connections of the device, including
+ * the ones attached automatically, use the transport selected in the add-streaming config of their own streaming
+ * type, in the `"Streaming"` section of the add-device config. A device connected over "tls" still streams over
+ * the default transport unless another one is selected there.
  */
 DECLARE_OPENDAQ_INTERFACE(IAddDeviceConfig, IAddComponentConfig)
 {

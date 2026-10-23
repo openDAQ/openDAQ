@@ -45,6 +45,7 @@ public:
                                 std::thread::id reconnectionProcessingThreadId,
                                 const StringPtr& connectionString,
                                 bool secure,
+                                Int port,
                                 Int reconnectionPeriod);
     ~NativeDeviceHelper();
 
@@ -60,6 +61,9 @@ public:
 
     /// @brief tells whether the connection runs over the TLS transport
     bool isSecure() const;
+
+    /// @brief the port the connection is established on
+    Int getPort() const;
 
 private:
     void transportConnectionStatusChangedHandler(const EnumerationPtr& status, const StringPtr& statusMessage);
@@ -93,6 +97,7 @@ private:
     Bool restoreClientConfigOnReconnect;
     const StringPtr connectionString;
     const bool secure;
+    const Int port;
     std::mutex requestReplySync;
     std::mutex flagsSync;
 

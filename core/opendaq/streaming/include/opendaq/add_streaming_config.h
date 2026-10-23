@@ -35,6 +35,11 @@ BEGIN_NAMESPACE_OPENDAQ
  * A streaming type that lists transports (see `IComponentType::getAvailableTransports`) puts this object into
  * the config returned by `IComponentType::createDefaultConfig`, as the `"AddStreamingConfig"` object property.
  * The module reads the selected transport from it when the streaming connection is created.
+ *
+ * The selection is independent of the transport selected for the device in its add-device config, and so is
+ * the port. A streaming connection attached to a device automatically connects at the port the server announces
+ * for the selected transport, unless the streaming type config sets a port itself. When the server does not
+ * offer the selected transport, no streaming connection is attached.
  */
 DECLARE_OPENDAQ_INTERFACE(IAddStreamingConfig, IAddComponentConfig)
 {

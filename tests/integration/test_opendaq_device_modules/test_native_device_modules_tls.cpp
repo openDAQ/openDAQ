@@ -450,6 +450,9 @@ TEST_F(NativeTlsTest, PortFromConfigurationOverridesConnectionString)
 
     ASSERT_TRUE(device.assigned());
     ASSERT_GT(device.getSignalsRecursive().getCount(), 0u);
+
+    // the connection info reports the port the device is connected at
+    ASSERT_EQ(device.getInfo().getConfigurationConnectionInfo().getAvailableTransports().get("tls"), listeningPort);
 }
 
 TEST_F(NativeTlsTest, CapabilitiesRemoved)
@@ -607,10 +610,8 @@ TEST_F(NativeTlsTest, DiscoveringTlsOnlyServer)
     }
 }
 
-// The mirrored device is meant to stream over TLS when "AddStreamingConfig" selects it, but the streaming
-// connection string is built from the server capability, which carries the port of the default (plain)
-// transport. Until the transport and its port travel together, the TLS selection hits the plaintext port.
-TEST_F(NativeTlsTest, DISABLED_StreamsOverSelectedTransport)
+// the streaming attached to the device connects at the port the server announces for the selected transport
+TEST_F(NativeTlsTest, StreamsOverSelectedTransport)
 {
     auto server = createServerInstance();
     auto client = createClientInstance();
@@ -624,6 +625,42 @@ TEST_F(NativeTlsTest, DISABLED_StreamsOverSelectedTransport)
     ASSERT_EQ(sources.getCount(), 1u);
     ASSERT_EQ(sources[0].getProtocolId(), StreamingId);
     ASSERT_NE(sources[0].getConnectionString().toStdString().find(":" + std::to_string(TlsPort)), std::string::npos);
+}
+
+// the streaming transport is selected separately: a device configured over TLS streams over the default one
+TEST_F(NativeTlsTest, StreamsOverDefaultTransportWhenOnlyDeviceSelectsTls)
+{
+    auto server = createServerInstance();
+    auto client = createClientInstance();
+
+    auto addDeviceConfig = client.createDefaultAddDeviceConfig();
+    applySecureClientConfig(addDeviceConfig);
+    AddComponentConfigPtr streamingAddConfig = addDeviceConfig.getPropertyValue(std::string("Streaming.") + StreamingId + ".AddStreamingConfig");
+    streamingAddConfig.setTransport(CONST_NATIVE_TRANSPORT_PLAIN);
+
+    auto device = client.addDevice(connectionString("daq.nd", TlsPort), addDeviceConfig);
+    const auto sources = device.asPtr<IMirroredDevice>().getStreamingSources();
+
+    ASSERT_EQ(sources.getCount(), 1u);
+    ASSERT_NE(sources[0].getConnectionString().toStdString().find(":" + std::to_string(PlainPort)), std::string::npos);
+}
+
+// no streaming is attached over a transport the server does not offer
+TEST_F(NativeTlsTest, NoStreamingWhenServerLacksSelectedTransport)
+{
+    auto server = createServerInstance(/*mutualTls*/ false, /*plainPortEnabled*/ false);
+    auto client = createClientInstance();
+
+    // the streaming is left at the default plain transport, which this server does not serve
+    auto addDeviceConfig = client.createDefaultAddDeviceConfig();
+    applySecureClientConfig(addDeviceConfig);
+    AddComponentConfigPtr streamingAddConfig = addDeviceConfig.getPropertyValue(std::string("Streaming.") + StreamingId + ".AddStreamingConfig");
+    streamingAddConfig.setTransport(CONST_NATIVE_TRANSPORT_PLAIN);
+
+    auto device = client.addDevice(connectionString("daq.nd", TlsPort), addDeviceConfig);
+
+    ASSERT_TRUE(device.assigned());
+    ASSERT_EQ(device.asPtr<IMirroredDevice>().getStreamingSources().getCount(), 0u);
 }
 
 #endif

@@ -426,6 +426,41 @@ TEST_F(NativeStreamingClientModuleTest, CompleteCapabilityKeepsSupportedTranspor
     ASSERT_FALSE(module.completeServerCapability(source, unsupported));
 }
 
+// a server which does not list its transports serves plain on the capability port
+TEST_F(NativeStreamingClientModuleTest, CompleteCapabilityWithoutTransportsServesPlain)
+{
+    const auto module = CreateModule();
+
+    const auto sourceAddressInfo = AddressInfoBuilder()
+                                       .setAddress("127.0.0.1")
+                                       .setType("IPv4")
+                                       .setReachabilityStatus(AddressReachabilityStatus::Unknown)
+                                       .setConnectionString("daq.opcua://127.0.0.1")
+                                       .build();
+
+    const auto source = ServerCapability("OpenDAQOPCUAConfiguration", "OpenDAQOPCUAConfiguration", ProtocolType::Configuration)
+                            .setConnectionType("TCP/IP")
+                            .setPrefix("daq.opcua")
+                            .addAddress("127.0.0.1")
+                            .addAddressInfo(sourceAddressInfo);
+
+    auto target = ServerCapability("OpenDAQNativeStreaming", "OpenDAQNativeStreaming", ProtocolType::Streaming).setPrefix("daq.ns").setPort(1234);
+    ASSERT_EQ(target.getAvailableTransports().getCount(), 0u);
+
+    ASSERT_TRUE(module.completeServerCapability(source, target));
+
+    const auto transports = target.getAvailableTransports();
+    ASSERT_EQ(transports.getKeyList(), List<IString>("plain"));
+    ASSERT_EQ(transports.get("plain"), 1234);
+    ASSERT_EQ(target.getPort(), 1234);
+    ASSERT_EQ(target.getConnectionString(), "daq.ns://127.0.0.1:1234");
+
+    // without a port the default plain port is taken
+    auto withoutPort = ServerCapability("OpenDAQNativeStreaming", "OpenDAQNativeStreaming", ProtocolType::Streaming).setPrefix("daq.ns");
+    ASSERT_TRUE(module.completeServerCapability(source, withoutPort));
+    ASSERT_EQ(withoutPort.getAvailableTransports().get("plain"), 7420);
+}
+
 class ConnectionStringTest : public NativeStreamingClientModuleTest,
                              public testing::WithParamInterface<StringPtr>
 {

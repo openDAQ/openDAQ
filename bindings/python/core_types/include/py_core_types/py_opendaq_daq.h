@@ -156,15 +156,37 @@ py::object convertFrom(daq::IBaseObject* baseObject)
     return py::cast(wrappedInterface, py::return_value_policy::take_ownership);
 }
 
+template <class Type, class... Options>
+using PyDaqClass = py::class_<Type, Options...>;
+
 template <class Interface, class ParentInterface = daq::IBaseObject>
-using PyDaqIntf = py::class_<Interface, InterfaceWrapper<Interface>, ParentInterface>;
+using PyDaqIntf = PyDaqClass<Interface, InterfaceWrapper<Interface>, ParentInterface>;
+
+// Releasing openDAQ objects can join threads that need the GIL, so instances are destroyed without holding it
+template <class Type, class... Options, typename... Extra>
+PyDaqClass<Type, Options...> wrapDaqClass(py::handle scope, const char* name, const Extra&... extra)
+{
+    return PyDaqClass<Type, Options...>(scope, name, py::release_gil_before_calling_cpp_dtor(), extra...);
+}
+
+// Scalar values own no other objects, so releasing them cannot join threads.
+// Exception: EvalValueImpl also implements IBoolean, IInteger, IFloat and IString, and can own arbitrary
+// objects (arguments, function, cached references). It reaches a scalar wrapper only via an explicit
+// cast_from/convert_from, which is rare enough to accept.
+template <class Interface>
+constexpr bool isScalarValueType = std::is_same_v<Interface, daq::IBoolean> || std::is_same_v<Interface, daq::IInteger> ||
+                                   std::is_same_v<Interface, daq::IFloat> || std::is_same_v<Interface, daq::IString> ||
+                                   std::is_same_v<Interface, daq::IRatio> || std::is_same_v<Interface, daq::IComplexNumber>;
 
 template <class Interface, class ParentInterface = daq::IBaseObject, typename... Extra>
 auto wrapInterface(pybind11::module_ m, const char* name, const Extra&... extra)
 {
     registerClassConverter<Interface>();
 
-    PyDaqIntf<Interface, ParentInterface> cls(m, name, extra...);
+    // Scalars keep the GIL, as releasing it lets other threads take it for a whole switch interval
+    auto cls = isScalarValueType<Interface>
+                   ? PyDaqIntf<Interface, ParentInterface>(m, name, extra...)
+                   : wrapDaqClass<Interface, InterfaceWrapper<Interface>, ParentInterface>(m, name, extra...);
     cls.def_static("cast_from", [](daq::IBaseObject* obj) { return castFrom<Interface>(obj); });
     cls.def_static("convert_from", [](daq::IBaseObject* obj) { return convertFrom<Interface>(obj); });
     cls.def_static("can_cast_from", [](daq::IBaseObject* obj) { return canCastFrom<Interface>(obj); });

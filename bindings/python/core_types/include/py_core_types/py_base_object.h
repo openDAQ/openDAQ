@@ -31,6 +31,7 @@ class PyObjectImpl : public daq::ImplementationOf<IPyObject, Interfaces...>
 public:
     explicit PyObjectImpl(const PyT& pyObject);
     explicit PyObjectImpl(PyT&& pyObject);
+    ~PyObjectImpl();
 
     daq::ErrCode INTERFACE_FUNC getPyObject(PyT& pyObj) override;
     daq::ErrCode INTERFACE_FUNC toString(daq::CharPtr* str) override;
@@ -49,6 +50,25 @@ template <class PyT, class... Interfaces>
 PyObjectImpl<PyT, Interfaces...>::PyObjectImpl(PyT&& pyObject)
     : pyObject(std::move(pyObject))
 {
+}
+
+// The last openDAQ reference can be released from any thread, with or without the GIL held
+template <class PyT, class... Interfaces>
+PyObjectImpl<PyT, Interfaces...>::~PyObjectImpl()
+{
+    if (!pyObject)
+        return;
+
+    // Interpreter already finalized; leak rather than touch a dead interpreter
+    if (!Py_IsInitialized())
+    {
+        pyObject.release();
+        return;
+    }
+
+    // Release the handle under the GIL; assigning PyT() would allocate (e.g. pybind11::list)
+    pybind11::gil_scoped_acquire gil;
+    pyObject.release().dec_ref();
 }
 
 template <class PyT, class... Interfaces>

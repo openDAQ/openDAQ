@@ -156,15 +156,25 @@ py::object convertFrom(daq::IBaseObject* baseObject)
     return py::cast(wrappedInterface, py::return_value_policy::take_ownership);
 }
 
+template <class Type, class... Options>
+using PyDaqClass = py::class_<Type, Options...>;
+
 template <class Interface, class ParentInterface = daq::IBaseObject>
-using PyDaqIntf = py::class_<Interface, InterfaceWrapper<Interface>, ParentInterface>;
+using PyDaqIntf = PyDaqClass<Interface, InterfaceWrapper<Interface>, ParentInterface>;
+
+// Releasing openDAQ objects can join threads that need the GIL, so instances are destroyed without holding it
+template <class Type, class... Options, typename... Extra>
+PyDaqClass<Type, Options...> wrapDaqClass(py::handle scope, const char* name, const Extra&... extra)
+{
+    return PyDaqClass<Type, Options...>(scope, name, py::release_gil_before_calling_cpp_dtor(), extra...);
+}
 
 template <class Interface, class ParentInterface = daq::IBaseObject, typename... Extra>
 auto wrapInterface(pybind11::module_ m, const char* name, const Extra&... extra)
 {
     registerClassConverter<Interface>();
 
-    PyDaqIntf<Interface, ParentInterface> cls(m, name, py::release_gil_before_calling_cpp_dtor(), extra...);
+    auto cls = wrapDaqClass<Interface, InterfaceWrapper<Interface>, ParentInterface>(m, name, extra...);
     cls.def_static("cast_from", [](daq::IBaseObject* obj) { return castFrom<Interface>(obj); });
     cls.def_static("convert_from", [](daq::IBaseObject* obj) { return convertFrom<Interface>(obj); });
     cls.def_static("can_cast_from", [](daq::IBaseObject* obj) { return canCastFrom<Interface>(obj); });

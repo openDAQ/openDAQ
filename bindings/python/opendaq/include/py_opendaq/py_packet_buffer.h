@@ -27,6 +27,7 @@
 
 #include <pybind11/pybind11.h>
 #include <opendaq/opendaq.h>
+#include <py_core_types/py_opendaq_daq.h>
 
 namespace PyBuffer
 {
@@ -58,7 +59,7 @@ public:
 
     static void wrap(pybind11::module_ m)
     {
-        py::class_<Buffer> cls(m, Buffer::getName().c_str(), py::buffer_protocol());
+        auto cls = wrapDaqClass<Buffer>(m, Buffer::getName().c_str(), py::buffer_protocol());
 
         cls.def_buffer([](Buffer& buffer)
             {

@@ -26,7 +26,6 @@
 
 using namespace daq;
 using namespace daq::opendaq_native_streaming_protocol;
-using namespace daq::config_protocol;
 
 namespace
 {
@@ -102,7 +101,7 @@ public:
             {
                 serverSendPacketCb = sendPacketCb;
                 configProtocolTriggeredPromise.set_value();
-                return std::make_pair(ProcessConfigProtocolPacketCb([](PacketBuffer&&) {}), nullptr);
+                return std::make_pair(ProcessConfigProtocolPacketCb([](config_protocol::PacketBuffer&&) {}), nullptr);
             },
             [](const std::string&, const std::string&, bool, ClientType, const std::string&) {},
             [](const std::string&) {});
@@ -131,7 +130,7 @@ public:
                                                                       ClientAttributesBase::createAuthenticationConfig(),
                                                                       createTlsConfig(caCert, mutualTls));
 
-        clientHandler->setConfigHandlers([](PacketBuffer&&) {},
+        clientHandler->setConfigHandlers([](config_protocol::PacketBuffer&&) {},
                                          [this](const EnumerationPtr& status, const StringPtr&)
                                          {
                                              connectionStatusPromise.set_value(status);
@@ -217,7 +216,7 @@ TEST_F(TlsTransportTest, ConfigProtocolOverTls)
     createClient();
     ASSERT_TRUE(clientHandler->connect(SERVER_ADDRESS, TLS_LISTENING_PORT));
 
-    clientHandler->sendConfigRequest(PacketBuffer::createGetProtocolInfoRequest(0));
+    clientHandler->sendConfigRequest(config_protocol::PacketBuffer::createGetProtocolInfoRequest(0));
     ASSERT_EQ(configProtocolTriggeredFuture.wait_for(timeout), std::future_status::ready);
 }
 
@@ -241,7 +240,7 @@ TEST_F(TlsTransportTest, Reconnection)
     ASSERT_EQ(connectionStatusFuture.wait_for(std::chrono::seconds(20)), std::future_status::ready);
     ASSERT_EQ(connectionStatusFuture.get(), "Connected");
 
-    clientHandler->sendConfigRequest(PacketBuffer::createGetProtocolInfoRequest(0));
+    clientHandler->sendConfigRequest(config_protocol::PacketBuffer::createGetProtocolInfoRequest(0));
     ASSERT_EQ(configProtocolTriggeredFuture.wait_for(timeout), std::future_status::ready);
 }
 

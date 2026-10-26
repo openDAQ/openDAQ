@@ -57,6 +57,9 @@ ErrCode ComponentTypeBuilderImpl::checkSortFields() const
     if (sort != ComponentTypeSort::Device && deviceKind != DeviceKind::External)
         return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDPARAMETER, "Device kind is set, but only Device types have one");
 
+    if (sort != ComponentTypeSort::Streaming && linkedDeviceType.assigned())
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDPARAMETER, "Linked device type is set, but only Streaming types have one");
+
     return OPENDAQ_SUCCESS;
 }
 

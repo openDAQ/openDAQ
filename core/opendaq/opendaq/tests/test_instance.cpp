@@ -4,6 +4,9 @@
 #include <opendaq/update_parameters_factory.h>
 #include <opendaq/device_info_internal_ptr.h>
 #include <opendaq/module_impl.h>
+#include <opendaq/module_manager_utils_ptr.h>
+#include <opendaq/streaming_type_factory.h>
+#include <opendaq/component_type_builder_factory.h>
 #include <testutils/testutils.h>
 
 using InstanceTest = testing::Test;
@@ -113,6 +116,42 @@ TEST_F(InstanceTest, ConnectionString)
 
     for (const auto& deviceInfo : availableDevices)
         ASSERT_TRUE(deviceInfo.getConnectionString().assigned());
+}
+
+class MockStreamingTypesModule : public Module
+{
+public:
+    MockStreamingTypesModule(ContextPtr ctx)
+        : Module("Mock Streaming Types", VersionInfo(1, 0, 0), std::move(ctx), "MockStreamingTypes")
+    {
+    }
+
+    DictPtr<IString, IStreamingType> onGetAvailableStreamingTypes() override
+    {
+        return Dict<IString, IStreamingType>(
+            {{"mock_streaming_a", StreamingType("mock_streaming_a", "Mock streaming A", "", "daqmocka")},
+             {"mock_streaming_b",
+              StreamingTypeBuilder().setId("mock_streaming_b").setName("Mock streaming B").setConnectionStringPrefix("daqmockb").build()}});
+    }
+};
+
+TEST_F(InstanceTest, EnumerateStreamingTypes)
+{
+    auto instance = test_helpers::setupInstance();
+    ASSERT_EQ(instance.getAvailableStreamingTypes().getCount(), 0u);
+
+    instance.getModuleManager().addModule(createWithImplementation<IModule, MockStreamingTypesModule>(instance.getContext()));
+
+    auto streamingTypes = instance.getAvailableStreamingTypes();
+    ASSERT_EQ(streamingTypes.getCount(), 2u);
+    ASSERT_TRUE(streamingTypes.hasKey("mock_streaming_a"));
+    ASSERT_EQ(streamingTypes.get("mock_streaming_a").getConnectionStringPrefix(), "daqmocka");
+    ASSERT_TRUE(streamingTypes.hasKey("mock_streaming_b"));
+    ASSERT_EQ(streamingTypes.get("mock_streaming_b").getName(), "Mock streaming B");
+
+    const auto managerTypes = instance.getModuleManager().asPtr<IModuleManagerUtils>().getAvailableStreamingTypes();
+    ASSERT_EQ(streamingTypes, managerTypes);
+    ASSERT_EQ(instance.getRootDevice().getAvailableStreamingTypes(), managerTypes);
 }
 
 TEST_F(InstanceTest, EnumerateDeviceTypes)

@@ -1001,6 +1001,20 @@ TEST_F(ConfigProtocolIntegrationTest, GetAvailableDeviceTypes)
     ASSERT_EQ(s.getDeviceKind(), DeviceKind::Mirrored);
 }
 
+TEST_F(ConfigProtocolIntegrationTest, GetAvailableStreamingTypesEmptyOnClient)
+{
+    auto availableStreamingTypesServer = serverDevice.getDevices()[0].getAvailableStreamingTypes();
+    ASSERT_EQ(availableStreamingTypesServer.getCount(), 1u);
+    ASSERT_EQ(availableStreamingTypesServer.get("mockStreaming1").getLinkedDeviceType().getId(), "mockDev1");
+
+    DictPtr<IString, IStreamingType> availableStreamingTypesClient;
+    ASSERT_NO_THROW(availableStreamingTypesClient = clientDevice.getDevices()[0].getAvailableStreamingTypes());
+    ASSERT_TRUE(availableStreamingTypesClient.assigned());
+    ASSERT_EQ(availableStreamingTypesClient.getCount(), 0u);
+
+    ASSERT_EQ(clientDevice.getAvailableStreamingTypes().getCount(), 0u);
+}
+
 TEST_F(ConfigProtocolIntegrationTest, DeviceTypesModuleInfo)
 {
     auto availableDeviceTypesServer = serverDevice.getDevices()[0].getAvailableDeviceTypes();

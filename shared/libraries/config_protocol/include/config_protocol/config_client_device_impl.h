@@ -52,6 +52,7 @@ public:
     uint64_t onGetTicksSinceOrigin() override;
     ListPtr<IDeviceInfo> onGetAvailableDevices() override;
     DictPtr<IString, IDeviceType> onGetAvailableDeviceTypes() override;
+    DictPtr<IString, IStreamingType> onGetAvailableStreamingTypes() override;
     DevicePtr onAddDevice(const StringPtr& connectionString, const PropertyObjectPtr& config) override;
     DictPtr<IString, IDevice> onAddDevices(const DictPtr<IString, IPropertyObject>& connectionArgs,
                                            DictPtr<IString, IInteger> errCodes,
@@ -161,6 +162,12 @@ template <class TDeviceBase>
 DictPtr<IString, IDeviceType> GenericConfigClientDeviceImpl<TDeviceBase>::onGetAvailableDeviceTypes()
 {
     return this->clientComm->getAvailableDeviceTypes(this->remoteGlobalId);
+}
+
+template <class TDeviceBase>
+DictPtr<IString, IStreamingType> GenericConfigClientDeviceImpl<TDeviceBase>::onGetAvailableStreamingTypes()
+{
+    return Dict<IString, IStreamingType>();
 }
 
 template <class TDeviceBase>

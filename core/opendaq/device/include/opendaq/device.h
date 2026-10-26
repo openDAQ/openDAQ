@@ -23,6 +23,7 @@
 #include <coretypes/listobject.h>
 #include <opendaq/device_type.h>
 #include <opendaq/streaming.h>
+#include <opendaq/streaming_type.h>
 #include <opendaq/sync_component.h>
 #include <opendaq/server.h>
 #include <opendaq/update_parameters.h>
@@ -404,6 +405,17 @@ DECLARE_OPENDAQ_INTERFACE(IDevice, IFolder)
      *         OPENDAQ_IGNORED if adding the devices from modules is not allowed within the device.
      */
     virtual ErrCode INTERFACE_FUNC addDevices(IDict** devices, IDict* connectionArgs, IDict* errCodes = nullptr, IDict* errorInfos = nullptr) = 0;
+
+    // [templateType(streamingTypes, IString, IStreamingType)]
+    /*!
+     * @brief Get a dictionary of available streaming types as <IString, IStreamingType> pairs
+     * @param[out] streamingTypes The dictionary of available streaming types.
+     *
+     * The streaming types are those of the modules loaded on the device that adds sub-devices, i.e.
+     * the ones that can be used for the streaming connections of the devices added under this device.
+     * The dictionary is empty if the device cannot add devices from modules.
+     */
+    virtual ErrCode INTERFACE_FUNC getAvailableStreamingTypes(IDict** streamingTypes) = 0;
 };
 /*!@}*/
 

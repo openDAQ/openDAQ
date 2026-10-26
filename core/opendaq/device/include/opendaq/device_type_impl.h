@@ -31,11 +31,13 @@ public:
                             const StringPtr& description,
                             const PropertyObjectPtr& defaultConfig,
                             const StringPtr& prefix,
-                            const DictPtr<IString, IAuthenticationMethod>& supportedAuthenticationMethods);
+                            const DictPtr<IString, IAuthenticationMethod>& supportedAuthenticationMethods,
+                            DeviceKind deviceKind = DeviceKind::External);
 
     explicit DeviceTypeImpl(const ComponentTypeBuilderPtr& builder);
 
     ErrCode INTERFACE_FUNC getConnectionStringPrefix(IString** prefix) override;
+    ErrCode INTERFACE_FUNC getDeviceKind(DeviceKind* kind) override;
 
     // ISerializable
     ErrCode INTERFACE_FUNC serialize(ISerializer* serializer) override;
@@ -43,6 +45,9 @@ public:
 
     static ConstCharPtr SerializeId();
     static ErrCode Deserialize(ISerializedObject* serialized, IBaseObject* context, IFunction* factoryCallback, IBaseObject** obj);
+
+private:
+    DeviceKind deviceKind;
 };
 
 

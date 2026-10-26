@@ -719,6 +719,7 @@ DeviceTypePtr NativeStreamingClientModule::createDeviceType()
         .setDescription("Network device connected over Native configuration protocol")
         .setConnectionStringPrefix("daq.nd")
         .setDefaultConfig(NativeStreamingClientModule::createConnectionDefaultConfig(NativeType::config))
+        .setDeviceKind(DeviceKind::Mirrored)
         .build();
 }
 

@@ -997,6 +997,8 @@ TEST_F(ConfigProtocolIntegrationTest, GetAvailableDeviceTypes)
     ASSERT_EQ(c.getName(), s.getName());
     ASSERT_EQ(c.getDescription(), s.getDescription());
     ASSERT_EQ(c.getConnectionStringPrefix(), s.getConnectionStringPrefix());
+    ASSERT_EQ(c.getDeviceKind(), DeviceKind::Mirrored);
+    ASSERT_EQ(s.getDeviceKind(), DeviceKind::Mirrored);
 }
 
 TEST_F(ConfigProtocolIntegrationTest, DeviceTypesModuleInfo)

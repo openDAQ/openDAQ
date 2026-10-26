@@ -15,6 +15,10 @@
 #include <opendaq/io_folder_impl.h>
 #include <opendaq/gmock/function_block.h>
 #include <opendaq/device_type_factory.h>
+#include <opendaq/component_type_builder_factory.h>
+#include <opendaq/component_type_private.h>
+#include <opendaq/module_info_factory.h>
+#include <coretypes/version_info_factory.h>
 #include <opendaq/module_manager_factory.h>
 #include <opendaq/scheduler_factory.h>
 #include <opendaq/mock/mock_streaming_factory.h>
@@ -277,6 +281,67 @@ TEST_F(DeviceTest, DeviceTypeStructNames)
     const auto structType = daq::DeviceTypeStructType();
     const daq::StructPtr structPtr = daq::DeviceType("id", "name", "desc", "prefix");
     ASSERT_EQ(structType.getFieldNames(), structPtr.getFieldNames());
+}
+
+TEST_F(DeviceTest, DeviceTypeKindNotInStructOrEquality)
+{
+    const daq::DeviceTypePtr external =
+        daq::DeviceTypeBuilder().setId("id").setName("name").setDescription("desc").setConnectionStringPrefix("prefix").build();
+    const daq::DeviceTypePtr mirrored = daq::DeviceTypeBuilder()
+                                            .setId("id")
+                                            .setName("name")
+                                            .setDescription("desc")
+                                            .setConnectionStringPrefix("prefix")
+                                            .setDeviceKind(daq::DeviceKind::Mirrored)
+                                            .build();
+    const daq::DeviceTypePtr factory = daq::DeviceType("id", "name", "desc", "prefix");
+
+    ASSERT_EQ(external.getDeviceKind(), daq::DeviceKind::External);
+    ASSERT_EQ(factory.getDeviceKind(), daq::DeviceKind::External);
+    ASSERT_EQ(external, mirrored);
+    ASSERT_EQ(external, factory);
+    ASSERT_EQ(mirrored.asPtr<daq::IStruct>().getFieldNames(), daq::DeviceTypeStructType().getFieldNames());
+}
+
+TEST_F(DeviceTest, DeviceTypeSerialize)
+{
+    auto defaultConfig = daq::PropertyObject();
+    defaultConfig.addProperty(daq::IntProperty("IntProp", 5));
+
+    for (const auto kind : {daq::DeviceKind::Root, daq::DeviceKind::Mirrored, daq::DeviceKind::External})
+    {
+        const daq::DeviceTypePtr deviceType = daq::DeviceTypeBuilder()
+                                                  .setId("id")
+                                                  .setName("name")
+                                                  .setConnectionStringPrefix("prefix")
+                                                  .setDefaultConfig(defaultConfig)
+                                                  .setDeviceKind(kind)
+                                                  .build();
+        deviceType.asPtr<daq::IComponentTypePrivate>()->setModuleInfo(
+            daq::ModuleInfo(daq::VersionInfo(1, 2, 3), "module_name", "module_id"));
+
+        const auto serializer = daq::JsonSerializer();
+        deviceType.serialize(serializer);
+        const std::string json = serializer.getOutput();
+        ASSERT_NE(json.find("\"deviceKind\""), std::string::npos) << json;
+
+        const daq::DeviceTypePtr deserialized = daq::JsonDeserializer().deserialize(json, nullptr, nullptr);
+        // Equality does not compare the kind, so check it explicitly
+        ASSERT_EQ(deserialized, deviceType);
+        ASSERT_EQ(deserialized.getDeviceKind(), kind);
+        ASSERT_EQ(deserialized.getConnectionStringPrefix(), "prefix");
+        ASSERT_EQ(deserialized.createDefaultConfig().getPropertyValue("IntProp"), 5);
+        ASSERT_EQ(deserialized.getModuleInfo().getId(), "module_id");
+        ASSERT_EQ(deserialized.getModuleInfo().getVersionInfo().getPatch(), 3u);
+    }
+}
+
+TEST_F(DeviceTest, DeviceTypeDeserializeWithoutKindIsExternal)
+{
+    const std::string json = R"({"__type":"DeviceType","id":"id","name":"name","prefix":"prefix"})";
+    const daq::DeviceTypePtr deserialized = daq::JsonDeserializer().deserialize(json, nullptr, nullptr);
+    ASSERT_EQ(deserialized.getId(), "id");
+    ASSERT_EQ(deserialized.getDeviceKind(), daq::DeviceKind::External);
 }
 
 TEST_F(DeviceTest, StandardProperties)

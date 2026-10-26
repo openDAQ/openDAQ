@@ -156,8 +156,10 @@ TEST_F(NativeStreamingClientModuleTest, GetAvailableComponentTypes)
     ASSERT_EQ(deviceTypes.getCount(), 2u);
     ASSERT_TRUE(deviceTypes.hasKey("OpenDAQNativeStreaming"));
     ASSERT_EQ(deviceTypes.get("OpenDAQNativeStreaming").getId(), "OpenDAQNativeStreaming");
+    ASSERT_EQ(deviceTypes.get("OpenDAQNativeStreaming").getDeviceKind(), DeviceKind::External);
     ASSERT_TRUE(deviceTypes.hasKey("OpenDAQNativeConfiguration"));
     ASSERT_EQ(deviceTypes.get("OpenDAQNativeConfiguration").getId(), "OpenDAQNativeConfiguration");
+    ASSERT_EQ(deviceTypes.get("OpenDAQNativeConfiguration").getDeviceKind(), DeviceKind::Mirrored);
 
     DictPtr<IString, IServerType> serverTypes;
     ASSERT_NO_THROW(serverTypes = module.getAvailableServerTypes());

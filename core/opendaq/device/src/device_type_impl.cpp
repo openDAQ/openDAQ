@@ -15,8 +15,10 @@ DeviceTypeImpl::DeviceTypeImpl(const StringPtr& id,
                                const StringPtr& description,
                                const PropertyObjectPtr& defaultConfig,
                                const StringPtr& prefix,
-                               const DictPtr<IString, IAuthenticationMethod>& supportedAuthenticationMethods)
+                               const DictPtr<IString, IAuthenticationMethod>& supportedAuthenticationMethods,
+                               DeviceKind deviceKind)
     : Super(detail::deviceTypeStructType, id, name, description, prefix, defaultConfig, supportedAuthenticationMethods)
+    , deviceKind(deviceKind)
 {
 }
 
@@ -26,7 +28,8 @@ DeviceTypeImpl::DeviceTypeImpl(const ComponentTypeBuilderPtr& builder)
                      builder.getDescription(),
                      builder.getDefaultConfig(),
                      builder.getConnectionStringPrefix(),
-                     builder.getSupportedAuthenticationMethods())
+                     builder.getSupportedAuthenticationMethods(),
+                     builder.getDeviceKind())
 {
 }
 
@@ -35,6 +38,14 @@ ErrCode DeviceTypeImpl::getConnectionStringPrefix(IString** prefix)
     OPENDAQ_PARAM_NOT_NULL(prefix);
 
     *prefix = this->prefix.addRefAndReturn();
+    return OPENDAQ_SUCCESS;
+}
+
+ErrCode DeviceTypeImpl::getDeviceKind(DeviceKind* kind)
+{
+    OPENDAQ_PARAM_NOT_NULL(kind);
+
+    *kind = this->deviceKind;
     return OPENDAQ_SUCCESS;
 }
 
@@ -86,6 +97,9 @@ ErrCode INTERFACE_FUNC DeviceTypeImpl::serialize(ISerializer* serializer)
                 serializerPtr.key("moduleInfo");
                 moduleInfo.serialize(serializerPtr);
             }
+
+            serializerPtr.key("deviceKind");
+            serializerPtr.writeInt(static_cast<Int>(deviceKind));
         }
 
         serializerPtr.endObject();
@@ -140,8 +154,12 @@ ErrCode DeviceTypeImpl::Deserialize(ISerializedObject* serialized, IBaseObject* 
         if (serializedObj.hasKey("supportedAuthenticationMethods"))
             supportedAuthenticationMethods = serializedObj.readObject("supportedAuthenticationMethods", contextPtr, factoryCallbackPtr).asPtr<IDict>();
 
+        DeviceKind deviceKind = DeviceKind::External;
+        if (serializedObj.hasKey("deviceKind"))
+            deviceKind = static_cast<DeviceKind>(serializedObj.readInt("deviceKind"));
+
         auto deviceType = createWithImplementation<IDeviceType, DeviceTypeImpl>(
-            id, name, description, defaultConfig, prefix, supportedAuthenticationMethods);
+            id, name, description, defaultConfig, prefix, supportedAuthenticationMethods, deviceKind);
 
         ModuleInfoPtr moduleInfo;
         if (serializedObj.hasKey("moduleInfo"))

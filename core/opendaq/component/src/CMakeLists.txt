@@ -132,12 +132,14 @@ function(create_component_source_groups_${BASE_NAME})
         ${SDK_HEADERS_DIR}/component_type_builder.h
         ${SDK_HEADERS_DIR}/component_type_builder_factory.h
         ${SDK_HEADERS_DIR}/component_type_private.h
+        ${SDK_HEADERS_DIR}/device_kind.h
         ${SDK_SRC_DIR}/component_type_impl.cpp
     )
 endfunction()
 
 set(SRC_PublicHeaders_Component 
     component_type.h
+    device_kind.h
     component_impl.h
     component_ptr.custom.h
     folder_factory.h

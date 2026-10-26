@@ -17,6 +17,7 @@
 #pragma once
 #include <coreobjects/property_object.h>
 #include <opendaq/component_type.h>
+#include <opendaq/device_kind.h>
 #include <coretypes/stringobject.h>
 
 BEGIN_NAMESPACE_OPENDAQ
@@ -72,6 +73,8 @@ DECLARE_OPENDAQ_INTERFACE(IComponentTypeBuilder, IBaseObject)
      *
      * Depending on the set "sort" builder parameter, a different Component type is created - eg. Streaming type,
      * Device type, Function block type, or Server type.
+     *
+     * Fails with OPENDAQ_ERR_INVALIDPARAMETER when a field is set that the sort does not use.
      */
     virtual ErrCode INTERFACE_FUNC build(IComponentType** componentType) = 0;
     
@@ -148,6 +151,7 @@ DECLARE_OPENDAQ_INTERFACE(IComponentTypeBuilder, IBaseObject)
      * @param[out] prefix The connection string prefix.
      *
      * The prefix is always found at the start of the connection string, before the "://" delimiter.
+     * Applies to the Device and Streaming sorts only; other sorts ignore it.
      */
     virtual ErrCode INTERFACE_FUNC setConnectionStringPrefix(IString* prefix) = 0;
 
@@ -183,6 +187,22 @@ DECLARE_OPENDAQ_INTERFACE(IComponentTypeBuilder, IBaseObject)
      * For example: Port=1000, OutputRate=5000, ...
      */
     virtual ErrCode INTERFACE_FUNC getDefaultConfig(IPropertyObject** defaultConfig) = 0;
+
+    // [returnSelf]
+    /*!
+     * @brief Sets the kind of device created by the built Device type. Applies to the Device sort only.
+     * @param kind The device kind.
+     *
+     * A builder that does not set the kind builds an External Device type. `build` fails for other sorts when
+     * a kind other than External is set.
+     */
+    virtual ErrCode INTERFACE_FUNC setDeviceKind(DeviceKind kind) = 0;
+
+    /*!
+     * @brief Gets the kind of device created by the built Device type. Applies to the Device sort only.
+     * @param[out] kind The device kind. External when not set.
+     */
+    virtual ErrCode INTERFACE_FUNC getDeviceKind(DeviceKind* kind) = 0;
 
     // [returnSelf]
     /*!

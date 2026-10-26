@@ -97,6 +97,7 @@ TEST_F(InstanceTest, DeviceInformation)
 {
     auto instance = test_helpers::setupInstance();
     ASSERT_EQ(instance.getInfo().getName(), String("OpenDAQClient"));
+    ASSERT_EQ(instance.getInfo().getDeviceType().getDeviceKind(), DeviceKind::Root);
 }
 
 TEST_F(InstanceTest, DeviceSignals)
@@ -123,6 +124,7 @@ TEST_F(InstanceTest, EnumerateDeviceTypes)
     ASSERT_TRUE(deviceTypes.hasKey("OpenDAQClient"));
     auto mockDevice = deviceTypes.get("OpenDAQClient");
     ASSERT_EQ(mockDevice.getId(), "OpenDAQClient");
+    ASSERT_EQ(mockDevice.getDeviceKind(), DeviceKind::Root);
 
     ASSERT_TRUE(deviceTypes.hasKey("mock_phys_device"));
     mockDevice = deviceTypes.get("mock_phys_device");

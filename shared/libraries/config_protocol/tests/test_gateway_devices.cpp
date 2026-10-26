@@ -11,6 +11,7 @@
 #include <opendaq/mirrored_device_config_ptr.h>
 #include <opendaq/mirrored_device_ptr.h>
 #include <opendaq/device_type_factory.h>
+#include <opendaq/component_type_builder_factory.h>
 
 using namespace daq;
 using namespace daq::config_protocol;
@@ -312,7 +313,13 @@ TEST_F(ConfigClientGatewayDeviceTest, TestLeafSignalConnectedAfterGateway2Load)
 TEST_F(ConfigClientGatewayDeviceTest, MirroredDeviceTypeIsPropagatedViaConfigProtocol)
 {
     // Set mirroredDeviceType on gateway1LeafDevice (simulates what the gateway device module does)
-    const auto deviceType = DeviceType("typeId", "typeName", "typeDescription", "daq.test");
+    const DeviceTypePtr deviceType = DeviceTypeBuilder()
+                                         .setId("typeId")
+                                         .setName("typeName")
+                                         .setDescription("typeDescription")
+                                         .setConnectionStringPrefix("daq.test")
+                                         .setDeviceKind(DeviceKind::Mirrored)
+                                         .build();
     gateway1LeafDevice.asPtr<IMirroredDeviceConfig>().setMirroredDeviceType(deviceType);
 
     // The actual server-side leaf device must remain unaffected
@@ -339,6 +346,7 @@ TEST_F(ConfigClientGatewayDeviceTest, MirroredDeviceTypeIsPropagatedViaConfigPro
     ASSERT_EQ(mirroredType.getId(), "typeId");
     ASSERT_EQ(mirroredType.getName(), "typeName");
     ASSERT_EQ(mirroredType.getDescription(), "typeDescription");
+    ASSERT_EQ(mirroredType.getDeviceKind(), DeviceKind::Mirrored);
 
     const auto info = mirroredLeafDevice.asPtr<IDevice>().getInfo();
     ASSERT_TRUE(info.assigned());

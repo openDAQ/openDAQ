@@ -50,6 +50,9 @@ public:
     ErrCode INTERFACE_FUNC setDefaultConfig(IPropertyObject* defaultConfig) override;
     ErrCode INTERFACE_FUNC getDefaultConfig(IPropertyObject** defaultConfig) override;
 
+    ErrCode INTERFACE_FUNC setDeviceKind(DeviceKind kind) override;
+    ErrCode INTERFACE_FUNC getDeviceKind(DeviceKind* kind) override;
+
     ErrCode INTERFACE_FUNC addAuthenticationMethod(IAuthenticationMethod* method) override;
     ErrCode INTERFACE_FUNC getSupportedAuthenticationMethods(IDict** authenticationMethods) override;
 
@@ -57,6 +60,8 @@ public:
     ErrCode INTERFACE_FUNC getLinkedDeviceType(IDeviceType** deviceType) override;
 
 private:
+    ErrCode checkSortFields() const;
+
     ComponentTypeSort sort;
     StringPtr id;
     StringPtr name;
@@ -64,6 +69,7 @@ private:
     StringPtr description;
     PropertyObjectPtr defaultConfig;
     ModuleInfoPtr moduleInfo;
+    DeviceKind deviceKind;
     DictPtr<IString, IAuthenticationMethod> supportedAuthenticationMethods;
     DeviceTypePtr linkedDeviceType;
 };

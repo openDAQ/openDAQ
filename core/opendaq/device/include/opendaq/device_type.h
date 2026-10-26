@@ -16,6 +16,7 @@
 
 #pragma once
 #include <opendaq/component_type.h>
+#include <opendaq/device_kind.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
@@ -45,6 +46,12 @@ DECLARE_OPENDAQ_INTERFACE(IDeviceType, IComponentType)
      * The prefix is always found at the start of the connection string, before the "://" delimiter.
      */
     virtual ErrCode INTERFACE_FUNC getConnectionStringPrefix(IString** prefix) = 0;
+
+    /*!
+     * @brief Gets the kind of device created by this type.
+     * @param[out] kind The device kind
+     */
+    virtual ErrCode INTERFACE_FUNC getDeviceKind(DeviceKind* kind) = 0;
 };
 /*!@}*/
 

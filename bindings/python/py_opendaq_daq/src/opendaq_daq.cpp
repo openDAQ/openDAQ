@@ -13,6 +13,7 @@ PYBIND11_MODULE(opendaq, m)
 
     opendaq_daq_module = m;
     python_class_fraction = py::module_::import("fractions").attr("Fraction");
+    pyFinalization().registerAtExit();
 
     m.def("get_tracked_object_count", &daqGetTrackedObjectCount);
     m.def("print_tracked_objects", &daqPrintTrackedObjects);

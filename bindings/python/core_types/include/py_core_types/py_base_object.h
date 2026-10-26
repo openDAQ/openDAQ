@@ -20,6 +20,8 @@
 
 #include <pybind11/pybind11.h>
 
+#include "py_core_types/py_gil.h"
+
 DECLARE_OPENDAQ_INTERFACE(IPyObject, daq::IBaseObject)
 {
     virtual daq::ErrCode INTERFACE_FUNC getPyObject(pybind11::object & pyObj) = 0;
@@ -59,15 +61,15 @@ PyObjectImpl<PyT, Interfaces...>::~PyObjectImpl()
     if (!pyObject)
         return;
 
-    // Interpreter already finalized; leak rather than touch a dead interpreter
-    if (!Py_IsInitialized())
+    PyGilAcquireUnlessExiting gil;
+    if (!gil)
     {
+        // Python is exiting; taking the GIL could hang
         pyObject.release();
         return;
     }
 
-    // Release the handle under the GIL; assigning PyT() would allocate (e.g. pybind11::list)
-    pybind11::gil_scoped_acquire gil;
+    // Assigning PyT() would allocate (e.g. pybind11::list)
     pyObject.release().dec_ref();
 }
 

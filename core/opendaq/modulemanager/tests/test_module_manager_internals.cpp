@@ -289,7 +289,7 @@ TEST_F(ModuleManagerInternalsTest, TestAuthenticator)
         [&](const StringPtr& f, const DictPtr<IString, IBaseObject>& params)
         {
             fName = f;
-            auto path = StringPtr(params["BinaryPath"]);
+            const StringPtr path = params.get("BinaryPath");
             if (path == throwPath)
                 DAQ_THROW_EXCEPTION(InvalidStateException, errMsg);
             auto it = pathAuth.find(path);

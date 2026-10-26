@@ -294,7 +294,7 @@ TEST_F(ModulesDefaultConfigTest, NativeConfigDeviceAnyStreamingConnect)
     const auto device = instance.addDevice("daq.nd://127.0.0.1", config);
 
     auto availableStreamingSources = device.asPtr<IMirroredDevice>().getStreamingSources();
-    ASSERT_EQ(availableStreamingSources.getCount(), 2u);
+    ASSERT_EQ(availableStreamingSources.getCount(), 1u); // Only one per device is established automatically
 
     auto addedComponentConfig = device.asPtr<IComponentPrivate>(true).getComponentConfig();
     ASSERT_TRUE(addedComponentConfig.assigned());
@@ -412,7 +412,7 @@ TEST_F(ModulesDefaultConfigTest, OPCUAConfigAnyStreamingConnect)
     generalConfig.setPropertyValue("AllowedStreamingProtocols", List<IString>());
 
     const auto device = instance.addDevice("daq.opcua://127.0.0.1", config);
-    ASSERT_EQ(device.asPtr<IMirroredDevice>().getStreamingSources().getCount(), 2u);
+    ASSERT_EQ(device.asPtr<IMirroredDevice>().getStreamingSources().getCount(), 1u); // Only one per device is established automatically
 
     auto addedComponentConfig = device.asPtr<IComponentPrivate>(true).getComponentConfig();
     ASSERT_TRUE(addedComponentConfig.assigned());

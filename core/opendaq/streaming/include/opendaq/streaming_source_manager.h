@@ -39,7 +39,8 @@ class StreamingSourceManager
 public:
     explicit StreamingSourceManager(const ContextPtr& context,
                                     const DevicePtr& ownerDevice,
-                                    const PropertyObjectPtr& deviceConfig);
+                                    const PropertyObjectPtr& deviceConfig,
+                                    const StringPtr& streamingProtocolId);
 
     ~StreamingSourceManager();
 
@@ -63,7 +64,7 @@ private:
                                                    const AddressInfoPtr& deviceConnectionAddress);
     static AddressInfoPtr getDeviceConnectionAddress(const DevicePtr& device);
     void completeStreamingConnections(const MirroredDeviceConfigPtr& topDevice);
-    void attachStreamingsToDevice(const MirroredDeviceConfigPtr& device);
+    void attachStreamingToDevice(const MirroredDeviceConfigPtr& device);
     std::unordered_map<std::string, ListPtr<IAddressInfo>> buildDiscoveredStreamingAddrsByProtocol(const MirroredDeviceConfigPtr& device);
 
     ContextPtr context;
@@ -72,31 +73,24 @@ private:
     LoggerComponentPtr loggerComponent;
 
     bool minHopsStreamingHeuristicEnabled{false};
-    std::unordered_set<std::string> allowedProtocolsOnly;
-    std::map<StringPtr, SizeT> prioritizedProtocolsMap; // protocol Id as a key, protocol priority as a value
+    StringPtr requiredStreamingProtocolId;
     StringPtr primaryAddressType;
     std::atomic<bool> stopped{false};
 };
 
 inline StreamingSourceManager::StreamingSourceManager(const ContextPtr& context,
-                                                       const DevicePtr& ownerDevice,
-                                                       const PropertyObjectPtr& deviceConfig)
+                                                      const DevicePtr& ownerDevice,
+                                                      const PropertyObjectPtr& deviceConfig,
+                                                      const StringPtr& streamingProtocolId)
     : context(context)
     , ownerDeviceRef(ownerDevice)
     , deviceConfig(deviceConfig)
     , loggerComponent(context.getLogger().getOrAddComponent(fmt::format("StreamingSourceManager({})", ownerDevice.getGlobalId())))
+    , requiredStreamingProtocolId(streamingProtocolId)
 {
     PropertyObjectPtr generalConfig = this->deviceConfig.getPropertyValue("General");
     minHopsStreamingHeuristicEnabled = generalConfig.getPropertyValue("StreamingConnectionHeuristic") == 1;
     primaryAddressType = generalConfig.getPropertyValue("PrimaryAddressType");
-
-    ListPtr<IString> allowedStreamingProtocols = generalConfig.getPropertyValue("AllowedStreamingProtocols");
-    for (SizeT index = 0; index < allowedStreamingProtocols.getCount(); ++index)
-        allowedProtocolsOnly.insert(allowedStreamingProtocols[index].toStdString());
-
-    ListPtr<IString> prioritizedStreamingProtocols = generalConfig.getPropertyValue("PrioritizedStreamingProtocols");
-    for (SizeT index = 0; index < prioritizedStreamingProtocols.getCount(); ++index)
-        prioritizedProtocolsMap.insert({prioritizedStreamingProtocols[index], index});
 
     this->context.getOnCoreEvent() += event(this, &StreamingSourceManager::coreEventCallback);
 }
@@ -487,75 +481,30 @@ inline void StreamingSourceManager::completeStreamingConnections(const MirroredD
         const auto allDevicesInTree = getAllDevicesRecursively(topDevice);
         for (const auto& device : allDevicesInTree)
         {
-            attachStreamingsToDevice(device);
+            attachStreamingToDevice(device);
         }
     }
     else
     {
-        attachStreamingsToDevice(topDevice);
+        attachStreamingToDevice(topDevice);
     }
 }
 
-inline void StreamingSourceManager::attachStreamingsToDevice(const MirroredDeviceConfigPtr& device)
+inline void StreamingSourceManager::attachStreamingToDevice(const MirroredDeviceConfigPtr& device)
 {
     // Get the full address information used for device configuration connection
     const auto deviceConnectionAddress = getDeviceConnectionAddress(device);
+
+    // None streaming sources are expected at this stage
+    const auto addedStreamingSources = device.getStreamingSources();
 
     const ModuleManagerUtilsPtr managerUtils = this->context.getModuleManager().template asPtr<IModuleManagerUtils>();
 
     // Build a map of discovered addresses by protocol ID for quick lookup
     const auto discoveredAddrsByProtocol = buildDiscoveredStreamingAddrsByProtocol(device);
 
-    // Will be sorted later.
-    std::vector<std::pair<SizeT, StreamingPtr>> prioritizedStreaming;
-
-    // Streaming sources selected within this call are attached to the device only afterwards,
-    // so the pending ones have to be checked along with the already attached ones
-    const auto anyStreamingMatches = [&prioritizedStreaming](const auto& attachedSources, const auto& predicate) -> bool
-    {
-        return std::any_of(attachedSources.begin(), attachedSources.end(), predicate) ||
-               std::any_of(prioritizedStreaming.begin(),
-                           prioritizedStreaming.end(),
-                           [&predicate](const auto& item) { return predicate(item.second); });
-    };
-
-    const auto capabilityPriority = [this](const ServerCapabilityPtr& cap) -> std::optional<SizeT>
-    {
-        if (cap.getProtocolType() != ProtocolType::Streaming)
-            return std::nullopt;
-
-        const StringPtr protocolId = cap.getProtocolId();
-        if (!allowedProtocolsOnly.empty() && !allowedProtocolsOnly.count(protocolId.toStdString()))
-            return std::nullopt;
-
-        const auto protocolIt = prioritizedProtocolsMap.find(protocolId);
-        if (protocolIt == prioritizedProtocolsMap.end())
-            return std::nullopt;
-
-        return protocolIt->second;
-    };
-
-    const auto capabilityGroupId = [](const ServerCapabilityPtr& cap) -> StringPtr
-    {
-        const auto groupId = cap.getProtocolGroupId();
-        return groupId.assigned() && groupId.getLength() > 0 ? groupId : nullptr;
-    };
-
-    std::unordered_map<std::string, SizeT> bestPriorityPerGroup;
-    for (const auto& cap : device.getInfo().getServerCapabilities())
-    {
-        const auto groupId = capabilityGroupId(cap);
-        if (!groupId.assigned())
-            continue;
-
-        const auto priority = capabilityPriority(cap);
-        if (!priority.has_value())
-            continue;
-
-        const auto [it, inserted] = bestPriorityPerGroup.try_emplace(groupId.toStdString(), *priority);
-        if (!inserted)
-            it->second = std::min(it->second, *priority);
-    }
+    // Keeps the only streaming connection to be established here
+    StreamingPtr establishedStreaming;
 
     // connect via all allowed streaming capabilities which are not connected yet
     for (const auto& cap : device.getInfo().getServerCapabilities())
@@ -563,7 +512,7 @@ inline void StreamingSourceManager::attachStreamingsToDevice(const MirroredDevic
         if (cap.getProtocolType() != ProtocolType::Streaming)
             continue;
 
-        const auto protoGroupId = capabilityGroupId(cap);
+        [[maybe_unused]] const auto protoGroupId = cap.getProtocolGroupId();
 
         LOG_D("Device {} has streaming capability: name [{}] group id [{}] id [{}] string [{}] prefix [{}]",
               device.getGlobalId(),
@@ -573,42 +522,14 @@ inline void StreamingSourceManager::attachStreamingsToDevice(const MirroredDevic
               cap.getConnectionString(),
               cap.getPrefix());
 
-        const StringPtr protocolId = cap.getProtocolId();
-        const auto priority = capabilityPriority(cap);
-        if (!priority.has_value())
+        const StringPtr capabilityProtocolId = cap.getProtocolId();
+        // the protocol id should match to the required
+        if (cap.getProtocolType() != ProtocolType::Streaming || capabilityProtocolId != requiredStreamingProtocolId)
             continue;
-
-        const auto addedStreamingSources = device.getStreamingSources();
-        if (protoGroupId.assigned())
-        {
-            // only the most preferred protocol of the group is connected
-            if (*priority != bestPriorityPerGroup.at(protoGroupId.toStdString()))
-            {
-                LOG_D("Device {} has a more preferred protocol in group [{}] than [{}], skipping it",
-                      device.getGlobalId(),
-                      protoGroupId,
-                      protocolId);
-                continue;
-            }
-
-            // the group may already have been connected by a previous call
-            const auto sameGroup = [&protoGroupId](const StreamingPtr& item)
-            {
-                return item.getProtocolGroupId() == protoGroupId;
-            };
-
-            if (anyStreamingMatches(addedStreamingSources, sameGroup))
-            {
-                LOG_D("Device {} already has streaming source with protocol group id [{}], skipping adding another one",
-                      device.getGlobalId(),
-                      protoGroupId);
-                continue;
-            }
-        }
 
         // Prioritize discovery addresses if available for this protocol
         ListPtr<IAddressInfo> addressesToUse =
-            (discoveredAddrsByProtocol.count(protocolId) > 0) ? discoveredAddrsByProtocol.at(protocolId) : cap.getAddressInfo();
+            (discoveredAddrsByProtocol.count(capabilityProtocolId) > 0) ? discoveredAddrsByProtocol.at(capabilityProtocolId) : cap.getAddressInfo();
 
         // get the addresses of primary type giving the priority to known config connection address
         const auto suitableAddressesInfo = getSuitableAddressesInfo(addressesToUse, deviceConnectionAddress);
@@ -625,16 +546,12 @@ inline void StreamingSourceManager::attachStreamingsToDevice(const MirroredDevic
             if (!connectionString.assigned())
                 continue;
 
-            const auto sameConnectionString = [&connectionString](const StreamingPtr& item)
-            {
-                return connectionString == item.getConnectionString();
-            };
-
-            if (anyStreamingMatches(addedStreamingSources, sameConnectionString))
+            if (std::any_of(addedStreamingSources.begin(),
+                            addedStreamingSources.end(),
+                            [&connectionString](const StreamingPtr& source) { return connectionString == source.getConnectionString(); }))
                 break;
 
             StreamingPtr streaming;
-
             auto errCode = daqTry(
                 [&]()
                 {
@@ -644,23 +561,29 @@ inline void StreamingSourceManager::attachStreamingsToDevice(const MirroredDevic
             if (OPENDAQ_FAILED(errCode))
                 daqClearErrorInfo();
             if (!streaming.assigned())
+            {
                 continue;
-
-            prioritizedStreaming.emplace_back(*priority, streaming);
-            break;
+            }
+            else
+            {
+                establishedStreaming = streaming;
+                break;
+            }
         }
+        if (establishedStreaming.assigned())
+            break;
     }
 
-    std::stable_sort(prioritizedStreaming.begin(),
-                     prioritizedStreaming.end(),
-                     [](const auto& item0, const auto& item1) { return item0.first < item1.first; });
-
-    // add streaming sources ordered by protocol priority
-    for (const auto& [_, streaming] : prioritizedStreaming)
+    // add single established streaming source
+    if (establishedStreaming.assigned())
     {
-        streaming.setActive(true);
-        device.addStreamingSource(streaming);
-        LOG_I("Device {} added new streaming connection {}", device.getGlobalId(), streaming.getConnectionString());
+        establishedStreaming.setActive(true);
+        device.addStreamingSource(establishedStreaming);
+        LOG_I("Device {} has automatically added streaming connection {}", device.getGlobalId(), establishedStreaming.getConnectionString());
+    }
+    else
+    {
+        LOG_W("Device {} failed to automatically add streaming connection for {} protocol", device.getGlobalId(), requiredStreamingProtocolId);
     }
 }
 

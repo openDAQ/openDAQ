@@ -366,7 +366,7 @@ ErrCode MirroredDeviceBase<Interfaces...>::setComponentConfig(IPropertyObject* c
             && !(generalConfig.getPropertyValue("StreamingConnectionHeuristic") == 2) // is not "NotConnected"
             && streamingProtocol.assigned())
             streamingSourceManager =
-                std::make_shared<StreamingSourceManager>(this->context, deviceSelf, this->componentConfig);
+                std::make_shared<StreamingSourceManager>(this->context, deviceSelf, this->componentConfig, streamingProtocol);
     }
 
     return errCode;

@@ -39,7 +39,8 @@ class StreamingSourceManager
 public:
     explicit StreamingSourceManager(const ContextPtr& context,
                                     const DevicePtr& ownerDevice,
-                                    const PropertyObjectPtr& deviceConfig);
+                                    const PropertyObjectPtr& deviceConfig,
+                                    const StringPtr& streamingProtocolId);
 
     ~StreamingSourceManager();
 
@@ -78,43 +79,18 @@ private:
 };
 
 inline StreamingSourceManager::StreamingSourceManager(const ContextPtr& context,
-                                                       const DevicePtr& ownerDevice,
-                                                       const PropertyObjectPtr& deviceConfig)
+                                                      const DevicePtr& ownerDevice,
+                                                      const PropertyObjectPtr& deviceConfig,
+                                                      const StringPtr& streamingProtocolId)
     : context(context)
     , ownerDeviceRef(ownerDevice)
     , deviceConfig(deviceConfig)
     , loggerComponent(context.getLogger().getOrAddComponent(fmt::format("StreamingSourceManager({})", ownerDevice.getGlobalId())))
+    , requiredStreamingProtocolId(streamingProtocolId)
 {
     PropertyObjectPtr generalConfig = this->deviceConfig.getPropertyValue("General");
     minHopsStreamingHeuristicEnabled = generalConfig.getPropertyValue("StreamingConnectionHeuristic") == 1;
     primaryAddressType = generalConfig.getPropertyValue("PrimaryAddressType");
-
-    ListPtr<IString> allowedStreamingProtocols = generalConfig.getPropertyValue("AllowedStreamingProtocols");
-    ListPtr<IString> prioritizedStreamingProtocols = generalConfig.getPropertyValue("PrioritizedStreamingProtocols");
-
-    // next section always results into `requiredStreamingProtocolId` being assigned - guaranteed by the constructor caller
-    {
-        if (allowedStreamingProtocols.empty())
-        {
-            requiredStreamingProtocolId = prioritizedStreamingProtocols[0];
-        }
-        else
-        {
-            for (const auto& protocolId : prioritizedStreamingProtocols)
-            {
-                for (const auto& allowedProtocol : allowedStreamingProtocols)
-                {
-                    if (protocolId == allowedProtocol)
-                    {
-                        requiredStreamingProtocolId = protocolId;
-                        break;
-                    }
-                }
-                if (requiredStreamingProtocolId.assigned())
-                    break;
-            }
-        }
-    }
 
     this->context.getOnCoreEvent() += event(this, &StreamingSourceManager::coreEventCallback);
 }

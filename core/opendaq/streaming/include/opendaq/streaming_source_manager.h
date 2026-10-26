@@ -28,6 +28,7 @@
 #include <opendaq/mirrored_signal_config_ptr.h>
 #include <opendaq/module_manager_utils_ptr.h>
 #include <opendaq/add_component_config_ptr.h>
+#include <opendaq/connection_string_utils.h>
 
 #include <opendaq/mirrored_input_port_config_ptr.h>
 
@@ -69,7 +70,6 @@ private:
     static StringPtr findTypeIdByPrefix(const TTypes& types, const StringPtr& prefix);
     StringPtr getSelectedTransport(const std::string& section, const StringPtr& typeId, const std::string& addConfigName) const;
     StringPtr getDeviceTransport(const ModuleManagerUtilsPtr& managerUtils) const;
-    static StringPtr replaceConnectionStringPort(const StringPtr& connectionString, Int port);
     void completeStreamingConnections(const MirroredDeviceConfigPtr& topDevice);
     void attachStreamingToDevice(const MirroredDeviceConfigPtr& device);
     std::unordered_map<std::string, ListPtr<IAddressInfo>> buildDiscoveredStreamingAddrsByProtocol(const MirroredDeviceConfigPtr& device);
@@ -530,40 +530,6 @@ inline StringPtr StreamingSourceManager::getDeviceTransport(const ModuleManagerU
     return getSelectedTransport("Device", deviceTypeId, "AddDeviceConfig");
 }
 
-// Sets the port of a "prefix://host[:port][/path]" connection string
-inline StringPtr StreamingSourceManager::replaceConnectionStringPort(const StringPtr& connectionString, Int port)
-{
-    if (!connectionString.assigned())
-        return connectionString;
-
-    const std::string url = connectionString.toStdString();
-    const auto separator = url.find("://");
-    if (separator == std::string::npos)
-        return connectionString;
-
-    const auto hostStart = separator + 3;
-    const auto hostEnd = std::min(url.find_first_of("/?#", hostStart), url.size());
-    const auto authority = url.substr(hostStart, hostEnd - hostStart);
-
-    std::string host;
-    if (!authority.empty() && authority.front() == '[')
-    {
-        const auto bracketEnd = authority.find(']');
-        if (bracketEnd == std::string::npos)
-            return connectionString;
-        host = authority.substr(0, bracketEnd + 1);
-    }
-    else
-    {
-        // an IPv6 address without brackets cannot carry a port
-        if (std::count(authority.begin(), authority.end(), ':') > 1)
-            return connectionString;
-        host = authority.substr(0, authority.find(':'));
-    }
-
-    return String(fmt::format("{}{}:{}{}", url.substr(0, hostStart), host, port, url.substr(hostEnd)));
-}
-
 inline void StreamingSourceManager::completeStreamingConnections(const MirroredDeviceConfigPtr& topDevice)
 {
     if (minHopsStreamingHeuristicEnabled)
@@ -657,7 +623,7 @@ inline void StreamingSourceManager::attachStreamingToDevice(const MirroredDevice
             const Int port = capabilityTransports.get(transport);
             auto connectionStrings = List<IString>();
             for (const auto& connectionString : streamingConnectionStrings)
-                connectionStrings.pushBack(replaceConnectionStringPort(connectionString, port));
+                connectionStrings.pushBack(ReplaceConnectionStringPort(connectionString, port));
             streamingConnectionStrings = connectionStrings;
         }
 

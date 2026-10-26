@@ -56,7 +56,8 @@ InstancePtr createClientInstance()
 }
 
 /// @brief a server which advertises itself over mDNS, under a path unique to the calling test
-InstancePtr createDiscoverableServerInstance(const std::string& path, bool plainPortEnabled = true)
+/// @param serialNumber when set, the root device carries it, so that the server is found as "daq://openDAQ_<serial>"
+InstancePtr createDiscoverableServerInstance(const std::string& path, bool plainPortEnabled = true, const std::string& serialNumber = "")
 {
     auto instance = InstanceBuilder()
                         .setModulePath("[[none]]")
@@ -65,6 +66,12 @@ InstancePtr createDiscoverableServerInstance(const std::string& path, bool plain
                         .build();
 
     addRefDeviceModule(instance);
+    if (!serialNumber.empty())
+    {
+        auto rootConfig = PropertyObject();
+        rootConfig.addProperty(StringProperty("SerialNumber", serialNumber));
+        instance.setRootDevice("daqref://device0", rootConfig);
+    }
     instance.addDevice("daqref://device1");
     addNativeServerModule(instance);
 
@@ -588,6 +595,43 @@ TEST_F(NativeTlsTest, ConnectToDiscoveredServerOverTls)
 
     ASSERT_TRUE(device.assigned());
     ASSERT_GT(device.getSignalsRecursive().getCount(), 0u);
+}
+
+// a connection string taken from discovery carries the port of the default transport; the selected one's is used
+TEST_F(NativeTlsTest, DiscoveredConnectionStringFollowsSelectedTransport)
+{
+    const std::string path = "/test/native_tls/discovered_selected_transport/";
+    auto server = createDiscoverableServerInstance(path);
+    auto client = createClientInstance();
+
+    const auto found = discoverNativeCapabilities(client, path, {ConfigId});
+    ASSERT_EQ(found.count(ConfigId), 1u);
+
+    const StringPtr connectionString = found.at(ConfigId).getConnectionString();
+    ASSERT_NE(connectionString.toStdString().find(":" + std::to_string(PlainPort)), std::string::npos) << connectionString;
+
+    auto device = client.addDevice(connectionString, secureClientConfig(client, ConfigId));
+
+    const auto connectionInfo = device.getInfo().getConfigurationConnectionInfo();
+    ASSERT_EQ(connectionInfo.getPort(), TlsPort);
+    ASSERT_EQ(connectionInfo.getAvailableTransports().getKeyList(), List<IString>("tls"));
+}
+
+TEST_F(NativeTlsTest, SmartConnectionFollowsSelectedTransport)
+{
+    const std::string path = "/test/native_tls/smart_selected_transport/";
+    const std::string serialNumber = "NativeTlsSmartConnection";
+    auto server = createDiscoverableServerInstance(path, /*plainPortEnabled*/ true, serialNumber);
+    auto client = createClientInstance();
+
+    const auto found = discoverNativeCapabilities(client, path, {ConfigId});
+    ASSERT_EQ(found.count(ConfigId), 1u);
+
+    auto device = client.addDevice("daq://openDAQ_" + serialNumber, secureClientConfig(client, ConfigId));
+
+    const auto connectionInfo = device.getInfo().getConfigurationConnectionInfo();
+    ASSERT_EQ(connectionInfo.getPort(), TlsPort);
+    ASSERT_EQ(connectionInfo.getAvailableTransports().getKeyList(), List<IString>("tls"));
 }
 
 TEST_F(NativeTlsTest, DiscoveringTlsOnlyServer)

@@ -36,6 +36,8 @@
 #include <opendaq/network_interface_factory.h>
 #include <opendaq/component_private_ptr.h>
 #include <opendaq/component_type_private_ptr.h>
+#include <opendaq/add_component_config_ptr.h>
+#include <opendaq/connection_string_utils.h>
 #include <opendaq/authentication_method_ptr.h>
 #include <opendaq/authentication_method_internal_ptr.h>
 #include <opendaq/authentication_config_ptr.h>
@@ -912,6 +914,9 @@ ErrCode ModuleManagerImpl::createDeviceInternal(IDevice** device, IString* conne
             connectionStringPtr = resolveSmartConnectionString(connectionStringPtr, discoveredDeviceInfo, generalConfig, loggerComponent);
         }
 
+        // set when the connection string was taken from discovery
+        const ServerCapabilityPtr discoveredCapability = findDiscoveredCapability(connectionStringPtr, discoveredDeviceInfo);
+
         for (const auto& library : libraries)
         {
             const auto deviceType = getDeviceTypeFromConnectionString(connectionStringPtr, library.module);
@@ -929,6 +934,7 @@ ErrCode ModuleManagerImpl::createDeviceInternal(IDevice** device, IString* conne
 
             // copy props from input config and connection string to device type config
             const auto deviceTypeConfig = PopulateDeviceTypeConfig(addDeviceConfig, inputConfig, deviceType, connectionStringOptions);
+            const auto deviceConnectionString = applySelectedTransportPort(connectionStringPtr, discoveredCapability, deviceTypeConfig);
 
             // Any supported authentication method - field-less (e.g. "Anonymous") included - goes through
             // `createAuthenticatedDevice`; `createDevice` is only for a type with none supported at all.
@@ -940,7 +946,7 @@ ErrCode ModuleManagerImpl::createDeviceInternal(IDevice** device, IString* conne
             if (authenticationSupported)
             {
                 const auto credentialRequest = CredentialRequestBuilder()
-                                                   .setConnectionString(library.module.getCanonicalConnectionString(connectionStringPtr))
+                                                   .setConnectionString(library.module.getCanonicalConnectionString(deviceConnectionString))
                                                    .setAuthenticationMethod(resolvedAuthConfig.getSelectedAuthenticationMethod())
                                                    .setComponentType(deviceType)
                                                    .build();
@@ -950,11 +956,11 @@ ErrCode ModuleManagerImpl::createDeviceInternal(IDevice** device, IString* conne
                                            .setAuthenticationMethod(resolvedAuthConfig.getSelectedAuthenticationMethod())
                                            .setCredentials(credentials)
                                            .build();
-                err = library.module->createAuthenticatedDevice(device, connectionStringPtr, parent, deviceTypeConfig, loginParameters);
+                err = library.module->createAuthenticatedDevice(device, deviceConnectionString, parent, deviceTypeConfig, loginParameters);
             }
             else
             {
-                err = library.module->createDevice(device, connectionStringPtr, parent, deviceTypeConfig);
+                err = library.module->createDevice(device, deviceConnectionString, parent, deviceTypeConfig);
             }
 
             OPENDAQ_RETURN_IF_FAILED(err);
@@ -1633,6 +1639,74 @@ StringPtr ModuleManagerImpl::resolveSmartConnectionString(const StringPtr& input
 #endif
 
     return connectionString;
+}
+
+// The discovered capability whose connection strings include the given one - of the device found with a smart
+// connection string, or of any discovered device
+ServerCapabilityPtr ModuleManagerImpl::findDiscoveredCapability(const StringPtr& connectionString,
+                                                                const DeviceInfoPtr& discoveredDeviceInfo) const
+{
+    const auto findIn = [&connectionString](const DeviceInfoPtr& info) -> ServerCapabilityPtr
+    {
+        for (const auto& capability : info.getServerCapabilities())
+        {
+            for (const auto& capabilityConnectionString : capability.getConnectionStrings())
+            {
+                if (capabilityConnectionString == connectionString)
+                    return capability;
+            }
+
+            for (const auto& addressInfo : capability.getAddressInfo())
+            {
+                if (addressInfo.getConnectionString() == connectionString)
+                    return capability;
+            }
+        }
+
+        return nullptr;
+    };
+
+    if (discoveredDeviceInfo.assigned())
+        return findIn(discoveredDeviceInfo);
+
+    if (!availableDevicesGroup.assigned())
+        return nullptr;
+
+    for (const auto& [_, info] : availableDevicesGroup)
+    {
+        if (const auto capability = findIn(info); capability.assigned())
+            return capability;
+    }
+
+    return nullptr;
+}
+
+// A connection string taken from discovery carries the port of the capability's default transport. When the
+// add-device config selects another transport the capability offers, the port of that transport is used instead.
+StringPtr ModuleManagerImpl::applySelectedTransportPort(const StringPtr& connectionString,
+                                                        const ServerCapabilityPtr& discoveredCapability,
+                                                        const PropertyObjectPtr& deviceTypeConfig) const
+{
+    if (!discoveredCapability.assigned() || !deviceTypeConfig.assigned() || !deviceTypeConfig.hasProperty("AddDeviceConfig"))
+        return connectionString;
+
+    const auto addConfig = deviceTypeConfig.getPropertyValue("AddDeviceConfig").asPtrOrNull<IAddComponentConfig, AddComponentConfigPtr>();
+    const StringPtr transport = addConfig.assigned() ? addConfig.getTransport() : nullptr;
+    const auto transports = discoveredCapability.getAvailableTransports();
+    if (!transport.assigned() || !transports.assigned() || transports.getCount() == 0)
+        return connectionString;
+
+    if (!transports.hasKey(transport))
+    {
+        LOG_W("The discovered capability [{}] of {} does not offer the transport '{}' selected in the add-device config, "
+              "connecting as is",
+              discoveredCapability.getProtocolId(),
+              connectionString,
+              transport);
+        return connectionString;
+    }
+
+    return ReplaceConnectionStringPort(connectionString, transports.get(transport));
 }
 
 DeviceTypePtr ModuleManagerImpl::getDeviceTypeFromConnectionString(const StringPtr& connectionString, const ModulePtr& module) const

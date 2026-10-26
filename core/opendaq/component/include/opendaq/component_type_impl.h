@@ -40,7 +40,7 @@ public:
                                       const StringPtr& description,
                                       const PropertyObjectPtr& defaultConfig,
                                       const DictPtr<IString, IAuthenticationMethod>& supportedAuthenticationMethods = Dict<IString, IAuthenticationMethod>(),
-                                      const DictPtr<IString, IInteger>& transports = nullptr);
+                                      const DictPtr<IString, IInteger>& transports = Dict<IString, IInteger>());
 
     explicit GenericComponentTypeImpl(const StructTypePtr& type,
                                       const StringPtr& id,
@@ -49,7 +49,7 @@ public:
                                       const StringPtr& prefix,
                                       const PropertyObjectPtr& defaultConfig,
                                       const DictPtr<IString, IAuthenticationMethod>& supportedAuthenticationMethods = Dict<IString, IAuthenticationMethod>(),
-                                      const DictPtr<IString, IInteger>& transports = nullptr);
+                                      const DictPtr<IString, IInteger>& transports = Dict<IString, IInteger>());
 
     ErrCode INTERFACE_FUNC getId(IString** id) override;
     ErrCode INTERFACE_FUNC getName(IString** name) override;

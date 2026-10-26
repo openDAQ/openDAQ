@@ -87,6 +87,11 @@ daqErrCode daqDeviceUpdateOptions_getChildDeviceOptions(daqDeviceUpdateOptions* 
     return reinterpret_cast<daq::IDeviceUpdateOptions*>(self)->getChildDeviceOptions(reinterpret_cast<daq::IList**>(childDeviceOptions));
 }
 
+daqErrCode daqDeviceUpdateOptions_getAuthenticationConfig(daqDeviceUpdateOptions* self, daqAuthenticationConfig** authenticationConfig)
+{
+    return reinterpret_cast<daq::IDeviceUpdateOptions*>(self)->getAuthenticationConfig(reinterpret_cast<daq::IAuthenticationConfig**>(authenticationConfig));
+}
+
 daqErrCode daqDeviceUpdateOptions_createDeviceUpdateOptions(daqDeviceUpdateOptions** obj, daqString* setupString)
 {
     daq::IDeviceUpdateOptions* ptr = nullptr;

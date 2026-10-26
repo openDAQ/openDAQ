@@ -581,6 +581,10 @@ inline void StreamingSourceManager::attachStreamingToDevice(const MirroredDevice
         device.addStreamingSource(establishedStreaming);
         LOG_I("Device {} has automatically added streaming connection {}", device.getGlobalId(), establishedStreaming.getConnectionString());
     }
+    else
+    {
+        LOG_W("Device {} failed to automatically add streaming connection for {} protocol", device.getGlobalId(), requiredStreamingProtocolId);
+    }
 }
 
 inline std::unordered_map<std::string, ListPtr<IAddressInfo>>

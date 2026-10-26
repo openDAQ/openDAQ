@@ -66,6 +66,7 @@ template <class F>
 daq::ErrCode PyQueuedEventHandlerImpl<F>::toString(daq::CharPtr* str)
 {
     OPENDAQ_PARAM_NOT_NULL(str);
+    PY_ACQUIRE_GIL_OR_RETURN();
 
     std::ostringstream os;
     os << "PyQueuedEventHandler<" << std::string(pybind11::repr(pyObject)) << ">(" << this->getReferenceCount() << " references)";   

@@ -6,11 +6,13 @@ BEGIN_NAMESPACE_OPENDAQ
 MultiReader2InputStatusImpl::MultiReader2InputStatusImpl(const ComponentPtr& input,
                                                          MultiReader2InputError error,
                                                          bool descriptorChanged,
-                                                         const DataDescriptorPtr& descriptor)
+                                                         const DataDescriptorPtr& descriptor,
+                                                         SizeT sampleSize)
     : input(input)
     , error(error)
     , descriptorChanged(descriptorChanged)
     , descriptor(descriptor)
+    , sampleSize(sampleSize)
 {
 }
 
@@ -45,23 +47,33 @@ ErrCode MultiReader2InputStatusImpl::getDescriptor(IDataDescriptor** descriptor)
 ErrCode MultiReader2InputStatusImpl::getSampleSize(SizeT* size)
 {
     OPENDAQ_PARAM_NOT_NULL(size);
-    // TODO(spec B3): bytes per sample under the descriptor on this status; 0 for an input in error
-    return OPENDAQ_ERR_NOTIMPLEMENTED;
+    *size = (this->error == MultiReader2InputError::None) ? this->sampleSize : 0;
+    return OPENDAQ_SUCCESS;
 }
 
 MultiReader2StatusImpl::MultiReader2StatusImpl(bool hasChanges,
-                                               bool valid,
+                                               ComponentStatus status,
+                                               const StringPtr& statusMessage,
                                                bool domainDescriptorChanged,
                                                const DataDescriptorPtr& domainDescriptor,
                                                bool resynchronized,
+                                               const ComponentPtr& mainInput,
                                                const ListPtr<IMultiReader2InputStatus>& inputs)
     : hasChanges(hasChanges)
-    , valid(valid)
+    , status(status)
+    , statusMessage(statusMessage)
     , domainDescriptorChanged(domainDescriptorChanged)
     , domainDescriptor(domainDescriptor)
     , resynchronized(resynchronized)
+    , mainInput(mainInput)
     , inputs(inputs)
 {
+    if (!this->statusMessage.assigned())
+        this->statusMessage = "";
+        
+    if (!this->inputs.assigned())
+        this->inputs = List<IMultiReader2InputStatus>();
+    this->inputs.freeze();
 }
 
 ErrCode MultiReader2StatusImpl::getHasChanges(Bool* hasChanges)
@@ -74,22 +86,22 @@ ErrCode MultiReader2StatusImpl::getHasChanges(Bool* hasChanges)
 ErrCode MultiReader2StatusImpl::getStatus(ComponentStatus* status)
 {
     OPENDAQ_PARAM_NOT_NULL(status);
-    // TODO(spec A3): Ok, Warning (inputs set aside under Exclude) or Error (invalid)
-    return OPENDAQ_ERR_NOTIMPLEMENTED;
+    *status = this->status;
+    return OPENDAQ_SUCCESS;
 }
 
 ErrCode MultiReader2StatusImpl::getStatusMessage(IString** message)
 {
     OPENDAQ_PARAM_NOT_NULL(message);
-    // TODO(spec A3, B2): empty under Ok, otherwise each input in error with its kind in slot order, SyncFailed with its cause
-    return OPENDAQ_ERR_NOTIMPLEMENTED;
+    *message = this->statusMessage.addRefAndReturn();
+    return OPENDAQ_SUCCESS;
 }
 
 ErrCode MultiReader2StatusImpl::getMainInput(IComponent** input)
 {
     OPENDAQ_PARAM_NOT_NULL(input);
-    // TODO(spec A2d): the main input in effect; null while invalid with an automatic main input, or without inputs
-    return OPENDAQ_ERR_NOTIMPLEMENTED;
+    *input = this->mainInput.addRefAndReturn();
+    return OPENDAQ_SUCCESS;
 }
 
 ErrCode MultiReader2StatusImpl::getDomainDescriptorChanged(Bool* changed)

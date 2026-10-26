@@ -16,12 +16,11 @@
 #pragma once
 #include <coretypes/intfs.h>
 #include <coretypes/listptr.h>
+#include <coretypes/string_ptr.h>
 #include <opendaq/component_ptr.h>
 #include <opendaq/data_descriptor_ptr.h>
 #include <opendaq/multi_reader2_input_status_ptr.h>
 #include <opendaq/multi_reader2_status.h>
-
-#include <vector>
 
 BEGIN_NAMESPACE_OPENDAQ
 
@@ -31,7 +30,8 @@ public:
     MultiReader2InputStatusImpl(const ComponentPtr& input,
                                 MultiReader2InputError error,
                                 bool descriptorChanged,
-                                const DataDescriptorPtr& descriptor);
+                                const DataDescriptorPtr& descriptor,
+                                SizeT sampleSize);
 
     // IMultiReader2InputStatus
     ErrCode INTERFACE_FUNC getInput(IComponent** input) override;
@@ -45,17 +45,19 @@ private:
     MultiReader2InputError error;
     bool descriptorChanged;
     DataDescriptorPtr descriptor;
+    SizeT sampleSize;
 };
 
-// TODO(spec A3): the constructor still takes `valid`; it has to take the status, the message and the main input
 class MultiReader2StatusImpl : public ImplementationOf<IMultiReader2Status>
 {
 public:
     MultiReader2StatusImpl(bool hasChanges,
-                           bool valid,
+                           ComponentStatus status,
+                           const StringPtr& statusMessage,
                            bool domainDescriptorChanged,
                            const DataDescriptorPtr& domainDescriptor,
                            bool resynchronized,
+                           const ComponentPtr& mainInput,
                            const ListPtr<IMultiReader2InputStatus>& inputs);
 
     // IMultiReader2Status
@@ -71,10 +73,12 @@ public:
 
 private:
     bool hasChanges;
-    bool valid;
+    ComponentStatus status;
+    StringPtr statusMessage;
     bool domainDescriptorChanged;
     DataDescriptorPtr domainDescriptor;
     bool resynchronized;
+    ComponentPtr mainInput;
     ListPtr<IMultiReader2InputStatus> inputs;
 };
 

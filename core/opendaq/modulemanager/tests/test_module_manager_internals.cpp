@@ -282,12 +282,16 @@ TEST_F(ModuleManagerInternalsTest, TestAuthenticator)
 {
     StringPtr fName;
     auto pathAuth = std::map<std::string, DictPtr<IString, IBaseObject>>();
+    std::string throwPath;
+    const auto errMsg = "Test Error Message";
 
     const auto authF = Function(
         [&](const StringPtr& f, const DictPtr<IString, IBaseObject>& params)
         {
             fName = f;
             auto path = StringPtr(params["BinaryPath"]);
+            if (path == throwPath)
+                DAQ_THROW_EXCEPTION(InvalidStateException, errMsg);
             auto it = pathAuth.find(path);
             if (it != pathAuth.end())
                 return it->second;
@@ -322,18 +326,15 @@ TEST_F(ModuleManagerInternalsTest, TestAuthenticator)
     pathAuth[modPath] = Dict<IString, IBaseObject>({{"BinaryValid", "True"}});  // should fail
     ASSERT_THROW(unauthorizedMod = manager.loadModule(modPath), NoInterfaceException);
     // error propagation from auth function
-    const auto errCode = OPENDAQ_ERR_INVALIDSTATE;
-    const auto errMsg = "Test Error Message";
-    modPath = GetMockModulePath(EMPTY_STRING_ID_MODULE_NAME).string();
-    pathAuth[modPath] = Dict<IString, IBaseObject>({{"ErrorCode", errCode}, {"ErrorMessage", errMsg}, {"BinaryValid", true}});
+    throwPath = GetMockModulePath(EMPTY_STRING_ID_MODULE_NAME).string();
     try
     {
-        unauthorizedMod = manager.loadModule(modPath);
+        unauthorizedMod = manager.loadModule(throwPath);
         FAIL();
     }
     catch (const DaqException& e)
     {
-        ASSERT_EQ(e.getErrCode(), errCode);
+        ASSERT_EQ(e.getErrCode(), OPENDAQ_ERR_INVALIDSTATE);
         ASSERT_NE(e.getErrorMessage().find(errMsg), std::string::npos);
     }
     // vendor keys

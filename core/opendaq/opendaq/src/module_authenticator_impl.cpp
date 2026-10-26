@@ -12,8 +12,6 @@ Bool FunctionModuleAuthenticatorImpl::onAuthenticateModuleBinary(StringPtr& vend
     auto params = Dict<IString, IBaseObject>();
     params["BinaryPath"] = binaryPath;
     DictPtr<IString, IBaseObject> ret = f("authenticateModuleBinary", params);
-    if (const auto errCode = static_cast<ErrCode>(ret.getOrDefault("ErrorCode", OPENDAQ_SUCCESS)); OPENDAQ_FAILED(errCode))
-        throwExceptionFromErrorCode(errCode, ret.getOrDefault("ErrorMessage", ""));
     vendorKey = ret.getOrDefault("VendorKey", nullptr);
     return BoolPtr(ret.getOrDefault("BinaryValid", false));
 }

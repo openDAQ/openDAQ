@@ -163,6 +163,58 @@ class TestGil(opendaq_test.TestCase):
         # Otherwise the worker wasn't releasing objects when Python started finalizing
         self.assertTrue(0 < int(match.group(1)) < count, out)
 
+    def test_worker_calls_py_function_at_exit(self):
+        out = self.run_scenario('''
+            import threading
+            import time
+
+            scheduler = opendaq.Scheduler(opendaq.Logger(opendaq.List(), opendaq.LogLevel.Info), 1)
+            started = threading.Event()
+
+            class Running:
+                def __call__(self):
+                    started.set()
+                    # The main thread exits meanwhile and waits for this callback
+                    time.sleep(1)
+                    print('running completed', flush=True)
+
+            class Pending:
+                def __call__(self):
+                    print('pending called', flush=True)
+
+            running = scheduler.schedule_function(opendaq.Function(Running()))
+            pending = scheduler.schedule_function(opendaq.Function(Pending()))
+            started.wait()
+        ''')
+        self.assertIn('running completed', out)
+        self.assertNotIn('pending called', out)
+
+    def test_py_function_releases_py_object_at_exit(self):
+        out = self.run_scenario('''
+            import threading
+            import time
+
+            scheduler = opendaq.Scheduler(opendaq.Logger(opendaq.List(), opendaq.LogLevel.Info), 1)
+            started = threading.Event()
+
+            class Item:
+                def __del__(self):
+                    print('item released', flush=True)
+
+            class Running:
+                def __call__(self):
+                    started.set()
+                    # The main thread exits meanwhile and waits for this callback
+                    time.sleep(1)
+                    property_object.set_property_value('list', [Item()])
+                    # Releases the wrapped item while Python waits for this callback
+                    property_object.set_property_value('list', [])
+
+            running = scheduler.schedule_function(opendaq.Function(Running()))
+            started.wait()
+        ''')
+        self.assertIn('item released', out)
+
     def test_wrapped_py_object_released_in_module_teardown(self):
         with tempfile.TemporaryDirectory() as directory:
             path = os.path.join(directory, 'out.txt')

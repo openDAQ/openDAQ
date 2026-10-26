@@ -29,8 +29,8 @@ BEGIN_NAMESPACE_OPENDAQ
 
 enum class LockingStrategy : EnumType
 {
-    OwnLock = 0,        // Object locks its own mutex.
-    InheritLock,        // Object locks the mutex of the nearest ancestor with the OwnLock strategy.
+    OwnLock = 0,        // Object locks its own mutex. The default for components.
+    InheritLock,        // Object locks its owner's mutex, or its own while it has no owner. The default for property objects.
     ForwardOwnerLockOwn // Object locks its own mutex, but forwards the `getMutexOwner` request to its owner/parent.
 };
 
@@ -59,7 +59,11 @@ DECLARE_OPENDAQ_INTERFACE(IPropertyObjectInternal, IBaseObject)
     virtual ErrCode INTERFACE_FUNC clearPropertyValueNoLock(IString* name) = 0;
 
     /*!
-     *  @brief Gets a lock guard that locks the object's mutex.
+     *  @brief Gets a lock guard that locks the object's mutex without recursion.
+     *
+     *  While it is held, the thread must not call a method that takes the object's lock: the property value
+     *  getters and setters, `getProperty`, `hasProperty`, `getAllProperties` and `getVisibleProperties` all do,
+     *  so only their `NoLock` variants may be used. `clone` has no `NoLock` variant.
      */
     virtual ErrCode INTERFACE_FUNC getLockGuard(ILockGuard** lockGuard) = 0;
 
@@ -72,12 +76,14 @@ DECLARE_OPENDAQ_INTERFACE(IPropertyObjectInternal, IBaseObject)
 
     /*!
      * @brief Sets the locking strategy of the object. The locking strategy must be set before the
-     * object gets and owner is added to a parent folder.
+     * object gets an owner or is added to a parent folder.
+     *
+     * Property objects default to `InheritLock`, so an object stored in an object-type property shares the
+     * lock of the object that holds it. Components default to `OwnLock`. A clone keeps the strategy of its source.
      */
     virtual ErrCode INTERFACE_FUNC setLockingStrategy(LockingStrategy strategy) = 0;
     /*!
-     * @brief Gets the locking strategy of the object. The locking strategy must be set before the
-     * object gets and owner is added to a parent folder.
+     * @brief Gets the locking strategy of the object.
      */
     virtual ErrCode INTERFACE_FUNC getLockingStrategy(LockingStrategy* strategy) = 0;
     /*!
@@ -90,6 +96,42 @@ DECLARE_OPENDAQ_INTERFACE(IPropertyObjectInternal, IBaseObject)
      * strategy is not `OwnLock`, returns the closest ancestor with the `OwnLock` strategy.
      */
     virtual ErrCode INTERFACE_FUNC getMutexOwner(IPropertyObjectInternal** owner) = 0;
+
+    /*!
+     * @brief Gets a property as `IPropertyObject::getProperty` does, without locking the object's mutex.
+     * @param propertyName The name of the property. Child properties are addressed with a dot ("Child.Value").
+     * @param[out] property The property, bound to the object.
+     *
+     * Call it only while holding the object's lock.
+     */
+    virtual ErrCode INTERFACE_FUNC getPropertyNoLock(IString* propertyName, IProperty** property) = 0;
+
+    // [elementType(properties, IProperty)]
+    /*!
+     * @brief Gets all properties as `IPropertyObject::getAllProperties` does, without locking the object's mutex.
+     * @param[out] properties The list of properties, bound to the object.
+     *
+     * Call it only while holding the object's lock.
+     */
+    virtual ErrCode INTERFACE_FUNC getAllPropertiesNoLock(IList** properties) = 0;
+
+    /*!
+     * @brief Checks for a property as `IPropertyObject::hasProperty` does, without locking the object's mutex.
+     * @param propertyName The name of the property. Child properties are addressed with a dot ("Child.Value").
+     * @param[out] hasProperty True if the property exists.
+     *
+     * Call it only while holding the object's lock.
+     */
+    virtual ErrCode INTERFACE_FUNC hasPropertyNoLock(IString* propertyName, Bool* hasProperty) = 0;
+
+    // [elementType(properties, IProperty)]
+    /*!
+     * @brief Gets the visible properties as `IPropertyObject::getVisibleProperties` does, without locking the object's mutex.
+     * @param[out] properties The list of visible properties, bound to the object.
+     *
+     * Call it only while holding the object's lock.
+     */
+    virtual ErrCode INTERFACE_FUNC getVisiblePropertiesNoLock(IList** properties) = 0;
 };
 
 /*!@}*/

@@ -246,6 +246,9 @@ ComponentImpl<Intf, Intfs...>::ComponentImpl(
                   triggerCoreEvent(args);
           }))
 {
+    // Plain property objects inherit their owner's lock; a component has its own unless its container sets otherwise
+    checkErrorInfo(this->setLockingStrategy(LockingStrategy::OwnLock));
+
     if (!localId.assigned() || localId.toStdString().empty())
         DAQ_THROW_EXCEPTION(GeneralErrorException, "Local id not assigned");
 
@@ -933,26 +936,35 @@ ErrCode ComponentImpl<Intf, Intfs...>::findComponent(IString* id, IComponent** o
 template<class Intf, class ... Intfs>
 ErrCode ComponentImpl<Intf, Intfs ...>::remove()
 {
-    {
-        auto lock = this->getRecursiveConfigLock2();
-
-        if (isComponentRemoved)
-            return OPENDAQ_IGNORED;
-
-        isComponentRemoved = true;
-
-        if (active)
+    const ErrCode errCode = daqTry(
+        [this]
         {
-            localActive = false;
-            updateActive();
-        }
+            auto lock = this->getRecursiveConfigLock2();
 
-        this->disableCoreEventTrigger();
-        removed();
-    }
+            if (isComponentRemoved)
+                return OPENDAQ_IGNORED;
 
-    removedNoLock();
-    return OPENDAQ_SUCCESS;
+            isComponentRemoved = true;
+
+            if (active)
+            {
+                localActive = false;
+                updateActive();
+            }
+
+            this->disableCoreEventTrigger();
+            removed();
+            return OPENDAQ_SUCCESS;
+        });
+    if (OPENDAQ_FAILED(errCode) || errCode == OPENDAQ_IGNORED)
+        return errCode;
+
+    return daqTry(
+        [this]
+        {
+            removedNoLock();
+            return OPENDAQ_SUCCESS;
+        });
 }
 
 template<class Intf, class ... Intfs>

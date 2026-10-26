@@ -770,21 +770,21 @@ TEST_F(ConfigProtocolIntegrationTest, DeviceInfoNotChangeableField)
     {
         ASSERT_ANY_THROW(serverDeviceInfo.setPropertyValue("manufacturer", "server_manufacturer"));
         ASSERT_EQ("manufacturer", serverDeviceInfo.getManufacturer());
-        ASSERT_EQ("manufacturer", clientDeviceInfo.getManufacturer());
+        ASSERT_EQ(serverDeviceInfo.getManufacturer(), clientDeviceInfo.getManufacturer());
 
         serverDeviceInfo.asPtr<IPropertyObjectProtected>(true).setProtectedPropertyValue("manufacturer", "server_manufacturer_2");
         ASSERT_EQ("server_manufacturer_2", serverDeviceInfo.getManufacturer());
-        ASSERT_EQ("manufacturer", clientDeviceInfo.getManufacturer());
+        ASSERT_EQ(serverDeviceInfo.getManufacturer(), clientDeviceInfo.getManufacturer());
 
         ASSERT_ANY_THROW(serverDeviceInfo.asPtr<IDeviceInfoConfig>(true).setManufacturer("server_manufacturer_3"));
         ASSERT_EQ("server_manufacturer_2", serverDeviceInfo.getManufacturer());
-        ASSERT_EQ("manufacturer", clientDeviceInfo.getManufacturer());
+        ASSERT_EQ(serverDeviceInfo.getManufacturer(), clientDeviceInfo.getManufacturer());
     }
 
     {
         ASSERT_ANY_THROW(clientDeviceInfo.setPropertyValue("manufacturer", "client_manufacturer"));
         ASSERT_EQ("server_manufacturer_2", serverDeviceInfo.getManufacturer());
-        ASSERT_EQ("manufacturer", clientDeviceInfo.getManufacturer());
+        ASSERT_EQ(serverDeviceInfo.getManufacturer(), clientDeviceInfo.getManufacturer());
 
         clientDeviceInfo.asPtr<IPropertyObjectProtected>(true).setProtectedPropertyValue("manufacturer", "client_manufacturer_2");
         ASSERT_EQ("server_manufacturer_2", serverDeviceInfo.getManufacturer());

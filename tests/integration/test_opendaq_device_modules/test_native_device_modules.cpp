@@ -1432,17 +1432,11 @@ TEST_F(NativeDeviceModulesTest, TestDiscoveryReachabilityAfterConnect)
         {
             ASSERT_EQ(addressInfo.getConnectionString(), capability.getConnectionStrings()[index]);
             ASSERT_EQ(addressInfo.getAddress(), capability.getAddresses()[index]);
-            if (addressInfo.getType() == "IPv4")
+            // The address used to connect is Reachable; other IPv4 ones depend on the ICMP ping, which needs root
+            if (addressInfo.getConnectionString() == capability.getConnectionString())
             {
-                // Only the address actually used to connect is guaranteed Reachable - marked so by
-                // completeServerCapabilities() upon a successful connection. Verifying any other
-                // IPv4 address requires an ICMP ping, which needs root and is unavailable here, so
-                // on a multi-homed machine those legitimately stay Unknown.
-                if (addressInfo.getConnectionString() == capability.getConnectionString())
-                {
-                    ASSERT_EQ(addressInfo.getReachabilityStatus(), AddressReachabilityStatus::Reachable);
-                    cnt++;
-                }
+                ASSERT_EQ(addressInfo.getReachabilityStatus(), AddressReachabilityStatus::Reachable);
+                cnt++;
             }
             else if (addressInfo.getType() == "IPv6")
             {
@@ -3397,8 +3391,9 @@ TEST_F(NativeDeviceModulesTest, ConnectedClientsInfoNotSavedLoaded)
         auto client = CreateClientInstance();
         auto client2 = CreateClientInstance();
 
-        auto clientSideClientsInfo = client.getDevices()[0].getInfo().getConnectedClientsInfo();
-        ASSERT_EQ(clientSideClientsInfo.getCount(), 4u);
+        // the client's list mirrors the server's and receives client2's entry asynchronously
+        const auto clientDeviceInfo = client.getDevices()[0].getInfo();
+        ASSERT_TRUE(test_helpers::waitFor([&] { return clientDeviceInfo.getConnectedClientsInfo().getCount() == 4u; }));
 
         config = client.saveConfiguration();
     }
@@ -3409,8 +3404,9 @@ TEST_F(NativeDeviceModulesTest, ConnectedClientsInfoNotSavedLoaded)
     addNativeClientModule(restoredClient);
     ASSERT_NO_THROW(restoredClient.loadConfiguration(config));
 
-    auto clientSideClientsInfo = restoredClient.getDevices()[0].getInfo().getConnectedClientsInfo();
-    ASSERT_EQ(clientSideClientsInfo.getCount(), 2u);
+    const auto restoredDeviceInfo = restoredClient.getDevices()[0].getInfo();
+    ASSERT_TRUE(test_helpers::waitFor([&] { return restoredDeviceInfo.getConnectedClientsInfo().getCount() == 2u; }));
+    auto clientSideClientsInfo = restoredDeviceInfo.getConnectedClientsInfo();
 
     auto serverSideClientsInfo = server.getRootDevice().getInfo().getConnectedClientsInfo();
     ASSERT_EQ(serverSideClientsInfo.getCount(), 2u);
@@ -5151,116 +5147,52 @@ TEST_F(NativeDeviceModulesTest, GatewayStreamingConnection)
     }
 }
 
-TEST_F(NativeDeviceModulesTest, ParallelRpcCalls)
+// Returns whether a write on the server's second device runs while the handler of a write on the first one waits
+static bool secondRpcRunsDuringFirst(Int rpcWorkerCount, std::chrono::milliseconds firstWriteWait)
 {
-    std::vector<Int> propertyWriteHistory;
+    std::promise<void> firstStarted;
+    std::future<void> firstStartedFuture = firstStarted.get_future();
+    std::promise<void> secondRan;
+    std::future<void> secondRanFuture = secondRan.get_future();
+    std::atomic<bool> secondRanDuringFirst = false;
 
-    auto createServerInstance = [&propertyWriteHistory]()
+    const InstancePtr server = test_helpers::instanceBuilder().addModulePath("").build();
+    auto first = server.addDevice("daqref://device0");
+    first.addProperty(IntProperty("Write", 0));
+    first.getOnPropertyValueWrite("Write") += [&](PropertyObjectPtr&, PropertyValueEventArgsPtr&)
     {
-        const InstancePtr instance = test_helpers::instanceBuilder().addModulePath("").build();
-
-        auto propertyWriteCallback = [&propertyWriteHistory](PropertyObjectPtr& obj, PropertyValueEventArgsPtr& args)
-        {
-            Int sleepMs = args.getValue();
-            std::this_thread::sleep_for(std::chrono::milliseconds(sleepMs));
-            propertyWriteHistory.push_back(sleepMs);
-        };
-
-        auto refDevice0 = instance.addDevice("daqref://device0");
-        refDevice0.addProperty(IntProperty("SleepAndAppend", 0));
-        refDevice0.getOnPropertyValueWrite("SleepAndAppend") += propertyWriteCallback;
-
-        auto refDevice1 = instance.addDevice("daqref://device1");
-        refDevice1.addProperty(IntProperty("SleepAndAppend", 0));
-        refDevice1.getOnPropertyValueWrite("SleepAndAppend") += propertyWriteCallback;
-
-        auto config = instance.getAvailableServerTypes().get("OpenDAQNativeStreaming").createDefaultConfig();
-        config.setPropertyValue("ConfigurationRpcWorkerCount", 2);
-        instance.addServer("OpenDAQNativeStreaming", config);
-        return instance;
+        firstStarted.set_value();
+        secondRanDuringFirst = secondRanFuture.wait_for(firstWriteWait) == std::future_status::ready;
     };
+    auto second = server.addDevice("daqref://device1");
+    second.addProperty(IntProperty("Write", 0));
+    second.getOnPropertyValueWrite("Write") += [&](PropertyObjectPtr&, PropertyValueEventArgsPtr&) { secondRan.set_value(); };
 
-    auto connectClient = [](const std::string& connectionString)
-    {
-        const InstancePtr instance = test_helpers::createInstance("");
-        instance.addDevice(connectionString);
-        return instance;
-    };
+    auto config = server.getAvailableServerTypes().get("OpenDAQNativeStreaming").createDefaultConfig();
+    config.setPropertyValue("ConfigurationRpcWorkerCount", rpcWorkerCount);
+    server.addServer("OpenDAQNativeStreaming", config);
 
-    auto serverInstance = createServerInstance();
-    auto clientInstance = connectClient("daq.nd://127.0.0.1");
+    const InstancePtr client = test_helpers::createInstance("");
+    const auto devices = client.addDevice("daq.nd://127.0.0.1").getDevices();
 
-    auto rootDevice = clientInstance.getDevices()[0];
-    auto devices = rootDevice.getDevices();
+    auto firstWrite = std::async(std::launch::async, [&devices] { devices[0].setPropertyValue("Write", 1); });
+    if (firstStartedFuture.wait_for(std::chrono::seconds(10)) != std::future_status::ready)
+        throw std::runtime_error("the first write never reached the server");
+    devices[1].setPropertyValue("Write", 1);
+    firstWrite.get();
 
-    std::vector<std::thread> threads;
-
-    threads.push_back(std::thread([devices]() { devices[0].setPropertyValue("SleepAndAppend", 500); }));
-    std::this_thread::sleep_for(std::chrono::milliseconds(100));
-    threads.push_back(std::thread([devices]() { devices[1].setPropertyValue("SleepAndAppend", 100); }));
-
-    for (auto& thread : threads)
-        thread.join();
-
-    // Device 1 should be the first to append a value of 100 to the list. After 300 ms device 0 should follow with value of 500
-    ASSERT_EQ(propertyWriteHistory.size(), 2u);
-    ASSERT_EQ(propertyWriteHistory[0], 100);
-    ASSERT_EQ(propertyWriteHistory[1], 500);
+    return secondRanDuringFirst;
 }
 
+TEST_F(NativeDeviceModulesTest, ParallelRpcCalls)
+{
+    ASSERT_TRUE(secondRpcRunsDuringFirst(2, std::chrono::seconds(5)));
+}
+
+// With one RPC worker, the default, calls run one at a time
 TEST_F(NativeDeviceModulesTest, ParallelRpcCallsDefault)
 {
-    std::vector<Int> propertyWriteHistory;
-
-    auto createServerInstance = [&propertyWriteHistory]()
-    {
-        const InstancePtr instance = test_helpers::instanceBuilder().addModulePath("").build();
-
-        auto propertyWriteCallback = [&propertyWriteHistory](PropertyObjectPtr& obj, PropertyValueEventArgsPtr& args)
-        {
-            Int sleepMs = args.getValue();
-            std::this_thread::sleep_for(std::chrono::milliseconds(sleepMs));
-            propertyWriteHistory.push_back(sleepMs);
-        };
-
-        auto refDevice0 = instance.addDevice("daqref://device0");
-        refDevice0.addProperty(IntProperty("SleepAndAppend", 0));
-        refDevice0.getOnPropertyValueWrite("SleepAndAppend") += propertyWriteCallback;
-
-        auto refDevice1 = instance.addDevice("daqref://device1");
-        refDevice1.addProperty(IntProperty("SleepAndAppend", 0));
-        refDevice1.getOnPropertyValueWrite("SleepAndAppend") += propertyWriteCallback;
-
-        instance.addServer("OpenDAQNativeStreaming", nullptr);
-        return instance;
-    };
-
-    auto connectClient = [](const std::string& connectionString)
-    {
-        const InstancePtr instance = test_helpers::createInstance("");
-        instance.addDevice(connectionString);
-        return instance;
-    };
-
-    auto serverInstance = createServerInstance();
-    auto clientInstance = connectClient("daq.nd://127.0.0.1");
-
-    auto rootDevice = clientInstance.getDevices()[0];
-    auto devices = rootDevice.getDevices();
-
-    std::vector<std::thread> threads;
-
-    threads.push_back(std::thread([devices]() { devices[0].setPropertyValue("SleepAndAppend", 500); }));
-    std::this_thread::sleep_for(std::chrono::milliseconds(100));
-    threads.push_back(std::thread([devices]() { devices[1].setPropertyValue("SleepAndAppend", 100); }));
-
-    for (auto& thread : threads)
-        thread.join();
-
-    // By default, RPC calls should be executed sequentially, so trigger order should be preserved
-    ASSERT_EQ(propertyWriteHistory.size(), 2u);
-    ASSERT_EQ(propertyWriteHistory[0], 500);
-    ASSERT_EQ(propertyWriteHistory[1], 100);
+    ASSERT_FALSE(secondRpcRunsDuringFirst(1, std::chrono::seconds(1)));
 }
 
 TEST_F(NativeDeviceModulesTest, CreateDynamicProperty1AndSetManufacturer)

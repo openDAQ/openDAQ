@@ -3139,3 +3139,47 @@ TEST_F(SignalTest, SetDomainDescriptorUnderLock)
     for (int i = 0; i < 10; ++i)
         signal.setPropertyValue("Test", i);
 }
+
+TEST_F(SignalTest, SetPrivateDomainOnPublicSignalFails)
+{
+    const auto signal = Signal(NullContext(), nullptr, "sig");
+    const auto domainSignal = Signal(NullContext(), nullptr, "time");
+    domainSignal.setPublic(False);
+
+    ASSERT_ERROR_CODE_EQ(signal->setDomainSignal(domainSignal), OPENDAQ_ERR_INVALIDPARAMETER);
+    ASSERT_FALSE(signal.getDomainSignal().assigned());
+
+    signal.setPublic(False);
+    ASSERT_NO_THROW(signal.setDomainSignal(domainSignal));
+    ASSERT_EQ(signal.getDomainSignal(), domainSignal);
+}
+
+TEST_F(SignalTest, SetPublicWithPrivateDomainFails)
+{
+    const auto signal = Signal(NullContext(), nullptr, "sig");
+    const auto domainSignal = Signal(NullContext(), nullptr, "time");
+    signal.setPublic(False);
+    domainSignal.setPublic(False);
+    signal.setDomainSignal(domainSignal);
+
+    ASSERT_ERROR_CODE_EQ(signal->setPublic(True), OPENDAQ_ERR_INVALIDPARAMETER);
+    ASSERT_FALSE(signal.getPublic());
+
+    domainSignal.setPublic(True);
+    ASSERT_NO_THROW(signal.setPublic(True));
+    ASSERT_TRUE(signal.getPublic());
+}
+
+TEST_F(SignalTest, SetDomainPrivateWithPublicReferenceFails)
+{
+    const auto signal = Signal(NullContext(), nullptr, "sig");
+    const auto domainSignal = Signal(NullContext(), nullptr, "time");
+    signal.setDomainSignal(domainSignal);
+
+    ASSERT_ERROR_CODE_EQ(domainSignal->setPublic(False), OPENDAQ_ERR_INVALIDPARAMETER);
+    ASSERT_TRUE(domainSignal.getPublic());
+
+    signal.setPublic(False);
+    ASSERT_NO_THROW(domainSignal.setPublic(False));
+    ASSERT_FALSE(domainSignal.getPublic());
+}

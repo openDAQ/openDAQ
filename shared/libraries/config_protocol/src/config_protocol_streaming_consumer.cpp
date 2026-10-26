@@ -34,13 +34,7 @@ bool ConfigProtocolStreamingConsumer::isExternalSignal(const SignalPtr& signal)
 
 void ConfigProtocolStreamingConsumer::processClientToServerStreamingPacket(SignalNumericIdType signalNumericId, const PacketPtr& packet)
 {
-    MirroredSignalConfigPtr signal;
-    {
-        std::scoped_lock lock(sync);
-        if (const auto iter = mirroredExternalSignals.find(signalNumericId); iter != mirroredExternalSignals.end())
-            signal = iter->second;
-    }
-
+    const MirroredSignalConfigPtr signal = findExternalSignal(signalNumericId);
     if (signal.assigned())
     {
         Bool forwardPacket = True;
@@ -128,12 +122,9 @@ void ConfigProtocolStreamingConsumer::removeExternalSignals(const ParamsDictPtr&
     ListPtr<IInteger> signalNumericIdsList = params.get("SignalNumericIds");
     for (const auto& listItem : signalNumericIdsList)
     {
-        SignalNumericIdType signalNumericId = static_cast<SignalNumericIdType>(listItem);
-        if (const auto it = mirroredExternalSignals.find(signalNumericId); it != mirroredExternalSignals.end())
-        {
-            auto signal = it->second;
+        const SignalNumericIdType signalNumericId = static_cast<SignalNumericIdType>(listItem);
+        if (const auto signal = findExternalSignal(signalNumericId); signal.assigned())
             removeExternalSignal(signal, signalNumericId);
-        }
     }
 }
 
@@ -172,6 +163,17 @@ void ConfigProtocolStreamingConsumer::removeExternalSignal(const MirroredSignalC
     }
 }
 
+MirroredSignalConfigPtr ConfigProtocolStreamingConsumer::findExternalSignal(SignalNumericIdType signalNumericId)
+{
+    // Lookups run on the RPC worker threads as well as on the processing thread, so they must hold the same lock
+    // as the insert and erase. The lock is released before the signal is used: adding or removing a signal fires
+    // core events that re-enter isSignalOfConnectedClient() on the same thread.
+    std::scoped_lock lock(sync);
+    if (const auto iter = mirroredExternalSignals.find(signalNumericId); iter != mirroredExternalSignals.end())
+        return iter->second;
+    return nullptr;
+}
+
 MirroredSignalConfigPtr ConfigProtocolStreamingConsumer::getOrAddExternalSignal(const ParamsDictPtr& params)
 {
     const SignalNumericIdType domainSignalNumericId = params.get("DomainSignalNumericId");
@@ -184,28 +186,21 @@ MirroredSignalConfigPtr ConfigProtocolStreamingConsumer::getOrAddExternalSignal(
     MirroredSignalConfigPtr domainSignal;
     if (domainSignalNumericId != 0)
     {
-        if (const auto iter = mirroredExternalSignals.find(domainSignalNumericId); iter == mirroredExternalSignals.end())
+        domainSignal = findExternalSignal(domainSignalNumericId);
+        if (!domainSignal.assigned())
         {
             domainSignal = createMirroredExternalSignal(domainSignalStringId, domainSerializedSignal);
             addExternalSignal(domainSignal, domainSignalNumericId);
         }
-        else
-        {
-            domainSignal = iter->second;
-        }
     }
 
-    MirroredSignalConfigPtr signal;
-    if (const auto iter = mirroredExternalSignals.find(signalNumericId); iter == mirroredExternalSignals.end())
+    MirroredSignalConfigPtr signal = findExternalSignal(signalNumericId);
+    if (!signal.assigned())
     {
         signal = createMirroredExternalSignal(signalStringId, serializedSignal);
         if (domainSignal.assigned())
             signal.asPtr<IMirroredExternalSignalPrivate>()->assignDomainSignal(domainSignal);
         addExternalSignal(signal, signalNumericId);
-    }
-    else
-    {
-        signal = iter->second;
     }
 
     return signal;

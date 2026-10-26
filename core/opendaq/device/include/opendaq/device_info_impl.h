@@ -788,6 +788,8 @@ ErrCode DeviceInfoConfigImpl<TInterface, Interfaces...>::addServerCapability(ISe
     OPENDAQ_RETURN_IF_FAILED(err);
 
     const auto serverCapabilitiesPtr = serverCapabilities.asPtr<IPropertyObject>(true);
+    // Keeps a concurrent add or remove out between the duplicate check and the add
+    const auto lock = serverCapabilitiesPtr.asPtr<IPropertyObjectInternal>(true).getRecursiveLockGuard();
     for (const auto& prop : serverCapabilitiesPtr.getAllProperties())
     {
         if (prop.getValueType() != ctObject)
@@ -863,19 +865,17 @@ ErrCode DeviceInfoConfigImpl<TInterface, Interfaces...>::getServerCapability(ISt
     OPENDAQ_PARAM_NOT_NULL(protocolId);
     OPENDAQ_PARAM_NOT_NULL(capability);
 
-    Bool hasCap;
-    ErrCode err = this->hasServerCapability(protocolId, &hasCap);
-    OPENDAQ_RETURN_IF_FAILED(err);
-
-    if (!hasCap)
-        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOTFOUND, fmt::format(R"(Server capability with id "{}" not found.)", StringPtr::Borrow(protocolId)));
-    
     BaseObjectPtr obj;
     StringPtr str = "serverCapabilities";
-    err = this->getPropertyValue(str, &obj);
+    const ErrCode err = this->getPropertyValue(str, &obj);
     OPENDAQ_RETURN_IF_FAILED(err);
 
-    const auto serverCapabilitiesPtr = obj.asPtr<IPropertyObject>();
+    const auto serverCapabilitiesPtr = obj.asPtr<IPropertyObject>(true);
+    // A capability removed on another thread between the check and the read would fail the read
+    const auto lock = serverCapabilitiesPtr.asPtr<IPropertyObjectInternal>(true).getRecursiveLockGuard();
+    if (!serverCapabilitiesPtr.hasProperty(protocolId))
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOTFOUND, fmt::format(R"(Server capability with id "{}" not found.)", StringPtr::Borrow(protocolId)));
+
     *capability = serverCapabilitiesPtr.getPropertyValue(protocolId).asPtr<IServerCapability>().detach();
     return OPENDAQ_SUCCESS;
 }
@@ -892,6 +892,8 @@ ErrCode DeviceInfoConfigImpl<TInterface, Interfaces...>::getServerCapabilities(I
     OPENDAQ_RETURN_IF_FAILED(err);
 
     const auto serverCapabilitiesPtr = obj.asPtr<IPropertyObject>(true);
+    // Capabilities are added and removed on other threads between listing the properties and reading their values
+    const auto lock = serverCapabilitiesPtr.asPtr<IPropertyObjectInternal>(true).getRecursiveLockGuard();
     for (const auto& prop : serverCapabilitiesPtr.getAllProperties())
     {
         if (prop.getValueType() == ctObject)
@@ -1008,6 +1010,8 @@ ErrCode DeviceInfoConfigImpl<TInterface, Interfaces...>::getConnectedClientsInfo
     OPENDAQ_RETURN_IF_FAILED(err);
 
     const auto clientsInfoPtr = obj.asPtr<IPropertyObject>(true);
+    // Clients are added and removed on other threads between listing the properties and reading their values
+    const auto lock = clientsInfoPtr.asPtr<IPropertyObjectInternal>(true).getRecursiveLockGuard();
     for (const auto& prop : clientsInfoPtr.getAllProperties())
     {
         if (prop.getValueType() == ctObject)
@@ -1113,8 +1117,9 @@ ErrCode DeviceInfoConfigImpl<TInterface, Interfaces...>::updateInternal(ISeriali
 template <typename TInterface, typename ... Interfaces>
 PropertyObjectPtr DeviceInfoConfigImpl<TInterface, Interfaces...>::getOwnerOfProperty(const StringPtr& propertyName)
 {
+    // The NoLock overrides reach here, so the lookup takes no lock
     if (propertyName == "userName" || propertyName == "location")
-        if (!this->objPtr.getProperty(propertyName).getReadOnly())
+        if (!this->objPtr.template asPtr<IPropertyObjectInternal>(true).getPropertyNoLock(propertyName).template asPtr<IPropertyInternal>(true).getReadOnlyNoLock())
             return Super::getPropertyObjectParent();
     return nullptr;
 }

@@ -2,12 +2,16 @@
 #include <testutils/testutils.h>
 #include <gmock/gmock.h>
 #include <config_protocol/config_protocol_streaming_producer.h>
+#include <config_protocol/config_protocol_streaming_consumer.h>
+#include <config_protocol/config_mirrored_ext_sig_impl.h>
 #include <opendaq/gmock/signal.h>
 #include <opendaq/context_factory.h>
 #include <opendaq/gmock/component.h>
 #include <opendaq/packet_factory.h>
+#include <atomic>
 #include <future>
 #include <queue>
+#include <thread>
 #include "opendaq/mock/advanced_components_setup_utils.h"
 
 #include <coreobjects/user_factory.h>
@@ -221,6 +225,74 @@ TEST_F(StreamingProducerTest, SignalMultipleConnections)
 
 using ConfigServerPtr = std::unique_ptr<ConfigProtocolServer>;
 using ConfigClientPtr = std::unique_ptr<ConfigProtocolClient<ConfigClientDeviceImpl>>;
+
+// With the native streaming server's RPC worker pool enabled, ConnectExternalSignal runs on a worker thread while
+// RemoveExternalSignals runs on the processing thread, both against the same consumer. The connect thread grows the
+// signal map (rehashing it), the lookup thread spins on lookups of IDs that are not there yet, and the remove thread
+// erases every second signal as soon as it is added.
+TEST(StreamingConsumerTest, ConcurrentConnectAndRemoveExternalSignals)
+{
+    const auto context = NullContext();
+    const SignalPtr sourceSignal = test_utils::createTestDevice().getDevices()[0].getChannels()[0].getSignals()[0];
+    const auto serializer = JsonSerializerWithVersion(2);
+    sourceSignal.serialize(serializer);
+    const StringPtr serializedSignal = serializer.getOutput();
+
+    const FolderConfigPtr externalSignalsFolder = test_utils::dummyExtSigFolder(context).asPtr<IFolderConfig>();
+    ConfigProtocolStreamingConsumer consumer(context, externalSignalsFolder);
+
+    constexpr SignalNumericIdType signalCount = 1000;
+    std::atomic<SignalNumericIdType> lastAdded{0};
+    std::atomic<bool> connectDone{false};
+
+    std::thread connectThread([&]
+    {
+        for (SignalNumericIdType id = 1; id <= signalCount; ++id)
+        {
+            consumer.getOrAddExternalSignal(ParamsDict({{"DomainSignalNumericId", 0},
+                                                        {"DomainSignalStringId", nullptr},
+                                                        {"DomainSerializedSignal", nullptr},
+                                                        {"SignalNumericId", id},
+                                                        {"SignalStringId", String("sig" + std::to_string(id))},
+                                                        {"SerializedSignal", serializedSignal}}));
+            lastAdded = id;
+        }
+        connectDone = true;
+    });
+
+    std::thread lookupThread([&]
+    {
+        const auto absentIds = ParamsDict({{"SignalNumericIds", List<IInteger>(signalCount + 1, signalCount + 2)}});
+        while (!connectDone)
+            consumer.removeExternalSignals(absentIds);
+    });
+
+    std::thread removeThread([&]
+    {
+        SignalNumericIdType next = 2;
+        while (next <= signalCount)
+        {
+            if (next <= lastAdded)
+            {
+                consumer.removeExternalSignals(ParamsDict({{"SignalNumericIds", List<IInteger>(next)}}));
+                next += 2;
+            }
+            else
+            {
+                std::this_thread::yield();
+            }
+        }
+    });
+
+    connectThread.join();
+    lookupThread.join();
+    removeThread.join();
+
+    // Every odd-numbered signal is left, and no signal was lost or duplicated.
+    ASSERT_EQ(externalSignalsFolder.getItems().getCount(), signalCount / 2);
+    for (SignalNumericIdType id = 1; id <= signalCount; id += 2)
+        ASSERT_TRUE(externalSignalsFolder.hasItem(ConfigMirroredExternalSignalImpl::createLocalId("sig" + std::to_string(id))));
+}
 
 class AsyncRpcHelper
 {

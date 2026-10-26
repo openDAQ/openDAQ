@@ -1611,7 +1611,8 @@ void MultiReaderImpl::internalDispose(bool)
     if (removePorts)
     {
         for (const auto& reader : localSignals)
-            reader.port.remove();
+            if (OPENDAQ_FAILED(reader.port.asPtr<IRemovable>(true)->remove()))
+                daqClearErrorInfo();
     }
 }
 

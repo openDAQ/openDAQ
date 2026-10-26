@@ -634,6 +634,40 @@ TEST_F(NativeTlsTest, SmartConnectionFollowsSelectedTransport)
     ASSERT_EQ(connectionInfo.getAvailableTransports().getKeyList(), List<IString>("tls"));
 }
 
+// an explicit Port in the configuration wins over the port the server announces for the selected transport
+TEST_F(NativeTlsTest, PortFromConfigurationOverridesDiscoveredTransportPort)
+{
+    constexpr uint16_t listeningPort = 7500;
+    const std::string path = "/test/native_tls/discovered_explicit_port/";
+
+    // announces the TLS transport at its default port
+    auto discoverableServer = createDiscoverableServerInstance(path);
+
+    // the only server listening at the port named in the configuration
+    auto serverInstance = Instance("[[none]]");
+    addRefDeviceModule(serverInstance);
+    addNativeServerModule(serverInstance);
+    serverInstance.addDevice("daqref://device1");
+
+    auto serverConfig = secureServerConfig(serverInstance, /*mutualTls*/ false, /*plainPortEnabled*/ false);
+    serverConfig.setPropertyValue("NativeStreamingTlsPort", listeningPort);
+    serverConfig.setPropertyValue("Path", path);
+    serverInstance.addServer(ServerTypeId, serverConfig);
+
+    auto client = createClientInstance();
+
+    const auto found = discoverNativeCapabilities(client, path, {ConfigId});
+    ASSERT_EQ(found.count(ConfigId), 1u);
+    ASSERT_EQ(found.at(ConfigId).getAvailableTransports().get("tls"), TlsPort);
+
+    auto clientConfig = secureClientConfig(client, ConfigId);
+    clientConfig.setPropertyValue("Port", listeningPort);
+
+    auto device = client.addDevice(found.at(ConfigId).getConnectionString(), clientConfig);
+
+    ASSERT_EQ(device.getInfo().getConfigurationConnectionInfo().getAvailableTransports().get("tls"), listeningPort);
+}
+
 TEST_F(NativeTlsTest, DiscoveringTlsOnlyServer)
 {
     const std::string path = "/test/native_tls/discovery_tls_only/";

@@ -301,10 +301,7 @@ TEST_F(NativeStreamingServerModuleTest, PlaintextServerPublishesTwoCapabilities)
     const auto capabilities = device.getInfo().getServerCapabilities();
     ASSERT_EQ(capabilities.getCount(), 2u);
     for (const auto& capability : capabilities)
-    {
-        ASSERT_EQ(capability.getProtocolGroupId(), "NativeStreaming");
-        ASSERT_EQ(capability.getProtocolSecurityLevel(), 0);
-    }
+        ASSERT_EQ(capability.getAvailableTransports().getKeyList(), List<IString>("plain"));
 }
 
 // Opening the listener fails after the server has started its threads. The failure has to reach the

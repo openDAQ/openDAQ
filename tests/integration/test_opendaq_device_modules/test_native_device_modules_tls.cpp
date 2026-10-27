@@ -155,9 +155,6 @@ TEST_F(NativeTlsTest, ServerPublishesOneCapabilityPerProtocol)
         ASSERT_EQ(transports.get("plain"), PlainPort) << id;
         ASSERT_EQ(transports.get("tls"), TlsPort) << id;
         ASSERT_EQ(capability.getPort(), PlainPort) << id;
-
-        ASSERT_EQ(capability.getProtocolGroupId(), "NativeStreaming") << id;
-        ASSERT_EQ(capability.getProtocolSecurityLevel(), 0) << id;
     }
 }
 
@@ -178,7 +175,6 @@ TEST_F(NativeTlsTest, ConnectDeviceServerAuthentication)
     ASSERT_EQ(connectionInfo.getPrefix(), "daq.nd");
     ASSERT_EQ(connectionInfo.getAvailableTransports().getKeyList(), List<IString>("tls"));
     ASSERT_EQ(connectionInfo.getPort(), TlsPort);
-    ASSERT_EQ(connectionInfo.getProtocolSecurityLevel(), 10);
 }
 
 // no port in the connection string: the TLS transport has to fall back to its own default, not to
@@ -356,7 +352,6 @@ TEST_F(NativeTlsTest, TlsOnlyServer)
 
         ASSERT_EQ(capability.getAvailableTransports().getKeyList(), List<IString>("tls")) << capability.getProtocolId();
         ASSERT_EQ(capability.getPort(), TlsPort) << capability.getProtocolId();
-        ASSERT_EQ(capability.getProtocolSecurityLevel(), 10) << capability.getProtocolId();
     }
     ASSERT_EQ(ids, (std::set<std::string>{StreamingId, ConfigId}));
 
@@ -488,7 +483,7 @@ TEST_F(NativeTlsTest, CapabilitiesRemovedForTlsOnlyServer)
     const auto capabilities = instance.getInfo().getServerCapabilities();
     ASSERT_EQ(capabilities.getCount(), 2u);
     for (const auto& capability : capabilities)
-        ASSERT_EQ(capability.getProtocolSecurityLevel(), 10) << capability.getProtocolId();
+        ASSERT_EQ(capability.getAvailableTransports().getKeyList(), List<IString>("tls")) << capability.getProtocolId();
 
     instance.removeServer(server);
     ASSERT_EQ(instance.getInfo().getServerCapabilities().getCount(), 0u);
@@ -567,10 +562,8 @@ TEST_F(NativeTlsTest, DiscoveringServerWithBothChannels)
         ASSERT_EQ(transports.get("plain"), PlainPort) << id;
         ASSERT_EQ(transports.get("tls"), TlsPort) << id;
 
-        // the default transport decides the port, the connection strings and the security level
+        // the default transport decides the port and the connection strings
         ASSERT_EQ(capability.getPort(), PlainPort) << id;
-        ASSERT_EQ(capability.getProtocolSecurityLevel(), 0) << id;
-        ASSERT_EQ(capability.getProtocolGroupId(), "NativeStreaming") << id;
 
         const std::string connectionString = capability.getConnectionString().toStdString();
         ASSERT_NE(connectionString.find(":" + std::to_string(PlainPort)), std::string::npos)
@@ -684,7 +677,6 @@ TEST_F(NativeTlsTest, DiscoveringTlsOnlyServer)
     {
         ASSERT_EQ(capability.getAvailableTransports().getKeyList(), List<IString>("tls")) << id;
         ASSERT_EQ(capability.getPort(), TlsPort) << id;
-        ASSERT_EQ(capability.getProtocolSecurityLevel(), 10) << id;
     }
 }
 

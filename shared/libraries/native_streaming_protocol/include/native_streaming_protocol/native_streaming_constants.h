@@ -38,10 +38,6 @@ static constexpr const char* CONST_NATIVE_TRANSPORT_TLS = "tls";
 
 static constexpr const char* CONST_NATIVE_SERVER_TYPE_ID = "OpenDAQNativeStreaming";
 
-static constexpr const char* CONST_NATIVE_PROTOCOL_GROUP_ID = "NativeStreaming";
-static constexpr const int64_t CONST_NATIVE_SECURITY_LVL = 0;
-static constexpr const int64_t CONST_NATIVE_SECURE_SECURITY_LVL = 10;
-
 static constexpr const char* CONST_NATIVE_SERVICE_NAME = "_opendaq-streaming-native._tcp.local.";
 static constexpr const char* CONST_NATIVE_SERVICE_CAPABILITY = "OPENDAQ_NS";
 

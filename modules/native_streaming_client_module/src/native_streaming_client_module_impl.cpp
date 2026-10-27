@@ -479,8 +479,6 @@ DevicePtr NativeStreamingClientModule::onCreateDevice(const StringPtr& connectio
             .setAvailableTransports(transports)
             .setPrefix(CONST_NATIVE_STREAMING_PREFIX)
             .setConnectionString(connectionString)
-            .setProtocolGroupId(CONST_NATIVE_PROTOCOL_GROUP_ID)
-            .setProtocolSecurityLevel(secure ? CONST_NATIVE_SECURE_SECURITY_LVL : CONST_NATIVE_SECURITY_LVL)
             .addAddressInfo(addressInfo)
             .freeze();
     }
@@ -997,17 +995,13 @@ DictPtr<IString, IInteger> NativeStreamingClientModule::SupportedDiscoveredTrans
 DeviceInfoPtr NativeStreamingClientModule::populateDiscoveredConfigurationDevice(const MdnsDiscoveredDevice& discoveredDevice,
                                                                                const DictPtr<IString, IInteger>& transports)
 {
-    // the first transport is the default one, which the connection strings and the security level follow
-    const bool secure = transports.getKeyList().getItemAt(0) == CONST_NATIVE_TRANSPORT_TLS;
-
     auto cap = ServerCapability(CONST_NATIVE_CONFIG_ID, CONST_NATIVE_CONFIG_ID, ProtocolType::ConfigurationAndStreaming);
 
+    // the connection strings carry the port of the first (default) transport
     SetupProtocolAddresses(discoveredDevice, cap, CONST_NATIVE_CONFIG_PREFIX, transports.getValueList().getItemAt(0));
     cap.setAvailableTransports(transports);
     cap.setCoreEventsEnabled(true);
     cap.setProtocolVersion(discoveredDevice.getPropertyOrDefault("protocolVersion", ""));
-    cap.setProtocolGroupId(CONST_NATIVE_PROTOCOL_GROUP_ID);
-    cap.setProtocolSecurityLevel(secure ? CONST_NATIVE_SECURE_SECURITY_LVL : CONST_NATIVE_SECURITY_LVL);
     for (const auto& id : discovery_common::DiscoveryUtils::populateAuthenticationMethods(discoveredDevice.getPropertyOrDefault("authMethods", "")))
         cap.addAuthenticationMethod(id);
 
@@ -1018,15 +1012,11 @@ DeviceInfoPtr NativeStreamingClientModule::populateDiscoveredConfigurationDevice
 DeviceInfoPtr NativeStreamingClientModule::populateDiscoveredStreamingDevice(const MdnsDiscoveredDevice& discoveredDevice,
                                                                            const DictPtr<IString, IInteger>& transports)
 {
-    // the first transport is the default one, which the connection strings and the security level follow
-    const bool secure = transports.getKeyList().getItemAt(0) == CONST_NATIVE_TRANSPORT_TLS;
-
     auto cap = ServerCapability(CONST_NATIVE_STREAMING_ID, CONST_NATIVE_STREAMING_ID, ProtocolType::Streaming);
 
+    // the connection strings carry the port of the first (default) transport
     SetupProtocolAddresses(discoveredDevice, cap, CONST_NATIVE_STREAMING_PREFIX, transports.getValueList().getItemAt(0));
     cap.setAvailableTransports(transports);
-    cap.setProtocolGroupId(CONST_NATIVE_PROTOCOL_GROUP_ID);
-    cap.setProtocolSecurityLevel(secure ? CONST_NATIVE_SECURE_SECURITY_LVL : CONST_NATIVE_SECURITY_LVL);
     for (const auto& id : discovery_common::DiscoveryUtils::populateAuthenticationMethods(discoveredDevice.getPropertyOrDefault("authMethods", "")))
         cap.addAuthenticationMethod(id);
 

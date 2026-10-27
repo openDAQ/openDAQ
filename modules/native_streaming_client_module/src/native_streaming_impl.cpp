@@ -30,8 +30,7 @@ NativeStreamingImpl::NativeStreamingImpl(
             context,
             false,
             String(CONST_NATIVE_STREAMING_ID),
-            isClientToDeviceStreamingSupported,
-            String(CONST_NATIVE_PROTOCOL_GROUP_ID))
+            isClientToDeviceStreamingSupported)
     , transportClientHandler(transportClientHandler)
     , onDeviceSignalAvailableCallback(onDeviceSignalAvailableCallback)
     , onDeviceSignalUnavailableCallback(onDeviceSignalUnavailableCallback)

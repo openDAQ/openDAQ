@@ -26,6 +26,8 @@
 #include <opendaq/custom_log.h>
 #include <opendaq/module_manager.h>
 #include <opendaq/module_manager_utils.h>
+#include <condition_variable>
+#include <mutex>
 
 BEGIN_NAMESPACE_OPENDAQ
 template <class Intf = IFolder, class ... Intfs>
@@ -140,6 +142,16 @@ protected:
 private:
     template <class Component>
     void swapComponent(Component& origComponent, const Component& newComponent);
+
+    // Waits until no other addition of a function block of the given type is in progress on this
+    // container, then registers this one until the returned guard is destroyed
+    Finally reserveFunctionBlockAddition(const std::string& typeId);
+
+    // Type IDs of function blocks currently being added. Guarded by its own mutex, which is never held
+    // while calling out of the container, so additions do not run module code under a core lock.
+    std::mutex pendingFunctionBlockAdditionsSync;
+    std::condition_variable pendingFunctionBlockAdditionsChanged;
+    std::unordered_set<std::string> pendingFunctionBlockAdditions;
 };
 
 template <class Intf = IFolder, class... Intfs>
@@ -637,9 +649,9 @@ ErrCode GenericSignalContainerImpl<Intf, Intfs...>::addFunctionBlockInternal(IFu
             return;
         }
 
-        // Held across the check and the addition, so two concurrent additions of a singleton type
-        // cannot both pass the check before either of them has added its instance
-        auto lock = this->getRecursiveConfigLock2();
+        // A concurrent addition of the same type finishes first, so the check sees its instance. No lock is
+        // held while onAddFunctionBlock runs: module code may release the config lock and process packets.
+        const auto reservation = reserveFunctionBlockAddition(typeIdPtr.toStdString());
         validateSingletonFunctionBlock(typeIdPtr);
         functionBlockPtr = onAddFunctionBlock(typeIdPtr, config);
     });
@@ -647,6 +659,25 @@ ErrCode GenericSignalContainerImpl<Intf, Intfs...>::addFunctionBlockInternal(IFu
 
     *functionBlock = functionBlockPtr.detach();
     return errCode;
+}
+
+template <class Intf, class... Intfs>
+Finally GenericSignalContainerImpl<Intf, Intfs...>::reserveFunctionBlockAddition(const std::string& typeId)
+{
+    {
+        std::unique_lock lock(pendingFunctionBlockAdditionsSync);
+        pendingFunctionBlockAdditionsChanged.wait(lock, [this, &typeId] { return pendingFunctionBlockAdditions.count(typeId) == 0; });
+        pendingFunctionBlockAdditions.insert(typeId);
+    }
+
+    return Finally([this, typeId]
+    {
+        {
+            std::scoped_lock lock(pendingFunctionBlockAdditionsSync);
+            pendingFunctionBlockAdditions.erase(typeId);
+        }
+        pendingFunctionBlockAdditionsChanged.notify_all();
+    });
 }
 
 template <class Intf, class... Intfs>
@@ -903,25 +934,26 @@ void GenericSignalContainerImpl<Intf, Intfs...>::updateFunctionBlock(const std::
         functionConfig.setPropertyValue("LocalId", fbId);
 
     FunctionBlockPtr fb;
+    if (validatesAddFunctionBlock())
     {
-        // Held across the check and the addition, see addFunctionBlockInternal
-        LockGuardPtr lock;
-        if (validatesAddFunctionBlock())
+        // Serializes the check and the addition with concurrent additions of the same type, see addFunctionBlockInternal
+        const auto reservation = reserveFunctionBlockAddition(typeId.toStdString());
+        try
         {
-            lock = this->getRecursiveConfigLock2();
-            try
-            {
-                validateSingletonFunctionBlock(typeId);
-            }
-            catch (const AlreadyExistsException& e)
-            {
-                // a second instance of a singleton type in the loaded setup, log and skip it
-                auto loggerComponent = signalContainerLoggerComponent;
-                LOG_W("Failed to add FB with ID {} while updating parent FB with ID {}: {}", fbId, this->localId, e.what())
-                return;
-            }
+            validateSingletonFunctionBlock(typeId);
+        }
+        catch (const AlreadyExistsException& e)
+        {
+            // a second instance of a singleton type in the loaded setup, log and skip it
+            auto loggerComponent = signalContainerLoggerComponent;
+            LOG_W("Failed to add FB with ID {} while updating parent FB with ID {}: {}", fbId, this->localId, e.what())
+            return;
         }
 
+        fb = onAddFunctionBlock(typeId, functionConfig);
+    }
+    else
+    {
         fb = onAddFunctionBlock(typeId, functionConfig);
     }
 

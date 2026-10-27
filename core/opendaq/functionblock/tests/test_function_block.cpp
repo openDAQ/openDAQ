@@ -16,6 +16,7 @@
 
 #include <atomic>
 #include <chrono>
+#include <future>
 #include <thread>
 
 using FunctionBlockTest = testing::Test;
@@ -212,7 +213,9 @@ namespace
                 daq::FunctionBlockTypeBuilder().setId("Single").setName("Single").setSingleton(daq::True).build();
 
             return daq::Dict<daq::IString, daq::IFunctionBlockType>(
-                {{"Single", singleType}, {"Multi", daq::FunctionBlockType("Multi", "Multi", "")}});
+                {{"Single", singleType},
+                 {"Multi", daq::FunctionBlockType("Multi", "Multi", "")},
+                 {"AcquisitionLocking", daq::FunctionBlockType("AcquisitionLocking", "AcquisitionLocking", "")}});
         }
 
         daq::FunctionBlockPtr onAddFunctionBlock(const daq::StringPtr& typeId, const daq::PropertyObjectPtr& /*config*/) override
@@ -225,6 +228,12 @@ namespace
 
             auto fb = daq::createWithImplementation<daq::IFunctionBlock, daq::FunctionBlock>(type, context, functionBlocks, localId);
             addNestedFunctionBlock(fb);
+
+            // Mirrors the reference statistics block, which processes packets of the nested block on this thread
+            // under the non-recursive acquisition lock right after adding it
+            if (typeId == "AcquisitionLocking")
+                auto lock = this->getAcquisitionLock();
+
             return fb;
         }
 
@@ -314,6 +323,26 @@ TEST_F(FunctionBlockTest, SingletonFunctionBlockConcurrentAdd)
 
     ASSERT_EQ(added, 1);
     ASSERT_EQ(refused, 1);
+    ASSERT_EQ(parent.getFunctionBlocks().getCount(), 1u);
+}
+
+TEST_F(FunctionBlockTest, AddFunctionBlockDoesNotHoldParentConfigLock)
+{
+    const auto parent = createSingletonTestParent();
+
+    // Run on a separate thread, so a deadlock fails the test instead of hanging it
+    auto done = std::make_shared<std::promise<daq::ErrCode>>();
+    auto result = done->get_future();
+    std::thread([parent, done]
+    {
+        daq::FunctionBlockPtr fb;
+        const daq::ErrCode errCode = parent->addFunctionBlock(&fb, daq::String("AcquisitionLocking"), nullptr);
+        daqClearErrorInfo();
+        done->set_value(errCode);
+    }).detach();
+
+    ASSERT_EQ(result.wait_for(std::chrono::seconds(10)), std::future_status::ready) << "addFunctionBlock deadlocked";
+    ASSERT_EQ(result.get(), OPENDAQ_SUCCESS);
     ASSERT_EQ(parent.getFunctionBlocks().getCount(), 1u);
 }
 

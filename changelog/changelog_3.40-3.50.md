@@ -106,17 +106,16 @@ pass any fields beyond `Id`, `Name` and `Description` through `extraFields`, in 
 ```
 Passing `Id`, `Name` or `Description` in `extraFields` throws `InvalidParameterException`, and debug builds also throw `InvalidTypeException` when the resulting fields do not match the struct type's field names and order.
 
-The `Singleton` flag is enforced by `addFunctionBlock` of devices and function blocks, which puts three requirements on modules:
+The `Singleton` flag is enforced by `addFunctionBlock` of devices and function blocks. Concurrent additions of the same
+type to one parent are serialized, so a second addition sees the instance created by the first; no lock is held while
+`onAddFunctionBlock` runs. This puts two requirements on modules:
 - Create function block instances with the same type, including its flags, that the module advertises through
   `onGetAvailableFunctionBlockTypes`. The check reads the types of the instances that already exist under the parent, so an
   instance created with a separately built type that lacks the flag is not counted.
-- `onAddFunctionBlock` is now called with the parent's recursive config lock held, so a concurrent addition cannot pass the
-  check before the first one has added its instance. An implementation must not wait for another thread that needs the
-  parent's config lock, for example by posting work to a worker thread and blocking until it completes.
 - Protocol client representations whose `onAddFunctionBlock` forwards the addition to a remote side that runs openDAQ must
   override `validatesAddFunctionBlock()` to return `false`. The remote side then validates and serializes the addition, and
-  the client does not hold its config lock across the remote call. Containers that create their function blocks locally,
-  or forward to a remote side that does not run openDAQ, keep the default `true`.
+  the client does not wait for concurrent additions of the same type before the remote call. Containers that create their
+  function blocks locally, or forward to a remote side that does not run openDAQ, keep the default `true`.
 
 ## Interface API changes
 

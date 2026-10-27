@@ -574,12 +574,9 @@ inline void StreamingSourceManager::attachStreamingToDevice(const MirroredDevice
         if (cap.getProtocolType() != ProtocolType::Streaming)
             continue;
 
-        [[maybe_unused]] const auto protoGroupId = cap.getProtocolGroupId();
-
-        LOG_D("Device {} has streaming capability: name [{}] group id [{}] id [{}] string [{}] prefix [{}]",
+        LOG_D("Device {} has streaming capability: name [{}] id [{}] string [{}] prefix [{}]",
               device.getGlobalId(),
               cap.getProtocolName(),
-              protoGroupId.assigned() ? protoGroupId : "<none>",
               cap.getProtocolId(),
               cap.getConnectionString(),
               cap.getPrefix());

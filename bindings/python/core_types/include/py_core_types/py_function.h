@@ -57,9 +57,8 @@ template <class F>
 daq::ErrCode PyFunctionImpl<F>::call(daq::IBaseObject* params, daq::IBaseObject** result)
 {
     OPENDAQ_PARAM_NOT_NULL(result);
+    PY_ACQUIRE_GIL_OR_RETURN();
 
-    py::gil_scoped_acquire acquire;
-    
     if (params == nullptr)
     {
         auto r = pyObject();

@@ -225,7 +225,6 @@ DevicePtr NativeStreamingClientModule::createNativeDevice(const ContextPtr& cont
                                                                  reconnectionProcessingIOContextPtr,
                                                                  reconnectionProcessingThread.get_id(),
                                                                  connectionString,
-                                                                 secure,
                                                                  std::stoi(port.toStdString()),
                                                                  reconnectionPeriod);
         deviceHelper->setupProtocolClients(context);

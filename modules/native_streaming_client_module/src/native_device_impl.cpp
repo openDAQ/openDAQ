@@ -33,7 +33,6 @@ NativeDeviceHelper::NativeDeviceHelper(const ContextPtr& context,
                                        std::shared_ptr<boost::asio::io_context> reconnectionProcessingIOContextPtr,
                                        std::thread::id reconnectionProcessingThreadId,
                                        const StringPtr& connectionString,
-                                       bool secure,
                                        Int port,
                                        Int reconnectionPeriod)
     : processingIOContextPtr(processingIOContextPtr)
@@ -47,7 +46,7 @@ NativeDeviceHelper::NativeDeviceHelper(const ContextPtr& context,
     , configProtocolRequestTimeout(std::chrono::milliseconds(configProtocolRequestTimeout))
     , restoreClientConfigOnReconnect(restoreClientConfigOnReconnect)
     , connectionString(connectionString)
-    , secure(secure)
+    , transport(transportProtocolClient->getTransport())
     , port(port)
     , configProtocolReconnectionRetryTimer(std::make_shared<boost::asio::steady_timer>(*reconnectionProcessingIOContextPtr))
     , reconnectionPeriod(std::chrono::milliseconds(reconnectionPeriod))
@@ -564,9 +563,9 @@ NativeStreamingClientHandlerPtr NativeDeviceHelper::getTransportClientHandler() 
     return transportClientHandler;
 }
 
-bool NativeDeviceHelper::isSecure() const
+const std::string& NativeDeviceHelper::getTransport() const
 {
-    return secure;
+    return transport;
 }
 
 Int NativeDeviceHelper::getPort() const
@@ -631,12 +630,12 @@ void NativeDeviceImpl::updateDeviceInfo(const StringPtr& connectionString)
 
     // only the transport the device is connected over, at the port the connection is established on, which may
     // come from the config rather than from the connection string
-    const bool secure = deviceHelper && deviceHelper->isSecure();
+    const std::string transport = deviceHelper ? deviceHelper->getTransport() : CONST_NATIVE_TRANSPORT_PLAIN;
     const Int port = deviceHelper
         ? deviceHelper->getPort()
         : std::stoi(ConnectionStringUtils::GetPort(connectionString, nullptr, DEFAULT_PORT).toStdString());
     auto transports = Dict<IString, IInteger>();
-    transports.set(secure ? CONST_NATIVE_TRANSPORT_TLS : CONST_NATIVE_TRANSPORT_PLAIN, port);
+    transports.set(transport, port);
 
     ServerCapabilityConfigPtr connectionInfo = ServerCapability(CONST_NATIVE_CONFIG_ID,
                                                                 CONST_NATIVE_CONFIG_ID,

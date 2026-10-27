@@ -44,7 +44,6 @@ public:
                                 std::shared_ptr<boost::asio::io_context> reconnectionProcessingIOContextPtr,
                                 std::thread::id reconnectionProcessingThreadId,
                                 const StringPtr& connectionString,
-                                bool secure,
                                 Int port,
                                 Int reconnectionPeriod);
     ~NativeDeviceHelper();
@@ -59,8 +58,8 @@ public:
 
     opendaq_native_streaming_protocol::NativeStreamingClientHandlerPtr getTransportClientHandler() const;
 
-    /// @brief tells whether the connection runs over the TLS transport
-    bool isSecure() const;
+    /// @brief the name of the transport the connection runs over
+    const std::string& getTransport() const;
 
     /// @brief the port the connection is established on
     Int getPort() const;
@@ -96,7 +95,7 @@ private:
     std::chrono::milliseconds configProtocolRequestTimeout;
     Bool restoreClientConfigOnReconnect;
     const StringPtr connectionString;
-    const bool secure;
+    const std::string transport;
     const Int port;
     std::mutex requestReplySync;
     std::mutex flagsSync;

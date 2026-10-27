@@ -16,7 +16,6 @@
 
 #pragma once
 #include <opendaq/component_type.h>
-#include <opendaq/device_kind.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
@@ -32,6 +31,22 @@ BEGIN_NAMESPACE_OPENDAQ
  * @addtogroup opendaq_device_type Device type
  * @{
  */
+
+/*!
+ * @brief The kind of device a Device type creates.
+ *
+ * External devices can't have streamings attached.
+ * Mirrored devices mirror a remote device and can have streamings attached.
+ * Root devices can only be set as an instance's root device, via `setRootDevice`.
+ * External devices can also be set as root, and Mirrored devices can't.
+ * A DeviceKind should be External by default when not set.
+ */
+enum class DeviceKind : EnumType
+{
+    External = 0,
+    Mirrored,
+    Root
+};
 
 /*!
  * @brief Provides information on what device type can be created by a given module. Can be used

@@ -17,13 +17,12 @@
 #pragma once
 #include <coreobjects/property_object.h>
 #include <opendaq/component_type.h>
-#include <opendaq/device_kind.h>
+#include <opendaq/device_type.h>
 #include <coretypes/stringobject.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
 struct IAuthenticationMethod;
-struct IDeviceType;
 
 /*!
  * @ingroup objects_utility

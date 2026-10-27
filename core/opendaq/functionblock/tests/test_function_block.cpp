@@ -3,6 +3,7 @@
 #include <gtest/gtest.h>
 #include <opendaq/context_factory.h>
 #include <opendaq/function_block_type_factory.h>
+#include <opendaq/component_type_builder_factory.h>
 #include <opendaq/component_deserialize_context_factory.h>
 #include <opendaq/input_port_config_ptr.h>
 #include <opendaq/tags_private_ptr.h>
@@ -12,6 +13,11 @@
 #include <testutils/testutils.h>
 
 #include "opendaq/exceptions.h"
+
+#include <atomic>
+#include <chrono>
+#include <future>
+#include <thread>
 
 using FunctionBlockTest = testing::Test;
 
@@ -38,12 +44,84 @@ TEST_F(FunctionBlockTest, FunctionBlockTypeStructFields)
     ASSERT_EQ(structPtr.get("Id"), "Id");
     ASSERT_EQ(structPtr.get("Name"), "Name");
     ASSERT_EQ(structPtr.get("Description"), "Desc");
+    ASSERT_EQ(structPtr.get("AlwaysEmptyInput"), false);
+    ASSERT_EQ(structPtr.get("Singleton"), false);
+    ASSERT_FALSE(structPtr.get("CommonSettingsTypeId").assigned());
+}
+
+TEST_F(FunctionBlockTest, FunctionBlockTypeStructFieldsWithOptions)
+{
+    const daq::StructPtr structPtr = daq::FunctionBlockTypeBuilder()
+                                         .setId("Id")
+                                         .setName("Name")
+                                         .setDescription("Desc")
+                                         .setAlwaysEmptyInput(daq::True)
+                                         .setSingleton(daq::True)
+                                         .setCommonSettingsTypeId("SettingsId")
+                                         .build();
+
+    ASSERT_EQ(structPtr.get("AlwaysEmptyInput"), true);
+    ASSERT_EQ(structPtr.get("Singleton"), true);
+    ASSERT_EQ(structPtr.get("CommonSettingsTypeId"), "SettingsId");
+}
+
+TEST_F(FunctionBlockTest, FunctionBlockTypeStructFieldCoreTypes)
+{
+    const daq::StructPtr structPtr = daq::FunctionBlockTypeBuilder()
+                                         .setId("Id")
+                                         .setName("Name")
+                                         .setDescription("Desc")
+                                         .setAlwaysEmptyInput(daq::True)
+                                         .setCommonSettingsTypeId("SettingsId")
+                                         .build();
+
+    ASSERT_EQ(structPtr.get("AlwaysEmptyInput").getCoreType(), daq::ctBool);
+    ASSERT_EQ(structPtr.get("Singleton").getCoreType(), daq::ctBool);
+    ASSERT_EQ(structPtr.get("CommonSettingsTypeId").getCoreType(), daq::ctString);
+}
+
+TEST_F(FunctionBlockTest, FunctionBlockTypeEqualityRespectsOptions)
+{
+    const auto createType = [](daq::Bool alwaysEmpty, daq::Bool singleton, const daq::StringPtr& settingsId)
+    {
+        return daq::FunctionBlockTypeBuilder()
+            .setId("Id")
+            .setName("Name")
+            .setDescription("Desc")
+            .setAlwaysEmptyInput(alwaysEmpty)
+            .setSingleton(singleton)
+            .setCommonSettingsTypeId(settingsId)
+            .build();
+    };
+
+    const auto reference = createType(daq::True, daq::True, "SettingsId");
+
+    ASSERT_EQ(reference, createType(daq::True, daq::True, "SettingsId"));
+    ASSERT_NE(reference, createType(daq::False, daq::True, "SettingsId"));
+    ASSERT_NE(reference, createType(daq::True, daq::False, "SettingsId"));
+    ASSERT_NE(reference, createType(daq::True, daq::True, "OtherId"));
+    ASSERT_NE(reference, createType(daq::True, daq::True, nullptr));
 }
 
 TEST_F(FunctionBlockTest, FunctionBlockTypeStructNames)
 {
     const auto structType = daq::FunctionBlockTypeStructType();
     const daq::StructPtr structPtr = daq::FunctionBlockType("Id", "Name", "Desc");
+    ASSERT_EQ(structType.getFieldNames(), structPtr.getFieldNames());
+}
+
+TEST_F(FunctionBlockTest, FunctionBlockTypeStructNamesWithOptions)
+{
+    const auto structType = daq::FunctionBlockTypeStructType();
+    const daq::StructPtr structPtr = daq::FunctionBlockTypeBuilder()
+                                         .setId("Id")
+                                         .setName("Name")
+                                         .setDescription("Desc")
+                                         .setSingleton(daq::True)
+                                         .setCommonSettingsTypeId("SettingsId")
+                                         .build();
+
+    ASSERT_EQ(structType, structPtr.getStructType());
     ASSERT_EQ(structType.getFieldNames(), structPtr.getFieldNames());
 }
 
@@ -59,6 +137,12 @@ TEST_F(FunctionBlockTest, FunctionBlockTypeSerializationDeserialization)
 
     const auto serializedFbType = serializer.getOutput();
 
+    // Default options are left out of the serialized form
+    const std::string json = serializedFbType;
+    ASSERT_EQ(json.find("alwaysEmptyInput"), std::string::npos);
+    ASSERT_EQ(json.find("singleton"), std::string::npos);
+    ASSERT_EQ(json.find("commonSettingsTypeId"), std::string::npos);
+
     const auto deserializer = daq::JsonDeserializer();
     const daq::FunctionBlockTypePtr newFbType = deserializer.deserialize(serializedFbType);
 
@@ -68,8 +152,199 @@ TEST_F(FunctionBlockTest, FunctionBlockTypeSerializationDeserialization)
 
     const auto newDefConfig = newFbType.createDefaultConfig();
     ASSERT_EQ(defConfig.getPropertyValue("cfg"), newDefConfig.getPropertyValue("cfg"));
+
+    ASSERT_EQ(newFbType.getAlwaysEmptyInput(), fbType.getAlwaysEmptyInput());
+    ASSERT_EQ(newFbType.getSingleton(), fbType.getSingleton());
+    ASSERT_EQ(newFbType.getCommonSettingsTypeId(), fbType.getCommonSettingsTypeId());
 }
 
+TEST_F(FunctionBlockTest, FunctionBlockTypeDefaults)
+{
+    const daq::FunctionBlockTypePtr fbType = daq::FunctionBlockType("Id", "Name", "Desc");
+
+    ASSERT_FALSE(fbType.getAlwaysEmptyInput());
+    ASSERT_FALSE(fbType.getSingleton());
+    ASSERT_FALSE(fbType.getCommonSettingsTypeId().assigned());
+}
+
+TEST_F(FunctionBlockTest, FunctionBlockTypeOptionsSerializationDeserialization)
+{
+    const daq::FunctionBlockTypePtr fbType = daq::FunctionBlockTypeBuilder()
+                                                 .setId("Id")
+                                                 .setName("Name")
+                                                 .setDescription("Desc")
+                                                 .setAlwaysEmptyInput(daq::True)
+                                                 .setSingleton(daq::True)
+                                                 .setCommonSettingsTypeId("SettingsId")
+                                                 .build();
+
+    const auto serializer = daq::JsonSerializer();
+    fbType.serialize(serializer);
+
+    const auto deserializer = daq::JsonDeserializer();
+    const daq::FunctionBlockTypePtr newFbType = deserializer.deserialize(serializer.getOutput());
+
+    ASSERT_TRUE(newFbType.getAlwaysEmptyInput());
+    ASSERT_TRUE(newFbType.getSingleton());
+    ASSERT_EQ(newFbType.getCommonSettingsTypeId(), "SettingsId");
+
+    const daq::StructPtr newStruct = newFbType;
+    ASSERT_EQ(newStruct.get("AlwaysEmptyInput"), true);
+    ASSERT_EQ(newStruct.get("Singleton"), true);
+    ASSERT_EQ(newStruct.get("CommonSettingsTypeId"), "SettingsId");
+    ASSERT_EQ(newFbType, fbType);
+}
+
+
+namespace
+{
+    class SingletonTestParentFbImpl : public daq::FunctionBlock
+    {
+    public:
+        SingletonTestParentFbImpl(const daq::ContextPtr& ctx, const daq::StringPtr& localId, std::chrono::milliseconds addDelay)
+            : daq::FunctionBlock(daq::FunctionBlockType("Parent", "Parent", ""), ctx, nullptr, localId)
+            , addDelay(addDelay)
+        {
+        }
+
+        daq::DictPtr<daq::IString, daq::IFunctionBlockType> onGetAvailableFunctionBlockTypes() override
+        {
+            const daq::FunctionBlockTypePtr singleType =
+                daq::FunctionBlockTypeBuilder().setId("Single").setName("Single").setSingleton(daq::True).build();
+
+            return daq::Dict<daq::IString, daq::IFunctionBlockType>(
+                {{"Single", singleType},
+                 {"Multi", daq::FunctionBlockType("Multi", "Multi", "")},
+                 {"AcquisitionLocking", daq::FunctionBlockType("AcquisitionLocking", "AcquisitionLocking", "")}});
+        }
+
+        daq::FunctionBlockPtr onAddFunctionBlock(const daq::StringPtr& typeId, const daq::PropertyObjectPtr& /*config*/) override
+        {
+            const auto type = onGetAvailableFunctionBlockTypes().get(typeId);
+            const auto localId = typeId.toStdString() + std::to_string(nestedCount++);
+
+            // widens the window between the singleton check and the addition for concurrency tests
+            std::this_thread::sleep_for(addDelay);
+
+            auto fb = daq::createWithImplementation<daq::IFunctionBlock, daq::FunctionBlock>(type, context, functionBlocks, localId);
+            addNestedFunctionBlock(fb);
+
+            // Mirrors the reference statistics block, which processes packets of the nested block on this thread
+            // under the non-recursive acquisition lock right after adding it
+            if (typeId == "AcquisitionLocking")
+                auto lock = this->getAcquisitionLock();
+
+            return fb;
+        }
+
+    private:
+        std::atomic<int> nestedCount = 0;
+        std::chrono::milliseconds addDelay;
+    };
+
+    daq::FunctionBlockPtr createSingletonTestParent(const daq::StringPtr& localId = "parent",
+                                                    std::chrono::milliseconds addDelay = std::chrono::milliseconds(0))
+    {
+        return daq::createWithImplementation<daq::IFunctionBlock, SingletonTestParentFbImpl>(daq::NullContext(), localId, addDelay);
+    }
+}
+
+TEST_F(FunctionBlockTest, SingletonFunctionBlockAddedOnlyOnce)
+{
+    const auto parent = createSingletonTestParent();
+
+    ASSERT_NO_THROW(parent.addFunctionBlock("Single"));
+    ASSERT_THROW(parent.addFunctionBlock("Single"), daq::AlreadyExistsException);
+    ASSERT_EQ(parent.getFunctionBlocks().getCount(), 1u);
+}
+
+TEST_F(FunctionBlockTest, SingletonFunctionBlockErrorCode)
+{
+    const auto parent = createSingletonTestParent();
+    parent.addFunctionBlock("Single");
+
+    daq::FunctionBlockPtr fb;
+    ASSERT_EQ(parent->addFunctionBlock(&fb, daq::String("Single"), nullptr), OPENDAQ_ERR_ALREADYEXISTS);
+    ASSERT_FALSE(fb.assigned());
+    daqClearErrorInfo();
+}
+
+TEST_F(FunctionBlockTest, SingletonFunctionBlockAddedAgainAfterRemoval)
+{
+    const auto parent = createSingletonTestParent();
+
+    const auto fb = parent.addFunctionBlock("Single");
+    parent.removeFunctionBlock(fb);
+
+    ASSERT_NO_THROW(parent.addFunctionBlock("Single"));
+    ASSERT_EQ(parent.getFunctionBlocks().getCount(), 1u);
+}
+
+TEST_F(FunctionBlockTest, SingletonFunctionBlockPerParent)
+{
+    const auto parent1 = createSingletonTestParent("parent1");
+    const auto parent2 = createSingletonTestParent("parent2");
+
+    ASSERT_NO_THROW(parent1.addFunctionBlock("Single"));
+    ASSERT_NO_THROW(parent2.addFunctionBlock("Single"));
+}
+
+TEST_F(FunctionBlockTest, SingletonDoesNotLimitOtherTypes)
+{
+    const auto parent = createSingletonTestParent();
+
+    parent.addFunctionBlock("Single");
+    ASSERT_NO_THROW(parent.addFunctionBlock("Multi"));
+    ASSERT_NO_THROW(parent.addFunctionBlock("Multi"));
+    ASSERT_EQ(parent.getFunctionBlocks().getCount(), 3u);
+}
+
+TEST_F(FunctionBlockTest, SingletonFunctionBlockConcurrentAdd)
+{
+    const auto parent = createSingletonTestParent("parent", std::chrono::milliseconds(50));
+
+    std::atomic<int> added = 0;
+    std::atomic<int> refused = 0;
+    const auto addSingle = [&parent, &added, &refused]
+    {
+        daq::FunctionBlockPtr fb;
+        const daq::ErrCode errCode = parent->addFunctionBlock(&fb, daq::String("Single"), nullptr);
+        if (OPENDAQ_SUCCEEDED(errCode))
+            ++added;
+        else if (errCode == OPENDAQ_ERR_ALREADYEXISTS)
+            ++refused;
+        daqClearErrorInfo();
+    };
+
+    std::thread first(addSingle);
+    std::thread second(addSingle);
+    first.join();
+    second.join();
+
+    ASSERT_EQ(added, 1);
+    ASSERT_EQ(refused, 1);
+    ASSERT_EQ(parent.getFunctionBlocks().getCount(), 1u);
+}
+
+TEST_F(FunctionBlockTest, AddFunctionBlockDoesNotHoldParentConfigLock)
+{
+    const auto parent = createSingletonTestParent();
+
+    // Run on a separate thread, so a deadlock fails the test instead of hanging it
+    auto done = std::make_shared<std::promise<daq::ErrCode>>();
+    auto result = done->get_future();
+    std::thread([parent, done]
+    {
+        daq::FunctionBlockPtr fb;
+        const daq::ErrCode errCode = parent->addFunctionBlock(&fb, daq::String("AcquisitionLocking"), nullptr);
+        daqClearErrorInfo();
+        done->set_value(errCode);
+    }).detach();
+
+    ASSERT_EQ(result.wait_for(std::chrono::seconds(10)), std::future_status::ready) << "addFunctionBlock deadlocked";
+    ASSERT_EQ(result.get(), OPENDAQ_SUCCESS);
+    ASSERT_EQ(parent.getFunctionBlocks().getCount(), 1u);
+}
 
 TEST_F(FunctionBlockTest, HasItem)
 {

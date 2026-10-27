@@ -133,11 +133,17 @@ ErrCode INTERFACE_FUNC ListImpl::equals(IBaseObject* other, Bool* equal) const
 
     for (SizeT i = 0; i < size; i++)
     {
-        const auto item = list.at(i);
-        const auto otherItem = otherList.getItemAt(i);
+        const IBaseObject* item = list.at(i);
+        const BaseObjectPtr otherItem = otherList.getItemAt(i);
+
+        // Same object or nullptr
+        if (item == otherItem.getObject())
+        {
+            continue;
+        }
 
         Bool eq{};
-        if (!(item == otherItem || (OPENDAQ_SUCCEEDED(item->equals(otherItem, &eq)) && eq)))
+        if (item == nullptr || !otherItem.assigned() || !(OPENDAQ_SUCCEEDED(item->equals(otherItem, &eq)) && eq))
         {
             *equal = false;
             return OPENDAQ_SUCCESS;

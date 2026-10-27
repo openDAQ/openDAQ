@@ -41,6 +41,7 @@ extern "C"
     void EXPORTED daqContextInternal_getInterfaceId(daqIntfID* intfId);
 
     daqErrCode EXPORTED daqContextInternal_moveModuleManager(daqContextInternal* self, daqModuleManager** manager);
+    daqErrCode EXPORTED daqContextInternal_setRootDevice(daqContextInternal* self, daqBaseObject* device);
 
 #ifdef __cplusplus
 }

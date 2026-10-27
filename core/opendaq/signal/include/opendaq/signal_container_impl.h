@@ -26,6 +26,8 @@
 #include <opendaq/custom_log.h>
 #include <opendaq/module_manager.h>
 #include <opendaq/module_manager_utils.h>
+#include <condition_variable>
+#include <mutex>
 
 BEGIN_NAMESPACE_OPENDAQ
 template <class Intf = IFolder, class ... Intfs>
@@ -121,6 +123,14 @@ protected:
     ErrCode getAvailableFunctionBlockTypesInternal(IDict** functionBlockTypes);
     ErrCode addFunctionBlockInternal(IFunctionBlock** functionBlock, IString* typeId, IPropertyObject* config = nullptr);
     ErrCode removeFunctionBlockInternal(IFunctionBlock* functionBlock);
+    void validateSingletonFunctionBlock(const StringPtr& typeId);
+
+    // Whether this container validates and serializes function block additions itself. Representations
+    // of remote components return false: the server side validates and serializes the addition.
+    // Override to return false only in protocol client representations whose onAddFunctionBlock forwards
+    // the addition to a remote side that runs openDAQ. Containers that create their function blocks
+    // locally, or forward to a remote side that does not run openDAQ, must keep the default.
+    virtual bool validatesAddFunctionBlock();
 
     virtual DictPtr<IString, IFunctionBlockType> onGetAvailableFunctionBlockTypes();
     virtual FunctionBlockPtr onAddFunctionBlock(const StringPtr& typeId, const PropertyObjectPtr& config);
@@ -132,6 +142,16 @@ protected:
 private:
     template <class Component>
     void swapComponent(Component& origComponent, const Component& newComponent);
+
+    // Waits until no other addition of a function block of the given type is in progress on this
+    // container, then registers this one until the returned guard is destroyed
+    Finally reserveFunctionBlockAddition(const std::string& typeId);
+
+    // Type IDs of function blocks currently being added. Guarded by its own mutex, which is never held
+    // while calling out of the container, so additions do not run module code under a core lock.
+    std::mutex pendingFunctionBlockAdditionsSync;
+    std::condition_variable pendingFunctionBlockAdditionsChanged;
+    std::unordered_set<std::string> pendingFunctionBlockAdditions;
 };
 
 template <class Intf = IFolder, class... Intfs>
@@ -618,13 +638,65 @@ ErrCode GenericSignalContainerImpl<Intf, Intfs...>::addFunctionBlockInternal(IFu
     
     if (this->isComponentRemoved)
         return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_COMPONENT_REMOVED);
-    
+
     FunctionBlockPtr functionBlockPtr;
-    const ErrCode errCode = wrapHandlerReturn(this, &Self::onAddFunctionBlock, functionBlockPtr, typeId, config);
+    const ErrCode errCode = daqTry([this, &typeId, &config, &functionBlockPtr]
+    {
+        const StringPtr typeIdPtr = typeId;
+        if (!validatesAddFunctionBlock())
+        {
+            functionBlockPtr = onAddFunctionBlock(typeIdPtr, config);
+            return;
+        }
+
+        // A concurrent addition of the same type finishes first, so the check sees its instance. No lock is
+        // held while onAddFunctionBlock runs: module code may release the config lock and process packets.
+        const auto reservation = reserveFunctionBlockAddition(typeIdPtr.toStdString());
+        validateSingletonFunctionBlock(typeIdPtr);
+        functionBlockPtr = onAddFunctionBlock(typeIdPtr, config);
+    });
     OPENDAQ_RETURN_IF_FAILED(errCode);
 
     *functionBlock = functionBlockPtr.detach();
     return errCode;
+}
+
+template <class Intf, class... Intfs>
+Finally GenericSignalContainerImpl<Intf, Intfs...>::reserveFunctionBlockAddition(const std::string& typeId)
+{
+    {
+        std::unique_lock lock(pendingFunctionBlockAdditionsSync);
+        pendingFunctionBlockAdditionsChanged.wait(lock, [this, &typeId] { return pendingFunctionBlockAdditions.count(typeId) == 0; });
+        pendingFunctionBlockAdditions.insert(typeId);
+    }
+
+    return Finally([this, typeId]
+    {
+        {
+            std::scoped_lock lock(pendingFunctionBlockAdditionsSync);
+            pendingFunctionBlockAdditions.erase(typeId);
+        }
+        pendingFunctionBlockAdditionsChanged.notify_all();
+    });
+}
+
+template <class Intf, class... Intfs>
+void GenericSignalContainerImpl<Intf, Intfs...>::validateSingletonFunctionBlock(const StringPtr& typeId)
+{
+    for (const FunctionBlockPtr& fb : this->functionBlocks.getItems(search::Any()))
+    {
+        const auto fbType = fb.getFunctionBlockType();
+        if (!fbType.assigned())
+            continue;
+
+        if (fbType.getId() == typeId && fbType.getSingleton())
+        {
+            DAQ_THROW_EXCEPTION(AlreadyExistsException,
+                "Function block type \"{}\" is a singleton and an instance of it already exists under \"{}\"",
+                typeId,
+                this->globalId);
+        }
+    }
 }
 
 template <class Intf, class ... Intfs>
@@ -730,6 +802,12 @@ DictPtr<IString, IFunctionBlockType> GenericSignalContainerImpl<Intf, Intfs...>:
 }
 
 template <class Intf, class ... Intfs>
+bool GenericSignalContainerImpl<Intf, Intfs...>::validatesAddFunctionBlock()
+{
+    return true;
+}
+
+template <class Intf, class ... Intfs>
 FunctionBlockPtr GenericSignalContainerImpl<Intf, Intfs...>::onAddFunctionBlock(const StringPtr& /*typeId*/, const PropertyObjectPtr& /*config*/)
 {
     DAQ_THROW_EXCEPTION(NotSupportedException, "Component does not support adding nested function blocks");
@@ -819,16 +897,16 @@ void GenericSignalContainerImpl<Intf, Intfs...>::updateFunctionBlock(const std::
                                                                      const BaseObjectPtr& context)
 {
     // we are now removing all existing functions block excluding the static ones
-    // so for the dynamic function blocks we dont need to check if the function block is already exist or not
+    // so for the dynamic function blocks we dont need to check if the function block already exists or not
     const auto availableTypes = onGetAvailableFunctionBlockTypes();
     const auto typeId = serializedFunctionBlock.readString("typeId");
 
-    // handle the function block which are not availble to add
+    // handle the function block which are not available to add
     if (!availableTypes.hasKey(typeId))
     {
         if (this->functionBlocks.hasItem(fbId))
         {
-            // handaling static function block
+            // handling static function block
             const UpdatablePtr updatableFb = this->functionBlocks.getItem(fbId).template asPtr<IUpdatable>(true);
             updatableFb.updateInternal(serializedFunctionBlock, context);
         }
@@ -841,7 +919,8 @@ void GenericSignalContainerImpl<Intf, Intfs...>::updateFunctionBlock(const std::
         return;
     }
 
-    PropertyObjectPtr functionConfig = availableTypes.get(typeId).createDefaultConfig();
+    const FunctionBlockTypePtr functionBlockType = availableTypes.get(typeId);
+    PropertyObjectPtr functionConfig = functionBlockType.createDefaultConfig();
 
     if (serializedFunctionBlock.hasKey("ComponentConfig"))
     {
@@ -854,7 +933,29 @@ void GenericSignalContainerImpl<Intf, Intfs...>::updateFunctionBlock(const std::
     else
         functionConfig.setPropertyValue("LocalId", fbId);
 
-    auto fb = onAddFunctionBlock(typeId, functionConfig);
+    FunctionBlockPtr fb;
+    if (validatesAddFunctionBlock())
+    {
+        // Serializes the check and the addition with concurrent additions of the same type, see addFunctionBlockInternal
+        const auto reservation = reserveFunctionBlockAddition(typeId.toStdString());
+        try
+        {
+            validateSingletonFunctionBlock(typeId);
+        }
+        catch (const AlreadyExistsException& e)
+        {
+            // a second instance of a singleton type in the loaded setup, log and skip it
+            auto loggerComponent = signalContainerLoggerComponent;
+            LOG_W("Failed to add FB with ID {} while updating parent FB with ID {}: {}", fbId, this->localId, e.what())
+            return;
+        }
+
+        fb = onAddFunctionBlock(typeId, functionConfig);
+    }
+    else
+    {
+        fb = onAddFunctionBlock(typeId, functionConfig);
+    }
 
     const UpdatablePtr updatableFb = fb.template asPtr<IUpdatable>(true);
     updatableFb.updateInternal(serializedFunctionBlock, context);    

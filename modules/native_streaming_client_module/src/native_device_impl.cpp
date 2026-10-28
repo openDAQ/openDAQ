@@ -694,8 +694,8 @@ Int ConnectionStringUtils::GetPort(const StringPtr& url, const PropertyObjectPtr
     if (config.assigned() && config.hasProperty("Port"))
     {
         const Int configuredPort = config.getPropertyValue("Port");
-        const Int defaultPort = config.getProperty("Port").getDefaultValue();
-        if (configuredPort != defaultPort)
+        const Int configDefaultPort = config.getProperty("Port").getDefaultValue();
+        if (configuredPort != configDefaultPort)
             port = configuredPort;
     }
 

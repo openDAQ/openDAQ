@@ -960,7 +960,7 @@ bool NativeStreamingClientModule::ValidateConnectionString(const StringPtr& conn
     try
     {
         auto host = ConnectionStringUtils::GetHost(connectionString);
-        auto port = ConnectionStringUtils::GetPort(connectionString);
+        [[maybe_unused]] auto port = ConnectionStringUtils::GetPort(connectionString);
         auto path = ConnectionStringUtils::GetPath(connectionString);
         return true;
     }

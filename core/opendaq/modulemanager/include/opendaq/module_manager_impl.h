@@ -108,6 +108,7 @@ private:
     // Checks every streaming type of the module that links to a device type: the device type must be one of the
     // same module's device types. Returns a description of the first violation, or an empty string if the module passes.
     static std::string CheckLinkedStreamingTypes(const ModulePtr& module);
+    void logUnspecifiedDeviceKinds(const ModulePtr& module) const;
 
     static ServerCapabilityPtr MergeDiscoveryAndDeviceCapability(const ServerCapabilityPtr& discoveryCap, const ServerCapabilityPtr& deviceCap);
     void mergeDiscoveryAndDeviceCapabilities(const DevicePtr& device, const DeviceInfoPtr& discoveredDeviceInfo) const;

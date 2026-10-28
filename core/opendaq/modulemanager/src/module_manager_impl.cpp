@@ -185,6 +185,7 @@ ErrCode ModuleManagerImpl::addModule(IModule* module)
             return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_MODULE_LOAD_FAILED,
                                        fmt::format(R"(Module with id "{}" rejected: {})", modulePtr.getModuleInfo().getId(), violation));
         }
+        logUnspecifiedDeviceKinds(modulePtr);
 
         libraries.emplace_back(ModuleLibrary{{}, module, nullptr});
         return OPENDAQ_SUCCESS;
@@ -440,6 +441,7 @@ ErrCode ModuleManagerImpl::tryLoadAndAddModule(const StringPtr& path, IModule** 
                 OPENDAQ_ERR_MODULE_LOAD_FAILED,
                 fmt::format(R"(Module with id "{}" rejected: {}. Reject loading module from "{}")", moduleId, violation, path));
         }
+        logUnspecifiedDeviceKinds(loadedModule);
 
         if (authenticatedModulesOnly && moduleId.assigned() && moduleId.getLength() > 0)
         {
@@ -2256,6 +2258,33 @@ std::string ModuleManagerImpl::CheckLinkedStreamingTypes(const ModulePtr& module
     }
 
     return {};
+}
+
+void ModuleManagerImpl::logUnspecifiedDeviceKinds(const ModulePtr& module) const
+{
+    if (!loggerComponent.assigned())
+        return;
+
+    DictPtr<IString, IDeviceType> deviceTypes;
+    try
+    {
+        deviceTypes = module.getAvailableDeviceTypes();
+    }
+    catch (...)
+    {
+        return;
+    }
+
+    if (!deviceTypes.assigned())
+        return;
+
+    for (const auto& [deviceTypeId, deviceType] : deviceTypes)
+    {
+        if (deviceType.getDeviceKind() == DeviceKind::Unspecified)
+            LOG_I(R"({}: Device type "{}" declares no device kind. The Unspecified device kind is deprecated.)",
+                  module.getModuleInfo().getName(),
+                  deviceTypeId);
+    }
 }
 
 void GetModulesPath(std::vector<fs::path>& modulesPath, const LoggerComponentPtr& loggerComponent, std::string searchFolder)

@@ -633,7 +633,7 @@ void NativeDeviceImpl::updateDeviceInfo(const StringPtr& connectionString)
     const std::string transport = deviceHelper ? deviceHelper->getTransport() : CONST_NATIVE_TRANSPORT_PLAIN;
     const Int port = deviceHelper
         ? deviceHelper->getPort()
-        : std::stoi(ConnectionStringUtils::GetPort(connectionString, nullptr, DEFAULT_PORT).toStdString());
+        : ConnectionStringUtils::GetPort(connectionString, nullptr, DEFAULT_PORT);
     auto transports = Dict<IString, IInteger>();
     transports.set(transport, port);
 
@@ -678,7 +678,7 @@ StringPtr ConnectionStringUtils::GetHost(const StringPtr& url)
     DAQ_THROW_EXCEPTION(InvalidParameterException, "Host name not found in url: {}", url);
 }
 
-StringPtr ConnectionStringUtils::GetPort(const StringPtr& url, const PropertyObjectPtr& config, Int defaultPort)
+Int ConnectionStringUtils::GetPort(const StringPtr& url, const PropertyObjectPtr& config, Int defaultPort)
 {
     std::string urlString = url.toStdString();
     std::smatch match;
@@ -699,7 +699,7 @@ StringPtr ConnectionStringUtils::GetPort(const StringPtr& url, const PropertyObj
             port = configuredPort;
     }
 
-    return String(std::to_string(port));
+    return port;
 }
 
 StringPtr ConnectionStringUtils::GetPath(const StringPtr& url)

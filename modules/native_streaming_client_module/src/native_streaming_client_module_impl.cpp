@@ -181,7 +181,7 @@ DevicePtr NativeStreamingClientModule::createNativeDevice(const ContextPtr& cont
                                                           const StringPtr& connectionString,
                                                           const PropertyObjectPtr& deviceConfig,
                                                           const StringPtr& host,
-                                                          const StringPtr& port,
+                                                          Int port,
                                                           const StringPtr& path,
                                                           uint16_t& protocolVersion,
                                                           const StringPtr& transport)
@@ -225,7 +225,7 @@ DevicePtr NativeStreamingClientModule::createNativeDevice(const ContextPtr& cont
                                                                  reconnectionProcessingIOContextPtr,
                                                                  reconnectionProcessingThread.get_id(),
                                                                  connectionString,
-                                                                 std::stoi(port.toStdString()),
+                                                                 port,
                                                                  reconnectionPeriod);
         deviceHelper->setupProtocolClients(context);
         auto device = deviceHelper->connectAndGetDevice(parent, protocolVersion);
@@ -424,7 +424,7 @@ DevicePtr NativeStreamingClientModule::onCreateDevice(const StringPtr& connectio
         DAQ_THROW_EXCEPTION(InvalidParameterException, "Context is not available.");
 
     auto host = ConnectionStringUtils::GetHost(connectionString);
-    auto port = ConnectionStringUtils::GetPort(connectionString, deviceConfig, availableTransports.get(transport));
+    const Int port = ConnectionStringUtils::GetPort(connectionString, deviceConfig, availableTransports.get(transport));
     auto path = ConnectionStringUtils::GetPath(connectionString);
 
     DevicePtr device;
@@ -465,7 +465,7 @@ DevicePtr NativeStreamingClientModule::onCreateDevice(const StringPtr& connectio
 
         // only the transport the device is connected over
         auto transports = Dict<IString, IInteger>();
-        transports.set(transport, std::stoi(port.toStdString()));
+        transports.set(transport, port);
 
         connectionInfo.setProtocolId(CONST_NATIVE_STREAMING_ID)
             .setProtocolName(CONST_NATIVE_STREAMING_ID)
@@ -631,7 +631,7 @@ std::shared_ptr<boost::asio::io_context> NativeStreamingClientModule::addStreami
 
 NativeStreamingClientHandlerPtr NativeStreamingClientModule::createAndConnectTransportClient(
     const StringPtr& host,
-    const StringPtr& port,
+    Int port,
     const StringPtr& path,
     const PropertyObjectPtr& config,
     const StringPtr& transport)
@@ -661,7 +661,7 @@ NativeStreamingClientHandlerPtr NativeStreamingClientModule::createAndConnectTra
 #else
     auto transportClientHandler = std::make_shared<NativeStreamingClientHandler>(context, transportLayerConfig, authenticationConfig);
 #endif
-    if (!transportClientHandler->connect(modifiedHost.toStdString(), port.toStdString(), path.toStdString()))
+    if (!transportClientHandler->connect(modifiedHost.toStdString(), std::to_string(port), path.toStdString()))
         DAQ_THROW_EXCEPTION(NotFoundException, "Failed to connect to native streaming server - host {} port {} path {}", modifiedHost, port, path);
 
     return transportClientHandler;
@@ -741,7 +741,7 @@ StreamingPtr NativeStreamingClientModule::onCreateStreaming(const StringPtr& con
                                                        : createConnectionDefaultConfig(NativeType::streaming);
 
     StringPtr host = ConnectionStringUtils::GetHost(connectionString);
-    StringPtr port = ConnectionStringUtils::GetPort(connectionString, parsedConfig, availableTransports.get(transport));
+    const Int port = ConnectionStringUtils::GetPort(connectionString, parsedConfig, availableTransports.get(transport));
     StringPtr path = ConnectionStringUtils::GetPath(connectionString);
 
     PropertyObjectPtr transportLayerConfig = parsedConfig.getPropertyValue("TransportLayerConfig");

@@ -10,6 +10,7 @@ BEGIN_NAMESPACE_OPENDAQ
 
 ComponentTypeBuilderImpl::ComponentTypeBuilderImpl(ComponentTypeSort sort)
     : sort(sort)
+    , deviceKind(DeviceKind::Unspecified)
     , supportedAuthenticationMethods((sort == ComponentTypeSort::Device || sort == ComponentTypeSort::Streaming) ?  Dict<IString, IAuthenticationMethod>() : nullptr)
 {
 }
@@ -138,6 +139,9 @@ ErrCode ComponentTypeBuilderImpl::setDeviceKind(DeviceKind kind)
     if (sort != ComponentTypeSort::Device)
         return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOT_SUPPORTED, "setDeviceKind only applies to a Device type");
 
+    if (kind == DeviceKind::Unspecified)
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDPARAMETER, "Device kind Unspecified can't be set");
+
     this->deviceKind = kind;
     return OPENDAQ_SUCCESS;
 }
@@ -149,7 +153,7 @@ ErrCode ComponentTypeBuilderImpl::getDeviceKind(DeviceKind* kind)
     if (sort != ComponentTypeSort::Device)
         return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOT_SUPPORTED, "getDeviceKind only applies to a Device type");
 
-    *kind = this->deviceKind.value_or(DeviceKind::External);
+    *kind = this->deviceKind;
     return OPENDAQ_SUCCESS;
 }
 

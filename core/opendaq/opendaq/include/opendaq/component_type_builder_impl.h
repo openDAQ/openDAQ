@@ -23,7 +23,6 @@
 #include <opendaq/authentication_method_ptr.h>
 #include <coretypes/dict_ptr.h>
 #include <opendaq/device_type_ptr.h>
-#include <optional>
 
 BEGIN_NAMESPACE_OPENDAQ
 class ComponentTypeBuilderImpl : public ImplementationOf<IComponentTypeBuilder>
@@ -68,7 +67,7 @@ private:
     StringPtr description;
     PropertyObjectPtr defaultConfig;
     ModuleInfoPtr moduleInfo;
-    std::optional<DeviceKind> deviceKind;
+    DeviceKind deviceKind;
     DictPtr<IString, IAuthenticationMethod> supportedAuthenticationMethods;
     DeviceTypePtr linkedDeviceType;
 };

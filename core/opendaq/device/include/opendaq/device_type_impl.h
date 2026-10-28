@@ -32,7 +32,7 @@ public:
                             const PropertyObjectPtr& defaultConfig,
                             const StringPtr& prefix,
                             const DictPtr<IString, IAuthenticationMethod>& supportedAuthenticationMethods,
-                            DeviceKind deviceKind = DeviceKind::External);
+                            DeviceKind deviceKind = DeviceKind::Unspecified);
 
     explicit DeviceTypeImpl(const ComponentTypeBuilderPtr& builder);
 

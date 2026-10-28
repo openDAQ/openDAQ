@@ -189,15 +189,16 @@ DECLARE_OPENDAQ_INTERFACE(IComponentTypeBuilder, IBaseObject)
     /*!
      * @brief Sets the kind of device created by the built Device type.
      * @param kind The device kind.
+     * @retval OPENDAQ_ERR_INVALIDPARAMETER when the kind is Unspecified.
      * @retval OPENDAQ_ERR_NOT_SUPPORTED for sorts other than Device.
      *
-     * A builder that does not set the kind builds an External Device type.
+     * A builder that does not set the kind builds an Unspecified Device type.
      */
     virtual ErrCode INTERFACE_FUNC setDeviceKind(DeviceKind kind) = 0;
 
     /*!
      * @brief Gets the kind of device created by the built Device type.
-     * @param[out] kind The device kind. External when not set.
+     * @param[out] kind The device kind. Unspecified when not set.
      * @retval OPENDAQ_ERR_NOT_SUPPORTED for sorts other than Device.
      */
     virtual ErrCode INTERFACE_FUNC getDeviceKind(DeviceKind* kind) = 0;

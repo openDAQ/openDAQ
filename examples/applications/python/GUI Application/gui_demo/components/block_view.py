@@ -375,11 +375,19 @@ class BlockView(ttk.Frame):
             tree.heading(col, text=col, anchor='w')
     
         tree.pack(expand=True, fill='both')
-    
+
+        # a device also has the statuses of its configuration and streaming connections
+        connection_container = None
+        if daq.IDevice.can_cast_from(self.node):
+            connection_container = daq.IDevice.cast_from(self.node).connection_status_container
+
         def refresh_statuses():
             tree.delete(*tree.get_children())
             for k, v in container.statuses.items():
                 tree.insert('', tk.END, values=(k, v.name, container.get_status_message(k)))
+            if connection_container is not None:
+                for k, v in connection_container.statuses.items():
+                    tree.insert('', tk.END, values=(k, v.name, connection_container.get_status_message(k)))
     
         refresh_statuses()
     

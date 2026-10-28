@@ -107,6 +107,7 @@ private:
 DECLARE_OPENDAQ_INTERFACE(INativeDevicePrivate, IBaseObject)
 {
     virtual void INTERFACE_FUNC publishConnectionStatus(const EnumerationPtr& status, const StringPtr& statusMessage) = 0;
+    virtual void INTERFACE_FUNC publishConfigurationStatus(const EnumerationPtr& status, const StringPtr& statusMessage) = 0;
     virtual void INTERFACE_FUNC completeInitialization(std::shared_ptr<NativeDeviceHelper> deviceHelper, const StringPtr& connectionString) = 0;
     virtual void INTERFACE_FUNC updateDeviceInfo(const StringPtr& connectionString) = 0;
 };
@@ -126,6 +127,7 @@ public:
 
     // INativeDevicePrivate
     void INTERFACE_FUNC publishConnectionStatus(const EnumerationPtr& status, const StringPtr& statusMessage) override;
+    void INTERFACE_FUNC publishConfigurationStatus(const EnumerationPtr& status, const StringPtr& statusMessage) override;
     void INTERFACE_FUNC completeInitialization(std::shared_ptr<NativeDeviceHelper> deviceHelper, const StringPtr& connectionString) override;
     void INTERFACE_FUNC updateDeviceInfo(const StringPtr& connectionString) override;
 

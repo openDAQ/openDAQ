@@ -57,6 +57,8 @@ protected:
 
     StringPtr connectionString;
     EnumerationPtr connectionStatus;
+    // the message of the "Connected" streaming connection status, which names the transport
+    const StringPtr connectedStatusMessage;
     StreamingPtr nativeStreaming;
     std::unordered_map<StringPtr, std::pair<SignalPtr, StringPtr>, StringHash, StringEqualTo> deviceSignals;
     std::unordered_map<StringPtr, std::pair<SignalPtr, StringPtr>, StringHash, StringEqualTo> deviceSignalsReconnection;

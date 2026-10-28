@@ -19,6 +19,7 @@
 #include <opendaq/device_info_factory.h>
 #include <coreobjects/property_object_ptr.h>
 #include <coretypes/listobject_factory.h>
+#include <string>
 
 BEGIN_NAMESPACE_OPENDAQ_NATIVE_STREAMING_CLIENT_MODULE
 
@@ -83,6 +84,17 @@ inline ErrCode collectAlternativeAddresses(const PropertyObjectPtr& config,
 
     outAddresses = std::move(addresses);
     return OPENDAQ_SUCCESS;
+}
+
+/*!
+ * Builds the message of the "Connected" connection status of a configuration or streaming channel,
+ * which names the transport of the channel, e.g. "Transport: tls".
+ *
+ * @param transport  Name of the transport the channel is connected over.
+ */
+inline StringPtr buildConnectedStatusMessage(const std::string& transport)
+{
+    return String(fmt::format("Transport: {}", transport));
 }
 
 END_NAMESPACE_OPENDAQ_NATIVE_STREAMING_CLIENT_MODULE

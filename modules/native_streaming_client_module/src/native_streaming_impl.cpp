@@ -32,6 +32,7 @@ NativeStreamingImpl::NativeStreamingImpl(
             String(CONST_NATIVE_STREAMING_ID),
             isClientToDeviceStreamingSupported)
     , transportClientHandler(transportClientHandler)
+    , transport(transportClientHandler->getTransport())
     , onDeviceSignalAvailableCallback(onDeviceSignalAvailableCallback)
     , onDeviceSignalUnavailableCallback(onDeviceSignalUnavailableCallback)
     , onDeviceConnectionStatusChangedCb(onDeviceConnectionStatusChangedCb)
@@ -87,6 +88,18 @@ ErrCode NativeStreamingImpl::setOwnerDevice(const DevicePtr& device)
         
         if (errCode == OPENDAQ_SUCCESS)
             transportClientHandler->setAlternativeAddresses(alternativeAddresses);
+
+        // The device adds the connection status of the streaming with an empty message, while the "Connected" one
+        // names the transport
+        std::scoped_lock lock(sync);
+        if (connectionStatus == "Connected")
+        {
+            const auto connectionStatusContainer = device.getConnectionStatusContainer().asPtr<IConnectionStatusContainerPrivate>();
+            OPENDAQ_RETURN_IF_FAILED(connectionStatusContainer->updateConnectionStatusWithMessage(connectionString,
+                                                                                                 connectionStatus,
+                                                                                                 this->template borrowPtr<StreamingPtr>(),
+                                                                                                 buildConnectedStatusMessage(transport)));
+        }
     }
 
     return OPENDAQ_SUCCESS;
@@ -128,7 +141,10 @@ void NativeStreamingImpl::updateConnectionStatus(const EnumerationPtr& status, c
         onDeviceConnectionStatusChangedCb(status, statusMessage);
     }
 
-    Super::updateConnectionStatus(status, statusMessage);
+    if (status == "Connected" && statusMessage == "")
+        Super::updateConnectionStatus(status, buildConnectedStatusMessage(transport));
+    else
+        Super::updateConnectionStatus(status, statusMessage);
 }
 
 void NativeStreamingImpl::processTransportConnectionStatus(const EnumerationPtr& status, const StringPtr& statusMessage)

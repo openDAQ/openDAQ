@@ -51,8 +51,9 @@ private:
 
     /// @brief reads the transport selected in the add-device or add-streaming config carried by `config`
     /// @param addConfigName "AddDeviceConfig" or "AddStreamingConfig"
-    /// @return true if TLS is selected; false for plain, or when the config carries no selection
-    static bool IsTlsSelected(const PropertyObjectPtr& config, const char* addConfigName);
+    /// @return the name of the selected transport; "plain" when the config carries no selection
+    /// @throw InvalidParameterException the selected transport is not supported
+    static StringPtr GetSelectedTransport(const PropertyObjectPtr& config, const char* addConfigName);
 
     static bool ConnectionStringHasPrefix(const StringPtr& connectionString, const char* prefix);
     static bool ValidateConnectionString(const StringPtr& connectionString);
@@ -63,8 +64,8 @@ private:
 
 #if NATIVE_STREAMING_ENABLE_TLS
     /// @brief collects the TLS settings the transport handler needs out of the connection config
-    /// @return the object to hand to the handler, or nothing for a plaintext connection
-    static PropertyObjectPtr parseTlsConfig(const PropertyObjectPtr& config, bool secure);
+    /// @return the object to hand to the handler
+    static PropertyObjectPtr parseTlsConfig(const PropertyObjectPtr& config);
 #endif
 
     /// @brief the transports a discovered server lists that this module supports too, in the server's order
@@ -90,7 +91,7 @@ private:
         const StringPtr& port,
         const StringPtr& path,
         const PropertyObjectPtr& config,
-        bool secure);
+        const StringPtr& transport);
     PropertyObjectPtr parseAuthenticationConfig(const PropertyObjectPtr& config);
     void copyConfigPropertyValue(const StringPtr& propName, const PropertyObjectPtr& srcObject, PropertyObjectPtr& targetObject);
 
@@ -106,7 +107,7 @@ private:
                                  const StringPtr& port,
                                  const StringPtr& path,
                                  uint16_t& protocolVersion,
-                                 bool secure);
+                                 const StringPtr& transport);
 
     PropertyObjectPtr createConnectionDefaultConfig(NativeType nativeConfigType);
     bool acceptsConnectionParameters(const StringPtr& connectionString, const PropertyObjectPtr& config);

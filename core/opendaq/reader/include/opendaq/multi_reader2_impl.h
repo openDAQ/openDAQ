@@ -76,6 +76,8 @@ private:
         std::unordered_map<IInputPort*, SizeT> slotOf;
     };
 
+    // configure, and the constructor with a null status: the first status is then owed to the first read
+    ErrCode configureInternal(IMultiReader2Params* params, IMultiReader2Status** status);
     ErrCode resolveParams(IMultiReader2Params* params, MultiReaderDataManager::Config& config, ComponentPtr& mainInput);
     Slot makeSlot(const ComponentPtr& input);
     void releaseSlot(Slot& slot);

@@ -1,8 +1,12 @@
+#include <coretypes/ctutils.h>
 #include <coretypes/validation.h>
+#include <opendaq/input_port_factory.h>
 #include <opendaq/multi_reader2_impl.h>
 #include <opendaq/multi_reader2_status_ptr.h>
+#include <opendaq/reader.h>
 #include <opendaq/signal_ptr.h>
 
+#include <algorithm>
 #include <unordered_set>
 
 BEGIN_NAMESPACE_OPENDAQ
@@ -13,8 +17,7 @@ MultiReader2Impl::MultiReader2Impl(IMultiReader2Params* params)
     this->internalAddRef();
     try
     {
-        MultiReader2StatusPtr status;
-        checkErrorInfo(configure(params, &status));
+        checkErrorInfo(configureInternal(params, nullptr));
     }
     catch (...)
     {
@@ -91,7 +94,6 @@ ErrCode MultiReader2Impl::resolveParams(IMultiReader2Params* params, MultiReader
     if (mainInput.assigned() && !config.mainSlot.has_value())
         return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDPARAMETER, R"(Main input "%s" is not in the input list)", mainInput.getGlobalId().getCharPtr());
 
-    config.connected.assign(config.inputs.size(), false);
     config.acceptsDescriptor = acceptsDescriptor;
     config.readType = readType;
     config.minReadCount = minReadCount;
@@ -99,18 +101,50 @@ ErrCode MultiReader2Impl::resolveParams(IMultiReader2Params* params, MultiReader
     return OPENDAQ_SUCCESS;
 }
 
+// Takes over a new input. configureInternal has checked that its context has a scheduler and that no reader
+// holds its port
 MultiReader2Impl::Slot MultiReader2Impl::makeSlot(const ComponentPtr& input)
 {
-    // TODO(spec A10): a port is held by another reader when its listener supports IMultiReader2 or IReader:
-    // fail with ALREADYEXISTS. Any other listener is taken over; the port runs in Scheduler mode. A signal input
-    // gets a port of its own (ownsPort)
-    return {input, nullptr, false};
+    InputPortConfigPtr port;
+    bool ownsPort = false;
+    if (const auto signal = input.asPtrOrNull<ISignal>(true); signal.assigned())
+    {
+        // Connected while the port has no listener and notifies nothing, so no connect callback reaches the reader;
+        // the slot starts from the state configureInternal reads off the port
+        port = InputPort(input.getContext(), nullptr, "multi_reader2_" + signal.getLocalId().toStdString());
+        port.connect(signal);
+        ownsPort = true;
+    }
+    else
+    {
+        port = input.asPtr<IInputPortConfig>(true);
+    }
+
+    // TODO(spec A12): take the port's intake lock here; configureInternal holds it until the wiring is published,
+    // so a connect or disconnect in between waits and is applied after it
+    // The listener first: a Scheduler port without a listener aborts the process when a packet arrives
+    port.setListener(this->thisPtr<InputPortNotificationsPtr>());
+    port.setNotificationMethod(PacketReadyNotification::Scheduler);
+    return {input, port, ownsPort};
 }
 
-void MultiReader2Impl::releaseSlot(Slot& /*slot*/)
+// Never throws: it runs in the destructor and after a failed takeover
+void MultiReader2Impl::releaseSlot(Slot& slot)
 {
-    // TODO(spec A10, C5): set the notification method to None first, then clear the listener; no previous
-    // listener is restored. A port the reader created is also disconnected
+    if (!slot.port.assigned())
+        return;
+
+    const ErrCode errCode = daqTry([&]
+    {
+        // The method first: a Scheduler port without a listener aborts the process when a packet arrives. No previous
+        // listener is restored
+        slot.port.setNotificationMethod(PacketReadyNotification::None);
+        slot.port.setListener(nullptr);
+        if (slot.ownsPort)
+            slot.port.disconnect();
+    });
+    if (OPENDAQ_FAILED(errCode))
+        daqClearErrorInfo();
 }
 
 // Calls from inside the owner's acceptsDescriptor would re-enter the data manager under its own mutex
@@ -123,17 +157,125 @@ void MultiReader2Impl::releaseSlot(Slot& /*slot*/)
 
 ErrCode MultiReader2Impl::configure(IMultiReader2Params* params, IMultiReader2Status** status)
 {
-    OPENDAQ_PARAM_NOT_NULL(params);
     OPENDAQ_PARAM_NOT_NULL(status);
+    return configureInternal(params, status);
+}
+
+ErrCode MultiReader2Impl::configureInternal(IMultiReader2Params* params, IMultiReader2Status** status)
+{
+    OPENDAQ_PARAM_NOT_NULL(params);
     MULTI_READER2_NOT_FROM_CALLBACK();
 
-    // TODO(spec A1, B5, A10, A11):
-    // - validate with resolveParams; a rejected object leaves the reader untouched
-    // - INVALIDSTATE without a scheduler (once there are inputs to take a context from)
-    // - equal params: dataManager.rejudge, return its status
-    // - otherwise swap the slots (makeSlot / releaseSlot), rebuild the wiring, dataManager.reconfigure, return its status
-    // - schedule no onDataAvailable
-    return OPENDAQ_ERR_NOTIMPLEMENTED;
+    // A rejected object leaves the reader untouched
+    MultiReaderDataManager::Config config;
+    ComponentPtr mainInput;
+    const ErrCode errCode = resolveParams(params, config, mainInput);
+    OPENDAQ_RETURN_IF_FAILED(errCode);
+
+    std::scoped_lock lock(mutex);
+
+    // Never true before the first configure, so the constructor always reconfigures
+    if (dataManager.isSameConfig(config))
+        return dataManager.rejudge(status);
+
+    return daqTry([&]() -> ErrCode
+    {
+        const auto findSlot = [this](const ComponentPtr& input)
+        {
+            return std::find_if(slots.begin(), slots.end(),
+                                [&](const Slot& slot) { return slot.input.getGlobalId() == input.getGlobalId(); });
+        };
+
+        // Every check before any port is touched
+        const SizeT count = config.inputs.size();
+        std::vector<bool> retained(count, false);
+        for (SizeT i = 0; i < count; ++i)
+        {
+            const ComponentPtr& input = config.inputs[i];
+
+            // A port in a context without a scheduler silently falls back to SameThread notifications
+            const auto inputContext = input.getContext();
+            if (!inputContext.assigned() || !inputContext.getScheduler().assigned())
+                return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDSTATE, R"(The context of input "%s" has no scheduler)",
+                                           input.getGlobalId().getCharPtr());
+
+            retained[i] = findSlot(input) != slots.end();
+            if (retained[i])
+                continue;
+
+            // Held by a reader: one supporting IMultiReader2, or IReader of the older readers. Any other listener is
+            // taken over; the port holds it weakly, so a destroyed reader frees the port
+            if (const auto port = input.asPtrOrNull<IInputPortConfig>(true); port.assigned())
+            {
+                const auto listener = port.getListener();
+                if (listener.assigned() && (listener.supportsInterface<IMultiReader2>() || listener.supportsInterface<IReader>()))
+                    return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_ALREADYEXISTS, R"(Input port "%s" is held by another reader)",
+                                               input.getGlobalId().getCharPtr());
+            }
+        }
+
+        // Retained inputs keep their slot; a failed takeover releases the new ports and leaves the old slots as they were
+        std::vector<Slot> newSlots;
+        newSlots.reserve(count);
+        try
+        {
+            for (SizeT i = 0; i < count; ++i)
+                newSlots.push_back(retained[i] ? *findSlot(config.inputs[i]) : makeSlot(config.inputs[i]));
+        }
+        catch (...)
+        {
+            for (SizeT i = 0; i < newSlots.size(); ++i)
+            {
+                if (!retained[i])
+                    releaseSlot(newSlots[i]);
+            }
+            throw;
+        }
+
+        // A new input starts from its port's state, read after the takeover; a retained one keeps what the data
+        // manager saw. For a signal input the port is always connected
+        config.connected.assign(count, false);
+        config.valueDescriptors.assign(count, nullptr);
+        config.domainDescriptors.assign(count, nullptr);
+        for (SizeT i = 0; i < count; ++i)
+        {
+            if (retained[i])
+                continue;
+            const SignalPtr signal = newSlots[i].port.getSignal();
+            if (!signal.assigned())
+                continue;
+            config.connected[i] = true;
+            config.valueDescriptors[i] = signal.getDescriptor();
+            if (const auto domainSignal = signal.getDomainSignal(); domainSignal.assigned())
+                config.domainDescriptors[i] = domainSignal.getDescriptor();
+        }
+
+        // Inputs that left the list
+        for (auto& slot : slots)
+        {
+            const auto stays = std::any_of(config.inputs.begin(), config.inputs.end(),
+                                           [&](const ComponentPtr& input) { return input.getGlobalId() == slot.input.getGlobalId(); });
+            if (!stays)
+                releaseSlot(slot);
+        }
+
+        // The old wiring maps retained ports to their old slot indices
+        // TODO(spec A12): until the intake locks exist, a callback from here until the new wiring is published finds
+        // no slot and is dropped
+        std::atomic_store(&wiring, std::shared_ptr<const Wiring>());
+        slots = std::move(newSlots);
+        context = slots.empty() ? nullptr : slots.front().input.getContext();
+        scheduler = context.assigned() ? context.getScheduler() : nullptr;
+
+        // Schedules no onDataAvailable
+        const ErrCode reconfigured = dataManager.reconfigure(std::move(config), status);
+
+        auto newWiring = std::make_shared<Wiring>();
+        for (SizeT i = 0; i < slots.size(); ++i)
+            newWiring->slotOf[slots[i].port.asPtr<IInputPort>(true)] = i;
+        std::atomic_store(&wiring, std::shared_ptr<const Wiring>(std::move(newWiring)));
+        return reconfigured;
+    });
 }
 
 // ---------------------------------------------------------------- consumer side

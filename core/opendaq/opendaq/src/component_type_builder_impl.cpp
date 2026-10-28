@@ -10,7 +10,6 @@ BEGIN_NAMESPACE_OPENDAQ
 
 ComponentTypeBuilderImpl::ComponentTypeBuilderImpl(ComponentTypeSort sort)
     : sort(sort)
-    , deviceKind(DeviceKind::External)
     , supportedAuthenticationMethods((sort == ComponentTypeSort::Device || sort == ComponentTypeSort::Streaming) ?  Dict<IString, IAuthenticationMethod>() : nullptr)
 {
 }
@@ -19,8 +18,6 @@ ErrCode ComponentTypeBuilderImpl::build(IComponentType** componentType)
 {
     const ErrCode errCode = daqTry([&componentType, this]
     {
-        OPENDAQ_RETURN_IF_FAILED(checkSortFields());
-
         const auto builderPtr = this->borrowPtr<ComponentTypeBuilderPtr>();
         switch (sort)
         {
@@ -44,23 +41,6 @@ ErrCode ComponentTypeBuilderImpl::build(IComponentType** componentType)
     });
     OPENDAQ_RETURN_IF_FAILED(errCode);
     return errCode;
-}
-
-ErrCode ComponentTypeBuilderImpl::checkSortFields() const
-{
-    // Disabled: other sorts have always ignored a prefix, and rejecting it would break existing modules
-    // that set one. The builder has no logger to warn with instead.
-    // const bool usesPrefix = sort == ComponentTypeSort::Device || sort == ComponentTypeSort::Streaming;
-    // if (!usesPrefix && prefix.assigned() && prefix.getLength() > 0)
-    //     return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDPARAMETER, "Connection string prefix is set, but only Device and Streaming types have one");
-
-    if (sort != ComponentTypeSort::Device && deviceKind != DeviceKind::External)
-        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDPARAMETER, "Device kind is set, but only Device types have one");
-
-    if (sort != ComponentTypeSort::Streaming && linkedDeviceType.assigned())
-        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDPARAMETER, "Linked device type is set, but only Streaming types have one");
-
-    return OPENDAQ_SUCCESS;
 }
 
 ErrCode ComponentTypeBuilderImpl::setId(IString* id)
@@ -155,6 +135,9 @@ ErrCode ComponentTypeBuilderImpl::getDefaultConfig(IPropertyObject** defaultConf
 
 ErrCode ComponentTypeBuilderImpl::setDeviceKind(DeviceKind kind)
 {
+    if (sort != ComponentTypeSort::Device)
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOT_SUPPORTED, "setDeviceKind only applies to a Device type");
+
     this->deviceKind = kind;
     return OPENDAQ_SUCCESS;
 }
@@ -163,7 +146,10 @@ ErrCode ComponentTypeBuilderImpl::getDeviceKind(DeviceKind* kind)
 {
     OPENDAQ_PARAM_NOT_NULL(kind);
 
-    *kind = this->deviceKind;
+    if (sort != ComponentTypeSort::Device)
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOT_SUPPORTED, "getDeviceKind only applies to a Device type");
+
+    *kind = this->deviceKind.value_or(DeviceKind::External);
     return OPENDAQ_SUCCESS;
 }
 
@@ -215,6 +201,9 @@ ErrCode ComponentTypeBuilderImpl::setLinkedDeviceType(IDeviceType* deviceType)
 ErrCode ComponentTypeBuilderImpl::getLinkedDeviceType(IDeviceType** deviceType)
 {
     OPENDAQ_PARAM_NOT_NULL(deviceType);
+
+    if (sort != ComponentTypeSort::Streaming)
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOT_SUPPORTED, "getLinkedDeviceType only applies to a Streaming type");
 
     *deviceType = this->linkedDeviceType.addRefAndReturn();
     return OPENDAQ_SUCCESS;

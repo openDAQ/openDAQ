@@ -23,6 +23,7 @@
 #include <opendaq/authentication_method_ptr.h>
 #include <coretypes/dict_ptr.h>
 #include <opendaq/device_type_ptr.h>
+#include <optional>
 
 BEGIN_NAMESPACE_OPENDAQ
 class ComponentTypeBuilderImpl : public ImplementationOf<IComponentTypeBuilder>
@@ -60,8 +61,6 @@ public:
     ErrCode INTERFACE_FUNC getLinkedDeviceType(IDeviceType** deviceType) override;
 
 private:
-    ErrCode checkSortFields() const;
-
     ComponentTypeSort sort;
     StringPtr id;
     StringPtr name;
@@ -69,7 +68,7 @@ private:
     StringPtr description;
     PropertyObjectPtr defaultConfig;
     ModuleInfoPtr moduleInfo;
-    DeviceKind deviceKind;
+    std::optional<DeviceKind> deviceKind;
     DictPtr<IString, IAuthenticationMethod> supportedAuthenticationMethods;
     DeviceTypePtr linkedDeviceType;
 };

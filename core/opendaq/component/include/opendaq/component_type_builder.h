@@ -72,8 +72,6 @@ DECLARE_OPENDAQ_INTERFACE(IComponentTypeBuilder, IBaseObject)
      *
      * Depending on the set "sort" builder parameter, a different Component type is created - eg. Streaming type,
      * Device type, Function block type, or Server type.
-     *
-     * Fails with OPENDAQ_ERR_INVALIDPARAMETER when a field is set that the sort does not use.
      */
     virtual ErrCode INTERFACE_FUNC build(IComponentType** componentType) = 0;
     
@@ -189,17 +187,18 @@ DECLARE_OPENDAQ_INTERFACE(IComponentTypeBuilder, IBaseObject)
 
     // [returnSelf]
     /*!
-     * @brief Sets the kind of device created by the built Device type. Applies to the Device sort only.
+     * @brief Sets the kind of device created by the built Device type.
      * @param kind The device kind.
+     * @retval OPENDAQ_ERR_NOT_SUPPORTED for sorts other than Device.
      *
-     * A builder that does not set the kind builds an External Device type. `build` fails for other sorts when
-     * a kind other than External is set.
+     * A builder that does not set the kind builds an External Device type.
      */
     virtual ErrCode INTERFACE_FUNC setDeviceKind(DeviceKind kind) = 0;
 
     /*!
-     * @brief Gets the kind of device created by the built Device type. Applies to the Device sort only.
+     * @brief Gets the kind of device created by the built Device type.
      * @param[out] kind The device kind. External when not set.
+     * @retval OPENDAQ_ERR_NOT_SUPPORTED for sorts other than Device.
      */
     virtual ErrCode INTERFACE_FUNC getDeviceKind(DeviceKind* kind) = 0;
 
@@ -242,6 +241,7 @@ DECLARE_OPENDAQ_INTERFACE(IComponentTypeBuilder, IBaseObject)
      * @brief Gets the device type currently set on the builder - see `setLinkedDeviceType` for when it takes
      * effect on the built Streaming type.
      * @param[out] deviceType The linked device type, or unassigned if none was set.
+     * @retval OPENDAQ_ERR_NOT_SUPPORTED for any sort other than "Streaming".
      */
     virtual ErrCode INTERFACE_FUNC getLinkedDeviceType(IDeviceType** deviceType) = 0;
 };

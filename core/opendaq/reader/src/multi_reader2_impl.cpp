@@ -101,34 +101,29 @@ ErrCode MultiReader2Impl::resolveParams(IMultiReader2Params* params, MultiReader
     return OPENDAQ_SUCCESS;
 }
 
-// Takes over a new input. configureInternal has checked that its context has a scheduler and that no reader
-// holds its port
+// A new input's port, not yet taken over. For a signal input the reader creates the port and connects it while the
+// port has no listener and notifies nothing, so no connect callback reaches the reader
 MultiReader2Impl::Slot MultiReader2Impl::makeSlot(const ComponentPtr& input)
 {
-    InputPortConfigPtr port;
-    bool ownsPort = false;
     if (const auto signal = input.asPtrOrNull<ISignal>(true); signal.assigned())
     {
-        // Connected while the port has no listener and notifies nothing, so no connect callback reaches the reader;
-        // the slot starts from the state configureInternal reads off the port
-        port = InputPort(input.getContext(), nullptr, "multi_reader2_" + signal.getLocalId().toStdString());
+        InputPortConfigPtr port = InputPort(input.getContext(), nullptr, "multi_reader2_" + signal.getLocalId().toStdString());
         port.connect(signal);
-        ownsPort = true;
+        return {input, port, true, std::make_shared<Intake>()};
     }
-    else
-    {
-        port = input.asPtr<IInputPortConfig>(true);
-    }
-
-    // TODO(spec A12): take the port's intake lock here; configureInternal holds it until the wiring is published,
-    // so a connect or disconnect in between waits and is applied after it
-    // The listener first: a Scheduler port without a listener aborts the process when a packet arrives
-    port.setListener(this->thisPtr<InputPortNotificationsPtr>());
-    port.setNotificationMethod(PacketReadyNotification::Scheduler);
-    return {input, port, ownsPort};
+    return {input, input.asPtr<IInputPortConfig>(true), false, std::make_shared<Intake>()};
 }
 
-// Never throws: it runs in the destructor and after a failed takeover
+// Under the port's intake lock: port calls only
+void MultiReader2Impl::takeOver(const Slot& slot)
+{
+    // The listener first: a Scheduler port without a listener aborts the process when a packet arrives
+    slot.port.setListener(this->thisPtr<InputPortNotificationsPtr>());
+    slot.port.setNotificationMethod(PacketReadyNotification::Scheduler);
+}
+
+// Never throws: it runs in the destructor and after a failed takeover. A port handed to the reader comes out without
+// a listener, also from a configure that failed before taking it over
 void MultiReader2Impl::releaseSlot(Slot& slot)
 {
     if (!slot.port.assigned())
@@ -145,6 +140,33 @@ void MultiReader2Impl::releaseSlot(Slot& slot)
     });
     if (OPENDAQ_FAILED(errCode))
         daqClearErrorInfo();
+}
+
+// Calls the signal, so never under an intake lock (C18)
+MultiReader2Impl::PortState MultiReader2Impl::readPortState(const InputPortPtr& port)
+{
+    PortState state;
+    state.connection = port.getConnection();
+    if (!state.connection.assigned())
+        return state;
+
+    const SignalPtr signal = state.connection.getSignal();
+    if (!signal.assigned())
+        return state;
+
+    state.connected = true;
+    state.value = signal.getDescriptor();
+    if (const auto domainSignal = signal.getDomainSignal(); domainSignal.assigned())
+        state.domain = domainSignal.getDescriptor();
+    return state;
+}
+
+void MultiReader2Impl::publishWiring(const std::vector<Slot>& wired)
+{
+    auto newWiring = std::make_shared<Wiring>();
+    for (const auto& slot : wired)
+        newWiring->intakeOf[slot.port.asPtr<IInputPort>(true)] = slot.intake;
+    std::atomic_store(&wiring, std::shared_ptr<const Wiring>(std::move(newWiring)));
 }
 
 // Calls from inside the owner's acceptsDescriptor would re-enter the data manager under its own mutex
@@ -214,55 +236,98 @@ ErrCode MultiReader2Impl::configureInternal(IMultiReader2Params* params, IMultiR
             }
         }
 
-        // Retained inputs keep their slot; a failed takeover releases the new ports and leaves the old slots as they were
+        // A failed takeover releases the new ports and leaves the old slots and wiring as they were
+        const auto oldWiring = std::atomic_load(&wiring);
         std::vector<Slot> newSlots;
-        newSlots.reserve(count);
-        try
-        {
-            for (SizeT i = 0; i < count; ++i)
-                newSlots.push_back(retained[i] ? *findSlot(config.inputs[i]) : makeSlot(config.inputs[i]));
-        }
-        catch (...)
+        const auto abandon = [&]
         {
             for (SizeT i = 0; i < newSlots.size(); ++i)
             {
                 if (!retained[i])
                     releaseSlot(newSlots[i]);
             }
+            std::atomic_store(&wiring, oldWiring);
+        };
+
+        // No intake lock yet: the new ports and their signals' descriptors, which must not be read under one (C18)
+        std::vector<PortState> states(count);
+        newSlots.reserve(count);
+        try
+        {
+            for (SizeT i = 0; i < count; ++i)
+            {
+                newSlots.push_back(retained[i] ? *findSlot(config.inputs[i]) : makeSlot(config.inputs[i]));
+                if (!retained[i])
+                    states[i] = readPortState(newSlots[i].port);
+            }
+        }
+        catch (...)
+        {
+            abandon();
             throw;
         }
 
-        // A new input starts from its port's state, read after the takeover; a retained one keeps what the data
-        // manager saw. For a signal input the port is always connected
-        config.connected.assign(count, false);
-        config.valueDescriptors.assign(count, nullptr);
-        config.domainDescriptors.assign(count, nullptr);
-        for (SizeT i = 0; i < count; ++i)
-        {
-            if (retained[i])
-                continue;
-            const SignalPtr signal = newSlots[i].port.getSignal();
-            if (!signal.assigned())
-                continue;
-            config.connected[i] = true;
-            config.valueDescriptors[i] = signal.getDescriptor();
-            if (const auto domainSignal = signal.getDomainSignal(); domainSignal.assigned())
-                config.domainDescriptors[i] = domainSignal.getDescriptor();
-        }
-
-        // Inputs that left the list
-        for (auto& slot : slots)
+        std::vector<Slot> leaving;
+        for (const auto& slot : slots)
         {
             const auto stays = std::any_of(config.inputs.begin(), config.inputs.end(),
                                            [&](const ComponentPtr& input) { return input.getGlobalId() == slot.input.getGlobalId(); });
             if (!stays)
-                releaseSlot(slot);
+                leaving.push_back(slot);
         }
 
-        // The old wiring maps retained ports to their old slot indices
-        // TODO(spec A12): until the intake locks exist, a callback from here until the new wiring is published finds
-        // no slot and is dropped
-        std::atomic_store(&wiring, std::shared_ptr<const Wiring>());
+        // Every intake, so that no callback reaches the data manager with an old slot index. The wiring lists the new
+        // ports before they are taken over: a callback after the takeover finds the intake and waits for it
+        std::vector<std::unique_lock<std::mutex>> intakeLocks;
+        intakeLocks.reserve(newSlots.size() + leaving.size());
+        for (const auto& slot : newSlots)
+            intakeLocks.emplace_back(slot.intake->mutex);
+        for (const auto& slot : leaving)
+            intakeLocks.emplace_back(slot.intake->mutex);
+
+        std::vector<Slot> interim(slots);
+        for (SizeT i = 0; i < count; ++i)
+        {
+            if (!retained[i])
+                interim.push_back(newSlots[i]);
+        }
+        publishWiring(interim);
+
+        // A new input starts from its port's connection after the takeover; a retained one keeps what the data
+        // manager saw. A port connected elsewhere since its descriptors were read starts without them, and its
+        // connect is applied after this configure
+        config.connected.assign(count, false);
+        config.valueDescriptors.assign(count, nullptr);
+        config.domainDescriptors.assign(count, nullptr);
+        std::vector<IInputPort*> reconnected;
+        try
+        {
+            for (SizeT i = 0; i < count; ++i)
+            {
+                if (retained[i])
+                    continue;
+                takeOver(newSlots[i]);
+
+                const ConnectionPtr connection = newSlots[i].port.getConnection();
+                if (connection.getObject() == states[i].connection.getObject())
+                {
+                    config.connected[i] = states[i].connected;
+                    config.valueDescriptors[i] = states[i].value;
+                    config.domainDescriptors[i] = states[i].domain;
+                }
+                else if (connection.assigned())
+                {
+                    config.connected[i] = true;
+                    reconnected.push_back(newSlots[i].port.asPtr<IInputPort>(true));
+                }
+            }
+        }
+        catch (...)
+        {
+            abandon();
+            throw;
+        }
+
         slots = std::move(newSlots);
         context = slots.empty() ? nullptr : slots.front().input.getContext();
         scheduler = context.assigned() ? context.getScheduler() : nullptr;
@@ -270,10 +335,17 @@ ErrCode MultiReader2Impl::configureInternal(IMultiReader2Params* params, IMultiR
         // Schedules no onDataAvailable
         const ErrCode reconfigured = dataManager.reconfigure(std::move(config), status);
 
-        auto newWiring = std::make_shared<Wiring>();
         for (SizeT i = 0; i < slots.size(); ++i)
-            newWiring->slotOf[slots[i].port.asPtr<IInputPort>(true)] = i;
-        std::atomic_store(&wiring, std::shared_ptr<const Wiring>(std::move(newWiring)));
+            slots[i].intake->slot = i;
+        for (const auto& slot : leaving)
+            slot.intake->slot.reset();
+        publishWiring(slots);
+        intakeLocks.clear();
+
+        for (auto& slot : leaving)
+            releaseSlot(slot);
+        for (const auto port : reconnected)
+            applyConnect(port);
         return reconfigured;
     });
 }
@@ -329,16 +401,38 @@ void MultiReader2Impl::runWake()
 
 // ---------------------------------------------------------------- port callbacks
 
-std::optional<SizeT> MultiReader2Impl::slotOf(IInputPort* port) const
+std::shared_ptr<MultiReader2Impl::Intake> MultiReader2Impl::intakeOf(IInputPort* port) const
 {
     const auto wire = std::atomic_load(&wiring);
     if (!wire)
-        return std::nullopt;
+        return nullptr;
     const auto key = InputPortPtr::Borrow(port).asPtrOrNull<IInputPort>(true);
-    const auto it = wire->slotOf.find(key);
-    if (it == wire->slotOf.end())
-        return std::nullopt;
+    const auto it = wire->intakeOf.find(key);
+    if (it == wire->intakeOf.end())
+        return nullptr;
     return it->second;
+}
+
+// The connect callback, also run by configure for a port connected elsewhere during its takeover
+void MultiReader2Impl::applyConnect(IInputPort* port)
+{
+    const auto portPtr = InputPortPtr::Borrow(port);
+    const PortState state = readPortState(portPtr);
+    const auto intake = intakeOf(port);
+    if (!intake)
+        return;
+
+    bool wake;
+    {
+        std::scoped_lock lock(intake->mutex);
+        // A connect or disconnect since the state was read has its own callback, applied after this one
+        if (!intake->slot || portPtr.getConnection().getObject() != state.connection.getObject())
+            return;
+        wake = state.connected ? dataManager.connected(*intake->slot, state.value, state.domain)
+                               : dataManager.disconnected(*intake->slot);
+    }
+    if (wake)
+        scheduleWake();
 }
 
 ErrCode MultiReader2Impl::acceptsSignal(IInputPort* /*port*/, ISignal* /*signal*/, Bool* accept)
@@ -351,22 +445,62 @@ ErrCode MultiReader2Impl::acceptsSignal(IInputPort* /*port*/, ISignal* /*signal*
 ErrCode MultiReader2Impl::connected(IInputPort* port)
 {
     OPENDAQ_PARAM_NOT_NULL(port);
-    // TODO(spec A12, B1): read the signal's descriptors, then under the port's intake lock dataManager.connected
+
+    // A failure here would fail the user's connect; the reader never refuses one
+    const ErrCode errCode = daqTry([&] { applyConnect(port); });
+    if (OPENDAQ_FAILED(errCode))
+        daqClearErrorInfo();
     return OPENDAQ_SUCCESS;
 }
 
 ErrCode MultiReader2Impl::disconnected(IInputPort* port)
 {
     OPENDAQ_PARAM_NOT_NULL(port);
-    // TODO(spec A12): under the port's intake lock dataManager.disconnected
-    return OPENDAQ_SUCCESS;
+
+    return daqTry([&]
+    {
+        const auto intake = intakeOf(port);
+        if (!intake)
+            return;
+
+        bool wake;
+        {
+            std::scoped_lock lock(intake->mutex);
+            if (!intake->slot)
+                return;
+            wake = dataManager.disconnected(*intake->slot);
+        }
+        if (wake)
+            scheduleWake();
+    });
 }
 
 ErrCode MultiReader2Impl::packetReceived(IInputPort* port)
 {
     OPENDAQ_PARAM_NOT_NULL(port);
-    // TODO(spec A12): dequeue and ingest under the port's own intake lock, not one lock for every port
-    return OPENDAQ_SUCCESS;
+
+    return daqTry([&]
+    {
+        const auto intake = intakeOf(port);
+        if (!intake)
+            return;
+
+        bool wake = false;
+        {
+            // The connection is a single-consumer queue, and Scheduler ports notify on several threads: the intake
+            // lock makes this call its only consumer and keeps the batches in order
+            std::scoped_lock lock(intake->mutex);
+            if (!intake->slot)
+                return;
+            const auto connection = InputPortPtr::Borrow(port).getConnection();
+            if (!connection.assigned())
+                return;
+            for (const auto& packet : connection.dequeueAll())
+                wake = dataManager.addPacket(*intake->slot, packet) || wake;
+        }
+        if (wake)
+            scheduleWake();
+    });
 }
 
 END_NAMESPACE_OPENDAQ

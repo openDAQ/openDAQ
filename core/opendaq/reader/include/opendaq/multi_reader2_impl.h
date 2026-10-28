@@ -17,6 +17,7 @@
 #include <coretypes/event_args_ptr.h>
 #include <coretypes/event_emitter.h>
 #include <coretypes/intfs.h>
+#include <opendaq/connection_ptr.h>
 #include <opendaq/context_ptr.h>
 #include <opendaq/input_port_config_ptr.h>
 #include <opendaq/input_port_notifications.h>
@@ -27,6 +28,7 @@
 
 #include <memory>
 #include <mutex>
+#include <optional>
 #include <unordered_map>
 #include <vector>
 
@@ -34,8 +36,9 @@ BEGIN_NAMESPACE_OPENDAQ
 
 // The reader facade: owns the ports, installs itself as their only listener, translates ports into slot indices,
 // schedules the wake the manager says is owed. The engine work lives in MultiReaderDataManager. The facade mutex
-// guards the slot list during configure only; port callbacks look the slot up through an immutable wiring snapshot
-// and never take it, so configure may run from inside the onDataAvailable handler.
+// guards the slot list during configure only; port callbacks look the port's intake up through an immutable wiring
+// snapshot and never take it, so configure may run from inside the onDataAvailable handler. Lock order: the facade
+// mutex, the intake locks, the data manager's mutex.
 //
 // Methods that departed from spec 0007 are placeholders, marked TODO with the decision they have to follow.
 class MultiReader2Impl : public ImplementationOfWeak<IMultiReader2, IInputPortNotifications>
@@ -62,26 +65,47 @@ public:
     MultiReaderDataManager& getDataManager();
 
 private:
+    // One port's intake lock (spec A12): under it the port's packets, connect and disconnect reach the data manager
+    // in order. configure moves the slot index under it too; unset while configure takes the port over, and after
+    // the port left. No signal is called under it (C18)
+    struct Intake
+    {
+        std::mutex mutex;
+        std::optional<SizeT> slot;
+    };
+
     // One reader input: the component the user named, and the port driving its slot
     struct Slot
     {
         ComponentPtr input;
         InputPortConfigPtr port;
         bool ownsPort;  // true for the port the reader created around a signal input
-        // TODO(spec A12): the port's intake lock, taken by packetReceived, connected and disconnected
+        std::shared_ptr<Intake> intake;
     };
 
     struct Wiring
     {
-        std::unordered_map<IInputPort*, SizeT> slotOf;
+        std::unordered_map<IInputPort*, std::shared_ptr<Intake>> intakeOf;
+    };
+
+    // What a port is connected to, with the signal's descriptors
+    struct PortState
+    {
+        ConnectionPtr connection;
+        bool connected = false;
+        DataDescriptorPtr value, domain;
     };
 
     // configure, and the constructor with a null status: the first status is then owed to the first read
     ErrCode configureInternal(IMultiReader2Params* params, IMultiReader2Status** status);
     ErrCode resolveParams(IMultiReader2Params* params, MultiReaderDataManager::Config& config, ComponentPtr& mainInput);
     Slot makeSlot(const ComponentPtr& input);
+    void takeOver(const Slot& slot);
     void releaseSlot(Slot& slot);
-    std::optional<SizeT> slotOf(IInputPort* port) const;
+    static PortState readPortState(const InputPortPtr& port);
+    void applyConnect(IInputPort* port);
+    std::shared_ptr<Intake> intakeOf(IInputPort* port) const;
+    void publishWiring(const std::vector<Slot>& wired);
     void scheduleWake();
     void runWake();
 

@@ -1503,6 +1503,16 @@ TEST_F(NativeDeviceModulesTest, GetDefaultAddDeviceConfig)
     test_helpers::testPropObjsEquality(serverDefaultConfig, remoteDefaultConfig);
 }
 
+TEST_F(NativeDeviceModulesTest, AvailableStreamingTypes)
+{
+    SKIP_TEST_MAC_CI;
+    auto server = CreateServerInstance();
+    auto client = CreateClientInstance();
+
+    const auto streamingTypes = client.getDevices()[0].getAvailableStreamingTypes();
+    ASSERT_EQ(streamingTypes.getKeyList(), List<IString>("OpenDAQNativeStreaming"));
+}
+
 TEST_F(NativeDeviceModulesTest, GetStatuses)
 {
     SKIP_TEST_MAC_CI;

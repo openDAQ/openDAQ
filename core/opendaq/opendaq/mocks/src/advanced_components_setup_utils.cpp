@@ -387,18 +387,6 @@ DictPtr<IString, IDeviceType> MockDevice1Impl::onGetAvailableDeviceTypes()
     return devTypes;
 }
 
-DictPtr<IString, IStreamingType> MockDevice1Impl::onGetAvailableStreamingTypes()
-{
-    const StreamingTypePtr streamingType = StreamingTypeBuilder()
-                                               .setId("mockStreaming1")
-                                               .setName("MockStreaming1")
-                                               .setDescription("Mock Streaming 1")
-                                               .setConnectionStringPrefix("prefix")
-                                               .setLinkedDeviceType(onGetAvailableDeviceTypes().get("mockDev1"))
-                                               .build();
-    return Dict<IString, IStreamingType>({{"mockStreaming1", streamingType}});
-}
-
 MockDevice2Impl::MockDevice2Impl(const ContextPtr& ctx, const ComponentPtr& parent, const StringPtr& localId)
     : Device(ctx, parent, localId, "MockClass")
 {

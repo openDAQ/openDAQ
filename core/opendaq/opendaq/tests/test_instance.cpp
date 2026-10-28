@@ -4,6 +4,8 @@
 #include <opendaq/update_parameters_factory.h>
 #include <opendaq/device_info_internal_ptr.h>
 #include <opendaq/module_impl.h>
+#include <opendaq/device_impl.h>
+#include <opendaq/mirrored_device_impl.h>
 #include <opendaq/module_manager_utils_ptr.h>
 #include <opendaq/streaming_type_factory.h>
 #include <opendaq/component_type_builder_factory.h>
@@ -135,23 +137,60 @@ public:
     }
 };
 
-TEST_F(InstanceTest, EnumerateStreamingTypes)
+class MockMirroredDeviceImpl : public MirroredDevice
+{
+public:
+    MockMirroredDeviceImpl(const ContextPtr& ctx, const DeviceInfoPtr& info)
+        : MirroredDevice(ctx, nullptr, "mirrored")
+        , info(info)
+    {
+    }
+
+protected:
+    StringPtr onGetRemoteId() const override
+    {
+        return String("mirrored");
+    }
+
+    DeviceInfoPtr onGetInfo() override
+    {
+        return info;
+    }
+
+    DeviceInfoPtr info;
+};
+
+TEST_F(InstanceTest, AvailableStreamingTypesEmptyForRootDevice)
 {
     auto instance = test_helpers::setupInstance();
-    ASSERT_EQ(instance.getAvailableStreamingTypes().getCount(), 0u);
-
     instance.getModuleManager().addModule(createWithImplementation<IModule, MockStreamingTypesModule>(instance.getContext()));
 
-    auto streamingTypes = instance.getAvailableStreamingTypes();
+    ASSERT_EQ(instance.getAvailableStreamingTypes().getCount(), 0u);
+    ASSERT_EQ(instance.getRootDevice().getAvailableStreamingTypes().getCount(), 0u);
+}
+
+TEST_F(InstanceTest, AvailableStreamingTypesOfMirroredDevice)
+{
+    auto instance = test_helpers::setupInstance();
+    instance.getModuleManager().addModule(createWithImplementation<IModule, MockStreamingTypesModule>(instance.getContext()));
+
+    const auto info = DeviceInfo("daqmirrored://device");
+    const auto infoInternal = info.asPtr<IDeviceInfoInternal>();
+    infoInternal.addServerCapability(ServerCapability("a", "a", ProtocolType::Streaming).setPrefix("daqmocka"));
+    infoInternal.addServerCapability(ServerCapability("b", "b", ProtocolType::ConfigurationAndStreaming).setPrefix("daqmockb"));
+    infoInternal.addServerCapability(ServerCapability("c", "c", ProtocolType::Streaming).setPrefix("daqnotloaded"));
+    const auto device = createWithImplementation<IDevice, MockMirroredDeviceImpl>(instance.getContext(), info);
+
+    const auto streamingTypes = device.getAvailableStreamingTypes();
     ASSERT_EQ(streamingTypes.getCount(), 2u);
     ASSERT_TRUE(streamingTypes.hasKey("mock_streaming_a"));
-    ASSERT_EQ(streamingTypes.get("mock_streaming_a").getConnectionStringPrefix(), "daqmocka");
     ASSERT_TRUE(streamingTypes.hasKey("mock_streaming_b"));
-    ASSERT_EQ(streamingTypes.get("mock_streaming_b").getName(), "Mock streaming B");
 
-    const auto managerTypes = instance.getModuleManager().asPtr<IModuleManagerUtils>().getAvailableStreamingTypes();
-    ASSERT_EQ(streamingTypes, managerTypes);
-    ASSERT_EQ(instance.getRootDevice().getAvailableStreamingTypes(), managerTypes);
+    const auto configInfo = DeviceInfo("daqmirrored://device");
+    configInfo.asPtr<IDeviceInfoInternal>().addServerCapability(
+        ServerCapability("a", "a", ProtocolType::Configuration).setPrefix("daqmocka"));
+    const auto configDevice = createWithImplementation<IDevice, MockMirroredDeviceImpl>(instance.getContext(), configInfo);
+    ASSERT_EQ(configDevice.getAvailableStreamingTypes().getCount(), 0u);
 }
 
 TEST_F(InstanceTest, EnumerateDeviceTypes)

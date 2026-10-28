@@ -357,15 +357,10 @@ TEST_F(DeviceTest, StandardProperties)
     ASSERT_EQ(device.getDescription(), desc);
 }
 
-TEST_F(DeviceTest, AvailableStreamingTypesEmptyIfNotAddingDevicesFromModules)
+TEST_F(DeviceTest, AvailableStreamingTypesEmptyForNonMirroredDevice)
 {
-    // TestDevice does not add devices from modules, so it does not touch the (null) module manager
     const auto device = daq::createWithImplementation<daq::IDevice, TestDevice>();
-
-    daq::DictPtr<daq::IString, daq::IStreamingType> types;
-    ASSERT_NO_THROW(types = device.getAvailableStreamingTypes());
-    ASSERT_TRUE(types.assigned());
-    ASSERT_EQ(types.getCount(), 0u);
+    ASSERT_EQ(device.getAvailableStreamingTypes().getCount(), 0u);
 }
 
 TEST_F(DeviceTest, Remove)

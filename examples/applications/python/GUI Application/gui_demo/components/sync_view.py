@@ -5,7 +5,6 @@ import opendaq as daq
 
 from .. import utils
 from ..app_context import AppContext
-from .block_view import BlockView
 from .generic_properties_treeview import PropertiesTreeview
 
 NO_DOMAIN = 'No reference domain'
@@ -526,9 +525,46 @@ class SyncView(ttk.Frame):
         widgets = (statuses, *statuses.winfo_children())
         for widget in widgets:
             widget.configure(cursor='hand2')
-            widget.bind('<Button-1>', lambda e: BlockView.show_all_statuses(self, container))
+            widget.bind('<Button-1>', lambda e: self.statuses_show(record))
             widget.bind('<Enter>', lambda e: [w.configure(background='#e0e0e0') for w in widgets])
             widget.bind('<Leave>', lambda e: [w.configure(background=background) for w in widgets])
+
+    def statuses_show(self, record):
+        width, height = int(600 * self.context.dpi_factor), int(340 * self.context.dpi_factor)
+        window = tk.Toplevel(self)
+        window.withdraw()
+        window.title('All statuses')
+        window.attributes('-topmost', True)
+        window.transient(self)
+
+        tree = ttk.Treeview(window, columns=('status', 'message'), show='tree headings')
+        scroll_bar = ttk.Scrollbar(window, orient=tk.VERTICAL, command=tree.yview)
+        tree.configure(yscrollcommand=scroll_bar.set)
+        scroll_bar.pack(side=tk.RIGHT, fill=tk.Y)
+        tree.pack(expand=True, fill=tk.BOTH)
+        for column, title in (('#0', 'Name'), ('status', 'Status'), ('message', 'Message')):
+            tree.heading(column, text=title, anchor=tk.W)
+        tree.tag_configure('interface', font=('TkDefaultFont', 9, 'bold'))
+
+        names = [record.source.id, *(name for name in record.interfaces if name != record.source.id)]
+
+        def fill():
+            if not window.winfo_exists():
+                return
+            tree.delete(*tree.get_children())
+            for name in names:
+                container = record.interfaces[name].status_container
+                parent = tree.insert('', tk.END, text=name, open=True, tags=('interface',))
+                for status, value in container.statuses.items():
+                    tree.insert(parent, tk.END, text=status, values=(value.name, container.get_status_message(status)))
+            window.after(1000, fill)
+
+        fill()
+        main = self.winfo_toplevel()
+        x = main.winfo_rootx() + main.winfo_width() // 2 - width // 2
+        y = main.winfo_rooty() + main.winfo_height() // 2 - height // 2
+        window.geometry(f'{width}x{height}+{x}+{y}')
+        window.deiconify()
 
     def cards_draw(self, record):
         key = (record.device.global_id, tuple(record.interfaces)) if record is not None else None

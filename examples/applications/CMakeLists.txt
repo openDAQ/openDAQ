@@ -55,6 +55,8 @@ if (APP_ENABLE_WEBPAGE_EXAMPLES)
         message(WARNING "At least DAQMODULES_OPENDAQ_SERVER_MODULE, OPENDAQ_ENABLE_OPCUA and DAQMODULES_REF_DEVICE_MODULE must be ON to enable device_server application")
     endif()
 
+    add_subdirectory(cpp/multi_reader2_trials)
+
     add_executable(empty_example cpp/empty_example/empty_example.cpp)
     target_link_libraries(empty_example daq::opendaq)
 

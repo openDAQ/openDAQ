@@ -1,5 +1,6 @@
 #include <gtest/gtest.h>
 #include <opendaq/add_component_config_factory.h>
+#include <opendaq/add_device_config_private_ptr.h>
 #include <opendaq/component_type_builder_factory.h>
 #include <coreobjects/property_object_factory.h>
 #include <coreobjects/property_factory.h>
@@ -65,6 +66,23 @@ protected:
         const auto serializer = JsonSerializer();
         obj.serialize(serializer);
         return serializer.getOutput();
+    }
+
+    static std::string serializeForUpdate(const PropertyObjectPtr& obj)
+    {
+        const auto serializer = JsonSerializer();
+        obj.asPtr<IUpdatable>().serializeForUpdate(serializer);
+        return serializer.getOutput();
+    }
+
+    static AddDeviceConfigPtr bindSaved(const std::string& json,
+                                        const DictPtr<IString, IDeviceType>& deviceTypes,
+                                        const DictPtr<IString, IStreamingType>& streamingTypes)
+    {
+        AddDeviceConfigPtr bound;
+        JsonDeserializer().callCustomProc(
+            [&](const SerializedObjectPtr& saved) { bound = BoundAddDeviceConfig(saved, deviceTypes, streamingTypes); }, json);
+        return bound;
     }
 
     static BaseObjectPtr deserialize(const std::string& json, const BaseObjectPtr& context = nullptr)
@@ -332,6 +350,134 @@ TEST_F(AddDeviceConfigTest, StreamingObjectsWireFormRoundTrip)
         const AddStreamingConfigPtr deserialized = roundTrip(streamingConfig).asPtr<IAddStreamingConfig>();
         ASSERT_EQ(deserialized.getTypeConfig().getPropertyValue("Id"), "changed");
     }
+}
+
+TEST_F(AddDeviceConfigTest, SaveForm)
+{
+    const auto config = createMirroredConfig();
+    config.getTypeConfig().setPropertyValue("Port", 1);
+    config.getStreamingOptions().getStreamingConfigs().get("b").getTypeConfig().setPropertyValue("Id", "changed");
+
+    ASSERT_EQ(serializeForUpdate(config),
+              R"({"__type":"AddDeviceConfig","deviceTypeId":"dev","scanOnAdd":true,"propValues":{)"
+              R"("Streaming":{"__type":"AddStreamingOptions","propValues":{)"
+              R"("a":{"__type":"AddStreamingConfig","propValues":{"TypeConfig":{"__type":"PropertyObject"}}},)"
+              R"("b":{"__type":"AddStreamingConfig","propValues":{"TypeConfig":)"
+              R"({"__type":"PropertyObject","propValues":{"Id":"changed"}}}}}},)"
+              R"("TypeConfig":{"__type":"PropertyObject","propValues":{"Port":1}}}})");
+}
+
+TEST_F(AddDeviceConfigTest, SaveFormIsNotReadable)
+{
+    ASSERT_THROW(deserialize(serializeForUpdate(createMirroredConfig())), NotFoundException);
+}
+
+TEST_F(AddDeviceConfigTest, BindSaveForm)
+{
+    const auto config = createMirroredConfig();
+    config.setPrimaryAddressType(AddressType::IPv6);
+    config.setScanOnAdd(false);
+    const auto options = config.getStreamingOptions();
+    options.setStreamingType("a");
+    options.setStreamingMode(StreamingMode::MinConnections);
+    options.getStreamingConfig().getTypeConfig().setPropertyValue("Id", "changed");
+
+    const auto deviceType = createDeviceType(DeviceKind::Mirrored, 7000);
+    auto streamingTypes = Dict<IString, IStreamingType>();
+    streamingTypes.set("a", createStreamingType("a"));
+    streamingTypes.set("b", createStreamingType("b", "", "newDefault"));
+
+    const auto bound = bindSaved(serializeForUpdate(config), Dict<IString, IDeviceType>({{"dev", deviceType}}), streamingTypes);
+    ASSERT_EQ(bound.getDeviceType().getObject(), deviceType.getObject());
+    ASSERT_EQ(bound.getTypeConfig().getPropertyValue("Port"), 7000);
+    ASSERT_EQ(bound.getPrimaryAddressType(), AddressType::IPv6);
+    ASSERT_FALSE(bound.getScanOnAdd());
+    ASSERT_EQ(bound.asPtr<IPropertyObject>().getProperty("ScanOnAdd").getDefaultValue(), false);
+
+    const auto boundOptions = bound.getStreamingOptions();
+    ASSERT_EQ(boundOptions.getStreamingMode(), StreamingMode::MinConnections);
+    ASSERT_EQ(boundOptions.getStreamingConfigs().getKeyList(), List<IString>("a", "b"));
+    ASSERT_EQ(boundOptions.getStreamingConfig().getStreamingType().getObject(), streamingTypes.get("a").getObject());
+    ASSERT_EQ(boundOptions.getStreamingConfig().getTypeConfig().getPropertyValue("Id"), "changed");
+    ASSERT_EQ(boundOptions.getStreamingConfigs().get("b").getTypeConfig().getPropertyValue("Id"), "newDefault");
+}
+
+TEST_F(AddDeviceConfigTest, BindDeserializedWireForm)
+{
+    const auto config = createMirroredConfig();
+    config.getStreamingOptions().setStreamingType("a");
+    config.getStreamingOptions().getStreamingConfig().getTypeConfig().setPropertyValue("Id", "changed");
+
+    const auto deviceType = createDeviceType(DeviceKind::Mirrored);
+    const auto streamingTypes = Dict<IString, IStreamingType>({{"a", createStreamingType("a")}, {"b", createStreamingType("b")}});
+
+    const AddDeviceConfigPtr deserialized = deserialize(serialize(config)).asPtr<IAddDeviceConfig>();
+    const auto bound =
+        deserialized.asPtr<IAddDeviceConfigPrivate>().bind(Dict<IString, IDeviceType>({{"dev", deviceType}}), streamingTypes);
+    ASSERT_EQ(bound.getDeviceType().getObject(), deviceType.getObject());
+
+    const auto boundOptions = bound.getStreamingOptions();
+    ASSERT_EQ(boundOptions.getStreamingConfig().getStreamingType().getObject(), streamingTypes.get("a").getObject());
+    ASSERT_EQ(boundOptions.getStreamingConfig().getTypeConfig().getPropertyValue("Id"), "changed");
+}
+
+TEST_F(AddDeviceConfigTest, BindUnknownDeviceType)
+{
+    const auto config = createMirroredConfig();
+    const auto deviceTypes = Dict<IString, IDeviceType>({{"otherDev", createDeviceType(DeviceKind::Mirrored)}});
+
+    ASSERT_THROW(config.asPtr<IAddDeviceConfigPrivate>().bind(deviceTypes, nullptr), NotFoundException);
+}
+
+TEST_F(AddDeviceConfigTest, BindDeviceKindChange)
+{
+    const auto types = [](DeviceKind kind)
+    {
+        return Dict<IString, IDeviceType>({{"dev", createDeviceType(kind)}});
+    };
+    const auto mirroredSave = serializeForUpdate(createMirroredConfig());
+    const auto adapterSave = serializeForUpdate(AddDeviceConfig(createDeviceType(DeviceKind::Adapter), nullptr, true));
+
+    ASSERT_FALSE(bindSaved(mirroredSave, types(DeviceKind::Adapter), nullptr).getStreamingOptions().assigned());
+    ASSERT_FALSE(bindSaved(mirroredSave, types(DeviceKind::Root), nullptr).getStreamingOptions().assigned());
+    ASSERT_TRUE(bindSaved(mirroredSave, types(DeviceKind::Unspecified), nullptr).getStreamingOptions().assigned());
+    ASSERT_THROW(bindSaved(adapterSave, types(DeviceKind::Mirrored), nullptr), InvalidValueException);
+    ASSERT_THROW(bindSaved(adapterSave, types(DeviceKind::Unspecified), nullptr), InvalidValueException);
+}
+
+TEST_F(AddDeviceConfigTest, BindMalformedSaveForm)
+{
+    const auto deviceTypes = Dict<IString, IDeviceType>({{"dev", createDeviceType(DeviceKind::Mirrored)}});
+    const auto config = createMirroredConfig();
+    config.getStreamingOptions().setStreamingMode(StreamingMode::MinConnections);
+    const auto valid = serializeForUpdate(config);
+
+    const auto replaced = [&valid](const std::string& from, const std::string& to)
+    {
+        auto json = valid;
+        const auto pos = json.find(from);
+        EXPECT_NE(pos, std::string::npos);
+        return json.replace(pos, from.size(), to);
+    };
+
+    ASSERT_NO_THROW(bindSaved(valid, deviceTypes, nullptr));
+    ASSERT_THROW(bindSaved(replaced(R"("scanOnAdd":true)", R"("scanOnAdd":"yes")"), deviceTypes, nullptr), InvalidValueException);
+    ASSERT_THROW(bindSaved(replaced(R"("scanOnAdd":true,)", ""), deviceTypes, nullptr), InvalidValueException);
+    ASSERT_THROW(bindSaved(replaced(R"("StreamingMode":2)", R"("StreamingMode":99)"), deviceTypes, nullptr), InvalidValueException);
+}
+
+TEST_F(AddDeviceConfigTest, BindDropsUnknownStreamingType)
+{
+    const auto config = createMirroredConfig();
+    config.getStreamingOptions().setStreamingType("a");
+
+    const auto deviceTypes = Dict<IString, IDeviceType>({{"dev", createDeviceType(DeviceKind::Mirrored)}});
+    const auto streamingTypes = Dict<IString, IStreamingType>({{"b", createStreamingType("b")}, {"c", createStreamingType("c")}});
+
+    const auto options = config.asPtr<IAddDeviceConfigPrivate>().bind(deviceTypes, streamingTypes).getStreamingOptions();
+    ASSERT_EQ(options.getStreamingConfigs().getKeyList(), List<IString>("b"));
+    ASSERT_EQ(options.asPtr<IPropertyObject>().getProperty("StreamingType").getSelectionValues(), List<IString>("", "b"));
+    ASSERT_FALSE(options.getStreamingConfig().assigned());
 }
 
 END_NAMESPACE_OPENDAQ

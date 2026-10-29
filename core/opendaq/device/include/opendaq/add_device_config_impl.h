@@ -15,13 +15,14 @@
  */
 #pragma once
 #include <opendaq/add_device_config_ptr.h>
+#include <opendaq/add_device_config_private.h>
 #include <opendaq/device_type_ptr.h>
 #include <opendaq/streaming_type_ptr.h>
 #include <coreobjects/property_object_impl.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
-class AddDeviceConfigImpl : public GenericPropertyObjectImpl<IPropertyObject, IAddDeviceConfig>
+class AddDeviceConfigImpl : public GenericPropertyObjectImpl<IPropertyObject, IAddDeviceConfig, IAddDeviceConfigPrivate>
 {
     class Partial
     {
@@ -32,7 +33,7 @@ class AddDeviceConfigImpl : public GenericPropertyObjectImpl<IPropertyObject, IA
     };
 
 public:
-    using Super = GenericPropertyObjectImpl<IPropertyObject, IAddDeviceConfig>;
+    using Super = GenericPropertyObjectImpl<IPropertyObject, IAddDeviceConfig, IAddDeviceConfigPrivate>;
 
     AddDeviceConfigImpl(const DeviceTypePtr& deviceType, const DictPtr<IString, IStreamingType>& streamingTypes, Bool scanOnAdd);
     AddDeviceConfigImpl(const DeviceTypePtr& deviceType, Partial);
@@ -45,12 +46,17 @@ public:
     ErrCode INTERFACE_FUNC setScanOnAdd(Bool scanOnAdd) override;
     ErrCode INTERFACE_FUNC getStreamingOptions(IAddStreamingOptions** options) override;
 
+    ErrCode INTERFACE_FUNC bind(IDict* deviceTypes, IDict* streamingTypes, IAddDeviceConfig** bound) override;
+
     ErrCode INTERFACE_FUNC clone(IPropertyObject** cloned) override;
 
     ErrCode INTERFACE_FUNC getSerializeId(ConstCharPtr* id) const override;
 
     static ConstCharPtr SerializeId();
     static ErrCode Deserialize(ISerializedObject* serialized, IBaseObject* context, IFunction* factoryCallback, IBaseObject** obj);
+    static AddDeviceConfigPtr Bind(const SerializedObjectPtr& saved,
+                                   const DictPtr<IString, IDeviceType>& deviceTypes,
+                                   const DictPtr<IString, IStreamingType>& streamingTypes);
 
 protected:
     ErrCode serializeCustomValues(ISerializer* serializer, bool forUpdate) override;

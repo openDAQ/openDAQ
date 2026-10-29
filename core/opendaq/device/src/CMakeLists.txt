@@ -22,6 +22,7 @@ function(rtgen_component_${BASE_NAME})
     rtgen(SRC_DeviceNetworkConfig device_network_config.h)
     rtgen(SRC_ConnectedClientInfo connected_client_info.h)
     rtgen(SRC_AddDeviceConfig add_device_config.h)
+    rtgen(SRC_AddDeviceConfigPrivate add_device_config_private.h)
     rtgen(SRC_AddStreamingOptions add_streaming_options.h)
     rtgen(SRC_AddStreamingConfig add_streaming_config.h)
     
@@ -47,6 +48,7 @@ function(rtgen_component_${BASE_NAME})
         ${SRC_NetworkInterface_PublicHeaders}
         ${SRC_ConnectedClientInfo_PublicHeaders}
         ${SRC_AddDeviceConfig_PublicHeaders}
+        ${SRC_AddDeviceConfigPrivate_PublicHeaders}
         ${SRC_AddStreamingOptions_PublicHeaders}
         ${SRC_AddStreamingConfig_PublicHeaders}
         PARENT_SCOPE
@@ -73,6 +75,7 @@ function(rtgen_component_${BASE_NAME})
         ${SRC_NetworkInterface_PrivateHeaders}
         ${SRC_ConnectedClientInfo_PrivateHeaders}
         ${SRC_AddDeviceConfig_PrivateHeaders}
+        ${SRC_AddDeviceConfigPrivate_PrivateHeaders}
         ${SRC_AddStreamingOptions_PrivateHeaders}
         ${SRC_AddStreamingConfig_PrivateHeaders}
         PARENT_SCOPE
@@ -99,6 +102,7 @@ function(rtgen_component_${BASE_NAME})
         ${SRC_NetworkInterface_Cpp}
         ${SRC_ConnectedClientInfo_Cpp}
         ${SRC_AddDeviceConfig_Cpp}
+        ${SRC_AddDeviceConfigPrivate_Cpp}
         ${SRC_AddStreamingOptions_Cpp}
         ${SRC_AddStreamingConfig_Cpp}
         PARENT_SCOPE
@@ -176,6 +180,7 @@ function(create_component_source_groups_${BASE_NAME})
 
     source_group("device//add_device_config" FILES 
         ${SDK_HEADERS_DIR}/add_device_config.h
+        ${SDK_HEADERS_DIR}/add_device_config_private.h
         ${SDK_HEADERS_DIR}/add_streaming_options.h
         ${SDK_HEADERS_DIR}/add_streaming_config.h
         ${SDK_HEADERS_DIR}/add_component_config_factory.h

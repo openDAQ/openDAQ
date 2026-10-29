@@ -10,6 +10,8 @@ namespace add_streaming_options
 static const char* StreamingType = "StreamingType";
 static const char* StreamingMode = "StreamingMode";
 
+static const char* PropValuesKey = "propValues";
+
 StringPtr toString(daq::StreamingMode mode)
 {
     switch (mode)
@@ -136,6 +138,41 @@ ErrCode AddStreamingOptionsImpl::clone(IPropertyObject** cloned)
         auto obj = createWithImplementation<IPropertyObject, AddStreamingOptionsImpl>(Partial());
         dynamic_cast<AddStreamingOptionsImpl*>(obj.getObject())->configureClonedMembers(getCloneParameters());
         *cloned = obj.detach();
+    });
+}
+
+ErrCode AddStreamingOptionsImpl::updateInternal(ISerializedObject* obj, IBaseObject* context)
+{
+    OPENDAQ_PARAM_NOT_NULL(obj);
+
+    Bool isFrozenObj;
+    OPENDAQ_RETURN_IF_FAILED(isFrozen(&isFrozenObj));
+    if (isFrozenObj)
+        return OPENDAQ_IGNORED;
+
+    return daqTry([&]
+    {
+        const auto saved = SerializedObjectPtr::Borrow(obj);
+        const auto values = saved.readSerializedObject(add_streaming_options::PropValuesKey);
+
+        StringPtr selected = "";
+        if (values.hasKey(add_streaming_options::StreamingType))
+            selected = values.readString(add_streaming_options::StreamingType);
+        checkErrorInfo(setStreamingType(isOffered(selected) ? selected : StringPtr("")));
+
+        if (values.hasKey(add_streaming_options::StreamingMode))
+            checkErrorInfo(setStreamingMode(static_cast<StreamingMode>(values.readInt(add_streaming_options::StreamingMode))));
+        else
+            checkErrorInfo(Super::clearPropertyValue(String(add_streaming_options::StreamingMode)));
+
+        for (const auto& typeId : offeredTypeIds())
+        {
+            if (!values.hasKey(typeId))
+                continue;
+
+            const auto streamingConfig = objPtr.getPropertyValue(typeId).asPtr<IUpdatable>();
+            checkErrorInfo(streamingConfig->updateInternal(values.readSerializedObject(typeId), context));
+        }
     });
 }
 

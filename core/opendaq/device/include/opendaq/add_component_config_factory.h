@@ -15,10 +15,12 @@
  */
 #pragma once
 #include <opendaq/add_device_config_ptr.h>
+#include <opendaq/add_device_config_private.h>
 #include <opendaq/add_streaming_config_ptr.h>
 #include <opendaq/device_type_ptr.h>
 #include <opendaq/streaming_type_ptr.h>
 #include <coretypes/dict_ptr.h>
+#include <coretypes/serialized_object_ptr.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
@@ -42,6 +44,22 @@ inline AddDeviceConfigPtr AddDeviceConfig(const DeviceTypePtr& deviceType,
                                           Bool scanOnAdd)
 {
     AddDeviceConfigPtr obj(AddDeviceConfig_Create(deviceType, streamingTypes, scanOnAdd));
+    return obj;
+}
+
+/*!
+ * @brief Creates an add device config from its saved form, bound by type ID to the given types.
+ * @param saved The config as written by `serializeForUpdate`
+ * @param deviceTypes The available Device types, keyed by ID
+ * @param streamingTypes The available Streaming types, keyed by ID
+ *
+ * Binds as IAddDeviceConfigPrivate::bind does.
+ */
+inline AddDeviceConfigPtr BoundAddDeviceConfig(const SerializedObjectPtr& saved,
+                                               const DictPtr<IString, IDeviceType>& deviceTypes,
+                                               const DictPtr<IString, IStreamingType>& streamingTypes)
+{
+    AddDeviceConfigPtr obj(BoundAddDeviceConfig_Create(saved, deviceTypes, streamingTypes));
     return obj;
 }
 

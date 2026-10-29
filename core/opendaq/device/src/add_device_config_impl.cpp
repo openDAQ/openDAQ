@@ -2,6 +2,8 @@
 #include <opendaq/add_streaming_config_impl.h>
 #include <opendaq/add_streaming_options_impl.h>
 #include <coreobjects/property_factory.h>
+#include <coretypes/json_serializer_factory.h>
+#include <coretypes/json_deserializer_factory.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
@@ -14,6 +16,9 @@ static const char* ScanOnAdd = "ScanOnAdd";
 static const char* Streaming = "Streaming";
 
 static const char* DeviceTypeKey = "deviceType";
+static const char* DeviceTypeIdKey = "deviceTypeId";
+static const char* ScanOnAddKey = "scanOnAdd";
+static const char* PropValuesKey = "propValues";
 
 StringPtr toString(AddressType type)
 {
@@ -136,6 +141,23 @@ ErrCode AddDeviceConfigImpl::clone(IPropertyObject** cloned)
     });
 }
 
+ErrCode AddDeviceConfigImpl::bind(IDict* deviceTypes, IDict* streamingTypes, IAddDeviceConfig** bound)
+{
+    OPENDAQ_PARAM_NOT_NULL(bound);
+
+    return daqTry([&]
+    {
+        // A JSON round trip through the save form reuses the bind of a saved config instead of a separate copy path.
+        const auto serializer = JsonSerializer();
+        checkErrorInfo(serializeForUpdate(serializer));
+
+        AddDeviceConfigPtr config;
+        JsonDeserializer().callCustomProc([&](const SerializedObjectPtr& saved) { config = Bind(saved, deviceTypes, streamingTypes); },
+                                          serializer.getOutput());
+        *bound = config.detach();
+    });
+}
+
 ErrCode AddDeviceConfigImpl::getSerializeId(ConstCharPtr* id) const
 {
     OPENDAQ_PARAM_NOT_NULL(id);
@@ -167,6 +189,45 @@ ErrCode AddDeviceConfigImpl::Deserialize(ISerializedObject* serialized, IBaseObj
     });
 }
 
+AddDeviceConfigPtr AddDeviceConfigImpl::Bind(const SerializedObjectPtr& saved,
+                                             const DictPtr<IString, IDeviceType>& deviceTypes,
+                                             const DictPtr<IString, IStreamingType>& streamingTypes)
+{
+    const StringPtr deviceTypeId = saved.readString(add_device_config::DeviceTypeIdKey);
+    if (!deviceTypes.assigned() || !deviceTypes.hasKey(deviceTypeId))
+        DAQ_THROW_EXCEPTION(NotFoundException, "Device type \"{}\" is not available", deviceTypeId);
+
+    try
+    {
+        const auto deviceType = deviceTypes.get(deviceTypeId);
+        auto boundStreamingTypes = Dict<IString, IStreamingType>();
+        if (takesStreamings(deviceType))
+        {
+            const auto savedValues = saved.readSerializedObject(add_device_config::PropValuesKey);
+            if (!savedValues.hasKey(add_device_config::Streaming))
+                DAQ_THROW_EXCEPTION(InvalidValueException, "Streaming options are missing for device type \"{}\"", deviceTypeId);
+
+            const auto savedStreaming = savedValues.readSerializedObject(add_device_config::Streaming);
+            const auto savedOptions = savedStreaming.readSerializedObject(add_device_config::PropValuesKey);
+            const auto offeredTypes = streamingTypes.assigned() ? streamingTypes : Dict<IString, IStreamingType>();
+            for (const auto& [typeId, streamingType] : offeredTypes)
+            {
+                if (savedOptions.hasKey(typeId))
+                    boundStreamingTypes.set(typeId, streamingType);
+            }
+        }
+
+        auto config = createWithImplementation<IAddDeviceConfig, AddDeviceConfigImpl>(
+            deviceType, boundStreamingTypes, saved.readBool(add_device_config::ScanOnAddKey));
+        checkErrorInfo(config.asPtr<IUpdatable>()->updateInternal(saved, nullptr));
+        return config;
+    }
+    catch (const DaqException& e)
+    {
+        DAQ_THROW_EXCEPTION(InvalidValueException, "{}", e.what());
+    }
+}
+
 ErrCode AddDeviceConfigImpl::serializeCustomValues(ISerializer* serializer, bool forUpdate)
 {
     OPENDAQ_RETURN_IF_FAILED(Super::serializeCustomValues(serializer, forUpdate));
@@ -174,8 +235,17 @@ ErrCode AddDeviceConfigImpl::serializeCustomValues(ISerializer* serializer, bool
     return daqTry([&]
     {
         const auto serializerPtr = SerializerPtr::Borrow(serializer);
-        serializerPtr.key(add_device_config::DeviceTypeKey);
-        deviceType.asPtr<ISerializable>().serialize(serializerPtr);
+        if (!forUpdate)
+        {
+            serializerPtr.key(add_device_config::DeviceTypeKey);
+            deviceType.asPtr<ISerializable>().serialize(serializerPtr);
+            return;
+        }
+
+        serializerPtr.key(add_device_config::DeviceTypeIdKey);
+        serializerPtr.writeString(deviceType.getId());
+        serializerPtr.key(add_device_config::ScanOnAddKey);
+        serializerPtr.writeBool(objPtr.getPropertyValue(add_device_config::ScanOnAdd));
     });
 }
 
@@ -202,6 +272,17 @@ extern "C" ErrCode PUBLIC_EXPORT createAddDeviceConfig(IAddDeviceConfig** objTmp
                                                        Bool scanOnAdd)
 {
     return daq::createObject<IAddDeviceConfig, AddDeviceConfigImpl>(objTmp, deviceType, streamingTypes, scanOnAdd);
+}
+
+extern "C" ErrCode PUBLIC_EXPORT createBoundAddDeviceConfig(IAddDeviceConfig** objTmp,
+                                                            ISerializedObject* saved,
+                                                            IDict* deviceTypes,
+                                                            IDict* streamingTypes)
+{
+    OPENDAQ_PARAM_NOT_NULL(objTmp);
+    OPENDAQ_PARAM_NOT_NULL(saved);
+
+    return daqTry([&] { *objTmp = AddDeviceConfigImpl::Bind(saved, deviceTypes, streamingTypes).detach(); });
 }
 
 #endif

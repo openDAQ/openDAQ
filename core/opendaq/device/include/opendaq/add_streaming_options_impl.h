@@ -44,6 +44,10 @@ public:
 
     ErrCode INTERFACE_FUNC clone(IPropertyObject** cloned) override;
 
+    // The base update fails on a saved streaming type that is not offered and skips the values after it.
+    // This one selects no streaming type instead and applies the rest.
+    ErrCode INTERFACE_FUNC updateInternal(ISerializedObject* obj, IBaseObject* context) override;
+
     ErrCode INTERFACE_FUNC getSerializeId(ConstCharPtr* id) const override;
 
     static ConstCharPtr SerializeId();

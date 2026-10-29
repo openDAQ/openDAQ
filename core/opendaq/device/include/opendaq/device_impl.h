@@ -1404,12 +1404,7 @@ ErrCode GenericDevice<TInterface, Interfaces...>::getAvailableStreamingTypes(IDi
 template <typename TInterface, typename... Interfaces>
 DictPtr<IString, IStreamingType> GenericDevice<TInterface, Interfaces...>::onGetAvailableStreamingTypes()
 {
-    if (!allowAddDevicesFromModules())
-        return Dict<IString, IStreamingType>();
-
-    auto lock = this->getRecursiveConfigLock2();
-    const ModuleManagerUtilsPtr managerUtils = this->context.getModuleManager().template asPtr<IModuleManagerUtils>();
-    return managerUtils.getAvailableStreamingTypes();
+    return Dict<IString, IStreamingType>();
 }
 
 template <typename TInterface, typename... Interfaces>

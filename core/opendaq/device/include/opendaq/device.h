@@ -411,9 +411,9 @@ DECLARE_OPENDAQ_INTERFACE(IDevice, IFolder)
      * @brief Get a dictionary of available streaming types as <IString, IStreamingType> pairs
      * @param[out] streamingTypes The dictionary of available streaming types.
      *
-     * The streaming types are those of the modules loaded on the device that adds sub-devices, i.e.
-     * the ones that can be used for the streaming connections of the devices added under this device.
-     * The dictionary is empty if the device cannot add devices from modules.
+     * Lists the streaming types that can be established to this device from the local instance.
+     * A type is listed when the local instance loads it and the device advertises a streaming capability with its prefix.
+     * The dictionary is empty for devices that are not mirrored.
      */
     virtual ErrCode INTERFACE_FUNC getAvailableStreamingTypes(IDict** streamingTypes) = 0;
 };

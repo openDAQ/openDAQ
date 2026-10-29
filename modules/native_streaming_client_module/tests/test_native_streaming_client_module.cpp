@@ -11,6 +11,7 @@
 #include <coreobjects/property_object_factory.h>
 #include <opendaq/device_info_factory.h>
 #include <opendaq/instance_factory.h>
+#include <opendaq/module_manager_utils_ptr.h>
 #include <opendaq/streaming_type_ptr.h>
 
 using NativeStreamingClientModuleTest = testing::Test;
@@ -227,7 +228,7 @@ TEST_F(NativeStreamingClientModuleTest, ModuleLoadsFromPathWithLinkedTypes)
     ModulePtr module;
     ASSERT_NO_THROW(module = instance.getModuleManager().loadModule(NATIVE_STREAM_CL_MODULE_PATH));
     ASSERT_EQ(module.getModuleInfo().getId(), "OpenDAQNativeStreamingClientModule");
-    ASSERT_EQ(instance.getAvailableStreamingTypes().getCount(), 1u);
+    ASSERT_EQ(instance.getModuleManager().asPtr<IModuleManagerUtils>().getAvailableStreamingTypes().getCount(), 1u);
 }
 
 class ConnectionStringTest : public NativeStreamingClientModuleTest,

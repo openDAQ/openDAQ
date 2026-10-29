@@ -35,15 +35,17 @@ BEGIN_NAMESPACE_OPENDAQ
 /*!
  * @brief The kind of device a Device type creates.
  *
+ * Unspecified is the kind of a Device type that declares none.
+ * Unspecified devices are allowed everything the other kinds allow.
  * External devices can't have streamings attached.
  * Mirrored devices mirror a remote device and can have streamings attached.
  * Root devices can only be set as an instance's root device, via `setRootDevice`.
  * External devices can also be set as root, and Mirrored devices can't.
- * A DeviceKind should be External by default when not set.
  */
 enum class DeviceKind : EnumType
 {
-    External = 0,
+    Unspecified = 0,  ///< @deprecated A Device type should declare its kind.
+    External,
     Mirrored,
     Root
 };

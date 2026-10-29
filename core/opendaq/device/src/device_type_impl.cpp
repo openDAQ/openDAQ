@@ -154,7 +154,7 @@ ErrCode DeviceTypeImpl::Deserialize(ISerializedObject* serialized, IBaseObject* 
         if (serializedObj.hasKey("supportedAuthenticationMethods"))
             supportedAuthenticationMethods = serializedObj.readObject("supportedAuthenticationMethods", contextPtr, factoryCallbackPtr).asPtr<IDict>();
 
-        DeviceKind deviceKind = DeviceKind::External;
+        DeviceKind deviceKind = DeviceKind::Unspecified;
         if (serializedObj.hasKey("deviceKind"))
             deviceKind = static_cast<DeviceKind>(serializedObj.readInt("deviceKind"));
 

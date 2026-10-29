@@ -60,8 +60,6 @@ public:
     ErrCode INTERFACE_FUNC getLinkedDeviceType(IDeviceType** deviceType) override;
 
 private:
-    ErrCode checkSortFields() const;
-
     ComponentTypeSort sort;
     StringPtr id;
     StringPtr name;

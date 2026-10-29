@@ -65,7 +65,6 @@ namespace daq::test_utils
         DeviceInfoPtr onGetInfo() override;
         uint64_t onGetTicksSinceOrigin() override;
         DictPtr<IString, IDeviceType> onGetAvailableDeviceTypes() override;
-        DictPtr<IString, IStreamingType> onGetAvailableStreamingTypes() override;
 
     private:
         uint64_t ticksSinceOrigin;

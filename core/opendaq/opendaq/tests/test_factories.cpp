@@ -93,11 +93,9 @@ TEST_F(OpenDaqFactoriesTest, StreamingTypeBuilder)
 
 TEST_F(OpenDaqFactoriesTest, BuilderDeviceKind)
 {
-    ASSERT_EQ(ServerTypeBuilder().getDeviceKind(), DeviceKind::External);
-    ASSERT_EQ(StreamingTypeBuilder().getDeviceKind(), DeviceKind::External);
-
     auto builder = DeviceTypeBuilder();
-    ASSERT_EQ(builder.getDeviceKind(), DeviceKind::External);
+    ASSERT_EQ(builder.getDeviceKind(), DeviceKind::Unspecified);
+    ASSERT_THROW(builder.setDeviceKind(DeviceKind::Unspecified), InvalidParameterException);
     for (const auto kind : {DeviceKind::Root, DeviceKind::Mirrored, DeviceKind::External})
     {
         builder.setDeviceKind(kind);
@@ -125,7 +123,6 @@ TEST_F(OpenDaqFactoriesTest, StreamingTypeLinkNotInStructOrEquality)
     ASSERT_EQ(linked.asPtr<IStruct>().getFieldNames(), StreamingTypeStructType().getFieldNames());
 }
 
-// The prefix check in ComponentTypeBuilderImpl::checkSortFields is disabled, so other sorts still ignore a prefix
 TEST_F(OpenDaqFactoriesTest, BuilderIgnoresPrefixOnOtherSorts)
 {
     ASSERT_NO_THROW(ServerTypeBuilder().setId("Id").setConnectionStringPrefix("Prefix").build());
@@ -133,22 +130,13 @@ TEST_F(OpenDaqFactoriesTest, BuilderIgnoresPrefixOnOtherSorts)
     ASSERT_NO_THROW(ServerTypeBuilder().setId("Id").setConnectionStringPrefix("").build());
 }
 
-TEST_F(OpenDaqFactoriesTest, BuilderRejectsFieldsOnOtherSorts)
+TEST_F(OpenDaqFactoriesTest, DeviceKindOnlyAppliesToDevice)
 {
-    ASSERT_THROW(StreamingTypeBuilder().setId("Id").setDeviceKind(DeviceKind::Mirrored).build(), InvalidParameterException);
-    ASSERT_THROW(ServerTypeBuilder().setId("Id").setDeviceKind(DeviceKind::Root).build(), InvalidParameterException);
-    ASSERT_THROW(FunctionBlockTypeBuilder().setId("Id").setDeviceKind(DeviceKind::Root).build(), InvalidParameterException);
-    ASSERT_NO_THROW(StreamingTypeBuilder().setId("Id").setDeviceKind(DeviceKind::External).build());
-
-    auto linkedBuilder = StreamingTypeBuilder().setId("Id").setLinkedDeviceType(DeviceTypeBuilder().setId("DevType").build());
-    linkedBuilder.setTypeSort(ComponentTypeSort::Device);
-    ASSERT_THROW(linkedBuilder.build(), InvalidParameterException);
-
-    auto builder = DeviceTypeBuilder().setId("Id").setDeviceKind(DeviceKind::Mirrored);
-    builder.setTypeSort(ComponentTypeSort::Streaming);
-    ASSERT_THROW(builder.build(), InvalidParameterException);
-    builder.setTypeSort(ComponentTypeSort::Device);
-    ASSERT_NO_THROW(builder.build());
+    for (const auto& builder : {StreamingTypeBuilder(), ServerTypeBuilder(), FunctionBlockTypeBuilder()})
+    {
+        ASSERT_THROW(builder.setDeviceKind(DeviceKind::Root), NotSupportedException);
+        ASSERT_THROW(builder.getDeviceKind(), NotSupportedException);
+    }
 }
 
 TEST_F(OpenDaqFactoriesTest, AddAuthenticationMethodOnlyAppliesToDeviceOrStreaming)
@@ -169,6 +157,10 @@ TEST_F(OpenDaqFactoriesTest, SetLinkedDeviceTypeOnlyAppliesToStreaming)
     ASSERT_THROW(ServerTypeBuilder().setLinkedDeviceType(deviceType), NotSupportedException);
     ASSERT_THROW(FunctionBlockTypeBuilder().setLinkedDeviceType(deviceType), NotSupportedException);
     ASSERT_NO_THROW(StreamingTypeBuilder().setLinkedDeviceType(deviceType));
+
+    ASSERT_THROW(DeviceTypeBuilder().getLinkedDeviceType(), NotSupportedException);
+    ASSERT_THROW(ServerTypeBuilder().getLinkedDeviceType(), NotSupportedException);
+    ASSERT_THROW(FunctionBlockTypeBuilder().getLinkedDeviceType(), NotSupportedException);
 }
 
 TEST_F(OpenDaqFactoriesTest, AddAuthenticationMethodAppendsInOrderAndDefaultsFirst)

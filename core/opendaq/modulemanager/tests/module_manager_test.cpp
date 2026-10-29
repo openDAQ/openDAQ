@@ -2,6 +2,7 @@
 #include <opendaq/module_manager_factory.h>
 #include <opendaq/context_factory.h>
 #include <opendaq/logger_factory.h>
+#include <opendaq/logger_sink_last_message_private_ptr.h>
 #include "mock/mock_module.h"
 
 #include <chrono>
@@ -502,9 +503,11 @@ public:
         return OPENDAQ_SUCCESS;
     }
 
-    void addDeviceType(const StringPtr& id, const PropertyObjectPtr& config)
+    void addDeviceType(const StringPtr& id, const PropertyObjectPtr& config, DeviceKind kind = DeviceKind::External)
     {
         auto builder = DeviceTypeBuilder().setId(id).setName(id).setConnectionStringPrefix(id);
+        if (kind != DeviceKind::Unspecified)
+            builder.setDeviceKind(kind);
         if (config.assigned())
             builder.setDefaultConfig(config);
         deviceTypes.set(id, builder.build());
@@ -697,4 +700,23 @@ TEST_F(ModuleManagerLinkTest, OneBadLinkRejectsModule)
     impl->addStreamingType("bad", "other", streamingConfig());
 
     expectContains(tryAdd(lib.module), R"(streaming type "bad")");
+}
+
+TEST_F(ModuleManagerLinkTest, UnspecifiedDeviceKindLogsInfo)
+{
+    const auto sink = LastMessageLoggerSink();
+    sink.setLevel(LogLevel::Info);
+    const LastMessageLoggerSinkPrivatePtr lastMessage = sink;
+    manager = ModuleManager("[[none]]");
+    manager.loadModules(Context(nullptr, LoggerWithSinks(List<ILoggerSink>(sink)), TypeManager(), nullptr, nullptr));
+
+    auto lib = makeModule();
+    lib.impl->addDeviceType("unspecdev", nullptr, DeviceKind::Unspecified);
+    lib.impl->addDeviceType("extdev", nullptr, DeviceKind::External);
+    ASSERT_EQ(tryAdd(lib.module), "");
+
+    bool logged = false;
+    while (!logged && lastMessage.waitForMessage(1000))
+        logged = lastMessage.getLastMessage().toStdString().find(R"(Device type "unspecdev")") != std::string::npos;
+    ASSERT_TRUE(logged);
 }

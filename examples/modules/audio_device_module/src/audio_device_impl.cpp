@@ -1,6 +1,7 @@
 #include <audio_device_module/audio_device_impl.h>
 #include <audio_device_module/audio_channel_impl.h>
 #include <opendaq/device_info_factory.h>
+#include <opendaq/component_type_builder_factory.h>
 #include <opendaq/device_type_factory.h>
 #include <opendaq/device_domain_factory.h>
 #include <miniaudio/miniaudio.h>
@@ -35,7 +36,13 @@ AudioDeviceImpl::~AudioDeviceImpl()
 
 DeviceTypePtr AudioDeviceImpl::createType()
 {
-    return DeviceType("MiniAudio", "Audio device", "", "miniaudio");
+    return DeviceTypeBuilder()
+        .setId("MiniAudio")
+        .setName("Audio device")
+        .setDescription("")
+        .setConnectionStringPrefix("miniaudio")
+        .setDeviceKind(DeviceKind::External)
+        .build();
 }
 
 DeviceInfoPtr AudioDeviceImpl::CreateDeviceInfo(const std::shared_ptr<ma_utils::MiniaudioContext>& maContext, const ma_device_info& deviceInfo)

@@ -285,7 +285,7 @@ TEST_F(DeviceTest, DeviceTypeStructNames)
 
 TEST_F(DeviceTest, DeviceTypeKindNotInStructOrEquality)
 {
-    const daq::DeviceTypePtr external =
+    const daq::DeviceTypePtr unspecified =
         daq::DeviceTypeBuilder().setId("id").setName("name").setDescription("desc").setConnectionStringPrefix("prefix").build();
     const daq::DeviceTypePtr mirrored = daq::DeviceTypeBuilder()
                                             .setId("id")
@@ -296,10 +296,10 @@ TEST_F(DeviceTest, DeviceTypeKindNotInStructOrEquality)
                                             .build();
     const daq::DeviceTypePtr factory = daq::DeviceType("id", "name", "desc", "prefix");
 
-    ASSERT_EQ(external.getDeviceKind(), daq::DeviceKind::External);
-    ASSERT_EQ(factory.getDeviceKind(), daq::DeviceKind::External);
-    ASSERT_EQ(external, mirrored);
-    ASSERT_EQ(external, factory);
+    ASSERT_EQ(unspecified.getDeviceKind(), daq::DeviceKind::Unspecified);
+    ASSERT_EQ(factory.getDeviceKind(), daq::DeviceKind::Unspecified);
+    ASSERT_EQ(unspecified, mirrored);
+    ASSERT_EQ(unspecified, factory);
     ASSERT_EQ(mirrored.asPtr<daq::IStruct>().getFieldNames(), daq::DeviceTypeStructType().getFieldNames());
 }
 
@@ -336,12 +336,12 @@ TEST_F(DeviceTest, DeviceTypeSerialize)
     }
 }
 
-TEST_F(DeviceTest, DeviceTypeDeserializeWithoutKindIsExternal)
+TEST_F(DeviceTest, DeviceTypeDeserializeWithoutKindIsUnspecified)
 {
     const std::string json = R"({"__type":"DeviceType","id":"id","name":"name","prefix":"prefix"})";
     const daq::DeviceTypePtr deserialized = daq::JsonDeserializer().deserialize(json, nullptr, nullptr);
     ASSERT_EQ(deserialized.getId(), "id");
-    ASSERT_EQ(deserialized.getDeviceKind(), daq::DeviceKind::External);
+    ASSERT_EQ(deserialized.getDeviceKind(), daq::DeviceKind::Unspecified);
 }
 
 TEST_F(DeviceTest, StandardProperties)
@@ -357,15 +357,10 @@ TEST_F(DeviceTest, StandardProperties)
     ASSERT_EQ(device.getDescription(), desc);
 }
 
-TEST_F(DeviceTest, AvailableStreamingTypesEmptyIfNotAddingDevicesFromModules)
+TEST_F(DeviceTest, AvailableStreamingTypesEmptyForNonMirroredDevice)
 {
-    // TestDevice does not add devices from modules, so it does not touch the (null) module manager
     const auto device = daq::createWithImplementation<daq::IDevice, TestDevice>();
-
-    daq::DictPtr<daq::IString, daq::IStreamingType> types;
-    ASSERT_NO_THROW(types = device.getAvailableStreamingTypes());
-    ASSERT_TRUE(types.assigned());
-    ASSERT_EQ(types.getCount(), 0u);
+    ASSERT_EQ(device.getAvailableStreamingTypes().getCount(), 0u);
 }
 
 TEST_F(DeviceTest, Remove)

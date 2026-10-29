@@ -708,6 +708,7 @@ DeviceTypePtr NativeStreamingClientModule::createPseudoDeviceType()
         .setDescription("Pseudo device, provides only signals of the remote device as flat list")
         .setConnectionStringPrefix("daq.ns")
         .setDefaultConfig(NativeStreamingClientModule::createConnectionDefaultConfig(NativeType::streaming))
+        .setDeviceKind(DeviceKind::External)
         .build();
 }
 
@@ -719,6 +720,7 @@ DeviceTypePtr NativeStreamingClientModule::createDeviceType()
         .setDescription("Network device connected over Native configuration protocol")
         .setConnectionStringPrefix("daq.nd")
         .setDefaultConfig(NativeStreamingClientModule::createConnectionDefaultConfig(NativeType::config))
+        .setDeviceKind(DeviceKind::Mirrored)
         .build();
 }
 
@@ -729,7 +731,7 @@ StreamingTypePtr NativeStreamingClientModule::createStreamingType()
         .setName("NativeStreaming")
         .setDescription("openDAQ native streaming protocol client")
         .setConnectionStringPrefix("daq.ns")
-        .setDefaultConfig(NativeStreamingClientModule::createConnectionDefaultConfig(NativeType::streaming))
+        .setLinkedDeviceType(createDeviceType())
         .build();
 }
 

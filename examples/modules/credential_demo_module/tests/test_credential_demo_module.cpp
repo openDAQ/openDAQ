@@ -158,6 +158,7 @@ TEST_F(CredentialDemoModuleTest, GetAvailableDeviceTypes)
     ASSERT_NO_THROW(deviceTypes = module.getAvailableDeviceTypes());
     ASSERT_EQ(deviceTypes.getCount(), 1u);
     ASSERT_TRUE(deviceTypes.hasKey("CredentialDemoDevice"));
+    ASSERT_EQ(deviceTypes.get("CredentialDemoDevice").getDeviceKind(), DeviceKind::External);
 }
 
 TEST_F(CredentialDemoModuleTest, GetAvailableStreamingTypes)

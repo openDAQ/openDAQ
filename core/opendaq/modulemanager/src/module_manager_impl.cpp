@@ -36,6 +36,8 @@
 #include <opendaq/network_interface_factory.h>
 #include <opendaq/component_private_ptr.h>
 #include <opendaq/component_type_private_ptr.h>
+#include <opendaq/device_type_ptr.h>
+#include <opendaq/streaming_type_ptr.h>
 #include <opendaq/authentication_method_ptr.h>
 #include <opendaq/authentication_method_internal_ptr.h>
 #include <opendaq/authentication_config_ptr.h>
@@ -177,6 +179,14 @@ ErrCode ModuleManagerImpl::addModule(IModule* module)
 
     if (found == libraries.cend())
     {
+        const auto modulePtr = ModulePtr::Borrow(module);
+        if (const auto violation = CheckLinkedStreamingTypes(modulePtr); !violation.empty())
+        {
+            return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_MODULE_LOAD_FAILED,
+                                       fmt::format(R"(Module with id "{}" rejected: {})", modulePtr.getModuleInfo().getId(), violation));
+        }
+        logUnspecifiedDeviceKinds(modulePtr);
+
         libraries.emplace_back(ModuleLibrary{{}, module, nullptr});
         return OPENDAQ_SUCCESS;
     }
@@ -423,10 +433,19 @@ ErrCode ModuleManagerImpl::tryLoadAndAddModule(const StringPtr& path, IModule** 
                                                fmt::format(R"(Module with id "{}" was already loaded from memory. Reject loading module from path "{}")", moduleId, path));
                 }
             }
-            if (authenticatedModulesOnly)
-            {
-                moduleKeys.set(moduleId, moduleKey);
-            }
+        }
+
+        if (const auto violation = CheckLinkedStreamingTypes(loadedModule); !violation.empty())
+        {
+            return DAQ_MAKE_ERROR_INFO(
+                OPENDAQ_ERR_MODULE_LOAD_FAILED,
+                fmt::format(R"(Module with id "{}" rejected: {}. Reject loading module from "{}")", moduleId, violation, path));
+        }
+        logUnspecifiedDeviceKinds(loadedModule);
+
+        if (authenticatedModulesOnly && moduleId.assigned() && moduleId.getLength() > 0)
+        {
+            moduleKeys.set(moduleId, moduleKey);
         }
 
         if (module != nullptr)
@@ -2176,6 +2195,96 @@ bool ModuleManagerImpl::IsDefaultAddDeviceConfig(const PropertyObjectPtr& config
     if (!config.assigned())
         return false;
     return config.hasProperty("General") && config.hasProperty("Streaming") && config.hasProperty("Device");
+}
+
+std::string ModuleManagerImpl::CheckLinkedStreamingTypes(const ModulePtr& module)
+{
+    DictPtr<IString, IStreamingType> streamingTypes;
+    try
+    {
+        streamingTypes = module.getAvailableStreamingTypes();
+    }
+    catch (...)
+    {
+        // A module whose streaming types cannot be listed has no links to check
+        return {};
+    }
+
+    if (!streamingTypes.assigned())
+        return {};
+
+    DictPtr<IString, IDeviceType> deviceTypes;
+    StringPtr currentId;
+    try
+    {
+        for (const auto& [streamingTypeId, streamingType] : streamingTypes)
+        {
+            currentId = streamingTypeId;
+            const DeviceTypePtr linkedDeviceType = streamingType.getLinkedDeviceType();
+            if (!linkedDeviceType.assigned())
+                continue;
+
+            const StringPtr linkedId = linkedDeviceType.getId();
+
+            if (!deviceTypes.assigned())
+            {
+                try
+                {
+                    deviceTypes = module.getAvailableDeviceTypes();
+                }
+                catch (const DaqException& e)
+                {
+                    return fmt::format(
+                        R"(streaming type "{}" links to device type "{}", but the module's device types cannot be listed: {} [{:#x}])",
+                        streamingTypeId,
+                        linkedId,
+                        e.what(),
+                        e.getErrCode());
+                }
+                if (!deviceTypes.assigned())
+                    deviceTypes = Dict<IString, IDeviceType>();
+            }
+
+            if (!deviceTypes.hasKey(linkedId))
+                return fmt::format(
+                    R"(streaming type "{}" links to device type "{}", which the module does not provide)", streamingTypeId, linkedId);
+        }
+    }
+    catch (const std::exception& e)
+    {
+        return fmt::format(R"(checking the link of streaming type "{}" failed: {})",
+                           currentId.assigned() ? currentId.toStdString() : std::string{},
+                           e.what());
+    }
+
+    return {};
+}
+
+void ModuleManagerImpl::logUnspecifiedDeviceKinds(const ModulePtr& module) const
+{
+    if (!loggerComponent.assigned())
+        return;
+
+    DictPtr<IString, IDeviceType> deviceTypes;
+    try
+    {
+        deviceTypes = module.getAvailableDeviceTypes();
+    }
+    catch (...)
+    {
+        return;
+    }
+
+    if (!deviceTypes.assigned())
+        return;
+
+    for (const auto& [deviceTypeId, deviceType] : deviceTypes)
+    {
+        if (deviceType.getDeviceKind() == DeviceKind::Unspecified)
+            LOG_I(R"({}: Device type "{}" declares no device kind. The Unspecified device kind is deprecated.)",
+                  module.getModuleInfo().getName(),
+                  deviceTypeId);
+    }
 }
 
 void GetModulesPath(std::vector<fs::path>& modulesPath, const LoggerComponentPtr& loggerComponent, std::string searchFolder)

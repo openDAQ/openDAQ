@@ -22,10 +22,11 @@ ErrCode MockDeviceModuleImpl::getAvailableDevices(IList** availableDevices)
 {
     ListPtr<IDeviceInfo> availableDevicesPtr = List<IDeviceInfo>();
     auto clientDeviceType = DeviceTypeBuilder()
-        .setConnectionStringPrefix("daq.root")
-        .setId("OpenDAQClient")
-        .setName("OpenDAQClient")
-        .build();
+                                .setConnectionStringPrefix("daq.root")
+                                .setId("OpenDAQClient")
+                                .setName("OpenDAQClient")
+                                .setDeviceKind(DeviceKind::Root)
+                                .build();
 
     auto daqClientDeviceInfo = DeviceInfo("daq.root://default_client");
     daqClientDeviceInfo.setDeviceType(clientDeviceType);
@@ -60,11 +61,12 @@ ErrCode MockDeviceModuleImpl::getAvailableDeviceTypes(IDict** deviceTypes)
     mockConfig.addProperty(BoolProperty("IsStatic", false));
 
     auto clientDeviceType = DeviceTypeBuilder()
-        .setConnectionStringPrefix("daq.root")
-        .setId("OpenDAQClient")
-        .setName("OpenDAQClient")
-        .setDefaultConfig(mockConfig)
-        .build();
+                                .setConnectionStringPrefix("daq.root")
+                                .setId("OpenDAQClient")
+                                .setName("OpenDAQClient")
+                                .setDeviceKind(DeviceKind::Root)
+                                .setDefaultConfig(mockConfig)
+                                .build();
 
     auto types = Dict<IString, IDeviceType>();
     types.set("OpenDAQClient", clientDeviceType);

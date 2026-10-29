@@ -29,6 +29,7 @@ DeviceInfoPtr ClientImpl::onGetInfo()
                            .setConnectionStringPrefix("daq.root")
                            .setId("OpenDAQClient")
                            .setName("OpenDAQClient")
+                           .setDeviceKind(DeviceKind::Root)
                            .build());
     return info;
 }

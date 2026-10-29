@@ -13,6 +13,9 @@ target_link_libraries(${TEST_APP} PRIVATE daq::test_utils
                                           ${SDK_TARGET_NAMESPACE}::${MODULE_NAME}
 )
 
+# The module library, loaded from its path to go through the module-load checks
+target_compile_definitions(${TEST_APP} PRIVATE NATIVE_STREAM_CL_MODULE_PATH="$<TARGET_FILE:${MODULE_NAME}>")
+
 opendaq_target_pch(${TEST_APP} <opendaq/opendaq.h> <gtest/gtest.h>)
 
 add_test(NAME ${TEST_APP}

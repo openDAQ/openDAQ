@@ -4,6 +4,11 @@
 #include <opendaq/update_parameters_factory.h>
 #include <opendaq/device_info_internal_ptr.h>
 #include <opendaq/module_impl.h>
+#include <opendaq/device_impl.h>
+#include <opendaq/mirrored_device_impl.h>
+#include <opendaq/module_manager_utils_ptr.h>
+#include <opendaq/streaming_type_factory.h>
+#include <opendaq/component_type_builder_factory.h>
 #include <testutils/testutils.h>
 
 using InstanceTest = testing::Test;
@@ -97,6 +102,7 @@ TEST_F(InstanceTest, DeviceInformation)
 {
     auto instance = test_helpers::setupInstance();
     ASSERT_EQ(instance.getInfo().getName(), String("OpenDAQClient"));
+    ASSERT_EQ(instance.getInfo().getDeviceType().getDeviceKind(), DeviceKind::Root);
 }
 
 TEST_F(InstanceTest, DeviceSignals)
@@ -114,6 +120,79 @@ TEST_F(InstanceTest, ConnectionString)
         ASSERT_TRUE(deviceInfo.getConnectionString().assigned());
 }
 
+class MockStreamingTypesModule : public Module
+{
+public:
+    MockStreamingTypesModule(ContextPtr ctx)
+        : Module("Mock Streaming Types", VersionInfo(1, 0, 0), std::move(ctx), "MockStreamingTypes")
+    {
+    }
+
+    DictPtr<IString, IStreamingType> onGetAvailableStreamingTypes() override
+    {
+        return Dict<IString, IStreamingType>(
+            {{"mock_streaming_a", StreamingType("mock_streaming_a", "Mock streaming A", "", "daqmocka")},
+             {"mock_streaming_b",
+              StreamingTypeBuilder().setId("mock_streaming_b").setName("Mock streaming B").setConnectionStringPrefix("daqmockb").build()}});
+    }
+};
+
+class MockMirroredDeviceImpl : public MirroredDevice
+{
+public:
+    MockMirroredDeviceImpl(const ContextPtr& ctx, const DeviceInfoPtr& info)
+        : MirroredDevice(ctx, nullptr, "mirrored")
+        , info(info)
+    {
+    }
+
+protected:
+    StringPtr onGetRemoteId() const override
+    {
+        return String("mirrored");
+    }
+
+    DeviceInfoPtr onGetInfo() override
+    {
+        return info;
+    }
+
+    DeviceInfoPtr info;
+};
+
+TEST_F(InstanceTest, AvailableStreamingTypesEmptyForRootDevice)
+{
+    auto instance = test_helpers::setupInstance();
+    instance.getModuleManager().addModule(createWithImplementation<IModule, MockStreamingTypesModule>(instance.getContext()));
+
+    ASSERT_EQ(instance.getAvailableStreamingTypes().getCount(), 0u);
+    ASSERT_EQ(instance.getRootDevice().getAvailableStreamingTypes().getCount(), 0u);
+}
+
+TEST_F(InstanceTest, AvailableStreamingTypesOfMirroredDevice)
+{
+    auto instance = test_helpers::setupInstance();
+    instance.getModuleManager().addModule(createWithImplementation<IModule, MockStreamingTypesModule>(instance.getContext()));
+
+    const auto info = DeviceInfo("daqmirrored://device");
+    const auto infoInternal = info.asPtr<IDeviceInfoInternal>();
+    infoInternal.addServerCapability(ServerCapability("a", "a", ProtocolType::Streaming).setPrefix("daqmocka"));
+    infoInternal.addServerCapability(ServerCapability("b", "b", ProtocolType::ConfigurationAndStreaming).setPrefix("daqmockb"));
+    infoInternal.addServerCapability(ServerCapability("c", "c", ProtocolType::Streaming).setPrefix("daqnotloaded"));
+    const auto device = createWithImplementation<IDevice, MockMirroredDeviceImpl>(instance.getContext(), info);
+
+    const auto streamingTypes = device.getAvailableStreamingTypes();
+    ASSERT_EQ(streamingTypes.getCount(), 2u);
+    ASSERT_TRUE(streamingTypes.hasKey("mock_streaming_a"));
+    ASSERT_TRUE(streamingTypes.hasKey("mock_streaming_b"));
+
+    const auto configInfo = DeviceInfo("daqmirrored://device");
+    configInfo.asPtr<IDeviceInfoInternal>().addServerCapability(
+        ServerCapability("a", "a", ProtocolType::Configuration).setPrefix("daqmocka"));
+    const auto configDevice = createWithImplementation<IDevice, MockMirroredDeviceImpl>(instance.getContext(), configInfo);
+    ASSERT_EQ(configDevice.getAvailableStreamingTypes().getCount(), 0u);
+}
+
 TEST_F(InstanceTest, EnumerateDeviceTypes)
 {
     auto instance = test_helpers::setupInstance();
@@ -123,6 +202,7 @@ TEST_F(InstanceTest, EnumerateDeviceTypes)
     ASSERT_TRUE(deviceTypes.hasKey("OpenDAQClient"));
     auto mockDevice = deviceTypes.get("OpenDAQClient");
     ASSERT_EQ(mockDevice.getId(), "OpenDAQClient");
+    ASSERT_EQ(mockDevice.getDeviceKind(), DeviceKind::Root);
 
     ASSERT_TRUE(deviceTypes.hasKey("mock_phys_device"));
     mockDevice = deviceTypes.get("mock_phys_device");

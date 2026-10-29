@@ -33,6 +33,24 @@ BEGIN_NAMESPACE_OPENDAQ
  */
 
 /*!
+ * @brief The kind of device a Device type creates.
+ *
+ * Unspecified is the kind of a Device type that declares none.
+ * Unspecified devices are allowed everything the other kinds allow.
+ * External devices can't have streamings attached.
+ * Mirrored devices mirror a remote device and can have streamings attached.
+ * Root devices can only be set as an instance's root device, via `setRootDevice`.
+ * External devices can also be set as root, and Mirrored devices can't.
+ */
+enum class DeviceKind : EnumType
+{
+    Unspecified = 0,  ///< @deprecated A Device type should declare its kind.
+    External,
+    Mirrored,
+    Root
+};
+
+/*!
  * @brief Provides information on what device type can be created by a given module. Can be used
  * to obtain the default configuration used when either adding/creating a new device.
  */
@@ -45,6 +63,12 @@ DECLARE_OPENDAQ_INTERFACE(IDeviceType, IComponentType)
      * The prefix is always found at the start of the connection string, before the "://" delimiter.
      */
     virtual ErrCode INTERFACE_FUNC getConnectionStringPrefix(IString** prefix) = 0;
+
+    /*!
+     * @brief Gets the kind of device created by this type.
+     * @param[out] kind The device kind
+     */
+    virtual ErrCode INTERFACE_FUNC getDeviceKind(DeviceKind* kind) = 0;
 };
 /*!@}*/
 

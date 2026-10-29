@@ -11,6 +11,8 @@
 #include <coreobjects/property_object_factory.h>
 #include <opendaq/device_info_factory.h>
 #include <opendaq/instance_factory.h>
+#include <opendaq/module_manager_utils_ptr.h>
+#include <opendaq/streaming_type_ptr.h>
 
 using NativeStreamingClientModuleTest = testing::Test;
 using namespace daq;
@@ -156,8 +158,15 @@ TEST_F(NativeStreamingClientModuleTest, GetAvailableComponentTypes)
     ASSERT_EQ(deviceTypes.getCount(), 2u);
     ASSERT_TRUE(deviceTypes.hasKey("OpenDAQNativeStreaming"));
     ASSERT_EQ(deviceTypes.get("OpenDAQNativeStreaming").getId(), "OpenDAQNativeStreaming");
+    ASSERT_EQ(deviceTypes.get("OpenDAQNativeStreaming").getDeviceKind(), DeviceKind::External);
     ASSERT_TRUE(deviceTypes.hasKey("OpenDAQNativeConfiguration"));
     ASSERT_EQ(deviceTypes.get("OpenDAQNativeConfiguration").getId(), "OpenDAQNativeConfiguration");
+    ASSERT_EQ(deviceTypes.get("OpenDAQNativeConfiguration").getDeviceKind(), DeviceKind::Mirrored);
+
+    DictPtr<IString, IStreamingType> streamingTypes;
+    ASSERT_NO_THROW(streamingTypes = module.getAvailableStreamingTypes());
+    ASSERT_EQ(streamingTypes.getCount(), 1u);
+    ASSERT_EQ(streamingTypes.get("OpenDAQNativeStreaming").getLinkedDeviceType().getId(), "OpenDAQNativeConfiguration");
 
     DictPtr<IString, IServerType> serverTypes;
     ASSERT_NO_THROW(serverTypes = module.getAvailableServerTypes());
@@ -211,6 +220,15 @@ TEST_F(NativeStreamingClientModuleTest, DefaultDeviceConfig)
     ASSERT_TRUE(deviceTypes.hasKey("OpenDAQNativeStreaming"));
     auto pseudoDeviceConfig = deviceTypes.get("OpenDAQNativeStreaming").createDefaultConfig();
     ASSERT_TRUE(pseudoDeviceConfig.assigned());
+}
+
+TEST_F(NativeStreamingClientModuleTest, ModuleLoadsFromPathWithLinkedTypes)
+{
+    const auto instance = Instance("[[none]]");
+    ModulePtr module;
+    ASSERT_NO_THROW(module = instance.getModuleManager().loadModule(NATIVE_STREAM_CL_MODULE_PATH));
+    ASSERT_EQ(module.getModuleInfo().getId(), "OpenDAQNativeStreamingClientModule");
+    ASSERT_EQ(instance.getModuleManager().asPtr<IModuleManagerUtils>().getAvailableStreamingTypes().getCount(), 1u);
 }
 
 class ConnectionStringTest : public NativeStreamingClientModuleTest,

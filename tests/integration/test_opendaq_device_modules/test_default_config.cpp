@@ -109,9 +109,9 @@ TEST_F(ModulesDefaultConfigTest, NativeStreaming)
     const PropertyObjectPtr nativeDeviceConfig = deviceConfig.getPropertyValue("OpenDAQNativeStreaming");
     ASSERT_TRUE(nativeDeviceConfig.hasProperty("Port"));
     ASSERT_TRUE(nativeDeviceConfig.hasProperty("TransportLayerConfig"));
-    ASSERT_FALSE(nativeDeviceConfig.hasProperty("ProtocolVersion"));
-    ASSERT_FALSE(nativeDeviceConfig.hasProperty("ConfigProtocolRequestTimeout"));
-    ASSERT_FALSE(nativeDeviceConfig.hasProperty("RestoreClientConfigOnReconnect"));
+    ASSERT_TRUE(nativeDeviceConfig.hasProperty("ProtocolVersion"));
+    ASSERT_TRUE(nativeDeviceConfig.hasProperty("ConfigProtocolRequestTimeout"));
+    ASSERT_TRUE(nativeDeviceConfig.hasProperty("RestoreClientConfigOnReconnect"));
 }
 
 TEST_F(ModulesDefaultConfigTest, NativeStreamingDevice)

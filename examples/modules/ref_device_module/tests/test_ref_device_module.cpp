@@ -124,6 +124,8 @@ TEST_F(RefDeviceModuleTest, CreateDeviceConnectionStringCorrect)
 
     DevicePtr device;
     ASSERT_NO_THROW(device = module.createDevice("daqref://device1", nullptr));
+    ASSERT_EQ(device.getInfo().getConnectionString(), "daqref://device1");
+    ASSERT_EQ(device.getInfo().getDeviceType().getId(), "daqref");
 }
 
 TEST_F(RefDeviceModuleTest, DeviceVersion)

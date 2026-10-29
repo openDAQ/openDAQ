@@ -4,7 +4,9 @@
 #include <coreobjects/property_object_factory.h>
 #include <coreobjects/property_factory.h>
 #include <coreobjects/property_object_internal_ptr.h>
+#include <coretypes/json_serializer_factory.h>
 #include <coretypes/json_deserializer_factory.h>
+#include <coretypes/type_manager_factory.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
@@ -58,9 +60,24 @@ protected:
         return AddDeviceConfig(createDeviceType(DeviceKind::Mirrored), streamingTypes, true);
     }
 
+    static std::string serialize(const PropertyObjectPtr& obj)
+    {
+        const auto serializer = JsonSerializer();
+        obj.serialize(serializer);
+        return serializer.getOutput();
+    }
+
     static BaseObjectPtr deserialize(const std::string& json, const BaseObjectPtr& context = nullptr)
     {
         return JsonDeserializer().deserialize(json, context, nullptr);
+    }
+
+    static BaseObjectPtr roundTrip(const PropertyObjectPtr& obj)
+    {
+        const auto json = serialize(obj);
+        const auto deserialized = deserialize(json, TypeManager());
+        EXPECT_EQ(serialize(deserialized), json);
+        return deserialized;
     }
 };
 
@@ -252,12 +269,69 @@ TEST_F(AddDeviceConfigTest, LinkedStreamingConfigHoldsWholeDefaultConfig)
     ASSERT_EQ(typeConfig.getPropertyValue("Port"), 7420);
 }
 
+TEST_F(AddDeviceConfigTest, WireFormRoundTrip)
+{
+    const auto config = createLinkedConfig();
+    config.getTypeConfig().setPropertyValue("Port", 1);
+    config.setPrimaryAddressType(AddressType::IPv6);
+    config.setScanOnAdd(false);
+    const auto options = config.getStreamingOptions();
+    options.setStreamingType("other");
+    options.setStreamingMode(StreamingMode::MinConnections);
+    options.getStreamingConfig().getTypeConfig().setPropertyValue("Id", "changed");
+
+    const AddDeviceConfigPtr deserialized = roundTrip(config).asPtr<IAddDeviceConfig>();
+    ASSERT_EQ(deserialized.getTypeConfig().getPropertyValue("Port"), 1);
+    const auto deserializedOptions = deserialized.getStreamingOptions();
+    ASSERT_EQ(deserializedOptions.getStreamingConfigs().getKeyList(), options.getStreamingConfigs().getKeyList());
+    ASSERT_EQ(deserializedOptions.getStreamingConfig().getTypeConfig().getPropertyValue("Id"), "changed");
+
+    deserialized.asPtr<IPropertyObject>().clearPropertyValue("TypeConfig");
+    deserialized.asPtr<IPropertyObject>().clearPropertyValue("ScanOnAdd");
+    ASSERT_EQ(deserialized.getTypeConfig().getPropertyValue("Port"), 7420);
+    ASSERT_TRUE(deserialized.getScanOnAdd());
+}
+
+TEST_F(AddDeviceConfigTest, WireFormWithoutDeviceType)
+{
+    ASSERT_THROW(deserialize(R"({"__type":"AddDeviceConfig"})"), NotFoundException);
+}
+
+TEST_F(AddDeviceConfigTest, WireFormRoundTripNotMirrored)
+{
+    const auto config = AddDeviceConfig(createDeviceType(DeviceKind::Adapter), nullptr, false);
+
+    const AddDeviceConfigPtr deserialized = roundTrip(config).asPtr<IAddDeviceConfig>();
+    ASSERT_FALSE(deserialized.getStreamingOptions().assigned());
+}
+
 TEST_F(AddDeviceConfigTest, StandaloneStreamingConfig)
 {
     const auto streamingType = createStreamingType("a", "dev");
     const auto standalone = AddStreamingConfig(streamingType);
     ASSERT_EQ(standalone.getStreamingType(), streamingType);
     ASSERT_EQ(standalone.getTypeConfig().getPropertyValue("Id"), "a");
+}
+
+TEST_F(AddDeviceConfigTest, StreamingObjectsWireFormRoundTrip)
+{
+    const auto standalone = AddStreamingConfig(createStreamingType("a", "dev"));
+    standalone.getTypeConfig().setPropertyValue("Id", "changed");
+    const auto config = createLinkedConfig();
+    const auto options = config.getStreamingOptions();
+    options.setStreamingType("linked");
+    const auto linked = options.getStreamingConfig();
+    linked.getTypeConfig().setPropertyValue("Id", "changed");
+
+    const AddStreamingOptionsPtr deserializedOptions = roundTrip(options).asPtr<IAddStreamingOptions>();
+    ASSERT_EQ(deserializedOptions.getStreamingConfigs().getKeyList(), List<IString>("other", "linked", "linked2"));
+    ASSERT_EQ(deserializedOptions.getStreamingConfig().getTypeConfig().getPropertyValue("Id"), "changed");
+
+    for (const auto& streamingConfig : {standalone, linked})
+    {
+        const AddStreamingConfigPtr deserialized = roundTrip(streamingConfig).asPtr<IAddStreamingConfig>();
+        ASSERT_EQ(deserialized.getTypeConfig().getPropertyValue("Id"), "changed");
+    }
 }
 
 END_NAMESPACE_OPENDAQ

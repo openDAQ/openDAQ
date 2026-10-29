@@ -44,6 +44,11 @@ public:
 
     ErrCode INTERFACE_FUNC clone(IPropertyObject** cloned) override;
 
+    ErrCode INTERFACE_FUNC getSerializeId(ConstCharPtr* id) const override;
+
+    static ConstCharPtr SerializeId();
+    static ErrCode Deserialize(ISerializedObject* serialized, IBaseObject* context, IFunction* factoryCallback, IBaseObject** obj);
+
 private:
     ListPtr<IString> offeredTypeIds();
     bool isOffered(const StringPtr& typeId);

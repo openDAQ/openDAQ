@@ -139,6 +139,38 @@ ErrCode AddStreamingOptionsImpl::clone(IPropertyObject** cloned)
     });
 }
 
+ErrCode AddStreamingOptionsImpl::getSerializeId(ConstCharPtr* id) const
+{
+    OPENDAQ_PARAM_NOT_NULL(id);
+
+    *id = SerializeId();
+    return OPENDAQ_SUCCESS;
+}
+
+ConstCharPtr AddStreamingOptionsImpl::SerializeId()
+{
+    return "AddStreamingOptions";
+}
+
+ErrCode AddStreamingOptionsImpl::Deserialize(ISerializedObject* serialized,
+                                             IBaseObject* context,
+                                             IFunction* factoryCallback,
+                                             IBaseObject** obj)
+{
+    OPENDAQ_PARAM_NOT_NULL(serialized);
+    OPENDAQ_PARAM_NOT_NULL(obj);
+
+    return daqTry([&]
+    {
+        const auto createOptions = [](const SerializedObjectPtr&, const BaseObjectPtr&, const StringPtr&)
+        {
+            return createWithImplementation<IAddStreamingOptions, AddStreamingOptionsImpl>(Partial());
+        };
+
+        *obj = Super::DeserializePropertyObject(serialized, context, factoryCallback, createOptions).detach();
+    });
+}
+
 ListPtr<IString> AddStreamingOptionsImpl::offeredTypeIds()
 {
     const ListPtr<IString> selectionValues = objPtr.getProperty(add_streaming_options::StreamingType).getSelectionValues();
@@ -157,5 +189,7 @@ bool AddStreamingOptionsImpl::isOffered(const StringPtr& typeId)
     const auto typeIds = offeredTypeIds();
     return std::find(typeIds.begin(), typeIds.end(), typeId) != typeIds.end();
 }
+
+OPENDAQ_REGISTER_DESERIALIZE_FACTORY(AddStreamingOptionsImpl)
 
 END_NAMESPACE_OPENDAQ

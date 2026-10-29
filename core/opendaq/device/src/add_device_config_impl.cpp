@@ -13,6 +13,8 @@ static const char* PrimaryAddressType = "PrimaryAddressType";
 static const char* ScanOnAdd = "ScanOnAdd";
 static const char* Streaming = "Streaming";
 
+static const char* DeviceTypeKey = "deviceType";
+
 StringPtr toString(AddressType type)
 {
     switch (type)
@@ -134,6 +136,49 @@ ErrCode AddDeviceConfigImpl::clone(IPropertyObject** cloned)
     });
 }
 
+ErrCode AddDeviceConfigImpl::getSerializeId(ConstCharPtr* id) const
+{
+    OPENDAQ_PARAM_NOT_NULL(id);
+
+    *id = SerializeId();
+    return OPENDAQ_SUCCESS;
+}
+
+ConstCharPtr AddDeviceConfigImpl::SerializeId()
+{
+    return "AddDeviceConfig";
+}
+
+ErrCode AddDeviceConfigImpl::Deserialize(ISerializedObject* serialized, IBaseObject* context, IFunction* factoryCallback, IBaseObject** obj)
+{
+    OPENDAQ_PARAM_NOT_NULL(serialized);
+    OPENDAQ_PARAM_NOT_NULL(obj);
+
+    return daqTry([&]
+    {
+        const auto createConfig =
+            [&factoryCallback](const SerializedObjectPtr& serialized, const BaseObjectPtr& context, const StringPtr& /*className*/)
+        {
+            const DeviceTypePtr deviceType = serialized.readObject(add_device_config::DeviceTypeKey, context, factoryCallback);
+            return createWithImplementation<IAddDeviceConfig, AddDeviceConfigImpl>(deviceType, Partial());
+        };
+
+        *obj = Super::DeserializePropertyObject(serialized, context, factoryCallback, createConfig).detach();
+    });
+}
+
+ErrCode AddDeviceConfigImpl::serializeCustomValues(ISerializer* serializer, bool forUpdate)
+{
+    OPENDAQ_RETURN_IF_FAILED(Super::serializeCustomValues(serializer, forUpdate));
+
+    return daqTry([&]
+    {
+        const auto serializerPtr = SerializerPtr::Borrow(serializer);
+        serializerPtr.key(add_device_config::DeviceTypeKey);
+        deviceType.asPtr<ISerializable>().serialize(serializerPtr);
+    });
+}
+
 bool AddDeviceConfigImpl::takesStreamings(const DeviceTypePtr& deviceType)
 {
     switch (deviceType.getDeviceKind())
@@ -160,5 +205,7 @@ extern "C" ErrCode PUBLIC_EXPORT createAddDeviceConfig(IAddDeviceConfig** objTmp
 }
 
 #endif
+
+OPENDAQ_REGISTER_DESERIALIZE_FACTORY(AddDeviceConfigImpl)
 
 END_NAMESPACE_OPENDAQ

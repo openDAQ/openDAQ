@@ -708,6 +708,7 @@ DeviceTypePtr NativeStreamingClientModule::createPseudoDeviceType()
         .setDescription("Pseudo device, provides only signals of the remote device as flat list")
         .setConnectionStringPrefix("daq.ns")
         .setDefaultConfig(NativeStreamingClientModule::createConnectionDefaultConfig(NativeType::streaming))
+        .setDeviceKind(DeviceKind::External)
         .build();
 }
 

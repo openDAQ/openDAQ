@@ -8,7 +8,6 @@ from ..app_context import AppContext
 from .block_view import BlockView
 from .generic_properties_treeview import PropertiesTreeview
 
-ALL = 'All'
 NO_DOMAIN = 'No reference domain'
 LOCAL_CLOCKS = 'Local clocks'
 SOURCE_STATUS = 'SyncSourceStatus'
@@ -21,6 +20,15 @@ STATUS_COLORS = {
     'Error': str(utils.StatusColor.ERROR),
     'Off': 'gray',
     'Unknown': 'gray',
+}
+
+HEADINGS = {'#0': 'Name', 'source': 'Source', 'mode': 'Mode', 'role': 'Role', 'status': 'Status'}
+SORT_KEYS = {
+    '#0': lambda record: record.device.name.lower(),
+    'source': lambda record: record.source.id,
+    'mode': lambda record: record.source.mode.name,
+    'role': lambda record: role_status(record.source),
+    'status': lambda record: record.status,
 }
 
 
@@ -64,11 +72,13 @@ class SyncView(ttk.Frame):
         self.active_combo = None
         self.selected = None
         self.properties = None
+        self.sort = ('#0', False)
         self.refresh_job = None
 
         style = ttk.Style(self)
         style.configure('SyncHeader.TLabel', font=('TkDefaultFont', 12, 'bold'))
         style.configure('SyncGroup.TLabel', font=('TkDefaultFont', 9, 'bold'))
+        self.arrows = {descending: self.arrow_create(descending) for descending in (False, True)}
 
         panes = ttk.PanedWindow(self, orient=tk.HORIZONTAL)
         panes.pack(fill=tk.BOTH, expand=True)
@@ -84,7 +94,6 @@ class SyncView(ttk.Frame):
         panes.add(self.details, weight=2)
         panes.bind('<Map>', lambda e: self.after_idle(lambda: panes.sashpos(0, int(panes.winfo_width() * 0.62))))
 
-        self.filters_create(left)
         self.tree_create(left)
 
         self.core_event_handler = daq.QueuedEventHandler(self.on_core_event)
@@ -92,25 +101,6 @@ class SyncView(ttk.Frame):
         self.bind('<Destroy>', self.on_destroy)
 
         self.refresh()
-
-    def filters_create(self, parent):
-        frame = ttk.Frame(parent)
-        frame.pack(fill=tk.X, pady=(0, 4))
-
-        self.type_filter = tk.StringVar(value=ALL)
-        self.status_filter = tk.StringVar(value=ALL)
-
-        ttk.Label(frame, text='Type').pack(side=tk.LEFT, padx=(4, 2))
-        self.type_combo = ttk.Combobox(frame, textvariable=self.type_filter, state='readonly', width=12)
-        self.type_combo.pack(side=tk.LEFT)
-
-        ttk.Label(frame, text='Status').pack(side=tk.LEFT, padx=(10, 2))
-        status_combo = ttk.Combobox(frame, textvariable=self.status_filter, state='readonly', width=12,
-                                    values=[ALL, *daq.SyncSourceStatus.__members__])
-        status_combo.pack(side=tk.LEFT)
-
-        for combo in (self.type_combo, status_combo):
-            combo.bind('<<ComboboxSelected>>', lambda e: self.tree_fill())
 
     def tree_create(self, parent):
         frame = ttk.Frame(parent)
@@ -120,10 +110,8 @@ class SyncView(ttk.Frame):
 
         columns = ('source', 'mode', 'role', 'status', 'dot')
         tree = ttk.Treeview(frame, columns=columns, show='tree headings', selectmode=tk.BROWSE)
-        tree.heading('#0', anchor=tk.W, text='Name')
         tree.column('#0', anchor=tk.W, width=int(260 * self.context.dpi_factor), stretch=False)
-        for column, width, heading in zip(columns, (170, 80, 65, 75), ('Source', 'Mode', 'Role', 'Status')):
-            tree.heading(column, anchor=tk.W, text=heading)
+        for column, width in zip(columns, (170, 80, 65, 75)):
             tree.column(column, anchor=tk.W, width=int(width * self.context.dpi_factor), stretch=column == 'source')
         tree.column('dot', width=self.dot_size + 6, minwidth=self.dot_size + 6, stretch=False)
 
@@ -144,18 +132,37 @@ class SyncView(ttk.Frame):
         for sequence in ('<Configure>', '<<TreeviewOpen>>', '<<TreeviewClose>>', '<ButtonRelease-1>'):
             tree.bind(sequence, lambda e: self.after_idle(self.overlays_sync), add='+')
         self.tree = tree
+        self.headings_draw()
+
+    def arrow_create(self, descending):
+        width = int(9 * self.context.dpi_factor) | 1
+        height = width // 2 + 1
+        image = tk.PhotoImage(master=self, width=width, height=height)
+        for row in range(height):
+            reach = height - 1 - row if descending else row
+            image.put('#8a8a8a', to=(width // 2 - reach, row, width // 2 + reach + 1, row + 1))
+        return image
+
+    def headings_draw(self):
+        column, descending = self.sort
+        for key, title in HEADINGS.items():
+            image = self.arrows[descending] if key == column else ''
+            self.tree.heading(key, anchor=tk.W, text=title, image=image, command=lambda key=key: self.sort_by(key))
+
+    def sort_by(self, column):
+        self.sort = (column, self.sort == (column, False))
+        self.headings_draw()
+        self.tree_fill()
+
+    def sorted(self, records):
+        column, descending = self.sort
+        return sorted(records, key=lambda record: (SORT_KEYS[column](record), record.device.name), reverse=descending)
 
     def refresh(self):
         self.refresh_job = None
         root = self.context.instance
         devices = [root, *self.devices_of(root)]
         self.records = [record for record in map(self.record_create, devices) if record is not None]
-
-        types = sorted({record.source.sync_type for record in self.records})
-        self.type_combo.configure(values=[ALL, *types])
-        if self.type_filter.get() not in (ALL, *types):
-            self.type_filter.set(ALL)
-
         self.tree_fill()
 
     @staticmethod
@@ -186,15 +193,15 @@ class SyncView(ttk.Frame):
         alone = [members[0] for domain, owner, members in groups if domain.startswith('local:') and len(members) == 1]
         local = [record for record in alone if record not in feeding]
         if local:
-            yield LOCAL_CLOCKS, LOCAL_CLOCKS, sorted(local, key=self.tree_order)
+            yield LOCAL_CLOCKS, LOCAL_CLOCKS, None, local
 
         for domain, owner, members in groups:
             if members[0] in alone and len(members) == 1:
                 continue
             if owner is None:
-                yield domain, domain if domain == NO_DOMAIN else f'{domain} (external clock)', members
+                yield domain, domain if domain == NO_DOMAIN else f'{domain} (external clock)', None, members
             else:
-                yield domain, domain, [owner, *(record for record in members if record is not owner)]
+                yield domain, domain, owner, [record for record in members if record is not owner]
 
     @staticmethod
     def tree_order(record):
@@ -207,10 +214,6 @@ class SyncView(ttk.Frame):
         local = [record for record in members if record.source.sync_type == 'local']
         return local[0] if local else None
 
-    def matches(self, record):
-        return (self.type_filter.get() in (ALL, record.source.sync_type)
-                and self.status_filter.get() in (ALL, record.status))
-
     def tree_fill(self):
         opened = {iid for iid in self.rows if self.tree.exists(iid) and self.tree.item(iid, 'open')}
         self.tree.delete(*self.tree.get_children())
@@ -218,11 +221,8 @@ class SyncView(ttk.Frame):
         self.dot_colors = {}
         self.editors = {}
 
-        for key, title, members in self.groups():
-            visible = [record for record in members if self.matches(record)]
-            if not visible:
-                continue
-
+        for key, title, owner, members in self.groups():
+            visible = [owner] * (owner is not None) + self.sorted(members)
             count = f'{len(visible)} device' if len(visible) == 1 else f'{len(visible)} devices'
             group = self.tree.insert('', tk.END, iid=key, text=f'{title} \u00b7 {count}', open=True, tags=('group',))
             self.rows[group] = (visible[0], None)

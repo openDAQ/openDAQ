@@ -733,4 +733,53 @@ TEST_F(NativeTlsTest, NoStreamingWhenServerLacksSelectedTransport)
     ASSERT_EQ(device.asPtr<IMirroredDevice>().getStreamingSources().getCount(), 0u);
 }
 
+// the "Connected" connection statuses name the transport of their channel, while the device status keeps its message
+TEST_F(NativeTlsTest, ConnectedStatusesNameTransport)
+{
+    auto server = createServerInstance();
+    auto client = createClientInstance();
+
+    auto addDeviceConfig = client.createDefaultAddDeviceConfig();
+    applySecureClientConfig(addDeviceConfig);
+
+    auto device = client.addDevice(connectionString("daq.nd", TlsPort), addDeviceConfig);
+    const auto connectionStatusContainer = device.getConnectionStatusContainer();
+
+    ASSERT_EQ(connectionStatusContainer.getStatus("ConfigurationStatus"), "Connected");
+    ASSERT_EQ(connectionStatusContainer.getStatusMessage("ConfigurationStatus"), "Transport: tls");
+    ASSERT_EQ(connectionStatusContainer.getStatus("StreamingStatus_OpenDAQNativeStreaming_1"), "Connected");
+    ASSERT_EQ(connectionStatusContainer.getStatusMessage("StreamingStatus_OpenDAQNativeStreaming_1"), "Transport: tls");
+    ASSERT_EQ(device.getStatusContainer().getStatusMessage("ConnectionStatus"), "");
+}
+
+TEST_F(NativeTlsTest, ConnectedStatusesNameStreamingTransportSelectedSeparately)
+{
+    auto server = createServerInstance();
+    auto client = createClientInstance();
+
+    auto addDeviceConfig = client.createDefaultAddDeviceConfig();
+    applySecureClientConfig(addDeviceConfig);
+    AddComponentConfigPtr streamingAddConfig = addDeviceConfig.getPropertyValue(std::string("Streaming.") + StreamingId + ".AddStreamingConfig");
+    streamingAddConfig.setTransport(CONST_NATIVE_TRANSPORT_PLAIN);
+
+    auto device = client.addDevice(connectionString("daq.nd", TlsPort), addDeviceConfig);
+    const auto connectionStatusContainer = device.getConnectionStatusContainer();
+
+    ASSERT_EQ(connectionStatusContainer.getStatusMessage("ConfigurationStatus"), "Transport: tls");
+    ASSERT_EQ(connectionStatusContainer.getStatusMessage("StreamingStatus_OpenDAQNativeStreaming_1"), "Transport: plain");
+}
+
+TEST_F(NativeTlsTest, PseudoDeviceConnectedStatusNamesTransport)
+{
+    auto server = createServerInstance();
+    auto client = createClientInstance();
+
+    auto device = client.addDevice(connectionString("daq.ns", TlsPort),
+                                   secureClientConfig(client, StreamingId));
+
+    ASSERT_EQ(device.getConnectionStatusContainer().getStatus("StreamingStatus_OpenDAQNativeStreaming_1"), "Connected");
+    ASSERT_EQ(device.getConnectionStatusContainer().getStatusMessage("StreamingStatus_OpenDAQNativeStreaming_1"), "Transport: tls");
+    ASSERT_EQ(device.getStatusContainer().getStatusMessage("ConnectionStatus"), "");
+}
+
 #endif

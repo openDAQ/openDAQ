@@ -2277,12 +2277,15 @@ TEST_F(NativeDeviceModulesTest, Reconnection)
 
     auto device = client.getDevices()[0];
 
+    // the "Connected" connection statuses name the transport of their channel
+    const StringPtr connectedMessage = "Transport: plain";
+
     ASSERT_EQ(device.getStatusContainer().getStatus("ConnectionStatus"), "Connected");
     ASSERT_EQ(device.getStatusContainer().getStatusMessage("ConnectionStatus"), "");
     ASSERT_EQ(device.getConnectionStatusContainer().getStatus("ConfigurationStatus"), "Connected");
-    ASSERT_EQ(device.getConnectionStatusContainer().getStatusMessage("ConfigurationStatus"), "");
+    ASSERT_EQ(device.getConnectionStatusContainer().getStatusMessage("ConfigurationStatus"), connectedMessage);
     ASSERT_EQ(device.getConnectionStatusContainer().getStatus("StreamingStatus_OpenDAQNativeStreaming_1"), "Connected");
-    ASSERT_EQ(device.getConnectionStatusContainer().getStatusMessage("StreamingStatus_OpenDAQNativeStreaming_1"), "");
+    ASSERT_EQ(device.getConnectionStatusContainer().getStatusMessage("StreamingStatus_OpenDAQNativeStreaming_1"), connectedMessage);
 
     std::promise<StringPtr> connectionOldStatusPromise;
     std::future<StringPtr> connectionOldStatusFuture = connectionOldStatusPromise.get_future();
@@ -2291,7 +2294,7 @@ TEST_F(NativeDeviceModulesTest, Reconnection)
     std::promise<StringPtr> streamingReconnectionStatusPromise;
     std::future<StringPtr> streamingReconnectionStatusFuture = streamingReconnectionStatusPromise.get_future();
 
-    const auto testStatusMessage = [](const CoreEventArgsPtr& args, const EnumerationPtr& statusValue) 
+    const auto testStatusMessage = [](const CoreEventArgsPtr& args, const EnumerationPtr& statusValue, const StringPtr& expectedConnectedMessage)
     {
         ASSERT_TRUE(args.getParameters().hasKey("Message"));
         const StringPtr statusMessage = args.getParameters().get("Message");
@@ -2301,7 +2304,7 @@ TEST_F(NativeDeviceModulesTest, Reconnection)
         }
         else if (statusValue == "Connected")
         {
-            EXPECT_EQ(statusMessage, "");
+            EXPECT_EQ(statusMessage, expectedConnectedMessage);
         }
     };
 
@@ -2326,7 +2329,7 @@ TEST_F(NativeDeviceModulesTest, Reconnection)
                 EXPECT_TRUE(args.getParameters().get("StreamingObject").assigned());
                 streamingReconnectionStatusPromise.set_value(statusValue.toString());
             }
-            testStatusMessage(args, statusValue);
+            testStatusMessage(args, statusValue, connectedMessage);
         }
     };
 
@@ -2338,7 +2341,7 @@ TEST_F(NativeDeviceModulesTest, Reconnection)
             ASSERT_TRUE(args.getParameters().hasKey("ConnectionStatus"));
             const EnumerationPtr statusValue = args.getParameters().get("ConnectionStatus");
             connectionOldStatusPromise.set_value(statusValue.toString());
-            testStatusMessage(args, statusValue);
+            testStatusMessage(args, statusValue, "");
         }
     };
 
@@ -2388,12 +2391,12 @@ TEST_F(NativeDeviceModulesTest, Reconnection)
     ASSERT_TRUE(configReconnectionStatusFuture.wait_for(std::chrono::seconds(5)) == std::future_status::ready);
     ASSERT_EQ(configReconnectionStatusFuture.get(), "Connected");
     ASSERT_EQ(deviceConnectionStatus.getStatus("ConfigurationStatus"), "Connected");
-    ASSERT_EQ(deviceConnectionStatus.getStatusMessage("ConfigurationStatus"), "");
+    ASSERT_EQ(deviceConnectionStatus.getStatusMessage("ConfigurationStatus"), connectedMessage);
 
     ASSERT_TRUE(streamingReconnectionStatusFuture.wait_for(std::chrono::seconds(10)) == std::future_status::ready);
     ASSERT_EQ(streamingReconnectionStatusFuture.get(), "Connected");
     ASSERT_EQ(deviceConnectionStatus.getStatus("StreamingStatus_OpenDAQNativeStreaming_1"), "Connected");
-    ASSERT_EQ(deviceConnectionStatus.getStatusMessage("StreamingStatus_OpenDAQNativeStreaming_1"), "");
+    ASSERT_EQ(deviceConnectionStatus.getStatusMessage("StreamingStatus_OpenDAQNativeStreaming_1"), connectedMessage);
 
     auto channels = device.getChannels(search::Recursive(search::Any()));
     ASSERT_EQ(channels.getCount(), 3u);

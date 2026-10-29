@@ -223,7 +223,12 @@ void NativeDeviceHelper::updateConnectionStatus(const EnumerationPtr& status, co
     auto deviceSelf = deviceRef.assigned() ? deviceRef.getRef() : nullptr;
     if (!deviceSelf.assigned())
         return;
-    deviceSelf.asPtr<INativeDevicePrivate>()->publishConnectionStatus(connectionStatus, statusMessage);
+    const auto devicePrivate = deviceSelf.asPtr<INativeDevicePrivate>();
+    devicePrivate->publishConnectionStatus(connectionStatus, statusMessage);
+    if (status == "Connected" && statusMessage == "")
+        devicePrivate->publishConfigurationStatus(connectionStatus, buildConnectedStatusMessage(transport));
+    else
+        devicePrivate->publishConfigurationStatus(connectionStatus, statusMessage);
 }
 
 void NativeDeviceHelper::setupProtocolClients(const ContextPtr& context)
@@ -473,15 +478,19 @@ void NativeDeviceImpl::publishConnectionStatus(const EnumerationPtr& status, con
 {
     // Called from the transport thread; the statuses are already gone when the device is being torn down
     const StringPtr statusName = "ConnectionStatus";
-    ErrCode errCode = this->statusContainer.asPtr<IComponentStatusContainerPrivate>()->setStatusWithMessage(statusName, status, statusMessage);
+    const ErrCode errCode = this->statusContainer.asPtr<IComponentStatusContainerPrivate>()->setStatusWithMessage(statusName, status, statusMessage);
     if (errCode == OPENDAQ_ERR_NOTFOUND)
     {
         daqClearErrorInfo();
         return;
     }
     checkErrorInfo(errCode);
+}
 
-    errCode = this->connectionStatusContainer->updateConnectionStatusWithMessage(deviceInfo.getConnectionString(), status, nullptr, statusMessage);
+void NativeDeviceImpl::publishConfigurationStatus(const EnumerationPtr& status, const StringPtr& statusMessage)
+{
+    // Called from the transport thread; the statuses are already gone when the device is being torn down
+    const ErrCode errCode = this->connectionStatusContainer->updateConnectionStatusWithMessage(deviceInfo.getConnectionString(), status, nullptr, statusMessage);
     if (errCode == OPENDAQ_ERR_NOTFOUND)
     {
         daqClearErrorInfo();
@@ -498,6 +507,8 @@ void NativeDeviceImpl::completeInitialization(std::shared_ptr<NativeDeviceHelper
     const auto statusInitValue = Enumeration("ConnectionStatusType", "Connected", this->context.getTypeManager());
     this->statusContainer.asPtr<IComponentStatusContainerPrivate>().addStatus("ConnectionStatus", statusInitValue);
     this->connectionStatusContainer.addConfigurationConnectionStatus(deviceInfo.getConnectionString(), statusInitValue);
+    // the status is added with an empty message, while the "Connected" one names the transport
+    publishConfigurationStatus(statusInitValue, buildConnectedStatusMessage(deviceHelper->getTransport()));
 }
 
 void NativeDeviceImpl::removed()

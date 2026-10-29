@@ -4,6 +4,7 @@
 #include <opendaq/custom_log.h>
 #include <opendaq/device_domain_factory.h>
 #include <opendaq/device_info_factory.h>
+#include <opendaq/component_type_builder_factory.h>
 #include <opendaq/device_type_factory.h>
 #include <opendaq/packet_factory.h>
 #include <opendaq/sync_component_private_ptr.h>
@@ -75,11 +76,14 @@ DeviceTypePtr SimulatorDeviceImpl::CreateType()
     const auto defaultConfig = PropertyObject();
     defaultConfig.addProperty(IntProperty("NumberOfChannels", 8));
 
-    return DeviceType("SimulatorDevice",
-                      "Simulator device",
-                      "openDAQ signal generator simulator",
-                      "daq.simulator",
-                      defaultConfig);
+    return DeviceTypeBuilder()
+        .setId("SimulatorDevice")
+        .setName("Simulator device")
+        .setDescription("openDAQ signal generator simulator")
+        .setConnectionStringPrefix("daq.simulator")
+        .setDefaultConfig(defaultConfig)
+        .setDeviceKind(DeviceKind::External)
+        .build();
 }
 
 uint64_t SimulatorDeviceImpl::onGetTicksSinceOrigin()

@@ -11,8 +11,8 @@ from .generic_properties_treeview import PropertiesTreeview
 ALL = 'All'
 NO_DOMAIN = 'No reference domain'
 LOCAL_CLOCKS = 'Local clocks'
-SOURCE_STATUS = 'SynchronizationSourceStatus'
-ROLE_STATUS = 'SynchronizationRoleStatus'
+SOURCE_STATUS = 'SyncSourceStatus'
+ROLE_STATUS = 'SyncRoleStatus'
 
 STATUS_COLORS = {
     'Synced': str(utils.StatusColor.OK),

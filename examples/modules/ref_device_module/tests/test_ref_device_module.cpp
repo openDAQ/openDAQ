@@ -128,6 +128,16 @@ TEST_F(RefDeviceModuleTest, CreateDeviceConnectionStringCorrect)
     ASSERT_EQ(device.getInfo().getDeviceType().getId(), "daqref");
 }
 
+TEST_F(RefDeviceModuleTest, CreateRootDeviceConnectionStringCorrect)
+{
+    auto module = CreateModule();
+
+    DevicePtr device;
+    ASSERT_NO_THROW(device = module.createDevice("daqref.root://device1", nullptr));
+    ASSERT_EQ(device.getInfo().getConnectionString(), "daqref.root://device1");
+    ASSERT_EQ(device.getInfo().getDeviceType().getId(), "daqref_root");
+}
+
 TEST_F(RefDeviceModuleTest, DeviceVersion)
 {
     auto module = CreateModule();
@@ -259,9 +269,14 @@ TEST_F(RefDeviceModuleTest, GetAvailableComponentTypes)
 
     DictPtr<IString, IDeviceType> deviceTypes;
     ASSERT_NO_THROW(deviceTypes = module.getAvailableDeviceTypes());
-    ASSERT_EQ(deviceTypes.getCount(), 1u);
+    ASSERT_EQ(deviceTypes.getCount(), 2u);
     ASSERT_TRUE(deviceTypes.hasKey("daqref"));
     ASSERT_EQ(deviceTypes.get("daqref").getId(), "daqref");
+    ASSERT_EQ(deviceTypes.get("daqref").getConnectionStringPrefix(), "daqref");
+    ASSERT_TRUE(deviceTypes.hasKey("daqref_root"));
+    ASSERT_EQ(deviceTypes.get("daqref_root").getId(), "daqref_root");
+    ASSERT_EQ(deviceTypes.get("daqref_root").getConnectionStringPrefix(), "daqref.root");
+    ASSERT_EQ(deviceTypes.get("daqref_root").getDeviceKind(), DeviceKind::Root);
 
     DictPtr<IString, IServerType> serverTypes;
     ASSERT_NO_THROW(serverTypes = module.getAvailableServerTypes());

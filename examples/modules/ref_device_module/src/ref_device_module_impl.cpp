@@ -113,12 +113,12 @@ DevicePtr RefDeviceModule::onCreateDevice(const StringPtr& connectionString,
 
 size_t RefDeviceModule::getIdFromConnectionString(const std::string& connectionString) const
 {
-    std::string prefixWithDeviceStr = "daqref://device";
-    auto found = connectionString.find(prefixWithDeviceStr);
-    if (found != 0)
-        DAQ_THROW_EXCEPTION(InvalidParameterException, "Invalid connection string \"{}\", no prefix", connectionString);
+    const std::string deviceStr = "://device";
+    auto found = connectionString.find(deviceStr);
+    if (found == std::string::npos)
+        DAQ_THROW_EXCEPTION(InvalidParameterException, "Invalid connection string \"{}\", no device", connectionString);
 
-    auto idStr = connectionString.substr(prefixWithDeviceStr.size(), std::string::npos);
+    auto idStr = connectionString.substr(found + deviceStr.size(), std::string::npos);
     size_t id;
     try
     {

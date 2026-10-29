@@ -36,6 +36,7 @@ StringPtr ToIso8601(const std::chrono::system_clock::time_point& timePoint);
 
 static const std::map<DeviceKind, std::string> ConnectionStringPrefixes = {
     {DeviceKind::Unspecified, "daqref"},
+    {DeviceKind::Root, "daqref.root"},
 };
 
 RefDeviceImpl::RefDeviceImpl(const ModuleInfoPtr& moduleInfo,
@@ -145,6 +146,9 @@ DeviceTypePtr RefDeviceImpl::CreateType(const ModuleInfoPtr& moduleInfo, DeviceK
     {
         case DeviceKind::Unspecified:
             builder.setId("daqref").setName("Reference device").setDescription("Reference device");
+            break;
+        case DeviceKind::Root:
+            builder.setId("daqref_root").setName("Reference root device").setDescription("Reference device, set as the root device");
             break;
         default:
             DAQ_THROW_EXCEPTION(InvalidParameterException, "Reference device has no type of the given kind");

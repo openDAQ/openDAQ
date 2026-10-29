@@ -94,6 +94,10 @@ class SyncCard(tk.Frame):
         self.mode_combo.bind('<<ComboboxSelected>>', lambda e: self.mode_selected())
         self.mode_combo.grid(row=0, column=4, rowspan=2)
 
+        for widget in (self, top, *top.winfo_children(), *title.winfo_children()):
+            if widget not in (self.toggle, self.mode_combo):
+                widget.bind('<Double-Button-1>', lambda e: self.open(self.properties is None))
+
         self.settings = tk.Frame(self, background=view.settings_background)
         view.wheel_bind(self)
 
@@ -135,9 +139,6 @@ class SyncCard(tk.Frame):
                 scroll_bar.pack_forget()
             for sequence in ('<<TreeviewOpen>>', '<<TreeviewClose>>'):
                 self.properties.bind(sequence, lambda e: self.after_idle(self.properties_fit), add='+')
-            for sequence in ('<Configure>', '<Map>'):
-                self.properties.bind(sequence, lambda e: self.after(20, self.lines_draw), add='+')
-            self.lines = []
             self.properties_fit()
             self.view.wheel_bind(frame)
         self.toggle_draw(opened)
@@ -150,20 +151,6 @@ class SyncCard(tk.Frame):
     def properties_fit(self):
         if self.properties is not None:
             self.properties.configure(height=sum(1 for _ in self.view.visible_rows('', self.properties)))
-            self.after_idle(self.lines_draw)
-
-    def lines_draw(self):
-        if self.properties is None or not self.properties.winfo_exists():
-            return
-        for line in self.lines:
-            line.destroy()
-        rows = [self.properties.bbox(iid) for iid in self.view.visible_rows('', self.properties)]
-        self.lines = [tk.Frame(self.properties, height=1, background=CARD_BORDER) for box in rows if box]
-        for line, (x, y, width, height) in zip(self.lines, filter(None, rows)):
-            line.place(x=0, y=y - 1, relwidth=1)
-        divider = tk.Frame(self.properties, width=1, background=CARD_BORDER)
-        divider.place(x=self.properties.column('#0', 'width'), y=0, relheight=1)
-        self.lines.append(divider)
 
     def mode_selected(self):
         interface = self.interface

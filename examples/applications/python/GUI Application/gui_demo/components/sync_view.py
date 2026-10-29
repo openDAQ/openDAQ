@@ -22,11 +22,13 @@ STATUS_COLORS = {
     'Unknown': 'gray',
 }
 
-HEADINGS = {'#0': 'Name', 'source': 'Source', 'mode': 'Mode', 'role': 'Role', 'status': 'Status'}
+CARD_BORDER = '#ced4da'
+SOURCE_COLOR = '#1a73e8'
+
+HEADINGS = {'#0': 'Name', 'source': 'Source', 'role': 'Role', 'status': 'Status'}
 SORT_KEYS = {
     '#0': lambda record: record.device.name.lower(),
     'source': lambda record: record.source.id,
-    'mode': lambda record: record.source.mode.name,
     'role': lambda record: role_status(record.source),
     'status': lambda record: record.status,
 }
@@ -59,6 +61,116 @@ class SyncRecord:
                    for interface in self.interfaces.values())
 
 
+class SyncCard(tk.Frame):
+    def __init__(self, parent, view, name):
+        super().__init__(parent, background='white', highlightthickness=1, highlightbackground=CARD_BORDER)
+        self.view = view
+        self.record = None
+        self.interface = None
+        self.modes = {}
+        self.properties = None
+
+        top = tk.Frame(self, background='white')
+        top.pack(fill=tk.X, padx=(4, 8), pady=6)
+        top.columnconfigure(2, weight=1)
+        size = view.dot_size
+        self.toggle = tk.Canvas(top, width=size, height=size, background='white', highlightthickness=0, cursor='hand2')
+        self.toggle.create_line(0, size // 2, size, size // 2, fill='gray', width=2, tags='sign')
+        self.toggle.create_line(size // 2, 0, size // 2, size, fill='gray', width=2, tags=('sign', 'vertical'))
+        self.toggle.grid(row=0, column=0, padx=(4, 8))
+        self.toggle.bind('<Button-1>', lambda e: self.open(self.properties is None))
+        self.dot = view.dot_create(top, '', 'white')
+        self.dot.grid(row=0, column=1, padx=(0, 6))
+
+        title = tk.Frame(top, background='white')
+        title.grid(row=0, column=2, sticky=tk.W)
+        tk.Label(title, text=name, background='white', font=('TkDefaultFont', 10, 'bold')).pack(side=tk.LEFT)
+        self.source_tag = tk.Label(title, text='source', background='white', foreground=SOURCE_COLOR,
+                                   font=('TkDefaultFont', 8))
+        self.domain = tk.Label(top, background='white', foreground='gray', font='TkFixedFont')
+        self.domain.grid(row=1, column=2, sticky=tk.W)
+
+        tk.Label(top, text='Mode', background='white').grid(row=0, column=3, rowspan=2, padx=(0, 6))
+        self.mode_combo = ttk.Combobox(top, state='readonly', style='SyncMode.TCombobox', width=10, takefocus=False)
+        self.mode_combo.bind('<<ComboboxSelected>>', lambda e: self.mode_selected())
+        self.mode_combo.grid(row=0, column=4, rowspan=2)
+
+        self.settings = tk.Frame(self, background=view.settings_background)
+        view.wheel_bind(self)
+
+    def update(self, record, interface):
+        self.record = record
+        self.interface = interface
+        self.dot.itemconfigure('dot', fill=STATUS_COLORS.get(source_status(interface), 'gray'))
+        if interface.id == record.source.id:
+            self.source_tag.pack(side=tk.LEFT, padx=(6, 0))
+        else:
+            self.source_tag.pack_forget()
+        self.domain.configure(text=interface.reference_domain_id or 'no reference domain')
+
+        self.modes = {name: daq.SyncMode(value) for value, name in interface.available_modes.items()}
+        self.mode_combo.configure(values=list(self.modes), state='readonly' if len(self.modes) > 1 else 'disabled')
+        self.mode_combo.set(interface.mode.name)
+
+        self.toggle_draw(self.properties is not None)
+
+    def has_settings(self):
+        return len(self.interface.config.visible_properties) > 0
+
+    def open(self, opened):
+        if not self.has_settings():
+            return
+        if self.properties is not None:
+            self.properties.master.destroy()
+            self.properties = None
+            self.settings.pack_forget()
+        if opened:
+            self.settings.pack(fill=tk.X, padx=1, pady=(0, 1))
+            frame = tk.Frame(self.settings, background=self.view.settings_background)
+            frame.pack(fill=tk.X)
+            tk.Frame(frame, height=1, background=CARD_BORDER).pack(fill=tk.X)
+            self.properties = PropertiesTreeview(frame, self.interface.config, self.view.context,
+                                                 style='SyncSettings.Treeview')
+            self.properties.pack_propagate(False)
+            for scroll_bar in self.properties.pack_slaves():
+                scroll_bar.pack_forget()
+            for sequence in ('<<TreeviewOpen>>', '<<TreeviewClose>>'):
+                self.properties.bind(sequence, lambda e: self.after_idle(self.properties_fit), add='+')
+            for sequence in ('<Configure>', '<Map>'):
+                self.properties.bind(sequence, lambda e: self.after(20, self.lines_draw), add='+')
+            self.lines = []
+            self.properties_fit()
+            self.view.wheel_bind(frame)
+        self.toggle_draw(opened)
+
+    def toggle_draw(self, opened):
+        self.toggle.itemconfigure('sign', state=tk.NORMAL if self.has_settings() else tk.HIDDEN)
+        if opened:
+            self.toggle.itemconfigure('vertical', state=tk.HIDDEN)
+
+    def properties_fit(self):
+        if self.properties is not None:
+            self.properties.configure(height=sum(1 for _ in self.view.visible_rows('', self.properties)))
+            self.after_idle(self.lines_draw)
+
+    def lines_draw(self):
+        if self.properties is None or not self.properties.winfo_exists():
+            return
+        for line in self.lines:
+            line.destroy()
+        rows = [self.properties.bbox(iid) for iid in self.view.visible_rows('', self.properties)]
+        self.lines = [tk.Frame(self.properties, height=1, background=CARD_BORDER) for box in rows if box]
+        for line, (x, y, width, height) in zip(self.lines, filter(None, rows)):
+            line.place(x=0, y=y - 1, relwidth=1)
+        divider = tk.Frame(self.properties, width=1, background=CARD_BORDER)
+        divider.place(x=self.properties.column('#0', 'width'), y=0, relheight=1)
+        self.lines.append(divider)
+
+    def mode_selected(self):
+        interface = self.interface
+        self.view.change(self.record, lambda mode: setattr(interface, 'mode', mode), self.modes[self.mode_combo.get()])
+
+
 class SyncView(ttk.Frame):
     def __init__(self, parent, context: AppContext, **kwargs):
         super().__init__(parent, **kwargs)
@@ -71,13 +183,22 @@ class SyncView(ttk.Frame):
         self.combos = []
         self.active_combo = None
         self.selected = None
-        self.properties = None
+        self.cards = {}
+        self.cards_key = None
+        self.cards_source = None
         self.sort = ('#0', False)
         self.refresh_job = None
 
         style = ttk.Style(self)
         style.configure('SyncHeader.TLabel', font=('TkDefaultFont', 12, 'bold'))
         style.configure('SyncGroup.TLabel', font=('TkDefaultFont', 9, 'bold'))
+        self.settings_background = style.lookup('TFrame', 'background')
+        style.configure('SyncSettings.Treeview', background='white', fieldbackground='white', borderwidth=0)
+        style.layout('SyncSettings.Treeview', [('Treeview.treearea', {'sticky': 'nswe'})])
+        style.configure('SyncMode.TCombobox', fieldbackground='white', background='white', foreground='#1a1a1a',
+                        selectbackground='white', selectforeground='#1a1a1a')
+        style.map('SyncMode.TCombobox', fieldbackground=[('disabled', '#f3f3f3')],
+                  foreground=[('disabled', '#6d6d6d')])
         self.arrows = {descending: self.arrow_create(descending) for descending in (False, True)}
 
         panes = ttk.PanedWindow(self, orient=tk.HORIZONTAL)
@@ -87,9 +208,7 @@ class SyncView(ttk.Frame):
         self.details = ttk.Frame(panes)
         self.details_header = ttk.Frame(self.details)
         self.details_header.pack(fill=tk.X)
-        self.details_body = ttk.Frame(self.details)
-        self.details_body.pack(fill=tk.BOTH, expand=True)
-        self.details_key = None
+        self.cards_create(self.details)
         panes.add(left, weight=3)
         panes.add(self.details, weight=2)
         panes.bind('<Map>', lambda e: self.after_idle(lambda: panes.sashpos(0, int(panes.winfo_width() * 0.62))))
@@ -108,10 +227,10 @@ class SyncView(ttk.Frame):
 
         self.dot_size = int(10 * self.context.dpi_factor)
 
-        columns = ('source', 'mode', 'role', 'status', 'dot')
+        columns = ('source', 'role', 'status', 'dot')
         tree = ttk.Treeview(frame, columns=columns, show='tree headings', selectmode=tk.BROWSE)
         tree.column('#0', anchor=tk.W, width=int(260 * self.context.dpi_factor), stretch=False)
-        for column, width in zip(columns, (170, 80, 65, 75)):
+        for column, width in zip(columns, (170, 65, 75)):
             tree.column(column, anchor=tk.W, width=int(width * self.context.dpi_factor), stretch=column == 'source')
         tree.column('dot', width=self.dot_size + 6, minwidth=self.dot_size + 6, stretch=False)
 
@@ -133,6 +252,26 @@ class SyncView(ttk.Frame):
             tree.bind(sequence, lambda e: self.after_idle(self.overlays_sync), add='+')
         self.tree = tree
         self.headings_draw()
+
+    def cards_create(self, parent):
+        frame = ttk.Frame(parent)
+        frame.pack(fill=tk.BOTH, expand=True)
+        background = ttk.Style(self).lookup('TFrame', 'background')
+        self.canvas = tk.Canvas(frame, highlightthickness=0, background=background)
+        scroll_bar = ttk.Scrollbar(frame, orient=tk.VERTICAL, command=self.canvas.yview)
+        self.cards_frame = tk.Frame(self.canvas, background=background)
+        self.cards_frame.bind('<Configure>', lambda e: self.canvas.configure(scrollregion=self.canvas.bbox('all')))
+        self.canvas.create_window((0, 0), window=self.cards_frame, anchor=tk.NW, tags='cards')
+        self.canvas.bind('<Configure>', lambda e: self.canvas.itemconfigure('cards', width=e.width))
+        self.canvas.configure(yscrollcommand=scroll_bar.set)
+        scroll_bar.pack(side=tk.RIGHT, fill=tk.Y)
+        self.canvas.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
+        self.wheel_bind(self.canvas)
+
+    def wheel_bind(self, widget):
+        utils.bind_mousewheel_to(widget, self.canvas)
+        for child in widget.winfo_children():
+            self.wheel_bind(child)
 
     def arrow_create(self, descending):
         width = int(9 * self.context.dpi_factor) | 1
@@ -239,7 +378,7 @@ class SyncView(ttk.Frame):
         elif self.rows:
             self.tree.selection_set(self.tree.get_children(self.tree.get_children()[0])[0])
         else:
-            self.details_draw(None, None)
+            self.details_draw(None)
 
         self.after_idle(self.overlays_sync)
 
@@ -248,26 +387,10 @@ class SyncView(ttk.Frame):
         sources = {name: name for name in record.synchronization.available_sources.keys()}
         source = self.editor_register(iid, 'source', record, record.source.id, sources,
                                       lambda name: setattr(record.synchronization, 'source', name))
-        mode = self.mode_editor_register(iid, record, record.source)
         self.tree.insert(group, tk.END, iid=iid, text=record.device.name,
-                         values=(source, mode, role_status(record.source), record.status))
+                         values=(source, role_status(record.source), record.status))
         self.rows[iid] = (record, record.source)
         self.dot_colors[iid] = STATUS_COLORS.get(record.status, 'gray')
-
-        for name, interface in record.interfaces.items():
-            status = source_status(interface)
-            text = f'{name} (source)' if name == record.source.id else name
-            child = f'{iid}|{name}'
-            mode = self.mode_editor_register(child, record, interface)
-            self.tree.insert(iid, tk.END, iid=child, text=text,
-                             values=('', mode, role_status(interface), status))
-            self.rows[child] = (record, interface)
-            self.dot_colors[child] = STATUS_COLORS.get(status, 'gray')
-
-    def mode_editor_register(self, iid, record, interface):
-        modes = {name: daq.SyncMode(value) for value, name in interface.available_modes.items()}
-        return self.editor_register(iid, 'mode', record, interface.mode.name, modes,
-                                    lambda mode: setattr(interface, 'mode', mode))
 
     def editor_register(self, iid, column, record, current, options, apply):
         if len(options) < 2:
@@ -304,11 +427,12 @@ class SyncView(ttk.Frame):
         record, current, options, apply = self.editors[combo.key]
         self.change(record, apply, options[combo.get()])
 
-    def visible_rows(self, parent=''):
-        for iid in self.tree.get_children(parent):
+    def visible_rows(self, parent='', tree=None):
+        tree = tree or self.tree
+        for iid in tree.get_children(parent):
             yield iid
-            if self.tree.item(iid, 'open'):
-                yield from self.visible_rows(iid)
+            if tree.item(iid, 'open'):
+                yield from self.visible_rows(iid, tree)
 
     def dot_create(self, parent, color, background):
         dot = tk.Canvas(parent, width=self.dot_size, height=self.dot_size,
@@ -365,20 +489,13 @@ class SyncView(ttk.Frame):
             return
         self.selected = selection[0]
         record, interface = self.rows[self.selected]
-        self.details_draw(record, interface or record.source)
+        self.details_draw(record)
         self.after_idle(self.overlays_sync)
 
-    def details_draw(self, record, interface):
+    def details_draw(self, record):
         for widget in list(self.details_header.children.values()):
             widget.destroy()
-
-        # A refresh redraws the status header but keeps an open property editor
-        key = record.device.global_id if record is not None else None
-        if key != self.details_key:
-            for widget in list(self.details_body.children.values()):
-                widget.destroy()
-            self.properties = None
-        self.details_key = key
+        self.cards_draw(record)
 
         if record is None:
             ttk.Label(self.details_header, text='No devices expose synchronization').pack(anchor=tk.W, padx=8, pady=8)
@@ -390,7 +507,7 @@ class SyncView(ttk.Frame):
         ttk.Label(header, text=record.device.name, style='SyncHeader.TLabel').pack(side=tk.LEFT)
         ttk.Label(header, text=f' | {record.domain} | ').pack(side=tk.LEFT)
 
-        container = interface.status_container
+        container = record.source.status_container
         statuses = tk.Frame(header, cursor='hand2', background=background)
         statuses.pack(side=tk.LEFT)
         labels = {SOURCE_STATUS: '', ROLE_STATUS: 'Role'}
@@ -413,11 +530,27 @@ class SyncView(ttk.Frame):
             widget.bind('<Enter>', lambda e: [w.configure(background='#e0e0e0') for w in widgets])
             widget.bind('<Leave>', lambda e: [w.configure(background=background) for w in widgets])
 
-        if self.properties is not None:
+    def cards_draw(self, record):
+        key = (record.device.global_id, tuple(record.interfaces)) if record is not None else None
+        if key != self.cards_key:
+            for card in self.cards.values():
+                card.destroy()
+            self.cards = {}
+            self.cards_key = key
+            self.cards_source = None
+            self.canvas.yview_moveto(0)
+        if record is None:
             return
-        frame = ttk.Frame(self.details_body)
-        frame.pack(fill=tk.BOTH, expand=True)
-        self.properties = PropertiesTreeview(frame, daq.IPropertyObject.cast_from(record.synchronization), self.context)
+
+        for name, interface in record.interfaces.items():
+            if name not in self.cards:
+                self.cards[name] = SyncCard(self.cards_frame, self, name)
+                self.cards[name].pack(fill=tk.X, padx=8, pady=(0, 6))
+            self.cards[name].update(record, interface)
+
+        if record.source.id != self.cards_source and record.source.id in self.cards:
+            self.cards[record.source.id].open(True)
+        self.cards_source = record.source.id
 
     def change(self, record, apply, value):
         try:

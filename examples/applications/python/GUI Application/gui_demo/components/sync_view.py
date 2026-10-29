@@ -52,6 +52,7 @@ class SyncRecord:
         self.synchronization = device.synchronization
         self.source = self.synchronization.source
         self.interfaces = dict(self.synchronization.interfaces.items())
+        self.sources = list(self.synchronization.available_sources.keys())
         self.domain = self.source.reference_domain_id or NO_DOMAIN
         self.status = source_status(self.source)
 
@@ -370,7 +371,7 @@ class SyncView(ttk.Frame):
 
     def device_row_insert(self, group, record):
         iid = f'{group}|{record.device.global_id}'
-        sources = {name: name for name in record.synchronization.available_sources.keys()}
+        sources = {name: name for name in record.sources}
         source = self.editor_register(iid, 'source', record, record.source.id, sources,
                                       lambda name: setattr(record.synchronization, 'source', name))
         self.tree.insert(group, tk.END, iid=iid, text=record.device.name,

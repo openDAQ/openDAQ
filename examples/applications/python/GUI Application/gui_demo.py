@@ -1460,10 +1460,10 @@ class App(tk.Tk):
         if self.sync_view is not None:
             self.sync_view.refresh()
             return
-        self.main_frame_navigator.forget(self.tree_frame)
         self.right_side_panel_clear()
         self.sync_view = SyncView(self.right_side_panel, self.context)
         self.sync_view.pack(fill=tk.BOTH, expand=True)
+        self.main_frame_navigator.forget(self.tree_frame)
 
     def sync_view_hide(self):
         if self.sync_view is None:

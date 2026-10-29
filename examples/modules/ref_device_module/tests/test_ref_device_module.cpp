@@ -273,6 +273,7 @@ TEST_F(RefDeviceModuleTest, GetAvailableComponentTypes)
     ASSERT_TRUE(deviceTypes.hasKey("daqref"));
     ASSERT_EQ(deviceTypes.get("daqref").getId(), "daqref");
     ASSERT_EQ(deviceTypes.get("daqref").getConnectionStringPrefix(), "daqref");
+    ASSERT_EQ(deviceTypes.get("daqref").getDeviceKind(), DeviceKind::External);
     ASSERT_TRUE(deviceTypes.hasKey("daqref_root"));
     ASSERT_EQ(deviceTypes.get("daqref_root").getId(), "daqref_root");
     ASSERT_EQ(deviceTypes.get("daqref_root").getConnectionStringPrefix(), "daqref.root");

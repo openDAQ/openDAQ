@@ -35,7 +35,7 @@ BEGIN_NAMESPACE_REF_DEVICE_MODULE
 StringPtr ToIso8601(const std::chrono::system_clock::time_point& timePoint);
 
 static const std::map<DeviceKind, std::string> ConnectionStringPrefixes = {
-    {DeviceKind::Unspecified, "daqref"},
+    {DeviceKind::External, "daqref"},
     {DeviceKind::Root, "daqref.root"},
 };
 
@@ -144,7 +144,7 @@ DeviceTypePtr RefDeviceImpl::CreateType(const ModuleInfoPtr& moduleInfo, DeviceK
     auto builder = DeviceTypeBuilder().setDeviceKind(kind).setDefaultConfig(CreateDefaultConfig());
     switch (kind)
     {
-        case DeviceKind::Unspecified:
+        case DeviceKind::External:
             builder.setId("daqref").setName("Reference device").setDescription("Reference device");
             break;
         case DeviceKind::Root:

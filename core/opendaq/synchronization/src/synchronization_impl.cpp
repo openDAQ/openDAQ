@@ -10,20 +10,20 @@ SynchronizationImpl::SynchronizationImpl(const TypeManagerPtr& manager, const St
     , sourceInterfaces(List<IString>())
 {
     this->addProperty(ObjectProperty("Interfaces", PropertyObject()));
-    this->addProperty(ListPropertyBuilder("SourceInterfaces", List<IString>()).setVisible(false).setReadOnly(true).build());
+    this->addProperty(ListPropertyBuilder("SourceSelection", List<IString>()).setVisible(false).setReadOnly(true).build());
 
     source = createWithImplementation<ISyncInterface, ClockSyncInterfaceImpl>(manager, deviceId);
     checkErrorInfo(this->addInterface(source));
     source.asPtr<ISyncInterfaceInternal>(true).setAsSource(true);
 
     const auto sourceProperty = StringPropertyBuilder("Source", source.getId())
-                                                        .setSelectionValues(EvalValue("$SourceInterfaces"))
+                                                        .setSelectionValues(EvalValue("$SourceSelection"))
                                                         .build();
     this->addProperty(sourceProperty);
 
     // Values serialize in name order, which puts "Source" before the list it selects from.
     // "Source" goes before "Interfaces" so that a load sets the source before the source's own mode.
-    this->objPtr.setPropertyOrder({"SourceInterfaces", "Source"});
+    this->objPtr.setPropertyOrder({"SourceSelection", "Source"});
 
     this->objPtr.getOnPropertyValueWrite("Source") += [&](PropertyObjectPtr&, PropertyValueEventArgsPtr& args)
     {
@@ -56,7 +56,7 @@ ErrCode SynchronizationImpl::addInterface(ISyncInterface* syncInterface)
         if (interfacePtr.getSourceSupported())
         {
             sourceInterfaces.pushBack(interfacePtr.getId());
-            OPENDAQ_RETURN_IF_FAILED(this->setProtectedPropertyValue(String("SourceInterfaces"), sourceInterfaces));
+            OPENDAQ_RETURN_IF_FAILED(this->setProtectedPropertyValue(String("SourceSelection"), sourceInterfaces));
         }
         return OPENDAQ_SUCCESS;
     });

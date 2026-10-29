@@ -240,7 +240,7 @@ TEST_F(RefDeviceModuleTest, Synchronization)
     ASSERT_EQ(source.getId(), "ClockSyncInterface");
     ASSERT_EQ(source.getMode(), SyncMode::Input);
     ASSERT_EQ(source.getReferenceDomainId(), "local:openDAQ_DevSer1");
-    ASSERT_EQ(source.getStatusContainer().getStatus("SynchronizationSourceStatus").getValue(), "Synced");
+    ASSERT_EQ(source.getStatusContainer().getStatus("SyncSourceStatus").getValue(), "Synced");
     ASSERT_EQ(sync.getReferenceDomainIds(), List<IString>("local:openDAQ_DevSer1"));
 }
 

@@ -173,7 +173,7 @@ ErrCode GenericSynchronizationImpl<TInterface, Interfaces...>::getAvailableSourc
 
         auto lock = this->getRecursiveConfigLock2();
         const PropertyObjectPtr interfacesProperty = this->objPtr.getPropertyValue("Interfaces");
-        const ListPtr<IString> sourceInterfaceIds = this->objPtr.getPropertyValue("SourceInterfaces");
+        const ListPtr<IString> sourceInterfaceIds = this->objPtr.getPropertyValue("SourceSelection");
 
         for (const auto& id : sourceInterfaceIds)
             sourcesDict.set(id, interfacesProperty.getPropertyValue(id));

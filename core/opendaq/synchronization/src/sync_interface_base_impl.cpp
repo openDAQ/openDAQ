@@ -1,5 +1,6 @@
 #include <opendaq/sync_interface_base_impl.h>
 #include <opendaq/component_status_container_private_ptr.h>
+#include <algorithm>
 
 BEGIN_NAMESPACE_OPENDAQ
 
@@ -7,72 +8,48 @@ template class GenericSyncInterfaceImpl<IPropertyObject, ISyncInterfaceInternal>
 
 SyncInterfaceBaseImpl::SyncInterfaceBaseImpl(const TypeManagerPtr& manager,
                                              const StringPtr& id,
-                                             const std::vector<SyncMode>& availableModes)
+                                             const std::vector<SyncMode>& availableModes,
+                                             const PropertyObjectPtr& config)
     : Super(manager)
+    , config(config)
     , manager(manager)
-    , id(id)
-    , referenceDomainId("")
 {
     initAvailiableModes(availableModes);
-    initProperties();
+    initProperties(id);
     initSynchronizationStatus();
 }
 
 void SyncInterfaceBaseImpl::initAvailiableModes(const std::vector<SyncMode>& availableModes)
 {
-    sourceModes = Dict<IInteger, IString>();
-    outputModes = Dict<IInteger, IString>({{static_cast<Int>(SyncMode::Off), "Off"}});
+    const auto has = [&](SyncMode mode) { return std::find(availableModes.begin(), availableModes.end(), mode) != availableModes.end(); };
 
-    for (const auto& mode : availableModes)
-    {
-        switch (mode)
-        {
-            case SyncMode::Off:
-                outputModes.set(static_cast<Int>(mode), "Off");
-                break;
-            case SyncMode::Input:
-                sourceModes.set(static_cast<Int>(mode), "Input");
-                break;
-            case SyncMode::Output:
-                outputModes.set(static_cast<Int>(mode), "Output");
-                break;
-            case SyncMode::Auto:
-                sourceModes.set(static_cast<Int>(mode), "Auto");
-                break;
-        }
-    }
+    sourceModes = List<IString>();
+    if (has(SyncMode::Auto))
+        sourceModes.pushBack("Auto");
+    if (has(SyncMode::Input))
+        sourceModes.pushBack("Input");
+
+    outputModes = List<IString>("Off");
+    if (has(SyncMode::Output))
+        outputModes.pushBack("Output");
 }
 
-void SyncInterfaceBaseImpl::initProperties()
+void SyncInterfaceBaseImpl::initProperties(const StringPtr& id)
 {
     this->objPtr.addProperty(StringPropertyBuilder("Id", id).setReadOnly(true).build());
     this->objPtr.addProperty(StringPropertyBuilder("ReferenceDomainId", "").setReadOnly(true).build());
-    this->objPtr.addProperty(BoolPropertyBuilder("CanBeSource", sourceModes.getCount() > 0).setReadOnly(true).build());
+    this->objPtr.addProperty(BoolPropertyBuilder("SourceSupported", sourceModes.getCount() > 0).setReadOnly(true).build());
+    this->objPtr.addProperty(ListPropertyBuilder("ModeSelection", outputModes).setReadOnly(true).setVisible(false).build());
+    this->objPtr.addProperty(StringPropertyBuilder("Mode", "Off").setSelectionValues(EvalValue("$ModeSelection")).build());
+    this->objPtr.addProperty(ObjectProperty("Config", config));
+    this->objPtr.setPropertyOrder({"ModeSelection"});
 
-    configuration = PropertyObject();
-    configuration.addProperty(DictPropertyBuilder("ModeOptions", outputModes).setReadOnly(true).setVisible(false).build());
-    configuration.addProperty(SparseSelectionProperty("Mode", EvalValue("$ModeOptions"), Integer(SyncMode::Off)));
-    configuration.setPropertyOrder({"ModeOptions"});
-    this->objPtr.addProperty(ObjectProperty("Configuration", configuration));
-
-    // The configuration object can outlive this interface.
-    const auto weakThis = this->template getWeakRefInternal<IPropertyObject>();
-    configuration.getOnAnyPropertyValueWrite() += [this, weakThis](PropertyObjectPtr&, PropertyValueEventArgsPtr& arg)
+    this->objPtr.getOnPropertyValueWrite("Mode") += [this](PropertyObjectPtr&, PropertyValueEventArgsPtr& args)
     {
-        const auto self = weakThis.getRef();
-        if (!self.assigned())
-            return;
-
-        auto lock = this->getRecursiveConfigLock2();
-        const StringPtr name = arg.getProperty().getName();
-        onConfigurationChanged(name, arg.getValue());
-
-        if (name == "Mode")
-        {
-            const Int mode = arg.getValue();
-            if (mode == static_cast<Int>(SyncMode::Off))
-                setReferenceDomainId("");
-        }
+        const SyncMode mode = syncModeFromName(args.getValue());
+        if (mode == SyncMode::Off)
+            setReferenceDomainId("");
+        onModeChanged(mode);
     };
 }
 
@@ -81,47 +58,12 @@ void SyncInterfaceBaseImpl::initSynchronizationStatus()
     const auto statusContainerPrivate = this->statusContainer.asPtr<IComponentStatusContainerPrivate>(true);
 
     const auto syncRoleStatus =
-        EnumerationWithIntValue("SynchronizationRoleStatusType", static_cast<Int>(SyncRoleStatus::Off), manager);
-    statusContainerPrivate.addStatus("SynchronizationRoleStatus", syncRoleStatus);
-    
+        EnumerationWithIntValue("SyncRoleStatusType", static_cast<Int>(SyncRoleStatus::Off), manager);
+    statusContainerPrivate.addStatus("SyncRoleStatus", syncRoleStatus);
+
     const auto syncSourceStatus =
-        EnumerationWithIntValue("SynchronizationSourceStatusType", static_cast<Int>(SyncSourceStatus::Off), manager);
-    statusContainerPrivate.addStatus("SynchronizationSourceStatus", syncSourceStatus);
-}
-
-ErrCode SyncInterfaceBaseImpl::getId(IString** id)
-{
-    OPENDAQ_PARAM_NOT_NULL(id);
-    *id = this->id.addRefAndReturn();
-    return OPENDAQ_SUCCESS;
-}
-
-ErrCode SyncInterfaceBaseImpl::getAvailableModes(IDict** availableModes)
-{
-    OPENDAQ_PARAM_NOT_NULL(availableModes);
-    *availableModes = (isSource ? sourceModes : outputModes).addRefAndReturn();
-    return OPENDAQ_SUCCESS;
-}
-
-ErrCode SyncInterfaceBaseImpl::getSourceSupported(Bool* canBeSource)
-{
-    OPENDAQ_PARAM_NOT_NULL(canBeSource);
-    *canBeSource = sourceModes.getCount() > 0;
-    return OPENDAQ_SUCCESS;
-}
-
-ErrCode SyncInterfaceBaseImpl::getReferenceDomainId(IString** referenceDomainId)
-{
-    OPENDAQ_PARAM_NOT_NULL(referenceDomainId);
-    *referenceDomainId = this->referenceDomainId.addRefAndReturn();
-    return OPENDAQ_SUCCESS;
-}
-
-ErrCode SyncInterfaceBaseImpl::getConfiguration(IPropertyObject** configuration)
-{
-    OPENDAQ_PARAM_NOT_NULL(configuration);
-    *configuration = this->configuration.addRefAndReturn();
-    return OPENDAQ_SUCCESS;
+        EnumerationWithIntValue("SyncSourceStatusType", static_cast<Int>(SyncSourceStatus::Off), manager);
+    statusContainerPrivate.addStatus("SyncSourceStatus", syncSourceStatus);
 }
 
 ErrCode SyncInterfaceBaseImpl::setAsSource(Bool source)
@@ -131,21 +73,12 @@ ErrCode SyncInterfaceBaseImpl::setAsSource(Bool source)
         if (sourceModes.getCount() == 0)
             return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_ACCESSDENIED, "Current sync interface can not be chossen as source");
 
-        OPENDAQ_RETURN_IF_FAILED(this->setProtectedPropertyValue(String("Configuration.ModeOptions"), sourceModes));
-
-        if (sourceModes.hasKey(static_cast<Int>(SyncMode::Auto)))
-            OPENDAQ_RETURN_IF_FAILED(this->setMode(SyncMode::Auto));
-        else
-            OPENDAQ_RETURN_IF_FAILED(this->setMode(SyncMode::Input));
-
-        isSource = True;
-        return OPENDAQ_SUCCESS;
+        OPENDAQ_RETURN_IF_FAILED(this->setProtectedPropertyValue(String("ModeSelection"), sourceModes));
+        return this->setPropertyValue(String("Mode"), sourceModes.getItemAt(0));
     }
 
-    OPENDAQ_RETURN_IF_FAILED(this->setProtectedPropertyValue(String("Configuration.ModeOptions"), outputModes));
-    isSource = False;
-    OPENDAQ_RETURN_IF_FAILED(this->setPropertyValue(String("Configuration.Mode"), Integer(SyncMode::Off)));
-    return OPENDAQ_SUCCESS;
+    OPENDAQ_RETURN_IF_FAILED(this->setProtectedPropertyValue(String("ModeSelection"), outputModes));
+    return this->setMode(SyncMode::Off);
 }
 
 ErrCode SyncInterfaceBaseImpl::sourceChanged(ISyncInterface* source)
@@ -154,32 +87,31 @@ ErrCode SyncInterfaceBaseImpl::sourceChanged(ISyncInterface* source)
     return OPENDAQ_SUCCESS;
 }
 
-void SyncInterfaceBaseImpl::onConfigurationChanged(const StringPtr& name, const BaseObjectPtr& value)
+void SyncInterfaceBaseImpl::onModeChanged(SyncMode /*mode*/)
 {
 }
 
 void SyncInterfaceBaseImpl::setReferenceDomainId(const StringPtr& referenceDomainId)
 {
-    this->referenceDomainId = referenceDomainId.assigned() ? referenceDomainId : String("");
-    checkErrorInfo(this->setProtectedPropertyValue(String("ReferenceDomainId"), this->referenceDomainId));
+    checkErrorInfo(this->setProtectedPropertyValue(String("ReferenceDomainId"), referenceDomainId.assigned() ? referenceDomainId : String("")));
 }
 
 void SyncInterfaceBaseImpl::setSyncSourceStatus(SyncSourceStatus status, const StringPtr& message)
 {
     const auto syncSourceStatus =
-        EnumerationWithIntValue("SynchronizationSourceStatusType", static_cast<Int>(status), manager);
+        EnumerationWithIntValue("SyncSourceStatusType", static_cast<Int>(status), manager);
 
     const auto statusContainerPrivate = this->statusContainer.asPtr<IComponentStatusContainerPrivate>(true);
-    statusContainerPrivate.setStatusWithMessage("SynchronizationSourceStatus", syncSourceStatus, message);
+    statusContainerPrivate.setStatusWithMessage("SyncSourceStatus", syncSourceStatus, message);
 }
 
 void SyncInterfaceBaseImpl::setSyncRoleStatus(SyncRoleStatus status, const StringPtr& message)
 {
     const auto syncRoleStatus =
-        EnumerationWithIntValue("SynchronizationRoleStatusType", static_cast<Int>(status), manager);
-    
+        EnumerationWithIntValue("SyncRoleStatusType", static_cast<Int>(status), manager);
+
     const auto statusContainerPrivate = this->statusContainer.asPtr<IComponentStatusContainerPrivate>(true);
-    statusContainerPrivate.setStatusWithMessage("SynchronizationRoleStatus", syncRoleStatus, message);
+    statusContainerPrivate.setStatusWithMessage("SyncRoleStatus", syncRoleStatus, message);
 }
 
 ErrCode SyncInterfaceBaseImpl::clone(IPropertyObject** cloned)

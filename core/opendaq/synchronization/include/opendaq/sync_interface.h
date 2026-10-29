@@ -126,10 +126,10 @@ DECLARE_OPENDAQ_INTERFACE(ISyncInterface, IBaseObject)
     virtual ErrCode INTERFACE_FUNC getAvailableModes(IDict** availableModes) = 0;
 
     /*!
-     * @brief Gets the configuration property object of the synchronization interface.
-     * @param[out] configuration The configuration property object. Always holds `Mode`.
+     * @brief Gets the interface-specific settings of the synchronization interface.
+     * @param[out] config The settings object. Created with the interface and never replaced.
      */
-    virtual ErrCode INTERFACE_FUNC getConfiguration(IPropertyObject** configuration) = 0;
+    virtual ErrCode INTERFACE_FUNC getConfig(IPropertyObject** config) = 0;
 
     /*!
      * @brief Gets the status container of the synchronization interface.
@@ -137,7 +137,7 @@ DECLARE_OPENDAQ_INTERFACE(ISyncInterface, IBaseObject)
      *
      * Holds two standard statuses; implementations may add more.
      *
-     * SynchronizationSourceStatus: Off, Listening, Calibrating, Synced, Error, Unknown.
+     * SyncSourceStatus: Off, Listening, Calibrating, Synced, Error, Unknown.
      * - Off: the mode is `Off`.
      * - Listening: waiting for a source or for role negotiation.
      * - Calibrating: a source is found but not yet applied to the device clock.
@@ -145,7 +145,7 @@ DECLARE_OPENDAQ_INTERFACE(ISyncInterface, IBaseObject)
      * - Error: a misconfiguration, or a protocol, network or device error; the message describes it.
      * - Unknown: the state cannot be determined.
      *
-     * SynchronizationRoleStatus: Off, Input, Output, Unknown.
+     * SyncRoleStatus: Off, Input, Output, Unknown.
      * Matches the mode for `Off`, `Input` and `Output`. For `Auto` it is the negotiated role, and
      * `Unknown` while negotiating.
      */

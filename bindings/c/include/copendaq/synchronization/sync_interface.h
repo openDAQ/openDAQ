@@ -50,7 +50,7 @@ extern "C"
     daqErrCode EXPORTED daqSyncInterface_setMode(daqSyncInterface* self, daqSyncMode mode);
     daqErrCode EXPORTED daqSyncInterface_getMode(daqSyncInterface* self, daqSyncMode* sourceMode);
     daqErrCode EXPORTED daqSyncInterface_getAvailableModes(daqSyncInterface* self, daqDict** availableModes);
-    daqErrCode EXPORTED daqSyncInterface_getConfiguration(daqSyncInterface* self, daqPropertyObject** configuration);
+    daqErrCode EXPORTED daqSyncInterface_getConfig(daqSyncInterface* self, daqPropertyObject** config);
     daqErrCode EXPORTED daqSyncInterface_getStatusContainer(daqSyncInterface* self, daqComponentStatusContainer** syncStatus);
 
 #ifdef __cplusplus

@@ -20,13 +20,6 @@
 
 BEGIN_NAMESPACE_OPENDAQ
 
-enum class PortSyncMode : EnumType
-{
-    Off = 0,
-    Output,
-    Auto
-};
-
 #ifdef _MSC_VER
     #pragma warning(push)
     // PtpSyncInterfaceBaseImpl's data members don't have dll-interface, but they are never
@@ -49,21 +42,20 @@ protected:
 
     void createPortProperties(const StringPtr& portName);
 
-    void setProfileOptions(const ListPtr<IString>& options);
-    void setTransportProtocolOptions(const ListPtr<IString>& options);
-    void setPortDelayMechanismOptions(const ListPtr<IString>& options);
+    void setProfileSelection(const ListPtr<IString>& selection);
+    void setTransportProtocolSelection(const ListPtr<IString>& selection);
+    void setPortDelayMechanismSelection(const ListPtr<IString>& selection);
 
     void setPortSyncStatus(const StringPtr& portName, SyncRoleStatus status, const StringPtr& message);
 
-    void onConfigurationChanged(const StringPtr& name, const BaseObjectPtr& value) override;
+    void onModeChanged(SyncMode mode) override;
 
     PropertyObjectPtr portsConfiguration;
 
 private:
-    void createGeneralProperties();
-    void setPortModeOptions(const DictPtr<IInteger, IString>& options);
-    void setPortsMode(PortSyncMode mode);
-    void onModeChanged(SyncMode mode);
+    static PropertyObjectPtr createConfig();
+    void setPortModeSelection(const ListPtr<IString>& selection);
+    void setPortsMode(const StringPtr& mode);
 };
 
 #ifdef _MSC_VER

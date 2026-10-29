@@ -255,9 +255,9 @@ public:
     bool refuseOff = false;
 
 protected:
-    void onConfigurationChanged(const StringPtr& name, const BaseObjectPtr& value) override
+    void onModeChanged(SyncMode mode) override
     {
-        if (refuseOff && name == "Mode" && static_cast<Int>(value) == static_cast<Int>(SyncMode::Off))
+        if (refuseOff && mode == SyncMode::Off)
             DAQ_THROW_EXCEPTION(InvalidOperationException, "The sync service refused to stop");
     }
 };
@@ -395,7 +395,7 @@ TEST_F(SynchronizationTest, SetSelectedSourceRevertsOldSource)
     ASSERT_EQ(sync.getSource().getId(), "TestInterface");
 
     // The old source should have been demoted: Mode back to Off, and no longer selectable
-    // as an input/output source (ModeOptions switched back to the output-only set)
+    // as an input/output source (ModeSelection switched back to the output-only set)
     ASSERT_EQ(oldSource.getMode(), SyncMode::Off);
 
     const auto oldSourceModes = oldSource.getAvailableModes();
@@ -526,9 +526,8 @@ TEST_F(SynchronizationTest, SetSourceRestoresBothInterfacesWhenPromotionFails)
 
     ASSERT_EQ(failingSource.getMode(), SyncMode::Output);
     ASSERT_FALSE(failingSource.getAvailableModes().hasKey(static_cast<Int>(SyncMode::Auto)));
-    const DictPtr<IInteger, IString> modeOptions = failingSource.asPtr<IPropertyObject>(true).getPropertyValue("Configuration.ModeOptions");
-    ASSERT_TRUE(modeOptions.hasKey(static_cast<Int>(SyncMode::Output)));
-    ASSERT_FALSE(modeOptions.hasKey(static_cast<Int>(SyncMode::Auto)));
+    const ListPtr<IString> modeSelection = failingSource.asPtr<IPropertyObject>(true).getPropertyValue("ModeSelection");
+    ASSERT_EQ(modeSelection, List<IString>("Off", "Output"));
 }
 
 TEST_F(SynchronizationTest, SetSourceRestoresOldSourceWhenDemotionFails)
@@ -569,17 +568,17 @@ TEST_F(SynchronizationTest, ClockSyncInterfaceStatusesFollowMode)
     const SyncInterfacePtr clockSyncInterface = sync.getInterfaces().get("ClockSyncInterface");
     const auto statuses = clockSyncInterface.getStatusContainer();
     ASSERT_EQ(clockSyncInterface.getMode(), SyncMode::Input);
-    ASSERT_EQ(statuses.getStatus("SynchronizationRoleStatus").getValue(), "Input");
-    ASSERT_EQ(statuses.getStatus("SynchronizationSourceStatus").getValue(), "Synced");
+    ASSERT_EQ(statuses.getStatus("SyncRoleStatus").getValue(), "Input");
+    ASSERT_EQ(statuses.getStatus("SyncSourceStatus").getValue(), "Synced");
 
     sync.setSource("TestInterface");
     ASSERT_EQ(clockSyncInterface.getMode(), SyncMode::Off);
-    ASSERT_EQ(statuses.getStatus("SynchronizationRoleStatus").getValue(), "Off");
-    ASSERT_EQ(statuses.getStatus("SynchronizationSourceStatus").getValue(), "Off");
+    ASSERT_EQ(statuses.getStatus("SyncRoleStatus").getValue(), "Off");
+    ASSERT_EQ(statuses.getStatus("SyncSourceStatus").getValue(), "Off");
 
     sync.setSource("ClockSyncInterface");
-    ASSERT_EQ(statuses.getStatus("SynchronizationRoleStatus").getValue(), "Input");
-    ASSERT_EQ(statuses.getStatus("SynchronizationSourceStatus").getValue(), "Synced");
+    ASSERT_EQ(statuses.getStatus("SyncRoleStatus").getValue(), "Input");
+    ASSERT_EQ(statuses.getStatus("SyncSourceStatus").getValue(), "Synced");
 }
 
 TEST_F(SynchronizationTest, InterfaceInOffHasNoReferenceDomainId)
@@ -639,7 +638,7 @@ TEST_F(SynchronizationTest, SyncInterfaceGetId)
     ASSERT_EQ(syncInterface.getId(), "MyInterface");
 }
 
-TEST_F(SynchronizationTest, SyncInterfaceCanBeSourceTrue)
+TEST_F(SynchronizationTest, SyncInterfaceSourceSupportedTrue)
 {
     const auto ctx = NullContext();
 
@@ -647,7 +646,7 @@ TEST_F(SynchronizationTest, SyncInterfaceCanBeSourceTrue)
     ASSERT_TRUE(syncInterface.getSourceSupported());
 }
 
-TEST_F(SynchronizationTest, SyncInterfaceCanBeSourceFalse)
+TEST_F(SynchronizationTest, SyncInterfaceSourceSupportedFalse)
 {
     const auto ctx = NullContext();
 
@@ -688,13 +687,13 @@ TEST_F(SynchronizationTest, SyncInterfaceProperties)
     ASSERT_EQ(propObj.getPropertyValue("Id"), "MyInterface");
 
     // Check Mode property (default is Off)
-    ASSERT_EQ(propObj.getPropertySelectionValue("Configuration.Mode"), "Off");
+    ASSERT_EQ(propObj.getPropertyValue("Mode"), "Off");
 
     // Check ReferenceDomainId property
     ASSERT_EQ(propObj.getPropertyValue("ReferenceDomainId"), "");
 
     // Check status container entries
-    ASSERT_EQ(syncInterface.getStatusContainer().getStatus("SynchronizationSourceStatus").getValue(), "Off");
+    ASSERT_EQ(syncInterface.getStatusContainer().getStatus("SyncSourceStatus").getValue(), "Off");
 }
 
 // =====================================================
@@ -712,9 +711,9 @@ public:
     }
 
     using Super::createPortProperties;
-    using Super::setProfileOptions;
-    using Super::setTransportProtocolOptions;
-    using Super::setPortDelayMechanismOptions;
+    using Super::setProfileSelection;
+    using Super::setTransportProtocolSelection;
+    using Super::setPortDelayMechanismSelection;
     using Super::setPortSyncStatus;
 
     static SyncInterfacePtr Create(const TypeManagerPtr& manager)
@@ -764,7 +763,7 @@ TEST_F(PtpSyncInterfaceTest, DefaultMode)
     const auto iface = TestPtpSyncInterface::Create(ctx.getTypeManager());
     ASSERT_EQ(iface.getMode(), SyncMode::Off);
     const auto propObj = iface.asPtr<IPropertyObject>(true);
-    ASSERT_EQ(propObj.getPropertyValue("Configuration.Mode"), SyncMode::Off);
+    ASSERT_EQ(propObj.getPropertyValue("Mode"), "Off");
 }
 
 TEST_F(PtpSyncInterfaceTest, DefaultPtpConfigurationProperties)
@@ -772,7 +771,7 @@ TEST_F(PtpSyncInterfaceTest, DefaultPtpConfigurationProperties)
     const auto ctx = NullContext();
 
     const auto iface = TestPtpSyncInterface::Create(ctx.getTypeManager());
-    const auto configuration = iface.getConfiguration();
+    const auto configuration = iface.getConfig();
 
     ASSERT_EQ(configuration.getPropertyValue("Profile"),            "None");
     ASSERT_EQ(configuration.getPropertyValue("TwoStepFlag"),        True);
@@ -796,10 +795,10 @@ TEST_F(PtpSyncInterfaceTest, CreatePortProperties)
     ASSERT_EQ(iface.getStatusContainer().getStatus("eth0").getValue(), "Off");
 
     // Configuration port entry should exist
-    const auto configuration = iface.getConfiguration();
+    const auto configuration = iface.getConfig();
     const PropertyObjectPtr portConfig = configuration.getPropertyValue("PortConfiguration.eth0");
     ASSERT_TRUE(portConfig.assigned());
-    ASSERT_EQ(portConfig.getPropertySelectionValue("Mode"),   "Off");
+    ASSERT_EQ(portConfig.getPropertyValue("Mode"),            "Off");
     ASSERT_EQ(portConfig.getPropertyValue("DelayMechanism"),  "E2E");
     ASSERT_EQ(portConfig.getPropertyValue("LogSyncInterval"), 0);
 }
@@ -828,35 +827,35 @@ TEST_F(PtpSyncInterfaceTest, PerPortStatus)
     ASSERT_EQ(statusContainer.getStatus("eth1").getValue(), "Off");
 }
 
-TEST_F(PtpSyncInterfaceTest, SetProfileOptions)
+TEST_F(PtpSyncInterfaceTest, SetProfileSelection)
 {
     const auto ctx = NullContext();
 
     const auto iface = TestPtpSyncInterface::Create(ctx.getTypeManager());
     auto* impl = dynamic_cast<TestPtpSyncInterface*>(iface.getObject());
-    const auto configuration = iface.getConfiguration();
+    const auto configuration = iface.getConfig();
 
     const auto newOptions = List<IString>("Custom1", "Custom2");
-    impl->setProfileOptions(newOptions);
+    impl->setProfileSelection(newOptions);
 
-    const ListPtr<IString> stored = configuration.getPropertyValue("ProfileOptions");
+    const ListPtr<IString> stored = configuration.getPropertyValue("ProfileSelection");
     ASSERT_EQ(stored.getCount(), 2u);
     ASSERT_EQ(stored[0], "Custom1");
     ASSERT_EQ(stored[1], "Custom2");
 }
 
-TEST_F(PtpSyncInterfaceTest, SetTransportProtocolOptions)
+TEST_F(PtpSyncInterfaceTest, SetTransportProtocolSelection)
 {
     const auto ctx = NullContext();
 
     const auto iface = TestPtpSyncInterface::Create(ctx.getTypeManager());
     auto* impl = dynamic_cast<TestPtpSyncInterface*>(iface.getObject());
-    const auto configuration = iface.getConfiguration();
+    const auto configuration = iface.getConfig();
 
     const auto newOptions = List<IString>("UDP_IPV4");
-    impl->setTransportProtocolOptions(newOptions);
+    impl->setTransportProtocolSelection(newOptions);
 
-    const ListPtr<IString> stored = configuration.getPropertyValue("TransportProtocolOptions");
+    const ListPtr<IString> stored = configuration.getPropertyValue("TransportProtocolSelection");
     ASSERT_EQ(stored.getCount(), 1u);
     ASSERT_EQ(stored[0], "UDP_IPV4");
 }
@@ -867,7 +866,7 @@ TEST_F(PtpSyncInterfaceTest, PortModeFollowsInterfaceModeAutomatically)
 
     const auto iface = TestPtpSyncInterface::Create(ctx.getTypeManager());
     auto* impl = dynamic_cast<TestPtpSyncInterface*>(iface.getObject());
-    const auto configuration = iface.getConfiguration();
+    const auto configuration = iface.getConfig();
 
     impl->createPortProperties("eth0");
     impl->createPortProperties("eth1");
@@ -876,53 +875,48 @@ TEST_F(PtpSyncInterfaceTest, PortModeFollowsInterfaceModeAutomatically)
     const PropertyObjectPtr portConfig1 = configuration.getPropertyValue("PortConfiguration.eth1");
 
     // A new port offers every port mode while the interface is Off
-    const DictPtr<IInteger, IString> initialOptions = portConfig0.getPropertyValue("ModeOptions");
-    ASSERT_EQ(initialOptions.getCount(), 3u);
-    ASSERT_TRUE(initialOptions.hasKey(static_cast<Int>(PortSyncMode::Off)));
-    ASSERT_TRUE(initialOptions.hasKey(static_cast<Int>(PortSyncMode::Output)));
-    ASSERT_TRUE(initialOptions.hasKey(static_cast<Int>(PortSyncMode::Auto)));
+    const ListPtr<IString> initialSelection = portConfig0.getPropertyValue("ModeSelection");
+    ASSERT_EQ(initialSelection, List<IString>("Off", "Output", "Auto"));
 
     // Switching the interface to Output makes ports selectable as Output too, but a port
     // that is still Off is left untouched
     iface.setMode(SyncMode::Output);
 
-    const DictPtr<IInteger, IString> outputOptions0 = portConfig0.getPropertyValue("ModeOptions");
-    ASSERT_TRUE(outputOptions0.hasKey(static_cast<Int>(PortSyncMode::Off)));
-    ASSERT_TRUE(outputOptions0.hasKey(static_cast<Int>(PortSyncMode::Output)));
-    ASSERT_FALSE(outputOptions0.hasKey(static_cast<Int>(PortSyncMode::Auto)));
-    ASSERT_EQ(portConfig0.getPropertySelectionValue("Mode"), "Off");
-    ASSERT_EQ(portConfig1.getPropertySelectionValue("Mode"), "Off");
+    const ListPtr<IString> outputSelection0 = portConfig0.getPropertyValue("ModeSelection");
+    ASSERT_EQ(outputSelection0, List<IString>("Off", "Output"));
+    ASSERT_EQ(portConfig0.getPropertyValue("Mode"), "Off");
+    ASSERT_EQ(portConfig1.getPropertyValue("Mode"), "Off");
 
     // Once a port actively participates (non-Off), its mode follows the interface automatically
-    portConfig0.setPropertyValue("Mode", static_cast<Int>(PortSyncMode::Output));
-    ASSERT_EQ(portConfig0.getPropertySelectionValue("Mode"), "Output");
+    portConfig0.setPropertyValue("Mode", "Output");
+    ASSERT_EQ(portConfig0.getPropertyValue("Mode"), "Output");
 
     // Becoming the sync source switches the interface to Auto, which the active port follows
     iface.asPtr<ISyncInterfaceInternal>(true).setAsSource(True);
 
-    const DictPtr<IInteger, IString> autoOptions0 = portConfig0.getPropertyValue("ModeOptions");
-    ASSERT_TRUE(autoOptions0.hasKey(static_cast<Int>(PortSyncMode::Auto)));
-    ASSERT_EQ(portConfig0.getPropertySelectionValue("Mode"), "Auto");
+    const ListPtr<IString> autoSelection0 = portConfig0.getPropertyValue("ModeSelection");
+    ASSERT_EQ(autoSelection0, List<IString>("Off", "Output", "Auto"));
+    ASSERT_EQ(portConfig0.getPropertyValue("Mode"), "Auto");
 
     // The port that stayed Off the whole time is still untouched
-    ASSERT_EQ(portConfig1.getPropertySelectionValue("Mode"), "Off");
+    ASSERT_EQ(portConfig1.getPropertyValue("Mode"), "Off");
 }
 
-TEST_F(PtpSyncInterfaceTest, SetPortDelayMechanismOptions)
+TEST_F(PtpSyncInterfaceTest, SetPortDelayMechanismSelection)
 {
     const auto ctx = NullContext();
 
     const auto iface = TestPtpSyncInterface::Create(ctx.getTypeManager());
     auto* impl = dynamic_cast<TestPtpSyncInterface*>(iface.getObject());
-    const auto configuration = iface.getConfiguration();
+    const auto configuration = iface.getConfig();
 
     impl->createPortProperties("eth0");
 
     const auto newOptions = List<IString>("P2P");
-    impl->setPortDelayMechanismOptions(newOptions);
+    impl->setPortDelayMechanismSelection(newOptions);
 
     const PropertyObjectPtr portConfig = configuration.getPropertyValue("PortConfiguration.eth0");
-    const ListPtr<IString> stored = portConfig.getPropertyValue("DelayMechanismOptions");
+    const ListPtr<IString> stored = portConfig.getPropertyValue("DelayMechanismSelection");
     ASSERT_EQ(stored.getCount(), 1u);
     ASSERT_EQ(stored[0], "P2P");
 }
@@ -938,7 +932,7 @@ TEST_F(PtpSyncInterfaceTest, SaveLoad)
     const auto updateableSync = sync.asPtr<IUpdatable>(true);
 
     const auto iface = TestPtpSyncInterface::Create(manager);
-    const auto configuration = iface.getConfiguration();
+    const auto configuration = iface.getConfig();
 
     auto* impl = dynamic_cast<TestPtpSyncInterface*>(iface.getObject());
     impl->createPortProperties("eth0");

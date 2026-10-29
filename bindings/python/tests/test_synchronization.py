@@ -28,8 +28,8 @@ class TestSynchronization(opendaq_test.TestCase):
         sync = opendaq.Synchronization(instance.context.type_manager, 'testDevice')
 
         statuses = sync.source.status_container
-        self.assertEqual(statuses.get_status('SynchronizationSourceStatus').name, 'Synced')
-        self.assertEqual(statuses.get_status('SynchronizationRoleStatus').name, 'Input')
+        self.assertEqual(statuses.get_status('SyncSourceStatus').name, 'Synced')
+        self.assertEqual(statuses.get_status('SyncRoleStatus').name, 'Input')
 
     def test_set_unknown_source_fails(self):
         instance = opendaq.Instance()

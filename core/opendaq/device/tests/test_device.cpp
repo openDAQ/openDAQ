@@ -815,7 +815,7 @@ TEST_F(DeviceTest, SynchronizationLoadConfigurationWithoutSynchronization)
 
     ASSERT_EQ(synchronization.getSource().getId(), "TestInterface");
     ASSERT_EQ(synchronization.getInterfaces().get("TestInterface").getMode(), daq::SyncMode::Input);
-    ASSERT_EQ(synchronization.getAvailableSources().getCount(), sourcesBefore) << "Loading cleared SourceInterfaces";
+    ASSERT_EQ(synchronization.getAvailableSources().getCount(), sourcesBefore) << "Loading cleared SourceSelection";
     ASSERT_NO_THROW(synchronization.setSource("ClockSyncInterface"));
 }
 

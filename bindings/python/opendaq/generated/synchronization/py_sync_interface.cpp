@@ -113,15 +113,15 @@ void defineISyncInterface(pybind11::module_ m, PyDaqIntf<daq::ISyncInterface, da
         },
         py::return_value_policy::take_ownership,
         "Gets the modes available to the synchronization interface, depending on whether it is currently selected as the synchronization source.");
-    cls.def_property_readonly("configuration",
+    cls.def_property_readonly("config",
         [](daq::ISyncInterface *object)
         {
             py::gil_scoped_release release;
             const auto objectPtr = daq::SyncInterfacePtr::Borrow(object);
-            return objectPtr.getConfiguration().detach();
+            return objectPtr.getConfig().detach();
         },
         py::return_value_policy::take_ownership,
-        "Gets the configuration property object of the synchronization interface.");
+        "Gets the interface-specific settings of the synchronization interface.");
     cls.def_property_readonly("status_container",
         [](daq::ISyncInterface *object)
         {

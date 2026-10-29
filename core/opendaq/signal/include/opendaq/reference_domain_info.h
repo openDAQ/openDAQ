@@ -97,7 +97,7 @@ DECLARE_OPENDAQ_INTERFACE(IReferenceDomainInfo, IBaseObject)
      *
      * If set, gives the list of Reference Domain IDs of this domain: the applied Reference Domain ID
      * and the IDs of the other synchronization interfaces that are not Off and whose
-     * SynchronizationSourceStatus is Synced, such as the outputs the device distributes its clock on.
+     * SyncSourceStatus is Synced, such as the outputs the device distributes its clock on.
      */
     // [templateType(referenceDomainIds, IString)]
     virtual ErrCode INTERFACE_FUNC getReferenceDomainIds(IList** referenceDomainIds) = 0;

@@ -57,9 +57,9 @@ daqErrCode daqSyncInterface_getAvailableModes(daqSyncInterface* self, daqDict** 
     return reinterpret_cast<daq::ISyncInterface*>(self)->getAvailableModes(reinterpret_cast<daq::IDict**>(availableModes));
 }
 
-daqErrCode daqSyncInterface_getConfiguration(daqSyncInterface* self, daqPropertyObject** configuration)
+daqErrCode daqSyncInterface_getConfig(daqSyncInterface* self, daqPropertyObject** config)
 {
-    return reinterpret_cast<daq::ISyncInterface*>(self)->getConfiguration(reinterpret_cast<daq::IPropertyObject**>(configuration));
+    return reinterpret_cast<daq::ISyncInterface*>(self)->getConfig(reinterpret_cast<daq::IPropertyObject**>(config));
 }
 
 daqErrCode daqSyncInterface_getStatusContainer(daqSyncInterface* self, daqComponentStatusContainer** syncStatus)

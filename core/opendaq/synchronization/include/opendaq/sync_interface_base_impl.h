@@ -27,12 +27,18 @@
 #include <coretypes/function_ptr.h>
 #include <coretypes/objectptr.h>
 #include <coretypes/deserializer.h>
+#include <array>
 
 BEGIN_NAMESPACE_OPENDAQ
 
-inline ObjectPtr<IInteger> Integer(SyncMode mode)
+inline constexpr std::array<const char*, 4> SyncModeNames{"Off", "Input", "Output", "Auto"};
+
+inline SyncMode syncModeFromName(const StringPtr& name)
 {
-   return Integer(static_cast<Int>(mode));
+    for (size_t i = 0; i < SyncModeNames.size(); ++i)
+        if (name == SyncModeNames[i])
+            return static_cast<SyncMode>(i);
+    DAQ_THROW_EXCEPTION(NotFoundException, "Unknown sync mode");
 }
 
 template <typename TInterface = IPropertyObject, typename... Interfaces>
@@ -50,7 +56,7 @@ public:
     ErrCode INTERFACE_FUNC getMode(SyncMode* sourceMode) override;
     ErrCode INTERFACE_FUNC getAvailableModes(IDict** availableModes) override;
     ErrCode INTERFACE_FUNC getSourceSupported(Bool* canBeSource) override;
-    ErrCode INTERFACE_FUNC getConfiguration(IPropertyObject** configuration) override;
+    ErrCode INTERFACE_FUNC getConfig(IPropertyObject** config) override;
     ErrCode INTERFACE_FUNC getStatusContainer(IComponentStatusContainer** syncStatus) override;
 
     // ISerializable
@@ -80,12 +86,7 @@ public:
     using Super = GenericSyncInterfaceImpl<IPropertyObject, ISyncInterfaceInternal>;
 
     // ISyncInterface
-    ErrCode INTERFACE_FUNC getId(IString** id) override;
     ErrCode INTERFACE_FUNC getSyncType(IString** syncType) override = 0;
-    ErrCode INTERFACE_FUNC getReferenceDomainId(IString** referenceDomainId) override;
-    ErrCode INTERFACE_FUNC getAvailableModes(IDict** availableModes) override;
-    ErrCode INTERFACE_FUNC getSourceSupported(Bool* canBeSource) override;
-    ErrCode INTERFACE_FUNC getConfiguration(IPropertyObject** configuration) override;
 
     // ISyncInterfaceInternal
     ErrCode INTERFACE_FUNC setAsSource(Bool source) override;
@@ -97,28 +98,26 @@ public:
 protected:
     explicit SyncInterfaceBaseImpl(const TypeManagerPtr& manager,
                                    const StringPtr& id,
-                                   const std::vector<SyncMode>& availableModes);
+                                   const std::vector<SyncMode>& availableModes,
+                                   const PropertyObjectPtr& config = PropertyObject());
 
-    virtual void onConfigurationChanged(const StringPtr& name, const BaseObjectPtr& value);
+    virtual void onModeChanged(SyncMode mode);
 
     void setReferenceDomainId(const StringPtr& referenceDomainId);
     void setSyncSourceStatus(SyncSourceStatus status, const StringPtr& message = "");
     void setSyncRoleStatus(SyncRoleStatus status, const StringPtr& message = "");
-   
-    PropertyObjectPtr configuration;
+
+    const PropertyObjectPtr config;
     TypeManagerPtr manager;
 
 private:
 
     void initAvailiableModes(const std::vector<SyncMode>& availableModes);
-    void initProperties();
+    void initProperties(const StringPtr& id);
     void initSynchronizationStatus();
 
-    const StringPtr id;
-    Bool isSource = False;
-    StringPtr referenceDomainId;
-    DictPtr<IInteger, IString> sourceModes;
-    DictPtr<IInteger, IString> outputModes;
+    ListPtr<IString> sourceModes;
+    ListPtr<IString> outputModes;
 };
 
 #ifdef _MSC_VER
@@ -149,7 +148,10 @@ ErrCode GenericSyncInterfaceImpl<TInterface, Interfaces...>::getId(IString** id)
 template <typename TInterface, typename... Interfaces>
 ErrCode GenericSyncInterfaceImpl<TInterface, Interfaces...>::setMode(SyncMode mode)
 {
-    const ErrCode errCode = this->setPropertyValue(String("Configuration.Mode"), Integer(mode));
+    const auto index = static_cast<size_t>(mode);
+    if (index >= SyncModeNames.size())
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOTFOUND, "Unknown sync mode");
+    const ErrCode errCode = this->setPropertyValue(String("Mode"), String(SyncModeNames[index]));
     OPENDAQ_RETURN_IF_FAILED(errCode, "Failed to set sync interface mode");
     return errCode;
 }
@@ -158,27 +160,23 @@ template <typename TInterface, typename... Interfaces>
 ErrCode GenericSyncInterfaceImpl<TInterface, Interfaces...>::getMode(SyncMode* sourceMode)
 {
     OPENDAQ_PARAM_NOT_NULL(sourceMode);
-
-    BaseObjectPtr objPtr;
-    OPENDAQ_RETURN_IF_FAILED(this->getPropertyValue(String("Configuration.Mode"), &objPtr));
-
-    Int value = 0;
-    const IntegerPtr modeValue = objPtr.asPtrOrNull<IInteger>();
-    if (modeValue.assigned())
-        OPENDAQ_RETURN_IF_FAILED(modeValue->getValue(&value));
-
-    *sourceMode = static_cast<SyncMode>(value);
-    return OPENDAQ_SUCCESS;
+    return daqTry([&]
+    {
+        *sourceMode = syncModeFromName(this->objPtr.getPropertyValue("Mode"));
+    });
 }
 
 template <typename TInterface, typename... Interfaces>
 ErrCode GenericSyncInterfaceImpl<TInterface, Interfaces...>::getAvailableModes(IDict** availableModes)
 {
     OPENDAQ_PARAM_NOT_NULL(availableModes);
-    BaseObjectPtr objPtr;
-    OPENDAQ_RETURN_IF_FAILED(this->getPropertyValue(String("Configuration.ModeOptions"), &objPtr));
-    *availableModes = objPtr.asOrNull<IDict>();
-    return OPENDAQ_SUCCESS;
+    return daqTry([&]
+    {
+        auto modes = Dict<IInteger, IString>();
+        for (const StringPtr& name : ListPtr<IString>(this->objPtr.getPropertyValue("ModeSelection")))
+            modes.set(static_cast<Int>(syncModeFromName(name)), name);
+        *availableModes = modes.detach();
+    });
 }
 
 template <typename TInterface, typename... Interfaces>
@@ -187,7 +185,7 @@ ErrCode GenericSyncInterfaceImpl<TInterface, Interfaces...>::getSourceSupported(
     OPENDAQ_PARAM_NOT_NULL(canBeSource);
 
     BaseObjectPtr objPtr;
-    OPENDAQ_RETURN_IF_FAILED(this->getPropertyValue(String("CanBeSource"), &objPtr));
+    OPENDAQ_RETURN_IF_FAILED(this->getPropertyValue(String("SourceSupported"), &objPtr));
 
     Bool value = False;
     const BooleanPtr canBeSourceValue = objPtr.asPtrOrNull<IBoolean>();
@@ -209,12 +207,12 @@ ErrCode GenericSyncInterfaceImpl<TInterface, Interfaces...>::getReferenceDomainI
 }
 
 template <typename TInterface, typename... Interfaces>
-ErrCode GenericSyncInterfaceImpl<TInterface, Interfaces...>::getConfiguration(IPropertyObject** configuration)
+ErrCode GenericSyncInterfaceImpl<TInterface, Interfaces...>::getConfig(IPropertyObject** config)
 {
-    OPENDAQ_PARAM_NOT_NULL(configuration);
+    OPENDAQ_PARAM_NOT_NULL(config);
     BaseObjectPtr objPtr;
-    OPENDAQ_RETURN_IF_FAILED(this->getPropertyValue(String("Configuration"), &objPtr));
-    *configuration = objPtr.asOrNull<IPropertyObject>();
+    OPENDAQ_RETURN_IF_FAILED(this->getPropertyValue(String("Config"), &objPtr));
+    *config = objPtr.asOrNull<IPropertyObject>();
     return OPENDAQ_SUCCESS;
 }
 

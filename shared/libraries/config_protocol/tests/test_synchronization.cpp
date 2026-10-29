@@ -268,7 +268,7 @@ TEST_F(ConfigSynchronizationTest, SyncInterfacePropertyAccess)
 
     // Test reading properties via property object interface
     ASSERT_EQ(propObj.getPropertyValue("Id"), "ClockSyncInterface");
-    ASSERT_NO_THROW(propObj.getPropertyValue("Configuration.Mode"));
+    ASSERT_NO_THROW(propObj.getPropertyValue("Mode"));
     ASSERT_NO_THROW(propObj.getPropertyValue("ReferenceDomainId"));
 }
 
@@ -304,8 +304,8 @@ TEST_F(ConfigSynchronizationTest, InitialStatusMatchesOnConnect)
     const SyncInterfacePtr serverInterface = serverSync.getInterfaces().get("TestInterface");
     const SyncInterfacePtr clientInterface = clientSync.getInterfaces().get("TestInterface");
 
-    const auto serverStatus = serverInterface.getStatusContainer().getStatus("SynchronizationSourceStatus");
-    const auto clientStatus = clientInterface.getStatusContainer().getStatus("SynchronizationSourceStatus");
+    const auto serverStatus = serverInterface.getStatusContainer().getStatus("SyncSourceStatus");
+    const auto clientStatus = clientInterface.getStatusContainer().getStatus("SyncSourceStatus");
 
     ASSERT_EQ(serverStatus.getValue(), "Synced");
     ASSERT_EQ(clientStatus.getValue(), "Synced");
@@ -342,13 +342,13 @@ TEST_F(ConfigSynchronizationTest, ReconnectReadsChangedStatus)
     serverDevice.asPtr<IPropertyObjectInternal>().enableCoreEventTrigger();
 
     const auto clientStatuses = getClientSyncComponent().getInterfaces().get("TestInterface").getStatusContainer();
-    ASSERT_EQ(clientStatuses.getStatus("SynchronizationSourceStatus").getValue(), "Synced");
+    ASSERT_EQ(clientStatuses.getStatus("SyncSourceStatus").getValue(), "Synced");
 
     client->reconnect(False);
 
     const auto statusesAfter = getClientSyncComponent().getInterfaces().get("TestInterface").getStatusContainer();
-    ASSERT_EQ(statusesAfter.getStatus("SynchronizationSourceStatus").getValue(), "Error");
-    ASSERT_EQ(statusesAfter.getStatusMessage("SynchronizationSourceStatus"), "cable unplugged");
+    ASSERT_EQ(statusesAfter.getStatus("SyncSourceStatus").getValue(), "Error");
+    ASSERT_EQ(statusesAfter.getStatusMessage("SyncSourceStatus"), "cable unplugged");
 }
 
 TEST_F(ConfigSynchronizationTest, StatusesAndSyncTypeReachClientBehindGateway)
@@ -387,9 +387,9 @@ TEST_F(ConfigSynchronizationTest, StatusesAndSyncTypeReachClientBehindGateway)
     ASSERT_EQ(farInterface.getSyncType(), "test");
 
     const auto farStatuses = farInterface.getStatusContainer();
-    ASSERT_TRUE(farStatuses.getStatuses().hasKey("SynchronizationSourceStatus")) << "The gateway did not pass the statuses on";
-    ASSERT_EQ(farStatuses.getStatus("SynchronizationSourceStatus").getValue(), "Synced");
-    ASSERT_EQ(farStatuses.getStatusMessage("SynchronizationSourceStatus"), "boot");
+    ASSERT_TRUE(farStatuses.getStatuses().hasKey("SyncSourceStatus")) << "The gateway did not pass the statuses on";
+    ASSERT_EQ(farStatuses.getStatus("SyncSourceStatus").getValue(), "Synced");
+    ASSERT_EQ(farStatuses.getStatusMessage("SyncSourceStatus"), "boot");
 }
 
 TEST_F(ConfigSynchronizationTest, StatusChangedPropagatesToClient)
@@ -408,11 +408,11 @@ TEST_F(ConfigSynchronizationTest, StatusChangedPropagatesToClient)
     const auto serverStatusContainer = serverInterface.getStatusContainer();
     const auto clientStatusContainer = clientInterface.getStatusContainer();
 
-    ASSERT_EQ(serverStatusContainer.getStatus("SynchronizationSourceStatus").getValue(), "Error");
-    ASSERT_EQ(clientStatusContainer.getStatus("SynchronizationSourceStatus").getValue(), "Error");
+    ASSERT_EQ(serverStatusContainer.getStatus("SyncSourceStatus").getValue(), "Error");
+    ASSERT_EQ(clientStatusContainer.getStatus("SyncSourceStatus").getValue(), "Error");
 
-    ASSERT_EQ(serverStatusContainer.getStatusMessage("SynchronizationSourceStatus"), "cable unplugged");
-    ASSERT_EQ(clientStatusContainer.getStatusMessage("SynchronizationSourceStatus"), "cable unplugged");
+    ASSERT_EQ(serverStatusContainer.getStatusMessage("SyncSourceStatus"), "cable unplugged");
+    ASSERT_EQ(clientStatusContainer.getStatusMessage("SyncSourceStatus"), "cable unplugged");
 }
 
 TEST_F(ConfigSynchronizationTest, SaveLoadFromClient)
@@ -493,11 +493,11 @@ TEST_F(ConfigSynchronizationTest, RoleStatusChangedPropagatesToClient)
     const auto serverStatusContainer = serverInterface.getStatusContainer();
     const auto clientStatusContainer = clientInterface.getStatusContainer();
 
-    ASSERT_EQ(serverStatusContainer.getStatus("SynchronizationRoleStatus").getValue(), "Input");
-    ASSERT_EQ(clientStatusContainer.getStatus("SynchronizationRoleStatus").getValue(), "Input");
+    ASSERT_EQ(serverStatusContainer.getStatus("SyncRoleStatus").getValue(), "Input");
+    ASSERT_EQ(clientStatusContainer.getStatus("SyncRoleStatus").getValue(), "Input");
 
-    ASSERT_EQ(serverStatusContainer.getStatusMessage("SynchronizationRoleStatus"), "locked as input");
-    ASSERT_EQ(clientStatusContainer.getStatusMessage("SynchronizationRoleStatus"), "locked as input");
+    ASSERT_EQ(serverStatusContainer.getStatusMessage("SyncRoleStatus"), "locked as input");
+    ASSERT_EQ(clientStatusContainer.getStatusMessage("SyncRoleStatus"), "locked as input");
 }
 
 TEST_F(ConfigSynchronizationTest, PtpInterfaceNestedPropertiesVisibleOnClient)
@@ -508,8 +508,8 @@ TEST_F(ConfigSynchronizationTest, PtpInterfaceNestedPropertiesVisibleOnClient)
     const SyncInterfacePtr serverInterface = serverSync.getInterfaces().get("PtpSyncInterface");
     const SyncInterfacePtr clientInterface = clientSync.getInterfaces().get("PtpSyncInterface");
 
-    const auto serverConfig = serverInterface.getConfiguration();
-    const auto clientConfig = clientInterface.getConfiguration();
+    const auto serverConfig = serverInterface.getConfig();
+    const auto clientConfig = clientInterface.getConfig();
 
     ASSERT_EQ(serverConfig.getPropertyValue("TransportProtocol"), clientConfig.getPropertyValue("TransportProtocol"));
     ASSERT_EQ(clientConfig.getPropertyValue("TransportProtocol"), "IEEE802_3");
@@ -526,8 +526,8 @@ TEST_F(ConfigSynchronizationTest, PtpInterfaceNestedPropertyChangeFromClientProp
     const SyncInterfacePtr serverInterface = serverSync.getInterfaces().get("PtpSyncInterface");
     const SyncInterfacePtr clientInterface = clientSync.getInterfaces().get("PtpSyncInterface");
 
-    const auto serverConfig = serverInterface.getConfiguration();
-    const auto clientConfig = clientInterface.getConfiguration();
+    const auto serverConfig = serverInterface.getConfig();
+    const auto clientConfig = clientInterface.getConfig();
 
     clientConfig.setPropertyValue("PortConfiguration.eth0.DelayMechanism", "P2P");
     clientConfig.setPropertyValue("TransportProtocol", "UDP_IPV4");
@@ -540,7 +540,7 @@ TEST_F(ConfigSynchronizationTest, ConnectWithNonDefaultSource)
 {
     getServerSyncComponent().setSource("PtpSyncInterface");
 
-    // "Source" sorts before "SourceInterfaces", so the server sends SourceInterfaces first
+    // "Source" sorts before "SourceSelection", so the server sends SourceSelection first
     // for a new client to accept a source other than the clock.
     DevicePtr newClientDevice;
     ASSERT_NO_THROW(newClientDevice = connectNewClient()) << "A client failed to add a device whose source is PtpSyncInterface";

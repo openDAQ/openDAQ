@@ -22,6 +22,7 @@
 #include <config_protocol/config_client_device_impl.h>
 
 #include <native_streaming_protocol/native_streaming_client_handler.h>
+#include <native_streaming_protocol/native_streaming_constants.h>
 
 #include <opendaq/context_ptr.h>
 #include <opendaq/streaming_ptr.h>
@@ -29,10 +30,6 @@
 #include <future>
 
 BEGIN_NAMESPACE_OPENDAQ_NATIVE_STREAMING_CLIENT_MODULE
-
-static const char* NativeConfigurationDeviceTypeId = "OpenDAQNativeConfiguration";
-static const char* NativeStreamingTypeId = "OpenDAQNativeStreaming";
-static const char* NativeConfigurationDevicePrefix = "daq.nd";
 
 class NativeDeviceImpl;
 
@@ -47,6 +44,7 @@ public:
                                 std::shared_ptr<boost::asio::io_context> reconnectionProcessingIOContextPtr,
                                 std::thread::id reconnectionProcessingThreadId,
                                 const StringPtr& connectionString,
+                                Int port,
                                 Int reconnectionPeriod);
     ~NativeDeviceHelper();
 
@@ -59,6 +57,12 @@ public:
     void closeConnectionOnRemoval();
 
     opendaq_native_streaming_protocol::NativeStreamingClientHandlerPtr getTransportClientHandler() const;
+
+    /// @brief the name of the transport the connection runs over
+    const std::string& getTransport() const;
+
+    /// @brief the port the connection is established on
+    Int getPort() const;
 
 private:
     void transportConnectionStatusChangedHandler(const EnumerationPtr& status, const StringPtr& statusMessage);
@@ -91,6 +95,8 @@ private:
     std::chrono::milliseconds configProtocolRequestTimeout;
     Bool restoreClientConfigOnReconnect;
     const StringPtr connectionString;
+    const std::string transport;
+    const Int port;
     std::mutex requestReplySync;
     std::mutex flagsSync;
 
@@ -144,7 +150,11 @@ class ConnectionStringUtils
 public:
     static StringPtr GetHostType(const StringPtr& url);
     static StringPtr GetHost(const StringPtr& url);
-    static StringPtr GetPort(const StringPtr& url, const PropertyObjectPtr& config = nullptr);
+    /// @param defaultPort used when neither the connection string nor the config sets a port;
+    /// the port of the selected transport
+    static Int GetPort(const StringPtr& url,
+                       const PropertyObjectPtr& config = nullptr,
+                       Int defaultPort = opendaq_native_streaming_protocol::DEFAULT_PORT);
     static StringPtr GetPath(const StringPtr& url);
 };
 

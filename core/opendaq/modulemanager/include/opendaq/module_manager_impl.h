@@ -94,6 +94,10 @@ private:
                                            const PropertyObjectPtr& generalConfig,
                                            const LoggerComponentPtr& loggerComponent) const;
     DeviceTypePtr getDeviceTypeFromConnectionString(const StringPtr& connectionString, const ModulePtr& module) const;
+    ServerCapabilityPtr findDiscoveredCapability(const StringPtr& connectionString, const DeviceInfoPtr& discoveredDeviceInfo) const;
+    StringPtr applySelectedTransportPort(const StringPtr& connectionString,
+                                         const ServerCapabilityPtr& discoveredCapability,
+                                         const PropertyObjectPtr& deviceTypeConfig) const;
 
     static uint16_t GetServerCapabilityPriority(const ServerCapabilityPtr& cap);
 

@@ -1,4 +1,5 @@
 #include <native_streaming_client_module/native_device_impl.h>
+#include <native_streaming_protocol/native_streaming_constants.h>
 #include <native_streaming_client_module/native_streaming_impl.h>
 #include <native_streaming_client_module/native_device_utils.h>
 
@@ -32,6 +33,7 @@ NativeDeviceHelper::NativeDeviceHelper(const ContextPtr& context,
                                        std::shared_ptr<boost::asio::io_context> reconnectionProcessingIOContextPtr,
                                        std::thread::id reconnectionProcessingThreadId,
                                        const StringPtr& connectionString,
+                                       Int port,
                                        Int reconnectionPeriod)
     : processingIOContextPtr(processingIOContextPtr)
     , reconnectionProcessingIOContextPtr(reconnectionProcessingIOContextPtr)
@@ -44,6 +46,8 @@ NativeDeviceHelper::NativeDeviceHelper(const ContextPtr& context,
     , configProtocolRequestTimeout(std::chrono::milliseconds(configProtocolRequestTimeout))
     , restoreClientConfigOnReconnect(restoreClientConfigOnReconnect)
     , connectionString(connectionString)
+    , transport(transportProtocolClient->getTransport())
+    , port(port)
     , configProtocolReconnectionRetryTimer(std::make_shared<boost::asio::steady_timer>(*reconnectionProcessingIOContextPtr))
     , reconnectionPeriod(std::chrono::milliseconds(reconnectionPeriod))
 {
@@ -516,7 +520,7 @@ ErrCode NativeDeviceImpl::setComponentConfig(IPropertyObject* config)
     ListPtr<IString> alternativeAddresses;
     const ErrCode errCode = collectAlternativeAddresses(componentConfig, 
                                                         deviceInfo,
-                                                        NativeConfigurationDeviceTypeId, 
+                                                        CONST_NATIVE_CONFIG_ID, 
                                                         alternativeAddresses);
     OPENDAQ_RETURN_IF_FAILED(errCode);
 
@@ -557,6 +561,16 @@ void NativeDeviceImpl::attachDeviceHelper(std::shared_ptr<NativeDeviceHelper> de
 NativeStreamingClientHandlerPtr NativeDeviceHelper::getTransportClientHandler() const
 {
     return transportClientHandler;
+}
+
+const std::string& NativeDeviceHelper::getTransport() const
+{
+    return transport;
+}
+
+Int NativeDeviceHelper::getPort() const
+{
+    return port;
 }
 
 void NativeDeviceImpl::disconnectAndCleanUp()
@@ -614,13 +628,22 @@ void NativeDeviceImpl::updateDeviceInfo(const StringPtr& connectionString)
                                     .setConnectionString(connectionString)
                                     .build();
 
-    ServerCapabilityConfigPtr connectionInfo = ServerCapability(NativeConfigurationDeviceTypeId,
-                                                                "OpenDAQNativeConfiguration",
+    // only the transport the device is connected over, at the port the connection is established on, which may
+    // come from the config rather than from the connection string
+    const std::string transport = deviceHelper ? deviceHelper->getTransport() : CONST_NATIVE_TRANSPORT_PLAIN;
+    const Int port = deviceHelper
+        ? deviceHelper->getPort()
+        : ConnectionStringUtils::GetPort(connectionString, nullptr, DEFAULT_PORT);
+    auto transports = Dict<IString, IInteger>();
+    transports.set(transport, port);
+
+    ServerCapabilityConfigPtr connectionInfo = ServerCapability(CONST_NATIVE_CONFIG_ID,
+                                                                CONST_NATIVE_CONFIG_ID,
                                                                 ProtocolType::ConfigurationAndStreaming);
     connectionInfo.setConnectionType("TCP/IP")
                   .addAddress(host)
-                  .setPort(std::stoi(ConnectionStringUtils::GetPort(connectionString).toStdString()))
-                  .setPrefix("daq.nd")
+                  .setAvailableTransports(transports)
+                  .setPrefix(CONST_NATIVE_CONFIG_PREFIX)
                   .setConnectionString(connectionString)
                   .setProtocolVersion(std::to_string(configProtocolVersion))
                   .addAddressInfo(addressInfo)
@@ -655,28 +678,28 @@ StringPtr ConnectionStringUtils::GetHost(const StringPtr& url)
     DAQ_THROW_EXCEPTION(InvalidParameterException, "Host name not found in url: {}", url);
 }
 
-StringPtr ConnectionStringUtils::GetPort(const StringPtr& url, const PropertyObjectPtr& config)
+Int ConnectionStringUtils::GetPort(const StringPtr& url, const PropertyObjectPtr& config, Int defaultPort)
 {
-    std::string outPort;
     std::string urlString = url.toStdString();
     std::smatch match;
 
     std::string host = GetHost(url).toStdString();
     std::string suffix = urlString.substr(urlString.find(host) + host.size());
 
-    if (std::regex_search(suffix, match, RegexPort))
-        outPort = match[1];
-    else
-        outPort = "7420";
+    Int port = defaultPort;
 
-    if (config.assigned())
+    if (std::regex_search(suffix, match, RegexPort))
+        port = std::stoi(match[1]);
+
+    if (config.assigned() && config.hasProperty("Port"))
     {
-        std::string ctxPort = config.getPropertyValue("Port");
-        if (ctxPort != "7420")
-            outPort = ctxPort;
+        const Int configuredPort = config.getPropertyValue("Port");
+        const Int configDefaultPort = config.getProperty("Port").getDefaultValue();
+        if (configuredPort != configDefaultPort)
+            port = configuredPort;
     }
 
-    return outPort;
+    return port;
 }
 
 StringPtr ConnectionStringUtils::GetPath(const StringPtr& url)

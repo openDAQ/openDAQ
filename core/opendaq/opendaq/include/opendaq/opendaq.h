@@ -43,6 +43,7 @@
 #include <opendaq/device_network_config_ptr.h>
 #include <opendaq/device_info_factory.h>
 #include <opendaq/address_info_factory.h>
+#include <opendaq/add_device_config_factory.h>
 #include <opendaq/network_interface_factory.h>
 
 #include <opendaq/server_ptr.h>
@@ -88,6 +89,7 @@
 #include <opendaq/io_folder_factory.h>
 
 #include <opendaq/streaming_ptr.h>
+#include <opendaq/add_streaming_config_factory.h>
 #include <opendaq/mirrored_signal_config_ptr.h>
 #include <opendaq/mirrored_signal_private_ptr.h>
 #include <opendaq/mirrored_device_config_ptr.h>

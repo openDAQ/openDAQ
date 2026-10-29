@@ -1,6 +1,8 @@
 #include <opendaq/device_type_impl.h>
 #include <opendaq/device_type_factory.h>
 #include <opendaq/authentication_method_factory.h>
+#include <opendaq/add_device_config_factory.h>
+#include <coreobjects/property_factory.h>
 #include <coretypes/validation.h>
 
 BEGIN_NAMESPACE_OPENDAQ
@@ -15,8 +17,9 @@ DeviceTypeImpl::DeviceTypeImpl(const StringPtr& id,
                                const StringPtr& description,
                                const PropertyObjectPtr& defaultConfig,
                                const StringPtr& prefix,
-                               const DictPtr<IString, IAuthenticationMethod>& supportedAuthenticationMethods)
-    : Super(detail::deviceTypeStructType, id, name, description, prefix, defaultConfig, supportedAuthenticationMethods)
+                               const DictPtr<IString, IAuthenticationMethod>& supportedAuthenticationMethods,
+                               const DictPtr<IString, IInteger>& transports)
+    : Super(detail::deviceTypeStructType, id, name, description, prefix, defaultConfig, supportedAuthenticationMethods, transports)
 {
 }
 
@@ -26,7 +29,8 @@ DeviceTypeImpl::DeviceTypeImpl(const ComponentTypeBuilderPtr& builder)
                      builder.getDescription(),
                      builder.getDefaultConfig(),
                      builder.getConnectionStringPrefix(),
-                     builder.getSupportedAuthenticationMethods())
+                     builder.getSupportedAuthenticationMethods(),
+                     builder.getAvailableTransports())
 {
 }
 
@@ -35,6 +39,25 @@ ErrCode DeviceTypeImpl::getConnectionStringPrefix(IString** prefix)
     OPENDAQ_PARAM_NOT_NULL(prefix);
 
     *prefix = this->prefix.addRefAndReturn();
+    return OPENDAQ_SUCCESS;
+}
+
+ErrCode DeviceTypeImpl::createDefaultConfig(IPropertyObject** defaultConfig)
+{
+    OPENDAQ_PARAM_NOT_NULL(defaultConfig);
+
+    PropertyObjectPtr config;
+    OPENDAQ_RETURN_IF_FAILED(Super::createDefaultConfig(&config));
+
+    const ErrCode errCode = daqTry([this, &config]
+    {
+        // Temporary bridge: carries the transport selection until the add-device config replaces this plain config
+        if (transports.getCount() > 0 && !config.hasProperty("AddDeviceConfig"))
+            config.addProperty(ObjectProperty("AddDeviceConfig", AddDeviceConfig(transports.getKeyList())));
+    });
+    OPENDAQ_RETURN_IF_FAILED(errCode);
+
+    *defaultConfig = config.detach();
     return OPENDAQ_SUCCESS;
 }
 
@@ -67,6 +90,12 @@ ErrCode INTERFACE_FUNC DeviceTypeImpl::serialize(ISerializer* serializer)
             {
                 serializerPtr.key("prefix");
                 serializerPtr.writeString(prefix);
+            }
+
+            if (transports.getCount() > 0)
+            {
+                serializerPtr.key("availableTransports");
+                transports.serialize(serializerPtr);
             }
 
             if (defaultConfig.assigned())
@@ -140,8 +169,12 @@ ErrCode DeviceTypeImpl::Deserialize(ISerializedObject* serialized, IBaseObject* 
         if (serializedObj.hasKey("supportedAuthenticationMethods"))
             supportedAuthenticationMethods = serializedObj.readObject("supportedAuthenticationMethods", contextPtr, factoryCallbackPtr).asPtr<IDict>();
 
+        DictPtr<IString, IInteger> transports;
+        if (serializedObj.hasKey("availableTransports"))
+            transports = serializedObj.readObject("availableTransports", contextPtr, factoryCallbackPtr);
+
         auto deviceType = createWithImplementation<IDeviceType, DeviceTypeImpl>(
-            id, name, description, defaultConfig, prefix, supportedAuthenticationMethods);
+            id, name, description, defaultConfig, prefix, supportedAuthenticationMethods, transports);
 
         ModuleInfoPtr moduleInfo;
         if (serializedObj.hasKey("moduleInfo"))

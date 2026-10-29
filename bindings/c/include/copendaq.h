@@ -95,6 +95,7 @@ extern "C"
 #include <ccoreobjects/user.h>
 #include <ccoreobjects/validator.h>
 
+#include <copendaq/component/add_component_config.h>
 #include <copendaq/component/component_private.h>
 #include <copendaq/component/component_status_container_private.h>
 #include <copendaq/component/component_status_container.h>
@@ -111,6 +112,7 @@ extern "C"
 
 #include <copendaq/context/context.h>
 
+#include <copendaq/device/add_device_config.h>
 #include <copendaq/device/address_info_builder.h>
 #include <copendaq/device/address_info.h>
 #include <copendaq/device/connected_client_info.h>
@@ -211,6 +213,7 @@ extern "C"
 #include <copendaq/signal/signal_events.h>
 #include <copendaq/signal/signal.h>
 
+#include <copendaq/streaming/add_streaming_config.h>
 #include <copendaq/streaming/mirrored_device_config.h>
 #include <copendaq/streaming/mirrored_device.h>
 #include <copendaq/streaming/mirrored_signal_config.h>

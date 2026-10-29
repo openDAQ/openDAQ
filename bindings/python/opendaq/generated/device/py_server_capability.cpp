@@ -136,7 +136,7 @@ void defineIServerCapability(pybind11::module_ m, PyDaqIntf<daq::IServerCapabili
             return objectPtr.getPort().detach();
         },
         py::return_value_policy::take_ownership,
-        "Gets the port of the device with the current protocol.");
+        "Gets the port of the default transport.");
     cls.def_property_readonly("address_info",
         [](daq::IServerCapability *object)
         {
@@ -172,4 +172,13 @@ void defineIServerCapability(pybind11::module_ m, PyDaqIntf<daq::IServerCapabili
         },
         py::return_value_policy::take_ownership,
         "Gets the list of supported authentication methods ids.");
+    cls.def_property_readonly("available_transports",
+        [](daq::IServerCapability *object)
+        {
+            py::gil_scoped_release release;
+            const auto objectPtr = daq::ServerCapabilityPtr::Borrow(object);
+            return objectPtr.getAvailableTransports().detach();
+        },
+        py::return_value_policy::take_ownership,
+        "Gets the transports the server accepts connections over, with the port assigned to each.");
 }

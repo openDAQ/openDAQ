@@ -52,6 +52,23 @@ public:
     ~NativeStreamingServerHandler() = default;
 
     void startServer(uint16_t port);
+
+#if NATIVE_STREAMING_ENABLE_TLS
+
+    /// @brief starts a TLS listener alongside, or instead of, the plaintext one
+    /// @param port port to listen on, distinct from the plaintext port
+    /// @param certFile path to the server certificate chain (PEM)
+    /// @param keyFile path to the server private key (PEM)
+    /// @param caFile path to the trusted CA certificates (PEM) used to verify client certificates.
+    /// When non-empty, clients must present a certificate signed by one of them
+    /// @throw InvalidParameterException the port is unusable, or a secret is missing or malformed
+    void startTlsServer(uint16_t port,
+                        const std::string& certFile,
+                        const std::string& keyFile,
+                        const std::string& caFile = {});
+
+#endif
+
     void stopServer();
 
     void addSignal(const SignalPtr& signal);
@@ -73,6 +90,9 @@ public:
                                       const OnSignalSubscriptionAckCallback& signalSubscriptionAckCallback);
 
 protected:
+    /// @brief creates the transport server and its callbacks on first use.
+    void ensureServer();
+
     void initSessionHandler(SessionPtr session);
     void handleTransportLayerProps(const PropertyObjectPtr& propertyObject, std::shared_ptr<ServerSessionHandler> sessionHandler);
     void setUpTransportLayerPropsCallback(std::shared_ptr<ServerSessionHandler> sessionHandler);

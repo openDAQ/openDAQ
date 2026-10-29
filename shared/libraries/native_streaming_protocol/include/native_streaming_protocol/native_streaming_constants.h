@@ -1,0 +1,77 @@
+/*
+ * Copyright 2022-2026 openDAQ d.o.o.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+#pragma once
+
+#include <native_streaming_protocol/native_streaming_protocol.h>
+
+#include <cstdint>
+
+// Temporary: the client never verifies the server and has no certificate settings, and the server has
+// no mutual TLS settings and never asks for a client certificate. Remove this line to bring all of it back.
+#define NATIVE_STREAMING_TLS_WITHOUT_SIGN
+
+BEGIN_NAMESPACE_OPENDAQ_NATIVE_STREAMING_PROTOCOL
+
+static constexpr const char* CONST_NATIVE_STREAMING_PREFIX = "daq.ns";
+static constexpr const char* CONST_NATIVE_CONFIG_PREFIX = "daq.nd";
+
+static constexpr const char* CONST_NATIVE_STREAMING_ID = "OpenDAQNativeStreaming";
+static constexpr const char* CONST_NATIVE_CONFIG_ID = "OpenDAQNativeConfiguration";
+
+// Names of the available transports of the native types and capabilities
+static constexpr const char* CONST_NATIVE_TRANSPORT_PLAIN = "plain";
+static constexpr const char* CONST_NATIVE_TRANSPORT_TLS = "tls";
+
+static constexpr const char* CONST_NATIVE_SERVER_TYPE_ID = "OpenDAQNativeStreaming";
+
+static constexpr const char* CONST_NATIVE_SERVICE_NAME = "_opendaq-streaming-native._tcp.local.";
+static constexpr const char* CONST_NATIVE_SERVICE_CAPABILITY = "OPENDAQ_NS";
+
+static constexpr const char* PROPERTY_ENABLE_PORT_SERVER = "EnablePort";
+static constexpr const char* PROPERTY_PORT_SERVER = "NativeStreamingPort";
+static constexpr const char* PROPERTY_ENABLE_TLS_PORT_SERVER = "EnableTlsPort";
+static constexpr const char* PROPERTY_TLS_PORT_SERVER = "NativeStreamingTlsPort";
+static constexpr const char* PROPERTY_CERT_FILE_PATH_SERVER = "CertificateFilePath";
+static constexpr const char* PROPERTY_KEY_FILE_PATH_SERVER = "KeyFilePath";
+static constexpr const char* PROPERTY_PATH_SERVER = "Path";
+#ifndef NATIVE_STREAMING_TLS_WITHOUT_SIGN
+static constexpr const char* PROPERTY_ENABLE_MTLS_SERVER = "EnableMutualTls";
+static constexpr const char* PROPERTY_CA_CERT_FILE_PATH_SERVER = "CaCertificateFilePath";
+#endif
+
+#ifndef NATIVE_STREAMING_TLS_WITHOUT_SIGN
+static constexpr const char* PROPERTY_VERIFY_SERVER_CERT_CLIENT = "VerifyServerCertificate";
+static constexpr const char* PROPERTY_ENABLE_MTLS_CLIENT = "EnableMutualTls";
+static constexpr const char* PROPERTY_CERT_FILE_PATH_CLIENT = "CertificateFilePath";
+static constexpr const char* PROPERTY_KEY_FILE_PATH_CLIENT = "KeyFilePath";
+static constexpr const char* PROPERTY_CA_CERT_FILE_PATH_CLIENT = "CaCertificateFilePath";
+#endif
+
+static constexpr bool DEFAULT_ENABLE_PORT = true;
+static constexpr bool DEFAULT_ENABLE_TLS_PORT = false;
+static constexpr uint16_t DEFAULT_PORT = 7420;
+static constexpr uint16_t DEFAULT_TLS_PORT = 7422;
+static constexpr const char* DEFAULT_CERT_FILE_PATH = "";
+static constexpr const char* DEFAULT_KEY_FILE_PATH = "";
+#ifndef NATIVE_STREAMING_TLS_WITHOUT_SIGN
+static constexpr bool DEFAULT_ENABLE_MTLS = true;
+static constexpr bool DEFAULT_ENABLE_MTLS_CLIENT = false;
+static constexpr bool DEFAULT_VERIFY_SERVER_CERT = true;
+static constexpr const char* DEFAULT_CA_CERT_FILE_PATH = "";
+#endif
+
+END_NAMESPACE_OPENDAQ_NATIVE_STREAMING_PROTOCOL

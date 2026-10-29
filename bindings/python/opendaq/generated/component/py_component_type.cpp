@@ -90,4 +90,13 @@ void defineIComponentType(pybind11::module_ m, PyDaqIntf<daq::IComponentType, da
         },
         py::return_value_policy::take_ownership,
         "Builds an `AuthenticationConfig` listing every authentication method this component type supports, as a candidate of its \"AuthenticationMethod\" selection property.");
+    cls.def_property_readonly("available_transports",
+        [](daq::IComponentType *object)
+        {
+            py::gil_scoped_release release;
+            const auto objectPtr = daq::ComponentTypePtr::Borrow(object);
+            return objectPtr.getAvailableTransports().detach();
+        },
+        py::return_value_policy::take_ownership,
+        "Gets the transports a component of this type can be connected over, with the default port of each.");
 }

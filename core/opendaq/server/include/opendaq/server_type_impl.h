@@ -30,7 +30,8 @@ public:
     explicit ServerTypeImpl(const StringPtr& id,
                             const StringPtr& name,
                             const StringPtr& description,
-                            const PropertyObjectPtr& defaultConfig);
+                            const PropertyObjectPtr& defaultConfig,
+                            const DictPtr<IString, IInteger>& transports = Dict<IString, IInteger>());
 
     explicit ServerTypeImpl(const ComponentTypeBuilderPtr& builder);
 
@@ -39,6 +40,13 @@ public:
 
     // IComponentTypePrivate
     ErrCode INTERFACE_FUNC getSupportedAuthenticationMethods(IDict** authenticationMethods) override;
+
+    // ISerializable
+    ErrCode INTERFACE_FUNC serialize(ISerializer* serializer) override;
+    ErrCode INTERFACE_FUNC getSerializeId(ConstCharPtr* serializedId) const override;
+
+    static ConstCharPtr SerializeId();
+    static ErrCode Deserialize(ISerializedObject* serialized, IBaseObject* context, IFunction* factoryCallback, IBaseObject** obj);
 };
 
 END_NAMESPACE_OPENDAQ

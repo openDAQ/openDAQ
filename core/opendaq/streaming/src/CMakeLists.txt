@@ -3,6 +3,7 @@ set(BASE_NAME streaming)
 function(rtgen_component_${BASE_NAME})
     rtgen(SRC_Streaming streaming.h)
     rtgen(SRC_StreamingType streaming_type.h)
+    rtgen(SRC_AddStreamingConfig add_streaming_config.h)
     rtgen(SRC_MirroredSignal mirrored_signal_config.h)
     rtgen(SRC_SubscriptionEventArgs subscription_event_args.h)
     rtgen(SRC_MirroredSignalPrivate mirrored_signal_private.h)
@@ -19,6 +20,7 @@ function(rtgen_component_${BASE_NAME})
         ${SRC_MirroredDevice_PublicHeaders}
         ${SRC_MirroredDeviceConfig_PublicHeaders}
         ${SRC_StreamingType_PublicHeaders}
+        ${SRC_AddStreamingConfig_PublicHeaders}
         ${SRC_MirroredInputPortConfig_PublicHeaders}
         ${SRC_MirroredInputPortPrivate_PublicHeaders}
         PARENT_SCOPE
@@ -32,6 +34,7 @@ function(rtgen_component_${BASE_NAME})
         ${SRC_MirroredDevice_PrivateHeaders}
         ${SRC_MirroredDeviceConfig_PrivateHeaders}
         ${SRC_StreamingType_PrivateHeaders}
+        ${SRC_AddStreamingConfig_PrivateHeaders}
         ${SRC_MirroredInputPortConfig_PrivateHeaders}
         ${SRC_MirroredInputPortPrivate_PrivateHeaders}
         PARENT_SCOPE
@@ -44,6 +47,7 @@ function(rtgen_component_${BASE_NAME})
         ${SRC_MirroredDevice_Cpp}
         ${SRC_MirroredDeviceConfig_Cpp}
         ${SRC_StreamingType_Cpp}
+        ${SRC_AddStreamingConfig_Cpp}
         ${SRC_MirroredInputPortConfig_Cpp}
         ${SRC_MirroredInputPortPrivate_Cpp}
         PARENT_SCOPE
@@ -90,6 +94,10 @@ function(create_component_source_groups_${BASE_NAME})
         ${SDK_HEADERS_DIR}/streaming_type_factory.h
         ${SDK_HEADERS_DIR}/streaming_type_impl.h
         ${SDK_SRC_DIR}/streaming_type_impl.cpp
+        ${SDK_HEADERS_DIR}/add_streaming_config.h
+        ${SDK_HEADERS_DIR}/add_streaming_config_impl.h
+        ${SDK_HEADERS_DIR}/add_streaming_config_factory.h
+        ${SDK_SRC_DIR}/add_streaming_config_impl.cpp
     )
 
     source_group("streaming//mirrored_input_port" FILES
@@ -111,6 +119,7 @@ set(SRC_PublicHeaders_Component
     mirrored_device_impl.h
     streaming_type.h
     streaming_type_factory.h
+    add_streaming_config_factory.h
     streaming_source_manager.h
     mirrored_input_port_impl.h
     mirrored_input_port_private.h
@@ -120,12 +129,14 @@ set(SRC_PublicHeaders_Component
 set(SRC_PrivateHeaders_Component 
     subscription_event_args_impl.h
     streaming_type_impl.h
+    add_streaming_config_impl.h
     PARENT_SCOPE
 )
 
 set(SRC_Cpp_Component 
     subscription_event_args_impl.cpp
     streaming_type_impl.cpp
+    add_streaming_config_impl.cpp
     streaming.natvis
     PARENT_SCOPE
 )

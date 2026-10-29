@@ -100,8 +100,12 @@ DECLARE_OPENDAQ_INTERFACE(IServerCapabilityConfig, IServerCapability)
 
     // [returnSelf]
     /*!
-     * @brief Sets the port of the device
+     * @brief Sets the port of the default transport.
      * @param port The port of the device
+     *
+     * @deprecated Use setAvailableTransports instead.
+     * When transports are set, the port of the first (default) entry is replaced, keeping the order.
+     * Without transports, only the port is stored.
      */
     virtual ErrCode INTERFACE_FUNC setPort(IInteger* port) = 0;
     
@@ -133,6 +137,17 @@ DECLARE_OPENDAQ_INTERFACE(IServerCapabilityConfig, IServerCapability)
      * @param methodId The authentication method id to add.
      */
     virtual ErrCode INTERFACE_FUNC addAuthenticationMethod(IString* methodId) = 0;
+
+    // [templateType(transports, IString, IInteger), returnSelf]
+    /*!
+     * @brief Sets the transports the server accepts connections over, with the port assigned to each.
+     * @param[in] transports A dictionary mapping a transport name (e.g. "plain", "tls", "https", "wss") to its port.
+     *
+     * Replaces any previously set transports. The first entry becomes the default transport,
+     * and its port is the one returned by getPort. That port is also stored as the port read by
+     * older clients. An empty dictionary leaves the port unchanged.
+     */
+    virtual ErrCode INTERFACE_FUNC setAvailableTransports(IDict* transports) = 0;
 };
 
 OPENDAQ_DECLARE_CLASS_FACTORY_WITH_INTERFACE(

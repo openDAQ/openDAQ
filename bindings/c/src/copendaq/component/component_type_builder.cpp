@@ -107,6 +107,16 @@ daqErrCode daqComponentTypeBuilder_getLinkedDeviceType(daqComponentTypeBuilder* 
     return reinterpret_cast<daq::IComponentTypeBuilder*>(self)->getLinkedDeviceType(reinterpret_cast<daq::IDeviceType**>(deviceType));
 }
 
+daqErrCode daqComponentTypeBuilder_setAvailableTransports(daqComponentTypeBuilder* self, daqDict* transports)
+{
+    return reinterpret_cast<daq::IComponentTypeBuilder*>(self)->setAvailableTransports(reinterpret_cast<daq::IDict*>(transports));
+}
+
+daqErrCode daqComponentTypeBuilder_getAvailableTransports(daqComponentTypeBuilder* self, daqDict** transports)
+{
+    return reinterpret_cast<daq::IComponentTypeBuilder*>(self)->getAvailableTransports(reinterpret_cast<daq::IDict**>(transports));
+}
+
 daqErrCode daqComponentTypeBuilder_createComponentTypeBuilder(daqComponentTypeBuilder** obj)
 {
     daq::IComponentTypeBuilder* ptr = nullptr;

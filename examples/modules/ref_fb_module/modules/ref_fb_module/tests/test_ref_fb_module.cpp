@@ -157,12 +157,15 @@ TEST_F(RefFbModuleTest, GetAvailableComponentTypes)
     ASSERT_TRUE(functionBlockTypes.assigned());
 
 #ifdef OPENDAQ_ENABLE_RENDERER
-    ASSERT_EQ(functionBlockTypes.getCount(), 12u);
+    ASSERT_EQ(functionBlockTypes.getCount(), 14u);
     ASSERT_TRUE(functionBlockTypes.hasKey("RefFBModuleRenderer"));
     ASSERT_EQ("RefFBModuleRenderer", functionBlockTypes.get("RefFBModuleRenderer").getId());
 #else
-    ASSERT_EQ(functionBlockTypes.getCount(), 10u);
+    ASSERT_EQ(functionBlockTypes.getCount(), 12u);
 #endif
+
+    ASSERT_TRUE(functionBlockTypes.hasKey("RefFBModuleBlockStatisticsReader"));
+    ASSERT_TRUE(functionBlockTypes.hasKey("RefFBModuleBridgeReader"));
 
     ASSERT_TRUE(functionBlockTypes.hasKey("RefFBModuleStatistics"));
     ASSERT_EQ("RefFBModuleStatistics", functionBlockTypes.get("RefFBModuleStatistics").getId());

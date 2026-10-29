@@ -17,7 +17,7 @@ int main(int /*argc*/, const char* /*argv*/[])
     // Create Instance
     auto instance = Instance("");
     // Set Root Device
-    instance.setRootDevice("daqref://device1");
+    instance.setRootDevice("daqref.root://device1");
     // Unlock all attributes (needed for OPC UA: RegressionTestComponent/setVisibleGetVisible)
     auto componentPrivate = instance.getRootDevice().asPtr<IComponentPrivate>();
     componentPrivate.unlockAllAttributes();

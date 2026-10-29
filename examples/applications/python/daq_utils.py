@@ -102,7 +102,7 @@ def setup_simulator(**kwargs):
 
     instance_builder = daq.InstanceBuilder()
     instance_builder.add_discovery_server("mdns")
-    instance_builder.set_root_device('daqref://device0', config)
+    instance_builder.set_root_device('daqref.root://device0', config)
     instance_builder.module_path = daq.OPENDAQ_MODULES_DIR
     server_instance = instance_builder.build()
 

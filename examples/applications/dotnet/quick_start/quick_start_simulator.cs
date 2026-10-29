@@ -20,7 +20,7 @@ var instanceBuilder = OpenDAQFactory.InstanceBuilder();
 instanceBuilder.AddDiscoveryServer("mdns");
 
 // Set reference device as a root
-instanceBuilder.SetRootDevice("daqref://device0", config);
+instanceBuilder.SetRootDevice("daqref.root://device0", config);
 
 // Creating a new instance from builder
 var instance = instanceBuilder.Build();

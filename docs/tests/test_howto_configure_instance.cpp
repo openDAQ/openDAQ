@@ -85,7 +85,7 @@ TEST_F(HowToConfigureInstance, InstanceBuilderDefaultRootDevice)
 
 TEST_F(HowToConfigureInstance, InstanceBuilderRootDevice)
 {
-    InstanceBuilderPtr instanceBuilder = InstanceBuilder().setRootDevice("daqref://device0");
+    InstanceBuilderPtr instanceBuilder = InstanceBuilder().setRootDevice("daqref.root://device0");
     InstancePtr instance = instanceBuilder.build();
 }
 

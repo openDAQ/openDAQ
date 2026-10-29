@@ -27,7 +27,7 @@ int main(int /*argc*/, const char* /*argv*/[])
 
     const InstancePtr instance = InstanceBuilder().addModulePath(MODULE_PATH)
                                                   .addDiscoveryServer("mdns")
-                                                  .setRootDevice("daqref://device1", config)
+                                                  .setRootDevice("daqref.root://device1", config)
                                                   .setLogger(Logger(loggerPath))
                                                   .setAuthenticationProvider(authenticationProvider)
                                                   .build();

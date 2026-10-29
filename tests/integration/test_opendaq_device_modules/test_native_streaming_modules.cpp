@@ -165,7 +165,7 @@ TEST_F(NativeStreamingModulesTest, DiscoveringServerUsernameLocation)
         .build();
     {
         addRefDeviceModule(server);
-        server.setRootDevice("daqref://device1");
+        server.setRootDevice("daqref.root://device1");
 
         // set initial username and location
         server.setPropertyValue("userName", "testUser1");

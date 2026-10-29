@@ -1035,7 +1035,7 @@ TEST_F(RefDeviceModuleTest, EnableLogging)
         instance.getModuleManager().addModule(module);
     }
 
-    instance.setRootDevice("daqref://device0", config);
+    instance.setRootDevice("daqref.root://device0", config);
     instance.getContext().getLogger().flush();
 
     {

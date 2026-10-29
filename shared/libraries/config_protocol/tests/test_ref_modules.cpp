@@ -47,7 +47,7 @@ TEST_F(ConfigProtocolRefModulesTest, Test)
     }
 
     // ReSharper disable once CppExpressionWithoutSideEffects
-    instance.setRootDevice("daqref://device0");
+    instance.setRootDevice("daqref.root://device0");
     ConfigProtocolServer server(instance, nullptr, User("", ""), ClientType::Control, test_utils::dummyExtSigFolder(instance.getContext()));
 
     auto clientContext = NullContext();

@@ -81,7 +81,7 @@ def create_instance():
     set_module_path(instance_builder)
     # mDNS discovery lets lt_tls_client.py find this server without being told its address
     instance_builder.add_discovery_server('mdns')
-    instance_builder.set_root_device('daqref://device0', root_device_config)
+    instance_builder.set_root_device('daqref.root://device0', root_device_config)
     return instance_builder.build()
 
 

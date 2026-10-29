@@ -172,7 +172,9 @@ if (APP_ENABLE_WEBPAGE_EXAMPLES)
 
     if (DAQMODULES_OPENDAQ_SERVER_MODULE AND OPENDAQ_ENABLE_OPCUA AND DAQMODULES_REF_DEVICE_MODULE)
         add_executable(quick_start_simulator cpp/quick_start/quick_start_simulator.cpp)
-        target_link_libraries(quick_start_simulator PRIVATE daq::opendaq)
+        target_link_libraries(quick_start_simulator PRIVATE daq::opendaq
+                                                            $<BUILD_INTERFACE:std::filesystem>
+        )
         add_dependencies(quick_start_simulator daq::opcua_server_module
                                                daq::ref_device_module
         )

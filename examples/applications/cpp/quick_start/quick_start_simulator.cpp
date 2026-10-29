@@ -13,7 +13,7 @@
  */
 
 #include <opendaq/opendaq.h>
-#include <filesystem>
+#include <coretypes/filesystem.h>
 #include <iostream>
 #include <string>
 
@@ -90,7 +90,7 @@ bool parseOptions(int argc, const char* argv[], Options& options)
 
     for (const auto& path : {options.cert, options.key, options.ca})
     {
-        if (!path.empty() && !std::filesystem::exists(path))
+        if (!path.empty() && !fs::exists(path))
         {
             std::cerr << "File not found: " << path << std::endl;
             return false;

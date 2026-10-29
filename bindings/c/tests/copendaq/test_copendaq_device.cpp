@@ -1,4 +1,5 @@
 #include <copendaq.h>
+#include <coretypes/errorinfo.h>
 
 #include <gtest/gtest.h>
 
@@ -141,6 +142,7 @@ TEST_F(COpendaqDeviceTest, AddDeviceConfig)
     daqString* unknown = nullptr;
     daqString_createString(&unknown, "wss");
     ASSERT_EQ(daqAddComponentConfig_setTransport(componentConfig, unknown), DAQ_ERR_NOTFOUND);
+    daqClearErrorInfo();
     daqBaseObject_releaseRef(unknown);
 
     daqBaseObject_releaseRef(availableTransports);

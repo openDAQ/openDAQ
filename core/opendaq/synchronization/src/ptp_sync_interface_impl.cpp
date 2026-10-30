@@ -48,8 +48,8 @@ PropertyObjectPtr PtpSyncInterfaceBaseImpl::createConfig()
 
     config.addProperty(StringPropertyBuilder(PtpPropertyNames::PtpConfigProfile,           "None").setSelectionValues(EvalValue("$ProfileSelection")).build());
     config.addProperty(BoolProperty         (PtpPropertyNames::PtpConfigTwoStepFlag,       true));
-    config.addProperty(IntPropertyBuilder   (PtpPropertyNames::PtpConfigDomainNumber,      0).setMinValue(0).build());
-    config.addProperty(IntPropertyBuilder   (PtpPropertyNames::PtpConfigUtcOffset,         37).setMinValue(0).build());
+    config.addProperty(IntPropertyBuilder   (PtpPropertyNames::PtpConfigDomainNumber,      0).setMinValue(0).setMaxValue(255).build());
+    config.addProperty(IntPropertyBuilder   (PtpPropertyNames::PtpConfigUtcOffset,         37).setMinValue(0).setMaxValue(32767).build());
     config.addProperty(IntPropertyBuilder   (PtpPropertyNames::PtpConfigPriority1,         128).setMinValue(0).setMaxValue(255).build());
     config.addProperty(IntPropertyBuilder   (PtpPropertyNames::PtpConfigPriority2,         128).setMinValue(0).setMaxValue(255).build());
     config.addProperty(StringPropertyBuilder(PtpPropertyNames::PtpConfigTransportProtocol, "IEEE802_3").setSelectionValues(EvalValue("$TransportProtocolSelection")).build());
@@ -78,7 +78,7 @@ void PtpSyncInterfaceBaseImpl::createPortProperties(const StringPtr& portName)
         portConfiguration.addProperty(ListPropertyBuilder    (PtpPropertyNames::PortConfigDelayMechanismSelection, List<IString>("E2E", "P2P")).setReadOnly(true).setVisible(false).build());
         portConfiguration.addProperty(StringPropertyBuilder  (PtpPropertyNames::PortConfigMode, "Off").setSelectionValues(EvalValue("$ModeSelection")).build());
         portConfiguration.addProperty(StringPropertyBuilder  (PtpPropertyNames::PortConfigDelayMechanism, "E2E").setSelectionValues(EvalValue("$DelayMechanismSelection")).build());
-        portConfiguration.addProperty(IntProperty            (PtpPropertyNames::PortConfigLogSyncInterval, 0));
+        portConfiguration.addProperty(IntPropertyBuilder     (PtpPropertyNames::PortConfigLogSyncInterval, 0).setMinValue(-128).setMaxValue(127).build());
 
         portConfiguration.setPropertyOrder({PtpPropertyNames::PortConfigModeSelection, PtpPropertyNames::PortConfigDelayMechanismSelection});
 

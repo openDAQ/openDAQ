@@ -803,6 +803,26 @@ TEST_F(PtpSyncInterfaceTest, CreatePortProperties)
     ASSERT_EQ(portConfig.getPropertyValue("LogSyncInterval"), 0);
 }
 
+TEST_F(PtpSyncInterfaceTest, ValuesClampedToIeee1588Ranges)
+{
+    const auto ctx = NullContext();
+
+    const auto iface = TestPtpSyncInterface::Create(ctx.getTypeManager());
+    auto* impl = dynamic_cast<TestPtpSyncInterface*>(iface.getObject());
+    impl->createPortProperties("eth0");
+
+    const auto configuration = iface.getConfig();
+    configuration.setPropertyValue("DomainNumber", 1000);
+    configuration.setPropertyValue("UtcOffset", 100000);
+    configuration.setPropertyValue("PortConfiguration.eth0.LogSyncInterval", 64);
+    ASSERT_EQ(configuration.getPropertyValue("DomainNumber"), 255);
+    ASSERT_EQ(configuration.getPropertyValue("UtcOffset"), 32767);
+    ASSERT_EQ(configuration.getPropertyValue("PortConfiguration.eth0.LogSyncInterval"), 127);
+
+    configuration.setPropertyValue("PortConfiguration.eth0.LogSyncInterval", -1000);
+    ASSERT_EQ(configuration.getPropertyValue("PortConfiguration.eth0.LogSyncInterval"), -128);
+}
+
 TEST_F(PtpSyncInterfaceTest, PerPortStatus)
 {
     const auto ctx = NullContext();

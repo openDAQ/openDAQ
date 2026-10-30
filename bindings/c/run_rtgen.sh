@@ -263,6 +263,10 @@ run_rtgen copendaq/reader opendaq/reader opendaq block_reader_status block_reade
 run_rtgen copendaq/reader opendaq/reader opendaq multi_reader multi_reader
 run_rtgen copendaq/reader opendaq/reader opendaq multi_reader_builder multi_reader_builder
 run_rtgen copendaq/reader opendaq/reader opendaq multi_reader_status multi_reader_status
+run_rtgen copendaq/reader opendaq/reader opendaq multi_reader2 multi_reader2
+run_rtgen copendaq/reader opendaq/reader opendaq multi_reader2_input_status multi_reader2_input_status
+run_rtgen copendaq/reader opendaq/reader opendaq multi_reader2_params multi_reader2_params
+run_rtgen copendaq/reader opendaq/reader opendaq multi_reader2_status multi_reader2_status
 run_rtgen copendaq/reader opendaq/reader opendaq packet_reader packet_reader
 run_rtgen copendaq/reader opendaq/reader opendaq reader reader
 run_rtgen copendaq/reader opendaq/reader opendaq reader_config reader_config

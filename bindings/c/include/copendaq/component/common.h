@@ -38,6 +38,13 @@ extern "C"
         daqComponentTypeSortStreaming
     } daqComponentTypeSort;
 
+    typedef enum daqComponentStatus
+    {
+        daqComponentStatusOk = 0,
+        daqComponentStatusWarning,
+        daqComponentStatusError
+    } daqComponentStatus;
+
 #ifdef __cplusplus
 }
 #endif

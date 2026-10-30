@@ -68,6 +68,21 @@ extern "C"
         daqReadStatusUnknown = 0xFFFF
     } daqReadStatus;
 
+    typedef enum daqMultiReader2ErrorPolicy
+    {
+        daqMultiReader2ErrorPolicyInvalidate = 0,
+        daqMultiReader2ErrorPolicyExclude
+    } daqMultiReader2ErrorPolicy;
+
+    typedef enum daqMultiReader2InputError
+    {
+        daqMultiReader2InputErrorNone = 0,
+        daqMultiReader2InputErrorDisconnected,
+        daqMultiReader2InputErrorValueDescriptorInvalid,
+        daqMultiReader2InputErrorDomainDescriptorInvalid,
+        daqMultiReader2InputErrorSyncFailed
+    } daqMultiReader2InputError;
+
 #ifdef __cplusplus
 }
 #endif

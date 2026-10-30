@@ -259,6 +259,10 @@ set(SRC_OpenDAQ_Headers
     include/copendaq/reader/multi_reader_builder.h
     include/copendaq/reader/multi_reader_status.h
     include/copendaq/reader/multi_reader.h
+    include/copendaq/reader/multi_reader2.h
+    include/copendaq/reader/multi_reader2_input_status.h
+    include/copendaq/reader/multi_reader2_params.h
+    include/copendaq/reader/multi_reader2_status.h
     include/copendaq/reader/packet_reader.h
     include/copendaq/reader/reader_errors.h
     include/copendaq/reader/reader_status.h
@@ -388,6 +392,10 @@ set(SRC_OpenDAQ_Cpp
     src/copendaq/reader/multi_reader_builder.cpp
     src/copendaq/reader/multi_reader_status.cpp
     src/copendaq/reader/multi_reader.cpp
+    src/copendaq/reader/multi_reader2.cpp
+    src/copendaq/reader/multi_reader2_input_status.cpp
+    src/copendaq/reader/multi_reader2_params.cpp
+    src/copendaq/reader/multi_reader2_status.cpp
     src/copendaq/reader/packet_reader.cpp
     src/copendaq/reader/reader_status.cpp
     src/copendaq/reader/reader.cpp

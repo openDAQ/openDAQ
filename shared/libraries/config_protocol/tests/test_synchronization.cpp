@@ -217,6 +217,20 @@ TEST_F(ConfigSynchronizationTest, setSourceFromClient)
     ASSERT_EQ(serverSync.getSource().getId(), "TestInterface");
 }
 
+TEST_F(ConfigSynchronizationTest, ReadOnlyUserCannotChangeSynchronization)
+{
+    serverDevice.getPermissionManager().setPermissions(
+        PermissionsBuilder().assign("everyone", PermissionMaskBuilder().read()).build());
+
+    const auto clientSync = getClientSyncComponent();
+    ASSERT_THROW(clientSync.setSource("TestInterface"), AccessDeniedException);
+    ASSERT_THROW(clientSync.getInterfaces().get("PtpSyncInterface").setMode(SyncMode::Output), AccessDeniedException);
+
+    const auto serverSync = getServerSyncComponent();
+    ASSERT_EQ(serverSync.getSource().getId(), "ClockSyncInterface");
+    ASSERT_EQ(serverSync.getInterfaces().get("PtpSyncInterface").getMode(), SyncMode::Off);
+}
+
 TEST_F(ConfigSynchronizationTest, GetSourceReferenceDomainId)
 {
     auto serverSync = getServerSyncComponent();

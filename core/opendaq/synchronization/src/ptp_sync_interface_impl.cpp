@@ -53,7 +53,9 @@ PropertyObjectPtr PtpSyncInterfaceBaseImpl::createConfig()
     config.addProperty(IntPropertyBuilder   (PtpPropertyNames::PtpConfigPriority1,         128).setMinValue(0).setMaxValue(255).build());
     config.addProperty(IntPropertyBuilder   (PtpPropertyNames::PtpConfigPriority2,         128).setMinValue(0).setMaxValue(255).build());
     config.addProperty(StringPropertyBuilder(PtpPropertyNames::PtpConfigTransportProtocol, "IEEE802_3").setSelectionValues(EvalValue("$TransportProtocolSelection")).build());
-    config.addProperty(ObjectProperty       (PtpPropertyNames::PortConfiguration,          PropertyObject()));
+    const auto ports = PropertyObject();
+    ports.getPermissionManager().setPermissions(PermissionsBuilder().inherit(true).build());
+    config.addProperty(ObjectProperty       (PtpPropertyNames::PortConfiguration,          ports));
     config.setPropertyOrder({PtpPropertyNames::PtpConfigProfileSelection, PtpPropertyNames::PtpConfigTransportProtocolSelection});
     return config;
 }
@@ -71,6 +73,7 @@ void PtpSyncInterfaceBaseImpl::createPortProperties(const StringPtr& portName)
     {
         // creating configuration property
         const PropertyObjectPtr portConfiguration = PropertyObject();
+        portConfiguration.getPermissionManager().setPermissions(PermissionsBuilder().inherit(true).build());
         portConfiguration.addProperty(ListPropertyBuilder    (PtpPropertyNames::PortConfigModeSelection, List<IString>("Off", "Output", "Auto")).setReadOnly(true).setVisible(false).build());
         portConfiguration.addProperty(ListPropertyBuilder    (PtpPropertyNames::PortConfigDelayMechanismSelection, List<IString>("E2E", "P2P")).setReadOnly(true).setVisible(false).build());
         portConfiguration.addProperty(StringPropertyBuilder  (PtpPropertyNames::PortConfigMode, "Off").setSelectionValues(EvalValue("$ModeSelection")).build());

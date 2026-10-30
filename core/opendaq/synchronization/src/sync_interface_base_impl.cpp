@@ -14,6 +14,8 @@ SyncInterfaceBaseImpl::SyncInterfaceBaseImpl(const TypeManagerPtr& manager,
     , config(config)
     , manager(manager)
 {
+    this->permissionManager.setPermissions(PermissionsBuilder().inherit(true).build());
+    config.getPermissionManager().setPermissions(PermissionsBuilder().inherit(true).build());
     initAvailiableModes(availableModes);
     initProperties(id);
     initSynchronizationStatus();

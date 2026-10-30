@@ -9,7 +9,11 @@ SynchronizationImpl::SynchronizationImpl(const TypeManagerPtr& manager, const St
     : Super(manager)
     , sourceInterfaces(List<IString>())
 {
-    this->addProperty(ObjectProperty("Interfaces", PropertyObject()));
+    // Access to the synchronization follows the device's permissions
+    this->permissionManager.setPermissions(PermissionsBuilder().inherit(true).build());
+    const auto interfaces = PropertyObject();
+    interfaces.getPermissionManager().setPermissions(PermissionsBuilder().inherit(true).build());
+    this->addProperty(ObjectProperty("Interfaces", interfaces));
     this->addProperty(ListPropertyBuilder("SourceSelection", List<IString>()).setVisible(false).setReadOnly(true).build());
 
     source = createWithImplementation<ISyncInterface, ClockSyncInterfaceImpl>(manager, deviceId);

@@ -295,7 +295,7 @@ TEST_F(ModuleManagerInternalsTest, TestAuthenticator)
             auto it = pathAuth.find(path);
             if (it != pathAuth.end())
                 return it->second;
-            return Dict<IString, IBaseObject>();  // implicit BinaryValid false
+            return Dict<IString, IBaseObject>({{"BinaryValid", false}, {"VendorKey", nullptr}});
         });
 
     auto manager = ModuleManager((exePath / fs::path(MODULE_TEST_DIR)).string());
@@ -307,23 +307,27 @@ TEST_F(ModuleManagerInternalsTest, TestAuthenticator)
     // valid auth, valid module
     auto authorizedMods = std::array<ModulePtr, 2>();
     auto modPath = GetMockModulePath(NULL_STRING_ID_MODULE_NAME).string();
-    pathAuth[modPath] = Dict<IString, IBaseObject>({{"BinaryValid", true}});
+    pathAuth[modPath] = Dict<IString, IBaseObject>({{"BinaryValid", true}, {"VendorKey", ""}});
     ASSERT_NO_THROW(authorizedMods[0] = manager.loadModule(modPath));
     // invalid auth, valid module
     ModulePtr unauthorizedMod;
     modPath = GetMockModulePath(DEPENDENCIES_SUCCEEDED_MODULE_NAME).string();
     const auto testVendorKey = "test";
     pathAuth[modPath] = Dict<IString, IBaseObject>({{"VendorKey", testVendorKey}});
-    ASSERT_THROW(unauthorizedMod = manager.loadModule(modPath), AccessDeniedException);  // implicit BinaryValid false
+    ASSERT_THROW(unauthorizedMod = manager.loadModule(modPath), NotFoundException);  // missing BinaryValid
+    pathAuth[modPath]["BinaryValid"] = false;
+    ASSERT_THROW(unauthorizedMod = manager.loadModule(modPath), AccessDeniedException);
     pathAuth[modPath]["BinaryValid"] = true;
     ASSERT_NO_THROW(authorizedMods[1] = manager.loadModule(modPath));
     // invalid auth, invalid module
     modPath = GetMockModulePath(EMPTY_MODULE_FILE_NAME).string();
-    pathAuth[modPath] = Dict<IString, IBaseObject>({{"BinaryValid", false}});  // auth should be the first step to take place
+    pathAuth[modPath] = Dict<IString, IBaseObject>({{"BinaryValid", false}, {"VendorKey", ""}});  // auth should be the first step to take place
     ASSERT_THROW(unauthorizedMod = manager.loadModule(modPath), AccessDeniedException);
     // invalid return from auth function
     modPath = GetMockModulePath(DEPENDENCIES_FAILED_MODULE_NAME).string();
-    pathAuth[modPath] = Dict<IString, IBaseObject>({{"BinaryValid", "True"}});  // should fail
+    pathAuth[modPath] = Dict<IString, IBaseObject>({{"BinaryValid", true}});  // missing VendorKey
+    ASSERT_THROW(unauthorizedMod = manager.loadModule(modPath), NotFoundException);
+    pathAuth[modPath] = Dict<IString, IBaseObject>({{"BinaryValid", "True"}, {"VendorKey", nullptr}});  // should fail
     ASSERT_THROW(unauthorizedMod = manager.loadModule(modPath), NoInterfaceException);
     // error propagation from auth function
     throwPath = GetMockModulePath(EMPTY_STRING_ID_MODULE_NAME).string();
@@ -340,6 +344,20 @@ TEST_F(ModuleManagerInternalsTest, TestAuthenticator)
     // vendor keys
     auto keys = manager.getVendorKeys();
     ASSERT_EQ(keys[authorizedMods[1].getModuleInfo().getId()], testVendorKey);
+    const auto mockAuthenticate = [](const auto& result)
+    {
+        const auto f = Function([&](const StringPtr&, const DictPtr<IString, IBaseObject>&) { return result; });
+        Bool valid;
+        StringPtr vendorKey;
+        checkErrorInfo(FunctionModuleAuthenticator(f)->authenticateModuleBinary(&valid, &vendorKey, String("")));
+        return vendorKey;
+    };
+    // null vendor key normalized to empty string
+    ASSERT_EQ(mockAuthenticate(Dict<IString, IBaseObject>({{"BinaryValid", true}, {"VendorKey", nullptr}})), "");
+    // missing result keys
+    ASSERT_THROW_MSG(mockAuthenticate(Dict<IString, IBaseObject>()), NotFoundException, "VendorKey");
+    ASSERT_THROW_MSG(mockAuthenticate(Dict<IString, IBaseObject>({{"BinaryValid", true}})), NotFoundException, "VendorKey");
+    ASSERT_THROW_MSG(mockAuthenticate(Dict<IString, IBaseObject>({{"VendorKey", ""}})), NotFoundException, "BinaryValid");
     // misc
     ASSERT_EQ(fName, "authenticateModuleBinary");
     ASSERT_EQ(manager.getModules().getCount(), 2u);

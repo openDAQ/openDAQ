@@ -2281,9 +2281,7 @@ void ModuleManagerImpl::logUnspecifiedDeviceKinds(const ModulePtr& module) const
     for (const auto& [deviceTypeId, deviceType] : deviceTypes)
     {
         if (deviceType.getDeviceKind() == DeviceKind::Unspecified)
-            LOG_I(R"({}: Device type "{}" declares no device kind. The Unspecified device kind is deprecated.)",
-                  module.getModuleInfo().getName(),
-                  deviceTypeId);
+            LOG_I(R"({}: Device type "{}" declares no device kind.)", module.getModuleInfo().getName(), deviceTypeId);
     }
 }
 

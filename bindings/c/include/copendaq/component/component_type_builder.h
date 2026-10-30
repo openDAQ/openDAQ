@@ -58,6 +58,8 @@ extern "C"
     daqErrCode EXPORTED daqComponentTypeBuilder_getConnectionStringPrefix(daqComponentTypeBuilder* self, daqString** prefix);
     daqErrCode EXPORTED daqComponentTypeBuilder_setDefaultConfig(daqComponentTypeBuilder* self, daqPropertyObject* defaultConfig);
     daqErrCode EXPORTED daqComponentTypeBuilder_getDefaultConfig(daqComponentTypeBuilder* self, daqPropertyObject** defaultConfig);
+    daqErrCode EXPORTED daqComponentTypeBuilder_setDeviceKind(daqComponentTypeBuilder* self, daqDeviceKind kind);
+    daqErrCode EXPORTED daqComponentTypeBuilder_getDeviceKind(daqComponentTypeBuilder* self, daqDeviceKind* kind);
     daqErrCode EXPORTED daqComponentTypeBuilder_addAuthenticationMethod(daqComponentTypeBuilder* self, daqAuthenticationMethod* method);
     daqErrCode EXPORTED daqComponentTypeBuilder_getSupportedAuthenticationMethods(daqComponentTypeBuilder* self, daqDict** authenticationMethods);
     daqErrCode EXPORTED daqComponentTypeBuilder_setLinkedDeviceType(daqComponentTypeBuilder* self, daqDeviceType* deviceType);

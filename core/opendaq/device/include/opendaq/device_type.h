@@ -35,16 +35,24 @@ BEGIN_NAMESPACE_OPENDAQ
 /*!
  * @brief The kind of device a Device type creates.
  *
- * Unspecified is the kind of a Device type that declares none.
- * Unspecified devices are allowed everything the other kinds allow.
- * External devices can't have streamings attached.
- * Mirrored devices mirror a remote device and can have streamings attached.
- * Root devices can only be set as an instance's root device, via `setRootDevice`.
- * External devices can also be set as root, and Mirrored devices can't.
+ * Unspecified devices are a superset of other DeviceKinds, used for backwards compatibility.
+ * It's the default DeviceKind, and can't be set via the Device type builder.
+ *
+ * External devices are connected and controlled by their module.
+ * They are typically hardware or remote devices that don't run openDAQ.
+ * Their module may use a streaming internally.
+ *
+ * Mirrored devices mirror a remote openDAQ device, which runs an openDAQ server on its side.
+ *
+ * Root devices abstract the local system as the top-level device of an instance.
+ * They can only be set as an instance's root device, via `setRootDevice`.
+ *
+ * Root, External and Unspecified devices can be set as root.
+ * Only Mirrored and Unspecified devices can have streamings attached.
  */
 enum class DeviceKind : EnumType
 {
-    Unspecified = 0,  ///< @deprecated A Device type should declare its kind.
+    Unspecified = 0,
     External,
     Mirrored,
     Root

@@ -95,7 +95,7 @@ DeviceTypePtr CredentialDemoDeviceImpl::CreateType(const ContextPtr& context)
         .setName("Credential demo device")
         .setDescription("openDAQ authentication/credential framework showcase device")
         .setConnectionStringPrefix(Prefix)
-        .setDeviceKind(DeviceKind::External)
+        .setDeviceKind(DeviceKind::Mirrored)
         .addAuthenticationMethod(StandardAnonymousAuthenticationMethod())
         .addAuthenticationMethod(StandardUserNamePasswordAuthenticationMethod())
         .addAuthenticationMethod(StandardPinAuthenticationMethod());

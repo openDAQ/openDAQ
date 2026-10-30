@@ -74,7 +74,7 @@ protected:
         daqBaseObject_queryInterface(start, DAQ_NUMBER_INTF_ID, (daqBaseObject**) &startNum);
         daqBaseObject_releaseRef(delta);
         daqBaseObject_releaseRef(start);
-        daqDataRule_createLinearDataRule(&rule, startNum, deltaNum);
+        daqDataRule_createLinearDataRule(&rule, deltaNum, startNum);
         daqBaseObject_releaseRef(deltaNum);
         daqBaseObject_releaseRef(startNum);
         daqDataDescriptorBuilder_setRule(builder, rule);

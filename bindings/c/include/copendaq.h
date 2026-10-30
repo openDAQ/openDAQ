@@ -155,6 +155,10 @@ extern "C"
 #include <copendaq/reader/multi_reader_builder.h>
 #include <copendaq/reader/multi_reader_status.h>
 #include <copendaq/reader/multi_reader.h>
+#include <copendaq/reader/multi_reader2.h>
+#include <copendaq/reader/multi_reader2_input_status.h>
+#include <copendaq/reader/multi_reader2_params.h>
+#include <copendaq/reader/multi_reader2_status.h>
 #include <copendaq/reader/packet_reader.h>
 #include <copendaq/reader/reader_status.h>
 #include <copendaq/reader/reader.h>

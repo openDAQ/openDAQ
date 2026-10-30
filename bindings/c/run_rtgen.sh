@@ -248,6 +248,7 @@ run_rtgen copendaq/opendaq opendaq/opendaq opendaq config_provider config_provid
 # run_rtgen copendaq/opendaq opendaq/opendaq opendaq errors errors #contains error codes
 run_rtgen copendaq/opendaq opendaq/opendaq opendaq instance instance
 run_rtgen copendaq/opendaq opendaq/opendaq opendaq instance_builder instance_builder
+run_rtgen copendaq/opendaq opendaq/opendaq opendaq module_authenticator module_authenticator
 # run_rtgen copendaq/opendaq opendaq/opendaq opendaq opendaq_init opendaq_init #functions should be added manually
 # run_rtgen copendaq/opendaq opendaq/opendaq opendaq version version #functions should be added manually
 

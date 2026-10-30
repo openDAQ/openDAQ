@@ -309,9 +309,10 @@ class SyncView(ttk.Frame):
             yield from self.devices_of(child)
 
     def groups(self):
+        owners = self.domain_owners()
         domains = {}
         for record in self.records:
-            domains.setdefault(record.domain, []).append(record)
+            domains.setdefault(self.root_domain(record.domain, owners), []).append(record)
 
         groups = []
         for domain in sorted(domains, key=lambda d: (d == '', d)):
@@ -335,6 +336,28 @@ class SyncView(ttk.Frame):
                 yield f'd:{domain}', f'{domain} (external clock)', None, members
             else:
                 yield f'd:{domain}', domain, owner, [record for record in members if record is not owner]
+
+    def domain_owners(self):
+        owners = {}
+        for record in self.records:
+            for interface in record.interfaces.values():
+                domain = interface.reference_domain_id
+                if domain and role_status(interface) == 'Output':
+                    owners.setdefault(domain, record)
+        return owners
+
+    @staticmethod
+    def root_domain(domain, owners):
+        # A device that outputs a domain follows a domain of its own, as a boundary clock does, so its
+        # followers go to the group of the clock at the start of the chain
+        seen = set()
+        while domain and domain not in seen:
+            seen.add(domain)
+            owner = owners.get(domain)
+            if owner is None or owner.domain == domain:
+                break
+            domain = owner.domain
+        return domain
 
     @staticmethod
     def tree_order(record):

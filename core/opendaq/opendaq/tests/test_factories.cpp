@@ -52,6 +52,17 @@ TEST_F(OpenDaqFactoriesTest, DeviceTypeBuilder)
     ASSERT_EQ(type.getDeviceKind(), DeviceKind::Mirrored);
 }
 
+TEST_F(OpenDaqFactoriesTest, CreateDefaultConfigReturnsCopy)
+{
+    auto defConfig = PropertyObject();
+    defConfig.addProperty(StringProperty("foo", "bar"));
+
+    const DeviceTypePtr type = DeviceTypeBuilder().setId("Id").setConnectionStringPrefix("Prefix").setDefaultConfig(defConfig).build();
+
+    type.createDefaultConfig().setPropertyValue("foo", "changed");
+    ASSERT_EQ(type.createDefaultConfig().getPropertyValue("foo"), "bar");
+}
+
 TEST_F(OpenDaqFactoriesTest, FBTypeBuilder)
 {
     auto defConfig = PropertyObject();

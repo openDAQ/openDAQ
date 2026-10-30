@@ -33,6 +33,12 @@
 
 PyDaqIntf<daq::IDeviceType, daq::IComponentType> declareIDeviceType(pybind11::module_ m)
 {
+    py::enum_<daq::DeviceKind>(m, "DeviceKind")
+        .value("Unspecified", daq::DeviceKind::Unspecified)
+        .value("External", daq::DeviceKind::External)
+        .value("Mirrored", daq::DeviceKind::Mirrored)
+        .value("Root", daq::DeviceKind::Root);
+
     return wrapInterface<daq::IDeviceType, daq::IComponentType>(m, "IDeviceType");
 }
 
@@ -53,4 +59,12 @@ void defineIDeviceType(pybind11::module_ m, PyDaqIntf<daq::IDeviceType, daq::ICo
             return objectPtr.getConnectionStringPrefix().toStdString();
         },
         "");
+    cls.def_property_readonly("device_kind",
+        [](daq::IDeviceType *object)
+        {
+            py::gil_scoped_release release;
+            const auto objectPtr = daq::DeviceTypePtr::Borrow(object);
+            return objectPtr.getDeviceKind();
+        },
+        "Gets the kind of device created by this type.");
 }

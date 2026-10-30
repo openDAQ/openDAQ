@@ -36,6 +36,14 @@ extern "C"
         daqProtocolTypeConfigurationAndStreaming,
     } daqProtocolType;
 
+    typedef enum daqDeviceKind
+    {
+        daqDeviceKindUnspecified = 0,
+        daqDeviceKindExternal,
+        daqDeviceKindMirrored,
+        daqDeviceKindRoot
+    } daqDeviceKind;
+
 #ifdef __cplusplus
 }
 #endif

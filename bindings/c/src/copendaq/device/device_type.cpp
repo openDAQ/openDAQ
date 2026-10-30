@@ -27,6 +27,11 @@ daqErrCode daqDeviceType_getConnectionStringPrefix(daqDeviceType* self, daqStrin
     return reinterpret_cast<daq::IDeviceType*>(self)->getConnectionStringPrefix(reinterpret_cast<daq::IString**>(prefix));
 }
 
+daqErrCode daqDeviceType_getDeviceKind(daqDeviceType* self, daqDeviceKind* kind)
+{
+    return reinterpret_cast<daq::IDeviceType*>(self)->getDeviceKind(reinterpret_cast<daq::DeviceKind*>(kind));
+}
+
 daqErrCode daqDeviceType_createDeviceType(daqDeviceType** obj, daqString* id, daqString* name, daqString* description, daqPropertyObject* defaultConfig, daqString* prefix, daqDict* supportedAuthenticationMethods)
 {
     daq::IDeviceType* ptr = nullptr;

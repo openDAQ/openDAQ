@@ -2,7 +2,7 @@
 
 #include <gtest/gtest.h>
 
-#include "opendaq/context_factory.h"
+#include <opendaq/opendaq.h>
 
 class COpendaqDeviceTest : public testing::Test
 {
@@ -98,4 +98,91 @@ TEST_F(COpendaqDeviceTest, IoFolderConfig)
     daqBaseObject_releaseRef(localId);
     daqBaseObject_releaseRef(folderConfig);
     daqBaseObject_releaseRef(ctx);
+}
+
+TEST_F(COpendaqDeviceTest, DeviceType)
+{
+    const daq::StringPtr id = "id";
+    const daq::StringPtr name = "name";
+    const daq::StringPtr description = "description";
+    const daq::StringPtr prefix = "prefix";
+    const auto defaultConfig = daq::PropertyObject();
+    defaultConfig.addProperty(daq::StringProperty("foo", "bar"));
+    const auto methods = daq::Dict<daq::IString, daq::IAuthenticationMethod>(
+        {{"none", daq::AuthenticationMethod("none", daq::Dict<daq::IString, daq::ICredentialField>(), "")}});
+
+    daqDeviceType* deviceType = nullptr;
+    daqDeviceType_createDeviceType(&deviceType,
+                                   (daqString*) id.getObject(),
+                                   (daqString*) name.getObject(),
+                                   (daqString*) description.getObject(),
+                                   (daqPropertyObject*) defaultConfig.getObject(),
+                                   (daqString*) prefix.getObject(),
+                                   (daqDict*) methods.getObject());
+    ASSERT_NE(deviceType, nullptr);
+    daqComponentType* componentType = nullptr;
+    daqBaseObject_borrowInterface(deviceType, DAQ_COMPONENT_TYPE_INTF_ID, (daqBaseObject**) &componentType);
+    ASSERT_NE(componentType, nullptr);
+
+    daqString* str = nullptr;
+    daqComponentType_getId(componentType, &str);
+    ASSERT_EQ(daq::StringPtr::Adopt((daq::IString*) str), "id");
+    daqComponentType_getName(componentType, &str);
+    ASSERT_EQ(daq::StringPtr::Adopt((daq::IString*) str), "name");
+    daqComponentType_getDescription(componentType, &str);
+    ASSERT_EQ(daq::StringPtr::Adopt((daq::IString*) str), "description");
+    daqDeviceType_getConnectionStringPrefix(deviceType, &str);
+    ASSERT_EQ(daq::StringPtr::Adopt((daq::IString*) str), "prefix");
+
+    daqModuleInfo* moduleInfo = nullptr;
+    daqComponentType_getModuleInfo(componentType, &moduleInfo);
+    ASSERT_EQ(moduleInfo, nullptr);
+
+    daqPropertyObject* config = nullptr;
+    daqComponentType_createDefaultConfig(componentType, &config);
+    ASSERT_EQ(daq::PropertyObjectPtr::Adopt((daq::IPropertyObject*) config).getPropertyValue("foo"), "bar");
+
+    daqAuthenticationConfig* authConfig = nullptr;
+    daqComponentType_createAuthenticationConfig(componentType, &authConfig);
+    ASSERT_TRUE(daq::AuthenticationConfigPtr::Adopt((daq::IAuthenticationConfig*) authConfig).getAuthenticationMethods().hasKey("none"));
+
+    daqBaseObject_releaseRef(deviceType);
+}
+
+TEST_F(COpendaqDeviceTest, DeviceKind)
+{
+    static_assert(daqDeviceKindUnspecified == static_cast<int>(daq::DeviceKind::Unspecified));
+    static_assert(daqDeviceKindExternal == static_cast<int>(daq::DeviceKind::External));
+    static_assert(daqDeviceKindMirrored == static_cast<int>(daq::DeviceKind::Mirrored));
+    static_assert(daqDeviceKindRoot == static_cast<int>(daq::DeviceKind::Root));
+
+    daqComponentTypeBuilder* builder = nullptr;
+    daqComponentTypeBuilder_createDeviceTypeBuilder(&builder);
+    daqString* id = nullptr;
+    daqString_createString(&id, "deviceType");
+    daqComponentTypeBuilder_setId(builder, id);
+    daqString* prefix = nullptr;
+    daqString_createString(&prefix, "prefix");
+    daqComponentTypeBuilder_setConnectionStringPrefix(builder, prefix);
+
+    daqComponentTypeBuilder_setDeviceKind(builder, daqDeviceKindMirrored);
+    daqDeviceKind kind = daqDeviceKindUnspecified;
+    daqComponentTypeBuilder_getDeviceKind(builder, &kind);
+    ASSERT_EQ(kind, daqDeviceKindMirrored);
+
+    daqComponentType* componentType = nullptr;
+    daqComponentTypeBuilder_build(builder, &componentType);
+    ASSERT_NE(componentType, nullptr);
+
+    daqDeviceType* deviceType = nullptr;
+    daqBaseObject_borrowInterface(componentType, DAQ_DEVICE_TYPE_INTF_ID, (daqBaseObject**) &deviceType);
+    ASSERT_NE(deviceType, nullptr);
+    kind = daqDeviceKindUnspecified;
+    daqDeviceType_getDeviceKind(deviceType, &kind);
+    ASSERT_EQ(kind, daqDeviceKindMirrored);
+
+    daqBaseObject_releaseRef(componentType);
+    daqBaseObject_releaseRef(prefix);
+    daqBaseObject_releaseRef(id);
+    daqBaseObject_releaseRef(builder);
 }

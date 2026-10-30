@@ -87,6 +87,16 @@ daqErrCode daqComponentTypeBuilder_getDefaultConfig(daqComponentTypeBuilder* sel
     return reinterpret_cast<daq::IComponentTypeBuilder*>(self)->getDefaultConfig(reinterpret_cast<daq::IPropertyObject**>(defaultConfig));
 }
 
+daqErrCode daqComponentTypeBuilder_setDeviceKind(daqComponentTypeBuilder* self, daqDeviceKind kind)
+{
+    return reinterpret_cast<daq::IComponentTypeBuilder*>(self)->setDeviceKind(static_cast<daq::DeviceKind>(kind));
+}
+
+daqErrCode daqComponentTypeBuilder_getDeviceKind(daqComponentTypeBuilder* self, daqDeviceKind* kind)
+{
+    return reinterpret_cast<daq::IComponentTypeBuilder*>(self)->getDeviceKind(reinterpret_cast<daq::DeviceKind*>(kind));
+}
+
 daqErrCode daqComponentTypeBuilder_addAuthenticationMethod(daqComponentTypeBuilder* self, daqAuthenticationMethod* method)
 {
     return reinterpret_cast<daq::IComponentTypeBuilder*>(self)->addAuthenticationMethod(reinterpret_cast<daq::IAuthenticationMethod*>(method));

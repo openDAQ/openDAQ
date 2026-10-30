@@ -630,10 +630,12 @@ void NativeStreamingServerImpl::startReadThread()
                 repeatRead = false;
                 SizeT read = 0;
                 SizeT count = maxPacketReadCount;
+                // packetIndices holds the signals in the same order as signalReaders
+                auto indicesIt = packetIndices.begin();
                 for (const auto& [_, signalGlobalId, port, connection] : signalReaders)
                 {
                     connection->dequeueUpTo(packetBuf.data() + read, &count);
-                    auto& packetData = packetIndices[signalGlobalId];
+                    auto& packetData = (indicesIt++).value();
                     packetData.index = static_cast<int>(read);
                     packetData.count = static_cast<int>(count);
                     read += count;
@@ -707,11 +709,8 @@ void NativeStreamingServerImpl::removeReader(SignalPtr signalToRead)
 
 void NativeStreamingServerImpl::clearIndices()
 {
-    for (auto& [signalId, _] : packetIndices)
-    {
-        auto& data = packetIndices[signalId];
-        data.reset();
-    }
+    for (auto it = packetIndices.begin(); it != packetIndices.end(); ++it)
+        it.value().reset();
 }
 
 OPENDAQ_DEFINE_CLASS_FACTORY_WITH_INTERFACE(

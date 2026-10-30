@@ -68,6 +68,9 @@ void StreamingManager::processPackets(const tsl::ordered_map<std::string, Packet
 
     for (auto& [signalStringId, packetData] : packetIndices)
     {
+        if (packetData.count <= 0)
+            continue;
+
         if (auto it1 = registeredSignals.find(signalStringId); it1 != registeredSignals.end())
         {
             auto& registeredSignal = it1->second;

@@ -53,7 +53,7 @@ class SyncRecord:
         self.source = self.synchronization.source
         self.interfaces = dict(self.synchronization.interfaces.items())
         self.sources = list(self.synchronization.available_sources.keys())
-        self.domain = self.source.reference_domain_id or NO_DOMAIN
+        self.domain = self.source.reference_domain_id or ''
         self.status = source_status(self.source)
 
     def outputs(self, domain):
@@ -170,6 +170,7 @@ class SyncView(ttk.Frame):
         self.combos = []
         self.active_combo = None
         self.selected = None
+        self.selected_device = None
         self.cards = {}
         self.cards_key = None
         self.cards_source = None
@@ -310,24 +311,27 @@ class SyncView(ttk.Frame):
             domains.setdefault(record.domain, []).append(record)
 
         groups = []
-        for domain in sorted(domains, key=lambda d: (d == NO_DOMAIN, d)):
+        for domain in sorted(domains, key=lambda d: (d == '', d)):
             members = sorted(domains[domain], key=self.tree_order)
-            owner = None if domain == NO_DOMAIN else self.clock_owner(domain, members)
+            owner = self.clock_owner(domain, members) if domain else None
             groups.append((domain, owner, members))
 
         feeding = [owner for domain, owner, members in groups if owner is not None and owner not in members]
         alone = [members[0] for domain, owner, members in groups if domain.startswith('local:') and len(members) == 1]
         local = [record for record in alone if record not in feeding]
         if local:
-            yield LOCAL_CLOCKS, LOCAL_CLOCKS, None, local
+            yield 'l:', LOCAL_CLOCKS, None, local
 
+        # Prefixed keys, so no reported domain can collide with another group's key
         for domain, owner, members in groups:
             if members[0] in alone and len(members) == 1:
                 continue
-            if owner is None:
-                yield domain, domain if domain == NO_DOMAIN else f'{domain} (external clock)', None, members
+            if not domain:
+                yield 'n:', NO_DOMAIN, None, members
+            elif owner is None:
+                yield f'd:{domain}', f'{domain} (external clock)', None, members
             else:
-                yield domain, domain, owner, [record for record in members if record is not owner]
+                yield f'd:{domain}', domain, owner, [record for record in members if record is not owner]
 
     @staticmethod
     def tree_order(record):
@@ -351,7 +355,7 @@ class SyncView(ttk.Frame):
             visible = [owner] * (owner is not None) + self.sorted(members)
             count = f'{len(visible)} device' if len(visible) == 1 else f'{len(visible)} devices'
             group = self.tree.insert('', tk.END, iid=key, text=f'{title} \u00b7 {count}', open=True, tags=('group',))
-            self.rows[group] = (visible[0], None)
+            self.rows[group] = visible[0]
 
             for record in visible:
                 self.device_row_insert(group, record)
@@ -359,15 +363,21 @@ class SyncView(ttk.Frame):
         for iid in opened & self.rows.keys():
             self.tree.item(iid, open=True)
 
-        if self.selected in self.rows:
-            self.tree.selection_set(self.selected)
-            self.tree.see(self.selected)
+        # A source switch moves the device to another group, so its row is found again by the device
+        selected = self.selected if self.selected in self.rows else self.device_row(self.selected_device)
+        if selected is not None:
+            self.tree.selection_set(selected)
+            self.tree.see(selected)
         elif self.rows:
             self.tree.selection_set(self.tree.get_children(self.tree.get_children()[0])[0])
         else:
             self.details_draw(None)
 
         self.after_idle(self.overlays_sync)
+
+    def device_row(self, global_id):
+        return next((iid for iid, record in self.rows.items()
+                     if self.tree.parent(iid) and record.device.global_id == global_id), None)
 
     def device_row_insert(self, group, record):
         iid = f'{group}|{record.device.global_id}'
@@ -376,7 +386,7 @@ class SyncView(ttk.Frame):
                                       lambda name: setattr(record.synchronization, 'source', name))
         self.tree.insert(group, tk.END, iid=iid, text=record.device.name,
                          values=(source, role_status(record.source), record.status))
-        self.rows[iid] = (record, record.source)
+        self.rows[iid] = record
         self.dot_colors[iid] = STATUS_COLORS.get(record.status, 'gray')
 
     def editor_register(self, iid, column, record, current, options, apply):
@@ -475,7 +485,8 @@ class SyncView(ttk.Frame):
         if not selection:
             return
         self.selected = selection[0]
-        record, interface = self.rows[self.selected]
+        record = self.rows[self.selected]
+        self.selected_device = record.device.global_id
         self.details_draw(record)
         self.after_idle(self.overlays_sync)
 
@@ -492,7 +503,7 @@ class SyncView(ttk.Frame):
         header.pack(fill=tk.X, padx=(8, 0), pady=(4, 6))
         background = ttk.Style(self).lookup('TFrame', 'background')
         ttk.Label(header, text=record.device.name, style='SyncHeader.TLabel').pack(side=tk.LEFT)
-        ttk.Label(header, text=f' | {record.domain} | ').pack(side=tk.LEFT)
+        ttk.Label(header, text=f' | {record.domain or NO_DOMAIN} | ').pack(side=tk.LEFT)
 
         container = record.source.status_container
         statuses = tk.Frame(header, cursor='hand2', background=background)

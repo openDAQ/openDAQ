@@ -142,6 +142,10 @@ run_rtgen opendaq opendaq/reader          opendaq opendaq/generated/reader      
 run_rtgen opendaq opendaq/reader          opendaq opendaq/generated/reader           block_reader_status
 run_rtgen opendaq opendaq/reader          opendaq opendaq/generated/reader           tail_reader_status
 run_rtgen opendaq opendaq/reader          opendaq opendaq/generated/reader           multi_reader_status
+#run_rtgen opendaq opendaq/reader         opendaq opendaq/generated/reader           multi_reader2  # read and the factory are hand-written
+#run_rtgen opendaq opendaq/reader         opendaq opendaq/generated/reader           multi_reader2_params  # accepts_descriptor takes callables by hand
+run_rtgen opendaq opendaq/reader          opendaq opendaq/generated/reader           multi_reader2_status
+run_rtgen opendaq opendaq/reader          opendaq opendaq/generated/reader           multi_reader2_input_status
 run_rtgen opendaq opendaq/scheduler       opendaq opendaq/generated/scheduler        awaitable
 run_rtgen opendaq opendaq/scheduler       opendaq opendaq/generated/scheduler        graph_visualization
 run_rtgen opendaq opendaq/scheduler       opendaq opendaq/generated/scheduler        scheduler

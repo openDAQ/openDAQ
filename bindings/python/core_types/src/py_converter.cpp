@@ -15,7 +15,8 @@ daq::ObjectPtr<daq::IBaseObject> PyConverter::ToBaseObject(const py::object& pyO
 
 py::object PyConverter::ToPyObject(const daq::ObjectPtr<daq::IBaseObject>& baseObject)
 {
-    return py::reinterpret_steal<py::object>(baseObjectToPyObject(baseObject));
+    // baseObjectToPyObject returns an owning reference; stealing it again would free the object while the caller uses it
+    return baseObjectToPyObject(baseObject);
 }
 
 daq::ObjectPtr<daq::IBaseObject> pyObjectToBaseObject(const py::object& handle, bool acquireGil)

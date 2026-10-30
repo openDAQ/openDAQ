@@ -237,6 +237,8 @@ class SyncView(ttk.Frame):
                         selectbackground='white', selectforeground='#1a1a1a')
 
         tree.bind('<<TreeviewSelect>>', self.on_select)
+        tree.bind('<Button-1>', self.on_click)
+        tree.bind('<Double-Button-1>', self.on_double_click)
         for sequence in ('<Configure>', '<<TreeviewOpen>>', '<<TreeviewClose>>', '<ButtonRelease-1>'):
             tree.bind(sequence, lambda e: self.after_idle(self.overlays_sync), add='+')
         self.tree = tree
@@ -506,9 +508,40 @@ class SyncView(ttk.Frame):
             dot.configure(background=self.selected_background if iid in selection else self.row_background)
             dot.place(x=x + 2, y=y + (height - self.dot_size) // 2)
 
+    def group_at(self, event):
+        iid = self.tree.identify_row(event.y)
+        return iid if iid and not self.tree.parent(iid) else None
+
+    def group_toggle(self, iid):
+        self.tree.item(iid, open=not self.tree.item(iid, 'open'))
+        self.after_idle(self.overlays_sync)
+
+    def on_click(self, event):
+        # A group row is never selected; only its +/- indicator opens or closes it
+        iid = self.group_at(event)
+        if iid is None:
+            return None
+        if self.tree.identify_element(event.x, event.y).endswith('indicator'):
+            self.group_toggle(iid)
+        return 'break'
+
+    def on_double_click(self, event):
+        iid = self.group_at(event)
+        if iid is None:
+            return None
+        self.group_toggle(iid)
+        return 'break'
+
     def on_select(self, event):
         selection = self.tree.selection()
         if not selection:
+            return
+        # Keyboard navigation can still reach a group row; the device selection stays
+        if not self.tree.parent(selection[0]):
+            if self.selected is not None and self.tree.exists(self.selected) and self.tree.parent(self.selected):
+                self.tree.selection_set(self.selected)
+            else:
+                self.tree.selection_remove(selection[0])
             return
         self.selected = selection[0]
         record = self.rows[self.selected]

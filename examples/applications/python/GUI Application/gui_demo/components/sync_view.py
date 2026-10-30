@@ -176,6 +176,7 @@ class SyncView(ttk.Frame):
         self.cards_source = None
         self.sort = ('#0', False)
         self.refresh_job = None
+        self.status_windows = {}
 
         style = ttk.Style(self)
         style.configure('SyncHeader.TLabel', font=('TkDefaultFont', 12, 'bold'))
@@ -291,6 +292,8 @@ class SyncView(ttk.Frame):
         devices = [root, *self.devices_of(root)]
         self.records = [record for record in map(self.record_create, devices) if record is not None]
         self.tree_fill()
+        for fill in list(self.status_windows.values()):
+            fill()
 
     @staticmethod
     def record_create(device):
@@ -545,19 +548,23 @@ class SyncView(ttk.Frame):
             tree.heading(column, text=title, anchor=tk.W)
         tree.tag_configure('interface', font=('TkDefaultFont', 9, 'bold'))
 
-        names = [record.source.id, *(name for name in record.interfaces if name != record.source.id)]
+        device_id = record.device.global_id
 
+        # Refilled by refresh(), which runs on synchronization events, from the device's current record
         def fill():
-            if not window.winfo_exists():
+            current = next((r for r in self.records if r.device.global_id == device_id), None)
+            if current is None:
                 return
             tree.delete(*tree.get_children())
+            names = [current.source.id, *(name for name in current.interfaces if name != current.source.id)]
             for name in names:
-                container = record.interfaces[name].status_container
+                container = current.interfaces[name].status_container
                 parent = tree.insert('', tk.END, text=name, open=True, tags=('interface',))
                 for status, value in container.statuses.items():
                     tree.insert(parent, tk.END, text=status, values=(value.name, container.get_status_message(status)))
-            window.after(1000, fill)
 
+        self.status_windows[window] = fill
+        window.bind('<Destroy>', lambda e: self.status_windows.pop(window, None) if e.widget is window else None)
         fill()
         main = self.winfo_toplevel()
         x = main.winfo_rootx() + main.winfo_width() // 2 - width // 2

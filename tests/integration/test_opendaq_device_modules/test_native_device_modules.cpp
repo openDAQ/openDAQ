@@ -13,15 +13,20 @@
 #include <opendaq/device_info_internal_ptr.h>
 #include <opendaq/discovery_server_factory.h>
 #include <opendaq/exceptions.h>
+#include <opendaq/logger_sink_last_message_private_ptr.h>
 #include <opendaq/module_impl.h>
 #include <ref_device_module/module_dll.h>
 #include <ref_fb_module/module_dll.h>
 #include <testutils/testutils.h>
 #include <websocket_streaming_client_module/module_dll.h>
 #include <websocket_streaming_server_module/module_dll.h>
+#include <algorithm>
+#include <atomic>
 #include <chrono>
 #include <future>
 #include <iomanip>
+#include <thread>
+#include <vector>
 #include "opendaq/mock/mock_device_module.h"
 #include "test_helpers/test_helpers.h"
 
@@ -157,9 +162,11 @@ static InstancePtr CreateServerInstance(InstancePtr instance = CreateDefaultServ
 }
 
 static InstancePtr CreateClientInstance(uint16_t nativeConfigProtocolVersion = std::numeric_limits<uint16_t>::max(),
-                                        Bool restoreClientConfigOnReconnect = False)
+                                        Bool restoreClientConfigOnReconnect = False,
+                                        Int configProtocolRequestTimeoutMs = 0,
+                                        const LoggerPtr& clientLogger = nullptr)
 {
-    auto logger = Logger();
+    auto logger = clientLogger.assigned() ? clientLogger : Logger();
     auto scheduler = Scheduler(logger);
     auto moduleManager = ModuleManager("[[none]]");
     auto typeManager = TypeManager();
@@ -181,6 +188,8 @@ static InstancePtr CreateClientInstance(uint16_t nativeConfigProtocolVersion = s
         nativeDeviceConfig.setPropertyValue("ProtocolVersion", nativeConfigProtocolVersion);
 
     nativeDeviceConfig.setPropertyValue("RestoreClientConfigOnReconnect", restoreClientConfigOnReconnect);
+    if (configProtocolRequestTimeoutMs > 0)
+        nativeDeviceConfig.setPropertyValue("ConfigProtocolRequestTimeout", configProtocolRequestTimeoutMs);
 
     PropertyObjectPtr general = config.getPropertyValue("General");
     general.setPropertyValue("PrioritizedStreamingProtocols", List<IString>("OpenDAQNativeStreaming"));
@@ -2421,6 +2430,148 @@ TEST_F(NativeDeviceModulesTest, Reconnection)
     ASSERT_TRUE(info.assigned());
     ASSERT_EQ(info.getConnectionString(), "daq.nd://127.0.0.1");
     ASSERT_TRUE(info.hasProperty("NativeConfigProtocolVersion"));
+}
+
+// requests issued while the transport drops fail with ConnectionLostException at once, not after the request timeout
+TEST_F(NativeDeviceModulesTest, RequestsAfterDisconnectFailFast)
+{
+    SKIP_TEST_MAC_CI;
+    using namespace std::chrono;
+    constexpr Int requestTimeoutMs = 10000;
+    // well below the request timeout, with room for a starved worker thread on a loaded runner
+    constexpr auto maxCallDuration = seconds(5);
+    constexpr auto settleTime = seconds(3);
+    constexpr size_t workerCount = 4;
+
+    auto server = CreateServerInstance();
+    auto client = CreateClientInstance(std::numeric_limits<uint16_t>::max(), False, requestTimeoutMs);
+    auto nestedDevice = client.getDevices()[0].getDevices()[0];
+
+    struct WorkerResult
+    {
+        milliseconds longestCallAfterDisconnect{0};
+        size_t connectionLostCount{0};
+        std::string otherError;
+    };
+
+    std::atomic<bool> stop{false};
+    // steady_clock ticks of the first ConnectionLostException any worker saw, -1 until then
+    std::atomic<steady_clock::rep> disconnectNoticed{-1};
+    const auto worker = [&stop, &disconnectNoticed, &nestedDevice](WorkerResult& result)
+    {
+        Int value = 0;
+        while (!stop)
+        {
+            const auto start = steady_clock::now();
+            bool connectionLost = false;
+            try
+            {
+                nestedDevice.setPropertyValue("CustomProp", ++value);
+            }
+            catch (const ConnectionLostException&)
+            {
+                connectionLost = true;
+                ++result.connectionLostCount;
+            }
+            catch (const std::exception& e)
+            {
+                // only failures after the disconnect was noticed count; the server may still answer while it shuts down
+                if (disconnectNoticed.load() >= 0)
+                    result.otherError = e.what();
+            }
+            const auto end = steady_clock::now();
+            if (connectionLost)
+            {
+                steady_clock::rep expected = -1;
+                disconnectNoticed.compare_exchange_strong(expected, end.time_since_epoch().count());
+            }
+
+            // measured from the moment the disconnect was noticed, so the server teardown itself does not count
+            if (const auto noticed = disconnectNoticed.load(); noticed >= 0)
+            {
+                const auto from = std::max(start, steady_clock::time_point(steady_clock::duration(noticed)));
+                result.longestCallAfterDisconnect = std::max(result.longestCallAfterDisconnect, duration_cast<milliseconds>(end - from));
+            }
+
+            // the request right after the first failure still goes out immediately
+            if (result.connectionLostCount > 1)
+                std::this_thread::sleep_for(milliseconds(10));
+        }
+    };
+
+    std::vector<WorkerResult> results(workerCount);
+    std::vector<std::thread> workers;
+    for (auto& result : results)
+        workers.emplace_back(worker, std::ref(result));
+
+    std::this_thread::sleep_for(milliseconds(200));
+
+    // destroy server to emulate disconnection
+    server.release();
+
+    const auto noticeDeadline = steady_clock::now() + seconds(10);
+    while (disconnectNoticed.load() < 0 && steady_clock::now() < noticeDeadline)
+        std::this_thread::sleep_for(milliseconds(10));
+    std::this_thread::sleep_for(settleTime);
+    stop = true;
+    for (auto& workerThread : workers)
+        workerThread.join();
+
+    ASSERT_GE(disconnectNoticed.load(), 0);
+    for (size_t i = 0; i < workerCount; ++i)
+    {
+        EXPECT_EQ(results[i].otherError, "") << "worker " << i;
+        EXPECT_GT(results[i].connectionLostCount, 0u) << "worker " << i;
+        EXPECT_LT(results[i].longestCallAfterDisconnect.count(), duration_cast<milliseconds>(maxCallDuration).count())
+            << "worker " << i << ": a request issued at the moment of disconnection waited for the request timeout";
+    }
+}
+
+// the no-reply request that removing an input port with an external signal sends is refused and logged once the device is removed
+TEST_F(NativeDeviceModulesTest, NoReplyRequestAfterRemove)
+{
+    SKIP_TEST_MAC_CI;
+    auto loggerSink = LastMessageLoggerSink();
+    loggerSink.setLevel(LogLevel::Warn);
+    auto privateSink = loggerSink.asPtrOrNull<ILastMessageLoggerSinkPrivate>();
+    auto sinks = DefaultSinks(nullptr);
+    sinks.pushBack(loggerSink);
+    auto logger = LoggerWithSinks(sinks);
+
+    auto server = CreateServerInstance();
+    auto client = CreateClientInstance(std::numeric_limits<uint16_t>::max(), False, 0, logger);
+
+    const auto mirroredDevice = client.getDevices()[0];
+    const auto clientRefDevice = client.addDevice("daqref://device0");
+    const auto clientLocalSignal = clientRefDevice.getSignals(search::Recursive(search::Visible()))[0];
+    const auto mirroredInputPort = mirroredDevice.getFunctionBlocks()[0].getInputPorts()[0];
+
+    mirroredInputPort.connect(clientLocalSignal);
+    ASSERT_EQ(server.getServers()[0].getSignals().getCount(), 1u);
+
+    // reset messages
+    // ReSharper disable once CppExpressionWithoutSideEffects
+    privateSink.waitForMessage(0);
+
+    ASSERT_NO_THROW(client.removeDevice(mirroredDevice));
+    ASSERT_TRUE(mirroredInputPort.isRemoved());
+    logger.flush();
+
+    std::vector<std::string> messages;
+    while (privateSink.waitForMessage(messages.empty() ? 5000 : 200))
+        messages.push_back(privateSink.getLastMessage().toStdString());
+
+    const auto refused = std::any_of(messages.begin(),
+                                     messages.end(),
+                                     [](const std::string& message)
+                                     {
+                                         return message.find("Cannot send no reply command RemoveExternalSignals") != std::string::npos &&
+                                                message.find("component is removed") != std::string::npos;
+                                     });
+    std::string loggedWarnings;
+    for (const auto& message : messages)
+        loggedWarnings += message + "\n";
+    EXPECT_TRUE(refused) << "warnings logged:\n" << loggedWarnings;
 }
 
 TEST_F(NativeDeviceModulesTest, ReconnectionRestoreClientConfig)

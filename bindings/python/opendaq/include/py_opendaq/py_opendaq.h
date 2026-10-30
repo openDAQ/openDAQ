@@ -126,12 +126,12 @@ PyDaqIntf<daq::IModuleInfo, daq::IBaseObject> declareIModuleInfo(pybind11::modul
 PyDaqIntf<daq::IComponentType, daq::IBaseObject> declareIComponentType(pybind11::module_ m);
 PyDaqIntf<daq::IDeviceUpdateOptions, daq::IBaseObject> declareIDeviceUpdateOptions(pybind11::module_ m);
 
-py::class_<daq::TimeReader<daq::StreamReaderPtr>> declareTimeStreamReader(pybind11::module_ m);
-py::class_<daq::TimeReader<daq::TailReaderPtr>> declareTimeTailReader(pybind11::module_ m);
-py::class_<daq::TimeReader<daq::BlockReaderPtr>> declareTimeBlockReader(pybind11::module_ m);
-py::class_<daq::TimeReader<daq::MultiReaderPtr>> declareTimeMultiReader(pybind11::module_ m);
+PyDaqClass<daq::TimeReader<daq::StreamReaderPtr>> declareTimeStreamReader(pybind11::module_ m);
+PyDaqClass<daq::TimeReader<daq::TailReaderPtr>> declareTimeTailReader(pybind11::module_ m);
+PyDaqClass<daq::TimeReader<daq::BlockReaderPtr>> declareTimeBlockReader(pybind11::module_ m);
+PyDaqClass<daq::TimeReader<daq::MultiReaderPtr>> declareTimeMultiReader(pybind11::module_ m);
 
-py::class_<daq::MockSignal> declareMockSignal(py::module_ m);
+PyDaqClass<daq::MockSignal> declareMockSignal(py::module_ m);
 
 void defineIInstance(pybind11::module_ m, PyDaqIntf<daq::IInstance, daq::IDevice> cls);
 void defineIInstanceBuilder(pybind11::module_ m, PyDaqIntf<daq::IInstanceBuilder, daq::IBaseObject> cls);
@@ -169,10 +169,10 @@ void defineISampleReader(pybind11::module_ m, PyDaqIntf<daq::ISampleReader, daq:
 void defineIBlockReader(pybind11::module_ m, PyDaqIntf<daq::IBlockReader, daq::ISampleReader> cls);
 void defineIStreamReader(pybind11::module_ m, PyDaqIntf<daq::IStreamReader, daq::ISampleReader> cls);
 void defineIMultiReader(pybind11::module_ m, PyDaqIntf<daq::IMultiReader, daq::ISampleReader> cls);
-void defineTimeStreamReader(pybind11::module_ m, py::class_<daq::TimeReader<daq::StreamReaderPtr>> cls);
-void defineTimeTailReader(pybind11::module_ m, py::class_<daq::TimeReader<daq::TailReaderPtr>> cls);
-void defineTimeBlockReader(pybind11::module_ m, py::class_<daq::TimeReader<daq::BlockReaderPtr>> cls);
-void defineTimeMultiReader(pybind11::module_ m, py::class_<daq::TimeReader<daq::MultiReaderPtr>> cls);
+void defineTimeStreamReader(pybind11::module_ m, PyDaqClass<daq::TimeReader<daq::StreamReaderPtr>> cls);
+void defineTimeTailReader(pybind11::module_ m, PyDaqClass<daq::TimeReader<daq::TailReaderPtr>> cls);
+void defineTimeBlockReader(pybind11::module_ m, PyDaqClass<daq::TimeReader<daq::BlockReaderPtr>> cls);
+void defineTimeMultiReader(pybind11::module_ m, PyDaqClass<daq::TimeReader<daq::MultiReaderPtr>> cls);
 void defineITailReader(pybind11::module_ m, PyDaqIntf<daq::ITailReader, daq::ISampleReader> cls);
 void defineIBlockReaderBuilder(pybind11::module_ m, PyDaqIntf<daq::IBlockReaderBuilder, daq::IBaseObject> cls);
 void defineITailReaderBuilder(pybind11::module_ m, PyDaqIntf<daq::ITailReaderBuilder, daq::IBaseObject> cls);
@@ -221,7 +221,7 @@ void defineISubscriptionEventArgs(pybind11::module_ m, PyDaqIntf<daq::ISubscript
 void defineIMirroredDevice(pybind11::module_ m, PyDaqIntf<daq::IMirroredDevice, daq::IDevice> cls);
 void defineIMirroredDeviceConfig(pybind11::module_ m, PyDaqIntf<daq::IMirroredDeviceConfig, daq::IMirroredDevice> cls);
 void defineIMirroredInputPortConfig(pybind11::module_ m, PyDaqIntf<daq::IMirroredInputPortConfig, daq::IInputPortConfig> cls);
-void defineMockSignal(pybind11::module_ m, py::class_<daq::MockSignal> cls);
+void defineMockSignal(pybind11::module_ m, PyDaqClass<daq::MockSignal> cls);
 void defineIComponentPrivate(pybind11::module_ m, PyDaqIntf<daq::IComponentPrivate, daq::IBaseObject> cls);
 void defineIComponentStatusContainer(pybind11::module_ m, PyDaqIntf<daq::IComponentStatusContainer, daq::IBaseObject> cls);
 void defineIComponentStatusContainerPrivate(pybind11::module_ m, PyDaqIntf<daq::IComponentStatusContainerPrivate, daq::IBaseObject> cls);

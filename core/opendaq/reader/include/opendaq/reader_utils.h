@@ -65,22 +65,26 @@ namespace reader
      */
     inline std::string fixupIso8601(std::string epoch)
     {
-        if (epoch.find('T') == std::string::npos)
+        const auto time = epoch.find('T');
+        // If no time, assume Midnight UTC; a reduced date ("YYYY" or "YYYY-MM") starts on its first day
+        if (time == std::string::npos)
         {
-            // If no time, assume Midnight UTC
-            epoch += "T00:00:00+00:00";
+            if (epoch.size() == 4)
+                epoch += "-01";
+            if (epoch.size() == 7)
+                epoch += "-01";
+            return epoch + "T00:00:00+0000";
         }
-        else if (epoch[epoch.size() - 1] == 'Z')
-        {
-            // If time-zone marked as "Zulu" (UTC) replace with offset
-            epoch = epoch.erase(epoch.size() - 1) + "+00:00";
-        }
-        else if (epoch.find('+') == std::string::npos)
-        {
-            // If not time-zone offset assume UTC
-            epoch += "+00:00";
-        }
-
+        // If time-zone marked as "Zulu" (UTC) replace with offset
+        if (epoch.back() == 'Z')
+            return epoch.erase(epoch.size() - 1) + "+0000";
+        // If not time-zone offset assume UTC
+        const auto zone = epoch.find_first_of("+-", time);
+        if (zone == std::string::npos)
+            return epoch + "+0000";
+        // %z reads the minutes of an offset only without a colon
+        if (epoch.size() == zone + 6 && epoch[zone + 3] == ':')
+            epoch.erase(zone + 3, 1);
         return epoch;
     }
 

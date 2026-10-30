@@ -123,3 +123,35 @@ TEST_F(DateTest, ParseOnlyDate)
     ASSERT_EQ(2022_y / 9 / 27, dateTime.date);
     ASSERT_TRUE(dateTime.equalsTime(ClockTime{hours{0} + minutes{0} + seconds(0)}));
 }
+
+TEST_F(DateTest, ParseTimeZoneWithMinutes)
+{
+    bool ok = false;
+    const auto timePoint = daq::reader::parseEpoch("2022-09-27T05:32:03+05:30", &ok);
+    ASSERT_TRUE(ok);
+    ASSERT_EQ(timePoint, daq::reader::parseEpoch("2022-09-27T00:02:03Z"));
+}
+
+TEST_F(DateTest, ParseNegativeTimeZone)
+{
+    bool ok = false;
+    const auto timePoint = daq::reader::parseEpoch("2022-09-26T19:02:03-05:00", &ok);
+    ASSERT_TRUE(ok);
+    ASSERT_EQ(timePoint, daq::reader::parseEpoch("2022-09-27T00:02:03Z"));
+}
+
+TEST_F(DateTest, ParseReducedDate)
+{
+    bool ok = false;
+    ASSERT_EQ(daq::reader::parseEpoch("2022", &ok), daq::reader::parseEpoch("2022-01-01"));
+    ASSERT_TRUE(ok);
+    ASSERT_EQ(daq::reader::parseEpoch("2022-09", &ok), daq::reader::parseEpoch("2022-09-01"));
+    ASSERT_TRUE(ok);
+}
+
+TEST_F(DateTest, ParseInvalidDateFails)
+{
+    bool ok = true;
+    daq::reader::parseEpoch("2023-02-29T00:00:00Z", &ok);
+    ASSERT_FALSE(ok);
+}

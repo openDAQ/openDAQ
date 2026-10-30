@@ -148,6 +148,7 @@ extern "C"
 #include <copendaq/opendaq/errors.h>
 #include <copendaq/opendaq/instance_builder.h>
 #include <copendaq/opendaq/instance.h>
+#include <copendaq/opendaq/module_authenticator.h>
 
 #include <copendaq/reader/block_reader_builder.h>
 #include <copendaq/reader/block_reader_status.h>

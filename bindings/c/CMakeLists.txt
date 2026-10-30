@@ -251,6 +251,7 @@ set(SRC_OpenDAQ_Headers
     include/copendaq/opendaq/errors.h
     include/copendaq/opendaq/instance_builder.h
     include/copendaq/opendaq/instance.h
+    include/copendaq/opendaq/module_authenticator.h
 
     include/copendaq/reader/block_reader_builder.h
     include/copendaq/reader/block_reader_status.h
@@ -381,6 +382,7 @@ set(SRC_OpenDAQ_Cpp
     src/copendaq/opendaq/config_provider.cpp
     src/copendaq/opendaq/instance_builder.cpp
     src/copendaq/opendaq/instance.cpp
+    src/copendaq/opendaq/module_authenticator.cpp
 
     src/copendaq/reader/block_reader_builder.cpp
     src/copendaq/reader/block_reader_status.cpp

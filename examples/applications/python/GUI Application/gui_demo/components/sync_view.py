@@ -102,7 +102,7 @@ class SyncCard(tk.Frame):
         self.settings = tk.Frame(self, background=view.settings_background)
         view.wheel_bind(self)
 
-    def update(self, record, interface):
+    def fill(self, record, interface):
         self.record = record
         self.interface = interface
         self.dot.itemconfigure('dot', fill=STATUS_COLORS.get(source_status(interface), 'gray'))
@@ -581,7 +581,7 @@ class SyncView(ttk.Frame):
             if name not in self.cards:
                 self.cards[name] = SyncCard(self.cards_frame, self, name)
                 self.cards[name].pack(fill=tk.X, padx=8, pady=(0, 6))
-            self.cards[name].update(record, interface)
+            self.cards[name].fill(record, interface)
 
         if record.source.id != self.cards_source and record.source.id in self.cards:
             self.cards[record.source.id].open(True)

@@ -229,6 +229,38 @@ class TestGil(opendaq_test.TestCase):
             with open(path) as f:
                 self.assertEqual(f.read(), 'released')
 
+    def test_worker_releases_event_handler_at_exit(self):
+        out = self.run_scenario('''
+            import atexit
+            import threading
+
+            scheduler = opendaq.Scheduler(opendaq.Logger(opendaq.List(), opendaq.LogLevel.Info), 1)
+            big = (1 << 6_000_000) - 1
+            started = threading.Event()
+            returned = False
+
+            class Callback:
+                def __call__(self):
+                    global returned
+                    started.set()
+                    handlers = [opendaq.EventHandler(lambda sender, args: None) for _ in range(200_000)]
+                    returned = True
+                    # The worker releases the handlers one by one
+                    return handlers
+
+            def hold_gil():
+                started.wait()
+                # Holds the GIL until Python starts finalizing
+                big * big
+                print('callback returned before exit:', returned, flush=True)
+
+            awaitable = scheduler.schedule_function(opendaq.Function(Callback()))
+            del awaitable
+            atexit.register(hold_gil)
+        ''')
+        # Otherwise the worker released the handlers before Python started finalizing
+        self.assertIn('callback returned before exit: False', out)
+
 
 if __name__ == '__main__':
     unittest.main()

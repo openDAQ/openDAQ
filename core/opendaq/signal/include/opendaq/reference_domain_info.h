@@ -58,7 +58,9 @@ DECLARE_OPENDAQ_INTERFACE(IReferenceDomainInfo, IBaseObject)
      * or are synchronized using a protocol, such as PTP, NTP, IRIG, etc.).
      * Those signals can always be read together, implying that a Multi Reader 
      * can be used to read the signals if their sampling rates are compatible.
-     * The ID has the form <reference-type>[:<type-specific-identity>], eg. "ptp:0:001122fffe334455".
+     * The ID has the form <reference-type>[:<type-specific-identity>]. PTP uses
+     * "ptp:<domain-number>:<grandmaster identity as 16 lowercase hex digits>", eg. "ptp:0:001122fffe334455".
+     * NTP uses "ntp:<server IP address>", eg. "ntp:192.0.2.10".
      * While the device runs on its own clock, the ID is "local:<device-local-id>".
      */
     virtual ErrCode INTERFACE_FUNC getReferenceDomainId(IString** referenceDomainId) = 0;

@@ -15,77 +15,50 @@
  */
 
 #pragma once
-#include <ref_fb_module/common.h>
-#include <opendaq/function_block_ptr.h>
 #include <opendaq/function_block_type_factory.h>
-#include <opendaq/function_block_impl.h>
 #include <opendaq/signal_config_ptr.h>
-#include <opendaq/data_packet_ptr.h>
-#include <opendaq/multi_reader_ptr.h>
+#include <ref_fb_module/common.h>
+#include <ref_fb_module/reader_fb_base.h>
 
 BEGIN_NAMESPACE_REF_FB_MODULE
 
 namespace PowerReader
 {
 
-class PowerReaderFbImpl final : public FunctionBlock
+// Multiplies a voltage and a current input. It needs both, so it waits out errors; the voltage port is the pinned main
+// input, and a voltage signal in another unit than volts makes the reader invalid
+class PowerReaderFbImpl final : public ReaderFbBase
 {
 public:
     explicit PowerReaderFbImpl(const ModuleInfoPtr& moduleInfo,
                                const ContextPtr& ctx,
                                const ComponentPtr& parent,
                                const StringPtr& localId);
-    ~PowerReaderFbImpl() override = default;
 
     static FunctionBlockTypePtr CreateType(const ModuleInfoPtr& moduleInfo);
-    static bool descriptorNotNull(const DataDescriptorPtr& descriptor);
-    static void getDataDescriptors(const EventPacketPtr& eventPacket, DataDescriptorPtr& valueDesc, DataDescriptorPtr& domainDesc);
-    static bool getDataDescriptor(const EventPacketPtr& eventPacket, DataDescriptorPtr& valueDesc);
-    static bool getDomainDescriptor(const EventPacketPtr& eventPacket, DataDescriptorPtr& domainDesc);
 
 private:
-    InputPortPtr voltageInputPort;
-    InputPortPtr currentInputPort;
+    bool accepts(const ComponentPtr& input, const DataDescriptorPtr& descriptor, const ListPtr<IDataDescriptor>& values) override;
+    void processAndSend(SizeT count, SizeT packetOffset) override;
+    void rebuildOutputDescriptor() override;
 
-    DataDescriptorPtr voltageDescriptor;
-    DataDescriptorPtr currentDescriptor;
-    DataDescriptorPtr domainDescriptor;
-    RangePtr powerRange;
+    void initProperties();
+    void propertyChanged(bool rebuild);
+    void readProperties();
+    RangePtr valueRange(const DataDescriptorPtr& voltage, const DataDescriptorPtr& current) const;
 
-    DataDescriptorPtr powerDataDescriptor;
-    DataDescriptorPtr powerDomainDataDescriptor;
-
+    InputPortConfigPtr voltageInputPort;
+    InputPortConfigPtr currentInputPort;
     SignalConfigPtr powerSignal;
     SignalConfigPtr powerDomainSignal;
 
-    Float voltageScale;
-    Float voltageOffset;
-    Float currentScale;
-    Float currentOffset;
-    Float powerHighValue;
-    Float powerLowValue;
-    Bool useCustomOutputRange;
-    std::chrono::milliseconds tickOffsetToleranceUs;
-
-    MultiReaderPtr reader;
-
-    void createInputPorts();
-    void createReader();
-    void createSignals();
-    RangePtr getValueRange(const DataDescriptorPtr& voltageDataDescriptor, const DataDescriptorPtr& currentDataDescriptor);
-    void onDataReceived();
-
-    void checkPortConnections() const;
-    void onConnected(const InputPortPtr& inputPort) override;
-    void onDisconnected(const InputPortPtr& inputPort) override;
-
-    void configure(const DataDescriptorPtr& domainDescriptor,
-                   const DataDescriptorPtr& voltageDescriptor,
-                   const DataDescriptorPtr& currentDescriptor);
-
-    void initProperties();
-    void propertyChanged(bool configure);
-    void readProperties();
+    Float voltageScale = 1;
+    Float voltageOffset = 0;
+    Float currentScale = 1;
+    Float currentOffset = 0;
+    Float powerHighValue = 10;
+    Float powerLowValue = -10;
+    Bool useCustomOutputRange = false;
 };
 
 }

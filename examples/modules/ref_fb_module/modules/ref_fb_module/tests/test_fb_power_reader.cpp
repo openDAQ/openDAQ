@@ -201,6 +201,63 @@ TEST_F(PowerReaderTest, Simple)
     ctx.getScheduler().stop();
 }
 
+// Power is (VoltageScale * v + VoltageOffset) * (CurrentScale * i + CurrentOffset), and so is its value range
+TEST_F(PowerReaderTest, ScaleAndOffsetProperties)
+{
+    const auto ctx = createContext();
+    const auto module = createModule(ctx);
+    auto fb = module.createFunctionBlock("RefFBModulePowerReader", nullptr, "id");
+    fb.setPropertyValue("VoltageScale", 2.0);
+    fb.setPropertyValue("VoltageOffset", 1.0);
+    fb.setPropertyValue("CurrentScale", 3.0);
+    fb.setPropertyValue("CurrentOffset", -1.0);
+    createSignals(ctx);
+    voltageSignal.setDescriptor(DataDescriptorBuilder().setSampleType(SampleType::Float32).setValueRange(Range(0, 10)).build());
+    currentSignal.setDescriptor(DataDescriptorBuilder().setSampleType(SampleType::Float32).setValueRange(Range(-1, 1)).build());
+    fb.getInputPorts()[0].connect(voltageSignal);
+    fb.getInputPorts()[1].connect(currentSignal);
+
+    const auto timePacket = DataPacket(timeSignal.getDescriptor(), 10, 0);
+    const auto voltagePacket = DataPacketWithDomain(timePacket, voltageSignal.getDescriptor(), 10);
+    const auto currentPacket = DataPacketWithDomain(timePacket, currentSignal.getDescriptor(), 10);
+    for (size_t i = 0; i < 10; i++)
+    {
+        static_cast<float*>(voltagePacket.getRawData())[i] = static_cast<float>(i);
+        static_cast<float*>(currentPacket.getRawData())[i] = static_cast<float>(i);
+    }
+
+    const auto reader = StreamReaderBuilder()
+                            .setSkipEvents(True)
+                            .setSignal(fb.getSignals()[0])
+                            .setValueReadType(SampleType::Float64)
+                            .setDomainReadType(SampleType::Int64)
+                            .setReadMode(ReadMode::Scaled)
+                            .setReadTimeoutType(ReadTimeoutType::All)
+                            .build();
+    timeSignal.sendPacket(timePacket);
+    voltageSignal.sendPacket(voltagePacket);
+    currentSignal.sendPacket(currentPacket);
+
+    std::vector<double> data(10);
+    SizeT count = 10;
+    reader.read(data.data(), &count, 10000);
+    ASSERT_EQ(count, 10u);
+    for (size_t i = 0; i < 10; i++)
+        EXPECT_DOUBLE_EQ(data[i], (2.0 * i + 1.0) * (3.0 * i - 1.0));
+
+    // Voltage 1..21 V and current -4..2 A
+    auto range = fb.getSignals()[0].getDescriptor().getValueRange();
+    EXPECT_DOUBLE_EQ(range.getLowValue().getFloatValue(), -84.0);
+    EXPECT_DOUBLE_EQ(range.getHighValue().getFloatValue(), 42.0);
+
+    // A scale change rebuilds the range: voltage 1..11 V
+    fb.setPropertyValue("VoltageScale", 1.0);
+    range = fb.getSignals()[0].getDescriptor().getValueRange();
+    EXPECT_DOUBLE_EQ(range.getLowValue().getFloatValue(), -44.0);
+    EXPECT_DOUBLE_EQ(range.getHighValue().getFloatValue(), 22.0);
+    ctx.getScheduler().stop();
+}
+
 TEST_F(PowerReaderTest, MultiplePackets)
 {
     const auto ctx = createContext();

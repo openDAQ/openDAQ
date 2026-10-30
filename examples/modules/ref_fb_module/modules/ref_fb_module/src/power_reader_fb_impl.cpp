@@ -48,10 +48,10 @@ void PowerReaderFbImpl::initProperties()
         objPtr.getOnPropertyValueWrite(property.getName()) +=
             [this, rebuild](PropertyObjectPtr&, PropertyValueEventArgsPtr&) { propertyChanged(rebuild); };
     };
-    add(FloatProperty("VoltageScale", 1.0), false);
-    add(FloatProperty("VoltageOffset", 0.0), false);
-    add(FloatProperty("CurrentScale", 1.0), false);
-    add(FloatProperty("CurrentOffset", 0.0), false);
+    add(FloatProperty("VoltageScale", 1.0), true);
+    add(FloatProperty("VoltageOffset", 0.0), true);
+    add(FloatProperty("CurrentScale", 1.0), true);
+    add(FloatProperty("CurrentOffset", 0.0), true);
     add(FloatProperty("CustomHighValue", 10.0, EvalValue("$UseCustomOutputRange")), true);
     add(FloatProperty("CustomLowValue", -10.0, EvalValue("$UseCustomOutputRange")), true);
     add(BoolProperty("UseCustomOutputRange", False), true);
@@ -94,8 +94,11 @@ RangePtr PowerReaderFbImpl::valueRange(const DataDescriptorPtr& voltage, const D
     const auto currentRange = current.getValueRange();
     if (!voltageRange.assigned() || !currentRange.assigned())
         return nullptr;
-    const Float vh = voltageRange.getHighValue(), vl = voltageRange.getLowValue();
-    const Float ch = currentRange.getHighValue(), cl = currentRange.getLowValue();
+    // Each input's range scaled as the samples are; the products of the ends bound the power for any sign of scale
+    const Float vh = voltageScale * voltageRange.getHighValue().getFloatValue() + voltageOffset;
+    const Float vl = voltageScale * voltageRange.getLowValue().getFloatValue() + voltageOffset;
+    const Float ch = currentScale * currentRange.getHighValue().getFloatValue() + currentOffset;
+    const Float cl = currentScale * currentRange.getLowValue().getFloatValue() + currentOffset;
     return Range(std::min({vh * ch, vh * cl, vl * ch, vl * cl}), std::max({vh * ch, vh * cl, vl * ch, vl * cl}));
 }
 
@@ -126,7 +129,8 @@ void PowerReaderFbImpl::processAndSend(SizeT count, SizeT packetOffset)
     const auto valuePacket = DataPacketWithDomain(domainPacket, powerSignal.getDescriptor(), count);
     auto* power = static_cast<double*>(valuePacket.getRawData());
     for (SizeT i = 0; i < count; ++i)
-        power[i] = (voltageScale * voltage[i * voltageStride] + voltageOffset) * current[i * currentStride];
+        power[i] =
+            (voltageScale * voltage[i * voltageStride] + voltageOffset) * (currentScale * current[i * currentStride] + currentOffset);
     powerDomainSignal.sendPacket(domainPacket);
     powerSignal.sendPacket(valuePacket);
 }

@@ -37,9 +37,9 @@ daqErrCode daqReferenceDomainInfo_getReferenceTimeProtocol(daqReferenceDomainInf
     return reinterpret_cast<daq::IReferenceDomainInfo*>(self)->getReferenceTimeProtocol(reinterpret_cast<daq::TimeProtocol*>(referenceTimeProtocol));
 }
 
-daqErrCode daqReferenceDomainInfo_getUsesOffset(daqReferenceDomainInfo* self, daqUsesOffset* usesOffset)
+daqErrCode daqReferenceDomainInfo_getReferenceDomainIds(daqReferenceDomainInfo* self, daqList** referenceDomainIds)
 {
-    return reinterpret_cast<daq::IReferenceDomainInfo*>(self)->getUsesOffset(reinterpret_cast<daq::UsesOffset*>(usesOffset));
+    return reinterpret_cast<daq::IReferenceDomainInfo*>(self)->getReferenceDomainIds(reinterpret_cast<daq::IList**>(referenceDomainIds));
 }
 
 daqErrCode daqReferenceDomainInfo_createReferenceDomainInfoFromBuilder(daqReferenceDomainInfo** obj, daqReferenceDomainInfoBuilder* builder)

@@ -2,6 +2,7 @@
 
 ## Features
 
+- [#1045](https://github.com/openDAQ/openDAQ/pull/1045) Implement ISynchronization and ISyncInterface
 - [#1242](https://github.com/openDAQ/openDAQ/pull/1242) Implement IContext::getRootDevice
 - [#1244](https://github.com/openDAQ/openDAQ/pull/1244) Static objects and object pool
 - [#1258](https://github.com/openDAQ/openDAQ/pull/1258) Make device info the nested device property
@@ -68,6 +69,15 @@ Nested property objects share their owner's lock, so a handler on a nested objec
 
 The module manager no longer ignores the error code returned by `IModuleAuthenticator::authenticateModuleBinary`. A failure code aborts loading of the module and is returned to the caller with the authenticator's error message.
 
+### [#1045](https://github.com/openDAQ/openDAQ/pull/1045) ISynchronization replaces ISyncComponent
+
+- `UsesOffset`, `IReferenceDomainInfo::getUsesOffset` and `IReferenceDomainInfoBuilder::setUsesOffset`/`getUsesOffset` are removed in C++, C, Python and .NET; `getReferenceDomainIds` lists the reference domains instead.
+- The reference device reports the reference domain ID `local:openDAQ_<serial>` instead of `openDAQ_<serial>`, the simulator device `local:<localId>` instead of `<localId>`, and both report the time protocol `Utc`.
+- The reference device's deprecated `SyncComponent` holds no interfaces; `IDevice::getSynchronization` replaces it.
+- Calls to `getSyncComponent` and the `SyncComponentPtr` methods produce deprecation warnings, which fail builds that treat warnings as errors.
+- Python: the `opendaq.SyncComponent` argument `parse_failed_exception` is renamed to `parent`.
+- Clients built before this change cannot add a device that exposes `ISynchronization`, which includes the reference and simulator devices.
+
 ## Required module changes
 
 ### [#1352](https://github.com/openDAQ/openDAQ/pull/1352) A public value signal cannot have a private domain signal
@@ -90,13 +100,46 @@ Nested property objects share their owner's lock, so a handler on a nested objec
 
 Lock attributes when the component is constructed. After that, unlock an attribute only briefly to apply an internal change, and lock it again right after. Locking or unlocking does not trigger a core event, so locks changed later do not reach connected clients.
 
+### [#1045](https://github.com/openDAQ/openDAQ/pull/1045) ISynchronization replaces ISyncComponent
+
+- `IDevice` implementations not derived from `GenericDevice` implement `getSynchronization`.
+- Modules that set `UsesOffset` remove it and set `ReferenceDomainIds`.
+- `IReferenceDomainInfo::getReferenceDomainIds` takes the interface slot of the removed `getUsesOffset`; modules built against older headers must be rebuilt.
+
 ## Interface API changes
 
 ### New interfaces
 
+```diff
++ [interface] ISynchronization
++ [interface] ISynchronizationPrivate
++ [interface] ISyncInterface
++ [interface] ISyncInterfaceInternal
++ [enum] SyncMode, SyncSourceStatus, SyncRoleStatus
+```
+
 ### Removed interfaces
 
 ### Modified interfaces
+
+#### `IDevice`
+```diff
++ IDevice::getSynchronization(ISynchronization** sync);
+```
+
+#### `IReferenceDomainInfo`
+```diff
+- IReferenceDomainInfo::getUsesOffset(UsesOffset* usesOffset);
++ IReferenceDomainInfo::getReferenceDomainIds(IList** referenceDomainIds);
+```
+
+#### `IReferenceDomainInfoBuilder`
+```diff
+- IReferenceDomainInfoBuilder::setUsesOffset(UsesOffset usesOffset);
+- IReferenceDomainInfoBuilder::getUsesOffset(UsesOffset* usesOffset);
++ IReferenceDomainInfoBuilder::setReferenceDomainIds(IList* referenceDomainIds);
++ IReferenceDomainInfoBuilder::getReferenceDomainIds(IList** referenceDomainIds);
+```
 
 #### `Context`
 ```diff

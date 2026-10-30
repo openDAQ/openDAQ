@@ -814,7 +814,7 @@ TEST_F(PtpSyncInterfaceTest, ValuesClampedToIeee1588Ranges)
     const auto configuration = iface.getConfig();
     configuration.setPropertyValue("DomainNumber", 1000);
     configuration.setPropertyValue("UtcOffset", 100000);
-    configuration.setPropertyValue("PortConfiguration.eth0.LogSyncInterval", 64);
+    configuration.setPropertyValue("PortConfiguration.eth0.LogSyncInterval", 1000);
     ASSERT_EQ(configuration.getPropertyValue("DomainNumber"), 255);
     ASSERT_EQ(configuration.getPropertyValue("UtcOffset"), 32767);
     ASSERT_EQ(configuration.getPropertyValue("PortConfiguration.eth0.LogSyncInterval"), 127);

@@ -10,7 +10,7 @@ SynchronizationImpl::SynchronizationImpl(const TypeManagerPtr& manager, const St
     , sourceInterfaces(List<IString>())
 {
     // Access to the synchronization follows the device's permissions
-    this->permissionManager.setPermissions(PermissionsBuilder().inherit(true).build());
+    this->objPtr.getPermissionManager().setPermissions(PermissionsBuilder().inherit(true).build());
     const auto interfaces = PropertyObject();
     interfaces.getPermissionManager().setPermissions(PermissionsBuilder().inherit(true).build());
     this->addProperty(ObjectProperty("Interfaces", interfaces));

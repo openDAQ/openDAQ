@@ -138,6 +138,18 @@ TEST_F(RefDeviceModuleTest, CreateRootDeviceConnectionStringCorrect)
     ASSERT_EQ(device.getInfo().getDeviceType().getId(), "daqref_root");
 }
 
+TEST_F(RefDeviceModuleTest, RootAndExternalDeviceKinds)
+{
+    auto instance = InstanceBuilder().setModulePath("[[none]]").build();
+    ModulePtr module;
+    createModule(&module, instance.getContext());
+    instance.getModuleManager().addModule(module);
+
+    ASSERT_THROW(instance.setRootDevice("daqref://device0"), InvalidParameterException);
+    ASSERT_THROW(instance.addDevice("daqref.root://device1"), InvalidParameterException);
+    ASSERT_NO_THROW(instance.addDevice("daqref://device1"));
+}
+
 TEST_F(RefDeviceModuleTest, DeviceVersion)
 {
     auto module = CreateModule();

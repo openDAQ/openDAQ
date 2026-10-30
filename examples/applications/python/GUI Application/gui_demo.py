@@ -293,7 +293,7 @@ class App(tk.Tk):
 
     def handle_view_signal_preview_toggled(self):
         self.context.view_signal_preview = self._signal_preview_var.get()
-        if self.context.selected_node is not None:
+        if self.context.selected_node is not None and self.sync_view is None:
             self.right_side_panel_clear()
             self.right_side_panel_draw_node(self.context.selected_node)
             

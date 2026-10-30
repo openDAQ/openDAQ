@@ -1,12 +1,17 @@
 #include <coretypes/ctutils.h>
 #include <coretypes/validation.h>
 #include <opendaq/data_rule_ptr.h>
+#include <opendaq/event_packet_ids.h>
+#include <opendaq/event_packet_ptr.h>
+#include <opendaq/event_packet_utils.h>
 #include <opendaq/multi_reader2_status_impl.h>
 #include <opendaq/multi_reader_data_manager.h>
 #include <opendaq/reader_utils.h>
 #include <opendaq/sample_type_traits.h>
 
 #include <algorithm>
+#include <limits>
+#include <numeric>
 
 BEGIN_NAMESPACE_OPENDAQ
 
@@ -124,6 +129,43 @@ namespace
         }
         return count;
     }
+
+    // Checked int64 arithmetic for the ticks; false on overflow
+    constexpr std::int64_t int64Max = std::numeric_limits<std::int64_t>::max();
+    constexpr std::int64_t int64Min = std::numeric_limits<std::int64_t>::min();
+
+    bool mulChecked(std::int64_t a, std::int64_t b, std::int64_t& result)
+    {
+        if (a > 0 ? (b > 0 ? a > int64Max / b : b < int64Min / a) : (b > 0 ? a < int64Min / b : a != 0 && b < int64Max / a))
+            return false;
+        result = a * b;
+        return true;
+    }
+
+    bool addChecked(std::int64_t a, std::int64_t b, std::int64_t& result)
+    {
+        if ((b > 0 && a > int64Max - b) || (b < 0 && a < int64Min - b))
+            return false;
+        result = a + b;
+        return true;
+    }
+
+    bool subChecked(std::int64_t a, std::int64_t b, std::int64_t& result)
+    {
+        if ((b < 0 && a > int64Max + b) || (b > 0 && a < int64Min + b))
+            return false;
+        result = a - b;
+        return true;
+    }
+
+    // a - b > limit; a difference beyond int64 exceeds any limit
+    bool exceeds(std::int64_t a, std::int64_t b, std::int64_t limit)
+    {
+        std::int64_t difference;
+        if (!subChecked(a, b, difference))
+            return a > b;
+        return difference > limit;
+    }
 }
 
 // ---------------------------------------------------------------- configuration
@@ -181,7 +223,10 @@ ErrCode MultiReaderDataManager::reconfigure(Config newConfig, IMultiReader2Statu
         // As if newly constructed: no SyncFailed and no main input carried over
         for (auto& slot : slots)
         {
-            // TODO(ingest): drop the queued data and events; latest* already holds the result of the events
+            // Applying the queued events leaves latest*; their data goes with them
+            slot.queue.clear();
+            slot.frontCount = 0;
+            slot.events = 0;
             slot.connected = slot.latestConnected;
             slot.value = slot.latestValue;
             slot.domain = slot.latestDomain;
@@ -221,12 +266,14 @@ ErrCode MultiReaderDataManager::rejudge(IMultiReader2Status** status)
         {
             // Internal reconfigure: the reader became invalid or valid again, or the automatic main input moved. The
             // verdicts are fresh, so the inputs are not judged a second time
-            // TODO(ingest): apply every queued event first, as the internal reconfigure in read does
+            // TODO(read): apply every queued event first, as the internal reconfigure in read does; until then restart
+            // keeps the events for the next read
             restart();
         }
         else
         {
             // As on a descriptor event; the other inputs keep their queued data
+            bool rejoined = false;
             for (SizeT i = 0; i < slots.size(); ++i)
             {
                 Slot& slot = slots[i];
@@ -237,15 +284,18 @@ ErrCode MultiReaderDataManager::rejudge(IMultiReader2Status** status)
                 if (slot.error == MultiReader2InputError::None)
                 {
                     // Rejoins under Exclude
-                    // TODO(sync): rejoin with a synchronization
                     slot.descriptorChanged = true;
+                    rejoined = true;
                 }
                 else
                 {
-                    // Set aside under Exclude
-                    // TODO(ingest): drop the input's queued data
+                    // Set aside under Exclude; data behind a queued event waits for the read that applies it
+                    dropFront(slot);
                 }
             }
+            if (rejoined)
+                startSync();
+            synchronize();
         }
 
         *status = buildStatus().detach();
@@ -356,8 +406,7 @@ bool MultiReaderDataManager::matchesMain(const DomainInfo& input, const DomainIn
     if (input.rate != main.rate)
         return false;
 
-    // seconds / (num / den seconds per tick)
-    // TODO(sync): the difference becomes the input's tick offset
+    // seconds / (num / den seconds per tick); mapToMain turns the difference into the input's tick offset
     const std::int64_t originDifference = input.originS - main.originS;
     return originDifference * main.resolution.getDenominator() % main.resolution.getNumerator() == 0;
 }
@@ -421,16 +470,41 @@ void MultiReaderDataManager::restart()
 {
     for (auto& slot : slots)
     {
-        // TODO(ingest): drop the queued data
+        // A new run on every input; the main input may have changed, and with it every main tick
+        dropData(slot);
+        slot.nextOffset.reset();
+        slot.newestTick.reset();
+        slot.latestInfo = parseDomain(slot.latestDomain);
+        if (slot.syncFailed == SyncCause::None)
+            slot.clearPending = false;
         slot.descriptorChanged = slot.error == MultiReader2InputError::None;
     }
     domainChanged = true;
     resynchronized = true;
     statusOwed = true;
 
+    mainDelta = 1;
+    syncLimitTicks = 0;
+    if (mainSlot.has_value() && slots[*mainSlot].domainInfo.valid)
+    {
+        const DomainInfo& main = slots[*mainSlot].domainInfo;
+        mainDelta = main.delta;
+        syncLimitTicks = 2 * main.rate * main.delta;   // rate * delta ticks per second
+    }
+    for (SizeT i = 0; i < slots.size(); ++i)
+        mapToMain(i);
+
     // A reader without inputs is valid and has nothing to synchronize
     state = level() == ComponentStatus::Error ? State::Invalid : State::Syncing;
-    // TODO(sync): reset commonStart and readTick, set syncLimitTicks to 2 s of the main input's ticks
+    readTick = 0;
+}
+
+// A synchronization trigger while valid, such as a rejoin under Exclude
+void MultiReaderDataManager::startSync()
+{
+    if (state == State::Invalid)
+        return;
+    state = State::Syncing;
 }
 
 // ---------------------------------------------------------------- status
@@ -528,9 +602,24 @@ SizeT MultiReaderDataManager::getAvailableCount()
 {
     std::scoped_lock lock(mutex);
 
-    // TODO(read): the samples every healthy input has in front of its first queued event; 0 while a status is owed
-    // (C1), while synchronizing, or below MinReadCount. With no queues yet there are none
-    return 0;
+    // 0 while a status is owed (C1)
+    return statusOwed ? 0 : frontAvailable();
+}
+
+// The samples every healthy input has in front of its first queued event; 0 while synchronizing or below MinReadCount.
+// While streaming, every contributing input's front starts at readTick
+SizeT MultiReaderDataManager::frontAvailable() const
+{
+    if (state != State::Streaming)
+        return 0;
+
+    std::optional<SizeT> count;
+    for (const auto& slot : slots)
+    {
+        if (slot.error == MultiReader2InputError::None)
+            count = std::min(count.value_or(slot.frontCount), slot.frontCount);
+    }
+    return count.has_value() && *count >= config.minReadCount ? *count : 0;
 }
 
 ErrCode MultiReaderDataManager::read(void** data, SizeT* count, SizeT timeoutMs, SizeT* packetOffset, IMultiReader2Status** status)
@@ -622,19 +711,348 @@ void MultiReaderDataManager::readStatus(SizeT* count, SizeT* packetOffset, IMult
 
 // ---------------------------------------------------------------- producer side
 
-bool MultiReaderDataManager::connected(SizeT /*slot*/, const DataDescriptorPtr& /*value*/, const DataDescriptorPtr& /*domain*/)
+bool MultiReaderDataManager::connected(SizeT i, const DataDescriptorPtr& value, const DataDescriptorPtr& domain)
 {
-    return false;
+    std::scoped_lock lock(mutex);
+    Slot& slot = slots[i];
+
+    // A connect the reader already has, such as one configure read before it took the port over
+    if (slot.latestConnected)
+        return queueDescriptor(i, value, domain);
+
+    slot.latestConnected = true;
+    if (!slot.queue.empty() && slot.queue.back().event.has_value() && slot.queue.back().event->kind == Event::Kind::Disconnected)
+    {
+        // A disconnect and reconnect with nothing between them cancel out (Error conditions). The run continues, so
+        // a jump to the new signal's data is a gap
+        slot.queue.pop_back();
+        --slot.events;
+        return queueDescriptor(i, value, domain);
+    }
+
+    // Possibly another signal: a new run, which continues nothing
+    slot.latestValue = value;
+    slot.latestDomain = domain;
+    slot.latestInfo = parseDomain(domain);
+    mapToMain(i);
+    slot.nextOffset.reset();
+    pushEvent(slot, {Event::Kind::Connected, value, domain});
+    return true;
 }
 
-bool MultiReaderDataManager::disconnected(SizeT /*slot*/)
+bool MultiReaderDataManager::disconnected(SizeT i)
 {
-    return false;
+    std::scoped_lock lock(mutex);
+    Slot& slot = slots[i];
+    if (!slot.latestConnected)
+        return false;
+
+    slot.latestConnected = false;
+    pushEvent(slot, {Event::Kind::Disconnected});
+    return true;
 }
 
-bool MultiReaderDataManager::addPacket(SizeT /*slot*/, const PacketPtr& /*packet*/)
+bool MultiReaderDataManager::addPacket(SizeT i, const PacketPtr& packet)
 {
-    return false;
+    std::scoped_lock lock(mutex);
+    switch (packet.getType())
+    {
+        case PacketType::Event:
+        {
+            // The gap event packet is ignored with the others: the continuity check finds the same jump
+            const auto eventPacket = packet.asPtr<IEventPacket>(true);
+            if (eventPacket.getEventId() != event_packet_id::DATA_DESCRIPTOR_CHANGED)
+                return false;
+            const auto [valueNew, domainNew, value, domain] = parseDataDescriptorEventPacket(eventPacket);
+            const Slot& slot = slots[i];
+            return queueDescriptor(i, valueNew ? value : slot.latestValue, domainNew ? domain : slot.latestDomain);
+        }
+        case PacketType::Data:
+            return ingestData(i, packet.asPtr<IDataPacket>(true));
+        default:
+            return false;
+    }
+}
+
+// Queues a descriptor event unless both descriptors equal the ones last seen
+bool MultiReaderDataManager::queueDescriptor(SizeT i, const DataDescriptorPtr& value, const DataDescriptorPtr& domain)
+{
+    Slot& slot = slots[i];
+    if (value == slot.latestValue && domain == slot.latestDomain)
+        return false;
+
+    if (domain != slot.latestDomain)
+    {
+        // A new domain starts a new run
+        slot.latestInfo = parseDomain(domain);
+        mapToMain(i);
+        slot.nextOffset.reset();
+    }
+    slot.latestValue = value;
+    slot.latestDomain = domain;
+    pushEvent(slot, {Event::Kind::Descriptor, value, domain});
+    return true;
+}
+
+bool MultiReaderDataManager::ingestData(SizeT i, const DataPacketPtr& packet)
+{
+    Slot& slot = slots[i];
+    const SizeT count = packet.getSampleCount();
+    if (count == 0)
+        return false;
+
+    std::optional<std::int64_t> offset;
+    const auto domainPacket = packet.getDomainPacket();
+    if (domainPacket.assigned() && domainPacket.getOffset().assigned())
+        offset = domainPacket.getOffset().getIntValue();
+
+    // Continuity in the input's own ticks, so it holds without a main input
+    const bool gap = offset.has_value() && slot.nextOffset.has_value() && *offset != *slot.nextOffset;
+    std::int64_t span, next;
+    if (offset.has_value() && slot.latestInfo.delta > 0 && mulChecked(static_cast<std::int64_t>(count), slot.latestInfo.delta, span) &&
+        addChecked(*offset, span, next))
+        slot.nextOffset = next;
+    else
+        slot.nextOffset.reset();
+
+    const auto firstTick = offset.has_value() ? toMainTick(slot, *offset) : std::nullopt;
+    std::int64_t lastSpan, last;
+    if (firstTick.has_value() && mulChecked(static_cast<std::int64_t>(count - 1), mainDelta, lastSpan) &&
+        addChecked(*firstTick, lastSpan, last))
+        slot.newestTick = last;
+    else
+        slot.newestTick.reset();
+
+    // While the reader is invalid or the input is in error, data with no event ahead of it is dropped
+    bool keep = slot.events > 0 || (state != State::Invalid && slot.error == MultiReader2InputError::None);
+
+    // A gap ends the run. On an off-grid input it clears the failure, so it is queued even while the data is dropped,
+    // and the data behind it waits for the read that applies it
+    bool trigger = false;
+    if (gap && (keep || slot.syncFailed == SyncCause::OffGrid))
+    {
+        pushEvent(slot, {Event::Kind::Gap});
+        keep = true;
+        trigger = true;
+    }
+
+    if (keep)
+    {
+        if (slot.events == 0)
+            slot.frontCount += count;
+        Entry entry;
+        entry.packet = packet;
+        entry.count = count;
+        entry.firstTick = firstTick;
+        slot.queue.push_back(std::move(entry));
+    }
+
+    trigger |= markClear(i, firstTick);
+    trigger |= synchronize();
+    return trigger || frontAvailable() > 0;
+}
+
+// The map from the input's latest domain to the main input's domain in force; invalid without a main input, or when
+// the origin difference is no whole number of main ticks
+void MultiReaderDataManager::mapToMain(SizeT i)
+{
+    Slot& slot = slots[i];
+    slot.toMain = TickMap();
+    if (!mainSlot.has_value())
+        return;
+
+    const DomainInfo& input = slot.latestInfo;
+    const DomainInfo& main = slots[*mainSlot].domainInfo;
+    if (!input.valid || !main.valid)
+        return;
+
+    // (num_i / den_i) / (num_m / den_m), reduced
+    std::int64_t p, q, difference;
+    if (!mulChecked(input.resolution.getNumerator(), main.resolution.getDenominator(), p) ||
+        !mulChecked(input.resolution.getDenominator(), main.resolution.getNumerator(), q))
+        return;
+    const std::int64_t divisor = std::gcd(p, q);
+
+    // seconds / (num_m / den_m seconds per tick)
+    if (!mulChecked(input.originS - main.originS, main.resolution.getDenominator(), difference) ||
+        difference % main.resolution.getNumerator() != 0)
+        return;
+
+    slot.toMain = {true, p / divisor, q / divisor, difference / main.resolution.getNumerator()};
+}
+
+// A packet's first tick in main ticks; unset when it is no whole main tick or out of range, which counts as off grid
+std::optional<std::int64_t> MultiReaderDataManager::toMainTick(const Slot& slot, std::int64_t packetOffset)
+{
+    const TickMap& map = slot.toMain;
+    std::int64_t tick, scaled, result;
+    if (!map.valid || !addChecked(packetOffset, slot.latestInfo.start, tick) || tick % map.q != 0 ||
+        !mulChecked(tick / map.q, map.p, scaled) || !addChecked(scaled, map.offset, result))
+        return std::nullopt;
+    return result;
+}
+
+void MultiReaderDataManager::pushEvent(Slot& slot, Event event)
+{
+    Entry entry;
+    entry.event = std::move(event);
+    slot.queue.push_back(std::move(entry));
+    ++slot.events;
+}
+
+// The data in front of the first event
+void MultiReaderDataManager::dropFront(Slot& slot)
+{
+    while (!slot.queue.empty() && !slot.queue.front().event.has_value())
+        slot.queue.pop_front();
+    slot.frontCount = 0;
+}
+
+// All queued data; the events stay
+void MultiReaderDataManager::dropData(Slot& slot)
+{
+    slot.queue.erase(std::remove_if(slot.queue.begin(), slot.queue.end(), [](const Entry& entry) { return !entry.event.has_value(); }),
+                     slot.queue.end());
+    slot.frontCount = 0;
+}
+
+// The front run's samples before the tick. The run has one sample every mainDelta ticks: a gap would have ended it
+void MultiReaderDataManager::discardBefore(Slot& slot, std::int64_t tick) const
+{
+    while (!slot.queue.empty() && !slot.queue.front().event.has_value())
+    {
+        Entry& entry = slot.queue.front();
+        std::int64_t distance;
+        if (!entry.firstTick.has_value() || *entry.firstTick >= tick)
+            return;
+
+        if (subChecked(tick, *entry.firstTick, distance))
+        {
+            const auto behind = static_cast<SizeT>((distance + mainDelta - 1) / mainDelta);
+            if (behind < entry.count)
+            {
+                entry.start += behind;
+                entry.count -= behind;
+                *entry.firstTick += static_cast<std::int64_t>(behind) * mainDelta;
+                slot.frontCount -= behind;
+                return;
+            }
+        }
+        slot.frontCount -= entry.count;
+        slot.queue.pop_front();
+    }
+}
+
+// Drops the input's data and queues the failure in front of it, where the next read applies it
+void MultiReaderDataManager::failSync(Slot& slot, SyncCause cause)
+{
+    dropFront(slot);
+
+    Entry entry;
+    entry.event = Event{Event::Kind::SyncFailed, nullptr, nullptr, cause};
+    slot.queue.push_front(std::move(entry));
+    ++slot.events;
+    slot.frontCount = 0;
+}
+
+// The check mechanism (Synchronization) over the inputs' front runs, on every ingest while synchronizing. Returns
+// whether it reached the common start or failed an input
+bool MultiReaderDataManager::synchronize()
+{
+    if (state != State::Syncing || !mainSlot.has_value())
+        return false;
+
+    // While the main input's front is an event, nobody is judged
+    Slot& main = slots[*mainSlot];
+    if (main.queue.empty() || main.queue.front().event.has_value() || !main.queue.front().firstTick.has_value())
+        return false;
+    const auto runEnd = [this](const Slot& slot)
+    {
+        return *slot.queue.front().firstTick + static_cast<std::int64_t>(slot.frontCount - 1) * mainDelta;
+    };
+    const std::int64_t mainFirst = *main.queue.front().firstTick;
+    const std::int64_t mainLatest = runEnd(main);
+
+    // Inputs with data in front of their first event. A failed input's marker is such an event, so it takes no
+    // further part
+    bool reported = false;
+    std::vector<SizeT> candidates;
+    for (SizeT i = 0; i < slots.size(); ++i)
+    {
+        Slot& slot = slots[i];
+        if (i == *mainSlot || slot.error != MultiReader2InputError::None || slot.queue.empty() || slot.queue.front().event.has_value())
+            continue;
+
+        // Grid first (step 1), as an off-grid first tick cannot be the common start; then ahead (step 2)
+        const auto& first = slot.queue.front().firstTick;
+        std::int64_t distance;
+        if (!first.has_value() || !subChecked(*first, mainFirst, distance) || distance % mainDelta != 0)
+            failSync(slot, SyncCause::OffGrid);
+        else if (exceeds(*first, mainLatest, syncLimitTicks))
+            failSync(slot, SyncCause::Limit);
+        else
+        {
+            candidates.push_back(i);
+            continue;
+        }
+        reported = true;
+    }
+
+    // The common start (step 3)
+    std::int64_t common = mainFirst;
+    for (const SizeT i : candidates)
+        common = std::max(common, *slots[i].queue.front().firstTick);
+
+    // Discard in front of the common start (step 5); an input whose data is all behind it is left empty
+    discardBefore(main, common);
+    for (const SizeT i : candidates)
+        discardBefore(slots[i], common);
+
+    // Behind (step 4): still no data at the common start once the main input holds more than the limit from it,
+    // however far behind the input was
+    if (exceeds(mainLatest, common, syncLimitTicks))
+    {
+        for (SizeT i = 0; i < slots.size(); ++i)
+        {
+            Slot& slot = slots[i];
+            if (i == *mainSlot || slot.error != MultiReader2InputError::None || !slot.queue.empty())
+                continue;
+            failSync(slot, SyncCause::Limit);
+            reported = true;
+        }
+    }
+
+    // Streaming begins once every contributing input is at the common start or has failed
+    for (const auto& slot : slots)
+    {
+        if (slot.error != MultiReader2InputError::None)
+            continue;
+        if (slot.queue.empty())
+            return reported;
+        const Entry& front = slot.queue.front();
+        if (front.event.has_value() ? front.event->kind != Event::Kind::SyncFailed : front.firstTick != common)
+            return reported;
+    }
+    state = State::Streaming;
+    readTick = common;
+    return true;
+}
+
+// An input failed on the sync limit whose packet, from its first tick to its newest, meets the main input's latest sample +/- the limit.
+// Marked once, until a read clears it
+bool MultiReaderDataManager::markClear(SizeT i, const std::optional<std::int64_t>& firstTick)
+{
+    Slot& slot = slots[i];
+    if (slot.syncFailed != SyncCause::Limit || slot.clearPending || !firstTick.has_value() || !slot.newestTick.has_value() ||
+        !mainSlot.has_value() || !slots[*mainSlot].newestTick.has_value())
+        return false;
+
+    const std::int64_t mainLatest = *slots[*mainSlot].newestTick;
+    if (exceeds(mainLatest, *slot.newestTick, syncLimitTicks) || exceeds(*firstTick, mainLatest, syncLimitTicks))
+        return false;
+
+    slot.clearPending = true;
+    return true;
 }
 
 // ---------------------------------------------------------------- wake

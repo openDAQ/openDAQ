@@ -34,6 +34,7 @@
 - [#1321](https://github.com/openDAQ/openDAQ/pull/1321) Take the property object's lock while serializing its values and local properties, so serialization no longer reads containers that a concurrent property write is modifying.
 - [#1324](https://github.com/openDAQ/openDAQ/pull/1324) `setVisible` returns `OPENDAQ_IGNORED` and fires no `AttributeChanged` when the value is unchanged, as `setActive`, `setName` and `setDescription` already do.
 - [#1350](https://github.com/openDAQ/openDAQ/pull/1350) The client no longer sends requests while applying a server update.
+- [#1366](https://github.com/openDAQ/openDAQ/pull/1366) Components send their locked attributes to native configuration clients, so a client shows the same locked attributes as the device.
 
 ## Misc
 
@@ -79,6 +80,10 @@ Nested property objects share their owner's lock, so a handler on a nested objec
 `getProperty`, `hasProperty`, `getAllProperties`, `getVisibleProperties` and `clone` now take the object's recursive lock. Under the non-recursive `getLockGuard` use the `NoLock` variants. Under another mutex, such as the acquisition lock, they take the property lock second, which inverts the order of a write handler that takes that mutex under the property lock; read property metadata before taking the acquisition lock.
 
 Nested property objects share their owner's lock, so a handler on a nested object runs under the owning component's lock. To keep a separate lock, set `LockingStrategy::OwnLock` before the object is assigned; clones keep the strategy.
+
+### [#1366](https://github.com/openDAQ/openDAQ/pull/1366) Lock component attributes during construction
+
+Lock attributes when the component is constructed. After that, unlock an attribute only briefly to apply an internal change, and lock it again right after. Locking or unlocking does not trigger a core event, so locks changed later do not reach connected clients.
 
 ## Interface API changes
 

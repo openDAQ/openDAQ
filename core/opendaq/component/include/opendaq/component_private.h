@@ -31,6 +31,10 @@ BEGIN_NAMESPACE_OPENDAQ
  *
  * Said methods allow for triggering a Core event of the component, and locking/unlocking attributes of
  * the component.
+ *
+ * The set of locked attributes must be set up when the component is constructed and must not change afterwards.
+ * After construction, an attribute may only be unlocked temporarily to apply an internal change to it, and must be
+ * locked again right after. Locking or unlocking an attribute does not trigger a core event.
  */
 DECLARE_OPENDAQ_INTERFACE(IComponentPrivate, IBaseObject)
 {

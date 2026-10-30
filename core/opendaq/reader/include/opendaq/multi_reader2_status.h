@@ -69,7 +69,7 @@ DECLARE_OPENDAQ_INTERFACE(IMultiReader2Status, IBaseObject)
     virtual ErrCode INTERFACE_FUNC getDomainDescriptorChanged(Bool* changed) = 0;
 
     /*!
-     * @brief Gets the main input's domain descriptor; null while the reader is invalid.
+     * @brief Gets the main input's domain descriptor; null while the reader is invalid, even with a main input.
      * @param[out] descriptor The domain descriptor.
      */
     virtual ErrCode INTERFACE_FUNC getDomainDescriptor(IDataDescriptor** descriptor) = 0;

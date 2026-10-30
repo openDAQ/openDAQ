@@ -459,10 +459,6 @@ void MultiReaderDataManager::settleMainInput(bool keepMain)
             slot.error = MultiReader2InputError::SyncFailed;
         slot.errorText = describeError(slot);
     }
-
-    // Invalid with an automatic main input: none is assigned, the recovery picks afresh
-    if (!config.mainSlot.has_value() && level() == ComponentStatus::Error)
-        mainSlot.reset();
 }
 
 // The end of every reconfigure, internal or not: everything is reported anew and synchronization starts
@@ -579,7 +575,9 @@ MultiReader2StatusPtr MultiReaderDataManager::buildStatus()
         }
     }
 
+    // An invalid reader keeps a healthy automatic main input internally, but reports none; a pinned one always shows
     const bool hasMainDomain = valid && mainSlot.has_value();
+    const bool reportMain = mainSlot.has_value() && (valid || config.mainSlot.has_value());
     auto result = createWithImplementation<IMultiReader2Status, MultiReader2StatusImpl>(
         statusOwed,
         status,
@@ -587,7 +585,7 @@ MultiReader2StatusPtr MultiReaderDataManager::buildStatus()
         hasMainDomain && domainChanged,
         hasMainDomain ? slots[*mainSlot].domain : nullptr,
         valid && resynchronized,
-        mainSlot.has_value() ? config.inputs[*mainSlot] : nullptr,
+        reportMain ? config.inputs[*mainSlot] : nullptr,
         inputs);
 
     statusOwed = false;

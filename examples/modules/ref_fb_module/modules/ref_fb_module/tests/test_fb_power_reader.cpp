@@ -507,6 +507,8 @@ TEST_F(PowerReaderTest, InvalidateVoltageSignal)
 
     fb.getInputPorts()[0].connect(voltageSignal);
     fb.getInputPorts()[1].connect(currentSignal);
+    // The block sets its output descriptor once its reader applied the connects, on the scheduler
+    ctx.getScheduler().waitAll();
 
     const auto powerSignal = fb.getSignals()[0];
 
@@ -658,8 +660,13 @@ TEST_F(PowerReaderTestStatus, StatisticsStatusOk2)
     auto signal = SignalWithDescriptor(context, signalDescriptor, nullptr, "signal");
 
     // Create domain signal with descriptor
-    auto domainSignalLinearDescriptor =
-        DataDescriptorBuilder().setSampleType(SampleType::UInt64).setUnit(Unit("s", -1, "", "time")).setTickResolution(Ratio(1, 10)).setRule(LinearDataRule(1, 3)).build();
+    auto domainSignalLinearDescriptor = DataDescriptorBuilder()
+                                            .setSampleType(SampleType::UInt64)
+                                            .setUnit(Unit("s", -1, "", "time"))
+                                            .setTickResolution(Ratio(1, 10))
+                                            .setRule(LinearDataRule(1, 3))
+                                            .setOrigin("1970-01-01T00:00:00")  // the multi reader reads domains with an origin
+                                            .build();
     auto domainSignal = SignalWithDescriptor(context, domainSignalLinearDescriptor, nullptr, "signal");
 
     // Set domain signal
@@ -669,9 +676,33 @@ TEST_F(PowerReaderTestStatus, StatisticsStatusOk2)
     fb.getInputPorts()[0].connect(signal);
     fb.getInputPorts()[1].connect(signal);
 
-    // Incomplete input signal descriptors
+    // The reader applies the connects on the scheduler
+    context.getScheduler().waitAll();
     ASSERT_EQ(fb.getStatusContainer().getStatus("ComponentStatus"),
               Enumeration("ComponentStatusType", "Ok", context.getTypeManager()));
+    ASSERT_EQ(fb.getStatusContainer().getStatusMessage("ComponentStatus"), "");
+}
+
+TEST_F(PowerReaderTestStatus, StatisticsStatusDomainWithoutOrigin)
+{
+    auto signal = SignalWithDescriptor(context, DataDescriptorBuilder().setSampleType(SampleType::Float64).build(), nullptr, "signal");
+    auto domainSignal = SignalWithDescriptor(context,
+                                             DataDescriptorBuilder()
+                                                 .setSampleType(SampleType::UInt64)
+                                                 .setUnit(Unit("s", -1, "", "time"))
+                                                 .setTickResolution(Ratio(1, 10))
+                                                 .setRule(LinearDataRule(1, 3))
+                                                 .build(),
+                                             nullptr,
+                                             "domain");
+    signal.setDomainSignal(domainSignal);
+
+    fb.getInputPorts()[0].connect(signal);
+    fb.getInputPorts()[1].connect(signal);
+
+    // Neither domain has an origin, so both share a relative time base
+    context.getScheduler().waitAll();
+    ASSERT_EQ(fb.getStatusContainer().getStatus("ComponentStatus"), Enumeration("ComponentStatusType", "Ok", context.getTypeManager()));
     ASSERT_EQ(fb.getStatusContainer().getStatusMessage("ComponentStatus"), "");
 }
 
@@ -688,6 +719,7 @@ TEST_F(PowerReaderTestStatus, StatisticsStatusException1)
                                             .setUnit(Unit("s", -1, "", "time"))
                                             .setTickResolution(Ratio(1, 10))
                                             .setRule(LinearDataRule(1, 3))
+                                            .setOrigin("1970-01-01T00:00:00")  // the multi reader reads domains with an origin
                                             .build();
     auto domainSignal = SignalWithDescriptor(context, domainSignalLinearDescriptor, nullptr, "signal");
 
@@ -698,10 +730,43 @@ TEST_F(PowerReaderTestStatus, StatisticsStatusException1)
     fb.getInputPorts()[0].connect(signal);
     fb.getInputPorts()[1].connect(signal);
 
-    // Incomplete input signal descriptors
+    // The block rejects a voltage in G; the voltage port is the pinned main input, so the block is in error
+    context.getScheduler().waitAll();
     ASSERT_EQ(fb.getStatusContainer().getStatus("ComponentStatus"),
-              Enumeration("ComponentStatusType", "Warning", context.getTypeManager()));
-    ASSERT_EQ(fb.getStatusContainer().getStatusMessage("ComponentStatus"), "Failed to set descriptor for power signal: Invalid voltage signal unit");
+              Enumeration("ComponentStatusType", "Error", context.getTypeManager()));
+    ASSERT_EQ(fb.getStatusContainer().getStatusMessage("ComponentStatus"), "Voltage: value descriptor rejected by the owner");
+}
+
+// Power is computed from scalar samples only: a vector current makes the block invalid
+TEST_F(PowerReaderTestStatus, VectorInputIsRejected)
+{
+    const auto domainDescriptor = DataDescriptorBuilder()
+                                      .setSampleType(SampleType::UInt64)
+                                      .setUnit(Unit("s", -1, "", "time"))
+                                      .setTickResolution(Ratio(1, 10))
+                                      .setRule(LinearDataRule(1, 3))
+                                      .setOrigin("1970-01-01T00:00:00")
+                                      .build();
+    const auto domainSignal = SignalWithDescriptor(context, domainDescriptor, nullptr, "domain");
+    const auto voltage = SignalWithDescriptor(
+        context, DataDescriptorBuilder().setSampleType(SampleType::Float64).setUnit(Unit("V")).build(), nullptr, "voltage");
+    const auto current = SignalWithDescriptor(context,
+                                              DataDescriptorBuilder()
+                                                  .setSampleType(SampleType::Float64)
+                                                  .setDimensions(List<IDimension>(Dimension(LinearDimensionRule(1, 0, 2))))
+                                                  .build(),
+                                              nullptr,
+                                              "current");
+    voltage.setDomainSignal(domainSignal);
+    current.setDomainSignal(domainSignal);
+
+    fb.getInputPorts()[0].connect(voltage);
+    fb.getInputPorts()[1].connect(current);
+
+    context.getScheduler().waitAll();
+    ASSERT_EQ(fb.getStatusContainer().getStatus("ComponentStatus"),
+              Enumeration("ComponentStatusType", "Error", context.getTypeManager()));
+    ASSERT_EQ(fb.getStatusContainer().getStatusMessage("ComponentStatus"), "Current: value descriptor rejected by the owner");
 }
 
 TEST_F(PowerReaderTest, StatisticsStatusConnectedSignals)
@@ -714,20 +779,26 @@ TEST_F(PowerReaderTest, StatisticsStatusConnectedSignals)
 
     createSignals(ctx);
 
-    ASSERT_EQ(fb.getStatusContainer().getStatus("ComponentStatus").getValue(), "Warning");
+    // The reader applies connects and disconnects on the scheduler
+    const auto status = [&]
+    {
+        ctx.getScheduler().waitAll();
+        return fb.getStatusContainer().getStatus("ComponentStatus").getValue();
+    };
+    ASSERT_EQ(status(), "Warning");
     fb.getInputPorts()[0].connect(voltageSignal);
-    ASSERT_EQ(fb.getStatusContainer().getStatus("ComponentStatus").getValue(), "Warning");
+    ASSERT_EQ(status(), "Warning");
     fb.getInputPorts()[1].connect(currentSignal);
-    ASSERT_EQ(fb.getStatusContainer().getStatus("ComponentStatus").getValue(), "Ok");
+    ASSERT_EQ(status(), "Ok");
     fb.getInputPorts()[0].disconnect();
-    ASSERT_EQ(fb.getStatusContainer().getStatus("ComponentStatus").getValue(), "Warning");
+    ASSERT_EQ(status(), "Warning");
     fb.getInputPorts()[0].connect(voltageSignal);
-    ASSERT_EQ(fb.getStatusContainer().getStatus("ComponentStatus").getValue(), "Ok");
+    ASSERT_EQ(status(), "Ok");
 
     fb.getInputPorts()[1].connect(voltageSignal);
-    ASSERT_EQ(fb.getStatusContainer().getStatus("ComponentStatus").getValue(), "Ok");
+    ASSERT_EQ(status(), "Ok");
     fb.getInputPorts()[1].disconnect();
-    ASSERT_EQ(fb.getStatusContainer().getStatus("ComponentStatus").getValue(), "Warning");
+    ASSERT_EQ(status(), "Warning");
     fb.getInputPorts()[1].connect(currentSignal);
-    ASSERT_EQ(fb.getStatusContainer().getStatus("ComponentStatus").getValue(), "Ok");
+    ASSERT_EQ(status(), "Ok");
 }

@@ -117,11 +117,17 @@ set_source_files_properties(renderer_fb_impl.cpp video_player_fb_impl.cpp
 )
 opendaq_target_unity_libs(${LIB_NAME} BATCH_SIZE 4)
 
+# The reader blocks' base, shared with the CSV recorder
+if (NOT TARGET reader_fb_base)
+    add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/../../../../reader_fb_base ${CMAKE_BINARY_DIR}/reader_fb_base)
+endif()
+
 target_link_libraries(${LIB_NAME}
     PUBLIC
         ${OPENDAQ_SDK_TARGET_NAMESPACE}::opendaq
     PRIVATE
         kissfft::kissfft
+        reader_fb_base
 )
 
 if (DAQMODULES_REF_FB_MODULE_ENABLE_RENDERER)

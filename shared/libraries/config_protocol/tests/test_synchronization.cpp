@@ -226,9 +226,17 @@ TEST_F(ConfigSynchronizationTest, ReadOnlyUserCannotChangeSynchronization)
     ASSERT_THROW(clientSync.setSource("TestInterface"), AccessDeniedException);
     ASSERT_THROW(clientSync.getInterfaces().get("PtpSyncInterface").setMode(SyncMode::Output), AccessDeniedException);
 
+    // The PTP config and each port set their own permissions to inherit, so each is written once
+    const PropertyObjectPtr clientConfig = clientSync.getInterfaces().get("PtpSyncInterface").getConfig();
+    ASSERT_THROW(clientConfig.setPropertyValue("DomainNumber", 5), AccessDeniedException);
+    ASSERT_THROW(clientConfig.setPropertyValue("PortConfiguration.eth0.LogSyncInterval", 3), AccessDeniedException);
+
     const auto serverSync = getServerSyncComponent();
     ASSERT_EQ(serverSync.getSource().getId(), "ClockSyncInterface");
     ASSERT_EQ(serverSync.getInterfaces().get("PtpSyncInterface").getMode(), SyncMode::Off);
+    const auto serverConfig = serverSync.getInterfaces().get("PtpSyncInterface").getConfig();
+    ASSERT_EQ(serverConfig.getPropertyValue("DomainNumber"), 0);
+    ASSERT_EQ(serverConfig.getPropertyValue("PortConfiguration.eth0.LogSyncInterval"), 0);
 }
 
 TEST_F(ConfigSynchronizationTest, GetSourceReferenceDomainId)

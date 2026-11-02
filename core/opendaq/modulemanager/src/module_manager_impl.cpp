@@ -727,6 +727,10 @@ ErrCode ModuleManagerImpl::getAvailableDevices(IList** availableDevices)
 
         for (const auto& deviceInfo : moduleAvailableDevices)
         {
+            const auto deviceType = getDeviceTypeFromConnectionString(deviceInfo.getConnectionString(), module);
+            if (deviceType.assigned() && deviceType.getDeviceKind() == DeviceKind::Root)
+                continue;
+
             StringPtr manufacturer = deviceInfo.getManufacturer();
             StringPtr serialNumber = deviceInfo.getSerialNumber();
 

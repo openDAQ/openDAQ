@@ -173,6 +173,8 @@ DECLARE_OPENDAQ_INTERFACE(IDevice, IFolder)
      * The getAvailableDevices most often runs a discovery client, querying for available devices that
      * a device module can connect to. The replies are formed into Device Info objects and inserted to the
      * list of available devices.
+     *
+     * Devices of Root kind are not listed, as they can't be added.
      */
     virtual ErrCode INTERFACE_FUNC getAvailableDevices(IList** availableDevices) = 0;
 

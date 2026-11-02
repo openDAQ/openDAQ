@@ -6,6 +6,7 @@
 #include "mock/mock_module.h"
 
 #include <chrono>
+#include <set>
 #include <thread>
 
 #include <opendaq/component_factory.h>
@@ -504,6 +505,12 @@ public:
         return OPENDAQ_SUCCESS;
     }
 
+    daq::ErrCode INTERFACE_FUNC getAvailableDevices(daq::IList** devices) override
+    {
+        *devices = availableDevices.addRefAndReturn();
+        return OPENDAQ_SUCCESS;
+    }
+
     daq::ErrCode INTERFACE_FUNC createDevice(daq::IDevice** /*device*/,
                                              daq::IString* connectionString,
                                              daq::IComponent* /*parent*/,
@@ -543,6 +550,7 @@ public:
     DictPtr<IString, IDeviceType> deviceTypes = Dict<IString, IDeviceType>();
     DictPtr<IString, IStreamingType> streamingTypes = Dict<IString, IStreamingType>();
     ListPtr<IString> createdConnectionStrings = List<IString>();
+    ListPtr<IDeviceInfo> availableDevices = List<IDeviceInfo>();
     bool failDeviceTypes = false;
 };
 
@@ -762,4 +770,23 @@ TEST_F(ModuleManagerLinkTest, DeviceKindChecksParent)
     ASSERT_EQ(create("unspecdev://", nullptr), OPENDAQ_SUCCESS);
     ASSERT_EQ(create("unspecdev://", parent), OPENDAQ_SUCCESS);
     ASSERT_EQ(lib.impl->createdConnectionStrings.getCount(), 5u);
+}
+
+TEST_F(ModuleManagerLinkTest, RootKindNotListed)
+{
+    auto lib = makeModule();
+    lib.impl->addDeviceType("rootdev", nullptr, DeviceKind::Root);
+    lib.impl->addDeviceType("extdev", nullptr, DeviceKind::External);
+    lib.impl->addDeviceType("mirdev", nullptr, DeviceKind::Mirrored);
+    lib.impl->addDeviceType("unspecdev", nullptr, DeviceKind::Unspecified);
+    for (const auto& prefix : {"rootdev", "extdev", "mirdev", "unspecdev", "unknown"})
+        lib.impl->availableDevices.pushBack(DeviceInfo(std::string(prefix) + "://10.0.0.5"));
+    ASSERT_EQ(tryAdd(lib.module), "");
+
+    std::set<std::string> listed;
+    for (const auto& info : manager.asPtr<IModuleManagerUtils>().getAvailableDevices())
+        listed.insert(info.getConnectionString());
+
+    const std::set<std::string> expected{"extdev://10.0.0.5", "mirdev://10.0.0.5", "unspecdev://10.0.0.5", "unknown://10.0.0.5"};
+    ASSERT_EQ(listed, expected);
 }

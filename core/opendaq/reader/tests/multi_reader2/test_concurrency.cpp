@@ -360,7 +360,7 @@ TEST_F(MultiReader2Concurrency, ConfigureFromHandlerDuringIngestLosesNoSamples)
                 {
                     read(10);
                     if (handlerCallsStarted() % 5 == 0)
-                        configure(same());
+                        evaluate();
                 });
             runScript(eachInputWrites(0, 999), concurrent);
         },

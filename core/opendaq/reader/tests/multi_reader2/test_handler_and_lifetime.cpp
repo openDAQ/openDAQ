@@ -182,7 +182,7 @@ TEST_F(MultiReader2Context, ConfigureDoesNotScheduleHandlerAfterFailedCall)
     write(in2, 100, 299);
     unblockWorker();
     expect(idle(), calls(1, {count(150).at(100).noChanges()}));
-    expect(configure(same()), ok().noChanges());
+    expect(evaluate(), ok().noChanges());
     expect(idle(), calls(0));
     expect(avail(), count(50));
 }
@@ -206,12 +206,12 @@ TEST_F(MultiReader2Context, HandlerCanCallAvailableCountSkipAndReadWithDomain)
 }
 
 // S1.CTX.13
-TEST_F(MultiReader2Context, HandlerCanConfigureWithEqualParamsAndRead)
+TEST_F(MultiReader2Context, HandlerCanEvaluateAndRead)
 {
     setupHandler(
         [&]
         {
-            configure(same());
+            evaluate();
             drain();
         });
     blockWorker();

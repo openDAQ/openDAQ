@@ -1630,10 +1630,11 @@ Result MultiReader2Test::runRead(Result::Kind kind, SizeT count, const ReadArgs&
 
     const SizeT bytes = std::max<SizeT>(count, 1) * BytesPerSample;
     std::vector<void*> data;
+    void* domainArg = nullptr;
     if (kind == Result::Kind::ReadWithDomain)
     {
         r.domainBuffer.assign(bytes, Sentinel);  // room past the ticks, so an overrun lands on the sentinel
-        data.push_back(r.domainBuffer.data());
+        domainArg = r.domainBuffer.data();
     }
     for (int slot : r.slots)
     {
@@ -1650,10 +1651,8 @@ Result MultiReader2Test::runRead(Result::Kind kind, SizeT count, const ReadArgs&
     switch (kind)
     {
         case Result::Kind::Read:
-            r.error = rd->read(dataArg, countArg, &offset, statusArg);
-            break;
         case Result::Kind::ReadWithDomain:
-            r.error = rd->readWithDomain(dataArg, countArg, statusArg);
+            r.error = rd->read(dataArg, domainArg, countArg, &offset, statusArg);
             break;
         default:
             r.error = rd->skipSamples(countArg, &offset, statusArg);
@@ -1734,9 +1733,32 @@ Result MultiReader2Test::configure(const Params& changes)
     if (OPENDAQ_SUCCEEDED(r.error))
         noteReaderListener();
     Result recorded = record(std::move(r));
-    // The owner of a judgement that follows the main input's unit configures again when that unit moved
+    // The owner of a judgement that follows the main input's unit has every input judged again when that unit moved
     if (takeOwnerRejudge())
-        configure(same());
+        evaluate();
+    return recorded;
+}
+
+Result MultiReader2Test::evaluate()
+{
+    Result r{Result::Kind::Configure};
+    r.step = "evaluate";
+    {
+        std::scoped_lock lock(stateMutex);
+        r.previous = previousStatus;
+    }
+    IMultiReader2Status* status = nullptr;
+    r.error = reader()->evaluate(&status);
+    daqClearErrorInfo();
+    r.status = MultiReader2StatusPtr::Adopt(status);
+    r.stubAsked = takeStubAsked();
+    {
+        std::scoped_lock lock(stateMutex);
+        r.slots = slotsInForce();
+    }
+    Result recorded = record(std::move(r));
+    if (takeOwnerRejudge())
+        evaluate();
     return recorded;
 }
 

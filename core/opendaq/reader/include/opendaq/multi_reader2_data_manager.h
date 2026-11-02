@@ -57,13 +57,14 @@ public:
 
     // Construction: applies the config without reading; the first read reports it
     void construct(Config config);
-    // Reinitializes, or with equal params judges every input again, and returns the status of a 0-count read
+    // Reinitializes, and returns the status of a 0-count read
     void configure(Config config, IMultiReader2Status** status);
+    // Judges every input again with the descriptors in force, keeping the queued data, and returns the status of a 0-count read
+    void evaluate(IMultiReader2Status** status);
 
     // Consumer side; contracts as on IMultiReader2, data as the real void**. Errors and descriptors move only here
     SizeT getAvailableCount();
-    ErrCode read(void** data, SizeT* count, SizeT* packetOffset, IMultiReader2Status** status);
-    ErrCode readWithDomain(void** data, SizeT* count, IMultiReader2Status** status);
+    ErrCode read(void** data, std::int64_t* domain, SizeT* count, SizeT* packetOffset, IMultiReader2Status** status);
     ErrCode skipSamples(SizeT* count, SizeT* packetOffset, IMultiReader2Status** status);
 
     // Producer side; each returns whether to schedule onDataAvailable after the mutex: while subscribed, no call is pending and a
@@ -117,11 +118,11 @@ private:
         std::uint8_t* dst;
     };
 
-    void apply(Config config, bool reinitialize);
-    ErrCode doRead(void** data, bool withDomain, bool copy, SizeT* count, SizeT* packetOffset, IMultiReader2Status** status);
+    void apply(Config config);
+    ErrCode doRead(void** data, std::int64_t* domain, bool copy, SizeT* count, SizeT* packetOffset, IMultiReader2Status** status);
     // Copying reads list their samples in copies; the others pass null
     void readLocked(void** data,
-                    bool withDomain,
+                    std::int64_t* domain,
                     bool copy,
                     SizeT* count,
                     SizeT* packetOffset,
@@ -153,8 +154,8 @@ private:
     void ask(SizeT i);
     void rejudge(SizeT i);
     std::pair<MultiReader2InputError, std::string> judge(SizeT i, bool alone) const;
-    void evaluate(SizeT i);
-    void evaluateAll();
+    void evaluateInput(SizeT i);
+    void evaluateInputs();
     void relateAll();
     bool valid() const
     {
@@ -203,7 +204,6 @@ private:
     MultiReader2ErrorPolicy errorPolicy = MultiReader2ErrorPolicy::Invalidate;
     std::optional<SizeT> pinnedMain;
     std::optional<SizeT> mainSlot;  // in effect; kept while invalid with an automatic main input
-    bool configured = false;
     Phase phase = Phase::Invalid;
     std::int64_t readTick = 0;            // main tick of the next unread sample
     std::optional<std::int64_t> lastEnd;  // main tick after the last sample delivered since the last resynchronized

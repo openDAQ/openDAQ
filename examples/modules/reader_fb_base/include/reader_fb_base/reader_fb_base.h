@@ -59,7 +59,7 @@ protected:
         };
         SizeT count = 0;
         SizeT offset = 0;
-        handle(reader.read(nullptr, &count, offset));  // the first status
+        handle(reader.read(nullptr, nullptr, &count, offset));  // the first status
     }
 
     // Reads until nothing is readable and nothing changed
@@ -85,7 +85,7 @@ protected:
             }
 
             SizeT offset = 0;
-            const MultiReader2StatusPtr status = reader.read(count > 0 ? buffers.data() : nullptr, &count, offset);
+            const MultiReader2StatusPtr status = reader.read(count > 0 ? buffers.data() : nullptr, nullptr, &count, offset);
             if (count > 0)
                 processAndSend(count, offset);  // under the cached descriptors
 
@@ -110,7 +110,7 @@ protected:
                 rebuildOutputDescriptor();  // with no input, the outputs keep their descriptors
         }
         if (rejudge)
-            return handle(reader.configure(params));  // equal params: its status replaces this one
+            return handle(reader.evaluate());  // its status replaces this one
         reportStatus(status);
     }
 
@@ -161,7 +161,7 @@ protected:
         return !dimensions.assigned() || dimensions.getCount() == 0;
     }
 
-    // Slot by slot; a status after a configure with new params reports every healthy input afresh
+    // Slot by slot; a status after a configure reports every healthy input afresh
     void cacheDescriptors(const MultiReader2StatusPtr& status)
     {
         if (status.getDomainDescriptorChanged())

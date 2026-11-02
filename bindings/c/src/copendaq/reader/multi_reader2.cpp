@@ -27,20 +27,21 @@ daqErrCode daqMultiReader2_configure(daqMultiReader2* self, daqMultiReader2Param
     return reinterpret_cast<daq::IMultiReader2*>(self)->configure(reinterpret_cast<daq::IMultiReader2Params*>(params), reinterpret_cast<daq::IMultiReader2Status**>(status));
 }
 
+daqErrCode daqMultiReader2_evaluate(daqMultiReader2* self, daqMultiReader2Status** status)
+{
+    return reinterpret_cast<daq::IMultiReader2*>(self)->evaluate(reinterpret_cast<daq::IMultiReader2Status**>(status));
+}
+
 daqErrCode daqMultiReader2_getAvailableCount(daqMultiReader2* self, daqSizeT* count)
 {
     return reinterpret_cast<daq::IMultiReader2*>(self)->getAvailableCount(count);
 }
 
-daqErrCode daqMultiReader2_read(daqMultiReader2* self, void* data, daqSizeT* count, daqSizeT* packetOffset, daqMultiReader2Status** status)
+daqErrCode daqMultiReader2_read(
+    daqMultiReader2* self, void* data, void* domain, daqSizeT* count, daqSizeT* packetOffset, daqMultiReader2Status** status)
 {
     return reinterpret_cast<daq::IMultiReader2*>(self)->read(
-        data, count, packetOffset, reinterpret_cast<daq::IMultiReader2Status**>(status));
-}
-
-daqErrCode daqMultiReader2_readWithDomain(daqMultiReader2* self, void* data, daqSizeT* count, daqMultiReader2Status** status)
-{
-    return reinterpret_cast<daq::IMultiReader2*>(self)->readWithDomain(data, count, reinterpret_cast<daq::IMultiReader2Status**>(status));
+        data, domain, count, packetOffset, reinterpret_cast<daq::IMultiReader2Status**>(status));
 }
 
 daqErrCode daqMultiReader2_skipSamples(daqMultiReader2* self, daqSizeT* count, daqSizeT* packetOffset, daqMultiReader2Status** status)

@@ -403,12 +403,12 @@ TEST_F(MultiReader2Policy, ExcludeSetsAsideRejectedInputAtConstructionWithWarnin
 }
 
 // S1.POL.40
-TEST_F(MultiReader2Policy, EqualConfigureSetsAsideNewlyRejectedInputUnderExclude)
+TEST_F(MultiReader2Policy, EvaluateSetsAsideNewlyRejectedInputUnderExclude)
 {
     given().accepts().policy(Exclude);
     setupBase();
     verdict(in2, Verdict::Reject);
-    expect(configure(same()),
+    expect(evaluate(),
            ok().level(Warning)
                .inError(in2, InputError::ValueDescriptorInvalid)
                .msg("in2: value descriptor rejected by the owner")
@@ -483,11 +483,11 @@ TEST_P(MultiReader2PolicyEachCall, ReadingAsksAcceptsDescriptorOnlyForTheInputWi
 }
 
 // S1.POL.55
-TEST_F(MultiReader2Policy, EqualConfigureAsksAcceptsDescriptorForEveryInputAndKeepsData)
+TEST_F(MultiReader2Policy, EvaluateAsksAcceptsDescriptorForEveryInputAndKeepsData)
 {
     given().accepts();
     setupBase();
-    expect(configure(same()), ok().noChanges().stubAsked({in1, in2}));
+    expect(evaluate(), ok().noChanges().stubAsked({in1, in2}));
     expect(read(100), count(100).at(0).noChanges());
 }
 
@@ -506,7 +506,7 @@ TEST_F(MultiReader2Policy, InvalidReaderAsksRejectingStubAgainOnDescriptorAndCon
     announce(in2, Value(SampleType::Int32));
     expect(avail(), count(0).stubNotAsked());
     expect(read(0), count(0).noChanges().stubAsked({in2}));
-    expect(configure(same()), ok().noChanges().stubAsked({in1, in2}));
+    expect(evaluate(), ok().noChanges().stubAsked({in1, in2}));
 }
 
 // S1.POL.58
@@ -529,7 +529,7 @@ TEST_F(MultiReader2Policy, InvalidReaderAsksThrowingStubAgainOnDescriptorAndConf
     announce(in2, Value(SampleType::Int32));
     expect(avail(), count(0).stubNotAsked());
     expect(read(0), count(0).noChanges().stubAsked({in2}));
-    expect(configure(same()), ok().noChanges().stubAsked({in1, in2}));
+    expect(evaluate(), ok().noChanges().stubAsked({in1, in2}));
 }
 
 // S1.POL.60
@@ -566,11 +566,11 @@ TEST_P(MultiReader2PolicyEachCall, ReaderCallFromAcceptsDescriptorDuringReadRetu
 }
 
 // S1.POL.64
-TEST_F(MultiReader2Policy, ReaderCallFromAcceptsDescriptorDuringConfigureReturnsInvalidState)
+TEST_F(MultiReader2Policy, ReaderCallFromAcceptsDescriptorDuringEvaluateReturnsInvalidState)
 {
     given().accepts().verdict(in2, Verdict::CallReader);
     setupBase();
-    expect(configure(same()), ok().noChanges());
+    expect(evaluate(), ok().noChanges());
     expectStubSaw(OPENDAQ_ERR_INVALIDSTATE);
     expect(read(100), count(100).at(0).noChanges());
 }
@@ -719,4 +719,13 @@ TEST_F(MultiReader2Policy, ReaderRecoversWhenNonMainDomainBecomesValidUnderInval
 
 MR2_INSTANTIATE_EACH_READING_CALL(MultiReader2PolicyEachCall);
 
+// S1.POL.75
+TEST_F(MultiReader2Policy, ReaderCallFromAcceptsDescriptorDuringConfigureReturnsInvalidState)
+{
+    given().accepts().verdict(in2, Verdict::CallReader);
+    setupBase();
+    expect(configure(same()), ok().level(Ok).domainChanged().resync().allDescChanged());
+    expectStubSaw(OPENDAQ_ERR_INVALIDSTATE);
+    expect(avail(), count(0));
+}
 }

@@ -91,7 +91,7 @@ TEST_F(MultiReader2Configure, ConfigureAddingUnconnectedPortSucceedsWithDisconne
 }
 
 // S1.CFG.09
-TEST_F(MultiReader2Configure, ConfigureWithEqualParamsKeepsQueuedDataWhileSynchronizing)
+TEST_F(MultiReader2Configure, EvaluateKeepsQueuedDataWhileSynchronizing)
 {
     setup(
         [&]
@@ -99,21 +99,21 @@ TEST_F(MultiReader2Configure, ConfigureWithEqualParamsKeepsQueuedDataWhileSynchr
             write(in1, 0, 99);
             read(0, nullData);
         });
-    expect(configure(same()), ok().noChanges());
+    expect(evaluate(), ok().noChanges());
     write(in2, 0, 99);
     expect(avail(), count(100));
 }
 
 // S1.CFG.10
-TEST_F(MultiReader2Configure, ConfigureWithEqualParamsKeepsQueuedDataWhenSynced)
+TEST_F(MultiReader2Configure, EvaluateKeepsQueuedDataWhenSynced)
 {
     setupBase();
-    expect(configure(same()), ok().noChanges());
+    expect(evaluate(), ok().noChanges());
     expect(read(100), count(100).at(0).noChanges());
 }
 
 // S1.CFG.11
-TEST_F(MultiReader2Configure, ConfigureWithEqualParamsKeepsQueuedDataUnderWarning)
+TEST_F(MultiReader2Configure, EvaluateKeepsQueuedDataUnderWarning)
 {
     given().policy(Exclude).value(in2, Value::structure());
     setup(
@@ -122,12 +122,12 @@ TEST_F(MultiReader2Configure, ConfigureWithEqualParamsKeepsQueuedDataUnderWarnin
             write(in1, 0, 99);
             read(0, nullData);
         });
-    expect(configure(same()), ok().noChanges());
+    expect(evaluate(), ok().noChanges());
     expect(read(100), count(100).at(0).noChanges());
 }
 
 // S1.CFG.12
-TEST_F(MultiReader2Configure, ConfigureWithEqualParamsUnderErrorRecoversOnAcceptedVerdict)
+TEST_F(MultiReader2Configure, EvaluateUnderErrorRecoversOnAcceptedVerdict)
 {
     given().accepts().verdict(in2, Verdict::Reject);
     setup(
@@ -137,7 +137,7 @@ TEST_F(MultiReader2Configure, ConfigureWithEqualParamsUnderErrorRecoversOnAccept
             read(0, nullData);
         });
     verdict(in2, Verdict::Accept);
-    expect(configure(same()), ok().level(Ok).main(in1).domainChanged().resync().allDescChanged().healthy(in2).stubAsked({in1, in2}));
+    expect(evaluate(), ok().level(Ok).main(in1).domainChanged().resync().allDescChanged().healthy(in2).stubAsked({in1, in2}));
 }
 
 // S1.CFG.13
@@ -291,7 +291,7 @@ TEST_F(MultiReader2Configure, ConfigurePinningExcludedInputAsMainReportsError)
 TEST_F(MultiReader2Configure, MutatingParamsAfterConfigureDoesNotAffectReader)
 {
     setupBase();
-    expect(configure(same()), ok().noChanges());
+    expect(evaluate(), ok().noChanges());
     mutate(same().minReadCount(200));
     expect(avail(), count(100));
 }
@@ -549,9 +549,9 @@ TEST_F(MultiReader2Configure, ConstructTakesOverBlockListenerOfPort)
 }
 
 // S1.CFG.66
-TEST_F(MultiReader2Configure, ConfigureWithEqualParamsBeforeFirstReadReturnsFirstStatus)
+TEST_F(MultiReader2Configure, EvaluateBeforeFirstReadReturnsFirstStatus)
 {
-    expect(configure(same()), ok().level(Ok).domainChanged().resync().allDescChanged());
+    expect(evaluate(), ok().level(Ok).domainChanged().resync().allDescChanged());
     expect(read(0), count(0).noChanges());
     write(in1, 0, 99);
     write(in2, 0, 99);
@@ -569,4 +569,14 @@ TEST_F(MultiReader2Configure, ConfigureAddingInputBeforeFirstReadReturnsFirstSta
     expect(read(100), count(100).at(0).noChanges());
 }
 
+// S1.CFG.68
+TEST_F(MultiReader2Configure, ConfigureWithEqualParamsReinitializesAndDropsQueuedData)
+{
+    setupBase();
+    expect(configure(same()), ok().level(Ok).domainChanged().resync().allDescChanged());
+    expect(avail(), count(0));
+    write(in1, 100, 199);
+    write(in2, 100, 199);
+    expect(read(100), count(100).at(100).noChanges());
+}
 }

@@ -145,7 +145,7 @@ private:
 };
 
 // A read sized by the last status. Before the first status there is none: the read takes the status owed since
-// construction, with no samples. With the domain, the main ticks come first, as the buffers do
+// construction, with no samples
 py::tuple read(daq::IMultiReader2* object, size_t count, bool withDomain)
 {
     const auto reader = daq::MultiReader2Ptr::Borrow(object);
@@ -155,12 +155,10 @@ py::tuple read(daq::IMultiReader2* object, size_t count, bool withDomain)
         count = 0;
     const auto layouts = previous.assigned() ? layoutsOf(previous, keptReadType(pyObject)) : std::vector<Layout>();
 
-    const size_t first = withDomain ? 1 : 0;
-    std::vector<void*> buffers(first + layouts.size(), nullptr);
-    const Values values(layouts, count, buffers, first);
+    std::vector<void*> buffers(layouts.size(), nullptr);
+    const Values values(layouts, count, buffers, 0);
     py::array_t<int64_t> ticks(withDomain ? count : 0);
-    if (withDomain)
-        buffers[0] = ticks.mutable_data();
+    void* domain = withDomain ? ticks.mutable_data() : nullptr;
 
     daq::SizeT got = count;
     daq::SizeT offset = 0;
@@ -169,7 +167,7 @@ py::tuple read(daq::IMultiReader2* object, size_t count, bool withDomain)
     {
         py::gil_scoped_release release;
         void* data = count > 0 ? buffers.data() : nullptr;
-        err = withDomain ? object->readWithDomain(data, &got, &raw) : object->read(data, &got, &offset, &raw);
+        err = object->read(data, domain, &got, &offset, &raw);
     }
     daq::checkErrorInfo(err);
     const daq::MultiReader2StatusPtr status(std::move(raw));
@@ -222,6 +220,19 @@ void defineIMultiReader2(pybind11::module_ m, PyDaqIntf<daq::IMultiReader2, daq:
         },
         py::arg("params"),
         "Validates the params, then applies them as if the reader were newly constructed.");
+    cls.def("evaluate",
+        [](daq::IMultiReader2 *object)
+        {
+            const auto objectPtr = daq::MultiReader2Ptr::Borrow(object);
+            daq::MultiReader2StatusPtr status;
+            {
+                py::gil_scoped_release release;
+                status = objectPtr.evaluate();
+            }
+            keep(objectPtr, nullptr, status);
+            return pyStatus(status);
+        },
+        "Asks acceptsDescriptor again for every input, with the descriptors in force, then performs a 0-count read.");
     cls.def_property_readonly("available_count",
         [](daq::IMultiReader2 *object)
         {

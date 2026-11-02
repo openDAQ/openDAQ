@@ -153,7 +153,7 @@ void MultiReader2Test::ownerActs(const MultiReader2StatusPtr& status)
         }
     }
     if (takeOwnerRejudge())
-        configure(same());
+        evaluate();
     std::scoped_lock lock(owner->mutex);
     owner->acting = false;
 }

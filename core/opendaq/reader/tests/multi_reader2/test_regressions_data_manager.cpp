@@ -57,13 +57,13 @@ TEST_F(MultiReader2RegressionDm, InputStallsOnlyOnceItsBacklogIsRead)
 }
 
 // Finding 6
-TEST_F(MultiReader2RegressionDm, ConfigureWithEqualParamsReportsWhatItsZeroCountReadApplies)
+TEST_F(MultiReader2RegressionDm, EvaluateReportsWhatItsZeroCountReadApplies)
 {
     given().minReadCount(10);
     setupBase();
     expect(read(95), count(95).at(0).noChanges());
     gap(in2);
-    expect(configure(same()), ok().resync());
+    expect(evaluate(), ok().resync());
 }
 
 // Finding 9
@@ -78,7 +78,7 @@ TEST_F(MultiReader2RegressionDm, RejoiningInputIsNotLateForTheMainBacklogBeforeT
         });
     write(in1, 100, 2499);
     verdict(in2, Verdict::Accept);
-    expect(configure(same()), ok().level(Ok).descChanged(in2).healthy(in2));
+    expect(evaluate(), ok().level(Ok).descChanged(in2).healthy(in2));
     write(in2, 2500, 2599);
     write(in1, 2500, 2599);
     expect(read(100), count(100).at(2500).noChanges());

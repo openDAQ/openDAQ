@@ -87,7 +87,7 @@ class SyncCard(tk.Frame):
         tk.Label(title, text=name, background='white', font=('TkDefaultFont', 10, 'bold')).pack(side=tk.LEFT)
         self.source_tag = tk.Label(title, text='source', background='white', foreground=SOURCE_COLOR,
                                    font=('TkDefaultFont', 8))
-        self.domain = tk.Label(top, background='white', foreground='gray', font='TkFixedFont')
+        self.domain = tk.Label(top, background='white', foreground='gray')
         self.domain.grid(row=1, column=2, sticky=tk.W)
 
         tk.Label(top, text='Mode', background='white').grid(row=0, column=3, rowspan=2, padx=(0, 6))

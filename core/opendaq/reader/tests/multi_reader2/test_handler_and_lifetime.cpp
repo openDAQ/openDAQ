@@ -107,23 +107,23 @@ TEST_F(MultiReader2Context, SyncFailureTriggersHandlerWithWarning)
             read(0, nullData);
             idle();
         });
-    write(in2, 2200, 2299);
+    write(in2, 3200, 3299);
     expect(idle(), calls(1, {count(0).level(Warning), count(100).at(0).noChanges(), count(0).noChanges()}));
 }
 
 // S1.CTX.08
-TEST_F(MultiReader2Context, SyncFailedInputComingWithinLimitTriggersHandlerOnce)
+TEST_F(MultiReader2Context, StalledInputComingWithinOneSecondTriggersHandlerOnce)
 {
     given().policy(Exclude);
     setup(
         [&]
         {
             handler([&] { drain(); });
-            write(in1, 2500, 2599);
+            write(in1, 3200, 3299);
             write(in2, 0, 99);
             idle();
         });
-    write(in2, 100, 699);
+    write(in2, 100, 2699);
     expect(idle(), calls(1, {count(0).level(Ok).descChanged(in2).healthy(in2), count(0).noChanges()}));
 }
 
@@ -135,7 +135,7 @@ TEST_F(MultiReader2Context, SyncFailedRejoinTriggerIsRearmedAfterHandlerThrows)
         [&]
         {
             handler([&] { throw std::runtime_error("handler throws"); });
-            write(in1, 2500, 2599);
+            write(in1, 3200, 3299);
             write(in2, 0, 99);
             idle();
             read(0, nullData);
@@ -143,10 +143,10 @@ TEST_F(MultiReader2Context, SyncFailedRejoinTriggerIsRearmedAfterHandlerThrows)
             read(0, nullData);
         });
     blockWorker();
-    write(in2, 100, 699);
+    write(in2, 100, 2699);
     unblockWorker();
     expect(idle(), calls(1));
-    write(in2, 700, 709);
+    write(in2, 2700, 2709);
     expect(idle(), calls(1));
 }
 

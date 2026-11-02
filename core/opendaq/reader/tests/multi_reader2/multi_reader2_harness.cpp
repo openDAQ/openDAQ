@@ -1408,15 +1408,15 @@ Script MultiReader2Test::script(Timeline tl)
             break;
         case Timeline::Exact:
             one(m, 0, 99);
-            each(2099, 2198);
+            each(3099, 3198);
             break;
         case Timeline::Ahead:
             one(m, 0, 99);
-            each(2100, 2199);
+            each(3100, 3199);
             break;
         case Timeline::Behind:
             each(0, 99);
-            one(m, 2100, 2199);
+            one(m, 2100, 3109);
             break;
         // [ASSUMPTION] the continuations of S1.SYNC.11 and S1.SYNC.13, with the first non-main input hit
         case Timeline::JumpAhead:
@@ -1448,22 +1448,23 @@ Script MultiReader2Test::script(Timeline tl)
                 each(0, shortLast);
             }
             break;
-        case Timeline::Starve2s:
-            one(m, 0, 2001);
-            each(0, 2001, 1);
+        case Timeline::Starve3s:
+            one(m, 0, 3000);
+            each(0, 3000, 1);
             break;
+        // The failed inputs come within 1 s of the main input's newest sample, which rejoins them
         case Timeline::CatchUp:
             if (scripted == Timeline::Ahead)
             {
-                one(m, 100, 299);
-                each(2200, 2299);
-                one(m, 300, 2299);
+                one(m, 100, 2299);
+                each(3200, 3299);
+                one(m, 2300, 3299);
             }
             else
             {
-                each(100, 199);
-                one(m, 2200, 2299);
                 each(2200, 2299);
+                one(m, 3110, 3299);
+                each(2300, 3299);
             }
             break;
         case Timeline::Epoch:

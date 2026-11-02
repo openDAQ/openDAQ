@@ -38,10 +38,10 @@ BEGIN_NAMESPACE_OPENDAQ
  * carries as its offset; the ticks `readWithDomain` writes are counted from the main origin, so they are the
  * packetOffset plus the main rule's start.
  *
- * Synchronization and the lateness checks compare each input with the main input's data ingested so far, so where
- * the inputs' streams do not line up, which samples a read delivers can depend on the order in which the inputs'
- * packets arrive. The reader keeps no clock: a main input that stops sending is found from the other inputs' data,
- * once one of them is more than 4 s past it, and inputs that all stop together are not reported.
+ * Synchronization compares each input with the main input's data ingested so far, so where the inputs' streams do not
+ * line up, which samples a read delivers can depend on the order in which the inputs' packets arrive. The reader keeps
+ * no clock: an input that stops sending, the main input included, is found when another input has queued 3 s of data
+ * while it has none, and inputs that all stop together are not reported.
  */
 DECLARE_OPENDAQ_INTERFACE(IMultiReader2, IBaseObject)
 {

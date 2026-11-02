@@ -165,6 +165,7 @@ private:
     std::optional<SizeT> firstHealthy() const;
 
     // Read path
+    void applyStalls();
     SizeT alignedCount() const;
     bool barrierBounded(SizeT k) const;
     bool applyReached();
@@ -180,16 +181,14 @@ private:
     void ingestEvent(SizeT i, const EventPacketPtr& event);
     void ingestData(SizeT i, const DataPacketPtr& data);
     void keepWithinBudget(SizeT bytes);
-    void checkAgainstMain();
-    void checkLate(SizeT i);
     bool wake(bool subscribed);
     bool readable() const;
     bool statusOwed() const;
     bool hasTrigger() const;
     const multi_reader2::TickDomain& mainTicks() const;
 
-    // What the queues of all inputs hold at most together; far above transport skew, it holds back large samples
-    static constexpr SizeT queueBudgetBytes = SizeT(1000) * 1000 * 1000;
+    // What the queues of all inputs hold at most together, per input; far above transport skew, it holds back large samples
+    static constexpr SizeT queueBudgetBytesPerInput = SizeT(100) * 1000 * 1000;
 
     std::mutex mutex;
     std::atomic<std::thread::id> callbackThread;
@@ -206,10 +205,9 @@ private:
     std::optional<SizeT> mainSlot;  // in effect; kept while invalid with an automatic main input
     bool configured = false;
     Phase phase = Phase::Invalid;
-    std::optional<std::int64_t> syncMainFirst;  // main tick of the main input's first sample since synchronization started
-    std::int64_t readTick = 0;                  // main tick of the next unread sample
-    std::optional<std::int64_t> lastEnd;        // main tick after the last sample delivered since the last resynchronized
-    std::int64_t syncLimit = 0;
+    std::int64_t readTick = 0;            // main tick of the next unread sample
+    std::optional<std::int64_t> lastEnd;  // main tick after the last sample delivered since the last resynchronized
+    std::int64_t queueLimit = 0;          // queueLimitSeconds in main ticks
     State reported;                       // what the previous status reported
     bool afresh = true;                   // a restart since the previous status: the next one reports every field as changed
     bool stateDirty = true;               // a judgement ran since the previous status: the state may have moved

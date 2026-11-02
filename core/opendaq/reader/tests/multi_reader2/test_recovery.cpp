@@ -452,7 +452,7 @@ TEST_F(MultiReader2Recovery, ValueDescriptorChangeDoesNotClearOffGridSyncFailed)
 }
 
 // S1.REC.28
-TEST_F(MultiReader2Recovery, BehindSyncFailedClearsOnSampleWithinTwoSeconds)
+TEST_F(MultiReader2Recovery, BehindStalledInputClearsOnSampleWithinOneSecond)
 {
     given().main(in1);
     setup(
@@ -463,10 +463,12 @@ TEST_F(MultiReader2Recovery, BehindSyncFailedClearsOnSampleWithinTwoSeconds)
             read(0);
         });
     write(in2, 100, 199);
-    expect(read(0), count(0).level(Ok).domainChanged().resync().allDescChanged().healthy(in2));
-    write(in1, 2200, 2299);
+    expect(read(0), count(0).noChanges());
     write(in2, 2200, 2299);
-    expect(read(100), count(100).at(2200).noChanges());
+    expect(read(0), count(0).level(Ok).domainChanged().resync().allDescChanged().healthy(in2));
+    write(in1, 3200, 3299);
+    write(in2, 3200, 3299);
+    expect(read(100), count(100).at(3200).noChanges());
 }
 
 // S1.REC.29
@@ -480,7 +482,7 @@ TEST_F(MultiReader2Recovery, EqualConfigureDoesNotClearBehindSyncFailed)
             timeline(Timeline::Behind);
             read(0);
         });
-    write(in1, 2200, 2299);
+    write(in1, 3110, 3209);
     expect(read(0), count(0).noChanges());
     expect(configure(same()), ok().noChanges());
     expect(avail(), count(0));
@@ -497,13 +499,13 @@ TEST_F(MultiReader2Recovery, ReinitializingConfigureClearsBehindSyncFailed)
             read(0);
         });
     expect(configure(same().minReadCount(5)), ok().level(Ok).main(in1).domainChanged().resync().allDescChanged().healthy(in2));
-    write(in1, 2200, 2299);
-    write(in2, 2200, 2299);
-    expect(read(100), count(100).at(2200).noChanges());
+    write(in1, 3200, 3299);
+    write(in2, 3200, 3299);
+    expect(read(100), count(100).at(3200).noChanges());
 }
 
 // S1.REC.31
-TEST_F(MultiReader2Recovery, AheadSyncFailedClearsAndInputRejoinsWithResyncUnderExclude)
+TEST_F(MultiReader2Recovery, AheadSyncFailedRejoinsWithinOneSecondWithResyncUnderExclude)
 {
     given().policy(Exclude);
     setup(
@@ -514,17 +516,17 @@ TEST_F(MultiReader2Recovery, AheadSyncFailedClearsAndInputRejoinsWithResyncUnder
             read(0);
             read(100);
         });
-    write(in1, 100, 199);
-    expect(read(100), count(0).level(Ok).descChanged(in2).healthy(in2));
-    write(in1, 200, 299);
-    write(in2, 2200, 2299);
-    write(in1, 300, 2299);
+    write(in1, 100, 2299);
+    write(in2, 3200, 3299);
+    // The samples aligned before the rejoin are read first; they carry the descriptors reported before this status
+    expect(read(100), count(100).at(100).level(Ok).descChanged(in2).healthy(in2));
+    write(in1, 2300, 3299);
     expect(read(100), count(0).resync());
-    expect(read(100), count(100).at(2200).noChanges());
+    expect(read(100), count(90).at(3210).noChanges());
 }
 
 // S1.REC.32
-TEST_F(MultiReader2Recovery, AheadSyncFailedClearsWhenMainCatchesUpUnderInvalidate)
+TEST_F(MultiReader2Recovery, AheadSyncFailedRejoinsWithinOneSecondUnderInvalidate)
 {
     setup(
         [&]
@@ -533,28 +535,30 @@ TEST_F(MultiReader2Recovery, AheadSyncFailedClearsWhenMainCatchesUpUnderInvalida
             timeline(Timeline::Ahead);
             read(0);
         });
-    write(in1, 100, 199);
+    write(in1, 100, 2299);
+    expect(read(0), count(0).noChanges());  // only in2's own packets can rejoin it
+    write(in2, 3200, 3209);
     expect(read(0), count(0).level(Ok).main(in1).domainChanged().resync().allDescChanged().healthy(in2));
-    write(in1, 2200, 2299);
-    write(in2, 2200, 2299);
-    expect(read(100), count(100).at(2200).noChanges());
+    write(in1, 3300, 3399);
+    write(in2, 3300, 3399);
+    expect(read(100), count(100).at(3300).noChanges());
 }
 
 // S1.REC.33
-TEST_F(MultiReader2Recovery, StarvedInputRejoinsWhenItsDataArrivesWithinTwoSeconds)
+TEST_F(MultiReader2Recovery, StarvedInputRejoinsWhenItsDataArrivesWithinOneSecond)
 {
     given().policy(Exclude);
     setup(
         [&]
         {
             read(0, nullData);
-            timeline(Timeline::Starve2s);
-            read(2002);
-            read(2002);
+            timeline(Timeline::Starve3s);
+            read(3001);
+            read(3001);
         });
     write(in2, 3000, 3009);
     expect(read(0), count(0).level(Ok).descChanged(in2).healthy(in2));
-    write(in1, 3000, 3099);
+    write(in1, 3001, 3099);
     expect(avail(), count(0));
     write(in1, 3100, 3199);
     write(in2, 3100, 3199);
@@ -563,39 +567,39 @@ TEST_F(MultiReader2Recovery, StarvedInputRejoinsWhenItsDataArrivesWithinTwoSecon
 }
 
 // S1.REC.34
-TEST_F(MultiReader2Recovery, StarvedSyncFailedSurvivesMainDomainChangeReconfigure)
+TEST_F(MultiReader2Recovery, StalledSyncFailedSurvivesMainDomainChangeReconfigure)
 {
     given().policy(Exclude);
     setup(
         [&]
         {
             read(0, nullData);
-            timeline(Timeline::Starve2s);
-            read(2002);
-            read(2002);
+            timeline(Timeline::Starve3s);
+            read(3001);
+            read(3001);
         });
     announce(in1, Domain().originSeconds(-1));
     expect(read(0), count(0).domainChanged().resync().allDescChanged());
-    write(in1, 3000, 3099);
-    expect(read(100), count(100).at(4000).noChanges());  // main ticks of the new origin, 1 s earlier
+    write(in1, 3001, 3100);
+    expect(read(100), count(100).at(4001).noChanges());  // main ticks of the new origin, 1 s earlier
 }
 
 // S1.REC.35
-TEST_F(MultiReader2Recovery, StarvedSyncFailedClearsWhenMainInputChanges)
+TEST_F(MultiReader2Recovery, StalledSyncFailedClearsWhenMainInputChangesByConfigure)
 {
     given().policy(Exclude).main(in1);
     setup(
         [&]
         {
             read(0, nullData);
-            timeline(Timeline::Starve2s);
-            read(2002);
-            read(2002);
+            timeline(Timeline::Starve3s);
+            read(3001);
+            read(3001);
         });
     expect(configure(same().main(in2)), ok().level(Ok).main(in2).domainChanged().resync().allDescChanged().healthy(in2));
-    write(in2, 3000, 3099);
-    write(in1, 3000, 3099);
-    expect(read(100), count(100).at(3000).noChanges());
+    write(in2, 3100, 3199);
+    write(in1, 3100, 3199);
+    expect(read(100), count(100).at(3100).noChanges());
 }
 
 // S1.REC.36
@@ -679,7 +683,7 @@ TEST_F(MultiReader2Recovery, AutomaticMainMoveReevaluatesSyncFailedInputAfresh)
             write(in8, 0, 99);
             write(in9, 0, 99);
             write(in10, 0, 99);
-            write(in2, 2100, 2199);
+            write(in2, 3100, 3199);
             read(0, nullData);
         });
     announce(in1, Value::null());
@@ -700,17 +704,17 @@ TEST_F(MultiReader2Recovery, AutomaticMainMoveReevaluatesSyncFailedInputAfresh)
                .descChanged(in10)
                .inError(in1, InputError::ValueDescriptorInvalid)
                .healthy(in2));
-    write(in3, 2200, 2299);
-    write(in4, 2200, 2299);
-    write(in5, 2200, 2299);
-    write(in6, 2200, 2299);
-    write(in7, 2200, 2299);
-    write(in8, 2200, 2299);
-    write(in9, 2200, 2299);
-    write(in10, 2200, 2299);
+    write(in3, 3200, 3299);
+    write(in4, 3200, 3299);
+    write(in5, 3200, 3299);
+    write(in6, 3200, 3299);
+    write(in7, 3200, 3299);
+    write(in8, 3200, 3299);
+    write(in9, 3200, 3299);
+    write(in10, 3200, 3299);
     expect(avail(), count(0));
-    write(in2, 2200, 2299);
-    expect(read(100), count(100).at(2200).noChanges());
+    write(in2, 3200, 3299);
+    expect(read(100), count(100).at(3200).noChanges());
 }
 
 // S1.REC.41

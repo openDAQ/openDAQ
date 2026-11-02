@@ -35,9 +35,10 @@ enum class MultiReader2InputError : EnumType
     Disconnected,             ///< No signal connected.
     ValueDescriptorInvalid,   ///< Missing, not convertible to the read type, or rejected by acceptsDescriptor.
     DomainDescriptorInvalid,  ///< Fails the domain constraints; the status message names the one that failed.
-    SyncFailed                ///< Cannot be aligned with the main input: more than the sync limit from it, or its samples
-                              ///< fall between its ticks. The main input fails when it is more than 4 s behind the other
-                              ///< inputs. The status message names the cause.
+    SyncFailed                ///< Cannot be aligned with the main input: it sent no data while another input queued 3 s,
+                              ///< its first sample is more than 3 s past the main input's latest, or its samples fall
+                              ///< between the main input's ticks. A stalled or ahead input rejoins once its newest sample
+                              ///< is within 1 s of the other inputs'. The status message names the cause.
 };
 
 /*!

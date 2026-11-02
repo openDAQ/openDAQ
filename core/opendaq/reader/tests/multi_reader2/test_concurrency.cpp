@@ -29,14 +29,14 @@ TEST_F(MultiReader2Concurrency, InputsStartingApartSynchronizeWithoutLoss)
 }
 
 // S3.TL.03
-TEST_F(MultiReader2Concurrency, NonMainInputAheadBeyondSyncLimitFailsSync)
+TEST_F(MultiReader2Concurrency, NonMainInputAheadBeyondQueueLimitFailsSync)
 {
     given().policy(Exclude);
     replay(Timeline::Ahead, AllButInv6AndInv9);
 }
 
 // S3.TL.04
-TEST_F(MultiReader2Concurrency, NonMainInputBehindBeyondSyncLimitFailsSync)
+TEST_F(MultiReader2Concurrency, NonMainInputBehindBeyondQueueLimitStalls)
 {
     given().policy(Exclude);
     replay(Timeline::Behind, AllButInv6AndInv9);
@@ -81,14 +81,14 @@ TEST_F(MultiReader2Concurrency, FewerSamplesThanMinReadCountStayUnread)
 }
 
 // S3.TL.11
-TEST_F(MultiReader2Concurrency, SilentInputFailsSyncOnceMainPassesSyncLimit)
+TEST_F(MultiReader2Concurrency, SilentInputStallsOnceMainPassesQueueLimit)
 {
     given().policy(Exclude);
-    replay(Timeline::Starve2s, AllButInv6AndInv9);
+    replay(Timeline::Starve3s, AllButInv6AndInv9);
 }
 
 // S3.TL.12
-TEST_F(MultiReader2Concurrency, SyncFailedInputAheadRejoinsOnceWithinLimit)
+TEST_F(MultiReader2Concurrency, SyncFailedInputAheadRejoinsOnceWithinOneSecond)
 {
     given().policy(Exclude);
     replay(
@@ -97,18 +97,18 @@ TEST_F(MultiReader2Concurrency, SyncFailedInputAheadRejoinsOnceWithinLimit)
             handler([&] { drain(); });
             runScript(script(Timeline::Ahead), concurrent);
             waitUntilHandlerSaw(in2, InputError::SyncFailed);
-            // TL.CATCHUP with the main input's first step written alone: a late input keeps no data until it is within
-            // the limit (decision 31), so in2 packets that raced ahead of in1 100..299 would be dropped, and nothing
-            // written after them would bring in2 back
-            runScript({{in1, sendWrite(in1, 100, 299)}}, concurrent);
-            idle();  // the writer's return does not mean in1 299 was ingested; ingest runs on the scheduler
-            runScript({{in2, sendWrite(in2, 2200, 2299)}, {in1, sendWrite(in1, 300, 2299)}}, concurrent);
+            // TL.CATCHUP with the main input's first step written alone: only in2's own packets can rejoin it, so in2
+            // packets that raced ahead of in1 100..2299 would find in1 too far behind, and nothing after them would
+            // bring in2 back
+            runScript({{in1, sendWrite(in1, 100, 2299)}}, concurrent);
+            idle();  // the writer's return does not mean in1 2299 was ingested; ingest runs on the scheduler
+            runScript({{in2, sendWrite(in2, 3200, 3299)}, {in1, sendWrite(in1, 2300, 3299)}}, concurrent);
         },
         AllButInv6AndInv9);
 }
 
 // S3.TL.13
-TEST_F(MultiReader2Concurrency, SyncFailedInputBehindRejoinsOnceWithinLimit)
+TEST_F(MultiReader2Concurrency, StalledInputBehindRejoinsOnceWithinOneSecond)
 {
     given().policy(Exclude);
     replay(

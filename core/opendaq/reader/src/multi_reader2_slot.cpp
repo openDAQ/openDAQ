@@ -37,26 +37,19 @@ Slot::Applied Slot::apply(const Event& event)
         syncFailed = SyncCause::None;
     if (event.syncFailed != SyncCause::None)
         syncFailed = event.syncFailed;
-    if (event.lateCleared && syncFailed == SyncCause::Late)
+    if (event.rejoined && (syncFailed == SyncCause::Stalled || syncFailed == SyncCause::Ahead))
         syncFailed = SyncCause::None;
-    if (syncFailed != SyncCause::Late)
-        late.reset();
     return changed;
 }
 
-void Slot::fail(SyncCause cause, bool ahead, bool aligned)
+void Slot::fail(SyncCause cause)
 {
     Event marker{current, current};
     marker.syncFailed = cause;
-    if (cause == SyncCause::Late)
-        late.start(ahead, ahead && queue.frontCount() > 0 ? mainTick(queue.newestPacketOwn()) : newestTick);
-    if (aligned)
-        queue.pushEvent(marker);
-    else
-        queue.pushFrontEvent(marker);
+    queue.pushFrontEvent(marker);
 }
 
-std::optional<Relation> Slot::track(std::int64_t ownFirst, SizeT count, bool isMain, const TickDomain* main)
+void Slot::track(std::int64_t ownFirst, SizeT count, bool isMain, const TickDomain* main)
 {
     const TickDomain& own = *latestTicks;
     std::optional<Relation> packetRelation;
@@ -66,9 +59,11 @@ std::optional<Relation> Slot::track(std::int64_t ownFirst, SizeT count, bool isM
         packetRelation = relation;
     else if (main)
         packetRelation = relate(own, *main);
-    if (packetRelation)
-        newestTick = packetRelation->toMain(ownFirst + static_cast<std::int64_t>(count - 1) * own.delta);
-    return packetRelation;
+    if (!packetRelation)
+        return;
+    if (!firstTick)
+        firstTick = packetRelation->toMain(ownFirst);
+    newestTick = packetRelation->toMain(ownFirst + static_cast<std::int64_t>(count - 1) * own.delta);
 }
 
 bool Slot::full(SizeT count) const
@@ -77,33 +72,24 @@ bool Slot::full(SizeT count) const
         return false;
     const TickDomain& own = *latestTicks;
     const auto ticks = static_cast<std::int64_t>(queue.heldSamples() + count) * own.delta;
-    return ticks > queueLimitSyncLimits * syncLimitTicks(own);
+    return ticks > secondsToTicks(own, queueLimitSeconds);
 }
 
 void Slot::rejoin()
 {
-    late.reset();
-    // No read has applied the failure yet: withdrawn, the data behind it reads on as if it never failed
-    if (syncFailed != SyncCause::Late && queue.withdrawSyncFailed())
-        return;
-    // Queued here, the clear lets the input rejoin with the data behind it once a read reaches it; one that cancelled an
-    // event at the tail queues nothing
     Event clear{latest, latest};
-    clear.lateCleared = true;
-    if (queueEvent(clear))
-        late.clearQueued();
+    clear.rejoined = true;
+    queueEvent(clear);
 }
 
 SyncInput Slot::syncInput(std::int64_t mainFirst, std::int64_t mainDelta) const
 {
     SyncInput in;
-    in.empty = queue.empty();
     if (queue.frontCount() == 0)
         return in;
     std::int64_t remainder = 0;
     const std::int64_t first = relation->toMain(queue.firstOwn(ticks->delta), &remainder);
     in.first = first;
-    in.last = mainTick(queue.lastOwn(ticks->delta));
     in.offGrid = remainder != 0 || (first - mainFirst) % mainDelta != 0;
     return in;
 }

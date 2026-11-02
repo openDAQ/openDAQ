@@ -188,7 +188,7 @@ enum class Timeline
     StarveAll,
     StarveMain,
     Short,
-    Starve2s,
+    Starve3s,
     CatchUp,
     Epoch
 };

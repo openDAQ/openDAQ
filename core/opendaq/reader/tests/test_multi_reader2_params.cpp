@@ -23,6 +23,14 @@ public:
         for (SizeT i = 0; i < count; i++)
             addSignal(0, 10, createDomainSignal());
     }
+
+    // A judgement over the owner's state: rejects the input while the flag is set
+    static FunctionPtr rejectingWhile(const std::shared_ptr<std::atomic<bool>>& flag, const ComponentPtr& input)
+    {
+        const auto id = input.getGlobalId().toStdString();
+        return Function([flag, id](ComponentPtr candidate, DataDescriptorPtr, DataDescriptorPtr) -> bool
+                        { return !*flag || candidate.getGlobalId().toStdString() != id; });
+    }
 };
 
 // ---------------------------------------------------------------- defaults and factory
@@ -391,6 +399,116 @@ TEST_F(MultiReader2ParamsTest, ANewJudgementObjectReconfiguresTheSameOneDoesNot)
     scheduler.waitAll();
     ASSERT_EQ(reader.getAvailableCount(), 0u);  // another judgement: every descriptor is judged anew
     ASSERT_TRUE(probe(reader).getHasChanges());
+}
+
+// ---------------------------------------------------------------- reevaluate
+
+TEST_F(MultiReader2ParamsTest, ReevaluateWithoutAChangeKeepsTheQueuedData)
+{
+    addSignals(2);
+    auto p = params(signalsToList());
+    p.setAcceptsDescriptor(Function([](ComponentPtr, DataDescriptorPtr, DataDescriptorPtr) -> bool { return true; }));
+    auto reader = createReaderProbed(p);
+    sendPackets(0);
+    ASSERT_EQ(reader.getAvailableCount(), 10u);
+
+    const auto status = reader.reevaluate();
+    ASSERT_FALSE(status.getHasChanges());
+    ASSERT_EQ(reader.getAvailableCount(), 10u);
+}
+
+TEST_F(MultiReader2ParamsTest, ReevaluateSetsAsideAnInputTheOwnerNowRejects)
+{
+    addSignals(3);
+    const auto rejected = std::make_shared<std::atomic<bool>>(false);
+    auto p = params(signalsToList());
+    p.setErrorPolicy(MultiReader2ErrorPolicy::Exclude);
+    p.setAcceptsDescriptor(rejectingWhile(rejected, readSignals[2].signal));
+    auto reader = createReaderProbed(p);
+    sendPackets(0);
+    ASSERT_EQ(reader.getAvailableCount(), 10u);
+
+    *rejected = true;
+    const auto status = reader.reevaluate();
+    ASSERT_TRUE(status.getHasChanges());
+    ASSERT_TRUE(status.getStatus() != ComponentStatus::Error);
+    ASSERT_EQ(input(status, 0).getError(), MultiReader2InputError::None);
+    ASSERT_EQ(input(status, 1).getError(), MultiReader2InputError::None);
+    ASSERT_EQ(input(status, 2).getError(), MultiReader2InputError::ValueDescriptorInvalid);
+    ASSERT_EQ(reader.getAvailableCount(), 10u);  // the other inputs keep their queued data
+}
+
+TEST_F(MultiReader2ParamsTest, ReevaluateTakesBackAnInputTheOwnerAcceptsAgain)
+{
+    addSignals(3);
+    const auto rejected = std::make_shared<std::atomic<bool>>(true);
+    auto p = params(signalsToList());
+    p.setErrorPolicy(MultiReader2ErrorPolicy::Exclude);
+    p.setAcceptsDescriptor(rejectingWhile(rejected, readSignals[2].signal));
+    auto reader = createReaderProbed(p);
+    sendPackets(0);
+    ASSERT_EQ(input(probe(reader), 2).getError(), MultiReader2InputError::ValueDescriptorInvalid);
+
+    *rejected = false;
+    const auto status = reader.reevaluate();
+    ASSERT_TRUE(status.getHasChanges());
+    ASSERT_EQ(input(status, 2).getError(), MultiReader2InputError::None);
+
+    // It rejoins with its next data
+    sendPackets(1);
+    probe(reader);
+    std::array<std::array<double, 10>, 3> values{};
+    SizeT count = 10;
+    read(reader, values, count);
+    ASSERT_EQ(count, 10u);
+}
+
+TEST_F(MultiReader2ParamsTest, ReevaluateFromInsideTheJudgementFails)
+{
+    addSignals(2);
+    MultiReader2Ptr reader;
+    std::vector<ErrCode> seen;
+    auto p = params(signalsToList());
+    p.setAcceptsDescriptor(Function(
+        [&](ComponentPtr, DataDescriptorPtr, DataDescriptorPtr) -> bool
+        {
+            if (reader.assigned())
+            {
+                seen.push_back(reader->reevaluate(ignoredStatus()));
+                daqClearErrorInfo();
+            }
+            return true;
+        }));
+    reader = createReaderProbed(p);
+    sendPackets(0);
+
+    const auto status = reader.reevaluate();
+    ASSERT_EQ(seen.size(), 2u);  // asked once per input
+    for (const auto code : seen)
+        ASSERT_EQ(code, OPENDAQ_ERR_INVALIDSTATE);
+    ASSERT_FALSE(status.getHasChanges());
+    ASSERT_EQ(reader.getAvailableCount(), 10u);
+}
+
+TEST_F(MultiReader2ParamsTest, ReevaluateRejectsANullStatusAndRunsFromTheHandler)
+{
+    addSignals(2);
+    auto reader = createReaderProbed(params(signalsToList()));
+    ASSERT_EQ(reader->reevaluate(nullptr), OPENDAQ_ERR_ARGUMENT_NULL);
+    daqClearErrorInfo();
+
+    std::atomic<int> calls{0};
+    std::atomic<ErrCode> fromHandler{OPENDAQ_ERR_GENERALERROR};
+    reader.getOnDataAvailable() += [&](BaseObjectPtr&, EventArgsPtr<>&)
+    {
+        if (calls++ == 0)
+            fromHandler = reader->reevaluate(ignoredStatus());
+    };
+    sendPackets(0);
+    scheduler.waitAll();
+    ASSERT_GE(calls.load(), 1);
+    ASSERT_EQ(fromHandler.load(), OPENDAQ_SUCCESS);
+    ASSERT_EQ(reader.getAvailableCount(), 10u);
 }
 
 TEST_F(MultiReader2ParamsTest, EmptyInputListIsAValidReaderWithoutAMain)

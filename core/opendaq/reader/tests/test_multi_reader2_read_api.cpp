@@ -736,7 +736,7 @@ TEST_F(MultiReader2ReadApiTest, UnequalPacketSizesAlignSampleBySample)
 TEST_F(MultiReader2ReadApiTest, LargePacketsReadInOneCall)
 {
     readSignals.reserve(2);
-    auto domain = createDomainSignal();
+    auto domain = createDomainSignal("", Ratio(1, 100000000));  // 100 MHz: 100 000 samples are 1 ms, well within the sync limit
     addSignal(0, 100000, domain);
     addSignal(0, 100000, domain);
     auto reader = createReaderProbed(params(signalsToList()));

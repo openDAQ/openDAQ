@@ -383,12 +383,17 @@ MultiReaderDataManager::DomainInfo MultiReaderDataManager::parseDomain(const Dat
         return info;
     info.rate = info.resolution.getDenominator() / secondsPerSampleNum;
 
-    // Origin: ISO 8601 on a full second
+    // Origin: ISO 8601 on a full second; a year, or a year and month, alone starts on the first day
     const auto origin = domain.getOrigin();
     if (!origin.assigned() || origin.getLength() == 0)
         return info;
+    std::string text = origin.toStdString();
+    if (text.size() == 4)
+        text += "-01-01";
+    else if (text.size() == 7)
+        text += "-01";
     bool parsed = false;
-    const auto epoch = reader::parseEpoch(origin.toStdString(), &parsed);
+    const auto epoch = reader::parseEpoch(text, &parsed);
     if (!parsed || epoch.time_since_epoch() % std::chrono::seconds(1) != std::chrono::system_clock::duration::zero())
         return info;
     info.originS = std::chrono::duration_cast<std::chrono::seconds>(epoch.time_since_epoch()).count();
@@ -1008,11 +1013,10 @@ void MultiReaderDataManager::applyEvents()
             dropFront(slot);
     }
 
+    // Also after an applied event that held synchronization back while it led a queue
     if (resync)
-    {
         startSync();
-        synchronize();
-    }
+    synchronize();
     noteChanges(previousLevel, previous);
 }
 
@@ -1277,8 +1281,8 @@ void MultiReaderDataManager::failSync(Slot& slot, SyncCause cause)
     slot.frontCount = 0;
 }
 
-// The check mechanism (Synchronization) over the inputs' front runs, on every ingest while synchronizing. Returns
-// whether it reached the common start or failed an input
+// The check mechanism (Synchronization) over the inputs' front runs, on every ingest and after a read applies events,
+// while synchronizing. Returns whether it reached the common start or failed an input
 bool MultiReaderDataManager::synchronize()
 {
     if (state != State::Syncing || !mainSlot.has_value())

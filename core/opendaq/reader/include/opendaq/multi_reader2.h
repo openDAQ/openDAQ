@@ -40,8 +40,13 @@ BEGIN_NAMESPACE_OPENDAQ
  *
  * Synchronization compares each input with the main input's data ingested so far, so where the inputs' streams do not
  * line up, which samples a read delivers can depend on the order in which the inputs' packets arrive. The reader keeps
- * no clock: an input that stops sending, the main input included, is found when another input has queued 3 s of data
- * while it has none, and inputs that all stop together are not reported.
+ * no clock: an input that stops sending, the main input included, is found once the other inputs have sent 3 s past its
+ * newest sample while it has nothing queued, and inputs that all stop together are not reported.
+ *
+ * Each input's queue holds at most 3 s of its data, and the queues of all inputs together at most 100 MB per input. A
+ * packet past the 3 s drops that input's queued data, unless another input has nothing queued, which the next read then
+ * stalls; a packet past the byte budget drops the data of the input holding the most. The next status reports the loss
+ * as resynchronized, so a consumer that reads too slowly loses samples this way.
  */
 DECLARE_OPENDAQ_INTERFACE(IMultiReader2, IBaseObject)
 {
@@ -61,10 +66,11 @@ DECLARE_OPENDAQ_INTERFACE(IMultiReader2, IBaseObject)
      * @param[out] status The status of that read.
      *
      * For an owner whose judgement depends on its own state: it calls this when that state changes. An input whose verdict
-     * changed is set aside or rejoins as on a descriptor change, and the queued data is kept. Legal from inside the
-     * `onDataAvailable` handler.
+     * changed is set aside or rejoins as on a descriptor change. The queued data is kept, unless a changed verdict
+     * invalidates or recovers the reader or moves the automatic main input, which drops it as a recovery does. Legal from
+     * inside the `onDataAvailable` handler.
      */
-    virtual ErrCode INTERFACE_FUNC evaluate(IMultiReader2Status * *status) = 0;
+    virtual ErrCode INTERFACE_FUNC evaluate(IMultiReader2Status** status) = 0;
 
     /*!
      * @brief Gets the count the next read returns in full.
@@ -93,6 +99,9 @@ DECLARE_OPENDAQ_INTERFACE(IMultiReader2, IBaseObject)
      * @brief Behaves exactly like `read`, without copying into buffers.
      * @param[in,out] count The samples requested; out, the samples skipped.
      * @param[out] packetOffset The position of the first skipped sample on the main input.
+     * @param[out] status As for `read`.
+     * @retval OPENDAQ_ERR_INVALIDPARAMETER A count below MinReadCount.
+     * @retval OPENDAQ_ERR_ARGUMENT_NULL A null count or status.
      */
     virtual ErrCode INTERFACE_FUNC skipSamples(SizeT * count, SizeT * packetOffset, IMultiReader2Status * *status) = 0;
 
@@ -102,8 +111,9 @@ DECLARE_OPENDAQ_INTERFACE(IMultiReader2, IBaseObject)
      *
      * Called also while the reader is invalid; the sender is the reader. Calls never overlap. After a call returns,
      * another is scheduled while data stays readable, so a handler reads what is available instead of waiting for
-     * more. A handler subscribed after the last trigger is first called on the next one: a consumer that subscribes
-     * after data has arrived reads once itself.
+     * more. After a call that throws, the next packet or connection change on any input schedules the next call. A
+     * handler subscribed after the last trigger is first called on the next one: a consumer that subscribes after data
+     * has arrived reads once itself.
      */
     virtual ErrCode INTERFACE_FUNC getOnDataAvailable(IEvent** event) = 0;
 };

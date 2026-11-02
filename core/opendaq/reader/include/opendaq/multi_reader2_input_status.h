@@ -60,7 +60,7 @@ DECLARE_OPENDAQ_INTERFACE(IMultiReader2InputStatus, IBaseObject)
     /*!
      * @brief This status gives the input's descriptor, and the previous status gave none or another one.
      *
-     * The first status after a configure with new params, or after a recovery, sets it on every healthy input.
+     * The first status after a configure, or after a recovery, sets it on every healthy input.
      */
     virtual ErrCode INTERFACE_FUNC getDescriptorChanged(Bool* changed) = 0;
     virtual ErrCode INTERFACE_FUNC getDescriptor(IDataDescriptor** descriptor) = 0;

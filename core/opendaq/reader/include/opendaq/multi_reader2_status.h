@@ -33,7 +33,7 @@ BEGIN_NAMESPACE_OPENDAQ
  * @brief The immutable result of one read.
  *
  * The event fields, hasChanges, domainDescriptorChanged, resynchronized and each input's descriptorChanged, compare
- * this status with the previous one. A configure with new params, or a recovery, starts afresh, so its first status
+ * this status with the previous one. A configure, or a recovery, starts afresh, so its first status
  * sets them all. A status under Error gives no descriptors and sets none of them.
  */
 DECLARE_OPENDAQ_INTERFACE(IMultiReader2Status, IBaseObject)

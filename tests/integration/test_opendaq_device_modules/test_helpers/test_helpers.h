@@ -261,7 +261,7 @@ namespace test_helpers
 
         // Resolve a localhost (or external) address. If IPv6 is available, it should resolve to an IPv6 address.
         boost::system::error_code ec;
-        auto results = resolver.resolve(boost::asio::ip::tcp::v6(), hostName, "", ec);
+        auto results = resolver.resolve(boost::asio::ip::tcp::v6(), hostName, "", boost::asio::ip::tcp::resolver::address_configured, ec);
         return ec.failed();
     }
 

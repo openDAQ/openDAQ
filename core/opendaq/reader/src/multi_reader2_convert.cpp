@@ -1,11 +1,8 @@
 #include <opendaq/multi_reader2_convert.h>
+#include <opendaq/reader_utils.h>
 #include <opendaq/sample_type_traits.h>
 
-#include <algorithm>
-#include <cmath>
 #include <cstring>
-#include <limits>
-#include <type_traits>
 
 BEGIN_NAMESPACE_OPENDAQ
 
@@ -46,53 +43,12 @@ SizeT elementCount(const DataDescriptorPtr& value)
 }
 
 template <typename D, typename S>
-D convert(S s)
-{
-    if constexpr (std::is_same_v<D, float> && std::is_same_v<S, double>)
-    {
-        // A finite value beyond the float range saturates; NaN and infinity carry over
-        if (std::isfinite(s))
-            return static_cast<float>(std::clamp<double>(s, std::numeric_limits<float>::lowest(), std::numeric_limits<float>::max()));
-        return static_cast<float>(s);
-    }
-    else if constexpr (std::is_same_v<D, S> || std::is_floating_point_v<D>)
-        return static_cast<D>(s);
-    else if constexpr (std::is_floating_point_v<S>)
-    {
-        if (std::isnan(s))
-            return 0;
-        const S r = std::round(s);
-        if (r <= static_cast<S>(std::numeric_limits<D>::min()))
-            return std::numeric_limits<D>::min();
-        if (r >= static_cast<S>(std::numeric_limits<D>::max()))
-            return std::numeric_limits<D>::max();
-        return static_cast<D>(r);
-    }
-    else
-    {
-        if constexpr (std::is_signed_v<S>)
-            if (s < 0)
-            {
-                if constexpr (std::is_unsigned_v<D>)
-                    return 0;
-                else if (static_cast<std::int64_t>(s) < static_cast<std::int64_t>(std::numeric_limits<D>::min()))
-                    return std::numeric_limits<D>::min();
-                else
-                    return static_cast<D>(s);
-            }
-        if (static_cast<std::uint64_t>(s) > static_cast<std::uint64_t>(std::numeric_limits<D>::max()))
-            return std::numeric_limits<D>::max();
-        return static_cast<D>(s);
-    }
-}
-
-template <typename D, typename S>
 void convertRun(const void* src, void* dst, SizeT n)
 {
     const S* s = static_cast<const S*>(src);
     D* d = static_cast<D*>(dst);
     for (SizeT i = 0; i < n; ++i)
-        d[i] = convert<D>(s[i]);
+        d[i] = reader::convertSample<D>(s[i]);
 }
 
 template <typename D>

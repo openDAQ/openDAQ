@@ -335,7 +335,7 @@ class SyncView(ttk.Frame):
             if not domain:
                 yield 'n:', NO_DOMAIN, None, members
             elif owner is None:
-                yield f'd:{domain}', f'{domain} (external clock)', None, members
+                yield f'd:{domain}', domain, None, members
             else:
                 yield f'd:{domain}', domain, owner, [record for record in members if record is not owner]
 

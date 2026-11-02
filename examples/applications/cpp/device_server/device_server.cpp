@@ -14,7 +14,7 @@ int main(int /*argc*/, const char* /*argv*/[])
     const InstancePtr instance = Instance(MODULE_PATH);
 
     // Add a reference device as root device
-    instance.setRootDevice("daqref://device0");
+    instance.setRootDevice("daqref.root://device0");
     
     // Start streaming and openDAQ OpcUa servers
     instance.addStandardServers();

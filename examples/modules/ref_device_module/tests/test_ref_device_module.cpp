@@ -124,6 +124,30 @@ TEST_F(RefDeviceModuleTest, CreateDeviceConnectionStringCorrect)
 
     DevicePtr device;
     ASSERT_NO_THROW(device = module.createDevice("daqref://device1", nullptr));
+    ASSERT_EQ(device.getInfo().getConnectionString(), "daqref://device1");
+    ASSERT_EQ(device.getInfo().getDeviceType().getId(), "daqref");
+}
+
+TEST_F(RefDeviceModuleTest, CreateRootDeviceConnectionStringCorrect)
+{
+    auto module = CreateModule();
+
+    DevicePtr device;
+    ASSERT_NO_THROW(device = module.createDevice("daqref.root://device1", nullptr));
+    ASSERT_EQ(device.getInfo().getConnectionString(), "daqref.root://device1");
+    ASSERT_EQ(device.getInfo().getDeviceType().getId(), "daqref_root");
+}
+
+TEST_F(RefDeviceModuleTest, RootAndExternalDeviceKinds)
+{
+    auto instance = InstanceBuilder().setModulePath("[[none]]").build();
+    ModulePtr module;
+    createModule(&module, instance.getContext());
+    instance.getModuleManager().addModule(module);
+
+    ASSERT_THROW(instance.setRootDevice("daqref://device0"), InvalidParameterException);
+    ASSERT_THROW(instance.addDevice("daqref.root://device1"), InvalidParameterException);
+    ASSERT_NO_THROW(instance.addDevice("daqref://device1"));
 }
 
 TEST_F(RefDeviceModuleTest, DeviceVersion)
@@ -257,9 +281,15 @@ TEST_F(RefDeviceModuleTest, GetAvailableComponentTypes)
 
     DictPtr<IString, IDeviceType> deviceTypes;
     ASSERT_NO_THROW(deviceTypes = module.getAvailableDeviceTypes());
-    ASSERT_EQ(deviceTypes.getCount(), 1u);
+    ASSERT_EQ(deviceTypes.getCount(), 2u);
     ASSERT_TRUE(deviceTypes.hasKey("daqref"));
     ASSERT_EQ(deviceTypes.get("daqref").getId(), "daqref");
+    ASSERT_EQ(deviceTypes.get("daqref").getConnectionStringPrefix(), "daqref");
+    ASSERT_EQ(deviceTypes.get("daqref").getDeviceKind(), DeviceKind::External);
+    ASSERT_TRUE(deviceTypes.hasKey("daqref_root"));
+    ASSERT_EQ(deviceTypes.get("daqref_root").getId(), "daqref_root");
+    ASSERT_EQ(deviceTypes.get("daqref_root").getConnectionStringPrefix(), "daqref.root");
+    ASSERT_EQ(deviceTypes.get("daqref_root").getDeviceKind(), DeviceKind::Root);
 
     DictPtr<IString, IServerType> serverTypes;
     ASSERT_NO_THROW(serverTypes = module.getAvailableServerTypes());
@@ -1018,7 +1048,7 @@ TEST_F(RefDeviceModuleTest, EnableLogging)
         instance.getModuleManager().addModule(module);
     }
 
-    instance.setRootDevice("daqref://device0", config);
+    instance.setRootDevice("daqref.root://device0", config);
     instance.getContext().getLogger().flush();
 
     {

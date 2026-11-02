@@ -47,7 +47,7 @@ BEGIN_NAMESPACE_OPENDAQ
  * Root devices abstract the local system as the top-level device of an instance.
  * They can only be set as an instance's root device, via `setRootDevice`.
  *
- * Root, External and Unspecified devices can be set as root.
+ * Only Root and Unspecified devices can be set as root.
  * Only Mirrored and Unspecified devices can have streamings attached.
  */
 enum class DeviceKind : EnumType

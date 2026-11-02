@@ -62,8 +62,11 @@ DECLARE_OPENDAQ_INTERFACE(IModuleManagerUtils, IBaseObject)
      * @param connectionString Describes the connection info of the device to connect to.
      * @param parent The parent component/device to which the device attaches.
      * @param config A configuration object that contains parameters used to configure a device in the form of key-value pairs.
+     * @retval OPENDAQ_ERR_INVALIDPARAMETER when the device type's kind can't be used with the given parent.
      *
      * Iterates through all loaded modules and creates a device with the first module that accepts the provided connection string.
+     * A device of Root kind can only be created without a parent.
+     * A device of External or Mirrored kind can only be created with a parent.
      */
     virtual ErrCode INTERFACE_FUNC createDevice(IDevice** device, IString* connectionString, IComponent* parent, IPropertyObject* config = nullptr) = 0;
 

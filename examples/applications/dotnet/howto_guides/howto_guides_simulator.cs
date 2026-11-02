@@ -26,7 +26,7 @@ var instanceBuilder = InstanceBuilder();
 instanceBuilder.AddDiscoveryServer("mdns");
 
 // Set reference device as a root
-instanceBuilder.SetRootDevice("daqref://device1", config);
+instanceBuilder.SetRootDevice("daqref.root://device1", config);
 
 // Creating a new instance from builder
 var instance = instanceBuilder.Build();

@@ -194,7 +194,7 @@ TEST_F(StreamingConfigTest, ServerSideConfiguration)
 
     const InstancePtr instance = Instance();
 
-    instance.setRootDevice("daqref://device1");
+    instance.setRootDevice("daqref.root://device1");
 
     // Creates and registers a Server capability with the ID `OpenDAQLTStreaming` and the default port number 7414
     instance.addServer("OpenDAQLTStreaming", nullptr);

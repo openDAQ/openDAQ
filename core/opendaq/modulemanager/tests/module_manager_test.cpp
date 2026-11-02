@@ -8,6 +8,7 @@
 #include <chrono>
 #include <thread>
 
+#include <opendaq/component_factory.h>
 #include <opendaq/component_type_builder_factory.h>
 #include <opendaq/device_info_config_ptr.h>
 #include <opendaq/device_info_factory.h>
@@ -503,6 +504,15 @@ public:
         return OPENDAQ_SUCCESS;
     }
 
+    daq::ErrCode INTERFACE_FUNC createDevice(daq::IDevice** /*device*/,
+                                             daq::IString* connectionString,
+                                             daq::IComponent* /*parent*/,
+                                             daq::IPropertyObject* /*config*/) override
+    {
+        createdConnectionStrings.pushBack(connectionString);
+        return OPENDAQ_SUCCESS;
+    }
+
     void addDeviceType(const StringPtr& id, const PropertyObjectPtr& config, DeviceKind kind = DeviceKind::External)
     {
         auto builder = DeviceTypeBuilder().setId(id).setName(id).setConnectionStringPrefix(id);
@@ -532,6 +542,7 @@ public:
 
     DictPtr<IString, IDeviceType> deviceTypes = Dict<IString, IDeviceType>();
     DictPtr<IString, IStreamingType> streamingTypes = Dict<IString, IStreamingType>();
+    ListPtr<IString> createdConnectionStrings = List<IString>();
     bool failDeviceTypes = false;
 };
 
@@ -719,4 +730,36 @@ TEST_F(ModuleManagerLinkTest, UnspecifiedDeviceKindLogsInfo)
     while (!logged && lastMessage.waitForMessage(1000))
         logged = lastMessage.getLastMessage().toStdString().find(R"(Device type "unspecdev")") != std::string::npos;
     ASSERT_TRUE(logged);
+}
+
+TEST_F(ModuleManagerLinkTest, DeviceKindChecksParent)
+{
+    auto lib = makeModule();
+    lib.impl->addDeviceType("rootdev", nullptr, DeviceKind::Root);
+    lib.impl->addDeviceType("extdev", nullptr, DeviceKind::External);
+    lib.impl->addDeviceType("mirdev", nullptr, DeviceKind::Mirrored);
+    lib.impl->addDeviceType("unspecdev", nullptr, DeviceKind::Unspecified);
+    ASSERT_EQ(tryAdd(lib.module), "");
+
+    const ModuleManagerUtilsPtr utils = manager;
+    const auto parent = Component(NullContext(), nullptr, "parent");
+    const auto create = [&utils](const char* connectionString, const ComponentPtr& owner)
+    {
+        DevicePtr device;
+        const ErrCode errCode = utils->createDevice(&device, String(connectionString), owner, nullptr);
+        daqClearErrorInfo();
+        return errCode;
+    };
+
+    ASSERT_EQ(create("rootdev://", parent), OPENDAQ_ERR_INVALIDPARAMETER);
+    ASSERT_EQ(create("extdev://", nullptr), OPENDAQ_ERR_INVALIDPARAMETER);
+    ASSERT_EQ(create("mirdev://", nullptr), OPENDAQ_ERR_INVALIDPARAMETER);
+    ASSERT_EQ(lib.impl->createdConnectionStrings.getCount(), 0u);
+
+    ASSERT_EQ(create("rootdev://", nullptr), OPENDAQ_SUCCESS);
+    ASSERT_EQ(create("extdev://", parent), OPENDAQ_SUCCESS);
+    ASSERT_EQ(create("mirdev://", parent), OPENDAQ_SUCCESS);
+    ASSERT_EQ(create("unspecdev://", nullptr), OPENDAQ_SUCCESS);
+    ASSERT_EQ(create("unspecdev://", parent), OPENDAQ_SUCCESS);
+    ASSERT_EQ(lib.impl->createdConnectionStrings.getCount(), 5u);
 }

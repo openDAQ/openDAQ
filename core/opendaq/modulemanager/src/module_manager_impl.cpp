@@ -80,6 +80,28 @@ inline AuthenticationConfigPtr ExtractAuthenticationConfig(const PropertyObjectP
     return config.getPropertyValue(AuthenticationConfigConfigKey).asPtrOrNull<IAuthenticationConfig>();
 }
 
+// Only Root devices are created as the root. Unspecified devices can be created either way.
+inline bool IsKindAllowed(DeviceKind kind, bool asChild)
+{
+    return kind == DeviceKind::Unspecified || (kind == DeviceKind::Root) != asChild;
+}
+
+inline ErrCode CheckKindAllowed(const DeviceTypePtr& deviceType, bool asChild)
+{
+    if (IsKindAllowed(deviceType.getDeviceKind(), asChild))
+        return OPENDAQ_SUCCESS;
+
+    if (asChild)
+    {
+        return DAQ_MAKE_ERROR_INFO(
+            OPENDAQ_ERR_INVALIDPARAMETER,
+            fmt::format(R"(Device type "{}" is of Root kind and can only be set as the root device)", deviceType.getId()));
+    }
+    return DAQ_MAKE_ERROR_INFO(
+        OPENDAQ_ERR_INVALIDPARAMETER,
+        fmt::format(R"(Device type "{}" is not of Root kind and cannot be set as the root device)", deviceType.getId()));
+}
+
 ModuleManagerImpl::ModuleManagerImpl(const BaseObjectPtr& path, const CredentialProviderPtr& credentialProvider)
     : authenticatedModulesOnly(false)
     , moduleAuthenticator(nullptr)
@@ -938,6 +960,8 @@ ErrCode ModuleManagerImpl::createDeviceInternal(IDevice** device, IString* conne
             // Check if module can create device with given connection string
             if (!deviceType.assigned())
                 continue;
+
+            OPENDAQ_RETURN_IF_FAILED(CheckKindAllowed(deviceType, parent != nullptr));
 
             const bool authenticationSupported = deviceType.asPtr<IComponentTypePrivate>().getSupportedAuthenticationMethods().getCount() > 0;
 

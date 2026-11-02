@@ -262,7 +262,7 @@ int main(int /*argc*/, const char* /*argv*/[])
         {"Start: both ADCs in one reader, the configurable Pi's pinned", nullptr, ComponentStatus::Warning, "AI: not synchronized",
          "The ticks count from each Pi's boot; with the reference domain offsets applied (decision 55) both ADCs are on wall "
          "time, within ms of each other, but each free-running ADC grid has its own phase: the streamed one is SyncFailed "
-         "(off grid), set aside. Without the offsets it is late by the boot-time difference.",
+         "(off grid), set aside. Without the offsets it is behind by the boot-time difference and stalls.",
          8000, 3000},
         {"Configurable Pi: ADC channel SampleRate 1000 -> 500 Hz", [&] { guard.set(adcChannel, "SampleRate", 500, aiName); },
          ComponentStatus::Warning, "AI: domain descriptor invalid",

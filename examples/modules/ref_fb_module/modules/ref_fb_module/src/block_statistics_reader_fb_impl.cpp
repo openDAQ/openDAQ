@@ -123,10 +123,13 @@ bool BlockStatisticsReaderFbImpl::accepts(const ComponentPtr&, const DataDescrip
 bool BlockStatisticsReaderFbImpl::onChanges(const MultiReader2StatusPtr& status)
 {
     bool restart = status.getStatus() == ComponentStatus::Error || status.getResynchronized() || status.getDomainDescriptorChanged();
-    for (const MultiReader2InputStatusPtr in : status.getInputs())
+    const auto inputs = status.getInputs();
+    for (SizeT i = 0; i < inputs.getCount(); ++i)
     {
+        const MultiReader2InputStatusPtr in = inputs[i];
         const auto id = in.getInput().getGlobalId().toStdString();
-        restart = restart || (in.getDescriptorChanged() && cached.count(id));  // a rejoining input only yields NaN
+        // A rejoining input only yields NaN
+        restart = restart || (in.getDescriptorChanged() && i < descriptors.size() && descriptors[i].assigned());
         if (in.getError() != MultiReader2InputError::None || in.getDescriptorChanged())
             accumulators[id].spoiled = true;
     }
@@ -206,13 +209,13 @@ void BlockStatisticsReaderFbImpl::rebuildOutputDescriptor()
         if (domainSignal.getDescriptor() != descriptor)
             domainSignal.setDescriptor(descriptor);
     }
-    for (const auto& input : params.getInputs())
+    const auto inputs = params.getInputs();
+    for (SizeT i = 0; i < inputs.getCount() && i < descriptors.size(); ++i)
     {
-        const auto it = cached.find(input.getGlobalId().toStdString());
-        if (it == cached.end())
+        if (!descriptors[i].assigned())
             continue;
-        const auto signal = outputFor(input);
-        const auto descriptor = statisticDescriptor(it->second);
+        const auto signal = outputFor(inputs[i]);
+        const auto descriptor = statisticDescriptor(descriptors[i]);
         if (signal.getDescriptor() != descriptor)
             signal.setDescriptor(descriptor);
     }

@@ -129,9 +129,9 @@ int main(int /*argc*/, const char* /*argv*/[])
         {"Pinned main AI1 back on the global rate", [&] { channel(1).setPropertyValue("UseGlobalSampleRate", true); }, ComponentStatus::Ok,
          "", "The reader recovers on its own: internal reconfigure, every descriptor new, resynchronized."},
         {"NumberOfChannels 4 -> 3: the excitation channel goes", [&] { guard.set(device, "NumberOfChannels", 3, "device0"); },
-         ComponentStatus::Warning, "Strain: not synchronized, more than 2 s from the main input",
-         "AI3 Disconnected and set aside. The bridge loses an input and stops, so Strain sends nothing; once the main input is "
-         "more than 2 s ahead, Strain is SyncFailed (late) and set aside, and the rest flows (decision 54)."},
+         ComponentStatus::Warning, "Strain: not synchronized, no data for 3 s",
+         "AI3 Disconnected and set aside. The bridge loses an input and stops, so Strain sends nothing; once the other inputs "
+         "have sent 3 s past its newest sample, Strain is stalled and set aside, and the rest flows."},
         {"NumberOfChannels back to 4; the application maps AI3 again by global ID and reconnects the bridge",
          [&] {
              device.setPropertyValue("NumberOfChannels", 4);
@@ -141,10 +141,11 @@ int main(int /*argc*/, const char* /*argv*/[])
              inputs[3] = aiSignal(3);
              driver.configure(makeParams(pinnedMain), labels);
          },
-         ComponentStatus::Warning, "AI3: not synchronized, more than 2 s from the main input",
+         ComponentStatus::Warning, "AI3: not synchronized, no data for 3 s",
          "configure with the new signal object. The ref device stamps a channel added after its start with the device start "
-         "epoch plus the channel's own elapsed time, so the new AI3 lags by its creation delay: SyncFailed (late), for good. "
-         "The bridge, also fed by it, stays invalid, so Strain has no sample and fails after 2 s of main data.",
+         "epoch plus the channel's own elapsed time, so the new AI3 lags by its creation delay. Synchronization trims its data "
+         "behind the read position, and once the others have sent 3 s past it, it is stalled for good. The bridge, also fed by "
+         "it, stays invalid, so Strain has no sample and stalls too.",
          4000, 3500},
     };
 

@@ -88,7 +88,7 @@ void BridgeReaderFbImpl::propertyChanged()
     gaugeFactor = objPtr.getPropertyValue("GaugeFactor");
     zeroOffset = static_cast<double>(objPtr.getPropertyValue("ZeroOffset")) * 1e-3;
     minExcitation = objPtr.getPropertyValue("MinExcitation");
-    if (!cached.empty())
+    if (anyContributing())
         rebuildOutputDescriptor();
 }
 
@@ -116,10 +116,11 @@ double BridgeReaderFbImpl::strain(double ratio) const
 // below MinExcitation. Without a bridge output range, or across the quarter bridge's pole, there is none
 void BridgeReaderFbImpl::rebuildOutputDescriptor()
 {
-    const auto signal = cached.find(signalPort.getGlobalId().toStdString());
-    const auto excitation = cached.find(excitationPort.getGlobalId().toStdString());
-    if (signal == cached.end() || excitation == cached.end())
+    // Slot 0 is the bridge output, slot 1 the excitation
+    if (descriptors.size() != 2 || !descriptors[0].assigned() || !descriptors[1].assigned())
         return;
+    const auto& signal = descriptors[0];
+    const auto& excitation = descriptors[1];
 
     auto builder = DataDescriptorBuilder().setSampleType(SampleType::Float64);
     if (quantity == OutputQuantity::Strain)
@@ -127,18 +128,18 @@ void BridgeReaderFbImpl::rebuildOutputDescriptor()
     else
         builder.setName("Bridge ratio").setUnit(Unit("mV/V", -1, "millivolt per volt", "ratio"));
 
-    if (const auto signalRange = signal->second.getValueRange(); signalRange.assigned())
+    if (const auto signalRange = signal.getValueRange(); signalRange.assigned())
     {
         double lowestExcitation = minExcitation;
-        if (const auto range = excitation->second.getValueRange(); range.assigned())
+        if (const auto range = excitation.getValueRange(); range.assigned())
         {
             const double low = range.getLowValue();
             const double high = range.getHighValue();
             if (low * high > 0)
-                lowestExcitation = std::max(minExcitation, std::min(std::fabs(low), std::fabs(high)) * voltsPerUnit(excitation->second));
+                lowestExcitation = std::max(minExcitation, std::min(std::fabs(low), std::fabs(high)) * voltsPerUnit(excitation));
         }
         const double peak = std::max(std::fabs(static_cast<double>(signalRange.getLowValue())), std::fabs(static_cast<double>(signalRange.getHighValue())));
-        const double bound = lowestExcitation > 0 ? peak * voltsPerUnit(signal->second) / lowestExcitation : 0;
+        const double bound = lowestExcitation > 0 ? peak * voltsPerUnit(signal) / lowestExcitation : 0;
         const double low = -bound - zeroOffset;
         const double high = bound - zeroOffset;
         if (quantity == OutputQuantity::Ratio && bound > 0)
@@ -158,8 +159,8 @@ void BridgeReaderFbImpl::processAndSend(SizeT count, SizeT packetOffset)
 {
     const auto* signal = static_cast<const double*>(buffers[0]);
     const auto* excitation = static_cast<const double*>(buffers[1]);
-    const double signalVolts = voltsPerUnit(cached[signalPort.getGlobalId().toStdString()]);
-    const double excitationVolts = voltsPerUnit(cached[excitationPort.getGlobalId().toStdString()]);
+    const double signalVolts = voltsPerUnit(descriptors[0]);
+    const double excitationVolts = voltsPerUnit(descriptors[1]);
 
     const auto domainPacket = DataPacket(outputDomainSignal.getDescriptor(), count, packetOffset);
     const auto valuePacket = DataPacketWithDomain(domainPacket, outputSignal.getDescriptor(), count);

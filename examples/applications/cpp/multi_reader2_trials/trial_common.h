@@ -238,7 +238,7 @@ public:
             reader.getOnDataAvailable() += [this](BaseObjectPtr&, EventArgsPtr<>&) { drain(); };
         SizeT count = 0;
         SizeT offset = 0;
-        handle(reader.read(nullptr, &count, 0, offset));
+        handle(reader.read(nullptr, &count, offset));
     }
 
     void configure(const MultiReader2ParamsPtr& readerParams, std::vector<std::string> columnLabels)
@@ -277,7 +277,7 @@ public:
                     buffers[i] = storage[i].data();
                 }
             SizeT offset = 0;
-            const auto status = reader.read(count > 0 ? buffers.data() : nullptr, &count, 0, offset);
+            const auto status = reader.read(count > 0 ? buffers.data() : nullptr, &count, offset);
             if (count > 0)
             {
                 if (gapPending && expectedNext >= 0)

@@ -251,11 +251,10 @@ ErrCode MultiReaderDataManager::rejudge(IMultiReader2Status** status)
     std::scoped_lock lock(mutex);
     return daqTry([&]
     {
-        const bool wasValid = level() != ComponentStatus::Error;
+        const ComponentStatus previousLevel = level();
+        const bool wasValid = previousLevel != ComponentStatus::Error;
         const auto previousMain = mainSlot;
-        std::vector<MultiReader2InputError> previousErrors;
-        for (const auto& slot : slots)
-            previousErrors.push_back(slot.error);
+        const auto previous = reportedErrors();
 
         // Every input that passes the reader's own checks is judged again with its descriptors in force
         for (SizeT i = 0; i < slots.size(); ++i)
@@ -264,11 +263,9 @@ ErrCode MultiReaderDataManager::rejudge(IMultiReader2Status** status)
 
         if (wasValid != (level() != ComponentStatus::Error) || mainSlot != previousMain)
         {
-            // Internal reconfigure: the reader became invalid or valid again, or the automatic main input moved. The
-            // verdicts are fresh, so the inputs are not judged a second time
-            // TODO(read): apply every queued event first, as the internal reconfigure in read does; until then restart
-            // keeps the events for the next read
-            restart();
+            // The reader became invalid or valid again, or the automatic main input moved. Only the inputs whose
+            // queued events change their descriptors are judged a second time
+            internalReconfigure();
         }
         else
         {
@@ -277,10 +274,9 @@ ErrCode MultiReaderDataManager::rejudge(IMultiReader2Status** status)
             for (SizeT i = 0; i < slots.size(); ++i)
             {
                 Slot& slot = slots[i];
-                if (slot.error == previousErrors[i])
+                if (slot.error == previous[i].first)
                     continue;
 
-                statusOwed = true;
                 if (slot.error == MultiReader2InputError::None)
                 {
                     // Rejoins under Exclude
@@ -297,6 +293,7 @@ ErrCode MultiReaderDataManager::rejudge(IMultiReader2Status** status)
                 startSync();
             synchronize();
         }
+        noteChanges(previousLevel, previous);
 
         *status = buildStatus().detach();
     });
@@ -493,6 +490,7 @@ void MultiReaderDataManager::restart()
     // A reader without inputs is valid and has nothing to synchronize
     state = level() == ComponentStatus::Error ? State::Invalid : State::Syncing;
     readTick = 0;
+    positioned = false;
 }
 
 // A synchronization trigger while valid, such as a rejoin under Exclude
@@ -501,6 +499,57 @@ void MultiReaderDataManager::startSync()
     if (state == State::Invalid)
         return;
     state = State::Syncing;
+}
+
+// The configure with the params in force, from a read (R5): every queued event goes onto its input and the data is
+// dropped; the inputs whose descriptors or connection changed are judged again, and a healthy main input is kept, with
+// the SyncFailed of the others
+void MultiReaderDataManager::internalReconfigure()
+{
+    for (SizeT i = 0; i < slots.size(); ++i)
+    {
+        Slot& slot = slots[i];
+        bool judge = false;
+        for (const auto& entry : slot.queue)
+        {
+            if (entry.event.has_value())
+                judge |= applyEvent(slot, *entry.event).judge;
+        }
+        slot.queue.clear();
+        slot.frontCount = 0;
+        slot.events = 0;
+        if (judge)
+            checkInput(i);
+    }
+    settleMainInput(true);
+
+    // Unlike a configure, the caller decides from what the status will show whether one is owed
+    const bool owed = statusOwed;
+    restart();
+    statusOwed = owed;
+}
+
+// A status is owed when it will show something the previous one did not; nothing of a restart shows under Error
+void MultiReaderDataManager::noteChanges(ComponentStatus previousLevel, const std::vector<std::pair<MultiReader2InputError, std::string>>& previous)
+{
+    const bool valid = level() != ComponentStatus::Error;
+    bool changes = level() != previousLevel || (valid && (domainChanged || resynchronized));
+    for (SizeT i = 0; i < slots.size(); ++i)
+    {
+        const Slot& slot = slots[i];
+        changes = changes || slot.error != previous[i].first || slot.errorText != previous[i].second ||
+                  (valid && slot.error == MultiReader2InputError::None && slot.descriptorChanged);
+    }
+    if (changes)
+        statusOwed = true;
+}
+
+std::vector<std::pair<MultiReader2InputError, std::string>> MultiReaderDataManager::reportedErrors() const
+{
+    std::vector<std::pair<MultiReader2InputError, std::string>> errors;
+    for (const auto& slot : slots)
+        errors.emplace_back(slot.error, slot.errorText);
+    return errors;
 }
 
 // ---------------------------------------------------------------- status
@@ -632,7 +681,7 @@ ErrCode MultiReaderDataManager::read(void** data, SizeT* count, SizeT timeoutMs,
         OPENDAQ_RETURN_IF_FAILED(errCode);
 
         // TODO(read): copy the samples into data
-        readStatus(count, packetOffset, status);
+        performRead(count, packetOffset, status);
         return OPENDAQ_SUCCESS;
     });
 }
@@ -649,7 +698,7 @@ ErrCode MultiReaderDataManager::readWithDomain(void** data, SizeT* count, SizeT 
         OPENDAQ_RETURN_IF_FAILED(errCode);
 
         // TODO(read): fill the leading domain buffer with packetOffset plus the main rule's start, then the samples
-        readStatus(count, nullptr, status);
+        performRead(count, nullptr, status);
         return OPENDAQ_SUCCESS;
     });
 }
@@ -665,7 +714,7 @@ ErrCode MultiReaderDataManager::skipSamples(SizeT* count, SizeT timeoutMs, SizeT
         const ErrCode errCode = checkRead(*count, timeoutMs, nullptr, Buffers::None);
         OPENDAQ_RETURN_IF_FAILED(errCode);
 
-        readStatus(count, packetOffset, status);
+        performRead(count, packetOffset, status);
         return OPENDAQ_SUCCESS;
     });
 }
@@ -696,15 +745,158 @@ ErrCode MultiReaderDataManager::checkRead(SizeT count, SizeT timeoutMs, void** d
     return OPENDAQ_SUCCESS;
 }
 
-void MultiReaderDataManager::readStatus(SizeT* count, SizeT* packetOffset, IMultiReader2Status** status)
+void MultiReaderDataManager::performRead(SizeT* count, SizeT* packetOffset, IMultiReader2Status** status)
 {
-    // TODO(read): drop fewer than MinReadCount samples in front of a queued event, apply the events the read reaches
-    // and re-evaluate their inputs (checkInput, settleMainInput), run an internal reconfigure when one is due, and plan
-    // the samples. With no queues yet every read returns count 0 with its status
+    // TODO(read): drop fewer than MinReadCount samples in front of a queued event (R8), then copy what every
+    // contributing input has in front of its first event, unless a status is owed (R1). Until then a read returns
+    // count 0 and applies only the events in front
     *count = 0;
     if (packetOffset)
-        *packetOffset = 0;   // TODO(read): readTick
+        *packetOffset = 0;   // TODO(read): readTick - the main rule's start, when samples are read (R9)
+    applyEvents();
     *status = buildStatus().detach();
+}
+
+// One event onto its input's state in force
+MultiReaderDataManager::Applied MultiReaderDataManager::applyEvent(Slot& slot, const Event& event)
+{
+    Applied applied;
+    switch (event.kind)
+    {
+        case Event::Kind::Descriptor:
+        case Event::Kind::Connected:
+            applied.judge = true;
+            applied.domain = event.domain != slot.domain;
+            if (event.value != slot.value)
+                slot.descriptorChanged = true;
+            slot.value = event.value;
+            slot.domain = event.domain;
+            if (event.kind == Event::Kind::Connected)
+                slot.connected = true;
+
+            // A new domain descriptor or a connect clears an off-grid input (SyncFailed)
+            if (slot.syncFailed == SyncCause::OffGrid && (applied.domain || event.kind == Event::Kind::Connected))
+                slot.syncFailed = SyncCause::None;
+            break;
+        case Event::Kind::Disconnected:
+            applied.judge = true;
+            slot.connected = false;
+            break;
+        case Event::Kind::Gap:
+            // A gap clears an off-grid input too; on any other failed input it changes nothing
+            applied.gap = true;
+            if (slot.syncFailed == SyncCause::OffGrid)
+                slot.syncFailed = SyncCause::None;
+            break;
+        case Event::Kind::SyncFailed:
+            slot.syncFailed = event.cause;
+            break;
+    }
+    return applied;
+}
+
+// The samples in front of the first event, after events were taken off the front
+void MultiReaderDataManager::countFront(Slot& slot)
+{
+    slot.frontCount = 0;
+    for (const auto& entry : slot.queue)
+    {
+        if (entry.event.has_value())
+            break;
+        slot.frontCount += entry.count;
+    }
+}
+
+// What a read changes after its samples (R1, R4): the events it reached, the clears it owes, the re-evaluation, and
+// the internal reconfigure, set-aside, rejoin or resynchronization that follows from it
+void MultiReaderDataManager::applyEvents()
+{
+    const ComponentStatus previousLevel = level();
+    const bool wasValid = previousLevel != ComponentStatus::Error;
+    const auto previousMain = mainSlot;
+    const auto previous = reportedErrors();
+
+    bool reconfigure = false;
+    bool resync = false;
+    for (SizeT i = 0; i < slots.size(); ++i)
+    {
+        Slot& slot = slots[i];
+
+        // A contributing input applies the events in front of it, which the read reached. Any other input delivers
+        // nothing: it applies all of them and keeps only the data behind the last
+        const bool contributing = wasValid && slot.error == MultiReader2InputError::None;
+        bool judge = false;
+        while (!slot.queue.empty())
+        {
+            const Entry& front = slot.queue.front();
+            if (!front.event.has_value())
+            {
+                if (contributing || slot.events == 0)
+                    break;
+                slot.queue.pop_front();
+                continue;
+            }
+
+            const Applied applied = applyEvent(slot, *front.event);
+            slot.queue.pop_front();
+            --slot.events;
+            judge |= applied.judge;
+            if (applied.domain && mainSlot == i)
+                reconfigure = true;
+            else if (contributing && (applied.domain || applied.gap))
+                resync = true;
+        }
+        countFront(slot);
+        if (judge)
+            checkInput(i);
+
+        // A late input marked within the limit clears on this read
+        if (slot.clearPending && slot.syncFailed == SyncCause::Limit)
+        {
+            slot.syncFailed = SyncCause::None;
+            slot.clearPending = false;
+        }
+    }
+    settleMainInput(true);
+
+    const bool valid = level() != ComponentStatus::Error;
+    if (reconfigure || valid != wasValid || mainSlot != previousMain)
+    {
+        internalReconfigure();
+        noteChanges(previousLevel, previous);
+        return;
+    }
+
+    for (SizeT i = 0; i < slots.size(); ++i)
+    {
+        Slot& slot = slots[i];
+        if (slot.error == MultiReader2InputError::None)
+        {
+            // Rejoins under Exclude, with a synchronization
+            if (previous[i].first != MultiReader2InputError::None)
+            {
+                slot.descriptorChanged = true;
+                resync = true;
+            }
+        }
+        else
+        {
+            // Set aside, or still in error: no data in front of its events
+            dropFront(slot);
+        }
+    }
+    if (!valid)
+    {
+        for (auto& slot : slots)
+            dropFront(slot);
+    }
+
+    if (resync)
+    {
+        startSync();
+        synchronize();
+    }
+    noteChanges(previousLevel, previous);
 }
 
 // ---------------------------------------------------------------- producer side
@@ -1031,8 +1223,15 @@ bool MultiReaderDataManager::synchronize()
         if (front.event.has_value() ? front.event->kind != Event::Kind::SyncFailed : front.firstTick != common)
             return reported;
     }
+    // A start other than where the last read ended is a jump in packetOffset (R6); the restart reports its own
+    if (positioned && common != readTick)
+    {
+        resynchronized = true;
+        statusOwed = true;
+    }
     state = State::Streaming;
     readTick = common;
+    positioned = true;
     return true;
 }
 

@@ -41,8 +41,9 @@ BEGIN_NAMESPACE_OPENDAQ
 // held for the whole call. The one call-out is acceptsDescriptor, made under the mutex on the consumer's thread;
 // reader calls from inside it are refused. See spec 0007, Data manager sketch.
 //
-// Implemented so far: configure (reconfigure, isSameConfig, rejudge), the status probe, and ingest: the queues, the
-// synchronization and getAvailableCount. Reads with data and the wake are still to be written.
+// Implemented so far: configure (reconfigure, isSameConfig, rejudge), ingest (the queues, the synchronization and
+// getAvailableCount) and the read's events (applying them, the re-evaluation and the internal reconfigure). Copying
+// samples and the wake are still to be written.
 class MultiReaderDataManager final
 {
 public:
@@ -127,6 +128,14 @@ private:
         SyncCause cause = SyncCause::None; // SyncFailed: a failure found at ingest, queued in front of the input's data
     };
 
+    // What applying one event changed on its input; not in the sketch
+    struct Applied
+    {
+        bool judge = false;    // descriptors or connection: the input is checked again
+        bool domain = false;   // a new domain descriptor
+        bool gap = false;
+    };
+
     // One queue element: a data packet with its position in main ticks, or an event
     struct Entry
     {
@@ -171,6 +180,14 @@ private:
     void settleMainInput(bool keepMain);
     void restart();
     void startSync();
+    void internalReconfigure();
+    std::vector<std::pair<MultiReader2InputError, std::string>> reportedErrors() const;
+    void noteChanges(ComponentStatus previousLevel, const std::vector<std::pair<MultiReader2InputError, std::string>>& previous);
+
+    // Read
+    static Applied applyEvent(Slot& slot, const Event& event);
+    static void countFront(Slot& slot);
+    void applyEvents();
 
     // Ingest
     bool queueDescriptor(SizeT slot, const DataDescriptorPtr& value, const DataDescriptorPtr& domain);
@@ -191,7 +208,7 @@ private:
     MultiReader2StatusPtr buildStatus();
     enum class Buffers { Values, WithDomain, None };   // read, readWithDomain, skipSamples
     ErrCode checkRead(SizeT count, SizeT timeoutMs, void** data, Buffers buffers) const;
-    void readStatus(SizeT* count, SizeT* packetOffset, IMultiReader2Status** status);
+    void performRead(SizeT* count, SizeT* packetOffset, IMultiReader2Status** status);
 
     std::mutex mutex;
     Config config;
@@ -200,6 +217,8 @@ private:
     std::optional<SizeT> mainSlot;                  // the main input in effect
     State state = State::Invalid;
     std::int64_t readTick = 0;                      // main-tick position of the next unread sample
+    bool positioned = false;                        // readTick continues an earlier stream since the last restart; not
+                                                    // in the sketch
     std::int64_t syncLimitTicks = 0;                // 2 s of data in main ticks; set from the main domain
     std::int64_t mainDelta = 1;                     // main ticks per sample; not in the sketch
     bool domainChanged = false;                     // pending for the next status

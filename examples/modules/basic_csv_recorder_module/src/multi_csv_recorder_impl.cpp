@@ -158,17 +158,20 @@ bool MultiCsvRecorderImpl::onChanges(const MultiReader2StatusPtr& status)
     newHeader = status.getDomainDescriptorChanged() &&
                 (!outputDomain.assigned() ||
                  !(MultiCsvWriter::getDomainMetadata(status.getDomainDescriptor()) == MultiCsvWriter::getDomainMetadata(outputDomain)));
+    // A slot that moved to another input changes `recorded`, which starts a new header whatever the units compare to
     std::vector<std::string> next;
-    for (const MultiReader2InputStatusPtr in : status.getInputs())
+    const auto inputs = status.getInputs();
+    for (SizeT i = 0; i < inputs.getCount(); i++)
     {
+        const MultiReader2InputStatusPtr in = inputs[i];
         if (in.getError() != MultiReader2InputError::None)
             continue;
         const auto id = in.getInput().getGlobalId().toStdString();
         next.push_back(id);
         if (!in.getDescriptorChanged())
             continue;
-        const auto it = cached.find(id);
-        newHeader = newHeader || it == cached.end() || MultiCsvWriter::unitLabel(it->second) != MultiCsvWriter::unitLabel(in.getDescriptor());
+        newHeader = newHeader || i >= descriptors.size() || !descriptors[i].assigned() ||
+                    MultiCsvWriter::unitLabel(descriptors[i]) != MultiCsvWriter::unitLabel(in.getDescriptor());
         if (const auto signal = in.getInput().asPtr<IInputPort>(true).getSignal(); signal.assigned())
             names[id] = signal.getName();
     }
@@ -214,17 +217,18 @@ void MultiCsvRecorderImpl::configureWriter()
         return;
     }
 
-    auto descriptors = List<IDataDescriptor>();
+    // `recorded` lists the contributing slots in order, as `descriptors` holds them
+    auto columns = List<IDataDescriptor>();
     auto signalNames = List<IString>();
+    for (const auto& descriptor : descriptors)
+        if (descriptor.assigned())
+            columns.pushBack(descriptor);
     for (const auto& id : recorded)
-    {
-        descriptors.pushBack(cached[id]);
         signalNames.pushBack(names[id]);
-    }
     // The previous writer closes its file first: its thread creates the file, and the next name skips existing files
     writer = std::nullopt;
     writer.emplace(getNextCsvFilename(filePath.value(), fileBasename, timestampEnabled));
-    writer.value().setHeaderInformation(outputDomain, descriptors, signalNames, writeDomain);
+    writer.value().setHeaderInformation(outputDomain, columns, signalNames, writeDomain);
 
     // Auto resume recording if recording was stopped internally
     if (recoverToActive)

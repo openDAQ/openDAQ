@@ -41,11 +41,6 @@ if (MSVC)
     target_compile_options(${LIB_NAME} PRIVATE /bigobj)
 endif()
 
-# The reader blocks' base, shared with ref_fb_module
-if (NOT TARGET reader_fb_base)
-    add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/../../reader_fb_base ${CMAKE_BINARY_DIR}/reader_fb_base)
-endif()
-
 target_link_libraries(${LIB_NAME} PRIVATE Boost::algorithm $<BUILD_INTERFACE:std::filesystem> reader_fb_base PUBLIC daq::opendaq
 )
 

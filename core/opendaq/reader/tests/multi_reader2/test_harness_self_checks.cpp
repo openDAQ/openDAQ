@@ -9,7 +9,7 @@
 namespace daq::mr2test
 {
 
-// Checks of the harness itself: what it writes is what the matrix says it writes
+// Checks of the harness itself: what it writes is what its steps say it writes
 class MultiReader2Harness : public MultiReader2Test
 {
 protected:

@@ -252,9 +252,9 @@ std::optional<Relation> relate(const TickDomain& input, const TickDomain& main, 
     return Relation{*num, *den, *offset - main.referenceOffset, input.referenceOffset};
 }
 
-std::int64_t syncLimitTicks(const TickDomain& main)
+std::int64_t secondsToTicks(const TickDomain& domain, std::int64_t seconds)
 {
-    return std::max<std::int64_t>(1, 2 * main.resDen / main.resNum);  // a resolution coarser than 2 s still allows one tick
+    return std::max<std::int64_t>(1, seconds * domain.resDen / domain.resNum);  // a resolution coarser than that still allows one tick
 }
 
 }

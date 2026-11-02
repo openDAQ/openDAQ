@@ -88,6 +88,9 @@ DECLARE_OPENDAQ_INTERFACE(IMultiReader2Params, IBaseObject)
 
     /*!
      * @brief Gets the smallest count a read returns: at least 1, 1 by default.
+     *
+     * Fewer aligned samples than this in front of an event are dropped when a read reaches the event, and the next status
+     * reports resynchronized.
      */
     virtual ErrCode INTERFACE_FUNC getMinReadCount(SizeT* count) = 0;
     virtual ErrCode INTERFACE_FUNC setMinReadCount(SizeT count) = 0;

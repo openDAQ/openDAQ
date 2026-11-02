@@ -44,9 +44,13 @@ extern "C"
 
     daqErrCode EXPORTED daqMultiReader2_configure(daqMultiReader2* self, daqMultiReader2Params* params, daqMultiReader2Status** status);
     daqErrCode EXPORTED daqMultiReader2_getAvailableCount(daqMultiReader2* self, daqSizeT* count);
-    daqErrCode EXPORTED daqMultiReader2_read(daqMultiReader2* self, void* data, daqSizeT* count, daqSizeT timeoutMs, daqSizeT* packetOffset, daqMultiReader2Status** status);
-    daqErrCode EXPORTED daqMultiReader2_readWithDomain(daqMultiReader2* self, void* data, daqSizeT* count, daqSizeT timeoutMs, daqMultiReader2Status** status);
-    daqErrCode EXPORTED daqMultiReader2_skipSamples(daqMultiReader2* self, daqSizeT* count, daqSizeT timeoutMs, daqSizeT* packetOffset, daqMultiReader2Status** status);
+    daqErrCode EXPORTED
+    daqMultiReader2_read(daqMultiReader2* self, void* data, daqSizeT* count, daqSizeT* packetOffset, daqMultiReader2Status** status);
+    daqErrCode EXPORTED daqMultiReader2_readWithDomain(daqMultiReader2* self, void* data, daqSizeT* count, daqMultiReader2Status** status);
+    daqErrCode EXPORTED daqMultiReader2_skipSamples(daqMultiReader2* self,
+                                                    daqSizeT* count,
+                                                    daqSizeT* packetOffset,
+                                                    daqMultiReader2Status** status);
     daqErrCode EXPORTED daqMultiReader2_getOnDataAvailable(daqMultiReader2* self, daqEvent** event);
     daqErrCode EXPORTED daqMultiReader2_createMultiReader2(daqMultiReader2** obj, daqMultiReader2Params* params);
 

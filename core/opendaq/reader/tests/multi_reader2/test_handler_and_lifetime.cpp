@@ -80,7 +80,7 @@ TEST_F(MultiReader2Context, ThrowingHandlerIsLoggedAndCalledAgainOnlyOnNewData)
 }
 
 // S1.CTX.06
-TEST_F(MultiReader2Context, SynchronizationReachingCommonStartTriggersHandler)
+TEST_F(MultiReader2Context, SynchronizationReachingCommonStartBelowMinReadCountDoesNotCallHandler)
 {
     given().minReadCount(200);
     setup(
@@ -92,7 +92,7 @@ TEST_F(MultiReader2Context, SynchronizationReachingCommonStartTriggersHandler)
             idle();
         });
     write(in2, 0, 99);
-    expect(idle(), calls(1, {count(0).noChanges()}));
+    expect(idle(), calls(0));
 }
 
 // S1.CTX.07
@@ -107,23 +107,23 @@ TEST_F(MultiReader2Context, SyncFailureTriggersHandlerWithWarning)
             read(0, nullData);
             idle();
         });
-    write(in2, 2200, 2299);
+    write(in2, 3200, 3299);
     expect(idle(), calls(1, {count(0).level(Warning), count(100).at(0).noChanges(), count(0).noChanges()}));
 }
 
 // S1.CTX.08
-TEST_F(MultiReader2Context, SyncFailedInputComingWithinLimitTriggersHandlerOnce)
+TEST_F(MultiReader2Context, StalledInputComingWithinOneSecondTriggersHandlerOnce)
 {
     given().policy(Exclude);
     setup(
         [&]
         {
             handler([&] { drain(); });
-            write(in1, 2500, 2599);
+            write(in1, 3200, 3299);
             write(in2, 0, 99);
             idle();
         });
-    write(in2, 100, 699);
+    write(in2, 100, 2699);
     expect(idle(), calls(1, {count(0).level(Ok).descChanged(in2).healthy(in2), count(0).noChanges()}));
 }
 
@@ -135,7 +135,7 @@ TEST_F(MultiReader2Context, SyncFailedRejoinTriggerIsRearmedAfterHandlerThrows)
         [&]
         {
             handler([&] { throw std::runtime_error("handler throws"); });
-            write(in1, 2500, 2599);
+            write(in1, 3200, 3299);
             write(in2, 0, 99);
             idle();
             read(0, nullData);
@@ -143,10 +143,10 @@ TEST_F(MultiReader2Context, SyncFailedRejoinTriggerIsRearmedAfterHandlerThrows)
             read(0, nullData);
         });
     blockWorker();
-    write(in2, 100, 699);
+    write(in2, 100, 2699);
     unblockWorker();
     expect(idle(), calls(1));
-    write(in2, 700, 709);
+    write(in2, 2700, 2709);
     expect(idle(), calls(1));
 }
 
@@ -684,7 +684,7 @@ TEST_F(MultiReader2Context, DisconnectAndReconnectCallsHandlerAgainAfterThrow)
 }
 
 // S1.CTX.48
-TEST_F(MultiReader2Context, EqualDescriptorAndOtherEventDoNotCallHandlerAfterThrow)
+TEST_F(MultiReader2Context, EqualDescriptorAndOtherEventCallHandlerAgainAfterThrowWhileDataIsReadable)
 {
     setupHandler(
         [&]
@@ -700,8 +700,8 @@ TEST_F(MultiReader2Context, EqualDescriptorAndOtherEventDoNotCallHandlerAfterThr
     expect(idle(), calls(1, {count(150).at(100).noChanges()}));
     announce(in2, Value::same());
     otherEvent(in2);
-    expect(idle(), calls(0));
-    expect(avail(), count(50));
+    expect(idle(), calls(1, {count(50).at(250).noChanges()}));
+    expect(avail(), count(0));
 }
 
 // S1.CTX.49
@@ -779,14 +779,13 @@ TEST_F(MultiReader2Context, DisconnectReadFromUserThreadStillCallsHandlerOnce)
 }
 
 // S1.CTX.53
-TEST_F(MultiReader2Context, FirstHandlerCallWaitsForAllInputsAndGetsFirstStatus)
+TEST_F(MultiReader2Context, FirstPacketCallsHandlerWithFirstStatus)
 {
     handler([&] { drain(); });
     write(in1, 0, 9);
-    expect(idle(), calls(0));
+    expect(idle(), calls(1, {count(0).level(Ok).domainChanged().resync().allDescChanged(), count(0).noChanges()}));
     write(in2, 0, 9);
-    expect(idle(),
-           calls(1, {count(0).level(Ok).domainChanged().resync().allDescChanged(), count(10).at(0).noChanges(), count(0).noChanges()}));
+    expect(idle(), calls(1, {count(10).at(0).noChanges(), count(0).noChanges()}));
 }
 
 // S1.CTX.54

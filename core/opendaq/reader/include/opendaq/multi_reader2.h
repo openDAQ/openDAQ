@@ -38,10 +38,10 @@ BEGIN_NAMESPACE_OPENDAQ
  * carries as its offset; the ticks `readWithDomain` writes are counted from the main origin, so they are the
  * packetOffset plus the main rule's start.
  *
- * Synchronization and the lateness checks compare each input with the main input's data ingested so far, so where
- * the inputs' streams do not line up, which samples a read delivers can depend on the order in which the inputs'
- * packets arrive. The reader keeps no clock: a main input that stops sending is found from the other inputs' data,
- * once one of them is more than 4 s past it, and inputs that all stop together are not reported.
+ * Synchronization compares each input with the main input's data ingested so far, so where the inputs' streams do not
+ * line up, which samples a read delivers can depend on the order in which the inputs' packets arrive. The reader keeps
+ * no clock: an input that stops sending, the main input included, is found when another input has queued 3 s of data
+ * while it has none, and inputs that all stop together are not reported.
  */
 DECLARE_OPENDAQ_INTERFACE(IMultiReader2, IBaseObject)
 {
@@ -69,21 +69,20 @@ DECLARE_OPENDAQ_INTERFACE(IMultiReader2, IBaseObject)
      * @param data One buffer per input; a buffer holds `count` samples of the input's sample size on the last status
      * this reader returned. The reader cannot check the sizes, so reads, skips and `configure` must not run on more
      * than one thread at a time: a status taken by one thread would leave another's buffers sized for the old samples.
-     * @param[in,out] count The samples requested; out, the samples read. 0 with null data is a status probe.
-     * @param timeoutMs Must be 0: a read never waits, and any other value returns NOTIMPLEMENTED. Reserved for
-     * reading with a timeout.
+     * @param[in,out] count The samples requested; out, the samples read. 0 with null data is a status probe. A read
+     * never waits.
      * @param[out] packetOffset The first sample's position on the main input, in the form the interface describes.
      * @param[out] status The status the samples belong to: they carry the descriptors reported before it.
      * @retval OPENDAQ_ERR_INVALIDPARAMETER A count below MinReadCount, or a null buffer for a contributing input.
      * @retval OPENDAQ_ERR_ARGUMENT_NULL A null count or status.
      */
-    virtual ErrCode INTERFACE_FUNC read(void* data, SizeT* count, SizeT timeoutMs, SizeT* packetOffset, IMultiReader2Status** status) = 0;
+    virtual ErrCode INTERFACE_FUNC read(void* data, SizeT* count, SizeT* packetOffset, IMultiReader2Status** status) = 0;
 
     // [arrayArg(data, count), arrayArg(count, 1)]
     /*!
      * @brief As `read`, with one extra leading buffer of Int64 main ticks counted from the main origin.
      */
-    virtual ErrCode INTERFACE_FUNC readWithDomain(void* data, SizeT* count, SizeT timeoutMs, IMultiReader2Status** status) = 0;
+    virtual ErrCode INTERFACE_FUNC readWithDomain(void* data, SizeT* count, IMultiReader2Status** status) = 0;
 
     // [arrayArg(count, 1)]
     /*!
@@ -91,7 +90,7 @@ DECLARE_OPENDAQ_INTERFACE(IMultiReader2, IBaseObject)
      * @param[in,out] count The samples requested; out, the samples skipped.
      * @param[out] packetOffset The position of the first skipped sample on the main input.
      */
-    virtual ErrCode INTERFACE_FUNC skipSamples(SizeT* count, SizeT timeoutMs, SizeT* packetOffset, IMultiReader2Status** status) = 0;
+    virtual ErrCode INTERFACE_FUNC skipSamples(SizeT * count, SizeT * packetOffset, IMultiReader2Status * *status) = 0;
 
     // [templateType(event, IBaseObject, IEventArgs)]
     /*!

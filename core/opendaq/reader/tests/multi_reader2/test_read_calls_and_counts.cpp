@@ -241,14 +241,6 @@ TEST_P(MultiReader2ReadEachCall, ReadingWithNullCountOrStatusFailsWithArgumentNu
     expect(read(100), count(100).at(0).noChanges());
 }
 
-// S1.READ.40
-TEST_P(MultiReader2ReadEachCall, ReadingWithNonZeroTimeoutFailsWithNotImplemented)
-{
-    setupBase();
-    expect([&] { return reading(100, timeout(10)); }, fails(OPENDAQ_ERR_NOTIMPLEMENTED).unchanged());
-    expect(read(100), count(100).at(0).noChanges());
-}
-
 // S1.READ.43
 TEST_F(MultiReader2Read, AvailableCountIsZeroWhileDescriptorChangeIsOwed)
 {
@@ -429,12 +421,12 @@ TEST_F(MultiReader2Read, AvailableCountReachesMinReadCountOnlyWhenEveryInputHasI
 }
 
 // S1.READ.66
-TEST_F(MultiReader2Read, RecoveryFromLateInputDropsDataQueuedBeforeIt)
+TEST_F(MultiReader2Read, RecoveryFromStalledInputDropsDataQueuedBeforeIt)
 {
     setup(
         [&]
         {
-            write(in1, 0, 2001);
+            write(in1, 0, 3000);
             read(0, nullData);
         });
     expect(avail(), count(0));
@@ -442,8 +434,8 @@ TEST_F(MultiReader2Read, RecoveryFromLateInputDropsDataQueuedBeforeIt)
     expect(avail(), count(0));
     expect(read(0, nullData), count(0).level(Ok).domainChanged().resync().allDescChanged().healthy(in2));
     expect(avail(), count(0));
-    write(in1, 2100, 2199);
-    write(in2, 2100, 2199);
+    write(in1, 3100, 3199);
+    write(in2, 3100, 3199);
     expect(avail(), count(100));
 }
 

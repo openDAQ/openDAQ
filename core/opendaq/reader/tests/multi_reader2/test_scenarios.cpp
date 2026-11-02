@@ -507,10 +507,11 @@ TEST_F(MultiReader2Scenario, RecorderDrainWithTimestampsGapAndPause)
     handler([&] { recorderDrain(); });  // the recorder's rows and segments carry no expectation of the row
     write(in1, 0, 99);
     write(in2, 0, 99);
-    // step 5
+    // step 5: in1's first packet calls the handler with the first status, in2's with the data
     expect(idle(),
-           calls(1,
+           calls(2,
                  {count(0).level(Ok).main(in1).domainChanged().resync().allDescChanged().size(in1, 8).size(in2, 8),
+                  count(0).noChanges(),
                   count(100).at(0).noChanges(),
                   count(0).noChanges()}));
     write(in1, 100, 199);

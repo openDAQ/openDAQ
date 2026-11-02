@@ -83,21 +83,21 @@ TEST_F(MultiReader2RegressionApi, DisconnectDuringTakeOverReachesTheReader)
     const auto params = MultiReader2Params();
     params.setInputs(List<IComponent>(portA, portB));
 
-    // Reading port b's descriptors disconnects port a, after its own were read; that disconnect waits on port a's intake lock
+    // Reading port b's descriptors disconnects port a, after its own were read; the port lets go of its signal before it
+    // notifies the reader, so the notification is under way, waiting on port a's intake lock, before the take-over ends
     std::thread disconnecting;
     *hook = [&disconnecting, portA]
     {
         disconnecting = std::thread([portA] { portA.disconnect(); });
-        // No hook shows the thread waiting on the intake lock; if it has not reached it in time, the test passes without
-        // the race it targets
-        std::this_thread::sleep_for(std::chrono::milliseconds(200));
+        while (portA.getSignal().assigned())
+            std::this_thread::yield();
     };
     reader.configure(params);
     disconnecting.join();
 
     SizeT count = 0;
     SizeT offset = 0;
-    const auto status = reader.read(nullptr, &count, 0, offset);
+    const auto status = reader.read(nullptr, &count, offset);
     EXPECT_EQ(status.getInputStatus(portA.asPtr<IComponent>()).getError(), MultiReader2InputError::Disconnected);
 }
 
@@ -171,8 +171,8 @@ TEST_F(MultiReader2RegressionApi, StatusInputListCannotBeChanged)
 
     SizeT count = 0;
     SizeT offset = 0;
-    auto inputs = reader.read(nullptr, &count, 0, offset).getInputs();
+    auto inputs = reader.read(nullptr, &count, offset).getInputs();
     ASSERT_EQ(inputs.getCount(), 1u);
     EXPECT_THROW(inputs.clear(), FrozenException);
-    EXPECT_EQ(reader.read(nullptr, &count, 0, offset).getInputs().getCount(), 1u);
+    EXPECT_EQ(reader.read(nullptr, &count, offset).getInputs().getCount(), 1u);
 }

@@ -141,7 +141,7 @@ TEST(MultiReader2Internals, RelatesInputTicksToMainTicks)
     EXPECT_EQ(remainder, 0);
     EXPECT_EQ(r->toMain(2001, &remainder), 0);  // between two main ticks
     EXPECT_EQ(remainder, 1);
-    EXPECT_EQ(syncLimitTicks(main), 2000);
+    EXPECT_EQ(secondsToTicks(main, queueLimitSeconds), 3000);
 }
 
 // Two devices whose ticks count from their own boot give the same time only with their reference domain offsets
@@ -280,52 +280,35 @@ TEST(MultiReader2Internals, QueueFailureMarkerGoesInFrontOfTheData)
     Queue q;
     q.pushData(dataPacket(10), 0, 10);
     multi_reader2::Event marker{{true, nullptr, nullptr}, {true, nullptr, nullptr}};
-    marker.syncFailed = SyncCause::Late;
+    marker.syncFailed = SyncCause::Ahead;
     q.pushFrontEvent(marker);
     EXPECT_EQ(q.frontCount(), 0u);
-    EXPECT_EQ(q.popEvent().syncFailed, SyncCause::Late);
+    EXPECT_EQ(q.popEvent().syncFailed, SyncCause::Ahead);
     EXPECT_EQ(q.frontCount(), 10u);
 }
 
-// The main input holds ticks 0..999, the limit is 2000: input 1 proposes the common start, input 2 is ahead, input 3 ends
-// before the start, input 4 is off the grid, and input 5 has nothing while the main input has sent 3000 since the start
-TEST(MultiReader2Internals, SyncJudgementFailsEachCauseAndKeepsTheCommonStart)
+// The main input holds ticks 0..999, the limit is 3000: input 1 proposes the common start, input 2 is ahead, input 3 starts
+// before the start, input 4 is off the grid, and input 5 has nothing queued
+TEST(MultiReader2Internals, SyncJudgementFailsAheadAndOffGridInputsAndKeepsTheCommonStart)
 {
-    const std::vector<SyncInput> inputs{
-        {500, 1500, false, false},
-        {5000, 6000, false, false},
-        {-5000, -3000, false, false},
-        {100, 900, false, true},
-        {std::nullopt, std::nullopt, true, false},
-    };
+    const std::vector<SyncInput> inputs{{500, false}, {5000, false}, {-5000, false}, {100, true}, {std::nullopt, false}};
     std::vector<SizeT> judged{0, 1, 2, 3, 4};
-    std::vector<std::tuple<SizeT, SyncCause, bool>> failed;
+    std::vector<std::tuple<SizeT, SyncCause>> failed;
     const auto common = judgeSync(
-        0,
-        999,
-        3000,
-        2000,
-        judged,
-        [&](SizeT i) { return inputs[i]; },
-        [&](SizeT i, SyncCause cause, bool ahead) { failed.emplace_back(i, cause, ahead); });
+        0, 999, 3000, judged, [&](SizeT i) { return inputs[i]; }, [&](SizeT i, SyncCause cause) { failed.emplace_back(i, cause); });
     EXPECT_EQ(common, 500);
     EXPECT_EQ(judged, (std::vector<SizeT>{0, 2, 3, 4}));
-    const std::vector<std::tuple<SizeT, SyncCause, bool>> expected{
-        {1, SyncCause::Late, true},
-        {2, SyncCause::Late, false},
-        {3, SyncCause::OffGrid, false},
-        {4, SyncCause::Late, false},
-    };
+    const std::vector<std::tuple<SizeT, SyncCause>> expected{{1, SyncCause::Ahead}, {3, SyncCause::OffGrid}};
     EXPECT_EQ(failed, expected);
 }
 
-TEST(MultiReader2Internals, SyncJudgementPassesInputsWithinTheLimit)
+// An input behind the common start or with nothing queued is not failed: the synchronization waits, and a stall ends the wait
+TEST(MultiReader2Internals, SyncJudgementPassesInputsWithinTheLimitAndThoseBehindOrEmpty)
 {
-    const std::vector<SyncInput> inputs{{500, 1500, false, false}, {-1000, 2000, false, false}, {std::nullopt, std::nullopt, true, false}};
-    std::vector<SizeT> judged{0, 1, 2};
+    const std::vector<SyncInput> inputs{{500, false}, {-5000, false}, {3999, false}, {std::nullopt, false}};
+    std::vector<SizeT> judged{0, 1, 2, 3};
     int failures = 0;
-    const auto common =
-        judgeSync(0, 999, 1000, 2000, judged, [&](SizeT i) { return inputs[i]; }, [&](SizeT, SyncCause, bool) { ++failures; });
-    EXPECT_EQ(common, 500);
+    const auto common = judgeSync(0, 999, 3000, judged, [&](SizeT i) { return inputs[i]; }, [&](SizeT, SyncCause) { ++failures; });
+    EXPECT_EQ(common, 3999);
     EXPECT_EQ(failures, 0);
 }

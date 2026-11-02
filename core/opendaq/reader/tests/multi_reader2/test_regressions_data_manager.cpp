@@ -43,14 +43,16 @@ TEST_F(MultiReader2RegressionDm, LateInputBackBeforeAnyReadLeavesNoDataBehindADr
     expect(drain(), {count(2200).at(0).noChanges(), count(0).noChanges()});
 }
 
-// Comparative review, spec finding 1: in2 found late while streaming still delivers its aligned backlog before the failure
-TEST_F(MultiReader2RegressionDm, LateInputWhileStreamingDeliversItsBacklogBeforeFailing)
+// Comparative review, spec finding 1: in2 delivers its aligned backlog before it fails; only an input with nothing queued
+// stalls
+TEST_F(MultiReader2RegressionDm, InputStallsOnlyOnceItsBacklogIsRead)
 {
     setupBase();
-    write(in1, 100, 2199);
-    expect(
-        read(200),
-        count(100).at(0).level(Error).inError(in2, InputError::SyncFailed).msg("in2: not synchronized, more than 2 s from the main input"));
+    expect(read(50), count(50).at(0).noChanges());
+    write(in1, 100, 3049);
+    expect(read(200), count(50).at(50).noChanges());
+    write(in1, 3050, 3109);
+    expect(read(0), count(0).level(Error).inError(in2, InputError::SyncFailed).msg("in2: not synchronized, no data for 3 s"));
     expect(avail(), count(0));
 }
 

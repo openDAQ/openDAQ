@@ -31,7 +31,8 @@ namespace multi_reader2
 enum class SyncCause
 {
     None,
-    Late,
+    Stalled,
+    Ahead,
     OffGrid
 };
 
@@ -55,11 +56,11 @@ struct Event
     Announced after;
     bool gap = false;                        // the input's continuity broke
     SyncCause syncFailed = SyncCause::None;  // a failure found at ingest
-    bool lateCleared = false;                // a late input came back within the limit here
+    bool rejoined = false;                   // a stalled or ahead input came back close to the others here
 
     bool changesSomething() const
     {
-        return !(before == after) || gap || syncFailed != SyncCause::None || lateCleared;
+        return !(before == after) || gap || syncFailed != SyncCause::None || rejoined;
     }
 };
 
@@ -107,14 +108,10 @@ public:
 
     // Requires frontIsEvent()
     Event popEvent();
-    // Clears the queued failure marker; one that then changes nothing is removed. Returns whether one was queued
-    bool withdrawSyncFailed();
 
     // Input ticks of the first and last sample in front of the first event; require frontCount() > 0
     std::int64_t firstOwn(std::int64_t delta) const;
     std::int64_t lastOwn(std::int64_t delta) const;
-    // Input tick of the first sample of the newest data packet in front of the first event
-    std::int64_t newestPacketOwn() const;
 
     // Hands the next n samples in front of the first event to sink, packet by packet, and removes them
     void consume(SizeT n, const std::function<void(const DataPacketPtr&, SizeT first, SizeT count)>& sink);

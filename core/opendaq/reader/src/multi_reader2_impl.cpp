@@ -181,7 +181,6 @@ MultiReader2Impl::MultiReader2Impl(IMultiReader2Params* params)
                 const auto c = shared.lock();
                 if (!c)
                     return;
-                const auto triggersAtStart = c->dataManager.triggerCount();
                 bool failed;
                 {
                     const auto self = weak.getRef();
@@ -189,7 +188,7 @@ MultiReader2Impl::MultiReader2Impl(IMultiReader2Params* params)
                         return;
                     failed = !runHandler(self);
                 }
-                if (c->dataManager.callFinished(failed, triggersAtStart, c->subscribed()))
+                if (c->dataManager.callFinished(failed, c->subscribed()))
                     c->schedule();
             });
         if (params == nullptr)
@@ -389,22 +388,22 @@ ErrCode MultiReader2Impl::getAvailableCount(SizeT* count)
     return OPENDAQ_SUCCESS;
 }
 
-ErrCode MultiReader2Impl::read(void* data, SizeT* count, SizeT timeoutMs, SizeT* packetOffset, IMultiReader2Status** status)
+ErrCode MultiReader2Impl::read(void* data, SizeT* count, SizeT* packetOffset, IMultiReader2Status** status)
 {
     OPENDAQ_RETURN_IF_FAILED(notFromJudgement());
-    return daqTry([&] { return core->dataManager.read(static_cast<void**>(data), count, timeoutMs, packetOffset, status); });
+    return daqTry([&] { return core->dataManager.read(static_cast<void**>(data), count, packetOffset, status); });
 }
 
-ErrCode MultiReader2Impl::readWithDomain(void* data, SizeT* count, SizeT timeoutMs, IMultiReader2Status** status)
+ErrCode MultiReader2Impl::readWithDomain(void* data, SizeT* count, IMultiReader2Status** status)
 {
     OPENDAQ_RETURN_IF_FAILED(notFromJudgement());
-    return daqTry([&] { return core->dataManager.readWithDomain(static_cast<void**>(data), count, timeoutMs, status); });
+    return daqTry([&] { return core->dataManager.readWithDomain(static_cast<void**>(data), count, status); });
 }
 
-ErrCode MultiReader2Impl::skipSamples(SizeT* count, SizeT timeoutMs, SizeT* packetOffset, IMultiReader2Status** status)
+ErrCode MultiReader2Impl::skipSamples(SizeT* count, SizeT* packetOffset, IMultiReader2Status** status)
 {
     OPENDAQ_RETURN_IF_FAILED(notFromJudgement());
-    return daqTry([&] { return core->dataManager.skipSamples(count, timeoutMs, packetOffset, status); });
+    return daqTry([&] { return core->dataManager.skipSamples(count, packetOffset, status); });
 }
 
 ErrCode MultiReader2Impl::getOnDataAvailable(IEvent** event)

@@ -8,6 +8,7 @@
 #include <opendaq/reader_errors.h>
 #include <opendaq/reader_exceptions.h>
 #include <opendaq/reader_factory.h>
+#include <opendaq/reader_utils.h>
 #include <opendaq/stream_reader_ptr.h>
 #include <testutils/testutils.h>
 #include <future>
@@ -245,8 +246,8 @@ TYPED_TEST(BlockReaderTest, ReadOneBlock)
     }
     else
     {
-        ASSERT_EQ(samples[0], TypeParam(11.1));
-        ASSERT_EQ(samples[1], TypeParam(22.2));
+        ASSERT_EQ(samples[0], reader::convertSample<TypeParam>(11.1));
+        ASSERT_EQ(samples[1], reader::convertSample<TypeParam>(22.2));
     }
 }
 
@@ -292,14 +293,14 @@ TYPED_TEST(BlockReaderTest, ReadThreeBlocksOverlapped)
     }
     else
     {
-        ASSERT_EQ(samples[0], TypeParam(11.1));
-        ASSERT_EQ(samples[1], TypeParam(22.2));
+        ASSERT_EQ(samples[0], reader::convertSample<TypeParam>(11.1));
+        ASSERT_EQ(samples[1], reader::convertSample<TypeParam>(22.2));
 
-        ASSERT_EQ(samples[2], TypeParam(22.2));
-        ASSERT_EQ(samples[3], TypeParam(11.1));
+        ASSERT_EQ(samples[2], reader::convertSample<TypeParam>(22.2));
+        ASSERT_EQ(samples[3], reader::convertSample<TypeParam>(11.1));
 
-        ASSERT_EQ(samples[4], TypeParam(11.1));
-        ASSERT_EQ(samples[5], TypeParam(22.2));
+        ASSERT_EQ(samples[4], reader::convertSample<TypeParam>(11.1));
+        ASSERT_EQ(samples[5], reader::convertSample<TypeParam>(22.2));
     }
 }
 
@@ -375,38 +376,38 @@ TYPED_TEST(BlockReaderTest, ReadBigBlocksOverlapped)
     }
     else
     {
-        ASSERT_EQ(samples[0], TypeParam(d[0]));
-        ASSERT_EQ(samples[1], TypeParam(d[1]));
-        ASSERT_EQ(samples[2], TypeParam(d[2]));
-        ASSERT_EQ(samples[3], TypeParam(d[3]));
-        ASSERT_EQ(samples[4], TypeParam(d[4]));
-        ASSERT_EQ(samples[5], TypeParam(d[5]));
-        ASSERT_EQ(samples[6], TypeParam(d[6]));
-        ASSERT_EQ(samples[7], TypeParam(d[7]));
-        ASSERT_EQ(samples[8], TypeParam(d[8]));
-        ASSERT_EQ(samples[9], TypeParam(d[9]));
+        ASSERT_EQ(samples[0], reader::convertSample<TypeParam>(d[0]));
+        ASSERT_EQ(samples[1], reader::convertSample<TypeParam>(d[1]));
+        ASSERT_EQ(samples[2], reader::convertSample<TypeParam>(d[2]));
+        ASSERT_EQ(samples[3], reader::convertSample<TypeParam>(d[3]));
+        ASSERT_EQ(samples[4], reader::convertSample<TypeParam>(d[4]));
+        ASSERT_EQ(samples[5], reader::convertSample<TypeParam>(d[5]));
+        ASSERT_EQ(samples[6], reader::convertSample<TypeParam>(d[6]));
+        ASSERT_EQ(samples[7], reader::convertSample<TypeParam>(d[7]));
+        ASSERT_EQ(samples[8], reader::convertSample<TypeParam>(d[8]));
+        ASSERT_EQ(samples[9], reader::convertSample<TypeParam>(d[9]));
 
-        ASSERT_EQ(samples[10], TypeParam(d[5]));
-        ASSERT_EQ(samples[11], TypeParam(d[6]));
-        ASSERT_EQ(samples[12], TypeParam(d[7]));
-        ASSERT_EQ(samples[13], TypeParam(d[8]));
-        ASSERT_EQ(samples[14], TypeParam(d[9]));
-        ASSERT_EQ(samples[15], TypeParam(d[10]));
-        ASSERT_EQ(samples[16], TypeParam(d[11]));
-        ASSERT_EQ(samples[17], TypeParam(d[12]));
-        ASSERT_EQ(samples[18], TypeParam(d[13]));
-        ASSERT_EQ(samples[19], TypeParam(d[14]));
+        ASSERT_EQ(samples[10], reader::convertSample<TypeParam>(d[5]));
+        ASSERT_EQ(samples[11], reader::convertSample<TypeParam>(d[6]));
+        ASSERT_EQ(samples[12], reader::convertSample<TypeParam>(d[7]));
+        ASSERT_EQ(samples[13], reader::convertSample<TypeParam>(d[8]));
+        ASSERT_EQ(samples[14], reader::convertSample<TypeParam>(d[9]));
+        ASSERT_EQ(samples[15], reader::convertSample<TypeParam>(d[10]));
+        ASSERT_EQ(samples[16], reader::convertSample<TypeParam>(d[11]));
+        ASSERT_EQ(samples[17], reader::convertSample<TypeParam>(d[12]));
+        ASSERT_EQ(samples[18], reader::convertSample<TypeParam>(d[13]));
+        ASSERT_EQ(samples[19], reader::convertSample<TypeParam>(d[14]));
 
-        ASSERT_EQ(samples[20], TypeParam(d[10]));
-        ASSERT_EQ(samples[21], TypeParam(d[11]));
-        ASSERT_EQ(samples[22], TypeParam(d[12]));
-        ASSERT_EQ(samples[23], TypeParam(d[13]));
-        ASSERT_EQ(samples[24], TypeParam(d[14]));
-        ASSERT_EQ(samples[25], TypeParam(d[15]));
-        ASSERT_EQ(samples[26], TypeParam(d[16]));
-        ASSERT_EQ(samples[27], TypeParam(d[17]));
-        ASSERT_EQ(samples[28], TypeParam(d[18]));
-        ASSERT_EQ(samples[29], TypeParam(d[19]));
+        ASSERT_EQ(samples[20], reader::convertSample<TypeParam>(d[10]));
+        ASSERT_EQ(samples[21], reader::convertSample<TypeParam>(d[11]));
+        ASSERT_EQ(samples[22], reader::convertSample<TypeParam>(d[12]));
+        ASSERT_EQ(samples[23], reader::convertSample<TypeParam>(d[13]));
+        ASSERT_EQ(samples[24], reader::convertSample<TypeParam>(d[14]));
+        ASSERT_EQ(samples[25], reader::convertSample<TypeParam>(d[15]));
+        ASSERT_EQ(samples[26], reader::convertSample<TypeParam>(d[16]));
+        ASSERT_EQ(samples[27], reader::convertSample<TypeParam>(d[17]));
+        ASSERT_EQ(samples[28], reader::convertSample<TypeParam>(d[18]));
+        ASSERT_EQ(samples[29], reader::convertSample<TypeParam>(d[19]));
     }
 }
 
@@ -471,8 +472,8 @@ TYPED_TEST(BlockReaderTest, ReadSamplesCountBeforeEventOverlapped)
     }
     else
     {
-        ASSERT_EQ(samples[0], TypeParam(d[0]));
-        ASSERT_EQ(samples[1], TypeParam(d[1]));
+        ASSERT_EQ(samples[0], reader::convertSample<TypeParam>(d[0]));
+        ASSERT_EQ(samples[1], reader::convertSample<TypeParam>(d[1]));
     }
 }
 
@@ -526,8 +527,8 @@ TYPED_TEST(BlockReaderTest, ReadSamplesCountBeforeTimeoutOverlapped)
     }
     else
     {
-        ASSERT_EQ(samples[0], TypeParam(d[0]));
-        ASSERT_EQ(samples[1], TypeParam(d[1]));
+        ASSERT_EQ(samples[0], reader::convertSample<TypeParam>(d[0]));
+        ASSERT_EQ(samples[1], reader::convertSample<TypeParam>(d[1]));
     }
 }
 
@@ -586,10 +587,10 @@ TYPED_TEST(BlockReaderTest, ReadOneBlockWithTimeout)
     }
     else
     {
-        ASSERT_EQ(samples[0], TypeParam(11.1));
-        ASSERT_EQ(samples[1], TypeParam(22.2));
-        ASSERT_EQ(samples[2], TypeParam(11.1));
-        ASSERT_EQ(samples[3], TypeParam(22.2));
+        ASSERT_EQ(samples[0], reader::convertSample<TypeParam>(11.1));
+        ASSERT_EQ(samples[1], reader::convertSample<TypeParam>(22.2));
+        ASSERT_EQ(samples[2], reader::convertSample<TypeParam>(11.1));
+        ASSERT_EQ(samples[3], reader::convertSample<TypeParam>(22.2));
     }
 }
 
@@ -633,8 +634,8 @@ TYPED_TEST(BlockReaderTest, ReadOneBlockWithClockTicks)
     }
     else
     {
-        ASSERT_EQ(samples[0], TypeParam(11.1));
-        ASSERT_EQ(samples[1], TypeParam(22.2));
+        ASSERT_EQ(samples[0], reader::convertSample<TypeParam>(11.1));
+        ASSERT_EQ(samples[1], reader::convertSample<TypeParam>(22.2));
     }
 }
 
@@ -704,14 +705,14 @@ TYPED_TEST(BlockReaderTest, ReadThreeBlocksOverlappedWithClockTicks)
     }
     else
     {
-        ASSERT_EQ(samples[0], TypeParam(11.1));
-        ASSERT_EQ(samples[1], TypeParam(22.2));
+        ASSERT_EQ(samples[0], reader::convertSample<TypeParam>(11.1));
+        ASSERT_EQ(samples[1], reader::convertSample<TypeParam>(22.2));
 
-        ASSERT_EQ(samples[2], TypeParam(22.2));
-        ASSERT_EQ(samples[3], TypeParam(11.1));
+        ASSERT_EQ(samples[2], reader::convertSample<TypeParam>(22.2));
+        ASSERT_EQ(samples[3], reader::convertSample<TypeParam>(11.1));
 
-        ASSERT_EQ(samples[4], TypeParam(11.1));
-        ASSERT_EQ(samples[5], TypeParam(22.2));
+        ASSERT_EQ(samples[4], reader::convertSample<TypeParam>(11.1));
+        ASSERT_EQ(samples[5], reader::convertSample<TypeParam>(22.2));
     }
 }
 
@@ -774,10 +775,10 @@ TYPED_TEST(BlockReaderTest, ReadOneBlockWithClockTicksTimeout)
     }
     else
     {
-        ASSERT_EQ(samples[0], TypeParam(11.1));
-        ASSERT_EQ(samples[1], TypeParam(22.2));
-        ASSERT_EQ(samples[2], TypeParam(11.1));
-        ASSERT_EQ(samples[3], TypeParam(22.2));
+        ASSERT_EQ(samples[0], reader::convertSample<TypeParam>(11.1));
+        ASSERT_EQ(samples[1], reader::convertSample<TypeParam>(22.2));
+        ASSERT_EQ(samples[2], reader::convertSample<TypeParam>(11.1));
+        ASSERT_EQ(samples[3], reader::convertSample<TypeParam>(22.2));
     }
 }
 
@@ -825,8 +826,8 @@ TYPED_TEST(BlockReaderTest, ReadOneBlockWithRanges)
     }
     else
     {
-        ASSERT_EQ(samples[0], TypeParam(11.1));
-        ASSERT_EQ(samples[1], TypeParam(22.2));
+        ASSERT_EQ(samples[0], reader::convertSample<TypeParam>(11.1));
+        ASSERT_EQ(samples[1], reader::convertSample<TypeParam>(22.2));
     }
 }
 
@@ -905,14 +906,14 @@ TYPED_TEST(BlockReaderTest, ReadThreeBlockOverlappedWithRanges)
     }
     else
     {
-        ASSERT_EQ(samples[0], TypeParam(11.1));
-        ASSERT_EQ(samples[1], TypeParam(22.2));
+        ASSERT_EQ(samples[0], reader::convertSample<TypeParam>(11.1));
+        ASSERT_EQ(samples[1], reader::convertSample<TypeParam>(22.2));
 
-        ASSERT_EQ(samples[2], TypeParam(22.2));
-        ASSERT_EQ(samples[3], TypeParam(11.1));
+        ASSERT_EQ(samples[2], reader::convertSample<TypeParam>(22.2));
+        ASSERT_EQ(samples[3], reader::convertSample<TypeParam>(11.1));
 
-        ASSERT_EQ(samples[4], TypeParam(11.1));
-        ASSERT_EQ(samples[5], TypeParam(22.2));
+        ASSERT_EQ(samples[4], reader::convertSample<TypeParam>(11.1));
+        ASSERT_EQ(samples[5], reader::convertSample<TypeParam>(22.2));
     }
 }
 
@@ -973,8 +974,8 @@ TYPED_TEST(BlockReaderTest, ReadOneBlockWithRangesTimeout)
     }
     else
     {
-        ASSERT_EQ(samples[0], TypeParam(11.1));
-        ASSERT_EQ(samples[1], TypeParam(22.2));
+        ASSERT_EQ(samples[0], reader::convertSample<TypeParam>(11.1));
+        ASSERT_EQ(samples[1], reader::convertSample<TypeParam>(22.2));
     }
 
     ASSERT_EQ(reader.getAvailableCount(), 0u);
@@ -1017,8 +1018,8 @@ TYPED_TEST(BlockReaderTest, ReadLessThanOnePacket)
     }
     else
     {
-        ASSERT_EQ(samples[0], TypeParam(11.1));
-        ASSERT_EQ(samples[1], TypeParam(22.2));
+        ASSERT_EQ(samples[0], reader::convertSample<TypeParam>(11.1));
+        ASSERT_EQ(samples[1], reader::convertSample<TypeParam>(22.2));
     }
 }
 
@@ -1060,8 +1061,8 @@ TYPED_TEST(BlockReaderTest, ReadLessThanTwoPacketOverlapped)
     }
     else
     {
-        ASSERT_EQ(samples[0], TypeParam(11.1));
-        ASSERT_EQ(samples[1], TypeParam(22.2));
+        ASSERT_EQ(samples[0], reader::convertSample<TypeParam>(11.1));
+        ASSERT_EQ(samples[1], reader::convertSample<TypeParam>(22.2));
     }
 }
 
@@ -1194,10 +1195,10 @@ TYPED_TEST(BlockReaderTest, ReadBetweenPacketsTimeout)
     }
     else
     {
-        ASSERT_EQ(samples2[0], TypeParam(33.3));
-        ASSERT_EQ(samples2[1], TypeParam(44.4));
-        ASSERT_EQ(samples2[2], TypeParam(55.5));
-        ASSERT_EQ(samples2[3], TypeParam(66.6));
+        ASSERT_EQ(samples2[0], reader::convertSample<TypeParam>(33.3));
+        ASSERT_EQ(samples2[1], reader::convertSample<TypeParam>(44.4));
+        ASSERT_EQ(samples2[2], reader::convertSample<TypeParam>(55.5));
+        ASSERT_EQ(samples2[3], reader::convertSample<TypeParam>(66.6));
     }
 }
 
@@ -1255,9 +1256,9 @@ TYPED_TEST(BlockReaderTest, ReadBetweenPacketsAndCheckValues)
     }
     else
     {
-        ASSERT_EQ(nextSamples[0], (TypeParam) 33.3);
-        ASSERT_EQ(nextSamples[1], (TypeParam) 44.4);
-        ASSERT_EQ(nextSamples[2], (TypeParam) 55.5);
+        ASSERT_EQ(nextSamples[0], reader::convertSample<TypeParam>(33.3));
+        ASSERT_EQ(nextSamples[1], reader::convertSample<TypeParam>(44.4));
+        ASSERT_EQ(nextSamples[2], reader::convertSample<TypeParam>(55.5));
     }
 }
 
@@ -1320,13 +1321,13 @@ TYPED_TEST(BlockReaderTest, ReadBetweenOverlappedPacketsAndCheckValues)
     }
     else
     {
-        ASSERT_EQ(samples[0], (TypeParam) 11.1);
-        ASSERT_EQ(samples[1], (TypeParam) 22.2);
+        ASSERT_EQ(samples[0], reader::convertSample<TypeParam>(11.1));
+        ASSERT_EQ(samples[1], reader::convertSample<TypeParam>(22.2));
 
-        ASSERT_EQ(nextSamples[0], (TypeParam) 22.2);
-        ASSERT_EQ(nextSamples[1], (TypeParam) 33.3);
-        ASSERT_EQ(nextSamples[2], (TypeParam) 33.3);
-        ASSERT_EQ(nextSamples[3], (TypeParam) 44.4);
+        ASSERT_EQ(nextSamples[0], reader::convertSample<TypeParam>(22.2));
+        ASSERT_EQ(nextSamples[1], reader::convertSample<TypeParam>(33.3));
+        ASSERT_EQ(nextSamples[2], reader::convertSample<TypeParam>(33.3));
+        ASSERT_EQ(nextSamples[3], reader::convertSample<TypeParam>(44.4));
     }
 }
 

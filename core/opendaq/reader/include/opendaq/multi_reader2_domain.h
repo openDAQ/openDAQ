@@ -66,11 +66,12 @@ struct Relation
 // is not a whole Int64 count of main ticks
 std::optional<Relation> relate(const TickDomain& input, const TickDomain& main, const char** fault = nullptr);
 
-// The sync limit, 2 s of data and at least one tick, in main ticks
-std::int64_t syncLimitTicks(const TickDomain& main);
+// The most data an input queues, and how far past the main input's samples an input may start: the delay the reader expects
+// between the inputs' packets
+constexpr std::int64_t queueLimitSeconds = 3;
 
-// The queue's time limit and the stall limit, in sync limits; equal, so a stalled main input is found before data is dropped
-constexpr std::int64_t queueLimitSyncLimits = 2;
+// That many seconds in the domain's ticks, at least one tick
+std::int64_t secondsToTicks(const TickDomain& domain, std::int64_t seconds);
 
 // a + b, or nullopt when the sum leaves Int64
 std::optional<std::int64_t> exactSum(std::int64_t a, std::int64_t b);

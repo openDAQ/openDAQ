@@ -32,19 +32,21 @@ daqErrCode daqMultiReader2_getAvailableCount(daqMultiReader2* self, daqSizeT* co
     return reinterpret_cast<daq::IMultiReader2*>(self)->getAvailableCount(count);
 }
 
-daqErrCode daqMultiReader2_read(daqMultiReader2* self, void* data, daqSizeT* count, daqSizeT timeoutMs, daqSizeT* packetOffset, daqMultiReader2Status** status)
+daqErrCode daqMultiReader2_read(daqMultiReader2* self, void* data, daqSizeT* count, daqSizeT* packetOffset, daqMultiReader2Status** status)
 {
-    return reinterpret_cast<daq::IMultiReader2*>(self)->read(data, count, timeoutMs, packetOffset, reinterpret_cast<daq::IMultiReader2Status**>(status));
+    return reinterpret_cast<daq::IMultiReader2*>(self)->read(
+        data, count, packetOffset, reinterpret_cast<daq::IMultiReader2Status**>(status));
 }
 
-daqErrCode daqMultiReader2_readWithDomain(daqMultiReader2* self, void* data, daqSizeT* count, daqSizeT timeoutMs, daqMultiReader2Status** status)
+daqErrCode daqMultiReader2_readWithDomain(daqMultiReader2* self, void* data, daqSizeT* count, daqMultiReader2Status** status)
 {
-    return reinterpret_cast<daq::IMultiReader2*>(self)->readWithDomain(data, count, timeoutMs, reinterpret_cast<daq::IMultiReader2Status**>(status));
+    return reinterpret_cast<daq::IMultiReader2*>(self)->readWithDomain(data, count, reinterpret_cast<daq::IMultiReader2Status**>(status));
 }
 
-daqErrCode daqMultiReader2_skipSamples(daqMultiReader2* self, daqSizeT* count, daqSizeT timeoutMs, daqSizeT* packetOffset, daqMultiReader2Status** status)
+daqErrCode daqMultiReader2_skipSamples(daqMultiReader2* self, daqSizeT* count, daqSizeT* packetOffset, daqMultiReader2Status** status)
 {
-    return reinterpret_cast<daq::IMultiReader2*>(self)->skipSamples(count, timeoutMs, packetOffset, reinterpret_cast<daq::IMultiReader2Status**>(status));
+    return reinterpret_cast<daq::IMultiReader2*>(self)->skipSamples(
+        count, packetOffset, reinterpret_cast<daq::IMultiReader2Status**>(status));
 }
 
 daqErrCode daqMultiReader2_getOnDataAvailable(daqMultiReader2* self, daqEvent** event)

@@ -39,7 +39,7 @@ bool Queue::pushEvent(const Event& event)
         Event& tail = *entries.back().event;
         tail.after = event.after;
         tail.gap = tail.gap || event.gap;
-        tail.lateCleared = tail.lateCleared || event.lateCleared;
+        tail.rejoined = tail.rejoined || event.rejoined;
         if (event.syncFailed != SyncCause::None)
             tail.syncFailed = event.syncFailed;
         if (tail.changesSomething())
@@ -73,22 +73,6 @@ Event Queue::popEvent()
     return event;
 }
 
-bool Queue::withdrawSyncFailed()
-{
-    const auto it =
-        std::find_if(entries.begin(), entries.end(), [](const Entry& e) { return e.event && e.event->syncFailed != SyncCause::None; });
-    if (it == entries.end())
-        return false;
-    it->event->syncFailed = SyncCause::None;
-    if (!it->event->changesSomething())
-    {
-        entries.erase(it);
-        --events;
-        recount();
-    }
-    return true;
-}
-
 std::int64_t Queue::firstOwn(std::int64_t delta) const
 {
     const Entry& e = entries.front();
@@ -99,11 +83,6 @@ std::int64_t Queue::lastOwn(std::int64_t delta) const
 {
     const Entry& e = entries[frontEntries - 1];
     return e.ownFirst + static_cast<std::int64_t>(e.count - 1) * delta;
-}
-
-std::int64_t Queue::newestPacketOwn() const
-{
-    return entries[frontEntries - 1].ownFirst;
 }
 
 void Queue::consume(SizeT n, const std::function<void(const DataPacketPtr&, SizeT, SizeT)>& sink)

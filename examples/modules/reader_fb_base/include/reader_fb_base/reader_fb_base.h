@@ -21,7 +21,6 @@
 
 #include <algorithm>
 #include <string>
-#include <unordered_map>
 #include <vector>
 
 BEGIN_NAMESPACE_OPENDAQ_MODULE(reader_fb_base)
@@ -60,7 +59,7 @@ protected:
         };
         SizeT count = 0;
         SizeT offset = 0;
-        handle(reader.read(nullptr, &count, 0, offset));  // the first status
+        handle(reader.read(nullptr, &count, offset));  // the first status
     }
 
     // Reads until nothing is readable and nothing changed
@@ -73,23 +72,20 @@ protected:
         for (;;)
         {
             SizeT count = reader.getAvailableCount();
-            const auto inputs = params.getInputs();
-            storage.resize(inputs.getCount());
-            buffers.resize(inputs.getCount());
-            for (SizeT i = 0; i < inputs.getCount(); i++)
+            storage.resize(descriptors.size());
+            buffers.resize(descriptors.size());
+            for (SizeT i = 0; i < descriptors.size(); i++)
             {
-                const auto it = cached.find(inputs[i].getGlobalId().toStdString());
-                if (it == cached.end())
-                {
-                    buffers[i] = nullptr;
+                buffers[i] = nullptr;
+                if (!descriptors[i].assigned())
                     continue;
-                }
-                storage[i].resize(count * sampleSizes[it->first] / sizeof(double));
+                // Rounded up, so a read type narrower than a double still fits
+                storage[i].resize((count * sampleSizes[i] + sizeof(double) - 1) / sizeof(double));
                 buffers[i] = storage[i].data();
             }
 
             SizeT offset = 0;
-            const MultiReader2StatusPtr status = reader.read(count > 0 ? buffers.data() : nullptr, &count, 0, offset);
+            const MultiReader2StatusPtr status = reader.read(count > 0 ? buffers.data() : nullptr, &count, offset);
             if (count > 0)
                 processAndSend(count, offset);  // under the cached descriptors
 
@@ -100,7 +96,7 @@ protected:
         }
     }
 
-    // Every status: removes left ports, lets the block react while `cached` is still the previous status, then caches,
+    // Every status: removes left ports, lets the block react while `descriptors` is still the previous status, then caches,
     // rebuilds the outputs and reports, unless the block asked to judge its inputs again
     void handle(const MultiReader2StatusPtr& status)
     {
@@ -110,7 +106,7 @@ protected:
         if (status.getStatus() != ComponentStatus::Error)
         {
             cacheDescriptors(status);
-            if (!cached.empty())
+            if (anyContributing())
                 rebuildOutputDescriptor();  // with no input, the outputs keep their descriptors
         }
         if (rejudge)
@@ -145,31 +141,50 @@ protected:
     {
         if (!descriptor.assigned())
             return false;
-        const int sampleType = static_cast<int>(descriptor.getSampleType());
-        if (sampleType == 0 || sampleType > static_cast<int>(SampleType::Int64))
-            return false;
+        switch (descriptor.getSampleType())
+        {
+            case SampleType::Float32:
+            case SampleType::Float64:
+            case SampleType::Int8:
+            case SampleType::UInt8:
+            case SampleType::Int16:
+            case SampleType::UInt16:
+            case SampleType::Int32:
+            case SampleType::UInt32:
+            case SampleType::Int64:
+            case SampleType::UInt64:
+                break;
+            default:
+                return false;
+        }
         const auto dimensions = descriptor.getDimensions();
         return !dimensions.assigned() || dimensions.getCount() == 0;
     }
 
+    // Slot by slot; a status after a configure with new params reports every healthy input afresh
     void cacheDescriptors(const MultiReader2StatusPtr& status)
     {
         if (status.getDomainDescriptorChanged())
             outputDomain = status.getDomainDescriptor();
-        for (const MultiReader2InputStatusPtr in : status.getInputs())
+        const auto inputs = status.getInputs();
+        descriptors.resize(inputs.getCount());
+        sampleSizes.resize(inputs.getCount());
+        for (SizeT i = 0; i < inputs.getCount(); i++)
         {
-            const auto id = in.getInput().getGlobalId().toStdString();
+            const MultiReader2InputStatusPtr in = inputs[i];
             if (in.getError() != MultiReader2InputError::None)
-            {
-                cached.erase(id);
-                sampleSizes.erase(id);
-            }
+                descriptors[i] = nullptr;
             else if (in.getDescriptorChanged())
             {
-                cached[id] = in.getDescriptor();
-                sampleSizes[id] = in.getSampleSize();
+                descriptors[i] = in.getDescriptor();
+                sampleSizes[i] = in.getSampleSize();
             }
         }
+    }
+
+    bool anyContributing() const
+    {
+        return std::any_of(descriptors.begin(), descriptors.end(), [](const DataDescriptorPtr& d) { return d.assigned(); });
     }
 
     // Runs under the reader's lock: must not call the reader
@@ -201,7 +216,7 @@ protected:
     {
     }
 
-    // `count` samples per contributing slot in `buffers`, as Float64
+    // `count` samples per contributing slot in `buffers`, in the read type (Float64 unless the block sets another)
     virtual void processAndSend(SizeT count, SizeT packetOffset) = 0;
     virtual void rebuildOutputDescriptor() = 0;
 
@@ -216,8 +231,8 @@ protected:
     std::vector<std::vector<double>> storage;
     std::vector<void*> buffers;
     DataDescriptorPtr outputDomain;
-    std::unordered_map<std::string, DataDescriptorPtr> cached;  // the contributing inputs, by global ID
-    std::unordered_map<std::string, SizeT> sampleSizes;
+    std::vector<DataDescriptorPtr> descriptors;  // per slot of the last cached status; null while the input does not contribute
+    std::vector<SizeT> sampleSizes;
     InputPortConfigPtr freePort;
     std::string freePortPrefix;
     int nextPortId = 1;
@@ -244,9 +259,6 @@ private:
         const auto next = reader.configure(params);
         for (const auto& port : left)
         {
-            const auto id = port.getGlobalId().toStdString();
-            cached.erase(id);
-            sampleSizes.erase(id);
             onPortRemoved(port);
             this->removeInputPort(port);
         }

@@ -9,6 +9,7 @@
 #include <opendaq/reader_errors.h>
 #include <opendaq/reader_exceptions.h>
 #include <opendaq/reader_factory.h>
+#include <opendaq/reader_utils.h>
 #include <opendaq/stream_reader_ptr.h>
 #include <testutils/testutils.h>
 #include <future>
@@ -114,10 +115,37 @@ TYPED_TEST(StreamReaderTest, ReadOneSample)
     }
     else
     {
-        ASSERT_EQ(samples[0], TypeParam(123.4));
+        ASSERT_EQ(samples[0], reader::convertSample<TypeParam>(123.4));
     }
 
     ASSERT_EQ(reader.getAvailableCount(), 0u);
+}
+
+using StreamReaderConversionTest = ReaderTest<>;
+
+TEST_F(StreamReaderConversionTest, RealReadAsIntegerRoundsAndSaturates)
+{
+    signal.setDescriptor(setupDescriptor(SampleType::Float64));
+    auto reader = StreamReaderBuilder()
+                      .setSignal(signal)
+                      .setValueReadType(SampleType::Int32)
+                      .setDomainReadType(SampleType::Int64)
+                      .setSkipEvents(true)
+                      .build();
+    auto dataPacket = DataPacket(signal.getDescriptor(), 5);
+    auto* data = static_cast<double*>(dataPacket.getData());
+    data[0] = 1.5;
+    data[1] = -1.5;
+    data[2] = 1e20;
+    data[3] = -1e20;
+    data[4] = std::numeric_limits<double>::quiet_NaN();
+    sendPacket(dataPacket);
+
+    SizeT count{5};
+    std::int32_t samples[5]{};
+    reader.read(&samples, &count);
+    ASSERT_EQ(count, 5u);
+    ASSERT_THAT(samples, ElementsAre(2, -2, std::numeric_limits<std::int32_t>::max(), std::numeric_limits<std::int32_t>::min(), 0));
 }
 
 TYPED_TEST(StreamReaderTest, ReadOneSampleRawValue)
@@ -202,8 +230,8 @@ TYPED_TEST(StreamReaderTest, ReadOneSampleWithTimeout)
     }
     else
     {
-        ASSERT_EQ(samples[0], TypeParam(123.4));
-        ASSERT_EQ(samples[1], TypeParam(123.4));
+        ASSERT_EQ(samples[0], reader::convertSample<TypeParam>(123.4));
+        ASSERT_EQ(samples[1], reader::convertSample<TypeParam>(123.4));
     }
 
     ASSERT_EQ(reader.getAvailableCount(), 0u);
@@ -243,7 +271,7 @@ TYPED_TEST(StreamReaderTest, ReadOneSampleWithClockTicks)
     }
     else
     {
-        ASSERT_EQ(samples[0], TypeParam(123.4));
+        ASSERT_EQ(samples[0], reader::convertSample<TypeParam>(123.4));
     }
 
     ASSERT_EQ(reader.getAvailableCount(), 0u);
@@ -297,8 +325,8 @@ TYPED_TEST(StreamReaderTest, ReadOneSampleWithClockTicksTimeout)
     }
     else
     {
-        ASSERT_EQ(samples[0], TypeParam(123.4));
-        ASSERT_EQ(samples[1], TypeParam(123.4));
+        ASSERT_EQ(samples[0], reader::convertSample<TypeParam>(123.4));
+        ASSERT_EQ(samples[1], reader::convertSample<TypeParam>(123.4));
     }
 
     ASSERT_EQ(reader.getAvailableCount(), 0u);
@@ -348,7 +376,7 @@ TYPED_TEST(StreamReaderTest, ReadOneSampleWithRanges)
     }
     else
     {
-        ASSERT_EQ(samples[0], TypeParam(123.4));
+        ASSERT_EQ(samples[0], reader::convertSample<TypeParam>(123.4));
     }
 
     ASSERT_EQ(reader.getAvailableCount(), 0u);
@@ -406,8 +434,8 @@ TYPED_TEST(StreamReaderTest, ReadOneSampleWithRangesTimeout)
     }
     else
     {
-        ASSERT_EQ(samples[0], TypeParam(123.4));
-        ASSERT_EQ(samples[1], TypeParam(123.4));
+        ASSERT_EQ(samples[0], reader::convertSample<TypeParam>(123.4));
+        ASSERT_EQ(samples[1], reader::convertSample<TypeParam>(123.4));
     }
 
     ASSERT_EQ(reader.getAvailableCount(), 0u);
@@ -446,7 +474,7 @@ TYPED_TEST(StreamReaderTest, ReadLessThanOnePacket)
     }
     else
     {
-        ASSERT_EQ(samples[0], TypeParam(123.4));
+        ASSERT_EQ(samples[0], reader::convertSample<TypeParam>(123.4));
     }
 
     ASSERT_EQ(reader.getAvailableCount(), 1u);
@@ -541,9 +569,9 @@ TYPED_TEST(StreamReaderTest, ReadBetweenPacketsTimeout)
     }
     else
     {
-        ASSERT_EQ(samples2[0], TypeParam(22.2));
-        ASSERT_EQ(samples2[1], TypeParam(33.3));
-        ASSERT_EQ(samples2[2], TypeParam(44.4));
+        ASSERT_EQ(samples2[0], reader::convertSample<TypeParam>(22.2));
+        ASSERT_EQ(samples2[1], reader::convertSample<TypeParam>(33.3));
+        ASSERT_EQ(samples2[2], reader::convertSample<TypeParam>(44.4));
     }
 
     ASSERT_EQ(reader.getAvailableCount(), 0u);
@@ -597,9 +625,9 @@ TYPED_TEST(StreamReaderTest, ReadBetweenPacketsAndCheckValues)
     }
     else
     {
-        ASSERT_EQ(nextSamples[0], (TypeParam) 22.2);
-        ASSERT_EQ(nextSamples[1], (TypeParam) 33.3);
-        ASSERT_EQ(nextSamples[2], (TypeParam) 44.4);
+        ASSERT_EQ(nextSamples[0], reader::convertSample<TypeParam>(22.2));
+        ASSERT_EQ(nextSamples[1], reader::convertSample<TypeParam>(33.3));
+        ASSERT_EQ(nextSamples[2], reader::convertSample<TypeParam>(44.4));
     }
 }
 
@@ -871,8 +899,8 @@ TYPED_TEST(StreamReaderTest, ReadWithZeroAvailableAndTimeoutAny)
     }
     else
     {
-        ASSERT_EQ(samples[0], TypeParam(11.1));
-        ASSERT_EQ(samples[1], TypeParam(22.2));
+        ASSERT_EQ(samples[0], reader::convertSample<TypeParam>(11.1));
+        ASSERT_EQ(samples[1], reader::convertSample<TypeParam>(22.2));
     }
 }
 
@@ -1760,8 +1788,8 @@ TYPED_TEST(StreamReaderTest, SkipSamplesOnePacket)
     {
         for (size_t i = 0; i < 10; ++i)
         {
-            TypeParam expectedFirst = (TypeParam)(i * multiplier);
-            TypeParam expectedSecond = (TypeParam)((40 + i) * multiplier);
+            TypeParam expectedFirst = reader::convertSample<TypeParam>(i * multiplier);
+            TypeParam expectedSecond = reader::convertSample<TypeParam>((40 + i) * multiplier);
             ASSERT_EQ(firstBatchSamples[i], expectedFirst);
             ASSERT_EQ(secondBatchSamples[i], expectedSecond);
         }
@@ -1837,8 +1865,8 @@ TYPED_TEST(StreamReaderTest, SkipSamplesBetweenPackets)
     {
         for (size_t i = 0; i < 10; ++i)
         {
-            TypeParam expectedFirst = (TypeParam)(i * multiplier);
-            TypeParam expectedSecond = (TypeParam)((40 + i) * multiplier);
+            TypeParam expectedFirst = reader::convertSample<TypeParam>(i * multiplier);
+            TypeParam expectedSecond = reader::convertSample<TypeParam>((40 + i) * multiplier);
             ASSERT_EQ(firstBatchSamples[i], expectedFirst);
             ASSERT_EQ(secondBatchSamples[i], expectedSecond);
         }

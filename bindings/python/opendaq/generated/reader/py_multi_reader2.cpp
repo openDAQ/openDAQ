@@ -169,7 +169,7 @@ py::tuple read(daq::IMultiReader2* object, size_t count, bool withDomain)
     {
         py::gil_scoped_release release;
         void* data = count > 0 ? buffers.data() : nullptr;
-        err = withDomain ? object->readWithDomain(data, &got, 0, &raw) : object->read(data, &got, 0, &offset, &raw);
+        err = withDomain ? object->readWithDomain(data, &got, &raw) : object->read(data, &got, &offset, &raw);
     }
     daq::checkErrorInfo(err);
     const daq::MultiReader2StatusPtr status(std::move(raw));
@@ -253,7 +253,7 @@ void defineIMultiReader2(pybind11::module_ m, PyDaqIntf<daq::IMultiReader2, daq:
             daq::MultiReader2StatusPtr status;
             {
                 py::gil_scoped_release release;
-                status = objectPtr.skipSamples(&count, 0, offset);
+                status = objectPtr.skipSamples(&count, offset);
             }
             keep(objectPtr, nullptr, status);
             return py::make_tuple(count, offset, pyStatus(status));

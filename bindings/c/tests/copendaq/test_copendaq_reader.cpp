@@ -390,7 +390,7 @@ TEST_F(COpendaqReaderTest, daqMultiReader2)
     daqSizeT count = 0;
     daqSizeT packetOffset = 0;
     daqMultiReader2Status* status = nullptr;
-    ASSERT_EQ(daqMultiReader2_read(reader, nullptr, &count, 0, &packetOffset, &status), 0);
+    ASSERT_EQ(daqMultiReader2_read(reader, nullptr, &count, &packetOffset, &status), 0);
     daqBool hasChanges = false;
     daqMultiReader2Status_getHasChanges(status, &hasChanges);
     ASSERT_TRUE(hasChanges);
@@ -429,7 +429,7 @@ TEST_F(COpendaqReaderTest, daqMultiReader2)
     daqFloat data[5] = {0};
     void* buffers[] = {data};
     count = 5;
-    ASSERT_EQ(daqMultiReader2_read(reader, buffers, &count, 0, &packetOffset, &status), 0);
+    ASSERT_EQ(daqMultiReader2_read(reader, buffers, &count, &packetOffset, &status), 0);
     ASSERT_EQ(count, 5u);
     ASSERT_EQ(packetOffset, 0u);
     for (daqSizeT i = 0; i < count; ++i)

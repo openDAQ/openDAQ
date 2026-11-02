@@ -319,29 +319,27 @@ TEST_F(MultiReader2Policy, NonMainOffMainGridInvalidatesReaderAsSyncFailed)
 }
 
 // S1.POL.26
-TEST_F(MultiReader2Policy, NonMainMoreThanTwoSecondsAheadInvalidatesAsSyncFailed)
+TEST_F(MultiReader2Policy, NonMainMoreThanThreeSecondsAheadInvalidatesAsSyncFailed)
 {
     write(in1, 0, 99);
-    write(in2, 2100, 2199);
+    write(in2, 3100, 3199);
     expect(read(0),
-           count(0).level(Error).inError(in2, InputError::SyncFailed).msg("in2: not synchronized, more than 2 s from the main input"));
+           count(0).level(Error).inError(in2, InputError::SyncFailed).msg("in2: not synchronized, more than 3 s ahead of the main input"));
 }
 
 // S1.POL.27
-TEST_F(MultiReader2Policy, NonMainMoreThanTwoSecondsBehindInvalidatesAsSyncFailed)
+TEST_F(MultiReader2Policy, NonMainMoreThanThreeSecondsBehindInvalidatesAsSyncFailed)
 {
     write(in2, 0, 99);
-    write(in1, 2100, 2199);
-    expect(read(0),
-           count(0).level(Error).inError(in2, InputError::SyncFailed).msg("in2: not synchronized, more than 2 s from the main input"));
+    write(in1, 2100, 3109);
+    expect(read(0), count(0).level(Error).inError(in2, InputError::SyncFailed).msg("in2: not synchronized, no data for 3 s"));
 }
 
 // S1.POL.28
-TEST_F(MultiReader2Policy, NonMainWithoutDataPastTwoSecondsInvalidatesAsSyncFailed)
+TEST_F(MultiReader2Policy, NonMainWithoutDataPastThreeSecondsInvalidatesAsSyncFailed)
 {
-    write(in1, 0, 2001);
-    expect(read(0),
-           count(0).level(Error).inError(in2, InputError::SyncFailed).msg("in2: not synchronized, more than 2 s from the main input"));
+    write(in1, 0, 3000);
+    expect(read(0), count(0).level(Error).inError(in2, InputError::SyncFailed).msg("in2: not synchronized, no data for 3 s"));
 }
 
 // S1.POL.29
@@ -435,11 +433,11 @@ TEST_F(MultiReader2Policy, ExcludeSetsAsideOffGridNonMainWithWarning)
 }
 
 // S1.POL.44
-TEST_F(MultiReader2Policy, ExcludeSetsAsideNonMainMoreThanTwoSecondsAheadWithWarning)
+TEST_F(MultiReader2Policy, ExcludeSetsAsideNonMainMoreThanThreeSecondsAheadWithWarning)
 {
     given().policy(Exclude);
     write(in1, 0, 99);
-    write(in2, 2100, 2199);
+    write(in2, 3100, 3199);
     expect(read(0),
            count(0)
                .level(Warning)
@@ -447,7 +445,7 @@ TEST_F(MultiReader2Policy, ExcludeSetsAsideNonMainMoreThanTwoSecondsAheadWithWar
                .resync()
                .descChanged(in1)
                .inError(in2, InputError::SyncFailed)
-               .msg("in2: not synchronized, more than 2 s from the main input"));
+               .msg("in2: not synchronized, more than 3 s ahead of the main input"));
 }
 
 // S1.POL.47

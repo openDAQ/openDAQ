@@ -62,7 +62,7 @@ void PowerReaderFbImpl::propertyChanged(bool rebuild)
 {
     auto lock = getRecursiveConfigLock2();
     readProperties();
-    if (rebuild && !cached.empty())
+    if (rebuild)
         rebuildOutputDescriptor();
 }
 
@@ -106,14 +106,13 @@ RangePtr PowerReaderFbImpl::valueRange(const DataDescriptorPtr& voltage, const D
 
 void PowerReaderFbImpl::rebuildOutputDescriptor()
 {
-    const auto voltage = cached.find(voltageInputPort.getGlobalId().toStdString());
-    const auto current = cached.find(currentInputPort.getGlobalId().toStdString());
-    if (voltage == cached.end() || current == cached.end())
+    // Slot 0 is the voltage, slot 1 the current
+    if (descriptors.size() != 2 || !descriptors[0].assigned() || !descriptors[1].assigned())
         return;
     powerSignal.setDescriptor(DataDescriptorBuilder()
                                   .setSampleType(SampleType::Float64)
                                   .setUnit(Unit("W", -1, "watt", "power"))
-                                  .setValueRange(valueRange(voltage->second, current->second))
+                                  .setValueRange(valueRange(descriptors[0], descriptors[1]))
                                   .build());
     if (outputDomain.assigned() && powerDomainSignal.getDescriptor() != outputDomain)
         powerDomainSignal.setDescriptor(outputDomain);

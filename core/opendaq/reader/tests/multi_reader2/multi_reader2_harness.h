@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-// Harness for the MultiReader2 suites. Each call is named after a step of the test matrix
-// (reviews/0007-multi-reader-2-test-matrix.md in the knowledge base), so a test body reads like its row.
+// Harness for the MultiReader2 suites. Each call is one step of a test (given, write, announce, read, expect), so a test
+// body reads as the list of its steps and what each returns.
 
 #pragma once
 #include <gtest/gtest.h>
@@ -67,7 +67,7 @@ using InputError = MultiReader2InputError;
 inline constexpr MultiReader2ErrorPolicy Invalidate = MultiReader2ErrorPolicy::Invalidate;
 inline constexpr MultiReader2ErrorPolicy Exclude = MultiReader2ErrorPolicy::Exclude;
 
-// A value descriptor as the matrix writes it after "value="
+// A value descriptor as a test writes it after "value="
 class Value
 {
 public:
@@ -97,7 +97,7 @@ private:
     std::optional<std::pair<double, double>> scaling;
 };
 
-// A domain descriptor as the matrix writes it after "domain=": SIG.BASE's domain plus changes
+// A domain descriptor as a test writes it after "domain=": SIG.BASE's domain plus changes
 class Domain
 {
 public:
@@ -188,7 +188,7 @@ enum class Timeline
     StarveAll,
     StarveMain,
     Short,
-    Starve2s,
+    Starve3s,
     CatchUp,
     Epoch
 };
@@ -241,20 +241,18 @@ private:
 };
 Params same();
 
-// Variants of a reading call: "read N null in2", "read 0 null", "null-count", "null-status", "timeout 10"
+// Variants of a reading call: "read N null in2", "read 0 null", "null-count", "null-status"
 struct ReadArgs
 {
     bool nullData = false;
     std::optional<Input> nullBuffer;
     bool nullCount = false;
     bool nullStatus = false;
-    SizeT timeoutMs = 0;
 };
 inline const ReadArgs nullData{true};
 inline const ReadArgs nullCount{false, std::nullopt, true};
 inline const ReadArgs nullStatus{false, std::nullopt, false, true};
 ReadArgs nullBuffer(Input input);
-ReadArgs timeout(SizeT ms);
 
 // What one call returned; recorded so expectations can run later, as for handler calls
 struct Result
@@ -288,7 +286,7 @@ struct Result
     std::string step;
 };
 
-// An expected result in the matrix's Expectations form
+// An expected result: the count, the position and the status fields a step checks
 class Expect
 {
 public:

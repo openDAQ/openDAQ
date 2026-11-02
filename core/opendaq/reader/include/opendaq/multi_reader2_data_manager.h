@@ -62,19 +62,18 @@ public:
 
     // Consumer side; contracts as on IMultiReader2, data as the real void**. Errors and descriptors move only here
     SizeT getAvailableCount();
-    ErrCode read(void** data, SizeT* count, SizeT timeoutMs, SizeT* packetOffset, IMultiReader2Status** status);
-    ErrCode readWithDomain(void** data, SizeT* count, SizeT timeoutMs, IMultiReader2Status** status);
-    ErrCode skipSamples(SizeT* count, SizeT timeoutMs, SizeT* packetOffset, IMultiReader2Status** status);
+    ErrCode read(void** data, SizeT* count, SizeT* packetOffset, IMultiReader2Status** status);
+    ErrCode readWithDomain(void** data, SizeT* count, IMultiReader2Status** status);
+    ErrCode skipSamples(SizeT* count, SizeT* packetOffset, IMultiReader2Status** status);
 
-    // Producer side; each returns whether to schedule onDataAvailable after the mutex: only while subscribed and no call is pending
+    // Producer side; each returns whether to schedule onDataAvailable after the mutex: while subscribed, no call is pending and a
+    // read would return samples or a status with changes
     bool connected(const void* key, const multi_reader2::Announced& announced, bool subscribed);
     bool disconnected(const void* key, bool subscribed);
     bool addPacket(const void* key, const PacketPtr& packet, bool subscribed);
 
-    // Triggers so far; a failed call reschedules only when it moved
-    std::uint64_t triggerCount();
-    // After the handler: clears the pending flag and decides on another call; a failed call waits for a trigger after it
-    bool callFinished(bool failed, std::uint64_t triggersAtStart, bool subscribed);
+    // After the handler: clears the pending flag and decides on another call; a failed call waits for the next ingest
+    bool callFinished(bool failed, bool subscribed);
     bool inCallback() const;  // true on the thread inside acceptsDescriptor
 
 private:
@@ -119,8 +118,7 @@ private:
     };
 
     void apply(Config config, bool reinitialize);
-    ErrCode doRead(
-        void** data, bool withDomain, bool copy, SizeT* count, SizeT timeoutMs, SizeT* packetOffset, IMultiReader2Status** status);
+    ErrCode doRead(void** data, bool withDomain, bool copy, SizeT* count, SizeT* packetOffset, IMultiReader2Status** status);
     // Copying reads list their samples in copies; the others pass null
     void readLocked(void** data,
                     bool withDomain,
@@ -132,26 +130,17 @@ private:
     void buildStatus(IMultiReader2Status** status);
     State captureState() const;
 
-    // What the previous status reported: its state and the stamps of the fields reported afresh
-    struct Reported
-    {
-        State state;
-        std::uint64_t configuration = 0;
-        std::uint64_t domain = 0;
-        std::uint64_t resync = 0;
-        std::vector<std::uint64_t> descriptors;
-    };
     // What the next status reports as changed: whatever differs from the previous status
     struct Changes
     {
-        bool force = false;  // the first status of a configuration
+        bool afresh = false;  // the first status after a restart
         bool state = false;
         bool domain = false;
         bool resync = false;
         bool descriptors = false;
         bool any() const
         {
-            return force || state || domain || resync || descriptors;
+            return afresh || state || domain || resync || descriptors;
         }
     };
     // now: the state captured after a judgement, null when none ran since the previous status
@@ -176,6 +165,7 @@ private:
     std::optional<SizeT> firstHealthy() const;
 
     // Read path
+    void applyStalls();
     SizeT alignedCount() const;
     bool barrierBounded(SizeT k) const;
     bool applyReached();
@@ -184,24 +174,21 @@ private:
     void internalReconfigure(bool recovered);
     void restart();
     void startSync(bool fromStreaming);
-    bool trySync();
+    void trySync();
 
     // Ingest
     std::optional<SizeT> slotOf(const void* key);
-    bool ingestEvent(SizeT i, const EventPacketPtr& event);
-    bool ingestData(SizeT i, const DataPacketPtr& data);
-    bool keepWithinBudget(SizeT bytes);
-    bool checkAgainstMain();
-    bool checkLate(SizeT i);
-    bool trigger(bool cause, bool subscribed);
+    void ingestEvent(SizeT i, const EventPacketPtr& event);
+    void ingestData(SizeT i, const DataPacketPtr& data);
+    void keepWithinBudget(SizeT bytes);
+    bool wake(bool subscribed);
     bool readable() const;
-    bool eventReached(SizeT i) const;
     bool statusOwed() const;
     bool hasTrigger() const;
     const multi_reader2::TickDomain& mainTicks() const;
 
-    // What the queues of all inputs hold at most together; far above transport skew, it holds back large samples
-    static constexpr SizeT queueBudgetBytes = SizeT(1000) * 1000 * 1000;
+    // What the queues of all inputs hold at most together, per input; far above transport skew, it holds back large samples
+    static constexpr SizeT queueBudgetBytesPerInput = SizeT(100) * 1000 * 1000;
 
     std::mutex mutex;
     std::atomic<std::thread::id> callbackThread;
@@ -218,21 +205,14 @@ private:
     std::optional<SizeT> mainSlot;  // in effect; kept while invalid with an automatic main input
     bool configured = false;
     Phase phase = Phase::Invalid;
-    std::optional<std::int64_t> syncMainFirst;  // main tick of the main input's first sample since synchronization started
-    std::int64_t readTick = 0;                  // main tick of the next unread sample
-    std::optional<std::int64_t> lastEnd;        // main tick after the last sample delivered since the last resynchronized
-    std::int64_t syncLimit = 0;
-    // A field reported afresh takes a new stamp, which the next status reports as changed
-    std::uint64_t stamps = 0;
-    std::uint64_t configurationStamp = 0;
-    std::uint64_t domainStamp = 0;
-    std::uint64_t resyncStamp = 0;
-    Reported reported;
+    std::int64_t readTick = 0;            // main tick of the next unread sample
+    std::optional<std::int64_t> lastEnd;  // main tick after the last sample delivered since the last resynchronized
+    std::int64_t queueLimit = 0;          // queueLimitSeconds in main ticks
+    State reported;                       // what the previous status reported
+    bool afresh = true;                   // a restart since the previous status: the next one reports every field as changed
     bool stateDirty = true;               // a judgement ran since the previous status: the state may have moved
     MultiReader2StatusPtr lastUnchanged;  // the previous status as one without changes
     bool callPending = false;
-    bool rearmed = false;  // a call failed: a queued clear triggers once more
-    std::uint64_t triggers = 0;
 };
 
 END_NAMESPACE_OPENDAQ

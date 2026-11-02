@@ -655,7 +655,7 @@ ErrCode TypedReader<TReadType>::readValues(void* inputBuffer, SizeT offset, void
         {
             for (std::size_t i = 0; i < toRead * valuesPerSample; ++i)
             {
-                dataOut[i] = static_cast<TReadType>(dataStart[i]);  // C4244 - possible data loss due to conversion
+                dataOut[i] = reader::convertSample<TReadType>(dataStart[i]);
             }
 
             // Set the pointer to the value after the last copied one

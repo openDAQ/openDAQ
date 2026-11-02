@@ -47,12 +47,11 @@ void SumReaderFbImpl::rebuildOutputDescriptor()
 {
     double low = 0;
     double high = 0;
-    for (const auto& input : params.getInputs())
+    for (const auto& descriptor : descriptors)
     {
-        const auto it = cached.find(input.getGlobalId().toStdString());
-        if (it == cached.end())
+        if (!descriptor.assigned())
             continue;
-        if (const auto range = it->second.getValueRange(); range.assigned())
+        if (const auto range = descriptor.getValueRange(); range.assigned())
         {
             low += range.getLowValue().getFloatValue();
             high += range.getHighValue().getFloatValue();

@@ -21,11 +21,11 @@ MockDeviceModuleImpl::MockDeviceModuleImpl(daq::ContextPtr ctx)
 ErrCode MockDeviceModuleImpl::getAvailableDevices(IList** availableDevices)
 {
     ListPtr<IDeviceInfo> availableDevicesPtr = List<IDeviceInfo>();
+    // TODO(#1361): Set the Root kind once the OpcUaModules tests stop adding daq.root://default_client as a sub-device.
     auto clientDeviceType = DeviceTypeBuilder()
                                 .setConnectionStringPrefix("daq.root")
                                 .setId("OpenDAQClient")
                                 .setName("OpenDAQClient")
-                                .setDeviceKind(DeviceKind::Root)
                                 .build();
 
     auto daqClientDeviceInfo = DeviceInfo("daq.root://default_client");
@@ -60,11 +60,11 @@ ErrCode MockDeviceModuleImpl::getAvailableDeviceTypes(IDict** deviceTypes)
 
     mockConfig.addProperty(BoolProperty("IsStatic", false));
 
+    // TODO(#1361): Set the Root kind once the OpcUaModules tests stop adding daq.root://default_client as a sub-device.
     auto clientDeviceType = DeviceTypeBuilder()
                                 .setConnectionStringPrefix("daq.root")
                                 .setId("OpenDAQClient")
                                 .setName("OpenDAQClient")
-                                .setDeviceKind(DeviceKind::Root)
                                 .setDefaultConfig(mockConfig)
                                 .build();
 

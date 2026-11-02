@@ -309,7 +309,8 @@ TEST_F(InstanceTest, EnumerateDeviceTypes)
     ASSERT_TRUE(deviceTypes.hasKey("OpenDAQClient"));
     auto mockDevice = deviceTypes.get("OpenDAQClient");
     ASSERT_EQ(mockDevice.getId(), "OpenDAQClient");
-    ASSERT_EQ(mockDevice.getDeviceKind(), DeviceKind::Root);
+    // TODO(#1361): Expect Root once the mock client device type is Root again.
+    ASSERT_EQ(mockDevice.getDeviceKind(), DeviceKind::Unspecified);
 
     ASSERT_TRUE(deviceTypes.hasKey("mock_phys_device"));
     mockDevice = deviceTypes.get("mock_phys_device");

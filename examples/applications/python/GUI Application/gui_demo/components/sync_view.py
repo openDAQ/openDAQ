@@ -370,7 +370,10 @@ class SyncView(ttk.Frame):
         if outputting:
             return outputting[0]
         local = [record for record in members if record.source.sync_type == 'local']
-        return local[0] if local else None
+        if local:
+            return local[0]
+        inside = [record for record in members if record.domain == domain]
+        return inside[0] if inside else None
 
     def tree_fill(self):
         opened = {iid for iid in self.rows if self.tree.exists(iid) and self.tree.item(iid, 'open')}

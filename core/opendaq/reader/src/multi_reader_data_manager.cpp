@@ -776,12 +776,12 @@ void MultiReaderDataManager::performRead(void** data, Buffers buffers, SizeT* co
     *status = buildStatus().detach();
 }
 
-// Fewer than MinReadCount samples in front of an event can never be read: the read drops them on every contributing
-// input, so it reaches the event (R8). A run without an event behind it can still grow and is kept
-void MultiReaderDataManager::dropShortRun()
+// Fewer than MinReadCount samples in front of an event can never be read (R8): their count, when the contributing
+// inputs' shortest front run is such a run. A run without an event behind it can still grow and is kept
+std::optional<SizeT> MultiReaderDataManager::shortRun() const
 {
     if (state != State::Streaming)
-        return;
+        return std::nullopt;
 
     std::optional<SizeT> least;
     bool closed = false;
@@ -798,16 +798,40 @@ void MultiReaderDataManager::dropShortRun()
             closed = closed || slot.events > 0;
     }
     if (!least.has_value() || *least == 0 || *least >= config.minReadCount || !closed)
+        return std::nullopt;
+    return least;
+}
+
+// The read drops a short run on every contributing input, so it reaches the event behind it
+void MultiReaderDataManager::dropShortRun()
+{
+    const auto count = shortRun();
+    if (!count.has_value())
         return;
 
     for (auto& slot : slots)
     {
         if (slot.error == MultiReader2InputError::None)
-            consume(slot, *least, nullptr);
+            consume(slot, *count, nullptr);
     }
-    readTick += static_cast<std::int64_t>(*least) * mainDelta;
+    readTick += static_cast<std::int64_t>(*count) * mainDelta;
     resynchronized = true;
     statusOwed = true;
+}
+
+// Whether the input's samples count in a read: it has no error and the reader is valid
+bool MultiReaderDataManager::contributes(const Slot& slot, bool valid)
+{
+    return valid && slot.error == MultiReader2InputError::None;
+}
+
+// Whether a read applies an event on the input (R1): a contributing input the one in front of it, which the read
+// reached; any other input every queued one
+bool MultiReaderDataManager::reachesEvent(const Slot& slot, bool contributing)
+{
+    if (contributing)
+        return !slot.queue.empty() && slot.queue.front().event.has_value();
+    return slot.events > 0;
 }
 
 // Takes count samples off the front run, which holds at least that many, copying them into out unless it is null
@@ -922,20 +946,14 @@ void MultiReaderDataManager::applyEvents()
 
         // A contributing input applies the events in front of it, which the read reached. Any other input delivers
         // nothing: it applies all of them and keeps only the data behind the last
-        const bool contributing = wasValid && slot.error == MultiReader2InputError::None;
+        const bool contributing = contributes(slot, wasValid);
         bool judge = false;
-        while (!slot.queue.empty())
+        while (reachesEvent(slot, contributing))
         {
-            const Entry& front = slot.queue.front();
-            if (!front.event.has_value())
-            {
-                if (contributing || slot.events == 0)
-                    break;
+            while (!slot.queue.front().event.has_value())
                 slot.queue.pop_front();
-                continue;
-            }
 
-            const Applied applied = applyEvent(slot, *front.event);
+            const Applied applied = applyEvent(slot, *slot.queue.front().event);
             slot.queue.pop_front();
             --slot.events;
             judge |= applied.judge;
@@ -948,10 +966,11 @@ void MultiReaderDataManager::applyEvents()
         if (judge)
             checkInput(i);
 
-        // A late input marked within the limit clears on this read
-        if (slot.clearPending && slot.syncFailed == SyncCause::Limit)
+        // A late input marked within the limit clears on this read; the mark goes in any case, as it triggers a call
+        if (slot.clearPending)
         {
-            slot.syncFailed = SyncCause::None;
+            if (slot.syncFailed == SyncCause::Limit)
+                slot.syncFailed = SyncCause::None;
             slot.clearPending = false;
         }
     }
@@ -999,9 +1018,26 @@ void MultiReaderDataManager::applyEvents()
 
 // ---------------------------------------------------------------- producer side
 
-bool MultiReaderDataManager::connected(SizeT i, const DataDescriptorPtr& value, const DataDescriptorPtr& domain)
+bool MultiReaderDataManager::connected(SizeT slot, const DataDescriptorPtr& value, const DataDescriptorPtr& domain)
 {
     std::scoped_lock lock(mutex);
+    return claimWake(queueConnect(slot, value, domain));
+}
+
+bool MultiReaderDataManager::disconnected(SizeT slot)
+{
+    std::scoped_lock lock(mutex);
+    return claimWake(queueDisconnect(slot));
+}
+
+bool MultiReaderDataManager::addPacket(SizeT slot, const PacketPtr& packet)
+{
+    std::scoped_lock lock(mutex);
+    return claimWake(queuePacket(slot, packet));
+}
+
+bool MultiReaderDataManager::queueConnect(SizeT i, const DataDescriptorPtr& value, const DataDescriptorPtr& domain)
+{
     Slot& slot = slots[i];
 
     // A connect the reader already has, such as one configure read before it took the port over
@@ -1028,9 +1064,8 @@ bool MultiReaderDataManager::connected(SizeT i, const DataDescriptorPtr& value, 
     return true;
 }
 
-bool MultiReaderDataManager::disconnected(SizeT i)
+bool MultiReaderDataManager::queueDisconnect(SizeT i)
 {
-    std::scoped_lock lock(mutex);
     Slot& slot = slots[i];
     if (!slot.latestConnected)
         return false;
@@ -1040,9 +1075,8 @@ bool MultiReaderDataManager::disconnected(SizeT i)
     return true;
 }
 
-bool MultiReaderDataManager::addPacket(SizeT i, const PacketPtr& packet)
+bool MultiReaderDataManager::queuePacket(SizeT i, const PacketPtr& packet)
 {
-    std::scoped_lock lock(mutex);
     switch (packet.getType())
     {
         case PacketType::Event:
@@ -1352,13 +1386,70 @@ bool MultiReaderDataManager::markClear(SizeT i, const std::optional<std::int64_t
 
 // ---------------------------------------------------------------- wake
 
-bool MultiReaderDataManager::hasTrigger() const
+bool MultiReaderDataManager::hasTrigger()
 {
-    return false;
+    std::scoped_lock lock(mutex);
+    return triggerHolds();
 }
 
-bool MultiReaderDataManager::callFinished(bool /*failed*/)
+void MultiReaderDataManager::callStarted()
 {
+    std::scoped_lock lock(mutex);
+    arrivedDuringCall = false;
+}
+
+bool MultiReaderDataManager::callFinished(bool failed)
+{
+    std::scoped_lock lock(mutex);
+    callPending = false;
+
+    // Calls announce new arrivals only: the handler reads everything available, and what it leaves is not announced
+    // again. So another call follows only for an arrival during this one that is still unread
+    const bool again = arrivedDuringCall && triggerHolds();
+
+    // After a failed call the marks that wake once per cause are re-armed (B4)
+    if (failed)
+    {
+        for (auto& slot : slots)
+            slot.clearPending = false;
+    }
+
+    if (again)
+        callPending = true;
+    return again;
+}
+
+void MultiReaderDataManager::callAborted()
+{
+    std::scoped_lock lock(mutex);
+    callPending = false;
+}
+
+// An arrival with something new for the user (W1): a call is claimed only when none is pending or running
+bool MultiReaderDataManager::claimWake(bool owed)
+{
+    if (!owed)
+        return false;
+    arrivedDuringCall = true;
+    if (callPending)
+        return false;
+    callPending = true;
+    return true;
+}
+
+// The next read would change something (W3): samples, a status with changes, an input that clears, or an event it
+// applies. The event part asks the read's own rules, so an arrival the next read does not reach calls no one
+bool MultiReaderDataManager::triggerHolds() const
+{
+    if (statusOwed || frontAvailable() > 0 || shortRun().has_value())
+        return true;
+
+    const bool valid = level() != ComponentStatus::Error;
+    for (const auto& slot : slots)
+    {
+        if (slot.clearPending || reachesEvent(slot, contributes(slot, valid)))
+            return true;
+    }
     return false;
 }
 

@@ -1,10 +1,13 @@
 #include <coretypes/ctutils.h>
+#include <coretypes/event_args_factory.h>
 #include <coretypes/validation.h>
+#include <opendaq/custom_log.h>
 #include <opendaq/input_port_factory.h>
 #include <opendaq/multi_reader2_impl.h>
 #include <opendaq/multi_reader2_status_ptr.h>
 #include <opendaq/reader.h>
 #include <opendaq/signal_ptr.h>
+#include <opendaq/work_factory.h>
 
 #include <algorithm>
 #include <unordered_set>
@@ -17,6 +20,13 @@ MultiReader2Impl::MultiReader2Impl(IMultiReader2Params* params)
     this->internalAddRef();
     try
     {
+        // One reusable call; it holds the reader weakly, and strongly while it runs (W4, W5)
+        wakeWork = Work([this, readerRef = this->getWeakRefInternal<IMultiReader2>()]
+        {
+            const auto reader = readerRef.getRef();
+            if (reader.assigned())
+                runWake();
+        });
         checkErrorInfo(configureInternal(params, nullptr));
     }
     catch (...)
@@ -166,6 +176,8 @@ void MultiReader2Impl::publishWiring(const std::vector<Slot>& wired)
     auto newWiring = std::make_shared<Wiring>();
     for (const auto& slot : wired)
         newWiring->intakeOf[slot.port.asPtr<IInputPort>(true)] = slot.intake;
+    newWiring->scheduler = scheduler;
+    newWiring->loggerComponent = loggerComponent;
     std::atomic_store(&wiring, std::shared_ptr<const Wiring>(std::move(newWiring)));
 }
 
@@ -331,6 +343,8 @@ ErrCode MultiReader2Impl::configureInternal(IMultiReader2Params* params, IMultiR
         slots = std::move(newSlots);
         context = slots.empty() ? nullptr : slots.front().input.getContext();
         scheduler = context.assigned() ? context.getScheduler() : nullptr;
+        const auto logger = context.assigned() ? context.getLogger() : nullptr;
+        loggerComponent = logger.assigned() ? logger.getOrAddComponent("MultiReader2") : nullptr;
 
         // Schedules no onDataAvailable
         const ErrCode reconfigured = dataManager.reconfigure(std::move(config), status);
@@ -387,16 +401,54 @@ ErrCode MultiReader2Impl::getOnDataAvailable(IEvent** event)
 
 // ---------------------------------------------------------------- wake
 
+// Schedules the call the data manager claimed (W4); one that cannot be scheduled, as on a stopped scheduler, releases
+// the claim, or no call would ever be scheduled again
 void MultiReader2Impl::scheduleWake()
 {
-    // TODO(spec C14, A11): schedule wakeWork on the scheduler; the pending flag lives in the data manager, so
-    // ingest schedules only when no call is pending or running
+    const auto wire = std::atomic_load(&wiring);
+    const ErrCode errCode = wire && wire->scheduler.assigned() ? wire->scheduler->scheduleWork(wakeWork) : OPENDAQ_ERR_INVALIDSTATE;
+    if (OPENDAQ_FAILED(errCode))
+    {
+        daqClearErrorInfo();
+        dataManager.callAborted();
+    }
 }
 
+// One call of the handler on the scheduler thread, with no reader lock held (W5). One handler is assumed: one that
+// throws stops the handlers after it. The exception is logged and the handler kept (B4)
 void MultiReader2Impl::runWake()
 {
-    // TODO(spec C14, B4, A2c): raise onDataAvailable with a null sender; catch and log an exception at error level;
-    // then dataManager.callFinished(failed) decides on another call
+    dataManager.callStarted();
+
+    bool failed = false;
+    std::string failure;
+    try
+    {
+        BaseObjectPtr sender;
+        onDataAvailable(sender, EventArgs(0, "DataAvailable"));
+    }
+    catch (const std::exception& e)
+    {
+        failed = true;
+        failure = e.what();
+    }
+    catch (...)
+    {
+        failed = true;
+        failure = "unknown exception";
+    }
+
+    if (failed)
+    {
+        daqClearErrorInfo();
+        const auto wire = std::atomic_load(&wiring);
+        const LoggerComponentPtr loggerComponent = wire ? wire->loggerComponent : nullptr;
+        if (loggerComponent.assigned())
+            LOG_E("The onDataAvailable handler failed: {}", failure);
+    }
+
+    if (dataManager.callFinished(failed))
+        scheduleWake();
 }
 
 // ---------------------------------------------------------------- port callbacks

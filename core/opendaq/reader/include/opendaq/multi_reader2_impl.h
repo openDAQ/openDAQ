@@ -21,6 +21,7 @@
 #include <opendaq/context_ptr.h>
 #include <opendaq/input_port_config_ptr.h>
 #include <opendaq/input_port_notifications.h>
+#include <opendaq/logger_component_ptr.h>
 #include <opendaq/multi_reader2.h>
 #include <opendaq/multi_reader_data_manager.h>
 #include <opendaq/scheduler_ptr.h>
@@ -83,9 +84,12 @@ private:
         std::shared_ptr<Intake> intake;
     };
 
+    // Read without a lock by the port callbacks and the wake
     struct Wiring
     {
         std::unordered_map<IInputPort*, std::shared_ptr<Intake>> intakeOf;
+        SchedulerPtr scheduler;
+        LoggerComponentPtr loggerComponent;
     };
 
     // What a port is connected to, with the signal's descriptors
@@ -113,6 +117,7 @@ private:
     EventEmitter<BaseObjectPtr, EventArgsPtr<>> onDataAvailable;
     ContextPtr context;
     SchedulerPtr scheduler;
+    LoggerComponentPtr loggerComponent;
     std::vector<Slot> slots;
     std::shared_ptr<const Wiring> wiring;
     WorkPtr wakeWork;

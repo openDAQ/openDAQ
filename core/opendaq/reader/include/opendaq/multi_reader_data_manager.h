@@ -43,8 +43,8 @@ BEGIN_NAMESPACE_OPENDAQ
 // reader calls from inside it are refused. See spec 0007, Data manager sketch.
 //
 // Implemented so far: configure (reconfigure, isSameConfig, rejudge), ingest (the queues, the synchronization and
-// getAvailableCount) and reads (the samples, the events they reach, the re-evaluation and the internal reconfigure).
-// The wake is still to be written.
+// getAvailableCount), reads (the samples, the events they reach, the re-evaluation and the internal reconfigure) and
+// the wake's state.
 class MultiReaderDataManager final
 {
 public:
@@ -79,19 +79,23 @@ public:
     ErrCode readWithDomain(void** data, SizeT* count, SizeT timeoutMs, IMultiReader2Status** status);
     ErrCode skipSamples(SizeT* count, SizeT timeoutMs, SizeT* packetOffset, IMultiReader2Status** status);
 
-    // Producer side; each returns whether onDataAvailable is to be scheduled once the call is out of the mutex.
-    // Connection changes and event packets queue as events; a connect carries the signal's descriptors. Data
-    // packets queue behind them and run the synchronization check; a failure found there is queued as a marker
-    // in front of the input's data and applied by the next read
+    // Producer side; each returns whether onDataAvailable is to be scheduled once the call is out of the mutex, and
+    // then claims the one pending call. Connection changes and event packets queue as events; a connect carries the
+    // signal's descriptors. Data packets queue behind them and run the synchronization check; a failure found there
+    // is queued as a marker in front of the input's data and applied by the next read
     bool connected(SizeT slot, const DataDescriptorPtr& value, const DataDescriptorPtr& domain);
     bool disconnected(SizeT slot);
     bool addPacket(SizeT slot, const PacketPtr& packet);
 
-    bool hasTrigger() const;   // enough samples, a status with changes pending, or a SyncFailed input that can clear
+    // The next read would change something: samples, a status with changes, a SyncFailed input that can clear, or an
+    // event it applies
+    bool hasTrigger();
 
-    // After the handler returns: clears the pending flag and decides on another call in one step. After a failed
-    // call, only a trigger that arrived since the call started schedules again, and once-per-cause triggers re-arm
+    void callStarted();   // the handler is about to run
+    // After the handler returns: clears the pending flag and decides on another call in one step, claiming it. Only an
+    // arrival since the call started that is still unread calls again; after a failed call once-per-cause triggers re-arm
     bool callFinished(bool failed);
+    void callAborted();   // the claimed call could not be scheduled; not in the sketch
 
     bool inCallback() const;   // true on the thread inside acceptsDescriptor
 
@@ -188,7 +192,10 @@ private:
     void noteChanges(ComponentStatus previousLevel, const std::vector<std::pair<MultiReader2InputError, std::string>>& previous);
 
     // Read
+    std::optional<SizeT> shortRun() const;
     void dropShortRun();
+    static bool contributes(const Slot& slot, bool valid);
+    static bool reachesEvent(const Slot& slot, bool contributing);
     void consume(Slot& slot, SizeT count, void* out);
     void copySamples(Slot& slot, const Entry& entry, SizeT count, void*& out);
     static Applied applyEvent(Slot& slot, const Event& event);
@@ -196,6 +203,9 @@ private:
     void applyEvents();
 
     // Ingest
+    bool queueConnect(SizeT slot, const DataDescriptorPtr& value, const DataDescriptorPtr& domain);
+    bool queueDisconnect(SizeT slot);
+    bool queuePacket(SizeT slot, const PacketPtr& packet);
     bool queueDescriptor(SizeT slot, const DataDescriptorPtr& value, const DataDescriptorPtr& domain);
     bool ingestData(SizeT slot, const DataPacketPtr& packet);
     void mapToMain(SizeT slot);
@@ -212,6 +222,10 @@ private:
     std::string describeError(const Slot& slot) const;
     SizeT sampleSize(const Slot& slot) const;
     MultiReader2StatusPtr buildStatus();
+
+    // Wake
+    bool claimWake(bool owed);
+    bool triggerHolds() const;
     enum class Buffers { Values, WithDomain, None };   // read, readWithDomain, skipSamples
     ErrCode checkRead(SizeT count, SizeT timeoutMs, void** data, Buffers buffers) const;
     void performRead(void** data, Buffers buffers, SizeT* count, SizeT* packetOffset, IMultiReader2Status** status);
@@ -230,7 +244,8 @@ private:
     bool domainChanged = false;                     // pending for the next status
     bool resynchronized = false;                    // pending for the next status
     bool statusOwed = false;                        // not in the sketch: hasChanges of the next status (C1)
-    // TODO(wake): callPending and triggers of the spec's sketch
+    bool callPending = false;                       // an onDataAvailable call is scheduled or running
+    bool arrivedDuringCall = false;                 // an arrival since the call started; the sketch counts them
     std::atomic<std::thread::id> callbackThread{std::thread::id()};   // not in the sketch: inCallback is asked without the mutex
 };
 

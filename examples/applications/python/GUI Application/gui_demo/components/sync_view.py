@@ -239,6 +239,8 @@ class SyncView(ttk.Frame):
         tree.bind('<<TreeviewSelect>>', self.on_select)
         tree.bind('<Button-1>', self.on_click)
         tree.bind('<Double-Button-1>', self.on_double_click)
+        for sequence, step in (('<Up>', -1), ('<Down>', 1), ('<Left>', 0), ('<Right>', 0)):
+            tree.bind(sequence, lambda e, step=step: self.device_step(step))
         for sequence in ('<Configure>', '<<TreeviewOpen>>', '<<TreeviewClose>>', '<ButtonRelease-1>'):
             tree.bind(sequence, lambda e: self.after_idle(self.overlays_sync), add='+')
         self.tree = tree
@@ -533,6 +535,15 @@ class SyncView(ttk.Frame):
         if iid is None:
             return None
         self.group_toggle(iid)
+        return 'break'
+
+    def device_step(self, step):
+        devices = [iid for iid in self.visible_rows() if self.tree.parent(iid)]
+        if self.selected in devices:
+            index = min(max(devices.index(self.selected) + step, 0), len(devices) - 1)
+            self.tree.selection_set(devices[index])
+            self.tree.focus(devices[index])
+            self.tree.see(devices[index])
         return 'break'
 
     def on_select(self, event):

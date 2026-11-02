@@ -30,6 +30,7 @@ set(TEST_SOURCES test_factories.cpp
                  ../src/multi_reader2_params_impl.cpp
                  ../src/multi_reader2_status_impl.cpp
                  ../src/multi_reader_data_manager.cpp
+                 ../src/typed_reader.cpp
 )
 
 opendaq_prepare_test_runner(TEST_APP FOR ${MODULE_NAME}

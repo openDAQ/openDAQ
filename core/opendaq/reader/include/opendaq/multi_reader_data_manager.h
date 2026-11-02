@@ -25,6 +25,7 @@
 #include <opendaq/multi_reader2_status_ptr.h>
 #include <opendaq/packet_ptr.h>
 #include <opendaq/sample_type.h>
+#include <opendaq/typed_reader.h>
 
 #include <atomic>
 #include <deque>
@@ -42,8 +43,8 @@ BEGIN_NAMESPACE_OPENDAQ
 // reader calls from inside it are refused. See spec 0007, Data manager sketch.
 //
 // Implemented so far: configure (reconfigure, isSameConfig, rejudge), ingest (the queues, the synchronization and
-// getAvailableCount) and the read's events (applying them, the re-evaluation and the internal reconfigure). Copying
-// samples and the wake are still to be written.
+// getAvailableCount) and reads (the samples, the events they reach, the re-evaluation and the internal reconfigure).
+// The wake is still to be written.
 class MultiReaderDataManager final
 {
 public:
@@ -169,6 +170,8 @@ private:
                                                      // reconfigure that keeps the main input
         bool clearPending = false;                   // failed on the limit, a packet now within it: triggers once until a read clears it
         bool descriptorChanged = false;              // pending for the next status
+        std::unique_ptr<Reader> converter;           // to the read type, made for converterFor; not in the sketch
+        DataDescriptorPtr converterFor;
     };
 
     static DomainInfo parseDomain(const DataDescriptorPtr& domain);
@@ -185,6 +188,9 @@ private:
     void noteChanges(ComponentStatus previousLevel, const std::vector<std::pair<MultiReader2InputError, std::string>>& previous);
 
     // Read
+    void dropShortRun();
+    void consume(Slot& slot, SizeT count, void* out);
+    void copySamples(Slot& slot, const Entry& entry, SizeT count, void*& out);
     static Applied applyEvent(Slot& slot, const Event& event);
     static void countFront(Slot& slot);
     void applyEvents();
@@ -208,7 +214,7 @@ private:
     MultiReader2StatusPtr buildStatus();
     enum class Buffers { Values, WithDomain, None };   // read, readWithDomain, skipSamples
     ErrCode checkRead(SizeT count, SizeT timeoutMs, void** data, Buffers buffers) const;
-    void performRead(SizeT* count, SizeT* packetOffset, IMultiReader2Status** status);
+    void performRead(void** data, Buffers buffers, SizeT* count, SizeT* packetOffset, IMultiReader2Status** status);
 
     std::mutex mutex;
     Config config;

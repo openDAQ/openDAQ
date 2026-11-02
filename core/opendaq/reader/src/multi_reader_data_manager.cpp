@@ -10,6 +10,7 @@
 #include <opendaq/sample_type_traits.h>
 
 #include <algorithm>
+#include <cstring>
 #include <limits>
 #include <numeric>
 
@@ -231,6 +232,7 @@ ErrCode MultiReaderDataManager::reconfigure(Config newConfig, IMultiReader2Statu
             slot.value = slot.latestValue;
             slot.domain = slot.latestDomain;
             slot.syncFailed = SyncCause::None;
+            slot.converter.reset();   // the read type may have changed
         }
         mainSlot.reset();
 
@@ -680,8 +682,7 @@ ErrCode MultiReaderDataManager::read(void** data, SizeT* count, SizeT timeoutMs,
         const ErrCode errCode = checkRead(*count, timeoutMs, data, Buffers::Values);
         OPENDAQ_RETURN_IF_FAILED(errCode);
 
-        // TODO(read): copy the samples into data
-        performRead(count, packetOffset, status);
+        performRead(data, Buffers::Values, count, packetOffset, status);
         return OPENDAQ_SUCCESS;
     });
 }
@@ -697,8 +698,7 @@ ErrCode MultiReaderDataManager::readWithDomain(void** data, SizeT* count, SizeT 
         const ErrCode errCode = checkRead(*count, timeoutMs, data, Buffers::WithDomain);
         OPENDAQ_RETURN_IF_FAILED(errCode);
 
-        // TODO(read): fill the leading domain buffer with packetOffset plus the main rule's start, then the samples
-        performRead(count, nullptr, status);
+        performRead(data, Buffers::WithDomain, count, nullptr, status);
         return OPENDAQ_SUCCESS;
     });
 }
@@ -714,7 +714,7 @@ ErrCode MultiReaderDataManager::skipSamples(SizeT* count, SizeT timeoutMs, SizeT
         const ErrCode errCode = checkRead(*count, timeoutMs, nullptr, Buffers::None);
         OPENDAQ_RETURN_IF_FAILED(errCode);
 
-        performRead(count, packetOffset, status);
+        performRead(nullptr, Buffers::None, count, packetOffset, status);
         return OPENDAQ_SUCCESS;
     });
 }
@@ -745,16 +745,114 @@ ErrCode MultiReaderDataManager::checkRead(SizeT count, SizeT timeoutMs, void** d
     return OPENDAQ_SUCCESS;
 }
 
-void MultiReaderDataManager::performRead(SizeT* count, SizeT* packetOffset, IMultiReader2Status** status)
+// The read (R1): the samples every contributing input has in front of its first event, unless a status is owed, then
+// the events the read reached and the status. skipSamples copies nothing; readWithDomain leads with the main ticks
+void MultiReaderDataManager::performRead(void** data, Buffers buffers, SizeT* count, SizeT* packetOffset, IMultiReader2Status** status)
 {
-    // TODO(read): drop fewer than MinReadCount samples in front of a queued event (R8), then copy what every
-    // contributing input has in front of its first event, unless a status is owed (R1). Until then a read returns
-    // count 0 and applies only the events in front
-    *count = 0;
+    dropShortRun();
+
+    const SizeT n = statusOwed ? 0 : std::min(*count, frontAvailable());
     if (packetOffset)
-        *packetOffset = 0;   // TODO(read): readTick - the main rule's start, when samples are read (R9)
+        *packetOffset = n > 0 ? static_cast<SizeT>(readTick - slots[*mainSlot].domainInfo.start) : 0;   // R9
+    if (n > 0)
+    {
+        const SizeT first = buffers == Buffers::WithDomain ? 1 : 0;
+        if (buffers == Buffers::WithDomain)
+        {
+            auto* ticks = static_cast<std::int64_t*>(data[0]);
+            for (SizeT k = 0; k < n; ++k)
+                ticks[k] = readTick + static_cast<std::int64_t>(k) * mainDelta;
+        }
+        for (SizeT i = 0; i < slots.size(); ++i)
+        {
+            if (slots[i].error == MultiReader2InputError::None)
+                consume(slots[i], n, buffers == Buffers::None ? nullptr : data[first + i]);
+        }
+        readTick += static_cast<std::int64_t>(n) * mainDelta;
+    }
+    *count = n;
+
     applyEvents();
     *status = buildStatus().detach();
+}
+
+// Fewer than MinReadCount samples in front of an event can never be read: the read drops them on every contributing
+// input, so it reaches the event (R8). A run without an event behind it can still grow and is kept
+void MultiReaderDataManager::dropShortRun()
+{
+    if (state != State::Streaming)
+        return;
+
+    std::optional<SizeT> least;
+    bool closed = false;
+    for (const auto& slot : slots)
+    {
+        if (slot.error != MultiReader2InputError::None)
+            continue;
+        if (!least.has_value() || slot.frontCount < *least)
+        {
+            least = slot.frontCount;
+            closed = slot.events > 0;
+        }
+        else if (slot.frontCount == *least)
+            closed = closed || slot.events > 0;
+    }
+    if (!least.has_value() || *least == 0 || *least >= config.minReadCount || !closed)
+        return;
+
+    for (auto& slot : slots)
+    {
+        if (slot.error == MultiReader2InputError::None)
+            consume(slot, *least, nullptr);
+    }
+    readTick += static_cast<std::int64_t>(*least) * mainDelta;
+    resynchronized = true;
+    statusOwed = true;
+}
+
+// Takes count samples off the front run, which holds at least that many, copying them into out unless it is null
+void MultiReaderDataManager::consume(Slot& slot, SizeT count, void* out)
+{
+    while (count > 0)
+    {
+        Entry& entry = slot.queue.front();
+        const SizeT taken = std::min(count, entry.count);
+        if (out)
+            copySamples(slot, entry, taken, out);
+
+        entry.start += taken;
+        entry.count -= taken;
+        if (entry.firstTick.has_value())
+            *entry.firstTick += static_cast<std::int64_t>(taken) * mainDelta;
+        slot.frontCount -= taken;
+        count -= taken;
+        if (entry.count == 0)
+            slot.queue.pop_front();
+    }
+}
+
+// The entry's next count samples, scaled, in the read type (R7); out moves past them. Under Undefined the input's
+// own samples are copied as they are
+void MultiReaderDataManager::copySamples(Slot& slot, const Entry& entry, SizeT count, void*& out)
+{
+    auto* input = static_cast<std::uint8_t*>(entry.packet.getData());
+    if (config.readType == SampleType::Undefined)
+    {
+        const SizeT size = slot.value.getSampleSize();
+        std::memcpy(out, input + entry.start * size, count * size);
+        out = static_cast<std::uint8_t*>(out) + count * size;
+        return;
+    }
+
+    // TODO: TypedReadingUtils::readData of openDAQ/openDAQ#1215 can replace the reader here (todo file)
+    if (!slot.converter || slot.converterFor != slot.value)
+    {
+        slot.converter = createReaderForType(config.readType, nullptr);
+        DataDescriptorPtr descriptor = slot.value;
+        slot.converter->handleDescriptorChanged(descriptor, ReadMode::Scaled);
+        slot.converterFor = slot.value;
+    }
+    checkErrorInfo(slot.converter->readData(input, entry.start, &out, count));
 }
 
 // One event onto its input's state in force

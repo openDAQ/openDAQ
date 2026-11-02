@@ -43,10 +43,10 @@ extern "C"
     void EXPORTED daqMultiReader2_getInterfaceId(daqIntfID* intfId);
 
     daqErrCode EXPORTED daqMultiReader2_configure(daqMultiReader2* self, daqMultiReader2Params* params, daqMultiReader2Status** status);
+    daqErrCode EXPORTED daqMultiReader2_evaluate(daqMultiReader2* self, daqMultiReader2Status** status);
     daqErrCode EXPORTED daqMultiReader2_getAvailableCount(daqMultiReader2* self, daqSizeT* count);
-    daqErrCode EXPORTED
-    daqMultiReader2_read(daqMultiReader2* self, void* data, daqSizeT* count, daqSizeT* packetOffset, daqMultiReader2Status** status);
-    daqErrCode EXPORTED daqMultiReader2_readWithDomain(daqMultiReader2* self, void* data, daqSizeT* count, daqMultiReader2Status** status);
+    daqErrCode EXPORTED daqMultiReader2_read(
+        daqMultiReader2* self, void* data, void* domain, daqSizeT* count, daqSizeT* packetOffset, daqMultiReader2Status** status);
     daqErrCode EXPORTED daqMultiReader2_skipSamples(daqMultiReader2* self,
                                                     daqSizeT* count,
                                                     daqSizeT* packetOffset,

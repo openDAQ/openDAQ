@@ -34,35 +34,31 @@ bool MultiReader2DataManager::State::operator==(const State& other) const
 void MultiReader2DataManager::construct(Config config)
 {
     std::scoped_lock lock(mutex);
-    apply(std::move(config), true);
+    apply(std::move(config));
 }
 
 void MultiReader2DataManager::configure(Config config, IMultiReader2Status** status)
 {
     std::scoped_lock lock(mutex);
-    bool same = configured && config.inputs.size() == slots.size() && config.mainSlot == pinnedMain &&
-                config.acceptsDescriptor.getObject() == acceptsDescriptor.getObject() && config.readType == readType &&
-                config.minReadCount == minReadCount && config.errorPolicy == errorPolicy;
-    for (SizeT i = 0; same && i < slots.size(); ++i)
-        same = config.keys[i] == slots[i].key;
-    apply(std::move(config), !same);
+    apply(std::move(config));
     SizeT none = 0;
-    readLocked(nullptr, false, false, &none, nullptr, status, nullptr);
+    readLocked(nullptr, nullptr, false, &none, nullptr, status, nullptr);
 }
 
-void MultiReader2DataManager::apply(Config config, bool reinitialize)
+void MultiReader2DataManager::evaluate(IMultiReader2Status** status)
+{
+    std::scoped_lock lock(mutex);
+    const bool wasValid = valid();
+    for (SizeT i = 0; i < slots.size(); ++i)
+        rejudge(i);
+    settle(wasValid, false);
+    SizeT none = 0;
+    readLocked(nullptr, nullptr, false, &none, nullptr, status, nullptr);
+}
+
+void MultiReader2DataManager::apply(Config config)
 {
     loggerComponent = config.loggerComponent;
-    if (!reinitialize)
-    {
-        // Equal params: every input is judged again
-        const bool wasValid = valid();
-        for (SizeT i = 0; i < slots.size(); ++i)
-            rejudge(i);
-        settle(wasValid, false);
-        return;
-    }
-
     std::vector<Slot> next(config.inputs.size());
     for (SizeT i = 0; i < next.size(); ++i)
     {
@@ -89,7 +85,6 @@ void MultiReader2DataManager::apply(Config config, bool reinitialize)
     minReadCount = config.minReadCount;
     errorPolicy = config.errorPolicy;
     pinnedMain = config.mainSlot;
-    configured = true;
 
     for (SizeT i = 0; i < slots.size(); ++i)
         ask(i);
@@ -97,11 +92,11 @@ void MultiReader2DataManager::apply(Config config, bool reinitialize)
     if (!mainSlot)
     {
         relateAll();
-        evaluateAll();
+        evaluateInputs();
         mainSlot = firstHealthy();
     }
     relateAll();
-    evaluateAll();
+    evaluateInputs();
     stateDirty = true;
     restart();
 }
@@ -154,7 +149,7 @@ void MultiReader2DataManager::rejudge(SizeT i)
     ask(i);
     if (s.accepted == before)
         return;
-    evaluate(i);
+    evaluateInput(i);
     if (s.error == MultiReader2InputError::None && oldError != MultiReader2InputError::None)
         s.restartSync = true;
 }
@@ -190,7 +185,7 @@ std::pair<MultiReader2InputError, std::string> MultiReader2DataManager::judge(Si
     return {MultiReader2InputError::None, {}};
 }
 
-void MultiReader2DataManager::evaluate(SizeT i)
+void MultiReader2DataManager::evaluateInput(SizeT i)
 {
     Slot& s = slots[i];
     s.sampleSize = readSampleSize(s.current.value, readType);
@@ -198,10 +193,10 @@ void MultiReader2DataManager::evaluate(SizeT i)
     std::tie(s.error, s.errorText) = judge(i, false);
 }
 
-void MultiReader2DataManager::evaluateAll()
+void MultiReader2DataManager::evaluateInputs()
 {
     for (SizeT i = 0; i < slots.size(); ++i)
-        evaluate(i);
+        evaluateInput(i);
 }
 
 void MultiReader2DataManager::relateAll()
@@ -261,23 +256,18 @@ SizeT MultiReader2DataManager::getAvailableCount()
     return k >= minReadCount ? k : 0;
 }
 
-ErrCode MultiReader2DataManager::read(void** data, SizeT* count, SizeT* packetOffset, IMultiReader2Status** status)
+ErrCode MultiReader2DataManager::read(void** data, std::int64_t* domain, SizeT* count, SizeT* packetOffset, IMultiReader2Status** status)
 {
-    return doRead(data, false, true, count, packetOffset, status);
-}
-
-ErrCode MultiReader2DataManager::readWithDomain(void** data, SizeT* count, IMultiReader2Status** status)
-{
-    return doRead(data, true, true, count, nullptr, status);
+    return doRead(data, domain, true, count, packetOffset, status);
 }
 
 ErrCode MultiReader2DataManager::skipSamples(SizeT* count, SizeT* packetOffset, IMultiReader2Status** status)
 {
-    return doRead(nullptr, false, false, count, packetOffset, status);
+    return doRead(nullptr, nullptr, false, count, packetOffset, status);
 }
 
 ErrCode MultiReader2DataManager::doRead(
-    void** data, bool withDomain, bool copy, SizeT* count, SizeT* packetOffset, IMultiReader2Status** status)
+    void** data, std::int64_t* domain, bool copy, SizeT* count, SizeT* packetOffset, IMultiReader2Status** status)
 {
     OPENDAQ_PARAM_NOT_NULL(count);
     OPENDAQ_PARAM_NOT_NULL(status);
@@ -287,21 +277,18 @@ ErrCode MultiReader2DataManager::doRead(
     {
         std::scoped_lock lock(mutex);
         const SizeT requested = *count;
-        const SizeT first = withDomain ? 1 : 0;
         if (requested > 0)
         {
             if (requested < minReadCount)
                 return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDPARAMETER, "The count is below MinReadCount");
-            if (copy && withDomain && (data == nullptr || data[0] == nullptr))
-                return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDPARAMETER, "The read has no domain buffer");
             // Only the inputs contributing now: one that joins during the read changes the status, which stops the delivery
             for (SizeT i = 0; copy && i < slots.size(); ++i)
-                if (contributing(i) && (data == nullptr || data[first + i] == nullptr))
+                if (contributing(i) && (data == nullptr || data[i] == nullptr))
                     return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDPARAMETER, "A contributing input has no buffer");
         }
         copies.swap(spareCopies);
         type = readType;
-        readLocked(data, withDomain, copy, count, packetOffset, status, &copies);
+        readLocked(data, domain, copy, count, packetOffset, status, &copies);
     }
 
     // The samples left the queues under the mutex; converting them outside it keeps a large read from holding up ingest
@@ -317,12 +304,16 @@ ErrCode MultiReader2DataManager::doRead(
     return OPENDAQ_SUCCESS;
 }
 
-void MultiReader2DataManager::readLocked(
-    void** data, bool withDomain, bool copy, SizeT* count, SizeT* packetOffset, IMultiReader2Status** status, std::vector<Copy>* copies)
+void MultiReader2DataManager::readLocked(void** data,
+                                         std::int64_t* domain,
+                                         bool copy,
+                                         SizeT* count,
+                                         SizeT* packetOffset,
+                                         IMultiReader2Status** status,
+                                         std::vector<Copy>* copies)
 {
     applyStalls();
     const SizeT requested = *count;
-    const SizeT first = withDomain ? 1 : 0;
     // A status with changes is reported before any further sample: the samples after it belong to it
     bool due = changesDue();
     SizeT delivered = 0;
@@ -348,7 +339,7 @@ void MultiReader2DataManager::readLocked(
                         continue;
                     }
                     const SizeT size = slots[i].sampleSize;
-                    auto* dst = static_cast<std::uint8_t*>(data[first + i]) + delivered * size;
+                    auto* dst = static_cast<std::uint8_t*>(data[i]) + delivered * size;
                     slots[i].queue.consume(n,
                                            [&](const DataPacketPtr& packet, SizeT from, SizeT k2)
                                            {
@@ -363,9 +354,9 @@ void MultiReader2DataManager::readLocked(
                         firstTick = readTick;
                         firstStart = mainTicks().start;
                     }
-                    if (copy && withDomain)
+                    if (copy && domain)
                         for (SizeT j = 0; j < n; ++j)
-                            static_cast<std::int64_t*>(data[0])[delivered + j] = readTick + static_cast<std::int64_t>(j) * delta;
+                            domain[delivered + j] = readTick + static_cast<std::int64_t>(j) * delta;
                     delivered += n;
                 }
                 readTick += static_cast<std::int64_t>(n) * delta;
@@ -398,7 +389,7 @@ void MultiReader2DataManager::applyStalls()
         return;
     const bool wasValid = valid();
     stall(slots, wasValid, *slots[*mainSlot].ticks, loggerComponent);
-    evaluateAll();
+    evaluateInputs();
     settle(wasValid, false);
 }
 
@@ -467,7 +458,7 @@ void MultiReader2DataManager::applyEvent(SizeT i, const Event& event)
         ask(i);
 
     const auto oldError = s.error;
-    evaluate(i);
+    evaluateInput(i);
     if (s.error == MultiReader2InputError::None &&
         (oldError != MultiReader2InputError::None || changed.domainChanged || changed.connectedNow || event.gap))
         s.restartSync = true;
@@ -543,7 +534,7 @@ void MultiReader2DataManager::internalReconfigure(bool recovered)
         }
     }
     relateAll();
-    evaluateAll();
+    evaluateInputs();
     restart();
 }
 

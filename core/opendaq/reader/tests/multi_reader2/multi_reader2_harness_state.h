@@ -107,7 +107,7 @@ struct MultiReader2Test::Owner
     OwnerReacts reacts;
     std::optional<AcceptsRule> rule;
     std::string referenceUnit;  // AcceptsRule::Sum: the main input's unit; empty accepts every unit
-    bool rejudge = false;       // the reference moved: the owner configures with equal params
+    bool rejudge = false;       // the reference moved: the owner has every input judged again
     std::map<int, DataDescriptorPtr> cache;
     ComponentStatus status = ComponentStatus::Ok;
     std::string message;

@@ -495,6 +495,8 @@ protected:
     Result readingCall(ReadCall call, SizeT count, const ReadArgs& args = {});
     Result avail();
     Result configure(const Params& params);
+    // Judges every input again, as an owner whose judgement depends on its own state does
+    Result evaluate();
     Result construct(const Params& params);
     void mutate(const Params& params);
     Result inputStatus(Input input);

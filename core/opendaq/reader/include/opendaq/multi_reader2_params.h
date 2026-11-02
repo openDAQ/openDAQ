@@ -69,8 +69,8 @@ DECLARE_OPENDAQ_INTERFACE(IMultiReader2Params, IBaseObject)
      *
      * Called with (input, value descriptor) and returns a Bool; a rejection, or an exception, is ValueDescriptorInvalid.
      * Asked inside `read` and `configure` on the caller's thread when an input's value descriptor takes effect or the
-     * input connects. A verdict that depends on the owner's own state needs a `configure` with equal params from
-     * outside the judgement when that state changes, which asks every input again. It runs while the reader holds the
+     * input connects. A verdict that depends on the owner's own state needs an `evaluate` from outside the judgement
+     * when that state changes, which asks every input again. It runs while the reader holds the
      * internal lock that ingest of every input needs, so packets wait until it returns: it must return promptly, must not
      * call the reader (INVALIDSTATE) and must not wait on a lock that a thread calling the reader may hold.
      */

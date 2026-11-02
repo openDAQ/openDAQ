@@ -35,8 +35,8 @@ BEGIN_NAMESPACE_OPENDAQ
  * @brief Reads several signals at once, aligned onto the main input's tick grid.
  *
  * A sample's position is given in two forms. `packetOffset` is its tick from the main rule's start, the value a packet
- * carries as its offset; the ticks `readWithDomain` writes are counted from the main origin, so they are the
- * packetOffset plus the main rule's start.
+ * carries as its offset; the ticks a read writes into its `domain` buffer are counted from the main origin, so they are
+ * the packetOffset plus the main rule's start.
  *
  * Synchronization compares each input with the main input's data ingested so far, so where the inputs' streams do not
  * line up, which samples a read delivers can depend on the order in which the inputs' packets arrive. The reader keeps
@@ -50,12 +50,21 @@ DECLARE_OPENDAQ_INTERFACE(IMultiReader2, IBaseObject)
      * @param params The new setup. A rejected object leaves the reader untouched.
      * @param[out] status The status of the 0-count read that follows.
      *
-     * The queued data is dropped and every input keeps what it last announced. Equal params skip the
-     * reinitialization: every input is judged again by `acceptsDescriptor`, then the read follows. Legal from inside
-     * the `onDataAvailable` handler. A port the new params leave out is released before the call returns: remove such a
-     * port from its owner after the call, never before, or the reader reports it as a disconnect first.
+     * The queued data is dropped and every input keeps what it last announced. Legal from inside the `onDataAvailable`
+     * handler. A port the new params leave out is released before the call returns: remove such a port from its owner
+     * after the call, never before, or the reader reports it as a disconnect first.
      */
     virtual ErrCode INTERFACE_FUNC configure(IMultiReader2Params* params, IMultiReader2Status** status) = 0;
+
+    /*!
+     * @brief Asks `acceptsDescriptor` again for every input, with the descriptors in force, then performs a 0-count read.
+     * @param[out] status The status of that read.
+     *
+     * For an owner whose judgement depends on its own state: it calls this when that state changes. An input whose verdict
+     * changed is set aside or rejoins as on a descriptor change, and the queued data is kept. Legal from inside the
+     * `onDataAvailable` handler.
+     */
+    virtual ErrCode INTERFACE_FUNC evaluate(IMultiReader2Status * *status) = 0;
 
     /*!
      * @brief Gets the count the next read returns in full.
@@ -63,12 +72,13 @@ DECLARE_OPENDAQ_INTERFACE(IMultiReader2, IBaseObject)
      */
     virtual ErrCode INTERFACE_FUNC getAvailableCount(SizeT* count) = 0;
 
-    // [arrayArg(data, count), arrayArg(count, 1)]
+    // [arrayArg(data, count), arrayArg(domain, count), arrayArg(count, 1)]
     /*!
      * @brief Copies up to `count` aligned samples into one buffer per input, in slot order.
      * @param data One buffer per input; a buffer holds `count` samples of the input's sample size on the last status
      * this reader returned. The reader cannot check the sizes, so reads, skips and `configure` must not run on more
      * than one thread at a time: a status taken by one thread would leave another's buffers sized for the old samples.
+     * @param domain Null, or a buffer of `count` Int64 main ticks counted from the main origin, one per sample read.
      * @param[in,out] count The samples requested; out, the samples read. 0 with null data is a status probe. A read
      * never waits.
      * @param[out] packetOffset The first sample's position on the main input, in the form the interface describes.
@@ -76,13 +86,7 @@ DECLARE_OPENDAQ_INTERFACE(IMultiReader2, IBaseObject)
      * @retval OPENDAQ_ERR_INVALIDPARAMETER A count below MinReadCount, or a null buffer for a contributing input.
      * @retval OPENDAQ_ERR_ARGUMENT_NULL A null count or status.
      */
-    virtual ErrCode INTERFACE_FUNC read(void* data, SizeT* count, SizeT* packetOffset, IMultiReader2Status** status) = 0;
-
-    // [arrayArg(data, count), arrayArg(count, 1)]
-    /*!
-     * @brief As `read`, with one extra leading buffer of Int64 main ticks counted from the main origin.
-     */
-    virtual ErrCode INTERFACE_FUNC readWithDomain(void* data, SizeT* count, IMultiReader2Status** status) = 0;
+    virtual ErrCode INTERFACE_FUNC read(void* data, void* domain, SizeT* count, SizeT* packetOffset, IMultiReader2Status** status) = 0;
 
     // [arrayArg(count, 1)]
     /*!

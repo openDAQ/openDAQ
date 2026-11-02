@@ -143,7 +143,7 @@ TEST_F(MultiReader2Recovery, UnconnectedPortConnectRecoversInvalidReader)
 }
 
 // S1.REC.09
-TEST_F(MultiReader2Recovery, EqualConfigureDoesNotClearDisconnected)
+TEST_F(MultiReader2Recovery, EvaluateDoesNotClearDisconnected)
 {
     given().ports().unconnected(in2);
     setup(
@@ -152,7 +152,7 @@ TEST_F(MultiReader2Recovery, EqualConfigureDoesNotClearDisconnected)
             write(in1, 0, 99);
             read(0, nullData);
         });
-    expect(configure(same()), ok().noChanges());
+    expect(evaluate(), ok().noChanges());
     write(in1, 100, 199);
     expect(avail(), count(0));
 }
@@ -195,7 +195,7 @@ TEST_F(MultiReader2Recovery, VerdictChangeToAcceptRecoversOnlyOnConfigure)
     setupBase();
     verdict(in2, Verdict::Accept);
     expect(read(0), count(0).noChanges());
-    expect(configure(same()), ok().level(Ok).main(in1).domainChanged().resync().allDescChanged().healthy(in2));
+    expect(evaluate(), ok().level(Ok).main(in1).domainChanged().resync().allDescChanged().healthy(in2));
     write(in1, 100, 199);
     write(in2, 100, 199);
     expect(read(100), count(100).at(100).noChanges());
@@ -226,12 +226,12 @@ TEST_F(MultiReader2Recovery, RejectedInputRejoinsOnNewAcceptedDescriptorUnderExc
 }
 
 // S1.REC.15
-TEST_F(MultiReader2Recovery, ThrowingVerdictInputRejoinsOnEqualConfigureAfterAccept)
+TEST_F(MultiReader2Recovery, ThrowingVerdictInputRejoinsOnEvaluateAfterAccept)
 {
     given().accepts().policy(Exclude).verdict(in2, Verdict::Throw);
     setupBase();
     verdict(in2, Verdict::Accept);
-    expect(configure(same()), ok().level(Ok).descChanged(in2).healthy(in2));
+    expect(evaluate(), ok().level(Ok).descChanged(in2).healthy(in2));
     write(in2, 0, 99);
     expect(read(100), count(100).at(0).noChanges());
 }
@@ -244,7 +244,7 @@ TEST_F(MultiReader2Recovery, RejectedInputRecoversOnNewAcceptedDescriptorUnderIn
         [&]
         {
             verdict(in2, Verdict::Reject);
-            configure(same());
+            evaluate();
         });
     verdict(in2, Verdict::Accept);
     announce(in2, Value(SampleType::Int32));
@@ -319,7 +319,7 @@ TEST_F(MultiReader2Recovery, MainMissingValueDescriptorRecoversOnNewValueDescrip
 }
 
 // S1.REC.21
-TEST_F(MultiReader2Recovery, EqualConfigureDoesNotClearMissingValueDescriptor)
+TEST_F(MultiReader2Recovery, EvaluateDoesNotClearMissingValueDescriptor)
 {
     setupBase(
         [&]
@@ -327,7 +327,7 @@ TEST_F(MultiReader2Recovery, EqualConfigureDoesNotClearMissingValueDescriptor)
             announce(in2, Value::null());
             read(100);
         });
-    expect(configure(same()), ok().noChanges());
+    expect(evaluate(), ok().noChanges());
     write(in1, 100, 199);
     expect(avail(), count(0));
 }
@@ -472,7 +472,7 @@ TEST_F(MultiReader2Recovery, BehindStalledInputClearsOnSampleWithinOneSecond)
 }
 
 // S1.REC.29
-TEST_F(MultiReader2Recovery, EqualConfigureDoesNotClearBehindSyncFailed)
+TEST_F(MultiReader2Recovery, EvaluateDoesNotClearStalledSyncFailed)
 {
     given().main(in1);
     setup(
@@ -484,7 +484,7 @@ TEST_F(MultiReader2Recovery, EqualConfigureDoesNotClearBehindSyncFailed)
         });
     write(in1, 3110, 3209);
     expect(read(0), count(0).noChanges());
-    expect(configure(same()), ok().noChanges());
+    expect(evaluate(), ok().noChanges());
     expect(avail(), count(0));
 }
 

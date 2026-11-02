@@ -388,16 +388,18 @@ ErrCode MultiReader2Impl::getAvailableCount(SizeT* count)
     return OPENDAQ_SUCCESS;
 }
 
-ErrCode MultiReader2Impl::read(void* data, SizeT* count, SizeT* packetOffset, IMultiReader2Status** status)
+ErrCode MultiReader2Impl::evaluate(IMultiReader2Status** status)
 {
+    OPENDAQ_PARAM_NOT_NULL(status);
     OPENDAQ_RETURN_IF_FAILED(notFromJudgement());
-    return daqTry([&] { return core->dataManager.read(static_cast<void**>(data), count, packetOffset, status); });
+    return daqTry([&] { core->dataManager.evaluate(status); });
 }
 
-ErrCode MultiReader2Impl::readWithDomain(void* data, SizeT* count, IMultiReader2Status** status)
+ErrCode MultiReader2Impl::read(void* data, void* domain, SizeT* count, SizeT* packetOffset, IMultiReader2Status** status)
 {
     OPENDAQ_RETURN_IF_FAILED(notFromJudgement());
-    return daqTry([&] { return core->dataManager.readWithDomain(static_cast<void**>(data), count, status); });
+    return daqTry(
+        [&] { return core->dataManager.read(static_cast<void**>(data), static_cast<std::int64_t*>(domain), count, packetOffset, status); });
 }
 
 ErrCode MultiReader2Impl::skipSamples(SizeT* count, SizeT* packetOffset, IMultiReader2Status** status)

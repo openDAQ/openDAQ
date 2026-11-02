@@ -97,7 +97,7 @@ TEST_F(MultiReader2RegressionApi, DisconnectDuringTakeOverReachesTheReader)
 
     SizeT count = 0;
     SizeT offset = 0;
-    const auto status = reader.read(nullptr, &count, offset);
+    const auto status = reader.read(nullptr, nullptr, &count, offset);
     EXPECT_EQ(status.getInputStatus(portA.asPtr<IComponent>()).getError(), MultiReader2InputError::Disconnected);
 }
 
@@ -171,8 +171,8 @@ TEST_F(MultiReader2RegressionApi, StatusInputListCannotBeChanged)
 
     SizeT count = 0;
     SizeT offset = 0;
-    auto inputs = reader.read(nullptr, &count, offset).getInputs();
+    auto inputs = reader.read(nullptr, nullptr, &count, offset).getInputs();
     ASSERT_EQ(inputs.getCount(), 1u);
     EXPECT_THROW(inputs.clear(), FrozenException);
-    EXPECT_EQ(reader.read(nullptr, &count, offset).getInputs().getCount(), 1u);
+    EXPECT_EQ(reader.read(nullptr, nullptr, &count, offset).getInputs().getCount(), 1u);
 }

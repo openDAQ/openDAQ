@@ -107,6 +107,16 @@ class TestMultiReader2(opendaq_test.TestCase):
         self.assertTrue(np.array_equal(values[1], np.arange(5, 15)))
         self.assertFalse(status.has_changes)
 
+    def test_evaluate_keeps_the_queued_data(self):
+        reader = opendaq.MultiReader2(self.params())
+        reader.read(0)
+        self.send_all(0, 10)
+        self.wait_for(reader, 10)
+
+        status = reader.evaluate()
+        self.assertFalse(status.has_changes)
+        self.assertEqual(reader.available_count, 10)
+
     def test_skip_samples(self):
         reader = opendaq.MultiReader2(self.params())
         reader.read(0)

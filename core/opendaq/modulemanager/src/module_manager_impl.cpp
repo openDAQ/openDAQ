@@ -730,7 +730,7 @@ ErrCode ModuleManagerImpl::getAvailableDevices(IList** availableDevices)
             const auto deviceType = getDeviceTypeFromConnectionString(deviceInfo.getConnectionString(), module);
             if (deviceType.assigned() && deviceType.getDeviceKind() == DeviceKind::Root)
             {
-                const auto makeMessage = [&]
+                const auto makeMessage = [&module = module, &deviceType]
                 {
                     return fmt::format(R"({}: Device type "{}" is of Root kind, so its devices are left out of the available devices.)",
                                        module.getModuleInfo().getName(),

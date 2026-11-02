@@ -38,7 +38,8 @@ enum class MultiReader2InputError : EnumType
     SyncFailed                ///< Cannot be aligned with the main input: it sent no data while another input queued 3 s,
                               ///< its first sample is more than 3 s past the main input's latest, or its samples fall
                               ///< between the main input's ticks. A stalled or ahead input rejoins once its newest sample
-                              ///< is within 1 s of the other inputs'. The status message names the cause.
+                              ///< is within 1 s of the healthy inputs', or on its next packet when no other input is
+                              ///< healthy. The status message names the cause.
 };
 
 /*!

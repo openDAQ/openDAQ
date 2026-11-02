@@ -91,14 +91,15 @@ void checkRejoin(std::vector<Slot>& slots, SizeT i, const TickDomain& main, cons
     for (const auto& other : slots)
         if (&other != &s && other.error == MultiReader2InputError::None && other.newestTick)
             newest = std::max(newest.value_or(*other.newestTick), *other.newestTick);
-    if (!newest || std::abs(*newest - *s.newestTick) > secondsToTicks(main, rejoinSeconds))
+    // With every other input in error there is nothing to compare with, and the input's own packet rejoins it
+    if (newest && std::abs(*newest - *s.newestTick) > secondsToTicks(main, rejoinSeconds))
         return;
     s.rejoin();
     if (loggerComponent.assigned())
     {
         LOG_T("{}: rejoins, {} main ticks from the newest sample of the other inputs",
               s.input.getLocalId().toStdString(),
-              *newest - *s.newestTick);
+              newest ? *newest - *s.newestTick : 0);
     }
 }
 

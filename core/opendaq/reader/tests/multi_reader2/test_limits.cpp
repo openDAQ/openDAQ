@@ -165,4 +165,34 @@ TEST_F(MultiReader2Limits, StalledInputDelayedBetweenOneAndThreeSecondsStaysOut)
     write(in1, 3210, 3309);
     expect(read(100), count(100).at(3210).noChanges());
 }
+
+// S1.LIM.11
+TEST_F(MultiReader2Limits, StalledInputRejoinsOnItsOwnPacketWhenNoOtherInputIsHealthy)
+{
+    given().ports().policy(Exclude);
+    setupBase([&] { read(100); });
+    write(in1, 100, 3109);
+    expect(read(0), count(0).level(Warning).inError(in2, InputError::SyncFailed).msg("in2: not synchronized, no data for 3 s"));
+    expect(read(3010), count(3010).at(100).noChanges());
+    disconnect(in1);
+    expect(read(0),
+           count(0)
+               .level(Error)
+               .mainNull()
+               .inError(in1, InputError::Disconnected)
+               .inError(in2, InputError::SyncFailed)
+               .msg("in1: not connected; in2: not synchronized, no data for 3 s"));
+    write(in2, 100, 199);  // 3 s behind in1's last sample, but in1 is no longer healthy
+    expect(read(0),
+           count(0)
+               .level(Warning)
+               .main(in2)
+               .domainChanged()
+               .resync()
+               .descChanged(in2)
+               .inError(in1, InputError::Disconnected)
+               .msg("in1: not connected"));
+    write(in2, 200, 299);
+    expect(read(100), count(100).at(200).noChanges());
+}
 }

@@ -50,7 +50,7 @@ bool stallDue(const std::vector<Slot>& slots, bool valid, const TickDomain& main
 void stall(std::vector<Slot>& slots, bool valid, const TickDomain& main, const LoggerComponentPtr& loggerComponent);
 
 // On ingest of input i: queues its rejoin when it is stalled or ahead and its newest sample is within rejoinSeconds of the
-// newest sample of the inputs without an error
+// newest sample of the inputs without an error, or at once when no input without an error has sent a sample
 void checkRejoin(std::vector<Slot>& slots, SizeT i, const TickDomain& main, const LoggerComponentPtr& loggerComponent);
 }
 

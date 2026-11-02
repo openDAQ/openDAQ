@@ -89,11 +89,10 @@ public:
                                          std::array<std::array<double, Samples>, Inputs>& values,
                                          SizeT& count)
     {
-        void* buffers[Inputs + 1];
-        buffers[0] = ticks.data();
+        void* buffers[Inputs];
         for (SizeT i = 0; i < Inputs; i++)
-            buffers[i + 1] = values[i].data();
-        return reader.readWithDomain(buffers, &count, 0);
+            buffers[i] = values[i].data();
+        return reader.read(buffers, ticks.data(), &count, 0, ignoredOffset());
     }
 };
 
@@ -395,7 +394,7 @@ TEST_F(MultiReader2DomainTest, MillisecondInputScalesOntoAMicrosecondMain)
     SizeT offset = 0;
     count = 3;
     void* buffers[2]{values[0].data(), values[1].data()};
-    reader.read(buffers, &count, 0, offset);
+    reader.read(buffers, nullptr, &count, 0, offset);
     ASSERT_EQ(offset, 3000u);
 }
 

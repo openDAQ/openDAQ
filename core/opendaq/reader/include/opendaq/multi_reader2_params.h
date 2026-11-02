@@ -73,12 +73,12 @@ DECLARE_OPENDAQ_INTERFACE(IMultiReader2Params, IBaseObject)
     /*!
      * @brief Gets the owner's judgement of an input's descriptors; null, the default, accepts every descriptor.
      * The function is called with the input, its value descriptor and its domain descriptor and returns a Bool.
-     * It is called when a descriptor takes effect, inside `read` and `configure` on the caller's thread, and asked
-     * again whenever one of the input's descriptors changes. A rejected input is in error with
+     * It is called when a descriptor takes effect, inside `read`, `configure` and `reevaluate` on the caller's
+     * thread, and asked again whenever one of the input's descriptors changes. A rejected input is in error with
      * ValueDescriptorInvalid, under the error policy like any other error, until a later descriptor is accepted.
-     * The verdict may depend on the owner's state; when that state changes, the owner calls configure with equal
-     * params, from outside the function, to have every input judged again. The function must not call the reader: such a call fails with INVALIDSTATE. An exception thrown by the
-     * function counts as a rejection.
+     * The verdict may depend on the owner's state; when that state changes, the owner calls `reevaluate`, from
+     * outside the function, to have every input judged again. The function must not call the reader: such a call
+     * fails with INVALIDSTATE. An exception thrown by the function counts as a rejection.
      * @param[out] acceptsDescriptor The function, or null.
      */
     virtual ErrCode INTERFACE_FUNC getAcceptsDescriptor(IFunction** acceptsDescriptor) = 0;

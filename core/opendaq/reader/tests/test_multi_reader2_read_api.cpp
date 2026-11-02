@@ -1,5 +1,5 @@
 /*
- * MultiReader2 read surface: argument validation of read, readWithDomain, skipSamples and the getters, the count
+ * MultiReader2 read surface: argument validation of read (with and without domain ticks), skipSamples and the getters, the count
  * contract (requested, available, min read count), packet offsets, domain ticks and the status handed back.
  */
 #include "test_multi_reader2_common.h"
@@ -29,7 +29,7 @@ public:
         for (SizeT i = 0; i < inputs; i++)
             buffers[i] = values[i].data();
         SizeT localOffset = 0;
-        reader.read(buffers.data(), &count, 0, offset ? *offset : localOffset);
+        reader.read(buffers.data(), nullptr, &count, 0, offset ? *offset : localOffset);
         return values;
     }
 };
@@ -43,7 +43,7 @@ TEST_F(MultiReader2ReadApiTest, ReadRejectsNullCount)
     void* buffers[2]{a.data(), b.data()};
     SizeT offset = 0;
     IMultiReader2Status* status = nullptr;
-    ASSERT_EQ(reader->read(buffers, nullptr, 0, &offset, &status), OPENDAQ_ERR_ARGUMENT_NULL);
+    ASSERT_EQ(reader->read(buffers, nullptr, nullptr, 0, &offset, &status), OPENDAQ_ERR_ARGUMENT_NULL);
     daqClearErrorInfo();
 }
 
@@ -54,7 +54,7 @@ TEST_F(MultiReader2ReadApiTest, ReadRejectsNullStatus)
     void* buffers[2]{a.data(), b.data()};
     SizeT count = 10;
     SizeT offset = 0;
-    ASSERT_EQ(reader->read(buffers, &count, 0, &offset, nullptr), OPENDAQ_ERR_ARGUMENT_NULL);
+    ASSERT_EQ(reader->read(buffers, nullptr, &count, 0, &offset, nullptr), OPENDAQ_ERR_ARGUMENT_NULL);
     daqClearErrorInfo();
 }
 
@@ -66,7 +66,7 @@ TEST_F(MultiReader2ReadApiTest, ReadAcceptsNullPacketOffset)
     void* buffers[2]{a.data(), b.data()};
     SizeT count = 10;
     IMultiReader2Status* status = nullptr;
-    ASSERT_EQ(reader->read(buffers, &count, 0, nullptr, &status), OPENDAQ_SUCCESS);
+    ASSERT_EQ(reader->read(buffers, nullptr, &count, 0, nullptr, &status), OPENDAQ_SUCCESS);
     MultiReader2StatusPtr::Adopt(status);
     ASSERT_EQ(count, 10u);
     ASSERT_THAT(a, ElementsAre(0, 1, 2, 3, 4, 5, 6, 7, 8, 9));
@@ -80,9 +80,9 @@ TEST_F(MultiReader2ReadApiTest, ReadWithDomainRejectsNullCountAndStatus)
     void* buffers[3]{ticks.data(), a.data(), b.data()};
     SizeT count = 10;
     IMultiReader2Status* status = nullptr;
-    ASSERT_EQ(reader->readWithDomain(buffers, nullptr, 0, &status), OPENDAQ_ERR_ARGUMENT_NULL);
+    ASSERT_EQ(reader->read(buffers + 1, buffers[0], nullptr, 0, nullptr, &status), OPENDAQ_ERR_ARGUMENT_NULL);
     daqClearErrorInfo();
-    ASSERT_EQ(reader->readWithDomain(buffers, &count, 0, nullptr), OPENDAQ_ERR_ARGUMENT_NULL);
+    ASSERT_EQ(reader->read(buffers + 1, buffers[0], &count, 0, nullptr, nullptr), OPENDAQ_ERR_ARGUMENT_NULL);
     daqClearErrorInfo();
 }
 
@@ -118,7 +118,7 @@ TEST_F(MultiReader2ReadApiTest, ReadCountBelowMinReadCountIsRejected)
     SizeT count = 3;
     SizeT offset = 0;
     IMultiReader2Status* status = nullptr;
-    ASSERT_EQ(reader->read(buffers, &count, 0, &offset, &status), OPENDAQ_ERR_INVALIDPARAMETER);
+    ASSERT_EQ(reader->read(buffers, nullptr, &count, 0, &offset, &status), OPENDAQ_ERR_INVALIDPARAMETER);
     daqClearErrorInfo();
     // Nothing was consumed by the rejected call
     ASSERT_EQ(reader.getAvailableCount(), 10u);
@@ -143,7 +143,7 @@ TEST_F(MultiReader2ReadApiTest, ReadWithDomainBelowMinReadCountIsRejected)
     void* buffers[3]{ticks.data(), a.data(), b.data()};
     SizeT count = 2;
     IMultiReader2Status* status = nullptr;
-    ASSERT_EQ(reader->readWithDomain(buffers, &count, 0, &status), OPENDAQ_ERR_INVALIDPARAMETER);
+    ASSERT_EQ(reader->read(buffers + 1, buffers[0], &count, 0, nullptr, &status), OPENDAQ_ERR_INVALIDPARAMETER);
     daqClearErrorInfo();
 }
 
@@ -165,9 +165,9 @@ TEST_F(MultiReader2ReadApiTest, NonZeroCountWithoutBuffersIsRejected)
     SizeT count = 5;
     SizeT offset = 0;
     IMultiReader2Status* status = nullptr;
-    ASSERT_EQ(reader->read(nullptr, &count, 0, &offset, &status), OPENDAQ_ERR_INVALIDPARAMETER);
+    ASSERT_EQ(reader->read(nullptr, nullptr, &count, 0, &offset, &status), OPENDAQ_ERR_INVALIDPARAMETER);
     daqClearErrorInfo();
-    ASSERT_EQ(reader->readWithDomain(nullptr, &count, 0, &status), OPENDAQ_ERR_INVALIDPARAMETER);
+    ASSERT_EQ(reader->read(nullptr, nullptr, &count, 0, nullptr, &status), OPENDAQ_ERR_INVALIDPARAMETER);
     daqClearErrorInfo();
     ASSERT_EQ(reader.getAvailableCount(), 10u);
 }
@@ -179,7 +179,7 @@ TEST_F(MultiReader2ReadApiTest, ZeroCountWithoutBuffersIsTheStatusProbe)
     SizeT count = 0;
     SizeT offset = 7;
     IMultiReader2Status* status = nullptr;
-    ASSERT_EQ(reader->read(nullptr, &count, 0, &offset, &status), OPENDAQ_SUCCESS);
+    ASSERT_EQ(reader->read(nullptr, nullptr, &count, 0, &offset, &status), OPENDAQ_SUCCESS);
     auto s = MultiReader2StatusPtr::Adopt(status);
     ASSERT_EQ(count, 0u);
     ASSERT_EQ(offset, 0u);
@@ -187,7 +187,7 @@ TEST_F(MultiReader2ReadApiTest, ZeroCountWithoutBuffersIsTheStatusProbe)
     ASSERT_EQ(reader.getAvailableCount(), 10u);
 
     count = 0;
-    ASSERT_EQ(reader->readWithDomain(nullptr, &count, 0, &status), OPENDAQ_SUCCESS);
+    ASSERT_EQ(reader->read(nullptr, nullptr, &count, 0, nullptr, &status), OPENDAQ_SUCCESS);
     MultiReader2StatusPtr::Adopt(status);
     count = 0;
     ASSERT_EQ(reader->skipSamples(&count, 0, nullptr, &status), OPENDAQ_SUCCESS);
@@ -204,14 +204,14 @@ TEST_F(MultiReader2ReadApiTest, NullBufferForAUsedInputIsRejectedAndNothingIsCon
     SizeT count = 10;
     SizeT offset = 0;
     IMultiReader2Status* status = nullptr;
-    ASSERT_EQ(reader->read(buffers, &count, 0, &offset, &status), OPENDAQ_ERR_INVALIDPARAMETER);
+    ASSERT_EQ(reader->read(buffers, nullptr, &count, 0, &offset, &status), OPENDAQ_ERR_INVALIDPARAMETER);
     daqClearErrorInfo();
     ASSERT_EQ(reader.getAvailableCount(), 10u);
 
     std::array<double, 10> b{};
     buffers[1] = b.data();
     count = 10;
-    ASSERT_EQ(reader->read(buffers, &count, 0, &offset, &status), OPENDAQ_SUCCESS);
+    ASSERT_EQ(reader->read(buffers, nullptr, &count, 0, &offset, &status), OPENDAQ_SUCCESS);
     MultiReader2StatusPtr::Adopt(status);
     ASSERT_EQ(count, 10u);
     ASSERT_THAT(b, ElementsAre(0, 1, 2, 3, 4, 5, 6, 7, 8, 9));
@@ -233,7 +233,7 @@ TEST_F(MultiReader2ReadApiTest, NullBufferForARejectedInputIsAccepted)
     SizeT count = 10;
     SizeT offset = 0;
     IMultiReader2Status* status = nullptr;
-    ASSERT_EQ(reader->read(buffers, &count, 0, &offset, &status), OPENDAQ_SUCCESS);
+    ASSERT_EQ(reader->read(buffers, nullptr, &count, 0, &offset, &status), OPENDAQ_SUCCESS);
     MultiReader2StatusPtr::Adopt(status);
     ASSERT_EQ(count, 10u);
 }
@@ -257,22 +257,22 @@ TEST_F(MultiReader2ReadApiTest, NullBufferForASetAsideInputIsAccepted)
     SizeT count = 10;
     SizeT offset = 0;
     IMultiReader2Status* status = nullptr;
-    ASSERT_EQ(reader->read(buffers, &count, 0, &offset, &status), OPENDAQ_SUCCESS);
+    ASSERT_EQ(reader->read(buffers, nullptr, &count, 0, &offset, &status), OPENDAQ_SUCCESS);
     MultiReader2StatusPtr::Adopt(status);
     ASSERT_EQ(count, 10u);
 }
 
-TEST_F(MultiReader2ReadApiTest, ReadWithDomainRejectsNullDomainBuffer)
+TEST_F(MultiReader2ReadApiTest, NullDomainBufferReadsWithoutTicks)
 {
     auto reader = twoSignals();
     sendPackets(0);
     std::array<double, 10> a{}, b{};
-    void* buffers[3]{nullptr, a.data(), b.data()};
+    void* buffers[2]{a.data(), b.data()};
     SizeT count = 10;
     IMultiReader2Status* status = nullptr;
-    ASSERT_EQ(reader->readWithDomain(buffers, &count, 0, &status), OPENDAQ_ERR_INVALIDPARAMETER);
-    daqClearErrorInfo();
-    ASSERT_EQ(reader.getAvailableCount(), 10u);
+    ASSERT_EQ(reader->read(buffers, nullptr, &count, 0, nullptr, &status), OPENDAQ_SUCCESS);
+    MultiReader2StatusPtr::Adopt(status);
+    ASSERT_EQ(count, 10u);
 }
 
 TEST_F(MultiReader2ReadApiTest, ReadWithDomainRejectsNullValueBuffer)
@@ -284,7 +284,7 @@ TEST_F(MultiReader2ReadApiTest, ReadWithDomainRejectsNullValueBuffer)
     void* buffers[3]{ticks.data(), a.data(), nullptr};
     SizeT count = 10;
     IMultiReader2Status* status = nullptr;
-    ASSERT_EQ(reader->readWithDomain(buffers, &count, 0, &status), OPENDAQ_ERR_INVALIDPARAMETER);
+    ASSERT_EQ(reader->read(buffers + 1, buffers[0], &count, 0, nullptr, &status), OPENDAQ_ERR_INVALIDPARAMETER);
     daqClearErrorInfo();
     ASSERT_EQ(reader.getAvailableCount(), 10u);
 }
@@ -296,7 +296,7 @@ TEST_F(MultiReader2ReadApiTest, NullBuffersAreNotCheckedWhileNothingIsAvailable)
     SizeT offset = 0;
     IMultiReader2Status* status = nullptr;
     void* buffers[2]{nullptr, nullptr};
-    ASSERT_EQ(reader->read(buffers, &count, 0, &offset, &status), OPENDAQ_SUCCESS);
+    ASSERT_EQ(reader->read(buffers, nullptr, &count, 0, &offset, &status), OPENDAQ_SUCCESS);
     MultiReader2StatusPtr::Adopt(status);
     ASSERT_EQ(count, 0u);
 }
@@ -513,7 +513,7 @@ TEST_F(MultiReader2ReadApiTest, PacketOffsetMatchesTheDomainPacketOffsetOfTheMai
     readSignals[1].sendAt(360, 10);
     scheduler.waitAll();
     count = 10;
-    reader.readWithDomain(buffers, &count, 0);
+    reader.read(buffers + 1, buffers[0], &count, 0, ignoredOffset());
     ASSERT_EQ(count, 10u);
     ASSERT_EQ(ticks[0], 660);
 }
@@ -530,7 +530,7 @@ TEST_F(MultiReader2ReadApiTest, DomainTicksFollowTheMainDelta)
     std::array<double, 5> a{}, b{};
     void* buffers[3]{ticks.data(), a.data(), b.data()};
     SizeT count = 5;
-    reader.readWithDomain(buffers, &count, 0);
+    reader.read(buffers + 1, buffers[0], &count, 0, ignoredOffset());
     ASSERT_EQ(count, 5u);
     ASSERT_THAT(ticks, ElementsAre(0, 10, 20, 30, 40));
     ASSERT_THAT(a, ElementsAre(0, 10, 20, 30, 40));
@@ -546,7 +546,7 @@ TEST_F(MultiReader2ReadApiTest, DomainTicksContinueAfterASkip)
     std::array<double, 4> a{}, b{};
     void* buffers[3]{ticks.data(), a.data(), b.data()};
     count = 4;
-    reader.readWithDomain(buffers, &count, 0);
+    reader.read(buffers + 1, buffers[0], &count, 0, ignoredOffset());
     ASSERT_THAT(ticks, ElementsAre(3, 4, 5, 6));
 }
 
@@ -560,7 +560,7 @@ TEST_F(MultiReader2ReadApiTest, ReadAndReadWithDomainShareOnePosition)
     std::array<double, 3> a{}, b{};
     void* buffers[3]{ticks.data(), a.data(), b.data()};
     count = 3;
-    reader.readWithDomain(buffers, &count, 0);
+    reader.read(buffers + 1, buffers[0], &count, 0, ignoredOffset());
     ASSERT_THAT(ticks, ElementsAre(4, 5, 6));
     count = 3;
     SizeT offset = 0;
@@ -580,7 +580,7 @@ TEST_F(MultiReader2ReadApiTest, DomainTicksAreMainTicksForScaledInputs)
     std::array<double, 3> a{}, b{};
     void* buffers[3]{ticks.data(), a.data(), b.data()};
     SizeT count = 3;
-    reader.readWithDomain(buffers, &count, 0);
+    reader.read(buffers + 1, buffers[0], &count, 0, ignoredOffset());
     ASSERT_THAT(ticks, ElementsAre(0, 1, 2));
     ASSERT_THAT(b, ElementsAre(0, 10, 20));
 }

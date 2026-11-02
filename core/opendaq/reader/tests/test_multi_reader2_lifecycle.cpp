@@ -42,7 +42,7 @@ public:
         for (SizeT i = 0; i < inputs; i++)
             buffers[i] = values[i].data();
         SizeT offset = 0;
-        statusOut = reader.read(buffers.data(), &count, 0, offset);
+        statusOut = reader.read(buffers.data(), nullptr, &count, 0, offset);
         return values;
     }
 

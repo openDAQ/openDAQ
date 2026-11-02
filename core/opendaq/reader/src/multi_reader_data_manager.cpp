@@ -171,25 +171,6 @@ namespace
 
 // ---------------------------------------------------------------- configuration
 
-bool MultiReaderDataManager::isSameConfig(const Config& other)
-{
-    std::scoped_lock lock(mutex);
-
-    // The params only; the descriptors and connection states are what the reader read off the inputs. The judgement
-    // compares by identity, so a new function object reconfigures
-    if (!configured || config.inputs.size() != other.inputs.size() || config.mainSlot != other.mainSlot ||
-        config.acceptsDescriptor.getObject() != other.acceptsDescriptor.getObject() || config.readType != other.readType ||
-        config.minReadCount != other.minReadCount || config.errorPolicy != other.errorPolicy)
-        return false;
-
-    for (SizeT i = 0; i < config.inputs.size(); ++i)
-    {
-        if (!sameComponent(config.inputs[i], other.inputs[i]))
-            return false;
-    }
-    return true;
-}
-
 ErrCode MultiReaderDataManager::reconfigure(Config newConfig, IMultiReader2Status** status)
 {
     const SizeT inputCount = newConfig.inputs.size();
@@ -219,7 +200,6 @@ ErrCode MultiReaderDataManager::reconfigure(Config newConfig, IMultiReader2Statu
 
         config = std::move(newConfig);
         slots = std::move(newSlots);
-        configured = true;
 
         // As if newly constructed: no SyncFailed and no main input carried over
         for (auto& slot : slots)
@@ -246,7 +226,7 @@ ErrCode MultiReaderDataManager::reconfigure(Config newConfig, IMultiReader2Statu
     });
 }
 
-ErrCode MultiReaderDataManager::rejudge(IMultiReader2Status** status)
+ErrCode MultiReaderDataManager::reevaluate(IMultiReader2Status** status)
 {
     OPENDAQ_PARAM_NOT_NULL(status);
 
@@ -676,7 +656,7 @@ SizeT MultiReaderDataManager::frontAvailable() const
     return count.has_value() && *count >= config.minReadCount ? *count : 0;
 }
 
-ErrCode MultiReaderDataManager::read(void** data, SizeT* count, SizeT timeoutMs, SizeT* packetOffset, IMultiReader2Status** status)
+ErrCode MultiReaderDataManager::read(void** data, std::int64_t* domain, SizeT* count, SizeT timeoutMs, SizeT* packetOffset, IMultiReader2Status** status)
 {
     OPENDAQ_PARAM_NOT_NULL(count);
     OPENDAQ_PARAM_NOT_NULL(status);
@@ -684,26 +664,10 @@ ErrCode MultiReaderDataManager::read(void** data, SizeT* count, SizeT timeoutMs,
     std::scoped_lock lock(mutex);
     return daqTry([&]
     {
-        const ErrCode errCode = checkRead(*count, timeoutMs, data, Buffers::Values);
+        const ErrCode errCode = checkRead(*count, timeoutMs, data, false);
         OPENDAQ_RETURN_IF_FAILED(errCode);
 
-        performRead(data, Buffers::Values, count, packetOffset, status);
-        return OPENDAQ_SUCCESS;
-    });
-}
-
-ErrCode MultiReaderDataManager::readWithDomain(void** data, SizeT* count, SizeT timeoutMs, IMultiReader2Status** status)
-{
-    OPENDAQ_PARAM_NOT_NULL(count);
-    OPENDAQ_PARAM_NOT_NULL(status);
-
-    std::scoped_lock lock(mutex);
-    return daqTry([&]
-    {
-        const ErrCode errCode = checkRead(*count, timeoutMs, data, Buffers::WithDomain);
-        OPENDAQ_RETURN_IF_FAILED(errCode);
-
-        performRead(data, Buffers::WithDomain, count, nullptr, status);
+        performRead(data, domain, count, packetOffset, status);
         return OPENDAQ_SUCCESS;
     });
 }
@@ -716,17 +680,17 @@ ErrCode MultiReaderDataManager::skipSamples(SizeT* count, SizeT timeoutMs, SizeT
     std::scoped_lock lock(mutex);
     return daqTry([&]
     {
-        const ErrCode errCode = checkRead(*count, timeoutMs, nullptr, Buffers::None);
+        const ErrCode errCode = checkRead(*count, timeoutMs, nullptr, true);
         OPENDAQ_RETURN_IF_FAILED(errCode);
 
-        performRead(nullptr, Buffers::None, count, packetOffset, status);
+        performRead(nullptr, nullptr, count, packetOffset, status);
         return OPENDAQ_SUCCESS;
     });
 }
 
-// count 0 with null data is a status probe; otherwise every contributing input needs a buffer, and readWithDomain the
-// leading domain buffer. skipSamples takes none
-ErrCode MultiReaderDataManager::checkRead(SizeT count, SizeT timeoutMs, void** data, Buffers buffers) const
+// count 0 with null data is a status probe; otherwise every contributing input needs a buffer, while the domain buffer
+// may be null. skipSamples takes none
+ErrCode MultiReaderDataManager::checkRead(SizeT count, SizeT timeoutMs, void** data, bool skip) const
 {
     if (timeoutMs != 0)
         return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOTIMPLEMENTED, "A read never waits; timeoutMs must be 0");
@@ -735,24 +699,22 @@ ErrCode MultiReaderDataManager::checkRead(SizeT count, SizeT timeoutMs, void** d
     if (count < config.minReadCount)
         return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDPARAMETER, "The count is below MinReadCount");
 
-    if (buffers == Buffers::None || level() == ComponentStatus::Error)
+    if (skip || level() == ComponentStatus::Error)
         return OPENDAQ_SUCCESS;
-    const bool withDomain = buffers == Buffers::WithDomain;
-    if (data == nullptr || (withDomain && data[0] == nullptr))
+    if (data == nullptr)
         return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDPARAMETER, "The buffers are missing");
 
-    const SizeT first = withDomain ? 1 : 0;
     for (SizeT i = 0; i < slots.size(); ++i)
     {
-        if (slots[i].error == MultiReader2InputError::None && data[first + i] == nullptr)
+        if (slots[i].error == MultiReader2InputError::None && data[i] == nullptr)
             return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDPARAMETER, "A contributing input has no buffer");
     }
     return OPENDAQ_SUCCESS;
 }
 
 // The read (R1): the samples every contributing input has in front of its first event, unless a status is owed, then
-// the events the read reached and the status. skipSamples copies nothing; readWithDomain leads with the main ticks
-void MultiReaderDataManager::performRead(void** data, Buffers buffers, SizeT* count, SizeT* packetOffset, IMultiReader2Status** status)
+// the events the read reached and the status. skipSamples copies nothing; a domain buffer gets the main ticks
+void MultiReaderDataManager::performRead(void** data, std::int64_t* domain, SizeT* count, SizeT* packetOffset, IMultiReader2Status** status)
 {
     dropShortRun();
 
@@ -761,17 +723,15 @@ void MultiReaderDataManager::performRead(void** data, Buffers buffers, SizeT* co
         *packetOffset = n > 0 ? static_cast<SizeT>(readTick - slots[*mainSlot].domainInfo.start) : 0;   // R9
     if (n > 0)
     {
-        const SizeT first = buffers == Buffers::WithDomain ? 1 : 0;
-        if (buffers == Buffers::WithDomain)
+        if (domain)
         {
-            auto* ticks = static_cast<std::int64_t*>(data[0]);
             for (SizeT k = 0; k < n; ++k)
-                ticks[k] = readTick + static_cast<std::int64_t>(k) * mainDelta;
+                domain[k] = readTick + static_cast<std::int64_t>(k) * mainDelta;
         }
         for (SizeT i = 0; i < slots.size(); ++i)
         {
             if (slots[i].error == MultiReader2InputError::None)
-                consume(slots[i], n, buffers == Buffers::None ? nullptr : data[first + i]);
+                consume(slots[i], n, data ? data[i] : nullptr);
         }
         readTick += static_cast<std::int64_t>(n) * mainDelta;
     }

@@ -36,11 +36,10 @@ public:
                                          std::array<std::array<double, Samples>, Inputs>& values,
                                          SizeT& count)
     {
-        void* buffers[Inputs + 1];
-        buffers[0] = ticks.data();
+        void* buffers[Inputs];
         for (SizeT i = 0; i < Inputs; i++)
-            buffers[i + 1] = values[i].data();
-        return reader.readWithDomain(buffers, &count, 0);
+            buffers[i] = values[i].data();
+        return reader.read(buffers, ticks.data(), &count, 0, ignoredOffset());
     }
 };
 
@@ -711,14 +710,14 @@ TEST_F(MultiReader2MigrationTest, MinReadCount)
 
     SizeT count = 10;
     SizeT offset = 0;
-    ASSERT_THROW(reader.read(buffers, &count, 0, offset), InvalidParameterException);
+    ASSERT_THROW(reader.read(buffers, nullptr, &count, 0, offset), InvalidParameterException);
     count = 10;
     ASSERT_THROW(reader.skipSamples(&count, 0, ignoredOffset()), InvalidParameterException);
 
     sendPackets(1);
     ASSERT_EQ(reader.getAvailableCount(), 20u);
     count = 20;
-    reader.read(buffers, &count, 0, offset);
+    reader.read(buffers, nullptr, &count, 0, offset);
     ASSERT_EQ(count, 20u);
 
     sendPackets(2);
@@ -729,7 +728,7 @@ TEST_F(MultiReader2MigrationTest, MinReadCount)
     scheduler.waitAll();
     ASSERT_EQ(reader.getAvailableCount(), 0u);
     count = 20;
-    auto status = reader.read(buffers, &count, 0, offset);
+    auto status = reader.read(buffers, nullptr, &count, 0, offset);
     ASSERT_EQ(count, 0u);
     ASSERT_TRUE(status.getHasChanges());
     ASSERT_TRUE(input(status, 0).getDescriptorChanged());
@@ -756,7 +755,7 @@ TEST_F(MultiReader2MigrationTest, UndefinedValueType)
     std::array<int64_t, 10> b{};
     void* buffers[3]{ticks.data(), a.data(), b.data()};
     SizeT count = 10;
-    reader.readWithDomain(buffers, &count, 0);
+    reader.read(buffers + 1, buffers[0], &count, 0, ignoredOffset());
     ASSERT_EQ(count, 10u);
     ASSERT_THAT(a, ElementsAreArray(ticks));
 }

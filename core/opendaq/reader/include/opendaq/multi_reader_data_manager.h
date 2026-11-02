@@ -42,7 +42,7 @@ BEGIN_NAMESPACE_OPENDAQ
 // held for the whole call. The one call-out is acceptsDescriptor, made under the mutex on the consumer's thread;
 // reader calls from inside it are refused. See spec 0007, Data manager sketch.
 //
-// Implemented so far: configure (reconfigure, isSameConfig, rejudge), ingest (the queues, the synchronization and
+// Implemented so far: configure (reconfigure, reevaluate), ingest (the queues, the synchronization and
 // getAvailableCount), reads (the samples, the events they reach, the re-evaluation and the internal reconfigure) and
 // the wake's state.
 class MultiReaderDataManager final
@@ -62,21 +62,16 @@ public:
         MultiReader2ErrorPolicy errorPolicy = MultiReader2ErrorPolicy::Invalidate;
     };
 
-    // Equal params skip the reinitialization (Configure); never true before the first reconfigure
-    bool isSameConfig(const Config& config);
-
     // Applies every queued event, drops the data, then a 0-count read. A null status leaves the first status owed
     // to the first read, as after construction
     ErrCode reconfigure(Config newConfig, IMultiReader2Status** status);
 
-    // Equal params: asks acceptsDescriptor for every input with its descriptors in force, then a 0-count read (B5).
-    // Not in the spec's sketch yet, whose isSameConfig comment still says "configure is a no-op when true"
-    ErrCode rejudge(IMultiReader2Status** status);
+    // Asks acceptsDescriptor for every input with its descriptors in force, then a 0-count read (B5)
+    ErrCode reevaluate(IMultiReader2Status** status);
 
     // Consumer side; contracts as on IMultiReader2, data as the real void**. Errors and descriptors move only here
     SizeT getAvailableCount();
-    ErrCode read(void** data, SizeT* count, SizeT timeoutMs, SizeT* packetOffset, IMultiReader2Status** status);
-    ErrCode readWithDomain(void** data, SizeT* count, SizeT timeoutMs, IMultiReader2Status** status);
+    ErrCode read(void** data, std::int64_t* domain, SizeT* count, SizeT timeoutMs, SizeT* packetOffset, IMultiReader2Status** status);
     ErrCode skipSamples(SizeT* count, SizeT timeoutMs, SizeT* packetOffset, IMultiReader2Status** status);
 
     // Producer side; each returns whether onDataAvailable is to be scheduled once the call is out of the mutex, and
@@ -226,13 +221,11 @@ private:
     // Wake
     bool claimWake(bool owed);
     bool triggerHolds() const;
-    enum class Buffers { Values, WithDomain, None };   // read, readWithDomain, skipSamples
-    ErrCode checkRead(SizeT count, SizeT timeoutMs, void** data, Buffers buffers) const;
-    void performRead(void** data, Buffers buffers, SizeT* count, SizeT* packetOffset, IMultiReader2Status** status);
+    ErrCode checkRead(SizeT count, SizeT timeoutMs, void** data, bool skip) const;
+    void performRead(void** data, std::int64_t* domain, SizeT* count, SizeT* packetOffset, IMultiReader2Status** status);
 
     std::mutex mutex;
     Config config;
-    bool configured = false;                        // not in the sketch: the first reconfigure is never skipped
     std::vector<Slot> slots;
     std::optional<SizeT> mainSlot;                  // the main input in effect
     State state = State::Invalid;

@@ -42,9 +42,8 @@ DECLARE_OPENDAQ_INTERFACE(IMultiReader2, IBaseObject)
     /*!
      * @brief Validates, then applies the params as if the reader were newly constructed: the queued data goes,
      * every input keeps what it last announced, and a 0-count read follows, whose status is returned. A rejected
-     * object leaves the reader untouched. Equal params skip the reinitialization: every input is judged again by
-     * acceptsDescriptor, then the read follows. Schedules no onDataAvailable. Legal from inside the
-     * onDataAvailable handler.
+     * object leaves the reader untouched. Equal params are applied the same way; to judge the inputs again without
+     * reinitializing, use reevaluate. Schedules no onDataAvailable. Legal from inside the onDataAvailable handler.
      * @param params The parameters to apply.
      * @param[out] status The status of the 0-count read.
      */
@@ -58,28 +57,20 @@ DECLARE_OPENDAQ_INTERFACE(IMultiReader2, IBaseObject)
      */
     virtual ErrCode INTERFACE_FUNC getAvailableCount(SizeT* count) = 0;
 
-    // [arrayArg(data, count), arrayArg(count, 1)]
+    // [arrayArg(data, count), arrayArg(domain, count), arrayArg(count, 1)]
     /*!
      * @brief Copies up to `count` aligned samples into one buffer per input, in slot order. The samples belong to
      * the descriptors reported before this status. `data` is typed `void*` because the binding generator cannot
      * express a jagged array. The buffer of an input in error is not written and may be null.
      * @param[in] data One buffer per input; null with `count` 0 is a status probe.
+     * @param[in] domain Buffer for the main input's domain ticks, packetOffset plus the main rule's start (type: Int64,
+     * size: count); when null, ticks are not returned (recommended).
      * @param[in,out] count In: the requested count, 0 or at least MinReadCount; out: the count read.
      * @param timeoutMs Placeholder for reading with timeout; a read never waits, and a non-zero value is NOTIMPLEMENTED.
      * @param[out] packetOffset The main tick of the first sample, relative to the main domain rule start.
      * @param[out] status The status of this read.
      */
-    virtual ErrCode INTERFACE_FUNC read(void* data, SizeT* count, SizeT timeoutMs, SizeT* packetOffset, IMultiReader2Status** status) = 0;
-
-    // [arrayArg(data, count), arrayArg(count, 1)]
-    /*!
-     * @brief As read, with one extra leading buffer of absolute Int64 main ticks: packetOffset plus the main rule's start.
-     * @param[in] data Input count + 1 buffers; the first receives the ticks.
-     * @param[in,out] count In: the requested count; out: the count read.
-     * @param timeoutMs As on read.
-     * @param[out] status The status of this read.
-     */
-    virtual ErrCode INTERFACE_FUNC readWithDomain(void* data, SizeT* count, SizeT timeoutMs, IMultiReader2Status** status) = 0;
+    virtual ErrCode INTERFACE_FUNC read(void* data, void* domain, SizeT* count, SizeT timeoutMs, SizeT* packetOffset, IMultiReader2Status** status) = 0;
 
     // [arrayArg(count, 1)]
     /*!
@@ -98,6 +89,15 @@ DECLARE_OPENDAQ_INTERFACE(IMultiReader2, IBaseObject)
      * @param[out] event The data available event.
      */
     virtual ErrCode INTERFACE_FUNC getOnDataAvailable(IEvent** event) = 0;
+
+    /*!
+     * @brief Judges every input again by acceptsDescriptor with the descriptors in force, without reinitializing, then
+     * a 0-count read follows, whose status is returned. For a change of the owner's state that acceptsDescriptor
+     * depends on. An input whose verdict changes is handled as on a descriptor change; the others keep their queued
+     * data. Schedules no onDataAvailable. Legal from inside the onDataAvailable handler.
+     * @param[out] status The status of the 0-count read.
+     */
+    virtual ErrCode INTERFACE_FUNC reevaluate(IMultiReader2Status** status) = 0;
 };
 
 /*!@}*/

@@ -170,7 +170,7 @@ TEST_P(MultiReader2ConversionTest, ConvertsValues)
     void* buffers[2]{a.data(), b.data()};
     SizeT count = 8;
     SizeT offset = 0;
-    auto status = reader.read(buffers, &count, 0, offset);
+    auto status = reader.read(buffers, nullptr, &count, 0, offset);
     ASSERT_EQ(count, 8u);
     ASSERT_THAT(asDoubles(a.data(), c.read, 8), ElementsAre(0, 1, 2, 3, 4, 5, 6, 7));
     ASSERT_THAT(asDoubles(b.data(), c.read, 8), ElementsAre(0, 1, 2, 3, 4, 5, 6, 7));
@@ -331,7 +331,7 @@ TEST_F(MultiReader2ValuesTest, UndefinedKeepsEveryInputsOwnType)
     void* buffers[3]{a.data(), b.data(), c.data()};
     SizeT count = 4;
     SizeT offset = 0;
-    reader.read(buffers, &count, 0, offset);
+    reader.read(buffers, nullptr, &count, 0, offset);
     ASSERT_EQ(count, 4u);
     ASSERT_THAT(a, ElementsAre(0, 1, 2, 3));
     ASSERT_THAT(b, ElementsAre(0, 1, 2, 3));
@@ -363,7 +363,7 @@ TEST_F(MultiReader2ValuesTest, UndefinedCopiesComplexValuesRaw)
     void* buffers[2]{a.data(), b.data()};
     SizeT count = 3;
     SizeT offset = 0;
-    reader.read(buffers, &count, 0, offset);
+    reader.read(buffers, nullptr, &count, 0, offset);
     ASSERT_EQ(count, 3u);
     ASSERT_THAT(b, ElementsAre(0, 0.5, 1, 1.5, 2, 2.5));
 }
@@ -396,7 +396,7 @@ TEST_F(MultiReader2ValuesTest, DimensionedValuesConvertEveryElement)
     void* buffers[2]{a.data(), b.data()};
     SizeT count = 2;
     SizeT offset = 0;
-    reader.read(buffers, &count, 0, offset);
+    reader.read(buffers, nullptr, &count, 0, offset);
     ASSERT_EQ(count, 2u);
     ASSERT_THAT(a, ElementsAre(0, -1, -2, -3, -4, -5));
     ASSERT_THAT(b, ElementsAre(0, 1));
@@ -427,7 +427,7 @@ TEST_F(MultiReader2ValuesTest, DimensionedValuesCopyRawUnderUndefined)
     void* buffers[1]{a.data()};
     SizeT count = 2;
     SizeT offset = 0;
-    reader.read(buffers, &count, 0, offset);
+    reader.read(buffers, nullptr, &count, 0, offset);
     ASSERT_EQ(count, 2u);
     ASSERT_THAT(a, ElementsAre(0, 10, 20, 30, 40, 50));
 }
@@ -487,7 +487,7 @@ TEST_F(MultiReader2ValuesTest, PostScaledValuesReadAsIntegersTruncate)
     void* buffers[1]{a.data()};
     SizeT count = 4;
     SizeT offset = 0;
-    reader.read(buffers, &count, 0, offset);
+    reader.read(buffers, nullptr, &count, 0, offset);
     ASSERT_THAT(a, ElementsAre(0, 0, 1, 1));
 }
 
@@ -586,7 +586,7 @@ TEST_F(MultiReader2ValuesTest, LargeMagnitudesSurviveFloat64)
     void* buffers[1]{a.data()};
     SizeT count = 3;
     SizeT offset = 0;
-    reader.read(buffers, &count, 0, offset);
+    reader.read(buffers, nullptr, &count, 0, offset);
     ASSERT_THAT(a, ElementsAre(-1.0, 1099511627776.0, -4503599627370496.0));
 }
 
@@ -609,6 +609,6 @@ TEST_F(MultiReader2ValuesTest, NegativeValuesIntoUnsignedWrap)
     void* buffers[1]{a.data()};
     SizeT count = 2;
     SizeT offset = 0;
-    reader.read(buffers, &count, 0, offset);
+    reader.read(buffers, nullptr, &count, 0, offset);
     ASSERT_THAT(a, ElementsAre(255, 0));
 }

@@ -195,7 +195,7 @@ public:
     {
         SizeT count = 0;
         SizeT offset = 0;
-        return reader.read(nullptr, &count, 0, offset);
+        return reader.read(nullptr, nullptr, &count, 0, offset);
     }
 
     // Reads up to `count` doubles per input into `values`, returns the status
@@ -209,7 +209,7 @@ public:
         for (SizeT i = 0; i < Inputs; i++)
             buffers[i] = values[i].data();
         SizeT localOffset = 0;
-        return reader.read(buffers, &count, 0, offset ? *offset : localOffset);
+        return reader.read(buffers, nullptr, &count, 0, offset ? *offset : localOffset);
     }
 
     static MultiReader2InputStatusPtr input(const MultiReader2StatusPtr& status, SizeT index)

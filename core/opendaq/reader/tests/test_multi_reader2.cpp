@@ -162,7 +162,7 @@ TEST_F(MultiReader2Test, GetInputStatusByComponent)
     daqClearErrorInfo();
 }
 
-TEST_F(MultiReader2Test, NoOpConfigureKeepsQueuedData)
+TEST_F(MultiReader2Test, ReevaluateKeepsQueuedData)
 {
     readSignals.reserve(2);
     addSignal(0, 10, createDomainSignal());
@@ -173,7 +173,7 @@ TEST_F(MultiReader2Test, NoOpConfigureKeepsQueuedData)
     ASSERT_EQ(reader.getAvailableCount(), 10u);
 
     auto same = params(signalsToList());
-    ASSERT_EQ(reader->configure(same, ignoredStatus()), OPENDAQ_SUCCESS);
+    ASSERT_EQ(reader->reevaluate(ignoredStatus()), OPENDAQ_SUCCESS);
     ASSERT_EQ(reader.getAvailableCount(), 10u);
 
     // A different configuration discards the queues
@@ -335,7 +335,7 @@ TEST_F(MultiReader2Test, ReadWithDomainGivesMainTicks)
     std::array<double, 10> b{};
     void* buffers[3]{ticks.data(), a.data(), b.data()};
     SizeT count = 10;
-    auto status = reader.readWithDomain(buffers, &count, 0);
+    auto status = reader.read(buffers + 1, buffers[0], &count, 0, ignoredOffset());
     ASSERT_EQ(count, 10u);
     ASSERT_THAT(ticks, ElementsAre(7, 8, 9, 10, 11, 12, 13, 14, 15, 16));
     ASSERT_THAT(a, ElementsAre(0, 1, 2, 3, 4, 5, 6, 7, 8, 9));
@@ -388,7 +388,7 @@ TEST_F(MultiReader2Test, MinReadCountGatesReadsAndDropsShortRunsAtBoundaries)
     SizeT offset = 0;
     void* buffers[2]{values[0].data(), values[1].data()};
     IMultiReader2Status* rawStatus = nullptr;
-    ASSERT_EQ(reader->read(buffers, &count, 0, &offset, &rawStatus), OPENDAQ_ERR_INVALIDPARAMETER);
+    ASSERT_EQ(reader->read(buffers, nullptr, &count, 0, &offset, &rawStatus), OPENDAQ_ERR_INVALIDPARAMETER);
     daqClearErrorInfo();
 
     count = 10;
@@ -465,7 +465,7 @@ TEST_F(MultiReader2Test, ConvertsSampleTypes)
     void* buffers[2]{a.data(), b.data()};
     SizeT count = 4;
     SizeT offset = 0;
-    reader.read(buffers, &count, 0, offset);
+    reader.read(buffers, nullptr, &count, 0, offset);
     ASSERT_EQ(count, 4u);
     ASSERT_THAT(a, ElementsAre(0, 1, 2, 3));
     ASSERT_THAT(b, ElementsAre(0, 1, 2, 3));
@@ -487,7 +487,7 @@ TEST_F(MultiReader2Test, UndefinedReadTypeCopiesAsIs)
     void* buffers[2]{a.data(), b.data()};
     SizeT count = 4;
     SizeT offset = 0;
-    reader.read(buffers, &count, 0, offset);
+    reader.read(buffers, nullptr, &count, 0, offset);
     ASSERT_EQ(count, 4u);
     ASSERT_THAT(a, ElementsAre(0, 1, 2, 3));
     ASSERT_THAT(b, ElementsAre(0.0f, 1.0f, 2.0f, 3.0f));
@@ -538,7 +538,7 @@ TEST_F(MultiReader2Test, DimensionedValuesConvertElementWise)
     void* buffers[2]{a.data(), b.data()};
     SizeT count = 3;
     SizeT offset = 0;
-    reader.read(buffers, &count, 0, offset);
+    reader.read(buffers, nullptr, &count, 0, offset);
     ASSERT_EQ(count, 3u);
     ASSERT_THAT(a, ElementsAre(0, 1, 2, 3, 4, 5));
 }

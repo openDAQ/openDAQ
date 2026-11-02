@@ -207,11 +207,6 @@ ErrCode MultiReader2Impl::configureInternal(IMultiReader2Params* params, IMultiR
     OPENDAQ_RETURN_IF_FAILED(errCode);
 
     std::scoped_lock lock(mutex);
-
-    // Never true before the first configure, so the constructor always reconfigures
-    if (dataManager.isSameConfig(config))
-        return dataManager.rejudge(status);
-
     return daqTry([&]() -> ErrCode
     {
         const auto findSlot = [this](const ComponentPtr& input)
@@ -374,16 +369,10 @@ ErrCode MultiReader2Impl::getAvailableCount(SizeT* count)
     return OPENDAQ_SUCCESS;
 }
 
-ErrCode MultiReader2Impl::read(void* data, SizeT* count, SizeT timeoutMs, SizeT* packetOffset, IMultiReader2Status** status)
+ErrCode MultiReader2Impl::read(void* data, void* domain, SizeT* count, SizeT timeoutMs, SizeT* packetOffset, IMultiReader2Status** status)
 {
     MULTI_READER2_NOT_FROM_CALLBACK();
-    return dataManager.read(static_cast<void**>(data), count, timeoutMs, packetOffset, status);
-}
-
-ErrCode MultiReader2Impl::readWithDomain(void* data, SizeT* count, SizeT timeoutMs, IMultiReader2Status** status)
-{
-    MULTI_READER2_NOT_FROM_CALLBACK();
-    return dataManager.readWithDomain(static_cast<void**>(data), count, timeoutMs, status);
+    return dataManager.read(static_cast<void**>(data), static_cast<std::int64_t*>(domain), count, timeoutMs, packetOffset, status);
 }
 
 ErrCode MultiReader2Impl::skipSamples(SizeT* count, SizeT timeoutMs, SizeT* packetOffset, IMultiReader2Status** status)
@@ -397,6 +386,13 @@ ErrCode MultiReader2Impl::getOnDataAvailable(IEvent** event)
     OPENDAQ_PARAM_NOT_NULL(event);
     *event = onDataAvailable.addRefAndReturn();
     return OPENDAQ_SUCCESS;
+}
+
+ErrCode MultiReader2Impl::reevaluate(IMultiReader2Status** status)
+{
+    MULTI_READER2_NOT_FROM_CALLBACK();
+    std::scoped_lock lock(mutex);
+    return dataManager.reevaluate(status);
 }
 
 // ---------------------------------------------------------------- wake

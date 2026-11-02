@@ -329,7 +329,7 @@ TEST_F(MultiReader2ParamsTest, ReaderCallsFromInsideTheJudgementFail)
             daqClearErrorInfo();
             SizeT count = 0;
             IMultiReader2Status* status = nullptr;
-            seen.push_back(reader->read(nullptr, &count, 0, nullptr, &status));
+            seen.push_back(reader->read(nullptr, nullptr, &count, 0, nullptr, &status));
             daqClearErrorInfo();
             seen.push_back(reader->configure(p, ignoredStatus()));
             daqClearErrorInfo();
@@ -383,7 +383,7 @@ TEST_F(MultiReader2ParamsTest, ANewJudgementObjectReconfiguresTheSameOneDoesNot)
     sendPackets(0);
     ASSERT_EQ(reader.getAvailableCount(), 10u);
 
-    ASSERT_EQ(reader->configure(p, ignoredStatus()), OPENDAQ_SUCCESS);
+    ASSERT_EQ(reader->reevaluate(ignoredStatus()), OPENDAQ_SUCCESS);
     ASSERT_EQ(reader.getAvailableCount(), 10u);  // the same function object: nothing to do
 
     p.setAcceptsDescriptor(Function([](ComponentPtr, DataDescriptorPtr, DataDescriptorPtr) -> bool { return true; }));

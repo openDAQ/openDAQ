@@ -213,7 +213,7 @@ public:
         for (SizeT i = 0; i < n; i++)
             buffers[i + 1] = values[i].data();
         SizeT got = count;
-        const auto status = reader.readWithDomain(buffers.data(), &got, 0);
+        const auto status = reader.read(buffers.data() + 1, buffers[0], &got, 0, ignoredOffset());
         ASSERT_TRUE(status.assigned());
         ASSERT_LE(got, count);
 
@@ -531,7 +531,7 @@ public:
         for (SizeT i = 0; i < static_cast<SizeT>(N); i++)
             buffers[i] = values[i].data();
         SizeT offset = 0;
-        statusOut = reader.read(buffers.data(), &count, 0, offset);
+        statusOut = reader.read(buffers.data(), nullptr, &count, 0, offset);
         return values;
     }
 

@@ -28,7 +28,7 @@ public:
         for (SizeT i = 0; i < inputs; i++)
             buffers[i] = values[i].data();
         SizeT offset = 0;
-        reader.read(buffers.data(), &count, 0, offset);
+        reader.read(buffers.data(), nullptr, &count, 0, offset);
         return values;
     }
 };
@@ -236,7 +236,7 @@ TEST_F(MultiReader2ConfigureTest, ReconfigureChangesTheReadType)
     void* buffers[2]{a.data(), b.data()};
     count = 10;
     SizeT offset = 0;
-    reader.read(buffers, &count, 0, offset);
+    reader.read(buffers, nullptr, &count, 0, offset);
     ASSERT_EQ(count, 10u);
     ASSERT_THAT(a, ElementsAre(10, 11, 12, 13, 14, 15, 16, 17, 18, 19));
     ASSERT_THAT(b, ElementsAreArray(a));
@@ -262,7 +262,7 @@ TEST_F(MultiReader2ConfigureTest, ReconfigureChangesTheMinReadCount)
     SizeT offset = 0;
     void* buffers[2]{values[0].data(), values[1].data()};
     IMultiReader2Status* raw = nullptr;
-    ASSERT_EQ(reader->read(buffers, &count, 0, &offset, &raw), OPENDAQ_ERR_INVALIDPARAMETER);
+    ASSERT_EQ(reader->read(buffers, nullptr, &count, 0, &offset, &raw), OPENDAQ_ERR_INVALIDPARAMETER);
     daqClearErrorInfo();
     count = 5;
     read(reader, values, count);
@@ -292,7 +292,7 @@ TEST_F(MultiReader2ConfigureTest, ReconfigureChangesTheErrorPolicy)
     ASSERT_FALSE(probe(reader).getStatus() != ComponentStatus::Error);
 }
 
-TEST_F(MultiReader2ConfigureTest, ReconfigureWithTheSameParamsObjectIsANoOp)
+TEST_F(MultiReader2ConfigureTest, ReconfigureWithTheSameParamsObjectReinitializes)
 {
     addSignals(2, createDomainSignal());
     auto p = params(signalsToList());
@@ -300,7 +300,7 @@ TEST_F(MultiReader2ConfigureTest, ReconfigureWithTheSameParamsObjectIsANoOp)
     sendPackets(0);
     ASSERT_EQ(reader->configure(p, ignoredStatus()), OPENDAQ_SUCCESS);
     scheduler.waitAll();
-    ASSERT_EQ(reader.getAvailableCount(), 10u);
+    ASSERT_EQ(reader.getAvailableCount(), 0u);  // equal params reinitialize like any; reevaluate keeps the data
     ASSERT_FALSE(probe(reader).getHasChanges());
 }
 

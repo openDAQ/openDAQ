@@ -260,7 +260,7 @@ void NativeStreamingClientImpl::checkReconnectionResult(const boost::system::err
     else
     {
         // connection is still pending
-        reconnectionTimer->expires_from_now(reconnectionPeriod);
+        reconnectionTimer->expires_after(reconnectionPeriod);
         reconnectionTimer->async_wait(std::bind(&NativeStreamingClientImpl::checkReconnectionResult, this, std::placeholders::_1));
     }
 }
@@ -274,7 +274,7 @@ void NativeStreamingClientImpl::tryReconnect()
     connectedPromise = std::promise<ConnectionResult>();
     connectedFuture = connectedPromise.get_future();
 
-    reconnectionTimer->expires_from_now(reconnectionPeriod);
+    reconnectionTimer->expires_after(reconnectionPeriod);
     reconnectionTimer->async_wait(std::bind(&NativeStreamingClientImpl::checkReconnectionResult, this, std::placeholders::_1));
 
     // Try alternative addresses if callback is available

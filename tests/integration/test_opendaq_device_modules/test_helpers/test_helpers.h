@@ -25,7 +25,7 @@
 #include <cstdlib>
 #include <algorithm>
 #include <boost/asio/ip/tcp.hpp>
-#include <boost/asio/io_service.hpp>
+#include <boost/asio/io_context.hpp>
 
 #include <opendaq/opendaq.h>
 #include <testutils/testutils.h>
@@ -256,14 +256,12 @@ namespace test_helpers
     {
         std::string hostName = testExternalAddrConnectivity ? "ipv6.google.com" : "localhost";
 
-        boost::asio::io_service service;
-        boost::asio::ip::tcp::resolver resolver(service);
+        boost::asio::io_context ioContext;
+        boost::asio::ip::tcp::resolver resolver(ioContext);
 
         // Resolve a localhost (or external) address. If IPv6 is available, it should resolve to an IPv6 address.
-        boost::asio::ip::tcp::resolver::query query(boost::asio::ip::tcp::v6(), hostName, "");
-
         boost::system::error_code ec;
-        auto it = resolver.resolve(query, ec);
+        auto results = resolver.resolve(boost::asio::ip::tcp::v6(), hostName, "", ec);
         return ec.failed();
     }
 

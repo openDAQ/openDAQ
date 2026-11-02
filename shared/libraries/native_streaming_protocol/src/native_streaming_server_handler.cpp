@@ -773,7 +773,8 @@ void NativeStreamingServerHandler::onSessionError(const std::string& errorMessag
 {
     LOG_I("Closing connection caused by: {}", errorMessage);
     // call dispatch to run it in the ::io_context to omit concurrent access!
-    ioContextPtr->dispatch(
+    boost::asio::dispatch(
+        *ioContextPtr,
         [thisWeakPtr = this->weak_from_this(), session]()
         {
             if (const auto thisPtr = thisWeakPtr.lock())

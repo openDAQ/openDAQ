@@ -146,7 +146,7 @@ void NativeStreamingImpl::requestStreamingOnReconnection()
     protocolInitFuture = protocolInitPromise.get_future();
     WeakRefPtr<IStreaming> thisRef = this->template borrowPtr<StreamingPtr>();
 
-    protocolInitTimer->expires_from_now(streamingInitTimeout);
+    protocolInitTimer->expires_after(streamingInitTimeout);
     protocolInitTimer->async_wait(
         [this, thisRef](const boost::system::error_code& ec)
         {

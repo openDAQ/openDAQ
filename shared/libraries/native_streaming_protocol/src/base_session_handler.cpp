@@ -53,7 +53,7 @@ void BaseSessionHandler::startConnectionActivityMonitoring(Int heartbeatPeriod, 
         if (auto timer = connectionInactivityTimer_weak.lock())
         {
             timer->cancel();
-            timer->expires_from_now(inactivityTimeoutMs);
+            timer->expires_after(inactivityTimeoutMs);
 
             timer->async_wait(
                 [errorHandler, session_weak](const boost::system::error_code& ec)

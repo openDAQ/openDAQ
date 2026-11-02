@@ -25,6 +25,7 @@
 #include <opendaq/connection_internal.h>
 #include <tsl/ordered_map.h>
 #include <boost/asio/thread_pool.hpp>
+#include <boost/asio/strand.hpp>
 #include <config_protocol/config_protocol_server.h>
 
 BEGIN_NAMESPACE_OPENDAQ_NATIVE_STREAMING_SERVER_MODULE
@@ -93,7 +94,7 @@ protected:
 
     std::shared_ptr<boost::asio::io_context> processingIOContextPtr;
     std::thread processingThread;
-    boost::asio::io_context::strand processingStrand;
+    boost::asio::strand<boost::asio::io_context::executor_type> processingStrand;
 
     std::string rootDeviceGlobalId;
 

@@ -179,7 +179,7 @@ void NativeDeviceHelper::tryConfigProtocolReconnect()
 
         updateConnectionStatus(connectionStatus, statusMessage);
 
-        configProtocolReconnectionRetryTimer->expires_from_now(reconnectionPeriod);
+        configProtocolReconnectionRetryTimer->expires_after(reconnectionPeriod);
         configProtocolReconnectionRetryTimer->async_wait(
             [deviceHelperWeak = weak_from_this()](const boost::system::error_code& ec)
             {

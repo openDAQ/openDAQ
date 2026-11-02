@@ -36,7 +36,7 @@ NativeStreamingServerImpl::NativeStreamingServerImpl(const DevicePtr& rootDevice
     , readThreadSleepTime(std::chrono::milliseconds(20))
     , transportIOContextPtr(std::make_shared<boost::asio::io_context>())
     , processingIOContextPtr(std::make_shared<boost::asio::io_context>())
-    , processingStrand(*processingIOContextPtr)
+    , processingStrand(boost::asio::make_strand(*processingIOContextPtr))
     , rootDeviceGlobalId(rootDevice.getGlobalId().toStdString())
     , logger(context.getLogger())
     , loggerComponent(logger.getOrAddComponent(id))
@@ -440,33 +440,29 @@ void NativeStreamingServerImpl::dispatchClientConfigRequest(const ConfigServerPt
 
     // one main processing context & thread + strand - preserves the correct execution order of client's request
     boost::asio::dispatch(
-        *processingIOContextPtr,
-        processingStrand.wrap(
-            [this, configServerPtr, sendConfigPacketCb, packetBufferPtr]()
-            {
-                processClientConfigRequest(configServerPtr, packetBufferPtr, sendConfigPacketCb);
-            }
-        )
+        processingStrand,
+        [this, configServerPtr, sendConfigPacketCb, packetBufferPtr]()
+        {
+            processClientConfigRequest(configServerPtr, packetBufferPtr, sendConfigPacketCb);
+        }
     );
 }
 
 void NativeStreamingServerImpl::dispatchClientToDeviceStreamingPacket(const ConfigServerPtr& configServerPtr, const PacketStreamingClientPtr& packetStreamingClientPtr, const packet_streaming::PacketBufferPtr& packetBufferPtr)
 {
     boost::asio::dispatch(
-        *processingIOContextPtr,
-        processingStrand.wrap(
-            [configServerPtr, packetStreamingClientPtr, packetBufferPtr]()
-            {
-                packetStreamingClientPtr->addPacketBuffer(packetBufferPtr);
+        processingStrand,
+        [configServerPtr, packetStreamingClientPtr, packetBufferPtr]()
+        {
+            packetStreamingClientPtr->addPacketBuffer(packetBufferPtr);
 
-                auto [signalNumericId, packet] = packetStreamingClientPtr->getNextDaqPacket();
-                while (packet.assigned())
-                {
-                    configServerPtr->processClientToServerStreamingPacket(signalNumericId, packet);
-                    std::tie(signalNumericId, packet) = packetStreamingClientPtr->getNextDaqPacket();
-                }
+            auto [signalNumericId, packet] = packetStreamingClientPtr->getNextDaqPacket();
+            while (packet.assigned())
+            {
+                configServerPtr->processClientToServerStreamingPacket(signalNumericId, packet);
+                std::tie(signalNumericId, packet) = packetStreamingClientPtr->getNextDaqPacket();
             }
-        )
+        }
     );
 }
 

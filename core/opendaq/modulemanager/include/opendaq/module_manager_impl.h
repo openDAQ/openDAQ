@@ -25,7 +25,10 @@
 #include <vector>
 #include <opendaq/mirrored_device_config_ptr.h>
 #include <opendaq/streaming_ptr.h>
+#include <functional>
 #include <map>
+#include <mutex>
+#include <unordered_set>
 #include <thread>
 #include <boost/asio/executor_work_guard.hpp>
 #include <boost/asio/io_context.hpp>
@@ -164,6 +167,16 @@ private:
     DictPtr<IString, IDeviceInfo> availableDevicesGroup;
     std::mutex availableDevicesSearchSync;
     std::unordered_map<std::string, size_t> functionBlockCountMap;
+    struct LogOnce
+    {
+        bool logIfFirst(const std::string& key, const std::function<std::string()>& makeMessage);
+
+        const LoggerComponentPtr& loggerComponent;
+        LogLevel level;
+        std::mutex sync;
+        std::unordered_set<std::string> keys;
+    };
+    LogOnce rootDeviceAvailableLogger{loggerComponent, LogLevel::Warn};
 
     DictPtr<IString, IDeviceInfo> availableDevicesWithIpConfig;
     discovery::DiscoveryClient discoveryClient; // for discovering devices which has IP modification feature enabled

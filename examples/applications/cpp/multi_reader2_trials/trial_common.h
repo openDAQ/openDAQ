@@ -238,7 +238,7 @@ public:
             reader.getOnDataAvailable() += [this](BaseObjectPtr&, EventArgsPtr<>&) { drain(); };
         SizeT count = 0;
         SizeT offset = 0;
-        handle(reader.read(nullptr, &count, offset));
+        handle(reader.read(nullptr, nullptr, &count, offset));
     }
 
     void configure(const MultiReader2ParamsPtr& readerParams, std::vector<std::string> columnLabels)
@@ -250,11 +250,11 @@ public:
         handle(reader.configure(params));
     }
 
-    // Equal params: every input is judged again by acceptsDescriptor, the queued data stays
-    void reconfigure()
+    // Every input is judged again by acceptsDescriptor, the queued data stays
+    void evaluate()
     {
         std::scoped_lock lock(mutex);
-        handle(reader.configure(params));
+        handle(reader.evaluate());
     }
 
     // Reads until nothing is deliverable and nothing changed: the samples of each read first, then its status
@@ -277,7 +277,7 @@ public:
                     buffers[i] = storage[i].data();
                 }
             SizeT offset = 0;
-            const auto status = reader.read(count > 0 ? buffers.data() : nullptr, &count, offset);
+            const auto status = reader.read(count > 0 ? buffers.data() : nullptr, nullptr, &count, offset);
             if (count > 0)
             {
                 if (gapPending && expectedNext >= 0)

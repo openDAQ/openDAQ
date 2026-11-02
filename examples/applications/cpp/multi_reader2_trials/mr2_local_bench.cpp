@@ -4,8 +4,8 @@
  *
  * The application locks each column's unit at its first descriptor, as a recorder whose table header must not change
  * under it: a new unit is rejected (ValueDescriptorInvalid) until the operator accepts it, which re-judges the inputs
- * through an equal-params configure and starts a new file segment. A watchdog reports a stall, an input that stopped
- * sending while the reader still waits for it, which the reader itself does not report.
+ * through evaluate and starts a new file segment. A watchdog reports an input that stopped sending while the reader still
+ * waits for it, before the reader's own stall after 3 s.
  */
 
 #include "trial_common.h"
@@ -102,16 +102,16 @@ int main(int /*argc*/, const char* /*argv*/[])
         {"Bridge output quantity Strain -> Ratio (unit um/m -> mV/V)", [&] { guard.set(bridge, "OutputQuantity", 1, "bridge"); },
          ComponentStatus::Warning, "Strain: value descriptor rejected by the owner",
          "The owner's judgement rejects the new unit: ValueDescriptorInvalid, Strain set aside."},
-        {"Operator accepts the new unit: re-judge through an equal-params configure",
+        {"Operator accepts the new unit: re-judge through evaluate",
          [&] {
              {
                  std::scoped_lock lock(judgementMutex);
                  const auto id = strain.getGlobalId().toStdString();
                  lockedUnit[id] = offeredUnit[id];
              }
-             driver.reconfigure();
+             driver.evaluate();
          },
-         ComponentStatus::Ok, "", "Equal params skip the reinitialization; the verdict changes and Strain rejoins. New segment (unit)."},
+         ComponentStatus::Ok, "", "The queued data stays; the verdict changes and Strain rejoins. New segment (unit)."},
         {"Pin the main input to AI1 (configure)",
          [&] {
              pinnedMain = inputs[1];

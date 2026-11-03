@@ -70,7 +70,7 @@ InstancePtr createDiscoverableServerInstance(const std::string& path, bool plain
     {
         auto rootConfig = PropertyObject();
         rootConfig.addProperty(StringProperty("SerialNumber", serialNumber));
-        instance.setRootDevice("daqref://device0", rootConfig);
+        instance.setRootDevice("daqref.root://device0", rootConfig);
     }
     instance.addDevice("daqref://device1");
     addNativeServerModule(instance);

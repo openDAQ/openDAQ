@@ -32,12 +32,16 @@ public:
                             const PropertyObjectPtr& defaultConfig,
                             const StringPtr& prefix,
                             const DictPtr<IString, IAuthenticationMethod>& supportedAuthenticationMethods,
-                            DeviceKind deviceKind = DeviceKind::Unspecified);
+                            DeviceKind deviceKind = DeviceKind::Unspecified,
+                            const DictPtr<IString, IInteger>& transports = Dict<IString, IInteger>());
 
     explicit DeviceTypeImpl(const ComponentTypeBuilderPtr& builder);
 
     ErrCode INTERFACE_FUNC getConnectionStringPrefix(IString** prefix) override;
     ErrCode INTERFACE_FUNC getDeviceKind(DeviceKind* kind) override;
+
+    // Adds the "AddDeviceConfig" object property when the type lists transports
+    ErrCode INTERFACE_FUNC createDefaultConfig(IPropertyObject** defaultConfig) override;
 
     // ISerializable
     ErrCode INTERFACE_FUNC serialize(ISerializer* serializer) override;

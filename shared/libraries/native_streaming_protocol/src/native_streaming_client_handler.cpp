@@ -1,5 +1,6 @@
 #include <native_streaming_protocol/native_streaming_client_handler.h>
 #include <native_streaming_protocol/async_exception_guard.h>
+#include <native_streaming_protocol/native_streaming_constants.h>
 #include <native_streaming/client.hpp>
 #include <boost/asio/ip/host_name.hpp>
 #include "native_streaming_protocol/streaming_manager.h"
@@ -30,6 +31,20 @@ NativeStreamingClientImpl::NativeStreamingClientImpl(const ContextPtr& context,
     resetStreamingHandlers();
     resetConfigHandlers();
 }
+
+#if NATIVE_STREAMING_ENABLE_TLS
+
+NativeStreamingClientImpl::NativeStreamingClientImpl(const ContextPtr& context,
+                                                     const PropertyObjectPtr& transportLayerProperties,
+                                                     const PropertyObjectPtr& authenticationObject,
+                                                     const PropertyObjectPtr& tlsProperties,
+                                                     const std::shared_ptr<boost::asio::io_context>& ioContextPtr)
+    : NativeStreamingClientImpl(context, transportLayerProperties, authenticationObject, ioContextPtr)
+{
+    this->tlsProperties = tlsProperties;
+}
+
+#endif
 
 NativeStreamingClientImpl::~NativeStreamingClientImpl()
 {
@@ -252,6 +267,12 @@ void NativeStreamingClientImpl::checkReconnectionResult(const boost::system::err
             connectionStatusChanged(Enumeration("ConnectionStatusType", "Unrecoverable", this->context.getTypeManager()),
                                     "Reconnection failed – no valid device found at the connection address");
         }
+        else if (result == ConnectionResult::SecurityRejected)
+        {
+            // the same secrets will be refused again, so this is not retried
+            connectionStatusChanged(Enumeration("ConnectionStatusType", "Unrecoverable", this->context.getTypeManager()),
+                                    "Reconnection failed – the secure connection could not be established");
+        }
         else
         {
             tryReconnect();
@@ -304,10 +325,21 @@ void NativeStreamingClientImpl::tryReconnect()
         }
     }
 
-    if (clientWasReinitialized)
-        initClient(primaryHost, primaryPort, primaryPath);
+    // this runs as a timer handler on the transport thread, where an escaping exception would take
+    // the process down rather than fail the connection. Building the client can throw now that it
+    // may have to read TLS secrets off disk
+    try
+    {
+        if (clientWasReinitialized)
+            initClient(primaryHost, primaryPort, primaryPath);
 
-    client->connect(connectionTimeout);
+        client->connect(connectionTimeout);
+    }
+    catch (const std::exception& e)
+    {
+        onConnectionFailed(fmt::format("Reconnection failed while setting the connection up: {}", e.what()),
+                           ConnectionResult::SecurityRejected);
+    }
 }
 
 void NativeStreamingClientImpl::connectionStatusChanged(const EnumerationPtr& status, const StringPtr& statusMessage)
@@ -573,6 +605,70 @@ void NativeStreamingClientImpl::initClientSessionHandler(SessionPtr session)
     connectedPromise.set_value(ConnectionResult::Connected);
 }
 
+#if NATIVE_STREAMING_ENABLE_TLS
+
+std::optional<daq::native_streaming::ClientTlsConfig> NativeStreamingClientImpl::parseTlsConfig()
+{
+    if (!tlsProperties.assigned())
+        return std::nullopt;
+
+    daq::native_streaming::ClientTlsConfig tlsConfig;
+
+#ifdef NATIVE_STREAMING_TLS_WITHOUT_SIGN
+    tlsConfig.verifyServer = false;
+#else
+    tlsConfig.verifyServer = tlsProperties.hasProperty(PROPERTY_VERIFY_SERVER_CERT_CLIENT)
+                                 ? static_cast<bool>(tlsProperties.getPropertyValue(PROPERTY_VERIFY_SERVER_CERT_CLIENT))
+                                 : DEFAULT_VERIFY_SERVER_CERT;
+
+    const auto readPath = [this](const char* name) -> std::string
+    {
+        if (!tlsProperties.hasProperty(name))
+            return {};
+        return StringPtr(tlsProperties.getPropertyValue(name)).toStdString();
+    };
+
+    const bool mutualTls = tlsProperties.hasProperty(PROPERTY_ENABLE_MTLS_CLIENT)
+                               ? static_cast<bool>(tlsProperties.getPropertyValue(PROPERTY_ENABLE_MTLS_CLIENT))
+                               : false;
+
+    if (tlsConfig.verifyServer)
+    {
+        tlsConfig.caFile = readPath(PROPERTY_CA_CERT_FILE_PATH_CLIENT);
+        if (tlsConfig.caFile.empty())
+            DAQ_THROW_EXCEPTION(InvalidParameterException,
+                                "\"{}\" is required to verify the server. Set it, or turn \"{}\" off to accept "
+                                "whatever certificate the server presents.",
+                                PROPERTY_CA_CERT_FILE_PATH_CLIENT,
+                                PROPERTY_VERIFY_SERVER_CERT_CLIENT);
+    }
+
+    if (mutualTls)
+    {
+        tlsConfig.certFile = readPath(PROPERTY_CERT_FILE_PATH_CLIENT);
+        tlsConfig.keyFile = readPath(PROPERTY_KEY_FILE_PATH_CLIENT);
+
+        if (tlsConfig.certFile.empty() || tlsConfig.keyFile.empty())
+            DAQ_THROW_EXCEPTION(InvalidParameterException,
+                                "\"{}\" and \"{}\" are both required when \"{}\" is on.",
+                                PROPERTY_CERT_FILE_PATH_CLIENT,
+                                PROPERTY_KEY_FILE_PATH_CLIENT,
+                                PROPERTY_ENABLE_MTLS_CLIENT);
+
+        // an unverified server is not trusted to be the intended one, so there is no one to present
+        // a certificate to; the library drops it rather than hand it to an unknown peer
+        if (!tlsConfig.verifyServer)
+            LOG_W("\"{}\" is off, so the client certificate is not sent: presenting it to a server which "
+                  "has not been authenticated would disclose it to whoever answered.",
+                  PROPERTY_VERIFY_SERVER_CERT_CLIENT);
+    }
+#endif
+
+    return tlsConfig;
+}
+
+#endif
+
 Authentication NativeStreamingClientImpl::initClientAuthenticationObject(const PropertyObjectPtr& authenticationObject)
 {
     const StringPtr username = authenticationObject.getPropertyValue("Username");
@@ -651,6 +747,34 @@ void NativeStreamingClientImpl::initClient(std::string host,
                                                 static_cast<LogLevel>(level));
     };
 
+#if NATIVE_STREAMING_ENABLE_TLS
+    if (const auto tlsConfig = parseTlsConfig(); tlsConfig.has_value())
+    {
+        // the connection is not retried against the alternative addresses the way an unreachable server is
+        OnCompleteCallback onTlsHandshakeFailCallback =
+            [thisWeakPtr = this->weak_from_this()](const boost::system::error_code& ec)
+        {
+            if (const auto thisPtr = thisWeakPtr.lock())
+                thisPtr->onConnectionFailed(fmt::format("TLS handshake failed: {}", ec.message()),
+                                            ConnectionResult::SecurityRejected);
+        };
+
+        client = std::make_shared<Client>(host,
+                                          port,
+                                          path,
+                                          clientAuth,
+                                          onNewSessionCallback,
+                                          onResolveFailCallback,
+                                          onConnectFailCallback,
+                                          onHandshakeFailCallback,
+                                          ioContextPtr,
+                                          logCallback,
+                                          *tlsConfig,
+                                          onTlsHandshakeFailCallback);
+        return;
+    }
+#endif
+
     client = std::make_shared<Client>(host,
                                       port,
                                       path,
@@ -704,9 +828,27 @@ NativeStreamingClientHandler::NativeStreamingClientHandler(const ContextPtr& con
     , loggerComponent(context.getLogger().getOrAddComponent("NativeStreamingClientHandler"))
     , clientHandlerPtr(std::make_shared<NativeStreamingClientImpl>(context, transportLayerProperties, authenticationObject, ioContextPtr))
     , toDeviceStreamingEnabled(true)
+    , transport(CONST_NATIVE_TRANSPORT_PLAIN)
 {
     startTransportOperations();
 }
+
+#if NATIVE_STREAMING_ENABLE_TLS
+
+NativeStreamingClientHandler::NativeStreamingClientHandler(const ContextPtr& context,
+                                                           const PropertyObjectPtr& transportLayerProperties,
+                                                           const PropertyObjectPtr& authenticationObject,
+                                                           const PropertyObjectPtr& tlsProperties)
+    : ioContextPtr(std::make_shared<boost::asio::io_context>())
+    , loggerComponent(context.getLogger().getOrAddComponent("NativeStreamingClientHandler"))
+    , clientHandlerPtr(std::make_shared<NativeStreamingClientImpl>(context, transportLayerProperties, authenticationObject, tlsProperties, ioContextPtr))
+    , toDeviceStreamingEnabled(true)
+    , transport(CONST_NATIVE_TRANSPORT_TLS)
+{
+    startTransportOperations();
+}
+
+#endif
 
 NativeStreamingClientHandler::~NativeStreamingClientHandler()
 {
@@ -819,6 +961,11 @@ bool NativeStreamingClientHandler::supportsToDeviceStreaming()
 void NativeStreamingClientHandler::setAlternativeAddresses(const ListPtr<IString>& alternativeAddresses)
 {
     clientHandlerPtr->setAlternativeAddresses(alternativeAddresses);
+}
+
+const std::string& NativeStreamingClientHandler::getTransport() const
+{
+    return transport;
 }
 
 void NativeStreamingClientHandler::startTransportOperations()

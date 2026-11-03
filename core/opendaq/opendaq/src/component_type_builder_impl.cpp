@@ -12,6 +12,7 @@ ComponentTypeBuilderImpl::ComponentTypeBuilderImpl(ComponentTypeSort sort)
     : sort(sort)
     , deviceKind(DeviceKind::Unspecified)
     , supportedAuthenticationMethods((sort == ComponentTypeSort::Device || sort == ComponentTypeSort::Streaming) ?  Dict<IString, IAuthenticationMethod>() : nullptr)
+    , transports(Dict<IString, IInteger>())
 {
 }
 
@@ -210,6 +211,34 @@ ErrCode ComponentTypeBuilderImpl::getLinkedDeviceType(IDeviceType** deviceType)
         return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOT_SUPPORTED, "getLinkedDeviceType only applies to a Streaming type");
 
     *deviceType = this->linkedDeviceType.addRefAndReturn();
+    return OPENDAQ_SUCCESS;
+}
+
+ErrCode ComponentTypeBuilderImpl::setAvailableTransports(IDict* transports)
+{
+    OPENDAQ_PARAM_NOT_NULL(transports);
+
+    if (sort != ComponentTypeSort::Device && sort != ComponentTypeSort::Streaming && sort != ComponentTypeSort::Server)
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOT_SUPPORTED, "setAvailableTransports only applies to a Device, Streaming or Server type");
+
+    return daqTry([&]
+    {
+        for (const auto& [name, port] : DictPtr<IBaseObject, IBaseObject>::Borrow(transports))
+        {
+            if (!name.assigned() || name.getCoreType() != ctString || !port.assigned() || port.getCoreType() != ctInt)
+                return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDTYPE, "Transport names must be strings and their ports integers");
+        }
+
+        this->transports = transports;
+        return OPENDAQ_SUCCESS;
+    });
+}
+
+ErrCode ComponentTypeBuilderImpl::getAvailableTransports(IDict** transports)
+{
+    OPENDAQ_PARAM_NOT_NULL(transports);
+
+    *transports = this->transports.addRefAndReturn();
     return OPENDAQ_SUCCESS;
 }
 

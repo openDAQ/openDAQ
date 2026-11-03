@@ -263,6 +263,22 @@ std::string DiscoveryUtils::authenticationMethodsToTxt(const ListPtr<IString>& a
     return result;
 }
 
+// Joins the transports into one TXT value, keeping their order - server side. Empty if there are none.
+std::string DiscoveryUtils::transportsToTxt(const DictPtr<IString, IInteger>& transports)
+{
+    if (!transports.assigned())
+        return "";
+
+    std::string result;
+    for (const auto& [name, port] : transports)
+    {
+        if (!result.empty())
+            result += ",";
+        result += name.toStdString() + ":" + std::to_string(static_cast<Int>(port));
+    }
+    return result;
+}
+
 // Splits a comma-separated "authMethods" TXT value back into a list of authentication method ids - client
 // side. Empty for an empty `txtValue`.
 ListPtr<IString> DiscoveryUtils::populateAuthenticationMethods(const std::string& txtValue)
@@ -280,6 +296,33 @@ ListPtr<IString> DiscoveryUtils::populateAuthenticationMethods(const std::string
     }
 
     return methods;
+}
+
+// Splits a "transports" TXT value back into transport names and ports, in order - client side.
+// Entries which are not "name:port" are skipped.
+DictPtr<IString, IInteger> DiscoveryUtils::populateTransports(const std::string& txtValue)
+{
+    auto transports = Dict<IString, IInteger>();
+
+    std::stringstream ss(txtValue);
+    std::string entry;
+    while (std::getline(ss, entry, ','))
+    {
+        const auto separator = entry.rfind(':');
+        if (separator == std::string::npos || separator == 0 || separator + 1 == entry.size())
+            continue;
+
+        try
+        {
+            const auto port = std::stoi(entry.substr(separator + 1));
+            transports.set(entry.substr(0, separator), port);
+        }
+        catch (const std::exception&)
+        {
+        }
+    }
+
+    return transports;
 }
 
 END_NAMESPACE_DISCOVERY_COMMON

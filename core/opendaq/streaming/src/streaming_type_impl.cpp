@@ -1,4 +1,6 @@
 #include <opendaq/streaming_type_impl.h>
+#include <opendaq/add_streaming_config_factory.h>
+#include <coreobjects/property_factory.h>
 #include <coretypes/validation.h>
 
 BEGIN_NAMESPACE_OPENDAQ
@@ -9,8 +11,9 @@ StreamingTypeImpl::StreamingTypeImpl(const StringPtr& id,
                                             const StringPtr& prefix,
                                             const PropertyObjectPtr& defaultConfig,
                                             const DictPtr<IString, IAuthenticationMethod>& supportedAuthenticationMethods,
-                                            const DeviceTypePtr& linkedDeviceType)
-    : Super(StreamingTypeStructType(), id, name, description, prefix, defaultConfig, supportedAuthenticationMethods)
+                                            const DeviceTypePtr& linkedDeviceType,
+                                            const DictPtr<IString, IInteger>& transports)
+    : Super(StreamingTypeStructType(), id, name, description, prefix, defaultConfig, supportedAuthenticationMethods, transports)
     , linkedDeviceType(linkedDeviceType)
 {
 }
@@ -22,7 +25,8 @@ StreamingTypeImpl::StreamingTypeImpl(const ComponentTypeBuilderPtr& builder)
                         builder.getConnectionStringPrefix(),
                         builder.getDefaultConfig(),
                         builder.getSupportedAuthenticationMethods(),
-                        builder.getLinkedDeviceType())
+                        builder.getLinkedDeviceType(),
+                        builder.getAvailableTransports())
 {
 }
 
@@ -46,10 +50,27 @@ ErrCode StreamingTypeImpl::createDefaultConfig(IPropertyObject** defaultConfig)
 {
     OPENDAQ_PARAM_NOT_NULL(defaultConfig);
 
+    PropertyObjectPtr config;
     if (linkedDeviceType.assigned())
-        return linkedDeviceType->createDefaultConfig(defaultConfig);
+        OPENDAQ_RETURN_IF_FAILED(linkedDeviceType->createDefaultConfig(&config));
+    else
+        OPENDAQ_RETURN_IF_FAILED(Super::createDefaultConfig(&config));
 
-    return Super::createDefaultConfig(defaultConfig);
+    const ErrCode errCode = daqTry([this, &config]
+    {
+        // The config lent by a linked device type carries the device's transport selection, while the streaming
+        // selects its own
+        if (linkedDeviceType.assigned() && config.hasProperty("AddDeviceConfig"))
+            config.removeProperty("AddDeviceConfig");
+
+        // Temporary bridge: carries the transport selection until the add-streaming config replaces this plain config
+        if (transports.getCount() > 0 && !config.hasProperty("AddStreamingConfig"))
+            config.addProperty(ObjectProperty("AddStreamingConfig", AddStreamingConfig(transports.getKeyList())));
+    });
+    OPENDAQ_RETURN_IF_FAILED(errCode);
+
+    *defaultConfig = config.detach();
+    return OPENDAQ_SUCCESS;
 }
 
 ErrCode StreamingTypeImpl::createAuthenticationConfig(IAuthenticationConfig** config)
@@ -101,6 +122,12 @@ ErrCode INTERFACE_FUNC StreamingTypeImpl::serialize(ISerializer* serializer)
             {
                 serializerPtr.key("prefix");
                 serializerPtr.writeString(prefix);
+            }
+
+            if (transports.getCount() > 0)
+            {
+                serializerPtr.key("availableTransports");
+                transports.serialize(serializerPtr);
             }
 
             if (defaultConfig.assigned())
@@ -172,6 +199,10 @@ ErrCode StreamingTypeImpl::Deserialize(ISerializedObject* serialized, IBaseObjec
         if (serializedObj.hasKey("prefix"))
             prefix = serializedObj.readString("prefix");
 
+        DictPtr<IString, IInteger> transports;
+        if (serializedObj.hasKey("availableTransports"))
+            transports = serializedObj.readObject("availableTransports", contextPtr, factoryCallbackPtr);
+
         PropertyObjectPtr defaultConfig;
         if (serializedObj.hasKey("defaultConfig"))
             defaultConfig = serializedObj.readObject("defaultConfig", contextPtr, factoryCallbackPtr);
@@ -185,7 +216,7 @@ ErrCode StreamingTypeImpl::Deserialize(ISerializedObject* serialized, IBaseObjec
             linkedDeviceType = serializedObj.readObject("linkedDeviceType", contextPtr, factoryCallbackPtr).asPtr<IDeviceType>();
 
         auto streamingType = createWithImplementation<IStreamingType, StreamingTypeImpl>(
-            id, name, description, prefix, defaultConfig, supportedAuthenticationMethods, linkedDeviceType);
+            id, name, description, prefix, defaultConfig, supportedAuthenticationMethods, linkedDeviceType, transports);
 
         ModuleInfoPtr moduleInfo;
         if (serializedObj.hasKey("moduleInfo"))

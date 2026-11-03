@@ -127,8 +127,12 @@ DECLARE_OPENDAQ_INTERFACE(IServerCapability, IPropertyObject)
     virtual ErrCode INTERFACE_FUNC getAddresses(IList** addresses) = 0;
 
     /*!
-     * @brief Gets the port of the device with the current protocol.
+     * @brief Gets the port of the default transport.
      * @param[out] port The port of the device.
+     *
+     * @deprecated Use getAvailableTransports instead.
+     * Returns the port assigned to the first (default) entry of getAvailableTransports,
+     * or the stored port when no transports are set.
      */
     virtual ErrCode INTERFACE_FUNC getPort(IInteger** port) = 0;
     
@@ -164,6 +168,17 @@ DECLARE_OPENDAQ_INTERFACE(IServerCapability, IPropertyObject)
      * @param[out] methods The list of supported authentication methods ids.
      */
     virtual ErrCode INTERFACE_FUNC getAuthenticationMethods(IList** methods) = 0;
+
+    // [templateType(transports, IString, IInteger)]
+    /*!
+     * @brief Gets the transports the server accepts connections over, with the port assigned to each.
+     * @param[out] transports A dictionary mapping a transport name (e.g. "plain", "tls", "https", "wss") to its port.
+     *
+     * The dictionary preserves insertion order. The first entry is the default transport,
+     * and its port is the one returned by getPort.
+     */
+    virtual ErrCode INTERFACE_FUNC getAvailableTransports(IDict** transports) = 0;
+
 };
 /*!@}*/
 

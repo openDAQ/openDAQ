@@ -31,6 +31,7 @@
 #include <packet_streaming/packet_streaming_server.h>
 
 #include <future>
+#include <optional>
 
 BEGIN_NAMESPACE_OPENDAQ_NATIVE_STREAMING_PROTOCOL
 
@@ -46,6 +47,19 @@ public:
                                        const PropertyObjectPtr& transportLayerProperties,
                                        const PropertyObjectPtr& authenticationObject,
                                        const std::shared_ptr<boost::asio::io_context>& ioContextPtr);
+
+#if NATIVE_STREAMING_ENABLE_TLS
+
+    /// @brief constructs a client which connects over TLS
+    /// @param tlsProperties the certificate paths and the verification settings
+    /// Under NATIVE_STREAMING_TLS_WITHOUT_SIGN its contents are ignored and the server is never verified
+    explicit NativeStreamingClientImpl(const ContextPtr& context,
+                                       const PropertyObjectPtr& transportLayerProperties,
+                                       const PropertyObjectPtr& authenticationObject,
+                                       const PropertyObjectPtr& tlsProperties,
+                                       const std::shared_ptr<boost::asio::io_context>& ioContextPtr);
+
+#endif
 
     ~NativeStreamingClientImpl();
 
@@ -90,6 +104,16 @@ protected:
     void manageTransportLayerProps();
     void initClientSessionHandler(SessionPtr session);
     daq::native_streaming::Authentication initClientAuthenticationObject(const PropertyObjectPtr& authenticationObject);
+
+#if NATIVE_STREAMING_ENABLE_TLS
+
+    /// @brief reads the TLS settings out of the dedicated property object
+    /// @return the settings, or nothing when the client was built for a plaintext connection
+    /// @throw InvalidParameterException the settings are incomplete
+    std::optional<daq::native_streaming::ClientTlsConfig> parseTlsConfig();
+
+#endif
+
     void initClient(std::string host,
                     std::string port,
                     std::string path);
@@ -110,7 +134,8 @@ protected:
     {
         Connected = 0,
         ServerUnreachable,
-        ServerUnsupported
+        ServerUnsupported,
+        SecurityRejected
     };
 
     void onConnectionFailed(const std::string& errorMessage, const ConnectionResult result);
@@ -123,6 +148,9 @@ protected:
     ContextPtr context;
     PropertyObjectPtr transportLayerProperties;
     PropertyObjectPtr authenticationObject;
+#if NATIVE_STREAMING_ENABLE_TLS
+    PropertyObjectPtr tlsProperties;
+#endif
     std::shared_ptr<boost::asio::io_context> ioContextPtr;
     LoggerComponentPtr loggerComponent;
 
@@ -197,6 +225,18 @@ public:
                                           const PropertyObjectPtr& transportLayerProperties,
                                           const PropertyObjectPtr& authenticationObject);
 
+#if NATIVE_STREAMING_ENABLE_TLS
+
+    /// @brief constructs a handler whose client connects over TLS
+    /// @param tlsProperties the certificate paths and the verification settings
+    /// Under NATIVE_STREAMING_TLS_WITHOUT_SIGN its contents are ignored and the server is never verified
+    explicit NativeStreamingClientHandler(const ContextPtr& context,
+                                          const PropertyObjectPtr& transportLayerProperties,
+                                          const PropertyObjectPtr& authenticationObject,
+                                          const PropertyObjectPtr& tlsProperties);
+
+#endif
+
     ~NativeStreamingClientHandler();
 
     std::shared_ptr<boost::asio::io_context> getIoContext();
@@ -237,6 +277,9 @@ public:
 
     void setAlternativeAddresses(const ListPtr<IString>& alternativeAddresses);
 
+    /// @brief the name of the transport the client connects over ("plain" or "tls")
+    const std::string& getTransport() const;
+
 protected:
     void startTransportOperations();
     void stopTransportOperations();
@@ -246,6 +289,7 @@ protected:
     LoggerComponentPtr loggerComponent;
     std::shared_ptr<NativeStreamingClientImpl> clientHandlerPtr;
     bool toDeviceStreamingEnabled;
+    const std::string transport;
 };
 
 END_NAMESPACE_OPENDAQ_NATIVE_STREAMING_PROTOCOL

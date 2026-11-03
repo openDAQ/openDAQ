@@ -143,6 +143,9 @@ void wrapDaqComponentOpenDaq(pybind11::module_ m)
     auto classICredentialRequestBuilder = declareICredentialRequestBuilder(m);
     auto classILoginParameters = declareILoginParameters(m);
     auto classILoginParametersBuilder = declareILoginParametersBuilder(m);
+    auto classIAddComponentConfig = declareIAddComponentConfig(m);
+    auto classIAddDeviceConfig = declareIAddDeviceConfig(m);
+    auto classIAddStreamingConfig = declareIAddStreamingConfig(m);
 
     defineIModuleInfo(m, classIModuleInfo);
     defineIComponentType(m, classIComponentType);
@@ -259,6 +262,9 @@ void wrapDaqComponentOpenDaq(pybind11::module_ m)
     defineICredentialRequestBuilder(m, classICredentialRequestBuilder);
     defineILoginParameters(m, classILoginParameters);
     defineILoginParametersBuilder(m, classILoginParametersBuilder);
+    defineIAddComponentConfig(m, classIAddComponentConfig);
+    defineIAddDeviceConfig(m, classIAddDeviceConfig);
+    defineIAddStreamingConfig(m, classIAddStreamingConfig);
 
     defineComponentSearchFilterFactories(m);
 

@@ -19,6 +19,7 @@
 #include <coreobjects/property_object_ptr.h>
 #include <coretypes/intfs.h>
 #include <coretypes/string_ptr.h>
+#include <coretypes/dictptr.h>
 #include <opendaq/module_info_ptr.h>
 #include <opendaq/authentication_method_ptr.h>
 #include <coretypes/dict_ptr.h>
@@ -59,6 +60,9 @@ public:
     ErrCode INTERFACE_FUNC setLinkedDeviceType(IDeviceType* deviceType) override;
     ErrCode INTERFACE_FUNC getLinkedDeviceType(IDeviceType** deviceType) override;
 
+    ErrCode INTERFACE_FUNC setAvailableTransports(IDict* transports) override;
+    ErrCode INTERFACE_FUNC getAvailableTransports(IDict** transports) override;
+
 private:
     ComponentTypeSort sort;
     StringPtr id;
@@ -70,6 +74,7 @@ private:
     DeviceKind deviceKind;
     DictPtr<IString, IAuthenticationMethod> supportedAuthenticationMethods;
     DeviceTypePtr linkedDeviceType;
+    DictPtr<IString, IInteger> transports;
 };
 
 END_NAMESPACE_OPENDAQ

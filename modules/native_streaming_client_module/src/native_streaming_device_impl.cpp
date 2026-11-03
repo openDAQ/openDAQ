@@ -1,4 +1,5 @@
 #include <native_streaming_client_module/native_streaming_device_impl.h>
+#include <native_streaming_protocol/native_streaming_constants.h>
 #include <native_streaming_client_module/native_streaming_signal_impl.h>
 #include <native_streaming_client_module/native_streaming_impl.h>
 #include <native_streaming_client_module/native_device_utils.h>
@@ -27,6 +28,7 @@ NativeStreamingDeviceImpl::NativeStreamingDeviceImpl(const ContextPtr& ctx,
 : Device(ctx, parent, localId)
   , connectionString(connectionString)
   , connectionStatus(Enumeration("ConnectionStatusType", "Connected", this->context.getTypeManager()))
+  , connectedStatusMessage(buildConnectedStatusMessage(transportProtocolClient->getTransport()))
   , deviceType(type)
   , transportProtocolClient(transportProtocolClient)
 {
@@ -39,6 +41,13 @@ NativeStreamingDeviceImpl::NativeStreamingDeviceImpl(const ContextPtr& ctx,
                           initTimeout);
     activateStreaming();
     this->connectionStatusContainer.addStreamingConnectionStatus(connectionString, connectionStatus, nativeStreaming);
+    // the status is added with an empty message, while the "Connected" one names the transport
+    this->connectionStatusContainer.asPtr<IConnectionStatusContainerPrivate>().updateConnectionStatusWithMessage(
+        connectionString,
+        connectionStatus,
+        nativeStreaming,
+        connectedStatusMessage
+    );
     this->statusContainer.asPtr<IComponentStatusContainerPrivate>().addStatus("ConnectionStatus", connectionStatus);
 }
 
@@ -52,7 +61,7 @@ ErrCode NativeStreamingDeviceImpl::setComponentConfig(IPropertyObject* config)
     ListPtr<IString> alternativeAddresses;
     const ErrCode errCode = collectAlternativeAddresses(componentConfig, 
                                                         deviceInfo,
-                                                        NativeStreamingDeviceTypeId, 
+                                                        CONST_NATIVE_STREAMING_ID, 
                                                         alternativeAddresses);
     
     OPENDAQ_RETURN_IF_FAILED(errCode);
@@ -288,7 +297,7 @@ void NativeStreamingDeviceImpl::connectionStatusChangedHandler(const Enumeration
         this->connectionString,
         connectionStatus,
         nativeStreaming,
-        statusMessage
+        status == "Connected" && statusMessage == "" ? connectedStatusMessage : statusMessage
     );
 }
 

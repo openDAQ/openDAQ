@@ -11,6 +11,7 @@ function(rtgen_component_${BASE_NAME})
     rtgen(SRC_ServerCapabilityConfig server_capability_config.h)
     rtgen(SRC_IoFolderConfig io_folder_config.h)
     rtgen(SRC_DeviceType device_type.h)
+    rtgen(SRC_AddDeviceConfig add_device_config.h)
     rtgen(SRC_AddressInfo address_info.h)
     rtgen(SRC_AddressInfoBuilder address_info_builder.h)
     rtgen(SRC_AddressInfoPrivate address_info_private.h)
@@ -34,6 +35,7 @@ function(rtgen_component_${BASE_NAME})
         ${SRC_ServerCapabilityConfig_PublicHeaders}
         ${SRC_IoFolderConfig_PublicHeaders}
         ${SRC_DeviceType_PublicHeaders}
+        ${SRC_AddDeviceConfig_PublicHeaders}
         ${SRC_AddressInfo_PublicHeaders}
         ${SRC_AddressInfoBuilder_PublicHeaders}
         ${SRC_AddressInfoPrivate_PublicHeaders}
@@ -58,6 +60,7 @@ function(rtgen_component_${BASE_NAME})
         ${SRC_ServerCapabilityConfig_PrivateHeaders}
         ${SRC_IoFolderConfig_PrivateHeaders}
         ${SRC_DeviceType_PrivateHeaders}
+        ${SRC_AddDeviceConfig_PrivateHeaders}
         ${SRC_AddressInfo_PrivateHeaders}
         ${SRC_AddressInfoBuilder_PrivateHeaders}
         ${SRC_LogFileInfo_PrivateHeaders}
@@ -81,6 +84,7 @@ function(rtgen_component_${BASE_NAME})
         ${SRC_ServerCapabilityConfig_Cpp}
         ${SRC_IoFolderConfig_Cpp}
         ${SRC_DeviceType_Cpp}
+        ${SRC_AddDeviceConfig_Cpp}
         ${SRC_AddressInfo_Cpp}
         ${SRC_AddressInfoBuilder_Cpp}
         ${SRC_LogFileInfo_Cpp}
@@ -129,6 +133,10 @@ function(create_component_source_groups_${BASE_NAME})
         ${SDK_HEADERS_DIR}/device_type_impl.h
         ${SDK_HEADERS_DIR}/device_type_factory.h
         ${SDK_SRC_DIR}/device_type_impl.cpp
+        ${SDK_HEADERS_DIR}/add_device_config.h
+        ${SDK_HEADERS_DIR}/add_device_config_impl.h
+        ${SDK_HEADERS_DIR}/add_device_config_factory.h
+        ${SDK_SRC_DIR}/add_device_config_impl.cpp
     )
     
     source_group("device//io_folder" FILES 
@@ -194,6 +202,7 @@ set(SRC_PublicHeaders_Component
     io_folder_factory.h
     io_folder_impl.h
     device_type_factory.h
+    add_device_config_factory.h
     device_private.h
     core_opendaq_event_args_factory.h
     core_opendaq_event_args.h
@@ -219,6 +228,7 @@ set(SRC_PublicHeaders_Component
 set(SRC_PrivateHeaders_Component
     device_info_impl.h
     device_type_impl.h
+    add_device_config_impl.h
     device_domain_impl.h
     address_info_impl.h
     address_info_builder_impl.h
@@ -235,6 +245,7 @@ set(SRC_Cpp_Component
     device_impl.cpp
     io_folder_impl.cpp
     device_type_impl.cpp
+    add_device_config_impl.cpp
     core_opendaq_event_args_impl.cpp
     server_capability_impl.cpp
     device_domain_impl.cpp

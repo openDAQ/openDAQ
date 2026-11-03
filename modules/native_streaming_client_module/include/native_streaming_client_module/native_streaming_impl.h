@@ -23,9 +23,6 @@
 
 BEGIN_NAMESPACE_OPENDAQ_NATIVE_STREAMING_CLIENT_MODULE
 
-static const char* NativeStreamingPrefix = "daq.ns";
-static const char* NativeStreamingID = "OpenDAQNativeStreaming";
-
 DECLARE_OPENDAQ_INTERFACE(INativeStreamingPrivate, IBaseObject)
 {
     virtual void INTERFACE_FUNC upgradeToSafeProcessingCallbacks() = 0;
@@ -74,6 +71,7 @@ protected:
     void requestStreamingOnReconnection();
 
     opendaq_native_streaming_protocol::NativeStreamingClientHandlerPtr transportClientHandler;
+    const StringPtr transport;
 
     // pseudo device callbacks
     ProcedurePtr onDeviceSignalAvailableCallback;

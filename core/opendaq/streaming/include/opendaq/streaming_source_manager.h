@@ -18,6 +18,7 @@
 
 #include <opendaq/mirrored_device_config_ptr.h>
 #include <atomic>
+#include <algorithm>
 #include <map>
 #include <optional>
 #include <unordered_set>
@@ -26,6 +27,8 @@
 #include <opendaq/search_filter_factory.h>
 #include <opendaq/mirrored_signal_config_ptr.h>
 #include <opendaq/module_manager_utils_ptr.h>
+#include <opendaq/add_component_config_ptr.h>
+#include <opendaq/connection_string_utils.h>
 
 #include <opendaq/mirrored_input_port_config_ptr.h>
 
@@ -63,6 +66,10 @@ private:
     ListPtr<IAddressInfo> getSuitableAddressesInfo(const ListPtr<IAddressInfo>& availableAddressesInfo,
                                                    const AddressInfoPtr& deviceConnectionAddress);
     static AddressInfoPtr getDeviceConnectionAddress(const DevicePtr& device);
+    template <typename TTypes>
+    static StringPtr findTypeIdByPrefix(const TTypes& types, const StringPtr& prefix);
+    StringPtr getSelectedTransport(const std::string& section, const StringPtr& typeId, const std::string& addConfigName) const;
+    StringPtr getDeviceTransport(const ModuleManagerUtilsPtr& managerUtils) const;
     void completeStreamingConnections(const MirroredDeviceConfigPtr& topDevice);
     void attachStreamingToDevice(const MirroredDeviceConfigPtr& device);
     std::unordered_map<std::string, ListPtr<IAddressInfo>> buildDiscoveredStreamingAddrsByProtocol(const MirroredDeviceConfigPtr& device);
@@ -471,6 +478,58 @@ inline AddressInfoPtr StreamingSourceManager::getDeviceConnectionAddress(const D
     return nullptr;
 }
 
+// The id of the device or streaming type connected to with the given connection string prefix
+template <typename TTypes>
+StringPtr StreamingSourceManager::findTypeIdByPrefix(const TTypes& types, const StringPtr& prefix)
+{
+    if (!prefix.assigned())
+        return nullptr;
+
+    for (const auto& [typeId, type] : types)
+    {
+        if (type.getConnectionStringPrefix() == prefix)
+            return typeId;
+    }
+
+    return nullptr;
+}
+
+// The transport selected in the add-device config for the type in the "Device" or "Streaming" section,
+// if the type lists transports
+inline StringPtr StreamingSourceManager::getSelectedTransport(const std::string& section,
+                                                              const StringPtr& typeId,
+                                                              const std::string& addConfigName) const
+{
+    if (!typeId.assigned() || !deviceConfig.hasProperty(section))
+        return nullptr;
+
+    const PropertyObjectPtr typesConfig = deviceConfig.getPropertyValue(section);
+    if (!typesConfig.hasProperty(typeId))
+        return nullptr;
+
+    const PropertyObjectPtr typeConfig = typesConfig.getPropertyValue(typeId);
+    if (!typeConfig.hasProperty(addConfigName))
+        return nullptr;
+
+    const auto addConfig = typeConfig.getPropertyValue(addConfigName).asPtrOrNull<IAddComponentConfig, AddComponentConfigPtr>();
+    return addConfig.assigned() ? addConfig.getTransport() : nullptr;
+}
+
+// The transport the user selected for the configuration connection of the device the add-device config belongs to
+inline StringPtr StreamingSourceManager::getDeviceTransport(const ModuleManagerUtilsPtr& managerUtils) const
+{
+    const auto ownerDevice = ownerDeviceRef.assigned() ? ownerDeviceRef.getRef() : nullptr;
+    if (!ownerDevice.assigned())
+        return nullptr;
+
+    const auto configurationConnectionInfo = ownerDevice.getInfo().getConfigurationConnectionInfo();
+    if (!configurationConnectionInfo.assigned())
+        return nullptr;
+
+    const auto deviceTypeId = findTypeIdByPrefix(managerUtils.getAvailableDeviceTypes(), configurationConnectionInfo.getPrefix());
+    return getSelectedTransport("Device", deviceTypeId, "AddDeviceConfig");
+}
+
 inline void StreamingSourceManager::completeStreamingConnections(const MirroredDeviceConfigPtr& topDevice)
 {
     if (minHopsStreamingHeuristicEnabled)
@@ -506,18 +565,18 @@ inline void StreamingSourceManager::attachStreamingToDevice(const MirroredDevice
     // Keeps the only streaming connection to be established here
     StreamingPtr establishedStreaming;
 
+    // The transport the user selected for the configuration connection
+    const auto deviceTransport = getDeviceTransport(managerUtils);
+
     // connect via all allowed streaming capabilities which are not connected yet
     for (const auto& cap : device.getInfo().getServerCapabilities())
     {
         if (cap.getProtocolType() != ProtocolType::Streaming)
             continue;
 
-        [[maybe_unused]] const auto protoGroupId = cap.getProtocolGroupId();
-
-        LOG_D("Device {} has streaming capability: name [{}] group id [{}] id [{}] string [{}] prefix [{}]",
+        LOG_D("Device {} has streaming capability: name [{}] id [{}] string [{}] prefix [{}]",
               device.getGlobalId(),
               cap.getProtocolName(),
-              protoGroupId.assigned() ? protoGroupId : "<none>",
               cap.getProtocolId(),
               cap.getConnectionString(),
               cap.getPrefix());
@@ -539,6 +598,31 @@ inline void StreamingSourceManager::attachStreamingToDevice(const MirroredDevice
             streamingConnectionStrings.pushBack(addressInfo.getConnectionString());
         if (streamingConnectionStrings.empty())
             streamingConnectionStrings.pushBack(cap.getConnectionString());
+
+        // The streaming connects over the transport selected for its own type, never over the device's one,
+        // at the port the server announces for that transport
+        const auto streamingTypeId = findTypeIdByPrefix(managerUtils.getAvailableStreamingTypes(), cap.getPrefix());
+        const auto transport = getSelectedTransport("Streaming", streamingTypeId, "AddStreamingConfig");
+        const auto capabilityTransports = cap.getAvailableTransports();
+        if (transport.assigned() && capabilityTransports.assigned() && capabilityTransports.getCount() > 0)
+        {
+            if (!capabilityTransports.hasKey(transport))
+            {
+                LOG_W("Device {} streaming capability [{}] does not offer the transport '{}' selected in "
+                      "'Streaming.{}.AddStreamingConfig' of the add-device config, skipping it",
+                      device.getGlobalId(),
+                      capabilityProtocolId,
+                      transport,
+                      streamingTypeId);
+                continue;
+            }
+
+            const Int port = capabilityTransports.get(transport);
+            auto connectionStrings = List<IString>();
+            for (const auto& connectionString : streamingConnectionStrings)
+                connectionStrings.pushBack(ReplaceConnectionStringPort(connectionString, port));
+            streamingConnectionStrings = connectionStrings;
+        }
 
         // try all suitable addresses until the first successful streaming connection
         for (const auto& connectionString : streamingConnectionStrings)
@@ -567,6 +651,16 @@ inline void StreamingSourceManager::attachStreamingToDevice(const MirroredDevice
             else
             {
                 establishedStreaming = streaming;
+
+                if (transport.assigned() && deviceTransport.assigned() && transport != deviceTransport)
+                    LOG_W("Device {} is configured over the '{}' transport, while its streaming {} connects over '{}'. "
+                          "The streaming transport is selected separately, in 'Streaming.{}.AddStreamingConfig' of the "
+                          "add-device config",
+                          device.getGlobalId(),
+                          deviceTransport,
+                          connectionString,
+                          transport,
+                          streamingTypeId);
                 break;
             }
         }

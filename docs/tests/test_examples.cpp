@@ -86,41 +86,6 @@ TEST_F(ExamplesTest, Device)
     ASSERT_TRUE(instance.assigned());
 }
 
-// examples: client_local, stream_reader
-TEST_F(ExamplesTest, Client)
-{
-    SKIP_TEST_MAC_CI;
-
-    using namespace std::chrono_literals;
-
-    InstancePtr server = docs_test_helpers::setupSimulatorServers();
-
-    const InstancePtr instance = Instance();
-    DevicePtr device = instance.addDevice("daq.opcua://127.0.0.1");
-
-    DeviceInfoPtr info = device.getInfo();
-    ASSERT_EQ(info.getName(), "RefDev1");
-
-    StreamReaderPtr reader = StreamReader<double, uint64_t>(device.getSignals(search::Recursive(search::Any()))[0], ReadTimeoutType::Any);
-    
-    {
-        SizeT count = 0;
-        reader.read(nullptr, &count, 1000);
-        // TODO: needed becuase there are two descriptor changes,
-        // due to reference domain "stuff" only being fully supported over Native
-        // can be deleted once full support is added
-        reader.read(nullptr, &count, 1000);
-    }
-
-    double samples[5000];
-    for (int i = 0; i < 10; ++i)
-    {
-        SizeT count = 5000;
-        reader.read(samples, &count, 1000);
-        ASSERT_GT(count, 0u);
-    }
-}
-
 // examples: client_discovery
 TEST_F(ExamplesTest, Discovery)
 {

@@ -77,17 +77,12 @@ opendaq_setup_project_specific_build_options(${SDK_OPTION_PREFIX})
 
 # Feature options
 option(OPENDAQ_ENABLE_PARAMETER_VALIDATION "Enable parameter validation in functions" ON)
-option(OPENDAQ_ENABLE_WEBSOCKET_STREAMING "Enable ${SDK_NAME} websocket streaming" OFF)
-cmake_dependent_option(DAQMODULES_LT_LEGACY_MODULES "Use legacy LT streaming modules" ${OPENDAQ_CI_RUNNER} "OPENDAQ_ENABLE_WEBSOCKET_STREAMING" OFF)
-option(OPENDAQ_ENABLE_WEBSOCKET_STREAMING_WITH_TLS "Enable the TLS (daq.lts://) channel of the LT streaming modules" OFF)
 option(OPENDAQ_THREAD_SAFE "Enable thread-safe implementations where available" ON)
 option(OPENDAQ_MIMALLOC_SUPPORT "Enable MiMalloc-based packet allocator" OFF)
 option(OPENDAQ_ENABLE_NATIVE_STREAMING "Enable ${SDK_NAME} native streaming" OFF)
 option(OPENDAQ_ENABLE_ACCESS_CONTROL "Enable object-level access control" ON)
 option(OPENDAQ_RTGEN_ON_CMAKE_CONFIG "Run RT gen as part of the CMake configuration process to make sure the files exist during development" OFF)
 option(OPENDAQ_ENABLE_OBJECT_POOLS "Enable object pools for integer and float base objects" OFF)
-
-option(OPENDAQ_ENABLE_OPCUA "Enable OpcUa" OFF)
 
 # Bindings
 option(OPENDAQ_GENERATE_DELPHI_BINDINGS "Generate Delphi bindings" OFF)
@@ -99,7 +94,6 @@ option(OPENDAQ_GENERATE_C_BINDINGS "Generate C bindings" OFF)
 option(OPENDAQ_ENABLE_TESTS "Enable testing" ON)
 option(OPENDAQ_ENABLE_OPTIONAL_TESTS "Enable optional (debugging) tests" OFF)
 option(OPENDAQ_ENABLE_COVERAGE "Enable code coverage in testing" OFF)
-option(OPENDAQ_ENABLE_REGRESSION_TESTS "Enable regression testing" OFF)
 option(OPENDAQ_ENABLE_UNSTABLE_TEST_LABELS "Enable labeling unstable tests" OFF)
 
 # Additional build options
@@ -345,13 +339,6 @@ else()
     message(STATUS "MiMalloc allocator disabled")
 endif()
 
-if (OPENDAQ_ENABLE_WEBSOCKET_STREAMING)
-    message(STATUS "Websocket streaming enabled")
-    add_compile_definitions(OPENDAQ_ENABLE_WEBSOCKET_STREAMING)
-else()
-    message(STATUS "Websocket streaming disabled")
-endif()
-
 if (OPENDAQ_ENABLE_NATIVE_STREAMING)
     message(STATUS "Native streaming enabled")
     add_compile_definitions(OPENDAQ_ENABLE_NATIVE_STREAMING)
@@ -359,33 +346,11 @@ else()
     message(STATUS "Native streaming disabled")
 endif()
 
-
-if (OPENDAQ_ENABLE_WEBSOCKET_STREAMING AND (DAQMODULES_OPENDAQ_CLIENT_MODULE OR DAQMODULES_OPENDAQ_SERVER_MODULE) AND DAQMODULES_LT_LEGACY_MODULES)
-    message(STATUS "Legacy LT streaming modules enabled")
-	add_compile_definitions(DAQMODULES_LT_LEGACY_MODULES)
-endif()
-
-# The secure channel lives in the modern LT streaming modules only, and turning it on there is what
-# pulls in their OpenSSL dependency. The option is a plain one, so the rest of the conditions are
-# checked here rather than in the option declaration: with the legacy modules it has no meaning and
-# is ignored.
-if (OPENDAQ_ENABLE_WEBSOCKET_STREAMING AND (DAQMODULES_OPENDAQ_CLIENT_MODULE OR DAQMODULES_OPENDAQ_SERVER_MODULE)
-        AND NOT DAQMODULES_LT_LEGACY_MODULES)
-    if (OPENDAQ_ENABLE_WEBSOCKET_STREAMING_WITH_TLS)
-        message(STATUS "LT streaming TLS channel enabled")
-        add_compile_definitions(OPENDAQ_ENABLE_WEBSOCKET_STREAMING_WITH_TLS)
-    else()
-        message(STATUS "LT streaming TLS channel disabled (no OpenSSL dependency)")
-    endif()
-endif()
-
 opendaq_setup_compiler_flags(${SDK_OPTION_PREFIX})
 
 if (CMAKE_CXX_COMPILER_ID MATCHES "Clang|AppleClang" AND CMAKE_CXX_COMPILER_VERSION VERSION_LESS 10)
     add_compile_options(-Wno-unknown-warning-option)
 endif()
-
-add_subdirectory(external_modules)
 
 include("${PROJ_DIR}/external/boost/Boost.cmake")
 add_compile_definitions(BOOST_ALL_NO_LIB=1)
@@ -397,33 +362,11 @@ add_subdirectory(external)
 add_subdirectory(core)
 add_subdirectory(modules)
 
-if (DEFINED LT_MODULES_SOURCE_DIR)
-    add_subdirectory("${LT_MODULES_SOURCE_DIR}" "${LT_MODULES_BINARY_DIR}")
-endif()
-
-# The OPC UA modules still serve the deprecated ISyncComponent until they move to ISynchronization
-get_directory_property(_opendaq_saved_compile_options COMPILE_OPTIONS)
-add_compile_options(
-    $<$<OR:$<CXX_COMPILER_ID:GNU>,$<CXX_COMPILER_ID:Clang>,$<CXX_COMPILER_ID:AppleClang>>:-Wno-deprecated-declarations>
-    $<$<CXX_COMPILER_ID:MSVC>:/wd4996>
-)
-
-if (DEFINED OPCUA_MODULES_SOURCE_DIR)
-    add_subdirectory("${OPCUA_MODULES_SOURCE_DIR}" "${OPCUA_MODULES_BINARY_DIR}")
-endif()
-opendaq_lock_external_module_tests()
-
-set_directory_properties(PROPERTIES COMPILE_OPTIONS "${_opendaq_saved_compile_options}")
-
 add_subdirectory(shared)
 add_subdirectory(examples)
 add_subdirectory(bindings)
 add_subdirectory(docs)
 add_subdirectory(simulator)
-
-if (OPENDAQ_ENABLE_TESTS)
-    add_subdirectory(tests)
-endif()
 
 if (NOT WIN32)
     set(INSTALLED_MODULES_DIR ${CMAKE_INSTALL_LIBDIR})

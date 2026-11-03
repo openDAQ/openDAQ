@@ -38,9 +38,6 @@ namespace docs_test_helpers
         auto instance = Instance();
         
         instance.setRootDevice("daqref://device1");
-#if defined(OPENDAQ_ENABLE_WEBSOCKET_STREAMING) && defined(OPENDAQ_ENABLE_NATIVE_STREAMING)
-        instance.addServer("OpenDAQLTStreaming", nullptr);
-#endif
         instance.addStandardServers();
         return instance;
     }

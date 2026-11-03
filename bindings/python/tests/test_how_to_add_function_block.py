@@ -7,21 +7,6 @@ import opendaq
 # Corresponding document: Antora/modules/howto_guides/pages/howto_add_function_block.adoc
 class TestDocumentationHow(opendaq_test.TestCase):
 
-    def test_start_simulator(self):
-        # Create openDAQ instance
-        instance = opendaq.Instance()
-
-        # Add a reference device and set it as root
-        instance.set_root_device('daqref://device0')
-        device = instance.root_device
-
-        # Start a web-socket streaming server
-        instance.add_server('OpenDAQLTStreaming', None)
-
-        # Start an openDAQ OPC UA and native streaming servers
-        # TODO: remove assignment to `servers` once OPC UA server destruction order issue is fixed
-        servers = instance.add_standard_servers()
-
     def test_discovering_devices(self):
         # Create openDAQ instance
         instance = opendaq.Instance()

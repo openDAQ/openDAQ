@@ -3,23 +3,10 @@
 #include <fstream>
 
 #include <thread>
-#include "docs_test_helpers.h"
 
 using HowToTest = testing::Test;
 
 BEGIN_NAMESPACE_OPENDAQ
-
-// Corresponding document: Antora/modules/howto_guides/pages/howto_connect_to_device.adoc
-TEST_F(HowToTest, ConnectToDevice1)
-{
-    SKIP_TEST_MAC_CI;
-
-    InstancePtr server = docs_test_helpers::setupSimulatorServers();
-    daq::InstancePtr instance = daq::Instance();
-
-    daq::DevicePtr device = instance.addDevice("daq.opcua://127.0.0.1/");
-    ASSERT_TRUE(device.assigned());
-}
 
 // Corresponding document: Antora/modules/howto_guides/pages/howto_connect_to_device.adoc
 TEST_F(HowToTest, ConnectToDevice2)

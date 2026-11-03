@@ -6,19 +6,6 @@ import opendaq
 
 class TestDocumentationQuickStartGuide(opendaq_test.TestCase):
 
-    def test_start_simulator(self):
-        # Create openDAQ instance
-        instance = opendaq.Instance()
-
-        # Add a reference device and set it as root
-        instance.set_root_device('daqref://device0')
-
-        # Start a web-socket streaming server
-        instance.add_server('OpenDAQLTStreaming', None)
-
-        # Start an openDAQ OPC UA and native streaming servers
-        instance.add_standard_servers()
-
     def test_discovering_devices(self):
         # Create openDAQ instance
         instance = opendaq.Instance()

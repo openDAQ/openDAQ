@@ -265,34 +265,6 @@ public class OpenDaqTranslatedCppTests : OpenDAQTestsBase
     }
 
     [Test]
-    public void ClientLocalTest()
-    {
-        /*
-            // Create an Instance, loading modules at MODULE_PATH
-            const InstancePtr instance = Instance(MODULE_PATH);
-
-            // Connect to device on localhost
-            auto device = instance.addDevice("daq.opcua://127.0.0.1");
-
-            // Output the name and connection string of connected-to device
-            std::cout << "Connected device:" << std::endl;
-            auto info = device.getInfo();
-            std::cout << "Name: " << info.getName() << ", Connection string: " << info.getConnectionString() << std::endl;
-         */
-
-        // Create an Instance, loading modules at MODULE_PATH
-        var instance = OpenDAQFactory.Instance(MODULE_PATH);
-
-        // Connect to device on localhost
-        var device = instance.AddDevice("daq.opcua://127.0.0.1");
-
-        // Output the name and connection string of connected-to device
-        Console.WriteLine("Connected device:");
-        var info = device.Info;
-        Console.WriteLine($"  Name: {info.Name}, Connection string: {info.ConnectionString}");
-    }
-
-    [Test]
     public void FunctionBlockExampleTest()
     {
         /*

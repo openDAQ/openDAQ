@@ -380,12 +380,6 @@ public class OpenDaq_Tests : OpenDAQTestsBase
 
     [TestCase(eDesiredConnection.DaqRef)]
     [TestCase(eDesiredConnection.DaqRef, true)]
-    [TestCase(eDesiredConnection.OpcUa)]
-    [TestCase(eDesiredConnection.OpcUa, true)]
-    [TestCase(eDesiredConnection.WinSock)]
-    [TestCase(eDesiredConnection.WinSock, true)]
-    [TestCase(eDesiredConnection.LocalHost)]
-    [TestCase(eDesiredConnection.LocalHost, true)] //AccessViolation
     public void ConnectDeviceNoUsingsTest(eDesiredConnection desiredConnection, bool disposeDeviceLast = false)
     {
         Console.WriteLine($"Connect first {desiredConnection} device and dispose device {(disposeDeviceLast ? "last" : "first")}");
@@ -405,9 +399,6 @@ public class OpenDaq_Tests : OpenDAQTestsBase
     }
 
     [TestCase(eDesiredConnection.DaqRef)]
-    [TestCase(eDesiredConnection.OpcUa)]
-    [TestCase(eDesiredConnection.WinSock)]
-    [TestCase(eDesiredConnection.LocalHost)]
     public void GetAndConnectAvailableDevicesNoUsingsTest(eDesiredConnection desiredConnection)
     {
         // From CppTests
@@ -535,7 +526,6 @@ public class OpenDaq_Tests : OpenDAQTestsBase
     }
 
     [TestCase(eDesiredConnection.DaqRef)]
-    [TestCase(eDesiredConnection.OpcUa)]
     public void GetAvailableChannelsTest(eDesiredConnection desiredConnection)
     {
         //Hint: below it makes no sense checking objects for null since the functions throw 'OpenDaqException' in case of an error ( Result.Failed(errorCode) )
@@ -586,7 +576,6 @@ public class OpenDaq_Tests : OpenDAQTestsBase
     }
 
     [TestCase(eDesiredConnection.DaqRef)]
-    [TestCase(eDesiredConnection.OpcUa)]
     public void GetAvailableSignalsTest(eDesiredConnection desiredConnection)
     {
         //Hint: below it makes no sense checking objects for null since the functions throw 'OpenDaqException' in case of an error ( Result.Failed(errorCode) )
@@ -628,9 +617,6 @@ public class OpenDaq_Tests : OpenDAQTestsBase
     [TestCase(eDesiredConnection.DaqRef, int.MinValue)]
     [TestCase(eDesiredConnection.DaqRef, ulong.MinValue)]
     [TestCase(eDesiredConnection.DaqRef, double.MinValue)]
-    [TestCase(eDesiredConnection.OpcUa, int.MinValue)]
-    [TestCase(eDesiredConnection.OpcUa, ulong.MinValue)]
-    [TestCase(eDesiredConnection.OpcUa, double.MinValue)]
     public void StreamReaderTest<TValueType>(eDesiredConnection desiredConnection, TValueType _)
         where TValueType : struct
     {
@@ -863,7 +849,6 @@ public class OpenDaq_Tests : OpenDAQTestsBase
 
     //[TestCase("AI_01",  "AnalogValue",  eDesiredConnection.OpcUa)]
     //[TestCase("DIO_7",  "DigitalValue", eDesiredConnection.OpcUa)]
-    [TestCase("RefCh0", "AI0",          eDesiredConnection.OpcUa)]
     [TestCase("RefCh0", "AI0",          eDesiredConnection.DaqRef)]
     public void RendererTest(string searchChannelName, string signalSearchName, eDesiredConnection desiredConnection)
     {

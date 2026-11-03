@@ -1,0 +1,25 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {       
+            "name": "Debug",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/build/x64/gcc/full/debug/bin/test_component_debug.exe",
+            "cwd": "${workspaceFolder}/build/x64/gcc/full/debug/bin",
+            "MIMode": "gdb",
+            "setupCommands": [
+                {
+                    "description": "Enable pretty-printing for gdb",
+                    "text": "-enable-pretty-printing",
+                    "ignoreFailures": true
+                },
+                {
+                    "description": "Explicitly load local .gdbinit from the CMake target directory",
+                    "text": "source ${workspaceFolder}/build/x64/gcc/full/debug/bin/.gdbinit",
+                    "ignoreFailures": true
+                }                
+            ]
+        }
+    ]
+}

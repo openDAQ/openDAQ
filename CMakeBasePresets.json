@@ -111,7 +111,6 @@
             "name": "full",
             "hidden": true,
             "cacheVariables": {
-                "OPENDAQ_ENABLE_OPCUA": true,
                 "DAQMODULES_EMPTY_MODULE": true,
                 "DAQMODULES_OPENDAQ_CLIENT_MODULE": true,
                 "DAQMODULES_OPENDAQ_SERVER_MODULE": true,
@@ -121,12 +120,9 @@
                 "DAQMODULES_AUDIO_DEVICE_MODULE": true,
                 "DAQMODULES_BASIC_CSV_RECORDER_MODULE": true,
                 "DAQMODULES_LICENSING_MODULE": true,
-                "OPENDAQ_ENABLE_WEBSOCKET_STREAMING": true,
-                "OPENDAQ_ENABLE_WEBSOCKET_STREAMING_WITH_TLS": true,
                 "APP_ENABLE_WEBPAGE_EXAMPLES": true,
                 "OPENDAQ_DOCUMENTATION_TESTS": true,
-                "OPENDAQ_ENABLE_NATIVE_STREAMING": true,
-                "OPENDAQ_ENABLE_OPCUA_INTEGRATION_TESTS": true
+                "OPENDAQ_ENABLE_NATIVE_STREAMING": true
             }
         },
         {
@@ -144,9 +140,6 @@
                 "DAQMODULES_OPENDAQ_CLIENT_MODULE": false,
                 "DAQMODULES_OPENDAQ_SERVER_MODULE": true,
                 "DAQMODULES_BASIC_CSV_RECORDER_MODULE": true,
-                "OPENDAQ_ENABLE_OPCUA": true,
-                "OPENDAQ_ENABLE_WEBSOCKET_STREAMING": true,
-                "OPENDAQ_ENABLE_WEBSOCKET_STREAMING_WITH_TLS": true,
                 "OPENDAQ_ENABLE_NATIVE_STREAMING": true,
                 "DAQSIMULATOR_ENABLE_SIMULATOR_APP": true
             }
@@ -161,8 +154,6 @@
                 "OPENDAQ_GENERATE_PYTHON_BINDINGS": false,
                 "OPENDAQ_GENERATE_CSHARP_BINDINGS": false,
                 "OPENDAQ_GENERATE_DELPHI_BINDINGS": false,
-                "OPENDAQ_ENABLE_OPCUA": false,
-                "OPENDAQ_ENABLE_WEBSOCKET_STREAMING": false,
                 "OPENDAQ_ENABLE_NATIVE_STREAMING": false,
                 "DAQMODULES_OPENDAQ_CLIENT_MODULE": false,
                 "DAQMODULES_OPENDAQ_SERVER_MODULE": false,
@@ -194,9 +185,6 @@
                 "DAQMODULES_OPENDAQ_CLIENT_MODULE": true,
                 "DAQMODULES_OPENDAQ_SERVER_MODULE": true,
                 "DAQMODULES_BASIC_CSV_RECORDER_MODULE": true,
-                "OPENDAQ_ENABLE_OPCUA": true,
-                "OPENDAQ_ENABLE_WEBSOCKET_STREAMING": true,
-                "OPENDAQ_ENABLE_WEBSOCKET_STREAMING_WITH_TLS": true,
                 "OPENDAQ_ENABLE_NATIVE_STREAMING": true
             }
         },
@@ -218,8 +206,7 @@
                 "DAQSIMULATOR_ENABLE_SIMULATOR_APP": true,
                 "OPENDAQ_ENABLE_UNSTABLE_TEST_LABELS": true,
                 "OPENDAQ_SKIP_UNSTABLE_TESTS": true,
-                "OPENDAQ_ENABLE_OBJECT_POOLS": true,
-                "DAQMODULES_LT_LEGACY_MODULES": false
+                "OPENDAQ_ENABLE_OBJECT_POOLS": true
             }
         },
         {

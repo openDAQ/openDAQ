@@ -109,7 +109,7 @@ TEST_F(MultiReader2RegressionApi, AcceptsDescriptorExceptionIsLoggedAsWarning)
     const auto params = MultiReader2Params();
     params.setInputs(List<IComponent>(SignalWithDescriptor(logged, valueDescriptor, nullptr, "only")));
     params.setAcceptsDescriptor(
-        Function([](const BaseObjectPtr&, const BaseObjectPtr&) -> BaseObjectPtr
+        Function([](const BaseObjectPtr&, const BaseObjectPtr&, const BaseObjectPtr&) -> BaseObjectPtr
                  { throw std::runtime_error("owner bug"); }));
     const auto reader = MultiReader2(params);
 

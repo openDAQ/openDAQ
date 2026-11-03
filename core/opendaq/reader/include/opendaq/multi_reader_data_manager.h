@@ -21,6 +21,7 @@
 #include <coretypes/ratio_ptr.h>
 #include <opendaq/component.h>
 #include <opendaq/data_packet_ptr.h>
+#include <opendaq/logger_component_ptr.h>
 #include <opendaq/multi_reader2_input_status.h>
 #include <opendaq/multi_reader2_status_ptr.h>
 #include <opendaq/packet_ptr.h>
@@ -57,6 +58,7 @@ public:
         SampleType readType = SampleType::Float64;
         SizeT minReadCount = 1;
         MultiReader2ErrorPolicy errorPolicy = MultiReader2ErrorPolicy::Invalidate;
+        LoggerComponentPtr loggerComponent;                // for an acceptsDescriptor that throws; may be null
     };
 
     // Applies every queued event, drops the data, then a 0-count read. A null status leaves the first status owed
@@ -191,7 +193,7 @@ private:
     void settleMainInput(bool keepMain);
     void restart();
     void startSync();
-    void internalReconfigure();
+    void internalReconfigure(bool wasValid);
     std::vector<std::pair<MultiReader2InputError, std::string>> reportedErrors() const;
     void noteChanges(ComponentStatus previousLevel, const std::vector<std::pair<MultiReader2InputError, std::string>>& previous);
 
@@ -218,8 +220,11 @@ private:
     static void pushEvent(Slot& slot, Event event);
     static void dropFront(Slot& slot);
     static void dropData(Slot& slot);
+    static bool hasData(const Slot& slot);
+    void dropForRejoin(const std::vector<SizeT>& rejoined);
     void discardBefore(Slot& slot, std::int64_t tick) const;
     static void failSync(Slot& slot, SyncCause cause);
+    static bool failedOnLimit(const Slot& slot);
     bool synchronize();
     bool markClear(SizeT slot, const std::optional<std::int64_t>& firstTick);
     SizeT frontAvailable() const;
@@ -241,8 +246,8 @@ private:
     std::optional<SizeT> mainSlot;                  // the main input in effect
     State state = State::Invalid;
     std::int64_t readTick = 0;                      // main-tick position of the next unread sample
-    bool positioned = false;                        // readTick continues an earlier stream since the last restart; not
-                                                    // in the sketch
+    bool positioned = false;                        // readTick continues a read that delivered samples since the last
+                                                    // restart; not in the sketch
     std::int64_t syncLimitTicks = 0;                // 2 s of data in main ticks; set from the main domain
     std::int64_t mainDelta = 1;                     // main ticks per sample; not in the sketch
     bool domainChanged = false;                     // pending for the next status

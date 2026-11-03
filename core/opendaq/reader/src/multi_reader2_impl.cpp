@@ -119,6 +119,27 @@ ErrCode MultiReader2Impl::resolveParams(IMultiReader2Params* params, MultiReader
     errCode = params->getErrorPolicy(&errorPolicy);
     OPENDAQ_RETURN_IF_FAILED(errCode);
 
+    // The params object stores what it is given; every check is here
+    switch (readType)
+    {
+        case SampleType::Undefined:
+        case SampleType::Float32:
+        case SampleType::Float64:
+        case SampleType::UInt8:
+        case SampleType::Int8:
+        case SampleType::UInt16:
+        case SampleType::Int16:
+        case SampleType::UInt32:
+        case SampleType::Int32:
+        case SampleType::UInt64:
+        case SampleType::Int64:
+            break;
+        default:
+            return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDPARAMETER, "The value read type must be numeric or Undefined");
+    }
+    if (minReadCount == 0)
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDPARAMETER, "The minimum read count must be at least 1");
+
     std::unordered_set<std::string> ids;
     bool expectSignals = false;
     for (SizeT i = 0; i < inputs.getCount(); i++)
@@ -384,6 +405,7 @@ ErrCode MultiReader2Impl::configureInternal(IMultiReader2Params* params, IMultiR
         loggerComponent = logger.assigned() ? logger.getOrAddComponent("MultiReader2") : nullptr;
 
         // Schedules no onDataAvailable
+        config.loggerComponent = loggerComponent;
         const ErrCode reconfigured = core->dataManager.reconfigure(std::move(config), status);
 
         for (SizeT i = 0; i < slots.size(); ++i)

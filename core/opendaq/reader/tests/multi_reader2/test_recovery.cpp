@@ -232,8 +232,11 @@ TEST_F(MultiReader2Recovery, ThrowingVerdictInputRejoinsOnReevaluateAfterAccept)
     setupBase();
     verdict(in2, Verdict::Accept);
     expect(reevaluate(), ok().level(Ok).descChanged(in2).healthy(in2));
-    write(in2, 0, 99);
-    expect(read(100), count(100).at(0).noChanges());
+    // in2 sent 0 to 99 while rejected, so it continues at 100. It rejoins with nothing queued, which drops in1's unread 0
+    // to 99; nothing was delivered before, so the start at 100 is not a resynchronization
+    write(in2, 100, 199);
+    write(in1, 100, 199);
+    expect(read(100), count(100).at(100).noChanges());
 }
 
 // S1.REC.16

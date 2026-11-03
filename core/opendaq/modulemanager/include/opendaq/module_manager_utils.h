@@ -16,6 +16,7 @@
 
 #pragma once
 #include <opendaq/module.h>
+#include <opendaq/add_device_config.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
@@ -207,6 +208,20 @@ DECLARE_OPENDAQ_INTERFACE(IModuleManagerUtils, IBaseObject)
      * This method searches through the available devices discovered during the last scan.
      */
     virtual ErrCode INTERFACE_FUNC getDiscoveryInfo(IDeviceInfo** deviceInfo, IString* manufacturer, IString* serialNumber) = 0;
+
+    /*!
+     * @brief Creates a config for adding the device described by the device info.
+     * @param[out] config The add device config
+     * @param info The device info, discovered or holding only a connection string
+     * @param prefix The connection string prefix of the Device type to use
+     * @retval OPENDAQ_ERR_NOTFOUND when no loaded Device type has the prefix, or a discovered info has no capability with the prefix.
+     * @retval OPENDAQ_ERR_INVALIDPARAMETER when the Device type is Root, or the prefix differs from that of an info without capabilities.
+     *
+     * Without a prefix, the info's highest-priority server capability with a loaded Device type that is not Root is used.
+     * An info without server capabilities uses the prefix of its connection string.
+     * The listed Streaming types are the loaded ones the info advertises, or all loaded ones for an info without server capabilities.
+     */
+    virtual ErrCode INTERFACE_FUNC createAddDeviceConfig(IAddDeviceConfig** config, IDeviceInfo* info, IString* prefix = nullptr) = 0;
 };
 /*!@}*/
 

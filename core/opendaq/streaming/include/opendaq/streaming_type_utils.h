@@ -47,4 +47,34 @@ inline DictPtr<IString, IStreamingType> getAdvertisedStreamingTypes(const ListPt
     return advertisedTypes;
 }
 
+/*!
+ * @brief Selects the default streaming type for a device type.
+ * @param streamingTypes The streaming types to select from, keyed by ID
+ * @param deviceType The device type
+ * @param fallBackToFirst Whether to fall back to the first type
+ *
+ * The type linked to the device type is selected.
+ * Without one, the first type is selected when fallBackToFirst is set.
+ * Otherwise, the result is null.
+ */
+inline StreamingTypePtr selectStreamingType(const DictPtr<IString, IStreamingType>& streamingTypes,
+                                            const DeviceTypePtr& deviceType,
+                                            bool fallBackToFirst)
+{
+    if (deviceType.assigned())
+    {
+        for (const auto& [_, streamingType] : streamingTypes)
+        {
+            const DeviceTypePtr linkedDeviceType = streamingType.getLinkedDeviceType();
+            if (linkedDeviceType.assigned() && linkedDeviceType.getId() == deviceType.getId())
+                return streamingType;
+        }
+    }
+
+    if (fallBackToFirst && streamingTypes.getCount() > 0)
+        return streamingTypes.getValueList()[0];
+
+    return nullptr;
+}
+
 END_NAMESPACE_OPENDAQ

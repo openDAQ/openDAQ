@@ -14,6 +14,8 @@
 #include <opendaq/device_info_config_ptr.h>
 #include <opendaq/device_info_factory.h>
 #include <opendaq/module_manager_utils_ptr.h>
+#include <opendaq/add_streaming_options_ptr.h>
+#include <opendaq/device_info_internal_ptr.h>
 #include <opendaq/device_impl.h>
 #include <opendaq/module_manager_errors.h>
 #include <coreobjects/property_factory.h>
@@ -481,12 +483,10 @@ TEST_F(ModuleManagerTest, ParallelDeviceCreationFailure)
 //    ASSERT_TRUE(message.toStdString().find("abc123") != std::string::npos);
 }
 
-// Linked streaming types: checked when a module is added
-
-class LinkTestModule : public MockModuleImpl
+class TypesTestModule : public MockModuleImpl
 {
 public:
-    explicit LinkTestModule(const StringPtr& id = "link_test")
+    explicit TypesTestModule(const StringPtr& id = "types_test")
         : MockModuleImpl(id)
     {
     }
@@ -554,10 +554,10 @@ public:
     bool failDeviceTypes = false;
 };
 
-class ModuleManagerLinkTest : public ModuleManagerTest
+class ModuleManagerTypesTest : public ModuleManagerTest
 {
 protected:
-    ModuleManagerLinkTest()
+    ModuleManagerTypesTest()
         : manager(ModuleManager("[[none]]"))
     {
         manager.loadModules(NullContext());
@@ -587,15 +587,15 @@ protected:
         return config;
     }
 
-    struct LinkModule
+    struct TypesModule
     {
         ModulePtr module;
-        LinkTestModule* impl;
+        TypesTestModule* impl;
     };
 
-    static LinkModule makeModule(const std::string& id = "link_test")
+    static TypesModule makeModule(const std::string& id = "types_test")
     {
-        auto* impl = new LinkTestModule(id);
+        auto* impl = new TypesTestModule(id);
         IModule* intf = impl;
         return {ModulePtr(intf), impl};
     }
@@ -642,7 +642,7 @@ protected:
     ModuleManagerPtr manager;
 };
 
-TEST_F(ModuleManagerLinkTest, LinkToUnknownDeviceTypeRejected)
+TEST_F(ModuleManagerTypesTest, LinkToUnknownDeviceTypeRejected)
 {
     auto lib = makeModule("link_test_unknown");
     auto* impl = lib.impl;
@@ -656,7 +656,7 @@ TEST_F(ModuleManagerLinkTest, LinkToUnknownDeviceTypeRejected)
     expectContains(message, "does not provide");
 }
 
-TEST_F(ModuleManagerLinkTest, LinkToDeviceTypeOfAnotherModuleRejected)
+TEST_F(ModuleManagerTypesTest, LinkToDeviceTypeOfAnotherModuleRejected)
 {
     auto deviceLib = makeModule("device_module");
     auto* deviceModule = deviceLib.impl;
@@ -672,7 +672,7 @@ TEST_F(ModuleManagerLinkTest, LinkToDeviceTypeOfAnotherModuleRejected)
     expectContains(message, R"(device type "dev", which the module does not provide)");
 }
 
-TEST_F(ModuleManagerLinkTest, DeviceTypesNotListedRejected)
+TEST_F(ModuleManagerTypesTest, DeviceTypesNotListedRejected)
 {
     auto lib = makeModule();
     auto* impl = lib.impl;
@@ -682,7 +682,7 @@ TEST_F(ModuleManagerLinkTest, DeviceTypesNotListedRejected)
     expectContains(tryAdd(lib.module), "device types cannot be listed");
 }
 
-TEST_F(ModuleManagerLinkTest, UnlinkedStreamingTypesUnaffected)
+TEST_F(ModuleManagerTypesTest, UnlinkedStreamingTypesUnaffected)
 {
     auto streaming = PropertyObject();
     streaming.addProperty(StringProperty("Port", "7420"));
@@ -698,7 +698,7 @@ TEST_F(ModuleManagerLinkTest, UnlinkedStreamingTypesUnaffected)
     ASSERT_EQ(tryAdd(lib.module), "");
 }
 
-TEST_F(ModuleManagerLinkTest, StreamingTypesNotImplementedUnaffected)
+TEST_F(ModuleManagerTypesTest, StreamingTypesNotImplementedUnaffected)
 {
     // MockModuleImpl::getAvailableStreamingTypes fails with OPENDAQ_ERR_NOTIMPLEMENTED
     const auto module = createWithImplementation<IModule, MockModuleImpl>(String("not_implemented"));
@@ -710,7 +710,7 @@ TEST_F(ModuleManagerLinkTest, StreamingTypesNotImplementedUnaffected)
     ASSERT_TRUE(isAdded(module));
 }
 
-TEST_F(ModuleManagerLinkTest, OneBadLinkRejectsModule)
+TEST_F(ModuleManagerTypesTest, OneBadLinkRejectsModule)
 {
     auto lib = makeModule();
     auto* impl = lib.impl;
@@ -721,7 +721,7 @@ TEST_F(ModuleManagerLinkTest, OneBadLinkRejectsModule)
     expectContains(tryAdd(lib.module), R"(streaming type "bad")");
 }
 
-TEST_F(ModuleManagerLinkTest, UnspecifiedDeviceKindLogsInfo)
+TEST_F(ModuleManagerTypesTest, UnspecifiedDeviceKindLogsInfo)
 {
     const auto sink = LastMessageLoggerSink();
     sink.setLevel(LogLevel::Info);
@@ -740,7 +740,32 @@ TEST_F(ModuleManagerLinkTest, UnspecifiedDeviceKindLogsInfo)
     ASSERT_TRUE(logged);
 }
 
-TEST_F(ModuleManagerLinkTest, DeviceKindChecksParent)
+TEST_F(ModuleManagerTypesTest, UnlistableStreamingTypeLogsWarning)
+{
+    const auto sink = LastMessageLoggerSink();
+    sink.setLevel(LogLevel::Warn);
+    const LastMessageLoggerSinkPrivatePtr lastMessage = sink;
+    manager = ModuleManager("[[none]]");
+    manager.loadModules(Context(nullptr, LoggerWithSinks(List<ILoggerSink>(sink)), TypeManager(), nullptr, nullptr));
+
+    auto lib = makeModule();
+    lib.impl->addDeviceType("mockdev", nullptr, DeviceKind::Mirrored);
+    lib.impl->addStreamingType("StreamingMode", "mockdev", nullptr);
+    lib.impl->addStreamingType("mockstr", "mockdev", nullptr);
+    ASSERT_EQ(tryAdd(lib.module), "");
+
+    const auto config = manager.asPtr<IModuleManagerUtils>().createAddDeviceConfig(DeviceInfo("mockdev://"));
+    const auto options = config.getStreamingOptions();
+    ASSERT_EQ(options.getStreamingConfigs().getKeyList(), List<IString>("mockstr"));
+    ASSERT_EQ(options.getStreamingConfig().getStreamingType().getId(), "mockstr");
+
+    bool logged = false;
+    while (!logged && lastMessage.waitForMessage(1000))
+        logged = lastMessage.getLastMessage().toStdString().find(R"(Streaming type "StreamingMode")") != std::string::npos;
+    ASSERT_TRUE(logged);
+}
+
+TEST_F(ModuleManagerTypesTest, DeviceKindChecksParent)
 {
     auto lib = makeModule();
     lib.impl->addDeviceType("rootdev", nullptr, DeviceKind::Root);
@@ -772,7 +797,7 @@ TEST_F(ModuleManagerLinkTest, DeviceKindChecksParent)
     ASSERT_EQ(lib.impl->createdConnectionStrings.getCount(), 5u);
 }
 
-TEST_F(ModuleManagerLinkTest, RootKindNotListed)
+TEST_F(ModuleManagerTypesTest, RootKindNotListed)
 {
     auto lib = makeModule();
     lib.impl->addDeviceType("rootdev", nullptr, DeviceKind::Root);
@@ -792,4 +817,181 @@ TEST_F(ModuleManagerLinkTest, RootKindNotListed)
 
     const std::set<std::string> expected{"extdev://10.0.0.5", "rootdev://untyped"};
     ASSERT_EQ(listed, expected);
+}
+
+class ModuleManagerAddConfigTest : public ModuleManagerTypesTest
+{
+protected:
+    ModuleManagerAddConfigTest()
+    {
+        auto lib = makeModule("add_config");
+        module = lib.impl;
+        module->addDeviceType("mockdev", deviceConfig(), DeviceKind::Mirrored);
+        module->addDeviceType("extdev", nullptr, DeviceKind::Adapter);
+        module->addDeviceType("unlinked", nullptr, DeviceKind::Mirrored);
+        module->addDeviceType("rootdev", nullptr, DeviceKind::Root);
+        module->addStreamingType("mockstr", "mockdev", deviceConfig());
+        module->addStreamingType("free", nullptr, streamingConfig());
+        manager->addModule(lib.module);
+    }
+
+    struct Cap
+    {
+        std::string prefix;
+        ProtocolType type;
+        std::string protocolId = "";
+    };
+
+    using Caps = std::vector<Cap>;
+    using Strs = std::vector<std::string>;
+
+    static constexpr auto cfg = ProtocolType::Configuration;
+    static constexpr auto streaming = ProtocolType::Streaming;
+    static constexpr auto both = ProtocolType::ConfigurationAndStreaming;
+
+    static DeviceInfoConfigPtr deviceInfo(const std::string& connectionString, const Caps& capabilities = {})
+    {
+        auto info = DeviceInfo(connectionString);
+        for (size_t i = 0; i < capabilities.size(); ++i)
+        {
+            const auto& cap = capabilities[i];
+            const auto id = cap.protocolId.empty() ? cap.prefix + std::to_string(i) : cap.protocolId;
+            info.asPtr<IDeviceInfoInternal>().addServerCapability(ServerCapability(id, id, cap.type).setPrefix(cap.prefix));
+        }
+        return info;
+    }
+
+    ErrCode create(const DeviceInfoPtr& info, const StringPtr& prefix, AddDeviceConfigPtr& config)
+    {
+        IAddDeviceConfig* raw = nullptr;
+        const ErrCode errCode = manager.asPtr<IModuleManagerUtils>()->createAddDeviceConfig(&raw, info, prefix);
+        config = AddDeviceConfigPtr::Adopt(raw);
+        daqClearErrorInfo();
+        return errCode;
+    }
+
+    AddDeviceConfigPtr create(const DeviceInfoPtr& info, const StringPtr& prefix = nullptr)
+    {
+        AddDeviceConfigPtr config;
+        EXPECT_EQ(create(info, prefix, config), OPENDAQ_SUCCESS);
+        return config;
+    }
+
+    static std::vector<std::string> listed(const AddDeviceConfigPtr& config)
+    {
+        std::vector<std::string> ids;
+        for (const auto& [id, _] : config.getStreamingOptions().getStreamingConfigs())
+            ids.push_back(id);
+        return ids;
+    }
+
+    static std::string selected(const AddDeviceConfigPtr& config)
+    {
+        const auto streamingConfig = config.getStreamingOptions().getStreamingConfig();
+        return streamingConfig.assigned() ? streamingConfig.getStreamingType().getId().toStdString() : "";
+    }
+
+    TypesTestModule* module = nullptr;
+};
+
+TEST_F(ModuleManagerAddConfigTest, DiscoveredDeviceType)
+{
+    struct Row
+    {
+        Caps caps;
+        std::string expectedDevice;
+    };
+
+    const std::vector<Row> rows = {
+        {{{"extdev", cfg}, {"mockdev", both}}, "mockdev"},
+        {{{"mockdev", cfg}, {"extdev", both}}, "extdev"},
+        {{{"mockdev", cfg}, {"extdev", cfg}}, "mockdev"},
+        {{{"extdev", cfg}, {"mockdev", cfg}}, "extdev"},
+        {{{"unloaded", both}, {"extdev", cfg}}, "extdev"},
+        {{{"rootdev", both}, {"extdev", cfg}}, "extdev"},
+        {{{"mockdev", both}, {"extdev", cfg, "OpenDAQNativeConfiguration"}}, "extdev"},
+    };
+
+    for (const auto& row : rows)
+        ASSERT_EQ(create(deviceInfo("daq://x", row.caps)).getDeviceType().getId(), row.expectedDevice);
+
+    AddDeviceConfigPtr config;
+    ASSERT_EQ(create(deviceInfo("daq://x", {{"unloaded", both}}), nullptr, config), OPENDAQ_ERR_NOTFOUND);
+}
+
+TEST_F(ModuleManagerAddConfigTest, DiscoveredExplicitPrefix)
+{
+    const auto info = deviceInfo("daq://x", {{"mockdev", cfg}, {"extdev", cfg}, {"unloaded", cfg}});
+
+    ASSERT_EQ(create(info, "extdev").getDeviceType().getId(), "extdev");
+
+    AddDeviceConfigPtr config;
+    ASSERT_EQ(create(info, "free", config), OPENDAQ_ERR_NOTFOUND);
+    ASSERT_EQ(create(info, "unloaded", config), OPENDAQ_ERR_NOTFOUND);
+}
+
+TEST_F(ModuleManagerAddConfigTest, DiscoveredStreamingTypes)
+{
+    struct Row
+    {
+        Caps caps;
+        Strs expectedListed;
+        std::string expectedSelected;
+    };
+
+    const std::vector<Row> rows = {
+        {{{"mockdev", cfg}, {"free", streaming}, {"mockstr", both}, {"unloaded", streaming}}, {"free", "mockstr"}, "mockstr"},
+        {{{"mockdev", cfg}, {"free", streaming}}, {"free"}, "free"},
+        {{{"mockdev", cfg}, {"free", streaming}, {"free", both}}, {"free"}, "free"},
+        {{{"mockdev", cfg}}, {}, ""},
+    };
+
+    for (const auto& row : rows)
+    {
+        const auto config = create(deviceInfo("daq://x", row.caps), "mockdev");
+        ASSERT_EQ(listed(config), row.expectedListed);
+        ASSERT_EQ(selected(config), row.expectedSelected);
+    }
+}
+
+TEST_F(ModuleManagerAddConfigTest, ConnectionStringOnly)
+{
+    const auto bare = create(deviceInfo("mockdev://"));
+    ASSERT_EQ(bare.getDeviceType().getId(), "mockdev");
+    ASSERT_EQ(listed(bare), (Strs{"mockstr", "free"}));
+    ASSERT_EQ(selected(bare), "mockstr");
+
+    const auto withHost = create(deviceInfo("mockdev://192.168.0.1"), "mockdev");
+    ASSERT_EQ(withHost.getDeviceType().getId(), "mockdev");
+
+    const auto unlinked = create(deviceInfo("unlinked://"));
+    ASSERT_EQ(listed(unlinked), (Strs{"mockstr", "free"}));
+    ASSERT_EQ(selected(unlinked), "");
+
+    AddDeviceConfigPtr config;
+    ASSERT_EQ(create(deviceInfo("mockdev://"), "extdev", config), OPENDAQ_ERR_INVALIDPARAMETER);
+    ASSERT_EQ(create(deviceInfo("unloaded://"), nullptr, config), OPENDAQ_ERR_NOTFOUND);
+}
+
+TEST_F(ModuleManagerAddConfigTest, ScanOnAddSeededFromModuleManager)
+{
+    ASSERT_TRUE(create(deviceInfo("mockdev://")).getScanOnAdd());
+
+    auto disabled = ModuleManager("[[none]]");
+    auto options = Dict<IString, IBaseObject>({{"ModuleManager", Dict<IString, IBaseObject>({{"ScanOnAdd", False}})}});
+    const auto context = Context(nullptr, Logger(), nullptr, disabled, nullptr, options);
+
+    auto lib = makeModule();
+    lib.impl->addDeviceType("mockdev", nullptr);
+    ASSERT_EQ(disabled->addModule(lib.module), OPENDAQ_SUCCESS);
+
+    ASSERT_FALSE(disabled.asPtr<IModuleManagerUtils>().createAddDeviceConfig(deviceInfo("mockdev://")).getScanOnAdd());
+}
+
+TEST_F(ModuleManagerAddConfigTest, RootKindConfigRejected)
+{
+    AddDeviceConfigPtr config;
+    ASSERT_EQ(create(deviceInfo("rootdev://"), nullptr, config), OPENDAQ_ERR_INVALIDPARAMETER);
+    ASSERT_EQ(create(deviceInfo("daq://x", {{"rootdev", cfg}, {"extdev", cfg}}), "rootdev", config), OPENDAQ_ERR_INVALIDPARAMETER);
+    ASSERT_EQ(create(deviceInfo("daq://x", {{"rootdev", cfg}}), nullptr, config), OPENDAQ_ERR_INVALIDPARAMETER);
 }

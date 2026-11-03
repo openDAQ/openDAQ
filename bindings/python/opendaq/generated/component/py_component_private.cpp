@@ -107,13 +107,28 @@ void defineIComponentPrivate(pybind11::module_ m, PyDaqIntf<daq::IComponentPriva
         },
         py::return_value_policy::take_ownership,
         "Retrieves the configuration which was used to create the component. / Sets the configuration which was used to create the component.");
-    cls.def_property("parent_active",
-        nullptr,
+    cls.def_property("authentication_config",
+        [](daq::IComponentPrivate *object)
+        {
+            py::gil_scoped_release release;
+            const auto objectPtr = daq::ComponentPrivatePtr::Borrow(object);
+            return objectPtr.getAuthenticationConfig().detach();
+        },
+        [](daq::IComponentPrivate *object, daq::IAuthenticationConfig* authenticationConfig)
+        {
+            py::gil_scoped_release release;
+            const auto objectPtr = daq::ComponentPrivatePtr::Borrow(object);
+            objectPtr.setAuthenticationConfig(authenticationConfig);
+        },
+        py::return_value_policy::take_ownership,
+        "Retrieves the authentication config the module was given when the component was created with authentication. / Sets the authentication config the module was given when the component was created with authentication, if any.");
+    cls.def("set_parent_active",
         [](daq::IComponentPrivate *object, const bool parentActive, const bool onUpdate)
         {
             py::gil_scoped_release release;
             const auto objectPtr = daq::ComponentPrivatePtr::Borrow(object);
             objectPtr.setParentActive(parentActive, onUpdate);
         },
+        py::arg("parent_active"), py::arg("on_update"),
         "Called by parent component to notify this component about parent's active state change.");
 }

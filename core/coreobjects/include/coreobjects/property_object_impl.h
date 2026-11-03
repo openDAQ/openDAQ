@@ -211,6 +211,7 @@ public:
     template <typename TInterface, typename... TInterfaces>
     friend class DeviceInfoConfigImpl;
     friend class config_protocol::ConfigClientDeviceInfoImpl;
+    friend class AuthenticationConfigImpl;
 
     template <class Impl>
     friend class config_protocol::ConfigClientPropertyObjectBaseImpl;

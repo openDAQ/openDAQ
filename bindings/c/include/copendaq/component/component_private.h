@@ -38,6 +38,7 @@ extern "C"
     typedef struct daqList daqList;
     typedef struct daqCoreEventArgs daqCoreEventArgs;
     typedef struct daqPropertyObject daqPropertyObject;
+    typedef struct daqAuthenticationConfig daqAuthenticationConfig;
 
     EXPORTED extern const daqIntfID DAQ_COMPONENT_PRIVATE_INTF_ID;
     void EXPORTED daqComponentPrivate_getInterfaceId(daqIntfID* intfId);
@@ -51,6 +52,8 @@ extern "C"
     daqErrCode EXPORTED daqComponentPrivate_setComponentConfig(daqComponentPrivate* self, daqPropertyObject* config);
     daqErrCode EXPORTED daqComponentPrivate_getComponentConfig(daqComponentPrivate* self, daqPropertyObject** config);
     daqErrCode EXPORTED daqComponentPrivate_setParentActive(daqComponentPrivate* self, daqBool parentActive, daqBool onUpdate);
+    daqErrCode EXPORTED daqComponentPrivate_setAuthenticationConfig(daqComponentPrivate* self, daqAuthenticationConfig* authenticationConfig);
+    daqErrCode EXPORTED daqComponentPrivate_getAuthenticationConfig(daqComponentPrivate* self, daqAuthenticationConfig** authenticationConfig);
 
 #ifdef __cplusplus
 }

@@ -15,7 +15,7 @@ TEST_F(COpendaqStreamingTest, StreamingType)
     daqString_createString(&description, "streamingTypeDescription");
     daqString* prefix = nullptr;
     daqString_createString(&prefix, "streamingTypePrefix");
-    daqStreamingType_createStreamingType(&streamingType, id, name, description, prefix, nullptr);
+    daqStreamingType_createStreamingType(&streamingType, id, name, description, prefix, nullptr, nullptr, nullptr);
     ASSERT_NE(streamingType, nullptr);
     daqBaseObject_releaseRef(streamingType);
     daqBaseObject_releaseRef(id);

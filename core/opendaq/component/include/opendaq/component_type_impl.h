@@ -25,6 +25,8 @@
 #include <coreobjects/property_object_internal_ptr.h>
 #include <opendaq/module_info_ptr.h>
 #include <opendaq/component_type_private.h>
+#include <opendaq/authentication_method_factory.h>
+#include <opendaq/authentication_config_ptr.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
@@ -36,23 +38,27 @@ public:
                                       const StringPtr& id,
                                       const StringPtr& name,
                                       const StringPtr& description,
-                                      const PropertyObjectPtr& defaultConfig);
+                                      const PropertyObjectPtr& defaultConfig,
+                                      const DictPtr<IString, IAuthenticationMethod>& supportedAuthenticationMethods = Dict<IString, IAuthenticationMethod>());
 
     explicit GenericComponentTypeImpl(const StructTypePtr& type,
                                       const StringPtr& id,
                                       const StringPtr& name,
                                       const StringPtr& description,
                                       const StringPtr& prefix,
-                                      const PropertyObjectPtr& defaultConfig);
+                                      const PropertyObjectPtr& defaultConfig,
+                                      const DictPtr<IString, IAuthenticationMethod>& supportedAuthenticationMethods = Dict<IString, IAuthenticationMethod>());
 
     ErrCode INTERFACE_FUNC getId(IString** id) override;
     ErrCode INTERFACE_FUNC getName(IString** name) override;
     ErrCode INTERFACE_FUNC getDescription(IString** description) override;
     ErrCode INTERFACE_FUNC createDefaultConfig(IPropertyObject** defaultConfig) override;
     ErrCode INTERFACE_FUNC getModuleInfo(IModuleInfo** moduleInfo) override;
+    ErrCode INTERFACE_FUNC createAuthenticationConfig(IAuthenticationConfig** config) override;
 
     // IComponentTypePrivate
     ErrCode INTERFACE_FUNC setModuleInfo(IModuleInfo* info) override;
+    ErrCode INTERFACE_FUNC getSupportedAuthenticationMethods(IDict** authenticationMethods) override;
 
 protected:
     StringPtr id;
@@ -61,6 +67,7 @@ protected:
     StringPtr prefix;
     PropertyObjectPtr defaultConfig;
     ModuleInfoPtr moduleInfo;
+    DictPtr<IString, IAuthenticationMethod> supportedAuthenticationMethods;
 };
 
 template <class Intf, class... Interfaces>
@@ -68,14 +75,15 @@ GenericComponentTypeImpl<Intf, Interfaces...>::GenericComponentTypeImpl(const St
                                                                         const StringPtr& id,
                                                                         const StringPtr& name,
                                                                         const StringPtr& description,
-                                                                        const PropertyObjectPtr& defaultConfig)
-    : GenericStructImpl<Intf, IStruct, IComponentTypePrivate, Interfaces...>(
-          type, Dict<IString, IBaseObject>({{"Id", id}, {"Name", name}, {"Description", description}}))
+                                                                        const PropertyObjectPtr& defaultConfig,
+                                                                        const DictPtr<IString, IAuthenticationMethod>& supportedAuthenticationMethods)
+    : GenericStructImpl<Intf, IStruct, IComponentTypePrivate, Interfaces...>(type, Dict<IString, IBaseObject>({{"Id", id}, {"Name", name}, {"Description", description}}))
     , id(id)
     , name(name)
     , description(description)
     , prefix("")
     , defaultConfig(defaultConfig)
+    , supportedAuthenticationMethods(supportedAuthenticationMethods)
 {
 }
 
@@ -85,14 +93,15 @@ GenericComponentTypeImpl<Intf, Interfaces...>::GenericComponentTypeImpl(const St
                                                                         const StringPtr& name,
                                                                         const StringPtr& description,
                                                                         const StringPtr& prefix,
-                                                                        const PropertyObjectPtr& defaultConfig)
-    : GenericStructImpl<Intf, IStruct, IComponentTypePrivate, Interfaces...>(
-          type, Dict<IString, IBaseObject>({{"Id", id}, {"Name", name}, {"Description", description}, {"Prefix", prefix}}))
+                                                                        const PropertyObjectPtr& defaultConfig,
+                                                                        const DictPtr<IString, IAuthenticationMethod>& supportedAuthenticationMethods)
+    : GenericStructImpl<Intf, IStruct, IComponentTypePrivate, Interfaces...>(type, Dict<IString, IBaseObject>({{"Id", id}, {"Name", name}, {"Description", description}, {"Prefix", prefix}}))
     , id(id)
     , name(name)
     , description(description)
     , prefix(prefix)
     , defaultConfig(defaultConfig)
+    , supportedAuthenticationMethods(supportedAuthenticationMethods)
 {
 }
 
@@ -135,11 +144,36 @@ ErrCode GenericComponentTypeImpl<Intf, Interfaces...>::createDefaultConfig(IProp
     return OPENDAQ_SUCCESS;
 }
 
+template <class Intf, class... Interfaces>
+ErrCode GenericComponentTypeImpl<Intf, Interfaces...>::createAuthenticationConfig(IAuthenticationConfig** config)
+{
+    OPENDAQ_PARAM_NOT_NULL(config);
+
+    if (this->supportedAuthenticationMethods.getCount() == 0)
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOT_SUPPORTED, "This component type supports no authentication method");
+
+    return daqTry([&]()
+    {
+        AuthenticationConfigPtr configPtr = AuthenticationConfig_Create(this->supportedAuthenticationMethods);
+        *config = configPtr.detach();
+        return OPENDAQ_SUCCESS;
+    });
+}
+
 template <typename Intf, typename... Interfaces>
 inline ErrCode GenericComponentTypeImpl<Intf, Interfaces...>::setModuleInfo(IModuleInfo* info)
 {
     this->moduleInfo = info;
 
+    return OPENDAQ_SUCCESS;
+}
+
+template <class Intf, class... Interfaces>
+ErrCode GenericComponentTypeImpl<Intf, Interfaces...>::getSupportedAuthenticationMethods(IDict** authenticationMethods)
+{
+    OPENDAQ_PARAM_NOT_NULL(authenticationMethods);
+
+    *authenticationMethods = this->supportedAuthenticationMethods.addRefAndReturn();
     return OPENDAQ_SUCCESS;
 }
 

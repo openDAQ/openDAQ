@@ -18,6 +18,7 @@ set(DAQ_COMPONENTS
     component
     streaming
     synchronization
+    security
     opendaq
 )
 

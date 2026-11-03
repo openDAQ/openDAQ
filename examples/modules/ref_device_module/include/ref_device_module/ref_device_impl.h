@@ -32,6 +32,7 @@ class RefDeviceImpl final : public Device
 {
 public:
     explicit RefDeviceImpl(const ModuleInfoPtr& moduleInfo,
+                           DeviceKind kind,
                            size_t id,
                            const PropertyObjectPtr& config,
                            const ContextPtr& ctx,
@@ -40,8 +41,13 @@ public:
                            const StringPtr& name = nullptr);
     ~RefDeviceImpl() override;
 
-    static DeviceInfoPtr CreateDeviceInfo(const ModuleInfoPtr& moduleInfo, size_t id, const StringPtr& serialNumber = nullptr);
-    static DeviceTypePtr CreateType(const ModuleInfoPtr& moduleInfo);
+    static DeviceInfoPtr CreateDeviceInfo(const ModuleInfoPtr& moduleInfo,
+                                          DeviceKind kind,
+                                          size_t id,
+                                          const StringPtr& serialNumber = nullptr);
+    static DeviceTypePtr CreateType(const ModuleInfoPtr& moduleInfo, DeviceKind kind);
+    static std::vector<DeviceKind> Kinds();
+    static DeviceKind KindFromPrefix(const std::string& connectionString);
 
     // IDevice
     DeviceInfoPtr onGetInfo() override;
@@ -64,6 +70,8 @@ protected:
     ListPtr<IString> onGetNetworkInterfaceNames() override;
 #endif
 #endif
+
+    static DeviceInfoPtr CreateDeviceInfo(const DeviceTypePtr& type, size_t id, const StringPtr& serialNumber = nullptr);
 
 private:
     void createSignals();
@@ -106,7 +114,7 @@ private:
     FolderConfigPtr aiFolder;
     FolderConfigPtr canFolder;
 
-    ModuleInfoPtr moduleInfo;
+    DeviceTypePtr type;
 
     LoggerPtr logger;
     LoggerComponentPtr loggerComponent;

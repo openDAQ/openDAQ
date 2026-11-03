@@ -92,6 +92,11 @@ daqErrCode daqServerCapabilityConfig_setProtocolSecurityLevel(daqServerCapabilit
     return reinterpret_cast<daq::IServerCapabilityConfig*>(self)->setProtocolSecurityLevel(reinterpret_cast<daq::IInteger*>(securityLevel));
 }
 
+daqErrCode daqServerCapabilityConfig_addAuthenticationMethod(daqServerCapabilityConfig* self, daqString* methodId)
+{
+    return reinterpret_cast<daq::IServerCapabilityConfig*>(self)->addAuthenticationMethod(reinterpret_cast<daq::IString*>(methodId));
+}
+
 daqErrCode daqServerCapabilityConfig_createServerCapability(daqServerCapabilityConfig** obj, daqString* protocolId, daqString* protocolName, daqProtocolType protocolType)
 {
     daq::IServerCapabilityConfig* ptr = nullptr;

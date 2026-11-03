@@ -11,7 +11,7 @@ class TestDocumentationQuickStartGuide(opendaq_test.TestCase):
         instance = opendaq.Instance()
 
         # Add a reference device and set it as root
-        instance.set_root_device('daqref://device0')
+        instance.set_root_device('daqref.root://device0')
 
         # Start a web-socket streaming server
         instance.add_server('OpenDAQLTStreaming', None)

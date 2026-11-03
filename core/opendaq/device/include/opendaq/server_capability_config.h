@@ -125,6 +125,14 @@ DECLARE_OPENDAQ_INTERFACE(IServerCapabilityConfig, IServerCapability)
      * The higher the value, the more secure the protocol is considered to be.
      */
     virtual ErrCode INTERFACE_FUNC setProtocolSecurityLevel(IInteger* securityLevel) = 0;
+
+    // [returnSelf]
+    /*!
+     * @brief Adds a method id to the list of supported authentication methods. No-op when `methodId` is
+     * already present.
+     * @param methodId The authentication method id to add.
+     */
+    virtual ErrCode INTERFACE_FUNC addAuthenticationMethod(IString* methodId) = 0;
 };
 
 OPENDAQ_DECLARE_CLASS_FACTORY_WITH_INTERFACE(

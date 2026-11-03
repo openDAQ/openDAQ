@@ -25,7 +25,10 @@
 #include <vector>
 #include <opendaq/mirrored_device_config_ptr.h>
 #include <opendaq/streaming_ptr.h>
+#include <functional>
 #include <map>
+#include <mutex>
+#include <unordered_set>
 #include <thread>
 #include <boost/asio/executor_work_guard.hpp>
 #include <boost/asio/io_context.hpp>
@@ -33,6 +36,10 @@
 #include <tsl/ordered_map.h>
 #include <daq_discovery/daq_discovery_client.h>
 #include <opendaq/module_authenticator_ptr.h>
+#include <opendaq/authentication_config_ptr.h>
+#include <opendaq/component_type_ptr.h>
+#include <opendaq/credential_request_ptr.h>
+#include <opendaq/credential_provider_ptr.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 struct ModuleLibrary;
@@ -40,7 +47,7 @@ struct ModuleLibrary;
 class ModuleManagerImpl : public ImplementationOfWeak<IModuleManager, IModuleManagerUtils>
 {
 public:
-    explicit ModuleManagerImpl(const BaseObjectPtr& path);
+    explicit ModuleManagerImpl(const BaseObjectPtr& path, const CredentialProviderPtr& credentialProvider = nullptr);
     ~ModuleManagerImpl() override;
 
     ErrCode INTERFACE_FUNC getModules(IList** availableModules) override;
@@ -56,7 +63,10 @@ public:
     ErrCode INTERFACE_FUNC createDevice(IDevice** device, IString* connectionString, IComponent* parent, IPropertyObject* config = nullptr) override;
     ErrCode INTERFACE_FUNC getAvailableFunctionBlockTypes(IDict** functionBlockTypes) override;
     ErrCode INTERFACE_FUNC createFunctionBlock(IFunctionBlock** functionBlock, IString* id, IComponent* parent, IPropertyObject* config = nullptr, IString* localId = nullptr) override;
-    ErrCode INTERFACE_FUNC createStreaming(IStreaming** streaming, IString* connectionString, IPropertyObject* config = nullptr) override;
+    ErrCode INTERFACE_FUNC createStreaming(IStreaming** streaming,
+                                           IString* connectionString,
+                                           IPropertyObject* config = nullptr,
+                                           IDevice* owner = nullptr) override;
     ErrCode INTERFACE_FUNC getAvailableStreamingTypes(IDict** streamingTypes) override;
     ErrCode INTERFACE_FUNC createDefaultAddDeviceConfig(IPropertyObject** defaultConfig) override;
     ErrCode INTERFACE_FUNC createServer(IServer** server, IString* serverTypeId, IDevice* rootDevice, IPropertyObject* serverConfig = nullptr) override;
@@ -67,7 +77,8 @@ public:
     ErrCode INTERFACE_FUNC getDiscoveryInfo(IDeviceInfo** deviceInfo, IString* manufacturer, IString* serialNumber) override;
 
 private:
-    
+    ErrCode createDeviceInternal(IDevice** device, IString* connectionString, IComponent* parent, IPropertyObject* config);
+
     static void PopulateDeviceTypeConfigFromConnStrOptions(PropertyObjectPtr& deviceTypeConfig,
                                                            const tsl::ordered_map<std::string, ObjectPtr<IBaseObject>>& options);
     static PropertyObjectPtr PopulateDeviceTypeConfig(PropertyObjectPtr& addDeviceConfig,
@@ -97,6 +108,11 @@ private:
     static void CopyCommonGeneralPropValues(PropertyObjectPtr& addDeviceConfig);
     static bool IsDefaultAddDeviceConfig(const PropertyObjectPtr& config);
 
+    // Checks every streaming type of the module that links to a device type: the device type must be one of the
+    // same module's device types. Returns a description of the first violation, or an empty string if the module passes.
+    static std::string CheckLinkedStreamingTypes(const ModulePtr& module);
+    void logUnspecifiedDeviceKinds(const ModulePtr& module) const;
+
     static ServerCapabilityPtr MergeDiscoveryAndDeviceCapability(const ServerCapabilityPtr& discoveryCap, const ServerCapabilityPtr& deviceCap);
     void mergeDiscoveryAndDeviceCapabilities(const DevicePtr& device, const DeviceInfoPtr& discoveredDeviceInfo) const;
     void completeServerCapabilities(const DevicePtr& device) const;
@@ -106,7 +122,20 @@ private:
 
     static PropertyObjectPtr PopulateGeneralConfig(PropertyObjectPtr& addDeviceConfig, const PropertyObjectPtr& inputConfig);
 
-    StreamingPtr onCreateStreaming(const StringPtr& connectionString, const PropertyObjectPtr& config) const;
+    StreamingPtr onCreateStreaming(const StringPtr& connectionString,
+                                   const PropertyObjectPtr& config,
+                                   const AuthenticationConfigPtr& authenticationConfig,
+                                   const DevicePtr& owner) const;
+
+    // Returns `authenticationConfig` unchanged if assigned. Otherwise builds and returns the default config for
+    // `componentType`, or unassigned if `componentType` doesn't support authentication.
+    AuthenticationConfigPtr resolveDefaultAuthenticationConfig(const AuthenticationConfigPtr& authenticationConfig, const ComponentTypePtr& componentType) const;
+
+    // Resolves the credentials for `credentialRequest` - for auth method with at least one field. Consumes
+    // whichever single credential provider this manager was constructed with. If
+    // `authenticationConfig.getSuppliedCredential()` returns one, it is used directly instead of asking the
+    // provider to obtain one.
+    DictPtr<IString, IString> resolveCredentials(const AuthenticationConfigPtr& authenticationConfig, const CredentialRequestPtr& credentialRequest) const;
 
     static PropertyObjectPtr CreateGeneralConfig(Bool scanOnAdd);
     static void OverrideConfigProperties(PropertyObjectPtr& targetConfig, const PropertyObjectPtr& sourceConfig);
@@ -123,6 +152,7 @@ private:
     bool authenticatedModulesOnly;
     ModuleAuthenticatorPtr moduleAuthenticator;
     DictPtr<IString, IString> moduleKeys;
+    const CredentialProviderPtr credentialProvider;
 
     bool modulesLoaded;
     std::vector<std::string> paths;
@@ -137,6 +167,16 @@ private:
     DictPtr<IString, IDeviceInfo> availableDevicesGroup;
     std::mutex availableDevicesSearchSync;
     std::unordered_map<std::string, size_t> functionBlockCountMap;
+    struct LogOnce
+    {
+        bool logIfFirst(const std::string& key, const std::function<std::string()>& makeMessage);
+
+        const LoggerComponentPtr& loggerComponent;
+        LogLevel level;
+        std::mutex sync;
+        std::unordered_set<std::string> keys;
+    };
+    LogOnce rootDeviceAvailableLogger{loggerComponent, LogLevel::Warn};
 
     DictPtr<IString, IDeviceInfo> availableDevicesWithIpConfig;
     discovery::DiscoveryClient discoveryClient; // for discovering devices which has IP modification feature enabled

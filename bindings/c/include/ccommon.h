@@ -96,6 +96,7 @@ extern "C"
 #include <copendaq/opendaq/common.h>
 #include <copendaq/reader/common.h>
 #include <copendaq/scheduler/common.h>
+#include <copendaq/security/common.h>
 #include <copendaq/server/common.h>
 #include <copendaq/signal/common.h>
 #include <copendaq/streaming/common.h>

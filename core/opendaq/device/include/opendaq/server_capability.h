@@ -157,6 +157,13 @@ DECLARE_OPENDAQ_INTERFACE(IServerCapability, IPropertyObject)
      * The higher the value, the more secure the protocol is considered to be.
      */
     virtual ErrCode INTERFACE_FUNC getProtocolSecurityLevel(IInteger** securityLevel) = 0;
+
+    // [templateType(methods, IString)]
+    /*!
+     * @brief Gets the list of supported authentication methods ids.
+     * @param[out] methods The list of supported authentication methods ids.
+     */
+    virtual ErrCode INTERFACE_FUNC getAuthenticationMethods(IList** methods) = 0;
 };
 /*!@}*/
 

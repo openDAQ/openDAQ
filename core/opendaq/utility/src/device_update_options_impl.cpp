@@ -1,5 +1,9 @@
 #include <opendaq/device_update_options_impl.h>
 #include <rapidjson/error/en.h>
+#include <rapidjson/writer.h>
+#include <rapidjson/stringbuffer.h>
+#include <coretypes/json_deserializer_factory.h>
+#include <coretypes/stringobject_factory.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
@@ -160,8 +164,16 @@ ErrCode DeviceUpdateOptionsImpl::setUpdateMode(DeviceUpdateMode mode)
 ErrCode DeviceUpdateOptionsImpl::getChildDeviceOptions(IList** childDeviceOptions)
 {
     OPENDAQ_PARAM_NOT_NULL(childDeviceOptions);
-    
+
     *childDeviceOptions = this->children.addRefAndReturn();
+    return OPENDAQ_SUCCESS;
+}
+
+ErrCode DeviceUpdateOptionsImpl::getAuthenticationConfig(IAuthenticationConfig** authenticationConfig)
+{
+    OPENDAQ_PARAM_NOT_NULL(authenticationConfig);
+
+    *authenticationConfig = this->authenticationConfig.addRefAndReturn();
     return OPENDAQ_SUCCESS;
 }
 
@@ -411,6 +423,18 @@ bool DeviceUpdateOptionsImpl::readDevice(const StringPtr& localId, const rapidjs
         serialNumber = jsonObject["serialNumber"].GetString();
     if (jsonObject.HasMember("connectionString") && jsonObject["connectionString"].IsString())
         connectionString = jsonObject["connectionString"].GetString();
+
+    // Not hand-parsed like the plain string fields above - it's a real, nested, tagged object
+    // (with nested IAuthenticationMethod, ICredentialField inside it), so the sub-value has to be deserialized.
+    if (jsonObject.HasMember("AuthenticationConfig"))
+    {
+        rapidjson::StringBuffer buffer;
+        rapidjson::Writer<rapidjson::StringBuffer> writer(buffer);
+        jsonObject["AuthenticationConfig"].Accept(writer);
+
+        const auto deserializer = JsonDeserializer();
+        authenticationConfig = deserializer.deserialize(String(buffer.GetString()), nullptr, nullptr).asPtrOrNull<IAuthenticationConfig>();
+    }
 
     this->localId = localId;
 

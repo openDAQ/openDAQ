@@ -1,10 +1,12 @@
 #include <coreobjects/errors.h>
+#include <opendaq/credential_provider_ptr.h>
 #include <opendaq/instance_builder_impl.h>
 #include <opendaq/instance_builder_ptr.h>
 #include <opendaq/instance_ptr.h>
 #include <opendaq/custom_log.h>
 #include <opendaq/config_provider_factory.h>
 #include <coreobjects/authentication_provider_factory.h>
+
 
 BEGIN_NAMESPACE_OPENDAQ
 
@@ -471,6 +473,20 @@ ErrCode InstanceBuilderImpl::getLoadAuthenticatedModulesOnly(Bool* authenticated
     OPENDAQ_PARAM_NOT_NULL(authenticatedOnly);
 
     *authenticatedOnly = this->authenticatedModulesOnly;
+    return OPENDAQ_SUCCESS;
+}
+
+ErrCode InstanceBuilderImpl::getCredentialProvider(ICredentialProvider** provider)
+{
+    OPENDAQ_PARAM_NOT_NULL(provider);
+
+    *provider = this->credentialProvider.addRefAndReturn();
+    return OPENDAQ_SUCCESS;
+}
+
+ErrCode InstanceBuilderImpl::setCredentialProvider(ICredentialProvider* provider)
+{
+    this->credentialProvider = provider;
     return OPENDAQ_SUCCESS;
 }
 

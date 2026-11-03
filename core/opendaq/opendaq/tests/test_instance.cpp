@@ -4,11 +4,92 @@
 #include <opendaq/update_parameters_factory.h>
 #include <opendaq/device_info_internal_ptr.h>
 #include <opendaq/module_impl.h>
+#include <opendaq/device_impl.h>
+#include <opendaq/mirrored_device_impl.h>
+#include <opendaq/module_manager_utils_ptr.h>
+#include <opendaq/streaming_type_factory.h>
+#include <opendaq/device_type_factory.h>
+#include <opendaq/device_info_factory.h>
+#include <opendaq/component_type_builder_factory.h>
 #include <testutils/testutils.h>
 
 using InstanceTest = testing::Test;
 
 BEGIN_NAMESPACE_OPENDAQ
+
+class KindDevice final : public Device
+{
+public:
+    KindDevice(const ContextPtr& ctx,
+               const ComponentPtr& parent,
+               const StringPtr& localId,
+               const DeviceTypePtr& type,
+               const StringPtr& connectionString)
+        : Device(ctx, parent, localId)
+        , type(type)
+        , connectionString(connectionString)
+    {
+    }
+
+    DeviceInfoPtr onGetInfo() override
+    {
+        auto info = DeviceInfo(connectionString, "KindDevice");
+        info.setDeviceType(type);
+        return info;
+    }
+
+    uint64_t onGetTicksSinceOrigin() override
+    {
+        return 0;
+    }
+
+private:
+    DeviceTypePtr type;
+    StringPtr connectionString;
+};
+
+class KindDeviceModule final : public Module
+{
+public:
+    KindDeviceModule(const ContextPtr& ctx, const StringPtr& prefix, DeviceKind kind)
+        : Module("Kind device module", VersionInfo(1, 0, 0), ctx, prefix)
+        , prefix(prefix)
+        , type(createType(prefix, kind))
+    {
+    }
+
+    static DeviceTypePtr createType(const StringPtr& prefix, DeviceKind kind)
+    {
+        auto builder = DeviceTypeBuilder().setId(prefix).setName(prefix).setConnectionStringPrefix(prefix);
+        if (kind != DeviceKind::Unspecified)
+            builder.setDeviceKind(kind);
+        return builder.build();
+    }
+
+    DictPtr<IString, IDeviceType> onGetAvailableDeviceTypes() override
+    {
+        return Dict<IString, IDeviceType>({{prefix, type}});
+    }
+
+    DevicePtr onCreateDevice(const StringPtr& connectionString, const ComponentPtr& parent, const PropertyObjectPtr&) override
+    {
+        return createWithImplementation<IDevice, KindDevice>(context, parent, "kinddevice", type, connectionString);
+    }
+
+private:
+    StringPtr prefix;
+    DeviceTypePtr type;
+};
+
+static constexpr const char* AdapterDevice = "daqadapter://device";
+
+static InstancePtr SetupInstanceWithAdapterDevice(const StringPtr& localId = nullptr)
+{
+    auto instance = test_helpers::setupInstance(localId);
+    instance.getModuleManager().addModule(
+        createWithImplementation<IModule, KindDeviceModule>(instance.getContext(), "daqadapter", DeviceKind::Adapter));
+    return instance;
+}
 
 TEST_F(InstanceTest, Create)
 {
@@ -42,6 +123,37 @@ TEST_F(InstanceTest, GetSetRootDevice)
     auto instance = test_helpers::setupInstance();
     ASSERT_EQ(instance.getRootDevice().getInfo().getName(), String("OpenDAQClient"));
     instance.setRootDevice("daq.root://default_client");
+}
+
+TEST_F(InstanceTest, SetRootDeviceKind)
+{
+    auto instance = SetupInstanceWithAdapterDevice();
+    instance.getModuleManager().addModule(
+        createWithImplementation<IModule, KindDeviceModule>(instance.getContext(), "daqmirrored", DeviceKind::Mirrored));
+
+    instance.getModuleManager().addModule(
+        createWithImplementation<IModule, KindDeviceModule>(instance.getContext(), "daqroot", DeviceKind::Root));
+
+    ASSERT_THROW(instance.setRootDevice("daqmirrored://device"), InvalidParameterException);
+    ASSERT_THROW(instance.setRootDevice(AdapterDevice), InvalidParameterException);
+    ASSERT_NO_THROW(instance.setRootDevice("daqroot://device"));
+    ASSERT_EQ(instance.getRootDevice().getInfo().getDeviceType().getDeviceKind(), DeviceKind::Root);
+}
+
+TEST_F(InstanceTest, InstanceBuilderRootDeviceKind)
+{
+    const auto builder = [](const StringPtr& prefix, DeviceKind kind)
+    {
+        const auto moduleManager = ModuleManager("[[none]]");
+        const auto context = Context(nullptr, Logger(), TypeManager(), moduleManager, nullptr);
+        moduleManager.addModule(createWithImplementation<IModule, KindDeviceModule>(context, prefix, kind));
+        return InstanceBuilder().setContext(context).setRootDevice(prefix + "://device");
+    };
+
+    ASSERT_THROW(builder("daqmirrored", DeviceKind::Mirrored).build(), InvalidParameterException);
+    ASSERT_THROW(builder("daqadapter", DeviceKind::Adapter).build(), InvalidParameterException);
+    ASSERT_NO_THROW(builder("daqroot", DeviceKind::Root).build());
+    ASSERT_NO_THROW(builder("daqunspecified", DeviceKind::Unspecified).build());
 }
 
 TEST_F(InstanceTest, SetRootDeviceWithConfig)
@@ -97,6 +209,7 @@ TEST_F(InstanceTest, DeviceInformation)
 {
     auto instance = test_helpers::setupInstance();
     ASSERT_EQ(instance.getInfo().getName(), String("OpenDAQClient"));
+    ASSERT_EQ(instance.getInfo().getDeviceType().getDeviceKind(), DeviceKind::Root);
 }
 
 TEST_F(InstanceTest, DeviceSignals)
@@ -114,6 +227,79 @@ TEST_F(InstanceTest, ConnectionString)
         ASSERT_TRUE(deviceInfo.getConnectionString().assigned());
 }
 
+class MockStreamingTypesModule : public Module
+{
+public:
+    MockStreamingTypesModule(ContextPtr ctx)
+        : Module("Mock Streaming Types", VersionInfo(1, 0, 0), std::move(ctx), "MockStreamingTypes")
+    {
+    }
+
+    DictPtr<IString, IStreamingType> onGetAvailableStreamingTypes() override
+    {
+        return Dict<IString, IStreamingType>(
+            {{"mock_streaming_a", StreamingType("mock_streaming_a", "Mock streaming A", "", "daqmocka")},
+             {"mock_streaming_b",
+              StreamingTypeBuilder().setId("mock_streaming_b").setName("Mock streaming B").setConnectionStringPrefix("daqmockb").build()}});
+    }
+};
+
+class MockMirroredDeviceImpl : public MirroredDevice
+{
+public:
+    MockMirroredDeviceImpl(const ContextPtr& ctx, const DeviceInfoPtr& info)
+        : MirroredDevice(ctx, nullptr, "mirrored")
+        , info(info)
+    {
+    }
+
+protected:
+    StringPtr onGetRemoteId() const override
+    {
+        return String("mirrored");
+    }
+
+    DeviceInfoPtr onGetInfo() override
+    {
+        return info;
+    }
+
+    DeviceInfoPtr info;
+};
+
+TEST_F(InstanceTest, AvailableStreamingTypesEmptyForRootDevice)
+{
+    auto instance = test_helpers::setupInstance();
+    instance.getModuleManager().addModule(createWithImplementation<IModule, MockStreamingTypesModule>(instance.getContext()));
+
+    ASSERT_EQ(instance.getAvailableStreamingTypes().getCount(), 0u);
+    ASSERT_EQ(instance.getRootDevice().getAvailableStreamingTypes().getCount(), 0u);
+}
+
+TEST_F(InstanceTest, AvailableStreamingTypesOfMirroredDevice)
+{
+    auto instance = test_helpers::setupInstance();
+    instance.getModuleManager().addModule(createWithImplementation<IModule, MockStreamingTypesModule>(instance.getContext()));
+
+    const auto info = DeviceInfo("daqmirrored://device");
+    const auto infoInternal = info.asPtr<IDeviceInfoInternal>();
+    infoInternal.addServerCapability(ServerCapability("a", "a", ProtocolType::Streaming).setPrefix("daqmocka"));
+    infoInternal.addServerCapability(ServerCapability("b", "b", ProtocolType::ConfigurationAndStreaming).setPrefix("daqmockb"));
+    infoInternal.addServerCapability(ServerCapability("c", "c", ProtocolType::Streaming).setPrefix("daqnotloaded"));
+    const auto device = createWithImplementation<IDevice, MockMirroredDeviceImpl>(instance.getContext(), info);
+
+    const auto streamingTypes = device.getAvailableStreamingTypes();
+    ASSERT_EQ(streamingTypes.getCount(), 2u);
+    ASSERT_TRUE(streamingTypes.hasKey("mock_streaming_a"));
+    ASSERT_TRUE(streamingTypes.hasKey("mock_streaming_b"));
+
+    const auto configInfo = DeviceInfo("daqmirrored://device");
+    configInfo.asPtr<IDeviceInfoInternal>().addServerCapability(
+        ServerCapability("a", "a", ProtocolType::Configuration).setPrefix("daqmocka"));
+    const auto configDevice = createWithImplementation<IDevice, MockMirroredDeviceImpl>(instance.getContext(), configInfo);
+    ASSERT_EQ(configDevice.getAvailableStreamingTypes().getCount(), 0u);
+}
+
 TEST_F(InstanceTest, EnumerateDeviceTypes)
 {
     auto instance = test_helpers::setupInstance();
@@ -123,6 +309,8 @@ TEST_F(InstanceTest, EnumerateDeviceTypes)
     ASSERT_TRUE(deviceTypes.hasKey("OpenDAQClient"));
     auto mockDevice = deviceTypes.get("OpenDAQClient");
     ASSERT_EQ(mockDevice.getId(), "OpenDAQClient");
+    // TODO(#1361): Expect Root once the mock client device type is Root again.
+    ASSERT_EQ(mockDevice.getDeviceKind(), DeviceKind::Unspecified);
 
     ASSERT_TRUE(deviceTypes.hasKey("mock_phys_device"));
     mockDevice = deviceTypes.get("mock_phys_device");
@@ -163,23 +351,23 @@ TEST_F(InstanceTest, RemoveDevice)
 
 TEST_F(InstanceTest, AddDevicesParallelSuccess)
 {
-    auto instance = test_helpers::setupInstance();
+    auto instance = SetupInstanceWithAdapterDevice();
 
     auto connectionArgs =
         Dict<IString, IPropertyObject>(
             {
                 {"daqmock://phys_device", nullptr},
-                {"daq.root://default_client", nullptr}
+                {AdapterDevice, nullptr}
             }
         );
     auto devices = instance.addDevices(connectionArgs);
     ASSERT_EQ(devices.getCount(), 2u);
     ASSERT_EQ(devices.get("daqmock://phys_device").getInfo().getConnectionString(), "daqmock://phys_device");
-    ASSERT_EQ(devices.get("daq.root://default_client").getInfo().getConnectionString(), "daq.root://default_client");
+    ASSERT_EQ(devices.get(AdapterDevice).getInfo().getConnectionString(), AdapterDevice);
 
     ASSERT_EQ(instance.getDevices().getCount(), 2u);
     ASSERT_EQ(instance.getDevices()[0], devices.get("daqmock://phys_device"));
-    ASSERT_EQ(instance.getDevices()[1], devices.get("daq.root://default_client"));
+    ASSERT_EQ(instance.getDevices()[1], devices.get(AdapterDevice));
 
     auto nestedDevices = instance.getDevices()[0].addDevices(connectionArgs);
     ASSERT_EQ(nestedDevices.getCount(), 2u);
@@ -188,13 +376,13 @@ TEST_F(InstanceTest, AddDevicesParallelSuccess)
 
 TEST_F(InstanceTest, AddDevicesParallelPartialSuccess)
 {
-    auto instance = test_helpers::setupInstance();
-    instance.addDevice("daq.root://default_client");
+    auto instance = SetupInstanceWithAdapterDevice();
+    instance.addDevice(AdapterDevice);
 
     auto connectionArgs =
         Dict<IString, IPropertyObject>(
             {
-                {"daq.root://default_client", nullptr},
+                {AdapterDevice, nullptr},
                 {"daqmock://phys_device", nullptr}
             }
         );
@@ -205,15 +393,15 @@ TEST_F(InstanceTest, AddDevicesParallelPartialSuccess)
     ASSERT_EQ(instance->addDevices(&devices, connectionArgs, errCodes, errorInfos), OPENDAQ_PARTIAL_SUCCESS);
 
     ASSERT_EQ(devices.getCount(), 2u);
-    ASSERT_FALSE(devices.get("daq.root://default_client").assigned());
+    ASSERT_FALSE(devices.get(AdapterDevice).assigned());
     ASSERT_TRUE(devices.get("daqmock://phys_device").assigned());
 
     ASSERT_EQ(errCodes.getCount(), 2u);
-    ASSERT_EQ(errCodes.get("daq.root://default_client"), OPENDAQ_ERR_DUPLICATEITEM);
+    ASSERT_EQ(errCodes.get(AdapterDevice), OPENDAQ_ERR_DUPLICATEITEM);
     ASSERT_EQ(errCodes.get("daqmock://phys_device"), OPENDAQ_SUCCESS);
 
     ASSERT_EQ(errorInfos.getCount(), 2u);
-    ASSERT_TRUE(errorInfos.get("daq.root://default_client").assigned());
+    ASSERT_TRUE(errorInfos.get(AdapterDevice).assigned());
     ASSERT_FALSE(errorInfos.get("daqmock://phys_device").assigned());
 
     ASSERT_EQ(instance.getDevices().getCount(), 2u);
@@ -222,15 +410,15 @@ TEST_F(InstanceTest, AddDevicesParallelPartialSuccess)
 
 TEST_F(InstanceTest, AddDevicesParallelFailure)
 {
-    auto instance = test_helpers::setupInstance();
-    instance.addDevice("daq.root://default_client");
+    auto instance = SetupInstanceWithAdapterDevice();
+    instance.addDevice(AdapterDevice);
 
     ASSERT_THROW_MSG(instance.addDevices(Dict<IString, IPropertyObject>()), InvalidParameterException, "None connection arguments provided");
 
     auto connectionArgs =
         Dict<IString, IPropertyObject>(
             {
-                {"daq.root://default_client", nullptr},
+                {AdapterDevice, nullptr},
                 {"unknown://unknown", nullptr}
             }
         );
@@ -238,7 +426,7 @@ TEST_F(InstanceTest, AddDevicesParallelFailure)
     DictPtr<IString, IDevice> devices;
     ASSERT_THROW_MSG(devices = instance.addDevices(connectionArgs, errCodes), GeneralErrorException, "No devices were added");
     ASSERT_EQ(errCodes.getCount(), 2u);
-    ASSERT_EQ(errCodes.get("daq.root://default_client"), OPENDAQ_ERR_DUPLICATEITEM);
+    ASSERT_EQ(errCodes.get(AdapterDevice), OPENDAQ_ERR_DUPLICATEITEM);
     ASSERT_EQ(errCodes.get("unknown://unknown"), OPENDAQ_ERR_NOTFOUND);
 
     ASSERT_EQ(instance.getDevices().getCount(), 1u);
@@ -433,6 +621,7 @@ TEST_F(InstanceTest, InstanceBuilderSetGet)
     const auto moduleManager = ModuleManager("./modulePath1");
     const auto defaultRootDeviceInfo = DeviceInfo("daqref://device0");
     const auto authenticationProvider = AuthenticationProvider();
+    const auto credentialProvider = CmdLineCredentialProvider();
 
     const auto instanceBuilder = InstanceBuilder()
                                 .setLogger(logger)
@@ -446,7 +635,8 @@ TEST_F(InstanceTest, InstanceBuilderSetGet)
                                 .setDefaultRootDeviceLocalId("OpenDAQClient")
                                 .setRootDevice("test")
                                 .setDefaultRootDeviceInfo(defaultRootDeviceInfo)
-                                .setAuthenticationProvider(authenticationProvider);
+                                .setAuthenticationProvider(authenticationProvider)
+                                .setCredentialProvider(credentialProvider);
 
     ASSERT_EQ(instanceBuilder.getLogger(), logger);
     ASSERT_EQ(instanceBuilder.getGlobalLogLevel(), LogLevel::Debug);
@@ -467,6 +657,32 @@ TEST_F(InstanceTest, InstanceBuilderSetGet)
     ASSERT_EQ(instanceBuilder.getRootDevice(), "test");
     ASSERT_EQ(instanceBuilder.getDefaultRootDeviceInfo(), defaultRootDeviceInfo);
     ASSERT_EQ(instanceBuilder.getAuthenticationProvider(), authenticationProvider);
+    ASSERT_EQ(instanceBuilder.getCredentialProvider(), credentialProvider);
+}
+
+TEST_F(InstanceTest, InstanceBuilderCredentialProviderConflictsWithCustomModuleManager)
+{
+    const auto moduleManager = ModuleManager("[[none]]");
+    const auto credentialProvider = CmdLineCredentialProvider();
+
+    const auto instanceBuilder = InstanceBuilder().setModuleManager(moduleManager).setCredentialProvider(credentialProvider);
+
+    ASSERT_THROW(instanceBuilder.build(), AlreadyExistsException);
+}
+
+TEST_F(InstanceTest, InstanceBuilderCredentialProviderAppliesWithoutCustomModuleManager)
+{
+    const auto credentialProvider = CmdLineCredentialProvider();
+
+    ASSERT_NO_THROW(InstanceBuilder().setCredentialProvider(credentialProvider).build());
+}
+
+TEST_F(InstanceTest, InstanceBuilderAcceptsCustomModuleManagerWithItsOwnCredentialProvider)
+{
+    // The credential provider goes directly on the custom module manager.
+    const auto moduleManager = ModuleManager("[[none]]", CmdLineCredentialProvider());
+
+    ASSERT_NO_THROW(InstanceBuilder().setModuleManager(moduleManager).build());
 }
 
 TEST_F(InstanceTest, InstanceBuilderSetContext)
@@ -582,15 +798,15 @@ TEST_F(InstanceTest, InstanceBuilderGetDefault)
 TEST_F(InstanceTest, SaveLoadRestoreDevice)
 {
     std::map<std::string, std::string> devicesNames;
-    auto instance = test_helpers::setupInstance("localIntanceId");
+    auto instance = SetupInstanceWithAdapterDevice("localIntanceId");
     devicesNames.emplace(instance.addDevice("daqmock://phys_device").getName(), "daqmock://phys_device");
-    devicesNames.emplace(instance.addDevice("daq.root://default_client").getName(), "daq.root://default_client");
+    devicesNames.emplace(instance.addDevice(AdapterDevice).getName(), AdapterDevice);
 
     auto config = instance.saveConfiguration();
 
-    auto instance2 = test_helpers::setupInstance("localIntanceId");
+    auto instance2 = SetupInstanceWithAdapterDevice("localIntanceId");
     instance2.addDevice("daqmock://phys_device");
-    instance2.addDevice("daq.root://default_client");
+    instance2.addDevice(AdapterDevice);
     instance2.loadConfiguration(config);
 
     ASSERT_EQ(instance2.getDevices().getCount(), devicesNames.size());
@@ -629,14 +845,14 @@ TEST_F(InstanceTest, LoadLegacySetupIgnoresUserLock)
 TEST_F(InstanceTest, SaveLoadLocked)
 {
     std::map<std::string, std::string> devicesNames;
-    auto instance = test_helpers::setupInstance("localIntanceId");
+    auto instance = SetupInstanceWithAdapterDevice("localIntanceId");
     devicesNames.emplace(instance.addDevice("daqmock://phys_device").getName(), "daqmock://phys_device");
-    devicesNames.emplace(instance.addDevice("daq.root://default_client").getName(), "daq.root://default_client");
+    devicesNames.emplace(instance.addDevice(AdapterDevice).getName(), AdapterDevice);
 
     instance.lock();
 
     auto config = instance.saveConfiguration();
-    auto instance2 = test_helpers::setupInstance("localIntanceId");
+    auto instance2 = SetupInstanceWithAdapterDevice("localIntanceId");
     instance2.loadConfiguration(config);
 
     ASSERT_FALSE(instance2.isLocked());
@@ -653,13 +869,13 @@ TEST_F(InstanceTest, SaveLoadLocked)
 TEST_F(InstanceTest, SaveLoadRestoreDeviceDifferentIds)
 {
     std::map<std::string, std::string> devicesNames;
-    auto instance = test_helpers::setupInstance("localIntanceId");
+    auto instance = SetupInstanceWithAdapterDevice("localIntanceId");
     devicesNames.emplace(instance.addDevice("daqmock://phys_device").getName(), "daqmock://phys_device");
-    devicesNames.emplace(instance.addDevice("daq.root://default_client").getName(), "daq.root://default_client");
+    devicesNames.emplace(instance.addDevice(AdapterDevice).getName(), AdapterDevice);
 
     auto config = instance.saveConfiguration();
 
-    auto instance2 = test_helpers::setupInstance("localIntanceId2");
+    auto instance2 = SetupInstanceWithAdapterDevice("localIntanceId2");
     instance2.loadConfiguration(config);
 
     ASSERT_EQ(instance2.getDevices().getCount(), devicesNames.size());
@@ -1121,9 +1337,9 @@ TEST_F(InstanceTest, SaveLoadDeviceInfo)
 
 TEST_F(InstanceTest, TestRemoved1)
 {
-    auto instance = test_helpers::setupInstance();
+    auto instance = SetupInstanceWithAdapterDevice();
     instance.addFunctionBlock("mock_fb_uid");
-    instance.addDevice("daq.root://default_client");
+    instance.addDevice(AdapterDevice);
     instance.addDevice("daqmock://phys_device");
 
     const ListPtr<IComponent> components = instance.getItems(search::Recursive(search::Any()));
@@ -1144,9 +1360,9 @@ TEST_F(InstanceTest, TestRemoved1)
 
 TEST_F(InstanceTest, TestRemoved2)
 {
-    auto instance = test_helpers::setupInstance();
+    auto instance = SetupInstanceWithAdapterDevice();
     instance.addFunctionBlock("mock_fb_uid");
-    instance.addDevice("daq.root://default_client");
+    instance.addDevice(AdapterDevice);
     instance.addDevice("daqmock://phys_device");
 
     ListPtr<IComponent> components = instance.getItems(search::Recursive(search::Any()));

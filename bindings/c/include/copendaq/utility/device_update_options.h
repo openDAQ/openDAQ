@@ -37,6 +37,7 @@ extern "C"
     typedef struct daqDeviceUpdateOptions daqDeviceUpdateOptions;
     typedef struct daqString daqString;
     typedef struct daqList daqList;
+    typedef struct daqAuthenticationConfig daqAuthenticationConfig;
 
     EXPORTED extern const daqIntfID DAQ_DEVICE_UPDATE_OPTIONS_INTF_ID;
     void EXPORTED daqDeviceUpdateOptions_getInterfaceId(daqIntfID* intfId);
@@ -54,6 +55,7 @@ extern "C"
     daqErrCode EXPORTED daqDeviceUpdateOptions_getUpdateMode(daqDeviceUpdateOptions* self, daqDeviceUpdateMode* mode);
     daqErrCode EXPORTED daqDeviceUpdateOptions_setUpdateMode(daqDeviceUpdateOptions* self, daqDeviceUpdateMode mode);
     daqErrCode EXPORTED daqDeviceUpdateOptions_getChildDeviceOptions(daqDeviceUpdateOptions* self, daqList** childDeviceOptions);
+    daqErrCode EXPORTED daqDeviceUpdateOptions_getAuthenticationConfig(daqDeviceUpdateOptions* self, daqAuthenticationConfig** authenticationConfig);
     daqErrCode EXPORTED daqDeviceUpdateOptions_createDeviceUpdateOptions(daqDeviceUpdateOptions** obj, daqString* setupString);
 
 #ifdef __cplusplus

@@ -54,7 +54,7 @@ TEST_F(StreamingConfigTest, StreamingSources)
     InstancePtr instance = Instance();
 
     PropertyObjectPtr deviceConfig = PropertyObject();
-    auto prioritizedStreamingProtocols = List<IString>("OpenDAQLTStreaming", "OpenDAQNativeStreaming");
+    auto prioritizedStreamingProtocols = List<IString>("OpenDAQLTStreaming"/*, "OpenDAQNativeStreaming"*/);
     deviceConfig.addProperty(ListProperty("PrioritizedStreamingProtocols", prioritizedStreamingProtocols));
     const auto streamingConnectionHeuristicProp = SelectionProperty("StreamingConnectionHeuristic",
                                                                     List<IString>("MinConnections",
@@ -70,6 +70,9 @@ TEST_F(StreamingConfigTest, StreamingSources)
 
     ASSERT_TRUE(signal.getActiveStreamingSource().assigned());
     ASSERT_EQ(signal.getActiveStreamingSource(), "daq.lt://127.0.0.1:7414");
+
+    auto streaming = device.addStreaming("daq.ns://127.0.0.1:7420");
+    streaming.addSignals(device.getSignalsRecursive());
 
     ListPtr<IString> streamingSources = signal.getStreamingSources();
     ASSERT_EQ(streamingSources.getCount(), 2u);
@@ -120,7 +123,11 @@ TEST_F(StreamingConfigTest, WebsocketStreamingRead)
     InstancePtr server = docs_test_helpers::setupSimulatorServers();
     InstancePtr instance = Instance();
 
-    DevicePtr device = instance.addDevice("daq.opcua://127.0.0.1");
+    PropertyObjectPtr deviceConfig = PropertyObject();
+    auto prioritizedStreamingProtocols = List<IString>("OpenDAQLTStreaming");
+    deviceConfig.addProperty(ListProperty("PrioritizedStreamingProtocols", prioritizedStreamingProtocols));
+
+    DevicePtr device = instance.addDevice("daq.opcua://127.0.0.1", deviceConfig);
     ASSERT_TRUE(device.assigned());
 
     MirroredSignalConfigPtr signal = device.getSignalsRecursive()[0];
@@ -187,7 +194,7 @@ TEST_F(StreamingConfigTest, ServerSideConfiguration)
 
     const InstancePtr instance = Instance();
 
-    instance.setRootDevice("daqref://device1");
+    instance.setRootDevice("daqref.root://device1");
 
     // Creates and registers a Server capability with the ID `OpenDAQLTStreaming` and the default port number 7414
     instance.addServer("OpenDAQLTStreaming", nullptr);

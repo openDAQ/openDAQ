@@ -2,16 +2,22 @@
 #include <opendaq/module_manager_factory.h>
 #include <opendaq/context_factory.h>
 #include <opendaq/logger_factory.h>
+#include <opendaq/logger_sink_last_message_private_ptr.h>
 #include "mock/mock_module.h"
 
 #include <chrono>
+#include <set>
 #include <thread>
 
+#include <opendaq/component_factory.h>
 #include <opendaq/component_type_builder_factory.h>
 #include <opendaq/device_info_config_ptr.h>
 #include <opendaq/device_info_factory.h>
 #include <opendaq/module_manager_utils_ptr.h>
 #include <opendaq/device_impl.h>
+#include <opendaq/module_manager_errors.h>
+#include <coreobjects/property_factory.h>
+#include <coreobjects/property_object_factory.h>
 
 using namespace daq;
 
@@ -473,4 +479,337 @@ TEST_F(ModuleManagerTest, ParallelDeviceCreationFailure)
 //    StringPtr message;
 //    errorInfo->getMessage(&message);
 //    ASSERT_TRUE(message.toStdString().find("abc123") != std::string::npos);
+}
+
+// Linked streaming types: checked when a module is added
+
+class LinkTestModule : public MockModuleImpl
+{
+public:
+    explicit LinkTestModule(const StringPtr& id = "link_test")
+        : MockModuleImpl(id)
+    {
+    }
+
+    daq::ErrCode INTERFACE_FUNC getAvailableDeviceTypes(daq::IDict** types) override
+    {
+        if (failDeviceTypes)
+            return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_GENERALERROR, "no device types");
+        *types = deviceTypes.addRefAndReturn();
+        return OPENDAQ_SUCCESS;
+    }
+
+    daq::ErrCode INTERFACE_FUNC getAvailableStreamingTypes(daq::IDict** types) override
+    {
+        *types = streamingTypes.addRefAndReturn();
+        return OPENDAQ_SUCCESS;
+    }
+
+    daq::ErrCode INTERFACE_FUNC getAvailableDevices(daq::IList** devices) override
+    {
+        *devices = availableDevices.addRefAndReturn();
+        return OPENDAQ_SUCCESS;
+    }
+
+    daq::ErrCode INTERFACE_FUNC createDevice(daq::IDevice** /*device*/,
+                                             daq::IString* connectionString,
+                                             daq::IComponent* /*parent*/,
+                                             daq::IPropertyObject* /*config*/) override
+    {
+        createdConnectionStrings.pushBack(connectionString);
+        return OPENDAQ_SUCCESS;
+    }
+
+    void addDeviceType(const StringPtr& id, const PropertyObjectPtr& config, DeviceKind kind = DeviceKind::Adapter)
+    {
+        auto builder = DeviceTypeBuilder().setId(id).setName(id).setConnectionStringPrefix(id);
+        if (kind != DeviceKind::Unspecified)
+            builder.setDeviceKind(kind);
+        if (config.assigned())
+            builder.setDefaultConfig(config);
+        deviceTypes.set(id, builder.build());
+    }
+
+    void addStreamingType(const StringPtr& id, const StringPtr& linkedId, const PropertyObjectPtr& config)
+    {
+        auto builder = StreamingTypeBuilder().setId(id).setName(id).setConnectionStringPrefix(id);
+        if (linkedId.assigned() && linkedId.getLength() > 0)
+        {
+            auto linkedBuilder = DeviceTypeBuilder().setId(linkedId).setName(linkedId).setConnectionStringPrefix(linkedId);
+            if (config.assigned())
+                linkedBuilder.setDefaultConfig(config);
+            builder.setLinkedDeviceType(linkedBuilder.build());
+        }
+        else if (config.assigned())
+        {
+            builder.setDefaultConfig(config);
+        }
+        streamingTypes.set(id, builder.build());
+    }
+
+    DictPtr<IString, IDeviceType> deviceTypes = Dict<IString, IDeviceType>();
+    DictPtr<IString, IStreamingType> streamingTypes = Dict<IString, IStreamingType>();
+    ListPtr<IString> createdConnectionStrings = List<IString>();
+    ListPtr<IDeviceInfo> availableDevices = List<IDeviceInfo>();
+    bool failDeviceTypes = false;
+};
+
+class ModuleManagerLinkTest : public ModuleManagerTest
+{
+protected:
+    ModuleManagerLinkTest()
+        : manager(ModuleManager("[[none]]"))
+    {
+        manager.loadModules(NullContext());
+    }
+
+    static PropertyObjectPtr deviceConfig()
+    {
+        auto nested = PropertyObject();
+        nested.addProperty(IntProperty("A", 1));
+        nested.addProperty(StringProperty("B", "b"));
+
+        auto config = PropertyObject();
+        config.addProperty(StringProperty("Host", "localhost"));
+        config.addProperty(IntProperty("Port", 7420));
+        config.addProperty(ObjectProperty("Nested", nested));
+        return config;
+    }
+
+    static PropertyObjectPtr streamingConfig()
+    {
+        auto nested = PropertyObject();
+        nested.addProperty(IntProperty("A", 1));
+
+        auto config = PropertyObject();
+        config.addProperty(IntProperty("Port", 7420));
+        config.addProperty(ObjectProperty("Nested", nested));
+        return config;
+    }
+
+    struct LinkModule
+    {
+        ModulePtr module;
+        LinkTestModule* impl;
+    };
+
+    static LinkModule makeModule(const std::string& id = "link_test")
+    {
+        auto* impl = new LinkTestModule(id);
+        IModule* intf = impl;
+        return {ModulePtr(intf), impl};
+    }
+
+    // Adds the module; returns an empty string on success, else the error message
+    std::string tryAdd(const ModulePtr& module)
+    {
+        const ErrCode errCode = manager->addModule(module);
+        if (OPENDAQ_SUCCEEDED(errCode))
+        {
+            ObjectPtr<IErrorInfo> errorInfo;
+            daqGetErrorInfo(&errorInfo);
+            EXPECT_FALSE(errorInfo.assigned()) << "error info left set by a successful add";
+            daqClearErrorInfo();
+            EXPECT_TRUE(isAdded(module));
+            return {};
+        }
+
+        EXPECT_EQ(errCode, OPENDAQ_ERR_MODULE_LOAD_FAILED);
+        EXPECT_FALSE(isAdded(module));
+
+        ObjectPtr<IErrorInfo> errorInfo;
+        daqGetErrorInfo(&errorInfo);
+        daqClearErrorInfo();
+        StringPtr message;
+        if (errorInfo.assigned())
+            errorInfo->getMessage(&message);
+        return message.assigned() ? message.toStdString() : std::string("<no message>");
+    }
+
+    bool isAdded(const ModulePtr& module)
+    {
+        for (const auto& m : manager.getModules())
+            if (m == module)
+                return true;
+        return false;
+    }
+
+    static void expectContains(const std::string& message, const std::string& part)
+    {
+        EXPECT_NE(message.find(part), std::string::npos) << "\"" << part << "\" not in: " << message;
+    }
+
+    ModuleManagerPtr manager;
+};
+
+TEST_F(ModuleManagerLinkTest, LinkToUnknownDeviceTypeRejected)
+{
+    auto lib = makeModule("link_test_unknown");
+    auto* impl = lib.impl;
+    impl->addDeviceType("dev", deviceConfig());
+    impl->addStreamingType("str", "other", streamingConfig());
+
+    const auto message = tryAdd(lib.module);
+    expectContains(message, R"(Module with id "link_test_unknown")");
+    expectContains(message, R"(streaming type "str")");
+    expectContains(message, R"(device type "other")");
+    expectContains(message, "does not provide");
+}
+
+TEST_F(ModuleManagerLinkTest, LinkToDeviceTypeOfAnotherModuleRejected)
+{
+    auto deviceLib = makeModule("device_module");
+    auto* deviceModule = deviceLib.impl;
+    deviceModule->addDeviceType("dev", deviceConfig());
+    ASSERT_EQ(tryAdd(deviceLib.module), "");
+
+    auto streamingLib = makeModule("streaming_module");
+    auto* streamingModule = streamingLib.impl;
+    streamingModule->addStreamingType("str", "dev", streamingConfig());
+
+    const auto message = tryAdd(streamingLib.module);
+    expectContains(message, R"(Module with id "streaming_module")");
+    expectContains(message, R"(device type "dev", which the module does not provide)");
+}
+
+TEST_F(ModuleManagerLinkTest, DeviceTypesNotListedRejected)
+{
+    auto lib = makeModule();
+    auto* impl = lib.impl;
+    impl->addStreamingType("str", "dev", streamingConfig());
+    impl->failDeviceTypes = true;
+
+    expectContains(tryAdd(lib.module), "device types cannot be listed");
+}
+
+TEST_F(ModuleManagerLinkTest, UnlinkedStreamingTypesUnaffected)
+{
+    auto streaming = PropertyObject();
+    streaming.addProperty(StringProperty("Port", "7420"));
+    streaming.addProperty(BoolProperty("OnlyHere", true));
+
+    auto lib = makeModule();
+    auto* impl = lib.impl;
+    impl->addDeviceType("dev", deviceConfig());
+    impl->addStreamingType("str", "", streaming);
+    impl->addStreamingType("str2", nullptr, nullptr);
+    impl->failDeviceTypes = true;
+
+    ASSERT_EQ(tryAdd(lib.module), "");
+}
+
+TEST_F(ModuleManagerLinkTest, StreamingTypesNotImplementedUnaffected)
+{
+    // MockModuleImpl::getAvailableStreamingTypes fails with OPENDAQ_ERR_NOTIMPLEMENTED
+    const auto module = createWithImplementation<IModule, MockModuleImpl>(String("not_implemented"));
+    ASSERT_EQ(manager->addModule(module), OPENDAQ_SUCCESS);
+
+    ObjectPtr<IErrorInfo> errorInfo;
+    daqGetErrorInfo(&errorInfo);
+    ASSERT_FALSE(errorInfo.assigned());
+    ASSERT_TRUE(isAdded(module));
+}
+
+TEST_F(ModuleManagerLinkTest, OneBadLinkRejectsModule)
+{
+    auto lib = makeModule();
+    auto* impl = lib.impl;
+    impl->addDeviceType("dev", deviceConfig());
+    impl->addStreamingType("good", "dev", streamingConfig());
+    impl->addStreamingType("bad", "other", streamingConfig());
+
+    expectContains(tryAdd(lib.module), R"(streaming type "bad")");
+}
+
+TEST_F(ModuleManagerLinkTest, UnspecifiedDeviceKindLogsInfo)
+{
+    const auto sink = LastMessageLoggerSink();
+    sink.setLevel(LogLevel::Info);
+    const LastMessageLoggerSinkPrivatePtr lastMessage = sink;
+    manager = ModuleManager("[[none]]");
+    manager.loadModules(Context(nullptr, LoggerWithSinks(List<ILoggerSink>(sink)), TypeManager(), nullptr, nullptr));
+
+    auto lib = makeModule();
+    lib.impl->addDeviceType("unspecdev", nullptr, DeviceKind::Unspecified);
+    lib.impl->addDeviceType("extdev", nullptr, DeviceKind::Adapter);
+    ASSERT_EQ(tryAdd(lib.module), "");
+
+    bool logged = false;
+    while (!logged && lastMessage.waitForMessage(1000))
+        logged = lastMessage.getLastMessage().toStdString().find(R"(Device type "unspecdev")") != std::string::npos;
+    ASSERT_TRUE(logged);
+}
+
+TEST_F(ModuleManagerLinkTest, DeviceKindChecksParent)
+{
+    auto lib = makeModule();
+    lib.impl->addDeviceType("rootdev", nullptr, DeviceKind::Root);
+    lib.impl->addDeviceType("extdev", nullptr, DeviceKind::Adapter);
+    lib.impl->addDeviceType("mirdev", nullptr, DeviceKind::Mirrored);
+    lib.impl->addDeviceType("unspecdev", nullptr, DeviceKind::Unspecified);
+    ASSERT_EQ(tryAdd(lib.module), "");
+
+    const ModuleManagerUtilsPtr utils = manager;
+    const auto parent = Component(NullContext(), nullptr, "parent");
+    const auto create = [&utils](const char* connectionString, const ComponentPtr& owner)
+    {
+        DevicePtr device;
+        const ErrCode errCode = utils->createDevice(&device, String(connectionString), owner, nullptr);
+        daqClearErrorInfo();
+        return errCode;
+    };
+
+    ASSERT_EQ(create("rootdev://", parent), OPENDAQ_ERR_INVALIDPARAMETER);
+    ASSERT_EQ(create("extdev://", nullptr), OPENDAQ_ERR_INVALIDPARAMETER);
+    ASSERT_EQ(create("mirdev://", nullptr), OPENDAQ_ERR_INVALIDPARAMETER);
+    ASSERT_EQ(lib.impl->createdConnectionStrings.getCount(), 0u);
+
+    ASSERT_EQ(create("rootdev://", nullptr), OPENDAQ_SUCCESS);
+    ASSERT_EQ(create("extdev://", parent), OPENDAQ_SUCCESS);
+    ASSERT_EQ(create("mirdev://", parent), OPENDAQ_SUCCESS);
+    ASSERT_EQ(create("unspecdev://", nullptr), OPENDAQ_SUCCESS);
+    ASSERT_EQ(create("unspecdev://", parent), OPENDAQ_SUCCESS);
+    ASSERT_EQ(lib.impl->createdConnectionStrings.getCount(), 5u);
+}
+
+TEST_F(ModuleManagerLinkTest, RootKindNotListed)
+{
+    auto lib = makeModule();
+    lib.impl->addDeviceType("rootdev", nullptr, DeviceKind::Root);
+    lib.impl->addDeviceType("extdev", nullptr, DeviceKind::Adapter);
+    lib.impl->addDeviceType("mirdev", nullptr, DeviceKind::Mirrored);
+    lib.impl->addDeviceType("unspecdev", nullptr, DeviceKind::Unspecified);
+    for (const auto& prefix : {"rootdev", "extdev", "mirdev", "unspecdev", "unknown"})
+        lib.impl->availableDevices.pushBack(DeviceInfo(std::string(prefix) + "://10.0.0.5"));
+    ASSERT_EQ(tryAdd(lib.module), "");
+
+    std::set<std::string> listed;
+    for (const auto& info : manager.asPtr<IModuleManagerUtils>().getAvailableDevices())
+        listed.insert(info.getConnectionString());
+
+    const std::set<std::string> expected{"extdev://10.0.0.5", "mirdev://10.0.0.5", "unspecdev://10.0.0.5", "unknown://10.0.0.5"};
+    ASSERT_EQ(listed, expected);
+}
+
+TEST_F(ModuleManagerLinkTest, ListedRootDeviceWarnsOnce)
+{
+    const auto sink = LastMessageLoggerSink();
+    sink.setLevel(LogLevel::Warn);
+    const LastMessageLoggerSinkPrivatePtr lastMessage = sink;
+    manager = ModuleManager("[[none]]");
+    manager.loadModules(Context(nullptr, LoggerWithSinks(List<ILoggerSink>(sink)), TypeManager(), nullptr, nullptr));
+
+    auto lib = makeModule();
+    lib.impl->addDeviceType("rootdev", nullptr, DeviceKind::Root);
+    lib.impl->availableDevices.pushBack(DeviceInfo("rootdev://a"));
+    lib.impl->availableDevices.pushBack(DeviceInfo("rootdev://b"));
+    ASSERT_EQ(tryAdd(lib.module), "");
+
+    const ModuleManagerUtilsPtr utils = manager;
+    ASSERT_EQ(utils.getAvailableDevices().getCount(), 0u);
+    ASSERT_TRUE(lastMessage.waitForMessage(1000));
+    expectContains(lastMessage.getLastMessage().toStdString(), R"(Device type "rootdev")");
+
+    utils.getAvailableDevices();
+    ASSERT_FALSE(lastMessage.waitForMessage(200));
 }

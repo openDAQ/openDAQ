@@ -40,9 +40,9 @@ void defineIStreamingType(pybind11::module_ m, PyDaqIntf<daq::IStreamingType, da
 {
     cls.doc() = "Provides information on what streaming type can be created by a given module. Can be used to obtain the default configuration used when either adding/creating a new device, or establishing a new streaming connection.";
 
-    m.def("StreamingType", [](std::variant<daq::IString*, py::str, daq::IEvalValue*>& id, std::variant<daq::IString*, py::str, daq::IEvalValue*>& name, std::variant<daq::IString*, py::str, daq::IEvalValue*>& description, std::variant<daq::IString*, py::str, daq::IEvalValue*>& prefix, daq::IPropertyObject* defaultConfig){
-        return daq::StreamingType_Create(getVariantValue<daq::IString*>(id), getVariantValue<daq::IString*>(name), getVariantValue<daq::IString*>(description), getVariantValue<daq::IString*>(prefix), defaultConfig);
-    }, py::arg("id"), py::arg("name"), py::arg("description"), py::arg("prefix"), py::arg("default_config"));
+    m.def("StreamingType", [](std::variant<daq::IString*, py::str, daq::IEvalValue*>& id, std::variant<daq::IString*, py::str, daq::IEvalValue*>& name, std::variant<daq::IString*, py::str, daq::IEvalValue*>& description, std::variant<daq::IString*, py::str, daq::IEvalValue*>& prefix, daq::IPropertyObject* defaultConfig, std::variant<daq::IDict*, py::dict>& supportedAuthenticationMethods, daq::IDeviceType* linkedDeviceType){
+        return daq::StreamingType_Create(getVariantValue<daq::IString*>(id), getVariantValue<daq::IString*>(name), getVariantValue<daq::IString*>(description), getVariantValue<daq::IString*>(prefix), defaultConfig, getVariantValue<daq::IDict*>(supportedAuthenticationMethods), linkedDeviceType);
+    }, py::arg("id"), py::arg("name"), py::arg("description"), py::arg("prefix"), py::arg("default_config"), py::arg("supported_authentication_methods"), py::arg("linked_device_type"));
 
 
     cls.def_property_readonly("connection_string_prefix",
@@ -53,4 +53,13 @@ void defineIStreamingType(pybind11::module_ m, PyDaqIntf<daq::IStreamingType, da
             return objectPtr.getConnectionStringPrefix().toStdString();
         },
         "");
+    cls.def_property_readonly("linked_device_type",
+        [](daq::IStreamingType *object)
+        {
+            py::gil_scoped_release release;
+            const auto objectPtr = daq::StreamingTypePtr::Borrow(object);
+            return objectPtr.getLinkedDeviceType().detach();
+        },
+        py::return_value_policy::take_ownership,
+        "Gets the device type this streaming type shares its connection parameters with (including supported authentication methods). Unassigned if this streaming type doesn't share its parameters with any specific device type.");
 }

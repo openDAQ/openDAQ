@@ -33,7 +33,7 @@ int main(int /*argc*/, const char* /*argv*/[])
     instanceBuilder.addConfigProvider(configProvider);
     instanceBuilder.setAuthenticationProvider(authenticationProvider);
     instanceBuilder.addDiscoveryServer("mdns");
-    instanceBuilder.setRootDevice("daqref://device0");
+    instanceBuilder.setRootDevice("daqref.root://device0");
 
     const InstancePtr instance = InstanceFromBuilder(instanceBuilder);
 

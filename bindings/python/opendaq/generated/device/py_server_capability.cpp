@@ -163,4 +163,13 @@ void defineIServerCapability(pybind11::module_ m, PyDaqIntf<daq::IServerCapabili
         },
         py::return_value_policy::take_ownership,
         "Gets the security level of the protocol.");
+    cls.def_property_readonly("authentication_methods",
+        [](daq::IServerCapability *object)
+        {
+            py::gil_scoped_release release;
+            const auto objectPtr = daq::ServerCapabilityPtr::Borrow(object);
+            return objectPtr.getAuthenticationMethods().detach();
+        },
+        py::return_value_policy::take_ownership,
+        "Gets the list of supported authentication methods ids.");
 }

@@ -21,11 +21,12 @@ MockDeviceModuleImpl::MockDeviceModuleImpl(daq::ContextPtr ctx)
 ErrCode MockDeviceModuleImpl::getAvailableDevices(IList** availableDevices)
 {
     ListPtr<IDeviceInfo> availableDevicesPtr = List<IDeviceInfo>();
+    // TODO(#1361): Set the Root kind once the OpcUaModules tests stop adding daq.root://default_client as a sub-device.
     auto clientDeviceType = DeviceTypeBuilder()
-        .setConnectionStringPrefix("daq.root")
-        .setId("OpenDAQClient")
-        .setName("OpenDAQClient")
-        .build();
+                                .setConnectionStringPrefix("daq.root")
+                                .setId("OpenDAQClient")
+                                .setName("OpenDAQClient")
+                                .build();
 
     auto daqClientDeviceInfo = DeviceInfo("daq.root://default_client");
     daqClientDeviceInfo.setDeviceType(clientDeviceType);
@@ -59,18 +60,36 @@ ErrCode MockDeviceModuleImpl::getAvailableDeviceTypes(IDict** deviceTypes)
 
     mockConfig.addProperty(BoolProperty("IsStatic", false));
 
+    // TODO(#1361): Set the Root kind once the OpcUaModules tests stop adding daq.root://default_client as a sub-device.
     auto clientDeviceType = DeviceTypeBuilder()
-        .setConnectionStringPrefix("daq.root")
-        .setId("OpenDAQClient")
-        .setName("OpenDAQClient")
-        .setDefaultConfig(mockConfig)
-        .build();
+                                .setConnectionStringPrefix("daq.root")
+                                .setId("OpenDAQClient")
+                                .setName("OpenDAQClient")
+                                .setDefaultConfig(mockConfig)
+                                .build();
 
     auto types = Dict<IString, IDeviceType>();
     types.set("OpenDAQClient", clientDeviceType);
     types.set("mock_phys_device", DeviceType("mock_phys_device", "Mock physical device", "Mock", "daqmock", mockConfig));
 
     *deviceTypes = types.detach();
+    return OPENDAQ_SUCCESS;
+}
+
+ErrCode MockDeviceModuleImpl::createAuthenticatedDevice(IDevice** /*device*/,
+                                                        IString* /*connectionString*/,
+                                                        IComponent* /*parent*/,
+                                                        IPropertyObject* /*config*/,
+                                                        ILoginParameters* /*loginParameters*/)
+{
+    return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOTIMPLEMENTED);
+}
+
+ErrCode MockDeviceModuleImpl::getCanonicalConnectionString(IString* connectionString, IString** canonicalConnectionString)
+{
+    OPENDAQ_PARAM_NOT_NULL(canonicalConnectionString);
+
+    *canonicalConnectionString = StringPtr(connectionString).addRefAndReturn();
     return OPENDAQ_SUCCESS;
 }
 
@@ -148,9 +167,15 @@ ErrCode MockDeviceModuleImpl::getModuleInfo(daq::IModuleInfo** info)
     return OPENDAQ_SUCCESS;
 }
 
-ErrCode MockDeviceModuleImpl::createStreaming(IStreaming** /*streaming*/,
-                                              IString* /*connectionString*/,
-                                              IPropertyObject* /*config*/)
+ErrCode MockDeviceModuleImpl::createStreaming(IStreaming** /*streaming*/, IString* /*connectionString*/, IPropertyObject* /*config*/)
+{
+    return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOTIMPLEMENTED);
+}
+
+ErrCode MockDeviceModuleImpl::createAuthenticatedStreaming(IStreaming** /*streaming*/,
+                                                           IString* /*connectionString*/,
+                                                           IPropertyObject* /*config*/,
+                                                           ILoginParameters* /*loginParameters*/)
 {
     return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOTIMPLEMENTED);
 }

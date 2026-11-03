@@ -11,6 +11,7 @@
 - [#1278](https://github.com/openDAQ/openDAQ/pull/1278) Building the TLS channel of the LT streaming modules is controlled by the new CMake option `OPENDAQ_ENABLE_WEBSOCKET_STREAMING_WITH_TLS`, off by default and on in the `full`, `package` and `simulator_package` presets. With it off the LT streaming modules are built without their OpenSSL dependency and the `daq.lts://` channel is absent. The option has no meaning for the legacy LT streaming modules (`DAQMODULES_LT_LEGACY_MODULES`) and is ignored there.
 - [#1311](https://github.com/openDAQ/openDAQ/pull/1311) Add the `ScanOnAdd` option to skip the network scan on `addDevice`; tests wait for state instead of sleeping; declare `RESOURCE_LOCK` for parallel ctest; write a minidump on access violations.
 - [#1360](https://github.com/openDAQ/openDAQ/pull/1360) Add `FunctionModuleAuthenticator`, a module authenticator that forwards `authenticateModuleBinary` to a function, so a custom authenticator can be written in any binding. The function returns a dictionary with the mandatory `BinaryValid` and `VendorKey` keys. Available in C, Python and .NET.
+- [#1361](https://github.com/openDAQ/openDAQ/pull/1361) Device types declare a kind with `setDeviceKind` on the device type builder. Root types can only be the root device, and Adapter and Mirrored types only sub-devices. Module load logs a message for each device type without a kind, and later releases raise its level.
 
 ## Python
 
@@ -52,6 +53,13 @@
 - [#1342](https://github.com/openDAQ/openDAQ/pull/1342) Skip the macOS CI tests only on macOS instead of on every clang build.
 
 ## Required application changes
+
+### [#1361](https://github.com/openDAQ/openDAQ/pull/1361) Device types limit where a device can be added
+
+`setRootDevice` and `createDevice` without a parent reject Adapter and Mirrored device types, and `addDevice` rejects Root types, with `OPENDAQ_ERR_INVALIDPARAMETER`.
+Setting the reference device as the root with `daqref://` now fails, so existing code and config files that do this break.
+Use `daqref.root://` instead, also in `RootDevice.ConnectionString` of config files.
+`getAvailableDevices` no longer lists devices of Root kind.
 
 ### [#1327](https://github.com/openDAQ/openDAQ/pull/1327) Event handler removal waits for running handlers
 

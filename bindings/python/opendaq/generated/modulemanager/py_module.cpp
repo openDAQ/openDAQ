@@ -75,7 +75,25 @@ void defineIModule(pybind11::module_ m, PyDaqIntf<daq::IModule, daq::IBaseObject
             return objectPtr.createDevice(getVariantValue<daq::IString*>(connectionString), parent, config).detach();
         },
         py::arg("connection_string"), py::arg("parent"), py::arg("config") = nullptr,
-        "Creates a device object that can communicate with the device described in the specified connection string. The device object is not automatically added as a sub-device of the caller, but only returned by reference.");
+        "Creates a device object that can communicate with the device described in the specified connection string. The device object is not automatically added as a sub-device of the caller, but only returned by reference. Only valid for a device type with no supported authentication method - use create_authenticated_device for one that has at least one.");
+    cls.def("create_authenticated_device",
+        [](daq::IModule *object, std::variant<daq::IString*, py::str, daq::IEvalValue*>& connectionString, daq::IComponent* parent, daq::IPropertyObject* config, daq::ILoginParameters* loginParameters)
+        {
+            py::gil_scoped_release release;
+            const auto objectPtr = daq::ModulePtr::Borrow(object);
+            return objectPtr.createAuthenticatedDevice(getVariantValue<daq::IString*>(connectionString), parent, config, loginParameters).detach();
+        },
+        py::arg("connection_string"), py::arg("parent"), py::arg("config"), py::arg("login_parameters"),
+        "Creates a device object that can communicate with the device described in the specified connection string, authenticating the connection with the method and credentials carried by login_parameters - already resolved by the module manager before this is called, so the implementation only needs to verify them, never to resolve them itself.");
+    cls.def("get_canonical_connection_string",
+        [](daq::IModule *object, std::variant<daq::IString*, py::str, daq::IEvalValue*>& connectionString)
+        {
+            py::gil_scoped_release release;
+            const auto objectPtr = daq::ModulePtr::Borrow(object);
+            return objectPtr.getCanonicalConnectionString(getVariantValue<daq::IString*>(connectionString)).toStdString();
+        },
+        py::arg("connection_string"),
+        "Returns the canonical form of connection_string - the module's own connection-string prefix trimmed off, and every connection parameter made explicit, even ones the original string left implicit. Used by the module manager as a stable identifier for caching authentication credentials against a specific connection within a credential provider.");
     cls.def_property_readonly("available_function_block_types",
         [](daq::IModule *object)
         {
@@ -120,7 +138,16 @@ void defineIModule(pybind11::module_ m, PyDaqIntf<daq::IModule, daq::IBaseObject
             return objectPtr.createStreaming(getVariantValue<daq::IString*>(connectionString), config).detach();
         },
         py::arg("connection_string"), py::arg("config") = nullptr,
-        "Creates and returns a streaming object using the specified connection string and config object.");
+        "Creates and returns a streaming object using the specified connection string and config object. Only valid for a streaming type with no supported authentication method - use create_authenticated_streaming for one that has at least one.");
+    cls.def("create_authenticated_streaming",
+        [](daq::IModule *object, std::variant<daq::IString*, py::str, daq::IEvalValue*>& connectionString, daq::IPropertyObject* config, daq::ILoginParameters* loginParameters)
+        {
+            py::gil_scoped_release release;
+            const auto objectPtr = daq::ModulePtr::Borrow(object);
+            return objectPtr.createAuthenticatedStreaming(getVariantValue<daq::IString*>(connectionString), config, loginParameters).detach();
+        },
+        py::arg("connection_string"), py::arg("config"), py::arg("login_parameters"),
+        "Creates and returns a streaming object using the specified connection string and config object, authenticating the connection with the method and credentials carried by login_parameters - already resolved by the module manager before this is called, so the implementation only needs to verify them, never to resolve them itself.");
     cls.def("complete_server_capability",
         [](daq::IModule *object, daq::IServerCapability* source, daq::IServerCapabilityConfig* target)
         {

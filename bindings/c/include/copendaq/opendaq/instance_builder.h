@@ -49,6 +49,7 @@ extern "C"
     typedef struct daqPropertyObject daqPropertyObject;
     typedef struct daqDeviceInfo daqDeviceInfo;
     typedef struct daqModuleAuthenticator daqModuleAuthenticator;
+    typedef struct daqCredentialProvider daqCredentialProvider;
 
     EXPORTED extern const daqIntfID DAQ_INSTANCE_BUILDER_INTF_ID;
     void EXPORTED daqInstanceBuilder_getInterfaceId(daqIntfID* intfId);
@@ -95,6 +96,8 @@ extern "C"
     daqErrCode EXPORTED daqInstanceBuilder_getModuleAuthenticator(daqInstanceBuilder* self, daqModuleAuthenticator** authenticator);
     daqErrCode EXPORTED daqInstanceBuilder_setLoadAuthenticatedModulesOnly(daqInstanceBuilder* self, daqBool authOnly);
     daqErrCode EXPORTED daqInstanceBuilder_getLoadAuthenticatedModulesOnly(daqInstanceBuilder* self, daqBool* authOnly);
+    daqErrCode EXPORTED daqInstanceBuilder_getCredentialProvider(daqInstanceBuilder* self, daqCredentialProvider** provider);
+    daqErrCode EXPORTED daqInstanceBuilder_setCredentialProvider(daqInstanceBuilder* self, daqCredentialProvider* provider);
     daqErrCode EXPORTED daqInstanceBuilder_createInstanceBuilder(daqInstanceBuilder** obj);
 
 #ifdef __cplusplus

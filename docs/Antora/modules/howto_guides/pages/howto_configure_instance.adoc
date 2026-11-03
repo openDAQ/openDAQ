@@ -345,7 +345,7 @@ Cpp::
 +
 [source,cpp]
 ----
-InstanceBuilderPtr instanceBuilder = InstanceBuilder().setRootDevice("daqref://device0");
+InstanceBuilderPtr instanceBuilder = InstanceBuilder().setRootDevice("daqref.root://device0");
 InstancePtr instance = instanceBuilder.build();
 ----
 Python::
@@ -353,7 +353,7 @@ Python::
 [source,python]
 ----
 instance_builder = opendaq.InstanceBuilder()
-instance_builder.root_device = "daqref://device0"
+instance_builder.root_device = "daqref.root://device0"
 instance = instance_builder.build()
 ----
 C#::
@@ -361,7 +361,7 @@ C#::
 [source,csharp]
 ----
 InstanceBuilder instanceBuilder = OpenDAQFactory.InstanceBuilder();
-instanceBuilder.SetRootDevice("daqref://device0");
+instanceBuilder.SetRootDevice("daqref.root://device0");
 Instance instance = instanceBuilder.Build();
 ----
 ====

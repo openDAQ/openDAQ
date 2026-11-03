@@ -373,4 +373,19 @@ void defineIInstanceBuilder(pybind11::module_ m, PyDaqIntf<daq::IInstanceBuilder
             objectPtr.setLoadAuthenticatedModulesOnly(authOnly);
         },
         "");
+    cls.def_property("credential_provider",
+        [](daq::IInstanceBuilder *object)
+        {
+            py::gil_scoped_release release;
+            const auto objectPtr = daq::InstanceBuilderPtr::Borrow(object);
+            return objectPtr.getCredentialProvider().detach();
+        },
+        [](daq::IInstanceBuilder *object, daq::ICredentialProvider* provider)
+        {
+            py::gil_scoped_release release;
+            const auto objectPtr = daq::InstanceBuilderPtr::Borrow(object);
+            objectPtr.setCredentialProvider(provider);
+        },
+        py::return_value_policy::take_ownership,
+        "Gets or sets the credential provider to be registered on the built instance's `IModuleManager`. At most one can ever be registered. Fails at build time if a custom `IModuleManager` was also set via `module_manager` - set the credential provider directly on that custom instance instead.");
 }

@@ -23,6 +23,7 @@
 #include <coretypes/listobject.h>
 #include <opendaq/device_type.h>
 #include <opendaq/streaming.h>
+#include <opendaq/streaming_type.h>
 #include <opendaq/sync_component.h>
 #include <opendaq/synchronization.h>
 #include <opendaq/server.h>
@@ -173,6 +174,8 @@ DECLARE_OPENDAQ_INTERFACE(IDevice, IFolder)
      * The getAvailableDevices most often runs a discovery client, querying for available devices that
      * a device module can connect to. The replies are formed into Device Info objects and inserted to the
      * list of available devices.
+     *
+     * Devices of Root kind are not listed, as they can't be added.
      */
     virtual ErrCode INTERFACE_FUNC getAvailableDevices(IList** availableDevices) = 0;
 
@@ -414,6 +417,17 @@ DECLARE_OPENDAQ_INTERFACE(IDevice, IFolder)
      * @return OPENDAQ_IGNORED if the device has no clock; sync is set to nullptr.
      */
     virtual ErrCode INTERFACE_FUNC getSynchronization(ISynchronization** sync) = 0;
+
+    // [templateType(streamingTypes, IString, IStreamingType)]
+    /*!
+     * @brief Get a dictionary of available streaming types as <IString, IStreamingType> pairs
+     * @param[out] streamingTypes The dictionary of available streaming types.
+     *
+     * Lists the streaming types that can be established to this device from the local instance.
+     * A type is listed when the local instance loads it and the device advertises a streaming capability with its prefix.
+     * The dictionary is empty for devices that are not mirrored.
+     */
+    virtual ErrCode INTERFACE_FUNC getAvailableStreamingTypes(IDict** streamingTypes) = 0;
 };
 /*!@}*/
 

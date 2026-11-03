@@ -31,6 +31,7 @@
 #include <opendaq/io_folder_factory.h>
 #include <coreobjects/property_object_impl.h>
 #include <coretypes/validation.h>
+#include <coretypes/ctutils.h>
 #include <opendaq/device_private.h>
 #include <tsl/ordered_set.h>
 #include <opendaq/component_keys.h>
@@ -39,6 +40,7 @@
 #include <coreobjects/property_factory.h>
 #include <opendaq/module_manager_ptr.h>
 #include <opendaq/module_manager_utils_ptr.h>
+#include <opendaq/streaming_type_ptr.h>
 #include <opendaq/sync_component_factory.h>
 #include <opendaq/synchronization_factory.h>
 #include <opendaq/component_update_context_ptr.h>
@@ -54,6 +56,9 @@
 #include <opendaq/module_info_factory.h>
 #include <opendaq/component_type_private.h>
 #include <opendaq/mirrored_device_ptr.h>
+#include <opendaq/authentication_config_ptr.h>
+#include <coreobjects/property_factory.h>
+#include <coretypes/function_ptr.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 template <typename TInterface = IDevice, typename... Interfaces>
@@ -87,6 +92,7 @@ public:
 
     virtual ListPtr<IDeviceInfo> onGetAvailableDevices();
     virtual DictPtr<IString, IDeviceType> onGetAvailableDeviceTypes();
+    virtual DictPtr<IString, IStreamingType> onGetAvailableStreamingTypes();
     virtual DevicePtr onAddDevice(const StringPtr& connectionString, const PropertyObjectPtr& config);
     virtual void onRemoveDevice(const DevicePtr& device);
     virtual DictPtr<IString, IDevice> onAddDevices(const DictPtr<IString, IPropertyObject>& connectionArgs,
@@ -152,6 +158,7 @@ public:
     // Client devices
     ErrCode INTERFACE_FUNC getAvailableDevices(IList** availableDevices) override;
     ErrCode INTERFACE_FUNC getAvailableDeviceTypes(IDict** deviceTypes) override;
+    ErrCode INTERFACE_FUNC getAvailableStreamingTypes(IDict** streamingTypes) override;
     ErrCode INTERFACE_FUNC addDevice(IDevice** device, IString* connectionString, IPropertyObject* config = nullptr) override;
     ErrCode INTERFACE_FUNC addDevices(IDict** devices, IDict* connectionArgs, IDict* errCodes = nullptr, IDict* errorInfos = nullptr) override;
     ErrCode INTERFACE_FUNC removeDevice(IDevice* device) override;
@@ -1384,6 +1391,28 @@ DictPtr<IString, IDeviceType> GenericDevice<TInterface, Interfaces...>::onGetAva
 }
 
 template <typename TInterface, typename... Interfaces>
+ErrCode GenericDevice<TInterface, Interfaces...>::getAvailableStreamingTypes(IDict** streamingTypes)
+{
+    OPENDAQ_PARAM_NOT_NULL(streamingTypes);
+
+    if (this->isComponentRemoved)
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_COMPONENT_REMOVED);
+
+    DictPtr<IString, IStreamingType> dict;
+    const ErrCode errCode = wrapHandlerReturn(this, &GenericDevice<TInterface, Interfaces...>::onGetAvailableStreamingTypes, dict);
+    OPENDAQ_RETURN_IF_FAILED(errCode);
+
+    *streamingTypes = dict.detach();
+    return errCode;
+}
+
+template <typename TInterface, typename... Interfaces>
+DictPtr<IString, IStreamingType> GenericDevice<TInterface, Interfaces...>::onGetAvailableStreamingTypes()
+{
+    return Dict<IString, IStreamingType>();
+}
+
+template <typename TInterface, typename... Interfaces>
 ErrCode GenericDevice<TInterface, Interfaces...>::addDevice(IDevice** device, IString* connectionString, IPropertyObject* config)
 {
     OPENDAQ_PARAM_NOT_NULL(connectionString);
@@ -2213,6 +2242,20 @@ void GenericDevice<TInterface, Interfaces...>::updateDevice(const std::string& d
             updatetableDeviceConfig.updateInternal(serializedDevice.readSerializedObject("deviceConfig"), context);
         else if (serializedDevice.hasKey("ComponentConfig"))
             updatetableDeviceConfig.updateInternal(serializedDevice.readSerializedObject("ComponentConfig"), context);
+
+        {
+            // Stashed under "__AuthenticationConfig" as an ordinary Object-type property. Prefer the one already
+            // parsed onto the matching DeviceUpdateOptions node, if any - a caller may have changed the authentication method or/and called
+            // `setSuppliedCredential` on it directly, to bulk-supply credentials across a whole device tree
+            // without needing a registered ICredentialProvider.
+            AuthenticationConfigPtr authenticationConfig;
+            if (options.assigned())
+                authenticationConfig = options.getAuthenticationConfig();
+            if (!authenticationConfig.assigned() && serializedDevice.hasKey("AuthenticationConfig"))
+                authenticationConfig = serializedDevice.readObject("AuthenticationConfig", context);
+            if (authenticationConfig.assigned())
+                deviceConfig.addProperty(ObjectProperty("__AuthenticationConfig", authenticationConfig));
+        }
 
         DeviceInfoPtr discoveredDeviceInfo;
         StringPtr manufacturer;

@@ -69,11 +69,15 @@ protected:
     void removedNoLock() override;
 
     StreamingPtr onAddStreaming(const StringPtr& connectionString, const PropertyObjectPtr& config) override;
+    DictPtr<IString, IStreamingType> onGetAvailableStreamingTypes() override;
 
     virtual bool isAddedToLocalComponentTree();
     virtual StringPtr onGetRemoteId() const = 0;
 
 private:
+    void checkDuplicateStreamingSource(const StringPtr& connectionString) const;
+    StreamingPtr registerStreamingSource(const StreamingPtr& streamingPtr);
+
     std::vector<StreamingPtr> streamingSources;
     StreamingSourceManagerPtr streamingSourceManager;
     DeviceTypePtr mirroredDeviceType;
@@ -332,9 +336,38 @@ ErrCode MirroredDeviceBase<Interfaces...>::setComponentConfig(IPropertyObject* c
         auto deviceSelf = this->template borrowPtr<DevicePtr>();
         PropertyObjectPtr generalConfig = this->componentConfig.getPropertyValue("General");
         bool automaticallyConnectStreamings = generalConfig.getPropertyValue("AutomaticallyConnectStreaming");
-        if (automaticallyConnectStreamings &&
-            !(generalConfig.getPropertyValue("StreamingConnectionHeuristic") == 2)) // is not "NotConnected"
-            streamingSourceManager = std::make_shared<StreamingSourceManager>(this->context, deviceSelf, this->componentConfig);
+        ListPtr<IString> allowedStreamingProtocols = generalConfig.getPropertyValue("AllowedStreamingProtocols");
+        ListPtr<IString> prioritizedStreamingProtocols = generalConfig.getPropertyValue("PrioritizedStreamingProtocols");
+
+        StringPtr streamingProtocol;
+        if (prioritizedStreamingProtocols.empty())
+            return errCode;
+
+        if (allowedStreamingProtocols.empty())
+        {
+            streamingProtocol = prioritizedStreamingProtocols[0];
+        }
+        else
+        {
+            for (const auto& protocolId : prioritizedStreamingProtocols)
+            {
+                for (const auto& allowedProtocol : allowedStreamingProtocols)
+                {
+                    if (protocolId == allowedProtocol)
+                    {
+                        streamingProtocol = protocolId;
+                        break;
+                    }
+                }
+                if (streamingProtocol.assigned())
+                    break;
+            }
+        }
+        if (automaticallyConnectStreamings
+            && !(generalConfig.getPropertyValue("StreamingConnectionHeuristic") == 2) // is not "NotConnected"
+            && streamingProtocol.assigned())
+            streamingSourceManager =
+                std::make_shared<StreamingSourceManager>(this->context, deviceSelf, this->componentConfig, streamingProtocol);
     }
 
     return errCode;
@@ -344,7 +377,52 @@ template <typename... Interfaces>
 StreamingPtr MirroredDeviceBase<Interfaces...>::onAddStreaming(const StringPtr& connectionString, const PropertyObjectPtr& config)
 {
     auto lock = this->getRecursiveConfigLock2();
+    checkDuplicateStreamingSource(connectionString);
 
+    // Manufacturer/serial number/model all come from this device's own `IDeviceInfo` - handing the device
+    // itself down lets the module resolve them.
+    const auto thisPtr = this->template borrowPtr<DevicePtr>();
+
+    const ModuleManagerUtilsPtr managerUtils = this->context.getModuleManager().template asPtr<IModuleManagerUtils>();
+    return registerStreamingSource(managerUtils.createStreaming(connectionString, config, thisPtr));
+}
+
+template <typename... Interfaces>
+DictPtr<IString, IStreamingType> MirroredDeviceBase<Interfaces...>::onGetAvailableStreamingTypes()
+{
+    auto streamingTypes = Dict<IString, IStreamingType>();
+
+    DeviceInfoPtr info;
+    checkErrorInfo(this->getInfo(&info));
+    if (!info.assigned())
+        return streamingTypes;
+
+    std::set<std::string> streamingPrefixes;
+    for (const auto& capability : info.getServerCapabilities())
+    {
+        const auto protocolType = capability.getProtocolType();
+        const StringPtr prefix = capability.getPrefix();
+        if ((protocolType == ProtocolType::Streaming || protocolType == ProtocolType::ConfigurationAndStreaming) && prefix.assigned())
+            streamingPrefixes.insert(prefix.toStdString());
+    }
+
+    if (streamingPrefixes.empty())
+        return streamingTypes;
+
+    auto lock = this->getRecursiveConfigLock2();
+    const ModuleManagerUtilsPtr managerUtils = this->context.getModuleManager().template asPtr<IModuleManagerUtils>();
+    for (const auto& [id, type] : managerUtils.getAvailableStreamingTypes())
+    {
+        if (streamingPrefixes.count(type.getConnectionStringPrefix().toStdString()))
+            streamingTypes.set(id, type);
+    }
+
+    return streamingTypes;
+}
+
+template <typename... Interfaces>
+void MirroredDeviceBase<Interfaces...>::checkDuplicateStreamingSource(const StringPtr& connectionString) const
+{
     auto it = std::find_if(streamingSources.begin(),
                            streamingSources.end(),
                            [&connectionString](const StreamingPtr& item)
@@ -360,9 +438,11 @@ StreamingPtr MirroredDeviceBase<Interfaces...>::onAddStreaming(const StringPtr& 
                             connectionString
         );
     }
+}
 
-    const ModuleManagerUtilsPtr managerUtils = this->context.getModuleManager().template asPtr<IModuleManagerUtils>();
-    auto streamingPtr = managerUtils.createStreaming(connectionString, config);
+template <typename... Interfaces>
+StreamingPtr MirroredDeviceBase<Interfaces...>::registerStreamingSource(const StreamingPtr& streamingPtr)
+{
     streamingSources.push_back(streamingPtr);
 
     this->connectionStatusContainer.addStreamingConnectionStatus(streamingPtr.getConnectionString(),

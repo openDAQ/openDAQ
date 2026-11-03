@@ -109,9 +109,9 @@ TEST_F(ModulesDefaultConfigTest, NativeStreaming)
     const PropertyObjectPtr nativeDeviceConfig = deviceConfig.getPropertyValue("OpenDAQNativeStreaming");
     ASSERT_TRUE(nativeDeviceConfig.hasProperty("Port"));
     ASSERT_TRUE(nativeDeviceConfig.hasProperty("TransportLayerConfig"));
-    ASSERT_FALSE(nativeDeviceConfig.hasProperty("ProtocolVersion"));
-    ASSERT_FALSE(nativeDeviceConfig.hasProperty("ConfigProtocolRequestTimeout"));
-    ASSERT_FALSE(nativeDeviceConfig.hasProperty("RestoreClientConfigOnReconnect"));
+    ASSERT_TRUE(nativeDeviceConfig.hasProperty("ProtocolVersion"));
+    ASSERT_TRUE(nativeDeviceConfig.hasProperty("ConfigProtocolRequestTimeout"));
+    ASSERT_TRUE(nativeDeviceConfig.hasProperty("RestoreClientConfigOnReconnect"));
 }
 
 TEST_F(ModulesDefaultConfigTest, NativeStreamingDevice)
@@ -294,7 +294,7 @@ TEST_F(ModulesDefaultConfigTest, NativeConfigDeviceAnyStreamingConnect)
     const auto device = instance.addDevice("daq.nd://127.0.0.1", config);
 
     auto availableStreamingSources = device.asPtr<IMirroredDevice>().getStreamingSources();
-    ASSERT_EQ(availableStreamingSources.getCount(), 2u);
+    ASSERT_EQ(availableStreamingSources.getCount(), 1u); // Only one per device is established automatically
 
     auto addedComponentConfig = device.asPtr<IComponentPrivate>(true).getComponentConfig();
     ASSERT_TRUE(addedComponentConfig.assigned());
@@ -412,7 +412,7 @@ TEST_F(ModulesDefaultConfigTest, OPCUAConfigAnyStreamingConnect)
     generalConfig.setPropertyValue("AllowedStreamingProtocols", List<IString>());
 
     const auto device = instance.addDevice("daq.opcua://127.0.0.1", config);
-    ASSERT_EQ(device.asPtr<IMirroredDevice>().getStreamingSources().getCount(), 2u);
+    ASSERT_EQ(device.asPtr<IMirroredDevice>().getStreamingSources().getCount(), 1u); // Only one per device is established automatically
 
     auto addedComponentConfig = device.asPtr<IComponentPrivate>(true).getComponentConfig();
     ASSERT_TRUE(addedComponentConfig.assigned());
@@ -432,7 +432,7 @@ TEST_F(ModulesDefaultConfigTest, SmartConnectWithIpVerNative)
     refDevConfig.addProperty(StringProperty("SerialNumber", "sim01_native"));
 
     addRefDeviceModule(serverInstance);
-    serverInstance.setRootDevice("daqref://device1", refDevConfig);
+    serverInstance.setRootDevice("daqref.root://device1", refDevConfig);
 
     addLtServerModule(serverInstance);
     serverInstance.addServer("OpenDAQLTStreaming", nullptr);
@@ -499,7 +499,7 @@ TEST_F(ModulesDefaultConfigTest, SmartConnectWithIpVerOpcUa)
     refDevConfig.addProperty(StringProperty("SerialNumber", "sim01_opcua"));
 
     addRefDeviceModule(serverInstance);
-    serverInstance.setRootDevice("daqref://device1", refDevConfig);
+    serverInstance.setRootDevice("daqref.root://device1", refDevConfig);
 
     addLtServerModule(serverInstance);
     serverInstance.addServer("OpenDAQLTStreaming", nullptr);
@@ -568,7 +568,7 @@ TEST_F(ModulesDefaultConfigTest, SmartConnectWithIpVerLt)
     refDevConfig.addProperty(StringProperty("SerialNumber", "sim01_lt"));
 
     addRefDeviceModule(serverInstance);
-    serverInstance.setRootDevice("daqref://device1", refDevConfig);
+    serverInstance.setRootDevice("daqref.root://device1", refDevConfig);
 
     addLtServerModule(serverInstance);
     serverInstance.addServer("OpenDAQLTStreaming", nullptr);

@@ -8,6 +8,7 @@ set(TEST_MOCKS mock/mock_mirrored_signal.h
 )
 
 set(TEST_SOURCES test_streaming.cpp
+                 test_streaming_type.cpp
                  test_mirrored_signal.cpp
                  test_mirrored_device.cpp
                  test_mirrored_input_port.cpp

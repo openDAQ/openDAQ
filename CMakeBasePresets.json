@@ -113,6 +113,8 @@
             "cacheVariables": {
                 "OPENDAQ_ENABLE_OPCUA": true,
                 "DAQMODULES_EMPTY_MODULE": true,
+                "DAQMODULES_CREDENTIAL_DEMO_MODULE": true,
+                "DAQMODULES_CREDENTIAL_DEMO_MODULE_ENABLE_PRIVATE_KEY_AUTH": true,
                 "DAQMODULES_OPENDAQ_CLIENT_MODULE": true,
                 "DAQMODULES_OPENDAQ_SERVER_MODULE": true,
                 "DAQMODULES_REF_DEVICE_MODULE": true,

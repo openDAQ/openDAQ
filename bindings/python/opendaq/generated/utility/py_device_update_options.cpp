@@ -149,4 +149,13 @@ void defineIDeviceUpdateOptions(pybind11::module_ m, PyDaqIntf<daq::IDeviceUpdat
         },
         py::return_value_policy::take_ownership,
         "Gets the list of child device options for the device. These are used to configure subdevices of the current device.");
+    cls.def_property_readonly("authentication_config",
+        [](daq::IDeviceUpdateOptions *object)
+        {
+            py::gil_scoped_release release;
+            const auto objectPtr = daq::DeviceUpdateOptionsPtr::Borrow(object);
+            return objectPtr.getAuthenticationConfig().detach();
+        },
+        py::return_value_policy::take_ownership,
+        "Gets the authentication config this device was saved with (methods + selected id, never the credential) - or None if the device wasn't saved with authentication. Call set_supplied_credential on it directly, before passing these options to load_configuration, to bulk-supply credentials for a device tree in one action.");
 }

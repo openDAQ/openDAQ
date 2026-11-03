@@ -184,7 +184,7 @@ run_rtgen copendaq/device opendaq/device opendaq device_info_config device_info_
 run_rtgen copendaq/device opendaq/device opendaq device_info_internal device_info_internal
 run_rtgen copendaq/device opendaq/device opendaq device_network_config device_network_config
 run_rtgen copendaq/device opendaq/device opendaq device_private device_private
-run_rtgen copendaq/device opendaq/device opendaq device_type device_type
+run_rtgen copendaq/device opendaq/device opendaq device_type device_type #enum
 run_rtgen copendaq/device opendaq/device opendaq io_folder_config io_folder_config #empty
 run_rtgen copendaq/device opendaq/device opendaq log_file_info log_file_info
 run_rtgen copendaq/device opendaq/device opendaq log_file_info_builder log_file_info_builder
@@ -296,6 +296,14 @@ run_rtgen copendaq/scheduler opendaq/scheduler opendaq work work
 
 # run_rtgen copendaq/scheduler opendaq/scheduler opendaq task_flow task_flow #C++
 # run_rtgen copendaq/scheduler opendaq/scheduler opendaq task_internal task_internal #C++
+
+# opendaq security
+
+run_rtgen copendaq/security opendaq/security opendaq authentication_config authentication_config
+run_rtgen copendaq/security opendaq/security opendaq credential_descriptor credential_descriptor
+run_rtgen copendaq/security opendaq/security opendaq credential_provider credential_provider
+run_rtgen copendaq/security opendaq/security opendaq credential_request credential_request
+run_rtgen copendaq/security opendaq/security opendaq credential_request_builder credential_request_builder
 
 # opendaq server
 

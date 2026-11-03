@@ -66,3 +66,13 @@ daqErrCode daqComponentPrivate_setParentActive(daqComponentPrivate* self, daqBoo
 {
     return reinterpret_cast<daq::IComponentPrivate*>(self)->setParentActive(parentActive, onUpdate);
 }
+
+daqErrCode daqComponentPrivate_setAuthenticationConfig(daqComponentPrivate* self, daqAuthenticationConfig* authenticationConfig)
+{
+    return reinterpret_cast<daq::IComponentPrivate*>(self)->setAuthenticationConfig(reinterpret_cast<daq::IAuthenticationConfig*>(authenticationConfig));
+}
+
+daqErrCode daqComponentPrivate_getAuthenticationConfig(daqComponentPrivate* self, daqAuthenticationConfig** authenticationConfig)
+{
+    return reinterpret_cast<daq::IComponentPrivate*>(self)->getAuthenticationConfig(reinterpret_cast<daq::IAuthenticationConfig**>(authenticationConfig));
+}

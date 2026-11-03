@@ -58,6 +58,8 @@ public:
                                              const PropertyObjectPtr& defaultClientInfo,
                                              const TxtProperties& txtKeyValuePairs);
 
+    static std::string authenticationMethodsToTxt(const ListPtr<IString>& authenticationMethodsIds);
+    static ListPtr<IString> populateAuthenticationMethods(const std::string& txtValue);
 private:
     static size_t getTxtRecordsCount(const void* buffer, size_t size, size_t offset, size_t length);
 };

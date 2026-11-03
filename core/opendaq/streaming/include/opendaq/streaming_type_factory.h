@@ -19,6 +19,9 @@
 #include <coretypes/simple_type_factory.h>
 #include <coreobjects/property_object_factory.h>
 #include <opendaq/component_type_builder_factory.h>
+#include <opendaq/authentication_method_factory.h>
+#include <coretypes/dictobject_factory.h>
+#include <opendaq/device_type_ptr.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
@@ -30,20 +33,30 @@ BEGIN_NAMESPACE_OPENDAQ
 
 /*!
  * @brief Creates a StreamingType pointer, with the id, name, description and optional defaultConfig.
- * @param id The unique type ID of the function block.
- * @param name The name of the function block. Eg. FFT.
+ * @param id The unique type ID of the Streaming.
+ * @param name The name of the Streaming. Eg. OpenDAQNativeStreaming.
  * @param description A short description of the function block and its behaviour.
  * @param prefix The prefix of the connection string used to add this streaming connection to a device.
  * @param defaultConfig The property object, to be cloned and returned, each time user creates default
- * configuration object. This way each instance of the function block has its own configuration object.
+ * configuration object. This way each instance of the Streaming has its own configuration object.
+ * @param supportedAuthenticationMethods The authentication methods this streaming type supports authenticating
+ * with, keyed by their own id. The first entry, in dict iteration order, is the one a built
+ * `IAuthenticationConfig` starts out selected on. Left unset, the streaming type supports none - the core treats
+ * it as not supporting authentication.
+ * @param linkedDeviceType The device type this streaming type shares its connection parameters with (including
+ * supported authentication methods). Left unset, this streaming type doesn't share its parameters with any
+ * specific device type.
  */
 inline StreamingTypePtr StreamingType(const StringPtr& id,
                                               const StringPtr& name,
                                               const StringPtr& description,
                                               const StringPtr& prefix,
-                                              const PropertyObjectPtr& defaultConfig = PropertyObject())
+                                              const PropertyObjectPtr& defaultConfig = PropertyObject(),
+                                              const DictPtr<IString, IAuthenticationMethod>& supportedAuthenticationMethods = Dict<IString, IAuthenticationMethod>(),
+                                              const DeviceTypePtr& linkedDeviceType = nullptr)
 {
-    StreamingTypePtr obj(StreamingType_Create(id, name, description, prefix, defaultConfig));
+    StreamingTypePtr obj(
+        StreamingType_Create(id, name, description, prefix, defaultConfig, supportedAuthenticationMethods, linkedDeviceType));
     return obj;
 }
 
@@ -54,8 +67,11 @@ inline StructTypePtr StreamingTypeStructType()
 {
     return StructType("StreamingType",
                       List<IString>("Id", "Name", "Description", "Prefix"),
-                      List<IString>("", "", "", ""),
-                      List<IType>(SimpleType(ctString), SimpleType(ctString), SimpleType(ctString), SimpleType(ctString)));
+                      List<IBaseObject>("", "", "", ""),
+                      List<IType>(SimpleType(ctString),
+                                 SimpleType(ctString),
+                                 SimpleType(ctString),
+                                 SimpleType(ctString)));
 }
 
 /*!@}*/

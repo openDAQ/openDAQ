@@ -49,7 +49,7 @@ TEST_F(COpendaqModuleManagerTest, DISABLED_ModuleManager)
 
     daqString* path = nullptr;
     daqString_createString(&path, ".");
-    daqModuleManager_createModuleManager(&moduleManager, path);
+    daqModuleManager_createModuleManager(&moduleManager, path, nullptr);
     ASSERT_NE(moduleManager, nullptr);
 
     daqModuleManager_loadModules(moduleManager, ctx);

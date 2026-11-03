@@ -7,14 +7,19 @@
 #include <coreobjects/authentication_provider_factory.h>
 #include <opendaq/device_type_factory.h>
 #include <opendaq/instance_factory.h>
+#include <opendaq/authentication_method_factory.h>
+#include <opendaq/security_exceptions.h>
+#include <opendaq/update_parameters_factory.h>
+#include <coreobjects/property_object_factory.h>
 
 using namespace daq;
 
 class UpdateOptionsTestDevice : public Device
 {
 public:
-    UpdateOptionsTestDevice(const ContextPtr& ctx, const ComponentPtr& parent, const StringPtr& localId)
+    UpdateOptionsTestDevice(const ContextPtr& ctx, const ComponentPtr& parent, const StringPtr& localId, const StringPtr& connectionString)
         : Device(ctx, parent, localId)
+        , connectionString(connectionString)
     {
         this->id = localId.toStdString().back() - '0';
         this->objPtr.addProperty(StringProperty("Test", "Unchanged"));
@@ -28,13 +33,33 @@ public:
         this->functionBlocks.addItem(fb);
     }
 
+    static DeviceTypePtr PlainTestDeviceType()
+    {
+        const DeviceTypePtr type = DeviceType("Test", "Test", "", "daqtest");
+        return type;
+    }
+
+    static DeviceTypePtr AuthTestDeviceType()
+    {
+        const DeviceTypePtr type = DeviceTypeBuilder()
+        .setId("TestAuth")
+            .setName("TestAuth")
+            .setDescription("")
+            .setConnectionStringPrefix("daqtestauth")
+            .addAuthenticationMethod(StandardUserNamePasswordAuthenticationMethod())
+            .build();
+        return type;
+    }
+
 private:
     DeviceInfoPtr onGetInfo() override
     {
-        auto info = DeviceInfo(fmt::format("daqtest://Man{}_Ser{}", id, id));
+        auto info = DeviceInfo(connectionString);
         info.setManufacturer(fmt::format("Man{}", id));
         info.setSerialNumber(fmt::format("Ser{}", id));
-        info.setDeviceType(DeviceType("Test", "Test", "", "daqtest"));
+
+        const bool isAuth = connectionString.toStdString().rfind("daqtestauth://", 0) == 0;
+        info.setDeviceType(isAuth ? AuthTestDeviceType() : PlainTestDeviceType());
         return info;
     }
 
@@ -44,6 +69,7 @@ private:
     }
 
     int id;
+    StringPtr connectionString;
 };
 
 class UpdateOptionsTestDeviceModule : public Module
@@ -77,21 +103,32 @@ public:
     {
         auto result = Dict<IString, IDeviceType>();
 
-        auto deviceType = DeviceType("Test", "Test", "", "daqtest");
+        auto deviceType = UpdateOptionsTestDevice::PlainTestDeviceType();
         result.set(deviceType.getId(), deviceType);
+
+        auto authDeviceType = UpdateOptionsTestDevice::AuthTestDeviceType();
+        result.set(authDeviceType.getId(), authDeviceType);
 
         return result;
     }
 
     DevicePtr onCreateDevice(const StringPtr& connectionString, const ComponentPtr& parent, const PropertyObjectPtr&) override
     {
-        return createWithImplementation<IDevice, UpdateOptionsTestDevice>(this->context, parent, getIdFromConnectionString(connectionString));
+        return createWithImplementation<IDevice, UpdateOptionsTestDevice>(this->context, parent, getIdFromConnectionString(connectionString), connectionString);
+    }
+
+    DevicePtr onCreateAuthenticatedDevice(const StringPtr& connectionString,
+                                          const ComponentPtr& parent,
+                                          const PropertyObjectPtr&,
+                                          const LoginParametersPtr& /*loginParameters*/) override
+    {
+        return createWithImplementation<IDevice, UpdateOptionsTestDevice>(this->context, parent, getIdFromConnectionString(connectionString), connectionString);
     }
 
     static std::string getIdFromConnectionString(const std::string& connectionString)
     {
-        std::string prefixWithDeviceStr = "daqtest://";
-        return connectionString.substr(prefixWithDeviceStr.size(), std::string::npos);
+        const auto pos = connectionString.find("://");
+        return connectionString.substr(pos + 3, std::string::npos);
     }
 };
 
@@ -136,6 +173,14 @@ protected:
 
         freshInstance = InstanceCustom(context1, "localInstance");
         freshInstance.setRootDevice("daqtest://Man0_Ser0");
+    }
+
+    DeviceUpdateOptionsPtr findChildOptionsByLocalId(const DeviceUpdateOptionsPtr& parent, const StringPtr& localId)
+    {
+        for (const auto& child : parent.getChildDeviceOptions())
+            if (child.getLocalId() == localId)
+                return child;
+        return nullptr;
     }
 
     InstancePtr instance;
@@ -769,4 +814,81 @@ TEST_F(DeviceUpdateOptionsTest, RemapToExistingSibling)
     // Removed the Man4 since it was not in the original config
     ASSERT_EQ(instance.getDevices()[1].getDevices().getCount(), 1u);
     ASSERT_EQ(instance.getDevices()[1].getDevices()[0].getLocalId(), "Man4_Ser4");
+}
+
+TEST_F(DeviceUpdateOptionsTest, AuthConfigWithUpdateOptions)
+{
+    auto deviceType = instance.getAvailableDeviceTypes().get("TestAuth");
+    auto authConfig = deviceType.createAuthenticationConfig();
+    authConfig.setSuppliedCredential(Dict<IString, IString>({{"UserName", "user"}, {"Password", "pass"}}));
+
+    auto addConfig = PropertyObject();
+    addConfig.addProperty(ObjectProperty("__AuthenticationConfig", authConfig));
+    auto authDevice = instance.addDevice("daqtestauth://Man9_Ser9", addConfig);
+    ASSERT_TRUE(authDevice.assigned());
+
+    auto str = instance.saveConfiguration();
+    instance.removeDevice(authDevice);
+
+    auto optionsWithoutCredentials = DeviceUpdateOptions(str);
+
+    // AuthenticationConfigParsedFromSave:
+    {
+        auto authDeviceOptions = findChildOptionsByLocalId(optionsWithoutCredentials, "Man9_Ser9");
+        ASSERT_TRUE(authDeviceOptions.assigned());
+
+        auto savedAuthConfig = authDeviceOptions.getAuthenticationConfig();
+        ASSERT_TRUE(savedAuthConfig.assigned());
+        ASSERT_EQ(savedAuthConfig.getSelectedAuthenticationMethod().getId(), "UserNamePassword");
+
+        // The credentials are never saved, regardless of what was supplied when the device was originally added.
+        ASSERT_EQ(savedAuthConfig.getSuppliedCredential().getCount(), 0u);
+    }
+
+    // NoSuppliedCredentialsThruUpdateOptionsStillRequiresProvider:
+    {
+        auto params = UpdateParameters();
+        params.setDeviceUpdateOptions(optionsWithoutCredentials);
+
+        ASSERT_NO_THROW(instance.loadConfiguration(str, params));
+
+        bool foundWithoutCredential = false;
+        for (SizeT i = 0; i < instance.getDevices().getCount(); ++i)
+            if (instance.getDevices()[i].getLocalId() == "Man9_Ser9")
+                foundWithoutCredential = true;
+        ASSERT_FALSE(foundWithoutCredential);
+    }
+
+    auto optionsWithCredentials = DeviceUpdateOptions(str);
+    findChildOptionsByLocalId(optionsWithCredentials, "Man9_Ser9")
+        .getAuthenticationConfig()
+        .setSuppliedCredential(Dict<IString, IString>({{"UserName", "user"}, {"Password", "pass"}}));
+
+
+    // SuppliedCredentialsNeverLeaksIntoSerializedDeviceUpdateOptions:
+    {
+        auto serializerWith = JsonSerializer();
+        optionsWithCredentials.serialize(serializerWith);
+
+        auto serializerWithout = JsonSerializer();
+        optionsWithoutCredentials.serialize(serializerWithout);
+
+        // Setting a supplied credential on a parsed AuthenticationConfig does not change DeviceUpdateOptions' own
+        // serialized output - the credential always stays purely in-memory.
+        ASSERT_EQ(serializerWithout.getOutput(), serializerWith.getOutput());
+    }
+
+    // SuppliedCredentialThruUpdateOptionsSucceedsWithNoProvider:
+    {
+        auto params = UpdateParameters();
+        params.setDeviceUpdateOptions(optionsWithCredentials);
+
+        ASSERT_NO_THROW(instance.loadConfiguration(str, params));
+
+        bool found = false;
+        for (SizeT i = 0; i < instance.getDevices().getCount(); ++i)
+            if (instance.getDevices()[i].getLocalId() == "Man9_Ser9")
+                found = true;
+        ASSERT_TRUE(found);
+    }
 }

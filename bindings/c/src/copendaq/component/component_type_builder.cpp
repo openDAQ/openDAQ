@@ -87,6 +87,36 @@ daqErrCode daqComponentTypeBuilder_getDefaultConfig(daqComponentTypeBuilder* sel
     return reinterpret_cast<daq::IComponentTypeBuilder*>(self)->getDefaultConfig(reinterpret_cast<daq::IPropertyObject**>(defaultConfig));
 }
 
+daqErrCode daqComponentTypeBuilder_setDeviceKind(daqComponentTypeBuilder* self, daqDeviceKind kind)
+{
+    return reinterpret_cast<daq::IComponentTypeBuilder*>(self)->setDeviceKind(static_cast<daq::DeviceKind>(kind));
+}
+
+daqErrCode daqComponentTypeBuilder_getDeviceKind(daqComponentTypeBuilder* self, daqDeviceKind* kind)
+{
+    return reinterpret_cast<daq::IComponentTypeBuilder*>(self)->getDeviceKind(reinterpret_cast<daq::DeviceKind*>(kind));
+}
+
+daqErrCode daqComponentTypeBuilder_addAuthenticationMethod(daqComponentTypeBuilder* self, daqAuthenticationMethod* method)
+{
+    return reinterpret_cast<daq::IComponentTypeBuilder*>(self)->addAuthenticationMethod(reinterpret_cast<daq::IAuthenticationMethod*>(method));
+}
+
+daqErrCode daqComponentTypeBuilder_getSupportedAuthenticationMethods(daqComponentTypeBuilder* self, daqDict** authenticationMethods)
+{
+    return reinterpret_cast<daq::IComponentTypeBuilder*>(self)->getSupportedAuthenticationMethods(reinterpret_cast<daq::IDict**>(authenticationMethods));
+}
+
+daqErrCode daqComponentTypeBuilder_setLinkedDeviceType(daqComponentTypeBuilder* self, daqDeviceType* deviceType)
+{
+    return reinterpret_cast<daq::IComponentTypeBuilder*>(self)->setLinkedDeviceType(reinterpret_cast<daq::IDeviceType*>(deviceType));
+}
+
+daqErrCode daqComponentTypeBuilder_getLinkedDeviceType(daqComponentTypeBuilder* self, daqDeviceType** deviceType)
+{
+    return reinterpret_cast<daq::IComponentTypeBuilder*>(self)->getLinkedDeviceType(reinterpret_cast<daq::IDeviceType**>(deviceType));
+}
+
 daqErrCode daqComponentTypeBuilder_createComponentTypeBuilder(daqComponentTypeBuilder** obj)
 {
     daq::IComponentTypeBuilder* ptr = nullptr;

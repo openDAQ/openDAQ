@@ -33,6 +33,32 @@ BEGIN_NAMESPACE_OPENDAQ
  */
 
 /*!
+ * @brief The kind of device a Device type creates.
+ *
+ * Unspecified devices are a superset of other DeviceKinds, used for backwards compatibility.
+ * It's the default DeviceKind, and can't be set via the Device type builder.
+ *
+ * Adapter devices are connected and controlled by their module.
+ * They are typically hardware or remote devices that don't run openDAQ.
+ * Their module may use a streaming internally.
+ *
+ * Mirrored devices mirror a remote openDAQ device, which runs an openDAQ server on its side.
+ *
+ * Root devices abstract the local system as the top-level device of an instance.
+ * They can only be set as an instance's root device, via `setRootDevice`.
+ *
+ * Only Root and Unspecified devices can be set as root.
+ * Only Mirrored and Unspecified devices can have streamings attached.
+ */
+enum class DeviceKind : EnumType
+{
+    Unspecified = 0,
+    Adapter,
+    Mirrored,
+    Root
+};
+
+/*!
  * @brief Provides information on what device type can be created by a given module. Can be used
  * to obtain the default configuration used when either adding/creating a new device.
  */
@@ -45,6 +71,12 @@ DECLARE_OPENDAQ_INTERFACE(IDeviceType, IComponentType)
      * The prefix is always found at the start of the connection string, before the "://" delimiter.
      */
     virtual ErrCode INTERFACE_FUNC getConnectionStringPrefix(IString** prefix) = 0;
+
+    /*!
+     * @brief Gets the kind of device created by this type.
+     * @param[out] kind The device kind
+     */
+    virtual ErrCode INTERFACE_FUNC getDeviceKind(DeviceKind* kind) = 0;
 };
 /*!@}*/
 
@@ -61,6 +93,10 @@ DECLARE_OPENDAQ_INTERFACE(IDeviceType, IComponentType)
  * @param description A short description of the device type.
  * @param defaultConfig The property object, to be cloned and returned, each time user creates default
  * configuration object. This way each instance of the device has its own configuration object.
+ * @param prefix The prefix of the connection string used when adding the device (the part before the
+ * "://" delimiter in the connection string).
+ * @param supportedAuthenticationMethods The authentication methods this device type supports authenticating with, keyed by
+ * their own id. The first entry, in dict iteration order, is the one a built `IAuthenticationConfig` starts out selected on.
  */
 OPENDAQ_DECLARE_CLASS_FACTORY(
     LIBRARY_FACTORY, DeviceType,
@@ -68,7 +104,8 @@ OPENDAQ_DECLARE_CLASS_FACTORY(
     IString*, name,
     IString*, description,
     IPropertyObject*, defaultConfig,
-    IString*, prefix
+    IString*, prefix,
+    IDict*, supportedAuthenticationMethods
 )
 
 /*!@}*/

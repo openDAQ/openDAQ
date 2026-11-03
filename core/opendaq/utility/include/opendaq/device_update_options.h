@@ -20,6 +20,13 @@
 
 BEGIN_NAMESPACE_OPENDAQ
 
+struct IAuthenticationConfig;
+
+/*#
+ * [interfaceLibrary(IAuthenticationConfig, "opendaq")]
+ * [interfaceSmartPtr(IAuthenticationConfig, AuthenticationConfigPtr, "<opendaq/authentication_config_ptr.h>")]
+ */
+
 /*!
  * @ingroup opendaq_utility
  * @addtogroup opendaq_device_options DeviceOptions
@@ -143,6 +150,14 @@ DECLARE_OPENDAQ_INTERFACE(IDeviceUpdateOptions, IBaseObject)
      * @param childDeviceOptions The list of child device options for the device.
      */
     virtual ErrCode INTERFACE_FUNC getChildDeviceOptions(IList** childDeviceOptions) = 0;
+
+    /*!
+     * @brief Gets the authentication config this device was saved with - the same methods + selected id
+     * `IComponentPrivate::getAuthenticationConfig()` persisted, never the credential (which is never saved at
+     * all). Unassigned if the device wasn't saved with authentication.
+     * @param authenticationConfig The device's saved authentication config, or unassigned if none.
+     */
+    virtual ErrCode INTERFACE_FUNC getAuthenticationConfig(IAuthenticationConfig** authenticationConfig) = 0;
 };
 
 /*!@}*/

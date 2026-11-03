@@ -40,13 +40,13 @@ void defineIModuleManager(pybind11::module_ m, PyDaqIntf<daq::IModuleManager, da
 {
     cls.doc() = "Loads all available modules in a implementation-defined manner. User can also side-load custom modules via `addModule` call.";
 
-    m.def("ModuleManager", [](std::variant<daq::IString*, py::str, daq::IEvalValue*>& path){
-        return daq::ModuleManager_Create(getVariantValue<daq::IString*>(path));
-    }, py::arg("path"));
+    m.def("ModuleManager", [](std::variant<daq::IString*, py::str, daq::IEvalValue*>& path, daq::ICredentialProvider* credentialProvider){
+        return daq::ModuleManager_Create(getVariantValue<daq::IString*>(path), credentialProvider);
+    }, py::arg("path"), py::arg("credential_provider") = nullptr);
 
-    m.def("ModuleManagerMultiplePaths", [](std::variant<daq::IList*, py::list, daq::IEvalValue*>& paths){
-        return daq::ModuleManagerMultiplePaths_Create(getVariantValue<daq::IList*>(paths));
-    }, py::arg("paths"));
+    m.def("ModuleManagerMultiplePaths", [](std::variant<daq::IList*, py::list, daq::IEvalValue*>& paths, daq::ICredentialProvider* credentialProvider){
+        return daq::ModuleManagerMultiplePaths_Create(getVariantValue<daq::IList*>(paths), credentialProvider);
+    }, py::arg("paths"), py::arg("credential_provider") = nullptr);
 
 
     cls.def_property_readonly("modules",

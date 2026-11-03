@@ -22,6 +22,8 @@
 #include <coreobjects/property_object.h>
 #include <coretypes/listobject.h>
 #include <opendaq/device_type.h>
+#include <opendaq/add_device_config.h>
+#include <opendaq/add_streaming_config.h>
 #include <opendaq/streaming.h>
 #include <opendaq/streaming_type.h>
 #include <opendaq/sync_component.h>
@@ -419,6 +421,42 @@ DECLARE_OPENDAQ_INTERFACE(IDevice, IFolder)
      * The dictionary is empty for devices that are not mirrored.
      */
     virtual ErrCode INTERFACE_FUNC getAvailableStreamingTypes(IDict** streamingTypes) = 0;
+
+    /*!
+     * @brief Creates a config for adding the device described by the device info.
+     * @param[out] config The add device config
+     * @param info The device info, discovered or holding only a connection string
+     * @param prefix The connection string prefix of the Device type to use
+     * @retval OPENDAQ_ERR_NOTFOUND when no loaded Device type has the prefix, or a discovered info has no capability with the prefix.
+     * @retval OPENDAQ_ERR_INVALIDPARAMETER when the Device type is Root, or the prefix differs from that of an info without capabilities.
+     * @retval OPENDAQ_ERR_NOT_SUPPORTED when the device can't add devices.
+     *
+     * Without a prefix, the info's highest-priority server capability with a loaded Device type that is not Root is used.
+     * An info without server capabilities uses the prefix of its connection string.
+     * The listed Streaming types are the loaded ones the info advertises, or all loaded ones for an info without server capabilities.
+     */
+    virtual ErrCode INTERFACE_FUNC createAddDeviceConfig(IAddDeviceConfig** config, IDeviceInfo* info, IString* prefix = nullptr) = 0;
+
+    /*!
+     * @brief Creates a config for adding a streaming to the device.
+     * @param[out] config The add streaming config
+     * @param connectionString The connection string, or only its prefix
+     * @retval OPENDAQ_ERR_NOTFOUND when no loaded Streaming type has the prefix, or the device has no available or linked streaming type.
+     * @retval OPENDAQ_ERR_NOT_SUPPORTED when the device can't add streamings.
+     *
+     * With a connection string, the Streaming type is the loaded type with its prefix.
+     * Without one, it is the available streaming type linked to the device's mirrored device type, else the first available one.
+     * A device without available streaming types gets the loaded type linked to its mirrored device type.
+     */
+    virtual ErrCode INTERFACE_FUNC createAddStreamingConfig(IAddStreamingConfig** config, IString* connectionString = nullptr) = 0;
+
+    /*!
+     * @brief Gets a copy of the config the device was added with.
+     * @param[out] config The add device config
+     *
+     * The config is null for the root device and for a device not added with an add device config.
+     */
+    virtual ErrCode INTERFACE_FUNC getAddDeviceConfig(IAddDeviceConfig** config) = 0;
 };
 /*!@}*/
 

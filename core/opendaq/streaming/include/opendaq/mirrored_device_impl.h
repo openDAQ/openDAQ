@@ -17,6 +17,7 @@
 #pragma once
 
 #include <opendaq/mirrored_device_config_ptr.h>
+#include <opendaq/add_component_config_factory.h>
 #include <opendaq/device_impl.h>
 #include <opendaq/streaming_ptr.h>
 #include <opendaq/streaming_private.h>
@@ -71,6 +72,7 @@ protected:
 
     StreamingPtr onAddStreaming(const StringPtr& connectionString, const PropertyObjectPtr& config) override;
     DictPtr<IString, IStreamingType> onGetAvailableStreamingTypes() override;
+    AddStreamingConfigPtr onCreateAddStreamingConfig(const StringPtr& connectionString) override;
 
     virtual bool isAddedToLocalComponentTree();
     virtual StringPtr onGetRemoteId() const = 0;
@@ -403,6 +405,41 @@ DictPtr<IString, IStreamingType> MirroredDeviceBase<Interfaces...>::onGetAvailab
     auto lock = this->getRecursiveConfigLock2();
     const ModuleManagerUtilsPtr managerUtils = moduleManager.template asPtr<IModuleManagerUtils>();
     return getAdvertisedStreamingTypes(info.getServerCapabilities(), managerUtils.getAvailableStreamingTypes());
+}
+
+template <typename... Interfaces>
+AddStreamingConfigPtr MirroredDeviceBase<Interfaces...>::onCreateAddStreamingConfig(const StringPtr& connectionString)
+{
+    auto lock = this->getRecursiveConfigLock2();
+    const ModuleManagerUtilsPtr managerUtils = this->context.getModuleManager().template asPtr<IModuleManagerUtils>();
+    const auto loadedTypes = managerUtils.getAvailableStreamingTypes();
+    if (connectionString.assigned())
+    {
+        const auto findTypeByConnectionString = [&loadedTypes](const std::string& str) -> StreamingTypePtr
+        {
+            const StringPtr prefix = str.substr(0, str.find("://"));
+            for (const auto& [_, type] : loadedTypes)
+                if (type.getConnectionStringPrefix() == prefix)
+                    return type;
+            return nullptr;
+        };
+
+        const auto streamingType = findTypeByConnectionString(connectionString);
+        if (!streamingType.assigned())
+        {
+            DAQ_THROW_EXCEPTION(NotFoundException, R"(No loaded streaming type for the connection string "{}")", connectionString);
+        }
+        return AddStreamingConfig(streamingType);
+    }
+
+    auto streamingType = selectStreamingType(onGetAvailableStreamingTypes(), mirroredDeviceType, true);
+    if (!streamingType.assigned())
+        streamingType = selectStreamingType(loadedTypes, mirroredDeviceType, false);
+    if (!streamingType.assigned())
+    {
+        DAQ_THROW_EXCEPTION(NotFoundException, "The device has no available or linked streaming type");
+    }
+    return AddStreamingConfig(streamingType);
 }
 
 template <typename... Interfaces>

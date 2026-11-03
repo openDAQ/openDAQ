@@ -399,8 +399,13 @@ SizeT MultiReader2DataManager::alignedCount() const
         return 0;
     std::optional<SizeT> k;
     for (SizeT i = 0; i < slots.size(); ++i)
-        if (contributing(i))
-            k = std::min(k.value_or(slots[i].queue.frontCount()), slots[i].queue.frontCount());
+    {
+        if (!contributing(i))
+            continue;
+        k = std::min(k.value_or(slots[i].queue.frontCount()), slots[i].queue.frontCount());
+        if (*k == 0)
+            return 0;
+    }
     return k.value_or(0);
 }
 

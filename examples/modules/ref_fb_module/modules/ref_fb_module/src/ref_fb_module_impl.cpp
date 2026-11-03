@@ -1,6 +1,7 @@
 #include <coretypes/version_info_factory.h>
 #include <opendaq/custom_log.h>
 #include <ref_fb_module/classifier_fb_impl.h>
+#include <ref_fb_module/constant_value_fb_impl.h>
 #include <ref_fb_module/power_fb_impl.h>
 #include <ref_fb_module/ref_fb_module_impl.h>
 #ifdef OPENDAQ_ENABLE_RENDERER
@@ -77,6 +78,9 @@ DictPtr<IString, IFunctionBlockType> RefFBModule::onGetAvailableFunctionBlockTyp
     const auto timeScaler = TimeDelay::TimeDelayFbImpl::CreateType();
     types.set(timeScaler.getId(), timeScaler);
 
+    const auto typeConstantValue = ConstantValue::ConstantValueFbImpl::CreateType(moduleInfo);
+    types.set(typeConstantValue.getId(), typeConstantValue);
+
     return types;
 }
 
@@ -145,6 +149,12 @@ FunctionBlockPtr RefFBModule::onCreateFunctionBlock(const StringPtr& id,
     if (id == TimeDelay::TimeDelayFbImpl::CreateType().getId())
     {
         FunctionBlockPtr fb = createWithImplementation<IFunctionBlock, TimeDelay::TimeDelayFbImpl>(context, parent, localId, config);
+        return fb;
+    }
+    if (id == ConstantValue::ConstantValueFbImpl::CreateType(moduleInfo).getId())
+    {
+        FunctionBlockPtr fb =
+            createWithImplementation<IFunctionBlock, ConstantValue::ConstantValueFbImpl>(moduleInfo, context, parent, localId);
         return fb;
     }
 

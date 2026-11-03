@@ -18,6 +18,7 @@ set(SRC_Include common.h
                 sum_reader_fb_impl.h
                 struct_decoder_fb_impl.h
                 time_delay_fb_impl.h
+                constant_value_fb_impl.h
 )
 
 set(SRC_Srcs module_dll.cpp
@@ -32,11 +33,13 @@ set(SRC_Srcs module_dll.cpp
              sum_reader_fb_impl.cpp
              struct_decoder_fb_impl.cpp
              time_delay_fb_impl.cpp
+             constant_value_fb_impl.cpp
 )
 
 if (DAQMODULES_REF_FB_MODULE_ENABLE_RENDERER)
     message(STATUS "Renderer function block enabled") 
     set(SRC_Include ${SRC_Include} renderer_fb_impl.h
+                                   renderer_utils.h
                                    video_player_fb_impl.h
                                    polyline.h
                                    polyline_impl.h
@@ -69,6 +72,7 @@ set(MODULE_FILES ${MODULE_HEADERS_DIR}/ref_fb_module_common.h
                             ${MODULE_HEADERS_DIR}/power_reader_fb_impl.h
                             ${MODULE_HEADERS_DIR}/struct_decoder_fb_impl.h
                             ${MODULE_HEADERS_DIR}/time_delay_fb_impl.h
+                            ${MODULE_HEADERS_DIR}/constant_value_fb_impl.h
                             module_dll.cpp
                             power_fb_impl.cpp
                             statistics_fb_impl.cpp
@@ -78,10 +82,12 @@ set(MODULE_FILES ${MODULE_HEADERS_DIR}/ref_fb_module_common.h
                             fft_fb_impl.cpp
                             power_reader_fb_impl.cpp
                             struct_decoder_fb_impl.cpp
-                            time_delay_fb_impl.cpp)
+                            time_delay_fb_impl.cpp
+                            constant_value_fb_impl.cpp)
 
 if (DAQMODULES_REF_FB_MODULE_ENABLE_RENDERER)
     set(MODULE_FILES ${MODULE_FILES} ${MODULE_HEADERS_DIR}/renderer_fb_impl.h
+                                     ${MODULE_HEADERS_DIR}/renderer_utils.h
                                      ${MODULE_HEADERS_DIR}/video_player_fb_impl.h
                                      ${MODULE_BINARY_HEADER_DIR}/arial.ttf.h
                                      renderer_fb_impl.cpp

@@ -66,6 +66,13 @@ DECLARE_OPENDAQ_INTERFACE(IInputPort, IComponent)
      * @retval OPENDAQ_ERR_NOTASSIGNED if the accepted signal criteria is not defined by the input port.
      *
      * The signal is notified of the connection formed between it and the input port.
+     *
+     * A "Data descriptor changed" event packet is enqueued into the new connection before this method returns.
+     * If the signal uses a constant data rule and has no domain signal assigned, its current value is enqueued
+     * right after that event packet, as a single-sample constant data packet with no domain packet. Such a signal
+     * changes rarely, so without it a newly connected input port would learn nothing until the next change.
+     * Nothing is enqueued if the signal has no value yet, if its value predates its current descriptor, if the
+     * signal or the input port is inactive, or if `ISignalPrivate::enableKeepLastValue` is disabled.
      */
     virtual ErrCode INTERFACE_FUNC connect(ISignal* signal) = 0;
 

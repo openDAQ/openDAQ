@@ -21,7 +21,6 @@
 #include <gtest/gtest.h>
 #include <opendaq/logger_sink_last_message_private_ptr.h>
 #include <opendaq/multi_reader2_factory.h>
-#include <opendaq/multi_reader2_ingest_task.h>
 #include <opendaq/opendaq.h>
 
 #include <condition_variable>
@@ -201,10 +200,6 @@ enum class AcceptsRule
     Sum,    // a scalar numeric sample type in the main input's unit; the owner follows that unit and configures when it moves
     Power   // in1: unit V or no unit; every other input: any
 };
-// The notification method the reader sets on the ports it holds
-constexpr PacketReadyNotification readerNotification =
-    multi_reader2::ingestTaskEnabled ? PacketReadyNotification::SameThread : PacketReadyNotification::Scheduler;
-
 enum class Listener
 {
     Reader,

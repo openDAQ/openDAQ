@@ -119,11 +119,12 @@ multi_reader2::Announced announcedOf(const InputPortPtr& port)
     return announced;
 }
 
-// A port another reader listens to: a MultiReader2 or one of the older readers
-bool heldByOtherReader(const InputPortConfigPtr& port, const InputPortNotificationsPtr& own)
+// A port another reader listens to: a MultiReader2 or one of the older readers. A port this reader holds is never taken over
+// again, and one it let go of has no listener
+bool heldByOtherReader(const InputPortConfigPtr& port)
 {
     const auto listener = port.getListener();
-    if (!listener.assigned() || listener.getObject() == own.getObject())
+    if (!listener.assigned())
         return false;
     return listener.supportsInterface<IMultiReader2Intake>() || listener.supportsInterface<IReader>();
 }
@@ -133,8 +134,8 @@ bool heldByOtherReader(const InputPortConfigPtr& port, const InputPortNotificati
 class MultiReader2Impl::Intake : public ImplementationOfWeak<IInputPortNotifications, IMultiReader2Intake>
 {
 public:
-    // With a port, the port's own listener for the ingest task
-    explicit Intake(std::shared_ptr<Core> core, std::weak_ptr<Port> own = {})
+    // The listener of one port, which it marks for the ingest task; it holds neither the core nor the port
+    Intake(std::weak_ptr<Core> core, std::weak_ptr<Port> own)
         : core(std::move(core))
         , own(std::move(own))
     {
@@ -148,34 +149,40 @@ public:
     }
     ErrCode INTERFACE_FUNC connected(IInputPort* port) override
     {
-        return daqTry([&] { core->connected(port); });
+        return daqTry(
+            [&]
+            {
+                if (const auto c = core.lock())
+                    c->connected(port);
+            });
     }
     ErrCode INTERFACE_FUNC disconnected(IInputPort* port) override
-    {
-        return daqTry([&] { core->disconnected(port); });
-    }
-    ErrCode INTERFACE_FUNC packetReceived(IInputPort* port) override
     {
         return daqTry(
             [&]
             {
-                if constexpr (multi_reader2::ingestTaskEnabled)
-                {
-                    if (const auto p = own.lock())
-                        core->notify(*p);
-                }
-                else if (const auto p = core->portOf(port))
-                    core->ingest(*p);
+                if (const auto c = core.lock())
+                    c->disconnected(port);
+            });
+    }
+    ErrCode INTERFACE_FUNC packetReceived(IInputPort*) override
+    {
+        return daqTry(
+            [&]
+            {
+                const auto c = core.lock();
+                const auto p = own.lock();
+                if (c && p)
+                    c->notify(*p);
             });
     }
 
 private:
-    const std::shared_ptr<Core> core;
+    const std::weak_ptr<Core> core;
     const std::weak_ptr<Port> own;
 };
 
 MultiReader2Impl::MultiReader2Impl(IMultiReader2Params* params)
-    : intake(createWithImplementation<IInputPortNotifications, Intake>(core))
 {
     this->internalAddRef();
     try
@@ -282,7 +289,7 @@ void MultiReader2Impl::apply(IMultiReader2Params* paramsRaw, IMultiReader2Status
         if (!input.supportsInterface<ISignal>())
         {
             port->port = input.asPtr<IInputPortConfig>(true);
-            if (heldByOtherReader(port->port, intake))
+            if (heldByOtherReader(port->port))
                 DAQ_THROW_EXCEPTION(AlreadyExistsException, "An input port is held by another reader");
         }
         next->push_back(port);
@@ -301,6 +308,9 @@ void MultiReader2Impl::apply(IMultiReader2Params* paramsRaw, IMultiReader2Status
             loggerComponent = context.getLogger().getOrAddComponent("MultiReader2");
             core->loggerComponent = loggerComponent;
         }
+        // Before any port is taken over: the first packet of a new port schedules the ingest task on it
+        std::scoped_lock lock(core->wiringMutex);
+        core->scheduler = scheduler;
     }
 
     // New ports are taken over with their intake locks held, so their packets wait until the data manager knows them
@@ -319,17 +329,10 @@ void MultiReader2Impl::apply(IMultiReader2Params* paramsRaw, IMultiReader2Status
                 port->owned = true;
             }
             port->key = port->port.asPtr<IInputPort>(true).getObject();
-            if constexpr (multi_reader2::ingestTaskEnabled)
-            {
-                port->listener = createWithImplementation<IInputPortNotifications, Intake>(core, port);
-                port->port.setListener(port->listener);
-                port->port.setNotificationMethod(PacketReadyNotification::SameThread);
-            }
-            else
-            {
-                port->port.setListener(intake);
-                port->port.setNotificationMethod(PacketReadyNotification::Scheduler);
-            }
+            // The sending thread only marks the port; the ingest task does the rest
+            port->listener = createWithImplementation<IInputPortNotifications, Intake>(core, port);
+            port->port.setListener(port->listener);
+            port->port.setNotificationMethod(PacketReadyNotification::SameThread);
             ++taken;
         }
 
@@ -337,8 +340,6 @@ void MultiReader2Impl::apply(IMultiReader2Params* paramsRaw, IMultiReader2Status
         {
             std::scoped_lock lock(core->wiringMutex);
             core->wiring = next;
-            if (scheduler.assigned())
-                core->scheduler = scheduler;
         }
         for (const auto& port : *next)
         {
@@ -384,10 +385,9 @@ void MultiReader2Impl::apply(IMultiReader2Params* paramsRaw, IMultiReader2Status
 
 void MultiReader2Impl::release(Port& entry)
 {
-    // None first: a Scheduler port without a listener aborts on a packet; called from destruction, so errors are dropped
+    // None first, so no packet notifies a port without a listener; called from destruction, so errors are dropped
     entry.port->setNotificationMethod(PacketReadyNotification::None);
     entry.port->setListener(nullptr);
-    entry.listener = nullptr;  // its listener holds the core, which holds the port
     if (entry.owned)
         entry.port->disconnect();
     daqClearErrorInfo();
@@ -571,10 +571,7 @@ bool MultiReader2Impl::Core::submit(const WorkPtr& w)
         std::scoped_lock lock(wiringMutex);
         return scheduler;
     }();
-    // None before the first take-over publishes it: the take-over drains the new ports itself. A stopped scheduler takes no
-    // more work: the reader is being torn down with it
-    if (!current.assigned())
-        return false;
+    // A stopped scheduler takes no more work: the reader is being torn down with it
     if (OPENDAQ_SUCCEEDED(current->scheduleWork(w)))
         return true;
     daqClearErrorInfo();

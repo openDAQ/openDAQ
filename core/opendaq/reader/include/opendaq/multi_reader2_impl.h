@@ -69,8 +69,8 @@ DECLARE_OPENDAQ_INTERFACE(IMultiReader2Intake, IBaseObject)
 
 /*!
  * @brief The reader facade: resolves the params, takes the ports over, and runs the onDataAvailable handler the data manager
- * asks for. The ports' listener is the intake, which shares the ingest state with the reader: ingest never holds the
- * reader, so a released reader is destroyed at once and its scheduled handler call is skipped.
+ * asks for. Each port's listener is an intake of its own, which shares the ingest state with the reader: ingest never holds
+ * the reader, so a released reader is destroyed at once and its scheduled handler call is skipped.
  */
 class MultiReader2Impl : public ImplementationOfWeak<IMultiReader2>
 {
@@ -94,7 +94,7 @@ private:
         IInputPort* key = nullptr;
         bool owned = false;  // created by the reader around a signal input
         std::mutex intake;
-        // The ingest task: the port's own listener, and the mark its packets set for the next run
+        // The port's own intake, and the mark its packets set for the next ingest run
         InputPortNotificationsPtr listener;
         std::atomic<bool> dirty{false};
     };
@@ -133,7 +133,6 @@ private:
     ErrCode notFromJudgement() const;
 
     std::shared_ptr<Core> core = std::make_shared<Core>();
-    InputPortNotificationsPtr intake;
     std::mutex configureMutex;
     LoggerComponentPtr loggerComponent;
 };

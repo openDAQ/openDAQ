@@ -24,13 +24,10 @@ BEGIN_NAMESPACE_OPENDAQ
 /*!
  * @brief Internal to MultiReader2: the ports notify on the sending thread, which only marks its port and, when the reader is
  * idle, schedules one task that ingests every marked port. A burst of packets on any number of ports costs one task, and the
- * sending thread never takes a reader lock. With ingestTaskEnabled false every port notifies through the scheduler and each
- * notification ingests its own port, one task per packet.
+ * sending thread never takes a reader lock.
  */
 namespace multi_reader2
 {
-
-constexpr bool ingestTaskEnabled = true;
 
 class IngestTask
 {

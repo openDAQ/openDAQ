@@ -559,7 +559,10 @@ void GenericConfigClientDeviceImpl<TDeviceBase>::onRemoteUpdate(const Serialized
             if (deserializedObj.assigned())
             {
                 if (key == "deviceInfo")
+                {
+                    auto lock = this->getRecursiveConfigLock2();
                     this->deviceInfo = deserializedObj;
+                }
                 else
                     this->addExistingComponent(deserializedObj);
             }
@@ -568,6 +571,7 @@ void GenericConfigClientDeviceImpl<TDeviceBase>::onRemoteUpdate(const Serialized
 
     if (serialized.hasKey("deviceDomain"))
     {
+        auto lock = this->getRecursiveConfigLock2();
         this->setDeviceDomainNoCoreEvent(serialized.readObject("deviceDomain"));
     }
 

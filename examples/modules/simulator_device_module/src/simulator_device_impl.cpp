@@ -82,7 +82,7 @@ DeviceTypePtr SimulatorDeviceImpl::CreateType()
         .setDescription("openDAQ signal generator simulator")
         .setConnectionStringPrefix("daq.simulator")
         .setDefaultConfig(defaultConfig)
-        .setDeviceKind(DeviceKind::External)
+        .setDeviceKind(DeviceKind::Adapter)
         .build();
 }
 

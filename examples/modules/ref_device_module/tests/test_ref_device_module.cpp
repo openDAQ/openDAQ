@@ -138,7 +138,7 @@ TEST_F(RefDeviceModuleTest, CreateRootDeviceConnectionStringCorrect)
     ASSERT_EQ(device.getInfo().getDeviceType().getId(), "daqref_root");
 }
 
-TEST_F(RefDeviceModuleTest, RootAndExternalDeviceKinds)
+TEST_F(RefDeviceModuleTest, RootAndAdapterDeviceKinds)
 {
     auto instance = InstanceBuilder().setModulePath("[[none]]").build();
     ModulePtr module;
@@ -285,7 +285,7 @@ TEST_F(RefDeviceModuleTest, GetAvailableComponentTypes)
     ASSERT_TRUE(deviceTypes.hasKey("daqref"));
     ASSERT_EQ(deviceTypes.get("daqref").getId(), "daqref");
     ASSERT_EQ(deviceTypes.get("daqref").getConnectionStringPrefix(), "daqref");
-    ASSERT_EQ(deviceTypes.get("daqref").getDeviceKind(), DeviceKind::External);
+    ASSERT_EQ(deviceTypes.get("daqref").getDeviceKind(), DeviceKind::Adapter);
     ASSERT_TRUE(deviceTypes.hasKey("daqref_root"));
     ASSERT_EQ(deviceTypes.get("daqref_root").getId(), "daqref_root");
     ASSERT_EQ(deviceTypes.get("daqref_root").getConnectionStringPrefix(), "daqref.root");

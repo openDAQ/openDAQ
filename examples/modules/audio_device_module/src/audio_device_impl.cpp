@@ -41,7 +41,7 @@ DeviceTypePtr AudioDeviceImpl::createType()
         .setName("Audio device")
         .setDescription("")
         .setConnectionStringPrefix("miniaudio")
-        .setDeviceKind(DeviceKind::External)
+        .setDeviceKind(DeviceKind::Adapter)
         .build();
 }
 

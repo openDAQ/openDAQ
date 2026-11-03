@@ -81,13 +81,13 @@ private:
     DeviceTypePtr type;
 };
 
-static constexpr const char* ExternalDevice = "daqexternal://device";
+static constexpr const char* AdapterDevice = "daqadapter://device";
 
-static InstancePtr SetupInstanceWithExternalDevice(const StringPtr& localId = nullptr)
+static InstancePtr SetupInstanceWithAdapterDevice(const StringPtr& localId = nullptr)
 {
     auto instance = test_helpers::setupInstance(localId);
     instance.getModuleManager().addModule(
-        createWithImplementation<IModule, KindDeviceModule>(instance.getContext(), "daqexternal", DeviceKind::External));
+        createWithImplementation<IModule, KindDeviceModule>(instance.getContext(), "daqadapter", DeviceKind::Adapter));
     return instance;
 }
 
@@ -127,7 +127,7 @@ TEST_F(InstanceTest, GetSetRootDevice)
 
 TEST_F(InstanceTest, SetRootDeviceKind)
 {
-    auto instance = SetupInstanceWithExternalDevice();
+    auto instance = SetupInstanceWithAdapterDevice();
     instance.getModuleManager().addModule(
         createWithImplementation<IModule, KindDeviceModule>(instance.getContext(), "daqmirrored", DeviceKind::Mirrored));
 
@@ -135,7 +135,7 @@ TEST_F(InstanceTest, SetRootDeviceKind)
         createWithImplementation<IModule, KindDeviceModule>(instance.getContext(), "daqroot", DeviceKind::Root));
 
     ASSERT_THROW(instance.setRootDevice("daqmirrored://device"), InvalidParameterException);
-    ASSERT_THROW(instance.setRootDevice(ExternalDevice), InvalidParameterException);
+    ASSERT_THROW(instance.setRootDevice(AdapterDevice), InvalidParameterException);
     ASSERT_NO_THROW(instance.setRootDevice("daqroot://device"));
     ASSERT_EQ(instance.getRootDevice().getInfo().getDeviceType().getDeviceKind(), DeviceKind::Root);
 }
@@ -151,7 +151,7 @@ TEST_F(InstanceTest, InstanceBuilderRootDeviceKind)
     };
 
     ASSERT_THROW(builder("daqmirrored", DeviceKind::Mirrored).build(), InvalidParameterException);
-    ASSERT_THROW(builder("daqexternal", DeviceKind::External).build(), InvalidParameterException);
+    ASSERT_THROW(builder("daqadapter", DeviceKind::Adapter).build(), InvalidParameterException);
     ASSERT_NO_THROW(builder("daqroot", DeviceKind::Root).build());
     ASSERT_NO_THROW(builder("daqunspecified", DeviceKind::Unspecified).build());
 }
@@ -351,23 +351,23 @@ TEST_F(InstanceTest, RemoveDevice)
 
 TEST_F(InstanceTest, AddDevicesParallelSuccess)
 {
-    auto instance = SetupInstanceWithExternalDevice();
+    auto instance = SetupInstanceWithAdapterDevice();
 
     auto connectionArgs =
         Dict<IString, IPropertyObject>(
             {
                 {"daqmock://phys_device", nullptr},
-                {ExternalDevice, nullptr}
+                {AdapterDevice, nullptr}
             }
         );
     auto devices = instance.addDevices(connectionArgs);
     ASSERT_EQ(devices.getCount(), 2u);
     ASSERT_EQ(devices.get("daqmock://phys_device").getInfo().getConnectionString(), "daqmock://phys_device");
-    ASSERT_EQ(devices.get(ExternalDevice).getInfo().getConnectionString(), ExternalDevice);
+    ASSERT_EQ(devices.get(AdapterDevice).getInfo().getConnectionString(), AdapterDevice);
 
     ASSERT_EQ(instance.getDevices().getCount(), 2u);
     ASSERT_EQ(instance.getDevices()[0], devices.get("daqmock://phys_device"));
-    ASSERT_EQ(instance.getDevices()[1], devices.get(ExternalDevice));
+    ASSERT_EQ(instance.getDevices()[1], devices.get(AdapterDevice));
 
     auto nestedDevices = instance.getDevices()[0].addDevices(connectionArgs);
     ASSERT_EQ(nestedDevices.getCount(), 2u);
@@ -376,13 +376,13 @@ TEST_F(InstanceTest, AddDevicesParallelSuccess)
 
 TEST_F(InstanceTest, AddDevicesParallelPartialSuccess)
 {
-    auto instance = SetupInstanceWithExternalDevice();
-    instance.addDevice(ExternalDevice);
+    auto instance = SetupInstanceWithAdapterDevice();
+    instance.addDevice(AdapterDevice);
 
     auto connectionArgs =
         Dict<IString, IPropertyObject>(
             {
-                {ExternalDevice, nullptr},
+                {AdapterDevice, nullptr},
                 {"daqmock://phys_device", nullptr}
             }
         );
@@ -393,15 +393,15 @@ TEST_F(InstanceTest, AddDevicesParallelPartialSuccess)
     ASSERT_EQ(instance->addDevices(&devices, connectionArgs, errCodes, errorInfos), OPENDAQ_PARTIAL_SUCCESS);
 
     ASSERT_EQ(devices.getCount(), 2u);
-    ASSERT_FALSE(devices.get(ExternalDevice).assigned());
+    ASSERT_FALSE(devices.get(AdapterDevice).assigned());
     ASSERT_TRUE(devices.get("daqmock://phys_device").assigned());
 
     ASSERT_EQ(errCodes.getCount(), 2u);
-    ASSERT_EQ(errCodes.get(ExternalDevice), OPENDAQ_ERR_DUPLICATEITEM);
+    ASSERT_EQ(errCodes.get(AdapterDevice), OPENDAQ_ERR_DUPLICATEITEM);
     ASSERT_EQ(errCodes.get("daqmock://phys_device"), OPENDAQ_SUCCESS);
 
     ASSERT_EQ(errorInfos.getCount(), 2u);
-    ASSERT_TRUE(errorInfos.get(ExternalDevice).assigned());
+    ASSERT_TRUE(errorInfos.get(AdapterDevice).assigned());
     ASSERT_FALSE(errorInfos.get("daqmock://phys_device").assigned());
 
     ASSERT_EQ(instance.getDevices().getCount(), 2u);
@@ -410,15 +410,15 @@ TEST_F(InstanceTest, AddDevicesParallelPartialSuccess)
 
 TEST_F(InstanceTest, AddDevicesParallelFailure)
 {
-    auto instance = SetupInstanceWithExternalDevice();
-    instance.addDevice(ExternalDevice);
+    auto instance = SetupInstanceWithAdapterDevice();
+    instance.addDevice(AdapterDevice);
 
     ASSERT_THROW_MSG(instance.addDevices(Dict<IString, IPropertyObject>()), InvalidParameterException, "None connection arguments provided");
 
     auto connectionArgs =
         Dict<IString, IPropertyObject>(
             {
-                {ExternalDevice, nullptr},
+                {AdapterDevice, nullptr},
                 {"unknown://unknown", nullptr}
             }
         );
@@ -426,7 +426,7 @@ TEST_F(InstanceTest, AddDevicesParallelFailure)
     DictPtr<IString, IDevice> devices;
     ASSERT_THROW_MSG(devices = instance.addDevices(connectionArgs, errCodes), GeneralErrorException, "No devices were added");
     ASSERT_EQ(errCodes.getCount(), 2u);
-    ASSERT_EQ(errCodes.get(ExternalDevice), OPENDAQ_ERR_DUPLICATEITEM);
+    ASSERT_EQ(errCodes.get(AdapterDevice), OPENDAQ_ERR_DUPLICATEITEM);
     ASSERT_EQ(errCodes.get("unknown://unknown"), OPENDAQ_ERR_NOTFOUND);
 
     ASSERT_EQ(instance.getDevices().getCount(), 1u);
@@ -798,15 +798,15 @@ TEST_F(InstanceTest, InstanceBuilderGetDefault)
 TEST_F(InstanceTest, SaveLoadRestoreDevice)
 {
     std::map<std::string, std::string> devicesNames;
-    auto instance = SetupInstanceWithExternalDevice("localIntanceId");
+    auto instance = SetupInstanceWithAdapterDevice("localIntanceId");
     devicesNames.emplace(instance.addDevice("daqmock://phys_device").getName(), "daqmock://phys_device");
-    devicesNames.emplace(instance.addDevice(ExternalDevice).getName(), ExternalDevice);
+    devicesNames.emplace(instance.addDevice(AdapterDevice).getName(), AdapterDevice);
 
     auto config = instance.saveConfiguration();
 
-    auto instance2 = SetupInstanceWithExternalDevice("localIntanceId");
+    auto instance2 = SetupInstanceWithAdapterDevice("localIntanceId");
     instance2.addDevice("daqmock://phys_device");
-    instance2.addDevice(ExternalDevice);
+    instance2.addDevice(AdapterDevice);
     instance2.loadConfiguration(config);
 
     ASSERT_EQ(instance2.getDevices().getCount(), devicesNames.size());
@@ -845,14 +845,14 @@ TEST_F(InstanceTest, LoadLegacySetupIgnoresUserLock)
 TEST_F(InstanceTest, SaveLoadLocked)
 {
     std::map<std::string, std::string> devicesNames;
-    auto instance = SetupInstanceWithExternalDevice("localIntanceId");
+    auto instance = SetupInstanceWithAdapterDevice("localIntanceId");
     devicesNames.emplace(instance.addDevice("daqmock://phys_device").getName(), "daqmock://phys_device");
-    devicesNames.emplace(instance.addDevice(ExternalDevice).getName(), ExternalDevice);
+    devicesNames.emplace(instance.addDevice(AdapterDevice).getName(), AdapterDevice);
 
     instance.lock();
 
     auto config = instance.saveConfiguration();
-    auto instance2 = SetupInstanceWithExternalDevice("localIntanceId");
+    auto instance2 = SetupInstanceWithAdapterDevice("localIntanceId");
     instance2.loadConfiguration(config);
 
     ASSERT_FALSE(instance2.isLocked());
@@ -869,13 +869,13 @@ TEST_F(InstanceTest, SaveLoadLocked)
 TEST_F(InstanceTest, SaveLoadRestoreDeviceDifferentIds)
 {
     std::map<std::string, std::string> devicesNames;
-    auto instance = SetupInstanceWithExternalDevice("localIntanceId");
+    auto instance = SetupInstanceWithAdapterDevice("localIntanceId");
     devicesNames.emplace(instance.addDevice("daqmock://phys_device").getName(), "daqmock://phys_device");
-    devicesNames.emplace(instance.addDevice(ExternalDevice).getName(), ExternalDevice);
+    devicesNames.emplace(instance.addDevice(AdapterDevice).getName(), AdapterDevice);
 
     auto config = instance.saveConfiguration();
 
-    auto instance2 = SetupInstanceWithExternalDevice("localIntanceId2");
+    auto instance2 = SetupInstanceWithAdapterDevice("localIntanceId2");
     instance2.loadConfiguration(config);
 
     ASSERT_EQ(instance2.getDevices().getCount(), devicesNames.size());
@@ -1337,9 +1337,9 @@ TEST_F(InstanceTest, SaveLoadDeviceInfo)
 
 TEST_F(InstanceTest, TestRemoved1)
 {
-    auto instance = SetupInstanceWithExternalDevice();
+    auto instance = SetupInstanceWithAdapterDevice();
     instance.addFunctionBlock("mock_fb_uid");
-    instance.addDevice(ExternalDevice);
+    instance.addDevice(AdapterDevice);
     instance.addDevice("daqmock://phys_device");
 
     const ListPtr<IComponent> components = instance.getItems(search::Recursive(search::Any()));
@@ -1360,9 +1360,9 @@ TEST_F(InstanceTest, TestRemoved1)
 
 TEST_F(InstanceTest, TestRemoved2)
 {
-    auto instance = SetupInstanceWithExternalDevice();
+    auto instance = SetupInstanceWithAdapterDevice();
     instance.addFunctionBlock("mock_fb_uid");
-    instance.addDevice(ExternalDevice);
+    instance.addDevice(AdapterDevice);
     instance.addDevice("daqmock://phys_device");
 
     ListPtr<IComponent> components = instance.getItems(search::Recursive(search::Any()));

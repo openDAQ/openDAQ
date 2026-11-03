@@ -38,7 +38,7 @@ BEGIN_NAMESPACE_OPENDAQ
  * Unspecified devices are a superset of other DeviceKinds, used for backwards compatibility.
  * It's the default DeviceKind, and can't be set via the Device type builder.
  *
- * External devices are connected and controlled by their module.
+ * Adapter devices are connected and controlled by their module.
  * They are typically hardware or remote devices that don't run openDAQ.
  * Their module may use a streaming internally.
  *
@@ -53,7 +53,7 @@ BEGIN_NAMESPACE_OPENDAQ
 enum class DeviceKind : EnumType
 {
     Unspecified = 0,
-    External,
+    Adapter,
     Mirrored,
     Root
 };

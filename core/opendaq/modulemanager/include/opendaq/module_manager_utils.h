@@ -67,7 +67,7 @@ DECLARE_OPENDAQ_INTERFACE(IModuleManagerUtils, IBaseObject)
      *
      * Iterates through all loaded modules and creates a device with the first module that accepts the provided connection string.
      * A device of Root kind can only be created without a parent.
-     * A device of External or Mirrored kind can only be created with a parent.
+     * A device of Adapter or Mirrored kind can only be created with a parent.
      */
     virtual ErrCode INTERFACE_FUNC createDevice(IDevice** device, IString* connectionString, IComponent* parent, IPropertyObject* config = nullptr) = 0;
 

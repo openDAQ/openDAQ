@@ -34,7 +34,7 @@ class TestDeviceType(opendaq_test.TestCase):
         ref_type = opendaq.IDeviceType.cast_from(device_types['daqref'])
         root_type = opendaq.IDeviceType.cast_from(device_types['daqref_root'])
 
-        self.assertEqual(ref_type.device_kind, opendaq.DeviceKind.External)
+        self.assertEqual(ref_type.device_kind, opendaq.DeviceKind.Adapter)
         self.assertEqual(root_type.device_kind, opendaq.DeviceKind.Root)
         self.assertIsNotNone(ref_type.module_info)
 

@@ -107,7 +107,7 @@ TEST_F(OpenDaqFactoriesTest, BuilderDeviceKind)
     auto builder = DeviceTypeBuilder();
     ASSERT_EQ(builder.getDeviceKind(), DeviceKind::Unspecified);
     ASSERT_THROW(builder.setDeviceKind(DeviceKind::Unspecified), InvalidParameterException);
-    for (const auto kind : {DeviceKind::Root, DeviceKind::Mirrored, DeviceKind::External})
+    for (const auto kind : {DeviceKind::Root, DeviceKind::Mirrored, DeviceKind::Adapter})
     {
         builder.setDeviceKind(kind);
         ASSERT_EQ(builder.getDeviceKind(), kind);

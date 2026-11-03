@@ -9,7 +9,7 @@
 - [#1251](https://github.com/openDAQ/openDAQ/pull/1251) TLS encrypted channel for the LT streaming module. With `EnableTlsStreamingPort` the server serves the secure channel alongside the plaintext one, registering both the `OpenDAQLTStreaming` and `OpenDAQLTStreamingSecure` capabilities and advertising the `_streaming-lt._tcp` and `_streaming-lts._tcp` mDNS services. Mutual TLS is enabled by default. LT capabilities now carry the `LTStreaming` protocol group ID and a protocol security level (`0` plaintext / `10` secure), so a client ordering streaming protocols by security level prefers the secure channel on its own. The channel is opt-in: without `EnableTlsStreamingPort` the server behaves as before. It is opt-in at build time as well: see [#1278](https://github.com/openDAQ/openDAQ/pull/1278).
 - [#1278](https://github.com/openDAQ/openDAQ/pull/1278) Building the TLS channel of the LT streaming modules is controlled by the new CMake option `OPENDAQ_ENABLE_WEBSOCKET_STREAMING_WITH_TLS`, off by default and on in the `full`, `package` and `simulator_package` presets. With it off the LT streaming modules are built without their OpenSSL dependency and the `daq.lts://` channel is absent. The option has no meaning for the legacy LT streaming modules (`DAQMODULES_LT_LEGACY_MODULES`) and is ignored there.
 - [#1311](https://github.com/openDAQ/openDAQ/pull/1311) Add the `ScanOnAdd` option to skip the network scan on `addDevice`; tests wait for state instead of sleeping; declare `RESOURCE_LOCK` for parallel ctest; write a minidump on access violations.
-- [#1361](https://github.com/openDAQ/openDAQ/pull/1361) Device types declare a kind with `setDeviceKind` on the device type builder. Root types can only be the root device, and External and Mirrored types only sub-devices. Module load logs a message for each device type without a kind, and later releases raise its level.
+- [#1361](https://github.com/openDAQ/openDAQ/pull/1361) Device types declare a kind with `setDeviceKind` on the device type builder. Root types can only be the root device, and Adapter and Mirrored types only sub-devices. Module load logs a message for each device type without a kind, and later releases raise its level.
 
 ## Python
 
@@ -53,7 +53,7 @@
 
 ### [#1361](https://github.com/openDAQ/openDAQ/pull/1361) Device types limit where a device can be added
 
-`setRootDevice` and `createDevice` without a parent reject External and Mirrored device types, and `addDevice` rejects Root types, with `OPENDAQ_ERR_INVALIDPARAMETER`.
+`setRootDevice` and `createDevice` without a parent reject Adapter and Mirrored device types, and `addDevice` rejects Root types, with `OPENDAQ_ERR_INVALIDPARAMETER`.
 Setting the reference device as the root with `daqref://` now fails, so existing code and config files that do this break.
 Use `daqref.root://` instead, also in `RootDevice.ConnectionString` of config files.
 `getAvailableDevices` no longer lists devices of Root kind.

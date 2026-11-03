@@ -520,7 +520,7 @@ public:
         return OPENDAQ_SUCCESS;
     }
 
-    void addDeviceType(const StringPtr& id, const PropertyObjectPtr& config, DeviceKind kind = DeviceKind::External)
+    void addDeviceType(const StringPtr& id, const PropertyObjectPtr& config, DeviceKind kind = DeviceKind::Adapter)
     {
         auto builder = DeviceTypeBuilder().setId(id).setName(id).setConnectionStringPrefix(id);
         if (kind != DeviceKind::Unspecified)
@@ -731,7 +731,7 @@ TEST_F(ModuleManagerLinkTest, UnspecifiedDeviceKindLogsInfo)
 
     auto lib = makeModule();
     lib.impl->addDeviceType("unspecdev", nullptr, DeviceKind::Unspecified);
-    lib.impl->addDeviceType("extdev", nullptr, DeviceKind::External);
+    lib.impl->addDeviceType("extdev", nullptr, DeviceKind::Adapter);
     ASSERT_EQ(tryAdd(lib.module), "");
 
     bool logged = false;
@@ -744,7 +744,7 @@ TEST_F(ModuleManagerLinkTest, DeviceKindChecksParent)
 {
     auto lib = makeModule();
     lib.impl->addDeviceType("rootdev", nullptr, DeviceKind::Root);
-    lib.impl->addDeviceType("extdev", nullptr, DeviceKind::External);
+    lib.impl->addDeviceType("extdev", nullptr, DeviceKind::Adapter);
     lib.impl->addDeviceType("mirdev", nullptr, DeviceKind::Mirrored);
     lib.impl->addDeviceType("unspecdev", nullptr, DeviceKind::Unspecified);
     ASSERT_EQ(tryAdd(lib.module), "");
@@ -776,7 +776,7 @@ TEST_F(ModuleManagerLinkTest, RootKindNotListed)
 {
     auto lib = makeModule();
     lib.impl->addDeviceType("rootdev", nullptr, DeviceKind::Root);
-    lib.impl->addDeviceType("extdev", nullptr, DeviceKind::External);
+    lib.impl->addDeviceType("extdev", nullptr, DeviceKind::Adapter);
     lib.impl->addDeviceType("mirdev", nullptr, DeviceKind::Mirrored);
     lib.impl->addDeviceType("unspecdev", nullptr, DeviceKind::Unspecified);
     for (const auto& prefix : {"rootdev", "extdev", "mirdev", "unspecdev", "unknown"})

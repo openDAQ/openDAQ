@@ -134,7 +134,7 @@ TEST_F(AudioDeviceModuleTest, GetAvailableComponentTypes)
     ASSERT_EQ(deviceTypes.getCount(), 1u);
     ASSERT_TRUE(deviceTypes.hasKey("MiniAudio"));
     ASSERT_EQ(deviceTypes.get("MiniAudio").getId(), "MiniAudio");
-    ASSERT_EQ(deviceTypes.get("MiniAudio").getDeviceKind(), DeviceKind::External);
+    ASSERT_EQ(deviceTypes.get("MiniAudio").getDeviceKind(), DeviceKind::Adapter);
 
     DictPtr<IString, IServerType> serverTypes;
     ASSERT_NO_THROW(serverTypes = module.getAvailableServerTypes());

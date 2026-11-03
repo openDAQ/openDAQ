@@ -35,7 +35,7 @@ PyDaqIntf<daq::IDeviceType, daq::IComponentType> declareIDeviceType(pybind11::mo
 {
     py::enum_<daq::DeviceKind>(m, "DeviceKind")
         .value("Unspecified", daq::DeviceKind::Unspecified)
-        .value("External", daq::DeviceKind::External)
+        .value("Adapter", daq::DeviceKind::Adapter)
         .value("Mirrored", daq::DeviceKind::Mirrored)
         .value("Root", daq::DeviceKind::Root);
 

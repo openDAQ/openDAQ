@@ -32,14 +32,14 @@ ListPtr<IDeviceInfo> RefDeviceModule::onGetAvailableDevices()
 
     if (serialNumber.assigned())
     {
-        auto info = RefDeviceImpl::CreateDeviceInfo(moduleInfo, DeviceKind::External, 0, serialNumber);
+        auto info = RefDeviceImpl::CreateDeviceInfo(moduleInfo, DeviceKind::Adapter, 0, serialNumber);
         availableDevices.pushBack(info);
     }
     else
     {
         for (size_t i = 0; i < 2; i++)
         {
-            auto info = RefDeviceImpl::CreateDeviceInfo(moduleInfo, DeviceKind::External, i);
+            auto info = RefDeviceImpl::CreateDeviceInfo(moduleInfo, DeviceKind::Adapter, i);
             availableDevices.pushBack(info);
         }
     }

@@ -308,7 +308,7 @@ TEST_F(DeviceTest, DeviceTypeSerialize)
     auto defaultConfig = daq::PropertyObject();
     defaultConfig.addProperty(daq::IntProperty("IntProp", 5));
 
-    for (const auto kind : {daq::DeviceKind::Root, daq::DeviceKind::Mirrored, daq::DeviceKind::External})
+    for (const auto kind : {daq::DeviceKind::Root, daq::DeviceKind::Mirrored, daq::DeviceKind::Adapter})
     {
         const daq::DeviceTypePtr deviceType = daq::DeviceTypeBuilder()
                                                   .setId("id")

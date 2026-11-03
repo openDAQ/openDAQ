@@ -39,7 +39,7 @@ extern "C"
     typedef enum daqDeviceKind
     {
         daqDeviceKindUnspecified = 0,
-        daqDeviceKindExternal,
+        daqDeviceKindAdapter,
         daqDeviceKindMirrored,
         daqDeviceKindRoot
     } daqDeviceKind;

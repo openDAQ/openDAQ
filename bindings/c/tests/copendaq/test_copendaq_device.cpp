@@ -152,7 +152,7 @@ TEST_F(COpendaqDeviceTest, DeviceType)
 TEST_F(COpendaqDeviceTest, DeviceKind)
 {
     static_assert(daqDeviceKindUnspecified == static_cast<int>(daq::DeviceKind::Unspecified));
-    static_assert(daqDeviceKindExternal == static_cast<int>(daq::DeviceKind::External));
+    static_assert(daqDeviceKindAdapter == static_cast<int>(daq::DeviceKind::Adapter));
     static_assert(daqDeviceKindMirrored == static_cast<int>(daq::DeviceKind::Mirrored));
     static_assert(daqDeviceKindRoot == static_cast<int>(daq::DeviceKind::Root));
 

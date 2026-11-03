@@ -788,9 +788,21 @@ void MultiReader2DataManager::ingestData(SizeT i, const DataPacketPtr& data)
 void MultiReader2DataManager::keepWithinBudget(SizeT bytes)
 {
     const SizeT budget = queueBudgetBytesPerInput * slots.size();
-    SizeT held = 0;
-    for (const auto& s : slots)
-        held += s.queue.heldBytes();
+    const auto heldNow = [this]
+    {
+        SizeT sum = 0;
+        for (const auto& s : slots)
+            sum += s.queue.heldBytes();
+        return sum;
+    };
+    // Summing every queue is needed only once the bound passes the budget; reads and drops leave the bound above the real bytes
+    assert(heldNow() <= heldBound);
+    if (heldBound + bytes <= budget)
+    {
+        heldBound += bytes;
+        return;
+    }
+    SizeT held = heldNow();
     while (held + bytes > budget)
     {
         Slot& s = *std::max_element(
@@ -809,6 +821,7 @@ void MultiReader2DataManager::keepWithinBudget(SizeT bytes)
         }
         held -= before - s.queue.heldBytes();
     }
+    heldBound = held + bytes;
 }
 
 // -------- Triggers

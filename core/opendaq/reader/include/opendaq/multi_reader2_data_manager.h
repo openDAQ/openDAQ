@@ -195,6 +195,7 @@ private:
     std::atomic<std::thread::id> callbackThread;
     std::vector<Slot> slots;
     SizeT lastSlot = 0;             // the slot of the previous ingest
+    SizeT heldBound = 0;            // at least the bytes all queues hold: only ingest adds to them
     std::vector<SizeT> syncJudged;  // trySync's inputs, kept so a packet allocates nothing
     std::vector<Copy> spareCopies;  // a read's copy list, kept so a read allocates nothing
     FunctionPtr acceptsDescriptor;

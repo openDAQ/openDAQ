@@ -2,8 +2,7 @@
  * Catalogue of MultiReaderTest cases (test_multi_reader.cpp) that MultiReader2 does not host.
  *
  * Nothing here executes. Each group names the old tests, the feature they need, and why the new reader does not
- * have it, so the narrower contract stays visible and countable. The live ports are in
- * test_multi_reader2_migrated.cpp.
+ * have it, so the narrower contract stays visible and countable. The MultiReader2 suite is in multi_reader2/.
  */
 #include <gtest/gtest.h>
 

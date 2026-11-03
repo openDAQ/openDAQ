@@ -890,7 +890,6 @@ StreamingTypePtr NativeStreamingClientModule::createStreamingType()
         .setDescription("openDAQ native streaming protocol client")
         .setConnectionStringPrefix(CONST_NATIVE_STREAMING_PREFIX)
         .setLinkedDeviceType(createDeviceType())
-        .setDefaultConfig(NativeStreamingClientModule::createConnectionDefaultConfig(NativeType::streaming))
         .setAvailableTransports(availableTransports)
         .build();
 }

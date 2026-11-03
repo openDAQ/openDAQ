@@ -25,6 +25,7 @@
 #include <opendaq/logger_component_ptr.h>
 #include <opendaq/multi_reader2.h>
 #include <opendaq/multi_reader2_data_manager.h>
+#include <opendaq/multi_reader2_ingest_task.h>
 #include <opendaq/multi_reader2_params.h>
 #include <opendaq/scheduler_ptr.h>
 #include <opendaq/work_ptr.h>
@@ -93,6 +94,9 @@ private:
         IInputPort* key = nullptr;
         bool owned = false;  // created by the reader around a signal input
         std::mutex intake;
+        // The ingest task: the port's own listener, and the mark its packets set for the next run
+        InputPortNotificationsPtr listener;
+        std::atomic<bool> dirty{false};
     };
     using Wiring = std::vector<std::shared_ptr<Port>>;
 
@@ -106,13 +110,20 @@ private:
         WorkPtr work;  // the handler call; holds the reader weakly. Set once in the constructor, so read without a lock
         // Under wiringMutex
         SchedulerPtr scheduler;
+        // The ingest task; ingestWork is set once in the constructor and loggerComponent once before any port is taken over
+        multi_reader2::IngestTask ingestTask;
+        WorkPtr ingestWork;
+        LoggerComponentPtr loggerComponent;
 
         std::shared_ptr<Port> portOf(IInputPort* port) const;
         void connected(IInputPort* port);
         void disconnected(IInputPort* port);
         void ingest(Port& port);
+        void notify(Port& port);
+        void drainMarked();
         bool subscribed() const;
         void schedule();
+        bool submit(const WorkPtr& w);
     };
     class Intake;
 

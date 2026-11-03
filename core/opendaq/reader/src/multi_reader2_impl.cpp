@@ -133,8 +133,10 @@ bool heldByOtherReader(const InputPortConfigPtr& port, const InputPortNotificati
 class MultiReader2Impl::Intake : public ImplementationOfWeak<IInputPortNotifications, IMultiReader2Intake>
 {
 public:
-    explicit Intake(std::shared_ptr<Core> core)
+    // With a port, the port's own listener for the ingest task
+    explicit Intake(std::shared_ptr<Core> core, std::weak_ptr<Port> own = {})
         : core(std::move(core))
+        , own(std::move(own))
     {
     }
 
@@ -157,13 +159,19 @@ public:
         return daqTry(
             [&]
             {
-                if (const auto p = core->portOf(port))
+                if constexpr (multi_reader2::ingestTaskEnabled)
+                {
+                    if (const auto p = own.lock())
+                        core->notify(*p);
+                }
+                else if (const auto p = core->portOf(port))
                     core->ingest(*p);
             });
     }
 
 private:
     const std::shared_ptr<Core> core;
+    const std::weak_ptr<Port> own;
 };
 
 MultiReader2Impl::MultiReader2Impl(IMultiReader2Params* params)
@@ -190,6 +198,13 @@ MultiReader2Impl::MultiReader2Impl(IMultiReader2Params* params)
                 }
                 if (c->dataManager.callFinished(failed, c->subscribed()))
                     c->schedule();
+            });
+        core->ingestWork = Work(
+            [shared = std::weak_ptr<Core>(core)]
+            {
+                const auto c = shared.lock();
+                if (c && c->ingestTask.run([&] { c->drainMarked(); }) && !c->submit(c->ingestWork))
+                    c->ingestTask.cancel();
             });
         if (params == nullptr)
             DAQ_THROW_EXCEPTION(ArgumentNullException, "The params are null");
@@ -282,7 +297,10 @@ void MultiReader2Impl::apply(IMultiReader2Params* paramsRaw, IMultiReader2Status
             DAQ_THROW_EXCEPTION(InvalidStateException, "The reader needs a context with a scheduler");
         // Set once, before any handler call: the handler reads it without a lock
         if (!loggerComponent.assigned())
+        {
             loggerComponent = context.getLogger().getOrAddComponent("MultiReader2");
+            core->loggerComponent = loggerComponent;
+        }
     }
 
     // New ports are taken over with their intake locks held, so their packets wait until the data manager knows them
@@ -301,8 +319,17 @@ void MultiReader2Impl::apply(IMultiReader2Params* paramsRaw, IMultiReader2Status
                 port->owned = true;
             }
             port->key = port->port.asPtr<IInputPort>(true).getObject();
-            port->port.setListener(intake);
-            port->port.setNotificationMethod(PacketReadyNotification::Scheduler);
+            if constexpr (multi_reader2::ingestTaskEnabled)
+            {
+                port->listener = createWithImplementation<IInputPortNotifications, Intake>(core, port);
+                port->port.setListener(port->listener);
+                port->port.setNotificationMethod(PacketReadyNotification::SameThread);
+            }
+            else
+            {
+                port->port.setListener(intake);
+                port->port.setNotificationMethod(PacketReadyNotification::Scheduler);
+            }
             ++taken;
         }
 
@@ -360,6 +387,7 @@ void MultiReader2Impl::release(Port& entry)
     // None first: a Scheduler port without a listener aborts on a packet; called from destruction, so errors are dropped
     entry.port->setNotificationMethod(PacketReadyNotification::None);
     entry.port->setListener(nullptr);
+    entry.listener = nullptr;  // its listener holds the core, which holds the port
     if (entry.owned)
         entry.port->disconnect();
     daqClearErrorInfo();
@@ -498,16 +526,59 @@ bool MultiReader2Impl::Core::subscribed() const
     return onDataAvailable.getListenerCount() > 0;
 }
 
+// On the sending thread: no reader lock, and wiringMutex only when the first packet after an idle period schedules the task
+void MultiReader2Impl::Core::notify(Port& port)
+{
+    port.dirty = true;
+    if (ingestTask.notify() && !submit(ingestWork))
+        ingestTask.cancel();
+}
+
+// The ingest task: each marked port is drained; a port that fails is drained again on its next packet
+void MultiReader2Impl::Core::drainMarked()
+{
+    const auto current = [this]
+    {
+        std::scoped_lock lock(wiringMutex);
+        return wiring;
+    }();
+    for (const auto& port : *current)
+    {
+        if (!port->dirty.exchange(false))
+            continue;
+        try
+        {
+            ingest(*port);
+        }
+        catch (const std::exception& e)
+        {
+            daqClearErrorInfo();
+            if (loggerComponent.assigned())
+                LOG_W("{}: the queued packets failed to ingest: {}", port->input.getLocalId().toStdString(), e.what());
+        }
+    }
+}
+
 void MultiReader2Impl::Core::schedule()
+{
+    submit(work);
+}
+
+bool MultiReader2Impl::Core::submit(const WorkPtr& w)
 {
     const auto current = [this]
     {
         std::scoped_lock lock(wiringMutex);
         return scheduler;
     }();
-    // A stopped scheduler takes no more work: the reader is being torn down with it
-    if (OPENDAQ_FAILED(current->scheduleWork(work)))
-        daqClearErrorInfo();
+    // None before the first take-over publishes it: the take-over drains the new ports itself. A stopped scheduler takes no
+    // more work: the reader is being torn down with it
+    if (!current.assigned())
+        return false;
+    if (OPENDAQ_SUCCEEDED(current->scheduleWork(w)))
+        return true;
+    daqClearErrorInfo();
+    return false;
 }
 
 OPENDAQ_DEFINE_CLASS_FACTORY_WITH_INTERFACE(LIBRARY_FACTORY, MultiReader2Params, IMultiReader2Params)

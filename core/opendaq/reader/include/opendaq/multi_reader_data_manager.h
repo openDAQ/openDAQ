@@ -40,11 +40,8 @@ BEGIN_NAMESPACE_OPENDAQ
 // Internal. The reader in front of it maps ports to slots and holds one intake lock per port, so a port's packets
 // and connection changes arrive here in order. Every method runs under this class's single non-recursive mutex,
 // held for the whole call. The one call-out is acceptsDescriptor, made under the mutex on the consumer's thread;
-// reader calls from inside it are refused. See spec 0007, Data manager sketch.
-//
-// Implemented so far: configure (reconfigure, reevaluate), ingest (the queues, the synchronization and
-// getAvailableCount), reads (the samples, the events they reach, the re-evaluation and the internal reconfigure) and
-// the wake's state.
+// reader calls from inside it are refused. The one exception to the single mutex is a read's conversion: the samples
+// are taken off the queues under it and converted into the user's buffers after it. See spec 0007, Data manager sketch.
 class MultiReaderDataManager final
 {
 public:
@@ -169,8 +166,20 @@ private:
                                                      // reconfigure that keeps the main input
         bool clearPending = false;                   // failed on the limit, a packet now within it: triggers once until a read clears it
         bool descriptorChanged = false;              // pending for the next status
-        std::unique_ptr<Reader> converter;           // to the read type, made for converterFor; not in the sketch
+        std::shared_ptr<Reader> converter;           // to the read type, made for converterFor; a copy made outside the
+                                                     // mutex holds it; not in the sketch
         DataDescriptorPtr converterFor;
+    };
+
+    // Samples a read took off a queue, converted into the user's buffer once the mutex is released; not in the sketch
+    struct Copy
+    {
+        DataPacketPtr packet;
+        SizeT start = 0;
+        SizeT count = 0;
+        void* out = nullptr;
+        std::shared_ptr<Reader> converter;  // null under Undefined: the samples are copied as they are
+        SizeT sampleSize = 0;               // bytes per sample in the packet, under Undefined
     };
 
     static DomainInfo parseDomain(const DataDescriptorPtr& domain);
@@ -191,8 +200,9 @@ private:
     void dropShortRun();
     static bool contributes(const Slot& slot, bool valid);
     static bool reachesEvent(const Slot& slot, bool contributing);
-    void consume(Slot& slot, SizeT count, void* out);
-    void copySamples(Slot& slot, const Entry& entry, SizeT count, void*& out);
+    void consume(Slot& slot, SizeT count, void* out, std::vector<Copy>* copies);
+    void queueCopy(Slot& slot, const Entry& entry, SizeT count, void*& out, std::vector<Copy>& copies);
+    static void runCopy(const Copy& copy);
     static Applied applyEvent(Slot& slot, const Event& event);
     static void countFront(Slot& slot);
     void applyEvents();
@@ -222,7 +232,8 @@ private:
     bool claimWake(bool owed);
     bool triggerHolds() const;
     ErrCode checkRead(SizeT count, SizeT timeoutMs, void** data, bool skip) const;
-    void performRead(void** data, std::int64_t* domain, SizeT* count, SizeT* packetOffset, IMultiReader2Status** status);
+    void performRead(void** data, std::int64_t* domain, SizeT* count, SizeT* packetOffset, IMultiReader2Status** status,
+                     std::vector<Copy>* copies);
 
     std::mutex mutex;
     Config config;
@@ -237,6 +248,8 @@ private:
     bool domainChanged = false;                     // pending for the next status
     bool resynchronized = false;                    // pending for the next status
     bool statusOwed = false;                        // not in the sketch: hasChanges of the next status (C1)
+    MultiReader2StatusPtr steadyStatus;             // the last status without changes, returned again until a change;
+                                                    // not in the sketch
     bool callPending = false;                       // an onDataAvailable call is scheduled or running
     bool arrivedDuringCall = false;                 // an arrival since the call started; the sketch counts them
     std::atomic<std::thread::id> callbackThread{std::thread::id()};   // not in the sketch: inCallback is asked without the mutex

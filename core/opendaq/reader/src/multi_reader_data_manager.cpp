@@ -200,6 +200,7 @@ ErrCode MultiReaderDataManager::reconfigure(Config newConfig, IMultiReader2Statu
 
         config = std::move(newConfig);
         slots = std::move(newSlots);
+        steadyStatus = nullptr;
 
         // As if newly constructed: no SyncFailed and no main input carried over
         for (auto& slot : slots)
@@ -237,6 +238,7 @@ ErrCode MultiReaderDataManager::reevaluate(IMultiReader2Status** status)
         const bool wasValid = previousLevel != ComponentStatus::Error;
         const auto previousMain = mainSlot;
         const auto previous = reportedErrors();
+        steadyStatus = nullptr;
 
         // Every input that passes the reader's own checks is judged again with its descriptors in force
         for (SizeT i = 0; i < slots.size(); ++i)
@@ -586,9 +588,20 @@ SizeT MultiReaderDataManager::sampleSize(const Slot& slot) const
     return getSampleSize(config.readType) * elementCount(slot.value);
 }
 
-// Consumes the event fields, which are never set under Error
+// Consumes the event fields, which are never set under Error. Every change a status reports sets statusOwed (noteChanges),
+// so a status without changes equals the last one and is returned again; the flags it would have consumed are not
+// reported under it either
 MultiReader2StatusPtr MultiReaderDataManager::buildStatus()
 {
+    if (!statusOwed && steadyStatus.assigned())
+    {
+        for (auto& slot : slots)
+            slot.descriptorChanged = false;
+        domainChanged = false;
+        resynchronized = false;
+        return steadyStatus;
+    }
+
     const ComponentStatus status = level();
     const bool valid = status != ComponentStatus::Error;
 
@@ -624,6 +637,7 @@ MultiReader2StatusPtr MultiReaderDataManager::buildStatus()
         reportMain ? config.inputs[*mainSlot] : nullptr,
         inputs);
 
+    steadyStatus = statusOwed ? nullptr : result;
     statusOwed = false;
     domainChanged = false;
     resynchronized = false;
@@ -661,15 +675,40 @@ ErrCode MultiReaderDataManager::read(void** data, std::int64_t* domain, SizeT* c
     OPENDAQ_PARAM_NOT_NULL(count);
     OPENDAQ_PARAM_NOT_NULL(status);
 
-    std::scoped_lock lock(mutex);
-    return daqTry([&]
+    // The read takes the samples off the queues under the mutex and converts them after it, so a large read does not
+    // hold up ingest, and a conversion that fails leaves every input at the same position. Reused per thread, so a
+    // streaming read allocates nothing
+    thread_local std::vector<Copy> copies;
+    struct ClearCopies
     {
-        const ErrCode errCode = checkRead(*count, timeoutMs, data, false);
-        OPENDAQ_RETURN_IF_FAILED(errCode);
+        std::vector<Copy>& copies;
+        ~ClearCopies() { copies.clear(); }
+    } clearCopies{copies};
 
-        performRead(data, domain, count, packetOffset, status);
-        return OPENDAQ_SUCCESS;
+    {
+        std::scoped_lock lock(mutex);
+        const ErrCode errCode = daqTry([&]
+        {
+            const ErrCode checkErr = checkRead(*count, timeoutMs, data, false);
+            OPENDAQ_RETURN_IF_FAILED(checkErr);
+
+            performRead(data, domain, count, packetOffset, status, &copies);
+            return OPENDAQ_SUCCESS;
+        });
+        OPENDAQ_RETURN_IF_FAILED(errCode);
+    }
+
+    const ErrCode errCode = daqTry([&]
+    {
+        for (const auto& copy : copies)
+            runCopy(copy);
     });
+    if (OPENDAQ_FAILED(errCode))
+    {
+        releaseRefIfNotNull(*status);
+        *status = nullptr;
+    }
+    return errCode;
 }
 
 ErrCode MultiReaderDataManager::skipSamples(SizeT* count, SizeT timeoutMs, SizeT* packetOffset, IMultiReader2Status** status)
@@ -683,7 +722,7 @@ ErrCode MultiReaderDataManager::skipSamples(SizeT* count, SizeT timeoutMs, SizeT
         const ErrCode errCode = checkRead(*count, timeoutMs, nullptr, true);
         OPENDAQ_RETURN_IF_FAILED(errCode);
 
-        performRead(nullptr, nullptr, count, packetOffset, status);
+        performRead(nullptr, nullptr, count, packetOffset, status, nullptr);
         return OPENDAQ_SUCCESS;
     });
 }
@@ -713,8 +752,10 @@ ErrCode MultiReaderDataManager::checkRead(SizeT count, SizeT timeoutMs, void** d
 }
 
 // The read (R1): the samples every contributing input has in front of its first event, unless a status is owed, then
-// the events the read reached and the status. skipSamples copies nothing; a domain buffer gets the main ticks
-void MultiReaderDataManager::performRead(void** data, std::int64_t* domain, SizeT* count, SizeT* packetOffset, IMultiReader2Status** status)
+// the events the read reached and the status. skipSamples copies nothing; a domain buffer gets the main ticks. The
+// samples' copies go to copies, which the caller runs out of the mutex
+void MultiReaderDataManager::performRead(void** data, std::int64_t* domain, SizeT* count, SizeT* packetOffset, IMultiReader2Status** status,
+                                         std::vector<Copy>* copies)
 {
     dropShortRun();
 
@@ -731,7 +772,7 @@ void MultiReaderDataManager::performRead(void** data, std::int64_t* domain, Size
         for (SizeT i = 0; i < slots.size(); ++i)
         {
             if (slots[i].error == MultiReader2InputError::None)
-                consume(slots[i], n, data ? data[i] : nullptr);
+                consume(slots[i], n, data ? data[i] : nullptr, copies);
         }
         readTick += static_cast<std::int64_t>(n) * mainDelta;
     }
@@ -777,7 +818,7 @@ void MultiReaderDataManager::dropShortRun()
     for (auto& slot : slots)
     {
         if (slot.error == MultiReader2InputError::None)
-            consume(slot, *count, nullptr);
+            consume(slot, *count, nullptr, nullptr);
     }
     readTick += static_cast<std::int64_t>(*count) * mainDelta;
     resynchronized = true;
@@ -799,15 +840,15 @@ bool MultiReaderDataManager::reachesEvent(const Slot& slot, bool contributing)
     return slot.events > 0;
 }
 
-// Takes count samples off the front run, which holds at least that many, copying them into out unless it is null
-void MultiReaderDataManager::consume(Slot& slot, SizeT count, void* out)
+// Takes count samples off the front run, which holds at least that many, queueing their copy into out unless it is null
+void MultiReaderDataManager::consume(Slot& slot, SizeT count, void* out, std::vector<Copy>* copies)
 {
     while (count > 0)
     {
         Entry& entry = slot.queue.front();
         const SizeT taken = std::min(count, entry.count);
-        if (out)
-            copySamples(slot, entry, taken, out);
+        if (out && copies)
+            queueCopy(slot, entry, taken, out, *copies);
 
         entry.start += taken;
         entry.count -= taken;
@@ -820,28 +861,45 @@ void MultiReaderDataManager::consume(Slot& slot, SizeT count, void* out)
     }
 }
 
-// The entry's next count samples, scaled, in the read type (R7); out moves past them. Under Undefined the input's
-// own samples are copied as they are
-void MultiReaderDataManager::copySamples(Slot& slot, const Entry& entry, SizeT count, void*& out)
+// The copy of the entry's next count samples, scaled, in the read type (R7); out moves past them. Under Undefined the
+// input's own samples are copied as they are
+void MultiReaderDataManager::queueCopy(Slot& slot, const Entry& entry, SizeT count, void*& out, std::vector<Copy>& copies)
 {
-    auto* input = static_cast<std::uint8_t*>(entry.packet.getData());
+    Copy copy{entry.packet, entry.start, count, out};
     if (config.readType == SampleType::Undefined)
     {
-        const SizeT size = slot.value.getSampleSize();
-        std::memcpy(out, input + entry.start * size, count * size);
-        out = static_cast<std::uint8_t*>(out) + count * size;
+        copy.sampleSize = slot.value.getSampleSize();
+    }
+    else
+    {
+        // The converter is made again only for another descriptor object; comparing descriptors by value would cost
+        // an equals per entry. TODO: TypedReadingUtils::readData of openDAQ/openDAQ#1215 can replace the reader here
+        // (todo file)
+        if (!slot.converter || slot.converterFor.getObject() != slot.value.getObject())
+        {
+            slot.converter = createReaderForType(config.readType, nullptr);
+            DataDescriptorPtr descriptor = slot.value;
+            slot.converter->handleDescriptorChanged(descriptor, ReadMode::Scaled);
+            slot.converterFor = slot.value;
+        }
+        copy.converter = slot.converter;
+    }
+    out = static_cast<std::uint8_t*>(out) + count * sampleSize(slot);
+    copies.push_back(std::move(copy));
+}
+
+// Runs outside the mutex: the packet and the converter are the copy's own
+void MultiReaderDataManager::runCopy(const Copy& copy)
+{
+    auto* input = static_cast<std::uint8_t*>(copy.packet.getData());
+    if (!copy.converter)
+    {
+        std::memcpy(copy.out, input + copy.start * copy.sampleSize, copy.count * copy.sampleSize);
         return;
     }
 
-    // TODO: TypedReadingUtils::readData of openDAQ/openDAQ#1215 can replace the reader here (todo file)
-    if (!slot.converter || slot.converterFor != slot.value)
-    {
-        slot.converter = createReaderForType(config.readType, nullptr);
-        DataDescriptorPtr descriptor = slot.value;
-        slot.converter->handleDescriptorChanged(descriptor, ReadMode::Scaled);
-        slot.converterFor = slot.value;
-    }
-    checkErrorInfo(slot.converter->readData(input, entry.start, &out, count));
+    void* out = copy.out;
+    checkErrorInfo(copy.converter->readData(input, copy.start, &out, copy.count));
 }
 
 // One event onto its input's state in force
@@ -882,7 +940,8 @@ MultiReaderDataManager::Applied MultiReaderDataManager::applyEvent(Slot& slot, c
     return applied;
 }
 
-// The samples in front of the first event, after events were taken off the front
+// The samples in front of the first event, after events were taken off the front. Ingest and consume keep frontCount
+// up to date otherwise, so only a read that applied an event on the input counts again (C3)
 void MultiReaderDataManager::countFront(Slot& slot)
 {
     slot.frontCount = 0;
@@ -900,6 +959,14 @@ void MultiReaderDataManager::applyEvents()
 {
     const ComponentStatus previousLevel = level();
     const bool wasValid = previousLevel != ComponentStatus::Error;
+
+    // A read that reaches no event and owes no clear changes no error, so nothing below would: the streaming read
+    // returns here without the snapshot of the errors
+    const bool nothingToApply = std::none_of(slots.begin(), slots.end(), [wasValid](const Slot& slot)
+                                             { return slot.clearPending || reachesEvent(slot, contributes(slot, wasValid)); });
+    if (nothingToApply)
+        return;
+
     const auto previousMain = mainSlot;
     const auto previous = reportedErrors();
 
@@ -913,6 +980,7 @@ void MultiReaderDataManager::applyEvents()
         // nothing: it applies all of them and keeps only the data behind the last
         const bool contributing = contributes(slot, wasValid);
         bool judge = false;
+        bool appliedAny = false;
         while (reachesEvent(slot, contributing))
         {
             while (!slot.queue.front().event.has_value())
@@ -921,13 +989,15 @@ void MultiReaderDataManager::applyEvents()
             const Applied applied = applyEvent(slot, *slot.queue.front().event);
             slot.queue.pop_front();
             --slot.events;
+            appliedAny = true;
             judge |= applied.judge;
             if (applied.domain && mainSlot == i)
                 reconfigure = true;
             else if (contributing && (applied.domain || applied.gap))
                 resync = true;
         }
-        countFront(slot);
+        if (appliedAny)
+            countFront(slot);
         if (judge)
             checkInput(i);
 

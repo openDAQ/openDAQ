@@ -14,14 +14,60 @@
 
 BEGIN_NAMESPACE_OPENDAQ
 
-MultiReader2Impl::MultiReader2Impl(IMultiReader2Params* params)
+// The listener on the reader's ports: it forwards the callbacks to the core and holds nothing else. The ports hold it
+// weakly and the reader strongly
+class MultiReader2Impl::PortListener final : public ImplementationOfWeak<IInputPortNotifications>
 {
-    // configure registers this object as a port listener, so it must be ref-guarded during construction
+public:
+    explicit PortListener(std::shared_ptr<Core> core)
+        : core(std::move(core))
+    {
+    }
+
+    ErrCode INTERFACE_FUNC acceptsSignal(IInputPort* /*port*/, ISignal* /*signal*/, Bool* accept) override
+    {
+        OPENDAQ_PARAM_NOT_NULL(accept);
+        *accept = True;
+        return OPENDAQ_SUCCESS;
+    }
+
+    ErrCode INTERFACE_FUNC connected(IInputPort* port) override
+    {
+        OPENDAQ_PARAM_NOT_NULL(port);
+
+        // A failure here would fail the user's connect; the reader never refuses one
+        const ErrCode errCode = daqTry([&] { core->applyConnect(port); });
+        if (OPENDAQ_FAILED(errCode))
+            daqClearErrorInfo();
+        return OPENDAQ_SUCCESS;
+    }
+
+    ErrCode INTERFACE_FUNC disconnected(IInputPort* port) override
+    {
+        OPENDAQ_PARAM_NOT_NULL(port);
+        return daqTry([&] { core->applyDisconnect(port); });
+    }
+
+    ErrCode INTERFACE_FUNC packetReceived(IInputPort* port) override
+    {
+        OPENDAQ_PARAM_NOT_NULL(port);
+        return daqTry([&] { core->ingest(port); });
+    }
+
+private:
+    std::shared_ptr<Core> core;
+};
+
+MultiReader2Impl::MultiReader2Impl(IMultiReader2Params* params)
+    : core(std::make_shared<Core>())
+    , listener(createWithImplementation<IInputPortNotifications, PortListener>(core))
+{
+    // The wake takes a weak reference to this object, so it must be ref-guarded during construction
     this->internalAddRef();
     try
     {
         // One reusable call; it holds the reader weakly, and strongly while it runs (W4, W5)
-        wakeWork = Work([this, readerRef = this->getWeakRefInternal<IMultiReader2>()]
+        core->wakeWork = Work([this, readerRef = this->getWeakRefInternal<IMultiReader2>()]
         {
             const auto reader = readerRef.getRef();
             if (reader.assigned())
@@ -38,15 +84,10 @@ MultiReader2Impl::MultiReader2Impl(IMultiReader2Params* params)
 
 MultiReader2Impl::~MultiReader2Impl()
 {
-    std::atomic_store(&wiring, std::shared_ptr<const Wiring>());
+    std::atomic_store(&core->wiring, std::shared_ptr<const Wiring>());
     for (auto& slot : slots)
         releaseSlot(slot);
     slots.clear();
-}
-
-MultiReaderDataManager& MultiReader2Impl::getDataManager()
-{
-    return dataManager;
 }
 
 // ---------------------------------------------------------------- configuration
@@ -128,7 +169,7 @@ MultiReader2Impl::Slot MultiReader2Impl::makeSlot(const ComponentPtr& input)
 void MultiReader2Impl::takeOver(const Slot& slot)
 {
     // The listener first: a Scheduler port without a listener aborts the process when a packet arrives
-    slot.port.setListener(this->thisPtr<InputPortNotificationsPtr>());
+    slot.port.setListener(listener);
     slot.port.setNotificationMethod(PacketReadyNotification::Scheduler);
 }
 
@@ -178,14 +219,14 @@ void MultiReader2Impl::publishWiring(const std::vector<Slot>& wired)
         newWiring->intakeOf[slot.port.asPtr<IInputPort>(true)] = slot.intake;
     newWiring->scheduler = scheduler;
     newWiring->loggerComponent = loggerComponent;
-    std::atomic_store(&wiring, std::shared_ptr<const Wiring>(std::move(newWiring)));
+    std::atomic_store(&core->wiring, std::shared_ptr<const Wiring>(std::move(newWiring)));
 }
 
 // Calls from inside the owner's acceptsDescriptor would re-enter the data manager under its own mutex
 #define MULTI_READER2_NOT_FROM_CALLBACK() \
     do \
     { \
-        if (dataManager.inCallback()) \
+        if (core->dataManager.inCallback()) \
             return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDSTATE, "The reader cannot be called from acceptsDescriptor"); \
     } while (0)
 
@@ -232,19 +273,20 @@ ErrCode MultiReader2Impl::configureInternal(IMultiReader2Params* params, IMultiR
             if (retained[i])
                 continue;
 
-            // Held by a reader: one supporting IMultiReader2, or IReader of the older readers. Any other listener is
-            // taken over; the port holds it weakly, so a destroyed reader frees the port
+            // Held by a reader: another MultiReader2's port listener, or IReader of the older readers. Any other
+            // listener is taken over; the port holds it weakly, so a destroyed reader frees the port
             if (const auto port = input.asPtrOrNull<IInputPortConfig>(true); port.assigned())
             {
-                const auto listener = port.getListener();
-                if (listener.assigned() && (listener.supportsInterface<IMultiReader2>() || listener.supportsInterface<IReader>()))
+                const auto portListener = port.getListener();
+                if (portListener.assigned() &&
+                    (dynamic_cast<PortListener*>(portListener.getObject()) != nullptr || portListener.supportsInterface<IReader>()))
                     return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_ALREADYEXISTS, R"(Input port "%s" is held by another reader)",
                                                input.getGlobalId().getCharPtr());
             }
         }
 
         // A failed takeover releases the new ports and leaves the old slots and wiring as they were
-        const auto oldWiring = std::atomic_load(&wiring);
+        const auto oldWiring = std::atomic_load(&core->wiring);
         std::vector<Slot> newSlots;
         const auto abandon = [&]
         {
@@ -253,7 +295,7 @@ ErrCode MultiReader2Impl::configureInternal(IMultiReader2Params* params, IMultiR
                 if (!retained[i])
                     releaseSlot(newSlots[i]);
             }
-            std::atomic_store(&wiring, oldWiring);
+            std::atomic_store(&core->wiring, oldWiring);
         };
 
         // No intake lock yet: the new ports and their signals' descriptors, which must not be read under one (C18)
@@ -342,7 +384,7 @@ ErrCode MultiReader2Impl::configureInternal(IMultiReader2Params* params, IMultiR
         loggerComponent = logger.assigned() ? logger.getOrAddComponent("MultiReader2") : nullptr;
 
         // Schedules no onDataAvailable
-        const ErrCode reconfigured = dataManager.reconfigure(std::move(config), status);
+        const ErrCode reconfigured = core->dataManager.reconfigure(std::move(config), status);
 
         for (SizeT i = 0; i < slots.size(); ++i)
             slots[i].intake->slot = i;
@@ -354,7 +396,7 @@ ErrCode MultiReader2Impl::configureInternal(IMultiReader2Params* params, IMultiR
         for (auto& slot : leaving)
             releaseSlot(slot);
         for (const auto port : reconnected)
-            applyConnect(port);
+            core->applyConnect(port);
         return reconfigured;
     });
 }
@@ -365,20 +407,20 @@ ErrCode MultiReader2Impl::getAvailableCount(SizeT* count)
 {
     OPENDAQ_PARAM_NOT_NULL(count);
     MULTI_READER2_NOT_FROM_CALLBACK();
-    *count = dataManager.getAvailableCount();
+    *count = core->dataManager.getAvailableCount();
     return OPENDAQ_SUCCESS;
 }
 
 ErrCode MultiReader2Impl::read(void* data, void* domain, SizeT* count, SizeT timeoutMs, SizeT* packetOffset, IMultiReader2Status** status)
 {
     MULTI_READER2_NOT_FROM_CALLBACK();
-    return dataManager.read(static_cast<void**>(data), static_cast<std::int64_t*>(domain), count, timeoutMs, packetOffset, status);
+    return core->dataManager.read(static_cast<void**>(data), static_cast<std::int64_t*>(domain), count, timeoutMs, packetOffset, status);
 }
 
 ErrCode MultiReader2Impl::skipSamples(SizeT* count, SizeT timeoutMs, SizeT* packetOffset, IMultiReader2Status** status)
 {
     MULTI_READER2_NOT_FROM_CALLBACK();
-    return dataManager.skipSamples(count, timeoutMs, packetOffset, status);
+    return core->dataManager.skipSamples(count, timeoutMs, packetOffset, status);
 }
 
 ErrCode MultiReader2Impl::getOnDataAvailable(IEvent** event)
@@ -392,14 +434,14 @@ ErrCode MultiReader2Impl::reevaluate(IMultiReader2Status** status)
 {
     MULTI_READER2_NOT_FROM_CALLBACK();
     std::scoped_lock lock(mutex);
-    return dataManager.reevaluate(status);
+    return core->dataManager.reevaluate(status);
 }
 
 // ---------------------------------------------------------------- wake
 
 // Schedules the call the data manager claimed (W4); one that cannot be scheduled, as on a stopped scheduler, releases
 // the claim, or no call would ever be scheduled again
-void MultiReader2Impl::scheduleWake()
+void MultiReader2Impl::Core::scheduleWake()
 {
     const auto wire = std::atomic_load(&wiring);
     const ErrCode errCode = wire && wire->scheduler.assigned() ? wire->scheduler->scheduleWork(wakeWork) : OPENDAQ_ERR_INVALIDSTATE;
@@ -414,7 +456,7 @@ void MultiReader2Impl::scheduleWake()
 // throws stops the handlers after it. The exception is logged and the handler kept (B4)
 void MultiReader2Impl::runWake()
 {
-    dataManager.callStarted();
+    core->dataManager.callStarted();
 
     bool failed = false;
     std::string failure;
@@ -437,19 +479,19 @@ void MultiReader2Impl::runWake()
     if (failed)
     {
         daqClearErrorInfo();
-        const auto wire = std::atomic_load(&wiring);
+        const auto wire = std::atomic_load(&core->wiring);
         const LoggerComponentPtr loggerComponent = wire ? wire->loggerComponent : nullptr;
         if (loggerComponent.assigned())
             LOG_E("The onDataAvailable handler failed: {}", failure);
     }
 
-    if (dataManager.callFinished(failed))
-        scheduleWake();
+    if (core->dataManager.callFinished(failed))
+        core->scheduleWake();
 }
 
 // ---------------------------------------------------------------- port callbacks
 
-std::shared_ptr<MultiReader2Impl::Intake> MultiReader2Impl::intakeOf(IInputPort* port) const
+std::shared_ptr<MultiReader2Impl::Intake> MultiReader2Impl::Core::intakeOf(IInputPort* port) const
 {
     const auto wire = std::atomic_load(&wiring);
     if (!wire)
@@ -462,7 +504,7 @@ std::shared_ptr<MultiReader2Impl::Intake> MultiReader2Impl::intakeOf(IInputPort*
 }
 
 // The connect callback, also run by configure for a port connected elsewhere during its takeover
-void MultiReader2Impl::applyConnect(IInputPort* port)
+void MultiReader2Impl::Core::applyConnect(IInputPort* port)
 {
     const auto portPtr = InputPortPtr::Borrow(port);
     const PortState state = readPortState(portPtr);
@@ -483,72 +525,44 @@ void MultiReader2Impl::applyConnect(IInputPort* port)
         scheduleWake();
 }
 
-ErrCode MultiReader2Impl::acceptsSignal(IInputPort* /*port*/, ISignal* /*signal*/, Bool* accept)
+void MultiReader2Impl::Core::applyDisconnect(IInputPort* port)
 {
-    OPENDAQ_PARAM_NOT_NULL(accept);
-    *accept = True;
-    return OPENDAQ_SUCCESS;
-}
+    const auto intake = intakeOf(port);
+    if (!intake)
+        return;
 
-ErrCode MultiReader2Impl::connected(IInputPort* port)
-{
-    OPENDAQ_PARAM_NOT_NULL(port);
-
-    // A failure here would fail the user's connect; the reader never refuses one
-    const ErrCode errCode = daqTry([&] { applyConnect(port); });
-    if (OPENDAQ_FAILED(errCode))
-        daqClearErrorInfo();
-    return OPENDAQ_SUCCESS;
-}
-
-ErrCode MultiReader2Impl::disconnected(IInputPort* port)
-{
-    OPENDAQ_PARAM_NOT_NULL(port);
-
-    return daqTry([&]
+    bool wake;
     {
-        const auto intake = intakeOf(port);
-        if (!intake)
+        std::scoped_lock lock(intake->mutex);
+        if (!intake->slot)
             return;
-
-        bool wake;
-        {
-            std::scoped_lock lock(intake->mutex);
-            if (!intake->slot)
-                return;
-            wake = dataManager.disconnected(*intake->slot);
-        }
-        if (wake)
-            scheduleWake();
-    });
+        wake = dataManager.disconnected(*intake->slot);
+    }
+    if (wake)
+        scheduleWake();
 }
 
-ErrCode MultiReader2Impl::packetReceived(IInputPort* port)
+void MultiReader2Impl::Core::ingest(IInputPort* port)
 {
-    OPENDAQ_PARAM_NOT_NULL(port);
+    const auto intake = intakeOf(port);
+    if (!intake)
+        return;
 
-    return daqTry([&]
+    bool wake = false;
     {
-        const auto intake = intakeOf(port);
-        if (!intake)
+        // The connection is a single-consumer queue, and Scheduler ports notify on several threads: the intake
+        // lock makes this call its only consumer and keeps the batches in order
+        std::scoped_lock lock(intake->mutex);
+        if (!intake->slot)
             return;
-
-        bool wake = false;
-        {
-            // The connection is a single-consumer queue, and Scheduler ports notify on several threads: the intake
-            // lock makes this call its only consumer and keeps the batches in order
-            std::scoped_lock lock(intake->mutex);
-            if (!intake->slot)
-                return;
-            const auto connection = InputPortPtr::Borrow(port).getConnection();
-            if (!connection.assigned())
-                return;
-            for (const auto& packet : connection.dequeueAll())
-                wake = dataManager.addPacket(*intake->slot, packet) || wake;
-        }
-        if (wake)
-            scheduleWake();
-    });
+        const auto connection = InputPortPtr::Borrow(port).getConnection();
+        if (!connection.assigned())
+            return;
+        for (const auto& packet : connection.dequeueAll())
+            wake = dataManager.addPacket(*intake->slot, packet) || wake;
+    }
+    if (wake)
+        scheduleWake();
 }
 
 END_NAMESPACE_OPENDAQ

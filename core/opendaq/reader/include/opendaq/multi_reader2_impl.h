@@ -20,7 +20,7 @@
 #include <opendaq/connection_ptr.h>
 #include <opendaq/context_ptr.h>
 #include <opendaq/input_port_config_ptr.h>
-#include <opendaq/input_port_notifications.h>
+#include <opendaq/input_port_notifications_ptr.h>
 #include <opendaq/logger_component_ptr.h>
 #include <opendaq/multi_reader2.h>
 #include <opendaq/multi_reader_data_manager.h>
@@ -35,14 +35,12 @@
 
 BEGIN_NAMESPACE_OPENDAQ
 
-// The reader facade: owns the ports, installs itself as their only listener, translates ports into slot indices,
-// schedules the wake the manager says is owed. The engine work lives in MultiReaderDataManager. The facade mutex
-// guards the slot list during configure only; port callbacks look the port's intake up through an immutable wiring
-// snapshot and never take it, so configure may run from inside the onDataAvailable handler. Lock order: the facade
-// mutex, the intake locks, the data manager's mutex.
-//
-// Methods that departed from spec 0007 are placeholders, marked TODO with the decision they have to follow.
-class MultiReader2Impl : public ImplementationOfWeak<IMultiReader2, IInputPortNotifications>
+// The reader facade: owns the ports, installs its port listener on them, translates ports into slot indices, schedules
+// the wake the manager says is owed. The engine work lives in MultiReaderDataManager. The facade mutex guards the slot
+// list during configure only; port callbacks look the port's intake up through an immutable wiring snapshot and never
+// take it, so configure may run from inside the onDataAvailable handler. Lock order: the facade mutex, the intake locks,
+// the data manager's mutex.
+class MultiReader2Impl : public ImplementationOfWeak<IMultiReader2>
 {
 public:
     explicit MultiReader2Impl(IMultiReader2Params* params);
@@ -55,15 +53,6 @@ public:
     ErrCode INTERFACE_FUNC skipSamples(SizeT* count, SizeT timeoutMs, SizeT* packetOffset, IMultiReader2Status** status) override;
     ErrCode INTERFACE_FUNC getOnDataAvailable(IEvent** event) override;
     ErrCode INTERFACE_FUNC reevaluate(IMultiReader2Status** status) override;
-
-    // IInputPortNotifications
-    ErrCode INTERFACE_FUNC acceptsSignal(IInputPort* port, ISignal* signal, Bool* accept) override;
-    ErrCode INTERFACE_FUNC connected(IInputPort* port) override;
-    ErrCode INTERFACE_FUNC disconnected(IInputPort* port) override;
-    ErrCode INTERFACE_FUNC packetReceived(IInputPort* port) override;
-
-    // White-box access for the tests compiled against the implementation
-    MultiReaderDataManager& getDataManager();
 
 private:
     // One port's intake lock (spec A12): under it the port's packets, connect and disconnect reach the data manager
@@ -100,6 +89,25 @@ private:
         DataDescriptorPtr value, domain;
     };
 
+    // What the port callbacks need, shared by the reader and its port listener. The ports hold the listener, which holds
+    // this and not the reader, so a callback in flight does not keep a released reader alive (W4). A destroyed reader
+    // clears the wiring, and the callbacks after it find no intake
+    struct Core
+    {
+        MultiReaderDataManager dataManager;
+        std::shared_ptr<const Wiring> wiring;
+        WorkPtr wakeWork;   // holds the reader weakly
+
+        std::shared_ptr<Intake> intakeOf(IInputPort* port) const;
+        void applyConnect(IInputPort* port);
+        void applyDisconnect(IInputPort* port);
+        void ingest(IInputPort* port);
+        void scheduleWake();
+    };
+
+    // The listener the reader installs on its ports; defined with the callbacks
+    class PortListener;
+
     // configure, and the constructor with a null status: the first status is then owed to the first read
     ErrCode configureInternal(IMultiReader2Params* params, IMultiReader2Status** status);
     ErrCode resolveParams(IMultiReader2Params* params, MultiReaderDataManager::Config& config, ComponentPtr& mainInput);
@@ -107,10 +115,7 @@ private:
     void takeOver(const Slot& slot);
     void releaseSlot(Slot& slot);
     static PortState readPortState(const InputPortPtr& port);
-    void applyConnect(IInputPort* port);
-    std::shared_ptr<Intake> intakeOf(IInputPort* port) const;
     void publishWiring(const std::vector<Slot>& wired);
-    void scheduleWake();
     void runWake();
 
     std::mutex mutex;
@@ -119,9 +124,8 @@ private:
     SchedulerPtr scheduler;
     LoggerComponentPtr loggerComponent;
     std::vector<Slot> slots;
-    std::shared_ptr<const Wiring> wiring;
-    WorkPtr wakeWork;
-    MultiReaderDataManager dataManager;
+    std::shared_ptr<Core> core;
+    InputPortNotificationsPtr listener;
 };
 
 END_NAMESPACE_OPENDAQ

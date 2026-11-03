@@ -33,11 +33,13 @@ set(TEST_SOURCES test_factories.cpp
                  multi_reader2/test_scenarios.cpp
                  multi_reader2/test_concurrency.cpp
                  multi_reader2/test_ticks_conversion_and_queue.cpp
+                 multi_reader2/test_ingest_task.cpp
                  multi_reader2/test_regressions_data_manager.cpp
                  multi_reader2/test_regressions_api.cpp
                  ../src/multi_reader2_domain.cpp
                  ../src/multi_reader2_convert.cpp
                  ../src/multi_reader2_queue.cpp
+                 ../src/multi_reader2_ingest_task.cpp
 )
 
 opendaq_prepare_test_runner(TEST_APP FOR ${MODULE_NAME}

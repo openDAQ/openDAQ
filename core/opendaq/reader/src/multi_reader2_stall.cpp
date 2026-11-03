@@ -17,23 +17,46 @@ bool contributing(const Slot& s, bool valid)
     return valid && s.error == MultiReader2InputError::None;
 }
 
-// Main ticks the others sent past the input's newest sample; nullopt for an input with something queued
-std::optional<std::int64_t> silence(const std::vector<Slot>& slots, const Slot& s, bool valid, const TickDomain& main)
+// Over the contributing inputs that sent a sample: the newest tick, the one input that holds it, the newest of the others,
+// and the earliest first tick. One pass, so an input's silence needs no pass over the others
+struct Senders
+{
+    std::optional<std::int64_t> newest;
+    std::optional<std::int64_t> second;
+    std::optional<std::int64_t> first;
+    const Slot* newestSlot = nullptr;
+};
+
+Senders senders(const std::vector<Slot>& slots, bool valid)
+{
+    Senders p;
+    for (const auto& s : slots)
+    {
+        if (!contributing(s, valid) || !s.newestTick)
+            continue;
+        if (!p.newest || *s.newestTick > *p.newest)
+        {
+            p.second = p.newest;
+            p.newest = s.newestTick;
+            p.newestSlot = &s;
+        }
+        else if (!p.second || *s.newestTick > *p.second)
+            p.second = s.newestTick;
+        p.first = std::min(p.first.value_or(*s.firstTick), *s.firstTick);
+    }
+    return p;
+}
+
+// Main ticks the others sent past the input's newest sample; nullopt for an input with something queued. An input that never
+// sent is not among the senders, so their earliest first tick is the others'
+std::optional<std::int64_t> silence(const Senders& p, const Slot& s, bool valid, const TickDomain& main)
 {
     if (!stallEnabled || !contributing(s, valid) || !s.queue.empty())
         return std::nullopt;
-    std::optional<std::int64_t> newest;
-    std::optional<std::int64_t> first;
-    for (const auto& other : slots)
-    {
-        if (&other == &s || !contributing(other, valid) || !other.newestTick)
-            continue;
-        newest = std::max(newest.value_or(*other.newestTick), *other.newestTick);
-        first = std::min(first.value_or(*other.firstTick), *other.firstTick);
-    }
+    const auto newest = &s == p.newestSlot ? p.second : p.newest;
     if (!newest)
         return std::nullopt;
-    return *newest - s.newestTick.value_or(*first - main.delta);
+    return *newest - (s.newestTick ? *s.newestTick : *p.first - main.delta);
 }
 
 }
@@ -51,12 +74,15 @@ bool stallPending(const std::vector<Slot>& slots, bool valid)
 
 bool stallDue(const std::vector<Slot>& slots, bool valid, const TickDomain& main)
 {
+    if (!stallPending(slots, valid))
+        return false;
     const std::int64_t limit = secondsToTicks(main, queueLimitSeconds);
+    const Senders p = senders(slots, valid);
     return std::any_of(slots.begin(),
                        slots.end(),
                        [&](const Slot& s)
                        {
-                           const auto ticks = silence(slots, s, valid, main);
+                           const auto ticks = silence(p, s, valid, main);
                            return ticks && *ticks > limit;
                        });
 }
@@ -64,9 +90,10 @@ bool stallDue(const std::vector<Slot>& slots, bool valid, const TickDomain& main
 void stall(std::vector<Slot>& slots, bool valid, const TickDomain& main, const LoggerComponentPtr& loggerComponent)
 {
     const std::int64_t limit = secondsToTicks(main, queueLimitSeconds);
+    const Senders p = senders(slots, valid);
     std::vector<std::int64_t> silent(slots.size(), 0);
     for (SizeT i = 0; i < slots.size(); ++i)
-        silent[i] = silence(slots, slots[i], valid, main).value_or(0);
+        silent[i] = silence(p, slots[i], valid, main).value_or(0);
     for (SizeT i = 0; i < slots.size(); ++i)
     {
         if (silent[i] <= limit)

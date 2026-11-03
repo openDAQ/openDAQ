@@ -25,6 +25,7 @@
 #include <opendaq/logger_component_ptr.h>
 #include <opendaq/multi_reader2.h>
 #include <opendaq/multi_reader2_data_manager.h>
+#include <opendaq/multi_reader2_ingest_task.h>
 #include <opendaq/multi_reader2_params.h>
 #include <opendaq/scheduler_ptr.h>
 #include <opendaq/work_ptr.h>
@@ -68,8 +69,8 @@ DECLARE_OPENDAQ_INTERFACE(IMultiReader2Intake, IBaseObject)
 
 /*!
  * @brief The reader facade: resolves the params, takes the ports over, and runs the onDataAvailable handler the data manager
- * asks for. The ports' listener is the intake, which shares the ingest state with the reader: ingest never holds the
- * reader, so a released reader is destroyed at once and its scheduled handler call is skipped.
+ * asks for. Each port's listener is an intake of its own, which shares the ingest state with the reader: ingest never holds
+ * the reader, so a released reader is destroyed at once and its scheduled handler call is skipped.
  */
 class MultiReader2Impl : public ImplementationOfWeak<IMultiReader2>
 {
@@ -93,6 +94,9 @@ private:
         IInputPort* key = nullptr;
         bool owned = false;  // created by the reader around a signal input
         std::mutex intake;
+        // The port's own intake, and the mark its packets set for the next ingest run
+        InputPortNotificationsPtr listener;
+        std::atomic<bool> dirty{false};
     };
     using Wiring = std::vector<std::shared_ptr<Port>>;
 
@@ -106,13 +110,21 @@ private:
         WorkPtr work;  // the handler call; holds the reader weakly. Set once in the constructor, so read without a lock
         // Under wiringMutex
         SchedulerPtr scheduler;
+        // The ingest task; ingestWork is set once in the constructor and loggerComponent once before any port is taken over
+        multi_reader2::IngestTask ingestTask;
+        WorkPtr ingestWork;
+        LoggerComponentPtr loggerComponent;
 
         std::shared_ptr<Port> portOf(IInputPort* port) const;
         void connected(IInputPort* port);
         void disconnected(IInputPort* port);
-        void ingest(Port& port);
+        bool ingest(Port& port);
+        void wakeAfterIngest();
+        void notify(Port& port);
+        bool drainMarked();
         bool subscribed() const;
         void schedule();
+        bool submit(const WorkPtr& w);
     };
     class Intake;
 
@@ -122,7 +134,6 @@ private:
     ErrCode notFromJudgement() const;
 
     std::shared_ptr<Core> core = std::make_shared<Core>();
-    InputPortNotificationsPtr intake;
     std::mutex configureMutex;
     LoggerComponentPtr loggerComponent;
 };

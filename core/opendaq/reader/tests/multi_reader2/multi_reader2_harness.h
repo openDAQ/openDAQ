@@ -624,7 +624,7 @@ private:
     bool constructed = false;
     MultiReader2Ptr readerObject;
     WeakRefPtr<IMultiReader2> readerRef;
-    BaseObjectPtr readerListener;  // the listener the reader sets on its ports, so "listener reader" means this reader
+    std::vector<BaseObjectPtr> readerListeners;  // the listeners the reader sets on its ports, so "listener reader" means this reader
     std::mutex stateMutex;         // paramsInForce, paramsObject, previousStatus and lastResult: the handler and test threads share them
     MultiReader2ParamsPtr paramsInForce;
     MultiReader2ParamsPtr paramsObject;

@@ -2366,7 +2366,7 @@ std::pair<Listener, PacketReadyNotification> MultiReader2Test::portState(int slo
     Listener kind = Listener::Other;
     if (!listener.assigned())
         kind = Listener::None;
-    else if (readerListener.assigned() && BaseObjectPtr::Equals(listener, readerListener))
+    else if (std::any_of(readerListeners.begin(), readerListeners.end(), [&](const auto& l) { return BaseObjectPtr::Equals(listener, l); }))
         kind = Listener::Reader;
     else if (i.blockListener.assigned() && BaseObjectPtr::Equals(listener, i.blockListener))
         kind = Listener::Block;
@@ -2375,16 +2375,18 @@ std::pair<Listener, PacketReadyNotification> MultiReader2Test::portState(int slo
     return {kind, i.port.getNotificationMethod()};
 }
 
+// One listener shared by the ports, or one per port: each port the reader holds adds its own
 void MultiReader2Test::noteReaderListener()
 {
-    if (readerListener.assigned())
-        return;
     for (int slot : slotsInForce())
-        if (slot > 0 && input(slot).port.assigned() && input(slot).port.getListener().assigned())
-        {
-            readerListener = input(slot).port.getListener();
-            return;
-        }
+    {
+        if (slot <= 0 || !input(slot).port.assigned())
+            continue;
+        const auto listener = input(slot).port.getListener();
+        if (listener.assigned() &&
+            std::none_of(readerListeners.begin(), readerListeners.end(), [&](const auto& l) { return BaseObjectPtr::Equals(listener, l); }))
+            readerListeners.push_back(listener);
+    }
 }
 
 MultiReader2Test::Snapshot MultiReader2Test::snapshot()

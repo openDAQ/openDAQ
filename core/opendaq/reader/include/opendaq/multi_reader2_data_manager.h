@@ -67,11 +67,13 @@ public:
     ErrCode read(void** data, std::int64_t* domain, SizeT* count, SizeT* packetOffset, IMultiReader2Status** status);
     ErrCode skipSamples(SizeT* count, SizeT* packetOffset, IMultiReader2Status** status);
 
-    // Producer side; each returns whether to schedule onDataAvailable after the mutex: while subscribed, no call is pending and a
-    // read would return samples or a status with changes
+    // Producer side. A connection change returns whether to schedule onDataAvailable after the mutex: while subscribed, no call
+    // is pending and a read would return samples or a status with changes. Packets come in batches, and wakeDue decides once
+    // after them
     bool connected(const void* key, const multi_reader2::Announced& announced, bool subscribed);
     bool disconnected(const void* key, bool subscribed);
-    bool addPacket(const void* key, const PacketPtr& packet, bool subscribed);
+    void addPackets(const void* key, const PacketPtr* packets, SizeT count);
+    bool wakeDue(bool subscribed);
 
     // After the handler: clears the pending flag and decides on another call; a failed call waits for the next ingest
     bool callFinished(bool failed, bool subscribed);
@@ -195,6 +197,7 @@ private:
     std::atomic<std::thread::id> callbackThread;
     std::vector<Slot> slots;
     SizeT lastSlot = 0;             // the slot of the previous ingest
+    SizeT heldBound = 0;            // at least the bytes all queues hold: only ingest adds to them
     std::vector<SizeT> syncJudged;  // trySync's inputs, kept so a packet allocates nothing
     std::vector<Copy> spareCopies;  // a read's copy list, kept so a read allocates nothing
     FunctionPtr acceptsDescriptor;

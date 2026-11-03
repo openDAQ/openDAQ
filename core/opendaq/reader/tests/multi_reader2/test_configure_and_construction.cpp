@@ -63,7 +63,7 @@ TEST_F(MultiReader2Configure, AutomaticMainSkipsDisconnectedFirstPortUnderExclud
 TEST_F(MultiReader2Configure, ConstructWithUnconnectedPortSucceedsWithDisconnectedError)
 {
     given().ports().unconnected(in2);
-    expectPort(in2, Listener::Reader, PacketReadyNotification::Scheduler);
+    expectPort(in2, Listener::Reader, PacketReadyNotification::SameThread);
     expect(read(0), count(0).level(Error).inError(in2, InputError::Disconnected).msg("in2: not connected"));
 }
 
@@ -72,7 +72,7 @@ TEST_F(MultiReader2Configure, ReleasedReaderFreesItsPortsForANewReader)
 {
     given().ports();
     setupBase();
-    expectPort(in1, Listener::Reader, PacketReadyNotification::Scheduler);
+    expectPort(in1, Listener::Reader, PacketReadyNotification::SameThread);
     idle();
     release();
     expectDestroyed();
@@ -87,7 +87,7 @@ TEST_F(MultiReader2Configure, ConfigureAddingUnconnectedPortSucceedsWithDisconne
     setupBase();
     expect(configure(same().add(in3)),
            ok().level(Error).inError(in3, InputError::Disconnected).msg("in3: not connected").inputs({in1, in2, in3}));
-    expectPort(in3, Listener::Reader, PacketReadyNotification::Scheduler);
+    expectPort(in3, Listener::Reader, PacketReadyNotification::SameThread);
 }
 
 // S1.CFG.09
@@ -261,7 +261,7 @@ TEST_F(MultiReader2Configure, ConfigureAddingPortTakesOverBlockListener)
     given().ports().listenerBlock(in3, PacketReadyNotification::SameThread);
     setupBase();
     expect(configure(same().add(in3)), ok().domainChanged().resync().allDescChanged().inputs({in1, in2, in3}));
-    expectPort(in3, Listener::Reader, PacketReadyNotification::Scheduler);
+    expectPort(in3, Listener::Reader, PacketReadyNotification::SameThread);
     expect(avail(), count(0));
 }
 
@@ -498,7 +498,7 @@ TEST_F(MultiReader2Configure, ConstructWithPortHeldByOtherReaderFailsWithAlready
     given().ports();
     setupBase();
     expect([&] { return construct(same().add(in3)); }, fails(OPENDAQ_ERR_ALREADYEXISTS).unchanged());
-    expectPort(in1, Listener::Reader, PacketReadyNotification::Scheduler);
+    expectPort(in1, Listener::Reader, PacketReadyNotification::SameThread);
     expectPort(in3, Listener::None);
     expect(read(100), count(100).at(0).noChanges());
 }
@@ -541,7 +541,7 @@ TEST_F(MultiReader2Configure, ConstructWithZeroMinReadCountFails)
 TEST_F(MultiReader2Configure, ConstructTakesOverBlockListenerOfPort)
 {
     given().ports().listenerBlock(in2, PacketReadyNotification::SameThread);
-    expectPort(in2, Listener::Reader, PacketReadyNotification::Scheduler);
+    expectPort(in2, Listener::Reader, PacketReadyNotification::SameThread);
     expect(read(0), count(0).level(Ok).main(in1).domainChanged().resync().allDescChanged());
     write(in1, 0, 99);
     write(in2, 0, 99);

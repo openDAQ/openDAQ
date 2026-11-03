@@ -134,7 +134,7 @@ void MultiReader2Test::restart(SizeT runWorkers)
     }
     constructed = false;
     readerRef = nullptr;
-    readerListener = nullptr;
+    readerListeners.clear();
     paramsInForce = nullptr;
     paramsObject = nullptr;
     previousStatus = nullptr;

@@ -264,3 +264,46 @@ TEST_F(COpendaqDeviceTest, AddStreamingConfig)
     daqAddStreamingConfig_getTypeConfig(config, &typeConfig);
     ASSERT_EQ(daq::PropertyObjectPtr::Adopt((daq::IPropertyObject*) typeConfig), configPtr.getTypeConfig());
 }
+
+TEST_F(COpendaqDeviceTest, CreateAddDeviceConfig)
+{
+    const auto instance = daq::Instance();
+    auto* rootDevice = (daqDevice*) instance.getRootDevice().getObject();
+
+    const auto info = daq::DeviceInfo("daqref://device0");
+    const daq::StringPtr prefix = "daqref";
+
+    daqAddDeviceConfig* config = nullptr;
+    ASSERT_EQ(daqDevice_createAddDeviceConfig(rootDevice, &config, (daqDeviceInfo*) info.getObject(), (daqString*) prefix.getObject()),
+              DAQ_SUCCESS);
+    const auto configPtr = daq::AddDeviceConfigPtr::Adopt((daq::IAddDeviceConfig*) config);
+    ASSERT_EQ(configPtr.getDeviceType().getId(), "daqref");
+}
+
+TEST_F(COpendaqDeviceTest, CreateAddStreamingConfigOfRootDevice)
+{
+    const auto instance = daq::Instance();
+    auto* rootDevice = (daqDevice*) instance.getRootDevice().getObject();
+
+    const daq::StringPtr connectionString = "daq.nd://host";
+
+    daqAddStreamingConfig* config = nullptr;
+    ASSERT_EQ(daqDevice_createAddStreamingConfig(rootDevice, &config, (daqString*) connectionString.getObject()), DAQ_ERR_NOT_SUPPORTED);
+    daqClearErrorInfo();
+}
+
+TEST_F(COpendaqDeviceTest, RootDeviceAddDeviceConfigIsNull)
+{
+    daqAddDeviceConfig* config = nullptr;
+    ASSERT_EQ(daqDevice_getAddDeviceConfig(dev, &config), DAQ_SUCCESS);
+    ASSERT_EQ(config, nullptr);
+}
+
+TEST_F(COpendaqDeviceTest, AvailableStreamingTypesOfRootDeviceIsEmpty)
+{
+    daqDict* types = nullptr;
+    ASSERT_EQ(daqDevice_getAvailableStreamingTypes(dev, &types), DAQ_SUCCESS);
+    ASSERT_NE(types, nullptr);
+    const auto typesPtr = daq::DictPtr<daq::IString, daq::IStreamingType>::Adopt((daq::IDict*) types);
+    ASSERT_EQ(typesPtr.getCount(), 0u);
+}

@@ -79,5 +79,26 @@ class TestAddDeviceConfig(opendaq_test.TestCase):
         self.assertEqual(config.streaming_type.id, 'streamingType')
         self.assertEqual(config.type_config.get_property_value('port'), 1234)
 
+class TestDeviceAddConfig(opendaq_test.TestCase):
+
+    def test_create_add_device_config(self):
+        instance = opendaq.Instance()
+        info = opendaq.DeviceInfoConfig('ref', 'daqref://device0')
+
+        config = instance.create_add_device_config(info, 'daqref')
+        self.assertEqual(config.device_type.id, 'daqref')
+
+    def test_create_add_streaming_config_of_root_device(self):
+        instance = opendaq.Instance()
+        with self.assertRaises(RuntimeError):
+            instance.create_add_streaming_config()
+
+    def test_root_device(self):
+        instance = opendaq.Instance()
+        device = instance.root_device
+
+        self.assertIsNone(device.add_device_config)
+        self.assertEqual(len(device.available_streaming_types), 0)
+
 if __name__ == '__main__':
     unittest.main()

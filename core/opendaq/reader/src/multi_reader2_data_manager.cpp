@@ -687,26 +687,34 @@ bool MultiReader2DataManager::disconnected(const void* key, bool subscribed)
     return wake(subscribed);
 }
 
-bool MultiReader2DataManager::addPacket(const void* key, const PacketPtr& packet, bool subscribed)
+void MultiReader2DataManager::addPackets(const void* key, const PacketPtr* packets, SizeT count)
 {
     std::scoped_lock lock(mutex);
     const auto i = slotOf(key);
     if (!i)
-        return false;
-    try
+        return;
+    for (SizeT p = 0; p < count; ++p)
     {
-        if (packet.getType() == PacketType::Event)
-            ingestEvent(*i, packet.asPtr<IEventPacket>(true));
-        else if (const auto data = packet.asPtrOrNull<IDataPacket>(true); data.assigned())
-            ingestData(*i, data);
+        try
+        {
+            if (packets[p].getType() == PacketType::Event)
+                ingestEvent(*i, packets[p].asPtr<IEventPacket>(true));
+            else if (const auto data = packets[p].asPtrOrNull<IDataPacket>(true); data.assigned())
+                ingestData(*i, data);
+        }
+        catch (const std::exception& e)
+        {
+            // A packet that cannot be ingested is lost; the gap has the next read report the loss as a resynchronization
+            if (loggerComponent.assigned())
+                LOG_W("{}: a packet could not be ingested and is dropped: {}", slots[*i].input.getLocalId().toStdString(), e.what());
+            slots[*i].queueGap();
+        }
     }
-    catch (const std::exception& e)
-    {
-        // A packet that cannot be ingested is lost; the gap has the next read report the loss as a resynchronization
-        if (loggerComponent.assigned())
-            LOG_W("{}: a packet could not be ingested and is dropped: {}", slots[*i].input.getLocalId().toStdString(), e.what());
-        slots[*i].queueGap();
-    }
+}
+
+bool MultiReader2DataManager::wakeDue(bool subscribed)
+{
+    std::scoped_lock lock(mutex);
     return wake(subscribed);
 }
 

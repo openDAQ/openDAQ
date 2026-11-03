@@ -118,7 +118,8 @@ private:
         std::shared_ptr<Port> portOf(IInputPort* port) const;
         void connected(IInputPort* port);
         void disconnected(IInputPort* port);
-        void ingest(Port& port);
+        bool ingest(Port& port);
+        void wakeAfterIngest();
         void notify(Port& port);
         void drainMarked();
         bool subscribed() const;

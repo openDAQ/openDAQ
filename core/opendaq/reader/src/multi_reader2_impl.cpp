@@ -370,17 +370,20 @@ void MultiReader2Impl::apply(IMultiReader2Params* paramsRaw, IMultiReader2Status
         if (std::find(next->begin(), next->end(), port) == next->end())
             release(*port);
     // The configuration is in effect: a port that fails to drain here is drained again on its next packet
+    bool drained = false;
     for (const auto& port : fresh)
     {
         try
         {
-            core->ingest(*port);
+            drained = core->ingest(*port) || drained;
         }
         catch (const std::exception& e)
         {
             LOG_W("A taken over port failed to drain: {}", e.what());
         }
     }
+    if (drained)
+        core->wakeAfterIngest();
 }
 
 void MultiReader2Impl::release(Port& entry)
@@ -494,19 +497,19 @@ void MultiReader2Impl::Core::disconnected(IInputPort* port)
         schedule();
 }
 
-void MultiReader2Impl::Core::ingest(Port& port)
+// Hands the port's queued packets over in batches; true when there were any, and the caller then asks for the handler once
+bool MultiReader2Impl::Core::ingest(Port& port)
 {
     std::scoped_lock lock(port.intake);
     const auto connection = port.port.getConnection();
     if (!connection.assigned())
-        return;
+        return false;
     const auto internal = connection.asPtr<IConnectionInternal>(true);
-    const bool listened = subscribed();
-    bool wake = false;
     constexpr SizeT batch = 64;
     IPacket* packets[batch];
     PacketPtr adopted[batch];
     SizeT count;
+    bool any = false;
     do
     {
         count = batch;
@@ -514,10 +517,16 @@ void MultiReader2Impl::Core::ingest(Port& port)
         // Adopted at once, so none leaks if a later step throws
         for (SizeT i = 0; i < count; ++i)
             adopted[i] = PacketPtr::Adopt(packets[i]);
-        for (SizeT i = 0; i < count; ++i)
-            wake = dataManager.addPacket(&port, adopted[i], listened) || wake;
+        if (count > 0)
+            dataManager.addPackets(&port, adopted, count);
+        any = any || count > 0;
     } while (count == batch);
-    if (wake)
+    return any;
+}
+
+void MultiReader2Impl::Core::wakeAfterIngest()
+{
+    if (dataManager.wakeDue(subscribed()))
         schedule();
 }
 
@@ -542,13 +551,14 @@ void MultiReader2Impl::Core::drainMarked()
         std::scoped_lock lock(wiringMutex);
         return wiring;
     }();
+    bool any = false;
     for (const auto& port : *current)
     {
         if (!port->dirty.exchange(false))
             continue;
         try
         {
-            ingest(*port);
+            any = ingest(*port) || any;
         }
         catch (const std::exception& e)
         {
@@ -557,6 +567,9 @@ void MultiReader2Impl::Core::drainMarked()
                 LOG_W("{}: the queued packets failed to ingest: {}", port->input.getLocalId().toStdString(), e.what());
         }
     }
+    // Once per run: a burst over many ports schedules at most one handler call
+    if (any)
+        wakeAfterIngest();
 }
 
 void MultiReader2Impl::Core::schedule()

@@ -210,8 +210,14 @@ MultiReader2Impl::MultiReader2Impl(IMultiReader2Params* params)
             [shared = std::weak_ptr<Core>(core)]
             {
                 const auto c = shared.lock();
-                if (c && c->ingestTask.run([&] { c->drainMarked(); }) && !c->submit(c->ingestWork))
+                if (!c)
+                    return;
+                bool call = false;
+                if (c->ingestTask.run([&] { call = c->drainMarked(); }) && !c->submit(c->ingestWork))
                     c->ingestTask.cancel();
+                // In this task, but after the run ended, so packets that come during the call start the next run elsewhere
+                if (call)
+                    c->work->execute();
             });
         if (params == nullptr)
             DAQ_THROW_EXCEPTION(ArgumentNullException, "The params are null");
@@ -543,8 +549,9 @@ void MultiReader2Impl::Core::notify(Port& port)
         ingestTask.cancel();
 }
 
-// The ingest task: each marked port is drained; a port that fails is drained again on its next packet
-void MultiReader2Impl::Core::drainMarked()
+// The ingest task: each marked port is drained, and a port that fails is drained again on its next packet. True when the
+// handler is to be called: once per run, so a burst over many ports costs one task and one handler call
+bool MultiReader2Impl::Core::drainMarked()
 {
     const auto current = [this]
     {
@@ -566,10 +573,12 @@ void MultiReader2Impl::Core::drainMarked()
             if (loggerComponent.assigned())
                 LOG_W("{}: the queued packets failed to ingest: {}", port->input.getLocalId().toStdString(), e.what());
         }
+        catch (...)
+        {
+            daqClearErrorInfo();
+        }
     }
-    // Once per run: a burst over many ports schedules at most one handler call
-    if (any)
-        wakeAfterIngest();
+    return any && dataManager.wakeDue(subscribed());
 }
 
 void MultiReader2Impl::Core::schedule()

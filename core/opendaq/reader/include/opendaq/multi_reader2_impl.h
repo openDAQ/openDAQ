@@ -121,7 +121,7 @@ private:
         bool ingest(Port& port);
         void wakeAfterIngest();
         void notify(Port& port);
-        void drainMarked();
+        bool drainMarked();
         bool subscribed() const;
         void schedule();
         bool submit(const WorkPtr& w);

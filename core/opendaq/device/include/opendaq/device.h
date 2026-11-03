@@ -285,6 +285,8 @@ DECLARE_OPENDAQ_INTERFACE(IDevice, IFolder)
      *     connecting to the selected device type (eg. via the native or OPC UA protocols).
      *   - "Streaming": Same as device, but used to configure each individual streaming connection established
      *     when calling `addDevice`.
+     *
+     * @deprecated Use createAddDeviceConfig instead.
      */
     virtual ErrCode INTERFACE_FUNC createDefaultAddDeviceConfig(IPropertyObject** defaultConfig) = 0;
 

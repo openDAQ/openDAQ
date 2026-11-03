@@ -524,6 +524,8 @@ ErrCode ComponentImpl<Intf, Intfs...>::getName(IString** name)
 {
     OPENDAQ_PARAM_NOT_NULL(name);
 
+    auto lock = this->getRecursiveConfigLock2();
+
     if (this->name.assigned())
         *name = this->name.addRefAndReturn();
     else
@@ -578,6 +580,8 @@ template <class Intf, class ... Intfs>
 ErrCode ComponentImpl<Intf, Intfs...>::getDescription(IString** description)
 {
     OPENDAQ_PARAM_NOT_NULL(description);
+
+    auto lock = this->getRecursiveConfigLock2();
 
     *description = this->description.addRefAndReturn();
     return OPENDAQ_SUCCESS;

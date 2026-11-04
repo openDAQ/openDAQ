@@ -44,11 +44,8 @@ protected:
         context = createContext();
         module = createModule(context);
 
-        auto config = module.getAvailableFunctionBlockTypes().get("RefFBModuleSumReader").createDefaultConfig();
-        config.setPropertyValue("ReaderNotificationMode", 1);
-
         // Create function block
-        fb = module.createFunctionBlock("RefFBModuleSumReader", nullptr, "fb", config);
+        fb = module.createFunctionBlock("RefFBModuleSumReader", nullptr, "fb");
 
         validDescriptor = DataDescriptorBuilder().setSampleType(SampleType::Float64).build();
         invalidDescriptor = DataDescriptorBuilder().setSampleType(SampleType::ComplexFloat32).build();
@@ -74,6 +71,12 @@ protected:
         }
     }
 
+
+    // The block's ports run in Scheduler mode under its reader: statuses, port removals and output follow on the scheduler
+    void flush()
+    {
+        context.getScheduler().waitAll();
+    }
 
     void sendData(SizeT sampleCount,
                   SizeT offset,
@@ -116,9 +119,11 @@ TEST_F(SumTest, Create)
 {
     const auto module = createModule(createContext());
 
+    // Nothing to read yet: a block without inputs warns
     auto fb = module.createFunctionBlock("RefFBModuleSumReader", nullptr, "id");
     ASSERT_TRUE(fb.assigned());
     ASSERT_EQ(fb.getStatusContainer().getStatus("ComponentStatus"), ComponentStatus::Warning);
+    ASSERT_EQ(fb.getStatusContainer().getStatusMessage("ComponentStatus"), "No signals connected!");
 }
 
 TEST_F(SumTest, ConnectSignal)
@@ -147,6 +152,8 @@ TEST_F(SumTest, DisconnectSignals)
     for (const auto& ip : fb.getInputPorts())
         ip.disconnect();
 
+    // Every disconnected port is removed; a block without inputs warns
+    flush();
     ASSERT_EQ(fb.getStatusContainer().getStatus("ComponentStatus"), ComponentStatus::Warning);
     ASSERT_EQ(fb.getInputPorts().getCount(), 1u);
 }
@@ -178,6 +185,7 @@ TEST_F(SumTest, InvalidSignalsRecovery)
     for (int i = static_cast<int>(fb.getInputPorts().getCount()) - 2; i > 0; i-=2)
         ip[i].disconnect();
 
+    flush();
     ASSERT_EQ(fb.getInputPorts().getCount(), 11u);
     ASSERT_EQ(fb.getStatusContainer().getStatus("ComponentStatus"), ComponentStatus::Ok);
 }
@@ -190,10 +198,10 @@ TEST_F(SumTest, SumSignals)
     auto reader = StreamReader<double>(fb.getSignals()[0]);
 
     sendData(100, 0, false, std::make_pair(0, 10));
+    flush();
 
     SizeT count = reader.getAvailableCount();
     ASSERT_EQ(count, 0u);
-
     auto status = reader.read(nullptr, &count);
     ASSERT_EQ(status.getReadStatus(), ReadStatus::Event);
 
@@ -216,15 +224,17 @@ TEST_F(SumTest, SumSignalsReconnect)
         fb.getInputPorts()[i].connect(validSignals[i]);
 
     auto reader = StreamReaderBuilder().setSkipEvents(true).setValueReadType(SampleType::Float64).setSignal(fb.getSignals()[0]).build();
-
     auto ip = fb.getInputPorts();
     for (size_t i = 0; i < 5; ++i)
         ip[i].disconnect();
+    flush();
 
     sendData(100, 0, false, std::make_pair(5, 10));
+    flush();
 
     SizeT count = reader.getAvailableCount();
     ASSERT_EQ(count, 100u);
+
     double data[100];
     auto status = reader.read(&data, &count);
     ASSERT_EQ(status.getReadStatus(), ReadStatus::Ok);
@@ -238,6 +248,7 @@ TEST_F(SumTest, SumSignalsReconnect)
         fb.getInputPorts()[i].connect(validSignals[i - 5]);
 
     sendData(100, 100, false, std::make_pair(0, 10));
+    flush();
 
     count = reader.getAvailableCount();
     ASSERT_EQ(count, 100u);
@@ -260,23 +271,32 @@ TEST_F(SumTest, SumSignalsInvalidRecovery)
 
     auto reader = StreamReaderBuilder().setSkipEvents(true).setValueReadType(SampleType::Float64).setSignal(fb.getSignals()[0]).build();
 
+    // The invalid inputs are set aside, and the sum goes on without them
     sendData(100, 0, true, std::make_pair(0, 10));
-
+    flush();
     auto count = reader.getAvailableCount();
-    ASSERT_EQ(count, 0u);
+    ASSERT_EQ(count, 100u);
+    double data[100];
+    auto status = reader.read(&data, &count);
+    ASSERT_EQ(status.getReadStatus(), ReadStatus::Ok);
+    for (auto val : data)
+    {
+        ASSERT_DOUBLE_EQ(val, 10);
+    }
 
     // Disconnect invalid signals
     auto ip = fb.getInputPorts();
     for (int i = static_cast<int>(fb.getInputPorts().getCount()) - 2; i > 0; i-=2)
         ip[i].disconnect();
+    flush();
 
     sendData(100, 100, false, std::make_pair(0, 10));
+    flush();
 
     count = reader.getAvailableCount();
     ASSERT_EQ(count, 100u);
 
-    double data[100];
-    auto status = reader.read(&data, &count);
+    status = reader.read(&data, &count);
     ASSERT_EQ(status.getReadStatus(), ReadStatus::Ok);
 
     for (auto val : data)
@@ -305,26 +325,154 @@ TEST_F(SumTest, IncompatibleDomainsReconnect)
 
     auto incompatibleDomainSignal = SignalWithDescriptor(context, incompatibleDomainDescriptor, nullptr, "invalidDomainSig", nullptr);
     auto incompatibleSignal = SignalWithDescriptor(context, validDescriptor, nullptr, "invalidSig", nullptr);
-
     incompatibleSignal.setDomainSignal(incompatibleDomainSignal);
 
     fb.getInputPorts()[0].connect(validSignals[0]);
     fb.getInputPorts()[1].connect(incompatibleSignal);
 
     auto reader = StreamReaderBuilder().setSkipEvents(true).setValueReadType(SampleType::Float64).setSignal(fb.getSignals()[0]).build();
+
+    // The input of another rate is set aside, and the sum goes on with the first input alone
     sendData(100,
              0,
              false,
              std::make_pair(0, 1),
              List<ISignalConfig>(incompatibleSignal),
              List<ISignalConfig>(incompatibleDomainSignal));
+    flush();
 
     auto count = reader.getAvailableCount();
-    ASSERT_EQ(count, 0u);
+    ASSERT_EQ(count, 100u);
+    double data[100];
+    reader.read(&data, &count);
+    ASSERT_EQ(count, 100u);
+    for (const double val : data)
+        ASSERT_DOUBLE_EQ(val, 1);
 
     fb.getInputPorts()[1].connect(validSignals[1]);
+    flush();
     sendData(100, 100, false, std::make_pair(0, 2));
+    flush();
 
     count = reader.getAvailableCount();
     ASSERT_EQ(count, 100u);
+    reader.read(&data, &count);
+    ASSERT_EQ(count, 100u);
+    for (const double val : data)
+        ASSERT_DOUBLE_EQ(val, 2);
+}
+
+// The reader no longer asks about an input it cannot convert, so its old verdict must not keep the block re-judging
+TEST_F(SumTest, UnconvertibleInputDoesNotKeepTheBlockRejudging)
+{
+    const auto volts = DataDescriptorBuilder().setSampleType(SampleType::Float64).setUnit(Unit("V")).build();
+    validSignals[0].setDescriptor(volts);
+    validSignals[1].setDescriptor(volts);
+    fb.getInputPorts()[0].connect(validSignals[0]);
+    fb.getInputPorts()[1].connect(validSignals[1]);
+    sendData(100, 0, false, std::make_pair(0, 2));
+    flush();
+
+    validSignals[1].setDescriptor(DataDescriptorBuilder().setSampleType(SampleType::String).build());
+    flush();
+    validSignals[0].setDescriptor(DataDescriptorBuilder().setSampleType(SampleType::Float64).setUnit(Unit("mV")).build());
+    flush();
+    ASSERT_EQ(fb.getStatusContainer().getStatus("ComponentStatus"), ComponentStatus::Warning);
+
+    auto reader = StreamReaderBuilder().setSkipEvents(true).setValueReadType(SampleType::Float64).setSignal(fb.getSignals()[0]).build();
+    sendData(100, 100, false, std::make_pair(0, 1));
+    flush();
+
+    SizeT count = reader.getAvailableCount();
+    ASSERT_EQ(count, 100u);
+    double data[100];
+    reader.read(&data, &count);
+    ASSERT_DOUBLE_EQ(data[0], 1);
+}
+
+// The main input turns unconvertible, so the next input becomes the main input and keeps the sum running in its unit,
+// also after that unit changes
+TEST_F(SumTest, ReferenceUnitFollowsTheMainInput)
+{
+    const auto volts = DataDescriptorBuilder().setSampleType(SampleType::Float64).setUnit(Unit("V")).build();
+    validSignals[0].setDescriptor(volts);
+    validSignals[1].setDescriptor(volts);
+    fb.getInputPorts()[0].connect(validSignals[0]);
+    fb.getInputPorts()[1].connect(validSignals[1]);
+    sendData(100, 0, false, std::make_pair(0, 2));
+    flush();
+
+    validSignals[0].setDescriptor(DataDescriptorBuilder().setSampleType(SampleType::String).build());
+    flush();
+    validSignals[1].setDescriptor(DataDescriptorBuilder().setSampleType(SampleType::Float64).setUnit(Unit("mV")).build());
+    flush();
+    ASSERT_EQ(fb.getStatusContainer().getStatus("ComponentStatus"), ComponentStatus::Warning);
+
+    auto reader = StreamReaderBuilder().setSkipEvents(true).setValueReadType(SampleType::Float64).setSignal(fb.getSignals()[0]).build();
+    sendData(100, 100, false, std::make_pair(1, 2));
+    flush();
+
+    SizeT count = reader.getAvailableCount();
+    ASSERT_EQ(count, 100u);
+    double data[100];
+    reader.read(&data, &count);
+    ASSERT_DOUBLE_EQ(data[0], 1);
+}
+
+// Every input changes its unit: the block drops the old unit while no input is healthy and sums in the new one
+TEST_F(SumTest, EveryInputChangingItsUnitKeepsTheSumRunning)
+{
+    const auto volts = DataDescriptorBuilder().setSampleType(SampleType::Float64).setUnit(Unit("V")).build();
+    const auto millivolts = DataDescriptorBuilder().setSampleType(SampleType::Float64).setUnit(Unit("mV")).build();
+    validSignals[0].setDescriptor(volts);
+    validSignals[1].setDescriptor(volts);
+    fb.getInputPorts()[0].connect(validSignals[0]);
+    fb.getInputPorts()[1].connect(validSignals[1]);
+    sendData(100, 0, false, std::make_pair(0, 2));
+    flush();
+
+    validSignals[0].setDescriptor(millivolts);
+    validSignals[1].setDescriptor(millivolts);
+    flush();
+    ASSERT_EQ(fb.getStatusContainer().getStatus("ComponentStatus"), ComponentStatus::Ok);
+    ASSERT_EQ(fb.getSignals()[0].getDescriptor().getUnit(), Unit("mV"));
+
+    auto reader = StreamReaderBuilder().setSkipEvents(true).setValueReadType(SampleType::Float64).setSignal(fb.getSignals()[0]).build();
+    sendData(100, 100, false, std::make_pair(0, 2));
+    flush();
+
+    SizeT count = reader.getAvailableCount();
+    ASSERT_EQ(count, 100u);
+    double data[100];
+    reader.read(&data, &count);
+    ASSERT_DOUBLE_EQ(data[0], 2);
+}
+
+// A port connected again before the block read its disconnect stays: the reader reports the new signal only
+TEST_F(SumTest, PortConnectedAgainBeforeTheBlockReadsStays)
+{
+    fb.getInputPorts()[0].connect(validSignals[0]);
+    fb.getInputPorts()[1].connect(validSignals[1]);
+    flush();
+
+    // The block reads under its lock, so both changes wait for the same read
+    const auto port = fb.getInputPorts()[0];
+    {
+        const auto guard = fb.asPtr<IPropertyObjectInternal>(true).getLockGuard();
+        port.disconnect();
+        port.connect(validSignals[2]);
+    }
+    flush();
+    ASSERT_EQ(fb.getInputPorts().getCount(), 3u);
+    ASSERT_EQ(port.getSignal(), validSignals[2]);
+}
+
+// The sum has no descriptor until an input contributes, as its domain signal has none
+TEST_F(SumTest, NoOutputDescriptorBeforeAnInput)
+{
+    ASSERT_FALSE(fb.getSignals()[0].getDescriptor().assigned());
+
+    fb.getInputPorts()[0].connect(validSignals[0]);
+    flush();
+    ASSERT_TRUE(fb.getSignals()[0].getDescriptor().assigned());
 }

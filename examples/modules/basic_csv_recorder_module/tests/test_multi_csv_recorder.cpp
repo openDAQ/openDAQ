@@ -50,11 +50,8 @@ protected:
         context = createContext();
         module = createModule(context);
 
-        auto config = module.getAvailableFunctionBlockTypes().get("MultiCsvRecorder").createDefaultConfig();
-        config.setPropertyValue("ReaderNotificationMode", static_cast<Int>(PacketReadyNotification::SameThread));
-
         // Create function block
-        fb = module.createFunctionBlock("MultiCsvRecorder", nullptr, "fb", config);
+        fb = module.createFunctionBlock("MultiCsvRecorder", nullptr, "fb");
 
         outputFolder = fs::path(testing::TempDir()) / "test_output";
 
@@ -88,6 +85,12 @@ protected:
             validSignals[i].setDomainSignal(timeSignal);
             invalidSignals[i].setDomainSignal(timeSignal);
         }
+    }
+
+    // The recorder's ports run in Scheduler mode under its reader: statuses, port removals and writes follow on the scheduler
+    void flush()
+    {
+        context.getScheduler().waitAll();
     }
 
     void sendData(SizeT sampleCount, SizeT offset, bool sendInvalid, std::pair<size_t, size_t> signalRange)
@@ -145,6 +148,7 @@ TEST_F(MultiCsvTest, DisconnectSignals)
     for (const auto& ip : fb.getInputPorts())
         ip.disconnect();
 
+    flush();
     EXPECT_EQ(fb.getStatusContainer().getStatus("ComponentStatus"), ComponentStatus::Warning);
     EXPECT_EQ(fb.getInputPorts().getCount(), 1u);
 }
@@ -162,6 +166,7 @@ TEST_F(MultiCsvTest, WriteSamples)
     fb.asPtr<IRecorder>(true).startRecording();
 
     sendData(100, 817, false, std::make_pair(0, 10));
+    flush();
 
     fb.asPtr<IRecorder>(true).stopRecording();
 
@@ -196,6 +201,7 @@ TEST_F(MultiCsvTest, WriteSamplesWithDomain)
     fb.asPtr<IRecorder>(true).startRecording();
 
     sendData(100, 817, false, std::make_pair(0, 10));
+    flush();
 
     fb.asPtr<IRecorder>(true).stopRecording();
 
@@ -268,7 +274,7 @@ TEST_F(MultiCsvTest, DetectDescriptorChange)
     fb.asPtr<IRecorder>(true).startRecording();
 
     sendData(10, 817, false, std::make_pair(0, 10));
-    std::this_thread::sleep_for(std::chrono::milliseconds(50));
+    flush();
 
     ReferenceDomainInfoPtr rdInfo =
         ReferenceDomainInfoBuilder().setReferenceDomainOffset(0).setReferenceTimeProtocol(TimeProtocol::Utc).build();
@@ -283,8 +289,10 @@ TEST_F(MultiCsvTest, DetectDescriptorChange)
                                               .build();
 
     timeSignal.setDescriptor(changedDescriptor);
+    flush();  // the reader drops data that arrives before the read that applies a main domain change
 
     sendData(10, 828, false, std::make_pair(0, 10));
+    flush();
 
     fb.asPtr<IRecorder>(true).stopRecording();
 
@@ -332,4 +340,67 @@ TEST_F(MultiCsvTest, DetectDescriptorChange)
     std::getline(readIn2, line);
     reference = "832,0.87,1.87,2.87,3.87,4.87,5.87,6.87,7.87,8.87,9.87";
     EXPECT_EQ(line, reference);
+}
+
+// An Error stops the recording; a recovery with the same header resumes it
+TEST_F(MultiCsvTest, RecoveryWithTheSameHeaderResumesRecording)
+{
+    EXPECT_NO_THROW(fs::remove_all(outputFolder));
+    fb.getInputPorts()[0].connect(validSignals[0]);
+    const auto recorder = fb.asPtr<IRecorder>(true);
+    recorder.startRecording();
+    sendData(10, 0, false, std::make_pair(0, 1));
+    flush();
+
+    validSignals[0].setDescriptor(DataDescriptorBuilder().setSampleType(SampleType::String).build());
+    flush();
+    EXPECT_EQ(fb.getStatusContainer().getStatus("ComponentStatus"), ComponentStatus::Error);
+    EXPECT_FALSE(recorder.getIsRecording());
+
+    validSignals[0].setDescriptor(validDescriptor);
+    flush();
+    EXPECT_EQ(fb.getStatusContainer().getStatus("ComponentStatus"), ComponentStatus::Ok);
+    EXPECT_TRUE(recorder.getIsRecording());
+    recorder.stopRecording();
+}
+
+// A recorder left unwired is Warning, never Error, also on the way to removing the disconnected port
+TEST_F(MultiCsvTest, DisconnectingTheLastInputNeverReportsError)
+{
+    fb.getInputPorts()[0].connect(validSignals[0]);
+    fb.asPtr<IPropertyObjectInternal>(true).enableCoreEventTrigger();
+    const auto counts = std::make_shared<std::pair<int, int>>();  // status changes, Error among them
+    context.getOnCoreEvent() += [counts, id = fb.getGlobalId()](const ComponentPtr& component, const CoreEventArgsPtr& args)
+    {
+        if (component.getGlobalId() != id || args.getEventId() != static_cast<Int>(CoreEventId::StatusChanged))
+            return;
+        ++counts->first;
+        if (args.getParameters().get("ComponentStatus") == "Error")
+            ++counts->second;
+    };
+
+    fb.getInputPorts()[0].disconnect();
+    flush();
+    EXPECT_GT(counts->first, 0);
+    EXPECT_EQ(counts->second, 0);
+    EXPECT_EQ(fb.getStatusContainer().getStatus("ComponentStatus"), ComponentStatus::Warning);
+}
+
+// A port connected again before the recorder read its disconnect stays: the reader reports the new signal only
+TEST_F(MultiCsvTest, PortConnectedAgainBeforeTheRecorderReadsStays)
+{
+    fb.getInputPorts()[0].connect(validSignals[0]);
+    fb.getInputPorts()[1].connect(validSignals[1]);
+    flush();
+
+    // The recorder reads under its lock, so both changes wait for the same read
+    const auto port = fb.getInputPorts()[0];
+    {
+        const auto guard = fb.asPtr<IPropertyObjectInternal>(true).getLockGuard();
+        port.disconnect();
+        port.connect(validSignals[2]);
+    }
+    flush();
+    EXPECT_EQ(fb.getInputPorts().getCount(), 3u);
+    EXPECT_EQ(port.getSignal(), validSignals[2]);
 }

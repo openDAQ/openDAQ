@@ -16,6 +16,8 @@ set(SRC_Include common.h
                 fft_fb_impl.h
                 power_reader_fb_impl.h
                 sum_reader_fb_impl.h
+                block_statistics_reader_fb_impl.h
+                bridge_reader_fb_impl.h
                 struct_decoder_fb_impl.h
                 time_delay_fb_impl.h
 )
@@ -30,6 +32,8 @@ set(SRC_Srcs module_dll.cpp
              fft_fb_impl.cpp
              power_reader_fb_impl.cpp
              sum_reader_fb_impl.cpp
+             block_statistics_reader_fb_impl.cpp
+             bridge_reader_fb_impl.cpp
              struct_decoder_fb_impl.cpp
              time_delay_fb_impl.cpp
 )
@@ -122,6 +126,7 @@ target_link_libraries(${LIB_NAME}
         ${OPENDAQ_SDK_TARGET_NAMESPACE}::opendaq
     PRIVATE
         kissfft::kissfft
+        reader_fb_base
 )
 
 if (DAQMODULES_REF_FB_MODULE_ENABLE_RENDERER)

@@ -21,6 +21,7 @@
 #include <opendaq/streaming_ptr.h>
 #include <opendaq/streaming_private.h>
 #include <opendaq/streaming_source_manager.h>
+#include <opendaq/streaming_type_utils.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
@@ -390,34 +391,18 @@ StreamingPtr MirroredDeviceBase<Interfaces...>::onAddStreaming(const StringPtr& 
 template <typename... Interfaces>
 DictPtr<IString, IStreamingType> MirroredDeviceBase<Interfaces...>::onGetAvailableStreamingTypes()
 {
-    auto streamingTypes = Dict<IString, IStreamingType>();
-
     DeviceInfoPtr info;
     checkErrorInfo(this->getInfo(&info));
     if (!info.assigned())
-        return streamingTypes;
+        return Dict<IString, IStreamingType>();
 
-    std::set<std::string> streamingPrefixes;
-    for (const auto& capability : info.getServerCapabilities())
-    {
-        const auto protocolType = capability.getProtocolType();
-        const StringPtr prefix = capability.getPrefix();
-        if ((protocolType == ProtocolType::Streaming || protocolType == ProtocolType::ConfigurationAndStreaming) && prefix.assigned())
-            streamingPrefixes.insert(prefix.toStdString());
-    }
-
-    if (streamingPrefixes.empty())
-        return streamingTypes;
+    const auto moduleManager = this->context.getModuleManager();
+    if (!moduleManager.assigned())
+        return Dict<IString, IStreamingType>();
 
     auto lock = this->getRecursiveConfigLock2();
-    const ModuleManagerUtilsPtr managerUtils = this->context.getModuleManager().template asPtr<IModuleManagerUtils>();
-    for (const auto& [id, type] : managerUtils.getAvailableStreamingTypes())
-    {
-        if (streamingPrefixes.count(type.getConnectionStringPrefix().toStdString()))
-            streamingTypes.set(id, type);
-    }
-
-    return streamingTypes;
+    const ModuleManagerUtilsPtr managerUtils = moduleManager.template asPtr<IModuleManagerUtils>();
+    return getAdvertisedStreamingTypes(info.getServerCapabilities(), managerUtils.getAvailableStreamingTypes());
 }
 
 template <typename... Interfaces>

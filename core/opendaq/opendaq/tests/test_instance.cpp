@@ -283,15 +283,12 @@ TEST_F(InstanceTest, AvailableStreamingTypesOfMirroredDevice)
 
     const auto info = DeviceInfo("daqmirrored://device");
     const auto infoInternal = info.asPtr<IDeviceInfoInternal>();
-    infoInternal.addServerCapability(ServerCapability("a", "a", ProtocolType::Streaming).setPrefix("daqmocka"));
     infoInternal.addServerCapability(ServerCapability("b", "b", ProtocolType::ConfigurationAndStreaming).setPrefix("daqmockb"));
+    infoInternal.addServerCapability(ServerCapability("a", "a", ProtocolType::Streaming).setPrefix("daqmocka"));
     infoInternal.addServerCapability(ServerCapability("c", "c", ProtocolType::Streaming).setPrefix("daqnotloaded"));
     const auto device = createWithImplementation<IDevice, MockMirroredDeviceImpl>(instance.getContext(), info);
 
-    const auto streamingTypes = device.getAvailableStreamingTypes();
-    ASSERT_EQ(streamingTypes.getCount(), 2u);
-    ASSERT_TRUE(streamingTypes.hasKey("mock_streaming_a"));
-    ASSERT_TRUE(streamingTypes.hasKey("mock_streaming_b"));
+    ASSERT_EQ(device.getAvailableStreamingTypes().getKeyList(), List<IString>("mock_streaming_b", "mock_streaming_a"));
 
     const auto configInfo = DeviceInfo("daqmirrored://device");
     configInfo.asPtr<IDeviceInfoInternal>().addServerCapability(

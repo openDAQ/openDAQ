@@ -415,6 +415,7 @@ DECLARE_OPENDAQ_INTERFACE(IDevice, IFolder)
      *
      * Lists the streaming types that can be established to this device from the local instance.
      * A type is listed when the local instance loads it and the device advertises a streaming capability with its prefix.
+     * The types are in the order of the device's server capabilities.
      * The dictionary is empty for devices that are not mirrored.
      */
     virtual ErrCode INTERFACE_FUNC getAvailableStreamingTypes(IDict** streamingTypes) = 0;

@@ -6,6 +6,7 @@
 #include <opendaq/custom_log.h>
 #include <opendaq/device_domain_factory.h>
 #include <opendaq/device_info_factory.h>
+#include <opendaq/component_type_builder_factory.h>
 #include <opendaq/device_type_factory.h>
 #include <opendaq/log_file_info_factory.h>
 #include <opendaq/packet_factory.h>
@@ -16,6 +17,7 @@
 #include <chrono>
 #include <fstream>
 #include <iomanip>
+#include <map>
 #include <sstream>
 #include <utility>
 #include <opendaq/thread_name.h>
@@ -32,7 +34,13 @@ BEGIN_NAMESPACE_REF_DEVICE_MODULE
 
 StringPtr ToIso8601(const std::chrono::system_clock::time_point& timePoint);
 
+static const std::map<DeviceKind, std::string> ConnectionStringPrefixes = {
+    {DeviceKind::Adapter, "daqref"},
+    {DeviceKind::Root, "daqref.root"},
+};
+
 RefDeviceImpl::RefDeviceImpl(const ModuleInfoPtr& moduleInfo,
+                             DeviceKind kind,
                              size_t id,
                              const PropertyObjectPtr& config,
                              const ContextPtr& ctx,
@@ -46,7 +54,7 @@ RefDeviceImpl::RefDeviceImpl(const ModuleInfoPtr& moduleInfo,
     , microSecondsFromEpochToDeviceStart(0)
     , acqLoopTime(0)
     , stopAcq(false)
-    , moduleInfo(moduleInfo)
+    , type(CreateType(moduleInfo, kind))
     , logger(ctx.getLogger())
     , loggerComponent( this->logger.assigned()
                           ? this->logger.getOrAddComponent(REF_MODULE_NAME)
@@ -95,15 +103,15 @@ RefDeviceImpl::~RefDeviceImpl()
     acqThread.join();
 }
 
-DeviceInfoPtr RefDeviceImpl::CreateDeviceInfo(const ModuleInfoPtr& moduleInfo, size_t id, const StringPtr& serialNumber)
+DeviceInfoPtr RefDeviceImpl::CreateDeviceInfo(const DeviceTypePtr& type, size_t id, const StringPtr& serialNumber)
 {
     auto devInfo = DeviceInfoWithChanegableFields({"userName", "location"});
     devInfo.setName(fmt::format("Device {}", id));
-    devInfo.setConnectionString(fmt::format("daqref://device{}", id));
+    devInfo.setConnectionString(fmt::format("{}://device{}", type.getConnectionStringPrefix(), id));
     devInfo.setManufacturer("openDAQ");
     devInfo.setModel("Reference device");
     devInfo.setSerialNumber(serialNumber.assigned() && serialNumber.getLength() != 0 ? serialNumber : String(fmt::format("DevSer{}", id)));
-    devInfo.setDeviceType(CreateType(moduleInfo));
+    devInfo.setDeviceType(type);
 
     std::string currentTime = ToIso8601(std::chrono::system_clock::now());
     devInfo.addProperty(StringProperty("SetupDate", currentTime));
@@ -111,7 +119,12 @@ DeviceInfoPtr RefDeviceImpl::CreateDeviceInfo(const ModuleInfoPtr& moduleInfo, s
     return devInfo;
 }
 
-DeviceTypePtr RefDeviceImpl::CreateType(const ModuleInfoPtr& moduleInfo)
+DeviceInfoPtr RefDeviceImpl::CreateDeviceInfo(const ModuleInfoPtr& moduleInfo, DeviceKind kind, size_t id, const StringPtr& serialNumber)
+{
+    return CreateDeviceInfo(CreateType(moduleInfo, kind), id, serialNumber);
+}
+
+static PropertyObjectPtr CreateDefaultConfig()
 {
     const auto defaultConfig = PropertyObject();
     defaultConfig.addProperty(IntProperty("NumberOfChannels", 2));
@@ -123,19 +136,52 @@ DeviceTypePtr RefDeviceImpl::CreateType(const ModuleInfoPtr& moduleInfo)
     defaultConfig.addProperty(StringProperty("Name", ""));
     defaultConfig.addProperty(StringProperty("LocalId", ""));
     defaultConfig.addProperty(BoolProperty("UsePacketBuffer", False));
+    return defaultConfig;
+}
 
-    auto deviceType = DeviceType("daqref",
-                                 "Reference device",
-                                 "Reference device",
-                                 "daqref",
-                                 defaultConfig);
+DeviceTypePtr RefDeviceImpl::CreateType(const ModuleInfoPtr& moduleInfo, DeviceKind kind)
+{
+    auto builder = DeviceTypeBuilder().setDeviceKind(kind).setDefaultConfig(CreateDefaultConfig());
+    switch (kind)
+    {
+        case DeviceKind::Adapter:
+            builder.setId("daqref").setName("Reference device").setDescription("Reference device");
+            break;
+        case DeviceKind::Root:
+            builder.setId("daqref_root").setName("Reference root device").setDescription("Reference device, set as the root device");
+            break;
+        default:
+            DAQ_THROW_EXCEPTION(InvalidParameterException, "Reference device has no type of the given kind");
+    }
+    builder.setConnectionStringPrefix(ConnectionStringPrefixes.at(kind));
+
+    auto deviceType = builder.build();
     checkErrorInfo(deviceType.asPtr<IComponentTypePrivate>(true)->setModuleInfo(moduleInfo));
     return deviceType;
 }
 
+std::vector<DeviceKind> RefDeviceImpl::Kinds()
+{
+    std::vector<DeviceKind> kinds;
+    for (const auto& [kind, _] : ConnectionStringPrefixes)
+        kinds.push_back(kind);
+    return kinds;
+}
+
+DeviceKind RefDeviceImpl::KindFromPrefix(const std::string& connectionString)
+{
+    for (const auto& [kind, prefix] : ConnectionStringPrefixes)
+    {
+        if (connectionString.find(prefix + "://") == 0)
+            return kind;
+    }
+
+    DAQ_THROW_EXCEPTION(InvalidParameterException, "Invalid connection string \"{}\", no prefix", connectionString);
+}
+
 DeviceInfoPtr RefDeviceImpl::onGetInfo()
 {
-    return RefDeviceImpl::CreateDeviceInfo(moduleInfo, id, serialNumber);
+    return RefDeviceImpl::CreateDeviceInfo(type, id, serialNumber);
 }
 
 uint64_t RefDeviceImpl::onGetTicksSinceOrigin()

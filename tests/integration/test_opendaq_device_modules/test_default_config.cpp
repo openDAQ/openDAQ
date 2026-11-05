@@ -109,9 +109,9 @@ TEST_F(ModulesDefaultConfigTest, NativeStreaming)
     const PropertyObjectPtr nativeDeviceConfig = deviceConfig.getPropertyValue("OpenDAQNativeStreaming");
     ASSERT_TRUE(nativeDeviceConfig.hasProperty("Port"));
     ASSERT_TRUE(nativeDeviceConfig.hasProperty("TransportLayerConfig"));
-    ASSERT_FALSE(nativeDeviceConfig.hasProperty("ProtocolVersion"));
-    ASSERT_FALSE(nativeDeviceConfig.hasProperty("ConfigProtocolRequestTimeout"));
-    ASSERT_FALSE(nativeDeviceConfig.hasProperty("RestoreClientConfigOnReconnect"));
+    ASSERT_TRUE(nativeDeviceConfig.hasProperty("ProtocolVersion"));
+    ASSERT_TRUE(nativeDeviceConfig.hasProperty("ConfigProtocolRequestTimeout"));
+    ASSERT_TRUE(nativeDeviceConfig.hasProperty("RestoreClientConfigOnReconnect"));
 }
 
 TEST_F(ModulesDefaultConfigTest, NativeStreamingDevice)
@@ -432,7 +432,7 @@ TEST_F(ModulesDefaultConfigTest, SmartConnectWithIpVerNative)
     refDevConfig.addProperty(StringProperty("SerialNumber", "sim01_native"));
 
     addRefDeviceModule(serverInstance);
-    serverInstance.setRootDevice("daqref://device1", refDevConfig);
+    serverInstance.setRootDevice("daqref.root://device1", refDevConfig);
 
     addLtServerModule(serverInstance);
     serverInstance.addServer("OpenDAQLTStreaming", nullptr);
@@ -499,7 +499,7 @@ TEST_F(ModulesDefaultConfigTest, SmartConnectWithIpVerOpcUa)
     refDevConfig.addProperty(StringProperty("SerialNumber", "sim01_opcua"));
 
     addRefDeviceModule(serverInstance);
-    serverInstance.setRootDevice("daqref://device1", refDevConfig);
+    serverInstance.setRootDevice("daqref.root://device1", refDevConfig);
 
     addLtServerModule(serverInstance);
     serverInstance.addServer("OpenDAQLTStreaming", nullptr);
@@ -568,7 +568,7 @@ TEST_F(ModulesDefaultConfigTest, SmartConnectWithIpVerLt)
     refDevConfig.addProperty(StringProperty("SerialNumber", "sim01_lt"));
 
     addRefDeviceModule(serverInstance);
-    serverInstance.setRootDevice("daqref://device1", refDevConfig);
+    serverInstance.setRootDevice("daqref.root://device1", refDevConfig);
 
     addLtServerModule(serverInstance);
     serverInstance.addServer("OpenDAQLTStreaming", nullptr);

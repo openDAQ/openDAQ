@@ -459,7 +459,7 @@ public class OpenDaqHowToGuidesTests : OpenDAQTestsBase
         Instance instance = OpenDAQFactory.Instance(MODULE_PATH);
 
         // Add simulated device
-        instance.SetRootDevice("daqref://device1");
+        instance.SetRootDevice("daqref.root://device1");
 
         // Creates and registers a Server capability with the ID `OpenDAQLTStreaming` and the default port number 7414
         instance.AddServer("OpenDAQLTStreaming", null);

@@ -32,14 +32,14 @@ ListPtr<IDeviceInfo> RefDeviceModule::onGetAvailableDevices()
 
     if (serialNumber.assigned())
     {
-        auto info = RefDeviceImpl::CreateDeviceInfo(moduleInfo, 0, serialNumber);
+        auto info = RefDeviceImpl::CreateDeviceInfo(moduleInfo, DeviceKind::Adapter, 0, serialNumber);
         availableDevices.pushBack(info);
     }
     else
     {
         for (size_t i = 0; i < 2; i++)
         {
-            auto info = RefDeviceImpl::CreateDeviceInfo(moduleInfo, i);
+            auto info = RefDeviceImpl::CreateDeviceInfo(moduleInfo, DeviceKind::Adapter, i);
             availableDevices.pushBack(info);
         }
     }
@@ -51,8 +51,11 @@ DictPtr<IString, IDeviceType> RefDeviceModule::onGetAvailableDeviceTypes()
 {
     auto result = Dict<IString, IDeviceType>();
 
-    auto deviceType = RefDeviceImpl::CreateType(moduleInfo);
-    result.set(deviceType.getId(), deviceType);
+    for (const auto kind : RefDeviceImpl::Kinds())
+    {
+        auto deviceType = RefDeviceImpl::CreateType(moduleInfo, kind);
+        result.set(deviceType.getId(), deviceType);
+    }
 
     return result;
 }
@@ -102,19 +105,20 @@ DevicePtr RefDeviceModule::onCreateDevice(const StringPtr& connectionString,
     if (!localId.assigned())
         localId = fmt::format("RefDev{}", id);
 
-    auto devicePtr = createWithImplementation<IDevice, RefDeviceImpl>(moduleInfo, id, config, context, parent, localId, name);
+    const auto kind = RefDeviceImpl::KindFromPrefix(connectionString);
+    auto devicePtr = createWithImplementation<IDevice, RefDeviceImpl>(moduleInfo, kind, id, config, context, parent, localId, name);
     devices[id] = devicePtr;
     return devicePtr;
 }
 
 size_t RefDeviceModule::getIdFromConnectionString(const std::string& connectionString) const
 {
-    std::string prefixWithDeviceStr = "daqref://device";
-    auto found = connectionString.find(prefixWithDeviceStr);
-    if (found != 0)
-        DAQ_THROW_EXCEPTION(InvalidParameterException, "Invalid connection string \"{}\", no prefix", connectionString);
+    const std::string deviceStr = "://device";
+    auto found = connectionString.find(deviceStr);
+    if (found == std::string::npos)
+        DAQ_THROW_EXCEPTION(InvalidParameterException, "Invalid connection string \"{}\", no device", connectionString);
 
-    auto idStr = connectionString.substr(prefixWithDeviceStr.size(), std::string::npos);
+    auto idStr = connectionString.substr(found + deviceStr.size(), std::string::npos);
     size_t id;
     try
     {

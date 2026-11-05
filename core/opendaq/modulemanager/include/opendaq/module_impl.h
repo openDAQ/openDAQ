@@ -64,6 +64,7 @@ public:
      * @brief Returns a list of known devices info.
      * The implementation can start discovery in background and only return the results in this function.
      * @param[out] availableDevices The list of known devices information.
+     * @retval OPENDAQ_ERR_INVALIDSTATE when the list contains a device whose device type is of Root kind.
      */
     ErrCode INTERFACE_FUNC getAvailableDevices(IList** availableDevices) override
     {
@@ -72,6 +73,15 @@ public:
         ListPtr<IDeviceInfo> availableDevicesPtr;
         const ErrCode errCode = wrapHandlerReturn(this, &Module::onGetAvailableDevices, availableDevicesPtr);
         OPENDAQ_RETURN_IF_FAILED(errCode);
+
+        for (const auto& deviceInfo : availableDevicesPtr)
+        {
+            const auto deviceType = deviceInfo.getDeviceType();
+            if (deviceType.assigned() && deviceType.getDeviceKind() == DeviceKind::Root)
+                return DAQ_MAKE_ERROR_INFO(
+                    OPENDAQ_ERR_INVALIDSTATE,
+                    fmt::format(R"(Device "{}" is of Root kind and can't be listed as available)", deviceInfo.getConnectionString()));
+        }
 
         *availableDevices = availableDevicesPtr.detach();
         return errCode;

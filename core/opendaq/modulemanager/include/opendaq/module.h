@@ -60,6 +60,8 @@ DECLARE_OPENDAQ_INTERFACE(IModule, IBaseObject)
      * @brief Returns a list of known devices info.
      * The implementation can start discovery in background and only return the results in this function.
      * @param[out] availableDevices The list of known devices information.
+     *
+     * The list must not contain devices of Root kind, as they can't be added.
      */
     // [elementType(availableDevices, IDeviceInfo)]
     virtual ErrCode INTERFACE_FUNC getAvailableDevices(IList** availableDevices) = 0;

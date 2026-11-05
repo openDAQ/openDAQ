@@ -25,7 +25,9 @@
 #include <vector>
 #include <opendaq/mirrored_device_config_ptr.h>
 #include <opendaq/streaming_ptr.h>
+#include <functional>
 #include <map>
+#include <mutex>
 #include <thread>
 #include <boost/asio/executor_work_guard.hpp>
 #include <boost/asio/io_context.hpp>
@@ -104,6 +106,11 @@ private:
     
     static void CopyCommonGeneralPropValues(PropertyObjectPtr& addDeviceConfig);
     static bool IsDefaultAddDeviceConfig(const PropertyObjectPtr& config);
+
+    // Checks every streaming type of the module that links to a device type: the device type must be one of the
+    // same module's device types. Returns a description of the first violation, or an empty string if the module passes.
+    static std::string CheckLinkedStreamingTypes(const ModulePtr& module);
+    void logUnspecifiedDeviceKinds(const ModulePtr& module) const;
 
     static ServerCapabilityPtr MergeDiscoveryAndDeviceCapability(const ServerCapabilityPtr& discoveryCap, const ServerCapabilityPtr& deviceCap);
     void mergeDiscoveryAndDeviceCapabilities(const DevicePtr& device, const DeviceInfoPtr& discoveredDeviceInfo) const;

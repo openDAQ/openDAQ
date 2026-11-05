@@ -17,12 +17,12 @@
 #pragma once
 #include <coreobjects/property_object.h>
 #include <opendaq/component_type.h>
+#include <opendaq/device_type.h>
 #include <coretypes/stringobject.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
 struct IAuthenticationMethod;
-struct IDeviceType;
 
 /*!
  * @ingroup objects_utility
@@ -148,6 +148,7 @@ DECLARE_OPENDAQ_INTERFACE(IComponentTypeBuilder, IBaseObject)
      * @param[out] prefix The connection string prefix.
      *
      * The prefix is always found at the start of the connection string, before the "://" delimiter.
+     * Applies to the Device and Streaming sorts only; other sorts ignore it.
      */
     virtual ErrCode INTERFACE_FUNC setConnectionStringPrefix(IString* prefix) = 0;
 
@@ -183,6 +184,24 @@ DECLARE_OPENDAQ_INTERFACE(IComponentTypeBuilder, IBaseObject)
      * For example: Port=1000, OutputRate=5000, ...
      */
     virtual ErrCode INTERFACE_FUNC getDefaultConfig(IPropertyObject** defaultConfig) = 0;
+
+    // [returnSelf]
+    /*!
+     * @brief Sets the kind of device created by the built Device type.
+     * @param kind The device kind.
+     * @retval OPENDAQ_ERR_INVALIDPARAMETER when the kind is Unspecified.
+     * @retval OPENDAQ_ERR_NOT_SUPPORTED for sorts other than Device.
+     *
+     * A builder that does not set the kind builds an Unspecified Device type.
+     */
+    virtual ErrCode INTERFACE_FUNC setDeviceKind(DeviceKind kind) = 0;
+
+    /*!
+     * @brief Gets the kind of device created by the built Device type.
+     * @param[out] kind The device kind. Unspecified when not set.
+     * @retval OPENDAQ_ERR_NOT_SUPPORTED for sorts other than Device.
+     */
+    virtual ErrCode INTERFACE_FUNC getDeviceKind(DeviceKind* kind) = 0;
 
     // [returnSelf]
     /*!
@@ -223,6 +242,7 @@ DECLARE_OPENDAQ_INTERFACE(IComponentTypeBuilder, IBaseObject)
      * @brief Gets the device type currently set on the builder - see `setLinkedDeviceType` for when it takes
      * effect on the built Streaming type.
      * @param[out] deviceType The linked device type, or unassigned if none was set.
+     * @retval OPENDAQ_ERR_NOT_SUPPORTED for any sort other than "Streaming".
      */
     virtual ErrCode INTERFACE_FUNC getLinkedDeviceType(IDeviceType** deviceType) = 0;
 };

@@ -1110,7 +1110,7 @@ TEST_F(OpcuaDeviceModulesTest, FunctionBlocksOnClient)
         addOpcuaServerModule(server);
 
         addRefDeviceModule(server);
-        server.setRootDevice("daqref://device1");
+        server.setRootDevice("daqref.root://device1");
 
         addRefFBModule(server);
         const auto statistics = server.addFunctionBlock("RefFBModuleStatistics");
@@ -1137,7 +1137,7 @@ TEST_F(OpcuaDeviceModulesTest, AddedRemovedSignalsStreaming)
         addNativeServerModule(instance);
         addOpcuaServerModule(instance);
 
-        instance.setRootDevice("daqref://device1");
+        instance.setRootDevice("daqref.root://device1");
         instance.addServer("OpenDAQNativeStreaming", nullptr);
         instance.addServer("OpenDAQOPCUA", nullptr);        
     }
@@ -1360,7 +1360,7 @@ TEST_F(OpcuaDeviceModulesTest, TestAddressInfoIPv4)
         .build();
     {
         addRefDeviceModule(server);
-        server.setRootDevice("daqref://device0");
+        server.setRootDevice("daqref.root://device0");
 
         addNativeServerModule(server);
         server.addServer("OpenDAQNativeStreaming", nullptr);
@@ -1432,7 +1432,7 @@ TEST_F(OpcuaDeviceModulesTest, TestAddressInfoIPv6)
         .build();
     {
         addRefDeviceModule(server);
-        server.setRootDevice("daqref://device0");
+        server.setRootDevice("daqref.root://device0");
 
         addNativeServerModule(server);
         server.addServer("OpenDAQNativeStreaming", nullptr);
@@ -1486,7 +1486,7 @@ TEST_F(OpcuaDeviceModulesTest, TestAddressInfoIPv6)
 
 TEST_F(OpcuaDeviceModulesTest, DISABLED_TestAddressInfoGatewayDevice)
 {
-    auto server = test_helpers::instanceBuilder().setRootDevice("daqref://device0").build();
+    auto server = test_helpers::instanceBuilder().setRootDevice("daqref.root://device0").build();
     server.addServer("OpenDAQNativeStreaming", nullptr);
     server.addServer("OpenDAQLTStreaming", nullptr);
     server.addServer("OpenDAQOPCUA", nullptr);

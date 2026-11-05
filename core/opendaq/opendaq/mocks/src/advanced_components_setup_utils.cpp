@@ -10,6 +10,7 @@
 #include "opendaq/component_type_private.h"
 #include "opendaq/device_domain_factory.h"
 #include "opendaq/device_type_factory.h"
+#include "opendaq/component_type_builder_factory.h"
 #include "opendaq/module_info_factory.h"
 #include "opendaq/module_manager_factory.h"
 #include "opendaq/mock/mock_device_module.h"
@@ -370,7 +371,15 @@ uint64_t MockDevice1Impl::onGetTicksSinceOrigin()
 
 DictPtr<IString, IDeviceType> MockDevice1Impl::onGetAvailableDeviceTypes()
 {
-    auto devTypes = Dict<IString, IDeviceType>({{"mockDev1", DeviceType("mockDev1", "MockDev1", "Mock Device 1", "prefix", nullptr)}});
+    // Non-default kind, so tests can check that the kind survives the config protocol
+    const DeviceTypePtr devType = DeviceTypeBuilder()
+                                      .setId("mockDev1")
+                                      .setName("MockDev1")
+                                      .setDescription("Mock Device 1")
+                                      .setConnectionStringPrefix("prefix")
+                                      .setDeviceKind(DeviceKind::Mirrored)
+                                      .build();
+    auto devTypes = Dict<IString, IDeviceType>({{"mockDev1", devType}});
 
     auto componentTypePrivate = devTypes.get("mockDev1").asPtr<IComponentTypePrivate>();
     componentTypePrivate->setModuleInfo(ModuleInfo(VersionInfo(5, 6, 7), "module_name", "module_id"));

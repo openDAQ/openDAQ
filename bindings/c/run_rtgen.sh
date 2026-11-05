@@ -184,7 +184,7 @@ run_rtgen copendaq/device opendaq/device opendaq device_info_config device_info_
 run_rtgen copendaq/device opendaq/device opendaq device_info_internal device_info_internal
 run_rtgen copendaq/device opendaq/device opendaq device_network_config device_network_config
 run_rtgen copendaq/device opendaq/device opendaq device_private device_private
-run_rtgen copendaq/device opendaq/device opendaq device_type device_type
+run_rtgen copendaq/device opendaq/device opendaq device_type device_type #enum
 run_rtgen copendaq/device opendaq/device opendaq io_folder_config io_folder_config #empty
 run_rtgen copendaq/device opendaq/device opendaq log_file_info log_file_info
 run_rtgen copendaq/device opendaq/device opendaq log_file_info_builder log_file_info_builder

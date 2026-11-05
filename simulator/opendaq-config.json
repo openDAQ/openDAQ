@@ -13,7 +13,7 @@
         },
     "RootDevice": 
         {
-            "ConnectionString": "daqref://device1"
+            "ConnectionString": "daqref.root://device1"
         },
     "Modules":
         {

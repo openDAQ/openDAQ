@@ -1503,6 +1503,16 @@ TEST_F(NativeDeviceModulesTest, GetDefaultAddDeviceConfig)
     test_helpers::testPropObjsEquality(serverDefaultConfig, remoteDefaultConfig);
 }
 
+TEST_F(NativeDeviceModulesTest, AvailableStreamingTypes)
+{
+    SKIP_TEST_MAC_CI;
+    auto server = CreateServerInstance();
+    auto client = CreateClientInstance();
+
+    const auto streamingTypes = client.getDevices()[0].getAvailableStreamingTypes();
+    ASSERT_EQ(streamingTypes.getKeyList(), List<IString>("OpenDAQNativeStreaming"));
+}
+
 TEST_F(NativeDeviceModulesTest, GetStatuses)
 {
     SKIP_TEST_MAC_CI;
@@ -2666,7 +2676,7 @@ TEST_F(NativeDeviceModulesTest, TestAddressInfoIPv4)
     auto server = test_helpers::createInstance("[[none]]");
     {
         addRefDeviceModule(server);
-        server.setRootDevice("daqref://device0");
+        server.setRootDevice("daqref.root://device0");
 
         addNativeServerModule(server);
         server.addServer("OpenDAQNativeStreaming", nullptr);
@@ -2727,7 +2737,7 @@ TEST_F(NativeDeviceModulesTest, TestAddressInfoIPv6)
     auto server = test_helpers::createInstance("[[none]]");
     {
         addRefDeviceModule(server);
-        server.setRootDevice("daqref://device0");
+        server.setRootDevice("daqref.root://device0");
 
         addNativeServerModule(server);
         server.addServer("OpenDAQNativeStreaming", nullptr);
@@ -2785,7 +2795,7 @@ TEST_F(NativeDeviceModulesTest, TestAddressInfoGatewayDevice)
     auto server = test_helpers::createInstance("[[none]]");
     {
         addRefDeviceModule(server);
-        server.setRootDevice("daqref://device0");
+        server.setRootDevice("daqref.root://device0");
 
         addNativeServerModule(server);
         server.addServer("OpenDAQNativeStreaming", nullptr);
@@ -2861,7 +2871,7 @@ TEST_F(NativeDeviceModulesTest, TestLeafDeviceUnreachableIPv4Streaming)
     auto server = test_helpers::createInstance("[[none]]");
     {
         addRefDeviceModule(server);
-        server.setRootDevice("daqref://device0");
+        server.setRootDevice("daqref.root://device0");
 
         addNativeServerModule(server);
         server.addServer("OpenDAQNativeStreaming", nullptr);
@@ -2971,7 +2981,7 @@ TEST_F(NativeDeviceModulesTest, TestLeafDeviceUnreachableIPv6Streaming)
     auto server = test_helpers::createInstance("[[none]]");
     {
         addRefDeviceModule(server);
-        server.setRootDevice("daqref://device0");
+        server.setRootDevice("daqref.root://device0");
 
         addNativeServerModule(server);
         server.addServer("OpenDAQNativeStreaming", nullptr);
@@ -3201,7 +3211,7 @@ TEST_F(NativeDeviceModulesTest, SameStreamingAddress)
     addRefDeviceModule(server);
     addNativeServerModule(server);
 
-    server.setRootDevice("daqref://device0");
+    server.setRootDevice("daqref.root://device0");
     server.addServer("OpenDAQNativeStreaming", nullptr);
 
     const auto client = test_helpers::createInstance("[[none]]");
@@ -3428,7 +3438,7 @@ InstancePtr CreateServerInstanceWithEnabledLogFileInfo(const StringPtr& loggerPa
 
     addRefFBModule(instance);
     addRefDeviceModule(instance);
-    instance.setRootDevice("daqref://device0", config);
+    instance.setRootDevice("daqref.root://device0", config);
 
     addNativeServerModule(instance);
     instance.addServer("OpenDAQNativeStreaming", nullptr);
@@ -3718,7 +3728,7 @@ InstancePtr CreateServerSimulator(const StringPtr& name)
         .build();
 
     addRefDeviceModule(instance);
-    instance.setRootDevice("daqref://device0", config);
+    instance.setRootDevice("daqref.root://device0", config);
 
     instance.addDevice("daqref://device1");
 
@@ -4887,7 +4897,7 @@ TEST_F(NativeDeviceModulesTest, TestEnumerationPropertyRemote)
         serverInstance = test_helpers::createInstance("[[none]]");
 
         addRefDeviceModule(serverInstance);
-        serverInstance.setRootDevice("daqref://device0");
+        serverInstance.setRootDevice("daqref.root://device0");
 
         addNativeServerModule(serverInstance);
         serverInstance.addServer("OpenDAQNativeStreaming", nullptr);
@@ -5081,7 +5091,7 @@ TEST_F(NativeDeviceModulesTest, GatewayStreamingConnection)
         .build();
     {
         addRefDeviceModule(leaf);
-        leaf.setRootDevice("daqref://device0", leafDeviceConfig);
+        leaf.setRootDevice("daqref.root://device0", leafDeviceConfig);
 
         const auto serverConfig = PropertyObject();
         serverConfig.addProperty(IntProperty("NativeStreamingPort", 7414));
@@ -5332,7 +5342,7 @@ TEST_F(NativeDeviceModulesTest, ComponentActiveChangedRecursiveGateway)
     // SKIP_TEST_MAC_CI;
 
     // Create leaf server
-    auto leaf = test_helpers::instanceBuilder().setRootDevice("daqref://device0").build();
+    auto leaf = test_helpers::instanceBuilder().setRootDevice("daqref.root://device0").build();
     leaf.addServer("OpenDAQNativeStreaming", nullptr);
 
     // Create gateway that connects to leaf

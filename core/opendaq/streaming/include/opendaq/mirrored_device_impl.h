@@ -69,6 +69,7 @@ protected:
     void removedNoLock() override;
 
     StreamingPtr onAddStreaming(const StringPtr& connectionString, const PropertyObjectPtr& config) override;
+    DictPtr<IString, IStreamingType> onGetAvailableStreamingTypes() override;
 
     virtual bool isAddedToLocalComponentTree();
     virtual StringPtr onGetRemoteId() const = 0;
@@ -384,6 +385,39 @@ StreamingPtr MirroredDeviceBase<Interfaces...>::onAddStreaming(const StringPtr& 
 
     const ModuleManagerUtilsPtr managerUtils = this->context.getModuleManager().template asPtr<IModuleManagerUtils>();
     return registerStreamingSource(managerUtils.createStreaming(connectionString, config, thisPtr));
+}
+
+template <typename... Interfaces>
+DictPtr<IString, IStreamingType> MirroredDeviceBase<Interfaces...>::onGetAvailableStreamingTypes()
+{
+    auto streamingTypes = Dict<IString, IStreamingType>();
+
+    DeviceInfoPtr info;
+    checkErrorInfo(this->getInfo(&info));
+    if (!info.assigned())
+        return streamingTypes;
+
+    std::set<std::string> streamingPrefixes;
+    for (const auto& capability : info.getServerCapabilities())
+    {
+        const auto protocolType = capability.getProtocolType();
+        const StringPtr prefix = capability.getPrefix();
+        if ((protocolType == ProtocolType::Streaming || protocolType == ProtocolType::ConfigurationAndStreaming) && prefix.assigned())
+            streamingPrefixes.insert(prefix.toStdString());
+    }
+
+    if (streamingPrefixes.empty())
+        return streamingTypes;
+
+    auto lock = this->getRecursiveConfigLock2();
+    const ModuleManagerUtilsPtr managerUtils = this->context.getModuleManager().template asPtr<IModuleManagerUtils>();
+    for (const auto& [id, type] : managerUtils.getAvailableStreamingTypes())
+    {
+        if (streamingPrefixes.count(type.getConnectionStringPrefix().toStdString()))
+            streamingTypes.set(id, type);
+    }
+
+    return streamingTypes;
 }
 
 template <typename... Interfaces>

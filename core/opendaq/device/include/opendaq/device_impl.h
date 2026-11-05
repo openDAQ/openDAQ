@@ -90,6 +90,7 @@ public:
 
     virtual ListPtr<IDeviceInfo> onGetAvailableDevices();
     virtual DictPtr<IString, IDeviceType> onGetAvailableDeviceTypes();
+    virtual DictPtr<IString, IStreamingType> onGetAvailableStreamingTypes();
     virtual DevicePtr onAddDevice(const StringPtr& connectionString, const PropertyObjectPtr& config);
     virtual void onRemoveDevice(const DevicePtr& device);
     virtual DictPtr<IString, IDevice> onAddDevices(const DictPtr<IString, IPropertyObject>& connectionArgs,
@@ -154,6 +155,7 @@ public:
     // Client devices
     ErrCode INTERFACE_FUNC getAvailableDevices(IList** availableDevices) override;
     ErrCode INTERFACE_FUNC getAvailableDeviceTypes(IDict** deviceTypes) override;
+    ErrCode INTERFACE_FUNC getAvailableStreamingTypes(IDict** streamingTypes) override;
     ErrCode INTERFACE_FUNC addDevice(IDevice** device, IString* connectionString, IPropertyObject* config = nullptr) override;
     ErrCode INTERFACE_FUNC addDevices(IDict** devices, IDict* connectionArgs, IDict* errCodes = nullptr, IDict* errorInfos = nullptr) override;
     ErrCode INTERFACE_FUNC removeDevice(IDevice* device) override;
@@ -1381,6 +1383,28 @@ DictPtr<IString, IDeviceType> GenericDevice<TInterface, Interfaces...>::onGetAva
     auto lock = this->getRecursiveConfigLock2();
     const ModuleManagerUtilsPtr managerUtils = this->context.getModuleManager().template asPtr<IModuleManagerUtils>();
     return managerUtils.getAvailableDeviceTypes();
+}
+
+template <typename TInterface, typename... Interfaces>
+ErrCode GenericDevice<TInterface, Interfaces...>::getAvailableStreamingTypes(IDict** streamingTypes)
+{
+    OPENDAQ_PARAM_NOT_NULL(streamingTypes);
+
+    if (this->isComponentRemoved)
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_COMPONENT_REMOVED);
+
+    DictPtr<IString, IStreamingType> dict;
+    const ErrCode errCode = wrapHandlerReturn(this, &GenericDevice<TInterface, Interfaces...>::onGetAvailableStreamingTypes, dict);
+    OPENDAQ_RETURN_IF_FAILED(errCode);
+
+    *streamingTypes = dict.detach();
+    return errCode;
+}
+
+template <typename TInterface, typename... Interfaces>
+DictPtr<IString, IStreamingType> GenericDevice<TInterface, Interfaces...>::onGetAvailableStreamingTypes()
+{
+    return Dict<IString, IStreamingType>();
 }
 
 template <typename TInterface, typename... Interfaces>

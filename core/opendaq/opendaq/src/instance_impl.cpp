@@ -563,6 +563,11 @@ ErrCode InstanceImpl::getAvailableDeviceTypes(IDict** deviceTypes)
     return rootDevice->getAvailableDeviceTypes(deviceTypes);
 }
 
+ErrCode InstanceImpl::getAvailableStreamingTypes(IDict** streamingTypes)
+{
+    return rootDevice->getAvailableStreamingTypes(streamingTypes);
+}
+
 ErrCode InstanceImpl::addDevice(IDevice** device, IString* connectionString, IPropertyObject* config)
 {
     return rootDevice->addDevice(device, connectionString, config);

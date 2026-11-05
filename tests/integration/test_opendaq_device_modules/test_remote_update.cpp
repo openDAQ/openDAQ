@@ -29,11 +29,11 @@ protected:
 
     static void setupInstanceTree(const InstancePtr& instance, const StringPtr& serialNumber, bool addFunctionBlocks, bool addDevices = true)
     {
-        auto deviceConfig = instance.getAvailableDeviceTypes().get("daqref").createDefaultConfig();
+        auto deviceConfig = instance.getAvailableDeviceTypes().get("daqref_root").createDefaultConfig();
         deviceConfig.setPropertyValue("SerialNumber", serialNumber);
         deviceConfig.setPropertyValue("LocalId", "openDAQ_" + serialNumber);
 
-        instance.setRootDevice("daqref://device0", deviceConfig);
+        instance.setRootDevice("daqref.root://device0", deviceConfig);
         auto child = instance.addDevice("daqref://device1");
 
         if (addFunctionBlocks)
@@ -327,7 +327,7 @@ TEST_F(RemoteModulesUpdateTest, GatewayDeviceRemapNative)
     addServers(gateway, 4843, -1);
 
     auto client = setupBaseInstance();
-    client.setRootDevice("daqref://device0");
+    client.setRootDevice("daqref.root://device0");
     auto clientFb = client.addFunctionBlock("RefFBModuleScaling");
     addDevice(client, ConnectionType::Native, 4843);
 
@@ -533,7 +533,7 @@ TEST_F(RemoteModulesUpdateTest, RemoveOldKeepDeviceNotInConfiguration)
     addServers(gateway, 4843, -1);
 
     auto client = setupBaseInstance();
-    client.setRootDevice("daqref://device0");
+    client.setRootDevice("daqref.root://device0");
     addDevice(client, ConnectionType::Native, 4843);
 
     ASSERT_EQ(client.getDevices().getCount(), 1u);
@@ -570,7 +570,7 @@ TEST_F(RemoteModulesUpdateTest, RemoveOldRemoveDeviceNotInConfiguration)
     addServers(gateway, 4843, -1);
 
     auto client = setupBaseInstance();
-    client.setRootDevice("daqref://device0");
+    client.setRootDevice("daqref.root://device0");
     addDevice(client, ConnectionType::Native, 4843);
 
     ASSERT_EQ(client.getDevices().getCount(), 1u);
@@ -617,7 +617,7 @@ TEST_F(RemoteModulesUpdateTest, RemoveOldRemapToExistingSibling)
     addServers(gateway, 4843, -1);
 
     auto client = setupBaseInstance();
-    client.setRootDevice("daqref://device0");
+    client.setRootDevice("daqref.root://device0");
     addDevice(client, ConnectionType::Native, 4843);
 
     ASSERT_EQ(client.getDevices().getCount(), 1u);

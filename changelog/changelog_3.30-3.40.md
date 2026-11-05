@@ -39,6 +39,7 @@
 
 ## Bug fixes
 
+- [#1369](https://github.com/openDAQ/openDAQ/pull/1369) Update LT Modern streaming modules to v4.0.4, which follow the LT streaming specification for domain signal links, linear rule starts and time origins, fixing devices whose signals had no time domain
 - [#1345](https://github.com/openDAQ/openDAQ/pull/1345) Fix a stream reader writing past the caller's buffer or never returning when a data packet arrives without its domain packet; the read fails instead
 - [#1345](https://github.com/openDAQ/openDAQ/pull/1345) Fix an input port aborting the process when its signal fails to handle a disconnect; the failure is logged instead
 - [#1345](https://github.com/openDAQ/openDAQ/pull/1345) Fix a mirrored signal unsubscribing a different domain signal than it subscribed with after its domain signal changed

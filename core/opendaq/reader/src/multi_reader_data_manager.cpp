@@ -207,9 +207,7 @@ ErrCode MultiReaderDataManager::reconfigure(Config newConfig, IMultiReader2Statu
         for (auto& slot : slots)
         {
             // Applying the queued events leaves latest*; their data goes with them
-            slot.queue.clear();
-            slot.frontCount = 0;
-            slot.events = 0;
+            clearQueue(slot);
             slot.connected = slot.latestConnected;
             slot.value = slot.latestValue;
             slot.domain = slot.latestDomain;
@@ -506,6 +504,7 @@ void MultiReaderDataManager::restart()
     state = level() == ComponentStatus::Error ? State::Invalid : State::Syncing;
     readTick = 0;
     positioned = false;
+    mainTrimmedFrom.reset();
 }
 
 // A synchronization trigger while valid, such as a rejoin under Exclude
@@ -514,6 +513,7 @@ void MultiReaderDataManager::startSync()
     if (state == State::Invalid)
         return;
     state = State::Syncing;
+    mainTrimmedFrom.reset();
 }
 
 // The configure with the params in force, from a read (R5): every queued event goes onto its input and the data is
@@ -530,9 +530,7 @@ void MultiReaderDataManager::internalReconfigure(bool wasValid)
             if (entry.event.has_value())
                 judge |= applyEvent(slot, *entry.event).judge;
         }
-        slot.queue.clear();
-        slot.frontCount = 0;
-        slot.events = 0;
+        clearQueue(slot);
         if (judge)
             checkInput(i);
     }
@@ -907,9 +905,10 @@ void MultiReaderDataManager::consume(Slot& slot, SizeT count, void* out, std::ve
         if (entry.firstTick.has_value())
             *entry.firstTick += static_cast<std::int64_t>(taken) * mainDelta;
         slot.frontCount -= taken;
+        slot.queuedSamples -= taken;
         count -= taken;
         if (entry.count == 0)
-            slot.queue.pop_front();
+            popData(slot);
     }
 }
 
@@ -1036,7 +1035,7 @@ void MultiReaderDataManager::applyEvents()
         while (reachesEvent(slot, contributing))
         {
             while (!slot.queue.front().event.has_value())
-                slot.queue.pop_front();
+                popData(slot);
 
             const Applied applied = applyEvent(slot, *slot.queue.front().event);
             slot.queue.pop_front();
@@ -1125,6 +1124,16 @@ bool MultiReaderDataManager::addPacket(SizeT slot, const PacketPtr& packet)
 {
     std::scoped_lock lock(mutex);
     return claimWake(queuePacket(slot, packet));
+}
+
+// A batch of one port's packets under one lock, with one wake claim for all of them
+bool MultiReaderDataManager::addPackets(SizeT slot, const PacketPtr* packets, SizeT count)
+{
+    std::scoped_lock lock(mutex);
+    bool owed = false;
+    for (SizeT i = 0; i < count; ++i)
+        owed = queuePacket(slot, packets[i]) || owed;
+    return claimWake(owed);
 }
 
 bool MultiReaderDataManager::queueConnect(SizeT i, const DataDescriptorPtr& value, const DataDescriptorPtr& domain)
@@ -1251,13 +1260,18 @@ bool MultiReaderDataManager::ingestData(SizeT i, const DataPacketPtr& packet)
 
     if (keep)
     {
+        const SizeT bytes = packet.getRawDataSize() + (domainPacket.assigned() ? domainPacket.getRawDataSize() : 0);
+        trigger |= limitQueue(i, count, bytes);
         if (slot.events == 0)
             slot.frontCount += count;
         Entry entry;
         entry.packet = packet;
         entry.count = count;
         entry.firstTick = firstTick;
+        entry.bytes = bytes;
         slot.queue.push_back(std::move(entry));
+        slot.queuedSamples += count;
+        slot.queuedBytes += bytes;
     }
 
     trigger |= markClear(i, firstTick);
@@ -1317,7 +1331,7 @@ void MultiReaderDataManager::pushEvent(Slot& slot, Event event)
 void MultiReaderDataManager::dropFront(Slot& slot)
 {
     while (!slot.queue.empty() && !slot.queue.front().event.has_value())
-        slot.queue.pop_front();
+        popData(slot);
     slot.frontCount = 0;
 }
 
@@ -1327,6 +1341,72 @@ void MultiReaderDataManager::dropData(Slot& slot)
     slot.queue.erase(std::remove_if(slot.queue.begin(), slot.queue.end(), [](const Entry& entry) { return !entry.event.has_value(); }),
                      slot.queue.end());
     slot.frontCount = 0;
+    slot.queuedSamples = 0;
+    slot.queuedBytes = 0;
+}
+
+// The data entry in front of the queue, with its samples and bytes
+void MultiReaderDataManager::popData(Slot& slot)
+{
+    const Entry& entry = slot.queue.front();
+    slot.queuedSamples -= entry.count;
+    slot.queuedBytes -= entry.bytes;
+    slot.queue.pop_front();
+}
+
+// Every queued entry, data and events
+void MultiReaderDataManager::clearQueue(Slot& slot)
+{
+    slot.queue.clear();
+    slot.frontCount = 0;
+    slot.events = 0;
+    slot.queuedSamples = 0;
+    slot.queuedBytes = 0;
+}
+
+// Whether the input's queue would hold more than queueLimitSeconds of its data, or more than queueLimitBytes, with a packet
+// of count samples and bytes more. The time counts the queued samples at the input's own rate, so a gap among them adds none
+bool MultiReaderDataManager::overLimit(const Slot& slot, SizeT count, SizeT bytes) const
+{
+    if (slot.queuedSamples == 0)
+        return false;
+    if (slot.queuedBytes + bytes > queueLimitBytes)
+        return true;
+    const std::int64_t rate = slot.latestInfo.valid ? slot.latestInfo.rate : 0;
+    return rate > 0 && slot.queuedSamples + count > static_cast<SizeT>(queueLimitSeconds * rate);
+}
+
+// Keeps the input's queue within the limits before a packet of count samples and bytes is queued. While synchronizing,
+// nothing queued is aligned yet: the oldest packets in front of the first event go, as synchronization would trim them.
+// Otherwise every queued sample goes and a gap takes its place, so the reads go on from the newest data and resynchronize.
+// Returns whether a gap was queued
+bool MultiReaderDataManager::limitQueue(SizeT i, SizeT count, SizeT bytes)
+{
+    Slot& slot = slots[i];
+    if (!overLimit(slot, count, bytes))
+        return false;
+
+    while (state == State::Syncing && overLimit(slot, count, bytes) && !slot.queue.empty() && !slot.queue.front().event.has_value())
+    {
+        // The behind check measures from where the main input's data began, as if the dropped data were still held
+        if (mainSlot == i && !mainTrimmedFrom.has_value())
+            mainTrimmedFrom = slot.queue.front().firstTick;
+        slot.frontCount -= slot.queue.front().count;
+        popData(slot);
+    }
+    if (!overLimit(slot, count, bytes))
+        return false;
+
+    if (config.loggerComponent.assigned())
+    {
+        const auto& loggerComponent = config.loggerComponent;
+        LOG_W("{}: more than {} s or {} MB queued, the queued samples are dropped", config.inputs[i].getLocalId().toStdString(),
+              queueLimitSeconds, queueLimitBytes / 1000000);
+    }
+    dropData(slot);
+    countFront(slot);
+    pushEvent(slot, {Event::Kind::Gap});
+    return true;
 }
 
 bool MultiReaderDataManager::hasData(const Slot& slot)
@@ -1364,11 +1444,12 @@ void MultiReaderDataManager::discardBefore(Slot& slot, std::int64_t tick) const
                 entry.count -= behind;
                 *entry.firstTick += static_cast<std::int64_t>(behind) * mainDelta;
                 slot.frontCount -= behind;
+                slot.queuedSamples -= behind;
                 return;
             }
         }
         slot.frontCount -= entry.count;
-        slot.queue.pop_front();
+        popData(slot);
     }
 }
 
@@ -1449,8 +1530,9 @@ bool MultiReaderDataManager::synchronize()
         discardBefore(slots[i], common);
 
     // Behind (step 4): still no data at the common start once the main input holds more than the limit from it,
-    // however far behind the input was
-    if (exceeds(mainLatest, common, syncLimitTicks))
+    // however far behind the input was. Data the queue limit dropped from the main input counts as held
+    const std::int64_t behindFrom = mainTrimmedFrom.has_value() ? std::min(common, *mainTrimmedFrom) : common;
+    if (exceeds(mainLatest, behindFrom, syncLimitTicks))
     {
         for (SizeT i = 0; i < slots.size(); ++i)
         {

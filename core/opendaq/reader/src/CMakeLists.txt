@@ -146,6 +146,7 @@ function(create_component_source_groups_${BASE_NAME})
         ${SDK_HEADERS_DIR}/multi_reader2.h
         ${SDK_HEADERS_DIR}/multi_reader2_factory.h
         ${SDK_HEADERS_DIR}/multi_reader2_impl.h
+        ${SDK_HEADERS_DIR}/multi_reader2_ingest_task.h
         ${SDK_HEADERS_DIR}/multi_reader2_params.h
         ${SDK_HEADERS_DIR}/multi_reader2_params_impl.h
         ${SDK_HEADERS_DIR}/multi_reader2_input_status.h
@@ -154,6 +155,7 @@ function(create_component_source_groups_${BASE_NAME})
         ${SDK_HEADERS_DIR}/multi_reader_data_manager.h
         ${SDK_SRC_DIR}/multi_reader2_factory.cpp
         ${SDK_SRC_DIR}/multi_reader2_impl.cpp
+        ${SDK_SRC_DIR}/multi_reader2_ingest_task.cpp
         ${SDK_SRC_DIR}/multi_reader2_params_impl.cpp
         ${SDK_SRC_DIR}/multi_reader2_status_impl.cpp
         ${SDK_SRC_DIR}/multi_reader_data_manager.cpp
@@ -190,6 +192,7 @@ set(SRC_PublicHeaders_Component
 
 set(SRC_PrivateHeaders_Component
     multi_reader2_impl.h
+    multi_reader2_ingest_task.h
     multi_reader2_params_impl.h
     multi_reader2_status_impl.h
     multi_reader_data_manager.h
@@ -223,6 +226,7 @@ set(SRC_Cpp_Component
     multi_reader_impl.cpp
     multi_reader2_factory.cpp
     multi_reader2_impl.cpp
+    multi_reader2_ingest_task.cpp
     multi_reader2_params_impl.cpp
     multi_reader2_status_impl.cpp
     multi_reader_data_manager.cpp

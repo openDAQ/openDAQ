@@ -10,8 +10,7 @@ class MultiReader2Limits : public MultiReader2Test
 // S1.LIM.01
 TEST_F(MultiReader2Limits, ByteLimitDropsTheInputsQueuedDataAndReadsGoOnFromTheNewest)
 {
-    MR2_REVIEW_ONLY(review_only::queueLimit);
-    // in2's 160 MB packets each pass the 200 MB the two inputs share together with the one before
+    // in2's 160 MB packets each pass its queue's 100 MB together with the one before
     setupBase([&] { read(100); });
     announce(in2, Value().dims({2000000}));
     expect(read(0), count(0).descChanged(in2).size(in2, 16000000));
@@ -27,7 +26,6 @@ TEST_F(MultiReader2Limits, ByteLimitDropsTheInputsQueuedDataAndReadsGoOnFromTheN
 // S1.LIM.02
 TEST_F(MultiReader2Limits, ByteLimitKeepsTheEventsQueuedOnTheClearedInput)
 {
-    MR2_REVIEW_ONLY(review_only::queueLimit);
     setupBase([&] { read(100); });
     announce(in2, Value().dims({2000000}));
     expect(read(0), count(0).descChanged(in2).size(in2, 16000000));
@@ -127,7 +125,6 @@ TEST_F(MultiReader2Limits, SilentPinnedMainInputStallsWhileSynchronizing)
 // S1.LIM.07
 TEST_F(MultiReader2Limits, TimeLimitDropsTheQueuedDataPastThreeSeconds)
 {
-    MR2_REVIEW_ONLY(review_only::queueLimit);
     setupBase([&] { read(100); });
     write(in1, 100, 3099);
     write(in2, 100, 3099);

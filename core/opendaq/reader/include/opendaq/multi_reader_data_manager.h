@@ -80,6 +80,7 @@ public:
     bool connected(SizeT slot, const DataDescriptorPtr& value, const DataDescriptorPtr& domain);
     bool disconnected(SizeT slot);
     bool addPacket(SizeT slot, const PacketPtr& packet);
+    bool addPackets(SizeT slot, const PacketPtr* packets, SizeT count);
 
     // The next read would change something: samples, a status with changes, a SyncFailed input that can clear, or an
     // event it applies
@@ -94,6 +95,10 @@ public:
     bool inCallback() const;   // true on the thread inside acceptsDescriptor
 
 private:
+    // Each input's queue holds at most this much data; the oldest goes while synchronizing, all of it otherwise
+    static constexpr std::int64_t queueLimitSeconds = 3;
+    static constexpr SizeT queueLimitBytes = SizeT(100) * 1000 * 1000;
+
     enum class State { Invalid, Syncing, Streaming };  // Syncing: valid, common start not reached
     enum class SyncCause { None, Limit, OffGrid };     // public error SyncFailed; the cause picks the recovery rule
 
@@ -143,6 +148,7 @@ private:
         SizeT count = 0;                        // samples left from start; not in the sketch
         std::optional<std::int64_t> firstTick;  // main tick of sample start; unset when it is no whole main tick
         std::optional<Event> event;
+        SizeT bytes = 0;                        // the packet's value and domain bytes, held until it leaves; not in the sketch
     };
 
     struct Slot
@@ -150,6 +156,8 @@ private:
         std::deque<Entry> queue;                     // in ingest order
         SizeT frontCount = 0;                        // samples in front of the first event
         SizeT events = 0;                            // events in the queue; not in the sketch
+        SizeT queuedSamples = 0;                     // samples of the queued data, events aside; not in the sketch
+        SizeT queuedBytes = 0;                       // bytes of the queued packets; not in the sketch
         std::optional<std::int64_t> newestTick;      // main tick of the last ingested sample, dropped or not
         DataDescriptorPtr latestValue, latestDomain; // last seen at ingest; what a reconfigure evaluates
         bool latestConnected = false;
@@ -223,6 +231,10 @@ private:
     static bool hasData(const Slot& slot);
     void dropForRejoin(const std::vector<SizeT>& rejoined);
     void discardBefore(Slot& slot, std::int64_t tick) const;
+    static void popData(Slot& slot);
+    static void clearQueue(Slot& slot);
+    bool overLimit(const Slot& slot, SizeT count, SizeT bytes) const;
+    bool limitQueue(SizeT slot, SizeT count, SizeT bytes);
     static void failSync(Slot& slot, SyncCause cause);
     static bool failedOnLimit(const Slot& slot);
     bool synchronize();
@@ -246,6 +258,8 @@ private:
     std::optional<SizeT> mainSlot;                  // the main input in effect
     State state = State::Invalid;
     std::int64_t readTick = 0;                      // main-tick position of the next unread sample
+    std::optional<std::int64_t> mainTrimmedFrom;    // the main input's first tick the queue limit dropped while
+                                                    // synchronizing; the behind check counts from it
     bool positioned = false;                        // readTick continues a read that delivered samples since the last
                                                     // restart; not in the sketch
     std::int64_t syncLimitTicks = 0;                // 2 s of data in main ticks; set from the main domain

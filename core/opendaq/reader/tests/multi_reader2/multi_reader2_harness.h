@@ -45,7 +45,8 @@ class MultiReader2Test;
 namespace review_only
 {
 inline constexpr const char* queueLimit =
-    "queued data past 3 s or 100 MB per input is dropped (spec: queues are unbounded in v1; Future design: Overflow detection)";
+    "the inputs share one byte budget of 100 MB per input, so a packet can drop another input's queue (dev: each queue "
+    "holds at most 100 MB of its own)";
 inline constexpr const char* stall =
     "an input with nothing queued stalls once another sent 3 s past it, the main input included, and rejoins within 1 s "
     "(spec: lateness is judged only while synchronizing, C13; Future design: Data loss monitoring)";
@@ -685,7 +686,7 @@ private:
     bool constructed = false;
     MultiReader2Ptr readerObject;
     WeakRefPtr<IMultiReader2> readerRef;
-    IBaseObject* readerListener = nullptr;  // the listener the reader sets on its ports, so "listener reader" means this reader;
+    std::vector<IBaseObject*> readerListeners;  // the listeners the reader sets on its ports, so "listener reader" means this reader;
                                             // compared by identity and not held, as the reader may be its own listener
     std::mutex stateMutex;         // paramsInForce, paramsObject, previousStatus and lastResult: the handler and test threads share them
     MultiReader2ParamsPtr paramsInForce;

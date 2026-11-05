@@ -224,7 +224,8 @@ TEST_F(MultiReader2Sync, NonMainWithoutDataIsExcludedOnceMainHoldsMoreThanQueueL
                .descChanged(in1)
                .inError(in2, InputError::SyncFailed)
                .msg("in2: not synchronized, no data for 3 s"));
-    expect(read(3001), count(3001).at(0).noChanges());
+    // in1's 3,001st sample passed its queue's 3 s limit while streaming: its older samples went
+    expect(read(3001), count(1).at(3000).noChanges());
 }
 
 // S1.SYNC.18
@@ -310,7 +311,6 @@ TEST_F(MultiReader2Sync, MainWaitsForDataUpToLaterNonMainCommonStart)
 // S1.SYNC.23
 TEST_F(MultiReader2Sync, NonMainWaitingBehindEventIsNotStalledWhileMainExceedsQueueLimit)
 {
-    MR2_REVIEW_ONLY(review_only::queueLimit);
     // in2's queued event is not nothing: in1 drops its oldest packets to stay within 3 s instead
     announce(in2, Value(SampleType::Int32));
     write(in1, 0, 3049);

@@ -378,7 +378,7 @@ class SyncView(ttk.Frame):
         return inside[0] if inside else None
 
     def tree_fill(self):
-        opened = {iid for iid in self.rows if self.tree.exists(iid) and self.tree.item(iid, 'open')}
+        closed = {iid for iid in self.tree.get_children() if not self.tree.item(iid, 'open')}
         self.tree.delete(*self.tree.get_children())
         self.rows = {}
         self.dot_colors = {}
@@ -387,20 +387,19 @@ class SyncView(ttk.Frame):
         for key, title, owner, members in self.groups():
             visible = [owner] * (owner is not None) + self.sorted(members)
             count = f'{len(visible)} device' if len(visible) == 1 else f'{len(visible)} devices'
-            group = self.tree.insert('', tk.END, iid=key, text=f'{title} \u00b7 {count}', open=True, tags=('group',))
+            group = self.tree.insert('', tk.END, iid=key, text=f'{title} \u00b7 {count}', open=key not in closed,
+                                     tags=('group',))
             self.rows[group] = visible[0]
 
             for record in visible:
                 self.device_row_insert(group, record)
 
-        for iid in opened & self.rows.keys():
-            self.tree.item(iid, open=True)
-
         # A source switch moves the device to another group, so its row is found again by the device
         selected = self.selected if self.selected in self.rows else self.device_row(self.selected_device)
         if selected is not None:
             self.tree.selection_set(selected)
-            self.tree.see(selected)
+            if self.tree.item(self.tree.parent(selected), 'open'):
+                self.tree.see(selected)
         elif self.rows:
             self.tree.selection_set(self.tree.get_children(self.tree.get_children()[0])[0])
         else:

@@ -56,10 +56,6 @@ class SyncRecord:
         self.domain = self.source.reference_domain_id or ''
         self.status = source_status(self.source)
 
-    def outputs(self, domain):
-        return any(interface.reference_domain_id == domain and role_status(interface) == 'Output'
-                   for interface in self.interfaces.values())
-
 
 class SyncCard(tk.Frame):
     def __init__(self, parent, view, name):
@@ -91,7 +87,7 @@ class SyncCard(tk.Frame):
         self.domain.grid(row=1, column=2, sticky=tk.W)
 
         tk.Label(top, text='Mode', background='white').grid(row=0, column=3, rowspan=2, padx=(0, 6))
-        self.mode_combo = ttk.Combobox(top, state='readonly', style='SyncMode.TCombobox', width=10, takefocus=False)
+        self.mode_combo = ttk.Combobox(top, state='readonly', style='Sync.TCombobox', width=10, takefocus=False)
         self.mode_combo.bind('<<ComboboxSelected>>', lambda e: self.mode_selected())
         self.mode_combo.grid(row=0, column=4, rowspan=2)
 
@@ -166,7 +162,7 @@ class SyncView(ttk.Frame):
         self.rows = {}
         self.dot_colors = {}
         self.dots = []
-        self.editors = {}
+        self.editors = []
         self.combos = []
         self.active_combo = None
         self.selected = None
@@ -180,14 +176,14 @@ class SyncView(ttk.Frame):
 
         style = ttk.Style(self)
         style.configure('SyncHeader.TLabel', font=('TkDefaultFont', 12, 'bold'))
-        style.configure('SyncGroup.TLabel', font=('TkDefaultFont', 9, 'bold'))
         self.settings_background = style.lookup('TFrame', 'background')
         style.configure('SyncSettings.Treeview', background='white', fieldbackground='white', borderwidth=0)
         style.layout('SyncSettings.Treeview', [('Treeview.treearea', {'sticky': 'nswe'})])
-        style.configure('SyncMode.TCombobox', fieldbackground='white', background='white', foreground='#1a1a1a',
+        style.configure('Sync.TCombobox', fieldbackground='white', background='white', foreground='#1a1a1a',
                         selectbackground='white', selectforeground='#1a1a1a')
-        style.map('SyncMode.TCombobox', fieldbackground=[('disabled', '#f3f3f3')],
-                  foreground=[('disabled', '#6d6d6d')])
+        style.map('Sync.TCombobox', fieldbackground=[('disabled', '#f3f3f3')], foreground=[('disabled', '#6d6d6d')])
+        self.row_background = style.lookup('Treeview', 'background') or 'white'
+        self.selected_background = style.lookup('Treeview', 'background', ['selected']) or '#0078d7'
         self.arrows = {descending: self.arrow_create(descending) for descending in (False, True)}
 
         panes = ttk.PanedWindow(self, orient=tk.HORIZONTAL)
@@ -230,15 +226,9 @@ class SyncView(ttk.Frame):
 
         tree.tag_configure('group', font=('TkDefaultFont', 9, 'bold'))
 
-        style = ttk.Style(self)
-        self.row_background = style.lookup('Treeview', 'background') or 'white'
-        self.selected_background = style.lookup('Treeview', 'background', ['selected']) or '#0078d7'
-        style.configure('Selection.TCombobox', fieldbackground='white', background='white', foreground='#1a1a1a',
-                        selectbackground='white', selectforeground='#1a1a1a')
-
         tree.bind('<<TreeviewSelect>>', self.on_select)
-        tree.bind('<Button-1>', self.on_click)
-        tree.bind('<Double-Button-1>', self.on_double_click)
+        tree.bind('<Button-1>', lambda e: self.on_group_click(e, False))
+        tree.bind('<Double-Button-1>', lambda e: self.on_group_click(e, True))
         for sequence, step in (('<Up>', -1), ('<Down>', 1), ('<Left>', 0), ('<Right>', 0)):
             tree.bind(sequence, lambda e, step=step: self.device_step(step))
         for sequence in ('<Configure>', '<<TreeviewOpen>>', '<<TreeviewClose>>', '<ButtonRelease-1>'):
@@ -249,10 +239,9 @@ class SyncView(ttk.Frame):
     def cards_create(self, parent):
         frame = ttk.Frame(parent)
         frame.pack(fill=tk.BOTH, expand=True)
-        background = ttk.Style(self).lookup('TFrame', 'background')
-        self.canvas = tk.Canvas(frame, highlightthickness=0, background=background)
+        self.canvas = tk.Canvas(frame, highlightthickness=0, background=self.settings_background)
         scroll_bar = ttk.Scrollbar(frame, orient=tk.VERTICAL, command=self.canvas.yview)
-        self.cards_frame = tk.Frame(self.canvas, background=background)
+        self.cards_frame = tk.Frame(self.canvas, background=self.settings_background)
         self.cards_frame.bind('<Configure>', lambda e: self.canvas.configure(scrollregion=self.canvas.bbox('all')))
         self.canvas.create_window((0, 0), window=self.cards_frame, anchor=tk.NW, tags='cards')
         self.canvas.bind('<Configure>', lambda e: self.canvas.itemconfigure('cards', width=e.width))
@@ -321,24 +310,20 @@ class SyncView(ttk.Frame):
         groups = []
         for domain in sorted(domains, key=lambda d: (d == '', d)):
             members = sorted(domains[domain], key=self.tree_order)
-            owner = self.clock_owner(domain, members) if domain else None
+            owner = self.clock_owner(domain, members, owners) if domain else None
             groups.append((domain, owner, members))
 
         feeding = [owner for domain, owner, members in groups if owner is not None and owner not in members]
-        alone = [members[0] for domain, owner, members in groups if domain.startswith('local:') and len(members) == 1]
-        local = [record for record in alone if record not in feeding]
+        alone = {domain for domain, owner, members in groups if domain.startswith('local:') and len(members) == 1}
+        local = [members[0] for domain, owner, members in groups if domain in alone and members[0] not in feeding]
         if local:
             yield 'l:', LOCAL_CLOCKS, None, local
 
         # Prefixed keys, so no reported domain can collide with another group's key
         for domain, owner, members in groups:
-            if members[0] in alone and len(members) == 1:
-                continue
             if not domain:
                 yield 'n:', NO_DOMAIN, None, members
-            elif owner is None:
-                yield f'd:{domain}', domain, None, members
-            else:
+            elif domain not in alone:
                 yield f'd:{domain}', domain, owner, [record for record in members if record is not owner]
 
     def domain_owners(self):
@@ -367,30 +352,24 @@ class SyncView(ttk.Frame):
     def tree_order(record):
         return record.device.global_id.count('/'), record.device.name
 
-    def clock_owner(self, domain, members):
-        outputting = [record for record in self.records if record.outputs(domain)]
-        if outputting:
-            return outputting[0]
-        local = [record for record in members if record.source.sync_type == 'local']
-        if local:
-            return local[0]
-        inside = [record for record in members if record.domain == domain]
-        return inside[0] if inside else None
+    @staticmethod
+    def clock_owner(domain, members, owners):
+        local = (record for record in members if record.source.sync_type == 'local')
+        inside = (record for record in members if record.domain == domain)
+        return owners.get(domain) or next(local, None) or next(inside, None)
 
     def tree_fill(self):
         closed = {iid for iid in self.tree.get_children() if not self.tree.item(iid, 'open')}
         self.tree.delete(*self.tree.get_children())
         self.rows = {}
         self.dot_colors = {}
-        self.editors = {}
+        self.editors = []
 
         for key, title, owner, members in self.groups():
             visible = [owner] * (owner is not None) + self.sorted(members)
             count = f'{len(visible)} device' if len(visible) == 1 else f'{len(visible)} devices'
             group = self.tree.insert('', tk.END, iid=key, text=f'{title} \u00b7 {count}', open=key not in closed,
                                      tags=('group',))
-            self.rows[group] = visible[0]
-
             for record in visible:
                 self.device_row_insert(group, record)
 
@@ -408,27 +387,19 @@ class SyncView(ttk.Frame):
         self.after_idle(self.overlays_sync)
 
     def device_row(self, global_id):
-        return next((iid for iid, record in self.rows.items()
-                     if self.tree.parent(iid) and record.device.global_id == global_id), None)
+        return next((iid for iid, record in self.rows.items() if record.device.global_id == global_id), None)
 
     def device_row_insert(self, group, record):
         iid = f'{group}|{record.device.global_id}'
-        sources = {name: name for name in record.sources}
-        source = self.editor_register(iid, 'source', record, record.source.id, sources,
-                                      lambda name: setattr(record.synchronization, 'source', name))
         self.tree.insert(group, tk.END, iid=iid, text=record.device.name,
-                         values=(source, role_status(record.source), record.status))
+                         values=(record.source.id, role_status(record.source), record.status))
         self.rows[iid] = record
         self.dot_colors[iid] = STATUS_COLORS.get(record.status, 'gray')
-
-    def editor_register(self, iid, column, record, current, options, apply):
-        if len(options) < 2:
-            return current
-        self.editors[(iid, column)] = (record, current, options, apply)
-        return current
+        if len(record.sources) > 1:
+            self.editors.append(iid)
 
     def combo_create(self):
-        combo = ttk.Combobox(self.tree, state='readonly', style='Selection.TCombobox', takefocus=False)
+        combo = ttk.Combobox(self.tree, state='readonly', style='Sync.TCombobox', takefocus=False)
         combo.bind('<<ComboboxSelected>>', lambda e: self.combo_selected(combo))
         combo.bind('<Button-1>', lambda e: self.combo_toggle(combo))
         combo.bind('<Escape>', lambda e: self.combo_release(combo))
@@ -453,8 +424,8 @@ class SyncView(ttk.Frame):
 
     def combo_selected(self, combo):
         self.combo_release(combo)
-        record, current, options, apply = self.editors[combo.key]
-        self.change(record, apply, options[combo.get()])
+        record = self.rows[combo.iid]
+        self.change(record, lambda name: setattr(record.synchronization, 'source', name), combo.get())
 
     def visible_rows(self, parent='', tree=None):
         tree = tree or self.tree
@@ -477,8 +448,8 @@ class SyncView(ttk.Frame):
 
     def combos_sync(self):
         inset = max(1, int(self.context.dpi_factor))
-        cells = [(key, self.tree.bbox(*key)) for key in self.editors]
-        cells = [(key, box) for key, box in cells if box and box[1] + box[3] <= self.tree.winfo_height()]
+        cells = [(iid, self.tree.bbox(iid, 'source')) for iid in self.editors]
+        cells = [(iid, box) for iid, box in cells if box and box[1] + box[3] <= self.tree.winfo_height()]
 
         while len(self.combos) < len(cells):
             self.combos.append(self.combo_create())
@@ -486,11 +457,11 @@ class SyncView(ttk.Frame):
         for combo in self.combos[len(cells):]:
             combo.place_forget()
 
-        for combo, (key, (x, y, width, height)) in zip(self.combos, cells):
-            record, current, options, apply = self.editors[key]
-            combo.key = key
-            combo.configure(values=list(options))
-            combo.set(current)
+        for combo, (iid, (x, y, width, height)) in zip(self.combos, cells):
+            record = self.rows[iid]
+            combo.iid = iid
+            combo.configure(values=record.sources)
+            combo.set(record.source.id)
             combo.place(x=x, y=y + inset, width=width, height=height - 2 * inset)
 
     def dots_sync(self):
@@ -512,28 +483,14 @@ class SyncView(ttk.Frame):
             dot.configure(background=self.selected_background if iid in selection else self.row_background)
             dot.place(x=x + 2, y=y + (height - self.dot_size) // 2)
 
-    def group_at(self, event):
+    def on_group_click(self, event, double):
+        # A group row is never selected; a double click or its +/- indicator opens or closes it
         iid = self.tree.identify_row(event.y)
-        return iid if iid and not self.tree.parent(iid) else None
-
-    def group_toggle(self, iid):
-        self.tree.item(iid, open=not self.tree.item(iid, 'open'))
-        self.after_idle(self.overlays_sync)
-
-    def on_click(self, event):
-        # A group row is never selected; only its +/- indicator opens or closes it
-        iid = self.group_at(event)
-        if iid is None:
+        if not iid or self.tree.parent(iid):
             return None
-        if self.tree.identify_element(event.x, event.y).endswith('indicator'):
-            self.group_toggle(iid)
-        return 'break'
-
-    def on_double_click(self, event):
-        iid = self.group_at(event)
-        if iid is None:
-            return None
-        self.group_toggle(iid)
+        if double or self.tree.identify_element(event.x, event.y).endswith('indicator'):
+            self.tree.item(iid, open=not self.tree.item(iid, 'open'))
+            self.after_idle(self.overlays_sync)
         return 'break'
 
     def device_step(self, step):
@@ -573,7 +530,7 @@ class SyncView(ttk.Frame):
 
         header = ttk.Frame(self.details_header)
         header.pack(fill=tk.X, padx=(8, 0), pady=(4, 6))
-        background = ttk.Style(self).lookup('TFrame', 'background')
+        background = self.settings_background
         ttk.Label(header, text=record.device.name, style='SyncHeader.TLabel').pack(side=tk.LEFT)
         ttk.Label(header, text=f' | {record.domain or NO_DOMAIN} | ').pack(side=tk.LEFT)
 

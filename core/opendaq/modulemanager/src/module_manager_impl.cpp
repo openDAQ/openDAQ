@@ -727,18 +727,9 @@ ErrCode ModuleManagerImpl::getAvailableDevices(IList** availableDevices)
 
         for (const auto& deviceInfo : moduleAvailableDevices)
         {
-            const auto deviceType = getDeviceTypeFromConnectionString(deviceInfo.getConnectionString(), module);
+            const auto deviceType = deviceInfo.getDeviceType();
             if (deviceType.assigned() && deviceType.getDeviceKind() == DeviceKind::Root)
-            {
-                const auto makeMessage = [&module = module, &deviceType]
-                {
-                    return fmt::format(R"({}: Device type "{}" is of Root kind, so its devices are left out of the available devices.)",
-                                       module.getModuleInfo().getName(),
-                                       deviceType.getId());
-                };
-                rootDeviceAvailableLogger.logIfFirst(deviceType.getId().toStdString(), makeMessage);
                 continue;
-            }
 
             StringPtr manufacturer = deviceInfo.getManufacturer();
             StringPtr serialNumber = deviceInfo.getSerialNumber();
@@ -2320,16 +2311,6 @@ void ModuleManagerImpl::logUnspecifiedDeviceKinds(const ModulePtr& module) const
         if (deviceType.getDeviceKind() == DeviceKind::Unspecified)
             LOG_I(R"({}: Device type "{}" declares no device kind.)", module.getModuleInfo().getName(), deviceTypeId);
     }
-}
-
-bool ModuleManagerImpl::LogOnce::logIfFirst(const std::string& key, const std::function<std::string()>& makeMessage)
-{
-    const auto lock = std::lock_guard(sync);
-    if (!keys.insert(key).second)
-        return false;
-
-    DAQLOG_PLAIN(loggerComponent, makeMessage().c_str(), level)
-    return true;
 }
 
 void GetModulesPath(std::vector<fs::path>& modulesPath, const LoggerComponentPtr& loggerComponent, std::string searchFolder)

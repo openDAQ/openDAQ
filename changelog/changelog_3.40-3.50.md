@@ -56,7 +56,6 @@
 `setRootDevice` and `createDevice` without a parent reject Adapter and Mirrored device types, and `addDevice` rejects Root types, with `OPENDAQ_ERR_INVALIDPARAMETER`.
 Setting the reference device as the root with `daqref://` now fails, so existing code and config files that do this break.
 Use `daqref.root://` instead, also in `RootDevice.ConnectionString` of config files.
-`getAvailableDevices` no longer lists devices of Root kind.
 
 ### [#1327](https://github.com/openDAQ/openDAQ/pull/1327) Event handler removal waits for running handlers
 

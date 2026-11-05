@@ -25,21 +25,21 @@ BEGIN_NAMESPACE_OPENDAQ
 /*!
  * @brief Internal to MultiReader2: an input with nothing queued while the others sent more than queueLimitSeconds past its
  * newest sample is stalled, and a stalled or ahead input rejoins once its newest sample is within rejoinSeconds of the others'.
- * MultiReader2DataManager calls it at the queue limit on ingest, at the start of a read and on ingest of an input in
- * SyncFailed. With stallEnabled false no input stalls or rejoins, and a full queue drops its data whether or not another input
- * has nothing queued.
+ * MultiReader2DataManager judges stalls once an input passes the sync limit and at the start of a read, and rejoins on ingest
+ * of an input in SyncFailed. With stallEnabled false no input stalls or rejoins.
  */
 namespace multi_reader2
 {
 
 constexpr bool stallEnabled = true;
 
-// Narrower than the queue limit, so an input whose delay sits at the limit does not rejoin and stall again on every packet
+// The recovery limit. Narrower than the sync limit, so an input whose delay sits at it does not rejoin and stall again on every
+// packet
 constexpr std::int64_t rejoinSeconds = 1;
 
 std::string stalledText();
 
-// A contributing input has nothing queued: a full queue then keeps its data for the next read to stall that input
+// A contributing input has nothing queued, so a stall may be due
 bool stallPending(const std::vector<Slot>& slots, bool valid);
 
 // A contributing input has nothing queued while another sent more than queueLimitSeconds past its newest sample, or past

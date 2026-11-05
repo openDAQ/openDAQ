@@ -66,9 +66,12 @@ struct Relation
 // is not a whole Int64 count of main ticks
 std::optional<Relation> relate(const TickDomain& input, const TickDomain& main, const char** fault = nullptr);
 
-// The most data an input queues, and how far past the main input's samples an input may start: the delay the reader expects
-// between the inputs' packets
+// The sync limit: the delay the reader expects between the inputs' packets. An input that queues more has its causes judged,
+// and one that starts more than this past the main input's samples fails
 constexpr std::int64_t queueLimitSeconds = 3;
+
+// The critical limit: an input that queues more is read too slowly, and every queue goes
+constexpr std::int64_t criticalLimitSeconds = 5;
 
 // That many seconds in the domain's ticks, at least one tick
 std::int64_t secondsToTicks(const TickDomain& domain, std::int64_t seconds);

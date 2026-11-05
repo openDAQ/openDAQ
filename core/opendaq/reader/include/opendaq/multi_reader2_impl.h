@@ -20,6 +20,7 @@
 #include <coretypes/intfs.h>
 #include <coretypes/listobject_factory.h>
 #include <opendaq/component_ptr.h>
+#include <opendaq/connection_internal.h>
 #include <opendaq/input_port_config_ptr.h>
 #include <opendaq/input_port_notifications.h>
 #include <opendaq/logger_component_ptr.h>
@@ -31,6 +32,7 @@
 #include <opendaq/work_ptr.h>
 #include <memory>
 #include <mutex>
+#include <optional>
 #include <vector>
 
 BEGIN_NAMESPACE_OPENDAQ
@@ -94,9 +96,11 @@ private:
         IInputPort* key = nullptr;
         bool owned = false;  // created by the reader around a signal input
         std::mutex intake;
-        // The port's own intake, and the mark its packets set for the next ingest run
+        ObjectPtr<IConnectionInternal> connection;  // under intake: the port's connection, so no packet asks the port for it
+        // The port's own intake, and the mark a sender that found a lock held sets for the evaluation task
         InputPortNotificationsPtr listener;
         std::atomic<bool> dirty{false};
+        MultiReader2DataManager::Key slot;  // the data manager's identity of the port
     };
     using Wiring = std::vector<std::shared_ptr<Port>>;
 
@@ -118,7 +122,8 @@ private:
         std::shared_ptr<Port> portOf(IInputPort* port) const;
         void connected(IInputPort* port);
         void disconnected(IInputPort* port);
-        bool ingest(Port& port);
+        std::optional<bool> ingest(Port& port, bool wait);
+        bool transfer(Port& port, const std::unique_lock<std::mutex>& lock);
         void wakeAfterIngest();
         void notify(Port& port);
         bool drainMarked();

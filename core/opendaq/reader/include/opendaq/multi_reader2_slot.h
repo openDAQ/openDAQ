@@ -60,6 +60,7 @@ struct Slot
     std::optional<std::int64_t> firstTick;   // main tick of the first ingested sample
     std::optional<std::int64_t> newestTick;  // main tick of the last ingested sample
     bool restartSync = false;                // a read applied a gap or a domain change on it
+    bool fresh = false;                      // received data, or holds more than the aligned count, since the last evaluation
 
     // Folds the event into the queue's tail and makes its descriptors the latest. Returns whether an event stays queued
     bool queueEvent(const Event& event);
@@ -71,8 +72,9 @@ struct Slot
 
     // The first and newest sample in main ticks, kept whether or not the packet is queued
     void track(std::int64_t ownFirst, SizeT count, bool isMain, const TickDomain* main);
-    // A packet of this many samples would pass queueLimitSeconds of the input's data
-    bool full(SizeT count) const;
+    // The queued data, with what is about to be added, passes this many seconds of the input's data or this many bytes. A
+    // packet alone never does, so the newest packet always fits
+    bool over(std::int64_t seconds, SizeT bytes, SizeT addedCount = 0, SizeT addedBytes = 0) const;
     // Queues the clear that ends a stalled or ahead failure when a read reaches it; the data behind it is kept
     void rejoin();
     // What the synchronization judges this input on; requires a relation

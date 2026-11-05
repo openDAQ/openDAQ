@@ -24,6 +24,8 @@ void Queue::pushData(const DataPacketPtr& packet, std::int64_t ownFirst, SizeT c
 {
     entries.push_back({packet, ownFirst, count, 0, std::nullopt, bytes});
     held += bytes;
+    if (total)
+        *total += bytes;
     samples += count;
     if (events == 0)
     {
@@ -101,31 +103,28 @@ void Queue::consume(SizeT n, const std::function<void(const DataPacketPtr&, Size
         if (e.consumed == e.count)
         {
             held -= e.bytes;
+            if (total)
+                *total -= e.bytes;
             entries.pop_front();
             --frontEntries;
         }
     }
 }
 
-void Queue::dropData()
+Queue::Backlog Queue::dropData()
 {
     auto old = std::move(entries);
     entries.clear();
     events = 0;
+    if (total)
+        *total -= held;
     held = 0;
     samples = 0;
     for (const auto& e : old)
         if (e.event)
             pushEvent(*e.event);
     recount();
-}
-
-bool Queue::dropOldestPacket()
-{
-    if (frontEntries == 0)
-        return false;
-    drop(entries.front().count - entries.front().consumed);
-    return true;
+    return old;
 }
 
 // Debug builds check the counts kept on every push and pop against a walk of the queue

@@ -43,6 +43,8 @@ public:
 
     // A run that could not be scheduled: the next notification schedules again
     void cancel();
+    // No run is queued or running
+    bool idle() const;
 
 private:
     enum State : int

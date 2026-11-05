@@ -10,7 +10,7 @@ class MultiReader2Limits : public MultiReader2Test
 // S1.LIM.01
 TEST_F(MultiReader2Limits, ByteLimitDropsTheInputsQueuedDataAndReadsGoOnFromTheNewest)
 {
-    // in2's 160 MB packets each pass the 200 MB the two inputs share together with the one before
+    // in2's 160 MB packets each pass the 100 MB critical bytes together with the one before
     setupBase([&] { read(100); });
     announce(in2, Value().dims({2000000}));
     expect(read(0), count(0).descChanged(in2).size(in2, 16000000));
@@ -38,9 +38,10 @@ TEST_F(MultiReader2Limits, ByteLimitKeepsTheEventsQueuedOnTheClearedInput)
 }
 
 // S1.LIM.09
-TEST_F(MultiReader2Limits, ByteLimitDropsTheLargestQueueWhenAnotherInputPassesIt)
+TEST_F(MultiReader2Limits, ByteLimitOnOneInputDropsEveryQueue)
 {
-    // in2 holds 192 MB; in1's 16 MB packet passes the 200 MB the inputs share, and in2, holding the most, loses its data
+    // in2's 64 MB packets pass the 100 MB critical bytes together with the one before: every queue goes, in1's too, and
+    // reading goes on from in2's newest packet
     setupBase([&] { read(100); });
     announce(in1, Value().dims({200000}));
     announce(in2, Value().dims({800000}));
@@ -93,13 +94,12 @@ TEST_F(MultiReader2Limits, AutomaticMainInputStalledMovesToTheNextInput)
 // S1.LIM.05
 TEST_F(MultiReader2Limits, NoInputStallsWhenTheSilentInputSendsBeforeARead)
 {
-    // in2 keeps its data past the limit while in1 has nothing; in1's own data then passes the limit and is dropped
+    // in2 queues past the sync limit while in1 has nothing; in1 sends before a read, so nobody stalls and nothing is dropped
     given().policy(Exclude).main(in1);
     setupBase([&] { read(100); });
     write(in2, 100, 4109);
     write(in1, 100, 4109);
-    expect(read(100), count(0).resync());
-    expect(read(100), count(100).at(3100).noChanges());
+    expect(read(100), count(100).at(100).noChanges());
 }
 
 // S1.LIM.06
@@ -118,16 +118,17 @@ TEST_F(MultiReader2Limits, SilentPinnedMainInputStallsWhileSynchronizing)
 }
 
 // S1.LIM.07
-TEST_F(MultiReader2Limits, TimeLimitDropsTheQueuedDataPastThreeSeconds)
+TEST_F(MultiReader2Limits, CriticalLimitDropsEveryQueuePastFiveSeconds)
 {
+    // Exactly 5 s is within the limit; the packet that passes it is kept, and every input reads on from the newest data
     setupBase([&] { read(100); });
-    write(in1, 100, 3099);
-    write(in2, 100, 3099);
-    expect(avail(), count(3000));
-    write(in1, 3100, 3109);
-    write(in2, 3100, 3109);
+    write(in1, 100, 5099);
+    write(in2, 100, 5099);
+    expect(avail(), count(5000));
+    write(in1, 5100, 5109);
+    write(in2, 5100, 5109);
     expect(read(100), count(0).resync());
-    expect(read(100), count(10).at(3100).noChanges());
+    expect(read(100), count(10).at(5100).noChanges());
 }
 
 // S1.LIM.08

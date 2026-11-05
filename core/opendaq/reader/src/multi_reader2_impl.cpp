@@ -327,18 +327,22 @@ void MultiReader2Impl::apply(IMultiReader2Params* paramsRaw, IMultiReader2Status
         for (const auto& port : fresh)
         {
             held.emplace_back(port->intake);
+            SignalPtr signal;
             if (!port->port.assigned())
             {
-                const auto signal = port->input.asPtr<ISignal>(true);
+                signal = port->input.asPtr<ISignal>(true);
                 port->port = InputPort(signal.getContext(), nullptr, "MultiReader2_" + signal.getLocalId().toStdString());
-                port->port.connect(signal);
                 port->owned = true;
             }
             port->key = port->port.asPtr<IInputPort>(true).getObject();
-            // The sending thread only marks the port; the ingest task does the rest
+            // The sending thread ingests its packets under try-locks; the evaluation task judges the inputs together
             port->listener = createWithImplementation<IInputPortNotifications, Intake>(core, port);
             port->port.setListener(port->listener);
             port->port.setNotificationMethod(PacketReadyNotification::SameThread);
+            // An own port connects with its listener set: a port does not guard a listener replaced while its signal sends
+            if (signal.assigned())
+                port->port.connect(signal);
+            port->connection = port->port.getConnection().asPtrOrNull<IConnectionInternal>();
             ++taken;
         }
 
@@ -349,7 +353,7 @@ void MultiReader2Impl::apply(IMultiReader2Params* paramsRaw, IMultiReader2Status
         }
         for (const auto& port : *next)
         {
-            config.keys.push_back(port.get());
+            config.keys.push_back(&port->slot);
             config.current.push_back(announcedOf(port->port));
         }
     }
@@ -376,29 +380,29 @@ void MultiReader2Impl::apply(IMultiReader2Params* paramsRaw, IMultiReader2Status
         if (std::find(next->begin(), next->end(), port) == next->end())
             release(*port);
     // The configuration is in effect: a port that fails to drain here is drained again on its next packet
-    bool drained = false;
     for (const auto& port : fresh)
     {
         try
         {
-            drained = core->ingest(*port) || drained;
+            core->ingest(*port, true);
         }
         catch (const std::exception& e)
         {
             LOG_W("A taken over port failed to drain: {}", e.what());
         }
     }
-    if (drained)
-        core->wakeAfterIngest();
+    core->wakeAfterIngest();
 }
 
 void MultiReader2Impl::release(Port& entry)
 {
     // None first, so no packet notifies a port without a listener; called from destruction, so errors are dropped
     entry.port->setNotificationMethod(PacketReadyNotification::None);
-    entry.port->setListener(nullptr);
+    // An own port keeps its weak listener, which goes quiet with the reader: clearing it could race a sending signal
     if (entry.owned)
         entry.port->disconnect();
+    else
+        entry.port->setListener(nullptr);
     daqClearErrorInfo();
 }
 
@@ -489,7 +493,8 @@ void MultiReader2Impl::Core::connected(IInputPort* port)
     // The descriptors are read before the intake lock: the signal may be sending
     const auto announced = announcedOf(p->port);
     std::scoped_lock lock(p->intake);
-    if (dataManager.connected(p.get(), announced, subscribed()))
+    p->connection = p->port.getConnection().asPtrOrNull<IConnectionInternal>();
+    if (dataManager.connected(&p->slot, announced, subscribed()))
         schedule();
 }
 
@@ -499,35 +504,47 @@ void MultiReader2Impl::Core::disconnected(IInputPort* port)
     if (!p)
         return;
     std::scoped_lock lock(p->intake);
-    if (dataManager.disconnected(p.get(), subscribed()))
+    p->connection = nullptr;
+    if (dataManager.disconnected(&p->slot, subscribed()))
         schedule();
 }
 
-// Hands the port's queued packets over in batches; true when there were any, and the caller then asks for the handler once
-bool MultiReader2Impl::Core::ingest(Port& port)
+// Hands the port's queued packets over in batches; whether the evaluation task is due. Without wait, a held lock hands nothing
+// over and returns nullopt, leaving the packets on the connection
+std::optional<bool> MultiReader2Impl::Core::ingest(Port& port, bool wait)
 {
-    std::scoped_lock lock(port.intake);
-    const auto connection = port.port.getConnection();
-    if (!connection.assigned())
+    std::unique_lock order(port.intake, std::defer_lock);
+    if (wait)
+        order.lock();
+    else if (!order.try_lock())
+        return std::nullopt;
+    const auto lock = dataManager.lockIngest(wait);
+    if (!lock.owns_lock())
+        return std::nullopt;
+    return transfer(port, lock);
+}
+
+// Under the port's intake lock and the data manager lock: the port's queued packets go over in batches
+bool MultiReader2Impl::Core::transfer(Port& port, const std::unique_lock<std::mutex>& lock)
+{
+    if (!port.connection.assigned())
         return false;
-    const auto internal = connection.asPtr<IConnectionInternal>(true);
     constexpr SizeT batch = 64;
     IPacket* packets[batch];
     PacketPtr adopted[batch];
     SizeT count;
-    bool any = false;
+    bool due = false;
     do
     {
         count = batch;
-        checkErrorInfo(internal->dequeueUpTo(packets, &count));
+        checkErrorInfo(port.connection->dequeueUpTo(packets, &count));
         // Adopted at once, so none leaks if a later step throws
         for (SizeT i = 0; i < count; ++i)
             adopted[i] = PacketPtr::Adopt(packets[i]);
         if (count > 0)
-            dataManager.addPackets(&port, adopted, count);
-        any = any || count > 0;
+            due = dataManager.addPackets(lock, &port.slot, adopted, count) || due;
     } while (count == batch);
-    return any;
+    return due;
 }
 
 void MultiReader2Impl::Core::wakeAfterIngest()
@@ -541,15 +558,19 @@ bool MultiReader2Impl::Core::subscribed() const
     return onDataAvailable.getListenerCount() > 0;
 }
 
-// On the sending thread: no reader lock, and wiringMutex only when the first packet after an idle period schedules the task
+// On the sending thread, which never waits: the packet goes to the data manager under try-locks. A held lock marks the port for
+// the evaluation task instead, and wiringMutex is taken only when a run is scheduled
 void MultiReader2Impl::Core::notify(Port& port)
 {
-    port.dirty = true;
-    if (ingestTask.notify() && !submit(ingestWork))
+    // A queued or running evaluation takes the packets in its run, so a sender does not contend with it for the locks
+    const auto due = ingestTask.idle() ? ingest(port, false) : std::nullopt;
+    if (!due)
+        port.dirty = true;
+    if ((!due || *due) && ingestTask.notify() && !submit(ingestWork))
         ingestTask.cancel();
 }
 
-// The ingest task: each marked port is drained, and a port that fails is drained again on its next packet. True when the
+// The evaluation task: each marked port is drained, and a port that fails is drained again on its next packet. True when the
 // handler is to be called: once per run, so a burst over many ports costs one task and one handler call
 bool MultiReader2Impl::Core::drainMarked()
 {
@@ -558,27 +579,36 @@ bool MultiReader2Impl::Core::drainMarked()
         std::scoped_lock lock(wiringMutex);
         return wiring;
     }();
-    bool any = false;
-    for (const auto& port : *current)
+    // One data manager lock for the pass, so a reader polling between ports does not delay each of them. A port whose intake
+    // lock is held stays marked: its holder is a sender, which marks it again, or a take-over or connection change
     {
-        if (!port->dirty.exchange(false))
-            continue;
-        try
+        const auto lock = dataManager.lockIngest(true);
+        for (const auto& port : *current)
         {
-            any = ingest(*port) || any;
-        }
-        catch (const std::exception& e)
-        {
-            daqClearErrorInfo();
-            if (loggerComponent.assigned())
-                LOG_W("{}: the queued packets failed to ingest: {}", port->input.getLocalId().toStdString(), e.what());
-        }
-        catch (...)
-        {
-            daqClearErrorInfo();
+            // Read first: an unmarked port's cache line stays unwritten, shared with its sender
+            if (!port->dirty.load(std::memory_order_relaxed) || !port->dirty.exchange(false))
+                continue;
+            try
+            {
+                std::unique_lock order(port->intake, std::try_to_lock);
+                if (order.owns_lock())
+                    transfer(*port, lock);
+                else
+                    port->dirty = true;
+            }
+            catch (const std::exception& e)
+            {
+                daqClearErrorInfo();
+                if (loggerComponent.assigned())
+                    LOG_W("{}: the queued packets failed to ingest: {}", port->input.getLocalId().toStdString(), e.what());
+            }
+            catch (...)
+            {
+                daqClearErrorInfo();
+            }
         }
     }
-    return any && dataManager.wakeDue(subscribed());
+    return dataManager.wakeDue(subscribed());
 }
 
 void MultiReader2Impl::Core::schedule()

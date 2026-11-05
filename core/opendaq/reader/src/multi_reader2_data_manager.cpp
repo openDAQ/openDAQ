@@ -12,6 +12,7 @@
 #include <opendaq/sample_type_traits.h>
 
 #include <cassert>
+#include <utility>
 
 BEGIN_NAMESPACE_OPENDAQ
 
@@ -63,11 +64,10 @@ void MultiReader2DataManager::apply(Config config)
     for (SizeT i = 0; i < next.size(); ++i)
     {
         Slot& s = next[i];
-        const auto it = std::find_if(slots.begin(), slots.end(), [&](const Slot& old) { return old.key == config.keys[i]; });
-        if (it != slots.end())
+        if (const auto old = slotOf(config.keys[i]))
         {
-            s.latest = it->latest;
-            s.latestTicks = it->latestTicks;
+            s.latest = slots[*old].latest;
+            s.latestTicks = slots[*old].latestTicks;
         }
         else
         {
@@ -79,7 +79,14 @@ void MultiReader2DataManager::apply(Config config)
         s.current = s.latest;
         s.ticks = s.latestTicks;
     }
+    // After every retained slot was found under its old position
+    for (SizeT i = 0; i < next.size(); ++i)
+    {
+        config.keys[i]->slot = i;
+        next[i].queue.total = &heldTotal;
+    }
     slots = std::move(next);
+    heldTotal = 0;
     acceptsDescriptor = config.acceptsDescriptor;
     readType = config.readType;
     minReadCount = config.minReadCount;
@@ -99,6 +106,7 @@ void MultiReader2DataManager::apply(Config config)
     evaluateInputs();
     stateDirty = true;
     restart();
+    resetFresh();
 }
 
 // -------- Judgement
@@ -250,6 +258,7 @@ std::optional<SizeT> MultiReader2DataManager::firstHealthy() const
 SizeT MultiReader2DataManager::getAvailableCount()
 {
     std::scoped_lock lock(mutex);
+    trySync();
     if (changesDue())
         return 0;
     const SizeT k = alignedCount();
@@ -273,9 +282,11 @@ ErrCode MultiReader2DataManager::doRead(
     OPENDAQ_PARAM_NOT_NULL(status);
 
     std::vector<Copy> copies;
+    decltype(dropped) released;  // released after the mutex
     SampleType type;
     {
         std::scoped_lock lock(mutex);
+        released.swap(dropped);
         const SizeT requested = *count;
         if (requested > 0)
         {
@@ -312,6 +323,7 @@ void MultiReader2DataManager::readLocked(void** data,
                                          IMultiReader2Status** status,
                                          std::vector<Copy>* copies)
 {
+    trySync();
     applyStalls();
     const SizeT requested = *count;
     // A status with changes is reported before any further sample: the samples after it belong to it
@@ -380,6 +392,7 @@ void MultiReader2DataManager::readLocked(void** data,
         *packetOffset = static_cast<SizeT>(firstTick ? *firstTick - firstStart : phase == Phase::Streaming ? readTick - start : 0);
     }
     buildStatus(status);
+    resetFresh();
 }
 
 // Stalls the inputs the queue limit waits on, then judges as after an event
@@ -652,18 +665,13 @@ void MultiReader2DataManager::trySync()
 
 // -------- Ingest
 
-std::optional<SizeT> MultiReader2DataManager::slotOf(const void* key)
+// The key's slot; a key no longer configured has none
+std::optional<SizeT> MultiReader2DataManager::slotOf(const Key* key) const
 {
-    // Ingest hands over a port's packets in batches, so the previous slot is the usual answer
-    if (lastSlot < slots.size() && slots[lastSlot].key == key)
-        return lastSlot;
-    for (SizeT i = 0; i < slots.size(); ++i)
-        if (slots[i].key == key)
-            return lastSlot = i;
-    return std::nullopt;
+    return key->slot < slots.size() && slots[key->slot].key == key ? std::optional<SizeT>(key->slot) : std::nullopt;
 }
 
-bool MultiReader2DataManager::connected(const void* key, const Announced& announced, bool subscribed)
+bool MultiReader2DataManager::connected(const Key* key, const Announced& announced, bool subscribed)
 {
     std::scoped_lock lock(mutex);
     const auto i = slotOf(key);
@@ -675,7 +683,7 @@ bool MultiReader2DataManager::connected(const void* key, const Announced& announ
     return wake(subscribed);
 }
 
-bool MultiReader2DataManager::disconnected(const void* key, bool subscribed)
+bool MultiReader2DataManager::disconnected(const Key* key, bool subscribed)
 {
     std::scoped_lock lock(mutex);
     const auto i = slotOf(key);
@@ -687,12 +695,24 @@ bool MultiReader2DataManager::disconnected(const void* key, bool subscribed)
     return wake(subscribed);
 }
 
-void MultiReader2DataManager::addPackets(const void* key, const PacketPtr* packets, SizeT count)
+std::unique_lock<std::mutex> MultiReader2DataManager::lockIngest(bool wait)
 {
-    std::scoped_lock lock(mutex);
+    return wait ? std::unique_lock(mutex) : std::unique_lock(mutex, std::try_to_lock);
+}
+
+// Due when every input holding back the aligned count received data, a limit is reached, an event is queued, a failed call is
+// to be repeated, or the reader is not streaming
+bool MultiReader2DataManager::addPackets(const std::unique_lock<std::mutex>&, const Key* key, const PacketPtr* packets, SizeT count)
+{
     const auto i = slotOf(key);
     if (!i)
-        return;
+        return false;
+    Slot& s = slots[*i];
+    if (!s.fresh)
+    {
+        s.fresh = true;
+        ++freshCount;
+    }
     for (SizeT p = 0; p < count; ++p)
     {
         try
@@ -706,16 +726,39 @@ void MultiReader2DataManager::addPackets(const void* key, const PacketPtr* packe
         {
             // A packet that cannot be ingested is lost; the gap has the next read report the loss as a resynchronization
             if (loggerComponent.assigned())
-                LOG_W("{}: a packet could not be ingested and is dropped: {}", slots[*i].input.getLocalId().toStdString(), e.what());
-            slots[*i].queueGap();
+                LOG_W("{}: a packet could not be ingested and is dropped: {}", s.input.getLocalId().toStdString(), e.what());
+            s.queueGap();
         }
     }
+    return freshCount == slots.size() || std::exchange(limitReached, false) || s.queue.hasEvent() || s.syncFailed != SyncCause::None ||
+           retryCall || phase != Phase::Streaming;
 }
 
+// The evaluation task's judgement over all inputs: synchronization until the common start is found, then the call
 bool MultiReader2DataManager::wakeDue(bool subscribed)
 {
+    decltype(dropped) released;  // released after the mutex
     std::scoped_lock lock(mutex);
-    return wake(subscribed);
+    released.swap(dropped);
+    trySync();
+    const bool due = wake(subscribed);
+    resetFresh();
+    return due;
+}
+
+// Only the inputs at the aligned count's minimum wait for data; the others count as fresh, so their packets alone do not evaluate
+void MultiReader2DataManager::resetFresh()
+{
+    std::optional<SizeT> least;
+    for (SizeT i = 0; i < slots.size(); ++i)
+        if (contributing(i))
+            least = std::min(least.value_or(slots[i].queue.frontCount()), slots[i].queue.frontCount());
+    freshCount = 0;
+    for (SizeT i = 0; i < slots.size(); ++i)
+    {
+        slots[i].fresh = !contributing(i) || slots[i].queue.frontCount() > *least;
+        freshCount += slots[i].fresh ? 1 : 0;
+    }
 }
 
 void MultiReader2DataManager::ingestEvent(SizeT i, const EventPacketPtr& event)
@@ -760,81 +803,48 @@ void MultiReader2DataManager::ingestData(SizeT i, const DataPacketPtr& data)
     const TickDomain* main = mainSlot && slots[*mainSlot].ticks ? &*slots[*mainSlot].ticks : nullptr;
     s.track(ownFirst, n, mainSlot && *mainSlot == i, main);
 
-    const bool contributes = contributing(i);
-    bool keep = contributes || s.queue.hasEvent();
-    // The queue holds at most queueLimitSeconds of the input's data. While another input has nothing queued it keeps it, and
-    // the next read stalls that input. While synchronizing nothing queued is aligned: the oldest packets go, as
-    // synchronization trims them. Otherwise the queued data goes and a gap takes its place, so reads go on from the newest data
-    const SizeT bytes = data.getRawDataSize() + domainPacket.getRawDataSize();
-    const bool limited = keep && s.full(n) && !stallPending(slots, valid());
-    while (limited && phase == Phase::Synchronizing && s.full(n) && s.queue.dropOldestPacket())
-    {
-    }
-    if (limited && s.full(n))
-    {
-        if (loggerComponent.assigned())
-            LOG_W("{}: more than {} s queued, the queued samples are dropped", s.input.getLocalId().toStdString(), queueLimitSeconds);
-        s.queue.dropData();
-        s.queueGap();
-    }
+    bool keep = contributing(i) || s.queue.hasEvent();
     // A gap matters against queued or streamed data and clears an off-grid input
-    else if (jump && ((keep && (!s.queue.empty() || phase == Phase::Streaming)) || s.syncFailed == SyncCause::OffGrid))
+    if (jump && ((keep && (!s.queue.empty() || phase == Phase::Streaming)) || s.syncFailed == SyncCause::OffGrid))
     {
         s.queueGap();
         keep = true;
     }
     if (keep)
     {
-        keepWithinBudget(bytes);
+        // Past the sync limit the evaluation sets aside the inputs causing it, and the data stays. Past the critical limit the
+        // inputs are read too slowly: every queue goes and a gap takes its place, so each reports the loss and syncs afresh
+        const SizeT bytes = data.getRawDataSize() + domainPacket.getRawDataSize();
+        const bool wasOver = s.over(queueLimitSeconds, syncBytes);
+        if (s.over(criticalLimitSeconds, criticalBytes, n, bytes) || (heldTotal > 0 && heldTotal + bytes > totalBytes))
+            dropAll(i);
         s.queue.pushData(data, ownFirst, n, bytes);
+        limitReached = limitReached || (!wasOver && s.over(queueLimitSeconds, syncBytes));
     }
 
     if (main)
         checkRejoin(slots, i, *main, loggerComponent);
-    if (phase == Phase::Synchronizing && keep && contributes)
-        trySync();
 }
 
-// The queues of all inputs hold at most queueBudgetBytesPerInput per input together. A packet that would pass it takes the
-// data of the input holding the most, by the same rule as the time limit: its oldest packets while synchronizing, else all of
-// it and a gap
-void MultiReader2DataManager::keepWithinBudget(SizeT bytes)
+void MultiReader2DataManager::dropAll(SizeT cause)
 {
-    const SizeT budget = queueBudgetBytesPerInput * slots.size();
-    const auto heldNow = [this]
+    if (loggerComponent.assigned())
+        LOG_W(
+            "{}: past the critical limit of {} s or {} MB queued, or {} MB over all inputs; the queued samples of every input are dropped",
+            slots[cause].input.getLocalId().toStdString(),
+            criticalLimitSeconds,
+            criticalBytes / 1000000,
+            totalBytes / 1000000);
+    // An input that held nothing loses nothing, and stays free to stall
+    for (auto& s : slots)
     {
-        SizeT sum = 0;
-        for (const auto& s : slots)
-            sum += s.queue.heldBytes();
-        return sum;
-    };
-    // Summing every queue is needed only once the bound passes the budget; reads and drops leave the bound above the real bytes
-    assert(heldNow() <= heldBound);
-    if (heldBound + bytes <= budget)
-    {
-        heldBound += bytes;
-        return;
+        if (s.queue.heldSamples() == 0)
+            continue;
+        // Released by the next evaluation or read, outside the mutex: the sending thread only moves the queues aside
+        dropped.push_back(s.queue.dropData());
+        s.queueGap();
     }
-    SizeT held = heldNow();
-    while (held + bytes > budget)
-    {
-        Slot& s = *std::max_element(
-            slots.begin(), slots.end(), [](const Slot& a, const Slot& b) { return a.queue.heldBytes() < b.queue.heldBytes(); });
-        const SizeT before = s.queue.heldBytes();
-        if (before == 0)
-            break;
-        if (phase != Phase::Synchronizing || !s.queue.dropOldestPacket())
-        {
-            if (loggerComponent.assigned())
-                LOG_W("{}: the inputs hold more than {} MB, its queued samples are dropped",
-                      s.input.getLocalId().toStdString(),
-                      budget / 1000000);
-            s.queue.dropData();
-            s.queueGap();
-        }
-        held -= before - s.queue.heldBytes();
-    }
-    heldBound = held + bytes;
+    limitReached = true;
 }
 
 // -------- Triggers
@@ -845,6 +855,7 @@ bool MultiReader2DataManager::wake(bool subscribed)
     if (!subscribed || callPending || !hasTrigger())
         return false;
     callPending = true;
+    retryCall = false;
     return true;
 }
 
@@ -878,6 +889,7 @@ bool MultiReader2DataManager::callFinished(bool failed, bool subscribed)
     std::scoped_lock lock(mutex);
     callPending = false;
     // A failed call is not repeated at once: the next ingest schedules it again
+    retryCall = failed;
     return !failed && wake(subscribed);
 }
 
@@ -899,7 +911,8 @@ MultiReader2DataManager::Changes MultiReader2DataManager::changes(const State* n
     const bool domain = mainSlot && slots[*mainSlot].current.domain.assigned();
     c.domain = domain && (afresh || !sameDescriptor(slots[*mainSlot].current.domain, reported.domain));
     c.resync = domain && (afresh || (lastEnd && readTick != *lastEnd));
-    for (SizeT i = 0; i < slots.size() && !c.descriptors; ++i)
+    // A descriptor in force moves only with a judgement, which sets stateDirty, or a restart: otherwise none differs
+    for (SizeT i = 0; (afresh || stateDirty) && i < slots.size() && !c.descriptors; ++i)
         c.descriptors = descriptorReported(i);
     return c;
 }

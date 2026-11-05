@@ -71,6 +71,17 @@ struct Event
 class Queue
 {
 public:
+    struct Entry
+    {
+        DataPacketPtr packet;
+        std::int64_t ownFirst = 0;
+        SizeT count = 0;
+        SizeT consumed = 0;
+        std::optional<Event> event;
+        SizeT bytes = 0;
+    };
+    using Backlog = std::deque<Entry>;
+
     // A data packet whose first sample is the input's tick ownFirst, holding bytes of memory until it is consumed
     void pushData(const DataPacketPtr& packet, std::int64_t ownFirst, SizeT count, SizeT bytes = 0);
 
@@ -119,22 +130,13 @@ public:
     {
         consume(n, nullptr);
     }
-    // Removes every data packet; the events left fold together as if they had been pushed with no data between them
-    void dropData();
-    // Removes the oldest data packet in front of the first event; returns whether there was one
-    bool dropOldestPacket();
+    // Removes every data packet; the events left fold together as if they had been pushed with no data between them. Returns
+    // what it removed, so the caller chooses where the packets are released
+    Backlog dropData();
+
+    SizeT* total = nullptr;  // a sum of several queues' bytes, kept with this queue's own
 
 private:
-    struct Entry
-    {
-        DataPacketPtr packet;
-        std::int64_t ownFirst = 0;
-        SizeT count = 0;
-        SizeT consumed = 0;
-        std::optional<Event> event;
-        SizeT bytes = 0;
-    };
-
     void recount();
     void checkCounts() const;
 

@@ -41,11 +41,17 @@ BEGIN_NAMESPACE_OPENDAQ
 class MultiReader2DataManager final
 {
 public:
+    // A port's identity here; the data manager keeps the port's slot in it, under the mutex
+    struct Key
+    {
+        SizeT slot = 0;
+    };
+
     // The params resolved to slots
     struct Config
     {
         std::vector<ComponentPtr> inputs;               // slot order; the input statuses hand these back
-        std::vector<const void*> keys;                  // the reader's identity of each input's port
+        std::vector<Key*> keys;                         // the reader's identity of each input's port
         std::vector<multi_reader2::Announced> current;  // what new slots start from; retained slots keep what they saw
         std::optional<SizeT> mainSlot;                  // pinned main input; unset = the reader chooses
         FunctionPtr acceptsDescriptor;                  // null accepts everything
@@ -68,11 +74,12 @@ public:
     ErrCode skipSamples(SizeT* count, SizeT* packetOffset, IMultiReader2Status** status);
 
     // Producer side. A connection change returns whether to schedule onDataAvailable after the mutex: while subscribed, no call
-    // is pending and a read would return samples or a status with changes. Packets come in batches, and wakeDue decides once
-    // after them
-    bool connected(const void* key, const multi_reader2::Announced& announced, bool subscribed);
-    bool disconnected(const void* key, bool subscribed);
-    void addPackets(const void* key, const PacketPtr* packets, SizeT count);
+    // is pending and a read would return samples or a status with changes. Packets come in batches under lockIngest's lock,
+    // which a sender only tries; addPackets returns whether the evaluation task is due, and wakeDue decides once after them
+    bool connected(const Key* key, const multi_reader2::Announced& announced, bool subscribed);
+    bool disconnected(const Key* key, bool subscribed);
+    std::unique_lock<std::mutex> lockIngest(bool wait);
+    bool addPackets(const std::unique_lock<std::mutex>& lock, const Key* key, const PacketPtr* packets, SizeT count);
     bool wakeDue(bool subscribed);
 
     // After the handler: clears the pending flag and decides on another call; a failed call waits for the next ingest
@@ -180,24 +187,26 @@ private:
     void trySync();
 
     // Ingest
-    std::optional<SizeT> slotOf(const void* key);
+    std::optional<SizeT> slotOf(const Key* key) const;
     void ingestEvent(SizeT i, const EventPacketPtr& event);
     void ingestData(SizeT i, const DataPacketPtr& data);
-    void keepWithinBudget(SizeT bytes);
+    void dropAll(SizeT cause);
     bool wake(bool subscribed);
+    void resetFresh();
     bool readable() const;
     bool statusOwed() const;
     bool hasTrigger() const;
     const multi_reader2::TickDomain& mainTicks() const;
 
-    // What the queues of all inputs hold at most together, per input; far above transport skew, it holds back large samples
-    static constexpr SizeT queueBudgetBytesPerInput = SizeT(100) * 1000 * 1000;
+    // The sync and critical limits in bytes queued per input, in the ratio of the limits in time, and the critical limit over
+    // all inputs together
+    static constexpr SizeT criticalBytes = SizeT(100) * 1000 * 1000;
+    static constexpr SizeT syncBytes = criticalBytes / multi_reader2::criticalLimitSeconds * multi_reader2::queueLimitSeconds;
+    static constexpr SizeT totalBytes = SizeT(1000) * 1000 * 1000;
 
     std::mutex mutex;
     std::atomic<std::thread::id> callbackThread;
     std::vector<Slot> slots;
-    SizeT lastSlot = 0;             // the slot of the previous ingest
-    SizeT heldBound = 0;            // at least the bytes all queues hold: only ingest adds to them
     std::vector<SizeT> syncJudged;  // trySync's inputs, kept so a packet allocates nothing
     std::vector<Copy> spareCopies;  // a read's copy list, kept so a read allocates nothing
     FunctionPtr acceptsDescriptor;
@@ -216,6 +225,11 @@ private:
     bool stateDirty = true;               // a judgement ran since the previous status: the state may have moved
     MultiReader2StatusPtr lastUnchanged;  // the previous status as one without changes
     bool callPending = false;
+    bool retryCall = false;     // a failed call, repeated on the next ingest
+    bool limitReached = false;  // an input passed the sync limit, or the critical limit dropped every queue, since addPackets
+    SizeT freshCount = 0;       // inputs fresh since the last evaluation or read
+    SizeT heldTotal = 0;        // bytes queued over all inputs
+    std::vector<multi_reader2::Queue::Backlog> dropped;  // what the critical limit dropped, released outside the mutex
 };
 
 END_NAMESPACE_OPENDAQ

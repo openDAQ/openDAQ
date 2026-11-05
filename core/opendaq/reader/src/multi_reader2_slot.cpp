@@ -66,13 +66,13 @@ void Slot::track(std::int64_t ownFirst, SizeT count, bool isMain, const TickDoma
     newestTick = packetRelation->toMain(ownFirst + static_cast<std::int64_t>(count - 1) * own.delta);
 }
 
-bool Slot::full(SizeT count) const
+bool Slot::over(std::int64_t seconds, SizeT bytes, SizeT addedCount, SizeT addedBytes) const
 {
     if (queue.heldSamples() == 0)
         return false;
     const TickDomain& own = *latestTicks;
-    const auto ticks = static_cast<std::int64_t>(queue.heldSamples() + count) * own.delta;
-    return ticks > secondsToTicks(own, queueLimitSeconds);
+    return queue.heldBytes() + addedBytes > bytes ||
+           static_cast<std::int64_t>(queue.heldSamples() + addedCount) * own.delta > secondsToTicks(own, seconds);
 }
 
 void Slot::rejoin()

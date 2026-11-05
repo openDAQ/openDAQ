@@ -303,12 +303,12 @@ TEST_F(MultiReader2Sync, MainWaitsForDataUpToLaterNonMainCommonStart)
 // S1.SYNC.23
 TEST_F(MultiReader2Sync, NonMainWaitingBehindEventIsNotStalledWhileMainExceedsQueueLimit)
 {
-    // in2's queued event is not nothing: in1 drops its oldest packets to stay within 3 s instead
+    // in2's queued event is not nothing, and in1's data stays under the critical limit
     announce(in2, Value(SampleType::Int32));
     write(in1, 0, 3049);
     write(in2, 0, 99);
     expect(read(0), count(0).level(Ok).domainChanged().resync().allDescChanged());
-    expect(read(100), count(50).at(50).noChanges());
+    expect(read(100), count(100).at(0).noChanges());
 }
 
 // S1.SYNC.24

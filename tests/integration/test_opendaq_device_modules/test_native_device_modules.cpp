@@ -14,6 +14,7 @@
 #include <opendaq/discovery_server_factory.h>
 #include <opendaq/exceptions.h>
 #include <opendaq/module_impl.h>
+#include <opendaq/module_manager_utils_ptr.h>
 #include <ref_device_module/module_dll.h>
 #include <ref_fb_module/module_dll.h>
 #include <testutils/testutils.h>
@@ -2422,6 +2423,31 @@ TEST_F(NativeDeviceModulesTest, Reconnection)
     ASSERT_TRUE(info.assigned());
     ASSERT_EQ(info.getConnectionString(), "daq.nd://127.0.0.1");
     ASSERT_TRUE(info.hasProperty("NativeConfigProtocolVersion"));
+}
+
+TEST_F(NativeDeviceModulesTest, ReconnectionKeepsConnectionStringBeforeDeviceIsAdded)
+{
+    SKIP_TEST_MAC_CI;
+    auto server = CreateServerInstance();
+    auto client = test_helpers::createInstance("[[none]]");
+    addNativeClientModule(client);
+
+    // Never added to the client's tree, so the device's core events stay muted, as they do while it is being added
+    const DevicePtr device = client.getContext().getModuleManager().asPtr<IModuleManagerUtils>(true).createDevice(
+        "daq.nd://127.0.0.1", client.getRootDevice());
+    const auto connectionStatus = [&device] { return device.getStatusContainer().getStatus("ConnectionStatus"); };
+
+    server.release();
+    ASSERT_TRUE(test_helpers::waitFor([&] { return connectionStatus() == "Reconnecting"; }));
+
+    server = CreateServerInstance();
+    ASSERT_TRUE(test_helpers::waitFor([&] { return connectionStatus() == "Connected"; }, std::chrono::seconds(10)));
+
+    const auto info = device.getInfo();
+    ASSERT_EQ(info.getConnectionString(), "daq.nd://127.0.0.1");
+    ASSERT_TRUE(info.hasProperty("NativeConfigProtocolVersion"));
+
+    device.remove();
 }
 
 TEST_F(NativeDeviceModulesTest, ReconnectionRestoreClientConfig)

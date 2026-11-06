@@ -489,6 +489,7 @@ void NativeDeviceImpl::publishConnectionStatus(const EnumerationPtr& status, con
 void NativeDeviceImpl::completeInitialization(std::shared_ptr<NativeDeviceHelper> deviceHelper, const StringPtr& connectionString)
 {
     attachDeviceHelper(deviceHelper);
+    this->connectionString = connectionString;
     updateDeviceInfo(connectionString);
 
     const auto statusInitValue = Enumeration("ConnectionStatusType", "Connected", this->context.getTypeManager());
@@ -547,6 +548,15 @@ ErrCode NativeDeviceImpl::getComponentConfig(IPropertyObject** config)
 bool NativeDeviceImpl::isAddedToLocalComponentTree()
 {
     return true;
+}
+
+void NativeDeviceImpl::onRemoteUpdate(const SerializedObjectPtr& serialized)
+{
+    Super::onRemoteUpdate(serialized);
+
+    // A remote update replaces the device info with the server's; restore this client's connection to it.
+    if (connectionString.assigned())
+        updateDeviceInfo(connectionString);
 }
 
 void NativeDeviceImpl::attachDeviceHelper(std::shared_ptr<NativeDeviceHelper> deviceHelper)

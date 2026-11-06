@@ -215,8 +215,8 @@ TEST_F(NativeStreamingModulesTest, DiscoveringServerUsernameLocation)
 TEST_F(NativeStreamingModulesTest, TestDiscoveryReachability)
 {
     bool checkIPv6 = !test_helpers::Ipv6IsDisabled();
-    // ICMP ping (and thus active IPv4 reachability detection) requires root on Linux/macOS.
-    const auto expectedIpv4Reachability =
+    // Discovery pings IPv4 and IPv6 addresses whenever this process may send ICMP.
+    const auto expectedReachability =
         test_helpers::icmpPingAvailable() ? AddressReachabilityStatus::Reachable : AddressReachabilityStatus::Unknown;
 
     auto instance = test_helpers::instanceBuilder()
@@ -254,12 +254,12 @@ TEST_F(NativeStreamingModulesTest, TestDiscoveryReachability)
                 if (addresInfo.getType() == "IPv4")
                 {
                     hasIPv4 = true;
-                    ASSERT_EQ(addresInfo.getReachabilityStatus(), expectedIpv4Reachability);
+                    ASSERT_EQ(addresInfo.getReachabilityStatus(), expectedReachability);
                 }
                 else if (addresInfo.getType() == "IPv6")
                 {
                     hasIPv6 = true;
-                    ASSERT_EQ(addresInfo.getReachabilityStatus(), AddressReachabilityStatus::Unknown);
+                    ASSERT_EQ(addresInfo.getReachabilityStatus(), expectedReachability);
                 }
 
                 if (hasIPv4 && (hasIPv6 || !checkIPv6))

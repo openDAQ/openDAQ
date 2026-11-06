@@ -12,6 +12,18 @@
 #include <opendaq/device_info_factory.h>
 #include <opendaq/module_manager_utils_ptr.h>
 #include <opendaq/device_impl.h>
+#include <opendaq/address_info_factory.h>
+#include <opendaq/device_info_internal_ptr.h>
+#include <boost/asio/io_context.hpp>
+#include <boost/asio/ip/udp.hpp>
+#include <cstring>
+
+#if defined(_WIN32)
+#include <iphlpapi.h>
+#else
+#include <ifaddrs.h>
+#include <net/if.h>
+#endif
 
 using namespace daq;
 
@@ -473,4 +485,188 @@ TEST_F(ModuleManagerTest, ParallelDeviceCreationFailure)
 //    StringPtr message;
 //    errorInfo->getMessage(&message);
 //    ASSERT_TRUE(message.toStdString().find("abc123") != std::string::npos);
+}
+
+// Reports one device whose capability lists the given addresses, in order, as the discovery modules do.
+class PingTestModule : public MockModuleImpl
+{
+public:
+    explicit PingTestModule(std::vector<std::string> addresses)
+        : addresses(std::move(addresses))
+    {
+    }
+
+    daq::ErrCode INTERFACE_FUNC getAvailableDevices(daq::IList** availableDevices) override
+    {
+        auto cap = ServerCapability("PingTest", "PingTest", ProtocolType::Configuration);
+        cap.setConnectionType("TCP/IP");
+        for (const auto& address : addresses)
+            cap.addAddressInfo(AddressInfoBuilder()
+                                   .setAddress(address)
+                                   .setType(address.front() == '[' ? "IPv6" : "IPv4")
+                                   .setConnectionString("daqping://" + address)
+                                   .build());
+
+        auto info = DeviceInfo("daqping://dev");
+        info.setManufacturer("openDAQ");
+        info.setSerialNumber("ping_test");
+        info.asPtr<IDeviceInfoInternal>().addServerCapability(cap);
+        *availableDevices = List<IDeviceInfo>(info).detach();
+        return OPENDAQ_SUCCESS;
+    }
+
+private:
+    std::vector<std::string> addresses;
+};
+
+class ModuleManagerPingTest : public ModuleManagerTest
+{
+protected:
+    ServerCapabilityPtr scan(const std::vector<std::string>& addresses)
+    {
+        auto manager = ModuleManager("[[none]]");
+        const auto context = Context(nullptr, Logger(), nullptr, manager, nullptr);
+        manager.addModule(createWithImplementation<IModule, PingTestModule>(addresses));
+        return manager.asPtr<IModuleManagerUtils>().getAvailableDevices()[0].getServerCapabilities()[0];
+    }
+
+    static AddressReachabilityStatus status(const ServerCapabilityPtr& cap, const std::string& address)
+    {
+        for (const auto& info : cap.getAddressInfo())
+            if (info.getAddress() == address)
+                return info.getReachabilityStatus();
+        throw std::runtime_error("No address info for " + address);
+    }
+
+    static bool hasIpv6Loopback()
+    {
+        boost::asio::io_context ioContext;
+        boost::asio::ip::udp::socket socket(ioContext);
+        boost::system::error_code ec;
+        socket.open(boost::asio::ip::udp::v6(), ec);
+        if (!ec)
+            socket.bind({boost::asio::ip::address_v6::loopback(), 0}, ec);
+        return !ec;
+    }
+
+    // Returns the host's own non-loopback addresses as discovery reports them: IPv6 in brackets, link-local with its scope.
+    // Point-to-point interfaces (macOS utun tunnels) are left out: a ping to their own address goes to the tunnel peer.
+    static std::vector<std::string> interfaceAddresses()
+    {
+        using namespace boost::asio::ip;
+        std::vector<std::string> result;
+        const auto add = [&result](const sockaddr* raw, unsigned index)
+        {
+            if (raw->sa_family == AF_INET)
+            {
+                address_v4::bytes_type bytes;
+                std::memcpy(bytes.data(), &reinterpret_cast<const sockaddr_in*>(raw)->sin_addr, bytes.size());
+                result.push_back(address_v4(bytes).to_string());
+            }
+            else if (raw->sa_family == AF_INET6)
+            {
+                address_v6::bytes_type bytes;
+                std::memcpy(bytes.data(), &reinterpret_cast<const sockaddr_in6*>(raw)->sin6_addr, bytes.size());
+                const bool linkLocal = address_v6(bytes).is_link_local();
+                if (linkLocal)
+                    bytes[2] = bytes[3] = 0;  // macOS keeps the interface index there
+                result.push_back("[" + address_v6(bytes, linkLocal ? index : 0).to_string() + "]");
+            }
+        };
+
+#if defined(_WIN32)
+        ULONG size = 0;
+        GetAdaptersAddresses(AF_UNSPEC, 0, nullptr, nullptr, &size);
+        std::vector<char> buffer(size);
+        auto* adapters = reinterpret_cast<IP_ADAPTER_ADDRESSES*>(buffer.data());
+        if (GetAdaptersAddresses(AF_UNSPEC, 0, nullptr, adapters, &size) != NO_ERROR)
+            return result;
+        for (auto* adapter = adapters; adapter; adapter = adapter->Next)
+            if (adapter->OperStatus == IfOperStatusUp && adapter->IfType != IF_TYPE_SOFTWARE_LOOPBACK)
+                for (auto* unicast = adapter->FirstUnicastAddress; unicast; unicast = unicast->Next)
+                    if (unicast->DadState == IpDadStatePreferred)
+                        add(unicast->Address.lpSockaddr, adapter->Ipv6IfIndex);
+#else
+        ifaddrs* interfaces = nullptr;
+        if (getifaddrs(&interfaces) != 0)
+            return result;
+        for (auto* i = interfaces; i; i = i->ifa_next)
+            if (i->ifa_addr && (i->ifa_flags & (IFF_UP | IFF_RUNNING | IFF_LOOPBACK | IFF_POINTOPOINT)) == (IFF_UP | IFF_RUNNING))
+                add(i->ifa_addr, if_nametoindex(i->ifa_name));
+        freeifaddrs(interfaces);
+#endif
+        return result;
+    }
+
+    // Returns why the test cannot run: no IPv6 loopback, or no ICMP permission (Linux without root outside net.ipv4.ping_group_range).
+    std::string pingUnavailable(bool ipv6)
+    {
+        if (ipv6 && !hasIpv6Loopback())
+            return "The host has no IPv6 loopback";
+        const std::string loopback = ipv6 ? "[::1]" : "127.0.0.1";
+        if (status(scan({loopback}), loopback) == AddressReachabilityStatus::Unknown)
+            return "This process may not send ICMP";
+        return {};
+    }
+};
+
+TEST_F(ModuleManagerPingTest, Ipv4LoopbackReachable)
+{
+    if (const auto reason = pingUnavailable(false); !reason.empty())
+        GTEST_SKIP() << reason;
+    ASSERT_EQ(status(scan({"127.0.0.1"}), "127.0.0.1"), AddressReachabilityStatus::Reachable);
+}
+
+TEST_F(ModuleManagerPingTest, Ipv6LoopbackReachable)
+{
+    if (const auto reason = pingUnavailable(true); !reason.empty())
+        GTEST_SKIP() << reason;
+    ASSERT_EQ(status(scan({"[::1]"}), "[::1]"), AddressReachabilityStatus::Reachable);
+}
+
+TEST_F(ModuleManagerPingTest, InterfaceAddressesReachable)
+{
+    if (const auto reason = pingUnavailable(false); !reason.empty())
+        GTEST_SKIP() << reason;
+    const auto addresses = interfaceAddresses();
+    if (addresses.empty())
+        GTEST_SKIP() << "The host has no network interface besides loopback";
+    const auto cap = scan(addresses);
+    for (const auto& address : addresses)
+        EXPECT_EQ(status(cap, address), AddressReachabilityStatus::Reachable) << address;
+}
+
+TEST_F(ModuleManagerPingTest, DocumentationAddressesUnreachable)
+{
+    if (const auto reason = pingUnavailable(false); !reason.empty())
+        GTEST_SKIP() << reason;
+    const auto cap = scan({"192.0.2.1", "[2001:db8::1]"});
+    ASSERT_EQ(status(cap, "192.0.2.1"), AddressReachabilityStatus::Unreachable);
+    ASSERT_EQ(status(cap, "[2001:db8::1]"), AddressReachabilityStatus::Unreachable);
+}
+
+TEST_F(ModuleManagerPingTest, Ipv6ChosenWhenIpv4Unreachable)
+{
+    if (const auto reason = pingUnavailable(true); !reason.empty())
+        GTEST_SKIP() << reason;
+    const auto cap = scan({"192.0.2.1", "[::1]"});
+    ASSERT_EQ(status(cap, "192.0.2.1"), AddressReachabilityStatus::Unreachable);
+    ASSERT_EQ(cap.getConnectionString(), "daqping://[::1]");
+}
+
+TEST_F(ModuleManagerPingTest, Ipv4KeptWhenBothReachable)
+{
+    if (const auto reason = pingUnavailable(true); !reason.empty())
+        GTEST_SKIP() << reason;
+    const auto cap = scan({"127.0.0.1", "[::1]"});
+    ASSERT_EQ(status(cap, "127.0.0.1"), AddressReachabilityStatus::Reachable);
+    ASSERT_EQ(status(cap, "[::1]"), AddressReachabilityStatus::Reachable);
+    ASSERT_EQ(cap.getConnectionString(), "daqping://127.0.0.1");
+}
+
+TEST_F(ModuleManagerPingTest, UnparsableAddressUnknown)
+{
+    const auto cap = scan({"not-an-address"});
+    ASSERT_EQ(status(cap, "not-an-address"), AddressReachabilityStatus::Unknown);
+    ASSERT_EQ(cap.getConnectionString(), "daqping://not-an-address");
 }

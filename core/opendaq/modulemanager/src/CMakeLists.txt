@@ -79,12 +79,7 @@ function(create_component_source_groups_${BASE_NAME})
     )
 
     source_group("module_manager//ping" FILES
-        ${SDK_HEADERS_DIR}/format.h
-        ${SDK_HEADERS_DIR}/ipv4_header.h
-        ${SDK_HEADERS_DIR}/icmp_header.h
         ${SDK_HEADERS_DIR}/icmp_ping.h
-        ${SDK_SRC_DIR}/ipv4_header.cpp
-        ${SDK_SRC_DIR}/icmp_header.cpp
         ${SDK_SRC_DIR}/icmp_ping.cpp
     )
 
@@ -106,10 +101,6 @@ set(SRC_PublicHeaders_Component
     module_exports.h
     module_impl.h
     context_factory.h
-    format.h
-    ipv4_header.h
-    icmp_header.h
-    icmp_ping.h
     discovery_server_factory.h
     module_info.h
     module_info_factory.h
@@ -126,6 +117,7 @@ set(SRC_PrivateHeaders_Component
     boost_dll.h
     context_impl.h
     mdns_discovery_server_impl.h
+    icmp_ping.h
     PARENT_SCOPE
 )
 
@@ -134,8 +126,6 @@ set(SRC_Cpp_Component
     module_manager_init.cpp
     context_impl.cpp
     orphaned_modules.cpp
-    ipv4_header.cpp
-    icmp_header.cpp
     icmp_ping.cpp
     mdns_discovery_server_impl.cpp
     module_info_impl.cpp

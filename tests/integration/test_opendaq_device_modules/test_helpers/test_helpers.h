@@ -38,6 +38,8 @@
 #ifdef _WIN32
     #include <windows.h>
 #else
+    #include <netinet/in.h>
+    #include <sys/socket.h>
     #include <unistd.h>
 #endif
 
@@ -54,14 +56,17 @@ BEGIN_NAMESPACE_OPENDAQ
 
 namespace test_helpers
 {
-    // Mirrors the ICMP availability gate in ModuleManagerImpl::checkNetworkSettings: on
-    // Linux/macOS, ICMP ping (and thus active IPv4 reachability detection during discovery)
-    // requires root. Windows has no such restriction.
+    // Mirrors icmpPing(): root may open raw ICMP sockets, others need an unprivileged datagram ICMP socket; Windows needs neither.
     [[maybe_unused]]
     inline bool icmpPingAvailable()
     {
 #if defined(__linux__) || defined(__APPLE__)
-        return geteuid() == 0;
+        if (geteuid() == 0)
+            return true;
+        const int fd = socket(AF_INET, SOCK_DGRAM, IPPROTO_ICMP);
+        if (fd >= 0)
+            close(fd);
+        return fd >= 0;
 #else
         return true;
 #endif

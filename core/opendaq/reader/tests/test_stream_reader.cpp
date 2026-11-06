@@ -826,7 +826,7 @@ TYPED_TEST(StreamReaderTest, ReadWithZeroAvailableAndTimeoutAny)
 
     ASSERT_EQ(reader.getAvailableCount(), 0u);
 
-    std::thread t([this, &FIRST_PACKET_SIZE, &SECOND_PACKET_SIZE] {
+    std::thread t([this, &FIRST_PACKET_SIZE] {
         using namespace std::chrono_literals;
 
         auto packet = DataPacket(this->signal.getDescriptor(), FIRST_PACKET_SIZE);
@@ -838,30 +838,17 @@ TYPED_TEST(StreamReaderTest, ReadWithZeroAvailableAndTimeoutAny)
 
         std::this_thread::sleep_for(30ms);
         this->sendPacket(packet, false);
-
-        // Packet 2
-
-        packet = DataPacket(this->signal.getDescriptor(), SECOND_PACKET_SIZE);
-
-        // Set the first sample to
-        dataPtr = static_cast<double*>(packet.getData());
-        dataPtr[0] = 33.3;
-        dataPtr[1] = 44.4;
-        dataPtr[2] = 55.5;
-        dataPtr[3] = 66.6;
-
-        std::this_thread::sleep_for(10ms);
-        this->sendPacket(packet, false);
     });
 
     SizeT count{6};
     TypeParam samples[6]{};
     reader.read(&samples, &count, 1000u);
-    
-    if (t.joinable())
-        t.join();
+    t.join();
 
     ASSERT_EQ(count, FIRST_PACKET_SIZE);
+
+    // Sent after the read returned, so it stays queued
+    this->sendPacket(DataPacket(this->signal.getDescriptor(), SECOND_PACKET_SIZE), false);
     ASSERT_EQ(reader.getAvailableCount(), SECOND_PACKET_SIZE);
 
     if constexpr (IsTemplateOf<TypeParam, Complex_Number>::value || IsTemplateOf<TypeParam, RangeType>::value)

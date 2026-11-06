@@ -16,6 +16,9 @@
 
 #pragma once
 #include <opendaq/context_ptr.h>
+#include <unordered_map>
+#include <utility>
+#include <vector>
 #include <coreobjects/property_object_ptr.h>
 #include <opendaq/streaming.h>
 #include <coretypes/impl.h>
@@ -140,6 +143,11 @@ protected:
     virtual void onUnregisterStreamedClientSignal(const SignalPtr& signal);
 
     void onPacket(const StringPtr& signalId, const PacketPtr& packet);
+
+    // Forwards a burst of packets in arrival order, resolving each signal once per burst.
+    using StreamingPacket = std::pair<StringPtr, PacketPtr>;
+    void onPackets(const std::vector<StreamingPacket>& packets);
+
     void handleEventPacket(const MirroredSignalConfigPtr& signal, const EventPacketPtr& eventPacket);
     void triggerSubscribeAck(const StringPtr& signalStreamingId, bool subscribed);
 
@@ -763,6 +771,63 @@ void StreamingImpl<Interfaces...>::onPacket(const StringPtr& signalId, const Pac
             handleEventPacket(signal, eventPacket);
         else
             signal.sendPacket(packet);
+    }
+}
+
+template <typename... Interfaces>
+void StreamingImpl<Interfaces...>::onPackets(const std::vector<StreamingPacket>& packets)
+{
+    struct ResolvedSignal
+    {
+        MirroredSignalConfigPtr signal;
+        bool forward = false;
+    };
+
+    // Keyed by string identity; a different object for the same id only costs a second resolution.
+    std::unordered_map<IString*, size_t> resolvedIndex;
+    std::vector<ResolvedSignal> resolved;
+    resolvedIndex.reserve(packets.size());
+
+    {
+        std::scoped_lock lock(sync);
+
+        if (!this->isActive)
+            return;
+
+        for (const auto& [signalId, packet] : packets)
+        {
+            if (!packet.assigned() || resolvedIndex.count(signalId.getObject()) != 0)
+                continue;
+
+            ResolvedSignal entry;
+            if (auto it = streamingSignalsItems.find(signalId); it != streamingSignalsItems.end())
+                entry.signal = it->second.second.getRef();
+            resolvedIndex.emplace(signalId.getObject(), resolved.size());
+            resolved.push_back(std::move(entry));
+        }
+    }
+
+    // The signal's lock is taken outside the streaming lock, as in onPacket, once per signal.
+    for (auto& entry : resolved)
+    {
+        entry.forward = entry.signal.assigned() &&
+                        entry.signal.getStreamed() &&
+                        entry.signal.getActiveStreamingSource() == connectionString;
+    }
+
+    for (const auto& [signalId, packet] : packets)
+    {
+        if (!packet.assigned())
+            continue;
+        const auto& entry = resolved[resolvedIndex[signalId.getObject()]];
+        if (!entry.forward)
+            continue;
+
+        const auto eventPacket = packet.asPtrOrNull<IEventPacket>();
+        if (eventPacket.assigned())
+            handleEventPacket(entry.signal, eventPacket);
+        else
+            entry.signal.sendPacket(packet);
     }
 }
 

@@ -9,6 +9,7 @@
 #include <opendaq/subscription_event_args_factory.h>
 
 #include <boost/asio/dispatch.hpp>
+#include <boost/asio/post.hpp>
 #include <opendaq/reader_factory.h>
 
 BEGIN_NAMESPACE_OPENDAQ_NATIVE_STREAMING_CLIENT_MODULE
@@ -31,6 +32,7 @@ NativeStreamingImpl::NativeStreamingImpl(
     , onDeviceSignalUnavailableCallback(onDeviceSignalUnavailableCallback)
     , onDeviceConnectionStatusChangedCb(onDeviceConnectionStatusChangedCb)
     , processingIOContextPtr(processingIOContextPtr)
+    , packetQueue(std::make_shared<PacketQueue>())
     , protocolInitFuture(protocolInitPromise.get_future())
     , streamingInitTimeout(std::chrono::milliseconds(streamingInitTimeout))
     , timerContextPtr(transportClientHandler->getIoContext())
@@ -38,6 +40,10 @@ NativeStreamingImpl::NativeStreamingImpl(
           std::make_shared<boost::asio::steady_timer>(*timerContextPtr)
     )
 {
+    packetQueue->streaming = this;
+    packetQueue->processingContext = processingIOContextPtr;
+    packetQueue->transportContext = timerContextPtr;
+
     initClientHandlerCallbacks();
     this->transportClientHandler->sendStreamingRequest();
 
@@ -178,11 +184,14 @@ void NativeStreamingImpl::upgradeClientHandlerCallbacks()
 {
     using namespace boost::asio;
     WeakRefPtr<IStreaming> thisRef = this->template borrowPtr<StreamingPtr>();
+    packetQueue->streamingRef = thisRef;
+    auto queue = packetQueue;
 
     OnSignalAvailableCallback signalAvailableCb =
-        [this, thisRef](const StringPtr& signalStringId,
+        [this, thisRef, queue](const StringPtr& signalStringId,
                const StringPtr& serializedSignal)
     {
+        flushPacketQueue(*queue);
         dispatch(
             *processingIOContextPtr,
             [this, thisRef, signalStringId, serializedSignal]()
@@ -193,8 +202,9 @@ void NativeStreamingImpl::upgradeClientHandlerCallbacks()
         );
     };
     OnSignalUnavailableCallback signalUnavailableCb =
-        [this, thisRef](const StringPtr& signalStringId)
+        [this, thisRef, queue](const StringPtr& signalStringId)
     {
+        flushPacketQueue(*queue);
         dispatch(
             *processingIOContextPtr,
             [this, thisRef, signalStringId]()
@@ -205,20 +215,14 @@ void NativeStreamingImpl::upgradeClientHandlerCallbacks()
         );
     };
     OnPacketCallback onPacketCallback =
-        [this, thisRef](const StringPtr& signalStringId, const PacketPtr& packet)
+        [queue](const StringPtr& signalStringId, const PacketPtr& packet)
     {
-        dispatch(
-            *processingIOContextPtr,
-            [this, thisRef, signalStringId, packet]()
-            {
-                if (auto thisPtr = thisRef.getRef(); thisPtr.assigned())
-                    this->onPacket(signalStringId, packet);
-            }
-        );
+        queuePacket(queue, signalStringId, packet);
     };
     OnSignalSubscriptionAckCallback onSignalSubscriptionAckCallback =
-        [this, thisRef](const StringPtr& signalStringId, bool subscribed)
+        [this, thisRef, queue](const StringPtr& signalStringId, bool subscribed)
     {
+        flushPacketQueue(*queue);
         dispatch(
             *processingIOContextPtr,
             [this, thisRef, signalStringId, subscribed]()
@@ -229,8 +233,9 @@ void NativeStreamingImpl::upgradeClientHandlerCallbacks()
         );
     };
     OnConnectionStatusChangedCallback onTransportConnectionStatusChangedCb =
-        [this, thisRef](const EnumerationPtr& status, const StringPtr& statusMessage)
+        [this, thisRef, queue](const EnumerationPtr& status, const StringPtr& statusMessage)
     {
+        flushPacketQueue(*queue);
         dispatch(
             *processingIOContextPtr,
             [this, thisRef, status, statusMessage]()
@@ -241,8 +246,9 @@ void NativeStreamingImpl::upgradeClientHandlerCallbacks()
         );
     };
     OnStreamingInitDoneCallback onStreamingInitDoneCb =
-        [this, thisRef]()
+        [this, thisRef, queue]()
     {
+        flushPacketQueue(*queue);
         dispatch(
             *processingIOContextPtr,
             [this, thisRef]()
@@ -288,6 +294,7 @@ void NativeStreamingImpl::initClientHandlerCallbacks()
             }
         );
     };
+    // Packets go straight through until the callbacks are upgraded.
     OnPacketCallback onPacketCallback =
         [this](const StringPtr& signalStringId, const PacketPtr& packet)
     {
@@ -339,6 +346,48 @@ void NativeStreamingImpl::initClientHandlerCallbacks()
                                                  onSignalSubscriptionAckCallback,
                                                  onConnectionStatusChangedCb,
                                                  onStreamingInitDoneCb);
+}
+
+// The flush posted to the transport context runs once the current read chain has drained its buffer,
+// so the processing thread wakes once per burst.
+void NativeStreamingImpl::queuePacket(const std::shared_ptr<PacketQueue>& queue, const StringPtr& signalStringId, const PacketPtr& packet)
+{
+    queue->packets.emplace_back(signalStringId, packet);
+
+    if (queue->packets.size() >= maxQueuedPackets)
+    {
+        flushPacketQueue(*queue);
+        return;
+    }
+
+    if (!queue->flushScheduled)
+    {
+        queue->flushScheduled = true;
+        boost::asio::post(*queue->transportContext,
+                          [weakQueue = std::weak_ptr<PacketQueue>(queue)]()
+                          {
+                              if (const auto q = weakQueue.lock())
+                                  flushPacketQueue(*q);
+                          });
+    }
+}
+
+void NativeStreamingImpl::flushPacketQueue(PacketQueue& queue)
+{
+    queue.flushScheduled = false;
+    if (queue.packets.empty())
+        return;
+
+    auto batch = std::make_shared<std::vector<StreamingPacket>>(std::move(queue.packets));
+    queue.packets.clear();
+    queue.packets.reserve(batch->size());
+
+    boost::asio::dispatch(*queue.processingContext,
+                          [streaming = queue.streaming, streamingRef = queue.streamingRef, batch]()
+                          {
+                              if (auto thisPtr = streamingRef.getRef(); thisPtr.assigned())
+                                  streaming->onPackets(*batch);
+                          });
 }
 
 void NativeStreamingImpl::onSetActive(bool active)

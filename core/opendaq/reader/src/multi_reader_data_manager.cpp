@@ -1409,8 +1409,8 @@ std::string MultiReaderDataManager::describeError(const Slot& slot) const
             if (slot.syncFailed == SyncCause::OffGrid)
                 return "not synchronized, off the main input's grid";
             if (slot.syncFailed == SyncCause::Stalled)
-                return "not synchronized, no data for 3 s";
-            return "not synchronized, more than 3 s ahead of the main input";
+                return "not synchronized, no data for " + std::to_string(syncLimitSeconds) + " s";
+            return "not synchronized, more than " + std::to_string(syncLimitSeconds) + " s ahead of the main input";
         default:
             return "";
     }

@@ -36,6 +36,13 @@ BEGIN_NAMESPACE_OPENDAQ
  * @brief Reads several equal-rate signals at once, aligned onto the main input's tick grid: row i of every buffer
  * is the same tick. Everything the user does goes in through `configure` with a params object, and everything
  * the reader has to say comes back on `read`, as one status per read.
+ *
+ * The reader keeps no clock: its limits are counted in each input's own data. An input with nothing queued while the
+ * others have sent more than 3 s past its newest sample is reported as not synchronized by the next read, and it rejoins
+ * once its own samples come within 1 s of the others'. An input whose first sample lies more than 3 s past the main
+ * input's newest is reported the same way. A consumer that reads too slowly loses data: once an input queues more than
+ * 5 s of its data or 100 MB, or all inputs together more than 1 GB, every input's queued data is dropped, and the next
+ * status reports the loss.
  */
 DECLARE_OPENDAQ_INTERFACE(IMultiReader2, IBaseObject)
 {
@@ -85,7 +92,8 @@ DECLARE_OPENDAQ_INTERFACE(IMultiReader2, IBaseObject)
     // [templateType(event, IBaseObject, IEventArgs)]
     /*!
      * @brief Gets the event scheduled when data becomes readable or a status with changes awaits a read, also while
-     * the reader is invalid. The sender is null.
+     * the reader is invalid. The sender is null. A call announces what arrived before it: the handler reads everything
+     * available, as what it leaves is announced again only when more data or a change arrives.
      * @param[out] event The data available event.
      */
     virtual ErrCode INTERFACE_FUNC getOnDataAvailable(IEvent** event) = 0;

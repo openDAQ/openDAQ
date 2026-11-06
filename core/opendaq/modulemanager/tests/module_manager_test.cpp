@@ -9,7 +9,6 @@
 #include <set>
 #include <thread>
 
-#include <opendaq/component_factory.h>
 #include <opendaq/component_type_builder_factory.h>
 #include <opendaq/device_info_config_ptr.h>
 #include <opendaq/device_info_factory.h>
@@ -20,6 +19,9 @@
 #include <opendaq/module_manager_errors.h>
 #include <coreobjects/property_factory.h>
 #include <coreobjects/property_object_factory.h>
+#include <opendaq/add_component_config_factory.h>
+#include <opendaq/address_info_factory.h>
+#include <opendaq/component_private_ptr.h>
 
 using namespace daq;
 
@@ -507,16 +509,19 @@ public:
 
     daq::ErrCode INTERFACE_FUNC getAvailableDevices(daq::IList** devices) override
     {
+        scanCount++;
         *devices = availableDevices.addRefAndReturn();
         return OPENDAQ_SUCCESS;
     }
 
-    daq::ErrCode INTERFACE_FUNC createDevice(daq::IDevice** /*device*/,
+    daq::ErrCode INTERFACE_FUNC createDevice(daq::IDevice** device,
                                              daq::IString* connectionString,
                                              daq::IComponent* /*parent*/,
-                                             daq::IPropertyObject* /*config*/) override
+                                             daq::IPropertyObject* config) override
     {
-        createdConnectionStrings.pushBack(connectionString);
+        createdConnectionString = connectionString;
+        createdConfig = config;
+        *device = createWithImplementation<IDevice, ScanTestDevice>(NullContext(), nullptr, String("dev")).detach();
         return OPENDAQ_SUCCESS;
     }
 
@@ -549,9 +554,12 @@ public:
 
     DictPtr<IString, IDeviceType> deviceTypes = Dict<IString, IDeviceType>();
     DictPtr<IString, IStreamingType> streamingTypes = Dict<IString, IStreamingType>();
-    ListPtr<IString> createdConnectionStrings = List<IString>();
-    ListPtr<IDeviceInfo> availableDevices = List<IDeviceInfo>();
     bool failDeviceTypes = false;
+
+    ListPtr<IDeviceInfo> availableDevices = List<IDeviceInfo>();
+    int scanCount = 0;
+    StringPtr createdConnectionString;
+    PropertyObjectPtr createdConfig;
 };
 
 class ModuleManagerTypesTest : public ModuleManagerTest
@@ -765,60 +773,6 @@ TEST_F(ModuleManagerTypesTest, ReservedStreamingTypeIdLogsWarning)
     ASSERT_TRUE(logged);
 }
 
-TEST_F(ModuleManagerTypesTest, DeviceKindChecksParent)
-{
-    auto lib = makeModule();
-    lib.impl->addDeviceType("rootdev", nullptr, DeviceKind::Root);
-    lib.impl->addDeviceType("extdev", nullptr, DeviceKind::Adapter);
-    lib.impl->addDeviceType("mirdev", nullptr, DeviceKind::Mirrored);
-    lib.impl->addDeviceType("unspecdev", nullptr, DeviceKind::Unspecified);
-    ASSERT_EQ(tryAdd(lib.module), "");
-
-    const ModuleManagerUtilsPtr utils = manager;
-    const auto parent = Component(NullContext(), nullptr, "parent");
-    const auto create = [&utils](const char* connectionString, const ComponentPtr& owner)
-    {
-        DevicePtr device;
-        const ErrCode errCode = utils->createDevice(&device, String(connectionString), owner, nullptr);
-        daqClearErrorInfo();
-        return errCode;
-    };
-
-    ASSERT_EQ(create("rootdev://", parent), OPENDAQ_ERR_INVALIDPARAMETER);
-    ASSERT_EQ(create("extdev://", nullptr), OPENDAQ_ERR_INVALIDPARAMETER);
-    ASSERT_EQ(create("mirdev://", nullptr), OPENDAQ_ERR_INVALIDPARAMETER);
-    ASSERT_EQ(lib.impl->createdConnectionStrings.getCount(), 0u);
-
-    ASSERT_EQ(create("rootdev://", nullptr), OPENDAQ_SUCCESS);
-    ASSERT_EQ(create("extdev://", parent), OPENDAQ_SUCCESS);
-    ASSERT_EQ(create("mirdev://", parent), OPENDAQ_SUCCESS);
-    ASSERT_EQ(create("unspecdev://", nullptr), OPENDAQ_SUCCESS);
-    ASSERT_EQ(create("unspecdev://", parent), OPENDAQ_SUCCESS);
-    ASSERT_EQ(lib.impl->createdConnectionStrings.getCount(), 5u);
-}
-
-TEST_F(ModuleManagerTypesTest, RootKindNotListed)
-{
-    auto lib = makeModule();
-    lib.impl->addDeviceType("rootdev", nullptr, DeviceKind::Root);
-    lib.impl->addDeviceType("extdev", nullptr, DeviceKind::Adapter);
-    for (const auto& prefix : {"rootdev", "extdev"})
-    {
-        const auto info = DeviceInfo(std::string(prefix) + "://10.0.0.5");
-        info.setDeviceType(lib.impl->deviceTypes.get(prefix));
-        lib.impl->availableDevices.pushBack(info);
-    }
-    lib.impl->availableDevices.pushBack(DeviceInfo("rootdev://untyped"));
-    ASSERT_EQ(tryAdd(lib.module), "");
-
-    std::set<std::string> listed;
-    for (const auto& info : manager.asPtr<IModuleManagerUtils>().getAvailableDevices())
-        listed.insert(info.getConnectionString());
-
-    const std::set<std::string> expected{"extdev://10.0.0.5", "rootdev://untyped"};
-    ASSERT_EQ(listed, expected);
-}
-
 class ModuleManagerAddConfigTest : public ModuleManagerTypesTest
 {
 protected:
@@ -830,6 +784,7 @@ protected:
         module->addDeviceType("extdev", nullptr, DeviceKind::Adapter);
         module->addDeviceType("unlinked", nullptr, DeviceKind::Mirrored);
         module->addDeviceType("rootdev", nullptr, DeviceKind::Root);
+        module->addDeviceType("unspecdev", nullptr, DeviceKind::Unspecified);
         module->addStreamingType("mockstr", "mockdev", deviceConfig());
         module->addStreamingType("free", nullptr, streamingConfig());
         manager->addModule(lib.module);
@@ -897,7 +852,51 @@ protected:
         return streamingConfig.assigned() ? streamingConfig.getStreamingType().getId().toStdString() : "";
     }
 
+    ErrCode add(const StringPtr& connectionString, const PropertyObjectPtr& config, DevicePtr& device, const ComponentPtr& parentComponent)
+    {
+        module->createdConfig = nullptr;
+        const ErrCode errCode = manager.asPtr<IModuleManagerUtils>()->createDevice(&device, connectionString, parentComponent, config);
+        lastErrorMessage.clear();
+        ObjectPtr<IErrorInfo> errorInfo;
+        daqGetErrorInfo(&errorInfo);
+        if (errorInfo.assigned())
+        {
+            StringPtr message;
+            errorInfo->getMessage(&message);
+            lastErrorMessage = message.assigned() ? message.toStdString() : "";
+        }
+        daqClearErrorInfo();
+        return errCode;
+    }
+
+    ErrCode add(const StringPtr& connectionString, const PropertyObjectPtr& config = nullptr)
+    {
+        DevicePtr device;
+        return add(connectionString, config, device, parent);
+    }
+
+    DevicePtr addDevice(const StringPtr& connectionString, const PropertyObjectPtr& config)
+    {
+        DevicePtr device;
+        EXPECT_EQ(add(connectionString, config, device, parent), OPENDAQ_SUCCESS) << lastErrorMessage;
+        return device;
+    }
+
+    static ServerCapabilityConfigPtr Capability(const std::string& prefix, ProtocolType type)
+    {
+        auto capability = ServerCapability(prefix, prefix, type).setPrefix(prefix);
+        for (const auto& [address, addressType] : {std::pair{"10.0.0.5", "IPv4"}, std::pair{"[fd00::5]", "IPv6"}})
+        {
+            const auto connectionString = fmt::format("{}://{}", prefix, address);
+            capability.addAddressInfo(
+                AddressInfoBuilder().setAddress(address).setType(addressType).setConnectionString(connectionString).build());
+        }
+        return capability;
+    }
+
     TypesTestModule* module = nullptr;
+    ComponentPtr parent = createWithImplementation<IDevice, ScanTestDevice>(NullContext(), nullptr, String("parent"));
+    std::string lastErrorMessage;
 };
 
 TEST_F(ModuleManagerAddConfigTest, DiscoveredDeviceType)
@@ -948,8 +947,9 @@ TEST_F(ModuleManagerAddConfigTest, SmartConnectionString)
 
     const ModuleManagerUtilsPtr utils = manager;
     const auto parent = Component(NullContext(), nullptr, "parent");
-    const auto create = [&utils](const char* connectionString, const ComponentPtr& owner)
+    const auto create = [&](const char* connectionString, const ComponentPtr& owner)
     {
+        module->createdConnectionString = nullptr;
         DevicePtr device;
         const ErrCode errCode = utils->createDevice(&device, String(connectionString), owner, nullptr);
         daqClearErrorInfo();
@@ -957,12 +957,14 @@ TEST_F(ModuleManagerAddConfigTest, SmartConnectionString)
     };
 
     ASSERT_EQ(create("daq://m_typed", parent), OPENDAQ_SUCCESS);
+    ASSERT_EQ(module->createdConnectionString, "extdev://extdev1");
     ASSERT_EQ(create("daq://m_root", parent), OPENDAQ_SUCCESS);
+    ASSERT_EQ(module->createdConnectionString, "extdev://extdev1");
     ASSERT_EQ(create("daq://m_root", nullptr), OPENDAQ_SUCCESS);
+    ASSERT_EQ(module->createdConnectionString, "rootdev://rootdev0");
     ASSERT_EQ(create("daq://m_unprefixed", parent), OPENDAQ_SUCCESS);
+    ASSERT_EQ(module->createdConnectionString, "extdev://unprefixed");
     ASSERT_EQ(create("daq://m_unloaded", parent), OPENDAQ_ERR_NOTFOUND);
-    ASSERT_EQ(module->createdConnectionStrings,
-              List<IString>("extdev://extdev1", "extdev://extdev1", "rootdev://rootdev0", "extdev://unprefixed"));
 }
 
 TEST_F(ModuleManagerAddConfigTest, DiscoveredExplicitPrefix)
@@ -1032,6 +1034,153 @@ TEST_F(ModuleManagerAddConfigTest, ScanOnAddSeededFromModuleManager)
     ASSERT_EQ(disabled->addModule(lib.module), OPENDAQ_SUCCESS);
 
     ASSERT_FALSE(disabled.asPtr<IModuleManagerUtils>().createAddDeviceConfig(deviceInfo("mockdev://")).getScanOnAdd());
+}
+
+TEST_F(ModuleManagerAddConfigTest, AddUsesTypeConfig)
+{
+    const auto config = create(deviceInfo("mockdev://"));
+    config.setScanOnAdd(False);
+    config.getTypeConfig().setPropertyValue("Host", "fromconfig");
+
+    addDevice("mockdev://10.0.0.5?Port=4321", config);
+
+    ASSERT_EQ(module->createdConnectionString, "mockdev://10.0.0.5");
+    ASSERT_EQ(module->createdConfig.getPropertyValue("Host"), "fromconfig");
+    ASSERT_EQ(module->createdConfig.getPropertyValue("Port"), 4321);
+
+    ASSERT_EQ(config.getTypeConfig().getPropertyValue("Port"), 7420);
+}
+
+TEST_F(ModuleManagerAddConfigTest, AddStoresThreeSectionConfig)
+{
+    const auto config = create(deviceInfo("mockdev://"));
+    config.setScanOnAdd(False);
+    config.setPrimaryAddressType(AddressType::IPv6);
+    config.getTypeConfig().setPropertyValue("Port", 1234);
+
+    const auto options = config.getStreamingOptions();
+    options.getStreamingConfigs().get("free").getTypeConfig().setPropertyValue("Port", 99);
+    options.setStreamingType("free");
+    options.setStreamingMode(StreamingMode::MinHops);
+
+    const PropertyObjectPtr stored = addDevice("mockdev://10.0.0.5", config).asPtr<IComponentPrivate>().getComponentConfig();
+
+    ASSERT_EQ(stored.getPropertyValue("Device.mockdev.Port"), 1234);
+    ASSERT_FALSE(PropertyObjectPtr(stored.getPropertyValue("Streaming")).hasProperty("mockstr"));
+    ASSERT_EQ(stored.getPropertyValue("Streaming.free.Port"), 99);
+
+    const PropertyObjectPtr general = stored.getPropertyValue("General");
+    ASSERT_EQ(general.getPropertyValue("ScanOnAdd"), False);
+    ASSERT_EQ(general.getPropertyValue("PrimaryAddressType"), "IPv6");
+    ASSERT_EQ(general.getPropertyValue("AutomaticallyConnectStreaming"), True);
+    ASSERT_EQ(general.getPropertyValue("StreamingConnectionHeuristic"), 1);
+    ASSERT_EQ(general.getPropertyValue("PrioritizedStreamingProtocols"),
+              List<IString>("free"));
+
+    options.setStreamingType(nullptr);
+    const PropertyObjectPtr unselected = addDevice("mockdev://10.0.0.5", config).asPtr<IComponentPrivate>().getComponentConfig();
+    ASSERT_EQ(unselected.getPropertyValue("General.AutomaticallyConnectStreaming"), False);
+}
+
+TEST_F(ModuleManagerAddConfigTest, AddMismatchedConfig)
+{
+    const auto config = create(deviceInfo("mockdev://"));
+    config.setScanOnAdd(False);
+
+    ASSERT_EQ(add("extdev://10.0.0.5", config), OPENDAQ_ERR_INVALIDPARAMETER);
+    expectContains(lastErrorMessage, R"("extdev")");
+    expectContains(lastErrorMessage, R"("mockdev")");
+    ASSERT_FALSE(module->createdConfig.assigned());
+
+    const auto unloaded = DeviceTypeBuilder().setId("unloaded").setName("unloaded").setConnectionStringPrefix("unloaded").build();
+    ASSERT_EQ(add("unloaded://10.0.0.5", AddDeviceConfig(unloaded, nullptr, False)), OPENDAQ_ERR_NOTFOUND);
+}
+
+TEST_F(ModuleManagerAddConfigTest, AddScanOnAdd)
+{
+    const auto config = create(deviceInfo("mockdev://"));
+
+    config.setScanOnAdd(False);
+    addDevice("mockdev://10.0.0.5", config);
+    ASSERT_EQ(module->scanCount, 0);
+
+    config.setScanOnAdd(True);
+    addDevice("mockdev://10.0.0.5", config);
+    ASSERT_EQ(module->scanCount, 1);
+}
+
+TEST_F(ModuleManagerAddConfigTest, AddSmartConnectionString)
+{
+    auto info = DeviceInfo("");
+    info.setManufacturer("openDAQ");
+    info.setSerialNumber("sn1");
+    info.asPtr<IDeviceInfoInternal>().addServerCapability(Capability("extdev", ProtocolType::ConfigurationAndStreaming));
+    info.asPtr<IDeviceInfoInternal>().addServerCapability(Capability("mockdev", ProtocolType::Configuration));
+    module->availableDevices.pushBack(info);
+
+    const auto config = create(deviceInfo("mockdev://"));
+    addDevice("daq://openDAQ_sn1", config);
+    ASSERT_EQ(module->createdConnectionString, "mockdev://10.0.0.5");
+
+    config.setPrimaryAddressType(AddressType::IPv6);
+    addDevice("daq://openDAQ_sn1", config);
+    ASSERT_EQ(module->createdConnectionString, "mockdev://[fd00::5]");
+
+    ASSERT_EQ(add("daq://openDAQ_sn1", create(deviceInfo("unlinked://"))), OPENDAQ_ERR_NOTFOUND);
+}
+
+TEST_F(ModuleManagerAddConfigTest, RootKindNotAddable)
+{
+    const auto rootType = module->deviceTypes.get("rootdev");
+    const auto config = AddDeviceConfig(rootType, nullptr, False);
+
+    ASSERT_EQ(add("rootdev://10.0.0.5"), OPENDAQ_ERR_INVALIDPARAMETER);
+    ASSERT_EQ(add("rootdev://10.0.0.5", config), OPENDAQ_ERR_INVALIDPARAMETER);
+    expectContains(lastErrorMessage, R"("rootdev")");
+    ASSERT_FALSE(module->createdConfig.assigned());
+
+    DevicePtr device;
+    ASSERT_EQ(add("rootdev://10.0.0.5", nullptr, device, nullptr), OPENDAQ_SUCCESS);
+    ASSERT_EQ(add("rootdev://10.0.0.5", config, device, nullptr), OPENDAQ_SUCCESS);
+}
+
+TEST_F(ModuleManagerAddConfigTest, AdapterAndMirroredKindsNotRoot)
+{
+    DevicePtr device;
+    for (const auto& prefix : {"extdev", "mockdev"})
+    {
+        const auto connectionString = std::string(prefix) + "://10.0.0.5";
+        ASSERT_EQ(add(connectionString, nullptr, device, nullptr), OPENDAQ_ERR_INVALIDPARAMETER);
+        expectContains(lastErrorMessage, fmt::format(R"("{}")", prefix));
+        ASSERT_EQ(add(connectionString, create(deviceInfo(connectionString)), device, nullptr), OPENDAQ_ERR_INVALIDPARAMETER);
+        ASSERT_FALSE(module->createdConnectionString.assigned());
+    }
+
+    ASSERT_EQ(add("unspecdev://10.0.0.5", nullptr, device, nullptr), OPENDAQ_SUCCESS);
+}
+
+TEST_F(ModuleManagerAddConfigTest, UnspecifiedKindAddable)
+{
+    addDevice("unspecdev://10.0.0.5", create(deviceInfo("unspecdev://")));
+    ASSERT_EQ(module->createdConnectionString, "unspecdev://10.0.0.5");
+}
+
+TEST_F(ModuleManagerAddConfigTest, RootKindNotListed)
+{
+    for (const auto& prefix : {"rootdev", "extdev"})
+    {
+        const auto info = deviceInfo(std::string(prefix) + "://10.0.0.5");
+        info.setDeviceType(module->deviceTypes.get(prefix));
+        module->availableDevices.pushBack(info);
+    }
+    module->availableDevices.pushBack(deviceInfo("rootdev://untyped"));
+
+    std::set<std::string> listed;
+    for (const auto& info : manager.asPtr<IModuleManagerUtils>().getAvailableDevices())
+        listed.insert(info.getConnectionString());
+
+    const std::set<std::string> expected{"extdev://10.0.0.5", "rootdev://untyped"};
+    ASSERT_EQ(listed, expected);
 }
 
 TEST_F(ModuleManagerAddConfigTest, RootKindConfigRejected)

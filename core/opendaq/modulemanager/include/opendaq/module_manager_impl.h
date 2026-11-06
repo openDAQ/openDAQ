@@ -39,6 +39,7 @@
 #include <opendaq/component_type_ptr.h>
 #include <opendaq/credential_request_ptr.h>
 #include <opendaq/credential_provider_ptr.h>
+#include <opendaq/add_device_config_ptr.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 struct ModuleLibrary;
@@ -78,6 +79,11 @@ public:
 
 private:
     ErrCode createDeviceInternal(IDevice** device, IString* connectionString, IComponent* parent, IPropertyObject* config);
+    ErrCode createDeviceFromAddDeviceConfig(IDevice** device,
+                                            const StringPtr& connectionString,
+                                            IComponent* parent,
+                                            const AddDeviceConfigPtr& inputConfig,
+                                            const AuthenticationConfigPtr& authenticationConfig);
     ErrCode createDeviceWithModule(IDevice** device,
                                    const ModulePtr& module,
                                    const DeviceTypePtr& deviceType,

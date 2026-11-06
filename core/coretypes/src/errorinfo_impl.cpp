@@ -591,6 +591,16 @@ ErrCode ErrorInfoImpl::getFormattedMessage(IString** message)
         return OPENDAQ_SUCCESS;
     }
 
+#ifdef NDEBUG
+    // Release builds add no file and line, so a set message is already the formatted one
+    if (this->message)
+    {
+        *message = this->message;
+        this->message->addRef();
+        return OPENDAQ_SUCCESS;
+    }
+#endif
+
     std::ostringstream ss;
 
     [[maybe_unused]] bool needSpace = true;

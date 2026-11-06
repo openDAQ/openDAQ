@@ -27,6 +27,7 @@
 #include <opendaq/streaming_ptr.h>
 #include <map>
 #include <thread>
+#include <future>
 #include <boost/asio/executor_work_guard.hpp>
 #include <boost/asio/io_context.hpp>
 #include <opendaq/module_ptr.h>
@@ -111,6 +112,8 @@ private:
     static PropertyObjectPtr CreateGeneralConfig(Bool scanOnAdd);
     static void OverrideConfigProperties(PropertyObjectPtr& targetConfig, const PropertyObjectPtr& sourceConfig);
 
+    ListPtr<IDeviceInfo> scanAvailableDevices();
+    DictPtr<IString, IDeviceInfo> availableDevicesGroupSnapshot() const;
     DictPtr<IString, IDeviceInfo> discoverDevicesWithIpModification();
     std::pair<StringPtr, DeviceInfoPtr> populateDiscoveredDevice(const discovery::MdnsDiscoveredDevice& discoveredDevice);
     void onCompleteCapabilities(const DevicePtr& device, const DeviceInfoPtr& discoveredDeviceInfo);
@@ -134,7 +137,14 @@ private:
     boost::asio::io_context ioContext;
     boost::asio::executor_work_guard<boost::asio::io_context::executor_type> work;
 
+    // Concurrent getAvailableDevices() callers share the running scan, so a module is never asked to scan twice at once
+    std::mutex scanSync;
+    std::shared_future<ListPtr<IDeviceInfo>> runningScan;
+
+    // Result of the last scan: replaced whole, never modified in place, read through availableDevicesGroupSnapshot()
+    mutable std::mutex availableDevicesGroupSync;
     DictPtr<IString, IDeviceInfo> availableDevicesGroup;
+    std::chrono::time_point<std::chrono::steady_clock> lastScanTime;
     std::mutex availableDevicesSearchSync;
     std::unordered_map<std::string, size_t> functionBlockCountMap;
 
@@ -142,7 +152,6 @@ private:
     discovery::DiscoveryClient discoveryClient; // for discovering devices which has IP modification feature enabled
     ContextPtr context;
 
-    std::chrono::time_point<std::chrono::steady_clock> lastScanTime;
     std::chrono::milliseconds rescanTimer;
     Bool safeLoadingMode;
     Bool scanOnAdd;

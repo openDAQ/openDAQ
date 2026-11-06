@@ -38,8 +38,10 @@ DECLARE_OPENDAQ_INTERFACE(IModuleManagerUtils, IBaseObject)
      * @brief Returns a list of known devices info.
      * The implementation can start discovery in background and only return the results in this function.
      * @param[out] availableDevices The list of known devices information.
+     * @retval OPENDAQ_ERR_INVALID_OPERATION if called while a module lists its available devices.
      *
-     * Contains information on devices available in all loaded modules.
+     * Contains information on devices available in all loaded modules. Concurrent calls share one scan and return its
+     * result, so each module is asked for its available devices by at most one scan at a time.
      */
     // [elementType(availableDevices, IDeviceInfo)]
     virtual ErrCode INTERFACE_FUNC getAvailableDevices(IList** availableDevices) = 0;

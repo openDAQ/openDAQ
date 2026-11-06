@@ -17,10 +17,12 @@
 #pragma once
 
 #include <opendaq/mirrored_device_config_ptr.h>
+#include <opendaq/add_component_config_factory.h>
 #include <opendaq/device_impl.h>
 #include <opendaq/streaming_ptr.h>
 #include <opendaq/streaming_private.h>
 #include <opendaq/streaming_source_manager.h>
+#include <opendaq/streaming_type_utils.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
@@ -70,6 +72,7 @@ protected:
 
     StreamingPtr onAddStreaming(const StringPtr& connectionString, const PropertyObjectPtr& config) override;
     DictPtr<IString, IStreamingType> onGetAvailableStreamingTypes() override;
+    AddStreamingConfigPtr onCreateAddStreamingConfig(const StringPtr& connectionString) override;
 
     virtual bool isAddedToLocalComponentTree();
     virtual StringPtr onGetRemoteId() const = 0;
@@ -390,34 +393,53 @@ StreamingPtr MirroredDeviceBase<Interfaces...>::onAddStreaming(const StringPtr& 
 template <typename... Interfaces>
 DictPtr<IString, IStreamingType> MirroredDeviceBase<Interfaces...>::onGetAvailableStreamingTypes()
 {
-    auto streamingTypes = Dict<IString, IStreamingType>();
-
     DeviceInfoPtr info;
     checkErrorInfo(this->getInfo(&info));
     if (!info.assigned())
-        return streamingTypes;
+        return Dict<IString, IStreamingType>();
 
-    std::set<std::string> streamingPrefixes;
-    for (const auto& capability : info.getServerCapabilities())
-    {
-        const auto protocolType = capability.getProtocolType();
-        const StringPtr prefix = capability.getPrefix();
-        if ((protocolType == ProtocolType::Streaming || protocolType == ProtocolType::ConfigurationAndStreaming) && prefix.assigned())
-            streamingPrefixes.insert(prefix.toStdString());
-    }
-
-    if (streamingPrefixes.empty())
-        return streamingTypes;
+    const auto moduleManager = this->context.getModuleManager();
+    if (!moduleManager.assigned())
+        return Dict<IString, IStreamingType>();
 
     auto lock = this->getRecursiveConfigLock2();
+    const ModuleManagerUtilsPtr managerUtils = moduleManager.template asPtr<IModuleManagerUtils>();
+    return getAdvertisedStreamingTypes(info.getServerCapabilities(), managerUtils.getAvailableStreamingTypes());
+}
+
+template <typename... Interfaces>
+AddStreamingConfigPtr MirroredDeviceBase<Interfaces...>::onCreateAddStreamingConfig(const StringPtr& connectionString)
+{
+    auto lock = this->getRecursiveConfigLock2();
     const ModuleManagerUtilsPtr managerUtils = this->context.getModuleManager().template asPtr<IModuleManagerUtils>();
-    for (const auto& [id, type] : managerUtils.getAvailableStreamingTypes())
+    const auto loadedTypes = managerUtils.getAvailableStreamingTypes();
+    if (connectionString.assigned())
     {
-        if (streamingPrefixes.count(type.getConnectionStringPrefix().toStdString()))
-            streamingTypes.set(id, type);
+        const auto findTypeByConnectionString = [&loadedTypes](const std::string& str) -> StreamingTypePtr
+        {
+            const StringPtr prefix = str.substr(0, str.find("://"));
+            for (const auto& [_, type] : loadedTypes)
+                if (type.getConnectionStringPrefix() == prefix)
+                    return type;
+            return nullptr;
+        };
+
+        const auto streamingType = findTypeByConnectionString(connectionString);
+        if (!streamingType.assigned())
+        {
+            DAQ_THROW_EXCEPTION(NotFoundException, R"(No loaded streaming type for the connection string "{}")", connectionString);
+        }
+        return AddStreamingConfig(streamingType);
     }
 
-    return streamingTypes;
+    auto streamingType = selectStreamingType(onGetAvailableStreamingTypes(), mirroredDeviceType, true);
+    if (!streamingType.assigned())
+        streamingType = selectStreamingType(loadedTypes, mirroredDeviceType, false);
+    if (!streamingType.assigned())
+    {
+        DAQ_THROW_EXCEPTION(NotFoundException, "The device has no available or linked streaming type");
+    }
+    return AddStreamingConfig(streamingType);
 }
 
 template <typename... Interfaces>

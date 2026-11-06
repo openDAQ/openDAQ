@@ -49,6 +49,9 @@
 
 #include <opendaq/thread_name.h>
 #include <opendaq/module_manager_check_dependencies.h>
+#include <opendaq/add_component_config_factory.h>
+#include <opendaq/add_streaming_options_ptr.h>
+#include <opendaq/streaming_type_utils.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
@@ -100,6 +103,15 @@ inline ErrCode CheckKindAllowed(const DeviceTypePtr& deviceType, bool asChild)
     return DAQ_MAKE_ERROR_INFO(
         OPENDAQ_ERR_INVALIDPARAMETER,
         fmt::format(R"(Device type "{}" is not of Root kind and cannot be set as the root device)", deviceType.getId()));
+}
+
+template <typename TypePtr, typename Types>
+TypePtr FindTypeByPrefix(const Types& types, const StringPtr& prefix)
+{
+    for (const auto& [_, type] : types)
+        if (type.getConnectionStringPrefix() == prefix)
+            return type;
+    return nullptr;
 }
 
 ModuleManagerImpl::ModuleManagerImpl(const BaseObjectPtr& path, const CredentialProviderPtr& credentialProvider)
@@ -1532,6 +1544,106 @@ ErrCode ModuleManagerImpl::getDiscoveryInfo(IDeviceInfo** deviceInfo, IString* m
     return OPENDAQ_NOTFOUND;
 }
 
+ErrCode ModuleManagerImpl::createAddDeviceConfig(IAddDeviceConfig** config, IDeviceInfo* info, IString* prefix)
+{
+    OPENDAQ_PARAM_NOT_NULL(config);
+    OPENDAQ_PARAM_NOT_NULL(info);
+
+    return daqTry([&]()
+    {
+        const auto infoPtr = DeviceInfoPtr::Borrow(info);
+        const StringPtr prefixPtr = (prefix != nullptr) ? StringPtr(prefix) : StringPtr("");
+
+        DictPtr<IString, IDeviceType> deviceTypes;
+        checkErrorInfo(getAvailableDeviceTypes(&deviceTypes));
+        DictPtr<IString, IStreamingType> streamingTypes;
+        checkErrorInfo(getAvailableStreamingTypes(&streamingTypes));
+
+        const auto deviceType = chooseDeviceType(infoPtr, prefixPtr, deviceTypes);
+        const auto capabilities = infoPtr.getServerCapabilities();
+        const auto listedTypes = (capabilities.getCount() > 0) ? getAdvertisedStreamingTypes(capabilities, streamingTypes) : streamingTypes;
+        auto addDeviceConfig = AddDeviceConfig(deviceType, listedTypes, scanOnAdd);
+
+        const auto options = addDeviceConfig.getStreamingOptions();
+        if (options.assigned())
+        {
+            const auto offered = options.getStreamingConfigs();
+            auto offeredTypes = Dict<IString, IStreamingType>();
+            for (const auto& [id, streamingType] : listedTypes)
+                if (offered.hasKey(id))
+                    offeredTypes.set(id, streamingType);
+                else
+                {
+                    LOG_W(R"(Streaming type "{}" is not offered for device type "{}": its ID can't be listed)", id, deviceType.getId());
+                }
+
+            const auto defaultType = selectStreamingType(offeredTypes, deviceType, capabilities.getCount() > 0);
+            if (defaultType.assigned())
+                options.setStreamingType(defaultType.getId());
+        }
+
+        *config = addDeviceConfig.detach();
+    });
+}
+
+DeviceTypePtr ModuleManagerImpl::chooseDeviceType(const DeviceInfoPtr& info,
+                                                  const StringPtr& prefix,
+                                                  const DictPtr<IString, IDeviceType>& deviceTypes) const
+{
+    const auto findAddableDeviceType = [&deviceTypes](const StringPtr& typePrefix)
+    {
+        const auto deviceType = FindTypeByPrefix<DeviceTypePtr>(deviceTypes, typePrefix);
+        if (!deviceType.assigned())
+            DAQ_THROW_EXCEPTION(NotFoundException, R"(No loaded device type for the prefix "{}")", typePrefix);
+
+        checkErrorInfo(CheckKindAllowed(deviceType, true));
+        return deviceType;
+    };
+
+    const auto capabilities = info.getServerCapabilities();
+    if (capabilities.getCount() == 0)
+    {
+        const std::string connectionStringPrefix = getPrefixFromConnectionString(info.getConnectionString());
+        if (prefix.getLength() > 0 && prefix != connectionStringPrefix)
+        {
+            DAQ_THROW_EXCEPTION(InvalidParameterException,
+                                R"(Prefix "{}" differs from the prefix "{}" of the device connection string)",
+                                prefix,
+                                connectionStringPrefix);
+        }
+
+        return findAddableDeviceType(connectionStringPrefix);
+    }
+
+    if (prefix.getLength() > 0)
+    {
+        const auto hasPrefix = [&prefix](const ServerCapabilityPtr& capability) { return capability.getPrefix() == prefix; };
+        if (std::none_of(capabilities.begin(), capabilities.end(), hasPrefix))
+            DAQ_THROW_EXCEPTION(NotFoundException, R"(The device has no server capability with the prefix "{}")", prefix);
+
+        return findAddableDeviceType(prefix);
+    }
+
+    const auto isAddable = [&deviceTypes](const ServerCapabilityPtr& capability)
+    {
+        const auto deviceType = FindTypeByPrefix<DeviceTypePtr>(deviceTypes, capability.getPrefix());
+        return deviceType.assigned() && IsKindAllowed(deviceType.getDeviceKind(), true);
+    };
+
+    const auto selected = SelectServerCapability(capabilities, isAddable);
+    if (selected.assigned())
+        return FindTypeByPrefix<DeviceTypePtr>(deviceTypes, selected.getPrefix());
+
+    for (const auto& capability : capabilities)
+    {
+        const auto deviceType = FindTypeByPrefix<DeviceTypePtr>(deviceTypes, capability.getPrefix());
+        if (deviceType.assigned())
+            checkErrorInfo(CheckKindAllowed(deviceType, true));
+    }
+
+    DAQ_THROW_EXCEPTION(NotFoundException, "No loaded device type for any server capability of the device");
+}
+
 uint16_t ModuleManagerImpl::GetServerCapabilityPriority(const ServerCapabilityPtr& cap)
 {
     const std::string nativeId = "OpenDAQNativeConfiguration";
@@ -1551,6 +1663,27 @@ uint16_t ModuleManagerImpl::GetServerCapabilityPriority(const ServerCapabilityPt
     }
 
     return 0;
+}
+
+ServerCapabilityPtr ModuleManagerImpl::SelectServerCapability(const ListPtr<IServerCapability>& capabilities,
+                                                              const std::function<bool(const ServerCapabilityPtr&)>& accepts)
+{
+    ServerCapabilityPtr selected;
+    uint16_t selectedPriority = 0;
+    for (const auto& capability : capabilities)
+    {
+        if (!accepts(capability))
+            continue;
+
+        const auto priority = GetServerCapabilityPriority(capability);
+        if (!selected.assigned() || priority > selectedPriority)
+        {
+            selected = capability;
+            selectedPriority = priority;
+        }
+    }
+
+    return selected;
 }
 
 DeviceInfoPtr ModuleManagerImpl::getSmartConnectionDeviceInfo(const StringPtr& inputConnectionString) const
@@ -1642,18 +1775,7 @@ StringPtr ModuleManagerImpl::resolveSmartConnectionString(const StringPtr& input
     if (capabilities.getCount() == 0)
         DAQ_THROW_EXCEPTION(NotFoundException, "Device with connection string \"{}\" has no available server capabilities", inputConnectionString);
 
-    ServerCapabilityPtr selectedCapability = capabilities[0];
-    auto selectedPriority = GetServerCapabilityPriority(selectedCapability);
-
-    for (const auto & capability : capabilities)
-    {
-        const auto priority = GetServerCapabilityPriority(capability);
-        if (priority  > selectedPriority)
-        {
-            selectedCapability = capability;
-            selectedPriority = priority;
-        }
-    }
+    const auto selectedCapability = SelectServerCapability(capabilities, [](const ServerCapabilityPtr&) { return true; });
 
     const StringPtr primaryAddressType = generalConfig.getPropertyValue("PrimaryAddressType");
 
@@ -1696,13 +1818,7 @@ DeviceTypePtr ModuleManagerImpl::getDeviceTypeFromConnectionString(const StringP
     if (!types.assigned())
         return nullptr;
 
-    for (auto const& [_, type] : types)
-    {
-        if (type.getConnectionStringPrefix() == prefix)
-            return type;
-    }
-
-    return nullptr;
+    return FindTypeByPrefix<DeviceTypePtr>(types, prefix);
 }
 
 // copies value of any General property present in inputConfig to correspoding General property
@@ -1735,7 +1851,6 @@ StreamingPtr ModuleManagerImpl::onCreateStreaming(const StringPtr& connectionStr
     {
         const auto module = library.module;
 
-        const std::string prefix = getPrefixFromConnectionString(connectionString);
         DictPtr<IString, IStreamingType> types;
         const ErrCode errCode = module->getAvailableStreamingTypes(&types);
         if (OPENDAQ_FAILED(errCode))
@@ -1743,20 +1858,11 @@ StreamingPtr ModuleManagerImpl::onCreateStreaming(const StringPtr& connectionStr
         if (!types.assigned())
             continue;
 
-        StringPtr streamingTypeId;
-        StreamingTypePtr streamingType;
-        for (auto const& [typeId, type] : types)
-        {
-            if (type.getConnectionStringPrefix() == prefix)
-            {
-                streamingTypeId = typeId;
-                streamingType = type;
-                break;
-            }
-        }
-
-        if (!streamingTypeId.assigned())
+        const auto streamingType = FindTypeByPrefix<StreamingTypePtr>(types, getPrefixFromConnectionString(connectionString));
+        if (!streamingType.assigned())
             continue;
+
+        const StringPtr streamingTypeId = streamingType.getId();
 
         PropertyObjectPtr streamingTypeConfig;
         if (IsDefaultAddDeviceConfig(inputConfig))

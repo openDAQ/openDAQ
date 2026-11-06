@@ -36,6 +36,19 @@ extern "C"
         daqProtocolTypeConfigurationAndStreaming,
     } daqProtocolType;
 
+    typedef enum daqAddressType
+    {
+        daqAddressTypeIPv4 = 0,
+        daqAddressTypeIPv6
+    } daqAddressType;
+
+    typedef enum daqStreamingMode
+    {
+        daqStreamingModeDisabled = 0,
+        daqStreamingModeMinHops,
+        daqStreamingModeMinConnections
+    } daqStreamingMode;
+
     typedef enum daqDeviceKind
     {
         daqDeviceKindUnspecified = 0,

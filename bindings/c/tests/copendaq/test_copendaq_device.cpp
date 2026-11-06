@@ -2,7 +2,9 @@
 
 #include <gtest/gtest.h>
 
+#include <opendaq/device_type_factory.h>
 #include <opendaq/opendaq.h>
+#include <opendaq/streaming_type_factory.h>
 
 class COpendaqDeviceTest : public testing::Test
 {
@@ -185,4 +187,123 @@ TEST_F(COpendaqDeviceTest, DeviceKind)
     daqBaseObject_releaseRef(prefix);
     daqBaseObject_releaseRef(id);
     daqBaseObject_releaseRef(builder);
+}
+
+TEST_F(COpendaqDeviceTest, AddDeviceConfig)
+{
+    static_assert(daqAddressTypeIPv4 == static_cast<int>(daq::AddressType::IPv4));
+    static_assert(daqAddressTypeIPv6 == static_cast<int>(daq::AddressType::IPv6));
+    static_assert(daqStreamingModeDisabled == static_cast<int>(daq::StreamingMode::Disabled));
+    static_assert(daqStreamingModeMinHops == static_cast<int>(daq::StreamingMode::MinHops));
+    static_assert(daqStreamingModeMinConnections == static_cast<int>(daq::StreamingMode::MinConnections));
+
+    const auto deviceType = daq::DeviceType("deviceType", "", "", "dev", daq::PropertyObject());
+    const auto streamingType = daq::StreamingType("streamingType", "", "", "stream", daq::PropertyObject());
+    const auto streamingTypes = daq::Dict<daq::IString, daq::IStreamingType>({{"streamingType", streamingType}});
+
+    daqAddDeviceConfig* config = nullptr;
+    daqAddDeviceConfig_createAddDeviceConfig(&config, (daqDeviceType*) deviceType.getObject(), (daqDict*) streamingTypes.getObject(), True);
+    const auto configPtr = daq::AddDeviceConfigPtr::Adopt((daq::IAddDeviceConfig*) config);
+
+    daqDeviceType* type = nullptr;
+    daqAddDeviceConfig_getDeviceType(config, &type);
+    ASSERT_EQ(daq::DeviceTypePtr::Adopt((daq::IDeviceType*) type), deviceType);
+
+    daqPropertyObject* typeConfig = nullptr;
+    daqAddDeviceConfig_getTypeConfig(config, &typeConfig);
+    ASSERT_EQ(daq::PropertyObjectPtr::Adopt((daq::IPropertyObject*) typeConfig), configPtr.getTypeConfig());
+
+    daqAddDeviceConfig_setPrimaryAddressType(config, daqAddressTypeIPv6);
+    daqAddressType addressType = daqAddressTypeIPv4;
+    daqAddDeviceConfig_getPrimaryAddressType(config, &addressType);
+    ASSERT_EQ(addressType, daqAddressTypeIPv6);
+
+    daqAddDeviceConfig_setScanOnAdd(config, False);
+    daqBool scanOnAdd = True;
+    daqAddDeviceConfig_getScanOnAdd(config, &scanOnAdd);
+    ASSERT_FALSE(scanOnAdd);
+
+    daqAddStreamingOptions* options = nullptr;
+    daqAddDeviceConfig_getStreamingOptions(config, &options);
+    const auto optionsPtr = daq::AddStreamingOptionsPtr::Adopt((daq::IAddStreamingOptions*) options);
+    ASSERT_EQ(optionsPtr, configPtr.getStreamingOptions());
+
+    daqDict* configs = nullptr;
+    daqAddStreamingOptions_getStreamingConfigs(options, &configs);
+    const auto configsPtr = daq::DictPtr<daq::IString, daq::IAddStreamingConfig>::Adopt((daq::IDict*) configs);
+    ASSERT_TRUE(configsPtr.hasKey("streamingType"));
+
+    daqString* typeId = nullptr;
+    daqString_createString(&typeId, "streamingType");
+    daqAddStreamingOptions_setStreamingType(options, typeId);
+    daqBaseObject_releaseRef(typeId);
+    daqAddStreamingConfig* selected = nullptr;
+    daqAddStreamingOptions_getStreamingConfig(options, &selected, nullptr);
+    ASSERT_EQ(daq::AddStreamingConfigPtr::Adopt((daq::IAddStreamingConfig*) selected),
+              optionsPtr.getStreamingConfigs().get("streamingType"));
+
+    daqAddStreamingOptions_setStreamingMode(options, daqStreamingModeMinConnections);
+    daqStreamingMode mode = daqStreamingModeDisabled;
+    daqAddStreamingOptions_getStreamingMode(options, &mode);
+    ASSERT_EQ(mode, daqStreamingModeMinConnections);
+}
+
+TEST_F(COpendaqDeviceTest, AddStreamingConfig)
+{
+    const auto streamingType = daq::StreamingType("streamingType", "", "", "stream", daq::PropertyObject());
+
+    daqAddStreamingConfig* config = nullptr;
+    daqAddStreamingConfig_createAddStreamingConfig(&config, (daqStreamingType*) streamingType.getObject());
+    const auto configPtr = daq::AddStreamingConfigPtr::Adopt((daq::IAddStreamingConfig*) config);
+
+    daqStreamingType* type = nullptr;
+    daqAddStreamingConfig_getStreamingType(config, &type);
+    ASSERT_EQ(daq::StreamingTypePtr::Adopt((daq::IStreamingType*) type), streamingType);
+
+    daqPropertyObject* typeConfig = nullptr;
+    daqAddStreamingConfig_getTypeConfig(config, &typeConfig);
+    ASSERT_EQ(daq::PropertyObjectPtr::Adopt((daq::IPropertyObject*) typeConfig), configPtr.getTypeConfig());
+}
+
+TEST_F(COpendaqDeviceTest, CreateAddDeviceConfig)
+{
+    const auto instance = daq::Instance();
+    auto* rootDevice = (daqDevice*) instance.getRootDevice().getObject();
+
+    const auto info = daq::DeviceInfo("daqref://device0");
+    const daq::StringPtr prefix = "daqref";
+
+    daqAddDeviceConfig* config = nullptr;
+    ASSERT_EQ(daqDevice_createAddDeviceConfig(rootDevice, &config, (daqDeviceInfo*) info.getObject(), (daqString*) prefix.getObject()),
+              DAQ_SUCCESS);
+    const auto configPtr = daq::AddDeviceConfigPtr::Adopt((daq::IAddDeviceConfig*) config);
+    ASSERT_EQ(configPtr.getDeviceType().getId(), "daqref");
+}
+
+TEST_F(COpendaqDeviceTest, CreateAddStreamingConfigOfRootDevice)
+{
+    const auto instance = daq::Instance();
+    auto* rootDevice = (daqDevice*) instance.getRootDevice().getObject();
+
+    const daq::StringPtr connectionString = "daq.nd://host";
+
+    daqAddStreamingConfig* config = nullptr;
+    ASSERT_EQ(daqDevice_createAddStreamingConfig(rootDevice, &config, (daqString*) connectionString.getObject()), DAQ_ERR_NOT_SUPPORTED);
+    daqClearErrorInfo();
+}
+
+TEST_F(COpendaqDeviceTest, RootDeviceAddDeviceConfigIsNull)
+{
+    daqAddDeviceConfig* config = nullptr;
+    ASSERT_EQ(daqDevice_getAddDeviceConfig(dev, &config), DAQ_SUCCESS);
+    ASSERT_EQ(config, nullptr);
+}
+
+TEST_F(COpendaqDeviceTest, AvailableStreamingTypesOfRootDeviceIsEmpty)
+{
+    daqDict* types = nullptr;
+    ASSERT_EQ(daqDevice_getAvailableStreamingTypes(dev, &types), DAQ_SUCCESS);
+    ASSERT_NE(types, nullptr);
+    const auto typesPtr = daq::DictPtr<daq::IString, daq::IStreamingType>::Adopt((daq::IDict*) types);
+    ASSERT_EQ(typesPtr.getCount(), 0u);
 }

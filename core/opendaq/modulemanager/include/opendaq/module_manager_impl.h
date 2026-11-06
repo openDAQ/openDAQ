@@ -78,6 +78,16 @@ public:
 
 private:
     ErrCode createDeviceInternal(IDevice** device, IString* connectionString, IComponent* parent, IPropertyObject* config);
+    ErrCode createDeviceWithModule(IDevice** device,
+                                   const ModulePtr& module,
+                                   const DeviceTypePtr& deviceType,
+                                   const StringPtr& connectionString,
+                                   IComponent* parent,
+                                   const PropertyObjectPtr& deviceTypeConfig,
+                                   const PropertyObjectPtr& componentConfig,
+                                   const AuthenticationConfigPtr& authenticationConfig,
+                                   const DeviceInfoPtr& discoveredDeviceInfo);
+    ErrCode scanIfOutdated();
 
     static void PopulateDeviceTypeConfigFromConnStrOptions(PropertyObjectPtr& deviceTypeConfig,
                                                            const tsl::ordered_map<std::string, ObjectPtr<IBaseObject>>& options);
@@ -90,7 +100,7 @@ private:
 
     DeviceInfoPtr getSmartConnectionDeviceInfo(const StringPtr& inputConnectionString) const;
     DeviceInfoPtr getDiscoveredDeviceInfo(const DeviceInfoPtr& deviceInfo) const;
-    StringPtr getConnectionStringWithType(const ServerCapabilityPtr& capability, const StringPtr& primaryAddressType) const;
+    StringPtr getConnectionStringFromCapability(const ServerCapabilityPtr& capability, const std::vector<StringPtr>& addressTypes) const;
     StringPtr resolveSmartConnectionString(const StringPtr& inputConnectionString,
                                            const DeviceInfoPtr& discoveredDeviceInfo,
                                            const DictPtr<IString, IDeviceType>& deviceTypes,

@@ -910,7 +910,6 @@ ErrCode ModuleManagerImpl::createDeviceInternal(IDevice** device, IString* conne
     // smuggles an `IAuthenticationConfig` onto the top-level `config` it passes in, rather than a dedicated
     // parameter.
     const AuthenticationConfigPtr authenticationConfig = ExtractAuthenticationConfig(inputConfig);
-    const bool authenticationConfigSupplied = authenticationConfig.assigned();
     const ErrCode errCode = daqTry([&]()
     {
         PropertyObjectPtr addDeviceConfig;
@@ -951,17 +950,8 @@ ErrCode ModuleManagerImpl::createDeviceInternal(IDevice** device, IString* conne
         if (generalConfig.assigned() && generalConfig.hasProperty("ScanOnAdd"))
             scanForDevices = static_cast<bool>(generalConfig.getPropertyValue("ScanOnAdd"));
 
-        // Scan for devices if not yet done so, or timeout is exceeded
         if (scanForDevices)
-        {
-            auto lock = std::lock_guard(availableDevicesSearchSync);
-            const auto currentTime = std::chrono::steady_clock::now();
-            if (!availableDevicesGroup.assigned() || currentTime - lastScanTime > rescanTimer)
-            {
-                const ErrCode errCode = getAvailableDevices(&ListPtr<IDeviceInfo>());
-                OPENDAQ_RETURN_IF_FAILED(errCode, "Failed getting available devices");
-            }
-        }
+            OPENDAQ_RETURN_IF_FAILED(scanIfOutdated());
 
         DeviceInfoPtr discoveredDeviceInfo;
         if (useSmartConnection)
@@ -984,74 +974,18 @@ ErrCode ModuleManagerImpl::createDeviceInternal(IDevice** device, IString* conne
 
             OPENDAQ_RETURN_IF_FAILED(CheckKindAllowed(deviceType, parent != nullptr));
 
-            const bool authenticationSupported = deviceType.asPtr<IComponentTypePrivate>().getSupportedAuthenticationMethods().getCount() > 0;
-
-            if (authenticationConfigSupplied && !authenticationSupported)
-            {
-                LOG_W("Device with given connection string '{}' does not support authentication; creating it without authentication.", connectionStringPtr);
-            }
-
             // copy props from input config and connection string to device type config
             const auto deviceTypeConfig = PopulateDeviceTypeConfig(addDeviceConfig, inputConfig, deviceType, connectionStringOptions);
 
-            // Any supported authentication method - field-less (e.g. "Anonymous") included - goes through
-            // `createAuthenticatedDevice`; `createDevice` is only for a type with none supported at all.
-            const AuthenticationConfigPtr resolvedAuthConfig =
-                authenticationSupported ? resolveDefaultAuthenticationConfig(authenticationConfig, deviceType) : nullptr;
-
-            DictPtr<IString, IString> credentials;
-            ErrCode err;
-            if (authenticationSupported)
-            {
-                const auto credentialRequest = CredentialRequestBuilder()
-                                                   .setConnectionString(library.module.getCanonicalConnectionString(connectionStringPtr))
-                                                   .setAuthenticationMethod(resolvedAuthConfig.getSelectedAuthenticationMethod())
-                                                   .setComponentType(deviceType)
-                                                   .build();
-                credentials = resolveCredentials(resolvedAuthConfig, credentialRequest);
-
-                auto loginParameters = LoginParametersBuilder()
-                                           .setAuthenticationMethod(resolvedAuthConfig.getSelectedAuthenticationMethod())
-                                           .setCredentials(credentials)
-                                           .build();
-                err = library.module->createAuthenticatedDevice(device, connectionStringPtr, parent, deviceTypeConfig, loginParameters);
-            }
-            else
-            {
-                err = library.module->createDevice(device, connectionStringPtr, parent, deviceTypeConfig);
-            }
-
-            OPENDAQ_RETURN_IF_FAILED(err);
-
-            const auto devicePtr = DevicePtr::Borrow(*device);
-            if (devicePtr.assigned())
-            {
-                onCompleteCapabilities(devicePtr, discoveredDeviceInfo);
-                if (const auto & componentPrivate = devicePtr.asPtrOrNull<IComponentPrivate>(true); componentPrivate.assigned())
-                    componentPrivate.setComponentConfig(addDeviceConfig);
-
-                ModuleInfoPtr moduleInfo;
-                err = library.module->getModuleInfo(&moduleInfo);
-                OPENDAQ_RETURN_IF_FAILED(err);
-
-                if (auto info = devicePtr.getInfo(); info.assigned())
-                {
-                    auto deviceInfoType = info.getDeviceType();
-                    if (deviceInfoType.assigned())
-                        deviceInfoType.asPtr<IComponentTypePrivate>().setModuleInfo(moduleInfo);
-                }
-
-                if (authenticationSupported)
-                {
-                    if (const auto& componentPrivate = devicePtr.asPtrOrNull<IComponentPrivate>(true); componentPrivate.assigned())
-                        componentPrivate.setAuthenticationConfig(resolvedAuthConfig);
-
-                    // TODO: cache `credentials` with the device's own resolved manufacturer/serial number/model here when a caching
-                    // mechanism (e.g. a vault) is ready.
-                }
-            }
-
-            return err;
+            return createDeviceWithModule(device,
+                                          library.module,
+                                          deviceType,
+                                          connectionStringPtr,
+                                          parent,
+                                          deviceTypeConfig,
+                                          addDeviceConfig,
+                                          authenticationConfig,
+                                          discoveredDeviceInfo);
         }
         return DAQ_MAKE_ERROR_INFO(
             OPENDAQ_ERR_NOTFOUND,
@@ -1059,6 +993,96 @@ ErrCode ModuleManagerImpl::createDeviceInternal(IDevice** device, IString* conne
     });
     OPENDAQ_RETURN_IF_FAILED(errCode, fmt::format("Failed to create device from connection string '{}' and config", StringPtr::Borrow(connectionString)));
     return errCode;
+}
+
+ErrCode ModuleManagerImpl::createDeviceWithModule(IDevice** device,
+                                                  const ModulePtr& module,
+                                                  const DeviceTypePtr& deviceType,
+                                                  const StringPtr& connectionString,
+                                                  IComponent* parent,
+                                                  const PropertyObjectPtr& deviceTypeConfig,
+                                                  const PropertyObjectPtr& componentConfig,
+                                                  const AuthenticationConfigPtr& authenticationConfig,
+                                                  const DeviceInfoPtr& discoveredDeviceInfo)
+{
+    const bool authenticationSupported = deviceType.asPtr<IComponentTypePrivate>().getSupportedAuthenticationMethods().getCount() > 0;
+
+    if (authenticationConfig.assigned() && !authenticationSupported)
+    {
+        LOG_W("Device with given connection string '{}' does not support authentication; creating it without authentication.",
+              connectionString);
+    }
+
+    // Any supported authentication method - field-less (e.g. "Anonymous") included - goes through
+    // `createAuthenticatedDevice`; `createDevice` is only for a type with none supported at all.
+    const AuthenticationConfigPtr resolvedAuthConfig =
+        authenticationSupported ? resolveDefaultAuthenticationConfig(authenticationConfig, deviceType) : nullptr;
+
+    DictPtr<IString, IString> credentials;
+    ErrCode err;
+    if (authenticationSupported)
+    {
+        const auto credentialRequest = CredentialRequestBuilder()
+                                           .setConnectionString(module.getCanonicalConnectionString(connectionString))
+                                           .setAuthenticationMethod(resolvedAuthConfig.getSelectedAuthenticationMethod())
+                                           .setComponentType(deviceType)
+                                           .build();
+        credentials = resolveCredentials(resolvedAuthConfig, credentialRequest);
+
+        auto loginParameters = LoginParametersBuilder()
+                                   .setAuthenticationMethod(resolvedAuthConfig.getSelectedAuthenticationMethod())
+                                   .setCredentials(credentials)
+                                   .build();
+        err = module->createAuthenticatedDevice(device, connectionString, parent, deviceTypeConfig, loginParameters);
+    }
+    else
+    {
+        err = module->createDevice(device, connectionString, parent, deviceTypeConfig);
+    }
+
+    OPENDAQ_RETURN_IF_FAILED(err);
+
+    const auto devicePtr = DevicePtr::Borrow(*device);
+    if (devicePtr.assigned())
+    {
+        onCompleteCapabilities(devicePtr, discoveredDeviceInfo);
+        if (const auto& componentPrivate = devicePtr.asPtrOrNull<IComponentPrivate>(true); componentPrivate.assigned())
+            componentPrivate.setComponentConfig(componentConfig);
+
+        ModuleInfoPtr moduleInfo;
+        err = module->getModuleInfo(&moduleInfo);
+        OPENDAQ_RETURN_IF_FAILED(err);
+
+        if (auto info = devicePtr.getInfo(); info.assigned())
+        {
+            auto deviceInfoType = info.getDeviceType();
+            if (deviceInfoType.assigned())
+                deviceInfoType.asPtr<IComponentTypePrivate>().setModuleInfo(moduleInfo);
+        }
+
+        if (authenticationSupported)
+        {
+            if (const auto& componentPrivate = devicePtr.asPtrOrNull<IComponentPrivate>(true); componentPrivate.assigned())
+                componentPrivate.setAuthenticationConfig(resolvedAuthConfig);
+
+            // TODO: cache `credentials` with the device's own resolved manufacturer/serial number/model here when a caching
+            // mechanism (e.g. a vault) is ready.
+        }
+    }
+
+    return err;
+}
+
+ErrCode ModuleManagerImpl::scanIfOutdated()
+{
+    auto lock = std::lock_guard(availableDevicesSearchSync);
+    const auto currentTime = std::chrono::steady_clock::now();
+    if (!availableDevicesGroup.assigned() || currentTime - lastScanTime > rescanTimer)
+    {
+        const ErrCode errCode = getAvailableDevices(&ListPtr<IDeviceInfo>());
+        OPENDAQ_RETURN_IF_FAILED(errCode, "Failed getting available devices");
+    }
+    return OPENDAQ_SUCCESS;
 }
 
 ErrCode ModuleManagerImpl::createDevice(IDevice** device, IString* connectionString, IComponent* parent, IPropertyObject* config)
@@ -1698,48 +1722,49 @@ DeviceInfoPtr ModuleManagerImpl::getDiscoveredDeviceInfo(const DeviceInfoPtr& de
     return localInfo;
 }
 
-StringPtr ModuleManagerImpl::getConnectionStringWithType(const ServerCapabilityPtr& capability, const StringPtr& primaryAddressType) const
+StringPtr ModuleManagerImpl::getConnectionStringFromCapability(const ServerCapabilityPtr& capability,
+                                                               const std::vector<StringPtr>& addressTypes) const
 {
-    AddressReachabilityStatus resolvedStatus = AddressReachabilityStatus::Unreachable;
-    StringPtr connectionString;
-
-    for (const auto& addrInfo : capability.getAddressInfo())
+    const auto addressInfos = capability.getAddressInfo();
+    const auto findAddress = [&addressInfos](const StringPtr& addressType, AddressReachabilityStatus status) -> AddressInfoPtr
     {
-        if (addrInfo.getType() == primaryAddressType)
-        {
-            switch (auto status = addrInfo.getReachabilityStatus())
-            {
-                case AddressReachabilityStatus::Unknown:
-                    connectionString = resolvedStatus == AddressReachabilityStatus::Unknown
-                                           ? connectionString
-                                           : addrInfo.getConnectionString();
+        for (const auto& addressInfo : addressInfos)
+            if (addressInfo.getType() == addressType && addressInfo.getReachabilityStatus() == status)
+                return addressInfo;
+        return nullptr;
+    };
 
-                    resolvedStatus = status;
-                    break;
-                case AddressReachabilityStatus::Reachable:
-                    return addrInfo.getConnectionString();
-                case AddressReachabilityStatus::Unreachable:
-                    connectionString = connectionString.assigned() ? connectionString : addrInfo.getConnectionString();
-                    break;
-            }
+    for (const auto& addressType : addressTypes)
+        for (const auto status : {AddressReachabilityStatus::Reachable, AddressReachabilityStatus::Unknown})
+            if (const auto addressInfo = findAddress(addressType, status); addressInfo.assigned())
+                return addressInfo.getConnectionString();
+
+    for (const auto& addressType : addressTypes)
+    {
+        if (const auto addressInfo = findAddress(addressType, AddressReachabilityStatus::Unreachable); addressInfo.assigned())
+        {
+            LOG_W("Trying to connect to an unreachable address {}. No reachable/unknown addresses were available.",
+                  addressInfo.getConnectionString());
+            return addressInfo.getConnectionString();
         }
     }
 
-    if (connectionString.assigned() && resolvedStatus == AddressReachabilityStatus::Unknown)
+    if (!addressTypes.empty())
     {
-        return connectionString;
+        LOG_W("Selected server capability of device does not provide any addresses of primary {} type", addressTypes.front());
     }
 
-    if (connectionString.assigned() && resolvedStatus == AddressReachabilityStatus::Unreachable)
+    const StringPtr connectionString = capability.getConnectionString();
+    for (const auto& addressInfo : addressInfos)
     {
-        LOG_W("Trying to connect to an unreachable address {}. No reachable/unknown addresses with given address type were available.", connectionString);
-        return connectionString;
+        if (addressInfo.getConnectionString() == connectionString &&
+            addressInfo.getReachabilityStatus() == AddressReachabilityStatus::Unreachable)
+        {
+            LOG_W("Trying to connect to an unreachable address {}. No reachable/unknown addresses were available.", connectionString);
+        }
     }
 
-    LOG_W("Selected server capability of device does not provide any addresses of primary {} type",
-          primaryAddressType);
-
-    return {};
+    return connectionString;
 }
 
 StringPtr ModuleManagerImpl::resolveSmartConnectionString(const StringPtr& inputConnectionString,
@@ -1762,30 +1787,9 @@ StringPtr ModuleManagerImpl::resolveSmartConnectionString(const StringPtr& input
     }
 
     const StringPtr primaryAddressType = generalConfig.getPropertyValue("PrimaryAddressType");
-
-    if (primaryAddressType == "IPv4" || primaryAddressType == "IPv6")
-    {
-        auto connectionString = getConnectionStringWithType(selectedCapability, primaryAddressType);
-        if (connectionString.assigned())
-            return connectionString;
-    }
-    auto connectionString = selectedCapability.getConnectionString();
-
-#if OPENDAQ_LOG_LEVEL <= OPENDAQ_LOG_LEVEL_WARN
-    for (const auto& addressInfo : selectedCapability.getAddressInfo())
-    {
-        if (addressInfo.getConnectionString() == connectionString)
-        {
-            auto reachabilityStatus = addressInfo.getReachabilityStatus();
-            if (reachabilityStatus == AddressReachabilityStatus::Unreachable)
-            {
-                LOG_W("Trying to connect to an unreachable address {}. No reachable/unknown addresses were available.",  connectionString);
-            }
-        }
-    }
-#endif
-
-    return connectionString;
+    const bool hasPrimaryAddressType = (primaryAddressType == "IPv4" || primaryAddressType == "IPv6");
+    return getConnectionStringFromCapability(selectedCapability,
+                                             hasPrimaryAddressType ? std::vector<StringPtr>{primaryAddressType} : std::vector<StringPtr>{});
 }
 
 DeviceTypePtr ModuleManagerImpl::getDeviceTypeFromConnectionString(const StringPtr& connectionString, const ModulePtr& module) const

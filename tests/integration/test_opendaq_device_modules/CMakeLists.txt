@@ -14,6 +14,7 @@ set(TEST_SOURCES test_native_device_modules.cpp
                  test_native_streaming_modules.cpp
                  test_device_discovery.cpp
                  test_remote_update.cpp
+                 test_native_streaming_benchmark.cpp
 )
 
 # The tests that never touch mDNS: gtest shards on shifted ports, running concurrently with everything else

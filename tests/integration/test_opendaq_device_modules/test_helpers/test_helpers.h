@@ -83,7 +83,7 @@ namespace test_helpers
                 {
                     acknowledgementPromise.set_value(args.getStreamingConnectionString());
                 }
-                catch (const std::future_errc&)
+                catch (const std::future_error&)
                 {
                     ADD_FAILURE()  << " Set already satisfied unsubscribe ack promise for streaming: "
                                    << args.getStreamingConnectionString();
@@ -107,7 +107,7 @@ namespace test_helpers
                 {
                     acknowledgementPromise.set_value(args.getStreamingConnectionString());
                 }
-                catch (const std::future_errc&)
+                catch (const std::future_error&)
                 {
                     ADD_FAILURE()  << " Set already satisfied unsubscribe ack promise for streaming: "
                                    << args.getStreamingConnectionString();

@@ -88,12 +88,12 @@ add_device_modules_test_app(${STREAMING_TEST_APP} ${STREAMING_TEST_SOURCES})
 if (NOT DAQMODULES_LT_LEGACY_MODULES AND OPENDAQ_ENABLE_WEBSOCKET_STREAMING_WITH_TLS AND DEFINED LT_MODULES_SOURCE_DIR)
     set(LT_TLS_SECRETS_DIR "${LT_MODULES_SOURCE_DIR}/tests/integration/secrets")
     if (EXISTS "${LT_TLS_SECRETS_DIR}")
-        foreach(APP ${TEST_APP} ${STREAMING_TEST_APP})
-            add_custom_command(TARGET ${APP} POST_BUILD
-                COMMAND ${CMAKE_COMMAND} -E copy_directory
-                        ${LT_TLS_SECRETS_DIR}
-                        $<TARGET_FILE_DIR:${APP}>/secrets)
-        endforeach()
+        # One copy for both apps: they share an output directory, and two parallel copies into it fail on Windows
+        add_custom_command(TARGET ${TEST_APP} POST_BUILD
+            COMMAND ${CMAKE_COMMAND} -E copy_directory
+                    ${LT_TLS_SECRETS_DIR}
+                    $<TARGET_FILE_DIR:${TEST_APP}>/secrets)
+        add_dependencies(${STREAMING_TEST_APP} ${TEST_APP})
     else()
         message(WARNING "TLS fixtures not found in ${LT_TLS_SECRETS_DIR}. "
                         "The LT streaming tests over the secure channel will fail to load their secrets.")

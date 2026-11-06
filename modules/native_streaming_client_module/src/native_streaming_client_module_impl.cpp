@@ -422,7 +422,8 @@ PropertyObjectPtr NativeStreamingClientModule::createTransportLayerDefaultConfig
 
     transportLayerConfig.addProperty(daq::BoolProperty("MonitoringEnabled", daq::True));
     transportLayerConfig.addProperty(daq::IntProperty("HeartbeatPeriod", 1000));
-    transportLayerConfig.addProperty(daq::IntProperty("InactivityTimeout", 1500));
+    // Three missed heartbeats, so one late heartbeat does not drop the connection
+    transportLayerConfig.addProperty(daq::IntProperty("InactivityTimeout", 3000));
     transportLayerConfig.addProperty(daq::IntProperty("ConnectionTimeout", 1000));
     transportLayerConfig.addProperty(daq::IntProperty("StreamingInitTimeout", 1000));
     transportLayerConfig.addProperty(daq::IntProperty("ReconnectionPeriod", 1000));

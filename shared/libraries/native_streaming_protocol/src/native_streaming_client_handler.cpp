@@ -11,6 +11,9 @@
 #include <coreobjects/property_object_factory.h>
 #include <opendaq/thread_name.h>
 
+#include <mutex>
+#include <vector>
+
 BEGIN_NAMESPACE_OPENDAQ_NATIVE_STREAMING_PROTOCOL
 using namespace daq::native_streaming;
 
@@ -823,37 +826,55 @@ void NativeStreamingClientHandler::setAlternativeAddresses(const ListPtr<IString
 
 void NativeStreamingClientHandler::startTransportOperations()
 {
+    transportWorkGuard = std::make_unique<TransportWorkGuard>(ioContextPtr->get_executor());
+    ioThreadFinishedPromise = std::promise<void>();
+    ioThreadFinished = ioThreadFinishedPromise.get_future();
+
     ioThread =
         std::thread([this]()
                     {
                         daqNameThread("NatCliTransIO");
 
-                        using namespace boost::asio;
-                        executor_work_guard<io_context::executor_type> workGuard(ioContextPtr->get_executor());
                         runGuardedEventLoop(*ioContextPtr, loggerComponent, "Native transport IO thread");
                         LOG_I("Native transport IO thread finished");
+                        ioThreadFinishedPromise.set_value();
                     });
 }
 
 void NativeStreamingClientHandler::stopTransportOperations()
 {
-    ioContextPtr->stop();
-    if (ioThread.get_id() != std::this_thread::get_id())
-    {
-        if (ioThread.joinable())
-        {
-            ioThread.join();
-            LOG_I("Native transport IO thread joined");
-        }
-        else
-        {
-            LOG_W("Native transport IO thread is not joinable");
-        }
-    }
-    else
+    // Lets run() return on its own once the session's remaining operations have unwound, then waits for the thread.
+    transportWorkGuard.reset();
+
+    if (ioThread.get_id() == std::this_thread::get_id())
     {
         LOG_C("Native transport IO thread cannot join itself");
+        return;
     }
+    if (!ioThread.joinable())
+    {
+        LOG_W("Native transport IO thread is not joinable");
+        return;
+    }
+
+    if (ioThreadFinished.wait_for(transportStopTimeout) == std::future_status::ready)
+    {
+        ioThread.join();
+        LOG_I("Native transport IO thread joined");
+        return;
+    }
+
+    LOG_E("Native transport IO thread did not finish within {} ms, stopping it; its context is kept alive "
+          "because destroying it would block on the operations left behind",
+          transportStopTimeout.count());
+    ioContextPtr->stop();
+    ioThread.join();
+
+    // Kept alive for the rest of the process on purpose.
+    static std::mutex abandonedContextsSync;
+    static auto* const abandonedContexts = new std::vector<std::shared_ptr<boost::asio::io_context>>();
+    std::scoped_lock lock(abandonedContextsSync);
+    abandonedContexts->push_back(ioContextPtr);
 }
 
 END_NAMESPACE_OPENDAQ_NATIVE_STREAMING_PROTOCOL

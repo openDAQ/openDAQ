@@ -341,8 +341,8 @@ TEST_F(OpcuaDeviceModulesTest, ServerEnableDisableDiscovery)
 TEST_F(OpcuaDeviceModulesTest, TestDiscoveryReachability)
 {
     bool checkIPv6 = !test_helpers::Ipv6IsDisabled();
-    // ICMP ping (and thus active IPv4 reachability detection) requires root on Linux/macOS.
-    const auto expectedIpv4Reachability =
+    // Discovery pings IPv4 and IPv6 addresses whenever this process may send ICMP.
+    const auto expectedReachability =
         test_helpers::icmpPingAvailable() ? AddressReachabilityStatus::Reachable : AddressReachabilityStatus::Unknown;
     auto path = "/test/opcua/discovery_reachability/";
 
@@ -382,12 +382,12 @@ TEST_F(OpcuaDeviceModulesTest, TestDiscoveryReachability)
                 if (addressInfo.getType() == "IPv4")
                 {
                     hasIPv4 = true;
-                    ASSERT_EQ(addressInfo.getReachabilityStatus(), expectedIpv4Reachability);
+                    ASSERT_EQ(addressInfo.getReachabilityStatus(), expectedReachability);
                 }
                 else if (addressInfo.getType() == "IPv6")
                 {
                     hasIPv6 = true;
-                    ASSERT_EQ(addressInfo.getReachabilityStatus(), AddressReachabilityStatus::Unknown);
+                    ASSERT_EQ(addressInfo.getReachabilityStatus(), expectedReachability);
                 }
 
                 if (hasIPv4 && (hasIPv6 || !checkIPv6))
@@ -531,10 +531,7 @@ TEST_F(OpcuaDeviceModulesTest, TestDiscoveryReachabilityAfterConnect)
             ASSERT_EQ(addressInfo.getAddress(), capability.getAddresses()[index]);
             if (addressInfo.getType() == "IPv4")
             {
-                // Only the address actually used to connect is guaranteed Reachable - marked so by
-                // completeServerCapabilities() upon a successful connection. Verifying any other
-                // IPv4 address requires an ICMP ping, which needs root and is unavailable here, so
-                // on a multi-homed machine those legitimately stay Unknown.
+                // Only the address used to connect is Reachable regardless of whether this process may ping
                 if (addressInfo.getConnectionString() == capability.getConnectionString())
                 {
                     ASSERT_EQ(addressInfo.getReachabilityStatus(), AddressReachabilityStatus::Reachable);
@@ -543,7 +540,7 @@ TEST_F(OpcuaDeviceModulesTest, TestDiscoveryReachabilityAfterConnect)
             }
             else if (addressInfo.getType() == "IPv6")
             {
-                ASSERT_EQ(addressInfo.getReachabilityStatus(), AddressReachabilityStatus::Unknown);
+                ASSERT_EQ(addressInfo.getReachabilityStatus(), test_helpers::icmpPingAvailable() ? AddressReachabilityStatus::Reachable : AddressReachabilityStatus::Unknown);
                 cnt++;
             }
 

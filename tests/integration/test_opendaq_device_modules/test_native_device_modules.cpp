@@ -1204,8 +1204,8 @@ TEST_F(NativeDeviceModulesTest, CheckDeviceInfoPopulatedWithProvider)
 TEST_F(NativeDeviceModulesTest, TestDiscoveryReachability)
 {
     bool checkIPv6 = !test_helpers::Ipv6IsDisabled();
-    // ICMP ping (and thus active IPv4 reachability detection) requires root on Linux/macOS.
-    const auto expectedIpv4Reachability =
+    // Discovery pings IPv4 and IPv6 addresses whenever this process may send ICMP.
+    const auto expectedReachability =
         test_helpers::icmpPingAvailable() ? AddressReachabilityStatus::Reachable : AddressReachabilityStatus::Unknown;
     auto path = "/test/native_configurator/discovery_reachability/";
 
@@ -1242,12 +1242,12 @@ TEST_F(NativeDeviceModulesTest, TestDiscoveryReachability)
                 if (addressInfo.getType() == "IPv4")
                 {
                     hasIPv4 = true;
-                    ASSERT_EQ(addressInfo.getReachabilityStatus(), expectedIpv4Reachability);
+                    ASSERT_EQ(addressInfo.getReachabilityStatus(), expectedReachability);
                 }
                 else if (addressInfo.getType() == "IPv6")
                 {
                     hasIPv6 = true;
-                    ASSERT_EQ(addressInfo.getReachabilityStatus(), AddressReachabilityStatus::Unknown);
+                    ASSERT_EQ(addressInfo.getReachabilityStatus(), expectedReachability);
                 }
 
                 if (hasIPv4 && (hasIPv6 || !checkIPv6))
@@ -1434,7 +1434,7 @@ TEST_F(NativeDeviceModulesTest, TestDiscoveryReachabilityAfterConnect)
         {
             ASSERT_EQ(addressInfo.getConnectionString(), capability.getConnectionStrings()[index]);
             ASSERT_EQ(addressInfo.getAddress(), capability.getAddresses()[index]);
-            // The address used to connect is Reachable; other IPv4 ones depend on the ICMP ping, which needs root
+            // The address used to connect is Reachable; IPv6 ones carry the discovery ping result
             if (addressInfo.getConnectionString() == capability.getConnectionString())
             {
                 ASSERT_EQ(addressInfo.getReachabilityStatus(), AddressReachabilityStatus::Reachable);
@@ -1442,7 +1442,7 @@ TEST_F(NativeDeviceModulesTest, TestDiscoveryReachabilityAfterConnect)
             }
             else if (addressInfo.getType() == "IPv6")
             {
-                ASSERT_EQ(addressInfo.getReachabilityStatus(), AddressReachabilityStatus::Unknown);
+                ASSERT_EQ(addressInfo.getReachabilityStatus(), test_helpers::icmpPingAvailable() ? AddressReachabilityStatus::Reachable : AddressReachabilityStatus::Unknown);
                 cnt++;
             }
 

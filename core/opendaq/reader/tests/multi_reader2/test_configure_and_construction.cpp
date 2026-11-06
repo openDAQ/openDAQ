@@ -1,4 +1,5 @@
 #include "multi_reader2_harness.h"
+#include "multi_reader2_harness_state.h"
 
 namespace daq::mr2test
 {
@@ -578,5 +579,26 @@ TEST_F(MultiReader2Configure, ConfigureWithEqualParamsReinitializesAndDropsQueue
     write(in1, 100, 199);
     write(in2, 100, 199);
     expect(read(100), count(100).at(100).noChanges());
+}
+
+// A port re-created under an input's global ID is another input: configure takes the new port over and lets the old one go
+TEST_F(MultiReader2Configure, ConfigureReplacingPortWithOneOfTheSameIdTakesOverTheNewPort)
+{
+    given().ports();
+    setupBase();
+    TestInput& second = input(2);
+    const auto twin = InputPort(second.context, nullptr, second.id);
+    twin.connect(second.own->value);
+    ASSERT_EQ(twin.getGlobalId(), second.port.getGlobalId());
+
+    auto params = MultiReader2Params();
+    params.setInputs(List<IComponent>(input(1).port, twin));
+    IMultiReader2Status* status = nullptr;
+    ASSERT_EQ(reader()->configure(params, &status), OPENDAQ_SUCCESS);
+    releaseRefIfNotNull(status);
+
+    expectPort(in2, Listener::None, PacketReadyNotification::None);
+    ASSERT_TRUE(twin.getListener().assigned());
+    ASSERT_EQ(twin.getNotificationMethod(), PacketReadyNotification::SameThread);
 }
 }

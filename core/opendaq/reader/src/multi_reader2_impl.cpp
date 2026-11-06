@@ -180,7 +180,8 @@ ErrCode MultiReader2Impl::resolveParams(IMultiReader2Params* params, MultiReader
     if (config.minReadCount == 0)
         return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDPARAMETER, "The minimum read count must be at least 1");
 
-    std::unordered_set<std::string> ids;
+    // Inputs are told apart by object: a component re-created under the same global ID is another input
+    std::unordered_set<IComponent*> seen;
     bool signals = false;
     for (SizeT i = 0; i < inputs.getCount(); i++)
     {
@@ -194,10 +195,10 @@ ErrCode MultiReader2Impl::resolveParams(IMultiReader2Params* params, MultiReader
         if (i > 0 && isSignal != signals)
             return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDPARAMETER, "Inputs must all be signals or all input ports");
         signals = isSignal;
-        if (!ids.insert(component.getGlobalId().toStdString()).second)
+        if (!seen.insert(component.getObject()).second)
             return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_DUPLICATEITEM, R"(Input "%s" appears more than once)", component.getGlobalId().getCharPtr());
 
-        if (mainInput.assigned() && mainInput.getGlobalId() == component.getGlobalId())
+        if (mainInput.assigned() && mainInput.getObject() == component.getObject())
             config.mainSlot = i;
         config.inputs.push_back(component);
     }
@@ -209,7 +210,7 @@ ErrCode MultiReader2Impl::resolveParams(IMultiReader2Params* params, MultiReader
 
 std::vector<MultiReader2Impl::Slot>::const_iterator MultiReader2Impl::findSlot(const ComponentPtr& input) const
 {
-    return std::find_if(slots.begin(), slots.end(), [&](const Slot& slot) { return slot.input.getGlobalId() == input.getGlobalId(); });
+    return std::find_if(slots.begin(), slots.end(), [&](const Slot& slot) { return slot.input.getObject() == input.getObject(); });
 }
 
 // The checks that need the reader's ports, before any port is touched: every input has a scheduler, and no new port is
@@ -301,7 +302,7 @@ ErrCode MultiReader2Impl::configureInternal(IMultiReader2Params* params, IMultiR
         for (const auto& slot : slots)
         {
             if (std::none_of(config.inputs.begin(), config.inputs.end(),
-                             [&](const ComponentPtr& input) { return input.getGlobalId() == slot.input.getGlobalId(); }))
+                             [&](const ComponentPtr& input) { return input.getObject() == slot.input.getObject(); }))
                 leaving.push_back(slot);
         }
 

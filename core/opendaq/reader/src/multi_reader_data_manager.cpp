@@ -21,7 +21,7 @@ namespace
     // As MultiReader2Impl tells inputs apart
     bool sameComponent(const ComponentPtr& a, const ComponentPtr& b)
     {
-        return a.getGlobalId() == b.getGlobalId();
+        return a.getObject() == b.getObject();
     }
 
     // The same object, or equal by value. The identity check comes first: comparing by value walks the whole descriptor,

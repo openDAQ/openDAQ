@@ -371,8 +371,6 @@ TEST_F(InstanceTest, AddStandardServers)
     size_t serverCount = 1;
 #if defined(OPENDAQ_ENABLE_NATIVE_STREAMING)
     serverCount++;
-#elif defined(OPENDAQ_ENABLE_WEBSOCKET_STREAMING)
-    serverCount++;
 #endif
 
     ASSERT_EQ(instance.getServers().getCount(), serverCount);

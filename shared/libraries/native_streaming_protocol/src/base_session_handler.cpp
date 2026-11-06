@@ -1,14 +1,78 @@
 #include <native_streaming_protocol/base_session_handler.h>
 #include <opendaq/custom_log.h>
 
+#include <atomic>
+#include <chrono>
 #include <cstddef>
 #include <cstdlib>
 #include <cstring>
+#include <memory>
 
 BEGIN_NAMESPACE_OPENDAQ_NATIVE_STREAMING_PROTOCOL
 
 using namespace daq::native_streaming;
 using namespace packet_streaming;
+
+namespace
+{
+
+// Watches a session for inactivity: the activity callback stores a timestamp and the timer re-arms
+// itself for the moment that activity times out. The pending wait owns the monitor.
+class InactivityMonitor : public std::enable_shared_from_this<InactivityMonitor>
+{
+public:
+    using Clock = std::chrono::steady_clock;
+
+    InactivityMonitor(std::weak_ptr<boost::asio::steady_timer> timer,
+                      std::weak_ptr<Session> session,
+                      OnSessionErrorCallback errorHandler,
+                      std::chrono::milliseconds timeout)
+        : timer(std::move(timer))
+        , session(std::move(session))
+        , errorHandler(std::move(errorHandler))
+        , timeout(timeout)
+        , lastActivity(Clock::now().time_since_epoch().count())
+    {
+    }
+
+    void touch()
+    {
+        lastActivity.store(Clock::now().time_since_epoch().count(), std::memory_order_relaxed);
+    }
+
+    void arm(Clock::time_point deadline)
+    {
+        const auto timerPtr = timer.lock();
+        if (!timerPtr)
+            return;
+        timerPtr->expires_at(deadline);
+        timerPtr->async_wait([self = shared_from_this()](const boost::system::error_code& ec) { self->onExpired(ec); });
+    }
+
+private:
+    void onExpired(const boost::system::error_code& ec)
+    {
+        if (ec)
+            return;
+
+        const auto deadline = Clock::time_point(Clock::duration(lastActivity.load(std::memory_order_relaxed))) + timeout;
+        if (Clock::now() < deadline)
+        {
+            arm(deadline);
+            return;
+        }
+        if (const auto sessionPtr = session.lock())
+            errorHandler("Connection activity timeout error", sessionPtr);
+    }
+
+    std::weak_ptr<boost::asio::steady_timer> timer;
+    std::weak_ptr<Session> session;
+    OnSessionErrorCallback errorHandler;
+    std::chrono::milliseconds timeout;
+    std::atomic<Clock::rep> lastActivity;
+};
+
+}
 
 BaseSessionHandler::BaseSessionHandler(const ContextPtr& daqContext,
                                        SessionPtr session,
@@ -45,31 +109,13 @@ void BaseSessionHandler::startConnectionActivityMonitoring(Int heartbeatPeriod, 
         return;
     }
 
-    auto inactivityTimeoutMs = std::chrono::milliseconds(inactivityTimeout);
-    auto heartbeatPeriodMs = std::chrono::milliseconds(heartbeatPeriod);
+    const auto inactivityTimeoutMs = std::chrono::milliseconds(inactivityTimeout);
+    const auto heartbeatPeriodMs = std::chrono::milliseconds(heartbeatPeriod);
 
-    std::weak_ptr<Session> session_weak = session;
-    std::weak_ptr<boost::asio::steady_timer> connectionInactivityTimer_weak = connectionInactivityTimer;
+    auto monitor = std::make_shared<InactivityMonitor>(connectionInactivityTimer, session, errorHandler, inactivityTimeoutMs);
+    monitor->arm(InactivityMonitor::Clock::now() + inactivityTimeoutMs);
 
-    OnConnectionAliveCallback onConnectionAliveCallback =
-        [connectionInactivityTimer_weak, session_weak, errorHandler = errorHandler, inactivityTimeoutMs]()
-    {
-        if (auto timer = connectionInactivityTimer_weak.lock())
-        {
-            timer->cancel();
-            timer->expires_from_now(inactivityTimeoutMs);
-
-            timer->async_wait(
-                [errorHandler, session_weak](const boost::system::error_code& ec)
-                {
-                    if (ec)
-                        return;
-                    if (auto session = session_weak.lock())
-                        errorHandler("Connection activity timeout error", session);
-                });
-        }
-    };
-    session->startConnectionActivityMonitoring(onConnectionAliveCallback, heartbeatPeriodMs);
+    session->startConnectionActivityMonitoring([monitor]() { monitor->touch(); }, heartbeatPeriodMs);
     connectionActivityMonitoringStarted = true;
 }
 

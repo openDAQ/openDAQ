@@ -34,6 +34,11 @@ set(Thrift_SOURCE AUTO CACHE STRING "")
 set(Thrift_VERSION 0.22.0 CACHE STRING "")
 # Parquet uses no TLS transport, and Thrift 0.22 does not compile against OpenSSL 4
 set(WITH_OPENSSL OFF CACHE BOOL "")
+# Declared before Arrow so its Thrift comes from GitHub; Apache's mirrors time out or no longer carry 0.22.0
+include(FetchContent)
+FetchContent_Declare(thrift SYSTEM
+    URL      https://github.com/apache/thrift/archive/refs/tags/v0.22.0.tar.gz
+    URL_HASH SHA256=c4649c5879dd56c88f1e7a1c03e0fbfcc3b2a2872fb81616bffba5aa8a225a37)
 set(ARROW_OPTIONAL_INSTALL OFF CACHE BOOL "")
 
 if(UNIX AND NOT APPLE)

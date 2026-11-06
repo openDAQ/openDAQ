@@ -110,7 +110,6 @@ TEST_F(MultiReader2Concurrency, SyncFailedInputAheadRejoinsOnceWithinOneSecond)
 // S3.TL.13
 TEST_F(MultiReader2Concurrency, StalledInputBehindRejoinsOnceWithinOneSecond)
 {
-    MR2_REVIEW_ONLY(review_only::stall);
     given().policy(Exclude);
     replay(
         [&](bool concurrent)

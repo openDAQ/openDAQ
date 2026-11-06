@@ -44,13 +44,6 @@ class MultiReader2Test;
 // the environment. Run with it set, a failure of such a case means only that this reader lacks that behaviour
 namespace review_only
 {
-inline constexpr const char* queueLimit =
-    "the inputs share one byte budget of 100 MB per input, so a packet can drop another input's queue (dev: each queue "
-    "holds at most 100 MB of its own)";
-inline constexpr const char* stall =
-    "an input with nothing queued stalls once another sent 3 s past it, the main input included, and rejoins within 1 s "
-    "(spec: lateness is judged only while synchronizing, C13; Future design: Data loss monitoring)";
-inline constexpr const char* syncLimit = "the sync limit is 3 s (spec, A5: 2 s of data time)";
 inline constexpr const char* relativeDomains = "inputs without an origin are read on a relative time (spec v1: an origin is required)";
 inline constexpr const char* jumpWhileStreaming =
     "a timestamp jump while streaming continues without resynchronizing (spec: a packet that does not continue the input "

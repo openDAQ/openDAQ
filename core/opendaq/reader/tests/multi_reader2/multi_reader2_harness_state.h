@@ -95,6 +95,7 @@ struct MultiReader2Test::Handler
     std::atomic<int> maxRunning{0};
     std::atomic<SizeT> started{0};
     std::atomic<SizeT> startedWithoutReader{0};  // calls that found the reader destroyed
+    std::atomic<SizeT> thrown{0};                // calls whose body threw: the reader logs one error for each
     bool subscribed = false;
     std::atomic<bool> holdNext{false};
     bool held = false;  // under mutex: a call is parked

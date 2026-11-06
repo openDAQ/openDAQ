@@ -17,8 +17,8 @@
 #include <coretypes/event_args_ptr.h>
 #include <coretypes/event_emitter.h>
 #include <coretypes/intfs.h>
+#include <opendaq/connection_internal.h>
 #include <opendaq/connection_ptr.h>
-#include <opendaq/context_ptr.h>
 #include <opendaq/input_port_config_ptr.h>
 #include <opendaq/input_port_notifications_ptr.h>
 #include <opendaq/logger_component_ptr.h>
@@ -32,19 +32,30 @@
 #include <memory>
 #include <mutex>
 #include <optional>
-#include <unordered_map>
 #include <vector>
 
 BEGIN_NAMESPACE_OPENDAQ
 
-// The reader facade: owns the ports, installs a port listener on each, translates ports into slot indices, schedules
-// the wake the manager says is owed. The engine work lives in MultiReaderDataManager. The facade mutex guards the slot
-// list during configure only; the ingest task and the connect callbacks look the port's intake up through an immutable
-// wiring snapshot and never take it, so configure may run from inside the onDataAvailable handler. Lock order: the
-// facade mutex, the intake locks, the data manager's mutex.
-//
-// The ports notify on the sending thread, which only marks its port and, when the ingest task is idle, schedules it. The
-// task drains every marked port, so a burst of packets on any number of ports costs one scheduler task.
+// The listener a MultiReader2 installs on its ports: a port whose listener supports it is held by a reader
+DECLARE_OPENDAQ_INTERFACE(IMultiReader2PortListener, IBaseObject)
+{
+};
+
+/*!
+ * @brief The reader facade: owns the ports, wires each to a slot of the data manager, runs the ingest task and the
+ * onDataAvailable calls. The engine work lives in MultiReaderDataManager.
+ *
+ * Threads (spec 0007, Threading and locking): a port notifies on the sending thread. With no ingest run scheduled or
+ * running, the sending thread takes its packets in itself, under locks it only tries, so it never waits; a held lock, or a
+ * run in progress, leaves them to the ingest task, which drains every marked port. The handler call is decided with the
+ * packets, in O(1), and is a scheduler task of its own, so reads run alongside ingest. Connect and disconnect callbacks run
+ * on the thread that changes the port.
+ *
+ * Locks, in order: the facade mutex (configure and reevaluate only), a port's intake lock, the data manager's mutex. A
+ * sending thread only tries the last two. The port callbacks and the ingest task never take the facade mutex: they reach a
+ * port's slot through the port's own Intake and the wiring snapshot, so configure may run from inside the onDataAvailable
+ * handler. No signal is called under an intake lock.
+ */
 class MultiReader2Impl : public ImplementationOfWeak<IMultiReader2>
 {
 public:
@@ -60,41 +71,67 @@ public:
     ErrCode INTERFACE_FUNC reevaluate(IMultiReader2Status** status) override;
 
 private:
-    // One port's intake lock (spec A12): under it the port's packets, connect and disconnect reach the data manager
-    // in order. configure moves the slot index under it too; unset while configure takes the port over, and after
-    // the port left. No signal is called under it (C18). The mark is set by the sending thread, without the lock, and
-    // cleared by the ingest task before it drains the port
+    // One port the reader holds. Under its lock the port's packets, connect and disconnect reach the data manager in order;
+    // configure moves the slot index under it too, unset while configure takes the port over and after the port left.
+    // The mark is set by the sending thread without the lock, and cleared by the ingest task before it drains the port
     struct Intake
     {
+        explicit Intake(InputPortPtr port)
+            : port(std::move(port))
+        {
+        }
+
+        const InputPortPtr port;  // held, so an ingest run on an older wiring never meets a destroyed port
         std::mutex mutex;
         std::optional<SizeT> slot;
+        ObjectPtr<IConnectionInternal> connection;  // under the lock: the port's connection, so a packet does not ask the port
         std::atomic<bool> marked{false};
     };
 
-    // One reader input: the component the user named, the port driving its slot, and the port's listener, which the
-    // port holds weakly
+    // One reader input: the component the user named, the port driving its slot, and the port's listener, which the port
+    // holds weakly
     struct Slot
     {
         ComponentPtr input;
         InputPortConfigPtr port;
-        bool ownsPort;  // true for the port the reader created around a signal input
+        bool ownsPort = false;  // the reader created the port around a signal input
         std::shared_ptr<Intake> intake;
         InputPortNotificationsPtr listener;
     };
 
-    // A wired port, held strongly, so an ingest run that still works from an older wiring never meets a destroyed port
-    struct Wired
-    {
-        InputPortPtr port;
-        std::shared_ptr<Intake> intake;
-    };
-
-    // Read without a lock by the port callbacks, the ingest task and the wake
+    // Read without a lock by the ingest task and the wake
     struct Wiring
     {
-        std::unordered_map<IInputPort*, Wired> intakeOf;
+        std::vector<std::shared_ptr<Intake>> intakes;
         SchedulerPtr scheduler;
         LoggerComponentPtr loggerComponent;
+    };
+
+    // What the port callbacks and the scheduled work need. The port listeners hold this and not the reader, so a
+    // callback in flight does not keep a released reader alive; a destroyed reader clears the wiring
+    struct Core
+    {
+        MultiReaderDataManager dataManager;
+        EventEmitter<BaseObjectPtr, EventArgsPtr<>> onDataAvailable;
+        std::shared_ptr<const Wiring> wiring;
+        WorkPtr wakeWork;    // holds the reader weakly
+        WorkPtr ingestWork;  // holds this weakly
+        multi_reader2::IngestTask ingestTask;
+
+        std::shared_ptr<const Wiring> currentWiring() const;
+        void applyConnect(Intake& intake);
+        void applyDisconnect(Intake& intake);
+        void notify(Intake& intake);
+        bool takeIn(Intake& intake);
+        void scheduleIngest();
+        void drainMarked();
+        MultiReaderDataManager::Ingested ingest(Intake& intake);
+        SizeT transferBatch(Intake& intake, const std::unique_lock<std::mutex>& engineLock, MultiReaderDataManager::Ingested& ingested);
+        void markForTask(Intake& intake);
+        void scheduleWake();
+
+        static constexpr SizeT batch = 64;        // packets per transfer
+        static constexpr SizeT maxBatches = 256;  // per port per ingest run, so a busy port does not hold up the others
     };
 
     // What a port is connected to, with the signal's descriptors
@@ -105,45 +142,20 @@ private:
         DataDescriptorPtr value, domain;
     };
 
-    // What the port callbacks need, shared by the reader and its port listener. The ports hold the listener, which holds
-    // this and not the reader, so a callback in flight does not keep a released reader alive (W4). A destroyed reader
-    // clears the wiring, and the callbacks after it find no intake
-    struct Core
-    {
-        MultiReaderDataManager dataManager;
-        std::shared_ptr<const Wiring> wiring;
-        WorkPtr wakeWork;     // holds the reader weakly
-        WorkPtr ingestWork;   // holds this weakly
-        multi_reader2::IngestTask ingestTask;
-
-        std::shared_ptr<Intake> intakeOf(IInputPort* port) const;
-        void applyConnect(IInputPort* port);
-        void applyDisconnect(IInputPort* port);
-        void notify(Intake& intake);
-        void scheduleIngest();
-        void drainMarked();
-        bool ingest(IInputPort* port, Intake& intake);
-        void scheduleWake();
-    };
-
-    // The listener the reader installs on its ports; defined with the callbacks
     class PortListener;
 
-    // configure, and the constructor with a null status: the first status is then owed to the first read
     ErrCode configureInternal(IMultiReader2Params* params, IMultiReader2Status** status);
-    ErrCode resolveParams(IMultiReader2Params* params, MultiReaderDataManager::Config& config, ComponentPtr& mainInput);
+    static ErrCode resolveParams(IMultiReader2Params* params, MultiReaderDataManager::Config& config);
+    ErrCode checkInputs(const MultiReaderDataManager::Config& config, std::vector<bool>& retained) const;
+    std::vector<Slot>::const_iterator findSlot(const ComponentPtr& input) const;
     Slot makeSlot(const ComponentPtr& input);
-    void takeOver(const Slot& slot);
-    void releaseSlot(Slot& slot);
+    static void takeOver(const Slot& slot);
+    static void releaseSlot(Slot& slot);
     static PortState readPortState(const InputPortPtr& port);
-    void publishWiring(const std::vector<Slot>& wired);
+    void publishWiring(const std::vector<Slot>& wired, const SchedulerPtr& scheduler, const LoggerComponentPtr& loggerComponent);
     bool runWake();
 
     std::mutex mutex;
-    EventEmitter<BaseObjectPtr, EventArgsPtr<>> onDataAvailable;
-    ContextPtr context;
-    SchedulerPtr scheduler;
-    LoggerComponentPtr loggerComponent;
     std::vector<Slot> slots;
     std::shared_ptr<Core> core;
 };

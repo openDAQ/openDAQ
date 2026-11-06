@@ -46,6 +46,11 @@ void IngestTask::cancel()
 {
     state.store(Idle);
 }
+
+bool IngestTask::idle() const
+{
+    return state.load() == Idle;
+}
 }
 
 END_NAMESPACE_OPENDAQ

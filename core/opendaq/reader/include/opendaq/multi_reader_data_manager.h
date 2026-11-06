@@ -17,55 +17,85 @@
 #include <coretypes/function_ptr.h>
 #include <opendaq/component_ptr.h>
 #include <opendaq/data_descriptor_ptr.h>
-#include <opendaq/multi_reader2_params.h>
-#include <coretypes/ratio_ptr.h>
-#include <opendaq/component.h>
-#include <opendaq/data_packet_ptr.h>
 #include <opendaq/logger_component_ptr.h>
+#include <opendaq/multi_reader2_domain.h>
 #include <opendaq/multi_reader2_input_status.h>
+#include <opendaq/multi_reader2_params.h>
+#include <opendaq/multi_reader2_queue.h>
 #include <opendaq/multi_reader2_status_ptr.h>
 #include <opendaq/packet_ptr.h>
 #include <opendaq/sample_type.h>
 #include <opendaq/typed_reader.h>
 
 #include <atomic>
-#include <deque>
+#include <memory>
 #include <mutex>
 #include <optional>
-#include <string>
 #include <thread>
 #include <vector>
 
 BEGIN_NAMESPACE_OPENDAQ
 
-// Internal. The reader in front of it maps ports to slots and holds one intake lock per port, so a port's packets
-// and connection changes arrive here in order. Every method runs under this class's single non-recursive mutex,
-// held for the whole call. The one call-out is acceptsDescriptor, made under the mutex on the consumer's thread;
-// reader calls from inside it are refused. The one exception to the single mutex is a read's conversion: the samples
-// are taken off the queues under it and converted into the user's buffers after it. See spec 0007, Data manager sketch.
+/*!
+ * @brief Internal: the engine of MultiReader2 (spec 0007, Data manager sketch). The reader in front of it maps ports to
+ * slots and holds one intake lock per port, so a port's packets and connection changes arrive here in order.
+ *
+ * Every method runs under one non-recursive mutex, held for the whole call, except a read's conversion: the samples are
+ * taken off the queues under it and converted into the user's buffers after it. The one call-out is acceptsDescriptor,
+ * made under the mutex on the consumer's thread; reader calls from inside it are refused.
+ *
+ * Cost model: ingest is O(1) per packet (the queue keeps its counts), plus a pass over the inputs per packet only while
+ * synchronizing. A read is one pass over the inputs, plus the events it reaches. Whether a handler call is owed is decided
+ * once per ingest run, not per packet.
+ *
+ * How the code is laid out, one section each in the source:
+ *  - configuration: configure, reevaluate and the internal reconfigure;
+ *  - judgement: an input's errors, the main input, the reader's level;
+ *  - read: the samples every contributing input has in front of its first event, then the events the read reached;
+ *  - ingest: packets and connection changes onto the queues, the queue limits, the continuity check;
+ *  - synchronization: the check mechanism, run at ingest and after a read applies events;
+ *  - status: what the next status reports, found by comparing with the previous one;
+ *  - wake: when onDataAvailable is owed.
+ */
 class MultiReaderDataManager final
 {
 public:
     // The params resolved to slot indices
     struct Config
     {
-        std::vector<ComponentPtr> inputs;                  // slot order; the input statuses hand these back
-        std::vector<bool> connected;                       // per slot at configure time; always true for signals
-        std::vector<DataDescriptorPtr> valueDescriptors;   // what new slots start from; retained slots keep what they saw
+        std::vector<ComponentPtr> inputs;                 // slot order; the input statuses hand these back
+        std::vector<bool> connected;                      // per slot at configure time; always true for signals
+        std::vector<DataDescriptorPtr> valueDescriptors;  // what new slots start from; retained slots keep what they saw
         std::vector<DataDescriptorPtr> domainDescriptors;
-        std::optional<SizeT> mainSlot;                     // pinned main input; unset = the reader chooses
-        FunctionPtr acceptsDescriptor;                     // null accepts everything
+        std::optional<SizeT> mainSlot;                    // pinned main input; unset = the reader chooses
+        FunctionPtr acceptsDescriptor;                    // null accepts everything
         SampleType readType = SampleType::Float64;
         SizeT minReadCount = 1;
         MultiReader2ErrorPolicy errorPolicy = MultiReader2ErrorPolicy::Invalidate;
-        LoggerComponentPtr loggerComponent;                // for an acceptsDescriptor that throws; may be null
+        LoggerComponentPtr loggerComponent;               // for warnings; may be null
     };
 
-    // Applies every queued event, drops the data, then a 0-count read. A null status leaves the first status owed
-    // to the first read, as after construction
+    // What an ingest call queued; the wake decision is made once per ingest run from the sum of these
+    struct Ingested
+    {
+        bool trigger = false;  // an event, a synchronization outcome or a limit: a call is owed
+        bool data = false;     // a data packet: a call is owed if samples are readable
+        bool dropped = false;  // the critical limit dropped queues, whose packets releaseDropped frees
+
+        Ingested& operator|=(const Ingested& other)
+        {
+            trigger = trigger || other.trigger;
+            data = data || other.data;
+            dropped = dropped || other.dropped;
+            return *this;
+        }
+    };
+
+    // Applies every queued event, drops the data, then a 0-count read. A null status leaves the first status owed to the
+    // first read, as after construction
     ErrCode reconfigure(Config newConfig, IMultiReader2Status** status);
 
-    // Asks acceptsDescriptor for every input with its descriptors in force, then a 0-count read (B5)
+    // Asks acceptsDescriptor for every input with its descriptors in force, then a 0-count read
     ErrCode reevaluate(IMultiReader2Status** status);
 
     // Consumer side; contracts as on IMultiReader2, data as the real void**. Errors and descriptors move only here
@@ -73,205 +103,233 @@ public:
     ErrCode read(void** data, std::int64_t* domain, SizeT* count, SizeT timeoutMs, SizeT* packetOffset, IMultiReader2Status** status);
     ErrCode skipSamples(SizeT* count, SizeT timeoutMs, SizeT* packetOffset, IMultiReader2Status** status);
 
-    // Producer side; each returns whether onDataAvailable is to be scheduled once the call is out of the mutex, and
-    // then claims the one pending call. Connection changes and event packets queue as events; a connect carries the
-    // signal's descriptors. Data packets queue behind them and run the synchronization check; a failure found there
-    // is queued as a marker in front of the input's data and applied by the next read
+    // Producer side. A connection change returns whether onDataAvailable is to be scheduled, and then claims the one
+    // pending call. Packets come in batches under lockIngest's lock, which the ingest task waits for and a sending thread
+    // only tries, so a sender never waits for a read or another port; claimWake then decides on the call in O(1)
     bool connected(SizeT slot, const DataDescriptorPtr& value, const DataDescriptorPtr& domain);
     bool disconnected(SizeT slot);
-    bool addPacket(SizeT slot, const PacketPtr& packet);
-    bool addPackets(SizeT slot, const PacketPtr* packets, SizeT count);
+    std::unique_lock<std::mutex> lockIngest(bool wait);
+    Ingested addPackets(const std::unique_lock<std::mutex>& lock, SizeT slot, const PacketPtr* packets, SizeT count);
+    bool claimWake(const std::unique_lock<std::mutex>& lock, const Ingested& ingested);
+    // Frees the packets the critical limit dropped, outside the mutex, so a sending thread does not pay for them
+    void releaseDropped();
 
-    // The next read would change something: samples, a status with changes, a SyncFailed input that can clear, or an
-    // event it applies
-    bool hasTrigger();
-
-    void callStarted();   // the handler is about to run
+    void callStarted();  // the handler is about to run
     // After the handler returns: clears the pending flag and decides on another call in one step, claiming it. Only an
-    // arrival since the call started that is still unread calls again; after a failed call once-per-cause triggers re-arm
+    // arrival since the call started that is still unread calls again
     bool callFinished(bool failed);
-    void callAborted();   // the claimed call could not be scheduled; not in the sketch
+    void callAborted();  // the claimed call could not be scheduled
 
-    bool inCallback() const;   // true on the thread inside acceptsDescriptor
+    bool inCallback() const;  // true on the thread inside acceptsDescriptor
 
 private:
-    // Each input's queue holds at most this much data; the oldest goes while synchronizing, all of it otherwise
-    static constexpr std::int64_t queueLimitSeconds = 3;
-    static constexpr SizeT queueLimitBytes = SizeT(100) * 1000 * 1000;
+    using Event = multi_reader2::Event;
+    using SyncCause = multi_reader2::SyncCause;
 
-    enum class State { Invalid, Syncing, Streaming };  // Syncing: valid, common start not reached
-    enum class SyncCause { None, Limit, OffGrid };     // public error SyncFailed; the cause picks the recovery rule
+    // The limits on what an input queues, in its own data time and in bytes:
+    //  - sync limit: how far apart the reader expects the inputs' data. An input that queues more has the inputs judged for
+    //    a stall, and nothing is dropped; an input that starts more than this past the main input's samples is ahead;
+    //  - recovery limit: a stalled or ahead input rejoins once its newest sample is this close to the others';
+    //  - critical limit: an input that queues more is read too slowly, and every queue goes. Also over all inputs together
+    static constexpr std::int64_t syncLimitSeconds = 3;
+    static constexpr std::int64_t recoveryLimitSeconds = 1;
+    static constexpr std::int64_t criticalLimitSeconds = 5;
+    static constexpr SizeT criticalLimitBytes = SizeT(100) * 1000 * 1000;
+    static constexpr SizeT syncLimitBytes = criticalLimitBytes / criticalLimitSeconds * syncLimitSeconds;
+    static constexpr SizeT totalLimitBytes = SizeT(1000) * 1000 * 1000;
 
-    // The domain descriptor as the checks see it; not in the spec's sketch, which leaves the domain arithmetic to the code
-    struct DomainInfo
+    enum class State
     {
-        bool valid = false;         // the constraints that need only the input itself hold
-        RatioPtr resolution;        // seconds per tick
-        std::int64_t delta = 0;     // ticks per sample
-        std::int64_t start = 0;     // a packet's first tick is packetOffset + start
-        std::int64_t rate = 0;      // samples per second
-        std::int64_t originS = 0;   // origin in whole epoch seconds
+        Invalid,
+        Syncing,   // valid, the common start not reached
+        Streaming
     };
 
-    // An input tick in main ticks is tick * p / q + offset; not in the sketch
-    struct TickMap
+    // What an input announced: its connection and descriptors
+    struct Announced
     {
-        bool valid = false;         // a main input with a valid domain, and an origin difference of whole main ticks
-        std::int64_t p = 1, q = 1;  // input resolution / main resolution, reduced
-        std::int64_t offset = 0;    // the origin difference in main ticks
-    };
-
-    // A queued event on one input, applied when a read reaches it
-    struct Event
-    {
-        enum class Kind { Descriptor, Connected, Disconnected, Gap, SyncFailed };
-        Kind kind;
-        // Descriptor and Connected: both descriptors after the event, so a removal is a null; the sketch has only
-        // the changed ones assigned, which cannot express a removal
-        DataDescriptorPtr value, domain;
-        SyncCause cause = SyncCause::None; // SyncFailed: a failure found at ingest, queued in front of the input's data
-    };
-
-    // What applying one event changed on its input; not in the sketch
-    struct Applied
-    {
-        bool judge = false;    // descriptors or connection: the input is checked again
-        bool domain = false;   // a new domain descriptor
-        bool gap = false;
-    };
-
-    // One queue element: a data packet with its position in main ticks, or an event
-    struct Entry
-    {
-        DataPacketPtr packet;
-        SizeT start = 0;                        // samples of the packet already discarded; not in the sketch
-        SizeT count = 0;                        // samples left from start; not in the sketch
-        std::optional<std::int64_t> firstTick;  // main tick of sample start; unset when it is no whole main tick
-        std::optional<Event> event;
-        SizeT bytes = 0;                        // the packet's value and domain bytes, held until it leaves; not in the sketch
+        bool connected = false;
+        DataDescriptorPtr value;
+        DataDescriptorPtr domain;
     };
 
     struct Slot
     {
-        std::deque<Entry> queue;                     // in ingest order
-        SizeT frontCount = 0;                        // samples in front of the first event
-        SizeT events = 0;                            // events in the queue; not in the sketch
-        SizeT queuedSamples = 0;                     // samples of the queued data, events aside; not in the sketch
-        SizeT queuedBytes = 0;                       // bytes of the queued packets; not in the sketch
-        std::optional<std::int64_t> newestTick;      // main tick of the last ingested sample, dropped or not
-        DataDescriptorPtr latestValue, latestDomain; // last seen at ingest; what a reconfigure evaluates
-        bool latestConnected = false;
-        DomainInfo latestInfo;                       // parsed from latestDomain; not in the sketch
-        TickMap toMain;                              // from latestInfo and the main input's domain in force; not in the sketch
-        std::optional<std::int64_t> nextOffset;      // the packetOffset that continues the last packet; not in the sketch
-        DataDescriptorPtr value, domain;             // in force, moved only by read
-        bool connected = false;
-        DomainInfo domainInfo;                       // parsed from domain; not in the sketch
-        MultiReader2InputError ownError = MultiReader2InputError::None;   // the input alone; not in the sketch
-        bool rejectedByOwner = false;                // ownError came from acceptsDescriptor; picks the message text
-        MultiReader2InputError error = MultiReader2InputError::None;      // reported: ownError, then the checks
-                                                                          // against the main input, then SyncFailed
-        std::string errorText;                       // the input's entry in the status message, set with its error and cause
-        SyncCause syncFailed = SyncCause::None;      // applied by the read that reaches its marker; survives an internal
-                                                     // reconfigure that keeps the main input
-        bool clearPending = false;                   // failed on the limit, a packet now within it: triggers once until a read clears it
-        bool descriptorChanged = false;              // pending for the next status
-        std::shared_ptr<Reader> converter;           // to the read type, made for converterFor; a copy made outside the
-                                                     // mutex holds it; not in the sketch
-        DataDescriptorPtr converterFor;
+        multi_reader2::InputQueue queue;
+
+        // Producer side: the tail of the queue
+        Announced latest;                                   // what a reconfigure evaluates
+        std::optional<multi_reader2::TickDomain> latestDomain;
+        std::optional<multi_reader2::TickMap> toMain;       // latest domain onto the main domain in force
+        std::int64_t syncLimitSamples = 0;                  // the limits in the latest domain's samples
+        std::int64_t criticalLimitSamples = 0;
+        std::optional<std::int64_t> nextOffset;             // the packetOffset that continues the last packet
+        std::optional<std::int64_t> firstSentTick;          // main ticks of the first and the newest sample ingested on the
+        std::optional<std::int64_t> newestTick;             // current main grid, dropped or not; the stall and rejoin measure them
+
+        // Consumer side: in force, moved only by read, configure and reevaluate
+        Announced current;
+        std::optional<multi_reader2::TickDomain> domain;
+        MultiReader2InputError ownError = MultiReader2InputError::None;  // the input alone
+        bool rejectedByOwner = false;                       // ownError came from acceptsDescriptor
+        MultiReader2InputError error = MultiReader2InputError::None;     // reported: own, then against the main input
+        SyncCause syncFailed = SyncCause::None;             // a relative cause survives an internal reconfigure that keeps
+                                                            // the main input; Stalled survives a new main input too
+        bool descriptorChanged = false;                     // pending for the next status
+        SizeT sampleSize = 0;                               // bytes per sample in the read buffer, healthy only
+
+        // To the read type, for the value descriptor in force; a copy run outside the mutex holds it
+        std::shared_ptr<Reader> converter;
     };
 
-    // Samples a read took off a queue, converted into the user's buffer once the mutex is released; not in the sketch
+    // Samples a read took off a queue, converted into the user's buffer once the mutex is released
     struct Copy
     {
         DataPacketPtr packet;
-        SizeT start = 0;
+        SizeT first = 0;
         SizeT count = 0;
         void* out = nullptr;
         std::shared_ptr<Reader> converter;  // null under Undefined: the samples are copied as they are
         SizeT sampleSize = 0;               // bytes per sample in the packet, under Undefined
     };
 
-    static DomainInfo parseDomain(const DataDescriptorPtr& domain);
-    static bool matchesMain(const DomainInfo& input, const DomainInfo& main);
+    // The state fields of a status (Status): they hold until the reader changes
+    struct Shown
+    {
+        ComponentStatus level = ComponentStatus::Ok;
+        std::vector<MultiReader2InputError> errors;
+        std::string message;
+        std::optional<SizeT> mainSlot;
+        DataDescriptorPtr domain;
 
-    // All under the mutex
+        bool operator==(const Shown& other) const;
+    };
+
+    // Configuration
+    void internalReconfigure(bool wasValid);
+    void restart();
+    void afterJudgement(bool wasValid, const std::optional<SizeT>& previousMain, const std::vector<MultiReader2InputError>& previous,
+                        bool reconfigureNeeded, bool resync);
+
+    // Judgement
     void checkInput(SizeT slot);
     bool askAccept(SizeT slot);
-    void settleMainInput(bool keepMain);
-    void restart();
-    void startSync();
-    void internalReconfigure(bool wasValid);
-    std::vector<std::pair<MultiReader2InputError, std::string>> reportedErrors() const;
-    void noteChanges(ComponentStatus previousLevel, const std::vector<std::pair<MultiReader2InputError, std::string>>& previous);
+    void judgeInputs(bool keepMain);
+    std::vector<MultiReader2InputError> errors() const;
+    bool valid() const
+    {
+        return level != ComponentStatus::Error;
+    }
+    bool contributes(const Slot& slot) const
+    {
+        return valid() && slot.error == MultiReader2InputError::None;
+    }
 
     // Read
+    ErrCode checkRead(SizeT count, SizeT timeoutMs, void** data, bool skip) const;
+    void performRead(void** data, std::int64_t* domain, SizeT* count, SizeT* packetOffset, IMultiReader2Status** status,
+                     std::vector<Copy>* copies);
+    SizeT frontAvailable() const;
+    bool readable() const;
+    bool isShort(const Slot& slot) const;
+    void recountShort();
     std::optional<SizeT> shortRun() const;
     void dropShortRun();
-    static bool contributes(const Slot& slot, bool valid);
-    static bool reachesEvent(const Slot& slot, bool contributing);
-    void consume(Slot& slot, SizeT count, void* out, std::vector<Copy>* copies);
-    void queueCopy(Slot& slot, const Entry& entry, SizeT count, void*& out, std::vector<Copy>& copies);
+    void take(Slot& slot, SizeT count, void* out, std::vector<Copy>* copies);
+    bool makeConverter(Slot& slot) const;
     static void runCopy(const Copy& copy);
-    static Applied applyEvent(Slot& slot, const Event& event);
-    static void countFront(Slot& slot);
     void applyEvents();
+    void applyReachedEvents();
+    struct Applied
+    {
+        bool judge = false;   // descriptors or connection: the input is checked again
+        bool domain = false;  // a new domain descriptor
+        bool gap = false;
+    };
+    static Applied applyEvent(Slot& slot, const Event& event);
+    static bool reachesEvent(const Slot& slot, bool contributing);
 
     // Ingest
     bool queueConnect(SizeT slot, const DataDescriptorPtr& value, const DataDescriptorPtr& domain);
     bool queueDisconnect(SizeT slot);
-    bool queuePacket(SizeT slot, const PacketPtr& packet);
     bool queueDescriptor(SizeT slot, const DataDescriptorPtr& value, const DataDescriptorPtr& domain);
+    Ingested ingestPacket(SizeT slot, const PacketPtr& packet);
     bool ingestData(SizeT slot, const DataPacketPtr& packet);
-    void mapToMain(SizeT slot);
-    static std::optional<std::int64_t> toMainTick(const Slot& slot, std::int64_t packetOffset);
-    static void pushEvent(Slot& slot, Event event);
-    static void dropFront(Slot& slot);
-    static void dropData(Slot& slot);
-    static bool hasData(const Slot& slot);
+    void useLatestDomain(Slot& slot) const;
+    static bool over(const Slot& slot, std::int64_t samples, SizeT bytes, SizeT addedCount, SizeT addedBytes);
+    void dropAll(SizeT cause);
     void dropForRejoin(const std::vector<SizeT>& rejoined);
-    void discardBefore(Slot& slot, std::int64_t tick) const;
-    static void popData(Slot& slot);
-    static void clearQueue(Slot& slot);
-    bool overLimit(const Slot& slot, SizeT count, SizeT bytes) const;
-    bool limitQueue(SizeT slot, SizeT count, SizeT bytes);
-    static void failSync(Slot& slot, SyncCause cause);
-    static bool failedOnLimit(const Slot& slot);
+
+    // Synchronization
+    void startSync();
     bool synchronize();
-    bool markClear(SizeT slot, const std::optional<std::int64_t>& firstTick);
-    SizeT frontAvailable() const;
-    ComponentStatus level() const;
+    static void failSync(Slot& slot, SyncCause cause);
+    bool checkRejoin(SizeT slot);
+
+    // Stalls
+    struct Senders;
+    Senders senders() const;
+    std::optional<std::int64_t> silence(const Slot& slot, const Senders& senders) const;
+    bool stallDue() const;
+    bool checkStall();
+    void planStallCheck();
+    void applyStalls();
+    void markResynchronized();
+    void reportAfresh();
+
+    // Status
+    Shown capture() const;
+    void noteChanges();
     std::string describeError(const Slot& slot) const;
-    SizeT sampleSize(const Slot& slot) const;
     MultiReader2StatusPtr buildStatus();
 
     // Wake
-    bool claimWake(bool owed);
+    bool claim(bool owed);
     bool triggerHolds() const;
-    ErrCode checkRead(SizeT count, SizeT timeoutMs, void** data, bool skip) const;
-    void performRead(void** data, std::int64_t* domain, SizeT* count, SizeT* packetOffset, IMultiReader2Status** status,
-                     std::vector<Copy>* copies);
 
     std::mutex mutex;
     Config config;
     std::vector<Slot> slots;
-    std::optional<SizeT> mainSlot;                  // the main input in effect
+    std::optional<SizeT> mainSlot;  // the main input in effect
+    ComponentStatus level = ComponentStatus::Ok;
     State state = State::Invalid;
-    std::int64_t readTick = 0;                      // main-tick position of the next unread sample
-    std::optional<std::int64_t> mainTrimmedFrom;    // the main input's first tick the queue limit dropped while
-                                                    // synchronizing; the behind check counts from it
-    bool positioned = false;                        // readTick continues a read that delivered samples since the last
-                                                    // restart; not in the sketch
-    std::int64_t syncLimitTicks = 0;                // 2 s of data in main ticks; set from the main domain
-    std::int64_t mainDelta = 1;                     // main ticks per sample; not in the sketch
-    bool domainChanged = false;                     // pending for the next status
-    bool resynchronized = false;                    // pending for the next status
-    bool statusOwed = false;                        // not in the sketch: hasChanges of the next status (C1)
-    MultiReader2StatusPtr steadyStatus;             // the last status without changes, returned again until a change;
-                                                    // not in the sketch
-    bool callPending = false;                       // an onDataAvailable call is scheduled or running
-    bool arrivedDuringCall = false;                 // an arrival since the call started; the sketch counts them
-    std::atomic<std::thread::id> callbackThread{std::thread::id()};   // not in the sketch: inCallback is asked without the mutex
+
+    // Synchronization and read position, in main ticks
+    std::int64_t mainDelta = 1;                    // main ticks per sample
+    std::int64_t mainStart = 0;                    // the main rule's start: packetOffset is a tick minus it
+    std::int64_t syncLimitTicks = 0;               // the sync and recovery limits in main ticks
+    std::int64_t recoveryLimitTicks = 0;
+    // While synchronizing, ingest checks for a stall only once an input sends past this main tick: the earliest at which an
+    // input with nothing queued can be more than the sync limit behind. Unset: at the next ingest
+    std::optional<std::int64_t> stallCheckTick;
+    std::int64_t readTick = 0;                     // the next unread sample
+    bool positioned = false;                       // readTick continues a read that delivered samples since the restart
+    std::optional<SizeT> tickedMain;                // the main input and domain the inputs' sent ticks are measured on
+    DataDescriptorPtr tickedMainDomain;
+
+    // Limits: the bytes queued over all inputs, and what the critical limit dropped, freed outside the mutex
+    SizeT queuedBytes = 0;
+    std::vector<multi_reader2::InputQueue::Backlog> dropped;
+
+    // Status: event fields pending for the next status, and what the previous status showed
+    bool afresh = true;            // the first status after a configure: owed whatever it shows
+    bool domainChanged = false;
+    bool resynchronized = false;
+    bool statusOwed = true;        // the next status has changes; it holds back samples
+    Shown shown;
+    MultiReader2StatusPtr steadyStatus;  // the last status without changes, returned again until a change
+
+    // Wake
+    // frontAvailable() > 0 without a pass over the inputs, for the wake decision on a sending thread: the healthy inputs, and
+    // those with fewer than MinReadCount samples in front. Kept on ingest, counted again after reads, judgements and
+    // synchronization, which pass over the inputs anyway
+    SizeT healthyInputs = 0;
+    SizeT shortInputs = 0;
+
+    bool callPending = false;       // an onDataAvailable call is scheduled or running
+    bool retryCall = false;         // the last call failed: the next arrival calls again for whatever is pending
+    bool arrivedDuringCall = false;  // an arrival since the call started
+    std::atomic<std::thread::id> callbackThread{std::thread::id()};  // inCallback is asked without the mutex
 };
 
 END_NAMESPACE_OPENDAQ

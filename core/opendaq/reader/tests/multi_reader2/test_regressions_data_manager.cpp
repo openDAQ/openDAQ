@@ -48,7 +48,6 @@ TEST_F(MultiReader2RegressionDm, LateInputBackBeforeAnyReadLeavesNoDataBehindADr
 // stalls
 TEST_F(MultiReader2RegressionDm, InputStallsOnlyOnceItsBacklogIsRead)
 {
-    MR2_REVIEW_ONLY(review_only::stall);
     setupBase();
     expect(read(50), count(50).at(0).noChanges());
     write(in1, 100, 3049);

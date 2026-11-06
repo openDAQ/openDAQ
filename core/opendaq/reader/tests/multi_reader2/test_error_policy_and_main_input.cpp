@@ -331,7 +331,6 @@ TEST_F(MultiReader2Policy, NonMainMoreThanThreeSecondsAheadInvalidatesAsSyncFail
 // S1.POL.27
 TEST_F(MultiReader2Policy, NonMainMoreThanThreeSecondsBehindInvalidatesAsSyncFailed)
 {
-    MR2_REVIEW_ONLY(review_only::stall);
     write(in2, 0, 99);
     write(in1, 2100, 3109);
     expect(read(0), count(0).level(Error).inError(in2, InputError::SyncFailed).msg("in2: not synchronized, no data for 3 s"));

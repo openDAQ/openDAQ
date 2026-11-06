@@ -1142,8 +1142,10 @@ HandlerLog MultiReader2Test::idle()
             return handlerState->log.calls != before;
         }());
 
+    // The logger delivers on its own thread: the error of a call that threw may arrive after the call. Counted only once
+    // every such call's error is in, so no error is counted against the next idle
     errorsBeforeIdle = errorsAtIdle;
-    errorsAtIdle = countingSink(errorSink).count();
+    errorsAtIdle = countingSink(errorSink).waitForAtLeast(handlerState->thrown.load());
     std::scoped_lock lock(handlerState->mutex);
     HandlerLog out = std::move(handlerState->log);
     handlerState->log = {};
@@ -1910,7 +1912,15 @@ void MultiReader2Test::onDataAvailable(BaseObjectPtr& sender, EventArgsPtr<>&)
             --running;
         }
     } leave{handlerState->running};
-    handlerState->body();
+    try
+    {
+        handlerState->body();
+    }
+    catch (...)
+    {
+        ++handlerState->thrown;
+        throw;
+    }
 }
 
 // ---------------------------------------------------------------------------------------------------------------------

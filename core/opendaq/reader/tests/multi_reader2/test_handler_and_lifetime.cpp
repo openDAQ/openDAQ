@@ -117,7 +117,6 @@ TEST_F(MultiReader2Context, SyncFailureTriggersHandlerWithWarning)
 // S1.CTX.08
 TEST_F(MultiReader2Context, StalledInputComingWithinOneSecondTriggersHandlerOnce)
 {
-    MR2_REVIEW_ONLY(review_only::stall);
     given().policy(Exclude);
     setup(
         [&]
@@ -134,7 +133,6 @@ TEST_F(MultiReader2Context, StalledInputComingWithinOneSecondTriggersHandlerOnce
 // S1.CTX.09
 TEST_F(MultiReader2Context, SyncFailedRejoinTriggerIsRearmedAfterHandlerThrows)
 {
-    MR2_REVIEW_ONLY(review_only::stall);
     given().policy(Exclude);
     setup(
         [&]

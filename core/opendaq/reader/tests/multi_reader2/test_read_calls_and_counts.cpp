@@ -423,7 +423,6 @@ TEST_F(MultiReader2Read, AvailableCountReachesMinReadCountOnlyWhenEveryInputHasI
 // S1.READ.66
 TEST_F(MultiReader2Read, RecoveryFromStalledInputDropsDataQueuedBeforeIt)
 {
-    MR2_REVIEW_ONLY(review_only::stall);
     setup(
         [&]
         {

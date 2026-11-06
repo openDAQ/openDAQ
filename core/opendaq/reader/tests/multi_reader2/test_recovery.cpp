@@ -458,7 +458,6 @@ TEST_F(MultiReader2Recovery, ValueDescriptorChangeDoesNotClearOffGridSyncFailed)
 // S1.REC.28
 TEST_F(MultiReader2Recovery, BehindStalledInputClearsOnSampleWithinOneSecond)
 {
-    MR2_REVIEW_ONLY(review_only::stall);
     given().main(in1);
     setup(
         [&]
@@ -512,7 +511,6 @@ TEST_F(MultiReader2Recovery, ReinitializingConfigureClearsBehindSyncFailed)
 // S1.REC.31
 TEST_F(MultiReader2Recovery, AheadSyncFailedRejoinsWithinOneSecondWithResyncUnderExclude)
 {
-    MR2_REVIEW_ONLY(review_only::stall);
     given().policy(Exclude);
     setup(
         [&]

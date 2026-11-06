@@ -120,3 +120,13 @@ TEST(MultiReader2IngestTask, ConcurrentSendersLoseNoPacketAndDrainOneAtATime)
     EXPECT_LT(drains.load(), senders * packets);
     EXPECT_TRUE(task.notify());
 }
+
+TEST(MultiReader2IngestTask, IdleOnlyWithNoRunScheduledOrRunning)
+{
+    IngestTask task;
+    EXPECT_TRUE(task.idle());
+    ASSERT_TRUE(task.notify());
+    EXPECT_FALSE(task.idle());
+    EXPECT_FALSE(task.run([&] { EXPECT_FALSE(task.idle()); }));
+    EXPECT_TRUE(task.idle());
+}

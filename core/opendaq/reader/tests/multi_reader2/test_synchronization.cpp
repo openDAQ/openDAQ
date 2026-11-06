@@ -51,7 +51,6 @@ TEST_F(MultiReader2Sync, PinnedMainStartingLaterDropsNonMainDataBeforeCommonStar
 // S1.SYNC.05
 TEST_F(MultiReader2Sync, NonMainExactlyQueueLimitAheadSynchronizes)
 {
-    MR2_REVIEW_ONLY(review_only::syncLimit);
     write(in1, 0, 99);
     write(in2, 3099, 3198);
     write(in1, 100, 3199);
@@ -102,7 +101,6 @@ TEST_F(MultiReader2Sync, NonMainMoreThanQueueLimitAheadOfPinnedMainGivesError)
 // S1.SYNC.09
 TEST_F(MultiReader2Sync, NonMainBehindMainStallsOnceTheMainSentThreeSecondsPastIt)
 {
-    MR2_REVIEW_ONLY(review_only::stall);
     write(in2, 0, 99);
     write(in1, 2100, 3099);
     expect(read(0), count(0).level(Ok).domainChanged().resync().allDescChanged());
@@ -114,7 +112,6 @@ TEST_F(MultiReader2Sync, NonMainBehindMainStallsOnceTheMainSentThreeSecondsPastI
 // S1.SYNC.10
 TEST_F(MultiReader2Sync, NonMainBehindPinnedMainIsStalledAndExcludedWithWarning)
 {
-    MR2_REVIEW_ONLY(review_only::stall);
     given().main(in2).policy(Exclude);
     write(in1, 0, 99);
     write(in2, 2100, 3109);
@@ -182,7 +179,6 @@ TEST_F(MultiReader2Sync, PinnedMainJumpBackMidStreamContinuesWithoutResynchroniz
 // S1.SYNC.15
 TEST_F(MultiReader2Sync, NonMainJumpMoreThanQueueLimitAheadMidStreamFailsSync)
 {
-    MR2_REVIEW_ONLY(review_only::syncLimit);
     given().policy(Exclude);
     setupBase();
     expect(read(100), count(100).at(0).noChanges());
@@ -224,8 +220,7 @@ TEST_F(MultiReader2Sync, NonMainWithoutDataIsExcludedOnceMainHoldsMoreThanQueueL
                .descChanged(in1)
                .inError(in2, InputError::SyncFailed)
                .msg("in2: not synchronized, no data for 3 s"));
-    // in1's 3,001st sample passed its queue's 3 s limit while streaming: its older samples went
-    expect(read(3001), count(1).at(3000).noChanges());
+    expect(read(3001), count(3001).at(0).noChanges());
 }
 
 // S1.SYNC.18
@@ -239,7 +234,6 @@ TEST_F(MultiReader2Sync, NonMainWithoutDataGivesErrorOnceMainHoldsMoreThanQueueL
 // S1.SYNC.19
 TEST_F(MultiReader2Sync, NonMainWithoutDataSurvivesMainAtExactlyQueueLimitThenFails)
 {
-    MR2_REVIEW_ONLY(review_only::syncLimit);
     given().policy(Exclude);
     write(in1, 0, 2999);
     expect(read(0), count(0).level(Ok).domainChanged().resync().allDescChanged());
@@ -311,18 +305,17 @@ TEST_F(MultiReader2Sync, MainWaitsForDataUpToLaterNonMainCommonStart)
 // S1.SYNC.23
 TEST_F(MultiReader2Sync, NonMainWaitingBehindEventIsNotStalledWhileMainExceedsQueueLimit)
 {
-    // in2's queued event is not nothing: in1 drops its oldest packets to stay within 3 s instead
+    // in2's queued event is not nothing, and in1's data stays under the critical limit
     announce(in2, Value(SampleType::Int32));
     write(in1, 0, 3049);
     write(in2, 0, 99);
     expect(read(0), count(0).level(Ok).domainChanged().resync().allDescChanged());
-    expect(read(100), count(50).at(50).noChanges());
+    expect(read(100), count(100).at(0).noChanges());
 }
 
 // S1.SYNC.24
 TEST_F(MultiReader2Sync, NonMainAheadIsNotJudgedWhileMainWaitsBehindEvent)
 {
-    MR2_REVIEW_ONLY(review_only::syncLimit);
     announce(in1, Value(SampleType::Int32));
     write(in1, 0, 99);
     write(in2, 3100, 3199);
@@ -354,7 +347,6 @@ TEST_F(MultiReader2Sync, NonMainOffDeltaTwoMainGridIsExcludedAsOffGrid)
 // S1.SYNC.26
 TEST_F(MultiReader2Sync, NonMainStoppingWhileStreamingStallsAndRecoversWithinOneSecond)
 {
-    MR2_REVIEW_ONLY(review_only::stall);
     setupBase();
     expect(read(100), count(100).at(0).noChanges());
     write(in1, 100, 3099);
@@ -374,7 +366,6 @@ TEST_F(MultiReader2Sync, NonMainStoppingWhileStreamingStallsAndRecoversWithinOne
 // S1.SYNC.29
 TEST_F(MultiReader2Sync, NonMainStoppingWhileStreamingIsSetAsideAndRejoinsUnderExclude)
 {
-    MR2_REVIEW_ONLY(review_only::stall);
     given().policy(Exclude);
     setupBase();
     expect(read(100), count(100).at(0).noChanges());
@@ -420,7 +411,6 @@ TEST_F(MultiReader2Sync, LosingTheAutomaticMainJudgesALateInputAfreshAgainstTheN
 // S1.SYNC.27
 TEST_F(MultiReader2Sync, AheadSyncFailedInputRejoinsWithinOneSecondWithResynchronization)
 {
-    MR2_REVIEW_ONLY(review_only::stall);
     given().policy(Exclude);
     setup(
         [&]

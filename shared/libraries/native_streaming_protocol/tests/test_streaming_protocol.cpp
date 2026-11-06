@@ -7,6 +7,8 @@
 
 #include <memory>
 #include <future>
+#include <atomic>
+#include <thread>
 
 using namespace daq;
 using namespace daq::opendaq_native_streaming_protocol;
@@ -899,6 +901,53 @@ TEST_P(StreamingProtocolTest, SendMultipleDataPackets)
         ASSERT_EQ(signalId, serverSignal.getGlobalId());
         ASSERT_EQ(serverDataPackets, packets);
     }
+}
+
+// A handler replaced while the client runs it must finish on its own state
+TEST_P(StreamingProtocolTest, ReplaceHandlersWhilePacketsArrive)
+{
+    const auto valueDescriptor = DataDescriptorBuilder().setSampleType(SampleType::Float32).build();
+    auto serverSignal = SignalWithDescriptor(serverContext, valueDescriptor, nullptr, "signal");
+    startServer(List<ISignal>(serverSignal), DataDescriptorChangedEventPacket(valueDescriptor, NullDataDescriptor()));
+
+    const auto received = std::make_shared<std::atomic<size_t>>(0);
+    const auto setCountingHandlers = [&received](StreamingProtocolAttributes& client)
+    {
+        // each replacement destroys the previous closure and its state
+        auto state = std::make_shared<std::string>("handler state");
+        client.clientHandler->setStreamingHandlers(client.signalAvailableHandler,
+                                                   client.signalUnavailableHandler,
+                                                   [received, state](const StringPtr&, const PacketPtr&) { ASSERT_FALSE(state->empty()); ++*received; },
+                                                   client.signalSubscriptionAckHandler,
+                                                   client.connectionStatusChangedHandler,
+                                                   client.streamingInitDoneHandler);
+    };
+
+    for (auto& client : clients)
+    {
+        client.clientHandler = createClient(client, client.signalAvailableHandler);
+        ASSERT_TRUE(client.clientHandler->connect(SERVER_ADDRESS, NATIVE_STREAMING_LISTENING_PORT));
+        client.clientHandler->sendStreamingRequest();
+        ASSERT_EQ(client.streamingInitFuture.wait_for(timeout), std::future_status::ready);
+        ASSERT_EQ(client.signalAvailableFuture.wait_for(timeout), std::future_status::ready);
+        client.clientHandler->subscribeSignal(std::get<0>(client.signalAvailableFuture.get()));
+        ASSERT_EQ(client.subscribedAckFuture.wait_for(timeout), std::future_status::ready);
+        ASSERT_EQ(client.packetReceivedFuture.wait_for(timeout), std::future_status::ready);
+        setCountingHandlers(client);
+    }
+
+    constexpr size_t packetCount = 500;
+    for (size_t i = 0; i < packetCount; ++i)
+    {
+        serverHandler->sendPacket(serverSignal.getGlobalId().toStdString(), DataPacket(valueDescriptor, 100));
+        for (auto& client : clients)
+            setCountingHandlers(client);
+    }
+
+    const auto deadline = std::chrono::steady_clock::now() + std::chrono::seconds(10);
+    while (*received < packetCount * clients.size() && std::chrono::steady_clock::now() < deadline)
+        std::this_thread::sleep_for(std::chrono::milliseconds(1));
+    ASSERT_EQ(*received, packetCount * clients.size());
 }
 
 TEST_P(StreamingProtocolTest, AddNotPublicSignal)

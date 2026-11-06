@@ -37,6 +37,8 @@
 - [#1324](https://github.com/openDAQ/openDAQ/pull/1324) `setVisible` returns `OPENDAQ_IGNORED` and fires no `AttributeChanged` when the value is unchanged, as `setActive`, `setName` and `setDescription` already do.
 - [#1350](https://github.com/openDAQ/openDAQ/pull/1350) The client no longer sends requests while applying a server update.
 - [#1366](https://github.com/openDAQ/openDAQ/pull/1366) Components send their locked attributes to native configuration clients, so a client shows the same locked attributes as the device.
+- [#1374](https://github.com/openDAQ/openDAQ/pull/1374) Error messages list the error-info chain from the newest error down to the root cause in every build, capped at 4 KiB, so release builds no longer hide the root cause behind added context.
+- [#1374](https://github.com/openDAQ/openDAQ/pull/1374) An exception message containing `{` or `}` no longer turns into an `fmt::format_error`.
 
 ## Misc
 
@@ -69,6 +71,10 @@ Nested property objects share their owner's lock, so a handler on a nested objec
 ### [#1360](https://github.com/openDAQ/openDAQ/pull/1360) Module authenticator errors fail module loading
 
 The module manager no longer ignores the error code returned by `IModuleAuthenticator::authenticateModuleBinary`. A failure code aborts loading of the module and is returned to the caller with the authenticator's error message.
+
+### [#1374](https://github.com/openDAQ/openDAQ/pull/1374) Error messages list the chain newest first
+
+An exception message for an error that passed through several calls shows the newest error on the first line and the root cause last, each following line prefixed with ` - Caused by: `. Release builds used to show only the newest message. A message longer than 4 KiB keeps the newest errors and the root cause and replaces the lines between them with ` - ... N more lines`. Applications that parse error messages must read the new layout.
 
 ### [#1045](https://github.com/openDAQ/openDAQ/pull/1045) ISynchronization replaces ISyncComponent
 

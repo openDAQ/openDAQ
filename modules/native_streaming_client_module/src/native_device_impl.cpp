@@ -7,7 +7,6 @@
 #include <regex>
 #include <boost/asio/dispatch.hpp>
 
-#include <opendaq/ids_parser.h>
 #include <opendaq/mirrored_device_ptr.h>
 #include <opendaq/component_exceptions.h>
 #include <opendaq/exceptions.h>
@@ -31,7 +30,6 @@ NativeDeviceHelper::NativeDeviceHelper(const ContextPtr& context,
                                        std::shared_ptr<boost::asio::io_context> processingIOContextPtr,
                                        std::shared_ptr<boost::asio::io_context> reconnectionProcessingIOContextPtr,
                                        std::thread::id reconnectionProcessingThreadId,
-                                       const StringPtr& connectionString,
                                        Int reconnectionPeriod)
     : processingIOContextPtr(processingIOContextPtr)
     , reconnectionProcessingIOContextPtr(reconnectionProcessingIOContextPtr)
@@ -40,10 +38,8 @@ NativeDeviceHelper::NativeDeviceHelper(const ContextPtr& context,
     , transportClientHandler(transportProtocolClient)
     , connectionStatus(Enumeration("ConnectionStatusType", "Connected", context.getTypeManager()))
     , acceptNotificationPackets(false) // ignore notification packets by default until the device is connected
-    , subscribedToCoreEvent(false)
     , configProtocolRequestTimeout(std::chrono::milliseconds(configProtocolRequestTimeout))
     , restoreClientConfigOnReconnect(restoreClientConfigOnReconnect)
-    , connectionString(connectionString)
     , configProtocolReconnectionRetryTimer(std::make_shared<boost::asio::steady_timer>(*reconnectionProcessingIOContextPtr))
     , reconnectionPeriod(std::chrono::milliseconds(reconnectionPeriod))
 {
@@ -61,26 +57,6 @@ DevicePtr NativeDeviceHelper::connectAndGetDevice(const ComponentPtr& parent, ui
     startAcceptNotificationPackets();
     deviceRef = device;    
     return device;
-}
-
-void NativeDeviceHelper::subscribeToCoreEvent(const ContextPtr& context)
-{
-    std::scoped_lock lock(flagsSync);
-    if (!subscribedToCoreEvent)
-    {
-        context.getOnCoreEvent() += event(this, &NativeDeviceHelper::coreEventCallback);
-        subscribedToCoreEvent = true;
-    }
-}
-
-void NativeDeviceHelper::unsubscribeFromCoreEvent(const ContextPtr& context)
-{
-    std::scoped_lock lock(flagsSync);
-    if (subscribedToCoreEvent)
-    {
-        context.getOnCoreEvent() -= event(this, &NativeDeviceHelper::coreEventCallback);
-        subscribedToCoreEvent = false;
-    }
 }
 
 void NativeDeviceHelper::closeConnectionOnRemoval()
@@ -116,35 +92,6 @@ void NativeDeviceHelper::closeConnectionOnRemoval()
 
     // Immediately fail all pending async config requests with an exception
     cancelPendingConfigRequests(ComponentRemovedException());
-}
-
-void NativeDeviceHelper::componentUpdated(const ComponentPtr& sender, const CoreEventArgsPtr& eventArgs)
-{
-    auto deviceSelf = deviceRef.assigned() ? deviceRef.getRef() : nullptr;
-    if (!deviceSelf.assigned() || deviceSelf.isRemoved())
-        return;
-
-    ComponentPtr updatedComponent = sender;
-
-    auto deviceSelfGlobalId = deviceSelf.getGlobalId().toStdString();
-    auto updatedComponentGlobalId = updatedComponent.getGlobalId().toStdString();
-    if (deviceSelfGlobalId == updatedComponentGlobalId ||
-        IdsParser::isNestedComponentId(updatedComponentGlobalId, deviceSelfGlobalId))
-    {
-        deviceSelf.asPtr<INativeDevicePrivate>(true)->updateDeviceInfo(connectionString);
-    }
-}
-
-void NativeDeviceHelper::coreEventCallback(ComponentPtr& sender, CoreEventArgsPtr& eventArgs)
-{
-    switch (static_cast<CoreEventId>(eventArgs.getEventId()))
-    {
-        case CoreEventId::ComponentUpdateEnd:
-            componentUpdated(sender, eventArgs);
-            break;
-        default:
-            break;
-    }
 }
 
 void NativeDeviceHelper::transportConnectionStatusChangedHandler(const EnumerationPtr& status, const StringPtr& statusMessage)
@@ -489,6 +436,7 @@ void NativeDeviceImpl::publishConnectionStatus(const EnumerationPtr& status, con
 void NativeDeviceImpl::completeInitialization(std::shared_ptr<NativeDeviceHelper> deviceHelper, const StringPtr& connectionString)
 {
     attachDeviceHelper(deviceHelper);
+    this->connectionString = connectionString;
     updateDeviceInfo(connectionString);
 
     const auto statusInitValue = Enumeration("ConnectionStatusType", "Connected", this->context.getTypeManager());
@@ -526,15 +474,6 @@ ErrCode NativeDeviceImpl::setComponentConfig(IPropertyObject* config)
     return OPENDAQ_SUCCESS;
 }
 
-void NativeDeviceImpl::removedNoLock()
-{
-    // Unsubscribing waits for a core event handled on another thread. That call can need this device's lock,
-    // so it happens only after the lock is released.
-    if (this->deviceHelper)
-        this->deviceHelper->unsubscribeFromCoreEvent(this->context);
-    Super::removedNoLock();
-}
-
 // retrieves the local configuration object without triggering an RPC call
 ErrCode NativeDeviceImpl::getComponentConfig(IPropertyObject** config)
 {
@@ -547,6 +486,15 @@ ErrCode NativeDeviceImpl::getComponentConfig(IPropertyObject** config)
 bool NativeDeviceImpl::isAddedToLocalComponentTree()
 {
     return true;
+}
+
+void NativeDeviceImpl::onRemoteUpdate(const SerializedObjectPtr& serialized)
+{
+    Super::onRemoteUpdate(serialized);
+
+    // A remote update replaces the device info with the server's; restore this client's connection to it.
+    if (connectionString.assigned())
+        updateDeviceInfo(connectionString);
 }
 
 void NativeDeviceImpl::attachDeviceHelper(std::shared_ptr<NativeDeviceHelper> deviceHelper)
@@ -562,10 +510,7 @@ NativeStreamingClientHandlerPtr NativeDeviceHelper::getTransportClientHandler() 
 void NativeDeviceImpl::disconnectAndCleanUp()
 {
     if (this->deviceHelper)
-    {
-        this->deviceHelper->unsubscribeFromCoreEvent(this->context);
         this->deviceHelper->closeConnectionOnRemoval();
-    }
 }
 
 void NativeDeviceImpl::updateDeviceInfo(const StringPtr& connectionString)

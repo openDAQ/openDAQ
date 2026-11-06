@@ -194,13 +194,9 @@ DevicePtr NativeStreamingClientModule::createNativeDevice(const ContextPtr& cont
                                                                  processingIOContextPtr,
                                                                  reconnectionProcessingIOContextPtr,
                                                                  reconnectionProcessingThread.get_id(),
-                                                                 connectionString,
                                                                  reconnectionPeriod);
         deviceHelper->setupProtocolClients(context);
         auto device = deviceHelper->connectAndGetDevice(parent, protocolVersion);
-
-        deviceHelper->subscribeToCoreEvent(context);
-
         device.asPtr<INativeDevicePrivate>(true)->completeInitialization(std::move(deviceHelper), connectionString);
 
         processingContextPool.emplace_back("Device " + device.getGlobalId() + " config protocol processing",

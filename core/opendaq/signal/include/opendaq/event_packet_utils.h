@@ -35,8 +35,10 @@ inline std::tuple<bool, bool, DataDescriptorPtr, DataDescriptorPtr> parseDataDes
     const DataDescriptorPtr domainDescriptorParam = params[event_packet_param::DOMAIN_DATA_DESCRIPTOR];
     const bool valueDescriptorChanged = valueDescriptorParam.assigned();
     const bool domainDescriptorChanged = domainDescriptorParam.assigned();
-    const DataDescriptorPtr newValueDescriptor = valueDescriptorParam != NullDataDescriptor() ? valueDescriptorParam : nullptr;
-    const DataDescriptorPtr newDomainDescriptor = domainDescriptorParam != NullDataDescriptor() ? domainDescriptorParam : nullptr;
+    // A null descriptor is told by its sample type: building one per event and comparing by value took microseconds
+    const auto real = [](const DataDescriptorPtr& descriptor) { return descriptor.assigned() && descriptor.getSampleType() != SampleType::Null; };
+    const DataDescriptorPtr newValueDescriptor = real(valueDescriptorParam) ? valueDescriptorParam : nullptr;
+    const DataDescriptorPtr newDomainDescriptor = real(domainDescriptorParam) ? domainDescriptorParam : nullptr;
 
     return std::make_tuple(valueDescriptorChanged, domainDescriptorChanged, newValueDescriptor, newDomainDescriptor);
 }

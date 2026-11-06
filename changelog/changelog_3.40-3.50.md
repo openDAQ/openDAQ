@@ -72,10 +72,6 @@ Nested property objects share their owner's lock, so a handler on a nested objec
 
 The module manager no longer ignores the error code returned by `IModuleAuthenticator::authenticateModuleBinary`. A failure code aborts loading of the module and is returned to the caller with the authenticator's error message.
 
-### [#1374](https://github.com/openDAQ/openDAQ/pull/1374) Error messages list the chain newest first
-
-An exception message for an error that passed through several calls shows the newest error on the first line and the root cause last, each following line prefixed with ` - Caused by: `. Release builds used to show only the newest message. A message longer than 4 KiB keeps the newest errors and the root cause and replaces the lines between them with ` - ... N more lines`. Applications that parse error messages must read the new layout.
-
 ### [#1045](https://github.com/openDAQ/openDAQ/pull/1045) ISynchronization replaces ISyncComponent
 
 - `UsesOffset`, `IReferenceDomainInfo::getUsesOffset` and `IReferenceDomainInfoBuilder::setUsesOffset`/`getUsesOffset` are removed in C++, C, Python and .NET; `getReferenceDomainIds` lists the reference domains instead.

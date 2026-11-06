@@ -267,7 +267,9 @@ private:
     bool synchronize();
     std::optional<SyncCause> startFailure(const Slot& slot, std::int64_t mainFirst, std::int64_t mainLatest) const;
     bool judgeStart(SizeT i);
-    static void failSync(Slot& slot, SyncCause cause);
+    void failSync(SizeT i, SyncCause cause);
+    // A trace-level log line on the input's synchronization, stall or rejoin
+    void trace(SizeT i, const std::string& what) const;
     bool checkRejoin(SizeT slot);
 
     // Stalls

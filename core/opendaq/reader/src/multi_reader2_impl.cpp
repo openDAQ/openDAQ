@@ -642,6 +642,10 @@ bool MultiReader2Impl::Core::takeIn(Intake& intake)
         catch (...)
         {
             daqClearErrorInfo();
+            const auto wire = currentWiring();
+            const LoggerComponentPtr loggerComponent = wire ? wire->loggerComponent : nullptr;
+            if (loggerComponent.assigned())
+                LOG_W("{}: the queued packets failed to ingest: unknown exception", intake.port.getLocalId().toStdString());
         }
     }
     if (more)
@@ -693,6 +697,9 @@ void MultiReader2Impl::Core::drainMarked()
         catch (...)
         {
             daqClearErrorInfo();
+            const LoggerComponentPtr loggerComponent = wire->loggerComponent;
+            if (loggerComponent.assigned())
+                LOG_W("{}: the queued packets failed to ingest: unknown exception", intake->port.getLocalId().toStdString());
         }
     }
     dataManager.releaseDropped();

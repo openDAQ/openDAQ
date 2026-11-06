@@ -1106,7 +1106,7 @@ bool MultiReaderDataManager::synchronize()
         Slot& slot = slots[i];
         if (const auto cause = startFailure(slot, mainFirst, mainLatest))
         {
-            failSync(slot, *cause);
+            failSync(i, *cause);
             reported = true;
         }
         else
@@ -1136,6 +1136,7 @@ bool MultiReaderDataManager::synchronize()
     // there is nothing to continue. The restart reports its own
     if (positioned && common != readTick)
         markResynchronized();
+    trace(*mainSlot, "synchronized: every input starts at main tick " + std::to_string(common));
     state = State::Streaming;
     readTick = common;
     return true;
@@ -1168,13 +1169,25 @@ bool MultiReaderDataManager::judgeStart(SizeT i)
     const auto cause = startFailure(slots[i], *mainFront, main.queue.frontLastTick());
     if (!cause.has_value())
         return false;
-    failSync(slots[i], *cause);
+    failSync(i, *cause);
     return true;
 }
 
 // Drops the input's data and queues the failure in front of it, where the next read applies it
-void MultiReaderDataManager::failSync(Slot& slot, SyncCause cause)
+void MultiReaderDataManager::trace(SizeT i, const std::string& what) const
 {
+    const auto& loggerComponent = config.loggerComponent;
+    // Braced: LOG_T is empty where trace logging is compiled out
+    if (loggerComponent.assigned())
+    {
+        LOG_T("{}: {}", config.inputs[i].getLocalId().toStdString(), what);
+    }
+}
+
+void MultiReaderDataManager::failSync(SizeT i, SyncCause cause)
+{
+    trace(i, cause == SyncCause::OffGrid ? "not synchronized, off the main input's grid" : "not synchronized, ahead of the main input past the sync limit");
+    Slot& slot = slots[i];
     slot.queue.dropFront();
     slot.queue.pushFrontEvent({Event::Kind::SyncFailed, nullptr, nullptr, cause});
 }
@@ -1199,6 +1212,7 @@ bool MultiReaderDataManager::checkRejoin(SizeT i)
          exceeds(*slot.newestTick, *newest, recoveryLimitTicks)))
         return false;
 
+    trace(i, "rejoins: within the recovery limit of the others");
     slot.queue.pushEvent({Event::Kind::Rejoined});
     return true;
 }
@@ -1321,7 +1335,10 @@ void MultiReaderDataManager::applyStalls()
             silent.push_back(i);
     }
     for (const SizeT i : silent)
+    {
+        trace(i, "stalled: no data while the others sent past the sync limit");
         slots[i].syncFailed = SyncCause::Stalled;
+    }
 
     judgeInputs(true);
     afterJudgement(wasValid, previousMain, previous, false, false);

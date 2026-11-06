@@ -791,8 +791,9 @@ TEST_P(StreamingReconnectionTest, Reconnection)
     restoreStreamingServer();
     // TODO test reconnected status
 
-    ASSERT_TRUE(test_helpers::waitForAcknowledgement(subscribeCompleteFuture, 5s));
-    
+    // The removed server's sessions are not closed, so the client notices only after the inactivity timeout
+    ASSERT_TRUE(test_helpers::waitForAcknowledgement(subscribeCompleteFuture, 30s));
+
     // Expect to receive all data packets,
     const size_t packetsToGenerate = 10;
 

@@ -58,7 +58,7 @@ public:
 
         config.addProperty(daq::BoolProperty("MonitoringEnabled", daq::True));
         config.addProperty(daq::IntProperty("HeartbeatPeriod", 1000));
-        config.addProperty(daq::IntProperty("InactivityTimeout", 1500));
+        config.addProperty(daq::IntProperty("InactivityTimeout", 3000));
         config.addProperty(daq::IntProperty("ConnectionTimeout", 1000));
         config.addProperty(daq::IntProperty("StreamingInitTimeout", 1000));
         config.addProperty(daq::IntProperty("ReconnectionPeriod", 1000));

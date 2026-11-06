@@ -229,10 +229,19 @@ TEST_F(SchedulerTestCommon, LastReferenceReleasedFromWorker)
     ASSERT_EQ(workerReleasedFuture.wait_for(5s), std::future_status::ready)
         << "destroying the scheduler from its own worker deadlocked";
 
+    // A detached thread frees the executor, removes the "Scheduler" component and then drops its logger reference
+    const auto loggerRefCount = [&logger]
+    {
+        logger->addRef();
+        return logger->releaseRef();
+    };
     const auto deadline = std::chrono::steady_clock::now() + 5s;
-    while (!callbackAlive.expired() && std::chrono::steady_clock::now() < deadline)
+    while (loggerRefCount() > 1 && std::chrono::steady_clock::now() < deadline)
         std::this_thread::sleep_for(1ms);
+    ASSERT_EQ(loggerRefCount(), 1);
     ASSERT_TRUE(callbackAlive.expired());
+    for (const auto& component : logger.getComponents())
+        ASSERT_NE(component.getName(), "Scheduler");
 }
 
 TEST_F(SchedulerTestCommon, ExecutesOneTimeWorkWithTimeLoop)

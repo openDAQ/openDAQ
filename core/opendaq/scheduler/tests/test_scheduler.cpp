@@ -233,6 +233,18 @@ TEST_F(SchedulerTestCommon, LastReferenceReleasedFromWorker)
     while (!callbackAlive.expired() && std::chrono::steady_clock::now() < deadline)
         std::this_thread::sleep_for(1ms);
     ASSERT_TRUE(callbackAlive.expired());
+
+    // The executor is freed on a detached thread, which removes the "Scheduler" component once done
+    const auto schedulerComponentExists = [&logger]
+    {
+        for (const auto& component : logger.getComponents())
+            if (component.getName() == "Scheduler")
+                return true;
+        return false;
+    };
+    while (schedulerComponentExists() && std::chrono::steady_clock::now() < deadline)
+        std::this_thread::sleep_for(1ms);
+    ASSERT_FALSE(schedulerComponentExists());
 }
 
 TEST_F(SchedulerTestCommon, ExecutesOneTimeWorkWithTimeLoop)

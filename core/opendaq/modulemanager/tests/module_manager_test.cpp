@@ -1087,6 +1087,18 @@ TEST_F(ModuleManagerAddConfigTest, AddMismatchedConfig)
     ASSERT_EQ(add("unloaded://10.0.0.5", AddDeviceConfig(unloaded, nullptr, False)), OPENDAQ_ERR_NOTFOUND);
 }
 
+TEST_F(ModuleManagerAddConfigTest, AddWarnsOnDroppedStreamingType)
+{
+    const auto unloaded = StreamingTypeBuilder().setId("unloaded").setName("unloaded").setConnectionStringPrefix("unloaded").build();
+    const auto config = AddDeviceConfig(manager.asPtr<IModuleManagerUtils>().getAvailableDeviceTypes().get("mockdev"),
+                                        Dict<IString, IStreamingType>({{"unloaded", unloaded}}),
+                                        False);
+    config.getStreamingOptions().setStreamingType("unloaded");
+
+    addDevice("mockdev://10.0.0.5", config);
+    ASSERT_TRUE(logged(R"(Selected streaming type "unloaded")"));
+}
+
 TEST_F(ModuleManagerAddConfigTest, AddScanOnAdd)
 {
     const auto config = create(deviceInfo("mockdev://"));

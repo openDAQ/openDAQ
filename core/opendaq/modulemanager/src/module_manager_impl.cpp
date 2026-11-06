@@ -1013,6 +1013,13 @@ ErrCode ModuleManagerImpl::createDeviceFromAddDeviceConfig(IDevice** device,
     const AddDeviceConfigPtr config = inputConfig.asPtr<IAddDeviceConfigPrivate>(true).bind(deviceTypes, streamingTypes);
     const DeviceTypePtr deviceType = config.getDeviceType();
 
+    const AddStreamingOptionsPtr inputStreaming = inputConfig.getStreamingOptions();
+    const AddStreamingConfigPtr selectedStreaming = inputStreaming.assigned() ? inputStreaming.getStreamingConfig() : nullptr;
+    if (selectedStreaming.assigned() && !config.getStreamingOptions().assigned())
+    {
+        LOG_W(R"(Selected streaming type "{}" is not available; the selection is dropped)", selectedStreaming.getStreamingType().getId());
+    }
+
     OPENDAQ_RETURN_IF_FAILED(CheckKindAllowed(deviceType, parent != nullptr));
 
     const auto [pureConnectionString, connectionStringOptions] = SplitConnectionStringAndOptions(connectionString);

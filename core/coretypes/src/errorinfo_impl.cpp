@@ -596,7 +596,7 @@ ErrCode ErrorInfoImpl::getFormattedMessage(IString** message)
 
     std::ostringstream ss;
 
-    [[maybe_unused]] bool needSpace = true;
+    [[maybe_unused]] bool hasText = true;
     if (this->message)
     {
         ConstCharPtr msgCharPtr;
@@ -611,13 +611,14 @@ ErrCode ErrorInfoImpl::getFormattedMessage(IString** message)
     }
     else
     {
-        needSpace = false;
+        hasText = false;
     }
 
 #ifndef NDEBUG
-    if (this->fileName)
+    // An entry that only passes the error on stays empty, as release builds do not create it, so it never leads a chain
+    if (this->fileName && hasText)
     {
-        ss << (needSpace ? " [ " : "[ ") << this->fileName;
+        ss << " [ " << this->fileName;
         if (this->fileLine != -1)
             ss << ":" << this->fileLine;
         ss << " ]";

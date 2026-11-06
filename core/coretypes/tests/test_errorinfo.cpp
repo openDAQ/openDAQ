@@ -188,6 +188,15 @@ TEST_F(ErrorInfoTest, MultipleErrorWithFileNameAndLine)
     ASSERT_THROW_MSG(checkErrorInfo(obj->multipleErrorInfoTest()), GeneralErrorException, expected);
 }
 
+TEST_F(ErrorInfoTest, PassedOnErrorKeepsTheMessageFirst)
+{
+    ErrCode errCode = DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_GENERALERROR, "Root cause");
+    const Int rootLine = __LINE__ - 1;
+    errCode = DAQ_EXTEND_ERROR_INFO(errCode);
+
+    ASSERT_EQ(getErrorInfoMessage(errCode, true), "Root cause" + getErrorPostfix(rootLine));
+}
+
 TEST_F(ErrorInfoTest, ErrorGuardListsNewestErrorFirst)
 {
     auto obj = CreateTestObject();

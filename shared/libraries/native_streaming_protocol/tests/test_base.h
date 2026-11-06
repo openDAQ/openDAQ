@@ -25,6 +25,9 @@
 
 #include <memory>
 #include <future>
+#include <condition_variable>
+#include <mutex>
+#include <vector>
 
 using ClientCountType = size_t;
 using WorkGuardType = boost::asio::executor_work_guard<boost::asio::io_context::executor_type>;
@@ -35,15 +38,28 @@ public:
     std::shared_ptr<daq::opendaq_native_streaming_protocol::NativeStreamingClientHandler> clientHandler;
     daq::ContextPtr clientContext;
 
-    std::promise< daq::EnumerationPtr > connectionStatusPromise;
-    std::future< daq::EnumerationPtr > connectionStatusFuture;
-
     void setUp()
     {
         clientContext = NullContext(Logger(nullptr, daq::LogLevel::Trace));
+    }
 
-        connectionStatusPromise = std::promise< daq::EnumerationPtr >();
-        connectionStatusFuture = connectionStatusPromise.get_future();
+    // Records every status: a reconnect the test did not cause reports more than one
+    void onConnectionStatus(const daq::EnumerationPtr& status)
+    {
+        {
+            std::scoped_lock lock(statusSync);
+            statuses.push_back(status.getValue().toStdString());
+        }
+        statusCv.notify_all();
+    }
+
+    // Returns the next status not yet returned, or "" if none arrives within the timeout
+    std::string nextConnectionStatus(std::chrono::milliseconds timeout)
+    {
+        std::unique_lock lock(statusSync);
+        if (!statusCv.wait_for(lock, timeout, [this] { return statuses.size() > statusesRead; }))
+            return "";
+        return statuses[statusesRead++];
     }
 
     void tearDown()
@@ -76,6 +92,12 @@ public:
 
         return config;
     }
+
+private:
+    std::mutex statusSync;
+    std::condition_variable statusCv;
+    std::vector<std::string> statuses;
+    size_t statusesRead = 0;
 };
 
 class ProtocolTestBase : public testing::TestWithParam<std::tuple<ClientCountType, bool>>

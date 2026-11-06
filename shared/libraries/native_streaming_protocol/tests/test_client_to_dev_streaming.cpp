@@ -42,7 +42,14 @@ public:
 
         streamingInitDoneHandler = [this]()
         {
-            streamingInitPromise.set_value();
+            // a reconnect the test did not cause completes the init again; the tests wait only for the first
+            try
+            {
+                streamingInitPromise.set_value();
+            }
+            catch (const std::future_error&)
+            {
+            }
         };
 
         clientHandler->setStreamingHandlers([](const StringPtr&, const StringPtr&) {},

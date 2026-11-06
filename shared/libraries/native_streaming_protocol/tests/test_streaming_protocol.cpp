@@ -84,7 +84,14 @@ public:
 
         streamingInitDoneHandler = [this]()
         {
-            streamingInitPromise.set_value();
+            // a reconnect the test did not cause completes the init again; the tests wait only for the first
+            try
+            {
+                streamingInitPromise.set_value();
+            }
+            catch (const std::future_error&)
+            {
+            }
         };
 
         signalAvailableHandler = [this](const StringPtr& signalStringId,
@@ -119,7 +126,7 @@ public:
 
         connectionStatusChangedHandler = [this](const EnumerationPtr& status, const StringPtr& statusMessage)
         {
-            connectionStatusPromise.set_value(status);
+            onConnectionStatus(status);
         };
     }
 
@@ -362,23 +369,13 @@ TEST_P(StreamingProtocolTest, Reconnection)
     stopServer();
 
     for (auto& client : clients)
-    {
-        ASSERT_EQ(client.connectionStatusFuture.wait_for(std::chrono::seconds(5)), std::future_status::ready);
-        ASSERT_EQ(client.connectionStatusFuture.get(), "Reconnecting");
-
-        client.connectionStatusPromise = std::promise< EnumerationPtr >();
-        client.connectionStatusFuture = client.connectionStatusPromise.get_future();
-    }
+        ASSERT_EQ(client.nextConnectionStatus(std::chrono::seconds(10)), "Reconnecting");
 
     startServer(List<ISignal>());
 
     for (auto& client : clients)
     {
-        ASSERT_EQ(client.connectionStatusFuture.wait_for(std::chrono::seconds(5)), std::future_status::ready);
-        ASSERT_EQ(client.connectionStatusFuture.get(), "Connected");
-
-        client.connectionStatusPromise = std::promise< EnumerationPtr >();
-        client.connectionStatusFuture = client.connectionStatusPromise.get_future();
+        ASSERT_EQ(client.nextConnectionStatus(std::chrono::seconds(10)), "Connected");
 
         client.clientHandler->sendStreamingRequest();
         ASSERT_EQ(client.streamingInitFuture.wait_for(timeout), std::future_status::ready);

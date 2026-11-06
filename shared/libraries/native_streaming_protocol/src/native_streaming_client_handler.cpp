@@ -710,8 +710,9 @@ NativeStreamingClientHandler::NativeStreamingClientHandler(const ContextPtr& con
 
 NativeStreamingClientHandler::~NativeStreamingClientHandler()
 {
-    clientHandlerPtr.reset();
+    // Join the IO thread first: its handlers use the client implementation, some through a raw this.
     stopTransportOperations();
+    clientHandlerPtr.reset();
 }
 
 bool NativeStreamingClientHandler::connect(std::string host, std::string port, std::string path)

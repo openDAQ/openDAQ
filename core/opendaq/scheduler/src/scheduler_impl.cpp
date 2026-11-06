@@ -188,7 +188,6 @@ SchedulerImpl::SchedulerImpl(LoggerPtr logger, SizeT numWorkers, Bool useMainLoo
 
 SchedulerImpl::~SchedulerImpl()
 {
-    logger.removeComponent("Scheduler");
     if (!stopped)
         SchedulerImpl::stop();
 }
@@ -210,11 +209,17 @@ ErrCode SchedulerImpl::stop()
     if (executor && executor->this_worker_id() != -1)
     {
         // Running on one of the executor's own workers, which it cannot join: another thread destroys it.
-        std::thread([executor = std::move(executor)]() mutable { executor.reset(); }).detach();
+        // The "Scheduler" logger component is removed only once the workers are joined, which marks the teardown end.
+        std::thread([executor = std::move(executor), logger = logger]() mutable
+        {
+            executor.reset();
+            logger.removeComponent("Scheduler");
+        }).detach();
     }
-    else
+    else if (executor)
     {
         executor.reset();
+        logger.removeComponent("Scheduler");
     }
 
     LOGP_T("Stopping main thread worker")

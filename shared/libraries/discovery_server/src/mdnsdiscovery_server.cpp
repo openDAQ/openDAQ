@@ -1197,7 +1197,8 @@ int MDNSDiscoveryServer::discoveryCallback(
                 records.reserve(service.updateConnectedClientsAndGetPropsCount() + 3);
 
                 records.push_back(createSrvRecord(service));
-                if (adapter.ipv4Sock >= 0 && from->sa_family == AF_INET)
+                // Both address records in every reply: a client that loses one family's exchange still learns both
+                if (adapter.ipv4Sock >= 0)
                     records.push_back(createARecord(service, adapter));
                 if (adapter.ipv6Sock >= 0)
                     records.push_back(createAaaaRecord(service, adapter));
@@ -1216,7 +1217,7 @@ int MDNSDiscoveryServer::discoveryCallback(
                 std::vector<mdns_record_t> records;
                 records.reserve(service.updateConnectedClientsAndGetPropsCount() + 2);
 
-                if (adapter.ipv4Sock >= 0 && from->sa_family == AF_INET)
+                if (adapter.ipv4Sock >= 0)
                     records.push_back(createARecord(service, adapter));
                 if (adapter.ipv6Sock >= 0)
                     records.push_back(createAaaaRecord(service, adapter));
@@ -1228,14 +1229,18 @@ int MDNSDiscoveryServer::discoveryCallback(
         } 
         else if (name == service.serviceQualified)
         {
-            if ((rtype == MDNS_RECORDTYPE_A || rtype == MDNS_RECORDTYPE_ANY) && adapter.ipv4Sock >= 0 && from->sa_family == AF_INET)
+            // An A query gets the A record over either family; an ANY query gets the record of the family it came over
+            // as the answer and the other family's record as an additional record
+            if ((rtype == MDNS_RECORDTYPE_A || (rtype == MDNS_RECORDTYPE_ANY && from->sa_family == AF_INET)) && adapter.ipv4Sock >= 0)
             {
                 mdns_record_t answer = createARecord(service, adapter);
 
                 std::vector<mdns_record_t> records;
-                records.reserve(service.updateConnectedClientsAndGetPropsCount() + 1);
+                records.reserve(service.updateConnectedClientsAndGetPropsCount() + 2);
 
                 records.push_back(answer);
+                if (rtype == MDNS_RECORDTYPE_ANY && adapter.ipv6Sock >= 0)
+                    records.push_back(createAaaaRecord(service, adapter));
                 service.populateRecords(records);
 
                 std::vector<char>sendBuffer(service.recordSize);
@@ -1246,9 +1251,11 @@ int MDNSDiscoveryServer::discoveryCallback(
                 mdns_record_t answer = createAaaaRecord(service, adapter);
 
                 std::vector<mdns_record_t> records;
-                records.reserve(service.updateConnectedClientsAndGetPropsCount() + 1);
+                records.reserve(service.updateConnectedClientsAndGetPropsCount() + 2);
 
                 records.push_back(answer);
+                if (rtype == MDNS_RECORDTYPE_ANY && adapter.ipv4Sock >= 0)
+                    records.push_back(createARecord(service, adapter));
                 service.populateRecords(records);
 
                 std::vector<char>sendBuffer(service.recordSize);

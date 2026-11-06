@@ -40,6 +40,7 @@
 
 ## Misc
 
+- [#1376](https://github.com/openDAQ/openDAQ/pull/1376) Fix the package build on macOS runners with OpenSSL 4, and when Apache's mirrors fail to serve Thrift
 - [#1339](https://github.com/openDAQ/openDAQ/pull/1339) Publish the core stagings tagged by the run that published them, with the revision on every package.
 - [#1343](https://github.com/openDAQ/openDAQ/pull/1343) Test the oldest and newest supported compilers on the newest GitHub runners (Visual Studio 2026, Ubuntu 26.04, macOS 27).
 - [#1323](https://github.com/openDAQ/openDAQ/pull/1323) Fix classifier FB flaky tests

@@ -4,8 +4,9 @@
 
 #include <opendaq/custom_log.h>
 #include <opendaq/device_info_internal_ptr.h>
-#include <regex>
 #include <boost/asio/dispatch.hpp>
+#include <cassert>
+#include <regex>
 
 #include <opendaq/ids_parser.h>
 #include <opendaq/mirrored_device_ptr.h>
@@ -196,10 +197,21 @@ void NativeDeviceHelper::tryConfigProtocolReconnect()
         return;
     }
 
+    {
+        std::scoped_lock lock(requestReplySync);
+        configConnectionError.reset();
+    }
+
     // use tmp var to implicitly copy the enumeration type
     auto tmpStatusValue = connectionStatus;
     tmpStatusValue = "Connected";
     updateConnectionStatus(tmpStatusValue, "");
+}
+
+bool NativeDeviceHelper::isConfigConnectionUsable()
+{
+    std::scoped_lock lock(requestReplySync);
+    return !configConnectionError;
 }
 
 void NativeDeviceHelper::startAcceptNotificationPackets()
@@ -313,15 +325,6 @@ PacketBuffer NativeDeviceHelper::doConfigRequestAndGetReply(const PacketBuffer& 
     // register the request first to ensure connection loss or device removal will be reported
     auto future = registerConfigRequest(reqId);
 
-    // using a thread id is a hacky way to disable all config requests
-    // except those related to reconnection until reconnection is finished
-    if (connectionStatus != "Connected" &&
-        std::this_thread::get_id() != reconnectionProcessingThreadId)
-    {
-        unregisterConfigRequest(reqId);
-        DAQ_THROW_EXCEPTION(ConnectionLostException);
-    }
-
     // send packet using a temporary copy of the transport client
     // to allow safe disposal of the member variable during device removal.
     if (auto transportClientHandlerTemp = this->transportClientHandler; transportClientHandlerTemp)
@@ -342,18 +345,33 @@ PacketBuffer NativeDeviceHelper::doConfigRequestAndGetReply(const PacketBuffer& 
     {
         unregisterConfigRequest(reqId);
         LOG_E("Native configuration protocol request id {} timed out", reqId);
-        if (connectionStatus == "Connected")
+        if (isConfigConnectionUsable())
+        {
             DAQ_THROW_EXCEPTION(GeneralErrorException, "Native configuration protocol request id {} timed out", reqId);
+        }
         else
+        {
             DAQ_THROW_EXCEPTION(ConnectionLostException, "Native configuration protocol request id {} timed out due to disconnection", reqId);
+        }
     }
 }
 
 std::future<PacketBuffer> NativeDeviceHelper::registerConfigRequest(uint64_t requestId)
 {
-    std::scoped_lock lock(requestReplySync);
+    std::unique_lock lock(requestReplySync);
+    throwIfConfigConnectionUnusable(lock);
     replyPackets.insert({requestId, std::promise<PacketBuffer>()});
     return replyPackets.at(requestId).get_future();
+}
+
+void NativeDeviceHelper::throwIfConfigConnectionUnusable([[maybe_unused]] const std::unique_lock<std::mutex>& requestReplyLock)
+{
+    assert(requestReplyLock.owns_lock() && requestReplyLock.mutex() == &requestReplySync);
+
+    // using a thread id is a hacky way to disable all config requests
+    // except those related to reconnection until reconnection is finished
+    if (configConnectionError && std::this_thread::get_id() != reconnectionProcessingThreadId)
+        throw *configConnectionError;
 }
 
 void NativeDeviceHelper::unregisterConfigRequest(uint64_t requestId)
@@ -365,6 +383,7 @@ void NativeDeviceHelper::unregisterConfigRequest(uint64_t requestId)
 void NativeDeviceHelper::cancelPendingConfigRequests(const DaqException& e)
 {
     std::scoped_lock lock(requestReplySync);
+    configConnectionError = e;
     for (auto it = replyPackets.begin(); it != replyPackets.end(); )
     {
         auto& replyPromise = it->second;
@@ -433,20 +452,21 @@ void NativeDeviceHelper::doConfigNoReplyRequest(const config_protocol::PacketBuf
 
 void NativeDeviceHelper::sendConfigRequest(const config_protocol::PacketBuffer& reqPacket)
 {
-    // using a thread id is a hacky way to disable all config requests
-    // except those related to reconnection until reconnection is finished
-    if (connectionStatus != "Connected" &&
-        std::this_thread::get_id() != reconnectionProcessingThreadId)
     {
-        DAQ_THROW_EXCEPTION(ConnectionLostException);
+        std::unique_lock lock(requestReplySync);
+        throwIfConfigConnectionUnusable(lock);
     }
 
     // send packet using a temporary copy of the transport client
     // to allow safe disposal of the member variable during device removal.
     if (auto transportClientHandlerTemp = this->transportClientHandler; transportClientHandlerTemp)
+    {
         transportClientHandlerTemp->sendConfigRequest(reqPacket);
+    }
     else
+    {
         DAQ_THROW_EXCEPTION(ComponentRemovedException);
+    }
 }
 
 NativeDeviceImpl::NativeDeviceImpl(const config_protocol::ConfigProtocolClientCommPtr& configProtocolClientComm,

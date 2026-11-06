@@ -58,6 +58,17 @@ inline bool enabled()
     return envString("OPENDAQ_BENCHMARK") == "1";
 }
 
+// Pins the process to the CPUs in the mask; a zero mask leaves the affinity alone.
+bool applyAffinity(uint64_t mask);
+
+// OPENDAQ_BENCH_AFFINITY is a hexadecimal CPU mask; on a hybrid CPU pin to the performance cores for
+// repeatable rates.
+inline uint64_t affinityFromEnv()
+{
+    const char* value = envValue("OPENDAQ_BENCH_AFFINITY");
+    return value ? std::strtoull(value, nullptr, 16) : 0;
+}
+
 // Load and timing knobs, overridable from the environment; the defaults approximate a device sending
 // ~128-byte Float32 packets at 100 packets/s per signal.
 struct Settings
@@ -93,7 +104,7 @@ struct Settings
 
     void print(const char* testName) const
     {
-        std::printf("[bench] %s: signals=%zu samples=%zu loop=%zums cacheable=%zu inflight=%zu warmup=%zus window=%zus\n",
+        std::printf("[bench] %s: signals=%zu samples=%zu loop=%zums cacheable=%zu inflight=%zu warmup=%zus window=%zus affinity=0x%llx\n",
                     testName,
                     signals,
                     samplesPerPacket,
@@ -101,7 +112,8 @@ struct Settings
                     cacheablePayloadSizeMax,
                     inFlight,
                     warmUpSeconds,
-                    seconds);
+                    seconds,
+                    static_cast<unsigned long long>(affinityFromEnv()));
         std::fflush(stdout);
     }
 };
@@ -224,9 +236,11 @@ inline Summary measure(const Settings& settings, const std::function<Snapshot()>
 
 }
 
-#define DAQ_BENCHMARK_OR_SKIP()                                             \
-    do                                                                      \
-    {                                                                       \
-        if (!daq::testutils::benchmark::enabled())                          \
-            GTEST_SKIP() << "Benchmark; set OPENDAQ_BENCHMARK=1 to run it"; \
+#define DAQ_BENCHMARK_OR_SKIP()                                                                      \
+    do                                                                                               \
+    {                                                                                                \
+        if (!daq::testutils::benchmark::enabled())                                                   \
+            GTEST_SKIP() << "Benchmark; set OPENDAQ_BENCHMARK=1 to run it";                          \
+        if (!daq::testutils::benchmark::applyAffinity(daq::testutils::benchmark::affinityFromEnv())) \
+            FAIL() << "Failed to apply OPENDAQ_BENCH_AFFINITY";                                      \
     } while (false)

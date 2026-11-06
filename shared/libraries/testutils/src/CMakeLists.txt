@@ -10,7 +10,9 @@ opendaq_prepend_include(testutils SRC_CommonHeaders)
 
 set(LIB_NAME test_utils)
 
-set(SRC_Cpp base_test_listener.cpp)
+set(SRC_Cpp base_test_listener.cpp
+            benchmark_utils.cpp
+)
 
 set(SRC_InternalHeaders base_test_listener.h)
 opendaq_prepend_include(internal/testutils SRC_InternalHeaders)

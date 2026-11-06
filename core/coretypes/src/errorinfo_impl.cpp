@@ -260,24 +260,44 @@ ErrCode ErrorGuardImpl::getFormattedMessage(IString** message) const
     if (errorInfoList.empty())
         return OPENDAQ_SUCCESS;
 
-    // The newest error comes first; each following line is the cause of the one above, down to the error that started the chain
-    std::ostringstream ss;
-    bool firstMessage = true;
+    // The newest error comes first; each following line is the cause of the one above, down to the error that started the chain.
+    // A chain of one line returns that entry's message object without copying it.
+    StringPtr onlyLine;
+    std::string text;
+    const auto appendText = [&text](IString* str)
+    {
+        ConstCharPtr chars = nullptr;
+        SizeT length = 0;
+        str->getCharPtr(&chars);
+        str->getLength(&length);
+        text.append(chars, length);
+    };
+
     for (auto it = errorInfoList.rbegin(); it != errorInfoList.rend(); ++it)
     {
         IErrorInfo* errorInfo = it->borrow();
-        IString* errorMessage = nullptr;
-        errorInfo->getFormattedMessage(&errorMessage);
-        if (errorMessage != nullptr)
+        StringPtr line;
+        errorInfo->getFormattedMessage(&line);
+        SizeT length = 0;
+        if (line.assigned())
+            line->getLength(&length);
+
+        if (length > 0)
         {
-            ConstCharPtr messagePtr;
-            errorMessage->getCharPtr(&messagePtr);
-            if (messagePtr && *messagePtr)
+            if (!onlyLine.assigned() && text.empty())
             {
-                ss << (firstMessage ? "" : "\n - Caused by: ") << messagePtr;
-                firstMessage = false;
+                onlyLine = std::move(line);
             }
-            errorMessage->releaseRef();
+            else
+            {
+                if (onlyLine.assigned())
+                {
+                    appendText(onlyLine);
+                    onlyLine = nullptr;
+                }
+                text.append("\n - Caused by: ");
+                appendText(line);
+            }
         }
 
         ErrCode prevErrCode = OPENDAQ_SUCCESS;
@@ -286,16 +306,23 @@ ErrCode ErrorGuardImpl::getFormattedMessage(IString** message) const
             break;
     }
 
-    if (filename && !firstMessage)
+    if (filename && (onlyLine.assigned() || !text.empty()))
     {
-        ss << "\n - Caught in: [ " << filename;
+        if (onlyLine.assigned())
+        {
+            appendText(onlyLine);
+            onlyLine = nullptr;
+        }
+        text.append("\n - Caught in: [ ").append(filename);
         if (fileLine != -1)
-            ss << ":" << fileLine;
-        ss << " ]";
+            text.append(":").append(std::to_string(fileLine));
+        text.append(" ]");
     }
 
-    auto str = ss.str();
-    createString(message, str.c_str());
+    if (onlyLine.assigned())
+        *message = onlyLine.detach();
+    else
+        createString(message, text.c_str());
 
     ErrCode errCode = OPENDAQ_SUCCESS;
     errorInfoList.back().borrow()->getErrorCode(&errCode);

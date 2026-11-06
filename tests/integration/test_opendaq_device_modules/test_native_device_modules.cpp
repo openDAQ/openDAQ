@@ -1260,6 +1260,42 @@ TEST_F(NativeDeviceModulesTest, TestDiscoveryReachability)
     ASSERT_TRUE(false) << "Device not found";
 }
 
+TEST_F(NativeDeviceModulesTest, ConcurrentDiscoveryFindsServer)
+{
+    const std::string path = "/test/native_configurator/concurrent_discovery/";
+
+    auto server = test_helpers::instanceBuilder().setModulePath("[[none]]").addDiscoveryServer("mdns").build();
+    addNativeServerModule(server);
+    auto serverConfig = server.getAvailableServerTypes().get("OpenDAQNativeStreaming").createDefaultConfig();
+    serverConfig.setPropertyValue("Path", path);
+    server.addServer("OpenDAQNativeStreaming", serverConfig).enableDiscovery();
+
+    auto client = test_helpers::createInstance("[[none]]");
+    addNativeClientModule(client);
+
+    const auto findsServer = [&]
+    {
+        for (const auto& deviceInfo : client.getAvailableDevices())
+            for (const auto& capability : deviceInfo.getServerCapabilities())
+                if (test_helpers::isSufix(capability.getConnectionString(), path))
+                    return true;
+        return false;
+    };
+
+    auto start = std::chrono::steady_clock::now();
+    ASSERT_TRUE(findsServer());
+    const auto singleScan = std::chrono::steady_clock::now() - start;
+
+    // Concurrent scans each get a full discovery window and run in parallel, not one after another
+    start = std::chrono::steady_clock::now();
+    std::vector<std::future<bool>> scans;
+    for (int i = 0; i < 4; ++i)
+        scans.push_back(std::async(std::launch::async, findsServer));
+    for (auto& scan : scans)
+        ASSERT_TRUE(scan.get());
+    ASSERT_LT(std::chrono::steady_clock::now() - start, singleScan * 2);
+}
+
 TEST_F(NativeDeviceModulesTest, TestDiscoveryReachabilityAfterConnectIPv6)
 {
     if (test_helpers::Ipv6IsDisabled())

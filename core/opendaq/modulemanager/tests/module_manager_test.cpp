@@ -4,7 +4,9 @@
 #include <opendaq/logger_factory.h>
 #include "mock/mock_module.h"
 
+#include <atomic>
 #include <chrono>
+#include <future>
 #include <thread>
 
 #include <opendaq/component_type_builder_factory.h>
@@ -473,4 +475,106 @@ TEST_F(ModuleManagerTest, ParallelDeviceCreationFailure)
 //    StringPtr message;
 //    errorInfo->getMessage(&message);
 //    ASSERT_TRUE(message.toStdString().find("abc123") != std::string::npos);
+}
+
+// Lists one device after a delay and records how many of its scans overlapped.
+class SlowScanModule : public MockModuleImpl
+{
+public:
+    daq::ErrCode INTERFACE_FUNC getAvailableDevices(daq::IList** availableDevices) override
+    {
+        const int running = ++runningScans;
+        int seen = maxRunningScans;
+        while (running > seen && !maxRunningScans.compare_exchange_weak(seen, running))
+            ;
+        ++scans;
+
+        std::this_thread::sleep_for(std::chrono::milliseconds(300));
+        auto info = DeviceInfo("daqslow://dev");
+        info.setManufacturer("openDAQ");
+        info.setSerialNumber("slow_scan");
+        *availableDevices = List<IDeviceInfo>(info).detach();
+
+        --runningScans;
+        return OPENDAQ_SUCCESS;
+    }
+
+    std::atomic<int> runningScans{0};
+    std::atomic<int> maxRunningScans{0};
+    std::atomic<int> scans{0};
+};
+
+// Requests available devices from inside its own scan and records the result.
+class ReentrantScanModule : public MockModuleImpl
+{
+public:
+    explicit ReentrantScanModule(IModuleManagerUtils* manager)
+        : manager(manager)
+    {
+    }
+
+    daq::ErrCode INTERFACE_FUNC getAvailableDevices(daq::IList** availableDevices) override
+    {
+        IList* devices = nullptr;
+        nestedResult = manager->getAvailableDevices(&devices);
+        if (devices)
+            devices->releaseRef();
+        daqClearErrorInfo();
+        *availableDevices = List<IDeviceInfo>().detach();
+        return OPENDAQ_SUCCESS;
+    }
+
+    IModuleManagerUtils* manager;
+    std::atomic<ErrCode> nestedResult{OPENDAQ_SUCCESS};
+};
+
+TEST_F(ModuleManagerTest, ConcurrentScansShareOneScan)
+{
+    auto manager = ModuleManager("[[none]]");
+    const auto context = Context(nullptr, Logger(), nullptr, manager, nullptr);
+    const auto module = createWithImplementation<IModule, SlowScanModule>();
+    manager.addModule(module);
+    const auto impl = reinterpret_cast<SlowScanModule*>(module.getObject());
+    const auto utils = manager.asPtr<IModuleManagerUtils>();
+
+    std::promise<void> start;
+    const auto started = start.get_future().share();
+    std::vector<std::future<ListPtr<IDeviceInfo>>> results;
+    for (int i = 0; i < 4; ++i)
+        results.push_back(std::async(std::launch::async, [&utils, started] { started.wait(); return utils.getAvailableDevices(); }));
+    start.set_value();
+
+    std::vector<ListPtr<IDeviceInfo>> lists;
+    for (auto& result : results)
+    {
+        lists.push_back(result.get());
+        ASSERT_EQ(lists.back().getCount(), 1u);
+        ASSERT_EQ(lists.back()[0].getSerialNumber(), "slow_scan");
+    }
+
+    // A module is never asked by two scans at once, and the callers did not each run their own scan
+    ASSERT_EQ(impl->maxRunningScans, 1);
+    ASSERT_LT(impl->scans, 4);
+
+    // Each caller owns its list
+    lists[0].pushBack(DeviceInfo("daqslow://other"));
+    ASSERT_EQ(lists[1].getCount(), 1u);
+}
+
+TEST_F(ModuleManagerTest, ScanFromInsideModuleScanFails)
+{
+    auto manager = ModuleManager("[[none]]");
+    const auto context = Context(nullptr, Logger(), nullptr, manager, nullptr);
+    const auto utils = manager.asPtr<IModuleManagerUtils>();
+    const auto module = createWithImplementation<IModule, ReentrantScanModule>(utils.getObject());
+    manager.addModule(module);
+    const auto impl = reinterpret_cast<ReentrantScanModule*>(module.getObject());
+
+    auto scan = std::async(std::launch::async, [&utils] { return utils.getAvailableDevices(); });
+    ASSERT_EQ(scan.wait_for(std::chrono::seconds(30)), std::future_status::ready) << "The nested request waited for its own scan";
+    ASSERT_NO_THROW(scan.get());
+    ASSERT_EQ(impl->nestedResult, OPENDAQ_ERR_INVALID_OPERATION);
+
+    // A later scan on the same thread works: the guard is only active during a module's scan
+    ASSERT_NO_THROW(utils.getAvailableDevices());
 }

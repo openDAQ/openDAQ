@@ -601,9 +601,55 @@ void ModuleManagerImpl::setAddressesReachable(const std::map<std::string, Addres
     }
 }
 
+// Set on a thread while it asks a module for its available devices; a scan requested there would wait for itself
+static thread_local bool insideModuleScan = false;
+
 ErrCode ModuleManagerImpl::getAvailableDevices(IList** availableDevices)
 {
     OPENDAQ_PARAM_NOT_NULL(availableDevices);
+    if (insideModuleScan)
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALID_OPERATION, "Available devices cannot be requested while a module lists its available devices");
+
+    std::promise<ListPtr<IDeviceInfo>> scanResult;
+    std::shared_future<ListPtr<IDeviceInfo>> scan;
+    bool runsScan = false;
+    {
+        std::scoped_lock lock(scanSync);
+        if (!runningScan.valid())
+        {
+            runningScan = scanResult.get_future().share();
+            runsScan = true;
+        }
+        scan = runningScan;
+    }
+
+    if (runsScan)
+    {
+        try
+        {
+            scanResult.set_value(scanAvailableDevices());
+        }
+        catch (...)
+        {
+            scanResult.set_exception(std::current_exception());
+        }
+
+        std::scoped_lock lock(scanSync);
+        runningScan = {};
+    }
+
+    return daqTry([&]
+    {
+        // Each caller gets its own list; the device infos are frozen and shared
+        auto devices = List<IDeviceInfo>();
+        for (const auto& info : scan.get())
+            devices.pushBack(info);
+        *availableDevices = devices.detach();
+    });
+}
+
+ListPtr<IDeviceInfo> ModuleManagerImpl::scanAvailableDevices()
+{
     auto availableDevicesPtr = List<IDeviceInfo>();
 
     using AsyncEnumerationResult = std::future<ListPtr<IDeviceInfo>>;
@@ -612,6 +658,8 @@ ErrCode ModuleManagerImpl::getAvailableDevices(IList** availableDevices)
     // runs in parallel with getting available devices from modules
     std::future<DictPtr<IString, IDeviceInfo>> devicesWithIpModSupportAsyncResult = std::async([this]
     {
+        const auto scope = std::exchange(insideModuleScan, true);
+        Finally restore([scope] { insideModuleScan = scope; });
         return this->discoverDevicesWithIpModification();
     });
 
@@ -625,6 +673,9 @@ ErrCode ModuleManagerImpl::getAvailableDevices(IList** availableDevices)
             // as it may be time-consuming
             AsyncEnumerationResult deviceListFuture = std::async([module = module]()
             {
+                // std::async may run this on the calling thread, so the previous value is restored
+                const auto scope = std::exchange(insideModuleScan, true);
+                Finally restore([scope] { insideModuleScan = scope; });
                 return module.getAvailableDevices();
             });
             enumerationResults.emplace_back(std::move(deviceListFuture), module);
@@ -723,8 +774,6 @@ ErrCode ModuleManagerImpl::getAvailableDevices(IList** availableDevices)
             dev.freeze();
     }
 
-    availableDevicesGroup = groupedDevices;
-
     auto visibleDevices = List<IDeviceInfo>();
     for (const auto & [_, deviceInfo]: groupedDevices)
     {
@@ -736,9 +785,16 @@ ErrCode ModuleManagerImpl::getAvailableDevices(IList** availableDevices)
             visibleDevices.pushBack(deviceInfo);
     }
 
-    *availableDevices = visibleDevices.detach();
+    std::scoped_lock lock(availableDevicesGroupSync);
+    availableDevicesGroup = groupedDevices;
     lastScanTime = std::chrono::steady_clock::now();
-    return OPENDAQ_SUCCESS;
+    return visibleDevices;
+}
+
+DictPtr<IString, IDeviceInfo> ModuleManagerImpl::availableDevicesGroupSnapshot() const
+{
+    std::scoped_lock lock(availableDevicesGroupSync);
+    return availableDevicesGroup;
 }
 
 ErrCode ModuleManagerImpl::getAvailableDeviceTypes(IDict** deviceTypes)
@@ -819,8 +875,12 @@ ErrCode ModuleManagerImpl::createDevice(IDevice** device, IString* connectionStr
         if (scanForDevices)
         {
             auto lock = std::lock_guard(availableDevicesSearchSync);
-            const auto currentTime = std::chrono::steady_clock::now();
-            if (!availableDevicesGroup.assigned() || currentTime - lastScanTime > rescanTimer)
+            bool scanExpired;
+            {
+                std::scoped_lock groupLock(availableDevicesGroupSync);
+                scanExpired = !availableDevicesGroup.assigned() || std::chrono::steady_clock::now() - lastScanTime > rescanTimer;
+            }
+            if (scanExpired)
             {
                 const ErrCode errCode = getAvailableDevices(&ListPtr<IDeviceInfo>());
                 OPENDAQ_RETURN_IF_FAILED(errCode, "Failed getting available devices");
@@ -1330,7 +1390,8 @@ ErrCode ModuleManagerImpl::getDiscoveryInfo(IDeviceInfo** deviceInfo, IString* m
     StringPtr manufacturerPtr = StringPtr::Borrow(manufacturer);
     StringPtr serialNumberPtr = StringPtr::Borrow(serialNumber);
 
-    if (!availableDevicesGroup.assigned())
+    auto group = availableDevicesGroupSnapshot();
+    if (!group.assigned())
     {
         if (!scanOnAdd)
             return OPENDAQ_NOTFOUND;
@@ -1338,9 +1399,10 @@ ErrCode ModuleManagerImpl::getDiscoveryInfo(IDeviceInfo** deviceInfo, IString* m
         auto lock = std::lock_guard(availableDevicesSearchSync);
         const auto errCode = getAvailableDevices(&ListPtr<IDeviceInfo>());
         OPENDAQ_RETURN_IF_FAILED(errCode, "Failed getting available devices");
+        group = availableDevicesGroupSnapshot();
     }
 
-    for (const auto& [_, info] : availableDevicesGroup)
+    for (const auto& [_, info] : group)
     {
         if (info.getManufacturer() == manufacturerPtr && info.getSerialNumber() == serialNumberPtr)
         {
@@ -1374,11 +1436,12 @@ uint16_t ModuleManagerImpl::GetServerCapabilityPriority(const ServerCapabilityPt
 
 DeviceInfoPtr ModuleManagerImpl::getSmartConnectionDeviceInfo(const StringPtr& inputConnectionString) const
 {
-    if (!availableDevicesGroup.assigned())
+    const auto group = availableDevicesGroupSnapshot();
+    if (!group.assigned())
         DAQ_THROW_EXCEPTION(NotFoundException, "Device scan has not yet been initiated.");
 
-    if (availableDevicesGroup.hasKey(inputConnectionString))
-        return availableDevicesGroup.get(inputConnectionString);
+    if (group.hasKey(inputConnectionString))
+        return group.get(inputConnectionString);
     DAQ_THROW_EXCEPTION(NotFoundException, "Device with connection string \"{}\" not found", inputConnectionString);
 }
 
@@ -1390,11 +1453,12 @@ DeviceInfoPtr ModuleManagerImpl::getDiscoveredDeviceInfo(const DeviceInfoPtr& de
     if (!serialNumber.getLength() || !manufacturer.getLength())
         return nullptr;
 
-    if (!availableDevicesGroup.assigned())
+    const auto group = availableDevicesGroupSnapshot();
+    if (!group.assigned())
         return nullptr;
 
     DeviceInfoPtr localInfo;
-    for (const auto & [_, info] : availableDevicesGroup)
+    for (const auto & [_, info] : group)
     {
         if (manufacturer == info.getManufacturer() && serialNumber == info.getSerialNumber())
         {

@@ -1351,7 +1351,7 @@ ListPtr<IDeviceInfo> GenericDevice<TInterface, Interfaces...>::onGetAvailableDev
     if (!allowAddDevicesFromModules())
         return List<IDeviceInfo>();
 
-    auto lock = this->getRecursiveConfigLock2();
+    // No device lock: a scan takes seconds, and the module manager shares one scan between concurrent callers
     const ModuleManagerUtilsPtr managerUtils = this->context.getModuleManager().template asPtr<IModuleManagerUtils>();
     return managerUtils.getAvailableDevices();
 }

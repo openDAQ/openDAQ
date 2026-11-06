@@ -416,11 +416,16 @@ void MultiReader2Impl::releaseSlot(Slot& slot)
 
     const ErrCode errCode = daqTry([&]
     {
+        // An own port keeps its listener, which holds the intake weakly and goes quiet with the slot: a port does not guard
+        // a listener replaced while its signal sends
+        if (slot.ownsPort)
+        {
+            slot.port.disconnect();
+            return;
+        }
         // The method first, so no notification finds the port without a listener. No previous listener is restored
         slot.port.setNotificationMethod(PacketReadyNotification::None);
         slot.port.setListener(nullptr);
-        if (slot.ownsPort)
-            slot.port.disconnect();
     });
     if (OPENDAQ_FAILED(errCode))
         daqClearErrorInfo();

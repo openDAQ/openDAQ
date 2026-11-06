@@ -4,17 +4,48 @@ on:
   schedule:
     - cron: '0 2 * * 1'
   workflow_dispatch:
-
+    inputs:
+      ref:
+        description: "The commit to stage, in full (empty: the head of the branch dispatched on)"
+        default: ""
+      skip-staging-push:
+        description: "Build only, keep the staging as an artifact of the run"
+        type: boolean
+        default: false
+  # from another repository's run (the bundle): staged as an artifact of that run, never pushed
+  workflow_call:
+    inputs:
+      ref:
+        description: "The commit to stage, in full (empty: the commit this workflow is called at)"
+        type: string
+        default: ""
 
 jobs:
   resolve:
-    name: Resolve the publish channel
+    name: Resolve the commit
     runs-on: ubuntu-latest
     outputs:
+      ref: ${{ steps.commit.outputs.ref }}
+      repository: ${{ job.workflow_repository }}
       channel: ${{ steps.channel.outputs.channel }}
+      skip-staging-push: ${{ inputs.skip-staging-push || job.workflow_ref != github.workflow_ref }}
     steps:
-      - uses: openDAQ/openDAQ-CI/.github/actions/resolve-channel@v4
+      # this repository, also when called from another one
+      - uses: actions/checkout@v4
+        with:
+          repository: ${{ job.workflow_repository }}
+          ref: ${{ inputs.ref || job.workflow_sha }}
+
+      - name: Resolve the commit
+        id: commit
+        run: echo "ref=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+
+      # where it lies picks its channel
+      - uses: openDAQ/openDAQ-CI/.github/actions/resolve-channel@bundle/extract-each-artifact-into-its-dir
         id: channel
+        with:
+          repository: ${{ job.workflow_repository }}
+          commit: ${{ steps.commit.outputs.ref }}
 
   stage:
     needs: resolve
@@ -22,8 +53,11 @@ jobs:
     permissions:
       contents: read
       packages: write
-    uses: openDAQ/openDAQ-CI/.github/workflows/stage.yml@v4
+    uses: openDAQ/openDAQ-CI/.github/workflows/stage.yml@bundle/extract-each-artifact-into-its-dir
     with:
+      repository: ${{ needs.resolve.outputs.repository }}
+      ref: ${{ needs.resolve.outputs.ref }}
+      upload-pattern: opendaq-*
       timeout: '[{"timeout-minutes": 180}]'
       include-jobs: >
         [
@@ -89,16 +123,19 @@ jobs:
             "installers": [{"name": "core", "package": "productbuild"}]
           }
         ]
+      skip-staging-push: ${{ needs.resolve.outputs.skip-staging-push == 'true' }}
       staging-push: >-
         [
           {
-            "path": "ghcr.io/${{ github.repository_owner }}/${{ needs.resolve.outputs.channel }}/staging/opendaq",
-            "artifacts": ["staging-*/core"],
-            "tags": []
+            "path": "ghcr.io/${{ github.repository_owner }}/${{ needs.resolve.outputs.channel || 'dev' }}/staging/opendaq",
+            "artifacts": ["opendaq-staging-*/core"],
+            "idx-identity": ["org.opencontainers.image.revision"],
+            "pkg-identity": ["org.opencontainers.image.revision", "com.opendaq.package.triplet"]
           },
           {
-            "path": "ghcr.io/${{ github.repository_owner }}/${{ needs.resolve.outputs.channel }}/installer/opendaq",
-            "artifacts": ["package-*/core"],
-            "tags": []
+            "path": "ghcr.io/${{ github.repository_owner }}/${{ needs.resolve.outputs.channel || 'dev' }}/installer/opendaq",
+            "artifacts": ["opendaq-package-*/core"],
+            "idx-identity": ["org.opencontainers.image.revision"],
+            "pkg-identity": ["org.opencontainers.image.revision", "com.opendaq.package.triplet"]
           }
         ]

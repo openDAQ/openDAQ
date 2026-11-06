@@ -374,6 +374,8 @@ ErrCode GenericDevice<TInterface, Interfaces...>::getInfo(IDeviceInfo** info)
     if (this->isComponentRemoved)
         return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_COMPONENT_REMOVED);
 
+    auto lock = this->getRecursiveConfigLock2();
+
     if (!this->deviceInfo.assigned())
     {
         DeviceInfoPtr devInfo;
@@ -403,6 +405,8 @@ ErrCode GenericDevice<TInterface, Interfaces...>::getDomain(IDeviceDomain** devi
 
     if (this->isComponentRemoved)
         return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_COMPONENT_REMOVED);
+
+    auto lock = this->getRecursiveConfigLock2();
 
     *deviceDomain = this->deviceDomain.addRefAndReturn();
     return OPENDAQ_SUCCESS;

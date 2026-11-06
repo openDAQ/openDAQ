@@ -70,6 +70,20 @@ protected:
     void initClientHandlerCallbacks();
     void upgradeClientHandlerCallbacks();
 
+    // Packets collected on the transport thread and handed to the processing thread one burst at a time.
+    // Transport-side code captures only this queue and reaches the streaming through the guarded processing handler.
+    struct PacketQueue
+    {
+        std::vector<StreamingPacket> packets;
+        bool flushScheduled = false;
+        NativeStreamingImpl* streaming = nullptr;
+        WeakRefPtr<IStreaming> streamingRef;
+        std::shared_ptr<boost::asio::io_context> processingContext;
+        std::shared_ptr<boost::asio::io_context> transportContext;
+    };
+    static void queuePacket(const std::shared_ptr<PacketQueue>& queue, const StringPtr& signalStringId, const PacketPtr& packet);
+    static void flushPacketQueue(PacketQueue& queue);
+
     void stopProcessingOperations();
     void requestStreamingOnReconnection();
 
@@ -81,6 +95,9 @@ protected:
     opendaq_native_streaming_protocol::OnConnectionStatusChangedCallback onDeviceConnectionStatusChangedCb;
 
     std::shared_ptr<boost::asio::io_context> processingIOContextPtr;
+
+    std::shared_ptr<PacketQueue> packetQueue;  // its contents are touched only on the transport thread
+    static constexpr size_t maxQueuedPackets = 4096;
 
     std::promise<void> protocolInitPromise;
     std::future<void> protocolInitFuture;

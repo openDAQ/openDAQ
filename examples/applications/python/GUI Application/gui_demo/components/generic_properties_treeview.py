@@ -39,6 +39,10 @@ class PropertiesTreeview(ttk.Treeview):
                         background='white',
                         foreground='#1a1a1a')
         style.configure('Overlay.TCheckbutton', background='white')
+        tree_style = self.cget('style')
+        self._checkbox_style = f'{tree_style}.Overlay.TCheckbutton' if tree_style else 'Overlay.TCheckbutton'
+        if tree_style:
+            style.configure(self._checkbox_style, background=style.lookup(tree_style, 'background'))
 
         self._scroll_bar = ttk.Scrollbar(
             self, orient=tk.VERTICAL, command=self.yview)
@@ -810,7 +814,7 @@ class PropertiesTreeview(ttk.Treeview):
             return
         x, y, width, height = self._get_overlay_place_geometry(bbox)
         var = tk.BooleanVar(value=bool(prop.value))
-        cb = ttk.Checkbutton(self, variable=var, takefocus=False, style='Overlay.TCheckbutton')
+        cb = ttk.Checkbutton(self, variable=var, takefocus=False, style=self._checkbox_style)
         cb.place(x=x, y=y, width=width, height=height)
 
         def on_change(_prop=prop, _var=var):

@@ -131,12 +131,14 @@ protected:
     void removed() override;
     void removedNoLock() override;
     bool isAddedToLocalComponentTree() override;
+    void onRemoteUpdate(const SerializedObjectPtr& serialized) override;
 
 private:
     void attachDeviceHelper(std::shared_ptr<NativeDeviceHelper> deviceHelper);
     void disconnectAndCleanUp();
 
     std::shared_ptr<NativeDeviceHelper> deviceHelper;
+    StringPtr connectionString;
 };
 
 class ConnectionStringUtils

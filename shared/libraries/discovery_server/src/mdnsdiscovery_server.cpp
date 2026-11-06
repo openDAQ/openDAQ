@@ -1197,7 +1197,8 @@ int MDNSDiscoveryServer::discoveryCallback(
                 records.reserve(service.updateConnectedClientsAndGetPropsCount() + 3);
 
                 records.push_back(createSrvRecord(service));
-                if (adapter.ipv4Sock >= 0 && from->sa_family == AF_INET)
+                // Both address records in every reply: a client that loses one family's exchange still learns both
+                if (adapter.ipv4Sock >= 0)
                     records.push_back(createARecord(service, adapter));
                 if (adapter.ipv6Sock >= 0)
                     records.push_back(createAaaaRecord(service, adapter));
@@ -1216,7 +1217,7 @@ int MDNSDiscoveryServer::discoveryCallback(
                 std::vector<mdns_record_t> records;
                 records.reserve(service.updateConnectedClientsAndGetPropsCount() + 2);
 
-                if (adapter.ipv4Sock >= 0 && from->sa_family == AF_INET)
+                if (adapter.ipv4Sock >= 0)
                     records.push_back(createARecord(service, adapter));
                 if (adapter.ipv6Sock >= 0)
                     records.push_back(createAaaaRecord(service, adapter));

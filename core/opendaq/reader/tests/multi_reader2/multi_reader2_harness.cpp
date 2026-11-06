@@ -2210,7 +2210,7 @@ void MultiReader2Test::checkStatus(const Result& r, const Expect& e)
             EXPECT_FALSE(st.getMainInput().assigned()) << "main input is null";
     }
     if (e.message)
-        EXPECT_EQ(messageHeads(st.getStatusMessage().toStdString()), messageHeads(*e.message)) << "status message";
+        EXPECT_EQ(st.getStatusMessage().toStdString(), *e.message) << "status message";
     if (e.inputSlots)
     {
         std::vector<int> slots;

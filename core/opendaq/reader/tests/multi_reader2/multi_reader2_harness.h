@@ -71,27 +71,6 @@ inline bool runReviewOnly()
             GTEST_SKIP() << "review-only: " << (behaviour);                 \
     } while (0)
 
-// A status message with each "; "-separated entry cut to its "inK: <error>" head. The review branch's reader appended the
-// failed constraint after a ", " ("domain descriptor invalid, float sample type"); the spec defines only the head
-inline std::string messageHeads(const std::string& message)
-{
-    std::string out;
-    std::size_t pos = 0;
-    while (true)
-    {
-        const std::size_t next = message.find("; ", pos);
-        std::string entry = message.substr(pos, next == std::string::npos ? std::string::npos : next - pos);
-        const std::size_t comma = entry.find(", ");
-        if (comma != std::string::npos)
-            entry.resize(comma);
-        out += (out.empty() ? "" : "; ") + entry;
-        if (next == std::string::npos)
-            return out;
-        pos = next + 2;
-    }
-}
-
-
 // An input slot of the fixture: inK is the K-th input, local ID "inK"
 struct Input
 {

@@ -86,7 +86,7 @@ void MultiReader2Test::expectComponentStatus(ComponentStatus level, const std::s
 {
     std::scoped_lock lock(owner->mutex);
     EXPECT_EQ(owner->status, level) << "the owner's component status";
-    EXPECT_EQ(messageHeads(owner->message), messageHeads(message)) << "the owner's component status message";
+    EXPECT_EQ(owner->message, message) << "the owner's component status message";
 }
 
 bool MultiReader2Test::acceptsByRule(int slot, const DataDescriptorPtr& desc)

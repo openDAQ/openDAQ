@@ -65,6 +65,15 @@ protected:
     }
 
 public:
+    // The logger is asynchronous and can deliver earlier debug lines (the scheduler start) first
+    bool waitForLastMessage(const std::string& expected) const
+    {
+        while (privateSink.waitForMessage(9001))
+            if (privateSink.getLastMessage().toStdString() == expected)
+                return true;
+        return false;
+    }
+
     void sendPacket(const daq::PacketPtr& packet, bool wait = true) const
     {
         signal.sendPacket(packet);

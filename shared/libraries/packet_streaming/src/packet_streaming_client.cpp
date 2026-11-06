@@ -2,6 +2,7 @@
 #include <opendaq/event_packet_ids.h>
 #include <opendaq/event_packet_utils.h>
 #include <opendaq/packet_factory.h>
+#include <opendaq/data_packet_owner_factory.h>
 #include <opendaq/binary_data_packet_factory.h>
 #include <opendaq/deleter_factory.h>
 #include <opendaq/data_descriptor_factory.h>
@@ -157,13 +158,14 @@ DataPacketPtr PacketStreamingClient::addDataPacketBuffer(const PacketBufferPtr& 
         }
         else
         {
-           packet = DataPacketWithExternalMemory(domPacket,
-                                                 valueDescriptor,
-                                                 dataPacketHeader->sampleCount,
-                                                 const_cast<void*>(packetBuffer->payload),
-                                                 Deleter([packetBuffer = packetBuffer](void*) mutable { packetBuffer.reset(); }),
-                                                 offset,
-                                                 dataPacketHeader->genericHeader.payloadSize);
+           // The packet buffer owns the payload.
+           packet = DataPacketWithExternalMemoryOwner(domPacket,
+                                                      valueDescriptor,
+                                                      dataPacketHeader->sampleCount,
+                                                      const_cast<void*>(packetBuffer->payload),
+                                                      packetBuffer,
+                                                      offset,
+                                                      dataPacketHeader->genericHeader.payloadSize);
         }
     }
 

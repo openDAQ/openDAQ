@@ -28,6 +28,8 @@
 #include <opendaq/signal_exceptions.h>
 #include <opendaq/mem_pool_allocator.h>
 
+#include <memory>
+
 BEGIN_NAMESPACE_OPENDAQ
 
 namespace PacketDetails
@@ -280,6 +282,15 @@ public:
                             IDeleter* deleter,
                             SizeT bufferSize = std::numeric_limits<SizeT>::max());
 
+    // External memory that stays valid for as long as the owner lives.
+    explicit DataPacketImpl(IDataPacket* domainPacket,
+                            IDataDescriptor* descriptor,
+                            SizeT sampleCount,
+                            INumber* offset,
+                            void* externalMemory,
+                            std::shared_ptr<void> owner,
+                            SizeT bufferSize = std::numeric_limits<SizeT>::max());
+
     explicit DataPacketImpl(const DataPacketPtr& domainPacket,
                             const DataDescriptorPtr& descriptor,
                             SizeT sampleCount,
@@ -320,6 +331,7 @@ protected:
     void updateCalcFlags();
 
     DeleterPtr deleter;
+    std::shared_ptr<void> externalOwner;
     DataDescriptorPtr descriptor;
     NumberPtr offset = nullptr;
     uint32_t sampleCount;
@@ -446,6 +458,19 @@ DataPacketImpl<TInterface, TInterfaces...>::DataPacketImpl(IDataPacket* domainPa
     data = externalMemory;
 
     initPacket();
+}
+
+template <typename TInterface, typename... TInterfaces>
+DataPacketImpl<TInterface, TInterfaces...>::DataPacketImpl(IDataPacket* domainPacket,
+                                                           IDataDescriptor* descriptor,
+                                                           SizeT sampleCount,
+                                                           INumber* offset,
+                                                           void* externalMemory,
+                                                           std::shared_ptr<void> owner,
+                                                           SizeT bufferSize)
+    : DataPacketImpl(domainPacket, descriptor, sampleCount, offset, externalMemory, static_cast<IDeleter*>(nullptr), bufferSize)
+{
+    externalOwner = std::move(owner);
 }
 
 template <typename TInterface, typename... TInterfaces>
@@ -876,6 +901,7 @@ void DataPacketImpl<TInterface, TInterfaces...>::freeMemory()
     {
         if (deleter.assigned())
             deleter.deleteMemory(data);
+        externalOwner.reset();
     }
     else
     {

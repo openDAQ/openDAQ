@@ -1747,19 +1747,19 @@ TEST_F(NativeDeviceModulesTest, SubscribeReadUnsubscribe)
 
     std::promise<StringPtr> signalSubscribePromise;
     std::future<StringPtr> signalSubscribeFuture;
-    test_helpers::setupSubscribeAckHandler(signalSubscribePromise, signalSubscribeFuture, signal);
+    const auto signalSubscribeAck = test_helpers::setupSubscribeAckHandler(signalSubscribePromise, signalSubscribeFuture, signal);
 
     std::promise<StringPtr> domainSubscribePromise;
     std::future<StringPtr> domainSubscribeFuture;
-    test_helpers::setupSubscribeAckHandler(domainSubscribePromise, domainSubscribeFuture, domainSignal);
+    const auto domainSubscribeAck = test_helpers::setupSubscribeAckHandler(domainSubscribePromise, domainSubscribeFuture, domainSignal);
 
     std::promise<StringPtr> signalUnsubscribePromise;
     std::future<StringPtr> signalUnsubscribeFuture;
-    test_helpers::setupUnsubscribeAckHandler(signalUnsubscribePromise, signalUnsubscribeFuture, signal);
+    const auto signalUnsubscribeAck = test_helpers::setupUnsubscribeAckHandler(signalUnsubscribePromise, signalUnsubscribeFuture, signal);
 
     std::promise<StringPtr> domainUnsubscribePromise;
     std::future<StringPtr> domainUnsubscribeFuture;
-    test_helpers::setupUnsubscribeAckHandler(domainUnsubscribePromise, domainUnsubscribeFuture, domainSignal);
+    const auto domainUnsubscribeAck = test_helpers::setupUnsubscribeAckHandler(domainUnsubscribePromise, domainUnsubscribeFuture, domainSignal);
 
     using namespace std::chrono_literals;
     StreamReaderPtr reader = daq::StreamReader<double, uint64_t>(signal, ReadTimeoutType::Any);
@@ -3083,7 +3083,7 @@ TEST_F(NativeDeviceModulesTest, MultiClientReadChangingSignal)
 
     std::promise<StringPtr> client1SignalSubscribePromise;
     std::future<StringPtr> client1SignalSubscribeFuture;
-    test_helpers::setupSubscribeAckHandler(client1SignalSubscribePromise, client1SignalSubscribeFuture, client1Signal);
+    const auto client1SignalSubscribeAck = test_helpers::setupSubscribeAckHandler(client1SignalSubscribePromise, client1SignalSubscribeFuture, client1Signal);
 
     StreamReaderPtr client1Reader = daq::StreamReader<double, uint64_t>(client1Signal, ReadTimeoutType::Any);
     ASSERT_TRUE(test_helpers::waitForAcknowledgement(client1SignalSubscribeFuture));
@@ -3098,7 +3098,7 @@ TEST_F(NativeDeviceModulesTest, MultiClientReadChangingSignal)
 
     std::promise<StringPtr> client2SignalSubscribePromise;
     std::future<StringPtr> client2SignalSubscribeFuture;
-    test_helpers::setupSubscribeAckHandler(client2SignalSubscribePromise, client2SignalSubscribeFuture, client2Signal);
+    const auto client2SignalSubscribeAck = test_helpers::setupSubscribeAckHandler(client2SignalSubscribePromise, client2SignalSubscribeFuture, client2Signal);
 
     StreamReaderPtr client2Reader = daq::StreamReader<double, uint64_t>(client2Signal, ReadTimeoutType::Any);
     ASSERT_TRUE(test_helpers::waitForAcknowledgement(client2SignalSubscribeFuture));

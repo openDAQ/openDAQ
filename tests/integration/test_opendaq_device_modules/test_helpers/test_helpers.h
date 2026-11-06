@@ -67,8 +67,47 @@ namespace test_helpers
 #endif
     }
 
-    [[maybe_unused]]
-    inline void setupSubscribeAckHandler(
+    // Detaches a signal's (un)subscribe ack handlers on scope exit so they cannot outlive the promises they reference
+    class AckHandlerGuard
+    {
+    public:
+        AckHandlerGuard() = default;
+
+        explicit AckHandlerGuard(const MirroredSignalConfigPtr& signal)
+            : signal(signal)
+        {
+        }
+
+        AckHandlerGuard(AckHandlerGuard&& other) noexcept = default;
+
+        AckHandlerGuard& operator=(AckHandlerGuard&& other) noexcept
+        {
+            detach();
+            signal = std::move(other.signal);
+            return *this;
+        }
+
+        ~AckHandlerGuard()
+        {
+            detach();
+        }
+
+    private:
+        void detach()
+        {
+            if (!signal.assigned())
+                return;
+            if (IEvent* ev = signal.getOnSubscribeComplete())
+                ev->clear();
+            if (IEvent* ev = signal.getOnUnsubscribeComplete())
+                ev->clear();
+        }
+
+        MirroredSignalConfigPtr signal;
+    };
+
+    [[nodiscard]]
+    inline AckHandlerGuard setupSubscribeAckHandler(
         std::promise<StringPtr>& acknowledgementPromise,
         std::future<StringPtr>& acknowledgementFuture,
         MirroredSignalConfigPtr& signal
@@ -89,10 +128,11 @@ namespace test_helpers
                                    << args.getStreamingConnectionString();
                 }
             };
+        return AckHandlerGuard(signal);
     }
 
-    [[maybe_unused]]
-    inline void setupUnsubscribeAckHandler(
+    [[nodiscard]]
+    inline AckHandlerGuard setupUnsubscribeAckHandler(
         std::promise<StringPtr>& acknowledgementPromise,
         std::future<StringPtr>& acknowledgementFuture,
         MirroredSignalConfigPtr& signal
@@ -113,33 +153,8 @@ namespace test_helpers
                                    << args.getStreamingConnectionString();
                 }
             };
+        return AckHandlerGuard(signal);
     }
-
-    // Detaches a signal's (un)subscribe ack handlers on scope exit so they cannot outlive the promises they reference
-    class AckHandlerGuard
-    {
-    public:
-        explicit AckHandlerGuard(const MirroredSignalConfigPtr& signal)
-            : signal(signal)
-        {
-        }
-
-        AckHandlerGuard(const AckHandlerGuard&) = delete;
-        AckHandlerGuard& operator=(const AckHandlerGuard&) = delete;
-
-        ~AckHandlerGuard()
-        {
-            if (!signal.assigned())
-                return;
-            if (IEvent* ev = signal.getOnSubscribeComplete())
-                ev->clear();
-            if (IEvent* ev = signal.getOnUnsubscribeComplete())
-                ev->clear();
-        }
-
-    private:
-        MirroredSignalConfigPtr signal;
-    };
 
     [[maybe_unused]]
     inline bool waitForAcknowledgement(

@@ -1,10 +1,9 @@
 #include <testutils/benchmark_utils.h>
+#include "test_helpers/benchmark_listener.h"
 #include "test_helpers/device_modules.h"
 #include "test_helpers/test_helpers.h"
 
-#include <coretypes/intfs.h>
 #include <opendaq/input_port_factory.h>
-#include <opendaq/input_port_notifications.h>
 
 #include <atomic>
 #include <chrono>
@@ -34,61 +33,7 @@ bool waitFor(Predicate predicate, std::chrono::milliseconds timeout)
     return true;
 }
 
-// Drains the port in the notification and keeps only counts.
-struct CountingListener : ImplementationOfWeak<IInputPortNotifications>
-{
-    CountingListener(std::atomic<uint64_t>& own,
-                     std::atomic<uint64_t>& totalPackets,
-                     std::atomic<uint64_t>& totalBytes,
-                     std::atomic<uint64_t>& totalEvents)
-        : own(own)
-        , totalPackets(totalPackets)
-        , totalBytes(totalBytes)
-        , totalEvents(totalEvents)
-    {
-    }
-
-    ErrCode INTERFACE_FUNC acceptsSignal(IInputPort*, ISignal*, Bool* accept) override
-    {
-        *accept = True;
-        return OPENDAQ_SUCCESS;
-    }
-
-    ErrCode INTERFACE_FUNC connected(IInputPort*) override
-    {
-        return OPENDAQ_SUCCESS;
-    }
-
-    ErrCode INTERFACE_FUNC disconnected(IInputPort*) override
-    {
-        return OPENDAQ_SUCCESS;
-    }
-
-    ErrCode INTERFACE_FUNC packetReceived(IInputPort* port) override
-    {
-        const auto connection = InputPortPtr::Borrow(port).getConnection();
-        if (!connection.assigned())
-            return OPENDAQ_SUCCESS;
-
-        for (PacketPtr packet = connection.dequeue(); packet.assigned(); packet = connection.dequeue())
-        {
-            if (packet.getType() != daq::PacketType::Data)
-            {
-                totalEvents.fetch_add(1, std::memory_order_relaxed);
-                continue;
-            }
-            own.fetch_add(1, std::memory_order_relaxed);
-            totalPackets.fetch_add(1, std::memory_order_relaxed);
-            totalBytes.fetch_add(packet.asPtr<IDataPacket>(true).getRawDataSize(), std::memory_order_relaxed);
-        }
-        return OPENDAQ_SUCCESS;
-    }
-
-    std::atomic<uint64_t>& own;
-    std::atomic<uint64_t>& totalPackets;
-    std::atomic<uint64_t>& totalBytes;
-    std::atomic<uint64_t>& totalEvents;
-};
+using test_helpers::CountingListener;
 
 class NativeStreamingBenchmarkTest : public testing::Test
 {

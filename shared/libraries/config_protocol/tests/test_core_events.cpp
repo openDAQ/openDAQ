@@ -2027,16 +2027,16 @@ TEST_F(ConfigCoreEventTest, ReconnectComponentUpdateEndLogsSubDeviceThatFails)
     serverSubDevice.asPtr<IPropertyObjectInternal>().disableCoreEventTrigger();
     serverSubDevice.setPropertyValue("EnumProp", Enumeration("SubDeviceEnum", "C", serverTypeManager));
 
-    logger.flush();
-    lastMessage.waitForMessage(0);
-
     client->reconnect(False);
 
-    logger.flush();
-    ASSERT_TRUE(lastMessage.waitForMessage(2000));
-    const std::string message = lastMessage.getLastMessage();
+    // The logger is asynchronous and the reconnect logs the type conflict before the update failure
+    std::string message;
+    while (message.find("failed to apply the server's update") == std::string::npos)
+    {
+        ASSERT_TRUE(lastMessage.waitForMessage(2000)) << message;
+        message = lastMessage.getLastMessage().toStdString();
+    }
     ASSERT_NE(message.find(clientSubDevice.getGlobalId().toStdString()), std::string::npos) << message;
-    ASSERT_NE(message.find("failed to apply the server's update"), std::string::npos) << message;
 }
 
 TEST_F(ConfigCoreEventTest, ComponentSetActiveWithParentNonActive)

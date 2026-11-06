@@ -183,9 +183,22 @@ TEST_F(ErrorInfoTest, ErrorWithFileNameAndLine)
 TEST_F(ErrorInfoTest, MultipleErrorWithFileNameAndLine)
 {
     auto obj = CreateTestObject();
-    std::string expected = "newMakeErrorInfoTest failed" + getErrorPostfix(47) + "\n";
-    expected += " - Caused by: multipleErrorInfoTest failed twice" + getErrorPostfix(53);
+    std::string expected = "multipleErrorInfoTest failed twice" + getErrorPostfix(53) + "\n";
+    expected += " - Caused by: newMakeErrorInfoTest failed" + getErrorPostfix(47);
     ASSERT_THROW_MSG(checkErrorInfo(obj->multipleErrorInfoTest()), GeneralErrorException, expected);
+}
+
+TEST_F(ErrorInfoTest, ErrorGuardListsNewestErrorFirst)
+{
+    auto obj = CreateTestObject();
+    const auto errorGuard = DAQ_ERROR_GUARD();
+    obj->argumentNotNullTest(nullptr);
+    obj->multipleErrorInfoTest();
+
+    std::string expected = "multipleErrorInfoTest failed twice" + getErrorPostfix(53) + "\n";
+    expected += " - Caused by: newMakeErrorInfoTest failed" + getErrorPostfix(47) + "\n";
+    expected += "Parameter obj must not be null";
+    ASSERT_THROW_MSG(checkErrorGuard(errorGuard), GeneralErrorException, expected);
 }
 
 TEST_F(ErrorInfoTest, ArgumentNotNull)

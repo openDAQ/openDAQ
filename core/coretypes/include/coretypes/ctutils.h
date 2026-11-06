@@ -241,8 +241,10 @@ inline void checkErrorGuard(IErrorGuard* errorGuard)
     std::ostringstream ss;
     ErrCode lastErrorCode = OPENDAQ_SUCCESS;
     bool firstError = true;
+    const char* separator = "\n";
 
-    for (size_t i = 0; i < count; ++i)
+    // Newest error first, as in IErrorGuard::getFormattedMessage; an unrelated older error starts a new line
+    for (size_t i = count; i-- > 0;)
     {
         IBaseObject* errorInfoBase = nullptr;
         if (OPENDAQ_FAILED(errorList->getItemAt(i, &errorInfoBase)))
@@ -252,7 +254,8 @@ inline void checkErrorGuard(IErrorGuard* errorGuard)
         errorInfoBase->borrowInterface(IErrorInfo::Id, reinterpret_cast<void**>(&errorInfo));
         if (errorInfo)
         {
-            errorInfo->getErrorCode(&lastErrorCode);
+            if (OPENDAQ_SUCCEEDED(lastErrorCode))
+                errorInfo->getErrorCode(&lastErrorCode);
 
             IString* message = nullptr;
             errorInfo->getFormattedMessage(&message);
@@ -260,13 +263,17 @@ inline void checkErrorGuard(IErrorGuard* errorGuard)
             {
                 ConstCharPtr msgCharPtr = nullptr;
                 message->getCharPtr(&msgCharPtr);
-                if (msgCharPtr)
+                if (msgCharPtr && *msgCharPtr)
                 {
-                    ss << (firstError ? "" : "\n") << msgCharPtr;
+                    ss << (firstError ? "" : separator) << msgCharPtr;
                     firstError = false;
                 }
                 message->releaseRef();
             }
+
+            ErrCode prevErrCode = OPENDAQ_SUCCESS;
+            errorInfo->getPreviousErrorCode(&prevErrCode);
+            separator = prevErrCode != OPENDAQ_SUCCESS ? "\n - Caused by: " : "\n";
         }
         errorInfo->releaseRef();
     }

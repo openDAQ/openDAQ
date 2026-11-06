@@ -260,40 +260,35 @@ ErrCode ErrorGuardImpl::getFormattedMessage(IString** message) const
     if (errorInfoList.empty())
         return OPENDAQ_SUCCESS;
 
-    std::vector<IErrorInfo*> errorList;
-    errorList.reserve(errorInfoList.size());
+    // The newest error comes first; each following line is the cause of the one above, down to the error that started the chain
+    std::ostringstream ss;
+    bool firstMessage = true;
     for (auto it = errorInfoList.rbegin(); it != errorInfoList.rend(); ++it)
     {
-        errorList.push_back(it->borrow());
+        IErrorInfo* errorInfo = it->borrow();
+        IString* errorMessage = nullptr;
+        errorInfo->getFormattedMessage(&errorMessage);
+        if (errorMessage != nullptr)
+        {
+            ConstCharPtr messagePtr;
+            errorMessage->getCharPtr(&messagePtr);
+            if (messagePtr && *messagePtr)
+            {
+                ss << (firstMessage ? "" : "\n - Caused by: ") << messagePtr;
+                firstMessage = false;
+            }
+            errorMessage->releaseRef();
+        }
+
         ErrCode prevErrCode = OPENDAQ_SUCCESS;
-        it->borrow()->getPreviousErrorCode(&prevErrCode);
+        errorInfo->getPreviousErrorCode(&prevErrCode);
         if (prevErrCode == OPENDAQ_SUCCESS)
             break;
     }
 
-    std::ostringstream ss;
-    bool firstMessage = true;
-    for (auto it = errorList.rbegin(); it != errorList.rend(); ++it)
-    {
-        IErrorInfo* errorInfo = *it;
-        IString* errorMessage = nullptr;
-        errorInfo->getFormattedMessage(&errorMessage);
-        if (errorMessage == nullptr)
-            continue;
-
-        ConstCharPtr messagePtr;
-        errorMessage->getCharPtr(&messagePtr);
-        if (messagePtr)
-        {
-            ss << (firstMessage ? "" : "\n") << messagePtr;
-            firstMessage = false;
-        }
-        errorMessage->releaseRef();
-    }
-
     if (filename && !firstMessage)
     {
-        ss << "\n - Caused by: [ " << filename;
+        ss << "\n - Caught in: [ " << filename;
         if (fileLine != -1)
             ss << ":" << fileLine;
         ss << " ]";
@@ -570,9 +565,6 @@ ErrCode ErrorInfoImpl::getFormattedMessage(IString** message)
     }
 
     std::ostringstream ss;
-
-    if (this->prevErrCode != OPENDAQ_SUCCESS)
-        ss << " - Caused by: ";
 
     [[maybe_unused]] bool needSpace = true;
     if (this->message)

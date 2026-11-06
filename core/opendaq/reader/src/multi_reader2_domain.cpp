@@ -128,28 +128,38 @@ std::int64_t TickDomain::ticksIn(std::int64_t seconds) const
     return checkedMul(rate * delta, seconds).value_or(int64Max);
 }
 
-std::optional<TickDomain> parseDomain(const DataDescriptorPtr& domain)
+std::optional<TickDomain> parseDomain(const DataDescriptorPtr& domain, const char** fault)
 {
-    if (!domain.assigned() || !isIntegerType(domain.getSampleType()))
+    const auto fail = [fault](const char* cause) -> std::optional<TickDomain>
+    {
+        if (fault)
+            *fault = cause;
         return std::nullopt;
+    };
+    if (!domain.assigned())
+        return fail("no domain descriptor");
+    if (!isIntegerType(domain.getSampleType()))
+        return fail("ticks not of an integer type");
     const auto dimensions = domain.getDimensions();
     if (dimensions.assigned() && dimensions.getCount() > 0)
-        return std::nullopt;
+        return fail("ticks not scalar");
     const auto unit = domain.getUnit();
     if (!unit.assigned() || unit.getSymbol() != "s")
-        return std::nullopt;
+        return fail("unit not seconds");
 
     // Rule: linear, with an integer delta above 0 and an integer start
     const auto rule = domain.getRule();
     if (!rule.assigned() || rule.getType() != DataRuleType::Linear)
-        return std::nullopt;
+        return fail("rule not linear");
     const auto parameters = rule.getParameters();
     if (!parameters.assigned() || !parameters.hasKey("delta") || !parameters.hasKey("start"))
-        return std::nullopt;
+        return fail("rule without a delta and a start");
     const BaseObjectPtr delta = parameters.get("delta");
     const BaseObjectPtr start = parameters.get("start");
-    if (delta.getCoreType() != ctInt || static_cast<std::int64_t>(delta) <= 0 || start.getCoreType() != ctInt)
-        return std::nullopt;
+    if (delta.getCoreType() != ctInt || static_cast<std::int64_t>(delta) <= 0)
+        return fail("rule delta not an integer above 0");
+    if (start.getCoreType() != ctInt)
+        return fail("rule start not an integer");
 
     TickDomain ticks;
     ticks.delta = delta;
@@ -158,12 +168,12 @@ std::optional<TickDomain> parseDomain(const DataDescriptorPtr& domain)
     // Sampling rate: an integer number of samples per second
     const auto resolution = domain.getTickResolution();
     if (!resolution.assigned() || resolution.getNumerator() <= 0 || resolution.getDenominator() <= 0)
-        return std::nullopt;
+        return fail("tick resolution not above 0");
     ticks.resolutionNum = resolution.getNumerator();
     ticks.resolutionDen = resolution.getDenominator();
     const auto secondsPerSample = checkedMul(ticks.resolutionNum, ticks.delta);
     if (!secondsPerSample || ticks.resolutionDen % *secondsPerSample != 0)
-        return std::nullopt;
+        return fail("sampling rate not an integer");
     ticks.rate = ticks.resolutionDen / *secondsPerSample;
 
     const auto originText = domain.getOrigin();
@@ -172,7 +182,7 @@ std::optional<TickDomain> parseDomain(const DataDescriptorPtr& domain)
         return ticks;
     const auto origin = parseOrigin(originText.toStdString());
     if (!origin)
-        return std::nullopt;
+        return fail("origin not an ISO 8601 time on a full second");
     ticks.originSeconds = *origin;
     return ticks;
 }
@@ -186,23 +196,31 @@ std::optional<std::int64_t> TickMap::firstTick(std::int64_t packetOffset) const
     return scaled ? checkedAdd(*scaled, offset) : std::nullopt;
 }
 
-std::optional<TickMap> relate(const TickDomain& input, const TickDomain& main)
+std::optional<TickMap> relate(const TickDomain& input, const TickDomain& main, const char** fault)
 {
-    if (input.rate != main.rate || input.relative != main.relative)
+    const auto fail = [fault](const char* cause) -> std::optional<TickMap>
+    {
+        if (fault)
+            *fault = cause;
         return std::nullopt;
+    };
+    if (input.rate != main.rate)
+        return fail("sampling rate differs from the main input's");
+    if (input.relative != main.relative)
+        return fail(input.relative ? "no origin while the main input has one" : "origin while the main input has none");
 
     // (input num / input den) / (main num / main den), reduced
     const auto p = checkedMul(input.resolutionNum, main.resolutionDen);
     const auto q = checkedMul(input.resolutionDen, main.resolutionNum);
     if (!p || !q)
-        return std::nullopt;
+        return fail("sampling rate differs from the main input's");
     const std::int64_t divisor = std::gcd(*p, *q);
 
     // The origins' difference in seconds, over main num / main den seconds per tick
     const auto seconds = checkedSub(input.originSeconds, main.originSeconds);
     const auto scaled = seconds ? checkedMul(*seconds, main.resolutionDen) : std::nullopt;
     if (!scaled || *scaled % main.resolutionNum != 0)
-        return std::nullopt;
+        return fail("origin not a whole number of main ticks from the main input's");
 
     return TickMap{*p / divisor, *q / divisor, *scaled / main.resolutionNum, input.start, main.delta};
 }

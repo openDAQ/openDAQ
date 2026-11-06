@@ -275,7 +275,8 @@ void MultiReaderDataManager::restart()
 void MultiReaderDataManager::checkInput(SizeT i)
 {
     Slot& slot = slots[i];
-    slot.domain = parseDomain(slot.current.domain);
+    slot.domainFault = nullptr;
+    slot.domain = parseDomain(slot.current.domain, &slot.domainFault);
     slot.rejectedByOwner = false;
     slot.sampleSize = 0;
 
@@ -368,7 +369,7 @@ void MultiReaderDataManager::judgeInputs(bool keepMain)
         const TickDomain& main = *slots[*mainSlot].domain;
         for (SizeT i = 0; i < slots.size(); ++i)
         {
-            if (i != *mainSlot && slots[i].error == MultiReader2InputError::None && !relate(*slots[i].domain, main).has_value())
+            if (i != *mainSlot && slots[i].error == MultiReader2InputError::None && !relate(*slots[i].domain, main, &slots[i].domainFault).has_value())
                 slots[i].error = MultiReader2InputError::DomainDescriptorInvalid;
         }
     }
@@ -1404,7 +1405,7 @@ std::string MultiReaderDataManager::describeError(const Slot& slot) const
                 return "value descriptor rejected by the owner";
             return "value type not convertible to " + convertSampleTypeToString(config.readType);
         case MultiReader2InputError::DomainDescriptorInvalid:
-            return "domain descriptor invalid";
+            return std::string("domain descriptor invalid") + (slot.domainFault ? std::string(", ") + slot.domainFault : "");
         case MultiReader2InputError::SyncFailed:
             if (slot.syncFailed == SyncCause::OffGrid)
                 return "not synchronized, off the main input's grid";

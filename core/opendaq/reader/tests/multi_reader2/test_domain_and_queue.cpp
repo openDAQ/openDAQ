@@ -147,6 +147,28 @@ TEST(MultiReader2Domain, DomainWithoutOriginIsRelativeAndRelatesOnlyToRelativeDo
     EXPECT_FALSE(relate(*absolute, *relative).has_value());
 }
 
+// A failed constraint is named, so the status message can say which one
+TEST(MultiReader2Domain, NamesTheFailedConstraint)
+{
+    const char* fault = nullptr;
+    EXPECT_FALSE(parseDomain(domainDescriptor(1, 1000, 1, 0, "1970-01-01T00:00:00Z", SampleType::Float64), &fault).has_value());
+    EXPECT_STREQ(fault, "ticks not of an integer type");
+    EXPECT_FALSE(parseDomain(domainDescriptor(1, 1000, 1, 0, "1970-01-01T00:00:00Z", SampleType::Int64, "ms"), &fault).has_value());
+    EXPECT_STREQ(fault, "unit not seconds");
+    EXPECT_FALSE(parseDomain(domainDescriptor(1, 1000, 1, 0, "1970-01-01T00:00:00.5Z"), &fault).has_value());
+    EXPECT_STREQ(fault, "origin not an ISO 8601 time on a full second");
+    const auto relative = parseDomain(domainDescriptor(1, 1000, 1, 0, ""));
+    const auto absolute = parseDomain(domainDescriptor(1, 1000, 1, 0));
+    const auto faster = parseDomain(domainDescriptor(1, 2000, 1, 0));
+    ASSERT_TRUE(relative.has_value() && absolute.has_value() && faster.has_value());
+    EXPECT_FALSE(relate(*absolute, *relative, &fault).has_value());
+    EXPECT_STREQ(fault, "origin while the main input has none");
+    EXPECT_FALSE(relate(*relative, *absolute, &fault).has_value());
+    EXPECT_STREQ(fault, "no origin while the main input has one");
+    EXPECT_FALSE(relate(*faster, *absolute, &fault).has_value());
+    EXPECT_STREQ(fault, "sampling rate differs from the main input's");
+}
+
 TEST(MultiReader2Domain, ReadsTheMinutesAndTheSignOfAnOriginOffset)
 {
     EXPECT_EQ(parseOrigin("1970-01-01T01:30:00+01:30"), 0);

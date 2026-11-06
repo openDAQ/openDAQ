@@ -58,8 +58,8 @@ struct TickDomain
     std::int64_t ticksIn(std::int64_t seconds) const;
 };
 
-// nullopt for a domain that breaks one of the constraints
-std::optional<TickDomain> parseDomain(const DataDescriptorPtr& domain);
+// nullopt for a domain that breaks one of the constraints; fault then names it
+std::optional<TickDomain> parseDomain(const DataDescriptorPtr& domain, const char** fault = nullptr);
 
 // Seconds since the Unix epoch of an ISO 8601 origin on a full second: a date and time with an offset (Z, +hh:mm, +hhmm or
 // +hh; none is UTC), a date alone, or a year or a year and month alone, which start on the first day at midnight UTC.
@@ -82,7 +82,7 @@ struct TickMap
 
 // The map of the input's ticks onto the main input's; nullopt when the two cannot be read together: the rates differ, only
 // one of the two has an origin, or the origins are not a whole number of main ticks apart within Int64 (DomainDescriptorInvalid)
-std::optional<TickMap> relate(const TickDomain& input, const TickDomain& main);
+std::optional<TickMap> relate(const TickDomain& input, const TickDomain& main, const char** fault = nullptr);
 
 }
 

@@ -172,6 +172,7 @@ private:
         std::optional<multi_reader2::TickDomain> domain;
         MultiReader2InputError ownError = MultiReader2InputError::None;  // the input alone
         bool rejectedByOwner = false;                       // ownError came from acceptsDescriptor
+        const char* domainFault = nullptr;                  // the failed domain constraint, named in the status message
         MultiReader2InputError error = MultiReader2InputError::None;     // reported: own, then against the main input
         SyncCause syncFailed = SyncCause::None;             // a relative cause survives an internal reconfigure that keeps
                                                             // the main input; Stalled survives a new main input too

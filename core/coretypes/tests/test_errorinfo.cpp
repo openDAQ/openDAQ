@@ -247,8 +247,59 @@ TEST_F(ErrorInfoTest, LongChainKeepsNewestAndRootCause)
 
     ASSERT_LT(chainMessage.size(), 4200u);
     ASSERT_EQ(chainMessage.rfind("Context 500", 0), 0u);
-    ASSERT_NE(chainMessage.find(" more lines\n - Caused by: Context "), std::string::npos);
+    ASSERT_NE(chainMessage.find("\n - ...\n - Caused by: Context "), std::string::npos);
     ASSERT_NE(chainMessage.find(" - Caused by: Root cause"), std::string::npos);
+}
+
+// Each level adds context, throws the chain and catches it as the root entry of its caller's chain, as an interface boundary does
+static ErrCode nestedFailure(int depth)
+{
+    if (depth == 0)
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_GENERALERROR, "Root cause");
+
+    return daqTry([depth] { checkErrorInfo(DAQ_EXTEND_ERROR_INFO(nestedFailure(depth - 1), "Context " + std::to_string(depth))); });
+}
+
+TEST_F(ErrorInfoTest, NestedChainsKeepOneMarker)
+{
+    const std::string message = getErrorInfoMessage(nestedFailure(300), true);
+    ASSERT_LT(message.size(), 4200u);
+    ASSERT_EQ(message.rfind("Context 300", 0), 0u);
+    ASSERT_NE(message.find("\n - ..."), std::string::npos);
+    ASSERT_EQ(message.find("\n - ...\n - ..."), std::string::npos) << message;
+    ASSERT_NE(message.find("Root cause"), std::string::npos) << message;
+}
+
+TEST_F(ErrorInfoTest, LongNewestLineIsCutBetweenCharacters)
+{
+    ErrCode errCode = DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_GENERALERROR, "Root cause");
+    for (int i = 1; i <= 100; ++i)
+        errCode = DAQ_EXTEND_ERROR_INFO(errCode, "Context " + std::to_string(i));
+
+    // Two-byte characters after one ASCII byte, so a cut at the 1 KiB mark falls inside a character
+    std::string longLine = "x";
+    for (int i = 0; i < 3000; ++i)
+        longLine += "\xC3\xA9";
+    errCode = DAQ_EXTEND_ERROR_INFO(errCode, longLine);
+
+    const std::string message = getErrorInfoMessage(errCode, true);
+    ASSERT_LT(message.size(), 4200u);
+    const size_t marker = message.find("\n - ...");
+    ASSERT_LE(marker, 1024u);
+    ASSERT_EQ(marker % 2, 1u);
+    ASSERT_NE(message.find("Root cause"), std::string::npos);
+}
+
+TEST_F(ErrorInfoTest, ErrorGuardMessageIsTheChainOnly)
+{
+    const auto errorGuard = DAQ_ERROR_GUARD();
+    CreateTestObject()->multipleErrorInfoTest();
+
+    StringPtr message;
+    errorGuard->getFormattedMessage(&message);
+    std::string expected = "multipleErrorInfoTest failed twice" + getErrorPostfix(53) + "\n";
+    expected += " - Caused by: newMakeErrorInfoTest failed" + getErrorPostfix(47);
+    ASSERT_EQ(message.toStdString(), expected);
 }
 
 TEST_F(ErrorInfoTest, SerializeDeserializeEmpty)

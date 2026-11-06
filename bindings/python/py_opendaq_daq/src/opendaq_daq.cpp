@@ -5,6 +5,7 @@
 #include "py_opendaq/py_opendaq.h"
 #include "py_opendaq/py_packet_buffer.h"
 #include "py_core_types/py_event_queue.h"
+#include <coretypes/ctutils.h>
 
 
 PYBIND11_MODULE(opendaq, m)
@@ -26,15 +27,7 @@ PYBIND11_MODULE(opendaq, m)
             if (!errorInfoList.assigned())
                 return std::string();
 
-            std::ostringstream oss;
-            for (const auto& errorInfo : errorInfoList)
-            {
-                daq::StringPtr message;
-                errorInfo->getFormattedMessage(&message);
-                if (message.assigned())
-                    oss << message << "\n";
-            }
-            return oss.str();
+            return daq::formatErrorInfoList(errorInfoList) + "\n";
         }
     );
 

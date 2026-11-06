@@ -375,6 +375,10 @@ ErrCode MultiReader2Impl::configureInternal(IMultiReader2Params* params, IMultiR
             releaseSlot(slot);
         for (const auto& intake : reconnected)
             core->applyConnect(*intake);
+        // The ports' queued packets, a connect's descriptor event first, go in now rather than ahead of the first data
+        for (const auto& slot : slots)
+            slot.intake->marked.store(true);
+        core->drainMarked();
         return reconfigured;
     });
 }

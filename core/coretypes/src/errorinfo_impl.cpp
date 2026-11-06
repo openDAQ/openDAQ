@@ -251,7 +251,6 @@ ErrCode ErrorGuardImpl::getErrorInfoList(IList** errorInfos)
     return OPENDAQ_SUCCESS;
 }
 
-#ifndef NDEBUG
 ErrCode ErrorGuardImpl::getFormattedMessage(IString** message) const
 {
     if (message == nullptr)
@@ -307,40 +306,6 @@ ErrCode ErrorGuardImpl::getFormattedMessage(IString** message) const
     errorInfoList.back().borrow()->getErrorCode(&errCode);
     return errCode;
 }
-#else
-ErrCode ErrorGuardImpl::getFormattedMessage(IString** message) const
-{
-    if (message == nullptr)
-        return OPENDAQ_IGNORED;
-
-    *message = nullptr;
-    if (errorInfoList.empty())
-        return OPENDAQ_SUCCESS;
-
-    ErrCode errorCode = OPENDAQ_SUCCESS;
-    errorInfoList.back().borrow()->getErrorCode(&errorCode);
-
-    // Try to find the error info with custom message. Otherwise return default message.
-    for (auto it = errorInfoList.rbegin(); it != errorInfoList.rend(); ++it)
-    {
-        IErrorInfo* errorInfo = it->borrow();
-
-        if (errorInfo->getMessage(message) == OPENDAQ_SUCCESS)
-            return errorCode;
-
-        ErrCode prevErrCode = OPENDAQ_SUCCESS;
-        errorInfo->getPreviousErrorCode(&prevErrCode);
-
-        if (prevErrCode != errorCode)
-        {
-            auto defaultMessage = ErrorCodeMessage(errorCode);
-            createString(message, defaultMessage.c_str());
-            return errorCode;
-        }
-    }
-    return OPENDAQ_IGNORED;
-}
-#endif
 
 ErrCode ErrorGuardImpl::toString(CharPtr* str)
 {

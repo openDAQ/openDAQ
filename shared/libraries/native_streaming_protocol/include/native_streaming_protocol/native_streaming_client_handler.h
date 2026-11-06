@@ -126,17 +126,26 @@ protected:
     std::shared_ptr<boost::asio::io_context> ioContextPtr;
     LoggerComponentPtr loggerComponent;
 
-    // streaming callbacks
-    OnSignalAvailableCallback signalAvailableHandler;
-    OnSignalUnavailableCallback signalUnavailableHandler;
-    OnPacketCallback packetHandler;
-    OnSignalSubscriptionAckCallback signalSubscriptionAckCallback;
-    OnConnectionStatusChangedCallback connectionStatusChangedStreamingCb;
-    OnStreamingInitDoneCallback streamingInitDoneCb;
-
-    // config callbacks
-    OnConnectionStatusChangedCallback connectionStatusChangedConfigCb;
-    ProcessConfigProtocolPacketCb configPacketHandler;
+    // streaming and config callbacks, each replaced as one set; callers invoke a copy, so a replacement never destroys a running handler
+    struct StreamingHandlers
+    {
+        OnSignalAvailableCallback signalAvailable;
+        OnSignalUnavailableCallback signalUnavailable;
+        OnPacketCallback packet;
+        OnSignalSubscriptionAckCallback subscriptionAck;
+        OnConnectionStatusChangedCallback connectionStatusChanged;
+        OnStreamingInitDoneCallback streamingInitDone;
+    };
+    struct ConfigHandlers
+    {
+        ProcessConfigProtocolPacketCb packet;
+        OnConnectionStatusChangedCallback connectionStatusChanged;
+    };
+    std::shared_ptr<const StreamingHandlers> getStreamingHandlers();
+    std::shared_ptr<const ConfigHandlers> getConfigHandlers();
+    std::mutex streamingHandlersSync;
+    std::shared_ptr<const StreamingHandlers> streamingHandlers;
+    std::shared_ptr<const ConfigHandlers> configHandlers;
 
     // client-to-device streaming callbacks
     OnSignalSubscribedCallback signalSubscribedHandler;

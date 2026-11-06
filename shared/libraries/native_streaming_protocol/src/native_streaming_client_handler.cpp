@@ -84,12 +84,18 @@ void NativeStreamingClientImpl::manageTransportLayerProps()
 
 void NativeStreamingClientImpl::resetStreamingHandlers()
 {
-    this->signalAvailableHandler = [](const StringPtr&, const StringPtr&) {};
-    this->signalUnavailableHandler = [](const StringPtr&) {};
-    this->packetHandler = [](const StringPtr&, const PacketPtr&) {};
-    this->signalSubscriptionAckCallback = [](const StringPtr&, bool) {};
-    this->connectionStatusChangedStreamingCb = [](const EnumerationPtr&, const StringPtr&) {};
-    this->streamingInitDoneCb = []() {};
+    setStreamingHandlers([](const StringPtr&, const StringPtr&) {},
+                         [](const StringPtr&) {},
+                         [](const StringPtr&, const PacketPtr&) {},
+                         [](const StringPtr&, bool) {},
+                         [](const EnumerationPtr&, const StringPtr&) {},
+                         []() {});
+}
+
+std::shared_ptr<const NativeStreamingClientImpl::StreamingHandlers> NativeStreamingClientImpl::getStreamingHandlers()
+{
+    std::scoped_lock lock(streamingHandlersSync);
+    return streamingHandlers;
 }
 
 void NativeStreamingClientImpl::setStreamingHandlers(const OnSignalAvailableCallback& signalAvailableHandler,
@@ -99,25 +105,33 @@ void NativeStreamingClientImpl::setStreamingHandlers(const OnSignalAvailableCall
                                                      const OnConnectionStatusChangedCallback& connectionStatusChangedCb,
                                                      const OnStreamingInitDoneCallback& streamingInitDoneCb)
 {
-    this->streamingInitDoneCb = streamingInitDoneCb;
-    this->connectionStatusChangedStreamingCb = connectionStatusChangedCb;
-    this->signalSubscriptionAckCallback = signalSubscriptionAckCallback;
-    this->packetHandler = packetHandler;
-    this->signalUnavailableHandler = signalUnavailableHandler;
-    this->signalAvailableHandler = signalAvailableHandler;
+    auto handlers = std::make_shared<const StreamingHandlers>(StreamingHandlers{signalAvailableHandler,
+                                                                                signalUnavailableHandler,
+                                                                                packetHandler,
+                                                                                signalSubscriptionAckCallback,
+                                                                                connectionStatusChangedCb,
+                                                                                streamingInitDoneCb});
+    std::scoped_lock lock(streamingHandlersSync);
+    streamingHandlers = std::move(handlers);
 }
 
 void NativeStreamingClientImpl::resetConfigHandlers()
 {
-    this->connectionStatusChangedConfigCb = [](const EnumerationPtr&, const StringPtr&) {};
-    this->configPacketHandler = [](config_protocol::PacketBuffer&&) {};
+    setConfigHandlers([](config_protocol::PacketBuffer&&) {}, [](const EnumerationPtr&, const StringPtr&) {});
 }
 
 void NativeStreamingClientImpl::setConfigHandlers(const ProcessConfigProtocolPacketCb& configPacketHandler,
                                                   const OnConnectionStatusChangedCallback& connectionStatusChangedCb)
 {
-    this->configPacketHandler = configPacketHandler;
-    this->connectionStatusChangedConfigCb = connectionStatusChangedCb;
+    auto handlers = std::make_shared<const ConfigHandlers>(ConfigHandlers{configPacketHandler, connectionStatusChangedCb});
+    std::scoped_lock lock(streamingHandlersSync);
+    configHandlers = std::move(handlers);
+}
+
+std::shared_ptr<const NativeStreamingClientImpl::ConfigHandlers> NativeStreamingClientImpl::getConfigHandlers()
+{
+    std::scoped_lock lock(streamingHandlersSync);
+    return configHandlers;
 }
 
 SignalNumericIdType NativeStreamingClientImpl::registerSignal(const SignalPtr& signal)
@@ -312,8 +326,8 @@ void NativeStreamingClientImpl::tryReconnect()
 
 void NativeStreamingClientImpl::connectionStatusChanged(const EnumerationPtr& status, const StringPtr& statusMessage)
 {
-    connectionStatusChangedStreamingCb(status, statusMessage);
-    connectionStatusChangedConfigCb(status, statusMessage);
+    getStreamingHandlers()->connectionStatusChanged(status, statusMessage);
+    getConfigHandlers()->connectionStatusChanged(status, statusMessage);
 }
 
 bool NativeStreamingClientImpl::connect(std::string host,
@@ -454,13 +468,14 @@ void NativeStreamingClientImpl::onPacketBufferReceived(const packet_streaming::P
     {
         packetStreamingClientPtr->addPacketBuffer(packetBuffer);
 
+        const auto handlers = getStreamingHandlers();
         auto [signalNumericId, packet] = packetStreamingClientPtr->getNextDaqPacket();
         while (packet.assigned())
         {
             // Due to server-side optimizations, it’s possible to receive a packet for a signal that has just been removed.
             // Therefore, we cautiously check whether the signal ID is still registered on the client side before processing.
             if (const auto it = signalIds.find(signalNumericId); it != signalIds.end())
-                packetHandler(it->second, packet);
+                handlers->packet(it->second, packet);
             std::tie(signalNumericId, packet) = packetStreamingClientPtr->getNextDaqPacket();
         }
     }
@@ -499,7 +514,7 @@ void NativeStreamingClientImpl::initClientSessionHandler(SessionPtr session)
         [thisWeakPtr = this->weak_from_this()]()
     {
         if (const auto thisPtr = thisWeakPtr.lock())
-            thisPtr->streamingInitDoneCb();
+            thisPtr->getStreamingHandlers()->streamingInitDone();
     };
 
     OnSubscriptionAckCallback subscriptionAckCallback =
@@ -511,7 +526,7 @@ void NativeStreamingClientImpl::initClientSessionHandler(SessionPtr session)
         {
             std::scoped_lock lock(thisPtr->registeredSignalsSync);
             if (const auto it = thisPtr->signalIds.find(signalNumericId); it != thisPtr->signalIds.end())
-                thisPtr->signalSubscriptionAckCallback(it->second, subscribed);
+                thisPtr->getStreamingHandlers()->subscriptionAck(it->second, subscribed);
         }
     };
 
@@ -547,7 +562,7 @@ void NativeStreamingClientImpl::initClientSessionHandler(SessionPtr session)
         [thisWeakPtr = this->weak_from_this()](config_protocol::PacketBuffer&& packet)
     {
         if (const auto thisPtr = thisWeakPtr.lock())
-            thisPtr->configPacketHandler(std::move(packet));
+            thisPtr->getConfigHandlers()->packet(std::move(packet));
     };
     sessionHandler->setConfigPacketReceivedHandler(configPacketReceivedHandler);
 
@@ -691,10 +706,11 @@ void NativeStreamingClientImpl::handleSignal(const SignalNumericIdType& signalNu
         }
     }
 
+    const auto handlers = getStreamingHandlers();
     if (available)
-        signalAvailableHandler(signalStringId, serializedSignal);
+        handlers->signalAvailable(signalStringId, serializedSignal);
     else
-        signalUnavailableHandler(signalStringId);
+        handlers->signalUnavailable(signalStringId);
 }
 
 NativeStreamingClientHandler::NativeStreamingClientHandler(const ContextPtr& context,

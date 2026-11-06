@@ -221,6 +221,14 @@ TEST_F(ErrorInfoTest, ThrowExceptionInDaqTry)
     ASSERT_THROW_MSG(checkErrorInfo(obj->throwExceptionTest()), GeneralErrorException, expected);
 }
 
+TEST_F(ErrorInfoTest, MessageWithBraces)
+{
+    const std::string bracedMessage = R"(Invalid value {"a": 1} and {})";
+    ASSERT_THROW_MSG(checkErrorInfo(DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_GENERALERROR, bracedMessage)), GeneralErrorException, bracedMessage);
+    ASSERT_THROW_MSG(DAQ_THROW_EXCEPTION(GeneralErrorException, bracedMessage), GeneralErrorException, bracedMessage);
+    ASSERT_THROW_MSG(DAQ_THROW_EXCEPTION(GeneralErrorException, "Value {} is invalid", 5), GeneralErrorException, "Value 5 is invalid");
+}
+
 TEST_F(ErrorInfoTest, SerializeDeserializeEmpty)
 {
     ObjectPtr<IErrorInfo> errorInfo;

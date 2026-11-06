@@ -251,6 +251,30 @@ ErrCode ErrorGuardImpl::getErrorInfoList(IList** errorInfos)
     return OPENDAQ_SUCCESS;
 }
 
+// A chain message longer than this keeps its first and last lines and drops the middle. The message of one interface
+// boundary becomes an entry at the next, so without the cap a deep call stack carries ever longer text.
+static constexpr size_t MaxChainMessageLength = 4096;
+static constexpr size_t MaxChainMessageHead = 1024;
+
+static void capChainMessage(std::string& text)
+{
+    if (text.size() <= MaxChainMessageLength)
+        return;
+
+    // Whole lines only: the newest errors from the start, the root cause from the end
+    size_t headEnd = text.rfind('\n', MaxChainMessageHead);
+    if (headEnd == std::string::npos)
+        headEnd = text.find('\n');
+    size_t tailStart = text.find('\n', text.size() - (MaxChainMessageLength - MaxChainMessageHead));
+    if (tailStart == std::string::npos)
+        tailStart = text.rfind('\n');
+    if (headEnd == std::string::npos || tailStart <= headEnd)
+        return;
+
+    const auto omitted = std::count(text.begin() + headEnd, text.begin() + tailStart, '\n');
+    text.replace(headEnd, tailStart - headEnd, "\n - ... " + std::to_string(omitted) + " more lines");
+}
+
 ErrCode ErrorGuardImpl::getFormattedMessage(IString** message) const
 {
     if (message == nullptr)
@@ -320,9 +344,14 @@ ErrCode ErrorGuardImpl::getFormattedMessage(IString** message) const
     }
 
     if (onlyLine.assigned())
+    {
         *message = onlyLine.detach();
+    }
     else
+    {
+        capChainMessage(text);
         createString(message, text.c_str());
+    }
 
     ErrCode errCode = OPENDAQ_SUCCESS;
     errorInfoList.back().borrow()->getErrorCode(&errCode);

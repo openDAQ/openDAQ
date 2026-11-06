@@ -229,6 +229,28 @@ TEST_F(ErrorInfoTest, MessageWithBraces)
     ASSERT_THROW_MSG(DAQ_THROW_EXCEPTION(GeneralErrorException, "Value {} is invalid", 5), GeneralErrorException, "Value 5 is invalid");
 }
 
+TEST_F(ErrorInfoTest, LongChainKeepsNewestAndRootCause)
+{
+    ErrCode errCode = DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_GENERALERROR, "Root cause");
+    for (int i = 1; i <= 500; ++i)
+        errCode = DAQ_EXTEND_ERROR_INFO(errCode, "Context " + std::to_string(i));
+
+    std::string chainMessage;
+    try
+    {
+        checkErrorInfo(errCode);
+    }
+    catch (const GeneralErrorException& e)
+    {
+        chainMessage = e.what();
+    }
+
+    ASSERT_LT(chainMessage.size(), 4200u);
+    ASSERT_EQ(chainMessage.rfind("Context 500", 0), 0u);
+    ASSERT_NE(chainMessage.find(" more lines\n - Caused by: Context "), std::string::npos);
+    ASSERT_NE(chainMessage.find(" - Caused by: Root cause"), std::string::npos);
+}
+
 TEST_F(ErrorInfoTest, SerializeDeserializeEmpty)
 {
     ObjectPtr<IErrorInfo> errorInfo;

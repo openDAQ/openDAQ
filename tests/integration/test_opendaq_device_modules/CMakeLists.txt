@@ -2,6 +2,7 @@ set(TEST_HEADERS
     test_helpers/test_helpers.h
     test_helpers/device_modules.h
     test_helpers/lt_tls.h
+    test_helpers/benchmark_listener.h
 )
 
 # The tests that advertise over mDNS or scan for devices: one binary, one ctest entry holding every network lock
@@ -15,6 +16,7 @@ set(TEST_SOURCES test_native_device_modules.cpp
                  test_device_discovery.cpp
                  test_remote_update.cpp
                  test_native_streaming_benchmark.cpp
+                 test_native_streaming_client_benchmark.cpp
 )
 
 # The tests that never touch mDNS: gtest shards on shifted ports, running concurrently with everything else
@@ -34,6 +36,7 @@ function(add_device_modules_test_app APP)
 
     target_link_libraries(${APP} PRIVATE daq::test_utils
                                          daq::opendaq
+                                         daq::native_streaming_protocol
                                          daq::opcuatms_client
                                          daq::native_stream_cl_module
                                          daq::opendaq_mocks
@@ -41,6 +44,7 @@ function(add_device_modules_test_app APP)
     )
 
     # Should link only what you need $<BUILD_INTERFACE:Boost::asio>
+    target_include_directories(${APP} PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/../../../shared/libraries/native_streaming_protocol/tests)
     target_link_libraries(${APP} PRIVATE $<BUILD_INTERFACE:Boost::asio>
                                          $<BUILD_INTERFACE:std::filesystem>)
 

@@ -7,6 +7,7 @@ set(TEST_SOURCES test_types.cpp
                  test_streaming_protocol.cpp
                  test_client_to_dev_streaming.cpp
                  test_streaming_benchmark.cpp
+                 streaming_benchmark_server.h
 )
 
 add_executable(${TEST_APP} test_app.cpp

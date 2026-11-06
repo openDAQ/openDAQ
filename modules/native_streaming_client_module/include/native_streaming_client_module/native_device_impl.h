@@ -46,15 +46,11 @@ public:
                                 std::shared_ptr<boost::asio::io_context> processingIOContextPtr,
                                 std::shared_ptr<boost::asio::io_context> reconnectionProcessingIOContextPtr,
                                 std::thread::id reconnectionProcessingThreadId,
-                                const StringPtr& connectionString,
                                 Int reconnectionPeriod);
     ~NativeDeviceHelper();
 
     void setupProtocolClients(const ContextPtr& context);
     DevicePtr connectAndGetDevice(const ComponentPtr& parent, uint16_t& protocolVersion);
-
-    void subscribeToCoreEvent(const ContextPtr& context);
-    void unsubscribeFromCoreEvent(const ContextPtr& context);
 
     void closeConnectionOnRemoval();
 
@@ -69,8 +65,6 @@ private:
     void unregisterConfigRequest(uint64_t requestId);
     void cancelPendingConfigRequests(const DaqException& e);
     void processConfigPacket(config_protocol::PacketBuffer&& packet);
-    void coreEventCallback(ComponentPtr& sender, CoreEventArgsPtr& eventArgs);
-    void componentUpdated(const ComponentPtr& sender, const CoreEventArgsPtr& eventArgs);
     void updateConnectionStatus(const EnumerationPtr& status, const StringPtr& statusMessage);
     void tryConfigProtocolReconnect();
     void startAcceptNotificationPackets();
@@ -87,12 +81,9 @@ private:
     WeakRefPtr<IDevice> deviceRef;
     EnumerationPtr connectionStatus;
     bool acceptNotificationPackets;
-    bool subscribedToCoreEvent;
     std::chrono::milliseconds configProtocolRequestTimeout;
     Bool restoreClientConfigOnReconnect;
-    const StringPtr connectionString;
     std::mutex requestReplySync;
-    std::mutex flagsSync;
 
     std::shared_ptr<boost::asio::steady_timer> configProtocolReconnectionRetryTimer;
     std::chrono::milliseconds reconnectionPeriod;
@@ -129,7 +120,6 @@ public:
 
 protected:
     void removed() override;
-    void removedNoLock() override;
     bool isAddedToLocalComponentTree() override;
     void onRemoteUpdate(const SerializedObjectPtr& serialized) override;
 

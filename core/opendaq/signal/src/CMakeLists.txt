@@ -190,6 +190,7 @@ function(create_component_source_groups_${BASE_NAME})
         ${SDK_HEADERS_DIR}/packet.h
         ${SDK_HEADERS_DIR}/packet_impl.h
         ${SDK_HEADERS_DIR}/packet_factory.h
+        ${SDK_HEADERS_DIR}/data_packet_owner_factory.h
         ${SDK_HEADERS_DIR}/data_packet.h
         ${SDK_HEADERS_DIR}/reusable_data_packet.h
         ${SDK_HEADERS_DIR}/generic_data_packet_impl.h
@@ -330,6 +331,7 @@ set(SRC_PublicHeaders_Component
     generic_data_packet_impl.h
     input_port_factory.h
     packet_factory.h
+    data_packet_owner_factory.h
     packet_impl.h
     range_factory.h
     scaling_factory.h

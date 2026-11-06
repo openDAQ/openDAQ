@@ -79,7 +79,6 @@ TEST(MultiReader2Domain, RejectsEveryBrokenConstraint)
     EXPECT_FALSE(parseDomain(domainDescriptor(1, 1000, 1, 0, "1970-01-01T00:00:00Z", SampleType::Int64, "ms")).has_value());
     EXPECT_FALSE(parseDomain(domainDescriptor(1, 1000, 3)).has_value());  // 333.3 samples per second
     EXPECT_FALSE(parseDomain(domainDescriptor(1, 1000, 1, 0, "1970-01-01T00:00:00.5Z")).has_value());
-    EXPECT_FALSE(parseDomain(domainDescriptor(1, 1000, 1, 0, "")).has_value());
 }
 
 TEST(MultiReader2Domain, RelatesEqualRatesWithDifferentResolutions)
@@ -131,6 +130,21 @@ TEST(MultiReader2Domain, CheckedArithmeticSaturatesInsteadOfWrapping)
 
     const TickMap map{1, 1, max, 0, 1};
     EXPECT_FALSE(map.firstTick(1).has_value());
+}
+
+// A domain without an origin is relative: it is read only together with other domains without one, on a shared time base
+TEST(MultiReader2Domain, DomainWithoutOriginIsRelativeAndRelatesOnlyToRelativeDomains)
+{
+    const auto relative = parseDomain(domainDescriptor(1, 1000, 1, 0, ""));
+    const auto absolute = parseDomain(domainDescriptor(1, 1000, 1, 0));
+    ASSERT_TRUE(relative.has_value() && absolute.has_value());
+    EXPECT_TRUE(relative->relative);
+    EXPECT_FALSE(absolute->relative);
+    const auto map = relate(*relative, *relative);
+    ASSERT_TRUE(map.has_value());
+    EXPECT_EQ(map->offset, 0);
+    EXPECT_FALSE(relate(*relative, *absolute).has_value());
+    EXPECT_FALSE(relate(*absolute, *relative).has_value());
 }
 
 TEST(MultiReader2Domain, ReadsTheMinutesAndTheSignOfAnOriginOffset)

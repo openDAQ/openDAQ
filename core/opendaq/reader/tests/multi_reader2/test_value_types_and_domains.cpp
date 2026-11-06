@@ -880,7 +880,6 @@ TEST_F(MultiReader2Data, ReadConvertsNanValuesToZeroForInt32)
 // S1.DATA.70
 TEST_F(MultiReader2Data, InputsWithoutOriginAreReadOnASharedRelativeTime)
 {
-    MR2_REVIEW_ONLY(review_only::relativeDomains);
     given().domain(in1, Domain().noOrigin()).domain(in2, Domain().noOrigin());
     expect(read(0), count(0).level(Ok).domainChanged().resync().allDescChanged());
     write(in1, 0, 99);
@@ -891,7 +890,6 @@ TEST_F(MultiReader2Data, InputsWithoutOriginAreReadOnASharedRelativeTime)
 // S1.DATA.71
 TEST_F(MultiReader2Data, DomainWithOriginIsDomainDescriptorInvalidWhenTheMainInputHasNone)
 {
-    MR2_REVIEW_ONLY(review_only::relativeDomains);
     given().policy(Exclude).domain(in1, Domain().noOrigin());
     expect(read(0),
            count(0)

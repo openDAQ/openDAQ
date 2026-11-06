@@ -27,8 +27,7 @@ BEGIN_NAMESPACE_OPENDAQ
  * Domain constraints). Pure functions with checked Int64 arithmetic, so every overflow is a failed constraint and never a
  * wrong tick. Tested on their own in test_domain_and_queue.cpp.
  *
- * Future design hooks: fractional and relative origins change TickMap::offset into a rational and parseDomain's origin
- * rule; dividers relax relate's equal-rate rule to an integer ratio, which makes TickMap::step a multiple of the main
+ * Future design hooks: fractional origins change TickMap::offset into a rational and parseDomain's origin rule; dividers relax relate's equal-rate rule to an integer ratio, which makes TickMap::step a multiple of the main
  * delta; reference domains add their offset to TickMap::offset.
  */
 namespace multi_reader2
@@ -43,7 +42,7 @@ std::optional<std::int64_t> checkedMul(std::int64_t a, std::int64_t b);
 bool exceeds(std::int64_t a, std::int64_t b, std::int64_t limit);
 
 // A domain descriptor that meets the constraints an input meets on its own: integer scalar ticks in seconds, a linear rule
-// with an integer delta above 0 and an integer start, an integer rate and an ISO 8601 origin on a full second
+// with an integer delta above 0 and an integer start, an integer rate, and an ISO 8601 origin on a full second or none
 struct TickDomain
 {
     std::int64_t resolutionNum = 1;  // seconds per tick
@@ -52,6 +51,7 @@ struct TickDomain
     std::int64_t start = 0;          // a packet's first tick is its packetOffset plus start
     std::int64_t rate = 1;           // samples per second
     std::int64_t originSeconds = 0;  // since the Unix epoch
+    bool relative = false;           // no origin: read only with other domains without one, on a shared time base
 
     // That many seconds of data in samples and in ticks; saturated, so a limit never wraps
     std::int64_t samplesIn(std::int64_t seconds) const;
@@ -80,8 +80,8 @@ struct TickMap
     std::optional<std::int64_t> firstTick(std::int64_t packetOffset) const;
 };
 
-// The map of the input's ticks onto the main input's; nullopt when the two cannot be read together: the rates differ, or
-// the origins are not a whole number of main ticks apart within Int64 (DomainDescriptorInvalid)
+// The map of the input's ticks onto the main input's; nullopt when the two cannot be read together: the rates differ, only
+// one of the two has an origin, or the origins are not a whole number of main ticks apart within Int64 (DomainDescriptorInvalid)
 std::optional<TickMap> relate(const TickDomain& input, const TickDomain& main);
 
 }

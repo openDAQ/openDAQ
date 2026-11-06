@@ -167,7 +167,10 @@ std::optional<TickDomain> parseDomain(const DataDescriptorPtr& domain)
     ticks.rate = ticks.resolutionDen / *secondsPerSample;
 
     const auto originText = domain.getOrigin();
-    const auto origin = originText.assigned() && originText.getLength() > 0 ? parseOrigin(originText.toStdString()) : std::nullopt;
+    ticks.relative = !originText.assigned() || originText.getLength() == 0;
+    if (ticks.relative)
+        return ticks;
+    const auto origin = parseOrigin(originText.toStdString());
     if (!origin)
         return std::nullopt;
     ticks.originSeconds = *origin;
@@ -185,7 +188,7 @@ std::optional<std::int64_t> TickMap::firstTick(std::int64_t packetOffset) const
 
 std::optional<TickMap> relate(const TickDomain& input, const TickDomain& main)
 {
-    if (input.rate != main.rate)
+    if (input.rate != main.rate || input.relative != main.relative)
         return std::nullopt;
 
     // (input num / input den) / (main num / main den), reduced

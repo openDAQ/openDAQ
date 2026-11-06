@@ -29,7 +29,6 @@ TEST_F(MultiReader2Policy, ExcludeReadsAllHealthyInputsWithoutChanges)
 // S1.POL.03
 TEST_F(MultiReader2Policy, MainDomainLosingItsOriginInvalidatesReaderAndDropsData)
 {
-    MR2_REVIEW_ONLY(review_only::relativeDomains);
     setupBase();
     announce(in1, Domain().noOrigin());
     expect(read(100),

@@ -44,7 +44,6 @@ class MultiReader2Test;
 // the environment. Run with it set, a failure of such a case means only that this reader lacks that behaviour
 namespace review_only
 {
-inline constexpr const char* relativeDomains = "inputs without an origin are read on a relative time (spec v1: an origin is required)";
 inline constexpr const char* jumpWhileStreaming =
     "a timestamp jump while streaming continues without resynchronizing (spec: a packet that does not continue the input "
     "starts synchronization again)";

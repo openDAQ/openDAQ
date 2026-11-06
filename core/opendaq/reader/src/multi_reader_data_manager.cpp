@@ -570,11 +570,19 @@ void MultiReaderDataManager::recountShort()
     stallCheckTick.reset();
     healthyInputs = 0;
     shortInputs = 0;
+    waitingInputs = 0;
     for (const auto& slot : slots)
     {
         healthyInputs += slot.error == MultiReader2InputError::None ? 1 : 0;
         shortInputs += isShort(slot) ? 1 : 0;
+        waitingInputs += isWaiting(slot) ? 1 : 0;
     }
+}
+
+bool MultiReaderDataManager::isWaiting(const Slot& slot) const
+{
+    return slot.error == MultiReader2InputError::None && slot.queue.frontCount() == 0 &&
+           !(slot.queue.frontIsEvent() && slot.queue.frontEvent().kind == Event::Kind::SyncFailed);
 }
 
 // Fewer than MinReadCount samples in front of an event can never be read: their count, when the contributing inputs'
@@ -917,7 +925,13 @@ bool MultiReaderDataManager::ingestData(SizeT i, const DataPacketPtr& packet)
         if (!slot.firstSentTick.has_value())
         {
             slot.firstSentTick = firstTick;
-            stallCheckTick.reset();
+            // An input that sent nothing is measured from the senders' first sample, which this one may move earlier
+            if (stallCheckTick.has_value())
+            {
+                const auto from = checkedSub(*firstTick, mainDelta);
+                const auto due = from.has_value() ? checkedAdd(*from, syncLimitTicks) : std::nullopt;
+                stallCheckTick = std::min(*stallCheckTick, due.value_or(std::numeric_limits<std::int64_t>::min()));
+            }
         }
         if (const auto span = checkedMul(static_cast<std::int64_t>(count - 1), mainDelta))
             slot.newestTick = checkedAdd(*firstTick, *span);
@@ -926,6 +940,7 @@ bool MultiReaderDataManager::ingestData(SizeT i, const DataPacketPtr& packet)
     // While the reader is invalid or the input is in error, data with no event ahead of it is dropped
     bool keep = slot.queue.eventCount() > 0 || contributes(slot);
     const bool wasShort = isShort(slot);
+    const bool wasWaiting = isWaiting(slot);
     const bool frontWasEmpty = slot.queue.frontCount() == 0;
 
     // A gap ends the run. On an off-grid input it clears the failure, so it is queued even while the data is dropped, and
@@ -958,20 +973,35 @@ bool MultiReaderDataManager::ingestData(SizeT i, const DataPacketPtr& packet)
 
     if (droppedAll)
         recountShort();
-    else if (isShort(slot) != wasShort)
-        shortInputs = wasShort ? shortInputs - 1 : shortInputs + 1;
+    else
+    {
+        if (isShort(slot) != wasShort)
+            shortInputs = wasShort ? shortInputs - 1 : shortInputs + 1;
+        if (isWaiting(slot) != wasWaiting)
+            waitingInputs = wasWaiting ? waitingInputs - 1 : waitingInputs + 1;
+    }
 
     trigger = checkRejoin(i) || trigger;
     if (state == State::Syncing)
     {
         // The common start moves, and the synchronization can finish, only when an input's front run starts: the latest
-        // first tick is the start, and an input whose data lies before it is emptied, so its next packet starts a run. A
-        // pass for every packet would cost a reader of thousands of inputs more than the data. The pass may drop data in
-        // front of any input and leave one that sent nothing empty
+        // first tick is the start, and an input whose data lies before it is emptied, so its next packet starts a run. The
+        // pass over every input runs when the main input starts a run, which every input is judged against, and when no
+        // input is left to wait for, so the start can be found; any other input is judged on its own when its run starts.
+        // A pass for every new input cost a reader of 6,144 inputs more than a second at its start. The pass may drop data
+        // in front of any input and leave one that sent nothing empty
         if (frontWasEmpty && slot.queue.frontCount() > 0)
         {
-            trigger = synchronize() || trigger;
-            recountShort();
+            if (mainSlot == i || waitingInputs == 0)
+            {
+                trigger = synchronize() || trigger;
+                recountShort();
+            }
+            else if (judgeStart(i))
+            {
+                trigger = true;
+                recountShort();
+            }
         }
         // A stall that is due is owed a call, which applies it. Only a contributing input's samples measure a stall
         if (!stallCheckTick.has_value() ||
@@ -1073,18 +1103,13 @@ bool MultiReaderDataManager::synchronize()
         if (!judged(i))
             continue;
         Slot& slot = slots[i];
-        const auto first = slot.queue.frontTick();
-        const auto distance = first.has_value() ? checkedSub(*first, mainFirst) : std::nullopt;
-        if (!distance.has_value() || *distance % mainDelta != 0)
-            failSync(slot, SyncCause::OffGrid);
-        else if (exceeds(*first, mainLatest, syncLimitTicks))
-            failSync(slot, SyncCause::Ahead);
-        else
+        if (const auto cause = startFailure(slot, mainFirst, mainLatest))
         {
-            common = std::max(common, *first);
-            continue;
+            failSync(slot, *cause);
+            reported = true;
         }
-        reported = true;
+        else
+            common = std::max(common, *slot.queue.frontTick());
     }
 
     // Discard in front of the common start (step 5); an input whose data is all behind it is left empty
@@ -1112,6 +1137,37 @@ bool MultiReaderDataManager::synchronize()
         markResynchronized();
     state = State::Streaming;
     readTick = common;
+    return true;
+}
+
+// How an input's front run fails against the main input's, if it does: grid first, as an off-grid first tick cannot be the
+// common start, then more than the sync limit past the main input's newest sample
+std::optional<SyncCause> MultiReaderDataManager::startFailure(const Slot& slot, std::int64_t mainFirst, std::int64_t mainLatest) const
+{
+    const auto first = slot.queue.frontTick();
+    const auto distance = first.has_value() ? checkedSub(*first, mainFirst) : std::nullopt;
+    if (!distance.has_value() || *distance % mainDelta != 0)
+        return SyncCause::OffGrid;
+    if (exceeds(*first, mainLatest, syncLimitTicks))
+        return SyncCause::Ahead;
+    return std::nullopt;
+}
+
+// A non-main input whose front run starts while synchronizing, judged against the main input on its own, as the pass over
+// every input would judge it. Nobody is judged while the main input has nothing in front: its next run judges everyone.
+// Returns whether the input failed
+bool MultiReaderDataManager::judgeStart(SizeT i)
+{
+    if (!mainSlot.has_value() || i == *mainSlot || slots[i].error != MultiReader2InputError::None)
+        return false;
+    const Slot& main = slots[*mainSlot];
+    const auto mainFront = main.queue.frontTick();
+    if (!mainFront.has_value())
+        return false;
+    const auto cause = startFailure(slots[i], *mainFront, main.queue.frontLastTick());
+    if (!cause.has_value())
+        return false;
+    failSync(slots[i], *cause);
     return true;
 }
 

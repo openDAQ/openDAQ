@@ -175,7 +175,7 @@ flowchart TB
 | Operation | Cost |
 | --- | --- |
 | Packet on the sending thread | Task idle and both locks free: one batch ingested on the sender (two try-locks, no scheduler call). Otherwise one atomic store and one compare-exchange, and a scheduler call only when the task was idle |
-| Ingest of a data packet | O(1): queue push, counts, sync and critical limit checks. A pass over the inputs only while synchronizing and only for a packet that starts its input's front run, while an input is stalled or ahead (the rejoin check), or when the critical limit drops everything |
+| Ingest of a data packet | O(1): queue push, counts, sync and critical limit checks. While synchronizing, a packet that starts its input's front run is judged against the main input on its own; a pass over the inputs only when the main input starts a run or no input is left to wait for. Otherwise a pass only while an input is stalled or ahead (the rejoin check), or when the critical limit drops everything |
 | Handler decision | O(1) per ingest: `readable()` reads the counts of healthy and short inputs |
 | Stall check | One pass over the inputs at a read. At ingest while synchronizing, only once a contributing input sends past the planned tick (`stallCheckTick`): the earliest at which an input with nothing queued can fall more than the sync limit behind |
 | Read | One pass over the inputs, plus the events it reaches; copies run outside the mutex |
@@ -299,7 +299,7 @@ classDiagram
         -readTick, mainDelta, mainStart
         -syncLimitTicks, recoveryLimitTicks
         -queuedBytes, dropped : vector~Backlog~
-        -healthyInputs, shortInputs
+        -healthyInputs, shortInputs, waitingInputs
         -afresh, domainChanged, resynchronized, statusOwed
         -shown : Shown
         -steadyStatus
@@ -600,7 +600,7 @@ flowchart TD
     trig --> short["count the input as short or not (healthyInputs, shortInputs)"]
     drop --> rej
     short --> rej["checkRejoin: a stalled or ahead input within 1 s of the others' newest sample queues Rejoined"]
-    rej --> syn["while Syncing: synchronize() if the packet starts its input's front run, the stall check if it sent past stallCheckTick"]
+    rej --> syn["while Syncing, for a packet that starts its input's front run: synchronize() if it is the main input's or no input is left waiting, else judgeStart(i); the stall check if it sent past stallCheckTick"]
     syn --> ret["Ingested {trigger, data: true, dropped}"]
 ```
 
@@ -631,11 +631,16 @@ is several times that: with 10-sample Float64 packets about 1 kB per packet agai
 
 ## 8. Step by step: synchronization
 
-`synchronize()` runs while the state is `Syncing`, after an ingested data packet that starts its input's front run, and
-after a read applies events. Only such a packet can move the common start or finish the synchronization: the start is
-the latest first tick, and an input whose data lies before it is emptied, so its next packet starts a run. Checking
-every packet cost a reader of 1,024 inputs at 1 kHz more than the data, and it never reached the common start.
-Every tick is a main tick from the main input's origin. M is the main input's newest sample.
+`synchronize()`, the pass over every input, runs while the state is `Syncing`: after a read applies events, when the
+main input starts a run (every input is judged against it), and when no healthy input is left waiting for data
+(`waitingInputs` reaches 0), so the common start can be found. Any other input whose front run starts is judged on its
+own against the main input (`judgeStart`, the same grid and ahead rules), so a failure is still found at its first
+packet, in O(1). Only a packet that starts a run can move the common start or finish the synchronization: the start is
+the latest first tick, and an input whose data lies before it is emptied, so its next packet starts a run.
+
+A pass for every packet cost a reader of 1,024 inputs at 1 kHz more than the data, and it never reached the common
+start; a pass for every new input still cost a reader of 6,144 inputs more than a second at its start. Every tick is a
+main tick from the main input's origin. M is the main input's newest sample.
 
 ```mermaid
 flowchart TD
@@ -864,7 +869,7 @@ The fixes to the findings of the external reviews of dev and review:
 | A copy of the convertibility table | dev | The converter's `handleDescriptorChanged` decides |
 | A busy port holds up the other ports and the handler | review, dev | At most 256 batches (16,384 packets) per port per run; the port is marked again and the run repeats. A tighter bound (1,024 packets) cost a quarter of the throughput of a saturating stream |
 | A call is scheduled for every arrival with no handler subscribed, and re-schedules itself while data stays unread | dev | No call without a subscriber; the claim is released |
-| A pass over all inputs for every packet while synchronizing: with 1,024 inputs at 1 kHz the reader never reaches the common start | dev; v3 until the gate | The pass runs only for a packet that starts its input's front run; the stall check is planned ahead (`stallCheckTick`) |
+| A pass over all inputs for every packet while synchronizing: with 1,024 inputs at 1 kHz the reader never reaches the common start | dev; v3 until the gate | A new input is judged on its own in O(1); the pass runs when the main input starts a run or no input is left waiting; the stall check is planned ahead (`stallCheckTick`), and a new sender only moves the plan |
 | The port's connection cached without a reference: a disconnect racing an ingest calls into a destroyed connection (found by the concurrency suite, about 1 run in 10 of one case) | v3 during the port of sender-side ingest | The intake holds a reference; packets sent before the disconnect are still ingested ahead of it |
 | Descriptors read under intake locks lose a reentrant disconnect | review | Not taken: read before the locks, connection compared after |
 | A packet in configure's takeover window waits for the next packet | dev | The interim wiring carries the new scheduler |
@@ -937,37 +942,40 @@ regressions of the external reviews (period overflow, origin offsets, saturated 
 
 ### Performance
 
-Measured on one machine in one session, the three readers interleaved per scenario: dev at cbec3835, review at
-7ed94614 and v3 as described here. `bench_mr2` medians of 5 runs; `bench_mr2_stream` with zero-copy producers. Windows
-granted a 1.9 ms timer for the paced runs, the same for all three.
+Measured on 2026-11-06 on one machine (Core Ultra 7 155H, on AC), the three readers interleaved: dev at cbec3835, v3 as
+described here, review at cb6762e6. The full report, with the method and charts, is `0007-multi-reader-2-performance.md`
+in the knowledge base. A dedicated benchmark (`bench_mr2_overhead`) isolates the reader's own CPU: zero-copy producers,
+and the reader's cost taken as its run minus a consumer that only takes the packets off the connections and copies the
+values out.
 
 | Case | dev | v3 | review |
 | --- | --- | --- | --- |
-| Stream, 64 inputs x 100 samples (MS/s) | 56 | 69 | 29 |
-| Stream, 64 inputs x 1,000 samples (MS/s) | 314 | 542 | 216 |
-| Stream, 16 inputs x 1,000 samples (MS/s) | 502 | 654 | 630 |
-| Read from a backlog, 4 inputs x 1,000, chunk 100 (MS/s) | 321 | 1,022 | 283 |
-| Read from a backlog, 32 inputs x 10, chunk 100 (MS/s) | 25 | 46 | 28 |
-| Ingest, 32 inputs x 1,000 samples (MS/s) | 1,017 | 1,148 | 932 |
-| Polling latency p50 / p99, 16 inputs x 100 (us) | 85 / 468 | 63 / 243 | 371 / 4,756 |
-| Handler latency p50 / p99, 16 inputs x 100 (us) | 61 / 169 | 54 / 155 | 50 / 174 |
-| Fixed load 64 x 50 kS/s, handler: CPU cores; p50 / p99 (us) | 0.26; 123 / 246 | 0.25; 97 / 220 | 0.25; 100 / 220 |
-| Scale at 10 kHz per input: most inputs kept up, handler / poll | 2,048 / 2,048 | 3,072 / 4,096 | 1,024 / 1,024 |
-| Scale at 1,024 inputs, handler: CPU cores; p50 / p99 (ms) | 0.46; 1.7 / 2.8 | 0.42; 1.0 / 1.9 | 0.42; 1.2 / 2.2 |
-| 64 inputs x 1,000 samples at 16k packets/s (1 GS/s), handler | 1 of 2 runs kept up | 2 of 2 | 0 of 2 |
-| First packet incl. synchronization, polling, 16 inputs x 100 (us) | 1,102 | 867 | 134 |
-| Int32 to Float64, 4 inputs x 10,000 samples (MS/s) | 1,549 | 1,602 | 2,146 |
+| The reader's own CPU per packet, polled, 1 to 16 inputs at 1 kHz (µs) | 8 to 95 | 1.5 to 4.5 | 6 to 46 |
+| The same with a handler (µs), mostly the scheduler's wake | 8 to 96 | 6 to 46 | 6 to 48 |
+| The reader's own CPU, 1,024 inputs at 1 kHz (1M packets/s), handler / polled (cores) | did not keep up | 0.21 / 0.38 | 0.41 / 0.59 |
+| Fixed loads, polled: CPU (cores) | 0.03 to 0.27 | 0.01 to 0.21 | 0.02 to 0.23 |
+| Fixed loads, handler: latency p50 (µs) | 62 to 135 | 34 to 98 | 43 to 92 |
+| 1 MHz inputs, 50,000-sample packets, 128 to 1,024 inputs: CPU against main's `MultiReader` | 1.04 to 1.10 | 0.99 to 1.07 | 1.00 to 1.07 |
+| The same: handler latency p99 at 1,024 inputs (main: 82 ms) | 35.8 ms | 32.8 ms | 33.5 ms |
+| Most inputs kept up at 10 kHz each, handler / polled (the largest step measured is 8,192) | 3,072 / 2,048 | 8,192 / 8,192 | 8,192 / 8,192 |
+| Latency p99 at 4,096 / 8,192 inputs, handler (ms) | did not keep up | 5.0 / 315 to 414 | 6.1 / 15.6 |
+| Read from a backlog, 32 inputs x 1,000, chunk 100 (MS/s) | 461 | 1,247 | 302 |
+| Ingest only, 4 inputs x 10 samples / 32 inputs x 1,000 samples (MS/s) | 1.2 / 1,131 | 14.2 / 1,423 | 0.93 / 2,820 |
+| Stream, 64 inputs x 10,000 samples (MS/s) | 560 | 898 | 1,230 |
+| Longest recovery after an overload (s) | over 120 | 17 | 57 |
 
-- **Where v3 leads**: many inputs, reads from a backlog, polling latency, scale and the highest loads. Under the five
-  fixed loads its CPU is at or below dev's, and level with review's except at 4 x 10 MS/s, where review uses less.
-- **Level within noise**: large packets on few inputs, which are bound by memory bandwidth; their repetitions spread by
-  up to 2x for every reader, the unchanged legacy reader included.
-- **Where review leads**: the first packet after construction (v3 is level with the legacy reader there), and Int32 to
-  Float64 conversion of large packets, where review's own loop beats `TypedReader`'s.
-- **Trade-off**: at saturating packet rates with 4 to 16 inputs, v3 calls the handler sooner than dev, for 5 to 8 times
-  lower latency, and uses about as much CPU as review, more than dev.
-- **Shared limit**: with few inputs and 10-sample packets all three ingest about 1 MS/s, because a reader faster than
-  its producer wakes the ingest task once per packet.
+- **Where v3 leads**: CPU when polled (it schedules nothing without a handler subscribed, and ingests on the sending
+  thread); latency p50; reads from a backlog; ingest of small packets; recovery after an overload.
+- **Level with review**: CPU with a handler, where one scheduler wake (80 to 90 µs of CPU) costs more than the
+  reader's own work on a packet; 1 MHz inputs with large packets, where copying the values dominates (v3 1 % lower).
+- **Where review leads**: the latency tail beyond about 6,000 inputs at 10 kHz (v3 keeps up to 8,192 like review,
+  with p99 of 300 ms against review's 16 ms there), many inputs with large packets, ingest of 32 inputs with large
+  packets, the first packet with a handler and Int32 conversion. Taking over review's one-lock ingest pass did not
+  change v3's scale; the tail's cause is open.
+- **Where dev leads**: one producer saturating 1 to 4 inputs with tiny packets, and tiny packets at 100k packets/s per
+  input with a handler, where the sending threads' ingest contends with the handler's reads.
+- **Found by the benchmarks and fixed**: the synchronization pass per packet (1,024 inputs at 1 kHz never reached
+  the common start) and the connection cached without a reference (a disconnect racing an ingest could crash).
 
-The benchmarks (`bench_mr2`, `bench_mr2_stream`) come from the comparison worktrees and are not part of this branch; the
-full tables are in the review document `0007-multi-reader-2-v3.md` in the knowledge base.
+The benchmarks (`bench_mr2`, `bench_mr2_stream`, `bench_mr2_overhead`) live in `tests/mr2_compare/` of the comparison
+worktrees and are not part of this branch.

@@ -233,6 +233,7 @@ private:
     bool readable() const;
     bool isShort(const Slot& slot) const;
     void recountShort();
+    bool isWaiting(const Slot& slot) const;
     std::optional<SizeT> shortRun() const;
     void dropShortRun();
     void take(Slot& slot, SizeT count, void* out, std::vector<Copy>* copies);
@@ -263,6 +264,8 @@ private:
     // Synchronization
     void startSync();
     bool synchronize();
+    std::optional<SyncCause> startFailure(const Slot& slot, std::int64_t mainFirst, std::int64_t mainLatest) const;
+    bool judgeStart(SizeT i);
     static void failSync(Slot& slot, SyncCause cause);
     bool checkRejoin(SizeT slot);
 
@@ -325,6 +328,9 @@ private:
     // synchronization, which pass over the inputs anyway
     SizeT healthyInputs = 0;
     SizeT shortInputs = 0;
+    // While synchronizing: the healthy inputs the common start waits for, with nothing in front but an event other than a
+    // failure marker. At 0 the pass over the inputs can find the start; before that a new input is judged on its own
+    SizeT waitingInputs = 0;
 
     bool callPending = false;       // an onDataAvailable call is scheduled or running
     bool retryCall = false;         // the last call failed: the next arrival calls again for whatever is pending

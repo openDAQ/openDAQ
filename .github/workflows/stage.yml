@@ -19,6 +19,10 @@ on:
         description: "The commit to stage, in full (empty: the commit this workflow is called at)"
         type: string
         default: ""
+      exclude-jobs:
+        description: "Jobs not built, wildcard patterns, e.g. '[\"manylinux*\"]'"
+        type: string
+        default: "[]"
 
 jobs:
   resolve:
@@ -70,6 +74,7 @@ jobs:
           "macos-26-x86_64-ninja-appleclang-21-release",
           "macos-26-armv8-ninja-appleclang-21-release"
         ]
+      exclude-jobs: ${{ inputs.exclude-jobs || '[]' }}
       cmake-presets: >
         [
           {

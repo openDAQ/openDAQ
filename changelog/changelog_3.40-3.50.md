@@ -37,6 +37,7 @@
 - [#1324](https://github.com/openDAQ/openDAQ/pull/1324) `setVisible` returns `OPENDAQ_IGNORED` and fires no `AttributeChanged` when the value is unchanged, as `setActive`, `setName` and `setDescription` already do.
 - [#1350](https://github.com/openDAQ/openDAQ/pull/1350) The client no longer sends requests while applying a server update.
 - [#1366](https://github.com/openDAQ/openDAQ/pull/1366) Components send their locked attributes to native configuration clients, so a client shows the same locked attributes as the device.
+- [#1380](https://github.com/openDAQ/openDAQ/pull/1380) Raise the default native inactivity timeout from 1.5 s to 3 s, so a connection with the default 1 s heartbeat survives 2-3 missed heartbeats instead of 1.
 
 ## Misc
 

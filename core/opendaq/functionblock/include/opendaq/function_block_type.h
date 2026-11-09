@@ -31,19 +31,33 @@ BEGIN_NAMESPACE_OPENDAQ
  */
 
 /*!
+ * @brief Describes how the input ports of a function block are created.
+ */
+enum class FunctionBlockInputPolicy : EnumType
+{
+    Unspecified = 0,  // custom input ports; no standard UI applies
+    Fixed,            // the block has a fixed set of input ports
+    OneAlwaysEmpty,   // one empty port follows the connected ones; connecting it creates the next one
+    SettingsDriven    // the number of input ports follows the block's settings
+};
+
+/*!
  * @brief Provides information about the function block.
  */
 DECLARE_OPENDAQ_INTERFACE(IFunctionBlockType, IComponentType)
 {
     /*!
-     * @brief Gets the alwaysEmptyInput flag value.
-     * @param[out] alwaysEmpty The flag value.
+     * @brief Gets the input policy of the function block type.
+     * @param[out] policy The input policy.
      *
-     * When alwaysEmptyInput flag is true, the function blocks of that type guarantee that they
-     * will always have an empty input port available for further connections. Defaults to false
-     * (i.e. when not set by the FB type provider).
+     * The input policy describes how the function blocks of that type create their input ports:
+     * - `Fixed`: the block has a fixed set of input ports.
+     * - `OneAlwaysEmpty`: the block always keeps exactly one empty input port after the connected
+     *   ones; connecting that port creates the next empty one.
+     * - `SettingsDriven`: the number of input ports depends on the block's settings.
+     * - `Unspecified`: no standard UI applies. This is the default value when not set by the FB provider.
      */
-    virtual ErrCode INTERFACE_FUNC getAlwaysEmptyInput(Bool* alwaysEmpty) = 0;
+    virtual ErrCode INTERFACE_FUNC getInputPolicy(FunctionBlockInputPolicy* policy) = 0;
 
     /*!
      * @brief Gets the singleton flag value.

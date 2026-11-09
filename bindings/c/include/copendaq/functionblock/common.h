@@ -21,6 +21,14 @@ extern "C"
 {
 #endif
 
+    typedef enum daqFunctionBlockInputPolicy
+    {
+        daqFunctionBlockInputPolicyUnspecified = 0,
+        daqFunctionBlockInputPolicyFixed,
+        daqFunctionBlockInputPolicyOneAlwaysEmpty,
+        daqFunctionBlockInputPolicySettingsDriven
+    } daqFunctionBlockInputPolicy;
+
 #ifdef __cplusplus
 }
 #endif

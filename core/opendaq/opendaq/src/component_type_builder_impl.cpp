@@ -125,17 +125,17 @@ ErrCode ComponentTypeBuilderImpl::getDefaultConfig(IPropertyObject** defaultConf
     return OPENDAQ_SUCCESS;
 }
 
-ErrCode ComponentTypeBuilderImpl::setAlwaysEmptyInput(Bool alwaysEmpty)
+ErrCode ComponentTypeBuilderImpl::setInputPolicy(FunctionBlockInputPolicy policy)
 {
-    this->alwaysEmptyInput = alwaysEmpty;
+    this->inputPolicy = policy;
     return OPENDAQ_SUCCESS;
 }
 
-ErrCode ComponentTypeBuilderImpl::getAlwaysEmptyInput(Bool* alwaysEmpty)
+ErrCode ComponentTypeBuilderImpl::getInputPolicy(FunctionBlockInputPolicy* policy)
 {
-    OPENDAQ_PARAM_NOT_NULL(alwaysEmpty);
+    OPENDAQ_PARAM_NOT_NULL(policy);
 
-    *alwaysEmpty = this->alwaysEmptyInput;
+    *policy = this->inputPolicy;
     return OPENDAQ_SUCCESS;
 }
 

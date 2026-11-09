@@ -37,7 +37,7 @@ public:
                                    const StringPtr& name,
                                    const StringPtr& description,
                                    const PropertyObjectPtr& defaultConfig,
-                                   Bool alwaysEmpty,
+                                   FunctionBlockInputPolicy inputPolicy,
                                    Bool singleton,
                                    const StringPtr& commonSettingsType);
 
@@ -50,12 +50,12 @@ public:
     static ConstCharPtr SerializeId();
     static ErrCode Deserialize(ISerializedObject* serialized, IBaseObject* context, IFunction* factoryCallback, IBaseObject** obj);
 
-    ErrCode INTERFACE_FUNC getAlwaysEmptyInput(Bool* alwaysEmpty) override;
+    ErrCode INTERFACE_FUNC getInputPolicy(FunctionBlockInputPolicy* policy) override;
     ErrCode INTERFACE_FUNC getSingleton(Bool* singleton) override;
     ErrCode INTERFACE_FUNC getCommonSettingsTypeId(IString** typeId) override;
 
 private:
-    Bool alwaysEmptyInput = False;
+    FunctionBlockInputPolicy inputPolicy = FunctionBlockInputPolicy::Unspecified;
     Bool isSingleton = False;
     StringPtr commonSettingsTypeId = nullptr;
 };
@@ -65,7 +65,7 @@ inline FunctionBlockTypeImpl::FunctionBlockTypeImpl(const StringPtr& id,
                                                     const StringPtr& name,
                                                     const StringPtr& description,
                                                     const PropertyObjectPtr& defaultConfig)
-    : FunctionBlockTypeImpl(id, name, description, defaultConfig, False, False, nullptr)
+    : FunctionBlockTypeImpl(id, name, description, defaultConfig, FunctionBlockInputPolicy::Unspecified, False, nullptr)
 {
 }
 
@@ -73,21 +73,21 @@ inline FunctionBlockTypeImpl::FunctionBlockTypeImpl(const StringPtr& id,
                                                     const StringPtr& name,
                                                     const StringPtr& description,
                                                     const PropertyObjectPtr& defaultConfig,
-                                                    Bool alwaysEmpty,
+                                                    FunctionBlockInputPolicy inputPolicy,
                                                     Bool singleton,
                                                     const StringPtr& commonSettingsType)
     : Super(FunctionBlockTypeStructType(), id, name, description, defaultConfig,
-            Dict<IString, IBaseObject>({{"AlwaysEmptyInput", alwaysEmpty},
+            Dict<IString, IBaseObject>({{"InputPolicy", static_cast<Int>(inputPolicy)},
                                         {"Singleton", singleton},
                                         {"CommonSettingsTypeId", commonSettingsType}}))
-    , alwaysEmptyInput(alwaysEmpty)
+    , inputPolicy(inputPolicy)
     , isSingleton(singleton)
     , commonSettingsTypeId(commonSettingsType)
 {
 }
 
 inline FunctionBlockTypeImpl::FunctionBlockTypeImpl(const ComponentTypeBuilderPtr& builder)
-    : FunctionBlockTypeImpl(builder.getId(), builder.getName(), builder.getDescription(), builder.getDefaultConfig(), builder.getAlwaysEmptyInput(), builder.getSingleton(), builder.getCommonSettingsTypeId())
+    : FunctionBlockTypeImpl(builder.getId(), builder.getName(), builder.getDescription(), builder.getDefaultConfig(), builder.getInputPolicy(), builder.getSingleton(), builder.getCommonSettingsTypeId())
 {
 }
 
@@ -128,10 +128,10 @@ inline ErrCode FunctionBlockTypeImpl::serialize(ISerializer* serializer)
                 moduleInfo.serialize(serializerPtr);
             }
 
-            if (alwaysEmptyInput)
+            if (inputPolicy != FunctionBlockInputPolicy::Unspecified)
             {
-                serializerPtr.key("alwaysEmptyInput");
-                serializerPtr.writeBool(alwaysEmptyInput);
+                serializerPtr.key("inputPolicy");
+                serializerPtr.writeInt(static_cast<Int>(inputPolicy));
             }
 
             if (isSingleton)
@@ -194,10 +194,14 @@ inline ErrCode FunctionBlockTypeImpl::Deserialize(ISerializedObject* serialized,
         if (serializedObj.hasKey("defaultConfig"))
             defaultConfig = serializedObj.readObject("defaultConfig", contextPtr, factoryCallbackPtr);
 
-        Bool alwaysEmpty = False;
-        if (serializedObj.hasKey("alwaysEmptyInput"))
+        // A policy this SDK version does not know falls back to Unspecified
+        FunctionBlockInputPolicy inputPolicy = FunctionBlockInputPolicy::Unspecified;
+        if (serializedObj.hasKey("inputPolicy"))
         {
-            alwaysEmpty = serializedObj.readBool("alwaysEmptyInput");
+            const Int policy = serializedObj.readInt("inputPolicy");
+            if (policy >= static_cast<Int>(FunctionBlockInputPolicy::Unspecified) &&
+                policy <= static_cast<Int>(FunctionBlockInputPolicy::SettingsDriven))
+                inputPolicy = static_cast<FunctionBlockInputPolicy>(policy);
         }
 
         Bool isSingleton = False;
@@ -213,7 +217,7 @@ inline ErrCode FunctionBlockTypeImpl::Deserialize(ISerializedObject* serialized,
         }
 
         auto functionBlockType =
-            createWithImplementation<IFunctionBlockType, FunctionBlockTypeImpl>(id, name, description, defaultConfig, alwaysEmpty, isSingleton, commonSettingsTypeId);
+            createWithImplementation<IFunctionBlockType, FunctionBlockTypeImpl>(id, name, description, defaultConfig, inputPolicy, isSingleton, commonSettingsTypeId);
 
         ModuleInfoPtr moduleInfo;
         if (serializedObj.hasKey("moduleInfo"))
@@ -229,11 +233,11 @@ inline ErrCode FunctionBlockTypeImpl::Deserialize(ISerializedObject* serialized,
     return errCode;
 }
 
-inline ErrCode FunctionBlockTypeImpl::getAlwaysEmptyInput(Bool* alwaysEmpty)
+inline ErrCode FunctionBlockTypeImpl::getInputPolicy(FunctionBlockInputPolicy* policy)
 {
-    OPENDAQ_PARAM_NOT_NULL(alwaysEmpty);
+    OPENDAQ_PARAM_NOT_NULL(policy);
 
-    *alwaysEmpty = this->alwaysEmptyInput;
+    *policy = this->inputPolicy;
     return OPENDAQ_SUCCESS;
 }
 

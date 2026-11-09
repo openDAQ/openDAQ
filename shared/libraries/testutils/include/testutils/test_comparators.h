@@ -58,7 +58,7 @@ public:
             return false;
         if (a.getDescription() != b.getDescription())
             return false;
-        if (a.getAlwaysEmptyInput() != b.getAlwaysEmptyInput())
+        if (a.getInputPolicy() != b.getInputPolicy())
             return false;
         if (a.getSingleton() != b.getSingleton())
             return false;

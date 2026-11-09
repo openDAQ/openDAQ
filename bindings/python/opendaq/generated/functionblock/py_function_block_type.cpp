@@ -33,6 +33,12 @@
 
 PyDaqIntf<daq::IFunctionBlockType, daq::IComponentType> declareIFunctionBlockType(pybind11::module_ m)
 {
+    py::enum_<daq::FunctionBlockInputPolicy>(m, "FunctionBlockInputPolicy")
+        .value("Unspecified", daq::FunctionBlockInputPolicy::Unspecified)
+        .value("Fixed", daq::FunctionBlockInputPolicy::Fixed)
+        .value("OneAlwaysEmpty", daq::FunctionBlockInputPolicy::OneAlwaysEmpty)
+        .value("SettingsDriven", daq::FunctionBlockInputPolicy::SettingsDriven);
+
     return wrapInterface<daq::IFunctionBlockType, daq::IComponentType>(m, "IFunctionBlockType");
 }
 
@@ -45,14 +51,14 @@ void defineIFunctionBlockType(pybind11::module_ m, PyDaqIntf<daq::IFunctionBlock
     }, py::arg("id"), py::arg("name"), py::arg("description"), py::arg("default_config"));
 
 
-    cls.def_property_readonly("always_empty_input",
+    cls.def_property_readonly("input_policy",
         [](daq::IFunctionBlockType *object)
         {
             py::gil_scoped_release release;
             const auto objectPtr = daq::FunctionBlockTypePtr::Borrow(object);
-            return objectPtr.getAlwaysEmptyInput();
+            return objectPtr.getInputPolicy();
         },
-        "Gets the alwaysEmptyInput flag value.");
+        "Gets the input policy of the function block type.");
     cls.def_property_readonly("singleton",
         [](daq::IFunctionBlockType *object)
         {

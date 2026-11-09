@@ -51,10 +51,10 @@ inline FunctionBlockTypePtr FunctionBlockType(const StringPtr& id,
 inline StructTypePtr FunctionBlockTypeStructType()
 {
     return StructType("FunctionBlockType",
-                      List<IString>("Id", "Name", "Description", "AlwaysEmptyInput", "Singleton", "CommonSettingsTypeId"),
-                      List<IBaseObject>("", "", "", False, False, nullptr),
+                      List<IString>("Id", "Name", "Description", "InputPolicy", "Singleton", "CommonSettingsTypeId"),
+                      List<IBaseObject>("", "", "", static_cast<Int>(FunctionBlockInputPolicy::Unspecified), False, nullptr),
                       List<IType>(SimpleType(ctString), SimpleType(ctString), SimpleType(ctString),
-                                  SimpleType(ctBool), SimpleType(ctBool), SimpleType(ctString)));
+                                  SimpleType(ctInt), SimpleType(ctBool), SimpleType(ctString)));
 }
 
 /*!@}*/

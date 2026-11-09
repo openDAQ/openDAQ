@@ -17,6 +17,7 @@
 #pragma once
 #include <coreobjects/property_object.h>
 #include <opendaq/component_type.h>
+#include <opendaq/function_block_type.h>
 #include <coretypes/stringobject.h>
 
 BEGIN_NAMESPACE_OPENDAQ
@@ -167,24 +168,24 @@ DECLARE_OPENDAQ_INTERFACE(IComponentTypeBuilder, IBaseObject)
 
     // [returnSelf]
     /*!
-     * @brief Sets the alwaysEmptyInput flag. The provided value is only used in building
-     * a function block type. Is False by default.
-     * @param alwaysEmpty The flag value.
+     * @brief Sets the input policy. The provided value is only used in building
+     * a function block type. Is `Unspecified` by default.
+     * @param policy The input policy.
      *
-     * alwaysEmptyInput flag means that function block will always create an empty input
-     * port for additional input connections.
+     * The input policy describes how the function blocks of the type create their input
+     * ports. See FunctionBlockInputPolicy for the meaning of each value.
      */
-    virtual ErrCode INTERFACE_FUNC setAlwaysEmptyInput(Bool alwaysEmpty) = 0;
+    virtual ErrCode INTERFACE_FUNC setInputPolicy(FunctionBlockInputPolicy policy) = 0;
 
     /*!
-     * @brief Gets the alwaysEmptyInput flag for function block type. The provided value
-     * is only used in building a function block type. Is False by default.
-     * @param[out] alwaysEmpty The flag value.
+     * @brief Gets the input policy. The provided value is only used in building
+     * a function block type. Is `Unspecified` by default.
+     * @param[out] policy The input policy.
      *
-     * alwaysEmptyInput flag means that function block will always create an empty input
-     * port for additional input connections.
+     * The input policy describes how the function blocks of the type create their input
+     * ports. See FunctionBlockInputPolicy for the meaning of each value.
      */
-    virtual ErrCode INTERFACE_FUNC getAlwaysEmptyInput(Bool* alwaysEmpty) = 0;
+    virtual ErrCode INTERFACE_FUNC getInputPolicy(FunctionBlockInputPolicy* policy) = 0;
 
     // [returnSelf]
     /*!

@@ -87,14 +87,14 @@ daqErrCode daqComponentTypeBuilder_getDefaultConfig(daqComponentTypeBuilder* sel
     return reinterpret_cast<daq::IComponentTypeBuilder*>(self)->getDefaultConfig(reinterpret_cast<daq::IPropertyObject**>(defaultConfig));
 }
 
-daqErrCode daqComponentTypeBuilder_setAlwaysEmptyInput(daqComponentTypeBuilder* self, daqBool alwaysEmpty)
+daqErrCode daqComponentTypeBuilder_setInputPolicy(daqComponentTypeBuilder* self, daqFunctionBlockInputPolicy policy)
 {
-    return reinterpret_cast<daq::IComponentTypeBuilder*>(self)->setAlwaysEmptyInput(alwaysEmpty);
+    return reinterpret_cast<daq::IComponentTypeBuilder*>(self)->setInputPolicy(static_cast<daq::FunctionBlockInputPolicy>(policy));
 }
 
-daqErrCode daqComponentTypeBuilder_getAlwaysEmptyInput(daqComponentTypeBuilder* self, daqBool* alwaysEmpty)
+daqErrCode daqComponentTypeBuilder_getInputPolicy(daqComponentTypeBuilder* self, daqFunctionBlockInputPolicy* policy)
 {
-    return reinterpret_cast<daq::IComponentTypeBuilder*>(self)->getAlwaysEmptyInput(alwaysEmpty);
+    return reinterpret_cast<daq::IComponentTypeBuilder*>(self)->getInputPolicy(reinterpret_cast<daq::FunctionBlockInputPolicy*>(policy));
 }
 
 daqErrCode daqComponentTypeBuilder_setSingleton(daqComponentTypeBuilder* self, daqBool singleton)

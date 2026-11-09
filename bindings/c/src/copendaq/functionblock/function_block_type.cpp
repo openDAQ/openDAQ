@@ -22,9 +22,9 @@ void daqFunctionBlockType_getInterfaceId(daqIntfID* intfId)
     *intfId = DAQ_FUNCTION_BLOCK_TYPE_INTF_ID;
 }
 
-daqErrCode daqFunctionBlockType_getAlwaysEmptyInput(daqFunctionBlockType* self, daqBool* alwaysEmpty)
+daqErrCode daqFunctionBlockType_getInputPolicy(daqFunctionBlockType* self, daqFunctionBlockInputPolicy* policy)
 {
-    return reinterpret_cast<daq::IFunctionBlockType*>(self)->getAlwaysEmptyInput(alwaysEmpty);
+    return reinterpret_cast<daq::IFunctionBlockType*>(self)->getInputPolicy(reinterpret_cast<daq::FunctionBlockInputPolicy*>(policy));
 }
 
 daqErrCode daqFunctionBlockType_getSingleton(daqFunctionBlockType* self, daqBool* singleton)

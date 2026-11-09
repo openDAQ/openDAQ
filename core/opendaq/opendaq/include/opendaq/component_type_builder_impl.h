@@ -47,8 +47,8 @@ public:
     ErrCode INTERFACE_FUNC setDefaultConfig(IPropertyObject* defaultConfig) override;
     ErrCode INTERFACE_FUNC getDefaultConfig(IPropertyObject** defaultConfig) override;
 
-    ErrCode INTERFACE_FUNC setAlwaysEmptyInput(Bool alwaysEmpty) override;
-    ErrCode INTERFACE_FUNC getAlwaysEmptyInput(Bool* alwaysEmpty) override;
+    ErrCode INTERFACE_FUNC setInputPolicy(FunctionBlockInputPolicy policy) override;
+    ErrCode INTERFACE_FUNC getInputPolicy(FunctionBlockInputPolicy* policy) override;
 
     ErrCode INTERFACE_FUNC setSingleton(Bool singleton) override;
     ErrCode INTERFACE_FUNC getSingleton(Bool* singleton) override;
@@ -64,7 +64,7 @@ private:
     StringPtr description;
     PropertyObjectPtr defaultConfig;
     ModuleInfoPtr moduleInfo;
-    Bool alwaysEmptyInput = False;
+    FunctionBlockInputPolicy inputPolicy = FunctionBlockInputPolicy::Unspecified;
     Bool isSingleton = False;
     StringPtr commonSettingsTypeId = nullptr;
 };

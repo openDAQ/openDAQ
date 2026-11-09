@@ -56,7 +56,7 @@ TEST_F(OpenDaqFactoriesTest, FBTypeBuilder)
                                .setId("Id")
                                .setName("Name")
                                .setDescription("Desc")
-                               .setAlwaysEmptyInput(True)
+                               .setInputPolicy(FunctionBlockInputPolicy::OneAlwaysEmpty)
                                .setSingleton(True)
                                .setCommonSettingsTypeId("SettingsId")
                                .setDefaultConfig(defConfig)
@@ -65,7 +65,7 @@ TEST_F(OpenDaqFactoriesTest, FBTypeBuilder)
     ASSERT_EQ(type.getId(), "Id");
     ASSERT_EQ(type.getName(), "Name");
     ASSERT_EQ(type.getDescription(), "Desc");
-    ASSERT_TRUE(type.getAlwaysEmptyInput());
+    ASSERT_EQ(type.getInputPolicy(), FunctionBlockInputPolicy::OneAlwaysEmpty);
     ASSERT_TRUE(type.getSingleton());
     ASSERT_EQ(type.getCommonSettingsTypeId(), "SettingsId");
     ASSERT_EQ(type.createDefaultConfig().getPropertyValue("foo"), "bar");
@@ -79,7 +79,7 @@ TEST_F(OpenDaqFactoriesTest, FBTypeBuilderDefaults)
                                .setDescription("Desc")
                                .build();
 
-    ASSERT_FALSE(type.getAlwaysEmptyInput());
+    ASSERT_EQ(type.getInputPolicy(), FunctionBlockInputPolicy::Unspecified);
     ASSERT_FALSE(type.getSingleton());
     ASSERT_FALSE(type.getCommonSettingsTypeId().assigned());
 }

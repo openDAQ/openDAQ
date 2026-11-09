@@ -757,10 +757,10 @@ TEST_F(PowerReaderTestStatus, StatisticsStatusDomainWithoutOrigin)
     fb.getInputPorts()[0].connect(signal);
     fb.getInputPorts()[1].connect(signal);
 
-    // A domain without an origin cannot be aligned in v1 (relative domains are Future design), so both inputs fail
+    // Inputs whose domains have no origin are read together on a shared relative time
     context.getScheduler().waitAll();
-    ASSERT_EQ(fb.getStatusContainer().getStatus("ComponentStatus"), Enumeration("ComponentStatusType", "Error", context.getTypeManager()));
-    ASSERT_EQ(fb.getStatusContainer().getStatusMessage("ComponentStatus"), "Voltage: domain descriptor invalid; Current: domain descriptor invalid");
+    ASSERT_EQ(fb.getStatusContainer().getStatus("ComponentStatus"), Enumeration("ComponentStatusType", "Ok", context.getTypeManager()));
+    ASSERT_EQ(fb.getStatusContainer().getStatusMessage("ComponentStatus"), "");
 }
 
 TEST_F(PowerReaderTestStatus, StatisticsStatusException1)

@@ -306,8 +306,7 @@ ErrCode MultiReader2Impl::configureInternal(IMultiReader2Params* params, IMultiR
                 leaving.push_back(slot);
         }
 
-        // Every intake, so that no callback reaches the data manager with an old slot index. The wiring lists the new
-        // ports before they are taken over: a packet after the takeover marks its port and waits for the intake
+        // Every intake, so that no callback reaches the data manager with an old slot index
         std::vector<std::unique_lock<std::mutex>> intakeLocks;
         intakeLocks.reserve(newSlots.size() + leaving.size());
         for (const auto& slot : newSlots)
@@ -315,13 +314,9 @@ ErrCode MultiReader2Impl::configureInternal(IMultiReader2Params* params, IMultiR
         for (const auto& slot : leaving)
             intakeLocks.emplace_back(slot.intake->mutex);
 
-        std::vector<Slot> interim(slots);
-        for (SizeT i = 0; i < count; ++i)
-        {
-            if (!retained[i])
-                interim.push_back(newSlots[i]);
-        }
-        publishWiring(interim, scheduler, config.loggerComponent);
+        // The new ports and the new scheduler before the takeover: a packet after it marks its port, and the ingest run it
+        // schedules waits for the intake. Each port's listener holds its own intake, so the leaving ports need no entry
+        publishWiring(newSlots, scheduler, config.loggerComponent);
 
         // A new input starts from its port's connection after the takeover; a retained one keeps what the data manager
         // saw. A port connected elsewhere since its descriptors were read starts without them, and its connect is applied
@@ -359,16 +354,14 @@ ErrCode MultiReader2Impl::configureInternal(IMultiReader2Params* params, IMultiR
             throw;
         }
 
-        // Schedules no onDataAvailable
+        // Schedules no onDataAvailable. The wiring published before the takeover already lists these intakes
         slots = std::move(newSlots);
-        const LoggerComponentPtr loggerComponent = config.loggerComponent;
         const ErrCode reconfigured = core->dataManager.reconfigure(std::move(config), status);
 
         for (SizeT i = 0; i < slots.size(); ++i)
             slots[i].intake->slot = i;
         for (const auto& slot : leaving)
             slot.intake->slot.reset();
-        publishWiring(slots, scheduler, loggerComponent);
         intakeLocks.clear();
 
         for (auto& slot : leaving)

@@ -78,7 +78,7 @@ and the critical limit).
 | Tick arithmetic | Checked Int64 inside the engine, partly unchecked | 128-bit `Relation`, one unchecked multiply | **Deviates**: checked Int64 in a pure unit (`TickDomain`, `TickMap`), every limit saturates |
 | Queue | `std::deque` inside the engine; front count kept, `countFront` after events | `Queue` unit with incremental counts, `std::deque` | **Like review** (a unit with incremental counts), **deviates** in storage: a ring buffer, because MSVC's `std::deque` allocates a block per entry |
 | Events in the queue | One entry per event | Consecutive events folded into one | **Like dev** |
-| Port intake | Per-port intake lock, descriptors read before the lock, connection compared after the takeover | Descriptors read under the intake lock (loses a reentrant disconnect) | **Like dev**, plus a fix: the scheduler is known before the interim wiring is published |
+| Port intake | Per-port intake lock, descriptors read before the lock, connection compared after the takeover | Descriptors read under the intake lock (loses a reentrant disconnect) | **Like dev**, plus a fix: the wiring, with the new scheduler, is published once, before the takeover |
 | Notifications | `SameThread` ports, one ingest task (since cbec3835) | The same, and since cb6762e6 the sending thread ingests a batch itself when the task is idle and the locks are free | **Like review**: sender-side ingest under try-locks, one batch on the sender, the rest to the task; 256 batches (16,384 packets) per port per task run |
 | Handler call | A task of its own, decided per packet batch; scheduled even with no handler subscribed | Called from the ingest task, level-triggered, only with a handler subscribed | **Like dev** (a task of its own, edge-triggered), **like review** (none without a subscriber), **deviates**: decided in O(1) from counts of healthy and short inputs kept at ingest |
 | Status | Flags set in several places (`noteChanges`, `statusOwed`) | Captured state compared with the last reported one | **Like review**: `capture()` compared with what the previous status showed |
@@ -556,7 +556,7 @@ sequenceDiagram
     F->>F: checkInputs: every context has a scheduler, no new port is held by another reader
     F->>F: makeSlot for new inputs, readPortState (signal descriptors, no intake lock)
     F->>I: lock the intakes of new and leaving ports
-    F->>F: publish the interim wiring (old and new ports, the new scheduler)
+    F->>F: publish the wiring (the new ports, the new scheduler)
     F->>F: takeOver (listener, then SameThread), then compare the connection with the one read
     F->>E: reconfigure(config)
     E->>E: keep retained slots, clear queues, in force = latest
@@ -564,7 +564,7 @@ sequenceDiagram
     E->>E: judgeInputs(false): choose the main input afresh
     E->>E: restart: limits, tick maps, Syncing or Invalid
     E-->>F: first status (every descriptor changed)
-    F->>I: set slot indices, publish the final wiring, unlock
+    F->>I: set slot indices, unlock
     F->>F: release leaving ports, then apply connects that raced the takeover
     F-->>U: status
 ```
@@ -804,6 +804,11 @@ stateDiagram-v2
     Pending --> Idle : callAborted (could not be scheduled)
 ```
 
+A read in a call that returns nothing new, while leaving something the next read would deliver, counts as an arrival
+during the call. It happens when the events a read applies finish a synchronization after its count was taken, as
+after a non-main input's domain change: the handler stops at that read, and without the rule nothing would call it
+again for those samples.
+
 A handler that throws is logged and kept, and the next arrival calls it again for whatever is pending (`retryCall`).
 With no handler subscribed, a claimed call is released at once instead of scheduled, so a reader read from a loop
 costs no scheduler work for calls.
@@ -872,7 +877,7 @@ The fixes to the findings of the external reviews of dev and review:
 | A pass over all inputs for every packet while synchronizing: with 1,024 inputs at 1 kHz the reader never reaches the common start | dev; v3 until the gate | A new input is judged on its own in O(1); the pass runs when the main input starts a run or no input is left waiting; the stall check is planned ahead (`stallCheckTick`), and a new sender only moves the plan |
 | The port's connection cached without a reference: a disconnect racing an ingest calls into a destroyed connection (found by the concurrency suite, about 1 run in 10 of one case) | v3 during the port of sender-side ingest | The intake holds a reference; packets sent before the disconnect are still ingested ahead of it |
 | Descriptors read under intake locks lose a reentrant disconnect | review | Not taken: read before the locks, connection compared after |
-| A packet in configure's takeover window waits for the next packet | dev | The interim wiring carries the new scheduler |
+| A packet in configure's takeover window waits for the next packet | dev | The wiring, published before the takeover, carries the new scheduler |
 | Descriptor comparisons walk the whole descriptor | dev | Identity first, value only for different objects |
 
 Unchanged on purpose, as the spec requires: `acceptsDescriptor` runs under the engine mutex (calls into the reader from

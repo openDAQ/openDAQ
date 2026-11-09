@@ -531,7 +531,15 @@ void MultiReaderDataManager::performRead(
 
     applyEvents();
     recountShort();
-    *status = buildStatus().detach();
+    MultiReader2StatusPtr built = buildStatus();
+
+    // A handler drains until a read returns nothing new. Such a read can itself leave something for the next one: the
+    // events it applied can finish a synchronization, as after a non-main input's domain change, and make samples
+    // readable after its count was taken. Nothing arrives to call the handler again, so the read counts as an arrival
+    // during the call
+    if (n == 0 && callPending && !arrivedDuringCall && !built.getHasChanges() && triggerHolds())
+        arrivedDuringCall = true;
+    *status = built.detach();
 }
 
 // The samples every healthy input has in front of its first event; 0 while synchronizing or below MinReadCount. While

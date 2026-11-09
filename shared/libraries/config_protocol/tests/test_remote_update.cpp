@@ -7,6 +7,9 @@
 #include <coreobjects/property_object_internal_ptr.h>
 #include <opendaq/mock/mock_fb_module.h>
 #include <opendaq/data_descriptor_factory.h>
+#include <opendaq/device_domain_factory.h>
+#include <opendaq/core_opendaq_event_args_factory.h>
+#include <coreobjects/unit_factory.h>
 #include <opendaq/mock/advanced_components_setup_utils.h>
 #include <config_protocol/config_protocol_server.h>
 #include <config_protocol/config_protocol_client.h>
@@ -350,13 +353,15 @@ TEST_F(ConfigRemoteUpdateTest, GetInfoAndDomainDuringRemoteUpdate)
         }
     });
 
+    while (reads == 0)
+        std::this_thread::yield();
+
     for (int i = 0; i < 500; ++i)
         clientDevice.asPtr<IConfigClientObject>()->handleRemoteCoreEvent(clientDevice, args);
 
     stop = true;
     reader.join();
 
-    ASSERT_GT(reads, 0);
     ASSERT_NE(clientDevice.getInfo().getObject(), infoBefore.getObject());
 }
 
@@ -379,11 +384,45 @@ TEST_F(ConfigRemoteUpdateTest, GetAttributesDuringRemoteUpdate)
     });
 
     const auto serialized = serializeHelper(serverDevice);
+    while (reads == 0)
+        std::this_thread::yield();
+
     for (int i = 0; i < 500; ++i)
         updateHelper(serverDevice, serialized);
 
     stop = true;
     reader.join();
+}
 
-    ASSERT_GT(reads, 0);
+TEST_F(ConfigRemoteUpdateTest, GetDomainDuringDeviceDomainChanged)
+{
+    // The root test device has no domain until the first event
+    clientDevice.asPtr<IConfigClientObject>()->handleRemoteCoreEvent(
+        clientDevice, CoreEventArgsDeviceDomainChanged(DeviceDomain(Ratio(1, 1000), "", Unit("s"))));
+
+    std::atomic<bool> stop{false};
+    std::atomic<int> reads{0};
+    std::thread reader([&]
+    {
+        while (!stop)
+        {
+            EXPECT_TRUE(clientDevice.getDomain().assigned());
+            ++reads;
+        }
+    });
+
+    while (reads == 0)
+        std::this_thread::yield();
+
+    // A new domain object per event, so every event releases the previous one
+    for (int i = 0; i < 500; ++i)
+    {
+        const auto args = CoreEventArgsDeviceDomainChanged(DeviceDomain(Ratio(1, 1000 + i), "", Unit("s")));
+        clientDevice.asPtr<IConfigClientObject>()->handleRemoteCoreEvent(clientDevice, args);
+    }
+
+    stop = true;
+    reader.join();
+
+    ASSERT_EQ(clientDevice.getDomain().getTickResolution(), Ratio(1, 1499));
 }

@@ -27,7 +27,7 @@ SOURCE_COLOR = '#1a73e8'
 HEADINGS = {'#0': 'Name', 'source': 'Source', 'role': 'Role', 'status': 'Status'}
 SORT_KEYS = {
     '#0': lambda record: record.device.name.lower(),
-    'source': lambda record: record.source.id,
+    'source': lambda record: record.source_name,
     'role': lambda record: role_status(record.source),
     'status': lambda record: record.status,
 }
@@ -46,13 +46,18 @@ def role_status(interface):
     return status_name(interface, ROLE_STATUS)
 
 
+def source_name(interface):
+    return f'{interface.sync_type.upper()} ({interface.id})'
+
+
 class SyncRecord:
     def __init__(self, device: daq.IDevice):
         self.device = device
         self.synchronization = device.synchronization
         self.source = self.synchronization.source
+        self.source_name = source_name(self.source)
         self.interfaces = dict(self.synchronization.interfaces.items())
-        self.sources = list(self.synchronization.available_sources.keys())
+        self.sources = {source_name(interface): id for id, interface in self.synchronization.available_sources.items()}
         self.domain = self.source.reference_domain_id or ''
         self.status = source_status(self.source)
 
@@ -392,7 +397,7 @@ class SyncView(ttk.Frame):
     def device_row_insert(self, group, record):
         iid = f'{group}|{record.device.global_id}'
         self.tree.insert(group, tk.END, iid=iid, text=record.device.name,
-                         values=(record.source.id, role_status(record.source), record.status))
+                         values=(record.source_name, role_status(record.source), record.status))
         self.rows[iid] = record
         self.dot_colors[iid] = STATUS_COLORS.get(record.status, 'gray')
         if len(record.sources) > 1:
@@ -425,7 +430,7 @@ class SyncView(ttk.Frame):
     def combo_selected(self, combo):
         self.combo_release(combo)
         record = self.rows[combo.iid]
-        self.change(record, lambda name: setattr(record.synchronization, 'source', name), combo.get())
+        self.change(record, lambda name: setattr(record.synchronization, 'source', name), record.sources[combo.get()])
 
     def visible_rows(self, parent='', tree=None):
         tree = tree or self.tree
@@ -460,8 +465,8 @@ class SyncView(ttk.Frame):
         for combo, (iid, (x, y, width, height)) in zip(self.combos, cells):
             record = self.rows[iid]
             combo.iid = iid
-            combo.configure(values=record.sources)
-            combo.set(record.source.id)
+            combo.configure(values=list(record.sources))
+            combo.set(record.source_name)
             combo.place(x=x, y=y + inset, width=width, height=height - 2 * inset)
 
     def dots_sync(self):

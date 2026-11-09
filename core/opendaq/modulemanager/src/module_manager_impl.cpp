@@ -965,8 +965,12 @@ ErrCode ModuleManagerImpl::createDeviceInternal(IDevice** device, IString* conne
         DeviceInfoPtr discoveredDeviceInfo;
         if (useSmartConnection)
         {
+            DictPtr<IString, IDeviceType> deviceTypes;
+            OPENDAQ_RETURN_IF_FAILED(getAvailableDeviceTypes(&deviceTypes));
+
             discoveredDeviceInfo = getSmartConnectionDeviceInfo(connectionStringPtr);
-            connectionStringPtr = resolveSmartConnectionString(connectionStringPtr, discoveredDeviceInfo, generalConfig, loggerComponent);
+            connectionStringPtr = resolveSmartConnectionString(
+                connectionStringPtr, discoveredDeviceInfo, deviceTypes, parent != nullptr, generalConfig, loggerComponent);
         }
 
         for (const auto& library : libraries)
@@ -1624,13 +1628,7 @@ DeviceTypePtr ModuleManagerImpl::chooseDeviceType(const DeviceInfoPtr& info,
         return findAddableDeviceType(prefix);
     }
 
-    const auto isAddable = [&deviceTypes](const ServerCapabilityPtr& capability)
-    {
-        const auto deviceType = FindTypeByPrefix<DeviceTypePtr>(deviceTypes, capability.getPrefix());
-        return deviceType.assigned() && IsKindAllowed(deviceType.getDeviceKind(), true);
-    };
-
-    const auto selected = SelectServerCapability(capabilities, isAddable);
+    const auto selected = SelectServerCapability(capabilities, deviceTypes, true);
     if (selected.assigned())
         return FindTypeByPrefix<DeviceTypePtr>(deviceTypes, selected.getPrefix());
 
@@ -1644,42 +1642,26 @@ DeviceTypePtr ModuleManagerImpl::chooseDeviceType(const DeviceInfoPtr& info,
     DAQ_THROW_EXCEPTION(NotFoundException, "No loaded device type for any server capability of the device");
 }
 
-uint16_t ModuleManagerImpl::GetServerCapabilityPriority(const ServerCapabilityPtr& cap)
-{
-    const std::string nativeId = "OpenDAQNativeConfiguration";
-    if (cap.getProtocolId() == nativeId)
-        return 42;
-
-    switch (cap.getProtocolType())
-    {
-        case ProtocolType::Unknown:
-            return 0;
-        case ProtocolType::Streaming:
-            return 1;
-        case ProtocolType::Configuration:
-            return 2;
-        case ProtocolType::ConfigurationAndStreaming:
-            return 3;
-    }
-
-    return 0;
-}
-
 ServerCapabilityPtr ModuleManagerImpl::SelectServerCapability(const ListPtr<IServerCapability>& capabilities,
-                                                              const std::function<bool(const ServerCapabilityPtr&)>& accepts)
+                                                              const DictPtr<IString, IDeviceType>& deviceTypes,
+                                                              bool asChild)
 {
     ServerCapabilityPtr selected;
-    uint16_t selectedPriority = 0;
+    bool selectedMirrored = false;
     for (const auto& capability : capabilities)
     {
-        if (!accepts(capability))
+        const auto deviceType = FindTypeByPrefix<DeviceTypePtr>(deviceTypes, capability.getPrefix());
+        if (!deviceType.assigned() || !IsKindAllowed(deviceType.getDeviceKind(), asChild))
             continue;
 
-        const auto priority = GetServerCapabilityPriority(capability);
-        if (!selected.assigned() || priority > selectedPriority)
+        if (capability.getProtocolId() == "OpenDAQNativeConfiguration")
+            return capability;
+
+        const bool mirrored = (deviceType.getDeviceKind() == DeviceKind::Mirrored);
+        if (!selected.assigned() || (mirrored && !selectedMirrored))
         {
             selected = capability;
-            selectedPriority = priority;
+            selectedMirrored = mirrored;
         }
     }
 
@@ -1768,6 +1750,8 @@ StringPtr ModuleManagerImpl::getConnectionStringWithType(const ServerCapabilityP
 
 StringPtr ModuleManagerImpl::resolveSmartConnectionString(const StringPtr& inputConnectionString,
                                                           const DeviceInfoPtr& discoveredDeviceInfo,
+                                                          const DictPtr<IString, IDeviceType>& deviceTypes,
+                                                          bool asChild,
                                                           const PropertyObjectPtr& generalConfig,
                                                           const LoggerComponentPtr& loggerComponent) const
 {
@@ -1775,7 +1759,13 @@ StringPtr ModuleManagerImpl::resolveSmartConnectionString(const StringPtr& input
     if (capabilities.getCount() == 0)
         DAQ_THROW_EXCEPTION(NotFoundException, "Device with connection string \"{}\" has no available server capabilities", inputConnectionString);
 
-    const auto selectedCapability = SelectServerCapability(capabilities, [](const ServerCapabilityPtr&) { return true; });
+    const auto selectedCapability = SelectServerCapability(capabilities, deviceTypes, asChild);
+    if (!selectedCapability.assigned())
+    {
+        DAQ_THROW_EXCEPTION(NotFoundException,
+                            "Device with connection string \"{}\" has no server capability with a loaded device type",
+                            inputConnectionString);
+    }
 
     const StringPtr primaryAddressType = generalConfig.getPropertyValue("PrimaryAddressType");
 

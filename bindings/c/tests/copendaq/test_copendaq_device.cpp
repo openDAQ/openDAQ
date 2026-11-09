@@ -197,7 +197,8 @@ TEST_F(COpendaqDeviceTest, AddDeviceConfig)
     static_assert(daqStreamingModeMinHops == static_cast<int>(daq::StreamingMode::MinHops));
     static_assert(daqStreamingModeMinConnections == static_cast<int>(daq::StreamingMode::MinConnections));
 
-    const auto deviceType = daq::DeviceType("deviceType", "", "", "dev", daq::PropertyObject());
+    const auto deviceType =
+        daq::DeviceTypeBuilder().setId("deviceType").setConnectionStringPrefix("dev").setDeviceKind(daq::DeviceKind::Mirrored).build();
     const auto streamingType = daq::StreamingType("streamingType", "", "", "stream", daq::PropertyObject());
     const auto streamingTypes = daq::Dict<daq::IString, daq::IStreamingType>({{"streamingType", streamingType}});
 

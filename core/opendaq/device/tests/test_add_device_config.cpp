@@ -133,7 +133,7 @@ TEST_F(AddDeviceConfigTest, StreamingDefaults)
     ASSERT_EQ(configs.get("a").getTypeConfig().getPropertyValue("Id"), "a");
 }
 
-TEST_F(AddDeviceConfigTest, UnspecifiedAndUnknownKindsHaveStreamingOptions)
+TEST_F(AddDeviceConfigTest, UnspecifiedAndUnknownKindsHaveNoStreamingOptions)
 {
     const DeviceTypePtr unknownType = deserialize(R"({"__type":"DeviceType","id":"dev","name":"dev","prefix":"dev","deviceKind":99})");
     ASSERT_EQ(static_cast<Int>(unknownType.getDeviceKind()), 99);
@@ -142,7 +142,7 @@ TEST_F(AddDeviceConfigTest, UnspecifiedAndUnknownKindsHaveStreamingOptions)
     for (const auto& deviceType : {createDeviceType(DeviceKind::Unspecified), unknownType})
     {
         const auto config = AddDeviceConfig(deviceType, streamingTypes, true);
-        ASSERT_EQ(config.getStreamingOptions().getStreamingConfigs().getKeyList(), List<IString>("a"));
+        ASSERT_FALSE(config.getStreamingOptions().assigned());
     }
 }
 
@@ -443,9 +443,7 @@ TEST_F(AddDeviceConfigTest, BindDeviceKindChange)
 
     ASSERT_FALSE(bindSaved(mirroredSave, types(DeviceKind::Adapter), nullptr).getStreamingOptions().assigned());
     ASSERT_FALSE(bindSaved(mirroredSave, types(DeviceKind::Root), nullptr).getStreamingOptions().assigned());
-    ASSERT_TRUE(bindSaved(mirroredSave, types(DeviceKind::Unspecified), nullptr).getStreamingOptions().assigned());
     ASSERT_THROW(bindSaved(adapterSave, types(DeviceKind::Mirrored), nullptr), InvalidValueException);
-    ASSERT_THROW(bindSaved(adapterSave, types(DeviceKind::Unspecified), nullptr), InvalidValueException);
 }
 
 TEST_F(AddDeviceConfigTest, BindMalformedSaveForm)

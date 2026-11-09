@@ -306,8 +306,14 @@ public:
 
     ~AsyncRpcHelper()
     {
+        stop();
+    }
+
+    void stop()
+    {
         running = false;
-        workerThread.join();
+        if (workerThread.joinable())
+            workerThread.join();
     }
 
     void sendNoReplyReqToServer(const PacketBuffer& packetBuffer)
@@ -378,7 +384,7 @@ private:
     }
 
     std::thread workerThread;
-    bool running;
+    std::atomic<bool> running;
     ConfigServerPtr& serverPtr;
     std::queue<std::pair<PacketBufferPtr, OptionalReplyPromise>> packetsQueue;
     std::mutex sync;
@@ -460,6 +466,10 @@ public:
 
     void TearDown() override
     {
+        // A worker can still be relaying a server notification into a client; stop both before the clients are destroyed
+        helper1.stop();
+        helper2.stop();
+
         chIpServer.getOnComponentCoreEvent() -= event(this, &ClientToDeviceStreamingTest::onServerPortConnected);
         chIpClient1.getOnComponentCoreEvent() -= event(this, &ClientToDeviceStreamingTest::onClient1PortConnected);
         chIpClient2.getOnComponentCoreEvent() -= event(this, &ClientToDeviceStreamingTest::onClient2PortConnected);

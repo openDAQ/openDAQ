@@ -3181,11 +3181,15 @@ static bool finishesWhileLocked(const PropertyObjectInternalPtr& propObjInternal
     });
     locked.get_future().wait();
 
-    auto result = std::async(std::launch::async, op);
+    // A joined thread frees its state before the memcheck listener runs; MSVC std::async frees it later on a pool thread
+    std::packaged_task<void()> task(op);
+    auto result = task.get_future();
+    std::thread worker(std::move(task));
     const bool finished = result.wait_for(wait) == std::future_status::ready;
 
     release.set_value();
     holder.join();
+    worker.join();
     result.get();
     return finished;
 }

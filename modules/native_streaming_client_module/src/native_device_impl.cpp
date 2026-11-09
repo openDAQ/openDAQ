@@ -212,13 +212,14 @@ void NativeDeviceHelper::setupProtocolClients(const ContextPtr& context)
             downgradePacketStreamingCallback
         );
 
+    // A running client call can outlive this helper, so the callbacks hold what they use instead of reading it through this
     ProcessConfigProtocolPacketCb receiveConfigPacketCb =
-        [this](PacketBuffer&& packetBuffer)
+        [ioContext = processingIOContextPtr, deviceHelperWeak = weak_from_this()](PacketBuffer&& packetBuffer)
     {
         auto packetBufferPtr = std::make_shared<PacketBuffer>(std::move(packetBuffer));
         boost::asio::dispatch(
-            *processingIOContextPtr,
-            [packetBufferPtr, deviceHelperWeak = weak_from_this()]()
+            *ioContext,
+            [packetBufferPtr, deviceHelperWeak]()
             {
                 if (auto deviceHelperSelf = deviceHelperWeak.lock())
                 {
@@ -232,11 +233,12 @@ void NativeDeviceHelper::setupProtocolClients(const ContextPtr& context)
     };
 
     OnConnectionStatusChangedCallback transportConnectionStatusChangedCb =
-        [this](const EnumerationPtr& status, const StringPtr& statusMessage)
+        [ioContext = reconnectionProcessingIOContextPtr, deviceHelperWeak = weak_from_this()](const EnumerationPtr& status,
+                                                                                              const StringPtr& statusMessage)
     {
         boost::asio::dispatch(
-            *reconnectionProcessingIOContextPtr,
-            [status, statusMessage, deviceHelperWeak = weak_from_this()]()
+            *ioContext,
+            [status, statusMessage, deviceHelperWeak]()
             {
                 if (auto deviceHelperSelf = deviceHelperWeak.lock())
                 {

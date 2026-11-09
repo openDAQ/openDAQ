@@ -14,84 +14,17 @@
  * limitations under the License.
  */
 #pragma once
-#include <boost/asio.hpp>
-#include <atomic>
+#include <opendaq/address_info.h>
 #include <chrono>
-#include <condition_variable>
-#include <mutex>
-#include <unordered_set>
-#include <opendaq/logger_ptr.h>
-#include <opendaq/logger_component_ptr.h>
+#include <map>
+#include <string>
+#include <vector>
 
 BEGIN_NAMESPACE_OPENDAQ
 
-class IcmpPing final : public std::enable_shared_from_this<IcmpPing>
-{
-public:
-    using TimeoutDuration = std::chrono::steady_clock::duration;
-
-    static std::shared_ptr<IcmpPing> Create(boost::asio::io_context& ioContext, const daq::LoggerPtr& logger, int maxHops = -1);
-
-    IcmpPing(const IcmpPing&) = delete;
-    IcmpPing(IcmpPing&& ping) noexcept = delete;
-
-    ~IcmpPing() = default;
-
-    void start(const boost::asio::ip::address_v4& remote,
-               const boost::asio::ip::address_v4& network = boost::asio::ip::address_v4::any());
-
-    void start(const std::vector<boost::asio::ip::address_v4>& remotes,
-               const boost::asio::ip::address_v4& network = boost::asio::ip::address_v4::any());
-
-    void stop();
-    void setMaxHops(uint32_t hops);
-
-    void waitSendAndReply();
-
-    std::size_t getNumReplies() const noexcept;
-    std::unordered_set<std::string> getReplyAddresses() const;
-
-    void clearReplies();
-
-    IcmpPing& operator=(IcmpPing&& other) noexcept = delete;
-    IcmpPing& operator=(const IcmpPing& other) = delete;
-
-private:
-    explicit IcmpPing(boost::asio::io_context& ioContext, const daq::LoggerPtr& logger, int maxHops = -1);
-
-    void startSend(const std::vector<boost::asio::ip::address_v4>& remotes);
-
-    void startReceive();
-    void handleReceive(std::size_t length);
-
-    static uint16_t GetIdentifier();
-
-    daq::LoggerComponentPtr loggerComponent;
-
-    std::atomic<bool> stopReceive;
-    int32_t maxHops;
-
-    std::size_t numRemotes;
-    std::atomic<std::size_t> numSent;
-    std::mutex mutexRequests;
-    std::condition_variable allRequestsSent;
-    mutable std::mutex mutexReplies;
-    std::condition_variable allRepliesReceived;
-
-    uint16_t identifier;
-    boost::asio::executor_work_guard<boost::asio::io_context::executor_type> work;
-    boost::asio::ip::icmp::socket socket;
-
-    boost::asio::ip::multicast::hops multicastHopsDefault;
-    boost::asio::ip::unicast::hops unicastHopsDefault;
-
-    std::chrono::steady_clock::time_point timeStart;
-    std::chrono::steady_clock::time_point timeSent;
-    boost::asio::streambuf replyBuffer{};
-    uint16_t sequenceNumber;
-
-    std::atomic<std::size_t> numReplies;
-    std::unordered_set<std::string> responseAddresses;
-};
+// Pings each address once: Reachable on a reply, Unreachable on none or no route, Unknown if ICMP is not permitted or unparsable.
+std::map<std::string, AddressReachabilityStatus> icmpPing(const std::vector<std::string>& addresses,
+                                                          int hopLimit,
+                                                          std::chrono::milliseconds timeout);
 
 END_NAMESPACE_OPENDAQ

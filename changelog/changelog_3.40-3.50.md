@@ -11,6 +11,7 @@
 - [#1278](https://github.com/openDAQ/openDAQ/pull/1278) Building the TLS channel of the LT streaming modules is controlled by the new CMake option `OPENDAQ_ENABLE_WEBSOCKET_STREAMING_WITH_TLS`, off by default and on in the `full`, `package` and `simulator_package` presets. With it off the LT streaming modules are built without their OpenSSL dependency and the `daq.lts://` channel is absent. The option has no meaning for the legacy LT streaming modules (`DAQMODULES_LT_LEGACY_MODULES`) and is ignored there.
 - [#1311](https://github.com/openDAQ/openDAQ/pull/1311) Add the `ScanOnAdd` option to skip the network scan on `addDevice`; tests wait for state instead of sleeping; declare `RESOURCE_LOCK` for parallel ctest; write a minidump on access violations.
 - [#1360](https://github.com/openDAQ/openDAQ/pull/1360) Add `FunctionModuleAuthenticator`, a module authenticator that forwards `authenticateModuleBinary` to a function, so a custom authenticator can be written in any binding. The function returns a dictionary with the mandatory `BinaryValid` and `VendorKey` keys. Available in C, Python and .NET.
+- [#1372](https://github.com/openDAQ/openDAQ/pull/1372) Ping discovered IPv6 addresses as well as IPv4 ones, without root or administrator rights where the operating system allows it.
 
 ## Python
 
@@ -40,6 +41,7 @@
 
 ## Misc
 
+- [#1376](https://github.com/openDAQ/openDAQ/pull/1376) Fix the package build on macOS runners with OpenSSL 4, and when Apache's mirrors fail to serve Thrift
 - [#1339](https://github.com/openDAQ/openDAQ/pull/1339) Publish the core stagings tagged by the run that published them, with the revision on every package.
 - [#1343](https://github.com/openDAQ/openDAQ/pull/1343) Test the oldest and newest supported compilers on the newest GitHub runners (Visual Studio 2026, Ubuntu 26.04, macOS 27).
 - [#1323](https://github.com/openDAQ/openDAQ/pull/1323) Fix classifier FB flaky tests
@@ -50,6 +52,7 @@
 - [#1265](https://github.com/openDAQ/openDAQ/pull/1265) Publish the SDK staging weekly. Add ARM Linux and manylinux CI runners and pin the compilers.
 - [#1318](https://github.com/openDAQ/openDAQ/pull/1318) Runs the discovery-free device module tests as four gtest shards on separate ports so ctest can run them in parallel.
 - [#1342](https://github.com/openDAQ/openDAQ/pull/1342) Skip the macOS CI tests only on macOS instead of on every clang build.
+- [#1368](https://github.com/openDAQ/openDAQ/pull/1368) The native streaming server's read loop no longer looks up every subscribed signal by global ID on each polling cycle, lowering its CPU load with many subscribed signals.
 
 ## Required application changes
 

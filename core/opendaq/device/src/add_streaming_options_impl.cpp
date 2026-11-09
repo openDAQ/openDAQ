@@ -33,10 +33,12 @@ bool isListable(const StringPtr& typeId)
     return !id.empty() && id != StreamingType && id != StreamingMode && id.find_first_of(".'") == std::string::npos;
 }
 
-ListPtr<IString> streamingModeNames()
+DictPtr<Int, IString> streamingModeNames()
 {
-    return List<IString>(
-        toString(daq::StreamingMode::Disabled), toString(daq::StreamingMode::MinHops), toString(daq::StreamingMode::MinConnections));
+    auto names = Dict<Int, IString>();
+    for (const auto mode : {daq::StreamingMode::Disabled, daq::StreamingMode::MinHops, daq::StreamingMode::MinConnections})
+        names.set(static_cast<Int>(mode), toString(mode));
+    return names;
 }
 }
 
@@ -51,7 +53,7 @@ AddStreamingOptionsImpl::AddStreamingOptionsImpl(const DictPtr<IString, IAddStre
     }
 
     Super::addProperty(StringPropertyBuilder(add_streaming_options::StreamingType, "").setSelectionValues(selectionValues).build());
-    Super::addProperty(SelectionProperty(
+    Super::addProperty(SparseSelectionProperty(
         add_streaming_options::StreamingMode, add_streaming_options::streamingModeNames(), static_cast<Int>(StreamingMode::MinHops)));
 
     for (const auto& typeId : offeredTypeIds())

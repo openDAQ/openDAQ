@@ -33,9 +33,12 @@ StringPtr toString(AddressType type)
     DAQ_THROW_EXCEPTION(InvalidParameterException, "Unknown address type {}", static_cast<Int>(type));
 }
 
-ListPtr<IString> addressTypeNames()
+DictPtr<Int, IString> addressTypeNames()
 {
-    return List<IString>(toString(AddressType::IPv4), toString(AddressType::IPv6));
+    auto names = Dict<Int, IString>();
+    for (const auto type : {AddressType::IPv4, AddressType::IPv6})
+        names.set(static_cast<Int>(type), toString(type));
+    return names;
 }
 }
 
@@ -46,7 +49,7 @@ AddDeviceConfigImpl::AddDeviceConfigImpl(const DeviceTypePtr& deviceType,
 {
     Super::addProperty(StringPropertyBuilder(add_device_config::DeviceType, deviceType.getId()).setReadOnly(true).build());
     Super::addProperty(ObjectProperty(add_device_config::TypeConfig, deviceType.createDefaultConfig()));
-    Super::addProperty(SelectionProperty(
+    Super::addProperty(SparseSelectionProperty(
         add_device_config::PrimaryAddressType, add_device_config::addressTypeNames(), static_cast<Int>(AddressType::IPv4)));
     Super::addProperty(BoolProperty(add_device_config::ScanOnAdd, scanOnAdd));
 

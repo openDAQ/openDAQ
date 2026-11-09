@@ -182,9 +182,12 @@ TEST_F(AddDeviceConfigTest, EnumSelectionValues)
 {
     const auto config = createMirroredConfig();
     const auto options = config.getStreamingOptions();
-    ASSERT_EQ(config.asPtr<IPropertyObject>().getProperty("PrimaryAddressType").getSelectionValues(), List<IString>("IPv4", "IPv6"));
-    ASSERT_EQ(options.asPtr<IPropertyObject>().getProperty("StreamingMode").getSelectionValues(),
-              List<IString>("Disabled", "MinHops", "MinConnections"));
+    const DictPtr<Int, IString> addressTypes = config.asPtr<IPropertyObject>().getProperty("PrimaryAddressType").getSelectionValues();
+    ASSERT_EQ(addressTypes.getKeyList(), List<Int>(0, 1));
+    ASSERT_EQ(addressTypes.getValueList(), List<IString>("IPv4", "IPv6"));
+    const DictPtr<Int, IString> modes = options.asPtr<IPropertyObject>().getProperty("StreamingMode").getSelectionValues();
+    ASSERT_EQ(modes.getKeyList(), List<Int>(0, 1, 2));
+    ASSERT_EQ(modes.getValueList(), List<IString>("Disabled", "MinHops", "MinConnections"));
 
     for (const auto type : {AddressType::IPv4, AddressType::IPv6})
     {

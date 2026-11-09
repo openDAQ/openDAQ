@@ -1581,7 +1581,7 @@ ErrCode ModuleManagerImpl::createAddDeviceConfig(IAddDeviceConfig** config, IDev
                     LOG_W(R"(Streaming type "{}" is not offered for device type "{}": its ID can't be listed)", id, deviceType.getId());
                 }
 
-            const auto defaultType = selectStreamingType(offeredTypes, deviceType, capabilities.getCount() > 0);
+            const auto defaultType = selectStreamingType(offeredTypes, deviceType, true);
             if (defaultType.assigned())
                 options.setStreamingType(defaultType.getId());
         }

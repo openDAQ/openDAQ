@@ -227,6 +227,7 @@ DECLARE_OPENDAQ_INTERFACE(IModuleManagerUtils, IBaseObject)
      * The native configuration capability is preferred, then the first one with a Mirrored Device type, then the first one.
      * An info without server capabilities uses the prefix of its connection string.
      * The listed Streaming types are the loaded ones the info advertises, or all loaded ones for an info without server capabilities.
+     * The listed Streaming type linked to the Device type is selected, else the first listed one.
      */
     virtual ErrCode INTERFACE_FUNC createAddDeviceConfig(IAddDeviceConfig** config, IDeviceInfo* info, IString* prefix = nullptr) = 0;
 };

@@ -998,7 +998,7 @@ TEST_F(ModuleManagerAddConfigTest, ConnectionStringOnly)
 
     const auto unlinked = create(deviceInfo("unlinked://"));
     ASSERT_EQ(listed(unlinked), (Strs{"mockstr", "free"}));
-    ASSERT_EQ(selected(unlinked), "");
+    ASSERT_EQ(selected(unlinked), "mockstr");
 
     AddDeviceConfigPtr config;
     ASSERT_EQ(create(deviceInfo("mockdev://"), "extdev", config), OPENDAQ_ERR_INVALIDPARAMETER);

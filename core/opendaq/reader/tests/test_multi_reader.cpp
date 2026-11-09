@@ -2650,10 +2650,7 @@ TEST_F(MultiReaderTest, ReferenceDomainIdEquality01)
     return;
 #endif
 
-    auto received = privateSink.waitForMessage(9001);
-    ASSERT_TRUE(received);
-    auto str = privateSink.getLastMessage();
-    ASSERT_EQ(str, R"(Domain signal "time" Reference Domain Info is not assigned.)");
+    ASSERT_TRUE(waitForLastMessage(R"(Domain signal "time" Reference Domain Info is not assigned.)"));
 }
 
 TEST_F(MultiReaderTest, ReferenceDomainIdEquality02)
@@ -2804,10 +2801,7 @@ TEST_F(MultiReaderTest, ReferenceDomainIdEqualityReferenceTimeProtocolEquality01
     return;
 #endif
 
-    auto received = privateSink.waitForMessage(9001);
-    ASSERT_TRUE(received);
-    auto str = privateSink.getLastMessage();
-    ASSERT_EQ(str, R"(Domain signal "time" Reference Domain ID not assigned.)");
+    ASSERT_TRUE(waitForLastMessage(R"(Domain signal "time" Reference Domain ID not assigned.)"));
 }
 
 TEST_F(MultiReaderTest, ReferenceDomainIdEqualityReferenceTimeProtocolEquality02)
@@ -2834,10 +2828,7 @@ TEST_F(MultiReaderTest, ReferenceDomainIdEqualityReferenceTimeProtocolEquality02
     return;
 #endif
 
-    auto received = privateSink.waitForMessage(9001);
-    ASSERT_TRUE(received);
-    auto str = privateSink.getLastMessage();
-    ASSERT_EQ(str, R"(Domain signal "time" Reference Time Source is Unknown.)");
+    ASSERT_TRUE(waitForLastMessage(R"(Domain signal "time" Reference Time Source is Unknown.)"));
 }
 
 TEST_F(MultiReaderTest, ReferenceDomainIdEqualityReferenceTimeProtocolEquality03)

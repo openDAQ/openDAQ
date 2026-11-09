@@ -14,6 +14,7 @@
 #include <opendaq/discovery_server_factory.h>
 #include <opendaq/exceptions.h>
 #include <opendaq/module_impl.h>
+#include <opendaq/module_manager_utils_ptr.h>
 #include <ref_device_module/module_dll.h>
 #include <ref_fb_module/module_dll.h>
 #include <testutils/testutils.h>
@@ -1203,8 +1204,8 @@ TEST_F(NativeDeviceModulesTest, CheckDeviceInfoPopulatedWithProvider)
 TEST_F(NativeDeviceModulesTest, TestDiscoveryReachability)
 {
     bool checkIPv6 = !test_helpers::Ipv6IsDisabled();
-    // ICMP ping (and thus active IPv4 reachability detection) requires root on Linux/macOS.
-    const auto expectedIpv4Reachability =
+    // Discovery pings IPv4 and IPv6 addresses whenever this process may send ICMP.
+    const auto expectedReachability =
         test_helpers::icmpPingAvailable() ? AddressReachabilityStatus::Reachable : AddressReachabilityStatus::Unknown;
     auto path = "/test/native_configurator/discovery_reachability/";
 
@@ -1241,12 +1242,12 @@ TEST_F(NativeDeviceModulesTest, TestDiscoveryReachability)
                 if (addressInfo.getType() == "IPv4")
                 {
                     hasIPv4 = true;
-                    ASSERT_EQ(addressInfo.getReachabilityStatus(), expectedIpv4Reachability);
+                    ASSERT_EQ(addressInfo.getReachabilityStatus(), expectedReachability);
                 }
                 else if (addressInfo.getType() == "IPv6")
                 {
                     hasIPv6 = true;
-                    ASSERT_EQ(addressInfo.getReachabilityStatus(), AddressReachabilityStatus::Unknown);
+                    ASSERT_EQ(addressInfo.getReachabilityStatus(), expectedReachability);
                 }
 
                 if (hasIPv4 && (hasIPv6 || !checkIPv6))
@@ -1433,7 +1434,7 @@ TEST_F(NativeDeviceModulesTest, TestDiscoveryReachabilityAfterConnect)
         {
             ASSERT_EQ(addressInfo.getConnectionString(), capability.getConnectionStrings()[index]);
             ASSERT_EQ(addressInfo.getAddress(), capability.getAddresses()[index]);
-            // The address used to connect is Reachable; other IPv4 ones depend on the ICMP ping, which needs root
+            // The address used to connect is Reachable; IPv6 ones carry the discovery ping result
             if (addressInfo.getConnectionString() == capability.getConnectionString())
             {
                 ASSERT_EQ(addressInfo.getReachabilityStatus(), AddressReachabilityStatus::Reachable);
@@ -1441,7 +1442,7 @@ TEST_F(NativeDeviceModulesTest, TestDiscoveryReachabilityAfterConnect)
             }
             else if (addressInfo.getType() == "IPv6")
             {
-                ASSERT_EQ(addressInfo.getReachabilityStatus(), AddressReachabilityStatus::Unknown);
+                ASSERT_EQ(addressInfo.getReachabilityStatus(), test_helpers::icmpPingAvailable() ? AddressReachabilityStatus::Reachable : AddressReachabilityStatus::Unknown);
                 cnt++;
             }
 
@@ -1747,19 +1748,19 @@ TEST_F(NativeDeviceModulesTest, SubscribeReadUnsubscribe)
 
     std::promise<StringPtr> signalSubscribePromise;
     std::future<StringPtr> signalSubscribeFuture;
-    test_helpers::setupSubscribeAckHandler(signalSubscribePromise, signalSubscribeFuture, signal);
+    const auto signalSubscribeAck = test_helpers::setupSubscribeAckHandler(signalSubscribePromise, signalSubscribeFuture, signal);
 
     std::promise<StringPtr> domainSubscribePromise;
     std::future<StringPtr> domainSubscribeFuture;
-    test_helpers::setupSubscribeAckHandler(domainSubscribePromise, domainSubscribeFuture, domainSignal);
+    const auto domainSubscribeAck = test_helpers::setupSubscribeAckHandler(domainSubscribePromise, domainSubscribeFuture, domainSignal);
 
     std::promise<StringPtr> signalUnsubscribePromise;
     std::future<StringPtr> signalUnsubscribeFuture;
-    test_helpers::setupUnsubscribeAckHandler(signalUnsubscribePromise, signalUnsubscribeFuture, signal);
+    const auto signalUnsubscribeAck = test_helpers::setupUnsubscribeAckHandler(signalUnsubscribePromise, signalUnsubscribeFuture, signal);
 
     std::promise<StringPtr> domainUnsubscribePromise;
     std::future<StringPtr> domainUnsubscribeFuture;
-    test_helpers::setupUnsubscribeAckHandler(domainUnsubscribePromise, domainUnsubscribeFuture, domainSignal);
+    const auto domainUnsubscribeAck = test_helpers::setupUnsubscribeAckHandler(domainUnsubscribePromise, domainUnsubscribeFuture, domainSignal);
 
     using namespace std::chrono_literals;
     StreamReaderPtr reader = daq::StreamReader<double, uint64_t>(signal, ReadTimeoutType::Any);
@@ -2424,6 +2425,31 @@ TEST_F(NativeDeviceModulesTest, Reconnection)
     ASSERT_TRUE(info.hasProperty("NativeConfigProtocolVersion"));
 }
 
+TEST_F(NativeDeviceModulesTest, ReconnectionKeepsConnectionStringBeforeDeviceIsAdded)
+{
+    SKIP_TEST_MAC_CI;
+    auto server = CreateServerInstance();
+    auto client = test_helpers::createInstance("[[none]]");
+    addNativeClientModule(client);
+
+    // Never added to the client's tree, so the device's core events stay muted, as they do while it is being added
+    const DevicePtr device = client.getContext().getModuleManager().asPtr<IModuleManagerUtils>(true).createDevice(
+        "daq.nd://127.0.0.1", client.getRootDevice());
+    const auto connectionStatus = [&device] { return device.getStatusContainer().getStatus("ConnectionStatus"); };
+
+    server.release();
+    ASSERT_TRUE(test_helpers::waitFor([&] { return connectionStatus() == "Reconnecting"; }));
+
+    server = CreateServerInstance();
+    ASSERT_TRUE(test_helpers::waitFor([&] { return connectionStatus() == "Connected"; }, std::chrono::seconds(10)));
+
+    const auto info = device.getInfo();
+    ASSERT_EQ(info.getConnectionString(), "daq.nd://127.0.0.1");
+    ASSERT_TRUE(info.hasProperty("NativeConfigProtocolVersion"));
+
+    device.remove();
+}
+
 TEST_F(NativeDeviceModulesTest, ReconnectionRestoreClientConfig)
 {
     SKIP_TEST_MAC_CI;
@@ -3083,7 +3109,7 @@ TEST_F(NativeDeviceModulesTest, MultiClientReadChangingSignal)
 
     std::promise<StringPtr> client1SignalSubscribePromise;
     std::future<StringPtr> client1SignalSubscribeFuture;
-    test_helpers::setupSubscribeAckHandler(client1SignalSubscribePromise, client1SignalSubscribeFuture, client1Signal);
+    const auto client1SignalSubscribeAck = test_helpers::setupSubscribeAckHandler(client1SignalSubscribePromise, client1SignalSubscribeFuture, client1Signal);
 
     StreamReaderPtr client1Reader = daq::StreamReader<double, uint64_t>(client1Signal, ReadTimeoutType::Any);
     ASSERT_TRUE(test_helpers::waitForAcknowledgement(client1SignalSubscribeFuture));
@@ -3098,7 +3124,7 @@ TEST_F(NativeDeviceModulesTest, MultiClientReadChangingSignal)
 
     std::promise<StringPtr> client2SignalSubscribePromise;
     std::future<StringPtr> client2SignalSubscribeFuture;
-    test_helpers::setupSubscribeAckHandler(client2SignalSubscribePromise, client2SignalSubscribeFuture, client2Signal);
+    const auto client2SignalSubscribeAck = test_helpers::setupSubscribeAckHandler(client2SignalSubscribePromise, client2SignalSubscribeFuture, client2Signal);
 
     StreamReaderPtr client2Reader = daq::StreamReader<double, uint64_t>(client2Signal, ReadTimeoutType::Any);
     ASSERT_TRUE(test_helpers::waitForAcknowledgement(client2SignalSubscribeFuture));

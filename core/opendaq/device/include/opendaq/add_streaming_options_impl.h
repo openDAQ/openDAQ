@@ -52,6 +52,13 @@ public:
 
     static ConstCharPtr SerializeId();
     static ErrCode Deserialize(ISerializedObject* serialized, IBaseObject* context, IFunction* factoryCallback, IBaseObject** obj);
+    static StringPtr SavedStreamingType(const SerializedObjectPtr& saved);
+
+protected:
+    ErrCode serializePropertyValue(const StringPtr& name,
+                                   const ObjectPtr<IBaseObject>& value,
+                                   ISerializer* serializer,
+                                   bool forUpdate) override;
 
 private:
     ListPtr<IString> offeredTypeIds();

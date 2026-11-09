@@ -46,7 +46,8 @@ DECLARE_OPENDAQ_INTERFACE(IAddDeviceConfigPrivate, IBaseObject)
      *
      * The bound config is created from the default configs of the given types, with the values of this config applied.
      * Unset values take the current defaults of the given types.
-     * Streaming types that are not among the given types are not listed, and a selection of one of them is cleared.
+     * A Mirrored Device type lists only the selected Streaming type.
+     * A selection of a Streaming type that is not among the given types is cleared, and no Streaming type is listed.
      */
     virtual ErrCode INTERFACE_FUNC bind(IDict* deviceTypes, IDict* streamingTypes, IAddDeviceConfig** bound) = 0;
 };

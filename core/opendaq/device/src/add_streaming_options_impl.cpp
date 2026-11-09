@@ -157,9 +157,7 @@ ErrCode AddStreamingOptionsImpl::updateInternal(ISerializedObject* obj, IBaseObj
         const auto saved = SerializedObjectPtr::Borrow(obj);
         const auto values = saved.readSerializedObject(add_streaming_options::PropValuesKey);
 
-        StringPtr selected = "";
-        if (values.hasKey(add_streaming_options::StreamingType))
-            selected = values.readString(add_streaming_options::StreamingType);
+        const auto selected = SavedStreamingType(saved);
         checkErrorInfo(setStreamingType(isOffered(selected) ? selected : StringPtr("")));
 
         if (values.hasKey(add_streaming_options::StreamingMode))
@@ -176,6 +174,22 @@ ErrCode AddStreamingOptionsImpl::updateInternal(ISerializedObject* obj, IBaseObj
             checkErrorInfo(streamingConfig->updateInternal(values.readSerializedObject(typeId), context));
         }
     });
+}
+
+ErrCode AddStreamingOptionsImpl::serializePropertyValue(const StringPtr& name,
+                                                        const ObjectPtr<IBaseObject>& value,
+                                                        ISerializer* serializer,
+                                                        bool forUpdate)
+{
+    if (!forUpdate || !value.supportsInterface<IAddStreamingConfig>())
+        return Super::serializePropertyValue(name, value, serializer, forUpdate);
+
+    StringPtr selected;
+    OPENDAQ_RETURN_IF_FAILED(daqTry([&] { selected = objPtr.getPropertyValue(add_streaming_options::StreamingType); }));
+    if (name != selected)
+        return OPENDAQ_SUCCESS;
+
+    return Super::serializePropertyValue(name, value, serializer, forUpdate);
 }
 
 ErrCode AddStreamingOptionsImpl::getSerializeId(ConstCharPtr* id) const
@@ -208,6 +222,15 @@ ErrCode AddStreamingOptionsImpl::Deserialize(ISerializedObject* serialized,
 
         *obj = Super::DeserializePropertyObject(serialized, context, factoryCallback, createOptions).detach();
     });
+}
+
+StringPtr AddStreamingOptionsImpl::SavedStreamingType(const SerializedObjectPtr& saved)
+{
+    const auto values = saved.readSerializedObject(add_streaming_options::PropValuesKey);
+    if (!values.hasKey(add_streaming_options::StreamingType))
+        return "";
+
+    return values.readString(add_streaming_options::StreamingType);
 }
 
 ListPtr<IString> AddStreamingOptionsImpl::offeredTypeIds()

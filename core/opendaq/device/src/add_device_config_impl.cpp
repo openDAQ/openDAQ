@@ -196,6 +196,7 @@ AddDeviceConfigPtr AddDeviceConfigImpl::Bind(const SerializedObjectPtr& saved,
                                              const DictPtr<IString, IDeviceType>& deviceTypes,
                                              const DictPtr<IString, IStreamingType>& streamingTypes)
 {
+    const auto givenStreamingTypes = streamingTypes.assigned() ? streamingTypes : Dict<IString, IStreamingType>();
     const StringPtr deviceTypeId = saved.readString(add_device_config::DeviceTypeIdKey);
     if (!deviceTypes.assigned() || !deviceTypes.hasKey(deviceTypeId))
         DAQ_THROW_EXCEPTION(NotFoundException, "Device type \"{}\" is not available", deviceTypeId);
@@ -203,25 +204,23 @@ AddDeviceConfigPtr AddDeviceConfigImpl::Bind(const SerializedObjectPtr& saved,
     try
     {
         const auto deviceType = deviceTypes.get(deviceTypeId);
-        auto boundStreamingTypes = Dict<IString, IStreamingType>();
-        if (takesStreamings(deviceType))
+        const auto savedValues = saved.readSerializedObject(add_device_config::PropValuesKey);
+        if (takesStreamings(deviceType) && !savedValues.hasKey(add_device_config::Streaming))
         {
-            const auto savedValues = saved.readSerializedObject(add_device_config::PropValuesKey);
-            if (!savedValues.hasKey(add_device_config::Streaming))
-                DAQ_THROW_EXCEPTION(InvalidValueException, "Streaming options are missing for device type \"{}\"", deviceTypeId);
+            DAQ_THROW_EXCEPTION(InvalidValueException, "Streaming options are missing for device type \"{}\"", deviceTypeId);
+        }
 
-            const auto savedStreaming = savedValues.readSerializedObject(add_device_config::Streaming);
-            const auto savedOptions = savedStreaming.readSerializedObject(add_device_config::PropValuesKey);
-            const auto offeredTypes = streamingTypes.assigned() ? streamingTypes : Dict<IString, IStreamingType>();
-            for (const auto& [typeId, streamingType] : offeredTypes)
-            {
-                if (savedOptions.hasKey(typeId))
-                    boundStreamingTypes.set(typeId, streamingType);
-            }
+        auto selectedStreamingType = Dict<IString, IStreamingType>();
+        if (savedValues.hasKey(add_device_config::Streaming))
+        {
+            const auto savedOptions = savedValues.readSerializedObject(add_device_config::Streaming);
+            const auto typeId = AddStreamingOptionsImpl::SavedStreamingType(savedOptions);
+            if (givenStreamingTypes.hasKey(typeId))
+                selectedStreamingType.set(typeId, givenStreamingTypes.get(typeId));
         }
 
         auto config = createWithImplementation<IAddDeviceConfig, AddDeviceConfigImpl>(
-            deviceType, boundStreamingTypes, saved.readBool(add_device_config::ScanOnAddKey));
+            deviceType, selectedStreamingType, saved.readBool(add_device_config::ScanOnAddKey));
         checkErrorInfo(config.asPtr<IUpdatable>()->updateInternal(saved, nullptr));
         return config;
     }

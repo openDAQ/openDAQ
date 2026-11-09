@@ -567,9 +567,7 @@ void GenericConfigClientDeviceImpl<TDeviceBase>::onRemoteUpdate(const Serialized
     }
 
     if (serialized.hasKey("deviceDomain"))
-    {
         this->setDeviceDomainNoCoreEvent(serialized.readObject("deviceDomain"));
-    }
 
     if (serialized.hasKey("OperationMode"))
     {

@@ -42,6 +42,7 @@
 - [#1366](https://github.com/openDAQ/openDAQ/pull/1366) Components send their locked attributes to native configuration clients, so a client shows the same locked attributes as the device.
 - [#1374](https://github.com/openDAQ/openDAQ/pull/1374) Error messages list the error-info chain from the newest error down to the root cause in every build, capped at 4 KiB, so release builds no longer hide the root cause behind added context.
 - [#1374](https://github.com/openDAQ/openDAQ/pull/1374) An exception message containing `{` or `}` no longer turns into an `fmt::format_error`.
+- [#1367](https://github.com/openDAQ/openDAQ/pull/1367) Fix a crash when a device's info or domain, or a component's name, description or visibility, is read while the config client applies a server update or a domain change.
 
 ## Misc
 
@@ -106,6 +107,10 @@ Nested property objects share their owner's lock, so a handler on a nested objec
 ### [#1366](https://github.com/openDAQ/openDAQ/pull/1366) Lock component attributes during construction
 
 Lock attributes when the component is constructed. After that, unlock an attribute only briefly to apply an internal change, and lock it again right after. Locking or unlocking does not trigger a core event, so locks changed later do not reach connected clients.
+
+### [#1367](https://github.com/openDAQ/openDAQ/pull/1367) Component and device getters take the component's lock
+
+`getName`, `getDescription`, `getVisible`, `IDevice::getInfo` and `IDevice::getDomain` now take the component's recursive lock. Don't call them on the same component while holding `getAcquisitionLock` or `getUniqueLock`: those lock the same mutex without the re-entry check, and the call blocks forever.
 
 ### [#1045](https://github.com/openDAQ/openDAQ/pull/1045) ISynchronization replaces ISyncComponent
 

@@ -2,9 +2,14 @@
 #include <opendaq/context_factory.h>
 #include <coreobjects/property_factory.h>
 #include <gtest/gtest.h>
+#include <atomic>
+#include <thread>
 #include <coreobjects/property_object_internal_ptr.h>
 #include <opendaq/mock/mock_fb_module.h>
 #include <opendaq/data_descriptor_factory.h>
+#include <opendaq/device_domain_factory.h>
+#include <opendaq/core_opendaq_event_args_factory.h>
+#include <coreobjects/unit_factory.h>
 #include <opendaq/mock/advanced_components_setup_utils.h>
 #include <config_protocol/config_protocol_server.h>
 #include <config_protocol/config_protocol_client.h>
@@ -316,4 +321,108 @@ TEST_F(ConfigRemoteUpdateTest, RemoteUpdateWithLegacyDeviceInfo)
     ASSERT_EQ(requestCount, 0u);
     ASSERT_EQ(clientSubDevice.getInfo().getSerialNumber(), "legacy_sn");
     ASSERT_EQ(clientSubDevice.getInfo().getName(), serverSubDevice.getInfo().getName());
+}
+
+// 3.40 servers send the device info as "deviceInfo", which the client replaces as a whole
+TEST_F(ConfigRemoteUpdateTest, GetInfoAndDomainDuringRemoteUpdate)
+{
+    rapidjson::Document doc;
+    doc.Parse(serializeHelper(serverDevice).toStdString().c_str());
+    rapidjson::Value deviceInfo(doc["propValues"]["DaqDeviceInfo"], doc.GetAllocator());
+    doc["propValues"].RemoveMember("DaqDeviceInfo");
+    doc.AddMember("deviceInfo", deviceInfo, doc.GetAllocator());
+    rapidjson::StringBuffer buffer;
+    rapidjson::Writer<rapidjson::StringBuffer> writer(buffer);
+    doc.Accept(writer);
+
+    const auto args = CoreEventArgs(CoreEventId::ComponentUpdateEnd,
+                                    "ComponentUpdateEnd",
+                                    Dict<IString, IBaseObject>({{"SerializedComponent", String(buffer.GetString())}}));
+
+    const auto infoBefore = clientDevice.getInfo();
+
+    std::atomic<bool> stop{false};
+    std::atomic<int> reads{0};
+    std::thread reader([&]
+    {
+        while (!stop)
+        {
+            EXPECT_TRUE(clientDevice.getInfo().assigned());
+            clientDevice.getDomain();
+            ++reads;
+        }
+    });
+
+    while (reads == 0)
+        std::this_thread::yield();
+
+    for (int i = 0; i < 500; ++i)
+        clientDevice.asPtr<IConfigClientObject>()->handleRemoteCoreEvent(clientDevice, args);
+
+    stop = true;
+    reader.join();
+
+    ASSERT_NE(clientDevice.getInfo().getObject(), infoBefore.getObject());
+}
+
+TEST_F(ConfigRemoteUpdateTest, GetAttributesDuringRemoteUpdate)
+{
+    std::atomic<bool> stop{false};
+    std::atomic<int> reads{0};
+    std::thread reader([&]
+    {
+        while (!stop)
+        {
+            const auto name = clientDevice.getName();
+            EXPECT_TRUE(name.assigned());
+            const auto description = clientDevice.getDescription();
+            EXPECT_TRUE(description.assigned());
+            clientDevice.getActive();
+            clientDevice.getVisible();
+            ++reads;
+        }
+    });
+
+    const auto serialized = serializeHelper(serverDevice);
+    while (reads == 0)
+        std::this_thread::yield();
+
+    for (int i = 0; i < 500; ++i)
+        updateHelper(serverDevice, serialized);
+
+    stop = true;
+    reader.join();
+}
+
+TEST_F(ConfigRemoteUpdateTest, GetDomainDuringDeviceDomainChanged)
+{
+    // The root test device has no domain until the first event
+    clientDevice.asPtr<IConfigClientObject>()->handleRemoteCoreEvent(
+        clientDevice, CoreEventArgsDeviceDomainChanged(DeviceDomain(Ratio(1, 1000), "", Unit("s"))));
+
+    std::atomic<bool> stop{false};
+    std::atomic<int> reads{0};
+    std::thread reader([&]
+    {
+        while (!stop)
+        {
+            EXPECT_TRUE(clientDevice.getDomain().assigned());
+            ++reads;
+        }
+    });
+
+    while (reads == 0)
+        std::this_thread::yield();
+
+    // A new domain object per event, so every event releases the previous one
+    for (int i = 0; i < 500; ++i)
+    {
+        const auto args = CoreEventArgsDeviceDomainChanged(DeviceDomain(Ratio(1, 1000 + i), "", Unit("s")));
+        clientDevice.asPtr<IConfigClientObject>()->handleRemoteCoreEvent(clientDevice, args);
+    }
+
+    stop = true;
+    reader.join();
+
+    ASSERT_EQ(clientDevice.getDomain().getTickResolution(), Ratio(1, 1499));
 }

@@ -17,3 +17,8 @@ if (OPENDAQ_ENABLE_NATIVE_STREAMING)
     add_subdirectory(packet_streaming)
     add_subdirectory(config_protocol)
 endif()
+
+# Built when at least one SFTP backend is enabled.
+if (OPENDAQ_ENABLE_SFTP_FILE_TRANSFER_LIBSSH2)
+    add_subdirectory(sftp_file_transfer)
+endif()

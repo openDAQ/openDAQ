@@ -1,0 +1,5 @@
+cmake_minimum_required(VERSION 3.20)
+project(sftp_file_transfer_example VERSION ${OPENDAQ_EXAMPLES_VERSION})
+
+add_executable(sftp_file_transfer_example sftp_file_transfer_example.cpp)
+target_link_libraries(sftp_file_transfer_example PRIVATE daq::sftp_file_transfer_libssh2)

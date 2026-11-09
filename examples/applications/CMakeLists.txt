@@ -138,6 +138,11 @@ if (APP_ENABLE_WEBPAGE_EXAMPLES)
             cmake_path(NORMAL_PATH CREDENTIAL_DEMO_KEYS_DIR)
             target_compile_definitions(credential_providers PRIVATE CREDENTIAL_DEMO_KEYS_DIR="${CREDENTIAL_DEMO_KEYS_DIR}")
         endif()
+
+    if (OPENDAQ_ENABLE_SFTP_FILE_TRANSFER_LIBSSH2)
+        add_executable(sftp_file_transfer_example cpp/sftp_file_transfer/sftp_file_transfer_example.cpp)
+        target_link_libraries(sftp_file_transfer_example PRIVATE daq::sftp_file_transfer_libssh2)
+    endif()
 	
 	if(DAQMODULES_LICENSING_MODULE AND NOT APPLE)
 		set(LICENSING_EXAMPLE_REQUIREMENTS_MET ON)

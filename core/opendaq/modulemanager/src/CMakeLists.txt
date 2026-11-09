@@ -96,6 +96,7 @@ set(SRC_PublicHeaders_Component
     module_manager_errors.h
     module_manager_exceptions.h
     module_manager_factory.h
+    module_manager_init.h
     module_check_dependencies.h
     module_factory.h
     module_exports.h
@@ -113,7 +114,6 @@ set(SRC_PrivateHeaders_Component
     module_library.h
     orphaned_modules.h
     module_manager_impl.h
-    module_manager_init.h
     boost_dll.h
     context_impl.h
     mdns_discovery_server_impl.h

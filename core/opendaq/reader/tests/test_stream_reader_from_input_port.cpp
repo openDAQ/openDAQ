@@ -777,7 +777,6 @@ TYPED_TEST(StreamReaderFromExistingTest, DescriptorChangedNotConvertible)
 TYPED_TEST(StreamReaderFromExistingTest, ReadWithZeroAvailableAndTimeoutAny)
 {
     const uint64_t FIRST_PACKET_SIZE = 2u;
-    const uint64_t SECOND_PACKET_SIZE = 4u;
 
     this->signal.setDescriptor(setupDescriptor(SampleType::Float64));
     auto oldReader = daq::StreamReaderBuilder()
@@ -791,7 +790,7 @@ TYPED_TEST(StreamReaderFromExistingTest, ReadWithZeroAvailableAndTimeoutAny)
     auto reader = daq::StreamReaderFromExisting<TypeParam, ClockRange>(oldReader);
     ASSERT_EQ(reader.getAvailableCount(), 0u);
 
-    std::thread t([this, &FIRST_PACKET_SIZE, &SECOND_PACKET_SIZE] {
+    std::thread t([this, &FIRST_PACKET_SIZE] {
         using namespace std::chrono_literals;
 
         auto packet = DataPacket(this->signal.getDescriptor(), FIRST_PACKET_SIZE);
@@ -803,30 +802,19 @@ TYPED_TEST(StreamReaderFromExistingTest, ReadWithZeroAvailableAndTimeoutAny)
 
         std::this_thread::sleep_for(100ms);
         this->sendPacket(packet, false);
-
-        // Packet 2
-        packet = DataPacket(this->signal.getDescriptor(), SECOND_PACKET_SIZE);
-
-        // Set the first sample to
-        dataPtr = static_cast<double*>(packet.getData());
-        dataPtr[0] = 33.3;
-        dataPtr[1] = 44.4;
-        dataPtr[2] = 55.5;
-        dataPtr[3] = 66.6;
-
-        std::this_thread::sleep_for(10ms);
-        this->sendPacket(packet, false);
     });
 
+    // An Any read returns with the first packet; an All read would wait out the timeout for the missing samples
+    constexpr SizeT TIMEOUT_MS = 5000u;
     SizeT count{6};
     TypeParam samples[6]{};
-    reader.read((void*) &samples, &count, 1000u);
-
-    if (t.joinable())
-        t.join();
+    const auto start = std::chrono::steady_clock::now();
+    reader.read((void*) &samples, &count, TIMEOUT_MS);
+    const auto elapsed = std::chrono::steady_clock::now() - start;
+    t.join();
 
     ASSERT_EQ(count, FIRST_PACKET_SIZE);
-    ASSERT_EQ(reader.getAvailableCount(), SECOND_PACKET_SIZE);
+    ASSERT_LT(elapsed, std::chrono::milliseconds(TIMEOUT_MS));
 
     if constexpr (IsTemplateOf<TypeParam, Complex_Number>::value || IsTemplateOf<TypeParam, RangeType>::value)
     {

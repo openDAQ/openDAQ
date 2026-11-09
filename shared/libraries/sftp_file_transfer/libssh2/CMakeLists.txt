@@ -31,4 +31,5 @@ target_link_libraries(${MODULE_NAME}
     PRIVATE
         libssh2::libssh2
         OpenSSL::Crypto
+        $<$<PLATFORM_ID:Windows>:ws2_32>
 )

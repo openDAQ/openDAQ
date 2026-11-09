@@ -18,13 +18,13 @@
 //
 // Ownership and lifetime:
 //
-//   Library            per connection, counted process-wide: the first live connection calls libssh2_init, the
-//                      last one libssh2_exit.
+//   Library            per connection, counted process-wide: the first live connection initializes libssh2 (and
+//                      Winsock on Windows), the last one cleans them up.
 //   SftpFileTransferImpl
-//    └─ SftpConnection one per file transfer object; closed when the last FileTransferPtr is released.
-//        ├─ Socket     the TCP connection.
-//        ├─ session    the SSH session over that socket (a handle, see SessionDeleter).
-//        └─ SFTP channel, opened from the session; invalid once the session is gone.
+//    +- SftpConnection one per file transfer object; closed when the last FileTransferPtr is released.
+//        +- Socket     the TCP connection.
+//        +- session    the SSH session over that socket (a handle, see SessionDeleter).
+//        +- SFTP channel, opened from the session; invalid once the session is gone.
 //
 // Socket, session and channel always live and die together inside SftpConnection and are torn down in reverse:
 // channel, session (disconnect, then free), socket, then the connection's reference to the Library.
@@ -39,10 +39,11 @@
 // Every failure is reported as an openDAQ exception. Messages name what failed, never credential values.
 
 #pragma once
-#include <sftp_file_transfer/sftp_arguments.h>
-
+// libssh2.h first: on Windows it brings in winsock2.h, which must precede any windows.h.
 #include <libssh2.h>
 #include <libssh2_sftp.h>
+
+#include <sftp_file_transfer/sftp_arguments.h>
 
 #include <chrono>
 #include <memory>

@@ -1,5 +1,15 @@
 #include <sftp_file_transfer/libssh2/sftp_connection.h>
 
+#ifdef _WIN32
+#include <winsock2.h>
+#include <ws2tcpip.h>
+#else
+#include <netdb.h>
+#include <sys/socket.h>
+#include <sys/types.h>
+#include <unistd.h>
+#endif
+
 #include <sftp_file_transfer/sftp_authentication_config_factory.h>
 
 #include <coretypes/exceptions.h>
@@ -7,11 +17,6 @@
 #include <fmt/format.h>
 
 #include <openssl/evp.h>
-
-#include <netdb.h>
-#include <sys/socket.h>
-#include <sys/types.h>
-#include <unistd.h>
 
 #include <cerrno>
 #include <cstddef>
@@ -22,7 +27,7 @@
 namespace daq::sftp::libssh2
 {
 
-// Connected TCP socket. The only place that deals with POSIX socket APIs.
+// Connected TCP socket. The only place that deals with the socket API (POSIX or Winsock).
 class SftpConnection::Socket
 {
 public:
@@ -102,6 +107,37 @@ bool offersMethod(std::string_view methods, std::string_view method)
 std::mutex libraryMutex;
 std::size_t libraryUsers = 0;
 
+// The socket API differs between POSIX and Winsock only in these three places.
+
+// Error of the last failed socket call. Winsock reports it via WSAGetLastError, not errno; std::system_category
+// formats both.
+std::error_code lastSocketError()
+{
+#ifdef _WIN32
+    return {::WSAGetLastError(), std::system_category()};
+#else
+    return {errno, std::system_category()};
+#endif
+}
+
+void closeSocket(libssh2_socket_t socket)
+{
+#ifdef _WIN32
+    ::closesocket(socket);
+#else
+    ::close(socket);
+#endif
+}
+
+const char* resolveErrorMessage(int error)
+{
+#ifdef _WIN32
+    return ::gai_strerrorA(error);  // gai_strerror maps to the wide variant when UNICODE is defined
+#else
+    return ::gai_strerror(error);
+#endif
+}
+
 // The host key a server presented during the handshake.
 struct PresentedHostKey
 {
@@ -162,12 +198,26 @@ PresentedHostKey hostKey(LIBSSH2_SESSION* session)
 
 // libssh2_init / libssh2_exit set up and tear down process-wide state and are not thread-safe (documented). The
 // documentation does not say whether repeated calls are counted, so they are made exactly once: libssh2_init by the
-// first live connection, libssh2_exit by the last one, both under libraryMutex.
+// first live connection, libssh2_exit by the last one, both under libraryMutex. On Windows, Winsock is started and
+// cleaned up the same way, around libssh2.
 SftpConnection::Library::Library()
 {
     std::scoped_lock lock(detail::libraryMutex);
-    if (detail::libraryUsers == 0 && libssh2_init(0) != 0)
-        DAQ_THROW_EXCEPTION(GeneralErrorException, "libssh2 initialization failed");
+    if (detail::libraryUsers == 0)
+    {
+#ifdef _WIN32
+        WSADATA data;
+        if (const int error = ::WSAStartup(MAKEWORD(2, 2), &data); error != 0)
+            DAQ_THROW_EXCEPTION(GeneralErrorException, "Winsock initialization failed: {}", std::error_code(error, std::system_category()).message());
+#endif
+        if (libssh2_init(0) != 0)
+        {
+#ifdef _WIN32
+            ::WSACleanup();
+#endif
+            DAQ_THROW_EXCEPTION(GeneralErrorException, "libssh2 initialization failed");
+        }
+    }
     ++detail::libraryUsers;
 }
 
@@ -175,7 +225,12 @@ SftpConnection::Library::~Library()
 {
     std::scoped_lock lock(detail::libraryMutex);
     if (--detail::libraryUsers == 0)
+    {
         libssh2_exit();
+#ifdef _WIN32
+        ::WSACleanup();
+#endif
+    }
 }
 
 // ---------------------------------------------------------------------------
@@ -191,26 +246,27 @@ SftpConnection::Socket::Socket(const Endpoint& endpoint)
     addrinfo* raw = nullptr;
     const std::string port = std::to_string(endpoint.port);
     if (const int rc = ::getaddrinfo(endpoint.host.getCharPtr(), port.c_str(), &hints, &raw); rc != 0)
-        DAQ_THROW_EXCEPTION(NotFoundException, "Failed to resolve \"{}\": {}", endpoint.host, ::gai_strerror(rc));
+        DAQ_THROW_EXCEPTION(NotFoundException, "Failed to resolve \"{}\": {}", endpoint.host, detail::resolveErrorMessage(rc));
     const std::unique_ptr<addrinfo, detail::Deleter<&::freeaddrinfo>> addresses(raw);
 
-    // POSIX socket calls report failures only via errno; it is captured into a std::error_code right away.
+    // Socket calls report failures only via errno / WSAGetLastError; it is captured right away.
     std::error_code lastError = std::make_error_code(std::errc::host_unreachable);
     for (const addrinfo* rp = addresses.get(); rp; rp = rp->ai_next)
     {
-        const int candidate = ::socket(rp->ai_family, rp->ai_socktype, rp->ai_protocol);
-        if (candidate < 0)
+        const libssh2_socket_t candidate = ::socket(rp->ai_family, rp->ai_socktype, rp->ai_protocol);
+        if (candidate == LIBSSH2_INVALID_SOCKET)
         {
-            lastError = {errno, std::system_category()};
+            lastError = detail::lastSocketError();
             continue;
         }
-        if (::connect(candidate, rp->ai_addr, rp->ai_addrlen) == 0)
+        // ai_addrlen is socklen_t on POSIX and size_t on Windows, where connect takes an int.
+        if (::connect(candidate, rp->ai_addr, static_cast<int>(rp->ai_addrlen)) == 0)
         {
             fd = candidate;
             return;
         }
-        lastError = {errno, std::system_category()};
-        ::close(candidate);
+        lastError = detail::lastSocketError();
+        detail::closeSocket(candidate);
     }
 
     DAQ_THROW_EXCEPTION(NotFoundException, "Failed to connect to {}:{}: {}", endpoint.host, endpoint.port, lastError.message());
@@ -219,7 +275,7 @@ SftpConnection::Socket::Socket(const Endpoint& endpoint)
 SftpConnection::Socket::~Socket()
 {
     if (fd != LIBSSH2_INVALID_SOCKET)
-        ::close(fd);
+        detail::closeSocket(fd);
 }
 
 libssh2_socket_t SftpConnection::Socket::native() const noexcept

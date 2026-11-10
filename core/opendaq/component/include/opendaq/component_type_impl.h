@@ -39,6 +39,17 @@ public:
                                       const PropertyObjectPtr& defaultConfig,
                                       const DictPtr<IString, IBaseObject>& extraFields = nullptr);
 
+    // The removed (type, id, name, description, prefix, defaultConfig) overload. Without this, calls written
+    // against it still compile through the implicit smart pointer conversions, passing the prefix as
+    // defaultConfig and defaultConfig as extraFields, and fail at runtime with an invalid cast.
+    // Pass the prefix through extraFields instead.
+    GenericComponentTypeImpl(const StructTypePtr& type,
+                             const StringPtr& id,
+                             const StringPtr& name,
+                             const StringPtr& description,
+                             const StringPtr& prefix,
+                             const PropertyObjectPtr& defaultConfig) = delete;
+
     ErrCode INTERFACE_FUNC getId(IString** id) override;
     ErrCode INTERFACE_FUNC getName(IString** name) override;
     ErrCode INTERFACE_FUNC getDescription(IString** description) override;

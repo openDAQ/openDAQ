@@ -98,8 +98,9 @@ drops the values silently - it will not enforce a `Singleton` constraint declare
 serialized as an integer; a value this SDK version does not know is read as `Unspecified`.
 
 `GenericComponentTypeImpl` now has a single constructor, `(type, id, name, description, defaultConfig, extraFields = nullptr)`.
-The overload taking a connection string prefix was removed, and `prefix` is no longer a member of the base class; device
-and streaming types store it themselves. A component type implementation deriving from `GenericComponentTypeImpl` must
+The overload taking a connection string prefix was removed and is declared deleted, so calls written against it fail to
+compile instead of failing at runtime through the implicit smart pointer conversions. `prefix` is no longer a member of the
+base class; device and streaming types store it themselves. A component type implementation deriving from `GenericComponentTypeImpl` must
 pass any fields beyond `Id`, `Name` and `Description` through `extraFields`, in the order its struct type declares them:
 ```diff
 - : Super(structType, id, name, description, prefix, defaultConfig)

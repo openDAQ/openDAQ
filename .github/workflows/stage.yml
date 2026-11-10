@@ -6,7 +6,7 @@ on:
   workflow_dispatch:
     inputs:
       ref:
-        description: "The commit to stage, in full (empty: the head of the branch dispatched on)"
+        description: "The commit to stage: a sha, branch or tag (empty: the head of the branch dispatched on)"
         default: ""
       skip-staging-push:
         description: "Build only, keep the staging as an artifact of the run"
@@ -16,7 +16,7 @@ on:
   workflow_call:
     inputs:
       ref:
-        description: "The commit to stage, in full (empty: the commit this workflow is called at)"
+        description: "The commit to stage: a sha, branch or tag (empty: the commit this workflow is called at)"
         type: string
         default: ""
       exclude-jobs:

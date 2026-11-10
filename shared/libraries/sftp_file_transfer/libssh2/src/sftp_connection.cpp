@@ -14,13 +14,13 @@
 
 #include <coretypes/exceptions.h>
 #include <coreobjects/exceptions.h>
+#include <coretypes/filesystem.h>
 #include <fmt/format.h>
 
 #include <openssl/evp.h>
 
 #include <cerrno>
 #include <cstddef>
-#include <filesystem>
 #include <mutex>
 #include <system_error>
 
@@ -431,7 +431,7 @@ void SftpConnection::authenticate(const AuthenticationConfigPtr& authenticationC
 
         const StringPtr privateKeyFile = credential.get("PrivateKeyFilePath");
         std::error_code ec;
-        if (!std::filesystem::is_regular_file(privateKeyFile.toStdString(), ec))
+        if (!fs::is_regular_file(privateKeyFile.toStdString(), ec))
             DAQ_THROW_EXCEPTION(InvalidParameterException, "Private key file \"{}\" does not exist", privateKeyFile);
 
         // Optional: absent or empty if the key is not encrypted.

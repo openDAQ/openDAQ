@@ -34,7 +34,7 @@ struct Endpoint
     std::uint16_t port = 22;
 };
 
-// Parses `host`, `host:port`, `[IPv6]`, `[IPv6]:port` or a bare IPv6 address. Throws InvalidParameterException.
+// Parses `host`, `host:port`, `[IPv6]` or `[IPv6]:port` (default port 22). Throws InvalidParameterException.
 Endpoint parseEndpoint(const StringPtr& address);
 
 // Validates the arguments of a backend factory. Throws InvalidParameterException if any of them is unassigned or the

@@ -5,7 +5,7 @@
 #include <fmt/format.h>
 #include <opendaq/security_exceptions.h>
 
-#include <charconv>
+#include <regex>
 
 namespace daq::sftp
 {
@@ -13,14 +13,10 @@ namespace daq::sftp
 namespace detail
 {
 
-std::uint16_t parsePort(std::string_view text, std::string_view address)
-{
-    unsigned int port = 0;
-    const auto [end, ec] = std::from_chars(text.data(), text.data() + text.size(), port);
-    if (ec != std::errc{} || end != text.data() + text.size() || port == 0 || port > 65535)
-        DAQ_THROW_EXCEPTION(InvalidParameterException, "Invalid port in SFTP address \"{}\"", address);
-    return static_cast<std::uint16_t>(port);
-}
+// The host patterns of the openDAQ client modules (native, OPC UA, websocket), without their scheme and path parts.
+// The port is limited to 5 digits so std::stoi cannot overflow; its range is checked by the caller.
+const std::regex Ipv6Address(R"(^\[([a-fA-F0-9:]+(?:%[a-zA-Z0-9_.~-]+)?)\](?::(\d{1,5}))?$)");
+const std::regex HostAddress(R"(^([^:/\s]+)(?::(\d{1,5}))?$)");
 
 }
 
@@ -28,43 +24,22 @@ std::uint16_t parsePort(std::string_view text, std::string_view address)
 // Parsing
 // ---------------------------------------------------------------------------
 
-Endpoint parseEndpoint(const StringPtr& addressString)
+Endpoint parseEndpoint(const StringPtr& address)
 {
-    const std::string_view address = addressString.toView();
+    const std::string text = address.toStdString();
+    std::smatch match;
+    if (!std::regex_match(text, match, detail::Ipv6Address) && !std::regex_match(text, match, detail::HostAddress))
+        DAQ_THROW_EXCEPTION(InvalidParameterException, "Invalid SFTP address \"{}\"", address);
+
     Endpoint endpoint;
-
-    if (!address.empty() && address.front() == '[')
+    endpoint.host = String(match.str(1));
+    if (match[2].matched)
     {
-        const auto close = address.find(']');
-        if (close == std::string_view::npos || close == 1)
-            DAQ_THROW_EXCEPTION(InvalidParameterException, "Invalid SFTP address \"{}\"", address);
-        const std::string_view host = address.substr(1, close - 1);
-        endpoint.host = String(host.data(), host.size());
-
-        const auto rest = address.substr(close + 1);
-        if (!rest.empty())
-        {
-            if (rest.front() != ':')
-                DAQ_THROW_EXCEPTION(InvalidParameterException, "Invalid SFTP address \"{}\"", address);
-            endpoint.port = detail::parsePort(rest.substr(1), address);
-        }
-        return endpoint;
+        const int port = std::stoi(match.str(2));
+        if (port == 0 || port > 65535)
+            DAQ_THROW_EXCEPTION(InvalidParameterException, "Invalid port in SFTP address \"{}\"", address);
+        endpoint.port = static_cast<std::uint16_t>(port);
     }
-
-    const auto colon = address.find(':');
-    if (colon != std::string_view::npos && address.find(':', colon + 1) == std::string_view::npos)
-    {
-        endpoint.host = String(address.data(), colon);
-        endpoint.port = detail::parsePort(address.substr(colon + 1), address);
-    }
-    else
-    {
-        // No colon, or several: a host name or a bare IPv6 address without a port.
-        endpoint.host = addressString;
-    }
-
-    if (endpoint.host.getLength() == 0)
-        DAQ_THROW_EXCEPTION(InvalidParameterException, "SFTP address \"{}\" has no host", address);
     return endpoint;
 }
 

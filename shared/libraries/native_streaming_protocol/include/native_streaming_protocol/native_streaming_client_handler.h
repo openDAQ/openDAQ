@@ -102,6 +102,7 @@ protected:
                       bool available);
 
     void checkReconnectionResult(const boost::system::error_code& ec);
+    void armReconnectionTimer();
     void tryReconnect();
     void connectionStatusChanged(const EnumerationPtr& status, const StringPtr& statusMessage);
     bool handleSignalSubscription(const SignalNumericIdType& signalNumericId,

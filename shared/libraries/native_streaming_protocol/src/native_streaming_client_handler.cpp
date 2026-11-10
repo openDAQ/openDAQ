@@ -251,6 +251,18 @@ void NativeStreamingClientImpl::setStreamingToDeviceHandlers(const OnSignalSubsc
     this->signalUnsubscribedHandler = signalUnsubscribedHandler;
 }
 
+void NativeStreamingClientImpl::armReconnectionTimer()
+{
+    // The wait is completed on the transport thread even when it is cancelled, possibly after this object is gone.
+    reconnectionTimer->expires_from_now(reconnectionPeriod);
+    reconnectionTimer->async_wait(
+        [weakSelf = weak_from_this()](const boost::system::error_code& ec)
+        {
+            if (const auto self = weakSelf.lock())
+                self->checkReconnectionResult(ec);
+        });
+}
+
 void NativeStreamingClientImpl::checkReconnectionResult(const boost::system::error_code& ec)
 {
     if (ec)
@@ -277,8 +289,7 @@ void NativeStreamingClientImpl::checkReconnectionResult(const boost::system::err
     else
     {
         // connection is still pending
-        reconnectionTimer->expires_from_now(reconnectionPeriod);
-        reconnectionTimer->async_wait(std::bind(&NativeStreamingClientImpl::checkReconnectionResult, this, std::placeholders::_1));
+        armReconnectionTimer();
     }
 }
 
@@ -291,8 +302,7 @@ void NativeStreamingClientImpl::tryReconnect()
     connectedPromise = std::promise<ConnectionResult>();
     connectedFuture = connectedPromise.get_future();
 
-    reconnectionTimer->expires_from_now(reconnectionPeriod);
-    reconnectionTimer->async_wait(std::bind(&NativeStreamingClientImpl::checkReconnectionResult, this, std::placeholders::_1));
+    armReconnectionTimer();
 
     // Try alternative addresses if callback is available
     bool clientWasReinitialized = false;

@@ -25,6 +25,7 @@
 //        +- Socket     the TCP connection.
 //        +- session    the SSH session over that socket (a handle, see SessionDeleter).
 //        +- SFTP channel, opened from the session; invalid once the session is gone.
+//            +- file handle, opened from the channel for the duration of one upload or download.
 //
 // Socket, session and channel always live and die together inside SftpConnection and are torn down in reverse:
 // channel, session (disconnect, then free), socket, then the connection's reference to the Library.
@@ -75,6 +76,13 @@ public:
 
     // False if no fingerprint was supplied and the connection was made without host key verification.
     bool hostKeyVerified() const noexcept;
+
+    // Copies the local file to the server, creating or overwriting the remote file. Blocks until done.
+    void upload(const StringPtr& localPath, const StringPtr& remotePath);
+
+    // Copies the remote file to the local file, creating or overwriting it. Blocks until done; on failure the local
+    // file may be left incomplete.
+    void download(const StringPtr& remotePath, const StringPtr& localPath);
 
 private:
     // libssh2_init in the constructor, libssh2_exit in the destructor (see the .cpp).

@@ -5,10 +5,16 @@
  * object connects, verifies the server host key fingerprint (if one is given), authenticates and opens the SFTP channel;
  * releasing it closes the connection.
  *
+ * Once connected, it writes a small local text file, uploads it to the server, downloads it back under another name
+ * and checks that the content survived the round trip. Both transfers are blocking.
+ *
  * Adjust the constants below to match your server before running.
  */
 
+#include <fstream>
 #include <iostream>
+#include <iterator>
+#include <string>
 #include <coreobjects/exceptions.h>
 #include <sftp_file_transfer/libssh2/sftp_file_transfer_libssh2_factory.h>
 #include <coretypes/dictobject_factory.h>
@@ -27,6 +33,18 @@ static const char* Password = "qwerty";
 // Leave it empty to connect without host key verification; a warning then lists the server's fingerprints.
 static const char* HostKeyFingerprint = "SHA256:OjE3Qif5WaW/1VmSridhMuyH4YsWc7g2rNwJ7lZ/qAc";
 
+// Files of the round trip. The local ones are created in the working directory. The remote path is relative to the
+// login directory of the user on the server and must be in a directory the user may write to.
+static const char* LocalFile = "sftp_example_upload.txt";
+static const char* RemoteFile = "files/sftp_example.txt";
+static const char* DownloadedFile = "sftp_example_download.txt";
+
+static std::string readFile(const char* path)
+{
+    std::ifstream file(path, std::ios::binary);
+    return {std::istreambuf_iterator<char>(file), std::istreambuf_iterator<char>()};
+}
+
 int main(int /*argc*/, const char* /*argv*/[])
 {
     // Select user name and password authentication and supply its credential.
@@ -42,20 +60,31 @@ int main(int /*argc*/, const char* /*argv*/[])
     {
         const FileTransferPtr fileTransfer = SftpFileTransferLibssh2(Address, authConfig, Logger());
         std::cout << "Connected to " << Address << " as " << UserName << "; SFTP channel is open." << std::endl;
+
+        const std::string content = "Hello from the openDAQ SFTP file transfer example.\n";
+        std::ofstream(LocalFile, std::ios::binary) << content;
+
+        fileTransfer.upload(LocalFile, RemoteFile);
+        std::cout << "Uploaded " << LocalFile << " to " << RemoteFile << "." << std::endl;
+
+        fileTransfer.download(RemoteFile, DownloadedFile);
+        std::cout << "Downloaded " << RemoteFile << " to " << DownloadedFile << "." << std::endl;
+
+        if (readFile(DownloadedFile) != content)
+        {
+            std::cerr << "The downloaded file differs from the uploaded one." << std::endl;
+            return 1;
+        }
+        std::cout << "The downloaded file matches the uploaded one." << std::endl;
     }
     catch (const AuthenticationFailedException& e)
     {
         std::cerr << "Authentication failed: " << e.what() << std::endl;
         return 1;
     }
-    catch (const NotFoundException& e)
-    {
-        std::cerr << "Failed to connect: " << e.what() << std::endl;
-        return 1;
-    }
     catch (const DaqException& e)
     {
-        std::cerr << "Failed to connect: " << e.what() << std::endl;
+        std::cerr << "Failed: " << e.what() << std::endl;
         return 1;
     }
 

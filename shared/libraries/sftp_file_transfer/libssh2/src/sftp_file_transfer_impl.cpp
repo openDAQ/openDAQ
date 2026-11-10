@@ -20,6 +20,30 @@ SftpFileTransferImpl::SftpFileTransferImpl(const StringPtr& address, const Authe
                   address);
 }
 
+ErrCode SftpFileTransferImpl::upload(IString* localPath, IString* remotePath)
+{
+    OPENDAQ_PARAM_NOT_NULL(localPath);
+    OPENDAQ_PARAM_NOT_NULL(remotePath);
+
+    return daqTry([&]
+    {
+        std::scoped_lock lock(connectionSync);
+        connection->upload(localPath, remotePath);
+    });
+}
+
+ErrCode SftpFileTransferImpl::download(IString* remotePath, IString* localPath)
+{
+    OPENDAQ_PARAM_NOT_NULL(remotePath);
+    OPENDAQ_PARAM_NOT_NULL(localPath);
+
+    return daqTry([&]
+    {
+        std::scoped_lock lock(connectionSync);
+        connection->download(remotePath, localPath);
+    });
+}
+
 }
 
 BEGIN_NAMESPACE_OPENDAQ

@@ -21,8 +21,10 @@
 
 #include <cerrno>
 #include <cstddef>
+#include <fstream>
 #include <mutex>
 #include <system_error>
+#include <vector>
 
 namespace daq::sftp::libssh2
 {
@@ -166,6 +168,33 @@ StringPtr lastErrorMessage(LIBSSH2_SESSION* session)
     int length = 0;
     libssh2_session_last_error(session, &message, &length, 0);
     return (message && length > 0) ? String(message, static_cast<SizeT>(length)) : String("unknown error");
+}
+
+// An open remote file; closing it releases it on the server.
+using SftpFileHandle = std::unique_ptr<LIBSSH2_SFTP_HANDLE, Deleter<&libssh2_sftp_close_handle>>;
+
+// Size of one read from the local or remote file.
+constexpr std::size_t TransferChunkSize = 32 * 1024;
+
+// Throws for a failed SFTP file operation on `path`. If the server refused the operation, its SFTP status is mapped
+// to NotFound or AccessDenied where one fits; any other failure (including a session-level one) is a GeneralError.
+[[noreturn]] void throwFileError(LIBSSH2_SESSION* session, LIBSSH2_SFTP* sftp, const char* operation, const StringPtr& path)
+{
+    if (libssh2_session_last_errno(session) == LIBSSH2_ERROR_SFTP_PROTOCOL)
+    {
+        switch (const unsigned long status = libssh2_sftp_last_error(sftp))
+        {
+            case LIBSSH2_FX_NO_SUCH_FILE:
+            case LIBSSH2_FX_NO_SUCH_PATH:
+                DAQ_THROW_EXCEPTION(NotFoundException, "Failed to {} \"{}\": no such file or directory", operation, path);
+            case LIBSSH2_FX_PERMISSION_DENIED:
+            case LIBSSH2_FX_WRITE_PROTECT:
+                DAQ_THROW_EXCEPTION(AccessDeniedException, "Failed to {} \"{}\": permission denied", operation, path);
+            default:
+                DAQ_THROW_EXCEPTION(GeneralErrorException, "Failed to {} \"{}\": SFTP status {}", operation, path, status);
+        }
+    }
+    DAQ_THROW_EXCEPTION(GeneralErrorException, "Failed to {} \"{}\": {}", operation, path, lastErrorMessage(session));
 }
 
 // Type and SHA256 fingerprint of the host key the server presented in the handshake.
@@ -407,6 +436,79 @@ SftpConnection::~SftpConnection() = default;
 bool SftpConnection::hostKeyVerified() const noexcept
 {
     return verified;
+}
+
+void SftpConnection::upload(const StringPtr& localPath, const StringPtr& remotePath)
+{
+    // Local paths are passed to the standard library as narrow strings (on Windows: in the ANSI code page).
+    std::ifstream source(localPath.toStdString(), std::ios::binary);
+    if (!source)
+        DAQ_THROW_EXCEPTION(NotFoundException, "Failed to open local file \"{}\" for reading", localPath);
+
+    constexpr long Mode = LIBSSH2_SFTP_S_IRUSR | LIBSSH2_SFTP_S_IWUSR | LIBSSH2_SFTP_S_IRGRP | LIBSSH2_SFTP_S_IROTH;  // 0644
+    detail::SftpFileHandle remote(libssh2_sftp_open_ex(sftp.get(),
+                                                       remotePath.getCharPtr(),
+                                                       static_cast<unsigned int>(remotePath.getLength()),
+                                                       LIBSSH2_FXF_WRITE | LIBSSH2_FXF_CREAT | LIBSSH2_FXF_TRUNC,
+                                                       Mode,
+                                                       LIBSSH2_SFTP_OPENFILE));
+    if (!remote)
+        detail::throwFileError(session.get(), sftp.get(), "create remote file", remotePath);
+
+    std::vector<char> buffer(detail::TransferChunkSize);
+    while (source)
+    {
+        source.read(buffer.data(), static_cast<std::streamsize>(buffer.size()));
+        const char* data = buffer.data();
+        auto remaining = static_cast<std::size_t>(source.gcount());
+        while (remaining > 0)
+        {
+            const auto written = libssh2_sftp_write(remote.get(), data, remaining);
+            if (written < 0)
+                detail::throwFileError(session.get(), sftp.get(), "write remote file", remotePath);
+            data += written;
+            remaining -= static_cast<std::size_t>(written);
+        }
+    }
+    if (source.bad())
+        DAQ_THROW_EXCEPTION(GeneralErrorException, "Failed to read local file \"{}\"", localPath);
+
+    // Closing completes the write on the server, so its result is checked.
+    if (libssh2_sftp_close_handle(remote.release()) != 0)
+        detail::throwFileError(session.get(), sftp.get(), "close remote file", remotePath);
+}
+
+void SftpConnection::download(const StringPtr& remotePath, const StringPtr& localPath)
+{
+    detail::SftpFileHandle remote(libssh2_sftp_open_ex(sftp.get(),
+                                                       remotePath.getCharPtr(),
+                                                       static_cast<unsigned int>(remotePath.getLength()),
+                                                       LIBSSH2_FXF_READ,
+                                                       0,
+                                                       LIBSSH2_SFTP_OPENFILE));
+    if (!remote)
+        detail::throwFileError(session.get(), sftp.get(), "open remote file", remotePath);
+
+    // Opened only once the remote file is known to be readable, so a missing remote file leaves no local file behind.
+    std::ofstream destination(localPath.toStdString(), std::ios::binary | std::ios::trunc);
+    if (!destination)
+        DAQ_THROW_EXCEPTION(GeneralErrorException, "Failed to open local file \"{}\" for writing", localPath);
+
+    std::vector<char> buffer(detail::TransferChunkSize);
+    for (;;)
+    {
+        const auto read = libssh2_sftp_read(remote.get(), buffer.data(), buffer.size());
+        if (read < 0)
+            detail::throwFileError(session.get(), sftp.get(), "read remote file", remotePath);
+        if (read == 0)
+            break;
+        if (!destination.write(buffer.data(), static_cast<std::streamsize>(read)))
+            DAQ_THROW_EXCEPTION(GeneralErrorException, "Failed to write local file \"{}\"", localPath);
+    }
+
+    destination.close();
+    if (!destination)
+        DAQ_THROW_EXCEPTION(GeneralErrorException, "Failed to write local file \"{}\"", localPath);
 }
 
 void SftpConnection::authenticate(const AuthenticationConfigPtr& authenticationConfig)

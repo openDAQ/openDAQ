@@ -16,6 +16,7 @@
 
 #pragma once
 #include <coretypes/baseobject.h>
+#include <coretypes/stringobject.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
@@ -25,10 +26,34 @@ BEGIN_NAMESPACE_OPENDAQ
  * The object is connected and authenticated for its whole lifetime. Releasing the last reference closes the
  * connection.
  *
- * Operations are added in later phases; for now the interface only represents an established connection.
+ * Transfers are blocking: each call returns once the whole file has been transferred or has failed. Each object
+ * performs one transfer at a time: a call made while another is in progress, e.g. from another thread, waits for it to
+ * finish. Separate `IFileTransfer` objects transfer in parallel.
+ *
+ * Remote paths are interpreted by the server; relative ones are usually resolved against the home directory of the
+ * logged-in user.
  */
 DECLARE_OPENDAQ_INTERFACE(IFileTransfer, IBaseObject)
 {
+    /*!
+     * @brief Copies a local file to the server, creating the remote file or overwriting it if it exists.
+     * @param localPath Path of the local file to read.
+     * @param remotePath Path of the file on the server to write.
+     * @retval OPENDAQ_ERR_NOTFOUND if the local file cannot be opened, or the remote directory does not exist.
+     * @retval OPENDAQ_ERR_ACCESSDENIED if the server does not allow writing the remote file.
+     * @retval OPENDAQ_ERR_GENERALERROR on any other failure, including a lost connection.
+     */
+    virtual ErrCode INTERFACE_FUNC upload(IString* localPath, IString* remotePath) = 0;
+
+    /*!
+     * @brief Copies a file from the server to a local file, creating the local file or overwriting it if it exists.
+     * @param remotePath Path of the file on the server to read.
+     * @param localPath Path of the local file to write. Left incomplete if the transfer fails midway.
+     * @retval OPENDAQ_ERR_NOTFOUND if the remote file does not exist.
+     * @retval OPENDAQ_ERR_ACCESSDENIED if the server does not allow reading the remote file.
+     * @retval OPENDAQ_ERR_GENERALERROR on any other failure, including a lost connection or an unwritable local file.
+     */
+    virtual ErrCode INTERFACE_FUNC download(IString* remotePath, IString* localPath) = 0;
 };
 
 END_NAMESPACE_OPENDAQ

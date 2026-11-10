@@ -24,6 +24,8 @@
 
 #include <sftp_file_transfer/libssh2/sftp_connection.h>
 
+#include <mutex>
+
 namespace daq::sftp::libssh2
 {
 
@@ -33,8 +35,13 @@ class SftpFileTransferImpl final : public ImplementationOf<IFileTransfer>
 public:
     SftpFileTransferImpl(const StringPtr& address, const AuthenticationConfigPtr& authenticationConfig, const LoggerPtr& logger);
 
+    // IFileTransfer
+    ErrCode INTERFACE_FUNC upload(IString* localPath, IString* remotePath) override;
+    ErrCode INTERFACE_FUNC download(IString* remotePath, IString* localPath) override;
+
 private:
     LoggerComponentPtr loggerComponent;
+    std::mutex connectionSync;  // the connection is single-threaded (see SftpConnection)
     std::unique_ptr<SftpConnection> connection;
 };
 

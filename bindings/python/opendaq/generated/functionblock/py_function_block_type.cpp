@@ -72,7 +72,11 @@ void defineIFunctionBlockType(pybind11::module_ m, PyDaqIntf<daq::IFunctionBlock
         {
             py::gil_scoped_release release;
             const auto objectPtr = daq::FunctionBlockTypePtr::Borrow(object);
-            return objectPtr.getCommonSettingsTypeId().toStdString();
+            const auto typeId = objectPtr.getCommonSettingsTypeId();
+            std::optional<std::string> result;
+            if (typeId.assigned())
+                result = typeId.toStdString();
+            return result;
         },
-        "Gets the commonSettingsTypeId - the Id for which this FB type acts as a common settings folder.");
+        "Gets the commonSettingsTypeId - the Id for which this FB type acts as a common settings folder. None when the type does not declare one.");
 }

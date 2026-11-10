@@ -157,7 +157,9 @@ ErrCode ComponentTypeBuilderImpl::getSingleton(Bool* singleton)
 
 ErrCode ComponentTypeBuilderImpl::setCommonSettingsTypeId(IString* typeId)
 {
-    this->commonSettingsTypeId = typeId;
+    // An empty type ID declares no common settings relationship, the same as an unassigned one
+    const StringPtr typeIdPtr = typeId;
+    this->commonSettingsTypeId = typeIdPtr.assigned() && typeIdPtr.getLength() == 0 ? nullptr : typeIdPtr;
     return OPENDAQ_SUCCESS;
 }
 

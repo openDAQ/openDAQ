@@ -55,6 +55,13 @@ public:
     ErrCode INTERFACE_FUNC getCommonSettingsTypeId(IString** typeId) override;
 
 private:
+    static bool IsKnownInputPolicy(Int policy);
+
+    // Throws InvalidParameterException for a value outside of FunctionBlockInputPolicy
+    static FunctionBlockInputPolicy ValidateInputPolicy(FunctionBlockInputPolicy policy);
+
+    static StringPtr UnassignedIfEmpty(const StringPtr& typeId);
+
     FunctionBlockInputPolicy inputPolicy = FunctionBlockInputPolicy::Unspecified;
     Bool isSingleton = False;
     StringPtr commonSettingsTypeId = nullptr;
@@ -77,13 +84,35 @@ inline FunctionBlockTypeImpl::FunctionBlockTypeImpl(const StringPtr& id,
                                                     Bool singleton,
                                                     const StringPtr& commonSettingsType)
     : Super(FunctionBlockTypeStructType(), id, name, description, defaultConfig,
-            Dict<IString, IBaseObject>({{"InputPolicy", static_cast<Int>(inputPolicy)},
+            Dict<IString, IBaseObject>({{"InputPolicy", static_cast<Int>(ValidateInputPolicy(inputPolicy))},
                                         {"Singleton", singleton},
-                                        {"CommonSettingsTypeId", commonSettingsType}}))
+                                        {"CommonSettingsTypeId", UnassignedIfEmpty(commonSettingsType)}}))
     , inputPolicy(inputPolicy)
     , isSingleton(singleton)
-    , commonSettingsTypeId(commonSettingsType)
+    , commonSettingsTypeId(UnassignedIfEmpty(commonSettingsType))
 {
+}
+
+inline bool FunctionBlockTypeImpl::IsKnownInputPolicy(Int policy)
+{
+    return policy >= static_cast<Int>(FunctionBlockInputPolicy::Unspecified) &&
+           policy <= static_cast<Int>(FunctionBlockInputPolicy::SettingsDriven);
+}
+
+inline FunctionBlockInputPolicy FunctionBlockTypeImpl::ValidateInputPolicy(FunctionBlockInputPolicy policy)
+{
+    if (!IsKnownInputPolicy(static_cast<Int>(policy)))
+        DAQ_THROW_EXCEPTION(InvalidParameterException, "Invalid function block input policy {}", static_cast<Int>(policy));
+
+    return policy;
+}
+
+inline StringPtr FunctionBlockTypeImpl::UnassignedIfEmpty(const StringPtr& typeId)
+{
+    if (typeId.assigned() && typeId.getLength() == 0)
+        return nullptr;
+
+    return typeId;
 }
 
 inline FunctionBlockTypeImpl::FunctionBlockTypeImpl(const ComponentTypeBuilderPtr& builder)
@@ -194,13 +223,12 @@ inline ErrCode FunctionBlockTypeImpl::Deserialize(ISerializedObject* serialized,
         if (serializedObj.hasKey("defaultConfig"))
             defaultConfig = serializedObj.readObject("defaultConfig", contextPtr, factoryCallbackPtr);
 
-        // A policy this SDK version does not know falls back to Unspecified
+        // A policy this SDK version does not know, for example one written by a newer peer, falls back to Unspecified
         FunctionBlockInputPolicy inputPolicy = FunctionBlockInputPolicy::Unspecified;
         if (serializedObj.hasKey("inputPolicy"))
         {
             const Int policy = serializedObj.readInt("inputPolicy");
-            if (policy >= static_cast<Int>(FunctionBlockInputPolicy::Unspecified) &&
-                policy <= static_cast<Int>(FunctionBlockInputPolicy::SettingsDriven))
+            if (IsKnownInputPolicy(policy))
                 inputPolicy = static_cast<FunctionBlockInputPolicy>(policy);
         }
 

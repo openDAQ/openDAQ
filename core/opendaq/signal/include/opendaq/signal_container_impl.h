@@ -26,8 +26,10 @@
 #include <opendaq/custom_log.h>
 #include <opendaq/module_manager.h>
 #include <opendaq/module_manager_utils.h>
+#include <algorithm>
 #include <mutex>
 #include <unordered_set>
+#include <vector>
 
 BEGIN_NAMESPACE_OPENDAQ
 template <class Intf = IFolder, class ... Intfs>
@@ -150,9 +152,10 @@ private:
     Finally beginSingletonFunctionBlockAddition(const StringPtr& typeId, const FunctionBlockTypePtr& type);
 
     // Type IDs of singleton function blocks currently being added. Guarded by its own mutex, which is
-    // never held while calling out of the container.
+    // never held while calling out of the container. A vector, since it rarely holds more than one entry and,
+    // unlike a hash set, allocates nothing while empty.
     std::mutex pendingSingletonAdditionsSync;
-    std::unordered_set<std::string> pendingSingletonAdditions;
+    std::vector<std::string> pendingSingletonAdditions;
 };
 
 template <class Intf = IFolder, class... Intfs>
@@ -687,19 +690,24 @@ Finally GenericSignalContainerImpl<Intf, Intfs...>::beginSingletonFunctionBlockA
     std::string pendingTypeId = typeId.toStdString();
     {
         std::scoped_lock lock(pendingSingletonAdditionsSync);
-        if (!pendingSingletonAdditions.insert(pendingTypeId).second)
+        if (std::find(pendingSingletonAdditions.begin(), pendingSingletonAdditions.end(), pendingTypeId) !=
+            pendingSingletonAdditions.end())
         {
             DAQ_THROW_EXCEPTION(AlreadyExistsException,
                 "Function block type \"{}\" is a singleton and an instance of it is already being added under \"{}\"",
                 typeId,
                 this->globalId);
         }
+
+        pendingSingletonAdditions.push_back(pendingTypeId);
     }
 
     return Finally([this, pendingTypeId = std::move(pendingTypeId)]
     {
         std::scoped_lock lock(pendingSingletonAdditionsSync);
-        pendingSingletonAdditions.erase(pendingTypeId);
+        const auto it = std::find(pendingSingletonAdditions.begin(), pendingSingletonAdditions.end(), pendingTypeId);
+        if (it != pendingSingletonAdditions.end())
+            pendingSingletonAdditions.erase(it);
     });
 }
 
@@ -968,7 +976,8 @@ void GenericSignalContainerImpl<Intf, Intfs...>::updateFunctionBlock(const std::
         }
         else
         {
-            // The remote side validates the addition and refuses a second instance of a singleton type
+            // The remote side validates the addition and may refuse a second instance of a singleton type.
+            // Config protocol clients do not load a configuration here: they forward it to the server.
             fb = onAddFunctionBlock(typeId, functionConfig);
         }
     }

@@ -15,6 +15,7 @@ set(TEST_SOURCES
     test_core_events.cpp
     test_nested_property_objects.cpp
     test_remote_update.cpp
+    test_config_protocol_singleton.cpp
     test_c2d_streaming.cpp
     test_gateway_devices.cpp
     test_property_object.cpp

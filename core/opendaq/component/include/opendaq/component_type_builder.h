@@ -173,7 +173,9 @@ DECLARE_OPENDAQ_INTERFACE(IComponentTypeBuilder, IBaseObject)
      * @param policy The input policy.
      *
      * The input policy describes how the function blocks of the type create their input
-     * ports. See FunctionBlockInputPolicy for the meaning of each value.
+     * ports. See FunctionBlockInputPolicy for the meaning of each value. Building a function
+     * block type with a value outside of FunctionBlockInputPolicy fails with
+     * OPENDAQ_ERR_INVALIDPARAMETER.
      */
     virtual ErrCode INTERFACE_FUNC setInputPolicy(FunctionBlockInputPolicy policy) = 0;
 
@@ -217,7 +219,7 @@ DECLARE_OPENDAQ_INTERFACE(IComponentTypeBuilder, IBaseObject)
      *
      * The function block type with typeId set as commonSettingsTypeId will act as
      * a common settings object to multiple nested function blocks of the type defined
-     * by typeId.
+     * by typeId. An empty string is stored as unassigned.
      */
     virtual ErrCode INTERFACE_FUNC setCommonSettingsTypeId(IString* typeId) = 0;
 

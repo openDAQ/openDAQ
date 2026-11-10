@@ -3,6 +3,7 @@
 #include <gtest/gtest.h>
 #include <opendaq/context_factory.h>
 #include <opendaq/function_block_type_factory.h>
+#include <opendaq/function_block_type_impl.h>
 #include <opendaq/component_type_builder_factory.h>
 #include <opendaq/component_deserialize_context_factory.h>
 #include <opendaq/input_port_config_ptr.h>
@@ -234,6 +235,45 @@ TEST_F(FunctionBlockTest, FunctionBlockTypeUnknownInputPolicyDeserializesAsUnspe
     const daq::FunctionBlockTypePtr fbType = deserializer.deserialize(json);
 
     ASSERT_EQ(fbType.getInputPolicy(), daq::FunctionBlockInputPolicy::Unspecified);
+}
+
+TEST_F(FunctionBlockTest, FunctionBlockTypeBuilderRejectsUnknownInputPolicy)
+{
+    const auto builder = daq::FunctionBlockTypeBuilder().setId("Id").setInputPolicy(static_cast<daq::FunctionBlockInputPolicy>(42));
+
+    ASSERT_THROW(builder.build(), daq::InvalidParameterException);
+}
+
+TEST_F(FunctionBlockTest, FunctionBlockTypeRejectsUnknownInputPolicy)
+{
+    ASSERT_THROW((daq::createWithImplementation<daq::IFunctionBlockType, daq::FunctionBlockTypeImpl>(
+                     "Id", "Name", "Desc", nullptr, static_cast<daq::FunctionBlockInputPolicy>(-1), daq::False, nullptr)),
+                 daq::InvalidParameterException);
+}
+
+TEST_F(FunctionBlockTest, FunctionBlockTypeEmptyCommonSettingsTypeIdIsUnassigned)
+{
+    const auto builder = daq::FunctionBlockTypeBuilder().setId("Id").setCommonSettingsTypeId("");
+    ASSERT_FALSE(builder.getCommonSettingsTypeId().assigned());
+
+    const daq::FunctionBlockTypePtr fbType = builder.build();
+    ASSERT_FALSE(fbType.getCommonSettingsTypeId().assigned());
+    ASSERT_FALSE(fbType.asPtr<daq::IStruct>().get("CommonSettingsTypeId").assigned());
+    ASSERT_EQ(fbType, daq::FunctionBlockTypeBuilder().setId("Id").build());
+
+    const daq::FunctionBlockTypePtr direct = daq::createWithImplementation<daq::IFunctionBlockType, daq::FunctionBlockTypeImpl>(
+        "Id", "Name", "Desc", nullptr, daq::FunctionBlockInputPolicy::Unspecified, daq::False, "");
+    ASSERT_FALSE(direct.getCommonSettingsTypeId().assigned());
+}
+
+TEST_F(FunctionBlockTest, FunctionBlockTypeEmptyCommonSettingsTypeIdDeserializesAsUnassigned)
+{
+    const auto json = R"({"__type":"FunctionBlockType","id":"Id","name":"Name","commonSettingsTypeId":""})";
+
+    const auto deserializer = daq::JsonDeserializer();
+    const daq::FunctionBlockTypePtr fbType = deserializer.deserialize(json);
+
+    ASSERT_FALSE(fbType.getCommonSettingsTypeId().assigned());
 }
 
 
@@ -563,7 +603,8 @@ TEST_F(FunctionBlockTest, LoadSkipsDuplicateSingleton)
     ASSERT_EQ(countFunctionBlocksOfType(target, "Multi"), 1u);
 }
 
-TEST_F(FunctionBlockTest, RemoteLoadSkipsDuplicateSingletonRefusedByRemoteSide)
+// A parent that does not validate additions itself, and whose onAddFunctionBlock refuses the second instance
+TEST_F(FunctionBlockTest, LoadSkipsDuplicateSingletonRefusedByOnAddFunctionBlock)
 {
     SingletonTestParentOptions options;
     options.validatesAdd = false;

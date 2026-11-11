@@ -260,6 +260,48 @@ TEST_F(DeviceInfoTest, SerializeDeserialize)
     ASSERT_EQ(serializedDeviceInfo, newSerializedDeviceInfo);
 }
 
+TEST_F(DeviceInfoTest, SerializeCarriesDeviceTypeWithoutDefaultConfig)
+{
+    const auto defaultConfig = PropertyObject();
+    defaultConfig.addProperty(StringProperty("DefaultConfigOnly", "value"));
+
+    DeviceInfoConfigPtr info = DeviceInfo("connection_string", "Name");
+    info.setDeviceType(DeviceType("test_id", "test_name", "test_description", "prefix", defaultConfig));
+
+    const auto serializer = JsonSerializer();
+    info.serialize(serializer);
+    const std::string json = serializer.getOutput();
+    ASSERT_EQ(json.find("DefaultConfigOnly"), std::string::npos);
+
+    const DeviceInfoPtr newInfo = JsonDeserializer().deserialize(json, nullptr, nullptr);
+    const auto newType = newInfo.getDeviceType();
+    ASSERT_EQ(newType.getId(), "test_id");
+    ASSERT_EQ(newType.getName(), "test_name");
+    ASSERT_EQ(newType.getDescription(), "test_description");
+    ASSERT_EQ(newType.getConnectionStringPrefix(), "prefix");
+    ASSERT_EQ(newType.createDefaultConfig().getAllProperties().getCount(), 0u);
+}
+
+TEST_F(DeviceInfoTest, DeserializeWithoutDeviceType)
+{
+    const auto serializer = JsonSerializer();
+    DeviceInfo("connection_string", "Name").serialize(serializer);
+
+    const DeviceInfoPtr newInfo = JsonDeserializer().deserialize(serializer.getOutput(), nullptr, nullptr);
+    ASSERT_FALSE(newInfo.getDeviceType().assigned());
+}
+
+TEST_F(DeviceInfoTest, SetupDoesNotCarryDeviceType)
+{
+    DeviceInfoConfigPtr info = DeviceInfo("connection_string", "Name");
+    info.setDeviceType(DeviceType("test_id", "test_name", "test_description", "prefix"));
+
+    const auto serializer = JsonSerializer();
+    info.asPtr<IUpdatable>(true).serializeForUpdate(serializer);
+    const std::string json = serializer.getOutput();
+    ASSERT_EQ(json.find("test_id"), std::string::npos);
+}
+
 TEST_F(DeviceInfoTest, SerializeDeserializeForOlderVersion)
 {
     DeviceInfoConfigPtr info = DeviceInfo("", "");

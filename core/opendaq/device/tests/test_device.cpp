@@ -15,6 +15,9 @@
 #include <opendaq/io_folder_impl.h>
 #include <opendaq/gmock/function_block.h>
 #include <opendaq/device_type_factory.h>
+#include <opendaq/component_type_builder_factory.h>
+#include <coretypes/json_serializer_factory.h>
+#include <coretypes/json_deserializer_factory.h>
 #include <opendaq/module_manager_factory.h>
 #include <opendaq/scheduler_factory.h>
 #include <opendaq/mock/mock_streaming_factory.h>
@@ -280,6 +283,28 @@ TEST_F(DeviceTest, DeviceTypeStructNames)
     const auto structType = daq::DeviceTypeStructType();
     const daq::StructPtr structPtr = daq::DeviceType("id", "name", "desc", "prefix");
     ASSERT_EQ(structType.getFieldNames(), structPtr.getFieldNames());
+}
+
+TEST_F(DeviceTest, DeviceTypeSerializesPrefixWithoutDescription)
+{
+    const daq::DeviceTypePtr type = daq::DeviceTypeBuilder().setId("id").setConnectionStringPrefix("prefix").build();
+
+    const auto serializer = daq::JsonSerializer();
+    type.serialize(serializer);
+    const daq::DeviceTypePtr deserialized = daq::JsonDeserializer().deserialize(serializer.getOutput());
+
+    ASSERT_EQ(deserialized.getConnectionStringPrefix(), "prefix");
+}
+
+TEST_F(DeviceTest, DeviceTypeSerializesDescriptionWithoutPrefix)
+{
+    const daq::DeviceTypePtr type = daq::DeviceTypeBuilder().setId("id").setDescription("desc").build();
+
+    const auto serializer = daq::JsonSerializer();
+    ASSERT_NO_THROW(type.serialize(serializer));
+    const daq::DeviceTypePtr deserialized = daq::JsonDeserializer().deserialize(serializer.getOutput());
+
+    ASSERT_EQ(deserialized.getDescription(), "desc");
 }
 
 TEST_F(DeviceTest, StandardProperties)

@@ -38,6 +38,7 @@ public:
     // ISerializable
     ErrCode INTERFACE_FUNC serialize(ISerializer* serializer) override;
     ErrCode INTERFACE_FUNC getSerializeId(ConstCharPtr* id) const override;
+    void serializeType(const SerializerPtr& serializerPtr, bool withDefaultConfig) override;
 
     static ConstCharPtr SerializeId();
     static ErrCode Deserialize(ISerializedObject* serialized, IBaseObject* context, IFunction* factoryCallback, IBaseObject** obj);
@@ -62,43 +63,44 @@ inline ErrCode FunctionBlockTypeImpl::serialize(ISerializer* serializer)
     OPENDAQ_PARAM_NOT_NULL(serializer);
 
     const auto serializerPtr = SerializerPtr::Borrow(serializer);
-
-    const ErrCode errCode = daqTry([this, &serializerPtr]
-    {
-        serializerPtr.startTaggedObject(borrowPtr<SerializablePtr>());
-        {
-            serializerPtr.key("id");
-            serializerPtr.writeString(id);
-
-            if (name.assigned())
-            {
-                serializerPtr.key("name");
-                serializerPtr.writeString(name);
-            }
-
-            if (description.assigned())
-            {
-                serializerPtr.key("description");
-                serializerPtr.writeString(description);
-            }
-
-            if (defaultConfig.assigned())
-            {
-                serializerPtr.key("defaultConfig");
-                defaultConfig.serialize(serializerPtr);
-            }
-
-            if (moduleInfo.assigned())
-            {
-                serializerPtr.key("moduleInfo");
-                moduleInfo.serialize(serializerPtr);
-            }
-        }
-
-        serializerPtr.endObject();
-    });
+    const ErrCode errCode = daqTry([this, &serializerPtr] { serializeType(serializerPtr, true); });
     OPENDAQ_RETURN_IF_FAILED(errCode);
     return errCode;
+}
+
+inline void FunctionBlockTypeImpl::serializeType(const SerializerPtr& serializerPtr, bool withDefaultConfig)
+{
+    serializerPtr.startTaggedObject(borrowPtr<SerializablePtr>());
+    {
+        serializerPtr.key("id");
+        serializerPtr.writeString(id);
+
+        if (name.assigned())
+        {
+            serializerPtr.key("name");
+            serializerPtr.writeString(name);
+        }
+
+        if (description.assigned())
+        {
+            serializerPtr.key("description");
+            serializerPtr.writeString(description);
+        }
+
+        if (withDefaultConfig && defaultConfig.assigned())
+        {
+            serializerPtr.key("defaultConfig");
+            defaultConfig.serialize(serializerPtr);
+        }
+
+        if (moduleInfo.assigned())
+        {
+            serializerPtr.key("moduleInfo");
+            moduleInfo.serialize(serializerPtr);
+        }
+    }
+
+    serializerPtr.endObject();
 }
 
 inline ErrCode FunctionBlockTypeImpl::getSerializeId(ConstCharPtr* id) const

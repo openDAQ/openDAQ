@@ -25,6 +25,7 @@
 #include <coreobjects/property_object_internal_ptr.h>
 #include <opendaq/module_info_ptr.h>
 #include <opendaq/component_type_private.h>
+#include <coretypes/serializer_ptr.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
@@ -53,8 +54,12 @@ public:
 
     // IComponentTypePrivate
     ErrCode INTERFACE_FUNC setModuleInfo(IModuleInfo* info) override;
+    ErrCode INTERFACE_FUNC serializeWithoutDefaultConfig(ISerializer* serializer) override;
 
 protected:
+    // Writes the type as its own tagged object; sorts that components carry override it.
+    virtual void serializeType(const SerializerPtr& serializerPtr, bool withDefaultConfig);
+
     StringPtr id;
     StringPtr name;
     StringPtr description;
@@ -141,6 +146,23 @@ inline ErrCode GenericComponentTypeImpl<Intf, Interfaces...>::setModuleInfo(IMod
     this->moduleInfo = info;
 
     return OPENDAQ_SUCCESS;
+}
+
+template <typename Intf, typename... Interfaces>
+ErrCode GenericComponentTypeImpl<Intf, Interfaces...>::serializeWithoutDefaultConfig(ISerializer* serializer)
+{
+    OPENDAQ_PARAM_NOT_NULL(serializer);
+
+    const auto serializerPtr = SerializerPtr::Borrow(serializer);
+    const ErrCode errCode = daqTry([this, &serializerPtr] { serializeType(serializerPtr, false); });
+    OPENDAQ_RETURN_IF_FAILED(errCode);
+    return errCode;
+}
+
+template <typename Intf, typename... Interfaces>
+void GenericComponentTypeImpl<Intf, Interfaces...>::serializeType(const SerializerPtr& /*serializerPtr*/, bool /*withDefaultConfig*/)
+{
+    DAQ_THROW_EXCEPTION(NotImplementedException, "Type {} is not carried by components", id);
 }
 
 template <typename Intf, typename... Interfaces>

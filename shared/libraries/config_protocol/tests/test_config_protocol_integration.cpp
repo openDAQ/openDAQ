@@ -12,6 +12,9 @@
 #include <opendaq/context_factory.h>
 #include <config_protocol/config_client_device_impl.h>
 #include <opendaq/packet_factory.h>
+#include <opendaq/module_info_factory.h>
+#include <opendaq/component_type_private.h>
+#include <coretypes/version_info_factory.h>
 #include <coreobjects/user_factory.h>
 #include <config_protocol/exceptions.h>
 #include <testutils/testutils.h>
@@ -882,6 +885,8 @@ TEST_F(ConfigProtocolIntegrationTest, GetAvailableDevices)
     ASSERT_EQ(c.getName(), s.getName());
     ASSERT_EQ(c.getConnectionString(), s.getConnectionString());
     ASSERT_EQ(c.getManufacturer(), s.getManufacturer());
+    ASSERT_EQ(c.getDeviceType().getId(), "mockAvailableDev");
+    ASSERT_EQ(c.getDeviceType().getConnectionStringPrefix(), s.getDeviceType().getConnectionStringPrefix());
 }
 
 void addDeviceTest(DevicePtr clientDevice, DevicePtr serverDevice, bool testAddDevicesMethod = false)
@@ -1145,6 +1150,38 @@ TEST_F(ConfigProtocolIntegrationTest, BeginEndUpdateNestedPropertyObjectOrder)
     ASSERT_EQ(state, State::ComponentEnded);
     ASSERT_EQ(clientMockChild.getPropertyValue("NestedStringProperty"), "NewValue");
     ASSERT_EQ(serverMockChild.getPropertyValue("NestedStringProperty"), "NewValue");
+}
+
+TEST_F(ConfigProtocolIntegrationTest, ComponentTypesCarriedWithoutDefaultConfig)
+{
+    // The physical mock device is the one whose info carries a device type.
+    const auto serverDeviceType = serverDevice.getDevices(search::LocalId("mock_phys_dev"))[0].getInfo().getDeviceType();
+    const auto clientDeviceType = clientDevice.getDevices(search::LocalId("mock_phys_dev"))[0].getInfo().getDeviceType();
+    ASSERT_TRUE(serverDeviceType.assigned());
+    ASSERT_EQ(clientDeviceType.getId(), serverDeviceType.getId());
+    ASSERT_EQ(clientDeviceType.getName(), serverDeviceType.getName());
+    ASSERT_EQ(clientDeviceType.getConnectionStringPrefix(), serverDeviceType.getConnectionStringPrefix());
+
+    const auto serverFbType = serverDevice.getDevices()[0].getFunctionBlocks()[0].getFunctionBlockType();
+    const auto clientFbType = clientDevice.getDevices()[0].getFunctionBlocks()[0].getFunctionBlockType();
+    ASSERT_EQ(clientFbType.getId(), serverFbType.getId());
+    ASSERT_EQ(clientFbType.getName(), serverFbType.getName());
+    ASSERT_EQ(clientFbType.getDescription(), serverFbType.getDescription());
+    ASSERT_EQ(clientFbType.createDefaultConfig().getAllProperties().getCount(), 0u);
+
+    // The carried module info is kept; the serialized module version does not replace it with a placeholder.
+    serverFbType.asPtr<IComponentTypePrivate>()->setModuleInfo(ModuleInfo(VersionInfo(1, 2, 3), "ServerModule", "server_module"));
+    auto secondClient = std::make_unique<ConfigProtocolClient<ConfigClientDeviceImpl>>(
+        NullContext(),
+        [this](const PacketBuffer& requestPacket) { return server->processRequestAndGetReply(requestPacket); },
+        [](const PacketBuffer& /*requestPacket*/) {},
+        nullptr,
+        nullptr,
+        nullptr);
+    const auto secondClientFbType = secondClient->connect().getDevices()[0].getFunctionBlocks()[0].getFunctionBlockType();
+    ASSERT_EQ(secondClientFbType.getModuleInfo().getName(), "ServerModule");
+    ASSERT_EQ(secondClientFbType.getModuleInfo().getId(), "server_module");
+    ASSERT_EQ(secondClientFbType.getModuleInfo().getVersionInfo().getMinor(), 2u);
 }
 
 TEST_F(ConfigProtocolIntegrationTest, GetServers)

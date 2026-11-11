@@ -135,6 +135,8 @@ namespace daq::test_utils
                 const auto num = std::to_string(i);
                 const auto deviceInfo = DeviceInfo("mock://available_dev" + num, "AvailableMockDevice" + num);
                 deviceInfo.asPtr<IPropertyObjectProtected>().setProtectedPropertyValue("manufacturer","Testing");
+                deviceInfo.setDeviceType(
+                    DeviceTypeBuilder().setId("mockAvailableDev").setName("Mock available device").setConnectionStringPrefix("mock").build());
                 availableDevices.pushBack(deviceInfo);
             }
             return availableDevices;

@@ -8,6 +8,9 @@
  * Once connected, it writes a small local text file, uploads it to the server, downloads it back under another name
  * and checks that the content survived the round trip. Both transfers are blocking.
  *
+ * The SSH library backend is chosen with the first argument: "libssh2" or "libssh", whichever were built
+ * (OPENDAQ_ENABLE_SFTP_FILE_TRANSFER_LIBSSH2 / _LIBSSH). Without an argument, the first one built is used.
+ *
  * Adjust the constants below to match your server before running.
  */
 
@@ -16,7 +19,12 @@
 #include <iterator>
 #include <string>
 #include <coreobjects/exceptions.h>
+#ifdef SFTP_EXAMPLE_WITH_LIBSSH2
 #include <sftp_file_transfer/libssh2/sftp_file_transfer_libssh2_factory.h>
+#endif
+#ifdef SFTP_EXAMPLE_WITH_LIBSSH
+#include <sftp_file_transfer/libssh/sftp_file_transfer_libssh_factory.h>
+#endif
 #include <coretypes/dictobject_factory.h>
 #include <opendaq/logger_factory.h>
 
@@ -39,14 +47,39 @@ static const char* LocalFile = "sftp_example_upload.txt";
 static const char* RemoteFile = "files/sftp_example.txt";
 static const char* DownloadedFile = "sftp_example_download.txt";
 
+// The backends built into this example, in the order of preference when none is chosen.
+static const char* Backends[] = {
+#ifdef SFTP_EXAMPLE_WITH_LIBSSH2
+    "libssh2",
+#endif
+#ifdef SFTP_EXAMPLE_WITH_LIBSSH
+    "libssh",
+#endif
+};
+
+static FileTransferPtr connect(const std::string& backend, const AuthenticationConfigPtr& authConfig)
+{
+#ifdef SFTP_EXAMPLE_WITH_LIBSSH2
+    if (backend == "libssh2")
+        return SftpFileTransferLibssh2(Address, authConfig, Logger());
+#endif
+#ifdef SFTP_EXAMPLE_WITH_LIBSSH
+    if (backend == "libssh")
+        return SftpFileTransferLibssh(Address, authConfig, Logger());
+#endif
+    DAQ_THROW_EXCEPTION(InvalidParameterException, "Backend \"{}\" is not built into this example", backend);
+}
+
 static std::string readFile(const char* path)
 {
     std::ifstream file(path, std::ios::binary);
     return {std::istreambuf_iterator<char>(file), std::istreambuf_iterator<char>()};
 }
 
-int main(int /*argc*/, const char* /*argv*/[])
+int main(int argc, const char* argv[])
 {
+    const std::string backend = argc > 1 ? argv[1] : Backends[0];
+
     // Select user name and password authentication and supply its credential.
     const AuthenticationConfigPtr authConfig = SftpAuthenticationConfig();
     authConfig.setAuthenticationMethod(SftpUserNamePasswordId);
@@ -58,8 +91,9 @@ int main(int /*argc*/, const char* /*argv*/[])
 
     try
     {
-        const FileTransferPtr fileTransfer = SftpFileTransferLibssh2(Address, authConfig, Logger());
-        std::cout << "Connected to " << Address << " as " << UserName << "; SFTP channel is open." << std::endl;
+        const FileTransferPtr fileTransfer = connect(backend, authConfig);
+        std::cout << "Connected to " << Address << " as " << UserName << " using " << backend << "; SFTP channel is open."
+                  << std::endl;
 
         const std::string content = "Hello from the openDAQ SFTP file transfer example.\n";
         std::ofstream(LocalFile, std::ios::binary) << content;

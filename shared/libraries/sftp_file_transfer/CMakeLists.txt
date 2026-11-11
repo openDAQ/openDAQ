@@ -10,3 +10,7 @@ add_subdirectory(common)
 if (OPENDAQ_ENABLE_SFTP_FILE_TRANSFER_LIBSSH2)
     add_subdirectory(libssh2)
 endif()
+
+if (OPENDAQ_ENABLE_SFTP_FILE_TRANSFER_LIBSSH)
+    add_subdirectory(libssh)
+endif()

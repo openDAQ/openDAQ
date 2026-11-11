@@ -148,6 +148,7 @@ namespace RTGen.Types
                 {"interfaceLibrary", InterfaceLibrary},
                 {"libraryInterfaces", LibraryInterfaces},
                 {"arrayArg", ArrayPointerArgument},
+                {"bufferArray", BufferArrayArgument},
                 {"factory", FactorySettings},
                 {"isCoreConfig", IsCoreConfigAttribute},
                 {"returnSelf", ReturnSelfAttribute},
@@ -318,6 +319,16 @@ namespace RTGen.Types
 
         private void ArrayPointerArgument(IRTAttribute attribute)
         {
+            AddArrayArgument(attribute, false);
+        }
+
+        private void BufferArrayArgument(IRTAttribute attribute)
+        {
+            AddArrayArgument(attribute, true);
+        }
+
+        private void AddArrayArgument(IRTAttribute attribute, bool isBufferArray)
+        {
             if (attribute.Arguments.Length < 2)
             {
                 throw new RTAttributeException($"The attribute \"{attribute.Name}\" requires at least 1 argument name.");
@@ -339,6 +350,8 @@ namespace RTGen.Types
             {
                 array = new Array(ArrayExtent.Parameter, extentValue);
             }
+
+            array.IsBufferArray = isBufferArray;
 
             if (!Next.Method.Arguments.Has(argName))
             {

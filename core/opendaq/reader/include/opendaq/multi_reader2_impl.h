@@ -65,7 +65,7 @@ public:
     // IMultiReader2
     ErrCode INTERFACE_FUNC configure(IMultiReader2Params* params, IMultiReader2Status** status) override;
     ErrCode INTERFACE_FUNC getAvailableCount(SizeT* count) override;
-    ErrCode INTERFACE_FUNC read(void* data, void* domain, SizeT* count, SizeT timeoutMs, SizeT* packetOffset, IMultiReader2Status** status) override;
+    ErrCode INTERFACE_FUNC read(void** data, void* domain, SizeT* count, SizeT timeoutMs, SizeT* packetOffset, IMultiReader2Status** status) override;
     ErrCode INTERFACE_FUNC skipSamples(SizeT* count, SizeT timeoutMs, SizeT* packetOffset, IMultiReader2Status** status) override;
     ErrCode INTERFACE_FUNC getOnDataAvailable(IEvent** event) override;
     ErrCode INTERFACE_FUNC reevaluate(IMultiReader2Status** status) override;

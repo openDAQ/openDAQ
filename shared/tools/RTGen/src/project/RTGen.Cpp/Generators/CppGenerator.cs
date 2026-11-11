@@ -154,7 +154,8 @@ namespace RTGen.Cpp.Generators
         {
             foreach (IMethod method in rtClass.Methods)
             {
-                if (method.Arguments.Any(arg => arg.ArrayInfo != null))
+                // A Span cannot express an array of buffers
+                if (method.Arguments.Any(arg => arg.ArrayInfo != null) && !method.Arguments.Any(arg => arg.ArrayInfo?.IsBufferArray == true))
                 {
                     AddMethodSpanOverloads(method);
                 }
@@ -809,7 +810,8 @@ namespace RTGen.Cpp.Generators
                     {
                         if (arg.Type.Name == "void")
                         {
-                            return "";
+                            // The wrapper type is already `void*`: an array `void**` (e.g. one pointer per buffer) adds the second `*`
+                            return arg.ArrayInfo != null && arg.Type.Modifiers.Length > 0 ? arg.Type.Modifiers.Substring(1) : "";
                         }
 
                         if (arg.ArrayInfo != null)

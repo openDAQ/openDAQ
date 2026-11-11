@@ -18,6 +18,9 @@
         /// <summary>Referenced parameter index in the original interface method otherwise -1.</summary>
         int ParameterIndex { get; set; }
 
+        /// <summary>The argument is an array of pointers to buffers and the extent is that of each buffer, not of the pointer array.</summary>
+        bool IsBufferArray { get; }
+
         /// <summary>Check if the arrays have the same extent.</summary>
         /// <param name="array">The array to check for.</param>
         /// <returns>Returns <code>true</code> if equals otherwise <code>false</code>.</returns>

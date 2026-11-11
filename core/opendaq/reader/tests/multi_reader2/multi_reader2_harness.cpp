@@ -1647,7 +1647,7 @@ Result MultiReader2Test::runRead(Result::Kind kind, SizeT count, const ReadArgs&
     SizeT n = count;
     SizeT offset = 0;
     IMultiReader2Status* status = nullptr;
-    void* dataArg = args.nullData ? nullptr : data.data();
+    void** dataArg = args.nullData ? nullptr : data.data();
     SizeT* countArg = args.nullCount ? nullptr : &n;
     IMultiReader2Status** statusArg = args.nullStatus ? nullptr : &status;
     switch (kind)

@@ -468,10 +468,10 @@ ErrCode MultiReader2Impl::getAvailableCount(SizeT* count)
     return OPENDAQ_SUCCESS;
 }
 
-ErrCode MultiReader2Impl::read(void* data, void* domain, SizeT* count, SizeT timeoutMs, SizeT* packetOffset, IMultiReader2Status** status)
+ErrCode MultiReader2Impl::read(void** data, void* domain, SizeT* count, SizeT timeoutMs, SizeT* packetOffset, IMultiReader2Status** status)
 {
     MULTI_READER2_NOT_FROM_CALLBACK();
-    return core->dataManager.read(static_cast<void**>(data), static_cast<std::int64_t*>(domain), count, timeoutMs, packetOffset, status);
+    return core->dataManager.read(data, static_cast<std::int64_t*>(domain), count, timeoutMs, packetOffset, status);
 }
 
 ErrCode MultiReader2Impl::skipSamples(SizeT* count, SizeT timeoutMs, SizeT* packetOffset, IMultiReader2Status** status)

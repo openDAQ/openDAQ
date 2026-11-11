@@ -64,12 +64,12 @@ DECLARE_OPENDAQ_INTERFACE(IMultiReader2, IBaseObject)
      */
     virtual ErrCode INTERFACE_FUNC getAvailableCount(SizeT* count) = 0;
 
-    // [arrayArg(data, count), arrayArg(domain, count), arrayArg(count, 1)]
+    // [bufferArray(data, count), arrayArg(domain, count), arrayArg(count, 1)]
     /*!
      * @brief Copies up to `count` aligned samples into one buffer per input, in slot order. The samples belong to
-     * the descriptors reported before this status. `data` is typed `void*` because the binding generator cannot
-     * express a jagged array. The buffer of an input in error is not written and may be null.
-     * @param[in] data One buffer per input; null with `count` 0 is a status probe.
+     * the descriptors reported before this status. The buffer of an input in error is not written and may be null.
+     * @param[in] data One buffer pointer per input, each buffer holding `count` samples of the input's read type;
+     * null with `count` 0 is a status probe.
      * @param[in] domain Buffer for the main input's domain ticks, packetOffset plus the main rule's start (type: Int64,
      * size: count); when null, ticks are not returned (recommended).
      * @param[in,out] count In: the requested count, 0 or at least MinReadCount; out: the count read.
@@ -77,7 +77,7 @@ DECLARE_OPENDAQ_INTERFACE(IMultiReader2, IBaseObject)
      * @param[out] packetOffset The main tick of the first sample, relative to the main domain rule start.
      * @param[out] status The status of this read.
      */
-    virtual ErrCode INTERFACE_FUNC read(void* data, void* domain, SizeT* count, SizeT timeoutMs, SizeT* packetOffset, IMultiReader2Status** status) = 0;
+    virtual ErrCode INTERFACE_FUNC read(void** data, void* domain, SizeT* count, SizeT timeoutMs, SizeT* packetOffset, IMultiReader2Status** status) = 0;
 
     // [arrayArg(count, 1)]
     /*!

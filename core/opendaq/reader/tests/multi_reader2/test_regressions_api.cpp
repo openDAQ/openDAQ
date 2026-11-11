@@ -11,9 +11,16 @@
 #include <functional>
 #include <limits>
 #include <thread>
+#include <type_traits>
 #include <utility>
 
 using namespace daq;
+
+// `data` is marked bufferArray, so the generated Ptr takes the pointer array as is. An RTGen without bufferArray
+// treats a `void**` as an out param: it generates `void* data` and passes its address, which compiles and corrupts
+static_assert(std::is_same_v<decltype(&MultiReader2Ptr::read),
+                             MultiReader2StatusPtr (MultiReader2Ptr::*)(void**, void*, SizeT*, SizeT, SizeT&) const>,
+              "MultiReader2Ptr::read must take the buffer pointers as void**");
 
 // A signal that runs a hook, once, the next time its descriptor is read
 class RegApiHookSignal : public SignalImpl

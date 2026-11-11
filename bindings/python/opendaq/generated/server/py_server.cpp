@@ -29,7 +29,7 @@
 
 #include "py_opendaq/py_opendaq.h"
 #include "py_core_types/py_converter.h"
-
+#include "py_core_objects/py_variant_extractor.h"
 
 PyDaqIntf<daq::IServer, daq::IFolder> declareIServer(pybind11::module_ m)
 {
@@ -99,4 +99,58 @@ void defineIServer(pybind11::module_ m, PyDaqIntf<daq::IServer, daq::IFolder> cl
             objectPtr.disableDiscovery();
         },
         "Disables the server to be discovered by the clients.");
+    cls.def_property_readonly("server_type",
+        [](daq::IServer *object)
+        {
+            py::gil_scoped_release release;
+            const auto objectPtr = daq::ServerPtr::Borrow(object);
+            return objectPtr.getServerType().detach();
+        },
+        py::return_value_policy::take_ownership,
+        "Gets the type the server was created from.");
+    cls.def_property_readonly("function_blocks",
+        [](daq::IServer *object)
+        {
+            py::gil_scoped_release release;
+            const auto objectPtr = daq::ServerPtr::Borrow(object);
+            return objectPtr.getFunctionBlocks().detach();
+        },
+        py::return_value_policy::take_ownership,
+        "Gets the list of function blocks added to the server.");
+    cls.def("get_function_blocks",
+        [](daq::IServer *object, daq::ISearchFilter* searchFilter)
+        {
+            py::gil_scoped_release release;
+            const auto objectPtr = daq::ServerPtr::Borrow(object);
+            return objectPtr.getFunctionBlocks(searchFilter).detach();
+        },
+        py::arg("search_filter") = nullptr,
+        "Gets the list of function blocks added to the server.");
+    cls.def_property_readonly("available_function_block_types",
+        [](daq::IServer *object)
+        {
+            py::gil_scoped_release release;
+            const auto objectPtr = daq::ServerPtr::Borrow(object);
+            return objectPtr.getAvailableFunctionBlockTypes().detach();
+        },
+        py::return_value_policy::take_ownership,
+        "Gets the function block types the server can add, containing their description.");
+    cls.def("add_function_block",
+        [](daq::IServer *object, std::variant<daq::IString*, py::str, daq::IEvalValue*>& typeId, daq::IPropertyObject* config)
+        {
+            py::gil_scoped_release release;
+            const auto objectPtr = daq::ServerPtr::Borrow(object);
+            return objectPtr.addFunctionBlock(getVariantValue<daq::IString*>(typeId), config).detach();
+        },
+        py::arg("type_id"), py::arg("config") = nullptr,
+        "Creates and adds a function block to the server with the provided type ID and returns it.");
+    cls.def("remove_function_block",
+        [](daq::IServer *object, daq::IFunctionBlock* functionBlock)
+        {
+            py::gil_scoped_release release;
+            const auto objectPtr = daq::ServerPtr::Borrow(object);
+            objectPtr.removeFunctionBlock(functionBlock);
+        },
+        py::arg("function_block"),
+        "Removes the function block provided as argument, disconnecting its signals and input ports.");
 }

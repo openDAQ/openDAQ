@@ -33,6 +33,12 @@
 
 PyDaqIntf<daq::IServerType, daq::IComponentType> declareIServerType(pybind11::module_ m)
 {
+    py::enum_<daq::ServerKind>(m, "ServerKind")
+        .value("Unspecified", daq::ServerKind::Unspecified)
+        .value("Adapter", daq::ServerKind::Adapter)
+        .value("Mirror", daq::ServerKind::Mirror)
+        .value("Streaming", daq::ServerKind::Streaming);
+
     return wrapInterface<daq::IServerType, daq::IComponentType>(m, "IServerType");
 }
 
@@ -44,4 +50,13 @@ void defineIServerType(pybind11::module_ m, PyDaqIntf<daq::IServerType, daq::ICo
         return daq::ServerType_Create(getVariantValue<daq::IString*>(id), getVariantValue<daq::IString*>(name), getVariantValue<daq::IString*>(description), defaultConfig);
     }, py::arg("id"), py::arg("name"), py::arg("description"), py::arg("default_config"));
 
+
+    cls.def_property_readonly("server_kind",
+        [](daq::IServerType *object)
+        {
+            py::gil_scoped_release release;
+            const auto objectPtr = daq::ServerTypePtr::Borrow(object);
+            return objectPtr.getServerKind();
+        },
+        "Gets the kind of the servers of this type.");
 }

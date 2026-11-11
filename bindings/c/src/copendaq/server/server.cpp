@@ -51,3 +51,28 @@ daqErrCode daqServer_disableDiscovery(daqServer* self)
 {
     return reinterpret_cast<daq::IServer*>(self)->disableDiscovery();
 }
+
+daqErrCode daqServer_getServerType(daqServer* self, daqServerType** type)
+{
+    return reinterpret_cast<daq::IServer*>(self)->getServerType(reinterpret_cast<daq::IServerType**>(type));
+}
+
+daqErrCode daqServer_getFunctionBlocks(daqServer* self, daqList** functionBlocks, daqSearchFilter* searchFilter)
+{
+    return reinterpret_cast<daq::IServer*>(self)->getFunctionBlocks(reinterpret_cast<daq::IList**>(functionBlocks), reinterpret_cast<daq::ISearchFilter*>(searchFilter));
+}
+
+daqErrCode daqServer_getAvailableFunctionBlockTypes(daqServer* self, daqDict** functionBlockTypes)
+{
+    return reinterpret_cast<daq::IServer*>(self)->getAvailableFunctionBlockTypes(reinterpret_cast<daq::IDict**>(functionBlockTypes));
+}
+
+daqErrCode daqServer_addFunctionBlock(daqServer* self, daqFunctionBlock** functionBlock, daqString* typeId, daqPropertyObject* config)
+{
+    return reinterpret_cast<daq::IServer*>(self)->addFunctionBlock(reinterpret_cast<daq::IFunctionBlock**>(functionBlock), reinterpret_cast<daq::IString*>(typeId), reinterpret_cast<daq::IPropertyObject*>(config));
+}
+
+daqErrCode daqServer_removeFunctionBlock(daqServer* self, daqFunctionBlock* functionBlock)
+{
+    return reinterpret_cast<daq::IServer*>(self)->removeFunctionBlock(reinterpret_cast<daq::IFunctionBlock*>(functionBlock));
+}

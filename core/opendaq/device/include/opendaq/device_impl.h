@@ -2598,6 +2598,19 @@ void GenericDevice<TInterface, Interfaces...>::updateObject(const SerializedObje
                            { updateIoFolderItem(this->ioFolder, localId, obj, context); });
     }
 
+    // Servers are not created or removed by an update; only those present under the same local ID are updated.
+    if (obj.hasKey("Srv"))
+    {
+        this->updateFolder(obj.readSerializedObject("Srv"),
+                           "Folder",
+                           "",
+                           [this, &context](const std::string& localId, const SerializedObjectPtr& obj)
+                           {
+                               if (servers.hasItem(localId))
+                                   servers.getItem(localId).template asPtr<IUpdatable>(true).updateInternal(obj, context);
+                           });
+    }
+
     const auto keys = obj.getKeys();
     for (const auto& key: keys)
     {

@@ -23,6 +23,23 @@ set(WITH_BENCHMARKS OFF)
 set(CPACK_OUTPUT_CONFIG_FILE ${CMAKE_CURRENT_BINARY_DIR}/libssh-CPackConfig.cmake)
 set(CPACK_SOURCE_OUTPUT_CONFIG_FILE ${CMAKE_CURRENT_BINARY_DIR}/libssh-CPackSourceConfig.cmake)
 
+# 0001: libssh includes netioapi.h directly in src/misc.c, which the Windows SDK only supports through iphlpapi.h;
+# with MSVC that fails to compile. The patch includes iphlpapi.h instead.
+#
+# openDAQ compiles every target, libssh included, with _WIN32_WINNT=0x0601 (Windows 7). libssh's configure checks
+# (check_symbol_exists & co.) do not see directory compile definitions, so they would run against the SDK's default
+# Windows version and report htonll/ntohll as available, while winsock2.h only provides them from Windows 8 on and
+# the actual compile fails to link them. Forward the Windows version definitions to the checks so that their
+# results match the build; libssh then falls back to its own htonll/ntohll.
+if (WIN32)
+    get_directory_property(_opendaq_compile_definitions COMPILE_DEFINITIONS)
+    foreach(_definition IN LISTS _opendaq_compile_definitions)
+        if (_definition MATCHES "^(_WIN32_WINNT|WINVER|NTDDI_VERSION)=")
+            list(APPEND CMAKE_REQUIRED_DEFINITIONS "-D${_definition}")
+        endif()
+    endforeach()
+endif()
+
 # The installed package config exports the plain "ssh" target (the ssh::ssh alias exists only in a source build),
 # so "ssh" is what both a found and a fetched libssh provide.
 opendaq_dependency(
@@ -31,6 +48,8 @@ opendaq_dependency(
     GIT_REPOSITORY      https://git.libssh.org/projects/libssh.git
     GIT_REF             libssh-0.12.2
     EXPECT_TARGET       ssh
+    PATCH_FILES
+        ${CMAKE_CURRENT_SOURCE_DIR}/patches/0001-misc-include-iphlpapi-instead-of-netioapi.patch
 )
 
 # libssh calls pthread_create (ProxyJump support) but links Threads only on MinGW. Before glibc 2.34 that needs

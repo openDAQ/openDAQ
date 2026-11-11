@@ -1,0 +1,25 @@
+Include iphlpapi.h instead of netioapi.h on Windows
+
+netioapi.h is only meant to be included through iphlpapi.h. When it is
+included directly, __IPHLPAPI_H__ is not defined and the header takes its
+kernel-mode branch, which declares every function with the NTSTATUS type
+that does not exist in a user-mode build. With MSVC and the Windows 10 SDK
+this fails with:
+
+    netioapi.h(229): error C2143: syntax error: missing '{' before '__cdecl'
+
+iphlpapi.h includes netioapi.h itself, in user mode, and provides
+if_nametoindex() the same way.
+
+diff --git a/src/misc.c b/src/misc.c
+--- a/src/misc.c
++++ b/src/misc.c
+@@ -61,7 +61,7 @@
+ #include <ws2tcpip.h>
+ #include <shlobj.h>
+ #include <direct.h>
+-#include <netioapi.h>
++#include <iphlpapi.h>
+ 
+ #ifdef HAVE_IO_H
+ #include <io.h>

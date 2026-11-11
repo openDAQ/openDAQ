@@ -105,9 +105,7 @@ ErrCode ConfigClientBaseFunctionBlockImpl<Impl>::Deserialize(ISerializedObject* 
                     {
                         const auto configDeserializeContext = deserializeContext.asPtr<IConfigProtocolDeserializeContext>();
 
-                        const auto typeId = serialized.readString("typeId");
-
-                        const auto fbType = FunctionBlockType(typeId, typeId, "", nullptr);
+                        const auto fbType = Super::DeserializeFunctionBlockType(serialized);
                         Super::DeserializeVersion(serialized, deserializeContext.getContext(), factoryCallback, fbType);
 
                         bool isRecorder = false;

@@ -114,6 +114,9 @@ protected:
                                                   const BaseObjectPtr& context,
                                                   const FunctionPtr& factoryCallback);
 
+    // The type the component carries, or a placeholder with only the ID from peers that write just the ID.
+    static FunctionBlockTypePtr DeserializeFunctionBlockType(const SerializedObjectPtr& serialized);
+
     static void DeserializeVersion(const SerializedObjectPtr& serialized,
                                    const BaseObjectPtr& context,
                                    const FunctionPtr& factoryCallback,
@@ -537,6 +540,13 @@ void FunctionBlockImpl<TInterface, Interfaces...>::serializeCustomObjectValues(c
 
     if(!forUpdate)
     {
+        // The type without its default config; clients take the default config from the type catalog.
+        if (const auto typePrivate = type.template asPtrOrNull<IComponentTypePrivate>(true); typePrivate.assigned())
+        {
+            serializer.key("componentType");
+            checkErrorInfo(typePrivate->serializeWithoutDefaultConfig(serializer));
+        }
+
         serializer.key("isRecorder");
         auto thisPtr = this->template borrowPtr<FunctionBlockPtr>();
         serializer.writeBool(thisPtr.template supportsInterface<IRecorder>());
@@ -597,9 +607,7 @@ BaseObjectPtr FunctionBlockImpl<TInterface, Interfaces...>::DeserializeFunctionB
                   const ComponentDeserializeContextPtr& deserializeContext,
                   const StringPtr& className) -> BaseObjectPtr
                {
-                   const auto typeId = serialized.readString("typeId");
-
-                   const auto fbType = FunctionBlockType(typeId, typeId, "", nullptr);
+                   const auto fbType = DeserializeFunctionBlockType(serialized);
 
                    return createWithImplementation<IFunctionBlock, Impl>(
                        fbType, deserializeContext.getContext(), deserializeContext.getParent(), deserializeContext.getLocalId(), className);
@@ -623,12 +631,23 @@ ErrCode FunctionBlockImpl<TInterface, Interfaces...>::Deserialize(ISerializedObj
 }
 
 template <typename TInterface, typename... Interfaces>
+FunctionBlockTypePtr FunctionBlockImpl<TInterface, Interfaces...>::DeserializeFunctionBlockType(const SerializedObjectPtr& serialized)
+{
+    if (serialized.hasKey("componentType"))
+        return serialized.readObject("componentType");
+
+    const auto typeId = serialized.readString("typeId");
+    return FunctionBlockType(typeId, typeId, "", nullptr);
+}
+
+template <typename TInterface, typename... Interfaces>
 void FunctionBlockImpl<TInterface, Interfaces...>::DeserializeVersion(const SerializedObjectPtr& serialized,
                                                                       const BaseObjectPtr& context,
                                                                       const FunctionPtr& factoryCallback,
                                                                       const FunctionBlockTypePtr& fbType)
 {
-    if (!serialized.hasKey("__version"))
+    // A carried type has its module info; the version alone only completes a placeholder.
+    if (!serialized.hasKey("__version") || fbType.getModuleInfo().assigned())
         return;
 
     if (serialized.getType("__version") != ctObject)

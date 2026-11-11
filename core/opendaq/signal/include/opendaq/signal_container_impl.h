@@ -23,6 +23,8 @@
 #include <opendaq/signal_factory.h>
 #include <opendaq/context_ptr.h>
 #include <opendaq/function_block_ptr.h>
+#include <opendaq/component_keys.h>
+#include <opendaq/search_filter_factory.h>
 #include <opendaq/custom_log.h>
 #include <opendaq/module_manager.h>
 #include <opendaq/module_manager_utils.h>
@@ -119,6 +121,8 @@ protected:
                                   const std::string& id);
 
     ErrCode getAvailableFunctionBlockTypesInternal(IDict** functionBlockTypes);
+    ErrCode getFunctionBlocksInternal(IList** functionBlocks, ISearchFilter* searchFilter);
+    ListPtr<IFunctionBlock> getFunctionBlocksRecursiveInternal(const SearchFilterPtr& searchFilter);
     ErrCode addFunctionBlockInternal(IFunctionBlock** functionBlock, IString* typeId, IPropertyObject* config = nullptr);
     ErrCode removeFunctionBlockInternal(IFunctionBlock* functionBlock);
 
@@ -591,6 +595,53 @@ void GenericSignalContainerImpl<Intf, Intfs...>::deserializeDefaultFolder(const 
         const FolderPtr newFolder = serializedObject.readObject(id, newDeserializeContext, factoryCallback);
         swapComponent(folder, newFolder);
     }
+}
+
+template <class Intf, class... Intfs>
+ErrCode GenericSignalContainerImpl<Intf, Intfs...>::getFunctionBlocksInternal(IList** functionBlocks, ISearchFilter* searchFilter)
+{
+    OPENDAQ_PARAM_NOT_NULL(functionBlocks);
+
+    if (!searchFilter)
+        return this->functionBlocks->getItems(functionBlocks);
+
+    const auto searchFilterPtr = SearchFilterPtr::Borrow(searchFilter);
+    if (searchFilterPtr.supportsInterface<IRecursiveSearch>())
+    {
+        const ErrCode errCode = daqTry([&]
+        {
+            *functionBlocks = getFunctionBlocksRecursiveInternal(searchFilterPtr).detach();
+            return OPENDAQ_SUCCESS;
+        });
+        OPENDAQ_RETURN_IF_FAILED(errCode);
+        return errCode;
+    }
+
+    return this->functionBlocks->getItems(functionBlocks, searchFilter);
+}
+
+template <class Intf, class... Intfs>
+ListPtr<IFunctionBlock> GenericSignalContainerImpl<Intf, Intfs...>::getFunctionBlocksRecursiveInternal(const SearchFilterPtr& searchFilter)
+{
+    tsl::ordered_set<FunctionBlockPtr, ComponentHash, ComponentEqualTo> allFbs;
+
+    // Direct items are matched one by one: a recursive folder search would also return their signals and ports.
+    for (const auto& item : this->functionBlocks.getItems(search::Any()))
+    {
+        const auto functionBlock = item.template asPtr<IFunctionBlock>();
+        if (searchFilter.acceptsObject(functionBlock))
+            allFbs.insert(functionBlock);
+
+        if (searchFilter.visitChildren(functionBlock))
+            for (const auto& fb : functionBlock.getFunctionBlocks(searchFilter))
+                allFbs.insert(fb);
+    }
+
+    auto fbList = List<IFunctionBlock>();
+    for (const auto& fb : allFbs)
+        fbList.pushBack(fb);
+
+    return fbList;
 }
 
 template <class Intf, class ... Intfs>

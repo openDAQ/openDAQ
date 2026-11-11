@@ -28,7 +28,7 @@ public:
 
     ConfigClientServerImpl(const ConfigProtocolClientCommPtr& configProtocolClientComm,
                            const std::string& remoteGlobalId,
-                           const StringPtr& id,
+                           const ServerTypePtr& serverType,
                            const DevicePtr& parentDevice,
                            const ContextPtr& ctx,
                            const ComponentPtr& parentFolder);
@@ -42,16 +42,24 @@ public:
 
 protected:
     void removed() override;
+
+    DictPtr<IString, IFunctionBlockType> onGetAvailableFunctionBlockTypes() override;
+    FunctionBlockPtr onAddFunctionBlock(const StringPtr& typeId, const PropertyObjectPtr& config) override;
+    void onRemoveFunctionBlock(const FunctionBlockPtr& functionBlock) override;
+
+private:
+    // Oldest native configuration protocol version that handles function block commands on servers.
+    static constexpr uint16_t FunctionBlockCommandsMinVersion = 26;
 };
 
 inline ConfigClientServerImpl::ConfigClientServerImpl(
     const ConfigProtocolClientCommPtr& configProtocolClientComm,
     const std::string& remoteGlobalId,
-    const StringPtr& id,
+    const ServerTypePtr& serverType,
     const DevicePtr& parentDevice,
     const ContextPtr& ctx,
     const ComponentPtr& parentFolder)
-    : Super(configProtocolClientComm, remoteGlobalId, id, nullptr, parentDevice, ctx, parentFolder)
+    : Super(configProtocolClientComm, remoteGlobalId, serverType, nullptr, parentDevice, ctx, parentFolder)
 {
 }
 
@@ -94,7 +102,7 @@ inline ErrCode ConfigClientServerImpl::Deserialize(ISerializedObject* serialized
                     {
                         const auto configDeserializeContext = deserializeContext.asPtr<IConfigProtocolDeserializeContext>();
 
-                        const auto id = serialized.readString("id");
+                        const auto serverType = DeserializeServerType(serialized);
                         DevicePtr parentDevice;
 
                         const auto parentFolder = deserializeContext.getParent();
@@ -110,7 +118,7 @@ inline ErrCode ConfigClientServerImpl::Deserialize(ISerializedObject* serialized
                         return createWithImplementation<IServer, ConfigClientServerImpl>(
                             configDeserializeContext->getClientComm(),
                             configDeserializeContext->getRemoteGlobalId(),
-                            id,
+                            serverType,
                             parentDevice,
                             deserializeContext.getContext(),
                             parentFolder);
@@ -124,6 +132,25 @@ inline ErrCode ConfigClientServerImpl::Deserialize(ISerializedObject* serialized
 inline void ConfigClientServerImpl::removed()
 {
     Super::Super::removed();
+}
+
+inline DictPtr<IString, IFunctionBlockType> ConfigClientServerImpl::onGetAvailableFunctionBlockTypes()
+{
+    // A device older than the server function block commands has no types to offer.
+    if (this->clientComm->getProtocolVersion() < FunctionBlockCommandsMinVersion)
+        return Dict<IString, IFunctionBlockType>();
+
+    return this->clientComm->getAvailableFunctionBlockTypes(this->remoteGlobalId, FunctionBlockCommandsMinVersion);
+}
+
+inline FunctionBlockPtr ConfigClientServerImpl::onAddFunctionBlock(const StringPtr& typeId, const PropertyObjectPtr& config)
+{
+    return this->addFunctionBlockRemote(typeId, config, FunctionBlockCommandsMinVersion);
+}
+
+inline void ConfigClientServerImpl::onRemoveFunctionBlock(const FunctionBlockPtr& functionBlock)
+{
+    this->removeFunctionBlockRemote(functionBlock, FunctionBlockCommandsMinVersion);
 }
 
 } // namespace daq::config_protocol

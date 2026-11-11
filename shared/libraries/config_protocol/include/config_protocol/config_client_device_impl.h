@@ -120,31 +120,13 @@ DictPtr<IString, IFunctionBlockType> GenericConfigClientDeviceImpl<TDeviceBase>:
 template <class TDeviceBase>
 FunctionBlockPtr GenericConfigClientDeviceImpl<TDeviceBase>::onAddFunctionBlock(const StringPtr& typeId, const PropertyObjectPtr& config)
 {
-    const ComponentHolderPtr fbHolder = this->clientComm->addFunctionBlock(this->remoteGlobalId, typeId, config, this->functionBlocks);
-
-    FunctionBlockPtr fb = fbHolder.getComponent();
-    if (!this->functionBlocks.hasItem(fb.getLocalId()))
-    {
-        this->clientComm->connectDomainSignals(fb);
-        this->addNestedFunctionBlock(fb);
-        this->clientComm->connectInputPorts(fb);
-        return fb;
-    }
-    return this->functionBlocks.getItem(fb.getLocalId());
+    return this->addFunctionBlockRemote(typeId, config, 0);
 }
 
 template <class TDeviceBase>
 void GenericConfigClientDeviceImpl<TDeviceBase>::onRemoveFunctionBlock(const FunctionBlockPtr& functionBlock)
 {
-    if (!functionBlock.assigned())
-        DAQ_THROW_EXCEPTION(InvalidParameterException);
-
-    this->clientComm->removeFunctionBlock(this->remoteGlobalId, functionBlock.getLocalId());
-
-    if (this->functionBlocks.hasItem(functionBlock.getLocalId()))
-    {
-        this->removeNestedFunctionBlock(functionBlock);
-    }
+    this->removeFunctionBlockRemote(functionBlock, 0);
 }
 
 template <class TDeviceBase>

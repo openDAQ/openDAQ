@@ -24,6 +24,8 @@ BEGIN_NAMESPACE_OPENDAQ
  * [interfaceLibrary(IProperty, "coreobjects")]
  * [interfaceSmartPtr(IServerCapability, GenericServerCapabilityPtr)]
  * [interfaceSmartPtr(IInteger, IntegerPtr, "<coretypes/integer.h>")]
+ * [interfaceLibrary(ITransportOption, "opendaq")]
+ * [interfaceSmartPtr(ITransportOption, TransportOptionPtr, "<opendaq/transport_option_ptr.h>")]
  */
 
 DECLARE_OPENDAQ_INTERFACE(IServerCapabilityConfig, IServerCapability)
@@ -100,8 +102,12 @@ DECLARE_OPENDAQ_INTERFACE(IServerCapabilityConfig, IServerCapability)
 
     // [returnSelf]
     /*!
-     * @brief Sets the port of the device
+     * @brief Sets the port of the default transport.
      * @param port The port of the device
+     *
+     * @deprecated Use setTransportOptions instead.
+     * When options are set, the first (default) one is replaced by a copy at the new port, keeping the order.
+     * Without options, only the port is stored.
      */
     virtual ErrCode INTERFACE_FUNC setPort(IInteger* port) = 0;
     
@@ -133,6 +139,28 @@ DECLARE_OPENDAQ_INTERFACE(IServerCapabilityConfig, IServerCapability)
      * @param methodId The authentication method id to add.
      */
     virtual ErrCode INTERFACE_FUNC addAuthenticationMethod(IString* methodId) = 0;
+
+    // [templateType(transportOptions, ITransportOption), returnSelf]
+    /*!
+     * @brief Sets the transport options the server accepts connections over, with the port it serves each on.
+     * @param transportOptions The served options, the server's preferred first.
+     * @retval OPENDAQ_ERR_INVALIDTYPE if an element is not a transport option.
+     * @retval OPENDAQ_ERR_INVALIDVALUE if two options have the same name.
+     *
+     * Replaces any previously set options. The first one becomes the default, and its port is the one returned by
+     * getPort; that port is also stored as the port read by older clients. An empty list leaves that port unchanged.
+     */
+    virtual ErrCode INTERFACE_FUNC setTransportOptions(IList* transportOptions) = 0;
+
+    // [returnSelf]
+    /*!
+     * @brief Adds a transport option the server accepts connections over, after the ones already set.
+     * @param transportOption The served option, with the port it is served on.
+     * @retval OPENDAQ_ERR_INVALIDVALUE if an option of the same name is already set.
+     *
+     * The first option added becomes the default, and sets the port read by older clients.
+     */
+    virtual ErrCode INTERFACE_FUNC addTransportOption(ITransportOption* transportOption) = 0;
 };
 
 OPENDAQ_DECLARE_CLASS_FACTORY_WITH_INTERFACE(

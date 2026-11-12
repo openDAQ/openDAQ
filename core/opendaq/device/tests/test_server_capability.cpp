@@ -7,6 +7,7 @@
 #include <coretypes/json_serializer_factory.h>
 #include <coretypes/json_deserializer_factory.h>
 #include <opendaq/device_type_factory.h>
+#include <opendaq/transport_option_factory.h>
 
 using ServerCapabilityTest = testing::Test;
 
@@ -134,6 +135,211 @@ TEST_F(ServerCapabilityTest, Clone)
     ASSERT_EQ(cloned.getConnectionString(), "connection string");
     ASSERT_EQ(cloned.getProtocolGroupId(), "protocol_group_id");
     ASSERT_EQ(cloned.getProtocolSecurityLevel(), 3);
+}
+
+static ListPtr<IString> OptionNames(const ListPtr<ITransportOption>& options)
+{
+    auto names = List<IString>();
+    for (const auto& option : options)
+        names.pushBack(option.getName());
+    return names;
+}
+
+TEST_F(ServerCapabilityTest, TransportOptionsDefault)
+{
+    ServerCapabilityConfigPtr capability = ServerCapability("protocol_id", "Protocol name", ProtocolType::Streaming);
+    ASSERT_EQ(capability.getTransportOptions().getCount(), 0u);
+}
+
+TEST_F(ServerCapabilityTest, SetGetTransportOptions)
+{
+    ServerCapabilityConfigPtr capability =
+        ServerCapability("protocol_id", "Protocol name", ProtocolType::Streaming)
+            .setTransportOptions(List<ITransportOption>(TransportOption("wss", 7443, TransportProtection::Encrypted, True),
+                                                        TransportOption("tls", 7421, TransportProtection::Encrypted),
+                                                        TransportOption("plain", 7420)));
+
+    const auto options = capability.getTransportOptions();
+    ASSERT_EQ(OptionNames(options), List<IString>("wss", "tls", "plain"));
+    ASSERT_EQ(options[1].getPort(), 7421);
+    ASSERT_EQ(options[0].getProtection(), TransportProtection::Encrypted);
+    ASSERT_TRUE(options[0].getCertificateRequired());
+    ASSERT_EQ(options[2].getProtection(), TransportProtection::None);
+}
+
+TEST_F(ServerCapabilityTest, SetTransportOptionsReplaces)
+{
+    ServerCapabilityConfigPtr capability = ServerCapability("protocol_id", "Protocol name", ProtocolType::Streaming);
+
+    capability.setTransportOptions(List<ITransportOption>(TransportOption("plain", 7420), TransportOption("tls", 7421)));
+    capability.setTransportOptions(List<ITransportOption>(TransportOption("https", 443)));
+
+    ASSERT_EQ(OptionNames(capability.getTransportOptions()), List<IString>("https"));
+}
+
+TEST_F(ServerCapabilityTest, SetTransportOptionsInvalid)
+{
+    ServerCapabilityConfigPtr capability = ServerCapability("protocol_id", "Protocol name", ProtocolType::Streaming);
+
+    ASSERT_THROW(capability.setTransportOptions(nullptr), ArgumentNullException);
+    ASSERT_THROW(capability.setTransportOptions(List<IBaseObject>(String("plain"))), InvalidTypeException);
+    ASSERT_THROW(capability.setTransportOptions(List<ITransportOption>(TransportOption("plain", 7420), TransportOption("plain", 7421))),
+                 InvalidValueException);
+    ASSERT_EQ(capability.getTransportOptions().getCount(), 0u);
+}
+
+TEST_F(ServerCapabilityTest, AddTransportOption)
+{
+    ServerCapabilityConfigPtr capability = ServerCapability("protocol_id", "Protocol name", ProtocolType::Streaming)
+                                               .addTransportOption(TransportOption("plain", 7420))
+                                               .addTransportOption(TransportOption("tls", 7422, TransportProtection::Encrypted));
+
+    ASSERT_EQ(OptionNames(capability.getTransportOptions()), List<IString>("plain", "tls"));
+    // the first option added is the default one
+    ASSERT_EQ(capability.getPort(), 7420);
+    ASSERT_EQ(capability.getPropertyValue("Port"), 7420);
+
+    ASSERT_THROW(capability.addTransportOption(TransportOption("tls", 9000)), InvalidValueException);
+    ASSERT_THROW(capability.addTransportOption(nullptr), ArgumentNullException);
+    ASSERT_EQ(capability.getTransportOptions()[1].getPort(), 7422);
+}
+
+TEST_F(ServerCapabilityTest, TransportOptionsFrozen)
+{
+    ServerCapabilityConfigPtr capability = ServerCapability("protocol_id", "Protocol name", ProtocolType::Streaming);
+    capability.freeze();
+
+    ASSERT_THROW(capability.setTransportOptions(List<ITransportOption>(TransportOption("plain", 7420))), FrozenException);
+    ASSERT_THROW(capability.addTransportOption(TransportOption("plain", 7420)), FrozenException);
+}
+
+TEST_F(ServerCapabilityTest, TransportOptionsAreCopied)
+{
+    auto options = List<ITransportOption>(TransportOption("plain", 7420));
+    ServerCapabilityConfigPtr capability = ServerCapability("protocol_id", "Protocol name", ProtocolType::Streaming)
+                                               .setTransportOptions(options);
+
+    options.pushBack(TransportOption("tls", 7421));
+    capability.getTransportOptions().pushBack(TransportOption("wss", 7443));
+
+    ASSERT_EQ(OptionNames(capability.getTransportOptions()), List<IString>("plain"));
+}
+
+// The options are written as plain Property objects, which a client without transport options reads too
+TEST_F(ServerCapabilityTest, SerializeDeserializeTransportOptions)
+{
+    ServerCapabilityConfigPtr capability =
+        ServerCapability("protocol_id", "Protocol name", ProtocolType::Streaming)
+            .setTransportOptions(List<ITransportOption>(TransportOption("wss", 7443, TransportProtection::Encrypted, True),
+                                                        TransportOption("tls", 7421, TransportProtection::Encrypted),
+                                                        TransportOption("plain", 7420)));
+
+    const auto serializer = JsonSerializer();
+    capability.serialize(serializer);
+    const auto serializedCapability = serializer.getOutput();
+    ASSERT_EQ(std::string(serializedCapability).find(R"("__type":"TransportOption")"), std::string::npos);
+
+    const auto deserializer = JsonDeserializer();
+    const ServerCapabilityPtr newCapability = deserializer.deserialize(serializedCapability, nullptr, nullptr);
+
+    const auto options = newCapability.getTransportOptions();
+    ASSERT_EQ(OptionNames(options), List<IString>("wss", "tls", "plain"));
+    ASSERT_EQ(options[1].getPort(), 7421);
+    ASSERT_EQ(options[0].getProtection(), TransportProtection::Encrypted);
+    ASSERT_TRUE(options[0].getCertificateRequired());
+    ASSERT_EQ(newCapability.getPort(), 7443);
+    // What an older client reads
+    ASSERT_EQ(newCapability.getPropertyValue("Port"), 7443);
+
+    serializer.reset();
+    newCapability.serialize(serializer);
+    ASSERT_EQ(serializedCapability, serializer.getOutput());
+}
+
+// A capability serialized by an older SDK has no transport options property
+TEST_F(ServerCapabilityTest, DeserializeWithoutTransportOptions)
+{
+    ServerCapabilityConfigPtr capability = ServerCapability("protocol_id", "Protocol name", ProtocolType::Streaming).setPort(7420);
+    capability.removeProperty("TransportOptions");
+
+    const auto serializer = JsonSerializer();
+    capability.serialize(serializer);
+    const auto serializedCapability = serializer.getOutput();
+    ASSERT_EQ(std::string(serializedCapability).find("TransportOptions"), std::string::npos);
+
+    const auto deserializer = JsonDeserializer();
+    const ServerCapabilityPtr newCapability = deserializer.deserialize(serializedCapability, nullptr, nullptr);
+
+    ASSERT_EQ(newCapability.getTransportOptions().getCount(), 0u);
+    ASSERT_EQ(newCapability.getPort(), 7420);
+}
+
+TEST_F(ServerCapabilityTest, CloneTransportOptions)
+{
+    ServerCapabilityConfigPtr capability =
+        ServerCapability("protocol_id", "Protocol name", ProtocolType::Streaming)
+            .setTransportOptions(List<ITransportOption>(TransportOption("tls", 7421, TransportProtection::Encrypted), TransportOption("plain", 7420)));
+
+    const ServerCapabilityPtr cloned = capability.asPtr<IPropertyObjectInternal>().clone();
+
+    ASSERT_EQ(OptionNames(cloned.getTransportOptions()), List<IString>("tls", "plain"));
+    ASSERT_EQ(cloned.getTransportOptions()[0].getProtection(), TransportProtection::Encrypted);
+}
+
+TEST_F(ServerCapabilityTest, PortWithoutTransportOptions)
+{
+    ServerCapabilityConfigPtr capability = ServerCapability("protocol_id", "Protocol name", ProtocolType::Streaming).setPort(7420);
+
+    ASSERT_EQ(capability.getPort(), 7420);
+    ASSERT_EQ(capability.getTransportOptions().getCount(), 0u);
+}
+
+TEST_F(ServerCapabilityTest, SetTransportOptionsMirrorsPort)
+{
+    ServerCapabilityConfigPtr capability = ServerCapability("protocol_id", "Protocol name", ProtocolType::Streaming)
+                                               .setPort(1234)
+                                               .setTransportOptions(List<ITransportOption>(TransportOption("tls", 7421), TransportOption("plain", 7420)));
+
+    ASSERT_EQ(capability.getPort(), 7421);
+    ASSERT_EQ(capability.getPropertyValue("Port"), 7421);
+}
+
+TEST_F(ServerCapabilityTest, SetEmptyTransportOptionsKeepsPort)
+{
+    ServerCapabilityConfigPtr capability = ServerCapability("protocol_id", "Protocol name", ProtocolType::Streaming)
+                                               .setPort(7420)
+                                               .setTransportOptions(List<ITransportOption>());
+
+    ASSERT_EQ(capability.getPort(), 7420);
+    ASSERT_EQ(capability.getPropertyValue("Port"), 7420);
+}
+
+TEST_F(ServerCapabilityTest, SetPortUpdatesDefaultOption)
+{
+    ServerCapabilityConfigPtr capability =
+        ServerCapability("protocol_id", "Protocol name", ProtocolType::Streaming)
+            .setTransportOptions(List<ITransportOption>(TransportOption("tls", 7421, TransportProtection::Encrypted), TransportOption("plain", 7420)))
+            .setPort(8000);
+
+    const auto options = capability.getTransportOptions();
+    ASSERT_EQ(OptionNames(options), List<IString>("tls", "plain"));
+    ASSERT_EQ(options[0].getPort(), 8000);
+    ASSERT_EQ(options[0].getProtection(), TransportProtection::Encrypted);
+    ASSERT_EQ(options[1].getPort(), 7420);
+    ASSERT_EQ(capability.getPort(), 8000);
+    ASSERT_EQ(capability.getPropertyValue("Port"), 8000);
+}
+
+// Unlike a dictionary, the list keeps a reordering, so the default option and the port follow it
+TEST_F(ServerCapabilityTest, ReorderingChangesTheDefaultOption)
+{
+    ServerCapabilityConfigPtr capability = ServerCapability("protocol_id", "Protocol name", ProtocolType::Streaming)
+                                               .setTransportOptions(List<ITransportOption>(TransportOption("tls", 7421), TransportOption("plain", 7420)))
+                                               .setTransportOptions(List<ITransportOption>(TransportOption("plain", 7420), TransportOption("tls", 7421)));
+
+    ASSERT_EQ(capability.getTransportOptions()[0].getName(), "plain");
+    ASSERT_EQ(capability.getPort(), 7420);
+    ASSERT_EQ(capability.getPropertyValue("Port"), 7420);
 }
 
 END_NAMESPACE_OPENDAQ

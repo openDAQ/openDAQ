@@ -94,6 +94,14 @@ ErrCode MdnsDiscoveryServerImpl::registerService(IString* id, IPropertyObject* c
             properties["authMethods"] = authMethods;
     }
 
+    // The optional "AvailableTransports" dictionary of the service, joined into one TXT value
+    if (configPtr.hasProperty("AvailableTransports"))
+    {
+        const DictPtr<IString, IInteger> transports = configPtr.getPropertyValue("AvailableTransports");
+        if (const auto value = DiscoveryUtils::transportsToTxt(transports); !value.empty())
+            properties[DiscoveryUtils::TRANSPORTS_KEY] = value;
+    }
+
     MdnsDiscoveredService service(serviceName, servicePort, properties, PropertyObjectPtr::Borrow(deviceInfo));
     if (discoveryServer.registerService(serviceId, service))
     {

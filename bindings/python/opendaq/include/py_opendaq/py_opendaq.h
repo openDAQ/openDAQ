@@ -180,6 +180,7 @@ void defineIReaderStatus(pybind11::module_ m, PyDaqIntf<daq::IReaderStatus, daq:
 void defineIBlockReaderStatus(pybind11::module_ m, PyDaqIntf<daq::IBlockReaderStatus, daq::IReaderStatus> cls);
 void defineITailReaderStatus(pybind11::module_ m, PyDaqIntf<daq::ITailReaderStatus, daq::IReaderStatus> cls);
 void defineIMultiReaderStatus(pybind11::module_ m, PyDaqIntf<daq::IMultiReaderStatus, daq::IReaderStatus> cls);
+void wrapMultiReader2(pybind11::module_ m);
 void defineIAwaitable(pybind11::module_ m, PyDaqIntf<daq::IAwaitable, daq::IBaseObject> cls);
 void defineIGraphVisualization(pybind11::module_ m, PyDaqIntf<daq::IGraphVisualization, daq::IBaseObject> cls);
 void defineIScheduler(pybind11::module_ m, PyDaqIntf<daq::IScheduler, daq::IBaseObject> cls);

@@ -40,9 +40,6 @@ public:
     ErrCode INTERFACE_FUNC getConnectionStringPrefix(IString** prefix) override;
     ErrCode INTERFACE_FUNC getDeviceKind(DeviceKind* kind) override;
 
-    // Adds the "TransportOption" and "Port" properties a module connects by when the type lists transport options
-    ErrCode INTERFACE_FUNC createDefaultConfig(IPropertyObject** defaultConfig) override;
-
     // ISerializable
     ErrCode INTERFACE_FUNC serialize(ISerializer* serializer) override;
     ErrCode INTERFACE_FUNC getSerializeId(ConstCharPtr* serializedId) const override;

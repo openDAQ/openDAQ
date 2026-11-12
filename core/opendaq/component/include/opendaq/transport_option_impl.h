@@ -16,10 +16,12 @@
 #pragma once
 #include <opendaq/transport_option.h>
 #include <opendaq/transport_option_factory.h>
+#include <opendaq/component_type.h>
 #include <coreobjects/property_object_impl.h>
 #include <coreobjects/property_object_factory.h>
 #include <coreobjects/property_factory.h>
 #include <coretypes/listobject_factory.h>
+#include <fmt/format.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
@@ -107,8 +109,8 @@ inline ListPtr<ITransportOption> TransportOptionsFromPropertyObjects(const ListP
 }
 
 /*!
- * @brief Adds the properties a module connects by to the default config of a device or streaming type.
- * @param config The type's default config.
+ * @brief Adds the properties a module connects by to the config a device or streaming is created with.
+ * @param config The type config.
  * @param options The type's transport options; nothing is added when there are none.
  *
  * Adds TransportOptionConfigProperty, set to the name of the first option, and PortConfigProperty, set to its port.
@@ -124,6 +126,19 @@ inline void AddTransportSelectionProperties(const PropertyObjectPtr& config, con
         config.addProperty(StringProperty(TransportOptionConfigProperty, defaultOption.getName()));
     if (!config.hasProperty(PortConfigProperty))
         config.addProperty(IntProperty(PortConfigProperty, defaultOption.getPort()));
+}
+
+/*!
+ * @brief Gets the transport options of a device or streaming type.
+ * @returns The options, or an empty list if the type lists none or does not implement them.
+ */
+inline ListPtr<ITransportOption> ComponentTypeTransportOptions(IComponentType* type)
+{
+    ListPtr<ITransportOption> options;
+    if (type == nullptr || OPENDAQ_FAILED(type->getTransportOptions(&options)))
+        daqClearErrorInfo();
+
+    return options.assigned() ? options : List<ITransportOption>();
 }
 
 /*!
@@ -157,6 +172,31 @@ inline TransportOptionPtr FindTransportOption(const ListPtr<ITransportOption>& o
     }
 
     return nullptr;
+}
+
+/*!
+ * @brief Gets the expression of the port of the selected transport option, for the default value of the port property of
+ * an add-device or add-streaming config.
+ * @param options The options; none of their names may contain a quote.
+ * @param selectionProperty The name of the string property that names the selected option.
+ * @returns A `switch` over the option names with their ports, the port of the first option for a name it does not list.
+ */
+inline StringPtr SelectedTransportOptionPortEval(const ListPtr<ITransportOption>& options, const std::string& selectionProperty)
+{
+    if (!options.assigned() || options.getCount() == 0)
+        DAQ_THROW_EXCEPTION(InvalidParameterException, "There are no transport options to select");
+
+    std::string eval = "switch($" + selectionProperty;
+    for (const auto& option : options)
+    {
+        const std::string name = option.getName();
+        if (name.find('\'') != std::string::npos)
+            DAQ_THROW_EXCEPTION(InvalidParameterException, R"(The transport option name "{}" contains a quote)", name);
+
+        eval += fmt::format(", '{}', {}", name, static_cast<Int>(option.getPort()));
+    }
+
+    return eval + fmt::format(", {})", static_cast<Int>(TransportOptionPtr(options[0]).getPort()));
 }
 
 END_NAMESPACE_OPENDAQ

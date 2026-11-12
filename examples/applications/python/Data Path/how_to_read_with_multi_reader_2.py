@@ -91,7 +91,7 @@ print('available:', reader.available_count)              # 100
 
 # Read: one result object. The count is required; read never waits
 r = reader.read(60)
-print('read', len(r), 'samples at offset', r.offset)     # 60 samples at offset 0
+print('read', r.count, 'samples at offset', r.offset)     # 60 samples at offset 0
 print('ch0 first values:', r[0][:3])                      # by slot index
 print('ch1 first values:', r[signals[1]][:3])             # or by input
 print('one array per input:', [v.shape for v in r.values])   # [(60,), (60,), (60,)]
@@ -105,7 +105,7 @@ print('status:', r.status)                                # no changes
 # inputs fill a matrix you own; with inputs of different rates, pass a list of arrays sized per input
 matrix = np.empty((3, 32))
 r = reader.read_into(matrix, 32)
-print('read_into', len(r), 'samples; r[0] is a view of row 0:', np.shares_memory(r[0], matrix[0]))
+print('read_into', r.count, 'samples; r[0] is a view of row 0:', np.shares_memory(r[0], matrix[0]))
 
 # Skip: returns (count, offset, status)
 skipped, offset, status = reader.skip_samples(8)
@@ -142,7 +142,7 @@ for signal in signals + [amps]:
     send(signal, 150, np.arange(150, 170))
 wait_for(20)
 r = reader.read(reader.available_count)
-print('read:', len(r), 'samples;', [None if v is None else v.shape for v in r.values])   # ch3: None
+print('read:', r.count, 'samples;', [None if v is None else v.shape for v in r.values])   # ch3: None
 
 
 # Drain from the handler: the samples of each read first, then its status
@@ -153,7 +153,7 @@ received = []
 def on_data():
     with lock:
         for r in reader.drain():
-            if len(r):
+            if r.count:
                 received.append(np.stack([v for v in r.values if v is not None]))   # ch3 is set aside
             if r.status.has_changes:
                 print('handler saw a status:', r.status)

@@ -1324,7 +1324,7 @@ void wrapMultiReader2(pybind11::module_ m)
     // Read result
 
     py::class_<PyReadResult>(m, "MultiReader2ReadResult", "The samples, offset and status of one read.")
-        .def("__len__", [](const PyReadResult& r) { return r.count; }, "The count read, in main ticks.")
+        .def_property_readonly("count", [](const PyReadResult& r) { return r.count; }, "The count read, in main ticks.")
         .def("__getitem__", [](const PyReadResult& r, const py::object& key) -> py::object { return r.values[r.slotOf(key)]; },
              py::arg("input"), "One input's array, by slot index or by input; None for an input in error.")
         .def_property_readonly("values", [](const PyReadResult& r) { return r.values; }, "The arrays in slot order; None for an input in error.")

@@ -84,7 +84,7 @@ class TestMultiReader2(opendaq_test.TestCase):
     def test_first_status(self):
         reader = daq.MultiReader2(self.signals)
         r = reader.read(10)
-        self.assertEqual(len(r), 0)
+        self.assertEqual(r.count, 0)
         status = r.status
         self.assertTrue(status.has_changes)
         self.assertTrue(status.ok)
@@ -100,7 +100,7 @@ class TestMultiReader2(opendaq_test.TestCase):
         reader = self.started()
         self.feed(reader, 0, 100)
         r = reader.read(60)
-        self.assertEqual(len(r), 60)
+        self.assertEqual(r.count, 60)
         self.assertEqual(r.offset, 0)
         self.assertFalse(r.status.has_changes)
         np.testing.assert_array_equal(r[0], np.arange(60))
@@ -123,7 +123,7 @@ class TestMultiReader2(opendaq_test.TestCase):
         reader = self.started()
         self.feed(reader, 0, 40)
         r = reader.read(1000)
-        self.assertEqual(len(r), 40)
+        self.assertEqual(r.count, 40)
         self.assertTrue(all(v.flags.c_contiguous and v.shape == (40,) for v in r.values))
         self.assertEqual(reader.read(10).values[0].shape, (0,))
 
@@ -144,7 +144,7 @@ class TestMultiReader2(opendaq_test.TestCase):
         self.feed(reader, 0, 50)
         matrix = np.zeros((3, 64))
         r = reader.read_into(matrix, 50)
-        self.assertEqual(len(r), 50)
+        self.assertEqual(r.count, 50)
         np.testing.assert_array_equal(matrix[:, :50], np.stack([np.arange(50) + 1000 * i for i in range(3)]))
         self.assertTrue(np.shares_memory(r[0], matrix))
         self.assertEqual(r[0].shape, (50,))
@@ -194,11 +194,11 @@ class TestMultiReader2(opendaq_test.TestCase):
 
         def pull():
             results.extend(reader.drain())
-            return sum(len(r) for r in results) >= 25
+            return sum(r.count for r in results) >= 25
 
         self.assertTrue(wait_until(pull))
         self.assertTrue(results[0].status.has_changes)
-        self.assertEqual(sum(len(r) for r in results), 25)
+        self.assertEqual(sum(r.count for r in results), 25)
         self.assertEqual(list(reader.drain()), [])
 
     def test_configure_keeps_unnamed_fields(self):
@@ -255,14 +255,14 @@ class TestMultiReader2(opendaq_test.TestCase):
 
         self.feed(reader, 0, 10, signals=inputs)
         r = reader.read(10)
-        self.assertEqual(len(r), 10)
+        self.assertEqual(r.count, 10)
         self.assertIsNone(r[2])
         self.assertIsNone(r[amps])
         self.assertEqual([v is None for v in r.values], [False, False, True])
         buffers = [np.zeros(10), np.zeros(10), None]                   # no buffer needed for the excluded input
         self.feed(reader, 10, 10, signals=inputs)
         r = reader.read_into(buffers, 10)
-        self.assertEqual(len(r), 10)
+        self.assertEqual(r.count, 10)
         self.assertIsNone(r[2])
 
     def test_raising_accepts_is_a_rejection(self):
@@ -349,7 +349,7 @@ class TestMultiReader2(opendaq_test.TestCase):
         def on_data():
             with lock:
                 for r in reader.drain():
-                    if len(r):
+                    if r.count:
                         received.append(np.stack(r.values))
 
         reader = daq.MultiReader2(self.signals, on_data_available=on_data)
@@ -366,7 +366,7 @@ class TestMultiReader2(opendaq_test.TestCase):
         self.feed(reader, 0, 10)
         with self.assertRaises(Exception):
             reader.read(5)
-        self.assertEqual(len(reader.read(10)), 10)
+        self.assertEqual(reader.read(10).count, 10)
 
 
 if __name__ == '__main__':

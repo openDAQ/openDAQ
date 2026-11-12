@@ -30,6 +30,7 @@
 #include <packet_streaming/packet_streaming_client.h>
 #include <packet_streaming/packet_streaming_server.h>
 
+#include <atomic>
 #include <chrono>
 #include <future>
 #include <memory>
@@ -87,6 +88,9 @@ public:
                                       const OnSignalUnsubscribedCallback& signalUnsubscribedHandler);
 
     void setAlternativeAddresses(const ListPtr<IString>& alternativeAddresses);
+
+    // Closes the connection and stops reconnecting, so that the transport thread runs out of work.
+    void shutdown();
 
 protected:
     void manageTransportLayerProps();
@@ -155,6 +159,7 @@ protected:
     OnSignalUnsubscribedCallback signalUnsubscribedHandler;
 
     std::shared_ptr<boost::asio::steady_timer> reconnectionTimer;
+    std::atomic<bool> shuttingDown{false};
 
     std::shared_ptr<daq::native_streaming::Client> client;
     std::shared_ptr<ClientSessionHandler> sessionHandler;

@@ -1,6 +1,7 @@
 #include <native_streaming_protocol/native_streaming_client_handler.h>
 #include <native_streaming_protocol/async_exception_guard.h>
 #include <native_streaming/client.hpp>
+#include <boost/asio/dispatch.hpp>
 #include <boost/asio/ip/host_name.hpp>
 #include "native_streaming_protocol/streaming_manager.h"
 
@@ -251,8 +252,28 @@ void NativeStreamingClientImpl::setStreamingToDeviceHandlers(const OnSignalSubsc
     this->signalUnsubscribedHandler = signalUnsubscribedHandler;
 }
 
+void NativeStreamingClientImpl::shutdown()
+{
+    shuttingDown = true;
+
+    // Done on the transport thread so that it cannot run next to one of that thread's handlers.
+    boost::asio::dispatch(*ioContextPtr,
+                          [weakSelf = weak_from_this()]()
+                          {
+                              if (const auto self = weakSelf.lock())
+                              {
+                                  self->reconnectionTimer->cancel();
+                                  self->sessionHandler.reset();
+                                  self->client.reset();
+                              }
+                          });
+}
+
 void NativeStreamingClientImpl::armReconnectionTimer()
 {
+    if (shuttingDown)
+        return;
+
     // The wait is completed on the transport thread even when it is cancelled, possibly after this object is gone.
     reconnectionTimer->expires_from_now(reconnectionPeriod);
     reconnectionTimer->async_wait(
@@ -295,6 +316,9 @@ void NativeStreamingClientImpl::checkReconnectionResult(const boost::system::err
 
 void NativeStreamingClientImpl::tryReconnect()
 {
+    if (shuttingDown)
+        return;
+
     LOG_I("Try reconnect ...");
 
     reconnectionTimer->cancel();
@@ -468,6 +492,9 @@ void NativeStreamingClientImpl::onSessionError(const std::string& errorMessage, 
     LOG_W("Closing connection caused by: {}", errorMessage);
     sessionHandler.reset();
     packetStreamingServerPtr.reset();
+
+    if (shuttingDown)
+        return;
 
     connectionStatusChanged(Enumeration("ConnectionStatusType", "Reconnecting", this->context.getTypeManager()),
                             "Network connection interrupted or closed by the remote device");
@@ -739,7 +766,9 @@ NativeStreamingClientHandler::NativeStreamingClientHandler(const ContextPtr& con
 
 NativeStreamingClientHandler::~NativeStreamingClientHandler()
 {
-    // Join the IO thread first: its handlers use the client implementation, some through a raw this.
+    // The IO thread is joined before the client implementation is destroyed. The implementation closes its
+    // connection first, otherwise the thread would never run out of work.
+    clientHandlerPtr->shutdown();
     stopTransportOperations();
     clientHandlerPtr.reset();
 }

@@ -1,0 +1,46 @@
+/*
+ * Copyright 2022-2026 openDAQ d.o.o.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+#pragma once
+#include <opendaq/transport_option_ptr.h>
+#include <coretypes/integer_factory.h>
+
+BEGIN_NAMESPACE_OPENDAQ
+
+/*!
+ * @ingroup opendaq_transport_option
+ * @addtogroup opendaq_transport_option_factories Factories
+ * @{
+ */
+
+/*!
+ * @brief Creates a frozen transport option.
+ * @param name The name of the option, unique within a component type (e.g. "plain", "tls"). Must not be empty.
+ * @param port The port of the option, 0 for a carrier without ports. Must not be negative.
+ * @param protection What the option protects the data it carries against.
+ * @param certificateRequired True when the connection over this option needs a client certificate.
+ */
+inline TransportOptionPtr TransportOption(const StringPtr& name,
+                                          Int port,
+                                          TransportProtection protection = TransportProtection::None,
+                                          Bool certificateRequired = False)
+{
+    TransportOptionPtr obj(TransportOption_Create(name, Integer(port), protection, certificateRequired));
+    return obj;
+}
+
+/*!@}*/
+
+END_NAMESPACE_OPENDAQ

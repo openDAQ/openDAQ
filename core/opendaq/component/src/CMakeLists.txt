@@ -18,6 +18,7 @@ function(rtgen_component_${BASE_NAME})
     rtgen(SRC_ComponentTypeBuilder component_type_builder.h)
     rtgen(SRC_ComponentUpdateContext component_update_context.h)
     rtgen(SRC_UpdateParameters update_parameters.h)
+    rtgen(SRC_TransportOption transport_option.h)
     
     set(SRC_PublicHeaders_Component_Generated
         ${SRC_Component_PublicHeaders}
@@ -39,6 +40,7 @@ function(rtgen_component_${BASE_NAME})
         ${SRC_ComponentTypeBuilder_PublicHeaders}
         ${SRC_ComponentUpdateContext_PublicHeaders}
         ${SRC_UpdateParameters_PublicHeaders}
+        ${SRC_TransportOption_PublicHeaders}
         PARENT_SCOPE
     )
     
@@ -61,6 +63,7 @@ function(rtgen_component_${BASE_NAME})
         ${SRC_ComponentHolder_Cpp}
         ${SRC_ComponentUpdateContext_Cpp}
         ${SRC_UpdateParameters_Cpp}
+        ${SRC_TransportOption_Cpp}
         PARENT_SCOPE
     )
 
@@ -133,6 +136,10 @@ function(create_component_source_groups_${BASE_NAME})
         ${SDK_HEADERS_DIR}/component_type_builder_factory.h
         ${SDK_HEADERS_DIR}/component_type_private.h
         ${SDK_SRC_DIR}/component_type_impl.cpp
+        ${SDK_HEADERS_DIR}/transport_option.h
+        ${SDK_HEADERS_DIR}/transport_option_factory.h
+        ${SDK_HEADERS_DIR}/transport_option_impl.h
+        ${SDK_SRC_DIR}/transport_option_impl.cpp
     )
 endfunction()
 
@@ -163,6 +170,7 @@ set(SRC_PublicHeaders_Component
     update_parameters.h
     update_parameters_factory.h
     component_type_impl.h
+    transport_option_factory.h
     PARENT_SCOPE
 )
 
@@ -172,6 +180,7 @@ set(SRC_PrivateHeaders_Component
     component_status_container_private.h
     component_holder_impl.h
     update_parameters_impl.h
+    transport_option_impl.h
     PARENT_SCOPE
 )
 
@@ -185,5 +194,6 @@ set(SRC_Cpp_Component
     component_status_container_impl.cpp
     component_holder_impl.cpp
     update_parameters_impl.cpp
+    transport_option_impl.cpp
     PARENT_SCOPE
 )

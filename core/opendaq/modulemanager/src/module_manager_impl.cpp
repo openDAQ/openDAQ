@@ -1565,23 +1565,22 @@ ErrCode ModuleManagerImpl::createAddDeviceConfig(IAddDeviceConfig** config, IDev
 
         const auto deviceType = chooseDeviceType(infoPtr, prefixPtr, deviceTypes);
         const auto capabilities = infoPtr.getServerCapabilities();
-        const auto listedTypes = (capabilities.getCount() > 0) ? getAdvertisedStreamingTypes(capabilities, streamingTypes) : streamingTypes;
+        const auto candidates = (capabilities.getCount() > 0) ? getAdvertisedStreamingTypes(capabilities, streamingTypes) : streamingTypes;
+        auto listedTypes = Dict<IString, IStreamingType>();
+        for (const auto& [id, streamingType] : candidates)
+            if (isStreamingTypeIdReserved(id))
+            {
+                LOG_W(R"(Streaming type ID "{}" is reserved)", id);
+            }
+            else
+                listedTypes.set(id, streamingType);
+
         auto addDeviceConfig = AddDeviceConfig(deviceType, listedTypes, scanOnAdd);
 
         const auto options = addDeviceConfig.getStreamingOptions();
         if (options.assigned())
         {
-            const auto offered = options.getStreamingConfigs();
-            auto offeredTypes = Dict<IString, IStreamingType>();
-            for (const auto& [id, streamingType] : listedTypes)
-                if (offered.hasKey(id))
-                    offeredTypes.set(id, streamingType);
-                else
-                {
-                    LOG_W(R"(Streaming type "{}" is not offered for device type "{}": its ID can't be listed)", id, deviceType.getId());
-                }
-
-            const auto defaultType = selectStreamingType(offeredTypes, deviceType, true);
+            const auto defaultType = selectStreamingType(listedTypes, deviceType, true);
             if (defaultType.assigned())
                 options.setStreamingType(defaultType.getId());
         }

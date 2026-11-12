@@ -1,6 +1,7 @@
 #include <opendaq/add_streaming_options_impl.h>
 #include <coreobjects/property_factory.h>
 #include <coreobjects/eval_value_factory.h>
+#include <opendaq/streaming_type_utils.h>
 #include <algorithm>
 
 BEGIN_NAMESPACE_OPENDAQ
@@ -26,13 +27,6 @@ StringPtr toString(daq::StreamingMode mode)
     DAQ_THROW_EXCEPTION(InvalidParameterException, "Unknown streaming mode {}", static_cast<Int>(mode));
 }
 
-bool isListable(const StringPtr& typeId)
-{
-    const std::string id = typeId;
-    return !id.empty() && id != StreamingType && id != StreamingMode && id != NoStreamingType &&
-           id.find_first_of(".'") == std::string::npos;
-}
-
 DictPtr<Int, IString> streamingModeNames()
 {
     auto names = Dict<Int, IString>();
@@ -48,8 +42,10 @@ AddStreamingOptionsImpl::AddStreamingOptionsImpl(const DictPtr<IString, IAddStre
     auto selectionValues = List<IString>(add_streaming_options::NoStreamingType);
     for (const auto& [typeId, config] : streamingConfigs)
     {
-        if (add_streaming_options::isListable(typeId))
-            selectionValues.pushBack(typeId);
+        if (isStreamingTypeIdReserved(typeId))
+            DAQ_THROW_EXCEPTION(InvalidParameterException, R"(Streaming type ID "{}" is reserved)", typeId);
+
+        selectionValues.pushBack(typeId);
     }
 
     const auto addOptionsProperty = [this](const PropertyBuilderPtr& builder)

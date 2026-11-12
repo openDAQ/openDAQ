@@ -108,6 +108,7 @@ DECLARE_OPENDAQ_INTERFACE(IAddDeviceConfig, IBaseObject)
 // [templateType(streamingTypes, IString, IStreamingType)]
 /*!
  * @brief Creates an add device config with the default config of the Device type.
+ * @retval OPENDAQ_ERR_INVALIDPARAMETER when the Device type is Mirrored and a Streaming type ID is reserved.
  */
 OPENDAQ_DECLARE_CLASS_FACTORY(
     LIBRARY_FACTORY, AddDeviceConfig,

@@ -35,6 +35,7 @@ BEGIN_NAMESPACE_OPENDAQ
  * @param deviceType The Device type
  * @param streamingTypes The Streaming types listed by the streaming options, keyed by Streaming type ID
  * @param scanOnAdd The initial ScanOnAdd value
+ * @retval OPENDAQ_ERR_INVALIDPARAMETER when the Device type is Mirrored and a Streaming type ID is reserved.
  *
  * The streaming types are ignored unless the Device type is Mirrored.
  * No Streaming type is selected.

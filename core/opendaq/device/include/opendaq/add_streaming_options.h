@@ -52,7 +52,7 @@ enum class StreamingMode : EnumType
  * The `StreamingType` selection holds the ID of the selected Streaming type, and `None` while none is selected.
  * A device is added without streaming while none is selected.
  * The listed configs are created with the options and never removed or replaced.
- * A Streaming type ID that is empty, contains `.` or `'`, or is `StreamingType`, `StreamingMode` or `None` can't be listed.
+ * A Streaming type with a reserved ID can't be listed (see `isStreamingTypeIdReserved`).
  */
 DECLARE_OPENDAQ_INTERFACE(IAddStreamingOptions, IBaseObject)
 {

@@ -18,8 +18,25 @@
 #include <opendaq/streaming_type_ptr.h>
 #include <opendaq/server_capability_ptr.h>
 #include <coretypes/dictobject_factory.h>
+#include <string>
 
 BEGIN_NAMESPACE_OPENDAQ
+
+/*!
+ * @brief Checks whether a Streaming type ID is reserved.
+ * @param id The Streaming type ID
+ *
+ * Add streaming options can't list a Streaming type with a reserved ID.
+ * An empty ID is reserved.
+ * An ID that contains `.` or `'` is reserved.
+ * `StreamingType`, `StreamingMode` and `None` are reserved.
+ */
+inline bool isStreamingTypeIdReserved(const StringPtr& id)
+{
+    const std::string value = id;
+    return value.empty() || value == "StreamingType" || value == "StreamingMode" || value == "None" ||
+           value.find_first_of(".'") != std::string::npos;
+}
 
 /*!
  * @brief Gets the streaming types advertised by streaming capabilities.

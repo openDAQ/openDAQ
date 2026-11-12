@@ -200,16 +200,13 @@ TEST_F(AddDeviceConfigTest, EnumSelectionValues)
     }
 }
 
-TEST_F(AddDeviceConfigTest, UnlistableStreamingTypeIdsAreNotListed)
+TEST_F(AddDeviceConfigTest, ReservedStreamingTypeIdRejected)
 {
-    auto streamingTypes = Dict<IString, IStreamingType>();
-    for (const auto& id : {"", "a.b", "a'b", "StreamingType", "StreamingMode", "None", "a"})
-        streamingTypes.set(id, createStreamingType("a"));
-
-    const auto options = AddDeviceConfig(createDeviceType(DeviceKind::Mirrored), streamingTypes, true).getStreamingOptions();
-    ASSERT_EQ(options.getStreamingConfigs().getKeyList(), List<IString>("a"));
-    ASSERT_EQ(options.asPtr<IPropertyObject>().getProperty("StreamingType").getSelectionValues(), List<IString>("", "a"));
-    ASSERT_EQ(options.getStreamingMode(), StreamingMode::MinHops);
+    for (const auto& id : {"", "a.b", "a'b", "StreamingType", "StreamingMode", "None"})
+    {
+        const auto streamingTypes = Dict<IString, IStreamingType>({{"a", createStreamingType("a")}, {id, createStreamingType("a")}});
+        ASSERT_THROW(AddDeviceConfig(createDeviceType(DeviceKind::Mirrored), streamingTypes, true), InvalidParameterException) << id;
+    }
 }
 
 TEST_F(AddDeviceConfigTest, StreamingOptionsVisibleOnlyForSelectedType)

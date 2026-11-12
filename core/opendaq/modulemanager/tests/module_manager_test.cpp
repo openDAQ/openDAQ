@@ -740,7 +740,7 @@ TEST_F(ModuleManagerTypesTest, UnspecifiedDeviceKindLogsInfo)
     ASSERT_TRUE(logged);
 }
 
-TEST_F(ModuleManagerTypesTest, UnlistableStreamingTypeLogsWarning)
+TEST_F(ModuleManagerTypesTest, ReservedStreamingTypeIdLogsWarning)
 {
     const auto sink = LastMessageLoggerSink();
     sink.setLevel(LogLevel::Warn);
@@ -761,7 +761,7 @@ TEST_F(ModuleManagerTypesTest, UnlistableStreamingTypeLogsWarning)
 
     bool logged = false;
     while (!logged && lastMessage.waitForMessage(1000))
-        logged = lastMessage.getLastMessage().toStdString().find(R"(Streaming type "StreamingMode")") != std::string::npos;
+        logged = lastMessage.getLastMessage().toStdString().find(R"(Streaming type ID "StreamingMode" is reserved)") != std::string::npos;
     ASSERT_TRUE(logged);
 }
 

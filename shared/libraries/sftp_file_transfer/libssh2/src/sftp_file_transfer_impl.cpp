@@ -6,12 +6,19 @@
 namespace daq::sftp::libssh2
 {
 
-SftpFileTransferImpl::SftpFileTransferImpl(const StringPtr& address, const AuthenticationConfigPtr& authenticationConfig, const LoggerPtr& logger)
+SftpFileTransferImpl::SftpFileTransferImpl(const StringPtr& address,
+                                           const AuthenticationConfigPtr& authenticationConfig,
+                                           const LoggerPtr& logger,
+                                           const PropertyObjectPtr& config)
 {
-    validateArguments(address, authenticationConfig, logger);
+    validateArguments(address, authenticationConfig, logger, config);
     loggerComponent = logger.getOrAddComponent("SftpFileTransferLibssh2");
 
-    connection = std::make_unique<SftpConnection>(parseEndpoint(address), authenticationConfig);
+    ConnectionProperties properties;
+    properties.chunkSize = static_cast<std::size_t>(readIntPropertyValue(config, "ChunkSize"));
+    properties.ciphers = readStringPropertyValue(config, "Ciphers");
+
+    connection = std::make_unique<SftpConnection>(parseEndpoint(address), authenticationConfig, properties);
 
     if (!connection->hostKeyVerified())
         DAQLOGF_W(loggerComponent,
@@ -53,7 +60,8 @@ OPENDAQ_DEFINE_CLASS_FACTORY_WITH_INTERFACE_AND_CREATEFUNC_OBJ(
     INTERNAL_FACTORY, sftp::libssh2::SftpFileTransferImpl, IFileTransfer, createSftpFileTransferLibssh2,
     IString*, address,
     IAuthenticationConfig*, authenticationConfig,
-    ILogger*, logger
+    ILogger*, logger,
+    IPropertyObject*, config
 )
 
 END_NAMESPACE_OPENDAQ

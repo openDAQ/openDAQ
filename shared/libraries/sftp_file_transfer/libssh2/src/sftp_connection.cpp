@@ -173,9 +173,6 @@ StringPtr lastErrorMessage(LIBSSH2_SESSION* session)
 // An open remote file; closing it releases it on the server.
 using SftpFileHandle = std::unique_ptr<LIBSSH2_SFTP_HANDLE, Deleter<&libssh2_sftp_close_handle>>;
 
-// Size of one read from the local or remote file.
-constexpr std::size_t TransferChunkSize = 32 * 1024;
-
 // Throws for a failed SFTP file operation on `path`. If the server refused the operation, its SFTP status is mapped
 // to NotFound or AccessDenied where one fits; any other failure (including a session-level one) is a GeneralError.
 [[noreturn]] void throwFileError(LIBSSH2_SESSION* session, LIBSSH2_SFTP* sftp, const char* operation, const StringPtr& path)
@@ -318,7 +315,9 @@ libssh2_socket_t SftpConnection::Socket::native() const noexcept
 
 SftpConnection::SftpConnection(const Endpoint& endpoint,
                                const AuthenticationConfigPtr& authenticationConfig,
+                               const ConnectionProperties& properties,
                                std::chrono::milliseconds timeout)
+    : chunkSize(properties.chunkSize)
 {
     // Compared as is with the fingerprint of each presented key. Empty: no verification.
     const DictPtr<IString, IString> credential = authenticationConfig.getSuppliedCredential();
@@ -331,7 +330,7 @@ SftpConnection::SftpConnection(const Endpoint& endpoint,
     const auto attempt = [&](const char* hostKeyAlgorithms) -> detail::PresentedHostKey
     {
         auto candidateSocket = std::make_unique<Socket>(endpoint);
-        SessionHandle candidateSession = openSession(candidateSocket->native(), hostKeyAlgorithms, timeout);
+        SessionHandle candidateSession = openSession(candidateSocket->native(), hostKeyAlgorithms, properties.ciphers, timeout);
 
         detail::PresentedHostKey key = detail::hostKey(candidateSession.get());
         if (!verified || key.fingerprint == hostKeyFingerprint)
@@ -351,7 +350,8 @@ SftpConnection::SftpConnection(const Endpoint& endpoint,
     catch (const detail::NoMatchingHostKeyType& e)
     {
         DAQ_THROW_EXCEPTION(NotFoundException,
-                            "SSH handshake with {}:{} failed: the server has no ED25519, ECDSA or RSA host key: {}",
+                            "SSH handshake with {}:{} failed: the server has no ED25519, ECDSA or RSA host key, or "
+                            "supports none of the offered ciphers: {}",
                             endpoint.host,
                             endpoint.port,
                             e.message);
@@ -406,7 +406,10 @@ void SftpConnection::SftpChannelDeleter::operator()(LIBSSH2_SFTP* sftp) const no
     libssh2_sftp_shutdown(sftp);
 }
 
-SftpConnection::SessionHandle SftpConnection::openSession(libssh2_socket_t socket, const char* hostKeyAlgorithms, std::chrono::milliseconds timeout)
+SftpConnection::SessionHandle SftpConnection::openSession(libssh2_socket_t socket,
+                                                         const char* hostKeyAlgorithms,
+                                                         const StringPtr& ciphers,
+                                                         std::chrono::milliseconds timeout)
 {
     // Only freed, not disconnected, until the handshake has succeeded.
     std::unique_ptr<LIBSSH2_SESSION, detail::Deleter<&libssh2_session_free>> session(libssh2_session_init());
@@ -418,6 +421,15 @@ SftpConnection::SessionHandle SftpConnection::openSession(libssh2_socket_t socke
 
     if (libssh2_session_method_pref(session.get(), LIBSSH2_METHOD_HOSTKEY, hostKeyAlgorithms) != 0)
         DAQ_THROW_EXCEPTION(GeneralErrorException, "Failed to set host key algorithm preferences: {}", detail::lastErrorMessage(session.get()));
+
+    // libssh2 drops the names it does not support and fails only if none is left.
+    if (ciphers.getLength() > 0 &&
+        (libssh2_session_method_pref(session.get(), LIBSSH2_METHOD_CRYPT_CS, ciphers.getCharPtr()) != 0 ||
+         libssh2_session_method_pref(session.get(), LIBSSH2_METHOD_CRYPT_SC, ciphers.getCharPtr()) != 0))
+        DAQ_THROW_EXCEPTION(InvalidParameterException,
+                            "None of the configured ciphers \"{}\" is supported: {}",
+                            ciphers,
+                            detail::lastErrorMessage(session.get()));
 
     if (libssh2_session_handshake(session.get(), socket) != 0)
     {
@@ -455,7 +467,7 @@ void SftpConnection::upload(const StringPtr& localPath, const StringPtr& remoteP
     if (!remote)
         detail::throwFileError(session.get(), sftp.get(), "create remote file", remotePath);
 
-    std::vector<char> buffer(detail::TransferChunkSize);
+    std::vector<char> buffer(chunkSize);
     while (source)
     {
         source.read(buffer.data(), static_cast<std::streamsize>(buffer.size()));
@@ -494,7 +506,7 @@ void SftpConnection::download(const StringPtr& remotePath, const StringPtr& loca
     if (!destination)
         DAQ_THROW_EXCEPTION(GeneralErrorException, "Failed to open local file \"{}\" for writing", localPath);
 
-    std::vector<char> buffer(detail::TransferChunkSize);
+    std::vector<char> buffer(chunkSize);
     for (;;)
     {
         const auto read = libssh2_sftp_read(remote.get(), buffer.data(), buffer.size());

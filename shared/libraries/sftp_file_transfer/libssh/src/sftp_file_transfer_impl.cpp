@@ -6,12 +6,20 @@
 namespace daq::sftp::libssh
 {
 
-SftpFileTransferImpl::SftpFileTransferImpl(const StringPtr& address, const AuthenticationConfigPtr& authenticationConfig, const LoggerPtr& logger)
+SftpFileTransferImpl::SftpFileTransferImpl(const StringPtr& address,
+                                           const AuthenticationConfigPtr& authenticationConfig,
+                                           const LoggerPtr& logger,
+                                           const PropertyObjectPtr& config)
 {
-    validateArguments(address, authenticationConfig, logger);
+    validateArguments(address, authenticationConfig, logger, config);
     loggerComponent = logger.getOrAddComponent("SftpFileTransferLibssh");
 
-    connection = std::make_unique<SftpConnection>(parseEndpoint(address), authenticationConfig);
+    ConnectionProperties properties;
+    properties.maxChunkSize = static_cast<std::size_t>(readIntPropertyValue(config, "MaxChunkSize"));
+    properties.requestsInFlight = static_cast<std::size_t>(readIntPropertyValue(config, "RequestsInFlight"));
+    properties.ciphers = readStringPropertyValue(config, "Ciphers");
+
+    connection = std::make_unique<SftpConnection>(parseEndpoint(address), authenticationConfig, properties);
 
     if (!connection->hostKeyVerified())
         DAQLOGF_W(loggerComponent,
@@ -53,7 +61,8 @@ OPENDAQ_DEFINE_CLASS_FACTORY_WITH_INTERFACE_AND_CREATEFUNC_OBJ(
     INTERNAL_FACTORY, sftp::libssh::SftpFileTransferImpl, IFileTransfer, createSftpFileTransferLibssh,
     IString*, address,
     IAuthenticationConfig*, authenticationConfig,
-    ILogger*, logger
+    ILogger*, logger,
+    IPropertyObject*, config
 )
 
 END_NAMESPACE_OPENDAQ

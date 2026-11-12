@@ -18,6 +18,16 @@ namespace detail
 const std::regex Ipv6Address(R"(^\[([a-fA-F0-9:]+(?:%[a-zA-Z0-9_.~-]+)?)\](?::(\d{1,5}))?$)");
 const std::regex HostAddress(R"(^([^:/\s]+)(?::(\d{1,5}))?$)");
 
+BaseObjectPtr propertyValue(const PropertyObjectPtr& config, const StringPtr& name, CoreType type, const char* typeName)
+{
+    if (!config.hasProperty(name))
+        DAQ_THROW_EXCEPTION(InvalidParameterException, "Config has no property \"{}\"", name);
+    const BaseObjectPtr value = config.getPropertyValue(name);
+    if (!value.assigned() || value.getCoreType() != type)
+        DAQ_THROW_EXCEPTION(InvalidParameterException, "Config property \"{}\" must be {}", name, typeName);
+    return value;
+}
+
 }
 
 // ---------------------------------------------------------------------------
@@ -47,7 +57,10 @@ Endpoint parseEndpoint(const StringPtr& address)
 // Factory arguments
 // ---------------------------------------------------------------------------
 
-void validateArguments(const StringPtr& address, const AuthenticationConfigPtr& authenticationConfig, const LoggerPtr& logger)
+void validateArguments(const StringPtr& address,
+                       const AuthenticationConfigPtr& authenticationConfig,
+                       const LoggerPtr& logger,
+                       const PropertyObjectPtr& config)
 {
     if (!logger.assigned())
         DAQ_THROW_EXCEPTION(InvalidParameterException, "Logger is not assigned");
@@ -55,6 +68,8 @@ void validateArguments(const StringPtr& address, const AuthenticationConfigPtr& 
         DAQ_THROW_EXCEPTION(InvalidParameterException, "Address is not assigned");
     if (!authenticationConfig.assigned())
         DAQ_THROW_EXCEPTION(InvalidParameterException, "Authentication config is not assigned");
+    if (!config.assigned())
+        DAQ_THROW_EXCEPTION(InvalidParameterException, "Config is not assigned");
 
     const StringPtr methodId = authenticationConfig.getSelectedAuthenticationMethod().getId();
     const DictPtr<IString, IString> supplied = authenticationConfig.getSuppliedCredential();
@@ -62,6 +77,23 @@ void validateArguments(const StringPtr& address, const AuthenticationConfigPtr& 
         DAQ_THROW_EXCEPTION(CredentialsRequiredException, "No credential supplied for the \"{}\" authentication method", methodId);
     if (methodId != SftpPrivateKeyFileId && methodId != SftpUserNamePasswordId)
         DAQ_THROW_EXCEPTION(InvalidParameterException, "Authentication method \"{}\" is not supported by SFTP file transfer", methodId);
+}
+
+// ---------------------------------------------------------------------------
+// Backend config
+// ---------------------------------------------------------------------------
+
+Int readIntPropertyValue(const PropertyObjectPtr& config, const StringPtr& name)
+{
+    const Int value = detail::propertyValue(config, name, ctInt, "an integer");
+    if (value <= 0)
+        DAQ_THROW_EXCEPTION(InvalidParameterException, "Config property \"{}\" is {}, must be positive", name, value);
+    return value;
+}
+
+StringPtr readStringPropertyValue(const PropertyObjectPtr& config, const StringPtr& name)
+{
+    return detail::propertyValue(config, name, ctString, "a string");
 }
 
 }

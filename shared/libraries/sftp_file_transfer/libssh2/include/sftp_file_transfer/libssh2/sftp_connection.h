@@ -47,6 +47,7 @@
 #include <sftp_file_transfer/sftp_arguments.h>
 
 #include <chrono>
+#include <cstddef>
 #include <memory>
 
 namespace daq::sftp::libssh2
@@ -63,12 +64,20 @@ namespace daq::sftp::libssh2
 // match.
 //
 // With an empty fingerprint the host key is NOT verified: the key presented in the first handshake is accepted.
+// Properties from the backend config (see SftpFileTransferLibssh2DefaultConfig), already validated.
+struct ConnectionProperties
+{
+    std::size_t chunkSize = 0;  // bytes per libssh2 read or write call
+    StringPtr ciphers;          // comma separated; empty for libssh2's default
+};
+
 class SftpConnection
 {
 public:
     // The authentication config is read during construction only and not kept.
     SftpConnection(const Endpoint& endpoint,
                    const AuthenticationConfigPtr& authenticationConfig,
+                   const ConnectionProperties& properties,
                    std::chrono::milliseconds timeout = std::chrono::seconds(5));
     ~SftpConnection();
     SftpConnection(const SftpConnection&) = delete;
@@ -114,15 +123,20 @@ private:
     using SftpChannelHandle = std::unique_ptr<LIBSSH2_SFTP, SftpChannelDeleter>;
 
     // Creates a blocking session and performs the handshake over the connected socket, allowing only the given host
-    // key algorithms (comma separated). Throws NoMatchingHostKeyType if the server has no host key of those types,
-    // NotFoundException on any other failure.
-    static SessionHandle openSession(libssh2_socket_t socket, const char* hostKeyAlgorithms, std::chrono::milliseconds timeout);
+    // key algorithms (comma separated) and, unless empty, ciphers. Throws NoMatchingHostKeyType if the key exchange
+    // fails, which is the case when the server has no host key of those types, InvalidParameterException if libssh2
+    // supports none of the ciphers, NotFoundException on any other failure.
+    static SessionHandle openSession(libssh2_socket_t socket,
+                                     const char* hostKeyAlgorithms,
+                                     const StringPtr& ciphers,
+                                     std::chrono::milliseconds timeout);
 
     // Authenticates with the method selected in the config and its supplied credential, already validated by
     // validateArguments. Throws AuthenticationFailedException if the server rejects the credential.
     void authenticate(const AuthenticationConfigPtr& authenticationConfig);
 
     bool verified = false;
+    std::size_t chunkSize;
 
     // Declaration order is destruction order in reverse: channel, session, socket, library.
     Library library;

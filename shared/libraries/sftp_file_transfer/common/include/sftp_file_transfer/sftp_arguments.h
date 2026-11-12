@@ -19,6 +19,7 @@
 
 #pragma once
 #include <coretypes/string_ptr.h>
+#include <coreobjects/property_object_ptr.h>
 #include <opendaq/authentication_config_ptr.h>
 #include <opendaq/logger_ptr.h>
 
@@ -41,6 +42,15 @@ Endpoint parseEndpoint(const StringPtr& address);
 // selected authentication method is not an SFTP one, CredentialsRequiredException if no credential is supplied.
 // The address itself is parsed by parseEndpoint. Afterwards the required fields of the selected method are guaranteed to be non-empty: the
 // config rejects a supplied credential that misses any of them.
-void validateArguments(const StringPtr& address, const AuthenticationConfigPtr& authenticationConfig, const LoggerPtr& logger);
+void validateArguments(const StringPtr& address,
+                       const AuthenticationConfigPtr& authenticationConfig,
+                       const LoggerPtr& logger,
+                       const PropertyObjectPtr& config);
+
+// Read a property from the backend config passed to a factory, which holds every property of the backend (the
+// factories default it to the backend's default config). Throw InvalidParameterException if the property is
+// missing or has the wrong type; integer properties are sizes or counts and must also be positive.
+Int readIntPropertyValue(const PropertyObjectPtr& config, const StringPtr& name);
+StringPtr readStringPropertyValue(const PropertyObjectPtr& config, const StringPtr& name);
 
 }

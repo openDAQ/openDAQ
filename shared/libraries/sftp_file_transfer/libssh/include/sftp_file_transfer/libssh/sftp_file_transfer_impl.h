@@ -17,6 +17,7 @@
 #pragma once
 #include <coretypes/impl.h>
 #include <coretypes/string_ptr.h>
+#include <coreobjects/property_object_ptr.h>
 #include <opendaq/authentication_config_ptr.h>
 #include <opendaq/logger_ptr.h>
 #include <opendaq/logger_component_ptr.h>
@@ -33,7 +34,10 @@ namespace daq::sftp::libssh
 class SftpFileTransferImpl final : public ImplementationOf<IFileTransfer>
 {
 public:
-    SftpFileTransferImpl(const StringPtr& address, const AuthenticationConfigPtr& authenticationConfig, const LoggerPtr& logger);
+    SftpFileTransferImpl(const StringPtr& address,
+                         const AuthenticationConfigPtr& authenticationConfig,
+                         const LoggerPtr& logger,
+                         const PropertyObjectPtr& config);
 
     // IFileTransfer
     ErrCode INTERFACE_FUNC upload(IString* localPath, IString* remotePath) override;

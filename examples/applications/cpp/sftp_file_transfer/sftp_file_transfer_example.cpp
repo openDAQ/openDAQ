@@ -59,13 +59,15 @@ static const char* Backends[] = {
 
 static FileTransferPtr connect(const std::string& backend, const AuthenticationConfigPtr& authConfig)
 {
+    // Each backend has its own properties, e.g. chunk size or ciphers; adjust them on its default config before
+    // connecting, e.g. config.setPropertyValue("ChunkSize", 1024 * 1024).
 #ifdef SFTP_EXAMPLE_WITH_LIBSSH2
     if (backend == "libssh2")
-        return SftpFileTransferLibssh2(Address, authConfig, Logger());
+        return SftpFileTransferLibssh2(Address, authConfig, Logger(), SftpFileTransferLibssh2DefaultConfig());
 #endif
 #ifdef SFTP_EXAMPLE_WITH_LIBSSH
     if (backend == "libssh")
-        return SftpFileTransferLibssh(Address, authConfig, Logger());
+        return SftpFileTransferLibssh(Address, authConfig, Logger(), SftpFileTransferLibsshDefaultConfig());
 #endif
     DAQ_THROW_EXCEPTION(InvalidParameterException, "Backend \"{}\" is not built into this example", backend);
 }

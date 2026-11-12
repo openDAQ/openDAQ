@@ -65,14 +65,6 @@ constexpr const char* NoKnownHostsFile = "NUL";
 constexpr const char* NoKnownHostsFile = "/dev/null";
 #endif
 
-// Transfers are pipelined: up to this many read or write requests are outstanding at a time, so the transfer does not
-// wait a full round trip per chunk.
-constexpr std::size_t InFlightRequests = 16;
-
-// Upper bound for the chunk size, which is otherwise the per-request limit reported by the server (about 255 KiB
-// for OpenSSH; libssh assumes 32 KiB if the server reports none). Bounds the memory held by outstanding requests.
-constexpr std::uint64_t MaxChunkSize = 256 * 1024;
-
 const char* hostKeyTypeName(enum ssh_keytypes_e type)
 {
     switch (type)
@@ -160,7 +152,10 @@ PresentedHostKey hostKey(ssh_session session)
 
 SftpConnection::SftpConnection(const Endpoint& endpoint,
                                const AuthenticationConfigPtr& authenticationConfig,
+                               const ConnectionProperties& properties,
                                std::chrono::milliseconds timeout)
+    : maxChunkSize(properties.maxChunkSize)
+    , requestsInFlight(properties.requestsInFlight)
 {
     const DictPtr<IString, IString> credential = authenticationConfig.getSuppliedCredential();
     const StringPtr user = credential.get("UserName");
@@ -175,7 +170,7 @@ SftpConnection::SftpConnection(const Endpoint& endpoint,
     StringPtr error;
     const auto attempt = [&](const char* hostKeyAlgorithms) -> std::optional<detail::PresentedHostKey>
     {
-        SessionHandle candidate = openSession(endpoint, user, hostKeyAlgorithms, timeout, error);
+        SessionHandle candidate = openSession(endpoint, user, hostKeyAlgorithms, properties.ciphers, timeout, error);
         if (!candidate)
             return std::nullopt;
 
@@ -186,7 +181,7 @@ SftpConnection::SftpConnection(const Endpoint& endpoint,
     };
 
     // First handshake: every supported key type, the server presents one of them. A failure here (unreachable
-    // server, not an SSH server, no host key of a supported type) would fail for every key type.
+    // server, not an SSH server, no host key of a supported type, no common cipher) would fail for every key type.
     const std::optional<detail::PresentedHostKey> firstKey = attempt(detail::allHostKeyAlgorithms().c_str());
     if (!firstKey)
         DAQ_THROW_EXCEPTION(NotFoundException, "Failed to connect to {}:{}: {}", endpoint.host, endpoint.port, error);
@@ -238,6 +233,7 @@ void SftpConnection::SftpChannelDeleter::operator()(sftp_session sftp) const noe
 SftpConnection::SessionHandle SftpConnection::openSession(const Endpoint& endpoint,
                                                           const StringPtr& user,
                                                           const char* hostKeyAlgorithms,
+                                                          const StringPtr& ciphers,
                                                           std::chrono::milliseconds timeout,
                                                           StringPtr& error)
 {
@@ -260,6 +256,15 @@ SftpConnection::SessionHandle SftpConnection::openSession(const Endpoint& endpoi
         ssh_options_set(session.get(), SSH_OPTIONS_TIMEOUT_USEC, &timeoutMicroseconds) != SSH_OK ||
         ssh_options_set(session.get(), SSH_OPTIONS_HOSTKEYS, hostKeyAlgorithms) != SSH_OK)
         DAQ_THROW_EXCEPTION(GeneralErrorException, "Failed to set SSH session options: {}", ssh_get_error(session.get()));
+
+    // libssh drops the names it does not support and fails only if none is left.
+    if (ciphers.getLength() > 0 &&
+        (ssh_options_set(session.get(), SSH_OPTIONS_CIPHERS_C_S, ciphers.getCharPtr()) != SSH_OK ||
+         ssh_options_set(session.get(), SSH_OPTIONS_CIPHERS_S_C, ciphers.getCharPtr()) != SSH_OK))
+        DAQ_THROW_EXCEPTION(InvalidParameterException,
+                            "None of the configured ciphers \"{}\" is supported: {}",
+                            ciphers,
+                            ssh_get_error(session.get()));
 
     if (ssh_connect(session.get()) != SSH_OK)
     {
@@ -323,7 +328,7 @@ std::size_t SftpConnection::chunkSize(bool forWriting) const
     const std::uint64_t limit = forWriting ? limits->max_write_length : limits->max_read_length;
     if (limit == 0)
         DAQ_THROW_EXCEPTION(GeneralErrorException, "Server reported an SFTP {} limit of 0", forWriting ? "write" : "read");
-    return static_cast<std::size_t>(std::min(limit, detail::MaxChunkSize));
+    return static_cast<std::size_t>(std::min<std::uint64_t>(limit, maxChunkSize));
 }
 
 void SftpConnection::upload(const StringPtr& localPath, const StringPtr& remotePath)
@@ -360,7 +365,7 @@ void SftpConnection::upload(const StringPtr& localPath, const StringPtr& remoteP
         if (count == 0)
             break;
 
-        if (pending.size() == detail::InFlightRequests)
+        if (pending.size() == requestsInFlight)
             waitOldest();
 
         sftp_aio aio = nullptr;
@@ -414,7 +419,7 @@ void SftpConnection::download(const StringPtr& remotePath, const StringPtr& loca
         requested += count;
     };
 
-    while (pending.size() < detail::InFlightRequests && requested < fileSize)
+    while (pending.size() < requestsInFlight && requested < fileSize)
         requestNext();
 
     while (!pending.empty())

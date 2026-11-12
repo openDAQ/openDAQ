@@ -34,7 +34,7 @@
 // Separate connections may be used in parallel.
 //
 // Uploads and downloads are pipelined with libssh's asynchronous SFTP requests: several chunks are in flight at a
-// time instead of one request per network round trip.
+// time instead of one request per network round trip (see ConnectionProperties).
 //
 // Every failure is reported as an openDAQ exception. Messages name what failed, never credential values.
 
@@ -65,12 +65,21 @@ namespace daq::sftp::libssh
 // match.
 //
 // With an empty fingerprint the host key is NOT verified: the key presented in the first handshake is accepted.
+// Properties from the backend config (see SftpFileTransferLibsshDefaultConfig), already validated.
+struct ConnectionProperties
+{
+    std::size_t maxChunkSize = 0;      // upper bound for the bytes of one request; the server's limit applies as well
+    std::size_t requestsInFlight = 0;  // requests sent before waiting for the oldest
+    StringPtr ciphers;                 // comma separated; empty for libssh's default
+};
+
 class SftpConnection
 {
 public:
     // The authentication config is read during construction only and not kept.
     SftpConnection(const Endpoint& endpoint,
                    const AuthenticationConfigPtr& authenticationConfig,
+                   const ConnectionProperties& properties,
                    std::chrono::milliseconds timeout = std::chrono::seconds(5));
     ~SftpConnection();
     SftpConnection(const SftpConnection&) = delete;
@@ -103,11 +112,13 @@ private:
     using SftpChannelHandle = std::unique_ptr<sftp_session_struct, SftpChannelDeleter>;
 
     // Creates a blocking session for the user and connects it (TCP connection and handshake), allowing only the
-    // given host key algorithms (comma separated). Returns null if the connection or handshake failed; the error is
-    // then in `error`.
+    // given host key algorithms (comma separated) and, unless empty, ciphers. Returns null if the connection or
+    // handshake failed; the error is then in `error`. Throws InvalidParameterException if libssh supports none of the
+    // ciphers.
     static SessionHandle openSession(const Endpoint& endpoint,
                                      const StringPtr& user,
                                      const char* hostKeyAlgorithms,
+                                     const StringPtr& ciphers,
                                      std::chrono::milliseconds timeout,
                                      StringPtr& error);
 
@@ -115,10 +126,12 @@ private:
     // validateArguments. Throws AuthenticationFailedException if the server rejects the credential.
     void authenticate(const AuthenticationConfigPtr& authenticationConfig);
 
-    // Bytes per read or write request: the server's per-request limit, capped to bound memory use.
+    // Bytes per read or write request: the server's per-request limit, capped by maxChunkSize.
     std::size_t chunkSize(bool forWriting) const;
 
     bool verified = false;
+    std::size_t maxChunkSize;
+    std::size_t requestsInFlight;
 
     // Declaration order is destruction order in reverse: channel, then session.
     SessionHandle session;

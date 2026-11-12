@@ -47,6 +47,8 @@ enum class ComponentTypeSort
  * [interfaceSmartPtr(IAuthenticationMethod, AuthenticationMethodPtr, "<opendaq/authentication_method_ptr.h>")]
  * [interfaceLibrary(IDeviceType, "opendaq")]
  * [interfaceSmartPtr(IDeviceType, DeviceTypePtr, "<opendaq/device_type_ptr.h>")]
+ * [interfaceLibrary(ITransportOption, "opendaq")]
+ * [interfaceSmartPtr(ITransportOption, TransportOptionPtr, "<opendaq/transport_option_ptr.h>")]
  */
 
 /*!
@@ -262,6 +264,26 @@ DECLARE_OPENDAQ_INTERFACE(IComponentTypeBuilder, IBaseObject)
      * @retval OPENDAQ_ERR_NOT_SUPPORTED for any sort other than "Streaming".
      */
     virtual ErrCode INTERFACE_FUNC getLinkedDeviceType(IDeviceType** deviceType) = 0;
+
+    // [templateType(transportOptions, ITransportOption), returnSelf]
+    /*!
+     * @brief Sets the ways a component of the built type can be connected to, with the default port of each.
+     * Only valid when the "Type" builder parameter is "Device", "Streaming" or "Server".
+     * @param[in] transportOptions The transport options the module supports, the default first.
+     * @retval OPENDAQ_ERR_NOT_SUPPORTED for a Function block sort.
+     * @retval OPENDAQ_ERR_INVALIDTYPE if an element is not a transport option.
+     * @retval OPENDAQ_ERR_INVALIDVALUE if two options have the same name.
+     *
+     * Replaces any previously set options.
+     */
+    virtual ErrCode INTERFACE_FUNC setTransportOptions(IList* transportOptions) = 0;
+
+    // [templateType(transportOptions, ITransportOption)]
+    /*!
+     * @brief Gets the ways a component of the built type can be connected to, with the default port of each.
+     * @param[out] transportOptions The transport options, the default first. Empty if none were set.
+     */
+    virtual ErrCode INTERFACE_FUNC getTransportOptions(IList** transportOptions) = 0;
 };
 /*!@}*/
 

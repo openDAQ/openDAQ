@@ -1,4 +1,5 @@
 #include <opendaq/streaming_type_impl.h>
+#include <opendaq/transport_option_impl.h>
 #include <coretypes/validation.h>
 
 BEGIN_NAMESPACE_OPENDAQ
@@ -9,8 +10,9 @@ StreamingTypeImpl::StreamingTypeImpl(const StringPtr& id,
                                             const StringPtr& prefix,
                                             const PropertyObjectPtr& defaultConfig,
                                             const DictPtr<IString, IAuthenticationMethod>& supportedAuthenticationMethods,
-                                            const DeviceTypePtr& linkedDeviceType)
-    : Super(StreamingTypeStructType(), id, name, description, prefix, defaultConfig, supportedAuthenticationMethods)
+                                            const DeviceTypePtr& linkedDeviceType,
+                                            const ListPtr<ITransportOption>& transportOptions)
+    : Super(StreamingTypeStructType(), id, name, description, prefix, defaultConfig, supportedAuthenticationMethods, transportOptions)
     , linkedDeviceType(linkedDeviceType)
 {
 }
@@ -22,7 +24,8 @@ StreamingTypeImpl::StreamingTypeImpl(const ComponentTypeBuilderPtr& builder)
                         builder.getConnectionStringPrefix(),
                         builder.getDefaultConfig(),
                         builder.getSupportedAuthenticationMethods(),
-                        builder.getLinkedDeviceType())
+                        builder.getLinkedDeviceType(),
+                        builder.getTransportOptions())
 {
 }
 
@@ -103,6 +106,12 @@ ErrCode INTERFACE_FUNC StreamingTypeImpl::serialize(ISerializer* serializer)
                 serializerPtr.writeString(prefix);
             }
 
+            if (transportOptions.getCount() > 0)
+            {
+                serializerPtr.key("transportOptions");
+                transportOptions.serialize(serializerPtr);
+            }
+
             if (defaultConfig.assigned())
             {
                 serializerPtr.key("defaultConfig");
@@ -172,6 +181,11 @@ ErrCode StreamingTypeImpl::Deserialize(ISerializedObject* serialized, IBaseObjec
         if (serializedObj.hasKey("prefix"))
             prefix = serializedObj.readString("prefix");
 
+        // The options come back as the plain Property objects they are serialized as
+        ListPtr<ITransportOption> transportOptions;
+        if (serializedObj.hasKey("transportOptions"))
+            transportOptions = TransportOptionsFromPropertyObjects(serializedObj.readObject("transportOptions", contextPtr, factoryCallbackPtr));
+
         PropertyObjectPtr defaultConfig;
         if (serializedObj.hasKey("defaultConfig"))
             defaultConfig = serializedObj.readObject("defaultConfig", contextPtr, factoryCallbackPtr);
@@ -185,7 +199,7 @@ ErrCode StreamingTypeImpl::Deserialize(ISerializedObject* serialized, IBaseObjec
             linkedDeviceType = serializedObj.readObject("linkedDeviceType", contextPtr, factoryCallbackPtr).asPtr<IDeviceType>();
 
         auto streamingType = createWithImplementation<IStreamingType, StreamingTypeImpl>(
-            id, name, description, prefix, defaultConfig, supportedAuthenticationMethods, linkedDeviceType);
+            id, name, description, prefix, defaultConfig, supportedAuthenticationMethods, linkedDeviceType, transportOptions);
 
         ModuleInfoPtr moduleInfo;
         if (serializedObj.hasKey("moduleInfo"))

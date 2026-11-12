@@ -32,7 +32,8 @@ public:
                             const PropertyObjectPtr& defaultConfig,
                             const StringPtr& prefix,
                             const DictPtr<IString, IAuthenticationMethod>& supportedAuthenticationMethods,
-                            DeviceKind deviceKind = DeviceKind::Unspecified);
+                            DeviceKind deviceKind = DeviceKind::Unspecified,
+                            const ListPtr<ITransportOption>& transportOptions = List<ITransportOption>());
 
     explicit DeviceTypeImpl(const ComponentTypeBuilderPtr& builder);
 

@@ -31,7 +31,8 @@ public:
                             const StringPtr& name,
                             const StringPtr& description,
                             const PropertyObjectPtr& defaultConfig,
-                            ServerKind serverKind = ServerKind::Unspecified);
+                            ServerKind serverKind = ServerKind::Unspecified,
+                            const ListPtr<ITransportOption>& transportOptions = List<ITransportOption>());
 
     explicit ServerTypeImpl(const ComponentTypeBuilderPtr& builder);
 

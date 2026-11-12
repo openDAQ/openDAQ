@@ -9,6 +9,7 @@ set(TEST_SOURCES
     test_component_status_container.cpp
     test_component_holder.cpp
 	test_search_filter.cpp
+    test_transport_option.cpp
 )
 
 opendaq_prepare_test_runner(TEST_APP FOR ${MODULE_NAME}

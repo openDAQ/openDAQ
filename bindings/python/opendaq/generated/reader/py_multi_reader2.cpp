@@ -813,7 +813,9 @@ public:
         outcome.status = reader.read(n > 0 ? pointers.data() : nullptr, nullptr, &read, 0, offset);
         outcome.count = read;
         outcome.offset = offset;
-        layout = makeLayout(outcome.status, current.readType);
+        // A status without changes has nothing that differs from the previous one, so the layout still holds
+        if (!current.known || outcome.status.getHasChanges())
+            layout = makeLayout(outcome.status, current.readType);
         return outcome;
     }
 
@@ -963,7 +965,8 @@ public:
             py::gil_scoped_release release;
             std::scoped_lock lock(mutex);
             status = reader.skipSamples(&skipped, 0, offset);
-            layout = makeLayout(status, params.getValueReadType());
+            if (!layout.known || status.getHasChanges())
+                layout = makeLayout(status, params.getValueReadType());
         }
         return py::make_tuple(skipped, offset, statusToPy(status));
     }

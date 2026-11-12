@@ -47,7 +47,8 @@ enum class AddressType : EnumType
  *
  * The Device type is fixed when the config is created, and its ID is the read-only `DeviceType` property.
  * The nested config objects are created with the config and never replaced.
- * The `Streaming` child object holds the streaming options, and exists only for Mirrored Device types.
+ * The `Streaming` child object holds the streaming options.
+ * It exists only for Mirrored Device types with at least one listed Streaming type.
  */
 DECLARE_OPENDAQ_INTERFACE(IAddDeviceConfig, IBaseObject)
 {
@@ -92,7 +93,7 @@ DECLARE_OPENDAQ_INTERFACE(IAddDeviceConfig, IBaseObject)
 
     /*!
      * @brief Gets the streaming options.
-     * @param[out] options The streaming options, or null when the Device type is not Mirrored
+     * @param[out] options The streaming options, or null when the config has no `Streaming` child object
      */
     virtual ErrCode INTERFACE_FUNC getStreamingOptions(IAddStreamingOptions** options) = 0;
 };

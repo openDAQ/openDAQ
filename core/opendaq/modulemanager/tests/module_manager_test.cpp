@@ -881,14 +881,19 @@ protected:
     static std::vector<std::string> listed(const AddDeviceConfigPtr& config)
     {
         std::vector<std::string> ids;
-        for (const auto& [id, _] : config.getStreamingOptions().getStreamingConfigs())
+        const auto options = config.getStreamingOptions();
+        if (!options.assigned())
+            return ids;
+
+        for (const auto& [id, _] : options.getStreamingConfigs())
             ids.push_back(id);
         return ids;
     }
 
     static std::string selected(const AddDeviceConfigPtr& config)
     {
-        const auto streamingConfig = config.getStreamingOptions().getStreamingConfig();
+        const auto options = config.getStreamingOptions();
+        const auto streamingConfig = options.assigned() ? options.getStreamingConfig() : nullptr;
         return streamingConfig.assigned() ? streamingConfig.getStreamingType().getId().toStdString() : "";
     }
 

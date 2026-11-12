@@ -53,12 +53,11 @@ AddDeviceConfigImpl::AddDeviceConfigImpl(const DeviceTypePtr& deviceType,
         add_device_config::PrimaryAddressType, add_device_config::addressTypeNames(), static_cast<Int>(AddressType::IPv4)));
     Super::addProperty(BoolProperty(add_device_config::ScanOnAdd, scanOnAdd));
 
-    if (!takesStreamings(deviceType))
+    if (!takesStreamings(deviceType) || !streamingTypes.assigned() || streamingTypes.getCount() == 0)
         return;
 
-    const auto offeredTypes = streamingTypes.assigned() ? streamingTypes : Dict<IString, IStreamingType>();
     auto streamingConfigs = Dict<IString, IAddStreamingConfig>();
-    for (const auto& [typeId, streamingType] : offeredTypes)
+    for (const auto& [typeId, streamingType] : streamingTypes)
         streamingConfigs.set(typeId, createWithImplementation<IAddStreamingConfig, AddStreamingConfigImpl>(streamingType));
 
     const auto options = createWithImplementation<IAddStreamingOptions, AddStreamingOptionsImpl>(streamingConfigs);
@@ -205,11 +204,6 @@ AddDeviceConfigPtr AddDeviceConfigImpl::Bind(const SerializedObjectPtr& saved,
     {
         const auto deviceType = deviceTypes.get(deviceTypeId);
         const auto savedValues = saved.readSerializedObject(add_device_config::PropValuesKey);
-        if (takesStreamings(deviceType) && !savedValues.hasKey(add_device_config::Streaming))
-        {
-            DAQ_THROW_EXCEPTION(InvalidValueException, "Streaming options are missing for device type \"{}\"", deviceTypeId);
-        }
-
         auto selectedStreamingType = Dict<IString, IStreamingType>();
         if (savedValues.hasKey(add_device_config::Streaming))
         {

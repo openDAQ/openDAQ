@@ -38,6 +38,7 @@ BEGIN_NAMESPACE_OPENDAQ
  * @retval OPENDAQ_ERR_INVALIDPARAMETER when the Device type is Mirrored and a Streaming type ID is reserved.
  *
  * The streaming types are ignored unless the Device type is Mirrored.
+ * The config has no streaming options when no streaming types are given.
  * No Streaming type is selected.
  */
 inline AddDeviceConfigPtr AddDeviceConfig(const DeviceTypePtr& deviceType,

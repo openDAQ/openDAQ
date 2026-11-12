@@ -144,14 +144,14 @@ TEST_F(AddDeviceConfigTest, UnspecifiedAndUnknownKindsHaveNoStreamingOptions)
     }
 }
 
-TEST_F(AddDeviceConfigTest, MirroredWithoutStreamingTypes)
+TEST_F(AddDeviceConfigTest, MirroredWithoutStreamingTypesHasNoStreamingOptions)
 {
-    const auto options = AddDeviceConfig(createDeviceType(DeviceKind::Mirrored), nullptr, true).getStreamingOptions();
-
-    ASSERT_TRUE(options.assigned());
-    ASSERT_EQ(options.getStreamingConfigs().getCount(), 0u);
-    ASSERT_EQ(options.asPtr<IPropertyObject>().getProperty("StreamingType").getSelectionValues(), List<IString>(""));
-    ASSERT_THROW(options.setStreamingType("a"), NotFoundException);
+    for (const auto& streamingTypes : {DictPtr<IString, IStreamingType>(), Dict<IString, IStreamingType>()})
+    {
+        const auto config = AddDeviceConfig(createDeviceType(DeviceKind::Mirrored), streamingTypes, true);
+        ASSERT_FALSE(config.asPtr<IPropertyObject>().hasProperty("Streaming"));
+        ASSERT_FALSE(config.getStreamingOptions().assigned());
+    }
 }
 
 TEST_F(AddDeviceConfigTest, PropertyViewMatchesTypedGetters)
@@ -443,13 +443,15 @@ TEST_F(AddDeviceConfigTest, BindDeviceKindChange)
 
     ASSERT_FALSE(bindSaved(mirroredSave, types(DeviceKind::Adapter), nullptr).getStreamingOptions().assigned());
     ASSERT_FALSE(bindSaved(mirroredSave, types(DeviceKind::Root), nullptr).getStreamingOptions().assigned());
-    ASSERT_THROW(bindSaved(adapterSave, types(DeviceKind::Mirrored), nullptr), InvalidValueException);
+    ASSERT_FALSE(bindSaved(adapterSave, types(DeviceKind::Mirrored), nullptr).getStreamingOptions().assigned());
 }
 
 TEST_F(AddDeviceConfigTest, BindMalformedSaveForm)
 {
     const auto deviceTypes = Dict<IString, IDeviceType>({{"dev", createDeviceType(DeviceKind::Mirrored)}});
+    const auto streamingTypes = Dict<IString, IStreamingType>({{"a", createStreamingType("a")}});
     const auto config = createMirroredConfig();
+    config.getStreamingOptions().setStreamingType("a");
     config.getStreamingOptions().setStreamingMode(StreamingMode::MinConnections);
     const auto valid = serializeForUpdate(config);
 
@@ -461,10 +463,10 @@ TEST_F(AddDeviceConfigTest, BindMalformedSaveForm)
         return json.replace(pos, from.size(), to);
     };
 
-    ASSERT_NO_THROW(bindSaved(valid, deviceTypes, nullptr));
-    ASSERT_THROW(bindSaved(replaced(R"("scanOnAdd":true)", R"("scanOnAdd":"yes")"), deviceTypes, nullptr), InvalidValueException);
-    ASSERT_THROW(bindSaved(replaced(R"("scanOnAdd":true,)", ""), deviceTypes, nullptr), InvalidValueException);
-    ASSERT_THROW(bindSaved(replaced(R"("StreamingMode":1)", R"("StreamingMode":99)"), deviceTypes, nullptr), InvalidValueException);
+    ASSERT_NO_THROW(bindSaved(valid, deviceTypes, streamingTypes));
+    ASSERT_THROW(bindSaved(replaced(R"("scanOnAdd":true)", R"("scanOnAdd":"yes")"), deviceTypes, streamingTypes), InvalidValueException);
+    ASSERT_THROW(bindSaved(replaced(R"("scanOnAdd":true,)", ""), deviceTypes, streamingTypes), InvalidValueException);
+    ASSERT_THROW(bindSaved(replaced(R"("StreamingMode":1)", R"("StreamingMode":99)"), deviceTypes, streamingTypes), InvalidValueException);
 }
 
 TEST_F(AddDeviceConfigTest, BindDropsUnknownStreamingType)
@@ -475,10 +477,7 @@ TEST_F(AddDeviceConfigTest, BindDropsUnknownStreamingType)
     const auto deviceTypes = Dict<IString, IDeviceType>({{"dev", config.getDeviceType()}});
     const auto streamingTypes = Dict<IString, IStreamingType>({{"linked", createStreamingType("linked", "dev")}});
 
-    const auto options = config.asPtr<IAddDeviceConfigPrivate>().bind(deviceTypes, streamingTypes).getStreamingOptions();
-    ASSERT_EQ(options.getStreamingConfigs().getCount(), 0u);
-    ASSERT_EQ(options.asPtr<IPropertyObject>().getProperty("StreamingType").getSelectionValues(), List<IString>(""));
-    ASSERT_FALSE(options.getStreamingConfig().assigned());
+    ASSERT_FALSE(config.asPtr<IAddDeviceConfigPrivate>().bind(deviceTypes, streamingTypes).getStreamingOptions().assigned());
 }
 
 END_NAMESPACE_OPENDAQ

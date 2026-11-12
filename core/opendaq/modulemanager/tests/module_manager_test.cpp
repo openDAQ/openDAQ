@@ -740,7 +740,7 @@ TEST_F(ModuleManagerTypesTest, UnspecifiedDeviceKindLogsInfo)
     ASSERT_TRUE(logged);
 }
 
-TEST_F(ModuleManagerTypesTest, UnlistableStreamingTypeLogsWarning)
+TEST_F(ModuleManagerTypesTest, ReservedStreamingTypeIdLogsWarning)
 {
     const auto sink = LastMessageLoggerSink();
     sink.setLevel(LogLevel::Warn);
@@ -761,7 +761,7 @@ TEST_F(ModuleManagerTypesTest, UnlistableStreamingTypeLogsWarning)
 
     bool logged = false;
     while (!logged && lastMessage.waitForMessage(1000))
-        logged = lastMessage.getLastMessage().toStdString().find(R"(Streaming type "StreamingMode")") != std::string::npos;
+        logged = lastMessage.getLastMessage().toStdString().find(R"(Streaming type ID "StreamingMode" is reserved)") != std::string::npos;
     ASSERT_TRUE(logged);
 }
 
@@ -856,7 +856,8 @@ protected:
         {
             const auto& cap = capabilities[i];
             const auto id = cap.protocolId.empty() ? cap.prefix + std::to_string(i) : cap.protocolId;
-            info.asPtr<IDeviceInfoInternal>().addServerCapability(ServerCapability(id, id, cap.type).setPrefix(cap.prefix));
+            info.asPtr<IDeviceInfoInternal>().addServerCapability(
+                ServerCapability(id, id, cap.type).setPrefix(cap.prefix).setConnectionString(cap.prefix + "://" + id));
         }
         return info;
     }
@@ -880,14 +881,19 @@ protected:
     static std::vector<std::string> listed(const AddDeviceConfigPtr& config)
     {
         std::vector<std::string> ids;
-        for (const auto& [id, _] : config.getStreamingOptions().getStreamingConfigs())
+        const auto options = config.getStreamingOptions();
+        if (!options.assigned())
+            return ids;
+
+        for (const auto& [id, _] : options.getStreamingConfigs())
             ids.push_back(id);
         return ids;
     }
 
     static std::string selected(const AddDeviceConfigPtr& config)
     {
-        const auto streamingConfig = config.getStreamingOptions().getStreamingConfig();
+        const auto options = config.getStreamingOptions();
+        const auto streamingConfig = options.assigned() ? options.getStreamingConfig() : nullptr;
         return streamingConfig.assigned() ? streamingConfig.getStreamingType().getId().toStdString() : "";
     }
 
@@ -903,10 +909,8 @@ TEST_F(ModuleManagerAddConfigTest, DiscoveredDeviceType)
     };
 
     const std::vector<Row> rows = {
-        {{{"extdev", cfg}, {"mockdev", both}}, "mockdev"},
-        {{{"mockdev", cfg}, {"extdev", both}}, "extdev"},
-        {{{"mockdev", cfg}, {"extdev", cfg}}, "mockdev"},
-        {{{"extdev", cfg}, {"mockdev", cfg}}, "extdev"},
+        {{{"extdev", cfg}, {"mockdev", cfg}}, "mockdev"},
+        {{{"unlinked", cfg}, {"mockdev", both}}, "unlinked"},
         {{{"unloaded", both}, {"extdev", cfg}}, "extdev"},
         {{{"rootdev", both}, {"extdev", cfg}}, "extdev"},
         {{{"mockdev", both}, {"extdev", cfg, "OpenDAQNativeConfiguration"}}, "extdev"},
@@ -917,6 +921,39 @@ TEST_F(ModuleManagerAddConfigTest, DiscoveredDeviceType)
 
     AddDeviceConfigPtr config;
     ASSERT_EQ(create(deviceInfo("daq://x", {{"unloaded", both}}), nullptr, config), OPENDAQ_ERR_NOTFOUND);
+}
+
+TEST_F(ModuleManagerAddConfigTest, SmartConnectionString)
+{
+    const std::vector<std::pair<std::string, Caps>> discovered = {
+        {"typed", {{"unloaded", both}, {"extdev", cfg}}},
+        {"root", {{"rootdev", cfg}, {"extdev", cfg}}},
+        {"unloaded", {{"unloaded", both}}},
+    };
+
+    for (const auto& [serial, caps] : discovered)
+    {
+        const auto info = deviceInfo("x://" + serial, caps);
+        info.setManufacturer("m");
+        info.setSerialNumber(serial);
+        module->availableDevices.pushBack(info);
+    }
+
+    const ModuleManagerUtilsPtr utils = manager;
+    const auto parent = Component(NullContext(), nullptr, "parent");
+    const auto create = [&utils](const char* connectionString, const ComponentPtr& owner)
+    {
+        DevicePtr device;
+        const ErrCode errCode = utils->createDevice(&device, String(connectionString), owner, nullptr);
+        daqClearErrorInfo();
+        return errCode;
+    };
+
+    ASSERT_EQ(create("daq://m_typed", parent), OPENDAQ_SUCCESS);
+    ASSERT_EQ(create("daq://m_root", parent), OPENDAQ_SUCCESS);
+    ASSERT_EQ(create("daq://m_root", nullptr), OPENDAQ_SUCCESS);
+    ASSERT_EQ(create("daq://m_unloaded", parent), OPENDAQ_ERR_NOTFOUND);
+    ASSERT_EQ(module->createdConnectionStrings, List<IString>("extdev://extdev1", "extdev://extdev1", "rootdev://rootdev0"));
 }
 
 TEST_F(ModuleManagerAddConfigTest, DiscoveredExplicitPrefix)
@@ -966,7 +1003,7 @@ TEST_F(ModuleManagerAddConfigTest, ConnectionStringOnly)
 
     const auto unlinked = create(deviceInfo("unlinked://"));
     ASSERT_EQ(listed(unlinked), (Strs{"mockstr", "free"}));
-    ASSERT_EQ(selected(unlinked), "");
+    ASSERT_EQ(selected(unlinked), "mockstr");
 
     AddDeviceConfigPtr config;
     ASSERT_EQ(create(deviceInfo("mockdev://"), "extdev", config), OPENDAQ_ERR_INVALIDPARAMETER);

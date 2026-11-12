@@ -34,7 +34,6 @@
 PyDaqIntf<daq::IAddStreamingOptions, daq::IBaseObject> declareIAddStreamingOptions(pybind11::module_ m)
 {
     py::enum_<daq::StreamingMode>(m, "StreamingMode")
-        .value("Disabled", daq::StreamingMode::Disabled)
         .value("MinHops", daq::StreamingMode::MinHops)
         .value("MinConnections", daq::StreamingMode::MinConnections);
 

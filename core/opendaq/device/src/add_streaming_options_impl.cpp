@@ -1,6 +1,7 @@
 #include <opendaq/add_streaming_options_impl.h>
 #include <coreobjects/property_factory.h>
 #include <coreobjects/eval_value_factory.h>
+#include <opendaq/streaming_type_utils.h>
 #include <algorithm>
 
 BEGIN_NAMESPACE_OPENDAQ
@@ -9,6 +10,7 @@ namespace add_streaming_options
 {
 static const char* StreamingType = "StreamingType";
 static const char* StreamingMode = "StreamingMode";
+static const char* NoStreamingType = "None";
 
 static const char* PropValuesKey = "propValues";
 
@@ -16,8 +18,6 @@ StringPtr toString(daq::StreamingMode mode)
 {
     switch (mode)
     {
-        case daq::StreamingMode::Disabled:
-            return "Disabled";
         case daq::StreamingMode::MinHops:
             return "MinHops";
         case daq::StreamingMode::MinConnections:
@@ -27,31 +27,38 @@ StringPtr toString(daq::StreamingMode mode)
     DAQ_THROW_EXCEPTION(InvalidParameterException, "Unknown streaming mode {}", static_cast<Int>(mode));
 }
 
-bool isListable(const StringPtr& typeId)
+DictPtr<Int, IString> streamingModeNames()
 {
-    const std::string id = typeId;
-    return !id.empty() && id != StreamingType && id != StreamingMode && id.find_first_of(".'") == std::string::npos;
-}
-
-ListPtr<IString> streamingModeNames()
-{
-    return List<IString>(
-        toString(daq::StreamingMode::Disabled), toString(daq::StreamingMode::MinHops), toString(daq::StreamingMode::MinConnections));
+    auto names = Dict<Int, IString>();
+    for (const auto mode : {daq::StreamingMode::MinHops, daq::StreamingMode::MinConnections})
+        names.set(static_cast<Int>(mode), toString(mode));
+    return names;
 }
 }
 
 AddStreamingOptionsImpl::AddStreamingOptionsImpl(const DictPtr<IString, IAddStreamingConfig>& streamingConfigs)
     : Super()
 {
-    auto selectionValues = List<IString>("");
+    auto selectionValues = List<IString>(add_streaming_options::NoStreamingType);
     for (const auto& [typeId, config] : streamingConfigs)
     {
-        if (add_streaming_options::isListable(typeId))
-            selectionValues.pushBack(typeId);
+        if (isStreamingTypeIdReserved(typeId))
+            DAQ_THROW_EXCEPTION(InvalidParameterException, R"(Streaming type ID "{}" is reserved)", typeId);
+
+        selectionValues.pushBack(typeId);
     }
 
-    Super::addProperty(StringPropertyBuilder(add_streaming_options::StreamingType, "").setSelectionValues(selectionValues).build());
-    Super::addProperty(SelectionProperty(
+    const auto addOptionsProperty = [this](const PropertyBuilderPtr& builder)
+    {
+        builder.setVisible(
+            EvalValue(fmt::format("${} != '{}'", add_streaming_options::StreamingType, add_streaming_options::NoStreamingType)));
+        checkErrorInfo(Super::addProperty(builder.build()));
+    };
+
+    Super::addProperty(StringPropertyBuilder(add_streaming_options::StreamingType, add_streaming_options::NoStreamingType)
+                           .setSelectionValues(selectionValues)
+                           .build());
+    addOptionsProperty(SparseSelectionPropertyBuilder(
         add_streaming_options::StreamingMode, add_streaming_options::streamingModeNames(), static_cast<Int>(StreamingMode::MinHops)));
 
     for (const auto& typeId : offeredTypeIds())
@@ -83,7 +90,8 @@ ErrCode AddStreamingOptionsImpl::getStreamingConfigs(IDict** configs)
 
 ErrCode AddStreamingOptionsImpl::setStreamingType(IString* typeId)
 {
-    const StringPtr value = typeId ? StringPtr(typeId) : StringPtr("");
+    const StringPtr id = typeId;
+    const StringPtr value = (id.assigned() && id.getLength() > 0) ? id : StringPtr(add_streaming_options::NoStreamingType);
     return Super::setPropertyValue(String(add_streaming_options::StreamingType), value);
 }
 
@@ -97,7 +105,7 @@ ErrCode AddStreamingOptionsImpl::getStreamingConfig(IAddStreamingConfig** config
         if (!id.assigned())
         {
             id = objPtr.getPropertyValue(add_streaming_options::StreamingType);
-            if (id.getLength() == 0)
+            if (id == add_streaming_options::NoStreamingType)
             {
                 *config = nullptr;
                 return;
@@ -155,10 +163,8 @@ ErrCode AddStreamingOptionsImpl::updateInternal(ISerializedObject* obj, IBaseObj
         const auto saved = SerializedObjectPtr::Borrow(obj);
         const auto values = saved.readSerializedObject(add_streaming_options::PropValuesKey);
 
-        StringPtr selected = "";
-        if (values.hasKey(add_streaming_options::StreamingType))
-            selected = values.readString(add_streaming_options::StreamingType);
-        checkErrorInfo(setStreamingType(isOffered(selected) ? selected : StringPtr("")));
+        const auto selected = SavedStreamingType(saved);
+        checkErrorInfo(setStreamingType(isOffered(selected) ? selected : nullptr));
 
         if (values.hasKey(add_streaming_options::StreamingMode))
             checkErrorInfo(setStreamingMode(static_cast<StreamingMode>(values.readInt(add_streaming_options::StreamingMode))));
@@ -174,6 +180,22 @@ ErrCode AddStreamingOptionsImpl::updateInternal(ISerializedObject* obj, IBaseObj
             checkErrorInfo(streamingConfig->updateInternal(values.readSerializedObject(typeId), context));
         }
     });
+}
+
+ErrCode AddStreamingOptionsImpl::serializePropertyValue(const StringPtr& name,
+                                                        const ObjectPtr<IBaseObject>& value,
+                                                        ISerializer* serializer,
+                                                        bool forUpdate)
+{
+    if (!forUpdate || !value.supportsInterface<IAddStreamingConfig>())
+        return Super::serializePropertyValue(name, value, serializer, forUpdate);
+
+    StringPtr selected;
+    OPENDAQ_RETURN_IF_FAILED(daqTry([&] { selected = objPtr.getPropertyValue(add_streaming_options::StreamingType); }));
+    if (name != selected)
+        return OPENDAQ_SUCCESS;
+
+    return Super::serializePropertyValue(name, value, serializer, forUpdate);
 }
 
 ErrCode AddStreamingOptionsImpl::getSerializeId(ConstCharPtr* id) const
@@ -208,13 +230,22 @@ ErrCode AddStreamingOptionsImpl::Deserialize(ISerializedObject* serialized,
     });
 }
 
+StringPtr AddStreamingOptionsImpl::SavedStreamingType(const SerializedObjectPtr& saved)
+{
+    const auto values = saved.readSerializedObject(add_streaming_options::PropValuesKey);
+    if (!values.hasKey(add_streaming_options::StreamingType))
+        return add_streaming_options::NoStreamingType;
+
+    return values.readString(add_streaming_options::StreamingType);
+}
+
 ListPtr<IString> AddStreamingOptionsImpl::offeredTypeIds()
 {
     const ListPtr<IString> selectionValues = objPtr.getProperty(add_streaming_options::StreamingType).getSelectionValues();
     auto typeIds = List<IString>();
     for (const auto& typeId : selectionValues)
     {
-        if (typeId.getLength() > 0)
+        if (typeId != add_streaming_options::NoStreamingType)
             typeIds.pushBack(typeId);
     }
 

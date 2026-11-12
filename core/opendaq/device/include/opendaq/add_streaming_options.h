@@ -28,14 +28,12 @@ BEGIN_NAMESPACE_OPENDAQ
 /*!
  * @brief How nested devices of an added device stream.
  *
- * Disabled establishes no streaming.
  * MinHops serves every nested device that lists the selected Streaming type with its own streaming connection.
  * MinConnections streams every nested device through its parent's connection.
  */
 enum class StreamingMode : EnumType
 {
-    Disabled = 0,
-    MinHops,
+    MinHops = 0,
     MinConnections
 };
 
@@ -50,9 +48,11 @@ enum class StreamingMode : EnumType
  *
  * Lists one streaming config per offered Streaming type as a child object named by the Streaming type ID.
  * Only the selected config is visible.
- * The `StreamingType` selection holds the ID of the selected Streaming type, and is empty while none is selected.
+ * `StreamingMode` is visible only while a Streaming type is selected.
+ * The `StreamingType` selection holds the ID of the selected Streaming type, and `None` while none is selected.
+ * A device is added without streaming while none is selected.
  * The listed configs are created with the options and never removed or replaced.
- * A Streaming type ID that is empty, contains `.` or `'`, or is `StreamingType` or `StreamingMode` can't be listed.
+ * A Streaming type with a reserved ID can't be listed (see `isStreamingTypeIdReserved`).
  */
 DECLARE_OPENDAQ_INTERFACE(IAddStreamingOptions, IBaseObject)
 {
@@ -68,7 +68,7 @@ DECLARE_OPENDAQ_INTERFACE(IAddStreamingOptions, IBaseObject)
      * @param typeId The Streaming type ID
      * @retval OPENDAQ_ERR_NOTFOUND when no config is listed under the ID.
      *
-     * Null selects none.
+     * Null, an empty ID or `None` selects none.
      * The newly selected config becomes visible, while others are hidden.
      */
     virtual ErrCode INTERFACE_FUNC setStreamingType(IString* typeId) = 0;

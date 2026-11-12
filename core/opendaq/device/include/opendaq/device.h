@@ -433,9 +433,11 @@ DECLARE_OPENDAQ_INTERFACE(IDevice, IFolder)
      * @retval OPENDAQ_ERR_INVALIDPARAMETER when the Device type is Root, or the prefix differs from that of an info without capabilities.
      * @retval OPENDAQ_ERR_NOT_SUPPORTED when the device can't add devices.
      *
-     * Without a prefix, the info's highest-priority server capability with a loaded Device type that is not Root is used.
+     * Without a prefix, a server capability with a loaded Device type that is not Root is chosen.
+     * The native configuration capability is preferred, then the first one with a Mirrored Device type, then the first one.
      * An info without server capabilities uses the prefix of its connection string.
      * The listed Streaming types are the loaded ones the info advertises, or all loaded ones for an info without server capabilities.
+     * The listed Streaming type linked to the Device type is selected, else the first listed one.
      */
     virtual ErrCode INTERFACE_FUNC createAddDeviceConfig(IAddDeviceConfig** config, IDeviceInfo* info, IString* prefix = nullptr) = 0;
 

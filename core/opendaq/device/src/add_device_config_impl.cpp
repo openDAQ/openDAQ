@@ -33,9 +33,12 @@ StringPtr toString(AddressType type)
     DAQ_THROW_EXCEPTION(InvalidParameterException, "Unknown address type {}", static_cast<Int>(type));
 }
 
-ListPtr<IString> addressTypeNames()
+DictPtr<Int, IString> addressTypeNames()
 {
-    return List<IString>(toString(AddressType::IPv4), toString(AddressType::IPv6));
+    auto names = Dict<Int, IString>();
+    for (const auto type : {AddressType::IPv4, AddressType::IPv6})
+        names.set(static_cast<Int>(type), toString(type));
+    return names;
 }
 }
 
@@ -46,16 +49,15 @@ AddDeviceConfigImpl::AddDeviceConfigImpl(const DeviceTypePtr& deviceType,
 {
     Super::addProperty(StringPropertyBuilder(add_device_config::DeviceType, deviceType.getId()).setReadOnly(true).build());
     Super::addProperty(ObjectProperty(add_device_config::TypeConfig, deviceType.createDefaultConfig()));
-    Super::addProperty(SelectionProperty(
+    Super::addProperty(SparseSelectionProperty(
         add_device_config::PrimaryAddressType, add_device_config::addressTypeNames(), static_cast<Int>(AddressType::IPv4)));
     Super::addProperty(BoolProperty(add_device_config::ScanOnAdd, scanOnAdd));
 
-    if (!takesStreamings(deviceType))
+    if (!takesStreamings(deviceType) || !streamingTypes.assigned() || streamingTypes.getCount() == 0)
         return;
 
-    const auto offeredTypes = streamingTypes.assigned() ? streamingTypes : Dict<IString, IStreamingType>();
     auto streamingConfigs = Dict<IString, IAddStreamingConfig>();
-    for (const auto& [typeId, streamingType] : offeredTypes)
+    for (const auto& [typeId, streamingType] : streamingTypes)
         streamingConfigs.set(typeId, createWithImplementation<IAddStreamingConfig, AddStreamingConfigImpl>(streamingType));
 
     const auto options = createWithImplementation<IAddStreamingOptions, AddStreamingOptionsImpl>(streamingConfigs);
@@ -193,6 +195,7 @@ AddDeviceConfigPtr AddDeviceConfigImpl::Bind(const SerializedObjectPtr& saved,
                                              const DictPtr<IString, IDeviceType>& deviceTypes,
                                              const DictPtr<IString, IStreamingType>& streamingTypes)
 {
+    const auto givenStreamingTypes = streamingTypes.assigned() ? streamingTypes : Dict<IString, IStreamingType>();
     const StringPtr deviceTypeId = saved.readString(add_device_config::DeviceTypeIdKey);
     if (!deviceTypes.assigned() || !deviceTypes.hasKey(deviceTypeId))
         DAQ_THROW_EXCEPTION(NotFoundException, "Device type \"{}\" is not available", deviceTypeId);
@@ -200,25 +203,18 @@ AddDeviceConfigPtr AddDeviceConfigImpl::Bind(const SerializedObjectPtr& saved,
     try
     {
         const auto deviceType = deviceTypes.get(deviceTypeId);
-        auto boundStreamingTypes = Dict<IString, IStreamingType>();
-        if (takesStreamings(deviceType))
+        const auto savedValues = saved.readSerializedObject(add_device_config::PropValuesKey);
+        auto selectedStreamingType = Dict<IString, IStreamingType>();
+        if (savedValues.hasKey(add_device_config::Streaming))
         {
-            const auto savedValues = saved.readSerializedObject(add_device_config::PropValuesKey);
-            if (!savedValues.hasKey(add_device_config::Streaming))
-                DAQ_THROW_EXCEPTION(InvalidValueException, "Streaming options are missing for device type \"{}\"", deviceTypeId);
-
-            const auto savedStreaming = savedValues.readSerializedObject(add_device_config::Streaming);
-            const auto savedOptions = savedStreaming.readSerializedObject(add_device_config::PropValuesKey);
-            const auto offeredTypes = streamingTypes.assigned() ? streamingTypes : Dict<IString, IStreamingType>();
-            for (const auto& [typeId, streamingType] : offeredTypes)
-            {
-                if (savedOptions.hasKey(typeId))
-                    boundStreamingTypes.set(typeId, streamingType);
-            }
+            const auto savedOptions = savedValues.readSerializedObject(add_device_config::Streaming);
+            const auto typeId = AddStreamingOptionsImpl::SavedStreamingType(savedOptions);
+            if (givenStreamingTypes.hasKey(typeId))
+                selectedStreamingType.set(typeId, givenStreamingTypes.get(typeId));
         }
 
         auto config = createWithImplementation<IAddDeviceConfig, AddDeviceConfigImpl>(
-            deviceType, boundStreamingTypes, saved.readBool(add_device_config::ScanOnAddKey));
+            deviceType, selectedStreamingType, saved.readBool(add_device_config::ScanOnAddKey));
         checkErrorInfo(config.asPtr<IUpdatable>()->updateInternal(saved, nullptr));
         return config;
     }
@@ -253,15 +249,15 @@ bool AddDeviceConfigImpl::takesStreamings(const DeviceTypePtr& deviceType)
 {
     switch (deviceType.getDeviceKind())
     {
-        case DeviceKind::Unspecified:
         case DeviceKind::Mirrored:
             return true;
+        case DeviceKind::Unspecified:
         case DeviceKind::Adapter:
         case DeviceKind::Root:
             return false;
     }
 
-    return true;
+    return false;
 }
 
 #if !defined(BUILDING_STATIC_LIBRARY)

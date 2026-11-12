@@ -47,10 +47,11 @@ class TestAddDeviceConfig(opendaq_test.TestCase):
         return opendaq.StreamingType('streamingType', '', '', 'stream', config, {}, None)
 
     @staticmethod
-    def add_device_config():
-        config = opendaq.PropertyObject()
-        config.add_property(opendaq.StringProperty(opendaq.String('foo'), opendaq.String('bar'), opendaq.Boolean(True)))
-        device_type = opendaq.DeviceType('deviceType', '', '', config, 'dev', {})
+    def add_device_config(device_type=None):
+        if device_type is None:
+            config = opendaq.PropertyObject()
+            config.add_property(opendaq.StringProperty(opendaq.String('foo'), opendaq.String('bar'), opendaq.Boolean(True)))
+            device_type = opendaq.DeviceType('deviceType', '', '', config, 'dev', {})
         return opendaq.AddDeviceConfig(device_type, {'streamingType': TestAddDeviceConfig.streaming_type()}, True)
 
     def test_create(self):
@@ -64,7 +65,8 @@ class TestAddDeviceConfig(opendaq_test.TestCase):
         self.assertFalse(config.scan_on_add)
 
     def test_streaming_options(self):
-        options = self.add_device_config().streaming_options
+        mirrored_type = opendaq.IDeviceType.cast_from(opendaq.Instance().available_device_types['OpenDAQNativeConfiguration'])
+        options = self.add_device_config(mirrored_type).streaming_options
 
         self.assertEqual(list(options.streaming_configs.keys()), ['streamingType'])
         options.streaming_type = 'streamingType'

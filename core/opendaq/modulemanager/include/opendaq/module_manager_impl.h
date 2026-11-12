@@ -94,6 +94,8 @@ private:
     StringPtr getConnectionStringWithType(const ServerCapabilityPtr& capability, const StringPtr& primaryAddressType) const;
     StringPtr resolveSmartConnectionString(const StringPtr& inputConnectionString,
                                            const DeviceInfoPtr& discoveredDeviceInfo,
+                                           const DictPtr<IString, IDeviceType>& deviceTypes,
+                                           bool asChild,
                                            const PropertyObjectPtr& generalConfig,
                                            const LoggerComponentPtr& loggerComponent) const;
     DeviceTypePtr getDeviceTypeFromConnectionString(const StringPtr& connectionString, const ModulePtr& module) const;
@@ -101,9 +103,9 @@ private:
                                    const StringPtr& prefix,
                                    const DictPtr<IString, IDeviceType>& deviceTypes) const;
 
-    static uint16_t GetServerCapabilityPriority(const ServerCapabilityPtr& cap);
     static ServerCapabilityPtr SelectServerCapability(const ListPtr<IServerCapability>& capabilities,
-                                                      const std::function<bool(const ServerCapabilityPtr&)>& accepts);
+                                                      const DictPtr<IString, IDeviceType>& deviceTypes,
+                                                      bool asChild);
 
     static void ReplaceSubDeviceOldProtocolIds(const DevicePtr& device);
     static ServerCapabilityPtr ReplaceOldProtocolIds(const ServerCapabilityPtr& cap);

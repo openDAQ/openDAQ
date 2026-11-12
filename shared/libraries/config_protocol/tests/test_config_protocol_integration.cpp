@@ -1001,6 +1001,11 @@ TEST_F(ConfigProtocolIntegrationTest, GetAvailableDeviceTypes)
     ASSERT_EQ(s.getDeviceKind(), DeviceKind::Mirrored);
 }
 
+TEST_F(ConfigProtocolIntegrationTest, CreateAddConfigNotImplemented)
+{
+    ASSERT_THROW(clientDevice.createAddDeviceConfig(DeviceInfo("daq://mock")), NotImplementedException);
+}
+
 TEST_F(ConfigProtocolIntegrationTest, DeviceTypesModuleInfo)
 {
     auto availableDeviceTypesServer = serverDevice.getDevices()[0].getAvailableDeviceTypes();

@@ -89,6 +89,7 @@ function(create_component_source_groups_${BASE_NAME})
         ${SDK_HEADERS_DIR}/streaming_type.h
         ${SDK_HEADERS_DIR}/streaming_type_factory.h
         ${SDK_HEADERS_DIR}/streaming_type_impl.h
+        ${SDK_HEADERS_DIR}/streaming_type_utils.h
         ${SDK_SRC_DIR}/streaming_type_impl.cpp
     )
 
@@ -111,6 +112,7 @@ set(SRC_PublicHeaders_Component
     mirrored_device_impl.h
     streaming_type.h
     streaming_type_factory.h
+    streaming_type_utils.h
     streaming_source_manager.h
     mirrored_input_port_impl.h
     mirrored_input_port_private.h

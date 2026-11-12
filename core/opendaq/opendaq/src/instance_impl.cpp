@@ -603,6 +603,21 @@ ErrCode InstanceImpl::createDefaultAddDeviceConfig(IPropertyObject** defaultConf
     return rootDevice->createDefaultAddDeviceConfig(defaultConfig);
 }
 
+ErrCode InstanceImpl::createAddDeviceConfig(IAddDeviceConfig** config, IDeviceInfo* info, IString* prefix)
+{
+    return rootDevice->createAddDeviceConfig(config, info, prefix);
+}
+
+ErrCode InstanceImpl::createAddStreamingConfig(IAddStreamingConfig** config, IString* connectionString)
+{
+    return rootDevice->createAddStreamingConfig(config, connectionString);
+}
+
+ErrCode InstanceImpl::getAddDeviceConfig(IAddDeviceConfig** config)
+{
+    return rootDevice->getAddDeviceConfig(config);
+}
+
 ErrCode InstanceImpl::getAvailableFunctionBlockTypes(IDict** functionBlockTypes)
 {
     return rootDevice->getAvailableFunctionBlockTypes(functionBlockTypes);

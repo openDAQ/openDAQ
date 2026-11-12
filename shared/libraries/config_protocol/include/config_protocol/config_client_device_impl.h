@@ -58,6 +58,7 @@ public:
                                            DictPtr<IString, IErrorInfo> errorInfos) override;
     void onRemoveDevice(const DevicePtr& device) override;
     PropertyObjectPtr onCreateDefaultAddDeviceConfig() override;
+    AddDeviceConfigPtr onCreateAddDeviceConfig(const DeviceInfoPtr& info, const StringPtr& prefix) override;
 
     ListPtr<ILogFileInfo> onGetLogFileInfos() override;
     StringPtr onGetLog(const StringPtr& id, Int size, Int offset) override;
@@ -263,6 +264,13 @@ template <class TDeviceBase>
 PropertyObjectPtr GenericConfigClientDeviceImpl<TDeviceBase>::onCreateDefaultAddDeviceConfig()
 {
     return this->clientComm->getDefaultAddDeviceConfig(this->remoteGlobalId);
+}
+
+template <class TDeviceBase>
+AddDeviceConfigPtr GenericConfigClientDeviceImpl<TDeviceBase>::onCreateAddDeviceConfig(const DeviceInfoPtr& /*info*/,
+                                                                                       const StringPtr& /*prefix*/)
+{
+    DAQ_THROW_EXCEPTION(NotImplementedException, "Creating an add-device config is not supported on a config client device.");
 }
 
 template <class TDeviceBase>

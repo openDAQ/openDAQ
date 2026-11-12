@@ -34,6 +34,9 @@ set(SRC_Cpp
     generated/device/py_server_capability.cpp
     generated/device/py_connected_client_info.cpp
     generated/device/py_device_type.cpp
+    generated/device/py_add_device_config.cpp
+    generated/device/py_add_streaming_options.cpp
+    generated/device/py_add_streaming_config.cpp
     generated/device/py_address_info.cpp
     generated/device/py_address_info_builder.cpp
     generated/device/py_log_file_info.cpp

@@ -98,6 +98,9 @@ public:
                                                    DictPtr<IString, IErrorInfo> errorInfos);
 
     virtual PropertyObjectPtr onCreateDefaultAddDeviceConfig();
+    virtual AddDeviceConfigPtr onCreateAddDeviceConfig(const DeviceInfoPtr& info, const StringPtr& prefix);
+    virtual AddStreamingConfigPtr onCreateAddStreamingConfig(const StringPtr& connectionString);
+    virtual AddDeviceConfigPtr onGetAddDeviceConfig();
 
     ErrCode INTERFACE_FUNC setName(IString* name) override;
 
@@ -161,6 +164,9 @@ public:
     ErrCode INTERFACE_FUNC removeDevice(IDevice* device) override;
     ErrCode INTERFACE_FUNC getDevices(IList** subDevices, ISearchFilter* searchFilter = nullptr) override;
     ErrCode INTERFACE_FUNC createDefaultAddDeviceConfig(IPropertyObject** defaultConfig) override;
+    ErrCode INTERFACE_FUNC createAddDeviceConfig(IAddDeviceConfig** config, IDeviceInfo* info, IString* prefix = nullptr) override;
+    ErrCode INTERFACE_FUNC createAddStreamingConfig(IAddStreamingConfig** config, IString* connectionString = nullptr) override;
+    ErrCode INTERFACE_FUNC getAddDeviceConfig(IAddDeviceConfig** config) override;
 
     ErrCode INTERFACE_FUNC saveConfiguration(IString** configuration) override;
     ErrCode INTERFACE_FUNC loadConfiguration(IString* configuration, IUpdateParameters* config) override;
@@ -1693,6 +1699,91 @@ ErrCode GenericDevice<TInterface, Interfaces...>::createDefaultAddDeviceConfig(I
     OPENDAQ_RETURN_IF_FAILED(errCode);
 
     *defaultConfig = defaultConfigPtr.detach();
+    return errCode;
+}
+
+template <typename TInterface, typename... Interfaces>
+AddDeviceConfigPtr GenericDevice<TInterface, Interfaces...>::onCreateAddDeviceConfig(const DeviceInfoPtr& info, const StringPtr& prefix)
+{
+    if (!allowAddDevicesFromModules())
+    {
+        DAQ_THROW_EXCEPTION(NotSupportedException, "Adding devices from modules is not supported.");
+    }
+
+    auto lock = this->getRecursiveConfigLock2();
+    const ModuleManagerUtilsPtr managerUtils = this->context.getModuleManager().template asPtr<IModuleManagerUtils>();
+    return managerUtils.createAddDeviceConfig(info, prefix);
+}
+
+template <typename TInterface, typename... Interfaces>
+ErrCode GenericDevice<TInterface, Interfaces...>::createAddDeviceConfig(IAddDeviceConfig** config, IDeviceInfo* info, IString* prefix)
+{
+    OPENDAQ_PARAM_NOT_NULL(config);
+    OPENDAQ_PARAM_NOT_NULL(info);
+
+    if (this->isComponentRemoved)
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_COMPONENT_REMOVED);
+
+    AddDeviceConfigPtr configPtr;
+    const ErrCode errCode =
+        wrapHandlerReturn(this, &Self::onCreateAddDeviceConfig, configPtr, DeviceInfoPtr::Borrow(info), StringPtr::Borrow(prefix));
+    OPENDAQ_RETURN_IF_FAILED(errCode);
+
+    *config = configPtr.detach();
+    return errCode;
+}
+
+template <typename TInterface, typename... Interfaces>
+AddStreamingConfigPtr GenericDevice<TInterface, Interfaces...>::onCreateAddStreamingConfig(const StringPtr& /*connectionString*/)
+{
+    DAQ_THROW_EXCEPTION(NotSupportedException, "Adding streamings is not supported.");
+}
+
+template <typename TInterface, typename... Interfaces>
+ErrCode GenericDevice<TInterface, Interfaces...>::createAddStreamingConfig(IAddStreamingConfig** config, IString* connectionString)
+{
+    OPENDAQ_PARAM_NOT_NULL(config);
+
+    if (this->isComponentRemoved)
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_COMPONENT_REMOVED);
+
+    AddStreamingConfigPtr configPtr;
+    const ErrCode errCode = wrapHandlerReturn(this, &Self::onCreateAddStreamingConfig, configPtr, StringPtr::Borrow(connectionString));
+    OPENDAQ_RETURN_IF_FAILED(errCode);
+
+    *config = configPtr.detach();
+    return errCode;
+}
+
+template <typename TInterface, typename... Interfaces>
+AddDeviceConfigPtr GenericDevice<TInterface, Interfaces...>::onGetAddDeviceConfig()
+{
+    if (this->isRootDevice)
+        return nullptr;
+
+    PropertyObjectPtr componentConfig;
+    checkErrorInfo(this->getComponentConfig(&componentConfig));
+
+    const auto addDeviceConfig = componentConfig.asPtrOrNull<IAddDeviceConfig>();
+    if (!addDeviceConfig.assigned())
+        return nullptr;
+
+    return addDeviceConfig.template asPtr<IPropertyObjectInternal>().clone().template asPtr<IAddDeviceConfig>();
+}
+
+template <typename TInterface, typename... Interfaces>
+ErrCode GenericDevice<TInterface, Interfaces...>::getAddDeviceConfig(IAddDeviceConfig** config)
+{
+    OPENDAQ_PARAM_NOT_NULL(config);
+
+    if (this->isComponentRemoved)
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_COMPONENT_REMOVED);
+
+    AddDeviceConfigPtr configPtr;
+    const ErrCode errCode = wrapHandlerReturn(this, &Self::onGetAddDeviceConfig, configPtr);
+    OPENDAQ_RETURN_IF_FAILED(errCode);
+
+    *config = configPtr.detach();
     return errCode;
 }
 

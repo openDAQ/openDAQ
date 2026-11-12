@@ -417,4 +417,40 @@ void defineIDevice(pybind11::module_ m, PyDaqIntf<daq::IDevice, daq::IFolder> cl
         },
         py::arg("connection_args"), py::arg("err_codes") = nullptr, py::arg("error_infos") = nullptr,
         "Connects to multiple devices in parallel using the provided connection strings and returns the connected devices. Each connection is established concurrently to improve performance when handling multiple devices. The additions, in turn, are performed sequentially in the order specified by connectionArgs.");
+    cls.def_property_readonly("available_streaming_types",
+        [](daq::IDevice *object)
+        {
+            py::gil_scoped_release release;
+            const auto objectPtr = daq::DevicePtr::Borrow(object);
+            return objectPtr.getAvailableStreamingTypes().detach();
+        },
+        py::return_value_policy::take_ownership,
+        "Get a dictionary of available streaming types as <IString, IStreamingType> pairs");
+    cls.def("create_add_device_config",
+        [](daq::IDevice *object, daq::IDeviceInfo* info, std::variant<daq::IString*, py::str, daq::IEvalValue*>& prefix)
+        {
+            py::gil_scoped_release release;
+            const auto objectPtr = daq::DevicePtr::Borrow(object);
+            return objectPtr.createAddDeviceConfig(info, getVariantValue<daq::IString*>(prefix)).detach();
+        },
+        py::arg("info"), py::arg("prefix") = nullptr,
+        "Creates a config for adding the device described by the device info.");
+    cls.def("create_add_streaming_config",
+        [](daq::IDevice *object, std::variant<daq::IString*, py::str, daq::IEvalValue*>& connectionString)
+        {
+            py::gil_scoped_release release;
+            const auto objectPtr = daq::DevicePtr::Borrow(object);
+            return objectPtr.createAddStreamingConfig(getVariantValue<daq::IString*>(connectionString)).detach();
+        },
+        py::arg("connection_string") = nullptr,
+        "Creates a config for adding a streaming to the device.");
+    cls.def_property_readonly("add_device_config",
+        [](daq::IDevice *object)
+        {
+            py::gil_scoped_release release;
+            const auto objectPtr = daq::DevicePtr::Borrow(object);
+            return objectPtr.getAddDeviceConfig().detach();
+        },
+        py::return_value_policy::take_ownership,
+        "Gets a copy of the config the device was added with.");
 }

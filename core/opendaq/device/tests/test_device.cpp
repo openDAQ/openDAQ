@@ -381,6 +381,9 @@ TEST_F(DeviceTest, Remove)
     ASSERT_THROW(device.getAvailableFunctionBlockTypes(), daq::ComponentRemovedException);
     ASSERT_THROW(device.getAvailableDeviceTypes(), daq::ComponentRemovedException);
     ASSERT_THROW(device.getAvailableStreamingTypes(), daq::ComponentRemovedException);
+    ASSERT_THROW(device.createAddDeviceConfig(daq::DeviceInfo("daqtype://")), daq::ComponentRemovedException);
+    ASSERT_THROW(device.createAddStreamingConfig("daqtype://"), daq::ComponentRemovedException);
+    ASSERT_THROW(device.getAddDeviceConfig(), daq::ComponentRemovedException);
 
     ASSERT_THROW(device.getAvailableDevices(), daq::ComponentRemovedException);
 
@@ -396,6 +399,27 @@ TEST_F(DeviceTest, Remove)
     ASSERT_THROW(device.getDomain(), daq::ComponentRemovedException);
     ASSERT_THROW(device.getInputsOutputsFolder(), daq::ComponentRemovedException);
     ASSERT_THROW(device.getTicksSinceOrigin(), daq::ComponentRemovedException);
+}
+
+TEST_F(DeviceTest, GetAddDeviceConfigReturnsCopyOfStoredConfig)
+{
+    auto device = daq::createWithImplementation<daq::IDevice, TestDevice>();
+    ASSERT_FALSE(device.getAddDeviceConfig().assigned());
+
+    device.asPtr<daq::IComponentPrivate>().setComponentConfig(daq::PropertyObject());
+    ASSERT_FALSE(device.getAddDeviceConfig().assigned());
+
+    const auto deviceType = daq::DeviceTypeBuilder().setId("type").setName("type").setConnectionStringPrefix("daqtype").build();
+    const auto stored = daq::AddDeviceConfig(deviceType, daq::Dict<daq::IString, daq::IStreamingType>(), daq::False);
+    device.asPtr<daq::IComponentPrivate>().setComponentConfig(stored);
+
+    const auto first = device.getAddDeviceConfig();
+    ASSERT_TRUE(first.assigned());
+    ASSERT_EQ(first.getDeviceType().getId(), "type");
+    ASSERT_FALSE(first.getScanOnAdd());
+
+    first.setScanOnAdd(daq::True);
+    ASSERT_FALSE(device.getAddDeviceConfig().getScanOnAdd());
 }
 
 TEST_F(DeviceTest, SerializeAndDeserialize)

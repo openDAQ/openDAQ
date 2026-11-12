@@ -111,6 +111,9 @@ extern "C"
 
 #include <copendaq/context/context.h>
 
+#include <copendaq/device/add_device_config.h>
+#include <copendaq/device/add_streaming_config.h>
+#include <copendaq/device/add_streaming_options.h>
 #include <copendaq/device/address_info_builder.h>
 #include <copendaq/device/address_info.h>
 #include <copendaq/device/connected_client_info.h>

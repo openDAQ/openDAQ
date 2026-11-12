@@ -52,8 +52,8 @@ public:
  * @param obj A transport option, or the plain Property object a transport option was deserialized into.
  * @throws InvalidParameterException if `obj` is neither, i.e. lacks one of the option's properties.
  *
- * Owners of transport options (component types, server capabilities) use it to restore the options they read back
- * from their serialized form.
+ * Component types use it to restore the options they read back from their serialized form. The header is private to
+ * the SDK; the public server capability header restores its options on its own.
  */
 inline TransportOptionPtr TransportOptionFromPropertyObject(const PropertyObjectPtr& obj)
 {
@@ -118,6 +118,24 @@ inline ListPtr<IString> TransportOptionNames(const ListPtr<ITransportOption>& op
     }
 
     return names;
+}
+
+/*!
+ * @brief Finds a transport option by name.
+ * @returns The option, or unassigned if `options` has none of that name.
+ */
+inline TransportOptionPtr FindTransportOption(const ListPtr<ITransportOption>& options, const StringPtr& name)
+{
+    if (options.assigned() && name.assigned())
+    {
+        for (const auto& option : options)
+        {
+            if (option.getName() == name)
+                return option;
+        }
+    }
+
+    return nullptr;
 }
 
 END_NAMESPACE_OPENDAQ

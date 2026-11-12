@@ -19,6 +19,7 @@
 #include <coretypes/stringobject.h>
 #include <coretypes/dictobject.h>
 #include <opendaq/module_info.h>
+#include <opendaq/transport_option.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
@@ -30,6 +31,7 @@ struct IAuthenticationConfig;
  * [interfaceLibrary(IPropertyObject, CoreObjects)]
  * [interfaceLibrary(IAuthenticationConfig, "opendaq")]
  * [interfaceSmartPtr(IAuthenticationConfig, AuthenticationConfigPtr, "<opendaq/authentication_config_ptr.h>")]
+ * [interfaceSmartPtr(ITransportOption, TransportOptionPtr, "<opendaq/transport_option_ptr.h>")]
  */
 
 /*!
@@ -94,6 +96,17 @@ DECLARE_OPENDAQ_INTERFACE(IComponentType, IBaseObject)
      * @retval OPENDAQ_ERR_NOT_SUPPORTED when this component type sort (server-, FB-types) does not upports authentication.
      */
     virtual ErrCode INTERFACE_FUNC createAuthenticationConfig(IAuthenticationConfig** config) = 0;
+
+    // [templateType(transportOptions, ITransportOption)]
+    /*!
+     * @brief Gets the ways a component of this type can be connected to, with the default port of each.
+     * @param[out] transportOptions The transport options the module supports, the default first. Empty if the type
+     * lists none.
+     * @retval OPENDAQ_ERR_NOTIMPLEMENTED for Function block types, which are not connected to.
+     *
+     * The first option is the one used when no other is selected.
+     */
+    virtual ErrCode INTERFACE_FUNC getTransportOptions(IList** transportOptions) = 0;
 };
 /*!@}*/
 

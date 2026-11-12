@@ -18,6 +18,7 @@
 #include <opendaq/transport_option_factory.h>
 #include <coreobjects/property_object_impl.h>
 #include <coreobjects/property_object_factory.h>
+#include <coretypes/listobject_factory.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
@@ -79,6 +80,44 @@ inline TransportOptionPtr TransportOptionFromPropertyObject(const PropertyObject
     const Int protection = obj.getPropertyValue(TransportOptionImpl::ProtectionPropertyName);
     const Bool certificateRequired = obj.getPropertyValue(TransportOptionImpl::CertificateRequiredPropertyName);
     return TransportOption(name, port, static_cast<TransportProtection>(protection), certificateRequired);
+}
+
+/*!
+ * @brief Gets the transport options a list of objects stands for, in the same order.
+ * @param objects Transport options or the plain Property objects they were deserialized into; may be unassigned.
+ * @throws InvalidParameterException if an element is neither.
+ */
+inline ListPtr<ITransportOption> TransportOptionsFromPropertyObjects(const ListPtr<IBaseObject>& objects)
+{
+    auto options = List<ITransportOption>();
+    if (!objects.assigned())
+        return options;
+
+    for (const auto& obj : objects)
+    {
+        const auto propertyObject = obj.asPtrOrNull<IPropertyObject, PropertyObjectPtr>();
+        if (!propertyObject.assigned())
+            DAQ_THROW_EXCEPTION(InvalidParameterException, "The object is not a transport option");
+
+        options.pushBack(TransportOptionFromPropertyObject(propertyObject));
+    }
+
+    return options;
+}
+
+/*!
+ * @brief Gets the names of transport options, in the same order.
+ */
+inline ListPtr<IString> TransportOptionNames(const ListPtr<ITransportOption>& options)
+{
+    auto names = List<IString>();
+    if (options.assigned())
+    {
+        for (const auto& option : options)
+            names.pushBack(option.getName());
+    }
+
+    return names;
 }
 
 END_NAMESPACE_OPENDAQ

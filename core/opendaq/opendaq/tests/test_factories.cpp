@@ -7,6 +7,11 @@
 #include <gtest/gtest.h>
 #include <coreobjects/property_object_factory.h>
 #include <coreobjects/property_factory.h>
+#include <opendaq/streaming_type_factory.h>
+#include <opendaq/transport_option_impl.h>
+#include <coreobjects/property_object_internal_ptr.h>
+#include <coretypes/json_serializer_factory.h>
+#include <coretypes/json_deserializer_factory.h>
 
 using OpenDaqFactoriesTest = testing::Test;
 
@@ -324,6 +329,99 @@ TEST_F(OpenDaqFactoriesTest, DeviceTypeWithNoMethodsAddedDoesNotSupportAuthentic
     DictPtr<IString, IAuthenticationMethod> methods;
     ASSERT_NO_THROW(methods = deviceType.asPtr<IComponentTypePrivate>().getSupportedAuthenticationMethods());
     ASSERT_TRUE(methods.getCount() == 0);
+}
+
+TEST_F(OpenDaqFactoriesTest, StreamingTypeTransportOptions)
+{
+    const StreamingTypePtr type = StreamingTypeBuilder()
+                                  .setId("Id")
+                                  .setConnectionStringPrefix("Prefix")
+                                  .setTransportOptions(List<ITransportOption>(TransportOption("tls", 7421, TransportProtection::Encrypted),
+                                                                              TransportOption("plain", 7420)))
+                                  .build();
+
+    ASSERT_EQ(TransportOptionNames(type.getTransportOptions()), List<IString>("tls", "plain"));
+    ASSERT_EQ(type.getTransportOptions()[0].getPort(), 7421);
+    ASSERT_EQ(StreamingType("Id", "Name", "Desc", "Prefix").getTransportOptions().getCount(), 0u);
+}
+
+TEST_F(OpenDaqFactoriesTest, StreamingTypeSerializeDeserialize)
+{
+    const StreamingTypePtr type = StreamingTypeBuilder()
+                                  .setId("Id")
+                                  .setName("Name")
+                                  .setDescription("Desc")
+                                  .setConnectionStringPrefix("Prefix")
+                                  .setTransportOptions(List<ITransportOption>(TransportOption("wss", 7443, TransportProtection::Encrypted),
+                                                                              TransportOption("tls", 7421, TransportProtection::Encrypted)))
+                                  .build();
+
+    const auto serializer = JsonSerializer();
+    type.serialize(serializer);
+    const auto serializedType = serializer.getOutput();
+
+    const StreamingTypePtr newType = JsonDeserializer().deserialize(serializedType, nullptr, nullptr);
+
+    ASSERT_EQ(newType.getId(), "Id");
+    ASSERT_EQ(newType.getName(), "Name");
+    ASSERT_EQ(newType.getDescription(), "Desc");
+    ASSERT_EQ(newType.getConnectionStringPrefix(), "Prefix");
+    ASSERT_EQ(TransportOptionNames(newType.getTransportOptions()), List<IString>("wss", "tls"));
+    ASSERT_EQ(newType.getTransportOptions()[0].getProtection(), TransportProtection::Encrypted);
+
+    serializer.reset();
+    newType.serialize(serializer);
+    ASSERT_EQ(serializedType, serializer.getOutput());
+}
+
+TEST_F(OpenDaqFactoriesTest, ServerTypeTransportOptions)
+{
+    const ServerTypePtr type = ServerTypeBuilder()
+                               .setId("Id")
+                               .setTransportOptions(List<ITransportOption>(TransportOption("tls", 7421, TransportProtection::Encrypted),
+                                                                           TransportOption("plain", 7420)))
+                               .build();
+
+    ASSERT_EQ(TransportOptionNames(type.getTransportOptions()), List<IString>("tls", "plain"));
+    ASSERT_EQ(type.getTransportOptions()[1].getPort(), 7420);
+    ASSERT_EQ(ServerTypeBuilder().setId("Id").build().getTransportOptions().getCount(), 0u);
+}
+
+TEST_F(OpenDaqFactoriesTest, ServerTypeSerializeDeserialize)
+{
+    const ServerTypePtr type = ServerTypeBuilder()
+                               .setId("Id")
+                               .setName("Name")
+                               .setDescription("Desc")
+                               .setTransportOptions(List<ITransportOption>(TransportOption("https", 443, TransportProtection::Encrypted),
+                                                                           TransportOption("plain", 7420)))
+                               .build();
+
+    const auto serializer = JsonSerializer();
+    type.serialize(serializer);
+    const auto serializedType = serializer.getOutput();
+
+    const ServerTypePtr newType = JsonDeserializer().deserialize(serializedType, nullptr, nullptr);
+
+    ASSERT_EQ(newType.getId(), "Id");
+    ASSERT_EQ(newType.getName(), "Name");
+    ASSERT_EQ(newType.getDescription(), "Desc");
+    ASSERT_EQ(TransportOptionNames(newType.getTransportOptions()), List<IString>("https", "plain"));
+
+    serializer.reset();
+    newType.serialize(serializer);
+    ASSERT_EQ(serializedType, serializer.getOutput());
+}
+
+TEST_F(OpenDaqFactoriesTest, FBTypeHasNoTransportOptions)
+{
+    const auto options = List<ITransportOption>(TransportOption("plain", 7420));
+
+    ASSERT_THROW(FunctionBlockTypeBuilder().setTransportOptions(options), NotSupportedException);
+    ASSERT_THROW(DeviceTypeBuilder().setTypeSort(ComponentTypeSort::Undefined).setTransportOptions(options), NotSupportedException);
+
+    const FunctionBlockTypePtr fbType = FunctionBlockTypeBuilder().setId("Id").build();
+    ASSERT_THROW(fbType.getTransportOptions(), NotImplementedException);
 }
 
 END_NAMESPACE_OPENDAQ

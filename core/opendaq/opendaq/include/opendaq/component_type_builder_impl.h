@@ -19,10 +19,13 @@
 #include <coreobjects/property_object_ptr.h>
 #include <coretypes/intfs.h>
 #include <coretypes/string_ptr.h>
+#include <coretypes/dictptr.h>
 #include <opendaq/module_info_ptr.h>
 #include <opendaq/authentication_method_ptr.h>
 #include <coretypes/dict_ptr.h>
 #include <opendaq/device_type_ptr.h>
+#include <opendaq/transport_option_ptr.h>
+#include <coretypes/listptr.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 class ComponentTypeBuilderImpl : public ImplementationOf<IComponentTypeBuilder>
@@ -59,6 +62,9 @@ public:
     ErrCode INTERFACE_FUNC setLinkedDeviceType(IDeviceType* deviceType) override;
     ErrCode INTERFACE_FUNC getLinkedDeviceType(IDeviceType** deviceType) override;
 
+    ErrCode INTERFACE_FUNC setTransportOptions(IList* transportOptions) override;
+    ErrCode INTERFACE_FUNC getTransportOptions(IList** transportOptions) override;
+
 private:
     ComponentTypeSort sort;
     StringPtr id;
@@ -70,6 +76,7 @@ private:
     DeviceKind deviceKind;
     DictPtr<IString, IAuthenticationMethod> supportedAuthenticationMethods;
     DeviceTypePtr linkedDeviceType;
+    ListPtr<ITransportOption> transportOptions;
 };
 
 END_NAMESPACE_OPENDAQ

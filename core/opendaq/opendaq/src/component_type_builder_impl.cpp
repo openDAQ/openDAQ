@@ -5,6 +5,9 @@
 #include <opendaq/streaming_type_impl.h>
 #include <coretypes/validation.h>
 #include <coretypes/dictobject_factory.h>
+#include <coretypes/listobject_factory.h>
+#include <fmt/format.h>
+#include <unordered_set>
 
 BEGIN_NAMESPACE_OPENDAQ
 
@@ -12,6 +15,7 @@ ComponentTypeBuilderImpl::ComponentTypeBuilderImpl(ComponentTypeSort sort)
     : sort(sort)
     , deviceKind(DeviceKind::Unspecified)
     , supportedAuthenticationMethods((sort == ComponentTypeSort::Device || sort == ComponentTypeSort::Streaming) ?  Dict<IString, IAuthenticationMethod>() : nullptr)
+    , transportOptions(List<ITransportOption>())
 {
 }
 
@@ -210,6 +214,39 @@ ErrCode ComponentTypeBuilderImpl::getLinkedDeviceType(IDeviceType** deviceType)
         return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOT_SUPPORTED, "getLinkedDeviceType only applies to a Streaming type");
 
     *deviceType = this->linkedDeviceType.addRefAndReturn();
+    return OPENDAQ_SUCCESS;
+}
+
+ErrCode ComponentTypeBuilderImpl::setTransportOptions(IList* transportOptions)
+{
+    OPENDAQ_PARAM_NOT_NULL(transportOptions);
+
+    if (sort != ComponentTypeSort::Device && sort != ComponentTypeSort::Streaming && sort != ComponentTypeSort::Server)
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOT_SUPPORTED, "Transport options only apply to a Device, Streaming or Server type");
+
+    return daqTry([&]
+    {
+        std::unordered_set<std::string> names;
+        for (const auto& item : ListPtr<IBaseObject>::Borrow(transportOptions))
+        {
+            const auto option = item.asPtrOrNull<ITransportOption, TransportOptionPtr>();
+            if (!option.assigned())
+                return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDTYPE, "Transport options must be ITransportOption objects");
+
+            if (!names.insert(option.getName().toStdString()).second)
+                return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDVALUE, fmt::format(R"(Transport option "{}" is listed more than once)", option.getName()));
+        }
+
+        this->transportOptions = transportOptions;
+        return OPENDAQ_SUCCESS;
+    });
+}
+
+ErrCode ComponentTypeBuilderImpl::getTransportOptions(IList** transportOptions)
+{
+    OPENDAQ_PARAM_NOT_NULL(transportOptions);
+
+    *transportOptions = this->transportOptions.addRefAndReturn();
     return OPENDAQ_SUCCESS;
 }
 

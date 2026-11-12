@@ -18,6 +18,7 @@
 #include <opendaq/transport_option_factory.h>
 #include <coreobjects/property_object_impl.h>
 #include <coreobjects/property_object_factory.h>
+#include <coreobjects/property_factory.h>
 #include <coretypes/listobject_factory.h>
 
 BEGIN_NAMESPACE_OPENDAQ
@@ -103,6 +104,26 @@ inline ListPtr<ITransportOption> TransportOptionsFromPropertyObjects(const ListP
     }
 
     return options;
+}
+
+/*!
+ * @brief Adds the properties a module connects by to the default config of a device or streaming type.
+ * @param config The type's default config.
+ * @param options The type's transport options; nothing is added when there are none.
+ *
+ * Adds TransportOptionConfigProperty, set to the name of the first option, and PortConfigProperty, set to its port.
+ * A property the config already has is kept.
+ */
+inline void AddTransportSelectionProperties(const PropertyObjectPtr& config, const ListPtr<ITransportOption>& options)
+{
+    if (!config.assigned() || !options.assigned() || options.getCount() == 0)
+        return;
+
+    const TransportOptionPtr defaultOption = options[0];
+    if (!config.hasProperty(TransportOptionConfigProperty))
+        config.addProperty(StringProperty(TransportOptionConfigProperty, defaultOption.getName()));
+    if (!config.hasProperty(PortConfigProperty))
+        config.addProperty(IntProperty(PortConfigProperty, defaultOption.getPort()));
 }
 
 /*!

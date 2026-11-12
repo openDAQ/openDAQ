@@ -104,7 +104,9 @@ DECLARE_OPENDAQ_INTERFACE(IComponentType, IBaseObject)
      * lists none.
      * @retval OPENDAQ_ERR_NOTIMPLEMENTED for Function block types, which are not connected to.
      *
-     * The first option is the one used when no other is selected.
+     * The first option is the one used when no other is selected. The default config of a device or streaming type
+     * that lists options selects one by name in its "TransportOption" property and carries the port to connect to in
+     * its "Port" property (see TransportOptionConfigProperty and PortConfigProperty).
      */
     virtual ErrCode INTERFACE_FUNC getTransportOptions(IList** transportOptions) = 0;
 };

@@ -2,6 +2,7 @@
 #include <opendaq/device_type_factory.h>
 #include <opendaq/authentication_method_factory.h>
 #include <opendaq/transport_option_impl.h>
+#include <coreobjects/property_factory.h>
 #include <coretypes/validation.h>
 
 BEGIN_NAMESPACE_OPENDAQ
@@ -49,6 +50,23 @@ ErrCode DeviceTypeImpl::getDeviceKind(DeviceKind* kind)
     OPENDAQ_PARAM_NOT_NULL(kind);
 
     *kind = this->deviceKind;
+    return OPENDAQ_SUCCESS;
+}
+
+ErrCode DeviceTypeImpl::createDefaultConfig(IPropertyObject** defaultConfig)
+{
+    OPENDAQ_PARAM_NOT_NULL(defaultConfig);
+
+    PropertyObjectPtr config;
+    OPENDAQ_RETURN_IF_FAILED(Super::createDefaultConfig(&config));
+
+    const ErrCode errCode = daqTry([this, &config]
+    {
+        AddTransportSelectionProperties(config, transportOptions);
+    });
+    OPENDAQ_RETURN_IF_FAILED(errCode);
+
+    *defaultConfig = config.detach();
     return OPENDAQ_SUCCESS;
 }
 

@@ -424,61 +424,36 @@ TEST_F(OpenDaqFactoriesTest, FBTypeHasNoTransportOptions)
     ASSERT_THROW(fbType.getTransportOptions(), NotImplementedException);
 }
 
-TEST_F(OpenDaqFactoriesTest, StreamingTypeDefaultConfigSelectsFirstTransportOption)
+// The module manager adds the selection properties right before a streaming is created, not to the default config
+TEST_F(OpenDaqFactoriesTest, StreamingTypeDefaultConfigHasNoTransportSelection)
 {
-    auto moduleConfig = PropertyObject();
-    moduleConfig.addProperty(IntProperty("Port", 7000));
-
     const StreamingTypePtr type = StreamingTypeBuilder()
                                       .setId("Id")
                                       .setConnectionStringPrefix("Prefix")
-                                      .setDefaultConfig(moduleConfig)
                                       .setTransportOptions(List<ITransportOption>(TransportOption("plain", 7420), TransportOption("tls", 7421)))
                                       .build();
+    ASSERT_FALSE(type.createDefaultConfig().hasProperty(TransportOptionConfigProperty));
+    ASSERT_FALSE(type.createDefaultConfig().hasProperty(PortConfigProperty));
 
-    // The module's own port is kept
-    const PropertyObjectPtr config = type.createDefaultConfig();
-    ASSERT_EQ(config.getPropertyValue(TransportOptionConfigProperty), "plain");
-    ASSERT_EQ(config.getPropertyValue(PortConfigProperty), 7000);
-
-    const PropertyObjectPtr configWithoutModulePort = StreamingTypeBuilder()
-                                                          .setId("Id")
-                                                          .setConnectionStringPrefix("Prefix")
-                                                          .setTransportOptions(List<ITransportOption>(TransportOption("tls", 7421)))
-                                                          .build()
-                                                          .createDefaultConfig();
-    ASSERT_EQ(configWithoutModulePort.getPropertyValue(TransportOptionConfigProperty), "tls");
-    ASSERT_EQ(configWithoutModulePort.getPropertyValue(PortConfigProperty), 7421);
-
-    ASSERT_FALSE(StreamingType("Id", "Name", "Desc", "Prefix").createDefaultConfig().hasProperty(TransportOptionConfigProperty));
-}
-
-// A linked streaming type takes over the device's config, but selects a transport option of its own
-TEST_F(OpenDaqFactoriesTest, LinkedStreamingTypeDefaultConfigSelectsOwnTransportOption)
-{
+    // A linked streaming type takes over the device's config as it is
+    auto moduleConfig = PropertyObject();
+    moduleConfig.addProperty(IntProperty("Port", 7000));
     const DeviceTypePtr deviceType = DeviceTypeBuilder()
                                          .setId("DeviceId")
                                          .setConnectionStringPrefix("daq.device")
-                                         .setTransportOptions(List<ITransportOption>(TransportOption("tls", 7421), TransportOption("plain", 7420)))
+                                         .setDefaultConfig(moduleConfig)
+                                         .setTransportOptions(List<ITransportOption>(TransportOption("tls", 7421)))
                                          .build();
-    ASSERT_EQ(deviceType.createDefaultConfig().getPropertyValue(TransportOptionConfigProperty), "tls");
+    const StreamingTypePtr linkedType = StreamingTypeBuilder()
+                                            .setId("Id")
+                                            .setConnectionStringPrefix("Prefix")
+                                            .setLinkedDeviceType(deviceType)
+                                            .setTransportOptions(List<ITransportOption>(TransportOption("plain", 7420)))
+                                            .build();
 
-    const StreamingTypePtr type = StreamingTypeBuilder()
-                                      .setId("Id")
-                                      .setConnectionStringPrefix("Prefix")
-                                      .setLinkedDeviceType(deviceType)
-                                      .setTransportOptions(List<ITransportOption>(TransportOption("plain", 7420), TransportOption("tls", 7421)))
-                                      .build();
-
-    // The port the device type added stays: left at its default, it stands for the port of the selected option
-    const PropertyObjectPtr config = type.createDefaultConfig();
-    ASSERT_EQ(config.getPropertyValue(TransportOptionConfigProperty), "plain");
-    ASSERT_EQ(config.getPropertyValue(PortConfigProperty), 7421);
-
-    // Without options of its own the streaming selects nothing
-    const PropertyObjectPtr configWithoutOptions =
-        StreamingTypeBuilder().setId("Id").setConnectionStringPrefix("Prefix").setLinkedDeviceType(deviceType).build().createDefaultConfig();
-    ASSERT_FALSE(configWithoutOptions.hasProperty(TransportOptionConfigProperty));
+    const PropertyObjectPtr config = linkedType.createDefaultConfig();
+    ASSERT_FALSE(config.hasProperty(TransportOptionConfigProperty));
+    ASSERT_EQ(config.getPropertyValue(PortConfigProperty), 7000);
 }
 
 TEST_F(OpenDaqFactoriesTest, ServerTypeDefaultConfigHasNoTransportSelection)

@@ -61,6 +61,7 @@ function(create_component_source_groups_${BASE_NAME})
         ${SDK_HEADERS_DIR}/utility_exceptions.h
         ${SDK_SRC_DIR}/utility.natvis
         ${SDK_HEADERS_DIR}/option_helpers.h
+        ${SDK_HEADERS_DIR}/connection_string_utils.h
     )
 endfunction()
 
@@ -89,6 +90,7 @@ set(SRC_PublicHeaders_Component
     mem_pool_allocator.h
     thread_name.h
     option_helpers.h
+    connection_string_utils.h
     PARENT_SCOPE
 )
 

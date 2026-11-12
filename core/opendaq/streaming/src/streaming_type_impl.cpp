@@ -1,6 +1,5 @@
 #include <opendaq/streaming_type_impl.h>
 #include <opendaq/transport_option_impl.h>
-#include <coreobjects/property_factory.h>
 #include <coretypes/validation.h>
 
 BEGIN_NAMESPACE_OPENDAQ
@@ -50,25 +49,10 @@ ErrCode StreamingTypeImpl::createDefaultConfig(IPropertyObject** defaultConfig)
 {
     OPENDAQ_PARAM_NOT_NULL(defaultConfig);
 
-    PropertyObjectPtr config;
     if (linkedDeviceType.assigned())
-        OPENDAQ_RETURN_IF_FAILED(linkedDeviceType->createDefaultConfig(&config));
-    else
-        OPENDAQ_RETURN_IF_FAILED(Super::createDefaultConfig(&config));
+        return linkedDeviceType->createDefaultConfig(defaultConfig);
 
-    const ErrCode errCode = daqTry([this, &config]
-    {
-        // The config lent by a linked device type names the device's transport option, while the streaming selects
-        // one of its own. The port stays: left at its default, it stands for the port of the selected option.
-        if (linkedDeviceType.assigned() && config.hasProperty(TransportOptionConfigProperty))
-            config.removeProperty(TransportOptionConfigProperty);
-
-        AddTransportSelectionProperties(config, transportOptions);
-    });
-    OPENDAQ_RETURN_IF_FAILED(errCode);
-
-    *defaultConfig = config.detach();
-    return OPENDAQ_SUCCESS;
+    return Super::createDefaultConfig(defaultConfig);
 }
 
 ErrCode StreamingTypeImpl::createAuthenticationConfig(IAuthenticationConfig** config)

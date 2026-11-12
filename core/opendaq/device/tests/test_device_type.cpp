@@ -120,22 +120,8 @@ TEST_F(DeviceTypeTest, SerializeWithoutTransportOptions)
     ASSERT_EQ(newType.getTransportOptions().getCount(), 0u);
 }
 
-TEST_F(DeviceTypeTest, DefaultConfigSelectsFirstTransportOption)
-{
-    const DeviceTypePtr type = DeviceTypeBuilder()
-                                   .setId("id")
-                                   .setConnectionStringPrefix("prefix")
-                                   .setTransportOptions(List<ITransportOption>(TransportOption("tls", 7421), TransportOption("plain", 7420)))
-                                   .build();
-
-    const PropertyObjectPtr config = type.createDefaultConfig();
-    ASSERT_EQ(config.getProperty(TransportOptionConfigProperty).getValueType(), ctString);
-    ASSERT_EQ(config.getPropertyValue(TransportOptionConfigProperty), "tls");
-    ASSERT_EQ(config.getProperty(PortConfigProperty).getValueType(), ctInt);
-    ASSERT_EQ(config.getPropertyValue(PortConfigProperty), 7421);
-}
-
-TEST_F(DeviceTypeTest, DefaultConfigKeepsModuleProperties)
+// The module manager adds the selection properties right before a device is created, not to the default config
+TEST_F(DeviceTypeTest, DefaultConfigHasNoTransportSelection)
 {
     auto moduleConfig = PropertyObject();
     moduleConfig.addProperty(IntProperty("Port", 7000));
@@ -147,48 +133,18 @@ TEST_F(DeviceTypeTest, DefaultConfigKeepsModuleProperties)
                                    .setTransportOptions(List<ITransportOption>(TransportOption("tls", 7421), TransportOption("plain", 7420)))
                                    .build();
 
-    // The module's own port is kept, the transport option is added
+    // The module's own port is kept as it is
     const PropertyObjectPtr config = type.createDefaultConfig();
+    ASSERT_FALSE(config.hasProperty(TransportOptionConfigProperty));
     ASSERT_EQ(config.getPropertyValue(PortConfigProperty), 7000);
-    ASSERT_EQ(config.getPropertyValue(TransportOptionConfigProperty), "tls");
 
-    // Every default config is a copy, and the module's config is left as it was
-    config.setPropertyValue(TransportOptionConfigProperty, "plain");
-    ASSERT_EQ(type.createDefaultConfig().getPropertyValue(TransportOptionConfigProperty), "tls");
-    ASSERT_FALSE(moduleConfig.hasProperty(TransportOptionConfigProperty));
-}
-
-TEST_F(DeviceTypeTest, DefaultConfigWithoutTransportOptions)
-{
-    const DeviceTypePtr type = DeviceTypeBuilder().setId("id").setConnectionStringPrefix("prefix").build();
-    ASSERT_FALSE(type.createDefaultConfig().hasProperty(TransportOptionConfigProperty));
-    ASSERT_FALSE(type.createDefaultConfig().hasProperty(PortConfigProperty));
-
-    const DeviceTypePtr factoryType = DeviceType("id", "name", "description", "prefix");
-    ASSERT_FALSE(factoryType.createDefaultConfig().hasProperty(TransportOptionConfigProperty));
-}
-
-// The selection is a plain String and Int, which any peer reads back
-TEST_F(DeviceTypeTest, DefaultConfigSerializeDeserialize)
-{
-    const DeviceTypePtr type = DeviceTypeBuilder()
-                                   .setId("id")
-                                   .setConnectionStringPrefix("prefix")
-                                   .setTransportOptions(List<ITransportOption>(TransportOption("tls", 7421), TransportOption("plain", 7420)))
-                                   .build();
-
-    const PropertyObjectPtr config = type.createDefaultConfig();
-    config.setPropertyValue(TransportOptionConfigProperty, "plain");
-    config.setPropertyValue(PortConfigProperty, 9420);
-
-    const auto serializer = JsonSerializer();
-    config.serialize(serializer);
-    const std::string serialized = serializer.getOutput();
-    ASSERT_EQ(serialized.find("AddDeviceConfig"), std::string::npos);
-
-    const PropertyObjectPtr newConfig = JsonDeserializer().deserialize(serialized, nullptr, nullptr);
-    ASSERT_EQ(newConfig.getPropertyValue(TransportOptionConfigProperty), "plain");
-    ASSERT_EQ(newConfig.getPropertyValue(PortConfigProperty), 9420);
+    const DeviceTypePtr withoutModuleConfig = DeviceTypeBuilder()
+                                                  .setId("id")
+                                                  .setConnectionStringPrefix("prefix")
+                                                  .setTransportOptions(List<ITransportOption>(TransportOption("tls", 7421)))
+                                                  .build();
+    ASSERT_FALSE(withoutModuleConfig.createDefaultConfig().hasProperty(TransportOptionConfigProperty));
+    ASSERT_FALSE(withoutModuleConfig.createDefaultConfig().hasProperty(PortConfigProperty));
 }
 
 END_NAMESPACE_OPENDAQ

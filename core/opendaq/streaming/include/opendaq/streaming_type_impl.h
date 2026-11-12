@@ -44,6 +44,7 @@ public:
     ErrCode INTERFACE_FUNC getLinkedDeviceType(IDeviceType** deviceType) override;
 
     // IComponentType
+    // Adds the "TransportOption" and "Port" properties a module connects by when the type lists transport options
     ErrCode INTERFACE_FUNC createDefaultConfig(IPropertyObject** defaultConfig) override;
     ErrCode INTERFACE_FUNC createAuthenticationConfig(IAuthenticationConfig** config) override;
 

@@ -21,6 +21,24 @@ BEGIN_NAMESPACE_OPENDAQ
 
 /*!
  * @ingroup opendaq_transport_option
+ * @brief The device or streaming type config property that names the transport option to connect over.
+ *
+ * A String property. The default config of a device or streaming type that lists transport options has it, set to the
+ * name of the first option. The add fails with OPENDAQ_ERR_NOTFOUND when it names an option the type does not list.
+ */
+inline constexpr const char* TransportOptionConfigProperty = "TransportOption";
+
+/*!
+ * @ingroup opendaq_transport_option
+ * @brief The device or streaming type config property with the port to connect to.
+ *
+ * An Int property next to TransportOptionConfigProperty. A module that already declares a "Port" property in its
+ * type config keeps it; otherwise the default is the port of the type's first transport option.
+ */
+inline constexpr const char* PortConfigProperty = "Port";
+
+/*!
+ * @ingroup opendaq_transport_option
  * @addtogroup opendaq_transport_option_factories Factories
  * @{
  */

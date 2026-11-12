@@ -1,6 +1,7 @@
 #include <coreobjects/property_factory.h>
 #include <opendaq/module_manager_impl.h>
 #include <opendaq/module_manager_ptr.h>
+#include <opendaq/transport_option_impl.h>
 #include <opendaq/custom_log.h>
 #include <opendaq/module_ptr.h>
 #include <opendaq/module_manager_exceptions.h>
@@ -112,6 +113,44 @@ TypePtr FindTypeByPrefix(const Types& types, const StringPtr& prefix)
         if (type.getConnectionStringPrefix() == prefix)
             return type;
     return nullptr;
+}
+
+// The transport option the type config of a device or streaming type names, or unassigned if it names none
+inline StringPtr GetSelectedTransportOption(const PropertyObjectPtr& typeConfig)
+{
+    if (!typeConfig.assigned() || !typeConfig.hasProperty(TransportOptionConfigProperty))
+        return nullptr;
+    return typeConfig.getPropertyValue(TransportOptionConfigProperty);
+}
+
+// Fails with OPENDAQ_ERR_NOTFOUND when the type config names a transport option the type does not list
+inline ErrCode CheckSelectedTransportOption(const ComponentTypePtr& type, const PropertyObjectPtr& typeConfig)
+{
+    const StringPtr selected = GetSelectedTransportOption(typeConfig);
+    if (!selected.assigned())
+        return OPENDAQ_SUCCESS;
+
+    ListPtr<ITransportOption> options;
+    if (OPENDAQ_FAILED(type->getTransportOptions(&options)))
+    {
+        daqClearErrorInfo();
+        return OPENDAQ_SUCCESS;
+    }
+
+    // A type that lists no options leaves the property to its module
+    if (!options.assigned() || options.getCount() == 0 || FindTransportOption(options, selected).assigned())
+        return OPENDAQ_SUCCESS;
+
+    std::string names;
+    for (const auto& option : options)
+        names += (names.empty() ? "" : ", ") + option.getName().toStdString();
+
+    return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOTFOUND,
+                               fmt::format("The {} type '{}' has no transport option '{}'; it lists: {}",
+                                           type.asPtrOrNull<IStreamingType>().assigned() ? "streaming" : "device",
+                                           type.getId(),
+                                           selected,
+                                           names));
 }
 
 ModuleManagerImpl::ModuleManagerImpl(const BaseObjectPtr& path, const CredentialProviderPtr& credentialProvider)
@@ -992,6 +1031,7 @@ ErrCode ModuleManagerImpl::createDeviceInternal(IDevice** device, IString* conne
 
             // copy props from input config and connection string to device type config
             const auto deviceTypeConfig = PopulateDeviceTypeConfig(addDeviceConfig, inputConfig, deviceType, connectionStringOptions);
+            OPENDAQ_RETURN_IF_FAILED(CheckSelectedTransportOption(deviceType, deviceTypeConfig));
 
             // Any supported authentication method - field-less (e.g. "Anonymous") included - goes through
             // `createAuthenticatedDevice`; `createDevice` is only for a type with none supported at all.
@@ -1867,6 +1907,8 @@ StreamingPtr ModuleManagerImpl::onCreateStreaming(const StringPtr& connectionStr
         {
             streamingTypeConfig = inputConfig;
         }
+
+        checkErrorInfo(CheckSelectedTransportOption(streamingType, streamingTypeConfig));
 
         if (authenticationConfig.assigned() && !streamingType.asPtr<IComponentTypePrivate>().getSupportedAuthenticationMethods().getCount())
         {

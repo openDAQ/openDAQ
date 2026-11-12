@@ -122,8 +122,8 @@ TEST_F(AddDeviceConfigTest, StreamingDefaults)
 
     ASSERT_EQ(options.getStreamingMode(), StreamingMode::MinHops);
     ASSERT_FALSE(options.getStreamingConfig().assigned());
-    ASSERT_EQ(options.asPtr<IPropertyObject>().getPropertyValue("StreamingType"), "");
-    ASSERT_EQ(options.asPtr<IPropertyObject>().getProperty("StreamingType").getSelectionValues(), List<IString>("", "b", "a"));
+    ASSERT_EQ(options.asPtr<IPropertyObject>().getPropertyValue("StreamingType"), "None");
+    ASSERT_EQ(options.asPtr<IPropertyObject>().getProperty("StreamingType").getSelectionValues(), List<IString>("None", "b", "a"));
 
     const auto configs = options.getStreamingConfigs();
     ASSERT_EQ(configs.getKeyList(), List<IString>("b", "a"));
@@ -172,8 +172,8 @@ TEST_F(AddDeviceConfigTest, PropertyViewMatchesTypedGetters)
     ASSERT_EQ(configObject.getPropertyValue("PrimaryAddressType"), static_cast<Int>(AddressType::IPv6));
     configObject.setPropertyValue("ScanOnAdd", false);
     ASSERT_FALSE(config.getScanOnAdd());
-    optionsObject.setPropertyValue("StreamingMode", static_cast<Int>(StreamingMode::Disabled));
-    ASSERT_EQ(options.getStreamingMode(), StreamingMode::Disabled);
+    optionsObject.setPropertyValue("StreamingMode", static_cast<Int>(StreamingMode::MinConnections));
+    ASSERT_EQ(options.getStreamingMode(), StreamingMode::MinConnections);
 }
 
 TEST_F(AddDeviceConfigTest, EnumSelectionValues)
@@ -184,8 +184,8 @@ TEST_F(AddDeviceConfigTest, EnumSelectionValues)
     ASSERT_EQ(addressTypes.getKeyList(), List<Int>(0, 1));
     ASSERT_EQ(addressTypes.getValueList(), List<IString>("IPv4", "IPv6"));
     const DictPtr<Int, IString> modes = options.asPtr<IPropertyObject>().getProperty("StreamingMode").getSelectionValues();
-    ASSERT_EQ(modes.getKeyList(), List<Int>(0, 1, 2));
-    ASSERT_EQ(modes.getValueList(), List<IString>("Disabled", "MinHops", "MinConnections"));
+    ASSERT_EQ(modes.getKeyList(), List<Int>(0, 1));
+    ASSERT_EQ(modes.getValueList(), List<IString>("MinHops", "MinConnections"));
 
     for (const auto type : {AddressType::IPv4, AddressType::IPv6})
     {
@@ -193,7 +193,7 @@ TEST_F(AddDeviceConfigTest, EnumSelectionValues)
         ASSERT_EQ(config.getPrimaryAddressType(), type);
     }
 
-    for (const auto mode : {StreamingMode::Disabled, StreamingMode::MinHops, StreamingMode::MinConnections})
+    for (const auto mode : {StreamingMode::MinHops, StreamingMode::MinConnections})
     {
         options.setStreamingMode(mode);
         ASSERT_EQ(options.getStreamingMode(), mode);
@@ -203,7 +203,7 @@ TEST_F(AddDeviceConfigTest, EnumSelectionValues)
 TEST_F(AddDeviceConfigTest, UnlistableStreamingTypeIdsAreNotListed)
 {
     auto streamingTypes = Dict<IString, IStreamingType>();
-    for (const auto& id : {"", "a.b", "a'b", "StreamingType", "StreamingMode", "a"})
+    for (const auto& id : {"", "a.b", "a'b", "StreamingType", "StreamingMode", "None", "a"})
         streamingTypes.set(id, createStreamingType("a"));
 
     const auto options = AddDeviceConfig(createDeviceType(DeviceKind::Mirrored), streamingTypes, true).getStreamingOptions();
@@ -212,7 +212,7 @@ TEST_F(AddDeviceConfigTest, UnlistableStreamingTypeIdsAreNotListed)
     ASSERT_EQ(options.getStreamingMode(), StreamingMode::MinHops);
 }
 
-TEST_F(AddDeviceConfigTest, OnlySelectedStreamingConfigIsVisible)
+TEST_F(AddDeviceConfigTest, StreamingOptionsVisibleOnlyForSelectedType)
 {
     const auto options = createMirroredConfig().getStreamingOptions();
     const auto optionsObject = options.asPtr<IPropertyObject>();
@@ -224,7 +224,7 @@ TEST_F(AddDeviceConfigTest, OnlySelectedStreamingConfigIsVisible)
         return names;
     };
 
-    ASSERT_EQ(visibleNames(), (std::vector<std::string>{"StreamingType", "StreamingMode"}));
+    ASSERT_EQ(visibleNames(), (std::vector<std::string>{"StreamingType"}));
 
     options.setStreamingType("a");
     ASSERT_EQ(visibleNames(), (std::vector<std::string>{"StreamingType", "StreamingMode", "a"}));
@@ -247,9 +247,13 @@ TEST_F(AddDeviceConfigTest, StreamingSelection)
     ASSERT_THROW(options.setStreamingType("unknown"), NotFoundException);
     ASSERT_EQ(options.asPtr<IPropertyObject>().getPropertyValue("StreamingType"), "b");
 
-    options.setStreamingType(nullptr);
-    ASSERT_FALSE(options.getStreamingConfig().assigned());
-    ASSERT_EQ(options.asPtr<IPropertyObject>().getPropertyValue("StreamingType"), "");
+    for (const auto& none : {StringPtr(), String(""), String("None")})
+    {
+        options.setStreamingType("a");
+        options.setStreamingType(none);
+        ASSERT_FALSE(options.getStreamingConfig().assigned());
+        ASSERT_EQ(options.asPtr<IPropertyObject>().getPropertyValue("StreamingType"), "None");
+    }
 }
 
 TEST_F(AddDeviceConfigTest, Clone)
@@ -463,7 +467,7 @@ TEST_F(AddDeviceConfigTest, BindMalformedSaveForm)
     ASSERT_NO_THROW(bindSaved(valid, deviceTypes, nullptr));
     ASSERT_THROW(bindSaved(replaced(R"("scanOnAdd":true)", R"("scanOnAdd":"yes")"), deviceTypes, nullptr), InvalidValueException);
     ASSERT_THROW(bindSaved(replaced(R"("scanOnAdd":true,)", ""), deviceTypes, nullptr), InvalidValueException);
-    ASSERT_THROW(bindSaved(replaced(R"("StreamingMode":2)", R"("StreamingMode":99)"), deviceTypes, nullptr), InvalidValueException);
+    ASSERT_THROW(bindSaved(replaced(R"("StreamingMode":1)", R"("StreamingMode":99)"), deviceTypes, nullptr), InvalidValueException);
 }
 
 TEST_F(AddDeviceConfigTest, BindDropsUnknownStreamingType)

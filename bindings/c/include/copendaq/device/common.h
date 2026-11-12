@@ -44,8 +44,7 @@ extern "C"
 
     typedef enum daqStreamingMode
     {
-        daqStreamingModeDisabled = 0,
-        daqStreamingModeMinHops,
+        daqStreamingModeMinHops = 0,
         daqStreamingModeMinConnections
     } daqStreamingMode;
 

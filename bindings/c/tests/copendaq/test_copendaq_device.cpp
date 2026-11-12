@@ -193,7 +193,6 @@ TEST_F(COpendaqDeviceTest, AddDeviceConfig)
 {
     static_assert(daqAddressTypeIPv4 == static_cast<int>(daq::AddressType::IPv4));
     static_assert(daqAddressTypeIPv6 == static_cast<int>(daq::AddressType::IPv6));
-    static_assert(daqStreamingModeDisabled == static_cast<int>(daq::StreamingMode::Disabled));
     static_assert(daqStreamingModeMinHops == static_cast<int>(daq::StreamingMode::MinHops));
     static_assert(daqStreamingModeMinConnections == static_cast<int>(daq::StreamingMode::MinConnections));
 
@@ -244,7 +243,7 @@ TEST_F(COpendaqDeviceTest, AddDeviceConfig)
               optionsPtr.getStreamingConfigs().get("streamingType"));
 
     daqAddStreamingOptions_setStreamingMode(options, daqStreamingModeMinConnections);
-    daqStreamingMode mode = daqStreamingModeDisabled;
+    daqStreamingMode mode = daqStreamingModeMinHops;
     daqAddStreamingOptions_getStreamingMode(options, &mode);
     ASSERT_EQ(mode, daqStreamingModeMinConnections);
 }

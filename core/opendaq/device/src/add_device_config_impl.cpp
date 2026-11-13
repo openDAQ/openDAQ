@@ -332,6 +332,9 @@ ErrCode AddDeviceConfigImpl::setTransportOption(IString* name)
 {
     OPENDAQ_PARAM_NOT_NULL(name);
 
+    if (transportOptions.getCount() == 0)
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOT_SUPPORTED, "The Device type has no transport options");
+
     return daqTry([&]
     {
         const StringPtr nameStr = name;

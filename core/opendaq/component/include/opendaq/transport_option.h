@@ -77,8 +77,6 @@ DECLARE_OPENDAQ_INTERFACE(ITransportOption, IPropertyObject)
      * @brief Tells whether the connection over this option needs a client certificate.
      * @param[out] required True when the user has to supply a client certificate (through the authentication
      * config) to connect over this option.
-     *
-     * Informs the user only; it is not checked when the component is added.
      */
     virtual ErrCode INTERFACE_FUNC getCertificateRequired(Bool* required) = 0;
 };

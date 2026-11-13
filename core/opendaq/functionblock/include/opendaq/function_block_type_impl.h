@@ -77,7 +77,7 @@ inline ErrCode FunctionBlockTypeImpl::getSupportedAuthenticationMethods(IDict** 
 
 inline ErrCode FunctionBlockTypeImpl::getTransportOptions(IList** /*transportOptions*/)
 {
-    return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOTIMPLEMENTED, "Function block types have no transport options");
+    return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOT_SUPPORTED, "Function block types have no transport options");
 }
 
 inline ErrCode FunctionBlockTypeImpl::serialize(ISerializer* serializer)

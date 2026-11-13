@@ -161,7 +161,7 @@ TEST_F(AddConfigTransportTest, WithoutTransportOptions)
     const auto config = CreateConfig(CreateDeviceType(List<ITransportOption>()));
 
     ASSERT_EQ(config.getTransportOptions().getCount(), 0u);
-    ASSERT_THROW(config.setTransportOption("plain"), NotFoundException);
+    ASSERT_THROW(config.setTransportOption("plain"), NotSupportedException);
     ASSERT_THROW(config.getSelectedTransportOption(), NotSupportedException);
     ASSERT_THROW(config.setPort(7420), NotSupportedException);
     ASSERT_THROW(config.getPort(), NotSupportedException);
@@ -283,6 +283,7 @@ TEST_F(AddConfigTransportTest, AddStreamingConfig)
     ASSERT_THROW(config.setTransportOption("wss"), NotFoundException);
 
     const auto withoutOptions = AddStreamingConfig(CreateStreamingType(List<ITransportOption>()));
+    ASSERT_THROW(withoutOptions.setTransportOption("plain"), NotSupportedException);
     ASSERT_THROW(withoutOptions.getPort(), NotSupportedException);
 }
 

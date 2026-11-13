@@ -77,6 +77,7 @@ DECLARE_OPENDAQ_INTERFACE(IAddStreamingConfig, IBaseObject)
     /*!
      * @brief Selects the transport option the streaming connects over.
      * @param name The name of one of the options of getTransportOptions.
+     * @retval OPENDAQ_ERR_NOT_SUPPORTED for a Streaming type without transport options.
      * @retval OPENDAQ_ERR_NOTFOUND if none of the options has that name.
      *
      * A port set before is dropped: getPort then gives the port of the option.
@@ -100,7 +101,8 @@ DECLARE_OPENDAQ_INTERFACE(IAddStreamingConfig, IBaseObject)
     virtual ErrCode INTERFACE_FUNC setPort(IInteger* port) = 0;
 
     /*!
-     * @brief Gets the port the streaming connects to.
+     * @brief Gets the port the streaming connects to, unless discovery reports another port for the selected option
+     * (see the class description).
      * @param[out] port The port of the selected option, or the one set by setPort.
      * @retval OPENDAQ_ERR_NOT_SUPPORTED for a Streaming type without transport options.
      */

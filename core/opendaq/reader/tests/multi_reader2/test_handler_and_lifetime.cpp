@@ -193,7 +193,6 @@ TEST_F(MultiReader2Context, ConfigureDoesNotScheduleHandlerAfterFailedCall)
 // S1.CTX.12
 TEST_F(MultiReader2Context, HandlerCanCallAvailableCountSkipAndReadWithDomain)
 {
-    MR2_REVIEW_ONLY(review_only::wake);
     setupHandler(
         [&]
         {
@@ -612,26 +611,6 @@ TEST_F(MultiReader2Context, ValueAndDomainChangeCallsHandlerAgainAfterThrow)
     expect(idle(), calls(1, {count(50).at(250).descChanged(in2)}));
 }
 
-// S1.CTX.44
-TEST_F(MultiReader2Context, GapCallsHandlerAgainAfterThrow)
-{
-    MR2_REVIEW_ONLY(review_only::gapEvent);
-    setupHandler(
-        [&]
-        {
-            read(150);
-            throw std::runtime_error("handler throws");
-        },
-        [&] { read(150); });
-    blockWorker();
-    write(in1, 100, 299);
-    write(in2, 100, 299);
-    unblockWorker();
-    expect(idle(), calls(1, {count(150).at(100).noChanges()}));
-    gap(in2);
-    expect(idle(), calls(1, {count(50).at(250).noChanges()}));
-}
-
 // S1.CTX.45
 TEST_F(MultiReader2Context, ConnectCallsHandlerAgainAfterThrow)
 {
@@ -701,9 +680,8 @@ TEST_F(MultiReader2Context, DisconnectAndReconnectCallsHandlerAgainAfterThrow)
 }
 
 // S1.CTX.48
-TEST_F(MultiReader2Context, EqualDescriptorAndOtherEventCallHandlerAgainAfterThrowWhileDataIsReadable)
+TEST_F(MultiReader2Context, IgnoredEventsAfterThrowCallHandlerOnce)
 {
-    MR2_REVIEW_ONLY(review_only::wake);
     setupHandler(
         [&]
         {
@@ -718,6 +696,7 @@ TEST_F(MultiReader2Context, EqualDescriptorAndOtherEventCallHandlerAgainAfterThr
     expect(idle(), calls(1, {count(150).at(100).noChanges()}));
     announce(in2, Value::same());
     otherEvent(in2);
+    gap(in2);
     expect(idle(), calls(1, {count(50).at(250).noChanges()}));
     expect(avail(), count(0));
 }

@@ -83,11 +83,11 @@ void validateArguments(const StringPtr& address,
 // Backend config
 // ---------------------------------------------------------------------------
 
-Int readIntPropertyValue(const PropertyObjectPtr& config, const StringPtr& name)
+Int readIntPropertyValue(const PropertyObjectPtr& config, const StringPtr& name, Int minValue)
 {
     const Int value = detail::propertyValue(config, name, ctInt, "an integer");
-    if (value <= 0)
-        DAQ_THROW_EXCEPTION(InvalidParameterException, "Config property \"{}\" is {}, must be positive", name, value);
+    if (value < minValue)
+        DAQ_THROW_EXCEPTION(InvalidParameterException, "Config property \"{}\" is {}, must be at least {}", name, value, minValue);
     return value;
 }
 

@@ -2,20 +2,30 @@ set(BASE_NAME sftp_file_transfer_libssh2)
 set(MODULE_NAME ${SDK_TARGET_NAME}_${BASE_NAME})
 
 set(SRC_PublicHeaders include/sftp_file_transfer/libssh2/sftp_file_transfer_libssh2_factory.h
+                      include/sftp_file_transfer/libssh2/sftp_file_transfer_async_libssh2_factory.h
 )
 
-set(SRC_PrivateHeaders include/sftp_file_transfer/libssh2/sftp_connection.h
+set(SRC_PrivateHeaders include/sftp_file_transfer/libssh2/ssh_connection.h
+                       include/sftp_file_transfer/libssh2/sftp_connection.h
                        include/sftp_file_transfer/libssh2/sftp_file_transfer_impl.h
+                       include/sftp_file_transfer/libssh2/sftp_async_engine.h
+                       include/sftp_file_transfer/libssh2/sftp_file_transfer_operation_impl.h
+                       include/sftp_file_transfer/libssh2/sftp_file_transfer_async_impl.h
 )
 
-set(SRC_Cpp src/sftp_connection.cpp
+set(SRC_Cpp src/ssh_connection.cpp
+            src/sftp_connection.cpp
             src/sftp_file_transfer_impl.cpp
+            src/sftp_async_engine.cpp
+            src/sftp_file_transfer_operation_impl.cpp
+            src/sftp_file_transfer_async_impl.cpp
 )
 
 add_library(${MODULE_NAME} STATIC ${SRC_Cpp} ${SRC_PublicHeaders} ${SRC_PrivateHeaders})
 add_library(${SDK_TARGET_NAMESPACE}::${BASE_NAME} ALIAS ${MODULE_NAME})
 
-# Public: sftp_file_transfer/libssh2/sftp_file_transfer_libssh2_factory.h. The other headers next to it are internal
+# Public: sftp_file_transfer/libssh2/sftp_file_transfer_libssh2_factory.h and
+# sftp_file_transfer/libssh2/sftp_file_transfer_async_libssh2_factory.h. The other headers next to it are internal
 # to this library (they need libssh2 headers, which are not propagated).
 target_include_directories(${MODULE_NAME}
     PUBLIC

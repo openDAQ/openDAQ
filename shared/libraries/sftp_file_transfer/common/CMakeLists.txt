@@ -13,9 +13,12 @@ set(RTGEN_RELATIVE_PARENT_DIR shared/libraries/sftp_file_transfer/common)
 
 # Smart pointers only, no language bindings so far.
 rtgen(SRC_FileTransfer file_transfer.h INTERNAL)
+rtgen(SRC_FileTransferOperation file_transfer_operation.h INTERNAL)
+rtgen(SRC_FileTransferAsync file_transfer_async.h INTERNAL)
 
 set(SRC_PublicHeaders sftp_authentication_config_factory.h
                       sftp_arguments.h
+                      file_transfer_status.h
 )
 
 set(SRC_Cpp src/sftp_arguments.cpp
@@ -23,7 +26,10 @@ set(SRC_Cpp src/sftp_arguments.cpp
 
 list(TRANSFORM SRC_PublicHeaders PREPEND "${SFTP_HEADERS_DIR}/")
 
-list(APPEND SRC_PublicHeaders ${SRC_FileTransfer_PublicHeaders})
+list(APPEND SRC_PublicHeaders ${SRC_FileTransfer_PublicHeaders}
+                              ${SRC_FileTransferOperation_PublicHeaders}
+                              ${SRC_FileTransferAsync_PublicHeaders}
+)
 
 add_library(${MODULE_NAME} STATIC ${SRC_Cpp} ${SRC_PublicHeaders})
 add_library(${SDK_TARGET_NAMESPACE}::${BASE_NAME} ALIAS ${MODULE_NAME})

@@ -10,6 +10,8 @@
  *
  * The SSH library backend is chosen with the first argument: "libssh2" or "libssh", whichever were built
  * (OPENDAQ_ENABLE_SFTP_FILE_TRANSFER_LIBSSH2 / _LIBSSH). Without an argument, the first one built is used.
+ * "libssh2-async" makes the same round trip with the asynchronous libssh2 backend: the transfers run on the file
+ * transfer object's I/O thread, and their status changes are printed as they happen.
  *
  * Adjust the constants below to match your server before running.
  */
@@ -21,6 +23,7 @@
 #include <coreobjects/exceptions.h>
 #ifdef SFTP_EXAMPLE_WITH_LIBSSH2
 #include <sftp_file_transfer/libssh2/sftp_file_transfer_libssh2_factory.h>
+#include <sftp_file_transfer/libssh2/sftp_file_transfer_async_libssh2_factory.h>
 #endif
 #ifdef SFTP_EXAMPLE_WITH_LIBSSH
 #include <sftp_file_transfer/libssh/sftp_file_transfer_libssh_factory.h>
@@ -78,6 +81,40 @@ static std::string readFile(const char* path)
     return {std::istreambuf_iterator<char>(file), std::istreambuf_iterator<char>()};
 }
 
+#ifdef SFTP_EXAMPLE_WITH_LIBSSH2
+// The round trip with the asynchronous backend. upload and download only create the transfers; start hands them to
+// the file transfer object's I/O thread and returns at once, and wait blocks until a transfer has finished.
+static void roundTripAsync(const AuthenticationConfigPtr& authConfig)
+{
+    // Its properties include, besides chunk size and ciphers, how many transfers run at once and how a lost
+    // connection is restored, e.g. config.setPropertyValue("ReconnectAttempts", 10).
+    const FileTransferAsyncPtr fileTransfer =
+        SftpFileTransferAsyncLibssh2(Address, authConfig, Logger(), SftpFileTransferAsyncLibssh2DefaultConfig());
+    std::cout << "Connected to " << Address << " as " << UserName << " using libssh2-async." << std::endl;
+
+    // Every status change of the connection and of its transfers, reported on the I/O thread.
+    fileTransfer.getOnStatusChanged() += [](const BaseObjectPtr& sender, const CoreEventArgsPtr& args)
+    {
+        const auto parameters = args.getParameters();
+        if (const auto transfer = sender.asPtrOrNull<IFileTransferOperation>(); transfer.assigned())
+            std::cout << "  " << transfer.getRemotePath() << ": " << parameters.get(FileTransferStatusName) << std::endl;
+        else
+            std::cout << "  Connection: " << parameters.get(ConnectionStatusName) << " " << parameters.get("Message") << std::endl;
+    };
+
+    const FileTransferOperationPtr upload = fileTransfer.upload(LocalFile, RemoteFile);
+    upload.start();
+    upload.wait();  // throws as the blocking upload would if the transfer failed
+    std::cout << "Uploaded " << LocalFile << " to " << RemoteFile << " (" << upload.getBytesTransferred() << " bytes)." << std::endl;
+
+    const FileTransferOperationPtr download = fileTransfer.download(RemoteFile, DownloadedFile);
+    download.start();
+    download.wait();
+    std::cout << "Downloaded " << RemoteFile << " to " << DownloadedFile << " (" << download.getBytesTransferred() << " bytes)."
+              << std::endl;
+}
+#endif
+
 int main(int argc, const char* argv[])
 {
     const std::string backend = argc > 1 ? argv[1] : Backends[0];
@@ -93,18 +130,25 @@ int main(int argc, const char* argv[])
 
     try
     {
-        const FileTransferPtr fileTransfer = connect(backend, authConfig);
-        std::cout << "Connected to " << Address << " as " << UserName << " using " << backend << "; SFTP channel is open."
-                  << std::endl;
-
         const std::string content = "Hello from the openDAQ SFTP file transfer example.\n";
         std::ofstream(LocalFile, std::ios::binary) << content;
 
-        fileTransfer.upload(LocalFile, RemoteFile);
-        std::cout << "Uploaded " << LocalFile << " to " << RemoteFile << "." << std::endl;
+#ifdef SFTP_EXAMPLE_WITH_LIBSSH2
+        if (backend == "libssh2-async")
+            roundTripAsync(authConfig);
+        else
+#endif
+        {
+            const FileTransferPtr fileTransfer = connect(backend, authConfig);
+            std::cout << "Connected to " << Address << " as " << UserName << " using " << backend << "; SFTP channel is open."
+                      << std::endl;
 
-        fileTransfer.download(RemoteFile, DownloadedFile);
-        std::cout << "Downloaded " << RemoteFile << " to " << DownloadedFile << "." << std::endl;
+            fileTransfer.upload(LocalFile, RemoteFile);
+            std::cout << "Uploaded " << LocalFile << " to " << RemoteFile << "." << std::endl;
+
+            fileTransfer.download(RemoteFile, DownloadedFile);
+            std::cout << "Downloaded " << RemoteFile << " to " << DownloadedFile << "." << std::endl;
+        }
 
         if (readFile(DownloadedFile) != content)
         {

@@ -49,8 +49,9 @@ void validateArguments(const StringPtr& address,
 
 // Read a property from the backend config passed to a factory, which holds every property of the backend (the
 // factories default it to the backend's default config). Throw InvalidParameterException if the property is
-// missing or has the wrong type; integer properties are sizes or counts and must also be positive.
-Int readIntPropertyValue(const PropertyObjectPtr& config, const StringPtr& name);
+// missing or has the wrong type; integer properties are sizes, counts or durations and must also be at least
+// minValue.
+Int readIntPropertyValue(const PropertyObjectPtr& config, const StringPtr& name, Int minValue = 1);
 StringPtr readStringPropertyValue(const PropertyObjectPtr& config, const StringPtr& name);
 
 }

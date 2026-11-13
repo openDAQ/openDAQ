@@ -8,11 +8,18 @@ so it is the one file to change when AEC_mix gets the real API. Each name stands
                                                 and 0005 security_mode and server_fingerprint members
     AuthenticationConfig                        0004 IAuthenticationConfig
     create_add_device_config(parent, info, p)   parent.create_add_device_config(info, prefix)
+    add_device(parent, string, config)          parent.add_device(string, config)
+    add_devices(parent, {string: config})       parent.add_devices(...)
+    set_credential_provider(provider)           InstanceBuilder.set_credential_provider
     CredentialProvider, CredentialRequest       0004 ICredentialProvider, ICredentialRequest
     SecurityMode, ConnectionSecurity,           0005 enums, the levels a capability accepts and
     security_levels, fingerprints               server fingerprints
     connection_string, device_security,         what core works out at add (0005), which the dialogs
     streaming_security, expected_security       also show before the add
+
+Underneath, AEC_mix's add_device takes the three-section config from create_default_add_device_config
+(General, Device.<type id>, Streaming.<type id>), with a login carried as an IAuthenticationConfig
+under "__AuthenticationConfig". AddDeviceConfig keeps one and add_device writes the choices onto it.
 
 Nothing here talks to a server. Each stand-in either maps onto what AEC_mix has, or works out the
 result the proposal gives and reports it. Remove a stand-in once AEC_mix has the real call.
@@ -746,3 +753,249 @@ def expected_security(config):
     if config.security_mode == SecurityMode.Auto:
         return 'Verified once you confirm the server, else Encrypted'
     return 'Encrypted'
+
+
+# MARK: - add_device
+_PROVIDER = None
+# FAKE: warnings core would log during an add, by device global id
+WARNINGS = {}
+# #1362's transport objects in AEC_mix's type configs
+TRANSPORT_OBJECTS = ['AddDeviceConfig', 'AddStreamingConfig']
+# Bridge properties of AEC_mix's type configs that the Connection and Login cards already show
+HIDDEN_SETTINGS = TRANSPORT_OBJECTS + ['Username', 'Password']
+AUTHENTICATION_CONFIG_KEY = '__AuthenticationConfig'
+
+
+def set_credential_provider(provider):
+    """Stands in for InstanceBuilder.set_credential_provider: AEC_mix takes only CmdLineCredentialProvider
+    from Python, so the stub calls this provider during its add_device instead of the module manager."""
+    global _PROVIDER
+    _PROVIDER = provider
+
+
+class _Plan:
+    def __init__(self, connection_string, aec_config, security, fingerprint, warnings):
+        self.connection_string = connection_string
+        self.aec_config = aec_config
+        self.security = security
+        self.fingerprint = fingerprint
+        self.warnings = warnings
+
+
+def _prepare(parent, config):
+    """What core does inside add_device in 0004 and 0005: security, the server's identity, then the login,
+    so no credential is asked for or sent to an untrusted server."""
+    warnings = []
+    address = connection_string(config)
+    auth = config.authentication_config
+    login = auth.selected_authentication_method if auth is not None else None
+    if auth is not None and has_user_part(address):
+        raise InvalidParameterException('A connection string with a user part is not allowed; '
+                                        'remove it and enter the login in Add with config')
+
+    security = device_security(config)
+    fingerprint = ''
+    request = CredentialRequest(config.device_type.id, address,
+                                manufacturer=info_value(config.info, 'manufacturer'),
+                                serial_number=info_value(config.info, 'serial_number'),
+                                model=info_value(config.info, 'model'), display_name=info_value(config.info, 'name'))
+    if security >= ConnectionSecurity.Encrypted:
+        fingerprint = fingerprint_of(identity(config))
+        # 0005: never asked for a remote add
+        security = verify_server(config.security_mode, fingerprint, config.server_fingerprint.strip(),
+                                 None if config.remote else _PROVIDER, request, identity(config))
+
+    request.authentication_method = login
+    credentials = resolve_credentials(login, auth.supplied_credentials if auth is not None else {}, _PROVIDER,
+                                      request, config.remote)
+    if config.remote and login is not None and login.fields and \
+            CONNECTIONS.get(parent.global_id, (ConnectionSecurity.Unsecure, ''))[0] == ConnectionSecurity.Unsecure:
+        # 0005: one warning per add that names the gateway
+        warnings.append(f'The login crossed the plain connection to {parent.name}')
+
+    options = config.streaming_options
+    streaming = options.streaming_config if options is not None and options.streaming_mode != 'Disabled' else None
+    if streaming is not None:
+        try:
+            streaming_security(config, streaming)
+        except Exception as e:
+            # 0005: a streaming below its mode is not attached
+            warnings.append(f'{streaming.streaming_type.id} was not attached: {e}')
+            streaming = None
+    streaming_auth = streaming.authentication_config if streaming is not None and not streaming.linked else None
+    streaming_login = streaming_auth.selected_authentication_method if streaming_auth is not None else None
+    if streaming_login is not None and streaming_login.fields:
+        streaming_request = CredentialRequest(
+            streaming.streaming_type.id, streaming_connection_string(config, streaming), streaming_login,
+            request.manufacturer, request.serial_number, request.model, request.display_name)
+        resolve_credentials(streaming_login, streaming_auth.supplied_credentials, _PROVIDER, streaming_request,
+                            config.remote)
+        warnings.append(f'FAKE: AEC_mix cannot pass {streaming.streaming_type.id} a login during the add, '
+                        'so it connects without one')
+    if options is not None and options.share_credentials_with_nested_devices:
+        warnings.append('FAKE: AEC_mix has no ShareCredentialsWithNestedDevices; each nested streaming '
+                        'logs in with its defaults')
+
+    aec_config = _write(config, streaming, credentials, security)
+    return _Plan(address, aec_config, security, fingerprint, warnings)
+
+
+def _write(config, streaming, credentials, security):
+    """Writes the choices onto AEC_mix's three-section config."""
+    aec = config._aec_config
+    general = aec.get_property_value('General')
+    general.set_property_value('PrimaryAddressType', config.primary_address_type)
+    general.set_property_value('ScanOnAdd', config.scan_on_add)
+
+    options = config.streaming_options
+    streaming_on = options is not None and options.streaming_mode != 'Disabled' and \
+        (streaming is not None or options.streaming_type is None)
+    general.set_property_value('AutomaticallyConnectStreaming', streaming_on)
+    if streaming_on:
+        heuristic = general.get_property('StreamingConnectionHeuristic')
+        general.set_property_value('StreamingConnectionHeuristic',
+                                   list(heuristic.selection_values).index(options.streaming_mode))
+    if streaming_on and streaming is not None:
+        # none selected leaves both lists at their defaults, so the add picks
+        for name in ('AllowedStreamingProtocols', 'PrioritizedStreamingProtocols'):
+            values = daq.List()
+            values.append(streaming.streaming_type.id)
+            general.set_property_value(name, values)
+
+    _set_transport(config.type_config, 'AddDeviceConfig', transports_of(config.device_type), security)
+    if streaming_on and streaming is not None:
+        target = streaming_type_config(aec, streaming.streaming_type.id)
+        if target is not None:
+            if streaming.linked:
+                # 0002: a linked streaming config returns the device's TypeConfig; AEC_mix keeps a copy
+                copy_values(config.type_config, target)
+            _set_transport(target, 'AddStreamingConfig', transports_of(streaming.streaming_type),
+                           streaming_security(config, streaming))
+
+    _write_login(config, aec, general, credentials)
+    return aec
+
+
+def _write_login(config, aec, general, credentials):
+    if aec.has_property(AUTHENTICATION_CONFIG_KEY):
+        aec.remove_property(AUTHENTICATION_CONFIG_KEY)
+    auth = config.authentication_config
+    login = auth.selected_authentication_method if auth is not None else None
+    if login is None:
+        return
+    if auth.sdk_config is not None:
+        auth.sdk_config.authentication_method_id = login.id
+        supplied = daq.Dict()
+        for field_id, value in credentials.items():
+            if value:
+                supplied[field_id] = value
+        auth.sdk_config.supplied_credential = supplied
+        aec.add_property(daq.ObjectProperty(AUTHENTICATION_CONFIG_KEY, auth.sdk_config))
+        return
+    # FAKE: the type declares no methods on AEC_mix; 0004 translates General.Username and Password
+    # to UsernamePassword, so that is the one method AEC_mix can carry for it
+    if login.id == 'Anonymous':
+        return
+    if login.id != 'UsernamePassword':
+        raise NotSupportedException(f'FAKE: AEC_mix has no {login.id} login for {config.device_type.id}')
+    target = config.type_config if config.type_config is not None and config.type_config.has_property('Username') \
+        else general
+    target.set_property_value('Username', credentials.get('Username', ''))
+    target.set_property_value('Password', credentials.get('Password', ''))
+
+
+def _set_transport(type_config, name, client_transports, security):
+    """AEC_mix's transport for a level: TLS where client and server have it, else plain. With TLS
+    simulated, an Encrypted level still connects plain."""
+    if type_config is None or not type_config.has_property(name):
+        return
+    secure = [n for n in client_transports if n != 'plain']
+    transport = secure[0] if security >= ConnectionSecurity.Encrypted and secure else 'plain'
+    if transport not in client_transports:
+        return
+    daq.IAddComponentConfig.cast_from(type_config.get_property_value(name)).transport = transport
+
+
+def copy_values(source, target):
+    """Copies the settings of one property object onto another of the same type, leaving out the transports."""
+    for prop in source.all_properties:
+        name = prop.name
+        if name in TRANSPORT_OBJECTS or not target.has_property(name):
+            continue
+        value = source.get_property_value(name)
+        try:
+            if daq.IPropertyObject.can_cast_from(value):
+                copy_values(daq.IPropertyObject.cast_from(value),
+                            daq.IPropertyObject.cast_from(target.get_property_value(name)))
+            else:
+                target.set_property_value(name, value)
+        except Exception:
+            pass
+
+
+def _connected(device, plan):
+    # FAKE: IServerCapability.security and server_fingerprint of the device's connection info
+    CONNECTIONS[device.global_id] = (plan.security, plan.fingerprint)
+    WARNINGS[device.global_id] = plan.warnings
+
+
+def add_device(parent, connection_string, config):
+    """Stands in for IDevice.add_device(connectionString, IAddDeviceConfig). connection_string is the one
+    the dialog shows (stub.connection_string(config))."""
+    plan = _prepare(parent, config)
+    device = parent.add_device(connection_string or plan.connection_string, plan.aec_config)
+    _connected(device, plan)
+    return device
+
+
+def add_devices(parent, configs):
+    """Stands in for IDevice.add_devices: connection string to IAddDeviceConfig. Asks each login in turn,
+    then connects in parallel. Returns (connection string to device, connection string to error message);
+    a cancelled login leaves its device out of both."""
+    plans, errors = {}, {}
+    for address, config in configs.items():
+        try:
+            plans[address] = _prepare(parent, config)
+        except CancelledException:
+            continue
+        except CredentialsRequiredException as e:
+            errors[address] = f'Login required: {e}'
+        except UntrustedConnectionException as e:
+            errors[address] = f'Untrusted connection: {e}'
+        except Exception as e:
+            errors[address] = str(e)
+    if not plans:
+        return {}, errors
+    added = {}
+    args, codes, infos = daq.Dict(), daq.Dict(), daq.Dict()
+    for address, plan in plans.items():
+        args[plan.connection_string] = plan.aec_config
+    try:
+        devices = parent.add_devices(args, codes, infos) if len(plans) > 1 else None
+    except Exception:
+        # AEC_mix's add_devices throws when no device was created; adding one at a time names each error
+        devices = None
+    if devices is None:
+        for address, plan in plans.items():
+            try:
+                device = parent.add_device(plan.connection_string, plan.aec_config)
+            except Exception as e:
+                errors[address] = str(e)
+                continue
+            _connected(device, plan)
+            added[address] = device
+        return added, errors
+    for address, plan in plans.items():
+        try:
+            device = daq.IDevice.cast_from(devices[plan.connection_string])
+        except Exception:
+            device = None
+        if device is not None:
+            _connected(device, plan)
+            added[address] = device
+            continue
+        try:
+            errors[address] = daq.IErrorInfo.cast_from(infos[plan.connection_string]).message
+        except Exception:
+            errors[address] = 'not added'
+    return added, errors

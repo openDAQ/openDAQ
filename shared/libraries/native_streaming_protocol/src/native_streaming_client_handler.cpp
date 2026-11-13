@@ -1,6 +1,7 @@
 #include <native_streaming_protocol/native_streaming_client_handler.h>
 #include <native_streaming_protocol/async_exception_guard.h>
 #include <native_streaming/client.hpp>
+#include <boost/asio/dispatch.hpp>
 #include <boost/asio/ip/host_name.hpp>
 #include "native_streaming_protocol/streaming_manager.h"
 
@@ -10,6 +11,9 @@
 #include <coreobjects/property_factory.h>
 #include <coreobjects/property_object_factory.h>
 #include <opendaq/thread_name.h>
+
+#include <mutex>
+#include <vector>
 
 BEGIN_NAMESPACE_OPENDAQ_NATIVE_STREAMING_PROTOCOL
 using namespace daq::native_streaming;
@@ -248,6 +252,38 @@ void NativeStreamingClientImpl::setStreamingToDeviceHandlers(const OnSignalSubsc
     this->signalUnsubscribedHandler = signalUnsubscribedHandler;
 }
 
+void NativeStreamingClientImpl::shutdown()
+{
+    shuttingDown = true;
+
+    // Done on the transport thread so that it cannot run next to one of that thread's handlers.
+    boost::asio::dispatch(*ioContextPtr,
+                          [weakSelf = weak_from_this()]()
+                          {
+                              if (const auto self = weakSelf.lock())
+                              {
+                                  self->reconnectionTimer->cancel();
+                                  self->sessionHandler.reset();
+                                  self->client.reset();
+                              }
+                          });
+}
+
+void NativeStreamingClientImpl::armReconnectionTimer()
+{
+    if (shuttingDown)
+        return;
+
+    // The wait is completed on the transport thread even when it is cancelled, possibly after this object is gone.
+    reconnectionTimer->expires_from_now(reconnectionPeriod);
+    reconnectionTimer->async_wait(
+        [weakSelf = weak_from_this()](const boost::system::error_code& ec)
+        {
+            if (const auto self = weakSelf.lock())
+                self->checkReconnectionResult(ec);
+        });
+}
+
 void NativeStreamingClientImpl::checkReconnectionResult(const boost::system::error_code& ec)
 {
     if (ec)
@@ -274,13 +310,15 @@ void NativeStreamingClientImpl::checkReconnectionResult(const boost::system::err
     else
     {
         // connection is still pending
-        reconnectionTimer->expires_from_now(reconnectionPeriod);
-        reconnectionTimer->async_wait(std::bind(&NativeStreamingClientImpl::checkReconnectionResult, this, std::placeholders::_1));
+        armReconnectionTimer();
     }
 }
 
 void NativeStreamingClientImpl::tryReconnect()
 {
+    if (shuttingDown)
+        return;
+
     LOG_I("Try reconnect ...");
 
     reconnectionTimer->cancel();
@@ -288,8 +326,7 @@ void NativeStreamingClientImpl::tryReconnect()
     connectedPromise = std::promise<ConnectionResult>();
     connectedFuture = connectedPromise.get_future();
 
-    reconnectionTimer->expires_from_now(reconnectionPeriod);
-    reconnectionTimer->async_wait(std::bind(&NativeStreamingClientImpl::checkReconnectionResult, this, std::placeholders::_1));
+    armReconnectionTimer();
 
     // Try alternative addresses if callback is available
     bool clientWasReinitialized = false;
@@ -455,6 +492,9 @@ void NativeStreamingClientImpl::onSessionError(const std::string& errorMessage, 
     LOG_W("Closing connection caused by: {}", errorMessage);
     sessionHandler.reset();
     packetStreamingServerPtr.reset();
+
+    if (shuttingDown)
+        return;
 
     connectionStatusChanged(Enumeration("ConnectionStatusType", "Reconnecting", this->context.getTypeManager()),
                             "Network connection interrupted or closed by the remote device");
@@ -726,7 +766,9 @@ NativeStreamingClientHandler::NativeStreamingClientHandler(const ContextPtr& con
 
 NativeStreamingClientHandler::~NativeStreamingClientHandler()
 {
-    // Join the IO thread first: its handlers use the client implementation, some through a raw this.
+    // The IO thread is joined before the client implementation is destroyed. The implementation closes its
+    // connection first, otherwise the thread would never run out of work.
+    clientHandlerPtr->shutdown();
     stopTransportOperations();
     clientHandlerPtr.reset();
 }
@@ -840,37 +882,55 @@ void NativeStreamingClientHandler::setAlternativeAddresses(const ListPtr<IString
 
 void NativeStreamingClientHandler::startTransportOperations()
 {
+    transportWorkGuard = std::make_unique<TransportWorkGuard>(ioContextPtr->get_executor());
+    ioThreadFinishedPromise = std::promise<void>();
+    ioThreadFinished = ioThreadFinishedPromise.get_future();
+
     ioThread =
         std::thread([this]()
                     {
                         daqNameThread("NatCliTransIO");
 
-                        using namespace boost::asio;
-                        executor_work_guard<io_context::executor_type> workGuard(ioContextPtr->get_executor());
                         runGuardedEventLoop(*ioContextPtr, loggerComponent, "Native transport IO thread");
                         LOG_I("Native transport IO thread finished");
+                        ioThreadFinishedPromise.set_value();
                     });
 }
 
 void NativeStreamingClientHandler::stopTransportOperations()
 {
-    ioContextPtr->stop();
-    if (ioThread.get_id() != std::this_thread::get_id())
-    {
-        if (ioThread.joinable())
-        {
-            ioThread.join();
-            LOG_I("Native transport IO thread joined");
-        }
-        else
-        {
-            LOG_W("Native transport IO thread is not joinable");
-        }
-    }
-    else
+    // Lets run() return on its own once the session's remaining operations have unwound, then waits for the thread.
+    transportWorkGuard.reset();
+
+    if (ioThread.get_id() == std::this_thread::get_id())
     {
         LOG_C("Native transport IO thread cannot join itself");
+        return;
     }
+    if (!ioThread.joinable())
+    {
+        LOG_W("Native transport IO thread is not joinable");
+        return;
+    }
+
+    if (ioThreadFinished.wait_for(transportStopTimeout) == std::future_status::ready)
+    {
+        ioThread.join();
+        LOG_I("Native transport IO thread joined");
+        return;
+    }
+
+    LOG_E("Native transport IO thread did not finish within {} ms, stopping it; its context is kept alive "
+          "because destroying it would block on the operations left behind",
+          transportStopTimeout.count());
+    ioContextPtr->stop();
+    ioThread.join();
+
+    // Kept alive for the rest of the process on purpose.
+    static std::mutex abandonedContextsSync;
+    static auto* const abandonedContexts = new std::vector<std::shared_ptr<boost::asio::io_context>>();
+    std::scoped_lock lock(abandonedContextsSync);
+    abandonedContexts->push_back(ioContextPtr);
 }
 
 END_NAMESPACE_OPENDAQ_NATIVE_STREAMING_PROTOCOL

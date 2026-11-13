@@ -20,6 +20,8 @@
 
 #include <pybind11/pybind11.h>
 
+#include "py_core_types/py_gil.h"
+
 DECLARE_OPENDAQ_INTERFACE(IPyObject, daq::IBaseObject)
 {
     virtual daq::ErrCode INTERFACE_FUNC getPyObject(pybind11::object & pyObj) = 0;
@@ -31,6 +33,7 @@ class PyObjectImpl : public daq::ImplementationOf<IPyObject, Interfaces...>
 public:
     explicit PyObjectImpl(const PyT& pyObject);
     explicit PyObjectImpl(PyT&& pyObject);
+    ~PyObjectImpl();
 
     daq::ErrCode INTERFACE_FUNC getPyObject(PyT& pyObj) override;
     daq::ErrCode INTERFACE_FUNC toString(daq::CharPtr* str) override;
@@ -51,6 +54,25 @@ PyObjectImpl<PyT, Interfaces...>::PyObjectImpl(PyT&& pyObject)
 {
 }
 
+// The last openDAQ reference can be released from any thread, with or without the GIL held
+template <class PyT, class... Interfaces>
+PyObjectImpl<PyT, Interfaces...>::~PyObjectImpl()
+{
+    if (!pyObject)
+        return;
+
+    PyGilAcquireUnlessExiting gil;
+    if (!gil)
+    {
+        // Python is exiting; taking the GIL could hang
+        pyObject.release();
+        return;
+    }
+
+    // Assigning PyT() would allocate (e.g. pybind11::list)
+    pyObject.release().dec_ref();
+}
+
 template <class PyT, class... Interfaces>
 daq::ErrCode PyObjectImpl<PyT, Interfaces...>::getPyObject(PyT& pyObj)
 {
@@ -62,6 +84,7 @@ template <class PyT, class... Interfaces>
 inline daq::ErrCode PyObjectImpl<PyT, Interfaces...>::toString(daq::CharPtr* str)
 {
     OPENDAQ_PARAM_NOT_NULL(str);
+    PY_ACQUIRE_GIL_OR_RETURN();
 
     std::string str1 = pybind11::repr(pyObject);
     const daq::ErrCode err = daqDuplicateCharPtr(str1.c_str(), str);

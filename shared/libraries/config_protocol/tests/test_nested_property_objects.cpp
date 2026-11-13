@@ -398,6 +398,16 @@ TEST_F(ConfigNestedPropertyObjectTest, TestNestedObjectClientProcedureCall)
     ASSERT_THROW(proc2(0), InvalidParameterException);
 }
 
+// These tests exercise the still-functional but deprecated ISyncComponent/getSyncComponent() API
+#if defined(__GNUC__)
+    #pragma GCC diagnostic push
+    #pragma GCC diagnostic ignored "-Wdeprecated-declarations"
+#endif
+#ifdef _MSC_VER
+    #pragma warning(push)
+    #pragma warning(disable : 4996)
+#endif
+
 TEST_F(ConfigNestedPropertyObjectTest, TestSyncComponent)
 {
     auto typeManager = serverDevice.getContext().getTypeManager();
@@ -544,6 +554,13 @@ TEST_F(ConfigNestedPropertyObjectTest, SyncComponentCustomModeOptions)
     ASSERT_EQ(modeProperty.getSelectionValues(), modeOptions);
     ASSERT_EQ(interfaceClockSync.getPropertySelectionValue("Mode"), "Off");
 }
+
+#ifdef _MSC_VER
+    #pragma warning(pop)
+#endif
+#if defined(__GNUC__)
+    #pragma GCC diagnostic pop
+#endif
 
 TEST_F(ConfigNestedPropertyObjectTest, ModifyOnPropertyWrite)
 {

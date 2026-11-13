@@ -36,7 +36,6 @@
 #include <opendaq/component_private_ptr.h>
 #include <opendaq/component_type_private_ptr.h>
 
-#include <opendaq/thread_name.h>
 #include <opendaq/module_manager_check_dependencies.h>
 
 BEGIN_NAMESPACE_OPENDAQ
@@ -57,7 +56,6 @@ ModuleManagerImpl::ModuleManagerImpl(const BaseObjectPtr& path)
     , moduleAuthenticator(nullptr)
     , moduleKeys(Dict<IString, IString>())
     , modulesLoaded(false)
-    , work(ioContext.get_executor())
     , rescanTimer(DefaultrescanTimer)
     , safeLoadingMode(False)
     , scanOnAdd(True)
@@ -73,18 +71,6 @@ ModuleManagerImpl::ModuleManagerImpl(const BaseObjectPtr& path)
     else
     {
         DAQ_THROW_EXCEPTION(InvalidParameterException);
-    }
-
-    std::size_t numThreads = 2;
-    pool.reserve(numThreads);
-
-    for (std::size_t i = 0; i < numThreads; ++i)
-    {
-        pool.emplace_back([this]
-        {
-            daqNameThread("ModuleManager");
-            ioContext.run();
-        });
     }
 
     if (paths.empty())
@@ -104,14 +90,6 @@ ModuleManagerImpl::~ModuleManagerImpl()
     }
 
     orphanedModules.tryUnload();
-
-    work.reset();
-    ioContext.stop();
-    for (auto& thread : pool)
-    {
-        if (thread.joinable())
-            thread.join();
-    }
 }
 
 ErrCode ModuleManagerImpl::getModules(IList** availableModules)
@@ -349,20 +327,22 @@ ErrCode ModuleManagerImpl::tryLoadAndAddModule(const StringPtr& path, IModule** 
         }
     }
 
+    StringPtr moduleKey;
+    if (authenticatedModulesOnly)
+    {
+        Bool valid = false;
+        auto authErrCode = moduleAuthenticator->authenticateModuleBinary(&valid, &moduleKey, path);
+        if (OPENDAQ_FAILED(authErrCode))
+        {
+            const auto authErrMsg = getErrorInfoMessage(authErrCode, true);
+            return DAQ_MAKE_ERROR_INFO(authErrCode, fmt::format(R"(Error authenticating module "{}" [{:#x}]: {})", path, authErrCode, authErrMsg));
+        }
+        if (!valid)
+            return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_ACCESSDENIED, fmt::format(R"(Module ({}) authentication failed!)", path));
+    }
+
     try
     {
-        StringPtr moduleKey;
-        if (authenticatedModulesOnly)
-        {
-            Bool valid;
-            moduleAuthenticator->authenticateModuleBinary(&valid, &moduleKey, path);
-
-            if (!valid)
-            {
-                return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_ACCESSDENIED, fmt::format(R"(Module ({}) authentication failed!)", path));
-            }
-        }
-
         auto moduleLibrary = loadModuleInternal(loggerComponent, fileSystemPath, context, safeLoadingMode);
         const auto loadedModule = moduleLibrary.module;
         const StringPtr moduleId = loadedModule.getModuleInfo().getId();
@@ -468,88 +448,19 @@ ErrCode ModuleManagerImpl::getVendorKeys(IDict** vendorKeys)
 
 void ModuleManagerImpl::checkNetworkSettings(ListPtr<IDeviceInfo>& list)
 {
-    std::vector<boost::asio::ip::address_v4> ipv4Addresses;
-    std::map<std::string, AddressReachabilityStatus> ipv4AddressesMap;
-    // std::map<std::string, AddressReachabilityStatus> ipv6AddressesMap;
-
-    for (auto deviceInfo : list)
-    {
+    std::vector<std::string> addresses;
+    for (const auto& deviceInfo : list)
         for (const auto& cap : deviceInfo.getServerCapabilities())
-        {
-            if (cap.getConnectionType() != "TCP/IP")
-                continue;
+            if (cap.getConnectionType() == "TCP/IP")
+                for (const auto& info : cap.getAddressInfo())
+                    if (info.getType() == "IPv4" || info.getType() == "IPv6")
+                        addresses.push_back(info.getAddress().toStdString());
 
-            const auto addressInfos = cap.getAddressInfo();
-            for (const auto& info : addressInfos)
-            {
-                const auto address = info.getAddress().toStdString();
-                const auto addressType = info.getType();
-
-                if (addressType == "IPv4")
-                {
-                    auto [_,inserted] = ipv4AddressesMap.try_emplace(address, AddressReachabilityStatus::Unknown);
-                    if (inserted)
-                        ipv4Addresses.emplace_back(boost::asio::ip::make_address_v4(address));
-                }
-                // else if (addressType == "IPv6")
-                // {
-                //     ipv6AddressesMap.emplace(address, AddressReachabilityStatus::Unknown);
-                // }
-            }
-        }
-    }
-
-#if defined(__linux__) || defined(__APPLE__)
-    if (geteuid() == 0)
-#endif
-    {
-        const auto icmp = IcmpPing::Create(ioContext, logger);
-        Finally stopPing([&icmp] { icmp->stop(); });
-
-        icmp->setMaxHops(1);
-        icmp->start(ipv4Addresses);
-        icmp->waitSendAndReply();
-
-        auto replies = icmp->getReplyAddresses();
-
-        for (auto& [address, status] : ipv4AddressesMap)
-        {
-            status = (replies.find(address) != replies.cend()) ? AddressReachabilityStatus::Reachable 
-                                                                  : AddressReachabilityStatus::Unreachable;
-        }
-    }
-
-    // TODO: Ping IPv6 addresses as well
-    setAddressesReachable(ipv4AddressesMap, list);
-}
-
-static bool ipv6Available(boost::asio::io_context& io)
-{
-    using boost::asio::ip::tcp;
-
-    boost::system::error_code ec;
-    tcp::socket sock(io);
-
-    // Try to open an IPv6 socket
-    sock.open(tcp::v6(), ec);
-    if (ec) 
-    {
-        return false;  // couldn't open IPv6 socket
-    }
-
-    // Try binding to [::]:0
-    tcp::endpoint ep(tcp::v6(), 0);
-    sock.bind(ep, ec);
-    return !ec;
+    setAddressesReachable(icmpPing(addresses, 1, std::chrono::seconds(1)), list);
 }
 
 void ModuleManagerImpl::setAddressesReachable(const std::map<std::string, AddressReachabilityStatus>& addr, ListPtr<IDeviceInfo>& info)
 {
-    // IPv6 addresses are unknown or unreachable, depending on host machine having IPv6 enabled
-    AddressReachabilityStatus ipv6Reachability = ipv6Available(ioContext)
-                                                     ? AddressReachabilityStatus::Unknown
-                                                     : AddressReachabilityStatus::Unreachable;
-
     for (const auto& devInfo : info)
     {
         for (const auto& cap : devInfo.getServerCapabilities())
@@ -557,28 +468,15 @@ void ModuleManagerImpl::setAddressesReachable(const std::map<std::string, Addres
             const auto addressInfos = cap.getAddressInfo();
             for (const auto& addressInfo : addressInfos)
             {
-                const auto address = addressInfo.getAddress();
-                const auto addressType = addressInfo.getType();
+                if (addressInfo.getType() != "IPv4" && addressInfo.getType() != "IPv6")
+                    continue;
 
-                // Ping for IPv4 addresses is available, but not for IPv6
-                if (addressType == "IPv4")
-                {
-                    AddressReachabilityStatus reachability = AddressReachabilityStatus::Unknown;
-                    if (const auto it = addr.find(address.toStdString()); it != addr.end())
-                    {
-                        reachability = it->second;
-                    }
-                    addressInfo.asPtr<IAddressInfoPrivate>(true).setReachabilityStatusPrivate(reachability);
-                }
-                else if (addressType == "IPv6")
-                {
-                    addressInfo.asPtr<IAddressInfoPrivate>(true).setReachabilityStatusPrivate(ipv6Reachability);
-                }
+                const auto it = addr.find(addressInfo.getAddress().toStdString());
+                const auto reachability = it != addr.end() ? it->second : AddressReachabilityStatus::Unknown;
+                addressInfo.asPtr<IAddressInfoPrivate>(true).setReachabilityStatusPrivate(reachability);
             }
 
-            // Prefer Reachable, otherwise the first Unknown. AddressInfo is populated IPv4-then-IPv6,
-            // so taking the first Unknown keeps IPv4 as the primary connection when ICMP ping is
-            // unavailable (non-root on macOS/Linux) instead of letting the last IPv6 Unknown win.
+            // Prefer Reachable, else the first Unknown; addresses are listed IPv4 first, so IPv4 stays primary without ICMP.
             StringPtr unknownConnectionString;
             bool primarySet = false;
             for (const auto& addressInfo : addressInfos)

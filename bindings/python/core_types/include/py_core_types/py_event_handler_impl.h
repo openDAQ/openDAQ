@@ -19,38 +19,23 @@
 #include <coretypes/intfs.h>
 #include <coretypes/objectptr.h>
 #include <coretypes/event_handler.h>
-
-
-using EventHandlerSignature = void(daq::IBaseObject*, daq::IEventArgs*);
-using EventHandler = std::function<EventHandlerSignature>;
+#include "py_core_types/py_base_object.h"
+#include "py_core_types/py_opendaq_daq.h"
 
 BEGIN_NAMESPACE_OPENDAQ
 
-class PyEventHandlerImpl : public ImplementationOf<IEventHandler>
+class PyEventHandlerImpl : public PyObjectImpl<pybind11::object, IEventHandler>
 {
 public:
-    using Subscription = EventHandler;
-
-    explicit PyEventHandlerImpl(Subscription&& sub) : subscription(std::move(sub))
-    {
-    }
+    using PyObjectImpl::PyObjectImpl;
 
     ErrCode INTERFACE_FUNC handleEvent(IBaseObject* sender, IEventArgs* eventArgs) override
     {
-        const ErrCode errCode = daqTry([&]()
-        {
-            if(sender)
-                sender->addRef();
-            if(eventArgs)
-                eventArgs->addRef();
-            subscription(sender, eventArgs);
-        });
+        PY_ACQUIRE_GIL_OR_RETURN();
+        const ErrCode errCode = daqTry([&] { pyObject(baseObjectToPyObject(sender), baseObjectToPyObject(eventArgs)); });
         OPENDAQ_RETURN_IF_FAILED(errCode, "Failed to handle event in PyEventHandlerImpl");
         return errCode;
     }
-
-private:
-    Subscription subscription;
 };
 
 END_NAMESPACE_OPENDAQ

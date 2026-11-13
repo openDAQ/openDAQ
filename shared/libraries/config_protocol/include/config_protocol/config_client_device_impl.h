@@ -72,6 +72,8 @@ public:
     ErrCode INTERFACE_FUNC setOperationModeRecursive(OperationModeType modeType) override;
     ErrCode INTERFACE_FUNC getOperationMode(OperationModeType* modeType) override;
 
+    ErrCode INTERFACE_FUNC addProperty(IProperty* property) override;
+
     ErrCode INTERFACE_FUNC setParentActive(Bool parentActive, Bool onUpdate) override;
     ErrCode INTERFACE_FUNC setAsRoot() override;
 
@@ -393,6 +395,23 @@ inline ErrCode GenericConfigClientDeviceImpl<TDeviceBase>::getOperationMode(Oper
 }
 
 template <class TDeviceBase>
+ErrCode GenericConfigClientDeviceImpl<TDeviceBase>::addProperty(IProperty* property)
+{
+    OPENDAQ_PARAM_NOT_NULL(property);
+
+    // The server adds the synchronization as a core property; the serialized property does not record that
+    if (!this->deserializationComplete)
+    {
+        StringPtr name;
+        OPENDAQ_RETURN_IF_FAILED(property->getName(&name));
+        if (name == "daqSynchronization")
+            return this->addCoreProperty(property);
+    }
+
+    return Super::addProperty(property);
+}
+
+template <class TDeviceBase>
 inline ErrCode GenericConfigClientDeviceImpl<TDeviceBase>::setParentActive(Bool parentActive, Bool onUpdate)
 {
     if (this->isRootDevice)
@@ -556,9 +575,7 @@ void GenericConfigClientDeviceImpl<TDeviceBase>::onRemoteUpdate(const Serialized
     }
 
     if (serialized.hasKey("deviceDomain"))
-    {
         this->setDeviceDomainNoCoreEvent(serialized.readObject("deviceDomain"));
-    }
 
     if (serialized.hasKey("OperationMode"))
     {

@@ -1,5 +1,5 @@
 ﻿    $DocComment$
-    void $Name$($Arguments$) const
+    $Deprecated$void $Name$($Arguments$) const
     {
         if (this->object == nullptr)
             DAQ_THROW_EXCEPTION(daq::InvalidParameterException);

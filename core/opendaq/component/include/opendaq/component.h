@@ -183,6 +183,8 @@ DECLARE_OPENDAQ_INTERFACE(IComponent, IPropertyObject)
     // [templateType(attributes, IString)]
     /*!
      * @brief Gets a list of the component's locked attributes. The locked attributes cannot be modified via their respective setters.
+     *
+     * The set is fixed when the component is constructed.
      * @param[out] attributes A list of strings containing the names of locked attributes in capital case (eg. "Name", "Description"). 
      */
     virtual ErrCode INTERFACE_FUNC getLockedAttributes(IList** attributes) = 0;

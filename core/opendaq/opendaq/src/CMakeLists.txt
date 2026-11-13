@@ -46,6 +46,7 @@ function(create_component_source_groups_${BASE_NAME})
         ${SDK_HEADERS_DIR}/instance.h
         ${SDK_HEADERS_DIR}/module_authenticator.h
         ${SDK_HEADERS_DIR}/module_authenticator_impl.h
+        ${SDK_HEADERS_DIR}/module_authenticator_factory.h
         ${SDK_HEADERS_DIR}/instance_impl.h
         ${SDK_HEADERS_DIR}/instance_factory.h
         ${SDK_HEADERS_DIR}/client_impl.h
@@ -87,6 +88,8 @@ set(SRC_PublicHeaders_Component
     client_type.h
 	module_authenticator.h
 	module_authenticator_impl.h
+    module_authenticator_factory.h
+    opendaq_init.h
     PARENT_SCOPE
 )
 
@@ -94,7 +97,6 @@ set(SRC_PrivateHeaders_Component
     opendaq_config.h.in
     instance_impl.h
     client_impl.h
-    opendaq_init.h
     instance_builder_impl.h
     path_tool.h
     json_config_provider_impl.h
@@ -118,6 +120,7 @@ set(SRC_Cpp_Component
     cmd_line_args_config_provider_impl.cpp
     component_type_builder_impl.cpp
     client_type.cpp
+    module_authenticator_impl.cpp
     opendaq.natvis
     PARENT_SCOPE
 )

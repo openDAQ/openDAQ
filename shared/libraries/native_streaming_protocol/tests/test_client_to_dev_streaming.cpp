@@ -42,14 +42,21 @@ public:
 
         streamingInitDoneHandler = [this]()
         {
-            streamingInitPromise.set_value();
+            // a reconnect the test did not cause completes the init again; its connection status fails the test
+            try
+            {
+                streamingInitPromise.set_value();
+            }
+            catch (const std::future_error&)
+            {
+            }
         };
 
         clientHandler->setStreamingHandlers([](const StringPtr&, const StringPtr&) {},
                                             [](const StringPtr&) {},
                                             [](const StringPtr&, const PacketPtr&) {},
                                             [](const StringPtr&, bool) {},
-                                            [](const EnumerationPtr&, const StringPtr&) {},
+                                            [this](const EnumerationPtr& status, const StringPtr&) { onConnectionStatus(status); },
                                             streamingInitDoneHandler);
 
         clientHandler->setStreamingToDeviceHandlers(signalSubscribedHandler, signalUnsubscribedHandler);
@@ -145,6 +152,7 @@ public:
 
     void TearDown() override
     {
+        EXPECT_EQ(client.unreadConnectionStatuses(), std::vector<std::string>{});
         if (std::get<1>(GetParam())) // stop server first
         {
             stopServer();

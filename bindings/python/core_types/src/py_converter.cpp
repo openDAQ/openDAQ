@@ -15,7 +15,7 @@ daq::ObjectPtr<daq::IBaseObject> PyConverter::ToBaseObject(const py::object& pyO
 
 py::object PyConverter::ToPyObject(const daq::ObjectPtr<daq::IBaseObject>& baseObject)
 {
-    return py::reinterpret_steal<py::object>(baseObjectToPyObject(baseObject));
+    return baseObjectToPyObject(baseObject);
 }
 
 daq::ObjectPtr<daq::IBaseObject> pyObjectToBaseObject(const py::object& handle, bool acquireGil)
@@ -63,6 +63,15 @@ daq::ObjectPtr<daq::IBaseObject> pyObjectToBaseObject(const py::object& handle, 
             daqList.pushBack(pyObjectToBaseObject(pyList[i], false));
         }
         return daqList;
+    }
+    else if (py::isinstance<py::dict>(handle))
+    {
+        auto pyDict = handle.cast<py::dict>();
+        auto daqDict = daq::Dict<daq::IBaseObject, daq::IBaseObject>();
+        for (const auto& it : pyDict)
+            daqDict.set(pyObjectToBaseObject(py::reinterpret_borrow<py::object>(it.first), false),
+                        pyObjectToBaseObject(py::reinterpret_borrow<py::object>(it.second), false));
+        return daqDict;
     }
 
     auto obj = py::reinterpret_borrow<py::object>(handle);

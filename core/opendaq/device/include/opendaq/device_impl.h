@@ -36,9 +36,11 @@
 #include <opendaq/component_keys.h>
 #include <opendaq/core_opendaq_event_args_factory.h>
 #include <coreobjects/property_object_factory.h>
+#include <coreobjects/property_factory.h>
 #include <opendaq/module_manager_ptr.h>
 #include <opendaq/module_manager_utils_ptr.h>
 #include <opendaq/sync_component_factory.h>
+#include <opendaq/synchronization_factory.h>
 #include <opendaq/component_update_context_ptr.h>
 #include <set>
 #include <coreobjects/user_internal_ptr.h>
@@ -106,6 +108,7 @@ public:
     ErrCode INTERFACE_FUNC getChannels(IList** channels, ISearchFilter* searchFilter = nullptr) override;
     ErrCode INTERFACE_FUNC getChannelsRecursive(IList** channels, ISearchFilter* searchFilter = nullptr) override;
     ErrCode INTERFACE_FUNC getSyncComponent(ISyncComponent** syncComponent) override;
+    ErrCode INTERFACE_FUNC getSynchronization(ISynchronization** synchronization) override;
 
     ErrCode INTERFACE_FUNC addServer(IString* typeId, IPropertyObject* config, IServer** server) override;
     ErrCode INTERFACE_FUNC removeServer(IServer* server) override;
@@ -251,6 +254,8 @@ protected:
     DevicePtr getParentDevice();
     OperationModeType getOperationMode();
 
+    void setSynchronization(const SynchronizationPtr& sync);
+
     class DeviceInfoPtrWrapper : public DeviceInfoPtr
     {
     public:
@@ -259,7 +264,14 @@ protected:
             checkErrorInfo(owner->addCoreProperty(ObjectProperty("DaqDeviceInfo", PropertyObject())));
         }
         DeviceInfoPtrWrapper& operator=(const DeviceInfoPtrWrapper&) = delete;
-        DeviceInfoPtrWrapper& operator=(const DeviceInfoPtr& info) { setDeviceInfo(info); DeviceInfoPtr::operator=(info); return *this; }
+        DeviceInfoPtrWrapper& operator=(const DeviceInfoPtr& info)
+        {
+            // getInfo copies the pointer under the same lock
+            auto lock = owner->getRecursiveConfigLock2();
+            setDeviceInfo(info);
+            DeviceInfoPtr::operator=(info);
+            return *this;
+        }
     
     private:
         friend GenericDevice;
@@ -369,13 +381,22 @@ ErrCode GenericDevice<TInterface, Interfaces...>::getInfo(IDeviceInfo** info)
     if (this->isComponentRemoved)
         return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_COMPONENT_REMOVED);
 
-    if (!this->deviceInfo.assigned())
     {
-        DeviceInfoPtr devInfo;
-        OPENDAQ_RETURN_IF_FAILED(wrapHandlerReturn(this, &Self::onGetInfo, devInfo));
-        if (devInfo.assigned())
-            this->deviceInfo = devInfo;
+        auto lock = this->getRecursiveConfigLock2();
+        if (this->deviceInfo.assigned())
+        {
+            *info = this->deviceInfo.addRefAndReturn();
+            return OPENDAQ_SUCCESS;
+        }
     }
+
+    // The module handler runs without the config lock; a concurrent first call keeps the info assigned first
+    DeviceInfoPtr devInfo;
+    OPENDAQ_RETURN_IF_FAILED(wrapHandlerReturn(this, &Self::onGetInfo, devInfo));
+
+    auto lock = this->getRecursiveConfigLock2();
+    if (!this->deviceInfo.assigned() && devInfo.assigned())
+        this->deviceInfo = devInfo;
 
     *info = this->deviceInfo.addRefAndReturn();
     return OPENDAQ_SUCCESS;
@@ -398,6 +419,8 @@ ErrCode GenericDevice<TInterface, Interfaces...>::getDomain(IDeviceDomain** devi
 
     if (this->isComponentRemoved)
         return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_COMPONENT_REMOVED);
+
+    auto lock = this->getRecursiveConfigLock2();
 
     *deviceDomain = this->deviceDomain.addRefAndReturn();
     return OPENDAQ_SUCCESS;
@@ -1676,6 +1699,46 @@ ErrCode GenericDevice<TInterface, Interfaces...>::getSyncComponent(ISyncComponen
 }
 
 template <typename TInterface, typename... Interfaces>
+void GenericDevice<TInterface, Interfaces...>::setSynchronization(const SynchronizationPtr& synchronization)
+{
+    if (!synchronization.assigned())
+        return;
+
+    const auto syncPropName = String("daqSynchronization");
+    if (this->objPtr.hasProperty(syncPropName))
+        DAQ_THROW_EXCEPTION(AlreadyExistsException, "The device synchronization is already set");
+
+    checkErrorInfo(this->addCoreProperty(ObjectPropertyBuilder(syncPropName, PropertyObject()).setVisible(false).build()));
+    checkErrorInfo(this->setProtectedPropertyValue(syncPropName, synchronization));
+}
+
+template <typename TInterface, typename... Interfaces>
+ErrCode GenericDevice<TInterface, Interfaces...>::getSynchronization(ISynchronization** sync)
+{
+    OPENDAQ_PARAM_NOT_NULL(sync);
+
+    if (this->isComponentRemoved)
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_COMPONENT_REMOVED);
+
+    const auto syncPropName = String("daqSynchronization");
+
+    Bool syncFound = False;
+    OPENDAQ_RETURN_IF_FAILED(this->hasProperty(syncPropName, &syncFound));
+
+    if (syncFound)
+    {
+        BaseObjectPtr objPtr;
+        OPENDAQ_RETURN_IF_FAILED(this->getPropertyValue(syncPropName, &objPtr));
+
+        *sync = objPtr.asPtrOrNull<ISynchronization>().detach();
+        return OPENDAQ_SUCCESS;
+    }
+
+    *sync = nullptr;
+    return OPENDAQ_IGNORED;
+}
+
+template <typename TInterface, typename... Interfaces>
 ErrCode GenericDevice<TInterface, Interfaces...>::getDeviceConfig(IPropertyObject** config)
 {
     return this->getComponentConfig(config);
@@ -1951,12 +2014,10 @@ bool GenericDevice<TInterface, Interfaces...>::allowAddFunctionBlocksFromModules
 template <typename TInterface, typename ... Interfaces>
 void GenericDevice<TInterface, Interfaces...>::setDeviceDomain(const DeviceDomainPtr& domain)
 {
-    this->deviceDomain = domain;
+    setDeviceDomainNoCoreEvent(domain);
 
     if (!this->coreEventMuted && this->coreEvent.assigned())
-    {
-        this->triggerCoreEvent(CoreEventArgsDeviceDomainChanged(this->deviceDomain));
-    }
+        this->triggerCoreEvent(CoreEventArgsDeviceDomainChanged(domain));
 }
 
 template <typename TInterface, typename... Interfaces>
@@ -2554,7 +2615,7 @@ void GenericDevice<TInterface, Interfaces...>::updateObject(const SerializedObje
     }
 
     if (obj.hasKey("deviceDomain"))
-        deviceDomain = obj.readObject("deviceDomain");
+        setDeviceDomainNoCoreEvent(obj.readObject("deviceDomain"));
 
     // Backward compatibility with older update payloads that used a dedicated "deviceInfo" key.
     // New updates carry DeviceInfo via the normal DaqDeviceInfo property value.
@@ -2569,11 +2630,14 @@ void GenericDevice<TInterface, Interfaces...>::updateObject(const SerializedObje
             updatableDeviceInfo.updateInternal(deviceInfoObject, context);
         }
     }
+
 }
 
 template <typename TInterface, typename ... Interfaces>
 void GenericDevice<TInterface, Interfaces...>::setDeviceDomainNoCoreEvent(const DeviceDomainPtr& domain)
 {
+    // getDomain copies the pointer under the same lock
+    auto lock = this->getRecursiveConfigLock2();
     this->deviceDomain = domain;
 }
 

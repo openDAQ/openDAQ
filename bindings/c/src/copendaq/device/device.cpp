@@ -201,3 +201,8 @@ daqErrCode daqDevice_addDevices(daqDevice* self, daqDict** devices, daqDict* con
 {
     return reinterpret_cast<daq::IDevice*>(self)->addDevices(reinterpret_cast<daq::IDict**>(devices), reinterpret_cast<daq::IDict*>(connectionArgs), reinterpret_cast<daq::IDict*>(errCodes), reinterpret_cast<daq::IDict*>(errorInfos));
 }
+
+daqErrCode daqDevice_getSynchronization(daqDevice* self, daqSynchronization** sync)
+{
+    return reinterpret_cast<daq::IDevice*>(self)->getSynchronization(reinterpret_cast<daq::ISynchronization**>(sync));
+}

@@ -53,6 +53,10 @@ DECLARE_OPENDAQ_INTERFACE(IReferenceDomainInfoBuilder, IBaseObject)
      * or are synchronized using a protocol, such as PTP, NTP, IRIG, etc.).
      * Those signals can always be read together, implying that a Multi Reader
      * can be used to read the signals if their sampling rates are compatible.
+     * The ID has the form <reference-type>[:<type-specific-identity>]. PTP uses
+     * "ptp:<domain-number>:<grandmaster identity as 16 lowercase hex digits>", eg. "ptp:0:001122fffe334455".
+     * NTP uses "ntp:<server IP address>", eg. "ntp:192.0.2.10".
+     * While the device runs on its own clock, the ID is "local:<device-local-id>".
      */
     virtual ErrCode INTERFACE_FUNC setReferenceDomainId(IString* referenceDomainId) = 0;
 
@@ -66,6 +70,10 @@ DECLARE_OPENDAQ_INTERFACE(IReferenceDomainInfoBuilder, IBaseObject)
      * or are synchronized using a protocol, such as PTP, NTP, IRIG, etc.).
      * Those signals can always be read together, implying that a Multi Reader
      * can be used to read the signals if their sampling rates are compatible.
+     * The ID has the form <reference-type>[:<type-specific-identity>]. PTP uses
+     * "ptp:<domain-number>:<grandmaster identity as 16 lowercase hex digits>", eg. "ptp:0:001122fffe334455".
+     * NTP uses "ntp:<server IP address>", eg. "ntp:192.0.2.10".
+     * While the device runs on its own clock, the ID is "local:<device-local-id>".
      */
     virtual ErrCode INTERFACE_FUNC getReferenceDomainId(IString** referenceDomainId) = 0;
 
@@ -129,20 +137,26 @@ DECLARE_OPENDAQ_INTERFACE(IReferenceDomainInfoBuilder, IBaseObject)
 
     // [returnSelf]
     /*!
-     * @brief Sets the value that indicates if offset is used.
-     * @param[out] usesOffset The value that indicates if offset is used.
+     * @brief Sets the list of Reference Domain IDs.
+     * @param referenceDomainIds The list of Reference Domain IDs.
      *
-     * If False, a device will contain time jumps due to resync in the domain signal data.
+     * If set, gives the list of Reference Domain IDs of this domain: the applied Reference Domain ID
+     * and the IDs of the other synchronization interfaces that are not Off and whose
+     * SyncSourceStatus is Synced, such as the outputs the device distributes its clock on.
      */
-    virtual ErrCode INTERFACE_FUNC setUsesOffset(UsesOffset usesOffset) = 0;
+    // [templateType(referenceDomainIds, IString)]
+    virtual ErrCode INTERFACE_FUNC setReferenceDomainIds(IList* referenceDomainIds) = 0;
 
     /*!
-     * @brief Gets the value that indicates if offset is used.
-     * @param[out] usesOffset The value that indicates if offset is used.
+     * @brief Gets the list of Reference Domain IDs.
+     * @param[out] referenceDomainIds The list of Reference Domain IDs.
      *
-     * If False, a device will contain time jumps due to resync in the domain signal data.
+     * If set, gives the list of Reference Domain IDs of this domain: the applied Reference Domain ID
+     * and the IDs of the other synchronization interfaces that are not Off and whose
+     * SyncSourceStatus is Synced, such as the outputs the device distributes its clock on.
      */
-    virtual ErrCode INTERFACE_FUNC getUsesOffset(UsesOffset* usesOffset) = 0;
+    // [templateType(referenceDomainIds, IString)]
+    virtual ErrCode INTERFACE_FUNC getReferenceDomainIds(IList** referenceDomainIds) = 0;
 };
 /*!@}*/
 

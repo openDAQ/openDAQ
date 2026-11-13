@@ -215,8 +215,8 @@ TEST_F(NativeStreamingModulesTest, DiscoveringServerUsernameLocation)
 TEST_F(NativeStreamingModulesTest, TestDiscoveryReachability)
 {
     bool checkIPv6 = !test_helpers::Ipv6IsDisabled();
-    // ICMP ping (and thus active IPv4 reachability detection) requires root on Linux/macOS.
-    const auto expectedIpv4Reachability =
+    // Discovery pings IPv4 and IPv6 addresses whenever this process may send ICMP.
+    const auto expectedReachability =
         test_helpers::icmpPingAvailable() ? AddressReachabilityStatus::Reachable : AddressReachabilityStatus::Unknown;
 
     auto instance = test_helpers::instanceBuilder()
@@ -254,12 +254,12 @@ TEST_F(NativeStreamingModulesTest, TestDiscoveryReachability)
                 if (addresInfo.getType() == "IPv4")
                 {
                     hasIPv4 = true;
-                    ASSERT_EQ(addresInfo.getReachabilityStatus(), expectedIpv4Reachability);
+                    ASSERT_EQ(addresInfo.getReachabilityStatus(), expectedReachability);
                 }
                 else if (addresInfo.getType() == "IPv6")
                 {
                     hasIPv6 = true;
-                    ASSERT_EQ(addresInfo.getReachabilityStatus(), AddressReachabilityStatus::Unknown);
+                    ASSERT_EQ(addresInfo.getReachabilityStatus(), expectedReachability);
                 }
 
                 if (hasIPv4 && (hasIPv6 || !checkIPv6))
@@ -423,19 +423,19 @@ TEST_F(NativeStreamingModulesTest, SubscribeReadUnsubscribe)
 
     std::promise<StringPtr> signalSubscribePromise;
     std::future<StringPtr> signalSubscribeFuture;
-    test_helpers::setupSubscribeAckHandler(signalSubscribePromise, signalSubscribeFuture, signal);
+    const auto signalSubscribeAck = test_helpers::setupSubscribeAckHandler(signalSubscribePromise, signalSubscribeFuture, signal);
 
     std::promise<StringPtr> domainSubscribePromise;
     std::future<StringPtr> domainSubscribeFuture;
-    test_helpers::setupSubscribeAckHandler(domainSubscribePromise, domainSubscribeFuture, domainSignal);
+    const auto domainSubscribeAck = test_helpers::setupSubscribeAckHandler(domainSubscribePromise, domainSubscribeFuture, domainSignal);
 
     std::promise<StringPtr> signalUnsubscribePromise;
     std::future<StringPtr> signalUnsubscribeFuture;
-    test_helpers::setupUnsubscribeAckHandler(signalUnsubscribePromise, signalUnsubscribeFuture, signal);
+    const auto signalUnsubscribeAck = test_helpers::setupUnsubscribeAckHandler(signalUnsubscribePromise, signalUnsubscribeFuture, signal);
 
     std::promise<StringPtr> domainUnsubscribePromise;
     std::future<StringPtr> domainUnsubscribeFuture;
-    test_helpers::setupUnsubscribeAckHandler(domainUnsubscribePromise, domainUnsubscribeFuture, domainSignal);
+    const auto domainUnsubscribeAck = test_helpers::setupUnsubscribeAckHandler(domainUnsubscribePromise, domainUnsubscribeFuture, domainSignal);
 
     using namespace std::chrono_literals;
     StreamReaderPtr reader = daq::StreamReader<double, uint64_t>(signal, ReadTimeoutType::Any);
@@ -606,8 +606,8 @@ TEST_F_UNSTABLE_SKIPPED(NativeStreamingModulesTest, ReconnectWhileRead)
     std::promise<StringPtr> domainSubscribePromise;
     std::future<StringPtr> domainSubscribeFuture;
 
-    test_helpers::setupSubscribeAckHandler(signalSubscribePromise, signalSubscribeFuture, signal);
-    test_helpers::setupSubscribeAckHandler(domainSubscribePromise, domainSubscribeFuture, domainSignal);
+    const auto signalSubscribeAck = test_helpers::setupSubscribeAckHandler(signalSubscribePromise, signalSubscribeFuture, signal);
+    const auto domainSubscribeAck = test_helpers::setupSubscribeAckHandler(domainSubscribePromise, domainSubscribeFuture, domainSignal);
 
     using namespace std::chrono_literals;
     StreamReaderPtr reader = daq::StreamReader<double, uint64_t>(signal, ReadTimeoutType::Any);
@@ -872,7 +872,7 @@ TEST_F(NativeStreamingModulesTest, ProtectedSignalSubscribeDenied)
     // try to subscribe
     std::promise<StringPtr> signalSubscribePromise;
     std::future<StringPtr> signalSubscribeFuture;
-    test_helpers::setupSubscribeAckHandler(signalSubscribePromise, signalSubscribeFuture, signal);
+    const auto signalSubscribeAck = test_helpers::setupSubscribeAckHandler(signalSubscribePromise, signalSubscribeFuture, signal);
 
     auto reader = daq::StreamReader<double, uint64_t>(signal, ReadTimeoutType::Any);
 
@@ -903,7 +903,7 @@ TEST_F(NativeStreamingModulesTest, ProtectedSignalSubscribeAllowed)
     // subscribe
     std::promise<StringPtr> signalSubscribePromise;
     std::future<StringPtr> signalSubscribeFuture;
-    test_helpers::setupSubscribeAckHandler(signalSubscribePromise, signalSubscribeFuture, signal);
+    const auto signalSubscribeAck = test_helpers::setupSubscribeAckHandler(signalSubscribePromise, signalSubscribeFuture, signal);
 
     auto reader = daq::StreamReader<double, uint64_t>(signal, ReadTimeoutType::Any);
     ASSERT_TRUE(test_helpers::waitForAcknowledgement(signalSubscribeFuture));
@@ -911,7 +911,7 @@ TEST_F(NativeStreamingModulesTest, ProtectedSignalSubscribeAllowed)
     // unsibscribe
     std::promise<StringPtr> signalUnsubscribePromise;
     std::future<StringPtr> signalUnsubscribeFuture;
-    test_helpers::setupUnsubscribeAckHandler(signalUnsubscribePromise, signalUnsubscribeFuture, signal);
+    const auto signalUnsubscribeAck = test_helpers::setupUnsubscribeAckHandler(signalUnsubscribePromise, signalUnsubscribeFuture, signal);
 
     reader.release();
     ASSERT_TRUE(test_helpers::waitForAcknowledgement(signalUnsubscribeFuture));
@@ -927,7 +927,7 @@ TEST_F(NativeStreamingModulesTest, ProtectedSignalUnsubscribeDenied)
     // subscribe
     std::promise<StringPtr> signalSubscribePromise;
     std::future<StringPtr> signalSubscribeFuture;
-    test_helpers::setupSubscribeAckHandler(signalSubscribePromise, signalSubscribeFuture, signal);
+    const auto signalSubscribeAck = test_helpers::setupSubscribeAckHandler(signalSubscribePromise, signalSubscribeFuture, signal);
 
     auto reader = daq::StreamReader<double, uint64_t>(signal, ReadTimeoutType::Any);
     ASSERT_TRUE(test_helpers::waitForAcknowledgement(signalSubscribeFuture));
@@ -940,7 +940,7 @@ TEST_F(NativeStreamingModulesTest, ProtectedSignalUnsubscribeDenied)
     // try to unsubscribe
     std::promise<StringPtr> signalUnsubscribePromise;
     std::future<StringPtr> signalUnsubscribeFuture;
-    test_helpers::setupUnsubscribeAckHandler(signalUnsubscribePromise, signalUnsubscribeFuture, signal);
+    const auto signalUnsubscribeAck = test_helpers::setupUnsubscribeAckHandler(signalUnsubscribePromise, signalUnsubscribeFuture, signal);
 
     reader.release();
 
@@ -980,7 +980,7 @@ TEST_F(NativeStreamingModulesTest, StreamDataLowMaxPacketReadCount)
     auto mirroredSignalPtr = clientSignal.asPtr<IMirroredSignalConfig>();
     std::promise<StringPtr> subscribeCompletePromise;
     std::future<StringPtr> subscribeCompleteFuture;
-    test_helpers::setupSubscribeAckHandler(subscribeCompletePromise, subscribeCompleteFuture, mirroredSignalPtr);
+    const auto subscribeCompleteAck = test_helpers::setupSubscribeAckHandler(subscribeCompletePromise, subscribeCompleteFuture, mirroredSignalPtr);
 
     auto serverReader = PacketReader(serverSignal);
     auto clientReader = PacketReader(clientSignal);

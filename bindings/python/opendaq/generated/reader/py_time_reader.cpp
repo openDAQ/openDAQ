@@ -17,27 +17,27 @@
 #include "py_opendaq/py_opendaq.h"
 #include "py_opendaq/py_typed_reader.h"
 
-py::class_<daq::TimeReader<daq::StreamReaderPtr>> declareTimeStreamReader(pybind11::module_ m)
+PyDaqClass<daq::TimeReader<daq::StreamReaderPtr>> declareTimeStreamReader(pybind11::module_ m)
 {
-    return py::class_<daq::TimeReader<daq::StreamReaderPtr>>(m, "TimeStreamReader");
+    return wrapDaqClass<daq::TimeReader<daq::StreamReaderPtr>>(m, "TimeStreamReader");
 }
 
-py::class_<daq::TimeReader<daq::TailReaderPtr>> declareTimeTailReader(pybind11::module_ m)
+PyDaqClass<daq::TimeReader<daq::TailReaderPtr>> declareTimeTailReader(pybind11::module_ m)
 {
-    return py::class_<daq::TimeReader<daq::TailReaderPtr>>(m, "TimeTailReader");
+    return wrapDaqClass<daq::TimeReader<daq::TailReaderPtr>>(m, "TimeTailReader");
 }
 
-py::class_<daq::TimeReader<daq::BlockReaderPtr>> declareTimeBlockReader(pybind11::module_ m)
+PyDaqClass<daq::TimeReader<daq::BlockReaderPtr>> declareTimeBlockReader(pybind11::module_ m)
 {
-    return py::class_<daq::TimeReader<daq::BlockReaderPtr>>(m, "TimeBlockReader");
+    return wrapDaqClass<daq::TimeReader<daq::BlockReaderPtr>>(m, "TimeBlockReader");
 }
 
-py::class_<daq::TimeReader<daq::MultiReaderPtr>> declareTimeMultiReader(pybind11::module_ m)
+PyDaqClass<daq::TimeReader<daq::MultiReaderPtr>> declareTimeMultiReader(pybind11::module_ m)
 {
-    return py::class_<daq::TimeReader<daq::MultiReaderPtr>>(m, "TimeMultiReader");
+    return wrapDaqClass<daq::TimeReader<daq::MultiReaderPtr>>(m, "TimeMultiReader");
 }
 
-void defineTimeStreamReader(pybind11::module_ m, py::class_<daq::TimeReader<daq::StreamReaderPtr>> cls)
+void defineTimeStreamReader(pybind11::module_ m, PyDaqClass<daq::TimeReader<daq::StreamReaderPtr>> cls)
 {
     cls.doc() = "A wrapper for stream signal data reader that provides the ability to read samples with timestamps.";
 
@@ -58,7 +58,7 @@ void defineTimeStreamReader(pybind11::module_ m, py::class_<daq::TimeReader<daq:
         "Returns the next `count` unread samples and clock-stamps.");
 }
 
-void defineTimeTailReader(pybind11::module_ m, py::class_<daq::TimeReader<daq::TailReaderPtr>> cls)
+void defineTimeTailReader(pybind11::module_ m, PyDaqClass<daq::TimeReader<daq::TailReaderPtr>> cls)
 {
     cls.doc() = "A wrapper for tail signal data reader that provides the ability to read samples with timestamps.";
 
@@ -79,7 +79,7 @@ void defineTimeTailReader(pybind11::module_ m, py::class_<daq::TimeReader<daq::T
         "Returns the next `count` last unread samples and clock-stamps.");
 }
 
-void defineTimeBlockReader(pybind11::module_ m, py::class_<daq::TimeReader<daq::BlockReaderPtr>> cls)
+void defineTimeBlockReader(pybind11::module_ m, PyDaqClass<daq::TimeReader<daq::BlockReaderPtr>> cls)
 {
     cls.doc() = "A wrapper for block signal data reader that provides the ability to read samples with timestamps.";
 
@@ -100,7 +100,7 @@ void defineTimeBlockReader(pybind11::module_ m, py::class_<daq::TimeReader<daq::
         "Returns the next `count` unread blocks of samples and clock-stamps.");
 }
 
-void defineTimeMultiReader(pybind11::module_ m, py::class_<daq::TimeReader<daq::MultiReaderPtr>> cls)
+void defineTimeMultiReader(pybind11::module_ m, PyDaqClass<daq::TimeReader<daq::MultiReaderPtr>> cls)
 {
     cls.doc() = "A wrapper for multi signal data reader that provides the ability to read samples with timestamps.";
 

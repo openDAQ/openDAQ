@@ -96,6 +96,23 @@ TEST_F(ConfigProtocolIntegrationTest, Connect)
     ASSERT_EQ(serverDeviceSerialized, clientDeviceSerialized);
 }
 
+TEST_F(ConfigProtocolIntegrationTest, LockedAttributes)
+{
+    const auto toVector = [](const ListPtr<IString>& list)
+    {
+        std::vector<std::string> vec;
+        for (const auto& attr : list)
+            vec.push_back(attr);
+        return vec;
+    };
+
+    // The device locks every attribute of its IO folder except "Active" when it is constructed
+    const ComponentPtr serverIoFolder = serverDevice.getItem("IO");
+    const ComponentPtr clientIoFolder = clientDevice.getItem("IO");
+    ASSERT_THAT(toVector(serverIoFolder.getLockedAttributes()), ElementsAre("Description", "Name", "Visible"));
+    ASSERT_THAT(toVector(clientIoFolder.getLockedAttributes()), ElementsAre("Description", "Name", "Visible"));
+}
+
 TEST_F(ConfigProtocolIntegrationTest, InputPortConnected)
 {
     // visible input ports

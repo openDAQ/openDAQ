@@ -794,7 +794,9 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::callProperty
 
     if (valueWriteEvents[AnyWriteEventName].hasListeners())
     {
-        valueWriteEvents[AnyWriteEventName](objPtr, args);
+        const ErrCode anyWriteErr = daqTry([&] { valueWriteEvents[AnyWriteEventName](objPtr, args); });
+        if (OPENDAQ_SUCCEEDED(errCode))
+            errCode = anyWriteErr;
     }
 
     bool shouldUpdate = updatePropertyStack.unregisterPropertyUpdating(name);
@@ -1141,7 +1143,7 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::setPropertyV
 
         if (batch && !isChildProp)
         {
-            updatingPropsAndValues.emplace_back(std::make_pair(propName, UpdatingAction{true, protectedAccess, valuePtr}));
+            updatingPropsAndValues.emplace_back(std::make_pair(propName, UpdatingAction{true, protectedAccess, valuePtr.asPtr<IBaseObject>()}));
             return OPENDAQ_SUCCESS;
         }
 
@@ -2433,10 +2435,9 @@ ErrCode GenericPropertyObjectImpl<PropObjInterface, Interfaces...>::addPropertyI
             {
                 const auto cloneable = defaultValue.asPtrOrNull<IPropertyObjectInternal>();
                 PropertyObjectPtr clone;
-                ErrCode err = cloneable->clone(&clone);
-                OPENDAQ_RETURN_IF_FAILED(err);
-
-                if (defaultValue.getObject() != clone.getObject())
+                ErrCode errorCode = cloneable->clone(&clone);
+                OPENDAQ_RETURN_IF_FAILED_EXCEPT(errorCode, OPENDAQ_ERR_NOT_CLONEABLE);
+                if (errorCode != OPENDAQ_ERR_NOT_CLONEABLE)
                     propInternalPtr.overrideDefaultValue(clone);
             }
         }

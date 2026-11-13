@@ -18,6 +18,7 @@ set(TEST_SOURCES
     test_config_protocol_singleton.cpp
     test_c2d_streaming.cpp
     test_gateway_devices.cpp
+    test_synchronization.cpp
     test_property_object.cpp
 )
 

@@ -64,13 +64,6 @@ extern "C"
         daqTimeProtocolUtc
     } daqTimeProtocol;
 
-    typedef enum daqUsesOffset
-    {
-        daqUsesOffsetUnknown,
-        daqUsesOffsetTrue,
-        daqUsesOffsetFalse
-    } daqUsesOffset;
-
     typedef enum daqScaledSampleType
     {
         daqScaledSampleTypeInvalid = 0,

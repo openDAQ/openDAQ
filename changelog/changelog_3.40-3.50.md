@@ -2,6 +2,7 @@
 
 ## Features
 
+- [#1045](https://github.com/openDAQ/openDAQ/pull/1045) Implement ISynchronization and ISyncInterface
 - [#1242](https://github.com/openDAQ/openDAQ/pull/1242) Implement IContext::getRootDevice
 - [#1244](https://github.com/openDAQ/openDAQ/pull/1244) Static objects and object pool
 - [#1258](https://github.com/openDAQ/openDAQ/pull/1258) Make device info the nested device property
@@ -9,6 +10,8 @@
 - [#1251](https://github.com/openDAQ/openDAQ/pull/1251) TLS encrypted channel for the LT streaming module. With `EnableTlsStreamingPort` the server serves the secure channel alongside the plaintext one, registering both the `OpenDAQLTStreaming` and `OpenDAQLTStreamingSecure` capabilities and advertising the `_streaming-lt._tcp` and `_streaming-lts._tcp` mDNS services. Mutual TLS is enabled by default. LT capabilities now carry the `LTStreaming` protocol group ID and a protocol security level (`0` plaintext / `10` secure), so a client ordering streaming protocols by security level prefers the secure channel on its own. The channel is opt-in: without `EnableTlsStreamingPort` the server behaves as before. It is opt-in at build time as well: see [#1278](https://github.com/openDAQ/openDAQ/pull/1278).
 - [#1278](https://github.com/openDAQ/openDAQ/pull/1278) Building the TLS channel of the LT streaming modules is controlled by the new CMake option `OPENDAQ_ENABLE_WEBSOCKET_STREAMING_WITH_TLS`, off by default and on in the `full`, `package` and `simulator_package` presets. With it off the LT streaming modules are built without their OpenSSL dependency and the `daq.lts://` channel is absent. The option has no meaning for the legacy LT streaming modules (`DAQMODULES_LT_LEGACY_MODULES`) and is ignored there.
 - [#1311](https://github.com/openDAQ/openDAQ/pull/1311) Add the `ScanOnAdd` option to skip the network scan on `addDevice`; tests wait for state instead of sleeping; declare `RESOURCE_LOCK` for parallel ctest; write a minidump on access violations.
+- [#1360](https://github.com/openDAQ/openDAQ/pull/1360) Add `FunctionModuleAuthenticator`, a module authenticator that forwards `authenticateModuleBinary` to a function, so a custom authenticator can be written in any binding. The function returns a dictionary with the mandatory `BinaryValid` and `VendorKey` keys. Available in C, Python and .NET.
+- [#1372](https://github.com/openDAQ/openDAQ/pull/1372) Ping discovered IPv6 addresses as well as IPv4 ones, without root or administrator rights where the operating system allows it.
 - [#1322](https://github.com/openDAQ/openDAQ/pull/1322) Add the `InputPolicy`, `Singleton` and `CommonSettingsTypeId` options to function block types. A type can now declare how its blocks create their input ports (the `FunctionBlockInputPolicy` enum: `Unspecified`, `Fixed`, `OneAlwaysEmpty` or `SettingsDriven`), that at most one instance may exist under a single parent, and that its properties act as common settings for nested blocks of another type. The options are set through `IComponentTypeBuilder` and read back from `IFunctionBlockType`. Building a type with an input policy outside of `FunctionBlockInputPolicy` fails with `OPENDAQ_ERR_INVALIDPARAMETER`, and an empty `CommonSettingsTypeId` is stored as unassigned. The options are serialized with the type, so they survive the config protocol. The options are also fields of the `FunctionBlockType` struct (the input policy as an `Int`), so they are visible through `IStruct` and take part in equality: two types that differ only in their options no longer compare equal. The `Singleton` flag is enforced by the core: adding a function block of a singleton type to a device or function block that already holds an instance of that type fails with `OPENDAQ_ERR_ALREADYEXISTS`, as does an addition while another addition of that type to the same parent is in progress. A duplicate found while loading a configuration is skipped with a warning, also on devices reached through the config protocol.
 
 ## Python
@@ -29,6 +32,8 @@
 - [#1352](https://github.com/openDAQ/openDAQ/pull/1352) Fix process termination on mirrored signal teardown after a failed subscribe: a mirrored signal is marked as listened only once its subscribe succeeded, a failed teardown unsubscribe is logged instead of thrown, `ComponentImpl::remove` returns an error code instead of letting exceptions escape, and reader destructors no longer throw
 - [#1352](https://github.com/openDAQ/openDAQ/pull/1352) A streaming unsubscribes the value signal even when its domain signal is no longer in the streaming, so the value signal does not stay subscribed after its reader is gone
 - [#1305](https://github.com/openDAQ/openDAQ/pull/1305) Fix async races in native streaming shutdown process.
+- [#1381](https://github.com/openDAQ/openDAQ/pull/1381) The native streaming client replaces its streaming and config callbacks as one set and runs every call on a copy, so replacing or resetting them no longer destroys a callback while it runs.
+- [#1380](https://github.com/openDAQ/openDAQ/pull/1380) Raise the default native inactivity timeout from 1.5 s to 3 s, so a connection with the default 1 s heartbeat survives 2-3 missed heartbeats instead of 1.
 - [#1304](https://github.com/openDAQ/openDAQ/pull/1304) Fix flaky test NativeDeviceModulesTest.GetConnectedClientsInfo by periodically polling instead of racing asynchronous events.
 - [#1303](https://github.com/openDAQ/openDAQ/pull/1303) Stop the mDNS discovery server's service thread before an instance releases its root device. A request the thread was answering through the device could keep the device tree alive past the instance's destruction and then destroy the context from the service thread itself, which joined its own thread and terminated the process.
 - [#1299](https://github.com/openDAQ/openDAQ/pull/1299) Fix a deadlock when a scheduler worker releases the last reference to the context: the scheduler no longer waits on its own thread while destroying the executor. Such a shutdown could also crash at process exit, with Taskflow's node pool destroyed under live workers, which is what made `test_audio_device_module` fail intermittently on the gcc-7 32-bit CI lane.
@@ -38,9 +43,14 @@
 - [#1321](https://github.com/openDAQ/openDAQ/pull/1321) Take the property object's lock while serializing its values and local properties, so serialization no longer reads containers that a concurrent property write is modifying.
 - [#1324](https://github.com/openDAQ/openDAQ/pull/1324) `setVisible` returns `OPENDAQ_IGNORED` and fires no `AttributeChanged` when the value is unchanged, as `setActive`, `setName` and `setDescription` already do.
 - [#1350](https://github.com/openDAQ/openDAQ/pull/1350) The client no longer sends requests while applying a server update.
+- [#1366](https://github.com/openDAQ/openDAQ/pull/1366) Components send their locked attributes to native configuration clients, so a client shows the same locked attributes as the device.
+- [#1374](https://github.com/openDAQ/openDAQ/pull/1374) Error messages list the error-info chain from the newest error down to the root cause in every build, capped at 4 KiB, so release builds no longer hide the root cause behind added context.
+- [#1374](https://github.com/openDAQ/openDAQ/pull/1374) An exception message containing `{` or `}` no longer turns into an `fmt::format_error`.
+- [#1367](https://github.com/openDAQ/openDAQ/pull/1367) Fix a crash when a device's info or domain, or a component's name, description or visibility, is read while the config client applies a server update or a domain change.
 
 ## Misc
 
+- [#1376](https://github.com/openDAQ/openDAQ/pull/1376) Fix the package build on macOS runners with OpenSSL 4, and when Apache's mirrors fail to serve Thrift
 - [#1339](https://github.com/openDAQ/openDAQ/pull/1339) Publish the core stagings tagged by the run that published them, with the revision on every package.
 - [#1343](https://github.com/openDAQ/openDAQ/pull/1343) Test the oldest and newest supported compilers on the newest GitHub runners (Visual Studio 2026, Ubuntu 26.04, macOS 27).
 - [#1323](https://github.com/openDAQ/openDAQ/pull/1323) Fix classifier FB flaky tests
@@ -51,6 +61,7 @@
 - [#1265](https://github.com/openDAQ/openDAQ/pull/1265) Publish the SDK staging weekly. Add ARM Linux and manylinux CI runners and pin the compilers.
 - [#1318](https://github.com/openDAQ/openDAQ/pull/1318) Runs the discovery-free device module tests as four gtest shards on separate ports so ctest can run them in parallel.
 - [#1342](https://github.com/openDAQ/openDAQ/pull/1342) Skip the macOS CI tests only on macOS instead of on every clang build.
+- [#1368](https://github.com/openDAQ/openDAQ/pull/1368) The native streaming server's read loop no longer looks up every subscribed signal by global ID on each polling cycle, lowering its CPU load with many subscribed signals.
 
 ## Required application changes
 
@@ -65,6 +76,19 @@
 `getProperty`, `hasProperty`, `getAllProperties`, `getVisibleProperties` and `clone` now take the object's recursive lock, so they wait while another thread holds it (an `addDevice` on the parent, a slow write handler).
 
 Nested property objects share their owner's lock, so a handler on a nested object runs under the owning component's lock. To keep a separate lock, set `LockingStrategy::OwnLock` before the object is assigned; clones keep the strategy.
+
+### [#1360](https://github.com/openDAQ/openDAQ/pull/1360) Module authenticator errors fail module loading
+
+The module manager no longer ignores the error code returned by `IModuleAuthenticator::authenticateModuleBinary`. A failure code aborts loading of the module and is returned to the caller with the authenticator's error message.
+
+### [#1045](https://github.com/openDAQ/openDAQ/pull/1045) ISynchronization replaces ISyncComponent
+
+- `UsesOffset`, `IReferenceDomainInfo::getUsesOffset` and `IReferenceDomainInfoBuilder::setUsesOffset`/`getUsesOffset` are removed in C++, C, Python and .NET; `getReferenceDomainIds` lists the reference domains instead.
+- The reference device reports the reference domain ID `local:openDAQ_<serial>` instead of `openDAQ_<serial>`, the simulator device `local:<localId>` instead of `<localId>`, and both report the time protocol `Utc`.
+- The reference device's deprecated `SyncComponent` holds no interfaces; `IDevice::getSynchronization` replaces it.
+- Calls to `getSyncComponent` and the `SyncComponentPtr` methods produce deprecation warnings, which fail builds that treat warnings as errors.
+- Python: the `opendaq.SyncComponent` argument `parse_failed_exception` is renamed to `parent`.
+- Clients built before this change cannot add a device that exposes `ISynchronization`, which includes the reference and simulator devices.
 
 ## Required module changes
 
@@ -83,6 +107,20 @@ Nested property objects share their owner's lock, so a handler on a nested objec
 `getProperty`, `hasProperty`, `getAllProperties`, `getVisibleProperties` and `clone` now take the object's recursive lock. Under the non-recursive `getLockGuard` use the `NoLock` variants. Under another mutex, such as the acquisition lock, they take the property lock second, which inverts the order of a write handler that takes that mutex under the property lock; read property metadata before taking the acquisition lock.
 
 Nested property objects share their owner's lock, so a handler on a nested object runs under the owning component's lock. To keep a separate lock, set `LockingStrategy::OwnLock` before the object is assigned; clones keep the strategy.
+
+### [#1366](https://github.com/openDAQ/openDAQ/pull/1366) Lock component attributes during construction
+
+Lock attributes when the component is constructed. After that, unlock an attribute only briefly to apply an internal change, and lock it again right after. Locking or unlocking does not trigger a core event, so locks changed later do not reach connected clients.
+
+### [#1367](https://github.com/openDAQ/openDAQ/pull/1367) Component and device getters take the component's lock
+
+`getName`, `getDescription`, `getVisible`, `IDevice::getInfo` and `IDevice::getDomain` now take the component's recursive lock. Don't call them on the same component while holding `getAcquisitionLock` or `getUniqueLock`: those lock the same mutex without the re-entry check, and the call blocks forever.
+
+### [#1045](https://github.com/openDAQ/openDAQ/pull/1045) ISynchronization replaces ISyncComponent
+
+- `IDevice` implementations not derived from `GenericDevice` implement `getSynchronization`.
+- Modules that set `UsesOffset` remove it and set `ReferenceDomainIds`.
+- `IReferenceDomainInfo::getReferenceDomainIds` takes the interface slot of the removed `getUsesOffset`; modules built against older headers must be rebuilt.
 
 ### [#1322](https://github.com/openDAQ/openDAQ/pull/1322) Function block type options
 
@@ -129,9 +167,36 @@ two requirements on modules:
 
 ### New interfaces
 
+```diff
++ [interface] ISynchronization
++ [interface] ISynchronizationPrivate
++ [interface] ISyncInterface
++ [interface] ISyncInterfaceInternal
++ [enum] SyncMode, SyncSourceStatus, SyncRoleStatus
+```
+
 ### Removed interfaces
 
 ### Modified interfaces
+
+#### `IDevice`
+```diff
++ IDevice::getSynchronization(ISynchronization** sync);
+```
+
+#### `IReferenceDomainInfo`
+```diff
+- IReferenceDomainInfo::getUsesOffset(UsesOffset* usesOffset);
++ IReferenceDomainInfo::getReferenceDomainIds(IList** referenceDomainIds);
+```
+
+#### `IReferenceDomainInfoBuilder`
+```diff
+- IReferenceDomainInfoBuilder::setUsesOffset(UsesOffset usesOffset);
+- IReferenceDomainInfoBuilder::getUsesOffset(UsesOffset* usesOffset);
++ IReferenceDomainInfoBuilder::setReferenceDomainIds(IList* referenceDomainIds);
++ IReferenceDomainInfoBuilder::getReferenceDomainIds(IList** referenceDomainIds);
+```
 
 #### `Context`
 ```diff

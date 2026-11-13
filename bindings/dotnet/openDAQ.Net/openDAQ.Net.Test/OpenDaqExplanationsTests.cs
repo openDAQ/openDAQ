@@ -1,5 +1,6 @@
 // Ignore Spelling: Opc Ua nullable daqref
 
+#nullable disable
 
 using System;
 using System.Diagnostics;

@@ -269,6 +269,15 @@ class TestList(opendaq_test.TestCase):
         list.push_back(1)
         self.assertEqual(list[-1], 1)
 
+    def test_implicit_conversion(self):
+        func = daq.Function(lambda: [0.5, "test", ["nested"]])
+        value = func()
+
+        self.assertIsInstance(value, daq.IList)
+        self.assertEqual(value[0], 0.5)
+        self.assertEqual(value[1], "test")
+        self.assertEqual(value[2][0], "nested")
+
 class TestIterable(opendaq_test.TestCase):
     def test_from_iterable(self):
         l = daq.List()
@@ -380,6 +389,14 @@ class TestDict(opendaq_test.TestCase):
         for key, value in dict.items():
             self.assertEqual(key.upper(), value)
 
+    def test_implicit_conversion(self):
+        func = daq.Function(lambda: {'name': 'value', 'nested': {'number': 2.5}})
+        value = func()
+
+        self.assertIsInstance(value, daq.IDict)
+        self.assertEqual(value['name'], 'value')
+        self.assertEqual(dict(value['nested']), {'number': 2.5})
+
 class TestLeaks(opendaq_test.TestCase):
 
     def test_leak1(self):
@@ -424,6 +441,16 @@ class TestProcedure(opendaq_test.TestCase):
 
         self.assertEqual(value, 20)
 
+    # Small ints are immortal, so this uses strings and floats that are freed when over-released
+    def test_params_outlive_call(self):
+
+        received = []
+        proc = daq.Procedure(lambda *args: received.append(args))
+        for i in range(10):
+            proc(f'string {i}', i + 0.5)
+
+        self.assertEqual(received, [(f'string {i}', i + 0.5) for i in range(10)])
+
 class TestFunction(opendaq_test.TestCase):
 
     def test_no_params(self):
@@ -452,6 +479,23 @@ class TestFunction(opendaq_test.TestCase):
         value = func(20, 10)
 
         self.assertEqual(value, 10)
+
+    # Small ints are immortal, so these use strings and floats that are freed when over-released
+    def test_one_string_param(self):
+
+        func = daq.Function(lambda v: v.upper())
+        value = func('value' * 10)
+
+        self.assertEqual(value, 'VALUE' * 10)
+
+    def test_params_outlive_call(self):
+
+        received = []
+        func = daq.Function(lambda *args: received.append(args))
+        for i in range(10):
+            func(f'string {i}', i + 0.5)
+
+        self.assertEqual(received, [(f'string {i}', i + 0.5) for i in range(10)])
 
 class TestStruct(opendaq_test.TestCase):
 

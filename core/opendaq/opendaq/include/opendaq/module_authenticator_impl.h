@@ -32,6 +32,19 @@ public:
     ErrCode INTERFACE_FUNC setLogger(ILogger* logger) override;
 };
 
+
+class FunctionModuleAuthenticatorImpl : public ModuleAuthenticator
+{
+public:
+    explicit FunctionModuleAuthenticatorImpl(const FunctionPtr& f);
+
+    Bool onAuthenticateModuleBinary(StringPtr& vendorKey, const StringPtr& binaryPath) override;
+
+private:
+    FunctionPtr f;
+};
+
+
 inline ErrCode INTERFACE_FUNC ModuleAuthenticator::authenticateModuleBinary(Bool* binaryValid, IString** vendorKey, IString* binaryPath)
 {
     OPENDAQ_PARAM_NOT_NULL(binaryValid);

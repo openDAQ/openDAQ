@@ -125,6 +125,53 @@ ErrCode ComponentTypeBuilderImpl::getDefaultConfig(IPropertyObject** defaultConf
     return OPENDAQ_SUCCESS;
 }
 
+ErrCode ComponentTypeBuilderImpl::setInputPolicy(FunctionBlockInputPolicy policy)
+{
+    this->inputPolicy = policy;
+    return OPENDAQ_SUCCESS;
+}
+
+ErrCode ComponentTypeBuilderImpl::getInputPolicy(FunctionBlockInputPolicy* policy)
+{
+    OPENDAQ_PARAM_NOT_NULL(policy);
+
+    *policy = this->inputPolicy;
+    return OPENDAQ_SUCCESS;
+}
+
+
+ErrCode ComponentTypeBuilderImpl::setSingleton(Bool singleton)
+{
+    this->isSingleton = singleton;
+    return OPENDAQ_SUCCESS;
+}
+
+ErrCode ComponentTypeBuilderImpl::getSingleton(Bool* singleton)
+{
+    OPENDAQ_PARAM_NOT_NULL(singleton);
+
+    *singleton = this->isSingleton;
+    return OPENDAQ_SUCCESS;
+}
+
+
+ErrCode ComponentTypeBuilderImpl::setCommonSettingsTypeId(IString* typeId)
+{
+    // An empty type ID declares no common settings relationship, the same as an unassigned one
+    const StringPtr typeIdPtr = typeId;
+    this->commonSettingsTypeId = typeIdPtr.assigned() && typeIdPtr.getLength() == 0 ? nullptr : typeIdPtr;
+    return OPENDAQ_SUCCESS;
+}
+
+ErrCode ComponentTypeBuilderImpl::getCommonSettingsTypeId(IString** typeId)
+{
+    OPENDAQ_PARAM_NOT_NULL(typeId);
+
+    *typeId = this->commonSettingsTypeId.addRefAndReturn();
+    return OPENDAQ_SUCCESS;
+}
+
+
 #if !defined(BUILDING_STATIC_LIBRARY)
 
 extern "C"

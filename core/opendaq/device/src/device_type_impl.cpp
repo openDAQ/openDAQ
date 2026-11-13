@@ -14,7 +14,8 @@ DeviceTypeImpl::DeviceTypeImpl(const StringPtr& id,
                                const StringPtr& description,
                                const PropertyObjectPtr& defaultConfig,
                                const StringPtr& prefix)
-    : Super(detail::deviceTypeStructType, id, name, description, prefix, defaultConfig)
+    : Super(detail::deviceTypeStructType, id, name, description, defaultConfig, Dict<IString, IBaseObject>({{"Prefix", prefix}}))
+    , prefix(prefix)
 {
 }
 
@@ -56,7 +57,7 @@ ErrCode INTERFACE_FUNC DeviceTypeImpl::serialize(ISerializer* serializer)
                 serializerPtr.writeString(description);
             }
 
-            if (description.assigned())
+            if (prefix.assigned())
             {
                 serializerPtr.key("prefix");
                 serializerPtr.writeString(prefix);

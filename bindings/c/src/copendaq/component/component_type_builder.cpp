@@ -87,6 +87,36 @@ daqErrCode daqComponentTypeBuilder_getDefaultConfig(daqComponentTypeBuilder* sel
     return reinterpret_cast<daq::IComponentTypeBuilder*>(self)->getDefaultConfig(reinterpret_cast<daq::IPropertyObject**>(defaultConfig));
 }
 
+daqErrCode daqComponentTypeBuilder_setInputPolicy(daqComponentTypeBuilder* self, daqFunctionBlockInputPolicy policy)
+{
+    return reinterpret_cast<daq::IComponentTypeBuilder*>(self)->setInputPolicy(static_cast<daq::FunctionBlockInputPolicy>(policy));
+}
+
+daqErrCode daqComponentTypeBuilder_getInputPolicy(daqComponentTypeBuilder* self, daqFunctionBlockInputPolicy* policy)
+{
+    return reinterpret_cast<daq::IComponentTypeBuilder*>(self)->getInputPolicy(reinterpret_cast<daq::FunctionBlockInputPolicy*>(policy));
+}
+
+daqErrCode daqComponentTypeBuilder_setSingleton(daqComponentTypeBuilder* self, daqBool singleton)
+{
+    return reinterpret_cast<daq::IComponentTypeBuilder*>(self)->setSingleton(singleton);
+}
+
+daqErrCode daqComponentTypeBuilder_getSingleton(daqComponentTypeBuilder* self, daqBool* singleton)
+{
+    return reinterpret_cast<daq::IComponentTypeBuilder*>(self)->getSingleton(singleton);
+}
+
+daqErrCode daqComponentTypeBuilder_setCommonSettingsTypeId(daqComponentTypeBuilder* self, daqString* typeId)
+{
+    return reinterpret_cast<daq::IComponentTypeBuilder*>(self)->setCommonSettingsTypeId(reinterpret_cast<daq::IString*>(typeId));
+}
+
+daqErrCode daqComponentTypeBuilder_getCommonSettingsTypeId(daqComponentTypeBuilder* self, daqString** typeId)
+{
+    return reinterpret_cast<daq::IComponentTypeBuilder*>(self)->getCommonSettingsTypeId(reinterpret_cast<daq::IString**>(typeId));
+}
+
 daqErrCode daqComponentTypeBuilder_createComponentTypeBuilder(daqComponentTypeBuilder** obj)
 {
     daq::IComponentTypeBuilder* ptr = nullptr;

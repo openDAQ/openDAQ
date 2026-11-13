@@ -42,6 +42,7 @@ extern "C"
 
     daqErrCode EXPORTED daqConnectionInternal_enqueueLastDescriptor(daqConnectionInternal* self);
     daqErrCode EXPORTED daqConnectionInternal_dequeueUpTo(daqConnectionInternal* self, daqPacket** packetPtr, daqSizeT* count);
+    daqErrCode EXPORTED daqConnectionInternal_closeQueue(daqConnectionInternal* self);
 
 #ifdef __cplusplus
 }

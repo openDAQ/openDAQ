@@ -47,6 +47,15 @@ public:
     ErrCode INTERFACE_FUNC setDefaultConfig(IPropertyObject* defaultConfig) override;
     ErrCode INTERFACE_FUNC getDefaultConfig(IPropertyObject** defaultConfig) override;
 
+    ErrCode INTERFACE_FUNC setInputPolicy(FunctionBlockInputPolicy policy) override;
+    ErrCode INTERFACE_FUNC getInputPolicy(FunctionBlockInputPolicy* policy) override;
+
+    ErrCode INTERFACE_FUNC setSingleton(Bool singleton) override;
+    ErrCode INTERFACE_FUNC getSingleton(Bool* singleton) override;
+  
+    ErrCode INTERFACE_FUNC setCommonSettingsTypeId(IString* typeId) override;
+    ErrCode INTERFACE_FUNC getCommonSettingsTypeId(IString** typeId) override;
+
 private:
     ComponentTypeSort sort;
     StringPtr id;
@@ -55,6 +64,9 @@ private:
     StringPtr description;
     PropertyObjectPtr defaultConfig;
     ModuleInfoPtr moduleInfo;
+    FunctionBlockInputPolicy inputPolicy = FunctionBlockInputPolicy::Unspecified;
+    Bool isSingleton = False;
+    StringPtr commonSettingsTypeId = nullptr;
 };
 
 END_NAMESPACE_OPENDAQ

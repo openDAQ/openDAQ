@@ -45,6 +45,7 @@ public:
     DictPtr<IString, IFunctionBlockType> onGetAvailableFunctionBlockTypes() override;
     FunctionBlockPtr onAddFunctionBlock(const StringPtr& typeId, const PropertyObjectPtr& config) override;
     void onRemoveFunctionBlock(const FunctionBlockPtr& functionBlock) override;
+    bool validatesAddFunctionBlock() override;
 
 protected:
     void onRemoteUpdate(const SerializedObjectPtr& serialized) override;
@@ -143,6 +144,13 @@ template <class Impl>
 DictPtr<IString, IFunctionBlockType> ConfigClientBaseFunctionBlockImpl<Impl>::onGetAvailableFunctionBlockTypes()
 {
     return this->clientComm->getAvailableFunctionBlockTypes(this->remoteGlobalId, true);
+}
+
+template <class Impl>
+bool ConfigClientBaseFunctionBlockImpl<Impl>::validatesAddFunctionBlock()
+{
+    // the server validates and serializes the addition
+    return false;
 }
 
 template <class Impl>

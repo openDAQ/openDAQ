@@ -12,11 +12,15 @@
 - [#1311](https://github.com/openDAQ/openDAQ/pull/1311) Add the `ScanOnAdd` option to skip the network scan on `addDevice`; tests wait for state instead of sleeping; declare `RESOURCE_LOCK` for parallel ctest; write a minidump on access violations.
 - [#1360](https://github.com/openDAQ/openDAQ/pull/1360) Add `FunctionModuleAuthenticator`, a module authenticator that forwards `authenticateModuleBinary` to a function, so a custom authenticator can be written in any binding. The function returns a dictionary with the mandatory `BinaryValid` and `VendorKey` keys. Available in C, Python and .NET.
 - [#1372](https://github.com/openDAQ/openDAQ/pull/1372) Ping discovered IPv6 addresses as well as IPv4 ones, without root or administrator rights where the operating system allows it.
+- [#1322](https://github.com/openDAQ/openDAQ/pull/1322) Add the `InputPolicy`, `Singleton` and `CommonSettingsTypeId` options to function block types. A type can now declare how its blocks create their input ports (the `FunctionBlockInputPolicy` enum: `Unspecified`, `Fixed`, `OneAlwaysEmpty` or `SettingsDriven`), that at most one instance may exist under a single parent, and that its properties act as common settings for nested blocks of another type. The options are set through `IComponentTypeBuilder` and read back from `IFunctionBlockType`. Building a type with an input policy outside of `FunctionBlockInputPolicy` fails with `OPENDAQ_ERR_INVALIDPARAMETER`, and an empty `CommonSettingsTypeId` is stored as unassigned. The options are serialized with the type, so they survive the config protocol. The options are also fields of the `FunctionBlockType` struct (the input policy as an `Int`), so they are visible through `IStruct` and take part in equality: two types that differ only in their options no longer compare equal. The `Singleton` flag is enforced by the core: adding a function block of a singleton type to a device or function block that already holds an instance of that type fails with `OPENDAQ_ERR_ALREADYEXISTS`, as does an addition while another addition of that type to the same parent is in progress. A duplicate found while loading a configuration is skipped with a warning, also on devices reached through the config protocol.
 
 ## Python
 
+- [#1322](https://github.com/openDAQ/openDAQ/pull/1322) Expose the function block type options: the `FunctionBlockInputPolicy` enum and the read-only `IFunctionBlockType` properties `input_policy`, `singleton` and `common_settings_type_id`. `common_settings_type_id` is `None` when the type does not declare a common settings relationship. The options can only be read from Python, as the component type builder has no Python binding.
+
 ## Bug fixes
 
+- [#1322](https://github.com/openDAQ/openDAQ/pull/1322) `IList::equals` no longer dereferences a null element when only one of the two lists holds `nullptr` at a position. The comparison crashed or returned the right answer depending on operand order; it is now symmetric and reports the lists as not equal. Structs compare their field values as lists, so this also fixes crashes when comparing structs with unassigned fields, such as a device type without a connection string prefix.
 - [#1349](https://github.com/openDAQ/openDAQ/pull/1349) Property getters take the object's lock, and nested property objects share their owner's lock, fixing crashes when properties are read while another thread adds, removes or reorders them
 - [#1326](https://github.com/openDAQ/openDAQ/pull/1326) Fix an exception in a native streaming handler aborting the process; it is logged instead
 - [#1326](https://github.com/openDAQ/openDAQ/pull/1326) Fix adding a sub-device failing when a property object class, enumeration or struct type of the same name is already registered on the client
@@ -118,6 +122,47 @@ Lock attributes when the component is constructed. After that, unlock an attribu
 - Modules that set `UsesOffset` remove it and set `ReferenceDomainIds`.
 - `IReferenceDomainInfo::getReferenceDomainIds` takes the interface slot of the removed `getUsesOffset`; modules built against older headers must be rebuilt.
 
+### [#1322](https://github.com/openDAQ/openDAQ/pull/1322) Function block type options
+
+`IFunctionBlockType` and `IComponentTypeBuilder` each gained new methods. Interface IDs in openDAQ are derived
+from the interface name alone, so a module built against an older SDK still passes `queryInterface` while its
+vtable is missing the new slots. Modules must be rebuilt against this SDK version.
+
+Modules that construct function block types through the `FunctionBlockType()` factory or `FunctionBlockTypeBuilder()`
+need no source changes; the defaults (`Unspecified`, `False`, unassigned) preserve the previous behaviour. Any module that
+implements `IFunctionBlockType` itself must add `getInputPolicy`, `getSingleton` and `getCommonSettingsTypeId`.
+
+The serialized form stays compatible in both directions: a newer SDK reading an older payload falls back to the
+defaults, and an older SDK reading a newer payload ignores the three new keys. Note that an older peer therefore
+drops the values silently - it will not enforce a `Singleton` constraint declared by a newer server. The input policy is
+serialized as an integer; a value this SDK version does not know is read as `Unspecified`.
+
+`GenericComponentTypeImpl` now has a single constructor, `(type, id, name, description, defaultConfig, extraFields = nullptr)`.
+The overload taking a connection string prefix was removed and is declared deleted, so calls written against it fail to
+compile instead of failing at runtime through the implicit smart pointer conversions. `prefix` is no longer a member of the
+base class; device and streaming types store it themselves. A component type implementation deriving from `GenericComponentTypeImpl` must
+pass any fields beyond `Id`, `Name` and `Description` through `extraFields`, in the order its struct type declares them:
+```diff
+- : Super(structType, id, name, description, prefix, defaultConfig)
++ : Super(structType, id, name, description, defaultConfig, Dict<IString, IBaseObject>({{"Field1", value1}, {"Field2", value2}}))
+```
+Passing `Id`, `Name` or `Description` in `extraFields` throws `InvalidParameterException`, and debug builds also throw `InvalidTypeException` when the resulting fields do not match the struct type's field names and order.
+
+The `Singleton` flag is enforced by `addFunctionBlock` of devices and function blocks, and by `createAndAddNestedFunctionBlock`
+and `addNestedFunctionBlock`, which modules use to add function blocks themselves. While a function block of a singleton type
+is being added, a concurrent addition of the same type to the same parent is refused with `OPENDAQ_ERR_ALREADYEXISTS` instead
+of waiting for it; additions of other types are not affected, and no lock is held while `onAddFunctionBlock` runs. This puts
+two requirements on modules:
+- Create function block instances with the same type, including its flags, that the module advertises through
+  `onGetAvailableFunctionBlockTypes`. Whether a concurrent addition is refused is decided by the advertised type, and whether
+  an existing instance blocks an addition by the type of that instance, so an instance created with a separately built type
+  that lacks the flag is not counted.
+- Protocol client representations whose `onAddFunctionBlock` forwards the addition to a remote side that runs openDAQ must
+  override `validatesAddFunctionBlock()` to return `false`. The remote side then validates the addition, and the client
+  neither checks the flag nor refuses concurrent additions itself, including for the function blocks it mirrors with
+  `addNestedFunctionBlock`. Containers that create their function blocks locally, or forward to a remote side that does
+  not run openDAQ, keep the default `true`.
+
 ## Interface API changes
 
 ### New interfaces
@@ -186,4 +231,21 @@ Lock attributes when the component is constructed. After that, unlock an attribu
 #### `IStreaming`
 ```diff
 + IStreaming::getProtocolGroupId(IString** protocolGroupId);
+```
+
+#### `IFunctionBlockType`
+```diff
++ IFunctionBlockType::getInputPolicy(FunctionBlockInputPolicy* policy);
++ IFunctionBlockType::getSingleton(Bool* singleton);
++ IFunctionBlockType::getCommonSettingsTypeId(IString** typeId);
+```
+
+#### `IComponentTypeBuilder`
+```diff
++ IComponentTypeBuilder::setInputPolicy(FunctionBlockInputPolicy policy);
++ IComponentTypeBuilder::getInputPolicy(FunctionBlockInputPolicy* policy);
++ IComponentTypeBuilder::setSingleton(Bool singleton);
++ IComponentTypeBuilder::getSingleton(Bool* singleton);
++ IComponentTypeBuilder::setCommonSettingsTypeId(IString* typeId);
++ IComponentTypeBuilder::getCommonSettingsTypeId(IString** typeId);
 ```

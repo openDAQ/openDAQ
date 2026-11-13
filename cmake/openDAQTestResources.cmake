@@ -31,28 +31,6 @@ function(opendaq_test_resource_lock TEST_NAME)
     set_property(TEST ${TEST_NAME} DIRECTORY ${ARG_DIRECTORY} PROPERTY RESOURCE_LOCK ${ARG_UNPARSED_ARGUMENTS})
 endfunction()
 
-# Locks for the tests of the module projects fetched by external_modules/CMakeLists.txt.
-function(opendaq_lock_external_module_tests)
-    if(OPCUA_MODULES_SOURCE_DIR)
-        set(OPCUA ${OPCUA_MODULES_SOURCE_DIR})
-        opendaq_test_resource_lock(test_opcua               network_opcua DIRECTORY ${OPCUA}/shared/libraries/opcua/tests/testopcua)
-        opendaq_test_resource_lock(test_opcuaclient         network_opcua DIRECTORY ${OPCUA}/shared/libraries/opcua/opcuaclient/tests)
-        opendaq_test_resource_lock(test_opcuaserver         network_opcua DIRECTORY ${OPCUA}/shared/libraries/opcua/opcuaserver/tests)
-        opendaq_test_resource_lock(test_opcuashared         network_opcua DIRECTORY ${OPCUA}/shared/libraries/opcua/opcuashared/tests)
-        opendaq_test_resource_lock(test_opcuatms_client     network_opcua DIRECTORY ${OPCUA}/shared/libraries/opcuatms/opcuatms_client/tests)
-        opendaq_test_resource_lock(test_opcuatms_server     network_opcua DIRECTORY ${OPCUA}/shared/libraries/opcuatms/opcuatms_server/tests)
-        opendaq_test_resource_lock(test_opcuatms_integration network_opcua DIRECTORY ${OPCUA}/shared/libraries/opcuatms/tests/opcuatms_integration)
-        opendaq_test_resource_lock(test_opcua_client_module network_opcua mdns DIRECTORY ${OPCUA}/modules/opcua_client_module/tests)
-        opendaq_test_resource_lock(test_opcua_server_module network_opcua mdns DIRECTORY ${OPCUA}/modules/opcua_server_module/tests)
-    endif()
-
-    if(LT_MODULES_SOURCE_DIR)
-        set(LT ${LT_MODULES_SOURCE_DIR})
-        opendaq_test_resource_lock(test_ws_stream_cl_module network_lt DIRECTORY ${LT}/modules/websocket_streaming_client_module/tests)
-        opendaq_test_resource_lock(test_ws_stream_srv_module network_lt DIRECTORY ${LT}/modules/websocket_streaming_server_module/tests)
-    endif()
-endfunction()
-
 # opendaq_add_test_shards(<target> <count>)
 # Registers <count> ctest entries that each run a disjoint gtest shard of <target>. Every shard gets its own
 # OPENDAQ_TEST_PORT_OFFSET (read by the device module test helpers), so the shards run concurrently with each

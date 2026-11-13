@@ -33,10 +33,6 @@ target_link_libraries(${TEST_APP} PRIVATE daq::opendaq
 
 add_dependencies(${TEST_APP} daq::ref_fb_module
                              daq::ref_device_module
-                             daq::opcua_client_module
-                             daq::opcua_server_module
-                             daq::ws_stream_cl_module
-                             daq::ws_stream_srv_module
                              daq::native_stream_cl_module
                              daq::native_stream_srv_module
 )

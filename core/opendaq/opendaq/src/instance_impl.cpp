@@ -253,21 +253,22 @@ ErrCode InstanceImpl::addStandardServers(IList** standardServers)
     errCode = addServer(serverName, nullptr, &nativeStreamingServer);
     OPENDAQ_RETURN_IF_FAILED(errCode, fmt::format(R"(AddStandardServers called but could not add "{}" module)", serverName));
     serversPtr.pushBack(nativeStreamingServer);
-
-#elif defined(OPENDAQ_ENABLE_WEBSOCKET_STREAMING)
-
-    ServerPtr websocketServer;
-    serverName = "OpenDAQLTStreaming";
-    errCode = addServer(serverName, nullptr, &websocketServer);
-    OPENDAQ_RETURN_IF_FAILED(errCode, fmt::format(R"(AddStandardServers called but could not add "{}" module)", serverName));
-    serversPtr.pushBack(websocketServer);
 #endif
 
-    ServerPtr opcUaServer;
+    DictPtr<IString, IServerType> serverTypes;
+    errCode = getAvailableServerTypes(&serverTypes);
+    OPENDAQ_RETURN_IF_FAILED(errCode);
+
+    // The OPC UA modules are built outside the SDK, so their server is added only when one of them is loaded
     serverName = "OpenDAQOPCUA";
-    errCode = addServer(serverName, nullptr, &opcUaServer);
-    OPENDAQ_RETURN_IF_FAILED(errCode, fmt::format(R"(AddStandardServers called but could not add "{}" module)", serverName));
-    serversPtr.pushBack(opcUaServer);
+    if (serverTypes.hasKey(serverName))
+    {
+        ServerPtr opcUaServer;
+        errCode = addServer(serverName, nullptr, &opcUaServer);
+        OPENDAQ_RETURN_IF_FAILED(errCode, fmt::format(R"(AddStandardServers called but could not add "{}" module)", serverName));
+        serversPtr.pushBack(opcUaServer);
+    }
+
     *standardServers = serversPtr.detach();
 
     return OPENDAQ_SUCCESS;

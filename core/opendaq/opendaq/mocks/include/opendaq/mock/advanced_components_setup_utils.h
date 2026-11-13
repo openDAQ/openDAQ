@@ -135,6 +135,8 @@ namespace daq::test_utils
                 const auto num = std::to_string(i);
                 const auto deviceInfo = DeviceInfo("mock://available_dev" + num, "AvailableMockDevice" + num);
                 deviceInfo.asPtr<IPropertyObjectProtected>().setProtectedPropertyValue("manufacturer","Testing");
+                deviceInfo.setDeviceType(
+                    DeviceTypeBuilder().setId("mockAvailableDev").setName("Mock available device").setConnectionStringPrefix("mock").build());
                 availableDevices.pushBack(deviceInfo);
             }
             return availableDevices;
@@ -202,6 +204,9 @@ namespace daq::test_utils
     {
     public:
         MockSrvImpl(const ContextPtr& ctx, const DevicePtr& rootDev, const StringPtr& id);
+        DictPtr<IString, IFunctionBlockType> onGetAvailableFunctionBlockTypes() override;
+        FunctionBlockPtr onAddFunctionBlock(const StringPtr& typeId, const PropertyObjectPtr& config) override;
+        void onRemoveFunctionBlock(const FunctionBlockPtr& functionBlock) override;
     };
 
     class MockRecorderFb1Impl final : public FunctionBlockImpl<IFunctionBlock, IRecorder>

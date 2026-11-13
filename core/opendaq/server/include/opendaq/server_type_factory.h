@@ -36,7 +36,10 @@ BEGIN_NAMESPACE_OPENDAQ
  * @param description A short description of the server type.
  * @param defaultConfig The property object, to be cloned and returned, each time user creates default
  * configuration object. This way each instance of the server has its own configuration object.
+ *
+ * @deprecated The created type has no server kind. Use ServerTypeBuilder and set the kind with setServerKind.
  */
+[[deprecated("Use ServerTypeBuilder and set the server kind with setServerKind.")]]
 inline ServerTypePtr ServerType(const StringPtr& id,
                                       const StringPtr& name,
                                       const StringPtr& description,

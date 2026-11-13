@@ -36,11 +36,13 @@ extern "C"
 
     typedef struct daqComponentTypePrivate daqComponentTypePrivate;
     typedef struct daqModuleInfo daqModuleInfo;
+    typedef struct daqSerializer daqSerializer;
 
     EXPORTED extern const daqIntfID DAQ_COMPONENT_TYPE_PRIVATE_INTF_ID;
     void EXPORTED daqComponentTypePrivate_getInterfaceId(daqIntfID* intfId);
 
     daqErrCode EXPORTED daqComponentTypePrivate_setModuleInfo(daqComponentTypePrivate* self, daqModuleInfo* info);
+    daqErrCode EXPORTED daqComponentTypePrivate_serializeWithoutDefaultConfig(daqComponentTypePrivate* self, daqSerializer* serializer);
 
 #ifdef __cplusplus
 }

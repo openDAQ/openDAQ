@@ -22,6 +22,11 @@ void daqServerType_getInterfaceId(daqIntfID* intfId)
     *intfId = DAQ_SERVER_TYPE_INTF_ID;
 }
 
+daqErrCode daqServerType_getServerKind(daqServerType* self, daqServerKind* kind)
+{
+    return reinterpret_cast<daq::IServerType*>(self)->getServerKind(reinterpret_cast<daq::ServerKind*>(kind));
+}
+
 daqErrCode daqServerType_createServerType(daqServerType** obj, daqString* id, daqString* name, daqString* description, daqPropertyObject* defaultConfig)
 {
     daq::IServerType* ptr = nullptr;

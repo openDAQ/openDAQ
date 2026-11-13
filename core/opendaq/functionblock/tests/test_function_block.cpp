@@ -3,6 +3,8 @@
 #include <gtest/gtest.h>
 #include <opendaq/context_factory.h>
 #include <opendaq/function_block_type_factory.h>
+#include <coreobjects/property_factory.h>
+#include <coreobjects/property_object_factory.h>
 #include <opendaq/component_deserialize_context_factory.h>
 #include <opendaq/input_port_config_ptr.h>
 #include <opendaq/tags_private_ptr.h>
@@ -129,6 +131,45 @@ TEST_F(FunctionBlockTest, SerializeAndDeserialize)
     const auto str2 = serializer2.getOutput();
 
     ASSERT_EQ(str1, str2);
+}
+
+TEST_F(FunctionBlockTest, SerializeCarriesTypeWithoutDefaultConfig)
+{
+    const auto defaultConfig = daq::PropertyObject();
+    defaultConfig.addProperty(daq::StringProperty("DefaultConfigOnly", "value"));
+    const auto type = daq::FunctionBlockType("test_uid", "test_name", "test_description", defaultConfig);
+    const auto fb = daq::createWithImplementation<daq::IFunctionBlock, daq::FunctionBlock>(type, daq::NullContext(), nullptr, "fb");
+
+    const auto serializer = daq::JsonSerializer();
+    fb.serialize(serializer);
+    const std::string json = serializer.getOutput();
+    ASSERT_EQ(json.find("DefaultConfigOnly"), std::string::npos);
+
+    const auto deserializeContext = daq::ComponentDeserializeContext(daq::NullContext(), nullptr, nullptr, "fb");
+    const daq::FunctionBlockPtr newFb = daq::JsonDeserializer().deserialize(json, deserializeContext, nullptr);
+    const auto newType = newFb.getFunctionBlockType();
+    ASSERT_EQ(newType.getId(), "test_uid");
+    ASSERT_EQ(newType.getName(), "test_name");
+    ASSERT_EQ(newType.getDescription(), "test_description");
+    ASSERT_EQ(newType.createDefaultConfig().getAllProperties().getCount(), 0u);
+}
+
+TEST_F(FunctionBlockTest, DeserializeWithoutComponentType)
+{
+    const auto fb = daq::createWithImplementation<daq::IFunctionBlock, daq::FunctionBlock>(
+        daq::FunctionBlockType("test_uid", "test_name", "test_description"), daq::NullContext(), nullptr, "fb");
+
+    const auto serializer = daq::JsonSerializer();
+    fb.serialize(serializer);
+    std::string json = serializer.getOutput();
+    const auto keyPos = json.find("\"componentType\"");
+    ASSERT_NE(keyPos, std::string::npos);
+    json.replace(keyPos, std::string("\"componentType\"").size(), "\"unknownKey\"");
+
+    const auto deserializeContext = daq::ComponentDeserializeContext(daq::NullContext(), nullptr, nullptr, "fb");
+    const daq::FunctionBlockPtr newFb = daq::JsonDeserializer().deserialize(json, deserializeContext, nullptr);
+    ASSERT_EQ(newFb.getFunctionBlockType().getId(), "test_uid");
+    ASSERT_EQ(newFb.getFunctionBlockType().getName(), "test_uid");
 }
 
 TEST_F(FunctionBlockTest, SerializeAndDeserializeWithClassName)

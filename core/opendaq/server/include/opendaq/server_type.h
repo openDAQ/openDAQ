@@ -31,11 +31,27 @@ BEGIN_NAMESPACE_OPENDAQ
  */
 
 /*!
+ * @brief How clients consume the server.
+ */
+enum class ServerKind : EnumType
+{
+    Unspecified = 0, ///< All servers should specify a kind; failing to do so will result in a warning upon server creation.
+    Adapter,         ///< Adapters provide access to the openDAQ components (configuration, streaming...) through a 3rd party protocol.
+    Mirror,          ///< Publishes the openDAQ component tree for configuration, streaming, or both with the intent to create a
+                     ///< mirror copy of it at the client side.
+    Streaming        ///< Publishes openDAQ signals. Often used in conjunction with configuration Mirror servers to provide data.
+};
+
+/*!
  * @brief Provides information about the server.
  */
-
 DECLARE_OPENDAQ_INTERFACE(IServerType, IComponentType)
 {
+    /*!
+     * @brief Gets the kind of the servers of this type.
+     * @param[out] kind The server kind; Unspecified when the type sets none.
+     */
+    virtual ErrCode INTERFACE_FUNC getServerKind(ServerKind* kind) = 0;
 };
 /*!@}*/
 

@@ -21,6 +21,14 @@ extern "C"
 {
 #endif
 
+    typedef enum daqServerKind
+    {
+        daqServerKindUnspecified = 0,
+        daqServerKindAdapter,
+        daqServerKindMirror,
+        daqServerKindStreaming
+    } daqServerKind;
+
 #ifdef __cplusplus
 }
 #endif

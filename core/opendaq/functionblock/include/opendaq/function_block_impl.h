@@ -114,13 +114,15 @@ protected:
                                                   const BaseObjectPtr& context,
                                                   const FunctionPtr& factoryCallback);
 
+    // The type the component carries, or a placeholder with only the ID from peers that write just the ID.
+    static FunctionBlockTypePtr DeserializeFunctionBlockType(const SerializedObjectPtr& serialized);
+
     static void DeserializeVersion(const SerializedObjectPtr& serialized,
                                    const BaseObjectPtr& context,
                                    const FunctionPtr& factoryCallback,
                                    const FunctionBlockTypePtr& fbType);
 private:
     ListPtr<ISignal> getSignalsRecursiveInternal(const SearchFilterPtr& searchFilter);
-    ListPtr<IFunctionBlock> getFunctionBlocksRecursiveInternal(const SearchFilterPtr& searchFilter);
     ListPtr<IInputPort> getInputPortsRecursiveInternal(const SearchFilterPtr& searchFilter);
 };
 
@@ -363,44 +365,7 @@ SignalPtr FunctionBlockImpl<TInterface, Interfaces...>::onGetStatusSignal()
 template <typename TInterface, typename... Interfaces>
 ErrCode FunctionBlockImpl<TInterface, Interfaces...>::getFunctionBlocks(IList** functionBlocks, ISearchFilter* searchFilter)
 {
-    OPENDAQ_PARAM_NOT_NULL(functionBlocks);
-
-    if (!searchFilter)
-        return this->functionBlocks->getItems(functionBlocks);
-
-    const auto searchFilterPtr = SearchFilterPtr::Borrow(searchFilter);
-    if(searchFilterPtr.supportsInterface<IRecursiveSearch>())
-    {
-        const ErrCode errCode = daqTry([&]
-        {
-            *functionBlocks = getFunctionBlocksRecursiveInternal(searchFilter).detach();
-            return OPENDAQ_SUCCESS;
-        });
-        OPENDAQ_RETURN_IF_FAILED(errCode);
-        return errCode;
-    }
-
-    return this->functionBlocks->getItems(functionBlocks, searchFilter);
-}
-
-template <typename TInterface, typename... Interfaces>
-ListPtr<IFunctionBlock> FunctionBlockImpl<TInterface, Interfaces...>::getFunctionBlocksRecursiveInternal(const SearchFilterPtr& searchFilter)
-{
-    tsl::ordered_set<FunctionBlockPtr, ComponentHash, ComponentEqualTo> allFbs;
-
-    for (const auto& fb : this->functionBlocks.getItems(searchFilter))
-        allFbs.insert(fb.template asPtr<IFunctionBlock>());
-
-    for (const auto& functionBlock : this->functionBlocks.getItems(search::Any()))
-        if (searchFilter.visitChildren(functionBlock))
-            for (const auto& fb : functionBlock.template asPtr<IFunctionBlock>().getFunctionBlocks(searchFilter))
-                allFbs.insert(fb);
-
-    auto fbList = List<IFunctionBlock>();
-    for (const auto& fb : allFbs)
-        fbList.pushBack(fb);
-
-    return fbList;
+    return this->getFunctionBlocksInternal(functionBlocks, searchFilter);
 }
 
 template <typename TInterface, typename... Interfaces>
@@ -537,6 +502,13 @@ void FunctionBlockImpl<TInterface, Interfaces...>::serializeCustomObjectValues(c
 
     if(!forUpdate)
     {
+        // The type without its default config; clients take the default config from the type catalog.
+        if (const auto typePrivate = type.template asPtrOrNull<IComponentTypePrivate>(true); typePrivate.assigned())
+        {
+            serializer.key("componentType");
+            checkErrorInfo(typePrivate->serializeWithoutDefaultConfig(serializer));
+        }
+
         serializer.key("isRecorder");
         auto thisPtr = this->template borrowPtr<FunctionBlockPtr>();
         serializer.writeBool(thisPtr.template supportsInterface<IRecorder>());
@@ -597,9 +569,7 @@ BaseObjectPtr FunctionBlockImpl<TInterface, Interfaces...>::DeserializeFunctionB
                   const ComponentDeserializeContextPtr& deserializeContext,
                   const StringPtr& className) -> BaseObjectPtr
                {
-                   const auto typeId = serialized.readString("typeId");
-
-                   const auto fbType = FunctionBlockType(typeId, typeId, "", nullptr);
+                   const auto fbType = DeserializeFunctionBlockType(serialized);
 
                    return createWithImplementation<IFunctionBlock, Impl>(
                        fbType, deserializeContext.getContext(), deserializeContext.getParent(), deserializeContext.getLocalId(), className);
@@ -623,12 +593,23 @@ ErrCode FunctionBlockImpl<TInterface, Interfaces...>::Deserialize(ISerializedObj
 }
 
 template <typename TInterface, typename... Interfaces>
+FunctionBlockTypePtr FunctionBlockImpl<TInterface, Interfaces...>::DeserializeFunctionBlockType(const SerializedObjectPtr& serialized)
+{
+    if (serialized.hasKey("componentType"))
+        return serialized.readObject("componentType");
+
+    const auto typeId = serialized.readString("typeId");
+    return FunctionBlockType(typeId, typeId, "", nullptr);
+}
+
+template <typename TInterface, typename... Interfaces>
 void FunctionBlockImpl<TInterface, Interfaces...>::DeserializeVersion(const SerializedObjectPtr& serialized,
                                                                       const BaseObjectPtr& context,
                                                                       const FunctionPtr& factoryCallback,
                                                                       const FunctionBlockTypePtr& fbType)
 {
-    if (!serialized.hasKey("__version"))
+    // A carried type has its module info; the version alone only completes a placeholder.
+    if (!serialized.hasKey("__version") || fbType.getModuleInfo().assigned())
         return;
 
     if (serialized.getType("__version") != ctObject)

@@ -17,6 +17,7 @@
 #pragma once
 #include <opendaq/folder.h>
 #include <opendaq/server_type.h>
+#include <opendaq/function_block.h>
 #include <coreobjects/property_object.h>
 #include <opendaq/streaming.h>
 
@@ -46,6 +47,10 @@ BEGIN_NAMESPACE_OPENDAQ
  * Configuration of the server can be done with custom property object.
  * The configuration object is created with the corresponding ServerType object (IServerType::createDefaultConfig method).
  * For example, with a configuration object, we can define connection timeout.
+ *
+ * Function blocks added to a server configure or extend what it serves, and live and die with the server. Their output
+ * signals belong to the server, not to the device: a device's recursive signal search does not return them, and servers
+ * that stream device signals do not advertise them to their clients.
  */
 DECLARE_OPENDAQ_INTERFACE(IServer, IFolder)
 {
@@ -88,6 +93,49 @@ DECLARE_OPENDAQ_INTERFACE(IServer, IFolder)
      * @brief Disables the server to be discovered by the clients.
      */
     virtual ErrCode INTERFACE_FUNC disableDiscovery() = 0;
+
+    /*!
+     * @brief Gets the type the server was created from.
+     * @param[out] type The server type.
+     *
+     * A server whose module creates it from an ID alone returns a type with that ID and the Unspecified server kind.
+     */
+    virtual ErrCode INTERFACE_FUNC getServerType(IServerType** type) = 0;
+
+    // [elementType(functionBlocks, IFunctionBlock)]
+    /*!
+     * @brief Gets the list of function blocks added to the server.
+     * @param searchFilter Provides an optional filter that filters out unwanted components and allows for recursion.
+     * @param[out] functionBlocks The list of added function blocks.
+     *
+     * If searchFilter is not provided, the returned list contains only visible function blocks and does not include those of
+     * child function blocks.
+     */
+    virtual ErrCode INTERFACE_FUNC getFunctionBlocks(IList** functionBlocks, ISearchFilter* searchFilter = nullptr) = 0;
+
+    // [templateType(functionBlockTypes, IString, IFunctionBlockType)]
+    /*!
+     * @brief Gets the function block types the server can add, containing their description.
+     * @param[out] functionBlockTypes A dictionary of available function block types; empty when the server supports none.
+     *
+     * A server offers only its own function block types, never the general function block types of the instance.
+     */
+    virtual ErrCode INTERFACE_FUNC getAvailableFunctionBlockTypes(IDict** functionBlockTypes) = 0;
+
+    /*!
+     * @brief Creates and adds a function block to the server with the provided type ID and returns it.
+     * @param[out] functionBlock The added function block.
+     * @param typeId The ID of one of the types returned by getAvailableFunctionBlockTypes.
+     * @param config A config object to configure a function block with custom settings specific to that function block type.
+     * @retval OPENDAQ_ERR_NOTSUPPORTED The server supports no function blocks.
+     */
+    virtual ErrCode INTERFACE_FUNC addFunctionBlock(IFunctionBlock** functionBlock, IString* typeId, IPropertyObject* config = nullptr) = 0;
+
+    /*!
+     * @brief Removes the function block provided as argument, disconnecting its signals and input ports.
+     * @param functionBlock The function block to be removed.
+     */
+    virtual ErrCode INTERFACE_FUNC removeFunctionBlock(IFunctionBlock* functionBlock) = 0;
 };
 /*!@}*/
 

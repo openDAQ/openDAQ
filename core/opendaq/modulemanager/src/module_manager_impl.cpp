@@ -1181,6 +1181,13 @@ ErrCode ModuleManagerImpl::createServer(IServer** server, IString* serverTypeId,
             {
                 auto createdServer = module.createServer(typeId, rootDevice, serverConfig);
 
+                if (const auto createdType = createdServer.assigned() ? createdServer.getServerType() : nullptr; createdType.assigned())
+                {
+                    createdType.asPtr<IComponentTypePrivate>().setModuleInfo(module.getModuleInfo());
+                    if (createdType.getServerKind() == ServerKind::Unspecified)
+                        LOG_W("Server {} has no server kind; its module should set one on the server type", createdServer.getGlobalId());
+                }
+
                 *server = createdServer.detach();
                 return OPENDAQ_SUCCESS;
             }

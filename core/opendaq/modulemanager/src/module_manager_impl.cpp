@@ -1465,14 +1465,7 @@ ErrCode ModuleManagerImpl::createAddDeviceConfig(IAddDeviceConfig** config, IDev
         const auto deviceType = chooseDeviceType(infoPtr, prefixPtr, deviceTypes);
         const auto capabilities = infoPtr.getServerCapabilities();
         const auto candidates = (capabilities.getCount() > 0) ? getAdvertisedStreamingTypes(capabilities, streamingTypes) : streamingTypes;
-        auto listedTypes = Dict<IString, IStreamingType>();
-        for (const auto& [id, streamingType] : candidates)
-            if (isStreamingTypeIdReserved(id))
-            {
-                LOG_W(R"(Streaming type ID "{}" is reserved)", id);
-            }
-            else
-                listedTypes.set(id, streamingType);
+        const auto listedTypes = getListableStreamingTypes(candidates, loggerComponent);
 
         auto addDeviceConfig = AddDeviceConfig(deviceType, listedTypes, scanOnAdd);
 

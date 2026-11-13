@@ -33,6 +33,7 @@
 #include <coreobjects/property_object_internal_ptr.h>
 #include <coreobjects/eval_value_factory.h>
 #include <opendaq/client_type.h>
+#include <opendaq/add_device_config_legacy.h>
 #include <opendaq/network_interface_factory.h>
 #include <opendaq/component_private_ptr.h>
 #include <opendaq/component_type_private_ptr.h>
@@ -1342,9 +1343,9 @@ ErrCode ModuleManagerImpl::createDefaultAddDeviceConfig(IPropertyObject** defaul
     for (auto const& [key, typeObj] : streamingTypes)
         streamingConfig.addProperty(ObjectProperty(key, typeObj.createDefaultConfig()));
 
-    config.addProperty(ObjectProperty("Device", deviceConfig.detach()));
-    config.addProperty(ObjectProperty("Streaming", streamingConfig.detach()));
-    config.addProperty(ObjectProperty("General", CreateGeneralConfig(scanOnAdd).detach()));
+    config.addProperty(ObjectProperty(LegacyAddDeviceConfig::DeviceSection, deviceConfig.detach()));
+    config.addProperty(ObjectProperty(LegacyAddDeviceConfig::StreamingSection, streamingConfig.detach()));
+    config.addProperty(ObjectProperty(LegacyAddDeviceConfig::GeneralSection, createLegacyGeneralConfig(scanOnAdd).detach()));
 
     *defaultConfig = config.detach();
     return OPENDAQ_SUCCESS;
@@ -1886,46 +1887,6 @@ void ModuleManagerImpl::completeServerCapabilities(const DevicePtr& device) cons
 
     for (const auto& target: targetCaps)
         target.freeze();
-}
-
-
-PropertyObjectPtr ModuleManagerImpl::CreateGeneralConfig(Bool scanOnAdd)
-{
-    auto obj = PropertyObject();
-
-    const auto streamingConnectionHeuristicProp =  SelectionProperty("StreamingConnectionHeuristic",
-                                                                    List<IString>("MinConnections",
-                                                                                  "MinHops",
-                                                                                  "NotConnected"),
-                                                                    0);
-    obj.addProperty(streamingConnectionHeuristicProp);
-
-    auto prioritizedStreamingProtocols = List<IString>("OpenDAQNativeStreaming", "OpenDAQLTStreaming");
-    obj.addProperty(ListProperty("PrioritizedStreamingProtocols", prioritizedStreamingProtocols));
-
-    obj.addProperty(ListProperty("AllowedStreamingProtocols", List<IString>()));
-
-    obj.addProperty(BoolProperty("AutomaticallyConnectStreaming", true));
-
-    obj.addProperty(BoolPropertyBuilder("ScanOnAdd", scanOnAdd)
-                        .setDescription("Scans the network when adding the device; when off, a daq:// connection string needs an earlier scan")
-                        .build());
-
-    obj.addProperty(StringProperty("Username", ""));
-    obj.addProperty(StringProperty("Password", ""));
-
-    ClientTypeTools::DefineConfigProperties(obj);
-
-    obj.addProperty(
-        StringPropertyBuilder("PrimaryAddressType", "")
-            .setDescription("Specifies the primary address type for establishing configuration and streaming protocols connections "
-                            "while using smart connection string with \"daq://\" prefix. "
-                            "Acceptable values are \"IPv4\" or \"IPv6\"; if left blank, any address type may be used. "
-                            "If no addresses of the specified type are available, the first available address of the alternate type will be used.")
-            .build()
-    );
-
-    return obj.detach();
 }
 
 void ModuleManagerImpl::OverrideConfigProperties(PropertyObjectPtr& targetConfig, const PropertyObjectPtr& sourceConfig)

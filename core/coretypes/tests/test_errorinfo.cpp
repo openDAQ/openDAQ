@@ -238,6 +238,43 @@ TEST_F(ErrorInfoTest, MessageWithBraces)
     ASSERT_THROW_MSG(DAQ_THROW_EXCEPTION(GeneralErrorException, "Value {} is invalid", 5), GeneralErrorException, "Value 5 is invalid");
 }
 
+TEST_F(ErrorInfoTest, FormattedMessageLongerThan1KiBIsKeptWhole)
+{
+    std::string longText;
+    for (int i = 0; longText.size() < 5000; ++i)
+        longText += "Traceback line " + std::to_string(i) + "\n";
+
+    DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_GENERALERROR, "Callback failed: %s (%d)", longText.c_str(), 42);
+
+    ObjectPtr<IErrorInfo> errorInfo;
+    daqGetErrorInfo(&errorInfo);
+    ASSERT_TRUE(errorInfo.assigned());
+
+    StringPtr message;
+    errorInfo->getMessage(&message);
+    ASSERT_EQ(message.toStdString(), "Callback failed: " + longText + " (42)");
+    daqClearErrorInfo();
+}
+
+TEST_F(ErrorInfoTest, FormattedMessageAroundTheStackBufferSizeIsKeptWhole)
+{
+    // 1023 characters fit the 1024-byte stack buffer with the terminator; 1024 and 1025 take the heap path
+    for (const size_t length : {1022u, 1023u, 1024u, 1025u})
+    {
+        const std::string text(length - 1, 'x');
+        DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_GENERALERROR, "%s!", text.c_str());
+
+        ObjectPtr<IErrorInfo> errorInfo;
+        daqGetErrorInfo(&errorInfo);
+        ASSERT_TRUE(errorInfo.assigned());
+
+        StringPtr message;
+        errorInfo->getMessage(&message);
+        ASSERT_EQ(message.toStdString(), text + "!") << "length " << length;
+        daqClearErrorInfo();
+    }
+}
+
 TEST_F(ErrorInfoTest, LongChainKeepsNewestAndRootCause)
 {
     ErrCode errCode = DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_GENERALERROR, "Root cause");

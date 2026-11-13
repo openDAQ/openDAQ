@@ -17,6 +17,8 @@
 #pragma once
 #include <opendaq/streaming_type_ptr.h>
 #include <opendaq/server_capability_ptr.h>
+#include <opendaq/logger_component_ptr.h>
+#include <opendaq/custom_log.h>
 #include <coretypes/dictobject_factory.h>
 #include <string>
 
@@ -36,6 +38,28 @@ inline bool isStreamingTypeIdReserved(const StringPtr& id)
     const std::string value = id;
     return value.empty() || value == "StreamingType" || value == "StreamingMode" || value == "None" ||
            value.find_first_of(".'") != std::string::npos;
+}
+
+/*!
+ * @brief Gets the streaming types whose IDs are not reserved.
+ * @param streamingTypes The streaming types, keyed by ID
+ * @param loggerComponent The logger component that warnings are written to
+ *
+ * A warning is logged for each reserved ID.
+ */
+inline DictPtr<IString, IStreamingType> getListableStreamingTypes(const DictPtr<IString, IStreamingType>& streamingTypes,
+                                                                  const LoggerComponentPtr& loggerComponent)
+{
+    auto listableTypes = Dict<IString, IStreamingType>();
+    for (const auto& [id, streamingType] : streamingTypes)
+        if (isStreamingTypeIdReserved(id))
+        {
+            LOG_W(R"(Streaming type ID "{}" is reserved)", id);
+        }
+        else
+            listableTypes.set(id, streamingType);
+
+    return listableTypes;
 }
 
 /*!

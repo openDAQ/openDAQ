@@ -21,6 +21,203 @@ _DEFAULT_ADDR = "-- Default --"
 _IPV4 = "IPv4"
 _IPV6 = "IPv6"
 
+WHITE = 'white'
+CARD_BORDER = '#ced4da'
+MUTED = '#868e96'
+GREEN = '#2f9e44'
+ORANGE = '#e8590c'
+RED = '#c92a2a'
+
+# the chosen row's mark in the leftmost column, as a radio button would show it
+MARKED, UNMARKED = '◉', '○'
+
+# heading, width, stretch
+CONNECT_COLUMNS = {
+    'mark': ('', 28, False),
+    'type': ('Type', 220, False),
+    'kind': ('Kind', 80, False),
+    'accepts': ('Accepts', 140, False),
+    'address': ('Address', 220, True),
+    'reachable': ('Reachable', 80, False),
+}
+
+
+class ConnectList(ttk.Frame):
+    """The ways to connect as a single-select row list, one row per type, like the device list.
+    rows are (value, type id, kind, accepts, address, reachable); on_select(value, revert) gets each new
+    choice, and revert() puts the selection back on the previous row."""
+
+    def __init__(self, parent, rows, current, on_select, columns, dpi_factor=1.0):
+        super().__init__(parent)
+        self.on_select = on_select
+        self.current = current
+        self.tree = ttk.Treeview(self, columns=columns, show='headings', selectmode=tk.BROWSE,
+                                 height=max(1, len(rows)))
+        for column in columns:
+            heading, width, stretch = CONNECT_COLUMNS[column]
+            self.tree.heading(column, text=heading, anchor=tk.W)
+            self.tree.column(column, width=int(width * dpi_factor), minwidth=int(min(width, 60) * dpi_factor),
+                             stretch=stretch, anchor=tk.CENTER if column == 'mark' else tk.W)
+        self.tree.tag_configure('unreachable', foreground=RED)
+        for value, title, kind, accepts, address, reachable in rows:
+            cells = {'mark': UNMARKED, 'type': title, 'kind': kind, 'accepts': accepts, 'address': address,
+                     'reachable': '' if reachable is None else 'yes' if reachable else 'no'}
+            self.tree.insert('', tk.END, iid=value, values=[cells[c] for c in columns],
+                             tags=('unreachable',) if reachable is False else ())
+        self.columns = list(columns)
+        self.tree.pack(fill=tk.X)
+        self.select(current)
+        self.tree.bind('<<TreeviewSelect>>', self.handle_selected)
+
+    def select(self, value):
+        # handle_selected ignores the event this raises, since the selection then equals current
+        self.current = value
+        self.mark(value)
+        if value is not None and self.tree.exists(value):
+            self.tree.selection_set(value)
+            self.tree.focus(value)
+        else:
+            self.tree.selection_set(())
+
+    def handle_selected(self, event):
+        selection = self.tree.selection()
+        if not selection or selection[0] == self.current:
+            return
+        previous = self.current
+        self.current = selection[0]
+        self.mark(selection[0])
+        self.on_select(selection[0], lambda: self.select(previous))
+
+    def mark(self, value):
+        if 'mark' not in self.columns:
+            return
+        for iid in self.tree.get_children():
+            self.tree.set(iid, 'mark', MARKED if iid == value else UNMARKED)
+
+class Card(tk.Frame):
+    """A white card with a +/- header, drawn like the Sync tab's cards. Collapsed, it shows a one line
+    summary of its choices instead of its body."""
+
+    def __init__(self, parent, dialog, title, summary=''):
+        super().__init__(parent, background=WHITE, highlightthickness=1, highlightbackground=CARD_BORDER)
+        self.dialog = dialog
+        self.title = title
+        opened = dialog.opened.get(title, True)
+
+        top = tk.Frame(self, background=WHITE)
+        top.pack(fill=tk.X, padx=(4, 8), pady=6)
+        size = int(10 * dialog.context.dpi_factor)
+        toggle = tk.Canvas(top, width=size, height=size, background=WHITE, highlightthickness=0, cursor='hand2')
+        toggle.create_line(0, size // 2, size, size // 2, fill='gray', width=2)
+        if not opened:
+            toggle.create_line(size // 2, 0, size // 2, size, fill='gray', width=2)
+        toggle.pack(side=tk.LEFT, padx=(4, 8))
+        name = tk.Label(top, text=title, background=WHITE, font=('TkDefaultFont', 10, 'bold'), cursor='hand2')
+        name.pack(side=tk.LEFT)
+        if not opened and summary:
+            tk.Label(top, text=summary, background=WHITE, foreground=MUTED).pack(side=tk.LEFT, padx=(10, 0))
+        for widget in (top, toggle, name):
+            widget.bind('<Button-1>', lambda e: dialog.card_toggle(title))
+
+        self.body = None
+        if opened:
+            tk.Frame(self, height=1, background=CARD_BORDER).pack(fill=tk.X)
+            self.body = ttk.Frame(self, style='AddConfigCard.TFrame', padding=(12, 8, 12, 10))
+            self.body.pack(fill=tk.BOTH, expand=True)
+            self.body.columnconfigure(1, weight=1)
+            self.row = 0
+
+    def label(self, text):
+        ttk.Label(self.body, text=text, style='AddConfigMuted.TLabel').grid(
+            row=self.row, column=0, sticky=tk.W, padx=(0, 12), pady=2)
+
+    def heading(self, text):
+        ttk.Label(self.body, text=text, style='AddConfigCard.TLabel', font=('TkDefaultFont', 9, 'bold')).grid(
+            row=self.row, column=0, columnspan=2, sticky=tk.W, pady=(8, 2))
+        self.row += 1
+
+    def combo(self, text, values, current, on_select, state='readonly'):
+        self.label(text)
+        var = tk.StringVar(value=current)
+        combo = ttk.Combobox(self.body, textvariable=var, values=values, state=state, width=30)
+        combo.bind('<<ComboboxSelected>>', lambda e: on_select(var.get()))
+        combo.grid(row=self.row, column=1, sticky=tk.W, pady=2)
+        self.row += 1
+        return combo
+
+    def entry(self, text, value, on_change, state='normal', show=''):
+        self.label(text)
+        var = tk.StringVar(value=value)
+        var.trace_add('write', lambda *_: on_change(var.get()))
+        entry = ttk.Entry(self.body, textvariable=var, width=34, state=state, show=show)
+        entry.grid(row=self.row, column=1, sticky=tk.W, pady=2)
+        self.row += 1
+        return entry
+
+    def note(self, text, color=MUTED, mono=False):
+        label = ttk.Label(self.body, text=text, style='AddConfigCard.TLabel', foreground=color,
+                          font=('Consolas', 8) if mono else ('TkDefaultFont', 8),
+                          wraplength=int(260 * self.dialog.context.dpi_factor))
+        label.grid(row=self.row, column=1, sticky=tk.W, pady=(0, 4))
+        self.row += 1
+        return label
+
+    def check(self, text, value, on_change, state='normal'):
+        var = tk.BooleanVar(value=value)
+        button = ttk.Checkbutton(self.body, text=text, variable=var, style='AddConfigCard.TCheckbutton',
+                                 command=lambda: on_change(var.get()))
+        button.grid(row=self.row, column=0, columnspan=2, sticky=tk.W, pady=(6, 0))
+        button.state([state] if state == 'disabled' else ['!disabled'])
+        self.row += 1
+
+
+# False once Don't ask again was ticked; the warning stays off until the app closes
+ASK_ON_CONNECT_CHANGE = True
+
+
+class ConnectChangeDialog(Dialog):
+    """Warns that another Connect with type starts every choice again, with Don't ask again."""
+
+    def __init__(self, parent, context: AppContext, type_id):
+        super().__init__(parent, 'Change Connect with', context)
+        self.result = False
+        body = ttk.Frame(self, padding=(4, 10, 4, 0))
+        body.pack(fill=tk.X)
+        ttk.Label(body, image='::tk::icons::warning').grid(row=0, column=0, rowspan=2, sticky=tk.N, padx=(0, 12))
+        ttk.Label(body, text=f'Connecting with {type_id} will result in the loss of your changes, are you sure?',
+                  wraplength=int(360 * context.dpi_factor)).grid(row=0, column=1, sticky=tk.W)
+        self.dont_ask = tk.BooleanVar(value=False)
+        ttk.Checkbutton(body, text="Don't ask again", variable=self.dont_ask).grid(row=1, column=1, sticky=tk.W,
+                                                                                   pady=(10, 0))
+        buttons = ttk.Frame(self, padding=(0, 12, 0, 4))
+        buttons.pack(fill=tk.X)
+        ttk.Button(buttons, text='Cancel', command=self.close).pack(side=tk.RIGHT)
+        change = ttk.Button(buttons, text='Change', command=self.ok)
+        change.pack(side=tk.RIGHT, padx=(0, 8))
+        self.bind('<Return>', lambda e: self.ok())
+        self.after_idle(change.focus_set)
+
+    def ok(self):
+        global ASK_ON_CONNECT_CHANGE
+        if self.dont_ask.get():
+            ASK_ON_CONNECT_CHANGE = False
+        self.result = True
+        self.destroy()
+
+    def close(self):
+        self.result = False
+        self.destroy()
+
+
+def ask_connect_change(parent, context, type_id):
+    """True to go ahead with another Connect with type."""
+    if not ASK_ON_CONNECT_CHANGE:
+        return True
+    dialog = ConnectChangeDialog(parent, context, type_id)
+    dialog.show()
+    return dialog.result
+
+
 @dataclass
 class ServerCapabilityInternal:
     connection_string: str

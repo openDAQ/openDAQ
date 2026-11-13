@@ -1,25 +1,13 @@
 import tkinter as tk
-from tkinter import ttk
-from dataclasses import dataclass
+from tkinter import ttk, filedialog
 
-import opendaq as daq
-
-from .. import utils
+from ..add_device_context import ADDRESS_TYPES, STREAMING_MODES
 from ..app_context import AppContext
+from ..AEC_stub import (ConnectionSecurity, SecurityMode, DEVICE_SECURITY_MODES, STREAMING_SECURITY_MODES,
+                        HIDDEN_SETTINGS, is_fingerprint)
+from .login_dialog import file_types
 from .dialog import Dialog
-from .checkbox_list import CheckboxList
-from .add_device_configuration_view import AddDeviceConfigView
-
-_NO_CONFIG_STR = "-- Streaming only --"
-_DEVICE = "Device"
-_STREAMING = "Streaming"
-_GENERAL = "General"
-_ASP = "AllowedStreamingProtocols"
-_ACS = "AutomaticallyConnectStreaming"
-_PAT = "PrimaryAddressType"
-_DEFAULT_ADDR = "-- Default --"
-_IPV4 = "IPv4"
-_IPV6 = "IPv6"
+from .generic_properties_treeview import PropertiesTreeview
 
 WHITE = 'white'
 CARD_BORDER = '#ced4da'
@@ -27,6 +15,13 @@ MUTED = '#868e96'
 GREEN = '#2f9e44'
 ORANGE = '#e8590c'
 RED = '#c92a2a'
+
+NONE_SELECTED = 'None'
+
+
+def levels_text(levels):
+    return ', '.join(level.name for level in levels)
+
 
 # the chosen row's mark in the leftmost column, as a radio button would show it
 MARKED, UNMARKED = '◉', '○'
@@ -93,6 +88,12 @@ class ConnectList(ttk.Frame):
             return
         for iid in self.tree.get_children():
             self.tree.set(iid, 'mark', MARKED if iid == value else UNMARKED)
+
+
+def connect_row_data(options):
+    return [(o.type_id, o.label, o.kind, levels_text(o.security_levels), options.connect_address(o), o.reachable)
+            for o in options.connect_options]
+
 
 class Card(tk.Frame):
     """A white card with a +/- header, drawn like the Sync tab's cards. Collapsed, it shows a one line
@@ -218,493 +219,352 @@ def ask_connect_change(parent, context, type_id):
     return dialog.result
 
 
-@dataclass
-class ServerCapabilityInternal:
-    connection_string: str
-    ipv4_connection_string: str
-    ipv6_connection_string: str
-
 class AddConfigDialog(Dialog):
-    @classmethod
-    def for_discoverable(cls, parent, context: AppContext, parent_device, device_info):
-        """Populate server capabilities and tcp/ip and streaming from device_info."""
-        discoverable = True
-        server_capabilities = {}
+    """Add with config: every way to connect as its own row, changed only behind a warning, then the
+    Connection and Login cards, the Streaming card and the type's settings in three columns."""
 
-        # Find TCP/IP and streaming capabilities
-        has_tcp_ip = False
-        has_streaming = False
-        for c in device_info.server_capabilities:
-            capability = ServerCapabilityInternal(c.connection_string, None, None)
+    def __init__(self, parent, context: AppContext, options_list, confirm_text=None):
+        self.options = options_list[0]
+        self.count = len(options_list)
+        info = self.options.info
+        if self.count > 1:
+            title = f'Add {self.count} devices with config'
+        elif info is not None:
+            title = f'Add {info.name} with config'
+        else:
+            title = f'Add {self.options.typed_connection_string} with config'
+        super().__init__(parent, title, context)
+        self.confirmed = False
+        self.opened = {}
+        self.show_secrets = tk.BooleanVar(value=False)
 
-            if c.has_property("AddressInfo"):
-                address_info = c.get_property_value("AddressInfo")
-                for p in address_info.visible_properties:
-                    address = p.value
-                    address_type = address.get_property_value("Type")
-                    address_string = address.get_property_value("ConnectionString")
+        scale = self.context.ui_scaling_factor * self.context.dpi_factor
+        self.geometry('{}x{}'.format(int(1300 * scale), int(760 * scale)))
+        self.protocol('WM_DELETE_WINDOW', self.close)
 
-                    if address_type == "IPv4":
-                        capability.ipv4_connection_string = address_string
-                    elif address_type == "IPv6":
-                        capability.ipv6_connection_string = address_string
+        style = ttk.Style(self)
+        style.configure('AddConfigCard.TFrame', background=WHITE)
+        style.configure('AddConfigCard.TLabel', background=WHITE)
+        style.configure('AddConfigMuted.TLabel', background=WHITE, foreground=MUTED)
+        style.configure('AddConfigCard.TCheckbutton', background=WHITE)
+        style.configure('AddConfigSettings.Treeview', background=WHITE, fieldbackground=WHITE, borderwidth=0)
+        # the theme draws the border with the tree's field element, so the settings tree leaves it out and sits
+        # flat in its card
+        style.layout('AddConfigSettings.Treeview', [('Treeview.treearea', {'sticky': 'nswe'})])
 
-            server_capabilities[c.protocol_id] = capability
+        footer = ttk.Frame(self, padding=(0, 8, 0, 4))
+        footer.pack(side=tk.BOTTOM, fill=tk.X)
+        # a device's own config among several is kept for the Add, not added from here
+        if confirm_text is None:
+            confirm_text = 'Add device' if self.count == 1 else f'Add {self.count} devices'
+        self.add_button = ttk.Button(footer, text=confirm_text, command=self.handle_add_clicked)
+        self.add_button.pack(side=tk.RIGHT)
+        ttk.Button(footer, text='Cancel', command=self.close).pack(side=tk.RIGHT, padx=(0, 8))
+        self.status_label = ttk.Label(footer, text='', wraplength=int(600 * scale))
+        self.status_label.pack(side=tk.LEFT, fill=tk.X, expand=True)
 
-            if c.get_property_value("ConnectionType") == "TCP/IP":
-                has_tcp_ip = True
-            if c.get_property_value("ProtocolType") in ["Streaming", "ConfigurationAndStreaming"]:
-                has_streaming = True
+        self.header = tk.Frame(self, background=WHITE, highlightthickness=1, highlightbackground=CARD_BORDER)
+        self.header.pack(fill=tk.X, pady=(5, 10))
 
-        daq_connection_string = device_info.connection_string
-        return cls(
-            parent,
-            context,
-            parent_device,
-            discoverable,
-            server_capabilities,
-            daq_connection_string,
-            has_streaming,
-            has_tcp_ip)
+        # three columns: Connection and Login, Streaming, the settings tree
+        body = ttk.Frame(self)
+        body.pack(fill=tk.BOTH, expand=True)
+        for column in range(3):
+            body.columnconfigure(column, weight=1, uniform='third')
+        body.rowconfigure(0, weight=1)
+        self.left = ttk.Frame(body)
+        self.left.grid(row=0, column=0, sticky=tk.NSEW, padx=(0, 5))
+        self.middle = ttk.Frame(body)
+        self.middle.grid(row=0, column=1, sticky=tk.NSEW, padx=5)
+        self.right = ttk.Frame(body)
+        self.right.grid(row=0, column=2, sticky=tk.NSEW, padx=(5, 0))
 
-    @classmethod
-    def from_connection_string(cls, parent, context: AppContext, parent_device, connection_string, implied_protocol):
-        """Show user sensible settings based on entered connection string with minimal assumptions."""
-        discoverable = False
-        server_capabilities = {}
-        server_capabilities[implied_protocol] = ServerCapabilityInternal(connection_string, None, None)
+        self.refresh()
 
-        streaming_protocols = []
-        module_manager: daq.IModuleManager = parent_device.context.module_manager
-        for _module in module_manager.modules:
-            # Reporting streaming types is optional: a module may return OPENDAQ_ERR_NOTIMPLEMENTED.
-            # Skip such modules instead of letting one of them break the whole dialog.
+    # MARK: - Drawing
+    def refresh(self):
+        self.header_draw()
+        for frame in (self.left, self.middle, self.right):
+            for child in frame.winfo_children():
+                child.destroy()
+        self.connection_card_draw()
+        self.settings_draw()
+        self.streaming_card_draw()
+        self.login_card_draw()
+        self.status_update()
+
+    def header_draw(self):
+        for child in self.header.winfo_children():
+            child.destroy()
+        options = self.options
+        inner = tk.Frame(self.header, background=WHITE)
+        inner.pack(fill=tk.X, padx=12, pady=8)
+        tk.Label(inner, text='Connect with', background=WHITE, font=('TkDefaultFont', 10, 'bold')).pack(
+            anchor=tk.W, pady=(0, 6))
+        rows = ConnectList(inner, connect_row_data(options), options.connect.type_id, self.connect_selected,
+                           ('mark', 'type', 'kind', 'accepts', 'address', 'reachable'), self.context.dpi_factor)
+        rows.pack(fill=tk.X)
+
+    def connection_card_draw(self):
+        options = self.options
+        summary = f'{options.config.primary_address_type}, {options.config.security_mode.value}'
+        card = Card(self.left, self, 'Connection', summary)
+        card.pack(fill=tk.X, pady=(0, 10))
+        if card.body is None:
+            return
+
+        has_addresses = options.connect.capability is not None and len(options.connect.capability.addresses) > 0
+        card.combo('Address', ADDRESS_TYPES, options.config.primary_address_type, self.address_changed,
+                   'readonly' if has_addresses else 'disabled')
+
+        card.combo('Security', [m.value for m in DEVICE_SECURITY_MODES], options.config.security_mode.value,
+                   lambda v: self.security_changed(SecurityMode(v)))
+        try:
+            options.device_security()
+        except Exception as e:
+            card.note(str(e), RED)
+
+        unsecure = options.config.security_mode == SecurityMode.Unsecure
+        card.entry('Server fingerprint', options.config.server_fingerprint, self.fingerprint_changed,
+                   'disabled' if unsecure else 'normal')
+        if not unsecure and options.config.server_fingerprint.strip() \
+                and not is_fingerprint(options.config.server_fingerprint):
+            card.note('Not sha256: followed by 64 hex digits', RED)
+
+        card.check('Scan the network before connecting', options.config.scan_on_add, self.scan_changed)
+
+    def streaming_card_draw(self):
+        options = self.options
+        streaming_options = options.config.streaming_options
+        if streaming_options is None:
+            return
+        streaming = options.streaming.streaming_type.id if options.streaming is not None else NONE_SELECTED
+        card = Card(self.middle, self, 'Streaming', f'{streaming}, {streaming_options.streaming_mode}')
+        card.pack(fill=tk.BOTH, expand=True)
+        if card.body is None:
+            return
+
+        card.combo('Streaming mode', STREAMING_MODES, streaming_options.streaming_mode, self.streaming_mode_changed)
+        if streaming_options.streaming_mode == 'Disabled':
+            return
+
+        labels = [s.streaming_type.id for s in options.streaming_configs] + [NONE_SELECTED]
+        card.combo('Streaming', labels, streaming, self.streaming_changed)
+        if options.streaming is not None:
+            card.combo('Security', [m.value for m in STREAMING_SECURITY_MODES], options.streaming.security_mode.value,
+                       lambda v: self.streaming_security_changed(SecurityMode(v)))
             try:
-                available_streaming_types = _module.available_streaming_types
-            except RuntimeError:
+                options.streaming_security_resolved()
+            except Exception as e:
+                card.note(f'Not attached: {e}', ORANGE)
+            unsecure = options.streaming_mode_resolved() == SecurityMode.Unsecure
+            card.entry('Server fingerprint', options.streaming.server_fingerprint,
+                       self.streaming_fingerprint_changed, 'disabled' if unsecure else 'normal')
+            if not unsecure and options.streaming.server_fingerprint.strip() \
+                    and not is_fingerprint(options.streaming.server_fingerprint):
+                card.note('Not sha256: followed by 64 hex digits', RED)
+
+        if streaming_options.streaming_mode == 'MinHops':
+            card.check('Share credentials with nested devices', streaming_options.share_credentials_with_nested_devices,
+                       self.share_changed)
+
+    def login_fields_draw(self, card, method, credentials, on_change):
+        has_secret = False
+        for field in method.fields:
+            card.label(field.name if field.required else f'{field.name} (optional)')
+            row = ttk.Frame(card.body, style='AddConfigCard.TFrame')
+            row.grid(row=card.row, column=1, sticky=tk.W, pady=2)
+            var = tk.StringVar(value=credentials.get(field.id, ''))
+            var.trace_add('write', lambda *_, f=field.id, v=var: on_change(f, v.get()))
+            # 0004: a set FilePath credential fails a remote add, since it would name a file on the gateway
+            state = 'disabled' if field.kind == 'FilePath' and self.options.config.remote else 'normal'
+            entry = ttk.Entry(row, textvariable=var, width=32, state=state,
+                              show='*' if field.kind == 'Secret' and not self.show_secrets.get() else '')
+            entry.pack(side=tk.LEFT)
+            if field.kind == 'FilePath':
+                button = ttk.Button(row, text='…', width=3, command=lambda v=var, f=field: self.browse_file(v, f))
+                button.pack(side=tk.LEFT, padx=(4, 0))
+                button.state([state])
+            has_secret = has_secret or field.kind == 'Secret'
+            card.row += 1
+        return has_secret
+
+    def login_card_draw(self):
+        options = self.options
+        summary = options.login.description if options.login is not None else 'none'
+        card = Card(self.left, self, 'Login', summary)
+        card.pack(fill=tk.BOTH, expand=True)
+        if card.body is None:
+            return
+
+        has_secret = False
+        if not options.login_methods:
+            card.note('No login methods')
+        else:
+            methods = {m.description or m.id: m.id for m in options.login_methods}
+            card.combo('Method', list(methods), options.login.description or options.login.id,
+                       lambda v: self.login_changed(methods[v]))
+            has_secret = self.login_fields_draw(card, options.login, options.config.authentication_config.supplied_credentials,
+                                                self.credential_changed)
+
+        if options.streaming_on and options.streaming_login_methods:
+            card.heading(f'{options.streaming.streaming_type.id} login')
+            methods = {m.description or m.id: m.id for m in options.streaming_login_methods}
+            card.combo('Method', list(methods), options.streaming_login.description or options.streaming_login.id,
+                       lambda v: self.streaming_login_changed(methods[v]))
+            has_secret = self.login_fields_draw(card, options.streaming_login,
+                                                options.streaming.authentication_config.supplied_credentials,
+                                                self.streaming_credential_changed) or has_secret
+
+        if has_secret:
+            ttk.Checkbutton(card.body, text='Show', variable=self.show_secrets, style='AddConfigCard.TCheckbutton',
+                            command=self.refresh).grid(row=card.row, column=1, sticky=tk.W)
+            card.row += 1
+
+    def settings_draw(self):
+        options = self.options
+        card = tk.Frame(self.right, background=WHITE, highlightthickness=1, highlightbackground=CARD_BORDER)
+        card.pack(fill=tk.BOTH, expand=True)
+        sections = [(f'Configure {options.connect.type_id} connection', options.config.type_config)]
+        if options.streaming_on and not options.streaming.linked and options.streaming.type_config is not None:
+            sections.append((f'{options.streaming.streaming_type.id} settings', options.streaming.type_config))
+        for index, (title, config) in enumerate(sections):
+            if index > 0:
+                tk.Frame(card, height=1, background=CARD_BORDER).pack(fill=tk.X)
+            tk.Label(card, text=title, background=WHITE, font=('TkDefaultFont', 10, 'bold'), anchor=tk.W).pack(
+                fill=tk.X, padx=12, pady=6)
+            tk.Frame(card, height=1, background=CARD_BORDER).pack(fill=tk.X)
+            frame = ttk.Frame(card, style='AddConfigCard.TFrame', padding=(8, 0, 0, 0))
+            frame.pack(fill=tk.BOTH, expand=True)
+            if config is None or len(config.visible_properties) == 0:
+                ttk.Label(frame, text='No settings', style='AddConfigMuted.TLabel').pack(anchor=tk.W, pady=6)
                 continue
-            for streaming in available_streaming_types:
-                streaming_protocols.append(streaming)
+            tree = PropertiesTreeview(frame, config, self.context, hidden=HIDDEN_SETTINGS,
+                                      style='AddConfigSettings.Treeview')
+            tree.pack(fill=tk.BOTH, expand=True)
 
-        if implied_protocol not in streaming_protocols:
-            # When connection string implies non-streaming protocol, the user can select streaming protocols
-            for streaming in streaming_protocols:
-                server_capabilities[streaming] = ServerCapabilityInternal(None, None, None)
-        # else: the only server capability is the streaming protocol implied by the connection string
+    def status_problems(self):
+        """(errors, warnings) for the current choices."""
+        options = self.options
+        errors, warnings = [], []
+        try:
+            security = options.device_security()
+        except Exception as e:
+            errors.append(str(e))
+            security = None
+        for value in (options.config.server_fingerprint,
+                      options.streaming.server_fingerprint if options.streaming is not None else ''):
+            if value.strip() and not is_fingerprint(value):
+                errors.append('A server fingerprint is not sha256: followed by 64 hex digits')
+                break
+        missing = options.missing_credentials()
+        if missing:
+            errors.append('Enter ' + ', '.join(missing))
+        if security == ConnectionSecurity.Unsecure and options.login is not None and options.login.fields:
+            warnings.append('the login crosses the network unencrypted')
+        if options.streaming_on:
+            try:
+                options.streaming_security_resolved()
+            except Exception as e:
+                warnings.append(f'{options.streaming.streaming_type.id} is not attached: {e}')
+        return errors, warnings, security
 
-        # We can't know, must assume true
-        has_streaming = True
-        has_tcp_ip = True
-        return cls(
-            parent,
-            context,
-            parent_device,
-            discoverable,
-            server_capabilities,
-            connection_string,
-            has_streaming,
-            has_tcp_ip)
+    def status_update(self):
+        options = self.options
+        errors, warnings, security = self.status_problems()
+        if errors:
+            self.status_label.configure(text='[ERROR] ' + '; '.join(errors), foreground=RED)
+            self.add_button.state(['disabled'])
+            return
+        self.add_button.state(['!disabled'])
+        text = f'Connects to {options.connection_string()} as {options.expected_security()}'
+        if options.streaming_on and options.streaming_connection_string():
+            text += ', streams over ' + options.streaming_connection_string()
+        if warnings:
+            self.status_label.configure(text=f'[WARNING] {text}; ' + '; '.join(warnings), foreground=ORANGE)
+        else:
+            self.status_label.configure(text='[OK] ' + text, foreground=GREEN)
 
-    def __init__(
-            self,
-            parent,
-            context: AppContext,
-            parent_device,
-            discoverable,
-            server_capabilities,
-            connection_string,
-            has_streaming,
-            has_tcp_ip):
-        super().__init__(parent, 'Add with config', context)
-        self.context = context
-        self.parent_device = parent_device
+    # MARK: - Changes
+    def card_toggle(self, title):
+        self.opened[title] = not self.opened.get(title, True)
+        self.refresh()
 
-        self.discoverable = discoverable
-        self.server_capabilities = server_capabilities
-        self.default_connection_string = connection_string
-        self.has_streaming = has_streaming
-        self.has_tcp_ip = has_tcp_ip
+    def connect_selected(self, type_id, revert):
+        if type_id == self.options.connect.type_id:
+            return
+        if not ask_connect_change(self, self.context, type_id):
+            revert()
+            return
+        self.connect_changed(type_id)
 
-        self.geometry('{}x{}'.format(
-            int(1200 * self.context.ui_scaling_factor * self.context.dpi_factor), int(600 * self.context.ui_scaling_factor * self.context.dpi_factor)))
+    def connect_changed(self, type_id):
+        self.options.select_connect(type_id)
+        self.refresh()
 
-        self.protocol('WM_DELETE_WINDOW', self.cancel)
+    def address_changed(self, value):
+        self.options.config.primary_address_type = value
+        self.refresh()
 
-        # MARK: Layout creation
-        self.rowconfigure(0, weight=1)
-        self.columnconfigure(0, weight=1, uniform='column')
-        self.columnconfigure(1, weight=3, uniform='column')
+    def security_changed(self, mode):
+        self.options.config.security_mode = mode
+        self.refresh()
 
-        left_frame = ttk.Frame(self)
+    def fingerprint_changed(self, value):
+        self.options.config.server_fingerprint = value
+        self.status_update()
 
-        self.protocol_combobox = self.add_combobox(left_frame, "Configuration protocols:")
-        self.protocol_combobox.bind("<<ComboboxSelected>>", self.handle_device_protocol_select)
-        self.address_combobox = self.add_combobox(left_frame, "Address type:")
-        self.address_combobox.bind("<<ComboboxSelected>>", self.handle_address_type_select)
-        self.streaming_checklist = self.add_checkbox_list(left_frame, "Streaming protocols:")
-        self.streaming_checklist.register_callback(self.handle_checklist_changed)
+    def streaming_changed(self, label):
+        options = self.options
+        match = next((s for s in options.streaming_configs if s.streaming_type.id == label), None)
+        options.select_streaming(match.streaming_type.id if match is not None else None)
+        self.refresh()
 
-        left_frame.grid(row=0, column=0)
-        left_frame.grid_configure(sticky=tk.NSEW)
+    def streaming_security_changed(self, mode):
+        self.options.streaming.security_mode = mode
+        self.refresh()
 
-        right_frame = ttk.Frame(self)
+    def streaming_fingerprint_changed(self, value):
+        self.options.streaming.server_fingerprint = value
+        self.status_update()
 
-        self.tabs = ttk.Notebook(right_frame)
-        self.tabs.pack(fill=tk.BOTH, expand=True)
+    def streaming_mode_changed(self, value):
+        self.options.config.streaming_options.streaming_mode = value
+        self.refresh()
 
-        bottom_frame = ttk.Frame(right_frame)
-        bottom_frame.pack(side=tk.BOTTOM, fill=tk.X)
+    def share_changed(self, value):
+        self.options.config.streaming_options.share_credentials_with_nested_devices = value
 
-        self.status_label = ttk.Label(bottom_frame, text="")
-        self.status_label.pack(side=tk.LEFT, anchor=tk.W, fill=tk.X, expand=True)
+    def scan_changed(self, value):
+        self.options.config.scan_on_add = value
 
-        self.add_device_button = ttk.Button(bottom_frame, text='Add device', command=self.handle_add_button_clicked)
-        self.add_device_button.pack(side=tk.RIGHT, anchor=tk.E, padx=5, pady=5)
+    def login_changed(self, method_id):
+        self.options.config.authentication_config.set_authentication_method(method_id)
+        self.refresh()
 
-        right_frame.grid(row=0, column=1)
-        right_frame.grid_configure(sticky=tk.NSEW)
+    def credential_changed(self, field_id, value):
+        self.options.config.authentication_config.supplied_credentials[field_id] = value
+        self.status_update()
 
-        # Filter and save config, initialize left panel
-        self.connection_string = None
-        self.config = self.create_add_device_config()
-        self.update_selection_widgets()
+    def streaming_login_changed(self, method_id):
+        self.options.streaming.authentication_config.set_authentication_method(method_id)
+        self.refresh()
 
-        # Initialize members related to editor tabs
-        self.selected_device_config = self.protocol_combobox.get()
-        self.selected_streaming_configs = []
+    def streaming_credential_changed(self, field_id, value):
+        self.options.streaming.authentication_config.supplied_credentials[field_id] = value
+        self.status_update()
 
-        self.general_tab = self.create_general_tab()
-        self.device_tab = self.create_device_tab()
-        self.streaming_tabs = []
+    def browse_file(self, var, field):
+        path = filedialog.askopenfilename(parent=self, title=field.name, filetypes=file_types(field))
+        if path:
+            var.set(path)
 
-        self.selected_address_type = self.address_combobox.get()
-
-        self.update_connection_string()
-
-        self.update_general_tab()
-        self.update_device_tab()
-        self.update_streaming_tabs()
-
-        # Update streaming tabs and general section as all available streamings are checked
-        self.handle_checklist_changed(self.streaming_checklist.get_checked())
-        self.tabs.select(self.general_tab)
-
-    def handle_add_button_clicked(self):
-        self.sync_device_and_streaming_configs()
-        self.destroy()
-
-    def cancel(self):
-        self.config = None
+    def handle_add_clicked(self):
+        if self.status_problems()[0]:
+            return
+        self.confirmed = True
         self.destroy()
 
     def close(self):
-        # When escape is pressed adding the device is cancelled
-        self.cancel()
-
-    def to_error_state(self, message):
-        self.add_device_button.config(state="disabled")
-        self.set_status_label(f"[ERROR] {message}", style="StatusError.TLabel")
-
-    def to_warning_state(self, message):
-        self.add_device_button.config(state="disabled")
-        self.set_status_label(f"[WARNING] {message}", style="StatusWarning.TLabel")
-
-    def to_valid_state(self, message):
-        self.add_device_button.config(state="!disabled")
-        self.set_status_label(f"[OK] {message}", style="StatusOk.TLabel")
-
-    def set_status_label(self, message, style):
-        self.status_label.configure(text=message, style=style)
-
-    # MARK: Add widgets
-    def add_combobox(self, frame, title):
-        sub_frame = ttk.Frame(frame)
-        sub_frame.pack(fill=tk.BOTH, pady=(0, 5))
-        ttk.Label(sub_frame, text=title, font=("Arial", 10, "bold")).pack(side=tk.TOP, fill=tk.X, anchor=tk.W, pady=5)
-        var = tk.StringVar()
-        cbox = ttk.Combobox(sub_frame, state="readonly", textvariable=var)
-        cbox.pack(side=tk.TOP, fill=tk.X, anchor=tk.W, padx=(0, 25))
-
-        return cbox
-
-    def add_checkbox_list(self, frame, title):
-        sub_frame = ttk.Frame(frame)
-        sub_frame.pack(fill=tk.BOTH, expand=True, pady=(5, 10))
-        ttk.Label(sub_frame, text=title, font=("Arial", 10, "bold")).pack(side=tk.TOP, fill=tk.X, anchor=tk.W)
-
-        checkbox_list = CheckboxList(sub_frame, items=None)
-        checkbox_list.pack(fill=tk.BOTH, expand=True)
-
-        return checkbox_list
-
-    # MARK: Handle widget events
-    def handle_device_protocol_select(self, event=None):
-        value = self.protocol_combobox.get()
-        if not value or len(value) == 0:
-            self.selected_device_config = None
-            return
-
-        self.selected_device_config = value
-
-        self.update_connection_string()
-        self.update_device_tab()
-
-    def handle_address_type_select(self, event=None):
-        self.selected_address_type = self.address_combobox.get()
-        self.update_connection_string()
-
-    def handle_checklist_changed(self, checked_labels: list):
-        self.selected_streaming_configs = checked_labels
-        self.update_connection_string()
-        self.update_streaming_tabs()
-
-        general_section = self.config.get_property_value(_GENERAL)
-        if general_section.has_property(_ASP):
-            allowed_protocols = general_section.get_property(_ASP)
-            allowed = daq.List()
-            for label in self.selected_streaming_configs:
-                allowed.append(utils.value_to_coretype(
-                    label, allowed_protocols.item_type))
-            allowed_protocols.value = allowed
-            self.general_tab.editor.refresh()
-
-    # MARK: Update notebook tabs
-    def create_device_tab(self):
-        device_tab = AddDeviceConfigView(self.tabs)
-        device_tab.pack(fill=tk.BOTH, expand=True)
-
-        self.tabs.add(device_tab, text=_DEVICE)
-        self.tabs.insert(1, device_tab)
-        self.tabs.hide(device_tab)
-        return device_tab
-
-    def update_device_tab(self):
-        if len(self.selected_device_config) == 0 or self.selected_device_config == _NO_CONFIG_STR:
-            if self.device_tab:
-                self.device_tab.clear()
-                self.tabs.hide(self.device_tab)
-            return
-
-        tab_title = self.selected_device_config.replace("OpenDAQ", "").replace("Configuration", " Configuration")
-        self.tabs.tab(self.device_tab, text=tab_title)
-
-        device_section = self.config.get_property_value(_DEVICE)
-        self.device_tab.edit(device_section.get_property(self.selected_device_config), self.context)
-        self.tabs.add(self.device_tab) # unhide
-
-    def update_streaming_tabs(self):
-        for tab in self.streaming_tabs:
-            self.tabs.forget(tab)
-            tab.destroy()
-
-        streaming_section = self.config.get_property_value(_STREAMING)
-
-        self.streaming_tabs = []
-        for property_name in self.selected_streaming_configs:
-            new_tab = AddDeviceConfigView(self)
-            new_tab.edit(streaming_section.get_property(property_name), self.context)
-
-            tab_title = property_name.replace("OpenDAQ", "").replace("Streaming", " Streaming")
-            self.tabs.add(new_tab, text=tab_title)
-            self.tabs.insert(tk.END, new_tab)
-            self.streaming_tabs.append(new_tab)
-
-    def create_general_tab(self):
-        general_tab = AddDeviceConfigView(self.tabs)
-        general_tab.pack(fill=tk.BOTH, expand=True)
-
-        self.tabs.add(general_tab, text=_GENERAL)
-        self.tabs.insert(0, general_tab)
-        self.tabs.hide(general_tab)
-        return general_tab
-
-    def update_general_tab(self):
-        self.general_tab.edit(self.config.get_property(_GENERAL), self.context, self.hidden_general_entries)
-        self.tabs.add(self.general_tab)
-
-    def update_selection_widgets(self):
-        self.update_device_combobox()
-        self.update_primary_address_combobox()
-        self.update_checklist(self.config.get_property_value(_STREAMING), True)
-
-    def update_device_combobox(self):
-        # Lookup streaming options
-        streaming_section = self.config.get_property_value(_STREAMING)
-        streaming_options = []
-        for property in self.context.properties_of_component(streaming_section):
-            streaming_options.append(property.name)
-
-        device_section = self.config.get_property_value(_DEVICE)
-        device_options = []
-
-        for property in self.context.properties_of_component(device_section):
-            # Avoid duplication in device combobox and streaming checklist
-            if property.name not in streaming_options:
-                device_options.append(property.name)
-
-        # -- Streaming only -- option when streaming is available and for streaming connections to non-discoverable devices
-        if len(streaming_options) > 0 and (self.discoverable or len(device_options) == 0):
-            device_options.insert(0, _NO_CONFIG_STR)
-
-        self.protocol_combobox["values"] = device_options
-
-        default_idx = min(1, len(device_options) - 1)
-        self.protocol_combobox.set(device_options[default_idx])
-
-    def update_primary_address_combobox(self):
-        vals = [_DEFAULT_ADDR]
-        if self.discoverable and len(self.server_capabilities) > 0:
-            vals += [_IPV4, _IPV6]
-        self.address_combobox["values"] = vals
-        self.address_combobox.set(_DEFAULT_ADDR)
-
-    def update_checklist(self, streaming_section, select_all):
-        for property in self.context.properties_of_component(streaming_section):
-            self.streaming_checklist.insert(property.name, select_all)
-
-    def update_connection_string(self):
-        """Update connection string used to add device. This function also
-        performs a quick validation of the UI state and sets the status message."""
-
-        def choose_connection_string(address_type: str, server_capability: ServerCapabilityInternal):
-            if address_type == _IPV4 and server_capability.ipv4_connection_string:
-                return server_capability.ipv4_connection_string
-            elif address_type == _IPV6 and server_capability.ipv6_connection_string:
-                return server_capability.ipv6_connection_string
-            elif address_type == _DEFAULT_ADDR and server_capability.connection_string:
-                return server_capability.connection_string
-            return None
-
-        # A configuration protocol is selected
-        if self.selected_device_config != _NO_CONFIG_STR:
-            if len(self.server_capabilities) == 0:
-                self.connection_string = self.default_connection_string
-                self.to_valid_state(f"Connecting to local device: {self.connection_string}")
-                return
-
-            # Remote devices have protocol IDs defined in server capabilities
-            sc_match = None
-            for protocol_id, sc_internal in self.server_capabilities.items():
-                if protocol_id == self.selected_device_config:
-                    sc_match = sc_internal
-                    break
-
-            if sc_match is None:
-                self.to_error_state("Selected protocol unavailable.")
-
-            s = choose_connection_string(self.selected_address_type, sc_match)
-
-            if s is not None:
-                self.connection_string = s
-                self.to_valid_state(f"Configuration connection to: {self.connection_string}")
-            else:
-                self.to_error_state(f"Connection string not available for address type: {self.selected_address_type}.")
-            return
-
-        # No config and 0 or >= 2 streaming connections selected, unclear how to connect
-        if len(self.selected_streaming_configs) != 1:
-            self.connection_string = None
-            self.to_error_state("Select a configuration protocol or exactly one streaming protocol.")
-            return
-
-        streaming_protocol = self.selected_streaming_configs[0]
-        sc_match = None
-        for protocol_id, sc_internal in self.server_capabilities.items():
-            if protocol_id == streaming_protocol:
-                sc_match = sc_internal
-                break
-
-        if sc_match is None:
-            self.to_error_state("Selected streaming protocol unavailable.")
-
-        s = choose_connection_string(self.selected_address_type, sc_match)
-        if s is not None:
-            self.connection_string = s
-            self.to_valid_state(f"Streaming connection to: {self.connection_string}")
-            return
-
-        # Should not have reached this
-        self.to_warning_state("Invalid configuration.")
-
-    def create_add_device_config(self):
-        supported_protocols = self.compute_supported_protocols()
-
-        # Default add device config assumes all kinds of server capabilities
-        config = self.context.instance.create_default_add_device_config()
-
-        self.filter_device_section(config, supported_protocols)
-        self.filter_streaming_section(config, supported_protocols)
-        self.hidden_general_entries = self.filter_general_section(config, supported_protocols)
-
-        return config
-
-    def compute_supported_protocols(self):
-        # Remote devices have protocol IDs defined in server capabilities
-        if len(self.server_capabilities) > 0:
-            supported_protocols = list()
-            for protocol_id in self.server_capabilities:
-                supported_protocols.append(protocol_id)
-            return supported_protocols
-
-        # For local devices
-        supported_prefix = self.default_connection_string.split("://")[0]
-
-        available_device_types = self.parent_device.available_device_types
-
-        # Find protocol ID matching the connection string prefix
-        for protocol_id, device_type in available_device_types.items():
-            dt_dict = device_type.as_dictionary
-
-            if dt_dict["Prefix"] == supported_prefix:
-                return [protocol_id]
-        return []
-
-    def filter_device_section(self, config, supported_protocols):
-        device_section = config.get_property_value(_DEVICE)
-        for property in self.context.properties_of_component(device_section):
-            if property.name not in supported_protocols:
-                device_section.remove_property(property.name)
-
-    def filter_streaming_section(self, config, supported_protocols):
-        streaming_section = config.get_property_value(_STREAMING)
-        for property in self.context.properties_of_component(streaming_section):
-            if property.name not in supported_protocols:
-                streaming_section.remove_property(property.name)
-
-    def filter_general_section(self, config, supported_protocols):
-        general_section = config.get_property_value(_GENERAL)
-        hidden_property_paths = []
-
-        def add_to_hidden(section, properties):
-            for p in properties:
-                if section.has_property(p):
-                    hidden_property_paths.append(p)
-
-        # Hide options that are covered with the UI interaction
-        # The user edits allowed streaming protocols through checklist and
-        # automatically connect streaming will connect if any allowed
-        add_to_hidden(general_section, [_ASP, _ACS, _PAT])
-
-        if "OpenDAQNativeConfiguration" not in supported_protocols:
-            add_to_hidden(general_section, ["Username", "Password", "ClientType", "ExclusiveControlDropOthers"])
-
-        if not self.has_streaming:
-            add_to_hidden(
-                general_section,
-                ["StreamingConnectionHeuristic",
-                 "PrioritizedStreamingProtocols"])
-
-        return hidden_property_paths
-
-    def sync_device_and_streaming_configs(self):
-        device_section = self.config.get_property_value(_DEVICE)
-        streaming_section = self.config.get_property_value(_STREAMING)
-
-        # Copy all the streaming configs from streaming to device, as they could only have been modified
-        # in the streaming section
-        for streaming in self.context.properties_of_component(streaming_section):
-            for device in self.context.properties_of_component(device_section):
-                if device.name == streaming.name:
-                    # Recursively update
-                    utils.update_properties(device.value, streaming.value)
-                    break
+        self.confirmed = False
+        self.destroy()

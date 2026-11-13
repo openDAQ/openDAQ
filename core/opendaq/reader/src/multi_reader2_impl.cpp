@@ -92,7 +92,7 @@ MultiReader2Impl::MultiReader2Impl(IMultiReader2Params* params)
                 const auto reader = readerRef.getRef();
                 if (!reader.assigned())
                     return;
-                failed = runWake();
+                failed = runWake(reader.asPtr<IBaseObject>());
             }
             if (c->dataManager.callFinished(failed))
                 c->scheduleWake();
@@ -518,14 +518,14 @@ void MultiReader2Impl::Core::scheduleWake()
 
 // One call of the handler on the scheduler thread, with no reader lock held. One handler is assumed: one that throws
 // stops the handlers after it. The exception is logged and the handler kept. Returns whether it failed
-bool MultiReader2Impl::runWake()
+bool MultiReader2Impl::runWake(const BaseObjectPtr& reader)
 {
     core->dataManager.callStarted();
 
     std::string failure;
     try
     {
-        BaseObjectPtr sender;
+        BaseObjectPtr sender = reader;
         core->onDataAvailable(sender, EventArgs(0, "DataAvailable"));
         return false;
     }

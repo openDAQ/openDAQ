@@ -92,7 +92,7 @@ DECLARE_OPENDAQ_INTERFACE(IMultiReader2, IBaseObject)
     // [templateType(event, IBaseObject, IEventArgs)]
     /*!
      * @brief Gets the event scheduled when data becomes readable or a status with changes awaits a read, also while
-     * the reader is invalid. The sender is null. A call announces what arrived before it: the handler reads everything
+     * the reader is invalid. The sender is the reader. A call announces what arrived before it: the handler reads everything
      * available, as what it leaves is announced again only when more data or a change arrives.
      * @param[out] event The data available event.
      */

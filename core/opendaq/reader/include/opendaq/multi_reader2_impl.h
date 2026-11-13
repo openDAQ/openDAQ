@@ -153,7 +153,7 @@ private:
     static void releaseSlot(Slot& slot);
     static PortState readPortState(const InputPortPtr& port);
     void publishWiring(const std::vector<Slot>& wired, const SchedulerPtr& scheduler, const LoggerComponentPtr& loggerComponent);
-    bool runWake();
+    bool runWake(const BaseObjectPtr& reader);
 
     std::mutex mutex;
     std::vector<Slot> slots;

@@ -22,7 +22,6 @@ TEST_F(MultiReader2Context, HandlerWaitsUntilMinReadCountSamplesAreOnAllInputs)
 // S1.CTX.02
 TEST_F(MultiReader2Context, HandlerIsCalledWithTheReaderAsSender)
 {
-    MR2_REVIEW_ONLY(review_only::sender);
     setupHandler(
         [&]
         {

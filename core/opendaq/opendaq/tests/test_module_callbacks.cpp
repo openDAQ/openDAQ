@@ -2,6 +2,7 @@
 #include <gtest/gtest.h>
 #include <opendaq/module_impl.h>
 #include <opendaq/instance_factory.h>
+#include <opendaq/component_type_builder_factory.h>
 #include <opendaq/device_type_factory.h>
 #include <opendaq/function_block_type_factory.h>
 #include <opendaq/server_type_factory.h>
@@ -63,6 +64,11 @@ public:
         }
     }
 
+    ListPtr<IDeviceInfo> onGetAvailableDevices() override
+    {
+        return availableDevices;
+    }
+
     DictPtr<IString, IDeviceType> onGetAvailableDeviceTypes() override
     {
         return Dict<IString, IDeviceType>({{"id", DeviceType("id", "name", "desc", "daqtest", obj)}});
@@ -108,6 +114,7 @@ public:
     }
 
     PropertyObjectPtr obj;
+    ListPtr<IDeviceInfo> availableDevices = List<IDeviceInfo>();
 };
 
 
@@ -146,5 +153,23 @@ TEST_F(ModuleCallbacksTest, TestStreamingCallback)
     ASSERT_FALSE(_module.createStreaming("daqtest://", PropertyObject()).assigned());
     ASSERT_FALSE(_module.createStreaming("daqtest://", TestModuleImpl::CreatePartialConfigObject()).assigned());
     ASSERT_FALSE(_module.createStreaming("daqtest://", TestModuleImpl::CreateInvalidConfigObject()).assigned());
+}
+
+TEST_F(ModuleCallbacksTest, RootDeviceListed)
+{
+    const auto _module = createWithImplementation<IModule, TestModuleImpl>();
+    auto impl = reinterpret_cast<TestModuleImpl*>(_module.getObject());
+
+    const auto info = DeviceInfo("daqtest://dev");
+    info.setDeviceType(DeviceTypeBuilder().setId("id").setDeviceKind(DeviceKind::Adapter).build());
+    impl->availableDevices.pushBack(info);
+    ASSERT_EQ(_module.getAvailableDevices().getCount(), 1u);
+
+    const auto rootInfo = DeviceInfo("daqtest.root://dev");
+    rootInfo.setDeviceType(DeviceTypeBuilder().setId("root").setDeviceKind(DeviceKind::Root).build());
+    impl->availableDevices.pushBack(rootInfo);
+    ListPtr<IDeviceInfo> devices;
+    ASSERT_EQ(_module->getAvailableDevices(&devices), OPENDAQ_ERR_INVALIDSTATE);
+    daqClearErrorInfo();
 }
 END_NAMESPACE_OPENDAQ

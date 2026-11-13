@@ -777,39 +777,19 @@ TEST_F(ModuleManagerLinkTest, RootKindNotListed)
     auto lib = makeModule();
     lib.impl->addDeviceType("rootdev", nullptr, DeviceKind::Root);
     lib.impl->addDeviceType("extdev", nullptr, DeviceKind::Adapter);
-    lib.impl->addDeviceType("mirdev", nullptr, DeviceKind::Mirrored);
-    lib.impl->addDeviceType("unspecdev", nullptr, DeviceKind::Unspecified);
-    for (const auto& prefix : {"rootdev", "extdev", "mirdev", "unspecdev", "unknown"})
-        lib.impl->availableDevices.pushBack(DeviceInfo(std::string(prefix) + "://10.0.0.5"));
+    for (const auto& prefix : {"rootdev", "extdev"})
+    {
+        const auto info = DeviceInfo(std::string(prefix) + "://10.0.0.5");
+        info.setDeviceType(lib.impl->deviceTypes.get(prefix));
+        lib.impl->availableDevices.pushBack(info);
+    }
+    lib.impl->availableDevices.pushBack(DeviceInfo("rootdev://untyped"));
     ASSERT_EQ(tryAdd(lib.module), "");
 
     std::set<std::string> listed;
     for (const auto& info : manager.asPtr<IModuleManagerUtils>().getAvailableDevices())
         listed.insert(info.getConnectionString());
 
-    const std::set<std::string> expected{"extdev://10.0.0.5", "mirdev://10.0.0.5", "unspecdev://10.0.0.5", "unknown://10.0.0.5"};
+    const std::set<std::string> expected{"extdev://10.0.0.5", "rootdev://untyped"};
     ASSERT_EQ(listed, expected);
-}
-
-TEST_F(ModuleManagerLinkTest, ListedRootDeviceWarnsOnce)
-{
-    const auto sink = LastMessageLoggerSink();
-    sink.setLevel(LogLevel::Warn);
-    const LastMessageLoggerSinkPrivatePtr lastMessage = sink;
-    manager = ModuleManager("[[none]]");
-    manager.loadModules(Context(nullptr, LoggerWithSinks(List<ILoggerSink>(sink)), TypeManager(), nullptr, nullptr));
-
-    auto lib = makeModule();
-    lib.impl->addDeviceType("rootdev", nullptr, DeviceKind::Root);
-    lib.impl->availableDevices.pushBack(DeviceInfo("rootdev://a"));
-    lib.impl->availableDevices.pushBack(DeviceInfo("rootdev://b"));
-    ASSERT_EQ(tryAdd(lib.module), "");
-
-    const ModuleManagerUtilsPtr utils = manager;
-    ASSERT_EQ(utils.getAvailableDevices().getCount(), 0u);
-    ASSERT_TRUE(lastMessage.waitForMessage(1000));
-    expectContains(lastMessage.getLastMessage().toStdString(), R"(Device type "rootdev")");
-
-    utils.getAvailableDevices();
-    ASSERT_FALSE(lastMessage.waitForMessage(200));
 }

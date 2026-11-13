@@ -42,7 +42,7 @@ DECLARE_OPENDAQ_INTERFACE(IModuleManagerUtils, IBaseObject)
      * @param[out] availableDevices The list of known devices information.
      *
      * Contains information on devices available in all loaded modules.
-     * Devices of Root kind are left out.
+     * Devices whose info has a device type of Root kind are left out.
      */
     // [elementType(availableDevices, IDeviceInfo)]
     virtual ErrCode INTERFACE_FUNC getAvailableDevices(IList** availableDevices) = 0;

@@ -61,7 +61,7 @@ DECLARE_OPENDAQ_INTERFACE(IModule, IBaseObject)
      * The implementation can start discovery in background and only return the results in this function.
      * @param[out] availableDevices The list of known devices information.
      *
-     * The module manager leaves out devices of Root kind.
+     * The list must not contain devices of Root kind, as they can't be added.
      */
     // [elementType(availableDevices, IDeviceInfo)]
     virtual ErrCode INTERFACE_FUNC getAvailableDevices(IList** availableDevices) = 0;

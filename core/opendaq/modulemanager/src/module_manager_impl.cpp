@@ -1620,8 +1620,9 @@ DeviceTypePtr ModuleManagerImpl::chooseDeviceType(const DeviceInfoPtr& info,
 
     if (prefix.getLength() > 0)
     {
-        const auto hasPrefix = [&prefix](const ServerCapabilityPtr& capability) { return capability.getPrefix() == prefix; };
-        if (std::none_of(capabilities.begin(), capabilities.end(), hasPrefix))
+        if (std::none_of(capabilities.begin(),
+                         capabilities.end(),
+                         [&prefix](const ServerCapabilityPtr& capability) { return getServerCapabilityPrefix(capability) == prefix; }))
             DAQ_THROW_EXCEPTION(NotFoundException, R"(The device has no server capability with the prefix "{}")", prefix);
 
         return findAddableDeviceType(prefix);
@@ -1629,11 +1630,11 @@ DeviceTypePtr ModuleManagerImpl::chooseDeviceType(const DeviceInfoPtr& info,
 
     const auto selected = SelectServerCapability(capabilities, deviceTypes, true);
     if (selected.assigned())
-        return FindTypeByPrefix<DeviceTypePtr>(deviceTypes, selected.getPrefix());
+        return FindTypeByPrefix<DeviceTypePtr>(deviceTypes, getServerCapabilityPrefix(selected));
 
     for (const auto& capability : capabilities)
     {
-        const auto deviceType = FindTypeByPrefix<DeviceTypePtr>(deviceTypes, capability.getPrefix());
+        const auto deviceType = FindTypeByPrefix<DeviceTypePtr>(deviceTypes, getServerCapabilityPrefix(capability));
         if (deviceType.assigned())
             checkErrorInfo(CheckKindAllowed(deviceType, true));
     }
@@ -1649,7 +1650,7 @@ ServerCapabilityPtr ModuleManagerImpl::SelectServerCapability(const ListPtr<ISer
     bool selectedMirrored = false;
     for (const auto& capability : capabilities)
     {
-        const auto deviceType = FindTypeByPrefix<DeviceTypePtr>(deviceTypes, capability.getPrefix());
+        const auto deviceType = FindTypeByPrefix<DeviceTypePtr>(deviceTypes, getServerCapabilityPrefix(capability));
         if (!deviceType.assigned() || !IsKindAllowed(deviceType.getDeviceKind(), asChild))
             continue;
 

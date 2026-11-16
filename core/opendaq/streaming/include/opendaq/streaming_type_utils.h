@@ -39,11 +39,31 @@ inline bool isStreamingTypeIdReserved(const StringPtr& id)
 }
 
 /*!
+ * @brief Gets the connection string prefix a server capability is matched to types by.
+ * @param capability The server capability
+ *
+ * The prefix is the capability's prefix when it is set.
+ * Otherwise, it is the prefix of the capability's connection string.
+ * The result is empty when neither gives a prefix.
+ */
+inline StringPtr getServerCapabilityPrefix(const ServerCapabilityPtr& capability)
+{
+    const StringPtr prefix = capability.getPrefix();
+    if (prefix.getLength() > 0)
+        return prefix;
+
+    const std::string connectionString = capability.getConnectionString();
+    const auto end = connectionString.find("://");
+    return (end == std::string::npos) ? "" : connectionString.substr(0, end);
+}
+
+/*!
  * @brief Gets the streaming types advertised by streaming capabilities.
  * @param capabilities The server capabilities of a device
  * @param streamingTypes The available streaming types, keyed by ID
  *
  * A streaming type is advertised by a capability of protocol type Streaming or ConfigurationAndStreaming with the same prefix.
+ * The capability's prefix is given by `getServerCapabilityPrefix`.
  * The types are in capability order, each listed once.
  */
 inline DictPtr<IString, IStreamingType> getAdvertisedStreamingTypes(const ListPtr<IServerCapability>& capabilities,
@@ -57,7 +77,7 @@ inline DictPtr<IString, IStreamingType> getAdvertisedStreamingTypes(const ListPt
             continue;
 
         for (const auto& [id, streamingType] : streamingTypes)
-            if (streamingType.getConnectionStringPrefix() == capability.getPrefix() && !advertisedTypes.hasKey(id))
+            if (streamingType.getConnectionStringPrefix() == getServerCapabilityPrefix(capability) && !advertisedTypes.hasKey(id))
                 advertisedTypes.set(id, streamingType);
     }
 

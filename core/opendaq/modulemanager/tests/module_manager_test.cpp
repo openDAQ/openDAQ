@@ -939,6 +939,13 @@ TEST_F(ModuleManagerAddConfigTest, SmartConnectionString)
         module->availableDevices.pushBack(info);
     }
 
+    const auto unprefixed = DeviceInfo("x://unprefixed");
+    unprefixed.setManufacturer("m");
+    unprefixed.setSerialNumber("unprefixed");
+    unprefixed.asPtr<IDeviceInfoInternal>().addServerCapability(
+        ServerCapability("unprefixed", "unprefixed", cfg).setConnectionString("extdev://unprefixed"));
+    module->availableDevices.pushBack(unprefixed);
+
     const ModuleManagerUtilsPtr utils = manager;
     const auto parent = Component(NullContext(), nullptr, "parent");
     const auto create = [&utils](const char* connectionString, const ComponentPtr& owner)
@@ -952,8 +959,10 @@ TEST_F(ModuleManagerAddConfigTest, SmartConnectionString)
     ASSERT_EQ(create("daq://m_typed", parent), OPENDAQ_SUCCESS);
     ASSERT_EQ(create("daq://m_root", parent), OPENDAQ_SUCCESS);
     ASSERT_EQ(create("daq://m_root", nullptr), OPENDAQ_SUCCESS);
+    ASSERT_EQ(create("daq://m_unprefixed", parent), OPENDAQ_SUCCESS);
     ASSERT_EQ(create("daq://m_unloaded", parent), OPENDAQ_ERR_NOTFOUND);
-    ASSERT_EQ(module->createdConnectionStrings, List<IString>("extdev://extdev1", "extdev://extdev1", "rootdev://rootdev0"));
+    ASSERT_EQ(module->createdConnectionStrings,
+              List<IString>("extdev://extdev1", "extdev://extdev1", "rootdev://rootdev0", "extdev://unprefixed"));
 }
 
 TEST_F(ModuleManagerAddConfigTest, DiscoveredExplicitPrefix)

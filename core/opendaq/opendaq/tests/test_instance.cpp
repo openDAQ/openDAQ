@@ -1297,7 +1297,7 @@ TEST_F(InstanceTest, SaveLoadDeviceConfigOld)
 
         auto deviceConfig = instance.createDefaultAddDeviceConfig();
         PropertyObjectPtr general = deviceConfig.getPropertyValue("General");
-        general.setPropertyValue("StreamingConnectionHeuristic", 2);
+        general.setPropertyValue("PrimaryAddressType", "IPv6");
 
         instance.addDevice("daqmock://phys_device", deviceConfig);
         config = instance.saveConfiguration();
@@ -1312,7 +1312,7 @@ TEST_F(InstanceTest, SaveLoadDeviceConfigOld)
     ASSERT_TRUE(deviceConfig.hasProperty("General"));
 
     PropertyObjectPtr general = deviceConfig.getPropertyValue("General");
-    ASSERT_EQ(general.getPropertyValue("StreamingConnectionHeuristic"), 2);
+    ASSERT_EQ(general.getPropertyValue("PrimaryAddressType"), "IPv6");
 }
 
 TEST_F(InstanceTest, SaveLoadDeviceConfig)
@@ -1323,7 +1323,7 @@ TEST_F(InstanceTest, SaveLoadDeviceConfig)
 
         auto deviceConfig = instance.createDefaultAddDeviceConfig();
         PropertyObjectPtr general = deviceConfig.getPropertyValue("General");
-        general.setPropertyValue("StreamingConnectionHeuristic", 2);
+        general.setPropertyValue("PrimaryAddressType", "IPv6");
 
         instance.addDevice("daqmock://phys_device", deviceConfig);
         config = instance.saveConfiguration();
@@ -1338,7 +1338,7 @@ TEST_F(InstanceTest, SaveLoadDeviceConfig)
     ASSERT_TRUE(deviceConfig.hasProperty("General"));
 
     PropertyObjectPtr general = deviceConfig.getPropertyValue("General");
-    ASSERT_EQ(general.getPropertyValue("StreamingConnectionHeuristic"), 2);
+    ASSERT_EQ(general.getPropertyValue("PrimaryAddressType"), "IPv6");
 }
 
 TEST_F(InstanceTest, SaveLoadFunctionBlockConfig)

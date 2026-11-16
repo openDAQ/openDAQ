@@ -84,6 +84,18 @@ private:
                                             IComponent* parent,
                                             const AddDeviceConfigPtr& inputConfig,
                                             const AuthenticationConfigPtr& authenticationConfig);
+    ErrCode createDeviceFromLegacyConfig(IDevice** device,
+                                         const StringPtr& connectionString,
+                                         IComponent* parent,
+                                         const PropertyObjectPtr& inputConfig,
+                                         const AuthenticationConfigPtr& authenticationConfig);
+    ErrCode createDeviceFromResolvedConfig(IDevice** device,
+                                           const AddDeviceConfigPtr& config,
+                                           const StringPtr& connectionString,
+                                           const tsl::ordered_map<std::string, BaseObjectPtr>& connectionStringOptions,
+                                           IComponent* parent,
+                                           const AuthenticationConfigPtr& authenticationConfig,
+                                           const DeviceInfoPtr& discoveredDeviceInfo);
     ErrCode createDeviceWithModule(IDevice** device,
                                    const ModulePtr& module,
                                    const DeviceTypePtr& deviceType,
@@ -97,10 +109,6 @@ private:
 
     static void PopulateDeviceTypeConfigFromConnStrOptions(PropertyObjectPtr& deviceTypeConfig,
                                                            const tsl::ordered_map<std::string, ObjectPtr<IBaseObject>>& options);
-    static PropertyObjectPtr PopulateDeviceTypeConfig(PropertyObjectPtr& addDeviceConfig,
-                                                      const PropertyObjectPtr& inputConfig,
-                                                      const DeviceTypePtr& deviceType,
-                                                      const tsl::ordered_map<std::string, ObjectPtr<IBaseObject>>& connStrOptions);
 
     static std::pair<std::string, tsl::ordered_map<std::string, BaseObjectPtr>> SplitConnectionStringAndOptions(const std::string& connectionString);
 

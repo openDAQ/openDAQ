@@ -915,88 +915,83 @@ ErrCode ModuleManagerImpl::createDeviceInternal(IDevice** device, IString* conne
     {
         if (const auto inputAddDeviceConfig = inputConfig.asPtrOrNull<IAddDeviceConfig>(true); inputAddDeviceConfig.assigned())
             return createDeviceFromAddDeviceConfig(device, connectionString, parent, inputAddDeviceConfig, authenticationConfig);
-
-        PropertyObjectPtr addDeviceConfig;
-        const bool inputIsDefaultAddDeviceConfig = IsDefaultAddDeviceConfig(inputConfig);
-
-        if (inputIsDefaultAddDeviceConfig)
-        {
-            OPENDAQ_RETURN_IF_FAILED(inputConfig.asPtr<IPropertyObjectInternal>(true)->clone(&addDeviceConfig));
-            // `addDeviceConfig` (unlike `inputConfig`/`deviceTypeConfig` below) is persisted verbatim onto the
-            // created device (`componentPrivate.setComponentConfig`, further down) and so gets serialized on
-            // save - the smuggled auth config (see `ExtractAuthenticationConfig`) can't survive that (it's not
-            // meant to be persisted this way at all - see `IComponentPrivate::setAuthenticationConfig`, the
-            // real persistence path for it) and must not ride along into this clone.
-            if (addDeviceConfig.hasProperty(AuthenticationConfigConfigKey))
-                addDeviceConfig.removeProperty(AuthenticationConfigConfigKey);
-        }
-        else
-            OPENDAQ_RETURN_IF_FAILED(createDefaultAddDeviceConfig(&addDeviceConfig));
-
-        PropertyObjectPtr generalConfig =
-            inputIsDefaultAddDeviceConfig
-                ? addDeviceConfig.getPropertyValue("General").asPtr<IPropertyObject>()
-                : PopulateGeneralConfig(addDeviceConfig, inputConfig); // copy general properties from input config
-
-        // populate any general props which are duplicated in device & streaming type configs
-        CopyCommonGeneralPropValues(addDeviceConfig);
-
-        const auto [pureConnectionString, connectionStringOptions] = SplitConnectionStringAndOptions(StringPtr::Borrow(connectionString));
-        auto connectionStringPtr = String(pureConnectionString);
-
-        if (!connectionStringPtr.assigned() || connectionStringPtr.getLength() == 0)
-            return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_ARGUMENT_NULL, "Connection string is not set or empty");
-
-        // Connection strings with the "daq" prefix automatically choose the best method of connection
-        const bool useSmartConnection = connectionStringPtr.toStdString().find("daq://") == 0;
-
-        bool scanForDevices = scanOnAdd;
-        if (generalConfig.assigned() && generalConfig.hasProperty("ScanOnAdd"))
-            scanForDevices = static_cast<bool>(generalConfig.getPropertyValue("ScanOnAdd"));
-
-        if (scanForDevices)
-            OPENDAQ_RETURN_IF_FAILED(scanIfOutdated());
-
-        DeviceInfoPtr discoveredDeviceInfo;
-        if (useSmartConnection)
-        {
-            DictPtr<IString, IDeviceType> deviceTypes;
-            OPENDAQ_RETURN_IF_FAILED(getAvailableDeviceTypes(&deviceTypes));
-
-            discoveredDeviceInfo = getSmartConnectionDeviceInfo(connectionStringPtr);
-            connectionStringPtr = resolveSmartConnectionString(
-                connectionStringPtr, discoveredDeviceInfo, deviceTypes, parent != nullptr, generalConfig, loggerComponent);
-        }
-
-        for (const auto& library : libraries)
-        {
-            const auto deviceType = getDeviceTypeFromConnectionString(connectionStringPtr, library.module);
-
-            // Check if module can create device with given connection string
-            if (!deviceType.assigned())
-                continue;
-
-            OPENDAQ_RETURN_IF_FAILED(CheckKindAllowed(deviceType, parent != nullptr));
-
-            // copy props from input config and connection string to device type config
-            const auto deviceTypeConfig = PopulateDeviceTypeConfig(addDeviceConfig, inputConfig, deviceType, connectionStringOptions);
-
-            return createDeviceWithModule(device,
-                                          library.module,
-                                          deviceType,
-                                          connectionStringPtr,
-                                          parent,
-                                          deviceTypeConfig,
-                                          addDeviceConfig,
-                                          authenticationConfig,
-                                          discoveredDeviceInfo);
-        }
-        return DAQ_MAKE_ERROR_INFO(
-            OPENDAQ_ERR_NOTFOUND,
-            fmt::format("Device with given connection string '{}' and config is not available", StringPtr::Borrow(connectionString)));
+        return createDeviceFromLegacyConfig(device, connectionString, parent, inputConfig, authenticationConfig);
     });
     OPENDAQ_RETURN_IF_FAILED(errCode, fmt::format("Failed to create device from connection string '{}' and config", StringPtr::Borrow(connectionString)));
     return errCode;
+}
+
+ErrCode ModuleManagerImpl::createDeviceFromLegacyConfig(IDevice** device,
+                                                        const StringPtr& connectionString,
+                                                        IComponent* parent,
+                                                        const PropertyObjectPtr& inputConfig,
+                                                        const AuthenticationConfigPtr& authenticationConfig)
+{
+    const auto [pureConnectionString, connectionStringOptions] = SplitConnectionStringAndOptions(connectionString);
+    if (pureConnectionString.empty())
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_ARGUMENT_NULL, "Connection string is not set or empty");
+
+    const bool inputIsLegacyConfig = IsDefaultAddDeviceConfig(inputConfig);
+    PropertyObjectPtr legacyConfig = inputConfig;
+    if (!inputIsLegacyConfig)
+    {
+        OPENDAQ_RETURN_IF_FAILED(createDefaultAddDeviceConfig(&legacyConfig));
+        PopulateGeneralConfig(legacyConfig, inputConfig);
+    }
+
+    const PropertyObjectPtr generalConfig = legacyConfig.getPropertyValue(LegacyAddDeviceConfig::GeneralSection);
+    const bool scanForDevices = generalConfig.hasProperty(LegacyAddDeviceConfig::ScanOnAdd)
+                                    ? static_cast<bool>(generalConfig.getPropertyValue(LegacyAddDeviceConfig::ScanOnAdd))
+                                    : scanOnAdd;
+    if (scanForDevices)
+        OPENDAQ_RETURN_IF_FAILED(scanIfOutdated());
+
+    StringPtr resolvedConnectionString = String(pureConnectionString);
+    DeviceInfoPtr discoveredDeviceInfo;
+    if (pureConnectionString.find("daq://") == 0)
+    {
+        DictPtr<IString, IDeviceType> deviceTypes;
+        OPENDAQ_RETURN_IF_FAILED(getAvailableDeviceTypes(&deviceTypes));
+
+        discoveredDeviceInfo = getSmartConnectionDeviceInfo(resolvedConnectionString);
+        resolvedConnectionString = resolveSmartConnectionString(
+            resolvedConnectionString, discoveredDeviceInfo, deviceTypes, parent != nullptr, generalConfig, loggerComponent);
+    }
+
+    DeviceTypePtr deviceType;
+    for (const auto& library : libraries)
+    {
+        deviceType = getDeviceTypeFromConnectionString(resolvedConnectionString, library.module);
+        if (deviceType.assigned())
+            break;
+    }
+
+    if (!deviceType.assigned())
+    {
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOTFOUND,
+                                   fmt::format("Device with given connection string '{}' and config is not available", connectionString));
+    }
+
+    OPENDAQ_RETURN_IF_FAILED(CheckKindAllowed(deviceType, parent != nullptr));
+
+    if (!inputIsLegacyConfig && inputConfig.assigned())
+    {
+        const PropertyObjectPtr deviceSection = legacyConfig.getPropertyValue(LegacyAddDeviceConfig::DeviceSection);
+        PropertyObjectPtr typeConfig = deviceSection.getPropertyValue(deviceType.getId());
+        OverrideConfigProperties(typeConfig, inputConfig);
+    }
+
+    DictPtr<IString, IStreamingType> streamingTypes;
+    OPENDAQ_RETURN_IF_FAILED(getAvailableStreamingTypes(&streamingTypes));
+    const AddDeviceConfigPtr config = fromLegacyAddDeviceConfig(legacyConfig, deviceType, streamingTypes, scanOnAdd, loggerComponent);
+
+    return createDeviceFromResolvedConfig(device,
+                                          config,
+                                          resolvedConnectionString,
+                                          connectionStringOptions,
+                                          parent,
+                                          authenticationConfig,
+                                          discoveredDeviceInfo);
 }
 
 ErrCode ModuleManagerImpl::createDeviceFromAddDeviceConfig(IDevice** device,
@@ -1072,9 +1067,27 @@ ErrCode ModuleManagerImpl::createDeviceFromAddDeviceConfig(IDevice** device,
         resolvedConnectionString = getConnectionStringFromCapability(*capability, addressTypes);
     }
 
+    return createDeviceFromResolvedConfig(device,
+                                          config,
+                                          resolvedConnectionString,
+                                          connectionStringOptions,
+                                          parent,
+                                          authenticationConfig,
+                                          discoveredDeviceInfo);
+}
+
+ErrCode ModuleManagerImpl::createDeviceFromResolvedConfig(IDevice** device,
+                                                          const AddDeviceConfigPtr& config,
+                                                          const StringPtr& connectionString,
+                                                          const tsl::ordered_map<std::string, BaseObjectPtr>& connectionStringOptions,
+                                                          IComponent* parent,
+                                                          const AuthenticationConfigPtr& authenticationConfig,
+                                                          const DeviceInfoPtr& discoveredDeviceInfo)
+{
+    const DeviceTypePtr deviceType = config.getDeviceType();
     for (const auto& library : libraries)
     {
-        const auto moduleDeviceType = getDeviceTypeFromConnectionString(resolvedConnectionString, library.module);
+        const auto moduleDeviceType = getDeviceTypeFromConnectionString(connectionString, library.module);
         if (!moduleDeviceType.assigned() || moduleDeviceType.getId() != deviceType.getId())
             continue;
 
@@ -1084,7 +1097,7 @@ ErrCode ModuleManagerImpl::createDeviceFromAddDeviceConfig(IDevice** device,
         return createDeviceWithModule(device,
                                       library.module,
                                       deviceType,
-                                      resolvedConnectionString,
+                                      connectionString,
                                       parent,
                                       typeConfig,
                                       toLegacyAddDeviceConfig(config),
@@ -1094,7 +1107,7 @@ ErrCode ModuleManagerImpl::createDeviceFromAddDeviceConfig(IDevice** device,
 
     return DAQ_MAKE_ERROR_INFO(
         OPENDAQ_ERR_NOTFOUND,
-        fmt::format(R"(No module creates device type "{}" with connection string "{}")", deviceType.getId(), resolvedConnectionString));
+        fmt::format(R"(No module creates device type "{}" with connection string "{}")", deviceType.getId(), connectionString));
 }
 
 ErrCode ModuleManagerImpl::createDeviceWithModule(IDevice** device,
@@ -1369,30 +1382,6 @@ void ModuleManagerImpl::PopulateDeviceTypeConfigFromConnStrOptions(
         if (deviceTypeConfig.hasProperty(item.first))
             deviceTypeConfig.setPropertyValue(item.first, item.second);
     }
-}
-
-PropertyObjectPtr ModuleManagerImpl::PopulateDeviceTypeConfig(PropertyObjectPtr& addDeviceConfig,
-                                                              const PropertyObjectPtr& inputConfig,
-                                                              const DeviceTypePtr& deviceType,
-                                                              const tsl::ordered_map<std::string, ObjectPtr<IBaseObject>>& connStrOptions)
-{
-    assert(IsDefaultAddDeviceConfig(addDeviceConfig));
-
-    const StringPtr deviceTypeId = deviceType.getId();
-    PropertyObjectPtr deviceTypeConfigurations = addDeviceConfig.getPropertyValue("Device");
-
-    PropertyObjectPtr deviceTypeConfig = deviceTypeConfigurations.getPropertyValue(deviceTypeId);
-
-    if (inputConfig.assigned() && !IsDefaultAddDeviceConfig(inputConfig))
-        OverrideConfigProperties(deviceTypeConfig, inputConfig);
-
-    if (!connStrOptions.empty())
-        PopulateDeviceTypeConfigFromConnStrOptions(deviceTypeConfig, connStrOptions);
-
-    deviceTypeConfigurations.asPtr<IPropertyObjectProtected>().setProtectedPropertyValue(deviceTypeId, deviceTypeConfig);
-    addDeviceConfig.asPtr<IPropertyObjectProtected>().setProtectedPropertyValue("Device", deviceTypeConfigurations);
-
-    return deviceTypeConfig;
 }
 
 ErrCode ModuleManagerImpl::createFunctionBlock(IFunctionBlock** functionBlock, IString* id, IComponent* parent, IPropertyObject* config, IString* localId)

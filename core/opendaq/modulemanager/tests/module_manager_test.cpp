@@ -1073,6 +1073,48 @@ TEST_F(ModuleManagerAddConfigTest, AddStoresThreeSectionConfig)
     ASSERT_EQ(unselected.getPropertyValue("General.AutomaticallyConnectStreaming"), False);
 }
 
+TEST_F(ModuleManagerAddConfigTest, AddTranslatesOldConfig)
+{
+    const PropertyObjectPtr config = manager.asPtr<IModuleManagerUtils>().createDefaultAddDeviceConfig();
+    config.setPropertyValue("General.ScanOnAdd", False);
+    config.setPropertyValue("General.PrioritizedStreamingProtocols", List<IString>("free", "mockstr"));
+    config.setPropertyValue("General.AllowedStreamingProtocols", List<IString>("mockstr"));
+    config.setPropertyValue("Device.mockdev.Port", 1234);
+    PropertyObjectPtr(config.getPropertyValue("Device.mockdev")).addProperty(IntProperty("Extra", 1));
+
+    const PropertyObjectPtr stored = addDevice("mockdev://10.0.0.5", config).asPtr<IComponentPrivate>().getComponentConfig();
+
+    ASSERT_EQ(module->createdConfig.getPropertyValue("Port"), 1234);
+    ASSERT_FALSE(module->createdConfig.hasProperty("Extra"));
+
+    ASSERT_EQ(stored.getPropertyValue("General.PrioritizedStreamingProtocols"), List<IString>("mockstr"));
+    ASSERT_EQ(stored.getPropertyValue("General.AllowedStreamingProtocols"), List<IString>());
+    ASSERT_EQ(PropertyObjectPtr(stored.getPropertyValue("Device")).getAllProperties().getCount(), 1u);
+}
+
+TEST_F(ModuleManagerAddConfigTest, AddFlatConfig)
+{
+    auto config = PropertyObject();
+    config.addProperty(IntProperty("Port", 1234));
+    config.addProperty(StringProperty("PrimaryAddressType", "IPv6"));
+
+    const PropertyObjectPtr stored = addDevice("mockdev://10.0.0.5", config).asPtr<IComponentPrivate>().getComponentConfig();
+
+    ASSERT_EQ(module->createdConfig.getPropertyValue("Port"), 1234);
+    ASSERT_EQ(stored.getPropertyValue("General.PrimaryAddressType"), "IPv6");
+}
+
+TEST_F(ModuleManagerAddConfigTest, AddRejectsOldConfigValue)
+{
+    const PropertyObjectPtr config = manager.asPtr<IModuleManagerUtils>().createDefaultAddDeviceConfig();
+    const PropertyObjectPtr typeConfig = config.getPropertyValue("Device.mockdev");
+    typeConfig.removeProperty("Port");
+    typeConfig.addProperty(StringProperty("Port", "not a port"));
+
+    ASSERT_EQ(add("mockdev://10.0.0.5", config), OPENDAQ_ERR_INVALIDVALUE);
+    ASSERT_FALSE(module->createdConfig.assigned());
+}
+
 TEST_F(ModuleManagerAddConfigTest, AddMismatchedConfig)
 {
     const auto config = create(deviceInfo("mockdev://"));

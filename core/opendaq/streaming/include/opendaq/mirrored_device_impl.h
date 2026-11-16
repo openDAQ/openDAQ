@@ -415,9 +415,9 @@ AddStreamingConfigPtr MirroredDeviceBase<Interfaces...>::onCreateAddStreamingCon
     const auto loadedTypes = managerUtils.getAvailableStreamingTypes();
     if (connectionString.assigned())
     {
-        const auto findTypeByConnectionString = [&loadedTypes](const std::string& str) -> StreamingTypePtr
+        const auto findTypeByConnectionString = [&loadedTypes](const StringPtr& connectionString) -> StreamingTypePtr
         {
-            const StringPtr prefix = str.substr(0, str.find("://"));
+            const StringPtr prefix = getPrefixFromConnectionString(connectionString);
             for (const auto& [_, type] : loadedTypes)
                 if (type.getConnectionStringPrefix() == prefix)
                     return type;

@@ -2068,20 +2068,6 @@ void ModuleManagerImpl::onCompleteCapabilities(const DevicePtr& device, const De
     completeServerCapabilities(device);
 }
 
-std::string ModuleManagerImpl::getPrefixFromConnectionString(std::string connectionString) const
-{
-    try
-    {
-        return connectionString.substr(0, connectionString.find("://"));
-    }
-    catch(...)
-    {
-        LOG_W("Connection string has no prefix denoted by the \"://\" delimiter")
-    }
-
-    return "";
-}
-
 std::pair<std::string, tsl::ordered_map<std::string, BaseObjectPtr>> ModuleManagerImpl::SplitConnectionStringAndOptions(
     const std::string& connectionString)
 {

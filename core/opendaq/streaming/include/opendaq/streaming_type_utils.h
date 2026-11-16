@@ -17,6 +17,7 @@
 #pragma once
 #include <opendaq/streaming_type_ptr.h>
 #include <opendaq/server_capability_ptr.h>
+#include <opendaq/connection_string_utils.h>
 #include <opendaq/logger_component_ptr.h>
 #include <opendaq/custom_log.h>
 #include <coretypes/dictobject_factory.h>
@@ -67,8 +68,7 @@ inline DictPtr<IString, IStreamingType> getListableStreamingTypes(const DictPtr<
  * @param capability The server capability
  *
  * The prefix is the capability's prefix when it is set.
- * Otherwise, it is the prefix of the capability's connection string.
- * The result is empty when neither gives a prefix.
+ * Otherwise, it is the prefix of the capability's connection string, as `getPrefixFromConnectionString` gives it.
  */
 inline StringPtr getServerCapabilityPrefix(const ServerCapabilityPtr& capability)
 {
@@ -76,9 +76,7 @@ inline StringPtr getServerCapabilityPrefix(const ServerCapabilityPtr& capability
     if (prefix.getLength() > 0)
         return prefix;
 
-    const std::string connectionString = capability.getConnectionString();
-    const auto end = connectionString.find("://");
-    return (end == std::string::npos) ? "" : connectionString.substr(0, end);
+    return getPrefixFromConnectionString(capability.getConnectionString());
 }
 
 /*!

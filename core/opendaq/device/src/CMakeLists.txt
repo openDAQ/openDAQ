@@ -170,6 +170,7 @@ function(create_component_source_groups_${BASE_NAME})
         ${SDK_HEADERS_DIR}/address_info_builder.h
         ${SDK_HEADERS_DIR}/address_info_impl.h
         ${SDK_HEADERS_DIR}/address_info_builder_impl.h
+        ${SDK_HEADERS_DIR}/connection_string_utils.h
         ${SDK_SRC_DIR}/address_info_impl.cpp
         ${SDK_SRC_DIR}/address_info_builder_impl.cpp
         ${SDK_SRC_DIR}/server_capability_impl.cpp
@@ -232,6 +233,7 @@ set(SRC_PublicHeaders_Component
     server_capability.h
     server_capability_config.h
     server_capability_impl.h
+    connection_string_utils.h
     device_domain_factory.h
     address_info_factory.h
     log_file_info.h

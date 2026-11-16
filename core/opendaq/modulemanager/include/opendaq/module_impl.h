@@ -19,6 +19,7 @@
 #include <opendaq/device_ptr.h>
 #include <opendaq/function_block_ptr.h>
 #include <opendaq/module_manager_ptr.h>
+#include <opendaq/connection_string_utils.h>
 #include <opendaq/context_ptr.h>
 #include <coreobjects/property_object_factory.h>
 #include <coretypes/intfs.h>
@@ -650,7 +651,7 @@ protected:
     }
 
 private:
-    // Looks up `types` for the one whose `getConnectionStringPrefix()` matches `connectionString`'s own prefix -
+    // Looks up `types` for the one whose `getPrefixFromConnectionString()` matches `connectionString`'s own prefix -
     // unassigned if `connectionString` has none, or no entry's prefix matches. Shared by `createDevice`/
     // `createAuthenticatedDevice` (over device types) and `createStreaming`/`createAuthenticatedStreaming`
     // (over streaming types).
@@ -658,7 +659,7 @@ private:
     ComponentTypePtr findTypeByConnectionStringPrefix(const StringPtr& connectionString, const DictPtr<IString, ComponentTypeT>& types) const
     {
         const StringPtr prefix = getPrefixFromConnectionString(connectionString);
-        if (prefix.assigned() && prefix.getLength() != 0)
+        if (prefix.getLength() != 0)
         {
             for (const auto& [_, type] : types)
             {
@@ -667,21 +668,6 @@ private:
             }
         }
         return nullptr;
-    }
-
-    StringPtr getPrefixFromConnectionString(const StringPtr& connectionString) const
-    {
-        try
-        {
-            std::string str = connectionString;
-            return str.substr(0, str.find("://"));
-        }
-        catch(...)
-        {
-            LOG_W("Connection string has no prefix denoted by the \"://\" delimiter")
-        }
-
-        return "";
     }
 
     static void populateDefaultConfig(const PropertyObjectPtr& defaultObj, const PropertyObjectPtr& userInput)

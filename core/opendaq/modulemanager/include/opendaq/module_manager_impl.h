@@ -86,7 +86,6 @@ private:
                                                       const DeviceTypePtr& deviceType,
                                                       const tsl::ordered_map<std::string, ObjectPtr<IBaseObject>>& connStrOptions);
 
-    std::string getPrefixFromConnectionString(std::string connectionString) const;
     static std::pair<std::string, tsl::ordered_map<std::string, BaseObjectPtr>> SplitConnectionStringAndOptions(const std::string& connectionString);
 
     DeviceInfoPtr getSmartConnectionDeviceInfo(const StringPtr& inputConnectionString) const;

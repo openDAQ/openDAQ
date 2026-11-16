@@ -950,7 +950,23 @@ ErrCode ModuleManagerImpl::createDeviceInternal(IDevice** device, IString* conne
             // copy props from input config and connection string to device type config
             const auto deviceTypeConfig = PopulateDeviceTypeConfig(addDeviceConfig, inputConfig, deviceType, connectionStringOptions);
 
-            // The module connects by the selection properties; a config without them gets the default option
+            // The module connects by TransportOptionConfigProperty and PortConfigProperty; a config without them gets
+            // the type's first option. On this legacy path the selection cannot come from the input config: the type
+            // config is the type's default config with the input values copied over (OverrideConfigProperties), and
+            // that one has no TransportOption unless the module declares it itself. So the module gets the first option
+            // here.
+            //
+            // The new createDevice (see the comment in createDevice) is expected to resolve the port first and to hand
+            // over a type config that already carries the selection of the IAddDeviceConfig:
+            //
+            //   typeConfig[TransportOptionConfigProperty] = config.getSelectedTransportOption().getName()
+            //   typeConfig[PortConfigProperty] = the resolved port
+            //   module.createDevice(ReplaceConnectionStringPort(target, the resolved port), typeConfig)
+            //
+            // AddTransportSelectionProperties then adds nothing, and CheckSelectedTransportOption still rejects an
+            // option the type does not list with OPENDAQ_ERR_NOTFOUND. The port has to be resolved before this point:
+            // the connection string of a discovered device names the port of the server's default option, which may
+            // belong to another option than the selected one.
             AddTransportSelectionProperties(deviceTypeConfig, ComponentTypeTransportOptions(deviceType));
             OPENDAQ_RETURN_IF_FAILED(CheckSelectedTransportOption(deviceType, deviceTypeConfig));
 

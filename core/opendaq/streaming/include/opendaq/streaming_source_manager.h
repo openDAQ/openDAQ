@@ -540,6 +540,22 @@ inline void StreamingSourceManager::attachStreamingToDevice(const MirroredDevice
         if (streamingConnectionStrings.empty())
             streamingConnectionStrings.pushBack(cap.getConnectionString());
 
+        // The streaming connects at the port of the capability's connection strings, which is the port of the server's
+        // default transport option, and its module gets the type's first option (see
+        // ModuleManagerImpl::onCreateStreaming). With the new createDevice the streaming is expected to connect over the
+        // option the add-device config selects for it (for example through IDevice::getAddDeviceConfig), at the port the
+        // server announces for that option:
+        //
+        //   streamingConfig = the streaming config of the add-device config the device was added with
+        //   selected = streamingConfig.getSelectedTransportOption();
+        //              for a Streaming type linked to the Device type, the option the device is added over
+        //   option = the option of cap.getTransportOptions() named selected.getName()
+        //   if there is no such option: skip the capability
+        //   port = streamingConfig.getPort() != selected.getPort() ? streamingConfig.getPort() : option.getPort()
+        //   for each connection string: connectionString = ReplaceConnectionStringPort(connectionString, port)
+        //   the streaming type config gets TransportOptionConfigProperty = selected.getName() and
+        //   PortConfigProperty = port
+
         // try all suitable addresses until the first successful streaming connection
         for (const auto& connectionString : streamingConnectionStrings)
         {

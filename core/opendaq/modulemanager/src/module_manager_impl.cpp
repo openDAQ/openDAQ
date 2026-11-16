@@ -1331,24 +1331,7 @@ ErrCode ModuleManagerImpl::createDefaultAddDeviceConfig(IPropertyObject** defaul
     err = getAvailableStreamingTypes(&streamingTypes);
     OPENDAQ_RETURN_IF_FAILED(err);
 
-    auto config = PropertyObject();
-
-    auto deviceConfig = PropertyObject();
-    auto streamingConfig = PropertyObject();
-    auto generalConfig = PropertyObject();
-
-    for (auto const& [key, typeObj] : deviceTypes)
-        deviceConfig.addProperty(ObjectProperty(key, typeObj.createDefaultConfig()));
-
-    for (auto const& [key, typeObj] : streamingTypes)
-        streamingConfig.addProperty(ObjectProperty(key, typeObj.createDefaultConfig()));
-
-    config.addProperty(ObjectProperty(LegacyAddDeviceConfig::DeviceSection, deviceConfig.detach()));
-    config.addProperty(ObjectProperty(LegacyAddDeviceConfig::StreamingSection, streamingConfig.detach()));
-    config.addProperty(ObjectProperty(LegacyAddDeviceConfig::GeneralSection, createLegacyGeneralConfig(scanOnAdd).detach()));
-
-    *defaultConfig = config.detach();
-    return OPENDAQ_SUCCESS;
+    return daqCreateLegacyAddDeviceConfig(defaultConfig, deviceTypes, streamingTypes, scanOnAdd);
 }
 
 ErrCode ModuleManagerImpl::createServer(IServer** server, IString* serverTypeId, IDevice* rootDevice, IPropertyObject* serverConfig)

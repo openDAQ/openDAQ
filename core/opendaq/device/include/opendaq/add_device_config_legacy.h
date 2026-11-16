@@ -64,6 +64,19 @@ inline ListPtr<IString> defaultPrioritizedStreamingProtocols()
 extern "C" PUBLIC_EXPORT ErrCode daqCreateLegacyGeneralConfig(IPropertyObject** general, Bool scanOnAdd);
 
 /*!
+ * @brief Creates a legacy config with `Device`, `Streaming` and `General` sections and their default values.
+ * @param[out] config The legacy config
+ * @param deviceTypes The Device types that get a `Device` entry
+ * @param streamingTypes The Streaming types that get a `Streaming` entry
+ * @param scanOnAdd The default of `ScanOnAdd`
+ * @retval OPENDAQ_ERR_ARGUMENT_NULL when the Device or Streaming types are null.
+ */
+extern "C" PUBLIC_EXPORT ErrCode daqCreateLegacyAddDeviceConfig(IPropertyObject** config,
+                                                                IDict* deviceTypes,
+                                                                IDict* streamingTypes,
+                                                                Bool scanOnAdd);
+
+/*!
  * @brief Translates a legacy config into an Add device config.
  * @param[out] config The Add device config
  * @param legacyConfig The legacy config
@@ -134,6 +147,21 @@ inline PropertyObjectPtr createLegacyGeneralConfig(Bool scanOnAdd)
     PropertyObjectPtr general;
     checkErrorInfo(daqCreateLegacyGeneralConfig(&general, scanOnAdd));
     return general;
+}
+
+/*!
+ * @brief Creates a legacy config with its default values, as `daqCreateLegacyAddDeviceConfig` does.
+ * @param deviceTypes The Device types that get a `Device` entry
+ * @param streamingTypes The Streaming types that get a `Streaming` entry
+ * @param scanOnAdd The default of `ScanOnAdd`
+ */
+inline PropertyObjectPtr createLegacyAddDeviceConfig(const DictPtr<IString, IDeviceType>& deviceTypes,
+                                                     const DictPtr<IString, IStreamingType>& streamingTypes,
+                                                     Bool scanOnAdd)
+{
+    PropertyObjectPtr config;
+    checkErrorInfo(daqCreateLegacyAddDeviceConfig(&config, deviceTypes, streamingTypes, scanOnAdd));
+    return config;
 }
 
 /*!

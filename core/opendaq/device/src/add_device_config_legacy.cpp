@@ -80,6 +80,25 @@ PropertyObjectPtr createGeneralConfig(Bool scanOnAdd)
     return obj.detach();
 }
 
+PropertyObjectPtr createDefaultConfig(const DictPtr<IString, IDeviceType>& deviceTypes,
+                                      const DictPtr<IString, IStreamingType>& streamingTypes,
+                                      Bool scanOnAdd)
+{
+    auto deviceSection = PropertyObject();
+    for (const auto& [id, type] : deviceTypes)
+        deviceSection.addProperty(ObjectProperty(id, type.createDefaultConfig()));
+
+    auto streamingSection = PropertyObject();
+    for (const auto& [id, type] : streamingTypes)
+        streamingSection.addProperty(ObjectProperty(id, type.createDefaultConfig()));
+
+    auto config = PropertyObject();
+    config.addProperty(ObjectProperty(LegacyAddDeviceConfig::DeviceSection, deviceSection.detach()));
+    config.addProperty(ObjectProperty(LegacyAddDeviceConfig::StreamingSection, streamingSection.detach()));
+    config.addProperty(ObjectProperty(LegacyAddDeviceConfig::GeneralSection, createGeneralConfig(scanOnAdd).detach()));
+    return config.detach();
+}
+
 AddDeviceConfigPtr fromLegacy(const PropertyObjectPtr& input,
                               const DeviceTypePtr& deviceType,
                               const DictPtr<IString, IStreamingType>& streamingTypes,
@@ -229,6 +248,18 @@ extern "C" PUBLIC_EXPORT ErrCode daqCreateLegacyGeneralConfig(IPropertyObject** 
     OPENDAQ_PARAM_NOT_NULL(general);
 
     return daqTry([&] { *general = createGeneralConfig(scanOnAdd).detach(); });
+}
+
+extern "C" PUBLIC_EXPORT ErrCode daqCreateLegacyAddDeviceConfig(IPropertyObject** config,
+                                                                IDict* deviceTypes,
+                                                                IDict* streamingTypes,
+                                                                Bool scanOnAdd)
+{
+    OPENDAQ_PARAM_NOT_NULL(config);
+    OPENDAQ_PARAM_NOT_NULL(deviceTypes);
+    OPENDAQ_PARAM_NOT_NULL(streamingTypes);
+
+    return daqTry([&] { *config = createDefaultConfig(deviceTypes, streamingTypes, scanOnAdd).detach(); });
 }
 
 extern "C" PUBLIC_EXPORT ErrCode daqFromLegacyAddDeviceConfig(IAddDeviceConfig** config,

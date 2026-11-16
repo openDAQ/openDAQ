@@ -10,7 +10,7 @@
 //------------------------------------------------------------------------------
 
 /*
- * Copyright 2022-2025 openDAQ d.o.o.
+ * Copyright 2022-2026 openDAQ d.o.o.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -30,7 +30,6 @@
 #include "py_opendaq/py_opendaq.h"
 #include "py_core_types/py_converter.h"
 #include "py_core_objects/py_variant_extractor.h"
-#include <opendaq/authentication_method_factory.h>
 
 PyDaqIntf<daq::IAuthenticationMethod, daq::IBaseObject> declareIAuthenticationMethod(pybind11::module_ m)
 {
@@ -45,10 +44,6 @@ void defineIAuthenticationMethod(pybind11::module_ m, PyDaqIntf<daq::IAuthentica
         return daq::AuthenticationMethod_Create(getVariantValue<daq::IString*>(id), getVariantValue<daq::IDict*>(fields), getVariantValue<daq::IString*>(description));
     }, py::arg("id"), py::arg("fields"), py::arg("description"));
 
-    m.def("NoneAuthenticationMethod", [](std::variant<daq::IString*, py::str, daq::IEvalValue*>& id, std::variant<daq::IString*, py::str, daq::IEvalValue*>& description){
-        const auto fields = daq::Dict<daq::IString, daq::ICredentialField>();
-        return daq::AuthenticationMethod_Create(getVariantValue<daq::IString*>(id), fields, getVariantValue<daq::IString*>(description));
-    }, py::arg("id"), py::arg("description"));
 
     cls.def_property_readonly("id",
         [](daq::IAuthenticationMethod *object)
@@ -57,7 +52,7 @@ void defineIAuthenticationMethod(pybind11::module_ m, PyDaqIntf<daq::IAuthentica
             const auto objectPtr = daq::AuthenticationMethodPtr::Borrow(object);
             return objectPtr.getId().toStdString();
         },
-        "Gets the id that uniquely identifies this authentication method, at least within the module that offers it. In practice often unique system-wide instead: the Standard*AuthenticationMethod factories key off shared, well-known ids, so different modules using the same standard id produce identically-shaped authentication methods.");
+        "Gets the id that uniquely identifies this authentication method, at least within the module that offers it.");
     cls.def_property_readonly("fields",
         [](daq::IAuthenticationMethod *object)
         {

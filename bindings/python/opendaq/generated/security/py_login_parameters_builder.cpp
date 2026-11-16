@@ -38,7 +38,7 @@ PyDaqIntf<daq::ILoginParametersBuilder, daq::IBaseObject> declareILoginParameter
 
 void defineILoginParametersBuilder(pybind11::module_ m, PyDaqIntf<daq::ILoginParametersBuilder, daq::IBaseObject> cls)
 {
-    cls.doc() = "Builds `ILoginParameters` objects with the parameters needed to authenticate a connection attempt, such as the selected authentication method and the resolved credentials.";
+    cls.doc() = "Builds `ILoginParameters` objects with the parameters needed to authenticate a connection attempt, such as the selected authentication method and the resolved credentials. The `credentials` defaults to empty if never set.";
 
     m.def("LoginParametersBuilder", &daq::LoginParametersBuilder_Create);
 
@@ -49,7 +49,7 @@ void defineILoginParametersBuilder(pybind11::module_ m, PyDaqIntf<daq::ILoginPar
             const auto objectPtr = daq::LoginParametersBuilderPtr::Borrow(object);
             return objectPtr.build().detach();
         },
-        "Builds and returns a `LoginParameters` using the currently configured values. Fails unless authentication_method and credentials were both set.");
+        "Builds and returns a `LoginParameters` using the currently configured values. Fails unless `authenticationMethod` was set, and `credentials` satisfies its required fields.");
     cls.def_property("credentials",
         [](daq::ILoginParametersBuilder *object)
         {
@@ -57,14 +57,14 @@ void defineILoginParametersBuilder(pybind11::module_ m, PyDaqIntf<daq::ILoginPar
             const auto objectPtr = daq::LoginParametersBuilderPtr::Borrow(object);
             return objectPtr.getCredentials().detach();
         },
-        [](daq::ILoginParametersBuilder *object, daq::IDict* credentials)
+        [](daq::ILoginParametersBuilder *object, std::variant<daq::IDict*, py::dict>& credentials)
         {
             py::gil_scoped_release release;
             const auto objectPtr = daq::LoginParametersBuilderPtr::Borrow(object);
-            objectPtr.setCredentials(credentials);
+            objectPtr.setCredentials(getVariantValue<daq::IDict*>(credentials));
         },
         py::return_value_policy::take_ownership,
-        "Gets the credentials currently set on the builder. / Sets the resolved credentials - a value for each of the authentication method's mandatory fields; empty for a method with none (e.g. \"Anonymous\"). Required.");
+        "Gets the credentials currently set on the builder. / Sets the resolved credentials - a value for each of the authentication method's mandatory fields; empty for a method with none (e.g. \"Anonymous\"). Defaults to empty if never set.");
     cls.def_property("authentication_method",
         [](daq::ILoginParametersBuilder *object)
         {
@@ -79,5 +79,5 @@ void defineILoginParametersBuilder(pybind11::module_ m, PyDaqIntf<daq::ILoginPar
             objectPtr.setAuthenticationMethod(method);
         },
         py::return_value_policy::take_ownership,
-        "Gets the authentication method currently set on the builder. / Sets the authentication method the credentials are shaped for. Required.");
+        "Gets the authentication method currently set on the builder. / Sets the authentication method the credentials are shaped for. Required - `build()` fails if never set.");
 }

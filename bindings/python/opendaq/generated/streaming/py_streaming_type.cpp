@@ -61,5 +61,5 @@ void defineIStreamingType(pybind11::module_ m, PyDaqIntf<daq::IStreamingType, da
             return objectPtr.getLinkedDeviceType().detach();
         },
         py::return_value_policy::take_ownership,
-        "Gets the device type this streaming type shares its connection parameters with (including supported authentication methods). Unassigned if this streaming type doesn't share its parameters with any specific device type.");
+        "Gets the device type this streaming type shares its connection parameters with - including the same authentication methods a device of that type uses, since in practice a streaming connection is typically established to the same endpoint, with the same parameters, as the device it accompanies. Unassigned if this streaming type doesn't share its parameters with any specific device type.");
 }

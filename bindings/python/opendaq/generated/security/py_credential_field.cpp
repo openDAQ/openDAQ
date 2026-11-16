@@ -10,7 +10,7 @@
 //------------------------------------------------------------------------------
 
 /*
- * Copyright 2022-2025 openDAQ d.o.o.
+ * Copyright 2022-2026 openDAQ d.o.o.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -30,7 +30,6 @@
 #include "py_opendaq/py_opendaq.h"
 #include "py_core_types/py_converter.h"
 #include "py_core_objects/py_variant_extractor.h"
-#include <coretypes/dictobject_factory.h>
 
 PyDaqIntf<daq::ICredentialField, daq::IBaseObject> declareICredentialField(pybind11::module_ m)
 {
@@ -44,16 +43,12 @@ PyDaqIntf<daq::ICredentialField, daq::IBaseObject> declareICredentialField(pybin
 
 void defineICredentialField(pybind11::module_ m, PyDaqIntf<daq::ICredentialField, daq::IBaseObject> cls)
 {
-    cls.doc() = "Describes a single named credential field of an authentication method.";
+    cls.doc() = "Describes a single named credential field of an `IAuthenticationMethod`.";
 
-    m.def("CredentialField", [](daq::IString* id, daq::CredentialFieldKind kind, daq::IString* name, bool required, daq::IDict* metadata){
-        daq::DictPtr<daq::IString, daq::IString> metadataPtr;
-        if (metadata != nullptr)
-            metadataPtr = daq::DictPtr<daq::IString, daq::IString>::Borrow(metadata);
-        else
-            metadataPtr = daq::Dict<daq::IString, daq::IString>();
-        return daq::CredentialField_Create(id, kind, name, required, metadataPtr);
-    }, py::arg("id"), py::arg("kind"), py::arg("name"), py::arg("required") = true, py::arg("metadata") = nullptr);
+    m.def("CredentialField", [](std::variant<daq::IString*, py::str, daq::IEvalValue*>& id, daq::CredentialFieldKind kind, std::variant<daq::IString*, py::str, daq::IEvalValue*>& name, const bool required, std::variant<daq::IDict*, py::dict>& metadata){
+        return daq::CredentialField_Create(getVariantValue<daq::IString*>(id), kind, getVariantValue<daq::IString*>(name), required, getVariantValue<daq::IDict*>(metadata));
+    }, py::arg("id"), py::arg("kind"), py::arg("name"), py::arg("required"), py::arg("metadata"));
+
 
     cls.def_property_readonly("id",
         [](daq::ICredentialField *object)
@@ -62,7 +57,7 @@ void defineICredentialField(pybind11::module_ m, PyDaqIntf<daq::ICredentialField
             const auto objectPtr = daq::CredentialFieldPtr::Borrow(object);
             return objectPtr.getId().toStdString();
         },
-        "Gets the key this field is stored under in the credential.");
+        "Gets the key this field is stored under in the credential - e.g. \"Username\", \"Password\", \"PrivateKeyFilePath\".");
     cls.def_property_readonly("kind",
         [](daq::ICredentialField *object)
         {
@@ -78,7 +73,7 @@ void defineICredentialField(pybind11::module_ m, PyDaqIntf<daq::ICredentialField
             const auto objectPtr = daq::CredentialFieldPtr::Borrow(object);
             return objectPtr.getName().toStdString();
         },
-        "Gets a human-readable name for this field, for the user.");
+        "Gets a human-readable name for this field, for the user - e.g. \"User name\", \"Private key file\".");
     cls.def_property_readonly("metadata",
         [](daq::ICredentialField *object)
         {
@@ -86,7 +81,8 @@ void defineICredentialField(pybind11::module_ m, PyDaqIntf<daq::ICredentialField
             const auto objectPtr = daq::CredentialFieldPtr::Borrow(object);
             return objectPtr.getMetadata().detach();
         },
-        "Gets hints for whoever collects this field's value.");
+        py::return_value_policy::take_ownership,
+        "Gets hints for whoever collects this field's value. Well-known key `\"Extensions\"` for `FilePath`: comma-separated, without the dot (e.g. `\"pem,key\"`); absent or empty means any file.");
     cls.def_property_readonly("required",
         [](daq::ICredentialField *object)
         {
@@ -94,5 +90,5 @@ void defineICredentialField(pybind11::module_ m, PyDaqIntf<daq::ICredentialField
             const auto objectPtr = daq::CredentialFieldPtr::Borrow(object);
             return objectPtr.isRequired();
         },
-        "Gets whether this field cannot be left unset or empty.");
+        "Gets whether this field cannot be left unset or empty - e.g. a password might be optional but not the username within the same authentication method.");
 }

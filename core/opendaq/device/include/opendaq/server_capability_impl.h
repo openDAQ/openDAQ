@@ -451,7 +451,7 @@ inline ErrCode ServerCapabilityConfigImpl::setPort(IInteger* port)
         {
             // replacing the value of a key keeps its place
             const Int newPort = IntegerPtr::Borrow(port);
-            options.set(first.getName(), TransportOption(first.getName(), newPort, first.getProtection(), first.getCertificateRequired()));
+            options.set(first.getId(), TransportOption(first.getId(), newPort, first.getProtection(), first.getCertificateRequired()));
             OPENDAQ_RETURN_IF_FAILED(writeTransportOptions(options));
         }
 
@@ -589,7 +589,7 @@ inline DictPtr<IString, ITransportOption> ServerCapabilityConfigImpl::readTransp
         if (prop.getValueType() == ctObject)
         {
             const auto option = TransportOptionFromObject(container.getPropertyValue(prop.getName()));
-            options.set(option.getName(), option);
+            options.set(option.getId(), option);
         }
     }
 
@@ -598,7 +598,7 @@ inline DictPtr<IString, ITransportOption> ServerCapabilityConfigImpl::readTransp
 
 inline TransportOptionPtr ServerCapabilityConfigImpl::FirstTransportOption(const DictPtr<IString, ITransportOption>& options)
 {
-    for (const auto& [name, option] : options)
+    for (const auto& [id, option] : options)
         return option;
 
     return nullptr;
@@ -615,17 +615,17 @@ inline TransportOptionPtr ServerCapabilityConfigImpl::TransportOptionFromObject(
         return obj.hasProperty(name) && obj.getProperty(name).getValueType() == type;
     };
 
-    if (!hasProperty("Name", ctString) || !hasProperty("Port", ctInt) || !hasProperty("Protection", ctInt) ||
+    if (!hasProperty("Id", ctString) || !hasProperty("Port", ctInt) || !hasProperty("Protection", ctInt) ||
         !hasProperty("CertificateRequired", ctBool))
     {
         DAQ_THROW_EXCEPTION(InvalidParameterException, "The server capability holds an object that is not a transport option");
     }
 
-    const StringPtr name = obj.getPropertyValue("Name");
+    const StringPtr id = obj.getPropertyValue("Id");
     const Int port = obj.getPropertyValue("Port");
     const Int protection = obj.getPropertyValue("Protection");
     const Bool certificateRequired = obj.getPropertyValue("CertificateRequired");
-    return TransportOption(name, port, static_cast<TransportProtection>(protection), certificateRequired);
+    return TransportOption(id, port, static_cast<TransportProtection>(protection), certificateRequired);
 }
 
 inline ErrCode ServerCapabilityConfigImpl::writeTransportOptions(const DictPtr<IString, ITransportOption>& options)
@@ -633,15 +633,15 @@ inline ErrCode ServerCapabilityConfigImpl::writeTransportOptions(const DictPtr<I
     return daqTry([&]
     {
         auto container = PropertyObject();
-        for (const auto& [name, option] : options)
+        for (const auto& [id, option] : options)
         {
-            // the property name is only a key, the option keeps its own name
-            std::string key = name;
+            // the property name is only a key, the option keeps its own id
+            std::string key = id;
             key.erase(std::remove_if(key.begin(), key.end(), [](char c) { return c == '/' || c == '.' || c == '[' || c == ']'; }),
                       key.end());
             if (key.empty() || container.hasProperty(key))
                 return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDVALUE,
-                                           fmt::format(R"(Transport option "{}" cannot be told apart from another one)", option.getName()));
+                                           fmt::format(R"(Transport option "{}" cannot be told apart from another one)", option.getId()));
 
             container.addProperty(ObjectProperty(key, option));
         }
@@ -656,15 +656,15 @@ inline DictPtr<IString, ITransportOption> ServerCapabilityConfigImpl::ValidatedT
     auto options = Dict<IString, ITransportOption>();
     for (const auto& [key, item] : DictPtr<IBaseObject, IBaseObject>::Borrow(transportOptions))
     {
-        const auto name = key.asPtrOrNull<IString, StringPtr>();
+        const auto id = key.asPtrOrNull<IString, StringPtr>();
         const auto option = item.asPtrOrNull<ITransportOption, TransportOptionPtr>();
-        if (!name.assigned() || !option.assigned())
-            DAQ_THROW_EXCEPTION(InvalidTypeException, "Transport options must be ITransportOption objects keyed by their names");
+        if (!id.assigned() || !option.assigned())
+            DAQ_THROW_EXCEPTION(InvalidTypeException, "Transport options must be ITransportOption objects keyed by their ids");
 
-        if (name != option.getName())
-            DAQ_THROW_EXCEPTION(InvalidValueException, "Transport option \"{}\" is keyed by \"{}\"", option.getName(), name);
+        if (id != option.getId())
+            DAQ_THROW_EXCEPTION(InvalidValueException, "Transport option \"{}\" is keyed by \"{}\"", option.getId(), id);
 
-        options.set(name, option);
+        options.set(id, option);
     }
 
     return options;
@@ -706,10 +706,10 @@ inline ErrCode ServerCapabilityConfigImpl::addAvailableTransportOption(ITranspor
     {
         const auto option = TransportOptionPtr::Borrow(transportOption);
         auto options = readTransportOptions();
-        if (options.hasKey(option.getName()))
-            return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_ALREADYEXISTS, fmt::format(R"(Transport option "{}" is already set)", option.getName()));
+        if (options.hasKey(option.getId()))
+            return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_ALREADYEXISTS, fmt::format(R"(Transport option "{}" is already set)", option.getId()));
 
-        options.set(option.getName(), option);
+        options.set(option.getId(), option);
         OPENDAQ_RETURN_IF_FAILED(writeTransportOptions(options));
 
         // the first option is the default one, whose port older clients read

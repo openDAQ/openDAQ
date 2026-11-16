@@ -18,22 +18,22 @@ DictPtr<IInteger, IString> ProtectionNames()
 
 }
 
-TransportOptionImpl::TransportOptionImpl(const StringPtr& name,
+TransportOptionImpl::TransportOptionImpl(const StringPtr& id,
                                          const IntegerPtr& port,
                                          TransportProtection protection,
                                          Bool certificateRequired)
     : Super()
 {
-    if (!name.assigned() || name.getLength() == 0)
-        DAQ_THROW_EXCEPTION(InvalidParameterException, "The transport option name must not be empty");
+    if (!id.assigned() || id.getLength() == 0)
+        DAQ_THROW_EXCEPTION(InvalidParameterException, "The transport option id must not be empty");
     if (!port.assigned())
-        DAQ_THROW_EXCEPTION(ArgumentNullException, "The port of transport option \"{}\" is not assigned", name);
+        DAQ_THROW_EXCEPTION(ArgumentNullException, "The port of transport option \"{}\" is not assigned", id);
     if (static_cast<Int>(port) < 0)
-        DAQ_THROW_EXCEPTION(InvalidParameterException, "The port of transport option \"{}\" must not be negative", name);
+        DAQ_THROW_EXCEPTION(InvalidParameterException, "The port of transport option \"{}\" must not be negative", id);
     if (protection != TransportProtection::None && protection != TransportProtection::Signed && protection != TransportProtection::Encrypted)
-        DAQ_THROW_EXCEPTION(InvalidParameterException, "The protection of transport option \"{}\" is not valid", name);
+        DAQ_THROW_EXCEPTION(InvalidParameterException, "The protection of transport option \"{}\" is not valid", id);
 
-    Super::addProperty(StringProperty(NamePropertyName, name));
+    Super::addProperty(StringProperty(IdPropertyName, id));
     Super::addProperty(IntProperty(PortPropertyName, port));
     Super::addProperty(SparseSelectionProperty(ProtectionPropertyName, ProtectionNames(), static_cast<Int>(protection)));
     Super::addProperty(BoolProperty(CertificateRequiredPropertyName, certificateRequired));
@@ -41,14 +41,14 @@ TransportOptionImpl::TransportOptionImpl(const StringPtr& name,
     Super::freeze();
 }
 
-ErrCode TransportOptionImpl::getName(IString** name)
+ErrCode TransportOptionImpl::getId(IString** id)
 {
-    OPENDAQ_PARAM_NOT_NULL(name);
+    OPENDAQ_PARAM_NOT_NULL(id);
 
     return daqTry([&]
     {
-        StringPtr value = objPtr.getPropertyValue(NamePropertyName);
-        *name = value.detach();
+        StringPtr value = objPtr.getPropertyValue(IdPropertyName);
+        *id = value.detach();
     });
 }
 
@@ -106,19 +106,19 @@ ErrCode TransportOptionImpl::clone(IPropertyObject** cloned)
     return daqTry([&]
     {
         // Immutable, so a copy of the fields is a full clone
-        const StringPtr name = objPtr.getPropertyValue(NamePropertyName);
+        const StringPtr id = objPtr.getPropertyValue(IdPropertyName);
         const Int port = objPtr.getPropertyValue(PortPropertyName);
         const Int protection = objPtr.getPropertyValue(ProtectionPropertyName);
         const Bool certificateRequired = objPtr.getPropertyValue(CertificateRequiredPropertyName);
 
-        const auto copy = TransportOption(name, port, static_cast<TransportProtection>(protection), certificateRequired);
+        const auto copy = TransportOption(id, port, static_cast<TransportProtection>(protection), certificateRequired);
         *cloned = copy.asPtr<IPropertyObject>().detach();
     });
 }
 
 OPENDAQ_DEFINE_CLASS_FACTORY_WITH_INTERFACE(
     LIBRARY_FACTORY, TransportOption, ITransportOption,
-    IString*, name,
+    IString*, id,
     IInteger*, port,
     TransportProtection, protection,
     Bool, certificateRequired

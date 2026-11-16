@@ -50,7 +50,7 @@ public:
                                     .setName("dev")
                                     .setConnectionStringPrefix("dev")
                                     .setDeviceKind(DeviceKind::Mirrored)
-                                    .setAvailableTransportOptions(TransportOptionsByName(
+                                    .setAvailableTransportOptions(TransportOptionsById(
                                         {TransportOption("plain", 7420), TransportOption("tls", 7421, TransportProtection::Encrypted)}))
                                     .build();
         deviceTypes.set("dev", deviceType);
@@ -59,7 +59,7 @@ public:
                                        .setId("str")
                                        .setName("str")
                                        .setConnectionStringPrefix("str")
-                                       .setAvailableTransportOptions(TransportOptionsByName(
+                                       .setAvailableTransportOptions(TransportOptionsById(
                                            {TransportOption("plain", 7430), TransportOption("tls", 7431, TransportProtection::Encrypted)}))
                                        .build();
         streamingTypes.set("str", streamingType);
@@ -132,12 +132,12 @@ DeviceInfoConfigPtr DiscoveredDeviceInfo()
         "devproto",
         ProtocolType::Configuration,
         "dev",
-        TransportOptionsByName({TransportOption("plain", 17420), TransportOption("tls", 17422, TransportProtection::Encrypted)})));
+        TransportOptionsById({TransportOption("plain", 17420), TransportOption("tls", 17422, TransportProtection::Encrypted)})));
     internal.addServerCapability(Capability(
         "strproto",
         ProtocolType::Streaming,
         "str",
-        TransportOptionsByName({TransportOption("plain", 17430), TransportOption("tls", 17432, TransportProtection::Encrypted)})));
+        TransportOptionsById({TransportOption("plain", 17430), TransportOption("tls", 17432, TransportProtection::Encrypted)})));
     return info;
 }
 }
@@ -210,8 +210,8 @@ TEST_F(TransportSelectionTest, StreamingGetsSelectionOfDefaultOption)
     }
 }
 
-// A type config that names an option the type does not list is rejected. The streaming shows it: the type config of a
-// device is built from the type's default config, which drops a TransportOption the type does not declare.
+// A type config that holds the id of an option the type does not list is rejected. The streaming shows it: the type
+// config of a device is built from the type's default config, which drops a TransportOption the type does not declare.
 TEST_F(TransportSelectionTest, UnknownTransportOptionRejected)
 {
     const StreamingTypePtr type = module->streamingTypes.get("str");
@@ -248,7 +248,7 @@ TEST_F(TransportSelectionTest, ServedOptionsSerialized)
     const AddDeviceConfigPtr deserialized = JsonDeserializer().deserialize(serializer.getOutput(), nullptr, nullptr);
 
     ASSERT_EQ(deserialized.getAvailableTransportOptions().getKeyList(), List<IString>("plain", "tls"));
-    ASSERT_EQ(deserialized.getSelectedTransportOption().getName(), "tls");
+    ASSERT_EQ(deserialized.getSelectedTransportOption().getId(), "tls");
     ASSERT_EQ(deserialized.getPort(), 17422);
 
     const auto streamingConfig = deserialized.getStreamingOptions().getAvailableStreamingConfigs().get("str");
@@ -276,7 +276,7 @@ TEST_F(TransportSelectionTest, HandMadeDeviceInfoListsTypeOptions)
 
     // The connection string names the port to connect to
     const AddDeviceConfigPtr withPort = utils().createAddDeviceConfig(DeviceInfo("dev://host:9000"));
-    ASSERT_EQ(withPort.getSelectedTransportOption().getName(), "plain");
+    ASSERT_EQ(withPort.getSelectedTransportOption().getId(), "plain");
     ASSERT_EQ(withPort.getPort(), 9000);
 }
 

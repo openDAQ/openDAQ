@@ -243,14 +243,14 @@ ErrCode ComponentTypeBuilderImpl::setAvailableTransportOptions(IDict* transportO
     {
         for (const auto& [key, item] : DictPtr<IBaseObject, IBaseObject>::Borrow(transportOptions))
         {
-            const auto name = key.asPtrOrNull<IString, StringPtr>();
+            const auto id = key.asPtrOrNull<IString, StringPtr>();
             const auto option = item.asPtrOrNull<ITransportOption, TransportOptionPtr>();
-            if (!name.assigned() || !option.assigned())
-                return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDTYPE, "Transport options must be ITransportOption objects keyed by name");
+            if (!id.assigned() || !option.assigned())
+                return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDTYPE, "Transport options must be ITransportOption objects keyed by id");
 
-            if (name != option.getName())
+            if (id != option.getId())
                 return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDVALUE,
-                                           fmt::format(R"(Transport option "{}" is keyed by "{}")", option.getName(), name));
+                                           fmt::format(R"(Transport option "{}" is keyed by "{}")", option.getId(), id));
         }
 
         this->transportOptions = transportOptions;

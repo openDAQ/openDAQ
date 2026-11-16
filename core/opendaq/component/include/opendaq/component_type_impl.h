@@ -169,15 +169,15 @@ DictPtr<IString, ITransportOption> GenericComponentTypeImpl<Intf, Interfaces...>
         IDict* items = transportOptions;
         for (const auto& [key, item] : DictPtr<IBaseObject, IBaseObject>::Borrow(items))
         {
-            const auto name = key.asPtrOrNull<IString, StringPtr>();
+            const auto id = key.asPtrOrNull<IString, StringPtr>();
             const auto option = item.asPtrOrNull<ITransportOption, TransportOptionPtr>();
-            if (!name.assigned() || !option.assigned())
-                DAQ_THROW_EXCEPTION(InvalidTypeException, "Transport options must be ITransportOption objects keyed by their names");
+            if (!id.assigned() || !option.assigned())
+                DAQ_THROW_EXCEPTION(InvalidTypeException, "Transport options must be ITransportOption objects keyed by their ids");
 
-            if (name != option.getName())
-                DAQ_THROW_EXCEPTION(InvalidValueException, "Transport option \"{}\" is keyed by \"{}\"", option.getName(), name);
+            if (id != option.getId())
+                DAQ_THROW_EXCEPTION(InvalidValueException, "Transport option \"{}\" is keyed by \"{}\"", option.getId(), id);
 
-            copy.set(name, option);
+            copy.set(id, option);
         }
     }
 

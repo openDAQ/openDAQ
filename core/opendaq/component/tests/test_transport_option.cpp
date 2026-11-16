@@ -15,7 +15,7 @@ TEST_F(TransportOptionTest, Fields)
 {
     const auto option = TransportOption("tls", 7422, TransportProtection::Encrypted, True);
 
-    ASSERT_EQ(option.getName(), "tls");
+    ASSERT_EQ(option.getId(), "tls");
     ASSERT_EQ(option.getPort(), 7422);
     ASSERT_EQ(option.getProtection(), TransportProtection::Encrypted);
     ASSERT_TRUE(option.getCertificateRequired());
@@ -39,7 +39,7 @@ TEST_F(TransportOptionTest, FieldsAreProperties)
 {
     const auto option = TransportOption("tls", 7422, TransportProtection::Signed, False);
 
-    ASSERT_EQ(option.getPropertyValue("Name"), "tls");
+    ASSERT_EQ(option.getPropertyValue("Id"), "tls");
     ASSERT_EQ(option.getPropertyValue("Port"), 7422);
     ASSERT_EQ(option.getPropertyValue("Protection"), static_cast<Int>(TransportProtection::Signed));
     ASSERT_EQ(option.getPropertySelectionValue("Protection"), "Signed");
@@ -56,7 +56,7 @@ TEST_F(TransportOptionTest, Frozen)
     ASSERT_EQ(option.getPort(), 7420);
 }
 
-TEST_F(TransportOptionTest, EmptyNameRejected)
+TEST_F(TransportOptionTest, EmptyIdRejected)
 {
     ASSERT_THROW(TransportOption("", 7420), InvalidParameterException);
     ASSERT_THROW(TransportOption(nullptr, 7420), InvalidParameterException);
@@ -104,7 +104,7 @@ TEST_F(TransportOptionTest, SerializedAsPlainPropertyObject)
 
     ASSERT_FALSE(deserialized.supportsInterface<ITransportOption>());
     ASSERT_TRUE(deserialized.isFrozen());
-    ASSERT_EQ(deserialized.getPropertyValue("Name"), "tls");
+    ASSERT_EQ(deserialized.getPropertyValue("Id"), "tls");
     ASSERT_EQ(deserialized.getPropertyValue("Port"), 7422);
     ASSERT_EQ(deserialized.getPropertyValue("Protection"), static_cast<Int>(TransportProtection::Encrypted));
     ASSERT_EQ(deserialized.getPropertyValue("CertificateRequired"), true);
@@ -120,7 +120,7 @@ TEST_F(TransportOptionTest, RestoredFromDeserializedObject)
 
     const auto restored = TransportOptionFromPropertyObject(deserialized);
 
-    ASSERT_EQ(restored.getName(), "tls");
+    ASSERT_EQ(restored.getId(), "tls");
     ASSERT_EQ(restored.getPort(), 7422);
     ASSERT_EQ(restored.getProtection(), TransportProtection::Encrypted);
     ASSERT_TRUE(restored.getCertificateRequired());
@@ -140,12 +140,12 @@ TEST_F(TransportOptionTest, RestoringOtherObjectRejected)
     ASSERT_THROW(TransportOptionFromPropertyObject(nullptr), ArgumentNullException);
 
     const auto incomplete = PropertyObject();
-    incomplete.addProperty(StringProperty("Name", "plain"));
+    incomplete.addProperty(StringProperty("Id", "plain"));
     incomplete.addProperty(IntProperty("Port", 7420));
     ASSERT_THROW(TransportOptionFromPropertyObject(incomplete), InvalidParameterException);
 
     const auto wrongType = PropertyObject();
-    wrongType.addProperty(StringProperty("Name", "plain"));
+    wrongType.addProperty(StringProperty("Id", "plain"));
     wrongType.addProperty(StringProperty("Port", "7420"));
     wrongType.addProperty(IntProperty("Protection", 0));
     wrongType.addProperty(BoolProperty("CertificateRequired", false));
@@ -161,7 +161,7 @@ TEST_F(TransportOptionTest, Clone)
 
     const auto clonedOption = cloned.asPtr<ITransportOption, TransportOptionPtr>();
     ASSERT_NE(clonedOption.getObject(), option.getObject());
-    ASSERT_EQ(clonedOption.getName(), "tls");
+    ASSERT_EQ(clonedOption.getId(), "tls");
     ASSERT_EQ(clonedOption.getPort(), 7422);
     ASSERT_EQ(clonedOption.getProtection(), TransportProtection::Encrypted);
     ASSERT_TRUE(clonedOption.getCertificateRequired());

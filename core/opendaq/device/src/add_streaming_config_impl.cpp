@@ -35,7 +35,7 @@ AddStreamingConfigImpl::AddStreamingConfigImpl(const StreamingTypePtr& streaming
     if (this->transportOptions.getCount() > 0)
     {
         const TransportOptionPtr firstOption = FirstTransportOption(this->transportOptions);
-        Super::addProperty(StringPropertyBuilder(add_streaming_config::TransportOption, firstOption.getName())
+        Super::addProperty(StringPropertyBuilder(add_streaming_config::TransportOption, firstOption.getId())
                                .setSelectionValues(this->transportOptions.getKeyList())
                                .build());
         Super::addProperty(IntProperty(
@@ -106,21 +106,21 @@ ErrCode AddStreamingConfigImpl::getAvailableTransportOptions(IDict** transportOp
     return OPENDAQ_SUCCESS;
 }
 
-ErrCode AddStreamingConfigImpl::setTransportOption(IString* name)
+ErrCode AddStreamingConfigImpl::setTransportOption(IString* id)
 {
-    OPENDAQ_PARAM_NOT_NULL(name);
+    OPENDAQ_PARAM_NOT_NULL(id);
 
     if (transportOptions.getCount() == 0)
         return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOT_SUPPORTED, "The Streaming type has no transport options");
 
     return daqTry([&]
     {
-        const StringPtr nameStr = name;
-        if (!transportOptions.hasKey(nameStr))
-            return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOTFOUND, fmt::format(R"(There is no transport option "{}" to select)", nameStr));
+        const StringPtr idStr = id;
+        if (!transportOptions.hasKey(idStr))
+            return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOTFOUND, fmt::format(R"(There is no transport option "{}" to select)", idStr));
 
         auto lock = getRecursiveConfigLock2();
-        checkErrorInfo(Super::setPropertyValue(String(add_streaming_config::TransportOption), nameStr));
+        checkErrorInfo(Super::setPropertyValue(String(add_streaming_config::TransportOption), idStr));
 
         // The port of the newly selected option applies
         checkErrorInfo(Super::clearPropertyValue(String(add_streaming_config::Port)));

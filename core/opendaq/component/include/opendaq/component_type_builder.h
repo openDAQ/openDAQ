@@ -269,11 +269,11 @@ DECLARE_OPENDAQ_INTERFACE(IComponentTypeBuilder, IBaseObject)
     /*!
      * @brief Sets the ways a component of the built type can be connected to, with the default port of each.
      * Only valid when the "Type" builder parameter is "Device", "Streaming" or "Server".
-     * @param[in] transportOptions The transport options the module supports, keyed by their own names, the default
+     * @param[in] transportOptions The transport options the module supports, keyed by their own ids, the default
      * first in dict iteration order.
      * @retval OPENDAQ_ERR_NOT_SUPPORTED for a Function block sort.
      * @retval OPENDAQ_ERR_INVALIDTYPE if a key is not a string or a value is not a transport option.
-     * @retval OPENDAQ_ERR_INVALIDVALUE if a key is not the name of its option.
+     * @retval OPENDAQ_ERR_INVALIDVALUE if a key is not the id of its option.
      *
      * Replaces any previously set options.
      */
@@ -282,7 +282,7 @@ DECLARE_OPENDAQ_INTERFACE(IComponentTypeBuilder, IBaseObject)
     // [templateType(transportOptions, IString, ITransportOption)]
     /*!
      * @brief Gets the ways a component of the built type can be connected to, with the default port of each.
-     * @param[out] transportOptions The transport options, keyed by their own names, the default first in dict
+     * @param[out] transportOptions The transport options, keyed by their own ids, the default first in dict
      * iteration order. Empty if none were set.
      */
     virtual ErrCode INTERFACE_FUNC getAvailableTransportOptions(IDict** transportOptions) = 0;

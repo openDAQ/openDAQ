@@ -53,8 +53,8 @@ enum class AddressType : EnumType
  * The `Streaming` child object holds the streaming options.
  * It exists only for Mirrored and Unspecified Device types with at least one listed Streaming type.
  *
- * The transport the device is added over is one of the config's transport options. For a Device type with options,
- * the config's `TransportOption` property names the selected option, and its selection values are the names of the
+ * The transport the device is added over is one of the config's transport options. For a Device type with options, the
+ * config's `TransportOption` property holds the id of the selected option, and its selection values are the ids of the
  * options. The `Port` property is the port of the selected option until it is set. setTransportOption clears a port set
  * before; writing the `TransportOption` property does not. When the device is added, the module gets both as the
  * "TransportOption" and "Port" properties of the type config (see `TransportOptionConfigProperty` and
@@ -118,7 +118,7 @@ DECLARE_OPENDAQ_INTERFACE(IAddDeviceConfig, IBaseObject)
     /*!
      * @brief Gets the transport options the device can be added over.
      * @param[out] transportOptions The options of the device info's server capability for the Device type, with the
-     * ports the server announces, keyed by their own names, the server's preferred first in dict iteration order. The
+     * ports the server announces, keyed by their own ids, the server's preferred first in dict iteration order. The
      * options of the Device type when the device info has no such capability. Empty for a Device type without
      * options.
      */
@@ -126,13 +126,13 @@ DECLARE_OPENDAQ_INTERFACE(IAddDeviceConfig, IBaseObject)
 
     /*!
      * @brief Selects the transport option the device is added over.
-     * @param name The name of one of the options of getAvailableTransportOptions.
+     * @param id The id of one of the options of getAvailableTransportOptions.
      * @retval OPENDAQ_ERR_NOT_SUPPORTED for a Device type without transport options.
-     * @retval OPENDAQ_ERR_NOTFOUND if none of the options has that name.
+     * @retval OPENDAQ_ERR_NOTFOUND if none of the options has that id.
      *
      * A port set before is dropped: getPort then gives the port of the option.
      */
-    virtual ErrCode INTERFACE_FUNC setTransportOption(IString* name) = 0;
+    virtual ErrCode INTERFACE_FUNC setTransportOption(IString* id) = 0;
 
     /*!
      * @brief Gets the selected transport option.

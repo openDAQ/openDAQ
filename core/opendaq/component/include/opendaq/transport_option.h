@@ -48,17 +48,17 @@ enum class TransportProtection : EnumType
  * Created by the module and immutable. A component type lists the options its module supports, with their
  * default ports; a server capability lists the ones the server serves, with the ports it serves them on.
  *
- * Is itself a frozen Property object with the `"Name"`, `"Port"`, `"Protection"` and `"CertificateRequired"`
+ * Is itself a frozen Property object with the `"Id"`, `"Port"`, `"Protection"` and `"CertificateRequired"`
  * properties. It is serialized as a plain Property object, so a peer that does not know this interface still
  * reads it; such a peer gets a Property object with the same properties back.
  */
 DECLARE_OPENDAQ_INTERFACE(ITransportOption, IPropertyObject)
 {
     /*!
-     * @brief Gets the name of the option, unique within a component type (e.g. "plain", "tls").
-     * @param[out] name The name of the option.
+     * @brief Gets the id of the option, unique within a component type (e.g. "plain", "tls").
+     * @param[out] id The id of the option.
      */
-    virtual ErrCode INTERFACE_FUNC getName(IString** name) = 0;
+    virtual ErrCode INTERFACE_FUNC getId(IString** id) = 0;
 
     /*!
      * @brief Gets the port of the option.
@@ -90,14 +90,14 @@ DECLARE_OPENDAQ_INTERFACE(ITransportOption, IPropertyObject)
 
 /*!
  * @brief Creates a frozen transport option.
- * @param name The name of the option, unique within a component type. Must not be empty.
+ * @param id The id of the option, unique within a component type. Must not be empty.
  * @param port The port of the option, 0 for a carrier without ports. Must not be negative.
  * @param protection What the option protects the data it carries against.
  * @param certificateRequired True when the connection over this option needs a client certificate.
  */
 OPENDAQ_DECLARE_CLASS_FACTORY_WITH_INTERFACE(
     LIBRARY_FACTORY, TransportOption, ITransportOption,
-    IString*, name,
+    IString*, id,
     IInteger*, port,
     TransportProtection, protection,
     Bool, certificateRequired

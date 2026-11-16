@@ -118,7 +118,7 @@ TypePtr FindTypeByPrefix(const Types& types, const StringPtr& prefix)
     return nullptr;
 }
 
-// The transport option the type config of a device or streaming type names, or unassigned if it names none
+// The id of the transport option the type config of a device or streaming type holds, or unassigned if it holds none
 inline StringPtr GetSelectedTransportOption(const PropertyObjectPtr& typeConfig)
 {
     if (!typeConfig.assigned() || !typeConfig.hasProperty(TransportOptionConfigProperty))
@@ -126,7 +126,7 @@ inline StringPtr GetSelectedTransportOption(const PropertyObjectPtr& typeConfig)
     return typeConfig.getPropertyValue(TransportOptionConfigProperty);
 }
 
-// Fails with OPENDAQ_ERR_NOTFOUND when the type config names a transport option the type does not list
+// Fails with OPENDAQ_ERR_NOTFOUND when the type config holds the id of a transport option the type does not list
 inline ErrCode CheckSelectedTransportOption(const ComponentTypePtr& type, const PropertyObjectPtr& typeConfig)
 {
     const StringPtr selected = GetSelectedTransportOption(typeConfig);
@@ -144,16 +144,16 @@ inline ErrCode CheckSelectedTransportOption(const ComponentTypePtr& type, const 
     if (!options.assigned() || options.getCount() == 0 || options.hasKey(selected))
         return OPENDAQ_SUCCESS;
 
-    std::string names;
-    for (const auto& name : options.getKeyList())
-        names += (names.empty() ? "" : ", ") + name.toStdString();
+    std::string ids;
+    for (const auto& id : options.getKeyList())
+        ids += (ids.empty() ? "" : ", ") + id.toStdString();
 
     return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOTFOUND,
                                fmt::format("The {} type '{}' has no transport option '{}'; it lists: {}",
                                            type.asPtrOrNull<IStreamingType>().assigned() ? "streaming" : "device",
                                            type.getId(),
                                            selected,
-                                           names));
+                                           ids));
 }
 
 // The transport options the server of a device info announces for the type with the given connection string prefix;
@@ -959,7 +959,7 @@ ErrCode ModuleManagerImpl::createDeviceInternal(IDevice** device, IString* conne
             // The new createDevice (see the comment in createDevice) is expected to resolve the port first and to hand
             // over a type config that already carries the selection of the IAddDeviceConfig:
             //
-            //   typeConfig[TransportOptionConfigProperty] = config.getSelectedTransportOption().getName()
+            //   typeConfig[TransportOptionConfigProperty] = config.getSelectedTransportOption().getId()
             //   typeConfig[PortConfigProperty] = the resolved port
             //   module.createDevice(ReplaceConnectionStringPort(target, the resolved port), typeConfig)
             //
@@ -1052,7 +1052,7 @@ ErrCode ModuleManagerImpl::createDevice(IDevice** device, IString* connectionStr
     //   config.getAvailableTransportOptions() lists or the discovered capability announces:
     //       fail with OPENDAQ_ERR_INVALIDPARAMETER
     //   typeConfig = a clone of config.getTypeConfig(), with
-    //       typeConfig[TransportOptionConfigProperty] = config.getSelectedTransportOption().getName()
+    //       typeConfig[TransportOptionConfigProperty] = config.getSelectedTransportOption().getId()
     //       typeConfig[PortConfigProperty] = port
     //   the module creates the device from ReplaceConnectionStringPort(target, port) and typeConfig
     //   the selected streaming config (config.getStreamingOptions().getStreamingConfig()) connects over its selected

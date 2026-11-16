@@ -32,14 +32,14 @@ class TransportOptionImpl final : public GenericPropertyObjectImpl<ITransportOpt
 public:
     using Super = GenericPropertyObjectImpl<ITransportOption>;
 
-    static constexpr const char* NamePropertyName = "Name";
+    static constexpr const char* IdPropertyName = "Id";
     static constexpr const char* PortPropertyName = "Port";
     static constexpr const char* ProtectionPropertyName = "Protection";
     static constexpr const char* CertificateRequiredPropertyName = "CertificateRequired";
 
-    TransportOptionImpl(const StringPtr& name, const IntegerPtr& port, TransportProtection protection, Bool certificateRequired);
+    TransportOptionImpl(const StringPtr& id, const IntegerPtr& port, TransportProtection protection, Bool certificateRequired);
 
-    ErrCode INTERFACE_FUNC getName(IString** name) override;
+    ErrCode INTERFACE_FUNC getId(IString** id) override;
     ErrCode INTERFACE_FUNC getPort(IInteger** port) override;
     ErrCode INTERFACE_FUNC getProtection(TransportProtection* protection) override;
     ErrCode INTERFACE_FUNC getCertificateRequired(Bool* required) override;
@@ -71,26 +71,26 @@ inline TransportOptionPtr TransportOptionFromPropertyObject(const PropertyObject
         return obj.hasProperty(name) && obj.getProperty(name).getValueType() == type;
     };
 
-    if (!hasProperty(TransportOptionImpl::NamePropertyName, ctString) || !hasProperty(TransportOptionImpl::PortPropertyName, ctInt) ||
+    if (!hasProperty(TransportOptionImpl::IdPropertyName, ctString) || !hasProperty(TransportOptionImpl::PortPropertyName, ctInt) ||
         !hasProperty(TransportOptionImpl::ProtectionPropertyName, ctInt) ||
         !hasProperty(TransportOptionImpl::CertificateRequiredPropertyName, ctBool))
     {
         DAQ_THROW_EXCEPTION(InvalidParameterException, "The object is not a transport option");
     }
 
-    const StringPtr name = obj.getPropertyValue(TransportOptionImpl::NamePropertyName);
+    const StringPtr id = obj.getPropertyValue(TransportOptionImpl::IdPropertyName);
     const Int port = obj.getPropertyValue(TransportOptionImpl::PortPropertyName);
     const Int protection = obj.getPropertyValue(TransportOptionImpl::ProtectionPropertyName);
     const Bool certificateRequired = obj.getPropertyValue(TransportOptionImpl::CertificateRequiredPropertyName);
-    return TransportOption(name, port, static_cast<TransportProtection>(protection), certificateRequired);
+    return TransportOption(id, port, static_cast<TransportProtection>(protection), certificateRequired);
 }
 
 /*!
  * @brief Gets the transport options a dictionary of objects stands for, in the same order.
  * @param objects Transport options or the plain Property objects they were deserialized into, keyed by their own
- * names; may be unassigned.
- * @returns The options keyed by their names, frozen.
- * @throws InvalidParameterException if a value is neither, or a key is not the name of its option.
+ * ids; may be unassigned.
+ * @returns The options keyed by their ids, frozen.
+ * @throws InvalidParameterException if a value is neither, or a key is not the id of its option.
  */
 inline DictPtr<IString, ITransportOption> TransportOptionsFromPropertyObjects(const DictPtr<IBaseObject, IBaseObject>& objects)
 {
@@ -104,11 +104,11 @@ inline DictPtr<IString, ITransportOption> TransportOptionsFromPropertyObjects(co
                 DAQ_THROW_EXCEPTION(InvalidParameterException, "The object is not a transport option");
 
             const auto option = TransportOptionFromPropertyObject(propertyObject);
-            const auto name = key.asPtrOrNull<IString, StringPtr>();
-            if (!name.assigned() || name != option.getName())
-                DAQ_THROW_EXCEPTION(InvalidParameterException, R"(The transport option "{}" is not keyed by its name)", option.getName());
+            const auto id = key.asPtrOrNull<IString, StringPtr>();
+            if (!id.assigned() || id != option.getId())
+                DAQ_THROW_EXCEPTION(InvalidParameterException, R"(The transport option "{}" is not keyed by its id)", option.getId());
 
-            options.set(name, option);
+            options.set(id, option);
         }
     }
 
@@ -117,27 +117,27 @@ inline DictPtr<IString, ITransportOption> TransportOptionsFromPropertyObjects(co
 }
 
 /*!
- * @brief Gets transport options keyed by their names, in the given order.
+ * @brief Gets transport options keyed by their ids, in the given order.
  */
-inline DictPtr<IString, ITransportOption> TransportOptionsByName(std::initializer_list<TransportOptionPtr> options)
+inline DictPtr<IString, ITransportOption> TransportOptionsById(std::initializer_list<TransportOptionPtr> options)
 {
     auto dict = Dict<IString, ITransportOption>();
     for (const auto& option : options)
-        dict.set(option.getName(), option);
+        dict.set(option.getId(), option);
 
     return dict;
 }
 
 /*!
- * @brief Gets a frozen copy of transport options keyed by their names, in the same order.
+ * @brief Gets a frozen copy of transport options keyed by their ids, in the same order.
  */
 inline DictPtr<IString, ITransportOption> FrozenTransportOptions(const DictPtr<IString, ITransportOption>& options)
 {
     auto copy = Dict<IString, ITransportOption>();
     if (options.assigned())
     {
-        for (const auto& [name, option] : options)
-            copy.set(name, option);
+        for (const auto& [id, option] : options)
+            copy.set(id, option);
     }
 
     copy.freeze();
@@ -152,7 +152,7 @@ inline TransportOptionPtr FirstTransportOption(const DictPtr<IString, ITransport
 {
     if (options.assigned())
     {
-        for (const auto& [name, option] : options)
+        for (const auto& [id, option] : options)
             return option;
     }
 
@@ -164,7 +164,7 @@ inline TransportOptionPtr FirstTransportOption(const DictPtr<IString, ITransport
  * @param config The type config.
  * @param options The type's transport options; nothing is added when there are none.
  *
- * Adds TransportOptionConfigProperty, set to the name of the first option, and PortConfigProperty, set to its port.
+ * Adds TransportOptionConfigProperty, set to the id of the first option, and PortConfigProperty, set to its port.
  * A property the config already has is kept.
  */
 inline void AddTransportSelectionProperties(const PropertyObjectPtr& config, const DictPtr<IString, ITransportOption>& options)
@@ -174,14 +174,14 @@ inline void AddTransportSelectionProperties(const PropertyObjectPtr& config, con
         return;
 
     if (!config.hasProperty(TransportOptionConfigProperty))
-        config.addProperty(StringProperty(TransportOptionConfigProperty, defaultOption.getName()));
+        config.addProperty(StringProperty(TransportOptionConfigProperty, defaultOption.getId()));
     if (!config.hasProperty(PortConfigProperty))
         config.addProperty(IntProperty(PortConfigProperty, defaultOption.getPort()));
 }
 
 /*!
  * @brief Gets the transport options of a device or streaming type.
- * @returns The options keyed by their names, or an empty dictionary if the type lists none or does not implement them.
+ * @returns The options keyed by their ids, or an empty dictionary if the type lists none or does not implement them.
  */
 inline DictPtr<IString, ITransportOption> ComponentTypeTransportOptions(IComponentType* type)
 {
@@ -195,9 +195,9 @@ inline DictPtr<IString, ITransportOption> ComponentTypeTransportOptions(ICompone
 /*!
  * @brief Gets the expression of the port of the selected transport option, for the default value of the port property of
  * an add-device or add-streaming config.
- * @param options The options keyed by their names; none of the names may contain a quote.
- * @param selectionProperty The name of the string property that names the selected option.
- * @returns A `switch` over the option names with their ports, the port of the first option for a name it does not list.
+ * @param options The options keyed by their ids; none of the ids may contain a quote.
+ * @param selectionProperty The name of the string property that holds the id of the selected option.
+ * @returns A `switch` over the option ids with their ports, the port of the first option for an id it does not list.
  */
 inline StringPtr SelectedTransportOptionPortEval(const DictPtr<IString, ITransportOption>& options, const std::string& selectionProperty)
 {
@@ -206,13 +206,13 @@ inline StringPtr SelectedTransportOptionPortEval(const DictPtr<IString, ITranspo
         DAQ_THROW_EXCEPTION(InvalidParameterException, "There are no transport options to select");
 
     std::string eval = "switch($" + selectionProperty;
-    for (const auto& [name, option] : options)
+    for (const auto& [id, option] : options)
     {
-        const std::string nameStr = name;
-        if (nameStr.find('\'') != std::string::npos)
-            DAQ_THROW_EXCEPTION(InvalidParameterException, R"(The transport option name "{}" contains a quote)", nameStr);
+        const std::string idStr = id;
+        if (idStr.find('\'') != std::string::npos)
+            DAQ_THROW_EXCEPTION(InvalidParameterException, R"(The transport option id "{}" contains a quote)", idStr);
 
-        eval += fmt::format(", '{}', {}", nameStr, static_cast<Int>(option.getPort()));
+        eval += fmt::format(", '{}', {}", idStr, static_cast<Int>(option.getPort()));
     }
 
     return eval + fmt::format(", {})", static_cast<Int>(defaultOption.getPort()));

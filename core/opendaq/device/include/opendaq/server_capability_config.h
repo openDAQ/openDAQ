@@ -143,10 +143,10 @@ DECLARE_OPENDAQ_INTERFACE(IServerCapabilityConfig, IServerCapability)
     // [templateType(transportOptions, IString, ITransportOption), returnSelf]
     /*!
      * @brief Sets the transport options the server accepts connections over, with the port it serves each on.
-     * @param transportOptions The served options, keyed by their own names, the server's preferred first in dict
+     * @param transportOptions The served options, keyed by their own ids, the server's preferred first in dict
      * iteration order.
      * @retval OPENDAQ_ERR_INVALIDTYPE if a key is not a string or a value is not a transport option.
-     * @retval OPENDAQ_ERR_INVALIDVALUE if a key is not the name of its option.
+     * @retval OPENDAQ_ERR_INVALIDVALUE if a key is not the id of its option.
      *
      * Replaces any previously set options. The first one becomes the default, and its port is the one returned by
      * getPort; that port is also stored as the port read by older clients. An empty dictionary leaves that port
@@ -158,7 +158,7 @@ DECLARE_OPENDAQ_INTERFACE(IServerCapabilityConfig, IServerCapability)
     /*!
      * @brief Adds a transport option the server accepts connections over, after the ones already set.
      * @param transportOption The served option, with the port it is served on.
-     * @retval OPENDAQ_ERR_ALREADYEXISTS if an option of the same name is already set.
+     * @retval OPENDAQ_ERR_ALREADYEXISTS if an option with the same id is already set.
      *
      * The first option added becomes the default, and sets the port read by older clients.
      */

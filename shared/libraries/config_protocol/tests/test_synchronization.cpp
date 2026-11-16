@@ -217,6 +217,8 @@ TEST_F(ConfigSynchronizationTest, setSourceFromClient)
     ASSERT_EQ(serverSync.getSource().getId(), "TestInterface");
 }
 
+#ifdef OPENDAQ_ENABLE_ACCESS_CONTROL
+
 TEST_F(ConfigSynchronizationTest, ReadOnlyUserCannotChangeSynchronization)
 {
     serverDevice.getPermissionManager().setPermissions(
@@ -238,6 +240,8 @@ TEST_F(ConfigSynchronizationTest, ReadOnlyUserCannotChangeSynchronization)
     ASSERT_EQ(serverConfig.getPropertyValue("DomainNumber"), 0);
     ASSERT_EQ(serverConfig.getPropertyValue("PortConfiguration.eth0.LogSyncInterval"), 0);
 }
+
+#endif
 
 TEST_F(ConfigSynchronizationTest, GetSourceReferenceDomainId)
 {

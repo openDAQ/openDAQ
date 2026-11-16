@@ -71,6 +71,7 @@ set(SRC_PublicHeaders_Component
     sync_component.h
     sync_component_private.h
     sync_component_factory.h
+    sync_component_impl.h
     sync_interface.h
     sync_interface_internal.h
     synchronization.h
@@ -82,7 +83,6 @@ set(SRC_PublicHeaders_Component
 )
 
 set(SRC_PrivateHeaders_Component
-    sync_component_impl.h
     synchronization_impl.h
     clock_sync_interface_impl.h
     PARENT_SCOPE

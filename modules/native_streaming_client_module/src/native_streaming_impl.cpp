@@ -199,13 +199,15 @@ void NativeStreamingImpl::upgradeClientHandlerCallbacks()
 {
     using namespace boost::asio;
     WeakRefPtr<IStreaming> thisRef = this->template borrowPtr<StreamingPtr>();
+    // A running client call can outlive this object, so the callbacks hold the context instead of reading it through this
+    const auto ioContext = processingIOContextPtr;
 
     OnSignalAvailableCallback signalAvailableCb =
-        [this, thisRef](const StringPtr& signalStringId,
+        [this, thisRef, ioContext](const StringPtr& signalStringId,
                const StringPtr& serializedSignal)
     {
         dispatch(
-            *processingIOContextPtr,
+            *ioContext,
             [this, thisRef, signalStringId, serializedSignal]()
             {
                 if (auto thisPtr = thisRef.getRef(); thisPtr.assigned())
@@ -214,10 +216,10 @@ void NativeStreamingImpl::upgradeClientHandlerCallbacks()
         );
     };
     OnSignalUnavailableCallback signalUnavailableCb =
-        [this, thisRef](const StringPtr& signalStringId)
+        [this, thisRef, ioContext](const StringPtr& signalStringId)
     {
         dispatch(
-            *processingIOContextPtr,
+            *ioContext,
             [this, thisRef, signalStringId]()
             {
                 if (auto thisPtr = thisRef.getRef(); thisPtr.assigned())
@@ -226,10 +228,10 @@ void NativeStreamingImpl::upgradeClientHandlerCallbacks()
         );
     };
     OnPacketCallback onPacketCallback =
-        [this, thisRef](const StringPtr& signalStringId, const PacketPtr& packet)
+        [this, thisRef, ioContext](const StringPtr& signalStringId, const PacketPtr& packet)
     {
         dispatch(
-            *processingIOContextPtr,
+            *ioContext,
             [this, thisRef, signalStringId, packet]()
             {
                 if (auto thisPtr = thisRef.getRef(); thisPtr.assigned())
@@ -238,10 +240,10 @@ void NativeStreamingImpl::upgradeClientHandlerCallbacks()
         );
     };
     OnSignalSubscriptionAckCallback onSignalSubscriptionAckCallback =
-        [this, thisRef](const StringPtr& signalStringId, bool subscribed)
+        [this, thisRef, ioContext](const StringPtr& signalStringId, bool subscribed)
     {
         dispatch(
-            *processingIOContextPtr,
+            *ioContext,
             [this, thisRef, signalStringId, subscribed]()
             {
                 if (auto thisPtr = thisRef.getRef(); thisPtr.assigned())
@@ -250,10 +252,10 @@ void NativeStreamingImpl::upgradeClientHandlerCallbacks()
         );
     };
     OnConnectionStatusChangedCallback onTransportConnectionStatusChangedCb =
-        [this, thisRef](const EnumerationPtr& status, const StringPtr& statusMessage)
+        [this, thisRef, ioContext](const EnumerationPtr& status, const StringPtr& statusMessage)
     {
         dispatch(
-            *processingIOContextPtr,
+            *ioContext,
             [this, thisRef, status, statusMessage]()
             {
                 if (auto thisPtr = thisRef.getRef(); thisPtr.assigned())
@@ -262,10 +264,10 @@ void NativeStreamingImpl::upgradeClientHandlerCallbacks()
         );
     };
     OnStreamingInitDoneCallback onStreamingInitDoneCb =
-        [this, thisRef]()
+        [this, thisRef, ioContext]()
     {
         dispatch(
-            *processingIOContextPtr,
+            *ioContext,
             [this, thisRef]()
             {
                 if (auto thisPtr = thisRef.getRef(); thisPtr.assigned())

@@ -644,6 +644,8 @@ ErrCode ComponentImpl<Intf, Intfs...>::getVisible(Bool* visible)
 {
     OPENDAQ_PARAM_NOT_NULL(visible);
 
+    auto lock = this->getRecursiveConfigLock2();
+
     *visible = this->visible;
     return OPENDAQ_SUCCESS;
 }

@@ -224,14 +224,10 @@ DevicePtr NativeStreamingClientModule::createNativeDevice(const ContextPtr& cont
                                                                  processingIOContextPtr,
                                                                  reconnectionProcessingIOContextPtr,
                                                                  reconnectionProcessingThread.get_id(),
-                                                                 connectionString,
                                                                  port,
                                                                  reconnectionPeriod);
         deviceHelper->setupProtocolClients(context);
         auto device = deviceHelper->connectAndGetDevice(parent, protocolVersion);
-
-        deviceHelper->subscribeToCoreEvent(context);
-
         device.asPtr<INativeDevicePrivate>(true)->completeInitialization(std::move(deviceHelper), connectionString);
 
         processingContextPool.emplace_back("Device " + device.getGlobalId() + " config protocol processing",
@@ -499,7 +495,8 @@ PropertyObjectPtr NativeStreamingClientModule::createTransportLayerDefaultConfig
 
     transportLayerConfig.addProperty(daq::BoolProperty("MonitoringEnabled", daq::True));
     transportLayerConfig.addProperty(daq::IntProperty("HeartbeatPeriod", 1000));
-    transportLayerConfig.addProperty(daq::IntProperty("InactivityTimeout", 1500));
+    // Three heartbeat periods without traffic, so one late heartbeat does not drop the connection
+    transportLayerConfig.addProperty(daq::IntProperty("InactivityTimeout", 3000));
     transportLayerConfig.addProperty(daq::IntProperty("ConnectionTimeout", 1000));
     transportLayerConfig.addProperty(daq::IntProperty("StreamingInitTimeout", 1000));
     transportLayerConfig.addProperty(daq::IntProperty("ReconnectionPeriod", 1000));

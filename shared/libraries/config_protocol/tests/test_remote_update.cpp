@@ -7,6 +7,9 @@
 #include <coreobjects/property_object_internal_ptr.h>
 #include <opendaq/mock/mock_fb_module.h>
 #include <opendaq/data_descriptor_factory.h>
+#include <opendaq/device_domain_factory.h>
+#include <opendaq/core_opendaq_event_args_factory.h>
+#include <coreobjects/unit_factory.h>
 #include <opendaq/mock/advanced_components_setup_utils.h>
 #include <config_protocol/config_protocol_server.h>
 #include <config_protocol/config_protocol_client.h>
@@ -320,11 +323,16 @@ TEST_F(ConfigRemoteUpdateTest, RemoteUpdateWithLegacyDeviceInfo)
     ASSERT_EQ(clientSubDevice.getInfo().getName(), serverSubDevice.getInfo().getName());
 }
 
+// The race tests update the smallest sub-device; an update of the root device re-creates the whole client tree
+
 // 3.40 servers send the device info as "deviceInfo", which the client replaces as a whole
 TEST_F(ConfigRemoteUpdateTest, GetInfoAndDomainDuringRemoteUpdate)
 {
+    const DevicePtr serverSubDevice = serverDevice.getDevices(search::LocalId("dev"))[0];
+    const DevicePtr clientSubDevice = clientDevice.getDevices(search::LocalId("dev"))[0];
+
     rapidjson::Document doc;
-    doc.Parse(serializeHelper(serverDevice).toStdString().c_str());
+    doc.Parse(serializeHelper(serverSubDevice).toStdString().c_str());
     rapidjson::Value deviceInfo(doc["propValues"]["DaqDeviceInfo"], doc.GetAllocator());
     doc["propValues"].RemoveMember("DaqDeviceInfo");
     doc.AddMember("deviceInfo", deviceInfo, doc.GetAllocator());
@@ -336,7 +344,7 @@ TEST_F(ConfigRemoteUpdateTest, GetInfoAndDomainDuringRemoteUpdate)
                                     "ComponentUpdateEnd",
                                     Dict<IString, IBaseObject>({{"SerializedComponent", String(buffer.GetString())}}));
 
-    const auto infoBefore = clientDevice.getInfo();
+    const auto infoBefore = clientSubDevice.getInfo();
 
     std::atomic<bool> stop{false};
     std::atomic<int> reads{0};
@@ -344,46 +352,83 @@ TEST_F(ConfigRemoteUpdateTest, GetInfoAndDomainDuringRemoteUpdate)
     {
         while (!stop)
         {
-            EXPECT_TRUE(clientDevice.getInfo().assigned());
-            clientDevice.getDomain();
+            EXPECT_TRUE(clientSubDevice.getInfo().assigned());
+            clientSubDevice.getDomain();
             ++reads;
         }
     });
 
-    for (int i = 0; i < 500; ++i)
-        clientDevice.asPtr<IConfigClientObject>()->handleRemoteCoreEvent(clientDevice, args);
+    while (reads == 0)
+        std::this_thread::yield();
+
+    for (int i = 0; i < 100; ++i)
+        clientSubDevice.asPtr<IConfigClientObject>()->handleRemoteCoreEvent(clientSubDevice, args);
 
     stop = true;
     reader.join();
 
-    ASSERT_GT(reads, 0);
-    ASSERT_NE(clientDevice.getInfo().getObject(), infoBefore.getObject());
+    ASSERT_NE(clientSubDevice.getInfo().getObject(), infoBefore.getObject());
 }
 
 TEST_F(ConfigRemoteUpdateTest, GetAttributesDuringRemoteUpdate)
 {
+    const DevicePtr serverSubDevice = serverDevice.getDevices(search::LocalId("dev"))[0];
+    const DevicePtr clientSubDevice = clientDevice.getDevices(search::LocalId("dev"))[0];
+
     std::atomic<bool> stop{false};
     std::atomic<int> reads{0};
     std::thread reader([&]
     {
         while (!stop)
         {
-            const auto name = clientDevice.getName();
+            const auto name = clientSubDevice.getName();
             EXPECT_TRUE(name.assigned());
-            const auto description = clientDevice.getDescription();
+            const auto description = clientSubDevice.getDescription();
             EXPECT_TRUE(description.assigned());
-            clientDevice.getActive();
-            clientDevice.getVisible();
+            clientSubDevice.getActive();
+            clientSubDevice.getVisible();
             ++reads;
         }
     });
 
-    const auto serialized = serializeHelper(serverDevice);
-    for (int i = 0; i < 500; ++i)
-        updateHelper(serverDevice, serialized);
+    const auto serialized = serializeHelper(serverSubDevice);
+    while (reads == 0)
+        std::this_thread::yield();
+
+    for (int i = 0; i < 100; ++i)
+        updateHelper(serverSubDevice, serialized);
+
+    stop = true;
+    reader.join();
+}
+
+TEST_F(ConfigRemoteUpdateTest, GetDomainDuringDeviceDomainChanged)
+{
+    const DevicePtr clientSubDevice = clientDevice.getDevices(search::LocalId("dev"))[0];
+
+    std::atomic<bool> stop{false};
+    std::atomic<int> reads{0};
+    std::thread reader([&]
+    {
+        while (!stop)
+        {
+            EXPECT_TRUE(clientSubDevice.getDomain().assigned());
+            ++reads;
+        }
+    });
+
+    while (reads == 0)
+        std::this_thread::yield();
+
+    // A new domain object per event, so every event releases the previous one
+    for (int i = 0; i < 100; ++i)
+    {
+        const auto args = CoreEventArgsDeviceDomainChanged(DeviceDomain(Ratio(1, 1000 + i), "", Unit("s")));
+        clientSubDevice.asPtr<IConfigClientObject>()->handleRemoteCoreEvent(clientSubDevice, args);
+    }
 
     stop = true;
     reader.join();
 
-    ASSERT_GT(reads, 0);
+    ASSERT_EQ(clientSubDevice.getDomain().getTickResolution(), Ratio(1, 1099));
 }

@@ -275,6 +275,30 @@ TEST_F(ErrorInfoTest, FormattedMessageAroundTheStackBufferSizeIsKeptWhole)
     }
 }
 
+TEST_F(ErrorInfoTest, MalformedFormatStringDoesNotAbort)
+{
+    // The resulting text is platform-specific (MSVC keeps the unformatted string), so only the leading text is checked
+    const std::pair<std::string, std::string> cases[] = {
+        {"Bad conversion %y for %d", "Bad conversion "},
+        {"Lone percent %d at the end %", "Lone percent "},
+    };
+
+    for (const auto& [format, prefix] : cases)
+    {
+        DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_GENERALERROR, format, 42);
+
+        ObjectPtr<IErrorInfo> errorInfo;
+        daqGetErrorInfo(&errorInfo);
+        ASSERT_TRUE(errorInfo.assigned()) << format;
+
+        StringPtr message;
+        errorInfo->getMessage(&message);
+        ASSERT_TRUE(message.assigned()) << format;
+        ASSERT_EQ(message.toStdString().substr(0, prefix.size()), prefix) << format;
+        daqClearErrorInfo();
+    }
+}
+
 TEST_F(ErrorInfoTest, LongChainKeepsNewestAndRootCause)
 {
     ErrCode errCode = DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_GENERALERROR, "Root cause");

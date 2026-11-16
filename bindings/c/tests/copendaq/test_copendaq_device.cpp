@@ -2,9 +2,7 @@
 
 #include <gtest/gtest.h>
 
-#include <opendaq/device_type_factory.h>
 #include <opendaq/opendaq.h>
-#include <opendaq/streaming_type_factory.h>
 
 class COpendaqDeviceTest : public testing::Test
 {
@@ -196,18 +194,17 @@ TEST_F(COpendaqDeviceTest, AddDeviceConfig)
     static_assert(daqStreamingModeMinHops == static_cast<int>(daq::StreamingMode::MinHops));
     static_assert(daqStreamingModeMinConnections == static_cast<int>(daq::StreamingMode::MinConnections));
 
-    const auto deviceType =
-        daq::DeviceTypeBuilder().setId("deviceType").setConnectionStringPrefix("dev").setDeviceKind(daq::DeviceKind::Mirrored).build();
-    const auto streamingType = daq::StreamingType("streamingType", "", "", "stream", daq::PropertyObject());
-    const auto streamingTypes = daq::Dict<daq::IString, daq::IStreamingType>({{"streamingType", streamingType}});
+    const auto instance = daq::Instance();
+    const auto info = daq::DeviceInfo("daq.nd://127.0.0.1");
 
     daqAddDeviceConfig* config = nullptr;
-    daqAddDeviceConfig_createAddDeviceConfig(&config, (daqDeviceType*) deviceType.getObject(), (daqDict*) streamingTypes.getObject(), True);
+    ASSERT_EQ(daqDevice_createAddDeviceConfig((daqDevice*) instance.getRootDevice().getObject(), &config, (daqDeviceInfo*) info.getObject(), nullptr),
+              DAQ_SUCCESS);
     const auto configPtr = daq::AddDeviceConfigPtr::Adopt((daq::IAddDeviceConfig*) config);
 
     daqDeviceType* type = nullptr;
     daqAddDeviceConfig_getDeviceType(config, &type);
-    ASSERT_EQ(daq::DeviceTypePtr::Adopt((daq::IDeviceType*) type), deviceType);
+    ASSERT_EQ(daq::DeviceTypePtr::Adopt((daq::IDeviceType*) type), configPtr.getDeviceType());
 
     daqPropertyObject* typeConfig = nullptr;
     daqAddDeviceConfig_getTypeConfig(config, &typeConfig);
@@ -231,43 +228,35 @@ TEST_F(COpendaqDeviceTest, AddDeviceConfig)
     daqDict* configs = nullptr;
     daqAddStreamingOptions_getStreamingConfigs(options, &configs);
     const auto configsPtr = daq::DictPtr<daq::IString, daq::IAddStreamingConfig>::Adopt((daq::IDict*) configs);
-    ASSERT_TRUE(configsPtr.hasKey("streamingType"));
+    ASSERT_TRUE(configsPtr.hasKey("OpenDAQNativeStreaming"));
 
+    daqAddStreamingOptions_setStreamingType(options, nullptr);
     daqString* typeId = nullptr;
     daqAddStreamingOptions_getStreamingType(options, &typeId);
     ASSERT_EQ(typeId, nullptr);
 
-    daqString_createString(&typeId, "streamingType");
+    daqString_createString(&typeId, "OpenDAQNativeStreaming");
     daqAddStreamingOptions_setStreamingType(options, typeId);
     daqBaseObject_releaseRef(typeId);
     daqAddStreamingOptions_getStreamingType(options, &typeId);
-    ASSERT_EQ(daq::StringPtr::Adopt((daq::IString*) typeId), "streamingType");
+    ASSERT_EQ(daq::StringPtr::Adopt((daq::IString*) typeId), "OpenDAQNativeStreaming");
     daqAddStreamingConfig* selected = nullptr;
     daqAddStreamingOptions_getStreamingConfig(options, &selected);
-    ASSERT_EQ(daq::AddStreamingConfigPtr::Adopt((daq::IAddStreamingConfig*) selected),
-              optionsPtr.getStreamingConfigs().get("streamingType"));
+    const auto selectedPtr = daq::AddStreamingConfigPtr::Adopt((daq::IAddStreamingConfig*) selected);
+    ASSERT_EQ(selectedPtr, optionsPtr.getStreamingConfigs().get("OpenDAQNativeStreaming"));
+
+    daqStreamingType* streamingType = nullptr;
+    daqAddStreamingConfig_getStreamingType(selected, &streamingType);
+    ASSERT_EQ(daq::StreamingTypePtr::Adopt((daq::IStreamingType*) streamingType), selectedPtr.getStreamingType());
+
+    daqPropertyObject* streamingTypeConfig = nullptr;
+    daqAddStreamingConfig_getTypeConfig(selected, &streamingTypeConfig);
+    ASSERT_EQ(daq::PropertyObjectPtr::Adopt((daq::IPropertyObject*) streamingTypeConfig), selectedPtr.getTypeConfig());
 
     daqAddStreamingOptions_setStreamingMode(options, daqStreamingModeMinConnections);
     daqStreamingMode mode = daqStreamingModeMinHops;
     daqAddStreamingOptions_getStreamingMode(options, &mode);
     ASSERT_EQ(mode, daqStreamingModeMinConnections);
-}
-
-TEST_F(COpendaqDeviceTest, AddStreamingConfig)
-{
-    const auto streamingType = daq::StreamingType("streamingType", "", "", "stream", daq::PropertyObject());
-
-    daqAddStreamingConfig* config = nullptr;
-    daqAddStreamingConfig_createAddStreamingConfig(&config, (daqStreamingType*) streamingType.getObject());
-    const auto configPtr = daq::AddStreamingConfigPtr::Adopt((daq::IAddStreamingConfig*) config);
-
-    daqStreamingType* type = nullptr;
-    daqAddStreamingConfig_getStreamingType(config, &type);
-    ASSERT_EQ(daq::StreamingTypePtr::Adopt((daq::IStreamingType*) type), streamingType);
-
-    daqPropertyObject* typeConfig = nullptr;
-    daqAddStreamingConfig_getTypeConfig(config, &typeConfig);
-    ASSERT_EQ(daq::PropertyObjectPtr::Adopt((daq::IPropertyObject*) typeConfig), configPtr.getTypeConfig());
 }
 
 TEST_F(COpendaqDeviceTest, CreateAddDeviceConfig)

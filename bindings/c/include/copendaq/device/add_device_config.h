@@ -38,7 +38,6 @@ extern "C"
     typedef struct daqDeviceType daqDeviceType;
     typedef struct daqPropertyObject daqPropertyObject;
     typedef struct daqAddStreamingOptions daqAddStreamingOptions;
-    typedef struct daqDict daqDict;
 
     EXPORTED extern const daqIntfID DAQ_ADD_DEVICE_CONFIG_INTF_ID;
     void EXPORTED daqAddDeviceConfig_getInterfaceId(daqIntfID* intfId);
@@ -50,7 +49,6 @@ extern "C"
     daqErrCode EXPORTED daqAddDeviceConfig_getScanOnAdd(daqAddDeviceConfig* self, daqBool* scanOnAdd);
     daqErrCode EXPORTED daqAddDeviceConfig_setScanOnAdd(daqAddDeviceConfig* self, daqBool scanOnAdd);
     daqErrCode EXPORTED daqAddDeviceConfig_getStreamingOptions(daqAddDeviceConfig* self, daqAddStreamingOptions** options);
-    daqErrCode EXPORTED daqAddDeviceConfig_createAddDeviceConfig(daqAddDeviceConfig** obj, daqDeviceType* deviceType, daqDict* streamingTypes, daqBool scanOnAdd);
 
 #ifdef __cplusplus
 }

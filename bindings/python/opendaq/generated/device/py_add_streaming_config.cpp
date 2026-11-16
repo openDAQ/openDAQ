@@ -40,8 +40,6 @@ void defineIAddStreamingConfig(pybind11::module_ m, PyDaqIntf<daq::IAddStreaming
 {
     cls.doc() = "The configuration of a streaming connection of a Streaming type.";
 
-    m.def("AddStreamingConfig", &daq::AddStreamingConfig_Create);
-
     cls.def_property_readonly("streaming_type",
         [](daq::IAddStreamingConfig *object)
         {

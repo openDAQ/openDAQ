@@ -43,7 +43,6 @@ extern "C"
 
     daqErrCode EXPORTED daqAddStreamingConfig_getStreamingType(daqAddStreamingConfig* self, daqStreamingType** type);
     daqErrCode EXPORTED daqAddStreamingConfig_getTypeConfig(daqAddStreamingConfig* self, daqPropertyObject** config);
-    daqErrCode EXPORTED daqAddStreamingConfig_createAddStreamingConfig(daqAddStreamingConfig** obj, daqStreamingType* streamingType);
 
 #ifdef __cplusplus
 }

@@ -27,6 +27,8 @@
 #include <opendaq/streaming_ptr.h>
 
 #include <future>
+#include <mutex>
+#include <optional>
 
 BEGIN_NAMESPACE_OPENDAQ_NATIVE_STREAMING_CLIENT_MODULE
 
@@ -46,15 +48,11 @@ public:
                                 std::shared_ptr<boost::asio::io_context> processingIOContextPtr,
                                 std::shared_ptr<boost::asio::io_context> reconnectionProcessingIOContextPtr,
                                 std::thread::id reconnectionProcessingThreadId,
-                                const StringPtr& connectionString,
                                 Int reconnectionPeriod);
     ~NativeDeviceHelper();
 
     void setupProtocolClients(const ContextPtr& context);
     DevicePtr connectAndGetDevice(const ComponentPtr& parent, uint16_t& protocolVersion);
-
-    void subscribeToCoreEvent(const ContextPtr& context);
-    void unsubscribeFromCoreEvent(const ContextPtr& context);
 
     void closeConnectionOnRemoval();
 
@@ -69,12 +67,12 @@ private:
     void unregisterConfigRequest(uint64_t requestId);
     void cancelPendingConfigRequests(const DaqException& e);
     void processConfigPacket(config_protocol::PacketBuffer&& packet);
-    void coreEventCallback(ComponentPtr& sender, CoreEventArgsPtr& eventArgs);
-    void componentUpdated(const ComponentPtr& sender, const CoreEventArgsPtr& eventArgs);
     void updateConnectionStatus(const EnumerationPtr& status, const StringPtr& statusMessage);
     void tryConfigProtocolReconnect();
     void startAcceptNotificationPackets();
     void stopAcceptNotificationPackets();
+    bool isConfigConnectionUsable();
+    void throwIfConfigConnectionUnusable(const std::unique_lock<std::mutex>& requestReplyLock);
 
     std::shared_ptr<boost::asio::io_context> processingIOContextPtr;
     std::shared_ptr<boost::asio::io_context> reconnectionProcessingIOContextPtr;
@@ -84,15 +82,14 @@ private:
     std::unique_ptr<config_protocol::ConfigProtocolClient<NativeDeviceImpl>> configProtocolClient;
     opendaq_native_streaming_protocol::NativeStreamingClientHandlerPtr transportClientHandler;
     std::unordered_map<uint64_t, std::promise<config_protocol::PacketBuffer>> replyPackets;
+    // exception the pending requests were cancelled with, until the config protocol reconnects; guarded by requestReplySync
+    std::optional<DaqException> configConnectionError;
     WeakRefPtr<IDevice> deviceRef;
     EnumerationPtr connectionStatus;
     bool acceptNotificationPackets;
-    bool subscribedToCoreEvent;
     std::chrono::milliseconds configProtocolRequestTimeout;
     Bool restoreClientConfigOnReconnect;
-    const StringPtr connectionString;
     std::mutex requestReplySync;
-    std::mutex flagsSync;
 
     std::shared_ptr<boost::asio::steady_timer> configProtocolReconnectionRetryTimer;
     std::chrono::milliseconds reconnectionPeriod;
@@ -129,14 +126,15 @@ public:
 
 protected:
     void removed() override;
-    void removedNoLock() override;
     bool isAddedToLocalComponentTree() override;
+    void onRemoteUpdate(const SerializedObjectPtr& serialized) override;
 
 private:
     void attachDeviceHelper(std::shared_ptr<NativeDeviceHelper> deviceHelper);
     void disconnectAndCleanUp();
 
     std::shared_ptr<NativeDeviceHelper> deviceHelper;
+    StringPtr connectionString;
 };
 
 class ConnectionStringUtils

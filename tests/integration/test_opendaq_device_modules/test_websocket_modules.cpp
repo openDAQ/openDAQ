@@ -402,8 +402,8 @@ TEST_P(WebsocketModulesChannelTest, CheckDeviceInfoPopulatedWithProvider)
 TEST_P(WebsocketModulesChannelTest, TestDiscoveryReachability)
 {
     bool checkIPv6 = !test_helpers::Ipv6IsDisabled();
-    // ICMP ping (and thus active IPv4 reachability detection) requires root on Linux/macOS.
-    const auto expectedIpv4Reachability =
+    // Discovery pings IPv4 and IPv6 addresses whenever this process may send ICMP.
+    const auto expectedReachability =
         test_helpers::icmpPingAvailable() ? AddressReachabilityStatus::Reachable : AddressReachabilityStatus::Unknown;
 
     auto instance = test_helpers::instanceBuilder()
@@ -442,12 +442,12 @@ TEST_P(WebsocketModulesChannelTest, TestDiscoveryReachability)
                 if (addressInfo.getType() == "IPv4")
                 {
                     hasIPv4 = true;
-                    ASSERT_EQ(addressInfo.getReachabilityStatus(), expectedIpv4Reachability);
+                    ASSERT_EQ(addressInfo.getReachabilityStatus(), expectedReachability);
                 }
                 else if (addressInfo.getType() == "IPv6")
                 {
                     hasIPv6 = true;
-                    ASSERT_EQ(addressInfo.getReachabilityStatus(), AddressReachabilityStatus::Unknown);
+                    ASSERT_EQ(addressInfo.getReachabilityStatus(), expectedReachability);
                 }
 
                 if (hasIPv4 && (hasIPv6 || !checkIPv6))

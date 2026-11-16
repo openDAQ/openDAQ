@@ -1,5 +1,5 @@
 ﻿    $DocComment$
-    $ReturnTypePtr$ $Name$($Arguments$) const
+    $Deprecated$$ReturnTypePtr$ $Name$($Arguments$) const
     {
         if (this->object == nullptr)
             DAQ_THROW_EXCEPTION(daq::InvalidParameterException);

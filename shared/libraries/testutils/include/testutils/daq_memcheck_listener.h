@@ -20,6 +20,7 @@
 #include <coretypes/intfs.h>
 #include <coretypes/string_ptr.h>
 #include <coretypes/list_factory.h>
+#include <coretypes/ctutils.h>
 
 class DaqMemCheckListener : public MemCheckListener
 {
@@ -39,16 +40,7 @@ protected:
         daqGetErrorInfoList(&errorInfoList);
         if (errorInfoList.assigned() && errorInfoList.getCount() > 0)
         {
-            ::testing::Message failMessage;
-            failMessage << "Unresolved errors during the test: \n";
-            for (const auto& errorInfo : errorInfoList)
-            {
-                daq::StringPtr message;
-                errorInfo->getFormattedMessage(&message);
-                if (message.assigned())
-                    failMessage << message << "\n";
-            }
-            FAIL() << failMessage;
+            FAIL() << "Unresolved errors during the test: \n" << daq::formatErrorInfoList(errorInfoList) << "\n";
         }
 
         if (!info.result()->Failed())

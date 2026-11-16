@@ -38,6 +38,8 @@
 #ifdef _WIN32
     #include <windows.h>
 #else
+    #include <netinet/in.h>
+    #include <sys/socket.h>
     #include <unistd.h>
 #endif
 
@@ -54,21 +56,63 @@ BEGIN_NAMESPACE_OPENDAQ
 
 namespace test_helpers
 {
-    // Mirrors the ICMP availability gate in ModuleManagerImpl::checkNetworkSettings: on
-    // Linux/macOS, ICMP ping (and thus active IPv4 reachability detection during discovery)
-    // requires root. Windows has no such restriction.
+    // Mirrors icmpPing(): root may open raw ICMP sockets, others need an unprivileged datagram ICMP socket; Windows needs neither.
     [[maybe_unused]]
     inline bool icmpPingAvailable()
     {
 #if defined(__linux__) || defined(__APPLE__)
-        return geteuid() == 0;
+        if (geteuid() == 0)
+            return true;
+        const int fd = socket(AF_INET, SOCK_DGRAM, IPPROTO_ICMP);
+        if (fd >= 0)
+            close(fd);
+        return fd >= 0;
 #else
         return true;
 #endif
     }
 
-    [[maybe_unused]]
-    inline void setupSubscribeAckHandler(
+    // Detaches a signal's (un)subscribe ack handlers on scope exit so they cannot outlive the promises they reference
+    class AckHandlerGuard
+    {
+    public:
+        AckHandlerGuard() = default;
+
+        explicit AckHandlerGuard(const MirroredSignalConfigPtr& signal)
+            : signal(signal)
+        {
+        }
+
+        AckHandlerGuard(AckHandlerGuard&& other) noexcept = default;
+
+        AckHandlerGuard& operator=(AckHandlerGuard&& other) noexcept
+        {
+            detach();
+            signal = std::move(other.signal);
+            return *this;
+        }
+
+        ~AckHandlerGuard()
+        {
+            detach();
+        }
+
+    private:
+        void detach()
+        {
+            if (!signal.assigned())
+                return;
+            if (IEvent* ev = signal.getOnSubscribeComplete())
+                ev->clear();
+            if (IEvent* ev = signal.getOnUnsubscribeComplete())
+                ev->clear();
+        }
+
+        MirroredSignalConfigPtr signal;
+    };
+
+    [[nodiscard]]
+    inline AckHandlerGuard setupSubscribeAckHandler(
         std::promise<StringPtr>& acknowledgementPromise,
         std::future<StringPtr>& acknowledgementFuture,
         MirroredSignalConfigPtr& signal
@@ -83,16 +127,17 @@ namespace test_helpers
                 {
                     acknowledgementPromise.set_value(args.getStreamingConnectionString());
                 }
-                catch (const std::future_errc&)
+                catch (const std::future_error&)
                 {
                     ADD_FAILURE()  << " Set already satisfied unsubscribe ack promise for streaming: "
                                    << args.getStreamingConnectionString();
                 }
             };
+        return AckHandlerGuard(signal);
     }
 
-    [[maybe_unused]]
-    inline void setupUnsubscribeAckHandler(
+    [[nodiscard]]
+    inline AckHandlerGuard setupUnsubscribeAckHandler(
         std::promise<StringPtr>& acknowledgementPromise,
         std::future<StringPtr>& acknowledgementFuture,
         MirroredSignalConfigPtr& signal
@@ -107,39 +152,14 @@ namespace test_helpers
                 {
                     acknowledgementPromise.set_value(args.getStreamingConnectionString());
                 }
-                catch (const std::future_errc&)
+                catch (const std::future_error&)
                 {
                     ADD_FAILURE()  << " Set already satisfied unsubscribe ack promise for streaming: "
                                    << args.getStreamingConnectionString();
                 }
             };
+        return AckHandlerGuard(signal);
     }
-
-    // Detaches a signal's (un)subscribe ack handlers on scope exit so they cannot outlive the promises they reference
-    class AckHandlerGuard
-    {
-    public:
-        explicit AckHandlerGuard(const MirroredSignalConfigPtr& signal)
-            : signal(signal)
-        {
-        }
-
-        AckHandlerGuard(const AckHandlerGuard&) = delete;
-        AckHandlerGuard& operator=(const AckHandlerGuard&) = delete;
-
-        ~AckHandlerGuard()
-        {
-            if (!signal.assigned())
-                return;
-            if (IEvent* ev = signal.getOnSubscribeComplete())
-                ev->clear();
-            if (IEvent* ev = signal.getOnUnsubscribeComplete())
-                ev->clear();
-        }
-
-    private:
-        MirroredSignalConfigPtr signal;
-    };
 
     [[maybe_unused]]
     inline bool waitForAcknowledgement(

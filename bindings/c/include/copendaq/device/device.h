@@ -51,6 +51,7 @@ extern "C"
     typedef struct daqComponentStatusContainer daqComponentStatusContainer;
     typedef struct daqAddDeviceConfig daqAddDeviceConfig;
     typedef struct daqAddStreamingConfig daqAddStreamingConfig;
+    typedef struct daqSynchronization daqSynchronization;
 
     EXPORTED extern const daqIntfID DAQ_DEVICE_INTF_ID;
     void EXPORTED daqDevice_getInterfaceId(daqIntfID* intfId);
@@ -95,6 +96,7 @@ extern "C"
     daqErrCode EXPORTED daqDevice_createAddDeviceConfig(daqDevice* self, daqAddDeviceConfig** config, daqDeviceInfo* info, daqString* prefix);
     daqErrCode EXPORTED daqDevice_createAddStreamingConfig(daqDevice* self, daqAddStreamingConfig** config, daqString* connectionString);
     daqErrCode EXPORTED daqDevice_getAddDeviceConfig(daqDevice* self, daqAddDeviceConfig** config);
+    daqErrCode EXPORTED daqDevice_getSynchronization(daqDevice* self, daqSynchronization** sync);
 
 #ifdef __cplusplus
 }

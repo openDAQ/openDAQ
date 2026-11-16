@@ -7,6 +7,7 @@
 
 #include <memory>
 #include <future>
+#include <atomic>
 
 using namespace daq;
 using namespace daq::opendaq_native_streaming_protocol;
@@ -84,7 +85,14 @@ public:
 
         streamingInitDoneHandler = [this]()
         {
-            streamingInitPromise.set_value();
+            // a reconnect the test did not cause completes the init again; its connection status fails the test
+            try
+            {
+                streamingInitPromise.set_value();
+            }
+            catch (const std::future_error&)
+            {
+            }
         };
 
         signalAvailableHandler = [this](const StringPtr& signalStringId,
@@ -119,7 +127,7 @@ public:
 
         connectionStatusChangedHandler = [this](const EnumerationPtr& status, const StringPtr& statusMessage)
         {
-            connectionStatusPromise.set_value(status);
+            onConnectionStatus(status);
         };
     }
 
@@ -170,6 +178,8 @@ public:
 
     void TearDown() override
     {
+        for (auto& client : clients)
+            EXPECT_EQ(client.unreadConnectionStatuses(), std::vector<std::string>{});
         if (std::get<1>(GetParam())) // stop server first
         {
             stopServer();
@@ -362,23 +372,13 @@ TEST_P(StreamingProtocolTest, Reconnection)
     stopServer();
 
     for (auto& client : clients)
-    {
-        ASSERT_EQ(client.connectionStatusFuture.wait_for(std::chrono::seconds(5)), std::future_status::ready);
-        ASSERT_EQ(client.connectionStatusFuture.get(), "Reconnecting");
-
-        client.connectionStatusPromise = std::promise< EnumerationPtr >();
-        client.connectionStatusFuture = client.connectionStatusPromise.get_future();
-    }
+        ASSERT_EQ(client.nextConnectionStatus(std::chrono::seconds(10)), "Reconnecting");
 
     startServer(List<ISignal>());
 
     for (auto& client : clients)
     {
-        ASSERT_EQ(client.connectionStatusFuture.wait_for(std::chrono::seconds(5)), std::future_status::ready);
-        ASSERT_EQ(client.connectionStatusFuture.get(), "Connected");
-
-        client.connectionStatusPromise = std::promise< EnumerationPtr >();
-        client.connectionStatusFuture = client.connectionStatusPromise.get_future();
+        ASSERT_EQ(client.nextConnectionStatus(std::chrono::seconds(10)), "Connected");
 
         client.clientHandler->sendStreamingRequest();
         ASSERT_EQ(client.streamingInitFuture.wait_for(timeout), std::future_status::ready);
@@ -899,6 +899,67 @@ TEST_P(StreamingProtocolTest, SendMultipleDataPackets)
         ASSERT_EQ(signalId, serverSignal.getGlobalId());
         ASSERT_EQ(serverDataPackets, packets);
     }
+}
+
+// A packet handler replaced while the client runs it must stay alive until it returns
+TEST_P(StreamingProtocolTest, ReplaceHandlerWhileItRuns)
+{
+    const auto valueDescriptor = DataDescriptorBuilder().setSampleType(SampleType::Float32).build();
+    auto serverSignal = SignalWithDescriptor(serverContext, valueDescriptor, nullptr, "signal");
+    startServer(List<ISignal>(serverSignal), DataDescriptorChangedEventPacket(valueDescriptor, NullDataDescriptor()));
+
+    auto& client = clients.front();
+    client.clientHandler = createClient(client, client.signalAvailableHandler);
+    ASSERT_TRUE(client.clientHandler->connect(SERVER_ADDRESS, NATIVE_STREAMING_LISTENING_PORT));
+    client.clientHandler->sendStreamingRequest();
+    ASSERT_EQ(client.streamingInitFuture.wait_for(timeout), std::future_status::ready);
+    ASSERT_EQ(client.signalAvailableFuture.wait_for(timeout), std::future_status::ready);
+    client.clientHandler->subscribeSignal(std::get<0>(client.signalAvailableFuture.get()));
+    ASSERT_EQ(client.subscribedAckFuture.wait_for(timeout), std::future_status::ready);
+    ASSERT_EQ(client.packetReceivedFuture.wait_for(timeout), std::future_status::ready);
+
+    struct Probe
+    {
+        std::atomic<bool> stateDestroyed{false};
+        std::promise<void> entered;
+        std::promise<void> release;
+        std::shared_future<void> released = release.get_future().share();
+        std::promise<bool> stateDestroyedWhileRunning;
+    };
+    const auto probe = std::make_shared<Probe>();
+    auto entered = probe->entered.get_future();
+    auto result = probe->stateDestroyedWhileRunning.get_future();
+
+    // The state is owned only by the handler closure and marks when that closure is destroyed
+    std::shared_ptr<void> state(nullptr, [probe](void*) { probe->stateDestroyed = true; });
+    client.clientHandler->setStreamingHandlers(
+        client.signalAvailableHandler,
+        client.signalUnavailableHandler,
+        [probe, state = std::move(state)](const StringPtr&, const PacketPtr&)
+        {
+            // Nothing below reads a capture, so the check itself stays valid if the closure is destroyed
+            const auto self = probe;
+            self->entered.set_value();
+            self->released.wait_for(std::chrono::seconds(10));
+            self->stateDestroyedWhileRunning.set_value(self->stateDestroyed);
+        },
+        client.signalSubscriptionAckHandler,
+        client.connectionStatusChangedHandler,
+        client.streamingInitDoneHandler);
+
+    serverHandler->sendPacket(serverSignal.getGlobalId().toStdString(), DataPacket(valueDescriptor, 100));
+    ASSERT_EQ(entered.wait_for(std::chrono::seconds(10)), std::future_status::ready);
+
+    client.clientHandler->setStreamingHandlers(client.signalAvailableHandler,
+                                               client.signalUnavailableHandler,
+                                               [](const StringPtr&, const PacketPtr&) {},
+                                               client.signalSubscriptionAckHandler,
+                                               client.connectionStatusChangedHandler,
+                                               client.streamingInitDoneHandler);
+    probe->release.set_value();
+
+    ASSERT_EQ(result.wait_for(std::chrono::seconds(10)), std::future_status::ready);
+    ASSERT_FALSE(result.get());
 }
 
 TEST_P(StreamingProtocolTest, AddNotPublicSignal)

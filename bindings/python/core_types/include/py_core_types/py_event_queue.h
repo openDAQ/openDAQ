@@ -18,6 +18,7 @@
 #include <coretypes/objectptr.h>
 #include <coretypes/common.h>
 #include <pybind11/pybind11.h>
+#include "py_core_types/py_opendaq_daq.h"
 #include "py_core_types/py_queued_event_handler.h"
 
 #include <queue>
@@ -40,5 +41,5 @@ private:
     std::mutex callbackQueueMutex;
 };
 
-pybind11::class_<PyEventQueue, std::shared_ptr<PyEventQueue>> declarePyEventQueue(pybind11::module_ m);
-void definePyEventQueue(pybind11::module_ m, pybind11::class_<PyEventQueue, std::shared_ptr<PyEventQueue>> cls);
+PyDaqClass<PyEventQueue, std::shared_ptr<PyEventQueue>> declarePyEventQueue(pybind11::module_ m);
+void definePyEventQueue(pybind11::module_ m, PyDaqClass<PyEventQueue, std::shared_ptr<PyEventQueue>> cls);

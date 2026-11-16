@@ -120,7 +120,7 @@ public:
 
         connectionStatusChangedHandler = [this](const EnumerationPtr& status, const StringPtr& statusMessage)
         {
-            connectionStatusPromise.set_value(status);
+            onConnectionStatus(status);
         };
 
         clientHandler->setConfigHandlers(configProtocolPacketHandler,
@@ -159,6 +159,7 @@ public:
 
     void TearDown() override
     {
+        EXPECT_EQ(client.unreadConnectionStatuses(), std::vector<std::string>{});
         if (std::get<1>(GetParam())) // stop server first
         {
             stopServer();
@@ -219,24 +220,16 @@ TEST_P(ConfigPacketsTest, Reconnection)
 
     stopServer();
 
-    ASSERT_EQ(client.connectionStatusFuture.wait_for(std::chrono::seconds(5)), std::future_status::ready);
-    ASSERT_EQ(client.connectionStatusFuture.get(), "Reconnecting");
-
-    client.connectionStatusPromise = std::promise< EnumerationPtr >();
-    client.connectionStatusFuture = client.connectionStatusPromise.get_future();
+    ASSERT_EQ(client.nextConnectionStatus(std::chrono::seconds(10)), "Reconnecting");
 
     configProtocolTriggeredPromise = std::promise< void > ();
     configProtocolTriggeredFuture = configProtocolTriggeredPromise.get_future();
 
     startServer();
 
-    ASSERT_EQ(client.connectionStatusFuture.wait_for(std::chrono::seconds(5)), std::future_status::ready);
-    ASSERT_EQ(client.connectionStatusFuture.get(), "Connected");
+    ASSERT_EQ(client.nextConnectionStatus(std::chrono::seconds(10)), "Connected");
     triggerConfigProtocolSetUp();
     ASSERT_EQ(configProtocolTriggeredFuture.wait_for(timeout), std::future_status::ready);
-
-    client.connectionStatusPromise = std::promise< EnumerationPtr >();
-    client.connectionStatusFuture = client.connectionStatusPromise.get_future();
 }
 
 TEST_P(ConfigPacketsTest, ServerToClientPackets)

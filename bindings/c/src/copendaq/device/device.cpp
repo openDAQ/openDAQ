@@ -221,3 +221,8 @@ daqErrCode daqDevice_getAddDeviceConfig(daqDevice* self, daqAddDeviceConfig** co
 {
     return reinterpret_cast<daq::IDevice*>(self)->getAddDeviceConfig(reinterpret_cast<daq::IAddDeviceConfig**>(config));
 }
+
+daqErrCode daqDevice_getSynchronization(daqDevice* self, daqSynchronization** sync)
+{
+    return reinterpret_cast<daq::IDevice*>(self)->getSynchronization(reinterpret_cast<daq::ISynchronization**>(sync));
+}

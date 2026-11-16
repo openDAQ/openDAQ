@@ -259,7 +259,7 @@ TEST_P(StreamingTest, SignalDescriptorEvents)
     auto mirroredSignalPtr = clientSignal.template asPtr<IMirroredSignalConfig>();
     std::promise<StringPtr> subscribeCompletePromise;
     std::future<StringPtr> subscribeCompleteFuture;
-    test_helpers::setupSubscribeAckHandler(subscribeCompletePromise, subscribeCompleteFuture, mirroredSignalPtr);
+    const auto subscribeCompleteAck = test_helpers::setupSubscribeAckHandler(subscribeCompletePromise, subscribeCompleteFuture, mirroredSignalPtr);
 
     auto serverReader = createServerReader("ChangingSignal");
     auto clientReader = createClientReader("ChangingSignal");
@@ -317,7 +317,7 @@ TEST_P(StreamingTest, DataPackets)
     auto mirroredSignalPtr = getSignal(clientInstance, "ByteStep").template asPtr<IMirroredSignalConfig>();
     std::promise<StringPtr> subscribeCompletePromise;
     std::future<StringPtr> subscribeCompleteFuture;
-    test_helpers::setupSubscribeAckHandler(subscribeCompletePromise, subscribeCompleteFuture, mirroredSignalPtr);
+    const auto subscribeCompleteAck = test_helpers::setupSubscribeAckHandler(subscribeCompletePromise, subscribeCompleteFuture, mirroredSignalPtr);
 
     auto serverReader = createServerReader("ByteStep");
     auto clientReader = createClientReader("ByteStep");
@@ -345,7 +345,7 @@ TEST_P(StreamingTest, LastValue)
     auto mirroredSignalPtr = getSignal(clientInstance, "IntStep").template asPtr<IMirroredSignalConfig>();
     std::promise<StringPtr> subscribeCompletePromise;
     std::future<StringPtr> subscribeCompleteFuture;
-    test_helpers::setupSubscribeAckHandler(subscribeCompletePromise, subscribeCompleteFuture, mirroredSignalPtr);
+    const auto subscribeCompleteAck = test_helpers::setupSubscribeAckHandler(subscribeCompletePromise, subscribeCompleteFuture, mirroredSignalPtr);
 
     // before any packet send
     ASSERT_FALSE(serverSignal.getLastValue().assigned());
@@ -400,7 +400,7 @@ TEST_P(StreamingTest, SetNullDescriptor)
         auto mirroredSignalPtr = getSignal(clientInstance, "ByteStep").template asPtr<IMirroredSignalConfig>();
         std::promise<StringPtr> subscribeCompletePromise;
         std::future<StringPtr> subscribeCompleteFuture;
-        test_helpers::setupSubscribeAckHandler(subscribeCompletePromise, subscribeCompleteFuture, mirroredSignalPtr);
+        const auto subscribeCompleteAck = test_helpers::setupSubscribeAckHandler(subscribeCompletePromise, subscribeCompleteFuture, mirroredSignalPtr);
 
         auto serverReader = createServerReader("ByteStep");
         auto clientReader = createClientReader("ByteStep");
@@ -435,7 +435,7 @@ TEST_P(StreamingTest, SetNullDescriptor)
         auto mirroredOrigSignalPtr = getSignal(clientInstance, "ByteStep").template asPtr<IMirroredSignalConfig>();
         std::promise<StringPtr> origSigSubscribeCompletePromise;
         std::future<StringPtr> origSigSubscribeCompleteFuture;
-        test_helpers::setupSubscribeAckHandler(origSigSubscribeCompletePromise, origSigSubscribeCompleteFuture, mirroredOrigSignalPtr);
+        const auto origSigSubscribeCompleteAck = test_helpers::setupSubscribeAckHandler(origSigSubscribeCompletePromise, origSigSubscribeCompleteFuture, mirroredOrigSignalPtr);
         auto clientOrigSigReader = createClientReader("ByteStep");
         ASSERT_TRUE(test_helpers::waitForAcknowledgement(origSigSubscribeCompleteFuture));
         auto clientOrigSigReceivedPackets = test_helpers::tryReadPackets(clientOrigSigReader, 1);
@@ -512,11 +512,11 @@ TEST_P(StreamingTest, ChangedDataDescriptorBeforeSubscribe)
 
         std::promise<StringPtr> subscribeCompletePromise;
         std::future<StringPtr> subscribeCompleteFuture;
-        test_helpers::setupSubscribeAckHandler(subscribeCompletePromise, subscribeCompleteFuture, clientSignalPtr);
+        const auto subscribeCompleteAck = test_helpers::setupSubscribeAckHandler(subscribeCompletePromise, subscribeCompleteFuture, clientSignalPtr);
         
         std::promise<StringPtr> unsubscribeCompletePromise;
         std::future<StringPtr> unsubscribeCompleteFuture;
-        test_helpers::setupUnsubscribeAckHandler(unsubscribeCompletePromise, unsubscribeCompleteFuture, clientSignalPtr);
+        const auto unsubscribeCompleteAck = test_helpers::setupUnsubscribeAckHandler(unsubscribeCompletePromise, unsubscribeCompleteFuture, clientSignalPtr);
 
         std::promise<StringPtr> subscribeDomainCompletePromise;
         std::future<StringPtr> subscribeDomainCompleteFuture;
@@ -524,10 +524,12 @@ TEST_P(StreamingTest, ChangedDataDescriptorBeforeSubscribe)
         std::promise<StringPtr> unsubscribeDomainCompletePromise;
         std::future<StringPtr> unsubscribeDomainCompleteFuture;
 
+        test_helpers::AckHandlerGuard subscribeDomainCompleteAck;
+        test_helpers::AckHandlerGuard unsubscribeDomainCompleteAck;
         if (usingNativeStreaming)
         {
-            test_helpers::setupSubscribeAckHandler(subscribeDomainCompletePromise, subscribeDomainCompleteFuture, clientDomainSignalPtr);
-            test_helpers::setupUnsubscribeAckHandler(unsubscribeDomainCompletePromise, unsubscribeDomainCompleteFuture, clientDomainSignalPtr);
+            subscribeDomainCompleteAck = test_helpers::setupSubscribeAckHandler(subscribeDomainCompletePromise, subscribeDomainCompleteFuture, clientDomainSignalPtr);
+            unsubscribeDomainCompleteAck = test_helpers::setupUnsubscribeAckHandler(unsubscribeDomainCompletePromise, unsubscribeDomainCompleteFuture, clientDomainSignalPtr);
         }
 
         auto clientReader = PacketReader(clientSignalPtr);
@@ -693,7 +695,7 @@ TEST_P(StreamingAsyncSignalTest, SigWithExplicitDomain)
     auto mirroredSignalPtr = getSignal(clientInstance, "ByteStep/Avg").template asPtr<IMirroredSignalConfig>();
     std::promise<StringPtr> subscribeCompletePromise;
     std::future<StringPtr> subscribeCompleteFuture;
-    test_helpers::setupSubscribeAckHandler(subscribeCompletePromise, subscribeCompleteFuture, mirroredSignalPtr);
+    const auto subscribeCompleteAck = test_helpers::setupSubscribeAckHandler(subscribeCompletePromise, subscribeCompleteFuture, mirroredSignalPtr);
 
     auto serverReader = createServerReader("ByteStep/Avg");
     auto clientReader = createClientReader("ByteStep/Avg");
@@ -768,7 +770,7 @@ TEST_P(StreamingReconnectionTest, Reconnection)
     std::promise<StringPtr> subscribeCompletePromise;
     std::future<StringPtr> subscribeCompleteFuture;
 
-    test_helpers::setupSubscribeAckHandler(subscribeCompletePromise, subscribeCompleteFuture, mirroredSignalPtr);
+    const auto subscribeCompleteAck = test_helpers::setupSubscribeAckHandler(subscribeCompletePromise, subscribeCompleteFuture, mirroredSignalPtr);
 
     auto serverReader = createServerReader("ByteStep");
     auto clientReader = createClientReader("ByteStep");
@@ -791,8 +793,9 @@ TEST_P(StreamingReconnectionTest, Reconnection)
     restoreStreamingServer();
     // TODO test reconnected status
 
-    ASSERT_TRUE(test_helpers::waitForAcknowledgement(subscribeCompleteFuture, 5s));
-    
+    // The removed server's sessions are not closed, so the client notices only after the inactivity timeout
+    ASSERT_TRUE(test_helpers::waitForAcknowledgement(subscribeCompleteFuture, 30s));
+
     // Expect to receive all data packets,
     const size_t packetsToGenerate = 10;
 
@@ -873,19 +876,19 @@ TEST_F(NativeDeviceStreamingTest, ChangedDataDescriptorBeforeSubscribeNativeDevi
 
         std::promise<StringPtr> subscribeCompletePromise;
         std::future<StringPtr> subscribeCompleteFuture;
-        test_helpers::setupSubscribeAckHandler(subscribeCompletePromise, subscribeCompleteFuture, clientSignalPtr);
+        const auto subscribeCompleteAck = test_helpers::setupSubscribeAckHandler(subscribeCompletePromise, subscribeCompleteFuture, clientSignalPtr);
         
         std::promise<StringPtr> subscribeDomainCompletePromise;
         std::future<StringPtr> subscribeDomainCompleteFuture;
-        test_helpers::setupSubscribeAckHandler(subscribeDomainCompletePromise, subscribeDomainCompleteFuture, clientDomainSignal);
+        const auto subscribeDomainCompleteAck = test_helpers::setupSubscribeAckHandler(subscribeDomainCompletePromise, subscribeDomainCompleteFuture, clientDomainSignal);
 
         std::promise<StringPtr> unsubscribeCompletePromise;
         std::future<StringPtr> unsubscribeCompleteFuture;
-        test_helpers::setupUnsubscribeAckHandler(unsubscribeCompletePromise, unsubscribeCompleteFuture, clientSignalPtr);
+        const auto unsubscribeCompleteAck = test_helpers::setupUnsubscribeAckHandler(unsubscribeCompletePromise, unsubscribeCompleteFuture, clientSignalPtr);
         
         std::promise<StringPtr> unsubscribeDomainCompletePromise;
         std::future<StringPtr> unsubscribeDomainCompleteFuture;
-        test_helpers::setupUnsubscribeAckHandler(unsubscribeDomainCompletePromise, unsubscribeDomainCompleteFuture, clientDomainSignal);
+        const auto unsubscribeDomainCompleteAck = test_helpers::setupUnsubscribeAckHandler(unsubscribeDomainCompletePromise, unsubscribeDomainCompleteFuture, clientDomainSignal);
 
         auto clientReader = PacketReader(clientSignalPtr);
         
@@ -1694,8 +1697,7 @@ TEST_P(StreamingReconnectionTestForModernLt, DISABLED_Reconnection)
     std::promise<StringPtr> subscribeCompletePromise;
     std::future<StringPtr> subscribeCompleteFuture;
 
-    test_helpers::setupSubscribeAckHandler(subscribeCompletePromise, subscribeCompleteFuture, mirroredSignalPtr);
-    test_helpers::AckHandlerGuard ackHandlerGuard(mirroredSignalPtr);
+    const auto subscribeCompleteAck = test_helpers::setupSubscribeAckHandler(subscribeCompletePromise, subscribeCompleteFuture, mirroredSignalPtr);
 
     auto serverReader = createServerReader("ByteStep");
     auto clientReader = createClientReader("ByteStep");

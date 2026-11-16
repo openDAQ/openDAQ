@@ -15,19 +15,11 @@
  */
 
 #include <pybind11/gil.h>
-#include <pybind11/functional.h>
 
 #include "py_core_types/py_event_handler_impl.h"
 #include "py_core_types/py_core_types.h"
 #include "py_core_types/py_converter.h"
 
-
-daq::EventHandlerPtr<> createEventHandler(const EventHandler& eventHandler) {
-    daq::EventHandlerPtr<> handler;
-    daq::ErrCode err = daq::createObjectForwarding<daq::IEventHandler, daq::PyEventHandlerImpl>(&handler, eventHandler);
-    daq::checkErrorInfo(err);
-    return handler;
-}
 
 PyDaqIntf<daq::IEventHandler, daq::IBaseObject> declareIEventHandler(pybind11::module_ m)
 {
@@ -38,7 +30,7 @@ void defineIEventHandler(pybind11::module_ m, PyDaqIntf<daq::IEventHandler, daq:
 {
     cls.doc() = "";
 
-    m.def("EventHandler", [](const EventHandler& eventHandler){
-        return createEventHandler(eventHandler).detach();
+    m.def("EventHandler", [](const py::object& eventHandler){
+        return daq::createWithImplementation<daq::IEventHandler, daq::PyEventHandlerImpl>(eventHandler).detach();
     }, py::arg("event_handler"));
 }

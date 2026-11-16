@@ -27,6 +27,7 @@
 #include <opendaq/streaming.h>
 #include <opendaq/streaming_type.h>
 #include <opendaq/sync_component.h>
+#include <opendaq/synchronization.h>
 #include <opendaq/server.h>
 #include <opendaq/update_parameters.h>
 #include <coreobjects/user.h>
@@ -293,6 +294,7 @@ DECLARE_OPENDAQ_INTERFACE(IDevice, IFolder)
     /*!
      * @brief Gets the sync component of the device.
      * @param[out] sync The sync component.
+     * @deprecated ISyncComponent and getSyncComponent are deprecated and will be removed in a future release.
      */
     virtual ErrCode INTERFACE_FUNC getSyncComponent(ISyncComponent** sync) = 0;
 
@@ -461,6 +463,14 @@ DECLARE_OPENDAQ_INTERFACE(IDevice, IFolder)
      * The config is null for the root device and for a device not added with an add device config.
      */
     virtual ErrCode INTERFACE_FUNC getAddDeviceConfig(IAddDeviceConfig** config) = 0;
+
+    /*!
+     * @brief Gets the synchronization object of the device.
+     * @param[out] sync The synchronization object.
+     *
+     * @return OPENDAQ_IGNORED if the device has no clock; sync is set to nullptr.
+     */
+    virtual ErrCode INTERFACE_FUNC getSynchronization(ISynchronization** sync) = 0;
 };
 /*!@}*/
 

@@ -39,17 +39,27 @@ PyDaqIntf<daq::IModuleAuthenticator, daq::IBaseObject> declareIModuleAuthenticat
 void defineIModuleAuthenticator(pybind11::module_ m, PyDaqIntf<daq::IModuleAuthenticator, daq::IBaseObject> cls)
 {
     cls.doc() = "Module authenticator interface.";
-    /*
+
+    m.def("FunctionModuleAuthenticator", &daq::FunctionModuleAuthenticator_Create);
+
     cls.def("authenticate_module_binary",
         [](daq::IModuleAuthenticator *object, std::variant<daq::IString*, py::str, daq::IEvalValue*>& binaryPath)
         {
             py::gil_scoped_release release;
             const auto objectPtr = daq::ModuleAuthenticatorPtr::Borrow(object);
             daq::Bool valid;
-            daq::StringPtr vendorKey = objectPtr.authenticateModuleBinary(valid, getVariantValue<daq::IString*>(binaryPath);
+            const auto vendorKey = objectPtr.authenticateModuleBinary(valid, getVariantValue<daq::IString*>(binaryPath)).toStdString();
             return std::make_tuple(valid, vendorKey);
         },
         py::arg("binary_path"),
         "Verify the module binary with a certificate file.");
-    */
+    cls.def_property("logger",
+        nullptr,
+        [](daq::IModuleAuthenticator *object, daq::ILogger* logger)
+        {
+            py::gil_scoped_release release;
+            const auto objectPtr = daq::ModuleAuthenticatorPtr::Borrow(object);
+            objectPtr.setLogger(logger);
+        },
+        "API call to add allow the openDAQ instance to add it's logger after during construction.");
 }

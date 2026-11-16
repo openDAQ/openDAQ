@@ -24,6 +24,7 @@
 #include <thread>
 #include <condition_variable>
 #include <opendaq/log_file_info_ptr.h>
+#include <opendaq/reference_domain_info_ptr.h>
 
 BEGIN_NAMESPACE_REF_DEVICE_MODULE
 
@@ -76,7 +77,7 @@ private:
     void createSignals();
     void initClock();
     void initIoFolder();
-    void initSyncComponent();
+    void initSynchronization();
     void initProperties(const PropertyObjectPtr& config);
     void collectTimeSignalSamples(std::chrono::microseconds curTim);
     uint64_t getSamplesSinceStart(std::chrono::microseconds time) const;
@@ -112,7 +113,6 @@ private:
 
     FolderConfigPtr aiFolder;
     FolderConfigPtr canFolder;
-    ComponentPtr syncComponent;
 
     DeviceTypePtr type;
 
@@ -123,6 +123,7 @@ private:
     StringPtr loggingPath;
     SignalConfigPtr timeSignal;
     StringPtr refDomainId;
+    ReferenceDomainInfoPtr refDomainInfo;
     Float globalSampleRate;
     uint64_t samplesGenerated;
     uint64_t deltaT;

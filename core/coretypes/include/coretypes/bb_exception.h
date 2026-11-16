@@ -25,7 +25,7 @@ class DaqException : public std::runtime_error
 public:
     template <typename... Params>
     explicit DaqException(ErrCode errCode, const std::string& format, Params&&... params)
-        : DaqException(false, errCode, fmt::format(fmt::runtime(format), std::forward<Params>(params)...))
+        : DaqException(false, errCode, formatMessage(format, std::forward<Params>(params)...))
     {
     }
 
@@ -74,11 +74,21 @@ protected:
 
     template <typename... Params>
     explicit DaqException(ConstCharPtr fileName, Int fileLine, ErrCode errCode, const std::string& format, Params&&... params)
-        : DaqException(false, errCode, fmt::format(fmt::runtime(format), std::forward<Params>(params)...), fileName, fileLine)
+        : DaqException(false, errCode, formatMessage(format, std::forward<Params>(params)...), fileName, fileLine)
     {
     }
 
 private:
+    // A message without arguments is used as it is, so braces in it (JSON, names, values) are not read as placeholders
+    template <typename... Params>
+    static std::string formatMessage(const std::string& format, Params&&... params)
+    {
+        if constexpr (sizeof...(Params) == 0)
+            return format;
+        else
+            return fmt::format(fmt::runtime(format), std::forward<Params>(params)...);
+    }
+
     ErrCode errCode;
     bool defaultMsg;
     ConstCharPtr fileName;

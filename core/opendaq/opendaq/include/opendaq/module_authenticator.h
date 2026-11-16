@@ -57,4 +57,10 @@ DECLARE_OPENDAQ_INTERFACE(IModuleAuthenticator, IBaseObject)
 };
 /*!@}*/
 
+// Creates a module authenticator that forwards `authenticateModuleBinary` to `function`; `setLogger` keeps the base behaviour.
+// The function takes the name of the called method and a dictionary of its parameters,
+// and returns a dictionary with one entry per output parameter, named as in the interface.
+// [interfaceLibrary(IFunction, "coretypes")]
+OPENDAQ_DECLARE_CLASS_FACTORY_WITH_INTERFACE(LIBRARY_FACTORY, FunctionModuleAuthenticator, IModuleAuthenticator, IFunction*, function)
+
 END_NAMESPACE_OPENDAQ

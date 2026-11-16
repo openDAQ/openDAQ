@@ -231,8 +231,6 @@ TEST_F(AddDeviceConfigTest, StreamingSelection)
 {
     const auto options = createMirroredConfig().getStreamingOptions();
     const auto configs = options.getStreamingConfigs();
-    ASSERT_EQ(options.getStreamingConfig("a").getObject(), configs.get("a").getObject());
-    ASSERT_THROW(options.getStreamingConfig("unknown"), NotFoundException);
     ASSERT_FALSE(options.getStreamingType().assigned());
 
     options.setStreamingType("a");

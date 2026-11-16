@@ -45,7 +45,7 @@ extern "C"
     daqErrCode EXPORTED daqAddStreamingOptions_getStreamingConfigs(daqAddStreamingOptions* self, daqDict** configs);
     daqErrCode EXPORTED daqAddStreamingOptions_getStreamingType(daqAddStreamingOptions* self, daqString** typeId);
     daqErrCode EXPORTED daqAddStreamingOptions_setStreamingType(daqAddStreamingOptions* self, daqString* typeId);
-    daqErrCode EXPORTED daqAddStreamingOptions_getStreamingConfig(daqAddStreamingOptions* self, daqAddStreamingConfig** config, daqString* typeId);
+    daqErrCode EXPORTED daqAddStreamingOptions_getStreamingConfig(daqAddStreamingOptions* self, daqAddStreamingConfig** config);
     daqErrCode EXPORTED daqAddStreamingOptions_getStreamingMode(daqAddStreamingOptions* self, daqStreamingMode* mode);
     daqErrCode EXPORTED daqAddStreamingOptions_setStreamingMode(daqAddStreamingOptions* self, daqStreamingMode mode);
 

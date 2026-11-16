@@ -39,7 +39,7 @@ public:
     ErrCode INTERFACE_FUNC getStreamingConfigs(IDict** configs) override;
     ErrCode INTERFACE_FUNC getStreamingType(IString** typeId) override;
     ErrCode INTERFACE_FUNC setStreamingType(IString* typeId) override;
-    ErrCode INTERFACE_FUNC getStreamingConfig(IAddStreamingConfig** config, IString* typeId = nullptr) override;
+    ErrCode INTERFACE_FUNC getStreamingConfig(IAddStreamingConfig** config) override;
     ErrCode INTERFACE_FUNC getStreamingMode(StreamingMode* mode) override;
     ErrCode INTERFACE_FUNC setStreamingMode(StreamingMode mode) override;
 

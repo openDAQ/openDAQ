@@ -81,13 +81,10 @@ DECLARE_OPENDAQ_INTERFACE(IAddStreamingOptions, IBaseObject)
     virtual ErrCode INTERFACE_FUNC setStreamingType(IString* typeId) = 0;
 
     /*!
-     * @brief Gets the streaming config listed under a Streaming type ID.
-     * @param[out] config The streaming config, or null when `typeId` is null and none is selected
-     * @param typeId The Streaming type ID, or null for the selected Streaming type
-     *
-     * Fails with `OPENDAQ_ERR_NOTFOUND` when no config is listed under the ID.
+     * @brief Gets the selected streaming config.
+     * @param[out] config The streaming config, or null when none is selected
      */
-    virtual ErrCode INTERFACE_FUNC getStreamingConfig(IAddStreamingConfig** config, IString* typeId = nullptr) = 0;
+    virtual ErrCode INTERFACE_FUNC getStreamingConfig(IAddStreamingConfig** config) = 0;
 
     /*!
      * @brief Gets the streaming mode.

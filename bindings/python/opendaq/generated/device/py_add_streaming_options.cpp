@@ -79,16 +79,7 @@ void defineIAddStreamingOptions(pybind11::module_ m, PyDaqIntf<daq::IAddStreamin
             return objectPtr.getStreamingConfig().detach();
         },
         py::return_value_policy::take_ownership,
-        "Gets the streaming config listed under a Streaming type ID.");
-    cls.def("get_streaming_config",
-        [](daq::IAddStreamingOptions *object, std::variant<daq::IString*, py::str, daq::IEvalValue*>& typeId)
-        {
-            py::gil_scoped_release release;
-            const auto objectPtr = daq::AddStreamingOptionsPtr::Borrow(object);
-            return objectPtr.getStreamingConfig(getVariantValue<daq::IString*>(typeId)).detach();
-        },
-        py::arg("type_id") = nullptr,
-        "Gets the streaming config listed under a Streaming type ID.");
+        "Gets the selected streaming config.");
     cls.def_property("streaming_mode",
         [](daq::IAddStreamingOptions *object)
         {

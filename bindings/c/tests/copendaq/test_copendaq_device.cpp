@@ -243,7 +243,7 @@ TEST_F(COpendaqDeviceTest, AddDeviceConfig)
     daqAddStreamingOptions_getStreamingType(options, &typeId);
     ASSERT_EQ(daq::StringPtr::Adopt((daq::IString*) typeId), "streamingType");
     daqAddStreamingConfig* selected = nullptr;
-    daqAddStreamingOptions_getStreamingConfig(options, &selected, nullptr);
+    daqAddStreamingOptions_getStreamingConfig(options, &selected);
     ASSERT_EQ(daq::AddStreamingConfigPtr::Adopt((daq::IAddStreamingConfig*) selected),
               optionsPtr.getStreamingConfigs().get("streamingType"));
 

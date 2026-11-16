@@ -106,25 +106,18 @@ ErrCode AddStreamingOptionsImpl::setStreamingType(IString* typeId)
     return Super::setPropertyValue(String(add_streaming_options::StreamingType), value);
 }
 
-ErrCode AddStreamingOptionsImpl::getStreamingConfig(IAddStreamingConfig** config, IString* typeId)
+ErrCode AddStreamingOptionsImpl::getStreamingConfig(IAddStreamingConfig** config)
 {
     OPENDAQ_PARAM_NOT_NULL(config);
 
     return daqTry([&]
     {
-        StringPtr id = typeId;
+        StringPtr id;
+        checkErrorInfo(getStreamingType(&id));
         if (!id.assigned())
         {
-            checkErrorInfo(getStreamingType(&id));
-            if (!id.assigned())
-            {
-                *config = nullptr;
-                return;
-            }
-        }
-        else if (!isOffered(id))
-        {
-            DAQ_THROW_EXCEPTION(NotFoundException, "Streaming type \"{}\" is not offered", id);
+            *config = nullptr;
+            return;
         }
 
         *config = objPtr.getPropertyValue(id).asPtr<IAddStreamingConfig>().detach();

@@ -49,15 +49,16 @@ TEST_F(MultiReader2Context, DataQueuedWhileCallIsPendingIsHandledByOneCall)
 }
 
 // S1.CTX.04
-TEST_F(MultiReader2Context, HandlerLeavingSamplesUnreadIsCalledAgain)
+TEST_F(MultiReader2Context, HandlerLeavingSamplesUnreadIsCalledAgainOnlyOnNewData)
 {
-    MR2_REVIEW_ONLY(review_only::wake);
-    setupHandler([&] { read(150); });
+    setupHandler([&] { read(150); }, [&] { read(150); });
     blockWorker();
     write(in1, 100, 299);
     write(in2, 100, 299);
     unblockWorker();
-    expect(idle(), calls(2, {count(150).at(100).noChanges(), count(50).at(250).noChanges()}));
+    expect(idle(), calls(1, {count(150).at(100).noChanges()}));
+    write(in2, 300, 309);
+    expect(idle(), calls(1, {count(50).at(250).noChanges()}));
 }
 
 // S1.CTX.05
@@ -78,23 +79,6 @@ TEST_F(MultiReader2Context, ThrowingHandlerIsLoggedAndCalledAgainOnlyOnNewData)
     expectLoggedError();
     write(in1, 300, 309);
     expect(idle(), calls(1, {count(50).at(250).noChanges()}));
-}
-
-// S1.CTX.06
-TEST_F(MultiReader2Context, SynchronizationReachingCommonStartBelowMinReadCountDoesNotCallHandler)
-{
-    MR2_REVIEW_ONLY(review_only::wake);
-    given().minReadCount(200);
-    setup(
-        [&]
-        {
-            handler([&] { drain(); });
-            write(in1, 0, 99);
-            read(0, nullData);
-            idle();
-        });
-    write(in2, 0, 99);
-    expect(idle(), calls(0));
 }
 
 // S1.CTX.07

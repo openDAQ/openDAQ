@@ -69,7 +69,9 @@ class TestAddDeviceConfig(opendaq_test.TestCase):
         options = self.add_device_config(mirrored_type).streaming_options
 
         self.assertEqual(list(options.streaming_configs.keys()), ['streamingType'])
+        self.assertIsNone(options.streaming_type)
         options.streaming_type = 'streamingType'
+        self.assertEqual(options.streaming_type, 'streamingType')
         self.assertEqual(options.streaming_config.streaming_type.id, 'streamingType')
         self.assertEqual(options.streaming_config.type_config.get_property_value('port'), 1234)
         options.streaming_mode = opendaq.StreamingMode.MinConnections

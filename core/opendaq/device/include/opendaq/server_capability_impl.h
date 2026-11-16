@@ -114,7 +114,7 @@ private:
     const char* AuthenticationMethods = "AuthenticationMethods";
     // A Property object holding one object property per transport option, in order. The options are kept this way
     // rather than as a list so that older peers, which do not know transport options, still read the capability.
-    const char* TransportOptions = "TransportOptions";
+    const char* AvailableTransportOptions = "AvailableTransportOptions";
 
 
     template <typename T>
@@ -174,7 +174,7 @@ inline ServerCapabilityConfigImpl::ServerCapabilityConfigImpl(const StringPtr& p
     Super::addProperty(ObjectProperty(AddressInfo, PropertyObject()));
     Super::addProperty(IntProperty(SecurityLevel, -1));
     Super::addProperty(ListProperty(AuthenticationMethods, List<IString>()));
-    Super::addProperty(ObjectProperty(TransportOptions, PropertyObject()));
+    Super::addProperty(ObjectProperty(AvailableTransportOptions, PropertyObject()));
 
     Super::setPropertyValue(String(ProtocolId), protocolId);
     Super::setPropertyValue(String(ProtocolName), protocolName);
@@ -583,7 +583,7 @@ inline ErrCode ServerCapabilityConfigImpl::addAuthenticationMethod(IString* meth
 inline ListPtr<ITransportOption> ServerCapabilityConfigImpl::readTransportOptions()
 {
     // The options come back as plain Property objects from a serialized or remote capability
-    const PropertyObjectPtr container = objPtr.getPropertyValue(TransportOptions);
+    const PropertyObjectPtr container = objPtr.getPropertyValue(AvailableTransportOptions);
     auto options = List<ITransportOption>();
     for (const auto& prop : container.getAllProperties())
     {
@@ -636,7 +636,7 @@ inline ErrCode ServerCapabilityConfigImpl::writeTransportOptions(const ListPtr<I
             container.addProperty(ObjectProperty(key, option));
         }
 
-        objPtr.asPtr<IPropertyObjectProtected>().setProtectedPropertyValue(String(TransportOptions), container);
+        objPtr.asPtr<IPropertyObjectProtected>().setProtectedPropertyValue(String(AvailableTransportOptions), container);
         return OPENDAQ_SUCCESS;
     });
 }

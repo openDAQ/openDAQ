@@ -115,7 +115,7 @@ TEST_F(DeviceTypeTest, SerializeWithoutTransportOptions)
     const auto serializer = JsonSerializer();
     type.serialize(serializer);
     const auto serializedType = serializer.getOutput();
-    ASSERT_EQ(std::string(serializedType).find("transportOptions"), std::string::npos);
+    ASSERT_EQ(std::string(serializedType).find("availableTransportOptions"), std::string::npos);
 
     const auto deserializer = JsonDeserializer();
     const DeviceTypePtr newType = deserializer.deserialize(serializedType, nullptr, nullptr);

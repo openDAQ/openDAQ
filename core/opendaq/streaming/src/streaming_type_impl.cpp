@@ -108,7 +108,7 @@ ErrCode INTERFACE_FUNC StreamingTypeImpl::serialize(ISerializer* serializer)
 
             if (transportOptions.getCount() > 0)
             {
-                serializerPtr.key("transportOptions");
+                serializerPtr.key("availableTransportOptions");
                 transportOptions.serialize(serializerPtr);
             }
 
@@ -183,8 +183,9 @@ ErrCode StreamingTypeImpl::Deserialize(ISerializedObject* serialized, IBaseObjec
 
         // The options come back as the plain Property objects they are serialized as
         ListPtr<ITransportOption> transportOptions;
-        if (serializedObj.hasKey("transportOptions"))
-            transportOptions = TransportOptionsFromPropertyObjects(serializedObj.readObject("transportOptions", contextPtr, factoryCallbackPtr));
+        if (serializedObj.hasKey("availableTransportOptions"))
+            transportOptions =
+                TransportOptionsFromPropertyObjects(serializedObj.readObject("availableTransportOptions", contextPtr, factoryCallbackPtr));
 
         PropertyObjectPtr defaultConfig;
         if (serializedObj.hasKey("defaultConfig"))

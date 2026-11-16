@@ -261,12 +261,12 @@ TEST_F(ServerCapabilityTest, SerializeDeserializeTransportOptions)
 TEST_F(ServerCapabilityTest, DeserializeWithoutTransportOptions)
 {
     ServerCapabilityConfigPtr capability = ServerCapability("protocol_id", "Protocol name", ProtocolType::Streaming).setPort(7420);
-    capability.removeProperty("TransportOptions");
+    capability.removeProperty("AvailableTransportOptions");
 
     const auto serializer = JsonSerializer();
     capability.serialize(serializer);
     const auto serializedCapability = serializer.getOutput();
-    ASSERT_EQ(std::string(serializedCapability).find("TransportOptions"), std::string::npos);
+    ASSERT_EQ(std::string(serializedCapability).find("AvailableTransportOptions"), std::string::npos);
 
     const auto deserializer = JsonDeserializer();
     const ServerCapabilityPtr newCapability = deserializer.deserialize(serializedCapability, nullptr, nullptr);

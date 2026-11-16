@@ -26,7 +26,7 @@ static const char* DeviceTypeKey = "deviceType";
 static const char* DeviceTypeIdKey = "deviceTypeId";
 static const char* ScanOnAddKey = "scanOnAdd";
 static const char* PropValuesKey = "propValues";
-static const char* TransportOptionsKey = "transportOptions";
+static const char* AvailableTransportOptionsKey = "availableTransportOptions";
 
 StringPtr toString(AddressType type)
 {
@@ -243,10 +243,10 @@ ErrCode AddDeviceConfigImpl::Deserialize(ISerializedObject* serialized, IBaseObj
             const DeviceTypePtr deviceType = serialized.readObject(add_device_config::DeviceTypeKey, context, factoryCallback);
 
             // A config serialized without options of its own lists the Device type's
-            const ListPtr<ITransportOption> options =
-                serialized.hasKey(add_device_config::TransportOptionsKey)
-                    ? TransportOptionsFromPropertyObjects(serialized.readObject(add_device_config::TransportOptionsKey, context, factoryCallback))
-                    : ComponentTypeTransportOptions(deviceType);
+            const ListPtr<ITransportOption> options = serialized.hasKey(add_device_config::AvailableTransportOptionsKey)
+                                                          ? TransportOptionsFromPropertyObjects(serialized.readObject(
+                                                                add_device_config::AvailableTransportOptionsKey, context, factoryCallback))
+                                                          : ComponentTypeTransportOptions(deviceType);
 
             return createWithImplementation<IAddDeviceConfig, AddDeviceConfigImpl>(deviceType, options, Partial());
         };
@@ -306,7 +306,7 @@ ErrCode AddDeviceConfigImpl::serializeCustomValues(ISerializer* serializer, bool
             // The options may be the ones the server of the device announces, which the Device type does not list
             if (transportOptions.getCount() > 0)
             {
-                serializerPtr.key(add_device_config::TransportOptionsKey);
+                serializerPtr.key(add_device_config::AvailableTransportOptionsKey);
                 transportOptions.serialize(serializerPtr);
             }
 

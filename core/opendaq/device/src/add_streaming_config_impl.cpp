@@ -14,7 +14,7 @@ static const char* TransportOption = "TransportOption";
 static const char* Port = "Port";
 
 static const char* StreamingTypeKey = "streamingType";
-static const char* TransportOptionsKey = "transportOptions";
+static const char* AvailableTransportOptionsKey = "availableTransportOptions";
 }
 
 AddStreamingConfigImpl::AddStreamingConfigImpl(const StreamingTypePtr& streamingType)
@@ -188,8 +188,9 @@ ErrCode AddStreamingConfigImpl::Deserialize(ISerializedObject* serialized,
 
             // A config serialized without options of its own lists the Streaming type's
             const ListPtr<ITransportOption> options =
-                serialized.hasKey(add_streaming_config::TransportOptionsKey)
-                    ? TransportOptionsFromPropertyObjects(serialized.readObject(add_streaming_config::TransportOptionsKey, context, factoryCallback))
+                serialized.hasKey(add_streaming_config::AvailableTransportOptionsKey)
+                    ? TransportOptionsFromPropertyObjects(
+                          serialized.readObject(add_streaming_config::AvailableTransportOptionsKey, context, factoryCallback))
                     : ComponentTypeTransportOptions(streamingType);
 
             return createWithImplementation<IAddStreamingConfig, AddStreamingConfigImpl>(streamingType, options, Partial());
@@ -214,7 +215,7 @@ ErrCode AddStreamingConfigImpl::serializeCustomValues(ISerializer* serializer, b
         // The options may be the ones the server of the device announces, which the Streaming type does not list
         if (transportOptions.getCount() > 0)
         {
-            serializerPtr.key(add_streaming_config::TransportOptionsKey);
+            serializerPtr.key(add_streaming_config::AvailableTransportOptionsKey);
             transportOptions.serialize(serializerPtr);
         }
     });

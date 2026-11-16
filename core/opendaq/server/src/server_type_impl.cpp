@@ -94,7 +94,7 @@ void ServerTypeImpl::serializeType(const SerializerPtr& serializerPtr, bool with
 
         if (transportOptions.getCount() > 0)
         {
-            serializerPtr.key("transportOptions");
+            serializerPtr.key("availableTransportOptions");
             transportOptions.serialize(serializerPtr);
         }
 
@@ -153,8 +153,9 @@ ErrCode ServerTypeImpl::Deserialize(ISerializedObject* serialized, IBaseObject* 
 
         // The options come back as the plain Property objects they are serialized as
         ListPtr<ITransportOption> transportOptions;
-        if (serializedObj.hasKey("transportOptions"))
-            transportOptions = TransportOptionsFromPropertyObjects(serializedObj.readObject("transportOptions", contextPtr, factoryCallbackPtr));
+        if (serializedObj.hasKey("availableTransportOptions"))
+            transportOptions =
+                TransportOptionsFromPropertyObjects(serializedObj.readObject("availableTransportOptions", contextPtr, factoryCallbackPtr));
 
         PropertyObjectPtr defaultConfig;
         if (serializedObj.hasKey("defaultConfig"))

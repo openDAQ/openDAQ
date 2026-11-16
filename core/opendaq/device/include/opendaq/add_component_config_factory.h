@@ -56,6 +56,7 @@ inline AddDeviceConfigPtr AddDeviceConfig(const DeviceTypePtr& deviceType,
  * @param streamingTypes The available Streaming types, keyed by ID
  *
  * Binds as IAddDeviceConfigPrivate::bind does.
+ * Returns null when `saved` is not the save form of an add device config.
  */
 inline AddDeviceConfigPtr BoundAddDeviceConfig(const SerializedObjectPtr& saved,
                                                const DictPtr<IString, IDeviceType>& deviceTypes,

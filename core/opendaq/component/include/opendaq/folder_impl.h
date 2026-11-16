@@ -91,9 +91,12 @@ protected:
     virtual void syncComponentOperationMode(const ComponentPtr& component);
     void notifyActiveChanged(bool onUpdate) override;
 
+    // Refuses a function block of a singleton type when the folder already holds one of that type. Runs under the
+    // folder's config lock together with the addition, so concurrent additions cannot both pass it.
+    virtual void validateSingletonFunctionBlock(const ComponentPtr& component);
+
 private:
     ErrCode removeItemWithLocalIdInternal(const std::string& str);
-    void validateSingletonFunctionBlock(const ComponentPtr& component);
     void clearInternal();
 
     IntfID itemId;

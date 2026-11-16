@@ -57,6 +57,10 @@ protected:
 
     void handleRemoteCoreObjectInternal(const ComponentPtr& sender, const CoreEventArgsPtr& args) override;
 
+    // Copies the remote folder's items as they are. The remote side enforces the singleton flag, and its core
+    // events can arrive in an order in which the copy briefly holds two instances of a singleton type.
+    void validateSingletonFunctionBlock(const ComponentPtr& component) override;
+
 private:
     void componentAdded(const CoreEventArgsPtr& args);
     void componentRemoved(const CoreEventArgsPtr& args);
@@ -204,6 +208,11 @@ void ConfigClientBaseFolderImpl<Impl>::handleRemoteCoreObjectInternal(const Comp
     }
 
     ConfigClientComponentBaseImpl<Impl>::handleRemoteCoreObjectInternal(sender, args);
+}
+
+template <class Impl>
+void ConfigClientBaseFolderImpl<Impl>::validateSingletonFunctionBlock(const ComponentPtr& /*component*/)
+{
 }
 
 template <class Impl>

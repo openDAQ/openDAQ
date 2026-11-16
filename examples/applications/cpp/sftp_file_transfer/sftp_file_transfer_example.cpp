@@ -11,12 +11,14 @@
  * The SSH library backend is chosen with the first argument: "libssh2" or "libssh", whichever were built
  * (OPENDAQ_ENABLE_SFTP_FILE_TRANSFER_LIBSSH2 / _LIBSSH). Without an argument, the first one built is used.
  * "libssh2-async" makes the same round trip with the asynchronous libssh2 backend: the transfers run on the file
- * transfer object's I/O thread, and their status changes are printed as they happen.
+ * transfer object's I/O thread, and their status changes are printed as they happen. The upload is waited for with
+ * wait(), like a blocking call; the download's completion is taken from its status change event via a promise.
  *
  * Adjust the constants below to match your server before running.
  */
 
 #include <fstream>
+#include <future>
 #include <iostream>
 #include <iterator>
 #include <string>
@@ -107,9 +109,23 @@ static void roundTripAsync(const AuthenticationConfigPtr& authConfig)
     upload.wait();  // throws as the blocking upload would if the transfer failed
     std::cout << "Uploaded " << LocalFile << " to " << RemoteFile << " (" << upload.getBytesTransferred() << " bytes)." << std::endl;
 
+    // The download's completion comes from its own status change event: the handler fulfils a promise once the status
+    // is final, and this thread waits on the future. Subscribed before start, so no change is missed.
+    std::promise<void> downloadDone;
     const FileTransferOperationPtr download = fileTransfer.download(RemoteFile, DownloadedFile);
+    download.getOnStatusChanged() += [&downloadDone](const FileTransferOperationPtr& /*transfer*/, const CoreEventArgsPtr& args)
+    {
+        const auto parameters = args.getParameters();
+        const StringPtr status = parameters.get(FileTransferStatusName).asPtr<IEnumeration>().getValue();
+        if (status == "Completed")
+            downloadDone.set_value();
+        else if (status == "Failed")
+            downloadDone.set_exception(std::make_exception_ptr(GeneralErrorException("{}", parameters.get("Message"))));
+        else if (status == "Canceled")
+            downloadDone.set_exception(std::make_exception_ptr(GeneralErrorException("The download was canceled")));
+    };
     download.start();
-    download.wait();
+    downloadDone.get_future().get();  // throws the exception set by the handler
     std::cout << "Downloaded " << RemoteFile << " to " << DownloadedFile << " (" << download.getBytesTransferred() << " bytes)."
               << std::endl;
 }

@@ -26,8 +26,9 @@
 //            +- SFTP channel and file handle while the transfer is running or paused.
 //            +- local file, across connection losses.
 //
-// Only the I/O thread uses libssh2 and the transfers. Other threads post requests to it (start, pause, resume,
-// cancel, shutdown) and wake it up through a loopback socket.
+// The I/O thread runs a boost::asio io_context. Only it uses libssh2 and the transfers. Other threads post requests
+// to it (start, pause, resume, cancel, shutdown). It drives the transfers after every request, whenever the socket
+// is ready in the direction libssh2 is blocked on, and when the timer is due (watchdog, keepalive, reconnect).
 //
 // libssh2 rules followed in non-blocking mode (from its sources; see the .cpp):
 // - A call that returned LIBSSH2_ERROR_EAGAIN is repeated with the same arguments before the transfer does anything
@@ -43,6 +44,10 @@
 
 #include <opendaq/logger_component_ptr.h>
 
+#include <boost/asio/io_context.hpp>
+#include <boost/asio/ip/tcp.hpp>
+#include <boost/asio/steady_timer.hpp>
+
 #include <chrono>
 #include <cstddef>
 #include <cstdint>
@@ -51,6 +56,7 @@
 #include <list>
 #include <memory>
 #include <mutex>
+#include <optional>
 #include <thread>
 #include <vector>
 
@@ -134,7 +140,6 @@ public:
 
 private:
     struct Transfer;
-    class Wakeup;
 
     SftpAsyncEngine(const Endpoint& endpoint,
                     const AuthenticationConfigPtr& authenticationConfig,
@@ -143,7 +148,14 @@ private:
                     ConnectionStatusCallback connectionStatusCallback);
 
     bool post(std::function<void()> request);
-    void run();
+    void stop();
+
+    // Has process run once the handlers already queued have run; any number of calls before that run it once.
+    void schedule();
+    // One pass: carries out a due reconnect or keepalive, drives the transfers, checks the watchdog, then waits for
+    // the socket and the timer.
+    void process();
+    void waitForSocket();
 
     // I/O thread only (connect also in create, before the thread starts).
     void connect();
@@ -157,7 +169,7 @@ private:
     void startQueued();
     bool outstanding() const;
     void removeFinished();
-    int pollTimeout(std::chrono::steady_clock::time_point now) const;
+    std::chrono::steady_clock::time_point nextDeadline(std::chrono::steady_clock::time_point now) const;
     Transfer* find(SftpFileTransferOperationImpl* operation);
 
     // Transfer steps, see the .cpp.
@@ -184,23 +196,29 @@ private:
     const LoggerComponentPtr loggerComponent;
     bool verified = false;
 
-    // Keeps the socket API usable for the wakeup socket while there is no connection.
+    // Keeps libssh2 initialized while there is no connection.
     Library library;
-    std::unique_ptr<Wakeup> wakeup;
+
+    // Declared before everything that refers to it, so it is destroyed last.
+    boost::asio::io_context ioContext;
 
     std::recursive_mutex connectionStatusSync;  // recursive: the callback may lead to shutdown on the same thread
     ConnectionStatusCallback connectionStatusCallback;
 
     std::mutex requestSync;
-    std::vector<std::function<void()>> requests;
     bool shutdownRequested = false;
 
     std::thread thread;
     std::thread::id ioThreadId;  // set before any other thread can use the engine
 
     // I/O thread only (and the creating thread before the I/O thread starts).
+    boost::asio::steady_timer timer{ioContext};
+    bool processScheduled = false;
     SessionIo socketIo;
     std::unique_ptr<SshConnection> connection;
+    std::optional<boost::asio::ip::tcp::socket> socketWaiter;  // the connection's socket, for waiting only (see connect)
+    bool waitingToRead = false;
+    bool waitingToWrite = false;
     LIBSSH2_SFTP* control = nullptr;
     bool pingPending = false;
     std::chrono::steady_clock::time_point lastPing;

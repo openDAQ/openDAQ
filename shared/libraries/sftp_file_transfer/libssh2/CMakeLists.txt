@@ -41,6 +41,7 @@ target_link_libraries(${MODULE_NAME}
     PRIVATE
         libssh2::libssh2
         OpenSSL::Crypto
+        $<BUILD_INTERFACE:Boost::asio>
         $<BUILD_INTERFACE:std::filesystem>
         $<$<PLATFORM_ID:Windows>:ws2_32>
 )

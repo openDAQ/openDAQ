@@ -5,18 +5,16 @@
 #include <winsock2.h>
 #include <ws2tcpip.h>
 #else
-#include <arpa/inet.h>
-#include <fcntl.h>
-#include <netinet/in.h>
-#include <poll.h>
 #include <sys/socket.h>
-#include <unistd.h>
 #endif
 
 #include <coretypes/exceptions.h>
 #include <coreobjects/exceptions.h>
 #include <opendaq/custom_log.h>
 #include <fmt/format.h>
+
+#include <boost/asio/executor_work_guard.hpp>
+#include <boost/asio/post.hpp>
 
 #include <algorithm>
 #include <cerrno>
@@ -29,9 +27,9 @@ namespace detail
 
 using Clock = std::chrono::steady_clock;
 
-// Limits the transfer steps per wakeup of the I/O thread, so requests are carried out while transfers keep making
-// progress.
-constexpr int MaxRoundsPerWakeup = 64;
+// Limits the transfer steps per pass of the I/O thread (see process), so requests are carried out while transfers
+// keep making progress.
+constexpr int MaxRoundsPerPass = 64;
 
 // Limits the rounds spent releasing the resources of a given-up connection (see releaseConnection).
 constexpr int MaxReleaseRounds = 100;
@@ -68,26 +66,14 @@ bool isConnectionError(int rc)
     }
 }
 
-long long toMilliseconds(Clock::duration duration)
+// The protocol of a connected TCP socket, to hand it to asio.
+boost::asio::ip::tcp socketProtocol(libssh2_socket_t socket)
 {
-    return std::chrono::duration_cast<std::chrono::milliseconds>(duration).count();
-}
-
-// The socket API differs between POSIX and Winsock only in these places.
-
-#ifdef _WIN32
-using PollDescriptor = WSAPOLLFD;
-#else
-using PollDescriptor = pollfd;
-#endif
-
-int pollSockets(PollDescriptor* descriptors, std::size_t count, int timeoutMs)
-{
-#ifdef _WIN32
-    return ::WSAPoll(descriptors, static_cast<ULONG>(count), timeoutMs);
-#else
-    return ::poll(descriptors, static_cast<nfds_t>(count), timeoutMs);
-#endif
+    sockaddr_storage address{};
+    socklen_t length = sizeof(address);
+    if (::getsockname(socket, reinterpret_cast<sockaddr*>(&address), &length) == 0 && address.ss_family == AF_INET6)
+        return boost::asio::ip::tcp::v6();
+    return boost::asio::ip::tcp::v4();
 }
 
 // Whether the last failed socket call would have blocked (or was interrupted) rather than failed.
@@ -98,26 +84,6 @@ bool wouldBlock()
     return error == WSAEWOULDBLOCK || error == WSAEINTR;
 #else
     return errno == EAGAIN || errno == EWOULDBLOCK || errno == EINTR;
-#endif
-}
-
-void closeWakeupSocket(libssh2_socket_t socket)
-{
-#ifdef _WIN32
-    ::closesocket(socket);
-#else
-    ::close(socket);
-#endif
-}
-
-bool setNonBlocking(libssh2_socket_t socket)
-{
-#ifdef _WIN32
-    u_long enabled = 1;
-    return ::ioctlsocket(socket, FIONBIO, &enabled) == 0;
-#else
-    const int flags = ::fcntl(socket, F_GETFL, 0);
-    return flags != -1 && ::fcntl(socket, F_SETFL, flags | O_NONBLOCK) != -1;
 #endif
 }
 
@@ -161,67 +127,6 @@ LIBSSH2_RECV_FUNC(receiveData)
 }
 
 }
-
-// ---------------------------------------------------------------------------
-// Wakeup
-// ---------------------------------------------------------------------------
-
-// A UDP socket bound to the loopback interface and connected to itself: signal sends it a byte, which makes it
-// readable and so ends the I/O thread's poll. Unlike a pipe, it can be polled together with the SSH socket on every
-// platform (WSAPoll accepts sockets only).
-class SftpAsyncEngine::Wakeup
-{
-public:
-    Wakeup()
-    {
-        fd = ::socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
-        if (fd == LIBSSH2_INVALID_SOCKET)
-            DAQ_THROW_EXCEPTION(GeneralErrorException, "Failed to create the wakeup socket of the file transfer I/O thread");
-
-        sockaddr_in address{};
-        address.sin_family = AF_INET;
-        address.sin_addr.s_addr = htonl(INADDR_LOOPBACK);
-        socklen_t length = sizeof(address);
-        if (::bind(fd, reinterpret_cast<sockaddr*>(&address), sizeof(address)) != 0 ||
-            ::getsockname(fd, reinterpret_cast<sockaddr*>(&address), &length) != 0 ||
-            ::connect(fd, reinterpret_cast<sockaddr*>(&address), sizeof(address)) != 0 || !detail::setNonBlocking(fd))
-        {
-            detail::closeWakeupSocket(fd);
-            DAQ_THROW_EXCEPTION(GeneralErrorException, "Failed to set up the wakeup socket of the file transfer I/O thread");
-        }
-    }
-
-    ~Wakeup()
-    {
-        detail::closeWakeupSocket(fd);
-    }
-
-    Wakeup(const Wakeup&) = delete;
-    Wakeup& operator=(const Wakeup&) = delete;
-
-    // If the send fails because the socket buffer is full, a wakeup is pending anyway.
-    void signal() noexcept
-    {
-        const char byte = 0;
-        ::send(fd, &byte, 1, 0);
-    }
-
-    void drain() noexcept
-    {
-        char bytes[64];
-        while (::recv(fd, bytes, sizeof(bytes), 0) > 0)
-        {
-        }
-    }
-
-    libssh2_socket_t native() const noexcept
-    {
-        return fd;
-    }
-
-private:
-    libssh2_socket_t fd = LIBSSH2_INVALID_SOCKET;
-};
 
 // ---------------------------------------------------------------------------
 // Transfer
@@ -299,7 +204,6 @@ SftpAsyncEngine::SftpAsyncEngine(const Endpoint& endpoint,
     , authenticationConfig(authenticationConfig)
     , properties(properties)
     , loggerComponent(loggerComponent)
-    , wakeup(std::make_unique<Wakeup>())
     , connectionStatusCallback(std::move(connectionStatusCallback))
 {
 }
@@ -316,12 +220,18 @@ std::shared_ptr<SftpAsyncEngine> SftpAsyncEngine::create(const Endpoint& endpoin
     engine->verified = engine->connection->hostKeyVerified();
 
     // The thread keeps the engine alive until it ends, which may be after the owner has released it (see shutdown).
-    engine->thread = std::thread([engine] { engine->run(); });
+    // The work guard keeps it running while there is nothing to do; stop ends it.
+    engine->schedule();
+    engine->thread = std::thread([engine]
+    {
+        const auto work = boost::asio::make_work_guard(engine->ioContext);
+        engine->ioContext.run();
+    });
     engine->ioThreadId = engine->thread.get_id();
     return engine;
 }
 
-// Defined here, where Transfer and Wakeup are complete.
+// Defined here, where Transfer is complete.
 SftpAsyncEngine::~SftpAsyncEngine() = default;
 
 bool SftpAsyncEngine::hostKeyVerified() const noexcept
@@ -336,13 +246,15 @@ bool SftpAsyncEngine::onIoThread() const noexcept
 
 bool SftpAsyncEngine::post(std::function<void()> request)
 {
+    // Posted under the lock, so no request is queued behind stop (see shutdown) and silently dropped.
+    std::scoped_lock lock(requestSync);
+    if (shutdownRequested)
+        return false;
+    boost::asio::post(ioContext, [this, request = std::move(request)]
     {
-        std::scoped_lock lock(requestSync);
-        if (shutdownRequested)
-            return false;
-        requests.push_back(std::move(request));
-    }
-    wakeup->signal();
+        request();
+        schedule();
+    });
     return true;
 }
 
@@ -430,9 +342,10 @@ void SftpAsyncEngine::shutdown()
     }
     {
         std::scoped_lock lock(requestSync);
+        if (!shutdownRequested)
+            boost::asio::post(ioContext, [this] { stop(); });
         shutdownRequested = true;
     }
-    wakeup->signal();
 
     // From the I/O thread (a status change handler released the owner), the thread cannot wait for itself: it ends
     // on its own once the current handler has returned, and frees the engine then.
@@ -446,78 +359,111 @@ void SftpAsyncEngine::shutdown()
 // I/O thread
 // ---------------------------------------------------------------------------
 
-void SftpAsyncEngine::run()
+void SftpAsyncEngine::stop()
 {
-    for (;;)
+    stopTransfers();
+    timer.cancel();
+    ioContext.stop();
+}
+
+void SftpAsyncEngine::schedule()
+{
+    if (processScheduled)
+        return;
+    processScheduled = true;
+    boost::asio::post(ioContext, [this]
     {
-        std::vector<std::function<void()>> pending;
-        bool stop;
+        processScheduled = false;
+        process();
+    });
+}
+
+void SftpAsyncEngine::process()
+{
+    bool again = false;
+    if (connectionStatus == ConnectionStatus::Reconnecting && detail::Clock::now() >= nextReconnect)
+        tryReconnect();
+
+    if (connectionStatus == ConnectionStatus::Connected)
+    {
+        const bool anyRunning = std::any_of(transfers.begin(), transfers.end(), [](const auto& transfer)
         {
-            std::scoped_lock lock(requestSync);
-            pending.swap(requests);
-            stop = shutdownRequested;
-        }
-        for (const auto& request : pending)
-            request();
+            return !transfer->finished && transfer->status == TransferStatus::Running;
+        });
+        if (!pingPending && !anyRunning && detail::Clock::now() - lastPing >= properties.keepaliveInterval)
+            pingPending = true;
 
-        if (stop)
+        again = drive();
+    }
+
+    if (connectionStatus == ConnectionStatus::Connected)
+    {
+        const auto now = detail::Clock::now();
+        if (!outstanding())
+            quietSince = now;
+        else if (now - std::max(quietSince, socketIo.lastReceived) > properties.connectionTimeout)
+            connectionLost(fmt::format("No response from the server for {} ms", properties.connectionTimeout.count()));
+    }
+    removeFinished();
+
+    // The transfers can go on right away: continue after the requests queued meanwhile.
+    if (again)
+    {
+        schedule();
+        return;
+    }
+
+    // Wait for the socket only while the server owes something: otherwise nothing reads what it sends, and a
+    // readable socket would end every wait at once.
+    if (connectionStatus == ConnectionStatus::Connected && outstanding())
+        waitForSocket();
+
+    // Setting the expiry cancels the previous wait, whose handler then gets operation_aborted.
+    timer.expires_at(nextDeadline(detail::Clock::now()));
+    timer.async_wait([this](const boost::system::error_code& error)
+    {
+        if (!error)
+            schedule();
+    });
+}
+
+void SftpAsyncEngine::waitForSocket()
+{
+    // In the directions libssh2 is blocked on, at most one wait per direction. A wait started while data is already
+    // there completes at once: asio re-arms the socket for each wait (on Linux with EPOLL_CTL_MOD, which reports a
+    // socket that is ready already).
+    const int directions = libssh2_session_block_directions(connection->session());
+    const bool read = (directions & LIBSSH2_SESSION_BLOCK_INBOUND) || !(directions & LIBSSH2_SESSION_BLOCK_OUTBOUND);
+    const bool write = (directions & LIBSSH2_SESSION_BLOCK_OUTBOUND) != 0;
+
+    // Waits on a released socket end with operation_aborted, after the flags were reset (see releaseConnection).
+    if (read && !waitingToRead)
+    {
+        waitingToRead = true;
+        socketWaiter->async_wait(boost::asio::socket_base::wait_read, [this](const boost::system::error_code& error)
         {
-            stopTransfers();
-            return;
-        }
-
-        bool again = false;
-        if (connectionStatus == ConnectionStatus::Reconnecting && detail::Clock::now() >= nextReconnect)
-            tryReconnect();
-
-        if (connectionStatus == ConnectionStatus::Connected)
+            if (error == boost::asio::error::operation_aborted)
+                return;
+            waitingToRead = false;
+            schedule();
+        });
+    }
+    if (write && !waitingToWrite)
+    {
+        waitingToWrite = true;
+        socketWaiter->async_wait(boost::asio::socket_base::wait_write, [this](const boost::system::error_code& error)
         {
-            const bool anyRunning = std::any_of(transfers.begin(), transfers.end(), [](const auto& transfer)
-            {
-                return !transfer->finished && transfer->status == TransferStatus::Running;
-            });
-            if (!pingPending && !anyRunning && detail::Clock::now() - lastPing >= properties.keepaliveInterval)
-                pingPending = true;
-
-            again = drive();
-        }
-
-        if (connectionStatus == ConnectionStatus::Connected)
-        {
-            const auto now = detail::Clock::now();
-            if (!outstanding())
-                quietSince = now;
-            else if (now - std::max(quietSince, socketIo.lastReceived) > properties.connectionTimeout)
-                connectionLost(fmt::format("No response from the server for {} ms", properties.connectionTimeout.count()));
-        }
-        removeFinished();
-
-        // Wait for the socket in the directions libssh2 is blocked on, but only while the server owes something:
-        // otherwise nothing reads what it sends, and a readable socket would end every poll at once.
-        detail::PollDescriptor descriptors[2]{};
-        descriptors[0].fd = wakeup->native();
-        descriptors[0].events = POLLIN;
-        std::size_t count = 1;
-        if (connectionStatus == ConnectionStatus::Connected && outstanding())
-        {
-            const int directions = libssh2_session_block_directions(connection->session());
-            descriptors[1].fd = connection->socket();
-            if ((directions & LIBSSH2_SESSION_BLOCK_INBOUND) || !(directions & LIBSSH2_SESSION_BLOCK_OUTBOUND))
-                descriptors[1].events |= POLLIN;
-            if (directions & LIBSSH2_SESSION_BLOCK_OUTBOUND)
-                descriptors[1].events |= POLLOUT;
-            count = 2;
-        }
-
-        detail::pollSockets(descriptors, count, again ? 0 : pollTimeout(detail::Clock::now()));
-        if (descriptors[0].revents)
-            wakeup->drain();
+            if (error == boost::asio::error::operation_aborted)
+                return;
+            waitingToWrite = false;
+            schedule();
+        });
     }
 }
 
-int SftpAsyncEngine::pollTimeout(std::chrono::steady_clock::time_point now) const
+std::chrono::steady_clock::time_point SftpAsyncEngine::nextDeadline(std::chrono::steady_clock::time_point now) const
 {
-    // Wake up at least once a second; earlier for the watchdog, a keepalive or a reconnect attempt.
+    // At least once a second; earlier for the watchdog, a keepalive or a reconnect attempt.
     auto deadline = now + std::chrono::seconds(1);
     if (connectionStatus == ConnectionStatus::Connected)
     {
@@ -530,7 +476,7 @@ int SftpAsyncEngine::pollTimeout(std::chrono::steady_clock::time_point now) cons
     {
         deadline = std::min(deadline, nextReconnect);
     }
-    return static_cast<int>(std::max<long long>(0, detail::toMilliseconds(deadline - now) + 1));
+    return deadline;
 }
 
 void SftpAsyncEngine::connect()
@@ -552,6 +498,10 @@ void SftpAsyncEngine::connect()
     *libssh2_session_abstract(session) = &socketIo;
     libssh2_session_callback_set2(session, LIBSSH2_CALLBACK_SEND, reinterpret_cast<libssh2_cb_generic*>(&detail::sendData));
     libssh2_session_callback_set2(session, LIBSSH2_CALLBACK_RECV, reinterpret_cast<libssh2_cb_generic*>(&detail::receiveData));
+
+    // asio only waits on the socket; libssh2 reads and writes it, and the connection closes it (see releaseConnection).
+    socketWaiter.emplace(ioContext);
+    socketWaiter->assign(detail::socketProtocol(newConnection->socket()), newConnection->socket());
 
     connection = std::move(newConnection);
     control = newControl;
@@ -683,6 +633,16 @@ void SftpAsyncEngine::releaseConnection()
     pingPending = false;
     channelOpener = nullptr;
 
+    // Handed back before the connection closes the socket; pending waits end with operation_aborted.
+    if (socketWaiter)
+    {
+        boost::system::error_code error;
+        socketWaiter->release(error);
+        socketWaiter.reset();
+    }
+    waitingToRead = false;
+    waitingToWrite = false;
+
     connection.reset();
     releasing = false;
 }
@@ -756,7 +716,7 @@ bool SftpAsyncEngine::drive()
 {
     try
     {
-        for (int round = 0; round < detail::MaxRoundsPerWakeup; ++round)
+        for (int round = 0; round < detail::MaxRoundsPerPass; ++round)
         {
             startQueued();
 

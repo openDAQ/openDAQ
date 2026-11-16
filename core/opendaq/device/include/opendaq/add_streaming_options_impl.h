@@ -36,7 +36,7 @@ public:
     explicit AddStreamingOptionsImpl(const DictPtr<IString, IAddStreamingConfig>& streamingConfigs);
     explicit AddStreamingOptionsImpl(Partial);
 
-    ErrCode INTERFACE_FUNC getStreamingConfigs(IDict** configs) override;
+    ErrCode INTERFACE_FUNC getAvailableStreamingConfigs(IDict** configs) override;
     ErrCode INTERFACE_FUNC getStreamingType(IString** typeId) override;
     ErrCode INTERFACE_FUNC setStreamingType(IString* typeId) override;
     ErrCode INTERFACE_FUNC getStreamingConfig(IAddStreamingConfig** config) override;

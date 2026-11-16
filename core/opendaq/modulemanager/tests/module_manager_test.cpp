@@ -756,7 +756,7 @@ TEST_F(ModuleManagerTypesTest, ReservedStreamingTypeIdLogsWarning)
 
     const auto config = manager.asPtr<IModuleManagerUtils>().createAddDeviceConfig(DeviceInfo("mockdev://"));
     const auto options = config.getStreamingOptions();
-    ASSERT_EQ(options.getStreamingConfigs().getKeyList(), List<IString>("mockstr"));
+    ASSERT_EQ(options.getAvailableStreamingConfigs().getKeyList(), List<IString>("mockstr"));
     ASSERT_EQ(options.getStreamingConfig().getStreamingType().getId(), "mockstr");
 
     bool logged = false;
@@ -885,7 +885,7 @@ protected:
         if (!options.assigned())
             return ids;
 
-        for (const auto& [id, _] : options.getStreamingConfigs())
+        for (const auto& [id, _] : options.getAvailableStreamingConfigs())
             ids.push_back(id);
         return ids;
     }

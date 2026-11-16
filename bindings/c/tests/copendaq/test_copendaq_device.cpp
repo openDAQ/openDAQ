@@ -226,7 +226,7 @@ TEST_F(COpendaqDeviceTest, AddDeviceConfig)
     ASSERT_EQ(optionsPtr, configPtr.getStreamingOptions());
 
     daqDict* configs = nullptr;
-    daqAddStreamingOptions_getStreamingConfigs(options, &configs);
+    daqAddStreamingOptions_getAvailableStreamingConfigs(options, &configs);
     const auto configsPtr = daq::DictPtr<daq::IString, daq::IAddStreamingConfig>::Adopt((daq::IDict*) configs);
     ASSERT_TRUE(configsPtr.hasKey("OpenDAQNativeStreaming"));
 
@@ -243,7 +243,7 @@ TEST_F(COpendaqDeviceTest, AddDeviceConfig)
     daqAddStreamingConfig* selected = nullptr;
     daqAddStreamingOptions_getStreamingConfig(options, &selected);
     const auto selectedPtr = daq::AddStreamingConfigPtr::Adopt((daq::IAddStreamingConfig*) selected);
-    ASSERT_EQ(selectedPtr, optionsPtr.getStreamingConfigs().get("OpenDAQNativeStreaming"));
+    ASSERT_EQ(selectedPtr, optionsPtr.getAvailableStreamingConfigs().get("OpenDAQNativeStreaming"));
 
     daqStreamingType* streamingType = nullptr;
     daqAddStreamingConfig_getStreamingType(selected, &streamingType);

@@ -56,7 +56,7 @@ class TestAddDeviceConfig(opendaq_test.TestCase):
         instance = opendaq.Instance()
         options = instance.create_add_device_config(opendaq.DeviceInfoConfig('dev', 'daq.nd://127.0.0.1')).streaming_options
 
-        self.assertIn('OpenDAQNativeStreaming', options.streaming_configs.keys())
+        self.assertIn('OpenDAQNativeStreaming', options.available_streaming_configs.keys())
         options.streaming_type = None
         self.assertIsNone(options.streaming_type)
         self.assertIsNone(options.streaming_config)

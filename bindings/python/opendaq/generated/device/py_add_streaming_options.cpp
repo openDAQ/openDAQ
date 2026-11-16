@@ -44,12 +44,12 @@ void defineIAddStreamingOptions(pybind11::module_ m, PyDaqIntf<daq::IAddStreamin
 {
     cls.doc() = "The streaming options of an add device config.";
 
-    cls.def_property_readonly("streaming_configs",
+    cls.def_property_readonly("available_streaming_configs",
         [](daq::IAddStreamingOptions *object)
         {
             py::gil_scoped_release release;
             const auto objectPtr = daq::AddStreamingOptionsPtr::Borrow(object);
-            return objectPtr.getStreamingConfigs().detach();
+            return objectPtr.getAvailableStreamingConfigs().detach();
         },
         py::return_value_policy::take_ownership,
         "Gets the listed streaming configs.");

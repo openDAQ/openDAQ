@@ -22,9 +22,9 @@ void daqAddStreamingOptions_getInterfaceId(daqIntfID* intfId)
     *intfId = DAQ_ADD_STREAMING_OPTIONS_INTF_ID;
 }
 
-daqErrCode daqAddStreamingOptions_getStreamingConfigs(daqAddStreamingOptions* self, daqDict** configs)
+daqErrCode daqAddStreamingOptions_getAvailableStreamingConfigs(daqAddStreamingOptions* self, daqDict** configs)
 {
-    return reinterpret_cast<daq::IAddStreamingOptions*>(self)->getStreamingConfigs(reinterpret_cast<daq::IDict**>(configs));
+    return reinterpret_cast<daq::IAddStreamingOptions*>(self)->getAvailableStreamingConfigs(reinterpret_cast<daq::IDict**>(configs));
 }
 
 daqErrCode daqAddStreamingOptions_getStreamingType(daqAddStreamingOptions* self, daqString** typeId)

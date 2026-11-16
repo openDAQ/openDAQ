@@ -62,7 +62,7 @@ DECLARE_OPENDAQ_INTERFACE(IAddStreamingOptions, IBaseObject)
      * @brief Gets the listed streaming configs.
      * @param[out] configs The streaming configs keyed by Streaming type ID
      */
-    virtual ErrCode INTERFACE_FUNC getStreamingConfigs(IDict** configs) = 0;
+    virtual ErrCode INTERFACE_FUNC getAvailableStreamingConfigs(IDict** configs) = 0;
 
     /*!
      * @brief Gets the ID of the selected Streaming type.

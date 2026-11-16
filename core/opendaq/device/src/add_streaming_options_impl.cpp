@@ -74,7 +74,7 @@ AddStreamingOptionsImpl::AddStreamingOptionsImpl(Partial)
 {
 }
 
-ErrCode AddStreamingOptionsImpl::getStreamingConfigs(IDict** configs)
+ErrCode AddStreamingOptionsImpl::getAvailableStreamingConfigs(IDict** configs)
 {
     OPENDAQ_PARAM_NOT_NULL(configs);
 

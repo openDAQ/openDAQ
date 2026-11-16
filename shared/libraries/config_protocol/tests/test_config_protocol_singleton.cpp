@@ -26,15 +26,15 @@ namespace config_protocol_singleton_test
 class SingletonDeviceImpl final : public Device
 {
 public:
-    SingletonDeviceImpl(const ContextPtr& ctx, const ComponentPtr& parent, const StringPtr& localId, bool validatesAdd)
+    SingletonDeviceImpl(const ContextPtr& ctx, const ComponentPtr& parent, const StringPtr& localId, bool singleton)
         : Device(ctx, parent, localId)
-        , validatesAdd(validatesAdd)
+        , singleton(singleton)
     {
     }
 
     DictPtr<IString, IFunctionBlockType> onGetAvailableFunctionBlockTypes() override
     {
-        const FunctionBlockTypePtr singleType = FunctionBlockTypeBuilder().setId("Single").setName("Single").setSingleton(True).build();
+        const FunctionBlockTypePtr singleType = FunctionBlockTypeBuilder().setId("Single").setName("Single").setSingleton(singleton).build();
         return Dict<IString, IFunctionBlockType>({{"Single", singleType}, {"Multi", FunctionBlockType("Multi", "Multi", "")}});
     }
 
@@ -59,21 +59,14 @@ public:
         removeNestedFunctionBlock(functionBlock);
     }
 
-protected:
-    // false saves setups with duplicates, as a parent that does not enforce the singleton flag would
-    bool validatesAddFunctionBlock() override
-    {
-        return validatesAdd;
-    }
-
 private:
-    bool validatesAdd;
+    bool singleton;
     std::atomic<int> nextId = 0;
 };
 
-DevicePtr createSingletonDevice(bool validatesAdd)
+DevicePtr createSingletonDevice(bool singleton)
 {
-    return createWithImplementation<IDevice, SingletonDeviceImpl>(NullContext(), nullptr, "dev", validatesAdd);
+    return createWithImplementation<IDevice, SingletonDeviceImpl>(NullContext(), nullptr, "dev", singleton);
 }
 
 std::vector<std::string> functionBlockIds(const DevicePtr& device)

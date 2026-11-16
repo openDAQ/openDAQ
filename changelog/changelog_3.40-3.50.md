@@ -148,18 +148,14 @@ pass any fields beyond `Id`, `Name` and `Description` through `extraFields`, in 
 ```
 Passing `Id`, `Name` or `Description` in `extraFields` throws `InvalidParameterException`, and debug builds also throw `InvalidTypeException` when the resulting fields do not match the struct type's field names and order.
 
-The `Singleton` flag is enforced by `addFunctionBlock` of devices and function blocks, and by `createAndAddNestedFunctionBlock`
-and `addNestedFunctionBlock`, which modules use to add function blocks themselves. The check is not synchronized with
-concurrent additions: two additions of the same singleton type to the same parent that run at the same time may both succeed.
-No lock is held while `onAddFunctionBlock` runs. This puts two requirements on modules:
-- Create function block instances with the same type, including its flags, that the module advertises through
-  `onGetAvailableFunctionBlockTypes`. Whether an existing instance blocks an addition is decided by the type of that instance,
-  so an instance created with a separately built type that lacks the flag is not counted.
-- Protocol client representations whose `onAddFunctionBlock` forwards the addition to a remote side that runs openDAQ must
-  override `validatesAddFunctionBlock()` to return `false`. The remote side then validates the addition, and the client
-  does not check the flag itself, including for the function blocks it mirrors with
-  `addNestedFunctionBlock`. Containers that create their function blocks locally, or forward to a remote side that does
-  not run openDAQ, keep the default `true`.
+The `Singleton` flag is enforced by the function blocks folder of devices and function blocks: adding a function block
+of a singleton type to a folder that already holds an instance of that type fails with `OPENDAQ_ERR_ALREADYEXISTS`. The
+check runs under the folder's lock together with the addition, so it covers concurrent additions, and function blocks
+that modules add themselves with `addNestedFunctionBlock` or `createAndAddNestedFunctionBlock`. `addFunctionBlock` also
+checks the flag before calling `onAddFunctionBlock`, so module code does not create an instance that would be refused.
+Modules must create function block instances with the same type, including its flags, that they advertise through
+`onGetAvailableFunctionBlockTypes`: the check reads the types of the instances, so an instance created with a separately
+built type that lacks the flag is not counted.
 
 ## Interface API changes
 

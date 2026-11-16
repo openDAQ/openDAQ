@@ -121,14 +121,8 @@ protected:
     ErrCode getAvailableFunctionBlockTypesInternal(IDict** functionBlockTypes);
     ErrCode addFunctionBlockInternal(IFunctionBlock** functionBlock, IString* typeId, IPropertyObject* config = nullptr);
     ErrCode removeFunctionBlockInternal(IFunctionBlock* functionBlock);
-    void validateSingletonFunctionBlock(const StringPtr& typeId);
 
-    // Whether this container enforces the singleton flag of function block types itself. Representations
-    // of remote components return false: the server side validates the addition.
-    // Override to return false only in protocol client representations whose onAddFunctionBlock forwards
-    // the addition to a remote side that runs openDAQ. Containers that create their function blocks
-    // locally, or forward to a remote side that does not run openDAQ, must keep the default.
-    virtual bool validatesAddFunctionBlock();
+    void validateSingletonFunctionBlock(const StringPtr& typeId);
 
     virtual DictPtr<IString, IFunctionBlockType> onGetAvailableFunctionBlockTypes();
     virtual FunctionBlockPtr onAddFunctionBlock(const StringPtr& typeId, const PropertyObjectPtr& config);
@@ -361,15 +355,6 @@ void GenericSignalContainerImpl<Intf, Intfs...>::addNestedFunctionBlock(const Fu
     if (functionBlock.getParent() != functionBlocks)
         DAQ_THROW_EXCEPTION(InvalidParameterException, "Invalid parent of function block");
 
-    // Function blocks a module adds itself are held to the singleton flag as well. Remote representations
-    // mirror function blocks that the remote side has already validated.
-    if (validatesAddFunctionBlock())
-    {
-        const auto type = functionBlock.getFunctionBlockType();
-        if (type.assigned() && type.getSingleton())
-            validateSingletonFunctionBlock(type.getId());
-    }
-
     try
     {
         functionBlocks.addItem(functionBlock);
@@ -385,10 +370,6 @@ FunctionBlockPtr GenericSignalContainerImpl<Intf, Intfs...>::createAndAddNestedF
                                                                                              const StringPtr& localId,
                                                                                              const PropertyObjectPtr& config)
 {
-    // Refuse a second instance of a singleton type before the module creates it
-    if (validatesAddFunctionBlock())
-        validateSingletonFunctionBlock(typeId);
-
     ObjectPtr<IBaseObject> obj;
     this->context->getModuleManager(&obj);
 
@@ -644,9 +625,7 @@ ErrCode GenericSignalContainerImpl<Intf, Intfs...>::addFunctionBlockInternal(IFu
     const ErrCode errCode = daqTry([this, &typeId, &config, &functionBlockPtr]
     {
         const StringPtr typeIdPtr = typeId;
-        if (validatesAddFunctionBlock())
-            validateSingletonFunctionBlock(typeIdPtr);
-
+        validateSingletonFunctionBlock(typeIdPtr);
         functionBlockPtr = onAddFunctionBlock(typeIdPtr, config);
     });
     OPENDAQ_RETURN_IF_FAILED(errCode);
@@ -774,12 +753,6 @@ template <class Intf, class ... Intfs>
 DictPtr<IString, IFunctionBlockType> GenericSignalContainerImpl<Intf, Intfs...>::onGetAvailableFunctionBlockTypes()
 {
     return Dict<IString, IFunctionBlockType>().detach();
-}
-
-template <class Intf, class ... Intfs>
-bool GenericSignalContainerImpl<Intf, Intfs...>::validatesAddFunctionBlock()
-{
-    return true;
 }
 
 template <class Intf, class ... Intfs>
@@ -911,10 +884,7 @@ void GenericSignalContainerImpl<Intf, Intfs...>::updateFunctionBlock(const std::
     FunctionBlockPtr fb;
     try
     {
-        // A remote side validates the addition itself and may refuse a second instance of a singleton type
-        if (validatesAddFunctionBlock())
-            validateSingletonFunctionBlock(typeId);
-
+        validateSingletonFunctionBlock(typeId);
         fb = onAddFunctionBlock(typeId, functionConfig);
     }
     catch (const AlreadyExistsException& e)

@@ -884,16 +884,16 @@ TEST_F(DeviceTest, SynchronizationLoadSwitchesSourceBack)
 class SingletonTestDevice final : public daq::Device
 {
 public:
-    SingletonTestDevice(const daq::ContextPtr& ctx, const daq::ComponentPtr& parent, const daq::StringPtr& localId, bool validatesAdd)
+    SingletonTestDevice(const daq::ContextPtr& ctx, const daq::ComponentPtr& parent, const daq::StringPtr& localId, bool singleton)
         : daq::Device(ctx, parent, localId)
-        , validatesAdd(validatesAdd)
+        , singleton(singleton)
     {
     }
 
     daq::DictPtr<daq::IString, daq::IFunctionBlockType> onGetAvailableFunctionBlockTypes() override
     {
         const daq::FunctionBlockTypePtr singleType =
-            daq::FunctionBlockTypeBuilder().setId("Single").setName("Single").setSingleton(daq::True).build();
+            daq::FunctionBlockTypeBuilder().setId("Single").setName("Single").setSingleton(singleton).build();
 
         return daq::Dict<daq::IString, daq::IFunctionBlockType>(
             {{"Single", singleType}, {"Multi", daq::FunctionBlockType("Multi", "Multi", "")}});
@@ -920,21 +920,14 @@ public:
         removeNestedFunctionBlock(functionBlock);
     }
 
-protected:
-    // false saves setups with duplicates, as a parent that does not enforce the singleton flag would
-    bool validatesAddFunctionBlock() override
-    {
-        return validatesAdd;
-    }
-
 private:
-    bool validatesAdd;
+    bool singleton;
     std::atomic<int> nextId = 0;
 };
 
-static daq::DevicePtr createSingletonTestDevice(bool validatesAdd = true)
+static daq::DevicePtr createSingletonTestDevice(bool singleton = true)
 {
-    return daq::createWithImplementation<daq::IDevice, SingletonTestDevice>(daq::NullContext(), nullptr, "dev", validatesAdd);
+    return daq::createWithImplementation<daq::IDevice, SingletonTestDevice>(daq::NullContext(), nullptr, "dev", singleton);
 }
 
 static std::vector<std::string> functionBlockIds(const daq::DevicePtr& device)

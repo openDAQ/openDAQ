@@ -275,38 +275,22 @@ TEST_F(FunctionBlockTest, FunctionBlockTypeEmptyCommonSettingsTypeIdDeserializes
 
 namespace
 {
-    struct SingletonTestParentOptions
-    {
-        // false makes the parent act like a protocol client representation of a remote parent
-        bool validatesAdd = true;
-
-        // refuses a second instance of a singleton type in onAddFunctionBlock, as the remote side of a
-        // protocol client representation does
-        bool remoteRefusesDuplicate = false;
-    };
-
     class SingletonTestParentFbImpl : public daq::FunctionBlock
     {
     public:
-        SingletonTestParentFbImpl(const daq::ContextPtr& ctx, const daq::StringPtr& localId, SingletonTestParentOptions options)
+        SingletonTestParentFbImpl(const daq::ContextPtr& ctx, const daq::StringPtr& localId, bool singleton)
             : daq::FunctionBlock(daq::FunctionBlockType("Parent", "Parent", ""), ctx, nullptr, localId)
-            , options(std::move(options))
+            , singleton(singleton)
         {
         }
 
         daq::DictPtr<daq::IString, daq::IFunctionBlockType> onGetAvailableFunctionBlockTypes() override
         {
-            const auto singletonType = [](const char* id) -> daq::FunctionBlockTypePtr
-            {
-                return daq::FunctionBlockTypeBuilder().setId(id).setName(id).setSingleton(daq::True).build();
-            };
-
             return daq::Dict<daq::IString, daq::IFunctionBlockType>(
-                {{"Single", singletonType("Single")},
+                {{"Single", daq::FunctionBlockTypeBuilder().setId("Single").setName("Single").setSingleton(singleton).build()},
                  {"Multi", daq::FunctionBlockType("Multi", "Multi", "")},
                  // Module code that adds an instance of "Single" itself instead of through addFunctionBlock("Single")
-                 {"SingleViaNested", daq::FunctionBlockType("SingleViaNested", "SingleViaNested", "")},
-                 {"SingleViaCreateAndAdd", daq::FunctionBlockType("SingleViaCreateAndAdd", "SingleViaCreateAndAdd", "")}});
+                 {"SingleViaNested", daq::FunctionBlockType("SingleViaNested", "SingleViaNested", "")}});
         }
 
         daq::FunctionBlockPtr onAddFunctionBlock(const daq::StringPtr& typeId, const daq::PropertyObjectPtr& /*config*/) override
@@ -314,20 +298,7 @@ namespace
             const auto types = onGetAvailableFunctionBlockTypes();
             const auto localId = typeId.toStdString() + std::to_string(nestedCount++);
 
-            // The context has no module manager, so this can only fail; a refusal must come before it is needed
-            if (typeId == "SingleViaCreateAndAdd")
-                return createAndAddNestedFunctionBlock("Single", localId);
-
-            if (options.remoteRefusesDuplicate)
-                validateSingletonFunctionBlock(typeId);
-
             return addNested(typeId == "SingleViaNested" ? types.get("Single") : types.get(typeId), localId);
-        }
-
-    protected:
-        bool validatesAddFunctionBlock() override
-        {
-            return options.validatesAdd;
         }
 
     private:
@@ -339,17 +310,12 @@ namespace
         }
 
         std::atomic<int> nestedCount = 0;
-        SingletonTestParentOptions options;
+        bool singleton;
     };
 
-    daq::FunctionBlockPtr createSingletonTestParent(const daq::StringPtr& localId, SingletonTestParentOptions options)
+    daq::FunctionBlockPtr createSingletonTestParent(const daq::StringPtr& localId = "parent", bool singleton = true)
     {
-        return daq::createWithImplementation<daq::IFunctionBlock, SingletonTestParentFbImpl>(daq::NullContext(), localId, std::move(options));
-    }
-
-    daq::FunctionBlockPtr createSingletonTestParent(const daq::StringPtr& localId = "parent")
-    {
-        return createSingletonTestParent(localId, SingletonTestParentOptions());
+        return daq::createWithImplementation<daq::IFunctionBlock, SingletonTestParentFbImpl>(daq::NullContext(), localId, singleton);
     }
 
     size_t countFunctionBlocksOfType(const daq::FunctionBlockPtr& parent, const std::string& typeId)
@@ -363,12 +329,10 @@ namespace
         return count;
     }
 
-    // A setup with two instances of the singleton type, as saved from a parent that does not enforce the flag
+    // A setup with two instances of the singleton type, as saved from a parent whose type lacks the flag
     daq::StringPtr serializeSetupWithDuplicateSingleton()
     {
-        SingletonTestParentOptions options;
-        options.validatesAdd = false;
-        const auto source = createSingletonTestParent("parent", std::move(options));
+        const auto source = createSingletonTestParent("parent", false);
         source.addFunctionBlock("Single");
         source.addFunctionBlock("Single");
         source.addFunctionBlock("Multi");
@@ -443,42 +407,23 @@ TEST_F(FunctionBlockTest, SingletonAddedByAddNestedFunctionBlockIsRefused)
     ASSERT_EQ(countFunctionBlocksOfType(parent, "Single"), 1u);
 }
 
-TEST_F(FunctionBlockTest, SingletonAddedByCreateAndAddNestedFunctionBlockIsRefused)
+TEST_F(FunctionBlockTest, SingletonAddedToFolderIsRefused)
 {
     const auto parent = createSingletonTestParent();
-    parent.addFunctionBlock("Single");
+    const auto existing = parent.addFunctionBlock("Single");
 
-    ASSERT_THROW(parent.addFunctionBlock("SingleViaCreateAndAdd"), daq::AlreadyExistsException);
+    const auto folder = parent.getItem("FB").asPtr<daq::IFolderConfig>(true);
+    const auto second = daq::createWithImplementation<daq::IFunctionBlock, daq::FunctionBlock>(
+        existing.getFunctionBlockType(), daq::NullContext(), folder, "Single_second");
+
+    ASSERT_EQ(folder->addItem(second), OPENDAQ_ERR_ALREADYEXISTS);
+    daqClearErrorInfo();
     ASSERT_EQ(countFunctionBlocksOfType(parent, "Single"), 1u);
-}
-
-TEST_F(FunctionBlockTest, RemoteRepresentationMirrorsWithoutSingletonCheck)
-{
-    SingletonTestParentOptions options;
-    options.validatesAdd = false;
-    const auto parent = createSingletonTestParent("parent", std::move(options));
-
-    parent.addFunctionBlock("Single");
-    ASSERT_NO_THROW(parent.addFunctionBlock("Single"));
-    ASSERT_EQ(countFunctionBlocksOfType(parent, "Single"), 2u);
 }
 
 TEST_F(FunctionBlockTest, LoadSkipsDuplicateSingleton)
 {
     const auto target = createSingletonTestParent();
-
-    ASSERT_NO_THROW(loadSetup(target, serializeSetupWithDuplicateSingleton()));
-    ASSERT_EQ(countFunctionBlocksOfType(target, "Single"), 1u);
-    ASSERT_EQ(countFunctionBlocksOfType(target, "Multi"), 1u);
-}
-
-// A parent that does not validate additions itself, and whose onAddFunctionBlock refuses the second instance
-TEST_F(FunctionBlockTest, LoadSkipsDuplicateSingletonRefusedByOnAddFunctionBlock)
-{
-    SingletonTestParentOptions options;
-    options.validatesAdd = false;
-    options.remoteRefusesDuplicate = true;
-    const auto target = createSingletonTestParent("parent", std::move(options));
 
     ASSERT_NO_THROW(loadSetup(target, serializeSetupWithDuplicateSingleton()));
     ASSERT_EQ(countFunctionBlocksOfType(target, "Single"), 1u);

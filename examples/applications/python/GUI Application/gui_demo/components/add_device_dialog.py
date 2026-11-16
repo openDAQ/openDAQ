@@ -5,13 +5,12 @@ import threading
 import opendaq as daq
 
 from .. import utils
-from .. import AEC_stub as stub
-from ..add_device_context import AddDeviceContext, info_value
+from .. import add_config_helpers as helpers
+from ..add_config_helpers import info_value
 from ..app_context import AppContext
 from ..event_port import *
 from .dialog import Dialog
-from .add_config_dialog import AddConfigDialog, WHITE, connect_row_data, levels_text
-from .login_dialog import GuiCredentialProvider
+from .add_config_dialog import AddConfigDialog, WHITE, connect_row_data, transports_text
 from .device_info_dialog import DeviceInfoDialog
 
 MUTED = '#868e96'
@@ -112,7 +111,7 @@ class AddDeviceDialog(Dialog):
         self.header_parts = None
         # connection strings of the device lines opened while several devices are selected
         self.opened_lines = set()
-        # AddDeviceContext set with a row's Config... while several devices are selected, by connection string;
+        # PendingAdd set with a row's Config... while several devices are selected, by connection string;
         # Connect with below leaves them as they are
         self.own_configs = {}
         self.info_frame.bind('<Configure>', self.handle_info_resized)
@@ -174,27 +173,29 @@ class AddDeviceDialog(Dialog):
         self.selection_draw()
 
     def current_options(self):
-        """One AddDeviceContext per selected device, or one for the typed connection string."""
+        """One PendingAdd per selected device, or one for the typed connection string."""
+        parent = self.dialog_parent_device
         infos = self.selected_infos()
         if infos:
-            return [self.own_configs.get(info.connection_string) or
-                    AddDeviceContext(self.context, self.dialog_parent_device, info) for info in infos]
+            return [self.own_configs.get(info.connection_string) or helpers.pending(parent, info) for info in infos]
         typed = self.conn_string_var.get().strip()
         if not typed:
             return []
-        info = self.find_available_device(self.dialog_parent_device, typed)
+        info = self.find_available_device(parent, typed)
         if info is not None:
-            return [AddDeviceContext(self.context, self.dialog_parent_device, info)]
-        return [AddDeviceContext(self.context, self.dialog_parent_device, None, typed)]
+            return [helpers.pending(parent, info)]
+        return [helpers.pending(parent, typed=typed)]
+
+    def rows_of(self, p):
+        return helpers.connect_rows(p.parent, p.info, p.typed)
 
     def shared_connect_labels(self):
         """The types every device without its own config can be connected with, in the first one's order."""
         rest = self.options_without_own()
         if not rest:
             return []
-        first = rest[0].connect_options
-        shared = [o for o in first if all(opt.connect_option(o.type_id) is not None for opt in rest[1:])]
-        return shared
+        others = [{r.type_id for r in self.rows_of(p)} for p in rest[1:]]
+        return [r for r in self.rows_of(rest[0]) if all(r.type_id in ids for ids in others)]
 
     def options_without_own(self):
         """The selected devices Connect with applies to: those not given their own config with Config..."""
@@ -235,9 +236,9 @@ class AddDeviceDialog(Dialog):
         if len(self.options) == 1:
             rows = connect_row_data(self.options[0])
         else:
-            rows = [(o.type_id, o.label, o.kind, '', '', None) for o in self.shared_connect_labels()]
+            rows = [(r.type_id, r.type_id, r.kind, '', '', None) for r in self.shared_connect_labels()]
             rest = self.options_without_own()
-            if not rows and len(rest) > 1 and all(o.connect is not None for o in rest):
+            if not rows and len(rest) > 1 and all(o.row is not None for o in rest):
                 # devices of different types can still be added, each over its own first type
                 rows = [(EACH_DEFAULT, EACH_DEFAULT, '', '', '', None)]
         self.connect_value = rows[0][0] if rows else None
@@ -293,23 +294,25 @@ class AddDeviceDialog(Dialog):
         caps.pack(fill=tk.X)
         caps.columnconfigure(0, weight=1)
         # the kind of the device type each capability's prefix picks (Mirrored, Adapter)
-        kinds = {o.capability.prefix: o.kind for o in options.connect_options
-                 if o.capability is not None} if options else {}
-        for index, capability in enumerate(options.capabilities if options else []):
+        kinds = {r.capability.prefix: r.kind for r in self.rows_of(options)
+                 if r.capability is not None} if options else {}
+        for index, capability in enumerate(helpers.capabilities_of(info)):
             name = ttk.Frame(caps, style='AddDevicePanel.TFrame')
             name.grid(row=index * 2, column=0, sticky=tk.W)
             ttk.Label(name, text=capability.protocol_id, style='AddDevicePanel.TLabel').pack(side=tk.LEFT)
             if kinds.get(capability.prefix):
                 ttk.Label(name, text=kinds[capability.prefix], style='AddDeviceMuted.TLabel').pack(side=tk.LEFT,
                                                                                                 padx=(8, 0))
-            if capability.reachable is not None:
-                ttk.Label(caps, text='reachable' if capability.reachable else 'unreachable',
-                          foreground=GREEN if capability.reachable else RED, style='AddDevicePanel.TLabel').grid(row=index * 2, column=1, sticky=tk.E)
-            # the address and the accepted levels share one line across both columns; packed right first,
-            # so a narrow panel cuts the address's end instead of the levels
+            reachable = helpers.reachable(capability)
+            if reachable is not None:
+                ttk.Label(caps, text='reachable' if reachable else 'unreachable',
+                          foreground=GREEN if reachable else RED, style='AddDevicePanel.TLabel').grid(row=index * 2, column=1, sticky=tk.E)
+            # the address and the transports share one line across both columns; packed right first,
+            # so a narrow panel cuts the address's end instead of the transports
             under = ttk.Frame(caps, style='AddDevicePanel.TFrame')
             under.grid(row=index * 2 + 1, column=0, columnspan=2, sticky=tk.EW, pady=(0, 4))
-            ttk.Label(under, text='accepts ' + levels_text(capability.security_levels), style='AddDeviceMuted.TLabel',
+            ttk.Label(under, text=transports_text(dict(capability.available_transports.items()), ports=True),
+                      style='AddDeviceMuted.TLabel',
                       font=('TkDefaultFont', 8)).pack(side=tk.RIGHT, padx=(8, 0))
             ttk.Label(under, text=capability.connection_string, style='AddDeviceMuted.TLabel',
                       font=('Consolas', 8)).pack(side=tk.LEFT)
@@ -423,7 +426,7 @@ class AddDeviceDialog(Dialog):
         line.pack(fill=tk.X)
         below = line
         if own:
-            below = ttk.Label(frame, text=f'Own config, connects with {options.connect.type_id}', foreground=BLUE,
+            below = ttk.Label(frame, text=f'Own config, connects with {options.row.type_id}', foreground=BLUE,
                               style='AddDevicePanel.TLabel', cursor='hand2')
             below.pack(anchor=tk.W, padx=(PANEL_PAD + DETAILS_INDENT, 0), pady=(0, 9))
         # a filled arrow, larger than the text, so the row reads as one that opens
@@ -462,11 +465,11 @@ class AddDeviceDialog(Dialog):
     def device_config_edit(self, info, options):
         """Add with config for one of the selected devices, kept for the Add. The window works on a copy,
         so Cancel leaves the device as it was."""
-        copy = AddDeviceContext(self.context, self.dialog_parent_device, info)
-        if not copy.connect_options:
+        copy = helpers.pending(self.dialog_parent_device, info)
+        if copy.row is None:
             return
-        if options is not None and options.connect is not None and copy.copy_choices_from(options):
-            copy.config.server_fingerprint = options.config.server_fingerprint  # the same host, so its pin still holds
+        if options is not None and options.row is not None:
+            helpers.copy_choices(options, copy)
         dialog = AddConfigDialog(self, self.context, [copy], confirm_text='OK')
         dialog.show()
         if not dialog.confirmed:
@@ -483,11 +486,11 @@ class AddDeviceDialog(Dialog):
         ttk.Label(frame, text='Typed connection string', style='AddDeviceHeader.TLabel').pack(anchor=tk.W)
         self.wrap(ttk.Label(frame, text=typed, font=('Consolas', 8), style='AddDevicePanel.TLabel')).pack(
             anchor=tk.W, pady=(0, 6))
-        if stub.has_user_part(typed):
+        if helpers.has_user_part(typed):
             ttk.Label(frame, text="A login in the connection string ('user:password@') is not allowed. "
                                   'Remove it and enter the login in Add with config', foreground=RED,
                       wraplength=300, style='AddDevicePanel.TLabel').pack(anchor=tk.W)
-        elif self.options and self.options[0].connect_options:
+        elif self.options and self.options[0].row is not None:
             ttk.Label(frame, text='The prefix picks the type', style='AddDeviceMuted.TLabel').pack(anchor=tk.W)
         elif typed.startswith('daq://'):
             ttk.Label(frame, text="'daq://' is only for discovered devices", foreground=RED, style='AddDevicePanel.TLabel').pack(anchor=tk.W)
@@ -501,14 +504,14 @@ class AddDeviceDialog(Dialog):
         shared = [o for o in self.options if id(o) not in own_ids]
         own_text = f', {", ".join(own)} with {"its" if len(own) == 1 else "their"} own config' if own else ''
         if type_id == EACH_DEFAULT:
-            for options in shared:
-                options.select_connect(options.connect_options[0].type_id)
+            for p in shared:
+                helpers.select_row(p, self.rows_of(p)[0])
             self.connects_to.configure(text=f'{len(self.options)} devices, each over its first type{own_text}')
         elif type_id is not None:
-            for options in shared:
-                if options.connect.type_id != type_id:
-                    options.select_connect(type_id)
-            self.connects_to.configure(text=f'Connects to {self.options[0].connection_string()}'
+            for p in shared:
+                if p.row.type_id != type_id:
+                    helpers.select_row(p, next(r for r in self.rows_of(p) if r.type_id == type_id))
+            self.connects_to.configure(text=f'Connects to {helpers.connects_to(self.options[0])}'
                                        if len(self.options) == 1 else f'{len(self.options)} devices{own_text}')
         elif len(self.options) > 1 and not shared:
             self.connects_to.configure(text=f'{len(self.options)} devices, each with its own config')
@@ -516,7 +519,7 @@ class AddDeviceDialog(Dialog):
             self.connects_to.configure(text='')
         all_own = len(self.options) > 1 and not shared
         # 0004: a connection string with a user part fails the add
-        user_part = not self.selected_infos() and stub.has_user_part(self.conn_string_var.get().strip())
+        user_part = not self.selected_infos() and helpers.has_user_part(self.conn_string_var.get().strip())
         self.add_button.state(['!disabled' if (type_id is not None or all_own) and not user_part else 'disabled'])
         # one config window needs one type to show the settings of
         self.config_button.state(['!disabled' if type_id not in (None, EACH_DEFAULT) and not user_part
@@ -530,7 +533,7 @@ class AddDeviceDialog(Dialog):
         self.process_add_device(False)
 
     def process_add_device(self, open_config_dialog: bool):
-        if not self.options or any(o.connect is None for o in self.options):
+        if not self.options or any(o.row is None for o in self.options):
             return
         if open_config_dialog and self.connect_value == EACH_DEFAULT:
             return
@@ -554,7 +557,7 @@ class AddDeviceDialog(Dialog):
                 return
             # a device given its own config with its row's Config... keeps it
             for other in rest[1:]:
-                other.copy_choices_from(rest[0])
+                helpers.copy_choices(rest[0], other)
         self.add_devices(options)
         for o in options:
             if o.info is not None:
@@ -568,35 +571,26 @@ class AddDeviceDialog(Dialog):
         except tk.TclError:
             pass
 
-    def add_devices(self, options_list):
-        """Adds every device with its config. The provider asks each login in turn, then the devices
-        connect in parallel."""
+    def add_devices(self, pendings):
+        """Adds every device with its config, one after the other."""
         if self.dialog_parent_device is None:
             return
         parent_top = self.parent.winfo_toplevel()
-        stub.set_credential_provider(GuiCredentialProvider(self, self.context))
-        configs = {options.connection_string(): options.config for options in options_list}
         self.configure(cursor='watch')
         parent_top.configure(cursor='watch')
         self.update_idletasks()
         try:
-            added, errors = stub.add_devices(self.dialog_parent_device, configs)
+            added, errors = helpers.add_all(self.dialog_parent_device, pendings)
         finally:
             self.configure(cursor='')
             parent_top.configure(cursor='')
-        failed = [f'{address}: {message}' for address, message in errors.items()]
-
-        warnings = []
-        for device in added.values():
-            warnings += [f'{device.name}: {w}' for w in stub.WARNINGS.get(device.global_id, [])]
+        failed = [f'{name}: {message}' for name, message in errors.items()]
         if added:
             self.context.selected_node = list(added.values())[-1]
             self.event_port.emit()
         if failed:
-            utils.show_error('Error adding device', '\n'.join(failed + warnings), self)
+            utils.show_error('Error adding device', '\n'.join(failed), self)
             return
-        if warnings:
-            messagebox.showwarning('Added with warnings', '\n'.join(warnings), parent=self)
         if not added:
             return
         if self._keep_open_var.get():

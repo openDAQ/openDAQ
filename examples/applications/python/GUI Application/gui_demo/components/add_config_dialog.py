@@ -1,11 +1,11 @@
 import tkinter as tk
 from tkinter import ttk, filedialog
 
-from ..add_device_context import ADDRESS_TYPES, STREAMING_MODES
+import opendaq as daq
+
+from .. import add_config_helpers as helpers
+from ..add_config_helpers import ADDRESS_TYPES, STREAMING_MODES, HIDDEN_SETTINGS
 from ..app_context import AppContext
-from ..AEC_stub import (ConnectionSecurity, SecurityMode, DEVICE_SECURITY_MODES, STREAMING_SECURITY_MODES,
-                        HIDDEN_SETTINGS, is_fingerprint)
-from .login_dialog import file_types
 from .dialog import Dialog
 from .generic_properties_treeview import PropertiesTreeview
 
@@ -13,14 +13,22 @@ WHITE = 'white'
 CARD_BORDER = '#ced4da'
 MUTED = '#868e96'
 GREEN = '#2f9e44'
-ORANGE = '#e8590c'
 RED = '#c92a2a'
 
 NONE_SELECTED = 'None'
 
 
-def levels_text(levels):
-    return ', '.join(level.name for level in levels)
+def transports_text(transports, ports=False):
+    """name -> port as "plain, tls", or "plain 7420, tls 7422"."""
+    return ', '.join(f'{name} {port}' if ports and port else name for name, port in transports.items())
+
+
+def parse_port(text):
+    """The port typed into a Port field, an int from 1 to 65535. Raises ValueError."""
+    port = int((text or '').strip())
+    if not 0 < port < 65536:
+        raise ValueError(text)
+    return port
 
 
 # the chosen row's mark in the leftmost column, as a radio button would show it
@@ -31,7 +39,7 @@ CONNECT_COLUMNS = {
     'mark': ('', 28, False),
     'type': ('Type', 220, False),
     'kind': ('Kind', 80, False),
-    'accepts': ('Accepts', 140, False),
+    'accepts': ('Transports', 140, False),
     'address': ('Address', 220, True),
     'reachable': ('Reachable', 80, False),
 }
@@ -39,7 +47,7 @@ CONNECT_COLUMNS = {
 
 class ConnectList(ttk.Frame):
     """The ways to connect as a single-select row list, one row per type, like the device list.
-    rows are (value, type id, kind, accepts, address, reachable); on_select(value, revert) gets each new
+    rows are (value, type id, kind, transports, address, reachable); on_select(value, revert) gets each new
     choice, and revert() puts the selection back on the previous row."""
 
     def __init__(self, parent, rows, current, on_select, columns, dpi_factor=1.0):
@@ -90,9 +98,19 @@ class ConnectList(ttk.Frame):
             self.tree.set(iid, 'mark', MARKED if iid == value else UNMARKED)
 
 
-def connect_row_data(options):
-    return [(o.type_id, o.label, o.kind, levels_text(o.security_levels), options.connect_address(o), o.reachable)
-            for o in options.connect_options]
+def connect_row_data(p):
+    """The Connect with rows of a PendingAdd: (type id, type id, kind, transports, address, reachable)."""
+    rows = []
+    for row in helpers.connect_rows(p.parent, p.info, p.typed):
+        if row.type_id == (p.row.type_id if p.row else None):
+            address = helpers.connects_to(p)
+        elif row.capability is not None:
+            address = helpers.address_of(row.capability, p.cfg.primary_address_type.name if p.cfg else 'IPv4')
+        else:
+            address = helpers.connection_string(p)
+        rows.append((row.type_id, row.type_id, row.kind, transports_text(row.transports), address,
+                     helpers.reachable(row.capability)))
+    return rows
 
 
 class Card(tk.Frame):
@@ -128,6 +146,13 @@ class Card(tk.Frame):
             self.body.columnconfigure(1, weight=1)
             self.row = 0
 
+    def pack_in_column(self):
+        """The last card in a column: open, it takes the column's remaining height; closed, only its header."""
+        if self.body is None:
+            self.pack(fill=tk.X, anchor=tk.N)
+        else:
+            self.pack(fill=tk.BOTH, expand=True)
+
     def label(self, text):
         ttk.Label(self.body, text=text, style='AddConfigMuted.TLabel').grid(
             row=self.row, column=0, sticky=tk.W, padx=(0, 12), pady=2)
@@ -146,11 +171,11 @@ class Card(tk.Frame):
         self.row += 1
         return combo
 
-    def entry(self, text, value, on_change, state='normal', show=''):
+    def entry(self, text, value, on_change, state='normal', show='', width=34):
         self.label(text)
         var = tk.StringVar(value=value)
         var.trace_add('write', lambda *_: on_change(var.get()))
-        entry = ttk.Entry(self.body, textvariable=var, width=34, state=state, show=show)
+        entry = ttk.Entry(self.body, textvariable=var, width=width, state=state, show=show)
         entry.grid(row=self.row, column=1, sticky=tk.W, pady=2)
         self.row += 1
         return entry
@@ -223,20 +248,19 @@ class AddConfigDialog(Dialog):
     """Add with config: every way to connect as its own row, changed only behind a warning, then the
     Connection and Login cards, the Streaming card and the type's settings in three columns."""
 
-    def __init__(self, parent, context: AppContext, options_list, confirm_text=None):
-        self.options = options_list[0]
-        self.count = len(options_list)
-        info = self.options.info
+    def __init__(self, parent, context: AppContext, pendings, confirm_text=None):
+        self.p = pendings[0]
+        self.count = len(pendings)
         if self.count > 1:
             title = f'Add {self.count} devices with config'
-        elif info is not None:
-            title = f'Add {info.name} with config'
         else:
-            title = f'Add {self.options.typed_connection_string} with config'
+            title = f'Add {self.p.name} with config'
         super().__init__(parent, title, context)
         self.confirmed = False
         self.opened = {}
         self.show_secrets = tk.BooleanVar(value=False)
+        # what a Port field holds that is not a port, by field; kept until it is corrected
+        self.port_errors = {}
 
         scale = self.context.ui_scaling_factor * self.context.dpi_factor
         self.geometry('{}x{}'.format(int(1300 * scale), int(760 * scale)))
@@ -281,6 +305,10 @@ class AddConfigDialog(Dialog):
 
         self.refresh()
 
+    @property
+    def cfg(self):
+        return self.p.cfg
+
     # MARK: - Drawing
     def refresh(self):
         self.header_draw()
@@ -296,138 +324,134 @@ class AddConfigDialog(Dialog):
     def header_draw(self):
         for child in self.header.winfo_children():
             child.destroy()
-        options = self.options
         inner = tk.Frame(self.header, background=WHITE)
         inner.pack(fill=tk.X, padx=12, pady=8)
         tk.Label(inner, text='Connect with', background=WHITE, font=('TkDefaultFont', 10, 'bold')).pack(
             anchor=tk.W, pady=(0, 6))
-        rows = ConnectList(inner, connect_row_data(options), options.connect.type_id, self.connect_selected,
+        rows = ConnectList(inner, connect_row_data(self.p), self.p.row.type_id, self.connect_selected,
                            ('mark', 'type', 'kind', 'accepts', 'address', 'reachable'), self.context.dpi_factor)
         rows.pack(fill=tk.X)
 
     def connection_card_draw(self):
-        options = self.options
-        summary = f'{options.config.primary_address_type}, {options.config.security_mode.value}'
+        cfg = self.cfg
+        selection = helpers.transport_config(cfg.type_config)
+        summary = ', '.join(v for v in (cfg.primary_address_type.name, selection.transport if selection else '') if v)
         card = Card(self.left, self, 'Connection', summary)
         card.pack(fill=tk.X, pady=(0, 10))
         if card.body is None:
             return
 
-        has_addresses = options.connect.capability is not None and len(options.connect.capability.addresses) > 0
-        card.combo('Address', ADDRESS_TYPES, options.config.primary_address_type, self.address_changed,
+        has_addresses = self.p.row.capability is not None and len(self.p.row.capability.address_info) > 0
+        card.combo('Address', ADDRESS_TYPES, cfg.primary_address_type.name, self.address_changed,
                    'readonly' if has_addresses else 'disabled')
+        self.transport_draw(card, 'device', cfg.type_config, helpers.DEVICE_TRANSPORT, self.p.row.transports)
+        card.check('Scan the network before connecting', cfg.scan_on_add, self.scan_changed)
 
-        card.combo('Security', [m.value for m in DEVICE_SECURITY_MODES], options.config.security_mode.value,
-                   lambda v: self.security_changed(SecurityMode(v)))
-        try:
-            options.device_security()
-        except Exception as e:
-            card.note(str(e), RED)
+    def transport_draw(self, card, key, type_config, name, announced):
+        """Transport and Port of a device or streaming type config."""
+        selection = helpers.transport_config(type_config, name)
+        if selection is None:
+            card.combo('Transport', [], '', lambda v: None, 'disabled')
+            card.note('The type lists no transports')
+        else:
+            card.combo('Transport', helpers.transport_names(selection), selection.transport,
+                       lambda v: self.transport_changed(selection, v))
+            port = announced.get(selection.transport)
+            if port:
+                card.note(f'Announced on port {port}')
 
-        unsecure = options.config.security_mode == SecurityMode.Unsecure
-        card.entry('Server fingerprint', options.config.server_fingerprint, self.fingerprint_changed,
-                   'disabled' if unsecure else 'normal')
-        if not unsecure and options.config.server_fingerprint.strip() \
-                and not is_fingerprint(options.config.server_fingerprint):
-            card.note('Not sha256: followed by 64 hex digits', RED)
+        override = helpers.port_override(type_config)
+        if override is not None:
+            text = self.port_errors.get(key, str(override))
+            card.entry('Port', text, lambda v: self.port_changed(key, type_config, v), width=8)
+            if key in self.port_errors:
+                card.note('Not a port: a number from 1 to 65535', RED)
 
-        card.check('Scan the network before connecting', options.config.scan_on_add, self.scan_changed)
-
-    def streaming_card_draw(self):
-        options = self.options
-        streaming_options = options.config.streaming_options
-        if streaming_options is None:
-            return
-        streaming = options.streaming.streaming_type.id if options.streaming is not None else NONE_SELECTED
-        card = Card(self.middle, self, 'Streaming', f'{streaming}, {streaming_options.streaming_mode}')
-        card.pack(fill=tk.BOTH, expand=True)
-        if card.body is None:
-            return
-
-        card.combo('Streaming mode', STREAMING_MODES, streaming_options.streaming_mode, self.streaming_mode_changed)
-        if streaming_options.streaming_mode == 'Disabled':
-            return
-
-        labels = [s.streaming_type.id for s in options.streaming_configs] + [NONE_SELECTED]
-        card.combo('Streaming', labels, streaming, self.streaming_changed)
-        if options.streaming is not None:
-            card.combo('Security', [m.value for m in STREAMING_SECURITY_MODES], options.streaming.security_mode.value,
-                       lambda v: self.streaming_security_changed(SecurityMode(v)))
-            try:
-                options.streaming_security_resolved()
-            except Exception as e:
-                card.note(f'Not attached: {e}', ORANGE)
-            unsecure = options.streaming_mode_resolved() == SecurityMode.Unsecure
-            card.entry('Server fingerprint', options.streaming.server_fingerprint,
-                       self.streaming_fingerprint_changed, 'disabled' if unsecure else 'normal')
-            if not unsecure and options.streaming.server_fingerprint.strip() \
-                    and not is_fingerprint(options.streaming.server_fingerprint):
-                card.note('Not sha256: followed by 64 hex digits', RED)
-
-        if streaming_options.streaming_mode == 'MinHops':
-            card.check('Share credentials with nested devices', streaming_options.share_credentials_with_nested_devices,
-                       self.share_changed)
-
-    def login_fields_draw(self, card, method, credentials, on_change):
+    def login_fields_draw(self, card, method):
         has_secret = False
-        for field in method.fields:
+        for field in method.fields.values():
             card.label(field.name if field.required else f'{field.name} (optional)')
             row = ttk.Frame(card.body, style='AddConfigCard.TFrame')
             row.grid(row=card.row, column=1, sticky=tk.W, pady=2)
-            var = tk.StringVar(value=credentials.get(field.id, ''))
-            var.trace_add('write', lambda *_, f=field.id, v=var: on_change(f, v.get()))
-            # 0004: a set FilePath credential fails a remote add, since it would name a file on the gateway
-            state = 'disabled' if field.kind == 'FilePath' and self.options.config.remote else 'normal'
-            entry = ttk.Entry(row, textvariable=var, width=32, state=state,
-                              show='*' if field.kind == 'Secret' and not self.show_secrets.get() else '')
+            var = tk.StringVar(value=self.p.credentials.get(field.id, ''))
+            var.trace_add('write', lambda *_, f=field.id, v=var: self.credential_changed(f, v.get()))
+            kind = field.kind.name
+            entry = ttk.Entry(row, textvariable=var, width=32,
+                              show='*' if kind == 'Secret' and not self.show_secrets.get() else '')
             entry.pack(side=tk.LEFT)
-            if field.kind == 'FilePath':
-                button = ttk.Button(row, text='…', width=3, command=lambda v=var, f=field: self.browse_file(v, f))
-                button.pack(side=tk.LEFT, padx=(4, 0))
-                button.state([state])
-            has_secret = has_secret or field.kind == 'Secret'
+            if kind == 'FilePath':
+                ttk.Button(row, text='…', width=3, command=lambda v=var, f=field: self.browse_file(v, f)).pack(
+                    side=tk.LEFT, padx=(4, 0))
+            has_secret = has_secret or kind == 'Secret'
             card.row += 1
         return has_secret
 
     def login_card_draw(self):
-        options = self.options
-        summary = options.login.description if options.login is not None else 'none'
+        p = self.p
+        method = helpers.login_method(p)
+        type_config = self.cfg.type_config
+        plain_login = p.auth is None and type_config is not None and type_config.has_property('Username')
+        summary = method.description if method is not None else 'Username and password' if plain_login else 'none'
         card = Card(self.left, self, 'Login', summary)
-        card.pack(fill=tk.BOTH, expand=True)
+        card.pack_in_column()
         if card.body is None:
             return
 
         has_secret = False
-        if not options.login_methods:
-            card.note('No login methods')
+        methods = helpers.offered_methods(p.auth, p.row.capability)
+        if methods:
+            labels = {m.description or m.id: m.id for m in methods}
+            card.combo('Method', list(labels), method.description or method.id,
+                       lambda v: self.login_changed(labels[v]))
+            has_secret = self.login_fields_draw(card, method)
+        elif plain_login:
+            # a type without methods takes its login from its own settings
+            card.entry('User name', type_config.get_property_value('Username'),
+                       lambda v: type_config.set_property_value('Username', v))
+            card.entry('Password', type_config.get_property_value('Password'),
+                       lambda v: type_config.set_property_value('Password', v),
+                       show='' if self.show_secrets.get() else '*')
+            has_secret = True
         else:
-            methods = {m.description or m.id: m.id for m in options.login_methods}
-            card.combo('Method', list(methods), options.login.description or options.login.id,
-                       lambda v: self.login_changed(methods[v]))
-            has_secret = self.login_fields_draw(card, options.login, options.config.authentication_config.supplied_credentials,
-                                                self.credential_changed)
-
-        if options.streaming_on and options.streaming_login_methods:
-            card.heading(f'{options.streaming.streaming_type.id} login')
-            methods = {m.description or m.id: m.id for m in options.streaming_login_methods}
-            card.combo('Method', list(methods), options.streaming_login.description or options.streaming_login.id,
-                       lambda v: self.streaming_login_changed(methods[v]))
-            has_secret = self.login_fields_draw(card, options.streaming_login,
-                                                options.streaming.authentication_config.supplied_credentials,
-                                                self.streaming_credential_changed) or has_secret
+            card.note('No login methods')
 
         if has_secret:
             ttk.Checkbutton(card.body, text='Show', variable=self.show_secrets, style='AddConfigCard.TCheckbutton',
                             command=self.refresh).grid(row=card.row, column=1, sticky=tk.W)
             card.row += 1
 
+    def streaming_card_draw(self):
+        cfg = self.cfg
+        options = cfg.streaming_options
+        if options is None:
+            return
+        streaming = helpers.selected_streaming(cfg)
+        streaming_id = streaming.streaming_type.id if streaming is not None else NONE_SELECTED
+        card = Card(self.middle, self, 'Streaming', f'{streaming_id}, {options.streaming_mode.name}')
+        card.pack_in_column()
+        if card.body is None:
+            return
+
+        card.combo('Streaming mode', STREAMING_MODES, options.streaming_mode.name, self.streaming_mode_changed)
+        labels = list(helpers.streaming_configs(cfg)) + [NONE_SELECTED]
+        card.combo('Streaming', labels, streaming_id, self.streaming_changed)
+        if streaming is None:
+            return
+        if helpers.linked(cfg, streaming):
+            card.note("Linked to the device's type: its settings start as the device's")
+        capability = next((c for c in helpers.capabilities_of(self.p.info)
+                           if c.prefix == streaming.streaming_type.connection_string_prefix), None)
+        announced = dict(capability.available_transports.items()) if capability is not None else {}
+        self.transport_draw(card, 'streaming', streaming.type_config, helpers.STREAMING_TRANSPORT, announced)
+
     def settings_draw(self):
-        options = self.options
+        cfg = self.cfg
         card = tk.Frame(self.right, background=WHITE, highlightthickness=1, highlightbackground=CARD_BORDER)
         card.pack(fill=tk.BOTH, expand=True)
-        sections = [(f'Configure {options.connect.type_id} connection', options.config.type_config)]
-        if options.streaming_on and not options.streaming.linked and options.streaming.type_config is not None:
-            sections.append((f'{options.streaming.streaming_type.id} settings', options.streaming.type_config))
+        sections = [(f'Configure {self.p.row.type_id} connection', cfg.type_config)]
+        streaming = helpers.selected_streaming(cfg)
+        if streaming is not None and streaming.type_config is not None:
+            sections.append((f'{streaming.streaming_type.id} settings', streaming.type_config))
         for index, (title, config) in enumerate(sections):
             if index > 0:
                 tk.Frame(card, height=1, background=CARD_BORDER).pack(fill=tk.X)
@@ -439,51 +463,31 @@ class AddConfigDialog(Dialog):
             if config is None or len(config.visible_properties) == 0:
                 ttk.Label(frame, text='No settings', style='AddConfigMuted.TLabel').pack(anchor=tk.W, pady=6)
                 continue
-            tree = PropertiesTreeview(frame, config, self.context, hidden=HIDDEN_SETTINGS,
+            tree = PropertiesTreeview(frame, config, self.context, hidden=HIDDEN_SETTINGS + ['Port'],
                                       style='AddConfigSettings.Treeview')
             tree.pack(fill=tk.BOTH, expand=True)
 
-    def status_problems(self):
-        """(errors, warnings) for the current choices."""
-        options = self.options
-        errors, warnings = [], []
-        try:
-            security = options.device_security()
-        except Exception as e:
-            errors.append(str(e))
-            security = None
-        for value in (options.config.server_fingerprint,
-                      options.streaming.server_fingerprint if options.streaming is not None else ''):
-            if value.strip() and not is_fingerprint(value):
-                errors.append('A server fingerprint is not sha256: followed by 64 hex digits')
-                break
-        missing = options.missing_credentials()
+    def status_errors(self):
+        errors = []
+        if self.port_errors:
+            errors.append('A Port is not a number from 1 to 65535')
+        missing = helpers.missing_credentials(self.p)
         if missing:
             errors.append('Enter ' + ', '.join(missing))
-        if security == ConnectionSecurity.Unsecure and options.login is not None and options.login.fields:
-            warnings.append('the login crosses the network unencrypted')
-        if options.streaming_on:
-            try:
-                options.streaming_security_resolved()
-            except Exception as e:
-                warnings.append(f'{options.streaming.streaming_type.id} is not attached: {e}')
-        return errors, warnings, security
+        return errors
 
     def status_update(self):
-        options = self.options
-        errors, warnings, security = self.status_problems()
+        errors = self.status_errors()
         if errors:
             self.status_label.configure(text='[ERROR] ' + '; '.join(errors), foreground=RED)
             self.add_button.state(['disabled'])
             return
         self.add_button.state(['!disabled'])
-        text = f'Connects to {options.connection_string()} as {options.expected_security()}'
-        if options.streaming_on and options.streaming_connection_string():
-            text += ', streams over ' + options.streaming_connection_string()
-        if warnings:
-            self.status_label.configure(text=f'[WARNING] {text}; ' + '; '.join(warnings), foreground=ORANGE)
-        else:
-            self.status_label.configure(text='[OK] ' + text, foreground=GREEN)
+        text = f'Connects to {helpers.connects_to(self.p)}'
+        selection = helpers.transport_config(self.cfg.type_config)
+        if selection is not None:
+            text += f' over {selection.transport}'
+        self.status_label.configure(text='[OK] ' + text, foreground=GREEN)
 
     # MARK: - Changes
     def card_toggle(self, title):
@@ -491,7 +495,7 @@ class AddConfigDialog(Dialog):
         self.refresh()
 
     def connect_selected(self, type_id, revert):
-        if type_id == self.options.connect.type_id:
+        if type_id == self.p.row.type_id:
             return
         if not ask_connect_change(self, self.context, type_id):
             revert()
@@ -499,68 +503,54 @@ class AddConfigDialog(Dialog):
         self.connect_changed(type_id)
 
     def connect_changed(self, type_id):
-        self.options.select_connect(type_id)
+        self.port_errors = {}
+        row = next(r for r in helpers.connect_rows(self.p.parent, self.p.info, self.p.typed) if r.type_id == type_id)
+        helpers.select_row(self.p, row)
         self.refresh()
 
     def address_changed(self, value):
-        self.options.config.primary_address_type = value
+        self.cfg.primary_address_type = daq.AddressType.__members__[value]
         self.refresh()
 
-    def security_changed(self, mode):
-        self.options.config.security_mode = mode
+    def transport_changed(self, selection, name):
+        selection.transport = name
         self.refresh()
 
-    def fingerprint_changed(self, value):
-        self.options.config.server_fingerprint = value
+    def port_changed(self, key, type_config, text):
+        try:
+            type_config.set_property_value('Port', parse_port(text))
+            self.port_errors.pop(key, None)
+        except (ValueError, RuntimeError):
+            self.port_errors[key] = text
         self.status_update()
 
     def streaming_changed(self, label):
-        options = self.options
-        match = next((s for s in options.streaming_configs if s.streaming_type.id == label), None)
-        options.select_streaming(match.streaming_type.id if match is not None else None)
+        self.cfg.streaming_options.streaming_type = '' if label == NONE_SELECTED else label
         self.refresh()
-
-    def streaming_security_changed(self, mode):
-        self.options.streaming.security_mode = mode
-        self.refresh()
-
-    def streaming_fingerprint_changed(self, value):
-        self.options.streaming.server_fingerprint = value
-        self.status_update()
 
     def streaming_mode_changed(self, value):
-        self.options.config.streaming_options.streaming_mode = value
+        self.cfg.streaming_options.streaming_mode = daq.StreamingMode.__members__[value]
         self.refresh()
 
-    def share_changed(self, value):
-        self.options.config.streaming_options.share_credentials_with_nested_devices = value
-
     def scan_changed(self, value):
-        self.options.config.scan_on_add = value
+        self.cfg.scan_on_add = value
 
     def login_changed(self, method_id):
-        self.options.config.authentication_config.set_authentication_method(method_id)
+        self.p.auth.authentication_method_id = method_id
+        self.p.credentials = {}
         self.refresh()
 
     def credential_changed(self, field_id, value):
-        self.options.config.authentication_config.supplied_credentials[field_id] = value
-        self.status_update()
-
-    def streaming_login_changed(self, method_id):
-        self.options.streaming.authentication_config.set_authentication_method(method_id)
-        self.refresh()
-
-    def streaming_credential_changed(self, field_id, value):
-        self.options.streaming.authentication_config.supplied_credentials[field_id] = value
+        self.p.credentials[field_id] = value
         self.status_update()
 
     def browse_file(self, var, field):
-        path = filedialog.askopenfilename(parent=self, title=field.name, filetypes=file_types(field))
+        path = filedialog.askopenfilename(parent=self, title=field.name, filetypes=helpers.file_types(field))
         if path:
             var.set(path)
 
     def handle_add_clicked(self):
-        if self.status_problems()[0]:
+        if self.status_errors():
             return
         self.confirmed = True
         self.destroy()

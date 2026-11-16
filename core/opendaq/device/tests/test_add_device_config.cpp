@@ -131,7 +131,7 @@ TEST_F(AddDeviceConfigTest, StreamingDefaults)
     ASSERT_EQ(configs.get("a").getTypeConfig().getPropertyValue("Id"), "a");
 }
 
-TEST_F(AddDeviceConfigTest, UnspecifiedAndUnknownKindsHaveNoStreamingOptions)
+TEST_F(AddDeviceConfigTest, UnspecifiedAndUnknownKindsHaveStreamingOptions)
 {
     const DeviceTypePtr unknownType = deserialize(R"({"__type":"DeviceType","id":"dev","name":"dev","prefix":"dev","deviceKind":99})");
     ASSERT_EQ(static_cast<Int>(unknownType.getDeviceKind()), 99);
@@ -140,7 +140,7 @@ TEST_F(AddDeviceConfigTest, UnspecifiedAndUnknownKindsHaveNoStreamingOptions)
     for (const auto& deviceType : {createDeviceType(DeviceKind::Unspecified), unknownType})
     {
         const auto config = AddDeviceConfig(deviceType, streamingTypes, true);
-        ASSERT_FALSE(config.getStreamingOptions().assigned());
+        ASSERT_EQ(config.getStreamingOptions().getAvailableStreamingConfigs().getKeyList(), List<IString>("a"));
     }
 }
 

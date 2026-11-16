@@ -33,7 +33,7 @@ public:
                             const StringPtr& prefix,
                             const DictPtr<IString, IAuthenticationMethod>& supportedAuthenticationMethods,
                             DeviceKind deviceKind = DeviceKind::Unspecified,
-                            const ListPtr<ITransportOption>& transportOptions = List<ITransportOption>());
+                            const DictPtr<IString, ITransportOption>& transportOptions = Dict<IString, ITransportOption>());
 
     explicit DeviceTypeImpl(const ComponentTypeBuilderPtr& builder);
 

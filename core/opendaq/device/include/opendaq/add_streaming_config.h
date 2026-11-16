@@ -65,14 +65,15 @@ DECLARE_OPENDAQ_INTERFACE(IAddStreamingConfig, IBaseObject)
 
     virtual ErrCode INTERFACE_FUNC getAuthenticationConfig(IAuthenticationConfig** config) = 0;
 
-    // [templateType(transportOptions, ITransportOption)]
+    // [templateType(transportOptions, IString, ITransportOption)]
     /*!
      * @brief Gets the transport options the streaming can connect over.
      * @param[out] transportOptions The options of the device info's server capability for the Streaming type, with
-     * the ports the server announces, the server's preferred first. The options of the Streaming type when the device
-     * info has no such capability. Empty for a Streaming type without options.
+     * the ports the server announces, keyed by their own names, the server's preferred first in dict iteration order.
+     * The options of the Streaming type when the device info has no such capability. Empty for a Streaming type
+     * without options.
      */
-    virtual ErrCode INTERFACE_FUNC getAvailableTransportOptions(IList** transportOptions) = 0;
+    virtual ErrCode INTERFACE_FUNC getAvailableTransportOptions(IDict** transportOptions) = 0;
 
     /*!
      * @brief Selects the transport option the streaming connects over.

@@ -18,12 +18,14 @@ static const char* AvailableTransportOptionsKey = "availableTransportOptions";
 }
 
 AddStreamingConfigImpl::AddStreamingConfigImpl(const StreamingTypePtr& streamingType)
-    : AddStreamingConfigImpl(streamingType, ListPtr<ITransportOption>())
+    : AddStreamingConfigImpl(streamingType, DictPtr<IString, ITransportOption>())
 {
 }
 
-AddStreamingConfigImpl::AddStreamingConfigImpl(const StreamingTypePtr& streamingType, const ListPtr<ITransportOption>& transportOptions)
-    : AddStreamingConfigImpl(streamingType, transportOptions.assigned() ? transportOptions : ComponentTypeTransportOptions(streamingType), Partial())
+AddStreamingConfigImpl::AddStreamingConfigImpl(const StreamingTypePtr& streamingType,
+                                               const DictPtr<IString, ITransportOption>& transportOptions)
+    : AddStreamingConfigImpl(
+          streamingType, transportOptions.assigned() ? transportOptions : ComponentTypeTransportOptions(streamingType), Partial())
 {
     Super::addProperty(ObjectProperty(add_streaming_config::TypeConfig, streamingType.createDefaultConfig()));
     if (this->streamingType.asPtr<IComponentTypePrivate>().getSupportedAuthenticationMethods().getCount() > 0)
@@ -32,19 +34,21 @@ AddStreamingConfigImpl::AddStreamingConfigImpl(const StreamingTypePtr& streaming
     // The selected transport option, and the port to connect at, which is the one of the selected option until it is set
     if (this->transportOptions.getCount() > 0)
     {
-        const TransportOptionPtr firstOption = this->transportOptions[0];
+        const TransportOptionPtr firstOption = FirstTransportOption(this->transportOptions);
         Super::addProperty(StringPropertyBuilder(add_streaming_config::TransportOption, firstOption.getName())
-                               .setSelectionValues(TransportOptionNames(this->transportOptions))
+                               .setSelectionValues(this->transportOptions.getKeyList())
                                .build());
         Super::addProperty(IntProperty(
             add_streaming_config::Port, EvalValue(SelectedTransportOptionPortEval(this->transportOptions, add_streaming_config::TransportOption))));
     }
 }
 
-AddStreamingConfigImpl::AddStreamingConfigImpl(const StreamingTypePtr& streamingType, const ListPtr<ITransportOption>& transportOptions, Partial)
+AddStreamingConfigImpl::AddStreamingConfigImpl(const StreamingTypePtr& streamingType,
+                                               const DictPtr<IString, ITransportOption>& transportOptions,
+                                               Partial)
     : Super()
     , streamingType(streamingType)
-    , transportOptions(transportOptions)
+    , transportOptions(FrozenTransportOptions(transportOptions))
 {
 }
 
@@ -94,7 +98,7 @@ ErrCode AddStreamingConfigImpl::getSerializeId(ConstCharPtr* id) const
     return OPENDAQ_SUCCESS;
 }
 
-ErrCode AddStreamingConfigImpl::getAvailableTransportOptions(IList** transportOptions)
+ErrCode AddStreamingConfigImpl::getAvailableTransportOptions(IDict** transportOptions)
 {
     OPENDAQ_PARAM_NOT_NULL(transportOptions);
 
@@ -112,7 +116,7 @@ ErrCode AddStreamingConfigImpl::setTransportOption(IString* name)
     return daqTry([&]
     {
         const StringPtr nameStr = name;
-        if (!FindTransportOption(transportOptions, nameStr).assigned())
+        if (!transportOptions.hasKey(nameStr))
             return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOTFOUND, fmt::format(R"(There is no transport option "{}" to select)", nameStr));
 
         auto lock = getRecursiveConfigLock2();
@@ -134,11 +138,10 @@ ErrCode AddStreamingConfigImpl::getSelectedTransportOption(ITransportOption** tr
     return daqTry([&]
     {
         const StringPtr selected = objPtr.getPropertyValue(add_streaming_config::TransportOption);
-        TransportOptionPtr option = FindTransportOption(transportOptions, selected);
-        if (!option.assigned())
+        if (!selected.assigned() || !transportOptions.hasKey(selected))
             return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOTFOUND, fmt::format(R"(The selected transport option "{}" is not one of the options)", selected));
 
-        *transportOption = option.detach();
+        *transportOption = transportOptions.get(selected).detach();
         return OPENDAQ_SUCCESS;
     });
 }
@@ -187,7 +190,7 @@ ErrCode AddStreamingConfigImpl::Deserialize(ISerializedObject* serialized,
             const StreamingTypePtr streamingType = serialized.readObject(add_streaming_config::StreamingTypeKey, context, factoryCallback);
 
             // A config serialized without options of its own lists the Streaming type's
-            const ListPtr<ITransportOption> options =
+            const DictPtr<IString, ITransportOption> options =
                 serialized.hasKey(add_streaming_config::AvailableTransportOptionsKey)
                     ? TransportOptionsFromPropertyObjects(
                           serialized.readObject(add_streaming_config::AvailableTransportOptionsKey, context, factoryCallback))

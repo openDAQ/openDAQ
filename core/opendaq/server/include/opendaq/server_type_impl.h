@@ -32,7 +32,7 @@ public:
                             const StringPtr& description,
                             const PropertyObjectPtr& defaultConfig,
                             ServerKind serverKind = ServerKind::Unspecified,
-                            const ListPtr<ITransportOption>& transportOptions = List<ITransportOption>());
+                            const DictPtr<IString, ITransportOption>& transportOptions = Dict<IString, ITransportOption>());
 
     explicit ServerTypeImpl(const ComponentTypeBuilderPtr& builder);
 

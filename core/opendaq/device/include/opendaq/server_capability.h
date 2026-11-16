@@ -170,16 +170,16 @@ DECLARE_OPENDAQ_INTERFACE(IServerCapability, IPropertyObject)
      */
     virtual ErrCode INTERFACE_FUNC getAuthenticationMethods(IList** methods) = 0;
 
-    // [templateType(transportOptions, ITransportOption)]
+    // [templateType(transportOptions, IString, ITransportOption)]
     /*!
      * @brief Gets the transport options the server accepts connections over, with the port it serves each on.
-     * @param[out] transportOptions The served options, the server's preferred first. On the connection info of a
-     * connected device, only the option the connection uses.
+     * @param[out] transportOptions The served options, keyed by their own names, the server's preferred first in dict
+     * iteration order. On the connection info of a connected device, only the option the connection uses.
      *
      * On a client, the capability of a discovered or connected server lists only the options the client module
      * supports as well. The first option is the default one, and its port is the one returned by getPort.
      */
-    virtual ErrCode INTERFACE_FUNC getAvailableTransportOptions(IList** transportOptions) = 0;
+    virtual ErrCode INTERFACE_FUNC getAvailableTransportOptions(IDict** transportOptions) = 0;
 
 };
 /*!@}*/

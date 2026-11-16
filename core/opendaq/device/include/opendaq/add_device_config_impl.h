@@ -44,9 +44,9 @@ public:
     AddDeviceConfigImpl(const DeviceTypePtr& deviceType,
                         const DictPtr<IString, IStreamingType>& streamingTypes,
                         Bool scanOnAdd,
-                        const ListPtr<ITransportOption>& transportOptions,
-                        const DictPtr<IString, IList>& streamingTransportOptions);
-    AddDeviceConfigImpl(const DeviceTypePtr& deviceType, const ListPtr<ITransportOption>& transportOptions, Partial);
+                        const DictPtr<IString, ITransportOption>& transportOptions,
+                        const DictPtr<IString, IDict>& streamingTransportOptions);
+    AddDeviceConfigImpl(const DeviceTypePtr& deviceType, const DictPtr<IString, ITransportOption>& transportOptions, Partial);
 
     ErrCode INTERFACE_FUNC getDeviceType(IDeviceType** type) override;
     ErrCode INTERFACE_FUNC getTypeConfig(IPropertyObject** config) override;
@@ -56,7 +56,7 @@ public:
     ErrCode INTERFACE_FUNC setScanOnAdd(Bool scanOnAdd) override;
     ErrCode INTERFACE_FUNC getStreamingOptions(IAddStreamingOptions** options) override;
     ErrCode INTERFACE_FUNC getAuthenticationConfig(IAuthenticationConfig** config) override;
-    ErrCode INTERFACE_FUNC getAvailableTransportOptions(IList** transportOptions) override;
+    ErrCode INTERFACE_FUNC getAvailableTransportOptions(IDict** transportOptions) override;
     ErrCode INTERFACE_FUNC setTransportOption(IString* name) override;
     ErrCode INTERFACE_FUNC getSelectedTransportOption(ITransportOption** transportOption) override;
     ErrCode INTERFACE_FUNC setPort(IInteger* port) override;
@@ -83,7 +83,7 @@ private:
 
     DeviceTypePtr deviceType;
     // The options the server of the device announces, else the Device type's
-    ListPtr<ITransportOption> transportOptions;
+    DictPtr<IString, ITransportOption> transportOptions;
 };
 
 END_NAMESPACE_OPENDAQ

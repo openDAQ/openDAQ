@@ -23,7 +23,7 @@ ServerTypeImpl::ServerTypeImpl(const StringPtr& id,
                                const StringPtr& description,
                                const PropertyObjectPtr& defaultConfig,
                                ServerKind serverKind,
-                               const ListPtr<ITransportOption>& transportOptions)
+                               const DictPtr<IString, ITransportOption>& transportOptions)
     : Super(detail::serverTypeStructType,
             id,
             name,
@@ -152,7 +152,7 @@ ErrCode ServerTypeImpl::Deserialize(ISerializedObject* serialized, IBaseObject* 
             description = serializedObj.readString("description");
 
         // The options come back as the plain Property objects they are serialized as
-        ListPtr<ITransportOption> transportOptions;
+        DictPtr<IString, ITransportOption> transportOptions;
         if (serializedObj.hasKey("availableTransportOptions"))
             transportOptions =
                 TransportOptionsFromPropertyObjects(serializedObj.readObject("availableTransportOptions", contextPtr, factoryCallbackPtr));

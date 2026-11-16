@@ -30,7 +30,6 @@
 #include <coretypes/serializer_ptr.h>
 #include <opendaq/transport_option_ptr.h>
 #include <coretypes/listobject_factory.h>
-#include <unordered_set>
 
 BEGIN_NAMESPACE_OPENDAQ
 
@@ -44,7 +43,7 @@ public:
                                       const StringPtr& description,
                                       const PropertyObjectPtr& defaultConfig,
                                       const DictPtr<IString, IBaseObject>& extraFields = nullptr,
-                                      const ListPtr<ITransportOption>& transportOptions = List<ITransportOption>());
+                                      const DictPtr<IString, ITransportOption>& transportOptions = Dict<IString, ITransportOption>());
 
     explicit GenericComponentTypeImpl(const StructTypePtr& type,
                                       const StringPtr& id,
@@ -53,7 +52,7 @@ public:
                                       const StringPtr& prefix,
                                       const PropertyObjectPtr& defaultConfig,
                                       const DictPtr<IString, IAuthenticationMethod>& supportedAuthenticationMethods = Dict<IString, IAuthenticationMethod>(),
-                                      const ListPtr<ITransportOption>& transportOptions = List<ITransportOption>());
+                                      const DictPtr<IString, ITransportOption>& transportOptions = Dict<IString, ITransportOption>());
 
     ErrCode INTERFACE_FUNC getId(IString** id) override;
     ErrCode INTERFACE_FUNC getName(IString** name) override;
@@ -61,7 +60,7 @@ public:
     ErrCode INTERFACE_FUNC createDefaultConfig(IPropertyObject** defaultConfig) override;
     ErrCode INTERFACE_FUNC getModuleInfo(IModuleInfo** moduleInfo) override;
     ErrCode INTERFACE_FUNC createAuthenticationConfig(IAuthenticationConfig** config) override;
-    ErrCode INTERFACE_FUNC getAvailableTransportOptions(IList** transportOptions) override;
+    ErrCode INTERFACE_FUNC getAvailableTransportOptions(IDict** transportOptions) override;
 
     // IComponentTypePrivate
     ErrCode INTERFACE_FUNC setModuleInfo(IModuleInfo* info) override;
@@ -86,10 +85,10 @@ protected:
     PropertyObjectPtr defaultConfig;
     ModuleInfoPtr moduleInfo;
     DictPtr<IString, IAuthenticationMethod> supportedAuthenticationMethods;
-    ListPtr<ITransportOption> transportOptions;
+    DictPtr<IString, ITransportOption> transportOptions;
 
 private:
-    static ListPtr<ITransportOption> FrozenTransportOptionsCopy(const ListPtr<ITransportOption>& transportOptions);
+    static DictPtr<IString, ITransportOption> FrozenTransportOptionsCopy(const DictPtr<IString, ITransportOption>& transportOptions);
 };
 
 template <class Intf, class... Interfaces>
@@ -127,7 +126,7 @@ GenericComponentTypeImpl<Intf, Interfaces...>::GenericComponentTypeImpl(const St
                                                                         const StringPtr& description,
                                                                         const PropertyObjectPtr& defaultConfig,
                                                                         const DictPtr<IString, IBaseObject>& extraFields,
-                                                                        const ListPtr<ITransportOption>& transportOptions)
+                                                                        const DictPtr<IString, ITransportOption>& transportOptions)
     : GenericStructImpl<Intf, IStruct, IComponentTypePrivate, Interfaces...>(
           type, createFields(type, id, name, description, extraFields))
     , id(id)
@@ -148,7 +147,7 @@ GenericComponentTypeImpl<Intf, Interfaces...>::GenericComponentTypeImpl(const St
                                                                         const StringPtr& prefix,
                                                                         const PropertyObjectPtr& defaultConfig,
                                                                         const DictPtr<IString, IAuthenticationMethod>& supportedAuthenticationMethods,
-                                                                        const ListPtr<ITransportOption>& transportOptions)
+                                                                        const DictPtr<IString, ITransportOption>& transportOptions)
     : GenericStructImpl<Intf, IStruct, IComponentTypePrivate, Interfaces...>(type, Dict<IString, IBaseObject>({{"Id", id}, {"Name", name}, {"Description", description}, {"Prefix", prefix}}))
     , id(id)
     , name(name)
@@ -161,24 +160,24 @@ GenericComponentTypeImpl<Intf, Interfaces...>::GenericComponentTypeImpl(const St
 }
 
 template <class Intf, class... Interfaces>
-ListPtr<ITransportOption> GenericComponentTypeImpl<Intf, Interfaces...>::FrozenTransportOptionsCopy(
-    const ListPtr<ITransportOption>& transportOptions)
+DictPtr<IString, ITransportOption> GenericComponentTypeImpl<Intf, Interfaces...>::FrozenTransportOptionsCopy(
+    const DictPtr<IString, ITransportOption>& transportOptions)
 {
-    auto copy = List<ITransportOption>();
+    auto copy = Dict<IString, ITransportOption>();
     if (transportOptions.assigned())
     {
-        std::unordered_set<std::string> names;
-        IList* items = transportOptions;
-        for (const auto& item : ListPtr<IBaseObject>::Borrow(items))
+        IDict* items = transportOptions;
+        for (const auto& [key, item] : DictPtr<IBaseObject, IBaseObject>::Borrow(items))
         {
+            const auto name = key.asPtrOrNull<IString, StringPtr>();
             const auto option = item.asPtrOrNull<ITransportOption, TransportOptionPtr>();
-            if (!option.assigned())
-                DAQ_THROW_EXCEPTION(InvalidTypeException, "Transport options must be ITransportOption objects");
+            if (!name.assigned() || !option.assigned())
+                DAQ_THROW_EXCEPTION(InvalidTypeException, "Transport options must be ITransportOption objects keyed by their names");
 
-            if (!names.insert(option.getName().toStdString()).second)
-                DAQ_THROW_EXCEPTION(InvalidValueException, "Transport option \"{}\" is listed more than once", option.getName());
+            if (name != option.getName())
+                DAQ_THROW_EXCEPTION(InvalidValueException, "Transport option \"{}\" is keyed by \"{}\"", option.getName(), name);
 
-            copy.pushBack(option);
+            copy.set(name, option);
         }
     }
 
@@ -285,7 +284,7 @@ inline ErrCode INTERFACE_FUNC GenericComponentTypeImpl<Intf, Interfaces...>::get
 }
 
 template <typename Intf, typename... Interfaces>
-ErrCode GenericComponentTypeImpl<Intf, Interfaces...>::getAvailableTransportOptions(IList** transportOptions)
+ErrCode GenericComponentTypeImpl<Intf, Interfaces...>::getAvailableTransportOptions(IDict** transportOptions)
 {
     OPENDAQ_PARAM_NOT_NULL(transportOptions);
 

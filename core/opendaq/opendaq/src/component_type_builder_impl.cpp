@@ -1,13 +1,12 @@
-#include <opendaq/component_type_builder_impl.h>
-#include <opendaq/server_type_impl.h>
-#include <opendaq/device_type_impl.h>
-#include <opendaq/function_block_type_impl.h>
-#include <opendaq/streaming_type_impl.h>
-#include <coretypes/validation.h>
 #include <coretypes/dictobject_factory.h>
 #include <coretypes/listobject_factory.h>
+#include <coretypes/validation.h>
 #include <fmt/format.h>
-#include <unordered_set>
+#include <opendaq/component_type_builder_impl.h>
+#include <opendaq/device_type_impl.h>
+#include <opendaq/function_block_type_impl.h>
+#include <opendaq/server_type_impl.h>
+#include <opendaq/streaming_type_impl.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
@@ -15,8 +14,9 @@ ComponentTypeBuilderImpl::ComponentTypeBuilderImpl(ComponentTypeSort sort)
     : sort(sort)
     , serverKind(ServerKind::Unspecified)
     , deviceKind(DeviceKind::Unspecified)
-    , supportedAuthenticationMethods((sort == ComponentTypeSort::Device || sort == ComponentTypeSort::Streaming) ?  Dict<IString, IAuthenticationMethod>() : nullptr)
-    , transportOptions(List<ITransportOption>())
+    , supportedAuthenticationMethods(
+          (sort == ComponentTypeSort::Device || sort == ComponentTypeSort::Streaming) ? Dict<IString, IAuthenticationMethod>() : nullptr)
+    , transportOptions(Dict<IString, ITransportOption>())
 {
 }
 
@@ -232,7 +232,7 @@ ErrCode ComponentTypeBuilderImpl::getLinkedDeviceType(IDeviceType** deviceType)
     return OPENDAQ_SUCCESS;
 }
 
-ErrCode ComponentTypeBuilderImpl::setAvailableTransportOptions(IList* transportOptions)
+ErrCode ComponentTypeBuilderImpl::setAvailableTransportOptions(IDict* transportOptions)
 {
     OPENDAQ_PARAM_NOT_NULL(transportOptions);
 
@@ -241,15 +241,16 @@ ErrCode ComponentTypeBuilderImpl::setAvailableTransportOptions(IList* transportO
 
     return daqTry([&]
     {
-        std::unordered_set<std::string> names;
-        for (const auto& item : ListPtr<IBaseObject>::Borrow(transportOptions))
+        for (const auto& [key, item] : DictPtr<IBaseObject, IBaseObject>::Borrow(transportOptions))
         {
+            const auto name = key.asPtrOrNull<IString, StringPtr>();
             const auto option = item.asPtrOrNull<ITransportOption, TransportOptionPtr>();
-            if (!option.assigned())
-                return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDTYPE, "Transport options must be ITransportOption objects");
+            if (!name.assigned() || !option.assigned())
+                return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDTYPE, "Transport options must be ITransportOption objects keyed by name");
 
-            if (!names.insert(option.getName().toStdString()).second)
-                return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDVALUE, fmt::format(R"(Transport option "{}" is listed more than once)", option.getName()));
+            if (name != option.getName())
+                return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDVALUE,
+                                           fmt::format(R"(Transport option "{}" is keyed by "{}")", option.getName(), name));
         }
 
         this->transportOptions = transportOptions;
@@ -257,7 +258,7 @@ ErrCode ComponentTypeBuilderImpl::setAvailableTransportOptions(IList* transportO
     });
 }
 
-ErrCode ComponentTypeBuilderImpl::getAvailableTransportOptions(IList** transportOptions)
+ErrCode ComponentTypeBuilderImpl::getAvailableTransportOptions(IDict** transportOptions)
 {
     OPENDAQ_PARAM_NOT_NULL(transportOptions);
 

@@ -133,7 +133,7 @@ inline ErrCode CheckSelectedTransportOption(const ComponentTypePtr& type, const 
     if (!selected.assigned())
         return OPENDAQ_SUCCESS;
 
-    ListPtr<ITransportOption> options;
+    DictPtr<IString, ITransportOption> options;
     if (OPENDAQ_FAILED(type->getAvailableTransportOptions(&options)))
     {
         daqClearErrorInfo();
@@ -141,12 +141,12 @@ inline ErrCode CheckSelectedTransportOption(const ComponentTypePtr& type, const 
     }
 
     // A type that lists no options leaves the property to its module
-    if (!options.assigned() || options.getCount() == 0 || FindTransportOption(options, selected).assigned())
+    if (!options.assigned() || options.getCount() == 0 || options.hasKey(selected))
         return OPENDAQ_SUCCESS;
 
     std::string names;
-    for (const auto& option : options)
-        names += (names.empty() ? "" : ", ") + option.getName().toStdString();
+    for (const auto& name : options.getKeyList())
+        names += (names.empty() ? "" : ", ") + name.toStdString();
 
     return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOTFOUND,
                                fmt::format("The {} type '{}' has no transport option '{}'; it lists: {}",
@@ -158,7 +158,7 @@ inline ErrCode CheckSelectedTransportOption(const ComponentTypePtr& type, const 
 
 // The transport options the server of a device info announces for the type with the given connection string prefix;
 // unassigned when it announces none
-inline ListPtr<ITransportOption> AnnouncedTransportOptions(const ListPtr<IServerCapability>& capabilities, const StringPtr& prefix)
+inline DictPtr<IString, ITransportOption> AnnouncedTransportOptions(const ListPtr<IServerCapability>& capabilities, const StringPtr& prefix)
 {
     for (const auto& capability : capabilities)
     {
@@ -1558,7 +1558,7 @@ ErrCode ModuleManagerImpl::createAddDeviceConfig(IAddDeviceConfig** config, IDev
 
         // The config lists the transport options the server of the device announces instead of the ones of the types
         const auto transportOptions = AnnouncedTransportOptions(capabilities, deviceType.getConnectionStringPrefix());
-        auto streamingTransportOptions = Dict<IString, IList>();
+        auto streamingTransportOptions = Dict<IString, IDict>();
         for (const auto& [id, streamingType] : listedTypes)
         {
             if (const auto options = AnnouncedTransportOptions(capabilities, streamingType.getConnectionStringPrefix()); options.assigned())

@@ -18,7 +18,7 @@ DeviceTypeImpl::DeviceTypeImpl(const StringPtr& id,
                                const StringPtr& prefix,
                                const DictPtr<IString, IAuthenticationMethod>& supportedAuthenticationMethods,
                                DeviceKind deviceKind,
-                               const ListPtr<ITransportOption>& transportOptions)
+                               const DictPtr<IString, ITransportOption>& transportOptions)
     : Super(detail::deviceTypeStructType, id, name, description, prefix, defaultConfig, supportedAuthenticationMethods, transportOptions)
     , deviceKind(deviceKind)
 {
@@ -169,7 +169,7 @@ ErrCode DeviceTypeImpl::Deserialize(ISerializedObject* serialized, IBaseObject* 
             deviceKind = static_cast<DeviceKind>(serializedObj.readInt("deviceKind"));
 
         // The options come back as the plain Property objects they are serialized as
-        ListPtr<ITransportOption> transportOptions;
+        DictPtr<IString, ITransportOption> transportOptions;
         if (serializedObj.hasKey("availableTransportOptions"))
             transportOptions =
                 TransportOptionsFromPropertyObjects(serializedObj.readObject("availableTransportOptions", contextPtr, factoryCallbackPtr));

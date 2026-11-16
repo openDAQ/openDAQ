@@ -26,26 +26,26 @@ TEST_F(DeviceTypeTest, BuilderSetsTransportOptions)
     const DeviceTypePtr type = DeviceTypeBuilder()
                                    .setId("id")
                                    .setConnectionStringPrefix("prefix")
-                                   .setAvailableTransportOptions(List<ITransportOption>(
-                                       TransportOption("tls", 7421, TransportProtection::Encrypted), TransportOption("plain", 7420)))
+                                   .setAvailableTransportOptions(TransportOptionsByName(
+                                       {TransportOption("tls", 7421, TransportProtection::Encrypted), TransportOption("plain", 7420)}))
                                    .build();
 
     const auto options = type.getAvailableTransportOptions();
-    ASSERT_EQ(TransportOptionNames(options), List<IString>("tls", "plain"));
-    ASSERT_EQ(options[0].getPort(), 7421);
-    ASSERT_EQ(options[0].getProtection(), TransportProtection::Encrypted);
-    ASSERT_EQ(options[1].getPort(), 7420);
-    ASSERT_EQ(options[1].getProtection(), TransportProtection::None);
+    ASSERT_EQ(options.getKeyList(), List<IString>("tls", "plain"));
+    ASSERT_EQ(options.getValueList()[0].getPort(), 7421);
+    ASSERT_EQ(options.getValueList()[0].getProtection(), TransportProtection::Encrypted);
+    ASSERT_EQ(options.getValueList()[1].getPort(), 7420);
+    ASSERT_EQ(options.getValueList()[1].getProtection(), TransportProtection::None);
 }
 
 TEST_F(DeviceTypeTest, BuilderSetTransportOptionsReplaces)
 {
     const auto builder =
         DeviceTypeBuilder()
-            .setAvailableTransportOptions(List<ITransportOption>(TransportOption("plain", 7420), TransportOption("tls", 7421)))
-            .setAvailableTransportOptions(List<ITransportOption>(TransportOption("https", 443)));
+            .setAvailableTransportOptions(TransportOptionsByName({TransportOption("plain", 7420), TransportOption("tls", 7421)}))
+            .setAvailableTransportOptions(TransportOptionsByName({TransportOption("https", 443)}));
 
-    ASSERT_EQ(TransportOptionNames(builder.getAvailableTransportOptions()), List<IString>("https"));
+    ASSERT_EQ(builder.getAvailableTransportOptions().getKeyList(), List<IString>("https"));
 }
 
 TEST_F(DeviceTypeTest, BuilderSetTransportOptionsInvalid)
@@ -53,22 +53,24 @@ TEST_F(DeviceTypeTest, BuilderSetTransportOptionsInvalid)
     const auto builder = DeviceTypeBuilder();
 
     ASSERT_THROW(builder.setAvailableTransportOptions(nullptr), ArgumentNullException);
-    ASSERT_THROW(builder.setAvailableTransportOptions(List<IBaseObject>(String("plain"))), InvalidTypeException);
-    ASSERT_THROW(
-        builder.setAvailableTransportOptions(List<ITransportOption>(TransportOption("plain", 7420), TransportOption("plain", 7421))),
-        InvalidValueException);
+    ASSERT_THROW(builder.setAvailableTransportOptions(Dict<IString, IBaseObject>({{"plain", String("plain")}})), InvalidTypeException);
+    ASSERT_THROW(builder.setAvailableTransportOptions(Dict<IBaseObject, IBaseObject>({{Integer(1), TransportOption("plain", 7420)}})),
+                 InvalidTypeException);
+    // the key must be the name of its option
+    ASSERT_THROW(builder.setAvailableTransportOptions(Dict<IString, ITransportOption>({{"tls", TransportOption("plain", 7420)}})),
+                 InvalidValueException);
     ASSERT_EQ(builder.getAvailableTransportOptions().getCount(), 0u);
 }
 
 TEST_F(DeviceTypeTest, TransportOptionsAreFrozenCopy)
 {
-    auto options = List<ITransportOption>(TransportOption("plain", 7420));
+    auto options = TransportOptionsByName({TransportOption("plain", 7420)});
     const DeviceTypePtr type = DeviceTypeBuilder().setId("id").setAvailableTransportOptions(options).build();
 
-    options.pushBack(TransportOption("tls", 7421));
+    options.set("tls", TransportOption("tls", 7421));
 
-    ASSERT_EQ(TransportOptionNames(type.getAvailableTransportOptions()), List<IString>("plain"));
-    ASSERT_THROW(type.getAvailableTransportOptions().pushBack(TransportOption("wss", 7443)), FrozenException);
+    ASSERT_EQ(type.getAvailableTransportOptions().getKeyList(), List<IString>("plain"));
+    ASSERT_THROW(type.getAvailableTransportOptions().set("wss", TransportOption("wss", 7443)), FrozenException);
 }
 
 TEST_F(DeviceTypeTest, SerializeDeserializeTransportOptions)
@@ -79,9 +81,9 @@ TEST_F(DeviceTypeTest, SerializeDeserializeTransportOptions)
             .setName("name")
             .setDescription("description")
             .setConnectionStringPrefix("prefix")
-            .setAvailableTransportOptions(List<ITransportOption>(TransportOption("wss", 7443, TransportProtection::Encrypted, True),
-                                                                 TransportOption("tls", 7421, TransportProtection::Encrypted),
-                                                                 TransportOption("plain", 7420)))
+            .setAvailableTransportOptions(TransportOptionsByName({TransportOption("wss", 7443, TransportProtection::Encrypted, True),
+                                                                  TransportOption("tls", 7421, TransportProtection::Encrypted),
+                                                                  TransportOption("plain", 7420)}))
             .build();
 
     const auto serializer = JsonSerializer();
@@ -96,11 +98,11 @@ TEST_F(DeviceTypeTest, SerializeDeserializeTransportOptions)
 
     // read back as plain Property objects and restored to transport options
     const auto options = newType.getAvailableTransportOptions();
-    ASSERT_EQ(TransportOptionNames(options), List<IString>("wss", "tls", "plain"));
-    ASSERT_EQ(options[0].getPort(), 7443);
-    ASSERT_EQ(options[0].getProtection(), TransportProtection::Encrypted);
-    ASSERT_TRUE(options[0].getCertificateRequired());
-    ASSERT_FALSE(options[1].getCertificateRequired());
+    ASSERT_EQ(options.getKeyList(), List<IString>("wss", "tls", "plain"));
+    ASSERT_EQ(options.getValueList()[0].getPort(), 7443);
+    ASSERT_EQ(options.getValueList()[0].getProtection(), TransportProtection::Encrypted);
+    ASSERT_TRUE(options.getValueList()[0].getCertificateRequired());
+    ASSERT_FALSE(options.getValueList()[1].getCertificateRequired());
 
     serializer.reset();
     newType.serialize(serializer);
@@ -134,7 +136,7 @@ TEST_F(DeviceTypeTest, DefaultConfigHasNoTransportSelection)
             .setId("id")
             .setConnectionStringPrefix("prefix")
             .setDefaultConfig(moduleConfig)
-            .setAvailableTransportOptions(List<ITransportOption>(TransportOption("tls", 7421), TransportOption("plain", 7420)))
+            .setAvailableTransportOptions(TransportOptionsByName({TransportOption("tls", 7421), TransportOption("plain", 7420)}))
             .build();
 
     // The module's own port is kept as it is
@@ -145,7 +147,7 @@ TEST_F(DeviceTypeTest, DefaultConfigHasNoTransportSelection)
     const DeviceTypePtr withoutModuleConfig = DeviceTypeBuilder()
                                                   .setId("id")
                                                   .setConnectionStringPrefix("prefix")
-                                                  .setAvailableTransportOptions(List<ITransportOption>(TransportOption("tls", 7421)))
+                                                  .setAvailableTransportOptions(TransportOptionsByName({TransportOption("tls", 7421)}))
                                                   .build();
     ASSERT_FALSE(withoutModuleConfig.createDefaultConfig().hasProperty(TransportOptionConfigProperty));
     ASSERT_FALSE(withoutModuleConfig.createDefaultConfig().hasProperty(PortConfigProperty));

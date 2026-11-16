@@ -140,23 +140,25 @@ DECLARE_OPENDAQ_INTERFACE(IServerCapabilityConfig, IServerCapability)
      */
     virtual ErrCode INTERFACE_FUNC addAuthenticationMethod(IString* methodId) = 0;
 
-    // [templateType(transportOptions, ITransportOption), returnSelf]
+    // [templateType(transportOptions, IString, ITransportOption), returnSelf]
     /*!
      * @brief Sets the transport options the server accepts connections over, with the port it serves each on.
-     * @param transportOptions The served options, the server's preferred first.
-     * @retval OPENDAQ_ERR_INVALIDTYPE if an element is not a transport option.
-     * @retval OPENDAQ_ERR_INVALIDVALUE if two options have the same name.
+     * @param transportOptions The served options, keyed by their own names, the server's preferred first in dict
+     * iteration order.
+     * @retval OPENDAQ_ERR_INVALIDTYPE if a key is not a string or a value is not a transport option.
+     * @retval OPENDAQ_ERR_INVALIDVALUE if a key is not the name of its option.
      *
      * Replaces any previously set options. The first one becomes the default, and its port is the one returned by
-     * getPort; that port is also stored as the port read by older clients. An empty list leaves that port unchanged.
+     * getPort; that port is also stored as the port read by older clients. An empty dictionary leaves that port
+     * unchanged.
      */
-    virtual ErrCode INTERFACE_FUNC setAvailableTransportOptions(IList* transportOptions) = 0;
+    virtual ErrCode INTERFACE_FUNC setAvailableTransportOptions(IDict* transportOptions) = 0;
 
     // [returnSelf]
     /*!
      * @brief Adds a transport option the server accepts connections over, after the ones already set.
      * @param transportOption The served option, with the port it is served on.
-     * @retval OPENDAQ_ERR_INVALIDVALUE if an option of the same name is already set.
+     * @retval OPENDAQ_ERR_ALREADYEXISTS if an option of the same name is already set.
      *
      * The first option added becomes the default, and sets the port read by older clients.
      */

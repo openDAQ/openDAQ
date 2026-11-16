@@ -65,8 +65,8 @@ public:
     ErrCode INTERFACE_FUNC setLinkedDeviceType(IDeviceType* deviceType) override;
     ErrCode INTERFACE_FUNC getLinkedDeviceType(IDeviceType** deviceType) override;
 
-    ErrCode INTERFACE_FUNC setAvailableTransportOptions(IList* transportOptions) override;
-    ErrCode INTERFACE_FUNC getAvailableTransportOptions(IList** transportOptions) override;
+    ErrCode INTERFACE_FUNC setAvailableTransportOptions(IDict* transportOptions) override;
+    ErrCode INTERFACE_FUNC getAvailableTransportOptions(IDict** transportOptions) override;
 
 private:
     ComponentTypeSort sort;
@@ -80,7 +80,7 @@ private:
     DeviceKind deviceKind;
     DictPtr<IString, IAuthenticationMethod> supportedAuthenticationMethods;
     DeviceTypePtr linkedDeviceType;
-    ListPtr<ITransportOption> transportOptions;
+    DictPtr<IString, ITransportOption> transportOptions;
 };
 
 END_NAMESPACE_OPENDAQ

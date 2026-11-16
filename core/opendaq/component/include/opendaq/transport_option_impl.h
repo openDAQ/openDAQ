@@ -20,7 +20,7 @@
 #include <coreobjects/property_object_impl.h>
 #include <coreobjects/property_object_factory.h>
 #include <coreobjects/property_factory.h>
-#include <coretypes/listobject_factory.h>
+#include <coretypes/dictobject_factory.h>
 #include <fmt/format.h>
 
 BEGIN_NAMESPACE_OPENDAQ
@@ -86,26 +86,77 @@ inline TransportOptionPtr TransportOptionFromPropertyObject(const PropertyObject
 }
 
 /*!
- * @brief Gets the transport options a list of objects stands for, in the same order.
- * @param objects Transport options or the plain Property objects they were deserialized into; may be unassigned.
- * @throws InvalidParameterException if an element is neither.
+ * @brief Gets the transport options a dictionary of objects stands for, in the same order.
+ * @param objects Transport options or the plain Property objects they were deserialized into, keyed by their own
+ * names; may be unassigned.
+ * @returns The options keyed by their names, frozen.
+ * @throws InvalidParameterException if a value is neither, or a key is not the name of its option.
  */
-inline ListPtr<ITransportOption> TransportOptionsFromPropertyObjects(const ListPtr<IBaseObject>& objects)
+inline DictPtr<IString, ITransportOption> TransportOptionsFromPropertyObjects(const DictPtr<IBaseObject, IBaseObject>& objects)
 {
-    auto options = List<ITransportOption>();
-    if (!objects.assigned())
-        return options;
-
-    for (const auto& obj : objects)
+    auto options = Dict<IString, ITransportOption>();
+    if (objects.assigned())
     {
-        const auto propertyObject = obj.asPtrOrNull<IPropertyObject, PropertyObjectPtr>();
-        if (!propertyObject.assigned())
-            DAQ_THROW_EXCEPTION(InvalidParameterException, "The object is not a transport option");
+        for (const auto& [key, obj] : objects)
+        {
+            const auto propertyObject = obj.asPtrOrNull<IPropertyObject, PropertyObjectPtr>();
+            if (!propertyObject.assigned())
+                DAQ_THROW_EXCEPTION(InvalidParameterException, "The object is not a transport option");
 
-        options.pushBack(TransportOptionFromPropertyObject(propertyObject));
+            const auto option = TransportOptionFromPropertyObject(propertyObject);
+            const auto name = key.asPtrOrNull<IString, StringPtr>();
+            if (!name.assigned() || name != option.getName())
+                DAQ_THROW_EXCEPTION(InvalidParameterException, R"(The transport option "{}" is not keyed by its name)", option.getName());
+
+            options.set(name, option);
+        }
     }
 
+    options.freeze();
     return options;
+}
+
+/*!
+ * @brief Gets transport options keyed by their names, in the given order.
+ */
+inline DictPtr<IString, ITransportOption> TransportOptionsByName(std::initializer_list<TransportOptionPtr> options)
+{
+    auto dict = Dict<IString, ITransportOption>();
+    for (const auto& option : options)
+        dict.set(option.getName(), option);
+
+    return dict;
+}
+
+/*!
+ * @brief Gets a frozen copy of transport options keyed by their names, in the same order.
+ */
+inline DictPtr<IString, ITransportOption> FrozenTransportOptions(const DictPtr<IString, ITransportOption>& options)
+{
+    auto copy = Dict<IString, ITransportOption>();
+    if (options.assigned())
+    {
+        for (const auto& [name, option] : options)
+            copy.set(name, option);
+    }
+
+    copy.freeze();
+    return copy;
+}
+
+/*!
+ * @brief Gets the first transport option, the default one.
+ * @returns The option, or unassigned if there are none.
+ */
+inline TransportOptionPtr FirstTransportOption(const DictPtr<IString, ITransportOption>& options)
+{
+    if (options.assigned())
+    {
+        for (const auto& [name, option] : options)
+            return option;
+    }
+
+    return nullptr;
 }
 
 /*!
@@ -116,12 +167,12 @@ inline ListPtr<ITransportOption> TransportOptionsFromPropertyObjects(const ListP
  * Adds TransportOptionConfigProperty, set to the name of the first option, and PortConfigProperty, set to its port.
  * A property the config already has is kept.
  */
-inline void AddTransportSelectionProperties(const PropertyObjectPtr& config, const ListPtr<ITransportOption>& options)
+inline void AddTransportSelectionProperties(const PropertyObjectPtr& config, const DictPtr<IString, ITransportOption>& options)
 {
-    if (!config.assigned() || !options.assigned() || options.getCount() == 0)
+    const TransportOptionPtr defaultOption = FirstTransportOption(options);
+    if (!config.assigned() || !defaultOption.assigned())
         return;
 
-    const TransportOptionPtr defaultOption = options[0];
     if (!config.hasProperty(TransportOptionConfigProperty))
         config.addProperty(StringProperty(TransportOptionConfigProperty, defaultOption.getName()));
     if (!config.hasProperty(PortConfigProperty))
@@ -130,73 +181,41 @@ inline void AddTransportSelectionProperties(const PropertyObjectPtr& config, con
 
 /*!
  * @brief Gets the transport options of a device or streaming type.
- * @returns The options, or an empty list if the type lists none or does not implement them.
+ * @returns The options keyed by their names, or an empty dictionary if the type lists none or does not implement them.
  */
-inline ListPtr<ITransportOption> ComponentTypeTransportOptions(IComponentType* type)
+inline DictPtr<IString, ITransportOption> ComponentTypeTransportOptions(IComponentType* type)
 {
-    ListPtr<ITransportOption> options;
+    DictPtr<IString, ITransportOption> options;
     if (type == nullptr || OPENDAQ_FAILED(type->getAvailableTransportOptions(&options)))
         daqClearErrorInfo();
 
-    return options.assigned() ? options : List<ITransportOption>();
-}
-
-/*!
- * @brief Gets the names of transport options, in the same order.
- */
-inline ListPtr<IString> TransportOptionNames(const ListPtr<ITransportOption>& options)
-{
-    auto names = List<IString>();
-    if (options.assigned())
-    {
-        for (const auto& option : options)
-            names.pushBack(option.getName());
-    }
-
-    return names;
-}
-
-/*!
- * @brief Finds a transport option by name.
- * @returns The option, or unassigned if `options` has none of that name.
- */
-inline TransportOptionPtr FindTransportOption(const ListPtr<ITransportOption>& options, const StringPtr& name)
-{
-    if (options.assigned() && name.assigned())
-    {
-        for (const auto& option : options)
-        {
-            if (option.getName() == name)
-                return option;
-        }
-    }
-
-    return nullptr;
+    return options.assigned() ? options : Dict<IString, ITransportOption>();
 }
 
 /*!
  * @brief Gets the expression of the port of the selected transport option, for the default value of the port property of
  * an add-device or add-streaming config.
- * @param options The options; none of their names may contain a quote.
+ * @param options The options keyed by their names; none of the names may contain a quote.
  * @param selectionProperty The name of the string property that names the selected option.
  * @returns A `switch` over the option names with their ports, the port of the first option for a name it does not list.
  */
-inline StringPtr SelectedTransportOptionPortEval(const ListPtr<ITransportOption>& options, const std::string& selectionProperty)
+inline StringPtr SelectedTransportOptionPortEval(const DictPtr<IString, ITransportOption>& options, const std::string& selectionProperty)
 {
-    if (!options.assigned() || options.getCount() == 0)
+    const TransportOptionPtr defaultOption = FirstTransportOption(options);
+    if (!defaultOption.assigned())
         DAQ_THROW_EXCEPTION(InvalidParameterException, "There are no transport options to select");
 
     std::string eval = "switch($" + selectionProperty;
-    for (const auto& option : options)
+    for (const auto& [name, option] : options)
     {
-        const std::string name = option.getName();
-        if (name.find('\'') != std::string::npos)
-            DAQ_THROW_EXCEPTION(InvalidParameterException, R"(The transport option name "{}" contains a quote)", name);
+        const std::string nameStr = name;
+        if (nameStr.find('\'') != std::string::npos)
+            DAQ_THROW_EXCEPTION(InvalidParameterException, R"(The transport option name "{}" contains a quote)", nameStr);
 
-        eval += fmt::format(", '{}', {}", name, static_cast<Int>(option.getPort()));
+        eval += fmt::format(", '{}', {}", nameStr, static_cast<Int>(option.getPort()));
     }
 
-    return eval + fmt::format(", {})", static_cast<Int>(TransportOptionPtr(options[0]).getPort()));
+    return eval + fmt::format(", {})", static_cast<Int>(defaultOption.getPort()));
 }
 
 END_NAMESPACE_OPENDAQ

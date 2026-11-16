@@ -265,25 +265,27 @@ DECLARE_OPENDAQ_INTERFACE(IComponentTypeBuilder, IBaseObject)
      */
     virtual ErrCode INTERFACE_FUNC getLinkedDeviceType(IDeviceType** deviceType) = 0;
 
-    // [templateType(transportOptions, ITransportOption), returnSelf]
+    // [templateType(transportOptions, IString, ITransportOption), returnSelf]
     /*!
      * @brief Sets the ways a component of the built type can be connected to, with the default port of each.
      * Only valid when the "Type" builder parameter is "Device", "Streaming" or "Server".
-     * @param[in] transportOptions The transport options the module supports, the default first.
+     * @param[in] transportOptions The transport options the module supports, keyed by their own names, the default
+     * first in dict iteration order.
      * @retval OPENDAQ_ERR_NOT_SUPPORTED for a Function block sort.
-     * @retval OPENDAQ_ERR_INVALIDTYPE if an element is not a transport option.
-     * @retval OPENDAQ_ERR_INVALIDVALUE if two options have the same name.
+     * @retval OPENDAQ_ERR_INVALIDTYPE if a key is not a string or a value is not a transport option.
+     * @retval OPENDAQ_ERR_INVALIDVALUE if a key is not the name of its option.
      *
      * Replaces any previously set options.
      */
-    virtual ErrCode INTERFACE_FUNC setAvailableTransportOptions(IList* transportOptions) = 0;
+    virtual ErrCode INTERFACE_FUNC setAvailableTransportOptions(IDict* transportOptions) = 0;
 
-    // [templateType(transportOptions, ITransportOption)]
+    // [templateType(transportOptions, IString, ITransportOption)]
     /*!
      * @brief Gets the ways a component of the built type can be connected to, with the default port of each.
-     * @param[out] transportOptions The transport options, the default first. Empty if none were set.
+     * @param[out] transportOptions The transport options, keyed by their own names, the default first in dict
+     * iteration order. Empty if none were set.
      */
-    virtual ErrCode INTERFACE_FUNC getAvailableTransportOptions(IList** transportOptions) = 0;
+    virtual ErrCode INTERFACE_FUNC getAvailableTransportOptions(IDict** transportOptions) = 0;
 };
 /*!@}*/
 

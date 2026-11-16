@@ -11,7 +11,7 @@ StreamingTypeImpl::StreamingTypeImpl(const StringPtr& id,
                                             const PropertyObjectPtr& defaultConfig,
                                             const DictPtr<IString, IAuthenticationMethod>& supportedAuthenticationMethods,
                                             const DeviceTypePtr& linkedDeviceType,
-                                            const ListPtr<ITransportOption>& transportOptions)
+                                            const DictPtr<IString, ITransportOption>& transportOptions)
     : Super(StreamingTypeStructType(), id, name, description, prefix, defaultConfig, supportedAuthenticationMethods, transportOptions)
     , linkedDeviceType(linkedDeviceType)
 {
@@ -182,7 +182,7 @@ ErrCode StreamingTypeImpl::Deserialize(ISerializedObject* serialized, IBaseObjec
             prefix = serializedObj.readString("prefix");
 
         // The options come back as the plain Property objects they are serialized as
-        ListPtr<ITransportOption> transportOptions;
+        DictPtr<IString, ITransportOption> transportOptions;
         if (serializedObj.hasKey("availableTransportOptions"))
             transportOptions =
                 TransportOptionsFromPropertyObjects(serializedObj.readObject("availableTransportOptions", contextPtr, factoryCallbackPtr));

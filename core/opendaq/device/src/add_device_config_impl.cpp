@@ -1,6 +1,7 @@
 #include <opendaq/add_device_config_impl.h>
 #include <opendaq/add_streaming_config_impl.h>
 #include <opendaq/add_streaming_options_impl.h>
+#include <opendaq/add_device_config_legacy.h>
 #include <coreobjects/property_factory.h>
 #include <coretypes/json_serializer_factory.h>
 #include <coretypes/json_deserializer_factory.h>
@@ -172,6 +173,17 @@ ErrCode AddDeviceConfigImpl::bind(IDict* deviceTypes, IDict* streamingTypes, IAd
                                           serializer.getOutput());
         *bound = config.detach();
     });
+}
+
+ErrCode AddDeviceConfigImpl::serialize(ISerializer* serializer)
+{
+    OPENDAQ_PARAM_NOT_NULL(serializer);
+
+    Int version;
+    OPENDAQ_RETURN_IF_FAILED(serializer->getVersion(&version));
+    if (version < 4)
+        return daqTry([&] { toLegacyAddDeviceConfig(objPtr.asPtr<IAddDeviceConfig>()).serialize(serializer); });
+    return Super::serialize(serializer);
 }
 
 ErrCode AddDeviceConfigImpl::getSerializeId(ConstCharPtr* id) const

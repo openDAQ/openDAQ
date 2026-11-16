@@ -1,6 +1,7 @@
 #include <gtest/gtest.h>
 #include <opendaq/add_component_config_factory.h>
 #include <opendaq/add_device_config_private_ptr.h>
+#include <opendaq/add_device_config_legacy.h>
 #include <opendaq/component_type_builder_factory.h>
 #include <coreobjects/property_object_factory.h>
 #include <coreobjects/property_factory.h>
@@ -325,6 +326,21 @@ TEST_F(AddDeviceConfigTest, WireFormRoundTripNotMirrored)
 
     const AddDeviceConfigPtr deserialized = roundTrip(config).asPtr<IAddDeviceConfig>();
     ASSERT_FALSE(deserialized.getStreamingOptions().assigned());
+}
+
+TEST_F(AddDeviceConfigTest, WireFormBelowVersion4IsLegacy)
+{
+    const auto config = createMirroredConfig();
+    config.getStreamingOptions().setStreamingType("b");
+
+    const auto serializeWithVersion3 = [](const PropertyObjectPtr& obj)
+    {
+        const auto serializer = JsonSerializerWithVersion(3);
+        obj.serialize(serializer);
+        return serializer.getOutput();
+    };
+
+    ASSERT_EQ(serializeWithVersion3(config), serializeWithVersion3(toLegacyAddDeviceConfig(config)));
 }
 
 TEST_F(AddDeviceConfigTest, StandaloneStreamingConfig)

@@ -12,7 +12,7 @@
 - [#1311](https://github.com/openDAQ/openDAQ/pull/1311) Add the `ScanOnAdd` option to skip the network scan on `addDevice`; tests wait for state instead of sleeping; declare `RESOURCE_LOCK` for parallel ctest; write a minidump on access violations.
 - [#1360](https://github.com/openDAQ/openDAQ/pull/1360) Add `FunctionModuleAuthenticator`, a module authenticator that forwards `authenticateModuleBinary` to a function, so a custom authenticator can be written in any binding. The function returns a dictionary with the mandatory `BinaryValid` and `VendorKey` keys. Available in C, Python and .NET.
 - [#1372](https://github.com/openDAQ/openDAQ/pull/1372) Ping discovered IPv6 addresses as well as IPv4 ones, without root or administrator rights where the operating system allows it.
-- [#1322](https://github.com/openDAQ/openDAQ/pull/1322) Add the `InputPolicy`, `Singleton` and `CommonSettingsTypeId` options to function block types. A type can now declare how its blocks create their input ports (the `FunctionBlockInputPolicy` enum: `Unspecified`, `Fixed`, `OneAlwaysEmpty` or `SettingsDriven`), that at most one instance may exist under a single parent, and that its properties act as common settings for nested blocks of another type. The options are set through `IComponentTypeBuilder` and read back from `IFunctionBlockType`. Building a type with an input policy outside of `FunctionBlockInputPolicy` fails with `OPENDAQ_ERR_INVALIDPARAMETER`, and an empty `CommonSettingsTypeId` is stored as unassigned. The options are serialized with the type, so they survive the config protocol. The options are also fields of the `FunctionBlockType` struct (the input policy as an `Int`), so they are visible through `IStruct` and take part in equality: two types that differ only in their options no longer compare equal. The `Singleton` flag is enforced by the core: adding a function block of a singleton type to a device or function block that already holds an instance of that type fails with `OPENDAQ_ERR_ALREADYEXISTS`, as does an addition while another addition of that type to the same parent is in progress. A duplicate found while loading a configuration is skipped with a warning, also on devices reached through the config protocol.
+- [#1322](https://github.com/openDAQ/openDAQ/pull/1322) Add the `InputPolicy`, `Singleton` and `CommonSettingsTypeId` options to function block types. A type can now declare how its blocks create their input ports (the `FunctionBlockInputPolicy` enum: `Unspecified`, `Fixed`, `OneAlwaysEmpty` or `SettingsDriven`), that at most one instance may exist under a single parent, and that its properties act as common settings for nested blocks of another type. The options are set through `IComponentTypeBuilder` and read back from `IFunctionBlockType`. Building a type with an input policy outside of `FunctionBlockInputPolicy` fails with `OPENDAQ_ERR_INVALIDPARAMETER`, and an empty `CommonSettingsTypeId` is stored as unassigned. The options are serialized with the type, so they survive the config protocol. The options are also fields of the `FunctionBlockType` struct (the input policy as an `Int`), so they are visible through `IStruct` and take part in equality: two types that differ only in their options no longer compare equal. The `Singleton` flag is enforced by the core: adding a function block of a singleton type to a device or function block that already holds an instance of that type fails with `OPENDAQ_ERR_ALREADYEXISTS`. A duplicate found while loading a configuration is skipped with a warning, also on devices reached through the config protocol.
 
 ## Python
 
@@ -149,17 +149,15 @@ pass any fields beyond `Id`, `Name` and `Description` through `extraFields`, in 
 Passing `Id`, `Name` or `Description` in `extraFields` throws `InvalidParameterException`, and debug builds also throw `InvalidTypeException` when the resulting fields do not match the struct type's field names and order.
 
 The `Singleton` flag is enforced by `addFunctionBlock` of devices and function blocks, and by `createAndAddNestedFunctionBlock`
-and `addNestedFunctionBlock`, which modules use to add function blocks themselves. While a function block of a singleton type
-is being added, a concurrent addition of the same type to the same parent is refused with `OPENDAQ_ERR_ALREADYEXISTS` instead
-of waiting for it; additions of other types are not affected, and no lock is held while `onAddFunctionBlock` runs. This puts
-two requirements on modules:
+and `addNestedFunctionBlock`, which modules use to add function blocks themselves. The check is not synchronized with
+concurrent additions: two additions of the same singleton type to the same parent that run at the same time may both succeed.
+No lock is held while `onAddFunctionBlock` runs. This puts two requirements on modules:
 - Create function block instances with the same type, including its flags, that the module advertises through
-  `onGetAvailableFunctionBlockTypes`. Whether a concurrent addition is refused is decided by the advertised type, and whether
-  an existing instance blocks an addition by the type of that instance, so an instance created with a separately built type
-  that lacks the flag is not counted.
+  `onGetAvailableFunctionBlockTypes`. Whether an existing instance blocks an addition is decided by the type of that instance,
+  so an instance created with a separately built type that lacks the flag is not counted.
 - Protocol client representations whose `onAddFunctionBlock` forwards the addition to a remote side that runs openDAQ must
   override `validatesAddFunctionBlock()` to return `false`. The remote side then validates the addition, and the client
-  neither checks the flag nor refuses concurrent additions itself, including for the function blocks it mirrors with
+  does not check the flag itself, including for the function blocks it mirrors with
   `addNestedFunctionBlock`. Containers that create their function blocks locally, or forward to a remote side that does
   not run openDAQ, keep the default `true`.
 

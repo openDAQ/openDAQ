@@ -26,10 +26,6 @@
 #include <opendaq/custom_log.h>
 #include <opendaq/module_manager.h>
 #include <opendaq/module_manager_utils.h>
-#include <algorithm>
-#include <mutex>
-#include <unordered_set>
-#include <vector>
 
 BEGIN_NAMESPACE_OPENDAQ
 template <class Intf = IFolder, class ... Intfs>
@@ -144,18 +140,6 @@ protected:
 private:
     template <class Component>
     void swapComponent(Component& origComponent, const Component& newComponent);
-
-    // Registers an addition of a singleton function block type as in progress until the returned guard is
-    // destroyed. A second addition of the same type is refused while one is in progress instead of waiting
-    // for it: the addition in progress runs module code, which may wait for a lock that the second caller
-    // holds. Types that are not singletons are not registered, so they are still added concurrently.
-    Finally beginSingletonFunctionBlockAddition(const StringPtr& typeId, const FunctionBlockTypePtr& type);
-
-    // Type IDs of singleton function blocks currently being added. Guarded by its own mutex, which is
-    // never held while calling out of the container. A vector, since it rarely holds more than one entry and,
-    // unlike a hash set, allocates nothing while empty.
-    std::mutex pendingSingletonAdditionsSync;
-    std::vector<std::string> pendingSingletonAdditions;
 };
 
 template <class Intf = IFolder, class... Intfs>
@@ -660,55 +644,15 @@ ErrCode GenericSignalContainerImpl<Intf, Intfs...>::addFunctionBlockInternal(IFu
     const ErrCode errCode = daqTry([this, &typeId, &config, &functionBlockPtr]
     {
         const StringPtr typeIdPtr = typeId;
-        if (!validatesAddFunctionBlock())
-        {
-            functionBlockPtr = onAddFunctionBlock(typeIdPtr, config);
-            return;
-        }
+        if (validatesAddFunctionBlock())
+            validateSingletonFunctionBlock(typeIdPtr);
 
-        // No lock is held while onAddFunctionBlock runs: module code may release the config lock and process
-        // packets. A concurrent addition of the same singleton type is refused, not waited for.
-        const auto availableTypes = onGetAvailableFunctionBlockTypes();
-        const FunctionBlockTypePtr type = availableTypes.assigned() ? availableTypes.getOrDefault(typeIdPtr) : nullptr;
-        const auto pendingAddition = beginSingletonFunctionBlockAddition(typeIdPtr, type);
-        validateSingletonFunctionBlock(typeIdPtr);
         functionBlockPtr = onAddFunctionBlock(typeIdPtr, config);
     });
     OPENDAQ_RETURN_IF_FAILED(errCode);
 
     *functionBlock = functionBlockPtr.detach();
     return errCode;
-}
-
-template <class Intf, class... Intfs>
-Finally GenericSignalContainerImpl<Intf, Intfs...>::beginSingletonFunctionBlockAddition(const StringPtr& typeId,
-                                                                                        const FunctionBlockTypePtr& type)
-{
-    if (!type.assigned() || !type.getSingleton())
-        return Finally(std::function<void()>());
-
-    std::string pendingTypeId = typeId.toStdString();
-    {
-        std::scoped_lock lock(pendingSingletonAdditionsSync);
-        if (std::find(pendingSingletonAdditions.begin(), pendingSingletonAdditions.end(), pendingTypeId) !=
-            pendingSingletonAdditions.end())
-        {
-            DAQ_THROW_EXCEPTION(AlreadyExistsException,
-                "Function block type \"{}\" is a singleton and an instance of it is already being added under \"{}\"",
-                typeId,
-                this->globalId);
-        }
-
-        pendingSingletonAdditions.push_back(pendingTypeId);
-    }
-
-    return Finally([this, pendingTypeId = std::move(pendingTypeId)]
-    {
-        std::scoped_lock lock(pendingSingletonAdditionsSync);
-        const auto it = std::find(pendingSingletonAdditions.begin(), pendingSingletonAdditions.end(), pendingTypeId);
-        if (it != pendingSingletonAdditions.end())
-            pendingSingletonAdditions.erase(it);
-    });
 }
 
 template <class Intf, class... Intfs>
@@ -967,19 +911,11 @@ void GenericSignalContainerImpl<Intf, Intfs...>::updateFunctionBlock(const std::
     FunctionBlockPtr fb;
     try
     {
+        // A remote side validates the addition itself and may refuse a second instance of a singleton type
         if (validatesAddFunctionBlock())
-        {
-            // A concurrent addition of the same singleton type is refused, see addFunctionBlockInternal
-            const auto pendingAddition = beginSingletonFunctionBlockAddition(typeId, functionBlockType);
             validateSingletonFunctionBlock(typeId);
-            fb = onAddFunctionBlock(typeId, functionConfig);
-        }
-        else
-        {
-            // The remote side validates the addition and may refuse a second instance of a singleton type.
-            // Config protocol clients do not load a configuration here: they forward it to the server.
-            fb = onAddFunctionBlock(typeId, functionConfig);
-        }
+
+        fb = onAddFunctionBlock(typeId, functionConfig);
     }
     catch (const AlreadyExistsException& e)
     {

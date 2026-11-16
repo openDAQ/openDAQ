@@ -18,10 +18,6 @@
 #include "opendaq/exceptions.h"
 
 #include <atomic>
-#include <chrono>
-#include <functional>
-#include <future>
-#include <thread>
 
 using FunctionBlockTest = testing::Test;
 
@@ -281,18 +277,12 @@ namespace
 {
     struct SingletonTestParentOptions
     {
-        // widens the window between the singleton check and the addition for concurrency tests
-        std::chrono::milliseconds addDelay{0};
-
         // false makes the parent act like a protocol client representation of a remote parent
         bool validatesAdd = true;
 
         // refuses a second instance of a singleton type in onAddFunctionBlock, as the remote side of a
         // protocol client representation does
         bool remoteRefusesDuplicate = false;
-
-        // called when an addition of "LockingSingle" runs module code, before it takes the parent's config lock
-        std::function<void()> beforeLockingAdd;
     };
 
     class SingletonTestParentFbImpl : public daq::FunctionBlock
@@ -313,9 +303,7 @@ namespace
 
             return daq::Dict<daq::IString, daq::IFunctionBlockType>(
                 {{"Single", singletonType("Single")},
-                 {"LockingSingle", singletonType("LockingSingle")},
                  {"Multi", daq::FunctionBlockType("Multi", "Multi", "")},
-                 {"AcquisitionLocking", daq::FunctionBlockType("AcquisitionLocking", "AcquisitionLocking", "")},
                  // Module code that adds an instance of "Single" itself instead of through addFunctionBlock("Single")
                  {"SingleViaNested", daq::FunctionBlockType("SingleViaNested", "SingleViaNested", "")},
                  {"SingleViaCreateAndAdd", daq::FunctionBlockType("SingleViaCreateAndAdd", "SingleViaCreateAndAdd", "")}});
@@ -326,8 +314,6 @@ namespace
             const auto types = onGetAvailableFunctionBlockTypes();
             const auto localId = typeId.toStdString() + std::to_string(nestedCount++);
 
-            std::this_thread::sleep_for(options.addDelay);
-
             // The context has no module manager, so this can only fail; a refusal must come before it is needed
             if (typeId == "SingleViaCreateAndAdd")
                 return createAndAddNestedFunctionBlock("Single", localId);
@@ -335,24 +321,7 @@ namespace
             if (options.remoteRefusesDuplicate)
                 validateSingletonFunctionBlock(typeId);
 
-            if (typeId == "LockingSingle")
-            {
-                if (options.beforeLockingAdd)
-                    options.beforeLockingAdd();
-
-                // Like a device, which takes its config lock while it creates the function block
-                auto lock = this->getRecursiveConfigLock2();
-                return addNested(types.get(typeId), localId);
-            }
-
-            const auto fb = addNested(typeId == "SingleViaNested" ? types.get("Single") : types.get(typeId), localId);
-
-            // Mirrors the reference statistics block, which processes packets of the nested block on this thread
-            // under the non-recursive acquisition lock right after adding it
-            if (typeId == "AcquisitionLocking")
-                auto lock = this->getAcquisitionLock();
-
-            return fb;
+            return addNested(typeId == "SingleViaNested" ? types.get("Single") : types.get(typeId), localId);
         }
 
     protected:
@@ -378,12 +347,9 @@ namespace
         return daq::createWithImplementation<daq::IFunctionBlock, SingletonTestParentFbImpl>(daq::NullContext(), localId, std::move(options));
     }
 
-    daq::FunctionBlockPtr createSingletonTestParent(const daq::StringPtr& localId = "parent",
-                                                    std::chrono::milliseconds addDelay = std::chrono::milliseconds(0))
+    daq::FunctionBlockPtr createSingletonTestParent(const daq::StringPtr& localId = "parent")
     {
-        SingletonTestParentOptions options;
-        options.addDelay = addDelay;
-        return createSingletonTestParent(localId, std::move(options));
+        return createSingletonTestParent(localId, SingletonTestParentOptions());
     }
 
     size_t countFunctionBlocksOfType(const daq::FunctionBlockPtr& parent, const std::string& typeId)
@@ -466,103 +432,6 @@ TEST_F(FunctionBlockTest, SingletonDoesNotLimitOtherTypes)
     ASSERT_NO_THROW(parent.addFunctionBlock("Multi"));
     ASSERT_NO_THROW(parent.addFunctionBlock("Multi"));
     ASSERT_EQ(parent.getFunctionBlocks().getCount(), 3u);
-}
-
-TEST_F(FunctionBlockTest, SingletonFunctionBlockConcurrentAdd)
-{
-    const auto parent = createSingletonTestParent("parent", std::chrono::milliseconds(50));
-
-    std::atomic<int> added = 0;
-    std::atomic<int> refused = 0;
-    const auto addSingle = [&parent, &added, &refused]
-    {
-        daq::FunctionBlockPtr fb;
-        const daq::ErrCode errCode = parent->addFunctionBlock(&fb, daq::String("Single"), nullptr);
-        if (OPENDAQ_SUCCEEDED(errCode))
-            ++added;
-        else if (errCode == OPENDAQ_ERR_ALREADYEXISTS)
-            ++refused;
-        daqClearErrorInfo();
-    };
-
-    std::thread first(addSingle);
-    std::thread second(addSingle);
-    first.join();
-    second.join();
-
-    ASSERT_EQ(added, 1);
-    ASSERT_EQ(refused, 1);
-    ASSERT_EQ(parent.getFunctionBlocks().getCount(), 1u);
-}
-
-TEST_F(FunctionBlockTest, AddFunctionBlockDoesNotHoldParentConfigLock)
-{
-    const auto parent = createSingletonTestParent();
-
-    // Run on a separate thread, so a deadlock fails the test instead of hanging it
-    auto done = std::make_shared<std::promise<daq::ErrCode>>();
-    auto result = done->get_future();
-    std::thread([parent, done]
-    {
-        daq::FunctionBlockPtr fb;
-        const daq::ErrCode errCode = parent->addFunctionBlock(&fb, daq::String("AcquisitionLocking"), nullptr);
-        daqClearErrorInfo();
-        done->set_value(errCode);
-    }).detach();
-
-    ASSERT_EQ(result.wait_for(std::chrono::seconds(10)), std::future_status::ready) << "addFunctionBlock deadlocked";
-    ASSERT_EQ(result.get(), OPENDAQ_SUCCESS);
-    ASSERT_EQ(parent.getFunctionBlocks().getCount(), 1u);
-}
-
-TEST_F(FunctionBlockTest, SingletonAdditionInProgressIsRefusedNotAwaited)
-{
-    // The first addition signals once it runs module code, which then waits for the parent's config lock
-    auto firstEntered = std::make_shared<std::promise<void>>();
-    auto firstEnteredFuture = firstEntered->get_future().share();
-    auto signaled = std::make_shared<std::atomic_bool>(false);
-
-    SingletonTestParentOptions options;
-    options.beforeLockingAdd = [firstEntered, signaled]
-    {
-        if (!signaled->exchange(true))
-            firstEntered->set_value();
-    };
-    const auto parent = createSingletonTestParent("parent", std::move(options));
-
-    // Run on a separate thread, so a deadlock fails the test instead of hanging it
-    auto done = std::make_shared<std::promise<std::pair<daq::ErrCode, daq::ErrCode>>>();
-    auto result = done->get_future();
-    std::thread([parent, done, firstEnteredFuture]
-    {
-        // Holds the parent's config lock, as a property-change handler on the parent does
-        auto configLock = parent.asPtr<daq::IPropertyObjectInternal>(true).getRecursiveLockGuard();
-
-        daq::ErrCode firstErr = OPENDAQ_ERR_GENERALERROR;
-        std::thread first([&parent, &firstErr]
-        {
-            daq::FunctionBlockPtr fb;
-            firstErr = parent->addFunctionBlock(&fb, daq::String("LockingSingle"), nullptr);
-            daqClearErrorInfo();
-        });
-
-        // The first addition now waits for the config lock held here
-        firstEnteredFuture.wait();
-
-        daq::FunctionBlockPtr fb;
-        const daq::ErrCode secondErr = parent->addFunctionBlock(&fb, daq::String("LockingSingle"), nullptr);
-        daqClearErrorInfo();
-
-        configLock = nullptr;
-        first.join();
-        done->set_value({firstErr, secondErr});
-    }).detach();
-
-    ASSERT_EQ(result.wait_for(std::chrono::seconds(10)), std::future_status::ready) << "addFunctionBlock deadlocked";
-    const auto [firstErr, secondErr] = result.get();
-    ASSERT_EQ(firstErr, OPENDAQ_SUCCESS);
-    ASSERT_EQ(secondErr, OPENDAQ_ERR_ALREADYEXISTS);
-    ASSERT_EQ(parent.getFunctionBlocks().getCount(), 1u);
 }
 
 TEST_F(FunctionBlockTest, SingletonAddedByAddNestedFunctionBlockIsRefused)

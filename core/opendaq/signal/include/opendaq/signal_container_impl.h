@@ -889,7 +889,6 @@ void GenericSignalContainerImpl<Intf, Intfs...>::updateFunctionBlock(const std::
     }
     catch (const AlreadyExistsException& e)
     {
-        // a second instance of a singleton type in the loaded setup, log and skip it
         auto loggerComponent = signalContainerLoggerComponent;
         LOG_W("Failed to add FB with ID {} while updating parent FB with ID {}: {}", fbId, this->localId, e.what())
         return;

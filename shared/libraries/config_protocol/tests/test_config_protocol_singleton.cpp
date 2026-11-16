@@ -25,11 +25,9 @@ using namespace daq::config_protocol;
 namespace config_protocol_singleton_test
 {
 
-// Offers a singleton function block type, as a device does whose module allows one instance of a block per parent
 class SingletonDeviceImpl final : public Device
 {
 public:
-    // lockedRemove false removes without holding the config lock over the removal and its core event
     SingletonDeviceImpl(const ContextPtr& ctx, const ComponentPtr& parent, const StringPtr& localId, bool singleton, bool lockedRemove = true)
         : Device(ctx, parent, localId)
         , singleton(singleton)
@@ -54,7 +52,6 @@ public:
     {
         const FunctionBlockTypePtr type = onGetAvailableFunctionBlockTypes().get(typeId);
 
-        // Loading a configuration passes the saved local ID
         StringPtr localId = typeId.toStdString() + "_" + std::to_string(nextId++);
         if (config.assigned() && config.hasProperty("LocalId"))
             localId = config.getPropertyValue("LocalId");
@@ -124,7 +121,6 @@ protected:
             }
         };
 
-        // The client mirrors a configuration loaded on the server from the core events the server sends
         serverDevice.asPtr<IPropertyObjectInternal>().enableCoreEventTrigger();
         server = std::make_unique<ConfigProtocolServer>(serverDevice,
                                                         [this](const PacketBuffer& packet)
@@ -147,7 +143,6 @@ protected:
         clientDevice.asPtr<IPropertyObjectInternal>().enableCoreEventTrigger();
     }
 
-    // false drops the server's notifications, so the client does not see what changed on the server
     std::atomic_bool deliverNotifications{true};
 
     std::atomic_bool holdRemovalEvent{false};
@@ -160,18 +155,16 @@ protected:
     std::unique_ptr<ConfigProtocolClient<ConfigClientDeviceImpl>> client;
 };
 
-TEST_F(ConfigProtocolSingletonTest, AddSecondSingletonThroughClientFails)
+TEST_F(ConfigProtocolSingletonTest, SecondSingletonRefusedByClient)
 {
     clientDevice.addFunctionBlock("Single");
 
-    // The client's copy holds the instance, so the client refuses the addition itself
     ASSERT_THROW(clientDevice.addFunctionBlock("Single"), AlreadyExistsException);
     ASSERT_EQ(functionBlockIds(serverDevice), (std::vector<std::string>{"Single_0"}));
     ASSERT_EQ(functionBlockIds(clientDevice), (std::vector<std::string>{"Single_0"}));
 }
 
-// The client does not know about the server's instance, so its own check passes and the server refuses the addition
-TEST_F(ConfigProtocolSingletonTest, ServerRefusalReachesClient)
+TEST_F(ConfigProtocolSingletonTest, SecondSingletonRefusedByServer)
 {
     deliverNotifications = false;
     serverDevice.addFunctionBlock("Single");
@@ -182,7 +175,6 @@ TEST_F(ConfigProtocolSingletonTest, ServerRefusalReachesClient)
     daqClearErrorInfo();
     ASSERT_THROW(clientDevice.addFunctionBlock("Single"), AlreadyExistsException);
 
-    // The refused addition leaves the client's copy and the server unchanged
     ASSERT_EQ(clientDevice.getFunctionBlocks().getCount(), 0u);
     ASSERT_EQ(functionBlockIds(serverDevice), (std::vector<std::string>{"Single_0"}));
 }
@@ -193,7 +185,6 @@ TEST_F(ConfigProtocolSingletonTest, LoadConfigurationThroughClientRestoresSingle
     clientDevice.addFunctionBlock("Multi");
     const auto configuration = serverDevice.saveConfiguration();
 
-    // The loaded instance replaces the existing one instead of being refused as a second instance
     ASSERT_NO_THROW(clientDevice.loadConfiguration(configuration));
     ASSERT_EQ(functionBlockIds(serverDevice), (std::vector<std::string>{"Single_0", "Multi_1"}));
     ASSERT_EQ(functionBlockIds(clientDevice), (std::vector<std::string>{"Single_0", "Multi_1"}));
@@ -207,8 +198,6 @@ TEST_F(ConfigProtocolSingletonTest, LoadConfigurationThroughClientSkipsDuplicate
     source.addFunctionBlock("Multi");
     const auto configuration = source.saveConfiguration();
 
-    // The client forwards the setup to the server, which skips the second instance and still loads the rest of
-    // the setup. The client then mirrors the result.
     ASSERT_NO_THROW(clientDevice.loadConfiguration(configuration));
     ASSERT_EQ(functionBlockIds(serverDevice), (std::vector<std::string>{"Single_0", "Multi_2"}));
     ASSERT_EQ(functionBlockIds(clientDevice), (std::vector<std::string>{"Single_0", "Multi_2"}));
@@ -239,7 +228,6 @@ TEST_F(ConfigProtocolSingletonTest, ClientFunctionBlocksHaveTypeOptions)
     ASSERT_FALSE(multiType.getCommonSettingsTypeId().assigned());
 }
 
-// A client that connects after the function blocks were added gets the options from the initial structure
 TEST_F(ConfigProtocolSingletonTest, ClientConnectingLaterHasTypeOptions)
 {
     serverDevice.addFunctionBlock("Single");
@@ -256,8 +244,7 @@ TEST_F(ConfigProtocolSingletonTest, ClientConnectingLaterHasTypeOptions)
     ASSERT_TRUE(lateClientDevice.getFunctionBlocks()[0].getFunctionBlockType().getSingleton());
 }
 
-// Replaces the singleton instance on the server while the removal's core event is held back, so the server sends
-// the addition of the new instance before the removal of the old one
+// Server events for a replaced singleton reach the client in reverse order
 class ConfigProtocolSingletonOrderTest : public ConfigProtocolSingletonTest
 {
 public:
@@ -273,7 +260,6 @@ protected:
         holdRemovalEvent = true;
         std::thread remover([this] { serverDevice.removeFunctionBlock(serverDevice.getFunctionBlocks()[0]); });
 
-        // The folder no longer holds the old instance, the client has not been told yet
         removalEventHeld.get_future().wait();
         serverDevice.addFunctionBlock("Single");
         additionDone.set_value();

@@ -91,8 +91,7 @@ protected:
     virtual void syncComponentOperationMode(const ComponentPtr& component);
     void notifyActiveChanged(bool onUpdate) override;
 
-    // Refuses a function block of a singleton type when the folder already holds one of that type. Runs under the
-    // folder's config lock together with the addition, so concurrent additions cannot both pass it.
+    // Called under the folder lock together with the insert.
     virtual void validateSingletonFunctionBlock(const ComponentPtr& component);
 
 private:
@@ -444,7 +443,7 @@ void FolderImpl<Intf, Intfs...>::validateSingletonFunctionBlock(const ComponentP
     const auto typeId = type.getId();
     for (const auto& [itemLocalId, item] : items)
     {
-        // an item with the same local ID is reported as a duplicate by addItemInternal
+        // A duplicate local ID is reported by addItemInternal
         if (itemLocalId == localId)
             continue;
 

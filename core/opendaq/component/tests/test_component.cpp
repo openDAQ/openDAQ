@@ -373,7 +373,7 @@ TEST_F(ComponentTypeTest, ReservedExtraFieldThrows)
     }
 }
 
-// Detects whether `new T(Args...)` resolves; unlike std::is_constructible it does not require a public destructor
+// std::is_constructible also requires a public destructor
 template <class T, class Args, class = void>
 struct IsNewConstructible : std::false_type
 {
@@ -391,13 +391,11 @@ constexpr bool ComponentTypeConstructible =
 
 TEST_F(ComponentTypeTest, RemovedPrefixOverloadDoesNotCompile)
 {
-    // Calls written against the removed (..., prefix, defaultConfig) overload must not compile
     static_assert(!ComponentTypeConstructible<const StringPtr&, const PropertyObjectPtr&>);
     static_assert(!ComponentTypeConstructible<const char*, const PropertyObjectPtr&>);
     static_assert(!ComponentTypeConstructible<std::nullptr_t, const PropertyObjectPtr&>);
     static_assert(!ComponentTypeConstructible<const StringPtr&, std::nullptr_t>);
 
-    // The current overload still resolves
     static_assert(ComponentTypeConstructible<const PropertyObjectPtr&>);
     static_assert(ComponentTypeConstructible<std::nullptr_t>);
     static_assert(ComponentTypeConstructible<const PropertyObjectPtr&, const DictPtr<IString, IBaseObject>&>);
@@ -410,16 +408,13 @@ TEST_F(ComponentTypeTest, MismatchedExtraFieldsThrow)
 {
     const auto structType = createTestComponentTypeStructType();
 
-    // Missing field
     ASSERT_THROW((createWithImplementation<IComponentType, GenericComponentTypeImpl<>>(structType, "Id", "Name", "Desc", nullptr)),
                  InvalidTypeException);
 
-    // Misspelled field
     ASSERT_THROW((createWithImplementation<IComponentType, GenericComponentTypeImpl<>>(
                      structType, "Id", "Name", "Desc", nullptr, Dict<IString, IBaseObject>({{"Extar", "Value"}}))),
                  InvalidTypeException);
 
-    // Field not declared by the struct type
     ASSERT_THROW((createWithImplementation<IComponentType, GenericComponentTypeImpl<>>(
                      structType, "Id", "Name", "Desc", nullptr, Dict<IString, IBaseObject>({{"Extra", "Value"}, {"Other", "Value"}}))),
                  InvalidTypeException);

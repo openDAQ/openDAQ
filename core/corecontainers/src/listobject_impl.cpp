@@ -136,7 +136,6 @@ ErrCode INTERFACE_FUNC ListImpl::equals(IBaseObject* other, Bool* equal) const
         const IBaseObject* item = list.at(i);
         const BaseObjectPtr otherItem = otherList.getItemAt(i);
 
-        // Same object or nullptr
         if (item == otherItem.getObject())
         {
             continue;

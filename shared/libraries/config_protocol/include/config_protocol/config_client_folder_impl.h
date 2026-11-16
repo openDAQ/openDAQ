@@ -57,8 +57,7 @@ protected:
 
     void handleRemoteCoreObjectInternal(const ComponentPtr& sender, const CoreEventArgsPtr& args) override;
 
-    // Copies the remote folder's items as they are. The remote side enforces the singleton flag, and its core
-    // events can arrive in an order in which the copy briefly holds two instances of a singleton type.
+    // The server enforces the singleton flag; its events can arrive in an order that briefly shows two instances.
     void validateSingletonFunctionBlock(const ComponentPtr& component) override;
 
 private:

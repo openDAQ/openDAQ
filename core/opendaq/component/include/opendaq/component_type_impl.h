@@ -40,10 +40,7 @@ public:
                                       const PropertyObjectPtr& defaultConfig,
                                       const DictPtr<IString, IBaseObject>& extraFields = nullptr);
 
-    // The removed (type, id, name, description, prefix, defaultConfig) overload. Without this, calls written
-    // against it still compile through the implicit smart pointer conversions, passing the prefix as
-    // defaultConfig and defaultConfig as extraFields, and fail at runtime with an invalid cast.
-    // Pass the prefix through extraFields instead.
+    // Deleted so calls written for the old prefix overload fail to compile instead of converting implicitly.
     GenericComponentTypeImpl(const StructTypePtr& type,
                              const StringPtr& id,
                              const StringPtr& name,
@@ -92,7 +89,6 @@ DictPtr<IString, IBaseObject> GenericComponentTypeImpl<Intf, Interfaces...>::cre
     {
         for (const auto& [key, value] : extraFields)
         {
-            // Id, Name and Description are owned by the base and must not be overwritten by a derived type
             if (fields.hasKey(key))
                 DAQ_THROW_EXCEPTION(InvalidParameterException, "Extra component type field \"{}\" is reserved", key);
 
@@ -101,8 +97,6 @@ DictPtr<IString, IBaseObject> GenericComponentTypeImpl<Intf, Interfaces...>::cre
     }
 
 #ifndef NDEBUG
-    // GenericStructImpl does not validate the fields against the struct type, so a misspelled
-    // or misordered extra field would otherwise go unnoticed
     if (fields.getKeyList() != type.getFieldNames())
         DAQ_THROW_EXCEPTION(InvalidTypeException, "Component type fields do not match the fields of struct type \"{}\"", type.getName());
 #endif

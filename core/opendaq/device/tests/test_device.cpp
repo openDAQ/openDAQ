@@ -904,7 +904,6 @@ TEST_F(DeviceTest, SynchronizationLoadSwitchesSourceBack)
     ASSERT_EQ(interfaces.get("TestInterface").getMode(), daq::SyncMode::Output);
 }
 
-// Offers a singleton function block type, as a device does whose module allows one instance of a block per parent
 class SingletonTestDevice final : public daq::Device
 {
 public:
@@ -927,7 +926,6 @@ public:
     {
         const daq::FunctionBlockTypePtr type = onGetAvailableFunctionBlockTypes().get(typeId);
 
-        // Loading a configuration passes the saved local ID
         daq::StringPtr localId = typeId.toStdString() + "_" + std::to_string(nextId++);
         if (config.assigned() && config.hasProperty("LocalId"))
             localId = config.getPropertyValue("LocalId");
@@ -969,7 +967,6 @@ TEST_F(DeviceTest, LoadConfigurationRestoresSingletonFunctionBlock)
     device.addFunctionBlock("Multi");
     const auto configuration = device.saveConfiguration();
 
-    // The loaded instance replaces the existing one instead of being refused as a second instance
     ASSERT_NO_THROW(device.loadConfiguration(configuration));
     ASSERT_EQ(functionBlockIds(device), (std::vector<std::string>{"Single_0", "Multi_1"}));
 }
@@ -985,7 +982,6 @@ TEST_F(DeviceTest, LoadConfigurationSkipsDuplicateSingleton)
     const auto device = createSingletonTestDevice();
     device.addFunctionBlock("Single");
 
-    // The first instance of the setup is loaded, the second is skipped, and the rest of the setup is still loaded
     ASSERT_NO_THROW(device.loadConfiguration(configuration));
     ASSERT_EQ(functionBlockIds(device), (std::vector<std::string>{"Single_0", "Multi_2"}));
 }

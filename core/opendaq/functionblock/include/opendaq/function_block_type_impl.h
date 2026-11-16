@@ -58,7 +58,6 @@ public:
 private:
     static bool IsKnownInputPolicy(Int policy);
 
-    // Throws InvalidParameterException for a value outside of FunctionBlockInputPolicy
     static FunctionBlockInputPolicy ValidateInputPolicy(FunctionBlockInputPolicy policy);
 
     static StringPtr UnassignedIfEmpty(const StringPtr& typeId);
@@ -225,8 +224,8 @@ inline ErrCode FunctionBlockTypeImpl::Deserialize(ISerializedObject* serialized,
         if (serializedObj.hasKey("defaultConfig"))
             defaultConfig = serializedObj.readObject("defaultConfig", contextPtr, factoryCallbackPtr);
 
-        // A policy this SDK version does not know, for example one written by a newer peer, falls back to Unspecified
         FunctionBlockInputPolicy inputPolicy = FunctionBlockInputPolicy::Unspecified;
+        // Policies from newer versions read as Unspecified
         if (serializedObj.hasKey("inputPolicy"))
         {
             const Int policy = serializedObj.readInt("inputPolicy");

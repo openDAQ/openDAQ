@@ -142,7 +142,6 @@ TEST_F(FunctionBlockTest, FunctionBlockTypeSerializationDeserialization)
 
     const auto serializedFbType = serializer.getOutput();
 
-    // Default options are left out of the serialized form
     const std::string json = serializedFbType;
     ASSERT_EQ(json.find("inputPolicy"), std::string::npos);
     ASSERT_EQ(json.find("singleton"), std::string::npos);
@@ -291,7 +290,6 @@ namespace
             return daq::Dict<daq::IString, daq::IFunctionBlockType>(
                 {{"Single", daq::FunctionBlockTypeBuilder().setId("Single").setName("Single").setSingleton(singleton).build()},
                  {"Multi", daq::FunctionBlockType("Multi", "Multi", "")},
-                 // Module code that adds an instance of "Single" itself instead of through addFunctionBlock("Single")
                  {"SingleViaNested", daq::FunctionBlockType("SingleViaNested", "SingleViaNested", "")}});
         }
 
@@ -331,7 +329,6 @@ namespace
         return count;
     }
 
-    // A setup with two instances of the singleton type, as saved from a parent whose type lacks the flag
     daq::StringPtr serializeSetupWithDuplicateSingleton()
     {
         const auto source = createSingletonTestParent("parent", false);

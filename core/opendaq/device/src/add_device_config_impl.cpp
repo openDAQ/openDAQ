@@ -263,15 +263,15 @@ bool AddDeviceConfigImpl::takesStreamings(const DeviceTypePtr& deviceType)
 {
     switch (deviceType.getDeviceKind())
     {
+        case DeviceKind::Unspecified:
         case DeviceKind::Mirrored:
             return true;
-        case DeviceKind::Unspecified:
         case DeviceKind::Adapter:
         case DeviceKind::Root:
             return false;
     }
 
-    return false;
+    return true;
 }
 
 #if !defined(BUILDING_STATIC_LIBRARY)

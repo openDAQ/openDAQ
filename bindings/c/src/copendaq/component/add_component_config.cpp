@@ -36,3 +36,11 @@ daqErrCode daqAddComponentConfig_getTransport(daqAddComponentConfig* self, daqSt
 {
     return reinterpret_cast<daq::IAddComponentConfig*>(self)->getTransport(reinterpret_cast<daq::IString**>(transport));
 }
+
+daqErrCode daqAddComponentConfig_createAddComponentConfig(daqAddComponentConfig** obj, daqList* transports)
+{
+    daq::IAddComponentConfig* ptr = nullptr;
+    daqErrCode err = daq::createAddComponentConfig(&ptr, reinterpret_cast<daq::IList*>(transports));
+    *obj = reinterpret_cast<daqAddComponentConfig*>(ptr);
+    return err;
+}

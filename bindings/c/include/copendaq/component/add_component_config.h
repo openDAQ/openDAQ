@@ -44,6 +44,7 @@ extern "C"
     daqErrCode EXPORTED daqAddComponentConfig_getAvailableTransports(daqAddComponentConfig* self, daqList** transports);
     daqErrCode EXPORTED daqAddComponentConfig_setTransport(daqAddComponentConfig* self, daqString* transport);
     daqErrCode EXPORTED daqAddComponentConfig_getTransport(daqAddComponentConfig* self, daqString** transport);
+    daqErrCode EXPORTED daqAddComponentConfig_createAddComponentConfig(daqAddComponentConfig** obj, daqList* transports);
 
 #ifdef __cplusplus
 }

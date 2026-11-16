@@ -34,13 +34,19 @@ extern "C"
 
 #include <ccommon.h>
 
+    typedef struct daqAddStreamingOptions daqAddStreamingOptions;
+    typedef struct daqDict daqDict;
+    typedef struct daqString daqString;
     typedef struct daqAddStreamingConfig daqAddStreamingConfig;
-    typedef struct daqList daqList;
 
-    EXPORTED extern const daqIntfID DAQ_ADD_STREAMING_CONFIG_INTF_ID;
-    void EXPORTED daqAddStreamingConfig_getInterfaceId(daqIntfID* intfId);
+    EXPORTED extern const daqIntfID DAQ_ADD_STREAMING_OPTIONS_INTF_ID;
+    void EXPORTED daqAddStreamingOptions_getInterfaceId(daqIntfID* intfId);
 
-    daqErrCode EXPORTED daqAddStreamingConfig_createAddStreamingConfig(daqAddStreamingConfig** obj, daqList* transports);
+    daqErrCode EXPORTED daqAddStreamingOptions_getStreamingConfigs(daqAddStreamingOptions* self, daqDict** configs);
+    daqErrCode EXPORTED daqAddStreamingOptions_setStreamingType(daqAddStreamingOptions* self, daqString* typeId);
+    daqErrCode EXPORTED daqAddStreamingOptions_getStreamingConfig(daqAddStreamingOptions* self, daqAddStreamingConfig** config, daqString* typeId);
+    daqErrCode EXPORTED daqAddStreamingOptions_getStreamingMode(daqAddStreamingOptions* self, daqStreamingMode* mode);
+    daqErrCode EXPORTED daqAddStreamingOptions_setStreamingMode(daqAddStreamingOptions* self, daqStreamingMode mode);
 
 #ifdef __cplusplus
 }

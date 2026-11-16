@@ -1,5 +1,5 @@
 #include <opendaq/streaming_type_impl.h>
-#include <opendaq/add_streaming_config_factory.h>
+#include <opendaq/transport_config_factory.h>
 #include <coreobjects/property_factory.h>
 #include <coretypes/validation.h>
 
@@ -65,7 +65,7 @@ ErrCode StreamingTypeImpl::createDefaultConfig(IPropertyObject** defaultConfig)
 
         // Temporary bridge: carries the transport selection until the add-streaming config replaces this plain config
         if (transports.getCount() > 0 && !config.hasProperty("AddStreamingConfig"))
-            config.addProperty(ObjectProperty("AddStreamingConfig", AddStreamingConfig(transports.getKeyList())));
+            config.addProperty(ObjectProperty("AddStreamingConfig", AddComponentConfig(transports.getKeyList())));
     });
     OPENDAQ_RETURN_IF_FAILED(errCode);
 

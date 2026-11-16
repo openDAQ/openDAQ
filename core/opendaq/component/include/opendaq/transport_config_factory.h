@@ -13,25 +13,26 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 #pragma once
-#include <opendaq/add_streaming_config_ptr.h>
+#include <opendaq/add_component_config_ptr.h>
 #include <coretypes/listobject_factory.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
 /*!
- * @ingroup opendaq_add_streaming_config
- * @addtogroup opendaq_add_streaming_config_factories Factories
+ * @ingroup objects_add_component_config
+ * @addtogroup objects_add_component_config_factories Factories
  * @{
  */
 
 /*!
- * @brief Creates an add-streaming config listing the given transports. The first one starts out selected.
- * @param transports The names of the transports the streaming connection can be established over.
+ * @brief Creates a transport selection listing the given transports. The first one starts out selected.
+ * @param transports The names of the transports the component can be connected over.
  */
-inline AddStreamingConfigPtr AddStreamingConfig(const ListPtr<IString>& transports = List<IString>())
+inline AddComponentConfigPtr AddComponentConfig(const ListPtr<IString>& transports = List<IString>())
 {
-    AddStreamingConfigPtr obj(AddStreamingConfig_Create(transports));
+    AddComponentConfigPtr obj(AddComponentConfig_Create(transports));
     return obj;
 }
 

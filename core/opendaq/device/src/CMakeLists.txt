@@ -11,7 +11,6 @@ function(rtgen_component_${BASE_NAME})
     rtgen(SRC_ServerCapabilityConfig server_capability_config.h)
     rtgen(SRC_IoFolderConfig io_folder_config.h)
     rtgen(SRC_DeviceType device_type.h)
-    rtgen(SRC_AddDeviceConfig add_device_config.h)
     rtgen(SRC_AddressInfo address_info.h)
     rtgen(SRC_AddressInfoBuilder address_info_builder.h)
     rtgen(SRC_AddressInfoPrivate address_info_private.h)
@@ -22,6 +21,10 @@ function(rtgen_component_${BASE_NAME})
     rtgen(SRC_NetworkInterface network_interface.h)
     rtgen(SRC_DeviceNetworkConfig device_network_config.h)
     rtgen(SRC_ConnectedClientInfo connected_client_info.h)
+    rtgen(SRC_AddDeviceConfig add_device_config.h)
+    rtgen(SRC_AddDeviceConfigPrivate add_device_config_private.h)
+    rtgen(SRC_AddStreamingOptions add_streaming_options.h)
+    rtgen(SRC_AddStreamingConfig add_streaming_config.h)
     
     set(SRC_PublicHeaders_Component_Generated
         ${SRC_Device_PublicHeaders}
@@ -35,7 +38,6 @@ function(rtgen_component_${BASE_NAME})
         ${SRC_ServerCapabilityConfig_PublicHeaders}
         ${SRC_IoFolderConfig_PublicHeaders}
         ${SRC_DeviceType_PublicHeaders}
-        ${SRC_AddDeviceConfig_PublicHeaders}
         ${SRC_AddressInfo_PublicHeaders}
         ${SRC_AddressInfoBuilder_PublicHeaders}
         ${SRC_AddressInfoPrivate_PublicHeaders}
@@ -45,6 +47,10 @@ function(rtgen_component_${BASE_NAME})
         ${SRC_ConnectionStatusContainerPrivate_PublicHeaders}
         ${SRC_NetworkInterface_PublicHeaders}
         ${SRC_ConnectedClientInfo_PublicHeaders}
+        ${SRC_AddDeviceConfig_PublicHeaders}
+        ${SRC_AddDeviceConfigPrivate_PublicHeaders}
+        ${SRC_AddStreamingOptions_PublicHeaders}
+        ${SRC_AddStreamingConfig_PublicHeaders}
         PARENT_SCOPE
     )
     
@@ -60,7 +66,6 @@ function(rtgen_component_${BASE_NAME})
         ${SRC_ServerCapabilityConfig_PrivateHeaders}
         ${SRC_IoFolderConfig_PrivateHeaders}
         ${SRC_DeviceType_PrivateHeaders}
-        ${SRC_AddDeviceConfig_PrivateHeaders}
         ${SRC_AddressInfo_PrivateHeaders}
         ${SRC_AddressInfoBuilder_PrivateHeaders}
         ${SRC_LogFileInfo_PrivateHeaders}
@@ -69,6 +74,10 @@ function(rtgen_component_${BASE_NAME})
         ${SRC_ConnectionStatusContainerPrivate_PrivateHeaders}
         ${SRC_NetworkInterface_PrivateHeaders}
         ${SRC_ConnectedClientInfo_PrivateHeaders}
+        ${SRC_AddDeviceConfig_PrivateHeaders}
+        ${SRC_AddDeviceConfigPrivate_PrivateHeaders}
+        ${SRC_AddStreamingOptions_PrivateHeaders}
+        ${SRC_AddStreamingConfig_PrivateHeaders}
         PARENT_SCOPE
     )
     
@@ -84,7 +93,6 @@ function(rtgen_component_${BASE_NAME})
         ${SRC_ServerCapabilityConfig_Cpp}
         ${SRC_IoFolderConfig_Cpp}
         ${SRC_DeviceType_Cpp}
-        ${SRC_AddDeviceConfig_Cpp}
         ${SRC_AddressInfo_Cpp}
         ${SRC_AddressInfoBuilder_Cpp}
         ${SRC_LogFileInfo_Cpp}
@@ -93,6 +101,10 @@ function(rtgen_component_${BASE_NAME})
         ${SRC_ConnectionStatusContainerPrivate_Cpp}
         ${SRC_NetworkInterface_Cpp}
         ${SRC_ConnectedClientInfo_Cpp}
+        ${SRC_AddDeviceConfig_Cpp}
+        ${SRC_AddDeviceConfigPrivate_Cpp}
+        ${SRC_AddStreamingOptions_Cpp}
+        ${SRC_AddStreamingConfig_Cpp}
         PARENT_SCOPE
     )
 endfunction()
@@ -133,10 +145,6 @@ function(create_component_source_groups_${BASE_NAME})
         ${SDK_HEADERS_DIR}/device_type_impl.h
         ${SDK_HEADERS_DIR}/device_type_factory.h
         ${SDK_SRC_DIR}/device_type_impl.cpp
-        ${SDK_HEADERS_DIR}/add_device_config.h
-        ${SDK_HEADERS_DIR}/add_device_config_impl.h
-        ${SDK_HEADERS_DIR}/add_device_config_factory.h
-        ${SDK_SRC_DIR}/add_device_config_impl.cpp
     )
     
     source_group("device//io_folder" FILES 
@@ -168,6 +176,20 @@ function(create_component_source_groups_${BASE_NAME})
         ${SDK_HEADERS_DIR}/connected_client_info.h
         ${SDK_HEADERS_DIR}/connected_client_info_impl.h
         ${SDK_SRC_DIR}/connected_client_info_impl.cpp
+    )
+
+    source_group("device//add_device_config" FILES 
+        ${SDK_HEADERS_DIR}/add_device_config.h
+        ${SDK_HEADERS_DIR}/add_device_config_private.h
+        ${SDK_HEADERS_DIR}/add_streaming_options.h
+        ${SDK_HEADERS_DIR}/add_streaming_config.h
+        ${SDK_HEADERS_DIR}/add_component_config_factory.h
+        ${SDK_HEADERS_DIR}/add_device_config_impl.h
+        ${SDK_HEADERS_DIR}/add_streaming_options_impl.h
+        ${SDK_HEADERS_DIR}/add_streaming_config_impl.h
+        ${SDK_SRC_DIR}/add_device_config_impl.cpp
+        ${SDK_SRC_DIR}/add_streaming_options_impl.cpp
+        ${SDK_SRC_DIR}/add_streaming_config_impl.cpp
     )
 
     source_group("device//log_file_info" FILES 
@@ -202,7 +224,6 @@ set(SRC_PublicHeaders_Component
     io_folder_factory.h
     io_folder_impl.h
     device_type_factory.h
-    add_device_config_factory.h
     device_private.h
     core_opendaq_event_args_factory.h
     core_opendaq_event_args.h
@@ -222,6 +243,7 @@ set(SRC_PublicHeaders_Component
     network_interface_factory.h
     device_network_config.h
     connected_client_info.h
+    add_component_config_factory.h
     PARENT_SCOPE
 )
 
@@ -237,6 +259,8 @@ set(SRC_PrivateHeaders_Component
     user_lock_impl.h
     network_interface_impl.h
     connected_client_info_impl.h
+    add_streaming_options_impl.h
+    add_streaming_config_impl.h
     PARENT_SCOPE
 )
 
@@ -256,6 +280,8 @@ set(SRC_Cpp_Component
     user_lock_impl.cpp
     network_interface_impl.cpp
     connected_client_info_impl.cpp
+    add_streaming_options_impl.cpp
+    add_streaming_config_impl.cpp
     device.natvis
     PARENT_SCOPE
 )

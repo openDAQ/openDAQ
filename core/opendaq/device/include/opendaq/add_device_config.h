@@ -14,36 +14,90 @@
  * limitations under the License.
  */
 #pragma once
-#include <opendaq/add_component_config.h>
+#include <coreobjects/property_object.h>
+#include <coretypes/dictobject.h>
+#include <opendaq/device_type.h>
+#include <opendaq/add_streaming_options.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
-/*#
- * [interfaceSmartPtr(IAddComponentConfig, GenericAddComponentConfigPtr, "<opendaq/add_component_config_ptr.h>")]
- * [interfaceLibrary(IAddComponentConfig, "opendaq")]
- */
-
 /*!
- * @ingroup opendaq_device_type
- * @addtogroup opendaq_add_device_config Add device config
+ * @ingroup opendaq_add_device_config
  * @{
  */
 
 /*!
- * @brief Selects the transport a device is connected over when it is added.
- *
- * A device type that lists transports (see `IComponentType::getAvailableTransports`) puts this object into
- * the config returned by `IComponentType::createDefaultConfig`, as the `"AddDeviceConfig"` object property.
- * The module reads the selected transport from it when the device is created.
- *
- * Only the configuration connection follows this selection. The streaming connections of the device, including
- * the ones attached automatically, use the transport selected in the add-streaming config of their own streaming
- * type, in the `"Streaming"` section of the add-device config. A device connected over "tls" still streams over
- * the default transport unless another one is selected there.
+ * @brief The type of IP address preferred when connecting to a device.
  */
-DECLARE_OPENDAQ_INTERFACE(IAddDeviceConfig, IAddComponentConfig)
+enum class AddressType : EnumType
 {
+    IPv4 = 0,
+    IPv6
 };
+
+/*#
+ * [templated(defaultAliasName: AddDeviceConfigPtr)]
+ * [interfaceSmartPtr(IAddDeviceConfig, GenericAddDeviceConfigPtr)]
+ * [interfaceLibrary(IPropertyObject, "coreobjects")]
+ * [interfaceSmartPtr(IDeviceType, GenericDeviceTypePtr, "<opendaq/device_type_ptr.h>", true)]
+ */
+
+/*!
+ * @brief The configuration used when adding a device of a Device type.
+ *
+ * The Device type is fixed when the config is created, and its ID is the read-only `DeviceType` property.
+ * The nested config objects are created with the config and never replaced.
+ * The `Streaming` child object holds the streaming options.
+ * It exists only for Mirrored Device types with at least one listed Streaming type.
+ */
+DECLARE_OPENDAQ_INTERFACE(IAddDeviceConfig, IBaseObject)
+{
+    /*!
+     * @brief Gets the Device type the config is created for.
+     * @param[out] type The Device type
+     */
+    virtual ErrCode INTERFACE_FUNC getDeviceType(IDeviceType** type) = 0;
+
+    /*!
+     * @brief Gets the configuration of the Device type.
+     * @param[out] config The Device type configuration
+     */
+    virtual ErrCode INTERFACE_FUNC getTypeConfig(IPropertyObject** config) = 0;
+
+    /*!
+     * @brief Gets the preferred type of address used to connect to the device.
+     * @param[out] type The address type
+     *
+     * IPv4 by default.
+     * Addresses of the preferred type are tried first.
+     */
+    virtual ErrCode INTERFACE_FUNC getPrimaryAddressType(AddressType* type) = 0;
+
+    /*!
+     * @brief Sets the preferred type of address used to connect to the device.
+     * @param type The address type
+     */
+    virtual ErrCode INTERFACE_FUNC setPrimaryAddressType(AddressType type) = 0;
+
+    /*!
+     * @brief Gets whether adding the device scans the network when the device list is missing or outdated.
+     * @param[out] scanOnAdd True when the add scans the network
+     */
+    virtual ErrCode INTERFACE_FUNC getScanOnAdd(Bool* scanOnAdd) = 0;
+
+    /*!
+     * @brief Sets whether adding the device scans the network when the device list is missing or outdated.
+     * @param scanOnAdd True when the add scans the network
+     */
+    virtual ErrCode INTERFACE_FUNC setScanOnAdd(Bool scanOnAdd) = 0;
+
+    /*!
+     * @brief Gets the streaming options.
+     * @param[out] options The streaming options, or null when the config has no `Streaming` child object
+     */
+    virtual ErrCode INTERFACE_FUNC getStreamingOptions(IAddStreamingOptions** options) = 0;
+};
+
 /*!@}*/
 
 /*!
@@ -52,13 +106,16 @@ DECLARE_OPENDAQ_INTERFACE(IAddDeviceConfig, IAddComponentConfig)
  * @{
  */
 
+// [templateType(streamingTypes, IString, IStreamingType)]
 /*!
- * @brief Creates an add-device config listing the given transports. The first one starts out selected.
- * @param transports The names of the transports the device can be connected over.
+ * @brief Creates an add device config with the default config of the Device type.
+ * @retval OPENDAQ_ERR_INVALIDPARAMETER when the Device type is Mirrored and a Streaming type ID is reserved.
  */
-OPENDAQ_DECLARE_CLASS_FACTORY_WITH_INTERFACE(
-    LIBRARY_FACTORY, AddDeviceConfig, IAddDeviceConfig,
-    IList*, transports
+OPENDAQ_DECLARE_CLASS_FACTORY(
+    LIBRARY_FACTORY, AddDeviceConfig,
+    IDeviceType*, deviceType,
+    IDict*, streamingTypes,
+    Bool, scanOnAdd
 )
 
 /*!@}*/

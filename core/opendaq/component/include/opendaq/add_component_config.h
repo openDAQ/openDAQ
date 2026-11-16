@@ -68,4 +68,24 @@ DECLARE_OPENDAQ_INTERFACE(IAddComponentConfig, IPropertyObject)
 };
 /*!@}*/
 
+/*!
+ * @ingroup objects_add_component_config
+ * @addtogroup objects_add_component_config_factories Factories
+ * @{
+ */
+
+/*!
+ * @brief Creates a transport selection listing the given transports. The first one starts out selected.
+ * @param transports The names of the transports the component can be connected over.
+ *
+ * Device types carry one in their default config as the "AddDeviceConfig" object property, streaming types as
+ * "AddStreamingConfig".
+ */
+OPENDAQ_DECLARE_CLASS_FACTORY_WITH_INTERFACE(
+    LIBRARY_FACTORY, AddComponentConfig, IAddComponentConfig,
+    IList*, transports
+)
+
+/*!@}*/
+
 END_NAMESPACE_OPENDAQ

@@ -31,17 +31,77 @@
 #include "py_core_types/py_converter.h"
 #include "py_core_objects/py_variant_extractor.h"
 
-PyDaqIntf<daq::IAddDeviceConfig, daq::IAddComponentConfig> declareIAddDeviceConfig(pybind11::module_ m)
+PyDaqIntf<daq::IAddDeviceConfig, daq::IBaseObject> declareIAddDeviceConfig(pybind11::module_ m)
 {
-    return wrapInterface<daq::IAddDeviceConfig, daq::IAddComponentConfig>(m, "IAddDeviceConfig");
+    py::enum_<daq::AddressType>(m, "AddressType")
+        .value("IPv4", daq::AddressType::IPv4)
+        .value("IPv6", daq::AddressType::IPv6);
+
+    return wrapInterface<daq::IAddDeviceConfig, daq::IBaseObject>(m, "IAddDeviceConfig");
 }
 
-void defineIAddDeviceConfig(pybind11::module_ m, PyDaqIntf<daq::IAddDeviceConfig, daq::IAddComponentConfig> cls)
+void defineIAddDeviceConfig(pybind11::module_ m, PyDaqIntf<daq::IAddDeviceConfig, daq::IBaseObject> cls)
 {
-    cls.doc() = "Selects the transport a device is connected over when it is added.";
+    cls.doc() = "The configuration used when adding a device of a Device type.";
 
-    m.def("AddDeviceConfig", [](std::variant<daq::IList*, py::list, daq::IEvalValue*>& transports){
-        return daq::AddDeviceConfig_Create(getVariantValue<daq::IList*>(transports));
-    }, py::arg("transports"));
+    m.def("AddDeviceConfig", [](daq::IDeviceType* deviceType, std::variant<daq::IDict*, py::dict>& streamingTypes, const bool scanOnAdd){
+        return daq::AddDeviceConfig_Create(deviceType, getVariantValue<daq::IDict*>(streamingTypes), scanOnAdd);
+    }, py::arg("device_type"), py::arg("streaming_types"), py::arg("scan_on_add"));
 
+
+    cls.def_property_readonly("device_type",
+        [](daq::IAddDeviceConfig *object)
+        {
+            py::gil_scoped_release release;
+            const auto objectPtr = daq::AddDeviceConfigPtr::Borrow(object);
+            return objectPtr.getDeviceType().detach();
+        },
+        py::return_value_policy::take_ownership,
+        "Gets the Device type the config is created for.");
+    cls.def_property_readonly("type_config",
+        [](daq::IAddDeviceConfig *object)
+        {
+            py::gil_scoped_release release;
+            const auto objectPtr = daq::AddDeviceConfigPtr::Borrow(object);
+            return objectPtr.getTypeConfig().detach();
+        },
+        py::return_value_policy::take_ownership,
+        "Gets the configuration of the Device type.");
+    cls.def_property("primary_address_type",
+        [](daq::IAddDeviceConfig *object)
+        {
+            py::gil_scoped_release release;
+            const auto objectPtr = daq::AddDeviceConfigPtr::Borrow(object);
+            return objectPtr.getPrimaryAddressType();
+        },
+        [](daq::IAddDeviceConfig *object, daq::AddressType type)
+        {
+            py::gil_scoped_release release;
+            const auto objectPtr = daq::AddDeviceConfigPtr::Borrow(object);
+            objectPtr.setPrimaryAddressType(type);
+        },
+        "Gets the preferred type of address used to connect to the device. / Sets the preferred type of address used to connect to the device.");
+    cls.def_property("scan_on_add",
+        [](daq::IAddDeviceConfig *object)
+        {
+            py::gil_scoped_release release;
+            const auto objectPtr = daq::AddDeviceConfigPtr::Borrow(object);
+            return objectPtr.getScanOnAdd();
+        },
+        [](daq::IAddDeviceConfig *object, const bool scanOnAdd)
+        {
+            py::gil_scoped_release release;
+            const auto objectPtr = daq::AddDeviceConfigPtr::Borrow(object);
+            objectPtr.setScanOnAdd(scanOnAdd);
+        },
+        "Gets whether adding the device scans the network when the device list is missing or outdated. / Sets whether adding the device scans the network when the device list is missing or outdated.");
+    cls.def_property_readonly("streaming_options",
+        [](daq::IAddDeviceConfig *object)
+        {
+            py::gil_scoped_release release;
+            const auto objectPtr = daq::AddDeviceConfigPtr::Borrow(object);
+            return objectPtr.getStreamingOptions().detach();
+        },
+        py::return_value_policy::take_ownership,
+        "Gets the streaming options.");
 }

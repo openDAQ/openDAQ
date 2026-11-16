@@ -5,7 +5,7 @@
 //     Changes to this file may cause incorrect behavior and will be lost if
 //     the code is regenerated.
 //
-//     RTGen (PythonGenerator).
+//     RTGen (CGenerator v0.7.0).
 // </auto-generated>
 //------------------------------------------------------------------------------
 
@@ -25,23 +25,26 @@
  * limitations under the License.
  */
 
-#include <pybind11/gil.h>
+#pragma once
 
-#include "py_opendaq/py_opendaq.h"
-#include "py_core_types/py_converter.h"
-#include "py_core_objects/py_variant_extractor.h"
-
-PyDaqIntf<daq::IAddStreamingConfig, daq::IAddComponentConfig> declareIAddStreamingConfig(pybind11::module_ m)
+#ifdef __cplusplus
+extern "C"
 {
-    return wrapInterface<daq::IAddStreamingConfig, daq::IAddComponentConfig>(m, "IAddStreamingConfig");
+#endif
+
+#include <ccommon.h>
+
+    typedef struct daqAddStreamingConfig daqAddStreamingConfig;
+    typedef struct daqStreamingType daqStreamingType;
+    typedef struct daqPropertyObject daqPropertyObject;
+
+    EXPORTED extern const daqIntfID DAQ_ADD_STREAMING_CONFIG_INTF_ID;
+    void EXPORTED daqAddStreamingConfig_getInterfaceId(daqIntfID* intfId);
+
+    daqErrCode EXPORTED daqAddStreamingConfig_getStreamingType(daqAddStreamingConfig* self, daqStreamingType** type);
+    daqErrCode EXPORTED daqAddStreamingConfig_getTypeConfig(daqAddStreamingConfig* self, daqPropertyObject** config);
+    daqErrCode EXPORTED daqAddStreamingConfig_createAddStreamingConfig(daqAddStreamingConfig** obj, daqStreamingType* streamingType);
+
+#ifdef __cplusplus
 }
-
-void defineIAddStreamingConfig(pybind11::module_ m, PyDaqIntf<daq::IAddStreamingConfig, daq::IAddComponentConfig> cls)
-{
-    cls.doc() = "Selects the transport a streaming connection is established over.";
-
-    m.def("AddStreamingConfig", [](std::variant<daq::IList*, py::list, daq::IEvalValue*>& transports){
-        return daq::AddStreamingConfig_Create(getVariantValue<daq::IList*>(transports));
-    }, py::arg("transports"));
-
-}
+#endif

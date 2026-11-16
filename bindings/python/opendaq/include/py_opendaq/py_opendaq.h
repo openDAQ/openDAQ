@@ -42,6 +42,9 @@ PyDaqIntf<daq::INetworkInterface, daq::IBaseObject> declareINetworkInterface(pyb
 PyDaqIntf<daq::IServerCapability, daq::IPropertyObject> declareIServerCapability(pybind11::module_ m);
 PyDaqIntf<daq::IConnectedClientInfo, daq::IPropertyObject> declareIConnectedClientInfo(pybind11::module_ m);
 PyDaqIntf<daq::IDeviceType, daq::IComponentType> declareIDeviceType(pybind11::module_ m);
+PyDaqIntf<daq::IAddDeviceConfig, daq::IBaseObject> declareIAddDeviceConfig(pybind11::module_ m);
+PyDaqIntf<daq::IAddStreamingOptions, daq::IBaseObject> declareIAddStreamingOptions(pybind11::module_ m);
+PyDaqIntf<daq::IAddStreamingConfig, daq::IBaseObject> declareIAddStreamingConfig(pybind11::module_ m);
 PyDaqIntf<daq::IChannel, daq::IFunctionBlock> declareIChannel(pybind11::module_ m);
 PyDaqIntf<daq::IFunctionBlock, daq::IFolder> declareIFunctionBlock(pybind11::module_ m);
 PyDaqIntf<daq::IFunctionBlockType, daq::IComponentType> declareIFunctionBlockType(pybind11::module_ m);
@@ -134,8 +137,6 @@ PyDaqIntf<daq::ICredentialRequestBuilder, daq::IBaseObject> declareICredentialRe
 PyDaqIntf<daq::ILoginParameters, daq::IBaseObject> declareILoginParameters(pybind11::module_ m);
 PyDaqIntf<daq::ILoginParametersBuilder, daq::IBaseObject> declareILoginParametersBuilder(pybind11::module_ m);
 PyDaqIntf<daq::IAddComponentConfig, daq::IPropertyObject> declareIAddComponentConfig(pybind11::module_ m);
-PyDaqIntf<daq::IAddDeviceConfig, daq::IAddComponentConfig> declareIAddDeviceConfig(pybind11::module_ m);
-PyDaqIntf<daq::IAddStreamingConfig, daq::IAddComponentConfig> declareIAddStreamingConfig(pybind11::module_ m);
 
 PyDaqClass<daq::TimeReader<daq::StreamReaderPtr>> declareTimeStreamReader(pybind11::module_ m);
 PyDaqClass<daq::TimeReader<daq::TailReaderPtr>> declareTimeTailReader(pybind11::module_ m);
@@ -163,6 +164,9 @@ void defineINetworkInterface(pybind11::module_ m, PyDaqIntf<daq::INetworkInterfa
 void defineIServerCapability(pybind11::module_ m, PyDaqIntf<daq::IServerCapability, daq::IPropertyObject> cls);
 void defineIConnectedClientInfo(pybind11::module_ m, PyDaqIntf<daq::IConnectedClientInfo, daq::IPropertyObject> cls);
 void defineIDeviceType(pybind11::module_ m, PyDaqIntf<daq::IDeviceType, daq::IComponentType> cls);
+void defineIAddDeviceConfig(pybind11::module_ m, PyDaqIntf<daq::IAddDeviceConfig, daq::IBaseObject> cls);
+void defineIAddStreamingOptions(pybind11::module_ m, PyDaqIntf<daq::IAddStreamingOptions, daq::IBaseObject> cls);
+void defineIAddStreamingConfig(pybind11::module_ m, PyDaqIntf<daq::IAddStreamingConfig, daq::IBaseObject> cls);
 void defineIChannel(pybind11::module_ m, PyDaqIntf<daq::IChannel, daq::IFunctionBlock> cls);
 void defineIFunctionBlock(pybind11::module_ m, PyDaqIntf<daq::IFunctionBlock, daq::IFolder> cls);
 void defineIFunctionBlockType(pybind11::module_ m, PyDaqIntf<daq::IFunctionBlockType, daq::IComponentType> cls);
@@ -260,7 +264,5 @@ void defineICredentialRequestBuilder(pybind11::module_ m, PyDaqIntf<daq::ICreden
 void defineILoginParameters(pybind11::module_ m, PyDaqIntf<daq::ILoginParameters, daq::IBaseObject> cls);
 void defineILoginParametersBuilder(pybind11::module_ m, PyDaqIntf<daq::ILoginParametersBuilder, daq::IBaseObject> cls);
 void defineIAddComponentConfig(pybind11::module_ m, PyDaqIntf<daq::IAddComponentConfig, daq::IPropertyObject> cls);
-void defineIAddDeviceConfig(pybind11::module_ m, PyDaqIntf<daq::IAddDeviceConfig, daq::IAddComponentConfig> cls);
-void defineIAddStreamingConfig(pybind11::module_ m, PyDaqIntf<daq::IAddStreamingConfig, daq::IAddComponentConfig> cls);
 
 void defineComponentSearchFilterFactories(pybind11::module_ m);

@@ -172,7 +172,10 @@ run_rtgen copendaq/context opendaq/context opendaq context context
 
 # opendaq device
 
-run_rtgen copendaq/device opendaq/device opendaq add_device_config add_device_config
+run_rtgen copendaq/device opendaq/device opendaq add_device_config add_device_config #enum
+# run_rtgen copendaq/device opendaq/device opendaq add_component_config_factory add_component_config_factory #C++
+run_rtgen copendaq/device opendaq/device opendaq add_streaming_config add_streaming_config
+run_rtgen copendaq/device opendaq/device opendaq add_streaming_options add_streaming_options #enum
 run_rtgen copendaq/device opendaq/device opendaq address_info address_info #enum
 run_rtgen copendaq/device opendaq/device opendaq address_info_builder address_info_builder
 run_rtgen copendaq/device opendaq/device opendaq address_info_private address_info_private
@@ -360,7 +363,6 @@ run_rtgen copendaq/signal opendaq/signal opendaq signal_private signal_private
 
 # opendaq streaming
 
-run_rtgen copendaq/streaming opendaq/streaming opendaq add_streaming_config add_streaming_config
 run_rtgen copendaq/streaming opendaq/streaming opendaq mirrored_device mirrored_device
 run_rtgen copendaq/streaming opendaq/streaming opendaq mirrored_device_config mirrored_device_config
 run_rtgen copendaq/streaming opendaq/streaming opendaq mirrored_signal_config mirrored_signal_config

@@ -9,7 +9,7 @@
 // </auto-generated>
 //------------------------------------------------------------------------------
 
-#include <copendaq/streaming/add_streaming_config.h>
+#include <copendaq/device/add_streaming_config.h>
 
 #include <opendaq/opendaq.h>
 
@@ -22,10 +22,20 @@ void daqAddStreamingConfig_getInterfaceId(daqIntfID* intfId)
     *intfId = DAQ_ADD_STREAMING_CONFIG_INTF_ID;
 }
 
-daqErrCode daqAddStreamingConfig_createAddStreamingConfig(daqAddStreamingConfig** obj, daqList* transports)
+daqErrCode daqAddStreamingConfig_getStreamingType(daqAddStreamingConfig* self, daqStreamingType** type)
+{
+    return reinterpret_cast<daq::IAddStreamingConfig*>(self)->getStreamingType(reinterpret_cast<daq::IStreamingType**>(type));
+}
+
+daqErrCode daqAddStreamingConfig_getTypeConfig(daqAddStreamingConfig* self, daqPropertyObject** config)
+{
+    return reinterpret_cast<daq::IAddStreamingConfig*>(self)->getTypeConfig(reinterpret_cast<daq::IPropertyObject**>(config));
+}
+
+daqErrCode daqAddStreamingConfig_createAddStreamingConfig(daqAddStreamingConfig** obj, daqStreamingType* streamingType)
 {
     daq::IAddStreamingConfig* ptr = nullptr;
-    daqErrCode err = daq::createAddStreamingConfig(&ptr, reinterpret_cast<daq::IList*>(transports));
+    daqErrCode err = daq::createAddStreamingConfig(&ptr, reinterpret_cast<daq::IStreamingType*>(streamingType));
     *obj = reinterpret_cast<daqAddStreamingConfig*>(ptr);
     return err;
 }

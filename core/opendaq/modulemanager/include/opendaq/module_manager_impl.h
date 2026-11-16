@@ -71,6 +71,7 @@ public:
     ErrCode INTERFACE_FUNC completeDeviceCapabilities(IDevice* device) override;
     ErrCode INTERFACE_FUNC createDevices(IDict** devices, IDict* connectionArgs, IComponent* parent, IDict* errCodes = nullptr, IDict* errorInfos = nullptr) override;
     ErrCode INTERFACE_FUNC getDiscoveryInfo(IDeviceInfo** deviceInfo, IString* manufacturer, IString* serialNumber) override;
+    ErrCode INTERFACE_FUNC createAddDeviceConfig(IAddDeviceConfig** config, IDeviceInfo* info, IString* prefix = nullptr) override;
 
 private:
     ErrCode createDeviceInternal(IDevice** device, IString* connectionString, IComponent* parent, IPropertyObject* config);
@@ -90,6 +91,8 @@ private:
     StringPtr getConnectionStringWithType(const ServerCapabilityPtr& capability, const StringPtr& primaryAddressType) const;
     StringPtr resolveSmartConnectionString(const StringPtr& inputConnectionString,
                                            const DeviceInfoPtr& discoveredDeviceInfo,
+                                           const DictPtr<IString, IDeviceType>& deviceTypes,
+                                           bool asChild,
                                            const PropertyObjectPtr& generalConfig,
                                            const LoggerComponentPtr& loggerComponent) const;
     DeviceTypePtr getDeviceTypeFromConnectionString(const StringPtr& connectionString, const ModulePtr& module) const;
@@ -97,8 +100,13 @@ private:
     StringPtr applySelectedTransportPort(const StringPtr& connectionString,
                                          const ServerCapabilityPtr& discoveredCapability,
                                          const PropertyObjectPtr& deviceTypeConfig) const;
+    DeviceTypePtr chooseDeviceType(const DeviceInfoPtr& info,
+                                   const StringPtr& prefix,
+                                   const DictPtr<IString, IDeviceType>& deviceTypes) const;
 
-    static uint16_t GetServerCapabilityPriority(const ServerCapabilityPtr& cap);
+    static ServerCapabilityPtr SelectServerCapability(const ListPtr<IServerCapability>& capabilities,
+                                                      const DictPtr<IString, IDeviceType>& deviceTypes,
+                                                      bool asChild);
 
     static void ReplaceSubDeviceOldProtocolIds(const DevicePtr& device);
     static ServerCapabilityPtr ReplaceOldProtocolIds(const ServerCapabilityPtr& cap);

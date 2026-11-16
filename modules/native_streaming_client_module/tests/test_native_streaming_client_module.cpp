@@ -14,8 +14,7 @@
 #include <opendaq/module_manager_utils_ptr.h>
 #include <opendaq/streaming_type_ptr.h>
 #include <opendaq/address_info_factory.h>
-#include <opendaq/add_device_config_ptr.h>
-#include <opendaq/add_streaming_config_ptr.h>
+#include <opendaq/add_component_config_ptr.h>
 #include <native_streaming_protocol/native_streaming_constants.h>
 
 #include <tuple>
@@ -286,7 +285,7 @@ TEST_F(NativeStreamingClientModuleTest, DefaultConfigsCarryTransportSelection)
     for (const auto& [id, deviceType] : module.getAvailableDeviceTypes())
     {
         const PropertyObjectPtr config = deviceType.createDefaultConfig();
-        const AddDeviceConfigPtr addDeviceConfig = config.getPropertyValue("AddDeviceConfig");
+        const AddComponentConfigPtr addDeviceConfig = config.getPropertyValue("AddDeviceConfig");
         ASSERT_EQ(addDeviceConfig.getAvailableTransports(), ExpectedTransportNames()) << id;
         ASSERT_EQ(addDeviceConfig.getTransport(), "plain") << id;
     }
@@ -294,7 +293,7 @@ TEST_F(NativeStreamingClientModuleTest, DefaultConfigsCarryTransportSelection)
     for (const auto& [id, streamingType] : module.getAvailableStreamingTypes())
     {
         const PropertyObjectPtr config = streamingType.createDefaultConfig();
-        const AddStreamingConfigPtr addStreamingConfig = config.getPropertyValue("AddStreamingConfig");
+        const AddComponentConfigPtr addStreamingConfig = config.getPropertyValue("AddStreamingConfig");
         ASSERT_EQ(addStreamingConfig.getAvailableTransports(), ExpectedTransportNames()) << id;
         ASSERT_EQ(addStreamingConfig.getTransport(), "plain") << id;
     }

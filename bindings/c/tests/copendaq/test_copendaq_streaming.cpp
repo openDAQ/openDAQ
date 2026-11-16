@@ -37,7 +37,7 @@ TEST_F(COpendaqStreamingTest, SubscriptionEventArgs)
     daqBaseObject_releaseRef(streamingConnectionString);
 }
 
-TEST_F(COpendaqStreamingTest, AddStreamingConfig)
+TEST_F(COpendaqStreamingTest, TransportConfig)
 {
     daqList* transports = nullptr;
     daqList_createList(&transports);
@@ -48,13 +48,10 @@ TEST_F(COpendaqStreamingTest, AddStreamingConfig)
     daqString_createString(&tls, "tls");
     daqList_pushBack(transports, tls);
 
-    daqAddStreamingConfig* config = nullptr;
-    ASSERT_EQ(daqAddStreamingConfig_createAddStreamingConfig(&config, transports), DAQ_SUCCESS);
+    daqAddComponentConfig* config = nullptr;
+    ASSERT_EQ(daqAddComponentConfig_createAddComponentConfig(&config, transports), DAQ_SUCCESS);
     ASSERT_NE(config, nullptr);
-
-    daqAddComponentConfig* componentConfig = nullptr;
-    daqBaseObject_borrowInterface(config, DAQ_ADD_COMPONENT_CONFIG_INTF_ID, (daqBaseObject**) &componentConfig);
-    ASSERT_NE(componentConfig, nullptr);
+    daqAddComponentConfig* componentConfig = config;
 
     ASSERT_EQ(daqAddComponentConfig_setTransport(componentConfig, tls), DAQ_SUCCESS);
 

@@ -206,3 +206,23 @@ daqErrCode daqDevice_getSynchronization(daqDevice* self, daqSynchronization** sy
 {
     return reinterpret_cast<daq::IDevice*>(self)->getSynchronization(reinterpret_cast<daq::ISynchronization**>(sync));
 }
+
+daqErrCode daqDevice_getAvailableStreamingTypes(daqDevice* self, daqDict** streamingTypes)
+{
+    return reinterpret_cast<daq::IDevice*>(self)->getAvailableStreamingTypes(reinterpret_cast<daq::IDict**>(streamingTypes));
+}
+
+daqErrCode daqDevice_createAddDeviceConfig(daqDevice* self, daqAddDeviceConfig** config, daqDeviceInfo* info, daqString* prefix)
+{
+    return reinterpret_cast<daq::IDevice*>(self)->createAddDeviceConfig(reinterpret_cast<daq::IAddDeviceConfig**>(config), reinterpret_cast<daq::IDeviceInfo*>(info), reinterpret_cast<daq::IString*>(prefix));
+}
+
+daqErrCode daqDevice_createAddStreamingConfig(daqDevice* self, daqAddStreamingConfig** config, daqString* connectionString)
+{
+    return reinterpret_cast<daq::IDevice*>(self)->createAddStreamingConfig(reinterpret_cast<daq::IAddStreamingConfig**>(config), reinterpret_cast<daq::IString*>(connectionString));
+}
+
+daqErrCode daqDevice_getAddDeviceConfig(daqDevice* self, daqAddDeviceConfig** config)
+{
+    return reinterpret_cast<daq::IDevice*>(self)->getAddDeviceConfig(reinterpret_cast<daq::IAddDeviceConfig**>(config));
+}

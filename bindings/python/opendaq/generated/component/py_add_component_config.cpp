@@ -38,6 +38,10 @@ PyDaqIntf<daq::IAddComponentConfig, daq::IPropertyObject> declareIAddComponentCo
 
 void defineIAddComponentConfig(pybind11::module_ m, PyDaqIntf<daq::IAddComponentConfig, daq::IPropertyObject> cls)
 {
+    m.def("AddComponentConfig", [](std::variant<daq::IList*, py::list, daq::IEvalValue*>& transports){
+        return daq::AddComponentConfig_Create(getVariantValue<daq::IList*>(transports));
+    }, py::arg("transports"));
+
     cls.doc() = "Selects the transport a component is connected over when it is added.";
 
     cls.def_property_readonly("available_transports",

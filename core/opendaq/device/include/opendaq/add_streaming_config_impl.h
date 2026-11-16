@@ -14,23 +14,43 @@
  * limitations under the License.
  */
 #pragma once
-#include <opendaq/add_streaming_config.h>
-#include <opendaq/add_component_config_impl.h>
+#include <opendaq/add_streaming_config_ptr.h>
+#include <opendaq/streaming_type_ptr.h>
+#include <coreobjects/property_object_impl.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
-class AddStreamingConfigImpl : public GenericAddComponentConfigImpl<IAddStreamingConfig>
+class AddStreamingConfigImpl : public GenericPropertyObjectImpl<IPropertyObject, IAddStreamingConfig>
 {
-public:
-    using Super = GenericAddComponentConfigImpl<IAddStreamingConfig>;
+    class Partial
+    {
+        Partial()
+        {
+        }
+        friend class AddStreamingConfigImpl;
+    };
 
-    explicit AddStreamingConfigImpl(const ListPtr<IString>& transports = nullptr);
+public:
+    using Super = GenericPropertyObjectImpl<IPropertyObject, IAddStreamingConfig>;
+
+    explicit AddStreamingConfigImpl(const StreamingTypePtr& streamingType);
+    AddStreamingConfigImpl(const StreamingTypePtr& streamingType, Partial);
+
+    ErrCode INTERFACE_FUNC getStreamingType(IStreamingType** type) override;
+    ErrCode INTERFACE_FUNC getTypeConfig(IPropertyObject** config) override;
 
     ErrCode INTERFACE_FUNC clone(IPropertyObject** cloned) override;
 
     ErrCode INTERFACE_FUNC getSerializeId(ConstCharPtr* id) const override;
+
     static ConstCharPtr SerializeId();
     static ErrCode Deserialize(ISerializedObject* serialized, IBaseObject* context, IFunction* factoryCallback, IBaseObject** obj);
+
+protected:
+    ErrCode serializeCustomValues(ISerializer* serializer, bool forUpdate) override;
+
+private:
+    StreamingTypePtr streamingType;
 };
 
 END_NAMESPACE_OPENDAQ

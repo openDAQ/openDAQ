@@ -1,7 +1,7 @@
 #include <opendaq/device_type_impl.h>
 #include <opendaq/device_type_factory.h>
 #include <opendaq/authentication_method_factory.h>
-#include <opendaq/add_device_config_factory.h>
+#include <opendaq/transport_config_factory.h>
 #include <coreobjects/property_factory.h>
 #include <coretypes/validation.h>
 
@@ -64,7 +64,7 @@ ErrCode DeviceTypeImpl::createDefaultConfig(IPropertyObject** defaultConfig)
     {
         // Temporary bridge: carries the transport selection until the add-device config replaces this plain config
         if (transports.getCount() > 0 && !config.hasProperty("AddDeviceConfig"))
-            config.addProperty(ObjectProperty("AddDeviceConfig", AddDeviceConfig(transports.getKeyList())));
+            config.addProperty(ObjectProperty("AddDeviceConfig", AddComponentConfig(transports.getKeyList())));
     });
     OPENDAQ_RETURN_IF_FAILED(errCode);
 

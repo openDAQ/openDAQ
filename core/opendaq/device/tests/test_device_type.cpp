@@ -3,7 +3,7 @@
 #include <testutils/testutils.h>
 #include <coretypes/json_serializer_factory.h>
 #include <coretypes/json_deserializer_factory.h>
-#include <opendaq/add_device_config_factory.h>
+#include <opendaq/transport_config_factory.h>
 #include <coreobjects/property_object_factory.h>
 #include <coreobjects/property_factory.h>
 #include <coreobjects/property_object_internal_ptr.h>
@@ -113,7 +113,7 @@ TEST_F(DeviceTypeTest, SerializeWithoutAvailableTransports)
 
 TEST_F(DeviceTypeTest, AddDeviceConfigSelectsFirstTransport)
 {
-    const AddDeviceConfigPtr config = AddDeviceConfig(List<IString>("tls", "plain"));
+    const AddComponentConfigPtr config = AddComponentConfig(List<IString>("tls", "plain"));
 
     ASSERT_EQ(config.getAvailableTransports(), List<IString>("tls", "plain"));
     ASSERT_EQ(config.getTransport(), "tls");
@@ -122,7 +122,7 @@ TEST_F(DeviceTypeTest, AddDeviceConfigSelectsFirstTransport)
 
 TEST_F(DeviceTypeTest, AddDeviceConfigSetTransport)
 {
-    const AddDeviceConfigPtr config = AddDeviceConfig(List<IString>("tls", "plain"));
+    const AddComponentConfigPtr config = AddComponentConfig(List<IString>("tls", "plain"));
 
     config.setTransport("plain");
     ASSERT_EQ(config.getTransport(), "plain");
@@ -135,7 +135,7 @@ TEST_F(DeviceTypeTest, AddDeviceConfigSetTransport)
 
 TEST_F(DeviceTypeTest, AddDeviceConfigSetUnknownTransport)
 {
-    const AddDeviceConfigPtr config = AddDeviceConfig(List<IString>("tls", "plain"));
+    const AddComponentConfigPtr config = AddComponentConfig(List<IString>("tls", "plain"));
 
     ASSERT_THROW(config.setTransport("wss"), NotFoundException);
     ASSERT_EQ(config.getTransport(), "tls");
@@ -143,7 +143,7 @@ TEST_F(DeviceTypeTest, AddDeviceConfigSetUnknownTransport)
 
 TEST_F(DeviceTypeTest, AddDeviceConfigWithoutTransports)
 {
-    const AddDeviceConfigPtr config = AddDeviceConfig();
+    const AddComponentConfigPtr config = AddComponentConfig();
 
     ASSERT_EQ(config.getAvailableTransports().getCount(), 0u);
     ASSERT_FALSE(config.getTransport().assigned());
@@ -153,11 +153,11 @@ TEST_F(DeviceTypeTest, AddDeviceConfigWithoutTransports)
 
 TEST_F(DeviceTypeTest, AddDeviceConfigClone)
 {
-    const AddDeviceConfigPtr config = AddDeviceConfig(List<IString>("tls", "plain"));
+    const AddComponentConfigPtr config = AddComponentConfig(List<IString>("tls", "plain"));
     config.setTransport("plain");
 
     const PropertyObjectPtr cloned = config.asPtr<IPropertyObjectInternal>().clone();
-    const auto clonedConfig = cloned.asPtrOrNull<IAddDeviceConfig>();
+    const auto clonedConfig = cloned.asPtrOrNull<IAddComponentConfig>();
     ASSERT_TRUE(clonedConfig.assigned());
     ASSERT_EQ(clonedConfig.getTransport(), "plain");
     ASSERT_EQ(clonedConfig.getAvailableTransports(), List<IString>("tls", "plain"));
@@ -165,16 +165,16 @@ TEST_F(DeviceTypeTest, AddDeviceConfigClone)
 
 TEST_F(DeviceTypeTest, AddDeviceConfigSerializeDeserialize)
 {
-    const AddDeviceConfigPtr config = AddDeviceConfig(List<IString>("tls", "plain"));
+    const AddComponentConfigPtr config = AddComponentConfig(List<IString>("tls", "plain"));
     config.setTransport("plain");
 
     const auto serializer = JsonSerializer();
     config.serialize(serializer);
     const auto serialized = serializer.getOutput();
-    ASSERT_NE(std::string(serialized).find(R"("AddDeviceConfig")"), std::string::npos);
+    ASSERT_NE(std::string(serialized).find(R"("AddComponentConfig")"), std::string::npos);
 
     const BaseObjectPtr deserialized = JsonDeserializer().deserialize(serialized, nullptr, nullptr);
-    const auto newConfig = deserialized.asPtrOrNull<IAddDeviceConfig>();
+    const auto newConfig = deserialized.asPtrOrNull<IAddComponentConfig>();
     ASSERT_TRUE(newConfig.assigned());
     ASSERT_EQ(newConfig.getAvailableTransports(), List<IString>("tls", "plain"));
     ASSERT_EQ(newConfig.getTransport(), "plain");
@@ -195,14 +195,14 @@ TEST_F(DeviceTypeTest, DefaultConfigCarriesAddDeviceConfig)
     const PropertyObjectPtr config = type.createDefaultConfig();
     ASSERT_EQ(config.getPropertyValue("Port"), 7420);
 
-    const auto addDeviceConfig = config.getPropertyValue("AddDeviceConfig").asPtrOrNull<IAddDeviceConfig>();
+    const auto addDeviceConfig = config.getPropertyValue("AddDeviceConfig").asPtrOrNull<IAddComponentConfig>();
     ASSERT_TRUE(addDeviceConfig.assigned());
     ASSERT_EQ(addDeviceConfig.getAvailableTransports(), List<IString>("tls", "plain"));
     ASSERT_EQ(addDeviceConfig.getTransport(), "tls");
 
     // Every default config gets its own object
     addDeviceConfig.setTransport("plain");
-    const AddDeviceConfigPtr freshConfig = type.createDefaultConfig().getPropertyValue("AddDeviceConfig");
+    const AddComponentConfigPtr freshConfig = type.createDefaultConfig().getPropertyValue("AddDeviceConfig");
     ASSERT_EQ(freshConfig.getTransport(), "tls");
 
     // The module's own default config is left as it was
@@ -231,12 +231,12 @@ TEST_F(DeviceTypeTest, NestedAddDeviceConfigKeepsInterface)
     deviceConfigs.addProperty(ObjectProperty("id", type.createDefaultConfig()));
 
     const PropertyObjectPtr typeConfig = deviceConfigs.getPropertyValue("id");
-    AddDeviceConfigPtr addDeviceConfig = typeConfig.getPropertyValue("AddDeviceConfig");
+    AddComponentConfigPtr addDeviceConfig = typeConfig.getPropertyValue("AddDeviceConfig");
     addDeviceConfig.setTransport("plain");
 
     const PropertyObjectPtr cloned = deviceConfigs.asPtr<IPropertyObjectInternal>().clone();
     const PropertyObjectPtr clonedTypeConfig = cloned.getPropertyValue("id");
-    const auto clonedAddDeviceConfig = clonedTypeConfig.getPropertyValue("AddDeviceConfig").asPtrOrNull<IAddDeviceConfig>();
+    const auto clonedAddDeviceConfig = clonedTypeConfig.getPropertyValue("AddDeviceConfig").asPtrOrNull<IAddComponentConfig>();
     ASSERT_TRUE(clonedAddDeviceConfig.assigned());
     ASSERT_EQ(clonedAddDeviceConfig.getTransport(), "plain");
 }
@@ -250,14 +250,14 @@ TEST_F(DeviceTypeTest, DefaultConfigSerializeDeserialize)
                                    .build();
 
     const PropertyObjectPtr config = type.createDefaultConfig();
-    AddDeviceConfigPtr addDeviceConfig = config.getPropertyValue("AddDeviceConfig");
+    AddComponentConfigPtr addDeviceConfig = config.getPropertyValue("AddDeviceConfig");
     addDeviceConfig.setTransport("plain");
 
     const auto serializer = JsonSerializer();
     config.serialize(serializer);
 
     const PropertyObjectPtr newConfig = JsonDeserializer().deserialize(serializer.getOutput(), nullptr, nullptr);
-    const auto newAddDeviceConfig = newConfig.getPropertyValue("AddDeviceConfig").asPtrOrNull<IAddDeviceConfig>();
+    const auto newAddDeviceConfig = newConfig.getPropertyValue("AddDeviceConfig").asPtrOrNull<IAddComponentConfig>();
     ASSERT_TRUE(newAddDeviceConfig.assigned());
     ASSERT_EQ(newAddDeviceConfig.getAvailableTransports(), List<IString>("tls", "plain"));
     ASSERT_EQ(newAddDeviceConfig.getTransport(), "plain");

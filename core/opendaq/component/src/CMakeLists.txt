@@ -138,6 +138,8 @@ function(create_component_source_groups_${BASE_NAME})
         ${SDK_SRC_DIR}/component_type_impl.cpp
         ${SDK_HEADERS_DIR}/add_component_config.h
         ${SDK_HEADERS_DIR}/add_component_config_impl.h
+        ${SDK_HEADERS_DIR}/transport_config_factory.h
+        ${SDK_SRC_DIR}/add_component_config_impl.cpp
     )
 endfunction()
 
@@ -167,6 +169,7 @@ set(SRC_PublicHeaders_Component
     component_update_context_impl.h
     update_parameters.h
     update_parameters_factory.h
+    transport_config_factory.h
     component_type_impl.h
     PARENT_SCOPE
 )
@@ -191,5 +194,6 @@ set(SRC_Cpp_Component
     component_status_container_impl.cpp
     component_holder_impl.cpp
     update_parameters_impl.cpp
+    add_component_config_impl.cpp
     PARENT_SCOPE
 )

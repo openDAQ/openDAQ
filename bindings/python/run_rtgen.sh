@@ -109,6 +109,9 @@ run_rtgen opendaq opendaq/device          opendaq opendaq/generated/device      
 run_rtgen opendaq opendaq/device          opendaq opendaq/generated/device           network_interface
 run_rtgen opendaq opendaq/device          opendaq opendaq/generated/device           server_capability
 run_rtgen opendaq opendaq/device          opendaq opendaq/generated/device           device_type
+run_rtgen opendaq opendaq/device          opendaq opendaq/generated/device           add_device_config
+run_rtgen opendaq opendaq/device          opendaq opendaq/generated/device           add_streaming_options
+run_rtgen opendaq opendaq/device          opendaq opendaq/generated/device           add_streaming_config
 run_rtgen opendaq opendaq/device          opendaq opendaq/generated/device           address_info
 run_rtgen opendaq opendaq/device          opendaq opendaq/generated/device           address_info_builder
 # manually added WA to return unassigned path as None
@@ -197,6 +200,4 @@ run_rtgen opendaq opendaq/security        opendaq opendaq/generated/security    
 run_rtgen opendaq opendaq/security        opendaq opendaq/generated/security         credential_request_builder
 run_rtgen opendaq opendaq/security        opendaq opendaq/generated/security         credential_payload
 run_rtgen opendaq opendaq/component       opendaq opendaq/generated/component        add_component_config
-run_rtgen opendaq opendaq/device          opendaq opendaq/generated/device           add_device_config
-run_rtgen opendaq opendaq/streaming       opendaq opendaq/generated/streaming        add_streaming_config
 

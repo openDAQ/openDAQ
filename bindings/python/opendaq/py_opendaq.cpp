@@ -49,6 +49,9 @@ void wrapDaqComponentOpenDaq(pybind11::module_ m)
     auto classIServerCapability = declareIServerCapability(m);
     auto classIConnectedClientInfo = declareIConnectedClientInfo(m);
     auto classIDeviceType = declareIDeviceType(m);
+    auto classIAddDeviceConfig = declareIAddDeviceConfig(m);
+    auto classIAddStreamingOptions = declareIAddStreamingOptions(m);
+    auto classIAddStreamingConfig = declareIAddStreamingConfig(m);
     auto classIFunctionBlock = declareIFunctionBlock(m);
     auto classIChannel = declareIChannel(m);
     auto classIFunctionBlockType = declareIFunctionBlockType(m);
@@ -144,8 +147,6 @@ void wrapDaqComponentOpenDaq(pybind11::module_ m)
     auto classILoginParameters = declareILoginParameters(m);
     auto classILoginParametersBuilder = declareILoginParametersBuilder(m);
     auto classIAddComponentConfig = declareIAddComponentConfig(m);
-    auto classIAddDeviceConfig = declareIAddDeviceConfig(m);
-    auto classIAddStreamingConfig = declareIAddStreamingConfig(m);
 
     defineIModuleInfo(m, classIModuleInfo);
     defineIComponentType(m, classIComponentType);
@@ -168,6 +169,9 @@ void wrapDaqComponentOpenDaq(pybind11::module_ m)
     defineIServerCapability(m, classIServerCapability);
     defineIConnectedClientInfo(m, classIConnectedClientInfo);
     defineIDeviceType(m, classIDeviceType);
+    defineIAddDeviceConfig(m, classIAddDeviceConfig);
+    defineIAddStreamingOptions(m, classIAddStreamingOptions);
+    defineIAddStreamingConfig(m, classIAddStreamingConfig);
     defineIFunctionBlock(m, classIFunctionBlock);
     defineIChannel(m, classIChannel);
     defineIFunctionBlockType(m, classIFunctionBlockType);
@@ -263,8 +267,6 @@ void wrapDaqComponentOpenDaq(pybind11::module_ m)
     defineILoginParameters(m, classILoginParameters);
     defineILoginParametersBuilder(m, classILoginParametersBuilder);
     defineIAddComponentConfig(m, classIAddComponentConfig);
-    defineIAddDeviceConfig(m, classIAddDeviceConfig);
-    defineIAddStreamingConfig(m, classIAddStreamingConfig);
 
     defineComponentSearchFilterFactories(m);
 

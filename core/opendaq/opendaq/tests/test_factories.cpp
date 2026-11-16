@@ -8,7 +8,7 @@
 #include <coreobjects/property_object_factory.h>
 #include <coreobjects/property_factory.h>
 #include <opendaq/streaming_type_factory.h>
-#include <opendaq/add_streaming_config_factory.h>
+#include <opendaq/transport_config_factory.h>
 #include <coreobjects/property_object_internal_ptr.h>
 #include <coretypes/json_serializer_factory.h>
 #include <coretypes/json_deserializer_factory.h>
@@ -420,9 +420,9 @@ TEST_F(OpenDaqFactoriesTest, FBTypeDoesNotSupportTransports)
     ASSERT_THROW(fbType.getAvailableTransports(), NotImplementedException);
 }
 
-TEST_F(OpenDaqFactoriesTest, AddStreamingConfig)
+TEST_F(OpenDaqFactoriesTest, TransportConfig)
 {
-    const AddStreamingConfigPtr config = AddStreamingConfig(List<IString>("wss", "plain"));
+    const AddComponentConfigPtr config = AddComponentConfig(List<IString>("wss", "plain"));
     ASSERT_EQ(config.getAvailableTransports(), List<IString>("wss", "plain"));
     ASSERT_EQ(config.getTransport(), "wss");
 
@@ -431,12 +431,12 @@ TEST_F(OpenDaqFactoriesTest, AddStreamingConfig)
     ASSERT_THROW(config.setTransport("tls"), NotFoundException);
 
     const PropertyObjectPtr cloned = config.asPtr<IPropertyObjectInternal>().clone();
-    ASSERT_EQ(cloned.asPtr<IAddStreamingConfig>().getTransport(), "plain");
+    ASSERT_EQ(cloned.asPtr<IAddComponentConfig>().getTransport(), "plain");
 
     const auto serializer = JsonSerializer();
     config.serialize(serializer);
     const BaseObjectPtr deserialized = JsonDeserializer().deserialize(serializer.getOutput(), nullptr, nullptr);
-    const auto newConfig = deserialized.asPtrOrNull<IAddStreamingConfig>();
+    const auto newConfig = deserialized.asPtrOrNull<IAddComponentConfig>();
     ASSERT_TRUE(newConfig.assigned());
     ASSERT_EQ(newConfig.getAvailableTransports(), List<IString>("wss", "plain"));
     ASSERT_EQ(newConfig.getTransport(), "plain");
@@ -457,7 +457,7 @@ TEST_F(OpenDaqFactoriesTest, StreamingTypeDefaultConfigCarriesAddStreamingConfig
     const PropertyObjectPtr config = type.createDefaultConfig();
     ASSERT_EQ(config.getPropertyValue("Port"), 7420);
 
-    const auto addStreamingConfig = config.getPropertyValue("AddStreamingConfig").asPtrOrNull<IAddStreamingConfig>();
+    const auto addStreamingConfig = config.getPropertyValue("AddStreamingConfig").asPtrOrNull<IAddComponentConfig>();
     ASSERT_TRUE(addStreamingConfig.assigned());
     ASSERT_EQ(addStreamingConfig.getAvailableTransports(), List<IString>("plain", "tls"));
     ASSERT_EQ(addStreamingConfig.getTransport(), "plain");
@@ -491,7 +491,7 @@ TEST_F(OpenDaqFactoriesTest, LinkedStreamingTypeDefaultConfigCarriesOwnAddStream
     ASSERT_EQ(config.getPropertyValue("Port"), 7420);
     ASSERT_FALSE(config.hasProperty("AddDeviceConfig"));
 
-    const auto addStreamingConfig = config.getPropertyValue("AddStreamingConfig").asPtrOrNull<IAddStreamingConfig>();
+    const auto addStreamingConfig = config.getPropertyValue("AddStreamingConfig").asPtrOrNull<IAddComponentConfig>();
     ASSERT_TRUE(addStreamingConfig.assigned());
     ASSERT_EQ(addStreamingConfig.getAvailableTransports(), List<IString>("plain", "tls"));
     ASSERT_EQ(addStreamingConfig.getTransport(), "plain");

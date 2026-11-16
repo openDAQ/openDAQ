@@ -84,9 +84,9 @@ public:
 
     ErrCode INTERFACE_FUNC getAuthenticationMethods(IList** methods) override;
     ErrCode INTERFACE_FUNC addAuthenticationMethod(IString* methodId) override;
-    ErrCode INTERFACE_FUNC getTransportOptions(IList** transportOptions) override;
-    ErrCode INTERFACE_FUNC setTransportOptions(IList* transportOptions) override;
-    ErrCode INTERFACE_FUNC addTransportOption(ITransportOption* transportOption) override;
+    ErrCode INTERFACE_FUNC getAvailableTransportOptions(IList** transportOptions) override;
+    ErrCode INTERFACE_FUNC setAvailableTransportOptions(IList* transportOptions) override;
+    ErrCode INTERFACE_FUNC addAvailableTransportOption(ITransportOption* transportOption) override;
 
     ErrCode INTERFACE_FUNC getInterfaceIds(SizeT* idCount, IntfID** ids) override;
 
@@ -660,7 +660,7 @@ inline ListPtr<ITransportOption> ServerCapabilityConfigImpl::ValidatedTransportO
     return options;
 }
 
-inline ErrCode ServerCapabilityConfigImpl::getTransportOptions(IList** transportOptions)
+inline ErrCode ServerCapabilityConfigImpl::getAvailableTransportOptions(IList** transportOptions)
 {
     OPENDAQ_PARAM_NOT_NULL(transportOptions);
 
@@ -671,7 +671,7 @@ inline ErrCode ServerCapabilityConfigImpl::getTransportOptions(IList** transport
     });
 }
 
-inline ErrCode ServerCapabilityConfigImpl::setTransportOptions(IList* transportOptions)
+inline ErrCode ServerCapabilityConfigImpl::setAvailableTransportOptions(IList* transportOptions)
 {
     OPENDAQ_PARAM_NOT_NULL(transportOptions);
 
@@ -688,7 +688,7 @@ inline ErrCode ServerCapabilityConfigImpl::setTransportOptions(IList* transportO
     });
 }
 
-inline ErrCode ServerCapabilityConfigImpl::addTransportOption(ITransportOption* transportOption)
+inline ErrCode ServerCapabilityConfigImpl::addAvailableTransportOption(ITransportOption* transportOption)
 {
     OPENDAQ_PARAM_NOT_NULL(transportOption);
 

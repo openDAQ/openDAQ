@@ -61,7 +61,7 @@ public:
     ErrCode INTERFACE_FUNC createDefaultConfig(IPropertyObject** defaultConfig) override;
     ErrCode INTERFACE_FUNC getModuleInfo(IModuleInfo** moduleInfo) override;
     ErrCode INTERFACE_FUNC createAuthenticationConfig(IAuthenticationConfig** config) override;
-    ErrCode INTERFACE_FUNC getTransportOptions(IList** transportOptions) override;
+    ErrCode INTERFACE_FUNC getAvailableTransportOptions(IList** transportOptions) override;
 
     // IComponentTypePrivate
     ErrCode INTERFACE_FUNC setModuleInfo(IModuleInfo* info) override;
@@ -285,7 +285,7 @@ inline ErrCode INTERFACE_FUNC GenericComponentTypeImpl<Intf, Interfaces...>::get
 }
 
 template <typename Intf, typename... Interfaces>
-ErrCode GenericComponentTypeImpl<Intf, Interfaces...>::getTransportOptions(IList** transportOptions)
+ErrCode GenericComponentTypeImpl<Intf, Interfaces...>::getAvailableTransportOptions(IList** transportOptions)
 {
     OPENDAQ_PARAM_NOT_NULL(transportOptions);
 

@@ -232,7 +232,7 @@ ErrCode ComponentTypeBuilderImpl::getLinkedDeviceType(IDeviceType** deviceType)
     return OPENDAQ_SUCCESS;
 }
 
-ErrCode ComponentTypeBuilderImpl::setTransportOptions(IList* transportOptions)
+ErrCode ComponentTypeBuilderImpl::setAvailableTransportOptions(IList* transportOptions)
 {
     OPENDAQ_PARAM_NOT_NULL(transportOptions);
 
@@ -257,7 +257,7 @@ ErrCode ComponentTypeBuilderImpl::setTransportOptions(IList* transportOptions)
     });
 }
 
-ErrCode ComponentTypeBuilderImpl::getTransportOptions(IList** transportOptions)
+ErrCode ComponentTypeBuilderImpl::getAvailableTransportOptions(IList** transportOptions)
 {
     OPENDAQ_PARAM_NOT_NULL(transportOptions);
 

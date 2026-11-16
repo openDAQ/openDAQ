@@ -45,7 +45,7 @@ public:
     ErrCode INTERFACE_FUNC getStreamingType(IStreamingType** type) override;
     ErrCode INTERFACE_FUNC getTypeConfig(IPropertyObject** config) override;
     ErrCode INTERFACE_FUNC getAuthenticationConfig(IAuthenticationConfig** config) override;
-    ErrCode INTERFACE_FUNC getTransportOptions(IList** transportOptions) override;
+    ErrCode INTERFACE_FUNC getAvailableTransportOptions(IList** transportOptions) override;
     ErrCode INTERFACE_FUNC setTransportOption(IString* name) override;
     ErrCode INTERFACE_FUNC getSelectedTransportOption(ITransportOption** transportOption) override;
     ErrCode INTERFACE_FUNC setPort(IInteger* port) override;

@@ -32,7 +32,7 @@ DeviceTypeImpl::DeviceTypeImpl(const ComponentTypeBuilderPtr& builder)
                      builder.getConnectionStringPrefix(),
                      builder.getSupportedAuthenticationMethods(),
                      builder.getDeviceKind(),
-                     builder.getTransportOptions())
+                     builder.getAvailableTransportOptions())
 {
 }
 

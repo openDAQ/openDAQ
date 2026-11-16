@@ -41,7 +41,7 @@ ServerTypeImpl::ServerTypeImpl(const ComponentTypeBuilderPtr& builder)
                      builder.getDescription(),
                      builder.getDefaultConfig(),
                      builder.getServerKind(),
-                     builder.getTransportOptions())
+                     builder.getAvailableTransportOptions())
 {
 }
 

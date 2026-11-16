@@ -276,14 +276,14 @@ DECLARE_OPENDAQ_INTERFACE(IComponentTypeBuilder, IBaseObject)
      *
      * Replaces any previously set options.
      */
-    virtual ErrCode INTERFACE_FUNC setTransportOptions(IList* transportOptions) = 0;
+    virtual ErrCode INTERFACE_FUNC setAvailableTransportOptions(IList* transportOptions) = 0;
 
     // [templateType(transportOptions, ITransportOption)]
     /*!
      * @brief Gets the ways a component of the built type can be connected to, with the default port of each.
      * @param[out] transportOptions The transport options, the default first. Empty if none were set.
      */
-    virtual ErrCode INTERFACE_FUNC getTransportOptions(IList** transportOptions) = 0;
+    virtual ErrCode INTERFACE_FUNC getAvailableTransportOptions(IList** transportOptions) = 0;
 };
 /*!@}*/
 

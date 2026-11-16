@@ -105,7 +105,7 @@ DECLARE_OPENDAQ_INTERFACE(IServerCapabilityConfig, IServerCapability)
      * @brief Sets the port of the default transport.
      * @param port The port of the device
      *
-     * @deprecated Use setTransportOptions instead.
+     * @deprecated Use setAvailableTransportOptions instead.
      * When options are set, the first (default) one is replaced by a copy at the new port, keeping the order.
      * Without options, only the port is stored.
      */
@@ -150,7 +150,7 @@ DECLARE_OPENDAQ_INTERFACE(IServerCapabilityConfig, IServerCapability)
      * Replaces any previously set options. The first one becomes the default, and its port is the one returned by
      * getPort; that port is also stored as the port read by older clients. An empty list leaves that port unchanged.
      */
-    virtual ErrCode INTERFACE_FUNC setTransportOptions(IList* transportOptions) = 0;
+    virtual ErrCode INTERFACE_FUNC setAvailableTransportOptions(IList* transportOptions) = 0;
 
     // [returnSelf]
     /*!
@@ -160,7 +160,7 @@ DECLARE_OPENDAQ_INTERFACE(IServerCapabilityConfig, IServerCapability)
      *
      * The first option added becomes the default, and sets the port read by older clients.
      */
-    virtual ErrCode INTERFACE_FUNC addTransportOption(ITransportOption* transportOption) = 0;
+    virtual ErrCode INTERFACE_FUNC addAvailableTransportOption(ITransportOption* transportOption) = 0;
 };
 
 OPENDAQ_DECLARE_CLASS_FACTORY_WITH_INTERFACE(

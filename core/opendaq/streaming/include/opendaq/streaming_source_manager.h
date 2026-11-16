@@ -549,7 +549,7 @@ inline void StreamingSourceManager::attachStreamingToDevice(const MirroredDevice
         //   streamingConfig = the streaming config of the add-device config the device was added with
         //   selected = streamingConfig.getSelectedTransportOption();
         //              for a Streaming type linked to the Device type, the option the device is added over
-        //   option = the option of cap.getTransportOptions() named selected.getName()
+        //   option = the option of cap.getAvailableTransportOptions() named selected.getName()
         //   if there is no such option: skip the capability
         //   port = streamingConfig.getPort() != selected.getPort() ? streamingConfig.getPort() : option.getPort()
         //   for each connection string: connectionString = ReplaceConnectionStringPort(connectionString, port)

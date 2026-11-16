@@ -65,8 +65,8 @@ public:
     ErrCode INTERFACE_FUNC setLinkedDeviceType(IDeviceType* deviceType) override;
     ErrCode INTERFACE_FUNC getLinkedDeviceType(IDeviceType** deviceType) override;
 
-    ErrCode INTERFACE_FUNC setTransportOptions(IList* transportOptions) override;
-    ErrCode INTERFACE_FUNC getTransportOptions(IList** transportOptions) override;
+    ErrCode INTERFACE_FUNC setAvailableTransportOptions(IList* transportOptions) override;
+    ErrCode INTERFACE_FUNC getAvailableTransportOptions(IList** transportOptions) override;
 
 private:
     ComponentTypeSort sort;

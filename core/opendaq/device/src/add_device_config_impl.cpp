@@ -320,7 +320,7 @@ ErrCode AddDeviceConfigImpl::serializeCustomValues(ISerializer* serializer, bool
     });
 }
 
-ErrCode AddDeviceConfigImpl::getTransportOptions(IList** transportOptions)
+ErrCode AddDeviceConfigImpl::getAvailableTransportOptions(IList** transportOptions)
 {
     OPENDAQ_PARAM_NOT_NULL(transportOptions);
 

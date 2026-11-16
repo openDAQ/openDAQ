@@ -94,7 +94,7 @@ ErrCode AddStreamingConfigImpl::getSerializeId(ConstCharPtr* id) const
     return OPENDAQ_SUCCESS;
 }
 
-ErrCode AddStreamingConfigImpl::getTransportOptions(IList** transportOptions)
+ErrCode AddStreamingConfigImpl::getAvailableTransportOptions(IList** transportOptions)
 {
     OPENDAQ_PARAM_NOT_NULL(transportOptions);
 

@@ -108,7 +108,7 @@ DECLARE_OPENDAQ_INTERFACE(IComponentType, IBaseObject)
      * that lists options with a type config whose "TransportOption" property names the selected option and whose
      * "Port" property carries the port to connect to (see TransportOptionConfigProperty and PortConfigProperty).
      */
-    virtual ErrCode INTERFACE_FUNC getTransportOptions(IList** transportOptions) = 0;
+    virtual ErrCode INTERFACE_FUNC getAvailableTransportOptions(IList** transportOptions) = 0;
 };
 /*!@}*/
 

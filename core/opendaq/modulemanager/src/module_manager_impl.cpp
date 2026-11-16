@@ -134,7 +134,7 @@ inline ErrCode CheckSelectedTransportOption(const ComponentTypePtr& type, const 
         return OPENDAQ_SUCCESS;
 
     ListPtr<ITransportOption> options;
-    if (OPENDAQ_FAILED(type->getTransportOptions(&options)))
+    if (OPENDAQ_FAILED(type->getAvailableTransportOptions(&options)))
     {
         daqClearErrorInfo();
         return OPENDAQ_SUCCESS;
@@ -165,7 +165,7 @@ inline ListPtr<ITransportOption> AnnouncedTransportOptions(const ListPtr<IServer
         if (getServerCapabilityPrefix(capability) != prefix)
             continue;
 
-        if (const auto options = capability.getTransportOptions(); options.assigned() && options.getCount() > 0)
+        if (const auto options = capability.getAvailableTransportOptions(); options.assigned() && options.getCount() > 0)
             return options;
     }
 
@@ -1048,8 +1048,8 @@ ErrCode ModuleManagerImpl::createDevice(IDevice** device, IString* connectionStr
     //   port = config.getPort()
     //   if port == config.getSelectedTransportOption().getPort() and discovery reports the device:
     //       port = the port the discovered capability announces for the selected option
-    //   if target names a port that is neither `port` nor the port of an option config.getTransportOptions() lists
-    //   or the discovered capability announces:
+    //   if target names a port that is neither `port` nor the port of an option
+    //   config.getAvailableTransportOptions() lists or the discovered capability announces:
     //       fail with OPENDAQ_ERR_INVALIDPARAMETER
     //   typeConfig = a clone of config.getTypeConfig(), with
     //       typeConfig[TransportOptionConfigProperty] = config.getSelectedTransportOption().getName()
@@ -1569,7 +1569,7 @@ ErrCode ModuleManagerImpl::createAddDeviceConfig(IAddDeviceConfig** config, IDev
             deviceType, listedTypes, scanOnAdd, transportOptions, streamingTransportOptions);
 
         // A device info that announces no options names the port to connect to in its connection string, if any
-        if (!transportOptions.assigned() && addDeviceConfig.getTransportOptions().getCount() > 0)
+        if (!transportOptions.assigned() && addDeviceConfig.getAvailableTransportOptions().getCount() > 0)
         {
             if (const auto port = GetConnectionStringPort(infoPtr.getConnectionString()); port.has_value())
                 addDeviceConfig.setPort(Integer(port.value()));

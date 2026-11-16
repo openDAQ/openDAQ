@@ -135,7 +135,7 @@ inline void AddTransportSelectionProperties(const PropertyObjectPtr& config, con
 inline ListPtr<ITransportOption> ComponentTypeTransportOptions(IComponentType* type)
 {
     ListPtr<ITransportOption> options;
-    if (type == nullptr || OPENDAQ_FAILED(type->getTransportOptions(&options)))
+    if (type == nullptr || OPENDAQ_FAILED(type->getAvailableTransportOptions(&options)))
         daqClearErrorInfo();
 
     return options.assigned() ? options : List<ITransportOption>();

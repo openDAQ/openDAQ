@@ -25,7 +25,7 @@ StreamingTypeImpl::StreamingTypeImpl(const ComponentTypeBuilderPtr& builder)
                         builder.getDefaultConfig(),
                         builder.getSupportedAuthenticationMethods(),
                         builder.getLinkedDeviceType(),
-                        builder.getTransportOptions())
+                        builder.getAvailableTransportOptions())
 {
 }
 

@@ -56,7 +56,7 @@ public:
     ErrCode INTERFACE_FUNC setScanOnAdd(Bool scanOnAdd) override;
     ErrCode INTERFACE_FUNC getStreamingOptions(IAddStreamingOptions** options) override;
     ErrCode INTERFACE_FUNC getAuthenticationConfig(IAuthenticationConfig** config) override;
-    ErrCode INTERFACE_FUNC getTransportOptions(IList** transportOptions) override;
+    ErrCode INTERFACE_FUNC getAvailableTransportOptions(IList** transportOptions) override;
     ErrCode INTERFACE_FUNC setTransportOption(IString* name) override;
     ErrCode INTERFACE_FUNC getSelectedTransportOption(ITransportOption** transportOption) override;
     ErrCode INTERFACE_FUNC setPort(IInteger* port) override;

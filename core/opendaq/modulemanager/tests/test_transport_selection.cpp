@@ -50,8 +50,8 @@ public:
                                     .setName("dev")
                                     .setConnectionStringPrefix("dev")
                                     .setDeviceKind(DeviceKind::Mirrored)
-                                    .setTransportOptions(List<ITransportOption>(TransportOption("plain", 7420),
-                                                                                TransportOption("tls", 7421, TransportProtection::Encrypted)))
+                                    .setAvailableTransportOptions(List<ITransportOption>(
+                                        TransportOption("plain", 7420), TransportOption("tls", 7421, TransportProtection::Encrypted)))
                                     .build();
         deviceTypes.set("dev", deviceType);
 
@@ -59,8 +59,8 @@ public:
                                        .setId("str")
                                        .setName("str")
                                        .setConnectionStringPrefix("str")
-                                       .setTransportOptions(List<ITransportOption>(TransportOption("plain", 7430),
-                                                                                   TransportOption("tls", 7431, TransportProtection::Encrypted)))
+                                       .setAvailableTransportOptions(List<ITransportOption>(
+                                           TransportOption("plain", 7430), TransportOption("tls", 7431, TransportProtection::Encrypted)))
                                        .build();
         streamingTypes.set("str", streamingType);
     }
@@ -113,7 +113,7 @@ ServerCapabilityConfigPtr Capability(const StringPtr& id, ProtocolType type, con
     const Int port = options[0].getPort();
     auto capability =
         ServerCapability(id, id, type).setPrefix(prefix).setConnectionString(prefix.toStdString() + "://host:" + std::to_string(port));
-    capability.setTransportOptions(options);
+    capability.setAvailableTransportOptions(options);
     return capability;
 }
 
@@ -225,12 +225,12 @@ TEST_F(TransportSelectionTest, ConfigListsServedOptions)
 {
     const AddDeviceConfigPtr config = utils().createAddDeviceConfig(DiscoveredDeviceInfo());
 
-    ASSERT_EQ(TransportOptionNames(config.getTransportOptions()), List<IString>("plain", "tls"));
+    ASSERT_EQ(TransportOptionNames(config.getAvailableTransportOptions()), List<IString>("plain", "tls"));
     ASSERT_EQ(config.getPort(), 17420);
 
     const auto streamingConfig = config.getStreamingOptions().getStreamingConfig();
     ASSERT_EQ(streamingConfig.getStreamingType().getId(), "str");
-    ASSERT_EQ(TransportOptionNames(streamingConfig.getTransportOptions()), List<IString>("plain", "tls"));
+    ASSERT_EQ(TransportOptionNames(streamingConfig.getAvailableTransportOptions()), List<IString>("plain", "tls"));
     ASSERT_EQ(streamingConfig.getPort(), 17430);
 }
 
@@ -244,12 +244,12 @@ TEST_F(TransportSelectionTest, ServedOptionsSerialized)
     config.serialize(serializer);
     const AddDeviceConfigPtr deserialized = JsonDeserializer().deserialize(serializer.getOutput(), nullptr, nullptr);
 
-    ASSERT_EQ(TransportOptionNames(deserialized.getTransportOptions()), List<IString>("plain", "tls"));
+    ASSERT_EQ(TransportOptionNames(deserialized.getAvailableTransportOptions()), List<IString>("plain", "tls"));
     ASSERT_EQ(deserialized.getSelectedTransportOption().getName(), "tls");
     ASSERT_EQ(deserialized.getPort(), 17422);
 
     const auto streamingConfig = deserialized.getStreamingOptions().getAvailableStreamingConfigs().get("str");
-    ASSERT_EQ(TransportOptionNames(streamingConfig.getTransportOptions()), List<IString>("plain", "tls"));
+    ASSERT_EQ(TransportOptionNames(streamingConfig.getAvailableTransportOptions()), List<IString>("plain", "tls"));
     ASSERT_EQ(streamingConfig.getPort(), 17430);
 }
 
@@ -259,7 +259,7 @@ TEST_F(TransportSelectionTest, ServedOptionsCloned)
     config.setTransportOption("tls");
 
     const auto cloned = config.asPtr<IPropertyObjectInternal>().clone().asPtr<IAddDeviceConfig, AddDeviceConfigPtr>();
-    ASSERT_EQ(TransportOptionNames(cloned.getTransportOptions()), List<IString>("plain", "tls"));
+    ASSERT_EQ(TransportOptionNames(cloned.getAvailableTransportOptions()), List<IString>("plain", "tls"));
     ASSERT_EQ(cloned.getPort(), 17422);
     ASSERT_EQ(cloned.getStreamingOptions().getAvailableStreamingConfigs().get("str").getPort(), 17430);
 }
@@ -267,7 +267,7 @@ TEST_F(TransportSelectionTest, ServedOptionsCloned)
 TEST_F(TransportSelectionTest, HandMadeDeviceInfoListsTypeOptions)
 {
     const AddDeviceConfigPtr config = utils().createAddDeviceConfig(DeviceInfo("dev://host"));
-    ASSERT_EQ(TransportOptionNames(config.getTransportOptions()), List<IString>("plain", "tls"));
+    ASSERT_EQ(TransportOptionNames(config.getAvailableTransportOptions()), List<IString>("plain", "tls"));
     ASSERT_EQ(config.getPort(), 7420);
     ASSERT_EQ(config.getStreamingOptions().getStreamingConfig().getPort(), 7430);
 

@@ -132,7 +132,7 @@ DECLARE_OPENDAQ_INTERFACE(IServerCapability, IPropertyObject)
      * @brief Gets the port of the default transport.
      * @param[out] port The port of the device.
      *
-     * @deprecated Use getTransportOptions instead.
+     * @deprecated Use getAvailableTransportOptions instead.
      * Returns the port of the first (default) transport option, or the stored port when no options are set.
      */
     virtual ErrCode INTERFACE_FUNC getPort(IInteger** port) = 0;
@@ -179,7 +179,7 @@ DECLARE_OPENDAQ_INTERFACE(IServerCapability, IPropertyObject)
      * On a client, the capability of a discovered or connected server lists only the options the client module
      * supports as well. The first option is the default one, and its port is the one returned by getPort.
      */
-    virtual ErrCode INTERFACE_FUNC getTransportOptions(IList** transportOptions) = 0;
+    virtual ErrCode INTERFACE_FUNC getAvailableTransportOptions(IList** transportOptions) = 0;
 
 };
 /*!@}*/

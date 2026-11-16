@@ -121,11 +121,11 @@ DECLARE_OPENDAQ_INTERFACE(IAddDeviceConfig, IBaseObject)
      * ports the server announces, the server's preferred first. The options of the Device type when the device info
      * has no such capability. Empty for a Device type without options.
      */
-    virtual ErrCode INTERFACE_FUNC getTransportOptions(IList** transportOptions) = 0;
+    virtual ErrCode INTERFACE_FUNC getAvailableTransportOptions(IList** transportOptions) = 0;
 
     /*!
      * @brief Selects the transport option the device is added over.
-     * @param name The name of one of the options of getTransportOptions.
+     * @param name The name of one of the options of getAvailableTransportOptions.
      * @retval OPENDAQ_ERR_NOT_SUPPORTED for a Device type without transport options.
      * @retval OPENDAQ_ERR_NOTFOUND if none of the options has that name.
      *
@@ -135,7 +135,7 @@ DECLARE_OPENDAQ_INTERFACE(IAddDeviceConfig, IBaseObject)
 
     /*!
      * @brief Gets the selected transport option.
-     * @param[out] transportOption The selected option, as getTransportOptions lists it.
+     * @param[out] transportOption The selected option, as getAvailableTransportOptions lists it.
      * @retval OPENDAQ_ERR_NOT_SUPPORTED for a Device type without transport options.
      * @retval OPENDAQ_ERR_NOTFOUND if the selected option is none of the options.
      */

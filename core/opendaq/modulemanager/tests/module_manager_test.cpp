@@ -568,7 +568,8 @@ protected:
     ModuleManagerTypesTest()
         : manager(ModuleManager("[[none]]"))
     {
-        manager.loadModules(NullContext());
+        sink.setLevel(LogLevel::Info);
+        manager.loadModules(Context(nullptr, LoggerWithSinks(List<ILoggerSink>(sink)), TypeManager(), nullptr, nullptr));
     }
 
     static PropertyObjectPtr deviceConfig()
@@ -647,6 +648,16 @@ protected:
         EXPECT_NE(message.find(part), std::string::npos) << "\"" << part << "\" not in: " << message;
     }
 
+    bool logged(const std::string& part)
+    {
+        const LastMessageLoggerSinkPrivatePtr lastMessage = sink;
+        while (lastMessage.waitForMessage(1000))
+            if (lastMessage.getLastMessage().toStdString().find(part) != std::string::npos)
+                return true;
+        return false;
+    }
+
+    LoggerSinkPtr sink = LastMessageLoggerSink();
     ModuleManagerPtr manager;
 };
 
@@ -731,31 +742,15 @@ TEST_F(ModuleManagerTypesTest, OneBadLinkRejectsModule)
 
 TEST_F(ModuleManagerTypesTest, UnspecifiedDeviceKindLogsInfo)
 {
-    const auto sink = LastMessageLoggerSink();
-    sink.setLevel(LogLevel::Info);
-    const LastMessageLoggerSinkPrivatePtr lastMessage = sink;
-    manager = ModuleManager("[[none]]");
-    manager.loadModules(Context(nullptr, LoggerWithSinks(List<ILoggerSink>(sink)), TypeManager(), nullptr, nullptr));
-
     auto lib = makeModule();
     lib.impl->addDeviceType("unspecdev", nullptr, DeviceKind::Unspecified);
     lib.impl->addDeviceType("extdev", nullptr, DeviceKind::Adapter);
     ASSERT_EQ(tryAdd(lib.module), "");
-
-    bool logged = false;
-    while (!logged && lastMessage.waitForMessage(1000))
-        logged = lastMessage.getLastMessage().toStdString().find(R"(Device type "unspecdev")") != std::string::npos;
-    ASSERT_TRUE(logged);
+    ASSERT_TRUE(logged(R"(Device type "unspecdev")"));
 }
 
 TEST_F(ModuleManagerTypesTest, ReservedStreamingTypeIdLogsWarning)
 {
-    const auto sink = LastMessageLoggerSink();
-    sink.setLevel(LogLevel::Warn);
-    const LastMessageLoggerSinkPrivatePtr lastMessage = sink;
-    manager = ModuleManager("[[none]]");
-    manager.loadModules(Context(nullptr, LoggerWithSinks(List<ILoggerSink>(sink)), TypeManager(), nullptr, nullptr));
-
     auto lib = makeModule();
     lib.impl->addDeviceType("mockdev", nullptr, DeviceKind::Mirrored);
     lib.impl->addStreamingType("StreamingMode", "mockdev", nullptr);
@@ -766,11 +761,7 @@ TEST_F(ModuleManagerTypesTest, ReservedStreamingTypeIdLogsWarning)
     const auto options = config.getStreamingOptions();
     ASSERT_EQ(options.getStreamingConfigs().getKeyList(), List<IString>("mockstr"));
     ASSERT_EQ(options.getStreamingConfig().getStreamingType().getId(), "mockstr");
-
-    bool logged = false;
-    while (!logged && lastMessage.waitForMessage(1000))
-        logged = lastMessage.getLastMessage().toStdString().find(R"(Streaming type ID "StreamingMode" is reserved)") != std::string::npos;
-    ASSERT_TRUE(logged);
+    ASSERT_TRUE(logged(R"(Streaming type ID "StreamingMode" is reserved)"));
 }
 
 class ModuleManagerAddConfigTest : public ModuleManagerTypesTest

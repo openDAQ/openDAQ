@@ -447,7 +447,7 @@ void FolderImpl<Intf, Intfs...>::validateSingletonFunctionBlock(const ComponentP
         if (itemLocalId == localId)
             continue;
 
-        const auto itemFunctionBlock = item.asPtrOrNull<IFunctionBlock>(true);
+        const auto itemFunctionBlock = item.template asPtrOrNull<IFunctionBlock>(true);
         if (!itemFunctionBlock.assigned())
             continue;
 

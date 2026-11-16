@@ -26,14 +26,14 @@ BEGIN_NAMESPACE_OPENDAQ_NATIVE_STREAMING_CLIENT_MODULE
 /*!
  * Builds a list of reachable alternative addresses from the given server capability.
  *
- * Reads the optional "General.PrimaryAddressType" field from @p config to filter
- * addresses by type. Addresses with AddressReachabilityStatus::Unreachable are
- * always excluded.
+ * Reads the optional "General.PrimaryAddressType" field from @p config.
+ * Addresses of that type come first, followed by the others in their original order.
+ * Addresses with AddressReachabilityStatus::Unreachable are always excluded.
  *
  * @param config        Component config property object (may be nullptr).
  * @param deviceInfo    Device info to query the server capability from.
  * @param capabilityName  Protocol ID of the server capability to use.
- * @param outAddresses  Receives the filtered list of addresses on success.
+ * @param outAddresses  Receives the ordered list of addresses on success.
  *
  * @returns OPENDAQ_SUCCESS with @p outAddresses populated,
  *          OPENDAQ_IGNORED when there is nothing to update (capability absent or
@@ -71,16 +71,20 @@ inline ErrCode collectAlternativeAddresses(const PropertyObjectPtr& config,
     }
 
     auto addresses = List<IString>();
+    auto otherAddresses = List<IString>();
     for (const auto& addressInfo : addressInfos)
     {
-        if (primaryAddressType.assigned() && addressInfo.getType() != primaryAddressType)
-            continue;
-
         if (addressInfo.getReachabilityStatus() == AddressReachabilityStatus::Unreachable)
             continue;
 
-        addresses.pushBack(addressInfo.getAddress());
+        if (!primaryAddressType.assigned() || addressInfo.getType() == primaryAddressType)
+            addresses.pushBack(addressInfo.getAddress());
+        else
+            otherAddresses.pushBack(addressInfo.getAddress());
     }
+
+    for (const auto& address : otherAddresses)
+        addresses.pushBack(address);
 
     outAddresses = std::move(addresses);
     return OPENDAQ_SUCCESS;

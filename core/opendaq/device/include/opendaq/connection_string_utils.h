@@ -13,14 +13,26 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 #pragma once
-
+#pragma once
 #include <coretypes/string_ptr.h>
 #include <algorithm>
 #include <string>
 
 BEGIN_NAMESPACE_OPENDAQ
+
+/*!
+ * @brief Gets the prefix of a connection string.
+ * @param connectionString The connection string
+ *
+ * The prefix is the part before `://`.
+ * A connection string without `://` is its own prefix.
+ */
+inline StringPtr getPrefixFromConnectionString(const StringPtr& connectionString)
+{
+    const std::string str = connectionString;
+    return str.substr(0, str.find("://"));
+}
 
 // Sets the port of a "prefix://host[:port][/path]" connection string; an IPv6 host has to be in brackets
 inline StringPtr ReplaceConnectionStringPort(const StringPtr& connectionString, Int port)

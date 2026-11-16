@@ -27,14 +27,19 @@ daqErrCode daqAddStreamingOptions_getStreamingConfigs(daqAddStreamingOptions* se
     return reinterpret_cast<daq::IAddStreamingOptions*>(self)->getStreamingConfigs(reinterpret_cast<daq::IDict**>(configs));
 }
 
+daqErrCode daqAddStreamingOptions_getStreamingType(daqAddStreamingOptions* self, daqString** typeId)
+{
+    return reinterpret_cast<daq::IAddStreamingOptions*>(self)->getStreamingType(reinterpret_cast<daq::IString**>(typeId));
+}
+
 daqErrCode daqAddStreamingOptions_setStreamingType(daqAddStreamingOptions* self, daqString* typeId)
 {
     return reinterpret_cast<daq::IAddStreamingOptions*>(self)->setStreamingType(reinterpret_cast<daq::IString*>(typeId));
 }
 
-daqErrCode daqAddStreamingOptions_getStreamingConfig(daqAddStreamingOptions* self, daqAddStreamingConfig** config, daqString* typeId)
+daqErrCode daqAddStreamingOptions_getStreamingConfig(daqAddStreamingOptions* self, daqAddStreamingConfig** config)
 {
-    return reinterpret_cast<daq::IAddStreamingOptions*>(self)->getStreamingConfig(reinterpret_cast<daq::IAddStreamingConfig**>(config), reinterpret_cast<daq::IString*>(typeId));
+    return reinterpret_cast<daq::IAddStreamingOptions*>(self)->getStreamingConfig(reinterpret_cast<daq::IAddStreamingConfig**>(config));
 }
 
 daqErrCode daqAddStreamingOptions_getStreamingMode(daqAddStreamingOptions* self, daqStreamingMode* mode)

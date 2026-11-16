@@ -50,13 +50,37 @@ private:
     StringPtr connectionString;
 };
 
+class MockMirroredDeviceImpl : public MirroredDevice
+{
+public:
+    MockMirroredDeviceImpl(const ContextPtr& ctx, const DeviceInfoPtr& info)
+        : MirroredDevice(ctx, nullptr, "mirrored")
+        , info(info)
+    {
+    }
+
+protected:
+    StringPtr onGetRemoteId() const override
+    {
+        return String("mirrored");
+    }
+
+    DeviceInfoPtr onGetInfo() override
+    {
+        return info;
+    }
+
+    DeviceInfoPtr info;
+};
+
 class KindDeviceModule final : public Module
 {
 public:
-    KindDeviceModule(const ContextPtr& ctx, const StringPtr& prefix, DeviceKind kind)
+    KindDeviceModule(const ContextPtr& ctx, const StringPtr& prefix, DeviceKind kind, bool mirrored = false)
         : Module("Kind device module", VersionInfo(1, 0, 0), ctx, prefix)
         , prefix(prefix)
         , type(createType(prefix, kind))
+        , mirrored(mirrored)
     {
     }
 
@@ -75,12 +99,18 @@ public:
 
     DevicePtr onCreateDevice(const StringPtr& connectionString, const ComponentPtr& parent, const PropertyObjectPtr&) override
     {
-        return createWithImplementation<IDevice, KindDevice>(context, parent, "kinddevice", type, connectionString);
+        if (!mirrored)
+            return createWithImplementation<IDevice, KindDevice>(context, parent, "kinddevice", type, connectionString);
+
+        const auto info = DeviceInfo(connectionString);
+        info.setDeviceType(type);
+        return createWithImplementation<IDevice, MockMirroredDeviceImpl>(context, info);
     }
 
 private:
     StringPtr prefix;
     DeviceTypePtr type;
+    bool mirrored;
 };
 
 static constexpr const char* AdapterDevice = "daqadapter://device";
@@ -136,19 +166,23 @@ TEST_F(InstanceTest, SetRootDeviceKind)
     instance.getModuleManager().addModule(
         createWithImplementation<IModule, KindDeviceModule>(instance.getContext(), "daqroot", DeviceKind::Root));
 
+    instance.getModuleManager().addModule(
+        createWithImplementation<IModule, KindDeviceModule>(instance.getContext(), "daqunspecified", DeviceKind::Unspecified, true));
+
     ASSERT_THROW(instance.setRootDevice("daqmirrored://device"), InvalidParameterException);
     ASSERT_THROW(instance.setRootDevice(AdapterDevice), InvalidParameterException);
+    ASSERT_THROW(instance.setRootDevice("daqunspecified://device"), InvalidParameterException);
     ASSERT_NO_THROW(instance.setRootDevice("daqroot://device"));
     ASSERT_EQ(instance.getRootDevice().getInfo().getDeviceType().getDeviceKind(), DeviceKind::Root);
 }
 
 TEST_F(InstanceTest, InstanceBuilderRootDeviceKind)
 {
-    const auto builder = [](const StringPtr& prefix, DeviceKind kind)
+    const auto builder = [](const StringPtr& prefix, DeviceKind kind, bool mirrored = false)
     {
         const auto moduleManager = ModuleManager("[[none]]");
         const auto context = Context(nullptr, Logger(), TypeManager(), moduleManager, nullptr);
-        moduleManager.addModule(createWithImplementation<IModule, KindDeviceModule>(context, prefix, kind));
+        moduleManager.addModule(createWithImplementation<IModule, KindDeviceModule>(context, prefix, kind, mirrored));
         return InstanceBuilder().setContext(context).setRootDevice(prefix + "://device");
     };
 
@@ -156,6 +190,7 @@ TEST_F(InstanceTest, InstanceBuilderRootDeviceKind)
     ASSERT_THROW(builder("daqadapter", DeviceKind::Adapter).build(), InvalidParameterException);
     ASSERT_NO_THROW(builder("daqroot", DeviceKind::Root).build());
     ASSERT_NO_THROW(builder("daqunspecified", DeviceKind::Unspecified).build());
+    ASSERT_THROW(builder("daqunspecified", DeviceKind::Unspecified, true).build(), InvalidParameterException);
 }
 
 TEST_F(InstanceTest, SetRootDeviceWithConfig)
@@ -264,29 +299,6 @@ public:
             StreamingTypeBuilder().setId("mock_streaming_b").setName("Mock streaming B").setConnectionStringPrefix("daqmockb").build();
         return Dict<IString, IStreamingType>({{"mock_streaming_a", streamingA}, {"mock_streaming_b", streamingB}});
     }
-};
-
-class MockMirroredDeviceImpl : public MirroredDevice
-{
-public:
-    MockMirroredDeviceImpl(const ContextPtr& ctx, const DeviceInfoPtr& info)
-        : MirroredDevice(ctx, nullptr, "mirrored")
-        , info(info)
-    {
-    }
-
-protected:
-    StringPtr onGetRemoteId() const override
-    {
-        return String("mirrored");
-    }
-
-    DeviceInfoPtr onGetInfo() override
-    {
-        return info;
-    }
-
-    DeviceInfoPtr info;
 };
 
 TEST_F(InstanceTest, AvailableStreamingTypesEmptyForRootDevice)
@@ -1285,7 +1297,7 @@ TEST_F(InstanceTest, SaveLoadDeviceConfigOld)
 
         auto deviceConfig = instance.createDefaultAddDeviceConfig();
         PropertyObjectPtr general = deviceConfig.getPropertyValue("General");
-        general.setPropertyValue("StreamingConnectionHeuristic", 2);
+        general.setPropertyValue("PrimaryAddressType", "IPv6");
 
         instance.addDevice("daqmock://phys_device", deviceConfig);
         config = instance.saveConfiguration();
@@ -1300,7 +1312,7 @@ TEST_F(InstanceTest, SaveLoadDeviceConfigOld)
     ASSERT_TRUE(deviceConfig.hasProperty("General"));
 
     PropertyObjectPtr general = deviceConfig.getPropertyValue("General");
-    ASSERT_EQ(general.getPropertyValue("StreamingConnectionHeuristic"), 2);
+    ASSERT_EQ(general.getPropertyValue("PrimaryAddressType"), "IPv6");
 }
 
 TEST_F(InstanceTest, SaveLoadDeviceConfig)
@@ -1311,7 +1323,7 @@ TEST_F(InstanceTest, SaveLoadDeviceConfig)
 
         auto deviceConfig = instance.createDefaultAddDeviceConfig();
         PropertyObjectPtr general = deviceConfig.getPropertyValue("General");
-        general.setPropertyValue("StreamingConnectionHeuristic", 2);
+        general.setPropertyValue("PrimaryAddressType", "IPv6");
 
         instance.addDevice("daqmock://phys_device", deviceConfig);
         config = instance.saveConfiguration();
@@ -1326,7 +1338,7 @@ TEST_F(InstanceTest, SaveLoadDeviceConfig)
     ASSERT_TRUE(deviceConfig.hasProperty("General"));
 
     PropertyObjectPtr general = deviceConfig.getPropertyValue("General");
-    ASSERT_EQ(general.getPropertyValue("StreamingConnectionHeuristic"), 2);
+    ASSERT_EQ(general.getPropertyValue("PrimaryAddressType"), "IPv6");
 }
 
 TEST_F(InstanceTest, SaveLoadFunctionBlockConfig)

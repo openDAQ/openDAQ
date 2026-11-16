@@ -50,6 +50,7 @@ enum class StreamingMode : EnumType
  * Only the selected config is visible.
  * `StreamingMode` is visible only while a Streaming type is selected.
  * The `StreamingType` selection holds the ID of the selected Streaming type, and `None` while none is selected.
+ * `getStreamingType` returns null instead of `None`.
  * A device is added without streaming while none is selected.
  * The listed configs are created with the options and never removed or replaced.
  * A Streaming type with a reserved ID can't be listed (see `isStreamingTypeIdReserved`).
@@ -64,6 +65,12 @@ DECLARE_OPENDAQ_INTERFACE(IAddStreamingOptions, IBaseObject)
     virtual ErrCode INTERFACE_FUNC getStreamingConfigs(IDict** configs) = 0;
 
     /*!
+     * @brief Gets the ID of the selected Streaming type.
+     * @param[out] typeId The Streaming type ID, or null when none is selected
+     */
+    virtual ErrCode INTERFACE_FUNC getStreamingType(IString** typeId) = 0;
+
+    /*!
      * @brief Selects the streaming config listed under a Streaming type ID.
      * @param typeId The Streaming type ID
      * @retval OPENDAQ_ERR_NOTFOUND when no config is listed under the ID.
@@ -74,13 +81,10 @@ DECLARE_OPENDAQ_INTERFACE(IAddStreamingOptions, IBaseObject)
     virtual ErrCode INTERFACE_FUNC setStreamingType(IString* typeId) = 0;
 
     /*!
-     * @brief Gets the streaming config listed under a Streaming type ID.
-     * @param[out] config The streaming config, or null when `typeId` is null and none is selected
-     * @param typeId The Streaming type ID, or null for the selected Streaming type
-     *
-     * Fails with `OPENDAQ_ERR_NOTFOUND` when no config is listed under the ID.
+     * @brief Gets the selected streaming config.
+     * @param[out] config The streaming config, or null when none is selected
      */
-    virtual ErrCode INTERFACE_FUNC getStreamingConfig(IAddStreamingConfig** config, IString* typeId = nullptr) = 0;
+    virtual ErrCode INTERFACE_FUNC getStreamingConfig(IAddStreamingConfig** config) = 0;
 
     /*!
      * @brief Gets the streaming mode.

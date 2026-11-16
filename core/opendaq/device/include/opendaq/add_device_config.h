@@ -48,7 +48,7 @@ enum class AddressType : EnumType
  * The Device type is fixed when the config is created, and its ID is the read-only `DeviceType` property.
  * The nested config objects are created with the config and never replaced.
  * The `Streaming` child object holds the streaming options.
- * It exists only for Mirrored Device types with at least one listed Streaming type.
+ * It exists only for Mirrored and Unspecified Device types with at least one listed Streaming type.
  */
 DECLARE_OPENDAQ_INTERFACE(IAddDeviceConfig, IBaseObject)
 {
@@ -109,7 +109,7 @@ DECLARE_OPENDAQ_INTERFACE(IAddDeviceConfig, IBaseObject)
 // [templateType(streamingTypes, IString, IStreamingType)]
 /*!
  * @brief Creates an add device config with the default config of the Device type.
- * @retval OPENDAQ_ERR_INVALIDPARAMETER when the Device type is Mirrored and a Streaming type ID is reserved.
+ * @retval OPENDAQ_ERR_INVALIDPARAMETER when the Device type is Mirrored or Unspecified and a Streaming type ID is reserved.
  */
 OPENDAQ_DECLARE_CLASS_FACTORY(
     LIBRARY_FACTORY, AddDeviceConfig,

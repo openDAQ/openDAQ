@@ -51,6 +51,8 @@ DECLARE_OPENDAQ_INTERFACE(IAddStreamingConfig, IBaseObject)
      * @param[out] config The Streaming type configuration
      */
     virtual ErrCode INTERFACE_FUNC getTypeConfig(IPropertyObject** config) = 0;
+
+    virtual ErrCode INTERFACE_FUNC getAuthenticationConfig(IAuthenticationConfig** config) = 0;
 };
 
 /*!@}*/

@@ -56,3 +56,8 @@ daqErrCode daqAddDeviceConfig_getStreamingOptions(daqAddDeviceConfig* self, daqA
 {
     return reinterpret_cast<daq::IAddDeviceConfig*>(self)->getStreamingOptions(reinterpret_cast<daq::IAddStreamingOptions**>(options));
 }
+
+daqErrCode daqAddDeviceConfig_getAuthenticationConfig(daqAddDeviceConfig* self, daqAuthenticationConfig** config)
+{
+    return reinterpret_cast<daq::IAddDeviceConfig*>(self)->getAuthenticationConfig(reinterpret_cast<daq::IAuthenticationConfig**>(config));
+}

@@ -58,4 +58,13 @@ void defineIAddStreamingConfig(pybind11::module_ m, PyDaqIntf<daq::IAddStreaming
         },
         py::return_value_policy::take_ownership,
         "Gets the configuration of the Streaming type.");
+    cls.def_property_readonly("authentication_config",
+        [](daq::IAddStreamingConfig *object)
+        {
+            py::gil_scoped_release release;
+            const auto objectPtr = daq::AddStreamingConfigPtr::Borrow(object);
+            return objectPtr.getAuthenticationConfig().detach();
+        },
+        py::return_value_policy::take_ownership,
+        "");
 }

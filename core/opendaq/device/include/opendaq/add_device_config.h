@@ -96,6 +96,8 @@ DECLARE_OPENDAQ_INTERFACE(IAddDeviceConfig, IBaseObject)
      * @param[out] options The streaming options, or null when the config has no `Streaming` child object
      */
     virtual ErrCode INTERFACE_FUNC getStreamingOptions(IAddStreamingOptions** options) = 0;
+
+    virtual ErrCode INTERFACE_FUNC getAuthenticationConfig(IAuthenticationConfig** config) = 0;
 };
 
 /*!@}*/

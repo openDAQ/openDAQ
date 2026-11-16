@@ -53,7 +53,8 @@ PyProcedureImpl<F>::PyProcedureImpl(pybind11::object&& pyObject)
 template <class F>
 daq::ErrCode PyProcedureImpl<F>::dispatch(daq::IBaseObject* params)
 {
-    pybind11::gil_scoped_acquire acquire;
+    PY_ACQUIRE_GIL_OR_RETURN();
+
     if (params == nullptr)
         pyObject();
     else

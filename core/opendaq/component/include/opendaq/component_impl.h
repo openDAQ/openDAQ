@@ -37,6 +37,7 @@
 #include <opendaq/authentication_config_ptr.h>
 #include <opendaq/tags_impl.h>
 #include <cctype>
+#include <set>
 #include <coretypes/coretype_utils.h>
 #include <opendaq/ids_parser.h>
 #include <opendaq/component_status_container_impl.h>
@@ -160,7 +161,8 @@ protected:
     inline static std::unordered_set<std::string> componentAvailableAttributes = COMPONENT_AVAILABLE_ATTRIBUTES;
 #endif
 
-    std::unordered_set<std::string> lockedAttributes;
+    // Ordered so that the serialized list is the same on the device and on its clients
+    std::set<std::string> lockedAttributes;
     bool visible;
     // computed: localActive && parentActive; atomic so the data path (Signal::sendPacket,
     // Connection::enqueue via IInputPort::getActive) can read it without taking the config lock
@@ -522,6 +524,8 @@ ErrCode ComponentImpl<Intf, Intfs...>::getName(IString** name)
 {
     OPENDAQ_PARAM_NOT_NULL(name);
 
+    auto lock = this->getRecursiveConfigLock2();
+
     if (this->name.assigned())
         *name = this->name.addRefAndReturn();
     else
@@ -576,6 +580,8 @@ template <class Intf, class ... Intfs>
 ErrCode ComponentImpl<Intf, Intfs...>::getDescription(IString** description)
 {
     OPENDAQ_PARAM_NOT_NULL(description);
+
+    auto lock = this->getRecursiveConfigLock2();
 
     *description = this->description.addRefAndReturn();
     return OPENDAQ_SUCCESS;
@@ -637,6 +643,8 @@ template <class Intf, class ... Intfs>
 ErrCode ComponentImpl<Intf, Intfs...>::getVisible(Bool* visible)
 {
     OPENDAQ_PARAM_NOT_NULL(visible);
+
+    auto lock = this->getRecursiveConfigLock2();
 
     *visible = this->visible;
     return OPENDAQ_SUCCESS;
@@ -1344,6 +1352,13 @@ void ComponentImpl<Intf, Intfs...>::serializeCustomObjectValues(const Serializer
             serializer.key("statuses");
             statusContainer.serialize(serializer);
         }
+
+        // Written even when empty, so a reader can tell an empty set from a writer that does not send one
+        serializer.key("lockedAttributes");
+        serializer.startList();
+        for (const auto& attr : lockedAttributes)
+            serializer.writeString(attr.c_str(), attr.size());
+        serializer.endList();
     }
 
     if (componentConfig.assigned())
@@ -1450,6 +1465,13 @@ void ComponentImpl<Intf, Intfs...>::deserializeCustomObjectValues(const Serializ
 
     if (serializedObject.hasKey("name"))
         name = serializedObject.readString("name");
+
+    if (serializedObject.hasKey("lockedAttributes"))
+    {
+        lockedAttributes.clear();
+        for (const auto& attr : serializedObject.readList<IString>("lockedAttributes"))
+            lockedAttributes.insert(attr.toStdString());
+    }
 
     auto intfID = deserializeContext.getIntfID();
     const auto triggerCoreEvent = [this](const CoreEventArgsPtr& args)

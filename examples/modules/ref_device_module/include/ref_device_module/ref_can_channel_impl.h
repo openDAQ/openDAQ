@@ -28,6 +28,7 @@ struct RefCANChannelInit
 {
     std::chrono::microseconds startTime;
     std::chrono::microseconds microSecondsFromEpochToStartTime;
+    ReferenceDomainInfoPtr referenceDomainInfo;
 };
 
 #pragma pack(push, 1)
@@ -64,6 +65,7 @@ private:
     int32_t counter2;
     std::chrono::microseconds microSecondsFromEpochToStartTime;
     std::chrono::microseconds lastCollectTime;
+    ReferenceDomainInfoPtr referenceDomainInfo;
     SignalConfigPtr valueSignal;
     SignalConfigPtr timeSignal;
 

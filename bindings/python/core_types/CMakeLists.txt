@@ -4,6 +4,7 @@ set(SRC_Headers
     include/py_core_types/py_core_types.h
     #
     include/py_core_types/py_base_object.h
+    include/py_core_types/py_gil.h
     include/py_core_types/py_converter.h
     include/py_core_types/py_opendaq_daq.h
     include/py_core_types/py_list_object.h
@@ -22,6 +23,7 @@ set(SRC_Cpp
     src/py_converter.cpp
     #
     src/py_base_object.cpp
+    src/py_gil.cpp
     src/py_integer.cpp
     src/py_float.cpp
     src/py_boolean.cpp

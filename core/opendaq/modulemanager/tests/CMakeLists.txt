@@ -3,8 +3,6 @@ set(MODULE_NAME module_manager)
 
 set(TEST_MOCKS mock/mock_module.h
                mock/mock_module.cpp
-			   mock/mock_module_authenticator.h
-			   mock/mock_module_authenticator.cpp
 )
 
 ##############################
@@ -37,6 +35,7 @@ target_compile_definitions(${TEST_APP} PRIVATE MODULE_TEST_DIR="mock"
 target_link_libraries(${TEST_APP}
 	PRIVATE
 		$<BUILD_INTERFACE:Boost::dll>
+		$<BUILD_INTERFACE:Boost::asio>
 		$<BUILD_INTERFACE:std::filesystem>
 )
 
@@ -45,6 +44,8 @@ if (UNIX)
         PRIVATE 
             ${CMAKE_DL_LIBS}
     )
+elseif (WIN32)
+    target_link_libraries(${TEST_APP} PRIVATE iphlpapi)
 endif()
 
 set_target_properties(${TEST_APP}

@@ -15,22 +15,13 @@
  */
 
 #pragma once
-#include <coretypes/intfs.h>
-#include <opendaq/module_authenticator_impl.h>
+#include <opendaq/module_authenticator_ptr.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
-class MockModuleAuthenticatorImpl : public ModuleAuthenticator
+inline ModuleAuthenticatorPtr FunctionModuleAuthenticator(const FunctionPtr& f)
 {
-public:
-    explicit MockModuleAuthenticatorImpl(const StringPtr& certPath);
-
-    Bool onAuthenticateModuleBinary(StringPtr& vendorKey, const StringPtr& binaryPath) override;
-
-private:
-    StringPtr certificatePath;
-};
-
-OPENDAQ_DECLARE_CLASS_FACTORY_WITH_INTERFACE(INTERNAL_FACTORY, MockModuleAuthenticator, IModuleAuthenticator, IString*, certPath)
+    return FunctionModuleAuthenticator_Create(f);
+}
 
 END_NAMESPACE_OPENDAQ

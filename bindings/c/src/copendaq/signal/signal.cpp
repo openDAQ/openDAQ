@@ -66,3 +66,8 @@ daqErrCode daqSignal_getLastValue(daqSignal* self, daqBaseObject** value)
 {
     return reinterpret_cast<daq::ISignal*>(self)->getLastValue(reinterpret_cast<daq::IBaseObject**>(value));
 }
+
+daqErrCode daqSignal_getLastValueWithTimestamp(daqSignal* self, daqBaseObject** value, daqBaseObject** timestamp)
+{
+    return reinterpret_cast<daq::ISignal*>(self)->getLastValueWithTimestamp(reinterpret_cast<daq::IBaseObject**>(value), reinterpret_cast<daq::IBaseObject**>(timestamp));
+}

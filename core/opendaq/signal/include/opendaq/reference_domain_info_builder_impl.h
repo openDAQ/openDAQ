@@ -31,20 +31,20 @@ public:
     ErrCode INTERFACE_FUNC setReferenceDomainId(IString* referenceDomainId) override;
     ErrCode INTERFACE_FUNC getReferenceDomainId(IString** referenceDomainId) override;
 
+    ErrCode INTERFACE_FUNC setReferenceDomainIds(IList* referenceDomainIds) override;
+    ErrCode INTERFACE_FUNC getReferenceDomainIds(IList** referenceDomainIds) override;
+
     ErrCode INTERFACE_FUNC setReferenceDomainOffset(IInteger* referenceDomainOffset) override;
     ErrCode INTERFACE_FUNC getReferenceDomainOffset(IInteger** referenceDomainOffset) override;
 
     ErrCode INTERFACE_FUNC setReferenceTimeProtocol(TimeProtocol referenceTimeProtocol) override;
     ErrCode INTERFACE_FUNC getReferenceTimeProtocol(TimeProtocol* referenceTimeProtocol) override;
 
-    ErrCode INTERFACE_FUNC setUsesOffset(UsesOffset referenceTimeProtocol) override;
-    ErrCode INTERFACE_FUNC getUsesOffset(UsesOffset* referenceTimeProtocol) override;
-
 protected:
     StringPtr referenceDomainId;
+    ListPtr<IString> referenceDomainIds;
     IntegerPtr referenceDomainOffset;
     TimeProtocol referenceTimeProtocol;
-    UsesOffset usesOffset;
 };
 
 END_NAMESPACE_OPENDAQ

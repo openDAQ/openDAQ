@@ -195,6 +195,9 @@ AddDeviceConfigPtr AddDeviceConfigImpl::Bind(const SerializedObjectPtr& saved,
                                              const DictPtr<IString, IDeviceType>& deviceTypes,
                                              const DictPtr<IString, IStreamingType>& streamingTypes)
 {
+    if (!saved.hasKey("__type") || saved.readString("__type") != SerializeId())
+        return nullptr;
+
     const auto givenStreamingTypes = streamingTypes.assigned() ? streamingTypes : Dict<IString, IStreamingType>();
     const StringPtr deviceTypeId = saved.readString(add_device_config::DeviceTypeIdKey);
     if (!deviceTypes.assigned() || !deviceTypes.hasKey(deviceTypeId))

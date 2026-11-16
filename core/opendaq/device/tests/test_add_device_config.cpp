@@ -434,6 +434,15 @@ TEST_F(AddDeviceConfigTest, BindUnknownDeviceType)
     ASSERT_THROW(config.asPtr<IAddDeviceConfigPrivate>().bind(deviceTypes, nullptr), NotFoundException);
 }
 
+TEST_F(AddDeviceConfigTest, BindOtherSavedObjectIsNull)
+{
+    auto other = PropertyObject();
+    other.addProperty(StringProperty("DeviceType", "dev"));
+    const auto deviceTypes = Dict<IString, IDeviceType>({{"dev", createDeviceType(DeviceKind::Mirrored)}});
+
+    ASSERT_FALSE(bindSaved(serializeForUpdate(other), deviceTypes, nullptr).assigned());
+}
+
 TEST_F(AddDeviceConfigTest, BindDeviceKindChange)
 {
     const auto types = [](DeviceKind kind)

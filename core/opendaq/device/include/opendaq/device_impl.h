@@ -55,6 +55,7 @@
 #include <opendaq/component_type_private.h>
 #include <opendaq/mirrored_device_ptr.h>
 #include <opendaq/authentication_config_ptr.h>
+#include <opendaq/add_component_config_factory.h>
 #include <coreobjects/property_factory.h>
 #include <coretypes/function_ptr.h>
 
@@ -2281,13 +2282,25 @@ void GenericDevice<TInterface, Interfaces...>::updateDevice(const std::string& d
             }
         }
         
-        PropertyObjectPtr deviceConfig = onCreateDefaultAddDeviceConfig();
-        const auto updatetableDeviceConfig = deviceConfig.template asPtr<IUpdatable>(true);
-        
+        SerializedObjectPtr savedConfig;
         if (serializedDevice.hasKey("deviceConfig"))
-            updatetableDeviceConfig.updateInternal(serializedDevice.readSerializedObject("deviceConfig"), context);
+            savedConfig = serializedDevice.readSerializedObject("deviceConfig");
         else if (serializedDevice.hasKey("ComponentConfig"))
-            updatetableDeviceConfig.updateInternal(serializedDevice.readSerializedObject("ComponentConfig"), context);
+            savedConfig = serializedDevice.readSerializedObject("ComponentConfig");
+
+        PropertyObjectPtr deviceConfig;
+        if (savedConfig.assigned())
+        {
+            const ModuleManagerUtilsPtr managerUtils = this->context.getModuleManager().template asPtr<IModuleManagerUtils>();
+            deviceConfig = BoundAddDeviceConfig(savedConfig, onGetAvailableDeviceTypes(), managerUtils.getAvailableStreamingTypes());
+        }
+
+        if (!deviceConfig.assigned())
+        {
+            deviceConfig = onCreateDefaultAddDeviceConfig();
+            if (savedConfig.assigned())
+                deviceConfig.template asPtr<IUpdatable>(true).updateInternal(savedConfig, context);
+        }
 
         {
             // Stashed under "__AuthenticationConfig" as an ordinary Object-type property. Prefer the one already

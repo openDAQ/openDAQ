@@ -14,6 +14,7 @@ set(TEST_SOURCES test_factories.cpp
                  test_user_lock.cpp
                  test_connection_status_container.cpp
                  test_connected_client_info.cpp
+                 test_add_device_config.cpp
 )
 
 opendaq_prepare_test_runner(TEST_APP FOR ${MODULE_NAME}

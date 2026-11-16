@@ -38,5 +38,55 @@ class TestDeviceType(opendaq_test.TestCase):
         self.assertEqual(root_type.device_kind, opendaq.DeviceKind.Root)
         self.assertIsNotNone(ref_type.module_info)
 
+class TestAddDeviceConfig(opendaq_test.TestCase):
+
+    def test_properties(self):
+        instance = opendaq.Instance()
+        config = instance.create_add_device_config(opendaq.DeviceInfoConfig('dev', 'daqref://device0'))
+
+        self.assertEqual(config.device_type.id, 'daqref')
+        self.assertIsNotNone(config.type_config)
+        self.assertIsNone(config.streaming_options)
+        config.primary_address_type = opendaq.AddressType.IPv6
+        self.assertEqual(config.primary_address_type, opendaq.AddressType.IPv6)
+        config.scan_on_add = False
+        self.assertFalse(config.scan_on_add)
+
+    def test_streaming_options(self):
+        instance = opendaq.Instance()
+        options = instance.create_add_device_config(opendaq.DeviceInfoConfig('dev', 'daq.nd://127.0.0.1')).streaming_options
+
+        self.assertIn('OpenDAQNativeStreaming', options.available_streaming_configs.keys())
+        options.streaming_type = None
+        self.assertIsNone(options.streaming_type)
+        self.assertIsNone(options.streaming_config)
+        options.streaming_type = 'OpenDAQNativeStreaming'
+        self.assertEqual(options.streaming_type, 'OpenDAQNativeStreaming')
+        self.assertEqual(options.streaming_config.streaming_type.id, 'OpenDAQNativeStreaming')
+        self.assertIsNotNone(options.streaming_config.type_config)
+        options.streaming_mode = opendaq.StreamingMode.MinConnections
+        self.assertEqual(options.streaming_mode, opendaq.StreamingMode.MinConnections)
+
+class TestDeviceAddConfig(opendaq_test.TestCase):
+
+    def test_create_add_device_config(self):
+        instance = opendaq.Instance()
+        info = opendaq.DeviceInfoConfig('ref', 'daqref://device0')
+
+        config = instance.create_add_device_config(info, 'daqref')
+        self.assertEqual(config.device_type.id, 'daqref')
+
+    def test_create_add_streaming_config_of_root_device(self):
+        instance = opendaq.Instance()
+        with self.assertRaises(RuntimeError):
+            instance.create_add_streaming_config()
+
+    def test_root_device(self):
+        instance = opendaq.Instance()
+        device = instance.root_device
+
+        self.assertIsNone(device.add_device_config)
+        self.assertEqual(len(device.available_streaming_types), 0)
+
 if __name__ == '__main__':
     unittest.main()

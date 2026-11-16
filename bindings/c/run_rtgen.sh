@@ -171,6 +171,10 @@ run_rtgen copendaq/context opendaq/context opendaq context context
 
 # opendaq device
 
+run_rtgen copendaq/device opendaq/device opendaq add_device_config add_device_config #enum
+# run_rtgen copendaq/device opendaq/device opendaq add_component_config_factory add_component_config_factory #C++
+run_rtgen copendaq/device opendaq/device opendaq add_streaming_config add_streaming_config
+run_rtgen copendaq/device opendaq/device opendaq add_streaming_options add_streaming_options #enum
 run_rtgen copendaq/device opendaq/device opendaq address_info address_info #enum
 run_rtgen copendaq/device opendaq/device opendaq address_info_builder address_info_builder
 run_rtgen copendaq/device opendaq/device opendaq address_info_private address_info_private

@@ -205,6 +205,9 @@ set(SRC_OpenDAQ_Headers
     include/copendaq/context/common.h
     include/copendaq/context/context.h
 
+    include/copendaq/device/add_device_config.h
+    include/copendaq/device/add_streaming_config.h
+    include/copendaq/device/add_streaming_options.h
     include/copendaq/device/address_info_builder.h
     include/copendaq/device/address_info.h
     include/copendaq/device/common.h
@@ -356,6 +359,9 @@ set(SRC_OpenDAQ_Cpp
     src/copendaq/context/context.cpp
 
     src/copendaq/device/address_info_builder.cpp
+    src/copendaq/device/add_device_config.cpp
+    src/copendaq/device/add_streaming_config.cpp
+    src/copendaq/device/add_streaming_options.cpp
     src/copendaq/device/address_info.cpp
     src/copendaq/device/connected_client_info.cpp
     src/copendaq/device/connection_status_container_private.cpp

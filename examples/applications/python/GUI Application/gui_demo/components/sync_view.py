@@ -47,7 +47,7 @@ def role_status(interface):
 
 
 def source_name(interface):
-    return f'{interface.sync_type.upper()} ({interface.id})'
+    return interface.sync_type.upper()
 
 
 class SyncRecord:

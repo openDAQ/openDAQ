@@ -1032,6 +1032,15 @@ TEST_F(ModuleManagerAddConfigTest, ConnectionStringOnly)
     ASSERT_EQ(create(deviceInfo("unloaded://"), nullptr, config), OPENDAQ_ERR_NOTFOUND);
 }
 
+TEST_F(ModuleManagerAddConfigTest, NativeSelectedWithoutLinkedType)
+{
+    module->addStreamingType("OpenDAQNativeStreaming", nullptr, streamingConfig());
+
+    ASSERT_EQ(selected(create(deviceInfo("unlinked://"))), "OpenDAQNativeStreaming");
+    ASSERT_EQ(selected(create(deviceInfo("mockdev://"))), "mockstr");
+    ASSERT_EQ(selected(create(deviceInfo("daq://x", {{"unlinked", cfg}, {"free", streaming}}))), "free");
+}
+
 TEST_F(ModuleManagerAddConfigTest, ScanOnAddSeededFromModuleManager)
 {
     ASSERT_TRUE(create(deviceInfo("mockdev://")).getScanOnAdd());

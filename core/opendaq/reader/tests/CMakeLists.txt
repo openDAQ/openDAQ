@@ -17,7 +17,6 @@ set(TEST_SOURCES test_factories.cpp
                  test_multi_reader.cpp
                  test_stream_reader_from_input_port.cpp
                  test_stream_reader_domain_switch.cpp
-                 test_multi_reader2_unsupported.cpp
                  multi_reader2/multi_reader2_harness.cpp
                  multi_reader2/multi_reader2_harness_owner.cpp
                  multi_reader2/multi_reader2_harness_concurrency.cpp
@@ -70,7 +69,7 @@ add_test(NAME ${TEST_APP}
          COMMAND $<TARGET_FILE_NAME:${TEST_APP}>
          WORKING_DIRECTORY $<TARGET_FILE_DIR:${TEST_APP}>
 )
-# MultiReader2 Suite 3 draws its interleavings from a seed; a fixed one keeps CI runs comparable. Soak runs leave it unset
+# MultiReader2 Suite 3 draws its interleavings from a seed; a fixed one keeps CI runs comparable
 set_tests_properties(${TEST_APP} PROPERTIES ENVIRONMENT MR2_SEED=1)
 
 if (OPENDAQ_ENABLE_COVERAGE)

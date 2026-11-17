@@ -19,7 +19,6 @@
 
 #pragma once
 #include <gtest/gtest.h>
-#include <opendaq/logger_sink_last_message_private_ptr.h>
 #include <opendaq/multi_reader2_factory.h>
 #include <opendaq/opendaq.h>
 
@@ -66,7 +65,7 @@ struct Spare
 {
     int id;
 };
-inline constexpr Spare s3{3}, s4{4}, s5{5};
+inline constexpr Spare s3{3};
 
 inline constexpr ComponentStatus Ok = ComponentStatus::Ok;
 inline constexpr ComponentStatus Warning = ComponentStatus::Warning;
@@ -152,25 +151,14 @@ struct Sig
 namespace sig
 {
 Sig base();
-Sig int32();               // SIG.INT
 Sig int64();               // SIG.INT64
 Sig scaled();              // SIG.SCALED
-Sig structure();           // SIG.STRUCT
-Sig vector();              // SIG.VEC
-Sig matrix();              // SIG.MAT
-Sig nonSimplified();       // SIG.NONSIMPL
 Sig fine();                // SIG.FINE
-Sig start5();              // SIG.START
-Sig offset1s();            // SIG.OFFSET
 Sig epochNs();             // SIG.EPOCH.NS
 Sig epochUs();             // SIG.EPOCH.US
 Sig epochNonSimplified();  // SIG.EPOCH.NONSIMPL
-Sig pico();                // SIG.PICO
 Sig delta2();              // SIG.DELTA2
-Sig rate500Hz();           // SIG.RATE
 Sig domainFault(int n);    // SIG.DOM.2 to SIG.DOM.10
-Sig noValue();             // SIG.NOVALUE
-Sig noDomain();            // SIG.NODOMAIN
 }
 
 enum class Verdict
@@ -187,7 +175,6 @@ enum class Timeline
 {
     Base,
     Apart,
-    Exact,
     Ahead,
     Behind,
     JumpAhead,
@@ -284,8 +271,7 @@ struct Result
     SizeT packetOffset = 0;
     MultiReader2StatusPtr status;
     MultiReader2StatusPtr previous;
-    BaseObjectPtr sender;
-    bool senderIsReader = false;  // the reader the handler was called for
+    bool senderIsReader = false;  // the handler was called with the reader as sender
     std::vector<std::vector<uint8_t>> buffers;  // per input of the params in force, in slot order
     std::vector<int> slots;                     // the input slot of each buffer
     std::vector<uint8_t> domainBuffer;
@@ -369,15 +355,13 @@ struct HandlerLog
 class OwnerReacts
 {
 public:
-    OwnerReacts cachesDescriptors() const;          // keeps each input's last reported descriptor
-    OwnerReacts cachesUnlessError() const;          // the same, but not from a status under Error
     OwnerReacts setsComponentStatus() const;        // its own status: the reader's level and message
     OwnerReacts warnsWhenOnlyDisconnected() const;  // Warning instead of an Error whose inputs in error are all Disconnected
     OwnerReacts removesDisconnectedPorts() const;   // in the handler: removes the port, configure without it, input-status
 
 private:
     friend class MultiReader2Test;
-    bool cache = false, cacheUnderError = true, componentStatus = false, warnDisconnected = false, removeDisconnected = false;
+    bool componentStatus = false, warnDisconnected = false, removeDisconnected = false;
 };
 
 // Suite 3 oracle: the invariants a replay asserts. INV6 (expectReleasedCleanly) and INV7 (Watchdog) always hold, so they
@@ -438,7 +422,6 @@ protected:
         Given& policy(MultiReader2ErrorPolicy policy);
         Given& readType(SampleType type);
         Given& signal(Input input, const Sig& sig);
-        Given& signal(Spare spare, const Sig& sig);
         Given& value(Input input, const Value& value);
         Given& value(Spare spare, const Value& value);
         Given& domain(Input input, const Domain& domain);
@@ -447,10 +430,8 @@ protected:
         Given& verdict(Input input, Verdict verdict);
         Given& accepts();  // CFG.ACCEPT.2 to 6: a stub that accepts until a verdict says otherwise
         Given& accepts(AcceptsRule rule);
-        Given& noScheduler();
         Given& noScheduler(Input input);
         Given& fifo();  // the one worker runs work in the order it was scheduled, for outcomes that depend on that order
-        Given& heldByReader(Input input);
         Given& heldByStreamReader(Input input);
         Given& listenerBlock(Input input, PacketReadyNotification mode = PacketReadyNotification::Scheduler);
         Given& onePerPacket();      // DATA.PACKET.1
@@ -476,7 +457,6 @@ protected:
     void announce(Input input, const Value& value);
     void announce(Input input, const Domain& domain);
     void announce(Input input, const Value& value, const Domain& domain);
-    void announce(Spare spare, const Value& value);
     void gap(Input input);
     void otherEvent(Input input);
     void disconnect(Input input);
@@ -546,8 +526,7 @@ protected:
     bool scriptRunning();
     void joinScript();
     void waitUntilHandlerSaw(Input input, InputError error);
-    bool waitForHandler(const std::function<bool()>& condition);  // false after 5 s, or at once when no handler is subscribed
-    bool handlerRunning();
+    bool waitForHandler(const std::function<bool()>& condition);  // the condition after 5 s, or at once when no handler is subscribed
     void holdNextHandlerCall();     // the next handler call parks before its body until releaseHandlerCall
     void waitForHeldHandlerCall();  // until that call is parked; a failure after 5 s
     void releaseHandlerCall();
@@ -633,13 +612,12 @@ private:
     WeakRefPtr<IMultiReader2> readerRef;
     std::vector<IBaseObject*> readerListeners;  // the listeners the reader sets on its ports, so "listener reader" means this reader;
                                             // compared by identity and not held, as the reader may be its own listener
-    std::mutex stateMutex;         // paramsInForce, paramsObject, previousStatus and lastResult: the handler and test threads share them
+    std::mutex stateMutex;         // paramsInForce, paramsObject and previousStatus: the handler and test threads share them
     MultiReader2ParamsPtr paramsInForce;
     MultiReader2ParamsPtr paramsObject;
     std::vector<MultiReader2Ptr> otherReaders;
     std::vector<BaseObjectPtr> holders;
     MultiReader2StatusPtr previousStatus;
-    Result lastResult{Result::Kind::Avail};
     bool muted = false;
     int expectations = 0;
     bool workerBlocked = false;

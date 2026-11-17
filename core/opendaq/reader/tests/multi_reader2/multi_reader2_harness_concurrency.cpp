@@ -3,10 +3,8 @@
 #include "multi_reader2_harness.h"
 #include "multi_reader2_harness_state.h"
 
-#include <algorithm>
 #include <chrono>
 #include <cstdlib>
-#include <future>
 #include <random>
 #include <thread>
 
@@ -49,11 +47,6 @@ bool MultiReader2Test::waitForHandler(const std::function<bool()>& condition)
         std::this_thread::sleep_for(std::chrono::milliseconds(1));
     }
     return condition();
-}
-
-bool MultiReader2Test::handlerRunning()
-{
-    return handlerState->running > 0;
 }
 
 void MultiReader2Test::holdNextHandlerCall()
@@ -111,8 +104,7 @@ void MultiReader2Test::restart(SizeT runWorkers)
     stopEndlessWriters();
     if (workerHeld)
         releaseWorker();
-    if (handlerState)
-        releaseHandlerCall();
+    releaseHandlerCall();
     readerObject.release();
     otherReaders.clear();
     holders.clear();
@@ -129,17 +121,12 @@ void MultiReader2Test::restart(SizeT runWorkers)
         stub->asked.clear();
         stubSaw.clear();
     }
-    {
-        std::scoped_lock lock(owner->mutex);
-        owner->cache.clear();
-    }
     constructed = false;
     readerRef = nullptr;
     readerListeners.clear();
     paramsInForce = nullptr;
     paramsObject = nullptr;
     previousStatus = nullptr;
-    lastResult = Result{Result::Kind::Avail};
     scheduler = nullptr;
     context = nullptr;
     contextWithoutScheduler = nullptr;

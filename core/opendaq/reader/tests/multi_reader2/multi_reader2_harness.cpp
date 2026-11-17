@@ -2,25 +2,18 @@
 #include "multi_reader2_harness_state.h"
 
 #include <opendaq/event_packet_utils.h>
-#include <opendaq/logger_sink_base_private.h>
 #include <opendaq/signal_impl.h>
 #include <opendaq/work_factory.h>
-#include <spdlog/details/log_msg.h>
 
 #include <atomic>
-#include <chrono>
 #include <cmath>
 #include <cstring>
 #include <deque>
 #include <future>
 #include <limits>
-#include <random>
-#include <sstream>
-#include <thread>
 
 namespace daq::mr2test
 {
-
 
 using namespace detail;
 
@@ -72,11 +65,6 @@ std::string isoOrigin(int64_t secondsFromT0, int64_t ms = 0)
         s += frac;
     }
     return s + "Z";
-}
-
-TickDomain baseTickDomain()
-{
-    return TickDomain{};
 }
 
 void writeElement(uint8_t* dst, SampleType type, double value)
@@ -458,10 +446,6 @@ Sig base()
 {
     return {Value::base(), Domain()};
 }
-Sig int32()
-{
-    return {Value(SampleType::Int32), Domain()};
-}
 Sig int64()
 {
     return {Value(SampleType::Int64), Domain()};
@@ -470,33 +454,9 @@ Sig scaled()
 {
     return {Value::scaled(SampleType::Int32, 0.5, 1), Domain()};
 }
-Sig structure()
-{
-    return {Value::structure(), Domain()};
-}
-Sig vector()
-{
-    return {Value().dims({4}), Domain()};
-}
-Sig matrix()
-{
-    return {Value().dims({2, 3}), Domain()};
-}
-Sig nonSimplified()
-{
-    return {Value(), Domain().resolution(2, 2000)};
-}
 Sig fine()
 {
     return {Value(), Domain().resolution(1, 2000).delta(2)};
-}
-Sig start5()
-{
-    return {Value(), Domain().start(5)};
-}
-Sig offset1s()
-{
-    return {Value(), Domain().originSeconds(1)};
 }
 Sig epochNs()
 {
@@ -510,17 +470,9 @@ Sig epochNonSimplified()
 {
     return {Value(), Domain().resolution(1000, 1000000000000).delta(1000000).originEpoch()};
 }
-Sig pico()
-{
-    return {Value(), Domain().resolution(1, 1000000000000).delta(1000000000)};
-}
 Sig delta2()
 {
     return {Value(), Domain().delta(2)};
-}
-Sig rate500Hz()
-{
-    return {Value(), Domain().rate500Hz()};
 }
 Sig domainFault(int n)
 {
@@ -545,14 +497,6 @@ Sig domainFault(int n)
         default:
             throw std::invalid_argument("harness: no SIG.DOM." + std::to_string(n));
     }
-}
-Sig noValue()
-{
-    return {Value::null(), Domain()};
-}
-Sig noDomain()
-{
-    return {Value(), Domain::null()};
 }
 }
 
@@ -767,7 +711,6 @@ MR2_GIVEN(minReadCount, (SizeT count), c.minReadCount = count)
 MR2_GIVEN(policy, (MultiReader2ErrorPolicy p), c.policy = p)
 MR2_GIVEN(readType, (SampleType t), c.readType = t)
 MR2_GIVEN(signal, (Input input, const Sig& s), c.signals[input.slot] = s)
-MR2_GIVEN(signal, (Spare spare, const Sig& s), c.spareSignals[spare.id] = s)
 MR2_GIVEN(value, (Input input, const Value& v), {
     auto it = c.signals.emplace(input.slot, sig::base()).first;
     it->second.value = v;
@@ -785,10 +728,8 @@ MR2_GIVEN(valuesNaN, (), c.values = Config::Values::NaN)
 MR2_GIVEN(verdict, (Input input, Verdict v), c.stub = true; test.stub->verdicts[input.slot] = v)
 MR2_GIVEN(accepts, (), c.stub = true)
 MR2_GIVEN(accepts, (AcceptsRule rule), c.stub = true; test.owner->rule = rule)
-MR2_GIVEN(noScheduler, (), c.noScheduler = true)
 MR2_GIVEN(noScheduler, (Input input), c.noSchedulerInputs.insert(input.slot))
 MR2_GIVEN(fifo, (), c.fifo = true)
-MR2_GIVEN(heldByReader, (Input input), c.ports = true; c.heldByReader.insert(input.slot))
 MR2_GIVEN(heldByStreamReader, (Input input), c.ports = true; c.heldByStream.insert(input.slot))
 MR2_GIVEN(listenerBlock, (Input input, PacketReadyNotification mode), c.ports = true; c.blockListener[input.slot] = mode)
 MR2_GIVEN(onePerPacket, (), c.packets = 1)
@@ -802,14 +743,11 @@ void MultiReader2Test::ensureContext()
         return;
     // Each scheduler logs to a logger of its own: a destroyed scheduler removes its component from its logger, and Suite 3
     // creates a second scheduler in the same fixture
-    if (!config->noScheduler)
-    {
-        // The scheduler applications use, unless the case depends on the FIFO order
-        const bool fifo = workers == 1 && config->fifo;
-        const auto schedulerLogger = LoggerWithSinks(List<ILoggerSink>());
-        scheduler = fifo ? createWithImplementation<IScheduler, FifoSchedulerImpl>(Scheduler(schedulerLogger, 1))
-                         : Scheduler(schedulerLogger, workers);
-    }
+    // The scheduler applications use, unless the case depends on the FIFO order
+    const bool fifo = workers == 1 && config->fifo;
+    const auto schedulerLogger = LoggerWithSinks(List<ILoggerSink>());
+    scheduler = fifo ? createWithImplementation<IScheduler, FifoSchedulerImpl>(Scheduler(schedulerLogger, 1))
+                     : Scheduler(schedulerLogger, workers);
     context = Context(scheduler, logger, TypeManager(), nullptr, nullptr);
     contextWithoutScheduler = Context(nullptr, logger, TypeManager(), nullptr, nullptr);
 
@@ -817,13 +755,12 @@ void MultiReader2Test::ensureContext()
     const int refSlot = config->main.value_or(1);
     const auto it = config->signals.find(refSlot);
     const Sig refSig = it != config->signals.end() ? it->second : sig::base();
-    config->reference = TickDomain::from(refSig.domain.build(nullptr)).value_or(baseTickDomain());
+    config->reference = TickDomain::from(refSig.domain.build(nullptr)).value_or(TickDomain{});
 }
 
 std::unique_ptr<TestSignal> MultiReader2Test::createSignal(const ContextPtr& ctx, const std::string& id, const Sig& s)
 {
     auto signal = std::make_unique<TestSignal>();
-    signal->id = id;
     signal->value = createWithImplementation<ISignalConfig, HarnessSignalImpl>(ctx, nullptr, nullptr, StringPtr(id), nullptr);
     signal->domain = createWithImplementation<ISignalConfig, HarnessSignalImpl>(ctx, nullptr, nullptr, StringPtr(id + "_domain"), nullptr);
     signal->valueImpl = static_cast<HarnessSignalImpl*>(signal->value.getObject());
@@ -864,17 +801,6 @@ TestInput& MultiReader2Test::input(int slot)
         else
             in->port.connect(in->own->value);
 
-        if (config->heldByReader.count(slot))
-        {
-            auto p = MultiReader2Params();
-            p.setInputs(List<IComponent>(in->port));
-            IMultiReader2* holder = nullptr;
-            const ErrCode err = createMultiReader2(&holder, p);
-            if (OPENDAQ_SUCCEEDED(err))
-                holders.push_back(MultiReader2Ptr::Adopt(holder));
-            daqClearErrorInfo();
-            in->otherListener = in->port.getListener();
-        }
         if (config->heldByStream.count(slot))
         {
             holders.push_back(StreamReaderFromPort(in->port, SampleType::Float64, SampleType::Int64));
@@ -993,8 +919,7 @@ MultiReader2ParamsPtr MultiReader2Test::initialParams()
     params.setValueReadType(config->readType);
     if (config->stub)
     {
-        stub->function = newStubFunction();
-        params.setAcceptsDescriptor(stub->function);
+        params.setAcceptsDescriptor(newStubFunction());
     }
     return params;
 }
@@ -1172,7 +1097,7 @@ void MultiReader2Test::writePackets(Input in, int64_t first, int64_t last)
 
     const auto& ref = config->reference;
     const auto own = TickDomain::from(signal->domainDesc);
-    const TickDomain dom = own.value_or(baseTickDomain());
+    const TickDomain dom = own.value_or(TickDomain{});
     const int64_t u0 = dom.tickAt(ref.timeOf(first));
     const int64_t uEnd = dom.tickAt(ref.timeOf(last));
 
@@ -1215,7 +1140,6 @@ void MultiReader2Test::writePackets(Input in, int64_t first, int64_t last)
             else if (config->values == Config::Values::NaN)
                 v = std::numeric_limits<double>::quiet_NaN();
             fillSample(raw + k * sampleSize, valueDesc, v);
-            signal->written[samples[i + k].second] = v;
             testInput.written[samples[i + k].second] = v;
         }
         signal->value.sendPacket(packet);
@@ -1267,16 +1191,6 @@ void MultiReader2Test::announce(Input in, const Domain& domain)
 void MultiReader2Test::announce(Input in, const Value& value, const Domain& domain)
 {
     writeLine(sendAnnounce(in, value, domain));
-}
-
-void MultiReader2Test::announce(Spare sp, const Value& value)
-{
-    writeLine(
-        [&]
-        {
-            auto& s = spare(sp.id);
-            sendEvent(s, value.build(s.valueDesc), std::nullopt);
-        });
 }
 
 void MultiReader2Test::gap(Input in)
@@ -1371,7 +1285,6 @@ std::function<void()> MultiReader2Test::sendRemoval(Input in)
     {
         auto& i = input(in.slot);
         i.signal->value.asPtr<IRemovable>().remove();
-        i.signal->removed = true;
         if (i.port.assigned())
             i.signal = nullptr;
     };
@@ -1408,10 +1321,6 @@ Script MultiReader2Test::script(Timeline tl)
             one(m, 0, 99);
             each(1000, 1099);
             break;
-        case Timeline::Exact:
-            one(m, 0, 99);
-            each(3099, 3198);
-            break;
         case Timeline::Ahead:
             one(m, 0, 99);
             each(3100, 3199);
@@ -1420,7 +1329,7 @@ Script MultiReader2Test::script(Timeline tl)
             each(0, 99);
             one(m, 2100, 3109);
             break;
-        // [ASSUMPTION] the continuations of S1.SYNC.11 and S1.SYNC.13, with the first non-main input hit
+        // The continuations of S1.SYNC.11 and S1.SYNC.13, with the first non-main input hit
         case Timeline::JumpAhead:
             one(m, 0, 99);
             each(0, 99);
@@ -1585,10 +1494,6 @@ Result MultiReader2Test::record(Result result)
         }
         if (result.status.getHasChanges())
             ownerOnStatus(result.status);
-    }
-    {
-        std::scoped_lock lock(stateMutex);
-        lastResult = result;
     }
     if (recordingRun &&
         (result.kind == Result::Kind::Read || result.kind == Result::Kind::Skip || result.kind == Result::Kind::ReadWithDomain))
@@ -1836,7 +1741,6 @@ void MultiReader2Test::sender()
 {
     Result r{Result::Kind::Sender};
     r.step = "sender";
-    r.sender = handlerSender;
     r.senderIsReader = handlerSender.assigned() && handlerReader.assigned() && handlerSender == handlerReader.asPtr<IBaseObject>();
     record(std::move(r));
 }
@@ -2287,7 +2191,7 @@ void MultiReader2Test::checkBuffers(const Result& r, const Expect& e)
             const SampleType type = readType == SampleType::Undefined ? desc.getSampleType() : readType;
             const SizeT elements = elementCount(desc);
             const bool isStruct = type == SampleType::Struct;
-            const SizeT sampleSize = isStruct ? desc.getRawSampleSize() * 1 : elements * typeSize(type);
+            const SizeT sampleSize = isStruct ? desc.getRawSampleSize() : elements * typeSize(type);
             filled = n * sampleSize;
             valued.insert(slot);
             const auto& written = input(slot).written;  // the samples may come from a signal the port no longer carries

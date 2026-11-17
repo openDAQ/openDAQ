@@ -167,7 +167,7 @@ TEST_F(MultiReader2Scenario, FreePortSumJudgesDescriptorsAcrossInputs)
         .value(in2, Value().unit("V"))
         .value(in3, Value(SampleType::Int32).unit("A"));
     offerFreePort(in1);
-    ownerReacts(OwnerReacts().cachesDescriptors().removesDisconnectedPorts());
+    ownerReacts(OwnerReacts().removesDisconnectedPorts());
     handler([&] { drain(); });
     connect(in1);  // s1 is in1's own signal
     offerFreePort(in2);
@@ -253,7 +253,7 @@ TEST_F(MultiReader2Scenario, TwoFixedPortsWithPinnedVoltagePort)
         .accepts(AcceptsRule::Power)
         .value(in1, Value().unit("V"))
         .value(in2, Value().unit("A"));
-    ownerReacts(OwnerReacts().cachesUnlessError().warnsWhenOnlyDisconnected());
+    ownerReacts(OwnerReacts().warnsWhenOnlyDisconnected());
     handler([&] { drain(); });
     connect(in1);  // s1 is in1's own signal
     expect(
@@ -300,7 +300,7 @@ TEST_F(MultiReader2Scenario, TwoFixedPortsWithPinnedVoltagePort)
 TEST_F(MultiReader2Scenario, PortCountAndMainInputFromProperties)
 {
     given().ports().unconnected(in1).unconnected(in2).main(in1).policy(Exclude);
-    ownerReacts(OwnerReacts().cachesUnlessError().setsComponentStatus());
+    ownerReacts(OwnerReacts().setsComponentStatus());
     handler([&] { drain(); });
     connect(in1);  // s1 is in1's own signal
     expect(idle(),

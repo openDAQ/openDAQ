@@ -3,15 +3,10 @@
 #include "multi_reader2_harness.h"
 #include "multi_reader2_harness_state.h"
 
-#include <algorithm>
-#include <chrono>
-#include <future>
-#include <random>
-#include <thread>
+#include <utility>
 
 namespace daq::mr2test
 {
-
 
 using namespace detail;
 
@@ -26,8 +21,6 @@ using namespace detail;
         return r;                         \
     }
 
-MR2_OWNER_REACTS(cachesDescriptors, r.cache = true)
-MR2_OWNER_REACTS(cachesUnlessError, r.cache = true; r.cacheUnderError = false)
 MR2_OWNER_REACTS(setsComponentStatus, r.componentStatus = true)
 MR2_OWNER_REACTS(warnsWhenOnlyDisconnected, r.componentStatus = true; r.warnDisconnected = true)
 MR2_OWNER_REACTS(removesDisconnectedPorts, r.removeDisconnected = true)
@@ -115,10 +108,6 @@ void MultiReader2Test::ownerOnStatus(const MultiReader2StatusPtr& status)
         owner->rejudge = owner->rejudge || unit != owner->referenceUnit;
         owner->referenceUnit = unit;
     }
-    if (owner->reacts.cache && (owner->reacts.cacheUnderError || level != Error))
-        for (const auto& i : status.getInputs())
-            if (i.getDescriptor().assigned())
-                owner->cache[slotOf(i.getInput())] = i.getDescriptor();
     if (owner->reacts.componentStatus)
     {
         bool onlyDisconnected = true;

@@ -30,7 +30,6 @@ using namespace detail;
 
 struct TestSignal
 {
-    std::string id;
     SignalConfigPtr value;
     SignalConfigPtr domain;
     HarnessSignalImpl* valueImpl = nullptr;
@@ -40,8 +39,6 @@ struct TestSignal
     std::vector<DataDescriptorPtr> valueHistory;
     std::vector<DataDescriptorPtr> domainHistory;
     int64_t nextIndex = 0;
-    std::map<int64_t, double> written;  // reference main tick -> raw value
-    bool removed = false;
 };
 
 struct TestInput
@@ -75,10 +72,8 @@ struct MultiReader2Test::Config
         NaN
     } values = Values::Tick;
     bool stub = false;
-    bool noScheduler = false;
     std::set<int> noSchedulerInputs;
     bool fifo = false;
-    std::set<int> heldByReader;
     std::set<int> heldByStream;
     std::map<int, PacketReadyNotification> blockListener;
     int packets = 2;
@@ -109,7 +104,6 @@ struct MultiReader2Test::Owner
     std::optional<AcceptsRule> rule;
     std::string referenceUnit;  // AcceptsRule::Sum: the main input's unit; empty accepts every unit
     bool rejudge = false;       // the reference moved: the owner has every input judged again
-    std::map<int, DataDescriptorPtr> cache;
     ComponentStatus status = ComponentStatus::Ok;
     std::string message;
     bool paused = false;
@@ -128,7 +122,6 @@ struct MultiReader2Test::Stub
     std::mutex mutex;
     std::map<int, Verdict> verdicts;
     std::vector<int> asked;
-    FunctionPtr function;
 };
 
 }

@@ -502,5 +502,68 @@ TEST_F(JsonSerializedListTest, InterfaceIdString)
 {
     ASSERT_EQ(daqInterfaceIdString<ISerializedList>(), "{A9E1FD59-8AD5-5F3C-B4F8-2A9CDE66E598}");
 }
+
+// Runs `read` on the serialized list stored under "List"
+static void withList(const DeserializerPtr& deserializer, const std::string& json, const std::function<void(const SerializedListPtr&)>& read)
+{
+    const auto proc = Procedure([&read](const BaseObjectPtr& serialized)
+    {
+        const auto object = serialized.asPtr<ISerializedObject, SerializedObjectPtr>(true);
+        read(object.readSerializedList("List"));
+    });
+
+    deserializer.callCustomProc(proc, json);
+}
+
+TEST_F(JsonSerializedListTest, readInt64)
+{
+    withList(deserializer, R"({"List":[9007199254740993,-9223372036854775807,1]})", [](const SerializedListPtr& list)
+    {
+        ASSERT_EQ(list.getCurrentItemType(), ctInt);
+        ASSERT_EQ(list.readInt(), 9007199254740993);
+        ASSERT_EQ(list.readInt(), -9223372036854775807);
+        ASSERT_EQ(list.readInt(), 1);
+    });
+}
+
+TEST_F(JsonSerializedListTest, readSerializedObjectNullMovesToNextItem)
+{
+    withList(deserializer, R"({"List":[null,{"key":1}]})", [](const SerializedListPtr& list)
+    {
+        ASSERT_FALSE(list.readSerializedObject().assigned());
+
+        const auto object = list.readSerializedObject();
+        ASSERT_TRUE(object.assigned());
+
+        Int value = 0;
+        ASSERT_EQ(object->readInt(String("key"), &value), OPENDAQ_SUCCESS);
+        ASSERT_EQ(value, 1);
+
+        ASSERT_THROW(list.getCurrentItemType(), OutOfRangeException);
+    });
+}
+
+TEST_F(JsonSerializedListTest, readStringNullMovesToNextItem)
+{
+    withList(deserializer, R"({"List":[null,"text"]})", [](const SerializedListPtr& list)
+    {
+        ASSERT_FALSE(list.readString().assigned());
+        ASSERT_EQ(list.readString(), "text");
+        ASSERT_THROW(list.getCurrentItemType(), OutOfRangeException);
+    });
+}
+
+TEST_F(JsonSerializedListTest, readListNullMovesToNextItem)
+{
+    withList(deserializer, R"({"List":[null,[1,2]]})", [](const SerializedListPtr& list)
+    {
+        ASSERT_FALSE(list.readList<IBaseObject>().assigned());
+
+        const ListPtr<IBaseObject> items = list.readList<IBaseObject>();
+        ASSERT_EQ(items.getCount(), 2u);
+
+        ASSERT_THROW(list.getCurrentItemType(), OutOfRangeException);
+    });
+}
 }
 // namespace test_json_serialized_list

@@ -46,6 +46,7 @@
 - [#1374](https://github.com/openDAQ/openDAQ/pull/1374) An exception message containing `{` or `}` no longer turns into an `fmt::format_error`.
 - [#1367](https://github.com/openDAQ/openDAQ/pull/1367) Fix a crash when a device's info or domain, or a component's name, description or visibility, is read while the config client applies a server update or a domain change.
 - [#1387](https://github.com/openDAQ/openDAQ/pull/1387) Fix a process abort when a formatted error message is longer than 1024 bytes or its format string is malformed.
+- [#1385](https://github.com/openDAQ/openDAQ/pull/1385) `JsonSerializedList::readInt` reads 64-bit integers instead of failing on values above the 32-bit range, and `readSerializedObject`, `readList` and `readString` move past a `null` item instead of returning it again on every call. Code that stepped over such a `null` with an extra `readObject` call has to drop that call.
 
 ## Misc
 

@@ -287,7 +287,7 @@ DECLARE_OPENDAQ_INTERFACE(IDevice, IFolder)
      *   - "Streaming": Same as device, but used to configure each individual streaming connection established
      *     when calling `addDevice`.
      *
-     * @deprecated Use createAddDeviceConfig instead.
+     * TODO: Temporarily not marked as deprecated - mark deprecated again (use createAddDeviceConfig instead) once all callers are migrated.
      */
     virtual ErrCode INTERFACE_FUNC createDefaultAddDeviceConfig(IPropertyObject** defaultConfig) = 0;
 

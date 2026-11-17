@@ -31,7 +31,6 @@ jobs:
     outputs:
       ref: ${{ steps.commit.outputs.ref }}
       repository: ${{ job.workflow_repository }}
-      channel: ${{ steps.channel.outputs.channel }}
       skip-staging-push: ${{ inputs.skip-staging-push || job.workflow_ref != github.workflow_ref }}
     steps:
       # this repository, also when called from another one
@@ -43,13 +42,6 @@ jobs:
       - name: Resolve the commit
         id: commit
         run: echo "ref=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
-
-      # where it lies picks its channel
-      - uses: openDAQ/openDAQ-CI/.github/actions/resolve-channel@bundle/extract-each-artifact-into-its-dir
-        id: channel
-        with:
-          repository: ${{ job.workflow_repository }}
-          commit: ${{ steps.commit.outputs.ref }}
 
   stage:
     needs: resolve
@@ -132,13 +124,13 @@ jobs:
       staging-push: >-
         [
           {
-            "path": "ghcr.io/${{ github.repository_owner }}/${{ needs.resolve.outputs.channel || 'dev' }}/staging/opendaq",
+            "path": "ghcr.io/${{ github.repository_owner }}/staging/opendaq",
             "artifacts": ["opendaq-staging-*/core"],
             "idx-identity": ["org.opencontainers.image.revision"],
             "pkg-identity": ["org.opencontainers.image.revision", "com.opendaq.package.triplet"]
           },
           {
-            "path": "ghcr.io/${{ github.repository_owner }}/${{ needs.resolve.outputs.channel || 'dev' }}/installer/opendaq",
+            "path": "ghcr.io/${{ github.repository_owner }}/installer/opendaq",
             "artifacts": ["opendaq-package-*/core"],
             "idx-identity": ["org.opencontainers.image.revision"],
             "pkg-identity": ["org.opencontainers.image.revision", "com.opendaq.package.triplet"]

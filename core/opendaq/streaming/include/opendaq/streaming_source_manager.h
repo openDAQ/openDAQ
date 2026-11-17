@@ -16,7 +16,11 @@
 
 #pragma once
 
+#include <opendaq/add_device_config_ptr.h>
+#include <opendaq/address_info_utils.h>
+#include <opendaq/add_streaming_config_ptr.h>
 #include <opendaq/mirrored_device_config_ptr.h>
+#include <opendaq/streaming_type_utils.h>
 #include <atomic>
 #include <map>
 #include <optional>
@@ -39,8 +43,7 @@ class StreamingSourceManager
 public:
     explicit StreamingSourceManager(const ContextPtr& context,
                                     const DevicePtr& ownerDevice,
-                                    const PropertyObjectPtr& deviceConfig,
-                                    const StringPtr& streamingProtocolId);
+                                    const AddDeviceConfigPtr& deviceConfig);
 
     ~StreamingSourceManager();
 
@@ -69,29 +72,26 @@ private:
 
     ContextPtr context;
     WeakRefPtr<IDevice> ownerDeviceRef;
-    PropertyObjectPtr deviceConfig;
+    AddStreamingConfigPtr streamingConfig;
     LoggerComponentPtr loggerComponent;
 
-    bool minHopsStreamingHeuristicEnabled{false};
-    StringPtr requiredStreamingProtocolId;
-    StringPtr primaryAddressType;
+    StreamingMode streamingMode;
+    StringPtr requiredStreamingPrefix;
+    AddressType primaryAddressType;
     std::atomic<bool> stopped{false};
 };
 
 inline StreamingSourceManager::StreamingSourceManager(const ContextPtr& context,
                                                       const DevicePtr& ownerDevice,
-                                                      const PropertyObjectPtr& deviceConfig,
-                                                      const StringPtr& streamingProtocolId)
+                                                      const AddDeviceConfigPtr& deviceConfig)
     : context(context)
     , ownerDeviceRef(ownerDevice)
-    , deviceConfig(deviceConfig)
+    , streamingConfig(deviceConfig.getStreamingOptions().getStreamingConfig())
     , loggerComponent(context.getLogger().getOrAddComponent(fmt::format("StreamingSourceManager({})", ownerDevice.getGlobalId())))
-    , requiredStreamingProtocolId(streamingProtocolId)
+    , streamingMode(deviceConfig.getStreamingOptions().getStreamingMode())
+    , requiredStreamingPrefix(streamingConfig.getStreamingType().getConnectionStringPrefix())
+    , primaryAddressType(deviceConfig.getPrimaryAddressType())
 {
-    PropertyObjectPtr generalConfig = this->deviceConfig.getPropertyValue("General");
-    minHopsStreamingHeuristicEnabled = generalConfig.getPropertyValue("StreamingConnectionHeuristic") == 1;
-    primaryAddressType = generalConfig.getPropertyValue("PrimaryAddressType");
-
     this->context.getOnCoreEvent() += event(this, &StreamingSourceManager::coreEventCallback);
 }
 
@@ -141,10 +141,10 @@ inline void StreamingSourceManager::componentAdded(const ComponentPtr& sender, c
 
     if (auto topAddedDevice = addedComponent.asPtrOrNull<IMirroredDeviceConfig>(); topAddedDevice.assigned())
     {
-        if (addedComponentGlobalId == ownerDeviceGlobalId || minHopsStreamingHeuristicEnabled)
+        if (addedComponentGlobalId == ownerDeviceGlobalId || streamingMode == StreamingMode::MinHops)
             completeStreamingConnections(topAddedDevice);
 
-        if (minHopsStreamingHeuristicEnabled)
+        if (streamingMode == StreamingMode::MinHops)
         {
             // enable streaming separately for top added and each of the nested devices - from bottom to top
             const auto allDevicesInTree = getAllDevicesRecursively(topAddedDevice);
@@ -188,7 +188,7 @@ inline void StreamingSourceManager::componentUpdated(const ComponentPtr& sender,
         else
         {
             if (auto updatedDevice = updatedComponent.asPtrOrNull<IMirroredSignalConfig>();
-                updatedDevice.assigned() && minHopsStreamingHeuristicEnabled)
+                updatedDevice.assigned() && streamingMode == StreamingMode::MinHops)
                 completeStreamingConnections(updatedDevice);
             enableStreamingForUpdatedComponent(updatedComponent);
         }
@@ -209,7 +209,7 @@ inline void StreamingSourceManager::enableStreamingForAddedComponent(const Compo
         }
     );
     auto ancestorDevices = List<IDevice>();
-    if (minHopsStreamingHeuristicEnabled) // skip nested devices' streamings if MinHops disabled
+    if (streamingMode == StreamingMode::MinHops) // skip nested devices' streamings if MinHops disabled
         ancestorDevices = ownerDevice.getDevices(search::Recursive(search::Custom(isAncestorOrAddedComponent)));
     ancestorDevices.pushFront(ownerDevice);
 
@@ -416,7 +416,7 @@ inline ListPtr<IMirroredDeviceConfig> StreamingSourceManager::getAllDevicesRecur
 inline ListPtr<IAddressInfo> StreamingSourceManager::getSuitableAddressesInfo(const ListPtr<IAddressInfo>& availableAddressesInfo,
                                                                               const AddressInfoPtr& deviceConnectionAddress)
 {
-    
+    const auto primaryTypeName = getAddressTypeName(primaryAddressType);
     auto result = List<IAddressInfo>();
 
     auto const addToResult = [&result, &deviceConnectionAddress](AddressInfoPtr addressInfo)
@@ -427,19 +427,15 @@ inline ListPtr<IAddressInfo> StreamingSourceManager::getSuitableAddressesInfo(co
             result.pushBack(addressInfo);
     };
 
-    const bool hasPreferredType = (primaryAddressType == "IPv4" || primaryAddressType == "IPv6");
-    if (hasPreferredType)
+    for (const auto& addressInfo : availableAddressesInfo)
     {
-        for (const auto& addressInfo : availableAddressesInfo)
-        {
-            if (addressInfo.getType() == primaryAddressType)
-                addToResult(addressInfo);
-        }
+        if (addressInfo.getType() == primaryTypeName)
+            addToResult(addressInfo);
     }
 
     for (const auto& addressInfo : availableAddressesInfo)
     {
-        if (!hasPreferredType || addressInfo.getType() != primaryAddressType)
+        if (addressInfo.getType() != primaryTypeName)
             addToResult(addressInfo);
     }
 
@@ -470,7 +466,7 @@ inline AddressInfoPtr StreamingSourceManager::getDeviceConnectionAddress(const D
 
 inline void StreamingSourceManager::completeStreamingConnections(const MirroredDeviceConfigPtr& topDevice)
 {
-    if (minHopsStreamingHeuristicEnabled)
+    if (streamingMode == StreamingMode::MinHops)
     {
         // The order of handling nested devices is important since we need to establish streaming connections
         // for the leaf devices first. The custom function is used to get the list of sub-devices
@@ -520,8 +516,7 @@ inline void StreamingSourceManager::attachStreamingToDevice(const MirroredDevice
               cap.getPrefix());
 
         const StringPtr capabilityProtocolId = cap.getProtocolId();
-        // the protocol id should match to the required
-        if (cap.getProtocolType() != ProtocolType::Streaming || capabilityProtocolId != requiredStreamingProtocolId)
+        if (getServerCapabilityPrefix(cap) != requiredStreamingPrefix)
             continue;
 
         // Prioritize discovery addresses if available for this protocol
@@ -552,7 +547,7 @@ inline void StreamingSourceManager::attachStreamingToDevice(const MirroredDevice
             auto errCode = daqTry(
                 [&]()
                 {
-                    streaming = managerUtils.createStreaming(connectionString, deviceConfig);
+                    streaming = managerUtils.createStreaming(connectionString, streamingConfig.getTypeConfig());
                     return OPENDAQ_SUCCESS;
                 });
             if (OPENDAQ_FAILED(errCode))
@@ -580,7 +575,7 @@ inline void StreamingSourceManager::attachStreamingToDevice(const MirroredDevice
     }
     else
     {
-        LOG_W("Device {} failed to automatically add streaming connection for {} protocol", device.getGlobalId(), requiredStreamingProtocolId);
+        LOG_W("Device {} failed to automatically add streaming connection for {} protocol", device.getGlobalId(), requiredStreamingPrefix);
     }
 }
 

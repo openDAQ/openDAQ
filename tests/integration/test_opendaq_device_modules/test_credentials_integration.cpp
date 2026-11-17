@@ -87,6 +87,13 @@ public:
 
         return instance;
     }
+
+    static DevicePtr addDeviceWithoutStreaming(const InstancePtr& instance)
+    {
+        const auto config = instance.createAddDeviceConfig(DeviceInfo(DeviceConnectionString));
+        config.getStreamingOptions().setStreamingType(nullptr);
+        return instance.addDevice(DeviceConnectionString, config);
+    }
 };
 
 TEST_F(CredentialDemoModuleIntegrationTest, AddDeviceSucceedsWithProviderSuppliedCredentials)
@@ -191,11 +198,22 @@ TEST_F(CredentialDemoModuleIntegrationTest, AddDeviceThrowsWhenProviderSuppliesI
     ASSERT_THROW(instance.addDevice(DeviceConnectionString, WithAuthenticationConfig(authConfig)), CredentialsRequiredException);
 }
 
+TEST_F(CredentialDemoModuleIntegrationTest, AddDeviceWithoutConfigConnectsLinkedStreaming)
+{
+    auto instance = createClientInstance();
+
+    auto device = instance.addDevice(DeviceConnectionString);
+
+    const auto sources = device.asPtr<IMirroredDevice>().getStreamingSources();
+    ASSERT_EQ(sources.getCount(), 1u);
+    ASSERT_EQ(sources[0].getConnectionString(), StreamingConnectionString);
+}
+
 TEST_F(CredentialDemoModuleIntegrationTest, AddStreamingSucceedsAnonymously)
 {
     auto instance = createClientInstance(); // No credential provider registered - must not be needed.
 
-    auto device = instance.addDevice(DeviceConnectionString); // Plain, anonymous device connection.
+    auto device = addDeviceWithoutStreaming(instance);  // Plain, anonymous device connection.
 
     StreamingPtr streaming;
     ASSERT_NO_THROW(streaming = device.addStreaming(StreamingConnectionString)); // Plain, anonymous streaming connection.
@@ -207,7 +225,7 @@ TEST_F(CredentialDemoModuleIntegrationTest, AddStreamingSucceedsWithProviderSupp
     const auto provider = TestCredentialProvider(Dict<IString, IString>({{"UserName", "user"}, {"Password", "pass"}}));
     auto instance = createClientInstance(provider);
 
-    auto device = instance.addDevice(DeviceConnectionString); // Plain, anonymous device connection.
+    auto device = addDeviceWithoutStreaming(instance);  // Plain, anonymous device connection.
 
     const auto streamingType = instance.getModuleManager().asPtr<IModuleManagerUtils>().getAvailableStreamingTypes().get("CredentialDemoStreaming");
     auto streamingAuthConfig = streamingType.createAuthenticationConfig();
@@ -223,7 +241,7 @@ TEST_F(CredentialDemoModuleIntegrationTest, AddStreamingThrowsWhenProviderSuppli
     const auto provider = TestCredentialProvider(Dict<IString, IString>({{"UserName", "user"}, {"Password", "wrong"}}));
     auto instance = createClientInstance(provider);
 
-    auto device = instance.addDevice(DeviceConnectionString); // Plain, anonymous device connection.
+    auto device = addDeviceWithoutStreaming(instance);  // Plain, anonymous device connection.
 
     const auto streamingType = instance.getModuleManager().asPtr<IModuleManagerUtils>().getAvailableStreamingTypes().get("CredentialDemoStreaming");
     auto streamingAuthConfig = streamingType.createAuthenticationConfig();

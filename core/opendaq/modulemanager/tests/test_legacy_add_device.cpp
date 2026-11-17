@@ -419,19 +419,21 @@ TEST_F(LegacyAddDeviceTest, InvalidFlatValueFails)
     auto config = PropertyObject();
     config.addProperty(StringProperty("Port", "not a number"));
 
-    ASSERT_THROW(add("legdev://host", config), ConversionFailedException);
+    ASSERT_THROW(add("legdev://host", config), InvalidValueException);
     ASSERT_TRUE(module->configs.empty());
 }
 
-TEST_F(LegacyAddDeviceTest, DeviceSectionWithoutTypeFails)
+TEST_F(LegacyAddDeviceTest, DeviceSectionWithoutTypeUsesGeneral)
 {
-    const auto config = PropertyObject();
-    config.addProperty(ObjectProperty("Device", PropertyObject()));
-    config.addProperty(ObjectProperty("Streaming", PropertyObject()));
-    config.addProperty(ObjectProperty("General", PropertyObject()));
+    const auto config = legacyConfig();
+    section(config, "Device").removeProperty("legdev");
+    const auto general = section(config, "General");
+    general.setPropertyValue("Username", "u");
+    general.setPropertyValue("Password", "p");
 
-    ASSERT_THROW(add("legdev://host", config), NotFoundException);
-    ASSERT_TRUE(module->configs.empty());
+    add("legdev://host", config);
+
+    ASSERT_EQ(lastConfig(), with(defaults(), {{"Username", "u"}, {"Password", "p"}}));
 }
 
 TEST_F(LegacyAddDeviceTest, ConnectionStringUnknownOptionIgnored)
@@ -470,15 +472,15 @@ TEST_F(LegacyAddDeviceTest, SmartPrimaryAddressTypeMissing)
     ASSERT_EQ(lastConnectionString(), "legdev://IPv4");
 }
 
-TEST_F(LegacyAddDeviceTest, SmartBlankAddressTypeTakesFirstAddress)
+TEST_F(LegacyAddDeviceTest, SmartBlankAddressTypePrefersIPv4)
 {
     addDiscoveredDevice({{"IPv6"}, {"IPv4"}});
 
     add("daq://m_s", nullptr);
-    ASSERT_EQ(lastConnectionString(), "legdev://IPv6");
+    ASSERT_EQ(lastConnectionString(), "legdev://IPv4");
 
     add("daq://m_s", legacyConfig());
-    ASSERT_EQ(lastConnectionString(), "legdev://IPv6");
+    ASSERT_EQ(lastConnectionString(), "legdev://IPv4");
 }
 
 TEST_F(LegacyAddDeviceTest, SmartPrimaryAddressTypeTakesFirstOfType)

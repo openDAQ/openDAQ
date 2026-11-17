@@ -15,6 +15,7 @@
 - [#1372](https://github.com/openDAQ/openDAQ/pull/1372) Ping discovered IPv6 addresses as well as IPv4 ones, without root or administrator rights where the operating system allows it.
 - [#1389](https://github.com/openDAQ/openDAQ/pull/1389) Device, Function Block and Servers send their `ComponentType` objects over native. Server types have a new field `ServerKind`
 - [#1389](https://github.com/openDAQ/openDAQ/pull/1389) Servers can own function blocks - they can be added/removed by applications.
+- [#1398](https://github.com/openDAQ/openDAQ/pull/1398) `createAddDeviceConfig` picks the default device type from the device's capabilities: native configuration first, else the first Mirrored type. The default streaming type is the one linked to the device type, else native streaming, else the first one the device advertises. `addDevice` without a config uses the same defaults.
 
 ## Python
 
@@ -76,6 +77,16 @@ Use `daqref.root://` instead, also in `RootDevice.ConnectionString` of config fi
 
 A set `General.PrimaryAddressType` orders the addresses, the preferred type first, instead of dropping those of the other type.
 
+### [#1398](https://github.com/openDAQ/openDAQ/pull/1398) `daq://` prefers IPv4 addresses
+
+A blank `General.PrimaryAddressType`, the default, now prefers IPv4 on `daq://`, also for an add without a config.
+Before, `daq://` connected to the first address the device lists, which could be IPv6.
+
+### [#1398](https://github.com/openDAQ/openDAQ/pull/1398) An add without a config uses the `MinHops` streaming mode
+
+`addDevice` without a config now streams in `MinHops` mode instead of `MinConnections`, so nested devices connect their own streaming where they can.
+Pass a config with `MinConnections` to keep the old behaviour.
+
 ### [#1327](https://github.com/openDAQ/openDAQ/pull/1327) Event handler removal waits for running handlers
 
 `IEvent::removeHandler` and `IEvent::clear` now return only once the removed handlers are no longer running on another thread. Don't call them while holding a lock that such a handler needs, or the call waits forever.
@@ -136,6 +147,11 @@ Lock attributes when the component is constructed. After that, unlock an attribu
 - `IDevice` implementations not derived from `GenericDevice` implement `getSynchronization`.
 - Modules that set `UsesOffset` remove it and set `ReferenceDomainIds`.
 - `IReferenceDomainInfo::getReferenceDomainIds` takes the interface slot of the removed `getUsesOffset`; modules built against older headers must be rebuilt.
+
+### [#1398](https://github.com/openDAQ/openDAQ/pull/1398) A device stores its add config as an `IAddDeviceConfig`
+
+`IComponentPrivate::getComponentConfig` of a device added through the module manager now returns an `IAddDeviceConfig`, not the old three-section config.
+Read its values through the `IAddDeviceConfig` getters instead of property names.
 
 ## Interface API changes
 

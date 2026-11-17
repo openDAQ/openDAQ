@@ -60,7 +60,7 @@ public:
             mm.addModule(nativeClientModule);
         }
 
-        auto config = test_helpers::createDefaultAddDeviceConfig(instance);
+        auto config = instance.createDefaultAddDeviceConfig();
         PropertyObjectPtr generalConfig = config.getPropertyValue("General");
 
         generalConfig.setPropertyValue("Username", username);

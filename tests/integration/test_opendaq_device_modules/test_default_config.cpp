@@ -6,15 +6,6 @@ using ModulesDefaultConfigTest = testing::Test;
 
 using namespace daq;
 
-#if defined(__GNUC__)
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
-#endif
-#ifdef _MSC_VER
-#pragma warning(push)
-#pragma warning(disable : 4996)
-#endif
-
 TEST_F(ModulesDefaultConfigTest, Create)
 {
     const auto instance = test_helpers::createInstance("[[none]]");
@@ -617,10 +608,3 @@ TEST_F(ModulesDefaultConfigTest, SmartConnectWithIpVerLt)
         instance.removeDevice(device);
     }
 }
-
-#ifdef _MSC_VER
-#pragma warning(pop)
-#endif
-#if defined(__GNUC__)
-#pragma GCC diagnostic pop
-#endif

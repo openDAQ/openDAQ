@@ -218,7 +218,7 @@ protected:
 
         auto connectionString = std::get<1>(GetParam());
 
-        auto config = test_helpers::createDefaultAddDeviceConfig(instance);
+        auto config = instance.createDefaultAddDeviceConfig();
         PropertyObjectPtr general = config.getPropertyValue("General");
         general.setPropertyValue("PrioritizedStreamingProtocols", List<IString>(std::get<0>(GetParam())));
 

@@ -40,7 +40,7 @@ public:
                                          ListPtr<IString> prioritizedStreamingProtocols,
                                          const IntegerPtr& heuristicValue)
     {
-        auto config = test_helpers::createDefaultAddDeviceConfig(instance);
+        auto config = instance.createDefaultAddDeviceConfig();
         PropertyObjectPtr general = config.getPropertyValue("General");
         general.setPropertyValue("PrioritizedStreamingProtocols", prioritizedStreamingProtocols);
         general.setPropertyValue("StreamingConnectionHeuristic", heuristicValue);

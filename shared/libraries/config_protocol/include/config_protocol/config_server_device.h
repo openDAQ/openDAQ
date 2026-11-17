@@ -333,21 +333,7 @@ inline BaseObjectPtr ConfigServerDevice::getDefaultAddDeviceConfig(const RpcCont
                                                                    const ParamsDictPtr& params)
 {
     ConfigServerAccessControl::protectObject(device, context.user, Permission::Read);
-#if defined(__GNUC__)
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
-#endif
-#ifdef _MSC_VER
-#pragma warning(push)
-#pragma warning(disable : 4996)
-#endif
     return device.createDefaultAddDeviceConfig();
-#ifdef _MSC_VER
-#pragma warning(pop)
-#endif
-#if defined(__GNUC__)
-#pragma GCC diagnostic pop
-#endif
 }
 
 }

@@ -163,15 +163,6 @@ static InstancePtr CreateServerInstance(InstancePtr instance = CreateDefaultServ
     return instance;
 }
 
-#if defined(__GNUC__)
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
-#endif
-#ifdef _MSC_VER
-#pragma warning(push)
-#pragma warning(disable : 4996)
-#endif
-
 static InstancePtr CreateClientInstance(uint16_t nativeConfigProtocolVersion = std::numeric_limits<uint16_t>::max(),
                                         Bool restoreClientConfigOnReconnect = False,
                                         Int configProtocolRequestTimeoutMs = 0,
@@ -5653,13 +5644,5 @@ TEST_F(NativeDeviceModulesTest, RemoveDeviceWhileItsCoreEventHandlerWaitsForTheD
         removed.get();
     }
 }
-
-#ifdef _MSC_VER
-#pragma warning(pop)
-#endif
-#if defined(__GNUC__)
-#pragma GCC diagnostic pop
-#endif
-
 }
 // namespace test_native_device_modules

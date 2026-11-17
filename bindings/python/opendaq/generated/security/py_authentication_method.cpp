@@ -43,6 +43,10 @@ void defineIAuthenticationMethod(pybind11::module_ m, PyDaqIntf<daq::IAuthentica
     m.def("AuthenticationMethod", [](std::variant<daq::IString*, py::str, daq::IEvalValue*>& id, std::variant<daq::IDict*, py::dict>& fields, std::variant<daq::IString*, py::str, daq::IEvalValue*>& description){
         return daq::AuthenticationMethod_Create(getVariantValue<daq::IString*>(id), getVariantValue<daq::IDict*>(fields), getVariantValue<daq::IString*>(description));
     }, py::arg("id"), py::arg("fields"), py::arg("description"));
+    m.def("NoneAuthenticationMethod", [](std::variant<daq::IString*, py::str, daq::IEvalValue*>& id, std::variant<daq::IString*, py::str, daq::IEvalValue*>& description){
+        const auto fields = daq::Dict<daq::IString, daq::ICredentialField>();
+        return daq::AuthenticationMethod_Create(getVariantValue<daq::IString*>(id), fields, getVariantValue<daq::IString*>(description));
+    }, py::arg("id"), py::arg("description"));
 
 
     cls.def_property_readonly("id",

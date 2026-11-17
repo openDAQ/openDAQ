@@ -1,4 +1,5 @@
 #include <opendaq/add_device_config_impl.h>
+#include <opendaq/address_info_utils.h>
 #include <opendaq/add_streaming_config_impl.h>
 #include <opendaq/add_streaming_options_impl.h>
 #include <opendaq/add_device_config_legacy.h>
@@ -23,24 +24,11 @@ static const char* DeviceTypeIdKey = "deviceTypeId";
 static const char* ScanOnAddKey = "scanOnAdd";
 static const char* PropValuesKey = "propValues";
 
-StringPtr toString(AddressType type)
-{
-    switch (type)
-    {
-        case AddressType::IPv4:
-            return "IPv4";
-        case AddressType::IPv6:
-            return "IPv6";
-    }
-
-    DAQ_THROW_EXCEPTION(InvalidParameterException, "Unknown address type {}", static_cast<Int>(type));
-}
-
 DictPtr<Int, IString> addressTypeNames()
 {
     auto names = Dict<Int, IString>();
     for (const auto type : {AddressType::IPv4, AddressType::IPv6})
-        names.set(static_cast<Int>(type), toString(type));
+        names.set(static_cast<Int>(type), getAddressTypeName(type));
     return names;
 }
 }

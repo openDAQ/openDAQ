@@ -14,12 +14,7 @@
  * limitations under the License.
  */
 
-// Hand-written binding of MultiReader2 (spec 0007, decisions A14, A16 to A19, C8).
-//
-// Threading: every reader call releases the GIL. The binding's own state (the params copy and the layout predicted
-// from the last status) is guarded by a mutex that is only ever taken with the GIL released, so a Python callable the
-// reader calls on the caller's thread (acceptsDescriptor) or a handler on a scheduler thread can always take the GIL.
-// acceptsDescriptor calling its own reader raises instead of locking the mutex twice (StateMutex).
+// Hand-written binding of MultiReader2 (not produced by RTGen).
 
 #include <pybind11/gil.h>
 #include <pybind11/numpy.h>
@@ -37,7 +32,6 @@
 #include <vector>
 
 #include "py_opendaq/py_opendaq.h"
-#include "py_core_types/py_converter.h"
 
 #include <opendaq/multi_reader2_factory.h>
 #include <opendaq/multi_reader2_input_status_ptr.h>
@@ -394,11 +388,6 @@ void applyKwargs(const daq::MultiReader2ParamsPtr& params, const py::kwargs& kwa
 
 // Conversions to Python
 
-py::object inputToPy(const daq::ComponentPtr& input)
-{
-    return typedToPy(input);
-}
-
 py::object statusToPy(const daq::MultiReader2StatusPtr& status)
 {
     return castFrom<daq::IMultiReader2Status>(status.getObject());
@@ -415,7 +404,7 @@ py::list componentsToPy(const daq::ListPtr<daq::IComponent>& inputs)
     if (inputs.assigned())
     {
         for (const auto& input : inputs)
-            list.append(inputToPy(input));
+            list.append(typedToPy(input));
     }
     return list;
 }
@@ -676,7 +665,6 @@ public:
             self->reader = daq::MultiReader2(params);
             self->params = params;
             self->inputIds = std::move(ids);
-            self->layout = Layout{};
         }
 
         if (handlerGiven)
@@ -1169,7 +1157,7 @@ void wrapMultiReader2(pybind11::module_ m)
         "The inputs in slot order: all signals or all input ports.");
     paramsCls.def_property(
         "main_input",
-        [](daq::IMultiReader2Params* object) { return inputToPy(daq::MultiReader2ParamsPtr::Borrow(object).getMainInput()); },
+        [](daq::IMultiReader2Params* object) { return typedToPy(daq::MultiReader2ParamsPtr::Borrow(object).getMainInput()); },
         [](daq::IMultiReader2Params* object, const py::object& input)
         { daq::MultiReader2ParamsPtr::Borrow(object).setMainInput(toComponent(input)); },
         "What everything else aligns against; None lets the reader choose.");
@@ -1207,7 +1195,7 @@ void wrapMultiReader2(pybind11::module_ m)
     inputStatusCls.doc() = "One input's state on a status.";
     inputStatusCls.def_property_readonly(
         "input",
-        [](daq::IMultiReader2InputStatus* object) { return inputToPy(daq::MultiReader2InputStatusPtr::Borrow(object).getInput()); },
+        [](daq::IMultiReader2InputStatus* object) { return typedToPy(daq::MultiReader2InputStatusPtr::Borrow(object).getInput()); },
         "The signal or input port this entry describes.");
     inputStatusCls.def_property_readonly(
         "error",
@@ -1266,7 +1254,7 @@ void wrapMultiReader2(pybind11::module_ m)
         "Empty under Ok, otherwise each input in error with its error kind.");
     statusCls.def_property_readonly(
         "main_input",
-        [](daq::IMultiReader2Status* object) { return inputToPy(daq::MultiReader2StatusPtr::Borrow(object).getMainInput()); },
+        [](daq::IMultiReader2Status* object) { return typedToPy(daq::MultiReader2StatusPtr::Borrow(object).getMainInput()); },
         "The main input in effect, or None.");
     statusCls.def_property_readonly(
         "domain_descriptor_changed",
@@ -1313,13 +1301,13 @@ void wrapMultiReader2(pybind11::module_ m)
             for (const auto& input : daq::MultiReader2StatusPtr::Borrow(object).getInputs())
             {
                 if (input.getError() != daq::MultiReader2InputError::None)
-                    errors[inputToPy(input.getInput())] = py::cast(input.getError());
+                    errors[typedToPy(input.getInput())] = py::cast(input.getError());
             }
             return errors;
         },
         "{input: MultiReader2InputError} for the inputs in error; empty under Ok.");
     statusCls.def("__repr__", [](daq::IMultiReader2Status* object) { return statusRepr(daq::MultiReader2StatusPtr::Borrow(object)); });
-    statusCls.def("__str__", [](daq::IMultiReader2Status* object) { return statusRepr(daq::MultiReader2StatusPtr::Borrow(object)); });
+    statusCls.def("__str__", [](const py::object& self) { return py::repr(self); });
 
     // Read result
 

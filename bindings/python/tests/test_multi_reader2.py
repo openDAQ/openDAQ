@@ -1,4 +1,5 @@
-import gc
+#!/usr/bin/env python
+
 import threading
 import time
 import unittest
@@ -66,7 +67,6 @@ class TestMultiReader2(opendaq_test.TestCase):
     def tearDown(self):
         self.signals = None
         self.ctx = None
-        gc.collect()
         super().tearDown()
 
     def started(self, **kwargs):
@@ -320,7 +320,7 @@ class TestMultiReader2(opendaq_test.TestCase):
         self.assertEqual(r[1].shape, (5, 2))
         buffers = [np.zeros(5), np.zeros((5, 2))]
         self.feed_mixed(reader, inputs)
-        r = reader.read_into(buffers, 5)
+        reader.read_into(buffers, 5)
         np.testing.assert_array_equal(buffers[1][0], [10, 11])
 
     def feed_mixed(self, reader, inputs):

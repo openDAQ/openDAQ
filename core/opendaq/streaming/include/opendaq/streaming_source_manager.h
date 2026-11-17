@@ -536,7 +536,7 @@ inline void StreamingSourceManager::attachStreamingToDevice(const MirroredDevice
             auto errCode = daqTry(
                 [&]()
                 {
-                    streaming = managerUtils.createStreaming(connectionString, streamingConfig.getTypeConfig());
+                    streaming = managerUtils.createStreaming(connectionString, streamingConfig, device);
                     return OPENDAQ_SUCCESS;
                 });
             if (OPENDAQ_FAILED(errCode))

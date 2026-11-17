@@ -100,9 +100,6 @@ private:
     static ServerCapabilityPtr ReplaceOldProtocolIds(const ServerCapabilityPtr& cap);
     static StringPtr ConvertIfOldIdFB(const StringPtr& id);
     static StringPtr ConvertIfOldIdProtocol(const StringPtr& id);
-    
-    static void CopyCommonGeneralPropValues(PropertyObjectPtr& addDeviceConfig);
-    static bool IsDefaultAddDeviceConfig(const PropertyObjectPtr& config);
 
     // Checks every streaming type of the module that links to a device type: the device type must be one of the
     // same module's device types. Returns a description of the first violation, or an empty string if the module passes.

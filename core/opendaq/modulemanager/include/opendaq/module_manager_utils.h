@@ -124,7 +124,7 @@ DECLARE_OPENDAQ_INTERFACE(IModuleManagerUtils, IBaseObject)
      * @brief Creates a config object for adding a device, with the default settings of all available Device and Streaming types.
      * @param[out] defaultConfig The default config
      *
-     * @deprecated Use createAddDeviceConfig instead.
+     * TODO: Temporarily not marked as deprecated - mark deprecated again (use createAddDeviceConfig instead) once all callers are migrated.
      */
     virtual ErrCode INTERFACE_FUNC createDefaultAddDeviceConfig(IPropertyObject** defaultConfig) = 0;
 

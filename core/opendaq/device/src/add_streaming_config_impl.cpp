@@ -1,11 +1,13 @@
 #include <opendaq/add_streaming_config_impl.h>
 #include <coreobjects/property_factory.h>
+#include <opendaq/component_type_private_ptr.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
 namespace add_streaming_config
 {
 static const char* TypeConfig = "TypeConfig";
+static const char* AuthenticationConfig = "AuthenticationConfig";
 
 static const char* StreamingTypeKey = "streamingType";
 }
@@ -14,6 +16,8 @@ AddStreamingConfigImpl::AddStreamingConfigImpl(const StreamingTypePtr& streaming
     : AddStreamingConfigImpl(streamingType, Partial())
 {
     Super::addProperty(ObjectProperty(add_streaming_config::TypeConfig, streamingType.createDefaultConfig()));
+    if (this->streamingType.asPtr<IComponentTypePrivate>().getSupportedAuthenticationMethods().getCount() > 0)
+        Super::addProperty(ObjectProperty(add_streaming_config::AuthenticationConfig, streamingType.createAuthenticationConfig()));
 }
 
 AddStreamingConfigImpl::AddStreamingConfigImpl(const StreamingTypePtr& streamingType, Partial)
@@ -35,6 +39,16 @@ ErrCode AddStreamingConfigImpl::getTypeConfig(IPropertyObject** config)
     OPENDAQ_PARAM_NOT_NULL(config);
 
     return daqTry([&] { *config = objPtr.getPropertyValue(add_streaming_config::TypeConfig).asPtr<IPropertyObject>().detach(); });
+}
+
+ErrCode AddStreamingConfigImpl::getAuthenticationConfig(IAuthenticationConfig** config)
+{
+    OPENDAQ_PARAM_NOT_NULL(config);
+
+    if (this->streamingType.asPtr<IComponentTypePrivate>().getSupportedAuthenticationMethods().getCount() == 0)
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOT_SUPPORTED, "This streaming type supports no authentication method");
+
+    return daqTry([&] { *config = objPtr.getPropertyValue(add_streaming_config::AuthenticationConfig).asPtr<IAuthenticationConfig>().detach(); });
 }
 
 ErrCode AddStreamingConfigImpl::clone(IPropertyObject** cloned)

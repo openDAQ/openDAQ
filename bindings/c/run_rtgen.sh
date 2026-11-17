@@ -300,11 +300,14 @@ run_rtgen copendaq/scheduler opendaq/scheduler opendaq work work
 
 # opendaq security
 
+run_rtgen copendaq/security opendaq/security opendaq credential_field credential_field
+run_rtgen copendaq/security opendaq/security opendaq authentication_method authentication_method
 run_rtgen copendaq/security opendaq/security opendaq authentication_config authentication_config
-run_rtgen copendaq/security opendaq/security opendaq credential_descriptor credential_descriptor
 run_rtgen copendaq/security opendaq/security opendaq credential_provider credential_provider
 run_rtgen copendaq/security opendaq/security opendaq credential_request credential_request
 run_rtgen copendaq/security opendaq/security opendaq credential_request_builder credential_request_builder
+run_rtgen copendaq/security opendaq/security opendaq login_parameters login_parameters
+run_rtgen copendaq/security opendaq/security opendaq login_parameters_builder login_parameters_builder
 
 # opendaq server
 

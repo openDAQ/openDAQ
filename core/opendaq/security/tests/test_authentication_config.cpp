@@ -125,17 +125,17 @@ TEST_F(AuthenticationConfigTest, GenericPropertyObjectAccess)
 {
     const AuthenticationConfigPtr config = MakeAuthenticationConfig(AnonymousAndUserNamePasswordMethods());
 
-    const StringPtr selectedValue = config.getPropertySelectionValue("AuthenticationMethod");
+    const StringPtr selectedValue = config.asPtr<IPropertyObject>().getPropertySelectionValue("AuthenticationMethod");
     ASSERT_EQ(selectedValue, StandardAnonymousId);
 
-    config.setPropertySelectionValue("AuthenticationMethod", StandardUserNamePasswordId);
+    config.asPtr<IPropertyObject>().setPropertySelectionValue("AuthenticationMethod", StandardUserNamePasswordId);
     ASSERT_EQ(config.getSelectedAuthenticationMethod().getId(), StandardUserNamePasswordId);
 
     auto credentials = Dict<IString, IString>({{"UserName", "john"}, {"Password", "secret"}});
-    config.setPropertyValue("SuppliedCredential", credentials);
+    config.asPtr<IPropertyObject>().setPropertyValue("SuppliedCredential", credentials);
     ASSERT_EQ(config.getSuppliedCredential(), credentials);
 
-    ASSERT_THROW(config.setPropertyValue("SuppliedCredential", Dict<IString, IString>({{"UserName", "john"}})), InvalidParameterException);
+    ASSERT_THROW(config.asPtr<IPropertyObject>().setPropertyValue("SuppliedCredential", Dict<IString, IString>({{"UserName", "john"}})), InvalidParameterException);
 }
 
 TEST_F(AuthenticationConfigTest, SerializeDeserialize)

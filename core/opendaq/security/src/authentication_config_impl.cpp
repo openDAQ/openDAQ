@@ -14,6 +14,13 @@
 
 BEGIN_NAMESPACE_OPENDAQ
 
+namespace authentication_config
+{
+static constexpr const char* AuthenticationMethodPropertyName = "AuthenticationMethod";
+static constexpr const char* SuppliedCredentialPropertyName = "SuppliedCredential";
+static constexpr const char* SupportedAuthenticationMethodsSerializedKey = "SupportedAuthenticationMethods";
+}
+
 AuthenticationConfigImpl::AuthenticationConfigImpl(const DictPtr<IString, IAuthenticationMethod>& authenticationMethods)
     : Super()
 {
@@ -29,14 +36,14 @@ void AuthenticationConfigImpl::initProperties(const DictPtr<IString, IAuthentica
     for (const auto& [id, authenticationMethod] : authenticationMethods)
         authenticationMethodIds.pushBack(id);
 
-    Super::addProperty(SelectionProperty(AuthenticationMethodPropertyName, authenticationMethodIds, 0));
-    Super::addProperty(DictProperty(SuppliedCredentialPropertyName, Dict<IString, IString>()));
+    Super::addProperty(SelectionProperty(authentication_config::AuthenticationMethodPropertyName, authenticationMethodIds, 0));
+    Super::addProperty(DictProperty(authentication_config::SuppliedCredentialPropertyName, Dict<IString, IString>()));
     this->supportedAuthenticationMethods = authenticationMethods;
 }
 
 AuthenticationMethodPtr AuthenticationConfigImpl::onGetSelectedAuthenticationMethod() const
 {
-    const StringPtr selectedId = objPtr.getPropertySelectionValue(AuthenticationMethodPropertyName);
+    const StringPtr selectedId = objPtr.getPropertySelectionValue(authentication_config::AuthenticationMethodPropertyName);
     return supportedAuthenticationMethods.get(selectedId);
 }
 
@@ -62,7 +69,7 @@ ErrCode AuthenticationConfigImpl::setAuthenticationMethod(IString* authenticatio
         return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOTFOUND,
                                    fmt::format("\"{}\" is not one of this config's supported authentication methods", idPtr));
     }
-    return this->setPropertySelectionValue(String(AuthenticationMethodPropertyName), authenticationMethodId);
+    return this->setPropertySelectionValue(String(authentication_config::AuthenticationMethodPropertyName), authenticationMethodId);
 }
 
 ErrCode AuthenticationConfigImpl::getAuthenticationMethods(IDict** authenticationMethods)
@@ -77,7 +84,7 @@ ErrCode AuthenticationConfigImpl::setSuppliedCredential(IDict* credential)
 {
     OPENDAQ_PARAM_NOT_NULL(credential);
 
-    return setPropertyValue(String(SuppliedCredentialPropertyName), credential);
+    return setPropertyValue(String(authentication_config::SuppliedCredentialPropertyName), credential);
 }
 
 ErrCode AuthenticationConfigImpl::getSuppliedCredential(IDict** credential)
@@ -86,25 +93,10 @@ ErrCode AuthenticationConfigImpl::getSuppliedCredential(IDict** credential)
 
     return daqTry([&]
     {
-        DictPtr<IString, IString> value = objPtr.getPropertyValue(SuppliedCredentialPropertyName);
+        DictPtr<IString, IString> value = objPtr.getPropertyValue(authentication_config::SuppliedCredentialPropertyName);
         *credential = value.detach();
         return OPENDAQ_SUCCESS;
     });
-}
-
-ErrCode AuthenticationConfigImpl::getInterfaceIds(SizeT* idCount, IntfID** ids)
-{
-    OPENDAQ_PARAM_NOT_NULL(idCount);
-
-    *idCount = InterfaceIds::Count() + 1;
-    if (ids == nullptr)
-        return OPENDAQ_SUCCESS;
-
-    **ids = IPropertyObject::Id;
-    (*ids)++;
-
-    InterfaceIds::AddInterfaceIds(*ids);
-    return OPENDAQ_SUCCESS;
 }
 
 ErrCode AuthenticationConfigImpl::setPropertySelectionValue(IString* propertyName, IBaseObject* value)
@@ -125,17 +117,17 @@ ErrCode AuthenticationConfigImpl::setProtectedPropertyValue(IString* propertyNam
 
 ErrCode AuthenticationConfigImpl::onPropertyValueChanged(const StringPtr& name)
 {
-    if (name != AuthenticationMethodPropertyName)
+    if (name != authentication_config::AuthenticationMethodPropertyName)
         return OPENDAQ_SUCCESS;
 
-    return Super::setProtectedPropertyValue(String(SuppliedCredentialPropertyName), Dict<IString, IString>());
+    return Super::setProtectedPropertyValue(String(authentication_config::SuppliedCredentialPropertyName), Dict<IString, IString>());
 }
 
 ErrCode AuthenticationConfigImpl::setPropertyValue(IString* propertyName, IBaseObject* value)
 {
     const StringPtr name = StringPtr::Borrow(propertyName);
 
-    if (name == SuppliedCredentialPropertyName)
+    if (name == authentication_config::SuppliedCredentialPropertyName)
     {
         return daqTry([&]
         {
@@ -169,10 +161,10 @@ ErrCode AuthenticationConfigImpl::serialize(ISerializer* serializer)
     {
         serializer->startTaggedObject(this);
 
-        serializer->key(SupportedAuthenticationMethodsSerializedKey);
+        serializer->key(authentication_config::SupportedAuthenticationMethodsSerializedKey);
         supportedAuthenticationMethods.serialize(SerializerPtr::Borrow(serializer));
 
-        const StringPtr selectedId = objPtr.getPropertySelectionValue(AuthenticationMethodPropertyName);
+        const StringPtr selectedId = objPtr.getPropertySelectionValue(authentication_config::AuthenticationMethodPropertyName);
         serializer->key("selectedAuthenticationMethodId");
         serializer->writeString(selectedId.getCharPtr(), selectedId.getLength());
 
@@ -205,7 +197,7 @@ ErrCode AuthenticationConfigImpl::Deserialize(ISerializedObject* serialized, IBa
         const auto serializedObj = SerializedObjectPtr::Borrow(serialized);
 
         const DictPtr<IString, IAuthenticationMethod> supportedAuthenticationMethods =
-            serializedObj.readObject(SupportedAuthenticationMethodsSerializedKey, BaseObjectPtr::Borrow(context), FunctionPtr::Borrow(factoryCallback))
+            serializedObj.readObject(authentication_config::SupportedAuthenticationMethodsSerializedKey, BaseObjectPtr::Borrow(context), FunctionPtr::Borrow(factoryCallback))
                 .asPtr<IDict>();
         const StringPtr selectedId = serializedObj.readString("selectedAuthenticationMethodId");
 

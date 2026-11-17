@@ -96,7 +96,7 @@ TEST_F(CredentialDemoModuleIntegrationTest, AddDeviceSucceedsWithProviderSupplie
 
     const auto deviceType = instance.getAvailableDeviceTypes().get("CredentialDemoDevice");
     auto authConfig = deviceType.createAuthenticationConfig();
-    authConfig.setPropertySelectionValue("AuthenticationMethod", "UserNamePassword");
+    authConfig.asPtr<IPropertyObject>().setPropertySelectionValue("AuthenticationMethod", "UserNamePassword");
 
     DevicePtr device;
     ASSERT_NO_THROW(device = instance.addDevice(DeviceConnectionString, WithAuthenticationConfig(authConfig)));
@@ -110,7 +110,7 @@ TEST_F(CredentialDemoModuleIntegrationTest, AddDeviceThrowsWhenProviderSuppliesW
 
     const auto deviceType = instance.getAvailableDeviceTypes().get("CredentialDemoDevice");
     auto authConfig = deviceType.createAuthenticationConfig();
-    authConfig.setPropertySelectionValue("AuthenticationMethod", "UserNamePassword");
+    authConfig.asPtr<IPropertyObject>().setPropertySelectionValue("AuthenticationMethod", "UserNamePassword");
 
     ASSERT_THROW(instance.addDevice(DeviceConnectionString, WithAuthenticationConfig(authConfig)), AuthenticationFailedException);
 }
@@ -121,7 +121,7 @@ TEST_F(CredentialDemoModuleIntegrationTest, AddDeviceThrowsWhenNoProviderRegiste
 
     const auto deviceType = instance.getAvailableDeviceTypes().get("CredentialDemoDevice");
     auto authConfig = deviceType.createAuthenticationConfig();
-    authConfig.setPropertySelectionValue("AuthenticationMethod", "UserNamePassword");
+    authConfig.asPtr<IPropertyObject>().setPropertySelectionValue("AuthenticationMethod", "UserNamePassword");
 
     ASSERT_THROW(instance.addDevice(DeviceConnectionString, WithAuthenticationConfig(authConfig)), CredentialsRequiredException);
 }
@@ -132,7 +132,7 @@ TEST_F(CredentialDemoModuleIntegrationTest, AddDeviceWithSuppliedCredentialBypas
 
     const auto deviceType = instance.getAvailableDeviceTypes().get("CredentialDemoDevice");
     auto authConfig = deviceType.createAuthenticationConfig();
-    authConfig.setPropertySelectionValue("AuthenticationMethod", "UserNamePassword");
+    authConfig.asPtr<IPropertyObject>().setPropertySelectionValue("AuthenticationMethod", "UserNamePassword");
     authConfig.setSuppliedCredential(Dict<IString, IString>({{"UserName", "user"}, {"Password", "pass"}}));
 
     DevicePtr device;
@@ -146,7 +146,7 @@ TEST_F(CredentialDemoModuleIntegrationTest, SetSuppliedCredentialThrowsWhenIncom
 
     const auto deviceType = instance.getAvailableDeviceTypes().get("CredentialDemoDevice");
     auto authConfig = deviceType.createAuthenticationConfig();
-    authConfig.setPropertySelectionValue("AuthenticationMethod", "UserNamePassword");
+    authConfig.asPtr<IPropertyObject>().setPropertySelectionValue("AuthenticationMethod", "UserNamePassword");
 
     // Missing the "Password" field `UserNamePassword` requires - `AuthenticationConfigImpl::setPropertyValue`
     // validates a supplied credential against the selected method's `acceptsCredentials` immediately, right
@@ -161,7 +161,7 @@ TEST_F(CredentialDemoModuleIntegrationTest, AddDeviceThrowsWhenProviderCancels)
 
     const auto deviceType = instance.getAvailableDeviceTypes().get("CredentialDemoDevice");
     auto authConfig = deviceType.createAuthenticationConfig();
-    authConfig.setPropertySelectionValue("AuthenticationMethod", "UserNamePassword");
+    authConfig.asPtr<IPropertyObject>().setPropertySelectionValue("AuthenticationMethod", "UserNamePassword");
 
     ASSERT_THROW(instance.addDevice(DeviceConnectionString, WithAuthenticationConfig(authConfig)), ProviderCancelledException);
 }
@@ -173,7 +173,7 @@ TEST_F(CredentialDemoModuleIntegrationTest, AddDeviceThrowsWhenProviderFailsWith
 
     const auto deviceType = instance.getAvailableDeviceTypes().get("CredentialDemoDevice");
     auto authConfig = deviceType.createAuthenticationConfig();
-    authConfig.setPropertySelectionValue("AuthenticationMethod", "UserNamePassword");
+    authConfig.asPtr<IPropertyObject>().setPropertySelectionValue("AuthenticationMethod", "UserNamePassword");
 
     ASSERT_THROW(instance.addDevice(DeviceConnectionString, WithAuthenticationConfig(authConfig)), GeneralErrorException);
 }
@@ -186,7 +186,7 @@ TEST_F(CredentialDemoModuleIntegrationTest, AddDeviceThrowsWhenProviderSuppliesI
 
     const auto deviceType = instance.getAvailableDeviceTypes().get("CredentialDemoDevice");
     auto authConfig = deviceType.createAuthenticationConfig();
-    authConfig.setPropertySelectionValue("AuthenticationMethod", "UserNamePassword");
+    authConfig.asPtr<IPropertyObject>().setPropertySelectionValue("AuthenticationMethod", "UserNamePassword");
 
     ASSERT_THROW(instance.addDevice(DeviceConnectionString, WithAuthenticationConfig(authConfig)), CredentialsRequiredException);
 }
@@ -211,7 +211,7 @@ TEST_F(CredentialDemoModuleIntegrationTest, AddStreamingSucceedsWithProviderSupp
 
     const auto streamingType = instance.getModuleManager().asPtr<IModuleManagerUtils>().getAvailableStreamingTypes().get("CredentialDemoStreaming");
     auto streamingAuthConfig = streamingType.createAuthenticationConfig();
-    streamingAuthConfig.setPropertySelectionValue("AuthenticationMethod", "UserNamePassword");
+    streamingAuthConfig.asPtr<IPropertyObject>().setPropertySelectionValue("AuthenticationMethod", "UserNamePassword");
 
     StreamingPtr streaming;
     ASSERT_NO_THROW(streaming = device.addStreaming(StreamingConnectionString, WithAuthenticationConfig(streamingAuthConfig)));
@@ -227,7 +227,7 @@ TEST_F(CredentialDemoModuleIntegrationTest, AddStreamingThrowsWhenProviderSuppli
 
     const auto streamingType = instance.getModuleManager().asPtr<IModuleManagerUtils>().getAvailableStreamingTypes().get("CredentialDemoStreaming");
     auto streamingAuthConfig = streamingType.createAuthenticationConfig();
-    streamingAuthConfig.setPropertySelectionValue("AuthenticationMethod", "UserNamePassword");
+    streamingAuthConfig.asPtr<IPropertyObject>().setPropertySelectionValue("AuthenticationMethod", "UserNamePassword");
 
     ASSERT_THROW(device.addStreaming(StreamingConnectionString, WithAuthenticationConfig(streamingAuthConfig)), AuthenticationFailedException);
 }
@@ -239,7 +239,7 @@ TEST_F(CredentialDemoModuleIntegrationTest, AuthenticationSettingsViaUpdateOptio
     // Saved authenticated with UserNamePassword.
     const auto deviceType = instance.getAvailableDeviceTypes().get("CredentialDemoDevice");
     auto authConfig = deviceType.createAuthenticationConfig();
-    authConfig.setPropertySelectionValue("AuthenticationMethod", "UserNamePassword");
+    authConfig.asPtr<IPropertyObject>().setPropertySelectionValue("AuthenticationMethod", "UserNamePassword");
     authConfig.setSuppliedCredential(Dict<IString, IString>({{"UserName", "user"}, {"Password", "pass"}}));
 
     auto device = instance.addDevice(DeviceConnectionString, WithAuthenticationConfig(authConfig));
@@ -272,7 +272,7 @@ TEST_F(CredentialDemoModuleIntegrationTest, AuthenticationSettingsViaUpdateOptio
 
     const auto deviceType = instance.getAvailableDeviceTypes().get("CredentialDemoDevice");
     auto authConfig = deviceType.createAuthenticationConfig();
-    authConfig.setPropertySelectionValue("AuthenticationMethod", "UserNamePassword");
+    authConfig.asPtr<IPropertyObject>().setPropertySelectionValue("AuthenticationMethod", "UserNamePassword");
     authConfig.setSuppliedCredential(Dict<IString, IString>({{"UserName", "user"}, {"Password", "pass"}}));
 
     auto device = instance.addDevice(DeviceConnectionString, WithAuthenticationConfig(authConfig));

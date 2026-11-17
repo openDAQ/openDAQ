@@ -37,12 +37,14 @@ extern "C"
     typedef struct daqAddStreamingConfig daqAddStreamingConfig;
     typedef struct daqStreamingType daqStreamingType;
     typedef struct daqPropertyObject daqPropertyObject;
+    typedef struct daqAuthenticationConfig daqAuthenticationConfig;
 
     EXPORTED extern const daqIntfID DAQ_ADD_STREAMING_CONFIG_INTF_ID;
     void EXPORTED daqAddStreamingConfig_getInterfaceId(daqIntfID* intfId);
 
     daqErrCode EXPORTED daqAddStreamingConfig_getStreamingType(daqAddStreamingConfig* self, daqStreamingType** type);
     daqErrCode EXPORTED daqAddStreamingConfig_getTypeConfig(daqAddStreamingConfig* self, daqPropertyObject** config);
+    daqErrCode EXPORTED daqAddStreamingConfig_getAuthenticationConfig(daqAddStreamingConfig* self, daqAuthenticationConfig** config);
 
 #ifdef __cplusplus
 }

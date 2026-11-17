@@ -36,9 +36,9 @@ extern "C"
 
     typedef struct daqStreamingType daqStreamingType;
     typedef struct daqString daqString;
+    typedef struct daqDeviceType daqDeviceType;
     typedef struct daqPropertyObject daqPropertyObject;
     typedef struct daqDict daqDict;
-    typedef struct daqDeviceType daqDeviceType;
 
     EXPORTED extern const daqIntfID DAQ_STREAMING_TYPE_INTF_ID;
     void EXPORTED daqStreamingType_getInterfaceId(daqIntfID* intfId);

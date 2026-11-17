@@ -31,3 +31,8 @@ daqErrCode daqAddStreamingConfig_getTypeConfig(daqAddStreamingConfig* self, daqP
 {
     return reinterpret_cast<daq::IAddStreamingConfig*>(self)->getTypeConfig(reinterpret_cast<daq::IPropertyObject**>(config));
 }
+
+daqErrCode daqAddStreamingConfig_getAuthenticationConfig(daqAddStreamingConfig* self, daqAuthenticationConfig** config)
+{
+    return reinterpret_cast<daq::IAddStreamingConfig*>(self)->getAuthenticationConfig(reinterpret_cast<daq::IAuthenticationConfig**>(config));
+}

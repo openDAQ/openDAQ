@@ -18,7 +18,7 @@ class TestDeviceType(opendaq_test.TestCase):
         default_config = opendaq.PropertyObject()
         default_config.add_property(opendaq.StringProperty(opendaq.String(
             'property'), opendaq.String('value'), opendaq.Boolean(True)))
-        methods = {'none': opendaq.NoneAuthenticationMethod('none', 'No authentication')}
+        methods = {'Anonymous': opendaq.AuthenticationMethod('Anonymous', {}, 'No authentication')}
         device_type = opendaq.DeviceType('id', 'name', 'description', default_config, 'prefix', methods)
 
         self.assertEqual(device_type.id, 'id')
@@ -26,7 +26,7 @@ class TestDeviceType(opendaq_test.TestCase):
         self.assertEqual(device_type.description, 'description')
         self.assertEqual(device_type.connection_string_prefix, 'prefix')
         self.assertEqual(device_type.create_default_config().get_property_value('property'), 'value')
-        self.assertEqual(list(device_type.create_authentication_config().authentication_methods.keys()), ['none'])
+        self.assertEqual(list(device_type.create_authentication_config().authentication_methods.keys()), ['Anonymous'])
 
     def test_module_types(self):
         instance = opendaq.Instance()

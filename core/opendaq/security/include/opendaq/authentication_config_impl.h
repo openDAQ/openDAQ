@@ -24,10 +24,10 @@
 
 BEGIN_NAMESPACE_OPENDAQ
 
-class AuthenticationConfigImpl : public GenericPropertyObjectImpl<IAuthenticationConfig>
+class AuthenticationConfigImpl : public GenericPropertyObjectImpl<IPropertyObject, IAuthenticationConfig>
 {
 public:
-    using Super = GenericPropertyObjectImpl<IAuthenticationConfig>;
+    using Super = GenericPropertyObjectImpl<IPropertyObject, IAuthenticationConfig>;
 
     // The first entry of `authenticationMethods` (in dict iteration order) starts out selected.
     explicit AuthenticationConfigImpl(const DictPtr<IString, IAuthenticationMethod>& authenticationMethods);
@@ -37,14 +37,6 @@ public:
     ErrCode INTERFACE_FUNC getAuthenticationMethods(IDict** authenticationMethods) override;
     ErrCode INTERFACE_FUNC setSuppliedCredential(IDict* credential) override;
     ErrCode INTERFACE_FUNC getSuppliedCredential(IDict** credential) override;
-
-    // An `IAuthenticationConfig` needs to be nestable as an ordinary Object-type property value, but
-    // `GenericPropertyObjectImpl::checkContainerType` only allows a nested value whose own
-    // `IInspectable::getInterfaceIds()[0]` is exactly `IPropertyObject::Id` - any other primary interface is
-    // rejected with `InvalidTypeException`. Overriding it to report `IPropertyObject::Id` first (the real
-    // interface list, `IAuthenticationConfig` included, still follows right after - `QueryInterface`/casting
-    // to it is entirely unaffected, only the reported order changes).
-    ErrCode INTERFACE_FUNC getInterfaceIds(SizeT* idCount, IntfID** ids) override;
 
     // Intercepted to validate/auto-clear "SuppliedCredential" against whichever authentication method is currently selected
     // whenever "AuthenticationMethod" changes. `setProtectedPropertyValue` gets the same treatment (see
@@ -66,10 +58,6 @@ public:
     static ErrCode Deserialize(ISerializedObject* serialized, IBaseObject* context, IFunction* factoryCallback, IBaseObject** obj);
 
 private:
-    static constexpr const char* AuthenticationMethodPropertyName = "AuthenticationMethod";
-    static constexpr const char* SuppliedCredentialPropertyName = "SuppliedCredential";
-    static constexpr const char* SupportedAuthenticationMethodsSerializedKey = "SupportedAuthenticationMethods";
-
     void initProperties(const DictPtr<IString, IAuthenticationMethod>& authenticationMethods);
 
     // Shared tail of `setPropertyValue`/`setPropertySelectionValue`/`setProtectedPropertyValue`, run after the

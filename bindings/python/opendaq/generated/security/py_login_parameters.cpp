@@ -29,7 +29,7 @@
 
 #include "py_opendaq/py_opendaq.h"
 #include "py_core_types/py_converter.h"
-#include "py_core_objects/py_variant_extractor.h"
+
 
 PyDaqIntf<daq::ILoginParameters, daq::IBaseObject> declareILoginParameters(pybind11::module_ m)
 {
@@ -57,5 +57,5 @@ void defineILoginParameters(pybind11::module_ m, PyDaqIntf<daq::ILoginParameters
             return objectPtr.getCredentials().detach();
         },
         py::return_value_policy::take_ownership,
-        "Gets the resolved credentials - a value for each of the authentication method's mandatory fields; empty for a method with none (e.g. \"Anonymous\").");
+        "Gets the resolved credentials - a value for each of the authentication method's mandatory fields. Always assigned - empty for a method with none (e.g. \"Anonymous\").");
 }

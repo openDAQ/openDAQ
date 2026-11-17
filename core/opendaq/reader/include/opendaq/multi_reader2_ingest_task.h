@@ -22,11 +22,10 @@
 BEGIN_NAMESPACE_OPENDAQ
 
 /*!
- * @brief Internal to MultiReader2: the ports notify on the sending thread, which only marks its port and, when the reader is
- * idle, schedules one task that ingests every marked port and then, when a read would return something, calls the
- * onDataAvailable handler itself. A burst of packets on any number of ports costs one task, and the sending thread never takes
- * a reader lock. The run ends before the call, so packets that arrive during the call start the next run on another worker
- * and the queue limits keep applying.
+ * @brief Internal to MultiReader2: a sending thread takes its packets in itself while no run is scheduled and the locks are
+ * free; otherwise it marks its port, and one scheduled task ingests every marked port. A burst of packets on any number of
+ * ports costs one task. The onDataAvailable call is scheduled as work of its own, so packets that arrive during the call
+ * start the next run and the queue limits keep applying.
  */
 namespace multi_reader2
 {
@@ -34,7 +33,7 @@ namespace multi_reader2
 class IngestTask
 {
 public:
-    // On the sending thread, after the packet is queued and its port marked: true when the caller schedules a run
+    // After a port is marked, or for queues to free: true when the caller schedules a run
     bool notify();
 
     // The scheduled run: drains once; true when packets came in meanwhile and the caller schedules the next run. A drain

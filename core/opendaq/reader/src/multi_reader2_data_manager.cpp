@@ -4,7 +4,7 @@
 #include <opendaq/event_packet_ptr.h>
 #include <opendaq/event_packet_utils.h>
 #include <opendaq/multi_reader2_status_impl.h>
-#include <opendaq/multi_reader_data_manager.h>
+#include <opendaq/multi_reader2_data_manager.h>
 #include <opendaq/reader_utils.h>
 #include <opendaq/sample_type_traits.h>
 

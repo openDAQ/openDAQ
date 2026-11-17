@@ -58,7 +58,7 @@ struct Event
 /*!
  * @brief A double-ended queue in one growing array, a power of two in size. The input queues hold one entry per packet,
  * and std::deque under MSVC holds one element per block for elements over 8 bytes, so it would allocate per packet. The
- * array halves again once it is less than a quarter full, so a backlog does not keep its memory.
+ * array, over 64 entries, halves once it is less than a quarter full, so a backlog does not keep its memory.
  */
 template <typename T>
 class Ring
@@ -180,14 +180,14 @@ public:
     // The bytes of several queues together, kept with this queue's own; may be null
     SizeT* total = nullptr;
 
-    // Main ticks from one sample to the next; set when the main input changes, with the queue empty
+    // Main ticks from one sample to the next; set at every restart, with no data queued
     void setStep(std::int64_t ticks)
     {
         step = ticks;
     }
 
     // Producer side
-    void pushData(DataPacketPtr packet, SizeT count, std::optional<std::int64_t> firstTick, SizeT bytes);
+    void pushData(DataPacketPtr packet, SizeT count, std::optional<std::int64_t> firstTick, SizeT size);
     void pushEvent(Event event);
     void pushFrontEvent(Event event);
     // Removes a disconnect at the tail, with no data behind it; true when there was one

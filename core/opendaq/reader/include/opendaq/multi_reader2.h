@@ -16,7 +16,6 @@
 #pragma once
 #include <coretypes/baseobject.h>
 #include <coretypes/event.h>
-#include <opendaq/input_port.h>
 #include <opendaq/multi_reader2_params.h>
 #include <opendaq/multi_reader2_status.h>
 

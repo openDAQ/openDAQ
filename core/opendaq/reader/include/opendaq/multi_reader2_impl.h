@@ -24,7 +24,7 @@
 #include <opendaq/logger_component_ptr.h>
 #include <opendaq/multi_reader2.h>
 #include <opendaq/multi_reader2_ingest_task.h>
-#include <opendaq/multi_reader_data_manager.h>
+#include <opendaq/multi_reader2_data_manager.h>
 #include <opendaq/scheduler_ptr.h>
 #include <opendaq/work_ptr.h>
 

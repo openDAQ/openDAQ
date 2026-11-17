@@ -17,7 +17,7 @@ ErrCode MultiReader2ParamsImpl::getInputs(IList** inputs)
     return OPENDAQ_SUCCESS;
 }
 
-// Stored as given: configure checks the params as a whole, so a rejected value fails there and leaves the reader as it was
+// Stored as given, but for an unknown error policy: configure checks them as a whole, and a rejected value changes nothing
 ErrCode MultiReader2ParamsImpl::setInputs(IList* inputs)
 {
     OPENDAQ_PARAM_NOT_NULL(inputs);

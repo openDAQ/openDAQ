@@ -22,14 +22,6 @@
 
 BEGIN_NAMESPACE_OPENDAQ
 
-/*!
- * @brief Internal to MultiReader2: the domain constraints and the tick arithmetic onto the main input's grid (spec 0007,
- * Domain constraints). Pure functions with checked Int64 arithmetic, so every overflow is a failed constraint and never a
- * wrong tick. Tested on their own in test_domain_and_queue.cpp.
- *
- * Future design hooks: fractional origins change TickMap::offset into a rational and parseDomain's origin rule; dividers relax relate's equal-rate rule to an integer ratio, which makes TickMap::step a multiple of the main
- * delta; reference domains add their offset to TickMap::offset.
- */
 namespace multi_reader2
 {
 

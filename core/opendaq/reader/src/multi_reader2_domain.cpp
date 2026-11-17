@@ -1,4 +1,3 @@
-#include <coretypes/ctutils.h>
 #include <coretypes/ratio_ptr.h>
 #include <opendaq/data_rule_ptr.h>
 #include <opendaq/multi_reader2_domain.h>

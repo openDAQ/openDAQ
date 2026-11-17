@@ -70,7 +70,7 @@ MultiReader2StatusImpl::MultiReader2StatusImpl(bool hasChanges,
 {
     if (!this->statusMessage.assigned())
         this->statusMessage = "";
-        
+
     if (!this->inputs.assigned())
         this->inputs = List<IMultiReader2InputStatus>();
     this->inputs.freeze();

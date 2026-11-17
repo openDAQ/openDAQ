@@ -448,9 +448,33 @@ MockDevice2Impl::MockDevice2Impl(const ContextPtr& ctx, const ComponentPtr& pare
 }
 
 MockSrvImpl::MockSrvImpl(const ContextPtr& ctx, const DevicePtr& rootDev, const StringPtr& id)
-    : Server(id, nullptr, rootDev, ctx)
+    : Server(ServerTypeBuilder().setId(id).setName(id).setServerKind(ServerKind::Adapter).build().asPtr<IServerType>(), nullptr, rootDev, ctx)
 {
     objPtr.addProperty(StringPropertyBuilder("StrProp", "DefaultValue").build());
+}
+
+DictPtr<IString, IFunctionBlockType> MockSrvImpl::onGetAvailableFunctionBlockTypes()
+{
+    return Dict<IString, IFunctionBlockType>({{"mockfb1", FunctionBlockType("mockfb1", "MockFB1", "Mock FB1", nullptr)}});
+}
+
+FunctionBlockPtr MockSrvImpl::onAddFunctionBlock(const StringPtr& typeId, const PropertyObjectPtr& config)
+{
+    if (typeId != "mockfb1")
+        DAQ_THROW_EXCEPTION(NotFoundException);
+
+    StringPtr localId = "srvFb";
+    if (config.assigned() && config.hasProperty("LocalId"))
+        localId = config.getPropertyValue("LocalId");
+
+    const auto fb = createWithImplementation<IFunctionBlock, MockFb1Impl>(context, this->functionBlocks, localId);
+    addNestedFunctionBlock(fb);
+    return fb;
+}
+
+void MockSrvImpl::onRemoveFunctionBlock(const FunctionBlockPtr& functionBlock)
+{
+    removeNestedFunctionBlock(functionBlock);
 }
 
 MockRecorderFb1Impl::MockRecorderFb1Impl(const ContextPtr& ctx, const ComponentPtr& parent, const StringPtr& localId)

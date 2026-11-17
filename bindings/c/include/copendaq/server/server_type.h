@@ -41,6 +41,7 @@ extern "C"
     EXPORTED extern const daqIntfID DAQ_SERVER_TYPE_INTF_ID;
     void EXPORTED daqServerType_getInterfaceId(daqIntfID* intfId);
 
+    daqErrCode EXPORTED daqServerType_getServerKind(daqServerType* self, daqServerKind* kind);
     daqErrCode EXPORTED daqServerType_createServerType(daqServerType** obj, daqString* id, daqString* name, daqString* description, daqPropertyObject* defaultConfig);
 
 #ifdef __cplusplus

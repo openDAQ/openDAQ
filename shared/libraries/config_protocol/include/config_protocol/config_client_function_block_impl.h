@@ -51,6 +51,10 @@ protected:
     void deserializeCustomObjectValues(const SerializedObjectPtr& serializedObject,
                                        const BaseObjectPtr& context,
                                        const FunctionPtr& factoryCallback) override;
+
+private:
+    // Oldest native configuration protocol version that handles function block commands on function blocks.
+    static constexpr uint16_t FunctionBlockCommandsMinVersion = 9;
 };
 
 class ConfigClientRecorderFunctionBlockImpl : public ConfigClientBaseFunctionBlockImpl<FunctionBlockImpl<IFunctionBlock, IRecorder, IConfigClientObject>>
@@ -105,9 +109,7 @@ ErrCode ConfigClientBaseFunctionBlockImpl<Impl>::Deserialize(ISerializedObject* 
                     {
                         const auto configDeserializeContext = deserializeContext.asPtr<IConfigProtocolDeserializeContext>();
 
-                        const auto typeId = serialized.readString("typeId");
-
-                        const auto fbType = FunctionBlockType(typeId, typeId, "", nullptr);
+                        const auto fbType = Super::DeserializeFunctionBlockType(serialized);
                         Super::DeserializeVersion(serialized, deserializeContext.getContext(), factoryCallback, fbType);
 
                         bool isRecorder = false;
@@ -142,37 +144,19 @@ ErrCode ConfigClientBaseFunctionBlockImpl<Impl>::Deserialize(ISerializedObject* 
 template <class Impl>
 DictPtr<IString, IFunctionBlockType> ConfigClientBaseFunctionBlockImpl<Impl>::onGetAvailableFunctionBlockTypes()
 {
-    return this->clientComm->getAvailableFunctionBlockTypes(this->remoteGlobalId, true);
+    return this->clientComm->getAvailableFunctionBlockTypes(this->remoteGlobalId, FunctionBlockCommandsMinVersion);
 }
 
 template <class Impl>
 FunctionBlockPtr ConfigClientBaseFunctionBlockImpl<Impl>::onAddFunctionBlock(const StringPtr& typeId, const PropertyObjectPtr& config)
 {
-    const ComponentHolderPtr fbHolder = this->clientComm->addFunctionBlock(this->remoteGlobalId, typeId, config, this->functionBlocks, true);
-
-    FunctionBlockPtr fb = fbHolder.getComponent();
-    if (!this->functionBlocks.hasItem(fb.getLocalId()))
-    {
-        this->clientComm->connectDomainSignals(fb);
-        this->addNestedFunctionBlock(fb);
-        this->clientComm->connectInputPorts(fb);
-        return fb;
-    }
-
-    return this->functionBlocks.getItem(fb.getLocalId());
+    return this->addFunctionBlockRemote(typeId, config, FunctionBlockCommandsMinVersion);
 }
 
 template <class Impl>
 void ConfigClientBaseFunctionBlockImpl<Impl>::onRemoveFunctionBlock(const FunctionBlockPtr& functionBlock)
 {
-    if (!functionBlock.assigned())
-        DAQ_THROW_EXCEPTION(InvalidParameterException);
-    this->clientComm->removeFunctionBlock(this->remoteGlobalId, functionBlock.getLocalId(), true);
-
-    if (this->functionBlocks.hasItem(functionBlock.getLocalId()))
-    {
-        this->removeNestedFunctionBlock(functionBlock);
-    }
+    this->removeFunctionBlockRemote(functionBlock, FunctionBlockCommandsMinVersion);
 }
 
 template <class Impl>

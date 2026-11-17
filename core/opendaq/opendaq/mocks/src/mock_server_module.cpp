@@ -65,10 +65,11 @@ ErrCode MockServerModuleImpl::getAvailableServerTypes(IDict** serverTypes)
 {
     auto types = Dict<IString, IServerType>();
 
-    types.set("MockServer", ServerType("MockServer", "Mock Server", "Mock"));
-    types.set("OpenDAQLTStreaming", ServerType("OpenDAQLTStreaming", "Mock Server", "Mock"));
-    types.set("OpenDAQNativeStreaming", ServerType("OpenDAQNativeStreaming", "Mock Server", "Mock"));
-    types.set("OpenDAQOPCUA", ServerType("OpenDAQOPCUA", "Mock Server", "Mock"));
+    for (const StringPtr id : {"MockServer", "OpenDAQLTStreaming", "OpenDAQNativeStreaming", "OpenDAQOPCUA"})
+    {
+        const auto builder = ServerTypeBuilder().setId(id).setName("Mock Server").setDescription("Mock");
+        types.set(id, builder.setDefaultConfig(PropertyObject()).build());
+    }
 
     *serverTypes = types.detach();
     return OPENDAQ_SUCCESS;

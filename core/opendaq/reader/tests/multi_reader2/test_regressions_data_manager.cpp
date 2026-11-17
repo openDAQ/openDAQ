@@ -9,19 +9,18 @@ class MultiReader2RegressionDm : public MultiReader2Test
 };
 
 // Finding 1
-TEST_F(MultiReader2RegressionDm, SyncDroppingDataInFrontOfAnEventCallsTheHandler)
+TEST_F(MultiReader2RegressionDm, EventBehindDataDroppedBySyncIsReportedWithTheFirstData)
 {
-    MR2_REVIEW_ONLY(review_only::wake);
     given().main(in1);
     setup([&] { read(0, nullData); });
     handler([&] { drain(); });
     write(in2, 0, 99);
     announce(in2, Value().unit("A"));
-    expect(idle(), calls(0));
+    expect(idle(), calls(1, {count(0).noChanges()}));
     write(in1, 500, 599);
-    expect(idle(), calls(1, {count(0).descChanged(in2), count(0).noChanges()}));
+    expect(idle(), calls(0));
     write(in2, 500, 599);
-    expect(idle(), calls(1, {count(100).at(500).noChanges(), count(0).noChanges()}));
+    expect(idle(), calls(1, {count(0).descChanged(in2), count(100).at(500).noChanges(), count(0).noChanges()}));
 }
 
 // Finding 2
@@ -60,11 +59,10 @@ TEST_F(MultiReader2RegressionDm, InputStallsOnlyOnceItsBacklogIsRead)
 // Finding 6
 TEST_F(MultiReader2RegressionDm, ReevaluateReportsWhatItsZeroCountReadApplies)
 {
-    MR2_REVIEW_ONLY(review_only::gapEvent);
     given().minReadCount(10);
     setupBase();
     expect(read(95), count(95).at(0).noChanges());
-    gap(in2);
+    write(in2, 200, 209);
     expect(reevaluate(), ok().resync());
 }
 

@@ -126,12 +126,12 @@ ErrCode MultiReaderDataManager::reevaluate(IMultiReader2Status** status)
             checkInput(i);
         judgeInputs(true);
         afterJudgement(wasValid, previousMain, previous, false, false);
-        applyStalls();
         recountShort();
 
         steadyStatus = nullptr;
         noteChanges();
-        *status = buildStatus().detach();
+        SizeT count = 0;
+        performRead(nullptr, nullptr, &count, nullptr, status, nullptr);
     });
 }
 

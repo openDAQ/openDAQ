@@ -222,6 +222,23 @@ TEST_F(ServerCapabilityTest, TransportOptionsAreCopied)
 }
 
 // The options are written as plain Property objects, which a client without transport options reads too
+// The capability keeps each option as a plain Property object, which peers that do not know transport options read
+TEST_F(ServerCapabilityTest, TransportOptionsKeptAsPlainPropertyObjects)
+{
+    ServerCapabilityConfigPtr capability =
+        ServerCapability("protocol_id", "Protocol name", ProtocolType::Streaming)
+            .setAvailableTransportOptions(TransportOptionsById({TransportOption("tls", 7421, TransportProtection::Encrypted, True)}));
+
+    const PropertyObjectPtr container = capability.getPropertyValue("AvailableTransportOptions");
+    const PropertyObjectPtr tls = container.getPropertyValue("tls");
+
+    ASSERT_FALSE(tls.supportsInterface<ITransportOption>());
+    ASSERT_EQ(tls.getPropertyValue("Id"), "tls");
+    ASSERT_EQ(tls.getPropertyValue("Port"), 7421);
+    ASSERT_EQ(tls.getPropertySelectionValue("Protection"), "Encrypted");
+    ASSERT_EQ(tls.getPropertyValue("CertificateRequired"), true);
+}
+
 TEST_F(ServerCapabilityTest, SerializeDeserializeTransportOptions)
 {
     ServerCapabilityConfigPtr capability =

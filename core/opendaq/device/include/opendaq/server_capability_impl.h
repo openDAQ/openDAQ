@@ -111,8 +111,6 @@ private:
     const char* Port = "Port";
     const char* SecurityLevel = "SecurityLevel";
     const char* AuthenticationMethods = "AuthenticationMethods";
-    // A Property object holding one object property per transport option, in order. The options are kept this way
-    // rather than as a list so that older peers, which do not know transport options, still read the capability.
     const char* AvailableTransportOptions = "AvailableTransportOptions";
 
 
@@ -124,6 +122,7 @@ private:
     static DictPtr<IString, ITransportOption> ValidatedTransportOptions(IDict* transportOptions);
     static TransportOptionPtr FirstTransportOption(const DictPtr<IString, ITransportOption>& options);
     static TransportOptionPtr TransportOptionFromObject(const PropertyObjectPtr& obj);
+    static PropertyObjectPtr TransportOptionObject(const TransportOptionPtr& option);
 
     static StringPtr ProtocolTypeToString(ProtocolType type);
     static ProtocolType StringToProtocolType(const StringPtr& type);
@@ -604,12 +603,9 @@ inline TransportOptionPtr ServerCapabilityConfigImpl::FirstTransportOption(const
     return nullptr;
 }
 
-// Restores an option from the properties ITransportOption documents, as a serialized or remote capability carries it
+// Restores an option from the plain Property object the capability keeps it as, also on a serialized or remote one
 inline TransportOptionPtr ServerCapabilityConfigImpl::TransportOptionFromObject(const PropertyObjectPtr& obj)
 {
-    if (const auto option = obj.asPtrOrNull<ITransportOption, TransportOptionPtr>(true); option.assigned())
-        return option;
-
     const auto hasProperty = [&obj](const char* name, CoreType type)
     {
         return obj.hasProperty(name) && obj.getProperty(name).getValueType() == type;
@@ -628,6 +624,21 @@ inline TransportOptionPtr ServerCapabilityConfigImpl::TransportOptionFromObject(
     return TransportOption(id, port, static_cast<TransportProtection>(protection), certificateRequired);
 }
 
+// The plain Property object an option is kept as
+inline PropertyObjectPtr ServerCapabilityConfigImpl::TransportOptionObject(const TransportOptionPtr& option)
+{
+    const auto protectionNames = Dict<IInteger, IString>({{static_cast<Int>(TransportProtection::None), "None"},
+                                                          {static_cast<Int>(TransportProtection::Signed), "Signed"},
+                                                          {static_cast<Int>(TransportProtection::Encrypted), "Encrypted"}});
+
+    auto obj = PropertyObject();
+    obj.addProperty(StringProperty("Id", option.getId()));
+    obj.addProperty(IntProperty("Port", option.getPort()));
+    obj.addProperty(SparseSelectionProperty("Protection", protectionNames, static_cast<Int>(option.getProtection())));
+    obj.addProperty(BoolProperty("CertificateRequired", option.getCertificateRequired()));
+    return obj;
+}
+
 inline ErrCode ServerCapabilityConfigImpl::writeTransportOptions(const DictPtr<IString, ITransportOption>& options)
 {
     return daqTry([&]
@@ -643,7 +654,7 @@ inline ErrCode ServerCapabilityConfigImpl::writeTransportOptions(const DictPtr<I
                 return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDVALUE,
                                            fmt::format(R"(Transport option "{}" cannot be told apart from another one)", option.getId()));
 
-            container.addProperty(ObjectProperty(key, option));
+            container.addProperty(ObjectProperty(key, TransportOptionObject(option)));
         }
 
         objPtr.asPtr<IPropertyObjectProtected>().setProtectedPropertyValue(String(AvailableTransportOptions), container);

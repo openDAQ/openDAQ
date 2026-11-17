@@ -192,7 +192,7 @@ ErrCode AddStreamingConfigImpl::Deserialize(ISerializedObject* serialized,
             // A config serialized without options of its own lists the Streaming type's
             const DictPtr<IString, ITransportOption> options =
                 serialized.hasKey(add_streaming_config::AvailableTransportOptionsKey)
-                    ? TransportOptionsFromPropertyObjects(
+                    ? FrozenTransportOptions(
                           serialized.readObject(add_streaming_config::AvailableTransportOptionsKey, context, factoryCallback))
                     : ComponentTypeTransportOptions(streamingType);
 

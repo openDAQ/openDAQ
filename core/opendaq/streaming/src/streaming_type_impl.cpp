@@ -181,11 +181,11 @@ ErrCode StreamingTypeImpl::Deserialize(ISerializedObject* serialized, IBaseObjec
         if (serializedObj.hasKey("prefix"))
             prefix = serializedObj.readString("prefix");
 
-        // The options come back as the plain Property objects they are serialized as
+        // The options come back keyed by their ids; a key that is not the id of its option fails
         DictPtr<IString, ITransportOption> transportOptions;
         if (serializedObj.hasKey("availableTransportOptions"))
             transportOptions =
-                TransportOptionsFromPropertyObjects(serializedObj.readObject("availableTransportOptions", contextPtr, factoryCallbackPtr));
+                FrozenTransportOptions(serializedObj.readObject("availableTransportOptions", contextPtr, factoryCallbackPtr));
 
         PropertyObjectPtr defaultConfig;
         if (serializedObj.hasKey("defaultConfig"))

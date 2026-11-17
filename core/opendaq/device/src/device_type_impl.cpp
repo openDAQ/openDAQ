@@ -168,11 +168,11 @@ ErrCode DeviceTypeImpl::Deserialize(ISerializedObject* serialized, IBaseObject* 
         if (serializedObj.hasKey("deviceKind"))
             deviceKind = static_cast<DeviceKind>(serializedObj.readInt("deviceKind"));
 
-        // The options come back as the plain Property objects they are serialized as
+        // The options come back keyed by their ids; a key that is not the id of its option fails
         DictPtr<IString, ITransportOption> transportOptions;
         if (serializedObj.hasKey("availableTransportOptions"))
             transportOptions =
-                TransportOptionsFromPropertyObjects(serializedObj.readObject("availableTransportOptions", contextPtr, factoryCallbackPtr));
+                FrozenTransportOptions(serializedObj.readObject("availableTransportOptions", contextPtr, factoryCallbackPtr));
 
         auto deviceType = createWithImplementation<IDeviceType, DeviceTypeImpl>(
             id, name, description, defaultConfig, prefix, supportedAuthenticationMethods, deviceKind, transportOptions);

@@ -16,7 +16,6 @@
 #pragma once
 #include <coretypes/stringobject.h>
 #include <coretypes/integer.h>
-#include <coreobjects/property_object.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
@@ -37,8 +36,6 @@ enum class TransportProtection : EnumType
 };
 
 /*#
- * [interfaceLibrary(IPropertyObject, "coreobjects")]
- * [interfaceSmartPtr(IPropertyObject, GenericPropertyObjectPtr, "<coreobjects/property_object_ptr.h>")]
  * [interfaceSmartPtr(IInteger, IntegerPtr, "<coretypes/integer.h>")]
  */
 
@@ -48,11 +45,10 @@ enum class TransportProtection : EnumType
  * Created by the module and immutable. A component type lists the options its module supports, with their
  * default ports; a server capability lists the ones the server serves, with the ports it serves them on.
  *
- * Is itself a frozen Property object with the `"Id"`, `"Port"`, `"Protection"` and `"CertificateRequired"`
- * properties. It is serialized as a plain Property object, so a peer that does not know this interface still
- * reads it; such a peer gets a Property object with the same properties back.
+ * A server capability keeps each option as a plain Property object with the `"Id"`, `"Port"`, `"Protection"` and
+ * `"CertificateRequired"` properties, so that a peer that does not know this interface still reads the capability.
  */
-DECLARE_OPENDAQ_INTERFACE(ITransportOption, IPropertyObject)
+DECLARE_OPENDAQ_INTERFACE(ITransportOption, IBaseObject)
 {
     /*!
      * @brief Gets the id of the option, unique within a component type (e.g. "plain", "tls").

@@ -247,7 +247,7 @@ ErrCode AddDeviceConfigImpl::Deserialize(ISerializedObject* serialized, IBaseObj
             // A config serialized without options of its own lists the Device type's
             const DictPtr<IString, ITransportOption> options =
                 serialized.hasKey(add_device_config::AvailableTransportOptionsKey)
-                    ? TransportOptionsFromPropertyObjects(
+                    ? FrozenTransportOptions(
                           serialized.readObject(add_device_config::AvailableTransportOptionsKey, context, factoryCallback))
                     : ComponentTypeTransportOptions(deviceType);
 

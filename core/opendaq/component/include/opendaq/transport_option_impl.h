@@ -17,26 +17,21 @@
 #include <opendaq/transport_option.h>
 #include <opendaq/transport_option_factory.h>
 #include <opendaq/component_type.h>
-#include <coreobjects/property_object_impl.h>
-#include <coreobjects/property_object_factory.h>
-#include <coreobjects/property_factory.h>
+#include <coretypes/impl.h>
+#include <coretypes/serializable.h>
+#include <coretypes/serialized_object.h>
 #include <coretypes/dictobject_factory.h>
+#include <coreobjects/property_object_ptr.h>
+#include <coreobjects/property_factory.h>
 #include <fmt/format.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
-// The transport option keeps its fields as the default values of its own properties and is frozen right away.
-// It has no serialize id of its own: it is serialized as a plain Property object, which any peer reads.
-class TransportOptionImpl final : public GenericPropertyObjectImpl<ITransportOption>
+// An immutable transport option, serialized as a tagged object with its protection as a string. A server capability
+// does not hold it as it is: it keeps each option as a plain Property object, which any peer reads.
+class TransportOptionImpl final : public ImplementationOf<ITransportOption, ISerializable>
 {
 public:
-    using Super = GenericPropertyObjectImpl<ITransportOption>;
-
-    static constexpr const char* IdPropertyName = "Id";
-    static constexpr const char* PortPropertyName = "Port";
-    static constexpr const char* ProtectionPropertyName = "Protection";
-    static constexpr const char* CertificateRequiredPropertyName = "CertificateRequired";
-
     TransportOptionImpl(const StringPtr& id, const IntegerPtr& port, TransportProtection protection, Bool certificateRequired);
 
     ErrCode INTERFACE_FUNC getId(IString** id) override;
@@ -44,77 +39,17 @@ public:
     ErrCode INTERFACE_FUNC getProtection(TransportProtection* protection) override;
     ErrCode INTERFACE_FUNC getCertificateRequired(Bool* required) override;
 
-    // An object-type property value must report IPropertyObject as its first interface
-    ErrCode INTERFACE_FUNC getInterfaceIds(SizeT* idCount, IntfID** ids) override;
+    ErrCode INTERFACE_FUNC serialize(ISerializer* serializer) override;
+    ErrCode INTERFACE_FUNC getSerializeId(ConstCharPtr* id) const override;
+    static ConstCharPtr SerializeId();
+    static ErrCode Deserialize(ISerializedObject* serialized, IBaseObject* context, IFunction* factoryCallback, IBaseObject** obj);
 
-    ErrCode INTERFACE_FUNC clone(IPropertyObject** cloned) override;
+private:
+    StringPtr id;
+    IntegerPtr port;
+    TransportProtection protection;
+    Bool certificateRequired;
 };
-
-/*!
- * @brief Gets the transport option an object stands for.
- * @param obj A transport option, or the plain Property object a transport option was deserialized into.
- * @throws InvalidParameterException if `obj` is neither, i.e. lacks one of the option's properties.
- *
- * Component types use it to restore the options they read back from their serialized form. The header is private to
- * the SDK; the public server capability header restores its options on its own.
- */
-inline TransportOptionPtr TransportOptionFromPropertyObject(const PropertyObjectPtr& obj)
-{
-    if (!obj.assigned())
-        DAQ_THROW_EXCEPTION(ArgumentNullException, "The transport option object is not assigned");
-
-    if (const auto option = obj.asPtrOrNull<ITransportOption, TransportOptionPtr>(true); option.assigned())
-        return option;
-
-    const auto hasProperty = [&obj](const char* name, CoreType type)
-    {
-        return obj.hasProperty(name) && obj.getProperty(name).getValueType() == type;
-    };
-
-    if (!hasProperty(TransportOptionImpl::IdPropertyName, ctString) || !hasProperty(TransportOptionImpl::PortPropertyName, ctInt) ||
-        !hasProperty(TransportOptionImpl::ProtectionPropertyName, ctInt) ||
-        !hasProperty(TransportOptionImpl::CertificateRequiredPropertyName, ctBool))
-    {
-        DAQ_THROW_EXCEPTION(InvalidParameterException, "The object is not a transport option");
-    }
-
-    const StringPtr id = obj.getPropertyValue(TransportOptionImpl::IdPropertyName);
-    const Int port = obj.getPropertyValue(TransportOptionImpl::PortPropertyName);
-    const Int protection = obj.getPropertyValue(TransportOptionImpl::ProtectionPropertyName);
-    const Bool certificateRequired = obj.getPropertyValue(TransportOptionImpl::CertificateRequiredPropertyName);
-    return TransportOption(id, port, static_cast<TransportProtection>(protection), certificateRequired);
-}
-
-/*!
- * @brief Gets the transport options a dictionary of objects stands for, in the same order.
- * @param objects Transport options or the plain Property objects they were deserialized into, keyed by their own
- * ids; may be unassigned.
- * @returns The options keyed by their ids, frozen.
- * @throws InvalidParameterException if a value is neither, or a key is not the id of its option.
- */
-inline DictPtr<IString, ITransportOption> TransportOptionsFromPropertyObjects(const DictPtr<IBaseObject, IBaseObject>& objects)
-{
-    auto options = Dict<IString, ITransportOption>();
-    if (objects.assigned())
-    {
-        for (const auto& [key, obj] : objects)
-        {
-            const auto propertyObject = obj.asPtrOrNull<IPropertyObject, PropertyObjectPtr>();
-            if (!propertyObject.assigned())
-                DAQ_THROW_EXCEPTION(InvalidParameterException, "The object is not a transport option");
-
-            const auto option = TransportOptionFromPropertyObject(propertyObject);
-            const auto id = key.asPtrOrNull<IString, StringPtr>();
-            if (!id.assigned() || id != option.getId())
-                DAQ_THROW_EXCEPTION(InvalidParameterException, R"(The transport option "{}" is not keyed by its id)", option.getId());
-
-            options.set(id, option);
-        }
-    }
-
-    options.freeze();
-    return options;
-}
 
 /*!
  * @brief Gets transport options keyed by their ids, in the given order.
@@ -130,14 +65,27 @@ inline DictPtr<IString, ITransportOption> TransportOptionsById(std::initializer_
 
 /*!
  * @brief Gets a frozen copy of transport options keyed by their ids, in the same order.
+ * @param options The options, for example as deserialized; may be unassigned.
+ * @throws InvalidTypeException if a key is not a string or a value is not a transport option.
+ * @throws InvalidValueException if a key is not the id of its option.
  */
-inline DictPtr<IString, ITransportOption> FrozenTransportOptions(const DictPtr<IString, ITransportOption>& options)
+inline DictPtr<IString, ITransportOption> FrozenTransportOptions(const DictPtr<IBaseObject, IBaseObject>& options)
 {
     auto copy = Dict<IString, ITransportOption>();
     if (options.assigned())
     {
-        for (const auto& [id, option] : options)
+        for (const auto& [key, item] : options)
+        {
+            const auto id = key.asPtrOrNull<IString, StringPtr>();
+            const auto option = item.asPtrOrNull<ITransportOption, TransportOptionPtr>();
+            if (!id.assigned() || !option.assigned())
+                DAQ_THROW_EXCEPTION(InvalidTypeException, "Transport options must be ITransportOption objects keyed by their ids");
+
+            if (id != option.getId())
+                DAQ_THROW_EXCEPTION(InvalidValueException, R"(Transport option "{}" is keyed by "{}")", option.getId(), id);
+
             copy.set(id, option);
+        }
     }
 
     copy.freeze();

@@ -151,6 +151,26 @@ class TestDocumentationArchitectureGuide(opendaq_test.TestCase):
         instance_builder.add_config_provider(config_provider)
         instance = instance_builder.build()
 
+    def test_function_credential_provider(self):
+        builder = opendaq.CredentialRequestBuilder()
+        builder.component_type = opendaq.DeviceType('id', 'name', 'description', None, 'prefix', {})
+        builder.connection_string = 'daq://device1'
+        builder.authentication_method = opendaq.AuthenticationMethod('UserNamePassword', {}, 'User name and password')
+        request = builder.build()
+
+        def provider_function(method_name, params):
+            if method_name == 'getDescription':
+                return {'Description': 'Python provider'}
+            if method_name == 'requestCredentials':
+                return {'Credentials': {'UserName': 'user', 'Password': 'secret'}}
+
+        provider = opendaq.FunctionCredentialProvider(opendaq.Function(provider_function))
+        credentials = provider.request_credentials(request)
+
+        self.assertEqual(provider.description, 'Python provider')
+        self.assertEqual(credentials['UserName'], 'user')
+        self.assertEqual(credentials['Password'], 'secret')
+
     def test_search(self):
         instance = opendaq.Instance()
         device = instance.add_device('daqref://device0')

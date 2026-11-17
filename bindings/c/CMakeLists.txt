@@ -186,7 +186,7 @@ set(SRC_CoreObjects_Cpp
 )
 
 set(SRC_OpenDAQ_Headers
-    include/copendaq/component/add_component_config.h
+    include/copendaq/component/transport_option.h
     include/copendaq/component/common.h
     include/copendaq/component/component_errors.h
     include/copendaq/component/component_private.h
@@ -346,7 +346,7 @@ set(SRC_OpenDAQ_Headers
 )
 
 set(SRC_OpenDAQ_Cpp
-    src/copendaq/component/add_component_config.cpp
+    src/copendaq/component/transport_option.cpp
     src/copendaq/component/component_private.cpp
     src/copendaq/component/component_status_container_private.cpp
     src/copendaq/component/component_status_container.cpp

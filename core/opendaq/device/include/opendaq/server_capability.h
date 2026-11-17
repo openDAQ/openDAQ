@@ -17,6 +17,7 @@
 #include <coretypes/common.h>
 #include <coretypes/stringobject.h>
 #include <opendaq/address_info.h>
+#include <opendaq/transport_option.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
@@ -41,6 +42,7 @@ enum class ProtocolType: EnumType
  * [interfaceLibrary(IPropertyObject, "coreobjects")]
  * [interfaceSmartPtr(IPropertyObject, GenericPropertyObjectPtr, "<coreobjects/property_object_ptr.h>")]
  * [interfaceSmartPtr(IInteger, IntegerPtr, "<coretypes/integer.h>")]
+ * [interfaceSmartPtr(ITransportOption, TransportOptionPtr, "<opendaq/transport_option_ptr.h>")]
  */
 
 /*!
@@ -130,9 +132,8 @@ DECLARE_OPENDAQ_INTERFACE(IServerCapability, IPropertyObject)
      * @brief Gets the port of the default transport.
      * @param[out] port The port of the device.
      *
-     * @deprecated Use getAvailableTransports instead.
-     * Returns the port assigned to the first (default) entry of getAvailableTransports,
-     * or the stored port when no transports are set.
+     * @deprecated Use getTransportOptions instead.
+     * Returns the port of the first (default) transport option, or the stored port when no options are set.
      */
     virtual ErrCode INTERFACE_FUNC getPort(IInteger** port) = 0;
     
@@ -169,15 +170,16 @@ DECLARE_OPENDAQ_INTERFACE(IServerCapability, IPropertyObject)
      */
     virtual ErrCode INTERFACE_FUNC getAuthenticationMethods(IList** methods) = 0;
 
-    // [templateType(transports, IString, IInteger)]
+    // [templateType(transportOptions, ITransportOption)]
     /*!
-     * @brief Gets the transports the server accepts connections over, with the port assigned to each.
-     * @param[out] transports A dictionary mapping a transport name (e.g. "plain", "tls", "https", "wss") to its port.
+     * @brief Gets the transport options the server accepts connections over, with the port it serves each on.
+     * @param[out] transportOptions The served options, the server's preferred first. On the connection info of a
+     * connected device, only the option the connection uses.
      *
-     * The dictionary preserves insertion order. The first entry is the default transport,
-     * and its port is the one returned by getPort.
+     * On a client, the capability of a discovered or connected server lists only the options the client module
+     * supports as well. The first option is the default one, and its port is the one returned by getPort.
      */
-    virtual ErrCode INTERFACE_FUNC getAvailableTransports(IDict** transports) = 0;
+    virtual ErrCode INTERFACE_FUNC getTransportOptions(IList** transportOptions) = 0;
 
 };
 /*!@}*/

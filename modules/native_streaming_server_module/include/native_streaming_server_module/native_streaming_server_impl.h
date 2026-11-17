@@ -24,6 +24,7 @@
 #include <native_streaming_protocol/native_streaming_server_handler.h>
 #include <opendaq/connection_internal.h>
 #include <opendaq/device_info_internal_ptr.h>
+#include <opendaq/transport_option_ptr.h>
 #include <tsl/ordered_map.h>
 #include <boost/asio/thread_pool.hpp>
 #include <config_protocol/config_protocol_server.h>
@@ -38,8 +39,8 @@ public:
                                        const ContextPtr& context);
     ~NativeStreamingServerImpl() override;
     static PropertyObjectPtr createDefaultConfig(const ContextPtr& context);
-    /// @param availableTransports the transports the type lists, built once by the module
-    static ServerTypePtr createType(const ContextPtr& context, const DictPtr<IString, IInteger>& availableTransports);
+    /// @param transportOptions the transport options the type lists, built once by the module
+    static ServerTypePtr createType(const ContextPtr& context, const ListPtr<ITransportOption>& transportOptions);
     static PropertyObjectPtr populateDefaultConfig(const PropertyObjectPtr& config, const ContextPtr& context);
 
 protected:
@@ -56,10 +57,13 @@ protected:
     /// which turns the TLS listener on without the secrets it needs
     void validateChannelConfig(const PropertyObjectPtr& config) const;
 
+    /// @brief the transport options of the open channels, at the ports they listen on; plain first
+    ListPtr<ITransportOption> servedTransportOptions() const;
+
     /// @brief publishes the streaming and the configuration capability, shared by the open channels
-    /// @param transports the open channels with their ports, plain first; the first one is the default
+    /// @param transportOptions the open channels with their ports, plain first; the first one is the default
     void addServerCapabilities(const DeviceInfoInternalPtr& infoInternal,
-                               const DictPtr<IString, IInteger>& transports,
+                               const ListPtr<ITransportOption>& transportOptions,
                                const StringPtr& path) const;
 
     std::shared_ptr<opendaq_native_streaming_protocol::NativeStreamingServerHandler> serverHandler;

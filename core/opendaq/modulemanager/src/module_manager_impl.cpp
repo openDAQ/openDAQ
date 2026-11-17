@@ -1,6 +1,7 @@
 #include <coreobjects/property_factory.h>
 #include <opendaq/module_manager_impl.h>
 #include <opendaq/module_manager_ptr.h>
+#include <opendaq/transport_option_impl.h>
 #include <opendaq/custom_log.h>
 #include <opendaq/module_ptr.h>
 #include <opendaq/module_manager_exceptions.h>
@@ -38,7 +39,6 @@
 #include <opendaq/component_type_private_ptr.h>
 #include <opendaq/device_type_ptr.h>
 #include <opendaq/streaming_type_ptr.h>
-#include <opendaq/add_component_config_ptr.h>
 #include <opendaq/connection_string_utils.h>
 #include <opendaq/authentication_method_ptr.h>
 #include <opendaq/authentication_method_internal_ptr.h>
@@ -52,6 +52,8 @@
 #include <opendaq/module_manager_check_dependencies.h>
 #include <opendaq/add_component_config_factory.h>
 #include <opendaq/add_streaming_options_ptr.h>
+#include <opendaq/add_device_config_impl.h>
+#include <coretypes/integer_factory.h>
 #include <opendaq/streaming_type_utils.h>
 
 BEGIN_NAMESPACE_OPENDAQ
@@ -112,6 +114,60 @@ TypePtr FindTypeByPrefix(const Types& types, const StringPtr& prefix)
     for (const auto& [_, type] : types)
         if (type.getConnectionStringPrefix() == prefix)
             return type;
+    return nullptr;
+}
+
+// The transport option the type config of a device or streaming type names, or unassigned if it names none
+inline StringPtr GetSelectedTransportOption(const PropertyObjectPtr& typeConfig)
+{
+    if (!typeConfig.assigned() || !typeConfig.hasProperty(TransportOptionConfigProperty))
+        return nullptr;
+    return typeConfig.getPropertyValue(TransportOptionConfigProperty);
+}
+
+// Fails with OPENDAQ_ERR_NOTFOUND when the type config names a transport option the type does not list
+inline ErrCode CheckSelectedTransportOption(const ComponentTypePtr& type, const PropertyObjectPtr& typeConfig)
+{
+    const StringPtr selected = GetSelectedTransportOption(typeConfig);
+    if (!selected.assigned())
+        return OPENDAQ_SUCCESS;
+
+    ListPtr<ITransportOption> options;
+    if (OPENDAQ_FAILED(type->getTransportOptions(&options)))
+    {
+        daqClearErrorInfo();
+        return OPENDAQ_SUCCESS;
+    }
+
+    // A type that lists no options leaves the property to its module
+    if (!options.assigned() || options.getCount() == 0 || FindTransportOption(options, selected).assigned())
+        return OPENDAQ_SUCCESS;
+
+    std::string names;
+    for (const auto& option : options)
+        names += (names.empty() ? "" : ", ") + option.getName().toStdString();
+
+    return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOTFOUND,
+                               fmt::format("The {} type '{}' has no transport option '{}'; it lists: {}",
+                                           type.asPtrOrNull<IStreamingType>().assigned() ? "streaming" : "device",
+                                           type.getId(),
+                                           selected,
+                                           names));
+}
+
+// The transport options the server of a device info announces for the type with the given connection string prefix;
+// unassigned when it announces none
+inline ListPtr<ITransportOption> AnnouncedTransportOptions(const ListPtr<IServerCapability>& capabilities, const StringPtr& prefix)
+{
+    for (const auto& capability : capabilities)
+    {
+        if (capability.getPrefix() != prefix)
+            continue;
+
+        if (const auto options = capability.getTransportOptions(); options.assigned() && options.getCount() > 0)
+            return options;
+    }
+
     return nullptr;
 }
 
@@ -895,6 +951,29 @@ ErrCode ModuleManagerImpl::createDeviceInternal(IDevice** device, IString* conne
 
             // copy props from input config and connection string to device type config
             const auto deviceTypeConfig = PopulateDeviceTypeConfig(addDeviceConfig, inputConfig, deviceType, connectionStringOptions);
+
+            // The module connects by TransportOptionConfigProperty and PortConfigProperty; a config without them gets
+            // the type's first option. On this legacy path the selection comes from the input config only when the
+            // module declares TransportOption in its own default config (as the Native module does): the type config
+            // is the type's default config with the input values copied over (OverrideConfigProperties). Otherwise the
+            // module gets the first option here.
+            //
+            // The new createDevice (see the comment in createDevice) is expected to resolve the port first and to hand
+            // over a type config that already carries the selection of the IAddDeviceConfig:
+            //
+            //   typeConfig[TransportOptionConfigProperty] = config.getSelectedTransportOption().getName()
+            //   typeConfig[PortConfigProperty] = the resolved port
+            //   module.createDevice(ReplaceConnectionStringPort(target, the resolved port), typeConfig)
+            //
+            // AddTransportSelectionProperties then adds nothing, and CheckSelectedTransportOption still rejects an
+            // option the type does not list with OPENDAQ_ERR_NOTFOUND. The port has to be resolved before this point:
+            // the connection string of a discovered device names the port of the server's default option, which may
+            // belong to another option than the selected one.
+            AddTransportSelectionProperties(deviceTypeConfig, ComponentTypeTransportOptions(deviceType));
+            OPENDAQ_RETURN_IF_FAILED(CheckSelectedTransportOption(deviceType, deviceTypeConfig));
+
+            // A connection string taken from discovery names the port of the server's default option; the selected
+            // option may be served on another one
             const auto deviceConnectionString = applySelectedTransportPort(connectionStringPtr, discoveredCapability, deviceTypeConfig);
 
             // Any supported authentication method - field-less (e.g. "Anonymous") included - goes through
@@ -966,6 +1045,27 @@ ErrCode ModuleManagerImpl::createDeviceInternal(IDevice** device, IString* conne
 
 ErrCode ModuleManagerImpl::createDevice(IDevice** device, IString* connectionString, IComponent* parent, IPropertyObject* config)
 {
+    // Adding a device with an IAddDeviceConfig comes with the new createDevice (another branch). The expected flow, as
+    // the IAddDeviceConfig class description states it:
+    //
+    //   target = daq://... ? the connection string of the discovered server capability of config.getDeviceType()
+    //                      : connectionString, whose prefix must be the one of config.getDeviceType()
+    //                        (else OPENDAQ_ERR_INVALIDPARAMETER)
+    //   port = config.getPort()
+    //   if port == config.getSelectedTransportOption().getPort() and discovery reports the device:
+    //       port = the port the discovered capability announces for the selected option
+    //   if target names a port that is neither `port` nor the port of an option config.getTransportOptions() lists
+    //   or the discovered capability announces:
+    //       fail with OPENDAQ_ERR_INVALIDPARAMETER
+    //   typeConfig = a clone of config.getTypeConfig(), with
+    //       typeConfig[TransportOptionConfigProperty] = config.getSelectedTransportOption().getName()
+    //       typeConfig[PortConfigProperty] = port
+    //   the module creates the device from ReplaceConnectionStringPort(target, port) and typeConfig
+    //   the selected streaming config (config.getStreamingOptions().getStreamingConfig()) connects over its selected
+    //   option the same way; a Streaming type linked to the Device type follows the device's option and port
+    if (config != nullptr && PropertyObjectPtr::Borrow(config).supportsInterface<IAddDeviceConfig>())
+        return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOTIMPLEMENTED, "Adding a device with an add-device config is not implemented yet");
+
     return createDeviceInternal(device, connectionString, parent, config);
 }
 
@@ -1479,7 +1579,24 @@ ErrCode ModuleManagerImpl::createAddDeviceConfig(IAddDeviceConfig** config, IDev
             else
                 listedTypes.set(id, streamingType);
 
-        auto addDeviceConfig = AddDeviceConfig(deviceType, listedTypes, scanOnAdd);
+        // The config lists the transport options the server of the device announces instead of the ones of the types
+        const auto transportOptions = AnnouncedTransportOptions(capabilities, deviceType.getConnectionStringPrefix());
+        auto streamingTransportOptions = Dict<IString, IList>();
+        for (const auto& [id, streamingType] : listedTypes)
+        {
+            if (const auto options = AnnouncedTransportOptions(capabilities, streamingType.getConnectionStringPrefix()); options.assigned())
+                streamingTransportOptions.set(id, options);
+        }
+
+        AddDeviceConfigPtr addDeviceConfig = createWithImplementation<IAddDeviceConfig, AddDeviceConfigImpl>(
+            deviceType, listedTypes, scanOnAdd, transportOptions, streamingTransportOptions);
+
+        // A device info that announces no options names the port to connect to in its connection string, if any
+        if (!transportOptions.assigned() && addDeviceConfig.getTransportOptions().getCount() > 0)
+        {
+            if (const auto port = GetConnectionStringPort(infoPtr.getConnectionString()); port.has_value())
+                addDeviceConfig.setPort(Integer(port.value()));
+        }
 
         const auto options = addDeviceConfig.getStreamingOptions();
         if (options.assigned())
@@ -1738,32 +1855,41 @@ ServerCapabilityPtr ModuleManagerImpl::findDiscoveredCapability(const StringPtr&
     return nullptr;
 }
 
-// A connection string taken from discovery carries the port of the capability's default transport. When the
-// add-device config selects another transport the capability offers, the port of that transport is used instead.
+// A connection string taken from discovery carries the port of the capability's default transport option. When the
+// type config selects another option the capability offers, the port the server announces for that option is used
+// instead: in the connection string, and as the Port of the type config unless that one was set explicitly.
 StringPtr ModuleManagerImpl::applySelectedTransportPort(const StringPtr& connectionString,
                                                         const ServerCapabilityPtr& discoveredCapability,
                                                         const PropertyObjectPtr& deviceTypeConfig) const
 {
-    if (!discoveredCapability.assigned() || !deviceTypeConfig.assigned() || !deviceTypeConfig.hasProperty("AddDeviceConfig"))
+    if (!discoveredCapability.assigned())
         return connectionString;
 
-    const auto addConfig = deviceTypeConfig.getPropertyValue("AddDeviceConfig").asPtrOrNull<IAddComponentConfig, AddComponentConfigPtr>();
-    const StringPtr transport = addConfig.assigned() ? addConfig.getTransport() : nullptr;
-    const auto transports = discoveredCapability.getAvailableTransports();
-    if (!transport.assigned() || !transports.assigned() || transports.getCount() == 0)
+    const StringPtr selected = GetSelectedTransportOption(deviceTypeConfig);
+    const auto options = discoveredCapability.getTransportOptions();
+    if (!selected.assigned() || !options.assigned() || options.getCount() == 0)
         return connectionString;
 
-    if (!transports.hasKey(transport))
+    const auto option = FindTransportOption(options, selected);
+    if (!option.assigned())
     {
-        LOG_W("The discovered capability [{}] of {} does not offer the transport '{}' selected in the add-device config, "
+        LOG_W("The discovered capability [{}] of {} does not offer the transport option '{}' selected in the type config, "
               "connecting as is",
               discoveredCapability.getProtocolId(),
               connectionString,
-              transport);
+              selected);
         return connectionString;
     }
 
-    return ReplaceConnectionStringPort(connectionString, transports.get(transport));
+    const Int port = option.getPort();
+    if (deviceTypeConfig.hasProperty(PortConfigProperty))
+    {
+        const auto portProperty = deviceTypeConfig.getProperty(PortConfigProperty);
+        if (deviceTypeConfig.getPropertyValue(PortConfigProperty) == portProperty.getDefaultValue())
+            deviceTypeConfig.setPropertyValue(PortConfigProperty, port);
+    }
+
+    return ReplaceConnectionStringPort(connectionString, port);
 }
 
 DeviceTypePtr ModuleManagerImpl::getDeviceTypeFromConnectionString(const StringPtr& connectionString, const ModulePtr& module) const
@@ -1840,6 +1966,16 @@ StreamingPtr ModuleManagerImpl::onCreateStreaming(const StringPtr& connectionStr
         {
             streamingTypeConfig = inputConfig;
         }
+
+        // The module connects by the selection properties; a config without them gets the default option
+        if (const auto options = ComponentTypeTransportOptions(streamingType); options.getCount() > 0)
+        {
+            if (!streamingTypeConfig.assigned())
+                streamingTypeConfig = streamingType.createDefaultConfig();
+            AddTransportSelectionProperties(streamingTypeConfig, options);
+        }
+
+        checkErrorInfo(CheckSelectedTransportOption(streamingType, streamingTypeConfig));
 
         if (authenticationConfig.assigned() && !streamingType.asPtr<IComponentTypePrivate>().getSupportedAuthenticationMethods().getCount())
         {

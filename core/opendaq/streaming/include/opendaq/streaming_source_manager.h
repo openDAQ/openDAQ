@@ -27,7 +27,8 @@
 #include <opendaq/search_filter_factory.h>
 #include <opendaq/mirrored_signal_config_ptr.h>
 #include <opendaq/module_manager_utils_ptr.h>
-#include <opendaq/add_component_config_ptr.h>
+#include <opendaq/transport_option_factory.h>
+#include <opendaq/transport_option_ptr.h>
 #include <opendaq/connection_string_utils.h>
 
 #include <opendaq/mirrored_input_port_config_ptr.h>
@@ -68,7 +69,7 @@ private:
     static AddressInfoPtr getDeviceConnectionAddress(const DevicePtr& device);
     template <typename TTypes>
     static StringPtr findTypeIdByPrefix(const TTypes& types, const StringPtr& prefix);
-    StringPtr getSelectedTransport(const std::string& section, const StringPtr& typeId, const std::string& addConfigName) const;
+    StringPtr getSelectedTransport(const std::string& section, const StringPtr& typeId) const;
     StringPtr getDeviceTransport(const ModuleManagerUtilsPtr& managerUtils) const;
     void completeStreamingConnections(const MirroredDeviceConfigPtr& topDevice);
     void attachStreamingToDevice(const MirroredDeviceConfigPtr& device);
@@ -494,13 +495,11 @@ StringPtr StreamingSourceManager::findTypeIdByPrefix(const TTypes& types, const 
     return nullptr;
 }
 
-// The transport selected in the add-device config for the type in the "Device" or "Streaming" section,
-// if the type lists transports
-inline StringPtr StreamingSourceManager::getSelectedTransport(const std::string& section,
-                                                              const StringPtr& typeId,
-                                                              const std::string& addConfigName) const
+// The transport option the type config of the type in the "Device" or "Streaming" section of the add-device config
+// names (TransportOptionConfigProperty), if the type config has one
+inline StringPtr StreamingSourceManager::getSelectedTransport(const std::string& section, const StringPtr& typeId) const
 {
-    if (!typeId.assigned() || !deviceConfig.hasProperty(section))
+    if (!typeId.assigned() || !deviceConfig.assigned() || !deviceConfig.hasProperty(section))
         return nullptr;
 
     const PropertyObjectPtr typesConfig = deviceConfig.getPropertyValue(section);
@@ -508,11 +507,10 @@ inline StringPtr StreamingSourceManager::getSelectedTransport(const std::string&
         return nullptr;
 
     const PropertyObjectPtr typeConfig = typesConfig.getPropertyValue(typeId);
-    if (!typeConfig.hasProperty(addConfigName))
+    if (!typeConfig.hasProperty(TransportOptionConfigProperty))
         return nullptr;
 
-    const auto addConfig = typeConfig.getPropertyValue(addConfigName).asPtrOrNull<IAddComponentConfig, AddComponentConfigPtr>();
-    return addConfig.assigned() ? addConfig.getTransport() : nullptr;
+    return typeConfig.getPropertyValue(TransportOptionConfigProperty);
 }
 
 // The transport the user selected for the configuration connection of the device the add-device config belongs to
@@ -527,7 +525,7 @@ inline StringPtr StreamingSourceManager::getDeviceTransport(const ModuleManagerU
         return nullptr;
 
     const auto deviceTypeId = findTypeIdByPrefix(managerUtils.getAvailableDeviceTypes(), configurationConnectionInfo.getPrefix());
-    return getSelectedTransport("Device", deviceTypeId, "AddDeviceConfig");
+    return getSelectedTransport("Device", deviceTypeId);
 }
 
 inline void StreamingSourceManager::completeStreamingConnections(const MirroredDeviceConfigPtr& topDevice)
@@ -599,25 +597,43 @@ inline void StreamingSourceManager::attachStreamingToDevice(const MirroredDevice
         if (streamingConnectionStrings.empty())
             streamingConnectionStrings.pushBack(cap.getConnectionString());
 
-        // The streaming connects over the transport selected for its own type, never over the device's one,
-        // at the port the server announces for that transport
+        // The streaming connects over the transport option selected in its own type config
+        // ("Streaming.<type id>.TransportOption"), never over the device's one, at the port the server announces for
+        // that option. Without a selection, it connects at the port of the capability's connection strings, which is
+        // the port of the server's default option, and its module gets the type's first option (see
+        // ModuleManagerImpl::onCreateStreaming).
+        //
+        // With the new createDevice the selection is expected to come from the add-device config the device was
+        // added with instead (streamingConfig.getSelectedTransportOption(), and getPort() when it differs from the
+        // port of the selected option).
         const auto streamingTypeId = findTypeIdByPrefix(managerUtils.getAvailableStreamingTypes(), cap.getPrefix());
-        const auto transport = getSelectedTransport("Streaming", streamingTypeId, "AddStreamingConfig");
-        const auto capabilityTransports = cap.getAvailableTransports();
-        if (transport.assigned() && capabilityTransports.assigned() && capabilityTransports.getCount() > 0)
+        const auto transport = getSelectedTransport("Streaming", streamingTypeId);
+        const auto capabilityOptions = cap.getTransportOptions();
+        if (transport.assigned() && capabilityOptions.assigned() && capabilityOptions.getCount() > 0)
         {
-            if (!capabilityTransports.hasKey(transport))
+            TransportOptionPtr option;
+            for (const auto& capabilityOption : capabilityOptions)
             {
-                LOG_W("Device {} streaming capability [{}] does not offer the transport '{}' selected in "
-                      "'Streaming.{}.AddStreamingConfig' of the add-device config, skipping it",
+                if (capabilityOption.getName() == transport)
+                {
+                    option = capabilityOption;
+                    break;
+                }
+            }
+
+            if (!option.assigned())
+            {
+                LOG_W("Device {} streaming capability [{}] does not offer the transport option '{}' selected in "
+                      "'Streaming.{}.{}' of the add-device config, skipping it",
                       device.getGlobalId(),
                       capabilityProtocolId,
                       transport,
-                      streamingTypeId);
+                      streamingTypeId,
+                      TransportOptionConfigProperty);
                 continue;
             }
 
-            const Int port = capabilityTransports.get(transport);
+            const Int port = option.getPort();
             auto connectionStrings = List<IString>();
             for (const auto& connectionString : streamingConnectionStrings)
                 connectionStrings.pushBack(ReplaceConnectionStringPort(connectionString, port));
@@ -654,13 +670,14 @@ inline void StreamingSourceManager::attachStreamingToDevice(const MirroredDevice
 
                 if (transport.assigned() && deviceTransport.assigned() && transport != deviceTransport)
                     LOG_W("Device {} is configured over the '{}' transport, while its streaming {} connects over '{}'. "
-                          "The streaming transport is selected separately, in 'Streaming.{}.AddStreamingConfig' of the "
+                          "The streaming transport is selected separately, in 'Streaming.{}.{}' of the "
                           "add-device config",
                           device.getGlobalId(),
                           deviceTransport,
                           connectionString,
                           transport,
-                          streamingTypeId);
+                          streamingTypeId,
+                          TransportOptionConfigProperty);
                 break;
             }
         }

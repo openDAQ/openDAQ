@@ -147,7 +147,7 @@ run_rtgen ccoreobjects coreobjects coreobjects user_internal user_internal
 run_rtgen copendaq/component opendaq/component opendaq component component #enum
 run_rtgen copendaq/component opendaq/component opendaq component_deserialize_context component_deserialize_context
 # run_rtgen copendaq/component opendaq/component opendaq component_errors component_errors #contains error codes
-run_rtgen copendaq/component opendaq/component opendaq add_component_config add_component_config
+run_rtgen copendaq/component opendaq/component opendaq transport_option transport_option
 run_rtgen copendaq/component opendaq/component opendaq component_holder component_holder
 run_rtgen copendaq/component opendaq/component opendaq component_private component_private
 run_rtgen copendaq/component opendaq/component opendaq component_status_container component_status_container

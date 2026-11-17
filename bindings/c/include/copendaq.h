@@ -95,7 +95,7 @@ extern "C"
 #include <ccoreobjects/user.h>
 #include <ccoreobjects/validator.h>
 
-#include <copendaq/component/add_component_config.h>
+#include <copendaq/component/transport_option.h>
 #include <copendaq/component/component_private.h>
 #include <copendaq/component/component_status_container_private.h>
 #include <copendaq/component/component_status_container.h>

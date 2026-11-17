@@ -8,7 +8,7 @@
 #include <coreobjects/property_object_factory.h>
 #include <coreobjects/property_factory.h>
 #include <opendaq/streaming_type_factory.h>
-#include <opendaq/transport_config_factory.h>
+#include <opendaq/transport_option_impl.h>
 #include <coreobjects/property_object_internal_ptr.h>
 #include <coretypes/json_serializer_factory.h>
 #include <coretypes/json_deserializer_factory.h>
@@ -331,18 +331,18 @@ TEST_F(OpenDaqFactoriesTest, DeviceTypeWithNoMethodsAddedDoesNotSupportAuthentic
     ASSERT_TRUE(methods.getCount() == 0);
 }
 
-// Dict equality ignores order, so the order is checked through the key list
-TEST_F(OpenDaqFactoriesTest, StreamingTypeAvailableTransports)
+TEST_F(OpenDaqFactoriesTest, StreamingTypeTransportOptions)
 {
     const StreamingTypePtr type = StreamingTypeBuilder()
                                   .setId("Id")
                                   .setConnectionStringPrefix("Prefix")
-                                  .setAvailableTransports(Dict<IString, IInteger>({{"tls", 7421}, {"plain", 7420}}))
+                                  .setTransportOptions(List<ITransportOption>(TransportOption("tls", 7421, TransportProtection::Encrypted),
+                                                                              TransportOption("plain", 7420)))
                                   .build();
 
-    ASSERT_EQ(type.getAvailableTransports().getKeyList(), List<IString>("tls", "plain"));
-    ASSERT_EQ(type.getAvailableTransports().get("tls"), 7421);
-    ASSERT_EQ(StreamingType("Id", "Name", "Desc", "Prefix").getAvailableTransports().getCount(), 0u);
+    ASSERT_EQ(TransportOptionNames(type.getTransportOptions()), List<IString>("tls", "plain"));
+    ASSERT_EQ(type.getTransportOptions()[0].getPort(), 7421);
+    ASSERT_EQ(StreamingType("Id", "Name", "Desc", "Prefix").getTransportOptions().getCount(), 0u);
 }
 
 TEST_F(OpenDaqFactoriesTest, StreamingTypeSerializeDeserialize)
@@ -352,7 +352,8 @@ TEST_F(OpenDaqFactoriesTest, StreamingTypeSerializeDeserialize)
                                   .setName("Name")
                                   .setDescription("Desc")
                                   .setConnectionStringPrefix("Prefix")
-                                  .setAvailableTransports(Dict<IString, IInteger>({{"wss", 7443}, {"tls", 7421}}))
+                                  .setTransportOptions(List<ITransportOption>(TransportOption("wss", 7443, TransportProtection::Encrypted),
+                                                                              TransportOption("tls", 7421, TransportProtection::Encrypted)))
                                   .build();
 
     const auto serializer = JsonSerializer();
@@ -365,23 +366,25 @@ TEST_F(OpenDaqFactoriesTest, StreamingTypeSerializeDeserialize)
     ASSERT_EQ(newType.getName(), "Name");
     ASSERT_EQ(newType.getDescription(), "Desc");
     ASSERT_EQ(newType.getConnectionStringPrefix(), "Prefix");
-    ASSERT_EQ(newType.getAvailableTransports().getKeyList(), List<IString>("wss", "tls"));
+    ASSERT_EQ(TransportOptionNames(newType.getTransportOptions()), List<IString>("wss", "tls"));
+    ASSERT_EQ(newType.getTransportOptions()[0].getProtection(), TransportProtection::Encrypted);
 
     serializer.reset();
     newType.serialize(serializer);
     ASSERT_EQ(serializedType, serializer.getOutput());
 }
 
-TEST_F(OpenDaqFactoriesTest, ServerTypeAvailableTransports)
+TEST_F(OpenDaqFactoriesTest, ServerTypeTransportOptions)
 {
     const ServerTypePtr type = ServerTypeBuilder()
                                .setId("Id")
-                               .setAvailableTransports(Dict<IString, IInteger>({{"tls", 7421}, {"plain", 7420}}))
+                               .setTransportOptions(List<ITransportOption>(TransportOption("tls", 7421, TransportProtection::Encrypted),
+                                                                           TransportOption("plain", 7420)))
                                .build();
 
-    ASSERT_EQ(type.getAvailableTransports().getKeyList(), List<IString>("tls", "plain"));
-    ASSERT_EQ(type.getAvailableTransports().get("plain"), 7420);
-    ASSERT_EQ(ServerTypeBuilder().setId("Id").build().getAvailableTransports().getCount(), 0u);
+    ASSERT_EQ(TransportOptionNames(type.getTransportOptions()), List<IString>("tls", "plain"));
+    ASSERT_EQ(type.getTransportOptions()[1].getPort(), 7420);
+    ASSERT_EQ(ServerTypeBuilder().setId("Id").build().getTransportOptions().getCount(), 0u);
 }
 
 TEST_F(OpenDaqFactoriesTest, ServerTypeSerializeDeserialize)
@@ -390,7 +393,8 @@ TEST_F(OpenDaqFactoriesTest, ServerTypeSerializeDeserialize)
                                .setId("Id")
                                .setName("Name")
                                .setDescription("Desc")
-                               .setAvailableTransports(Dict<IString, IInteger>({{"https", 443}, {"plain", 7420}}))
+                               .setTransportOptions(List<ITransportOption>(TransportOption("https", 443, TransportProtection::Encrypted),
+                                                                           TransportOption("plain", 7420)))
                                .build();
 
     const auto serializer = JsonSerializer();
@@ -402,121 +406,66 @@ TEST_F(OpenDaqFactoriesTest, ServerTypeSerializeDeserialize)
     ASSERT_EQ(newType.getId(), "Id");
     ASSERT_EQ(newType.getName(), "Name");
     ASSERT_EQ(newType.getDescription(), "Desc");
-    ASSERT_EQ(newType.getAvailableTransports().getKeyList(), List<IString>("https", "plain"));
+    ASSERT_EQ(TransportOptionNames(newType.getTransportOptions()), List<IString>("https", "plain"));
 
     serializer.reset();
     newType.serialize(serializer);
     ASSERT_EQ(serializedType, serializer.getOutput());
 }
 
-TEST_F(OpenDaqFactoriesTest, FBTypeDoesNotSupportTransports)
+TEST_F(OpenDaqFactoriesTest, FBTypeHasNoTransportOptions)
 {
-    const auto transports = Dict<IString, IInteger>({{"plain", 7420}});
+    const auto options = List<ITransportOption>(TransportOption("plain", 7420));
 
-    ASSERT_THROW(FunctionBlockTypeBuilder().setAvailableTransports(transports), NotSupportedException);
-    ASSERT_THROW(DeviceTypeBuilder().setTypeSort(ComponentTypeSort::Undefined).setAvailableTransports(transports), NotSupportedException);
+    ASSERT_THROW(FunctionBlockTypeBuilder().setTransportOptions(options), NotSupportedException);
+    ASSERT_THROW(DeviceTypeBuilder().setTypeSort(ComponentTypeSort::Undefined).setTransportOptions(options), NotSupportedException);
 
     const FunctionBlockTypePtr fbType = FunctionBlockTypeBuilder().setId("Id").build();
-    ASSERT_THROW(fbType.getAvailableTransports(), NotImplementedException);
+    ASSERT_THROW(fbType.getTransportOptions(), NotSupportedException);
 }
 
-TEST_F(OpenDaqFactoriesTest, TransportConfig)
+// The module manager adds the selection properties right before a streaming is created, not to the default config
+TEST_F(OpenDaqFactoriesTest, StreamingTypeDefaultConfigHasNoTransportSelection)
 {
-    const AddComponentConfigPtr config = AddComponentConfig(List<IString>("wss", "plain"));
-    ASSERT_EQ(config.getAvailableTransports(), List<IString>("wss", "plain"));
-    ASSERT_EQ(config.getTransport(), "wss");
-
-    config.setTransport("plain");
-    ASSERT_EQ(config.getPropertySelectionValue("Transport"), "plain");
-    ASSERT_THROW(config.setTransport("tls"), NotFoundException);
-
-    const PropertyObjectPtr cloned = config.asPtr<IPropertyObjectInternal>().clone();
-    ASSERT_EQ(cloned.asPtr<IAddComponentConfig>().getTransport(), "plain");
-
-    const auto serializer = JsonSerializer();
-    config.serialize(serializer);
-    const BaseObjectPtr deserialized = JsonDeserializer().deserialize(serializer.getOutput(), nullptr, nullptr);
-    const auto newConfig = deserialized.asPtrOrNull<IAddComponentConfig>();
-    ASSERT_TRUE(newConfig.assigned());
-    ASSERT_EQ(newConfig.getAvailableTransports(), List<IString>("wss", "plain"));
-    ASSERT_EQ(newConfig.getTransport(), "plain");
-}
-
-TEST_F(OpenDaqFactoriesTest, StreamingTypeDefaultConfigCarriesAddStreamingConfig)
-{
-    auto moduleConfig = PropertyObject();
-    moduleConfig.addProperty(IntProperty("Port", 7420));
-
     const StreamingTypePtr type = StreamingTypeBuilder()
                                       .setId("Id")
                                       .setConnectionStringPrefix("Prefix")
-                                      .setDefaultConfig(moduleConfig)
-                                      .setAvailableTransports(Dict<IString, IInteger>({{"plain", 7420}, {"tls", 7421}}))
+                                      .setTransportOptions(List<ITransportOption>(TransportOption("plain", 7420), TransportOption("tls", 7421)))
                                       .build();
+    ASSERT_FALSE(type.createDefaultConfig().hasProperty(TransportOptionConfigProperty));
+    ASSERT_FALSE(type.createDefaultConfig().hasProperty(PortConfigProperty));
 
-    const PropertyObjectPtr config = type.createDefaultConfig();
-    ASSERT_EQ(config.getPropertyValue("Port"), 7420);
-
-    const auto addStreamingConfig = config.getPropertyValue("AddStreamingConfig").asPtrOrNull<IAddComponentConfig>();
-    ASSERT_TRUE(addStreamingConfig.assigned());
-    ASSERT_EQ(addStreamingConfig.getAvailableTransports(), List<IString>("plain", "tls"));
-    ASSERT_EQ(addStreamingConfig.getTransport(), "plain");
-    ASSERT_FALSE(config.hasProperty("AddDeviceConfig"));
-
-    ASSERT_FALSE(StreamingType("Id", "Name", "Desc", "Prefix").createDefaultConfig().hasProperty("AddStreamingConfig"));
-}
-
-// A linked streaming type takes over the device's config, but keeps its own transport selection
-TEST_F(OpenDaqFactoriesTest, LinkedStreamingTypeDefaultConfigCarriesOwnAddStreamingConfig)
-{
+    // A linked streaming type takes over the device's config as it is
     auto moduleConfig = PropertyObject();
-    moduleConfig.addProperty(IntProperty("Port", 7420));
-
+    moduleConfig.addProperty(IntProperty("Port", 7000));
     const DeviceTypePtr deviceType = DeviceTypeBuilder()
                                          .setId("DeviceId")
                                          .setConnectionStringPrefix("daq.device")
                                          .setDefaultConfig(moduleConfig)
-                                         .setAvailableTransports(Dict<IString, IInteger>({{"tls", 7421}, {"plain", 7420}}))
+                                         .setTransportOptions(List<ITransportOption>(TransportOption("tls", 7421)))
                                          .build();
-    ASSERT_TRUE(deviceType.createDefaultConfig().hasProperty("AddDeviceConfig"));
+    const StreamingTypePtr linkedType = StreamingTypeBuilder()
+                                            .setId("Id")
+                                            .setConnectionStringPrefix("Prefix")
+                                            .setLinkedDeviceType(deviceType)
+                                            .setTransportOptions(List<ITransportOption>(TransportOption("plain", 7420)))
+                                            .build();
 
-    const StreamingTypePtr type = StreamingTypeBuilder()
-                                      .setId("Id")
-                                      .setConnectionStringPrefix("Prefix")
-                                      .setLinkedDeviceType(deviceType)
-                                      .setAvailableTransports(Dict<IString, IInteger>({{"plain", 7420}, {"tls", 7421}}))
-                                      .build();
-
-    const PropertyObjectPtr config = type.createDefaultConfig();
-    ASSERT_EQ(config.getPropertyValue("Port"), 7420);
-    ASSERT_FALSE(config.hasProperty("AddDeviceConfig"));
-
-    const auto addStreamingConfig = config.getPropertyValue("AddStreamingConfig").asPtrOrNull<IAddComponentConfig>();
-    ASSERT_TRUE(addStreamingConfig.assigned());
-    ASSERT_EQ(addStreamingConfig.getAvailableTransports(), List<IString>("plain", "tls"));
-    ASSERT_EQ(addStreamingConfig.getTransport(), "plain");
-
-    const StreamingTypePtr withoutTransports = StreamingTypeBuilder()
-                                                   .setId("Id")
-                                                   .setConnectionStringPrefix("Prefix")
-                                                   .setLinkedDeviceType(deviceType)
-                                                   .build();
-
-    const PropertyObjectPtr configWithoutTransports = withoutTransports.createDefaultConfig();
-    ASSERT_FALSE(configWithoutTransports.hasProperty("AddDeviceConfig"));
-    ASSERT_FALSE(configWithoutTransports.hasProperty("AddStreamingConfig"));
+    const PropertyObjectPtr config = linkedType.createDefaultConfig();
+    ASSERT_FALSE(config.hasProperty(TransportOptionConfigProperty));
+    ASSERT_EQ(config.getPropertyValue(PortConfigProperty), 7000);
 }
 
-TEST_F(OpenDaqFactoriesTest, ServerTypeDefaultConfigHasNoAddConfig)
+TEST_F(OpenDaqFactoriesTest, ServerTypeDefaultConfigHasNoTransportSelection)
 {
     const ServerTypePtr type = ServerTypeBuilder()
                                    .setId("Id")
-                                   .setAvailableTransports(Dict<IString, IInteger>({{"plain", 7420}}))
+                                   .setTransportOptions(List<ITransportOption>(TransportOption("plain", 7420)))
                                    .build();
 
     const PropertyObjectPtr config = type.createDefaultConfig();
-    ASSERT_FALSE(config.hasProperty("AddDeviceConfig"));
-    ASSERT_FALSE(config.hasProperty("AddStreamingConfig"));
+    ASSERT_FALSE(config.hasProperty(TransportOptionConfigProperty));
+    ASSERT_FALSE(config.hasProperty(PortConfigProperty));
 }
 
 END_NAMESPACE_OPENDAQ

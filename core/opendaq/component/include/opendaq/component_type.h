@@ -19,6 +19,7 @@
 #include <coretypes/stringobject.h>
 #include <coretypes/dictobject.h>
 #include <opendaq/module_info.h>
+#include <opendaq/transport_option.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
@@ -30,7 +31,7 @@ struct IAuthenticationConfig;
  * [interfaceLibrary(IPropertyObject, CoreObjects)]
  * [interfaceLibrary(IAuthenticationConfig, "opendaq")]
  * [interfaceSmartPtr(IAuthenticationConfig, AuthenticationConfigPtr, "<opendaq/authentication_config_ptr.h>")]
- * [interfaceSmartPtr(IInteger, IntegerPtr, "<coretypes/integer.h>")]
+ * [interfaceSmartPtr(ITransportOption, TransportOptionPtr, "<opendaq/transport_option_ptr.h>")]
  */
 
 /*!
@@ -96,16 +97,18 @@ DECLARE_OPENDAQ_INTERFACE(IComponentType, IBaseObject)
      */
     virtual ErrCode INTERFACE_FUNC createAuthenticationConfig(IAuthenticationConfig** config) = 0;
 
-    // [templateType(transports, IString, IInteger)]
+    // [templateType(transportOptions, ITransportOption)]
     /*!
-     * @brief Gets the transports a component of this type can be connected over, with the default port of each.
-     * @param[out] transports A dictionary mapping a transport name (e.g. "plain", "tls", "https", "wss") to its default port.
-     * @retval OPENDAQ_ERR_NOTIMPLEMENTED for Function block types, which do not support transports.
+     * @brief Gets the ways a component of this type can be connected to, with the default port of each.
+     * @param[out] transportOptions The transport options the module supports, the default first. Empty if the type
+     * lists none.
+     * @retval OPENDAQ_ERR_NOT_SUPPORTED for Function block types, which are not connected to.
      *
-     * The dictionary preserves insertion order. The first entry is the transport used
-     * by default when connecting to a component of this type.
+     * The first option is the one used when no other is selected. A module creates a device or streaming of a type
+     * that lists options with a type config whose "TransportOption" property names the selected option and whose
+     * "Port" property carries the port to connect to (see TransportOptionConfigProperty and PortConfigProperty).
      */
-    virtual ErrCode INTERFACE_FUNC getAvailableTransports(IDict** transports) = 0;
+    virtual ErrCode INTERFACE_FUNC getTransportOptions(IList** transportOptions) = 0;
 };
 /*!@}*/
 

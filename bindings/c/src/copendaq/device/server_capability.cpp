@@ -97,7 +97,7 @@ daqErrCode daqServerCapability_getAuthenticationMethods(daqServerCapability* sel
     return reinterpret_cast<daq::IServerCapability*>(self)->getAuthenticationMethods(reinterpret_cast<daq::IList**>(methods));
 }
 
-daqErrCode daqServerCapability_getAvailableTransports(daqServerCapability* self, daqDict** transports)
+daqErrCode daqServerCapability_getTransportOptions(daqServerCapability* self, daqList** transportOptions)
 {
-    return reinterpret_cast<daq::IServerCapability*>(self)->getAvailableTransports(reinterpret_cast<daq::IDict**>(transports));
+    return reinterpret_cast<daq::IServerCapability*>(self)->getTransportOptions(reinterpret_cast<daq::IList**>(transportOptions));
 }

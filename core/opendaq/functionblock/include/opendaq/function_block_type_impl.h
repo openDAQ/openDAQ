@@ -37,7 +37,7 @@ public:
 
     // IComponentType
     ErrCode INTERFACE_FUNC createAuthenticationConfig(IAuthenticationConfig** config) override;
-    ErrCode INTERFACE_FUNC getAvailableTransports(IDict** transports) override;
+    ErrCode INTERFACE_FUNC getTransportOptions(IList** transportOptions) override;
 
     // IComponentTypePrivate
     ErrCode INTERFACE_FUNC getSupportedAuthenticationMethods(IDict** authenticationMethods) override;
@@ -74,9 +74,9 @@ inline ErrCode FunctionBlockTypeImpl::getSupportedAuthenticationMethods(IDict** 
     return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOTIMPLEMENTED, "Function block types do not support authentication");
 }
 
-inline ErrCode FunctionBlockTypeImpl::getAvailableTransports(IDict** /*transports*/)
+inline ErrCode FunctionBlockTypeImpl::getTransportOptions(IList** /*transportOptions*/)
 {
-    return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOTIMPLEMENTED, "Function block types do not support transports");
+    return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOT_SUPPORTED, "Function block types have no transport options");
 }
 
 inline ErrCode FunctionBlockTypeImpl::serialize(ISerializer* serializer)

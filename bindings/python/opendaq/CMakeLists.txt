@@ -124,7 +124,7 @@ set(SRC_Cpp
     generated/security/py_credential_request_builder.cpp
     generated/security/py_login_parameters.cpp
     generated/security/py_login_parameters_builder.cpp
-    generated/component/py_add_component_config.cpp
+    generated/component/py_transport_option.cpp
 )
 
 add_library(${LIB_NAME} STATIC ${SRC_Headers} ${SRC_Cpp})

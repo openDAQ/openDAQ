@@ -46,7 +46,8 @@ enum class ComponentTypeSort
  * [interfaceSmartPtr(IAuthenticationMethod, AuthenticationMethodPtr, "<opendaq/authentication_method_ptr.h>")]
  * [interfaceLibrary(IDeviceType, "opendaq")]
  * [interfaceSmartPtr(IDeviceType, DeviceTypePtr, "<opendaq/device_type_ptr.h>")]
- * [interfaceSmartPtr(IInteger, IntegerPtr, "<coretypes/integer.h>")]
+ * [interfaceLibrary(ITransportOption, "opendaq")]
+ * [interfaceSmartPtr(ITransportOption, TransportOptionPtr, "<opendaq/transport_option_ptr.h>")]
  */
 
 /*!
@@ -247,23 +248,25 @@ DECLARE_OPENDAQ_INTERFACE(IComponentTypeBuilder, IBaseObject)
      */
     virtual ErrCode INTERFACE_FUNC getLinkedDeviceType(IDeviceType** deviceType) = 0;
 
-    // [templateType(transports, IString, IInteger), returnSelf]
+    // [templateType(transportOptions, ITransportOption), returnSelf]
     /*!
-     * @brief Sets the transports a component of the built type can be connected over, with the default port of each.
+     * @brief Sets the ways a component of the built type can be connected to, with the default port of each.
      * Only valid when the "Type" builder parameter is "Device", "Streaming" or "Server".
-     * @param[in] transports A dictionary mapping a transport name (e.g. "plain", "tls", "https", "wss") to its default port.
+     * @param[in] transportOptions The transport options the module supports, the default first.
      * @retval OPENDAQ_ERR_NOT_SUPPORTED for a Function block sort.
+     * @retval OPENDAQ_ERR_INVALIDTYPE if an element is not a transport option.
+     * @retval OPENDAQ_ERR_INVALIDVALUE if two options have the same name.
      *
-     * Replaces any previously set transports. The first entry becomes the transport used by default.
+     * Replaces any previously set options.
      */
-    virtual ErrCode INTERFACE_FUNC setAvailableTransports(IDict* transports) = 0;
+    virtual ErrCode INTERFACE_FUNC setTransportOptions(IList* transportOptions) = 0;
 
-    // [templateType(transports, IString, IInteger)]
+    // [templateType(transportOptions, ITransportOption)]
     /*!
-     * @brief Gets the transports a component of the built type can be connected over, with the default port of each.
-     * @param[out] transports A dictionary mapping a transport name (e.g. "plain", "tls", "https", "wss") to its default port.
+     * @brief Gets the ways a component of the built type can be connected to, with the default port of each.
+     * @param[out] transportOptions The transport options, the default first. Empty if none were set.
      */
-    virtual ErrCode INTERFACE_FUNC getAvailableTransports(IDict** transports) = 0;
+    virtual ErrCode INTERFACE_FUNC getTransportOptions(IList** transportOptions) = 0;
 };
 /*!@}*/
 

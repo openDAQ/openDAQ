@@ -18,6 +18,7 @@
 
 #include <coretypes/string_ptr.h>
 #include <algorithm>
+#include <optional>
 #include <string>
 
 BEGIN_NAMESPACE_OPENDAQ
@@ -54,6 +55,44 @@ inline StringPtr ReplaceConnectionStringPort(const StringPtr& connectionString, 
     }
 
     return String(url.substr(0, hostStart) + host + ":" + std::to_string(port) + url.substr(hostEnd));
+}
+
+// Gets the port of a "prefix://host[:port][/path]" connection string; none if it names no port
+inline std::optional<Int> GetConnectionStringPort(const StringPtr& connectionString)
+{
+    if (!connectionString.assigned())
+        return std::nullopt;
+
+    const std::string url = connectionString.toStdString();
+    const auto separator = url.find("://");
+    if (separator == std::string::npos)
+        return std::nullopt;
+
+    const auto hostStart = separator + 3;
+    const auto hostEnd = std::min(url.find_first_of("/?#", hostStart), url.size());
+    const auto authority = url.substr(hostStart, hostEnd - hostStart);
+
+    std::size_t portStart;
+    if (!authority.empty() && authority.front() == '[')
+    {
+        const auto bracketEnd = authority.find(']');
+        if (bracketEnd == std::string::npos || bracketEnd + 1 >= authority.size() || authority[bracketEnd + 1] != ':')
+            return std::nullopt;
+        portStart = bracketEnd + 2;
+    }
+    else
+    {
+        // an IPv6 address without brackets carries no port
+        if (std::count(authority.begin(), authority.end(), ':') != 1)
+            return std::nullopt;
+        portStart = authority.find(':') + 1;
+    }
+
+    const auto port = authority.substr(portStart);
+    if (port.empty() || port.size() > 5 || !std::all_of(port.begin(), port.end(), [](char c) { return c >= '0' && c <= '9'; }))
+        return std::nullopt;
+
+    return std::stoll(port);
 }
 
 END_NAMESPACE_OPENDAQ

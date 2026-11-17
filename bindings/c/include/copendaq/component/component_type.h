@@ -35,6 +35,7 @@ extern "C"
 #include <ccommon.h>
 
     typedef struct daqComponentType daqComponentType;
+    typedef struct daqList daqList;
     typedef struct daqString daqString;
     typedef struct daqPropertyObject daqPropertyObject;
     typedef struct daqModuleInfo daqModuleInfo;
@@ -50,7 +51,7 @@ extern "C"
     daqErrCode EXPORTED daqComponentType_createDefaultConfig(daqComponentType* self, daqPropertyObject** defaultConfig);
     daqErrCode EXPORTED daqComponentType_getModuleInfo(daqComponentType* self, daqModuleInfo** info);
     daqErrCode EXPORTED daqComponentType_createAuthenticationConfig(daqComponentType* self, daqAuthenticationConfig** config);
-    daqErrCode EXPORTED daqComponentType_getAvailableTransports(daqComponentType* self, daqDict** transports);
+    daqErrCode EXPORTED daqComponentType_getTransportOptions(daqComponentType* self, daqList** transportOptions);
 
 #ifdef __cplusplus
 }

@@ -38,32 +38,67 @@ class TestDeviceType(opendaq_test.TestCase):
         self.assertEqual(root_type.device_kind, opendaq.DeviceKind.Root)
         self.assertIsNotNone(ref_type.module_info)
 
-class TestAddComponentConfig(opendaq_test.TestCase):
+class TestTransportOptions(opendaq_test.TestCase):
 
-    def test_transport_selection(self):
-        config = opendaq.AddComponentConfig(['plain', 'tls'])
+    def test_transport_option(self):
+        option = opendaq.TransportOption('tls', 7422, opendaq.TransportProtection.Encrypted, True)
 
-        self.assertEqual(list(config.available_transports), ['plain', 'tls'])
-        self.assertEqual(config.transport, 'plain')
+        self.assertEqual(option.name, 'tls')
+        self.assertEqual(option.port, 7422)
+        self.assertEqual(option.protection, opendaq.TransportProtection.Encrypted)
+        self.assertTrue(option.certificate_required)
 
-        config.transport = 'tls'
-        self.assertEqual(config.transport, 'tls')
-        # the typed accessors and the "Transport" selection property are the same value
-        self.assertEqual(config.get_property_value('Transport'), 1)
+        plain = opendaq.TransportOption('plain', 7420)
+        self.assertEqual(plain.protection, getattr(opendaq.TransportProtection, 'None'))
+        self.assertFalse(plain.certificate_required)
+
+    def test_native_types_list_options(self):
+        instance = opendaq.Instance()
+        device_type = opendaq.IDeviceType.cast_from(instance.available_device_types['OpenDAQNativeConfiguration'])
+        add_config = instance.create_add_device_config(opendaq.DeviceInfoConfig('dev', 'daq.nd://127.0.0.1'))
+        streaming_type = add_config.streaming_options.available_streaming_configs['OpenDAQNativeStreaming'].streaming_type
+
+        for component_type in (device_type, streaming_type):
+            options = list(component_type.transport_options)
+            self.assertEqual(options[0].name, 'plain')
+            self.assertEqual(options[0].port, 7420)
+            # a plain type config selects the option by its TransportOption property
+            config = component_type.create_default_config()
+            self.assertEqual(config.get_property_value('TransportOption'), 'plain')
+
+        # other types list none
+        self.assertEqual(len(list(opendaq.IDeviceType.cast_from(instance.available_device_types['daqref']).transport_options)), 0)
+
+    def test_add_device_config_selection(self):
+        instance = opendaq.Instance()
+        config = instance.create_add_device_config(opendaq.DeviceInfoConfig('dev', 'daq.nd://127.0.0.1'))
+
+        names = [option.name for option in config.transport_options]
+        self.assertEqual(names[0], 'plain')
+        self.assertEqual(config.selected_transport_option.name, 'plain')
+        self.assertEqual(config.port, 7420)
+
+        config.port = 9000
+        self.assertEqual(config.port, 9000)
+        # selecting an option drops the port set before
+        config.set_transport_option(names[-1])
+        self.assertEqual(config.selected_transport_option.name, names[-1])
+        self.assertEqual(config.port, config.selected_transport_option.port)
 
         with self.assertRaises(RuntimeError):
-            config.transport = 'wss'
-        self.assertEqual(config.transport, 'tls')
+            config.set_transport_option('wss')
 
-    # the way a device or streaming type config carries the object
-    def test_cast_from_type_config(self):
-        type_config = opendaq.PropertyObject()
-        type_config.add_property(opendaq.ObjectProperty('AddDeviceConfig', opendaq.AddComponentConfig(['plain', 'tls'])))
+        streaming_config = config.streaming_options.available_streaming_configs['OpenDAQNativeStreaming']
+        self.assertEqual(streaming_config.selected_transport_option.name, 'plain')
+        self.assertEqual(streaming_config.port, 7420)
 
-        add_config = opendaq.IAddComponentConfig.cast_from(type_config.get_property_value('AddDeviceConfig'))
-        add_config.transport = 'tls'
+    def test_add_device_config_without_options(self):
+        instance = opendaq.Instance()
+        config = instance.create_add_device_config(opendaq.DeviceInfoConfig('dev', 'daqref://device0'))
 
-        self.assertEqual(opendaq.IAddComponentConfig.cast_from(type_config.get_property_value('AddDeviceConfig')).transport, 'tls')
+        self.assertEqual(len(list(config.transport_options)), 0)
+        with self.assertRaises(RuntimeError):
+            config.set_transport_option('plain')
 
 
 class TestAddDeviceConfig(opendaq_test.TestCase):

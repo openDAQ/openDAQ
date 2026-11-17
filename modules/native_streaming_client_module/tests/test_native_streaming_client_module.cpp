@@ -14,7 +14,8 @@
 #include <opendaq/module_manager_utils_ptr.h>
 #include <opendaq/streaming_type_ptr.h>
 #include <opendaq/address_info_factory.h>
-#include <opendaq/add_component_config_ptr.h>
+#include <opendaq/transport_option_factory.h>
+#include <opendaq/server_capability_config_ptr.h>
 #include <native_streaming_protocol/native_streaming_constants.h>
 
 #include <tuple>
@@ -33,6 +34,24 @@ static ListPtr<IString> ExpectedTransportNames()
 #else
     return List<IString>("plain");
 #endif
+}
+
+static ListPtr<IString> optionNames(const ListPtr<ITransportOption>& options)
+{
+    auto names = List<IString>();
+    for (const auto& option : options)
+        names.pushBack(option.getName());
+    return names;
+}
+
+static Int optionPort(const ListPtr<ITransportOption>& options, const std::string& name)
+{
+    for (const auto& option : options)
+    {
+        if (option.getName() == name)
+            return option.getPort();
+    }
+    return -1;
 }
 
 static ModulePtr CreateModule()
@@ -269,34 +288,48 @@ TEST_F(NativeStreamingClientModuleTest, TypesListTransports)
 
     for (const auto& type : types)
     {
-        const auto transports = type.getAvailableTransports();
-        ASSERT_EQ(transports.getKeyList(), ExpectedTransportNames()) << type.getId();
-        ASSERT_EQ(transports.get("plain"), 7420) << type.getId();
+        const auto transports = type.getTransportOptions();
+        ASSERT_EQ(optionNames(transports), ExpectedTransportNames()) << type.getId();
+        ASSERT_EQ(optionPort(transports, "plain"), 7420) << type.getId();
+        ASSERT_EQ(transports[0].getProtection(), TransportProtection::None) << type.getId();
+        ASSERT_FALSE(transports[0].getCertificateRequired()) << type.getId();
 #if NATIVE_STREAMING_ENABLE_TLS
-        ASSERT_EQ(transports.get("tls"), 7422) << type.getId();
+        ASSERT_EQ(optionPort(transports, "tls"), 7422) << type.getId();
+        ASSERT_EQ(transports[1].getProtection(), TransportProtection::Encrypted) << type.getId();
+        ASSERT_FALSE(transports[1].getCertificateRequired()) << type.getId();
 #endif
     }
 }
 
+// The types declare TransportOption and Port in their default configs, so that a plain config selects the option
 TEST_F(NativeStreamingClientModuleTest, DefaultConfigsCarryTransportSelection)
 {
     const auto module = CreateModule();
 
+    std::vector<std::pair<StringPtr, PropertyObjectPtr>> configs;
     for (const auto& [id, deviceType] : module.getAvailableDeviceTypes())
-    {
-        const PropertyObjectPtr config = deviceType.createDefaultConfig();
-        const AddComponentConfigPtr addDeviceConfig = config.getPropertyValue("AddDeviceConfig");
-        ASSERT_EQ(addDeviceConfig.getAvailableTransports(), ExpectedTransportNames()) << id;
-        ASSERT_EQ(addDeviceConfig.getTransport(), "plain") << id;
-    }
-
+        configs.emplace_back(id, deviceType.createDefaultConfig());
     for (const auto& [id, streamingType] : module.getAvailableStreamingTypes())
+        configs.emplace_back(id, streamingType.createDefaultConfig());
+
+    for (const auto& [id, config] : configs)
     {
-        const PropertyObjectPtr config = streamingType.createDefaultConfig();
-        const AddComponentConfigPtr addStreamingConfig = config.getPropertyValue("AddStreamingConfig");
-        ASSERT_EQ(addStreamingConfig.getAvailableTransports(), ExpectedTransportNames()) << id;
-        ASSERT_EQ(addStreamingConfig.getTransport(), "plain") << id;
+        ASSERT_TRUE(config.hasProperty(TransportOptionConfigProperty)) << id;
+        ASSERT_EQ(config.getPropertyValue(TransportOptionConfigProperty), "plain") << id;
+        ASSERT_EQ(config.getProperty(TransportOptionConfigProperty).getSelectionValues(), ExpectedTransportNames()) << id;
+        ASSERT_EQ(config.getPropertyValue(PortConfigProperty), 7420) << id;
     }
+}
+
+TEST_F(NativeStreamingClientModuleTest, CreateDeviceRejectsUnsupportedTransportOption)
+{
+    const auto module = CreateModule();
+
+    auto config = PropertyObject();
+    config.addProperty(StringProperty(TransportOptionConfigProperty, "wss"));
+
+    ASSERT_THROW(module.createDevice("daq.nd://127.0.0.1", nullptr, config), InvalidParameterException);
+    ASSERT_THROW(module.createStreaming("daq.ns://127.0.0.1", config), InvalidParameterException);
 }
 
 #if NATIVE_STREAMING_ENABLE_TLS
@@ -421,16 +454,23 @@ TEST_F(NativeStreamingClientModuleTest, CompleteCapabilityKeepsSupportedTranspor
 
     auto target = ServerCapability("OpenDAQNativeConfiguration", "OpenDAQNativeConfiguration", ProtocolType::ConfigurationAndStreaming)
                       .setPrefix("daq.nd")
-                      .setAvailableTransports(Dict<IString, IInteger>({{"wss", 9000}, {"plain", 7420}, {"tls", 7422}}));
+                      .setTransportOptions(List<ITransportOption>(TransportOption("wss", 9000, TransportProtection::Encrypted),
+                                                                  TransportOption("plain", 7420),
+                                                                  TransportOption("tls", 7422, TransportProtection::Encrypted, True)));
 
     ASSERT_TRUE(module.completeServerCapability(source, target));
-    ASSERT_EQ(target.getAvailableTransports().getKeyList(), ExpectedTransportNames());
+    const auto options = target.getTransportOptions();
+    ASSERT_EQ(optionNames(options), ExpectedTransportNames());
+#if NATIVE_STREAMING_ENABLE_TLS
+    // the server's option is kept as the server announces it
+    ASSERT_TRUE(options[1].getCertificateRequired());
+#endif
     ASSERT_EQ(target.getPort(), 7420);
     ASSERT_EQ(target.getConnectionString(), "daq.nd://127.0.0.1:7420");
 
     auto unsupported = ServerCapability("OpenDAQNativeConfiguration", "OpenDAQNativeConfiguration", ProtocolType::ConfigurationAndStreaming)
                            .setPrefix("daq.nd")
-                           .setAvailableTransports(Dict<IString, IInteger>({{"wss", 9000}}));
+                           .setTransportOptions(List<ITransportOption>(TransportOption("wss", 9000, TransportProtection::Encrypted)));
     ASSERT_FALSE(module.completeServerCapability(source, unsupported));
 }
 
@@ -453,20 +493,20 @@ TEST_F(NativeStreamingClientModuleTest, CompleteCapabilityWithoutTransportsServe
                             .addAddressInfo(sourceAddressInfo);
 
     auto target = ServerCapability("OpenDAQNativeStreaming", "OpenDAQNativeStreaming", ProtocolType::Streaming).setPrefix("daq.ns").setPort(1234);
-    ASSERT_EQ(target.getAvailableTransports().getCount(), 0u);
+    ASSERT_EQ(target.getTransportOptions().getCount(), 0u);
 
     ASSERT_TRUE(module.completeServerCapability(source, target));
 
-    const auto transports = target.getAvailableTransports();
-    ASSERT_EQ(transports.getKeyList(), List<IString>("plain"));
-    ASSERT_EQ(transports.get("plain"), 1234);
+    const auto transports = target.getTransportOptions();
+    ASSERT_EQ(optionNames(transports), List<IString>("plain"));
+    ASSERT_EQ(optionPort(transports, "plain"), 1234);
     ASSERT_EQ(target.getPort(), 1234);
     ASSERT_EQ(target.getConnectionString(), "daq.ns://127.0.0.1:1234");
 
     // without a port the default plain port is taken
     auto withoutPort = ServerCapability("OpenDAQNativeStreaming", "OpenDAQNativeStreaming", ProtocolType::Streaming).setPrefix("daq.ns");
     ASSERT_TRUE(module.completeServerCapability(source, withoutPort));
-    ASSERT_EQ(withoutPort.getAvailableTransports().get("plain"), 7420);
+    ASSERT_EQ(optionPort(withoutPort.getTransportOptions(), "plain"), 7420);
 }
 
 TEST_F(NativeStreamingClientModuleTest, ModuleLoadsFromPathWithLinkedTypes)

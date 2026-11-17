@@ -31,7 +31,7 @@ public:
                             const StringPtr& name,
                             const StringPtr& description,
                             const PropertyObjectPtr& defaultConfig,
-                            const DictPtr<IString, IInteger>& transports = Dict<IString, IInteger>());
+                            const ListPtr<ITransportOption>& transportOptions = List<ITransportOption>());
 
     explicit ServerTypeImpl(const ComponentTypeBuilderPtr& builder);
 

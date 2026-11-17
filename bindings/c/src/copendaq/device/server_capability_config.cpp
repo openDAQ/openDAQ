@@ -97,9 +97,14 @@ daqErrCode daqServerCapabilityConfig_addAuthenticationMethod(daqServerCapability
     return reinterpret_cast<daq::IServerCapabilityConfig*>(self)->addAuthenticationMethod(reinterpret_cast<daq::IString*>(methodId));
 }
 
-daqErrCode daqServerCapabilityConfig_setAvailableTransports(daqServerCapabilityConfig* self, daqDict* transports)
+daqErrCode daqServerCapabilityConfig_setTransportOptions(daqServerCapabilityConfig* self, daqList* transportOptions)
 {
-    return reinterpret_cast<daq::IServerCapabilityConfig*>(self)->setAvailableTransports(reinterpret_cast<daq::IDict*>(transports));
+    return reinterpret_cast<daq::IServerCapabilityConfig*>(self)->setTransportOptions(reinterpret_cast<daq::IList*>(transportOptions));
+}
+
+daqErrCode daqServerCapabilityConfig_addTransportOption(daqServerCapabilityConfig* self, daqTransportOption* transportOption)
+{
+    return reinterpret_cast<daq::IServerCapabilityConfig*>(self)->addTransportOption(reinterpret_cast<daq::ITransportOption*>(transportOption));
 }
 
 daqErrCode daqServerCapabilityConfig_createServerCapability(daqServerCapabilityConfig** obj, daqString* protocolId, daqString* protocolName, daqProtocolType protocolType)

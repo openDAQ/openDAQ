@@ -612,15 +612,12 @@ void NativeDeviceImpl::updateDeviceInfo(const StringPtr& connectionString)
     const Int port = deviceHelper
         ? deviceHelper->getPort()
         : ConnectionStringUtils::GetPort(connectionString, nullptr, DEFAULT_PORT);
-    auto transports = Dict<IString, IInteger>();
-    transports.set(transport, port);
-
     ServerCapabilityConfigPtr connectionInfo = ServerCapability(CONST_NATIVE_CONFIG_ID,
                                                                 CONST_NATIVE_CONFIG_ID,
                                                                 ProtocolType::ConfigurationAndStreaming);
     connectionInfo.setConnectionType("TCP/IP")
                   .addAddress(host)
-                  .setAvailableTransports(transports)
+                  .addTransportOption(NativeTransportOption(transport, port))
                   .setPrefix(CONST_NATIVE_CONFIG_PREFIX)
                   .setConnectionString(connectionString)
                   .setProtocolVersion(std::to_string(configProtocolVersion))

@@ -18,6 +18,7 @@
 #include <opendaq/custom_log.h>
 #include <coreobjects/property_object_factory.h>
 #include <opendaq/device_info_ptr.h>
+#include <opendaq/transport_option_impl.h>
 #include <coreobjects/property_factory.h>
 #include <opendaq/device_network_config_ptr.h>
 
@@ -94,10 +95,24 @@ ErrCode MdnsDiscoveryServerImpl::registerService(IString* id, IPropertyObject* c
             properties["authMethods"] = authMethods;
     }
 
-    // The optional "AvailableTransports" dictionary of the service, joined into one TXT value
-    if (configPtr.hasProperty("AvailableTransports"))
+    // The optional "TransportOptions" object of the service - one object property per transport option, in order -
+    // joined into one TXT value of option names and ports
+    if (configPtr.hasProperty("TransportOptions"))
     {
-        const DictPtr<IString, IInteger> transports = configPtr.getPropertyValue("AvailableTransports");
+        const PropertyObjectPtr optionsObject = configPtr.getPropertyValue("TransportOptions");
+        auto transports = Dict<IString, IInteger>();
+        if (optionsObject.assigned())
+        {
+            for (const auto& prop : optionsObject.getAllProperties())
+            {
+                if (prop.getValueType() != ctObject)
+                    continue;
+
+                const auto option = TransportOptionFromPropertyObject(optionsObject.getPropertyValue(prop.getName()));
+                transports.set(option.getName(), option.getPort());
+            }
+        }
+
         if (const auto value = DiscoveryUtils::transportsToTxt(transports); !value.empty())
             properties[DiscoveryUtils::TRANSPORTS_KEY] = value;
     }

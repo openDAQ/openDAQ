@@ -35,7 +35,7 @@ public:
                                const PropertyObjectPtr& defaultConfig,
                                const DictPtr<IString, IAuthenticationMethod>& supportedAuthenticationMethods,
                                const DeviceTypePtr& linkedDeviceType = nullptr,
-                               const DictPtr<IString, IInteger>& transports = Dict<IString, IInteger>());
+                               const ListPtr<ITransportOption>& transportOptions = List<ITransportOption>());
 
     explicit StreamingTypeImpl(const ComponentTypeBuilderPtr& builder);
 
@@ -44,7 +44,6 @@ public:
     ErrCode INTERFACE_FUNC getLinkedDeviceType(IDeviceType** deviceType) override;
 
     // IComponentType
-    // Adds the "AddStreamingConfig" object property when the type lists transports
     ErrCode INTERFACE_FUNC createDefaultConfig(IPropertyObject** defaultConfig) override;
     ErrCode INTERFACE_FUNC createAuthenticationConfig(IAuthenticationConfig** config) override;
 

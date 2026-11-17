@@ -58,7 +58,7 @@ extern "C"
     daqErrCode EXPORTED daqServerCapability_getProtocolVersion(daqServerCapability* self, daqString** version);
     daqErrCode EXPORTED daqServerCapability_getProtocolSecurityLevel(daqServerCapability* self, daqInteger** securityLevel);
     daqErrCode EXPORTED daqServerCapability_getAuthenticationMethods(daqServerCapability* self, daqList** methods);
-    daqErrCode EXPORTED daqServerCapability_getAvailableTransports(daqServerCapability* self, daqDict** transports);
+    daqErrCode EXPORTED daqServerCapability_getTransportOptions(daqServerCapability* self, daqList** transportOptions);
 
 #ifdef __cplusplus
 }

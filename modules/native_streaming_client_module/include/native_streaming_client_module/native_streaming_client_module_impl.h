@@ -20,6 +20,7 @@
 #include <daq_discovery/daq_discovery_client.h>
 #include <native_streaming_protocol/native_streaming_client_handler.h>
 #include <opendaq/server_capability_config_ptr.h>
+#include <opendaq/transport_option_ptr.h>
 
 #include <boost/asio/io_context.hpp>
 
@@ -49,11 +50,15 @@ private:
     DeviceTypePtr createDeviceType();
     StreamingTypePtr createStreamingType();
 
-    /// @brief reads the transport selected in the add-device or add-streaming config carried by `config`
-    /// @param addConfigName "AddDeviceConfig" or "AddStreamingConfig"
-    /// @return the name of the selected transport; "plain" when the config carries no selection
-    /// @throw InvalidParameterException the selected transport is not supported
-    static StringPtr GetSelectedTransport(const PropertyObjectPtr& config, const char* addConfigName);
+    /// @brief reads the transport option the type config names in its "TransportOption" property
+    /// (TransportOptionConfigProperty)
+    /// @return the selected option of the types, with its default port; the first ("plain") when the config
+    /// names none
+    /// @throw InvalidParameterException the selected option is not supported
+    TransportOptionPtr getSelectedTransportOption(const PropertyObjectPtr& config) const;
+
+    /// @brief the options of `serverOptions` this module supports too, in the server's order, with the server's ports
+    ListPtr<ITransportOption> supportedTransportOptions(const ListPtr<ITransportOption>& serverOptions) const;
 
     static bool ConnectionStringHasPrefix(const StringPtr& connectionString, const char* prefix);
     static bool ValidateConnectionString(const StringPtr& connectionString);
@@ -68,13 +73,14 @@ private:
     static PropertyObjectPtr parseTlsConfig(const PropertyObjectPtr& config);
 #endif
 
-    /// @brief the transports a discovered server lists that this module supports too, in the server's order
+    /// @brief the transport options a discovered server lists that this module supports too, in the server's order,
+    /// at the server's ports
     /// @return empty if the two have none in common
-    DictPtr<IString, IInteger> SupportedDiscoveredTransports(const discovery::MdnsDiscoveredDevice& discoveredDevice) const;
+    ListPtr<ITransportOption> supportedDiscoveredTransportOptions(const discovery::MdnsDiscoveredDevice& discoveredDevice) const;
     DeviceInfoPtr populateDiscoveredConfigurationDevice(const discovery::MdnsDiscoveredDevice& discoveredDevice,
-                                                        const DictPtr<IString, IInteger>& transports);
+                                                        const ListPtr<ITransportOption>& discoveredOptions);
     DeviceInfoPtr populateDiscoveredStreamingDevice(const discovery::MdnsDiscoveredDevice& discoveredDevice,
-                                                    const DictPtr<IString, IInteger>& transports);
+                                                    const ListPtr<ITransportOption>& discoveredOptions);
     static void SetupProtocolAddresses(const discovery::MdnsDiscoveredDevice& discoveredDevice,
                                        ServerCapabilityConfigPtr& cap,
                                        std::string protocolPrefix,
@@ -126,9 +132,9 @@ private:
     size_t transportClientIndex;
     std::string transportClientUuidBase;
     discovery::DiscoveryClient discoveryClient;
-    // the transports every native type lists, with the default port of each; plain comes first.
+    // the transport options every native type lists, with the default port of each; plain comes first.
     // Fixed at build time, so it is built once and frozen
-    const DictPtr<IString, IInteger> availableTransports;
+    const ListPtr<ITransportOption> transportOptions;
 
     using ProcessingContext = std::tuple<StringPtr, std::thread, std::shared_ptr<boost::asio::io_context>>;
     std::vector<ProcessingContext> processingContextPool;

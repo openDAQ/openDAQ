@@ -1,5 +1,6 @@
 #include <opendaq/server_type_impl.h>
 #include <opendaq/server_type_factory.h>
+#include <opendaq/transport_option_impl.h>
 #include <coretypes/validation.h>
 
 BEGIN_NAMESPACE_OPENDAQ
@@ -13,8 +14,8 @@ ServerTypeImpl::ServerTypeImpl(const StringPtr& id,
                                const StringPtr& name,
                                const StringPtr& description,
                                const PropertyObjectPtr& defaultConfig,
-                               const DictPtr<IString, IInteger>& transports)
-    : Super(detail::serverTypeStructType, id, name, description, defaultConfig, Dict<IString, IAuthenticationMethod>(), transports)
+                               const ListPtr<ITransportOption>& transportOptions)
+    : Super(detail::serverTypeStructType, id, name, description, defaultConfig, Dict<IString, IAuthenticationMethod>(), transportOptions)
 {
 }
 
@@ -23,7 +24,7 @@ ServerTypeImpl::ServerTypeImpl(const ComponentTypeBuilderPtr& builder)
                      builder.getName(),
                      builder.getDescription(),
                      builder.getDefaultConfig(),
-                     builder.getAvailableTransports())
+                     builder.getTransportOptions())
 {
 }
 
@@ -62,10 +63,10 @@ ErrCode INTERFACE_FUNC ServerTypeImpl::serialize(ISerializer* serializer)
                 serializerPtr.writeString(description);
             }
 
-            if (transports.getCount() > 0)
+            if (transportOptions.getCount() > 0)
             {
-                serializerPtr.key("availableTransports");
-                transports.serialize(serializerPtr);
+                serializerPtr.key("transportOptions");
+                transportOptions.serialize(serializerPtr);
             }
 
             if (defaultConfig.assigned())
@@ -121,15 +122,16 @@ ErrCode ServerTypeImpl::Deserialize(ISerializedObject* serialized, IBaseObject* 
         if (serializedObj.hasKey("description"))
             description = serializedObj.readString("description");
 
-        DictPtr<IString, IInteger> transports;
-        if (serializedObj.hasKey("availableTransports"))
-            transports = serializedObj.readObject("availableTransports", contextPtr, factoryCallbackPtr);
+        // The options come back as the plain Property objects they are serialized as
+        ListPtr<ITransportOption> transportOptions;
+        if (serializedObj.hasKey("transportOptions"))
+            transportOptions = TransportOptionsFromPropertyObjects(serializedObj.readObject("transportOptions", contextPtr, factoryCallbackPtr));
 
         PropertyObjectPtr defaultConfig;
         if (serializedObj.hasKey("defaultConfig"))
             defaultConfig = serializedObj.readObject("defaultConfig", contextPtr, factoryCallbackPtr);
 
-        auto serverType = createWithImplementation<IServerType, ServerTypeImpl>(id, name, description, defaultConfig, transports);
+        auto serverType = createWithImplementation<IServerType, ServerTypeImpl>(id, name, description, defaultConfig, transportOptions);
 
         ModuleInfoPtr moduleInfo;
         if (serializedObj.hasKey("moduleInfo"))

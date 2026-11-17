@@ -18,6 +18,7 @@
 #include <coretypes/dictobject.h>
 #include <opendaq/device_type.h>
 #include <opendaq/add_streaming_options.h>
+#include <opendaq/transport_option.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
@@ -40,6 +41,8 @@ enum class AddressType : EnumType
  * [interfaceSmartPtr(IAddDeviceConfig, GenericAddDeviceConfigPtr)]
  * [interfaceLibrary(IPropertyObject, "coreobjects")]
  * [interfaceSmartPtr(IDeviceType, GenericDeviceTypePtr, "<opendaq/device_type_ptr.h>", true)]
+ * [interfaceSmartPtr(IInteger, IntegerPtr, "<coretypes/integer.h>")]
+ * [interfaceSmartPtr(ITransportOption, TransportOptionPtr, "<opendaq/transport_option_ptr.h>")]
  */
 
 /*!
@@ -49,6 +52,18 @@ enum class AddressType : EnumType
  * The nested config objects are created with the config and never replaced.
  * The `Streaming` child object holds the streaming options.
  * It exists only for Mirrored Device types with at least one listed Streaming type.
+ *
+ * The transport the device is added over is one of the config's transport options. For a Device type with options,
+ * the config's `TransportOption` property names the selected option, and its selection values are the names of the
+ * options. The `Port` property is the port of the selected option until it is set. setTransportOption clears a port set
+ * before; writing the `TransportOption` property does not. When the device is added, the module gets both as the
+ * "TransportOption" and "Port" properties of the type config (see `TransportOptionConfigProperty` and
+ * `PortConfigProperty`). Unless getPort differs from the port of the selected option, the device is connected at the
+ * port its server announces for the option, when discovery reports the device. Adding the device with the config fails
+ * with OPENDAQ_ERR_INVALIDPARAMETER when the connection string names a port that is neither the one the device is
+ * connected at nor the port of an option the config lists or the discovered server announces, and when its prefix
+ * belongs to another Device type. A `daq://` connection string stands for the discovered server capability of the
+ * Device type.
  */
 DECLARE_OPENDAQ_INTERFACE(IAddDeviceConfig, IBaseObject)
 {
@@ -98,6 +113,48 @@ DECLARE_OPENDAQ_INTERFACE(IAddDeviceConfig, IBaseObject)
     virtual ErrCode INTERFACE_FUNC getStreamingOptions(IAddStreamingOptions** options) = 0;
 
     virtual ErrCode INTERFACE_FUNC getAuthenticationConfig(IAuthenticationConfig** config) = 0;
+    // [templateType(transportOptions, ITransportOption)]
+    /*!
+     * @brief Gets the transport options the device can be added over.
+     * @param[out] transportOptions The options of the device info's server capability for the Device type, with the
+     * ports the server announces, the server's preferred first. The options of the Device type when the device info
+     * has no such capability. Empty for a Device type without options.
+     */
+    virtual ErrCode INTERFACE_FUNC getTransportOptions(IList** transportOptions) = 0;
+
+    /*!
+     * @brief Selects the transport option the device is added over.
+     * @param name The name of one of the options of getTransportOptions.
+     * @retval OPENDAQ_ERR_NOT_SUPPORTED for a Device type without transport options.
+     * @retval OPENDAQ_ERR_NOTFOUND if none of the options has that name.
+     *
+     * A port set before is dropped: getPort then gives the port of the option.
+     */
+    virtual ErrCode INTERFACE_FUNC setTransportOption(IString* name) = 0;
+
+    /*!
+     * @brief Gets the selected transport option.
+     * @param[out] transportOption The selected option, as getTransportOptions lists it.
+     * @retval OPENDAQ_ERR_NOT_SUPPORTED for a Device type without transport options.
+     * @retval OPENDAQ_ERR_NOTFOUND if the selected option is none of the options.
+     */
+    virtual ErrCode INTERFACE_FUNC getSelectedTransportOption(ITransportOption** transportOption) = 0;
+
+    /*!
+     * @brief Sets the port the device is added on.
+     * @param port The port, used instead of the one the selected option lists.
+     * @retval OPENDAQ_ERR_NOT_SUPPORTED for a Device type without transport options.
+     * @retval OPENDAQ_ERR_INVALIDPARAMETER for a negative port.
+     */
+    virtual ErrCode INTERFACE_FUNC setPort(IInteger* port) = 0;
+
+    /*!
+     * @brief Gets the port the device is added on, unless discovery reports another port for the selected option
+     * (see the class description).
+     * @param[out] port The port of the selected option, or the one set by setPort.
+     * @retval OPENDAQ_ERR_NOT_SUPPORTED for a Device type without transport options.
+     */
+    virtual ErrCode INTERFACE_FUNC getPort(IInteger** port) = 0;
 };
 
 /*!@}*/

@@ -34,17 +34,25 @@ extern "C"
 
 #include <ccommon.h>
 
-    typedef struct daqAddComponentConfig daqAddComponentConfig;
-    typedef struct daqList daqList;
+    typedef struct daqTransportOption daqTransportOption;
     typedef struct daqString daqString;
+    typedef struct daqInteger daqInteger;
 
-    EXPORTED extern const daqIntfID DAQ_ADD_COMPONENT_CONFIG_INTF_ID;
-    void EXPORTED daqAddComponentConfig_getInterfaceId(daqIntfID* intfId);
+    typedef enum daqTransportProtection
+    {
+        daqTransportProtectionNone = 0,
+        daqTransportProtectionSigned,
+        daqTransportProtectionEncrypted
+    } daqTransportProtection;
 
-    daqErrCode EXPORTED daqAddComponentConfig_getAvailableTransports(daqAddComponentConfig* self, daqList** transports);
-    daqErrCode EXPORTED daqAddComponentConfig_setTransport(daqAddComponentConfig* self, daqString* transport);
-    daqErrCode EXPORTED daqAddComponentConfig_getTransport(daqAddComponentConfig* self, daqString** transport);
-    daqErrCode EXPORTED daqAddComponentConfig_createAddComponentConfig(daqAddComponentConfig** obj, daqList* transports);
+    EXPORTED extern const daqIntfID DAQ_TRANSPORT_OPTION_INTF_ID;
+    void EXPORTED daqTransportOption_getInterfaceId(daqIntfID* intfId);
+
+    daqErrCode EXPORTED daqTransportOption_getName(daqTransportOption* self, daqString** name);
+    daqErrCode EXPORTED daqTransportOption_getPort(daqTransportOption* self, daqInteger** port);
+    daqErrCode EXPORTED daqTransportOption_getProtection(daqTransportOption* self, daqTransportProtection* protection);
+    daqErrCode EXPORTED daqTransportOption_getCertificateRequired(daqTransportOption* self, daqBool* required);
+    daqErrCode EXPORTED daqTransportOption_createTransportOption(daqTransportOption** obj, daqString* name, daqInteger* port, daqTransportProtection protection, daqBool certificateRequired);
 
 #ifdef __cplusplus
 }

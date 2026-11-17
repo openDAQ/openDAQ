@@ -3,7 +3,7 @@
 #include <testutils/testutils.h>
 #include <coretypes/json_serializer_factory.h>
 #include <coretypes/json_deserializer_factory.h>
-#include <opendaq/transport_config_factory.h>
+#include <opendaq/transport_option_impl.h>
 #include <coreobjects/property_object_factory.h>
 #include <coreobjects/property_factory.h>
 #include <coreobjects/property_object_internal_ptr.h>
@@ -12,68 +12,73 @@ using DeviceTypeTest = testing::Test;
 
 BEGIN_NAMESPACE_OPENDAQ
 
-// Dict equality ignores order, so the order is checked through the key list
-TEST_F(DeviceTypeTest, AvailableTransportsDefault)
+TEST_F(DeviceTypeTest, TransportOptionsDefault)
 {
     const DeviceTypePtr factoryType = DeviceType("id", "name", "description", "prefix");
-    ASSERT_EQ(factoryType.getAvailableTransports().getCount(), 0u);
+    ASSERT_EQ(factoryType.getTransportOptions().getCount(), 0u);
 
     const DeviceTypePtr builtType = DeviceTypeBuilder().setId("id").setConnectionStringPrefix("prefix").build();
-    ASSERT_EQ(builtType.getAvailableTransports().getCount(), 0u);
+    ASSERT_EQ(builtType.getTransportOptions().getCount(), 0u);
 }
 
-TEST_F(DeviceTypeTest, BuilderSetsAvailableTransports)
+TEST_F(DeviceTypeTest, BuilderSetsTransportOptions)
 {
     const DeviceTypePtr type = DeviceTypeBuilder()
                                    .setId("id")
                                    .setConnectionStringPrefix("prefix")
-                                   .setAvailableTransports(Dict<IString, IInteger>({{"tls", 7421}, {"plain", 7420}}))
+                                   .setTransportOptions(List<ITransportOption>(TransportOption("tls", 7421, TransportProtection::Encrypted),
+                                                                               TransportOption("plain", 7420)))
                                    .build();
 
-    const auto transports = type.getAvailableTransports();
-    ASSERT_EQ(transports.getKeyList(), List<IString>("tls", "plain"));
-    ASSERT_EQ(transports.get("tls"), 7421);
-    ASSERT_EQ(transports.get("plain"), 7420);
+    const auto options = type.getTransportOptions();
+    ASSERT_EQ(TransportOptionNames(options), List<IString>("tls", "plain"));
+    ASSERT_EQ(options[0].getPort(), 7421);
+    ASSERT_EQ(options[0].getProtection(), TransportProtection::Encrypted);
+    ASSERT_EQ(options[1].getPort(), 7420);
+    ASSERT_EQ(options[1].getProtection(), TransportProtection::None);
 }
 
-TEST_F(DeviceTypeTest, BuilderSetAvailableTransportsReplaces)
+TEST_F(DeviceTypeTest, BuilderSetTransportOptionsReplaces)
 {
     const auto builder = DeviceTypeBuilder()
-                             .setAvailableTransports(Dict<IString, IInteger>({{"plain", 7420}, {"tls", 7421}}))
-                             .setAvailableTransports(Dict<IString, IInteger>({{"https", 443}}));
+                             .setTransportOptions(List<ITransportOption>(TransportOption("plain", 7420), TransportOption("tls", 7421)))
+                             .setTransportOptions(List<ITransportOption>(TransportOption("https", 443)));
 
-    ASSERT_EQ(builder.getAvailableTransports().getKeyList(), List<IString>("https"));
+    ASSERT_EQ(TransportOptionNames(builder.getTransportOptions()), List<IString>("https"));
 }
 
-TEST_F(DeviceTypeTest, BuilderSetAvailableTransportsInvalid)
+TEST_F(DeviceTypeTest, BuilderSetTransportOptionsInvalid)
 {
     const auto builder = DeviceTypeBuilder();
 
-    ASSERT_THROW(builder.setAvailableTransports(nullptr), ArgumentNullException);
-    ASSERT_THROW(builder.setAvailableTransports(Dict<IString, IString>({{"plain", "7420"}})), InvalidTypeException);
-    ASSERT_THROW(builder.setAvailableTransports(Dict<IInteger, IInteger>({{1, 7420}})), InvalidTypeException);
-    ASSERT_EQ(builder.getAvailableTransports().getCount(), 0u);
+    ASSERT_THROW(builder.setTransportOptions(nullptr), ArgumentNullException);
+    ASSERT_THROW(builder.setTransportOptions(List<IBaseObject>(String("plain"))), InvalidTypeException);
+    ASSERT_THROW(builder.setTransportOptions(List<ITransportOption>(TransportOption("plain", 7420), TransportOption("plain", 7421))),
+                 InvalidValueException);
+    ASSERT_EQ(builder.getTransportOptions().getCount(), 0u);
 }
 
-TEST_F(DeviceTypeTest, AvailableTransportsAreFrozenCopy)
+TEST_F(DeviceTypeTest, TransportOptionsAreFrozenCopy)
 {
-    auto transports = Dict<IString, IInteger>({{"plain", 7420}});
-    const DeviceTypePtr type = DeviceTypeBuilder().setId("id").setAvailableTransports(transports).build();
+    auto options = List<ITransportOption>(TransportOption("plain", 7420));
+    const DeviceTypePtr type = DeviceTypeBuilder().setId("id").setTransportOptions(options).build();
 
-    transports.set("tls", 7421);
+    options.pushBack(TransportOption("tls", 7421));
 
-    ASSERT_EQ(type.getAvailableTransports().getKeyList(), List<IString>("plain"));
-    ASSERT_THROW(type.getAvailableTransports().set("wss", 7443), FrozenException);
+    ASSERT_EQ(TransportOptionNames(type.getTransportOptions()), List<IString>("plain"));
+    ASSERT_THROW(type.getTransportOptions().pushBack(TransportOption("wss", 7443)), FrozenException);
 }
 
-TEST_F(DeviceTypeTest, SerializeDeserializeAvailableTransports)
+TEST_F(DeviceTypeTest, SerializeDeserializeTransportOptions)
 {
     const DeviceTypePtr type = DeviceTypeBuilder()
                                    .setId("id")
                                    .setName("name")
                                    .setDescription("description")
                                    .setConnectionStringPrefix("prefix")
-                                   .setAvailableTransports(Dict<IString, IInteger>({{"wss", 7443}, {"tls", 7421}, {"plain", 7420}}))
+                                   .setTransportOptions(List<ITransportOption>(TransportOption("wss", 7443, TransportProtection::Encrypted, True),
+                                                                               TransportOption("tls", 7421, TransportProtection::Encrypted),
+                                                                               TransportOption("plain", 7420)))
                                    .build();
 
     const auto serializer = JsonSerializer();
@@ -86,181 +91,60 @@ TEST_F(DeviceTypeTest, SerializeDeserializeAvailableTransports)
     ASSERT_EQ(newType.getId(), "id");
     ASSERT_EQ(newType.getConnectionStringPrefix(), "prefix");
 
-    const auto transports = newType.getAvailableTransports();
-    ASSERT_EQ(transports.getKeyList(), List<IString>("wss", "tls", "plain"));
-    ASSERT_EQ(transports.get("wss"), 7443);
+    // read back as plain Property objects and restored to transport options
+    const auto options = newType.getTransportOptions();
+    ASSERT_EQ(TransportOptionNames(options), List<IString>("wss", "tls", "plain"));
+    ASSERT_EQ(options[0].getPort(), 7443);
+    ASSERT_EQ(options[0].getProtection(), TransportProtection::Encrypted);
+    ASSERT_TRUE(options[0].getCertificateRequired());
+    ASSERT_FALSE(options[1].getCertificateRequired());
 
     serializer.reset();
     newType.serialize(serializer);
     ASSERT_EQ(serializedType, serializer.getOutput());
 }
 
-// Types without transports serialize exactly as an older SDK did, and the older format deserializes to an empty dictionary
-TEST_F(DeviceTypeTest, SerializeWithoutAvailableTransports)
+// Types without transport options serialize exactly as an older SDK did, and the older format deserializes to no options
+TEST_F(DeviceTypeTest, SerializeWithoutTransportOptions)
 {
     const DeviceTypePtr type = DeviceType("id", "name", "description", "prefix");
 
     const auto serializer = JsonSerializer();
     type.serialize(serializer);
     const auto serializedType = serializer.getOutput();
-    ASSERT_EQ(std::string(serializedType).find("availableTransports"), std::string::npos);
+    ASSERT_EQ(std::string(serializedType).find("transportOptions"), std::string::npos);
 
     const auto deserializer = JsonDeserializer();
     const DeviceTypePtr newType = deserializer.deserialize(serializedType, nullptr, nullptr);
 
-    ASSERT_EQ(newType.getAvailableTransports().getCount(), 0u);
+    ASSERT_EQ(newType.getTransportOptions().getCount(), 0u);
 }
 
-TEST_F(DeviceTypeTest, AddDeviceConfigSelectsFirstTransport)
-{
-    const AddComponentConfigPtr config = AddComponentConfig(List<IString>("tls", "plain"));
-
-    ASSERT_EQ(config.getAvailableTransports(), List<IString>("tls", "plain"));
-    ASSERT_EQ(config.getTransport(), "tls");
-    ASSERT_EQ(config.getPropertySelectionValue("Transport"), "tls");
-}
-
-TEST_F(DeviceTypeTest, AddDeviceConfigSetTransport)
-{
-    const AddComponentConfigPtr config = AddComponentConfig(List<IString>("tls", "plain"));
-
-    config.setTransport("plain");
-    ASSERT_EQ(config.getTransport(), "plain");
-    ASSERT_EQ(config.getPropertySelectionValue("Transport"), "plain");
-
-    // The property is an equal alternative to the typed setter
-    config.setPropertyValue("Transport", 0);
-    ASSERT_EQ(config.getTransport(), "tls");
-}
-
-TEST_F(DeviceTypeTest, AddDeviceConfigSetUnknownTransport)
-{
-    const AddComponentConfigPtr config = AddComponentConfig(List<IString>("tls", "plain"));
-
-    ASSERT_THROW(config.setTransport("wss"), NotFoundException);
-    ASSERT_EQ(config.getTransport(), "tls");
-}
-
-TEST_F(DeviceTypeTest, AddDeviceConfigWithoutTransports)
-{
-    const AddComponentConfigPtr config = AddComponentConfig();
-
-    ASSERT_EQ(config.getAvailableTransports().getCount(), 0u);
-    ASSERT_FALSE(config.getTransport().assigned());
-    ASSERT_FALSE(config.hasProperty("Transport"));
-    ASSERT_THROW(config.setTransport("plain"), NotFoundException);
-}
-
-TEST_F(DeviceTypeTest, AddDeviceConfigClone)
-{
-    const AddComponentConfigPtr config = AddComponentConfig(List<IString>("tls", "plain"));
-    config.setTransport("plain");
-
-    const PropertyObjectPtr cloned = config.asPtr<IPropertyObjectInternal>().clone();
-    const auto clonedConfig = cloned.asPtrOrNull<IAddComponentConfig>();
-    ASSERT_TRUE(clonedConfig.assigned());
-    ASSERT_EQ(clonedConfig.getTransport(), "plain");
-    ASSERT_EQ(clonedConfig.getAvailableTransports(), List<IString>("tls", "plain"));
-}
-
-TEST_F(DeviceTypeTest, AddDeviceConfigSerializeDeserialize)
-{
-    const AddComponentConfigPtr config = AddComponentConfig(List<IString>("tls", "plain"));
-    config.setTransport("plain");
-
-    const auto serializer = JsonSerializer();
-    config.serialize(serializer);
-    const auto serialized = serializer.getOutput();
-    ASSERT_NE(std::string(serialized).find(R"("AddComponentConfig")"), std::string::npos);
-
-    const BaseObjectPtr deserialized = JsonDeserializer().deserialize(serialized, nullptr, nullptr);
-    const auto newConfig = deserialized.asPtrOrNull<IAddComponentConfig>();
-    ASSERT_TRUE(newConfig.assigned());
-    ASSERT_EQ(newConfig.getAvailableTransports(), List<IString>("tls", "plain"));
-    ASSERT_EQ(newConfig.getTransport(), "plain");
-}
-
-TEST_F(DeviceTypeTest, DefaultConfigCarriesAddDeviceConfig)
+// The module manager adds the selection properties right before a device is created, not to the default config
+TEST_F(DeviceTypeTest, DefaultConfigHasNoTransportSelection)
 {
     auto moduleConfig = PropertyObject();
-    moduleConfig.addProperty(IntProperty("Port", 7420));
+    moduleConfig.addProperty(IntProperty("Port", 7000));
 
     const DeviceTypePtr type = DeviceTypeBuilder()
                                    .setId("id")
                                    .setConnectionStringPrefix("prefix")
                                    .setDefaultConfig(moduleConfig)
-                                   .setAvailableTransports(Dict<IString, IInteger>({{"tls", 7421}, {"plain", 7420}}))
+                                   .setTransportOptions(List<ITransportOption>(TransportOption("tls", 7421), TransportOption("plain", 7420)))
                                    .build();
 
+    // The module's own port is kept as it is
     const PropertyObjectPtr config = type.createDefaultConfig();
-    ASSERT_EQ(config.getPropertyValue("Port"), 7420);
+    ASSERT_FALSE(config.hasProperty(TransportOptionConfigProperty));
+    ASSERT_EQ(config.getPropertyValue(PortConfigProperty), 7000);
 
-    const auto addDeviceConfig = config.getPropertyValue("AddDeviceConfig").asPtrOrNull<IAddComponentConfig>();
-    ASSERT_TRUE(addDeviceConfig.assigned());
-    ASSERT_EQ(addDeviceConfig.getAvailableTransports(), List<IString>("tls", "plain"));
-    ASSERT_EQ(addDeviceConfig.getTransport(), "tls");
-
-    // Every default config gets its own object
-    addDeviceConfig.setTransport("plain");
-    const AddComponentConfigPtr freshConfig = type.createDefaultConfig().getPropertyValue("AddDeviceConfig");
-    ASSERT_EQ(freshConfig.getTransport(), "tls");
-
-    // The module's own default config is left as it was
-    ASSERT_FALSE(moduleConfig.hasProperty("AddDeviceConfig"));
-}
-
-TEST_F(DeviceTypeTest, DefaultConfigWithoutTransports)
-{
-    const DeviceTypePtr type = DeviceTypeBuilder().setId("id").setConnectionStringPrefix("prefix").build();
-    ASSERT_FALSE(type.createDefaultConfig().hasProperty("AddDeviceConfig"));
-
-    const DeviceTypePtr factoryType = DeviceType("id", "name", "description", "prefix");
-    ASSERT_FALSE(factoryType.createDefaultConfig().hasProperty("AddDeviceConfig"));
-}
-
-// The module manager nests each type's default config into the add-device config, which clones it
-TEST_F(DeviceTypeTest, NestedAddDeviceConfigKeepsInterface)
-{
-    const DeviceTypePtr type = DeviceTypeBuilder()
-                                   .setId("id")
-                                   .setConnectionStringPrefix("prefix")
-                                   .setAvailableTransports(Dict<IString, IInteger>({{"tls", 7421}, {"plain", 7420}}))
-                                   .build();
-
-    auto deviceConfigs = PropertyObject();
-    deviceConfigs.addProperty(ObjectProperty("id", type.createDefaultConfig()));
-
-    const PropertyObjectPtr typeConfig = deviceConfigs.getPropertyValue("id");
-    AddComponentConfigPtr addDeviceConfig = typeConfig.getPropertyValue("AddDeviceConfig");
-    addDeviceConfig.setTransport("plain");
-
-    const PropertyObjectPtr cloned = deviceConfigs.asPtr<IPropertyObjectInternal>().clone();
-    const PropertyObjectPtr clonedTypeConfig = cloned.getPropertyValue("id");
-    const auto clonedAddDeviceConfig = clonedTypeConfig.getPropertyValue("AddDeviceConfig").asPtrOrNull<IAddComponentConfig>();
-    ASSERT_TRUE(clonedAddDeviceConfig.assigned());
-    ASSERT_EQ(clonedAddDeviceConfig.getTransport(), "plain");
-}
-
-TEST_F(DeviceTypeTest, DefaultConfigSerializeDeserialize)
-{
-    const DeviceTypePtr type = DeviceTypeBuilder()
-                                   .setId("id")
-                                   .setConnectionStringPrefix("prefix")
-                                   .setAvailableTransports(Dict<IString, IInteger>({{"tls", 7421}, {"plain", 7420}}))
-                                   .build();
-
-    const PropertyObjectPtr config = type.createDefaultConfig();
-    AddComponentConfigPtr addDeviceConfig = config.getPropertyValue("AddDeviceConfig");
-    addDeviceConfig.setTransport("plain");
-
-    const auto serializer = JsonSerializer();
-    config.serialize(serializer);
-
-    const PropertyObjectPtr newConfig = JsonDeserializer().deserialize(serializer.getOutput(), nullptr, nullptr);
-    const auto newAddDeviceConfig = newConfig.getPropertyValue("AddDeviceConfig").asPtrOrNull<IAddComponentConfig>();
-    ASSERT_TRUE(newAddDeviceConfig.assigned());
-    ASSERT_EQ(newAddDeviceConfig.getAvailableTransports(), List<IString>("tls", "plain"));
-    ASSERT_EQ(newAddDeviceConfig.getTransport(), "plain");
+    const DeviceTypePtr withoutModuleConfig = DeviceTypeBuilder()
+                                                  .setId("id")
+                                                  .setConnectionStringPrefix("prefix")
+                                                  .setTransportOptions(List<ITransportOption>(TransportOption("tls", 7421)))
+                                                  .build();
+    ASSERT_FALSE(withoutModuleConfig.createDefaultConfig().hasProperty(TransportOptionConfigProperty));
+    ASSERT_FALSE(withoutModuleConfig.createDefaultConfig().hasProperty(PortConfigProperty));
 }
 
 END_NAMESPACE_OPENDAQ

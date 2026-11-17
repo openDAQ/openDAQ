@@ -20,7 +20,7 @@
 
 #include <native_streaming_protocol/native_streaming_constants.h>
 #include <opendaq/opendaq.h>
-#include <opendaq/add_component_config_ptr.h>
+#include <opendaq/transport_option_factory.h>
 
 #include <string>
 
@@ -74,13 +74,33 @@ namespace test_helpers::native_tls
         return config;
     }
 
-    /// @brief selects the TLS transport in a device or streaming type config
-    /// @param addConfigName "AddDeviceConfig" for a device type config, "AddStreamingConfig" for a streaming one
+    /// @brief selects the TLS transport option in a device or streaming type config
     [[maybe_unused]]
-    inline void selectTls(const PropertyObjectPtr& typeConfig, const char* addConfigName = "AddDeviceConfig")
+    inline void selectTls(const PropertyObjectPtr& typeConfig)
     {
-        AddComponentConfigPtr addConfig = typeConfig.getPropertyValue(addConfigName);
-        addConfig.setTransport(CONST_NATIVE_TRANSPORT_TLS);
+        typeConfig.setPropertyValue(TransportOptionConfigProperty, CONST_NATIVE_TRANSPORT_TLS);
+    }
+
+    /// @brief the names of transport options, in order
+    [[maybe_unused]]
+    inline ListPtr<IString> optionNames(const ListPtr<ITransportOption>& options)
+    {
+        auto names = List<IString>();
+        for (const auto& option : options)
+            names.pushBack(option.getName());
+        return names;
+    }
+
+    /// @brief the port of the transport option of a name; -1 if there is none
+    [[maybe_unused]]
+    inline Int optionPort(const ListPtr<ITransportOption>& options, const std::string& name)
+    {
+        for (const auto& option : options)
+        {
+            if (option.getName() == name)
+                return option.getPort();
+        }
+        return -1;
     }
 
 #ifdef NATIVE_STREAMING_TLS_WITHOUT_SIGN
@@ -110,7 +130,7 @@ namespace test_helpers::native_tls
     {
         selectTls(addDeviceConfig.getPropertyValue(std::string("Device.") + ConfigId));
         selectTls(addDeviceConfig.getPropertyValue(std::string("Device.") + StreamingId));
-        selectTls(addDeviceConfig.getPropertyValue(std::string("Streaming.") + StreamingId), "AddStreamingConfig");
+        selectTls(addDeviceConfig.getPropertyValue(std::string("Streaming.") + StreamingId));
     }
 
 #else
@@ -156,7 +176,7 @@ namespace test_helpers::native_tls
     {
         selectTls(addDeviceConfig.getPropertyValue(std::string("Device.") + ConfigId));
         selectTls(addDeviceConfig.getPropertyValue(std::string("Device.") + StreamingId));
-        selectTls(addDeviceConfig.getPropertyValue(std::string("Streaming.") + StreamingId), "AddStreamingConfig");
+        selectTls(addDeviceConfig.getPropertyValue(std::string("Streaming.") + StreamingId));
 
         for (const auto& prefix : {std::string("Device.") + ConfigId + ".",
                                    std::string("Device.") + StreamingId + ".",

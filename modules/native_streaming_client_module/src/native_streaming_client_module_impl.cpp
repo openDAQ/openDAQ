@@ -5,7 +5,8 @@
 #include <opendaq/device_type_factory.h>
 #include <opendaq/mirrored_device_config_ptr.h>
 #include <opendaq/streaming_type_factory.h>
-#include <opendaq/add_component_config_ptr.h>
+#include <opendaq/transport_option_factory.h>
+#include <native_streaming_client_module/native_device_utils.h>
 #include <native_streaming_client_module/native_streaming_device_impl.h>
 #include <native_streaming_client_module/native_streaming_impl.h>
 #include <native_streaming_client_module/native_device_impl.h>
@@ -26,15 +27,27 @@ using namespace config_protocol;
 
 namespace
 {
-    DictPtr<IString, IInteger> CreateAvailableTransports()
+    // the options of the device and streaming types, with their default ports; plain first, the default one
+    ListPtr<ITransportOption> CreateTransportOptions()
     {
-        auto transports = Dict<IString, IInteger>();
-        transports.set(CONST_NATIVE_TRANSPORT_PLAIN, static_cast<Int>(DEFAULT_PORT));
+        auto options = List<ITransportOption>();
+        options.pushBack(TransportOption(CONST_NATIVE_TRANSPORT_PLAIN, DEFAULT_PORT, TransportProtection::None, False));
 #if NATIVE_STREAMING_ENABLE_TLS
-        transports.set(CONST_NATIVE_TRANSPORT_TLS, static_cast<Int>(DEFAULT_TLS_PORT));
+        options.pushBack(TransportOption(CONST_NATIVE_TRANSPORT_TLS, DEFAULT_TLS_PORT, TransportProtection::Encrypted, False));
 #endif
-        transports.freeze();
-        return transports;
+        options.freeze();
+        return options;
+    }
+
+    TransportOptionPtr FindOption(const ListPtr<ITransportOption>& options, const StringPtr& name)
+    {
+        for (const auto& option : options)
+        {
+            if (option.getName() == name)
+                return option;
+        }
+
+        return nullptr;
     }
 }
 
@@ -50,7 +63,7 @@ NativeStreamingClientModule::NativeStreamingClientModule(ContextPtr context)
     , discoveryClient(
         {CONST_NATIVE_SERVICE_CAPABILITY}
     )
-    , availableTransports(CreateAvailableTransports())
+    , transportOptions(CreateTransportOptions())
 {
     loggerComponent = this->context.getLogger().getOrAddComponent("NativeClient");
 
@@ -142,13 +155,13 @@ ListPtr<IDeviceInfo> NativeStreamingClientModule::onGetAvailableDevices()
     auto availableDevices = List<IDeviceInfo>();
     for (const auto& device : discoveryClient.discoverMdnsDevices())
     {
-        // a server this module shares no transport with cannot be connected to
-        const auto transports = SupportedDiscoveredTransports(device);
-        if (transports.getCount() == 0)
+        // a server this module shares no transport option with cannot be connected to
+        const auto options = supportedDiscoveredTransportOptions(device);
+        if (options.getCount() == 0)
             continue;
 
-        availableDevices.pushBack(populateDiscoveredConfigurationDevice(device, transports));
-        availableDevices.pushBack(populateDiscoveredStreamingDevice(device, transports));
+        availableDevices.pushBack(populateDiscoveredConfigurationDevice(device, options));
+        availableDevices.pushBack(populateDiscoveredStreamingDevice(device, options));
     }
     return availableDevices;
 }
@@ -405,7 +418,8 @@ DevicePtr NativeStreamingClientModule::onCreateDevice(const StringPtr& connectio
         DAQ_THROW_EXCEPTION(InvalidParameterException, "Invalid connection string prefix");
 
     const NativeType nativeType = *parsedType;
-    const StringPtr transport = GetSelectedTransport(config, "AddDeviceConfig");
+    const auto selectedOption = getSelectedTransportOption(config);
+    const StringPtr transport = selectedOption.getName();
 
     PropertyObjectPtr deviceConfig;
     if (!config.assigned())
@@ -419,8 +433,10 @@ DevicePtr NativeStreamingClientModule::onCreateDevice(const StringPtr& connectio
     if (!context.assigned())
         DAQ_THROW_EXCEPTION(InvalidParameterException, "Context is not available.");
 
+    // a Port set in the config wins over the port of the connection string, which wins over the default port of the
+    // selected option
     auto host = ConnectionStringUtils::GetHost(connectionString);
-    const Int port = ConnectionStringUtils::GetPort(connectionString, deviceConfig, availableTransports.get(transport));
+    const Int port = ConnectionStringUtils::GetPort(connectionString, deviceConfig, selectedOption.getPort());
     auto path = ConnectionStringUtils::GetPath(connectionString);
 
     DevicePtr device;
@@ -459,16 +475,13 @@ DevicePtr NativeStreamingClientModule::onCreateDevice(const StringPtr& connectio
                                      .setConnectionString(connectionString)
                                      .build();
 
-        // only the transport the device is connected over
-        auto transports = Dict<IString, IInteger>();
-        transports.set(transport, port);
-
+        // only the transport option the device is connected over
         connectionInfo.setProtocolId(CONST_NATIVE_STREAMING_ID)
             .setProtocolName(CONST_NATIVE_STREAMING_ID)
             .setProtocolType(ProtocolType::Streaming)
             .setConnectionType("TCP/IP")
             .addAddress(host)
-            .setAvailableTransports(transports)
+            .addTransportOption(NativeTransportOption(transport, port))
             .setPrefix(CONST_NATIVE_STREAMING_PREFIX)
             .setConnectionString(connectionString)
             .addAddressInfo(addressInfo)
@@ -513,8 +526,21 @@ PropertyObjectPtr NativeStreamingClientModule::createConnectionDefaultConfig(Nat
     auto defaultConfig = PropertyObject();
 
     defaultConfig.addProperty(ObjectProperty("TransportLayerConfig", createTransportLayerDefaultConfig()));
-    // left at its default, the port of the selected transport is used instead
-    defaultConfig.addProperty(IntProperty("Port", DEFAULT_PORT));
+
+    // The transport option to connect over (TransportOptionConfigProperty). Declared here, so that the module manager
+    // keeps it and a plain config can select the option; the module manager names the first option otherwise.
+    auto optionNames = List<IString>();
+    for (const auto& option : transportOptions)
+        optionNames.pushBack(option.getName());
+    defaultConfig.addProperty(StringPropertyBuilder(TransportOptionConfigProperty, CONST_NATIVE_TRANSPORT_PLAIN)
+                                  .setSelectionValues(optionNames)
+                                  .setDescription("The transport the connection is made over: \"plain\", or \"tls\" "
+                                                  "for an encrypted connection.")
+                                  .build());
+
+    // PortConfigProperty; left at its default, the port of the connection string or else of the selected option is
+    // used instead
+    defaultConfig.addProperty(IntProperty(PortConfigProperty, DEFAULT_PORT));
     defaultConfig.addProperty(StringProperty("Username", ""));
     defaultConfig.addProperty(StringProperty("Password", ""));
 
@@ -732,13 +758,14 @@ StreamingPtr NativeStreamingClientModule::onCreateStreaming(const StringPtr& con
     if (!acceptsStreamingConnectionParameters(connectionString, config))
         DAQ_THROW_EXCEPTION(InvalidParameterException);
 
-    const StringPtr transport = GetSelectedTransport(config, "AddStreamingConfig");
+    const auto selectedOption = getSelectedTransportOption(config);
+    const StringPtr transport = selectedOption.getName();
 
     PropertyObjectPtr parsedConfig = config.assigned() ? populateDefaultConfig(config, NativeType::streaming)
                                                        : createConnectionDefaultConfig(NativeType::streaming);
 
     StringPtr host = ConnectionStringUtils::GetHost(connectionString);
-    const Int port = ConnectionStringUtils::GetPort(connectionString, parsedConfig, availableTransports.get(transport));
+    const Int port = ConnectionStringUtils::GetPort(connectionString, parsedConfig, selectedOption.getPort());
     StringPtr path = ConnectionStringUtils::GetPath(connectionString);
 
     PropertyObjectPtr transportLayerConfig = parsedConfig.getPropertyValue("TransportLayerConfig");
@@ -757,24 +784,18 @@ Bool NativeStreamingClientModule::onCompleteServerCapability(const ServerCapabil
     if (source.getConnectionType() != "TCP/IP")
         return false;
 
-    // only the transports both the server and this module support
-    if (const auto serverTransports = target.getAvailableTransports(); serverTransports.getCount() > 0)
+    // only the transport options both the server and this module support
+    if (const auto serverOptions = target.getTransportOptions(); serverOptions.getCount() > 0)
     {
-        auto transports = Dict<IString, IInteger>();
-        for (const auto& [name, transportPort] : serverTransports)
+        const auto options = supportedTransportOptions(serverOptions);
+        if (options.getCount() == 0)
         {
-            if (availableTransports.hasKey(name))
-                transports.set(name, transportPort);
-        }
-
-        if (transports.getCount() == 0)
-        {
-            LOG_W("Native server capability lists no transport this client supports.")
+            LOG_W("Native server capability lists no transport option this client supports.")
             return false;
         }
 
-        if (transports.getCount() != serverTransports.getCount())
-            target.setAvailableTransports(transports);
+        if (options.getCount() != serverOptions.getCount())
+            target.setTransportOptions(options);
     }
 
     if (!source.getAddresses().assigned() || !source.getAddresses().getCount())
@@ -799,13 +820,9 @@ Bool NativeStreamingClientModule::onCompleteServerCapability(const ServerCapabil
         LOG_W("Native server capability is missing port. Defaulting to {}.", port)
     }
 
-    // a server which does not list its transports serves plain on the capability port
-    if (target.getAvailableTransports().getCount() == 0)
-    {
-        auto transports = Dict<IString, IInteger>();
-        transports.set(CONST_NATIVE_TRANSPORT_PLAIN, port);
-        target.setAvailableTransports(transports);
-    }
+    // a server which does not list its transport options serves plain on the capability port
+    if (target.getTransportOptions().getCount() == 0)
+        target.addTransportOption(NativeTransportOption(CONST_NATIVE_TRANSPORT_PLAIN, static_cast<Int>(port)));
 
     const auto path = target.hasProperty("Path") ? target.getPropertyValue("Path") : "";
     const auto targetAddress = target.getAddresses();
@@ -862,7 +879,7 @@ DeviceTypePtr NativeStreamingClientModule::createPseudoDeviceType()
         .setConnectionStringPrefix(CONST_NATIVE_STREAMING_PREFIX)
         .setDefaultConfig(NativeStreamingClientModule::createConnectionDefaultConfig(NativeType::streaming))
         .setDeviceKind(DeviceKind::Adapter)
-        .setAvailableTransports(availableTransports)
+        .setTransportOptions(transportOptions)
         .build();
 }
 
@@ -875,7 +892,7 @@ DeviceTypePtr NativeStreamingClientModule::createDeviceType()
         .setConnectionStringPrefix(CONST_NATIVE_CONFIG_PREFIX)
         .setDefaultConfig(NativeStreamingClientModule::createConnectionDefaultConfig(NativeType::config))
         .setDeviceKind(DeviceKind::Mirrored)
-        .setAvailableTransports(availableTransports)
+        .setTransportOptions(transportOptions)
         .build();
 }
 
@@ -887,29 +904,39 @@ StreamingTypePtr NativeStreamingClientModule::createStreamingType()
         .setDescription("openDAQ native streaming protocol client")
         .setConnectionStringPrefix(CONST_NATIVE_STREAMING_PREFIX)
         .setLinkedDeviceType(createDeviceType())
-        .setAvailableTransports(availableTransports)
+        .setTransportOptions(transportOptions)
         .build();
 }
 
-StringPtr NativeStreamingClientModule::GetSelectedTransport(const PropertyObjectPtr& config, const char* addConfigName)
+TransportOptionPtr NativeStreamingClientModule::getSelectedTransportOption(const PropertyObjectPtr& config) const
 {
-    if (!config.assigned() || !config.hasProperty(addConfigName))
-        return CONST_NATIVE_TRANSPORT_PLAIN;
+    const TransportOptionPtr defaultOption = transportOptions[0];
+    if (!config.assigned() || !config.hasProperty(TransportOptionConfigProperty))
+        return defaultOption;
 
-    const auto addConfig = config.getPropertyValue(addConfigName).asPtrOrNull<IAddComponentConfig>();
-    if (!addConfig.assigned())
-        return CONST_NATIVE_TRANSPORT_PLAIN;
+    const StringPtr name = config.getPropertyValue(TransportOptionConfigProperty);
+    if (!name.assigned() || name.getLength() == 0)
+        return defaultOption;
 
-    const StringPtr transport = addConfig.getTransport();
-    if (!transport.assigned() || transport == CONST_NATIVE_TRANSPORT_PLAIN)
-        return CONST_NATIVE_TRANSPORT_PLAIN;
+    if (const auto option = FindOption(transportOptions, name); option.assigned())
+        return option;
 
-#if NATIVE_STREAMING_ENABLE_TLS
-    if (transport == CONST_NATIVE_TRANSPORT_TLS)
-        return transport;
-#endif
+    DAQ_THROW_EXCEPTION(InvalidParameterException, "Transport \"{}\" is not supported by the native streaming client", name);
+}
 
-    DAQ_THROW_EXCEPTION(InvalidParameterException, "Transport \"{}\" is not supported by the native streaming client", transport);
+ListPtr<ITransportOption> NativeStreamingClientModule::supportedTransportOptions(const ListPtr<ITransportOption>& serverOptions) const
+{
+    auto options = List<ITransportOption>();
+    if (!serverOptions.assigned())
+        return options;
+
+    for (const auto& serverOption : serverOptions)
+    {
+        if (FindOption(transportOptions, serverOption.getName()).assigned())
+            options.pushBack(serverOption);
+    }
+
+    return options;
 }
 
 std::optional<NativeType> NativeStreamingClientModule::ParseConnectionType(const StringPtr& connectionString)
@@ -969,8 +996,9 @@ bool NativeStreamingClientModule::ValidateConnectionString(const StringPtr& conn
     }
 }
 
-DictPtr<IString, IInteger> NativeStreamingClientModule::SupportedDiscoveredTransports(const MdnsDiscoveredDevice& discoveredDevice) const
+ListPtr<ITransportOption> NativeStreamingClientModule::supportedDiscoveredTransportOptions(const MdnsDiscoveredDevice& discoveredDevice) const
 {
+    // the TXT record carries the names and ports of the options the server serves, in the server's order
     auto serverTransports = discovery_common::DiscoveryUtils::populateTransports(
         discoveredDevice.getPropertyOrDefault(discovery_common::DiscoveryUtils::TRANSPORTS_KEY, ""));
 
@@ -978,24 +1006,24 @@ DictPtr<IString, IInteger> NativeStreamingClientModule::SupportedDiscoveredTrans
     if (serverTransports.getCount() == 0 && discoveredDevice.servicePort > 0)
         serverTransports.set(CONST_NATIVE_TRANSPORT_PLAIN, static_cast<Int>(discoveredDevice.servicePort));
 
-    auto transports = Dict<IString, IInteger>();
+    auto options = List<ITransportOption>();
     for (const auto& [name, port] : serverTransports)
     {
-        if (availableTransports.hasKey(name))
-            transports.set(name, port);
+        if (FindOption(transportOptions, name).assigned())
+            options.pushBack(NativeTransportOption(name, port));
     }
 
-    return transports;
+    return options;
 }
 
 DeviceInfoPtr NativeStreamingClientModule::populateDiscoveredConfigurationDevice(const MdnsDiscoveredDevice& discoveredDevice,
-                                                                               const DictPtr<IString, IInteger>& transports)
+                                                                               const ListPtr<ITransportOption>& discoveredOptions)
 {
     auto cap = ServerCapability(CONST_NATIVE_CONFIG_ID, CONST_NATIVE_CONFIG_ID, ProtocolType::ConfigurationAndStreaming);
 
-    // the connection strings carry the port of the first (default) transport
-    SetupProtocolAddresses(discoveredDevice, cap, CONST_NATIVE_CONFIG_PREFIX, transports.getValueList().getItemAt(0));
-    cap.setAvailableTransports(transports);
+    // the connection strings carry the port of the first (default) option
+    SetupProtocolAddresses(discoveredDevice, cap, CONST_NATIVE_CONFIG_PREFIX, discoveredOptions[0].getPort());
+    cap.setTransportOptions(discoveredOptions);
     cap.setCoreEventsEnabled(true);
     cap.setProtocolVersion(discoveredDevice.getPropertyOrDefault("protocolVersion", ""));
     for (const auto& id : discovery_common::DiscoveryUtils::populateAuthenticationMethods(discoveredDevice.getPropertyOrDefault("authMethods", "")))
@@ -1006,13 +1034,13 @@ DeviceInfoPtr NativeStreamingClientModule::populateDiscoveredConfigurationDevice
 }
 
 DeviceInfoPtr NativeStreamingClientModule::populateDiscoveredStreamingDevice(const MdnsDiscoveredDevice& discoveredDevice,
-                                                                           const DictPtr<IString, IInteger>& transports)
+                                                                           const ListPtr<ITransportOption>& discoveredOptions)
 {
     auto cap = ServerCapability(CONST_NATIVE_STREAMING_ID, CONST_NATIVE_STREAMING_ID, ProtocolType::Streaming);
 
-    // the connection strings carry the port of the first (default) transport
-    SetupProtocolAddresses(discoveredDevice, cap, CONST_NATIVE_STREAMING_PREFIX, transports.getValueList().getItemAt(0));
-    cap.setAvailableTransports(transports);
+    // the connection strings carry the port of the first (default) option
+    SetupProtocolAddresses(discoveredDevice, cap, CONST_NATIVE_STREAMING_PREFIX, discoveredOptions[0].getPort());
+    cap.setTransportOptions(discoveredOptions);
     for (const auto& id : discovery_common::DiscoveryUtils::populateAuthenticationMethods(discoveredDevice.getPropertyOrDefault("authMethods", "")))
         cap.addAuthenticationMethod(id);
 

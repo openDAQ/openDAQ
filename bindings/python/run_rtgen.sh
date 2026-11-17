@@ -201,4 +201,4 @@ run_rtgen opendaq opendaq/security        opendaq opendaq/generated/security    
 run_rtgen opendaq opendaq/security        opendaq opendaq/generated/security         credential_request_builder
 run_rtgen opendaq opendaq/security        opendaq opendaq/generated/security         login_parameters
 run_rtgen opendaq opendaq/security        opendaq opendaq/generated/security         login_parameters_builder
-run_rtgen opendaq opendaq/component       opendaq opendaq/generated/component        add_component_config
+run_rtgen opendaq opendaq/component       opendaq opendaq/generated/component        transport_option

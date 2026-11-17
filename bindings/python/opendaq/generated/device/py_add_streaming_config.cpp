@@ -67,4 +67,46 @@ void defineIAddStreamingConfig(pybind11::module_ m, PyDaqIntf<daq::IAddStreaming
         },
         py::return_value_policy::take_ownership,
         "");
+    cls.def_property_readonly("transport_options",
+        [](daq::IAddStreamingConfig *object)
+        {
+            py::gil_scoped_release release;
+            const auto objectPtr = daq::AddStreamingConfigPtr::Borrow(object);
+            return objectPtr.getTransportOptions().detach();
+        },
+        py::return_value_policy::take_ownership,
+        "Gets the transport options the streaming can connect over.");
+    cls.def("set_transport_option",
+        [](daq::IAddStreamingConfig *object, std::variant<daq::IString*, py::str, daq::IEvalValue*>& name)
+        {
+            py::gil_scoped_release release;
+            const auto objectPtr = daq::AddStreamingConfigPtr::Borrow(object);
+            objectPtr.setTransportOption(getVariantValue<daq::IString*>(name));
+        },
+        py::arg("name"),
+        "Selects the transport option the streaming connects over.");
+    cls.def_property_readonly("selected_transport_option",
+        [](daq::IAddStreamingConfig *object)
+        {
+            py::gil_scoped_release release;
+            const auto objectPtr = daq::AddStreamingConfigPtr::Borrow(object);
+            return objectPtr.getSelectedTransportOption().detach();
+        },
+        py::return_value_policy::take_ownership,
+        "Gets the selected transport option.");
+    cls.def_property("port",
+        [](daq::IAddStreamingConfig *object)
+        {
+            py::gil_scoped_release release;
+            const auto objectPtr = daq::AddStreamingConfigPtr::Borrow(object);
+            return objectPtr.getPort().detach();
+        },
+        [](daq::IAddStreamingConfig *object, std::variant<daq::IInteger*, int64_t, daq::IEvalValue*>& port)
+        {
+            py::gil_scoped_release release;
+            const auto objectPtr = daq::AddStreamingConfigPtr::Borrow(object);
+            objectPtr.setPort(getVariantValue<daq::IInteger*>(port));
+        },
+        py::return_value_policy::take_ownership,
+        "Gets the port the streaming connects to. / Sets the port the streaming connects to.");
 }

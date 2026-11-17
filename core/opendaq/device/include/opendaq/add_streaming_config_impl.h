@@ -16,6 +16,8 @@
 #pragma once
 #include <opendaq/add_streaming_config_ptr.h>
 #include <opendaq/streaming_type_ptr.h>
+#include <opendaq/transport_option_ptr.h>
+#include <opendaq/transport_option_impl.h>
 #include <coreobjects/property_object_impl.h>
 
 BEGIN_NAMESPACE_OPENDAQ
@@ -34,11 +36,20 @@ public:
     using Super = GenericPropertyObjectImpl<IPropertyObject, IAddStreamingConfig>;
 
     explicit AddStreamingConfigImpl(const StreamingTypePtr& streamingType);
-    AddStreamingConfigImpl(const StreamingTypePtr& streamingType, Partial);
+
+    // Lists the transport options the server of a device announces instead of the ones of the type, unless they are
+    // not assigned
+    AddStreamingConfigImpl(const StreamingTypePtr& streamingType, const ListPtr<ITransportOption>& transportOptions);
+    AddStreamingConfigImpl(const StreamingTypePtr& streamingType, const ListPtr<ITransportOption>& transportOptions, Partial);
 
     ErrCode INTERFACE_FUNC getStreamingType(IStreamingType** type) override;
     ErrCode INTERFACE_FUNC getTypeConfig(IPropertyObject** config) override;
     ErrCode INTERFACE_FUNC getAuthenticationConfig(IAuthenticationConfig** config) override;
+    ErrCode INTERFACE_FUNC getTransportOptions(IList** transportOptions) override;
+    ErrCode INTERFACE_FUNC setTransportOption(IString* name) override;
+    ErrCode INTERFACE_FUNC getSelectedTransportOption(ITransportOption** transportOption) override;
+    ErrCode INTERFACE_FUNC setPort(IInteger* port) override;
+    ErrCode INTERFACE_FUNC getPort(IInteger** port) override;
 
     ErrCode INTERFACE_FUNC clone(IPropertyObject** cloned) override;
 
@@ -52,6 +63,8 @@ protected:
 
 private:
     StreamingTypePtr streamingType;
+    // The options the server of the device announces, else the Streaming type's
+    ListPtr<ITransportOption> transportOptions;
 };
 
 END_NAMESPACE_OPENDAQ

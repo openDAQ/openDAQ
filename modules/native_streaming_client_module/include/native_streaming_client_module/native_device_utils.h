@@ -19,6 +19,8 @@
 #include <opendaq/device_info_factory.h>
 #include <coreobjects/property_object_ptr.h>
 #include <coretypes/listobject_factory.h>
+#include <opendaq/transport_option_factory.h>
+#include <native_streaming_protocol/native_streaming_constants.h>
 #include <string>
 
 BEGIN_NAMESPACE_OPENDAQ_NATIVE_STREAMING_CLIENT_MODULE
@@ -95,6 +97,21 @@ inline ErrCode collectAlternativeAddresses(const PropertyObjectPtr& config,
 inline StringPtr buildConnectedStatusMessage(const std::string& transport)
 {
     return String(fmt::format("Transport: {}", transport));
+}
+
+/*!
+ * Builds the transport option of a native transport at a port: "tls" is encrypted, anything else ("plain")
+ * unprotected. Neither needs a client certificate unless @p certificateRequired says so.
+ *
+ * @param transport  Name of the transport ("plain" or "tls").
+ * @param port  The port the transport is served on.
+ * @param certificateRequired  Whether the server asks for a client certificate.
+ */
+inline TransportOptionPtr NativeTransportOption(const StringPtr& transport, Int port, Bool certificateRequired = False)
+{
+    const auto protection = transport == opendaq_native_streaming_protocol::CONST_NATIVE_TRANSPORT_TLS ? TransportProtection::Encrypted
+                                                                                                        : TransportProtection::None;
+    return TransportOption(transport, port, protection, certificateRequired);
 }
 
 END_NAMESPACE_OPENDAQ_NATIVE_STREAMING_CLIENT_MODULE

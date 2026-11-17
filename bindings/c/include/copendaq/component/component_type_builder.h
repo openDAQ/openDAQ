@@ -35,6 +35,7 @@ extern "C"
 #include <ccommon.h>
 
     typedef struct daqComponentTypeBuilder daqComponentTypeBuilder;
+    typedef struct daqList daqList;
     typedef struct daqComponentType daqComponentType;
     typedef struct daqString daqString;
     typedef struct daqPropertyObject daqPropertyObject;
@@ -64,8 +65,8 @@ extern "C"
     daqErrCode EXPORTED daqComponentTypeBuilder_getSupportedAuthenticationMethods(daqComponentTypeBuilder* self, daqDict** authenticationMethods);
     daqErrCode EXPORTED daqComponentTypeBuilder_setLinkedDeviceType(daqComponentTypeBuilder* self, daqDeviceType* deviceType);
     daqErrCode EXPORTED daqComponentTypeBuilder_getLinkedDeviceType(daqComponentTypeBuilder* self, daqDeviceType** deviceType);
-    daqErrCode EXPORTED daqComponentTypeBuilder_setAvailableTransports(daqComponentTypeBuilder* self, daqDict* transports);
-    daqErrCode EXPORTED daqComponentTypeBuilder_getAvailableTransports(daqComponentTypeBuilder* self, daqDict** transports);
+    daqErrCode EXPORTED daqComponentTypeBuilder_setTransportOptions(daqComponentTypeBuilder* self, daqList* transportOptions);
+    daqErrCode EXPORTED daqComponentTypeBuilder_getTransportOptions(daqComponentTypeBuilder* self, daqList** transportOptions);
     daqErrCode EXPORTED daqComponentTypeBuilder_createComponentTypeBuilder(daqComponentTypeBuilder** obj);
     daqErrCode EXPORTED daqComponentTypeBuilder_createDeviceTypeBuilder(daqComponentTypeBuilder** obj);
     daqErrCode EXPORTED daqComponentTypeBuilder_createStreamingTypeBuilder(daqComponentTypeBuilder** obj);

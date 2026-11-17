@@ -1474,8 +1474,9 @@ static ListPtr<IPropertyObject> LoadRemovedAdapterChild(const AddDeviceConfigPtr
 
 TEST_F(InstanceTest, LoadBindsSavedAddDeviceConfig)
 {
-    const auto savedConfig = AddDeviceConfig(KindDeviceModule::createType("daqadapter", DeviceKind::Adapter), nullptr, False);
+    const auto savedConfig = AddDeviceConfig(KindDeviceModule::createType("daqadapter", DeviceKind::Adapter), nullptr, True);
     savedConfig.setPrimaryAddressType(AddressType::IPv6);
+    savedConfig.setScanOnAdd(False);
 
     const auto addedConfigs = LoadRemovedAdapterChild(savedConfig);
 

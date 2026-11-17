@@ -76,11 +76,12 @@ protected:
 
     static AddDeviceConfigPtr bindSaved(const std::string& json,
                                         const DictPtr<IString, IDeviceType>& deviceTypes,
-                                        const DictPtr<IString, IStreamingType>& streamingTypes)
+                                        const DictPtr<IString, IStreamingType>& streamingTypes,
+                                        Bool scanOnAdd = true)
     {
         AddDeviceConfigPtr bound;
         JsonDeserializer().callCustomProc(
-            [&](const SerializedObjectPtr& saved) { bound = BoundAddDeviceConfig(saved, deviceTypes, streamingTypes); }, json);
+            [&](const SerializedObjectPtr& saved) { bound = BoundAddDeviceConfig(saved, deviceTypes, streamingTypes, scanOnAdd); }, json);
         return bound;
     }
 
@@ -382,7 +383,7 @@ TEST_F(AddDeviceConfigTest, SaveForm)
     options.getAvailableStreamingConfigs().get("a").getTypeConfig().setPropertyValue("Id", "unused");
 
     ASSERT_EQ(serializeForUpdate(config),
-              R"({"__type":"AddDeviceConfig","deviceTypeId":"dev","scanOnAdd":true,"propValues":{)"
+              R"({"__type":"AddDeviceConfig","deviceTypeId":"dev","propValues":{)"
               R"("Streaming":{"__type":"AddStreamingOptions","propValues":{"StreamingType":"b",)"
               R"("b":{"__type":"AddStreamingConfig","propValues":{"TypeConfig":)"
               R"({"__type":"PropertyObject","propValues":{"Id":"changed"}}}}}},)"
@@ -414,13 +415,20 @@ TEST_F(AddDeviceConfigTest, BindSaveForm)
     ASSERT_EQ(bound.getTypeConfig().getPropertyValue("Port"), 7000);
     ASSERT_EQ(bound.getPrimaryAddressType(), AddressType::IPv6);
     ASSERT_FALSE(bound.getScanOnAdd());
-    ASSERT_EQ(bound.asPtr<IPropertyObject>().getProperty("ScanOnAdd").getDefaultValue(), false);
+    ASSERT_EQ(bound.asPtr<IPropertyObject>().getProperty("ScanOnAdd").getDefaultValue(), true);
 
     const auto boundOptions = bound.getStreamingOptions();
     ASSERT_EQ(boundOptions.getStreamingMode(), StreamingMode::MinConnections);
     ASSERT_EQ(boundOptions.getAvailableStreamingConfigs().getKeyList(), List<IString>("a"));
     ASSERT_EQ(boundOptions.getStreamingConfig().getStreamingType().getObject(), streamingTypes.get("a").getObject());
     ASSERT_EQ(boundOptions.getStreamingConfig().getTypeConfig().getPropertyValue("Id"), "changed");
+}
+
+TEST_F(AddDeviceConfigTest, BindSaveFormTakesUnsetScanOnAddFromCaller)
+{
+    const auto deviceTypes = Dict<IString, IDeviceType>({{"dev", createDeviceType(DeviceKind::Mirrored)}});
+    const auto bound = bindSaved(serializeForUpdate(createMirroredConfig()), deviceTypes, nullptr, false);
+    ASSERT_FALSE(bound.getScanOnAdd());
 }
 
 TEST_F(AddDeviceConfigTest, BindDeserializedWireForm)
@@ -491,8 +499,6 @@ TEST_F(AddDeviceConfigTest, BindMalformedSaveForm)
     };
 
     ASSERT_NO_THROW(bindSaved(valid, deviceTypes, streamingTypes));
-    ASSERT_THROW(bindSaved(replaced(R"("scanOnAdd":true)", R"("scanOnAdd":"yes")"), deviceTypes, streamingTypes), InvalidValueException);
-    ASSERT_THROW(bindSaved(replaced(R"("scanOnAdd":true,)", ""), deviceTypes, streamingTypes), InvalidValueException);
     ASSERT_THROW(bindSaved(replaced(R"("StreamingMode":1)", R"("StreamingMode":99)"), deviceTypes, streamingTypes), InvalidValueException);
 }
 

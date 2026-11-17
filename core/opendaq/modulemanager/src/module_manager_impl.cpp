@@ -1493,6 +1493,14 @@ AddDeviceConfigPtr ModuleManagerImpl::createAddDeviceConfigForType(const DeviceT
     return addDeviceConfig;
 }
 
+ErrCode ModuleManagerImpl::getScanOnAdd(Bool* scanOnAdd)
+{
+    OPENDAQ_PARAM_NOT_NULL(scanOnAdd);
+
+    *scanOnAdd = this->scanOnAdd;
+    return OPENDAQ_SUCCESS;
+}
+
 DeviceTypePtr ModuleManagerImpl::chooseDeviceType(const DeviceInfoPtr& info,
                                                   const StringPtr& prefix,
                                                   const DictPtr<IString, IDeviceType>& deviceTypes) const

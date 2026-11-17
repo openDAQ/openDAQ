@@ -52,6 +52,7 @@
 
 #include <opendaq/module_manager_check_dependencies.h>
 #include <opendaq/add_component_config_factory.h>
+#include <opendaq/add_streaming_config_ptr.h>
 #include <opendaq/add_streaming_options_ptr.h>
 #include <opendaq/streaming_type_utils.h>
 
@@ -1687,10 +1688,24 @@ StreamingPtr ModuleManagerImpl::onCreateStreaming(const StringPtr& connectionStr
                                                   const AuthenticationConfigPtr& authenticationConfig,
                                                   const DevicePtr& owner) const
 {
-    StreamingPtr streaming = nullptr;
-    PropertyObjectPtr inputConfig;
-    if (config.assigned())
-        checkErrorInfo(config.asPtr<IPropertyObjectInternal>()->clone(&inputConfig));
+    const AddStreamingConfigPtr addStreamingConfig = config.asPtrOrNull<IAddStreamingConfig>(true);
+    const StreamingTypePtr configType = addStreamingConfig.assigned() ? addStreamingConfig.getStreamingType() : nullptr;
+    const std::string prefix = getPrefixFromConnectionString(connectionString);
+    if (configType.assigned() && configType.getConnectionStringPrefix() != prefix)
+    {
+        DAQ_THROW_EXCEPTION(InvalidParameterException,
+                            R"(Prefix "{}" differs from the prefix "{}" of the streaming type "{}")",
+                            prefix,
+                            configType.getConnectionStringPrefix(),
+                            configType.getId());
+    }
+
+    const PropertyObjectPtr inputTypeConfig = addStreamingConfig.assigned() ? addStreamingConfig.getTypeConfig() : config;
+    PropertyObjectPtr typeConfig;
+    if (inputTypeConfig.assigned())
+        checkErrorInfo(inputTypeConfig.asPtr<IPropertyObjectInternal>()->clone(&typeConfig));
+
+    StreamingPtr streaming;
 
     for (const auto& library : libraries)
     {
@@ -1703,26 +1718,14 @@ StreamingPtr ModuleManagerImpl::onCreateStreaming(const StringPtr& connectionStr
         if (!types.assigned())
             continue;
 
-        const auto streamingType = FindTypeByPrefix<StreamingTypePtr>(types, getPrefixFromConnectionString(connectionString));
+        const StreamingTypePtr streamingType = configType.assigned()
+                                                   ? (types.hasKey(configType.getId()) ? types.get(configType.getId()) : nullptr)
+                                                   : FindTypeByPrefix<StreamingTypePtr>(types, prefix);
         if (!streamingType.assigned())
             continue;
 
-        const StringPtr streamingTypeId = streamingType.getId();
-
-        PropertyObjectPtr streamingTypeConfig;
-        if (IsDefaultAddDeviceConfig(inputConfig))
-        {
-            CopyCommonGeneralPropValues(inputConfig);
-            PropertyObjectPtr streamingTypesConfig = inputConfig.getPropertyValue("Streaming");
-            if (streamingTypesConfig.hasProperty(streamingTypeId))
-                streamingTypeConfig = streamingTypesConfig.getPropertyValue(streamingTypeId);
-            else
-                streamingTypeConfig = nullptr;
-        }
-        else
-        {
-            streamingTypeConfig = inputConfig;
-        }
+        const auto streamingTypeConfig =
+            addStreamingConfig.assigned() ? typeConfig : fromLegacyAddStreamingConfig(typeConfig, streamingType);
 
         if (authenticationConfig.assigned() && !streamingType.asPtr<IComponentTypePrivate>().getSupportedAuthenticationMethods().getCount())
         {
@@ -1779,6 +1782,8 @@ StreamingPtr ModuleManagerImpl::onCreateStreaming(const StringPtr& connectionStr
             LOG_E("{}: createStreaming failed: {}", module.getModuleInfo().getName(), e.what())
             throw;
         }
+
+        break;
     }
 
     return streaming;
@@ -2058,57 +2063,6 @@ void ModuleManagerImpl::mergeDiscoveryAndDeviceCapabilities(const DevicePtr& dev
             connectedDeviceInfoInternal.addServerCapability(capPtr);
         }
     }
-}
-
-// copies at least username & password from general to device and streaming type configs
-void ModuleManagerImpl::CopyCommonGeneralPropValues(PropertyObjectPtr& addDeviceConfig)
-{
-    assert(IsDefaultAddDeviceConfig(addDeviceConfig));
-
-    const PropertyObjectPtr generalConfig = addDeviceConfig.getPropertyValue("General");
-    const PropertyObjectPtr deviceTypesConfig = addDeviceConfig.getPropertyValue("Device");
-    const PropertyObjectPtr streamingTypesConfig = addDeviceConfig.getPropertyValue("Streaming");
-
-    const auto overrideCommonPropsDefaultValues = [&generalConfig](PropertyObjectPtr& targetConfig)
-    {
-        bool changed{false};
-        for (const auto& prop : generalConfig.getAllProperties())
-        {
-            const auto name = prop.getName();
-            const auto value = generalConfig.getPropertyValue(name);
-            const auto defaultValue = prop.getDefaultValue();
-
-            if (targetConfig.hasProperty(name) && targetConfig.getPropertyValue(name) == defaultValue)
-            {
-                targetConfig.setPropertyValue(name, value);
-                changed = true;
-            }
-        }
-        return changed;
-    };
-
-    for (const auto& prop : deviceTypesConfig.getAllProperties())
-    {
-        PropertyObjectPtr deviceTypeConfig = prop.getValue();
-        StringPtr deviceTypeId = prop.getName();
-        if (overrideCommonPropsDefaultValues(deviceTypeConfig))
-            deviceTypesConfig.asPtr<IPropertyObjectProtected>().setProtectedPropertyValue(deviceTypeId, deviceTypeConfig);
-    }
-
-    for (const auto& prop : streamingTypesConfig.getAllProperties())
-    {
-        PropertyObjectPtr streamingTypeConfig = prop.getValue();
-        StringPtr streamingTypeId = prop.getName();
-        if (overrideCommonPropsDefaultValues(streamingTypeConfig))
-            streamingTypesConfig.asPtr<IPropertyObjectProtected>().setProtectedPropertyValue(streamingTypeId, streamingTypeConfig);
-    }
-}
-
-bool ModuleManagerImpl::IsDefaultAddDeviceConfig(const PropertyObjectPtr& config)
-{
-    if (!config.assigned())
-        return false;
-    return config.hasProperty("General") && config.hasProperty("Streaming") && config.hasProperty("Device");
 }
 
 std::string ModuleManagerImpl::CheckLinkedStreamingTypes(const ModulePtr& module)

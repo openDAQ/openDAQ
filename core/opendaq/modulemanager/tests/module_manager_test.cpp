@@ -536,6 +536,16 @@ public:
         return OPENDAQ_SUCCESS;
     }
 
+    daq::ErrCode INTERFACE_FUNC createStreaming(daq::IStreaming** streaming,
+                                                daq::IString* connectionString,
+                                                daq::IPropertyObject* config) override
+    {
+        *streaming = nullptr;
+        createdConnectionStrings.pushBack(connectionString);
+        createdConfigs.pushBack(config);
+        return OPENDAQ_SUCCESS;
+    }
+
     void addDeviceType(const StringPtr& id, const PropertyObjectPtr& config, DeviceKind kind = DeviceKind::Adapter)
     {
         auto builder = DeviceTypeBuilder().setId(id).setName(id).setConnectionStringPrefix(id);
@@ -1187,6 +1197,41 @@ TEST_F(ModuleManagerAddConfigTest, CreateDeviceListsStreamingTypesOfDiscoveredDe
     ASSERT_EQ(selected(discovered), "free");
 
     ASSERT_EQ(selected(storedConfig("mockdev://undiscovered")), "mockstr");
+}
+
+TEST_F(ModuleManagerAddConfigTest, CreateStreamingConfig)
+{
+    const ModuleManagerUtilsPtr utils = manager;
+    const auto addStreamingConfig = AddStreamingConfig(module->streamingTypes.get("free"));
+    addStreamingConfig.getTypeConfig().setPropertyValue("Port", 1);
+    const auto typeConfig = streamingConfig();
+    typeConfig.setPropertyValue("Port", 2);
+
+    utils.createStreaming("free://a", addStreamingConfig, nullptr);
+    utils.createStreaming("free://b", typeConfig, nullptr);
+    utils.createStreaming("free://c", nullptr, nullptr);
+
+    ASSERT_EQ(module->createdConnectionStrings, List<IString>("free://a", "free://b", "free://c"));
+    ASSERT_EQ(PropertyObjectPtr(module->createdConfigs[0]).getPropertyValue("Port"), 1);
+    ASSERT_EQ(PropertyObjectPtr(module->createdConfigs[1]).getPropertyValue("Port"), 2);
+    ASSERT_FALSE(module->createdConfigs[2].assigned());
+
+    StreamingPtr streaming;
+    ASSERT_EQ(utils->createStreaming(&streaming, String("mockstr://a"), addStreamingConfig.asPtr<IPropertyObject>(), nullptr),
+              OPENDAQ_ERR_INVALIDPARAMETER);
+    daqClearErrorInfo();
+}
+
+TEST_F(ModuleManagerAddConfigTest, CreateStreamingStopsAtFirstModule)
+{
+    auto second = makeModule("second");
+    second.impl->addStreamingType("free", nullptr, streamingConfig());
+    ASSERT_EQ(tryAdd(second.module), "");
+
+    manager.asPtr<IModuleManagerUtils>().createStreaming("free://a", nullptr, nullptr);
+
+    ASSERT_EQ(module->createdConnectionStrings.getCount(), 1u);
+    ASSERT_EQ(second.impl->createdConnectionStrings.getCount(), 0u);
 }
 
 // Reports one device whose capability lists the given addresses, in order, as the discovery modules do.

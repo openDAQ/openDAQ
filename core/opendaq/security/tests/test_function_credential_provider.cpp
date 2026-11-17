@@ -40,6 +40,16 @@ TEST_F(FunctionCredentialProviderTest, GetDescription)
     ASSERT_EQ(calledMethod, "getDescription");
 }
 
+TEST_F(FunctionCredentialProviderTest, NullDescription)
+{
+    const auto provider = FunctionCredentialProvider(Function(
+        [](const StringPtr&, const DictPtr<IString, IBaseObject>&) { return Dict<IString, IBaseObject>({{"Description", nullptr}}); }));
+
+    const auto description = provider.getDescription();
+    ASSERT_TRUE(description.assigned());
+    ASSERT_EQ(description, "");
+}
+
 TEST_F(FunctionCredentialProviderTest, RequestCredentials)
 {
     const auto request = FunctionTestCredentialRequest();

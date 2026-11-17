@@ -1046,11 +1046,17 @@ ErrCode ModuleManagerImpl::createDevice(IDevice** device, IString* connectionStr
     //                      : connectionString, whose prefix must be the one of config.getDeviceType()
     //                        (else OPENDAQ_ERR_INVALIDPARAMETER)
     //   port = config.getPort()
-    //   if port == config.getSelectedTransportOption().getPort() and discovery reports the device:
+    //   optionPorts = the ports of the options config.getAvailableTransportOptions() lists and the discovered
+    //                 capability announces
+    //   stringPort = the port target names, unless it is one of optionPorts (a discovered connection string carries
+    //                the port of an option, not a port to connect at)
+    //   if port != config.getSelectedTransportOption().getPort():      // a port is set
+    //       if stringPort is assigned and stringPort != port:
+    //           fail with OPENDAQ_ERR_INVALIDPARAMETER
+    //   else if stringPort is assigned:
+    //       port = stringPort
+    //   else if discovery reports the device:
     //       port = the port the discovered capability announces for the selected option
-    //   if target names a port that is neither `port` nor the port of an option
-    //   config.getAvailableTransportOptions() lists or the discovered capability announces:
-    //       fail with OPENDAQ_ERR_INVALIDPARAMETER
     //   typeConfig = a clone of config.getTypeConfig(), with
     //       typeConfig[TransportOptionConfigProperty] = config.getSelectedTransportOption().getId()
     //       typeConfig[PortConfigProperty] = port

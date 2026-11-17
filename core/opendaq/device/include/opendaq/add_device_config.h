@@ -62,6 +62,8 @@ enum class AddressType : EnumType
  * - the port set on the config, by setPort or by writing the `Port` property. For a device info without a server
  *   capability for the Device type, createAddDeviceConfig sets the port its connection string names, unless it is the
  *   port of one of the options;
+ * - the port the connection string names, unless it is the port of an option the config lists or the discovered server
+ *   announces: such a port is the one a discovered connection string carries, not a port to connect at;
  * - the port the server announces for the selected option, when discovery reports the device;
  * - the port of the selected option, as getAvailableTransportOptions lists it.
  *
@@ -70,9 +72,9 @@ enum class AddressType : EnumType
  * `PortConfigProperty`), in place of a port its own default config declares, and a connection string that names the
  * same port.
  *
- * Adding the device with the config fails with OPENDAQ_ERR_INVALIDPARAMETER when the connection string names a port
- * that is neither the one the device is connected at nor the port of an option the config lists or the discovered
- * server announces, and when its prefix belongs to another Device type. A `daq://` connection string stands for the
+ * Adding the device with the config fails with OPENDAQ_ERR_INVALIDPARAMETER when a port is set and the connection
+ * string names another port that is not the port of an option the config lists or the discovered server announces, and
+ * when the prefix of the connection string belongs to another Device type. A `daq://` connection string stands for the
  * discovered server capability of the Device type.
  */
 DECLARE_OPENDAQ_INTERFACE(IAddDeviceConfig, IBaseObject)
@@ -169,9 +171,9 @@ DECLARE_OPENDAQ_INTERFACE(IAddDeviceConfig, IBaseObject)
      * @retval OPENDAQ_ERR_NOT_SUPPORTED for a Device type without transport options.
      *
      * For a device info without a server capability for the Device type, createAddDeviceConfig sets the port its
-     * connection string names, unless it is the port of one of the options. Unless a port is set, the device is
-     * connected at the port discovery reports for the selected option when it reports another one (see the class
-     * description).
+     * connection string names, unless it is the port of one of the options. Unless a port is set, a port the
+     * connection string names, or else a port discovery reports for the selected option, takes precedence when the
+     * device is added (see the class description).
      */
     virtual ErrCode INTERFACE_FUNC getPort(IInteger** port) = 0;
 };

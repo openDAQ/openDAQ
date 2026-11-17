@@ -1277,15 +1277,6 @@ TEST_F(InstanceTest, SaveLoadFunctionsBlocksWhichAreNotInConfigurationShouldBeRe
     ASSERT_EQ(nestedFbs.getCount(), 2u);
 }
 
-#if defined(__GNUC__)
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
-#endif
-#ifdef _MSC_VER
-#pragma warning(push)
-#pragma warning(disable : 4996)
-#endif
-
 TEST_F(InstanceTest, SaveLoadDeviceConfigOld)
 {
     StringPtr config;
@@ -1337,13 +1328,6 @@ TEST_F(InstanceTest, SaveLoadDeviceConfig)
     PropertyObjectPtr general = deviceConfig.getPropertyValue("General");
     ASSERT_EQ(general.getPropertyValue("StreamingConnectionHeuristic"), 2);
 }
-
-#ifdef _MSC_VER
-#pragma warning(pop)
-#endif
-#if defined(__GNUC__)
-#pragma GCC diagnostic pop
-#endif
 
 TEST_F(InstanceTest, SaveLoadFunctionBlockConfig)
 {

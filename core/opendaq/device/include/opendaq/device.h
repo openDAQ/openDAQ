@@ -414,14 +414,6 @@ DECLARE_OPENDAQ_INTERFACE(IDevice, IFolder)
      */
     virtual ErrCode INTERFACE_FUNC addDevices(IDict** devices, IDict* connectionArgs, IDict* errCodes = nullptr, IDict* errorInfos = nullptr) = 0;
 
-    /*!
-     * @brief Gets the synchronization object of the device.
-     * @param[out] sync The synchronization object.
-     *
-     * @return OPENDAQ_IGNORED if the device has no clock; sync is set to nullptr.
-     */
-    virtual ErrCode INTERFACE_FUNC getSynchronization(ISynchronization** sync) = 0;
-
     // [templateType(streamingTypes, IString, IStreamingType)]
     /*!
      * @brief Get a dictionary of available streaming types as <IString, IStreamingType> pairs
@@ -471,6 +463,14 @@ DECLARE_OPENDAQ_INTERFACE(IDevice, IFolder)
      * The config is null for the root device and for a device not added with an add device config.
      */
     virtual ErrCode INTERFACE_FUNC getAddDeviceConfig(IAddDeviceConfig** config) = 0;
+
+    /*!
+     * @brief Gets the synchronization object of the device.
+     * @param[out] sync The synchronization object.
+     *
+     * @return OPENDAQ_IGNORED if the device has no clock; sync is set to nullptr.
+     */
+    virtual ErrCode INTERFACE_FUNC getSynchronization(ISynchronization** sync) = 0;
 };
 /*!@}*/
 

@@ -64,6 +64,7 @@ DECLARE_OPENDAQ_INTERFACE(IAddStreamingConfig, IBaseObject)
 /*!
  * @brief Creates a streaming config with the default config of the Streaming type.
  */
+//[factory(Hide)]
 OPENDAQ_DECLARE_CLASS_FACTORY(
     LIBRARY_FACTORY, AddStreamingConfig,
     IStreamingType*, streamingType

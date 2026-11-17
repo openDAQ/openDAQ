@@ -31,11 +31,3 @@ daqErrCode daqAddStreamingConfig_getTypeConfig(daqAddStreamingConfig* self, daqP
 {
     return reinterpret_cast<daq::IAddStreamingConfig*>(self)->getTypeConfig(reinterpret_cast<daq::IPropertyObject**>(config));
 }
-
-daqErrCode daqAddStreamingConfig_createAddStreamingConfig(daqAddStreamingConfig** obj, daqStreamingType* streamingType)
-{
-    daq::IAddStreamingConfig* ptr = nullptr;
-    daqErrCode err = daq::createAddStreamingConfig(&ptr, reinterpret_cast<daq::IStreamingType*>(streamingType));
-    *obj = reinterpret_cast<daqAddStreamingConfig*>(ptr);
-    return err;
-}

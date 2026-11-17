@@ -56,11 +56,3 @@ daqErrCode daqAddDeviceConfig_getStreamingOptions(daqAddDeviceConfig* self, daqA
 {
     return reinterpret_cast<daq::IAddDeviceConfig*>(self)->getStreamingOptions(reinterpret_cast<daq::IAddStreamingOptions**>(options));
 }
-
-daqErrCode daqAddDeviceConfig_createAddDeviceConfig(daqAddDeviceConfig** obj, daqDeviceType* deviceType, daqDict* streamingTypes, daqBool scanOnAdd)
-{
-    daq::IAddDeviceConfig* ptr = nullptr;
-    daqErrCode err = daq::createAddDeviceConfig(&ptr, reinterpret_cast<daq::IDeviceType*>(deviceType), reinterpret_cast<daq::IDict*>(streamingTypes), scanOnAdd);
-    *obj = reinterpret_cast<daqAddDeviceConfig*>(ptr);
-    return err;
-}

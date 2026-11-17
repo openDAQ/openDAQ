@@ -44,11 +44,6 @@ void defineIAddDeviceConfig(pybind11::module_ m, PyDaqIntf<daq::IAddDeviceConfig
 {
     cls.doc() = "The configuration used when adding a device of a Device type.";
 
-    m.def("AddDeviceConfig", [](daq::IDeviceType* deviceType, std::variant<daq::IDict*, py::dict>& streamingTypes, const bool scanOnAdd){
-        return daq::AddDeviceConfig_Create(deviceType, getVariantValue<daq::IDict*>(streamingTypes), scanOnAdd);
-    }, py::arg("device_type"), py::arg("streaming_types"), py::arg("scan_on_add"));
-
-
     cls.def_property_readonly("device_type",
         [](daq::IAddDeviceConfig *object)
         {

@@ -44,24 +44,33 @@ void defineIAddStreamingOptions(pybind11::module_ m, PyDaqIntf<daq::IAddStreamin
 {
     cls.doc() = "The streaming options of an add device config.";
 
-    cls.def_property_readonly("streaming_configs",
+    cls.def_property_readonly("available_streaming_configs",
         [](daq::IAddStreamingOptions *object)
         {
             py::gil_scoped_release release;
             const auto objectPtr = daq::AddStreamingOptionsPtr::Borrow(object);
-            return objectPtr.getStreamingConfigs().detach();
+            return objectPtr.getAvailableStreamingConfigs().detach();
         },
         py::return_value_policy::take_ownership,
         "Gets the listed streaming configs.");
     cls.def_property("streaming_type",
-        nullptr,
+        [](daq::IAddStreamingOptions *object)
+        {
+            py::gil_scoped_release release;
+            const auto objectPtr = daq::AddStreamingOptionsPtr::Borrow(object);
+            const auto typeId = objectPtr.getStreamingType();
+            std::optional<std::string> result;
+            if (typeId.assigned())
+                result = typeId.toStdString();
+            return result;
+        },
         [](daq::IAddStreamingOptions *object, std::variant<daq::IString*, py::str, daq::IEvalValue*>& typeId)
         {
             py::gil_scoped_release release;
             const auto objectPtr = daq::AddStreamingOptionsPtr::Borrow(object);
             objectPtr.setStreamingType(getVariantValue<daq::IString*>(typeId));
         },
-        "Selects the streaming config listed under a Streaming type ID.");
+        "Gets the ID of the selected Streaming type. / Selects the streaming config listed under a Streaming type ID.");
     cls.def_property_readonly("streaming_config",
         [](daq::IAddStreamingOptions *object)
         {
@@ -70,16 +79,7 @@ void defineIAddStreamingOptions(pybind11::module_ m, PyDaqIntf<daq::IAddStreamin
             return objectPtr.getStreamingConfig().detach();
         },
         py::return_value_policy::take_ownership,
-        "Gets the streaming config listed under a Streaming type ID.");
-    cls.def("get_streaming_config",
-        [](daq::IAddStreamingOptions *object, std::variant<daq::IString*, py::str, daq::IEvalValue*>& typeId)
-        {
-            py::gil_scoped_release release;
-            const auto objectPtr = daq::AddStreamingOptionsPtr::Borrow(object);
-            return objectPtr.getStreamingConfig(getVariantValue<daq::IString*>(typeId)).detach();
-        },
-        py::arg("type_id") = nullptr,
-        "Gets the streaming config listed under a Streaming type ID.");
+        "Gets the selected streaming config.");
     cls.def_property("streaming_mode",
         [](daq::IAddStreamingOptions *object)
         {

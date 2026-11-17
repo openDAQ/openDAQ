@@ -125,7 +125,7 @@ TEST_F(AddDeviceConfigTest, StreamingDefaults)
     ASSERT_EQ(options.asPtr<IPropertyObject>().getPropertyValue("StreamingType"), "None");
     ASSERT_EQ(options.asPtr<IPropertyObject>().getProperty("StreamingType").getSelectionValues(), List<IString>("None", "b", "a"));
 
-    const auto configs = options.getStreamingConfigs();
+    const auto configs = options.getAvailableStreamingConfigs();
     ASSERT_EQ(configs.getKeyList(), List<IString>("b", "a"));
     ASSERT_EQ(configs.get("a").getStreamingType().getId(), "a");
     ASSERT_EQ(configs.get("a").getTypeConfig().getPropertyValue("Id"), "a");
@@ -158,7 +158,7 @@ TEST_F(AddDeviceConfigTest, PropertyViewMatchesTypedGetters)
 {
     const auto config = createMirroredConfig();
     const auto options = config.getStreamingOptions();
-    const auto streamingConfig = options.getStreamingConfigs().get("a");
+    const auto streamingConfig = options.getAvailableStreamingConfigs().get("a");
     const auto configObject = config.asPtr<IPropertyObject>();
     const auto optionsObject = options.asPtr<IPropertyObject>();
 
@@ -230,15 +230,16 @@ TEST_F(AddDeviceConfigTest, StreamingOptionsVisibleOnlyForSelectedType)
 TEST_F(AddDeviceConfigTest, StreamingSelection)
 {
     const auto options = createMirroredConfig().getStreamingOptions();
-    const auto configs = options.getStreamingConfigs();
-    ASSERT_EQ(options.getStreamingConfig("a").getObject(), configs.get("a").getObject());
-    ASSERT_THROW(options.getStreamingConfig("unknown"), NotFoundException);
+    const auto configs = options.getAvailableStreamingConfigs();
+    ASSERT_FALSE(options.getStreamingType().assigned());
 
     options.setStreamingType("a");
+    ASSERT_EQ(options.getStreamingType(), "a");
     ASSERT_EQ(options.getStreamingConfig().getObject(), configs.get("a").getObject());
     ASSERT_EQ(options.asPtr<IPropertyObject>().getPropertyValue("StreamingType"), "a");
 
     options.asPtr<IPropertyObject>().setPropertyValue("StreamingType", "b");
+    ASSERT_EQ(options.getStreamingType(), "b");
     ASSERT_EQ(options.getStreamingConfig().getObject(), configs.get("b").getObject());
 
     ASSERT_THROW(options.setStreamingType("unknown"), NotFoundException);
@@ -248,6 +249,7 @@ TEST_F(AddDeviceConfigTest, StreamingSelection)
     {
         options.setStreamingType("a");
         options.setStreamingType(none);
+        ASSERT_FALSE(options.getStreamingType().assigned());
         ASSERT_FALSE(options.getStreamingConfig().assigned());
         ASSERT_EQ(options.asPtr<IPropertyObject>().getPropertyValue("StreamingType"), "None");
     }
@@ -257,18 +259,18 @@ TEST_F(AddDeviceConfigTest, Clone)
 {
     const auto config = createLinkedConfig();
     config.getStreamingOptions().setStreamingType("other");
-    config.getStreamingOptions().getStreamingConfigs().get("linked").getTypeConfig().setPropertyValue("Id", "changed");
+    config.getStreamingOptions().getAvailableStreamingConfigs().get("linked").getTypeConfig().setPropertyValue("Id", "changed");
 
     const AddDeviceConfigPtr cloned = config.asPtr<IPropertyObjectInternal>().clone().asPtr<IAddDeviceConfig>();
     ASSERT_EQ(cloned.getDeviceType(), config.getDeviceType());
-    ASSERT_EQ(cloned.getStreamingOptions().getStreamingConfigs().get("linked").getTypeConfig().getPropertyValue("Id"), "changed");
+    ASSERT_EQ(cloned.getStreamingOptions().getAvailableStreamingConfigs().get("linked").getTypeConfig().getPropertyValue("Id"), "changed");
 
     cloned.getTypeConfig().setPropertyValue("Port", 1);
     ASSERT_EQ(config.getTypeConfig().getPropertyValue("Port"), 7420);
 
     const auto options = cloned.getStreamingOptions();
     ASSERT_NE(options.getObject(), config.getStreamingOptions().getObject());
-    ASSERT_EQ(options.getStreamingConfigs().getKeyList(), List<IString>("other", "linked", "linked2"));
+    ASSERT_EQ(options.getAvailableStreamingConfigs().getKeyList(), List<IString>("other", "linked", "linked2"));
 
     const auto streamingConfig = options.getStreamingConfig();
     ASSERT_EQ(streamingConfig.getStreamingType().getId(), "other");
@@ -283,7 +285,7 @@ TEST_F(AddDeviceConfigTest, LinkedStreamingConfigHoldsWholeDefaultConfig)
     const auto config = createLinkedConfig();
     config.getTypeConfig().setPropertyValue("Port", 1);
 
-    const auto typeConfig = config.getStreamingOptions().getStreamingConfigs().get("linked").getTypeConfig();
+    const auto typeConfig = config.getStreamingOptions().getAvailableStreamingConfigs().get("linked").getTypeConfig();
     ASSERT_EQ(typeConfig.getAllProperties().getCount(), 2u);
     ASSERT_EQ(typeConfig.getPropertyValue("Id"), "linked");
     ASSERT_EQ(typeConfig.getPropertyValue("Port"), 7420);
@@ -303,7 +305,7 @@ TEST_F(AddDeviceConfigTest, WireFormRoundTrip)
     const AddDeviceConfigPtr deserialized = roundTrip(config).asPtr<IAddDeviceConfig>();
     ASSERT_EQ(deserialized.getTypeConfig().getPropertyValue("Port"), 1);
     const auto deserializedOptions = deserialized.getStreamingOptions();
-    ASSERT_EQ(deserializedOptions.getStreamingConfigs().getKeyList(), options.getStreamingConfigs().getKeyList());
+    ASSERT_EQ(deserializedOptions.getAvailableStreamingConfigs().getKeyList(), options.getAvailableStreamingConfigs().getKeyList());
     ASSERT_EQ(deserializedOptions.getStreamingConfig().getTypeConfig().getPropertyValue("Id"), "changed");
 
     deserialized.asPtr<IPropertyObject>().clearPropertyValue("TypeConfig");
@@ -344,7 +346,7 @@ TEST_F(AddDeviceConfigTest, StreamingObjectsWireFormRoundTrip)
     linked.getTypeConfig().setPropertyValue("Id", "changed");
 
     const AddStreamingOptionsPtr deserializedOptions = roundTrip(options).asPtr<IAddStreamingOptions>();
-    ASSERT_EQ(deserializedOptions.getStreamingConfigs().getKeyList(), List<IString>("other", "linked", "linked2"));
+    ASSERT_EQ(deserializedOptions.getAvailableStreamingConfigs().getKeyList(), List<IString>("other", "linked", "linked2"));
     ASSERT_EQ(deserializedOptions.getStreamingConfig().getTypeConfig().getPropertyValue("Id"), "changed");
 
     for (const auto& streamingConfig : {standalone, linked})
@@ -361,7 +363,7 @@ TEST_F(AddDeviceConfigTest, SaveForm)
     const auto options = config.getStreamingOptions();
     options.setStreamingType("b");
     options.getStreamingConfig().getTypeConfig().setPropertyValue("Id", "changed");
-    options.getStreamingConfigs().get("a").getTypeConfig().setPropertyValue("Id", "unused");
+    options.getAvailableStreamingConfigs().get("a").getTypeConfig().setPropertyValue("Id", "unused");
 
     ASSERT_EQ(serializeForUpdate(config),
               R"({"__type":"AddDeviceConfig","deviceTypeId":"dev","scanOnAdd":true,"propValues":{)"
@@ -400,7 +402,7 @@ TEST_F(AddDeviceConfigTest, BindSaveForm)
 
     const auto boundOptions = bound.getStreamingOptions();
     ASSERT_EQ(boundOptions.getStreamingMode(), StreamingMode::MinConnections);
-    ASSERT_EQ(boundOptions.getStreamingConfigs().getKeyList(), List<IString>("a"));
+    ASSERT_EQ(boundOptions.getAvailableStreamingConfigs().getKeyList(), List<IString>("a"));
     ASSERT_EQ(boundOptions.getStreamingConfig().getStreamingType().getObject(), streamingTypes.get("a").getObject());
     ASSERT_EQ(boundOptions.getStreamingConfig().getTypeConfig().getPropertyValue("Id"), "changed");
 }

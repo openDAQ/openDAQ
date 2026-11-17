@@ -68,46 +68,32 @@ class TestAddComponentConfig(opendaq_test.TestCase):
 
 class TestAddDeviceConfig(opendaq_test.TestCase):
 
-    @staticmethod
-    def streaming_type():
-        config = opendaq.PropertyObject()
-        config.add_property(opendaq.IntProperty(opendaq.String('port'), opendaq.Integer(1234), opendaq.Boolean(True)))
-        return opendaq.StreamingType('streamingType', '', '', 'stream', config, {}, None)
+    def test_properties(self):
+        instance = opendaq.Instance()
+        config = instance.create_add_device_config(opendaq.DeviceInfoConfig('dev', 'daqref://device0'))
 
-    @staticmethod
-    def add_device_config(device_type=None):
-        if device_type is None:
-            config = opendaq.PropertyObject()
-            config.add_property(opendaq.StringProperty(opendaq.String('foo'), opendaq.String('bar'), opendaq.Boolean(True)))
-            device_type = opendaq.DeviceType('deviceType', '', '', config, 'dev', {})
-        return opendaq.AddDeviceConfig(device_type, {'streamingType': TestAddDeviceConfig.streaming_type()}, True)
-
-    def test_create(self):
-        config = self.add_device_config()
-
-        self.assertEqual(config.device_type.id, 'deviceType')
-        self.assertEqual(config.type_config.get_property_value('foo'), 'bar')
+        self.assertEqual(config.device_type.id, 'daqref')
+        self.assertIsNotNone(config.type_config)
+        self.assertIsNone(config.streaming_options)
         config.primary_address_type = opendaq.AddressType.IPv6
         self.assertEqual(config.primary_address_type, opendaq.AddressType.IPv6)
         config.scan_on_add = False
         self.assertFalse(config.scan_on_add)
 
     def test_streaming_options(self):
-        mirrored_type = opendaq.IDeviceType.cast_from(opendaq.Instance().available_device_types['OpenDAQNativeConfiguration'])
-        options = self.add_device_config(mirrored_type).streaming_options
+        instance = opendaq.Instance()
+        options = instance.create_add_device_config(opendaq.DeviceInfoConfig('dev', 'daq.nd://127.0.0.1')).streaming_options
 
-        self.assertEqual(list(options.streaming_configs.keys()), ['streamingType'])
-        options.streaming_type = 'streamingType'
-        self.assertEqual(options.streaming_config.streaming_type.id, 'streamingType')
-        self.assertEqual(options.streaming_config.type_config.get_property_value('port'), 1234)
+        self.assertIn('OpenDAQNativeStreaming', options.available_streaming_configs.keys())
+        options.streaming_type = None
+        self.assertIsNone(options.streaming_type)
+        self.assertIsNone(options.streaming_config)
+        options.streaming_type = 'OpenDAQNativeStreaming'
+        self.assertEqual(options.streaming_type, 'OpenDAQNativeStreaming')
+        self.assertEqual(options.streaming_config.streaming_type.id, 'OpenDAQNativeStreaming')
+        self.assertIsNotNone(options.streaming_config.type_config)
         options.streaming_mode = opendaq.StreamingMode.MinConnections
         self.assertEqual(options.streaming_mode, opendaq.StreamingMode.MinConnections)
-
-    def test_add_streaming_config(self):
-        config = opendaq.AddStreamingConfig(self.streaming_type())
-
-        self.assertEqual(config.streaming_type.id, 'streamingType')
-        self.assertEqual(config.type_config.get_property_value('port'), 1234)
 
 class TestDeviceAddConfig(opendaq_test.TestCase):
 

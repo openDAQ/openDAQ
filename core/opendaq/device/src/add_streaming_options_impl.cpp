@@ -74,7 +74,7 @@ AddStreamingOptionsImpl::AddStreamingOptionsImpl(Partial)
 {
 }
 
-ErrCode AddStreamingOptionsImpl::getStreamingConfigs(IDict** configs)
+ErrCode AddStreamingOptionsImpl::getAvailableStreamingConfigs(IDict** configs)
 {
     OPENDAQ_PARAM_NOT_NULL(configs);
 
@@ -88,6 +88,17 @@ ErrCode AddStreamingOptionsImpl::getStreamingConfigs(IDict** configs)
     });
 }
 
+ErrCode AddStreamingOptionsImpl::getStreamingType(IString** typeId)
+{
+    OPENDAQ_PARAM_NOT_NULL(typeId);
+
+    return daqTry([&]
+    {
+        StringPtr id = objPtr.getPropertyValue(add_streaming_options::StreamingType);
+        *typeId = (id == add_streaming_options::NoStreamingType) ? nullptr : id.detach();
+    });
+}
+
 ErrCode AddStreamingOptionsImpl::setStreamingType(IString* typeId)
 {
     const StringPtr id = typeId;
@@ -95,25 +106,18 @@ ErrCode AddStreamingOptionsImpl::setStreamingType(IString* typeId)
     return Super::setPropertyValue(String(add_streaming_options::StreamingType), value);
 }
 
-ErrCode AddStreamingOptionsImpl::getStreamingConfig(IAddStreamingConfig** config, IString* typeId)
+ErrCode AddStreamingOptionsImpl::getStreamingConfig(IAddStreamingConfig** config)
 {
     OPENDAQ_PARAM_NOT_NULL(config);
 
     return daqTry([&]
     {
-        StringPtr id = typeId;
+        StringPtr id;
+        checkErrorInfo(getStreamingType(&id));
         if (!id.assigned())
         {
-            id = objPtr.getPropertyValue(add_streaming_options::StreamingType);
-            if (id == add_streaming_options::NoStreamingType)
-            {
-                *config = nullptr;
-                return;
-            }
-        }
-        else if (!isOffered(id))
-        {
-            DAQ_THROW_EXCEPTION(NotFoundException, "Streaming type \"{}\" is not offered", id);
+            *config = nullptr;
+            return;
         }
 
         *config = objPtr.getPropertyValue(id).asPtr<IAddStreamingConfig>().detach();
@@ -191,7 +195,7 @@ ErrCode AddStreamingOptionsImpl::serializePropertyValue(const StringPtr& name,
         return Super::serializePropertyValue(name, value, serializer, forUpdate);
 
     StringPtr selected;
-    OPENDAQ_RETURN_IF_FAILED(daqTry([&] { selected = objPtr.getPropertyValue(add_streaming_options::StreamingType); }));
+    OPENDAQ_RETURN_IF_FAILED(getStreamingType(&selected));
     if (name != selected)
         return OPENDAQ_SUCCESS;
 

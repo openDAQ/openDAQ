@@ -37,25 +37,8 @@
 BEGIN_NAMESPACE_OPENDAQ
 
 /*!
- * @brief Internal: the engine of MultiReader2 (spec 0007, Data manager sketch). The reader in front of it maps ports to
- * slots and holds one intake lock per port, so a port's packets and connection changes arrive here in order.
- *
- * Every method runs under one non-recursive mutex, held for the whole call, except a read's conversion: the samples are
- * taken off the queues under it and converted into the user's buffers after it. The one call-out is acceptsDescriptor,
- * made under the mutex on the consumer's thread; reader calls from inside it are refused.
- *
- * Cost model: ingest is O(1) per packet (the queue keeps its counts), plus a pass over the inputs per packet only while
- * synchronizing. A read is one pass over the inputs, plus the events it reaches. Whether a handler call is owed is decided
- * once per ingest run, not per packet.
- *
- * How the code is laid out, one section each in the source:
- *  - configuration: configure, reevaluate and the internal reconfigure;
- *  - judgement: an input's errors, the main input, the reader's level;
- *  - read: the samples every contributing input has in front of its first event, then the events the read reached;
- *  - ingest: packets and connection changes onto the queues, the queue limits, the continuity check;
- *  - synchronization: the check mechanism, run at ingest and after a read applies events;
- *  - status: what the next status reports, found by comparing with the previous one;
- *  - wake: when onDataAvailable is owed.
+ * @brief Internal: the engine of MultiReader2. The reader in front of it maps ports to slots and holds one intake
+ * lock per port, so a port's packets and connection changes arrive here in order.
  */
 class MultiReaderDataManager final
 {
@@ -91,32 +74,22 @@ public:
         }
     };
 
-    // Applies every queued event, drops the data, then a 0-count read. A null status leaves the first status owed to the
-    // first read, as after construction
     ErrCode reconfigure(Config newConfig, IMultiReader2Status** status);
 
-    // Asks acceptsDescriptor for every input with its descriptors in force, then a 0-count read
     ErrCode reevaluate(IMultiReader2Status** status);
 
-    // Consumer side; contracts as on IMultiReader2, data as the real void**. Errors and descriptors move only here
     SizeT getAvailableCount();
     ErrCode read(void** data, std::int64_t* domain, SizeT* count, SizeT timeoutMs, SizeT* packetOffset, IMultiReader2Status** status);
     ErrCode skipSamples(SizeT* count, SizeT timeoutMs, SizeT* packetOffset, IMultiReader2Status** status);
 
-    // Producer side. A connection change returns whether onDataAvailable is to be scheduled, and then claims the one
-    // pending call. Packets come in batches under lockIngest's lock, which the ingest task waits for and a sending thread
-    // only tries, so a sender never waits for a read or another port; claimWake then decides on the call in O(1)
     bool connected(SizeT slot, const DataDescriptorPtr& value, const DataDescriptorPtr& domain);
     bool disconnected(SizeT slot);
     std::unique_lock<std::mutex> lockIngest(bool wait);
     Ingested addPackets(const std::unique_lock<std::mutex>& lock, SizeT slot, const PacketPtr* packets, SizeT count);
     bool claimWake(const std::unique_lock<std::mutex>& lock, const Ingested& ingested);
-    // Frees the packets the critical limit dropped, outside the mutex, so a sending thread does not pay for them
     void releaseDropped();
 
     void callStarted();  // the handler is about to run
-    // After the handler returns: clears the pending flag and decides on another call in one step, claiming it. Only an
-    // arrival since the call started that is still unread calls again
     bool callFinished(bool failed);
     void callAborted();  // the claimed call could not be scheduled
 
@@ -194,7 +167,6 @@ private:
         SizeT sampleSize = 0;               // bytes per sample in the packet, under Undefined
     };
 
-    // The state fields of a status (Status): they hold until the reader changes
     struct Shown
     {
         ComponentStatus level = ComponentStatus::Ok;
@@ -275,7 +247,7 @@ private:
     // Stalls
     struct Senders;
     Senders senders() const;
-    std::optional<std::int64_t> silence(const Slot& slot, const Senders& senders) const;
+    std::optional<std::int64_t> silence(const Slot& slot, const Senders& found) const;
     bool stallDue() const;
     bool checkStall();
     void planStallCheck();

@@ -44,17 +44,6 @@ DECLARE_OPENDAQ_INTERFACE(IMultiReader2PortListener, IBaseObject)
 /*!
  * @brief The reader facade: owns the ports, wires each to a slot of the data manager, runs the ingest task and the
  * onDataAvailable calls. The engine work lives in MultiReaderDataManager.
- *
- * Threads (spec 0007, Threading and locking): a port notifies on the sending thread. With no ingest run scheduled or
- * running, the sending thread takes its packets in itself, under locks it only tries, so it never waits; a held lock, or a
- * run in progress, leaves them to the ingest task, which drains every marked port. The handler call is decided with the
- * packets, in O(1), and is a scheduler task of its own, so reads run alongside ingest. Connect and disconnect callbacks run
- * on the thread that changes the port.
- *
- * Locks, in order: the facade mutex (configure and reevaluate only), a port's intake lock, the data manager's mutex. A
- * sending thread only tries the last two. The port callbacks and the ingest task never take the facade mutex: they reach a
- * port's slot through the port's own Intake and the wiring snapshot, so configure may run from inside the onDataAvailable
- * handler. No signal is called under an intake lock.
  */
 class MultiReader2Impl : public ImplementationOfWeak<IMultiReader2>
 {

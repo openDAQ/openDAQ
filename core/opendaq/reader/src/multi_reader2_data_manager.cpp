@@ -18,14 +18,11 @@ using namespace multi_reader2;
 
 namespace
 {
-    // As MultiReader2Impl tells inputs apart
     bool sameComponent(const ComponentPtr& a, const ComponentPtr& b)
     {
         return a.getObject() == b.getObject();
     }
 
-    // The same object, or equal by value. The identity check comes first: comparing by value walks the whole descriptor,
-    // and the same object is the usual case, such as the descriptors a connect's event packet repeats
     bool sameDescriptor(const DataDescriptorPtr& a, const DataDescriptorPtr& b)
     {
         if (a.getObject() == b.getObject())
@@ -45,7 +42,6 @@ namespace
         return count;
     }
 
-    // Bytes of one sample in the read buffer: the elements in the read type, or the input's own sample under Undefined
     SizeT readSampleSize(const DataDescriptorPtr& value, SampleType readType)
     {
         if (readType == SampleType::Undefined)
@@ -135,9 +131,6 @@ ErrCode MultiReaderDataManager::reevaluate(IMultiReader2Status** status)
     });
 }
 
-// What follows a judgement in a read or reevaluate. The reader becoming invalid or valid again, a moved automatic main
-// input or a new main domain is an internal reconfigure. Otherwise inputs set aside lose their data, inputs that rejoin
-// resynchronize, and so does a contributing input's gap or new domain (resync)
 void MultiReaderDataManager::afterJudgement(bool wasValid,
                                             const std::optional<SizeT>& previousMain,
                                             const std::vector<MultiReader2InputError>& previous,
@@ -176,9 +169,6 @@ void MultiReaderDataManager::afterJudgement(bool wasValid,
     synchronize();
 }
 
-// The configure with the params in force, from a read: every queued event goes onto its input and the data is dropped.
-// The inputs whose descriptors or connection changed are judged again, and a healthy main input is kept, with the
-// SyncFailed of the others
 void MultiReaderDataManager::internalReconfigure(bool wasValid)
 {
     for (SizeT i = 0; i < slots.size(); ++i)
@@ -221,8 +211,6 @@ void MultiReaderDataManager::internalReconfigure(bool wasValid)
     restart();
 }
 
-// The end of every reconfigure, internal or not: the queues are empty of data, everything is reported anew, and
-// synchronization starts
 void MultiReaderDataManager::restart()
 {
     mainDelta = 1;
@@ -269,9 +257,6 @@ void MultiReaderDataManager::restart()
 
 // ================================================================ judgement
 
-// The error the input has on its own, with its descriptors and connection in force, in the order of the error table:
-// the owner's verdict once the value descriptor passes the reader's checks, then the domain. The checks against the
-// main input are in judgeInputs
 void MultiReaderDataManager::checkInput(SizeT i)
 {
     Slot& slot = slots[i];
@@ -327,8 +312,6 @@ bool MultiReaderDataManager::askAccept(SizeT i)
     }
 }
 
-// Chooses the main input from the inputs' own errors, then sets every input's reported error and the reader's level.
-// keepMain: a healthy automatic main input stays, as on an internal reconfigure (Main input)
 void MultiReaderDataManager::judgeInputs(bool keepMain)
 {
     const auto previousMain = mainSlot;
@@ -479,8 +462,6 @@ ErrCode MultiReaderDataManager::skipSamples(SizeT* count, SizeT timeoutMs, SizeT
     });
 }
 
-// count 0 with null data is a status probe; otherwise every contributing input needs a buffer, while the domain buffer
-// may be null. skipSamples takes none
 ErrCode MultiReaderDataManager::checkRead(SizeT count, SizeT timeoutMs, void** data, bool skip) const
 {
     if (timeoutMs != 0)
@@ -501,8 +482,6 @@ ErrCode MultiReaderDataManager::checkRead(SizeT count, SizeT timeoutMs, void** d
     return OPENDAQ_SUCCESS;
 }
 
-// The read: the samples every contributing input has in front of its first event, unless a status is owed, then the
-// events the read reached and the status. skipSamples copies nothing; a domain buffer gets the main ticks
 void MultiReaderDataManager::performRead(
     void** data, std::int64_t* domain, SizeT* count, SizeT* packetOffset, IMultiReader2Status** status, std::vector<Copy>* copies)
 {
@@ -533,17 +512,13 @@ void MultiReaderDataManager::performRead(
     recountShort();
     MultiReader2StatusPtr built = buildStatus();
 
-    // A handler drains until a read returns nothing new. Such a read can itself leave something for the next one: the
-    // events it applied can finish a synchronization, as after a non-main input's domain change, and make samples
-    // readable after its count was taken. Nothing arrives to call the handler again, so the read counts as an arrival
-    // during the call
+    // A read inside the handler may apply a gap or similar may cause additional data/events to be readable,
+    // so this counts as arrivedDuringCall (trigger wake later).
     if (n == 0 && callPending && !arrivedDuringCall && !built.getHasChanges() && triggerHolds())
         arrivedDuringCall = true;
     *status = built.detach();
 }
 
-// The samples every healthy input has in front of its first event; 0 while synchronizing or below MinReadCount. While
-// streaming, every contributing input's front starts at readTick
 SizeT MultiReaderDataManager::frontAvailable() const
 {
     if (state != State::Streaming)
@@ -561,7 +536,6 @@ SizeT MultiReaderDataManager::frontAvailable() const
     return count != std::numeric_limits<SizeT>::max() && count >= config.minReadCount ? count : 0;
 }
 
-// frontAvailable() > 0, from the counts: streaming, with at least MinReadCount samples in front of every healthy input
 bool MultiReaderDataManager::readable() const
 {
     return state == State::Streaming && healthyInputs > 0 && shortInputs == 0;
@@ -572,8 +546,6 @@ bool MultiReaderDataManager::isShort(const Slot& slot) const
     return slot.error == MultiReader2InputError::None && slot.queue.frontCount() < config.minReadCount;
 }
 
-// After every change that removes queued data or changes the inputs' errors: a removal can leave an input with nothing
-// queued, so the stall check is planned afresh too
 void MultiReaderDataManager::recountShort()
 {
     stallCheckTick.reset();
@@ -594,8 +566,6 @@ bool MultiReaderDataManager::isWaiting(const Slot& slot) const
            !(slot.queue.frontIsEvent() && slot.queue.frontEvent().kind == Event::Kind::SyncFailed);
 }
 
-// Fewer than MinReadCount samples in front of an event can never be read: their count, when the contributing inputs'
-// shortest front run is such a run. A run without an event behind it can still grow and is kept
 std::optional<SizeT> MultiReaderDataManager::shortRun() const
 {
     if (state != State::Streaming)
@@ -622,7 +592,6 @@ std::optional<SizeT> MultiReaderDataManager::shortRun() const
     return least;
 }
 
-// The read drops a short run on every contributing input, so it reaches the event behind it
 void MultiReaderDataManager::dropShortRun()
 {
     const auto count = shortRun();
@@ -638,7 +607,6 @@ void MultiReaderDataManager::dropShortRun()
     markResynchronized();
 }
 
-// Takes count samples off the input's front run, queueing their copy into out unless it is null
 void MultiReaderDataManager::take(Slot& slot, SizeT count, void* out, std::vector<Copy>* copies)
 {
     if (!out || !copies)
@@ -656,9 +624,6 @@ void MultiReaderDataManager::take(Slot& slot, SizeT count, void* out, std::vecto
                      });
 }
 
-// The readers' own conversion to the read type, made when a value descriptor takes effect. It also judges whether the
-// value type converts, so the reader applies the same rule as the other readers. Under Undefined the samples are copied
-// as they are. TODO: TypedReadingUtils::readData of openDAQ/openDAQ#1215 can replace the reader here (todo file)
 bool MultiReaderDataManager::makeConverter(Slot& slot) const
 {
     slot.converter.reset();
@@ -673,7 +638,7 @@ bool MultiReaderDataManager::makeConverter(Slot& slot) const
     return true;
 }
 
-// Runs outside the mutex: the packet and the converter are the copy's own
+// Outside the mutex: the packet and the converter are the copy's own
 void MultiReaderDataManager::runCopy(const Copy& copy)
 {
     auto* input = static_cast<std::uint8_t*>(copy.packet.getData());
@@ -687,15 +652,11 @@ void MultiReaderDataManager::runCopy(const Copy& copy)
     checkErrorInfo(copy.converter->readData(input, copy.first, &out, copy.count));
 }
 
-// Whether a read applies an event on the input: a contributing input the one in front of it, which the read reached;
-// any other input every queued one
 bool MultiReaderDataManager::reachesEvent(const Slot& slot, bool contributing)
 {
     return contributing ? slot.queue.frontIsEvent() : slot.queue.eventCount() > 0;
 }
 
-// What a read changes after its samples: the events it reached, the judgement, and the internal
-// reconfigure, set-aside, rejoin or resynchronization that follows from it
 void MultiReaderDataManager::applyEvents()
 {
     // A read that reaches no event changes nothing: the streaming read returns here. A round can put a new event in front of
@@ -704,7 +665,6 @@ void MultiReaderDataManager::applyEvents()
         applyReachedEvents();
 }
 
-// One round of applyEvents
 void MultiReaderDataManager::applyReachedEvents()
 {
     const bool wasValid = valid();
@@ -740,7 +700,6 @@ void MultiReaderDataManager::applyReachedEvents()
     noteChanges();
 }
 
-// One event onto its input's state in force
 MultiReaderDataManager::Applied MultiReaderDataManager::applyEvent(Slot& slot, const Event& event)
 {
     Applied applied;
@@ -821,8 +780,7 @@ void MultiReaderDataManager::releaseDropped()
     released.swap(dropped);
 }
 
-// After a sender's packets or an ingest run, under lockIngest's lock: an event or a synchronization outcome is owed a call,
-// a data packet only when samples are readable
+// Under lockIngest's lock
 bool MultiReaderDataManager::claimWake(const std::unique_lock<std::mutex>&, const Ingested& ingested)
 {
     return claim(ingested.trigger || (ingested.data && readable()) || (retryCall && triggerHolds()));
@@ -861,7 +819,6 @@ bool MultiReaderDataManager::queueDisconnect(SizeT i)
     return true;
 }
 
-// Queues a descriptor event unless both descriptors equal the ones last seen
 bool MultiReaderDataManager::queueDescriptor(SizeT i, const DataDescriptorPtr& value, const DataDescriptorPtr& domain)
 {
     Slot& slot = slots[i];
@@ -903,8 +860,6 @@ MultiReaderDataManager::Ingested MultiReaderDataManager::ingestPacket(SizeT i, c
     }
 }
 
-// Queues a data packet, or drops it while the input does not contribute and has no event queued; returns whether it
-// queued an event or moved the synchronization
 bool MultiReaderDataManager::ingestData(SizeT i, const DataPacketPtr& packet)
 {
     Slot& slot = slots[i];
@@ -993,12 +948,6 @@ bool MultiReaderDataManager::ingestData(SizeT i, const DataPacketPtr& packet)
     trigger = checkRejoin(i) || trigger;
     if (state == State::Syncing)
     {
-        // The common start moves, and the synchronization can finish, only when an input's front run starts: the latest
-        // first tick is the start, and an input whose data lies before it is emptied, so its next packet starts a run. The
-        // pass over every input runs when the main input starts a run, which every input is judged against, and when no
-        // input is left to wait for, so the start can be found; any other input is judged on its own when its run starts.
-        // A pass for every new input cost a reader of 6,144 inputs more than a second at its start. The pass may drop data
-        // in front of any input and leave one that sent nothing empty
         if (frontWasEmpty && slot.queue.frontCount() > 0)
         {
             if (mainSlot == i || waitingInputs == 0)
@@ -1020,9 +969,6 @@ bool MultiReaderDataManager::ingestData(SizeT i, const DataPacketPtr& packet)
     return trigger;
 }
 
-// The input's latest domain, which its next packets carry: its ticks, their map onto the main input's domain in force (none
-// without a main input, or when the two cannot be read together), and its limits in samples. A new domain
-// starts a new run, which continues nothing
 void MultiReaderDataManager::useLatestDomain(Slot& slot) const
 {
     slot.latestDomain = parseDomain(slot.latest.domain);
@@ -1035,9 +981,6 @@ void MultiReaderDataManager::useLatestDomain(Slot& slot) const
     slot.nextOffset.reset();
 }
 
-// Whether the input's queue, with addedCount samples and addedBytes more, holds more than samples of its data or more than
-// bytes. The time counts the queued samples at the input's own rate, so a gap among them adds none. A packet alone never
-// passes a limit, so the newest packet always fits
 bool MultiReaderDataManager::over(const Slot& slot, std::int64_t samples, SizeT bytes, SizeT addedCount, SizeT addedBytes)
 {
     if (!slot.queue.hasData())
@@ -1045,16 +988,13 @@ bool MultiReaderDataManager::over(const Slot& slot, std::int64_t samples, SizeT 
     return slot.queue.byteCount() + addedBytes > bytes || slot.queue.sampleCount() + addedCount > static_cast<std::uint64_t>(samples);
 }
 
-// Past the critical limit, found on input i: the inputs are read too slowly. Every input that holds data loses it and has a
-// gap queued in its place, so each reports the loss and synchronizes afresh from the newest data; an input that held nothing
-// loses nothing, and stays free to stall. The packets are freed after the mutex
-void MultiReaderDataManager::dropAll(SizeT i)
+void MultiReaderDataManager::dropAll(SizeT cause)
 {
     const auto& loggerComponent = config.loggerComponent;
     if (loggerComponent.assigned())
         LOG_W("{}: past the critical limit of {} s or {} MB queued, or {} MB over all inputs; the queued samples of every input "
               "are dropped",
-              config.inputs[i].getLocalId().toStdString(), criticalLimitSeconds, criticalLimitBytes / 1000000,
+              config.inputs[cause].getLocalId().toStdString(), criticalLimitSeconds, criticalLimitBytes / 1000000,
               totalLimitBytes / 1000000);
     for (auto& slot : slots)
     {
@@ -1065,9 +1005,6 @@ void MultiReaderDataManager::dropAll(SizeT i)
     }
 }
 
-// An input that rejoins with no data queued has nothing that could align with what the others queued: what it sent while
-// set aside was dropped, and what it sends next is newer. Their data goes too, events kept, so the synchronization judges
-// only what arrives after the rejoin, and an input is not behind for a backlog its consumer left unread
 void MultiReaderDataManager::dropForRejoin(const std::vector<SizeT>& rejoined)
 {
     if (std::all_of(rejoined.begin(), rejoined.end(), [this](SizeT i) { return slots[i].queue.hasData(); }))
@@ -1078,7 +1015,6 @@ void MultiReaderDataManager::dropForRejoin(const std::vector<SizeT>& rejoined)
 
 // ================================================================ synchronization
 
-// A synchronization trigger while valid, such as a rejoin under Exclude
 void MultiReaderDataManager::startSync()
 {
     if (state == State::Invalid)
@@ -1086,8 +1022,6 @@ void MultiReaderDataManager::startSync()
     state = State::Syncing;
 }
 
-// The check mechanism over the inputs' front runs, on every ingest and after a read applies events, while
-// synchronizing: the grid, the inputs ahead, the common start. Returns whether it reached the common start or failed an input
 bool MultiReaderDataManager::synchronize()
 {
     if (state != State::Syncing || !mainSlot.has_value())
@@ -1103,8 +1037,6 @@ bool MultiReaderDataManager::synchronize()
     const auto judged = [this](SizeT i)
     { return i != *mainSlot && slots[i].error == MultiReader2InputError::None && slots[i].queue.frontCount() > 0; };
 
-    // Grid first (step 1), as an off-grid first tick cannot be the common start; then ahead (step 2); the inputs that
-    // pass propose the common start (step 3). A failed input's marker is an event in front, so it takes no further part
     bool reported = false;
     std::int64_t common = mainFirst;
     for (SizeT i = 0; i < slots.size(); ++i)
@@ -1121,7 +1053,6 @@ bool MultiReaderDataManager::synchronize()
             common = std::max(common, *slot.queue.frontTick());
     }
 
-    // Discard in front of the common start (step 5); an input whose data is all behind it is left empty
     main.queue.discardBefore(common);
     for (SizeT i = 0; i < slots.size(); ++i)
     {
@@ -1150,8 +1081,6 @@ bool MultiReaderDataManager::synchronize()
     return true;
 }
 
-// How an input's front run fails against the main input's, if it does: grid first, as an off-grid first tick cannot be the
-// common start, then more than the sync limit past the main input's newest sample
 std::optional<SyncCause> MultiReaderDataManager::startFailure(const Slot& slot, std::int64_t mainFirst, std::int64_t mainLatest) const
 {
     const auto first = slot.queue.frontTick();
@@ -1163,9 +1092,6 @@ std::optional<SyncCause> MultiReaderDataManager::startFailure(const Slot& slot, 
     return std::nullopt;
 }
 
-// A non-main input whose front run starts while synchronizing, judged against the main input on its own, as the pass over
-// every input would judge it. Nobody is judged while the main input has nothing in front: its next run judges everyone.
-// Returns whether the input failed
 bool MultiReaderDataManager::judgeStart(SizeT i)
 {
     if (!mainSlot.has_value() || i == *mainSlot || slots[i].error != MultiReader2InputError::None)
@@ -1181,7 +1107,6 @@ bool MultiReaderDataManager::judgeStart(SizeT i)
     return true;
 }
 
-// Drops the input's data and queues the failure in front of it, where the next read applies it
 void MultiReaderDataManager::trace(SizeT i, const std::string& what) const
 {
     const auto& loggerComponent = config.loggerComponent;
@@ -1200,9 +1125,6 @@ void MultiReaderDataManager::failSync(SizeT i, SyncCause cause)
     slot.queue.pushFrontEvent({Event::Kind::SyncFailed, nullptr, nullptr, cause});
 }
 
-// A stalled or ahead input with nothing queued in front of its data rejoins once its newest sample is within the recovery
-// limit of the newest sample of the other healthy inputs, or on its own packet when none of them has sent. The marker is
-// applied by the next read; the data behind it is kept
 bool MultiReaderDataManager::checkRejoin(SizeT i)
 {
     Slot& slot = slots[i];
@@ -1258,8 +1180,6 @@ MultiReaderDataManager::Senders MultiReaderDataManager::senders() const
     return found;
 }
 
-// How far, in main ticks, the other inputs sent past a contributing input with nothing queued: past its newest sample, or past
-// the senders' first sample when it sent none. nullopt for an input with anything queued
 std::optional<std::int64_t> MultiReaderDataManager::silence(const Slot& slot, const Senders& found) const
 {
     if (!contributes(slot) || !slot.queue.empty())
@@ -1273,7 +1193,6 @@ std::optional<std::int64_t> MultiReaderDataManager::silence(const Slot& slot, co
     return checkedSub(*others, *from).value_or(std::numeric_limits<std::int64_t>::max());
 }
 
-// A contributing input with nothing queued while the others sent more than the sync limit past it: it holds back every read
 bool MultiReaderDataManager::stallDue() const
 {
     if (!valid() || !mainSlot.has_value() || !slots[*mainSlot].domain.has_value())
@@ -1289,8 +1208,6 @@ bool MultiReaderDataManager::stallDue() const
     });
 }
 
-// The stall check at ingest: whether a stall is due, else the tick an input must send past before one can be. A due stall
-// waits for the read it calls for, which plans the check again
 bool MultiReaderDataManager::checkStall()
 {
     if (stallDue())
@@ -1302,8 +1219,6 @@ bool MultiReaderDataManager::checkStall()
     return false;
 }
 
-// The earliest main tick past which another input's newest sample puts an input with nothing queued more than the sync
-// limit behind. Only ingest adds data, so until a removal (recountShort) or a new sender, no input stalls before it
 void MultiReaderDataManager::planStallCheck()
 {
     std::int64_t next = std::numeric_limits<std::int64_t>::max();
@@ -1324,8 +1239,6 @@ void MultiReaderDataManager::planStallCheck()
     stallCheckTick = next;
 }
 
-// At the start of a read: the silent inputs become SyncFailed (Stalled), set aside or invalidating the reader as their error
-// policy says, the main input included; they rejoin within the recovery limit (checkRejoin)
 void MultiReaderDataManager::applyStalls()
 {
     if (!stallDue())
@@ -1353,14 +1266,12 @@ void MultiReaderDataManager::applyStalls()
     noteChanges();
 }
 
-// Samples were dropped or the start moved: the next packetOffset does not continue the last read. Only while valid
 void MultiReaderDataManager::markResynchronized()
 {
     resynchronized = true;
     statusOwed = true;
 }
 
-// After a read whose status the caller never got: everything is reported anew, as after a restart
 void MultiReaderDataManager::reportAfresh()
 {
     for (auto& slot : slots)
@@ -1380,8 +1291,6 @@ bool MultiReaderDataManager::Shown::operator==(const Shown& other) const
            domain.getObject() == other.domain.getObject();
 }
 
-// The state fields a status would show now. An invalid reader keeps a healthy automatic main input internally, but
-// reports none; a pinned one always shows
 MultiReaderDataManager::Shown MultiReaderDataManager::capture() const
 {
     Shown now;
@@ -1402,8 +1311,6 @@ MultiReaderDataManager::Shown MultiReaderDataManager::capture() const
     return now;
 }
 
-// After a judgement: a status is owed when it will show something the previous one did not. The event fields count only
-// on a valid reader, and a descriptor only on a healthy input
 void MultiReaderDataManager::noteChanges()
 {
     bool events = false;
@@ -1416,7 +1323,6 @@ void MultiReaderDataManager::noteChanges()
     statusOwed = afresh || events || !(capture() == shown);
 }
 
-// The text of the input's entry in the status message (Status message)
 std::string MultiReaderDataManager::describeError(const Slot& slot) const
 {
     switch (slot.error)
@@ -1442,8 +1348,6 @@ std::string MultiReaderDataManager::describeError(const Slot& slot) const
     }
 }
 
-// Consumes the event fields, which are never reported under Error. A status without changes equals the previous one and
-// is returned again
 MultiReader2StatusPtr MultiReaderDataManager::buildStatus()
 {
     if (!statusOwed && steadyStatus.assigned())
@@ -1516,7 +1420,6 @@ void MultiReaderDataManager::callAborted()
     callPending = false;
 }
 
-// An arrival with something new for the user: a call is claimed only when none is pending or running
 bool MultiReaderDataManager::claim(bool owed)
 {
     if (!owed)
@@ -1529,8 +1432,6 @@ bool MultiReaderDataManager::claim(bool owed)
     return true;
 }
 
-// The next read would change something: samples, a status with changes, a stall, or an event it applies.
-// The event part asks the read's own rules, so an arrival the next read does not reach calls no one
 bool MultiReaderDataManager::triggerHolds() const
 {
     if (statusOwed || frontAvailable() > 0 || shortRun().has_value() || stallDue())

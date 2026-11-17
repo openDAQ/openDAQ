@@ -5,7 +5,6 @@
 #include <opendaq/custom_log.h>
 #include <opendaq/input_port_factory.h>
 #include <opendaq/multi_reader2_impl.h>
-#include <opendaq/multi_reader2_status_ptr.h>
 #include <opendaq/reader.h>
 #include <opendaq/signal_ptr.h>
 #include <opendaq/work_factory.h>
@@ -57,7 +56,6 @@ public:
             });
     }
 
-    // On the sending thread: marks the port, without a reader lock
     ErrCode INTERFACE_FUNC packetReceived(IInputPort* /*port*/) override
     {
         return daqTry(
@@ -145,7 +143,6 @@ ErrCode MultiReader2Impl::configure(IMultiReader2Params* params, IMultiReader2St
     return configureInternal(params, status);
 }
 
-// The params object stores what it is given; every check of the params as a whole is here
 ErrCode MultiReader2Impl::resolveParams(IMultiReader2Params* params, MultiReaderDataManager::Config& config)
 {
     ListPtr<IComponent> inputs;
@@ -213,8 +210,6 @@ std::vector<MultiReader2Impl::Slot>::const_iterator MultiReader2Impl::findSlot(c
     return std::find_if(slots.begin(), slots.end(), [&](const Slot& slot) { return slot.input.getObject() == input.getObject(); });
 }
 
-// The checks that need the reader's ports, before any port is touched: every input has a scheduler, and no new port is
-// held by another reader. retained tells which inputs already have a slot
 ErrCode MultiReader2Impl::checkInputs(const MultiReaderDataManager::Config& config, std::vector<bool>& retained) const
 {
     retained.assign(config.inputs.size(), false);
@@ -376,8 +371,6 @@ ErrCode MultiReader2Impl::configureInternal(IMultiReader2Params* params, IMultiR
     });
 }
 
-// A new input's port, not yet taken over. For a signal input the reader creates the port and connects it while the port
-// has no listener and notifies nothing, so no connect callback reaches the reader
 MultiReader2Impl::Slot MultiReader2Impl::makeSlot(const ComponentPtr& input)
 {
     Slot slot;
@@ -397,16 +390,13 @@ MultiReader2Impl::Slot MultiReader2Impl::makeSlot(const ComponentPtr& input)
     return slot;
 }
 
-// Under the port's intake lock: port calls only. The listener first, so no notification finds the port without one; the
-// port notifies on the sending thread, which only marks it for the ingest task
+// Under the port's intake lock
 void MultiReader2Impl::takeOver(const Slot& slot)
 {
     slot.port.setListener(slot.listener);
     slot.port.setNotificationMethod(PacketReadyNotification::SameThread);
 }
 
-// Never throws: it runs in the destructor and after a failed takeover. A port handed to the reader comes out without a
-// listener, also from a configure that failed before taking it over
 void MultiReader2Impl::releaseSlot(Slot& slot)
 {
     if (!slot.port.assigned())
@@ -496,8 +486,6 @@ ErrCode MultiReader2Impl::reevaluate(IMultiReader2Status** status)
 
 // ================================================================ wake
 
-// Schedules the call the data manager claimed; one that cannot be scheduled, as on a stopped scheduler, releases the
-// claim, or no call would ever be scheduled again
 void MultiReader2Impl::Core::scheduleWake()
 {
     // Nobody to call, as when the user reads from a loop: the claim goes, and no call is scheduled for nothing
@@ -516,8 +504,7 @@ void MultiReader2Impl::Core::scheduleWake()
     }
 }
 
-// One call of the handler on the scheduler thread, with no reader lock held. One handler is assumed: one that throws
-// stops the handlers after it. The exception is logged and the handler kept. Returns whether it failed
+// On the scheduler thread, with no reader lock held
 bool MultiReader2Impl::runWake(const BaseObjectPtr& reader)
 {
     core->dataManager.callStarted();
@@ -553,7 +540,6 @@ std::shared_ptr<const MultiReader2Impl::Wiring> MultiReader2Impl::Core::currentW
     return std::atomic_load(&wiring);
 }
 
-// The connect callback, also run by configure for a port connected elsewhere during its takeover
 void MultiReader2Impl::Core::applyConnect(Intake& intake)
 {
     const PortState state = readPortState(intake.port);
@@ -587,8 +573,6 @@ void MultiReader2Impl::Core::applyDisconnect(Intake& intake)
         scheduleWake();
 }
 
-// On the sending thread, which never waits. With no ingest run scheduled or running it takes its packets in itself; a held
-// lock, or a run in progress, which takes them anyway, leaves them to the ingest task
 void MultiReader2Impl::Core::notify(Intake& intake)
 {
     if (ingestTask.idle() && takeIn(intake))
@@ -603,8 +587,6 @@ void MultiReader2Impl::Core::markForTask(Intake& intake)
         scheduleIngest();
 }
 
-// One batch of the port's packets, and the handler decision with it, under the port's and the engine's locks, both only
-// tried: false when one is held. A port with more than a batch is left to the ingest task
 bool MultiReader2Impl::Core::takeIn(Intake& intake)
 {
     bool wake = false;
@@ -654,7 +636,6 @@ bool MultiReader2Impl::Core::takeIn(Intake& intake)
     return true;
 }
 
-// A run that cannot be scheduled, as on a stopped scheduler, leaves the task idle: the next notification schedules again
 void MultiReader2Impl::Core::scheduleIngest()
 {
     const auto wire = currentWiring();
@@ -666,8 +647,6 @@ void MultiReader2Impl::Core::scheduleIngest()
     }
 }
 
-// The ingest run: every marked port is drained. A port that fails is logged and drained again on its next packet. The
-// handler is asked for once per run, so a burst over many ports costs one call
 void MultiReader2Impl::Core::drainMarked()
 {
     const auto wire = currentWiring();
@@ -711,10 +690,6 @@ void MultiReader2Impl::Core::drainMarked()
         scheduleWake();
 }
 
-// The ingest task's share of a port: its queued packets in batches, the engine's lock taken per batch, so a read is not held
-// up behind a backlog. The connection is a single-consumer queue: the intake lock makes this its only consumer while configure
-// may move the port. A port that keeps receiving does not hold up the others or the handler: after maxBatches it is marked
-// again, and the run repeats
 MultiReaderDataManager::Ingested MultiReader2Impl::Core::ingest(Intake& intake)
 {
     std::scoped_lock portLock(intake.mutex);
@@ -733,7 +708,7 @@ MultiReaderDataManager::Ingested MultiReader2Impl::Core::ingest(Intake& intake)
     return ingested;
 }
 
-// Up to one batch of the port's packets to the engine, under the port's and the engine's locks; returns how many
+// Under the port's and the engine's locks
 SizeT MultiReader2Impl::Core::transferBatch(Intake& intake,
                                              const std::unique_lock<std::mutex>& engineLock,
                                              MultiReaderDataManager::Ingested& ingested)

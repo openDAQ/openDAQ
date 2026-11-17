@@ -16,7 +16,6 @@
 
 #pragma once
 
-#include <memory>
 #include <optional>
 #include <string>
 #include <unordered_map>
@@ -32,12 +31,6 @@
 
 BEGIN_NAMESPACE_OPENDAQ_BASIC_CSV_RECORDER_MODULE
 
-/*!
- * @brief A recorder function block which records its equal-rate input signals, aligned by a multi reader, into a CSV file.
- * It always offers one free port; an input that is not scalar numeric, or that the reader cannot align, is set aside
- * and recorded again once healthy, and a port that disconnects is removed. The file gets a new header, in a new file,
- * when the domain or the set of recorded inputs changes.
- */
 class MultiCsvRecorderImpl final : public reader_fb_base::ReaderFbBase<IRecorder>
 {
 public:

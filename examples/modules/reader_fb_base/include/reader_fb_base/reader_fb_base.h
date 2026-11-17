@@ -40,7 +40,7 @@ protected:
         this->initComponentStatus();
     }
 
-    // The judgement and the handler hold the block weakly
+    // The acceptsDescriptor and the handler hold the block weakly
     void createReader()
     {
         params.setAcceptsDescriptor(Function(

@@ -1,5 +1,4 @@
 #include <ref_fb_module/bridge_reader_fb_impl.h>
-#include <coreobjects/property_object_factory.h>
 #include <coreobjects/unit_factory.h>
 #include <opendaq/component_type_private.h>
 #include <opendaq/data_descriptor_factory.h>
@@ -97,7 +96,6 @@ bool BridgeReaderFbImpl::accepts(const ComponentPtr&, const DataDescriptorPtr& d
     return scalarNumeric(descriptor) && voltsPerUnit(descriptor) > 0;
 }
 
-// The strain of a Wheatstone bridge from its ratio change, for the bridge configurations of the type
 double BridgeReaderFbImpl::strain(double ratio) const
 {
     switch (bridgeType)

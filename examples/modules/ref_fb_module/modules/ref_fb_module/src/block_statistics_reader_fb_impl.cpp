@@ -1,5 +1,4 @@
 #include <ref_fb_module/block_statistics_reader_fb_impl.h>
-#include <coreobjects/property_object_factory.h>
 #include <opendaq/component_type_private.h>
 #include <opendaq/data_descriptor_factory.h>
 #include <opendaq/data_rule_factory.h>

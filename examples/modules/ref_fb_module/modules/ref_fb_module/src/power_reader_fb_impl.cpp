@@ -4,7 +4,6 @@
 #include <opendaq/data_descriptor_factory.h>
 #include <opendaq/packet_factory.h>
 #include <opendaq/range_factory.h>
-#include <opendaq/signal_factory.h>
 #include <ref_fb_module/power_reader_fb_impl.h>
 
 BEGIN_NAMESPACE_REF_FB_MODULE

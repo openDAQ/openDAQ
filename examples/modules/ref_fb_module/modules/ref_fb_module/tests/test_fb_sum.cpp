@@ -362,7 +362,6 @@ TEST_F(SumTest, IncompatibleDomainsReconnect)
         ASSERT_DOUBLE_EQ(val, 2);
 }
 
-// The reader no longer asks about an input it cannot convert, so its old verdict must not keep the block re-judging
 TEST_F(SumTest, UnconvertibleInputDoesNotKeepTheBlockRejudging)
 {
     const auto volts = DataDescriptorBuilder().setSampleType(SampleType::Float64).setUnit(Unit("V")).build();

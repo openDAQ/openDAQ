@@ -7,7 +7,6 @@
 #include <testutils/memcheck_listener.h>
 
 #include <fstream>
-#include <thread>
 
 using namespace daq;
 

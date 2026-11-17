@@ -5,7 +5,6 @@
 #include <ref_fb_module/module_dll.h>
 #include <testutils/memcheck_listener.h>
 #include <gmock/gmock.h>
-#include <thread>
 
 using namespace daq;
 
@@ -640,13 +639,13 @@ TEST_F(PowerReaderTest, InvalidateVoltageSignal)
     currentSignal.sendPacket(currentPacket1);
 
     constexpr size_t samplesToRead1 = 100;
-    ASSERT_EQ(reader.getAvailableCount(), 0u); // no data available when FB internal multireader is inactive
+    ASSERT_EQ(reader.getAvailableCount(), 0u);
 
     // Set correct Unit
     voltageSignal.setDescriptor(
         DataDescriptorBuilderCopy(voltageSignal.getDescriptor()).setUnit(Unit("V", -1, "volts", "voltage")).build());
 
-    std::this_thread::sleep_for(std::chrono::milliseconds(2000));
+    ctx.getScheduler().waitAll();
 
     const auto timePacket2 = DataPacket(timeSignal.getDescriptor(), 50, 200);
     timeSignal.sendPacket(timePacket2);

@@ -4,9 +4,7 @@
 #include <string>
 
 #include <coretypes/filesystem.h>
-#include <coretypes/function_factory.h>
 #include <opendaq/function_block_impl.h>
-#include <opendaq/multi_reader2_factory.h>
 #include <opendaq/opendaq.h>
 
 #include <basic_csv_recorder_module/common.h>
@@ -145,8 +143,6 @@ bool MultiCsvRecorderImpl::accepts(const ComponentPtr&, const DataDescriptorPtr&
     return scalarNumeric(descriptor);
 }
 
-// Compares the status with the previous one, which the base still caches. A consumer with one column per input follows
-// each input's error, not only resynchronized
 bool MultiCsvRecorderImpl::onChanges(const MultiReader2StatusPtr& status)
 {
     if (status.getStatus() == ComponentStatus::Error)

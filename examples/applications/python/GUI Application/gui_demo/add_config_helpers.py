@@ -313,21 +313,59 @@ def with_port(connection_string, port):
     return f'{head}://{host}:{port}{slash}{path}'
 
 
-def prepare(p):
-    """Puts the login onto the config right before the add."""
-    # the add config is a Property object underneath; core reads the login from it there
-    config = daq.IPropertyObject.cast_from(p.cfg)
-    if config.has_property(AUTHENTICATION_CONFIG_KEY):
-        config.remove_property(AUTHENTICATION_CONFIG_KEY)
-    if p.auth is None:
+def legacy_config(p):
+    """The three-section config addDevice takes (General, Device.<id>, Streaming.<id>), with the choices of the
+    typed config and the login put on it. addDevice does not take an IAddDeviceConfig yet."""
+    cfg = p.cfg
+    legacy = p.parent.create_default_add_device_config()
+    general = legacy.get_property_value('General')
+    set_selection(general, 'PrimaryAddressType', cfg.primary_address_type.name)
+    general.set_property_value('ScanOnAdd', bool(cfg.scan_on_add))
+
+    device_config = section(legacy, 'Device', cfg.device_type.id)
+    copy_values(cfg.type_config, device_config)
+    copy_transport(transport_config(cfg.type_config), transport_config(device_config))
+
+    streaming = selected_streaming(cfg)
+    general.set_property_value('AutomaticallyConnectStreaming', streaming is not None)
+    if streaming is not None:
+        set_selection(general, 'StreamingConnectionHeuristic', cfg.streaming_options.streaming_mode.name)
+        for name in ('AllowedStreamingProtocols', 'PrioritizedStreamingProtocols'):
+            protocols = daq.List()
+            protocols.append(streaming.streaming_type.id)
+            general.set_property_value(name, protocols)
+        streaming_config = section(legacy, 'Streaming', streaming.streaming_type.id)
+        copy_values(streaming.type_config, streaming_config)
+        copy_transport(transport_config(streaming.type_config, STREAMING_TRANSPORT),
+                       transport_config(streaming_config, STREAMING_TRANSPORT))
+
+    if p.auth is not None:
+        filled = {k: v for k, v in p.credentials.items() if v}
+        if filled:
+            credential = daq.Dict()
+            for key, value in filled.items():
+                credential[key] = value
+            p.auth.supplied_credential = credential
+        legacy.add_property(daq.ObjectProperty(AUTHENTICATION_CONFIG_KEY, p.auth))
+    return legacy
+
+
+def section(legacy, name, type_id):
+    holder = legacy.get_property_value(name)
+    if holder is None or not holder.has_property(type_id):
+        return None
+    return daq.IPropertyObject.cast_from(holder.get_property_value(type_id))
+
+
+def set_selection(config, name, value):
+    """Sets a selection property by the text of its value; a plain string property takes the text."""
+    if not config.has_property(name):
         return
-    filled = {k: v for k, v in p.credentials.items() if v}
-    if filled:
-        credential = daq.Dict()
-        for key, value in filled.items():
-            credential[key] = value
-        p.auth.supplied_credential = credential
-    config.add_property(daq.ObjectProperty(AUTHENTICATION_CONFIG_KEY, p.auth))
+    values = config.get_property(name).selection_values
+    if values is None:
+        config.set_property_value(name, value)
+    elif value in list(values):
+        config.set_property_value(name, list(values).index(value))
 
 
 # MARK: - Several devices
@@ -388,9 +426,7 @@ def add_all(parent, pendings):
     added, errors = {}, {}
     for p in pendings:
         try:
-            prepare(p)
-            # add_device's Python binding takes a Property object, which the add config is underneath
-            added[p.name] = parent.add_device(connection_string(p), daq.IPropertyObject.cast_from(p.cfg))
+            added[p.name] = parent.add_device(connection_string(p), legacy_config(p))
         except Exception as e:
             errors[p.name] = str(e)
     return added, errors

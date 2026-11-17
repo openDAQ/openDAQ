@@ -4,7 +4,6 @@
 #include <gtest/gtest.h>
 #include <opendaq/multi_reader2_domain.h>
 #include <opendaq/multi_reader2_queue.h>
-#include <opendaq/multi_reader2_factory.h>
 #include <opendaq/opendaq.h>
 
 #include <limits>
@@ -347,22 +346,4 @@ TEST(MultiReader2Queue, RingKeepsTheOrderAcrossWrapGrowthAndShrink)
     EXPECT_EQ(ring.back(), 299);
     ring.popBack();
     EXPECT_EQ(ring.back(), 298);
-}
-
-// ---------------------------------------------------------------- facade
-
-TEST(MultiReader2Robustness, ConfigureWithANonComponentInTheInputListFailsWithoutThrowing)
-{
-    const auto reader = MultiReader2(MultiReader2Params());
-    const auto params = MultiReader2Params();
-    auto inputs = List<IBaseObject>();
-    inputs.pushBack(Integer(1));
-    ASSERT_EQ(params->setInputs(inputs), OPENDAQ_SUCCESS);
-
-    IMultiReader2Status* status = nullptr;
-    ErrCode errCode = OPENDAQ_SUCCESS;
-    EXPECT_NO_THROW(errCode = reader->configure(params, &status));
-    EXPECT_TRUE(OPENDAQ_FAILED(errCode));
-    EXPECT_EQ(status, nullptr);
-    daqClearErrorInfo();
 }

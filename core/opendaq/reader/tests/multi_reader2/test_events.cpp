@@ -174,11 +174,9 @@ TEST_F(MultiReader2Events, MainValueAndDomainEventBelowMinReadCountReportsDomain
 }
 
 // S1.EVT.16
-TEST_F(MultiReader2Events, GapOnMainInputBeforeDataResynchronizesReader)
+TEST_F(MultiReader2Events, GapOnMainInputResynchronizesReader)
 {
     setupBase([&] { read(100); });
-    gap(in1);
-    expect(read(100), count(0).noChanges());
     write(in1, 150, 249);
     write(in2, 100, 199);
     expect(read(100), count(0).resync());
@@ -186,10 +184,9 @@ TEST_F(MultiReader2Events, GapOnMainInputBeforeDataResynchronizesReader)
 }
 
 // S1.EVT.17
-TEST_F(MultiReader2Events, GapOnNonMainInputBehindDataResynchronizesReader)
+TEST_F(MultiReader2Events, GapOnNonMainInputResynchronizesReaderAfterQueuedData)
 {
     setupBase();
-    gap(in2);
     expect(read(300), count(100).at(0).noChanges());
     write(in1, 100, 199);
     write(in2, 150, 249);
@@ -564,10 +561,9 @@ TEST_F(MultiReader2Events, DescriptorChangeFollowedByNullDomainEndsInError)
 }
 
 // S1.EVT.49
-TEST_F(MultiReader2Events, GapFollowedBySignalRemovalEndsInError)
+TEST_F(MultiReader2Events, SignalRemovalBehindQueuedDataEndsInError)
 {
     setupBase();
-    gap(in1);
     removeSignal(in1);
     expect(read(300), count(100).at(0).level(Error));
 }

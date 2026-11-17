@@ -717,8 +717,6 @@ TEST_F(MultiReader2Policy, ReaderRecoversWhenNonMainDomainBecomesValidUnderInval
     expect(read(100), count(100).at(300).noChanges());
 }
 
-MR2_INSTANTIATE_EACH_READING_CALL(MultiReader2PolicyEachCall);
-
 // S1.POL.75
 TEST_F(MultiReader2Policy, ReaderCallFromAcceptsDescriptorDuringConfigureReturnsInvalidState)
 {
@@ -728,4 +726,7 @@ TEST_F(MultiReader2Policy, ReaderCallFromAcceptsDescriptorDuringConfigureReturns
     expectStubSaw(OPENDAQ_ERR_INVALIDSTATE);
     expect(avail(), count(0));
 }
+
+MR2_INSTANTIATE_EACH_READING_CALL(MultiReader2PolicyEachCall);
+
 }

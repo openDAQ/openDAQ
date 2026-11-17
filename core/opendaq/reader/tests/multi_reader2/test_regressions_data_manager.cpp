@@ -3,12 +3,11 @@
 namespace daq::mr2test
 {
 
-// Regressions of the data manager review (2026-10-29); each test names the finding it covers
+// Regression tests for the MultiReader2 data manager
 class MultiReader2RegressionDm : public MultiReader2Test
 {
 };
 
-// Finding 1
 TEST_F(MultiReader2RegressionDm, EventBehindDataDroppedBySyncIsReportedWithTheFirstData)
 {
     given().main(in1);
@@ -23,7 +22,6 @@ TEST_F(MultiReader2RegressionDm, EventBehindDataDroppedBySyncIsReportedWithTheFi
     expect(idle(), calls(1, {count(0).descChanged(in2), count(100).at(500).noChanges(), count(0).noChanges()}));
 }
 
-// Finding 2
 TEST_F(MultiReader2RegressionDm, MainJumpingAheadWhileStreamingFailsNoOtherInput)
 {
     setupBase();
@@ -34,8 +32,7 @@ TEST_F(MultiReader2RegressionDm, MainJumpingAheadWhileStreamingFailsNoOtherInput
     expect(read(100), count(100).at(5000).noChanges());
 }
 
-// Finding 3
-TEST_F(MultiReader2RegressionDm, LateInputBackBeforeAnyReadLeavesNoDataBehindADrain)
+TEST_F(MultiReader2RegressionDm, DrainReadsTheWholeBacklogInOneCall)
 {
     setupBase();
     write(in1, 100, 2199);
@@ -43,8 +40,7 @@ TEST_F(MultiReader2RegressionDm, LateInputBackBeforeAnyReadLeavesNoDataBehindADr
     expect(drain(), {count(2200).at(0).noChanges(), count(0).noChanges()});
 }
 
-// Comparative review, spec finding 1: in2 delivers its aligned backlog before it fails; only an input with nothing queued
-// stalls
+// in2 delivers its aligned backlog before it fails; only an input with nothing queued stalls
 TEST_F(MultiReader2RegressionDm, InputStallsOnlyOnceItsBacklogIsRead)
 {
     setupBase();
@@ -56,7 +52,6 @@ TEST_F(MultiReader2RegressionDm, InputStallsOnlyOnceItsBacklogIsRead)
     expect(avail(), count(0));
 }
 
-// Finding 6
 TEST_F(MultiReader2RegressionDm, ReevaluateReportsWhatItsZeroCountReadApplies)
 {
     given().minReadCount(10);
@@ -66,7 +61,6 @@ TEST_F(MultiReader2RegressionDm, ReevaluateReportsWhatItsZeroCountReadApplies)
     expect(reevaluate(), ok().resync());
 }
 
-// Finding 9
 TEST_F(MultiReader2RegressionDm, RejoiningInputIsNotLateForTheMainBacklogBeforeTheRejoin)
 {
     given().policy(Exclude).accepts().verdict(in2, Verdict::Reject);
@@ -84,7 +78,6 @@ TEST_F(MultiReader2RegressionDm, RejoiningInputIsNotLateForTheMainBacklogBeforeT
     expect(read(100), count(100).at(2500).noChanges());
 }
 
-// Finding 10
 TEST_F(MultiReader2RegressionDm, MainJumpingBackWhileStreamingKeepsItsQueuedSamples)
 {
     setupBase();
@@ -96,7 +89,6 @@ TEST_F(MultiReader2RegressionDm, MainJumpingBackWhileStreamingKeepsItsQueuedSamp
     expect(read(100), count(100).at(0).noChanges());
 }
 
-// Finding 11
 TEST_F(MultiReader2RegressionDm, ReadDeliveringNothingOutsideStreamingReportsPacketOffsetZero)
 {
     given().ports();

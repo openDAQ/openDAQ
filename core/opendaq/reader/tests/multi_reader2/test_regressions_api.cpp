@@ -1,15 +1,11 @@
-// Regression tests for the MultiReader2 facade, status and helper fixes found in review
+// Regression tests for the MultiReader2 facade, status and helpers
 
 #include <gtest/gtest.h>
 #include <opendaq/logger_sink_last_message_private_ptr.h>
 #include <opendaq/opendaq.h>
 #include <opendaq/signal_impl.h>
 
-#include <chrono>
-#include <cmath>
-#include <cstring>
 #include <functional>
-#include <limits>
 #include <thread>
 #include <type_traits>
 #include <utility>
@@ -106,7 +102,7 @@ TEST_F(MultiReader2RegressionApi, DisconnectDuringTakeOverReachesTheReader)
     EXPECT_EQ(status.getInputStatus(portA.asPtr<IComponent>()).getError(), MultiReader2InputError::Disconnected);
 }
 
-// Comparative review, debuggability finding 5: an exception thrown by acceptsDescriptor is a rejection, logged as a warning
+// An exception thrown by acceptsDescriptor is a rejection, logged as a warning
 TEST_F(MultiReader2RegressionApi, AcceptsDescriptorExceptionIsLoggedAsWarning)
 {
     const auto sink = LastMessageLoggerSink();
@@ -137,4 +133,20 @@ TEST_F(MultiReader2RegressionApi, StatusInputListCannotBeChanged)
     ASSERT_EQ(inputs.getCount(), 1u);
     EXPECT_THROW(inputs.clear(), FrozenException);
     EXPECT_EQ(reader.read(nullptr, nullptr, &count, 0, offset).getInputs().getCount(), 1u);
+}
+
+TEST(MultiReader2Robustness, ConfigureWithANonComponentInTheInputListFailsWithoutThrowing)
+{
+    const auto reader = MultiReader2(MultiReader2Params());
+    const auto params = MultiReader2Params();
+    auto inputs = List<IBaseObject>();
+    inputs.pushBack(Integer(1));
+    ASSERT_EQ(params->setInputs(inputs), OPENDAQ_SUCCESS);
+
+    IMultiReader2Status* status = nullptr;
+    ErrCode errCode = OPENDAQ_SUCCESS;
+    EXPECT_NO_THROW(errCode = reader->configure(params, &status));
+    EXPECT_TRUE(OPENDAQ_FAILED(errCode));
+    EXPECT_EQ(status, nullptr);
+    daqClearErrorInfo();
 }

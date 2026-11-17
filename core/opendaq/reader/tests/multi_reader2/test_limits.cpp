@@ -183,7 +183,7 @@ TEST_F(MultiReader2Limits, StalledInputRejoinsOnItsOwnPacketWhenNoOtherInputIsHe
                .inError(in1, InputError::Disconnected)
                .inError(in2, InputError::SyncFailed)
                .msg("in1: not connected; in2: not synchronized, no data for 3 s"));
-    write(in2, 100, 199);  // 3 s behind in1's last sample, but in1 is no longer healthy
+    write(in2, 100, 199);  // 2.9 s behind in1's last sample, but in1 is no longer healthy
     expect(read(0),
            count(0)
                .level(Warning)

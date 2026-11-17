@@ -234,7 +234,7 @@ TEST_F(MultiReader2Concurrency, LongIngestWithReaderAliveDeliversEverySampleOnce
         [&](bool concurrent)
         {
             handler([&] { drain(); });
-            // Chunks of 1000, each ingested before the next, keep the writers within the 2000-tick sync limit
+            // Chunks of 1000, each ingested before the next, keep the writers within the 3000-tick sync limit
             for (int64_t first = 0; first < 10000; first += 1000)
             {
                 runScript(eachInputWrites(first, first + 999), concurrent);

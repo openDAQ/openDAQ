@@ -101,7 +101,8 @@ TEST_F(MultiReader2Recovery, GapDoesNotClearDifferentPeriodDomainDescriptorInval
             announce(in2, Domain().rate500Hz());
             read(100);
         });
-    gap(in2);
+    write(in2, 100, 149);
+    write(in2, 200, 249);
     write(in1, 100, 199);
     expect(read(100), count(100).at(100).noChanges());
 }

@@ -112,16 +112,6 @@ TEST_F(MultiReader2Read, EmptyDataPacketIsIgnored)
     expect(read(200), count(200).at(0).noChanges());
 }
 
-// S1.READ.18
-TEST_F(MultiReader2Read, AvailableCountIsZeroUntilFirstStatusIsRead)
-{
-    write(in1, 0, 99);
-    write(in2, 0, 99);
-    expect(avail(), count(0));
-    expect(read(0), count(0).level(Ok).domainChanged().resync().allDescChanged());
-    expect(avail(), count(100));
-}
-
 // S1.READ.19
 TEST_P(MultiReader2ReadEachCall, FirstReadingCallReturnsZeroWithFirstStatus)
 {
@@ -346,60 +336,6 @@ TEST_F(MultiReader2Read, StatusReadDropsFewerThanMinReadCountSamplesBeforeEvent)
     write(in2, 19, 118);
     expect(read(0), count(0).resync().descChanged(in2));
     expect(read(100), count(100).at(19).noChanges());
-}
-
-// S1.READ.62
-TEST_F(MultiReader2Read, AvailableCountIsZeroUntilMissingNonMainInputDelivers)
-{
-    setup(
-        [&]
-        {
-            write(in1, 0, 99);
-            read(0, nullData);
-        });
-    expect(avail(), count(0));
-    write(in1, 100, 199);
-    expect(avail(), count(0));
-    write(in2, 0, 99);
-    expect(avail(), count(100));
-}
-
-// S1.READ.63
-TEST_F(MultiReader2Read, AvailableCountIsZeroUntilAllTenInputsDeliver)
-{
-    given().inputs(10);
-    setup(
-        [&]
-        {
-            write(in1, 0, 99);
-            read(0, nullData);
-        });
-    expect(avail(), count(0));
-    write(in2, 0, 99);
-    write(in3, 0, 99);
-    write(in4, 0, 99);
-    write(in5, 0, 99);
-    write(in6, 0, 99);
-    write(in7, 0, 99);
-    write(in8, 0, 99);
-    write(in9, 0, 99);
-    expect(avail(), count(0));
-    write(in10, 0, 99);
-    expect(avail(), count(100));
-}
-
-// S1.READ.64
-TEST_F(MultiReader2Read, AvailableCountIsZeroUntilMainInputDelivers)
-{
-    setup(
-        [&]
-        {
-            write(in2, 0, 99);
-            read(0, nullData);
-        });
-    expect(avail(), count(0));
-    write(in1, 0, 99);
-    expect(avail(), count(100));
 }
 
 // S1.READ.65

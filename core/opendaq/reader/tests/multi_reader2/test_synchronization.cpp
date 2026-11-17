@@ -14,6 +14,7 @@ TEST_F(MultiReader2Sync, InputsStartingTogetherReadFromFirstTickAfterStatus)
     write(in2, 0, 99);
     expect(avail(), count(0));
     expect(read(0), count(0).level(Ok).domainChanged().resync().allDescChanged());
+    expect(avail(), count(100));
     expect(read(100), count(100).at(0).noChanges());
 }
 

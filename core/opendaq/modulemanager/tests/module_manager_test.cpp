@@ -345,6 +345,15 @@ TEST_F(ModuleManagerTest, ScanOnAddDisabled)
     ASSERT_EQ(impl->scanCount, 0);
 }
 
+#if defined(__GNUC__)
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
+#endif
+#ifdef _MSC_VER
+#pragma warning(push)
+#pragma warning(disable : 4996)
+#endif
+
 TEST_F(ModuleManagerTest, ScanOnAddConfigProperty)
 {
     auto manager = ModuleManager("[[none]]");
@@ -390,6 +399,13 @@ TEST_F(ModuleManagerTest, ScanOnAddDefaultEnabled)
     utils.createDevice("daqmock", nullptr);
     ASSERT_EQ(impl->scanCount, 1);
 }
+
+#ifdef _MSC_VER
+#pragma warning(pop)
+#endif
+#if defined(__GNUC__)
+#pragma GCC diagnostic pop
+#endif
 
 TEST_F(ModuleManagerTest, ParallelDeviceCreationSuccess)
 {

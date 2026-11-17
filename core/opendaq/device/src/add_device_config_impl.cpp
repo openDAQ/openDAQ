@@ -2,6 +2,7 @@
 #include <opendaq/add_streaming_config_impl.h>
 #include <opendaq/add_streaming_options_impl.h>
 #include <coreobjects/property_factory.h>
+#include <opendaq/component_type_private_ptr.h>
 #include <coretypes/json_serializer_factory.h>
 #include <coretypes/json_deserializer_factory.h>
 
@@ -63,7 +64,9 @@ AddDeviceConfigImpl::AddDeviceConfigImpl(const DeviceTypePtr& deviceType,
 
     const auto options = createWithImplementation<IAddStreamingOptions, AddStreamingOptionsImpl>(streamingConfigs);
     Super::addProperty(ObjectProperty(add_device_config::Streaming, options));
-    Super::addProperty(ObjectProperty(add_device_config::AuthenticationConfig, deviceType.createAuthenticationConfig()));
+    // a type without authentication methods has no authentication config (createAuthenticationConfig fails for it)
+    if (deviceType.asPtr<IComponentTypePrivate, ComponentTypePrivatePtr>().getSupportedAuthenticationMethods().getCount() > 0)
+        Super::addProperty(ObjectProperty(add_device_config::AuthenticationConfig, deviceType.createAuthenticationConfig()));
 }
 
 AddDeviceConfigImpl::AddDeviceConfigImpl(const DeviceTypePtr& deviceType, Partial)
@@ -134,6 +137,12 @@ ErrCode AddDeviceConfigImpl::getStreamingOptions(IAddStreamingOptions** options)
 ErrCode AddDeviceConfigImpl::getAuthenticationConfig(IAuthenticationConfig** config)
 {
     OPENDAQ_PARAM_NOT_NULL(config);
+
+    if (!objPtr.hasProperty(add_device_config::AuthenticationConfig))
+    {
+        *config = nullptr;
+        return OPENDAQ_SUCCESS;
+    }
 
     return daqTry([&] { *config = objPtr.getPropertyValue(add_device_config::AuthenticationConfig).asPtr<IAuthenticationConfig>().detach(); });
 }

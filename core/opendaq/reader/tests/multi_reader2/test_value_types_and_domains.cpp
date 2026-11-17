@@ -172,7 +172,7 @@ TEST_F(MultiReader2Data, StructArrayInputsNotConvertibleToInt32GiveError)
 // S1.DATA.15
 TEST_F(MultiReader2Data, ReadAppliesPostScalingAndRoundsToInt32)
 {
-    MR2_REVIEW_ONLY(review_only::integerConversion);
+    GTEST_SKIP() << future::integerConversion;
     given()
         .readType(SampleType::Int32)
         .value(in1, Value::scaled(SampleType::Int16, 0.5, 1))
@@ -853,7 +853,7 @@ TEST_F(MultiReader2Data, ConfigureSwitchingToInvalidateTurnsNonIntegerStartIntoE
 // S1.DATA.68
 TEST_F(MultiReader2Data, ReadClampsValuesAboveInt32MaxToInt32Max)
 {
-    MR2_REVIEW_ONLY(review_only::integerConversion);
+    GTEST_SKIP() << future::integerConversion;
     given().readType(SampleType::Int32).signal(in2, sig::int64());
     expect(read(0), count(0).level(Ok).domainChanged().resync().allDescChanged().size(in1, 4).size(in2, 4));
     write(in1, 2147483600, 2147483699);
@@ -869,7 +869,7 @@ TEST_F(MultiReader2Data, ReadClampsValuesAboveInt32MaxToInt32Max)
 // S1.DATA.69
 TEST_F(MultiReader2Data, ReadConvertsNanValuesToZeroForInt32)
 {
-    MR2_REVIEW_ONLY(review_only::integerConversion);
+    GTEST_SKIP() << future::integerConversion;
     given().readType(SampleType::Int32).valuesNaN();
     expect(read(0), count(0).level(Ok).domainChanged().resync().allDescChanged().size(in1, 4).size(in2, 4));
     write(in1, 0, 99);

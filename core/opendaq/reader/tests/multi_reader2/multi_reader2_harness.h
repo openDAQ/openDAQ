@@ -24,7 +24,6 @@
 #include <opendaq/opendaq.h>
 
 #include <condition_variable>
-#include <cstdlib>
 #include <functional>
 #include <map>
 #include <mutex>
@@ -39,32 +38,13 @@ namespace daq::mr2test
 
 class MultiReader2Test;
 
-// Behaviour of the review branch's reader (origin/multi-reader-2-review) that spec 0007 does not define or contradicts.
-// A case built on it starts with MR2_REVIEW_ONLY: it is skipped, naming the behaviour, unless MR2_REVIEW_ONLY is set in
-// the environment. Run with it set, a failure of such a case means only that this reader lacks that behaviour
-namespace review_only
+// Behaviour wanted in a later version; a case that needs it is skipped with the reason
+namespace future
 {
-inline constexpr const char* jumpWhileStreaming =
-    "a timestamp jump while streaming continues without resynchronizing (spec: a packet that does not continue the input "
-    "starts synchronization again)";
 inline constexpr const char* integerConversion =
-    "integer read types round, saturate and read NaN as 0, through the branch's change to the shared reader::convertSample "
-    "(spec: the readers' conversion)";
+    "integer reads round, saturate at the type's limits and read NaN as 0; the readers' shared conversion casts, and is not "
+    "changed for now (decision E15)";
 }
-
-inline bool runReviewOnly()
-{
-    const char* value = std::getenv("MR2_REVIEW_ONLY");
-    return value && *value && std::string(value) != "0";
-}
-
-#define MR2_REVIEW_ONLY(behaviour)                                          \
-    do                                                                      \
-    {                                                                       \
-        ::testing::Test::RecordProperty("review_only", behaviour);         \
-        if (!daq::mr2test::runReviewOnly())                                 \
-            GTEST_SKIP() << "review-only: " << (behaviour);                 \
-    } while (0)
 
 // An input slot of the fixture: inK is the K-th input, local ID "inK"
 struct Input

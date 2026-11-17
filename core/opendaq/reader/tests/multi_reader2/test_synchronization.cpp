@@ -154,25 +154,25 @@ TEST_F(MultiReader2Sync, PinnedMainJumpAheadMidStreamResynchronizesAtNewCommonSt
 // S1.SYNC.13
 TEST_F(MultiReader2Sync, NonMainJumpBackMidStreamContinuesWithoutResynchronized)
 {
-    MR2_REVIEW_ONLY(review_only::jumpWhileStreaming);
     setupBase();
     expect(read(100), count(100).at(0).noChanges());
     write(in2, 50, 199);
     write(in1, 100, 199);
     expect(avail(), count(0));
+    expect(read(200), count(0).noChanges());
     expect(read(200), count(100).at(100).noChanges());
 }
 
 // S1.SYNC.14
 TEST_F(MultiReader2Sync, PinnedMainJumpBackMidStreamContinuesWithoutResynchronized)
 {
-    MR2_REVIEW_ONLY(review_only::jumpWhileStreaming);
     given().main(in2);
     setupBase();
     expect(read(100), count(100).at(0).noChanges());
     write(in2, 50, 199);
     write(in1, 100, 199);
     expect(avail(), count(0));
+    expect(read(200), count(0).noChanges());
     expect(read(200), count(100).at(100).noChanges());
 }
 

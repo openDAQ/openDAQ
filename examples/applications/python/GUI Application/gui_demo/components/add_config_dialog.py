@@ -525,7 +525,7 @@ class AddConfigDialog(Dialog):
         self.status_update()
 
     def streaming_changed(self, label):
-        self.cfg.streaming_options.streaming_type = '' if label == NONE_SELECTED else label
+        self.cfg.streaming_options.streaming_type = None if label == NONE_SELECTED else label
         self.refresh()
 
     def streaming_mode_changed(self, value):

@@ -60,7 +60,8 @@ enum class AddressType : EnumType
  *
  * When the device is added, it is connected at the first of these ports:
  * - the port set on the config, by setPort or by writing the `Port` property. For a device info without a server
- *   capability for the Device type, createAddDeviceConfig sets the port its connection string names;
+ *   capability for the Device type, createAddDeviceConfig sets the port its connection string names, unless it is the
+ *   port of one of the options;
  * - the port the server announces for the selected option, when discovery reports the device;
  * - the port of the selected option, as getAvailableTransportOptions lists it.
  *
@@ -168,8 +169,9 @@ DECLARE_OPENDAQ_INTERFACE(IAddDeviceConfig, IBaseObject)
      * @retval OPENDAQ_ERR_NOT_SUPPORTED for a Device type without transport options.
      *
      * For a device info without a server capability for the Device type, createAddDeviceConfig sets the port its
-     * connection string names. Unless a port is set, the device is connected at the port discovery reports for the
-     * selected option when it reports another one (see the class description).
+     * connection string names, unless it is the port of one of the options. Unless a port is set, the device is
+     * connected at the port discovery reports for the selected option when it reports another one (see the class
+     * description).
      */
     virtual ErrCode INTERFACE_FUNC getPort(IInteger** port) = 0;
 };

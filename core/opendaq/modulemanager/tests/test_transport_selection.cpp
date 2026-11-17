@@ -278,6 +278,14 @@ TEST_F(TransportSelectionTest, HandMadeDeviceInfoListsTypeOptions)
     const AddDeviceConfigPtr withPort = utils().createAddDeviceConfig(DeviceInfo("dev://host:9000"));
     ASSERT_EQ(withPort.getSelectedTransportOption().getId(), "plain");
     ASSERT_EQ(withPort.getPort(), 9000);
+    withPort.setTransportOption("tls");
+    ASSERT_EQ(withPort.getPort(), 9000);
+
+    // The port of one of the options is not set: the port follows the selected option
+    const AddDeviceConfigPtr withOptionPort = utils().createAddDeviceConfig(DeviceInfo("dev://host:7420"));
+    ASSERT_EQ(withOptionPort.getPort(), 7420);
+    withOptionPort.setTransportOption("tls");
+    ASSERT_EQ(withOptionPort.getPort(), 7421);
 }
 
 // Adding a device with an add-device config comes with the new createDevice

@@ -1568,10 +1568,23 @@ ErrCode ModuleManagerImpl::createAddDeviceConfig(IAddDeviceConfig** config, IDev
         AddDeviceConfigPtr addDeviceConfig = createWithImplementation<IAddDeviceConfig, AddDeviceConfigImpl>(
             deviceType, listedTypes, scanOnAdd, transportOptions, streamingTransportOptions);
 
-        // A device info that announces no options names the port to connect to in its connection string, if any
-        if (!transportOptions.assigned() && addDeviceConfig.getAvailableTransportOptions().getCount() > 0)
+        // A device info that announces no options names the port to connect to in its connection string, if any. The
+        // port of one of the options is not set: like the one a discovered connection string carries, it does not
+        // override the port of whichever option is selected.
+        if (const auto options = addDeviceConfig.getAvailableTransportOptions(); !transportOptions.assigned() && options.getCount() > 0)
         {
-            if (const auto port = GetConnectionStringPort(infoPtr.getConnectionString()); port.has_value())
+            const auto port = GetConnectionStringPort(infoPtr.getConnectionString());
+            const auto isOptionPort = [&options](Int value)
+            {
+                for (const auto& [id, option] : options)
+                {
+                    if (static_cast<Int>(option.getPort()) == value)
+                        return true;
+                }
+                return false;
+            };
+
+            if (port.has_value() && !isOptionPort(port.value()))
                 addDeviceConfig.setPort(Integer(port.value()));
         }
 

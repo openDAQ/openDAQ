@@ -19,6 +19,7 @@
 
 #include <coretypes/impl.h>
 #include <coretypes/function_ptr.h>
+#include <coretypes/dictobject_factory.h>
 #include <opendaq/credential_provider.h>
 
 BEGIN_NAMESPACE_OPENDAQ

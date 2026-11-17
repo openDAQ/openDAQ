@@ -1,5 +1,5 @@
 #include <opendaq/function_credential_provider_impl.h>
-#include <coretypes/dictobject_factory.h>
+#include <coretypes/stringobject_factory.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 

@@ -246,7 +246,6 @@ set(SRC_PublicHeaders_Component
     device_network_config.h
     connected_client_info.h
     add_component_config_factory.h
-    add_device_config_legacy.h
     PARENT_SCOPE
 )
 
@@ -264,6 +263,7 @@ set(SRC_PrivateHeaders_Component
     add_device_config_impl.h
     add_streaming_options_impl.h
     add_streaming_config_impl.h
+    add_device_config_legacy.h
     PARENT_SCOPE
 )
 

@@ -412,11 +412,6 @@ TEST_F(AddDeviceConfigLegacyTest, RejectedValue)
     ASSERT_THROW(fromLegacy(legacy), InvalidValueException);
 }
 
-TEST_F(AddDeviceConfigLegacyTest, NullLoggerComponent)
-{
-    ASSERT_THROW(fromLegacyAddDeviceConfig(createLegacyConfig(), createDeviceType(), streamingTypes, True, nullptr), ArgumentNullException);
-}
-
 TEST_F(AddDeviceConfigLegacyTest, AdapterDropsStreamingSection)
 {
     const auto legacy = createLegacyConfig();

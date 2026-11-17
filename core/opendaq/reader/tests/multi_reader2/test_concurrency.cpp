@@ -13,78 +13,78 @@ public:
     }
 };
 
-constexpr unsigned AllButInv6 = INV1 | INV2 | INV3 | INV4 | INV5 | INV7 | INV8 | INV9 | INV10;
-constexpr unsigned AllButInv6AndInv9 = INV1 | INV2 | INV3 | INV4 | INV5 | INV7 | INV8 | INV10;
+constexpr unsigned AllInvariants = INV1 | INV2 | INV3 | INV4 | INV5 | INV8 | INV9 | INV10;
+constexpr unsigned AllButInv9 = INV1 | INV2 | INV3 | INV4 | INV5 | INV8 | INV10;
 
 // S3.TL.01
 TEST_F(MultiReader2Concurrency, AlignedInputsDeliverEverySampleOnce)
 {
-    replay(Timeline::Base, AllButInv6);
+    replay(Timeline::Base, AllInvariants);
 }
 
 // S3.TL.02
 TEST_F(MultiReader2Concurrency, InputsStartingApartSynchronizeWithoutLoss)
 {
-    replay(Timeline::Apart, AllButInv6);
+    replay(Timeline::Apart, AllInvariants);
 }
 
 // S3.TL.03
 TEST_F(MultiReader2Concurrency, NonMainInputAheadBeyondQueueLimitFailsSync)
 {
     given().policy(Exclude);
-    replay(Timeline::Ahead, AllButInv6AndInv9);
+    replay(Timeline::Ahead, AllButInv9);
 }
 
 // S3.TL.04
 TEST_F(MultiReader2Concurrency, NonMainInputBehindBeyondQueueLimitStalls)
 {
     given().policy(Exclude);
-    replay(Timeline::Behind, AllButInv6AndInv9);
+    replay(Timeline::Behind, AllButInv9);
 }
 
 // S3.TL.05
 TEST_F(MultiReader2Concurrency, ForwardTimestampJumpOnOneInputResynchronizes)
 {
-    replay(Timeline::JumpAhead, AllButInv6);
+    replay(Timeline::JumpAhead, AllInvariants);
 }
 
 // S3.TL.06
 TEST_F(MultiReader2Concurrency, BackwardTimestampJumpOnOneInputResynchronizes)
 {
-    replay(Timeline::JumpBack, AllButInv6);
+    replay(Timeline::JumpBack, AllInvariants);
 }
 
 // S3.TL.07
 TEST_F(MultiReader2Concurrency, OneSilentInputAmongManyKeepsReaderSynchronizing)
 {
     given().inputs(10);
-    replay(Timeline::Starve1, AllButInv6);
+    replay(Timeline::Starve1, AllInvariants);
 }
 
 // S3.TL.08
 TEST_F(MultiReader2Concurrency, SilentNonMainInputsKeepReaderSynchronizing)
 {
-    replay(Timeline::StarveAll, AllButInv6);
+    replay(Timeline::StarveAll, AllInvariants);
 }
 
 // S3.TL.09
 TEST_F(MultiReader2Concurrency, SilentMainInputKeepsReaderSynchronizing)
 {
-    replay(Timeline::StarveMain, AllButInv6);
+    replay(Timeline::StarveMain, AllInvariants);
 }
 
 // S3.TL.10
 TEST_F(MultiReader2Concurrency, FewerSamplesThanMinReadCountStayUnread)
 {
     given().minReadCount(10);
-    replay(Timeline::Short, AllButInv6);
+    replay(Timeline::Short, AllInvariants);
 }
 
 // S3.TL.11
 TEST_F(MultiReader2Concurrency, SilentInputStallsOnceMainPassesQueueLimit)
 {
     given().policy(Exclude);
-    replay(Timeline::Starve3s, AllButInv6AndInv9);
+    replay(Timeline::Starve3s, AllButInv9);
 }
 
 // S3.TL.12
@@ -104,7 +104,7 @@ TEST_F(MultiReader2Concurrency, SyncFailedInputAheadRejoinsOnceWithinOneSecond)
             idle();  // the writer's return does not mean in1 2299 was ingested; ingest runs on the scheduler
             runScript({{in2, sendWrite(in2, 3200, 3299)}, {in1, sendWrite(in1, 2300, 3299)}}, concurrent);
         },
-        AllButInv6AndInv9);
+        AllButInv9);
 }
 
 // S3.TL.13
@@ -119,112 +119,112 @@ TEST_F(MultiReader2Concurrency, StalledInputBehindRejoinsOnceWithinOneSecond)
             waitUntilHandlerSaw(in2, InputError::SyncFailed);
             runScript(script(Timeline::CatchUp), concurrent);
         },
-        AllButInv6AndInv9);
+        AllButInv9);
 }
 
 // S3.TL.15
 TEST_F(MultiReader2Concurrency, NanosecondEpochTimestampsSynchronize)
 {
     given().valuesAsIndex().signal(in1, sig::epochNs()).signal(in2, sig::epochNs());
-    replay(Timeline::Epoch, AllButInv6);
+    replay(Timeline::Epoch, AllInvariants);
 }
 
 // S3.TL.16
 TEST_F(MultiReader2Concurrency, MicrosecondAndNanosecondEpochTimestampsSynchronize)
 {
     given().valuesAsIndex().signal(in1, sig::epochUs()).signal(in2, sig::epochNs());
-    replay(Timeline::Epoch, AllButInv6);
+    replay(Timeline::Epoch, AllInvariants);
 }
 
 // S3.TL.17
 TEST_F(MultiReader2Concurrency, EpochTimestampsWithNonSimplifiedResolutionSynchronize)
 {
     given().valuesAsIndex().signal(in1, sig::epochNs()).signal(in2, sig::epochNonSimplified());
-    replay(Timeline::Epoch, AllButInv6);
+    replay(Timeline::Epoch, AllInvariants);
 }
 
 // S3.EVT.01
 TEST_F(MultiReader2Concurrency, ValueTypeChangeMidStreamOnNonMainInput)
 {
-    replay([&] { return eventScript(in2, {sendAnnounce(in2, Value(SampleType::Int32), std::nullopt)}); }, AllButInv6);
+    replay([&] { return eventScript(in2, {sendAnnounce(in2, Value(SampleType::Int32), std::nullopt)}); }, AllInvariants);
 }
 
 // S3.EVT.02
 TEST_F(MultiReader2Concurrency, DomainStartChangeMidStreamOnMainInput)
 {
-    replay([&] { return eventScript(in1, {sendAnnounce(in1, std::nullopt, Domain().start(3))}); }, AllButInv6AndInv9);
+    replay([&] { return eventScript(in1, {sendAnnounce(in1, std::nullopt, Domain().start(3))}); }, AllButInv9);
 }
 
 // S3.EVT.03
 TEST_F(MultiReader2Concurrency, DomainStartChangeMidStreamOnNonMainInput)
 {
-    replay([&] { return eventScript(in2, {sendAnnounce(in2, std::nullopt, Domain().start(3))}); }, AllButInv6);
+    replay([&] { return eventScript(in2, {sendAnnounce(in2, std::nullopt, Domain().start(3))}); }, AllInvariants);
 }
 
 // S3.EVT.04
 TEST_F(MultiReader2Concurrency, ValueAndDomainChangeMidStreamOnNonMainInput)
 {
-    replay([&] { return eventScript(in2, {sendAnnounce(in2, Value(SampleType::Int32), Domain().start(3))}); }, AllButInv6);
+    replay([&] { return eventScript(in2, {sendAnnounce(in2, Value(SampleType::Int32), Domain().start(3))}); }, AllInvariants);
 }
 
 // S3.EVT.05
 TEST_F(MultiReader2Concurrency, GapMidStreamOnNonMainInput)
 {
-    replay([&] { return eventScript(in2, {sendGap(in2)}, 300, 349); }, AllButInv6);
+    replay([&] { return eventScript(in2, {sendGap(in2)}, 300, 349); }, AllInvariants);
 }
 
 // S3.EVT.06
 TEST_F(MultiReader2Concurrency, NonMainPortConnectedBeforeItsFirstData)
 {
     given().ports().unconnected(in2).policy(Exclude);
-    replay([&] { return Script{{in1, sendWrite(in1, 0, 99)}, {in2, sendConnect(in2)}, {in2, sendWrite(in2, 0, 99)}}; }, AllButInv6AndInv9);
+    replay([&] { return Script{{in1, sendWrite(in1, 0, 99)}, {in2, sendConnect(in2)}, {in2, sendWrite(in2, 0, 99)}}; }, AllButInv9);
 }
 
 // S3.EVT.07
 TEST_F(MultiReader2Concurrency, DisconnectMidStreamOnNonMainPort)
 {
     given().ports().policy(Exclude);
-    replay([&] { return eventScript(in2, {sendDisconnect(in2)}, NoRest); }, AllButInv6AndInv9);
+    replay([&] { return eventScript(in2, {sendDisconnect(in2)}, NoRest); }, AllButInv9);
 }
 
 // S3.EVT.08
 TEST_F(MultiReader2Concurrency, DisconnectAndReconnectMidStreamOnNonMainPort)
 {
     given().ports();
-    replay([&] { return eventScript(in2, {sendDisconnect(in2), sendConnect(in2)}); }, AllButInv6AndInv9);
+    replay([&] { return eventScript(in2, {sendDisconnect(in2), sendConnect(in2)}); }, AllButInv9);
 }
 
 // S3.EVT.09
 TEST_F(MultiReader2Concurrency, EqualValueDescriptorResentMidStreamOnNonMainInput)
 {
-    replay([&] { return eventScript(in2, {sendAnnounce(in2, Value::same(), std::nullopt)}); }, AllButInv6);
+    replay([&] { return eventScript(in2, {sendAnnounce(in2, Value::same(), std::nullopt)}); }, AllInvariants);
 }
 
 // S3.EVT.10
 TEST_F(MultiReader2Concurrency, NullValueDescriptorMidStreamOnNonMainInput)
 {
     given().policy(Exclude);
-    replay([&] { return eventScript(in2, {sendAnnounce(in2, Value::null(), std::nullopt)}); }, AllButInv6AndInv9);
+    replay([&] { return eventScript(in2, {sendAnnounce(in2, Value::null(), std::nullopt)}); }, AllButInv9);
 }
 
 // S3.EVT.11
 TEST_F(MultiReader2Concurrency, NullDomainDescriptorMidStreamOnNonMainInput)
 {
     given().policy(Exclude);
-    replay([&] { return eventScript(in2, {sendAnnounce(in2, std::nullopt, Domain::null())}); }, AllButInv6AndInv9);
+    replay([&] { return eventScript(in2, {sendAnnounce(in2, std::nullopt, Domain::null())}); }, AllButInv9);
 }
 
 // S3.EVT.12
 TEST_F(MultiReader2Concurrency, SignalRemovedMidStreamOnNonMainInput)
 {
     given().policy(Exclude);
-    replay([&] { return eventScript(in2, {sendRemoval(in2)}, NoRest); }, AllButInv6AndInv9);
+    replay([&] { return eventScript(in2, {sendRemoval(in2)}, NoRest); }, AllButInv9);
 }
 
 // S3.EVT.13
 TEST_F(MultiReader2Concurrency, UnrelatedEventPacketMidStreamOnNonMainInput)
 {
-    replay([&] { return eventScript(in2, {sendOtherEvent(in2)}); }, AllButInv6);
+    replay([&] { return eventScript(in2, {sendOtherEvent(in2)}); }, AllInvariants);
 }
 
 // S3.LIFE.01
@@ -241,7 +241,7 @@ TEST_F(MultiReader2Concurrency, LongIngestWithReaderAliveDeliversEverySampleOnce
                 idle();
             }
         },
-        INV1 | INV2 | INV4 | INV7 | INV8 | INV9 | INV10);
+        INV1 | INV2 | INV4 | INV8 | INV9 | INV10);
     const SizeT calls = handlerCallsStarted();
     release();
     expectReleasedCleanly(calls, 0);  // idle returned and nothing writes: no call is in flight
@@ -265,7 +265,7 @@ TEST_F(MultiReader2Concurrency, ReleaseWhileHandlerCallIsScheduledDestroysReader
             pause(50);
             stopEndlessWriters();
         },
-        INV7 | INV8);
+        INV8);
     expectReleasedCleanly(callsAtRelease, 1);  // the parked call, which took the reader before the release
 }
 
@@ -293,7 +293,7 @@ TEST_F(MultiReader2Concurrency, ReleaseInsideHandlerDestroysReaderSafely)
             pause(50);
             stopEndlessWriters();
         },
-        INV7 | INV8);
+        INV8);
     expectReleasedCleanly(releaseOn, 0);  // the releasing call holds the reader, and calls never overlap
 }
 
@@ -307,14 +307,14 @@ TEST_F(MultiReader2Concurrency, IngestDuringDrainingHandlerLosesNoTrigger)
             handler([&] { drain(); });
             runScript(eachInputWrites(0, 999), concurrent);
         },
-        INV1 | INV2 | INV4 | INV5 | INV7 | INV8 | INV9 | INV10);
+        INV1 | INV2 | INV4 | INV5 | INV8 | INV9 | INV10);
 }
 
 // S3.RACE.02
 TEST_F(MultiReader2Concurrency, TenPortsWrittenInParallelDeliverEverySampleOnce)
 {
     given().ports().inputs(10);
-    replay([&] { return eachInputWrites(0, 999); }, AllButInv6);
+    replay([&] { return eachInputWrites(0, 999); }, AllInvariants);
 }
 
 // S3.RACE.03
@@ -346,7 +346,7 @@ TEST_F(MultiReader2Concurrency, LoopReadingOnUserThreadDuringIngestLosesNoSample
             }
             joinScript();
         },
-        INV1 | INV2 | INV3 | INV4 | INV5 | INV7 | INV9 | INV10);
+        INV1 | INV2 | INV3 | INV4 | INV5 | INV9 | INV10);
 }
 
 // S3.RACE.04
@@ -364,7 +364,7 @@ TEST_F(MultiReader2Concurrency, ConfigureFromHandlerDuringIngestLosesNoSamples)
                 });
             runScript(eachInputWrites(0, 999), concurrent);
         },
-        INV1 | INV2 | INV4 | INV7 | INV8 | INV9 | INV10);
+        INV1 | INV2 | INV4 | INV8 | INV9 | INV10);
 }
 
 // S3.RACE.05
@@ -388,7 +388,7 @@ TEST_F(MultiReader2Concurrency, ThrowingHandlerDuringIngestLogsAndKeepsReading)
             write(in2, 1000, 1009);
             idle();
         },
-        INV1 | INV2 | INV4 | INV7 | INV8 | INV9 | INV10);
+        INV1 | INV2 | INV4 | INV8 | INV9 | INV10);
 }
 
 // S3.RACE.06
@@ -407,7 +407,7 @@ TEST_F(MultiReader2Concurrency, ConfigureRemovingPortWhileItsWriterWritesDetache
             idle();
             expectPort(in2, Listener::None, PacketReadyNotification::None);
         },
-        INV7 | INV8);
+        INV8);
 }
 
 }

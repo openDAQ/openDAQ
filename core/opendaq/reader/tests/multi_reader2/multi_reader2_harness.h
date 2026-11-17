@@ -380,7 +380,8 @@ private:
     bool cache = false, cacheUnderError = true, componentStatus = false, warnDisconnected = false, removeDisconnected = false;
 };
 
-// Suite 3 oracle: the invariants a replay asserts
+// Suite 3 oracle: the invariants a replay asserts. INV6 (expectReleasedCleanly) and INV7 (Watchdog) always hold, so they
+// have no bit
 enum Inv : unsigned
 {
     INV1 = 1u << 1,
@@ -388,8 +389,6 @@ enum Inv : unsigned
     INV3 = 1u << 3,
     INV4 = 1u << 4,
     INV5 = 1u << 5,
-    INV6 = 1u << 6,
-    INV7 = 1u << 7,
     INV8 = 1u << 8,
     INV9 = 1u << 9,
     INV10 = 1u << 10

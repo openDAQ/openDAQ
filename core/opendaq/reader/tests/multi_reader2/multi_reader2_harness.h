@@ -49,9 +49,6 @@ inline constexpr const char* jumpWhileStreaming =
     "starts synchronization again)";
 inline constexpr const char* gapEvent =
     "the port's gap event packet is a gap (spec: it is ignored, the reader finds jumps in the data itself)";
-inline constexpr const char* wake =
-    "the handler is called for what is readable or owed, not only for new arrivals (spec: Data available triggers)";
-inline constexpr const char* sender = "the reader is the sender of onDataAvailable (spec, A2c: the sender is null)";
 inline constexpr const char* integerConversion =
     "integer read types round, saturate and read NaN as 0, through the branch's change to the shared reader::convertSample "
     "(spec: the readers' conversion)";

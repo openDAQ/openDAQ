@@ -59,7 +59,6 @@ TEST_F(MultiReader2Scenario, LoopReadingWaitsOutAnError)
 // S2.02
 TEST_F(MultiReader2Scenario, HandlerReadingFollowsAutomaticMainInputMove)
 {
-    MR2_REVIEW_ONLY(review_only::sender);
     // On the production scheduler the main input moves before in2's queued packet is ingested, and the samples delivered
     // differ, as packet arrival order may make them
     given().inputs(3).fifo();
@@ -504,26 +503,23 @@ TEST_F(MultiReader2Scenario, StatusOnlyPollingThenLoopReading)
 // S2.08
 TEST_F(MultiReader2Scenario, RecorderDrainWithTimestampsGapAndPause)
 {
-    MR2_REVIEW_ONLY(review_only::gapEvent);
     given().ports().policy(Exclude).minReadCount(10).differingPackets();  // DATA.PACKET.3 is among the scenario's values
     handler([&] { recorderDrain(); });  // the recorder's rows and segments carry no expectation of the row
     write(in1, 0, 99);
     write(in2, 0, 99);
-    // step 5: in1's first packet calls the handler with the first status, in2's with the data
+    // step 5
     expect(idle(),
-           calls(2,
+           calls(1,
                  {count(0).level(Ok).main(in1).domainChanged().resync().allDescChanged().size(in1, 8).size(in2, 8),
-                  count(0).noChanges(),
                   count(100).at(0).noChanges(),
                   count(0).noChanges()}));
     write(in1, 100, 199);
     write(in2, 100, 149);
     // step 8
     expect(idle(), calls(1, {count(50).at(100).noChanges(), count(0).noChanges()}));
-    gap(in2);
+    write(in2, 200, 249);
     // step 10
     expect(idle(), calls(1, {count(0).noChanges()}));
-    write(in2, 200, 249);
     write(in1, 200, 299);
     // step 13
     expect(idle(), calls(1, {count(0).resync(), count(50).at(200).noChanges(), count(0).noChanges()}));

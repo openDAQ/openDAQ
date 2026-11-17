@@ -48,7 +48,8 @@ def treeview_get_first_selection(treeview):
 
 def treeview_select_item(treeview, event):
     item = treeview.identify_row(event.y)
-    treeview.selection_set(item)
+    if item not in treeview.selection():
+        treeview.selection_set(item)
 
 
 def get_nearest_device(component, default=None):

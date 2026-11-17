@@ -28,7 +28,8 @@ try:
     from gui_demo.components.add_server_dialog import AddServerDialog
     from gui_demo.components.add_function_block_dialog import AddFunctionBlockDialog
     from gui_demo.components.load_instance_config_dialog import LoadInstanceConfigDialog
-    from gui_demo.components.synchronization_dialog import SynchronizationDialog
+    from gui_demo.components.synchronization_view import SynchronizationView
+    from gui_demo.components.sync_view import SyncView
     from gui_demo.components.logs_dialog import LogsDialog
     from gui_demo.app_context import AppContext
     from gui_demo import utils
@@ -40,7 +41,8 @@ except Exception as e:
     from opendaq.gui_demo.components.add_server_dialog import AddServerDialog
     from opendaq.gui_demo.components.add_function_block_dialog import AddFunctionBlockDialog
     from opendaq.gui_demo.components.load_instance_config_dialog import LoadInstanceConfigDialog
-    from opendaq.gui_demo.components.synchronization_dialog import SynchronizationDialog
+    from opendaq.gui_demo.components.synchronization_view import SynchronizationView
+    from opendaq.gui_demo.components.sync_view import SyncView
     from opendaq.gui_demo.components.logs_dialog import LogsDialog
     from opendaq.gui_demo.app_context import AppContext
     from opendaq.gui_demo import utils
@@ -55,6 +57,7 @@ class DisplayType(enum.Enum):
     TOPOLOGY = 4
     TOPOLOGY_CUSTOM_COMPONENTS = 5
     MODULES = 6
+    SYNCHRONIZATION = 7
     UNSPECIFIED = 99
 
     def from_tab_index(index):
@@ -70,6 +73,8 @@ class DisplayType(enum.Enum):
             return DisplayType.TOPOLOGY
         elif index == 5:
             return DisplayType.MODULES
+        elif index == 6:
+            return DisplayType.SYNCHRONIZATION
         return DisplayType.UNSPECIFIED
 
 class ContextParams:
@@ -114,6 +119,8 @@ class App(tk.Tk):
             self.context.connection_string = None
 
         self.modules_map = {}
+        self.sync_view = None
+        self.synchronization_rows = {}
         self._indicator_click = False
 
         self.title('openDAQ demo')
@@ -139,6 +146,7 @@ class App(tk.Tk):
         nb.add(ttk.Frame(nb), text='Function blocks')
         nb.add(ttk.Frame(nb), text='Full Topology')
         nb.add(ttk.Frame(nb), text='Modules')
+        nb.add(ttk.Frame(nb), text='Synchronization')
         nb.bind('<<NotebookTabChanged>>', self.on_tab_change)
         nb.pack(fill=tk.X, side=tk.LEFT, expand=True)
         self.nb = nb
@@ -163,6 +171,7 @@ class App(tk.Tk):
         main_frame_navigator.add(frame_navigator_for_properties)
 
         main_frame_navigator.pack(side=tk.LEFT, expand=1, fill=tk.BOTH)
+        self.main_frame_navigator = main_frame_navigator
 
         self.frame_navigator_for_properties = frame_navigator_for_properties
 
@@ -285,7 +294,7 @@ class App(tk.Tk):
 
     def handle_view_signal_preview_toggled(self):
         self.context.view_signal_preview = self._signal_preview_var.get()
-        if self.context.selected_node is not None:
+        if self.context.selected_node is not None and self.sync_view is None:
             self.right_side_panel_clear()
             self.right_side_panel_draw_node(self.context.selected_node)
             
@@ -348,6 +357,7 @@ class App(tk.Tk):
         scroll_bar.pack(fill=tk.Y, side=tk.RIGHT)
 
         parent_frame.add(frame)
+        self.tree_frame = frame
         tree.tag_configure('warning', foreground=utils.StatusColor.WARNING)
         tree.tag_configure('error', foreground=utils.StatusColor.ERROR)
         tree.tag_configure('inactive', foreground='gray')
@@ -487,9 +497,15 @@ class App(tk.Tk):
         return None
 
     def tree_update(self, new_selected_node=None):
+        if self.current_tab() == DisplayType.SYNCHRONIZATION:
+            self.sync_view_show()
+            return
+        self.sync_view_hide()
+
         self.tree_row_buttons_hide(self.tree_row_button_pool)
         self.tree_row_can_add_rows.clear()
         self.tree.delete(*self.tree.get_children())
+        self.synchronization_rows.clear()
         self.right_side_panel_clear()
 
         self.context.selected_node = new_selected_node
@@ -593,6 +609,7 @@ class App(tk.Tk):
                         item, display_type=display_type, tree_parent_id=tree_parent_id)
 
         if device is not None and display_type == DisplayType.TOPOLOGY:
+            self.tree_add_synchronization(device)
             custom_components = device.custom_components
             for item in custom_components:
                 if item.visible or self.context.view_hidden_components:
@@ -624,6 +641,9 @@ class App(tk.Tk):
             component_name = self.get_component_tree_name(component)
         elif daq.ISyncComponent.can_cast_from(component):
             icon = self.context.icons['link']
+            # Every device has one, so an empty one counts as none, unless its row shows the device's synchronization
+            skip = skip or (len(daq.ISyncComponent.cast_from(component).interfaces) == 0
+                            and self.shown_synchronization(component) is None)
         else:  # skipping unknown type components
             skip = not show_unknown
 
@@ -642,6 +662,35 @@ class App(tk.Tk):
             
             self.tree.insert(parent_node_id, tk.END, iid=component_node_id, image=icon,
                              text=self._format_tree_item_text(component_name), open=is_open, values=(component_node_id,), tags=(status_string,))
+
+    def tree_add_synchronization(self, device):
+        # The synchronization is a property of the device, not a component, so its row is keyed by the
+        # property name and placed after the deprecated sync component
+        if self.device_synchronization(device) is None or not self.tree.exists(device.global_id):
+            return
+        iid = f'{device.global_id}/daqSynchronization'
+        sync_component = f'{device.global_id}/Synchronization'
+        index = self.tree.index(sync_component) + 1 if self.tree.exists(sync_component) else tk.END
+        self.tree.insert(device.global_id, index, iid=iid, image=self.context.icons['link'],
+                         text=self._format_tree_item_text('Synchronization'), values=(iid,))
+        self.synchronization_rows[iid] = device
+
+    @staticmethod
+    def device_synchronization(device):
+        try:
+            return daq.IDevice.cast_from(device).synchronization
+        except RuntimeError:
+            return None
+
+    def shown_synchronization(self, node):
+        # Outside the full topology a sync component row shows the device's synchronization instead, when
+        # that has more than the local clock, the default with nothing to configure
+        if self.current_tab() == DisplayType.TOPOLOGY or not daq.ISyncComponent.can_cast_from(node):
+            return None
+        synchronization = self.device_synchronization(node.parent)
+        if synchronization is None or all(i.sync_type == 'local' for i in synchronization.interfaces.values()):
+            return None
+        return synchronization
 
     DEFAULT_FOLDER_NAMES = frozenset(('Sig', 'FB', 'Dev', 'IP', 'IO', 'Srv'))
 
@@ -687,6 +736,9 @@ class App(tk.Tk):
                 mode = self.operation_mode_to_string(device.operation_mode)
                 if mode:
                     component_name = f'{component_name} | {mode}'
+        elif daq.ISyncComponent.can_cast_from(component) and self.current_tab() == DisplayType.TOPOLOGY:
+            # The full topology shows it beside the device's synchronization
+            component_name = f'{component_name} (deprecated)'
         return component_name
 
     def _build_component_state_labels(self, component, tags):
@@ -1110,16 +1162,12 @@ class App(tk.Tk):
         remove = [] if device.global_id == self.context.instance.global_id else [
             ('Remove', 'trash',
              lambda: self.handle_tree_menu_remove_device(device))]
-        synchronization = [] if device.synchronization is None else [
-            ('Get synchronization', 'link',
-             lambda: self.handle_show_synchronization(device))]
         return [add_items,
                 [('Lock', 'lock', lambda: self.handle_lock(device.global_id)),
                  ('Unlock', 'unlock',
                   lambda: self.handle_unlock(device.global_id))],
                 self.menu_update_items(node),
                 self.menu_property_items(node),
-                synchronization,
                 remove]
 
     def menu_server_groups(self, node):
@@ -1142,6 +1190,10 @@ class App(tk.Tk):
                 return self.menu_device_groups(node, add_items)
             if daq.IServer.can_cast_from(node):
                 return self.menu_server_groups(node)
+            # The row shows the device's synchronization, which the sync component's update and clear
+            # actions would not reach
+            if self.shown_synchronization(node) is not None:
+                return []
         return [self.menu_update_items(node), self.menu_property_items(node)]
 
     def create_node_menu(self, node, include_add=True):
@@ -1162,6 +1214,8 @@ class App(tk.Tk):
             return
 
         iid = utils.treeview_get_first_selection(self.tree)
+        if iid in self.synchronization_rows:
+            return
         node = utils.find_component(iid, self.context.instance) if iid else None
 
         popup = self.create_node_menu(node)
@@ -1207,6 +1261,10 @@ class App(tk.Tk):
         if found is None:
             return
         if not found.visible and not self.context.view_hidden_components:
+            return
+
+        if self.shown_synchronization(found) is not None:
+            SynchronizationView(self.right_side_panel, found.parent, self.context).pack(fill=tk.BOTH, expand=True)
             return
 
         block_view = BlockView(self.right_side_panel, found, self.context)
@@ -1374,6 +1432,13 @@ class App(tk.Tk):
             self.right_side_panel_draw_module(selected_iid)
             return
 
+        device = self.synchronization_rows.get(selected_iid)
+        if device is not None:
+            self.context.selected_node = None
+            self.right_side_panel_clear()
+            SynchronizationView(self.right_side_panel, device, self.context).pack(fill=tk.BOTH, expand=True)
+            return
+
         item = self.tree.item(selected_iid)
         # WA for IDs with spaces
         node_unique_id = ' '.join(str(val) for val in item['values'])
@@ -1432,15 +1497,21 @@ class App(tk.Tk):
         prop_obj.clear_property_values()
         self.tree_update(self.context.selected_node)
 
-    def handle_show_synchronization(self, node):
-        synchronization = node.synchronization
-        if synchronization is None:
+    def sync_view_show(self):
+        if self.sync_view is not None:
+            self.sync_view.refresh()
             return
+        self.right_side_panel_clear()
+        self.sync_view = SyncView(self.right_side_panel, self.context)
+        self.sync_view.pack(fill=tk.BOTH, expand=True)
+        self.main_frame_navigator.forget(self.tree_frame)
 
-        if daq.IPropertyObject.can_cast_from(synchronization):
-            synchronization = daq.IPropertyObject.cast_from(synchronization)
-
-        SynchronizationDialog(self, node, synchronization, self.context).show()
+    def sync_view_hide(self):
+        if self.sync_view is None:
+            return
+        self.sync_view.destroy()
+        self.sync_view = None
+        self.main_frame_navigator.insert(0, self.tree_frame)
 
     # MARK: - Other
 

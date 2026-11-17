@@ -43,11 +43,11 @@ BEGIN_NAMESPACE_OPENDAQ
  *
  * The transport the streaming connects over is one of the config's transport options. For a Streaming type with
  * options, the config's `TransportOption` property holds the id of the selected option, and its selection values are
- * the ids of the options. The `Port` property is the port of the selected option until it is set. setTransportOption
- * clears a port set before; writing the `TransportOption` property does not. When the streaming is created, the module
- * gets both as the "TransportOption" and "Port" properties of the type config (see `TransportOptionConfigProperty` and
- * `PortConfigProperty`). Unless getPort differs from the port of the selected option, the streaming connects at the
- * port the server of the added device announces for the option.
+ * the ids of the options. The `Port` property is the port of the selected option until it is set; a port set overrides
+ * the port of whichever option is selected, until setPort is called with null. When the streaming is created, the
+ * module gets both as the "TransportOption" and "Port" properties of the type config (see
+ * `TransportOptionConfigProperty` and `PortConfigProperty`). Unless getPort differs from the port of the selected
+ * option, the streaming connects at the port the server of the added device announces for the option.
  */
 DECLARE_OPENDAQ_INTERFACE(IAddStreamingConfig, IBaseObject)
 {
@@ -81,7 +81,7 @@ DECLARE_OPENDAQ_INTERFACE(IAddStreamingConfig, IBaseObject)
      * @retval OPENDAQ_ERR_NOT_SUPPORTED for a Streaming type without transport options.
      * @retval OPENDAQ_ERR_NOTFOUND if none of the options has that id.
      *
-     * A port set before is dropped: getPort then gives the port of the option.
+     * A port set by setPort is kept and overrides the port of the newly selected option.
      */
     virtual ErrCode INTERFACE_FUNC setTransportOption(IString* id) = 0;
 
@@ -95,7 +95,8 @@ DECLARE_OPENDAQ_INTERFACE(IAddStreamingConfig, IBaseObject)
 
     /*!
      * @brief Sets the port the streaming connects to.
-     * @param port The port, used instead of the one the selected option lists.
+     * @param port The port, used instead of the one the selected option lists whichever option is selected; null to
+     * use the port of the selected option again.
      * @retval OPENDAQ_ERR_NOT_SUPPORTED for a Streaming type without transport options.
      * @retval OPENDAQ_ERR_INVALIDPARAMETER for a negative port.
      */

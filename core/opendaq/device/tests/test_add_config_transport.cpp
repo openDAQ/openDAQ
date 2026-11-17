@@ -116,19 +116,20 @@ TEST_F(AddConfigTransportTest, SelectionProperties)
     ASSERT_EQ(config.getPort(), 9000);
     ASSERT_TRUE(SavesPort(config));
 
-    // Unlike setTransportOption, writing the property keeps the port set
+    // Like setTransportOption, writing the property keeps the port set
     properties.setPropertyValue("TransportOption", "tls");
     ASSERT_EQ(config.getPort(), 9000);
 
     config.setTransportOption("plain");
     ASSERT_EQ(properties.getPropertyValue("TransportOption"), "plain");
-    ASSERT_EQ(properties.getPropertyValue("Port"), 7420);
+    ASSERT_EQ(properties.getPropertyValue("Port"), 9000);
 
     ASSERT_ANY_THROW(properties.setPropertyValue("TransportOption", "wss"));
     ASSERT_EQ(config.getSelectedTransportOption().getId(), "plain");
 }
 
-TEST_F(AddConfigTransportTest, SetTransportOptionDropsPortSetBefore)
+// The options give the default port; a port set overrides it whichever option is selected
+TEST_F(AddConfigTransportTest, SetTransportOptionKeepsPortSetBefore)
 {
     const auto config = CreateConfig();
 
@@ -138,16 +139,32 @@ TEST_F(AddConfigTransportTest, SetTransportOptionDropsPortSetBefore)
 
     config.setTransportOption("plain");
     ASSERT_EQ(config.getSelectedTransportOption().getId(), "plain");
-    ASSERT_EQ(config.getPort(), 7420);
-    ASSERT_FALSE(SavesPort(config));
-
-    config.setPort(9000);
-    ASSERT_EQ(config.getPort(), 9000);
     ASSERT_EQ(config.getSelectedTransportOption().getPort(), 7420);
+    ASSERT_EQ(config.getPort(), 9000);
+    ASSERT_TRUE(SavesPort(config));
 
     // The type config is not touched
     ASSERT_FALSE(config.getTypeConfig().hasProperty(TransportOptionConfigProperty));
     ASSERT_EQ(config.getTypeConfig().getPropertyValue(PortConfigProperty), 7000);
+}
+
+// A null port drops the port set, so the port of the selected option applies again
+TEST_F(AddConfigTransportTest, SetPortNullUsesTheOptionPortAgain)
+{
+    const auto config = CreateConfig();
+    config.setPort(9000);
+    config.setPort(nullptr);
+    ASSERT_EQ(config.getPort(), 7421);
+    ASSERT_FALSE(SavesPort(config));
+
+    config.setTransportOption("plain");
+    ASSERT_EQ(config.getPort(), 7420);
+
+    const auto streamingConfig = AddStreamingConfig(CreateStreamingType());
+    streamingConfig.setPort(9000);
+    streamingConfig.setPort(nullptr);
+    ASSERT_EQ(streamingConfig.getPort(), 7421);
+    ASSERT_FALSE(SavesPort(streamingConfig));
 }
 
 TEST_F(AddConfigTransportTest, InvalidSelection)

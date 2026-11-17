@@ -55,9 +55,9 @@ enum class AddressType : EnumType
  *
  * The transport the device is added over is one of the config's transport options. For a Device type with options, the
  * config's `TransportOption` property holds the id of the selected option, and its selection values are the ids of the
- * options. The `Port` property is the port of the selected option until it is set. setTransportOption clears a port set
- * before; writing the `TransportOption` property does not. When the device is added, the module gets both as the
- * "TransportOption" and "Port" properties of the type config (see `TransportOptionConfigProperty` and
+ * options. The `Port` property is the port of the selected option until it is set; a port set overrides the port of
+ * whichever option is selected, until setPort is called with null. When the device is added, the module gets both as
+ * the "TransportOption" and "Port" properties of the type config (see `TransportOptionConfigProperty` and
  * `PortConfigProperty`). Unless getPort differs from the port of the selected option, the device is connected at the
  * port its server announces for the option, when discovery reports the device. Adding the device with the config fails
  * with OPENDAQ_ERR_INVALIDPARAMETER when the connection string names a port that is neither the one the device is
@@ -130,7 +130,7 @@ DECLARE_OPENDAQ_INTERFACE(IAddDeviceConfig, IBaseObject)
      * @retval OPENDAQ_ERR_NOT_SUPPORTED for a Device type without transport options.
      * @retval OPENDAQ_ERR_NOTFOUND if none of the options has that id.
      *
-     * A port set before is dropped: getPort then gives the port of the option.
+     * A port set by setPort is kept and overrides the port of the newly selected option.
      */
     virtual ErrCode INTERFACE_FUNC setTransportOption(IString* id) = 0;
 
@@ -144,7 +144,8 @@ DECLARE_OPENDAQ_INTERFACE(IAddDeviceConfig, IBaseObject)
 
     /*!
      * @brief Sets the port the device is added on.
-     * @param port The port, used instead of the one the selected option lists.
+     * @param port The port, used instead of the one the selected option lists whichever option is selected; null to
+     * use the port of the selected option again.
      * @retval OPENDAQ_ERR_NOT_SUPPORTED for a Device type without transport options.
      * @retval OPENDAQ_ERR_INVALIDPARAMETER for a negative port.
      */

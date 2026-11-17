@@ -344,12 +344,8 @@ ErrCode AddDeviceConfigImpl::setTransportOption(IString* id)
         if (!transportOptions.hasKey(idStr))
             return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOTFOUND, fmt::format(R"(There is no transport option "{}" to select)", idStr));
 
-        auto lock = getRecursiveConfigLock2();
-        checkErrorInfo(Super::setPropertyValue(String(add_device_config::TransportOption), idStr));
-
-        // The port of the newly selected option applies
-        checkErrorInfo(Super::clearPropertyValue(String(add_device_config::Port)));
-        return OPENDAQ_SUCCESS;
+        // A port set stays: it overrides the port of whichever option is selected
+        return Super::setPropertyValue(String(add_device_config::TransportOption), idStr);
     });
 }
 
@@ -373,10 +369,12 @@ ErrCode AddDeviceConfigImpl::getSelectedTransportOption(ITransportOption** trans
 
 ErrCode AddDeviceConfigImpl::setPort(IInteger* port)
 {
-    OPENDAQ_PARAM_NOT_NULL(port);
-
     if (transportOptions.getCount() == 0)
         return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOT_SUPPORTED, "The Device type has no transport options");
+
+    // A null port drops the one set, so the port of the selected option applies again
+    if (port == nullptr)
+        return Super::clearPropertyValue(String(add_device_config::Port));
 
     if (static_cast<Int>(IntegerPtr(port)) < 0)
         return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_INVALIDPARAMETER, "The port must not be negative");

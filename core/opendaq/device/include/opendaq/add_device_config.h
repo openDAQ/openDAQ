@@ -56,14 +56,23 @@ enum class AddressType : EnumType
  * The transport the device is added over is one of the config's transport options. For a Device type with options, the
  * config's `TransportOption` property holds the id of the selected option, and its selection values are the ids of the
  * options. The `Port` property is the port of the selected option until it is set; a port set overrides the port of
- * whichever option is selected, until setPort is called with null. When the device is added, the module gets both as
- * the "TransportOption" and "Port" properties of the type config (see `TransportOptionConfigProperty` and
- * `PortConfigProperty`). Unless getPort differs from the port of the selected option, the device is connected at the
- * port its server announces for the option, when discovery reports the device. Adding the device with the config fails
- * with OPENDAQ_ERR_INVALIDPARAMETER when the connection string names a port that is neither the one the device is
- * connected at nor the port of an option the config lists or the discovered server announces, and when its prefix
- * belongs to another Device type. A `daq://` connection string stands for the discovered server capability of the
- * Device type.
+ * whichever option is selected, until setPort is called with null.
+ *
+ * When the device is added, it is connected at the first of these ports:
+ * - the port set on the config, by setPort or by writing the `Port` property. For a device info without a server
+ *   capability for the Device type, createAddDeviceConfig sets the port its connection string names;
+ * - the port the server announces for the selected option, when discovery reports the device;
+ * - the port of the selected option, as getAvailableTransportOptions lists it.
+ *
+ * A port set counts only when it differs from the port of the selected option. The module gets the selected option and
+ * that port as the "TransportOption" and "Port" properties of the type config (see `TransportOptionConfigProperty` and
+ * `PortConfigProperty`), in place of a port its own default config declares, and a connection string that names the
+ * same port.
+ *
+ * Adding the device with the config fails with OPENDAQ_ERR_INVALIDPARAMETER when the connection string names a port
+ * that is neither the one the device is connected at nor the port of an option the config lists or the discovered
+ * server announces, and when its prefix belongs to another Device type. A `daq://` connection string stands for the
+ * discovered server capability of the Device type.
  */
 DECLARE_OPENDAQ_INTERFACE(IAddDeviceConfig, IBaseObject)
 {
@@ -152,10 +161,15 @@ DECLARE_OPENDAQ_INTERFACE(IAddDeviceConfig, IBaseObject)
     virtual ErrCode INTERFACE_FUNC setPort(IInteger* port) = 0;
 
     /*!
-     * @brief Gets the port the device is added on, unless discovery reports another port for the selected option
-     * (see the class description).
-     * @param[out] port The port of the selected option, or the one set by setPort.
+     * @brief Gets the port the device is added on.
+     * @param[out] port The port set by setPort. Otherwise the port of the selected transport option: the one the
+     * device info's server capability announces for it, or the Device type's default port when the device info has
+     * no such capability.
      * @retval OPENDAQ_ERR_NOT_SUPPORTED for a Device type without transport options.
+     *
+     * For a device info without a server capability for the Device type, createAddDeviceConfig sets the port its
+     * connection string names. Unless a port is set, the device is connected at the port discovery reports for the
+     * selected option when it reports another one (see the class description).
      */
     virtual ErrCode INTERFACE_FUNC getPort(IInteger** port) = 0;
 };

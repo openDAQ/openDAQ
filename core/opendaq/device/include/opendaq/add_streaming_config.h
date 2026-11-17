@@ -44,10 +44,17 @@ BEGIN_NAMESPACE_OPENDAQ
  * The transport the streaming connects over is one of the config's transport options. For a Streaming type with
  * options, the config's `TransportOption` property holds the id of the selected option, and its selection values are
  * the ids of the options. The `Port` property is the port of the selected option until it is set; a port set overrides
- * the port of whichever option is selected, until setPort is called with null. When the streaming is created, the
- * module gets both as the "TransportOption" and "Port" properties of the type config (see
- * `TransportOptionConfigProperty` and `PortConfigProperty`). Unless getPort differs from the port of the selected
- * option, the streaming connects at the port the server of the added device announces for the option.
+ * the port of whichever option is selected, until setPort is called with null.
+ *
+ * When the streaming is created, it connects at the first of these ports:
+ * - the port set on the config, by setPort or by writing the `Port` property;
+ * - the port the server of the added device announces for the selected option;
+ * - the port of the selected option, as getAvailableTransportOptions lists it.
+ *
+ * A port set counts only when it differs from the port of the selected option. The module gets the selected option and
+ * that port as the "TransportOption" and "Port" properties of the type config (see `TransportOptionConfigProperty` and
+ * `PortConfigProperty`), in place of a port its own default config declares, and a connection string that names the
+ * same port.
  */
 DECLARE_OPENDAQ_INTERFACE(IAddStreamingConfig, IBaseObject)
 {
@@ -103,10 +110,14 @@ DECLARE_OPENDAQ_INTERFACE(IAddStreamingConfig, IBaseObject)
     virtual ErrCode INTERFACE_FUNC setPort(IInteger* port) = 0;
 
     /*!
-     * @brief Gets the port the streaming connects to, unless discovery reports another port for the selected option
-     * (see the class description).
-     * @param[out] port The port of the selected option, or the one set by setPort.
+     * @brief Gets the port the streaming connects to.
+     * @param[out] port The port set by setPort. Otherwise the port of the selected transport option: the one the
+     * device info's server capability announces for it, or the Streaming type's default port when there is no such
+     * capability.
      * @retval OPENDAQ_ERR_NOT_SUPPORTED for a Streaming type without transport options.
+     *
+     * Unless a port is set, the streaming connects at the port the server of the added device announces for the
+     * selected option when it announces another one (see the class description).
      */
     virtual ErrCode INTERFACE_FUNC getPort(IInteger** port) = 0;
 };

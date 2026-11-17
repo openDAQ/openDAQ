@@ -26,6 +26,8 @@
 #include <coretypes/stringobject.h>
 #include <numeric>
 #include <cctype>
+#include <cstdio>
+#include <vector>
 
 #include "xxhash.h"
 
@@ -129,13 +131,23 @@ ErrCode static createErrorInfoObjectWithSource(IErrorInfo** errorInfo, IBaseObje
         }
         else
         {
+            // Formats on the stack; a longer message is formatted again on the heap, so any length is kept whole
             char errorMsg[1024];
-#if defined(__STDC_SECURE_LIB__) || defined(__STDC_LIB_EXT1__)
-            sprintf_s(errorMsg, sizeof(errorMsg) / sizeof(char), message.c_str(), params...);
-#else
-            snprintf(errorMsg, sizeof(errorMsg) / sizeof(char), message.c_str(), params...);
-#endif
-            err = createString(&msg, errorMsg);
+            const int length = std::snprintf(errorMsg, sizeof(errorMsg), message.c_str(), params...);
+            if (length < 0)
+            {
+                err = createString(&msg, message.c_str());
+            }
+            else if (static_cast<size_t>(length) < sizeof(errorMsg))
+            {
+                err = createString(&msg, errorMsg);
+            }
+            else
+            {
+                std::vector<char> longErrorMsg(static_cast<size_t>(length) + 1);
+                std::snprintf(longErrorMsg.data(), longErrorMsg.size(), message.c_str(), params...);
+                err = createString(&msg, longErrorMsg.data());
+            }
         }
     }
 

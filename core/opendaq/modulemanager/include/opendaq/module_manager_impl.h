@@ -88,8 +88,8 @@ private:
 
     DeviceInfoPtr getSmartConnectionDeviceInfo(const StringPtr& inputConnectionString) const;
     DeviceInfoPtr getDiscoveredDeviceInfo(const DeviceInfoPtr& deviceInfo) const;
-    StringPtr getConnectionStringWithType(const ServerCapabilityPtr& capability, const StringPtr& primaryAddressType) const;
-    StringPtr resolveSmartConnectionString(const ServerCapabilityPtr& selectedCapability, const StringPtr& primaryAddressType) const;
+    StringPtr getConnectionStringWithType(const ServerCapabilityPtr& capability, AddressType primaryAddressType) const;
+    StringPtr resolveSmartConnectionString(const ServerCapabilityPtr& selectedCapability, AddressType primaryAddressType) const;
     DeviceTypePtr getDeviceTypeFromConnectionString(const StringPtr& connectionString, const ModulePtr& module) const;
     DeviceTypePtr chooseDeviceType(const DeviceInfoPtr& info,
                                    const StringPtr& prefix,

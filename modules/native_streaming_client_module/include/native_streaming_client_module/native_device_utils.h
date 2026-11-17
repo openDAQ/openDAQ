@@ -16,6 +16,8 @@
 
 #pragma once
 #include <native_streaming_client_module/common.h>
+#include <opendaq/add_device_config_ptr.h>
+#include <opendaq/address_info_utils.h>
 #include <opendaq/device_info_factory.h>
 #include <coreobjects/property_object_ptr.h>
 #include <coretypes/listobject_factory.h>
@@ -25,7 +27,7 @@ BEGIN_NAMESPACE_OPENDAQ_NATIVE_STREAMING_CLIENT_MODULE
 /*!
  * Builds a list of reachable alternative addresses from the given server capability.
  *
- * Reads the optional "General.PrimaryAddressType" field from @p config.
+ * Reads `PrimaryAddressType` from @p config when it is an add device config.
  * Addresses of that type come first, followed by the others in their original order.
  * Addresses with AddressReachabilityStatus::Unreachable are always excluded.
  *
@@ -57,17 +59,10 @@ inline ErrCode collectAlternativeAddresses(const PropertyObjectPtr& config,
     if (!addressInfos.assigned() || addressInfos.getCount() < 2)
         return OPENDAQ_IGNORED;
 
+    const AddDeviceConfigPtr addDeviceConfig = config.assigned() ? config.asPtrOrNull<IAddDeviceConfig>(true) : nullptr;
     StringPtr primaryAddressType;
-    if (config.assigned() && config.hasProperty("General"))
-    {
-        const PropertyObjectPtr generalConfig = config.getPropertyValue("General");
-        if (generalConfig.hasProperty("PrimaryAddressType"))
-        {
-            const StringPtr candidate = generalConfig.getPropertyValue("PrimaryAddressType");
-            if (candidate.getLength())
-                primaryAddressType = candidate;
-        }
-    }
+    if (addDeviceConfig.assigned())
+        primaryAddressType = getAddressTypeName(addDeviceConfig.getPrimaryAddressType());
 
     auto addresses = List<IString>();
     auto otherAddresses = List<IString>();

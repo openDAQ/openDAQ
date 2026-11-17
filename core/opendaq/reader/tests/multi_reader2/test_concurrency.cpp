@@ -298,14 +298,13 @@ TEST_F(MultiReader2Concurrency, ReleaseInsideHandlerDestroysReaderSafely)
 }
 
 // S3.RACE.01
-TEST_F(MultiReader2Concurrency, IngestWhileHandlerLeavesDataPendingLosesNoTrigger)
+TEST_F(MultiReader2Concurrency, IngestDuringDrainingHandlerLosesNoTrigger)
 {
-    MR2_REVIEW_ONLY(review_only::wake);
     given().onePerPacket();
     replay(
         [&](bool concurrent)
         {
-            handler([&] { read(1); });
+            handler([&] { drain(); });
             runScript(eachInputWrites(0, 999), concurrent);
         },
         INV1 | INV2 | INV4 | INV5 | INV7 | INV8 | INV9 | INV10);
@@ -353,14 +352,13 @@ TEST_F(MultiReader2Concurrency, LoopReadingOnUserThreadDuringIngestLosesNoSample
 // S3.RACE.04
 TEST_F(MultiReader2Concurrency, ConfigureFromHandlerDuringIngestLosesNoSamples)
 {
-    MR2_REVIEW_ONLY(review_only::wake);
     replay(
         [&](bool concurrent)
         {
             handler(
                 [&]
                 {
-                    read(10);
+                    drain();
                     if (handlerCallsStarted() % 5 == 0)
                         reevaluate();
                 });

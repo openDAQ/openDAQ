@@ -205,14 +205,15 @@ class AddDeviceDialog(Dialog):
     def selection_draw(self):
         self.wrapped = []
         self.header_parts = None
-        for child in self.info_frame.winfo_children():
-            child.destroy()
+        # the details are drawn into a new frame while the old one still shows, then swapped in at once
+        old = self.info_frame.winfo_children()
+        holder = ttk.Frame(self.info_frame, style='AddDevicePanel.TFrame')
         infos = self.selected_infos()
         # several devices draw edge to edge, for the lines between their rows; the rest inside the margin
         if len(infos) > 1:
-            self.content = self.info_frame
+            self.content = holder
         else:
-            self.content = ttk.Frame(self.info_frame, style='AddDevicePanel.TFrame', padding=(PANEL_PAD, 0))
+            self.content = ttk.Frame(holder, style='AddDevicePanel.TFrame', padding=(PANEL_PAD, 0))
             self.content.pack(fill=tk.BOTH, expand=True)
         try:
             self.options = self.current_options()
@@ -230,9 +231,11 @@ class AddDeviceDialog(Dialog):
         else:
             ttk.Label(self.content, text='Select one or more devices, or type a connection string',
                       style='AddDeviceMuted.TLabel', wraplength=300).pack(anchor=tk.W, pady=(8, 0))
-
-        for child in self.connect_rows_frame.winfo_children():
+        holder.pack(fill=tk.BOTH, expand=True)
+        for child in old:
             child.destroy()
+
+        old = self.connect_rows_frame.winfo_children()
         if len(self.options) == 1:
             rows = connect_row_data(self.options[0])
         else:
@@ -249,6 +252,8 @@ class AddDeviceDialog(Dialog):
                              state='readonly' if rows else 'disabled')
         combo.bind('<<ComboboxSelected>>', lambda e: self.handle_connect_selected(var.get()))
         combo.pack(fill=tk.X)
+        for child in old:
+            child.destroy()
         self.handle_connect_selected(self.connect_value)
 
     def info_one_draw(self, info):

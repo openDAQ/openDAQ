@@ -291,17 +291,15 @@ class AddConfigDialog(Dialog):
         self.header.pack(fill=tk.X, pady=(5, 10))
 
         # three columns: Connection and Login, Streaming, the settings tree
-        body = ttk.Frame(self)
-        body.pack(fill=tk.BOTH, expand=True)
+        self.body = ttk.Frame(self)
+        self.body.pack(fill=tk.BOTH, expand=True)
         for column in range(3):
-            body.columnconfigure(column, weight=1, uniform='third')
-        body.rowconfigure(0, weight=1)
-        self.left = ttk.Frame(body)
-        self.left.grid(row=0, column=0, sticky=tk.NSEW, padx=(0, 5))
-        self.middle = ttk.Frame(body)
-        self.middle.grid(row=0, column=1, sticky=tk.NSEW, padx=5)
-        self.right = ttk.Frame(body)
-        self.right.grid(row=0, column=2, sticky=tk.NSEW, padx=(5, 0))
+            self.body.columnconfigure(column, weight=1, uniform='third')
+        self.body.rowconfigure(0, weight=1)
+        self.left = self.middle = self.right = None
+        # what the Connect with rows and the settings column show; each is rebuilt only when it changes
+        self.header_key = None
+        self.settings_key = None
 
         self.refresh()
 
@@ -311,26 +309,39 @@ class AddConfigDialog(Dialog):
 
     # MARK: - Drawing
     def refresh(self):
-        self.header_draw()
-        for frame in (self.left, self.middle, self.right):
-            for child in frame.winfo_children():
-                child.destroy()
+        rows = connect_row_data(self.p)
+        if (rows, self.p.row.type_id) != self.header_key:
+            self.header_key = (rows, self.p.row.type_id)
+            self.header_draw(rows)
+        # the cards are drawn into new columns while the old ones still show, then swapped in at once
+        # the device's settings tree stays as it is until another Connect with row gives a new config
+        redraw_settings = self.settings_key is not self.cfg
+        old = [self.left, self.middle] + ([self.right] if redraw_settings else [])
+        self.left, self.middle = ttk.Frame(self.body), ttk.Frame(self.body)
+        if redraw_settings:
+            self.settings_key = self.cfg
+            self.right = ttk.Frame(self.body)
+            self.settings_draw()
         self.connection_card_draw()
-        self.settings_draw()
         self.streaming_card_draw()
         self.login_card_draw()
+        for column, (frame, padx) in enumerate(zip((self.left, self.middle, self.right), ((0, 5), 5, (5, 0)))):
+            frame.grid(row=0, column=column, sticky=tk.NSEW, padx=padx)
+        for frame in old:
+            if frame is not None:
+                frame.destroy()
         self.status_update()
 
-    def header_draw(self):
-        for child in self.header.winfo_children():
-            child.destroy()
+    def header_draw(self, rows):
+        old = self.header.winfo_children()
         inner = tk.Frame(self.header, background=WHITE)
-        inner.pack(fill=tk.X, padx=12, pady=8)
         tk.Label(inner, text='Connect with', background=WHITE, font=('TkDefaultFont', 10, 'bold')).pack(
             anchor=tk.W, pady=(0, 6))
-        rows = ConnectList(inner, connect_row_data(self.p), self.p.row.type_id, self.connect_selected,
-                           ('mark', 'type', 'kind', 'accepts', 'address', 'reachable'), self.context.dpi_factor)
-        rows.pack(fill=tk.X)
+        ConnectList(inner, rows, self.p.row.type_id, self.connect_selected,
+                    ('mark', 'type', 'kind', 'accepts', 'address', 'reachable'), self.context.dpi_factor).pack(fill=tk.X)
+        inner.pack(fill=tk.X, padx=12, pady=8)
+        for child in old:
+            child.destroy()
 
     def connection_card_draw(self):
         cfg = self.cfg
@@ -344,21 +355,17 @@ class AddConfigDialog(Dialog):
         has_addresses = self.p.row.capability is not None and len(self.p.row.capability.address_info) > 0
         card.combo('Address', ADDRESS_TYPES, cfg.primary_address_type.name, self.address_changed,
                    'readonly' if has_addresses else 'disabled')
-        self.transport_draw(card, 'device', cfg.type_config, helpers.DEVICE_TRANSPORT, self.p.row.transports)
+        self.transport_draw(card, 'device', cfg.type_config, helpers.DEVICE_TRANSPORT)
         card.check('Scan the network before connecting', cfg.scan_on_add, self.scan_changed)
 
-    def transport_draw(self, card, key, type_config, name, announced):
+    def transport_draw(self, card, key, type_config, name):
         """Transport and Port of a device or streaming type config."""
         selection = helpers.transport_config(type_config, name)
         if selection is None:
             card.combo('Transport', [], '', lambda v: None, 'disabled')
-            card.note('The type lists no transports')
         else:
             card.combo('Transport', helpers.transport_names(selection), selection.transport,
                        lambda v: self.transport_changed(selection, v))
-            port = announced.get(selection.transport)
-            if port:
-                card.note(f'Announced on port {port}')
 
         override = helpers.port_override(type_config)
         if override is not None:
@@ -437,21 +444,27 @@ class AddConfigDialog(Dialog):
         card.combo('Streaming', labels, streaming_id, self.streaming_changed)
         if streaming is None:
             return
-        if helpers.linked(cfg, streaming):
-            card.note("Linked to the device's type: its settings start as the device's")
-        capability = next((c for c in helpers.capabilities_of(self.p.info)
-                           if c.prefix == streaming.streaming_type.connection_string_prefix), None)
-        announced = dict(capability.available_transports.items()) if capability is not None else {}
-        self.transport_draw(card, 'streaming', streaming.type_config, helpers.STREAMING_TRANSPORT, announced)
+        self.transport_draw(card, 'streaming', streaming.type_config, helpers.STREAMING_TRANSPORT)
+
+        # the streaming's own settings belong to the streaming choice, so they fill the rest of its card
+        config = streaming.type_config
+        frame = ttk.Frame(card.body, style='AddConfigCard.TFrame')
+        frame.grid(row=card.row, column=0, columnspan=2, sticky=tk.NSEW, pady=(10, 0))
+        card.body.rowconfigure(card.row, weight=1)
+        card.row += 1
+        ttk.Label(frame, text=f'{streaming.streaming_type.id} settings', style='AddConfigCard.TLabel',
+                  font=('TkDefaultFont', 9, 'bold')).pack(anchor=tk.W, pady=(0, 4))
+        if config is None or len(config.visible_properties) == 0:
+            ttk.Label(frame, text='No settings', style='AddConfigMuted.TLabel').pack(anchor=tk.W)
+        else:
+            PropertiesTreeview(frame, config, self.context, hidden=HIDDEN_SETTINGS + ['Port'],
+                               style='AddConfigSettings.Treeview').pack(fill=tk.BOTH, expand=True)
 
     def settings_draw(self):
         cfg = self.cfg
         card = tk.Frame(self.right, background=WHITE, highlightthickness=1, highlightbackground=CARD_BORDER)
         card.pack(fill=tk.BOTH, expand=True)
         sections = [(f'Configure {self.p.row.type_id} connection', cfg.type_config)]
-        streaming = helpers.selected_streaming(cfg)
-        if streaming is not None and streaming.type_config is not None:
-            sections.append((f'{streaming.streaming_type.id} settings', streaming.type_config))
         for index, (title, config) in enumerate(sections):
             if index > 0:
                 tk.Frame(card, height=1, background=CARD_BORDER).pack(fill=tk.X)

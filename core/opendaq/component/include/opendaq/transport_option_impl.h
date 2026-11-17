@@ -27,16 +27,16 @@
 
 BEGIN_NAMESPACE_OPENDAQ
 
-// An immutable transport option, serialized as a tagged object with its protection as a string. A server capability
+// An immutable transport option, serialized as a tagged object with its security mode as a string. A server capability
 // does not hold it as it is: it keeps each option as a plain Property object, which any peer reads.
 class TransportOptionImpl final : public ImplementationOf<ITransportOption, ISerializable>
 {
 public:
-    TransportOptionImpl(const StringPtr& id, const IntegerPtr& port, TransportProtection protection, Bool certificateRequired);
+    TransportOptionImpl(const StringPtr& id, const IntegerPtr& port, SecurityMode securityMode, Bool certificateRequired);
 
     ErrCode INTERFACE_FUNC getId(IString** id) override;
     ErrCode INTERFACE_FUNC getPort(IInteger** port) override;
-    ErrCode INTERFACE_FUNC getProtection(TransportProtection* protection) override;
+    ErrCode INTERFACE_FUNC getSecurityMode(SecurityMode* securityMode) override;
     ErrCode INTERFACE_FUNC getCertificateRequired(Bool* required) override;
 
     ErrCode INTERFACE_FUNC serialize(ISerializer* serializer) override;
@@ -47,7 +47,7 @@ public:
 private:
     StringPtr id;
     IntegerPtr port;
-    TransportProtection protection;
+    SecurityMode securityMode;
     Bool certificateRequired;
 };
 

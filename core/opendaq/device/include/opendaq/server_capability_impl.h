@@ -450,7 +450,7 @@ inline ErrCode ServerCapabilityConfigImpl::setPort(IInteger* port)
         {
             // replacing the value of a key keeps its place
             const Int newPort = IntegerPtr::Borrow(port);
-            options.set(first.getId(), TransportOption(first.getId(), newPort, first.getProtection(), first.getCertificateRequired()));
+            options.set(first.getId(), TransportOption(first.getId(), newPort, first.getSecurityMode(), first.getCertificateRequired()));
             OPENDAQ_RETURN_IF_FAILED(writeTransportOptions(options));
         }
 
@@ -611,7 +611,7 @@ inline TransportOptionPtr ServerCapabilityConfigImpl::TransportOptionFromObject(
         return obj.hasProperty(name) && obj.getProperty(name).getValueType() == type;
     };
 
-    if (!hasProperty("Id", ctString) || !hasProperty("Port", ctInt) || !hasProperty("Protection", ctInt) ||
+    if (!hasProperty("Id", ctString) || !hasProperty("Port", ctInt) || !hasProperty("SecurityMode", ctInt) ||
         !hasProperty("CertificateRequired", ctBool))
     {
         DAQ_THROW_EXCEPTION(InvalidParameterException, "The server capability holds an object that is not a transport option");
@@ -619,22 +619,22 @@ inline TransportOptionPtr ServerCapabilityConfigImpl::TransportOptionFromObject(
 
     const StringPtr id = obj.getPropertyValue("Id");
     const Int port = obj.getPropertyValue("Port");
-    const Int protection = obj.getPropertyValue("Protection");
+    const Int securityMode = obj.getPropertyValue("SecurityMode");
     const Bool certificateRequired = obj.getPropertyValue("CertificateRequired");
-    return TransportOption(id, port, static_cast<TransportProtection>(protection), certificateRequired);
+    return TransportOption(id, port, static_cast<SecurityMode>(securityMode), certificateRequired);
 }
 
 // The plain Property object an option is kept as
 inline PropertyObjectPtr ServerCapabilityConfigImpl::TransportOptionObject(const TransportOptionPtr& option)
 {
-    const auto protectionNames = Dict<IInteger, IString>({{static_cast<Int>(TransportProtection::None), "None"},
-                                                          {static_cast<Int>(TransportProtection::Signed), "Signed"},
-                                                          {static_cast<Int>(TransportProtection::Encrypted), "Encrypted"}});
+    const auto securityModeNames = Dict<IInteger, IString>({{static_cast<Int>(SecurityMode::None), "None"},
+                                                            {static_cast<Int>(SecurityMode::Signed), "Signed"},
+                                                            {static_cast<Int>(SecurityMode::Encrypted), "Encrypted"}});
 
     auto obj = PropertyObject();
     obj.addProperty(StringProperty("Id", option.getId()));
     obj.addProperty(IntProperty("Port", option.getPort()));
-    obj.addProperty(SparseSelectionProperty("Protection", protectionNames, static_cast<Int>(option.getProtection())));
+    obj.addProperty(SparseSelectionProperty("SecurityMode", securityModeNames, static_cast<Int>(option.getSecurityMode())));
     obj.addProperty(BoolProperty("CertificateRequired", option.getCertificateRequired()));
     return obj;
 }

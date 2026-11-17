@@ -51,7 +51,7 @@ public:
                                     .setConnectionStringPrefix("dev")
                                     .setDeviceKind(DeviceKind::Mirrored)
                                     .setAvailableTransportOptions(TransportOptionsById(
-                                        {TransportOption("plain", 7420), TransportOption("tls", 7421, TransportProtection::Encrypted)}))
+                                        {TransportOption("plain", 7420), TransportOption("tls", 7421, SecurityMode::Encrypted)}))
                                     .build();
         deviceTypes.set("dev", deviceType);
 
@@ -60,7 +60,7 @@ public:
                                        .setName("str")
                                        .setConnectionStringPrefix("str")
                                        .setAvailableTransportOptions(TransportOptionsById(
-                                           {TransportOption("plain", 7430), TransportOption("tls", 7431, TransportProtection::Encrypted)}))
+                                           {TransportOption("plain", 7430), TransportOption("tls", 7431, SecurityMode::Encrypted)}))
                                        .build();
         streamingTypes.set("str", streamingType);
     }
@@ -128,16 +128,16 @@ DeviceInfoConfigPtr DiscoveredDeviceInfo()
     info.setSerialNumber("s");
 
     const auto internal = info.asPtr<IDeviceInfoInternal>();
-    internal.addServerCapability(Capability(
-        "devproto",
-        ProtocolType::Configuration,
-        "dev",
-        TransportOptionsById({TransportOption("plain", 17420), TransportOption("tls", 17422, TransportProtection::Encrypted)})));
-    internal.addServerCapability(Capability(
-        "strproto",
-        ProtocolType::Streaming,
-        "str",
-        TransportOptionsById({TransportOption("plain", 17430), TransportOption("tls", 17432, TransportProtection::Encrypted)})));
+    internal.addServerCapability(
+        Capability("devproto",
+                   ProtocolType::Configuration,
+                   "dev",
+                   TransportOptionsById({TransportOption("plain", 17420), TransportOption("tls", 17422, SecurityMode::Encrypted)})));
+    internal.addServerCapability(
+        Capability("strproto",
+                   ProtocolType::Streaming,
+                   "str",
+                   TransportOptionsById({TransportOption("plain", 17430), TransportOption("tls", 17432, SecurityMode::Encrypted)})));
     return info;
 }
 }

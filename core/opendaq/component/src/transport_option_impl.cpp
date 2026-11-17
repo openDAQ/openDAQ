@@ -8,41 +8,41 @@ BEGIN_NAMESPACE_OPENDAQ
 namespace
 {
 
-ConstCharPtr ProtectionToString(TransportProtection protection)
+ConstCharPtr SecurityModeToString(SecurityMode securityMode)
 {
-    switch (protection)
+    switch (securityMode)
     {
-        case TransportProtection::Signed:
+        case SecurityMode::Signed:
             return "Signed";
-        case TransportProtection::Encrypted:
+        case SecurityMode::Encrypted:
             return "Encrypted";
-        case TransportProtection::None:
+        case SecurityMode::None:
         default:
             return "None";
     }
 }
 
-TransportProtection ProtectionFromString(const StringPtr& protection)
+SecurityMode SecurityModeFromString(const StringPtr& securityMode)
 {
-    if (protection == "None")
-        return TransportProtection::None;
-    if (protection == "Signed")
-        return TransportProtection::Signed;
-    if (protection == "Encrypted")
-        return TransportProtection::Encrypted;
+    if (securityMode == "None")
+        return SecurityMode::None;
+    if (securityMode == "Signed")
+        return SecurityMode::Signed;
+    if (securityMode == "Encrypted")
+        return SecurityMode::Encrypted;
 
-    DAQ_THROW_EXCEPTION(InvalidParameterException, R"(Unknown transport protection "{}")", protection);
+    DAQ_THROW_EXCEPTION(InvalidParameterException, R"(Unknown security mode "{}")", securityMode);
 }
 
 }
 
 TransportOptionImpl::TransportOptionImpl(const StringPtr& id,
                                          const IntegerPtr& port,
-                                         TransportProtection protection,
+                                         SecurityMode securityMode,
                                          Bool certificateRequired)
     : id(id)
     , port(port)
-    , protection(protection)
+    , securityMode(securityMode)
     , certificateRequired(certificateRequired)
 {
     if (!id.assigned() || id.getLength() == 0)
@@ -51,8 +51,8 @@ TransportOptionImpl::TransportOptionImpl(const StringPtr& id,
         DAQ_THROW_EXCEPTION(ArgumentNullException, "The port of transport option \"{}\" is not assigned", id);
     if (static_cast<Int>(port) < 0)
         DAQ_THROW_EXCEPTION(InvalidParameterException, "The port of transport option \"{}\" must not be negative", id);
-    if (protection != TransportProtection::None && protection != TransportProtection::Signed && protection != TransportProtection::Encrypted)
-        DAQ_THROW_EXCEPTION(InvalidParameterException, "The protection of transport option \"{}\" is not valid", id);
+    if (securityMode != SecurityMode::None && securityMode != SecurityMode::Signed && securityMode != SecurityMode::Encrypted)
+        DAQ_THROW_EXCEPTION(InvalidParameterException, "The security mode of transport option \"{}\" is not valid", id);
 }
 
 ErrCode TransportOptionImpl::getId(IString** id)
@@ -71,11 +71,11 @@ ErrCode TransportOptionImpl::getPort(IInteger** port)
     return OPENDAQ_SUCCESS;
 }
 
-ErrCode TransportOptionImpl::getProtection(TransportProtection* protection)
+ErrCode TransportOptionImpl::getSecurityMode(SecurityMode* securityMode)
 {
-    OPENDAQ_PARAM_NOT_NULL(protection);
+    OPENDAQ_PARAM_NOT_NULL(securityMode);
 
-    *protection = this->protection;
+    *securityMode = this->securityMode;
     return OPENDAQ_SUCCESS;
 }
 
@@ -101,9 +101,9 @@ ErrCode TransportOptionImpl::serialize(ISerializer* serializer)
         serializer->key("port");
         serializer->writeInt(static_cast<Int>(port));
 
-        serializer->key("protection");
-        const StringPtr protectionStr = ProtectionToString(protection);
-        serializer->writeString(protectionStr.getCharPtr(), protectionStr.getLength());
+        serializer->key("securityMode");
+        const StringPtr securityModeStr = SecurityModeToString(securityMode);
+        serializer->writeString(securityModeStr.getCharPtr(), securityModeStr.getLength());
 
         serializer->key("certificateRequired");
         serializer->writeBool(certificateRequired);
@@ -139,10 +139,10 @@ ErrCode TransportOptionImpl::Deserialize(ISerializedObject* serialized,
         const auto serializedObj = SerializedObjectPtr::Borrow(serialized);
         const StringPtr id = serializedObj.readString("id");
         const Int port = serializedObj.readInt("port");
-        const TransportProtection protection = ProtectionFromString(serializedObj.readString("protection"));
+        const SecurityMode securityMode = SecurityModeFromString(serializedObj.readString("securityMode"));
         const Bool certificateRequired = serializedObj.readBool("certificateRequired");
 
-        *obj = TransportOption(id, port, protection, certificateRequired).detach();
+        *obj = TransportOption(id, port, securityMode, certificateRequired).detach();
         return OPENDAQ_SUCCESS;
     });
 }
@@ -151,7 +151,7 @@ OPENDAQ_DEFINE_CLASS_FACTORY_WITH_INTERFACE(
     LIBRARY_FACTORY, TransportOption, ITransportOption,
     IString*, id,
     IInteger*, port,
-    TransportProtection, protection,
+    SecurityMode, securityMode,
     Bool, certificateRequired
 )
 

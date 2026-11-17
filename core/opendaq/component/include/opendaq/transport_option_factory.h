@@ -54,15 +54,15 @@ inline constexpr const char* PortConfigProperty = "Port";
  * @brief Creates a frozen transport option.
  * @param id The id of the option, unique within a component type (e.g. "plain", "tls"). Must not be empty.
  * @param port The port of the option, 0 for a carrier without ports. Must not be negative.
- * @param protection What the option protects the data it carries against.
+ * @param securityMode What the option protects the data it carries against.
  * @param certificateRequired True when the connection over this option needs a client certificate.
  */
 inline TransportOptionPtr TransportOption(const StringPtr& id,
                                           Int port,
-                                          TransportProtection protection = TransportProtection::None,
+                                          SecurityMode securityMode = SecurityMode::None,
                                           Bool certificateRequired = False)
 {
-    TransportOptionPtr obj(TransportOption_Create(id, Integer(port), protection, certificateRequired));
+    TransportOptionPtr obj(TransportOption_Create(id, Integer(port), securityMode, certificateRequired));
     return obj;
 }
 

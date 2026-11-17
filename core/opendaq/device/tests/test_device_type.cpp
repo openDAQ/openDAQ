@@ -27,15 +27,15 @@ TEST_F(DeviceTypeTest, BuilderSetsTransportOptions)
                                    .setId("id")
                                    .setConnectionStringPrefix("prefix")
                                    .setAvailableTransportOptions(TransportOptionsById(
-                                       {TransportOption("tls", 7421, TransportProtection::Encrypted), TransportOption("plain", 7420)}))
+                                       {TransportOption("tls", 7421, SecurityMode::Encrypted), TransportOption("plain", 7420)}))
                                    .build();
 
     const auto options = type.getAvailableTransportOptions();
     ASSERT_EQ(options.getKeyList(), List<IString>("tls", "plain"));
     ASSERT_EQ(options.getValueList()[0].getPort(), 7421);
-    ASSERT_EQ(options.getValueList()[0].getProtection(), TransportProtection::Encrypted);
+    ASSERT_EQ(options.getValueList()[0].getSecurityMode(), SecurityMode::Encrypted);
     ASSERT_EQ(options.getValueList()[1].getPort(), 7420);
-    ASSERT_EQ(options.getValueList()[1].getProtection(), TransportProtection::None);
+    ASSERT_EQ(options.getValueList()[1].getSecurityMode(), SecurityMode::None);
 }
 
 TEST_F(DeviceTypeTest, BuilderSetTransportOptionsReplaces)
@@ -81,9 +81,9 @@ TEST_F(DeviceTypeTest, SerializeDeserializeTransportOptions)
             .setName("name")
             .setDescription("description")
             .setConnectionStringPrefix("prefix")
-            .setAvailableTransportOptions(TransportOptionsById({TransportOption("wss", 7443, TransportProtection::Encrypted, True),
-                                                                  TransportOption("tls", 7421, TransportProtection::Encrypted),
-                                                                  TransportOption("plain", 7420)}))
+            .setAvailableTransportOptions(TransportOptionsById({TransportOption("wss", 7443, SecurityMode::Encrypted, True),
+                                                                TransportOption("tls", 7421, SecurityMode::Encrypted),
+                                                                TransportOption("plain", 7420)}))
             .build();
 
     const auto serializer = JsonSerializer();
@@ -100,7 +100,7 @@ TEST_F(DeviceTypeTest, SerializeDeserializeTransportOptions)
     const auto options = newType.getAvailableTransportOptions();
     ASSERT_EQ(options.getKeyList(), List<IString>("wss", "tls", "plain"));
     ASSERT_EQ(options.getValueList()[0].getPort(), 7443);
-    ASSERT_EQ(options.getValueList()[0].getProtection(), TransportProtection::Encrypted);
+    ASSERT_EQ(options.getValueList()[0].getSecurityMode(), SecurityMode::Encrypted);
     ASSERT_TRUE(options.getValueList()[0].getCertificateRequired());
     ASSERT_FALSE(options.getValueList()[1].getCertificateRequired());
 

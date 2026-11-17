@@ -11,11 +11,11 @@ using TransportOptionTest = testing::Test;
 
 TEST_F(TransportOptionTest, Fields)
 {
-    const auto option = TransportOption("tls", 7422, TransportProtection::Encrypted, True);
+    const auto option = TransportOption("tls", 7422, SecurityMode::Encrypted, True);
 
     ASSERT_EQ(option.getId(), "tls");
     ASSERT_EQ(option.getPort(), 7422);
-    ASSERT_EQ(option.getProtection(), TransportProtection::Encrypted);
+    ASSERT_EQ(option.getSecurityMode(), SecurityMode::Encrypted);
     ASSERT_TRUE(option.getCertificateRequired());
 }
 
@@ -23,7 +23,7 @@ TEST_F(TransportOptionTest, Defaults)
 {
     const auto option = TransportOption("plain", 7420);
 
-    ASSERT_EQ(option.getProtection(), TransportProtection::None);
+    ASSERT_EQ(option.getSecurityMode(), SecurityMode::None);
     ASSERT_FALSE(option.getCertificateRequired());
 }
 
@@ -53,56 +53,56 @@ TEST_F(TransportOptionTest, NegativePortRejected)
 TEST_F(TransportOptionTest, UnassignedPortRejected)
 {
     ITransportOption* option = nullptr;
-    ASSERT_EQ(createTransportOption(&option, String("plain"), nullptr, TransportProtection::None, False), OPENDAQ_ERR_ARGUMENT_NULL);
+    ASSERT_EQ(createTransportOption(&option, String("plain"), nullptr, SecurityMode::None, False), OPENDAQ_ERR_ARGUMENT_NULL);
     daqClearErrorInfo();
     ASSERT_EQ(option, nullptr);
 }
 
-TEST_F(TransportOptionTest, InvalidProtectionRejected)
+TEST_F(TransportOptionTest, InvalidSecurityModeRejected)
 {
-    ASSERT_THROW(TransportOption("plain", 7420, static_cast<TransportProtection>(7)), InvalidParameterException);
+    ASSERT_THROW(TransportOption("plain", 7420, static_cast<SecurityMode>(7)), InvalidParameterException);
 }
 
 TEST_F(TransportOptionTest, SerializeDeserialize)
 {
-    const auto option = TransportOption("tls", 7422, TransportProtection::Encrypted, True);
+    const auto option = TransportOption("tls", 7422, SecurityMode::Encrypted, True);
 
     const auto serializer = JsonSerializer();
     option.serialize(serializer);
     const std::string json = serializer.getOutput();
 
     ASSERT_NE(json.find(R"("__type":"TransportOption")"), std::string::npos);
-    ASSERT_NE(json.find(R"("protection":"Encrypted")"), std::string::npos);
+    ASSERT_NE(json.find(R"("securityMode":"Encrypted")"), std::string::npos);
 
     const TransportOptionPtr deserialized = JsonDeserializer().deserialize(String(json), nullptr, nullptr);
 
     ASSERT_NE(deserialized.getObject(), option.getObject());
     ASSERT_EQ(deserialized.getId(), "tls");
     ASSERT_EQ(deserialized.getPort(), 7422);
-    ASSERT_EQ(deserialized.getProtection(), TransportProtection::Encrypted);
+    ASSERT_EQ(deserialized.getSecurityMode(), SecurityMode::Encrypted);
     ASSERT_TRUE(deserialized.getCertificateRequired());
 }
 
-TEST_F(TransportOptionTest, DeserializeEachProtection)
+TEST_F(TransportOptionTest, DeserializeEachSecurityMode)
 {
-    for (const auto protection : {TransportProtection::None, TransportProtection::Signed, TransportProtection::Encrypted})
+    for (const auto securityMode : {SecurityMode::None, SecurityMode::Signed, SecurityMode::Encrypted})
     {
         const auto serializer = JsonSerializer();
-        TransportOption("plain", 7420, protection).serialize(serializer);
+        TransportOption("plain", 7420, securityMode).serialize(serializer);
 
         const TransportOptionPtr deserialized = JsonDeserializer().deserialize(serializer.getOutput(), nullptr, nullptr);
-        ASSERT_EQ(deserialized.getProtection(), protection);
+        ASSERT_EQ(deserialized.getSecurityMode(), securityMode);
     }
 }
 
-TEST_F(TransportOptionTest, DeserializeUnknownProtectionRejected)
+TEST_F(TransportOptionTest, DeserializeUnknownSecurityModeRejected)
 {
     const auto serializer = JsonSerializer();
-    TransportOption("plain", 7420, TransportProtection::Signed).serialize(serializer);
+    TransportOption("plain", 7420, SecurityMode::Signed).serialize(serializer);
 
     std::string json = serializer.getOutput();
-    const std::string signedValue = R"("protection":"Signed")";
-    json.replace(json.find(signedValue), signedValue.size(), R"("protection":"Scrambled")");
+    const std::string signedValue = R"("securityMode":"Signed")";
+    json.replace(json.find(signedValue), signedValue.size(), R"("securityMode":"Scrambled")");
 
     ASSERT_THROW(JsonDeserializer().deserialize(String(json), nullptr, nullptr), InvalidParameterException);
 }

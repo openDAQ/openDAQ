@@ -337,7 +337,7 @@ TEST_F(OpenDaqFactoriesTest, StreamingTypeTransportOptions)
                                       .setId("Id")
                                       .setConnectionStringPrefix("Prefix")
                                       .setAvailableTransportOptions(TransportOptionsById(
-                                          {TransportOption("tls", 7421, TransportProtection::Encrypted), TransportOption("plain", 7420)}))
+                                          {TransportOption("tls", 7421, SecurityMode::Encrypted), TransportOption("plain", 7420)}))
                                       .build();
 
     ASSERT_EQ(type.getAvailableTransportOptions().getKeyList(), List<IString>("tls", "plain"));
@@ -353,8 +353,8 @@ TEST_F(OpenDaqFactoriesTest, StreamingTypeSerializeDeserialize)
             .setName("Name")
             .setDescription("Desc")
             .setConnectionStringPrefix("Prefix")
-            .setAvailableTransportOptions(TransportOptionsById({TransportOption("wss", 7443, TransportProtection::Encrypted),
-                                                                  TransportOption("tls", 7421, TransportProtection::Encrypted)}))
+            .setAvailableTransportOptions(TransportOptionsById(
+                {TransportOption("wss", 7443, SecurityMode::Encrypted), TransportOption("tls", 7421, SecurityMode::Encrypted)}))
             .build();
 
     const auto serializer = JsonSerializer();
@@ -368,7 +368,7 @@ TEST_F(OpenDaqFactoriesTest, StreamingTypeSerializeDeserialize)
     ASSERT_EQ(newType.getDescription(), "Desc");
     ASSERT_EQ(newType.getConnectionStringPrefix(), "Prefix");
     ASSERT_EQ(newType.getAvailableTransportOptions().getKeyList(), List<IString>("wss", "tls"));
-    ASSERT_EQ(newType.getAvailableTransportOptions().getValueList()[0].getProtection(), TransportProtection::Encrypted);
+    ASSERT_EQ(newType.getAvailableTransportOptions().getValueList()[0].getSecurityMode(), SecurityMode::Encrypted);
 
     serializer.reset();
     newType.serialize(serializer);
@@ -380,7 +380,7 @@ TEST_F(OpenDaqFactoriesTest, ServerTypeTransportOptions)
     const ServerTypePtr type = ServerTypeBuilder()
                                    .setId("Id")
                                    .setAvailableTransportOptions(TransportOptionsById(
-                                       {TransportOption("tls", 7421, TransportProtection::Encrypted), TransportOption("plain", 7420)}))
+                                       {TransportOption("tls", 7421, SecurityMode::Encrypted), TransportOption("plain", 7420)}))
                                    .build();
 
     ASSERT_EQ(type.getAvailableTransportOptions().getKeyList(), List<IString>("tls", "plain"));
@@ -395,7 +395,7 @@ TEST_F(OpenDaqFactoriesTest, ServerTypeSerializeDeserialize)
                                    .setName("Name")
                                    .setDescription("Desc")
                                    .setAvailableTransportOptions(TransportOptionsById(
-                                       {TransportOption("https", 443, TransportProtection::Encrypted), TransportOption("plain", 7420)}))
+                                       {TransportOption("https", 443, SecurityMode::Encrypted), TransportOption("plain", 7420)}))
                                    .build();
 
     const auto serializer = JsonSerializer();

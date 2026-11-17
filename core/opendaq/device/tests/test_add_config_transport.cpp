@@ -22,7 +22,7 @@ class AddConfigTransportTest : public testing::Test
 protected:
     static DictPtr<IString, ITransportOption> TypeOptions()
     {
-        return TransportOptionsById({TransportOption("tls", 7421, TransportProtection::Encrypted), TransportOption("plain", 7420)});
+        return TransportOptionsById({TransportOption("tls", 7421, SecurityMode::Encrypted), TransportOption("plain", 7420)});
     }
 
     // A Mirrored Device type whose module declares a port of its own in the default config

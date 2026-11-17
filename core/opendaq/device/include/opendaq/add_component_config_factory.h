@@ -54,15 +54,18 @@ inline AddDeviceConfigPtr AddDeviceConfig(const DeviceTypePtr& deviceType,
  * @param saved The config as written by `serializeForUpdate`
  * @param deviceTypes The available Device types, keyed by ID
  * @param streamingTypes The available Streaming types, keyed by ID
+ * @param scanOnAdd The default of `ScanOnAdd`
  *
  * Binds as IAddDeviceConfigPrivate::bind does.
+ * A `ScanOnAdd` that was not set when the config was saved takes the given default.
  * Returns null when `saved` is not the save form of an add device config.
  */
 inline AddDeviceConfigPtr BoundAddDeviceConfig(const SerializedObjectPtr& saved,
                                                const DictPtr<IString, IDeviceType>& deviceTypes,
-                                               const DictPtr<IString, IStreamingType>& streamingTypes)
+                                               const DictPtr<IString, IStreamingType>& streamingTypes,
+                                               Bool scanOnAdd)
 {
-    AddDeviceConfigPtr obj(BoundAddDeviceConfig_Create(saved, deviceTypes, streamingTypes));
+    AddDeviceConfigPtr obj(BoundAddDeviceConfig_Create(saved, deviceTypes, streamingTypes, scanOnAdd));
     return obj;
 }
 

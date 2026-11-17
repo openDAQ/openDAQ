@@ -1,4 +1,5 @@
 #include <opendaq/add_device_config_legacy.h>
+#include <opendaq/address_info_utils.h>
 #include <opendaq/add_component_config_factory.h>
 #include <opendaq/streaming_type_utils.h>
 #include <opendaq/client_type.h>
@@ -224,8 +225,7 @@ PropertyObjectPtr toLegacyAddDeviceConfig(const AddDeviceConfigPtr& config)
     auto streamingSection = PropertyObject();
     auto general = createLegacyGeneralConfig(config.getScanOnAdd());
 
-    const auto addressType =
-        (config.getPrimaryAddressType() == AddressType::IPv6) ? LegacyAddDeviceConfig::IPv6 : LegacyAddDeviceConfig::IPv4;
+    const auto addressType = getAddressTypeName(config.getPrimaryAddressType());
     general.setPropertyValue(LegacyAddDeviceConfig::PrimaryAddressType, addressType);
 
     const auto options = config.getStreamingOptions();

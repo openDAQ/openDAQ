@@ -47,8 +47,6 @@ namespace review_only
 inline constexpr const char* jumpWhileStreaming =
     "a timestamp jump while streaming continues without resynchronizing (spec: a packet that does not continue the input "
     "starts synchronization again)";
-inline constexpr const char* gapEvent =
-    "the port's gap event packet is a gap (spec: it is ignored, the reader finds jumps in the data itself)";
 inline constexpr const char* integerConversion =
     "integer read types round, saturate and read NaN as 0, through the branch's change to the shared reader::convertSample "
     "(spec: the readers' conversion)";

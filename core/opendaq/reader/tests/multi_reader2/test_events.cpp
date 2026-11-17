@@ -200,7 +200,6 @@ TEST_F(MultiReader2Events, GapOnNonMainInputBehindDataResynchronizesReader)
 // S1.EVT.18
 TEST_F(MultiReader2Events, GapOnMainInputBelowMinReadCountDropsSamplesAndResynchronizes)
 {
-    MR2_REVIEW_ONLY(review_only::gapEvent);
     given().minReadCount(10);
     setupBase(
         [&]
@@ -209,11 +208,10 @@ TEST_F(MultiReader2Events, GapOnMainInputBelowMinReadCountDropsSamplesAndResynch
             write(in1, 100, 108);
             write(in2, 100, 108);
         });
-    gap(in1);
+    write(in1, 159, 258);
+    write(in2, 109, 258);
     expect(read(100), count(0).resync());
-    write(in1, 109, 208);
-    write(in2, 109, 208);
-    expect(read(100), count(100).at(109).noChanges());
+    expect(read(100), count(100).at(159).noChanges());
 }
 
 // S1.EVT.19

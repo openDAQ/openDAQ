@@ -354,27 +354,6 @@ TEST_F(MultiReader2Recovery, OffGridSyncFailedClearsOnNewDomainDescriptor)
     expect(read(50), count(50).at(100).noChanges());
 }
 
-// S1.REC.23
-TEST_F(MultiReader2Recovery, OffGridSyncFailedClearsOnGap)
-{
-    MR2_REVIEW_ONLY(review_only::gapEvent);
-    given().policy(Exclude).domain(in1, Domain().delta(2)).domain(in2, Domain().delta(2));
-    setup(
-        [&]
-        {
-            read(0, nullData);
-            write(in1, 0, 98);
-            write(in2, 1, 99);
-            read(0);
-            read(50);
-        });
-    gap(in2);
-    expect(read(0), count(0).level(Ok).descChanged(in2).healthy(in2));
-    write(in1, 100, 198);
-    write(in2, 100, 198);
-    expect(read(50), count(50).at(100).noChanges());
-}
-
 // S1.REC.24
 TEST_F(MultiReader2Recovery, OffGridSyncFailedClearsOnDataJumpAndResynchronizes)
 {

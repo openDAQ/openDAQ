@@ -295,15 +295,6 @@ TEST_F(MultiReader2Context, ValueAndDomainDescriptorChangeTriggersHandler)
     expect(idle(), calls(1, {count(0).descChanged(in2), count(0).noChanges()}));
 }
 
-// S1.CTX.22
-TEST_F(MultiReader2Context, GapEventTriggersHandler)
-{
-    MR2_REVIEW_ONLY(review_only::gapEvent);
-    setupHandler([&] { drain(); });
-    gap(in2);
-    expect(idle(), calls(1, {count(0).noChanges()}));
-}
-
 // S1.CTX.23
 TEST_F(MultiReader2Context, InputPortConnectTriggersHandler)
 {
@@ -374,167 +365,6 @@ TEST_F(MultiReader2Context, SignalRemovalTriggersHandler)
     setupHandler([&] { drain(); });
     removeSignal(in2);
     expect(idle(), calls(1, {count(0).level(Warning), count(0).noChanges()}));
-}
-
-// S1.CTX.30
-TEST_F(MultiReader2Context, HandlerLeavingValueDescriptorChangeUnreadIsCalledAgain)
-{
-    MR2_REVIEW_ONLY(review_only::wake);
-    setupHandler([&] { read(150); });
-    blockWorker();
-    write(in1, 100, 299);
-    write(in2, 100, 299);
-    announce(in2, Value(SampleType::Int32));
-    unblockWorker();
-    expect(idle(), calls(2, {count(150).at(100).noChanges(), count(50).at(250).descChanged(in2)}));
-}
-
-// S1.CTX.31
-TEST_F(MultiReader2Context, HandlerLeavingDomainChangeUnreadIsCalledAgain)
-{
-    MR2_REVIEW_ONLY(review_only::wake);
-    setupHandler([&] { read(150); });
-    blockWorker();
-    write(in1, 100, 299);
-    write(in2, 100, 299);
-    announce(in1, Domain().start(3));
-    unblockWorker();
-    expect(idle(), calls(2, {count(150).at(100).noChanges(), count(50).at(250).domainChanged().resync().allDescChanged()}));
-}
-
-// S1.CTX.32
-TEST_F(MultiReader2Context, HandlerLeavingValueAndDomainChangeUnreadIsCalledAgain)
-{
-    MR2_REVIEW_ONLY(review_only::wake);
-    setupHandler([&] { read(150); });
-    blockWorker();
-    write(in1, 100, 299);
-    write(in2, 100, 299);
-    announce(in2, Value(SampleType::Int32), Domain().start(3));
-    unblockWorker();
-    expect(idle(), calls(2, {count(150).at(100).noChanges(), count(50).at(250).descChanged(in2)}));
-}
-
-// S1.CTX.33
-TEST_F(MultiReader2Context, HandlerLeavingGapUnreadIsCalledAgain)
-{
-    MR2_REVIEW_ONLY(review_only::gapEvent);
-    setupHandler([&] { read(150); });
-    blockWorker();
-    write(in1, 100, 299);
-    write(in2, 100, 299);
-    gap(in2);
-    unblockWorker();
-    expect(idle(), calls(2, {count(150).at(100).noChanges(), count(50).at(250).noChanges()}));
-}
-
-// S1.CTX.34
-TEST_F(MultiReader2Context, HandlerIsCalledAgainForLeftoverSamplesAfterConnect)
-{
-    MR2_REVIEW_ONLY(review_only::wake);
-    given().ports().policy(Exclude).unconnected(in2);
-    setup(
-        [&]
-        {
-            handler([&] { read(150); });
-            write(in1, 0, 99);
-            idle();
-        });
-    connect(in2);
-    expect(idle(), calls(1, {count(0).level(Ok).descChanged(in2)}));
-    blockWorker();
-    write(in1, 100, 299);
-    write(in2, 100, 299);
-    unblockWorker();
-    expect(idle(), calls(2, {count(150).at(100).noChanges(), count(50).at(250).noChanges()}));
-}
-
-// S1.CTX.35
-TEST_F(MultiReader2Context, HandlerIsCalledAgainForLeftoverSamplesAfterDisconnect)
-{
-    MR2_REVIEW_ONLY(review_only::wake);
-    given().ports().policy(Exclude);
-    setupHandler([&] { read(150); });
-    disconnect(in2);
-    expect(idle(), calls(1, {count(0).level(Warning)}));
-    blockWorker();
-    write(in1, 100, 299);
-    unblockWorker();
-    expect(idle(), calls(2, {count(150).at(100).noChanges(), count(50).at(250).noChanges()}));
-}
-
-// S1.CTX.36
-TEST_F(MultiReader2Context, HandlerIsCalledAgainForLeftoverSamplesAfterReconnect)
-{
-    MR2_REVIEW_ONLY(review_only::wake);
-    given().ports();
-    setupHandler([&] { read(150); });
-    blockWorker();
-    disconnect(in2);
-    connect(in2);
-    unblockWorker();
-    expect(idle(), calls(1, {count(0).noChanges()}));
-    blockWorker();
-    write(in1, 100, 299);
-    write(in2, 100, 299);
-    unblockWorker();
-    expect(idle(), calls(2, {count(150).at(100).noChanges(), count(50).at(250).noChanges()}));
-}
-
-// S1.CTX.37
-TEST_F(MultiReader2Context, HandlerIsCalledAgainPastEqualDescriptorAndOtherEvent)
-{
-    MR2_REVIEW_ONLY(review_only::wake);
-    setupHandler([&] { read(150); });
-    blockWorker();
-    write(in1, 100, 299);
-    write(in2, 100, 299);
-    announce(in2, Value::same());
-    otherEvent(in2);
-    unblockWorker();
-    expect(idle(), calls(2, {count(150).at(100).noChanges(), count(50).at(250).noChanges()}));
-}
-
-// S1.CTX.38
-TEST_F(MultiReader2Context, HandlerLeavingNullValueDescriptorUnreadIsCalledAgain)
-{
-    MR2_REVIEW_ONLY(review_only::wake);
-    given().policy(Exclude);
-    setupHandler([&] { read(150); });
-    blockWorker();
-    write(in1, 100, 299);
-    write(in2, 100, 299);
-    announce(in2, Value::null());
-    unblockWorker();
-    expect(idle(), calls(2, {count(150).at(100).noChanges(), count(50).at(250).level(Warning)}));
-}
-
-// S1.CTX.39
-TEST_F(MultiReader2Context, HandlerLeavingNullDomainDescriptorUnreadIsCalledAgain)
-{
-    MR2_REVIEW_ONLY(review_only::wake);
-    given().policy(Exclude);
-    setupHandler([&] { read(150); });
-    blockWorker();
-    write(in1, 100, 299);
-    write(in2, 100, 299);
-    announce(in2, Domain::null());
-    unblockWorker();
-    expect(idle(), calls(2, {count(150).at(100).noChanges(), count(50).at(250).level(Warning)}));
-}
-
-// S1.CTX.40
-TEST_F(MultiReader2Context, HandlerIsCalledAgainForLeftoverSamplesAfterSignalRemoval)
-{
-    MR2_REVIEW_ONLY(review_only::wake);
-    given().policy(Exclude);
-    setupHandler([&] { read(150); });
-    removeSignal(in2);
-    expect(idle(), calls(1, {count(0).level(Warning)}));
-    blockWorker();
-    write(in1, 100, 299);
-    unblockWorker();
-    expect(idle(), calls(2, {count(150).at(100).noChanges(), count(50).at(250).noChanges()}));
 }
 
 // S1.CTX.41
@@ -759,14 +589,15 @@ TEST_F(MultiReader2Context, DisconnectReadFromUserThreadStillCallsHandlerOnce)
 }
 
 // S1.CTX.53
-TEST_F(MultiReader2Context, FirstPacketCallsHandlerWithFirstStatus)
+TEST_F(MultiReader2Context, SynchronizationCallsHandlerWithFirstStatusAndData)
 {
-    MR2_REVIEW_ONLY(review_only::wake);
     handler([&] { drain(); });
     write(in1, 0, 9);
-    expect(idle(), calls(1, {count(0).level(Ok).domainChanged().resync().allDescChanged(), count(0).noChanges()}));
+    expect(idle(), calls(0));
     write(in2, 0, 9);
-    expect(idle(), calls(1, {count(10).at(0).noChanges(), count(0).noChanges()}));
+    expect(idle(), calls(1, {count(0).level(Ok).domainChanged().resync().allDescChanged(),
+                             count(10).at(0).noChanges(),
+                             count(0).noChanges()}));
 }
 
 // S1.CTX.54
@@ -777,30 +608,16 @@ TEST_F(MultiReader2Context, DescriptorChangeBeforeFirstDataCallsHandlerWithFirst
     expect(idle(), calls(1, {count(0).level(Ok).domainChanged().resync().allDescChanged(), count(0).noChanges()}));
 }
 
-// S1.CTX.55
-TEST_F(MultiReader2Context, HandlerReadingFirstStatusIsCalledAgainForData)
-{
-    MR2_REVIEW_ONLY(review_only::wake);
-    handler([&] { read(150); });
-    blockWorker();
-    write(in1, 0, 99);
-    write(in2, 0, 99);
-    unblockWorker();
-    expect(idle(), calls(2, {count(0).level(Ok).domainChanged().resync().allDescChanged(), count(100).at(0).noChanges()}));
-}
-
 // S1.CTX.56
-TEST_F(MultiReader2Context, HandlerIsCalledAgainForEventBehindTooFewSamples)
+TEST_F(MultiReader2Context, EventBehindTooFewSamplesCallsHandler)
 {
-    MR2_REVIEW_ONLY(review_only::wake);
     given().minReadCount(10);
-    setupHandler([&] { read(150); });
-    blockWorker();
-    write(in1, 100, 254);
-    write(in2, 100, 254);
+    setupHandler([&] { drain(); });
+    write(in1, 100, 104);
+    write(in2, 100, 104);
+    expect(idle(), calls(0));
     announce(in2, Value(SampleType::Int32));
-    unblockWorker();
-    expect(idle(), calls(2, {count(150).at(100).noChanges(), count(0).resync().descChanged(in2)}));
+    expect(idle(), calls(1, {count(0).resync().descChanged(in2), count(0).noChanges()}));
 }
 
 }

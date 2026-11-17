@@ -35,9 +35,9 @@ extern "C"
 #include <ccommon.h>
 
     typedef struct daqAuthenticationConfig daqAuthenticationConfig;
+    typedef struct daqAuthenticationMethod daqAuthenticationMethod;
     typedef struct daqString daqString;
     typedef struct daqDict daqDict;
-    typedef struct daqAuthenticationMethod daqAuthenticationMethod;
 
     EXPORTED extern const daqIntfID DAQ_AUTHENTICATION_CONFIG_INTF_ID;
     void EXPORTED daqAuthenticationConfig_getInterfaceId(daqIntfID* intfId);

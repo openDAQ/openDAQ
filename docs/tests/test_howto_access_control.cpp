@@ -59,7 +59,21 @@ TEST_F(HowToAccessControl, ConnectWithUsername)
 
     auto instance = Instance();
 
+#if defined(__GNUC__)
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
+#endif
+#ifdef _MSC_VER
+#pragma warning(push)
+#pragma warning(disable : 4996)
+#endif
     auto config = instance.createDefaultAddDeviceConfig();
+#ifdef _MSC_VER
+#pragma warning(pop)
+#endif
+#if defined(__GNUC__)
+#pragma GCC diagnostic pop
+#endif
     PropertyObjectPtr generalConfig = config.getPropertyValue("General");
 
     generalConfig.setPropertyValue("Username", "opendaq");

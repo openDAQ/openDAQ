@@ -41,7 +41,7 @@ void createJsonConfigFile()
 // is needed at all, only a generic selection write.
 void SelectAuthenticationMethod(const AuthenticationConfigPtr& authConfig, const StringPtr& authenticationMethodId)
 {
-    authConfig.setPropertySelectionValue("AuthenticationMethod", authenticationMethodId);
+    authConfig.asPtr<IPropertyObject>().setPropertySelectionValue("AuthenticationMethod", authenticationMethodId);
 }
 
 // Not every device/streaming type supports every authentication method - in particular, the credential demo
@@ -51,7 +51,7 @@ void SelectAuthenticationMethod(const AuthenticationConfigPtr& authConfig, const
 // method id is always valid to select.
 bool SupportsAuthenticationMethod(const AuthenticationConfigPtr& authConfig, const StringPtr& authenticationMethodId)
 {
-    ListPtr<IString> candidates = authConfig.getProperty("AuthenticationMethod").getSelectionValues();
+    ListPtr<IString> candidates = authConfig.asPtr<IPropertyObject>().getProperty("AuthenticationMethod").getSelectionValues();
     for (const auto& candidate : candidates)
         if (candidate == authenticationMethodId)
             return true;
@@ -126,7 +126,7 @@ void demoAuthenticationConfigAsPropertyObject(const InstancePtr& instance, const
     auto authConfig = deviceType.createAuthenticationConfig();
     SelectAuthenticationMethod(authConfig, "Pin");
 
-    StringPtr authenticationMethodId = authConfig.getPropertySelectionValue("AuthenticationMethod");
+    StringPtr authenticationMethodId = authConfig.asPtr<IPropertyObject>().getPropertySelectionValue("AuthenticationMethod");
     std::cout << "Authentication method id, read as a plain property object selection value: " << authenticationMethodId << std::endl;
 
     std::cout << "When prompted for the PIN, enter: 1234" << std::endl;

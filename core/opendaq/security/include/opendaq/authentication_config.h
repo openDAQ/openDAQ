@@ -47,11 +47,11 @@ BEGIN_NAMESPACE_OPENDAQ
  * rejected. Changing `"AuthenticationMethod"` unconditionally resets `"SuppliedCredential"` back to empty.
  * The typed getters/setters below are an equal, typed alternative to tuning the
  * config through these properties directly - a caller can customize it either way, entirely through
- * `IAuthenticationConfig` itself or entirely through the generic `IPropertyObject` interface this object also
- * implements; `"SuppliedCredential"` and `"AuthenticationMethod"` can both equally be read and set through
- * either.
+ * `IAuthenticationConfig` itself or entirely through the generic `IPropertyObject` interface this object
+ * implementation also supports; `"SuppliedCredential"` and `"AuthenticationMethod"` can both equally be read
+ * and set through either.
  */
-DECLARE_OPENDAQ_INTERFACE(IAuthenticationConfig, IPropertyObject)
+DECLARE_OPENDAQ_INTERFACE(IAuthenticationConfig, IBaseObject)
 {
     /*!
      * @brief Gets the authentication method currently selected - the one of `getAuthenticationMethods()`

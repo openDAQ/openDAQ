@@ -10,7 +10,7 @@
 //------------------------------------------------------------------------------
 
 /*
- * Copyright 2022-2025 openDAQ d.o.o.
+ * Copyright 2022-2026 openDAQ d.o.o.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -31,13 +31,12 @@
 #include "py_core_types/py_converter.h"
 #include "py_core_objects/py_variant_extractor.h"
 
-
-PyDaqIntf<daq::IAuthenticationConfig, daq::IPropertyObject> declareIAuthenticationConfig(pybind11::module_ m)
+PyDaqIntf<daq::IAuthenticationConfig, daq::IBaseObject> declareIAuthenticationConfig(pybind11::module_ m)
 {
-    return wrapInterface<daq::IAuthenticationConfig, daq::IPropertyObject>(m, "IAuthenticationConfig");
+    return wrapInterface<daq::IAuthenticationConfig, daq::IBaseObject>(m, "IAuthenticationConfig");
 }
 
-void defineIAuthenticationConfig(pybind11::module_ m, PyDaqIntf<daq::IAuthenticationConfig, daq::IPropertyObject> cls)
+void defineIAuthenticationConfig(pybind11::module_ m, PyDaqIntf<daq::IAuthenticationConfig, daq::IBaseObject> cls)
 {
     cls.doc() = "Carries the authentication settings used for a single connection attempt to a component.";
 
@@ -45,20 +44,7 @@ void defineIAuthenticationConfig(pybind11::module_ m, PyDaqIntf<daq::IAuthentica
         return daq::AuthenticationConfig_Create(getVariantValue<daq::IDict*>(authenticationMethods));
     }, py::arg("authentication_methods"));
 
-    cls.def_property("authentication_method_id",
-        [](daq::IAuthenticationConfig *object)
-        {
-            py::gil_scoped_release release;
-            const auto objectPtr = daq::AuthenticationConfigPtr::Borrow(object);
-            return objectPtr.getSelectedAuthenticationMethod().getId().toStdString();
-        },
-        [](daq::IAuthenticationConfig *object, std::variant<daq::IString*, py::str, daq::IEvalValue*>& authenticationMethodId)
-        {
-            py::gil_scoped_release release;
-            const auto objectPtr = daq::AuthenticationConfigPtr::Borrow(object);
-            objectPtr.setAuthenticationMethod(getVariantValue<daq::IString*>(authenticationMethodId));
-        },
-        "Gets or selects the authentication method currently used, by its own id - the selected `\"AuthenticationMethod\"` property value itself. Setting it looks the matching authentication method up among `authentication_methods` internally.");
+
     cls.def_property_readonly("selected_authentication_method",
         [](daq::IAuthenticationConfig *object)
         {
@@ -67,7 +53,16 @@ void defineIAuthenticationConfig(pybind11::module_ m, PyDaqIntf<daq::IAuthentica
             return objectPtr.getSelectedAuthenticationMethod().detach();
         },
         py::return_value_policy::take_ownership,
-        "Gets the authentication method currently selected - the one of `authentication_methods` whose own id matches the selected `\"AuthenticationMethod\"` property value.");
+        "Gets the authentication method currently selected - the one of `getAuthenticationMethods()` whose own id matches the selected `\"AuthenticationMethod\"` property value.");
+    cls.def_property("authentication_method",
+        nullptr,
+        [](daq::IAuthenticationConfig *object, std::variant<daq::IString*, py::str, daq::IEvalValue*>& authenticationMethodId)
+        {
+            py::gil_scoped_release release;
+            const auto objectPtr = daq::AuthenticationConfigPtr::Borrow(object);
+            objectPtr.setAuthenticationMethod(getVariantValue<daq::IString*>(authenticationMethodId));
+        },
+        "Selects the authentication method to use, by its own id - the typed equivalent of `setPropertySelectionValue(\"AuthenticationMethod\", authenticationMethodId)`. Selecting a new method always resets `\"SuppliedCredential\"` back to empty.");
     cls.def_property_readonly("authentication_methods",
         [](daq::IAuthenticationConfig *object)
         {
@@ -84,12 +79,12 @@ void defineIAuthenticationConfig(pybind11::module_ m, PyDaqIntf<daq::IAuthentica
             const auto objectPtr = daq::AuthenticationConfigPtr::Borrow(object);
             return objectPtr.getSuppliedCredential().detach();
         },
-        [](daq::IAuthenticationConfig *object, daq::IDict* credential)
+        [](daq::IAuthenticationConfig *object, std::variant<daq::IDict*, py::dict>& credential)
         {
             py::gil_scoped_release release;
             const auto objectPtr = daq::AuthenticationConfigPtr::Borrow(object);
-            objectPtr.setSuppliedCredential(credential);
+            objectPtr.setSuppliedCredential(getVariantValue<daq::IDict*>(credential));
         },
         py::return_value_policy::take_ownership,
-        "Gets or sets the credential supplied directly by the caller - the value of the `\"SuppliedCredential\"` property, a dictionary of field value(s) keyed by their own field id. Always assigned - empty means none was supplied. Setting it must carry a non-empty value for every field the currently selected `\"AuthenticationMethod\"` marks required, unless the given credential itself is empty, which clears it back to the default \"none supplied\" state.");
+        "Gets the credential supplied directly by the caller - the value of the `\"SuppliedCredential\"` property, a dictionary of field value(s) keyed by their own field id. Always assigned - empty (the property's default value) means none was supplied, in which case the module obtains one from the registered credential provider instead. / Sets the credential supplied directly by the caller - the typed equivalent of `setPropertyValue(\"SuppliedCredential\", credential)`. Must carry a non-empty value for every field the currently selected `\"AuthenticationMethod\"` marks required (see `ICredentialField::isRequired`), unless `credential` itself is empty, which clears it back to the default \"none supplied\" state.");
 }

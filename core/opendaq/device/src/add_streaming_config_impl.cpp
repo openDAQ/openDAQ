@@ -6,6 +6,7 @@ BEGIN_NAMESPACE_OPENDAQ
 namespace add_streaming_config
 {
 static const char* TypeConfig = "TypeConfig";
+static const char* AuthenticationConfig = "AuthenticationConfig";
 
 static const char* StreamingTypeKey = "streamingType";
 }
@@ -14,6 +15,7 @@ AddStreamingConfigImpl::AddStreamingConfigImpl(const StreamingTypePtr& streaming
     : AddStreamingConfigImpl(streamingType, Partial())
 {
     Super::addProperty(ObjectProperty(add_streaming_config::TypeConfig, streamingType.createDefaultConfig()));
+    Super::addProperty(ObjectProperty(add_streaming_config::AuthenticationConfig, streamingType.createAuthenticationConfig()));
 }
 
 AddStreamingConfigImpl::AddStreamingConfigImpl(const StreamingTypePtr& streamingType, Partial)
@@ -35,6 +37,13 @@ ErrCode AddStreamingConfigImpl::getTypeConfig(IPropertyObject** config)
     OPENDAQ_PARAM_NOT_NULL(config);
 
     return daqTry([&] { *config = objPtr.getPropertyValue(add_streaming_config::TypeConfig).asPtr<IPropertyObject>().detach(); });
+}
+
+ErrCode AddStreamingConfigImpl::getAuthenticationConfig(IAuthenticationConfig** config)
+{
+    OPENDAQ_PARAM_NOT_NULL(config);
+
+    return daqTry([&] { *config = objPtr.getPropertyValue(add_streaming_config::AuthenticationConfig).asPtr<IAuthenticationConfig>().detach(); });
 }
 
 ErrCode AddStreamingConfigImpl::clone(IPropertyObject** cloned)

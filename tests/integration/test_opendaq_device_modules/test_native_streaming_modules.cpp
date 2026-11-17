@@ -42,7 +42,7 @@ static InstancePtr CreateClientInstance(const std::string& username, const std::
     auto instance = test_helpers::createInstance("[[none]]");
     addNativeClientModule(instance);
 
-    auto config = instance.createDefaultAddDeviceConfig();
+    auto config = test_helpers::createDefaultAddDeviceConfig(instance);
     PropertyObjectPtr general = config.getPropertyValue("General");
     general.setPropertyValue("Username", username);
     general.setPropertyValue("Password", password);

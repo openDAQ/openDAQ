@@ -42,16 +42,6 @@ daqErrCode daqModule_createDevice(daqModule* self, daqDevice** device, daqString
     return reinterpret_cast<daq::IModule*>(self)->createDevice(reinterpret_cast<daq::IDevice**>(device), reinterpret_cast<daq::IString*>(connectionString), reinterpret_cast<daq::IComponent*>(parent), reinterpret_cast<daq::IPropertyObject*>(config));
 }
 
-daqErrCode daqModule_createAuthenticatedDevice(daqModule* self, daqDevice** device, daqString* connectionString, daqComponent* parent, daqPropertyObject* config, daqLoginParameters* loginParameters)
-{
-    return reinterpret_cast<daq::IModule*>(self)->createAuthenticatedDevice(reinterpret_cast<daq::IDevice**>(device), reinterpret_cast<daq::IString*>(connectionString), reinterpret_cast<daq::IComponent*>(parent), reinterpret_cast<daq::IPropertyObject*>(config), reinterpret_cast<daq::ILoginParameters*>(loginParameters));
-}
-
-daqErrCode daqModule_getCanonicalConnectionString(daqModule* self, daqString* connectionString, daqString** canonicalConnectionString)
-{
-    return reinterpret_cast<daq::IModule*>(self)->getCanonicalConnectionString(reinterpret_cast<daq::IString*>(connectionString), reinterpret_cast<daq::IString**>(canonicalConnectionString));
-}
-
 daqErrCode daqModule_getAvailableFunctionBlockTypes(daqModule* self, daqDict** functionBlockTypes)
 {
     return reinterpret_cast<daq::IModule*>(self)->getAvailableFunctionBlockTypes(reinterpret_cast<daq::IDict**>(functionBlockTypes));
@@ -77,11 +67,6 @@ daqErrCode daqModule_createStreaming(daqModule* self, daqStreaming** streaming, 
     return reinterpret_cast<daq::IModule*>(self)->createStreaming(reinterpret_cast<daq::IStreaming**>(streaming), reinterpret_cast<daq::IString*>(connectionString), reinterpret_cast<daq::IPropertyObject*>(config));
 }
 
-daqErrCode daqModule_createAuthenticatedStreaming(daqModule* self, daqStreaming** streaming, daqString* connectionString, daqPropertyObject* config, daqLoginParameters* loginParameters)
-{
-    return reinterpret_cast<daq::IModule*>(self)->createAuthenticatedStreaming(reinterpret_cast<daq::IStreaming**>(streaming), reinterpret_cast<daq::IString*>(connectionString), reinterpret_cast<daq::IPropertyObject*>(config), reinterpret_cast<daq::ILoginParameters*>(loginParameters));
-}
-
 daqErrCode daqModule_completeServerCapability(daqModule* self, daqBool* succeeded, daqServerCapability* source, daqServerCapabilityConfig* target)
 {
     return reinterpret_cast<daq::IModule*>(self)->completeServerCapability(succeeded, reinterpret_cast<daq::IServerCapability*>(source), reinterpret_cast<daq::IServerCapabilityConfig*>(target));
@@ -105,4 +90,19 @@ daqErrCode daqModule_getLicenseConfig(daqModule* self, daqDict** licenseConfig)
 daqErrCode daqModule_licenseLoaded(daqModule* self, daqBool* loaded)
 {
     return reinterpret_cast<daq::IModule*>(self)->licenseLoaded(loaded);
+}
+
+daqErrCode daqModule_createAuthenticatedDevice(daqModule* self, daqDevice** device, daqString* connectionString, daqComponent* parent, daqPropertyObject* config, daqLoginParameters* loginParameters)
+{
+    return reinterpret_cast<daq::IModule*>(self)->createAuthenticatedDevice(reinterpret_cast<daq::IDevice**>(device), reinterpret_cast<daq::IString*>(connectionString), reinterpret_cast<daq::IComponent*>(parent), reinterpret_cast<daq::IPropertyObject*>(config), reinterpret_cast<daq::ILoginParameters*>(loginParameters));
+}
+
+daqErrCode daqModule_createAuthenticatedStreaming(daqModule* self, daqStreaming** streaming, daqString* connectionString, daqPropertyObject* config, daqLoginParameters* loginParameters)
+{
+    return reinterpret_cast<daq::IModule*>(self)->createAuthenticatedStreaming(reinterpret_cast<daq::IStreaming**>(streaming), reinterpret_cast<daq::IString*>(connectionString), reinterpret_cast<daq::IPropertyObject*>(config), reinterpret_cast<daq::ILoginParameters*>(loginParameters));
+}
+
+daqErrCode daqModule_getCanonicalConnectionString(daqModule* self, daqString* connectionString, daqString** canonicalConnectionString)
+{
+    return reinterpret_cast<daq::IModule*>(self)->getCanonicalConnectionString(reinterpret_cast<daq::IString*>(connectionString), reinterpret_cast<daq::IString**>(canonicalConnectionString));
 }

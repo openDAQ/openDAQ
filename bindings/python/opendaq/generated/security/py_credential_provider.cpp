@@ -10,7 +10,7 @@
 //------------------------------------------------------------------------------
 
 /*
- * Copyright 2022-2025 openDAQ d.o.o.
+ * Copyright 2022-2026 openDAQ d.o.o.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -49,7 +49,7 @@ void defineICredentialProvider(pybind11::module_ m, PyDaqIntf<daq::ICredentialPr
             const auto objectPtr = daq::CredentialProviderPtr::Borrow(object);
             return objectPtr.getDescription().toStdString();
         },
-        "Gets a human-readable description of the credential provider - e.g. for identifying it in a log message or an error. Not an id - not expected to be unique, or stable across implementations.");
+        "Gets a human-readable description of the credential provider.");
     cls.def("request_credentials",
         [](daq::ICredentialProvider *object, daq::ICredentialRequest* request)
         {
@@ -58,6 +58,5 @@ void defineICredentialProvider(pybind11::module_ m, PyDaqIntf<daq::ICredentialPr
             return objectPtr.requestCredentials(request).detach();
         },
         py::arg("request"),
-        py::return_value_policy::take_ownership,
-        "Requests credentials for the given request, in the shape described by its authentication method - a dictionary of field value(s), keyed by their own field id.");
+        "Requests credentials for the given request, in the shape described by its authentication method's nested credential fields.");
 }

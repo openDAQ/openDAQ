@@ -10,7 +10,7 @@
 //------------------------------------------------------------------------------
 
 /*
- * Copyright 2022-2025 openDAQ d.o.o.
+ * Copyright 2022-2026 openDAQ d.o.o.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -49,7 +49,7 @@ void defineICredentialRequestBuilder(pybind11::module_ m, PyDaqIntf<daq::ICreden
             const auto objectPtr = daq::CredentialRequestBuilderPtr::Borrow(object);
             return objectPtr.build().detach();
         },
-        "Builds and returns a `CredentialRequest` using the currently configured values. Fails if component_type, connection_string, or authentication_method was never set.");
+        "Builds and returns a `CredentialRequest` using the currently configured values. Fails if `componentType`, `connectionString`, or `authenticationMethod` was never set.");
     cls.def_property("component_type",
         [](daq::ICredentialRequestBuilder *object)
         {
@@ -64,7 +64,7 @@ void defineICredentialRequestBuilder(pybind11::module_ m, PyDaqIntf<daq::ICreden
             objectPtr.setComponentType(componentType);
         },
         py::return_value_policy::take_ownership,
-        "Gets the type of the component the request is being built for. / Sets the type of the component the request is being built for. Required.");
+        "Gets the type of the component the request is being built for. / Sets the type of the component the request is being built for. Required - `build()` fails if never set.");
     cls.def_property("connection_string",
         [](daq::ICredentialRequestBuilder *object)
         {
@@ -78,7 +78,7 @@ void defineICredentialRequestBuilder(pybind11::module_ m, PyDaqIntf<daq::ICreden
             const auto objectPtr = daq::CredentialRequestBuilderPtr::Borrow(object);
             objectPtr.setConnectionString(getVariantValue<daq::IString*>(connectionString));
         },
-        "Gets the canonical connection string currently set on the builder. / Sets the canonical connection string of the connection attempt the request is being built for - expected to already be resolved via the owning module's `onGetCanonicalConnectionString`, not the raw string the caller originally supplied. Required.");
+        "Gets the canonical connection string currently set on the builder. / Sets the canonical connection string of the connection attempt the request is being built for - expected to already be resolved via the owning module's `onGetCanonicalConnectionString` (routing prefix trimmed, every parameter made explicit), not the raw string the caller originally supplied. Required - `build()` fails if never set.");
     cls.def_property("manufacturer",
         [](daq::ICredentialRequestBuilder *object)
         {
@@ -92,7 +92,7 @@ void defineICredentialRequestBuilder(pybind11::module_ m, PyDaqIntf<daq::ICreden
             const auto objectPtr = daq::CredentialRequestBuilderPtr::Borrow(object);
             objectPtr.setManufacturer(getVariantValue<daq::IString*>(manufacturer));
         },
-        "Gets the manufacturer currently set on the builder. / Sets the manufacturer of the device the connection is being established to or for - a request can be for a direct connection to that device, or for a streaming connection attached to it. Optional - leave unset if not known.");
+        "Gets the manufacturer currently set on the builder. / Sets the manufacturer of the device the connection is being established to or for - a request can be for a direct connection to that device, or for a streaming connection attached to it. Optional - leave unset if the manufacturer isn't known for this connection.");
     cls.def_property("serial_number",
         [](daq::ICredentialRequestBuilder *object)
         {
@@ -106,7 +106,7 @@ void defineICredentialRequestBuilder(pybind11::module_ m, PyDaqIntf<daq::ICreden
             const auto objectPtr = daq::CredentialRequestBuilderPtr::Borrow(object);
             objectPtr.setSerialNumber(getVariantValue<daq::IString*>(serialNumber));
         },
-        "Gets the serial number currently set on the builder. / Sets the serial number of the device the connection is being established to or for - a request can be for a direct connection to that device, or for a streaming connection attached to it. Optional - leave unset if not known.");
+        "Gets the serial number currently set on the builder. / Sets the serial number of the device the connection is being established to or for - a request can be for a direct connection to that device, or for a streaming connection attached to it. Optional - leave unset if the serial number isn't known for this connection.");
     cls.def_property("model",
         [](daq::ICredentialRequestBuilder *object)
         {
@@ -120,7 +120,7 @@ void defineICredentialRequestBuilder(pybind11::module_ m, PyDaqIntf<daq::ICreden
             const auto objectPtr = daq::CredentialRequestBuilderPtr::Borrow(object);
             objectPtr.setModel(getVariantValue<daq::IString*>(model));
         },
-        "Gets the model currently set on the builder. / Sets the model of the device the connection is being established to or for - a request can be for a direct connection to that device, or for a streaming connection attached to it. Optional - leave unset if not known.");
+        "Gets the model currently set on the builder. / Sets the model of the device the connection is being established to or for - a request can be for a direct connection to that device, or for a streaming connection attached to it. Optional - leave unset if the model isn't known for this connection.");
     cls.def_property("display_name",
         [](daq::ICredentialRequestBuilder *object)
         {
@@ -149,5 +149,5 @@ void defineICredentialRequestBuilder(pybind11::module_ m, PyDaqIntf<daq::ICreden
             objectPtr.setAuthenticationMethod(authenticationMethod);
         },
         py::return_value_policy::take_ownership,
-        "Gets the authentication method currently set on the builder. / Sets the authentication method the provider must provide a credential for - typically read from `IAuthenticationConfig` when the request is being built. Required.");
+        "Gets the authentication method currently set on the builder. / Sets the authentication method the provider must provide a credential for - typically read from `IAuthenticationConfig` when the request is being built. Required - `build()` fails if never set.");
 }

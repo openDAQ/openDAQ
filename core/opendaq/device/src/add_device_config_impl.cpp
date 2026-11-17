@@ -14,6 +14,7 @@ static const char* TypeConfig = "TypeConfig";
 static const char* PrimaryAddressType = "PrimaryAddressType";
 static const char* ScanOnAdd = "ScanOnAdd";
 static const char* Streaming = "Streaming";
+static const char* AuthenticationConfig = "AuthenticationConfig";
 
 static const char* DeviceTypeKey = "deviceType";
 static const char* DeviceTypeIdKey = "deviceTypeId";
@@ -62,6 +63,7 @@ AddDeviceConfigImpl::AddDeviceConfigImpl(const DeviceTypePtr& deviceType,
 
     const auto options = createWithImplementation<IAddStreamingOptions, AddStreamingOptionsImpl>(streamingConfigs);
     Super::addProperty(ObjectProperty(add_device_config::Streaming, options));
+    Super::addProperty(ObjectProperty(add_device_config::AuthenticationConfig, deviceType.createAuthenticationConfig()));
 }
 
 AddDeviceConfigImpl::AddDeviceConfigImpl(const DeviceTypePtr& deviceType, Partial)
@@ -127,6 +129,13 @@ ErrCode AddDeviceConfigImpl::getStreamingOptions(IAddStreamingOptions** options)
 
         *options = objPtr.getPropertyValue(add_device_config::Streaming).asPtr<IAddStreamingOptions>().detach();
     });
+}
+
+ErrCode AddDeviceConfigImpl::getAuthenticationConfig(IAuthenticationConfig** config)
+{
+    OPENDAQ_PARAM_NOT_NULL(config);
+
+    return daqTry([&] { *config = objPtr.getPropertyValue(add_device_config::AuthenticationConfig).asPtr<IAuthenticationConfig>().detach(); });
 }
 
 ErrCode AddDeviceConfigImpl::clone(IPropertyObject** cloned)

@@ -51,11 +51,11 @@ daqErrCode daqCredentialField_createCredentialField(daqCredentialField** obj, da
 {
     daq::ICredentialField* ptr = nullptr;
     daqErrCode err = daq::createCredentialField(&ptr,
-                                                 reinterpret_cast<daq::IString*>(id),
-                                                 static_cast<daq::CredentialFieldKind>(kind),
-                                                 reinterpret_cast<daq::IString*>(name),
-                                                 required,
-                                                 reinterpret_cast<daq::IDict*>(metadata));
+                                                reinterpret_cast<daq::IString*>(id),
+                                                static_cast<daq::CredentialFieldKind>(kind),
+                                                reinterpret_cast<daq::IString*>(name),
+                                                required,
+                                                reinterpret_cast<daq::IDict*>(metadata));
     *obj = reinterpret_cast<daqCredentialField*>(ptr);
     return err;
 }

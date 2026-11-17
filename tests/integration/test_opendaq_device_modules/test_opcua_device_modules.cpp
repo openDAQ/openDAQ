@@ -67,7 +67,7 @@ static InstancePtr CreateClientInstance(const InstanceBuilderPtr& builder = test
 
     addOpcuaClientModule(instance);
 
-    auto config = instance.createDefaultAddDeviceConfig();
+    auto config = test_helpers::createDefaultAddDeviceConfig(instance);
     PropertyObjectPtr general = config.getPropertyValue("General");
     general.setPropertyValue("StreamingConnectionHeuristic", 2);
 

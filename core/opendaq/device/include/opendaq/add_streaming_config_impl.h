@@ -38,6 +38,7 @@ public:
 
     ErrCode INTERFACE_FUNC getStreamingType(IStreamingType** type) override;
     ErrCode INTERFACE_FUNC getTypeConfig(IPropertyObject** config) override;
+    ErrCode INTERFACE_FUNC getAuthenticationConfig(IAuthenticationConfig** config) override;
 
     ErrCode INTERFACE_FUNC clone(IPropertyObject** cloned) override;
 

@@ -39,3 +39,11 @@ daqErrCode daqCredentialProvider_createCmdLineCredentialProvider(daqCredentialPr
     *obj = reinterpret_cast<daqCredentialProvider*>(ptr);
     return err;
 }
+
+daqErrCode daqCredentialProvider_createFunctionCredentialProvider(daqCredentialProvider** obj, daqFunction* function)
+{
+    daq::ICredentialProvider* ptr = nullptr;
+    daqErrCode err = daq::createFunctionCredentialProvider(&ptr, reinterpret_cast<daq::IFunction*>(function));
+    *obj = reinterpret_cast<daqCredentialProvider*>(ptr);
+    return err;
+}

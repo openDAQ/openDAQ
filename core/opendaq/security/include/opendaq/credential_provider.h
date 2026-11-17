@@ -56,4 +56,15 @@ DECLARE_OPENDAQ_INTERFACE(ICredentialProvider, IBaseObject)
  */
 OPENDAQ_DECLARE_CLASS_FACTORY_WITH_INTERFACE(LIBRARY_FACTORY, CmdLineCredentialProvider, ICredentialProvider)
 
+/*!
+ * @brief Creates a `ICredentialProvider` that forwards every call to `function`.
+ *
+ * The function takes the name of the called method and a dictionary of its input parameters, and returns a
+ * dictionary with one entry per output parameter:
+ *   - `"getDescription"`: no input parameters; returns `{"Description": <string>}`.
+ *   - `"requestCredentials"`: `{"Request": <ICredentialRequest>}`; returns `{"Credentials": <dict of field id to value>}`.
+ */
+// [interfaceLibrary(IFunction, "coretypes")]
+OPENDAQ_DECLARE_CLASS_FACTORY_WITH_INTERFACE(LIBRARY_FACTORY, FunctionCredentialProvider, ICredentialProvider, IFunction*, function)
+
 END_NAMESPACE_OPENDAQ

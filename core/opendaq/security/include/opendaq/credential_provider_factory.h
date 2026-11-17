@@ -17,6 +17,7 @@
 #pragma once
 
 #include <opendaq/credential_provider_ptr.h>
+#include <coretypes/function_ptr.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
@@ -26,6 +27,21 @@ BEGIN_NAMESPACE_OPENDAQ
 inline CredentialProviderPtr CmdLineCredentialProvider()
 {
     CredentialProviderPtr obj(CmdLineCredentialProvider_Create());
+    return obj;
+}
+
+/*!
+ * @brief Creates a CredentialProvider that forwards every call to `function`.
+ *
+ * The function takes the name of the called method and a dictionary of its input parameters, and returns a
+ * dictionary with one entry per output parameter:
+ *   - `"getDescription"`: no input parameters; returns `{"Description": <string>}`.
+ *   - `"requestCredentials"`: `{"Request": <ICredentialRequest>}`; returns `{"Credentials": <dict of field id to value>}`.
+ * @param function The function to forward the provider's calls to.
+ */
+inline CredentialProviderPtr FunctionCredentialProvider(const FunctionPtr& function)
+{
+    CredentialProviderPtr obj(FunctionCredentialProvider_Create(function));
     return obj;
 }
 

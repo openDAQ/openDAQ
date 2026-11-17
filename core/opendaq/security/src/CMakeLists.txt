@@ -64,6 +64,7 @@ function(create_component_source_groups_${BASE_NAME})
         ${SDK_HEADERS_DIR}/credential_request_builder.h
         ${SDK_HEADERS_DIR}/credential_request_builder_impl.h
         ${SDK_HEADERS_DIR}/cmd_line_credential_provider_impl.h
+        ${SDK_HEADERS_DIR}/function_credential_provider_impl.h
         ${SDK_HEADERS_DIR}/authentication_config.h
         ${SDK_HEADERS_DIR}/authentication_config_impl.h
         ${SDK_HEADERS_DIR}/authentication_method.h
@@ -80,6 +81,7 @@ function(create_component_source_groups_${BASE_NAME})
         ${SDK_HEADERS_DIR}/login_parameters_builder_impl.h
         ${SDK_SRC_DIR}/credential_request_impl.cpp
         ${SDK_SRC_DIR}/cmd_line_credential_provider_impl.cpp
+        ${SDK_SRC_DIR}/function_credential_provider_impl.cpp
         ${SDK_SRC_DIR}/credential_request_builder_impl.cpp
         ${SDK_SRC_DIR}/authentication_method_impl.cpp
         ${SDK_SRC_DIR}/authentication_config_impl.cpp
@@ -118,6 +120,7 @@ set(SRC_PrivateHeaders_Component
     credential_request_builder_impl.h
     credential_request_impl.h
     cmd_line_credential_provider_impl.h
+    function_credential_provider_impl.h
     authentication_method_impl.h
     authentication_config_impl.h
     credential_field_impl.h
@@ -129,6 +132,7 @@ set(SRC_PrivateHeaders_Component
 set(SRC_Cpp_Component
     credential_request_impl.cpp
     cmd_line_credential_provider_impl.cpp
+    function_credential_provider_impl.cpp
     credential_request_builder_impl.cpp
     authentication_method_impl.cpp
     authentication_config_impl.cpp

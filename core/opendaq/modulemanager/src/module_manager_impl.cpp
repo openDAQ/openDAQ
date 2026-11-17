@@ -1479,7 +1479,7 @@ AddDeviceConfigPtr ModuleManagerImpl::createAddDeviceConfigForType(const DeviceT
     if (!options.assigned())
         return addDeviceConfig;
 
-    const auto defaultType = selectStreamingType(listedTypes, deviceType, true);
+    const auto defaultType = selectStreamingType(listedTypes, deviceType);
     if (defaultType.assigned())
         options.setStreamingType(defaultType.getId());
 

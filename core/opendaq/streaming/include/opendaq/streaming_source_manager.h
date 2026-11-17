@@ -434,20 +434,23 @@ inline ListPtr<IAddressInfo> StreamingSourceManager::getSuitableAddressesInfo(co
             result.pushBack(addressInfo);
     };
 
-    const bool hasPreferredType = (primaryAddressType == "IPv4" || primaryAddressType == "IPv6");
-    if (hasPreferredType)
+    if (primaryAddressType == "IPv4" || primaryAddressType == "IPv6")
     {
         for (const auto& addressInfo : availableAddressesInfo)
         {
             if (addressInfo.getType() == primaryAddressType)
                 addToResult(addressInfo);
         }
+
+        if (!result.empty())
+            return result;
+
+        LOG_W("Server streaming capability does not provide any addresses of primary {} type", primaryAddressType);
     }
 
     for (const auto& addressInfo : availableAddressesInfo)
     {
-        if (!hasPreferredType || addressInfo.getType() != primaryAddressType)
-            addToResult(addressInfo);
+        addToResult(addressInfo);
     }
 
     return result;

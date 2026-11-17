@@ -53,9 +53,6 @@ InstanceImpl::InstanceImpl(IInstanceBuilder* instanceBuilder)
     if (connectionString.assigned() && connectionString.getLength())
     {
         rootDevice = moduleManager.asPtr<IModuleManagerUtils>(true).createDevice(connectionString, nullptr, rootDeviceConfig);
-        if (rootDevice.supportsInterface<IMirroredDeviceConfig>())
-            DAQ_THROW_EXCEPTION(InvalidParameterException, "Cannot set mirrored device as root device");
-
         LOG_I("Root device set to {}", connectionString)
         rootDeviceSet = true;
     }

@@ -68,14 +68,6 @@
 Setting the reference device as the root with `daqref://` now fails, so existing code and config files that do this break.
 Use `daqref.root://` instead, also in `RootDevice.ConnectionString` of config files.
 
-### `addDevice` translates the old add-device config
-
-`addDevice` translates an old config, from `createDefaultAddDeviceConfig`, a flat config or none, into an `IAddDeviceConfig` of the device type the connection string picks, and acts on that.
-A `Device` or `Streaming` value that the type's config rejects fails the add with `OPENDAQ_ERR_INVALIDVALUE` before any connection is made.
-A `Device` property that the type's default config doesn't have no longer reaches the module.
-Old clients and old servers receive the old form translated back from the new one, not the object passed to `addDevice`.
-A `General.PrimaryAddressType` that is set now only orders the addresses, the preferred type first, instead of dropping those of the other type, so reconnect alternatives and streaming candidates include both types.
-
 ### [#1327](https://github.com/openDAQ/openDAQ/pull/1327) Event handler removal waits for running handlers
 
 `IEvent::removeHandler` and `IEvent::clear` now return only once the removed handlers are no longer running on another thread. Don't call them while holding a lock that such a handler needs, or the call waits forever.

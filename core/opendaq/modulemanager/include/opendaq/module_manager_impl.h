@@ -36,7 +36,6 @@
 #include <opendaq/component_type_ptr.h>
 #include <opendaq/credential_request_ptr.h>
 #include <opendaq/credential_provider_ptr.h>
-#include <opendaq/add_device_config_ptr.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 struct ModuleLibrary;
@@ -76,42 +75,20 @@ public:
 
 private:
     ErrCode createDeviceInternal(IDevice** device, IString* connectionString, IComponent* parent, IPropertyObject* config);
-    ErrCode createDeviceFromAddDeviceConfig(IDevice** device,
-                                            const StringPtr& connectionString,
-                                            IComponent* parent,
-                                            const AddDeviceConfigPtr& inputConfig,
-                                            const AuthenticationConfigPtr& authenticationConfig);
-    ErrCode createDeviceFromLegacyConfig(IDevice** device,
-                                         const StringPtr& connectionString,
-                                         IComponent* parent,
-                                         const PropertyObjectPtr& inputConfig,
-                                         const AuthenticationConfigPtr& authenticationConfig);
-    ErrCode createDeviceFromResolvedConfig(IDevice** device,
-                                           const AddDeviceConfigPtr& config,
-                                           const StringPtr& connectionString,
-                                           const tsl::ordered_map<std::string, BaseObjectPtr>& connectionStringOptions,
-                                           IComponent* parent,
-                                           const AuthenticationConfigPtr& authenticationConfig,
-                                           const DeviceInfoPtr& discoveredDeviceInfo);
-    ErrCode createDeviceWithModule(IDevice** device,
-                                   const ModulePtr& module,
-                                   const DeviceTypePtr& deviceType,
-                                   const StringPtr& connectionString,
-                                   IComponent* parent,
-                                   const PropertyObjectPtr& deviceTypeConfig,
-                                   const PropertyObjectPtr& componentConfig,
-                                   const AuthenticationConfigPtr& authenticationConfig,
-                                   const DeviceInfoPtr& discoveredDeviceInfo);
-    ErrCode scanIfOutdated();
 
     static void PopulateDeviceTypeConfigFromConnStrOptions(PropertyObjectPtr& deviceTypeConfig,
                                                            const tsl::ordered_map<std::string, ObjectPtr<IBaseObject>>& options);
+    static PropertyObjectPtr PopulateDeviceTypeConfig(PropertyObjectPtr& addDeviceConfig,
+                                                      const PropertyObjectPtr& inputConfig,
+                                                      const DeviceTypePtr& deviceType,
+                                                      const tsl::ordered_map<std::string, ObjectPtr<IBaseObject>>& connStrOptions);
 
+    std::string getPrefixFromConnectionString(std::string connectionString) const;
     static std::pair<std::string, tsl::ordered_map<std::string, BaseObjectPtr>> SplitConnectionStringAndOptions(const std::string& connectionString);
 
     DeviceInfoPtr getSmartConnectionDeviceInfo(const StringPtr& inputConnectionString) const;
     DeviceInfoPtr getDiscoveredDeviceInfo(const DeviceInfoPtr& deviceInfo) const;
-    StringPtr getConnectionStringFromCapability(const ServerCapabilityPtr& capability, const std::vector<StringPtr>& addressTypes) const;
+    StringPtr getConnectionStringWithType(const ServerCapabilityPtr& capability, const StringPtr& primaryAddressType) const;
     StringPtr resolveSmartConnectionString(const StringPtr& inputConnectionString,
                                            const DeviceInfoPtr& discoveredDeviceInfo,
                                            const DictPtr<IString, IDeviceType>& deviceTypes,
@@ -168,6 +145,7 @@ private:
     // provider to obtain one.
     DictPtr<IString, IString> resolveCredentials(const AuthenticationConfigPtr& authenticationConfig, const CredentialRequestPtr& credentialRequest) const;
 
+    static PropertyObjectPtr CreateGeneralConfig(Bool scanOnAdd);
     static void OverrideConfigProperties(PropertyObjectPtr& targetConfig, const PropertyObjectPtr& sourceConfig);
 
     DictPtr<IString, IDeviceInfo> discoverDevicesWithIpModification();

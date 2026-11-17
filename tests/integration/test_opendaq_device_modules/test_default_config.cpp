@@ -1,27 +1,10 @@
 #include "opendaq/mock/mock_device_module.h"
 #include "test_helpers/test_helpers.h"
 #include "test_helpers/device_modules.h"
-#include <opendaq/add_device_config_legacy.h>
 
 using ModulesDefaultConfigTest = testing::Test;
 
 using namespace daq;
-
-static void testStoredConfig(const InstancePtr& instance,
-                             const StringPtr& deviceTypeId,
-                             const PropertyObjectPtr& input,
-                             const DevicePtr& device)
-{
-    const auto translated = fromLegacyAddDeviceConfig(input,
-                                                      instance.getAvailableDeviceTypes().get(deviceTypeId),
-                                                      instance.getModuleManager().asPtr<IModuleManagerUtils>().getAvailableStreamingTypes(),
-                                                      True,
-                                                      instance.getContext().getLogger().getOrAddComponent("ModulesDefaultConfigTest"));
-
-    const PropertyObjectPtr stored = device.asPtr<IComponentPrivate>(true).getComponentConfig();
-    ASSERT_TRUE(stored.assigned());
-    test_helpers::testPropObjsEquality(toLegacyAddDeviceConfig(translated), stored);
-}
 
 TEST_F(ModulesDefaultConfigTest, Create)
 {
@@ -51,7 +34,11 @@ TEST_F(ModulesDefaultConfigTest, AddDeviceWithoutConfig)
     instance.getModuleManager().addModule(deviceModule);
 
     auto device = instance.addDevice("daqmock://phys_device");
-    testStoredConfig(instance, "mock_phys_device", instance.createDefaultAddDeviceConfig(), device);
+    auto addedComponentConfig = device.asPtr<IComponentPrivate>(true).getComponentConfig();
+    ASSERT_TRUE(addedComponentConfig.assigned());
+
+    const auto defaultConfig = instance.createDefaultAddDeviceConfig();
+    test_helpers::testPropObjsEquality(defaultConfig, addedComponentConfig);
 }
 
 TEST_F(ModulesDefaultConfigTest, AddDeviceWithDefConfigFromDeviceType)
@@ -64,7 +51,11 @@ TEST_F(ModulesDefaultConfigTest, AddDeviceWithDefConfigFromDeviceType)
     auto mockDeviceConfig = deviceTypes.get("mock_phys_device").createDefaultConfig();
 
     auto device = instance.addDevice("daqmock://phys_device", mockDeviceConfig);
-    testStoredConfig(instance, "mock_phys_device", instance.createDefaultAddDeviceConfig(), device);
+    auto addedComponentConfig = device.asPtr<IComponentPrivate>(true).getComponentConfig();
+    ASSERT_TRUE(addedComponentConfig.assigned());
+
+    const auto defaultConfig = instance.createDefaultAddDeviceConfig();
+    test_helpers::testPropObjsEquality(defaultConfig, addedComponentConfig);
 }
 
 TEST_F(ModulesDefaultConfigTest, NativeConfigDevice)
@@ -102,7 +93,9 @@ TEST_F(ModulesDefaultConfigTest, NativeConfigDeviceConnect)
     auto device = instance.addDevice("daq.nd://127.0.0.1", config);
     ASSERT_TRUE(device.assigned());
 
-    testStoredConfig(instance, "OpenDAQNativeConfiguration", config, device);
+    auto addedComponentConfig = device.asPtr<IComponentPrivate>(true).getComponentConfig();
+    ASSERT_TRUE(addedComponentConfig.assigned());
+    test_helpers::testPropObjsEquality(config, addedComponentConfig);
 }
 
 TEST_F(ModulesDefaultConfigTest, NativeStreaming)
@@ -157,7 +150,9 @@ TEST_F(ModulesDefaultConfigTest, NativeStreamingDeviceConnect)
     auto device = instance.addDevice("daq.nd://127.0.0.1", config);
     ASSERT_TRUE(device.assigned());
 
-    testStoredConfig(instance, "OpenDAQNativeConfiguration", config, device);
+    auto addedComponentConfig = device.asPtr<IComponentPrivate>(true).getComponentConfig();
+    ASSERT_TRUE(addedComponentConfig.assigned());
+    test_helpers::testPropObjsEquality(config, addedComponentConfig);
 }
 
 TEST_F(ModulesDefaultConfigTest, LTStreamingDevice)
@@ -191,7 +186,9 @@ TEST_F(ModulesDefaultConfigTest, LTStreamingDeviceConnect)
     auto device = instance.addDevice("daq.lt://127.0.0.1", config);
     ASSERT_TRUE(device.assigned());
 
-    testStoredConfig(instance, "OpenDAQLTStreaming", config, device);
+    auto addedComponentConfig = device.asPtr<IComponentPrivate>(true).getComponentConfig();
+    ASSERT_TRUE(addedComponentConfig.assigned());
+    test_helpers::testPropObjsEquality(config, addedComponentConfig);
 }
 
 TEST_F(ModulesDefaultConfigTest, OPCUAConfigDevice)
@@ -225,7 +222,9 @@ TEST_F(ModulesDefaultConfigTest, OPCUAConfigDeviceConnect)
     auto device = instance.addDevice("daq.opcua://127.0.0.1", config);
     ASSERT_TRUE(device.assigned());
 
-    testStoredConfig(instance, "OpenDAQOPCUAConfiguration", config, device);
+    auto addedComponentConfig = device.asPtr<IComponentPrivate>(true).getComponentConfig();
+    ASSERT_TRUE(addedComponentConfig.assigned());
+    test_helpers::testPropObjsEquality(config, addedComponentConfig);
 }
 
 TEST_F(ModulesDefaultConfigTest, NativeConfigDeviceNativeStreamingConnect)
@@ -258,7 +257,9 @@ TEST_F(ModulesDefaultConfigTest, NativeConfigDeviceNativeStreamingConnect)
     const auto device = instance.addDevice("daq.nd://127.0.0.1", config);
     ASSERT_EQ(device.asPtr<IMirroredDevice>().getStreamingSources().getCount(), 1u);
 
-    testStoredConfig(instance, "OpenDAQNativeConfiguration", config, device);
+    auto addedComponentConfig = device.asPtr<IComponentPrivate>(true).getComponentConfig();
+    ASSERT_TRUE(addedComponentConfig.assigned());
+    test_helpers::testPropObjsEquality(config, addedComponentConfig);
 }
 
 TEST_F(ModulesDefaultConfigTest, NativeConfigDeviceAnyStreamingConnect)
@@ -295,7 +296,9 @@ TEST_F(ModulesDefaultConfigTest, NativeConfigDeviceAnyStreamingConnect)
     auto availableStreamingSources = device.asPtr<IMirroredDevice>().getStreamingSources();
     ASSERT_EQ(availableStreamingSources.getCount(), 1u); // Only one per device is established automatically
 
-    testStoredConfig(instance, "OpenDAQNativeConfiguration", config, device);
+    auto addedComponentConfig = device.asPtr<IComponentPrivate>(true).getComponentConfig();
+    ASSERT_TRUE(addedComponentConfig.assigned());
+    test_helpers::testPropObjsEquality(config, addedComponentConfig);
 }
 
 TEST_F(ModulesDefaultConfigTest, NativeConfigDeviceNoStreamingConnect)
@@ -321,7 +324,9 @@ TEST_F(ModulesDefaultConfigTest, NativeConfigDeviceNoStreamingConnect)
     const auto device = instance.addDevice("daq.nd://127.0.0.1", config);
     ASSERT_EQ(device.asPtr<IMirroredDevice>().getStreamingSources().getCount(), 0u);
 
-    testStoredConfig(instance, "OpenDAQNativeConfiguration", config, device);
+    auto addedComponentConfig = device.asPtr<IComponentPrivate>(true).getComponentConfig();
+    ASSERT_TRUE(addedComponentConfig.assigned());
+    test_helpers::testPropObjsEquality(config, addedComponentConfig);
 }
 
 TEST_F(ModulesDefaultConfigTest, OPCUAConfigLTStreamingConnect)
@@ -361,7 +366,9 @@ TEST_F(ModulesDefaultConfigTest, OPCUAConfigLTStreamingConnect)
     const auto device = instance.addDevice("daq.opcua://127.0.0.1", config);
     ASSERT_EQ(device.asPtr<IMirroredDevice>().getStreamingSources().getCount(), 1u);
 
-    testStoredConfig(instance, "OpenDAQOPCUAConfiguration", config, device);
+    auto addedComponentConfig = device.asPtr<IComponentPrivate>(true).getComponentConfig();
+    ASSERT_TRUE(addedComponentConfig.assigned());
+    test_helpers::testPropObjsEquality(config, addedComponentConfig);
 }
 
 TEST_F(ModulesDefaultConfigTest, OPCUAConfigAnyStreamingConnect)
@@ -407,7 +414,9 @@ TEST_F(ModulesDefaultConfigTest, OPCUAConfigAnyStreamingConnect)
     const auto device = instance.addDevice("daq.opcua://127.0.0.1", config);
     ASSERT_EQ(device.asPtr<IMirroredDevice>().getStreamingSources().getCount(), 1u); // Only one per device is established automatically
 
-    testStoredConfig(instance, "OpenDAQOPCUAConfiguration", config, device);
+    auto addedComponentConfig = device.asPtr<IComponentPrivate>(true).getComponentConfig();
+    ASSERT_TRUE(addedComponentConfig.assigned());
+    test_helpers::testPropObjsEquality(config, addedComponentConfig);
 }
 
 TEST_F(ModulesDefaultConfigTest, SmartConnectWithIpVerNative)

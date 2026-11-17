@@ -131,7 +131,7 @@ TEST_F(AddDeviceConfigTest, StreamingDefaults)
     ASSERT_EQ(configs.get("a").getTypeConfig().getPropertyValue("Id"), "a");
 }
 
-TEST_F(AddDeviceConfigTest, UnspecifiedAndUnknownKindsHaveStreamingOptions)
+TEST_F(AddDeviceConfigTest, UnspecifiedAndUnknownKindsHaveNoStreamingOptions)
 {
     const DeviceTypePtr unknownType = deserialize(R"({"__type":"DeviceType","id":"dev","name":"dev","prefix":"dev","deviceKind":99})");
     ASSERT_EQ(static_cast<Int>(unknownType.getDeviceKind()), 99);
@@ -140,7 +140,7 @@ TEST_F(AddDeviceConfigTest, UnspecifiedAndUnknownKindsHaveStreamingOptions)
     for (const auto& deviceType : {createDeviceType(DeviceKind::Unspecified), unknownType})
     {
         const auto config = AddDeviceConfig(deviceType, streamingTypes, true);
-        ASSERT_EQ(config.getStreamingOptions().getStreamingConfigs().getKeyList(), List<IString>("a"));
+        ASSERT_FALSE(config.getStreamingOptions().assigned());
     }
 }
 
@@ -231,15 +231,14 @@ TEST_F(AddDeviceConfigTest, StreamingSelection)
 {
     const auto options = createMirroredConfig().getStreamingOptions();
     const auto configs = options.getStreamingConfigs();
-    ASSERT_FALSE(options.getStreamingType().assigned());
+    ASSERT_EQ(options.getStreamingConfig("a").getObject(), configs.get("a").getObject());
+    ASSERT_THROW(options.getStreamingConfig("unknown"), NotFoundException);
 
     options.setStreamingType("a");
-    ASSERT_EQ(options.getStreamingType(), "a");
     ASSERT_EQ(options.getStreamingConfig().getObject(), configs.get("a").getObject());
     ASSERT_EQ(options.asPtr<IPropertyObject>().getPropertyValue("StreamingType"), "a");
 
     options.asPtr<IPropertyObject>().setPropertyValue("StreamingType", "b");
-    ASSERT_EQ(options.getStreamingType(), "b");
     ASSERT_EQ(options.getStreamingConfig().getObject(), configs.get("b").getObject());
 
     ASSERT_THROW(options.setStreamingType("unknown"), NotFoundException);
@@ -249,7 +248,6 @@ TEST_F(AddDeviceConfigTest, StreamingSelection)
     {
         options.setStreamingType("a");
         options.setStreamingType(none);
-        ASSERT_FALSE(options.getStreamingType().assigned());
         ASSERT_FALSE(options.getStreamingConfig().assigned());
         ASSERT_EQ(options.asPtr<IPropertyObject>().getPropertyValue("StreamingType"), "None");
     }

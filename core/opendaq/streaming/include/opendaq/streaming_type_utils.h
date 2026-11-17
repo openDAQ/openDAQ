@@ -17,9 +17,6 @@
 #pragma once
 #include <opendaq/streaming_type_ptr.h>
 #include <opendaq/server_capability_ptr.h>
-#include <opendaq/connection_string_utils.h>
-#include <opendaq/logger_component_ptr.h>
-#include <opendaq/custom_log.h>
 #include <coretypes/dictobject_factory.h>
 #include <string>
 
@@ -42,33 +39,12 @@ inline bool isStreamingTypeIdReserved(const StringPtr& id)
 }
 
 /*!
- * @brief Gets the streaming types whose IDs are not reserved.
- * @param streamingTypes The streaming types, keyed by ID
- * @param loggerComponent The logger component that warnings are written to
- *
- * A warning is logged for each reserved ID.
- */
-inline DictPtr<IString, IStreamingType> getListableStreamingTypes(const DictPtr<IString, IStreamingType>& streamingTypes,
-                                                                  const LoggerComponentPtr& loggerComponent)
-{
-    auto listableTypes = Dict<IString, IStreamingType>();
-    for (const auto& [id, streamingType] : streamingTypes)
-        if (isStreamingTypeIdReserved(id))
-        {
-            LOG_W(R"(Streaming type ID "{}" is reserved)", id);
-        }
-        else
-            listableTypes.set(id, streamingType);
-
-    return listableTypes;
-}
-
-/*!
  * @brief Gets the connection string prefix a server capability is matched to types by.
  * @param capability The server capability
  *
  * The prefix is the capability's prefix when it is set.
- * Otherwise, it is the prefix of the capability's connection string, as `getPrefixFromConnectionString` gives it.
+ * Otherwise, it is the prefix of the capability's connection string.
+ * The result is empty when neither gives a prefix.
  */
 inline StringPtr getServerCapabilityPrefix(const ServerCapabilityPtr& capability)
 {
@@ -76,7 +52,9 @@ inline StringPtr getServerCapabilityPrefix(const ServerCapabilityPtr& capability
     if (prefix.getLength() > 0)
         return prefix;
 
-    return getPrefixFromConnectionString(capability.getConnectionString());
+    const std::string connectionString = capability.getConnectionString();
+    const auto end = connectionString.find("://");
+    return (end == std::string::npos) ? "" : connectionString.substr(0, end);
 }
 
 /*!

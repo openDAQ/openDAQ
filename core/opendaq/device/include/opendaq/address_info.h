@@ -35,6 +35,15 @@ enum class AddressReachabilityStatus: EnumType
     Unreachable,
 };
 
+/*!
+ * @brief The type of an IP address.
+ */
+enum class AddressType : EnumType
+{
+    IPv4 = 0,
+    IPv6
+};
+
 /*#
  * [interfaceLibrary(IPropertyObject, "coreobjects")]
  * [interfaceSmartPtr(IPropertyObject, GenericPropertyObjectPtr, "<coreobjects/property_object_ptr.h>")]

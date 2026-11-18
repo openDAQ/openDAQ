@@ -18,6 +18,7 @@
 #include <coretypes/dictobject.h>
 #include <opendaq/device_type.h>
 #include <opendaq/add_streaming_options.h>
+#include <opendaq/address_info.h>
 
 BEGIN_NAMESPACE_OPENDAQ
 
@@ -25,15 +26,6 @@ BEGIN_NAMESPACE_OPENDAQ
  * @ingroup opendaq_add_device_config
  * @{
  */
-
-/*!
- * @brief The type of IP address preferred when connecting to a device.
- */
-enum class AddressType : EnumType
-{
-    IPv4 = 0,
-    IPv6
-};
 
 /*#
  * [templated(defaultAliasName: AddDeviceConfigPtr)]

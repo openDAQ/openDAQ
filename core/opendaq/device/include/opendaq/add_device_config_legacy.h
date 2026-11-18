@@ -20,41 +20,8 @@
 #include <opendaq/logger_component_ptr.h>
 #include <coreobjects/property_object_ptr.h>
 #include <coretypes/dict_ptr.h>
-#include <coretypes/listobject_factory.h>
 
 BEGIN_NAMESPACE_OPENDAQ
-
-namespace LegacyAddDeviceConfig
-{
-inline constexpr const char* DeviceSection = "Device";
-inline constexpr const char* StreamingSection = "Streaming";
-inline constexpr const char* GeneralSection = "General";
-
-inline constexpr const char* StreamingConnectionHeuristic = "StreamingConnectionHeuristic";
-inline constexpr const char* MinConnections = "MinConnections";
-inline constexpr const char* MinHops = "MinHops";
-inline constexpr const char* NotConnected = "NotConnected";
-
-inline constexpr const char* PrioritizedStreamingProtocols = "PrioritizedStreamingProtocols";
-inline constexpr const char* AllowedStreamingProtocols = "AllowedStreamingProtocols";
-inline constexpr const char* AutomaticallyConnectStreaming = "AutomaticallyConnectStreaming";
-inline constexpr const char* ScanOnAdd = "ScanOnAdd";
-inline constexpr const char* Username = "Username";
-inline constexpr const char* Password = "Password";
-inline constexpr const char* ClientType = "ClientType";
-inline constexpr const char* ExclusiveControlDropOthers = "ExclusiveControlDropOthers";
-inline constexpr const char* PrimaryAddressType = "PrimaryAddressType";
-inline constexpr const char* IPv4 = "IPv4";
-inline constexpr const char* IPv6 = "IPv6";
-
-inline constexpr const char* NativeStreamingProtocolId = "OpenDAQNativeStreaming";
-inline constexpr const char* LtStreamingProtocolId = "OpenDAQLTStreaming";
-
-inline ListPtr<IString> defaultPrioritizedStreamingProtocols()
-{
-    return List<IString>(NativeStreamingProtocolId, LtStreamingProtocolId);
-}
-}
 
 /*!
  * @brief Creates the legacy `General` section with its default values.

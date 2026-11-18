@@ -268,9 +268,8 @@ DECLARE_OPENDAQ_INTERFACE(IDevice, IFolder)
      * @param connectionString The connection string containing the address of the streaming. In example an
      * IPv4/IPv6 address. The connection string can be found in the Server Capability objects returned by
      * `getInfo().getServerCapabilities()`.
-     * @param config A config object to configure a streaming connection. This object can contain properties like
-     * various connection timeouts or other streaming protocol specific settings. Can be created from its corresponding
-     * Streaming type object. In case of a null value, it will use the default configuration.
+     * @param config An add streaming config, or a type config of the Streaming type the prefix names. Null gives the type's defaults.
+     * @retval OPENDAQ_ERR_INVALIDPARAMETER when an add streaming config's Streaming type has another prefix than the connection string.
      */
     virtual ErrCode INTERFACE_FUNC addStreaming(IStreaming** streaming, IString* connectionString, IPropertyObject* config = nullptr) = 0;
 

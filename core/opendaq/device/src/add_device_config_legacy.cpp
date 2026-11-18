@@ -8,9 +8,42 @@
 #include <coreobjects/property_factory.h>
 #include <coreobjects/property_object_internal_ptr.h>
 #include <coreobjects/property_object_protected_ptr.h>
+#include <coretypes/listobject_factory.h>
 #include <algorithm>
 
 BEGIN_NAMESPACE_OPENDAQ
+
+namespace LegacyAddDeviceConfig
+{
+static constexpr const char* DeviceSection = "Device";
+static constexpr const char* StreamingSection = "Streaming";
+static constexpr const char* GeneralSection = "General";
+
+static constexpr const char* StreamingConnectionHeuristic = "StreamingConnectionHeuristic";
+static constexpr const char* MinConnections = "MinConnections";
+static constexpr const char* MinHops = "MinHops";
+static constexpr const char* NotConnected = "NotConnected";
+
+static constexpr const char* PrioritizedStreamingProtocols = "PrioritizedStreamingProtocols";
+static constexpr const char* AllowedStreamingProtocols = "AllowedStreamingProtocols";
+static constexpr const char* AutomaticallyConnectStreaming = "AutomaticallyConnectStreaming";
+static constexpr const char* ScanOnAdd = "ScanOnAdd";
+static constexpr const char* Username = "Username";
+static constexpr const char* Password = "Password";
+static constexpr const char* ClientType = "ClientType";
+static constexpr const char* ExclusiveControlDropOthers = "ExclusiveControlDropOthers";
+static constexpr const char* PrimaryAddressType = "PrimaryAddressType";
+static constexpr const char* IPv4 = "IPv4";
+static constexpr const char* IPv6 = "IPv6";
+
+static constexpr const char* NativeStreamingProtocolId = "OpenDAQNativeStreaming";
+static constexpr const char* LtStreamingProtocolId = "OpenDAQLTStreaming";
+
+static ListPtr<IString> defaultPrioritizedStreamingProtocols()
+{
+    return List<IString>(NativeStreamingProtocolId, LtStreamingProtocolId);
+}
+}
 
 namespace detail
 {

@@ -60,10 +60,12 @@ def get_nearest_device(component, default=None):
     return default
 
 
-def get_nearest_fb(component, default=None):
+def get_function_block_owner(function_block, default=None):
+    component = function_block.parent
     while component:
-        if daq.IFunctionBlock.can_cast_from(component):
-            return daq.IFunctionBlock.cast_from(component)
+        for interface in (daq.IFunctionBlock, daq.IServer, daq.IDevice):
+            if interface.can_cast_from(component):
+                return interface.cast_from(component)
         component = component.parent
     return default
 

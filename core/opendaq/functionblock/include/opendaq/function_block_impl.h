@@ -123,7 +123,6 @@ protected:
                                    const FunctionBlockTypePtr& fbType);
 private:
     ListPtr<ISignal> getSignalsRecursiveInternal(const SearchFilterPtr& searchFilter);
-    ListPtr<IFunctionBlock> getFunctionBlocksRecursiveInternal(const SearchFilterPtr& searchFilter);
     ListPtr<IInputPort> getInputPortsRecursiveInternal(const SearchFilterPtr& searchFilter);
 };
 
@@ -366,44 +365,7 @@ SignalPtr FunctionBlockImpl<TInterface, Interfaces...>::onGetStatusSignal()
 template <typename TInterface, typename... Interfaces>
 ErrCode FunctionBlockImpl<TInterface, Interfaces...>::getFunctionBlocks(IList** functionBlocks, ISearchFilter* searchFilter)
 {
-    OPENDAQ_PARAM_NOT_NULL(functionBlocks);
-
-    if (!searchFilter)
-        return this->functionBlocks->getItems(functionBlocks);
-
-    const auto searchFilterPtr = SearchFilterPtr::Borrow(searchFilter);
-    if(searchFilterPtr.supportsInterface<IRecursiveSearch>())
-    {
-        const ErrCode errCode = daqTry([&]
-        {
-            *functionBlocks = getFunctionBlocksRecursiveInternal(searchFilter).detach();
-            return OPENDAQ_SUCCESS;
-        });
-        OPENDAQ_RETURN_IF_FAILED(errCode);
-        return errCode;
-    }
-
-    return this->functionBlocks->getItems(functionBlocks, searchFilter);
-}
-
-template <typename TInterface, typename... Interfaces>
-ListPtr<IFunctionBlock> FunctionBlockImpl<TInterface, Interfaces...>::getFunctionBlocksRecursiveInternal(const SearchFilterPtr& searchFilter)
-{
-    tsl::ordered_set<FunctionBlockPtr, ComponentHash, ComponentEqualTo> allFbs;
-
-    for (const auto& fb : this->functionBlocks.getItems(searchFilter))
-        allFbs.insert(fb.template asPtr<IFunctionBlock>());
-
-    for (const auto& functionBlock : this->functionBlocks.getItems(search::Any()))
-        if (searchFilter.visitChildren(functionBlock))
-            for (const auto& fb : functionBlock.template asPtr<IFunctionBlock>().getFunctionBlocks(searchFilter))
-                allFbs.insert(fb);
-
-    auto fbList = List<IFunctionBlock>();
-    for (const auto& fb : allFbs)
-        fbList.pushBack(fb);
-
-    return fbList;
+    return this->getFunctionBlocksInternal(functionBlocks, searchFilter);
 }
 
 template <typename TInterface, typename... Interfaces>

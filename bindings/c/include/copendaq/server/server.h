@@ -39,6 +39,10 @@ extern "C"
     typedef struct daqList daqList;
     typedef struct daqSearchFilter daqSearchFilter;
     typedef struct daqStreaming daqStreaming;
+    typedef struct daqServerType daqServerType;
+    typedef struct daqDict daqDict;
+    typedef struct daqFunctionBlock daqFunctionBlock;
+    typedef struct daqPropertyObject daqPropertyObject;
 
     EXPORTED extern const daqIntfID DAQ_SERVER_INTF_ID;
     void EXPORTED daqServer_getInterfaceId(daqIntfID* intfId);
@@ -49,6 +53,11 @@ extern "C"
     daqErrCode EXPORTED daqServer_getSignals(daqServer* self, daqList** signals, daqSearchFilter* searchFilter);
     daqErrCode EXPORTED daqServer_getStreaming(daqServer* self, daqStreaming** streaming);
     daqErrCode EXPORTED daqServer_disableDiscovery(daqServer* self);
+    daqErrCode EXPORTED daqServer_getServerType(daqServer* self, daqServerType** type);
+    daqErrCode EXPORTED daqServer_getFunctionBlocks(daqServer* self, daqList** functionBlocks, daqSearchFilter* searchFilter);
+    daqErrCode EXPORTED daqServer_getAvailableFunctionBlockTypes(daqServer* self, daqDict** functionBlockTypes);
+    daqErrCode EXPORTED daqServer_addFunctionBlock(daqServer* self, daqFunctionBlock** functionBlock, daqString* typeId, daqPropertyObject* config);
+    daqErrCode EXPORTED daqServer_removeFunctionBlock(daqServer* self, daqFunctionBlock* functionBlock);
 
 #ifdef __cplusplus
 }

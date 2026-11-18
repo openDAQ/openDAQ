@@ -47,6 +47,9 @@ public:
     ErrCode INTERFACE_FUNC setDefaultConfig(IPropertyObject* defaultConfig) override;
     ErrCode INTERFACE_FUNC getDefaultConfig(IPropertyObject** defaultConfig) override;
 
+    ErrCode INTERFACE_FUNC setServerKind(ServerKind kind) override;
+    ErrCode INTERFACE_FUNC getServerKind(ServerKind* kind) override;
+
     ErrCode INTERFACE_FUNC setInputPolicy(FunctionBlockInputPolicy policy) override;
     ErrCode INTERFACE_FUNC getInputPolicy(FunctionBlockInputPolicy* policy) override;
 
@@ -64,6 +67,7 @@ private:
     StringPtr description;
     PropertyObjectPtr defaultConfig;
     ModuleInfoPtr moduleInfo;
+    ServerKind serverKind;
     FunctionBlockInputPolicy inputPolicy = FunctionBlockInputPolicy::Unspecified;
     Bool isSingleton = False;
     StringPtr commonSettingsTypeId = nullptr;

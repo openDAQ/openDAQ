@@ -12,7 +12,9 @@
 - [#1311](https://github.com/openDAQ/openDAQ/pull/1311) Add the `ScanOnAdd` option to skip the network scan on `addDevice`; tests wait for state instead of sleeping; declare `RESOURCE_LOCK` for parallel ctest; write a minidump on access violations.
 - [#1360](https://github.com/openDAQ/openDAQ/pull/1360) Add `FunctionModuleAuthenticator`, a module authenticator that forwards `authenticateModuleBinary` to a function, so a custom authenticator can be written in any binding. The function returns a dictionary with the mandatory `BinaryValid` and `VendorKey` keys. Available in C, Python and .NET.
 - [#1372](https://github.com/openDAQ/openDAQ/pull/1372) Ping discovered IPv6 addresses as well as IPv4 ones, without root or administrator rights where the operating system allows it.
-- [#1322](https://github.com/openDAQ/openDAQ/pull/1322) Add the `InputPolicy`, `Singleton` and `CommonSettingsTypeId` options to function block types. A type can now declare how its blocks create their input ports (the `FunctionBlockInputPolicy` enum: `Unspecified`, `Fixed`, `OneAlwaysEmpty` or `SettingsDriven`), that at most one instance may exist under a single parent, and that its properties act as common settings for nested blocks of another type. The options are set through `IComponentTypeBuilder` and read back from `IFunctionBlockType`. Building a type with an input policy outside of `FunctionBlockInputPolicy` fails with `OPENDAQ_ERR_INVALIDPARAMETER`, and an empty `CommonSettingsTypeId` is stored as unassigned. The options are serialized with the type, so they survive the config protocol. The options are also fields of the `FunctionBlockType` struct (the input policy as an `Int`), so they are visible through `IStruct` and take part in equality: two types that differ only in their options no longer compare equal. The `Singleton` flag is enforced by the core: adding a function block of a singleton type to a device or function block that already holds an instance of that type fails with `OPENDAQ_ERR_ALREADYEXISTS`. A duplicate found while loading a configuration is skipped with a warning, also on devices reached through the config protocol.
+- [#1389](https://github.com/openDAQ/openDAQ/pull/1389) Device, Function Block and Servers send their `ComponentType` objects over native. Server types have a new field `ServerKind`
+- [#1389](https://github.com/openDAQ/openDAQ/pull/1389) Servers can own function blocks - they can be added/removed by applications.
+- [#1322](https://github.com/openDAQ/openDAQ/pull/1322) Add the `InputPolicy`, `Singleton` and `CommonSettingsTypeId` options to function block types. A type can now declare how its blocks create their input ports (the `FunctionBlockInputPolicy` enum: `Unspecified`, `Fixed`, `OneAlwaysEmpty` or `SettingsDriven`), that at most one instance may exist under a single parent, and that its properties act as common settings for nested blocks of another type. The options are set through `IComponentTypeBuilder` and read back from `IFunctionBlockType`. Building a type with an input policy outside of `FunctionBlockInputPolicy` fails with `OPENDAQ_ERR_INVALIDPARAMETER`, and an empty `CommonSettingsTypeId` is stored as unassigned. The options are serialized with the type, so they survive the config protocol. The options are also fields of the `FunctionBlockType` struct (the input policy as an `Int`), so they are visible through `IStruct` and take part in equality: two types that differ only in their options no longer compare equal. The `Singleton` flag is enforced by the core: adding a function block of a singleton type to a device, server or a function block that already holds an instance of that type fails with `OPENDAQ_ERR_ALREADYEXISTS`. A duplicate found while loading a configuration is skipped with a warning, also on devices reached through the config protocol.
 
 ## Python
 
@@ -47,6 +49,8 @@
 - [#1374](https://github.com/openDAQ/openDAQ/pull/1374) Error messages list the error-info chain from the newest error down to the root cause in every build, capped at 4 KiB, so release builds no longer hide the root cause behind added context.
 - [#1374](https://github.com/openDAQ/openDAQ/pull/1374) An exception message containing `{` or `}` no longer turns into an `fmt::format_error`.
 - [#1367](https://github.com/openDAQ/openDAQ/pull/1367) Fix a crash when a device's info or domain, or a component's name, description or visibility, is read while the config client applies a server update or a domain change.
+- [#1387](https://github.com/openDAQ/openDAQ/pull/1387) Fix a process abort when a formatted error message is longer than 1024 bytes or its format string is malformed.
+- [#1385](https://github.com/openDAQ/openDAQ/pull/1385) `JsonSerializedList::readInt` reads 64-bit integers instead of failing on values above the 32-bit range, and `readSerializedObject`, `readList` and `readString` move past a `null` item instead of returning it again on every call. Code that stepped over such a `null` with an extra `readObject` call has to drop that call.
 
 ## Misc
 
@@ -89,6 +93,10 @@ The module manager no longer ignores the error code returned by `IModuleAuthenti
 - Calls to `getSyncComponent` and the `SyncComponentPtr` methods produce deprecation warnings, which fail builds that treat warnings as errors.
 - Python: the `opendaq.SyncComponent` argument `parse_failed_exception` is renamed to `parent`.
 - Clients built before this change cannot add a device that exposes `ISynchronization`, which includes the reference and simulator devices.
+
+### [#1389](https://github.com/openDAQ/openDAQ/pull/1389) Loading a setup restores existing servers
+
+`loadConfiguration` now restores the saved attributes, properties and function blocks of servers that already exist; it does not add or remove servers. Setups saved by earlier versions already contain the server settings, so loading them now applies those settings too.
 
 ## Required module changes
 
@@ -148,7 +156,7 @@ pass any fields beyond `Id`, `Name` and `Description` through `extraFields`, in 
 ```
 Passing `Id`, `Name` or `Description` in `extraFields` throws `InvalidParameterException`, and debug builds also throw `InvalidTypeException` when the resulting fields do not match the struct type's field names and order.
 
-The `Singleton` flag is enforced by the function blocks folder of devices and function blocks: adding a function block
+The `Singleton` flag is enforced by the function blocks folder of devices, servers and function blocks: adding a function block
 of a singleton type to a folder that already holds an instance of that type fails with `OPENDAQ_ERR_ALREADYEXISTS`. The
 check runs under the folder's lock together with the addition, so it covers concurrent additions, and function blocks
 that modules add themselves with `addNestedFunctionBlock` or `createAndAddNestedFunctionBlock`. `addFunctionBlock` also
@@ -167,6 +175,7 @@ built type that lacks the flag is not counted.
 + [interface] ISyncInterface
 + [interface] ISyncInterfaceInternal
 + [enum] SyncMode, SyncSourceStatus, SyncRoleStatus
++ [enum] ServerKind
 ```
 
 ### Removed interfaces
@@ -227,19 +236,40 @@ built type that lacks the flag is not counted.
 + IStreaming::getProtocolGroupId(IString** protocolGroupId);
 ```
 
-#### `IFunctionBlockType`
+#### `IServer`
 ```diff
-+ IFunctionBlockType::getInputPolicy(FunctionBlockInputPolicy* policy);
-+ IFunctionBlockType::getSingleton(Bool* singleton);
-+ IFunctionBlockType::getCommonSettingsTypeId(IString** typeId);
++ IServer::getServerType(IServerType** type);
++ IServer::getFunctionBlocks(IList** functionBlocks, ISearchFilter* searchFilter = nullptr);
++ IServer::getAvailableFunctionBlockTypes(IDict** functionBlockTypes);
++ IServer::addFunctionBlock(IFunctionBlock** functionBlock, IString* typeId, IPropertyObject* config = nullptr);
++ IServer::removeFunctionBlock(IFunctionBlock* functionBlock);
+```
+
+#### `IServerType`
+```diff
++ IServerType::getServerKind(ServerKind* kind);
 ```
 
 #### `IComponentTypeBuilder`
 ```diff
++ IComponentTypeBuilder::setServerKind(ServerKind kind);
++ IComponentTypeBuilder::getServerKind(ServerKind* kind);
 + IComponentTypeBuilder::setInputPolicy(FunctionBlockInputPolicy policy);
 + IComponentTypeBuilder::getInputPolicy(FunctionBlockInputPolicy* policy);
 + IComponentTypeBuilder::setSingleton(Bool singleton);
 + IComponentTypeBuilder::getSingleton(Bool* singleton);
 + IComponentTypeBuilder::setCommonSettingsTypeId(IString* typeId);
 + IComponentTypeBuilder::getCommonSettingsTypeId(IString** typeId);
+```
+
+#### `IComponentTypePrivate`
+```diff
++ IComponentTypePrivate::serializeWithoutDefaultConfig(ISerializer* serializer);
+```
+
+#### `IFunctionBlockType`
+```diff
++ IFunctionBlockType::getInputPolicy(FunctionBlockInputPolicy* policy);
++ IFunctionBlockType::getSingleton(Bool* singleton);
++ IFunctionBlockType::getCommonSettingsTypeId(IString** typeId);
 ```

@@ -428,11 +428,7 @@ inline ErrCode ServerCapabilityConfigImpl::getPort(IInteger** port)
     
     return daqTry([&]
     {
-        if (const auto first = FirstTransportOption(readTransportOptions()); first.assigned())
-            *port = Integer(first.getPort()).detach();
-        else
-            *port = getTypedProperty<IInteger>(Port).detach();
-
+        *port = getTypedProperty<IInteger>(Port).detach();
         return OPENDAQ_SUCCESS;
     });
 }

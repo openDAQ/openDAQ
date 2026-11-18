@@ -47,9 +47,8 @@ BEGIN_NAMESPACE_OPENDAQ
  *
  * When the streaming is created, it connects at the first of these ports:
  * - the port set on the config, by setPort or by writing the `Port` property;
- * - the port the connection string of the streaming names, unless it is the port of an option the config lists or the
- *   server announces, or the port of the server capability itself, as the connection strings of the server
- *   capabilities carry;
+ * - the port named by the connection string the streaming is added with; a streaming that comes with the added device
+ *   connects by the connection string of a server capability, whose port is not taken;
  * - the port the server of the added device announces for the selected option;
  * - the port of the selected option, as getAvailableTransportOptions lists it.
  *
@@ -60,9 +59,8 @@ BEGIN_NAMESPACE_OPENDAQ
  * (see `TransportOptionConfigProperty` and `PortConfigProperty`), in place of a port its own default config declares,
  * and a connection string that names the same port.
  *
- * Creating the streaming fails with OPENDAQ_ERR_INVALIDPARAMETER when a port is set and the connection string names
- * another port that is not the port of an option the config lists or the server announces, nor the port of the server
- * capability.
+ * Creating the streaming fails with OPENDAQ_ERR_INVALIDPARAMETER when a port is set and the connection string it is
+ * added with names another port.
  */
 DECLARE_OPENDAQ_INTERFACE(IAddStreamingConfig, IBaseObject)
 {
@@ -122,8 +120,8 @@ DECLARE_OPENDAQ_INTERFACE(IAddStreamingConfig, IBaseObject)
      * device info's server capability announces for it, or the Streaming type's default port when there is no such
      * capability. -1 for a Streaming type without options when no port is set.
      *
-     * Unless a port is set, a port the connection string of the streaming names, or else a port the server of the
-     * added device announces for the selected option, takes precedence (see the class description).
+     * Unless a port is set, the port named by the connection string the streaming is added with, or else the port the
+     * server of the added device announces for the selected option, takes precedence (see the class description).
      */
     virtual ErrCode INTERFACE_FUNC getPort(Int* port) = 0;
 };

@@ -278,30 +278,21 @@ TEST_F(TransportSelectionTest, HandMadeDeviceInfoListsTypeOptions)
     ASSERT_EQ(config.getPort(), 7420);
     ASSERT_EQ(config.getStreamingOptions().getStreamingConfig().getPort(), 7430);
 
-    // The connection string names the port to connect to
+    // The port the connection string of the device info names is not taken: the port follows the selected option
     const AddDeviceConfigPtr withPort = utils().createAddDeviceConfig(DeviceInfo("dev://host:9000"));
     ASSERT_EQ(withPort.getSelectedTransportOption().getId(), "plain");
-    ASSERT_EQ(withPort.getPort(), 9000);
+    ASSERT_EQ(withPort.getPort(), 7420);
     withPort.setTransportOption("tls");
-    ASSERT_EQ(withPort.getPort(), 9000);
-
-    // The port of one of the options is not set: the port follows the selected option
-    const AddDeviceConfigPtr withOptionPort = utils().createAddDeviceConfig(DeviceInfo("dev://host:7420"));
-    ASSERT_EQ(withOptionPort.getPort(), 7420);
-    withOptionPort.setTransportOption("tls");
-    ASSERT_EQ(withOptionPort.getPort(), 7421);
+    ASSERT_EQ(withPort.getPort(), 7421);
 }
 
-// A Device type without options takes the port the connection string of a hand-made device info names as well
+// A Device type without options has no port until one is set, whatever the connection string of the device info names
 TEST_F(TransportSelectionTest, HandMadeDeviceInfoWithoutTypeOptions)
 {
-    const AddDeviceConfigPtr withPort = utils().createAddDeviceConfig(DeviceInfo("legacy://host:9000"));
-    ASSERT_EQ(withPort.getAvailableTransportOptions().getCount(), 0u);
-    ASSERT_FALSE(withPort.getSelectedTransportOption().assigned());
-    ASSERT_EQ(withPort.getPort(), 9000);
-
-    const AddDeviceConfigPtr withoutPort = utils().createAddDeviceConfig(DeviceInfo("legacy://host"));
-    ASSERT_EQ(withoutPort.getPort(), -1);
+    const AddDeviceConfigPtr config = utils().createAddDeviceConfig(DeviceInfo("legacy://host:9000"));
+    ASSERT_EQ(config.getAvailableTransportOptions().getCount(), 0u);
+    ASSERT_FALSE(config.getSelectedTransportOption().assigned());
+    ASSERT_EQ(config.getPort(), -1);
 }
 
 // Adding a device with an add-device config comes with the new createDevice

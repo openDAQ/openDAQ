@@ -552,7 +552,7 @@ inline void StreamingSourceManager::attachStreamingToDevice(const MirroredDevice
         //   options = cap.getAvailableTransportOptions()
         //   if !options.hasKey(selected.getId()): skip the capability
         //   option = options.get(selected.getId())
-        //   port = streamingConfig.getPort() != selected.getPort() ? streamingConfig.getPort() : option.getPort()
+        //   port = the Port property of streamingConfig is not -1 ? streamingConfig.getPort() : option.getPort()
         //   for each connection string: connectionString = ReplaceConnectionStringPort(connectionString, port)
         //   the streaming type config gets TransportOptionConfigProperty = selected.getId() and
         //   PortConfigProperty = port

@@ -41,7 +41,6 @@
 #include <opendaq/component_type_private_ptr.h>
 #include <opendaq/device_type_ptr.h>
 #include <opendaq/streaming_type_ptr.h>
-#include <opendaq/connection_string_utils.h>
 #include <opendaq/authentication_method_ptr.h>
 #include <opendaq/authentication_method_internal_ptr.h>
 #include <opendaq/authentication_config_ptr.h>
@@ -985,9 +984,7 @@ ErrCode ModuleManagerImpl::createDeviceInternal(IDevice** device, IString* conne
             //   module.createDevice(ReplaceConnectionStringPort(target, the resolved port), typeConfig)
             //
             // AddTransportSelectionProperties then adds nothing, and CheckSelectedTransportOption still rejects an
-            // option the type does not list with OPENDAQ_ERR_NOTFOUND. The port has to be resolved before this point:
-            // the connection string of a discovered device names the port of the server's default option, which may
-            // belong to another option than the selected one.
+            // option the type does not list with OPENDAQ_ERR_NOTFOUND. The port has to be resolved before this point.
             AddTransportSelectionProperties(deviceTypeConfig, deviceType.getAvailableTransportOptions());
             OPENDAQ_RETURN_IF_FAILED(CheckSelectedTransportOption(deviceType, deviceTypeConfig));
 
@@ -1067,24 +1064,21 @@ ErrCode ModuleManagerImpl::createDevice(IDevice** device, IString* connectionStr
     //                      : connectionString, whose prefix must be the one of config.getDeviceType()
     //                        (else OPENDAQ_ERR_INVALIDPARAMETER)
     //   port = config.getPort()
-    //   optionPorts = the ports of the options config.getAvailableTransportOptions() lists and the discovered
-    //                 capability announces, and the port of the discovered capability itself
-    //   stringPort = the port target names, unless it is one of optionPorts (a discovered connection string carries
-    //                the port of an option, or of the capability of a server without options, not a port to connect at)
+    //   stringPort = the port connectionString names, also when it is the connection string of a device info; none for
+    //                a daq:// connection string
     //   if the Port property of config is not -1:                    // a port is set
     //       if stringPort is assigned and stringPort != port:
     //           fail with OPENDAQ_ERR_INVALIDPARAMETER
     //   else if stringPort is assigned:
     //       port = stringPort
-    //   else if discovery reports the device and config.getSelectedTransportOption() is assigned:
-    //       port = the port the discovered capability announces for the selected option
     //   typeConfig = a clone of config.getTypeConfig(), and for a Device type with options
     //       typeConfig[TransportOptionConfigProperty] = config.getSelectedTransportOption().getId()
     //       typeConfig[PortConfigProperty] = port
     //   the module creates the device from typeConfig and target, with ReplaceConnectionStringPort(target, port) when
     //   port is not -1 (a Device type without options and no port set keeps the connection string as it is)
     //   the selected streaming config (config.getStreamingOptions().getStreamingConfig()) connects over its selected
-    //   option the same way; a Streaming type linked to the Device type follows the device's option and port
+    //   option as IAddStreamingConfig describes; a Streaming type linked to the Device type follows the device's option
+    //   and port
     if (config != nullptr && PropertyObjectPtr::Borrow(config).supportsInterface<IAddDeviceConfig>())
         return DAQ_MAKE_ERROR_INFO(OPENDAQ_ERR_NOTIMPLEMENTED, "Adding a device with an add-device config is not implemented yet");
 
@@ -1595,27 +1589,6 @@ ErrCode ModuleManagerImpl::createAddDeviceConfig(IAddDeviceConfig** config, IDev
 
         AddDeviceConfigPtr addDeviceConfig = createWithImplementation<IAddDeviceConfig, AddDeviceConfigImpl>(
             deviceType, listedTypes, scanOnAdd, transportOptions, streamingTransportOptions);
-
-        // A device info that announces no options names the port to connect to in its connection string, if any, also
-        // for a Device type without options. The port of one of the options is not set: like the one a discovered
-        // connection string carries, it does not override the port of whichever option is selected.
-        if (!transportOptions.assigned())
-        {
-            const auto options = addDeviceConfig.getAvailableTransportOptions();
-            const auto port = GetConnectionStringPort(infoPtr.getConnectionString());
-            const auto isOptionPort = [&options](Int value)
-            {
-                for (const auto& [id, option] : options)
-                {
-                    if (option.getPort() == value)
-                        return true;
-                }
-                return false;
-            };
-
-            if (port.has_value() && !isOptionPort(port.value()))
-                addDeviceConfig.setPort(port.value());
-        }
 
         const auto options = addDeviceConfig.getStreamingOptions();
         if (options.assigned())

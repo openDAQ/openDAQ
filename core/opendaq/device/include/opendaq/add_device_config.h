@@ -58,13 +58,8 @@ enum class AddressType : EnumType
  * whichever option is selected, even when it is the same, until setPort is called with -1.
  *
  * When the device is added, it is connected at the first of these ports:
- * - the port set on the config, by setPort or by writing the `Port` property. For a device info without a server
- *   capability for the Device type, createAddDeviceConfig sets the port its connection string names, unless it is the
- *   port of one of the options;
- * - the port the connection string names, unless it is the port of an option the config lists or the discovered server
- *   announces, or the port of the discovered server capability itself: such a port is the one a discovered connection
- *   string carries, not a port to connect at;
- * - the port the server announces for the selected option, when discovery reports the device;
+ * - the port set on the config, by setPort or by writing the `Port` property;
+ * - the port named by the connection string the device is added with, even when that string is taken from a device info;
  * - the port of the selected option, as getAvailableTransportOptions lists it.
  *
  * A Device type without options is added at the port set, else at the one the connection string names, else at the
@@ -75,10 +70,8 @@ enum class AddressType : EnumType
  * and a connection string that names the same port.
  *
  * Adding the device with the config fails with OPENDAQ_ERR_INVALIDPARAMETER when a port is set and the connection
- * string names another port that is not the port of an option the config lists or the discovered server announces, nor
- * the port of the discovered server capability, and when the prefix of the connection string belongs to another Device
- * type. A `daq://` connection string stands for the
- * discovered server capability of the Device type.
+ * string names another port, and when the prefix of the connection string belongs to another Device type. A `daq://`
+ * connection string stands for the discovered server capability of the Device type, and names no port.
  */
 DECLARE_OPENDAQ_INTERFACE(IAddDeviceConfig, IBaseObject)
 {
@@ -171,10 +164,9 @@ DECLARE_OPENDAQ_INTERFACE(IAddDeviceConfig, IBaseObject)
      * device info's server capability announces for it, or the Device type's default port when the device info has
      * no such capability. -1 for a Device type without options when no port is set.
      *
-     * For a device info without a server capability for the Device type, createAddDeviceConfig sets the port its
-     * connection string names, unless it is the port of one of the options. Unless a port is set, a port the
-     * connection string names, or else a port discovery reports for the selected option, takes precedence when the
-     * device is added (see the class description).
+     * createAddDeviceConfig does not take the port the connection string of the device info names. Unless a port is
+     * set, the port named by the connection string the device is added with takes precedence (see the class
+     * description).
      */
     virtual ErrCode INTERFACE_FUNC getPort(Int* port) = 0;
 };

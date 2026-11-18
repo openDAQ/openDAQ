@@ -314,6 +314,7 @@ TEST_F(SumTest, ReplaceValidWithInvalid)
         fb.getInputPorts()[i].connect(validSignals[i]);
 
     ASSERT_NO_THROW(fb.getInputPorts()[0].connect(invalidSignals[0]));
+    flush();
 }
 
 TEST_F(SumTest, IncompatibleDomainsReconnect)

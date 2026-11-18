@@ -404,17 +404,8 @@ ErrCode MultiReaderDataManager::read(void** data, std::int64_t* domain, SizeT* c
     OPENDAQ_PARAM_NOT_NULL(status);
 
     // The samples are taken off the queues under the mutex and converted after it, so a large read does not hold up
-    // ingest, and a conversion that fails leaves every input at the same position. Reused per thread, so a streaming
-    // read allocates nothing
-    thread_local std::vector<Copy> copies;
-    struct ClearCopies
-    {
-        std::vector<Copy>& copies;
-        ~ClearCopies()
-        {
-            copies.clear();
-        }
-    } clearCopies{copies};
+    // ingest, and a conversion that fails leaves every input at the same position
+    std::vector<Copy> copies;
 
     decltype(dropped) released;  // freed after the mutex
     {

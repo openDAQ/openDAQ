@@ -34,8 +34,7 @@ DataDescriptorPtr domainDescriptor(Int resNum,
 
 DataPacketPtr valuePacket(SizeT count)
 {
-    static const auto descriptor = DataDescriptorBuilder().setSampleType(SampleType::Float64).build();
-    return DataPacket(descriptor, count);
+    return DataPacket(DataDescriptorBuilder().setSampleType(SampleType::Float64).build(), count);
 }
 
 struct Taken

@@ -100,6 +100,7 @@ TEST_F(PowerReaderTest, Connect)
 
     fb.getInputPorts()[0].connect(voltageSignal);
     fb.getInputPorts()[1].connect(currentSignal);
+    ctx.getScheduler().waitAll();
 }
 
 TEST_F(PowerReaderTest, ConnectOneSignal)

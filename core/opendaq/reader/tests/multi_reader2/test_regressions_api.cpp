@@ -118,7 +118,8 @@ TEST_F(MultiReader2RegressionApi, AcceptsDescriptorExceptionIsLoggedAsWarning)
 
     const auto messages = sink.asPtr<ILastMessageLoggerSinkPrivate>(true);
     ASSERT_TRUE(messages.waitForMessage(2000));  // the logger may hand the message to the sink on its own thread
-    EXPECT_EQ(messages.getLastMessage(), "acceptsDescriptor threw for only: owner bug");
+    // Debug builds append the source location
+    EXPECT_EQ(messages.getLastMessage().toStdString().rfind("acceptsDescriptor threw for only: owner bug", 0), 0u);
 }
 
 TEST_F(MultiReader2RegressionApi, StatusInputListCannotBeChanged)

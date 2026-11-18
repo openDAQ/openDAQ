@@ -51,6 +51,11 @@ static PropertyObjectPtr createGeneral(const PropertyObjectPtr& source, Bool sca
     return general;
 }
 
+static PropertyObjectPtr generalOf(const PropertyObjectPtr& legacyConfig, Bool scanOnAdd)
+{
+    return createGeneral(sectionOf(legacyConfig, LegacyAddDeviceConfig::GeneralSection, legacyConfig), scanOnAdd);
+}
+
 static void translateTypeConfig(const PropertyObjectPtr& target, const PropertyObjectPtr& source, const PropertyObjectPtr& general)
 {
     try
@@ -137,8 +142,7 @@ AddDeviceConfigPtr fromLegacyAddDeviceConfig(const PropertyObjectPtr& input,
                                              const LoggerComponentPtr& loggerComponent)
 {
     const auto legacyConfig = input.assigned() ? input : PropertyObject();
-    const auto general =
-        detail::createGeneral(detail::sectionOf(legacyConfig, LegacyAddDeviceConfig::GeneralSection, legacyConfig), scanOnAdd);
+    const auto general = detail::generalOf(legacyConfig, scanOnAdd);
     const auto streamingSection = detail::sectionOf(legacyConfig, LegacyAddDeviceConfig::StreamingSection);
     const auto loadedTypes = streamingTypes.assigned() ? streamingTypes : Dict<IString, IStreamingType>();
 
@@ -196,6 +200,12 @@ AddDeviceConfigPtr fromLegacyAddDeviceConfig(const PropertyObjectPtr& input,
 
     options.setStreamingType(*pick);
     return config;
+}
+
+Bool getLegacyScanOnAdd(const PropertyObjectPtr& legacyConfig, Bool scanOnAdd)
+{
+    const auto general = detail::generalOf(legacyConfig.assigned() ? legacyConfig : PropertyObject(), scanOnAdd);
+    return general.getPropertyValue(LegacyAddDeviceConfig::ScanOnAdd);
 }
 
 PropertyObjectPtr fromLegacyAddStreamingConfig(const PropertyObjectPtr& config, const StreamingTypePtr& streamingType)

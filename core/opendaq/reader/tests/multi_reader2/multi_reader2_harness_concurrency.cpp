@@ -87,7 +87,6 @@ int64_t MultiReader2Test::random(int64_t low, int64_t high)
         const char* fixed = std::getenv("MR2_SEED");
         const auto gtestSeed = static_cast<uint64_t>(testing::UnitTest::GetInstance()->random_seed());
         const uint64_t seed = fixed ? std::stoull(fixed) : gtestSeed != 0 ? gtestSeed : std::random_device{}();
-        RecordProperty("seed", std::to_string(seed));
         recordedSeed = seed;
         rng.emplace(seed);
     }

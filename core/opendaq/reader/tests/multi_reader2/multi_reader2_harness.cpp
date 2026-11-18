@@ -680,6 +680,9 @@ void MultiReader2Test::TearDown()
         scheduler.waitAll();
         scheduler.stop();
     }
+    // Only on failure: gtest keeps a property until the process ends, which the debug leak check counts in a passed test
+    if (HasFailure() && recordedSeed != 0)
+        RecordProperty("seed", std::to_string(recordedSeed.load()));
 }
 
 MultiReader2Test::Given::Given(MultiReader2Test& test)

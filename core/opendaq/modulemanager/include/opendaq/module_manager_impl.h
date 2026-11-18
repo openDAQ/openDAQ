@@ -78,10 +78,6 @@ private:
 
     static void PopulateDeviceTypeConfigFromConnStrOptions(PropertyObjectPtr& deviceTypeConfig,
                                                            const tsl::ordered_map<std::string, ObjectPtr<IBaseObject>>& options);
-    static PropertyObjectPtr PopulateDeviceTypeConfig(PropertyObjectPtr& addDeviceConfig,
-                                                      const PropertyObjectPtr& inputConfig,
-                                                      const DeviceTypePtr& deviceType,
-                                                      const tsl::ordered_map<std::string, ObjectPtr<IBaseObject>>& connStrOptions);
 
     std::string getPrefixFromConnectionString(std::string connectionString) const;
     static std::pair<std::string, tsl::ordered_map<std::string, BaseObjectPtr>> SplitConnectionStringAndOptions(const std::string& connectionString);
@@ -90,7 +86,6 @@ private:
     DeviceInfoPtr getDiscoveredDeviceInfo(const DeviceInfoPtr& deviceInfo) const;
     StringPtr getConnectionStringWithType(const ServerCapabilityPtr& capability, AddressType primaryAddressType) const;
     StringPtr resolveSmartConnectionString(const ServerCapabilityPtr& selectedCapability, AddressType primaryAddressType) const;
-    DeviceTypePtr getDeviceTypeFromConnectionString(const StringPtr& connectionString, const ModulePtr& module) const;
     DeviceTypePtr chooseDeviceType(const DeviceInfoPtr& info,
                                    const StringPtr& prefix,
                                    const DictPtr<IString, IDeviceType>& deviceTypes) const;
@@ -122,8 +117,6 @@ private:
     void checkNetworkSettings(ListPtr<IDeviceInfo>& list);
     void setAddressesReachable(const std::map<std::string, AddressReachabilityStatus>& addr, ListPtr<IDeviceInfo>& info);
 
-    static PropertyObjectPtr PopulateGeneralConfig(PropertyObjectPtr& addDeviceConfig, const PropertyObjectPtr& inputConfig);
-
     StreamingPtr onCreateStreaming(const StringPtr& connectionString,
                                    const PropertyObjectPtr& config,
                                    const AuthenticationConfigPtr& authenticationConfig,
@@ -138,8 +131,6 @@ private:
     // `authenticationConfig.getSuppliedCredential()` returns one, it is used directly instead of asking the
     // provider to obtain one.
     DictPtr<IString, IString> resolveCredentials(const AuthenticationConfigPtr& authenticationConfig, const CredentialRequestPtr& credentialRequest) const;
-
-    static void OverrideConfigProperties(PropertyObjectPtr& targetConfig, const PropertyObjectPtr& sourceConfig);
 
     DictPtr<IString, IDeviceInfo> discoverDevicesWithIpModification();
     std::pair<StringPtr, DeviceInfoPtr> populateDiscoveredDevice(const discovery::MdnsDiscoveredDevice& discoveredDevice);

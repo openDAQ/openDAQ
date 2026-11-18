@@ -1232,30 +1232,6 @@ void ModuleManagerImpl::PopulateDeviceTypeConfigFromConnStrOptions(
     }
 }
 
-PropertyObjectPtr ModuleManagerImpl::PopulateDeviceTypeConfig(PropertyObjectPtr& addDeviceConfig,
-                                                              const PropertyObjectPtr& inputConfig,
-                                                              const DeviceTypePtr& deviceType,
-                                                              const tsl::ordered_map<std::string, ObjectPtr<IBaseObject>>& connStrOptions)
-{
-    assert(IsDefaultAddDeviceConfig(addDeviceConfig));
-
-    const StringPtr deviceTypeId = deviceType.getId();
-    PropertyObjectPtr deviceTypeConfigurations = addDeviceConfig.getPropertyValue("Device");
-
-    PropertyObjectPtr deviceTypeConfig = deviceTypeConfigurations.getPropertyValue(deviceTypeId);
-
-    if (inputConfig.assigned() && !IsDefaultAddDeviceConfig(inputConfig))
-        OverrideConfigProperties(deviceTypeConfig, inputConfig);
-
-    if (!connStrOptions.empty())
-        PopulateDeviceTypeConfigFromConnStrOptions(deviceTypeConfig, connStrOptions);
-
-    deviceTypeConfigurations.asPtr<IPropertyObjectProtected>().setProtectedPropertyValue(deviceTypeId, deviceTypeConfig);
-    addDeviceConfig.asPtr<IPropertyObjectProtected>().setProtectedPropertyValue("Device", deviceTypeConfigurations);
-
-    return deviceTypeConfig;
-}
-
 ErrCode ModuleManagerImpl::createFunctionBlock(IFunctionBlock** functionBlock, IString* id, IComponent* parent, IPropertyObject* config, IString* localId)
 {
     OPENDAQ_PARAM_NOT_NULL(functionBlock);
@@ -1750,39 +1726,6 @@ StringPtr ModuleManagerImpl::resolveSmartConnectionString(const ServerCapability
     return connectionString;
 }
 
-DeviceTypePtr ModuleManagerImpl::getDeviceTypeFromConnectionString(const StringPtr& connectionString, const ModulePtr& module) const
-{
-    const std::string prefix = getPrefixFromConnectionString(connectionString);
-
-    DictPtr<IString, IDeviceType> types;
-    const ErrCode err = module->getAvailableDeviceTypes(&types);
-    if (err == OPENDAQ_ERR_NOTIMPLEMENTED)
-        daqClearErrorInfo();
-    else
-        checkErrorInfo(err);
-
-    if (!types.assigned())
-        return nullptr;
-
-    return FindTypeByPrefix<DeviceTypePtr>(types, prefix);
-}
-
-// copies value of any General property present in inputConfig to correspoding General property
-PropertyObjectPtr ModuleManagerImpl::PopulateGeneralConfig(PropertyObjectPtr& addDeviceConfig, const PropertyObjectPtr& inputConfig)
-{
-    assert(IsDefaultAddDeviceConfig(addDeviceConfig));
-    assert(!IsDefaultAddDeviceConfig(inputConfig));
-
-    PropertyObjectPtr generalConfig = addDeviceConfig.getPropertyValue("General");
-    if (inputConfig.assigned())
-    {
-        OverrideConfigProperties(generalConfig, inputConfig);
-        addDeviceConfig.asPtr<IPropertyObjectProtected>().setProtectedPropertyValue("General", generalConfig);
-    }
-
-    return generalConfig;
-}
-
 StreamingPtr ModuleManagerImpl::onCreateStreaming(const StringPtr& connectionString,
                                                   const PropertyObjectPtr& config,
                                                   const AuthenticationConfigPtr& authenticationConfig,
@@ -1944,31 +1887,6 @@ void ModuleManagerImpl::completeServerCapabilities(const DevicePtr& device) cons
 
     for (const auto& target: targetCaps)
         target.freeze();
-}
-
-void ModuleManagerImpl::OverrideConfigProperties(PropertyObjectPtr& targetConfig, const PropertyObjectPtr& sourceConfig)
-{
-    for (const auto& prop : targetConfig.getAllProperties())
-    {
-        const auto name = prop.getName();
-        if (sourceConfig.hasProperty(name))
-        {
-            const auto sourcePropValue = sourceConfig.getPropertyValue(name);
-            auto property = targetConfig.getProperty(name);
-            if (targetConfig.getPropertyValue(name) != sourcePropValue)
-            {
-                auto valueType = property.getValueType();
-                if (valueType == ctObject || valueType == ctFunc || valueType == ctProc)
-                {
-                    targetConfig.asPtr<IPropertyObjectProtected>().setProtectedPropertyValue(name, sourcePropValue);
-                }
-                else
-                {
-                    targetConfig.setPropertyValue(name, sourcePropValue);
-                }
-            }
-        }
-    }
 }
 
 DictPtr<IString, IDeviceInfo> ModuleManagerImpl::discoverDevicesWithIpModification()

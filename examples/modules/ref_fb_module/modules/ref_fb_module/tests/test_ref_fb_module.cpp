@@ -418,6 +418,7 @@ TEST_F(RefFbModuleTest, PowerReaderWithReferenceDomainOffset)
     // Set input (port) and output (signal) of the function block
     fb.getInputPorts()[0].connect(help.signal);
     fb.getInputPorts()[1].connect(help.signal);
+    help.context.getScheduler().waitAll();  // the reader drops what arrives before it is configured
 
     // Call helper method
     auto domainData = help.sendAndReceive(fb.getSignals()[0]);

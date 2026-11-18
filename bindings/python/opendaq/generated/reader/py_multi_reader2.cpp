@@ -501,7 +501,7 @@ Layout makeLayout(const daq::MultiReader2StatusPtr& status, daq::SampleType read
 }
 
 // Memory the binding allocates for a read: one buffer per contributing input, not zero-filled; numpy takes
-// ownership through a capsule. Inputs get separate buffers because their sample counts can differ (dividers)
+// ownership through a capsule. Inputs get separate buffers because their sample counts can differ.
 struct Allocation
 {
     size_t slot = 0;
@@ -904,7 +904,7 @@ public:
         target.elementShapes.assign(slotCount, {});
         target.present.assign(slotCount, false);
 
-        // One buffer per input: a list of arrays (None for an input not read), or a 2D array, whose rows are the buffers
+        // One buffer per input, shaped (N, *dims): a list of arrays (None for an input not read), or an array (inputs, N, *dims)
         if (!py::isinstance<py::sequence>(buffers) || py::isinstance<py::str>(buffers))
             throw py::type_error("read_into: buffers must hold one numpy array (or None) per input");
         const auto sequence = py::reinterpret_borrow<py::sequence>(buffers);
@@ -1147,7 +1147,9 @@ void wrapMultiReader2(pybind11::module_ m)
             applyKwargs(params, kwargs);
             return paramsToPy(params);
         },
-        "Creates params with the defaults (Float64, MinReadCount 1, Invalidate, automatic main input); keyword arguments set fields.");
+        "Creates params with the defaults value_read_type=SampleType.Float64, min_read_count=1, "
+        "error_policy=MultiReader2ErrorPolicy.Invalidate, main_input=None (automatic) and accepts_descriptor=None; "
+        "keyword arguments set fields.");
 
     paramsCls.def_property(
         "inputs",
@@ -1172,7 +1174,7 @@ void wrapMultiReader2(pybind11::module_ m)
         },
         [](daq::IMultiReader2Params* object, const py::object& function)
         { daq::MultiReader2ParamsPtr::Borrow(object).setAcceptsDescriptor(toFunction(function)); },
-        "The owner's judgement: a callable (input, value_descriptor, domain_descriptor) -> bool, or None to accept all.");
+        "A callable that validates value descriptor (input, value_descriptor, domain_descriptor) -> bool, or None to accept all.");
     paramsCls.def_property(
         "value_read_type",
         [](daq::IMultiReader2Params* object) { return daq::MultiReader2ParamsPtr::Borrow(object).getValueReadType(); },
@@ -1200,7 +1202,7 @@ void wrapMultiReader2(pybind11::module_ m)
     inputStatusCls.def_property_readonly(
         "error",
         [](daq::IMultiReader2InputStatus* object) { return daq::MultiReader2InputStatusPtr::Borrow(object).getError(); },
-        "The input's error; None while healthy.");
+        "The input's error (None while healthy).");
     inputStatusCls.def_property_readonly(
         "descriptor_changed",
         [](daq::IMultiReader2InputStatus* object) { return static_cast<bool>(daq::MultiReader2InputStatusPtr::Borrow(object).getDescriptorChanged()); },
@@ -1312,7 +1314,7 @@ void wrapMultiReader2(pybind11::module_ m)
     // Read result
 
     py::class_<PyReadResult>(m, "MultiReader2ReadResult", "The samples, offset and status of one read.")
-        .def_property_readonly("count", [](const PyReadResult& r) { return r.count; }, "The count read, in main ticks.")
+        .def_property_readonly("count", [](const PyReadResult& r) { return r.count; }, "The count of main samples read.")
         .def("__getitem__", [](const PyReadResult& r, const py::object& key) -> py::object { return r.values[r.slotOf(key)]; },
              py::arg("input"), "One input's array, by slot index or by input; None for an input in error.")
         .def_property_readonly("values", [](const PyReadResult& r) { return r.values; }, "The arrays in slot order; None for an input in error.")
@@ -1377,14 +1379,15 @@ void wrapMultiReader2(pybind11::module_ m)
         .def(py::init([](const py::object& inputs, const py::kwargs& kwargs) { return PyMultiReader2::create(inputs, kwargs); }),
              py::arg("inputs"))
         .def("configure", &PyMultiReader2::configure, py::arg("params") = py::none(),
-             "Applies the reader's params with the named fields changed (or a params object) as if newly constructed; returns the status "
-             "of a 0-count read. on_data_available=None removes the handler.")
+             "Configure the reader with the provided params. Using named fields updates existing configuration and applies it "
+             "(e. g. on_data_available=None removes the handler). Returns status of a 0-count read.")
         .def("reevaluate", &PyMultiReader2::reevaluate, "Judges every input again by accepts_descriptor; returns the status of a 0-count read.")
         .def_property_readonly("available_count", &PyMultiReader2::availableCount, "The aligned samples a read can return now.")
         .def_property_readonly("params", &PyMultiReader2::getParams, "A copy of the applied params.")
         .def("read", &PyMultiReader2::read, py::arg("count"), "Reads up to count aligned samples; returns a MultiReader2ReadResult.")
         .def("read_into", &PyMultiReader2::readInto, py::arg("buffers"), py::arg("count"),
-             "Reads up to count samples into buffers, one numpy array (or None) per input; a 2D array (inputs, N[, *dims]) works row by row.")
+             "Reads up to count samples into buffers: one numpy array (or None) per input, shaped (N, *dims) with N at least count; "
+             "a single array (inputs, N, *dims) works when all inputs share a sample shape.")
         .def("skip_samples", &PyMultiReader2::skipSamples, py::arg("count"),
              "Behaves like read without copying; returns (count, offset, status).")
         .def("drain", [](py::object self) { return PyDrain(std::move(self)); },

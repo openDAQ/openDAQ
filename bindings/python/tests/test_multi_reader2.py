@@ -331,7 +331,7 @@ class TestMultiReader2(opendaq_test.TestCase):
     def test_on_data_available(self):
         calls = threading.Event()
         reader = daq.MultiReader2(self.signals, on_data_available=calls.set)
-        reader.read(0)                                                # construction schedules no call
+        reader.read(0)
         self.feed(reader, 0, 10)
         self.assertTrue(calls.wait(3))
 

@@ -117,7 +117,7 @@ DECLARE_OPENDAQ_INTERFACE(IAddDeviceConfig, IBaseObject)
     /*!
      * @brief Gets the transport options the device can be added over.
      * @param[out] transportOptions The options of the device info's server capability for the Device type, with the
-     * ports the server announces, keyed by their own ids, the server's preferred first in dict iteration order. The
+     * ports the server announces, keyed by their own ids, the server's default first in dict iteration order. The
      * options of the Device type when the device info has no such capability. Empty for a Device type without
      * options.
      */

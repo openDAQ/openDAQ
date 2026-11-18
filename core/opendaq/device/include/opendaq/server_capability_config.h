@@ -143,8 +143,8 @@ DECLARE_OPENDAQ_INTERFACE(IServerCapabilityConfig, IServerCapability)
     // [templateType(transportOptions, IString, ITransportOption), returnSelf]
     /*!
      * @brief Sets the transport options the server accepts connections over, with the port it serves each on.
-     * @param transportOptions The served options, keyed by their own ids, the server's preferred first in dict
-     * iteration order.
+     * @param transportOptions The served options, keyed by their own ids, the default one first in dict iteration
+     * order: the one a client connects over when it selects none.
      * @retval OPENDAQ_ERR_INVALIDTYPE if a key is not a string or a value is not a transport option.
      * @retval OPENDAQ_ERR_INVALIDVALUE if a key is not the id of its option.
      *

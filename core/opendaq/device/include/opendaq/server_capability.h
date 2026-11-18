@@ -173,11 +173,12 @@ DECLARE_OPENDAQ_INTERFACE(IServerCapability, IPropertyObject)
     // [templateType(transportOptions, IString, ITransportOption)]
     /*!
      * @brief Gets the transport options the server accepts connections over, with the port it serves each on.
-     * @param[out] transportOptions The served options, keyed by their own ids, the server's preferred first in dict
-     * iteration order. On the connection info of a connected device, only the option the connection uses.
+     * @param[out] transportOptions The served options, keyed by their own ids. The first in dict iteration order is the
+     * default one, which a client connects over when it selects none; the connection string of the capability names its
+     * port. On the connection info of a connected device, only the option the connection uses.
      *
      * On a client, the capability of a discovered or connected server lists only the options the client module
-     * supports as well. The first option is the default one, and its port is the one returned by getPort.
+     * supports as well. The port of the default option is the one returned by getPort.
      */
     virtual ErrCode INTERFACE_FUNC getAvailableTransportOptions(IDict** transportOptions) = 0;
 

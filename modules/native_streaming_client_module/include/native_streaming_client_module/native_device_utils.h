@@ -27,8 +27,8 @@ BEGIN_NAMESPACE_OPENDAQ_NATIVE_STREAMING_CLIENT_MODULE
 /*!
  * Builds a list of reachable alternative addresses from the given server capability.
  *
- * Reads `PrimaryAddressType` from @p config when it is an add device config.
- * Addresses of that type come first, followed by the others in their original order.
+ * Orders the addresses as `sortAddressInfos` does.
+ * The primary address type is `PrimaryAddressType` of @p config when it is an add device config, and IPv4 otherwise.
  * Addresses with AddressReachabilityStatus::Unreachable are always excluded.
  *
  * @param config        Component config property object (may be nullptr).
@@ -60,25 +60,12 @@ inline ErrCode collectAlternativeAddresses(const PropertyObjectPtr& config,
         return OPENDAQ_IGNORED;
 
     const AddDeviceConfigPtr addDeviceConfig = config.assigned() ? config.asPtrOrNull<IAddDeviceConfig>(true) : nullptr;
-    StringPtr primaryAddressType;
-    if (addDeviceConfig.assigned())
-        primaryAddressType = getAddressTypeName(addDeviceConfig.getPrimaryAddressType());
+    const auto primaryAddressType = addDeviceConfig.assigned() ? addDeviceConfig.getPrimaryAddressType() : AddressType::IPv4;
 
     auto addresses = List<IString>();
-    auto otherAddresses = List<IString>();
-    for (const auto& addressInfo : addressInfos)
-    {
-        if (addressInfo.getReachabilityStatus() == AddressReachabilityStatus::Unreachable)
-            continue;
-
-        if (!primaryAddressType.assigned() || addressInfo.getType() == primaryAddressType)
+    for (const auto& addressInfo : sortAddressInfos(addressInfos, primaryAddressType))
+        if (addressInfo.getReachabilityStatus() != AddressReachabilityStatus::Unreachable)
             addresses.pushBack(addressInfo.getAddress());
-        else
-            otherAddresses.pushBack(addressInfo.getAddress());
-    }
-
-    for (const auto& address : otherAddresses)
-        addresses.pushBack(address);
 
     outAddresses = std::move(addresses);
     return OPENDAQ_SUCCESS;

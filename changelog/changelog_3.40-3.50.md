@@ -72,6 +72,7 @@ Use `daqref.root://` instead, also in `RootDevice.ConnectionString` of config fi
 ### [#1398](https://github.com/openDAQ/openDAQ/pull/1398) `General.PrimaryAddressType` is a preference
 
 A set `General.PrimaryAddressType` orders the addresses, the preferred type first, instead of dropping those of the other type.
+A reachable address comes before an unreachable one of the preferred type.
 
 ### [#1398](https://github.com/openDAQ/openDAQ/pull/1398) `daq://` prefers IPv4 addresses
 
